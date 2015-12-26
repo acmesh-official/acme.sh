@@ -507,6 +507,11 @@ renewAll() {
 
 install() {
   _initpath
+  if ! command -v "curl" ; then
+    _info "Please install curl first."
+    _info "sudo apt-get install curl"
+    return 1
+  fi
   _info "Installing to $WORKING_DIR"
   
   mkdir -p $WORKING_DIR/
