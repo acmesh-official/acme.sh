@@ -210,7 +210,7 @@ _setopt() {
     echo usage: $0  '"file"  "opt"  "="  "value" [";"]'
     return
   fi
-  if [ -f $__conf ] ; 
+  if [ -f $__conf ] ; then
     touch $__conf
   fi
   if grep -H -n "^$__opt$__sep" $__conf ; then
