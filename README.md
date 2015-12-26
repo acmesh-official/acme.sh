@@ -69,7 +69,7 @@ Once the cert is renewed,  the apache/nginx will be automatically reloaded by th
 
 #Under the Hood
 
-Use bash to say ACME language directly to Let's encrypt.
+Speak ACME language with bash directly to Let's encrypt.
 
 TODO:
 
