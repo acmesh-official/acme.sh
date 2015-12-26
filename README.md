@@ -26,7 +26,7 @@ Probably it's the smallest&easiest&smartest shell script to automatically  issue
 Which does 2 things:
 * create and copy le.sh to your home dir:  `~/.le`
 All the certs will be placed in this folder.
-* create symbol link: `/bin/le  -> ~/.le/ls.sh`
+* create symbol link: `/bin/le  -> ~/.le/le.sh`
 
 3. Ok,  you are ready to issue cert now.
 Show help message:
