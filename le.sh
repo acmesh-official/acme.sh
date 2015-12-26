@@ -233,18 +233,13 @@ _initpath() {
   
   mkdir -p $WORKING_DIR/$domain
   
-  if [ -z "$CSR_PATH" ] ; then 
-    CSR_PATH=$WORKING_DIR/$domain/$domain.csr
-  fi
-  
-  if [ -z "$CERT_KEY_PATH" ] ; then 
-    CERT_KEY_PATH=$WORKING_DIR/$domain/$domain.key
-  fi
-  
-  if [ -z "$CERT_PATH" ] ; then
-    CERT_PATH=$WORKING_DIR/$domain/$domain.cer
-  fi
-  
+
+  CSR_PATH=$WORKING_DIR/$domain/$domain.csr
+
+  CERT_KEY_PATH=$WORKING_DIR/$domain/$domain.key
+
+  CERT_PATH=$WORKING_DIR/$domain/$domain.cer
+
 }
 
 #issue webroot a.com [www.a.com,b.com,c.com]  [key-length] [cert-file-path] [key-file-path] [reloadCmd]
@@ -277,7 +272,7 @@ issue() {
     echo Usage: $0 webroot a.com [b.com,c.com]  [key-length]
     return 1
   fi
-  
+
   createAccountKey $Le_Domain $Le_Keylength
   
   createDomainKey $Le_Domain $Le_Keylength
