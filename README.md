@@ -7,7 +7,7 @@ Pure written in bash, no dependencies to python , acme-tiny or LetsEncrypt offic
 
 Just one script, to issue, renew your certiricates automatically.
 
-Possiblly it's the smallest&easiest&smartest shell script to automatically  issue&renew the free certificates from LetsEncrypt.
+Probably it's the smallest&easiest&smartest shell script to automatically  issue&renew the free certificates from LetsEncrypt.
 
 
 #Supported OS
@@ -26,7 +26,7 @@ Possiblly it's the smallest&easiest&smartest shell script to automatically  issu
 Which does 2 things:
 * create and copy le.sh to your home dir:  `~/.le`
 All the certs will be placed in this folder.
-* create symbol link: `/bin/le  -> ~/.le/ls.sh`
+* create symbol link: `/bin/le  -> ~/.le/le.sh`
 
 3. Ok,  you are ready to issue cert now.
 Show help message:
@@ -78,7 +78,7 @@ TODO:
 
 License is GPLv3
 
-Please Star and Fock me.
+Please Star and Fork me.
 
 Issues and pullrequests are welcomed.
 
