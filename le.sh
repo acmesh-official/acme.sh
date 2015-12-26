@@ -458,7 +458,7 @@ issue() {
   fi
   _setopt $DOMAIN_CONF  "Le_ReloadCmd"         "="  "\"$Le_ReloadCmd\""
   
-  if [ "Le_ReloadCmd" ] ; then
+  if [ "$Le_ReloadCmd" ] ; then
     _info "Run Le_ReloadCmd: $Le_ReloadCmd"
     $Le_ReloadCmd
   fi
