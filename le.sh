@@ -26,7 +26,7 @@ API=$DEFAULT_CA
 DEBUG=
 
 _debug() {
-  if ! [ "DEBUG" ] ; then
+  if ! [ "$DEBUG" ] ; then
     return
   fi
   
@@ -144,8 +144,8 @@ _send_signed_request() {
   
   needbas64="$3"
   
-  _info url $url
-  _info payload "$payload"
+  _debug url $url
+  _debug payload "$payload"
   
   CURL_HEADER="$WORKING_DIR/curl.header"
   dp="$WORKING_DIR/curl.dump"
@@ -190,7 +190,7 @@ _send_signed_request() {
 
 _get() {
   url="$1"
-  _info url $url
+  _debug url $url
   response=$(curl --silent $url)
   ret=$?
   _debug response  "$response"
@@ -212,13 +212,13 @@ _setopt() {
   fi
 
   if grep -H -n "^$__opt$__sep" $__conf ; then
-    echo OK
+    _debug OK
     sed -i "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" $__conf 
   else
-    echo APP
+    _debug APP
     echo "$__opt$__sep$__val$__end" >> $__conf
   fi
-  grep -H -n "^$__opt$__sep" $__conf
+  _debug "$(grep -H -n "^$__opt$__sep" $__conf)"
 }
 
 _initpath() {
@@ -342,10 +342,10 @@ issue() {
     _debug http01 "$http01"
     
     token=$(echo "$http01" | sed 's/,/\n'/g| grep '"token":'| cut -d : -f 2|sed 's/"//g')
-    _info token $token
+    _debug token $token
     
     uri=$(echo "$http01" | sed 's/,/\n'/g| grep '"uri":'| cut -d : -f 2,3|sed 's/"//g')
-    _info uri $uri
+    _debug uri $uri
     
     keyauthorization="$token.$thumbprint"
     _debug keyauthorization "$keyauthorization"
