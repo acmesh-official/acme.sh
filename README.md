@@ -57,9 +57,9 @@ The cert will be placed in `~/.le/aa.com/`
 The issued cert will be renewed every 50 days automatically.
 
 
-# Issue a cert, and install to apache
+# Issue a cert, and install to apache/nginx
 ```
-le issue   /home/wwwroot/aa.com    aa.com    www.aa.com,cp.aa.com  2048  /path/to/certfile/in/apache/nginx  /path/to/keyfile/in/apache/nginx   "service apache2 reload"
+le issue   /home/wwwroot/aa.com    aa.com    www.aa.com,cp.aa.com  2048  /path/to/certfile/in/apache/nginx  /path/to/keyfile/in/apache/nginx   "service apache2/nginx reload"
 ```
 This can link the issued cert to the production apache or nginx path.
 Once the cert is renewed,  the apache/nginx will be automatically reloaded by the command: ` service apache2 reload`
