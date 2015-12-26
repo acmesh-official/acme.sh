@@ -78,7 +78,7 @@ TODO:
 
 License is GPLv3
 
-Please Star and Fock me.
+Please Star and Fork me.
 
 Issues and pullrequests are welcomed.
 
