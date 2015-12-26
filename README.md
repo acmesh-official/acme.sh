@@ -7,7 +7,7 @@ Pure written in bash, no dependencies to python , acme-tiny or LetsEncrypt offic
 
 Just one script, to issue, renew your certiricates automatically.
 
-Possiblly it's the smallest&easiest&smartest shell script to automatically  issue&renew the free certificates from LetsEncrypt.
+Probably it's the smallest&easiest&smartest shell script to automatically  issue&renew the free certificates from LetsEncrypt.
 
 
 #Supported OS
