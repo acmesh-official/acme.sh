@@ -23,7 +23,6 @@ DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
 
 API=$DEFAULT_CA
 
-DEBUG=
 
 _debug() {
   if ! [ "$DEBUG" ] ; then
