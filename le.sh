@@ -210,7 +210,9 @@ _setopt() {
     echo usage: $0  '"file"  "opt"  "="  "value" [";"]'
     return
   fi
-
+  if [ -f $__conf ] ; 
+    touch $__conf
+  fi
   if grep -H -n "^$__opt$__sep" $__conf ; then
     _debug OK
     sed -i "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" $__conf 
