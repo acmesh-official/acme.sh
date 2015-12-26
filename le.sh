@@ -321,7 +321,7 @@ issue() {
   fi
   
   # verify each domain
-  _info "verify each domain"
+  _info "Verify each domain"
   
   alldomains=$(echo "$Le_Domain,$Le_Alt" | sed "s/,/ /g")
   for d in $alldomains   
@@ -371,34 +371,34 @@ issue() {
       _debug "checking"
       
       if ! _get $uri ; then
-        _info "verify error:$d"
+        _info "Verify error:$d"
         return 1
       fi
       
       status=$(echo $response | egrep -o  '"status":"[^"]+"' | cut -d : -f 2 | sed 's/"//g')
       if [ "$status" == "valid" ] ; then
-        _info "verify success:$d"
+        _info "Verify success:$d"
         break;
       fi
       
       if [ "$status" == "invalid" ] ; then
          error=$(echo $response | egrep -o '"error":{[^}]*}' | grep -o '"detail":"[^"]*"' | cut -d '"' -f 4)
-        _info "verify error:$d"
+        _info "Verify error:$d"
         _debug $error
         return 1;
       fi
       
       if [ "$status" == "pending" ] ; then
-        _info "verify pending:$d"
+        _info "Verify pending:$d"
       else
-        _info "verify error:$d" 
+        _info "Verify error:$d" 
         return 1
       fi
       
     done    
   done 
   
-  _info "verify finished, start to sign."
+  _info "Verify finished, start to sign."
   der=$(openssl req  -in $CSR_PATH -outform DER | base64 | _b64)
   _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbas64"
   
@@ -407,6 +407,8 @@ issue() {
   echo -----END CERTIFICATE-----  >> $CERT_PATH
   _info "Cert success."
   cat $CERT_PATH
+  
+  _info "Your cert is in $CERT_PATH"
   
   _setopt $DOMAIN_CONF  "Le_Domain"             "="  "$Le_Domain"
   _setopt $DOMAIN_CONF  "Le_Alt"                "="  "$Le_Alt"
