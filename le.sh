@@ -3,22 +3,11 @@
 
 WORKING_DIR=~/.le
 
-ACCOUNT_KEY_PATH=$WORKING_DIR/account.acc
-
-CERT_KEY_PATH=$WORKING_DIR/domain.key
-
-CSR_PATH=$WORKING_DIR/domain.csr
-
-CERT_PATH=$WORKING_DIR/domain.cer
-
-DOMAIN_CONF=$WORKING_DIR/domain.conf
-
 CURL_HEADER=""
-
 HEADER=""
 HEADERPLACE=""
-
 ACCOUNT_EMAIL=""
+
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
 
 API=$DEFAULT_CA
@@ -58,7 +47,7 @@ createAccountKey() {
     echo Use default length 2048
     length=2048
   fi
-  
+  _initpath
   mkdir -p $WORKING_DIR
   ACCOUNT_KEY_PATH=$WORKING_DIR/account.acc
   
@@ -85,7 +74,7 @@ createDomainKey() {
     echo Use default length 2048
     length=2048
   fi
-
+  _initpath $domain
   mkdir -p $WORKING_DIR/$domain
   CERT_KEY_PATH=$WORKING_DIR/$domain/$domain.key
   
@@ -185,10 +174,10 @@ _send_signed_request() {
 _get() {
   url="$1"
   _debug url $url
-  response=$(curl --silent $url)
+  response="$(curl --silent $url)"
   ret=$?
   _debug response  "$response"
-  code=$(echo $response | grep -o '"status":[0-9]\+' | cut -d : -f 2)
+  code="$(echo $response | grep -o '"status":[0-9]\+' | cut -d : -f 2)"
   _debug code $code
   return $ret
 }
@@ -229,13 +218,13 @@ _initpath() {
   
   mkdir -p $WORKING_DIR/$domain
   
-
   CSR_PATH=$WORKING_DIR/$domain/$domain.csr
 
   CERT_KEY_PATH=$WORKING_DIR/$domain/$domain.key
 
   CERT_PATH=$WORKING_DIR/$domain/$domain.cer
-
+  
+  CA_CERT_PATH=$WORKING_DIR/$domain/ca.cer
 }
 
 #issue webroot a.com [www.a.com,b.com,c.com]  [key-length] [cert-file-path] [key-file-path] [reloadCmd]
@@ -423,7 +412,14 @@ issue() {
   Le_LinkIssuer=$(grep -i '^Link' $CURL_HEADER | cut -d " " -f 2| cut -d ';' -f 1 | sed 's/<//g' | sed 's/>//g')
   _setopt $DOMAIN_CONF  "Le_LinkIssuer"         "="  "$Le_LinkIssuer"
   
-
+  if [ "$Le_LinkIssuer" ] ; then
+    _get "$Le_LinkIssuer"
+    echo -----BEGIN CERTIFICATE----- > $CA_CERT_PATH
+    echo $response | base64 | sed "s/ /\n/g" >> $CA_CERT_PATH
+    echo -----END CERTIFICATE-----  >> $CA_CERT_PATH
+    _info "The intermediate CA cert is in $CA_CERT_PATH"
+  fi
+  
   Le_CertCreateTime=$(date -u "+%s")
   _setopt $DOMAIN_CONF  "Le_CertCreateTime"     "="  "$Le_CertCreateTime"
   
@@ -467,8 +463,6 @@ issue() {
   fi
   
 }
-
-
 
 renew() {
   Le_Domain="$1"
