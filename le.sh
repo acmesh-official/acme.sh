@@ -122,7 +122,7 @@ createCSR() {
     alt=DNS:$(echo $domainlist | sed "s/,/,DNS:/g")
     #multi 
     echo multi domain $alt
-    openssl req -new -sha256 -key $CERT_KEY_PATH -subj "/CN=$domain" -reqexts SAN -config <(cat /etc/ssl/openssl.cnf <(printf "[SAN]\nsubjectAltName=$alt")) -out $CSR_PATH
+    openssl req -new -sha256 -key $CERT_KEY_PATH -subj "/CN=$domain" -reqexts SAN -config <(printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\n[SAN]\nsubjectAltName=$alt") -out $CSR_PATH
   fi
 
 }
@@ -509,9 +509,31 @@ install() {
   _initpath
   if ! command -v "curl" ; then
     _info "Please install curl first."
-    _info "sudo apt-get install curl"
+    _info "Ubuntu: sudo apt-get install curl"
+    _info "CentOS: yum install curl"
     return 1
   fi
+  
+  if ! command -v "crontab" ; then
+    _info "Please install crontab first."
+    _info "CentOs: yum -y install crontabs"
+    return 1
+  fi
+  
+  if ! command -v "openssl" ; then
+    _info "Please install openssl first."
+    _info "CentOs: yum -y install openssl"
+    return 1
+  fi
+  
+  if ! command -v "xxd" ; then
+    _info "Please install xxd first."
+    _info "CentOs: yum install vim-common"
+    return 1
+  fi
+  
+  
+  
   _info "Installing to $WORKING_DIR"
   
   mkdir -p $WORKING_DIR/
@@ -526,7 +548,11 @@ install() {
   _info "Installing cron job"
   if ! crontab -l | grep 'le.sh renewAll' ; then 
     crontab -l | { cat; echo "0 0 * * * le.sh renewAll"; } | crontab -
-    service cron restart
+    if command -v crond ; then
+      service cron reload
+    else
+      service cron restart
+    fi
   fi  
   
   
