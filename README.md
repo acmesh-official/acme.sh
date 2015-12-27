@@ -28,7 +28,8 @@ Which does 3 jobs:
 All the certs will be placed in this folder.
 * create symbol link: `/bin/le  -> ~/.le/le.sh`
 * create everyday cron job to check and renew the cert if needed.
-* 
+
+
 Ok,  you are ready to issue cert now.
 Show help message:
 ```
