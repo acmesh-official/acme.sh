@@ -25,7 +25,8 @@ API=$DEFAULT_CA
 
 
 _debug() {
-  if ! [ "$DEBUG" ] ; then
+
+  if [ -z "$DEBUG" ] ; then
     return
   fi
   
@@ -149,7 +150,7 @@ _send_signed_request() {
   CURL_HEADER="$WORKING_DIR/curl.header"
   dp="$WORKING_DIR/curl.dump"
   CURL="curl --silent --dump-header $CURL_HEADER "
-  if [ "DEBUG" ] ; then
+  if [ "$DEBUG" ] ; then
     CURL="$CURL --trace-ascii $dp "
   fi
   payload64=$(echo -n $payload | base64 | _b64)
@@ -212,7 +213,7 @@ _setopt() {
   if [ ! -f $__conf ] ; then
     touch $__conf
   fi
-  if grep -H -n "^$__opt$__sep" $__conf ; then
+  if grep -H -n "^$__opt$__sep" $__conf > /dev/null ; then
     _debug OK
     sed -i "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" $__conf 
   else
@@ -401,27 +402,34 @@ issue() {
   der=$(openssl req  -in $CSR_PATH -outform DER | base64 | _b64)
   _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbas64"
   
-  echo -----BEGIN CERTIFICATE----- > $CERT_PATH
-  echo $response | sed "s/ /\n/g" >> $CERT_PATH
-  echo -----END CERTIFICATE-----  >> $CERT_PATH
-  _info "Cert success."
-  cat $CERT_PATH
   
-  _info "Your cert is in $CERT_PATH"
+  Le_LinkCert=$(grep -i '^Location' $CURL_HEADER | cut -d " " -f 2)
+  _setopt $DOMAIN_CONF  "Le_LinkCert"           "="  "$Le_LinkCert"
+  
+  if [ "$Le_LinkCert" ] ; then  
+    echo -----BEGIN CERTIFICATE----- > $CERT_PATH
+    echo $response | sed "s/ /\n/g" >> $CERT_PATH
+    echo -----END CERTIFICATE-----  >> $CERT_PATH
+    _info "Cert success."
+    cat $CERT_PATH
+    
+    _info "Your cert is in $CERT_PATH"
+  fi
   
   _setopt $DOMAIN_CONF  "Le_Domain"             "="  "$Le_Domain"
   _setopt $DOMAIN_CONF  "Le_Alt"                "="  "$Le_Alt"
   _setopt $DOMAIN_CONF  "Le_Webroot"            "="  "$Le_Webroot"
   _setopt $DOMAIN_CONF  "Le_Keylength"          "="  "$Le_Keylength"
   
-  
+  if [ -z "$Le_LinkCert" ] ; then
+    _info "Sign failed, ToDO"
+    return 1
+  fi
   
   Le_LinkIssuer=$(grep -i '^Link' $CURL_HEADER | cut -d " " -f 2| cut -d ';' -f 1 | sed 's/<//g' | sed 's/>//g')
   _setopt $DOMAIN_CONF  "Le_LinkIssuer"         "="  "$Le_LinkIssuer"
   
-  Le_LinkCert=$(grep -i '^Location' $CURL_HEADER | cut -d " " -f 2)
-  _setopt $DOMAIN_CONF  "Le_LinkCert"           "="  "$Le_LinkCert"
-  
+
   Le_CertCreateTime=$(date -u "+%s")
   _setopt $DOMAIN_CONF  "Le_CertCreateTime"     "="  "$Le_CertCreateTime"
   
