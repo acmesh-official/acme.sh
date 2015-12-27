@@ -382,16 +382,16 @@ issue() {
   done 
   
   _info "Verify finished, start to sign."
-  der=$(openssl req  -in $CSR_PATH -outform DER | base64 | _b64)
+  der="$(openssl req  -in $CSR_PATH -outform DER | base64 | _b64)"
   _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}"
   
   
-  Le_LinkCert=$(grep -i '^Location' $CURL_HEADER | cut -d " " -f 2)
+  Le_LinkCert="$(grep -i -o '^Location.*' $CURL_HEADER |sed 's/\r//g'| cut -d " " -f 2)"
   _setopt $DOMAIN_CONF  "Le_LinkCert"           "="  "$Le_LinkCert"
   
-  if [ "$Le_LinkCert" ] ; then  
+  if [ "$Le_LinkCert" ] ; then
     echo -----BEGIN CERTIFICATE----- > $CERT_PATH
-    echo $response | base64 | sed "s/ /\n/g" >> $CERT_PATH
+    curl --silent $Le_LinkCert | base64  >> $CERT_PATH
     echo -----END CERTIFICATE-----  >> $CERT_PATH
     _info "Cert success."
     cat $CERT_PATH
@@ -415,7 +415,7 @@ issue() {
   if [ "$Le_LinkIssuer" ] ; then
     _get "$Le_LinkIssuer"
     echo -----BEGIN CERTIFICATE----- > $CA_CERT_PATH
-    echo $response | base64 | sed "s/ /\n/g" >> $CA_CERT_PATH
+    curl --silent $Le_LinkIssuer | base64  >> $CA_CERT_PATH
     echo -----END CERTIFICATE-----  >> $CA_CERT_PATH
     _info "The intermediate CA cert is in $CA_CERT_PATH"
   fi
