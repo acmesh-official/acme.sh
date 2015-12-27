@@ -23,12 +23,13 @@ Probably it's the smallest&easiest&smartest shell script to automatically  issue
 ```
 ./le.sh install
 ```
-Which does 2 things:
-* create and copy le.sh to your home dir:  `~/.le`
+Which does 3 jobs:
+* create and copy `le.sh` to your home dir:  `~/.le`
 All the certs will be placed in this folder.
 * create symbol link: `/bin/le  -> ~/.le/le.sh`
-
-3. Ok,  you are ready to issue cert now.
+* create everyday cron job to check and renew the cert if needed.
+* 
+Ok,  you are ready to issue cert now.
 Show help message:
 ```
 root@xvm:~# le 
