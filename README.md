@@ -11,8 +11,8 @@ Probably it's the smallest&easiest&smartest shell script to automatically  issue
 
 
 #Supported OS
-1. Tested on Ubuntu/Debian.
-2. CentOS is Not tested yet, It should work.
+1. Ubuntu/Debian.
+2. CentOS
 
 
 #How to use
