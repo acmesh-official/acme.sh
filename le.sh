@@ -36,73 +36,42 @@ _info() {
 
 #domain [2048]  
 createAccountKey() {
-  if [ -z "$1" ] ; then
-    echo Usage: $0 account-domain  [2048]
-    return
-  fi
-  
-  account=$1
+  account=${1?Usage: $0 account-domain [2048]}
   length=$2
-  if [ -z "$2" ] ; then
+  if [ -z "$length" ] ; then
     echo Use default length 2048
     length=2048
   fi
   _initpath
   mkdir -p $WORKING_DIR
   ACCOUNT_KEY_PATH=$WORKING_DIR/account.acc
-  
-  if [ -f "$ACCOUNT_KEY_PATH" ] ; then
-    echo account key exists, skip
-    return
-  else
-    #generate account key
-    openssl genrsa $length > $ACCOUNT_KEY_PATH
-  fi
-
+  [[ -f "$ACCOUNT_KEY_PATH" ]] && echo 'account key exits, skip' && return
+  #generate account key
+  openssl genrsa $length > $ACCOUNT_KEY_PATH
 }
 
 #domain length
 createDomainKey() {
-  if [ -z "$1" ] ; then
-    echo Usage: $0 domain  [2048]
-    return
-  fi
-  
-  domain=$1
+  domain=${1?Usage: $0 domain [2048]}
   length=$2
-  if [ -z "$2" ] ; then
+  if [ -z "$length" ] ; then
     echo Use default length 2048
     length=2048
   fi
   _initpath $domain
   mkdir -p $WORKING_DIR/$domain
   CERT_KEY_PATH=$WORKING_DIR/$domain/$domain.key
-  
-  if [ -f "$CERT_KEY_PATH" ] ; then 
-    echo domain key exists, skip
-  else
-    #generate account key
-    openssl genrsa $length > $CERT_KEY_PATH
-  fi
+  [[ -f "$CERT_KEY_PATH" ]] && echo domain key exists, skip && return
+  openssl genrsa $length > $CERT_KEY_PATH
 
 }
 
 # domain  domainlist
 createCSR() {
-  if [ -z "$1" ] ; then
-    echo Usage: $0 domain  [domainlist]
-    return
-  fi
-  domain=$1
+  domain=${1?Usage: $0 domain [domainlist]}
   _initpath $domain
-  
   domainlist=$2
-  
-  if [ -f $CSR_PATH ] ; then
-    echo CSR exists, skip
-    return
-  fi
-  
+  [[ -f $CSR_PATH ]] && echo "CSR exits, skip" && return
   if [ -z "$domainlist" ] ; then
     #single domain
     echo single domain
@@ -120,11 +89,7 @@ _b64() {
   while read __line; do
     __n=$__n$__line
   done;
-  __n=$(echo $__n | sed "s|/|_|g")
-  __n=$(echo $__n | sed "s| ||g")
-  __n=$(echo $__n | sed "s|+|-|g")
-  __n=$(echo $__n | sed "s|=||g")
-  echo $__n
+  echo $__n | tr '/+' '_-' | tr -d '= '
 }
 
 _send_signed_request() {
@@ -461,7 +426,6 @@ issue() {
     _info "Run Le_ReloadCmd: $Le_ReloadCmd"
     $Le_ReloadCmd
   fi
-  
 }
 
 renew() {
