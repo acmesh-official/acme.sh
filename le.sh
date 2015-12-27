@@ -34,6 +34,14 @@ _info() {
   fi
 }
 
+_err() {
+  if [ -z "$2" ] ; then
+    echo "$1" >&2
+  else
+    echo "$1:$2" >&2
+  fi
+}
+
 #domain [2048]  
 createAccountKey() {
   if [ -z "$1" ] ; then
@@ -130,7 +138,8 @@ _b64() {
 _send_signed_request() {
   url=$1
   payload=$2
-
+  needbase64=$3
+  
   _debug url $url
   _debug payload "$payload"
   
@@ -160,9 +169,13 @@ _send_signed_request() {
   body="{\"header\": $HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
   _debug body "$body"
   
-  response="$($CURL -X POST --data "$body" $url)"
+  if [ "$needbase64" ] ; then
+    response="$($CURL -X POST --data "$body" $url | base64)"
+  else
+    response="$($CURL -X POST --data "$body" $url)"
+  fi
 
-  responseHeaders="$(cat $CURL_HEADER)"
+  responseHeaders="$(sed 's/\r//g' $CURL_HEADER)"
   
   _debug responseHeaders "$responseHeaders"
   _debug response  "$response"
@@ -247,7 +260,7 @@ issue() {
   DOMAIN_CONF=$WORKING_DIR/$Le_Domain/$Le_Domain.conf
   if [ -f "$DOMAIN_CONF" ] ; then
     source "$DOMAIN_CONF"
-    if [ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ] ; then 
+    if [ -z "$FORCE" ] && [ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ] ; then 
       _info "Skip, Next renwal time is: $Le_NextRenewTimeStr"
       return 2
     fi
@@ -299,7 +312,7 @@ issue() {
   elif [ "$code" == '409' ] ; then
     _info "Already registered"
   else
-    _info "Register account Error."
+    _err "Register account Error."
     return 1
   fi
   
@@ -314,7 +327,7 @@ issue() {
     _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$d\"}}"
  
     if [ ! -z "$code" ] && [ ! "$code" == '201' ] ; then
-      _info "new-authz error: $d"
+      _err "new-authz error: $response"
       return 1
     fi
     
@@ -344,7 +357,7 @@ issue() {
     _send_signed_request $uri "{\"resource\": \"challenge\", \"keyAuthorization\": \"$keyauthorization\"}"
     
     if [ ! -z "$code" ] && [ ! "$code" == '202' ] ; then
-      _info "challenge error: $d"
+      _err "challenge error: $d"
       return 1
     fi
     
@@ -354,7 +367,7 @@ issue() {
       _debug "checking"
       
       if ! _get $uri ; then
-        _info "Verify error:$d"
+        _err "Verify error:$resource"
         return 1
       fi
       
@@ -366,15 +379,14 @@ issue() {
       
       if [ "$status" == "invalid" ] ; then
          error=$(echo $response | egrep -o '"error":{[^}]*}' | grep -o '"detail":"[^"]*"' | cut -d '"' -f 4)
-        _info "Verify error:$d"
-        _debug $error
+        _err "Verify error:$error"
         return 1;
       fi
       
       if [ "$status" == "pending" ] ; then
         _info "Verify pending:$d"
       else
-        _info "Verify error:$d" 
+        _err "Verify error:$response" 
         return 1
       fi
       
@@ -383,7 +395,7 @@ issue() {
   
   _info "Verify finished, start to sign."
   der="$(openssl req  -in $CSR_PATH -outform DER | base64 | _b64)"
-  _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}"
+  _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"
   
   
   Le_LinkCert="$(grep -i -o '^Location.*' $CURL_HEADER |sed 's/\r//g'| cut -d " " -f 2)"
@@ -405,6 +417,7 @@ issue() {
   _setopt $DOMAIN_CONF  "Le_Keylength"          "="  "$Le_Keylength"
   
   if [ -z "$Le_LinkCert" ] ; then
+    response="$(echo $response | sed 's/ //g'| base64 -d)"
     _info "Sign failed: $(echo "$response" | grep -o  '"detail":"[^"]*"')"
     return 1
   fi
@@ -413,7 +426,6 @@ issue() {
   _setopt $DOMAIN_CONF  "Le_LinkIssuer"         "="  "$Le_LinkIssuer"
   
   if [ "$Le_LinkIssuer" ] ; then
-    _get "$Le_LinkIssuer"
     echo -----BEGIN CERTIFICATE----- > $CA_CERT_PATH
     curl --silent $Le_LinkIssuer | base64  >> $CA_CERT_PATH
     echo -----END CERTIFICATE-----  >> $CA_CERT_PATH
