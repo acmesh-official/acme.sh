@@ -175,7 +175,7 @@ _send_signed_request() {
     response="$($CURL -X POST --data "$body" $url)"
   fi
 
-  responseHeaders="$(cat $CURL_HEADER | sed 's/\r//g')"
+  responseHeaders="$(sed 's/\r//g' $CURL_HEADER)"
   
   _debug responseHeaders "$responseHeaders"
   _debug response  "$response"
