@@ -175,7 +175,7 @@ _send_signed_request() {
     response="$($CURL -X POST --data "$body" $url)"
   fi
 
-  responseHeaders="$(cat $CURL_HEADER)"
+  responseHeaders="$(cat $CURL_HEADER | sed 's/\r//g')"
   
   _debug responseHeaders "$responseHeaders"
   _debug response  "$response"
@@ -417,7 +417,7 @@ issue() {
   _setopt $DOMAIN_CONF  "Le_Keylength"          "="  "$Le_Keylength"
   
   if [ -z "$Le_LinkCert" ] ; then
-    response="$(echo $response | base64 -d)"
+    response="$(echo $response | sed 's/ //g'| base64 -d)"
     _info "Sign failed: $(echo "$response" | grep -o  '"detail":"[^"]*"')"
     return 1
   fi
@@ -426,7 +426,6 @@ issue() {
   _setopt $DOMAIN_CONF  "Le_LinkIssuer"         "="  "$Le_LinkIssuer"
   
   if [ "$Le_LinkIssuer" ] ; then
-    _get "$Le_LinkIssuer"
     echo -----BEGIN CERTIFICATE----- > $CA_CERT_PATH
     curl --silent $Le_LinkIssuer | base64  >> $CA_CERT_PATH
     echo -----END CERTIFICATE-----  >> $CA_CERT_PATH
