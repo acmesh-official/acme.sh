@@ -130,7 +130,8 @@ _b64() {
 _send_signed_request() {
   url=$1
   payload=$2
-
+  needbase64=$3
+  
   _debug url $url
   _debug payload "$payload"
   
@@ -160,7 +161,11 @@ _send_signed_request() {
   body="{\"header\": $HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
   _debug body "$body"
   
-  response="$($CURL -X POST --data "$body" $url)"
+  if [ "$needbase64" ] ; then
+    response="$($CURL -X POST --data "$body" $url | base64)"
+  else
+    response="$($CURL -X POST --data "$body" $url)"
+  fi
 
   responseHeaders="$(cat $CURL_HEADER)"
   
@@ -383,7 +388,7 @@ issue() {
   
   _info "Verify finished, start to sign."
   der="$(openssl req  -in $CSR_PATH -outform DER | base64 | _b64)"
-  _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}"
+  _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"
   
   
   Le_LinkCert="$(grep -i -o '^Location.*' $CURL_HEADER |sed 's/\r//g'| cut -d " " -f 2)"
@@ -405,6 +410,7 @@ issue() {
   _setopt $DOMAIN_CONF  "Le_Keylength"          "="  "$Le_Keylength"
   
   if [ -z "$Le_LinkCert" ] ; then
+    response="$(echo $response | base64 -d)"
     _info "Sign failed: $(echo "$response" | grep -o  '"detail":"[^"]*"')"
     return 1
   fi
