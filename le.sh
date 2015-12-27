@@ -34,6 +34,14 @@ _info() {
   fi
 }
 
+_err() {
+  if [ -z "$2" ] ; then
+    echo "$1" >&2
+  else
+    echo "$1:$2" >&2
+  fi
+}
+
 #domain [2048]  
 createAccountKey() {
   if [ -z "$1" ] ; then
@@ -304,7 +312,7 @@ issue() {
   elif [ "$code" == '409' ] ; then
     _info "Already registered"
   else
-    _info "Register account Error."
+    _err "Register account Error."
     return 1
   fi
   
@@ -319,7 +327,7 @@ issue() {
     _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$d\"}}"
  
     if [ ! -z "$code" ] && [ ! "$code" == '201' ] ; then
-      _info "new-authz error: $d"
+      _err "new-authz error: $response"
       return 1
     fi
     
@@ -349,7 +357,7 @@ issue() {
     _send_signed_request $uri "{\"resource\": \"challenge\", \"keyAuthorization\": \"$keyauthorization\"}"
     
     if [ ! -z "$code" ] && [ ! "$code" == '202' ] ; then
-      _info "challenge error: $d"
+      _err "challenge error: $d"
       return 1
     fi
     
@@ -359,7 +367,7 @@ issue() {
       _debug "checking"
       
       if ! _get $uri ; then
-        _info "Verify error:$d"
+        _err "Verify error:$resource"
         return 1
       fi
       
@@ -371,15 +379,14 @@ issue() {
       
       if [ "$status" == "invalid" ] ; then
          error=$(echo $response | egrep -o '"error":{[^}]*}' | grep -o '"detail":"[^"]*"' | cut -d '"' -f 4)
-        _info "Verify error:$d"
-        _debug $error
+        _err "Verify error:$error"
         return 1;
       fi
       
       if [ "$status" == "pending" ] ; then
         _info "Verify pending:$d"
       else
-        _info "Verify error:$d" 
+        _err "Verify error:$response" 
         return 1
       fi
       
