@@ -129,7 +129,6 @@ _b64() {
     __n=$__n$__line
   done;
   __n=$(echo $__n | sed "s|/|_|g")
-  __n=$(echo $__n | sed "s| ||g")
   __n=$(echo $__n | sed "s|+|-|g")
   __n=$(echo $__n | sed "s|=||g")
   echo $__n
@@ -149,7 +148,7 @@ _send_signed_request() {
   if [ "$DEBUG" ] ; then
     CURL="$CURL --trace-ascii $dp "
   fi
-  payload64=$(echo -n $payload | base64 | _b64)
+  payload64=$(echo -n $payload | base64 -w 0 | _b64)
   _debug payload64 $payload64
   
   nonceurl="$API/directory"
@@ -160,17 +159,17 @@ _send_signed_request() {
   protected=$(echo -n "$HEADERPLACE" | sed "s/NONCE/$nonce/" )
   _debug protected "$protected"
   
-  protected64=$( echo -n $protected | base64 | _b64)
+  protected64=$( echo -n $protected | base64 -w 0 | _b64)
   _debug protected64 "$protected64"
   
-  sig=$(echo -n "$protected64.$payload64" |  openssl   dgst   -sha256  -sign  $ACCOUNT_KEY_PATH | base64| _b64)
+  sig=$(echo -n "$protected64.$payload64" |  openssl   dgst   -sha256  -sign  $ACCOUNT_KEY_PATH | base64 -w 0 | _b64)
   _debug sig "$sig"
   
   body="{\"header\": $HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
   _debug body "$body"
   
   if [ "$needbase64" ] ; then
-    response="$($CURL -X POST --data "$body" $url | base64)"
+    response="$($CURL -X POST --data "$body" $url | base64 -w 0)"
   else
     response="$($CURL -X POST --data "$body" $url)"
   fi
@@ -287,7 +286,7 @@ issue() {
   _debug e "$e"
   
   modulus=$(openssl rsa -in $ACCOUNT_KEY_PATH -modulus -noout | cut -d '=' -f 2 )
-  n=$(echo $modulus| xxd -r -p | base64 | _b64 )
+  n=$(echo $modulus| xxd -r -p | base64 -w 0 | _b64 )
 
   jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
   
@@ -296,7 +295,7 @@ issue() {
   _debug HEADER "$HEADER"
   
   accountkey_json=$(echo -n "$jwk" | sed "s/ //g")
-  thumbprint=$(echo -n "$accountkey_json" | sha256sum | xxd -r -p | base64 | _b64)
+  thumbprint=$(echo -n "$accountkey_json" | sha256sum | xxd -r -p | base64 -w 0 | _b64)
   
   
   _info "Registering account"
@@ -394,7 +393,7 @@ issue() {
   done 
   
   _info "Verify finished, start to sign."
-  der="$(openssl req  -in $CSR_PATH -outform DER | base64 | _b64)"
+  der="$(openssl req  -in $CSR_PATH -outform DER | base64 -w 0 | _b64)"
   _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"
   
   
@@ -417,7 +416,7 @@ issue() {
   _setopt $DOMAIN_CONF  "Le_Keylength"          "="  "$Le_Keylength"
   
   if [ -z "$Le_LinkCert" ] ; then
-    response="$(echo $response | sed 's/ //g'| base64 -d)"
+    response="$(echo $response | base64 -d)"
     _info "Sign failed: $(echo "$response" | grep -o  '"detail":"[^"]*"')"
     return 1
   fi
