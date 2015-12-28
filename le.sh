@@ -512,28 +512,28 @@ renewAll() {
 
 install() {
   _initpath
-  if ! command -v "curl" ; then
-    _info "Please install curl first."
-    _info "Ubuntu: sudo apt-get install curl"
-    _info "CentOS: yum install curl"
+  if ! command -v "curl" > /dev/null ; then
+    _err "Please install curl first."
+    _err "Ubuntu: sudo apt-get install curl"
+    _err "CentOS: yum install curl"
     return 1
   fi
   
-  if ! command -v "crontab" ; then
-    _info "Please install crontab first."
-    _info "CentOs: yum -y install crontabs"
+  if ! command -v "crontab" > /dev/null ; then
+    _err "Please install crontab first."
+    _err "CentOs: yum -y install crontabs"
     return 1
   fi
   
-  if ! command -v "openssl" ; then
-    _info "Please install openssl first."
-    _info "CentOs: yum -y install openssl"
+  if ! command -v "openssl" > /dev/null ; then
+    _err "Please install openssl first."
+    _err "CentOs: yum -y install openssl"
     return 1
   fi
   
-  if ! command -v "xxd" ; then
-    _info "Please install xxd first."
-    _info "CentOs: yum install vim-common"
+  if ! command -v "xxd" > /dev/null ; then
+    _err "Please install xxd first."
+    _err "CentOs: yum install vim-common"
     return 1
   fi
   
@@ -553,10 +553,10 @@ install() {
   _info "Installing cron job"
   if ! crontab -l | grep 'le.sh renewAll' ; then 
     crontab -l | { cat; echo "0 0 * * * le.sh renewAll"; } | crontab -
-    if command -v crond ; then
-      service cron reload
+    if command -v crond > /dev/null ; then
+      service crond reload 2>/dev/null
     else
-      service cron restart
+      service cron reload 2>/dev/null
     fi
   fi  
   
