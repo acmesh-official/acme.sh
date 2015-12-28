@@ -567,8 +567,16 @@ install() {
 uninstall() {
   _initpath
   _info "Removing cron job"
-  crontab -l | sed "/le.sh renewAll/d" | crontab -
-  
+
+  if ! crontab -l | grep 'le.sh renewAll' ; then 
+    crontab -l | sed "/le.sh renewAll/d" | crontab -
+    if command -v crond > /dev/null ; then
+      service crond reload 2>/dev/null
+    else
+      service cron reload 2>/dev/null
+    fi
+  fi 
+
   _info "Removing /bin/le.sh"
   rm -f /bin/le
   rm -f /bin/le.sh
