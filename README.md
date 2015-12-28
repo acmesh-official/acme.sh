@@ -47,11 +47,11 @@ le issue   /home/wwwroot/aa.com    aa.com    www.aa.com,cp.aa.com
 ```
 First argument " /home/wwwroot/aa.com" is the web root folder
 
-Second argument "aa.com" is the domain you want to issue cert for.
+Second argument "aa.com" is the main domain you want to issue cert for.
 
-Third argument  is the additional domain list you want to use.  Comma sperated list,  Optional.
+Third argument is the additional domain list you want to use.  Comma separated list,  It's Optional.
 
-'You must point and bind all the domains to the same webroot dir:/home/wwwroot/aa.com'
+You must point and bind all the domains to the same webroot dir:`/home/wwwroot/aa.com`
 
 The cert will be placed in `~/.le/aa.com/`
 
@@ -64,7 +64,7 @@ The issued cert will be renewed every 50 days automatically.
 le issue   /home/wwwroot/aa.com    aa.com    www.aa.com,cp.aa.com  2048  /path/to/certfile/in/apache/nginx  /path/to/keyfile/in/apache/nginx   "service apache2/nginx reload"
 ```
 This can link the issued cert to the production apache or nginx path.
-Once the cert is renewed,  the apache/nginx will be automatically reloaded by the command: ` service apache2 reload`
+Once the cert is renewed,  the apache/nginx will be automatically reloaded by the command: ` service apache2 reload` or `service nginx reload`
 
 
 
