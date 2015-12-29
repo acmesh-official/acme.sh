@@ -254,7 +254,7 @@ issue() {
   DOMAIN_CONF=$WORKING_DIR/$Le_Domain/$Le_Domain.conf
   if [ -f "$DOMAIN_CONF" ] ; then
     source "$DOMAIN_CONF"
-    if [ -z "$FORCE" ] && [ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ] ; then 
+    if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ] ; then 
       _info "Skip, Next renwal time is: $Le_NextRenewTimeStr"
       return 2
     fi
