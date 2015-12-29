@@ -125,13 +125,8 @@ createCSR() {
 }
 
 _b64() {
-  while read __line; do
-    __n=$__n$__line
-  done;
-  __n=$(echo $__n | sed "s|/|_|g")
-  __n=$(echo $__n | sed "s|+|-|g")
-  __n=$(echo $__n | sed "s|=||g")
-  echo $__n
+  __n=$(cat)
+  echo $__n | tr '/+' '_-' | tr -d '= '
 }
 
 _send_signed_request() {
