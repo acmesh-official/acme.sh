@@ -476,14 +476,7 @@ renew() {
     echo Usage: $0  domain.com
     return 1
   fi
-  
-  DOMAIN_CONF=$WORKING_DIR/$Le_Domain/$Le_Domain.conf
 
-  if [ -z "$Le_Webroot" ] ; then
-    echo Le_Webroot can not found, please remove the conf file and issue a new cert
-    return 1
-  fi
-  
   issue $Le_Domain
 
 }
