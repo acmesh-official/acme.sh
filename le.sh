@@ -478,14 +478,7 @@ renew() {
   fi
   
   DOMAIN_CONF=$WORKING_DIR/$Le_Domain/$Le_Domain.conf
-  if [ -f "$DOMAIN_CONF" ] ; then
-    source "$DOMAIN_CONF"
-    if [ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ] ; then 
-      _info "Skip, Next renwal time is: $Le_NextRenewTimeStr"
-      return 2
-    fi
-  fi
-  
+
   if [ -z "$Le_Webroot" ] ; then
     echo Le_Webroot can not found, please remove the conf file and issue a new cert
     return 1
@@ -500,6 +493,25 @@ renewAll() {
   for d in $(ls -F $WORKING_DIR | grep  '/$') ; do
     d=$(echo $d | cut -d '/' -f 1)
     _info "renew $d"
+    
+    Le_LinkCert=""
+    Le_Domain=""
+    Le_Alt=""
+    Le_Webroot=""
+    Le_Keylength=""
+    Le_LinkIssuer=""
+
+    Le_CertCreateTime=""
+    Le_CertCreateTimeStr=""
+    Le_RenewalDays=""
+    Le_NextRenewTime=""
+    Le_NextRenewTimeStr=""
+
+    Le_RealCertPath=""
+    Le_RealKeyPath=""
+
+    Le_ReloadCmd=""
+    
     renew "$d"  
   done
   
