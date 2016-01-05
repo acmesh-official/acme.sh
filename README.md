@@ -67,6 +67,14 @@ Which issues the cert and then links it to the production apache or nginx path.
 The cert will be renewed every 50 days by default (which is configurable), Once the cert is renewed, the apache/nginx will be automatically reloaded by the command: ` service apache2 reload` or `service nginx reload`
 
 
+# Use Standalone server:
+Same usage as above,  just give `no` as the webroot.
+The tcp `80` port must be free to listen, otherwise you will be prompted to free the `80` port and try again.
+
+```
+le issue    no    aa.com    www.aa.com,cp.aa.com
+```
+
 
 
 #Under the Hood
