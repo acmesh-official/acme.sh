@@ -1,17 +1,12 @@
 #!/bin/bash
 
 
-WORKING_DIR=~/.le
-
-CURL_HEADER=""
-HEADER=""
-HEADERPLACE=""
-ACCOUNT_EMAIL=""
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
+DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf"
 
-API=$DEFAULT_CA
-
+API="$DEFAULT_CA"
+AGREEMENT="$DEFAULT_AGREEMENT"
 
 _debug() {
 
@@ -213,8 +208,35 @@ _setopt() {
   _debug "$(grep -H -n "^$__opt$__sep" $__conf)"
 }
 
+_startserver() {
+  content="$1"
+  while true ; do
+    if [ -z "$DEBUG" ] ; then
+      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | nc -q 1 -l -p 80 > /dev/null
+    else
+      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | nc -q 1 -l -p 80
+    fi
+  done
+}
+
+_stopserver() {
+  pid="$1"
+  if [ "$pid" ] ; then
+    if [ -z "$DEBUG" ] ; then
+      kill -s 9 $pid 2>&1
+      killall -s 9  nc 2>&1
+    else
+      kill -s 9 $pid 2>&1 > /dev/null
+      killall -s 9  nc 2>&1 > /dev/null
+    fi
+  fi
+}
+
 _initpath() {
-  WORKING_DIR=~/.le
+  if [ -z "$WORKING_DIR" ]; then
+    WORKING_DIR=~/.le
+  fi
+  
   domain=$1
   mkdir -p $WORKING_DIR
   ACCOUNT_KEY_PATH=$WORKING_DIR/account.acc
@@ -260,9 +282,23 @@ issue() {
     fi
   fi
   
-  if [ -z "$Le_Webroot" ] ; then
-    echo Usage: $0 webroot a.com [b.com,c.com]  [key-length]
-    return 1
+  if [ "$Le_Webroot" == "no" ] ; then
+    _info "Standalone mode."
+    if ! command -v "nc" > /dev/null ; then
+      _err "Please install netcat(nc) tools first."
+      return 1
+    fi
+    if ! command -v "netstat" > /dev/null ; then
+      _err "Please install netstat first."
+      return 1
+    fi
+    netprc="$(netstat -antpl | grep ':80 ')"
+    if [ "$netprc" ] ; then
+      _err "$netprc"
+      _err "tcp port 80 is already used by $(echo "$netprc" | cut -d '/' -f 2)"
+      _err "Please stop it first"
+      return 1
+    fi
   fi
 
   createAccountKey $Le_Domain $Le_Keylength
@@ -294,9 +330,9 @@ issue() {
   
   
   _info "Registering account"
-  regjson='{"resource": "new-reg", "agreement": "https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf"}'
+  regjson='{"resource": "new-reg", "agreement": "'$AGREEMENT'"}'
   if [ "$ACCOUNT_EMAIL" ] ; then
-    regjson='{"resource": "new-reg", "contact": ["mailto: '$ACCOUNT_EMAIL'"], "agreement": "https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf"}'
+    regjson='{"resource": "new-reg", "contact": ["mailto: '$ACCOUNT_EMAIL'"], "agreement": "'$AGREEMENT'"}'
   fi  
   _send_signed_request   "$API/acme/new-reg"  "$regjson"
   
@@ -337,13 +373,20 @@ issue() {
     keyauthorization="$token.$thumbprint"
     _debug keyauthorization "$keyauthorization"
     
-    wellknown_path="$Le_Webroot/.well-known/acme-challenge"
-    _debug wellknown_path "$wellknown_path"
-    
-    mkdir -p "$wellknown_path"
-    wellknown_path="$wellknown_path/$token"
-    echo -n "$keyauthorization" > $wellknown_path
-    
+    if [ "$Le_Webroot" == "no" ] ; then
+      _info "Standalone mode server"
+      _startserver "$keyauthorization" & 2>&1 >/dev/null
+      serverproc="$!"
+      sleep 2
+      _debug serverproc $serverproc
+    else
+      wellknown_path="$Le_Webroot/.well-known/acme-challenge"
+      _debug wellknown_path "$wellknown_path"
+      
+      mkdir -p "$wellknown_path"
+      wellknown_path="$wellknown_path/$token"
+      echo -n "$keyauthorization" > $wellknown_path
+    fi
     wellknown_url="http://$d/.well-known/acme-challenge/$token"
     _debug wellknown_url "$wellknown_url"
     
@@ -352,6 +395,7 @@ issue() {
     
     if [ ! -z "$code" ] && [ ! "$code" == '202' ] ; then
       _err "challenge error: $d"
+      _stopserver $serverproc
       return 1
     fi
     
@@ -362,6 +406,7 @@ issue() {
       
       if ! _get $uri ; then
         _err "Verify error:$resource"
+        _stopserver $serverproc
         return 1
       fi
       
@@ -374,6 +419,7 @@ issue() {
       if [ "$status" == "invalid" ] ; then
          error=$(echo $response | egrep -o '"error":{[^}]*}' | grep -o '"detail":"[^"]*"' | cut -d '"' -f 4)
         _err "Verify error:$error"
+        _stopserver $serverproc
         return 1;
       fi
       
@@ -381,10 +427,12 @@ issue() {
         _info "Verify pending:$d"
       else
         _err "Verify error:$response" 
+        _stopserver $serverproc
         return 1
       fi
       
-    done    
+    done
+    _stopserver $serverproc
   done 
   
   _info "Verify finished, start to sign."
