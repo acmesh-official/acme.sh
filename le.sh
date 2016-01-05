@@ -568,7 +568,7 @@ uninstall() {
   _initpath
   _info "Removing cron job"
 
-  if ! crontab -l | grep 'le.sh renewAll' ; then 
+  if crontab -l | grep 'le.sh renewAll' ; then 
     crontab -l | sed "/le.sh renewAll/d" | crontab -
     if command -v crond > /dev/null ; then
       service crond reload 2>/dev/null
