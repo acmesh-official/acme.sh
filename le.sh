@@ -480,6 +480,10 @@ issue() {
   _setopt $DOMAIN_CONF  "Le_Alt"                "="  "$Le_Alt"
   _setopt $DOMAIN_CONF  "Le_Webroot"            "="  "$Le_Webroot"
   _setopt $DOMAIN_CONF  "Le_Keylength"          "="  "$Le_Keylength"
+  _setopt $DOMAIN_CONF  "Le_RealCertPath"       "="  "\"$Le_RealCertPath\""
+  _setopt $DOMAIN_CONF  "Le_RealCACertPath"     "="  "\"$Le_RealCACertPath\""
+  _setopt $DOMAIN_CONF  "Le_RealKeyPath"        "="  "\"$Le_RealKeyPath\""
+  _setopt $DOMAIN_CONF  "Le_ReloadCmd"          "="  "\"$Le_ReloadCmd\""
   
   if [ -z "$Le_LinkCert" ] ; then
     response="$(echo $response | base64 -d)"
@@ -515,16 +519,15 @@ issue() {
   Le_NextRenewTimeStr=$(date -u -d "+$Le_RenewalDays day" "+%Y-%m-%d %H:%M:%S UTC")
   _setopt $DOMAIN_CONF  "Le_NextRenewTimeStr"      "="  "\"$Le_NextRenewTimeStr\""
     
-  _setopt $DOMAIN_CONF  "Le_RealCertPath"      "="  "\"$Le_RealCertPath\""
+  
   if [ "$Le_RealCertPath" ] ; then
     if [ -f "$Le_RealCertPath" ] ; then
       rm -f $Le_RealCertPath
     fi
     ln -s $CERT_PATH $Le_RealCertPath
-    
   fi
   
-  _setopt $DOMAIN_CONF  "Le_RealCACertPath"      "="  "\"$Le_RealCACertPath\""
+  
   if [ "$Le_RealCACertPath" ] ; then
     if [ -f "$Le_RealCACertPath" ] ; then
       rm -f $Le_RealCACertPath
@@ -532,15 +535,13 @@ issue() {
     ln -s $CA_CERT_PATH $Le_RealCACertPath
   fi  
 
-  _setopt $DOMAIN_CONF  "Le_RealKeyPath"       "="  "\"$Le_RealKeyPath\""
-    if [ "$Le_RealKeyPath" ] ; then
+  
+  if [ "$Le_RealKeyPath" ] ; then
     if [ -f "$Le_RealKeyPath" ] ; then
       rm -f $Le_RealKeyPath
     fi
     ln -s $CERT_KEY_PATH $Le_RealKeyPath
-    
   fi
-  _setopt $DOMAIN_CONF  "Le_ReloadCmd"         "="  "\"$Le_ReloadCmd\""
   
   if [ "$Le_ReloadCmd" ] ; then
     _info "Run Le_ReloadCmd: $Le_ReloadCmd"
