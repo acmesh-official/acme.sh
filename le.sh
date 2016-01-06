@@ -254,10 +254,10 @@ _initpath() {
   CA_CERT_PATH=$WORKING_DIR/$domain/ca.cer
 }
 
-#issue webroot a.com [www.a.com,b.com,c.com]  [key-length] [cert-file-path] [key-file-path] [reloadCmd]
+
 issue() {
   if [ -z "$1" ] ; then
-    echo "Usage: $0 webroot a.com [www.a.com,b.com,c.com]  [key-length] [cert-file-path] [key-file-path] [ca-cert-file-path] [reloadCmd]"
+    echo "Usage: le  issue  webroot|no   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no"
     return 1
   fi
   Le_Webroot=$1
