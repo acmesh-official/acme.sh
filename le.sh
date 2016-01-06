@@ -282,6 +282,10 @@ issue() {
     fi
   fi
   
+  if [ "$Le_Alt" == "no" ] ; then
+    Le_Alt=""
+  fi
+  
   if [ "$Le_Webroot" == "no" ] ; then
     _info "Standalone mode."
     if ! command -v "nc" > /dev/null ; then
