@@ -47,15 +47,13 @@ createAccountKey() {
   account=$1
   length=$2
   if [ -z "$2" ] ; then
-    echo Use default length 2048
+    _info "Use default length 2048"
     length=2048
   fi
   _initpath
-  mkdir -p $WORKING_DIR
-  ACCOUNT_KEY_PATH=$WORKING_DIR/account.acc
   
   if [ -f "$ACCOUNT_KEY_PATH" ] ; then
-    echo account key exists, skip
+    _info "Account key exists, skip"
     return
   else
     #generate account key
@@ -74,7 +72,7 @@ createDomainKey() {
   domain=$1
   length=$2
   if [ -z "$2" ] ; then
-    echo Use default length 2048
+    _info "Use default length 2048"
     length=2048
   fi
   _initpath $domain
@@ -82,7 +80,7 @@ createDomainKey() {
   CERT_KEY_PATH=$WORKING_DIR/$domain/$domain.key
   
   if [ -f "$CERT_KEY_PATH" ] ; then 
-    echo domain key exists, skip
+    _info "Domain key exists, skip"
   else
     #generate account key
     openssl genrsa $length > $CERT_KEY_PATH
@@ -102,18 +100,18 @@ createCSR() {
   domainlist=$2
   
   if [ -f $CSR_PATH ] ; then
-    echo CSR exists, skip
+    _info "CSR exists, skip"
     return
   fi
   
   if [ -z "$domainlist" ] ; then
     #single domain
-    echo single domain
+    _info "Single domain" $domain
     openssl req -new -sha256 -key $CERT_KEY_PATH -subj "/CN=$domain" > $CSR_PATH
   else
     alt=DNS:$(echo $domainlist | sed "s/,/,DNS:/g")
     #multi 
-    echo multi domain $alt
+    _info "Multi domain" $alt
     openssl req -new -sha256 -key $CERT_KEY_PATH -subj "/CN=$domain" -reqexts SAN -config <(printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\n[SAN]\nsubjectAltName=$alt") -out $CSR_PATH
   fi
 
@@ -222,7 +220,7 @@ _startserver() {
 _stopserver() {
   pid="$1"
   if [ "$pid" ] ; then
-    if [ -z "$DEBUG" ] ; then
+    if [ "$DEBUG" ] ; then
       kill -s 9 $pid 2>&1
       killall -s 9  nc 2>&1
     else
@@ -375,7 +373,7 @@ issue() {
   alldomains=$(echo "$Le_Domain,$Le_Alt" | sed "s/,/ /g")
   for d in $alldomains   
   do  
-    _info "Verifing domain $d"
+    _info "Verifing domain" $d
     
     _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$d\"}}"
  
@@ -398,7 +396,7 @@ issue() {
     
     if [ "$Le_Webroot" == "no" ] ; then
       _info "Standalone mode server"
-      _startserver "$keyauthorization" & 2>&1 >/dev/null
+      _startserver "$keyauthorization" 2>&1 >/dev/null &
       serverproc="$!"
       sleep 2
       _debug serverproc $serverproc
@@ -435,7 +433,7 @@ issue() {
       
       status=$(echo $response | egrep -o  '"status":"[^"]+"' | cut -d : -f 2 | sed 's/"//g')
       if [ "$status" == "valid" ] ; then
-        _info "Verify success:$d"
+        _info "Success"
         break;
       fi
       
@@ -447,7 +445,7 @@ issue() {
       fi
       
       if [ "$status" == "pending" ] ; then
-        _info "Verify pending:$d"
+        _info "Pending"
       else
         _err "Verify error:$response" 
         _stopserver $serverproc
