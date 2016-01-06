@@ -259,13 +259,17 @@ _initpath() {
 #issue webroot a.com [www.a.com,b.com,c.com]  [key-length] [cert-file-path] [key-file-path] [reloadCmd]
 issue() {
   if [ -z "$1" ] ; then
-    echo "Usage: $0 webroot a.com [www.a.com,b.com,c.com]  [key-length] [cert-file-path] [key-file-path] [reloadCmd]"
+    echo "Usage: $0 webroot a.com [www.a.com,b.com,c.com]  [key-length] [cert-file-path] [key-file-path] [ca-cert-file-path] [reloadCmd]"
     return 1
   fi
   Le_Webroot=$1
   Le_Domain=$2
   Le_Alt=$3
   Le_Keylength=$4
+  Le_RealCertPath=$5
+  Le_RealKeyPath=$6
+  Le_RealCACertPath=$7
+  Le_ReloadCmd=$8
   
   if [ -z "$Le_Domain" ] ; then 
     Le_Domain="$1"
@@ -284,6 +288,21 @@ issue() {
   
   if [ "$Le_Alt" == "no" ] ; then
     Le_Alt=""
+  fi
+  if [ "$Le_Keylength" == "no" ] ; then
+    Le_Keylength=""
+  fi
+  if [ "$Le_RealCertPath" == "no" ] ; then
+    Le_RealCertPath=""
+  fi
+  if [ "$Le_RealKeyPath" == "no" ] ; then
+    Le_RealKeyPath=""
+  fi
+  if [ "$Le_RealCACertPath" == "no" ] ; then
+    Le_RealCACertPath=""
+  fi
+  if [ "$Le_ReloadCmd" == "no" ] ; then
+    Le_ReloadCmd=""
   fi
   
   if [ "$Le_Webroot" == "no" ] ; then
@@ -505,6 +524,14 @@ issue() {
     
   fi
   
+  _setopt $DOMAIN_CONF  "Le_RealCACertPath"      "="  "\"$Le_RealCACertPath\""
+  if [ "$Le_RealCACertPath" ] ; then
+    if [ -f "$Le_RealCACertPath" ] ; then
+      rm -f $Le_RealCACertPath
+    fi
+    ln -s $CA_CERT_PATH $Le_RealCACertPath
+  fi  
+
   _setopt $DOMAIN_CONF  "Le_RealKeyPath"       "="  "\"$Le_RealKeyPath\""
     if [ "$Le_RealKeyPath" ] ; then
     if [ -f "$Le_RealKeyPath" ] ; then
@@ -554,6 +581,8 @@ renewAll() {
 
     Le_RealCertPath=""
     Le_RealKeyPath=""
+    
+    Le_RealCACertPath=""
 
     Le_ReloadCmd=""
     
