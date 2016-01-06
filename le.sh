@@ -560,7 +560,9 @@ renew() {
 }
 
 renewAll() {
+  _initpath
   _info "renewAll"
+  
   for d in $(ls -F $WORKING_DIR | grep  '/$') ; do
     d=$(echo $d | cut -d '/' -f 1)
     _info "renew $d"
