@@ -41,7 +41,7 @@ Usage: le  issue  webroot|no   a.com  [www.a.com,b.com,c.com]|no   [key-length]|
 
 ```
 
-You can set "no" to the param to use default falue. 
+You can set "no" to the param to use default value. 
  
 # Just issue a cert:
 ```
