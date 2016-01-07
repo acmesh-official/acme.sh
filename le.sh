@@ -312,14 +312,11 @@ issue() {
       _err "Please install netcat(nc) tools first."
       return 1
     fi
-    if ! command -v "netstat" > /dev/null ; then
-      _err "Please install netstat first."
-      return 1
-    fi
-    netprc="$(netstat -ntpl | grep ':80 ')"
+
+    netprc="$(ss -ntpl | grep ':80 ')"
     if [ "$netprc" ] ; then
       _err "$netprc"
-      _err "tcp port 80 is already used by $(echo "$netprc" | cut -d '/' -f 2)"
+      _err "tcp port 80 is already used by $(echo "$netprc" | cut -d :  -f 4)"
       _err "Please stop it first"
       return 1
     fi
