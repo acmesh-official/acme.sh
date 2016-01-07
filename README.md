@@ -37,9 +37,11 @@ root@xvm:~# le
 Usage: issue|renew|renewAll|createAccountKey|createDomainKey|createCSR|install|uninstall
 
 root@xvm:~# le issue
-Usage: /bin/le webroot a.com [www.a.com,b.com,c.com]  [key-length] [cert-file-path] [key-file-path] [reloadCmd]
+Usage: le  issue  webroot|no   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no
 
 ```
+
+You can set "no" to the param to use default falue. 
  
 # Just issue a cert:
 ```
@@ -61,14 +63,14 @@ The issued cert will be renewed every 50 days automatically.
 
 # Issue a cert, and install to apache/nginx
 ```
-le issue   /home/wwwroot/aa.com    aa.com    www.aa.com,cp.aa.com  2048  /path/to/certfile/in/apache/nginx  /path/to/keyfile/in/apache/nginx   "service apache2/nginx reload"
+le issue   /home/wwwroot/aa.com    aa.com    www.aa.com,cp.aa.com  2048  /path/to/certfile/in/apache/nginx  /path/to/keyfile/in/apache/nginx  "/path/to/ca/certfil/apahce/nginx"  "service apache2/nginx reload"
 ```
 Which issues the cert and then links it to the production apache or nginx path.
 The cert will be renewed every 50 days by default (which is configurable), Once the cert is renewed, the apache/nginx will be automatically reloaded by the command: ` service apache2 reload` or `service nginx reload`
 
 
 # Use Standalone server:
-Same usage as above,  just give `no` as the webroot.
+Same usage as all above,  just give `no` as the webroot.
 The tcp `80` port must be free to listen, otherwise you will be prompted to free the `80` port and try again.
 
 ```
