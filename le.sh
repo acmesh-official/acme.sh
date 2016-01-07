@@ -209,10 +209,10 @@ _setopt() {
 _startserver() {
   content="$1"
   while true ; do
-    if [ -z "$DEBUG" ] ; then
-      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | nc -q 1 -l -p 80 > /dev/null
-    else
+    if [ "$DEBUG" ] ; then
       echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | nc -q 1 -l -p 80
+    else
+      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | nc -q 1 -l -p 80 2>&1 > /dev/null
     fi
   done
 }
@@ -225,6 +225,7 @@ _stopserver() {
       killall -s 9  nc 2>&1
     else
       kill -s 9 $pid 2>&1 > /dev/null
+      wait $pid 2>/dev/null
       killall -s 9  nc 2>&1 > /dev/null
     fi
   fi
@@ -415,7 +416,7 @@ issue() {
     _send_signed_request $uri "{\"resource\": \"challenge\", \"keyAuthorization\": \"$keyauthorization\"}"
     
     if [ ! -z "$code" ] && [ ! "$code" == '202' ] ; then
-      _err "challenge error: $d"
+      _err "$d:Challenge error: $resource"
       _stopserver $serverproc
       return 1
     fi
@@ -426,7 +427,7 @@ issue() {
       _debug "checking"
       
       if ! _get $uri ; then
-        _err "Verify error:$resource"
+        _err "$d:Verify error:$resource"
         _stopserver $serverproc
         return 1
       fi
@@ -439,7 +440,7 @@ issue() {
       
       if [ "$status" == "invalid" ] ; then
          error=$(echo $response | egrep -o '"error":{[^}]*}' | grep -o '"detail":"[^"]*"' | cut -d '"' -f 4)
-        _err "Verify error:$error"
+        _err "$d:Verify error:$error"
         _stopserver $serverproc
         return 1;
       fi
@@ -447,7 +448,7 @@ issue() {
       if [ "$status" == "pending" ] ; then
         _info "Pending"
       else
-        _err "Verify error:$response" 
+        _err "$d:Verify error:$response" 
         _stopserver $serverproc
         return 1
       fi
@@ -485,7 +486,7 @@ issue() {
   
   if [ -z "$Le_LinkCert" ] ; then
     response="$(echo $response | base64 -d)"
-    _info "Sign failed: $(echo "$response" | grep -o  '"detail":"[^"]*"')"
+    _err "Sign failed: $(echo "$response" | grep -o  '"detail":"[^"]*"')"
     return 1
   fi
   
@@ -633,12 +634,17 @@ install() {
   fi
   
   _info "Installing cron job"
+  if command -v sudo > /dev/null ; then
+    if [ "$(sudo -n uptime 2>&1|grep "load"|wc -l)" != "0" ] ; then
+      SUDO=sudo
+    fi
+  fi
   if ! crontab -l | grep 'le.sh renewAll' ; then 
-    crontab -l | { cat; echo "0 0 * * * le.sh renewAll"; } | crontab -
+    crontab -l | { cat; echo "0 0 * * * $SUDO le renewAll > /dev/null"; } | crontab -
     if command -v crond > /dev/null ; then
-      service crond reload 2>/dev/null
+      service crond reload >/dev/null
     else
-      service cron reload 2>/dev/null
+      service cron reload >/dev/null
     fi
   fi  
   
