@@ -57,7 +57,7 @@ createAccountKey() {
     return
   else
     #generate account key
-    openssl genrsa $length > $ACCOUNT_KEY_PATH
+    openssl genrsa $length > "$ACCOUNT_KEY_PATH"
   fi
 
 }
@@ -76,14 +76,12 @@ createDomainKey() {
     length=2048
   fi
   _initpath $domain
-  mkdir -p $WORKING_DIR/$domain
-  CERT_KEY_PATH=$WORKING_DIR/$domain/$domain.key
   
   if [ -f "$CERT_KEY_PATH" ] ; then 
     _info "Domain key exists, skip"
   else
     #generate account key
-    openssl genrsa $length > $CERT_KEY_PATH
+    openssl genrsa $length > "$CERT_KEY_PATH"
   fi
 
 }
@@ -99,7 +97,7 @@ createCSR() {
   
   domainlist=$2
   
-  if [ -f $CSR_PATH ] ; then
+  if [ -f "$CSR_PATH" ] ; then
     _info "CSR exists, skip"
     return
   fi
@@ -107,12 +105,12 @@ createCSR() {
   if [ -z "$domainlist" ] ; then
     #single domain
     _info "Single domain" $domain
-    openssl req -new -sha256 -key $CERT_KEY_PATH -subj "/CN=$domain" > $CSR_PATH
+    openssl req -new -sha256 -key "$CERT_KEY_PATH" -subj "/CN=$domain" > "$CSR_PATH"
   else
-    alt=DNS:$(echo $domainlist | sed "s/,/,DNS:/g")
+    alt="DNS:$(echo $domainlist | sed "s/,/,DNS:/g")"
     #multi 
-    _info "Multi domain" $alt
-    openssl req -new -sha256 -key $CERT_KEY_PATH -subj "/CN=$domain" -reqexts SAN -config <(printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\n[SAN]\nsubjectAltName=$alt") -out $CSR_PATH
+    _info "Multi domain" "$alt"
+    openssl req -new -sha256 -key "$CERT_KEY_PATH" -subj "/CN=$domain" -reqexts SAN -config <(printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\n[SAN]\nsubjectAltName=$alt") -out "$CSR_PATH"
   fi
 
 }
@@ -193,15 +191,15 @@ _setopt() {
     echo usage: $0  '"file"  "opt"  "="  "value" [";"]'
     return
   fi
-  if [ ! -f $__conf ] ; then
-    touch $__conf
+  if [ ! -f "$__conf" ] ; then
+    touch "$__conf"
   fi
-  if grep -H -n "^$__opt$__sep" $__conf > /dev/null ; then
+  if grep -H -n "^$__opt$__sep" "$__conf" > /dev/null ; then
     _debug OK
-    sed -i "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" $__conf 
+    sed -i "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" "$__conf"
   else
     _debug APP
-    echo "$__opt$__sep$__val$__end" >> $__conf
+    echo "$__opt$__sep$__val$__end" >> "$__conf"
   fi
   _debug "$(grep -H -n "^$__opt$__sep" $__conf)"
 }
@@ -212,7 +210,7 @@ _startserver() {
     if [ "$DEBUG" ] ; then
       echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | nc -q 1 -l -p 80
     else
-      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | nc -q 1 -l -p 80 2>&1 > /dev/null
+      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | nc -q 1 -l -p 80 > /dev/null
     fi
   done
 }
@@ -221,12 +219,12 @@ _stopserver() {
   pid="$1"
   if [ "$pid" ] ; then
     if [ "$DEBUG" ] ; then
-      kill -s 9 $pid 2>&1
-      killall -s 9  nc 2>&1
+      kill -s 9 $pid
+      killall -s 9  nc
     else
-      kill -s 9 $pid 2>&1 > /dev/null
+      kill -s 9 $pid  > /dev/null
       wait $pid 2>/dev/null
-      killall -s 9  nc 2>&1 > /dev/null
+      killall -s 9  nc > /dev/null
     fi
   fi
 }
@@ -236,23 +234,25 @@ _initpath() {
     WORKING_DIR=~/.le
   fi
   
-  domain=$1
-  mkdir -p $WORKING_DIR
-  ACCOUNT_KEY_PATH=$WORKING_DIR/account.acc
+  domain="$1"
+  mkdir -p "$WORKING_DIR"
+  ACCOUNT_KEY_PATH="$WORKING_DIR/account.acc"
   
   if [ -z "$domain" ] ; then
     return 0
   fi
   
-  mkdir -p $WORKING_DIR/$domain
-  
-  CSR_PATH=$WORKING_DIR/$domain/$domain.csr
+  mkdir -p "$WORKING_DIR/$domain"
 
-  CERT_KEY_PATH=$WORKING_DIR/$domain/$domain.key
-
-  CERT_PATH=$WORKING_DIR/$domain/$domain.cer
+  DOMAIN_CONF="$WORKING_DIR/$domain/$Le_Domain.conf"
   
-  CA_CERT_PATH=$WORKING_DIR/$domain/ca.cer
+  CSR_PATH="$WORKING_DIR/$domain/$domain.csr"
+
+  CERT_KEY_PATH="$WORKING_DIR/$domain/$domain.key"
+
+  CERT_PATH="$WORKING_DIR/$domain/$domain.cer"
+  
+  CA_CERT_PATH="$WORKING_DIR/$domain/ca.cer"
 }
 
 
@@ -261,22 +261,21 @@ issue() {
     echo "Usage: le  issue  webroot|no   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no"
     return 1
   fi
-  Le_Webroot=$1
-  Le_Domain=$2
-  Le_Alt=$3
-  Le_Keylength=$4
-  Le_RealCertPath=$5
-  Le_RealKeyPath=$6
-  Le_RealCACertPath=$7
-  Le_ReloadCmd=$8
+  Le_Webroot="$1"
+  Le_Domain="$2"
+  Le_Alt="$3"
+  Le_Keylength="$4"
+  Le_RealCertPath="$5"
+  Le_RealKeyPath="$6"
+  Le_RealCACertPath="$7"
+  Le_ReloadCmd="$8"
   
   if [ -z "$Le_Domain" ] ; then 
     Le_Domain="$1"
   fi
   
   _initpath $Le_Domain
-  
-  DOMAIN_CONF=$WORKING_DIR/$Le_Domain/$Le_Domain.conf
+
   if [ -f "$DOMAIN_CONF" ] ; then
     source "$DOMAIN_CONF"
     if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ] ; then 
@@ -397,7 +396,7 @@ issue() {
     
     if [ "$Le_Webroot" == "no" ] ; then
       _info "Standalone mode server"
-      _startserver "$keyauthorization" 2>&1 >/dev/null &
+      _startserver "$keyauthorization" &
       serverproc="$!"
       sleep 2
       _debug serverproc $serverproc
@@ -463,26 +462,26 @@ issue() {
   
   
   Le_LinkCert="$(grep -i -o '^Location.*' $CURL_HEADER |sed 's/\r//g'| cut -d " " -f 2)"
-  _setopt $DOMAIN_CONF  "Le_LinkCert"           "="  "$Le_LinkCert"
+  _setopt "$DOMAIN_CONF"  "Le_LinkCert"           "="  "$Le_LinkCert"
   
   if [ "$Le_LinkCert" ] ; then
-    echo -----BEGIN CERTIFICATE----- > $CERT_PATH
-    curl --silent $Le_LinkCert | base64  >> $CERT_PATH
-    echo -----END CERTIFICATE-----  >> $CERT_PATH
+    echo -----BEGIN CERTIFICATE----- > "$CERT_PATH"
+    curl --silent "$Le_LinkCert" | base64  >> "$CERT_PATH"
+    echo -----END CERTIFICATE-----  >> "$CERT_PATH"
     _info "Cert success."
-    cat $CERT_PATH
+    cat "$CERT_PATH"
     
     _info "Your cert is in $CERT_PATH"
   fi
   
-  _setopt $DOMAIN_CONF  "Le_Domain"             "="  "$Le_Domain"
-  _setopt $DOMAIN_CONF  "Le_Alt"                "="  "$Le_Alt"
-  _setopt $DOMAIN_CONF  "Le_Webroot"            "="  "$Le_Webroot"
-  _setopt $DOMAIN_CONF  "Le_Keylength"          "="  "$Le_Keylength"
-  _setopt $DOMAIN_CONF  "Le_RealCertPath"       "="  "\"$Le_RealCertPath\""
-  _setopt $DOMAIN_CONF  "Le_RealCACertPath"     "="  "\"$Le_RealCACertPath\""
-  _setopt $DOMAIN_CONF  "Le_RealKeyPath"        "="  "\"$Le_RealKeyPath\""
-  _setopt $DOMAIN_CONF  "Le_ReloadCmd"          "="  "\"$Le_ReloadCmd\""
+  _setopt "$DOMAIN_CONF"  "Le_Domain"             "="  "$Le_Domain"
+  _setopt "$DOMAIN_CONF"  "Le_Alt"                "="  "$Le_Alt"
+  _setopt "$DOMAIN_CONF"  "Le_Webroot"            "="  "$Le_Webroot"
+  _setopt "$DOMAIN_CONF"  "Le_Keylength"          "="  "$Le_Keylength"
+  _setopt "$DOMAIN_CONF"  "Le_RealCertPath"       "="  "\"$Le_RealCertPath\""
+  _setopt "$DOMAIN_CONF"  "Le_RealCACertPath"     "="  "\"$Le_RealCACertPath\""
+  _setopt "$DOMAIN_CONF"  "Le_RealKeyPath"        "="  "\"$Le_RealKeyPath\""
+  _setopt "$DOMAIN_CONF"  "Le_ReloadCmd"          "="  "\"$Le_ReloadCmd\""
   
   if [ -z "$Le_LinkCert" ] ; then
     response="$(echo $response | base64 -d)"
@@ -491,60 +490,60 @@ issue() {
   fi
   
   Le_LinkIssuer=$(grep -i '^Link' $CURL_HEADER | cut -d " " -f 2| cut -d ';' -f 1 | sed 's/<//g' | sed 's/>//g')
-  _setopt $DOMAIN_CONF  "Le_LinkIssuer"         "="  "$Le_LinkIssuer"
+  _setopt "$DOMAIN_CONF"  "Le_LinkIssuer"         "="  "$Le_LinkIssuer"
   
   if [ "$Le_LinkIssuer" ] ; then
-    echo -----BEGIN CERTIFICATE----- > $CA_CERT_PATH
-    curl --silent $Le_LinkIssuer | base64  >> $CA_CERT_PATH
-    echo -----END CERTIFICATE-----  >> $CA_CERT_PATH
+    echo -----BEGIN CERTIFICATE----- > "$CA_CERT_PATH"
+    curl --silent "$Le_LinkIssuer" | base64  >> "$CA_CERT_PATH"
+    echo -----END CERTIFICATE-----  >> "$CA_CERT_PATH"
     _info "The intermediate CA cert is in $CA_CERT_PATH"
   fi
   
   Le_CertCreateTime=$(date -u "+%s")
-  _setopt $DOMAIN_CONF  "Le_CertCreateTime"     "="  "$Le_CertCreateTime"
+  _setopt "$DOMAIN_CONF"  "Le_CertCreateTime"     "="  "$Le_CertCreateTime"
   
   Le_CertCreateTimeStr=$(date -u "+%Y-%m-%d %H:%M:%S UTC")
-  _setopt $DOMAIN_CONF  "Le_CertCreateTimeStr"  "="  "\"$Le_CertCreateTimeStr\""
+  _setopt "$DOMAIN_CONF"  "Le_CertCreateTimeStr"  "="  "\"$Le_CertCreateTimeStr\""
   
   if [ ! "$Le_RenewalDays" ] ; then
     Le_RenewalDays=50
   fi
   
-  _setopt $DOMAIN_CONF  "Le_RenewalDays"      "="  "$Le_RenewalDays"
+  _setopt "$DOMAIN_CONF"  "Le_RenewalDays"      "="  "$Le_RenewalDays"
   
   Le_NextRenewTime=$(date -u -d "+$Le_RenewalDays day" "+%s")
-  _setopt $DOMAIN_CONF  "Le_NextRenewTime"      "="  "$Le_NextRenewTime"
+  _setopt "$DOMAIN_CONF"  "Le_NextRenewTime"      "="  "$Le_NextRenewTime"
   
   Le_NextRenewTimeStr=$(date -u -d "+$Le_RenewalDays day" "+%Y-%m-%d %H:%M:%S UTC")
-  _setopt $DOMAIN_CONF  "Le_NextRenewTimeStr"      "="  "\"$Le_NextRenewTimeStr\""
+  _setopt "$DOMAIN_CONF"  "Le_NextRenewTimeStr"      "="  "\"$Le_NextRenewTimeStr\""
     
   
   if [ "$Le_RealCertPath" ] ; then
     if [ -f "$Le_RealCertPath" ] ; then
-      rm -f $Le_RealCertPath
+      rm -f "$Le_RealCertPath"
     fi
-    ln -s $CERT_PATH $Le_RealCertPath
+    ln -s "$CERT_PATH" "$Le_RealCertPath"
   fi
   
   
   if [ "$Le_RealCACertPath" ] ; then
     if [ -f "$Le_RealCACertPath" ] ; then
-      rm -f $Le_RealCACertPath
+      rm -f "$Le_RealCACertPath"
     fi
-    ln -s $CA_CERT_PATH $Le_RealCACertPath
+    ln -s "$CA_CERT_PATH" "$Le_RealCACertPath"
   fi  
 
   
   if [ "$Le_RealKeyPath" ] ; then
     if [ -f "$Le_RealKeyPath" ] ; then
-      rm -f $Le_RealKeyPath
+      rm -f "$Le_RealKeyPath"
     fi
-    ln -s $CERT_KEY_PATH $Le_RealKeyPath
+    ln -s "$CERT_KEY_PATH" "$Le_RealKeyPath"
   fi
   
   if [ "$Le_ReloadCmd" ] ; then
     _info "Run Le_ReloadCmd: $Le_ReloadCmd"
-    $Le_ReloadCmd
+    "$Le_ReloadCmd"
   fi
   
 }
@@ -623,14 +622,11 @@ install() {
   
   
   _info "Installing to $WORKING_DIR"
-  
-  mkdir -p $WORKING_DIR/
-  cp  le.sh $WORKING_DIR/
-  chmod +x $WORKING_DIR/le.sh
-  
+ 
   if [ ! -f /bin/le.sh ] ; then
-    ln -s $WORKING_DIR/le.sh /bin/le.sh
-    ln -s $WORKING_DIR/le.sh /bin/le
+    cp  le.sh "/bin/"
+    chmod +x "/bin/le.sh"
+    ln -s "/bin/le.sh" /bin/le
   fi
   
   _info "Installing cron job"
@@ -682,12 +678,6 @@ showhelp() {
 
 if [ -z "$1" ] ; then
   showhelp
+else
+  "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9"
 fi
-
-
-
-$1 $2 $3 $4 $5 $6 $7 $8
-
-
-
-
