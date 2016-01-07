@@ -196,6 +196,9 @@ _setopt() {
   fi
   if grep -H -n "^$__opt$__sep" "$__conf" > /dev/null ; then
     _debug OK
+    if [[ "$__val" == *"&"* ]] ; then
+      __val="$(echo $__val | sed 's/&/\\&/g')"
+    fi
     sed -i "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" "$__conf"
   else
     _debug APP
