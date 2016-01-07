@@ -639,7 +639,7 @@ install() {
       SUDO=sudo
     fi
   fi
-  if ! crontab -l | grep 'le.sh renewAll' ; then 
+  if ! crontab -l | grep 'le renewAll' ; then 
     crontab -l | { cat; echo "0 0 * * * $SUDO le renewAll > /dev/null"; } | crontab -
     if command -v crond > /dev/null ; then
       service crond reload >/dev/null
@@ -656,12 +656,12 @@ uninstall() {
   _initpath
   _info "Removing cron job"
 
-  if crontab -l | grep 'le.sh renewAll' ; then 
-    crontab -l | sed "/le.sh renewAll/d" | crontab -
+  if crontab -l | grep 'le renewAll' ; then 
+    crontab -l | sed "/le renewAll/d" | crontab -
     if command -v crond > /dev/null ; then
-      service crond reload 2>/dev/null
+      service crond reload >/dev/null
     else
-      service cron reload 2>/dev/null
+      service cron reload >/dev/null
     fi
   fi 
 
