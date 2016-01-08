@@ -306,6 +306,15 @@ issue() {
     Le_ReloadCmd=""
   fi
   
+  _setopt "$DOMAIN_CONF"  "Le_Domain"             "="  "$Le_Domain"
+  _setopt "$DOMAIN_CONF"  "Le_Alt"                "="  "$Le_Alt"
+  _setopt "$DOMAIN_CONF"  "Le_Webroot"            "="  "$Le_Webroot"
+  _setopt "$DOMAIN_CONF"  "Le_Keylength"          "="  "$Le_Keylength"
+  _setopt "$DOMAIN_CONF"  "Le_RealCertPath"       "="  "\"$Le_RealCertPath\""
+  _setopt "$DOMAIN_CONF"  "Le_RealCACertPath"     "="  "\"$Le_RealCACertPath\""
+  _setopt "$DOMAIN_CONF"  "Le_RealKeyPath"        "="  "\"$Le_RealKeyPath\""
+  _setopt "$DOMAIN_CONF"  "Le_ReloadCmd"          "="  "\"$Le_ReloadCmd\""
+  
   if [ "$Le_Webroot" == "no" ] ; then
     _info "Standalone mode."
     if ! command -v "nc" > /dev/null ; then
@@ -474,14 +483,7 @@ issue() {
     _info "Your cert is in $CERT_PATH"
   fi
   
-  _setopt "$DOMAIN_CONF"  "Le_Domain"             "="  "$Le_Domain"
-  _setopt "$DOMAIN_CONF"  "Le_Alt"                "="  "$Le_Alt"
-  _setopt "$DOMAIN_CONF"  "Le_Webroot"            "="  "$Le_Webroot"
-  _setopt "$DOMAIN_CONF"  "Le_Keylength"          "="  "$Le_Keylength"
-  _setopt "$DOMAIN_CONF"  "Le_RealCertPath"       "="  "\"$Le_RealCertPath\""
-  _setopt "$DOMAIN_CONF"  "Le_RealCACertPath"     "="  "\"$Le_RealCACertPath\""
-  _setopt "$DOMAIN_CONF"  "Le_RealKeyPath"        "="  "\"$Le_RealKeyPath\""
-  _setopt "$DOMAIN_CONF"  "Le_ReloadCmd"          "="  "\"$Le_ReloadCmd\""
+
   
   if [ -z "$Le_LinkCert" ] ; then
     response="$(echo $response | base64 -d)"
