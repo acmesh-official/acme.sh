@@ -234,7 +234,7 @@ _stopserver() {
 
 _initpath() {
   if [ -z "$WORKING_DIR" ]; then
-    WORKING_DIR=~/.le
+    WORKING_DIR=$HOME/.le
   fi
   
   domain="$1"
@@ -256,8 +256,95 @@ _initpath() {
   CERT_PATH="$WORKING_DIR/$domain/$domain.cer"
   
   CA_CERT_PATH="$WORKING_DIR/$domain/ca.cer"
+  
+  if [ -z "$ACME_DIR" ] ; then
+    ACME_DIR="/home/.acme"
+  fi
+  
+  if [ -z "$APACHE_CONF_BACKUP_DIR" ] ; then
+    APACHE_CONF_BACKUP_DIR="$WORKING_DIR/"
+  fi
+  
 }
 
+
+_apachePath() {
+  httpdroot="$(apachectl -V | grep HTTPD_ROOT= | cut -d = -f 2 | sed s/\"//g)"
+  httpdconfname="$(apachectl -V | grep SERVER_CONFIG_FILE= | cut -d = -f 2 | sed s/\"//g)"
+  httpdconf="$httpdroot/$httpdconfname"
+  if [ ! -f $httpdconf ] ; then
+    _err "Apache Config file not found" $httpdconf
+    return 1
+  fi
+  return 0
+}
+
+_restoreApache() {
+  if ! _apachePath ; then
+    return 1
+  fi
+  
+  if [ ! -f "$APACHE_CONF_BACKUP_DIR/$httpdconfname" ] ; then
+    _debug "No config file to restore."
+    return 0
+  fi
+  
+  cp -p "$APACHE_CONF_BACKUP_DIR/$httpdconfname" "$httpdconf"
+  if ! apachectl  -t ; then
+    _err "Sorry, restore apache config error, please contact me."
+    _restoreApache
+    return 1;
+  fi
+  rm -f "$APACHE_CONF_BACKUP_DIR/$httpdconfname"
+  return 0  
+}
+
+_setApache() {
+  if ! _apachePath ; then
+    return 1
+  fi
+
+  #backup the conf
+  _debug "Backup apache config file" $httpdconf
+  cp -p $httpdconf $APACHE_CONF_BACKUP_DIR/
+  _info "JFYI, Config file $httpdconf is backuped to $APACHE_CONF_BACKUP_DIR/$httpdconfname"
+  _info "In case there is an error that can not be restored automatically, you may try restore it yourself."
+  _info "The backup file will be deleted on sucess, just forget it."
+  
+  #add alias
+  echo "
+Alias /.well-known/acme-challenge/  $ACME_DIR
+
+<Directory $ACME_DIR >
+Order allow,deny
+Allow from all
+</Directory>
+  " >> $httpdconf
+  
+  if ! apachectl  -t ; then
+    _err "Sorry, apache config error, please contact me."
+    _restoreApache
+    return 1;
+  fi
+  
+  if [ ! -d "$ACME_DIR" ] ; then
+    mkdir -p "$ACME_DIR"
+    chmod 755 "$ACME_DIR"
+  fi
+  
+  if ! apachectl  graceful ; then
+    _err "Sorry, apachectl  graceful error, please contact me."
+    _restoreApache
+    return 1;
+  fi
+  
+  return 0
+}
+
+_clearup () {
+  _stopserver $serverproc
+  _restoreApache
+}
 
 issue() {
   if [ -z "$1" ] ; then
@@ -330,6 +417,14 @@ issue() {
       return 1
     fi
   fi
+  
+  if [ "$Le_Webroot" == "apache" ] ; then
+    if ! _setApache ; then
+      _err "set up apache error. Report error to me."
+      return 1
+    fi
+    wellknown_path="$ACME_DIR"
+  fi
 
   createAccountKey $Le_Domain $Le_Keylength
   
@@ -373,6 +468,7 @@ issue() {
     _info "Already registered"
   else
     _err "Register account Error."
+    _clearup
     return 1
   fi
   
@@ -388,6 +484,7 @@ issue() {
  
     if [ ! -z "$code" ] && [ ! "$code" == '201' ] ; then
       _err "new-authz error: $response"
+      _clearup
       return 1
     fi
     
@@ -410,7 +507,9 @@ issue() {
       sleep 2
       _debug serverproc $serverproc
     else
-      wellknown_path="$Le_Webroot/.well-known/acme-challenge"
+      if [ -z "$wellknown_path" ] ; then
+        wellknown_path="$Le_Webroot/.well-known/acme-challenge"
+      fi
       _debug wellknown_path "$wellknown_path"
       
       mkdir -p "$wellknown_path"
@@ -425,7 +524,7 @@ issue() {
     
     if [ ! -z "$code" ] && [ ! "$code" == '202' ] ; then
       _err "$d:Challenge error: $resource"
-      _stopserver $serverproc
+      _clearup
       return 1
     fi
     
@@ -436,7 +535,7 @@ issue() {
       
       if ! _get $uri ; then
         _err "$d:Verify error:$resource"
-        _stopserver $serverproc
+        _clearup
         return 1
       fi
       
@@ -449,7 +548,7 @@ issue() {
       if [ "$status" == "invalid" ] ; then
          error=$(echo $response | egrep -o '"error":{[^}]*}' | grep -o '"detail":"[^"]*"' | cut -d '"' -f 4)
         _err "$d:Verify error:$error"
-        _stopserver $serverproc
+        _clearup
         return 1;
       fi
       
@@ -457,7 +556,7 @@ issue() {
         _info "Pending"
       else
         _err "$d:Verify error:$response" 
-        _stopserver $serverproc
+        _clearup
         return 1
       fi
       
@@ -488,6 +587,7 @@ issue() {
   if [ -z "$Le_LinkCert" ] ; then
     response="$(echo $response | base64 -d)"
     _err "Sign failed: $(echo "$response" | grep -o  '"detail":"[^"]*"')"
+    _clearup
     return 1
   fi
   
