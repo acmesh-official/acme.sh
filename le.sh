@@ -237,6 +237,14 @@ _initpath() {
     WORKING_DIR=$HOME/.le
   fi
   
+  if [ -z "$ACME_DIR" ] ; then
+    ACME_DIR="/home/.acme"
+  fi
+  
+  if [ -z "$APACHE_CONF_BACKUP_DIR" ] ; then
+    APACHE_CONF_BACKUP_DIR="$WORKING_DIR/"
+  fi
+  
   domain="$1"
   mkdir -p "$WORKING_DIR"
   ACCOUNT_KEY_PATH="$WORKING_DIR/account.acc"
@@ -257,13 +265,7 @@ _initpath() {
   
   CA_CERT_PATH="$WORKING_DIR/$domain/ca.cer"
   
-  if [ -z "$ACME_DIR" ] ; then
-    ACME_DIR="/home/.acme"
-  fi
-  
-  if [ -z "$APACHE_CONF_BACKUP_DIR" ] ; then
-    APACHE_CONF_BACKUP_DIR="$WORKING_DIR/"
-  fi
+
   
 }
 
@@ -280,6 +282,7 @@ _apachePath() {
 }
 
 _restoreApache() {
+  _initpath
   if ! _apachePath ; then
     return 1
   fi
@@ -300,6 +303,7 @@ _restoreApache() {
 }
 
 _setApache() {
+  _initpath
   if ! _apachePath ; then
     return 1
   fi
