@@ -46,7 +46,16 @@ Usage: le  issue  webroot|no|apache   a.com  [www.a.com,b.com,c.com]|no   [key-l
 
 ```
 
-You can set "no" to the param to use default value. 
+Set the param value to "no" means you want to ignore it.
+
+For example, if you give "no" to "key-length", it will use default length 2048.
+
+And if you give 'no' to 'cert-file-path', it will not copy the issued cert to the "cert-file-path".
+
+In all the cases, the issued cert will be placed in "~/.le/domain.com/"
+
+
+
  
 # Just issue a cert:
 ```
