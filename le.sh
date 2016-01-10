@@ -1,5 +1,5 @@
 #!/bin/bash
-VER=1.0.1
+VER=1.0.2
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
@@ -516,8 +516,7 @@ issue() {
       _debug wellknown_path "$wellknown_path"
       
       mkdir -p "$wellknown_path"
-      wellknown_path="$wellknown_path/$token"
-      echo -n "$keyauthorization" > $wellknown_path
+      echo -n "$keyauthorization" > "$wellknown_path/$token"
     fi
     wellknown_url="http://$d/.well-known/acme-challenge/$token"
     _debug wellknown_url "$wellknown_url"
