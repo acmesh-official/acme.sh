@@ -351,7 +351,7 @@ _clearup () {
 
 issue() {
   if [ -z "$1" ] ; then
-    echo "Usage: le  issue  webroot|no   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no"
+    echo "Usage: le  issue  webroot|no|apache   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no"
     return 1
   fi
   Le_Webroot="$1"
