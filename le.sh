@@ -772,10 +772,13 @@ uninstall() {
 
 }
 
-
+version() {
+  _info "$PROJECT"
+  _info "v$VER"
+}
 showhelp() {
-  echo "Usage: issue|renew|renewAll|createAccountKey|createDomainKey|createCSR|install|uninstall"
-
+  version
+  echo "Usage: issue|renew|renewAll|createAccountKey|createDomainKey|createCSR|install|uninstall|version"
 }
 
 
