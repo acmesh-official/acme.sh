@@ -566,7 +566,7 @@ issue() {
     done
     _stopserver $serverproc
   done 
-  
+  _clearup
   _info "Verify finished, start to sign."
   der="$(openssl req  -in $CSR_PATH -outform DER | base64 -w 0 | _b64)"
   _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"
@@ -590,7 +590,6 @@ issue() {
   if [ -z "$Le_LinkCert" ] ; then
     response="$(echo $response | base64 -d)"
     _err "Sign failed: $(echo "$response" | grep -o  '"detail":"[^"]*"')"
-    _clearup
     return 1
   fi
   
