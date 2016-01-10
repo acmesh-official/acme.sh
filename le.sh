@@ -317,7 +317,7 @@ _setApache() {
   
   #add alias
   echo "
-Alias /.well-known/acme-challenge/  $ACME_DIR
+Alias /.well-known/acme-challenge  $ACME_DIR
 
 <Directory $ACME_DIR >
 Order allow,deny
