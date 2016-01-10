@@ -1,11 +1,11 @@
 # le
 Simplest shell script for LetsEncrypt free Certificate client
 
-This is a shell version from https://github.com/diafygi/acme-tiny
-
 Pure written in bash, no dependencies to python , acme-tiny or LetsEncrypt official client (https://github.com/letsencrypt/letsencrypt)
 
 Just one script, to issue, renew your certificates automatically.
+
+This is a shell version from https://github.com/diafygi/acme-tiny, but without any dependencies.
 
 Probably it's the smallest&easiest&smartest shell script to automatically  issue&renew the free certificates from LetsEncrypt.
 
@@ -14,6 +14,11 @@ Probably it's the smallest&easiest&smartest shell script to automatically  issue
 1. Ubuntu/Debian.
 2. CentOS
 
+
+#Supported Mode
+1. Webroot mode
+2. Standalone mode
+3. Apache mode
 
 #How to use
 
@@ -37,7 +42,7 @@ root@xvm:~# le
 Usage: issue|renew|renewAll|createAccountKey|createDomainKey|createCSR|install|uninstall
 
 root@xvm:~# le issue
-Usage: le  issue  webroot|no   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no
+Usage: le  issue  webroot|no|apache   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no
 
 ```
 
@@ -76,6 +81,17 @@ The tcp `80` port must be free to listen, otherwise you will be prompted to free
 ```
 le issue    no    aa.com    www.aa.com,cp.aa.com
 ```
+
+# Use Apache mode:
+If you are running a web server, apache or nginx, it its recommended to use the Webroot mode.
+Particularly,  if you are running an apache server, you can use apache mode instead. Which doesn't write any file to your web root folder.
+
+Just set string "apache" to the first argument, it will use apache plugin automatically.
+
+```
+le  issue  apache  aa.com  www.aa.com
+```
+All the other arguments are the same with previous.
 
 
 
