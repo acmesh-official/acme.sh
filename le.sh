@@ -1,5 +1,5 @@
 #!/bin/bash
-
+VER=1.0.1
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
