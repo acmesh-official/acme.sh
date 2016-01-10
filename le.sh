@@ -1,6 +1,6 @@
 #!/bin/bash
 
-
+PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
 DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf"
@@ -295,7 +295,6 @@ _restoreApache() {
   cp -p "$APACHE_CONF_BACKUP_DIR/$httpdconfname" "$httpdconf"
   if ! apachectl  -t ; then
     _err "Sorry, restore apache config error, please contact me."
-    _restoreApache
     return 1;
   fi
   rm -f "$APACHE_CONF_BACKUP_DIR/$httpdconfname"
