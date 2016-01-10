@@ -83,7 +83,7 @@ le issue    no    aa.com    www.aa.com,cp.aa.com
 ```
 
 # Use Apache mode:
-If you are running a web server, apache or nginx, it its recommended to use the Webroot mode.
+If you are running a web server, apache or nginx, it is recommended to use the Webroot mode.
 Particularly,  if you are running an apache server, you can use apache mode instead. Which doesn't write any file to your web root folder.
 
 Just set string "apache" to the first argument, it will use apache plugin automatically.
