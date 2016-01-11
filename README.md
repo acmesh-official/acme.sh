@@ -5,8 +5,6 @@ Pure written in bash, no dependencies to python , acme-tiny or LetsEncrypt offic
 
 Just one script, to issue, renew your certificates automatically.
 
-This is a shell version from https://github.com/diafygi/acme-tiny, but without any dependencies.
-
 Probably it's the smallest&easiest&smartest shell script to automatically  issue&renew the free certificates from LetsEncrypt.
 
 
@@ -109,6 +107,13 @@ All the other arguments are the same with previous.
 Speak ACME language with bash directly to Let's encrypt.
 
 TODO:
+
+
+#Acknowledgment
+1. Acme-tiny: https://github.com/diafygi/acme-tiny
+2. ACME protocol: https://github.com/ietf-wg-acme/acme
+3. letsencrypt: https://github.com/letsencrypt/letsencrypt
+
 
 
 #License & Other
