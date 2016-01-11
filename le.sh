@@ -253,7 +253,10 @@ _initpath() {
   
   domain="$1"
   mkdir -p "$WORKING_DIR"
-  ACCOUNT_KEY_PATH="$WORKING_DIR/account.acc"
+  
+  if [ -z "$ACCOUNT_KEY_PATH" ] ; then
+    ACCOUNT_KEY_PATH="$WORKING_DIR/account.acc"
+  fi
   
   if [ -z "$domain" ] ; then
     return 0
@@ -261,16 +264,21 @@ _initpath() {
   
   mkdir -p "$WORKING_DIR/$domain"
 
-  DOMAIN_CONF="$WORKING_DIR/$domain/$Le_Domain.conf"
-  
-  CSR_PATH="$WORKING_DIR/$domain/$domain.csr"
-
-  CERT_KEY_PATH="$WORKING_DIR/$domain/$domain.key"
-
-  CERT_PATH="$WORKING_DIR/$domain/$domain.cer"
-  
-  CA_CERT_PATH="$WORKING_DIR/$domain/ca.cer"
-  
+  if [ -z "$DOMAIN_CONF" ] ; then
+    DOMAIN_CONF="$WORKING_DIR/$domain/$Le_Domain.conf"
+  fi
+  if [ -z "$CSR_PATH" ] ; then
+    CSR_PATH="$WORKING_DIR/$domain/$domain.csr"
+  fi
+  if [ -z "$CERT_KEY_PATH" ] ; then 
+    CERT_KEY_PATH="$WORKING_DIR/$domain/$domain.key"
+  fi
+  if [ -z "$CERT_PATH" ] ; then
+    CERT_PATH="$WORKING_DIR/$domain/$domain.cer"
+  fi
+  if [ -z "$CA_CERT_PATH" ] ; then
+    CA_CERT_PATH="$WORKING_DIR/$domain/ca.cer"
+  fi
 
   
 }
@@ -695,6 +703,12 @@ renewAll() {
 
     Le_ReloadCmd=""
     
+    DOMAIN_CONF=""
+    CSR_PATH=""
+    CERT_KEY_PATH=""
+    CERT_PATH=""
+    CA_CERT_PATH=""
+    ACCOUNT_KEY_PATH=""
     renew "$d"  
   done
   
