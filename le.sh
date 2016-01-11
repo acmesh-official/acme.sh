@@ -1,5 +1,5 @@
 #!/bin/bash
-VER=1.0.2
+VER=1.0.3
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
@@ -319,8 +319,7 @@ _setApache() {
 Alias /.well-known/acme-challenge  $ACME_DIR
 
 <Directory $ACME_DIR >
-Order allow,deny
-Allow from all
+Require all granted
 </Directory>
   " >> $httpdconf
   
