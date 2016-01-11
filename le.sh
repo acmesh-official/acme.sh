@@ -5,8 +5,14 @@ PROJECT="https://github.com/Neilpang/le"
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
 DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf"
 
-API="$DEFAULT_CA"
-AGREEMENT="$DEFAULT_AGREEMENT"
+
+if [ -z "$API" ] ; then
+  API="$DEFAULT_CA"
+fi
+
+if [ -z "$AGREEMENT" ] ; then
+  AGREEMENT="$DEFAULT_AGREEMENT"
+fi
 
 _debug() {
 
