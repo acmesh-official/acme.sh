@@ -1,5 +1,5 @@
 #!/bin/bash
-VER=1.0.3
+VER=1.0.4
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
@@ -709,6 +709,9 @@ renewAll() {
     CERT_PATH=""
     CA_CERT_PATH=""
     ACCOUNT_KEY_PATH=""
+    
+    wellknown_path=""
+    
     renew "$d"  
   done
   
