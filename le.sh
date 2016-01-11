@@ -296,6 +296,9 @@ _apachePath() {
 }
 
 _restoreApache() {
+  if [ -z "$usingApache" ] ; then
+    return 0
+  fi
   _initpath
   if ! _apachePath ; then
     return 1
@@ -353,7 +356,7 @@ Require all granted
     _restoreApache
     return 1;
   fi
-  
+  usingApache="1"
   return 0
 }
 
@@ -440,6 +443,8 @@ issue() {
       return 1
     fi
     wellknown_path="$ACME_DIR"
+  else
+    usingApache=""
   fi
 
   createAccountKey $Le_Domain $Le_Keylength
