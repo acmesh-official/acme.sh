@@ -643,25 +643,25 @@ issue() {
   
   if [ "$Le_RealCertPath" ] ; then
     if [ -f "$Le_RealCertPath" ] ; then
-      rm -f "$Le_RealCertPath"
+      cp -p "$Le_RealCertPath" "$Le_RealCertPath".bak
     fi
-    ln -s "$CERT_PATH" "$Le_RealCertPath"
+    cat "$CERT_PATH" > "$Le_RealCertPath"
   fi
   
   
   if [ "$Le_RealCACertPath" ] ; then
     if [ -f "$Le_RealCACertPath" ] ; then
-      rm -f "$Le_RealCACertPath"
+      cp -p "$Le_RealCACertPath" "$Le_RealCACertPath".bak
     fi
-    ln -s "$CA_CERT_PATH" "$Le_RealCACertPath"
+    cat "$CA_CERT_PATH" > "$Le_RealCACertPath"
   fi  
 
   
   if [ "$Le_RealKeyPath" ] ; then
     if [ -f "$Le_RealKeyPath" ] ; then
-      rm -f "$Le_RealKeyPath"
+      cp -p "$Le_RealKeyPath" "$Le_RealKeyPath".bak
     fi
-    ln -s "$CERT_KEY_PATH" "$Le_RealKeyPath"
+    cat "$CERT_KEY_PATH" > "$Le_RealKeyPath"
   fi
   
   if [ "$Le_ReloadCmd" ] ; then
