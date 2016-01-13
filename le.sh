@@ -389,7 +389,7 @@ issue() {
   if [ -f "$DOMAIN_CONF" ] ; then
     source "$DOMAIN_CONF"
     if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ] ; then 
-      _info "Skip, Next renwal time is: $Le_NextRenewTimeStr"
+      _info "Skip, Next renewal time is: $Le_NextRenewTimeStr"
       return 2
     fi
   fi
