@@ -362,6 +362,7 @@ Require all granted
 
 _clearup () {
   _stopserver $serverproc
+  serverproc=""
   _restoreApache
 }
 
@@ -582,6 +583,7 @@ issue() {
       
     done
     _stopserver $serverproc
+    serverproc=""
   done 
   _clearup
   _info "Verify finished, start to sign."
@@ -664,7 +666,7 @@ issue() {
   
   if [ "$Le_ReloadCmd" ] ; then
     _info "Run Le_ReloadCmd: $Le_ReloadCmd"
-    "$Le_ReloadCmd"
+    $Le_ReloadCmd
   fi
   
 }
