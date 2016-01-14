@@ -222,13 +222,13 @@ _setopt() {
 
 _startserver() {
   content="$1"
-  while true ; do
+#  while true ; do
     if [ "$DEBUG" ] ; then
       echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | nc -q 1 -l -p 80
     else
       echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | nc -q 1 -l -p 80 > /dev/null
     fi
-  done
+#  done
 }
 
 _stopserver() {
@@ -236,11 +236,11 @@ _stopserver() {
   if [ "$pid" ] ; then
     if [ "$DEBUG" ] ; then
       kill -s 9 $pid
-      killall -s 9  nc
+#      killall -s 9  nc
     else
       kill -s 9 $pid  > /dev/null
       wait $pid 2>/dev/null
-      killall -s 9  nc > /dev/null
+#      killall -s 9  nc > /dev/null
     fi
   fi
 }
