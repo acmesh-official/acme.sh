@@ -639,7 +639,7 @@ issue() {
   _setopt "$DOMAIN_CONF"  "Le_CertCreateTimeStr"  "="  "\"$Le_CertCreateTimeStr\""
   
   if [ ! "$Le_RenewalDays" ] ; then
-    Le_RenewalDays=50
+    Le_RenewalDays=80
   fi
   
   _setopt "$DOMAIN_CONF"  "Le_RenewalDays"      "="  "$Le_RenewalDays"
