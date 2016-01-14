@@ -1,5 +1,5 @@
 #!/bin/bash
-VER=1.0.4
+VER=1.0.5
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
@@ -83,8 +83,15 @@ createDomainKey() {
   fi
   _initpath $domain
   
-  if [ -f "$CERT_KEY_PATH" ] ; then 
-    _info "Domain key exists, skip"
+  if [ -f "$CERT_KEY_PATH" ] && ! [ "$FORCE" ] ; then 
+    if [ "$IS_RENEW" ] ; then
+      _info "Domain key exists, skip"
+      return 0
+    else
+      _err "Domain key exists, do you want to overwrite the key?"
+      _err "Set FORCE=1, and try again."
+      return 1
+    fi
   else
     #generate account key
     openssl genrsa $length > "$CERT_KEY_PATH"
@@ -103,7 +110,7 @@ createCSR() {
   
   domainlist=$2
   
-  if [ -f "$CSR_PATH" ] ; then
+  if [ -f "$CSR_PATH" ]  && [ "$IS_RENEW" ]; then
     _info "CSR exists, skip"
     return
   fi
@@ -367,8 +374,8 @@ _clearup () {
 }
 
 issue() {
-  if [ -z "$1" ] ; then
-    echo "Usage: le  issue  webroot|no|apache   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no"
+  if [ -z "$2" ] ; then
+    _err "Usage: le  issue  webroot|no|apache   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no"
     return 1
   fi
   Le_Webroot="$1"
@@ -379,17 +386,14 @@ issue() {
   Le_RealKeyPath="$6"
   Le_RealCACertPath="$7"
   Le_ReloadCmd="$8"
-  
-  if [ -z "$Le_Domain" ] ; then 
-    Le_Domain="$1"
-  fi
+
   
   _initpath $Le_Domain
-
+  
   if [ -f "$DOMAIN_CONF" ] ; then
-    source "$DOMAIN_CONF"
+    Le_NextRenewTime=$(grep "^Le_NextRenewTime=" "$DOMAIN_CONF" | cut -d '=' -f 2)
     if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ] ; then 
-      _info "Skip, Next renewal time is: $Le_NextRenewTimeStr"
+      _info "Skip, Next renewal time is: $(grep "^Le_NextRenewTimeStr" "$DOMAIN_CONF" | cut -d '=' -f 2)"
       return 2
     fi
   fi
@@ -450,9 +454,15 @@ issue() {
 
   createAccountKey $Le_Domain $Le_Keylength
   
-  createDomainKey $Le_Domain $Le_Keylength
+  if ! createDomainKey $Le_Domain $Le_Keylength ; then 
+    _err "Create domain key error."
+    return 1
+  fi
   
-  createCSR  $Le_Domain  $Le_Alt
+  if ! createCSR  $Le_Domain  $Le_Alt ; then
+    _err "Create CSR error."
+    return 1
+  fi
 
   pub_exp=$(openssl rsa -in $ACCOUNT_KEY_PATH  -noout -text | grep "^publicExponent:"| cut -d '(' -f 2 | cut -d 'x' -f 2 | cut -d ')' -f 1)
   if [ "${#pub_exp}" == "5" ] ; then
@@ -674,12 +684,22 @@ issue() {
 renew() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ] ; then
-    echo Usage: $0  domain.com
+    _err "Usage: $0  domain.com"
     return 1
   fi
 
-  issue $Le_Domain
+  _initpath $Le_Domain
 
+  if [ -f "$DOMAIN_CONF" ] ; then
+    source "$DOMAIN_CONF"
+    if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ] ; then 
+      _info "Skip, Next renewal time is: $Le_NextRenewTimeStr"
+      return 2
+    fi
+  fi
+  IS_RENEW="1"
+  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd"
+  IS_RENEW=""
 }
 
 renewAll() {
