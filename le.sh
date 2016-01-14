@@ -235,11 +235,11 @@ _stopserver() {
   pid="$1"
   if [ "$pid" ] ; then
     if [ "$DEBUG" ] ; then
-      kill -s 9 $pid
+#      kill -s 9 $pid
 #      killall -s 9  nc
     else
-      kill -s 9 $pid  > /dev/null
-      wait $pid 2>/dev/null
+#      kill -s 9 $pid  > /dev/null
+#      wait $pid 2>/dev/null
 #      killall -s 9  nc > /dev/null
     fi
   fi
