@@ -279,6 +279,9 @@ _initpath() {
   if [ -z "$CA_CERT_PATH" ] ; then
     CA_CERT_PATH="$WORKING_DIR/$domain/ca.cer"
   fi
+  if [ -z "$CERT_CHAIN_PATH" ] ; then
+    CERT_CHAIN_PATH="$WORKING_DIR/$domain/fullchain.pem"
+  fi
 
   
 }
@@ -619,6 +622,12 @@ issue() {
     echo -----END CERTIFICATE-----  >> "$CA_CERT_PATH"
     _info "The intermediate CA cert is in $CA_CERT_PATH"
   fi
+
+  if [[ -f $CERT_PATH && -f $CA_CERT_PATH ]] ; then
+    cat $CERT_PATH >> "$CERT_CHAIN_PATH"
+    cat $CA_CERT_PATH >> "$CERT_CHAIN_PATH"
+    _info "The full certificate chain is in $CERT_CHAIN_PATH"
+  fi
   
   Le_CertCreateTime=$(date -u "+%s")
   _setopt "$DOMAIN_CONF"  "Le_CertCreateTime"     "="  "$Le_CertCreateTime"
@@ -713,6 +722,7 @@ renewAll() {
     CERT_KEY_PATH=""
     CERT_PATH=""
     CA_CERT_PATH=""
+    CERT_CHAIN_PATH=""
     ACCOUNT_KEY_PATH=""
     
     wellknown_path=""
