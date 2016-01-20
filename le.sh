@@ -110,7 +110,7 @@ createCSR() {
   
   domainlist=$2
   
-  if [ -f "$CSR_PATH" ]  && [ "$IS_RENEW" ]; then
+  if [ -f "$CSR_PATH" ]  && [ "$IS_RENEW" ] && ! [ "$FORCE" ]; then
     _info "CSR exists, skip"
     return
   fi
