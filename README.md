@@ -110,9 +110,9 @@ le  issue   dns   aa.com  www.aa.com
 ```
 
 Use domain api to automatically add dns record is not finished yet.
-So, you must manually add the txt record to finish verify.
+So, you must manually add the txt record to finish verifying.
 
-You will got the output like bellow:
+You will get the output like bellow:
 ```
 Add the following txt record:
 Domain:_acme-challenge.aa.com
@@ -125,7 +125,7 @@ Txt value:9ihDbjxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 Please add those txt records to the domains. Waiting for the dns to take effect.
 
-Then just retry with 'renew' command
+Then just retry with 'renew' command:
 
 ```
 le renew  aa.com
