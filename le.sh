@@ -1,14 +1,14 @@
 #!/bin/bash
-VER=1.0.5
+VER=1.1.0
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
 DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf"
 
+STAGE_CA="https://acme-staging.api.letsencrypt.org"
 
-if [ -z "$API" ] ; then
-  API="$DEFAULT_CA"
-fi
+VTYPE_HTTP="http-01"
+VTYPE_DNS="dns-01"
 
 if [ -z "$AGREEMENT" ] ; then
   AGREEMENT="$DEFAULT_AGREEMENT"
@@ -23,15 +23,15 @@ _debug() {
   if [ -z "$2" ] ; then
     echo $1
   else
-    echo $1:$2
+    echo "$1"="$2"
   fi
 }
 
 _info() {
   if [ -z "$2" ] ; then
-    echo $1
+    echo "$1"
   else
-    echo $1:$2
+    echo "$1"="$2"
   fi
 }
 
@@ -39,7 +39,7 @@ _err() {
   if [ -z "$2" ] ; then
     echo "$1" >&2
   else
-    echo "$1:$2" >&2
+    echo "$1"="$2" >&2
   fi
 }
 
@@ -237,6 +237,16 @@ _stopserver() {
 }
 
 _initpath() {
+
+  if [ -z "$API" ] ; then
+    if [ -z "$STAGE" ] ; then
+      API="$DEFAULT_CA"
+    else
+      API="$STAGE_CA"
+      _info "Using stage api:$API"
+    fi  
+  fi
+  
   if [ -z "$WORKING_DIR" ]; then
     WORKING_DIR=$HOME/.le
   fi
@@ -366,7 +376,7 @@ _clearup () {
 
 issue() {
   if [ -z "$2" ] ; then
-    _err "Usage: le  issue  webroot|no|apache   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no"
+    _err "Usage: le  issue  webroot|no|apache|dns   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no"
     return 1
   fi
   Le_Webroot="$1"
@@ -442,7 +452,7 @@ issue() {
   else
     usingApache=""
   fi
-
+  
   createAccountKey $Le_Domain $Le_Keylength
   
   if ! createDomainKey $Le_Domain $Le_Keylength ; then 
@@ -495,58 +505,113 @@ issue() {
     return 1
   fi
   
+  vtype="$VTYPE_HTTP"
+  if [[ "$Le_Webroot" == "dns"* ]] ; then
+    vtype="$VTYPE_DNS"
+  fi
+  
+  vlist="$Le_Vlist"
   # verify each domain
   _info "Verify each domain"
-  
-  alldomains=$(echo "$Le_Domain,$Le_Alt" | sed "s/,/ /g")
-  for d in $alldomains   
-  do  
-    _info "Verifing domain" $d
-    
-    _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$d\"}}"
- 
-    if [ ! -z "$code" ] && [ ! "$code" == '201' ] ; then
-      _err "new-authz error: $response"
-      _clearup
+  sep='#'
+  if [ -z "$vlist" ] ; then
+    alldomains=$(echo "$Le_Domain,$Le_Alt" | sed "s/,/ /g")
+    for d in $alldomains   
+    do  
+      _info "Geting token for domain" $d
+      _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$d\"}}"
+      if [ ! -z "$code" ] && [ ! "$code" == '201' ] ; then
+        _err "new-authz error: $response"
+        _clearup
+        return 1
+      fi
+
+      entry=$(echo $response | egrep -o  '{[^{]*"type":"'$vtype'"[^}]*')
+      _debug entry "$entry"
+
+      token=$(echo "$entry" | sed 's/,/\n'/g| grep '"token":'| cut -d : -f 2|sed 's/"//g')
+      _debug token $token
+      
+      uri=$(echo "$entry" | sed 's/,/\n'/g| grep '"uri":'| cut -d : -f 2,3|sed 's/"//g')
+      _debug uri $uri
+      
+      keyauthorization="$token.$thumbprint"
+      _debug keyauthorization "$keyauthorization"
+
+      dvlist="$d$sep$keyauthorization$sep$uri"
+      _debug dvlist "$dvlist"
+      
+      vlist="$vlist$dvlist,"
+
+    done
+
+    #add entry
+    dnsadded=""
+    ventries=$(echo "$vlist" | sed "s/,/ /g")
+    for ventry in $ventries
+    do
+      d=$(echo $ventry | cut -d $sep -f 1)
+      keyauthorization=$(echo $ventry | cut -d $sep -f 2)
+
+      if [ "$vtype" == "$VTYPE_DNS" ] ; then
+        dnsadded='0'
+        txtdomain="_acme-challenge.$d"
+        _debug txtdomain "$txtdomain"
+        txt="$(echo -e -n $keyauthorization | sha256sum | xxd -r -p | base64 -w 0 | _b64)"
+        _debug txt "$txt"
+        #dns
+        #1. check use api
+        _err "Add the following txt record:"
+        _err "Domain:$txtdomain"
+        _err "Txt value:$txt"
+        #dnsadded='1'
+      fi
+    done
+
+    if [ "$dnsadded" == '0' ] ; then
+      _setopt "$DOMAIN_CONF"  "Le_Vlist" "=" "\"$vlist\""
+      _debug "Dns record not added yet, so, save to $DOMAIN_CONF and exit."
+      _err "Please add the txt records to the domains, and retry again."
       return 1
     fi
     
-    http01=$(echo $response | egrep -o  '{[^{]*"type":"http-01"[^}]*')
-    _debug http01 "$http01"
+  fi
+  
+  
+  _debug "ok, let's start to verify"
+  ventries=$(echo "$vlist" | sed "s/,/ /g")
+  for ventry in $ventries
+  do
+    d=$(echo $ventry | cut -d $sep -f 1)
+    keyauthorization=$(echo $ventry | cut -d $sep -f 2)
+    uri=$(echo $ventry | cut -d $sep -f 3)
+    _info "Verifying:$d"
+    _debug "d" "$d"
+    _debug "keyauthorization" "$keyauthorization"
+    _debug "uri" "$uri"
     
-    token=$(echo "$http01" | sed 's/,/\n'/g| grep '"token":'| cut -d : -f 2|sed 's/"//g')
-    _debug token $token
-    
-    uri=$(echo "$http01" | sed 's/,/\n'/g| grep '"uri":'| cut -d : -f 2,3|sed 's/"//g')
-    _debug uri $uri
-    
-    keyauthorization="$token.$thumbprint"
-    _debug keyauthorization "$keyauthorization"
-    
-    if [ "$Le_Webroot" == "no" ] ; then
-      _info "Standalone mode server"
-      _startserver "$keyauthorization" &
-      serverproc="$!"
-      sleep 2
-      _debug serverproc $serverproc
-    else
-      if [ -z "$wellknown_path" ] ; then
-        wellknown_path="$Le_Webroot/.well-known/acme-challenge"
+    if [ "$vtype" == "$VTYPE_HTTP" ] ; then
+      if [ "$Le_Webroot" == "no" ] ; then
+        _info "Standalone mode server"
+        _startserver "$keyauthorization" &
+        serverproc="$!"
+        sleep 2
+        _debug serverproc $serverproc
+      else
+        if [ -z "$wellknown_path" ] ; then
+          wellknown_path="$Le_Webroot/.well-known/acme-challenge"
+        fi
+        _debug wellknown_path "$wellknown_path"
+        
+        webroot_owner=$(stat -c '%U:%G' $Le_Webroot)
+        _debug "Changing owner/group of .well-known to $webroot_owner"
+        chown -R $webroot_owner "$Le_Webroot/.well-known"
+        
+        mkdir -p "$wellknown_path"
+        echo -n "$keyauthorization" > "$wellknown_path/$token"
       fi
-      _debug wellknown_path "$wellknown_path"
-      
-      mkdir -p "$wellknown_path"
-      echo -n "$keyauthorization" > "$wellknown_path/$token"
-
-      webroot_owner=$(stat -c '%U:%G' $Le_Webroot)
-      _debug "Changing owner/group of .well-known to $webroot_owner"
-      chown -R $webroot_owner "$Le_Webroot/.well-known"
-
     fi
-    wellknown_url="http://$d/.well-known/acme-challenge/$token"
-    _debug wellknown_url "$wellknown_url"
     
-    _debug challenge "$challenge"
     _send_signed_request $uri "{\"resource\": \"challenge\", \"keyAuthorization\": \"$keyauthorization\"}"
     
     if [ ! -z "$code" ] && [ ! "$code" == '202' ] ; then
@@ -590,7 +655,8 @@ issue() {
     done
     _stopserver $serverproc
     serverproc=""
-  done 
+  done
+
   _clearup
   _info "Verify finished, start to sign."
   der="$(openssl req  -in $CSR_PATH -outform DER | base64 -w 0 | _b64)"
@@ -611,12 +677,13 @@ issue() {
   fi
   
 
-  
   if [ -z "$Le_LinkCert" ] ; then
     response="$(echo $response | base64 -d)"
     _err "Sign failed: $(echo "$response" | grep -o  '"detail":"[^"]*"')"
     return 1
   fi
+  
+  _setopt "$DOMAIN_CONF"  'Le_Vlist' '=' "\"\""
   
   Le_LinkIssuer=$(grep -i '^Link' $CURL_HEADER | cut -d " " -f 2| cut -d ';' -f 1 | sed 's/<//g' | sed 's/>//g')
   _setopt "$DOMAIN_CONF"  "Le_LinkIssuer"         "="  "$Le_LinkIssuer"
