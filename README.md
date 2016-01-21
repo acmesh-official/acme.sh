@@ -17,6 +17,7 @@ Probably it's the smallest&easiest&smartest shell script to automatically  issue
 1. Webroot mode
 2. Standalone mode
 3. Apache mode
+4. Dns mode
 
 #How to use
 
