@@ -40,7 +40,7 @@ root@xvm:~# le
 Usage: issue|renew|renewAll|createAccountKey|createDomainKey|createCSR|install|uninstall
 
 root@xvm:~# le issue
-Usage: le  issue  webroot|no|apache   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no
+Usage: le  issue  webroot|no|apache|dns   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no
 
 ```
 
@@ -99,6 +99,38 @@ Just set string "apache" to the first argument, it will use apache plugin automa
 le  issue  apache  aa.com  www.aa.com
 ```
 All the other arguments are the same with previous.
+
+
+# Use DNS mode:
+Support the latest dns-01 challenge.
+
+```
+le  issue   dns   aa.com  www.aa.com
+```
+
+Use domain api to automatically add dns record is not finished yet.
+So, you must manually add the txt record to finish verify.
+
+You will got the output like bellow:
+```
+Add the following txt record:
+Domain:_acme-challenge.aa.com
+Txt value:9ihDbjYfTExAYeDs4DBUeuTo18KBzwvTEjUnSwd32-c
+
+Add the following txt record:
+Domain:_acme-challenge.www.aa.com
+Txt value:9ihDbjxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Please add those txt records to the domains. Waiting for the dns to take effect.
+
+Then just retry with 'renew' command
+
+```
+le renew  aa.com
+```
+
+Ok, it's finished.
 
 
 
