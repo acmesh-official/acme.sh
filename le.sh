@@ -1,5 +1,5 @@
 #!/bin/bash
-VER=1.1.0
+VER=1.1.1
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
@@ -238,6 +238,12 @@ _stopserver() {
 
 _initpath() {
 
+  if command -v sudo > /dev/null ; then
+    if [ "$(sudo -n uptime 2>&1|grep "load"|wc -l)" != "0" ] ; then
+      SUDO=sudo
+    fi
+  fi
+  
   if [ -z "$API" ] ; then
     if [ -z "$STAGE" ] ; then
       API="$DEFAULT_CA"
@@ -867,6 +873,35 @@ installcert() {
 
 }
 
+installcronjob() {
+  _initpath
+  _info "Installing cron job"
+  if ! crontab -l | grep 'le.sh cron' ; then 
+    if command -v "le.sh" > /dev/null ; then
+      lesh="$(which le.sh)"
+    elif [ -f "$WORKING_DIR/le.sh" ] ; then
+      lesh="\"$WORKING_DIR\"/le.sh"
+    else
+      _err "Can not install cronjob, le.sh not found."
+      return 1
+    fi
+    crontab -l | { cat; echo "0 0 * * * $SUDO WORKING_DIR=\"$WORKING_DIR\" $lesh cron > /dev/null"; } | crontab -
+  fi
+  return 0
+}
+
+uninstallcronjob() {
+  _info "Removing cron job"
+  cr="$(crontab -l | grep 'le.sh cron')"
+  if [ "$cr" ] ; then 
+    crontab -l | sed "/le.sh cron/d" | crontab -
+    WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 7 | cut -d '=' -f 2 | tr -d '"')"
+    _info WORKING_DIR "$WORKING_DIR"
+  fi 
+  _initpath
+  
+}
+
 install() {
   _initpath
   if ! command -v "curl" > /dev/null ; then
@@ -893,64 +928,87 @@ install() {
     _err "CentOs: yum install vim-common"
     return 1
   fi
-  
-  
-  
+
   _info "Installing to $WORKING_DIR"
- 
-  if [ ! -f /bin/le.sh ] ; then
-    cp  le.sh "/bin/"
-    chmod +x "/bin/le.sh"
-    ln -s "/bin/le.sh" /bin/le
-  fi
-  
-  _info "Installing cron job"
-  if command -v sudo > /dev/null ; then
-    if [ "$(sudo -n uptime 2>&1|grep "load"|wc -l)" != "0" ] ; then
-      SUDO=sudo
-    fi
-  fi
-  if ! crontab -l | grep 'le renewAll' ; then 
-    crontab -l | { cat; echo "0 0 * * * $SUDO le renewAll > /dev/null"; } | crontab -
-    if command -v crond > /dev/null ; then
-      service crond reload >/dev/null
+
+  #try install to /bin if is root
+  if [ ! -f /usr/local/bin/le.sh ] ; then
+    #if root
+    if $SUDO cp le.sh /usr/local/bin/le.sh ; then
+      $SUDO chmod 755 /usr/local/bin/le.sh
+      $SUDO ln -s "/usr/local/bin/le.sh" /usr/local/bin/le
+      rm -f $WORKING_DIR/le.sh
+      $SUDO ln -s /usr/local/bin/le.sh $WORKING_DIR/le.sh
+      _info "Installed to /usr/local/bin/le"
     else
-      service cron reload >/dev/null
+      #install to home, for non root user
+      cp le.sh $WORKING_DIR/
+      chmod +x $WORKING_DIR/le.sh
+      _info "Installed to $WORKING_DIR/le" 
     fi
-  fi  
-  
+  fi
+  rm -f $WORKING_DIR/le
+  ln -s $WORKING_DIR/le.sh  $WORKING_DIR/le
+
+  installcronjob
   
   _info OK
 }
 
 uninstall() {
+  uninstallcronjob
   _initpath
-  _info "Removing cron job"
 
-  if crontab -l | grep 'le.*renewAll' ; then 
-    crontab -l | sed "/le.*renewAll/d" | crontab -
-    if command -v crond > /dev/null ; then
-      service crond reload >/dev/null
-    else
-      service cron reload >/dev/null
+  if [ -f "/usr/local/bin/le.sh" ] ; then
+    _info "Removing /usr/local/bin/le.sh"
+    if $SUDO rm -f /usr/local/bin/le.sh ; then
+      $SUDO rm -f /usr/local/bin/le
     fi
-  fi 
+  fi
 
-  _info "Removing /bin/le.sh"
-  rm -f /bin/le
-  rm -f /bin/le.sh
-  
   _info "The keys and certs are in $WORKING_DIR, you can remove them by yourself."
 
+}
+
+cron() {
+  renewAll
 }
 
 version() {
   _info "$PROJECT"
   _info "v$VER"
 }
+
 showhelp() {
   version
-  echo "Usage: issue|installcert|renew|renewAll|createAccountKey|createDomainKey|createCSR|install|uninstall|version"
+  echo "Usage: le.sh  [command] ...[args]....
+Avalible commands:
+
+install:
+  Install le.sh to your system.
+issue:
+  Issue a cert.
+installcert:
+  Install the issued cert to apache/nginx or any other server.
+renew:
+  Renew a cert.
+renewAll:
+  Renew all the certs.
+uninstall:
+  Uninstall le.sh, and uninstall the cron job.
+version:
+  Show version info.
+installcronjob:
+  Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
+uninstallcronjob:
+  Uninstall the cron job. The 'uninstall' command can do this automatically.
+createAccountKey:
+  Create an account private key, professional use.
+createDomainKey:
+  Create an domain private key, professional use.
+createCSR:
+  Create CSR , professional use.
+  "
 }
 
 
