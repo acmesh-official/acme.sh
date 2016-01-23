@@ -1,14 +1,14 @@
-# le
+# le: means simp`Le`
 Simplest shell script for LetsEncrypt free Certificate client
 
-Pure written in bash, no dependencies to python , acme-tiny or LetsEncrypt official client (https://github.com/letsencrypt/letsencrypt)
-
+Pure written in bash, no dependencies to python , acme-tiny or LetsEncrypt official client.
 Just one script, to issue, renew your certificates automatically.
 
 Probably it's the smallest&easiest&smartest shell script to automatically  issue&renew the free certificates from LetsEncrypt.
 
+Do NOT require to be `root/sudoer`.
 
-#Supported OS
+#Tested OS
 1. Ubuntu/Debian.
 2. CentOS
 
@@ -27,21 +27,53 @@ Probably it's the smallest&easiest&smartest shell script to automatically  issue
 ```
 ./le.sh install
 ```
+You don't have to be root then, altough it is recommended.
+
 Which does 3 jobs:
 * create and copy `le.sh` to your home dir:  `~/.le`
 All the certs will be placed in this folder.
-* create symbol link: `/bin/le  -> ~/.le/le.sh`
+* create symbol link: `/usr/local/bin/le  -> ~/.le/le.sh` . (You must be root to do so.)
 * create everyday cron job to check and renew the cert if needed.
 
 
 Ok,  you are ready to issue cert now.
 Show help message:
 ```
-root@xvm:~# le 
-Usage: issue|renew|renewAll|createAccountKey|createDomainKey|createCSR|install|uninstall
+root@v1:~# le.sh
+https://github.com/Neilpang/le
+v1.1.1
+Usage: le.sh  [command] ...[args]....
+Avalible commands:
 
-root@xvm:~# le issue
-Usage: le  issue  webroot|no|apache|dns   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no
+install:
+  Install le.sh to your system.
+issue:
+  Issue a cert.
+installcert:
+  Install the issued cert to apache/nginx or any other server.
+renew:
+  Renew a cert.
+renewAll:
+  Renew all the certs.
+uninstall:
+  Uninstall le.sh, and uninstall the cron job.
+version:
+  Show version info.
+installcronjob:
+  Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
+uninstallcronjob:
+  Uninstall the cron job. The 'uninstall' command can do this automatically.
+createAccountKey:
+  Create an account private key, professional use.
+createDomainKey:
+  Create an domain private key, professional use.
+createCSR:
+  Create CSR , professional use.
+
+
+root@v1:~/le# le issue
+Usage: le  issue  webroot|no|apache|dns   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no
+
 
 ```
 
@@ -52,8 +84,6 @@ For example, if you give "no" to "key-length", it will use default length 2048.
 And if you give 'no' to 'cert-file-path', it will not copy the issued cert to the "cert-file-path".
 
 In all the cases, the issued cert will be placed in "~/.le/domain.com/"
-
-
 
  
 # Just issue a cert:
@@ -70,19 +100,19 @@ You must point and bind all the domains to the same webroot dir:`/home/wwwroot/a
 
 The cert will be placed in `~/.le/aa.com/`
 
+The issued cert will be renewed every 80 days automatically.
 
-The issued cert will be renewed every 50 days automatically.
-
-
-# Issue a cert, and install to apache/nginx
+# Install issued cert to apache/nginx etc.
 ```
-le issue   /home/wwwroot/aa.com    aa.com    www.aa.com,cp.aa.com  2048  /path/to/certfile/in/apache/nginx  /path/to/keyfile/in/apache/nginx  /path/to/ca/certfile/apahce/nginx   "service apache2/nginx reload"
+le installcert  aa.com /path/to/certfile/in/apache/nginx  /path/to/keyfile/in/apache/nginx  /path/to/ca/certfile/apahce/nginx   "service apache2|nginx reload"
 ```
-Which issues the cert and then links it to the production apache or nginx path.
-The cert will be renewed every 50 days by default (which is configurable), Once the cert is renewed, the apache/nginx will be automatically reloaded by the command: ` service apache2 reload` or `service nginx reload`
+
+Install the issued cert/key to the production apache or nginx path.
+
+The cert will be renewed every 80 days by default (which is configurable), Once the cert is renewed, the apache/nginx will be automatically reloaded by the command: ` service apache2 reload` or `service nginx reload`
 
 
-# Use Standalone server:
+# Use Standalone server to issue cert( requires you be root/sudoer, or you have permission to listen tcp 80 port):
 Same usage as all above,  just give `no` as the webroot.
 The tcp `80` port must be free to listen, otherwise you will be prompted to free the `80` port and try again.
 
@@ -90,14 +120,14 @@ The tcp `80` port must be free to listen, otherwise you will be prompted to free
 le issue    no    aa.com    www.aa.com,cp.aa.com
 ```
 
-# Use Apache mode:
+# Use Apache mode(requires you be root/sudoer, since it is required to interact with apache server):
 If you are running a web server, apache or nginx, it is recommended to use the Webroot mode.
 Particularly,  if you are running an apache server, you can use apache mode instead. Which doesn't write any file to your web root folder.
 
 Just set string "apache" to the first argument, it will use apache plugin automatically.
 
 ```
-le  issue  apache  aa.com  www.aa.com
+le  issue  apache  aa.com   www.aa.com,user.aa.com
 ```
 All the other arguments are the same with previous.
 
@@ -106,7 +136,7 @@ All the other arguments are the same with previous.
 Support the latest dns-01 challenge.
 
 ```
-le  issue   dns   aa.com  www.aa.com
+le  issue   dns   aa.com  www.aa.com,user.aa.com
 ```
 
 Use domain api to automatically add dns record is not finished yet.
