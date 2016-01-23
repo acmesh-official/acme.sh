@@ -384,29 +384,44 @@ _clearup () {
   _restoreApache
 }
 
-# webroot  removelevel tokenfile
+# webroot removelevel tokenfile
+_tokenlevel() {
+  __path="$1/.well-known"
+  if [ "$2" != '1' ]; then
+    __path="$__path/acme-challenge"
+    if [ "$2" == '3' ]; then
+      __path="$__path/$3"
+    elif [ "$2" != '2' ]; then
+      _err "removelevel invalid: $2"
+      return 1
+    fi
+  fi
+  echo "$__path"
+}
+
+# webroot removelevel tokenfile
+_fixtokenperms() {
+  __path=$(_tokenlevel "$@")
+  _debug "Setting world-readable permissions on $__path"
+  chmod -R og=u-w "$__path"
+  if [ "$EUID" == '0' ]; then
+    webroot_owner=$(stat -c '%U:%G' "$1")
+    _debug "Changing owner/group of $__path to $webroot_owner"
+    chown -R "$webroot_owner" "$__path"
+  fi
+}
+
+# webroot removelevel tokenfile
 _clearupwebbroot() {
   __webroot="$1"
   if [ -z "$__webroot" ] ; then
     _debug "no webroot specified, skip"
     return 0
   fi
-  
-  if [ "$2" == '1' ] ; then
-    _debug "remove $__webroot/.well-known"
-    rm -rf "$__webroot/.well-known"
-  elif [ "$2" == '2' ] ; then
-    _debug "remove $__webroot/.well-known/acme-challenge"
-    rm -rf "$__webroot/.well-known/acme-challenge"
-  elif [ "$2" == '3' ] ; then
-    _debug "remove $__webroot/.well-known/acme-challenge/$3"
-    rm -rf "$__webroot/.well-known/acme-challenge/$3"
-  else
-    _info "skip for removelevel:$2"
-  fi
-  
-  return 0
 
+  __path=$(_tokenlevel "$@")
+  _debug "remove $__path"
+  rm -rf "$__path"
 }
 
 issue() {
@@ -652,11 +667,8 @@ issue() {
 
         mkdir -p "$wellknown_path"
         echo -n "$keyauthorization" > "$wellknown_path/$token"
+        _fixtokenperms "$Le_Webroot" "$removelevel" "$token"
 
-        webroot_owner=$(stat -c '%U:%G' $Le_Webroot)
-        _debug "Changing owner/group of .well-known to $webroot_owner"
-        chown -R $webroot_owner "$Le_Webroot/.well-known"
-        
       fi
     fi
     
