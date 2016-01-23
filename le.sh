@@ -712,36 +712,10 @@ issue() {
   
   Le_NextRenewTimeStr=$(date -u -d "+$Le_RenewalDays day" "+%Y-%m-%d %H:%M:%S UTC")
   _setopt "$DOMAIN_CONF"  "Le_NextRenewTimeStr"      "="  "\"$Le_NextRenewTimeStr\""
-    
-  
-  if [ "$Le_RealCertPath" ] ; then
-    if [ -f "$Le_RealCertPath" ] ; then
-      cp -p "$Le_RealCertPath" "$Le_RealCertPath".bak
-    fi
-    cat "$CERT_PATH" > "$Le_RealCertPath"
-  fi
-  
-  
-  if [ "$Le_RealCACertPath" ] ; then
-    if [ -f "$Le_RealCACertPath" ] ; then
-      cp -p "$Le_RealCACertPath" "$Le_RealCACertPath".bak
-    fi
-    cat "$CA_CERT_PATH" > "$Le_RealCACertPath"
-  fi  
 
-  
-  if [ "$Le_RealKeyPath" ] ; then
-    if [ -f "$Le_RealKeyPath" ] ; then
-      cp -p "$Le_RealKeyPath" "$Le_RealKeyPath".bak
-    fi
-    cat "$CERT_KEY_PATH" > "$Le_RealKeyPath"
-  fi
-  
-  if [ "$Le_ReloadCmd" ] ; then
-    _info "Run Le_ReloadCmd: $Le_ReloadCmd"
-    $Le_ReloadCmd
-  fi
-  
+
+  installcert $Le_Domain  "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd"
+
 }
 
 renew() {
@@ -805,6 +779,47 @@ renewAll() {
     renew "$d"  
   done
   
+}
+
+installcert() {
+  Le_Domain="$1"
+  if [ -z "$Le_Domain" ] ; then
+    _err "Usage: $0  domain.com  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no"
+    return 1
+  fi
+
+  Le_RealCertPath="$2"
+  Le_RealKeyPath="$3"
+  Le_RealCACertPath="$4"
+  Le_ReloadCmd="$5"
+
+  _initpath $Le_Domain
+
+  _setopt "$DOMAIN_CONF"  "Le_RealCertPath"       "="  "\"$Le_RealCertPath\""
+  _setopt "$DOMAIN_CONF"  "Le_RealCACertPath"     "="  "\"$Le_RealCACertPath\""
+  _setopt "$DOMAIN_CONF"  "Le_RealKeyPath"        "="  "\"$Le_RealKeyPath\""
+  _setopt "$DOMAIN_CONF"  "Le_ReloadCmd"          "="  "\"$Le_ReloadCmd\""
+  
+  if [ "$Le_RealCACertPath" ] ; then
+    if [ -f "$Le_RealCACertPath" ] ; then
+      cp -p "$Le_RealCACertPath" "$Le_RealCACertPath".bak
+    fi
+    cat "$CA_CERT_PATH" > "$Le_RealCACertPath"
+  fi
+
+
+  if [ "$Le_RealKeyPath" ] ; then
+    if [ -f "$Le_RealKeyPath" ] ; then
+      cp -p "$Le_RealKeyPath" "$Le_RealKeyPath".bak
+    fi
+    cat "$CERT_KEY_PATH" > "$Le_RealKeyPath"
+  fi
+
+  if [ "$Le_ReloadCmd" ] ; then
+    _info "Run Le_ReloadCmd: $Le_ReloadCmd"
+    $Le_ReloadCmd
+  fi
+
 }
 
 install() {
@@ -890,7 +905,7 @@ version() {
 }
 showhelp() {
   version
-  echo "Usage: issue|renew|renewAll|createAccountKey|createDomainKey|createCSR|install|uninstall|version"
+  echo "Usage: issue|installcert|renew|renewAll|createAccountKey|createDomainKey|createCSR|install|uninstall|version"
 }
 
 
