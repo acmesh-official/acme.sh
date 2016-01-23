@@ -851,6 +851,13 @@ installcert() {
   _setopt "$DOMAIN_CONF"  "Le_RealKeyPath"        "="  "\"$Le_RealKeyPath\""
   _setopt "$DOMAIN_CONF"  "Le_ReloadCmd"          "="  "\"$Le_ReloadCmd\""
   
+  if [ "$Le_RealCertPath" ] ; then
+    if [ -f "$Le_RealCertPath" ] ; then
+      cp -p "$Le_RealCertPath" "$Le_RealCertPath".bak
+    fi
+    cat "$CERT_PATH" > "$Le_RealCertPath"
+  fi
+  
   if [ "$Le_RealCACertPath" ] ; then
     if [ -f "$Le_RealCACertPath" ] ; then
       cp -p "$Le_RealCACertPath" "$Le_RealCACertPath".bak
