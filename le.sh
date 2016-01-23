@@ -374,6 +374,32 @@ _clearup () {
   _restoreApache
 }
 
+# webroot  removelevel tokenfile
+_clearupwebbroot() {
+  __webroot="$1"
+  if [ -z "$__webroot" ] ; then
+    _debug "no webroot specified, skip"
+    return 0
+  fi
+  
+  if [ "$2" == '1' ] ; then
+    _debug "remove $__webroot/.well-known"
+    rm -rf "$__webroot/.well-known"
+  elif [ "$2" == '2' ] ; then
+    _debug "remove $__webroot/.well-known/acme-challenge"
+    rm -rf "$__webroot/.well-known/acme-challenge"
+  elif [ "$2" == '3' ] ; then
+    _debug "remove $__webroot/.well-known/acme-challenge/$3"
+    rm -rf "$__webroot/.well-known/acme-challenge/$3"
+  else
+    _err "removelevel invalid: $2"
+    return 1
+  fi
+  
+  return 0
+
+}
+
 issue() {
   if [ -z "$2" ] ; then
     _err "Usage: le  issue  webroot|no|apache|dns   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no"
@@ -589,7 +615,8 @@ issue() {
     _debug "d" "$d"
     _debug "keyauthorization" "$keyauthorization"
     _debug "uri" "$uri"
-    
+    removelevel= ""
+    token=""
     if [ "$vtype" == "$VTYPE_HTTP" ] ; then
       if [ "$Le_Webroot" == "no" ] ; then
         _info "Standalone mode server"
@@ -602,7 +629,15 @@ issue() {
           wellknown_path="$Le_Webroot/.well-known/acme-challenge"
         fi
         _debug wellknown_path "$wellknown_path"
-
+        
+        if [ ! -d "$Le_Webroot/.well-known" ] ; then 
+          removelevel='1'
+        elif [ ! -d "$Le_Webroot/.well-known/acme-challenge" ] ; then 
+          removelevel='2'
+        else
+          removelevel='3'
+        fi
+        
         token="$(echo -e -n "$keyauthorization" | cut -d '.' -f 1)"
         _debug "writing token:$token to $wellknown_path/$token"
 
@@ -620,6 +655,7 @@ issue() {
     
     if [ ! -z "$code" ] && [ ! "$code" == '202' ] ; then
       _err "$d:Challenge error: $resource"
+      _clearupwebbroot "$Le_Webroot" "$removelevel" "$token"
       _clearup
       return 1
     fi
@@ -631,6 +667,7 @@ issue() {
       
       if ! _get $uri ; then
         _err "$d:Verify error:$resource"
+        _clearupwebbroot "$Le_Webroot" "$removelevel" "$token"
         _clearup
         return 1
       fi
@@ -638,12 +675,16 @@ issue() {
       status=$(echo $response | egrep -o  '"status":"[^"]+"' | cut -d : -f 2 | sed 's/"//g')
       if [ "$status" == "valid" ] ; then
         _info "Success"
+        _stopserver $serverproc
+        serverproc=""
+        _clearupwebbroot "$Le_Webroot" "$removelevel" "$token"
         break;
       fi
       
       if [ "$status" == "invalid" ] ; then
          error=$(echo $response | egrep -o '"error":{[^}]*}' | grep -o '"detail":"[^"]*"' | cut -d '"' -f 4)
         _err "$d:Verify error:$error"
+        _clearupwebbroot "$Le_Webroot" "$removelevel" "$token"
         _clearup
         return 1;
       fi
@@ -652,13 +693,13 @@ issue() {
         _info "Pending"
       else
         _err "$d:Verify error:$response" 
+        _clearupwebbroot "$Le_Webroot" "$removelevel" "$token"
         _clearup
         return 1
       fi
       
     done
-    _stopserver $serverproc
-    serverproc=""
+    
   done
 
   _clearup
@@ -669,7 +710,7 @@ issue() {
   
   Le_LinkCert="$(grep -i -o '^Location.*' $CURL_HEADER |sed 's/\r//g'| cut -d " " -f 2)"
   _setopt "$DOMAIN_CONF"  "Le_LinkCert"           "="  "$Le_LinkCert"
-  
+
   if [ "$Le_LinkCert" ] ; then
     echo -----BEGIN CERTIFICATE----- > "$CERT_PATH"
     curl --silent "$Le_LinkCert" | base64  >> "$CERT_PATH"
