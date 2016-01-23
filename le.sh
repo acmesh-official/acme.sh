@@ -602,13 +602,17 @@ issue() {
           wellknown_path="$Le_Webroot/.well-known/acme-challenge"
         fi
         _debug wellknown_path "$wellknown_path"
-        
+
+        token="$(echo -e -n "$keyauthorization" | cut -d '.' -f 1)"
+        _debug "writing token:$token to $wellknown_path/$token"
+
+        mkdir -p "$wellknown_path"
+        echo -n "$keyauthorization" > "$wellknown_path/$token"
+
         webroot_owner=$(stat -c '%U:%G' $Le_Webroot)
         _debug "Changing owner/group of .well-known to $webroot_owner"
         chown -R $webroot_owner "$Le_Webroot/.well-known"
         
-        mkdir -p "$wellknown_path"
-        echo -n "$keyauthorization" > "$wellknown_path/$token"
       fi
     fi
     
