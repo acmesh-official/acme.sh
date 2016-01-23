@@ -621,7 +621,7 @@ issue() {
     _debug "d" "$d"
     _debug "keyauthorization" "$keyauthorization"
     _debug "uri" "$uri"
-    removelevel= ""
+    removelevel=""
     token=""
     if [ "$vtype" == "$VTYPE_HTTP" ] ; then
       if [ "$Le_Webroot" == "no" ] ; then
