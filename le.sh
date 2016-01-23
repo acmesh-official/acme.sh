@@ -408,7 +408,7 @@ _clearupwebbroot() {
 
 issue() {
   if [ -z "$2" ] ; then
-    _err "Usage: le  issue  webroot|no|apache|dns   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no"
+    _err "Usage: le  issue  webroot|no|apache|dns   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no"
     return 1
   fi
   Le_Webroot="$1"
