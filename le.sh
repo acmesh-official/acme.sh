@@ -222,11 +222,15 @@ _setopt() {
 
 _startserver() {
   content="$1"
+  _NC="nc -q 1"
+  if nc -h | grep "nmap.org/ncat" >/dev/null ; then
+    _NC="nc"
+  fi
 #  while true ; do
     if [ "$DEBUG" ] ; then
-      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | nc -q 1 -l -p 80
+      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -l -p 80 -vv
     else
-      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | nc -q 1 -l -p 80 > /dev/null
+      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -l -p 80 > /dev/null
     fi
 #  done
 }
