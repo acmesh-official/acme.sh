@@ -553,30 +553,39 @@ issue() {
     alldomains=$(echo "$Le_Domain,$Le_Alt" | sed "s/,/ /g")
     for d in $alldomains   
     do  
-      _info "Geting token for domain" $d
-      _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$d\"}}"
-      if [ ! -z "$code" ] && [ ! "$code" == '201' ] ; then
-        _err "new-authz error: $response"
-        _clearup
-        return 1
+      # check if domain is already verified for the account
+      _info "Checking if domain is already verified"
+      uri=$(echo $d | cut -d $sep -f 3)
+      if ! _get $uri ; then
+        _err "$d:Verify pending"
+
+        _info "Geting token for domain" $d
+        _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$d\"}}"
+        if [ ! -z "$code" ] && [ ! "$code" == '201' ] ; then
+          _err "new-authz error: $response"
+          _clearup
+          return 1
+        fi
+
+        entry=$(echo $response | egrep -o  '{[^{]*"type":"'$vtype'"[^}]*')
+        _debug entry "$entry"
+
+        token=$(echo "$entry" | sed 's/,/\n'/g| grep '"token":'| cut -d : -f 2|sed 's/"//g')
+        _debug token $token
+
+        uri=$(echo "$entry" | sed 's/,/\n'/g| grep '"uri":'| cut -d : -f 2,3|sed 's/"//g')
+        _debug uri $uri
+
+        keyauthorization="$token.$thumbprint"
+        _debug keyauthorization "$keyauthorization"
+
+        dvlist="$d$sep$keyauthorization$sep$uri"
+        _debug dvlist "$dvlist"
+
+        vlist="$vlist$dvlist,"
+      else
+        _info "$d:Already verified"
       fi
-
-      entry=$(echo $response | egrep -o  '{[^{]*"type":"'$vtype'"[^}]*')
-      _debug entry "$entry"
-
-      token=$(echo "$entry" | sed 's/,/\n'/g| grep '"token":'| cut -d : -f 2|sed 's/"//g')
-      _debug token $token
-      
-      uri=$(echo "$entry" | sed 's/,/\n'/g| grep '"uri":'| cut -d : -f 2,3|sed 's/"//g')
-      _debug uri $uri
-      
-      keyauthorization="$token.$thumbprint"
-      _debug keyauthorization "$keyauthorization"
-
-      dvlist="$d$sep$keyauthorization$sep$uri"
-      _debug dvlist "$dvlist"
-      
-      vlist="$vlist$dvlist,"
 
     done
 
