@@ -947,7 +947,7 @@ install() {
   #try install to /bin if is root
   if [ ! -f /usr/local/bin/le.sh ] ; then
     #if root
-    if $SUDO cp le.sh /usr/local/bin/le.sh 2>&1 > /dev/null; then
+    if $SUDO cp le.sh /usr/local/bin/le.sh > /dev/null 2>&1; then
       $SUDO chmod 755 /usr/local/bin/le.sh
       $SUDO ln -s "/usr/local/bin/le.sh" /usr/local/bin/le
       rm -f $WORKING_DIR/le.sh
