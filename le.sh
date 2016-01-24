@@ -223,7 +223,7 @@ _setopt() {
 _startserver() {
   content="$1"
   _NC="nc -q 1"
-  if nc -h | grep "nmap.org/ncat" >/dev/null ; then
+  if nc -h 2>&1 | grep "nmap.org/ncat" >/dev/null ; then
     _NC="nc"
   fi
 #  while true ; do
