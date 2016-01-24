@@ -978,7 +978,8 @@ uninstall() {
       $SUDO rm -f /usr/local/bin/le
     fi
   fi
-
+  rm -f $WORKING_DIR/le
+  rm -f $WORKING_DIR/le.sh
   _info "The keys and certs are in $WORKING_DIR, you can remove them by yourself."
 
 }
