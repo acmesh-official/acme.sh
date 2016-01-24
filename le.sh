@@ -888,9 +888,7 @@ installcronjob() {
   _initpath
   _info "Installing cron job"
   if ! crontab -l | grep 'le.sh cron' ; then 
-    if command -v "le.sh" > /dev/null ; then
-      lesh="$(which le.sh)"
-    elif [ -f "$WORKING_DIR/le.sh" ] ; then
+    if [ -f "$WORKING_DIR/le.sh" ] ; then
       lesh="\"$WORKING_DIR\"/le.sh"
     else
       _err "Can not install cronjob, le.sh not found."
