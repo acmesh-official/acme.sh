@@ -43,6 +43,21 @@ _err() {
   fi
 }
 
+_h2b() {
+  hex=$(cat)
+  i=1
+  j=2
+  while [ '1' ] ; do
+    h=$(printf $hex | cut -c $i-$j)
+    if [ -z "$h" ] ; then
+      break;
+    fi
+    printf "\x$h"
+    let "i+=2"
+    let "j+=2"
+  done
+}
+
 #domain [2048]  
 createAccountKey() {
   if [ -z "$1" ] ; then
@@ -506,11 +521,11 @@ issue() {
   fi
   _debug pub_exp "$pub_exp"
   
-  e=$(echo $pub_exp | xxd -r -p | base64)
+  e=$(echo $pub_exp | _h2b | base64)
   _debug e "$e"
   
   modulus=$(openssl rsa -in $ACCOUNT_KEY_PATH -modulus -noout | cut -d '=' -f 2 )
-  n=$(echo $modulus| xxd -r -p | base64 -w 0 | _b64 )
+  n=$(echo $modulus| _h2b | base64 -w 0 | _b64 )
 
   jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
   
@@ -519,7 +534,7 @@ issue() {
   _debug HEADER "$HEADER"
   
   accountkey_json=$(echo -n "$jwk" | sed "s/ //g")
-  thumbprint=$(echo -n "$accountkey_json" | sha256sum | xxd -r -p | base64 -w 0 | _b64)
+  thumbprint=$(echo -n "$accountkey_json" | sha256sum | _h2b | base64 -w 0 | _b64)
   
   
   _info "Registering account"
@@ -592,7 +607,7 @@ issue() {
         dnsadded='0'
         txtdomain="_acme-challenge.$d"
         _debug txtdomain "$txtdomain"
-        txt="$(echo -e -n $keyauthorization | sha256sum | xxd -r -p | base64 -w 0 | _b64)"
+        txt="$(echo -e -n $keyauthorization | sha256sum | _h2b | base64 -w 0 | _b64)"
         _debug txt "$txt"
         #dns
         #1. check use api
@@ -933,12 +948,6 @@ install() {
   if ! command -v "openssl" > /dev/null ; then
     _err "Please install openssl first."
     _err "CentOs: yum -y install openssl"
-    return 1
-  fi
-  
-  if ! command -v "xxd" > /dev/null ; then
-    _err "Please install xxd first."
-    _err "CentOs: yum install vim-common"
     return 1
   fi
 
