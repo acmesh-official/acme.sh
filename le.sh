@@ -241,13 +241,7 @@ _stopserver() {
 }
 
 _initpath() {
-
-  if command -v sudo > /dev/null ; then
-    if [ "$(sudo -n uptime 2>&1|grep "load"|wc -l)" != "0" ] ; then
-      SUDO=sudo
-    fi
-  fi
-  
+  SUDO="$(command -v sudo | grep -o 'sudo')"
   if [ -z "$API" ] ; then
     if [ -z "$STAGE" ] ; then
       API="$DEFAULT_CA"
@@ -917,22 +911,33 @@ uninstallcronjob() {
 
 install() {
   _initpath
+
+  if command -v yum > /dev/null ; then
+   YUM="1"
+   INSTALL="$SUDO yum install -y "
+  elif command -v apt-get > /dev/null ; then
+   INSTALL="$SUDO apt-get install -y "
+  fi
+
   if ! command -v "curl" > /dev/null ; then
     _err "Please install curl first."
-    _err "Ubuntu: sudo apt-get install curl"
-    _err "CentOS: yum install curl"
+    _err "$INSTALL curl"
     return 1
   fi
   
   if ! command -v "crontab" > /dev/null ; then
     _err "Please install crontab first."
-    _err "CentOs: yum -y install crontabs"
+    if [ "$YUM" ] ; then
+      _err "$INSTALL crontabs"
+    else
+      _err "$INSTALL crontab"
+    fi
     return 1
   fi
   
   if ! command -v "openssl" > /dev/null ; then
     _err "Please install openssl first."
-    _err "CentOs: yum -y install openssl"
+    _err "$INSTALL openssl"
     return 1
   fi
   
