@@ -260,7 +260,14 @@ _stopserver() {
 }
 
 _initpath() {
-  SUDO="$(command -v sudo | grep -o 'sudo')"
+
+  #check if there is sudo installed, AND if the current user is a sudoer.
+  if command -v sudo > /dev/null ; then
+    if [ "$(sudo -n uptime 2>&1|grep "load"|wc -l)" != "0" ] ; then
+      SUDO=sudo
+    fi
+  fi
+
   if [ -z "$API" ] ; then
     if [ -z "$STAGE" ] ; then
       API="$DEFAULT_CA"
