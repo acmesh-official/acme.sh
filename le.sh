@@ -58,6 +58,10 @@ _h2b() {
   done
 }
 
+_base64() {
+  openssl base64 -e | tr -d '\n'
+}
+
 #domain [2048]  
 createAccountKey() {
   if [ -z "$1" ] ; then
@@ -162,7 +166,7 @@ _send_signed_request() {
   if [ "$DEBUG" ] ; then
     CURL="$CURL --trace-ascii $dp "
   fi
-  payload64=$(echo -n $payload | base64 -w 0 | _b64)
+  payload64=$(echo -n $payload | _base64 | _b64)
   _debug payload64 $payload64
   
   nonceurl="$API/directory"
@@ -173,17 +177,17 @@ _send_signed_request() {
   protected=$(echo -n "$HEADERPLACE" | sed "s/NONCE/$nonce/" )
   _debug protected "$protected"
   
-  protected64=$( echo -n $protected | base64 -w 0 | _b64)
+  protected64=$( echo -n $protected | _base64 | _b64)
   _debug protected64 "$protected64"
   
-  sig=$(echo -n "$protected64.$payload64" |  openssl   dgst   -sha256  -sign  $ACCOUNT_KEY_PATH | base64 -w 0 | _b64)
+  sig=$(echo -n "$protected64.$payload64" |  openssl   dgst   -sha256  -sign  $ACCOUNT_KEY_PATH | _base64 | _b64)
   _debug sig "$sig"
   
   body="{\"header\": $HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
   _debug body "$body"
   
   if [ "$needbase64" ] ; then
-    response="$($CURL -X POST --data "$body" $url | base64 -w 0)"
+    response="$($CURL -X POST --data "$body" $url | _base64)"
   else
     response="$($CURL -X POST --data "$body" $url)"
   fi
@@ -515,11 +519,11 @@ issue() {
   fi
   _debug pub_exp "$pub_exp"
   
-  e=$(echo $pub_exp | _h2b | base64)
+  e=$(echo $pub_exp | _h2b | _base64)
   _debug e "$e"
   
   modulus=$(openssl rsa -in $ACCOUNT_KEY_PATH -modulus -noout | cut -d '=' -f 2 )
-  n=$(echo $modulus| _h2b | base64 -w 0 | _b64 )
+  n=$(echo $modulus| _h2b | _base64 | _b64 )
 
   jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
   
@@ -528,7 +532,7 @@ issue() {
   _debug HEADER "$HEADER"
   
   accountkey_json=$(echo -n "$jwk" | sed "s/ //g")
-  thumbprint=$(echo -n "$accountkey_json" | sha256sum | _h2b | base64 -w 0 | _b64)
+  thumbprint=$(echo -n "$accountkey_json" | openssl sha -sha256 -binary | _base64 | _b64)
   
   
   _info "Registering account"
@@ -601,7 +605,7 @@ issue() {
         dnsadded='0'
         txtdomain="_acme-challenge.$d"
         _debug txtdomain "$txtdomain"
-        txt="$(echo -e -n $keyauthorization | sha256sum | _h2b | base64 -w 0 | _b64)"
+        txt="$(echo -e -n $keyauthorization | openssl sha -sha256 -binary | _base64 | _b64)"
         _debug txt "$txt"
         #dns
         #1. check use api
@@ -722,7 +726,7 @@ issue() {
 
   _clearup
   _info "Verify finished, start to sign."
-  der="$(openssl req  -in $CSR_PATH -outform DER | base64 -w 0 | _b64)"
+  der="$(openssl req  -in $CSR_PATH -outform DER | _base64 | _b64)"
   _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"
   
   
@@ -731,7 +735,7 @@ issue() {
 
   if [ "$Le_LinkCert" ] ; then
     echo -----BEGIN CERTIFICATE----- > "$CERT_PATH"
-    curl --silent "$Le_LinkCert" | base64  >> "$CERT_PATH"
+    curl --silent "$Le_LinkCert" | openssl base64 -e  >> "$CERT_PATH"
     echo -----END CERTIFICATE-----  >> "$CERT_PATH"
     _info "Cert success."
     cat "$CERT_PATH"
@@ -741,7 +745,7 @@ issue() {
   
 
   if [ -z "$Le_LinkCert" ] ; then
-    response="$(echo $response | base64 -d)"
+    response="$(echo $response | openssl base64 -d)"
     _err "Sign failed: $(echo "$response" | grep -o  '"detail":"[^"]*"')"
     return 1
   fi
@@ -753,7 +757,7 @@ issue() {
   
   if [ "$Le_LinkIssuer" ] ; then
     echo -----BEGIN CERTIFICATE----- > "$CA_CERT_PATH"
-    curl --silent "$Le_LinkIssuer" | base64  >> "$CA_CERT_PATH"
+    curl --silent "$Le_LinkIssuer" | openssl base64 -e  >> "$CA_CERT_PATH"
     echo -----END CERTIFICATE-----  >> "$CA_CERT_PATH"
     _info "The intermediate CA cert is in $CA_CERT_PATH"
   fi
