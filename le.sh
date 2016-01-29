@@ -616,9 +616,11 @@ issue() {
         _debug txt "$txt"
         #dns
         #1. check use api
-        _err "Add the following txt record:"
-        _err "Domain:$txtdomain"
-        _err "Txt value:$txt"
+        _err "Add the following TXT records:"
+        _err "Domain: $txtdomain"
+        _err "TXT value: $txt"
+        _err "\n"
+        _err "Please be aware that you append _acme-challenge before your domain\nso the resulting subdomain will be: $txtdomain"
         #dnsadded='1'
       fi
     done
