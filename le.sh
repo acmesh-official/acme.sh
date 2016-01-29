@@ -619,8 +619,8 @@ issue() {
         _err "Add the following TXT record:"
         _err "Domain: $txtdomain"
         _err "TXT value: $txt"
-        _err "\n"
-        _err "Please be aware that you prepend _acme-challenge. before your domain\nso the resulting subdomain will be: $txtdomain"
+        _err "Please be aware that you prepend _acme-challenge. before your domain"
+        _err "so the resulting subdomain will be: $txtdomain"
         #dnsadded='1'
       fi
     done
@@ -628,7 +628,7 @@ issue() {
     if [ "$dnsadded" == '0' ] ; then
       _setopt "$DOMAIN_CONF"  "Le_Vlist" "=" "\"$vlist\""
       _debug "Dns record not added yet, so, save to $DOMAIN_CONF and exit."
-      _err "Please add the txt records to the domains, and retry again."
+      _err "Please add the TXT records to the domains, and retry again."
       return 1
     fi
     
