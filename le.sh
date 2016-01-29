@@ -620,7 +620,7 @@ issue() {
         _err "Domain: $txtdomain"
         _err "TXT value: $txt"
         _err "\n"
-        _err "Please be aware that you append _acme-challenge before your domain\nso the resulting subdomain will be: $txtdomain"
+        _err "Please be aware that you prepend _acme-challenge. before your domain\nso the resulting subdomain will be: $txtdomain"
         #dnsadded='1'
       fi
     done
