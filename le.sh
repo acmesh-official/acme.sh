@@ -616,7 +616,7 @@ issue() {
         _debug txt "$txt"
         #dns
         #1. check use api
-        _err "Add the following TXT records:"
+        _err "Add the following TXT record:"
         _err "Domain: $txtdomain"
         _err "TXT value: $txt"
         _err "\n"
