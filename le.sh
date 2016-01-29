@@ -616,9 +616,11 @@ issue() {
         _debug txt "$txt"
         #dns
         #1. check use api
-        _err "Add the following txt record:"
-        _err "Domain:$txtdomain"
-        _err "Txt value:$txt"
+        _err "Add the following TXT record:"
+        _err "Domain: $txtdomain"
+        _err "TXT value: $txt"
+        _err "Please be aware that you prepend _acme-challenge. before your domain"
+        _err "so the resulting subdomain will be: $txtdomain"
         #dnsadded='1'
       fi
     done
@@ -626,7 +628,7 @@ issue() {
     if [ "$dnsadded" == '0' ] ; then
       _setopt "$DOMAIN_CONF"  "Le_Vlist" "=" "\"$vlist\""
       _debug "Dns record not added yet, so, save to $DOMAIN_CONF and exit."
-      _err "Please add the txt records to the domains, and retry again."
+      _err "Please add the TXT records to the domains, and retry again."
       return 1
     fi
     
