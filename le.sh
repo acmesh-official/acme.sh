@@ -1037,7 +1037,8 @@ install() {
   rm -f $WORKING_DIR/le
   ln -s $WORKING_DIR/le.sh  $WORKING_DIR/le
 
-  cp -r dnsapi $WORKING_DIR/dnsapi
+  mkdir -p $WORKING_DIR/dnsapi
+  cp  dnsapi/* $WORKING_DIR/dnsapi/
   
   installcronjob
   
