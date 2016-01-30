@@ -9,7 +9,9 @@
 
 CF_Api="https://api.cloudflare.com/client/v4/"
 
-#Usage:  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+########  Public functions #####################
+
+#Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns-cf-add() {
   fulldomain=$1
   txtvalue=$2
@@ -33,15 +35,20 @@ dns-cf-add() {
   if [ "$count" == "0" ] ; then
     _info "Adding record"
     if _cf_rest POST "/zones/$_domain_id/dns_records"  "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
-      _info "Added, sleeping 10 seconds"
-      sleep 10
-      return 0
+      if printf $response | grep $fulldomain > /dev/null ; then
+        _info "Added, sleeping 10 seconds"
+        sleep 1
+        return 0
+      else
+        _err "Add txt record error."
+        return 1
+      fi
     fi
     _err "Add txt record error."
   else
     _info "Updating record"
     record_id=$(printf $response | grep -o \"id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \")
-    _info "record_id" $record_id
+    _debug "record_id" $record_id
     
     _cf_rest PUT "/zones/$_domain_id/dns_records/$record_id"  "{\"id\":\"$record_id\",\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"zone_id\":\"$_domain_id\",\"zone_name\":\"$_domain\"}"
     if [ "$?" == "0" ]; then
@@ -56,6 +63,10 @@ dns-cf-add() {
 }
 
 
+
+
+
+####################  Private functions bellow ##################################
 #_acme-challenge.www.domain.com
 #returns
 # _sub_domain=_acme-challenge.www
@@ -95,17 +106,20 @@ _get_root() {
 _cf_rest() {
   m=$1
   ep="$2"
-  echo $ep
+  _debug $ep
   if [ "$3" ] ; then
-    data="--data \'$3\'"
+    data="$3"
     _debug data "$data"
+    response="$(curl --silent -X $m "$CF_Api/$ep" -H "X-Auth-Email: $CF_Email" -H "X-Auth-Key: $CF_Key" -H "Content-Type: application/json" --data $data)"
+  else
+    response="$(curl --silent -X $m "$CF_Api/$ep" -H "X-Auth-Email: $CF_Email" -H "X-Auth-Key: $CF_Key" -H "Content-Type: application/json")"
   fi
-  response="$(curl --silent -X $m "$CF_Api/$ep" -H "X-Auth-Email: $CF_Email" -H "X-Auth-Key: $CF_Key" -H "Content-Type: application/json" $data)"
+  
   if [ "$?" != "0" ] ; then
-    echo $error $ep
+    _err "error $ep"
     return 1
   fi
-  echo $response
+  _debug response "$response"
   return 0
 }
 
