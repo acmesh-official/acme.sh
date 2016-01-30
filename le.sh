@@ -627,7 +627,12 @@ issue() {
           d_api="$WORKING_DIR/$Le_Webroot"
         elif [ -f "$WORKING_DIR/$Le_Webroot.sh" ] ; then
           d_api="$WORKING_DIR/$Le_Webroot.sh"
+        elif [ -f "$WORKING_DIR/dnsapi/$Le_Webroot" ] ; then
+          d_api="$WORKING_DIR/dnsapi/$Le_Webroot"
+        elif [ -f "$WORKING_DIR/dnsapi/$Le_Webroot.sh" ] ; then
+          d_api="$WORKING_DIR/dnsapi/$Le_Webroot.sh"
         fi
+        _debug d_api "$d_api"
         
         if [ "$d_api" ]; then
           _info "Found domain api file: $d_api"
