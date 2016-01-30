@@ -673,6 +673,10 @@ issue() {
     
   fi
   
+  if [ "$dnsadded" == '1' ] ; then
+    _info "Sleep 60 seconds for the txt records to take effect"
+    sleep 60
+  fi
   
   _debug "ok, let's start to verify"
   ventries=$(echo "$vlist" | sed "s/,/ /g")
