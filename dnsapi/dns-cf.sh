@@ -14,12 +14,13 @@ dns-cf-add() {
   fulldomain=$1
   txtvalue=$2
   
-  _info "first detect the root zone"
-  if ! _get_root $fulldomain > /dev/null ; then
+  _debug "First detect the root zone"
+  if ! _get_root $fulldomain ; then
     _err "invalid domain"
     return 1
   fi
   
+  _debug "Getting txt records"
   _cf_rest GET "/zones/$_domain_id/dns_records?type=TXT&name=$fulldomain"
   
   if [ "$?" != "0" ] || ! printf $response | grep \"success\":true > /dev/null ; then
@@ -31,7 +32,7 @@ dns-cf-add() {
   
   if [ "$count" == "0" ] ; then
     _info "Adding record"
-    if _cf_rest GET "/zones/$_domain_id/dns_records?type=TXT&name=$fulldomain&content=$txtvalue" ; then
+    if _cf_rest POST "/zones/$_domain_id/dns_records"  "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
       _info "Added, sleeping 10 seconds"
       sleep 10
       return 0
@@ -56,6 +57,7 @@ dns-cf-add() {
 
 
 #_acme-challenge.www.domain.com
+#returns
 # _sub_domain=_acme-challenge.www
 # _domain=domain.com
 # _domain_id=sdjkglgdfewsdfg
@@ -70,7 +72,7 @@ _get_root() {
       return 1;
     fi
     
-    if ! _cf_get "zones?name=$h" ; then
+    if ! _cf_rest GET "zones?name=$h" ; then
       return 1
     fi
     
@@ -95,7 +97,8 @@ _cf_rest() {
   ep="$2"
   echo $ep
   if [ "$3" ] ; then
-    data="--data \"$3\""
+    data="--data \'$3\'"
+    _debug data "$data"
   fi
   response="$(curl --silent -X $m "$CF_Api/$ep" -H "X-Auth-Email: $CF_Email" -H "X-Auth-Key: $CF_Key" -H "Content-Type: application/json" $data)"
   if [ "$?" != "0" ] ; then
