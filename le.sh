@@ -320,7 +320,6 @@ _initpath() {
   if [ -z "$CA_CERT_PATH" ] ; then
     CA_CERT_PATH="$WORKING_DIR/$domain/ca.cer"
   fi
-
   
 }
 
@@ -619,12 +618,49 @@ issue() {
         _debug txt "$txt"
         #dns
         #1. check use api
-        _err "Add the following TXT record:"
-        _err "Domain: $txtdomain"
-        _err "TXT value: $txt"
-        _err "Please be aware that you prepend _acme-challenge. before your domain"
-        _err "so the resulting subdomain will be: $txtdomain"
-        #dnsadded='1'
+        d_api=""
+        if [ -f "$WORKING_DIR/$d/$Le_Webroot" ] ; then
+          d_api="$WORKING_DIR/$d/$Le_Webroot"
+        elif [ -f "$WORKING_DIR/$d/$Le_Webroot.sh" ] ; then
+          d_api="$WORKING_DIR/$d/$Le_Webroot.sh"
+        elif [ -f "$WORKING_DIR/$Le_Webroot" ] ; then
+          d_api="$WORKING_DIR/$Le_Webroot"
+        elif [ -f "$WORKING_DIR/$Le_Webroot.sh" ] ; then
+          d_api="$WORKING_DIR/$Le_Webroot.sh"
+        elif [ -f "$WORKING_DIR/dnsapi/$Le_Webroot" ] ; then
+          d_api="$WORKING_DIR/dnsapi/$Le_Webroot"
+        elif [ -f "$WORKING_DIR/dnsapi/$Le_Webroot.sh" ] ; then
+          d_api="$WORKING_DIR/dnsapi/$Le_Webroot.sh"
+        fi
+        _debug d_api "$d_api"
+        
+        if [ "$d_api" ]; then
+          _info "Found domain api file: $d_api"
+        else
+          _err "Add the following TXT record:"
+          _err "Domain: $txtdomain"
+          _err "TXT value: $txt"
+          _err "Please be aware that you prepend _acme-challenge. before your domain"
+          _err "so the resulting subdomain will be: $txtdomain"
+          continue
+        fi
+
+        if ! source $d_api ; then
+          _err "Load file $d_api error. Please check your api file and try again."
+          return 1
+        fi
+        
+        addcommand="$Le_Webroot-add"
+        if ! command -v $addcommand ; then 
+          _err "It seems that your api file is not correct, it must have a function named: $Le_Webroot"
+          return 1
+        fi
+        
+        if ! $addcommand $txtdomain $txt ; then
+          _err "Error add txt for domain:$txtdomain"
+          return 1
+        fi
+        dnsadded='1'
       fi
     done
 
@@ -637,6 +673,10 @@ issue() {
     
   fi
   
+  if [ "$dnsadded" == '1' ] ; then
+    _info "Sleep 60 seconds for the txt records to take effect"
+    sleep 60
+  fi
   
   _debug "ok, let's start to verify"
   ventries=$(echo "$vlist" | sed "s/,/ /g")
@@ -806,13 +846,17 @@ renew() {
 
   _initpath $Le_Domain
 
-  if [ -f "$DOMAIN_CONF" ] ; then
-    source "$DOMAIN_CONF"
-    if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ] ; then 
-      _info "Skip, Next renewal time is: $Le_NextRenewTimeStr"
-      return 2
-    fi
+  if [ ! -f "$DOMAIN_CONF" ] ; then
+    _err "$Le_Domain is not a issued domain, skip."
+    return 1;
   fi
+  
+  source "$DOMAIN_CONF"
+  if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ] ; then 
+    _info "Skip, Next renewal time is: $Le_NextRenewTimeStr"
+    return 2
+  fi
+  
   IS_RENEW="1"
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd"
   IS_RENEW=""
@@ -993,6 +1037,9 @@ install() {
   rm -f $WORKING_DIR/le
   ln -s $WORKING_DIR/le.sh  $WORKING_DIR/le
 
+  mkdir -p $WORKING_DIR/dnsapi
+  cp  dnsapi/* $WORKING_DIR/dnsapi/
+  
   installcronjob
   
   _info OK
