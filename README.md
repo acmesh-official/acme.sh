@@ -139,9 +139,6 @@ Support the latest dns-01 challenge.
 le  issue   dns   aa.com  www.aa.com,user.aa.com
 ```
 
-Use domain api to automatically add dns record is not finished yet.
-So, you must manually add the txt record to finish verifying.
-
 You will get the output like bellow:
 ```
 Add the following txt record:
@@ -162,6 +159,48 @@ le renew  aa.com
 ```
 
 Ok, it's finished.
+
+
+
+# Use CloudFlare domain api to automatically issue cert
+
+For now, we support clourflare integeration.
+
+First you need to login to your clourflare account to get you apikey.
+
+Then open `~/.le/dnsapi/dns-cf.sh`, and fill your api key and email there:
+and uncomment the lines:
+```
+CF_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+
+CF_Email="xxxx@sss.com"
+
+```
+
+Ok, let's issue cert now:
+```
+le.sh   issue   dns-cf   aa.com  www.aa.com
+```
+
+More api integerations are coming. Godaddy, Dnspod, etc....
+
+
+# Use custom api
+
+If your api is not supported yet,  you can write your own dns api.
+
+Let's assume you want to name it 'myapi',
+
+1. Create a bash script named  `~/.le/dns-myapi.sh`,
+2. In the scrypt, you must have a function named `dns-myapi-add()`. Which will be called by le.sh to add dns records.
+3. Then you can use your api to issue cert like:
+
+```
+le.sh  issue  dns-myapi  aa.com  www.aa.com
+```
+
+For more details, please check our sample script: `dnsapi/dns-myapi.sh`
+
 
 
 
