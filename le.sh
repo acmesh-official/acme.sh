@@ -1,5 +1,5 @@
 #!/bin/bash
-VER=1.1.1
+VER=1.1.2
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
@@ -104,7 +104,10 @@ createDomainKey() {
   fi
   _initpath $domain
   
-  if [ -f "$CERT_KEY_PATH" ] && ! [ "$FORCE" ] ; then 
+  if [ ! -f "$CERT_KEY_PATH" ] || ( [ "$FORCE" ] && ! [ "$IS_RENEW" ] ); then 
+    #generate account key
+    openssl genrsa $length > "$CERT_KEY_PATH"
+  else
     if [ "$IS_RENEW" ] ; then
       _info "Domain key exists, skip"
       return 0
@@ -113,9 +116,6 @@ createDomainKey() {
       _err "Set FORCE=1, and try again."
       return 1
     fi
-  else
-    #generate account key
-    openssl genrsa $length > "$CERT_KEY_PATH"
   fi
 
 }
