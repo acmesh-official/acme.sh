@@ -64,6 +64,7 @@ _base64() {
 
 #domain [2048]  
 createAccountKey() {
+  _info "Creating account key"
   if [ -z "$1" ] ; then
     echo Usage: $0 account-domain  [2048]
     return
@@ -89,6 +90,7 @@ createAccountKey() {
 
 #domain length
 createDomainKey() {
+  _info "Creating domain key"
   if [ -z "$1" ] ; then
     echo Usage: $0 domain  [2048]
     return
@@ -120,6 +122,7 @@ createDomainKey() {
 
 # domain  domainlist
 createCSR() {
+  _info "Creating csr"
   if [ -z "$1" ] ; then
     echo Usage: $0 domain  [domainlist]
     return
