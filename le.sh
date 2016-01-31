@@ -1,5 +1,5 @@
 #!/bin/bash
-VER=1.1.2
+VER=1.1.3
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
@@ -1070,6 +1070,11 @@ install() {
 
   mkdir -p $WORKING_DIR/dnsapi
   cp  dnsapi/* $WORKING_DIR/dnsapi/
+  
+  #to keep compatible mv the .acc file to .key file 
+  if [ -f "$WORKING_DIR/account.acc" ] ; then
+    mv "$WORKING_DIR/account.acc" "$WORKING_DIR/account.key"
+  fi
   
   installcronjob
   
