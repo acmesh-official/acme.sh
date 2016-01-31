@@ -1127,7 +1127,7 @@ uninstall() {
 
   _profile="$(_detect_profile)"
   if [ "$_profile" ] ; then
-    sed -i "/source \"$LE_WORKING_DIR/le.env\"/d"  "$_profile"
+    sed -i /le.env/d  "$_profile"
   fi
 
   rm -f $LE_WORKING_DIR/le.sh
