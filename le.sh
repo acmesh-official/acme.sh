@@ -163,8 +163,8 @@ _send_signed_request() {
   _debug url $url
   _debug payload "$payload"
   
-  CURL_HEADER="$WORKING_DIR/curl.header"
-  dp="$WORKING_DIR/curl.dump"
+  CURL_HEADER="$LE_WORKING_DIR/curl.header"
+  dp="$LE_WORKING_DIR/curl.dump"
   CURL="curl --silent --dump-header $CURL_HEADER "
   if [ "$DEBUG" ] ; then
     CURL="$CURL --trace-ascii $dp "
@@ -303,8 +303,8 @@ _initpath() {
     fi  
   fi
   
-  if [ -z "$WORKING_DIR" ]; then
-    WORKING_DIR=$HOME/.le
+  if [ -z "$LE_WORKING_DIR" ]; then
+    LE_WORKING_DIR=$HOME/.le
   fi
   
   if [ -z "$ACME_DIR" ] ; then
@@ -312,18 +312,18 @@ _initpath() {
   fi
   
   if [ -z "$APACHE_CONF_BACKUP_DIR" ] ; then
-    APACHE_CONF_BACKUP_DIR="$WORKING_DIR/"
+    APACHE_CONF_BACKUP_DIR="$LE_WORKING_DIR/"
   fi
   
   domain="$1"
-  mkdir -p "$WORKING_DIR"
+  mkdir -p "$LE_WORKING_DIR"
   
   if [ -z "$ACCOUNT_KEY_PATH" ] ; then
-    ACCOUNT_KEY_PATH="$WORKING_DIR/account.key"
+    ACCOUNT_KEY_PATH="$LE_WORKING_DIR/account.key"
   fi
   
   if [ -z "$ACCOUNT_CONF_PATH" ] ; then
-    ACCOUNT_CONF_PATH="$WORKING_DIR/account.conf"
+    ACCOUNT_CONF_PATH="$LE_WORKING_DIR/account.conf"
   fi
   
   if [ -f "$ACCOUNT_CONF_PATH" ] ; then
@@ -334,22 +334,22 @@ _initpath() {
     return 0
   fi
   
-  mkdir -p "$WORKING_DIR/$domain"
+  mkdir -p "$LE_WORKING_DIR/$domain"
 
   if [ -z "$DOMAIN_CONF" ] ; then
-    DOMAIN_CONF="$WORKING_DIR/$domain/$Le_Domain.conf"
+    DOMAIN_CONF="$LE_WORKING_DIR/$domain/$Le_Domain.conf"
   fi
   if [ -z "$CSR_PATH" ] ; then
-    CSR_PATH="$WORKING_DIR/$domain/$domain.csr"
+    CSR_PATH="$LE_WORKING_DIR/$domain/$domain.csr"
   fi
   if [ -z "$CERT_KEY_PATH" ] ; then 
-    CERT_KEY_PATH="$WORKING_DIR/$domain/$domain.key"
+    CERT_KEY_PATH="$LE_WORKING_DIR/$domain/$domain.key"
   fi
   if [ -z "$CERT_PATH" ] ; then
-    CERT_PATH="$WORKING_DIR/$domain/$domain.cer"
+    CERT_PATH="$LE_WORKING_DIR/$domain/$domain.cer"
   fi
   if [ -z "$CA_CERT_PATH" ] ; then
-    CA_CERT_PATH="$WORKING_DIR/$domain/ca.cer"
+    CA_CERT_PATH="$LE_WORKING_DIR/$domain/ca.cer"
   fi
   
 }
@@ -584,7 +584,7 @@ issue() {
   
   if [ "$code" == "" ] || [ "$code" == '201' ] ; then
     _info "Registered"
-    echo $response > $WORKING_DIR/account.json
+    echo $response > $LE_WORKING_DIR/account.json
   elif [ "$code" == '409' ] ; then
     _info "Already registered"
   else
@@ -650,18 +650,18 @@ issue() {
         #dns
         #1. check use api
         d_api=""
-        if [ -f "$WORKING_DIR/$d/$Le_Webroot" ] ; then
-          d_api="$WORKING_DIR/$d/$Le_Webroot"
-        elif [ -f "$WORKING_DIR/$d/$Le_Webroot.sh" ] ; then
-          d_api="$WORKING_DIR/$d/$Le_Webroot.sh"
-        elif [ -f "$WORKING_DIR/$Le_Webroot" ] ; then
-          d_api="$WORKING_DIR/$Le_Webroot"
-        elif [ -f "$WORKING_DIR/$Le_Webroot.sh" ] ; then
-          d_api="$WORKING_DIR/$Le_Webroot.sh"
-        elif [ -f "$WORKING_DIR/dnsapi/$Le_Webroot" ] ; then
-          d_api="$WORKING_DIR/dnsapi/$Le_Webroot"
-        elif [ -f "$WORKING_DIR/dnsapi/$Le_Webroot.sh" ] ; then
-          d_api="$WORKING_DIR/dnsapi/$Le_Webroot.sh"
+        if [ -f "$LE_WORKING_DIR/$d/$Le_Webroot" ] ; then
+          d_api="$LE_WORKING_DIR/$d/$Le_Webroot"
+        elif [ -f "$LE_WORKING_DIR/$d/$Le_Webroot.sh" ] ; then
+          d_api="$LE_WORKING_DIR/$d/$Le_Webroot.sh"
+        elif [ -f "$LE_WORKING_DIR/$Le_Webroot" ] ; then
+          d_api="$LE_WORKING_DIR/$Le_Webroot"
+        elif [ -f "$LE_WORKING_DIR/$Le_Webroot.sh" ] ; then
+          d_api="$LE_WORKING_DIR/$Le_Webroot.sh"
+        elif [ -f "$LE_WORKING_DIR/dnsapi/$Le_Webroot" ] ; then
+          d_api="$LE_WORKING_DIR/dnsapi/$Le_Webroot"
+        elif [ -f "$LE_WORKING_DIR/dnsapi/$Le_Webroot.sh" ] ; then
+          d_api="$LE_WORKING_DIR/dnsapi/$Le_Webroot.sh"
         fi
         _debug d_api "$d_api"
         
@@ -897,7 +897,7 @@ renewAll() {
   _initpath
   _info "renewAll"
   
-  for d in $(ls -F $WORKING_DIR | grep  '/$') ; do
+  for d in $(ls -F $LE_WORKING_DIR | grep  '/$') ; do
     d=$(echo $d | cut -d '/' -f 1)
     _info "renew $d"
     
@@ -992,13 +992,13 @@ installcronjob() {
   _initpath
   _info "Installing cron job"
   if ! crontab -l | grep 'le.sh cron' ; then 
-    if [ -f "$WORKING_DIR/le.sh" ] ; then
-      lesh="\"$WORKING_DIR\"/le.sh"
+    if [ -f "$LE_WORKING_DIR/le.sh" ] ; then
+      lesh="\"$LE_WORKING_DIR\"/le.sh"
     else
       _err "Can not install cronjob, le.sh not found."
       return 1
     fi
-    crontab -l | { cat; echo "0 0 * * * $SUDO WORKING_DIR=\"$WORKING_DIR\" $lesh cron > /dev/null"; } | crontab -
+    crontab -l | { cat; echo "0 0 * * * $SUDO LE_WORKING_DIR=\"$LE_WORKING_DIR\" $lesh cron > /dev/null"; } | crontab -
   fi
   return 0
 }
@@ -1008,11 +1008,51 @@ uninstallcronjob() {
   cr="$(crontab -l | grep 'le.sh cron')"
   if [ "$cr" ] ; then 
     crontab -l | sed "/le.sh cron/d" | crontab -
-    WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 7 | cut -d '=' -f 2 | tr -d '"')"
-    _info WORKING_DIR "$WORKING_DIR"
+    LE_WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 7 | cut -d '=' -f 2 | tr -d '"')"
+    _info LE_WORKING_DIR "$LE_WORKING_DIR"
   fi 
   _initpath
   
+}
+
+
+# Detect profile file if not specified as environment variable
+_detect_profile() {
+  if [ -n "$PROFILE" -a -f "$PROFILE" ]; then
+    echo "$PROFILE"
+    return
+  fi
+
+  local DETECTED_PROFILE
+  DETECTED_PROFILE=''
+  local SHELLTYPE
+  SHELLTYPE="$(basename "/$SHELL")"
+
+  if [ "$SHELLTYPE" = "bash" ]; then
+    if [ -f "$HOME/.bashrc" ]; then
+      DETECTED_PROFILE="$HOME/.bashrc"
+    elif [ -f "$HOME/.bash_profile" ]; then
+      DETECTED_PROFILE="$HOME/.bash_profile"
+    fi
+  elif [ "$SHELLTYPE" = "zsh" ]; then
+    DETECTED_PROFILE="$HOME/.zshrc"
+  fi
+
+  if [ -z "$DETECTED_PROFILE" ]; then
+    if [ -f "$HOME/.profile" ]; then
+      DETECTED_PROFILE="$HOME/.profile"
+    elif [ -f "$HOME/.bashrc" ]; then
+      DETECTED_PROFILE="$HOME/.bashrc"
+    elif [ -f "$HOME/.bash_profile" ]; then
+      DETECTED_PROFILE="$HOME/.bash_profile"
+    elif [ -f "$HOME/.zshrc" ]; then
+      DETECTED_PROFILE="$HOME/.zshrc"
+    fi
+  fi
+
+  if [ ! -z "$DETECTED_PROFILE" ]; then
+    echo "$DETECTED_PROFILE"
+  fi
 }
 
 install() {
@@ -1047,33 +1087,33 @@ install() {
     return 1
   fi
 
-  _info "Installing to $WORKING_DIR"
+  _info "Installing to $LE_WORKING_DIR"
 
-  #try install to /bin if is root
-  if [ ! -f /usr/local/bin/le.sh ] ; then
-    #if root
-    if $SUDO cp le.sh /usr/local/bin/le.sh > /dev/null 2>&1; then
-      $SUDO chmod 755 /usr/local/bin/le.sh
-      $SUDO ln -s "/usr/local/bin/le.sh" /usr/local/bin/le
-      rm -f $WORKING_DIR/le.sh
-      $SUDO ln -s /usr/local/bin/le.sh $WORKING_DIR/le.sh
-      _info "Installed to /usr/local/bin/le"
-    else
-      #install to home, for non root user
-      cp le.sh $WORKING_DIR/
-      chmod +x $WORKING_DIR/le.sh
-      _info "Installed to $WORKING_DIR/le.sh" 
-    fi
+  _info "Installed to $LE_WORKING_DIR/le.sh" 
+  cp le.sh $LE_WORKING_DIR/
+  chmod +x $LE_WORKING_DIR/le.sh
+        
+  _profile="$(_detect_profile)"
+  if [ "$_profile" ] ; then
+    _debug "Found profile: $_profile"
+    
+    echo "LE_WORKING_DIR=$LE_WORKING_DIR
+alias le=\"$LE_WORKING_DIR/le.sh\"
+alias le.sh=\"$LE_WORKING_DIR/le.sh\"
+    " > "$LE_WORKING_DIR/le.env"
+    
+    _setopt "$_profile" "source \"$LE_WORKING_DIR/le.env\""
+    
+  else
+    _info "No profile is found, you will need to go into $LE_WORKING_DIR to use le.sh"
   fi
-  rm -f $WORKING_DIR/le
-  ln -s $WORKING_DIR/le.sh  $WORKING_DIR/le
 
-  mkdir -p $WORKING_DIR/dnsapi
-  cp  dnsapi/* $WORKING_DIR/dnsapi/
+  mkdir -p $LE_WORKING_DIR/dnsapi
+  cp  dnsapi/* $LE_WORKING_DIR/dnsapi/
   
   #to keep compatible mv the .acc file to .key file 
-  if [ -f "$WORKING_DIR/account.acc" ] ; then
-    mv "$WORKING_DIR/account.acc" "$WORKING_DIR/account.key"
+  if [ -f "$LE_WORKING_DIR/account.acc" ] ; then
+    mv "$LE_WORKING_DIR/account.acc" "$LE_WORKING_DIR/account.key"
   fi
   
   installcronjob
@@ -1085,15 +1125,13 @@ uninstall() {
   uninstallcronjob
   _initpath
 
-  if [ -f "/usr/local/bin/le.sh" ] ; then
-    _info "Removing /usr/local/bin/le.sh"
-    if $SUDO rm -f /usr/local/bin/le.sh ; then
-      $SUDO rm -f /usr/local/bin/le
-    fi
+  _profile="$(_detect_profile)"
+  if [ "$_profile" ] ; then
+    sed -i "/source \"$LE_WORKING_DIR/le.env\"/d"  "$_profile"
   fi
-  rm -f $WORKING_DIR/le
-  rm -f $WORKING_DIR/le.sh
-  _info "The keys and certs are in $WORKING_DIR, you can remove them by yourself."
+
+  rm -f $LE_WORKING_DIR/le.sh
+  _info "The keys and certs are in $LE_WORKING_DIR, you can remove them by yourself."
 
 }
 
