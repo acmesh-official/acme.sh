@@ -166,14 +166,12 @@ Ok, it's finished.
 
 For now, we support clourflare integeration.
 
-First you need to login to your clourflare account to get you apikey.
+First you need to login to your clourflare account to get your api key.
 
-Then open `~/.le/dnsapi/dns-cf.sh`, and fill your api key and email there:
-and uncomment the lines:
 ```
-CF_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+export CF_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
 
-CF_Email="xxxx@sss.com"
+export CF_Email="xxxx@sss.com"
 
 ```
 
@@ -181,6 +179,9 @@ Ok, let's issue cert now:
 ```
 le.sh   issue   dns-cf   aa.com  www.aa.com
 ```
+
+The `CF_Key` and `CF_Email`  will be saved in `~/.le/account.conf`, when next time you use cloudflare api, it will reuse this key.
+
 
 More api integerations are coming. Godaddy, Dnspod, etc....
 
