@@ -1093,9 +1093,6 @@ install() {
   cp le.sh $LE_WORKING_DIR/
   chmod +x $LE_WORKING_DIR/le.sh
 
-  alias le=\"$LE_WORKING_DIR/le.sh\"
-  alias le.sh=\"$LE_WORKING_DIR/le.sh\"
-
   _profile="$(_detect_profile)"
   if [ "$_profile" ] ; then
     _debug "Found profile: $_profile"
@@ -1106,7 +1103,7 @@ alias le.sh=\"$LE_WORKING_DIR/le.sh\"
     " > "$LE_WORKING_DIR/le.env"
     
     _setopt "$_profile" "source \"$LE_WORKING_DIR/le.env\""
-    
+    _info "OK, Close and reopen your terminal to start using le"
   else
     _info "No profile is found, you will need to go into $LE_WORKING_DIR to use le.sh"
   fi
