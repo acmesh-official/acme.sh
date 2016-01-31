@@ -242,6 +242,29 @@ _setopt() {
   _debug "$(grep -H -n "^$__opt$__sep" $__conf)"
 }
 
+#_savedomainconf   key  value
+#save to domain.conf
+_savedomainconf() {
+  key="$1"
+  value="$2"
+  if [ "$DOMAIN_CONF" ] ; then
+    _setopt $DOMAIN_CONF "$key" "=" "$value"
+  else
+    _debug "DOMAIN_CONF is empty, can not save $key=$value"
+  fi
+}
+
+#_saveaccountconf  key  value
+_saveaccountconf() {
+  key="$1"
+  value="$2"
+  if [ "$ACCOUNT_CONF_PATH" ] ; then
+    _setopt $ACCOUNT_CONF_PATH "$key" "=" "$value"
+  else
+    _debug "ACCOUNT_CONF_PATH is empty, can not save $key=$value"
+  fi
+}
+
 _startserver() {
   content="$1"
   _NC="nc -q 1"
@@ -296,7 +319,15 @@ _initpath() {
   mkdir -p "$WORKING_DIR"
   
   if [ -z "$ACCOUNT_KEY_PATH" ] ; then
-    ACCOUNT_KEY_PATH="$WORKING_DIR/account.acc"
+    ACCOUNT_KEY_PATH="$WORKING_DIR/account.key"
+  fi
+  
+  if [ -z "$ACCOUNT_CONF_PATH" ] ; then
+    ACCOUNT_CONF_PATH="$WORKING_DIR/account.conf"
+  fi
+  
+  if [ -f "$ACCOUNT_CONF_PATH" ] ; then
+    source "$ACCOUNT_CONF_PATH"
   fi
   
   if [ -z "$domain" ] ; then

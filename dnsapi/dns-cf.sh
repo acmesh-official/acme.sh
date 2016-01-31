@@ -22,6 +22,10 @@ dns-cf-add() {
     return 1
   fi
   
+  #save the api key and email to the account conf file.
+  _saveaccountconf CF_Key "$CF_Key"
+  _saveaccountconf CF_Email "$CF_Email"
+  
   _debug "First detect the root zone"
   if ! _get_root $fulldomain ; then
     _err "invalid domain"
