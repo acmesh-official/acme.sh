@@ -32,9 +32,10 @@ You don't have to be root then, altough it is recommended.
 Which does 3 jobs:
 * create and copy `le.sh` to your home dir:  `~/.le`
 All the certs will be placed in this folder.
-* create symbol link: `/usr/local/bin/le  -> ~/.le/le.sh` . (You must be root to do so.)
+* create alias : `le.sh=~/.le/le.sh` and `le=~/.le/le.sh`. 
 * create everyday cron job to check and renew the cert if needed.
 
+After install, you must close current terminal and reopen again to make the alias take effect.
 
 Ok,  you are ready to issue cert now.
 Show help message:
