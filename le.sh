@@ -1092,7 +1092,10 @@ install() {
   _info "Installed to $LE_WORKING_DIR/le.sh" 
   cp le.sh $LE_WORKING_DIR/
   chmod +x $LE_WORKING_DIR/le.sh
-        
+
+  alias le=\"$LE_WORKING_DIR/le.sh\"
+  alias le.sh=\"$LE_WORKING_DIR/le.sh\"
+
   _profile="$(_detect_profile)"
   if [ "$_profile" ] ; then
     _debug "Found profile: $_profile"
