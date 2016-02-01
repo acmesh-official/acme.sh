@@ -878,8 +878,8 @@ renew() {
   _initpath $Le_Domain
 
   if [ ! -f "$DOMAIN_CONF" ] ; then
-    _err "$Le_Domain is not a issued domain, skip."
-    return 1;
+    _info "$Le_Domain is not a issued domain, skip."
+    return 0;
   fi
   
   source "$DOMAIN_CONF"
