@@ -227,7 +227,7 @@ License is GPLv3
 
 Please Star and Fork me.
 
-Issues and pullrequests are welcomed.
+Issues and pull requests are welcomed.
 
 
 
