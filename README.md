@@ -28,7 +28,7 @@ Do NOT require to be `root/sudoer`.
 ```
 ./le.sh install
 ```
-You don't have to be root then, altough it is recommended.
+You don't have to be root then, although it is recommended.
 
 Which does 3 jobs:
 * create and copy `le.sh` to your home dir:  `~/.le`
@@ -45,7 +45,7 @@ root@v1:~# le.sh
 https://github.com/Neilpang/le
 v1.1.1
 Usage: le.sh  [command] ...[args]....
-Avalible commands:
+Available commands:
 
 install:
   Install le.sh to your system.
@@ -106,7 +106,7 @@ The issued cert will be renewed every 80 days automatically.
 
 # Install issued cert to apache/nginx etc.
 ```
-le installcert  aa.com /path/to/certfile/in/apache/nginx  /path/to/keyfile/in/apache/nginx  /path/to/ca/certfile/apahce/nginx   "service apache2|nginx reload"
+le installcert  aa.com /path/to/certfile/in/apache/nginx  /path/to/keyfile/in/apache/nginx  /path/to/ca/certfile/apache/nginx   "service apache2|nginx reload"
 ```
 
 Install the issued cert/key to the production apache or nginx path.
