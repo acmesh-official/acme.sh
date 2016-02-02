@@ -1,5 +1,5 @@
 #!/bin/bash
-VER=1.1.3
+VER=1.1.4
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
@@ -293,6 +293,18 @@ _initpath() {
       SUDO=sudo
     fi
   fi
+  
+  if [ -z "$LE_WORKING_DIR" ]; then
+    LE_WORKING_DIR=$HOME/.le
+  fi
+  
+  if [ -z "$ACCOUNT_CONF_PATH" ] ; then
+    ACCOUNT_CONF_PATH="$LE_WORKING_DIR/account.conf"
+  fi
+  
+  if [ -f "$ACCOUNT_CONF_PATH" ] ; then
+    source "$ACCOUNT_CONF_PATH"
+  fi
 
   if [ -z "$API" ] ; then
     if [ -z "$STAGE" ] ; then
@@ -301,10 +313,6 @@ _initpath() {
       API="$STAGE_CA"
       _info "Using stage api:$API"
     fi  
-  fi
-  
-  if [ -z "$LE_WORKING_DIR" ]; then
-    LE_WORKING_DIR=$HOME/.le
   fi
   
   if [ -z "$ACME_DIR" ] ; then
@@ -322,13 +330,7 @@ _initpath() {
     ACCOUNT_KEY_PATH="$LE_WORKING_DIR/account.key"
   fi
   
-  if [ -z "$ACCOUNT_CONF_PATH" ] ; then
-    ACCOUNT_CONF_PATH="$LE_WORKING_DIR/account.conf"
-  fi
-  
-  if [ -f "$ACCOUNT_CONF_PATH" ] ; then
-    source "$ACCOUNT_CONF_PATH"
-  fi
+
   
   if [ -z "$domain" ] ; then
     return 0
@@ -829,7 +831,7 @@ issue() {
 
   if [ -z "$Le_LinkCert" ] ; then
     response="$(echo $response | openssl base64 -d)"
-    _err "Sign failed: $(echo "$response" | grep -o  '"detail":"[^"]*"')"
+    _err "Sign failed: $response"
     return 1
   fi
   
