@@ -11,6 +11,7 @@ Do NOT require to be `root/sudoer`.
 #Tested OS
 1. Ubuntu/Debian.
 2. CentOS
+3. Windows (cygwin with curl, openssl and crontab included)
 
 
 #Supported Mode
