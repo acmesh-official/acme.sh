@@ -185,7 +185,28 @@ le.sh   issue   dns-cf   aa.com  www.aa.com
 The `CF_Key` and `CF_Email`  will be saved in `~/.le/account.conf`, when next time you use cloudflare api, it will reuse this key.
 
 
-More api integerations are coming. Godaddy, Dnspod, etc....
+More api integerations are coming. Godaddy, etc....
+
+# Use Dnspod.cn domain api to automatically issue cert
+
+For now, we support dnspod.cn integeration.
+
+First you need to login to your dnspod.cn account to get your api key and key id.
+
+```
+export DP_Id="1234"
+
+export DP_Key="sADDsdasdgdsf"
+
+```
+
+Ok, let's issue cert now:
+```
+le.sh   issue   dns-dp   aa.com  www.aa.com
+```
+
+The `DP_Id` and `DP_Key`  will be saved in `~/.le/account.conf`, when next time you use dnspod.cn api, it will reuse this key.
+
 
 
 # Use custom api
