@@ -457,7 +457,7 @@ _clearupwebbroot() {
     _debug "remove $__webroot/.well-known/acme-challenge/$3"
     rm -rf "$__webroot/.well-known/acme-challenge/$3"
   else
-    _info "skip for removelevel:$2"
+    _info "Skip for removelevel:$2"
   fi
   
   return 0
@@ -830,8 +830,8 @@ issue() {
   
 
   if [ -z "$Le_LinkCert" ] ; then
-    response="$(echo $response | openssl base64 -d)"
-    _err "Sign failed: $response"
+    response="$(echo $response | openssl base64 -d -A)"
+    _err "Sign failed: $(echo "$response" | grep -o  '"detail":"[^"]*"')"
     return 1
   fi
   
