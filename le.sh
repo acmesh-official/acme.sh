@@ -1057,6 +1057,35 @@ _detect_profile() {
   fi
 }
 
+_initconf() {
+  _initpath
+  if [ ! -f "$ACCOUNT_CONF_PATH" ] ; then
+    echo "#Account configurations:
+#Here are the supported macros, uncomment them to make them take effect.
+#ACCOUNT_EMAIL=aaa@aaa.com  # the account email used to register account.
+
+#STAGE=1 # Use the staging api
+#FORCE=1 # Force to issue cert
+
+#dns api
+#######################
+#Cloudflare:
+#api key
+#CF_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+#account email
+#CF_Email="xxxx@sss.com"
+
+#######################
+#Dnspod.cn:
+#api key id
+#DP_Id="1234"
+#api key
+#DP_Key="sADDsdasdgdsf"
+
+    " > $ACCOUNT_CONF_PATH
+  fi
+}
+
 install() {
   _initpath
 
@@ -1120,6 +1149,9 @@ alias le.sh=\"$LE_WORKING_DIR/le.sh\"
   
   installcronjob
   
+  if [ ! -f "$ACCOUNT_CONF_PATH" ] ; then
+    _initconf
+  fi
   _info OK
 }
 
