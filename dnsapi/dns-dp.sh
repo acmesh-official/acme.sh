@@ -19,7 +19,7 @@ dns-dp-add() {
   txtvalue=$2
   
   if [ -z "$DP_Id" ] || [ -z "$DP_Key" ] ; then
-    _err "You don't specify cloudflare api key and email yet."
+    _err "You don't specify dnspod api key and key id yet."
     _err "Please create you key and try again."
     return 1
   fi
