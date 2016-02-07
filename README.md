@@ -177,7 +177,7 @@ More apis are comming soon....
 
 If your dns provider is not in the supported list above, you can write your own script api easily.
 
-For more details: [How to use dns api](/Neilpang/le/blob/master/dnsapi/README.md)
+For more details: [How to use dns api](dnsapi/README.md)
 
 
 #Under the Hood
