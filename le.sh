@@ -1,5 +1,5 @@
 #!/bin/bash
-VER=1.1.4
+VER=1.1.5
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
@@ -1066,6 +1066,7 @@ _initconf() {
 
 #STAGE=1 # Use the staging api
 #FORCE=1 # Force to issue cert
+#DEBUG=1 # Debug mode
 
 #dns api
 #######################
@@ -1081,6 +1082,12 @@ _initconf() {
 #DP_Id="1234"
 #api key
 #DP_Key="sADDsdasdgdsf"
+
+#######################
+#Cloudxns.com:
+#CX_Key="1234"
+#
+#CX_Secret="sADDsdasdgdsf"
 
     " > $ACCOUNT_CONF_PATH
   fi

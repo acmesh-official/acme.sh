@@ -1,34 +1,34 @@
 #!/bin/bash
 
-# Dnspod.cn Domain api
+# Cloudxns.com Domain api
 #
-#DP_Id="1234"
+#CX_Key="1234"
 #
-#DP_Key="sADDsdasdgdsf"
+#CX_Secret="sADDsdasdgdsf"
 
 
-DP_Api="https://dnsapi.cn"
+CX_Api="https://www.cloudxns.net/api2"
 
 
 #REST_API
 ########  Public functions #####################
 
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
-dns-dp-add() {
+dns-cx-add() {
   fulldomain=$1
   txtvalue=$2
   
-  if [ -z "$DP_Id" ] || [ -z "$DP_Key" ] ; then
-    _err "You don't specify dnspod api key and key id yet."
+  if [ -z "$CX_Key" ] || [ -z "$CX_Secret" ] ; then
+    _err "You don't specify cloudxns.com  api key or secret yet."
     _err "Please create you key and try again."
     return 1
   fi
   
-  REST_API=$DP_Api
+  REST_API=$CX_Api
   
   #save the api key and email to the account conf file.
-  _saveaccountconf DP_Id "$DP_Id"
-  _saveaccountconf DP_Key "$DP_Key"
+  _saveaccountconf CX_Key "$CX_Key"
+  _saveaccountconf CX_Secret "$CX_Secret"
   
  
   _debug "First detect the root zone"
@@ -49,6 +49,11 @@ dns-dp-add() {
   else
     update_record $_domain $_sub_domain $txtvalue
   fi
+  
+  if [ "$?" == "0" ] ; then
+    return 0
+  fi
+  return 1
 }
 
 #usage:  root  sub
@@ -60,27 +65,23 @@ existing_records() {
   root=$1
   sub=$2
   
-  if ! _rest POST "Record.List" "login_token=$DP_Id,$DP_Key&domain_id=$_domain_id&sub_domain=$_sub_domain"; then
-      return 1
-  fi
-  
-  if  printf "$response" | grep 'No records' ; then
-      count=0;
-      return 0
-  fi
-    
-  if printf "$response" | grep "Action completed successful" >/dev/null ; then
-    count=$(printf "$response" | grep '<type>TXT</type>' | wc -l)
-    
-    record_id=$(printf "$response" | grep '^<id>' | tail -1 | cut -d '>' -f 2 | cut -d '<' -f 1)
-    return 0    
-  else
-    _err "get existing records error."
+  if ! _rest GET "record/$_domain_id?:domain_id?host_id=0&offset=0&row_num=100" ; then
     return 1
   fi
-  
-  
   count=0
+  seg=$(printf "$response" | grep -o "{[^{]*host\":\"$_sub_domain[^}]*}")
+  _debug seg "$seg"
+  if [ -z "$seg" ] ; then
+    return 0
+  fi
+
+  if printf "$response" | grep '"type":"TXT"' > /dev/null ; then
+    count=1
+    record_id=$(printf "$seg" | grep -o \"record_id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \")
+    _debug record_id "$record_id"
+    return 0    
+  fi
+  
 }
 
 #add the txt record.
@@ -93,17 +94,11 @@ add_record() {
   
   _info "Adding record"
   
-  if ! _rest POST "Record.Create" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain&record_type=TXT&value=$txtvalue&record_line=默认"; then
+  if ! _rest POST "record" "{\"domain_id\": $_domain_id, \"host\":\"$_sub_domain\", \"value\":\"$txtvalue\", \"type\":\"TXT\",\"ttl\":600, \"line_id\":1}"; then
     return 1
   fi
   
-  if printf "$response" | grep "Action completed successful" ; then
-  
-    return 0
-  fi
-  
-  
-  return 1 #error
+  return 0
 }
 
 #update the txt record
@@ -116,16 +111,11 @@ update_record() {
   
   _info "Updating record"
   
-  if ! _rest POST "Record.Modify" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain&record_type=TXT&value=$txtvalue&record_line=默认&record_id=$record_id"; then
-    return 1
-  fi
-  
-  if printf "$response" | grep "Action completed successful" ; then
-  
+  if _rest PUT "record/$record_id" "{\"domain_id\": $_domain_id, \"host\":\"$_sub_domain\", \"value\":\"$txtvalue\", \"type\":\"TXT\",\"ttl\":600, \"line_id\":1}" ; then
     return 0
   fi
   
-  return 1 #error
+  return 1
 }
 
 
@@ -141,19 +131,23 @@ _get_root() {
   domain=$1
   i=2
   p=1
+  
+  if ! _rest GET "domain" ; then
+    return 1
+  fi
+  
   while [ '1' ] ; do
     h=$(printf $domain | cut -d . -f $i-100)
+    _debug h "$h"
     if [ -z "$h" ] ; then
       #not valid
       return 1;
     fi
-    
-    if ! _rest POST "Domain.Info" "login_token=$DP_Id,$DP_Key&format=json&domain=$h"; then
-      return 1
-    fi
-    
-    if printf "$response" | grep "Action completed successful" ; then
-      _domain_id=$(printf "$response" | grep -o \"id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \")
+
+    if printf "$response" | grep "$h." ; then
+      seg=$(printf "$response" | grep -o "{[^{]*$h\.[^}]*\}" )
+      _debug seg "$seg"
+      _domain_id=$(printf "$seg" | grep -o \"id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \")
       _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ] ; then
         _sub_domain=$(printf $domain | cut -d . -f 1-$p)
@@ -177,15 +171,23 @@ _rest() {
   ep="$2"
   _debug $ep
   url="$REST_API/$ep"
-  
   _debug url "$url"
   
+  cdate=$(date -u  "+%Y-%m-%d %H:%M:%S UTC")
+  _debug cdate "$cdate"
+  
+  data="$3"
+  _debug data "$data"
+    
+  sec="$CX_Key$url$data$cdate$CX_Secret"
+  _debug sec "$sec"
+  hmac=$(printf "$sec"| openssl md5 |cut -d " " -f 2)
+  _debug hmac "$hmac"
+    
   if [ "$3" ] ; then
-    data="$3"
-    _debug data "$data"
-    response="$(curl --silent -X $m "$url"  -d $data)"
+    response="$(curl --silent -X $m "$url" -H "API-KEY: $CX_Key" -H "API-REQUEST-DATE: $cdate" -H "API-HMAC: $hmac" -H 'Content-Type: application/json'  -d "$data")"
   else
-    response="$(curl --silent -X $m "$url" )"
+    response="$(curl --silent -X $m "$url" -H "API-KEY: $CX_Key" -H "API-REQUEST-DATE: $cdate" -H "API-HMAC: $hmac" -H 'Content-Type: application/json')"
   fi
   
   if [ "$?" != "0" ] ; then
@@ -193,6 +195,9 @@ _rest() {
     return 1
   fi
   _debug response "$response"
+  if ! printf "$response" | grep '"message":"success"' > /dev/null ; then
+    return 1
+  fi
   return 0
 }
 
