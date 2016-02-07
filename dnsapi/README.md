@@ -52,7 +52,7 @@ First you need to login to your Cloudxns.com account to get your api key and key
 ```
 export CX_Key="1234"
 
-export CX_Api="sADDsdasdgdsf"
+export CX_Secret="sADDsdasdgdsf"
 
 ```
 
@@ -61,7 +61,7 @@ Ok, let's issue cert now:
 le.sh   issue   dns-cx   aa.com  www.aa.com
 ```
 
-The `CX_Key` and `CX_Api`  will be saved in `~/.le/account.conf`, when next time you use Cloudxns.com api, it will reuse this key.
+The `CX_Key` and `CX_Secret`  will be saved in `~/.le/account.conf`, when next time you use Cloudxns.com api, it will reuse this key.
 
 
 
