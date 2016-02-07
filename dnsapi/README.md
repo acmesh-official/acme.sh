@@ -79,7 +79,7 @@ Let's assume you want to name it 'myapi',
 le.sh  issue  dns-myapi  aa.com  www.aa.com
 ```
 
-For more details, please check our sample script: [dnsapi/dns-myapi.sh](README.md)
+For more details, please check our sample script: [dns-myapi.sh](dns-myapi.sh)
 
 
 

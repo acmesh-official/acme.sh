@@ -168,7 +168,8 @@ Ok, it's finished.
 If your dns provider supports api access,  we can use api to automatically issue certs.
 You don't have do anything manually.
 
-Currently we support:
+###Currently we support:
+
 1. Cloudflare.com  api
 2. Dnspod.cn  api
 3. Cloudxns.com  api
@@ -177,7 +178,7 @@ More apis are comming soon....
 
 If your dns provider is not in the supported list above, you can write your own script api easily.
 
-For more details: [How to use dns api](dnsapi/README.md)
+For more details: [How to use dns api](dnsapi)
 
 
 #Under the Hood
