@@ -1,5 +1,5 @@
 #!/bin/bash
-VER=1.1.5
+VER=1.1.6
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
@@ -41,6 +41,7 @@ _err() {
   else
     echo "$1"="$2" >&2
   fi
+  return 1
 }
 
 _h2b() {
@@ -66,12 +67,17 @@ _base64() {
 createAccountKey() {
   _info "Creating account key"
   if [ -z "$1" ] ; then
-    echo Usage: $0 account-domain  [2048]
+    echo Usage: createAccountKey account-domain  [2048]
     return
   fi
   
   account=$1
   length=$2
+  
+  if [[ "$length" == "ec-"* ]] ; then
+    length=2048
+  fi
+  
   if [ -z "$2" ] ; then
     _info "Use default length 2048"
     length=2048
@@ -92,21 +98,50 @@ createAccountKey() {
 createDomainKey() {
   _info "Creating domain key"
   if [ -z "$1" ] ; then
-    echo Usage: $0 domain  [2048]
+    echo Usage: createDomainKey domain  [2048]
     return
   fi
   
   domain=$1
   length=$2
-  if [ -z "$2" ] ; then
-    _info "Use default length 2048"
-    length=2048
+  isec=""
+  if [[ "$length" == "ec-"* ]] ; then
+    isec="1"
+    length=$(printf $length | cut -d '-' -f 2-100)
+    eccname="$length"
   fi
+
+  if [ -z "$length" ] ; then
+    if [ "$isec" ] ; then
+      length=256
+    else
+      length=2048
+    fi
+  fi
+  _info "Use length $length"
+
+  if [ "$isec" ] ; then
+    if [ "$length" == "256" ] ; then
+      eccname="prime256v1"
+    fi
+    if [ "$length" == "384" ] ; then
+      eccname="secp384r1"
+    fi
+    if [ "$length" == "521" ] ; then
+      eccname="secp521r1"
+    fi
+    _info "Using ec name: $eccname"
+  fi
+  
   _initpath $domain
   
   if [ ! -f "$CERT_KEY_PATH" ] || ( [ "$FORCE" ] && ! [ "$IS_RENEW" ] ); then 
     #generate account key
-    openssl genrsa $length > "$CERT_KEY_PATH"
+    if [ "$isec" ] ; then
+      openssl ecparam  -name $eccname -genkey 2>/dev/null > "$CERT_KEY_PATH"
+    else
+      openssl genrsa $length 2>/dev/null > "$CERT_KEY_PATH"
+    fi
   else
     if [ "$IS_RENEW" ] ; then
       _info "Domain key exists, skip"
@@ -250,7 +285,7 @@ _savedomainconf() {
   if [ "$DOMAIN_CONF" ] ; then
     _setopt $DOMAIN_CONF "$key" "=" "$value"
   else
-    _debug "DOMAIN_CONF is empty, can not save $key=$value"
+    _err "DOMAIN_CONF is empty, can not save $key=$value"
   fi
 }
 
@@ -261,7 +296,7 @@ _saveaccountconf() {
   if [ "$ACCOUNT_CONF_PATH" ] ; then
     _setopt $ACCOUNT_CONF_PATH "$key" "=" "$value"
   else
-    _debug "ACCOUNT_CONF_PATH is empty, can not save $key=$value"
+    _err "ACCOUNT_CONF_PATH is empty, can not save $key=$value"
   fi
 }
 
@@ -329,31 +364,31 @@ _initpath() {
   if [ -z "$ACCOUNT_KEY_PATH" ] ; then
     ACCOUNT_KEY_PATH="$LE_WORKING_DIR/account.key"
   fi
-  
 
-  
   if [ -z "$domain" ] ; then
     return 0
   fi
   
-  mkdir -p "$LE_WORKING_DIR/$domain"
+  domainhome="$LE_WORKING_DIR/$domain"
+  mkdir -p "$domainhome"
 
   if [ -z "$DOMAIN_CONF" ] ; then
-    DOMAIN_CONF="$LE_WORKING_DIR/$domain/$Le_Domain.conf"
+    DOMAIN_CONF="$domainhome/$Le_Domain.conf"
   fi
+
   if [ -z "$CSR_PATH" ] ; then
-    CSR_PATH="$LE_WORKING_DIR/$domain/$domain.csr"
+    CSR_PATH="$domainhome/$domain.csr"
   fi
   if [ -z "$CERT_KEY_PATH" ] ; then 
-    CERT_KEY_PATH="$LE_WORKING_DIR/$domain/$domain.key"
+    CERT_KEY_PATH="$domainhome/$domain.key"
   fi
   if [ -z "$CERT_PATH" ] ; then
-    CERT_PATH="$LE_WORKING_DIR/$domain/$domain.cer"
+    CERT_PATH="$domainhome/$domain.cer"
   fi
   if [ -z "$CA_CERT_PATH" ] ; then
-    CA_CERT_PATH="$LE_WORKING_DIR/$domain/ca.cer"
+    CA_CERT_PATH="$domainhome/ca.cer"
   fi
-  
+
 }
 
 
