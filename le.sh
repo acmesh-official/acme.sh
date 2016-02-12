@@ -574,7 +574,7 @@ issue() {
   _debug HEADER "$HEADER"
   
   accountkey_json=$(echo -n "$jwk" | sed "s/ //g")
-  thumbprint=$(echo -n "$accountkey_json" | openssl sha -sha256 -binary | _base64 | _b64)
+  thumbprint=$(echo -n "$accountkey_json" | openssl dgst -sha256 -binary | _base64 | _b64)
   
   
   _info "Registering account"
