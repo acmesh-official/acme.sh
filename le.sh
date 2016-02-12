@@ -892,7 +892,10 @@ renew() {
   
   IS_RENEW="1"
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd"
+  local res=$?
   IS_RENEW=""
+
+  return $res
 }
 
 renewAll() {
