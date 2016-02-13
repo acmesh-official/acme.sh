@@ -1,5 +1,5 @@
 #!/bin/bash
-VER=1.1.1
+VER=1.1.6
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
@@ -41,6 +41,7 @@ _err() {
   else
     echo "$1"="$2" >&2
   fi
+  return 1
 }
 
 _h2b() {
@@ -64,13 +65,19 @@ _base64() {
 
 #domain [2048]  
 createAccountKey() {
+  _info "Creating account key"
   if [ -z "$1" ] ; then
-    echo Usage: $0 account-domain  [2048]
+    echo Usage: createAccountKey account-domain  [2048]
     return
   fi
   
   account=$1
   length=$2
+  
+  if [[ "$length" == "ec-"* ]] ; then
+    length=2048
+  fi
+  
   if [ -z "$2" ] ; then
     _info "Use default length 2048"
     length=2048
@@ -89,20 +96,53 @@ createAccountKey() {
 
 #domain length
 createDomainKey() {
+  _info "Creating domain key"
   if [ -z "$1" ] ; then
-    echo Usage: $0 domain  [2048]
+    echo Usage: createDomainKey domain  [2048]
     return
   fi
   
   domain=$1
   length=$2
-  if [ -z "$2" ] ; then
-    _info "Use default length 2048"
-    length=2048
+  isec=""
+  if [[ "$length" == "ec-"* ]] ; then
+    isec="1"
+    length=$(printf $length | cut -d '-' -f 2-100)
+    eccname="$length"
   fi
+
+  if [ -z "$length" ] ; then
+    if [ "$isec" ] ; then
+      length=256
+    else
+      length=2048
+    fi
+  fi
+  _info "Use length $length"
+
+  if [ "$isec" ] ; then
+    if [ "$length" == "256" ] ; then
+      eccname="prime256v1"
+    fi
+    if [ "$length" == "384" ] ; then
+      eccname="secp384r1"
+    fi
+    if [ "$length" == "521" ] ; then
+      eccname="secp521r1"
+    fi
+    _info "Using ec name: $eccname"
+  fi
+  
   _initpath $domain
   
-  if [ -f "$CERT_KEY_PATH" ] && ! [ "$FORCE" ] ; then 
+  if [ ! -f "$CERT_KEY_PATH" ] || ( [ "$FORCE" ] && ! [ "$IS_RENEW" ] ); then 
+    #generate account key
+    if [ "$isec" ] ; then
+      openssl ecparam  -name $eccname -genkey 2>/dev/null > "$CERT_KEY_PATH"
+    else
+      openssl genrsa $length 2>/dev/null > "$CERT_KEY_PATH"
+    fi
+  else
     if [ "$IS_RENEW" ] ; then
       _info "Domain key exists, skip"
       return 0
@@ -111,15 +151,13 @@ createDomainKey() {
       _err "Set FORCE=1, and try again."
       return 1
     fi
-  else
-    #generate account key
-    openssl genrsa $length > "$CERT_KEY_PATH"
   fi
 
 }
 
 # domain  domainlist
 createCSR() {
+  _info "Creating csr"
   if [ -z "$1" ] ; then
     echo Usage: $0 domain  [domainlist]
     return
@@ -160,8 +198,8 @@ _send_signed_request() {
   _debug url $url
   _debug payload "$payload"
   
-  CURL_HEADER="$WORKING_DIR/curl.header"
-  dp="$WORKING_DIR/curl.dump"
+  CURL_HEADER="$LE_WORKING_DIR/curl.header"
+  dp="$LE_WORKING_DIR/curl.dump"
   CURL="curl --silent --dump-header $CURL_HEADER "
   if [ "$DEBUG" ] ; then
     CURL="$CURL --trace-ascii $dp "
@@ -239,6 +277,29 @@ _setopt() {
   _debug "$(grep -H -n "^$__opt$__sep" $__conf)"
 }
 
+#_savedomainconf   key  value
+#save to domain.conf
+_savedomainconf() {
+  key="$1"
+  value="$2"
+  if [ "$DOMAIN_CONF" ] ; then
+    _setopt $DOMAIN_CONF "$key" "=" "$value"
+  else
+    _err "DOMAIN_CONF is empty, can not save $key=$value"
+  fi
+}
+
+#_saveaccountconf  key  value
+_saveaccountconf() {
+  key="$1"
+  value="$2"
+  if [ "$ACCOUNT_CONF_PATH" ] ; then
+    _setopt $ACCOUNT_CONF_PATH "$key" "=" "$value"
+  else
+    _err "ACCOUNT_CONF_PATH is empty, can not save $key=$value"
+  fi
+}
+
 _startserver() {
   content="$1"
   _NC="nc -q 1"
@@ -247,9 +308,9 @@ _startserver() {
   fi
 #  while true ; do
     if [ "$DEBUG" ] ; then
-      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -l -p 80 -vv
+      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -l -p $Le_HTTPPort -vv
     else
-      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -l -p 80 > /dev/null
+      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -l -p $Le_HTTPPort > /dev/null
     fi
 #  done
 }
@@ -267,6 +328,18 @@ _initpath() {
       SUDO=sudo
     fi
   fi
+  
+  if [ -z "$LE_WORKING_DIR" ]; then
+    LE_WORKING_DIR=$HOME/.le
+  fi
+  
+  if [ -z "$ACCOUNT_CONF_PATH" ] ; then
+    ACCOUNT_CONF_PATH="$LE_WORKING_DIR/account.conf"
+  fi
+  
+  if [ -f "$ACCOUNT_CONF_PATH" ] ; then
+    source "$ACCOUNT_CONF_PATH"
+  fi
 
   if [ -z "$API" ] ; then
     if [ -z "$STAGE" ] ; then
@@ -277,48 +350,45 @@ _initpath() {
     fi  
   fi
   
-  if [ -z "$WORKING_DIR" ]; then
-    WORKING_DIR=$HOME/.le
-  fi
-  
   if [ -z "$ACME_DIR" ] ; then
     ACME_DIR="/home/.acme"
   fi
   
   if [ -z "$APACHE_CONF_BACKUP_DIR" ] ; then
-    APACHE_CONF_BACKUP_DIR="$WORKING_DIR/"
+    APACHE_CONF_BACKUP_DIR="$LE_WORKING_DIR/"
   fi
   
   domain="$1"
-  mkdir -p "$WORKING_DIR"
+  mkdir -p "$LE_WORKING_DIR"
   
   if [ -z "$ACCOUNT_KEY_PATH" ] ; then
-    ACCOUNT_KEY_PATH="$WORKING_DIR/account.acc"
+    ACCOUNT_KEY_PATH="$LE_WORKING_DIR/account.key"
   fi
-  
+
   if [ -z "$domain" ] ; then
     return 0
   fi
   
-  mkdir -p "$WORKING_DIR/$domain"
+  domainhome="$LE_WORKING_DIR/$domain"
+  mkdir -p "$domainhome"
 
   if [ -z "$DOMAIN_CONF" ] ; then
-    DOMAIN_CONF="$WORKING_DIR/$domain/$Le_Domain.conf"
-  fi
-  if [ -z "$CSR_PATH" ] ; then
-    CSR_PATH="$WORKING_DIR/$domain/$domain.csr"
-  fi
-  if [ -z "$CERT_KEY_PATH" ] ; then 
-    CERT_KEY_PATH="$WORKING_DIR/$domain/$domain.key"
-  fi
-  if [ -z "$CERT_PATH" ] ; then
-    CERT_PATH="$WORKING_DIR/$domain/$domain.cer"
-  fi
-  if [ -z "$CA_CERT_PATH" ] ; then
-    CA_CERT_PATH="$WORKING_DIR/$domain/ca.cer"
+    DOMAIN_CONF="$domainhome/$Le_Domain.conf"
   fi
 
-  
+  if [ -z "$CSR_PATH" ] ; then
+    CSR_PATH="$domainhome/$domain.csr"
+  fi
+  if [ -z "$CERT_KEY_PATH" ] ; then 
+    CERT_KEY_PATH="$domainhome/$domain.key"
+  fi
+  if [ -z "$CERT_PATH" ] ; then
+    CERT_PATH="$domainhome/$domain.cer"
+  fi
+  if [ -z "$CA_CERT_PATH" ] ; then
+    CA_CERT_PATH="$domainhome/ca.cer"
+  fi
+
 }
 
 
@@ -422,7 +492,7 @@ _clearupwebbroot() {
     _debug "remove $__webroot/.well-known/acme-challenge/$3"
     rm -rf "$__webroot/.well-known/acme-challenge/$3"
   else
-    _info "skip for removelevel:$2"
+    _info "Skip for removelevel:$2"
   fi
   
   return 0
@@ -488,11 +558,16 @@ issue() {
       _err "Please install netcat(nc) tools first."
       return 1
     fi
-
-    netprc="$(ss -ntpl | grep ':80 ')"
+    
+    if [ -z "$Le_HTTPPort" ] ; then
+      Le_HTTPPort=80
+    fi
+    _setopt "$DOMAIN_CONF"  "Le_HTTPPort"             "="  "$Le_HTTPPort"
+    
+    netprc="$(ss -ntpl | grep :$Le_HTTPPort" ")"
     if [ "$netprc" ] ; then
       _err "$netprc"
-      _err "tcp port 80 is already used by $(echo "$netprc" | cut -d :  -f 4)"
+      _err "tcp port $Le_HTTPPort is already used by $(echo "$netprc" | cut -d :  -f 4)"
       _err "Please stop it first"
       return 1
     fi
@@ -539,7 +614,7 @@ issue() {
   _debug HEADER "$HEADER"
   
   accountkey_json=$(echo -n "$jwk" | sed "s/ //g")
-  thumbprint=$(echo -n "$accountkey_json" | openssl sha -sha256 -binary | _base64 | _b64)
+  thumbprint=$(echo -n "$accountkey_json" | openssl dgst -sha256 -binary | _base64 | _b64)
   
   
   _info "Registering account"
@@ -551,7 +626,7 @@ issue() {
   
   if [ "$code" == "" ] || [ "$code" == '201' ] ; then
     _info "Registered"
-    echo $response > $WORKING_DIR/account.json
+    echo $response > $LE_WORKING_DIR/account.json
   elif [ "$code" == '409' ] ; then
     _info "Already registered"
   else
@@ -616,12 +691,49 @@ issue() {
         _debug txt "$txt"
         #dns
         #1. check use api
-        _err "Add the following TXT record:"
-        _err "Domain: $txtdomain"
-        _err "TXT value: $txt"
-        _err "Please be aware that you prepend _acme-challenge. before your domain"
-        _err "so the resulting subdomain will be: $txtdomain"
-        #dnsadded='1'
+        d_api=""
+        if [ -f "$LE_WORKING_DIR/$d/$Le_Webroot" ] ; then
+          d_api="$LE_WORKING_DIR/$d/$Le_Webroot"
+        elif [ -f "$LE_WORKING_DIR/$d/$Le_Webroot.sh" ] ; then
+          d_api="$LE_WORKING_DIR/$d/$Le_Webroot.sh"
+        elif [ -f "$LE_WORKING_DIR/$Le_Webroot" ] ; then
+          d_api="$LE_WORKING_DIR/$Le_Webroot"
+        elif [ -f "$LE_WORKING_DIR/$Le_Webroot.sh" ] ; then
+          d_api="$LE_WORKING_DIR/$Le_Webroot.sh"
+        elif [ -f "$LE_WORKING_DIR/dnsapi/$Le_Webroot" ] ; then
+          d_api="$LE_WORKING_DIR/dnsapi/$Le_Webroot"
+        elif [ -f "$LE_WORKING_DIR/dnsapi/$Le_Webroot.sh" ] ; then
+          d_api="$LE_WORKING_DIR/dnsapi/$Le_Webroot.sh"
+        fi
+        _debug d_api "$d_api"
+        
+        if [ "$d_api" ]; then
+          _info "Found domain api file: $d_api"
+        else
+          _err "Add the following TXT record:"
+          _err "Domain: $txtdomain"
+          _err "TXT value: $txt"
+          _err "Please be aware that you prepend _acme-challenge. before your domain"
+          _err "so the resulting subdomain will be: $txtdomain"
+          continue
+        fi
+
+        if ! source $d_api ; then
+          _err "Load file $d_api error. Please check your api file and try again."
+          return 1
+        fi
+        
+        addcommand="$Le_Webroot-add"
+        if ! command -v $addcommand ; then 
+          _err "It seems that your api file is not correct, it must have a function named: $Le_Webroot"
+          return 1
+        fi
+        
+        if ! $addcommand $txtdomain $txt ; then
+          _err "Error add txt for domain:$txtdomain"
+          return 1
+        fi
+        dnsadded='1'
       fi
     done
 
@@ -634,6 +746,10 @@ issue() {
     
   fi
   
+  if [ "$dnsadded" == '1' ] ; then
+    _info "Sleep 60 seconds for the txt records to take effect"
+    sleep 60
+  fi
   
   _debug "ok, let's start to verify"
   ventries=$(echo "$vlist" | sed "s/,/ /g")
@@ -754,7 +870,7 @@ issue() {
   
 
   if [ -z "$Le_LinkCert" ] ; then
-    response="$(echo $response | openssl base64 -d)"
+    response="$(echo $response | openssl base64 -d -A)"
     _err "Sign failed: $(echo "$response" | grep -o  '"detail":"[^"]*"')"
     return 1
   fi
@@ -803,23 +919,30 @@ renew() {
 
   _initpath $Le_Domain
 
-  if [ -f "$DOMAIN_CONF" ] ; then
-    source "$DOMAIN_CONF"
-    if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ] ; then 
-      _info "Skip, Next renewal time is: $Le_NextRenewTimeStr"
-      return 2
-    fi
+  if [ ! -f "$DOMAIN_CONF" ] ; then
+    _info "$Le_Domain is not a issued domain, skip."
+    return 0;
   fi
+  
+  source "$DOMAIN_CONF"
+  if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ] ; then 
+    _info "Skip, Next renewal time is: $Le_NextRenewTimeStr"
+    return 2
+  fi
+  
   IS_RENEW="1"
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd"
+  local res=$?
   IS_RENEW=""
+
+  return $res
 }
 
 renewAll() {
   _initpath
   _info "renewAll"
   
-  for d in $(ls -F $WORKING_DIR | grep  '/$') ; do
+  for d in $(ls -F $LE_WORKING_DIR | grep [^.].*[.].*/$ ) ; do
     d=$(echo $d | cut -d '/' -f 1)
     _info "renew $d"
     
@@ -914,13 +1037,13 @@ installcronjob() {
   _initpath
   _info "Installing cron job"
   if ! crontab -l | grep 'le.sh cron' ; then 
-    if [ -f "$WORKING_DIR/le.sh" ] ; then
-      lesh="\"$WORKING_DIR\"/le.sh"
+    if [ -f "$LE_WORKING_DIR/le.sh" ] ; then
+      lesh="\"$LE_WORKING_DIR\"/le.sh"
     else
       _err "Can not install cronjob, le.sh not found."
       return 1
     fi
-    crontab -l | { cat; echo "0 0 * * * $SUDO WORKING_DIR=\"$WORKING_DIR\" $lesh cron > /dev/null"; } | crontab -
+    crontab -l | { cat; echo "0 0 * * * $SUDO LE_WORKING_DIR=\"$LE_WORKING_DIR\" $lesh cron > /dev/null"; } | crontab -
   fi
   return 0
 }
@@ -930,11 +1053,87 @@ uninstallcronjob() {
   cr="$(crontab -l | grep 'le.sh cron')"
   if [ "$cr" ] ; then 
     crontab -l | sed "/le.sh cron/d" | crontab -
-    WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 7 | cut -d '=' -f 2 | tr -d '"')"
-    _info WORKING_DIR "$WORKING_DIR"
+    LE_WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 7 | cut -d '=' -f 2 | tr -d '"')"
+    _info LE_WORKING_DIR "$LE_WORKING_DIR"
   fi 
   _initpath
   
+}
+
+
+# Detect profile file if not specified as environment variable
+_detect_profile() {
+  if [ -n "$PROFILE" -a -f "$PROFILE" ]; then
+    echo "$PROFILE"
+    return
+  fi
+
+  local DETECTED_PROFILE
+  DETECTED_PROFILE=''
+  local SHELLTYPE
+  SHELLTYPE="$(basename "/$SHELL")"
+
+  if [ "$SHELLTYPE" = "bash" ]; then
+    if [ -f "$HOME/.bashrc" ]; then
+      DETECTED_PROFILE="$HOME/.bashrc"
+    elif [ -f "$HOME/.bash_profile" ]; then
+      DETECTED_PROFILE="$HOME/.bash_profile"
+    fi
+  elif [ "$SHELLTYPE" = "zsh" ]; then
+    DETECTED_PROFILE="$HOME/.zshrc"
+  fi
+
+  if [ -z "$DETECTED_PROFILE" ]; then
+    if [ -f "$HOME/.profile" ]; then
+      DETECTED_PROFILE="$HOME/.profile"
+    elif [ -f "$HOME/.bashrc" ]; then
+      DETECTED_PROFILE="$HOME/.bashrc"
+    elif [ -f "$HOME/.bash_profile" ]; then
+      DETECTED_PROFILE="$HOME/.bash_profile"
+    elif [ -f "$HOME/.zshrc" ]; then
+      DETECTED_PROFILE="$HOME/.zshrc"
+    fi
+  fi
+
+  if [ ! -z "$DETECTED_PROFILE" ]; then
+    echo "$DETECTED_PROFILE"
+  fi
+}
+
+_initconf() {
+  _initpath
+  if [ ! -f "$ACCOUNT_CONF_PATH" ] ; then
+    echo "#Account configurations:
+#Here are the supported macros, uncomment them to make them take effect.
+#ACCOUNT_EMAIL=aaa@aaa.com  # the account email used to register account.
+
+#STAGE=1 # Use the staging api
+#FORCE=1 # Force to issue cert
+#DEBUG=1 # Debug mode
+
+#dns api
+#######################
+#Cloudflare:
+#api key
+#CF_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+#account email
+#CF_Email="xxxx@sss.com"
+
+#######################
+#Dnspod.cn:
+#api key id
+#DP_Id="1234"
+#api key
+#DP_Key="sADDsdasdgdsf"
+
+#######################
+#Cloudxns.com:
+#CX_Key="1234"
+#
+#CX_Secret="sADDsdasdgdsf"
+
+    " > $ACCOUNT_CONF_PATH
+  fi
 }
 
 install() {
@@ -969,29 +1168,40 @@ install() {
     return 1
   fi
 
-  _info "Installing to $WORKING_DIR"
+  _info "Installing to $LE_WORKING_DIR"
 
-  #try install to /bin if is root
-  if [ ! -f /usr/local/bin/le.sh ] ; then
-    #if root
-    if $SUDO cp le.sh /usr/local/bin/le.sh > /dev/null 2>&1; then
-      $SUDO chmod 755 /usr/local/bin/le.sh
-      $SUDO ln -s "/usr/local/bin/le.sh" /usr/local/bin/le
-      rm -f $WORKING_DIR/le.sh
-      $SUDO ln -s /usr/local/bin/le.sh $WORKING_DIR/le.sh
-      _info "Installed to /usr/local/bin/le"
-    else
-      #install to home, for non root user
-      cp le.sh $WORKING_DIR/
-      chmod +x $WORKING_DIR/le.sh
-      _info "Installed to $WORKING_DIR/le.sh" 
-    fi
+  _info "Installed to $LE_WORKING_DIR/le.sh" 
+  cp le.sh $LE_WORKING_DIR/
+  chmod +x $LE_WORKING_DIR/le.sh
+
+  _profile="$(_detect_profile)"
+  if [ "$_profile" ] ; then
+    _debug "Found profile: $_profile"
+    
+    echo "LE_WORKING_DIR=$LE_WORKING_DIR
+alias le=\"$LE_WORKING_DIR/le.sh\"
+alias le.sh=\"$LE_WORKING_DIR/le.sh\"
+    " > "$LE_WORKING_DIR/le.env"
+    
+    _setopt "$_profile" "source \"$LE_WORKING_DIR/le.env\""
+    _info "OK, Close and reopen your terminal to start using le"
+  else
+    _info "No profile is found, you will need to go into $LE_WORKING_DIR to use le.sh"
   fi
-  rm -f $WORKING_DIR/le
-  ln -s $WORKING_DIR/le.sh  $WORKING_DIR/le
 
+  mkdir -p $LE_WORKING_DIR/dnsapi
+  cp  dnsapi/* $LE_WORKING_DIR/dnsapi/
+  
+  #to keep compatible mv the .acc file to .key file 
+  if [ -f "$LE_WORKING_DIR/account.acc" ] ; then
+    mv "$LE_WORKING_DIR/account.acc" "$LE_WORKING_DIR/account.key"
+  fi
+  
   installcronjob
   
+  if [ ! -f "$ACCOUNT_CONF_PATH" ] ; then
+    _initconf
+  fi
   _info OK
 }
 
@@ -999,15 +1209,13 @@ uninstall() {
   uninstallcronjob
   _initpath
 
-  if [ -f "/usr/local/bin/le.sh" ] ; then
-    _info "Removing /usr/local/bin/le.sh"
-    if $SUDO rm -f /usr/local/bin/le.sh ; then
-      $SUDO rm -f /usr/local/bin/le
-    fi
+  _profile="$(_detect_profile)"
+  if [ "$_profile" ] ; then
+    sed -i /le.env/d  "$_profile"
   fi
-  rm -f $WORKING_DIR/le
-  rm -f $WORKING_DIR/le.sh
-  _info "The keys and certs are in $WORKING_DIR, you can remove them by yourself."
+
+  rm -f $LE_WORKING_DIR/le.sh
+  _info "The keys and certs are in $LE_WORKING_DIR, you can remove them by yourself."
 
 }
 

@@ -11,6 +11,7 @@ Do NOT require to be `root/sudoer`.
 #Tested OS
 1. Ubuntu/Debian.
 2. CentOS
+3. Windows (cygwin with curl, openssl and crontab included)
 
 
 #Supported Mode
@@ -27,14 +28,15 @@ Do NOT require to be `root/sudoer`.
 ```
 ./le.sh install
 ```
-You don't have to be root then, altough it is recommended.
+You don't have to be root then, although it is recommended.
 
 Which does 3 jobs:
 * create and copy `le.sh` to your home dir:  `~/.le`
 All the certs will be placed in this folder.
-* create symbol link: `/usr/local/bin/le  -> ~/.le/le.sh` . (You must be root to do so.)
+* create alias : `le.sh=~/.le/le.sh` and `le=~/.le/le.sh`. 
 * create everyday cron job to check and renew the cert if needed.
 
+After install, you must close current terminal and reopen again to make the alias take effect.
 
 Ok,  you are ready to issue cert now.
 Show help message:
@@ -43,7 +45,7 @@ root@v1:~# le.sh
 https://github.com/Neilpang/le
 v1.1.1
 Usage: le.sh  [command] ...[args]....
-Avalible commands:
+Available commands:
 
 install:
   Install le.sh to your system.
@@ -104,7 +106,7 @@ The issued cert will be renewed every 80 days automatically.
 
 # Install issued cert to apache/nginx etc.
 ```
-le installcert  aa.com /path/to/certfile/in/apache/nginx  /path/to/keyfile/in/apache/nginx  /path/to/ca/certfile/apahce/nginx   "service apache2|nginx reload"
+le installcert  aa.com /path/to/certfile/in/apache/nginx  /path/to/keyfile/in/apache/nginx  /path/to/ca/certfile/apache/nginx   "service apache2|nginx reload"
 ```
 
 Install the issued cert/key to the production apache or nginx path.
@@ -139,9 +141,6 @@ Support the latest dns-01 challenge.
 le  issue   dns   aa.com  www.aa.com,user.aa.com
 ```
 
-Use domain api to automatically add dns record is not finished yet.
-So, you must manually add the txt record to finish verifying.
-
 You will get the output like bellow:
 ```
 Add the following txt record:
@@ -162,6 +161,42 @@ le renew  aa.com
 ```
 
 Ok, it's finished.
+
+
+#Automatic dns api integeration
+
+If your dns provider supports api access,  we can use api to automatically issue certs.
+You don't have do anything manually.
+
+###Currently we support:
+
+1. Cloudflare.com  api
+2. Dnspod.cn  api
+3. Cloudxns.com  api
+
+More apis are comming soon....
+
+If your dns provider is not in the supported list above, you can write your own script api easily.
+
+For more details: [How to use dns api](dnsapi)
+
+
+# Issue ECC certificate:
+LetsEncrypt now can issue ECDSA certificate.
+And we also support it.
+
+Just set key length to the `length` paramiter with a prefix "ec-".
+For example:
+```
+le issue  /home/wwwroot/aa.com    aa.com  www.aa.com   ec-256
+```
+Please look at the last parameter above.
+
+Valid values are:
+
+1. ec-256 (prime256v1,  "ECDSA P-256")
+2. ec-384 (secp384r1,   "ECDSA P-384")
+3. ec-521 (secp521r1,   "ECDSA P-521", not supported by letsencrypt yet.)
 
 
 
@@ -185,7 +220,7 @@ License is GPLv3
 
 Please Star and Fork me.
 
-Issues and pullrequests are welcomed.
+Issues and pull requests are welcomed.
 
 
 
