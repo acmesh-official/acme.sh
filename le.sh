@@ -308,9 +308,9 @@ _startserver() {
   fi
 #  while true ; do
     if [ "$DEBUG" ] ; then
-      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -l -p 80 -vv
+      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -l -p $Le_HTTPPort -vv
     else
-      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -l -p 80 > /dev/null
+      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -l -p $Le_HTTPPort > /dev/null
     fi
 #  done
 }
@@ -558,11 +558,16 @@ issue() {
       _err "Please install netcat(nc) tools first."
       return 1
     fi
-
-    netprc="$(ss -ntpl | grep ':80 ')"
+    
+    if [ -z "$Le_HTTPPort" ] ; then
+      Le_HTTPPort=80
+    fi
+    _setopt "$DOMAIN_CONF"  "Le_HTTPPort"             "="  "$Le_HTTPPort"
+    
+    netprc="$(ss -ntpl | grep :$Le_HTTPPort" ")"
     if [ "$netprc" ] ; then
       _err "$netprc"
-      _err "tcp port 80 is already used by $(echo "$netprc" | cut -d :  -f 4)"
+      _err "tcp port $Le_HTTPPort is already used by $(echo "$netprc" | cut -d :  -f 4)"
       _err "Please stop it first"
       return 1
     fi
