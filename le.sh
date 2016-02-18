@@ -648,30 +648,39 @@ issue() {
     alldomains=$(echo "$Le_Domain,$Le_Alt" | sed "s/,/ /g")
     for d in $alldomains   
     do  
-      _info "Geting token for domain" $d
-      _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$d\"}}"
-      if [ ! -z "$code" ] && [ ! "$code" == '201' ] ; then
-        _err "new-authz error: $response"
-        _clearup
-        return 1
+      # check if domain is already verified for the account
+      _info "Checking if domain is already verified"
+      uri=$(echo $d | cut -d $sep -f 3)
+      if ! _get $uri ; then
+        _err "$d:Verify pending"
+
+        _info "Geting token for domain" $d
+        _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$d\"}}"
+        if [ ! -z "$code" ] && [ ! "$code" == '201' ] ; then
+          _err "new-authz error: $response"
+          _clearup
+          return 1
+        fi
+
+        entry=$(echo $response | egrep -o  '{[^{]*"type":"'$vtype'"[^}]*')
+        _debug entry "$entry"
+
+        token=$(echo "$entry" | sed 's/,/\n'/g| grep '"token":'| cut -d : -f 2|sed 's/"//g')
+        _debug token $token
+
+        uri=$(echo "$entry" | sed 's/,/\n'/g| grep '"uri":'| cut -d : -f 2,3|sed 's/"//g')
+        _debug uri $uri
+
+        keyauthorization="$token.$thumbprint"
+        _debug keyauthorization "$keyauthorization"
+
+        dvlist="$d$sep$keyauthorization$sep$uri"
+        _debug dvlist "$dvlist"
+
+        vlist="$vlist$dvlist,"
+      else
+        _info "$d:Already verified"
       fi
-
-      entry=$(echo $response | egrep -o  '{[^{]*"type":"'$vtype'"[^}]*')
-      _debug entry "$entry"
-
-      token=$(echo "$entry" | sed 's/,/\n'/g| grep '"token":'| cut -d : -f 2|sed 's/"//g')
-      _debug token $token
-      
-      uri=$(echo "$entry" | sed 's/,/\n'/g| grep '"uri":'| cut -d : -f 2,3|sed 's/"//g')
-      _debug uri $uri
-      
-      keyauthorization="$token.$thumbprint"
-      _debug keyauthorization "$keyauthorization"
-
-      dvlist="$d$sep$keyauthorization$sep$uri"
-      _debug dvlist "$dvlist"
-      
-      vlist="$vlist$dvlist,"
 
     done
 
@@ -758,95 +767,104 @@ issue() {
     d=$(echo $ventry | cut -d $sep -f 1)
     keyauthorization=$(echo $ventry | cut -d $sep -f 2)
     uri=$(echo $ventry | cut -d $sep -f 3)
-    _info "Verifying:$d"
-    _debug "d" "$d"
-    _debug "keyauthorization" "$keyauthorization"
-    _debug "uri" "$uri"
-    removelevel=""
-    token=""
-    if [ "$vtype" == "$VTYPE_HTTP" ] ; then
-      if [ "$Le_Webroot" == "no" ] ; then
-        _info "Standalone mode server"
-        _startserver "$keyauthorization" &
-        serverproc="$!"
-        sleep 2
-        _debug serverproc $serverproc
-      else
-        if [ -z "$wellknown_path" ] ; then
-          wellknown_path="$Le_Webroot/.well-known/acme-challenge"
-        fi
-        _debug wellknown_path "$wellknown_path"
-        
-        if [ ! -d "$Le_Webroot/.well-known" ] ; then 
-          removelevel='1'
-        elif [ ! -d "$Le_Webroot/.well-known/acme-challenge" ] ; then 
-          removelevel='2'
+
+    # check if domain is already verified for the account
+    _info "Checking if domain is already verified"
+    if ! _get $uri ; then
+      _err "$d:Verify pending"
+
+      _info "Verifying:$d"
+      _debug "d" "$d"
+      _debug "keyauthorization" "$keyauthorization"
+      _debug "uri" "$uri"
+      removelevel=""
+      token=""
+      if [ "$vtype" == "$VTYPE_HTTP" ] ; then
+        if [ "$Le_Webroot" == "no" ] ; then
+          _info "Standalone mode server"
+          _startserver "$keyauthorization" &
+          serverproc="$!"
+          sleep 2
+          _debug serverproc $serverproc
         else
-          removelevel='3'
+          if [ -z "$wellknown_path" ] ; then
+            wellknown_path="$Le_Webroot/.well-known/acme-challenge"
+          fi
+          _debug wellknown_path "$wellknown_path"
+
+          if [ ! -d "$Le_Webroot/.well-known" ] ; then
+            removelevel='1'
+          elif [ ! -d "$Le_Webroot/.well-known/acme-challenge" ] ; then
+            removelevel='2'
+          else
+            removelevel='3'
+          fi
+
+          token="$(echo -e -n "$keyauthorization" | cut -d '.' -f 1)"
+          _debug "writing token:$token to $wellknown_path/$token"
+
+          mkdir -p "$wellknown_path"
+          echo -n "$keyauthorization" > "$wellknown_path/$token"
+
+          webroot_owner=$(stat -c '%U:%G' $Le_Webroot)
+          _debug "Changing owner/group of .well-known to $webroot_owner"
+          chown -R $webroot_owner "$Le_Webroot/.well-known"
+
         fi
-        
-        token="$(echo -e -n "$keyauthorization" | cut -d '.' -f 1)"
-        _debug "writing token:$token to $wellknown_path/$token"
-
-        mkdir -p "$wellknown_path"
-        echo -n "$keyauthorization" > "$wellknown_path/$token"
-
-        webroot_owner=$(stat -c '%U:%G' $Le_Webroot)
-        _debug "Changing owner/group of .well-known to $webroot_owner"
-        chown -R $webroot_owner "$Le_Webroot/.well-known"
-        
       fi
-    fi
-    
-    _send_signed_request $uri "{\"resource\": \"challenge\", \"keyAuthorization\": \"$keyauthorization\"}"
-    
-    if [ ! -z "$code" ] && [ ! "$code" == '202' ] ; then
-      _err "$d:Challenge error: $resource"
-      _clearupwebbroot "$Le_Webroot" "$removelevel" "$token"
-      _clearup
-      return 1
-    fi
-    
-    while [ "1" ] ; do
-      _debug "sleep 5 secs to verify"
-      sleep 5
-      _debug "checking"
-      
-      if ! _get $uri ; then
-        _err "$d:Verify error:$resource"
+
+      _send_signed_request $uri "{\"resource\": \"challenge\", \"keyAuthorization\": \"$keyauthorization\"}"
+
+      if [ ! -z "$code" ] && [ ! "$code" == '202' ] ; then
+        _err "$d:Challenge error: $resource"
         _clearupwebbroot "$Le_Webroot" "$removelevel" "$token"
         _clearup
         return 1
       fi
-      
-      status=$(echo $response | egrep -o  '"status":"[^"]+"' | cut -d : -f 2 | sed 's/"//g')
-      if [ "$status" == "valid" ] ; then
-        _info "Success"
-        _stopserver $serverproc
-        serverproc=""
-        _clearupwebbroot "$Le_Webroot" "$removelevel" "$token"
-        break;
-      fi
-      
-      if [ "$status" == "invalid" ] ; then
-         error=$(echo $response | egrep -o '"error":{[^}]*}' | grep -o '"detail":"[^"]*"' | cut -d '"' -f 4)
-        _err "$d:Verify error:$error"
-        _clearupwebbroot "$Le_Webroot" "$removelevel" "$token"
-        _clearup
-        return 1;
-      fi
-      
-      if [ "$status" == "pending" ] ; then
-        _info "Pending"
-      else
-        _err "$d:Verify error:$response" 
-        _clearupwebbroot "$Le_Webroot" "$removelevel" "$token"
-        _clearup
-        return 1
-      fi
-      
-    done
-    
+
+      while [ "1" ] ; do
+        _debug "sleep 5 secs to verify"
+        sleep 5
+        _debug "checking"
+
+        if ! _get $uri ; then
+          _err "$d:Verify error:$resource"
+          _clearupwebbroot "$Le_Webroot" "$removelevel" "$token"
+          _clearup
+          return 1
+        fi
+
+        status=$(echo $response | egrep -o  '"status":"[^"]+"' | cut -d : -f 2 | sed 's/"//g')
+        if [ "$status" == "valid" ] ; then
+          _info "Success"
+          _stopserver $serverproc
+          serverproc=""
+          _clearupwebbroot "$Le_Webroot" "$removelevel" "$token"
+          break;
+        fi
+
+        if [ "$status" == "invalid" ] ; then
+           error=$(echo $response | egrep -o '"error":{[^}]*}' | grep -o '"detail":"[^"]*"' | cut -d '"' -f 4)
+          _err "$d:Verify error:$error"
+          _clearupwebbroot "$Le_Webroot" "$removelevel" "$token"
+          _clearup
+          return 1;
+        fi
+
+        if [ "$status" == "pending" ] ; then
+          _info "Pending"
+        else
+          _err "$d:Verify error:$response"
+          _clearupwebbroot "$Le_Webroot" "$removelevel" "$token"
+          _clearup
+          return 1
+        fi
+
+      done
+    else
+      _info "$d:Already verified"
+    fi
+
   done
 
   _clearup
