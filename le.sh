@@ -1046,7 +1046,7 @@ uninstallcronjob() {
   cr="$(crontab -l | grep 'le.sh cron')"
   if [ "$cr" ] ; then 
     crontab -l | sed "/le.sh cron/d" | crontab -
-    LE_WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 7 | cut -d '=' -f 2 | tr -d '"')"
+    LE_WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 6 | cut -d '=' -f 2 | tr -d '"')"
     _info LE_WORKING_DIR "$LE_WORKING_DIR"
   fi 
   _initpath
