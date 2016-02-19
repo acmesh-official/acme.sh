@@ -1,5 +1,5 @@
 #!/bin/bash
-VER=1.1.6
+VER=1.1.7
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
@@ -322,13 +322,6 @@ _stopserver() {
 
 _initpath() {
 
-  #check if there is sudo installed, AND if the current user is a sudoer.
-  if command -v sudo > /dev/null ; then
-    if [ "$(sudo -n uptime 2>&1|grep "load"|wc -l)" != "0" ] ; then
-      SUDO=sudo
-    fi
-  fi
-  
   if [ -z "$LE_WORKING_DIR" ]; then
     LE_WORKING_DIR=$HOME/.le
   fi
@@ -1043,7 +1036,7 @@ installcronjob() {
       _err "Can not install cronjob, le.sh not found."
       return 1
     fi
-    crontab -l | { cat; echo "0 0 * * * $SUDO LE_WORKING_DIR=\"$LE_WORKING_DIR\" $lesh cron > /dev/null"; } | crontab -
+    crontab -l | { cat; echo "0 0 * * * LE_WORKING_DIR=\"$LE_WORKING_DIR\" $lesh cron > /dev/null"; } | crontab -
   fi
   return 0
 }
@@ -1138,7 +1131,14 @@ _initconf() {
 
 install() {
   _initpath
-
+  
+  #check if there is sudo installed, AND if the current user is a sudoer.
+  if command -v sudo > /dev/null ; then
+    if [ "$(sudo -n uptime 2>&1|grep "load"|wc -l)" != "0" ] ; then
+      SUDO=sudo
+    fi
+  fi
+  
   if command -v yum > /dev/null ; then
    YUM="1"
    INSTALL="$SUDO yum install -y "
