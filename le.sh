@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 VER=1.1.7
 PROJECT="https://github.com/Neilpang/le"
 
