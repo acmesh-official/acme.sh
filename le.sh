@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VER=1.1.7
+VER=1.1.8
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
@@ -180,7 +180,8 @@ createCSR() {
     alt="DNS:$(echo $domainlist | sed "s/,/,DNS:/g")"
     #multi 
     _info "Multi domain" "$alt"
-    openssl req -new -sha256 -key "$CERT_KEY_PATH" -subj "/CN=$domain" -reqexts SAN -config <(printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\n[SAN]\nsubjectAltName=$alt") -out "$CSR_PATH"
+    printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\n[SAN]\nsubjectAltName=$alt" > "$DOMAIN_SSL_CONF"
+    openssl req -new -sha256 -key "$CERT_KEY_PATH" -subj "/CN=$domain" -reqexts SAN -config "$DOMAIN_SSL_CONF" -out "$CSR_PATH"
   fi
 
 }
@@ -188,6 +189,19 @@ createCSR() {
 _b64() {
   __n=$(cat)
   echo $__n | tr '/+' '_-' | tr -d '= '
+}
+
+_time2str() {
+  #BSD
+  if date -u -d@$1 2>/dev/null ; then
+    return
+  fi
+  
+  #Linux
+  if date -u -r $1 2>/dev/null ; then
+    return
+  fi
+  
 }
 
 _send_signed_request() {
@@ -208,14 +222,14 @@ _send_signed_request() {
   _debug payload64 $payload64
   
   nonceurl="$API/directory"
-  nonce=$($CURL -I $nonceurl | grep "^Replay-Nonce:" | sed s/\\r//|sed s/\\n//| cut -d ' ' -f 2)
+  nonce="$($CURL -I $nonceurl | grep -o "^Replay-Nonce:.*$" | tr -d "\r\n" | cut -d ' ' -f 2)"
 
-  _debug nonce $nonce
+  _debug nonce "$nonce"
   
-  protected=$(echo -n "$HEADERPLACE" | sed "s/NONCE/$nonce/" )
+  protected="$(printf "$HEADERPLACE" | sed "s/NONCE/$nonce/" )"
   _debug protected "$protected"
   
-  protected64=$( echo -n $protected | _base64 | _b64)
+  protected64="$(printf "$protected" | _base64 | _b64)"
   _debug protected64 "$protected64"
   
   sig=$(echo -n "$protected64.$payload64" |  openssl   dgst   -sha256  -sign  $ACCOUNT_KEY_PATH | _base64 | _b64)
@@ -230,11 +244,11 @@ _send_signed_request() {
     response="$($CURL -X POST --data "$body" $url)"
   fi
 
-  responseHeaders="$(sed 's/\r//g' $CURL_HEADER)"
+  responseHeaders="$(cat $CURL_HEADER)"
   
   _debug responseHeaders "$responseHeaders"
   _debug response  "$response"
-  code="$(grep ^HTTP $CURL_HEADER | tail -1 | cut -d " " -f 2)"
+  code="$(grep ^HTTP $CURL_HEADER | tail -1 | cut -d " " -f 2 | tr -d "\r\n" )"
   _debug code $code
 
 }
@@ -269,7 +283,8 @@ _setopt() {
     if [[ "$__val" == *"&"* ]] ; then
       __val="$(echo $__val | sed 's/&/\\&/g')"
     fi
-    sed -i "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" "$__conf"
+    text="$(cat $__conf)"
+    printf "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" > "$__conf"
   else
     _debug APP
     echo "$__opt$__sep$__val$__end" >> "$__conf"
@@ -368,7 +383,11 @@ _initpath() {
   if [ -z "$DOMAIN_CONF" ] ; then
     DOMAIN_CONF="$domainhome/$Le_Domain.conf"
   fi
-
+  
+  if [ -z "$DOMAIN_SSL_CONF" ] ; then
+    DOMAIN_SSL_CONF="$domainhome/$Le_Domain.ssl.conf"
+  fi
+  
   if [ -z "$CSR_PATH" ] ; then
     CSR_PATH="$domainhome/$domain.csr"
   fi
@@ -386,8 +405,8 @@ _initpath() {
 
 
 _apachePath() {
-  httpdroot="$(apachectl -V | grep HTTPD_ROOT= | cut -d = -f 2 | sed s/\"//g)"
-  httpdconfname="$(apachectl -V | grep SERVER_CONFIG_FILE= | cut -d = -f 2 | sed s/\"//g)"
+  httpdroot="$(apachectl -V | grep HTTPD_ROOT= | cut -d = -f 2 | tr -d '"' )"
+  httpdconfname="$(apachectl -V | grep SERVER_CONFIG_FILE= | cut -d = -f 2 | tr -d '"' )"
   httpdconf="$httpdroot/$httpdconfname"
   if [ ! -f $httpdconf ] ; then
     _err "Apache Config file not found" $httpdconf
@@ -606,7 +625,7 @@ issue() {
   HEADERPLACE='{"nonce": "NONCE", "alg": "RS256", "jwk": '$jwk'}'
   _debug HEADER "$HEADER"
   
-  accountkey_json=$(echo -n "$jwk" | sed "s/ //g")
+  accountkey_json=$(echo -n "$jwk" |  tr -d ' ' )
   thumbprint=$(echo -n "$accountkey_json" | openssl dgst -sha256 -binary | _base64 | _b64)
   
   
@@ -638,7 +657,7 @@ issue() {
   _info "Verify each domain"
   sep='#'
   if [ -z "$vlist" ] ; then
-    alldomains=$(echo "$Le_Domain,$Le_Alt" | sed "s/,/ /g")
+    alldomains=$(echo "$Le_Domain,$Le_Alt" |  tr ',' ' ' )
     for d in $alldomains   
     do  
       _info "Geting token for domain" $d
@@ -649,13 +668,13 @@ issue() {
         return 1
       fi
 
-      entry=$(echo $response | egrep -o  '{[^{]*"type":"'$vtype'"[^}]*')
+      entry="$(printf $response | egrep -o  '{[^{]*"type":"'$vtype'"[^}]*')"
       _debug entry "$entry"
 
-      token=$(echo "$entry" | sed 's/,/\n'/g| grep '"token":'| cut -d : -f 2|sed 's/"//g')
+      token="$(printf "$entry" | egrep -o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
       _debug token $token
       
-      uri=$(echo "$entry" | sed 's/,/\n'/g| grep '"uri":'| cut -d : -f 2,3|sed 's/"//g')
+      uri="$(printf "$entry" | egrep -o '"uri":"[^"]*'| cut -d : -f 2,3 | tr -d '"' )"
       _debug uri $uri
       
       keyauthorization="$token.$thumbprint"
@@ -670,7 +689,7 @@ issue() {
 
     #add entry
     dnsadded=""
-    ventries=$(echo "$vlist" | sed "s/,/ /g")
+    ventries=$(echo "$vlist" |  tr ',' ' ' )
     for ventry in $ventries
     do
       d=$(echo $ventry | cut -d $sep -f 1)
@@ -745,7 +764,7 @@ issue() {
   fi
   
   _debug "ok, let's start to verify"
-  ventries=$(echo "$vlist" | sed "s/,/ /g")
+  ventries=$(echo "$vlist" |  tr ',' ' ' )
   for ventry in $ventries
   do
     d=$(echo $ventry | cut -d $sep -f 1)
@@ -812,7 +831,7 @@ issue() {
         return 1
       fi
       
-      status=$(echo $response | egrep -o  '"status":"[^"]+"' | cut -d : -f 2 | sed 's/"//g')
+      status=$(echo $response | egrep -o  '"status":"[^"]+"' | cut -d : -f 2 | tr -d '"')
       if [ "$status" == "valid" ] ; then
         _info "Success"
         _stopserver $serverproc
@@ -848,7 +867,7 @@ issue() {
   _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"
   
   
-  Le_LinkCert="$(grep -i -o '^Location.*' $CURL_HEADER |sed 's/\r//g'| cut -d " " -f 2)"
+  Le_LinkCert="$(grep -i -o '^Location.*$' $CURL_HEADER | tr -d "\r\n" | cut -d " " -f 2)"
   _setopt "$DOMAIN_CONF"  "Le_LinkCert"           "="  "$Le_LinkCert"
 
   if [ "$Le_LinkCert" ] ; then
@@ -870,7 +889,7 @@ issue() {
   
   _setopt "$DOMAIN_CONF"  'Le_Vlist' '=' "\"\""
   
-  Le_LinkIssuer=$(grep -i '^Link' $CURL_HEADER | cut -d " " -f 2| cut -d ';' -f 1 | sed 's/<//g' | sed 's/>//g')
+  Le_LinkIssuer=$(grep -i '^Link' $CURL_HEADER | cut -d " " -f 2| cut -d ';' -f 1 | tr -d '<>' )
   _setopt "$DOMAIN_CONF"  "Le_LinkIssuer"         "="  "$Le_LinkIssuer"
   
   if [ "$Le_LinkIssuer" ] ; then
@@ -883,7 +902,7 @@ issue() {
   Le_CertCreateTime=$(date -u "+%s")
   _setopt "$DOMAIN_CONF"  "Le_CertCreateTime"     "="  "$Le_CertCreateTime"
   
-  Le_CertCreateTimeStr=$(date -u "+%Y-%m-%d %H:%M:%S UTC")
+  Le_CertCreateTimeStr=$(date -u )
   _setopt "$DOMAIN_CONF"  "Le_CertCreateTimeStr"  "="  "\"$Le_CertCreateTimeStr\""
   
   if [ ! "$Le_RenewalDays" ] ; then
@@ -892,10 +911,10 @@ issue() {
   
   _setopt "$DOMAIN_CONF"  "Le_RenewalDays"      "="  "$Le_RenewalDays"
   
-  Le_NextRenewTime=$(date -u -d "+$Le_RenewalDays day" "+%s")
+  let "Le_NextRenewTime=Le_CertCreateTime+Le_RenewalDays*24*60*60"
   _setopt "$DOMAIN_CONF"  "Le_NextRenewTime"      "="  "$Le_NextRenewTime"
   
-  Le_NextRenewTimeStr=$(date -u -d "+$Le_RenewalDays day" "+%Y-%m-%d %H:%M:%S UTC")
+  Le_NextRenewTimeStr=$( _time2str $Le_NextRenewTime )
   _setopt "$DOMAIN_CONF"  "Le_NextRenewTimeStr"      "="  "\"$Le_NextRenewTimeStr\""
 
 
@@ -960,6 +979,7 @@ renewAll() {
     Le_ReloadCmd=""
     
     DOMAIN_CONF=""
+    DOMAIN_SSL_CONF=""
     CSR_PATH=""
     CERT_KEY_PATH=""
     CERT_PATH=""
