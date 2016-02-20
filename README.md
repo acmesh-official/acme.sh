@@ -12,6 +12,7 @@ Do NOT require to be `root/sudoer`.
 1. Ubuntu/Debian.
 2. CentOS
 3. Windows (cygwin with curl, openssl and crontab included)
+4. FreeBSD with bash
 
 
 #Supported Mode
