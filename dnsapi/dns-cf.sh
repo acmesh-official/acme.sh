@@ -31,9 +31,12 @@ dns-cf-add() {
     _err "invalid domain"
     return 1
   fi
+  _debug _domain_id "$_domain_id"
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain "$_domain"
   
   _debug "Getting txt records"
-  _cf_rest GET "/zones/$_domain_id/dns_records?type=TXT&name=$fulldomain"
+  _cf_rest GET "/zones/${_domain_id}/dns_records?type=TXT&name=$fulldomain"
   
   if [ "$?" != "0" ] || ! printf $response | grep \"success\":true > /dev/null ; then
     _err "Error"
