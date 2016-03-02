@@ -1,7 +1,7 @@
 # le: means simp`Le`
 Simplest shell script for LetsEncrypt free Certificate client
 
-Simple and Powerfull,  you only need 3 minutes to learn.
+Simple and Powerful,  you only need 3 minutes to learn.
 
 Pure written in bash, no dependencies to python , acme-tiny or LetsEncrypt official client.
 Just one script, to issue, renew your certificates automatically.
