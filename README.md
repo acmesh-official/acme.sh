@@ -1,6 +1,8 @@
 # le: means simp`Le`
 Simplest shell script for LetsEncrypt free Certificate client
 
+Simple and Powerfull,  you only need 3 minutes to learn.
+
 Pure written in bash, no dependencies to python , acme-tiny or LetsEncrypt official client.
 Just one script, to issue, renew your certificates automatically.
 
@@ -186,7 +188,7 @@ For more details: [How to use dns api](dnsapi)
 LetsEncrypt now can issue ECDSA certificate.
 And we also support it.
 
-Just set key length to the `length` paramiter with a prefix "ec-".
+Just set the `length` parameter with a prefix `ec-`.
 For example:
 ```
 le issue  /home/wwwroot/aa.com    aa.com  www.aa.com   ec-256
@@ -197,7 +199,7 @@ Valid values are:
 
 1. ec-256 (prime256v1,  "ECDSA P-256")
 2. ec-384 (secp384r1,   "ECDSA P-384")
-3. ec-521 (secp521r1,   "ECDSA P-521", not supported by letsencrypt yet.)
+3. ec-521 (secp521r1,   "ECDSA P-521", which is not supported by letsencrypt yet.)
 
 
 
