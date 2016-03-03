@@ -1020,13 +1020,13 @@ installcert() {
   fi
   
   if [ "$Le_RealCACertPath" ] ; then
-    if [ -f "$Le_RealCACertPath" ] ; then
-      cp -p "$Le_RealCACertPath" "$Le_RealCACertPath".bak
-    fi
     if [ "$Le_RealCACertPath" == "$Le_RealCertPath" ] ; then
       echo "" >> "$Le_RealCACertPath"
       cat "$CA_CERT_PATH" >> "$Le_RealCACertPath"
     else
+      if [ -f "$Le_RealCACertPath" ] ; then
+        cp -p "$Le_RealCACertPath" "$Le_RealCACertPath".bak
+      fi
       cat "$CA_CERT_PATH" > "$Le_RealCACertPath"
     fi
   fi
