@@ -1284,5 +1284,5 @@ createCSR:
 if [ -z "$1" ] ; then
   showhelp
 else
-  $@
+  "$@"
 fi
