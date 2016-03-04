@@ -1041,7 +1041,7 @@ installcert() {
 
   if [ "$Le_ReloadCmd" ] ; then
     _info "Run Le_ReloadCmd: $Le_ReloadCmd"
-    $Le_ReloadCmd
+    eval $Le_ReloadCmd
   fi
 
 }
