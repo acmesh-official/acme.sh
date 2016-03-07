@@ -92,9 +92,19 @@ In all the cases, the issued cert will be placed in "~/.le/domain.com/"
 
  
 # Just issue a cert:
+Example 1:
+Only one domain:
+```
+le issue   /home/wwwroot/aa.com    aa.com 
+```
+
+Example 2:
+Multiple domains in the same cert:
+
 ```
 le issue   /home/wwwroot/aa.com    aa.com    www.aa.com,cp.aa.com
 ```
+
 First argument `/home/wwwroot/aa.com` is the web root folder, You must have `write` access to this folder.
 
 Second argument "aa.com" is the main domain you want to issue cert for.
