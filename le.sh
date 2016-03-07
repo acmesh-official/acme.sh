@@ -660,7 +660,7 @@ issue() {
     alldomains=$(echo "$Le_Domain,$Le_Alt" |  tr ',' ' ' )
     for d in $alldomains   
     do  
-      _info "Geting token for domain" $d
+      _info "Getting token for domain" $d
       _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$d\"}}"
       if [ ! -z "$code" ] && [ ! "$code" == '201' ] ; then
         _err "new-authz error: $response"
