@@ -272,12 +272,13 @@ _setopt() {
   __val="$4"
   __end="$5"
   if [ -z "$__opt" ] ; then 
-    echo usage: $0  '"file"  "opt"  "="  "value" [";"]'
+    echo usage: _setopt  '"file"  "opt"  "="  "value" [";"]'
     return
   fi
   if [ ! -f "$__conf" ] ; then
     touch "$__conf"
   fi
+
   if grep -H -n "^$__opt$__sep" "$__conf" > /dev/null ; then
     _debug OK
     if [[ "$__val" == *"&"* ]] ; then
@@ -285,6 +286,14 @@ _setopt() {
     fi
     text="$(cat $__conf)"
     printf "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" > "$__conf"
+
+  elif grep -H -n "^#$__opt$__sep" "$__conf" > /dev/null ; then
+    if [[ "$__val" == *"&"* ]] ; then
+      __val="$(echo $__val | sed 's/&/\\&/g')"
+    fi
+    text="$(cat $__conf)"
+    printf "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|" > "$__conf"
+
   else
     _debug APP
     echo "$__opt$__sep$__val$__end" >> "$__conf"
