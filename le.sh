@@ -389,6 +389,9 @@ _initpath() {
   domainhome="$LE_WORKING_DIR/$domain"
   mkdir -p "$domainhome"
 
+  if [ -z "$DOMAIN_PATH" ] ; then
+    DOMAIN_PATH="$domainhome"
+  fi
   if [ -z "$DOMAIN_CONF" ] ; then
     DOMAIN_CONF="$domainhome/$Le_Domain.conf"
   fi
@@ -408,6 +411,9 @@ _initpath() {
   fi
   if [ -z "$CA_CERT_PATH" ] ; then
     CA_CERT_PATH="$domainhome/ca.cer"
+  fi
+  if [ -z "$POST_RENEW_PATH" ] ; then
+    POST_RENEW_PATH="$domainhome/post-renew.sh"
   fi
 
 }
@@ -956,6 +962,9 @@ renew() {
   local res=$?
   IS_RENEW=""
 
+  if [ -x "$POST_RENEW_PATH" -a "$res" -eq "0" ] ; then
+    (cd $DOMAIN_PATH && exec $POST_RENEW_PATH)
+  fi
   return $res
 }
 
@@ -988,12 +997,14 @@ renewAll() {
     Le_ReloadCmd=""
     
     DOMAIN_CONF=""
+    DOMAIN_PATH=""
     DOMAIN_SSL_CONF=""
     CSR_PATH=""
     CERT_KEY_PATH=""
     CERT_PATH=""
     CA_CERT_PATH=""
     ACCOUNT_KEY_PATH=""
+    POST_RENEW_PATH=""
     
     wellknown_path=""
     
