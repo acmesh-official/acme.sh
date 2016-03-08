@@ -1054,7 +1054,7 @@ installcert() {
 
   if [ "$Le_ReloadCmd" ] ; then
     _info "Run Le_ReloadCmd: $Le_ReloadCmd"
-    (cd $DOMAIN_PATH && eval $Le_ReloadCmd)
+    (cd "$DOMAIN_PATH" && eval "$Le_ReloadCmd")
   fi
 
 }
