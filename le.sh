@@ -285,14 +285,14 @@ _setopt() {
       __val="$(echo $__val | sed 's/&/\\&/g')"
     fi
     text="$(cat $__conf)"
-    printf "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" > "$__conf"
+    echo "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" > "$__conf"
 
   elif grep -H -n "^#$__opt$__sep" "$__conf" > /dev/null ; then
     if [[ "$__val" == *"&"* ]] ; then
       __val="$(echo $__val | sed 's/&/\\&/g')"
     fi
     text="$(cat $__conf)"
-    printf "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|" > "$__conf"
+    echo "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|" > "$__conf"
 
   else
     _debug APP
