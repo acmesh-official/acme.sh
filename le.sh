@@ -389,6 +389,9 @@ _initpath() {
   domainhome="$LE_WORKING_DIR/$domain"
   mkdir -p "$domainhome"
 
+  if [ -z "$DOMAIN_PATH" ] ; then
+    DOMAIN_PATH="$domainhome"
+  fi
   if [ -z "$DOMAIN_CONF" ] ; then
     DOMAIN_CONF="$domainhome/$Le_Domain.conf"
   fi
@@ -987,6 +990,7 @@ renewAll() {
 
     Le_ReloadCmd=""
     
+    DOMAIN_PATH=""
     DOMAIN_CONF=""
     DOMAIN_SSL_CONF=""
     CSR_PATH=""
@@ -1050,7 +1054,7 @@ installcert() {
 
   if [ "$Le_ReloadCmd" ] ; then
     _info "Run Le_ReloadCmd: $Le_ReloadCmd"
-    eval $Le_ReloadCmd
+    (cd $DOMAIN_PATH && eval $Le_ReloadCmd)
   fi
 
 }
