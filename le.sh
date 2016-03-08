@@ -296,7 +296,6 @@ _setopt() {
 
   else
     _debug APP
-    echo "" >> "$__conf"
     echo "$__opt$__sep$__val$__end" >> "$__conf"
   fi
   _debug "$(grep -H -n "^$__opt$__sep" $__conf)"
@@ -1232,7 +1231,7 @@ install() {
 alias le=\"$LE_WORKING_DIR/le.sh\"
 alias le.sh=\"$LE_WORKING_DIR/le.sh\"
     " > "$LE_WORKING_DIR/le.env"
-    
+    echo "" >> "$_profile"
     _setopt "$_profile" "source \"$LE_WORKING_DIR/le.env\""
     _info "OK, Close and reopen your terminal to start using le"
   else
