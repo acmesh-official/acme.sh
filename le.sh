@@ -296,6 +296,7 @@ _setopt() {
 
   else
     _debug APP
+    echo "" >> "$__conf"
     echo "$__opt$__sep$__val$__end" >> "$__conf"
   fi
   _debug "$(grep -H -n "^$__opt$__sep" $__conf)"
@@ -376,7 +377,10 @@ _initpath() {
   fi
   
   domain="$1"
-  mkdir -p "$LE_WORKING_DIR"
+  if ! mkdir -p "$LE_WORKING_DIR" ; then
+    _err "Can not craete working dir: $LE_WORKING_DIR"
+    return 1
+  fi
   
   if [ -z "$ACCOUNT_KEY_PATH" ] ; then
     ACCOUNT_KEY_PATH="$LE_WORKING_DIR/account.key"
@@ -1071,7 +1075,12 @@ installcronjob() {
     fi
     crontab -l | { cat; echo "0 0 * * * LE_WORKING_DIR=\"$LE_WORKING_DIR\" $lesh cron > /dev/null"; } | crontab -
   fi
-  return 0
+  if [ "$?" != "0" ] ; then
+    _err "Install cron job failed. You need to manually renew your certs."
+    _err "Or you can add cronjob by yourself:"
+    _err "LE_WORKING_DIR=\"$LE_WORKING_DIR\" $lesh cron > /dev/null"
+    return 1
+  fi
 }
 
 uninstallcronjob() {
@@ -1163,7 +1172,10 @@ _initconf() {
 }
 
 install() {
-  _initpath
+  if ! _initpath ; then
+    _err "Install failed."
+    return 1
+  fi
   
   #check if there is sudo installed, AND if the current user is a sudoer.
   if command -v sudo > /dev/null ; then
@@ -1203,9 +1215,14 @@ install() {
 
   _info "Installing to $LE_WORKING_DIR"
 
-  _info "Installed to $LE_WORKING_DIR/le.sh" 
-  cp le.sh $LE_WORKING_DIR/
-  chmod +x $LE_WORKING_DIR/le.sh
+  cp le.sh "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/le.sh"
+
+  if [ "$?" != "0" ] ; then
+    _err "Install failed, can not copy le.sh"
+    return 1
+  fi
+
+  _info "Installed to $LE_WORKING_DIR/le.sh"
 
   _profile="$(_detect_profile)"
   if [ "$_profile" ] ; then
