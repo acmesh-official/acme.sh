@@ -175,7 +175,8 @@ createCSR() {
   if [ -z "$domainlist" ] ; then
     #single domain
     _info "Single domain" $domain
-    openssl req -new -sha256 -key "$CERT_KEY_PATH" -subj "/CN=$domain" > "$CSR_PATH"
+    printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\n" > "$DOMAIN_SSL_CONF"
+    openssl req -new -sha256 -key "$CERT_KEY_PATH" -subj "/CN=$domain" -config "$DOMAIN_SSL_CONF" -out "$CSR_PATH"
   else
     alt="DNS:$(echo $domainlist | sed "s/,/,DNS:/g")"
     #multi 
@@ -202,6 +203,18 @@ _time2str() {
     return
   fi
   
+}
+
+_stat() {
+  #Linux
+  if stat -c '%U:%G' "$1" 2>/dev/null ; then
+    return
+  fi
+  
+  #BSD
+  if stat -f  '%Su:%Sg' "$1" 2>/dev/null ; then
+    return
+  fi
 }
 
 _send_signed_request() {
@@ -285,14 +298,14 @@ _setopt() {
       __val="$(echo $__val | sed 's/&/\\&/g')"
     fi
     text="$(cat $__conf)"
-    printf "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" > "$__conf"
+    echo "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" > "$__conf"
 
   elif grep -H -n "^#$__opt$__sep" "$__conf" > /dev/null ; then
     if [[ "$__val" == *"&"* ]] ; then
       __val="$(echo $__val | sed 's/&/\\&/g')"
     fi
     text="$(cat $__conf)"
-    printf "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|" > "$__conf"
+    echo "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|" > "$__conf"
 
   else
     _debug APP
@@ -376,7 +389,10 @@ _initpath() {
   fi
   
   domain="$1"
-  mkdir -p "$LE_WORKING_DIR"
+  if ! mkdir -p "$LE_WORKING_DIR" ; then
+    _err "Can not craete working dir: $LE_WORKING_DIR"
+    return 1
+  fi
   
   if [ -z "$ACCOUNT_KEY_PATH" ] ; then
     ACCOUNT_KEY_PATH="$LE_WORKING_DIR/account.key"
@@ -389,12 +405,15 @@ _initpath() {
   domainhome="$LE_WORKING_DIR/$domain"
   mkdir -p "$domainhome"
 
+  if [ -z "$DOMAIN_PATH" ] ; then
+    DOMAIN_PATH="$domainhome"
+  fi
   if [ -z "$DOMAIN_CONF" ] ; then
-    DOMAIN_CONF="$domainhome/$Le_Domain.conf"
+    DOMAIN_CONF="$domainhome/$domain.conf"
   fi
   
   if [ -z "$DOMAIN_SSL_CONF" ] ; then
-    DOMAIN_SSL_CONF="$domainhome/$Le_Domain.ssl.conf"
+    DOMAIN_SSL_CONF="$domainhome/$domain.ssl.conf"
   fi
   
   if [ -z "$CSR_PATH" ] ; then
@@ -812,7 +831,7 @@ issue() {
         mkdir -p "$wellknown_path"
         echo -n "$keyauthorization" > "$wellknown_path/$token"
 
-        webroot_owner=$(stat -c '%U:%G' $Le_Webroot)
+        webroot_owner=$(_stat $Le_Webroot)
         _debug "Changing owner/group of .well-known to $webroot_owner"
         chown -R $webroot_owner "$Le_Webroot/.well-known"
         
@@ -987,6 +1006,7 @@ renewAll() {
 
     Le_ReloadCmd=""
     
+    DOMAIN_PATH=""
     DOMAIN_CONF=""
     DOMAIN_SSL_CONF=""
     CSR_PATH=""
@@ -1050,7 +1070,7 @@ installcert() {
 
   if [ "$Le_ReloadCmd" ] ; then
     _info "Run Le_ReloadCmd: $Le_ReloadCmd"
-    eval $Le_ReloadCmd
+    (cd "$DOMAIN_PATH" && eval "$Le_ReloadCmd")
   fi
 
 }
@@ -1067,7 +1087,12 @@ installcronjob() {
     fi
     crontab -l | { cat; echo "0 0 * * * LE_WORKING_DIR=\"$LE_WORKING_DIR\" $lesh cron > /dev/null"; } | crontab -
   fi
-  return 0
+  if [ "$?" != "0" ] ; then
+    _err "Install cron job failed. You need to manually renew your certs."
+    _err "Or you can add cronjob by yourself:"
+    _err "LE_WORKING_DIR=\"$LE_WORKING_DIR\" $lesh cron > /dev/null"
+    return 1
+  fi
 }
 
 uninstallcronjob() {
@@ -1128,6 +1153,7 @@ _initconf() {
     echo "#Account configurations:
 #Here are the supported macros, uncomment them to make them take effect.
 #ACCOUNT_EMAIL=aaa@aaa.com  # the account email used to register account.
+#ACCOUNT_KEY_PATH=\"/path/to/account.key\"
 
 #STAGE=1 # Use the staging api
 #FORCE=1 # Force to issue cert
@@ -1137,29 +1163,32 @@ _initconf() {
 #######################
 #Cloudflare:
 #api key
-#CF_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+#CF_Key=\"sdfsdfsdfljlbjkljlkjsdfoiwje\"
 #account email
-#CF_Email="xxxx@sss.com"
+#CF_Email=\"xxxx@sss.com\"
 
 #######################
 #Dnspod.cn:
 #api key id
-#DP_Id="1234"
+#DP_Id=\"1234\"
 #api key
-#DP_Key="sADDsdasdgdsf"
+#DP_Key=\"sADDsdasdgdsf\"
 
 #######################
 #Cloudxns.com:
-#CX_Key="1234"
+#CX_Key=\"1234\"
 #
-#CX_Secret="sADDsdasdgdsf"
+#CX_Secret=\"sADDsdasdgdsf\"
 
     " > $ACCOUNT_CONF_PATH
   fi
 }
 
 install() {
-  _initpath
+  if ! _initpath ; then
+    _err "Install failed."
+    return 1
+  fi
   
   #check if there is sudo installed, AND if the current user is a sudoer.
   if command -v sudo > /dev/null ; then
@@ -1199,9 +1228,14 @@ install() {
 
   _info "Installing to $LE_WORKING_DIR"
 
-  _info "Installed to $LE_WORKING_DIR/le.sh" 
-  cp le.sh $LE_WORKING_DIR/
-  chmod +x $LE_WORKING_DIR/le.sh
+  cp le.sh "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/le.sh"
+
+  if [ "$?" != "0" ] ; then
+    _err "Install failed, can not copy le.sh"
+    return 1
+  fi
+
+  _info "Installed to $LE_WORKING_DIR/le.sh"
 
   _profile="$(_detect_profile)"
   if [ "$_profile" ] ; then
@@ -1211,7 +1245,7 @@ install() {
 alias le=\"$LE_WORKING_DIR/le.sh\"
 alias le.sh=\"$LE_WORKING_DIR/le.sh\"
     " > "$LE_WORKING_DIR/le.env"
-    
+    echo "" >> "$_profile"
     _setopt "$_profile" "source \"$LE_WORKING_DIR/le.env\""
     _info "OK, Close and reopen your terminal to start using le"
   else
@@ -1240,7 +1274,8 @@ uninstall() {
 
   _profile="$(_detect_profile)"
   if [ "$_profile" ] ; then
-    sed -i /le.env/d  "$_profile"
+    text="$(cat $_profile)"
+    echo "$text" | sed "s|^source.*le.env.*$||" > "$_profile"
   fi
 
   rm -f $LE_WORKING_DIR/le.sh
