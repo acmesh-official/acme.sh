@@ -205,6 +205,18 @@ _time2str() {
   
 }
 
+_stat() {
+  #Linux
+  if stat -c '%U:%G' "$1" 2>/dev/null ; then
+    return
+  fi
+  
+  #BSD
+  if stat -f  '%Su:%Sg' "$1" 2>/dev/null ; then
+    return
+  fi
+}
+
 _send_signed_request() {
   url=$1
   payload=$2
@@ -819,7 +831,7 @@ issue() {
         mkdir -p "$wellknown_path"
         echo -n "$keyauthorization" > "$wellknown_path/$token"
 
-        webroot_owner=$(stat -c '%U:%G' $Le_Webroot)
+        webroot_owner=$(_stat $Le_Webroot)
         _debug "Changing owner/group of .well-known to $webroot_owner"
         chown -R $webroot_owner "$Le_Webroot/.well-known"
         
