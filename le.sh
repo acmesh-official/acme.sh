@@ -1140,6 +1140,7 @@ _initconf() {
     echo "#Account configurations:
 #Here are the supported macros, uncomment them to make them take effect.
 #ACCOUNT_EMAIL=aaa@aaa.com  # the account email used to register account.
+#ACCOUNT_KEY_PATH=\"/path/to/account.key\"
 
 #STAGE=1 # Use the staging api
 #FORCE=1 # Force to issue cert
