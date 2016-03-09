@@ -175,7 +175,8 @@ createCSR() {
   if [ -z "$domainlist" ] ; then
     #single domain
     _info "Single domain" $domain
-    openssl req -new -sha256 -key "$CERT_KEY_PATH" -subj "/CN=$domain" > "$CSR_PATH"
+    printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\n" > "$DOMAIN_SSL_CONF"
+    openssl req -new -sha256 -key "$CERT_KEY_PATH" -subj "/CN=$domain" -config "$DOMAIN_SSL_CONF" -out "$CSR_PATH"
   else
     alt="DNS:$(echo $domainlist | sed "s/,/,DNS:/g")"
     #multi 
@@ -396,11 +397,11 @@ _initpath() {
     DOMAIN_PATH="$domainhome"
   fi
   if [ -z "$DOMAIN_CONF" ] ; then
-    DOMAIN_CONF="$domainhome/$Le_Domain.conf"
+    DOMAIN_CONF="$domainhome/$domain.conf"
   fi
   
   if [ -z "$DOMAIN_SSL_CONF" ] ; then
-    DOMAIN_SSL_CONF="$domainhome/$Le_Domain.ssl.conf"
+    DOMAIN_SSL_CONF="$domainhome/$domain.ssl.conf"
   fi
   
   if [ -z "$CSR_PATH" ] ; then
