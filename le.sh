@@ -1150,22 +1150,22 @@ _initconf() {
 #######################
 #Cloudflare:
 #api key
-#CF_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+#CF_Key=\"sdfsdfsdfljlbjkljlkjsdfoiwje\"
 #account email
-#CF_Email="xxxx@sss.com"
+#CF_Email=\"xxxx@sss.com\"
 
 #######################
 #Dnspod.cn:
 #api key id
-#DP_Id="1234"
+#DP_Id=\"1234\"
 #api key
-#DP_Key="sADDsdasdgdsf"
+#DP_Key=\"sADDsdasdgdsf\"
 
 #######################
 #Cloudxns.com:
-#CX_Key="1234"
+#CX_Key=\"1234\"
 #
-#CX_Secret="sADDsdasdgdsf"
+#CX_Secret=\"sADDsdasdgdsf\"
 
     " > $ACCOUNT_CONF_PATH
   fi
