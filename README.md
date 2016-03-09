@@ -185,7 +185,7 @@ You don't have do anything manually.
 2. Dnspod.cn api
 3. Cloudxns.com api
 
-More apis are comming soon....
+More apis are coming soon....
 
 If your dns provider is not in the supported list above, you can write your own script api easily.
 
