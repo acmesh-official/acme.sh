@@ -15,6 +15,7 @@ Do NOT require to be `root/sudoer`.
 2. CentOS
 3. Windows (cygwin with curl, openssl and crontab included)
 4. FreeBSD with bash
+5. pfsense with bash and curl
 
 
 #Supported Mode
