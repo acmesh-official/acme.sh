@@ -1,12 +1,12 @@
 # le: means simp`Le`
 Simplest shell script for LetsEncrypt free Certificate client
 
-Simple and Powerful,  you only need 3 minutes to learn.
+Simple and Powerful, you only need 3 minutes to learn.
 
-Pure written in bash, no dependencies to python , acme-tiny or LetsEncrypt official client.
+Pure written in bash, no dependencies to python, acme-tiny or LetsEncrypt official client.
 Just one script, to issue, renew your certificates automatically.
 
-Probably it's the smallest&easiest&smartest shell script to automatically  issue&renew the free certificates from LetsEncrypt.
+Probably it's the smallest&easiest&smartest shell script to automatically issue&renew the free certificates from LetsEncrypt.
 
 Do NOT require to be `root/sudoer`.
 
@@ -41,7 +41,7 @@ All the certs will be placed in this folder.
 
 After install, you must close current terminal and reopen again to make the alias take effect.
 
-Ok,  you are ready to issue cert now.
+Ok, you are ready to issue cert now.
 Show help message:
 ```
 root@v1:~# le.sh
@@ -78,8 +78,6 @@ createCSR:
 
 root@v1:~/le# le issue
 Usage: le  issue  webroot|no|apache|dns   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no
-
-
 ```
 
 Set the param value to "no" means you want to ignore it.
@@ -109,7 +107,7 @@ First argument `/home/wwwroot/aa.com` is the web root folder, You must have `wri
 
 Second argument "aa.com" is the main domain you want to issue cert for.
 
-Third argument is the additional domain list you want to use.  Comma separated list,  which is Optional.
+Third argument is the additional domain list you want to use. Comma separated list, which is Optional.
 
 You must point and bind all the domains to the same webroot dir:`/home/wwwroot/aa.com`
 
@@ -124,20 +122,20 @@ le installcert  aa.com /path/to/certfile/in/apache/nginx  /path/to/keyfile/in/ap
 
 Install the issued cert/key to the production apache or nginx path.
 
-The cert will be renewed every 80 days by default (which is configurable), Once the cert is renewed, the apache/nginx will be automatically reloaded by the command: ` service apache2 reload` or `service nginx reload`
+The cert will be renewed every 80 days by default (which is configurable), Once the cert is renewed, the apache/nginx will be automatically reloaded by the command: `service apache2 reload` or `service nginx reload`
 
 
-# Use Standalone server to issue cert( requires you be root/sudoer, or you have permission to listen tcp 80 port):
-Same usage as all above,  just give `no` as the webroot.
+# Use Standalone server to issue cert (requires you be root/sudoer, or you have permission to listen tcp 80 port):
+Same usage as all above, just give `no` as the webroot.
 The tcp `80` port must be free to listen, otherwise you will be prompted to free the `80` port and try again.
 
 ```
 le issue    no    aa.com    www.aa.com,cp.aa.com
 ```
 
-# Use Apache mode(requires you be root/sudoer, since it is required to interact with apache server):
+# Use Apache mode (requires you be root/sudoer, since it is required to interact with apache server):
 If you are running a web server, apache or nginx, it is recommended to use the Webroot mode.
-Particularly,  if you are running an apache server, you can use apache mode instead. Which doesn't write any file to your web root folder.
+Particularly, if you are running an apache server, you can use apache mode instead. Which doesn't write any file to your web root folder.
 
 Just set string "apache" to the first argument, it will use apache plugin automatically.
 
@@ -178,14 +176,14 @@ Ok, it's finished.
 
 #Automatic dns api integeration
 
-If your dns provider supports api access,  we can use api to automatically issue certs.
+If your dns provider supports api access, we can use api to automatically issue certs.
 You don't have do anything manually.
 
 ###Currently we support:
 
-1. Cloudflare.com  api
-2. Dnspod.cn  api
-3. Cloudxns.com  api
+1. Cloudflare.com api
+2. Dnspod.cn api
+3. Cloudxns.com api
 
 More apis are comming soon....
 
@@ -234,6 +232,3 @@ License is GPLv3
 Please Star and Fork me.
 
 Issues and pull requests are welcomed.
-
-
-
