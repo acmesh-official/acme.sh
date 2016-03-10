@@ -696,7 +696,7 @@ issue() {
         return 1
       fi
 
-      entry="$(printf $response | egrep -o  '{[^{]*"type":"'$vtype'"[^}]*')"
+      entry="$(printf $response | egrep -o  '\{[^{]*"type":"'$vtype'"[^}]*')"
       _debug entry "$entry"
 
       token="$(printf "$entry" | egrep -o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
