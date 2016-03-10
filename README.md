@@ -12,10 +12,11 @@ Do NOT require to be `root/sudoer`.
 
 #Tested OS
 1. Ubuntu/Debian.
-2. CentOS
+2. CentOS 5, 6, 7
 3. Windows (cygwin with curl, openssl and crontab included)
 4. FreeBSD with bash
 5. pfsense with bash and curl
+6. openSUSE 13
 
 
 #Supported Mode
