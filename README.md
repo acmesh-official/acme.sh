@@ -202,9 +202,17 @@ And we also support it.
 
 Just set the `length` parameter with a prefix `ec-`.
 For example:
+
+Single domain:
 ```
-le issue  /home/wwwroot/aa.com    aa.com  www.aa.com   ec-256
+le issue  /home/wwwroot/aa.com    aa.com   no      ec-256
 ```
+
+SAN multiple domains:
+```
+le issue  /home/wwwroot/aa.com    aa.com   www.aa.com,cp.aa.com    ec-256
+```
+
 Please look at the last parameter above.
 
 Valid values are:
