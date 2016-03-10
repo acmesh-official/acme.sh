@@ -257,7 +257,7 @@ _send_signed_request() {
     response="$($CURL -X POST --data "$body" $url)"
   fi
 
-  responseHeaders="$(cat $CURL_HEADER)"
+  responseHeaders="$(< $CURL_HEADER)"
   
   _debug responseHeaders "$responseHeaders"
   _debug response  "$response"
@@ -297,14 +297,14 @@ _setopt() {
     if [[ "$__val" == *"&"* ]] ; then
       __val="$(echo $__val | sed 's/&/\\&/g')"
     fi
-    text="$(cat $__conf)"
+    text="$(< $__conf)"
     echo "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" > "$__conf"
 
   elif grep -H -n "^#$__opt$__sep" "$__conf" > /dev/null ; then
     if [[ "$__val" == *"&"* ]] ; then
       __val="$(echo $__val | sed 's/&/\\&/g')"
     fi
-    text="$(cat $__conf)"
+    text="$(< $__conf)"
     echo "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|" > "$__conf"
 
   else
@@ -1274,7 +1274,7 @@ uninstall() {
 
   _profile="$(_detect_profile)"
   if [ "$_profile" ] ; then
-    text="$(cat $_profile)"
+    text="$(< $_profile)"
     echo "$text" | sed "s|^source.*le.env.*$||" > "$_profile"
   fi
 
