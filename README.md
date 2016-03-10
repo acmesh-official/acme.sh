@@ -17,6 +17,7 @@ Do NOT require to be `root/sudoer`.
 4. FreeBSD with bash
 5. pfsense with bash and curl
 6. openSUSE 13
+7. Alpine Linux (with bash, curl. https://github.com/Neilpang/le/issues/94)
 
 
 #Supported Mode
