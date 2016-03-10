@@ -345,9 +345,9 @@ _startserver() {
   fi
 #  while true ; do
     if [ "$DEBUG" ] ; then
-      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -l -p $Le_HTTPPort -vv
+      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -l $Le_HTTPPort -vv
     else
-      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -l -p $Le_HTTPPort > /dev/null
+      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -l $Le_HTTPPort > /dev/null
     fi
 #  done
 }
