@@ -189,7 +189,7 @@ You don't have do anything manually.
 3. Cloudxns.com  api
 4. AWS Route 53,  see: https://github.com/Neilpang/le/issues/65
 
-More apis are comming soon....
+More apis are coming soon....
 
 If your dns provider is not in the supported list above, you can write your own script api easily.
 
