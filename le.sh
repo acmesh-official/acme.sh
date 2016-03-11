@@ -776,7 +776,7 @@ issue() {
         
         addcommand="$Le_Webroot-add"
         if ! command -v $addcommand ; then 
-          _err "It seems that your api file is not correct, it must have a function named: $Le_Webroot"
+          _err "It seems that your api file is not correct, it must have a function named: $Le_Webroot-add"
           return 1
         fi
         
