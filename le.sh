@@ -89,7 +89,7 @@ createAccountKey() {
     return
   else
     #generate account key
-    openssl genrsa $length > "$ACCOUNT_KEY_PATH"
+    openssl genrsa $length 2>/dev/null > "$ACCOUNT_KEY_PATH"
   fi
 
 }
