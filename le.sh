@@ -342,15 +342,15 @@ _startserver() {
   _NC="nc -q 1 -l"
   
   nchelp="$(nc -h 2>&1)"
+  #centos
   if echo "$nchelp" | grep "nmap.org/ncat" >/dev/null ; then
     _NC="nc -l"
   fi
   
-  if echo "$nchelp" | grep "--version" >/dev/null ; then
-    ncver="$(nc --version)"
-    if echo "$ncver" | grep "http://www.deepspace6.net" > /dev/null ; then
-      _NC="$_NC -p"
-    fi
+  #debian
+  ncver="$(nc --version 2>&1)"
+  if echo "$ncver" | grep "http://www.deepspace6.net" > /dev/null ; then
+    _NC="$_NC -p"
   fi
 
   _debug nc "$_NC"
