@@ -339,15 +339,26 @@ _saveaccountconf() {
 
 _startserver() {
   content="$1"
-  _NC="nc -q 1"
-  if nc -h 2>&1 | grep "nmap.org/ncat" >/dev/null ; then
-    _NC="nc"
+  _NC="nc -q 1 -l"
+  
+  nchelp="$(nc -h 2>&1)"
+  if echo "$nchelp" | grep "nmap.org/ncat" >/dev/null ; then
+    _NC="nc -l"
   fi
+  
+  if echo "$nchelp" | grep "--version" >/dev/null ; then
+    ncver="$(nc --version)"
+    if echo "$ncver" | grep "http://www.deepspace6.net" > /dev/null ; then
+      _NC="$_NC -p"
+    fi
+  fi
+
+  _debug nc "$_NC"
 #  while true ; do
     if [ "$DEBUG" ] ; then
-      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -l $Le_HTTPPort -vv
+      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort -vv
     else
-      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -l $Le_HTTPPort > /dev/null
+      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort > /dev/null
     fi
 #  done
 }
