@@ -18,7 +18,10 @@ Do NOT require to be `root/sudoer`.
 5. pfsense with bash and curl
 6. openSUSE 13
 7. Alpine Linux (with bash, curl. https://github.com/Neilpang/le/issues/94)
+8. Archlinux 
 
+
+If anyone want to test le on your system, you can simply run our test project: https://github.com/Neilpang/letest
 
 #Supported Mode
 1. Webroot mode
