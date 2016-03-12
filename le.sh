@@ -440,10 +440,10 @@ _initpath() {
     CA_CERT_PATH="$domainhome/ca.cer"
   fi
   if [ -z "$KEY_CERT_PATH" ] ; then
-    KEY_CERT_PATH="$domainhome/$domain/key_cert.cer"
+    KEY_CERT_PATH="$domainhome/$domain.key_cert.cer"
   fi
   if [ -z "$KEY_CERT_CA_PATH" ] ; then
-    KEY_CERT_CA_PATH="$domainhome/$domain/key_cert_ca.cer"
+    KEY_CERT_CA_PATH="$domainhome/$domain.key_cert_ca.cer"
   fi
 }
 
@@ -920,15 +920,10 @@ issue() {
     echo -----END CERTIFICATE-----  >> "$CERT_PATH"
     _info "Cert success."
     cat "$CERT_PATH"
-
     _info "Your cert is in $CERT_PATH"
 
-    cat "$Le_RealKeyPath" > "$KEY_CERT_PATH"
+    cat "$CERT_KEY_PATH" > "$KEY_CERT_PATH"
     cat "$CERT_PATH" >> "$KEY_CERT_PATH"
-
-    cat "$KEY_CERT_PATH" > "$KEY_CERT_CA_PATH"
-    cat "$Le_RealCACertPath" >> "$KEY_CERT_CA_PATH"
-
   fi
 
 
@@ -948,6 +943,9 @@ issue() {
     curl --silent "$Le_LinkIssuer" | openssl base64 -e  >> "$CA_CERT_PATH"
     echo -----END CERTIFICATE-----  >> "$CA_CERT_PATH"
     _info "The intermediate CA cert is in $CA_CERT_PATH"
+    
+    cat "$KEY_CERT_PATH" > "$KEY_CERT_CA_PATH"
+    cat "$CA_CERT_PATH" >> "$KEY_CERT_CA_PATH"
   fi
 
   Le_CertCreateTime=$(date -u "+%s")
