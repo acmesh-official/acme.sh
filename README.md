@@ -19,6 +19,7 @@ Do NOT require to be `root/sudoer`.
 6. openSUSE 13
 7. Alpine Linux (with bash, curl. https://github.com/Neilpang/le/issues/94)
 8. Archlinux 
+9. fedora 21, 22, 23
 
 
 If anyone want to test le on your system, you can simply run our test project: https://github.com/Neilpang/letest
