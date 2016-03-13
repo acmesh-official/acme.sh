@@ -66,12 +66,12 @@ _base64() {
 _ss() {
   _port="$1"
   if command -v "netstat" >/dev/null 2>&1 ; then
-    _err "Using: netstat"
+    _debug "Using: netstat"
     netstat -ntpl | grep :$_port" "
     return 0
   fi
   if command -v "ss" >/dev/null 2>&1 ; then
-    _err "Using: ss"
+    _debug "Using: ss"
     ss -ntpl | grep :$_port" "
     return 0
   fi
@@ -635,7 +635,7 @@ issue() {
     fi
     _setopt "$DOMAIN_CONF"  "Le_HTTPPort"             "="  "$Le_HTTPPort"
     
-    netprc="$(_ss "$Le_HTTPPort")"
+    netprc="$(_ss "$Le_HTTPPort" | grep "$Le_HTTPPort")"
     if [ "$netprc" ] ; then
       _err "$netprc"
       _err "tcp port $Le_HTTPPort is already used by $(echo "$netprc" | cut -d :  -f 4)"
