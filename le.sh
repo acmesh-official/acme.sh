@@ -346,19 +346,17 @@ _startserver() {
   if echo "$nchelp" | grep "nmap.org/ncat" >/dev/null ; then
     _NC="nc -l"
   fi
-  
-  #debian
-  ncver="$(nc --version 2>&1)"
-  if echo "$ncver" | grep "http://www.deepspace6.net" > /dev/null ; then
-    _NC="$_NC -p"
-  fi
 
   _debug "$_NC $Le_HTTPPort"
 #  while true ; do
     if [ "$DEBUG" ] ; then
-      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort -vv
+      if ! echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort -vv ; then
+        echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort -vv ;
+      fi
     else
-      echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort > /dev/null
+      if ! echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort > /dev/null ; then
+        echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort > /dev/null
+      fi      
     fi
     if [ "$?" != "0" ] ; then
       _err "nc listen error."
