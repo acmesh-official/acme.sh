@@ -354,11 +354,12 @@ _saveaccountconf() {
 
 _startserver() {
   content="$1"
-  _NC="nc -q 1 -l"
-  
+
   nchelp="$(nc -h 2>&1)"
-  #centos
-  if echo "$nchelp" | grep "nmap.org/ncat" >/dev/null ; then
+  
+  if echo "$nchelp" | grep " \-q " >/dev/null ; then
+    _NC="nc -q 1 -l"
+  else
     _NC="nc -l"
   fi
 
@@ -701,7 +702,7 @@ issue() {
   elif [ "$code" == '409' ] ; then
     _info "Already registered"
   else
-    _err "Register account Error."
+    _err "Register account Error: $response"
     _clearup
     return 1
   fi
