@@ -63,6 +63,21 @@ _base64() {
   openssl base64 -e | tr -d '\n'
 }
 
+_ss() {
+  _port="$1"
+  if command -v "netstat" >/dev/null 2>&1 ; then
+    _err "Using: netstat"
+    netstat -ntpl | grep :$_port" "
+    return 0
+  fi
+  if command -v "ss" >/dev/null 2>&1 ; then
+    _err "Using: ss"
+    ss -ntpl | grep :$_port" "
+    return 0
+  fi
+  return 1
+}
+
 #domain [2048]  
 createAccountKey() {
   _info "Creating account key"
@@ -620,7 +635,7 @@ issue() {
     fi
     _setopt "$DOMAIN_CONF"  "Le_HTTPPort"             "="  "$Le_HTTPPort"
     
-    netprc="$(ss -ntpl | grep :$Le_HTTPPort" ")"
+    netprc="$(_ss "$Le_HTTPPort")"
     if [ "$netprc" ] ; then
       _err "$netprc"
       _err "tcp port $Le_HTTPPort is already used by $(echo "$netprc" | cut -d :  -f 4)"
