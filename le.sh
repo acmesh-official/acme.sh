@@ -440,7 +440,7 @@ _initpath() {
     CA_CERT_PATH="$domainhome/ca.cer"
   fi
   if [ -z "$CERT_FULLCHAIN_PATH" ] ; then
-    CERT_FULLCHAIN_PATH="$domainhome/fullchain.pem"
+    CERT_FULLCHAIN_PATH="$domainhome/fullchain.cer"
   fi
 
 }
