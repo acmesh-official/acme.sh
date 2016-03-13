@@ -439,6 +439,9 @@ _initpath() {
   if [ -z "$CA_CERT_PATH" ] ; then
     CA_CERT_PATH="$domainhome/ca.cer"
   fi
+  if [ -z "$CERT_FULLCHAIN_PATH" ] ; then
+    CERT_FULLCHAIN_PATH="$domainhome/fullchain.pem"
+  fi
 
 }
 
@@ -917,6 +920,7 @@ issue() {
     cat "$CERT_PATH"
     
     _info "Your cert is in $CERT_PATH"
+    cp "$CERT_PATH" "$CERT_FULLCHAIN_PATH"
   fi
   
 
@@ -936,6 +940,8 @@ issue() {
     curl --silent "$Le_LinkIssuer" | openssl base64 -e  >> "$CA_CERT_PATH"
     echo -----END CERTIFICATE-----  >> "$CA_CERT_PATH"
     _info "The intermediate CA cert is in $CA_CERT_PATH"
+    cat "$CA_CERT_PATH" >> "$CERT_FULLCHAIN_PATH"
+    _info "And the full chain certs is there: $CERT_FULLCHAIN_PATH"
   fi
   
   Le_CertCreateTime=$(date -u "+%s")
@@ -1024,6 +1030,7 @@ renewAll() {
     CERT_KEY_PATH=""
     CERT_PATH=""
     CA_CERT_PATH=""
+    CERT_FULLCHAIN_PATH=""
     ACCOUNT_KEY_PATH=""
     
     wellknown_path=""
