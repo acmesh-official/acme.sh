@@ -460,6 +460,12 @@ _initpath() {
   if [ -z "$CERT_FULLCHAIN_PATH" ] ; then
     CERT_FULLCHAIN_PATH="$domainhome/fullchain.cer"
   fi
+  if [ -z "$KEY_WITH_CERT_PATH" ] ; then
+    KEY_WITH_CERT_PATH="$domainhome/key_cert.cer"
+  fi
+  if [ -z "$KEY_WITH_FULLCHAIN_PATH" ] ; then
+    KEY_WITH_FULLCHAIN_PATH="$domainhome/key_fullchain.cer"
+  fi
 
 }
 
@@ -939,6 +945,9 @@ issue() {
     
     _info "Your cert is in $CERT_PATH"
     cp "$CERT_PATH" "$CERT_FULLCHAIN_PATH"
+
+    cat "$CERT_KEY_PATH" > "$KEY_WITH_CERT_PATH"
+    cat "$CERT_PATH" >> "$KEY_WITH_CERT_PATH"
   fi
   
 
@@ -960,6 +969,9 @@ issue() {
     _info "The intermediate CA cert is in $CA_CERT_PATH"
     cat "$CA_CERT_PATH" >> "$CERT_FULLCHAIN_PATH"
     _info "And the full chain certs is there: $CERT_FULLCHAIN_PATH"
+
+    cat "$CERT_KEY_PATH" > "$KEY_WITH_FULLCHAIN_PATH"
+    cat "$CERT_FULLCHAIN_PATH" >> "$KEY_WITH_FULLCHAIN_PATH"
   fi
   
   Le_CertCreateTime=$(date -u "+%s")
@@ -1049,6 +1061,8 @@ renewAll() {
     CERT_PATH=""
     CA_CERT_PATH=""
     CERT_FULLCHAIN_PATH=""
+    KEY_WITH_CERT_PATH=""
+    KEY_WITH_FULLCHAIN_PATH=""
     ACCOUNT_KEY_PATH=""
     
     wellknown_path=""
