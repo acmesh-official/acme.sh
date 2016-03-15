@@ -11,18 +11,20 @@ Probably it's the smallest&easiest&smartest shell script to automatically issue 
 Do NOT require to be `root/sudoer`.
 
 #Tested OS
-1. Ubuntu/Debian.
-2. CentOS 5, 6, 7
-3. Windows (cygwin with curl, openssl and crontab included)
-4. FreeBSD with bash
-5. pfsense with bash and curl
-6. openSUSE 13
-7. Alpine Linux (with bash, curl. https://github.com/Neilpang/le/issues/94)
-8. Archlinux 
-9. fedora 21, 22, 23
+1. Ubuntu ![](https://cdn.rawgit.com/Neilpang/letest/master/status/ubuntu-latest.svg)
+2. Debian ![](https://cdn.rawgit.com/Neilpang/letest/master/status/debian-latest.svg)
+3. CentOS ![](https://cdn.rawgit.com/Neilpang/letest/master/status/centos-latest.svg)
+4. Windows (cygwin with curl, openssl and crontab included)
+5. FreeBSD with bash
+6. pfsense with bash and curl
+7. openSUSE 13
+8. Alpine Linux ![](https://cdn.rawgit.com/Neilpang/letest/master/status/alpine-latest.svg) (with bash, curl. https://github.com/Neilpang/le/issues/94)
+9. Archlinux 
+10. fedora ![](https://cdn.rawgit.com/Neilpang/letest/master/status/fedora-latest.svg)
 
+For all the build status, check our daily build project: 
 
-If anyone want to test le on your system, you can simply run our test project: https://github.com/Neilpang/letest
+https://github.com/Neilpang/letest.git
 
 #Supported Mode
 1. Webroot mode
