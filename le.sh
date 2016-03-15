@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VER=1.1.8
+VER=1.1.9
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
@@ -202,7 +202,7 @@ createCSR() {
 
 }
 
-_b64() {
+_urlencode() {
   __n=$(cat)
   echo $__n | tr '/+' '_-' | tr -d '= '
 }
@@ -232,13 +232,96 @@ _stat() {
   fi
 }
 
+#keyfile
+_calcjwk() {
+  keyfile="$1"
+  if [ -z "$keyfile" ] ; then
+    _err "Usage: _calcjwk keyfile"
+    return 1
+  fi
+  EC_SIGN=""
+  if grep "BEGIN RSA PRIVATE KEY" "$keyfile" > /dev/null 2>&1 ; then
+    _debug "RSA key"
+    pub_exp=$(openssl rsa -in $keyfile  -noout -text | grep "^publicExponent:"| cut -d '(' -f 2 | cut -d 'x' -f 2 | cut -d ')' -f 1)
+    if [ "${#pub_exp}" == "5" ] ; then
+      pub_exp=0$pub_exp
+    fi
+    _debug pub_exp "$pub_exp"
+    
+    e=$(echo $pub_exp | _h2b | _base64)
+    _debug e "$e"
+    
+    modulus=$(openssl rsa -in $keyfile -modulus -noout | cut -d '=' -f 2 )
+    n=$(echo $modulus| _h2b | _base64 | _urlencode )
+    jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
+    _debug jwk "$jwk"
+    
+    HEADER='{"alg": "RS256", "jwk": '$jwk'}'
+    HEADERPLACE='{"nonce": "NONCE", "alg": "RS256", "jwk": '$jwk'}'
+  elif grep "BEGIN EC PRIVATE KEY" "$keyfile" > /dev/null 2>&1 ; then
+    _debug "EC key"
+    EC_SIGN="1"
+    crv="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
+    _debug crv $crv
+    
+    pubi="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep -n pub: | cut -d : -f 1)"
+    _debug pubi $pubi
+    let "pubi=pubi+1"
+    
+    pubj="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep -n "ASN1 OID:"  | cut -d : -f 1)"
+    _debug pubj $pubj
+    let "pubj=pubj-1"
+    
+    pubtext="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | sed  -n "$pubi,${pubj}p" | tr -d " \n\r")"
+    _debug pubtext "$pubtext"
+    
+    xlen="$(printf "$pubtext" | tr -d ':' | wc -c)"
+    let "xlen=xlen/4"
+    _debug xlen $xlen
+    
+    let "xend=xlen+1"
+    x="$(printf $pubtext | cut -d : -f 2-$xend)"
+    _debug x $x
+    
+    x64="$(printf $x | tr -d : | _h2b | _base64 | _urlencode)"
+    _debug x64 $x64
+    
+    let "xend+=1"
+    y="$(printf $pubtext | cut -d : -f $xend-10000)"
+    _debug y $y
+    
+    y64="$(printf $y | tr -d : | _h2b | _base64 | _urlencode)"
+    _debug y64 $y64
+   
+    jwk='{"kty": "EC", "crv": "'$crv'", "x": "'$x64'", "y": "'$y64'"}'
+    _debug jwk "$jwk"
+    
+    HEADER='{"alg": "ES256", "jwk": '$jwk'}'
+    HEADERPLACE='{"nonce": "NONCE", "alg": "ES256", "jwk": '$jwk'}'
+
+  else
+    _err "Only RSA or EC key is supported."
+    return 1
+  fi
+
+  _debug HEADER "$HEADER"
+}
+
+# url  payload needbase64  keyfile
 _send_signed_request() {
   url=$1
   payload=$2
   needbase64=$3
-  
+  keyfile=$4
+  if [ -z "$keyfile" ] ; then
+    keyfile="$ACCOUNT_KEY_PATH"
+  fi
   _debug url $url
   _debug payload "$payload"
+  
+  if ! _calcjwk "$keyfile" ; then
+    return 1
+  fi
   
   CURL_HEADER="$LE_WORKING_DIR/curl.header"
   dp="$LE_WORKING_DIR/curl.dump"
@@ -246,7 +329,7 @@ _send_signed_request() {
   if [ "$DEBUG" ] ; then
     CURL="$CURL --trace-ascii $dp "
   fi
-  payload64=$(echo -n $payload | _base64 | _b64)
+  payload64=$(echo -n $payload | _base64 | _urlencode)
   _debug payload64 $payload64
   
   nonceurl="$API/directory"
@@ -257,10 +340,10 @@ _send_signed_request() {
   protected="$(printf "$HEADERPLACE" | sed "s/NONCE/$nonce/" )"
   _debug protected "$protected"
   
-  protected64="$(printf "$protected" | _base64 | _b64)"
+  protected64="$(printf "$protected" | _base64 | _urlencode)"
   _debug protected64 "$protected64"
-  
-  sig=$(echo -n "$protected64.$payload64" |  openssl   dgst   -sha256  -sign  $ACCOUNT_KEY_PATH | _base64 | _b64)
+
+  sig=$(echo -n "$protected64.$payload64" |  openssl   dgst   -sha256  -sign  "$keyfile" | _base64 | _urlencode)
   _debug sig "$sig"
   
   body="{\"header\": $HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
@@ -656,7 +739,40 @@ issue() {
   fi
   
   createAccountKey $Le_Domain $Le_Keylength
+
+  if ! _calcjwk "$ACCOUNT_KEY_PATH" ; then
+    return 1
+  fi
   
+  accountkey_json=$(echo -n "$jwk" |  tr -d ' ' )
+  thumbprint=$(echo -n "$accountkey_json" | openssl dgst -sha256 -binary | _base64 | _urlencode)
+  
+  accountkeyhash="$(cat "$ACCOUNT_KEY_PATH" | openssl dgst -sha256 -binary | _base64)"
+
+  if [ "$accountkeyhash" != "$ACCOUNT_KEY_HASH" ] ; then
+    _info "Registering account"
+    regjson='{"resource": "new-reg", "agreement": "'$AGREEMENT'"}'
+    if [ "$ACCOUNT_EMAIL" ] ; then
+      regjson='{"resource": "new-reg", "contact": ["mailto: '$ACCOUNT_EMAIL'"], "agreement": "'$AGREEMENT'"}'
+    fi  
+    _send_signed_request   "$API/acme/new-reg"  "$regjson"
+    
+    if [ "$code" == "" ] || [ "$code" == '201' ] ; then
+      _info "Registered"
+      echo $response > $LE_WORKING_DIR/account.json
+    elif [ "$code" == '409' ] ; then
+      _info "Already registered"
+    else
+      _err "Register account Error: $response"
+      _clearup
+      return 1
+    fi
+    ACCOUNT_KEY_HASH="$accountkeyhash"
+    _saveaccountconf "ACCOUNT_KEY_HASH" "$ACCOUNT_KEY_HASH"
+  else
+    _info "Skip register account key"
+  fi
+
   if ! createDomainKey $Le_Domain $Le_Keylength ; then 
     _err "Create domain key error."
     return 1
@@ -664,46 +780,6 @@ issue() {
   
   if ! createCSR  $Le_Domain  $Le_Alt ; then
     _err "Create CSR error."
-    return 1
-  fi
-
-  pub_exp=$(openssl rsa -in $ACCOUNT_KEY_PATH  -noout -text | grep "^publicExponent:"| cut -d '(' -f 2 | cut -d 'x' -f 2 | cut -d ')' -f 1)
-  if [ "${#pub_exp}" == "5" ] ; then
-    pub_exp=0$pub_exp
-  fi
-  _debug pub_exp "$pub_exp"
-  
-  e=$(echo $pub_exp | _h2b | _base64)
-  _debug e "$e"
-  
-  modulus=$(openssl rsa -in $ACCOUNT_KEY_PATH -modulus -noout | cut -d '=' -f 2 )
-  n=$(echo $modulus| _h2b | _base64 | _b64 )
-
-  jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
-  
-  HEADER='{"alg": "RS256", "jwk": '$jwk'}'
-  HEADERPLACE='{"nonce": "NONCE", "alg": "RS256", "jwk": '$jwk'}'
-  _debug HEADER "$HEADER"
-  
-  accountkey_json=$(echo -n "$jwk" |  tr -d ' ' )
-  thumbprint=$(echo -n "$accountkey_json" | openssl dgst -sha256 -binary | _base64 | _b64)
-  
-  
-  _info "Registering account"
-  regjson='{"resource": "new-reg", "agreement": "'$AGREEMENT'"}'
-  if [ "$ACCOUNT_EMAIL" ] ; then
-    regjson='{"resource": "new-reg", "contact": ["mailto: '$ACCOUNT_EMAIL'"], "agreement": "'$AGREEMENT'"}'
-  fi  
-  _send_signed_request   "$API/acme/new-reg"  "$regjson"
-  
-  if [ "$code" == "" ] || [ "$code" == '201' ] ; then
-    _info "Registered"
-    echo $response > $LE_WORKING_DIR/account.json
-  elif [ "$code" == '409' ] ; then
-    _info "Already registered"
-  else
-    _err "Register account Error: $response"
-    _clearup
     return 1
   fi
   
@@ -759,7 +835,7 @@ issue() {
         dnsadded='0'
         txtdomain="_acme-challenge.$d"
         _debug txtdomain "$txtdomain"
-        txt="$(echo -e -n $keyauthorization | openssl dgst -sha256 -binary | _base64 | _b64)"
+        txt="$(echo -e -n $keyauthorization | openssl dgst -sha256 -binary | _base64 | _urlencode)"
         _debug txt "$txt"
         #dns
         #1. check use api
@@ -923,7 +999,7 @@ issue() {
 
   _clearup
   _info "Verify finished, start to sign."
-  der="$(openssl req  -in $CSR_PATH -outform DER | _base64 | _b64)"
+  der="$(openssl req  -in $CSR_PATH -outform DER | _base64 | _urlencode)"
   _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"
   
   
@@ -1194,6 +1270,8 @@ _initconf() {
 #STAGE=1 # Use the staging api
 #FORCE=1 # Force to issue cert
 #DEBUG=1 # Debug mode
+
+#ACCOUNT_KEY_HASH=account key hash
 
 #dns api
 #######################
