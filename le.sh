@@ -443,10 +443,14 @@ _startserver() {
   if echo "$nchelp" | grep "\-q " >/dev/null ; then
     _NC="nc -q 1 -l"
   else
-    _NC="nc -l"
+    if echo "$nchelp" | grep "GNU netcat" >/dev/null && echo "$nchelp" | grep "\-c, \-\-close" >/dev/null ; then
+      _NC="nc -c -l"
+    else
+      _NC="nc -l"
+    fi
   fi
 
-  _debug "$_NC $Le_HTTPPort"
+  _debug "_NC" "$_NC"
 #  while true ; do
     if [ "$DEBUG" ] ; then
       if ! echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort -vv ; then
