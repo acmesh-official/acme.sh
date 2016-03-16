@@ -1097,7 +1097,7 @@ renewAll() {
   _initpath
   _info "renewAll"
   
-  for d in $(ls -F $LE_WORKING_DIR | grep [^.].*[.].*/$ ) ; do
+  for d in $(ls -F ${LE_WORKING_DIR}/ | grep [^.].*[.].*/$ ) ; do
     d=$(echo $d | cut -d '/' -f 1)
     _info "renew $d"
     
