@@ -11,16 +11,16 @@ Probably it's the smallest&easiest&smartest shell script to automatically issue 
 Do NOT require to be `root/sudoer`.
 
 #Tested OS
-1. Ubuntu ![](https://cdn.rawgit.com/Neilpang/letest/master/status/ubuntu-latest.svg)
-2. Debian ![](https://cdn.rawgit.com/Neilpang/letest/master/status/debian-latest.svg)
-3. CentOS ![](https://cdn.rawgit.com/Neilpang/letest/master/status/centos-latest.svg)
+1. Ubuntu [![](https://cdn.rawgit.com/Neilpang/letest/master/status/ubuntu-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
+2. Debian [![](https://cdn.rawgit.com/Neilpang/letest/master/status/debian-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
+3. CentOS [![](https://cdn.rawgit.com/Neilpang/letest/master/status/centos-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
 4. Windows (cygwin with curl, openssl and crontab included)
 5. FreeBSD with bash
 6. pfsense with bash and curl
-7. openSUSE 13
-8. Alpine Linux ![](https://cdn.rawgit.com/Neilpang/letest/master/status/alpine-latest.svg) (with bash, curl. https://github.com/Neilpang/le/issues/94)
+7. openSUSE [![](https://cdn.rawgit.com/Neilpang/letest/master/status/opensuse-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
+8. Alpine Linux [![](https://cdn.rawgit.com/Neilpang/letest/master/status/alpine-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status) (with bash, curl. https://github.com/Neilpang/le/issues/94)
 9. Archlinux 
-10. fedora ![](https://cdn.rawgit.com/Neilpang/letest/master/status/fedora-latest.svg)
+10. fedora [![](https://cdn.rawgit.com/Neilpang/letest/master/status/fedora-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
 
 For all the build status, check our daily build project: 
 
