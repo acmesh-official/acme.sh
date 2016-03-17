@@ -10,6 +10,12 @@ STAGE_CA="https://acme-staging.api.letsencrypt.org"
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
 
+BEGIN_CSR="-----BEGIN CERTIFICATE REQUEST-----"
+END_CSR="-----END CERTIFICATE REQUEST-----"
+
+BEGIN_CERT="-----BEGIN CERTIFICATE-----"
+END_CERT="-----END CERTIFICATE-----"
+
 if [ -z "$AGREEMENT" ] ; then
   AGREEMENT="$DEFAULT_AGREEMENT"
 fi
@@ -59,8 +65,89 @@ _h2b() {
   done
 }
 
+#Usage: file startline endline
+_getfile() {
+  filename="$1"
+  startline="$2"
+  endline="$3"
+  if [ -z "$endline" ] ; then
+    _err "Usage: file startline endline"
+    return 1
+  fi
+  
+  i="$(grep -n --  "$startline"  $filename | cut -d : -f 1)"
+  if [ -z "$i" ] ; then
+    _err "Can not find start line: $startline"
+    return 1
+  fi
+  let "i+=1"
+  _debug i $i
+  
+  j="$(grep -n --  "$endline"  $filename | cut -d : -f 1)"
+  if [ -z "$j" ] ; then
+    _err "Can not find end line: $endline"
+    return 1
+  fi
+  let "j-=1"
+  _debug j $j
+  
+  sed -n $i,${j}p  "$filename"
+
+}
+
+#Usage: multiline
 _base64() {
-  openssl base64 -e | tr -d '\n'
+  if [ "$1" ] ; then
+    openssl base64 -e
+  else
+    openssl base64 -e | tr -d '\r\n'
+  fi
+}
+
+#Usage: multiline
+_dbase64() {
+  if [ "$1" ] ; then
+    openssl base64 -d -A
+  else
+    openssl base64 -d
+  fi
+}
+
+#Usage: hashalg
+#Output Base64-encoded digest
+_digest() {
+  alg="$1"
+  if [ -z "$alg" ] ; then
+    _err "Usage: _digest hashalg"
+    return 1
+  fi
+  
+  if [ "$alg" == "sha256" ] ; then
+    openssl dgst -sha256 -binary | _base64
+  else
+    _err "$alg is not supported yet"
+    return 1
+  fi
+
+}
+
+#Usage: keyfile hashalg
+#Output: Base64-encoded signature value
+_sign() {
+  keyfile="$1"
+  alg="$2"
+  if [ -z "$alg" ] ; then
+    _err "Usage: _sign keyfile hashalg"
+    return 1
+  fi
+  
+  if [ "$alg" == "sha256" ] ; then
+    openssl   dgst   -sha256  -sign  "$keyfile" | _base64
+  else
+    _err "$alg is not supported yet"
+    return 1
+  fi  
+  
 }
 
 _ss() {
@@ -343,7 +430,7 @@ _send_signed_request() {
   protected64="$(printf "$protected" | _base64 | _urlencode)"
   _debug protected64 "$protected64"
 
-  sig=$(echo -n "$protected64.$payload64" |  openssl   dgst   -sha256  -sign  "$keyfile" | _base64 | _urlencode)
+  sig=$(echo -n "$protected64.$payload64" |  _sign  "$keyfile" "sha256" | _urlencode)
   _debug sig "$sig"
   
   body="{\"header\": $HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
@@ -749,9 +836,9 @@ issue() {
   fi
   
   accountkey_json=$(echo -n "$jwk" |  tr -d ' ' )
-  thumbprint=$(echo -n "$accountkey_json" | openssl dgst -sha256 -binary | _base64 | _urlencode)
+  thumbprint=$(echo -n "$accountkey_json" | _digest "sha256" | _urlencode)
   
-  accountkeyhash="$(cat "$ACCOUNT_KEY_PATH" | openssl dgst -sha256 -binary | _base64)"
+  accountkeyhash="$(cat "$ACCOUNT_KEY_PATH" | _digest "sha256" )"
 
   if [ "$accountkeyhash" != "$ACCOUNT_KEY_HASH" ] ; then
     _info "Registering account"
@@ -839,7 +926,7 @@ issue() {
         dnsadded='0'
         txtdomain="_acme-challenge.$d"
         _debug txtdomain "$txtdomain"
-        txt="$(echo -e -n $keyauthorization | openssl dgst -sha256 -binary | _base64 | _urlencode)"
+        txt="$(echo -e -n $keyauthorization | _digest "sha256" | _urlencode)"
         _debug txt "$txt"
         #dns
         #1. check use api
@@ -1003,7 +1090,7 @@ issue() {
 
   _clearup
   _info "Verify finished, start to sign."
-  der="$(openssl req  -in $CSR_PATH -outform DER | _base64 | _urlencode)"
+  der="$(_getfile "$CSR_PATH" "$BEGIN_CSR" "$END_CSR" | tr -d "\r\n" | _urlencode)"
   _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"
   
   
@@ -1011,9 +1098,9 @@ issue() {
   _setopt "$DOMAIN_CONF"  "Le_LinkCert"           "="  "$Le_LinkCert"
 
   if [ "$Le_LinkCert" ] ; then
-    echo -----BEGIN CERTIFICATE----- > "$CERT_PATH"
-    curl --silent "$Le_LinkCert" | openssl base64 -e  >> "$CERT_PATH"
-    echo -----END CERTIFICATE-----  >> "$CERT_PATH"
+    echo "$BEGIN_CERT" > "$CERT_PATH"
+    curl --silent "$Le_LinkCert" | _base64 "multiline"  >> "$CERT_PATH"
+    echo "$END_CERT"  >> "$CERT_PATH"
     _info "Cert success."
     cat "$CERT_PATH"
     
@@ -1023,7 +1110,7 @@ issue() {
   
 
   if [ -z "$Le_LinkCert" ] ; then
-    response="$(echo $response | openssl base64 -d -A)"
+    response="$(echo $response | _dbase64 "multiline" )"
     _err "Sign failed: $(echo "$response" | grep -o  '"detail":"[^"]*"')"
     return 1
   fi
@@ -1034,9 +1121,9 @@ issue() {
   _setopt "$DOMAIN_CONF"  "Le_LinkIssuer"         "="  "$Le_LinkIssuer"
   
   if [ "$Le_LinkIssuer" ] ; then
-    echo -----BEGIN CERTIFICATE----- > "$CA_CERT_PATH"
-    curl --silent "$Le_LinkIssuer" | openssl base64 -e  >> "$CA_CERT_PATH"
-    echo -----END CERTIFICATE-----  >> "$CA_CERT_PATH"
+    echo "$BEGIN_CERT" > "$CA_CERT_PATH"
+    curl --silent "$Le_LinkIssuer" | _base64 "multiline"  >> "$CA_CERT_PATH"
+    echo "$END_CERT"  >> "$CA_CERT_PATH"
     _info "The intermediate CA cert is in $CA_CERT_PATH"
     cat "$CA_CERT_PATH" >> "$CERT_FULLCHAIN_PATH"
     _info "And the full chain certs is there: $CERT_FULLCHAIN_PATH"
