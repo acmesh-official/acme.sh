@@ -5,6 +5,8 @@ PROJECT="https://github.com/Neilpang/le"
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
 DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf"
 
+DEFAULT_USER_AGENT="le.sh client: $PROJECT"
+
 STAGE_CA="https://acme-staging.api.letsencrypt.org"
 
 VTYPE_HTTP="http-01"
@@ -33,7 +35,7 @@ _err() {
   if [ -z "$2" ] ; then
     echo "$1" >&2
   else
-    echo "$1"="$2" >&2
+    echo "$1"="'$2'" >&2
   fi
   return 1
 }
@@ -427,22 +429,17 @@ _post() {
   needbase64="$3"
 
   if _exists "curl" ; then
-    dp="$LE_WORKING_DIR/curl.dump"
-    CURL="curl --silent --dump-header $HTTP_HEADER "
-    if [ "$DEBUG" ] ; then
-      CURL="$CURL --trace-ascii $dp "
-    fi
-
+    CURL="$CURL --dump-header $HTTP_HEADER "
     if [ "$needbase64" ] ; then
-      response="$($CURL -X POST --data "$body" $url | _base64)"
+      response="$($CURL -A "User-Agent: $USER_AGENT" -X POST --data "$body" $url | _base64)"
     else
-      response="$($CURL -X POST --data "$body" $url)"
+      response="$($CURL -A "User-Agent: $USER_AGENT" -X POST --data "$body" $url)"
     fi
   else
     if [ "$needbase64" ] ; then
-      response="$(wget -q -S -O - --post-data="$body" $url 2>"$HTTP_HEADER" | _base64)"
+      response="$($WGET -S -O - --user-agent="$USER_AGENT" --post-data="$body" $url 2>"$HTTP_HEADER" | _base64)"
     else
-      response="$(wget -q -S -O - --post-data="$body" $url 2>"$HTTP_HEADER")"
+      response="$($WGET -S -O - --user-agent="$USER_AGENT" --post-data="$body" $url 2>"$HTTP_HEADER")"
     fi
     _sed_i "s/^ *//g" "$HTTP_HEADER"
   fi
@@ -457,15 +454,16 @@ _get() {
   _debug url $url
   if _exists "curl" ; then
     if [ "$onlyheader" ] ; then
-      curl -I --silent $url
+      $CURL -I -A "User-Agent: $USER_AGENT" $url
     else
-      curl --silent $url
+      $CURL -A "User-Agent: $USER_AGENT" $url
     fi
   else
+    _debug "WGET" "$WGET"
     if [ "$onlyheader" ] ; then
-      wget -S -q -O /dev/null $url 2>&1 | sed "s/^[ ]*//g"
+      eval $WGET --user-agent=\"$USER_AGENT\" -S -O /dev/null $url 2>&1 | sed 's/^[ ]*//g'
     else
-      wget -q -O - $url
+      eval $WGET --user-agent=\"$USER_AGENT\" -O - $url
     fi
   fi
   ret=$?
@@ -492,7 +490,7 @@ _send_signed_request() {
   _debug payload64 $payload64
   
   nonceurl="$API/directory"
-  nonce="$(_get $nonceurl "onlyheader" | grep -o "Replay-Nonce:.*$" | tr -d "\r\n" | cut -d ' ' -f 2)"
+  nonce="$(_get $nonceurl "onlyheader" | grep -o "Replay-Nonce:.*$" | head -1 | tr -d "\r\n" | cut -d ' ' -f 2)"
 
   _debug nonce "$nonce"
   
@@ -508,7 +506,7 @@ _send_signed_request() {
   body="{\"header\": $HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
   _debug body "$body"
   
-  HTTP_HEADER="$LE_WORKING_DIR/http.header"
+
   response="$(_post "$body" $url "$needbase64" )"
 
   responseHeaders="$(cat $HTTP_HEADER)"
@@ -648,6 +646,23 @@ _initpath() {
   
   if [ -z "$APACHE_CONF_BACKUP_DIR" ] ; then
     APACHE_CONF_BACKUP_DIR="$LE_WORKING_DIR/"
+  fi
+  
+  if [ -z "$USER_AGENT" ] ; then
+    USER_AGENT="$DEFAULT_USER_AGENT"
+  fi
+  
+  HTTP_HEADER="$LE_WORKING_DIR/http.header"
+  
+  WGET="wget -q"
+  if [ "$DEBUG" ] ; then
+    WGET="$WGET -d "
+  fi
+
+  dp="$LE_WORKING_DIR/curl.dump"
+  CURL="curl --silent"
+  if [ "$DEBUG" ] ; then
+    CURL="$CURL --trace-ascii $dp "
   fi
   
   domain="$1"
@@ -1153,7 +1168,7 @@ issue() {
   _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"
   
   
-  Le_LinkCert="$(grep -i -o '^Location.*$' $HTTP_HEADER | tr -d "\r\n" | cut -d " " -f 2)"
+  Le_LinkCert="$(grep -i -o '^Location.*$' $HTTP_HEADER | head -1 | tr -d "\r\n" | cut -d " " -f 2)"
   _setopt "$DOMAIN_CONF"  "Le_LinkCert"           "="  "$Le_LinkCert"
 
   if [ "$Le_LinkCert" ] ; then
@@ -1176,7 +1191,7 @@ issue() {
   
   _setopt "$DOMAIN_CONF"  'Le_Vlist' '=' "\"\""
   
-  Le_LinkIssuer=$(grep -i '^Link' $HTTP_HEADER | cut -d " " -f 2| cut -d ';' -f 1 | tr -d '<>' )
+  Le_LinkIssuer=$(grep -i '^Link' $HTTP_HEADER | head -1 | cut -d " " -f 2| cut -d ';' -f 1 | tr -d '<>' )
   _setopt "$DOMAIN_CONF"  "Le_LinkIssuer"         "="  "$Le_LinkIssuer"
   
   if [ "$Le_LinkIssuer" ] ; then
@@ -1423,6 +1438,7 @@ _initconf() {
 
 #ACCOUNT_KEY_HASH=account key hash
 
+USER_AGENT=\"le.sh client: $PROJECT\"
 #dns api
 #######################
 #Cloudflare:
