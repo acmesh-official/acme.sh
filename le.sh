@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VER=1.1.9
+VER=1.2.0
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
@@ -20,18 +20,6 @@ if [ -z "$AGREEMENT" ] ; then
   AGREEMENT="$DEFAULT_AGREEMENT"
 fi
 
-_debug() {
-
-  if [ -z "$DEBUG" ] ; then
-    return
-  fi
-  
-  if [ -z "$2" ] ; then
-    echo $1
-  else
-    echo "$1"="$2"
-  fi
-}
 
 _info() {
   if [ -z "$2" ] ; then
@@ -50,6 +38,26 @@ _err() {
   return 1
 }
 
+_debug() {
+  if [ -z "$DEBUG" ] ; then
+    return
+  fi
+  _err "$1" "$2"
+  return 0
+}
+
+_exists() {
+  cmd="$1"
+  if [ -z "$cmd" ] ; then
+    _err "Usage: _exists cmd"
+    return 1
+  fi
+  command -v $cmd >/dev/null 2>&1
+  ret="$?"
+  _debug "$cmd exists=$ret"
+  return $ret
+}
+
 _h2b() {
   hex=$(cat)
   i=1
@@ -63,6 +71,25 @@ _h2b() {
     let "i+=2"
     let "j+=2"
   done
+}
+
+#options file
+_sed_i() {
+  options="$1"
+  filename="$2"
+  if [ -z "$filename" ] ; then
+    _err "Usage:_sed_i options filename"
+    return 1
+  fi
+  
+  if sed -h 2>&1 | grep "\-i[SUFFIX]" ; then
+    _debug "Using sed  -i"
+    sed -i ""
+  else
+    _debug "No -i support in sed"
+    text="$(cat $filename)"
+    echo "$text" | sed "$options" > "$filename"
+  fi
 }
 
 #Usage: file startline endline
@@ -393,6 +420,57 @@ _calcjwk() {
 
   _debug HEADER "$HEADER"
 }
+# body  url [needbase64]
+_post() {
+  body="$1"
+  url="$2"
+  needbase64="$3"
+
+  if _exists "curl" ; then
+    dp="$LE_WORKING_DIR/curl.dump"
+    CURL="curl --silent --dump-header $HTTP_HEADER "
+    if [ "$DEBUG" ] ; then
+      CURL="$CURL --trace-ascii $dp "
+    fi
+
+    if [ "$needbase64" ] ; then
+      response="$($CURL -X POST --data "$body" $url | _base64)"
+    else
+      response="$($CURL -X POST --data "$body" $url)"
+    fi
+  else
+    if [ "$needbase64" ] ; then
+      response="$(wget -q -S -O - --post-data="$body" $url 2>"$HTTP_HEADER" | _base64)"
+    else
+      response="$(wget -q -S -O - --post-data="$body" $url 2>"$HTTP_HEADER")"
+    fi
+    _sed_i "s/^ *//g" "$HTTP_HEADER"
+  fi
+  echo -n "$response"
+  
+}
+
+# url getheader
+_get() {
+  url="$1"
+  onlyheader="$2"
+  _debug url $url
+  if _exists "curl" ; then
+    if [ "$onlyheader" ] ; then
+      curl -I --silent $url
+    else
+      curl --silent $url
+    fi
+  else
+    if [ "$onlyheader" ] ; then
+      wget -S -q -O /dev/null $url 2>&1 | sed "s/^[ ]*//g"
+    else
+      wget -q -O - $url
+    fi
+  fi
+  ret=$?
+  return $ret
+}
 
 # url  payload needbase64  keyfile
 _send_signed_request() {
@@ -409,18 +487,12 @@ _send_signed_request() {
   if ! _calcjwk "$keyfile" ; then
     return 1
   fi
-  
-  CURL_HEADER="$LE_WORKING_DIR/curl.header"
-  dp="$LE_WORKING_DIR/curl.dump"
-  CURL="curl --silent --dump-header $CURL_HEADER "
-  if [ "$DEBUG" ] ; then
-    CURL="$CURL --trace-ascii $dp "
-  fi
+
   payload64=$(echo -n $payload | _base64 | _urlencode)
   _debug payload64 $payload64
   
   nonceurl="$API/directory"
-  nonce="$($CURL -I $nonceurl | grep -o "^Replay-Nonce:.*$" | tr -d "\r\n" | cut -d ' ' -f 2)"
+  nonce="$(_get $nonceurl "onlyheader" | grep -o "Replay-Nonce:.*$" | tr -d "\r\n" | cut -d ' ' -f 2)"
 
   _debug nonce "$nonce"
   
@@ -436,31 +508,18 @@ _send_signed_request() {
   body="{\"header\": $HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
   _debug body "$body"
   
-  if [ "$needbase64" ] ; then
-    response="$($CURL -X POST --data "$body" $url | _base64)"
-  else
-    response="$($CURL -X POST --data "$body" $url)"
-  fi
+  HTTP_HEADER="$LE_WORKING_DIR/http.header"
+  response="$(_post "$body" $url "$needbase64" )"
 
-  responseHeaders="$(cat $CURL_HEADER)"
+  responseHeaders="$(cat $HTTP_HEADER)"
   
   _debug responseHeaders "$responseHeaders"
   _debug response  "$response"
-  code="$(grep ^HTTP $CURL_HEADER | tail -1 | cut -d " " -f 2 | tr -d "\r\n" )"
+  code="$(grep "^HTTP" $HTTP_HEADER | tail -1 | cut -d " " -f 2 | tr -d "\r\n" )"
   _debug code $code
 
 }
 
-_get() {
-  url="$1"
-  _debug url $url
-  response="$(curl --silent $url)"
-  ret=$?
-  _debug response  "$response"
-  code="$(echo $response | grep -o '"status":[0-9]\+' | cut -d : -f 2)"
-  _debug code $code
-  return $ret
-}
 
 #setopt "file"  "opt"  "="  "value" [";"]
 _setopt() {
@@ -1040,7 +1099,7 @@ issue() {
     _send_signed_request $uri "{\"resource\": \"challenge\", \"keyAuthorization\": \"$keyauthorization\"}"
     
     if [ ! -z "$code" ] && [ ! "$code" == '202' ] ; then
-      _err "$d:Challenge error: $resource"
+      _err "$d:Challenge error: $response"
       _clearupwebbroot "$Le_Webroot" "$removelevel" "$token"
       _clearup
       return 1
@@ -1050,9 +1109,9 @@ issue() {
       _debug "sleep 5 secs to verify"
       sleep 5
       _debug "checking"
-      
-      if ! _get $uri ; then
-        _err "$d:Verify error:$resource"
+      response="$(_get $uri)"
+      if [ "$?" != "0" ] ; then
+        _err "$d:Verify error:$response"
         _clearupwebbroot "$Le_Webroot" "$removelevel" "$token"
         _clearup
         return 1
@@ -1094,12 +1153,12 @@ issue() {
   _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"
   
   
-  Le_LinkCert="$(grep -i -o '^Location.*$' $CURL_HEADER | tr -d "\r\n" | cut -d " " -f 2)"
+  Le_LinkCert="$(grep -i -o '^Location.*$' $HTTP_HEADER | tr -d "\r\n" | cut -d " " -f 2)"
   _setopt "$DOMAIN_CONF"  "Le_LinkCert"           "="  "$Le_LinkCert"
 
   if [ "$Le_LinkCert" ] ; then
     echo "$BEGIN_CERT" > "$CERT_PATH"
-    curl --silent "$Le_LinkCert" | _base64 "multiline"  >> "$CERT_PATH"
+    _get "$Le_LinkCert" | _base64 "multiline"  >> "$CERT_PATH"
     echo "$END_CERT"  >> "$CERT_PATH"
     _info "Cert success."
     cat "$CERT_PATH"
@@ -1117,12 +1176,12 @@ issue() {
   
   _setopt "$DOMAIN_CONF"  'Le_Vlist' '=' "\"\""
   
-  Le_LinkIssuer=$(grep -i '^Link' $CURL_HEADER | cut -d " " -f 2| cut -d ';' -f 1 | tr -d '<>' )
+  Le_LinkIssuer=$(grep -i '^Link' $HTTP_HEADER | cut -d " " -f 2| cut -d ';' -f 1 | tr -d '<>' )
   _setopt "$DOMAIN_CONF"  "Le_LinkIssuer"         "="  "$Le_LinkIssuer"
   
   if [ "$Le_LinkIssuer" ] ; then
     echo "$BEGIN_CERT" > "$CA_CERT_PATH"
-    curl --silent "$Le_LinkIssuer" | _base64 "multiline"  >> "$CA_CERT_PATH"
+    _get "$Le_LinkIssuer" | _base64 "multiline"  >> "$CA_CERT_PATH"
     echo "$END_CERT"  >> "$CA_CERT_PATH"
     _info "The intermediate CA cert is in $CA_CERT_PATH"
     cat "$CA_CERT_PATH" >> "$CERT_FULLCHAIN_PATH"
@@ -1389,48 +1448,44 @@ _initconf() {
   fi
 }
 
+_precheck() {
+  if ! _exists "curl"  && ! _exists "wget"; then
+    _err "Please install curl or wget first, we need to access http resources."
+    return 1
+  fi
+  
+  if ! _exists "crontab" ; then
+    _err "Please install crontab first. try to install 'cron, crontab, crontabs or vixie-cron'."
+    _err "We need to set cron job to renew the certs automatically."
+    return 1
+  fi
+  
+  if ! _exists "openssl" ; then
+    _err "Please install openssl first."
+    _err "We need openssl to generate keys."
+    return 1
+  fi
+  
+  if ! _exists "nc" ; then
+    _err "It is recommended to install nc first, try to install 'nc' or 'netcat'."
+    _err "We use nc for standalone server if you use standalone mode."
+    _err "If you don't use standalone mode, just ignore this warning."
+  fi
+  
+  return 0
+}
+
 install() {
   if ! _initpath ; then
     _err "Install failed."
     return 1
   fi
   
-  #check if there is sudo installed, AND if the current user is a sudoer.
-  if command -v sudo > /dev/null ; then
-    if [ "$(sudo -n uptime 2>&1|grep "load"|wc -l)" != "0" ] ; then
-      SUDO=sudo
-    fi
-  fi
-  
-  if command -v yum > /dev/null ; then
-   YUM="1"
-   INSTALL="$SUDO yum install -y "
-  elif command -v apt-get > /dev/null ; then
-   INSTALL="$SUDO apt-get install -y "
-  fi
-
-  if ! command -v "curl" > /dev/null ; then
-    _err "Please install curl first."
-    _err "$INSTALL curl"
+  if ! _precheck ; then
+    _err "Pre-check failed, can not install."
     return 1
   fi
   
-  if ! command -v "crontab" > /dev/null ; then
-    _err "Please install crontab first."
-    if [ "$YUM" ] ; then
-      _err "$INSTALL crontabs"
-    else
-      _err "$INSTALL crontab"
-    fi
-    return 1
-  fi
-  
-  if ! command -v "openssl" > /dev/null ; then
-    _err "Please install openssl first."
-    _err "$INSTALL openssl"
-    return 1
-  fi
-
   _info "Installing to $LE_WORKING_DIR"
 
   cp le.sh "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/le.sh"
