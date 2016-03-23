@@ -194,7 +194,7 @@ _ss() {
       #for windows version netstat tool
       netstat -anb -p tcp | grep "LISTENING" | grep :$_port" "
     else
-      if netstat -help 2>&1 | grep "-p protocol" >/dev/null ; then
+      if netstat -help 2>&1 | grep "\-p protocol" >/dev/null ; then
         netstat -an -p tcp | grep LISTEN | grep :$_port" "
       else
         netstat -ntpl | grep :$_port" "
