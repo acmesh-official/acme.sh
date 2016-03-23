@@ -181,21 +181,28 @@ _sign() {
 
 _ss() {
   _port="$1"
-  if command -v "netstat" >/dev/null 2>&1 ; then
+  
+  if _exists "ss" ; then
+    _debug "Using: ss"
+    ss -ntpl | grep :$_port" "
+    return 0
+  fi
+
+  if _exists "netstat" ; then
     _debug "Using: netstat"
     if netstat -h 2>&1 | grep "\-p proto" >/dev/null ; then
       #for windows version netstat tool
       netstat -anb -p tcp | grep "LISTENING" | grep :$_port" "
     else
-      netstat -ntpl | grep :$_port" "
+      if netstat -help 2>&1 | grep "-p protocol" >/dev/null ; then
+        netstat -an -p tcp | grep LISTEN | grep :$_port" "
+      else
+        netstat -ntpl | grep :$_port" "
+      fi
     fi
     return 0
   fi
-  if command -v "ss" >/dev/null 2>&1 ; then
-    _debug "Using: ss"
-    ss -ntpl | grep :$_port" "
-    return 0
-  fi
+
   return 1
 }
 
