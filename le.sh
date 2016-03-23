@@ -601,6 +601,8 @@ _startserver() {
   else
     if echo "$nchelp" | grep "GNU netcat" >/dev/null && echo "$nchelp" | grep "\-c, \-\-close" >/dev/null ; then
       _NC="nc -c -l"
+    elif echo "$nchelp" | grep "\-N" |grep "Shutdown the network socket after EOF on stdin"  >/dev/null ; then
+      _NC="nc -N -l"
     else
       _NC="nc -l"
     fi
