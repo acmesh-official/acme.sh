@@ -22,6 +22,7 @@ Do NOT require to be `root/sudoer`.
 9. Archlinux [![](https://cdn.rawgit.com/Neilpang/letest/master/status/base-archlinux.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
 10. fedora [![](https://cdn.rawgit.com/Neilpang/letest/master/status/fedora-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
 11. Kali Linux [![](https://cdn.rawgit.com/Neilpang/letest/master/status/kalilinux-kali-linux-docker.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
+12. Oracle Linux [![](https://cdn.rawgit.com/Neilpang/letest/master/status/oraclelinux-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
 
 For all the build status, check our daily build project: 
 
