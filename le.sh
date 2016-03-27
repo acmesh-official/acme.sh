@@ -674,16 +674,12 @@ _initpath() {
   fi
 
   dp="$LE_WORKING_DIR/curl.dump"
-  CURL="curl --silent"
+  CURL="curl -L --silent"
   if [ "$DEBUG" ] ; then
-    CURL="$CURL --trace-ascii $dp "
+    CURL="$CURL -L --trace-ascii $dp "
   fi
   
   domain="$1"
-  if ! mkdir -p "$LE_WORKING_DIR" ; then
-    _err "Can not craete working dir: $LE_WORKING_DIR"
-    return 1
-  fi
   
   if [ -z "$ACCOUNT_KEY_PATH" ] ; then
     ACCOUNT_KEY_PATH="$LE_WORKING_DIR/account.key"
@@ -1517,7 +1513,12 @@ install() {
   fi
   
   _info "Installing to $LE_WORKING_DIR"
-
+  
+  if ! mkdir -p "$LE_WORKING_DIR" ; then
+    _err "Can not craete working dir: $LE_WORKING_DIR"
+    return 1
+  fi
+  
   cp le.sh "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/le.sh"
 
   if [ "$?" != "0" ] ; then
@@ -1614,6 +1615,36 @@ createCSR:
   "
 }
 
+_installOnline() {
+  _info "Installing from online archive."
+  if [ ! "$BRANCH" ] ; then
+    BRANCH="master"
+  fi
+  _initpath
+  target="$PROJECT/archive/$BRANCH.tar.gz"
+  _info "Downloading $target"
+  localname="$BRANCH.tar.gz"
+  if ! _get "$target" > $localname ; then
+    _debug "Download error."
+    return 1
+  fi
+  _info "Extracting $localname"
+  tar xzf $localname
+  cd "le-$BRANCH"
+  chmod +x le.sh
+  if ./le.sh install ; then
+    _info "Install success!"
+  fi
+  
+  cd ..
+  rm -rf "le-$BRANCH"
+  rm -f "$localname"
+}
+
+if [ "$INSTALLONLINE" ] ; then
+  _installOnline $BRANCH
+  exit
+fi
 
 if [ -z "$1" ] ; then
   showhelp
