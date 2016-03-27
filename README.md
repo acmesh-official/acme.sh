@@ -8,7 +8,7 @@ Just one script, to issue, renew your certificates automatically.
 
 Probably it's the smallest&easiest&smartest shell script to automatically issue & renew the free certificates from LetsEncrypt.
 
-Do NOT require to be `root/sudoer`.
+NOT require to be `root/sudoer`.
 
 #Tested OS
 1. Ubuntu [![](https://cdn.rawgit.com/Neilpang/letest/master/status/ubuntu-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
@@ -34,14 +34,30 @@ https://github.com/Neilpang/letest.git
 3. Apache mode
 4. Dns mode
 
-#How to use
+#How to install
 
-1. Clone this project: https://github.com/Neilpang/le.git
+1. Install online:
 
-2. Install le:
 ```
+curl https://raw.githubusercontent.com/Neilpang/le/master/le.sh | INSTALLONLINE=1  bash
+
+```
+
+Or:
+```
+wget -O -  https://raw.githubusercontent.com/Neilpang/le/master/le.sh | INSTALLONLINE=1  bash
+
+```
+
+
+2. Or, Install from git:
+Clone this project: 
+```
+git clone https://github.com/Neilpang/le.git
+cd le
 ./le.sh install
 ```
+
 You don't have to be root then, although it is recommended.
 
 Which does 3 jobs:
