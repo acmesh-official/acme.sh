@@ -1642,6 +1642,7 @@ _installOnline() {
 }
 
 if [ "$INSTALLONLINE" ] ; then
+  INSTALLONLINE=""
   _installOnline $BRANCH
   exit
 fi
