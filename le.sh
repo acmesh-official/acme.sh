@@ -434,6 +434,7 @@ _calcjwk() {
 
   _debug HEADER "$HEADER"
 }
+
 # body  url [needbase64]
 _post() {
   body="$1"
@@ -1476,12 +1477,12 @@ USER_AGENT=\"le.sh client: $PROJECT\"
 
 _precheck() {
   if ! _exists "curl"  && ! _exists "wget"; then
-    _err "Please install curl or wget first, we need to access http resources."
+    _err "Please install curl or wget first, we need it to access http resources."
     return 1
   fi
   
   if ! _exists "crontab" ; then
-    _err "Please install crontab first. try to install 'cron, crontab, crontabs or vixie-cron'."
+    _err "Please install crontab first, try to install 'cron', 'crontab', 'crontabs' or 'vixie-cron'."
     _err "We need to set cron job to renew the certs automatically."
     return 1
   fi
@@ -1515,7 +1516,7 @@ install() {
   _info "Installing to $LE_WORKING_DIR"
   
   if ! mkdir -p "$LE_WORKING_DIR" ; then
-    _err "Can not craete working dir: $LE_WORKING_DIR"
+    _err "Can not create working dir: $LE_WORKING_DIR"
     return 1
   fi
   
@@ -1538,7 +1539,7 @@ alias le.sh=\"$LE_WORKING_DIR/le.sh\"
     " > "$LE_WORKING_DIR/le.env"
     echo "" >> "$_profile"
     _setopt "$_profile" "source \"$LE_WORKING_DIR/le.env\""
-    _info "OK, Close and reopen your terminal to start using le"
+    _info "OK, close and reopen your terminal to start using le"
   else
     _info "No profile is found, you will need to go into $LE_WORKING_DIR to use le.sh"
   fi
@@ -1586,7 +1587,7 @@ version() {
 showhelp() {
   version
   echo "Usage: le.sh  [command] ...[args]....
-Avalible commands:
+Available commands:
 
 install:
   Install le.sh to your system.
