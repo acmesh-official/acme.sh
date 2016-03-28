@@ -1520,7 +1520,7 @@ install() {
     return 1
   fi
   
-  cp le.sh "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/le.sh"
+  cp $0 "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/le.sh"
 
   if [ "$?" != "0" ] ; then
     _err "Install failed, can not copy le.sh"
