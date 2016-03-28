@@ -51,7 +51,7 @@ _debug() {
 _exists() {
   cmd="$1"
   if [ -z "$cmd" ] ; then
-    _err "Usage: _exists cmd"
+    _err "Usage: ${FUNCNAME[0]} CMD"
     return 1
   fi
   command -v $cmd >/dev/null 2>&1
@@ -75,17 +75,17 @@ _h2b() {
   done
 }
 
-#options file
+# args: OPTIONS FILE
 _sed_i() {
   options="$1"
   filename="$2"
   if [ -z "$filename" ] ; then
-    _err "Usage:_sed_i options filename"
+    _err "Usage: ${FUNCNAME[0]} OPTIONS FILENAME"
     return 1
   fi
   
   if sed -h 2>&1 | grep "\-i[SUFFIX]" ; then
-    _debug "Using sed  -i"
+    _debug "Using sed -i"
     sed -i ""
   else
     _debug "No -i support in sed"
@@ -94,13 +94,13 @@ _sed_i() {
   fi
 }
 
-#Usage: file startline endline
+# args: FILE STARTLINE ENDLINE
 _getfile() {
   filename="$1"
   startline="$2"
   endline="$3"
   if [ -z "$endline" ] ; then
-    _err "Usage: file startline endline"
+    _err "Usage: ${FUNCNAME[0]} FILE STARTLINE ENDLINE"
     return 1
   fi
   
@@ -121,10 +121,9 @@ _getfile() {
   _debug j $j
   
   sed -n $i,${j}p  "$filename"
-
 }
 
-#Usage: multiline
+# args: [multiline]
 _base64() {
   if [ "$1" ] ; then
     openssl base64 -e
@@ -133,7 +132,7 @@ _base64() {
   fi
 }
 
-#Usage: multiline
+# args: [multiline]
 _dbase64() {
   if [ "$1" ] ; then
     openssl base64 -d -A
@@ -142,12 +141,12 @@ _dbase64() {
   fi
 }
 
-#Usage: hashalg
-#Output Base64-encoded digest
+# args: HASH-ALG
+# output: base64-encoded digest
 _digest() {
   alg="$1"
   if [ -z "$alg" ] ; then
-    _err "Usage: _digest hashalg"
+    _err "Usage: ${FUNCNAME[0]} HASH-ALG"
     return 1
   fi
   
@@ -157,16 +156,15 @@ _digest() {
     _err "$alg is not supported yet"
     return 1
   fi
-
 }
 
-#Usage: keyfile hashalg
-#Output: Base64-encoded signature value
+# args: KEYFILE HASH-ALG
+# output: base64-encoded signature value
 _sign() {
   keyfile="$1"
   alg="$2"
   if [ -z "$alg" ] ; then
-    _err "Usage: _sign keyfile hashalg"
+    _err "Usage: ${FUNCNAME[0]} KEYFILE HASH-ALG"
     return 1
   fi
   
@@ -176,7 +174,6 @@ _sign() {
     _err "$alg is not supported yet"
     return 1
   fi  
-  
 }
 
 _ss() {
@@ -206,11 +203,11 @@ _ss() {
   return 1
 }
 
-#domain [2048]  
+# args: ACCOUNT-DOMAIN [LENGTH] (default:2048)
 createAccountKey() {
   _info "Creating account key"
   if [ -z "$1" ] ; then
-    echo Usage: createAccountKey account-domain  [2048]
+    _err "Usage: $0 ${FUNCNAME[0]}  ACCOUNT-DOMAIN  [LENGTH] (default:2048)"
     return
   fi
   
@@ -234,14 +231,13 @@ createAccountKey() {
     #generate account key
     openssl genrsa $length 2>/dev/null > "$ACCOUNT_KEY_PATH"
   fi
-
 }
 
-#domain length
+# args: DOMAIN [LENGTH] (default:2048/256 for ec-)
 createDomainKey() {
   _info "Creating domain key"
   if [ -z "$1" ] ; then
-    echo Usage: createDomainKey domain  [2048]
+    _err "Usage: $0 ${FUNCNAME[0]}  DOMAIN  [LENGTH] (default:2048/256 for ec-)"
     return
   fi
   
@@ -295,14 +291,13 @@ createDomainKey() {
       return 1
     fi
   fi
-
 }
 
-# domain  domainlist
+# args: DOMAIN [DOMAINLIST]
 createCSR() {
   _info "Creating csr"
   if [ -z "$1" ] ; then
-    echo Usage: $0 domain  [domainlist]
+    _err "Usage: $0 ${FUNCNAME[0]}  DOMAIN  [DOMAINLIST]"
     return
   fi
   domain=$1
@@ -327,7 +322,6 @@ createCSR() {
     printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\n[SAN]\nsubjectAltName=$alt" > "$DOMAIN_SSL_CONF"
     openssl req -new -sha256 -key "$CERT_KEY_PATH" -subj "/CN=$domain" -reqexts SAN -config "$DOMAIN_SSL_CONF" -out "$CSR_PATH"
   fi
-
 }
 
 _urlencode() {
@@ -344,8 +338,7 @@ _time2str() {
   #Linux
   if date -u -r $1 2>/dev/null ; then
     return
-  fi
-  
+  fi  
 }
 
 _stat() {
@@ -360,11 +353,11 @@ _stat() {
   fi
 }
 
-#keyfile
+# args: KEYFILE
 _calcjwk() {
   keyfile="$1"
   if [ -z "$keyfile" ] ; then
-    _err "Usage: _calcjwk keyfile"
+    _err "Usage: ${FUNCNAME[0]} KEYFILE"
     return 1
   fi
   EC_SIGN=""
@@ -435,7 +428,7 @@ _calcjwk() {
   _debug HEADER "$HEADER"
 }
 
-# body  url [needbase64]
+# args: BODY URL [needbase64]
 _post() {
   body="$1"
   url="$2"
@@ -457,10 +450,9 @@ _post() {
     _sed_i "s/^ *//g" "$HTTP_HEADER"
   fi
   echo -n "$response"
-  
 }
 
-# url getheader
+# args: URL [getheader]
 _get() {
   url="$1"
   onlyheader="$2"
@@ -483,7 +475,7 @@ _get() {
   return $ret
 }
 
-# url  payload needbase64  keyfile
+# args: URL PAYLOAD [needbase64 [KEYFILE]]
 _send_signed_request() {
   url=$1
   payload=$2
@@ -528,11 +520,9 @@ _send_signed_request() {
   _debug response  "$response"
   code="$(grep "^HTTP" $HTTP_HEADER | tail -1 | cut -d " " -f 2 | tr -d "\r\n" )"
   _debug code $code
-
 }
 
-
-#setopt "file"  "opt"  "="  "value" [";"]
+# args: "FILE" "OPT" "=" "VALUE" [";"]
 _setopt() {
   __conf="$1"
   __opt="$2"
@@ -540,7 +530,7 @@ _setopt() {
   __val="$4"
   __end="$5"
   if [ -z "$__opt" ] ; then 
-    echo usage: _setopt  '"file"  "opt"  "="  "value" [";"]'
+    _err "Usage: ${FUNCNAME[0]} "'"FILE" "OPT" "=" "VALUE" [";"]'
     return
   fi
   if [ ! -f "$__conf" ] ; then
@@ -569,8 +559,8 @@ _setopt() {
   _debug "$(grep -H -n "^$__opt$__sep" $__conf)"
 }
 
-#_savedomainconf   key  value
-#save to domain.conf
+# args: KEY VALUE
+# job: save to domain.conf
 _savedomainconf() {
   key="$1"
   value="$2"
@@ -581,7 +571,7 @@ _savedomainconf() {
   fi
 }
 
-#_saveaccountconf  key  value
+# args: KEY  VALUE
 _saveaccountconf() {
   key="$1"
   value="$2"
@@ -592,6 +582,7 @@ _saveaccountconf() {
   fi
 }
 
+# args: CONTENT
 _startserver() {
   content="$1"
 
@@ -629,9 +620,9 @@ _startserver() {
 
 _stopserver() {
   pid="$1"
-
 }
 
+# args: [DOMAIN]
 _initpath() {
 
   if [ -z "$LE_WORKING_DIR" ]; then
@@ -719,9 +710,7 @@ _initpath() {
   if [ -z "$CERT_FULLCHAIN_PATH" ] ; then
     CERT_FULLCHAIN_PATH="$domainhome/fullchain.cer"
   fi
-
 }
-
 
 _apachePath() {
   httpdroot="$(apachectl -V | grep HTTPD_ROOT= | cut -d = -f 2 | tr -d '"' )"
@@ -805,7 +794,7 @@ _clearup () {
   _restoreApache
 }
 
-# webroot  removelevel tokenfile
+# args: WEBROOT  REMOVE-LEVEL  [TOKENFILE]
 _clearupwebbroot() {
   __webroot="$1"
   if [ -z "$__webroot" ] ; then
@@ -827,12 +816,12 @@ _clearupwebbroot() {
   fi
   
   return 0
-
 }
 
+# args: webroot|apache|dns|no  DOMAIN  [SUBDOMAIN,...|no]  [KEY-LENGTH|no]  [CERT-PATH [REAL-KEY-PATH [CA-CERT-PATH [RELOAD-CMD]]]]"
 issue() {
   if [ -z "$2" ] ; then
-    _err "Usage: le  issue  webroot|no|apache|dns   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no"
+    _err "Usage: $0 ${FUNCNAME[0]}  webroot|apache|dns|no  DOMAIN  [SUBDOMAIN,...|no]  [KEY-LENGTH|no]  [CERT-PATH [REAL-KEY-PATH [CA-CERT-PATH [RELOAD-CMD]]]]"
     return 1
   fi
   Le_Webroot="$1"
@@ -1066,8 +1055,7 @@ issue() {
       _debug "Dns record not added yet, so, save to $DOMAIN_CONF and exit."
       _err "Please add the TXT records to the domains, and retry again."
       return 1
-    fi
-    
+    fi    
   fi
   
   if [ "$dnsadded" == '1' ] ; then
@@ -1117,8 +1105,7 @@ issue() {
 
         webroot_owner=$(_stat $Le_Webroot)
         _debug "Changing owner/group of .well-known to $webroot_owner"
-        chown -R $webroot_owner "$Le_Webroot/.well-known"
-        
+        chown -R $webroot_owner "$Le_Webroot/.well-known"        
       fi
     fi
     
@@ -1234,13 +1221,13 @@ issue() {
 
 
   installcert $Le_Domain  "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd"
-
 }
 
+# args: DOMAIN
 renew() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ] ; then
-    _err "Usage: $0  domain.com"
+    _err "Usage: $0 ${FUNCNAME[0]}  DOMAIN"
     return 1
   fi
 
@@ -1307,13 +1294,13 @@ renewAll() {
     
     renew "$d"  
   done
-  
 }
 
+# args: DOMAIN  [CERT-FILE-PATH|no]  [KEY-FILE-PATH|no]  [CA-CERT-FILE-PATH|no]  [RELOAD-CMD|no]
 installcert() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ] ; then
-    _err "Usage: $0  domain.com  [cert-file-path]|no  [key-file-path]|no  [ca-cert-file-path]|no   [reloadCmd]|no"
+    _err "Usage: $0  ${FUNCNAME[0]}  DOMAIN  [CERT-FILE-PATH|no]  [KEY-FILE-PATH|no]  [CA-CERT-FILE-PATH|no]  [RELOAD-CMD|no]"
     return 1
   fi
 
@@ -1395,8 +1382,7 @@ uninstallcronjob() {
   
 }
 
-
-# Detect profile file if not specified as environment variable
+# job: detect profile file if not specified as environment variable
 _detect_profile() {
   if [ -n "$PROFILE" -a -f "$PROFILE" ]; then
     echo "$PROFILE"
