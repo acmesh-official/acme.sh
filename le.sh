@@ -1364,6 +1364,13 @@ installcert() {
 
 installcronjob() {
   _initpath
+  if ! _exists "crontab" ; then
+    _err "crontab doesn't exist, so, we can not install cron jobs."
+    _err "All your certs will not be renewed automatically."
+    _err "You must add your own cron job to call 'le.sh cron' everyday."
+    return 1
+  fi
+
   _info "Installing cron job"
   if ! crontab -l | grep 'le.sh cron' ; then 
     if [ -f "$LE_WORKING_DIR/le.sh" ] ; then
@@ -1481,9 +1488,14 @@ _precheck() {
   fi
   
   if ! _exists "crontab" ; then
-    _err "Please install crontab first. try to install 'cron, crontab, crontabs or vixie-cron'."
+    _err "It is recommended to install crontab first. try to install 'cron, crontab, crontabs or vixie-cron'."
     _err "We need to set cron job to renew the certs automatically."
-    return 1
+    _err "Otherwise, your certs will not be able to be renewed automatically."
+    if [ -z "$FORCE" ] ; then
+      _err "Please define 'FORCE=1' and try install again to go without crontab."
+      _err "FORCE=1 ./le.sh install"
+      return 1
+    fi
   fi
   
   if ! _exists "openssl" ; then
