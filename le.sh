@@ -1142,7 +1142,7 @@ issue() {
         return 1
       fi
       
-      status=$(echo $response | egrep -o  '"status":"[^"]+"' | cut -d : -f 2 | tr -d '"')
+      status=$(echo $response | egrep -o  '"status":"[^"]*' | cut -d : -f 2 | tr -d '"')
       if [ "$status" == "valid" ] ; then
         _info "Success"
         _stopserver $serverproc
