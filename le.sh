@@ -1390,6 +1390,9 @@ installcronjob() {
 }
 
 uninstallcronjob() {
+  if ! _exists "crontab" ; then
+    return
+  fi
   _info "Removing cron job"
   cr="$(crontab -l | grep 'le.sh cron')"
   if [ "$cr" ] ; then 
