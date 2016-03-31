@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VER=1.2.0
+VER=1.2.1
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
