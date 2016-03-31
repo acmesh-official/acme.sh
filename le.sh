@@ -1040,20 +1040,26 @@ issue() {
           _err "so the resulting subdomain will be: $txtdomain"
           continue
         fi
-
-        if ! source $d_api ; then
-          _err "Load file $d_api error. Please check your api file and try again."
-          return 1
-        fi
         
-        addcommand="$Le_Webroot-add"
-        if ! command -v $addcommand ; then 
-          _err "It seems that your api file is not correct, it must have a function named: $addcommand"
-          return 1
-        fi
+        (
+          if ! source $d_api ; then
+            _err "Load file $d_api error. Please check your api file and try again."
+            return 1
+          fi
+          
+          addcommand="$Le_Webroot-add"
+          if ! command -v $addcommand ; then 
+            _err "It seems that your api file is not correct, it must have a function named: $addcommand"
+            return 1
+          fi
+          
+          if ! $addcommand $txtdomain $txt ; then
+            _err "Error add txt for domain:$txtdomain"
+            return 1
+          fi
+        )
         
-        if ! $addcommand $txtdomain $txt ; then
-          _err "Error add txt for domain:$txtdomain"
+        if [[ "$?" != "0" ]] ; then
           return 1
         fi
         dnsadded='1'
