@@ -1174,7 +1174,7 @@ issue() {
 
   _clearup
   _info "Verify finished, start to sign."
-  der="$(_getfile "$CSR_PATH" "$BEGIN_CSR" "$END_CSR" | tr -d "\r\n" | _urlencode)"
+  der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _urlencode)"
   _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"
   
   
