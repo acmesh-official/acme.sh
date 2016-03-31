@@ -24,6 +24,8 @@ NOT require to be `root/sudoer`.
 11. Kali Linux [![](https://cdn.rawgit.com/Neilpang/letest/master/status/kalilinux-kali-linux-docker.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
 12. Oracle Linux [![](https://cdn.rawgit.com/Neilpang/letest/master/status/oraclelinux-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
 13. Cloud Linux  https://github.com/Neilpang/le/issues/111
+14. Proxmox https://pve.proxmox.com/wiki/HTTPSCertificateConfiguration#Let.27s_Encrypt_using_le.sh
+
 
 For all the build status, check our daily build project: 
 
