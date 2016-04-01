@@ -596,7 +596,7 @@ _startserver() {
 
   nchelp="$(nc -h 2>&1)"
   
-  if echo "$nchelp" | grep "\-q " >/dev/null ; then
+  if echo "$nchelp" | grep "\-q[ ,]" >/dev/null ; then
     _NC="nc -q 1 -l"
   else
     if echo "$nchelp" | grep "GNU netcat" >/dev/null && echo "$nchelp" | grep "\-c, \-\-close" >/dev/null ; then
