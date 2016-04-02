@@ -1282,7 +1282,7 @@ renewAll() {
     
     Le_LinkCert=""
     Le_Domain=""
-    Le_Alt=""
+    Le_Alt="no"
     Le_Webroot=""
     Le_Keylength=""
     Le_LinkIssuer=""
