@@ -723,9 +723,14 @@ _initpath() {
 
 
 _apachePath() {
-  httpdroot="$(apachectl -V | grep HTTPD_ROOT= | cut -d = -f 2 | tr -d '"' )"
   httpdconfname="$(apachectl -V | grep SERVER_CONFIG_FILE= | cut -d = -f 2 | tr -d '"' )"
-  httpdconf="$httpdroot/$httpdconfname"
+  if [[ "$httpdconfname" == '/'* ]] ; then
+    httpdconf="$httpdconfname"
+  else
+    httpdroot="$(apachectl -V | grep HTTPD_ROOT= | cut -d = -f 2 | tr -d '"' )"
+    httpdconf="$httpdroot/$httpdconfname"
+  fi
+
   if [ ! -f $httpdconf ] ; then
     _err "Apache Config file not found" $httpdconf
     return 1
