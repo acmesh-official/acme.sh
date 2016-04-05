@@ -783,13 +783,31 @@ _setApache() {
   _info "The backup file will be deleted on sucess, just forget it."
   
   #add alias
-  echo "
+  
+  apacheVer="$(apachectl -V | grep "Server version:" | cut -d : -f 2 | cut -d " " -f 2 | cut -d '/' -f 2 )"
+  _debug "apacheVer" "$apacheVer"
+  apacheMajer="$(echo "$apacheVer" | cut -d . -f 1)"
+  apacheMinor="$(echo "$apacheVer" | cut -d . -f 2)"
+
+  if [[ "$apacheVer" ]] && [[ "$apacheMajer" -ge "2" ]] && [[ "$apacheMinor" -ge "4" ]] ; then
+    echo "
 Alias /.well-known/acme-challenge  $ACME_DIR
 
 <Directory $ACME_DIR >
 Require all granted
 </Directory>
+  " >> $httpdconf  
+  else
+    echo "
+Alias /.well-known/acme-challenge  $ACME_DIR
+
+<Directory $ACME_DIR >
+Order allow,deny
+Allow from all
+</Directory>
   " >> $httpdconf
+  fi
+
   
   if ! apachectl  -t ; then
     _err "Sorry, apache config error, please contact me."
