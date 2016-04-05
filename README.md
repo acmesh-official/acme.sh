@@ -10,6 +10,8 @@ Probably it's the smallest&easiest&smartest shell script to automatically issue 
 
 NOT require to be `root/sudoer`.
 
+Wiki: https://github.com/Neilpang/le/wiki
+
 #Tested OS
 1. Ubuntu [![](https://cdn.rawgit.com/Neilpang/letest/master/status/ubuntu-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
 2. Debian [![](https://cdn.rawgit.com/Neilpang/letest/master/status/debian-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
