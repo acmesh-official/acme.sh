@@ -726,6 +726,7 @@ _apachePath() {
   httpdconfname="$(apachectl -V | grep SERVER_CONFIG_FILE= | cut -d = -f 2 | tr -d '"' )"
   if [[ "$httpdconfname" == '/'* ]] ; then
     httpdconf="$httpdconfname"
+    httpdconfname="$(basename $httpdconfname)"
   else
     httpdroot="$(apachectl -V | grep HTTPD_ROOT= | cut -d = -f 2 | tr -d '"' )"
     httpdconf="$httpdroot/$httpdconfname"
