@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VER=1.2.1
+VER=1.2.2
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
@@ -585,7 +585,7 @@ _saveaccountconf() {
   key="$1"
   value="$2"
   if [ "$ACCOUNT_CONF_PATH" ] ; then
-    _setopt $ACCOUNT_CONF_PATH "$key" "=" "$value"
+    _setopt $ACCOUNT_CONF_PATH "$key" "=" "\"$value\""
   else
     _err "ACCOUNT_CONF_PATH is empty, can not save $key=$value"
   fi
@@ -643,6 +643,13 @@ _initpath() {
   
   if [ -f "$ACCOUNT_CONF_PATH" ] ; then
     source "$ACCOUNT_CONF_PATH"
+  fi
+
+  if [[ "$IN_CRON" ]] ; then
+    if [[ ! "$_USER_PATH_EXPORTED" ]] ; then
+      _USER_PATH_EXPORTED=1
+      export PATH="$USER_PATH:$PATH"
+    fi
   fi
 
   if [ -z "$API" ] ; then
@@ -1205,6 +1212,11 @@ issue() {
     
     _info "Your cert is in $CERT_PATH"
     cp "$CERT_PATH" "$CERT_FULLCHAIN_PATH"
+
+    if [[ ! "$USER_PATH" ]] || [[ ! "$IN_CRON" ]] ; then
+      USER_PATH="$PATH"
+      _saveaccountconf "USER_PATH" "$USER_PATH"
+    fi
   fi
   
 
@@ -1474,6 +1486,9 @@ _initconf() {
 #ACCOUNT_KEY_HASH=account key hash
 
 USER_AGENT=\"le.sh client: $PROJECT\"
+
+#USER_PATH=""
+
 #dns api
 #######################
 #Cloudflare:
@@ -1605,7 +1620,9 @@ uninstall() {
 }
 
 cron() {
+  IN_CRON=1
   renewAll
+  IN_CRON=""
 }
 
 version() {
