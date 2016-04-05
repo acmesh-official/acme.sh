@@ -76,7 +76,7 @@ Show help message:
 ```
 root@v1:~# le.sh
 https://github.com/Neilpang/le
-v1.1.1
+v1.2.2
 Usage: le.sh  [command] ...[args]....
 Available commands:
 
@@ -98,12 +98,15 @@ installcronjob:
   Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
 uninstallcronjob:
   Uninstall the cron job. The 'uninstall' command can do this automatically.
+toPkcs:
+  Export the certificate and key to a pfx file.
 createAccountKey:
   Create an account private key, professional use.
 createDomainKey:
   Create an domain private key, professional use.
 createCSR:
   Create CSR , professional use.
+
 
 
 root@v1:~/le# le issue
