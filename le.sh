@@ -206,6 +206,28 @@ _ss() {
   return 1
 }
 
+toPkcs() {
+  domain="$1"
+  pfxPassword="$2"
+  if [[ -z "$domain" ]] ; then
+    _err "Usage: toPkcs domain [pfx-password]"
+    return 1
+  fi
+
+  _initpath "$domain"
+  
+  if [[ "$pfxPassword" ]] ; then
+    openssl pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH" -password "pass:$pfxPassword"
+  else
+    openssl pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH"
+  fi
+  
+  if [[ "$?" == "0" ]] ; then
+    _info "Success, Pfx is exported to: $CERT_PFX_PATH"
+  fi
+
+}
+
 #domain [2048]  
 createAccountKey() {
   _info "Creating account key"
@@ -725,7 +747,9 @@ _initpath() {
   if [ -z "$CERT_FULLCHAIN_PATH" ] ; then
     CERT_FULLCHAIN_PATH="$domainhome/fullchain.cer"
   fi
-
+  if [ -z "$CERT_PFX_PATH" ] ; then
+    CERT_PFX_PATH="$domainhome/$domain.pfx"
+  fi
 }
 
 
@@ -1344,6 +1368,7 @@ renewAll() {
     CERT_KEY_PATH=""
     CERT_PATH=""
     CA_CERT_PATH=""
+    CERT_PFX_PATH=""
     CERT_FULLCHAIN_PATH=""
     ACCOUNT_KEY_PATH=""
     
@@ -1651,7 +1676,7 @@ version() {
 showhelp() {
   version
   echo "Usage: le.sh  [command] ...[args]....
-Avalible commands:
+Available commands:
 
 install:
   Install le.sh to your system.
@@ -1671,6 +1696,8 @@ installcronjob:
   Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
 uninstallcronjob:
   Uninstall the cron job. The 'uninstall' command can do this automatically.
+toPkcs:
+  Export the certificate and key to a pfx file.
 createAccountKey:
   Create an account private key, professional use.
 createDomainKey:
