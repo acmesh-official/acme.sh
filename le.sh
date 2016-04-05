@@ -666,7 +666,7 @@ _initpath() {
   fi
   
   if [ -z "$APACHE_CONF_BACKUP_DIR" ] ; then
-    APACHE_CONF_BACKUP_DIR="$LE_WORKING_DIR/"
+    APACHE_CONF_BACKUP_DIR="$LE_WORKING_DIR"
   fi
   
   if [ -z "$USER_AGENT" ] ; then
