@@ -1127,10 +1127,11 @@ issue() {
 
         mkdir -p "$wellknown_path"
         echo -n "$keyauthorization" > "$wellknown_path/$token"
-
-        webroot_owner=$(_stat $Le_Webroot)
-        _debug "Changing owner/group of .well-known to $webroot_owner"
-        chown -R $webroot_owner "$Le_Webroot/.well-known"
+        if [[ ! "$usingApache" ]] ; then
+          webroot_owner=$(_stat $Le_Webroot)
+          _debug "Changing owner/group of .well-known to $webroot_owner"
+          chown -R $webroot_owner "$Le_Webroot/.well-known"
+        fi
         
       fi
     fi
