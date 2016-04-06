@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VER=1.2.2
+VER=1.2.3
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
@@ -1474,6 +1474,60 @@ uninstallcronjob() {
   
 }
 
+revoke() {
+  Le_Domain="$1"
+  if [ -z "$Le_Domain" ] ; then
+    _err "Usage: revoke domain.com"
+    return 1
+  fi
+  
+  _initpath $Le_Domain
+  if [ ! -f "$DOMAIN_CONF" ] ; then
+    _err "$Le_Domain is not a issued domain, skip."
+    return 1;
+  fi
+  
+  if [ ! -f "$CERT_PATH" ] ; then
+    _err "Cert for $Le_Domain $CERT_PATH is not found, skip."
+    return 1
+  fi
+  
+  cert="$(_getfile "${CERT_PATH}" "${BEGIN_CERT}" "${END_CERT}"| tr -d "\r\n" | _urlencode)"
+
+  if [ -z "$cert" ] ; then
+    _err "Cert for $Le_Domain is empty found, skip."
+    return 1
+  fi
+  
+  data="{\"resource\": \"revoke-cert\", \"certificate\": \"$cert\"}"
+  uri="$API/acme/revoke-cert"
+
+  _info "Try domain key first."
+  if _send_signed_request $uri "$data" "" "$CERT_KEY_PATH"; then
+    if [ -z "$response" ] ; then
+      _info "Revoke success."
+      rm -f $CERT_PATH
+      return 0
+    else 
+      _err "Revoke error by domain key."
+      _err "$resource"
+    fi
+  fi
+  
+  _info "Then try account key."
+
+  if _send_signed_request $uri "$data" "" "$ACCOUNT_KEY_PATH" ; then
+    if [ -z "$response" ] ; then
+      _info "Revoke success."
+      rm -f $CERT_PATH
+      return 0
+    else 
+      _err "Revoke error."
+      _debug "$resource"
+    fi
+  fi
+  return 1
+}
 
 # Detect profile file if not specified as environment variable
 _detect_profile() {
@@ -1690,6 +1744,8 @@ renewAll:
   Renew all the certs.
 uninstall:
   Uninstall le.sh, and uninstall the cron job.
+revoke:
+  Revoke a cert.
 version:
   Show version info.
 installcronjob:

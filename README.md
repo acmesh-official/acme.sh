@@ -78,7 +78,7 @@ Show help message:
 ```
 root@v1:~# le.sh
 https://github.com/Neilpang/le
-v1.2.2
+v1.2.3
 Usage: le.sh  [command] ...[args]....
 Available commands:
 
@@ -94,6 +94,8 @@ renewAll:
   Renew all the certs.
 uninstall:
   Uninstall le.sh, and uninstall the cron job.
+revoke:
+  Revoke a cert.
 version:
   Show version info.
 installcronjob:
@@ -108,6 +110,7 @@ createDomainKey:
   Create an domain private key, professional use.
 createCSR:
   Create CSR , professional use.
+
 
 
 
