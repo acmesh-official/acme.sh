@@ -1449,12 +1449,12 @@ installcronjob() {
       _err "Can not install cronjob, le.sh not found."
       return 1
     fi
-    crontab -l | { cat; echo "0 0 * * * LE_WORKING_DIR=\"$LE_WORKING_DIR\" $lesh cron > /dev/null"; } | crontab -
+    crontab -l | { cat; echo "0 0 * * * LE_WORKING_DIR=\"$LE_WORKING_DIR\" ACCOUNT_CONF_PATH=\"$ACCOUNT_CONF_PATH\" $lesh cron > /dev/null"; } | crontab -
   fi
   if [ "$?" != "0" ] ; then
     _err "Install cron job failed. You need to manually renew your certs."
     _err "Or you can add cronjob by yourself:"
-    _err "LE_WORKING_DIR=\"$LE_WORKING_DIR\" $lesh cron > /dev/null"
+    _err "LE_WORKING_DIR=\"$LE_WORKING_DIR\" ACCOUNT_CONF_PATH=\"$ACCOUNT_CONF_PATH\" $lesh cron > /dev/null"
     return 1
   fi
 }
