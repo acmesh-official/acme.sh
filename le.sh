@@ -1609,6 +1609,13 @@ USER_AGENT=\"le.sh client: $PROJECT\"
 
     " > $ACCOUNT_CONF_PATH
   fi
+  if [ -n "$ACCOUNT_KEY_PATH" ]; then
+    _sed_i "s/^#ACCOUNT_KEY_PATH=.*$/ACCOUNT_KEY_PATH=\"${ACCOUNT_KEY_PATH//\//\\\/}\"/g" "$ACCOUNT_CONF_PATH"
+  fi
+
+  if [ -n "$ACCOUNT_EMAIL" ]; then
+    _sed_i "s/^#ACCOUNT_EMAIL=.*$/ACCOUNT_EMAIL=\"${ACCOUNT_EMAIL//\//\\\/}\"/g" "$ACCOUNT_CONF_PATH"
+  fi
 }
 
 _precheck() {
