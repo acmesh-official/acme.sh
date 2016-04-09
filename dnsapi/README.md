@@ -15,7 +15,7 @@ export CF_Email="xxxx@sss.com"
 
 Ok, let's issue cert now:
 ```
-le.sh   issue   dns-cf   aa.com  www.aa.com
+le.sh   --issue   --dns dns-cf   -d aa.com  -d www.aa.com
 ```
 
 The `CF_Key` and `CF_Email`  will be saved in `~/.le/account.conf`, when next time you use cloudflare api, it will reuse this key.
@@ -37,7 +37,7 @@ export DP_Key="sADDsdasdgdsf"
 
 Ok, let's issue cert now:
 ```
-le.sh   issue   dns-dp   aa.com  www.aa.com
+le.sh   --issue   --dns dns-dp   -d aa.com  -d www.aa.com
 ```
 
 The `DP_Id` and `DP_Key`  will be saved in `~/.le/account.conf`, when next time you use dnspod.cn api, it will reuse this key.
@@ -58,7 +58,7 @@ export CX_Secret="sADDsdasdgdsf"
 
 Ok, let's issue cert now:
 ```
-le.sh   issue   dns-cx   aa.com  www.aa.com
+le.sh   --issue   --dns dns-cx   -d aa.com  -d www.aa.com
 ```
 
 The `CX_Key` and `CX_Secret`  will be saved in `~/.le/account.conf`, when next time you use Cloudxns.com api, it will reuse this key.
@@ -76,7 +76,7 @@ Let's assume you want to name it 'myapi',
 3. Then you can use your api to issue cert like:
 
 ```
-le.sh  issue  dns-myapi  aa.com  www.aa.com
+le.sh  --issue  --dns  dns-myapi  -d aa.com  -d www.aa.com
 ```
 
 For more details, please check our sample script: [dns-myapi.sh](dns-myapi.sh)
