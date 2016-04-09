@@ -182,7 +182,7 @@ _rest() {
   
   if [ "$3" ] ; then
     data="$3"
-    _debug data "$data"
+    _debug2 data "$data"
     response="$(curl --silent -X $m "$url"  -d $data)"
   else
     response="$(curl --silent -X $m "$url" )"
@@ -192,38 +192,8 @@ _rest() {
     _err "error $ep"
     return 1
   fi
-  _debug response "$response"
+  _debug2 response "$response"
   return 0
-}
-
-
-_debug() {
-
-  if [ -z "$DEBUG" ] ; then
-    return
-  fi
-  
-  if [ -z "$2" ] ; then
-    echo $1
-  else
-    echo "$1"="$2"
-  fi
-}
-
-_info() {
-  if [ -z "$2" ] ; then
-    echo "$1"
-  else
-    echo "$1"="$2"
-  fi
-}
-
-_err() {
-  if [ -z "$2" ] ; then
-    echo "$1" >&2
-  else
-    echo "$1"="$2" >&2
-  fi
 }
 
 

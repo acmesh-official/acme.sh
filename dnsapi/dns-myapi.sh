@@ -25,37 +25,38 @@ dns-myapi-add() {
 
 
 
-
 ####################  Private functions bellow ##################################
 
-
-_debug() {
-
-  if [ -z "$DEBUG" ] ; then
-    return
-  fi
-  
-  if [ -z "$2" ] ; then
-    echo $1
-  else
-    echo "$1"="$2"
-  fi
-}
-
 _info() {
-  if [ -z "$2" ] ; then
-    echo "$1"
+  if [[ -z "$2" ]] ; then
+    echo "[$(date)] $1"
   else
-    echo "$1"="$2"
+    echo "[$(date)] $1"="'$2'"
   fi
 }
 
 _err() {
-  if [ -z "$2" ] ; then
-    echo "$1" >&2
-  else
-    echo "$1"="$2" >&2
-  fi
+  _info "$@" >&2
+  return 1
 }
 
+_debug() {
+  if [[ -z "$DEBUG" ]] ; then
+    return
+  fi
+  _err "$@"
+  return 0
+}
+
+_debug2() {
+  if [[ "$DEBUG" -ge "2" ]] ; then
+    _debug "$@"
+  fi
+  return
+}
+
+
+
+
+####################  Private functions bellow ##################################
 

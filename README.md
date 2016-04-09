@@ -60,7 +60,7 @@ Clone this project:
 ```
 git clone https://github.com/Neilpang/le.git
 cd le
-./le.sh install
+./le.sh --install
 ```
 
 You don't have to be root then, although it is recommended.
@@ -78,76 +78,73 @@ Show help message:
 ```
 root@v1:~# le.sh
 https://github.com/Neilpang/le
-v1.2.3
-Usage: le.sh  [command] ...[args]....
-Available commands:
+v2.0.0
+Usage: le.sh  command ...[parameters]....
+Commands:
+  --help, -h               Show this help message.
+  --version, -v            Show version info.
+  --install                Install le.sh to your system.
+  --uninstall              Uninstall le.sh, and uninstall the cron job.
+  --issue                  Issue a cert.
+  --installcert            Install the issued cert to apache/nginx or any other server.
+  --renew, -r              Renew a cert.
+  --renewAll               Renew all the certs
+  --revoke                 Revoke a cert.
+  --installcronjob         Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
+  --uninstallcronjob       Uninstall the cron job. The 'uninstall' command can do this automatically.
+  --cron                   Run cron job to renew all the certs.
+  --toPkcs                 Export the certificate and key to a pfx file.
+  --createAccountKey, -cak Create an account private key, professional use.
+  --createDomainKey, -cdk  Create an domain private key, professional use.
+  --createCSR, -ccsr       Create CSR , professional use.
 
-install:
-  Install le.sh to your system.
-issue:
-  Issue a cert.
-installcert:
-  Install the issued cert to apache/nginx or any other server.
-renew:
-  Renew a cert.
-renewAll:
-  Renew all the certs.
-uninstall:
-  Uninstall le.sh, and uninstall the cron job.
-revoke:
-  Revoke a cert.
-version:
-  Show version info.
-installcronjob:
-  Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
-uninstallcronjob:
-  Uninstall the cron job. The 'uninstall' command can do this automatically.
-toPkcs:
-  Export the certificate and key to a pfx file.
-createAccountKey:
-  Create an account private key, professional use.
-createDomainKey:
-  Create an domain private key, professional use.
-createCSR:
-  Create CSR , professional use.
+Parameters:
+  --domain, -d   domain.tld         Specifies a domain, used to issue, renew or revoke etc.
+  --force, -f                       Used to force to install or force to renew a cert immediately.
+  --staging, --test                 Use staging server, just for test.
+  --debug                           Output debug info.
 
+  --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
+  --standalone                      Use standalone mode.
+  --apache                          Use apache mode.
+  --dns [dns-cf|dns-dp|dns-cx|/path/to/api/file]   Use dns mode or dns api.
 
+  --keylength, -k [2048]            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384.
+  --accountkeylength, -ak [2048]    Specifies the account key length.
 
+  These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
 
-root@v1:~/le# le issue
-Usage: le  issue  webroot|no|apache|dns   a.com  [www.a.com,b.com,c.com]|no   [key-length]|no
+  --certpath /path/to/real/cert/file  After issue/renew, the cert will be copied to this path.
+  --keypath /path/to/real/key/file  After issue/renew, the key will be copied to this path.
+  --capath /path/to/real/ca/file    After issue/renew, the intermediate cert will be copied to this path.
+  --fullchainpath /path/to/fullchain/file After issue/renew, the fullchain cert will be copied to this path.
+
+  --reloadcmd "service nginx reload" After issue/renew, it's used to reload the server.
+
+  --accountconf                     Specifies a customized account config file.
+  --leworkingdir                    Specifies the home dir for le.sh
 
 
 ```
-
-Set the param value to "no" means you want to ignore it.
-
-For example, if you give "no" to "key-length", it will use default length 2048.
-
-And if you give 'no' to 'cert-file-path', it will not copy the issued cert to the "cert-file-path".
-
-In all the cases, the issued cert will be placed in "~/.le/domain.com/"
-
  
 # Just issue a cert:
 Example 1:
 Only one domain:
 ```
-le issue   /home/wwwroot/aa.com    aa.com 
+le --issue   -d aa.com  -w /home/wwwroot/aa.com   
 ```
 
 Example 2:
 Multiple domains in the same cert:
 
 ```
-le issue   /home/wwwroot/aa.com    aa.com    www.aa.com,cp.aa.com
+le --issue   -d aa.com   -d www.aa.com -d cp.aa.com  -w  /home/wwwroot/aa.com 
 ```
 
-First argument `/home/wwwroot/aa.com` is the web root folder, You must have `write` access to this folder.
+The parameter `/home/wwwroot/aa.com` is the web root folder, You must have `write` access to this folder.
 
 Second argument "aa.com" is the main domain you want to issue cert for.
-
-Third argument is the additional domain list you want to use. Comma separated list,  which is Optional.
+You must have at least domain there.
 
 You must point and bind all the domains to the same webroot dir:`/home/wwwroot/aa.com`
 
@@ -155,41 +152,60 @@ The cert will be placed in `~/.le/aa.com/`
 
 The issued cert will be renewed every 80 days automatically.
 
+
+More examples: https://github.com/Neilpang/le/wiki/How-to-issue-a-cert
+
+
 # Install issued cert to apache/nginx etc.
+After you issue a cert, you probably want to install the cert to you nginx/apache or other servers to use.
+
 ```
-le installcert  aa.com /path/to/certfile/in/apache/nginx  /path/to/keyfile/in/apache/nginx  /path/to/ca/certfile/apache/nginx   "service apache2|nginx reload"
+le --installcert  -d aa.com \
+--certpath /path/to/certfile/in/apache/nginx  \
+--keypath  /path/to/keyfile/in/apache/nginx  \
+--capath   /path/to/ca/certfile/apache/nginx   \
+--fullchainpath path/to/fullchain/certfile/apache/nginx \
+--reloadcmd  "service apache2|nginx reload"
 ```
+
+Only the domain is required, all the other parameters are optional.
 
 Install the issued cert/key to the production apache or nginx path.
 
 The cert will be renewed every 80 days by default (which is configurable), Once the cert is renewed, the apache/nginx will be automatically reloaded by the command: `service apache2 reload` or `service nginx reload`
 
 
-# Use Standalone server to issue cert (requires you be root/sudoer, or you have permission to listen tcp 80 port):
+# Use Standalone server to issue cert 
+(requires you be root/sudoer, or you have permission to listen tcp 80 port):
 Same usage as all above,  just give `no` as the webroot.
 The tcp `80` port must be free to listen, otherwise you will be prompted to free the `80` port and try again.
 
 ```
-le issue    no    aa.com    www.aa.com,cp.aa.com
+le --issue  --standalone    -d aa.com  -d www.aa.com  -d  cp.aa.com
 ```
 
-# Use Apache mode (requires you be root/sudoer, since it is required to interact with apache server):
+More examples: https://github.com/Neilpang/le/wiki/How-to-issue-a-cert
+
+
+# Use Apache mode 
+(requires you be root/sudoer, since it is required to interact with apache server):
 If you are running a web server, apache or nginx, it is recommended to use the Webroot mode.
 Particularly,  if you are running an apache server, you can use apache mode instead. Which doesn't write any file to your web root folder.
 
 Just set string "apache" to the first argument, it will use apache plugin automatically.
 
 ```
-le  issue  apache  aa.com   www.aa.com,user.aa.com
+le  --issue  --apache  -d aa.com   -d www.aa.com -d user.aa.com
 ```
-All the other arguments are the same with previous.
+
+More examples: https://github.com/Neilpang/le/wiki/How-to-issue-a-cert
 
 
 # Use DNS mode:
-Support the latest dns-01 challenge.
+Support the dns-01 challenge.
 
 ```
-le  issue   dns   aa.com  www.aa.com,user.aa.com
+le  --issue   --dns   -d aa.com  -d www.aa.com -d user.aa.com
 ```
 
 You will get the output like bellow:
@@ -208,7 +224,7 @@ Please add those txt records to the domains. Waiting for the dns to take effect.
 Then just retry with 'renew' command:
 
 ```
-le renew  aa.com
+le --renew  -d aa.com
 ```
 
 Ok, it's finished.
@@ -242,12 +258,12 @@ For example:
 
 Single domain:
 ```
-le issue  /home/wwwroot/aa.com    aa.com   no      ec-256
+le --issue  -w /home/wwwroot/aa.com   -d aa.com   --keylength  ec-256
 ```
 
 SAN multiple domains:
 ```
-le issue  /home/wwwroot/aa.com    aa.com   www.aa.com,cp.aa.com    ec-256
+le --issue  -w /home/wwwroot/aa.com   -d aa.com  -d www.aa.com  --keylength  ec-256
 ```
 
 Please look at the last parameter above.
