@@ -39,6 +39,10 @@ https://github.com/Neilpang/letest.git
 3. Apache mode
 4. Dns mode
 
+#Upgrade from 1.x to 2.x
+You can simply uninstall 1.x and re-install 2.x.
+2.x is 100% compatible to 1.x.  You will feel nothing changed.
+
 #How to install
 
 1. Install online:
@@ -157,7 +161,7 @@ More examples: https://github.com/Neilpang/le/wiki/How-to-issue-a-cert
 
 
 # Install issued cert to apache/nginx etc.
-After you issue a cert, you probably want to install the cert to you nginx/apache or other servers to use.
+After you issue a cert, you probably want to install the cert to your nginx/apache or other servers to use.
 
 ```
 le --installcert  -d aa.com \
