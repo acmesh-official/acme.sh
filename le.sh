@@ -662,8 +662,14 @@ _initpath() {
     LE_WORKING_DIR=$HOME/.le
   fi
   
+  _DEFAULT_ACCOUNT_CONF_PATH="$LE_WORKING_DIR/account.conf"
+
+  if [[ -f "$_DEFAULT_ACCOUNT_CONF_PATH" ]] ; then
+    source "$_DEFAULT_ACCOUNT_CONF_PATH"
+  fi
+  
   if [[ -z "$ACCOUNT_CONF_PATH" ]] ; then
-    ACCOUNT_CONF_PATH="$LE_WORKING_DIR/account.conf"
+    ACCOUNT_CONF_PATH="$_DEFAULT_ACCOUNT_CONF_PATH"
   fi
   
   if [[ -f "$ACCOUNT_CONF_PATH" ]] ; then
@@ -1122,7 +1128,7 @@ issue() {
           fi
           
           addcommand="$_currentRoot-add"
-          if ! command -v $addcommand ; then 
+          if ! _exists $addcommand ; then 
             _err "It seems that your api file is not correct, it must have a function named: $addcommand"
             return 1
           fi
@@ -1605,8 +1611,11 @@ _detect_profile() {
 _initconf() {
   _initpath
   if [[ ! -f "$ACCOUNT_CONF_PATH" ]] ; then
-    echo "#Account configurations:
+    echo "#ACCOUNT_CONF_PATH=xxxx
+
+#Account configurations:
 #Here are the supported macros, uncomment them to make them take effect.
+
 #ACCOUNT_EMAIL=aaa@aaa.com  # the account email used to register account.
 #ACCOUNT_KEY_PATH=\"/path/to/account.key\"
 
@@ -1726,12 +1735,16 @@ alias le.sh=\"$LE_WORKING_DIR/le.sh\"
   if [[ -f "$LE_WORKING_DIR/account.acc" ]] ; then
     mv "$LE_WORKING_DIR/account.acc" "$LE_WORKING_DIR/account.key"
   fi
-  
-  installcronjob
-  
+
   if [[ ! -f "$ACCOUNT_CONF_PATH" ]] ; then
     _initconf
   fi
+  
+  _setopt "$_DEFAULT_ACCOUNT_CONF_PATH" "ACCOUNT_CONF_PATH" "=" "\"$ACCOUNT_CONF_PATH\""
+  _setopt "$ACCOUNT_CONF_PATH" "ACCOUNT_CONF_PATH" "=" "\"$ACCOUNT_CONF_PATH\""
+  
+  installcronjob
+  
   _info OK
 }
 
