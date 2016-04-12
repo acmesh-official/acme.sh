@@ -618,7 +618,7 @@ _saveaccountconf() {
 
 _startserver() {
   content="$1"
-
+  _debug "startserver: $$"
   nchelp="$(nc -h 2>&1)"
   
   if echo "$nchelp" | grep "\-q[ ,]" >/dev/null ; then
@@ -646,13 +646,24 @@ _startserver() {
     fi
     if [[ "$?" != "0" ]] ; then
       _err "nc listen error."
-      return 1
+      exit 1
     fi
 #  done
 }
 
-_stopserver() {
+_stopserver(){
   pid="$1"
+  _debug "pid" "$pid"
+  if [[ -z "$pid" ]] ; then
+    return
+  fi
+  
+  if [[ "$(ps | grep "$pid" | grep "nc")" ]] ; then
+    _debug "Found nc process, kill it."
+    kill -s 9 $pid > /dev/null 2>&1
+  fi
+  
+  _get "http://localhost:$Le_HTTPPort" >/dev/null 2>$1
 
 }
 
@@ -1184,9 +1195,13 @@ issue() {
       if [[ "$_currentRoot" == "no" ]] ; then
         _info "Standalone mode server"
         _startserver "$keyauthorization" &
+        if [[ "$?" != "0" ]] ; then
+          return 1
+        fi
         serverproc="$!"
         sleep 2
         _debug serverproc $serverproc
+
       else
         if [[ -z "$wellknown_path" ]] ; then
           wellknown_path="$_currentRoot/.well-known/acme-challenge"
@@ -1224,7 +1239,20 @@ issue() {
       return 1
     fi
     
+    waittimes=0
+    if [[ -z "$MAX_RETRY_TIMES" ]] ; then
+      MAX_RETRY_TIMES=30
+    fi
+    
     while [[ "1" ]] ; do
+      let "waittimes+=1"
+      if [[ "$waittimes" -ge "$MAX_RETRY_TIMES" ]] ; then
+        _err "$d:Timeout"
+        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearup
+        return 1
+      fi
+      
       _debug "sleep 5 secs to verify"
       sleep 5
       _debug "checking"
@@ -1946,14 +1974,13 @@ _process() {
         STAGE="1"
         ;;
     --debug)
-        if [[ "$2" == "-"* ]] ; then
+        if [[ "$2" == "-"* ]] || [[ -z "$2" ]]; then
           DEBUG="1"
         else
           DEBUG="$2"
           shift
-        fi
+        fi 
         ;;
-        
     --webroot|-w)
         wvalue="$2"
         if [[ -z "$_webroot" ]] ; then
