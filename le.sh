@@ -658,10 +658,15 @@ _stopserver(){
     return
   fi
   
-  if [[ "$(ps | grep "$pid" | grep "nc")" ]] ; then
-    _debug "Found nc process, kill it."
+  if [[ "$(ps | grep "$pid")" ]] ; then
+    _debug "Found proc process, kill it."
     kill -s 9 $pid > /dev/null 2>&1
   fi
+  
+  for ncid in $(ps | grep nc | cut -d " " -f 1) ; do
+    _debug "kill $ncid"
+    kill -s 9 $ncid > /dev/null 2>&1
+  done
   
   _get "http://localhost:$Le_HTTPPort" >/dev/null 2>$1
 
