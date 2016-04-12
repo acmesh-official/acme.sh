@@ -2049,7 +2049,7 @@ _process() {
       issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keylength" "$_capath" "$_reloadcmd" "$_fullchainpath"
       ;;
     installcert)
-      installcert "$_domain" "$_certpath" "$_keylength" "$_capath" "$_reloadcmd" "$_fullchainpath"
+      installcert "$_domain" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath"
       ;;
     renew) 
       renew "$_domain" 
