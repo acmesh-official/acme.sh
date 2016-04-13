@@ -672,7 +672,7 @@ _stopserver(){
     kill -s 9 $ncid > /dev/null
   done
   
-  _get "http://localhost:$Le_HTTPPort" >/dev/null 2>$1
+  _get "http://localhost:$Le_HTTPPort" >/dev/null 2>&1
 
 }
 
