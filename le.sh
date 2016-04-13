@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
-VER=2.0.0
+VER=2.0.1
+
+PROJECT_NAME="le.sh"
+PROJECT_ENTRY="le.sh"
+
 PROJECT="https://github.com/Neilpang/le"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
 DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf"
 
-DEFAULT_USER_AGENT="le.sh client: $PROJECT"
+DEFAULT_USER_AGENT="$PROJECT_ENTRY client: $PROJECT"
 
 STAGE_CA="https://acme-staging.api.letsencrypt.org"
 
@@ -213,7 +217,7 @@ toPkcs() {
   domain="$1"
   pfxPassword="$2"
   if [[ -z "$domain" ]] ; then
-    echo "Usage: le.sh --toPkcs -d domain [--password pfx-password]"
+    echo "Usage: $PROJECT_ENTRY --toPkcs -d domain [--password pfx-password]"
     return 1
   fi
 
@@ -235,7 +239,7 @@ toPkcs() {
 createAccountKey() {
   _info "Creating account key"
   if [[ -z "$1" ]] ; then
-    echo Usage: le.sh --createAccountKey -d domain.com  [--accountkeylength 2048]
+    echo Usage: $PROJECT_ENTRY --createAccountKey -d domain.com  [--accountkeylength 2048]
     return
   fi
   
@@ -266,7 +270,7 @@ createAccountKey() {
 createDomainKey() {
   _info "Creating domain key"
   if [[ -z "$1" ]] ; then
-    echo Usage: le.sh --createDomainKey -d domain.com  [ --keylength 2048 ]
+    echo Usage: $PROJECT_ENTRY --createDomainKey -d domain.com  [ --keylength 2048 ]
     return
   fi
   
@@ -327,7 +331,7 @@ createDomainKey() {
 createCSR() {
   _info "Creating csr"
   if [[ -z "$1" ]] ; then
-    echo Usage: le.sh --createCSR -d domain1.com [-d domain2.com  -d domain3.com ... ]
+    echo Usage: $PROJECT_ENTRY --createCSR -d domain1.com [-d domain2.com  -d domain3.com ... ]
     return
   fi
   domain=$1
@@ -911,7 +915,7 @@ _clearupwebbroot() {
 
 issue() {
   if [[ -z "$2" ]] ; then
-    echo "Usage: le  --issue  -d  a.com  -w /path/to/webroot/a.com/ "
+    echo "Usage: $PROJECT_ENTRY --issue  -d  a.com  -w /path/to/webroot/a.com/ "
     return 1
   fi
   Le_Webroot="$1"
@@ -1371,7 +1375,7 @@ issue() {
 renew() {
   Le_Domain="$1"
   if [[ -z "$Le_Domain" ]] ; then
-    _err "Usage: le.sh --renew  -d domain.com"
+    _err "Usage: $PROJECT_ENTRY --renew  -d domain.com"
     return 1
   fi
 
@@ -1446,7 +1450,7 @@ renewAll() {
 installcert() {
   Le_Domain="$1"
   if [[ -z "$Le_Domain" ]] ; then
-    echo "Usage: le.sh --installcert -d domain.com  [--certpath cert-file-path]  [--keypath key-file-path]  [--capath ca-cert-file-path]   [ --reloadCmd reloadCmd] [--fullchainpath fullchain-path]"
+    echo "Usage: $PROJECT_ENTRY --installcert -d domain.com  [--certpath cert-file-path]  [--keypath key-file-path]  [--capath ca-cert-file-path]   [ --reloadCmd reloadCmd] [--fullchainpath fullchain-path]"
     return 1
   fi
 
@@ -1510,24 +1514,24 @@ installcronjob() {
   if ! _exists "crontab" ; then
     _err "crontab doesn't exist, so, we can not install cron jobs."
     _err "All your certs will not be renewed automatically."
-    _err "You must add your own cron job to call 'le.sh cron' everyday."
+    _err "You must add your own cron job to call '$PROJECT_ENTRY --cron' everyday."
     return 1
   fi
 
   _info "Installing cron job"
-  if ! crontab -l | grep 'le.sh cron' ; then 
-    if [[ -f "$LE_WORKING_DIR/le.sh" ]] ; then
-      lesh="\"$LE_WORKING_DIR\"/le.sh"
+  if ! crontab -l | grep "$PROJECT_ENTRY --cron" ; then 
+    if [[ -f "$LE_WORKING_DIR/$PROJECT_ENTRY" ]] ; then
+      lesh="\"$LE_WORKING_DIR\"/$PROJECT_ENTRY"
     else
-      _err "Can not install cronjob, le.sh not found."
+      _err "Can not install cronjob, $PROJECT_ENTRY not found."
       return 1
     fi
-    crontab -l | { cat; echo "0 0 * * * LE_WORKING_DIR=\"$LE_WORKING_DIR\" $lesh cron > /dev/null"; } | crontab -
+    crontab -l | { cat; echo "0 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" > /dev/null"; } | crontab -
   fi
   if [[ "$?" != "0" ]] ; then
     _err "Install cron job failed. You need to manually renew your certs."
     _err "Or you can add cronjob by yourself:"
-    _err "LE_WORKING_DIR=\"$LE_WORKING_DIR\" $lesh cron > /dev/null"
+    _err "$lesh --cron --home \"$LE_WORKING_DIR\" > /dev/null"
     return 1
   fi
 }
@@ -1537,20 +1541,20 @@ uninstallcronjob() {
     return
   fi
   _info "Removing cron job"
-  cr="$(crontab -l | grep 'le.sh cron')"
+  cr="$(crontab -l | grep "$PROJECT_ENTRY --cron")"
   if [[ "$cr" ]] ; then 
-    crontab -l | sed "/le.sh cron/d" | crontab -
-    LE_WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 6 | cut -d '=' -f 2 | tr -d '"')"
+    crontab -l | sed "/$PROJECT_ENTRY --cron/d" | crontab -
+    LE_WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 9 | tr -d '"')"
     _info LE_WORKING_DIR "$LE_WORKING_DIR"
   fi 
   _initpath
-  
+
 }
 
 revoke() {
   Le_Domain="$1"
   if [[ -z "$Le_Domain" ]] ; then
-    echo "Usage: le.sh --revoke -d domain.com"
+    echo "Usage: $PROJECT_ENTRY --revoke -d domain.com"
     return 1
   fi
   
@@ -1658,7 +1662,7 @@ _initconf() {
 
 #ACCOUNT_KEY_HASH=account key hash
 
-USER_AGENT=\"le.sh client: $PROJECT\"
+USER_AGENT=\"$DEFAULT_USER_AGENT\"
 
 #USER_PATH=""
 
@@ -1698,8 +1702,8 @@ _precheck() {
     _err "We need to set cron job to renew the certs automatically."
     _err "Otherwise, your certs will not be able to be renewed automatically."
     if [[ -z "$FORCE" ]] ; then
-      _err "Please define 'FORCE=1' and try install again to go without crontab."
-      _err "FORCE=1 ./le.sh install"
+      _err "Please add '--force' and try install again to go without crontab."
+      _err "./$PROJECT_ENTRY --install --force"
       return 1
     fi
   fi
@@ -1737,28 +1741,28 @@ install() {
     return 1
   fi
   
-  cp le.sh "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/le.sh"
+  cp $PROJECT_ENTRY "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/$PROJECT_ENTRY"
 
   if [[ "$?" != "0" ]] ; then
-    _err "Install failed, can not copy le.sh"
+    _err "Install failed, can not copy $PROJECT_ENTRY"
     return 1
   fi
 
-  _info "Installed to $LE_WORKING_DIR/le.sh"
+  _info "Installed to $LE_WORKING_DIR/$PROJECT_ENTRY"
 
   _profile="$(_detect_profile)"
   if [[ "$_profile" ]] ; then
     _debug "Found profile: $_profile"
     
     echo "LE_WORKING_DIR=$LE_WORKING_DIR
-alias le=\"$LE_WORKING_DIR/le.sh\"
-alias le.sh=\"$LE_WORKING_DIR/le.sh\"
-    " > "$LE_WORKING_DIR/le.env"
+alias le=\"$LE_WORKING_DIR/$PROJECT_ENTRY\"
+alias $PROJECT_ENTRY=\"$LE_WORKING_DIR/$PROJECT_ENTRY\"
+    " > "$LE_WORKING_DIR/$PROJECT_ENTRY.env"
     echo "" >> "$_profile"
-    _setopt "$_profile" "source \"$LE_WORKING_DIR/le.env\""
-    _info "OK, Close and reopen your terminal to start using le"
+    _setopt "$_profile" "source \"$LE_WORKING_DIR/$PROJECT_NAME.env\""
+    _info "OK, Close and reopen your terminal to start using $PROJECT_NAME"
   else
-    _info "No profile is found, you will need to go into $LE_WORKING_DIR to use le.sh"
+    _info "No profile is found, you will need to go into $LE_WORKING_DIR to use $PROJECT_NAME"
   fi
 
   mkdir -p $LE_WORKING_DIR/dnsapi
@@ -1788,10 +1792,10 @@ uninstall() {
   _profile="$(_detect_profile)"
   if [[ "$_profile" ]] ; then
     text="$(cat $_profile)"
-    echo "$text" | sed "s|^source.*le.env.*$||" > "$_profile"
+    echo "$text" | sed "s|^source.*$PROJECT_NAME.env.*$||" > "$_profile"
   fi
 
-  rm -f $LE_WORKING_DIR/le.sh
+  rm -f $LE_WORKING_DIR/$PROJECT_ENTRY
   _info "The keys and certs are in $LE_WORKING_DIR, you can remove them by yourself."
 
 }
@@ -1809,12 +1813,12 @@ version() {
 
 showhelp() {
   version
-  echo "Usage: le.sh  command ...[parameters]....
+  echo "Usage: $PROJECT_ENTRY  command ...[parameters]....
 Commands:
   --help, -h               Show this help message.
   --version, -v            Show version info.
-  --install                Install le.sh to your system.
-  --uninstall              Uninstall le.sh, and uninstall the cron job.
+  --install                Install $PROJECT_NAME to your system.
+  --uninstall              Uninstall $PROJECT_NAME, and uninstall the cron job.
   --issue                  Issue a cert.
   --installcert            Install the issued cert to apache/nginx or any other server.
   --renew, -r              Renew a cert.
@@ -1852,7 +1856,7 @@ Parameters:
   --reloadcmd \"service nginx reload\" After issue/renew, it's used to reload the server.
 
   --accountconf                     Specifies a customized account config file.
-  --leworkingdir                    Specifies the home dir for le.sh
+  --home                            Specifies the home dir for $PROJECT_NAME
   
   "
 }
@@ -1873,8 +1877,8 @@ _installOnline() {
   _info "Extracting $localname"
   tar xzf $localname
   cd "le-$BRANCH"
-  chmod +x le.sh
-  if ./le.sh install ; then
+  chmod +x $PROJECT_ENTRY
+  if ./$PROJECT_ENTRY install ; then
     _info "Install success!"
   fi
   
@@ -2059,9 +2063,11 @@ _process() {
         ;;
     --accountconf)
         ACCOUNT_CONF_PATH="$2"
+        shift
         ;;
-    --leworkingdir)
+    --home)
         LE_WORKING_DIR="$2"
+        shift
         ;;
         
     *)
