@@ -45,7 +45,7 @@ You can simply uninstall 1.x and re-install 2.x.
 
 #How to install
 
-1. Install online:
+### 1. Install online:
 
 ```
 curl https://raw.githubusercontent.com/Neilpang/le/master/le.sh | INSTALLONLINE=1  bash
@@ -59,7 +59,7 @@ wget -O -  https://raw.githubusercontent.com/Neilpang/le/master/le.sh | INSTALLO
 ```
 
 
-2. Or, Install from git:
+### 2. Or, Install from git:
 Clone this project: 
 ```
 git clone https://github.com/Neilpang/le.git
@@ -82,7 +82,7 @@ Show help message:
 ```
 root@v1:~# le.sh
 https://github.com/Neilpang/le
-v2.0.0
+v2.0.2
 Usage: le.sh  command ...[parameters]....
 Commands:
   --help, -h               Show this help message.
@@ -126,7 +126,8 @@ Parameters:
   --reloadcmd "service nginx reload" After issue/renew, it's used to reload the server.
 
   --accountconf                     Specifies a customized account config file.
-  --leworkingdir                    Specifies the home dir for le.sh
+  --home                            Specifies the home dir for le.sh
+
 
 
 ```
