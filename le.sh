@@ -1688,6 +1688,14 @@ USER_AGENT=\"$DEFAULT_USER_AGENT\"
 #CX_Secret=\"sADDsdasdgdsf\"
 
     " > $ACCOUNT_CONF_PATH
+
+    if [[ -n "$ACCOUNT_KEY_PATH" && "$ACCOUNT_KEY_PATH" != "$LE_WORKING_DIR/account.key" ]]; then
+      _saveaccountconf "ACCOUNT_KEY_PATH" "$ACCOUNT_KEY_PATH"
+    fi
+
+    if [[ -n "ACCOUNT_EMAIL" ]]; then
+      _saveaccountconf "ACCOUNT_EMAIL" "$ACCOUNT_EMAIL"
+    fi
   fi
 }
 
