@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VER=2.0.1
+VER=2.0.2
 
 PROJECT_NAME="le.sh"
 PROJECT_ENTRY="le.sh"
@@ -2084,7 +2084,7 @@ _process() {
     install) install ;;
     uninstall) uninstall ;;
     issue)
-      issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keylength" "$_capath" "$_reloadcmd" "$_fullchainpath"
+      issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath"
       ;;
     installcert)
       installcert "$_domain" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath"
