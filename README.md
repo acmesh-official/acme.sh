@@ -52,14 +52,16 @@ Nothing broken.
 
 ### 1. Install online:
 
+Check this project:https://github.com/Neilpang/get.acme.sh
+
 ```
-curl https://raw.githubusercontent.com/Neilpang/acme.sh/master/acme.sh | INSTALLONLINE=1  bash
+curl https://get.acme.sh | bash
 
 ```
 
 Or:
 ```
-wget -O -  https://raw.githubusercontent.com/Neilpang/acme.sh/master/acme.sh | INSTALLONLINE=1  bash
+wget -O -  https://get.acme.sh | bash
 
 ```
 
