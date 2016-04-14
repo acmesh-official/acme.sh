@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-VER=2.0.2
+VER=2.1.0
 
-PROJECT_NAME="le.sh"
-PROJECT_ENTRY="le.sh"
+PROJECT_NAME="acme.sh"
 
-PROJECT="https://github.com/Neilpang/le"
+PROJECT_ENTRY="acme.sh"
+
+PROJECT="https://github.com/Neilpang/$PROJECT_NAME"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
 DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf"
@@ -679,7 +680,7 @@ _stopserver(){
 _initpath() {
 
   if [[ -z "$LE_WORKING_DIR" ]] ; then
-    LE_WORKING_DIR=$HOME/.le
+    LE_WORKING_DIR=$HOME/.$PROJECT_NAME
   fi
   
   _DEFAULT_ACCOUNT_CONF_PATH="$LE_WORKING_DIR/account.conf"
@@ -1734,6 +1735,23 @@ install() {
     return 1
   fi
   
+  #convert from le
+  if [[ -d "$HOME/.le" ]] ; then
+    for envfile in "le.env" "le.sh.env"
+    do
+      if [[ -f "$HOME/.le/$envfile" ]] ; then
+        if grep "le.sh" "$HOME/.le/$envfile" >/dev/null ; then
+            _upgrading="1"
+            _info "You are upgrading from le.sh"
+            _info "Renaming \"$HOME/.le\" to $LE_WORKING_DIR"
+            mv "$HOME/.le" "$LE_WORKING_DIR"
+            mv "$LE_WORKING_DIR/$envfile" "$LE_WORKING_DIR/$PROJECT_ENTRY.env"
+          break;
+        fi
+      fi
+    done
+  fi
+
   _info "Installing to $LE_WORKING_DIR"
   
   if ! mkdir -p "$LE_WORKING_DIR" ; then
@@ -1754,10 +1772,16 @@ install() {
   if [[ "$_profile" ]] ; then
     _debug "Found profile: $_profile"
     
-    echo "LE_WORKING_DIR=$LE_WORKING_DIR
-alias le=\"$LE_WORKING_DIR/$PROJECT_ENTRY\"
-alias $PROJECT_ENTRY=\"$LE_WORKING_DIR/$PROJECT_ENTRY\"
-    " > "$LE_WORKING_DIR/$PROJECT_ENTRY.env"
+    _envfile="$LE_WORKING_DIR/$PROJECT_ENTRY.env"
+    if [[ "$_upgrading" == "1" ]] ; then
+      echo "$(cat $_envfile)" | sed "s|^LE_WORKING_DIR.*$||" > "$_envfile"
+      echo "$(cat $_envfile)" | sed "s|^alias le.*$||" > "$_envfile"
+      echo "$(cat $_envfile)" | sed "s|^alias le.sh.*$||" > "$_envfile"
+    fi
+    
+    _setopt "$_envfile" "LE_WORKING_DIR" "=" "\"$LE_WORKING_DIR\""
+    _setopt "$_envfile" "alias $PROJECT_ENTRY" "=" "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
+    
     echo "" >> "$_profile"
     _setopt "$_profile" "source \"$LE_WORKING_DIR/$PROJECT_NAME.env\""
     _info "OK, Close and reopen your terminal to start using $PROJECT_NAME"
@@ -1778,8 +1802,11 @@ alias $PROJECT_ENTRY=\"$LE_WORKING_DIR/$PROJECT_ENTRY\"
   fi
   
   _setopt "$_DEFAULT_ACCOUNT_CONF_PATH" "ACCOUNT_CONF_PATH" "=" "\"$ACCOUNT_CONF_PATH\""
-  _setopt "$ACCOUNT_CONF_PATH" "ACCOUNT_CONF_PATH" "=" "\"$ACCOUNT_CONF_PATH\""
-  
+
+  if [[ "$_DEFAULT_ACCOUNT_CONF_PATH" != "$ACCOUNT_CONF_PATH" ]] ; then
+    _setopt "$ACCOUNT_CONF_PATH" "ACCOUNT_CONF_PATH" "=" "\"$ACCOUNT_CONF_PATH\""
+  fi
+
   installcronjob
   
   _info OK
@@ -1876,14 +1903,14 @@ _installOnline() {
   fi
   _info "Extracting $localname"
   tar xzf $localname
-  cd "le-$BRANCH"
+  cd "$PROJECT_NAME-$BRANCH"
   chmod +x $PROJECT_ENTRY
   if ./$PROJECT_ENTRY install ; then
     _info "Install success!"
   fi
   
   cd ..
-  rm -rf "le-$BRANCH"
+  rm -rf "$PROJECT_NAME-$BRANCH"
   rm -f "$localname"
 }
 

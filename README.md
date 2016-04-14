@@ -1,16 +1,17 @@
-# le: means simp`Le`
+# A acme Shell script: acme.sh
+A acme protocol client in pure bash language.
+Fully ACME protocol implementation. 
+Simple, Powerful and very easy to use, you only need 3 minutes to learn.
+
 Simplest shell script for LetsEncrypt free Certificate client
-
-Simple and Powerful, you only need 3 minutes to learn.
-
-Pure written in bash, no dependencies to python, acme-tiny or LetsEncrypt official client.
+Pure written in bash, no dependencies to python or LetsEncrypt official client.
 Just one script, to issue, renew your certificates automatically.
 
 Probably it's the smallest&easiest&smartest shell script to automatically issue & renew the free certificates from LetsEncrypt.
 
 NOT require to be `root/sudoer`.
 
-Wiki: https://github.com/Neilpang/le/wiki
+Wiki: https://github.com/Neilpang/acme.sh/wiki
 
 #Tested OS
 1. Ubuntu [![](https://cdn.rawgit.com/Neilpang/letest/master/status/ubuntu-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
@@ -31,7 +32,7 @@ Wiki: https://github.com/Neilpang/le/wiki
 
 For all the build status, check our daily build project: 
 
-https://github.com/Neilpang/letest.git
+https://github.com/Neilpang/acmetest
 
 #Supported Mode
 1. Webroot mode
@@ -39,22 +40,26 @@ https://github.com/Neilpang/letest.git
 3. Apache mode
 4. Dns mode
 
-#Upgrade from 1.x to 2.x
+# Upgrade from 1.x to 2.x
 You can simply uninstall 1.x and re-install 2.x.
 2.x is 100% compatible to 1.x.  You will feel nothing changed.
+
+# le.sh renamed to acme.sh NOW!
+All configurations are 100% compatible. You just need to uninstall `le.sh` and re-install `acme.sh` again.
+Nothing broken.
 
 #How to install
 
 ### 1. Install online:
 
 ```
-curl https://raw.githubusercontent.com/Neilpang/le/master/le.sh | INSTALLONLINE=1  bash
+curl https://raw.githubusercontent.com/Neilpang/acme.sh/master/acme.sh | INSTALLONLINE=1  bash
 
 ```
 
 Or:
 ```
-wget -O -  https://raw.githubusercontent.com/Neilpang/le/master/le.sh | INSTALLONLINE=1  bash
+wget -O -  https://raw.githubusercontent.com/Neilpang/acme.sh/master/acme.sh | INSTALLONLINE=1  bash
 
 ```
 
@@ -62,17 +67,17 @@ wget -O -  https://raw.githubusercontent.com/Neilpang/le/master/le.sh | INSTALLO
 ### 2. Or, Install from git:
 Clone this project: 
 ```
-git clone https://github.com/Neilpang/le.git
-cd le
-./le.sh --install
+git clone https://github.com/Neilpang/acme.sh.git
+cd acme.sh
+./acme.sh --install
 ```
 
 You don't have to be root then, although it is recommended.
 
 Which does 3 jobs:
-* create and copy `le.sh` to your home dir:  `~/.le`
+* create and copy `acme.sh` to your home dir:  `~/.acme.sh/`
 All the certs will be placed in this folder.
-* create alias : `le.sh=~/.le/le.sh` and `le=~/.le/le.sh`. 
+* create alias : `acme.sh=~/.acme.sh/acme.sh`. 
 * create everyday cron job to check and renew the cert if needed.
 
 After install, you must close current terminal and reopen again to make the alias take effect.
@@ -80,15 +85,15 @@ After install, you must close current terminal and reopen again to make the alia
 Ok, you are ready to issue cert now.
 Show help message:
 ```
-root@v1:~# le.sh
-https://github.com/Neilpang/le
-v2.0.2
-Usage: le.sh  command ...[parameters]....
+root@v1:~# acme.sh
+https://github.com/Neilpang/acme.sh
+v2.1.0
+Usage: acme.sh  command ...[parameters]....
 Commands:
   --help, -h               Show this help message.
   --version, -v            Show version info.
-  --install                Install le.sh to your system.
-  --uninstall              Uninstall le.sh, and uninstall the cron job.
+  --install                Install acme.sh to your system.
+  --uninstall              Uninstall acme.sh, and uninstall the cron job.
   --issue                  Issue a cert.
   --installcert            Install the issued cert to apache/nginx or any other server.
   --renew, -r              Renew a cert.
@@ -126,7 +131,7 @@ Parameters:
   --reloadcmd "service nginx reload" After issue/renew, it's used to reload the server.
 
   --accountconf                     Specifies a customized account config file.
-  --home                            Specifies the home dir for le.sh
+  --home                            Specifies the home dir for acme.sh
 
 
 
@@ -136,14 +141,14 @@ Parameters:
 Example 1:
 Only one domain:
 ```
-le --issue   -d aa.com  -w /home/wwwroot/aa.com   
+acme.sh --issue   -d aa.com  -w /home/wwwroot/aa.com   
 ```
 
 Example 2:
 Multiple domains in the same cert:
 
 ```
-le --issue   -d aa.com   -d www.aa.com -d cp.aa.com  -w  /home/wwwroot/aa.com 
+acme.sh --issue   -d aa.com   -d www.aa.com -d cp.aa.com  -w  /home/wwwroot/aa.com 
 ```
 
 The parameter `/home/wwwroot/aa.com` is the web root folder, You must have `write` access to this folder.
@@ -153,19 +158,19 @@ You must have at least domain there.
 
 You must point and bind all the domains to the same webroot dir:`/home/wwwroot/aa.com`
 
-The cert will be placed in `~/.le/aa.com/`
+The cert will be placed in `~/.acme.sh/aa.com/`
 
 The issued cert will be renewed every 80 days automatically.
 
 
-More examples: https://github.com/Neilpang/le/wiki/How-to-issue-a-cert
+More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
 
 # Install issued cert to apache/nginx etc.
 After you issue a cert, you probably want to install the cert to your nginx/apache or other servers to use.
 
 ```
-le --installcert  -d aa.com \
+acme.sh --installcert  -d aa.com \
 --certpath /path/to/certfile/in/apache/nginx  \
 --keypath  /path/to/keyfile/in/apache/nginx  \
 --capath   /path/to/ca/certfile/apache/nginx   \
@@ -186,10 +191,10 @@ Same usage as all above,  just give `no` as the webroot.
 The tcp `80` port must be free to listen, otherwise you will be prompted to free the `80` port and try again.
 
 ```
-le --issue  --standalone    -d aa.com  -d www.aa.com  -d  cp.aa.com
+acme.sh --issue  --standalone    -d aa.com  -d www.aa.com  -d  cp.aa.com
 ```
 
-More examples: https://github.com/Neilpang/le/wiki/How-to-issue-a-cert
+More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
 
 # Use Apache mode 
@@ -200,17 +205,17 @@ Particularly,  if you are running an apache server, you can use apache mode inst
 Just set string "apache" to the first argument, it will use apache plugin automatically.
 
 ```
-le  --issue  --apache  -d aa.com   -d www.aa.com -d user.aa.com
+acme.sh  --issue  --apache  -d aa.com   -d www.aa.com -d user.aa.com
 ```
 
-More examples: https://github.com/Neilpang/le/wiki/How-to-issue-a-cert
+More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
 
 # Use DNS mode:
 Support the dns-01 challenge.
 
 ```
-le  --issue   --dns   -d aa.com  -d www.aa.com -d user.aa.com
+acme.sh  --issue   --dns   -d aa.com  -d www.aa.com -d user.aa.com
 ```
 
 You will get the output like bellow:
@@ -229,7 +234,7 @@ Please add those txt records to the domains. Waiting for the dns to take effect.
 Then just retry with 'renew' command:
 
 ```
-le --renew  -d aa.com
+acme.sh --renew  -d aa.com
 ```
 
 Ok, it's finished.
@@ -245,7 +250,7 @@ You don't have do anything manually.
 1. Cloudflare.com api
 2. Dnspod.cn api
 3. Cloudxns.com api
-4. AWS Route 53, see: https://github.com/Neilpang/le/issues/65
+4. AWS Route 53, see: https://github.com/Neilpang/acme.sh/issues/65
 
 More apis are coming soon....
 
@@ -263,12 +268,12 @@ For example:
 
 Single domain:
 ```
-le --issue  -w /home/wwwroot/aa.com   -d aa.com   --keylength  ec-256
+acme.sh --issue  -w /home/wwwroot/aa.com   -d aa.com   --keylength  ec-256
 ```
 
 SAN multiple domains:
 ```
-le --issue  -w /home/wwwroot/aa.com   -d aa.com  -d www.aa.com  --keylength  ec-256
+acme.sh --issue  -w /home/wwwroot/aa.com   -d aa.com  -d www.aa.com  --keylength  ec-256
 ```
 
 Please look at the last parameter above.
