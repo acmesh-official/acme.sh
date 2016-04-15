@@ -1,15 +1,15 @@
-# A acme Shell script: acme.sh
-A acme protocol client in pure bash language.
-Fully ACME protocol implementation. 
-Simple, Powerful and very easy to use, you only need 3 minutes to learn.
+# An ACME Shell script: acme.sh
+- An ACME protocol client written purely in Bash (Unix shell) language.
+- Fully ACME protocol implementation.
+- Simple, powerful and very easy to use. You only need 3 minutes to learn.
 
-Simplest shell script for LetsEncrypt free Certificate client
-Pure written in bash, no dependencies to python or LetsEncrypt official client.
-Just one script, to issue, renew your certificates automatically.
+- Simplest shell script for Let's Encrypt free certificate client.
+- Purely written in Bash with no dependencies on python or Let's Encrypt official client.
+- Just one script, to issue, renew and install your certificates automatically.
 
-Probably it's the smallest&easiest&smartest shell script to automatically issue & renew the free certificates from LetsEncrypt.
+It's probably the `easiest&smallest&smartest` shell script to automatically issue & renew the free certificates from Let's Encrypt.
 
-NOT require to be `root/sudoer`.
+DOES NOT require `root/sudoer` access.
 
 Wiki: https://github.com/Neilpang/acme.sh/wiki
 
@@ -30,62 +30,76 @@ Wiki: https://github.com/Neilpang/acme.sh/wiki
 14. Proxmox https://pve.proxmox.com/wiki/HTTPSCertificateConfiguration#Let.27s_Encrypt_using_le.sh
 
 
-For all the build status, check our daily build project: 
+For all build statuses, check our [daily build project](https://github.com/Neilpang/acmetest): 
 
 https://github.com/Neilpang/acmetest
 
-#Supported Mode
+# Supported Mode
+
 1. Webroot mode
 2. Standalone mode
 3. Apache mode
 4. Dns mode
 
 # Upgrade from 1.x to 2.x
+
 You can simply uninstall 1.x and re-install 2.x.
-2.x is 100% compatible to 1.x.  You will feel nothing changed.
+2.x is 100% compatible to 1.x. You will feel right at home as if nothing has changed.
 
 # le.sh renamed to acme.sh NOW!
-All configurations are 100% compatible. You just need to uninstall `le.sh` and re-install `acme.sh` again.
-Nothing broken.
 
-#How to install
+All configurations are 100% compatible between `le.sh` and `acme.sh`. You just need to uninstall `le.sh` and re-install `acme.sh` again.
+Nothing will be broken during the process.
+
+# How to install
 
 ### 1. Install online:
 
 Check this project:https://github.com/Neilpang/get.acme.sh
 
-```
+```bash
 curl https://get.acme.sh | bash
 
 ```
 
 Or:
-```
+
+```bash
 wget -O -  https://get.acme.sh | bash
 
 ```
 
 
 ### 2. Or, Install from git:
+
 Clone this project: 
-```
+
+```bash
 git clone https://github.com/Neilpang/acme.sh.git
-cd acme.sh
+cd ./acme.sh
 ./acme.sh --install
 ```
 
-You don't have to be root then, although it is recommended.
+You `don't have to be root` then, although `it is recommended`.
 
-Which does 3 jobs:
-* create and copy `acme.sh` to your home dir:  `~/.acme.sh/`
-All the certs will be placed in this folder.
-* create alias : `acme.sh=~/.acme.sh/acme.sh`. 
-* create everyday cron job to check and renew the cert if needed.
+The installer will perform 3 actions:
 
-After install, you must close current terminal and reopen again to make the alias take effect.
+1. Create and copy `acme.sh` to your home dir (`$HOME`):  `~/.acme.sh/`.
+All certs will be placed in this folder.
+2. Create alia for: `acme.sh=~/.acme.sh/acme.sh`. 
+3. Create everyday cron job to check and renew the cert if needed.
+
+Cron entry example:
+
+```bash
+0 0 * * * "/home/user/.acme.sh"/acme.sh --cron --home "/home/user/.acme.sh" > /dev/null
+```
+
+After the installation, you must close current terminal and reopen again to make the alias take effect.
 
 Ok, you are ready to issue cert now.
 Show help message:
+
 ```
 root@v1:~# acme.sh
 https://github.com/Neilpang/acme.sh
@@ -134,45 +148,42 @@ Parameters:
 
   --accountconf                     Specifies a customized account config file.
   --home                            Specifies the home dir for acme.sh
-
-
-
 ```
  
 # Just issue a cert:
-Example 1:
-Only one domain:
-```
-acme.sh --issue   -d aa.com  -w /home/wwwroot/aa.com   
-```
 
-Example 2:
-Multiple domains in the same cert:
+**Example 1:** Single domain.
 
-```
-acme.sh --issue   -d aa.com   -d www.aa.com -d cp.aa.com  -w  /home/wwwroot/aa.com 
+```bash
+acme.sh --issue -d aa.com -w /home/wwwroot/aa.com
 ```
 
-The parameter `/home/wwwroot/aa.com` is the web root folder, You must have `write` access to this folder.
+**Example 2:** Multiple domains in the same cert.
 
-Second argument "aa.com" is the main domain you want to issue cert for.
-You must have at least domain there.
+```bash
+acme.sh --issue -d aa.com -d www.aa.com -d cp.aa.com -w /home/wwwroot/aa.com 
+```
 
-You must point and bind all the domains to the same webroot dir:`/home/wwwroot/aa.com`
+The parameter `/home/wwwroot/aa.com` is the web root folder. You **MUST** have `write access` to this folder.
 
-The cert will be placed in `~/.acme.sh/aa.com/`
+Second argument **"aa.com"** is the main domain you want to issue cert for.
+You must have at least a domain there.
+
+You must point and bind all the domains to the same webroot dir: `/home/wwwroot/aa.com`.
+
+Generate/issued certs will be placed in `~/.acme.sh/aa.com/`
 
 The issued cert will be renewed every 80 days automatically.
-
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
 
 # Install issued cert to apache/nginx etc.
-After you issue a cert, you probably want to install the cert to your nginx/apache or other servers to use.
 
-```
-acme.sh --installcert  -d aa.com \
+After you issue a cert, you probably want to install the cert with your nginx/apache or other servers you may be using.
+
+```bash
+acme.sh --installcert -d aa.com \
 --certpath /path/to/certfile/in/apache/nginx  \
 --keypath  /path/to/keyfile/in/apache/nginx  \
 --capath   /path/to/ca/certfile/apache/nginx   \
@@ -184,43 +195,48 @@ Only the domain is required, all the other parameters are optional.
 
 Install the issued cert/key to the production apache or nginx path.
 
-The cert will be renewed every 80 days by default (which is configurable), Once the cert is renewed, the apache/nginx will be automatically reloaded by the command: `service apache2 reload` or `service nginx reload`
+The cert will be `renewed every 80 days by default` (which is configurable). Once the cert is renewed, the apache/nginx will be automatically reloaded by the command: `service apache2 reload` or `service nginx reload`.
 
+# Use Standalone server to issue cert
 
-# Use Standalone server to issue cert 
-(requires you be root/sudoer, or you have permission to listen tcp 80 port):
-Same usage as all above,  just give `no` as the webroot.
-The tcp `80` port must be free to listen, otherwise you will be prompted to free the `80` port and try again.
+**(requires you be root/sudoer, or you have permission to listen tcp 80 port)**
 
-```
-acme.sh --issue  --standalone    -d aa.com  -d www.aa.com  -d  cp.aa.com
-```
+Same usage as above, just give `no` as `--webroot` or `-w`.
 
-More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
+The tcp `80` port **MUST** be free to listen, otherwise you will be prompted to free the `80` port and try again.
 
-
-# Use Apache mode 
-(requires you be root/sudoer, since it is required to interact with apache server):
-If you are running a web server, apache or nginx, it is recommended to use the Webroot mode.
-Particularly,  if you are running an apache server, you can use apache mode instead. Which doesn't write any file to your web root folder.
-
-Just set string "apache" to the first argument, it will use apache plugin automatically.
-
-```
-acme.sh  --issue  --apache  -d aa.com   -d www.aa.com -d user.aa.com
+```bash
+acme.sh --issue --standalone -d aa.com -d www.aa.com -d cp.aa.com
 ```
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
+# Use Apache mode
+
+**(requires you be root/sudoer, since it is required to interact with apache server)**
+
+If you are running a web server, apache or nginx, it is recommended to use the `Webroot mode`.
+
+Particularly, if you are running an apache server, you should use apache mode instead. This mode doesn't write any files to your web root folder.
+
+Just set string "apache" as the second argument, it will force use of apache plugin automatically.
+
+```
+acme.sh --issue --apache -d aa.com -d www.aa.com -d user.aa.com
+```
+
+More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
 # Use DNS mode:
-Support the dns-01 challenge.
 
-```
-acme.sh  --issue   --dns   -d aa.com  -d www.aa.com -d user.aa.com
+Support the `dns-01` challenge.
+
+```bash
+acme.sh --issue --dns -d aa.com -d www.aa.com -d user.aa.com
 ```
 
-You will get the output like bellow:
+You should get the output like below:
+
 ```
 Add the following txt record:
 Domain:_acme-challenge.aa.com
@@ -229,86 +245,86 @@ Txt value:9ihDbjYfTExAYeDs4DBUeuTo18KBzwvTEjUnSwd32-c
 Add the following txt record:
 Domain:_acme-challenge.www.aa.com
 Txt value:9ihDbjxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
 
 Please add those txt records to the domains. Waiting for the dns to take effect.
 
-Then just retry with 'renew' command:
-
 ```
-acme.sh --renew  -d aa.com
+
+Then just rerun with `renew` argument:
+
+```bash
+acme.sh --renew -d aa.com
 ```
 
 Ok, it's finished.
 
+# Automatic DNS API integration
 
-#Automatic dns api integeration
+If your DNS provider supports API access, we can use API to automatically issue the certs.
 
-If your dns provider supports api access, we can use api to automatically issue certs.
-You don't have do anything manually.
+You don't have do anything manually!
 
-###Currently we support:
+### Currently acme.sh supports:
 
-1. Cloudflare.com api
-2. Dnspod.cn api
-3. Cloudxns.com api
+1. Cloudflare.com API
+2. Dnspod.cn API
+3. Cloudxns.com API
 4. AWS Route 53, see: https://github.com/Neilpang/acme.sh/issues/65
 
-More apis are coming soon....
+##### More APIs are coming soon...
 
-If your dns provider is not in the supported list above, you can write your own script api easily.
+If your DNS provider is not on the supported list above, you can write your own script API easily. If you do please consider submitting a [Pull Request](https://github.com/Neilpang/acme.sh/pulls) and contribute to the project.
 
 For more details: [How to use dns api](dnsapi)
 
-
 # Issue ECC certificate:
-LetsEncrypt now can issue ECDSA certificate.
+
+`Let's Encrypt` now can issue **ECDSA** certificates.
+
 And we also support it.
 
 Just set the `length` parameter with a prefix `ec-`.
+
 For example:
 
-Single domain:
-```
-acme.sh --issue  -w /home/wwwroot/aa.com   -d aa.com   --keylength  ec-256
+### Single domain ECC cerfiticate:
+
+```bash
+acme.sh --issue -w /home/wwwroot/aa.com -d aa.com --keylength  ec-256
 ```
 
-SAN multiple domains:
-```
-acme.sh --issue  -w /home/wwwroot/aa.com   -d aa.com  -d www.aa.com  --keylength  ec-256
+SAN multi domain ECC certificate:
+
+```bash
+acme.sh --issue -w /home/wwwroot/aa.com -d aa.com -d www.aa.com --keylength  ec-256
 ```
 
 Please look at the last parameter above.
 
 Valid values are:
 
-1. ec-256 (prime256v1,  "ECDSA P-256")
-2. ec-384 (secp384r1,   "ECDSA P-384")
-3. ec-521 (secp521r1,   "ECDSA P-521", which is not supported by letsencrypt yet.)
+1. **ec-256 (prime256v1, "ECDSA P-256")**
+2. **ec-384 (secp384r1,  "ECDSA P-384")**
+3. **ec-521 (secp521r1,  "ECDSA P-521", which is not supported by Let's Encrypt yet.)**
 
+# Under the Hood
 
-
-#Under the Hood
-
-Speak ACME language with bash directly to Let's encrypt.
+Speak ACME language using bash, directly to "Let's Encrypt".
 
 TODO:
 
-
-#Acknowledgment
+# Acknowledgment
 1. Acme-tiny: https://github.com/diafygi/acme-tiny
 2. ACME protocol: https://github.com/ietf-wg-acme/acme
 3. letsencrypt: https://github.com/letsencrypt/letsencrypt
 
-
-
-#License & Other
+# License & Other
 
 License is GPLv3
 
 Please Star and Fork me.
 
-Issues and pull requests are welcomed.
+[Issues](https://github.com/Neilpang/acme.sh/issues) and [pull requests](https://github.com/Neilpang/acme.sh/pulls) are welcomed.
 
 
 
