@@ -321,7 +321,7 @@ createDomainKey() {
       return 0
     else
       _err "Domain key exists, do you want to overwrite the key?"
-      _err "Set FORCE=1, and try again."
+      _err "Add '--force', and try again."
       return 1
     fi
   fi
@@ -1003,8 +1003,13 @@ issue() {
     usingApache=""
   fi
   
-  createAccountKey $Le_Domain $Le_Keylength
-
+  if [[ ! -f "$ACCOUNT_KEY_PATH" ]] ; then
+    if ! createAccountKey $Le_Domain $Le_Keylength ; then
+      _err "Create account key error."
+      return 1
+    fi
+  fi
+  
   if ! _calcjwk "$ACCOUNT_KEY_PATH" ; then
     return 1
   fi
@@ -1038,9 +1043,11 @@ issue() {
     _info "Skip register account key"
   fi
 
-  if ! createDomainKey $Le_Domain $Le_Keylength ; then 
-    _err "Create domain key error."
-    return 1
+  if [[ ! -f "$CERT_KEY_PATH" ]] ; then
+    if ! createDomainKey $Le_Domain $Le_Keylength ; then 
+      _err "Create domain key error."
+      return 1
+    fi
   fi
   
   if ! createCSR  $Le_Domain  $Le_Alt ; then
