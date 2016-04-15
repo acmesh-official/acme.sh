@@ -3,7 +3,7 @@
 #Here is a sample custom api script.
 #This file name is "dns-myapi.sh"
 #So, here must be a method   dns-myapi-add()
-#Which will be called by le.sh to add the txt record to your api system.
+#Which will be called by acme.sh to add the txt record to your api system.
 #returns 0 meanst success, otherwise error.
 
 
