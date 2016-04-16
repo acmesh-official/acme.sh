@@ -740,18 +740,24 @@ _initpath() {
   if [[ "$DEBUG" -ge "2" ]] ; then
     CURL="$CURL -L --trace-ascii $dp "
   fi
+
+  _DEFAULT_ACCOUNT_KEY_PATH="$LE_WORKING_DIR/account.key"
+  if [[ -z "$ACCOUNT_KEY_PATH" ]] ; then
+    ACCOUNT_KEY_PATH="$_DEFAULT_ACCOUNT_KEY_PATH"
+  fi
   
   domain="$1"
-  
-  if [[ -z "$ACCOUNT_KEY_PATH" ]] ; then
-    ACCOUNT_KEY_PATH="$LE_WORKING_DIR/account.key"
-  fi
 
   if [[ -z "$domain" ]] ; then
     return 0
   fi
   
-  domainhome="$LE_WORKING_DIR/$domain"
+  _DEFAULT_CERT_HOME="$LE_WORKING_DIR"
+  if [[ -z "$CERT_HOME" ]] ; then
+    CERT_HOME="$_DEFAULT_CERT_HOME"
+  fi
+
+  domainhome="$CERT_HOME/$domain"
   mkdir -p "$domainhome"
 
   if [[ -z "$DOMAIN_PATH" ]] ; then
@@ -1428,7 +1434,7 @@ renewAll() {
   _initpath
   _info "renewAll"
   
-  for d in $(ls -F ${LE_WORKING_DIR}/ | grep [^.].*[.].*/$ ) ; do
+  for d in $(ls -F ${CERT_HOME}/ | grep [^.].*[.].*/$ ) ; do
     d=$(echo $d | cut -d '/' -f 1)
     _info "renew $d"
     
@@ -1679,6 +1685,7 @@ _initconf() {
 
 #ACCOUNT_EMAIL=aaa@aaa.com  # the account email used to register account.
 #ACCOUNT_KEY_PATH=\"/path/to/account.key\"
+#CERT_HOME=\"/path/to/cert/home\"
 
 #STAGE=1 # Use the staging api
 #FORCE=1 # Force to issue cert
@@ -1829,6 +1836,14 @@ install() {
     _setopt "$_DEFAULT_ACCOUNT_CONF_PATH" "ACCOUNT_CONF_PATH" "=" "\"$ACCOUNT_CONF_PATH\""
   fi
 
+  if [[ "$_DEFAULT_CERT_HOME" != "$CERT_HOME" ]] ; then
+    _saveaccountconf "CERT_HOME" "$CERT_HOME"
+  fi
+
+  if [[ "$_DEFAULT_ACCOUNT_KEY_PATH" != "$ACCOUNT_KEY_PATH" ]] ; then
+    _saveaccountconf "ACCOUNT_KEY_PATH" "$ACCOUNT_KEY_PATH"
+  fi
+  
   installcronjob
   
   _info OK
@@ -1906,6 +1921,7 @@ Parameters:
 
   --accountconf                     Specifies a customized account config file.
   --home                            Specifies the home dir for $PROJECT_NAME .
+  --certhome                        Specifies the home dir to save all the certs.
   --useragent                       Specifies the user agent string. it will be saved for future use too.
   --accountemail                    Specifies the account email for registering, Only valid for the '--install' command.
   --accountkey                      Specifies the account key path, Only valid for the '--install' command.
@@ -1958,6 +1974,7 @@ _process() {
   _useragent=""
   _accountemail=""
   _accountkey=""
+  _certhome=""
   while (( ${#} )); do
     case "${1}" in
     
@@ -2127,6 +2144,11 @@ _process() {
         LE_WORKING_DIR="$2"
         shift
         ;;
+    --certhome)
+        _certhome="$2"
+        CERT_HOME="$_certhome"
+        shift
+        ;;        
     --useragent)
         _useragent="$2"
         USER_AGENT="$_useragent"
@@ -2204,9 +2226,7 @@ _process() {
   if [[ "$_accountemail" ]] ; then
     _saveaccountconf "ACCOUNT_EMAIL" "$_accountemail"
   fi
-  if [[ "$_accountkey" ]] ; then
-    _saveaccountconf "ACCOUNT_KEY_PATH" "$_accountkey"
-  fi  
+ 
 
 }
 
