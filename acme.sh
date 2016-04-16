@@ -50,7 +50,7 @@ _debug() {
 }
 
 _debug2() {
-  if [[ "$DEBUG" -ge "2" ]] ; then
+  if [[ "$DEBUG" ]] && [[ "$DEBUG" -ge "2" ]] ; then
     _debug "$@"
   fi
   return
@@ -735,13 +735,13 @@ _initpath() {
   HTTP_HEADER="$LE_WORKING_DIR/http.header"
   
   WGET="wget -q"
-  if [[ "$DEBUG" -ge "2" ]] ; then
+  if [[ "$DEBUG" ]] && [[ "$DEBUG" -ge "2" ]] ; then
     WGET="$WGET -d "
   fi
 
   dp="$LE_WORKING_DIR/curl.dump"
   CURL="curl -L --silent"
-  if [[ "$DEBUG" -ge "2" ]] ; then
+  if [[ "$DEBUG" ]] && [[ "$DEBUG" -ge "2" ]] ; then
     CURL="$CURL -L --trace-ascii $dp "
   fi
 
