@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-VER=2.1.1
+#!/usr/bin/env sh
+VER=2.2.0
 
 PROJECT_NAME="acme.sh"
 

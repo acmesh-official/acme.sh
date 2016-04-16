@@ -1,10 +1,11 @@
 # An ACME Shell script: acme.sh
-- An ACME protocol client written purely in Bash (Unix shell) language.
+- An ACME protocol client written purely in Shell (Unix shell) language.
+- It's `sh` compatible, not only `bash`.
 - Fully ACME protocol implementation.
 - Simple, powerful and very easy to use. You only need 3 minutes to learn.
 
 - Simplest shell script for Let's Encrypt free certificate client.
-- Purely written in Bash with no dependencies on python or Let's Encrypt official client.
+- Purely written in Shell with no dependencies on python or Let's Encrypt official client.
 - Just one script, to issue, renew and install your certificates automatically.
 
 It's probably the `easiest&smallest&smartest` shell script to automatically issue & renew the free certificates from Let's Encrypt.
@@ -18,10 +19,10 @@ Wiki: https://github.com/Neilpang/acme.sh/wiki
 2. Debian [![](https://cdn.rawgit.com/Neilpang/letest/master/status/debian-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
 3. CentOS [![](https://cdn.rawgit.com/Neilpang/letest/master/status/centos-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
 4. Windows (cygwin with curl, openssl and crontab included) [![](https://cdn.rawgit.com/Neilpang/letest/master/status/windows.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
-5. FreeBSD with bash [![](https://cdn.rawgit.com/Neilpang/letest/master/status/freebsd.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
-6. pfsense with bash and curl
+5. FreeBSD [![](https://cdn.rawgit.com/Neilpang/letest/master/status/freebsd.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
+6. pfsense with curl
 7. openSUSE [![](https://cdn.rawgit.com/Neilpang/letest/master/status/opensuse-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
-8. Alpine Linux [![](https://cdn.rawgit.com/Neilpang/letest/master/status/alpine-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status) (with bash and curl)
+8. Alpine Linux [![](https://cdn.rawgit.com/Neilpang/letest/master/status/alpine-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status) (with curl)
 9. Archlinux [![](https://cdn.rawgit.com/Neilpang/letest/master/status/base-archlinux.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
 10. fedora [![](https://cdn.rawgit.com/Neilpang/letest/master/status/fedora-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
 11. Kali Linux [![](https://cdn.rawgit.com/Neilpang/letest/master/status/kalilinux-kali-linux-docker.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)
@@ -58,14 +59,14 @@ Nothing will be broken during the process.
 Check this project:https://github.com/Neilpang/get.acme.sh
 
 ```bash
-curl https://get.acme.sh | bash
+curl https://get.acme.sh | sh
 
 ```
 
 Or:
 
 ```bash
-wget -O -  https://get.acme.sh | bash
+wget -O -  https://get.acme.sh | sh
 
 ```
 
@@ -315,7 +316,7 @@ Valid values are:
 
 # Under the Hood
 
-Speak ACME language using bash, directly to "Let's Encrypt".
+Speak ACME language using shell, directly to "Let's Encrypt".
 
 TODO:
 
