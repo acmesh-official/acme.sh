@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #Here is a sample custom api script.
-#This file name is "dns-myapi.sh"
-#So, here must be a method   dns-myapi-add()
+#This file name is "dns_myapi.sh"
+#So, here must be a method   dns_myapi-add()
 #Which will be called by acme.sh to add the txt record to your api system.
 #returns 0 meanst success, otherwise error.
 
@@ -11,7 +11,7 @@
 ########  Public functions #####################
 
 #Usage: add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
-dns-myapi-add() {
+dns_myapi_add() {
   fulldomain=$1
   txtvalue=$2
   _err "Not implemented!"

@@ -956,8 +956,19 @@ issue() {
   Le_ReloadCmd="$8"
   Le_RealFullChainPath="$9"
   
-  _initpath $Le_Domain
+  #remove these later.
+  if [[ "$Le_Webroot" == "dns-cf" ]] ; then
+    Le_Webroot="dns_cf"
+  fi
+  if [[ "$Le_Webroot" == "dns-dp" ]] ; then
+    Le_Webroot="dns_dp"
+  fi
+  if [[ "$Le_Webroot" == "dns-cx" ]] ; then
+    Le_Webroot="dns_cx"
+  fi
   
+  _initpath $Le_Domain
+
   if [[ -f "$DOMAIN_CONF" ]] ; then
     Le_NextRenewTime=$(grep "^Le_NextRenewTime=" "$DOMAIN_CONF" | cut -d '=' -f 2)
     if [[ -z "$FORCE" ]] && [[ "$Le_NextRenewTime" ]] && [[ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ]] ; then 
@@ -1189,7 +1200,7 @@ issue() {
             return 1
           fi
           
-          addcommand="$_currentRoot-add"
+          addcommand="$_currentRoot_add"
           if ! _exists $addcommand ; then 
             _err "It seems that your api file is not correct, it must have a function named: $addcommand"
             return 1
@@ -1924,7 +1935,7 @@ Parameters:
   --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
   --apache                          Use apache mode.
-  --dns [dns-cf|dns-dp|dns-cx|/path/to/api/file]   Use dns mode or dns api.
+  --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
   
   --keylength, -k [2048]            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384.
   --accountkeylength, -ak [2048]    Specifies the account key length.
