@@ -1366,7 +1366,7 @@ issue() {
   Le_CertCreateTimeStr=$(date -u )
   _setopt "$DOMAIN_CONF"  "Le_CertCreateTimeStr"  "="  "\"$Le_CertCreateTimeStr\""
   
-  if [[ ! "$Le_RenewalDays" ]] ; then
+  if [[ -z "$Le_RenewalDays" ]] || [[ "$Le_RenewalDays" -lt "0" ]] || [[ "$Le_RenewalDays" -gt "80" ]] ; then
     Le_RenewalDays=80
   fi
   
@@ -1895,7 +1895,8 @@ Parameters:
   --home                            Specifies the home dir for $PROJECT_NAME .
   --useragent                       Specifies the user agent string. it will be saved for future use too.
   --accountemail                    Specifies the account email for registering, Only valid for the '--install' command.
-  --accountkey                      Specifyes the account key path, Only valid for the '--install' command.
+  --accountkey                      Specifies the account key path, Only valid for the '--install' command.
+  --days                            Specifies the days to renew the cert when using '--issue' command. The max value is 80 days.
   
   "
 }
@@ -2126,6 +2127,11 @@ _process() {
     --accountkey )
         _accountkey="$2"
         ACCOUNT_KEY_PATH="$_accountkey"
+        shift
+        ;;
+    --days )
+        _days="$2"
+        Le_RenewalDays="$_days"
         shift
         ;;
     *)
