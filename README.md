@@ -149,6 +149,8 @@ Parameters:
   --accountconf                     Specifies a customized account config file.
   --home                            Specifies the home dir for acme.sh .
   --useragent                       Specifies the user agent string. it will be saved for future use too.
+  --accountemail                    Specifies the account email for registering, Only valid for the '--install' command.
+  --accountkey                      Specifyes the account key path, Only valid for the '--install' command.
 
 ```
  

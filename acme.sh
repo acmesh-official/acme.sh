@@ -246,12 +246,13 @@ createAccountKey() {
   
   account=$1
   length=$2
-  
+  _debug account "$account"
+  _debug length "$length"
   if [[ "$length" == "ec-"* ]] ; then
     length=2048
   fi
   
-  if [[ -z "$2" ]] ; then
+  if [[ -z "$2" ]] || [[ "$2" == "no" ]] ; then
     _info "Use default length 2048"
     length=2048
   fi
@@ -1893,6 +1894,8 @@ Parameters:
   --accountconf                     Specifies a customized account config file.
   --home                            Specifies the home dir for $PROJECT_NAME .
   --useragent                       Specifies the user agent string. it will be saved for future use too.
+  --accountemail                    Specifies the account email for registering, Only valid for the '--install' command.
+  --accountkey                      Specifyes the account key path, Only valid for the '--install' command.
   
   "
 }
@@ -1939,6 +1942,8 @@ _process() {
   _password=""
   _accountconf=""
   _useragent=""
+  _accountemail=""
+  _accountkey=""
   while (( ${#} )); do
     case "${1}" in
     
@@ -2113,6 +2118,16 @@ _process() {
         USER_AGENT="$_useragent"
         shift
         ;;
+    --accountemail )
+        _accountemail="$2"
+        ACCOUNT_EMAIL="$_accountemail"
+        shift
+        ;;
+    --accountkey )
+        _accountkey="$2"
+        ACCOUNT_KEY_PATH="$_accountkey"
+        shift
+        ;;
     *)
         _err "Unknown parameter : $1"
         return 1
@@ -2167,6 +2182,12 @@ _process() {
   if [[ "$_useragent" ]] ; then
     _saveaccountconf "USER_AGENT" "$_useragent"
   fi
+  if [[ "$_accountemail" ]] ; then
+    _saveaccountconf "ACCOUNT_EMAIL" "$_accountemail"
+  fi
+  if [[ "$_accountkey" ]] ; then
+    _saveaccountconf "ACCOUNT_KEY_PATH" "$_accountkey"
+  fi  
 
 }
 
