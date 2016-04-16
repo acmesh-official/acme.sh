@@ -103,7 +103,7 @@ Show help message:
 ```
 root@v1:~# acme.sh
 https://github.com/Neilpang/acme.sh
-v2.1.0
+v2.1.1
 Usage: acme.sh  command ...[parameters]....
 Commands:
   --help, -h               Show this help message.
@@ -147,7 +147,9 @@ Parameters:
   --reloadcmd "service nginx reload" After issue/renew, it's used to reload the server.
 
   --accountconf                     Specifies a customized account config file.
-  --home                            Specifies the home dir for acme.sh
+  --home                            Specifies the home dir for acme.sh .
+  --useragent                       Specifies the user agent string. it will be saved for future use too.
+
 ```
  
 # Just issue a cert:
