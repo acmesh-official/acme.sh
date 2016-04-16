@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
 
 #
@@ -12,7 +12,7 @@ CF_Api="https://api.cloudflare.com/client/v4/"
 ########  Public functions #####################
 
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
-dns-cf-add() {
+dns-cf-add(){
   fulldomain=$1
   txtvalue=$2
   

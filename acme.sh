@@ -1982,7 +1982,7 @@ _process() {
   _accountemail=""
   _accountkey=""
   _certhome=""
-  while (( ${#} )); do
+  while [[ ${#} -gt 0 ]] ; do
     case "${1}" in
     
     --help|-h)
@@ -2247,7 +2247,7 @@ fi
 if [[ -z "$1" ]] ; then
   showhelp
 else
-  if [[ "$1" == "-"* ]] ; then
+  if echo "$1" | grep "^-" >/dev/null 2>&1 ; then
     _process "$@"
   else
     "$@"
