@@ -1825,8 +1825,10 @@ install() {
     _info "No profile is found, you will need to go into $LE_WORKING_DIR to use $PROJECT_NAME"
   fi
 
-  mkdir -p $LE_WORKING_DIR/dnsapi
-  cp  dnsapi/* $LE_WORKING_DIR/dnsapi/
+  if [[ -d "dnsapi" ]] ; then
+    mkdir -p $LE_WORKING_DIR/dnsapi
+    cp  dnsapi/* $LE_WORKING_DIR/dnsapi/
+  fi
   
   #to keep compatible mv the .acc file to .key file 
   if [[ -f "$LE_WORKING_DIR/account.acc" ]] ; then
