@@ -1009,7 +1009,6 @@ issue() {
       _err "set up apache error. Report error to me."
       return 1
     fi
-    wellknown_path="$ACME_DIR"
   else
     usingApache=""
   fi
@@ -1242,19 +1241,21 @@ issue() {
         _debug serverproc $serverproc
 
       else
-        if [[ -z "$wellknown_path" ]] ; then
-          wellknown_path="$_currentRoot/.well-known/acme-challenge"
-        fi
-        _debug wellknown_path "$wellknown_path"
-        
-        if [[ ! -d "$_currentRoot/.well-known" ]] ; then 
-          removelevel='1'
-        elif [[ ! -d "$_currentRoot/.well-known/acme-challenge" ]] ; then 
-          removelevel='2'
+        if [[ "$_currentRoot" == "apache" ]] ; then
+          wellknown_path="$ACME_DIR"
         else
-          removelevel='3'
+          wellknown_path="$_currentRoot/.well-known/acme-challenge"
+          if [[ ! -d "$_currentRoot/.well-known" ]] ; then 
+            removelevel='1'
+          elif [[ ! -d "$_currentRoot/.well-known/acme-challenge" ]] ; then 
+            removelevel='2'
+          else
+            removelevel='3'
+          fi
         fi
-        
+
+        _debug wellknown_path "$wellknown_path"
+
         token="$(echo -e -n "$keyauthorization" | cut -d '.' -f 1)"
         _debug "writing token:$token to $wellknown_path/$token"
 
