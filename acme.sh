@@ -818,10 +818,12 @@ _restoreApache() {
   fi
   
   cp -p "$APACHE_CONF_BACKUP_DIR/$httpdconfname" "$httpdconf"
+  _debug "Restored: $httpdconf."
   if ! apachectl  -t ; then
     _err "Sorry, restore apache config error, please contact me."
     return 1;
   fi
+  _debug "Restored successfully."
   rm -f "$APACHE_CONF_BACKUP_DIR/$httpdconfname"
   return 0  
 }
@@ -886,7 +888,7 @@ Allow from all
   return 0
 }
 
-_clearup () {
+_clearup() {
   _stopserver $serverproc
   serverproc=""
   _restoreApache
@@ -977,7 +979,7 @@ issue() {
   
   if [[ "$Le_Webroot" == *"no"* ]] ; then
     _info "Standalone mode."
-    if ! command -v "nc" > /dev/null ; then
+    if ! _exists "nc" ; then
       _err "Please install netcat(nc) tools first."
       return 1
     fi
@@ -1009,11 +1011,17 @@ issue() {
   if [[ ! -f "$ACCOUNT_KEY_PATH" ]] ; then
     if ! createAccountKey $Le_Domain $Le_Keylength ; then
       _err "Create account key error."
+      if [[ "$usingApache" ]] ; then
+        _restoreApache
+      fi
       return 1
     fi
   fi
   
   if ! _calcjwk "$ACCOUNT_KEY_PATH" ; then
+    if [[ "$usingApache" ]] ; then
+        _restoreApache
+    fi
     return 1
   fi
   
@@ -1049,12 +1057,14 @@ issue() {
   if [[ ! -f "$CERT_KEY_PATH" ]] ; then
     if ! createDomainKey $Le_Domain $Le_Keylength ; then 
       _err "Create domain key error."
+      _clearup
       return 1
     fi
   fi
   
   if ! createCSR  $Le_Domain  $Le_Alt ; then
     _err "Create CSR error."
+    _clearup
     return 1
   fi
 
@@ -1171,6 +1181,7 @@ issue() {
         )
         
         if [[ "$?" != "0" ]] ; then
+          _clearup
           return 1
         fi
         dnsadded='1'
@@ -1181,6 +1192,7 @@ issue() {
       _setopt "$DOMAIN_CONF"  "Le_Vlist" "=" "\"$vlist\""
       _debug "Dns record not added yet, so, save to $DOMAIN_CONF and exit."
       _err "Please add the TXT records to the domains, and retry again."
+      _clearup
       return 1
     fi
     
@@ -1216,6 +1228,7 @@ issue() {
         _info "Standalone mode server"
         _startserver "$keyauthorization" &
         if [[ "$?" != "0" ]] ; then
+          _clearup
           return 1
         fi
         serverproc="$!"
