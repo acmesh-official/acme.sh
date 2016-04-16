@@ -1200,7 +1200,7 @@ issue() {
             return 1
           fi
           
-          addcommand="$_currentRoot_add"
+          addcommand="${_currentRoot}_add"
           if ! _exists $addcommand ; then 
             _err "It seems that your api file is not correct, it must have a function named: $addcommand"
             return 1
