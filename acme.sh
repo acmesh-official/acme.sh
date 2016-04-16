@@ -56,7 +56,19 @@ _debug2() {
   return
 }
 
-_exists() {
+_startswith(){
+  _str="$1"
+  _sub="$2"
+  echo $_str | grep ^$_sub >/dev/null 2>&1
+}
+
+_contains(){
+  _str="$1"
+  _sub="$2"
+  echo $_str | grep $_sub >/dev/null 2>&1
+}
+
+_exists(){
   cmd="$1"
   if [[ -z "$cmd" ]] ; then
     _err "Usage: _exists cmd"
@@ -252,7 +264,7 @@ createAccountKey() {
   length=$2
   _debug account "$account"
   _debug length "$length"
-  if [[ "$length" == "ec-"* ]] ; then
+  if _startswith "$length" "ec-" ; then
     length=2048
   fi
   
@@ -283,7 +295,7 @@ createDomainKey() {
   domain=$1
   length=$2
   isec=""
-  if [[ "$length" == "ec-"* ]] ; then
+  if _startswith "$length" "ec-" ; then
     isec="1"
     length=$(printf $length | cut -d '-' -f 2-100)
     eccname="$length"
@@ -583,14 +595,14 @@ _setopt() {
 
   if grep -H -n "^$__opt$__sep" "$__conf" > /dev/null ; then
     _debug2 OK
-    if [[ "$__val" == *"&"* ]] ; then
+    if _contains "$__val" "&" ; then
       __val="$(echo $__val | sed 's/&/\\&/g')"
     fi
     text="$(cat $__conf)"
     echo "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" > "$__conf"
 
   elif grep -H -n "^#$__opt$__sep" "$__conf" > /dev/null ; then
-    if [[ "$__val" == *"&"* ]] ; then
+    if _contains "$__val" "&" ; then
       __val="$(echo $__val | sed 's/&/\\&/g')"
     fi
     text="$(cat $__conf)"
@@ -798,7 +810,7 @@ _initpath() {
 
 _apachePath() {
   httpdconfname="$(apachectl -V | grep SERVER_CONFIG_FILE= | cut -d = -f 2 | tr -d '"' )"
-  if [[ "$httpdconfname" == '/'* ]] ; then
+  if _startswith "$httpdconfname" '/' ; then
     httpdconf="$httpdconfname"
     httpdconfname="$(basename $httpdconfname)"
   else
@@ -987,7 +999,7 @@ issue() {
   fi
 
   
-  if [[ "$Le_Webroot" == *"no"* ]] ; then
+  if _contains "$Le_Webroot" "no" ; then
     _info "Standalone mode."
     if ! _exists "nc" ; then
       _err "Please install netcat(nc) tools first."
@@ -1008,7 +1020,7 @@ issue() {
     fi
   fi
   
-  if [[ "$Le_Webroot" == *"apache"* ]] ; then
+  if _contains "$Le_Webroot" "apache" ; then
     if ! _setApache ; then
       _err "set up apache error. Report error to me."
       return 1
@@ -1097,7 +1109,7 @@ issue() {
       let "_index+=1"
       
       vtype="$VTYPE_HTTP"
-      if [[ "$_currentRoot" == "dns"* ]] ; then
+      if _startswith "$_currentRoot" "dns" ; then
         vtype="$VTYPE_DNS"
       fi
       _info "Getting token for domain" $d
@@ -2040,7 +2052,7 @@ _process() {
     --domain|-d)
         _dvalue="$2"
         
-        if [[ -z "$_dvalue" ]] || [[ "$_dvalue" == "-"* ]] ; then
+        if [[ -z "$_dvalue" ]] || _startswith "$_dvalue" "-" ; then
           _err "'$_dvalue' is not a valid domain for parameter '$1'"
           return 1
         fi
@@ -2064,7 +2076,7 @@ _process() {
         STAGE="1"
         ;;
     --debug)
-        if [[ "$2" == "-"* ]] || [[ -z "$2" ]]; then
+        if [[ -z "$2" ]] || _startswith "$2" "-" ; then
           DEBUG="1"
         else
           DEBUG="$2"
@@ -2098,7 +2110,7 @@ _process() {
         ;;
     --dns)
         wvalue="dns"
-        if [[ "$2" != "-"* ]] ; then
+        if ! _startswith "$2" "-" ; then
           wvalue="$2"
           shift
         fi
