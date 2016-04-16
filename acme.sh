@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VER=2.1.0
+VER=2.1.1
 
 PROJECT_NAME="acme.sh"
 
@@ -685,8 +685,10 @@ _initpath() {
   
   _DEFAULT_ACCOUNT_CONF_PATH="$LE_WORKING_DIR/account.conf"
 
-  if [[ -f "$_DEFAULT_ACCOUNT_CONF_PATH" ]] ; then
-    source "$_DEFAULT_ACCOUNT_CONF_PATH"
+  if [[ -z "$ACCOUNT_CONF_PATH" ]] ; then
+    if [[ -f "$_DEFAULT_ACCOUNT_CONF_PATH" ]] ; then
+      source "$_DEFAULT_ACCOUNT_CONF_PATH"
+    fi
   fi
   
   if [[ -z "$ACCOUNT_CONF_PATH" ]] ; then
@@ -1670,7 +1672,7 @@ _initconf() {
 
 #ACCOUNT_KEY_HASH=account key hash
 
-USER_AGENT=\"$DEFAULT_USER_AGENT\"
+USER_AGENT=\"$USER_AGENT\"
 
 #USER_PATH=""
 
@@ -1732,11 +1734,12 @@ _precheck() {
 }
 
 install() {
+
   if ! _initpath ; then
     _err "Install failed."
     return 1
   fi
-  
+
   if ! _precheck ; then
     _err "Pre-check failed, can not install."
     return 1
@@ -1760,7 +1763,7 @@ install() {
   fi
 
   _info "Installing to $LE_WORKING_DIR"
-  
+
   if ! mkdir -p "$LE_WORKING_DIR" ; then
     _err "Can not craete working dir: $LE_WORKING_DIR"
     return 1
@@ -1807,11 +1810,9 @@ install() {
   if [[ ! -f "$ACCOUNT_CONF_PATH" ]] ; then
     _initconf
   fi
-  
-  _setopt "$_DEFAULT_ACCOUNT_CONF_PATH" "ACCOUNT_CONF_PATH" "=" "\"$ACCOUNT_CONF_PATH\""
 
   if [[ "$_DEFAULT_ACCOUNT_CONF_PATH" != "$ACCOUNT_CONF_PATH" ]] ; then
-    _setopt "$ACCOUNT_CONF_PATH" "ACCOUNT_CONF_PATH" "=" "\"$ACCOUNT_CONF_PATH\""
+    _setopt "$_DEFAULT_ACCOUNT_CONF_PATH" "ACCOUNT_CONF_PATH" "=" "\"$ACCOUNT_CONF_PATH\""
   fi
 
   installcronjob
@@ -1890,7 +1891,8 @@ Parameters:
   --reloadcmd \"service nginx reload\" After issue/renew, it's used to reload the server.
 
   --accountconf                     Specifies a customized account config file.
-  --home                            Specifies the home dir for $PROJECT_NAME
+  --home                            Specifies the home dir for $PROJECT_NAME .
+  --useragent                       Specifies the user agent string. it will be saved for future use too.
   
   "
 }
@@ -1935,6 +1937,8 @@ _process() {
   _fullchainpath="no"
   _reloadcmd="no"
   _password=""
+  _accountconf=""
+  _useragent=""
   while (( ${#} )); do
     case "${1}" in
     
@@ -2087,7 +2091,7 @@ _process() {
         _fullchainpath="$2"
         shift
         ;;
-    --reloadcmd)
+    --reloadcmd|--reloadCmd)
         _reloadcmd="$2"
         shift
         ;;
@@ -2096,14 +2100,19 @@ _process() {
         shift
         ;;
     --accountconf)
-        ACCOUNT_CONF_PATH="$2"
+        _accountconf="$2"
+        ACCOUNT_CONF_PATH="$_accountconf"
         shift
         ;;
     --home)
         LE_WORKING_DIR="$2"
         shift
         ;;
-        
+    --useragent)
+        _useragent="$2"
+        USER_AGENT="$_useragent"
+        shift
+        ;;
     *)
         _err "Unknown parameter : $1"
         return 1
@@ -2155,6 +2164,10 @@ _process() {
     ;;
   esac
   
+  if [[ "$_useragent" ]] ; then
+    _saveaccountconf "USER_AGENT" "$_useragent"
+  fi
+
 }
 
 
