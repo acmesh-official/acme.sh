@@ -62,7 +62,11 @@ _exists() {
     _err "Usage: _exists cmd"
     return 1
   fi
-  command -v $cmd >/dev/null 2>&1
+  if type command >/dev/null 2>&1 ; then
+    command -v $cmd >/dev/null 2>&1
+  else
+    type $cmd >/dev/null 2>&1
+  fi
   ret="$?"
   _debug2 "$cmd exists=$ret"
   return $ret
