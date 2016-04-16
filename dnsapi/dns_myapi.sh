@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 #Here is a sample custom api script.
 #This file name is "dns_myapi.sh"
