@@ -30,7 +30,7 @@ fi
 
 
 _URGLY_PRINTF=""
-if [ "$(printf '\x41')" = '\x41' ] ; then
+if [ "$(printf '\x41')" != 'A' ] ; then
   _URGLY_PRINTF=1
 fi
 
@@ -132,6 +132,7 @@ _h2b() {
     uselet="1"
   fi
   _debug uselet "$uselet"
+  _debug _URGLY_PRINTF "$_URGLY_PRINTF"
   while [ '1' ] ; do
     if [ -z "$_URGLY_PRINTF" ] ; then
       h=$(printf $hex | cut -c $i-$j)
@@ -150,8 +151,8 @@ _h2b() {
       printf '\'"$(printf %o "$(_math $ic \* 16 + $jc)")"
     fi
     if [ "$uselet" ] ; then
-      let "i+=2"
-      let "j+=2"
+      let "i+=2" >/dev/null
+      let "j+=2" >/dev/null
     else
       i="$(_math $i + 2)"
       j="$(_math $j + 2)"
