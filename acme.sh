@@ -762,17 +762,17 @@ _initpath() {
     ACCOUNT_KEY_PATH="$_DEFAULT_ACCOUNT_KEY_PATH"
   fi
   
+  _DEFAULT_CERT_HOME="$LE_WORKING_DIR"
+  if [ -z "$CERT_HOME" ] ; then
+    CERT_HOME="$_DEFAULT_CERT_HOME"
+  fi
+
   domain="$1"
 
   if [ -z "$domain" ] ; then
     return 0
   fi
   
-  _DEFAULT_CERT_HOME="$LE_WORKING_DIR"
-  if [ -z "$CERT_HOME" ] ; then
-    CERT_HOME="$_DEFAULT_CERT_HOME"
-  fi
-
   domainhome="$CERT_HOME/$domain"
   mkdir -p "$domainhome"
 
