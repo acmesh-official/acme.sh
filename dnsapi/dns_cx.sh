@@ -159,7 +159,7 @@ _get_root() {
       return 1
     fi
     p=$i
-    let "i+=1"
+    i=$(expr $i + 1)
   done
   return 1
 }

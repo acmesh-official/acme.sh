@@ -28,6 +28,13 @@ if [ -z "$AGREEMENT" ] ; then
 fi
 
 
+
+_URGLY_PRINTF=""
+if [ "$(printf '\x41')" = '\x41' ] ; then
+  _URGLY_PRINTF=1
+fi
+
+
 _info() {
   if [ -z "$2" ] ; then
     echo "[$(date)] $1"
@@ -84,18 +91,71 @@ _exists(){
   return $ret
 }
 
+#a + b
+_math(){
+  expr "$@"
+}
+
+_h_char_2_dec() {
+  _ch=$1
+  case "${_ch}" in
+    a|A)
+      echo -n 10
+        ;;
+    b|B)
+      echo -n 11
+        ;;
+    c|C)
+      echo -n 12
+        ;;
+    d|D)
+      echo -n 13
+        ;;
+    e|E)
+      echo -n 14
+        ;;
+    f|F)
+      echo -n 15
+        ;;
+    *)
+      echo -n $_ch
+        ;;
+  esac       
+
+}
+
 _h2b() {
   hex=$(cat)
   i=1
   j=2
+  if _exists let ; then
+    uselet="1"
+  fi
+  _debug uselet "$uselet"
   while [ '1' ] ; do
-    h=$(printf $hex | cut -c $i-$j)
-    if [ -z "$h" ] ; then
-      break;
+    if [ -z "$_URGLY_PRINTF" ] ; then
+      h=$(printf $hex | cut -c $i-$j)
+      if [ -z "$h" ] ; then
+        break;
+      fi
+      printf "\x$h"
+    else
+      ic=$(printf $hex | cut -c $i)
+      jc=$(printf $hex | cut -c $j)
+      if [ -z "$ic$jc" ] ; then
+        break;
+      fi
+      ic="$(_h_char_2_dec $ic)"
+      jc="$(_h_char_2_dec $jc)"
+      printf '\'"$(printf %o "$(_math $ic \* 16 + $jc)")"
     fi
-    printf "\x$h"
-    let "i+=2"
-    let "j+=2"
+    if [ "$uselet" ] ; then
+      let "i+=2"
+      let "j+=2"
+    else
+      i="$(_math $i + 2)"
+      j="$(_math $j + 2)"
+    fi    
   done
 }
 
@@ -133,7 +193,7 @@ _getfile() {
     _err "Can not find start line: $startline"
     return 1
   fi
-  let "i+=1"
+
   _debug i $i
   
   j="$(grep -n --  "$endline"  $filename | cut -d : -f 1)"
@@ -141,10 +201,10 @@ _getfile() {
     _err "Can not find end line: $endline"
     return 1
   fi
-  let "j-=1"
+
   _debug j $j
   
-  sed -n $i,${j}p  "$filename"
+  sed -n $i,${j}p  "$filename" | head -n -1 | tail -n +2
 
 }
 
@@ -427,7 +487,8 @@ _calcjwk() {
     _debug2 e "$e"
     
     modulus=$(openssl rsa -in $keyfile -modulus -noout | cut -d '=' -f 2 )
-    n=$(echo $modulus| _h2b | _base64 | _urlencode )
+    _debug2 modulus "$modulus"
+    n=$(echo -n $modulus| _h2b | _base64 | _urlencode )
     jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
     _debug2 jwk "$jwk"
     
@@ -440,28 +501,28 @@ _calcjwk() {
     _debug2 crv $crv
     
     pubi="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep -n pub: | cut -d : -f 1)"
+    pubi=$(_math $pubi + 1)
     _debug2 pubi $pubi
-    let "pubi=pubi+1"
     
     pubj="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep -n "ASN1 OID:"  | cut -d : -f 1)"
+    pubj=$(_math $pubj + 1)
     _debug2 pubj $pubj
-    let "pubj=pubj-1"
     
     pubtext="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | sed  -n "$pubi,${pubj}p" | tr -d " \n\r")"
     _debug2 pubtext "$pubtext"
     
     xlen="$(printf "$pubtext" | tr -d ':' | wc -c)"
-    let "xlen=xlen/4"
+    xlen=$(_math $xlen / 4)
     _debug2 xlen $xlen
-    
-    let "xend=xlen+1"
+
+    xend=$(_math $xend + 1)
     x="$(printf $pubtext | cut -d : -f 2-$xend)"
     _debug2 x $x
     
     x64="$(printf $x | tr -d : | _h2b | _base64 | _urlencode)"
     _debug2 x64 $x64
-    
-    let "xend+=1"
+
+    xend=$(_math $xend + 1)
     y="$(printf $pubtext | cut -d : -f $xend-10000)"
     _debug2 y $y
     
@@ -1117,7 +1178,7 @@ issue() {
         _currentRoot="$_w"
       fi
       _debug "_currentRoot" "$_currentRoot"
-      let "_index+=1"
+      _index=$(_math $_index + 1)
       
       vtype="$VTYPE_HTTP"
       if _startswith "$_currentRoot" "dns" ; then
@@ -1312,7 +1373,7 @@ issue() {
     fi
     
     while [ "1" ] ; do
-      let "waittimes+=1"
+      waittimes=$(_math $waittimes + 1)
       if [ "$waittimes" -ge "$MAX_RETRY_TIMES" ] ; then
         _err "$d:Timeout"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
@@ -1418,8 +1479,8 @@ issue() {
   fi
   
   _setopt "$DOMAIN_CONF"  "Le_RenewalDays"      "="  "$Le_RenewalDays"
-  
-  let "Le_NextRenewTime=Le_CertCreateTime+Le_RenewalDays*24*60*60"
+
+  Le_NextRenewTime=$(_math $Le_CertCreateTime + $Le_RenewalDays \* 24 \* 60 \* 60)
   _setopt "$DOMAIN_CONF"  "Le_NextRenewTime"      "="  "$Le_NextRenewTime"
   
   Le_NextRenewTimeStr=$( _time2str $Le_NextRenewTime )
