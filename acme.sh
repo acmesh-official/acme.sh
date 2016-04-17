@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 VER=2.2.1
 
 PROJECT_NAME="acme.sh"
@@ -1844,6 +1844,19 @@ _precheck() {
   return 0
 }
 
+_setShebang() {
+  _file="$1"
+  _shebang="$2"
+  if [ -z "$_shebang" ] ; then
+    _err "Usage: file shebang"
+    return 1
+  fi
+  cp "$_file" "$_file.tmp"
+  echo "$_shebang" > "$_file"
+  sed -n 2,99999p  "$_file.tmp" >> "$_file"
+  rm -f "$_file.tmp"  
+}
+
 install() {
 
   if ! _initpath ; then
@@ -1937,7 +1950,19 @@ install() {
   fi
   
   installcronjob
-  
+
+  #Modify shebang
+  if _exists bash ; then
+    _info "Good, bash is installed, change the shebang to use bash as prefered."
+    _shebang='#!/usr/bin/env bash'
+    _setShebang "$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
+    if [ -d "$LE_WORKING_DIR/dnsapi" ] ; then
+      for _apifile in $(ls "$LE_WORKING_DIR/dnsapi/"*.sh) ; do
+        _setShebang "$_apifile" "$_shebang"
+      done
+    fi
+  fi
+
   _info OK
 }
 
