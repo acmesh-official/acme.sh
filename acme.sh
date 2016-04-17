@@ -194,7 +194,7 @@ _getfile() {
     _err "Can not find start line: $startline"
     return 1
   fi
-
+  i="$(_math $i + 1)"
   _debug i $i
   
   j="$(grep -n --  "$endline"  $filename | cut -d : -f 1)"
@@ -202,10 +202,10 @@ _getfile() {
     _err "Can not find end line: $endline"
     return 1
   fi
-
+  j="$(_math $j - 1)"
   _debug j $j
   
-  sed -n $i,${j}p  "$filename" | head -n -1 | tail -n +2
+  sed -n $i,${j}p  "$filename"
 
 }
 
