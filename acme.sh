@@ -1225,7 +1225,7 @@ issue() {
         dnsadded='0'
         txtdomain="_acme-challenge.$d"
         _debug txtdomain "$txtdomain"
-        txt="$(echo -e -n $keyauthorization | _digest "sha256" | _urlencode)"
+        txt="$(echo -n $keyauthorization | _digest "sha256" | _urlencode)"
         _debug txt "$txt"
         #dns
         #1. check use api

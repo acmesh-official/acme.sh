@@ -1,6 +1,5 @@
 # An ACME Shell script: acme.sh
 - An ACME protocol client written purely in Shell (Unix shell) language.
-- It's `sh` compatible, not only `bash`.
 - Fully ACME protocol implementation.
 - Simple, powerful and very easy to use. You only need 3 minutes to learn.
 
