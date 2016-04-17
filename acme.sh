@@ -720,12 +720,12 @@ _startserver() {
   _debug "_NC" "$_NC"
 #  while true ; do
     if [ "$DEBUG" ] ; then
-      if ! echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort -vv ; then
-        echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort -vv ;
+      if ! echo -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort -vv ; then
+        echo -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort -vv ;
       fi
     else
-      if ! echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort > /dev/null 2>&1; then
-        echo -e -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort > /dev/null 2>&1
+      if ! echo -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort > /dev/null 2>&1; then
+        echo -n "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort > /dev/null 2>&1
       fi      
     fi
     if [ "$?" != "0" ] ; then
