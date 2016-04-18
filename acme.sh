@@ -492,12 +492,12 @@ _post() {
     if [ "$needbase64" ] ; then
       response="$($CURL -A "User-Agent: $USER_AGENT" -X POST --data "$body" $url | _base64)"
       if [[ $? -gt 0 ]] ;then
-         _err "Curl failed with exit code $?, trying running script in DEBUG=1 mode"
+         _err "Curl failed with exit code $?, trying running script in DEBUG=2 mode"
       fi
     else
       response="$($CURL -A "User-Agent: $USER_AGENT" -X POST --data "$body" $url)"
       if [[ $? -gt 0 ]] ;then
-         _err "Curl failed with exit code $?, trying running script in DEBUG=1 mode"
+         _err "Curl failed with exit code $?, trying running script in DEBUG=2 mode"
       fi
     fi
   else
@@ -521,12 +521,12 @@ _get() {
     if [ "$onlyheader" ] ; then
       $CURL -I -A "User-Agent: $USER_AGENT" $url
       if [[ $? -gt 0 ]] ;then
-       _err "Curl failed with exit code $?, trying running script in DEBUG=1 mode"
+       _err "Curl failed with exit code $?, trying running script in DEBUG=2 mode"
       fi
     else
       $CURL -A "User-Agent: $USER_AGENT" $url
       if [[ $? -gt 0 ]] ;then
-       _err "Curl failed with exit code $?, trying running script in DEBUG=1 mode"
+       _err "Curl failed with exit code $?, trying running script in DEBUG=2 mode"
       fi
     fi
   else
