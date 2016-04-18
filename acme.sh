@@ -1951,15 +1951,17 @@ install() {
   
   installcronjob
 
-  #Modify shebang
-  if _exists bash ; then
-    _info "Good, bash is installed, change the shebang to use bash as prefered."
-    _shebang='#!/usr/bin/env bash'
-    _setShebang "$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
-    if [ -d "$LE_WORKING_DIR/dnsapi" ] ; then
-      for _apifile in $(ls "$LE_WORKING_DIR/dnsapi/"*.sh) ; do
-        _setShebang "$_apifile" "$_shebang"
-      done
+  if [ -z "$NO_DETECT_SH" ] ; then
+    #Modify shebang
+    if _exists bash ; then
+      _info "Good, bash is installed, change the shebang to use bash as prefered."
+      _shebang='#!/usr/bin/env bash'
+      _setShebang "$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
+      if [ -d "$LE_WORKING_DIR/dnsapi" ] ; then
+        for _apifile in $(ls "$LE_WORKING_DIR/dnsapi/"*.sh) ; do
+          _setShebang "$_apifile" "$_shebang"
+        done
+      fi
     fi
   fi
 
