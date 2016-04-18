@@ -754,7 +754,7 @@ _initpath() {
   dp="$LE_WORKING_DIR/curl.dump"
   CURL="curl -L --silent"
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
-    CURL="$CURL -L --trace-ascii $dp "
+    CURL="curl -L --trace-ascii $dp "
   fi
 
   _DEFAULT_ACCOUNT_KEY_PATH="$LE_WORKING_DIR/account.key"
