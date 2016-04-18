@@ -1973,7 +1973,7 @@ uninstall() {
   _profile="$(_detect_profile)"
   if [ "$_profile" ] ; then
     text="$(cat $_profile)"
-    echo "$text" | sed "s|^source.*$PROJECT_NAME.env.*$||" > "$_profile"
+    echo "$text" | sed "s|^[.] \"$LE_WORKING_DIR/$PROJECT_NAME.env\"$||" > "$_profile"
   fi
 
   rm -f $LE_WORKING_DIR/$PROJECT_ENTRY
