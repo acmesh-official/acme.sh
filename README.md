@@ -139,10 +139,10 @@ Parameters:
 
   These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
 
-  --certpath /path/to/real/cert/file  After issue/renew, the cert will be copied to this path.
-  --keypath /path/to/real/key/file  After issue/renew, the key will be copied to this path.
-  --capath /path/to/real/ca/file    After issue/renew, the intermediate cert will be copied to this path.
-  --fullchainpath /path/to/fullchain/file After issue/renew, the fullchain cert will be copied to this path.
+  --certpath /path/to/real/cert/file  After issue/renew, the cert will be copied to this file.
+  --keypath /path/to/real/key/file  After issue/renew, the key will be copied to this file.
+  --capath /path/to/real/ca/file    After issue/renew, the intermediate cert will be copied to this file.
+  --fullchainpath /path/to/fullchain/file After issue/renew, the fullchain cert will be copied to this file.
 
   --reloadcmd "service nginx reload" After issue/renew, it's used to reload the server.
 
