@@ -2,7 +2,7 @@
 - An ACME protocol client written purely in Shell (Unix shell) language.
 - Fully ACME protocol implementation.
 - Simple, powerful and very easy to use. You only need 3 minutes to learn.
-
+- Bash, dash and sh compatible. 
 - Simplest shell script for Let's Encrypt free certificate client.
 - Purely written in Shell with no dependencies on python or Let's Encrypt official client.
 - Just one script, to issue, renew and install your certificates automatically.
