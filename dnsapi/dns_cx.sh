@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 # Cloudxns.com Domain api
 #
@@ -159,7 +159,7 @@ _get_root() {
       return 1
     fi
     p=$i
-    let "i+=1"
+    i=$(expr $i + 1)
   done
   return 1
 }
