@@ -809,6 +809,11 @@ _initpath() {
 
 
 _apachePath() {
+  if ! _exists apachectl ; then
+    _err "'apachecrl not found. It seems that apache is not installed, or you are not root user.'"
+    _err "Please use webroot mode to try again."
+    return 1
+  fi
   httpdconfname="$(apachectl -V | grep SERVER_CONFIG_FILE= | cut -d = -f 2 | tr -d '"' )"
   if _startswith "$httpdconfname" '/' ; then
     httpdconf="$httpdconfname"
