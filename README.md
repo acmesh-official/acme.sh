@@ -6,10 +6,10 @@
 - Simplest shell script for Let's Encrypt free certificate client.
 - Purely written in Shell with no dependencies on python or Let's Encrypt official client.
 - Just one script, to issue, renew and install your certificates automatically.
+- DOES NOT require `root/sudoer` access.
 
 It's probably the `easiest&smallest&smartest` shell script to automatically issue & renew the free certificates from Let's Encrypt.
 
-DOES NOT require `root/sudoer` access.
 
 Wiki: https://github.com/Neilpang/acme.sh/wiki
 
