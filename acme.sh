@@ -491,13 +491,13 @@ _post() {
     CURL="$CURL --dump-header $HTTP_HEADER "
     if [ "$needbase64" ] ; then
       response="$($CURL -A "User-Agent: $USER_AGENT" -X POST --data "$body" $url | _base64)"
-      if [[ $? -gt 0 ]] ;then
-         _err "Curl failed with exit code $?, trying running script in DEBUG=2 mode"
+      if [ $? -gt 0 ] ;then
+         _err "Curl failed with exit code $?, trying running script with --debug 2"
       fi
     else
       response="$($CURL -A "User-Agent: $USER_AGENT" -X POST --data "$body" $url)"
-      if [[ $? -gt 0 ]] ;then
-         _err "Curl failed with exit code $?, trying running script in DEBUG=2 mode"
+      if [ $? -gt 0 ] ;then
+         _err "Curl failed with exit code $?, trying running script with --debug 2"
       fi
     fi
   else
@@ -520,13 +520,13 @@ _get() {
   if _exists "curl" ; then
     if [ "$onlyheader" ] ; then
       $CURL -I -A "User-Agent: $USER_AGENT" $url
-      if [[ $? -gt 0 ]] ;then
-       _err "Curl failed with exit code $?, trying running script in DEBUG=2 mode"
+      if [ $? -gt 0 ] ;then
+       _err "Curl failed with exit code $?, trying running script with --debug 2"
       fi
     else
       $CURL -A "User-Agent: $USER_AGENT" $url
-      if [[ $? -gt 0 ]] ;then
-       _err "Curl failed with exit code $?, trying running script in DEBUG=2 mode"
+      if [ $? -gt 0 ] ;then
+       _err "Curl failed with exit code $?, trying running script with --debug 2"
       fi
     fi
   else
