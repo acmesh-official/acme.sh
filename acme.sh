@@ -747,11 +747,7 @@ _stopserver(){
     kill -s 9 $pid > /dev/null
   fi
   
-  for ncid in $(echo $(ps | grep nc) | cut -d " " -f 1) ; do
-    _debug "kill $ncid"
-    kill -s 9 $ncid > /dev/null
-  done
-  
+
   _get "http://localhost:$Le_HTTPPort" >/dev/null 2>&1
 
 }
