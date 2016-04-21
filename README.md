@@ -83,6 +83,8 @@ cd ./acme.sh
 
 You `don't have to be root` then, although `it is recommended`.
 
+Advanced Installation:  https://github.com/Neilpang/acme.sh/wiki/How-to-install
+
 The installer will perform 3 actions:
 
 1. Create and copy `acme.sh` to your home dir (`$HOME`):  `~/.acme.sh/`.
