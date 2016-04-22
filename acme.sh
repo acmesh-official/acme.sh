@@ -168,10 +168,10 @@ _sed_i() {
     _err "Usage:_sed_i options filename"
     return 1
   fi
-  
-  if sed -h 2>&1 | grep "\-i[SUFFIX]" ; then
+  _debug2 options "$options"
+  if sed -h 2>&1 | grep "\-i\[SUFFIX]" >/dev/null 2>&1; then
     _debug "Using sed  -i"
-    sed -i ""
+    sed -i "$options" "$filename"
   else
     _debug "No -i support in sed"
     text="$(cat $filename)"
