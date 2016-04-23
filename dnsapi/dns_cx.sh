@@ -69,7 +69,7 @@ existing_records() {
     return 1
   fi
   count=0
-  seg=$(printf "$response" | grep -o "{[^{]*host\":\"$_sub_domain[^}]*}")
+  seg=$(printf "$response" | grep -o "{[^{]*host\":\"$_sub_domain\"[^}]*}")
   _debug seg "$seg"
   if [ -z "$seg" ] ; then
     return 0
