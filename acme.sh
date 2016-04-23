@@ -742,12 +742,6 @@ _stopserver(){
     return
   fi
   
-  if [ "$(ps | grep "$pid")" ] ; then
-    _debug "Found proc process, kill it."
-    kill -s 9 $pid > /dev/null
-  fi
-  
-
   _get "http://localhost:$Le_HTTPPort" >/dev/null 2>&1
 
 }
