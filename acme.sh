@@ -1340,11 +1340,11 @@ issue() {
 
         _debug wellknown_path "$wellknown_path"
 
-        token="$(echo -e -n "$keyauthorization" | cut -d '.' -f 1)"
+        token="$(printf "$keyauthorization" | cut -d '.' -f 1)"
         _debug "writing token:$token to $wellknown_path/$token"
 
         mkdir -p "$wellknown_path"
-        echo -n "$keyauthorization" > "$wellknown_path/$token"
+        printf "$keyauthorization" > "$wellknown_path/$token"
         if [ ! "$usingApache" ] ; then
           webroot_owner=$(_stat $_currentRoot)
           _debug "Changing owner/group of .well-known to $webroot_owner"
@@ -1897,21 +1897,19 @@ install() {
 
   _info "Installed to $LE_WORKING_DIR/$PROJECT_ENTRY"
 
+  _envfile="$LE_WORKING_DIR/$PROJECT_ENTRY.env"
+  if [ "$_upgrading" ] && [ "$_upgrading" = "1" ] ; then
+    echo "$(cat $_envfile)" | sed "s|^LE_WORKING_DIR.*$||" > "$_envfile"
+    echo "$(cat $_envfile)" | sed "s|^alias le.*$||" > "$_envfile"
+    echo "$(cat $_envfile)" | sed "s|^alias le.sh.*$||" > "$_envfile"
+  fi
+
+  _setopt "$_envfile" "LE_WORKING_DIR" "=" "\"$LE_WORKING_DIR\""
+  _setopt "$_envfile" "alias $PROJECT_ENTRY" "=" "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
+
   _profile="$(_detect_profile)"
   if [ "$_profile" ] ; then
     _debug "Found profile: $_profile"
-    
-    _envfile="$LE_WORKING_DIR/$PROJECT_ENTRY.env"
-    if [ "$_upgrading" ] && [ "$_upgrading" = "1" ] ; then
-      echo "$(cat $_envfile)" | sed "s|^LE_WORKING_DIR.*$||" > "$_envfile"
-      echo "$(cat $_envfile)" | sed "s|^alias le.*$||" > "$_envfile"
-      echo "$(cat $_envfile)" | sed "s|^alias le.sh.*$||" > "$_envfile"
-    fi
-    
-    _setopt "$_envfile" "LE_WORKING_DIR" "=" "\"$LE_WORKING_DIR\""
-    _setopt "$_envfile" "alias $PROJECT_ENTRY" "=" "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
-    
-    echo "" >> "$_profile"
     _setopt "$_profile" ". \"$LE_WORKING_DIR/$PROJECT_NAME.env\""
     _info "OK, Close and reopen your terminal to start using $PROJECT_NAME"
   else
