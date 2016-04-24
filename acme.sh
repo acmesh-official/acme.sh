@@ -896,7 +896,7 @@ _restoreApache() {
     return 0
   fi
   
-  cp -p "$APACHE_CONF_BACKUP_DIR/$httpdconfname" "$httpdconf"
+  cat "$APACHE_CONF_BACKUP_DIR/$httpdconfname" > "$httpdconf"
   _debug "Restored: $httpdconf."
   if ! apachectl  -t ; then
     _err "Sorry, restore apache config error, please contact me."
@@ -915,7 +915,7 @@ _setApache() {
 
   #backup the conf
   _debug "Backup apache config file" $httpdconf
-  cp -p $httpdconf $APACHE_CONF_BACKUP_DIR/
+  cp $httpdconf $APACHE_CONF_BACKUP_DIR/
   _info "JFYI, Config file $httpdconf is backuped to $APACHE_CONF_BACKUP_DIR/$httpdconfname"
   _info "In case there is an error that can not be restored automatically, you may try restore it yourself."
   _info "The backup file will be deleted on sucess, just forget it."
@@ -1585,7 +1585,7 @@ installcert() {
   
   if [ "$Le_RealCertPath" ] ; then
     if [ -f "$Le_RealCertPath" ] ; then
-      cp -p "$Le_RealCertPath" "$Le_RealCertPath".bak
+      cp "$Le_RealCertPath" "$Le_RealCertPath".bak
     fi
     cat "$CERT_PATH" > "$Le_RealCertPath"
   fi
@@ -1596,7 +1596,7 @@ installcert() {
       cat "$CA_CERT_PATH" >> "$Le_RealCACertPath"
     else
       if [ -f "$Le_RealCACertPath" ] ; then
-        cp -p "$Le_RealCACertPath" "$Le_RealCACertPath".bak
+        cp "$Le_RealCACertPath" "$Le_RealCACertPath".bak
       fi
       cat "$CA_CERT_PATH" > "$Le_RealCACertPath"
     fi
@@ -1605,14 +1605,14 @@ installcert() {
 
   if [ "$Le_RealKeyPath" ] ; then
     if [ -f "$Le_RealKeyPath" ] ; then
-      cp -p "$Le_RealKeyPath" "$Le_RealKeyPath".bak
+      cp "$Le_RealKeyPath" "$Le_RealKeyPath".bak
     fi
     cat "$CERT_KEY_PATH" > "$Le_RealKeyPath"
   fi
   
   if [ "$Le_RealFullChainPath" ] ; then
     if [ -f "$Le_RealFullChainPath" ] ; then
-      cp -p "$Le_RealFullChainPath" "$Le_RealFullChainPath".bak
+      cp "$Le_RealFullChainPath" "$Le_RealFullChainPath".bak
     fi
     cat "$CERT_FULLCHAIN_PATH" > "$Le_RealFullChainPath"
   fi  
