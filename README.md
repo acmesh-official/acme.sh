@@ -29,7 +29,8 @@ Wiki: https://github.com/Neilpang/acme.sh/wiki
 |11|[![](https://cdn.rawgit.com/Neilpang/letest/master/status/kalilinux-kali-linux-docker.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Kali Linux
 |12|[![](https://cdn.rawgit.com/Neilpang/letest/master/status/oraclelinux-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Oracle Linux
 |13|[![](https://cdn.rawgit.com/Neilpang/letest/master/status/proxmox.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)| Proxmox https://pve.proxmox.com/wiki/HTTPSCertificateConfiguration#Let.27s_Encrypt_using_acme.sh
-|14|--| Cloud Linux  https://github.com/Neilpang/le/issues/111
+|14|-----| Cloud Linux  https://github.com/Neilpang/le/issues/111
+|15|[![](https://cdn.rawgit.com/Neilpang/letest/master/status/openbsd.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|OpenBSD
 
 For all build statuses, check our [daily build project](https://github.com/Neilpang/acmetest): 
 
