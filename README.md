@@ -57,7 +57,7 @@ Nothing will be broken during the process.
 
 ### 1. Install online:
 
-Check this project:https://github.com/Neilpang/get.acme.sh
+Check this project: https://github.com/Neilpang/get.acme.sh
 
 ```bash
 curl https://get.acme.sh | sh
@@ -90,7 +90,7 @@ The installer will perform 3 actions:
 
 1. Create and copy `acme.sh` to your home dir (`$HOME`):  `~/.acme.sh/`.
 All certs will be placed in this folder.
-2. Create alia for: `acme.sh=~/.acme.sh/acme.sh`. 
+2. Create alias for: `acme.sh=~/.acme.sh/acme.sh`. 
 3. Create everyday cron job to check and renew the cert if needed.
 
 Cron entry example:
