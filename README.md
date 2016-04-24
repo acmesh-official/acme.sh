@@ -211,8 +211,6 @@ The cert will be `renewed every 80 days by default` (which is configurable). Onc
 
 **(requires you be root/sudoer, or you have permission to listen tcp 80 port)**
 
-Same usage as above, just give `no` as `--webroot` or `-w`.
-
 The tcp `80` port **MUST** be free to listen, otherwise you will be prompted to free the `80` port and try again.
 
 ```bash
