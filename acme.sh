@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
+
+umask 077
+
 VER=2.2.2
 
 PROJECT_NAME="acme.sh"
