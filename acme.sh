@@ -1,7 +1,5 @@
 #!/usr/bin/env sh
 
-umask 077
-
 VER=2.2.2
 
 PROJECT_NAME="acme.sh"
@@ -1891,6 +1889,8 @@ install() {
     return 1
   fi
   
+  chmod 700 "$LE_WORKING_DIR"
+
   cp $PROJECT_ENTRY "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/$PROJECT_ENTRY"
 
   if [ "$?" != "0" ] ; then
