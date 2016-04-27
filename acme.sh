@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.2.2
+VER=2.2.3
 
 PROJECT_NAME="acme.sh"
 
@@ -684,7 +684,17 @@ _savedomainconf() {
   key="$1"
   value="$2"
   if [ "$DOMAIN_CONF" ] ; then
-    _setopt $DOMAIN_CONF "$key" "=" "$value"
+    _setopt "$DOMAIN_CONF" "$key" "=" "\"$value\""
+  else
+    _err "DOMAIN_CONF is empty, can not save $key=$value"
+  fi
+}
+
+#_cleardomainconf   key
+_cleardomainconf() {
+  key="$1"
+  if [ "$DOMAIN_CONF" ] ; then
+    _sed_i "s/^$key.*$//"  "$DOMAIN_CONF"
   else
     _err "DOMAIN_CONF is empty, can not save $key=$value"
   fi
@@ -695,7 +705,7 @@ _saveaccountconf() {
   key="$1"
   value="$2"
   if [ "$ACCOUNT_CONF_PATH" ] ; then
-    _setopt $ACCOUNT_CONF_PATH "$key" "=" "\"$value\""
+    _setopt "$ACCOUNT_CONF_PATH" "$key" "=" "\"$value\""
   else
     _err "ACCOUNT_CONF_PATH is empty, can not save $key=$value"
   fi
@@ -1035,15 +1045,10 @@ issue() {
     fi
   fi
 
-  _setopt "$DOMAIN_CONF"  "Le_Domain"             "="  "$Le_Domain"
-  _setopt "$DOMAIN_CONF"  "Le_Alt"                "="  "$Le_Alt"
-  _setopt "$DOMAIN_CONF"  "Le_Webroot"            "="  "$Le_Webroot"
-  _setopt "$DOMAIN_CONF"  "Le_Keylength"          "="  "$Le_Keylength"
-  _setopt "$DOMAIN_CONF"  "Le_RealCertPath"       "="  "\"$Le_RealCertPath\""
-  _setopt "$DOMAIN_CONF"  "Le_RealCACertPath"     "="  "\"$Le_RealCACertPath\""
-  _setopt "$DOMAIN_CONF"  "Le_RealKeyPath"        "="  "\"$Le_RealKeyPath\""
-  _setopt "$DOMAIN_CONF"  "Le_ReloadCmd"          "="  "\"$Le_ReloadCmd\""
-  _setopt "$DOMAIN_CONF"  "Le_RealFullChainPath"  "="  "\"$Le_RealFullChainPath\""
+  _savedomainconf "Le_Domain"       "$Le_Domain"
+  _savedomainconf "Le_Alt"          "$Le_Alt"
+  _savedomainconf "Le_Webroot"      "$Le_Webroot"
+  _savedomainconf "Le_Keylength"    "$Le_Keylength"
   
   if [ "$Le_Alt" = "no" ] ; then
     Le_Alt=""
@@ -1051,22 +1056,6 @@ issue() {
   if [ "$Le_Keylength" = "no" ] ; then
     Le_Keylength=""
   fi
-  if [ "$Le_RealCertPath" = "no" ] ; then
-    Le_RealCertPath=""
-  fi
-  if [ "$Le_RealKeyPath" = "no" ] ; then
-    Le_RealKeyPath=""
-  fi
-  if [ "$Le_RealCACertPath" = "no" ] ; then
-    Le_RealCACertPath=""
-  fi
-  if [ "$Le_ReloadCmd" = "no" ] ; then
-    Le_ReloadCmd=""
-  fi
-  if [ "$Le_RealFullChainPath" = "no" ] ; then
-    Le_RealFullChainPath=""
-  fi
-
   
   if _contains "$Le_Webroot" "no" ; then
     _info "Standalone mode."
@@ -1078,7 +1067,7 @@ issue() {
     if [ -z "$Le_HTTPPort" ] ; then
       Le_HTTPPort=80
     fi
-    _setopt "$DOMAIN_CONF"  "Le_HTTPPort"             "="  "$Le_HTTPPort"
+    _savedomainconf "Le_HTTPPort"  "$Le_HTTPPort"
     
     netprc="$(_ss "$Le_HTTPPort" | grep "$Le_HTTPPort")"
     if [ "$netprc" ] ; then
@@ -1279,7 +1268,7 @@ issue() {
     done
 
     if [ "$dnsadded" = '0' ] ; then
-      _setopt "$DOMAIN_CONF"  "Le_Vlist" "=" "\"$vlist\""
+      _savedomainconf "Le_Vlist"   "$vlist"
       _debug "Dns record not added yet, so, save to $DOMAIN_CONF and exit."
       _err "Please add the TXT records to the domains, and retry again."
       _clearup
@@ -1426,7 +1415,7 @@ issue() {
   
   
   Le_LinkCert="$(grep -i -o '^Location.*$' $HTTP_HEADER | head -1 | tr -d "\r\n" | cut -d " " -f 2)"
-  _setopt "$DOMAIN_CONF"  "Le_LinkCert"           "="  "$Le_LinkCert"
+  _savedomainconf "Le_LinkCert"  "$Le_LinkCert"
 
   if [ "$Le_LinkCert" ] ; then
     echo "$BEGIN_CERT" > "$CERT_PATH"
@@ -1451,10 +1440,10 @@ issue() {
     return 1
   fi
   
-  _setopt "$DOMAIN_CONF"  'Le_Vlist' '=' "\"\""
+  _cleardomainconf  "Le_Vlist"
   
   Le_LinkIssuer=$(grep -i '^Link' $HTTP_HEADER | head -1 | cut -d " " -f 2| cut -d ';' -f 1 | tr -d '<>' )
-  _setopt "$DOMAIN_CONF"  "Le_LinkIssuer"         "="  "$Le_LinkIssuer"
+  _savedomainconf  "Le_LinkIssuer"  "$Le_LinkIssuer"
   
   if [ "$Le_LinkIssuer" ] ; then
     echo "$BEGIN_CERT" > "$CA_CERT_PATH"
@@ -1466,22 +1455,22 @@ issue() {
   fi
   
   Le_CertCreateTime=$(date -u "+%s")
-  _setopt "$DOMAIN_CONF"  "Le_CertCreateTime"     "="  "$Le_CertCreateTime"
+  _savedomainconf  "Le_CertCreateTime"   "$Le_CertCreateTime"
   
   Le_CertCreateTimeStr=$(date -u )
-  _setopt "$DOMAIN_CONF"  "Le_CertCreateTimeStr"  "="  "\"$Le_CertCreateTimeStr\""
+  _savedomainconf  "Le_CertCreateTimeStr"  "$Le_CertCreateTimeStr"
   
   if [ -z "$Le_RenewalDays" ] || [ "$Le_RenewalDays" -lt "0" ] || [ "$Le_RenewalDays" -gt "80" ] ; then
     Le_RenewalDays=80
   fi
   
-  _setopt "$DOMAIN_CONF"  "Le_RenewalDays"      "="  "$Le_RenewalDays"
+  _savedomainconf  "Le_RenewalDays"   "$Le_RenewalDays"
 
   Le_NextRenewTime=$(_math $Le_CertCreateTime + $Le_RenewalDays \* 24 \* 60 \* 60)
-  _setopt "$DOMAIN_CONF"  "Le_NextRenewTime"      "="  "$Le_NextRenewTime"
+  _savedomainconf "Le_NextRenewTime"   "$Le_NextRenewTime"
   
   Le_NextRenewTimeStr=$( _time2str $Le_NextRenewTime )
-  _setopt "$DOMAIN_CONF"  "Le_NextRenewTimeStr"      "="  "\"$Le_NextRenewTimeStr\""
+  _savedomainconf  "Le_NextRenewTimeStr"  "$Le_NextRenewTimeStr"
 
 
   installcert $Le_Domain  "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath"
@@ -1518,47 +1507,12 @@ renew() {
 
 renewAll() {
   _initpath
-  _info "renewAll"
-  
   for d in $(ls -F ${CERT_HOME}/ | grep [^.].*[.].*/$ ) ; do
     d=$(echo $d | cut -d '/' -f 1)
-    _info "renew $d"
-    
-    Le_LinkCert=""
-    Le_Domain=""
-    Le_Alt="no"
-    Le_Webroot=""
-    Le_Keylength=""
-    Le_LinkIssuer=""
-
-    Le_CertCreateTime=""
-    Le_CertCreateTimeStr=""
-    Le_RenewalDays=""
-    Le_NextRenewTime=""
-    Le_NextRenewTimeStr=""
-
-    Le_RealCertPath=""
-    Le_RealKeyPath=""
-    
-    Le_RealCACertPath=""
-
-    Le_ReloadCmd=""
-    Le_RealFullChainPath=""
-    
-    DOMAIN_PATH=""
-    DOMAIN_CONF=""
-    DOMAIN_SSL_CONF=""
-    CSR_PATH=""
-    CERT_KEY_PATH=""
-    CERT_PATH=""
-    CA_CERT_PATH=""
-    CERT_PFX_PATH=""
-    CERT_FULLCHAIN_PATH=""
-    ACCOUNT_KEY_PATH=""
-    
-    wellknown_path=""
-    
-    renew "$d"  
+    (
+      _info "Renew: $d" 
+      renew "$d"
+    )
   done
   
 }
@@ -1578,13 +1532,32 @@ installcert() {
 
   _initpath $Le_Domain
 
-  _setopt "$DOMAIN_CONF"  "Le_RealCertPath"       "="  "\"$Le_RealCertPath\""
-  _setopt "$DOMAIN_CONF"  "Le_RealCACertPath"     "="  "\"$Le_RealCACertPath\""
-  _setopt "$DOMAIN_CONF"  "Le_RealKeyPath"        "="  "\"$Le_RealKeyPath\""
-  _setopt "$DOMAIN_CONF"  "Le_ReloadCmd"          "="  "\"$Le_ReloadCmd\""
-  _setopt "$DOMAIN_CONF"  "Le_RealFullChainPath"  "="  "\"$Le_RealFullChainPath\""
+  _savedomainconf "Le_RealCertPath"         "$Le_RealCertPath"
+  _savedomainconf "Le_RealCACertPath"       "$Le_RealCACertPath"
+  _savedomainconf "Le_RealKeyPath"          "$Le_RealKeyPath"
+  _savedomainconf "Le_ReloadCmd"            "$Le_ReloadCmd"
+  _savedomainconf "Le_RealFullChainPath"    "$Le_RealFullChainPath"
   
+  if [ "$Le_RealCertPath" = "no" ] ; then
+    Le_RealCertPath=""
+  fi
+  if [ "$Le_RealKeyPath" = "no" ] ; then
+    Le_RealKeyPath=""
+  fi
+  if [ "$Le_RealCACertPath" = "no" ] ; then
+    Le_RealCACertPath=""
+  fi
+  if [ "$Le_ReloadCmd" = "no" ] ; then
+    Le_ReloadCmd=""
+  fi
+  if [ "$Le_RealFullChainPath" = "no" ] ; then
+    Le_RealFullChainPath=""
+  fi
+  
+  _installed="0"
   if [ "$Le_RealCertPath" ] ; then
+    _installed=1
+    _info "Installing cert to:$Le_RealCertPath"
     if [ -f "$Le_RealCertPath" ] ; then
       cp "$Le_RealCertPath" "$Le_RealCertPath".bak
     fi
@@ -1592,6 +1565,8 @@ installcert() {
   fi
   
   if [ "$Le_RealCACertPath" ] ; then
+    _installed=1
+    _info "Installing CA to:$Le_RealCACertPath"
     if [ "$Le_RealCACertPath" = "$Le_RealCertPath" ] ; then
       echo "" >> "$Le_RealCACertPath"
       cat "$CA_CERT_PATH" >> "$Le_RealCACertPath"
@@ -1605,6 +1580,8 @@ installcert() {
 
 
   if [ "$Le_RealKeyPath" ] ; then
+    _installed=1
+    _info "Installing key to:$Le_RealKeyPath"
     if [ -f "$Le_RealKeyPath" ] ; then
       cp "$Le_RealKeyPath" "$Le_RealKeyPath".bak
     fi
@@ -1612,6 +1589,8 @@ installcert() {
   fi
   
   if [ "$Le_RealFullChainPath" ] ; then
+    _installed=1
+    _info "Installing full chain to:$Le_RealFullChainPath"
     if [ -f "$Le_RealFullChainPath" ] ; then
       cp "$Le_RealFullChainPath" "$Le_RealFullChainPath".bak
     fi
@@ -1619,8 +1598,18 @@ installcert() {
   fi  
 
   if [ "$Le_ReloadCmd" ] ; then
+    _installed=1
     _info "Run Le_ReloadCmd: $Le_ReloadCmd"
-    (cd "$DOMAIN_PATH" && eval "$Le_ReloadCmd")
+    if (cd "$DOMAIN_PATH" && eval "$Le_ReloadCmd") ; then
+      _info "Reload success."
+    else
+      _err "Reload error for :$Le_Domain"
+    fi
+  fi
+
+  if [ "$_installed" = "0" ] ; then
+    _err "Nothing to install. You don't specify any parameter."
+    return 1
   fi
 
 }
@@ -2083,7 +2072,7 @@ _process() {
   _keypath="no"
   _capath="no"
   _fullchainpath="no"
-  _reloadcmd="no"
+  _reloadcmd=""
   _password=""
   _accountconf=""
   _useragent=""
@@ -2116,7 +2105,7 @@ _process() {
     --renew|-r)
         _CMD="renew"
         ;;
-    --renewAll|-renewall)
+    --renewAll|--renewall)
         _CMD="renewAll"
         ;;
     --revoke)
