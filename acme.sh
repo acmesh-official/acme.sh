@@ -1013,6 +1013,7 @@ issue() {
   Le_RealCACertPath="$7"
   Le_ReloadCmd="$8"
   Le_RealFullChainPath="$9"
+  Le_HTTPPort="${10}"
   
   #remove these later.
   if [ "$Le_Webroot" = "dns-cf" ] ; then
@@ -1074,10 +1075,11 @@ issue() {
       _err "Please install netcat(nc) tools first."
       return 1
     fi
-    
-    if [ -z "$Le_HTTPPort" ] ; then
+
+    if [ "$Le_HTTPPort" = "no" ] ; then
       Le_HTTPPort=80
     fi
+
     _setopt "$DOMAIN_CONF"  "Le_HTTPPort"             "="  "$Le_HTTPPort"
     
     netprc="$(_ss "$Le_HTTPPort" | grep "$Le_HTTPPort")"
@@ -1509,7 +1511,7 @@ renew() {
   fi
   
   IS_RENEW="1"
-  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath"
+  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_HTTPPort"
   local res=$?
   IS_RENEW=""
 
@@ -2019,6 +2021,7 @@ Parameters:
     
   --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
+  --standalonePort                  The port to bind the HTTP server to, if in standalone mode.
   --apache                          Use apache mode.
   --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
   
@@ -2077,6 +2080,7 @@ _process() {
   _domain=""
   _altdomains="no"
   _webroot=""
+  _standalonePort="no"
   _keylength="no"
   _accountkeylength="no"
   _certpath="no"
@@ -2196,6 +2200,10 @@ _process() {
           _webroot="$_webroot,$wvalue"
         fi
         ;;
+    --standalonePort)
+        _standalonePort="$2"
+        shift
+        ;;
     --apache)
         wvalue="apache"
         if [ -z "$_webroot" ] ; then
@@ -2298,7 +2306,7 @@ _process() {
     install) install ;;
     uninstall) uninstall ;;
     issue)
-      issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath"
+      issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath" "$_standalonePort"
       ;;
     installcert)
       installcert "$_domain" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath"
