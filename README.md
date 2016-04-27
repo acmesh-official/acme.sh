@@ -135,6 +135,7 @@ Parameters:
 
   --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
+  --standalonePort                  The port to bind the HTTP server to, if in standalone mode.
   --apache                          Use apache mode.
   --dns [dns-cf|dns-dp|dns-cx|/path/to/api/file]   Use dns mode or dns api.
 
@@ -212,9 +213,10 @@ The cert will be `renewed every 80 days by default` (which is configurable). Onc
 **(requires you be root/sudoer, or you have permission to listen tcp 80 port)**
 
 The tcp `80` port **MUST** be free to listen, otherwise you will be prompted to free the `80` port and try again.
+If you can't run it as `root` and / or want to use another port, use the `--standalonePort` option.
 
 ```bash
-acme.sh --issue --standalone -d aa.com -d www.aa.com -d cp.aa.com
+acme.sh --issue --standalone --standalonePort 8080 -d aa.com -d www.aa.com -d cp.aa.com
 ```
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
