@@ -1473,10 +1473,15 @@ issue() {
   _savedomainconf  "Le_NextRenewTimeStr"  "$Le_NextRenewTimeStr"
 
 
-  installcert $Le_Domain  "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath"
-  if [ "$?" = "9" ] ; then
+  _output="$(installcert $Le_Domain  "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" 2>&1)"
+  _ret="$?"
+  if [ "$_ret" = "9" ] ; then
     #ignore the empty install error.
     return 0
+  fi
+  if [ "$_ret" != "0" ] ; then
+    _err "$_output"
+    return 1
   fi
 }
 

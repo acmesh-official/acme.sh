@@ -152,7 +152,7 @@ _get_root() {
       return 1
     fi
     
-    if printf "$response" | grep "Action completed successful" ; then
+    if printf "$response" | grep "Action completed successful" >/dev/null ; then
       _domain_id=$(printf "$response" | grep -o \"id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \")
       _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ] ; then

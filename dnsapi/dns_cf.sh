@@ -102,7 +102,7 @@ _get_root() {
       return 1
     fi
     
-    if printf $response | grep \"name\":\"$h\" ; then
+    if printf $response | grep \"name\":\"$h\" >/dev/null ; then
       _domain_id=$(printf "$response" | grep -o \"id\":\"[^\"]*\" | head -1 | cut -d : -f 2 | tr -d \")
       if [ "$_domain_id" ] ; then
         _sub_domain=$(printf $domain | cut -d . -f 1-$p)

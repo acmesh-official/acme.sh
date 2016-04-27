@@ -144,7 +144,7 @@ _get_root() {
       return 1;
     fi
 
-    if printf "$response" | grep "$h." ; then
+    if printf "$response" | grep "$h." >/dev/null ; then
       seg=$(printf "$response" | grep -o "{[^{]*$h\.[^}]*\}" )
       _debug seg "$seg"
       _domain_id=$(printf "$seg" | grep -o \"id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \")
