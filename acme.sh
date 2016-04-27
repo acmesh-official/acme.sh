@@ -1474,7 +1474,10 @@ issue() {
 
 
   installcert $Le_Domain  "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath"
-
+  if [ "$?" = "9" ] ; then
+    #ignore the empty install error.
+    return 0
+  fi
 }
 
 renew() {
@@ -1609,7 +1612,7 @@ installcert() {
 
   if [ "$_installed" = "0" ] ; then
     _err "Nothing to install. You don't specify any parameter."
-    return 1
+    return 9
   fi
 
 }
