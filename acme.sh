@@ -76,6 +76,29 @@ _contains(){
   echo $_str | grep $_sub >/dev/null 2>&1
 }
 
+_hasfield() {
+  _str="$1"
+  _field="$2"
+  _sep="$3"
+  if [ -z "$_field" ] ; then
+    _err "Usage: str field  [sep]"
+    return 1
+  fi
+  
+  if [ -z "$_sep" ] ; then
+    _sep=","
+  fi
+  
+  for f in $(echo "$_str" |  tr ',' ' ') ; do
+    if [ "$f" = "$_field" ] ; then
+      _debug "'$_str' contains '$_field'"
+      return 0 #contains ok
+    fi
+  done
+  _debug "'$_str' does not contain '$_field'"
+  return 1 #not contains 
+}
+
 _exists(){
   cmd="$1"
   if [ -z "$cmd" ] ; then
@@ -1057,7 +1080,7 @@ issue() {
     Le_Keylength=""
   fi
   
-  if _contains "$Le_Webroot" "no" ; then
+  if _hasfield "$Le_Webroot" "no" ; then
     _info "Standalone mode."
     if ! _exists "nc" ; then
       _err "Please install netcat(nc) tools first."
@@ -1078,7 +1101,7 @@ issue() {
     fi
   fi
   
-  if _contains "$Le_Webroot" "apache" ; then
+  if _hasfield "$Le_Webroot" "apache" ; then
     if ! _setApache ; then
       _err "set up apache error. Report error to me."
       return 1
