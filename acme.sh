@@ -520,14 +520,8 @@ _get() {
   if _exists "curl" ; then
     if [ "$onlyheader" ] ; then
       $CURL -I -A "User-Agent: $USER_AGENT" $url
-      if [ $? -gt 0 ] ;then
-       _err "Curl failed with exit code $?, trying running script with --debug 2"
-      fi
     else
       $CURL -A "User-Agent: $USER_AGENT" $url
-      if [ $? -gt 0 ] ;then
-       _err "Curl failed with exit code $?, trying running script with --debug 2"
-      fi
     fi
   else
     _debug "WGET" "$WGET"
@@ -538,6 +532,9 @@ _get() {
     fi
   fi
   ret=$?
+  if [ $ret -gt 0 ] ;then
+    _err "URL get failed with exit code $ret, trying running script with --debug 2"
+  fi
   return $ret
 }
 
