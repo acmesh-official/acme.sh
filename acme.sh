@@ -577,8 +577,14 @@ _post() {
     CURL="$CURL --dump-header $HTTP_HEADER "
     if [ "$needbase64" ] ; then
       response="$($CURL -A "User-Agent: $USER_AGENT" -X POST --data "$body" $url | _base64)"
+      if [ $? -gt 0 ] ;then
+         _err "Curl failed with exit code $?, trying running script with --debug 2"
+      fi
     else
       response="$($CURL -A "User-Agent: $USER_AGENT" -X POST --data "$body" $url)"
+      if [ $? -gt 0 ] ;then
+         _err "Curl failed with exit code $?, trying running script with --debug 2"
+      fi
     fi
   else
     if [ "$needbase64" ] ; then
@@ -612,6 +618,9 @@ _get() {
     fi
   fi
   ret=$?
+  if [ $ret -gt 0 ] ;then
+    _err "URL get failed with exit code $ret, trying running script with --debug 2"
+  fi
   return $ret
 }
 
@@ -840,7 +849,7 @@ _initpath() {
   dp="$LE_WORKING_DIR/curl.dump"
   CURL="curl -L --silent"
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
-    CURL="$CURL -L --trace-ascii $dp "
+    CURL="curl -L --trace-ascii $dp "
   fi
 
   _DEFAULT_ACCOUNT_KEY_PATH="$LE_WORKING_DIR/account.key"
