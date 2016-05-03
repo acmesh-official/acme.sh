@@ -1057,7 +1057,7 @@ issue() {
     Le_Keylength=""
   fi
   
-  if _contains "$Le_Webroot" "no" ; then
+  if [ "$Le_Webroot" = "no" ] ; then
     _info "Standalone mode."
     if ! _exists "nc" ; then
       _err "Please install netcat(nc) tools first."
