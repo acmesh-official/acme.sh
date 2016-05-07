@@ -1873,6 +1873,41 @@ _setShebang() {
   rm -f "$_file.tmp"  
 }
 
+_installalias() {
+  _initpath
+
+  _envfile="$LE_WORKING_DIR/$PROJECT_ENTRY.env"
+  if [ "$_upgrading" ] && [ "$_upgrading" = "1" ] ; then
+    echo "$(cat $_envfile)" | sed "s|^LE_WORKING_DIR.*$||" > "$_envfile"
+    echo "$(cat $_envfile)" | sed "s|^alias le.*$||" > "$_envfile"
+    echo "$(cat $_envfile)" | sed "s|^alias le.sh.*$||" > "$_envfile"
+  fi
+
+  _setopt "$_envfile" "LE_WORKING_DIR" "=" "\"$LE_WORKING_DIR\""
+  _setopt "$_envfile" "alias $PROJECT_ENTRY" "=" "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
+
+  _profile="$(_detect_profile)"
+  if [ "$_profile" ] ; then
+    _debug "Found profile: $_profile"
+    _setopt "$_profile" ". \"$_envfile\""
+    _info "OK, Close and reopen your terminal to start using $PROJECT_NAME"
+  else
+    _info "No profile is found, you will need to go into $LE_WORKING_DIR to use $PROJECT_NAME"
+  fi
+  
+
+  #for csh
+  _cshfile="$LE_WORKING_DIR/$PROJECT_ENTRY.csh"
+  _setopt "$_cshfile" "setenv LE_WORKING_DIR" " " "\"$LE_WORKING_DIR\""
+  _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
+
+  _csh_profile="$HOME/.cshrc"
+  if [ -f "$_csh_profile" ] ; then
+    _setopt "$_csh_profile"  "source \"$_cshfile\""
+  fi
+
+}
+
 install() {
 
   if ! _initpath ; then
@@ -1920,33 +1955,11 @@ install() {
 
   _info "Installed to $LE_WORKING_DIR/$PROJECT_ENTRY"
 
-  _envfile="$LE_WORKING_DIR/$PROJECT_ENTRY.env"
-  if [ "$_upgrading" ] && [ "$_upgrading" = "1" ] ; then
-    echo "$(cat $_envfile)" | sed "s|^LE_WORKING_DIR.*$||" > "$_envfile"
-    echo "$(cat $_envfile)" | sed "s|^alias le.*$||" > "$_envfile"
-    echo "$(cat $_envfile)" | sed "s|^alias le.sh.*$||" > "$_envfile"
-  fi
-
-  _setopt "$_envfile" "LE_WORKING_DIR" "=" "\"$LE_WORKING_DIR\""
-  _setopt "$_envfile" "alias $PROJECT_ENTRY" "=" "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
-
-  _profile="$(_detect_profile)"
-  if [ "$_profile" ] ; then
-    _debug "Found profile: $_profile"
-    _setopt "$_profile" ". \"$LE_WORKING_DIR/$PROJECT_NAME.env\""
-    _info "OK, Close and reopen your terminal to start using $PROJECT_NAME"
-  else
-    _info "No profile is found, you will need to go into $LE_WORKING_DIR to use $PROJECT_NAME"
-  fi
+  _installalias
 
   if [ -d "dnsapi" ] ; then
     mkdir -p $LE_WORKING_DIR/dnsapi
     cp  dnsapi/* $LE_WORKING_DIR/dnsapi/
-  fi
-  
-  #to keep compatible mv the .acc file to .key file 
-  if [ -f "$LE_WORKING_DIR/account.acc" ] ; then
-    mv "$LE_WORKING_DIR/account.acc" "$LE_WORKING_DIR/account.key"
   fi
 
   if [ ! -f "$ACCOUNT_CONF_PATH" ] ; then
@@ -1991,9 +2004,15 @@ uninstall() {
   _profile="$(_detect_profile)"
   if [ "$_profile" ] ; then
     text="$(cat $_profile)"
-    echo "$text" | sed "s|^[.] \"$LE_WORKING_DIR/$PROJECT_NAME.env\"$||" > "$_profile"
+    echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.env\"$||" > "$_profile"
   fi
 
+  _csh_profile="$HOME/.cshrc"
+  if [ -f "$_csh_profile" ] ; then
+    text="$(cat $_csh_profile)"
+    echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.csh\"$||" > "$_csh_profile"
+  fi
+  
   rm -f $LE_WORKING_DIR/$PROJECT_ENTRY
   _info "The keys and certs are in $LE_WORKING_DIR, you can remove them by yourself."
 
