@@ -1905,11 +1905,10 @@ _installalias() {
 
   #for csh
   _cshfile="$LE_WORKING_DIR/$PROJECT_ENTRY.csh"
-  _setopt "$_cshfile" "setenv LE_WORKING_DIR" " " "\"$LE_WORKING_DIR\""
-  _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
-
   _csh_profile="$HOME/.cshrc"
   if [ -f "$_csh_profile" ] ; then
+    _setopt "$_cshfile" "setenv LE_WORKING_DIR" " " "\"$LE_WORKING_DIR\""
+    _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
     _setopt "$_csh_profile"  "source \"$_cshfile\""
   fi
 
