@@ -71,7 +71,6 @@ existing_records() {
     
   if printf "$response" | grep "Action completed successful" >/dev/null ; then
     count=$(printf "$response" | grep '<type>TXT</type>' | wc -l)
-    
     record_id=$(printf "$response" | grep '^<id>' | tail -1 | cut -d '>' -f 2 | cut -d '<' -f 1)
     return 0    
   else
@@ -175,17 +174,17 @@ _get_root() {
 _rest() {
   m=$1
   ep="$2"
+  data="$3"
   _debug $ep
   url="$REST_API/$ep"
   
   _debug url "$url"
   
-  if [ "$3" ] ; then
-    data="$3"
+  if [ "$data" ] ; then
     _debug2 data "$data"
-    response="$(curl --silent -X $m "$url"  -d $data)"
+    response="$(_post $data "$url")"
   else
-    response="$(curl --silent -X $m "$url" )"
+    response="$(_get "$url")"
   fi
   
   if [ "$?" != "0" ] ; then

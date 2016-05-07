@@ -7,7 +7,7 @@
 #CF_Email="xxxx@sss.com"
 
 
-CF_Api="https://api.cloudflare.com/client/v4/"
+CF_Api="https://api.cloudflare.com/client/v4"
 
 ########  Public functions #####################
 
@@ -36,18 +36,18 @@ dns_cf_add(){
   _debug _domain "$_domain"
   
   _debug "Getting txt records"
-  _cf_rest GET "/zones/${_domain_id}/dns_records?type=TXT&name=$fulldomain"
+  _cf_rest GET "zones/${_domain_id}/dns_records?type=TXT&name=$fulldomain"
   
-  if [ "$?" != "0" ] || ! printf $response | grep \"success\":true > /dev/null ; then
+  if ! printf "$response" | grep \"success\":true > /dev/null ; then
     _err "Error"
     return 1
   fi
   
-  count=$(printf $response | grep -o \"count\":[^,]* | cut -d : -f 2)
-  
+  count=$(printf "$response" | grep -o \"count\":[^,]* | cut -d : -f 2)
+  _debug count "$count"
   if [ "$count" == "0" ] ; then
     _info "Adding record"
-    if _cf_rest POST "/zones/$_domain_id/dns_records"  "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
+    if _cf_rest POST "zones/$_domain_id/dns_records"  "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
       if printf $response | grep $fulldomain > /dev/null ; then
         _info "Added, sleeping 10 seconds"
         sleep 10
@@ -61,10 +61,10 @@ dns_cf_add(){
     _err "Add txt record error."
   else
     _info "Updating record"
-    record_id=$(printf $response | grep -o \"id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \")
+    record_id=$(printf "$response" | grep -o \"id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \"| head -1)
     _debug "record_id" $record_id
     
-    _cf_rest PUT "/zones/$_domain_id/dns_records/$record_id"  "{\"id\":\"$record_id\",\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"zone_id\":\"$_domain_id\",\"zone_name\":\"$_domain\"}"
+    _cf_rest PUT "zones/$_domain_id/dns_records/$record_id"  "{\"id\":\"$record_id\",\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"zone_id\":\"$_domain_id\",\"zone_name\":\"$_domain\"}"
     if [ "$?" == "0" ]; then
       _info "Updated, sleeping 10 seconds"
       sleep 10
@@ -117,17 +117,21 @@ _get_root() {
   return 1
 }
 
-
 _cf_rest() {
   m=$1
   ep="$2"
+  data="$3"
   _debug $ep
-  if [ "$3" ] ; then
-    data="$3"
+  
+  _H1="X-Auth-Email: $CF_Email"
+  _H2="X-Auth-Key: $CF_Key"
+  _H3="Content-Type: application/json"
+  
+  if [ "$data" ] ; then
     _debug data "$data"
-    response="$(curl --silent -X $m "$CF_Api/$ep" -H "X-Auth-Email: $CF_Email" -H "X-Auth-Key: $CF_Key" -H "Content-Type: application/json" --data $data)"
+    response="$(_post "$data" "$CF_Api/$ep" "" $m)"
   else
-    response="$(curl --silent -X $m "$CF_Api/$ep" -H "X-Auth-Email: $CF_Email" -H "X-Auth-Key: $CF_Key" -H "Content-Type: application/json")"
+    response="$(_get "$CF_Api/$ep")"
   fi
   
   if [ "$?" != "0" ] ; then

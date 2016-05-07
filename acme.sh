@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.2.3
+VER=2.2.4
 
 PROJECT_NAME="acme.sh"
 
@@ -567,24 +567,29 @@ _calcjwk() {
 
   _debug2 HEADER "$HEADER"
 }
-# body  url [needbase64]
+# body  url [needbase64] [POST]
 _post() {
   body="$1"
   url="$2"
   needbase64="$3"
+  httpmethod="$4"
 
+  if [ -z "$httpmethod" ] ; then
+    httpmethod="POST"
+  fi
+  _debug $httpmethod
   if _exists "curl" ; then
     CURL="$CURL --dump-header $HTTP_HEADER "
     if [ "$needbase64" ] ; then
-      response="$($CURL -A "User-Agent: $USER_AGENT" -X POST --data "$body" $url | _base64)"
+      response="$($CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" $url | _base64)"
     else
-      response="$($CURL -A "User-Agent: $USER_AGENT" -X POST --data "$body" $url)"
+      response="$($CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" $url)"
     fi
   else
     if [ "$needbase64" ] ; then
-      response="$($WGET -S -O - --user-agent="$USER_AGENT" --post-data="$body" $url 2>"$HTTP_HEADER" | _base64)"
+      response="$($WGET -S -O - --user-agent="$USER_AGENT" --method $httpmethod --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --body-data="$body" $url 2>"$HTTP_HEADER" | _base64)"
     else
-      response="$($WGET -S -O - --user-agent="$USER_AGENT" --post-data="$body" $url 2>"$HTTP_HEADER")"
+      response="$($WGET -S -O - --user-agent="$USER_AGENT" --method $httpmethod --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --body-data="$body" $url 2>"$HTTP_HEADER")"
     fi
     _sed_i "s/^ *//g" "$HTTP_HEADER"
   fi
@@ -594,21 +599,22 @@ _post() {
 
 # url getheader
 _get() {
+  _debug GET
   url="$1"
   onlyheader="$2"
   _debug url $url
   if _exists "curl" ; then
     if [ "$onlyheader" ] ; then
-      $CURL -I -A "User-Agent: $USER_AGENT" $url
+      $CURL -I -A "User-Agent: $USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" $url
     else
-      $CURL -A "User-Agent: $USER_AGENT" $url
+      $CURL    -A "User-Agent: $USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" $url
     fi
   else
     _debug "WGET" "$WGET"
     if [ "$onlyheader" ] ; then
-      eval $WGET --user-agent=\"$USER_AGENT\" -S -O /dev/null $url 2>&1 | sed 's/^[ ]*//g'
+      $WGET --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null $url 2>&1 | sed 's/^[ ]*//g'
     else
-      eval $WGET --user-agent=\"$USER_AGENT\" -O - $url
+      $WGET --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1"    -O - $url
     fi
   fi
   ret=$?
@@ -1061,8 +1067,9 @@ issue() {
   _initpath $Le_Domain
 
   if [ -f "$DOMAIN_CONF" ] ; then
-    Le_NextRenewTime=$(grep "^Le_NextRenewTime=" "$DOMAIN_CONF" | cut -d '=' -f 2)
-    if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ] ; then 
+    Le_NextRenewTime=$(grep "^Le_NextRenewTime=" "$DOMAIN_CONF" | cut -d '=' -f 2 | tr -d "'\"")
+    _debug Le_NextRenewTime "$Le_NextRenewTime"
+    if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ $(date -u "+%s" ) -lt $Le_NextRenewTime ] ; then 
       _info "Skip, Next renewal time is: $(grep "^Le_NextRenewTimeStr" "$DOMAIN_CONF" | cut -d '=' -f 2)"
       return 2
     fi
