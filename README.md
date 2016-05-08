@@ -278,6 +278,8 @@ You don't have do anything manually!
 2. Dnspod.cn API
 3. Cloudxns.com API
 4. AWS Route 53, see: https://github.com/Neilpang/acme.sh/issues/65
+5. lexicon dns api: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
+   (DigitalOcean, DNSimple, DnsMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)
 
 ##### More APIs are coming soon...
 
