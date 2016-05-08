@@ -1890,7 +1890,7 @@ _installalias() {
     echo "$(cat $_envfile)" | sed "s|^alias le.sh.*$||" > "$_envfile"
   fi
 
-  _setopt "$_envfile" "LE_WORKING_DIR" "=" "\"$LE_WORKING_DIR\""
+  _setopt "$_envfile" "export LE_WORKING_DIR" "=" "\"$LE_WORKING_DIR\""
   _setopt "$_envfile" "alias $PROJECT_ENTRY" "=" "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
 
   _profile="$(_detect_profile)"
