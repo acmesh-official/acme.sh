@@ -83,4 +83,8 @@ For more details, please check our sample script: [dns_myapi.sh](dns_myapi.sh)
 
 
 
+# Use lexicon dns api
+
+https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
+
 
