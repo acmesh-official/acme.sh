@@ -1360,11 +1360,11 @@ issue() {
 
         _debug wellknown_path "$wellknown_path"
 
-        token="$(printf "$keyauthorization" | cut -d '.' -f 1)"
+        token="$(printf "%s" "$keyauthorization" | cut -d '.' -f 1)"
         _debug "writing token:$token to $wellknown_path/$token"
 
         mkdir -p "$wellknown_path"
-        printf "$keyauthorization" > "$wellknown_path/$token"
+        printf "%s" "$keyauthorization" > "$wellknown_path/$token"
         if [ ! "$usingApache" ] ; then
           webroot_owner=$(_stat $_currentRoot)
           _debug "Changing owner/group of .well-known to $webroot_owner"
