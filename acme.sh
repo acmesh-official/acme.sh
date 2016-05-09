@@ -567,7 +567,7 @@ _calcjwk() {
 
   _debug2 HEADER "$HEADER"
 }
-# body  url [needbase64] [POST]
+# body  url [needbase64] [POST|PUT]
 _post() {
   body="$1"
   url="$2"
