@@ -1911,6 +1911,14 @@ _installalias() {
     _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
     _setopt "$_csh_profile"  "source \"$_cshfile\""
   fi
+  
+  #for tcsh
+  _tcsh_profile="$HOME/.tcshrc"
+  if [ -f "$_tcsh_profile" ] ; then
+    _setopt "$_cshfile" "setenv LE_WORKING_DIR" " " "\"$LE_WORKING_DIR\""
+    _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
+    _setopt "$_tcsh_profile"  "source \"$_cshfile\""
+  fi
 
 }
 
@@ -2017,6 +2025,12 @@ uninstall() {
   if [ -f "$_csh_profile" ] ; then
     text="$(cat $_csh_profile)"
     echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.csh\"$||" > "$_csh_profile"
+  fi
+  
+  _tcsh_profile="$HOME/.tcshrc"
+  if [ -f "$_tcsh_profile" ] ; then
+    text="$(cat $_tcsh_profile)"
+    echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.csh\"$||" > "$_tcsh_profile"
   fi
   
   rm -f $LE_WORKING_DIR/$PROJECT_ENTRY
