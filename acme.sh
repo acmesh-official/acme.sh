@@ -2393,6 +2393,10 @@ _process() {
       return 1
     ;;
   esac
+  _ret="$?"
+  if [ "$_ret" != "0" ] ; then
+    return $_ret
+  fi
   
   if [ "$_useragent" ] ; then
     _saveaccountconf "USER_AGENT" "$_useragent"
