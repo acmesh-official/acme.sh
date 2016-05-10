@@ -579,11 +579,11 @@ _post() {
   fi
   _debug $httpmethod
   if _exists "curl" ; then
-    CURL="$CURL --dump-header $HTTP_HEADER "
+    _CURL="$CURL --dump-header $HTTP_HEADER "
     if [ "$needbase64" ] ; then
-      response="$($CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" $url | _base64)"
+      response="$($_CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" $url | _base64)"
     else
-      response="$($CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" $url)"
+      response="$($_CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" $url)"
     fi
   else
     if [ "$needbase64" ] ; then
@@ -846,7 +846,7 @@ _initpath() {
   dp="$LE_WORKING_DIR/curl.dump"
   CURL="curl -L --silent"
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
-    CURL="$CURL -L --trace-ascii $dp "
+    CURL="$CURL --trace-ascii $dp "
   fi
 
   _DEFAULT_ACCOUNT_KEY_PATH="$LE_WORKING_DIR/account.key"
