@@ -578,6 +578,7 @@ _post() {
     httpmethod="POST"
   fi
   _debug $httpmethod
+  _debug "url" "$url"
   if _exists "curl" ; then
     _CURL="$CURL --dump-header $HTTP_HEADER "
     if [ "$needbase64" ] ; then
