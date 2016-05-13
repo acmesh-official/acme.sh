@@ -588,9 +588,17 @@ _post() {
     fi
   else
     if [ "$needbase64" ] ; then
-      response="$($WGET -S -O - --user-agent="$USER_AGENT" --method $httpmethod --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --body-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
+      if [ "$httpmethod"="POST" ] ; then
+        response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
+      else
+        response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
+      fi
     else
-      response="$($WGET -S -O - --user-agent="$USER_AGENT" --method $httpmethod --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --body-data="$body" "$url" 2>"$HTTP_HEADER")"
+      if [ "$httpmethod"="POST" ] ; then
+        response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER")"
+      else
+        response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER")"
+      fi
     fi
     _sed_i "s/^ *//g" "$HTTP_HEADER"
   fi
