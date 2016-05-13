@@ -769,12 +769,12 @@ _startserver() {
   _debug "_NC" "$_NC"
 #  while true ; do
     if [ "$DEBUG" ] ; then
-      if ! printf "%s" "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort ; then
-        printf "%s" "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort ;
+      if ! printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort ; then
+        printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort ;
       fi
     else
-      if ! printf "%s" "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort > /dev/null 2>&1; then
-        printf "%s" "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort > /dev/null 2>&1
+      if ! printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort > /dev/null 2>&1; then
+        printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort > /dev/null 2>&1
       fi      
     fi
     if [ "$?" != "0" ] ; then
