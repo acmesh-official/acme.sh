@@ -40,7 +40,7 @@ _info() {
   if [ -z "$2" ] ; then
     echo "[$(date)] $1"
   else
-    echo "[$(date)] $1"="'$2'"
+    echo "[$(date)] $1='$2'"
   fi
 }
 
@@ -67,13 +67,13 @@ _debug2() {
 _startswith(){
   _str="$1"
   _sub="$2"
-  echo $_str | grep ^$_sub >/dev/null 2>&1
+  echo "$_str" | grep "^$_sub" >/dev/null 2>&1
 }
 
 _contains(){
   _str="$1"
   _sub="$2"
-  echo $_str | grep $_sub >/dev/null 2>&1
+  echo "$_str" | grep "$_sub" >/dev/null 2>&1
 }
 
 _hasfield() {
@@ -106,9 +106,9 @@ _exists(){
     return 1
   fi
   if type command >/dev/null 2>&1 ; then
-    command -v $cmd >/dev/null 2>&1
+    command -v "$cmd" >/dev/null 2>&1
   else
-    type $cmd >/dev/null 2>&1
+    type "$cmd" >/dev/null 2>&1
   fi
   ret="$?"
   _debug2 "$cmd exists=$ret"
@@ -124,27 +124,27 @@ _h_char_2_dec() {
   _ch=$1
   case "${_ch}" in
     a|A)
-      echo -n 10
+      printf "10"
         ;;
     b|B)
-      echo -n 11
+      printf "11"
         ;;
     c|C)
-      echo -n 12
+      printf "12"
         ;;
     d|D)
-      echo -n 13
+      printf "13"
         ;;
     e|E)
-      echo -n 14
+      printf "14"
         ;;
     f|F)
-      echo -n 15
+      printf "15"
         ;;
     *)
-      echo -n $_ch
+      printf "%s" "$_ch"
         ;;
-  esac       
+  esac
 
 }
 
@@ -157,21 +157,21 @@ _h2b() {
   fi
   _debug uselet "$uselet"
   _debug _URGLY_PRINTF "$_URGLY_PRINTF"
-  while [ '1' ] ; do
+  while true ; do
     if [ -z "$_URGLY_PRINTF" ] ; then
-      h=$(printf $hex | cut -c $i-$j)
+      h="$(printf $hex | cut -c $i-$j)"
       if [ -z "$h" ] ; then
         break;
       fi
       printf "\x$h"
     else
-      ic=$(printf $hex | cut -c $i)
-      jc=$(printf $hex | cut -c $j)
+      ic="$(printf $hex | cut -c $i)"
+      jc="$(printf $hex | cut -c $j)"
       if [ -z "$ic$jc" ] ; then
         break;
       fi
-      ic="$(_h_char_2_dec $ic)"
-      jc="$(_h_char_2_dec $jc)"
+      ic="$(_h_char_2_dec "$ic")"
+      jc="$(_h_char_2_dec "$jc")"
       printf '\'"$(printf %o "$(_math $ic \* 16 + $jc)")"
     fi
     if [ "$uselet" ] ; then
@@ -198,7 +198,7 @@ _sed_i() {
     sed -i "$options" "$filename"
   else
     _debug "No -i support in sed"
-    text="$(cat $filename)"
+    text="$(cat "$filename")"
     echo "$text" | sed "$options" > "$filename"
   fi
 }
@@ -213,23 +213,23 @@ _getfile() {
     return 1
   fi
   
-  i="$(grep -n --  "$startline"  $filename | cut -d : -f 1)"
+  i="$(grep -n --  "$startline"  "$filename" | cut -d : -f 1)"
   if [ -z "$i" ] ; then
     _err "Can not find start line: $startline"
     return 1
   fi
-  i="$(_math $i + 1)"
-  _debug i $i
+  i="$(_math "$i" + 1)"
+  _debug i "$i"
   
-  j="$(grep -n --  "$endline"  $filename | cut -d : -f 1)"
+  j="$(grep -n --  "$endline"  "$filename" | cut -d : -f 1)"
   if [ -z "$j" ] ; then
     _err "Can not find end line: $endline"
     return 1
   fi
-  j="$(_math $j - 1)"
-  _debug j $j
+  j="$(_math "$j" - 1)"
+  _debug j "$j"
   
-  sed -n $i,${j}p  "$filename"
+  sed -n "$i,${j}p"  "$filename"
 
 }
 
@@ -293,7 +293,7 @@ _ss() {
   
   if _exists "ss" ; then
     _debug "Using: ss"
-    ss -ntpl | grep :$_port" "
+    ss -ntpl | grep ":$_port "
     return 0
   fi
 
@@ -301,12 +301,12 @@ _ss() {
     _debug "Using: netstat"
     if netstat -h 2>&1 | grep "\-p proto" >/dev/null ; then
       #for windows version netstat tool
-      netstat -anb -p tcp | grep "LISTENING" | grep :$_port" "
+      netstat -anb -p tcp | grep "LISTENING" | grep ":$_port "
     else
       if netstat -help 2>&1 | grep "\-p protocol" >/dev/null ; then
-        netstat -an -p tcp | grep LISTEN | grep :$_port" "
+        netstat -an -p tcp | grep LISTEN | grep ":$_port "
       else
-        netstat -ntpl | grep :$_port" "
+        netstat -ntpl | grep ":$_port "
       fi
     fi
     return 0
@@ -434,11 +434,11 @@ createDomainKey() {
 createCSR() {
   _info "Creating csr"
   if [ -z "$1" ] ; then
-    echo Usage: $PROJECT_ENTRY --createCSR -d domain1.com [-d domain2.com  -d domain3.com ... ]
+    echo "Usage: $PROJECT_ENTRY --createCSR -d domain1.com [-d domain2.com  -d domain3.com ... ]"
     return
   fi
   domain=$1
-  _initpath $domain
+  _initpath "$domain"
   
   domainlist=$2
   
@@ -449,7 +449,7 @@ createCSR() {
   
   if [ -z "$domainlist" ] || [ "$domainlist" = "no" ]; then
     #single domain
-    _info "Single domain" $domain
+    _info "Single domain" "$domain"
     printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\n" > "$DOMAIN_SSL_CONF"
     openssl req -new -sha256 -key "$CERT_KEY_PATH" -subj "/CN=$domain" -config "$DOMAIN_SSL_CONF" -out "$CSR_PATH"
   else
@@ -513,7 +513,7 @@ _calcjwk() {
     
     modulus=$(openssl rsa -in $keyfile -modulus -noout | cut -d '=' -f 2 )
     _debug2 modulus "$modulus"
-    n=$(echo -n $modulus| _h2b | _base64 | _urlencode )
+    n="$(printf "%s" "$modulus"| _h2b | _base64 | _urlencode )"
     jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
     _debug2 jwk "$jwk"
     
@@ -523,36 +523,36 @@ _calcjwk() {
     _debug "EC key"
     EC_SIGN="1"
     crv="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
-    _debug2 crv $crv
+    _debug2 crv "$crv"
     
     pubi="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep -n pub: | cut -d : -f 1)"
     pubi=$(_math $pubi + 1)
-    _debug2 pubi $pubi
+    _debug2 pubi "$pubi"
     
     pubj="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep -n "ASN1 OID:"  | cut -d : -f 1)"
     pubj=$(_math $pubj + 1)
-    _debug2 pubj $pubj
+    _debug2 pubj "$pubj"
     
     pubtext="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | sed  -n "$pubi,${pubj}p" | tr -d " \n\r")"
     _debug2 pubtext "$pubtext"
     
     xlen="$(printf "$pubtext" | tr -d ':' | wc -c)"
     xlen=$(_math $xlen / 4)
-    _debug2 xlen $xlen
+    _debug2 xlen "$xlen"
 
-    xend=$(_math $xend + 1)
+    xend=$(_math "$xend" + 1)
     x="$(printf $pubtext | cut -d : -f 2-$xend)"
-    _debug2 x $x
+    _debug2 x "$x"
     
     x64="$(printf $x | tr -d : | _h2b | _base64 | _urlencode)"
-    _debug2 x64 $x64
+    _debug2 x64 "$x64"
 
-    xend=$(_math $xend + 1)
+    xend=$(_math "$xend" + 1)
     y="$(printf $pubtext | cut -d : -f $xend-10000)"
-    _debug2 y $y
+    _debug2 y "$y"
     
     y64="$(printf $y | tr -d : | _h2b | _base64 | _urlencode)"
-    _debug2 y64 $y64
+    _debug2 y64 "$y64"
    
     jwk='{"kty": "EC", "crv": "'$crv'", "x": "'$x64'", "y": "'$y64'"}'
     _debug2 jwk "$jwk"
@@ -581,19 +581,19 @@ _post() {
   if _exists "curl" ; then
     _CURL="$CURL --dump-header $HTTP_HEADER "
     if [ "$needbase64" ] ; then
-      response="$($_CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" $url | _base64)"
+      response="$($_CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" "$url" | _base64)"
     else
-      response="$($_CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" $url)"
+      response="$($_CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" "$url" )"
     fi
   else
     if [ "$needbase64" ] ; then
-      response="$($WGET -S -O - --user-agent="$USER_AGENT" --method $httpmethod --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --body-data="$body" $url 2>"$HTTP_HEADER" | _base64)"
+      response="$($WGET -S -O - --user-agent="$USER_AGENT" --method $httpmethod --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --body-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
     else
-      response="$($WGET -S -O - --user-agent="$USER_AGENT" --method $httpmethod --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --body-data="$body" $url 2>"$HTTP_HEADER")"
+      response="$($WGET -S -O - --user-agent="$USER_AGENT" --method $httpmethod --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --body-data="$body" "$url" 2>"$HTTP_HEADER")"
     fi
     _sed_i "s/^ *//g" "$HTTP_HEADER"
   fi
-  echo -n "$response"
+  printf "%s" "$response"
   
 }
 
@@ -760,12 +760,12 @@ _startserver() {
   _debug "_NC" "$_NC"
 #  while true ; do
     if [ "$DEBUG" ] ; then
-      if ! printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort ; then
-        printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort ;
+      if ! printf "%s" "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort ; then
+        printf "%s" "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort ;
       fi
     else
-      if ! printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort > /dev/null 2>&1; then
-        printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort > /dev/null 2>&1
+      if ! printf "%s" "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort > /dev/null 2>&1; then
+        printf "%s" "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort > /dev/null 2>&1
       fi      
     fi
     if [ "$?" != "0" ] ; then
@@ -1210,7 +1210,11 @@ issue() {
 
       entry="$(printf "$response" | egrep -o  '\{[^{]*"type":"'$vtype'"[^}]*')"
       _debug entry "$entry"
-
+      if [ -z "$entry" ] ; then
+        _err "Error, can not get domain token $d"
+        _clearup
+        return 1
+      fi
       token="$(printf "$entry" | egrep -o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
       _debug token $token
       
