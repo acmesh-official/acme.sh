@@ -326,7 +326,7 @@ TODO:
 # Acknowledgment
 1. Acme-tiny: https://github.com/diafygi/acme-tiny
 2. ACME protocol: https://github.com/ietf-wg-acme/acme
-3. letsencrypt: https://github.com/letsencrypt/letsencrypt
+3. Certbot: https://github.com/certbot/certbot
 
 # License & Other
 
