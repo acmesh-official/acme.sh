@@ -963,8 +963,8 @@ _setApache() {
   fi
 
   #backup the conf
-  _debug "Backup apache config file" $httpdconf
-  cp $httpdconf $APACHE_CONF_BACKUP_DIR/
+  _debug "Backup apache config file" "$httpdconf"
+  cp "$httpdconf" "$APACHE_CONF_BACKUP_DIR/"
   _info "JFYI, Config file $httpdconf is backuped to $APACHE_CONF_BACKUP_DIR/$httpdconfname"
   _info "In case there is an error that can not be restored automatically, you may try restore it yourself."
   _info "The backup file will be deleted on sucess, just forget it."
@@ -976,14 +976,14 @@ _setApache() {
   apacheMajer="$(echo "$apacheVer" | cut -d . -f 1)"
   apacheMinor="$(echo "$apacheVer" | cut -d . -f 2)"
 
-  if [ "$apacheVer" ] && [ "$apacheMajer" -ge "2" ] && [ "$apacheMinor" -ge "4" ] ; then
+  if [ "$apacheVer" ] && [ "$apacheMajer$apacheMinor" -ge "24" ] ; then
     echo "
 Alias /.well-known/acme-challenge  $ACME_DIR
 
 <Directory $ACME_DIR >
 Require all granted
 </Directory>
-  " >> $httpdconf  
+  " >> "$httpdconf"
   else
     echo "
 Alias /.well-known/acme-challenge  $ACME_DIR
@@ -992,7 +992,7 @@ Alias /.well-known/acme-challenge  $ACME_DIR
 Order allow,deny
 Allow from all
 </Directory>
-  " >> $httpdconf
+  " >> "$httpdconf"
   fi
 
   
