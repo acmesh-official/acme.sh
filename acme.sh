@@ -924,9 +924,10 @@ _apachePath() {
     httpdroot="$(apachectl -V | grep HTTPD_ROOT= | cut -d = -f 2 | tr -d '"' )"
     _debug httpdroot "$httpdroot"
     httpdconf="$httpdroot/$httpdconfname"
+    httpdconfname="$(basename $httpdconfname)"
   fi
   _debug httpdconf "$httpdconf"
-
+  _debug httpdconfname "$httpdconfname"
   if [ ! -f "$httpdconf" ] ; then
     _err "Apache Config file not found" "$httpdconf"
     return 1
@@ -967,7 +968,11 @@ _setApache() {
 
   #backup the conf
   _debug "Backup apache config file" "$httpdconf"
-  cp "$httpdconf" "$APACHE_CONF_BACKUP_DIR/"
+  if ! cp "$httpdconf" "$APACHE_CONF_BACKUP_DIR/" ; then
+    _err "Can not backup apache config file, so abort. Don't worry, your apache config is not changed."
+    _err "This might be a bug of $PROJECT_NAME , pleae report issue: $PROJECT"
+    return 1
+  fi
   _info "JFYI, Config file $httpdconf is backuped to $APACHE_CONF_BACKUP_DIR/$httpdconfname"
   _info "In case there is an error that can not be restored automatically, you may try restore it yourself."
   _info "The backup file will be deleted on sucess, just forget it."
