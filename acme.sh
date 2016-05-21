@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.2.4
+VER=2.2.5
 
 PROJECT_NAME="acme.sh"
 
@@ -667,7 +667,7 @@ _send_signed_request() {
   _debug2 body "$body"
   
 
-  response="$(_post "$body" $url "$needbase64" )"
+  response="$(_post "$body" $url "$needbase64" | tr -d "\r\n ")"
 
   responseHeaders="$(cat $HTTP_HEADER)"
   
@@ -1401,7 +1401,7 @@ issue() {
       MAX_RETRY_TIMES=30
     fi
     
-    while [ "1" ] ; do
+    while true ; do
       waittimes=$(_math $waittimes + 1)
       if [ "$waittimes" -ge "$MAX_RETRY_TIMES" ] ; then
         _err "$d:Timeout"
@@ -1413,7 +1413,7 @@ issue() {
       _debug "sleep 5 secs to verify"
       sleep 5
       _debug "checking"
-      response="$(_get $uri)"
+      response="$(_get $uri | tr -d "\r\n ")"
       if [ "$?" != "0" ] ; then
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
