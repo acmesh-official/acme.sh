@@ -916,16 +916,19 @@ _apachePath() {
     return 1
   fi
   httpdconfname="$(apachectl -V | grep SERVER_CONFIG_FILE= | cut -d = -f 2 | tr -d '"' )"
+  _debug httpdconfname "$httpdconfname"
   if _startswith "$httpdconfname" '/' ; then
     httpdconf="$httpdconfname"
     httpdconfname="$(basename $httpdconfname)"
   else
     httpdroot="$(apachectl -V | grep HTTPD_ROOT= | cut -d = -f 2 | tr -d '"' )"
+    _debug httpdroot "$httpdroot"
     httpdconf="$httpdroot/$httpdconfname"
   fi
+  _debug httpdconf "$httpdconf"
 
-  if [ ! -f $httpdconf ] ; then
-    _err "Apache Config file not found" $httpdconf
+  if [ ! -f "$httpdconf" ] ; then
+    _err "Apache Config file not found" "$httpdconf"
     return 1
   fi
   return 0
