@@ -44,13 +44,13 @@ dns_cx_add() {
     return 1
   fi
 
-  if [ "$count" == "0" ] ; then
+  if [ "$count" = "0" ] ; then
     add_record $_domain $_sub_domain $txtvalue
   else
     update_record $_domain $_sub_domain $txtvalue
   fi
   
-  if [ "$?" == "0" ] ; then
+  if [ "$?" = "0" ] ; then
     return 0
   fi
   return 1
