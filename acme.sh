@@ -480,6 +480,10 @@ _time2str() {
   
 }
 
+_normalizeJson() {
+  sed "s/\" *: *\([\"{\[]\)/\":\1/g" | sed "s/^ *\([^ ]\)/\1/" | tr -d "\r\n"
+}
+
 _stat() {
   #Linux
   if stat -c '%U:%G' "$1" 2>/dev/null ; then
@@ -667,7 +671,11 @@ _send_signed_request() {
   _debug2 body "$body"
   
 
-  response="$(_post "$body" $url "$needbase64" | tr -d "\r\n ")"
+  response="$(_post "$body" $url "$needbase64")"
+  
+  _debug2 original "$response"
+  
+  response="$( echo "$response" | _normalizeJson )"
 
   responseHeaders="$(cat $HTTP_HEADER)"
   
@@ -1421,7 +1429,7 @@ issue() {
       _debug "sleep 5 secs to verify"
       sleep 5
       _debug "checking"
-      response="$(_get $uri | tr -d "\r\n ")"
+      response="$(_get $uri | _normalizeJson )"
       if [ "$?" != "0" ] ; then
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
@@ -1486,7 +1494,7 @@ issue() {
   
 
   if [ -z "$Le_LinkCert" ] ; then
-    response="$(echo $response | _dbase64 "multiline" )"
+    response="$(echo $response | _dbase64 "multiline" | _normalizeJson )"
     _err "Sign failed: $(echo "$response" | grep -o  '"detail":"[^"]*"')"
     return 1
   fi
