@@ -775,6 +775,7 @@ _startserver() {
   fi
 
   _debug "_NC" "$_NC"
+  _debug Le_HTTPPort "$Le_HTTPPort"
 #  while true ; do
     if [ "$DEBUG" ] ; then
       if ! printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort ; then
@@ -2124,12 +2125,12 @@ Parameters:
 
   --accountconf                     Specifies a customized account config file.
   --home                            Specifies the home dir for $PROJECT_NAME .
-  --certhome                        Specifies the home dir to save all the certs.
+  --certhome                        Specifies the home dir to save all the certs, only valid for '--install' command.
   --useragent                       Specifies the user agent string. it will be saved for future use too.
   --accountemail                    Specifies the account email for registering, Only valid for the '--install' command.
   --accountkey                      Specifies the account key path, Only valid for the '--install' command.
   --days                            Specifies the days to renew the cert when using '--issue' command. The max value is 80 days.
-  
+  --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
   "
 }
 
@@ -2178,6 +2179,7 @@ _process() {
   _accountemail=""
   _accountkey=""
   _certhome=""
+  _httpport=""
   while [ ${#} -gt 0 ] ; do
     case "${1}" in
     
@@ -2370,6 +2372,11 @@ _process() {
     --days )
         _days="$2"
         Le_RenewalDays="$_days"
+        shift
+        ;;
+    --httpport )
+        _httpport="$2"
+        Le_HTTPPort="$_httpport"
         shift
         ;;
     *)

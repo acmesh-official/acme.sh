@@ -105,58 +105,8 @@ Ok, you are ready to issue cert now.
 Show help message:
 
 ```
-root@v1:~# acme.sh
-https://github.com/Neilpang/acme.sh
-v2.1.1
-Usage: acme.sh  command ...[parameters]....
-Commands:
-  --help, -h               Show this help message.
-  --version, -v            Show version info.
-  --install                Install acme.sh to your system.
-  --uninstall              Uninstall acme.sh, and uninstall the cron job.
-  --issue                  Issue a cert.
-  --installcert            Install the issued cert to apache/nginx or any other server.
-  --renew, -r              Renew a cert.
-  --renewAll               Renew all the certs
-  --revoke                 Revoke a cert.
-  --installcronjob         Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
-  --uninstallcronjob       Uninstall the cron job. The 'uninstall' command can do this automatically.
-  --cron                   Run cron job to renew all the certs.
-  --toPkcs                 Export the certificate and key to a pfx file.
-  --createAccountKey, -cak Create an account private key, professional use.
-  --createDomainKey, -cdk  Create an domain private key, professional use.
-  --createCSR, -ccsr       Create CSR , professional use.
 
-Parameters:
-  --domain, -d   domain.tld         Specifies a domain, used to issue, renew or revoke etc.
-  --force, -f                       Used to force to install or force to renew a cert immediately.
-  --staging, --test                 Use staging server, just for test.
-  --debug                           Output debug info.
-
-  --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
-  --standalone                      Use standalone mode.
-  --apache                          Use apache mode.
-  --dns [dns-cf|dns-dp|dns-cx|/path/to/api/file]   Use dns mode or dns api.
-
-  --keylength, -k [2048]            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384.
-  --accountkeylength, -ak [2048]    Specifies the account key length.
-
-  These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
-
-  --certpath /path/to/real/cert/file  After issue/renew, the cert will be copied to this path.
-  --keypath /path/to/real/key/file  After issue/renew, the key will be copied to this path.
-  --capath /path/to/real/ca/file    After issue/renew, the intermediate cert will be copied to this path.
-  --fullchainpath /path/to/fullchain/file After issue/renew, the fullchain cert will be copied to this path.
-
-  --reloadcmd "service nginx reload" After issue/renew, it's used to reload the server.
-
-  --accountconf                     Specifies a customized account config file.
-  --home                            Specifies the home dir for acme.sh .
-  --certhome                        Specifies the home dir to save all the certs, only valid for '--install' command.
-  --useragent                       Specifies the user agent string. it will be saved for future use too.
-  --accountemail                    Specifies the account email for registering, Only valid for the '--install' command.
-  --accountkey                      Specifies the account key path, Only valid for the '--install' command.
-  --days                            Specifies the days to renew the cert when using '--issue' command. The max value is 80 days.
+root@v1:~# acme.sh -h
 
 ```
  
