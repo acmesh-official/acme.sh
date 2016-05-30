@@ -1431,6 +1431,7 @@ issue() {
       sleep 5
       _debug "checking"
       response="$(_get $uri | _normalizeJson )"
+      _debug2 response "$response"
       if [ "$?" != "0" ] ; then
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
@@ -1448,7 +1449,7 @@ issue() {
       fi
       
       if [ "$status" = "invalid" ] ; then
-         error=$(echo $response | egrep -o '"error":{[^}]*}' | grep -o '"detail":"[^"]*"' | cut -d '"' -f 4)
+         error="$(echo $response | egrep -o '"error":{[^}]*}' | grep -o '"detail":"[^"]*"' | cut -d '"' -f 4)"
         _err "$d:Verify error:$error"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
