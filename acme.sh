@@ -1449,8 +1449,15 @@ issue() {
       fi
       
       if [ "$status" = "invalid" ] ; then
-         error="$(echo $response | egrep -o '"error":{[^}]*}' | grep -o '"detail":"[^"]*"' | cut -d '"' -f 4)"
-        _err "$d:Verify error:$error"
+         error="$(echo $response | egrep -o '"error":{[^}]*}')"
+         _debug2 error "$error"
+         errordetail="$(echo $error |  grep -o '"detail": *"[^"]*"' | cut -d '"' -f 4)"
+         _debug2 errordetail "$errordetail"
+         if [ "$errordetail" ] ; then
+           _err "$d:Verify error:$errordetail"
+         else
+           _err "$d:Verify error:$error"
+         fi
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
         return 1;
