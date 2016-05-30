@@ -1449,7 +1449,7 @@ issue() {
       fi
       
       if [ "$status" = "invalid" ] ; then
-         error="$(echo $response | egrep -o '"error":{[^}]*}')"
+         error="$(echo $response | tr -d "\r\n" | egrep -o '"error":{[^}]*}')"
          _debug2 error "$error"
          errordetail="$(echo $error |  grep -o '"detail": *"[^"]*"' | cut -d '"' -f 4)"
          _debug2 errordetail "$errordetail"
