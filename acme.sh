@@ -585,6 +585,7 @@ _post() {
   _debug "url" "$url"
   if _exists "curl" ; then
     _CURL="$CURL --dump-header $HTTP_HEADER "
+    _debug "_CURL" "$_CURL"
     if [ "$needbase64" ] ; then
       response="$($_CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" "$url" 2>"$HTTP_ERROR_FILE" | _base64)"
     else
@@ -592,6 +593,7 @@ _post() {
     fi
     _ret="$?"
   else
+    _debug "WGET" "$WGET"
     if [ "$needbase64" ] ; then
       if [ "$httpmethod"="POST" ] ; then
         response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
@@ -623,6 +625,7 @@ _get() {
   onlyheader="$2"
   _debug url $url
   if _exists "curl" ; then
+    _debug "CURL" "$CURL"
     if [ "$onlyheader" ] ; then
       $CURL -I -A "User-Agent: $USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" $url 2>"$HTTP_ERROR_FILE"
     else
@@ -638,7 +641,7 @@ _get() {
     fi
     ret=$?
   fi
-  
+  _debug "ret" "$ret"
   if [ "$ret" != "0" ] ; then
     _err "$(cat "$HTTP_ERROR_FILE")"
   fi
