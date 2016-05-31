@@ -658,7 +658,10 @@ _send_signed_request() {
   
   nonceurl="$API/directory"
   nonce="$(_get $nonceurl "onlyheader" | grep -o "Replay-Nonce:.*$" | head -1 | tr -d "\r\n" | cut -d ' ' -f 2)"
-
+  if [ "$?" != "0" ] ; then
+    _err "Can not connect to $nonceurl to get nonce."
+    return 1
+  fi
   _debug nonce "$nonce"
   
   protected="$(printf "$HEADERPLACE" | sed "s/NONCE/$nonce/" )"
@@ -675,7 +678,10 @@ _send_signed_request() {
   
 
   response="$(_post "$body" $url "$needbase64")"
-  
+  if [ "$?" != "0" ] ; then
+    _err "Can not post to $url."
+    return 1
+  fi
   _debug2 original "$response"
   
   response="$( echo "$response" | _normalizeJson )"
@@ -1434,13 +1440,13 @@ issue() {
       sleep 5
       _debug "checking"
       response="$(_get $uri | _normalizeJson )"
-      _debug2 response "$response"
       if [ "$?" != "0" ] ; then
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
         return 1
       fi
+      _debug2 response "$response"
       
       status=$(echo $response | egrep -o  '"status":"[^"]*' | cut -d : -f 2 | tr -d '"')
       if [ "$status" = "valid" ] ; then
