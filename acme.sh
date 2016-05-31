@@ -590,6 +590,7 @@ _post() {
     else
       response="$($_CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" "$url" )"
     fi
+    _ret="$?"
   else
     if [ "$needbase64" ] ; then
       if [ "$httpmethod"="POST" ] ; then
@@ -604,10 +605,12 @@ _post() {
         response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER")"
       fi
     fi
+    _ret="$?"
     _sed_i "s/^ *//g" "$HTTP_HEADER"
   fi
+  _debug "_ret" "$_ret"
   printf "%s" "$response"
-  
+  return $_ret
 }
 
 # url getheader
