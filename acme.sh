@@ -586,9 +586,9 @@ _post() {
   if _exists "curl" ; then
     _CURL="$CURL --dump-header $HTTP_HEADER "
     if [ "$needbase64" ] ; then
-      response="$($_CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" "$url" | _base64)"
+      response="$($_CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" "$url" 2>"$HTTP_ERROR_FILE" | _base64)"
     else
-      response="$($_CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" "$url" )"
+      response="$($_CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" "$url" 2>"$HTTP_ERROR_FILE" )"
     fi
     _ret="$?"
   else
@@ -609,6 +609,9 @@ _post() {
     _sed_i "s/^ *//g" "$HTTP_HEADER"
   fi
   _debug "_ret" "$_ret"
+  if [ "$ret" != "0" ] ; then
+    _err "$(cat "$HTTP_ERROR_FILE")"
+  fi
   printf "%s" "$response"
   return $_ret
 }
@@ -621,19 +624,24 @@ _get() {
   _debug url $url
   if _exists "curl" ; then
     if [ "$onlyheader" ] ; then
-      $CURL -I -A "User-Agent: $USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" $url
+      $CURL -I -A "User-Agent: $USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" $url 2>"$HTTP_ERROR_FILE"
     else
-      $CURL    -A "User-Agent: $USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" $url
+      $CURL    -A "User-Agent: $USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" $url 2>"$HTTP_ERROR_FILE"
     fi
+    ret=$?
   else
     _debug "WGET" "$WGET"
     if [ "$onlyheader" ] ; then
       $WGET --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null $url 2>&1 | sed 's/^[ ]*//g'
     else
-      $WGET --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1"    -O - $url
+      $WGET --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1"    -O - $url  2>"$HTTP_ERROR_FILE"
     fi
+    ret=$?
   fi
-  ret=$?
+  
+  if [ "$ret" != "0" ] ; then
+    _err "$(cat "$HTTP_ERROR_FILE")"
+  fi
   return $ret
 }
 
@@ -870,6 +878,7 @@ _initpath() {
   fi
   
   HTTP_HEADER="$LE_WORKING_DIR/http.header"
+  HTTP_ERROR_FILE="$LE_WORKING_DIR/http.err"
   
   WGET="wget -q"
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
@@ -1456,13 +1465,16 @@ issue() {
       _debug "sleep 5 secs to verify"
       sleep 5
       _debug "checking"
-      response="$(_get $uri | _normalizeJson )"
+      response="$(_get $uri)"
       if [ "$?" != "0" ] ; then
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
         return 1
       fi
+      _debug2 original "$response"
+      
+      response="$(echo "$response" | _normalizeJson )"
       _debug2 response "$response"
       
       status=$(echo $response | egrep -o  '"status":"[^"]*' | cut -d : -f 2 | tr -d '"')
