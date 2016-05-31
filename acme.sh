@@ -657,11 +657,17 @@ _send_signed_request() {
   _debug2 payload64 $payload64
   
   nonceurl="$API/directory"
-  nonce="$(_get $nonceurl "onlyheader" | grep -o "Replay-Nonce:.*$" | head -1 | tr -d "\r\n" | cut -d ' ' -f 2)"
+  _headers="$(_get $nonceurl "onlyheader")"
+  
   if [ "$?" != "0" ] ; then
     _err "Can not connect to $nonceurl to get nonce."
     return 1
   fi
+  
+  _debug2 _headers "$_headers"
+  
+  nonce="$( echo "$_headers" | grep "Replay-Nonce:" | head -1 | tr -d "\r\n " | cut -d ':' -f 2)"
+
   _debug nonce "$nonce"
   
   protected="$(printf "$HEADERPLACE" | sed "s/NONCE/$nonce/" )"
