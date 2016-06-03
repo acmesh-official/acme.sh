@@ -1371,8 +1371,8 @@ issue() {
   fi
   
   if [ "$dnsadded" = '1' ] ; then
-    _info "Sleep 60 seconds for the txt records to take effect"
-    sleep 60
+    _info "Sleep $dnssleep seconds for the txt records to take effect"
+    sleep $dnssleep
   fi
   
   _debug "ok, let's start to verify"
@@ -2163,6 +2163,7 @@ Parameters:
   --standalone                      Use standalone mode.
   --apache                          Use apache mode.
   --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
+  --dnssleep #   Number of seconds for sleep (for reload dns cache etc.), after succesful insert dns records via dns api.
   
   --keylength, -k [2048]            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384.
   --accountkeylength, -ak [2048]    Specifies the account key length.
@@ -2358,6 +2359,10 @@ _process() {
         else
           _webroot="$_webroot,$wvalue"
         fi
+        ;;
+    --dnssleep 
+        dnssleep="$2"
+        shift
         ;;
     --keylength|-k)
         _keylength="$2"
