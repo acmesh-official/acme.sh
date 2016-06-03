@@ -1131,6 +1131,7 @@ issue() {
   _savedomainconf "Le_Domain"       "$Le_Domain"
   _savedomainconf "Le_Alt"          "$Le_Alt"
   _savedomainconf "Le_Webroot"      "$Le_Webroot"
+  _savedomainconf "dnssleep"      "$dnssleep"
   _savedomainconf "Le_Keylength"    "$Le_Keylength"
   
   if [ "$Le_Alt" = "no" ] ; then
@@ -2361,7 +2362,12 @@ _process() {
         fi
         ;;
     --dnssleep 
-        dnssleep="$2"
+        re='^[0-9]+$'
+        if ! [[ $2 =~ $re ]] ; then
+           dnssleep="60"
+        else
+          dnssleep="$2"
+        fi
         shift
         ;;
     --keylength|-k)
