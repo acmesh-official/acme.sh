@@ -829,6 +829,11 @@ _initpath() {
   if [ -z "$LE_WORKING_DIR" ] ; then
     LE_WORKING_DIR=$HOME/.$PROJECT_NAME
   fi
+  if ! mkdir -p "$LE_WORKING_DIR" ; then
+    _err "Can not create working dir: $LE_WORKING_DIR"
+    return 1
+  fi
+  chmod 700 "$LE_WORKING_DIR"
   
   _DEFAULT_ACCOUNT_CONF_PATH="$LE_WORKING_DIR/account.conf"
 
@@ -2028,13 +2033,6 @@ install() {
   fi
 
   _info "Installing to $LE_WORKING_DIR"
-
-  if ! mkdir -p "$LE_WORKING_DIR" ; then
-    _err "Can not craete working dir: $LE_WORKING_DIR"
-    return 1
-  fi
-  
-  chmod 700 "$LE_WORKING_DIR"
 
   cp $PROJECT_ENTRY "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/$PROJECT_ENTRY"
 
