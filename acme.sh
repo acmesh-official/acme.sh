@@ -2030,7 +2030,7 @@ install() {
   _info "Installing to $LE_WORKING_DIR"
 
   if ! mkdir -p "$LE_WORKING_DIR" ; then
-    _err "Can not craete working dir: $LE_WORKING_DIR"
+    _err "Can not create working dir: $LE_WORKING_DIR"
     return 1
   fi
   
