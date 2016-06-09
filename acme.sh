@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.2.5
+VER=2.2.6
 
 PROJECT_NAME="acme.sh"
 
@@ -1631,6 +1631,23 @@ renewAll() {
   
 }
 
+list() {
+  _initpath
+  printf  "Main_Domain|SAN_Domains|Created|Renew\n"
+  for d in $(ls -F ${CERT_HOME}/ | grep [^.].*[.].*/$ ) ; do
+    d=$(echo $d | cut -d '/' -f 1)
+    (
+      _initpath $d
+      if [ -f "$DOMAIN_CONF" ] ; then
+        . "$DOMAIN_CONF"
+        printf "$Le_Domain|$Le_Alt|$Le_CertCreateTimeStr|$Le_NextRenewTimeStr\n"
+      fi
+    )
+  done
+
+
+}
+
 installcert() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ] ; then
@@ -2138,6 +2155,7 @@ Commands:
   --renew, -r              Renew a cert.
   --renewAll               Renew all the certs
   --revoke                 Revoke a cert.
+  --list                   List all the certs
   --installcronjob         Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
   --uninstallcronjob       Uninstall the cron job. The 'uninstall' command can do this automatically.
   --cron                   Run cron job to renew all the certs.
@@ -2257,6 +2275,9 @@ _process() {
         ;;
     --revoke)
         _CMD="revoke"
+        ;;
+    --list)
+        _CMD="list"
         ;;
     --installcronjob)
         _CMD="installcronjob"
@@ -2455,6 +2476,9 @@ _process() {
       ;;
     revoke) 
       revoke "$_domain" 
+      ;;
+    list) 
+      list
       ;;
     installcronjob) installcronjob ;;
     uninstallcronjob) uninstallcronjob ;;
