@@ -2284,20 +2284,23 @@ _process() {
     --domain|-d)
         _dvalue="$2"
         
-        if [ -z "$_dvalue" ] || _startswith "$_dvalue" "-" ; then
-          _err "'$_dvalue' is not a valid domain for parameter '$1'"
-          return 1
-        fi
-        
-        if [ -z "$_domain" ] ; then
-          _domain="$_dvalue"
-        else
-          if [ "$_altdomains" = "no" ] ; then
-            _altdomains="$_dvalue"
+        if [ "$_dvalue" ] ; then
+          if _startswith "$_dvalue" "-" ; then
+            _err "'$_dvalue' is not a valid domain for parameter '$1'"
+            return 1
+          fi
+          
+          if [ -z "$_domain" ] ; then
+            _domain="$_dvalue"
           else
-            _altdomains="$_altdomains,$_dvalue"
+            if [ "$_altdomains" = "no" ] ; then
+              _altdomains="$_dvalue"
+            else
+              _altdomains="$_altdomains,$_dvalue"
+            fi
           fi
         fi
+        
         shift
         ;;
 
