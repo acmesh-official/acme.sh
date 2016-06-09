@@ -587,9 +587,9 @@ _post() {
     _CURL="$CURL --dump-header $HTTP_HEADER "
     _debug "_CURL" "$_CURL"
     if [ "$needbase64" ] ; then
-      response="$($_CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" "$url" 2>"$HTTP_ERROR_FILE" | _base64)"
+      response="$($_CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" "$url" | _base64)"
     else
-      response="$($_CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" "$url" 2>"$HTTP_ERROR_FILE" )"
+      response="$($_CURL -A "User-Agent: $USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" "$url" )"
     fi
     _ret="$?"
   else
@@ -611,9 +611,6 @@ _post() {
     _sed_i "s/^ *//g" "$HTTP_HEADER"
   fi
   _debug "_ret" "$_ret"
-  if [ "$ret" != "0" ] ; then
-    _err "$(cat "$HTTP_ERROR_FILE")"
-  fi
   printf "%s" "$response"
   return $_ret
 }
@@ -627,9 +624,9 @@ _get() {
   if _exists "curl" ; then
     _debug "CURL" "$CURL"
     if [ "$onlyheader" ] ; then
-      $CURL -I -A "User-Agent: $USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" $url 2>"$HTTP_ERROR_FILE"
+      $CURL -I -A "User-Agent: $USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" $url
     else
-      $CURL    -A "User-Agent: $USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" $url 2>"$HTTP_ERROR_FILE"
+      $CURL    -A "User-Agent: $USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" $url
     fi
     ret=$?
   else
@@ -637,14 +634,11 @@ _get() {
     if [ "$onlyheader" ] ; then
       $WGET --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null $url 2>&1 | sed 's/^[ ]*//g'
     else
-      $WGET --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1"    -O - $url  2>"$HTTP_ERROR_FILE"
+      $WGET --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1"    -O - $url
     fi
     ret=$?
   fi
   _debug "ret" "$ret"
-  if [ "$ret" != "0" ] ; then
-    _err "$(cat "$HTTP_ERROR_FILE")"
-  fi
   return $ret
 }
 
@@ -881,7 +875,6 @@ _initpath() {
   fi
   
   HTTP_HEADER="$LE_WORKING_DIR/http.header"
-  HTTP_ERROR_FILE="$LE_WORKING_DIR/http.err"
   
   WGET="wget -q"
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
@@ -2037,7 +2030,7 @@ install() {
   _info "Installing to $LE_WORKING_DIR"
 
   if ! mkdir -p "$LE_WORKING_DIR" ; then
-    _err "Can not craete working dir: $LE_WORKING_DIR"
+    _err "Can not create working dir: $LE_WORKING_DIR"
     return 1
   fi
   
