@@ -1098,7 +1098,8 @@ issue() {
   Le_RealCACertPath="$7"
   Le_ReloadCmd="$8"
   Le_RealFullChainPath="$9"
-  
+  dnssleep="${10}"
+
   #remove these later.
   if [ "$Le_Webroot" = "dns-cf" ] ; then
     Le_Webroot="dns_cf"
@@ -1124,6 +1125,7 @@ issue() {
   _savedomainconf "Le_Domain"       "$Le_Domain"
   _savedomainconf "Le_Alt"          "$Le_Alt"
   _savedomainconf "Le_Webroot"      "$Le_Webroot"
+  _savedomainconf "dnssleep"      "$dnssleep"
   _savedomainconf "Le_Keylength"    "$Le_Keylength"
   
   if [ "$Le_Alt" = "no" ] ; then
@@ -1364,8 +1366,8 @@ issue() {
   fi
   
   if [ "$dnsadded" = '1' ] ; then
-    _info "Sleep 60 seconds for the txt records to take effect"
-    sleep 60
+    _info "Sleep $dnssleep seconds for the txt records to take effect"
+    sleep $dnssleep
   fi
   
   _debug "ok, let's start to verify"
@@ -1612,7 +1614,7 @@ renew() {
   fi
   
   IS_RENEW="1"
-  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath"
+  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$dnssleep"
   local res=$?
   IS_RENEW=""
 
@@ -2174,6 +2176,7 @@ Parameters:
   --standalone                      Use standalone mode.
   --apache                          Use apache mode.
   --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
+  --dnssleep                        Number of seconds for sleep (for reload dns cache etc.), after succesful insert dns records via dns api.
   
   --keylength, -k [2048]            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384.
   --accountkeylength, -ak [2048]    Specifies the account key length.
@@ -2244,6 +2247,7 @@ _process() {
   _accountkey=""
   _certhome=""
   _httpport=""
+  dnssleep="60"
   while [ ${#} -gt 0 ] ; do
     case "${1}" in
     
@@ -2376,6 +2380,15 @@ _process() {
           _webroot="$_webroot,$wvalue"
         fi
         ;;
+    --dnssleep)          
+        re='^[0-9]+$'
+        if ! [[ "$2" =~ $re ]] ; then
+          dnssleep="60"
+        else
+          dnssleep="$2"
+        fi        
+        shift
+        ;;
     --keylength|-k)
         _keylength="$2"
         accountkeylength="$2"
@@ -2462,8 +2475,8 @@ _process() {
   case "${_CMD}" in
     install) install ;;
     uninstall) uninstall ;;
-    issue)
-      issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath"
+    issue)     
+      issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath" "$dnssleep"
       ;;
     installcert)
       installcert "$_domain" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath"
