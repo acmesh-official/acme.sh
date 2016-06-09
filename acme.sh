@@ -987,7 +987,7 @@ _restoreApache() {
   
   cat "$APACHE_CONF_BACKUP_DIR/$httpdconfname" > "$httpdconf"
   _debug "Restored: $httpdconf."
-  if ! apachectl  -t ; then
+  if ! apachectl  -t >/dev/null 2>&1 ; then
     _err "Sorry, restore apache config error, please contact me."
     return 1;
   fi
@@ -1040,7 +1040,7 @@ Allow from all
   fi
 
   
-  if ! apachectl  -t ; then
+  if ! apachectl  -t >/dev/null 2>&1; then
     _err "Sorry, apache config error, please contact me."
     _restoreApache
     return 1;
