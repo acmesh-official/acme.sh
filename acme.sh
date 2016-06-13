@@ -1364,8 +1364,14 @@ issue() {
   fi
   
   if [ "$dnsadded" = '1' ] ; then
-    _info "Sleep 60 seconds for the txt records to take effect"
-    sleep 60
+    if [ -z "$Le_DNSSleep" ] ; then
+      Le_DNSSleep=60
+    else
+      _savedomainconf "Le_DNSSleep"  "$Le_DNSSleep"
+    fi
+
+    _info "Sleep $Le_DNSSleep seconds for the txt records to take effect"
+    sleep $Le_DNSSleep
   fi
   
   _debug "ok, let's start to verify"
@@ -2174,6 +2180,7 @@ Parameters:
   --standalone                      Use standalone mode.
   --apache                          Use apache mode.
   --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
+  --dnssleep  [60]                  The time in seconds to wait for all the txt records to take effect in dns api mode. Default 60 seconds.
   
   --keylength, -k [2048]            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384.
   --accountkeylength, -ak [2048]    Specifies the account key length.
@@ -2244,6 +2251,7 @@ _process() {
   _accountkey=""
   _certhome=""
   _httpport=""
+  _dnssleep=""
   while [ ${#} -gt 0 ] ; do
     case "${1}" in
     
@@ -2376,6 +2384,12 @@ _process() {
           _webroot="$_webroot,$wvalue"
         fi
         ;;
+    --dnssleep)
+        _dnssleep="$2"
+        Le_DNSSleep="$_dnssleep"
+        shift
+        ;;
+        
     --keylength|-k)
         _keylength="$2"
         accountkeylength="$2"
