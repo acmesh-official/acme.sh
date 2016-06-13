@@ -1142,8 +1142,9 @@ issue() {
     
     if [ -z "$Le_HTTPPort" ] ; then
       Le_HTTPPort=80
-    fi
-    _savedomainconf "Le_HTTPPort"  "$Le_HTTPPort"
+    else
+      _savedomainconf "Le_HTTPPort"  "$Le_HTTPPort"
+    fi    
     
     netprc="$(_ss "$Le_HTTPPort" | grep "$Le_HTTPPort")"
     if [ "$netprc" ] ; then
@@ -1574,9 +1575,9 @@ issue() {
   
   if [ -z "$Le_RenewalDays" ] || [ "$Le_RenewalDays" -lt "0" ] || [ "$Le_RenewalDays" -gt "80" ] ; then
     Le_RenewalDays=80
-  fi
-  
-  _savedomainconf  "Le_RenewalDays"   "$Le_RenewalDays"
+  else
+    _savedomainconf  "Le_RenewalDays"   "$Le_RenewalDays"
+  fi  
 
   Le_NextRenewTime=$(_math $Le_CertCreateTime + $Le_RenewalDays \* 24 \* 60 \* 60)
   _savedomainconf "Le_NextRenewTime"   "$Le_NextRenewTime"
