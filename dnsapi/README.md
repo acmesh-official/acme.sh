@@ -72,7 +72,7 @@ If your api is not supported yet,  you can write your own dns api.
 Let's assume you want to name it 'myapi',
 
 1. Create a bash script named  `~/.acme.sh/dns_myapi.sh`,
-2. In the scrypt, you must have a function named `dns_myapi-add()`. Which will be called by le.sh to add dns records.
+2. In the scrypt, you must have a function named `dns_myapi_add()`. Which will be called by acme.sh to add dns records.
 3. Then you can use your api to issue cert like:
 
 ```
