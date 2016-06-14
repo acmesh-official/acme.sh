@@ -1638,19 +1638,27 @@ renewAll() {
   
 }
 
+
 list() {
+  local _raw="$1"
   _initpath
-  printf  "Main_Domain|SAN_Domains|Created|Renew\n"
-  for d in $(ls -F ${CERT_HOME}/ | grep [^.].*[.].*/$ ) ; do
-    d=$(echo $d | cut -d '/' -f 1)
-    (
-      _initpath $d
-      if [ -f "$DOMAIN_CONF" ] ; then
-        . "$DOMAIN_CONF"
-        printf "$Le_Domain|$Le_Alt|$Le_CertCreateTimeStr|$Le_NextRenewTimeStr\n"
-      fi
-    )
-  done
+  
+  _sep="|"
+  if [ "$_raw" ] ; then
+    printf  "Main_Domain${_sep}SAN_Domains${_sep}Created${_sep}Renew\n"
+    for d in $(ls -F ${CERT_HOME}/ | grep [^.].*[.].*/$ ) ; do
+      d=$(echo $d | cut -d '/' -f 1)
+      (
+        _initpath $d
+        if [ -f "$DOMAIN_CONF" ] ; then
+          . "$DOMAIN_CONF"
+          printf "$Le_Domain${_sep}$Le_Alt${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr\n"
+        fi
+      )
+    done
+  else
+    list "raw" | column -t -s "$_sep"  
+  fi
 
 
 }
@@ -2203,6 +2211,7 @@ Parameters:
   --accountkey                      Specifies the account key path, Only valid for the '--install' command.
   --days                            Specifies the days to renew the cert when using '--issue' command. The max value is 80 days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
+  --listraw                         Only used for '--list' command, list the certs in raw format.
   "
 }
 
@@ -2253,6 +2262,7 @@ _process() {
   _certhome=""
   _httpport=""
   _dnssleep=""
+  _listraw=""
   while [ ${#} -gt 0 ] ; do
     case "${1}" in
     
@@ -2464,6 +2474,10 @@ _process() {
         Le_HTTPPort="$_httpport"
         shift
         ;;
+    --listraw )
+        _listraw="raw"
+        ;;        
+        
     *)
         _err "Unknown parameter : $1"
         return 1
@@ -2493,7 +2507,7 @@ _process() {
       revoke "$_domain" 
       ;;
     list) 
-      list
+      list "$_listraw"
       ;;
     installcronjob) installcronjob ;;
     uninstallcronjob) uninstallcronjob ;;
