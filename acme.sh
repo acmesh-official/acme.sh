@@ -995,6 +995,18 @@ _setApache() {
     return 1
   fi
 
+  #test the conf first
+  _info "Checking if there is an error in your apache config file before we start."
+  _msg="$(apachectl  -t  2>&1 )"
+  if [ "$?" != "0" ] ; then
+    _err "Sorry, apache config has error, please fix it by yourself first, then try again."
+    _err "Don't worry, we have not made any changes to your system."
+    _err "$_msg"
+    return 1;
+  else
+    _info "OK"
+  fi
+  
   #backup the conf
   _debug "Backup apache config file" "$httpdconf"
   if ! cp "$httpdconf" "$APACHE_CONF_BACKUP_DIR/" ; then
@@ -1032,10 +1044,14 @@ Allow from all
   " >> "$httpdconf"
   fi
 
-  
-  if ! apachectl  -t >/dev/null 2>&1; then
-    _err "Sorry, apache config error, please contact me."
-    _restoreApache
+  _msg="$(apachectl  -t  2>&1 )"
+  if [ "$?" != "0" ] ; then
+    _err "Sorry, apache config error"
+    if _restoreApache ; then
+      _err "We have restored your apache config file."
+    else
+      _err "Sorry, we are not able to restore the config file, please contact me."
+    fi
     return 1;
   fi
   
