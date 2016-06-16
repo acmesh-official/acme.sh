@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.2.6
+VER=2.2.7
 
 PROJECT_NAME="acme.sh"
 
@@ -17,6 +17,10 @@ STAGE_CA="https://acme-staging.api.letsencrypt.org"
 
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
+VTYPE_TLS="tls-sni-01"
+VTYPE_TLS2="tls-sni-02"
+
+W_TLS="tls"
 
 BEGIN_CSR="-----BEGIN CERTIFICATE REQUEST-----"
 END_CSR="-----END CERTIFICATE REQUEST-----"
@@ -251,7 +255,7 @@ _dbase64() {
   fi
 }
 
-#Usage: hashalg
+#Usage: hashalg  [outputhex]
 #Output Base64-encoded digest
 _digest() {
   alg="$1"
@@ -260,8 +264,14 @@ _digest() {
     return 1
   fi
   
+  outputhex="$2"
+  
   if [ "$alg" = "sha256" ] ; then
-    openssl dgst -sha256 -binary | _base64
+    if [ "$outputhex" ] ; then
+      echo $(openssl dgst -sha256 -hex | cut -d = -f 2)
+    else
+      openssl dgst -sha256 -binary | _base64
+    fi
   else
     _err "$alg is not supported yet"
     return 1
@@ -286,6 +296,86 @@ _sign() {
     return 1
   fi  
   
+}
+
+# _createkey  2048|ec-256   file
+_createkey() {
+  length="$1"
+  f="$2"
+  isec=""
+  if _startswith "$length" "ec-" ; then
+    isec="1"
+    length=$(printf $length | cut -d '-' -f 2-100)
+    eccname="$length"
+  fi
+
+  if [ -z "$length" ] ; then
+    if [ "$isec" ] ; then
+      length=256
+    else
+      length=2048
+    fi
+  fi
+  _info "Use length $length"
+
+  if [ "$isec" ] ; then
+    if [ "$length" = "256" ] ; then
+      eccname="prime256v1"
+    fi
+    if [ "$length" = "384" ] ; then
+      eccname="secp384r1"
+    fi
+    if [ "$length" = "521" ] ; then
+      eccname="secp521r1"
+    fi
+    _info "Using ec name: $eccname"
+  fi
+
+  #generate account key
+  if [ "$isec" ] ; then
+    openssl ecparam  -name $eccname -genkey 2>/dev/null > "$f"
+  else
+    openssl genrsa $length 2>/dev/null > "$f"
+  fi
+}
+
+#_createcsr  cn  san_list  keyfile csrfile conf
+_createcsr() {
+  _debug _createcsr
+  domain="$1"
+  domainlist="$2"
+  key="$3"
+  csr="$4"
+  csrconf="$5"
+  _debug2 domain "$domain"
+  _debug2 domainlist "$domainlist"
+  if [ -z "$domainlist" ] || [ "$domainlist" = "no" ]; then
+    #single domain
+    _info "Single domain" "$domain"
+    printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\n" > "$csrconf"
+    openssl req -new -sha256 -key "$key" -subj "/CN=$domain" -config "$csrconf" -out "$csr"
+  else
+    if _contains "$domainlist" "," ; then
+      alt="DNS:$(echo $domainlist | sed "s/,/,DNS:/g")"
+    else
+      alt="DNS:$domainlist"
+    fi
+    #multi 
+    _info "Multi domain" "$alt"
+    printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\nkeyUsage = nonRepudiation, digitalSignature, keyEncipherment\nsubjectAltName=$alt" > "$csrconf"
+    openssl req -new -sha256 -key "$key" -subj "/CN=$domain" -config "$csrconf" -out "$csr"
+  fi
+}
+
+#_signcsr key  csr  conf cert
+_signcsr() {
+  key="$1"
+  csr="$2"
+  conf="$3"
+  cert="$4"
+  
+  openssl x509 -req -days 365  -in "$csr"  -signkey "$key"  -extensions v3_req -extfile "$conf" -out "$cert"
+
 }
 
 _ss() {
@@ -364,7 +454,7 @@ createAccountKey() {
     return
   else
     #generate account key
-    openssl genrsa $length 2>/dev/null > "$ACCOUNT_KEY_PATH"
+    _createkey $length "$ACCOUNT_KEY_PATH"
   fi
 
 }
@@ -378,45 +468,12 @@ createDomainKey() {
   fi
   
   domain=$1
-  length=$2
-  isec=""
-  if _startswith "$length" "ec-" ; then
-    isec="1"
-    length=$(printf $length | cut -d '-' -f 2-100)
-    eccname="$length"
-  fi
-
-  if [ -z "$length" ] ; then
-    if [ "$isec" ] ; then
-      length=256
-    else
-      length=2048
-    fi
-  fi
-  _info "Use length $length"
-
-  if [ "$isec" ] ; then
-    if [ "$length" = "256" ] ; then
-      eccname="prime256v1"
-    fi
-    if [ "$length" = "384" ] ; then
-      eccname="secp384r1"
-    fi
-    if [ "$length" = "521" ] ; then
-      eccname="secp521r1"
-    fi
-    _info "Using ec name: $eccname"
-  fi
-  
   _initpath $domain
   
+  length=$2
+
   if [ ! -f "$CERT_KEY_PATH" ] || ( [ "$FORCE" ] && ! [ "$IS_RENEW" ] ); then 
-    #generate account key
-    if [ "$isec" ] ; then
-      openssl ecparam  -name $eccname -genkey 2>/dev/null > "$CERT_KEY_PATH"
-    else
-      openssl genrsa $length 2>/dev/null > "$CERT_KEY_PATH"
-    fi
+    _createkey "$length" "$CERT_KEY_PATH"
   else
     if [ "$IS_RENEW" ] ; then
       _info "Domain key exists, skip"
@@ -447,19 +504,8 @@ createCSR() {
     return
   fi
   
-  if [ -z "$domainlist" ] || [ "$domainlist" = "no" ]; then
-    #single domain
-    _info "Single domain" "$domain"
-    printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\n" > "$DOMAIN_SSL_CONF"
-    openssl req -new -sha256 -key "$CERT_KEY_PATH" -subj "/CN=$domain" -config "$DOMAIN_SSL_CONF" -out "$CSR_PATH"
-  else
-    alt="DNS:$(echo $domainlist | sed "s/,/,DNS:/g")"
-    #multi 
-    _info "Multi domain" "$alt"
-    printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\n[SAN]\nsubjectAltName=$alt" > "$DOMAIN_SSL_CONF"
-    openssl req -new -sha256 -key "$CERT_KEY_PATH" -subj "/CN=$domain" -reqexts SAN -config "$DOMAIN_SSL_CONF" -out "$CSR_PATH"
-  fi
-
+  _createcsr "$domain" "$domainlist" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"
+  
 }
 
 _urlencode() {
@@ -819,9 +865,52 @@ _stopserver(){
   if [ -z "$pid" ] ; then
     return
   fi
-  
-  _get "http://localhost:$Le_HTTPPort" >/dev/null 2>&1
 
+  _get "http://localhost:$Le_HTTPPort" >/dev/null 2>&1
+  _get "http://localhost:$Le_TLSPort" >/dev/null 2>&1
+
+}
+
+
+# _starttlsserver  san_a  san_b port content
+_starttlsserver() {
+  _info "Starting tls server."
+  san_a="$1"
+  san_b="$2"
+  port="$3"
+  content="$4"
+  
+  _debug san_a "$san_a"
+  _debug san_b "$san_b"
+  _debug port "$port"
+  
+  #create key TLS_KEY
+  if ! _createkey "2048" "$TLS_KEY" ; then
+    _err "Create tls validation key error."
+    return 1
+  fi
+  
+  #create csr
+  alt="$san_a"
+  if [ "$san_b" ] ; then
+    alt="$alt,$san_b"
+  fi
+  if ! _createcsr "tls.acme.sh" "$alt" "$TLS_KEY" "$TLS_CSR" "$TLS_CONF"  ; then
+    _err "Create tls validation csr error."
+    return 1
+  fi
+  
+  #self signed
+  if ! _signcsr "$TLS_KEY"  "$TLS_CSR"  "$TLS_CONF" "$TLS_CERT" ; then
+    _err "Create tls validation cert error."
+    return 1
+  fi
+  
+  #start openssl
+  (printf "HTTP/1.1 200 OK\r\n\r\n$content" | openssl s_server -cert "$TLS_CERT"  -key "$TLS_KEY" -accept $port >/dev/null 2>&1) &
+  serverproc="$!"
+  sleep 2
+  _debug serverproc $serverproc
 }
 
 _initpath() {
@@ -935,6 +1024,20 @@ _initpath() {
   if [ -z "$CERT_PFX_PATH" ] ; then
     CERT_PFX_PATH="$domainhome/$domain.pfx"
   fi
+  
+  if [ -z "$TLS_CONF" ] ; then
+    TLS_CONF="$domainhome/tls.valdation.conf"
+  fi
+  if [ -z "$TLS_CERT" ] ; then
+    TLS_CERT="$domainhome/tls.valdation.cert"
+  fi
+  if [ -z "$TLS_KEY" ] ; then
+    TLS_KEY="$domainhome/tls.valdation.key"
+  fi
+  if [ -z "$TLS_CSR" ] ; then
+    TLS_CSR="$domainhome/tls.valdation.csr"
+  fi
+  
 }
 
 
@@ -1171,6 +1274,24 @@ issue() {
     fi
   fi
   
+  if _hasfield "$Le_Webroot" "$W_TLS" ; then
+    _info "Standalone tls mode."
+    
+    if [ -z "$Le_TLSPort" ] ; then
+      Le_TLSPort=443
+    else
+      _savedomainconf "Le_TLSPort"  "$Le_TLSPort"
+    fi    
+    
+    netprc="$(_ss "$Le_TLSPort" | grep "$Le_TLSPort")"
+    if [ "$netprc" ] ; then
+      _err "$netprc"
+      _err "tcp port $Le_TLSPort is already used by $(echo "$netprc" | cut -d :  -f 4)"
+      _err "Please stop it first"
+      return 1
+    fi
+  fi
+  
   if _hasfield "$Le_Webroot" "apache" ; then
     if ! _setApache ; then
       _err "set up apache error. Report error to me."
@@ -1263,6 +1384,11 @@ issue() {
       if _startswith "$_currentRoot" "dns" ; then
         vtype="$VTYPE_DNS"
       fi
+      
+      if [ "$_currentRoot" = "$W_TLS" ] ; then
+        vtype="$VTYPE_TLS"
+      fi
+      
       _info "Getting token for domain" $d
 
       if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$d\"}}" ; then
@@ -1406,7 +1532,7 @@ issue() {
     _debug "keyauthorization" "$keyauthorization"
     _debug "uri" "$uri"
     removelevel=""
-    token=""
+    token="$(printf "%s" "$keyauthorization" | cut -d '.' -f 1)"
 
     _debug "_currentRoot" "$_currentRoot"
 
@@ -1439,7 +1565,6 @@ issue() {
 
         _debug wellknown_path "$wellknown_path"
 
-        token="$(printf "%s" "$keyauthorization" | cut -d '.' -f 1)"
         _debug "writing token:$token to $wellknown_path/$token"
 
         mkdir -p "$wellknown_path"
@@ -1450,6 +1575,37 @@ issue() {
           chown -R $webroot_owner "$_currentRoot/.well-known"
         fi
         
+      fi
+      
+    elif [ "$vtype" = "$VTYPE_TLS" ] ; then
+      #create A
+      #_hash_A="$(printf "%s" $token | _digest "sha256" "hex" )"
+      #_debug2 _hash_A "$_hash_A"
+      #_x="$(echo $_hash_A | cut -c 1-32)"
+      #_debug2 _x "$_x"
+      #_y="$(echo $_hash_A | cut -c 33-64)"
+      #_debug2 _y "$_y"
+      #_SAN_A="$_x.$_y.token.acme.invalid"
+      #_debug2 _SAN_A "$_SAN_A"
+      
+      #create B
+      _hash_B="$(printf "%s" $keyauthorization | _digest "sha256" "hex" )"
+      _debug2 _hash_B "$_hash_B"
+      _x="$(echo $_hash_B | cut -c 1-32)"
+      _debug2 _x "$_x"
+      _y="$(echo $_hash_B | cut -c 33-64)"
+      _debug2 _y "$_y"
+      
+      #_SAN_B="$_x.$_y.ka.acme.invalid"
+      
+      _SAN_B="$_x.$_y.acme.invalid"
+      _debug2 _SAN_B "$_SAN_B"
+      
+      if ! _starttlsserver "$_SAN_B" "$_SAN_A" "$Le_TLSPort" "$keyauthorization" ; then
+        _err "Start tls server error."
+        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearup
+        return 1
       fi
     fi
     
@@ -2227,6 +2383,7 @@ Parameters:
   --accountkey                      Specifies the account key path, Only valid for the '--install' command.
   --days                            Specifies the days to renew the cert when using '--issue' command. The max value is 80 days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
+  --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --listraw                         Only used for '--list' command, list the certs in raw format.
   "
 }
@@ -2277,6 +2434,7 @@ _process() {
   _accountkey=""
   _certhome=""
   _httpport=""
+  _tlsport=""
   _dnssleep=""
   _listraw=""
   while [ ${#} -gt 0 ] ; do
@@ -2399,6 +2557,14 @@ _process() {
           _webroot="$_webroot,$wvalue"
         fi
         ;;
+    --tls)
+        wvalue="$W_TLS"
+        if [ -z "$_webroot" ] ; then
+          _webroot="$wvalue"
+        else
+          _webroot="$_webroot,$wvalue"
+        fi
+        ;;
     --dns)
         wvalue="dns"
         if ! _startswith "$2" "-" ; then
@@ -2490,6 +2656,12 @@ _process() {
         Le_HTTPPort="$_httpport"
         shift
         ;;
+    --tlsport )
+        _tlsport="$2"
+        Le_TLSPort="$_tlsport"
+        shift
+        ;;
+        
     --listraw )
         _listraw="raw"
         ;;        
