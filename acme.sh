@@ -908,7 +908,7 @@ _starttlsserver() {
   
   #start openssl
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
-    (printf "HTTP/1.1 200 OK\r\n\r\n$content" | openssl s_server -cert "$TLS_CERT"  -key "$TLS_KEY" -accept $port ) &
+    (printf "HTTP/1.1 200 OK\r\n\r\n$content" | openssl s_server -cert "$TLS_CERT"  -key "$TLS_KEY" -accept $port -tlsextdebug ) &
   else
     (printf "HTTP/1.1 200 OK\r\n\r\n$content" | openssl s_server -cert "$TLS_CERT"  -key "$TLS_KEY" -accept $port >/dev/null 2>&1) &
   fi
