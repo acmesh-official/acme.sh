@@ -170,6 +170,20 @@ acme.sh --issue --standalone -d aa.com -d www.aa.com -d cp.aa.com
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
+# Use Standalone tls server to issue cert
+
+**(requires you be root/sudoer, or you have permission to listen tcp 443 port)**
+
+acme.sh supports `tls-sni-01` validation.
+
+The tcp `443` port **MUST** be free to listen, otherwise you will be prompted to free the `443` port and try again.
+
+```bash
+acme.sh --issue --tls -d aa.com -d www.aa.com -d cp.aa.com
+```
+
+More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
+
 # Use Apache mode
 
 **(requires you be root/sudoer, since it is required to interact with apache server)**
