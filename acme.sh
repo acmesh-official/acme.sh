@@ -1176,6 +1176,12 @@ _clearup() {
   _stopserver $serverproc
   serverproc=""
   _restoreApache
+  if [ -z "$DEBUG" ] ; then
+    rm -f "$TLS_CONF"
+    rm -f "$TLS_CERT"
+    rm -f "$TLS_KEY"
+    rm -f "$TLS_CSR"
+  fi
 }
 
 # webroot  removelevel tokenfile
@@ -2359,6 +2365,7 @@ Parameters:
     
   --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
+  --tls                             Use standalone tls mode.
   --apache                          Use apache mode.
   --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
   --dnssleep  [60]                  The time in seconds to wait for all the txt records to take effect in dns api mode. Default 60 seconds.
