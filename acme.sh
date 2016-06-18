@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.2.7
+VER=2.2.8
 
 PROJECT_NAME="acme.sh"
 
@@ -375,9 +375,12 @@ _signcsr() {
   csr="$2"
   conf="$3"
   cert="$4"
+  _debug "_signcsr"
   
-  openssl x509 -req -days 365  -in "$csr"  -signkey "$key"  -extensions v3_req -extfile "$conf" -out "$cert"
-
+  _msg="$(openssl x509 -req -days 365  -in "$csr"  -signkey "$key"  -extensions v3_req -extfile "$conf" -out "$cert"  2>&1)"
+  _ret="$?"
+  _debug "$_msg"
+  return $_ret
 }
 
 _ss() {
@@ -869,7 +872,7 @@ _stopserver(){
   fi
 
   _get "http://localhost:$Le_HTTPPort" >/dev/null 2>&1
-  _get "http://localhost:$Le_TLSPort" >/dev/null 2>&1
+  _get "https://localhost:$Le_TLSPort" >/dev/null 2>&1
 
 }
 
@@ -910,9 +913,9 @@ _starttlsserver() {
   
   #start openssl
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
-    (printf "HTTP/1.1 200 OK\r\n\r\n$content" | openssl s_server -cert "$TLS_CERT"  -key "$TLS_KEY" -accept $port -tlsextdebug ) &
+    (printf "HTTP/1.1 200 OK\r\n\r\n$content" | openssl s_server -cert "$TLS_CERT"  -key "$TLS_KEY" -accept $port -naccept 1 -tlsextdebug ) &
   else
-    (printf "HTTP/1.1 200 OK\r\n\r\n$content" | openssl s_server -cert "$TLS_CERT"  -key "$TLS_KEY" -accept $port >/dev/null 2>&1) &
+    (printf "HTTP/1.1 200 OK\r\n\r\n$content" | openssl s_server -cert "$TLS_CERT"  -key "$TLS_KEY" -accept $port -naccept 1 >/dev/null 2>&1) &
   fi
 
   serverproc="$!"
@@ -1791,7 +1794,7 @@ renew() {
   fi
 
   _initpath $Le_Domain
-
+  _info "Renew: $Le_Domain"
   if [ ! -f "$DOMAIN_CONF" ] ; then
     _info "$Le_Domain is not a issued domain, skip."
     return 0;
@@ -1819,8 +1822,7 @@ renewAll() {
   _ret="0"
   for d in $(ls -F ${CERT_HOME}/ | grep [^.].*[.].*/$ ) ; do
     d=$(echo $d | cut -d '/' -f 1)
-    (
-      _info "Renew: $d" 
+    ( 
       renew "$d"
     )
     rc="$?"
