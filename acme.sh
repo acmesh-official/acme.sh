@@ -28,6 +28,8 @@ END_CSR="-----END CERTIFICATE REQUEST-----"
 BEGIN_CERT="-----BEGIN CERTIFICATE-----"
 END_CERT="-----END CERTIFICATE-----"
 
+RENEW_SKIP=2
+
 if [ -z "$AGREEMENT" ] ; then
   AGREEMENT="$DEFAULT_AGREEMENT"
 fi
@@ -1207,7 +1209,7 @@ _clearupwebbroot() {
     _debug "remove $__webroot/.well-known/acme-challenge/$3"
     rm -rf "$__webroot/.well-known/acme-challenge/$3"
   else
-    _info "Skip for removelevel:$2"
+    _debug "Skip for removelevel:$2"
   fi
   
   return 0
@@ -1247,7 +1249,7 @@ issue() {
     _debug Le_NextRenewTime "$Le_NextRenewTime"
     if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ $(date -u "+%s" ) -lt $Le_NextRenewTime ] ; then 
       _info "Skip, Next renewal time is: $(grep "^Le_NextRenewTimeStr" "$DOMAIN_CONF" | cut -d '=' -f 2)"
-      return 2
+      return $RENEW_SKIP
     fi
   fi
 
@@ -1798,7 +1800,7 @@ renew() {
   . "$DOMAIN_CONF"
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ] ; then 
     _info "Skip, Next renewal time is: $Le_NextRenewTimeStr"
-    return 2
+    return $RENEW_SKIP
   fi
   
   IS_RENEW="1"
@@ -1809,16 +1811,33 @@ renew() {
   return $res
 }
 
+#renewAll  [stopRenewOnError]
 renewAll() {
   _initpath
+  _stopRenewOnError="$1"
+  _debug "_stopRenewOnError" "$_stopRenewOnError"
+  _ret="0"
   for d in $(ls -F ${CERT_HOME}/ | grep [^.].*[.].*/$ ) ; do
     d=$(echo $d | cut -d '/' -f 1)
     (
       _info "Renew: $d" 
       renew "$d"
     )
+    rc="$?"
+    _debug "Return code: $rc"
+    if [ "$rc" != "0" ] ; then
+      if [ "$rc" = "$RENEW_SKIP" ] ; then
+        _info "Skipped $d"
+      elif [ "$_stopRenewOnError" ] ; then
+        _err "Error renew $d,  stop now."
+        return $rc
+      else
+        _ret="$rc"
+        _err "Error renew $d, Go ahead to next one."
+      fi
+    fi
   done
-  
+  return $_ret
 }
 
 
@@ -2332,7 +2351,9 @@ uninstall() {
 cron() {
   IN_CRON=1
   renewAll
+  _ret="$?"
   IN_CRON=""
+  return $_ret
 }
 
 version() {
@@ -2397,6 +2418,7 @@ Parameters:
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --listraw                         Only used for '--list' command, list the certs in raw format.
+  --stopRenewOnError, -se           Only valid for '--renewall' command. Stop to renew all if one cert has error in renewal.
   "
 }
 
@@ -2449,6 +2471,7 @@ _process() {
   _tlsport=""
   _dnssleep=""
   _listraw=""
+  _stopRenewOnError=""
   while [ ${#} -gt 0 ] ; do
     case "${1}" in
     
@@ -2677,7 +2700,9 @@ _process() {
     --listraw )
         _listraw="raw"
         ;;        
-        
+    --stopRenewOnError|--stoprenewonerror|-se )
+        _stopRenewOnError="1"
+        ;;
     *)
         _err "Unknown parameter : $1"
         return 1
@@ -2701,7 +2726,7 @@ _process() {
       renew "$_domain" 
       ;;
     renewAll) 
-      renewAll 
+      renewAll "$_stopRenewOnError"
       ;;
     revoke) 
       revoke "$_domain" 
