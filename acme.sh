@@ -2118,7 +2118,7 @@ _initconf() {
 
 #ACCOUNT_KEY_HASH=account key hash
 
-USER_AGENT=\"$USER_AGENT\"
+#USER_AGENT=\"$USER_AGENT\"
 
 #USER_PATH=""
 
