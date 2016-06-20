@@ -985,6 +985,11 @@ _initpath() {
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
     CURL="$CURL --trace-ascii $dp "
   fi
+  
+  if [ "$Le_Insecure" ] ; then
+    WGET="$WGET --no-check-certificate "
+    CURL="$CURL --insecure  "
+  fi
 
   _DEFAULT_ACCOUNT_KEY_PATH="$LE_WORKING_DIR/account.key"
   if [ -z "$ACCOUNT_KEY_PATH" ] ; then
@@ -1765,7 +1770,11 @@ issue() {
     Le_RenewalDays=80
   else
     _savedomainconf  "Le_RenewalDays"   "$Le_RenewalDays"
-  fi  
+  fi
+  
+  if [ "$Le_Insecure" ] ; then
+    _savedomainconf  "Le_Insecure"   "$Le_Insecure"
+  fi
 
   Le_NextRenewTime=$(_math $Le_CertCreateTime + $Le_RenewalDays \* 24 \* 60 \* 60)
   _savedomainconf "Le_NextRenewTime"   "$Le_NextRenewTime"
@@ -2421,6 +2430,7 @@ Parameters:
   --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --listraw                         Only used for '--list' command, list the certs in raw format.
   --stopRenewOnError, -se           Only valid for '--renewall' command. Stop to renew all if one cert has error in renewal.
+  --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
   "
 }
 
@@ -2474,6 +2484,7 @@ _process() {
   _dnssleep=""
   _listraw=""
   _stopRenewOnError=""
+  _insecure=""
   while [ ${#} -gt 0 ] ; do
     case "${1}" in
     
@@ -2704,6 +2715,10 @@ _process() {
         ;;        
     --stopRenewOnError|--stoprenewonerror|-se )
         _stopRenewOnError="1"
+        ;;
+    --insecure)
+        _insecure="1"
+        Le_Insecure="$_insecure"
         ;;
     *)
         _err "Unknown parameter : $1"
