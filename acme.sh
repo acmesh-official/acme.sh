@@ -2633,11 +2633,13 @@ _process() {
         
     --keylength|-k)
         _keylength="$2"
-        accountkeylength="$2"
+        if [ "$_accountkeylength" = "no" ] ; then
+          _accountkeylength="$2"
+        fi
         shift
         ;;
     --accountkeylength|-ak)
-        accountkeylength="$2"
+        _accountkeylength="$2"
         shift
         ;;
 
