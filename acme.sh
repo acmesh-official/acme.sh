@@ -643,6 +643,9 @@ _post() {
       response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" "$url" )"
     fi
     _ret="$?"
+    if [ "$_ret" != "0" ] ; then
+      _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $_ret" 
+    fi
   else
     _debug "WGET" "$WGET"
     if [ "$needbase64" ] ; then
@@ -659,6 +662,9 @@ _post() {
       fi
     fi
     _ret="$?"
+    if [ "$_ret" != "0" ] ; then
+      _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret" 
+    fi
     _sed_i "s/^ *//g" "$HTTP_HEADER"
   fi
   _debug "_ret" "$_ret"
