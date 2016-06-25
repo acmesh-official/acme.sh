@@ -644,7 +644,11 @@ _post() {
     fi
     _ret="$?"
     if [ "$_ret" != "0" ] ; then
-      _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $_ret" 
+      _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $_ret"
+      if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
+        _err "Here is the curl dump log:"
+        _err "$(cat "$_CURL_DUMP")"
+      fi
     fi
   else
     _debug "WGET" "$WGET"
@@ -986,10 +990,10 @@ _initpath() {
     WGET="$WGET -d "
   fi
 
-  dp="$LE_WORKING_DIR/curl.dump"
+  _CURL_DUMP="$LE_WORKING_DIR/curl.dump"
   CURL="curl -L --silent"
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
-    CURL="$CURL --trace-ascii $dp "
+    CURL="$CURL --trace-ascii $_CURL_DUMP "
   fi
   
   if [ "$Le_Insecure" ] ; then
