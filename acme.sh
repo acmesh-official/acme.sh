@@ -20,6 +20,8 @@ VTYPE_DNS="dns-01"
 VTYPE_TLS="tls-sni-01"
 VTYPE_TLS2="tls-sni-02"
 
+MAX_RENEW=80
+
 W_TLS="tls"
 
 BEGIN_CSR="-----BEGIN CERTIFICATE REQUEST-----"
@@ -1776,8 +1778,8 @@ issue() {
   Le_CertCreateTimeStr=$(date -u )
   _savedomainconf  "Le_CertCreateTimeStr"  "$Le_CertCreateTimeStr"
   
-  if [ -z "$Le_RenewalDays" ] || [ "$Le_RenewalDays" -lt "0" ] || [ "$Le_RenewalDays" -gt "80" ] ; then
-    Le_RenewalDays=80
+  if [ -z "$Le_RenewalDays" ] || [ "$Le_RenewalDays" -lt "0" ] || [ "$Le_RenewalDays" -gt "$MAX_RENEW" ] ; then
+    Le_RenewalDays=$MAX_RENEW
   else
     _savedomainconf  "Le_RenewalDays"   "$Le_RenewalDays"
   fi
@@ -2443,7 +2445,7 @@ Parameters:
   --useragent                       Specifies the user agent string. it will be saved for future use too.
   --accountemail                    Specifies the account email for registering, Only valid for the '--install' command.
   --accountkey                      Specifies the account key path, Only valid for the '--install' command.
-  --days                            Specifies the days to renew the cert when using '--issue' command. The max value is 80 days.
+  --days                            Specifies the days to renew the cert when using '--issue' command. The max value is $MAX_RENEW days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --listraw                         Only used for '--list' command, list the certs in raw format.
