@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.2.8
+VER=2.2.9
 
 PROJECT_NAME="acme.sh"
 
@@ -2272,7 +2272,10 @@ install() {
     _err "Install failed."
     return 1
   fi
-
+  if [ "$_nocron" ] ; then
+    _debug "Skip install cron job"
+  fi
+  
   if ! _precheck "$_nocron" ; then
     _err "Pre-check failed, can not install."
     return 1
@@ -2357,8 +2360,12 @@ install() {
   _info OK
 }
 
+# nocron
 uninstall() {
-  uninstallcronjob
+  _nocron="$1"
+  if [ -z "$_nocron" ] ; then
+    uninstallcronjob
+  fi
   _initpath
 
   _profile="$(_detect_profile)"
@@ -2405,6 +2412,7 @@ Commands:
   --version, -v            Show version info.
   --install                Install $PROJECT_NAME to your system.
   --uninstall              Uninstall $PROJECT_NAME, and uninstall the cron job.
+  --upgrade                Upgrade $PROJECT_NAME to the latest code from $PROJECT
   --issue                  Issue a cert.
   --installcert            Install the issued cert to apache/nginx or any other server.
   --renew, -r              Renew a cert.
@@ -2460,8 +2468,10 @@ Parameters:
   "
 }
 
+# nocron
 _installOnline() {
   _info "Installing from online archive."
+  _nocron="$1"
   if [ ! "$BRANCH" ] ; then
     BRANCH="master"
   fi
@@ -2477,7 +2487,7 @@ _installOnline() {
   tar xzf $localname
   cd "$PROJECT_NAME-$BRANCH"
   chmod +x $PROJECT_ENTRY
-  if ./$PROJECT_ENTRY install ; then
+  if ./$PROJECT_ENTRY install "$_nocron" ; then
     _info "Install success!"
   fi
   
@@ -2486,6 +2496,16 @@ _installOnline() {
   rm -f "$localname"
 }
 
+upgrade() {
+  if (
+    cd $LE_WORKING_DIR
+    _installOnline "nocron"
+  ) ; then
+    _info "Upgrade success!"
+  else
+    _err "Upgrade failed!"
+  fi
+}
 
 _process() {
   _CMD=""
@@ -2528,6 +2548,9 @@ _process() {
         ;;
     --uninstall)
         _CMD="uninstall"
+        ;;
+    --upgrade)
+        _CMD="upgrade"
         ;;
     --issue)
         _CMD="issue"
@@ -2765,6 +2788,7 @@ _process() {
   case "${_CMD}" in
     install) install "$_nocron" ;;
     uninstall) uninstall ;;
+    upgrade) upgrade ;;
     issue)
       issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath"
       ;;
