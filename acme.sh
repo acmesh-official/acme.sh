@@ -1069,18 +1069,23 @@ _initpath() {
 
 
 _apachePath() {
+  _APAHECTL="apachectl"
   if ! _exists apachectl ; then
-    _err "'apachecrl not found. It seems that apache is not installed, or you are not root user.'"
-    _err "Please use webroot mode to try again."
-    return 1
+    if _exists apache2ctl ; then
+       _APAHECTL="apache2ctl"
+    else
+      _err "'apachecrl not found. It seems that apache is not installed, or you are not root user.'"
+      _err "Please use webroot mode to try again."
+      return 1
+    fi
   fi
-  httpdconfname="$(apachectl -V | grep SERVER_CONFIG_FILE= | cut -d = -f 2 | tr -d '"' )"
+  httpdconfname="$($_APAHECTL -V | grep SERVER_CONFIG_FILE= | cut -d = -f 2 | tr -d '"' )"
   _debug httpdconfname "$httpdconfname"
   if _startswith "$httpdconfname" '/' ; then
     httpdconf="$httpdconfname"
     httpdconfname="$(basename $httpdconfname)"
   else
-    httpdroot="$(apachectl -V | grep HTTPD_ROOT= | cut -d = -f 2 | tr -d '"' )"
+    httpdroot="$($_APAHECTL -V | grep HTTPD_ROOT= | cut -d = -f 2 | tr -d '"' )"
     _debug httpdroot "$httpdroot"
     httpdconf="$httpdroot/$httpdconfname"
     httpdconfname="$(basename $httpdconfname)"
@@ -1110,7 +1115,7 @@ _restoreApache() {
   
   cat "$APACHE_CONF_BACKUP_DIR/$httpdconfname" > "$httpdconf"
   _debug "Restored: $httpdconf."
-  if ! apachectl  -t >/dev/null 2>&1 ; then
+  if ! $_APAHECTL  -t >/dev/null 2>&1 ; then
     _err "Sorry, restore apache config error, please contact me."
     return 1;
   fi
@@ -1127,7 +1132,7 @@ _setApache() {
 
   #test the conf first
   _info "Checking if there is an error in the apache config file before starting."
-  _msg="$(apachectl  -t  2>&1 )"
+  _msg="$($_APAHECTL  -t  2>&1 )"
   if [ "$?" != "0" ] ; then
     _err "Sorry, apache config file has error, please fix it first, then try again."
     _err "Don't worry, there is nothing changed to your system."
@@ -1150,7 +1155,7 @@ _setApache() {
   
   #add alias
   
-  apacheVer="$(apachectl -V | grep "Server version:" | cut -d : -f 2 | cut -d " " -f 2 | cut -d '/' -f 2 )"
+  apacheVer="$($_APAHECTL -V | grep "Server version:" | cut -d : -f 2 | cut -d " " -f 2 | cut -d '/' -f 2 )"
   _debug "apacheVer" "$apacheVer"
   apacheMajer="$(echo "$apacheVer" | cut -d . -f 1)"
   apacheMinor="$(echo "$apacheVer" | cut -d . -f 2)"
@@ -1174,7 +1179,7 @@ Allow from all
   " >> "$httpdconf"
   fi
 
-  _msg="$(apachectl  -t  2>&1 )"
+  _msg="$($_APAHECTL  -t  2>&1 )"
   if [ "$?" != "0" ] ; then
     _err "Sorry, apache config error"
     if _restoreApache ; then
@@ -1190,8 +1195,8 @@ Allow from all
     chmod 755 "$ACME_DIR"
   fi
   
-  if ! apachectl  graceful ; then
-    _err "Sorry, apachectl  graceful error, please contact me."
+  if ! $_APAHECTL  graceful ; then
+    _err "Sorry, $_APAHECTL  graceful error, please contact me."
     _restoreApache
     return 1;
   fi
