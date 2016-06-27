@@ -1074,7 +1074,7 @@ _apachePath() {
     if _exists apache2ctl ; then
        _APAHECTL="apache2ctl"
     else
-      _err "'apachecrl not found. It seems that apache is not installed, or you are not root user.'"
+      _err "'apachectl not found. It seems that apache is not installed, or you are not root user.'"
       _err "Please use webroot mode to try again."
       return 1
     fi
@@ -2464,7 +2464,7 @@ Parameters:
   --listraw                         Only used for '--list' command, list the certs in raw format.
   --stopRenewOnError, -se           Only valid for '--renewall' command. Stop if one cert has error in renewal.
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
-  --nocron                          Only valid for `--install` command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
+  --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
   "
 }
 
@@ -2787,7 +2787,7 @@ _process() {
 
   case "${_CMD}" in
     install) install "$_nocron" ;;
-    uninstall) uninstall ;;
+    uninstall) uninstall "$_nocron" ;;
     upgrade) upgrade ;;
     issue)
       issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath"
