@@ -1395,6 +1395,10 @@ issue() {
     _info "Skip register account key"
   fi
 
+  if [ "$Le_Keylength" = "no" ] ; then
+    Le_Keylength=""
+  fi
+  
   _key=$(_readdomainconf Le_Keylength)
   _debug "Read key length:$_key"
   if [ ! -f "$CERT_KEY_PATH" ] || [ "$Le_Keylength" != "$_key" ] ; then
@@ -1406,9 +1410,7 @@ issue() {
   fi
   
   _savedomainconf "Le_Keylength"    "$Le_Keylength"
-  if [ "$Le_Keylength" = "no" ] ; then
-    Le_Keylength=""
-  fi
+  
 
   if ! createCSR  $Le_Domain  $Le_Alt ; then
     _err "Create CSR error."
