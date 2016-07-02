@@ -1397,7 +1397,7 @@ issue() {
 
   _key=$(_readdomainconf Le_Keylength)
   _debug "Read key length:$_key"
-  if [ "$Le_Keylength" != "$_key" ] ; then
+  if [ ! -f "$CERT_KEY_PATH" ] || [ "$Le_Keylength" != "$_key" ] ; then
     if ! createDomainKey $Le_Domain $Le_Keylength ; then 
       _err "Create domain key error."
       _clearup
