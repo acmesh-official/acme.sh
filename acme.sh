@@ -652,7 +652,7 @@ _post() {
         _err "$(cat "$_CURL_DUMP")"
       fi
     fi
-  else
+  elif _exists "wget" ; then
     _debug "WGET" "$WGET"
     if [ "$needbase64" ] ; then
       if [ "$httpmethod"="POST" ] ; then
@@ -672,6 +672,9 @@ _post() {
       _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret" 
     fi
     _sed_i "s/^ *//g" "$HTTP_HEADER"
+  else
+    _ret="$?"
+    _err "Neither curl nor wget is found, can not do $httpmethod."
   fi
   _debug "_ret" "$_ret"
   printf "%s" "$response"
@@ -692,7 +695,7 @@ _get() {
       $CURL    --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" $url
     fi
     ret=$?
-  else
+  elif _exists "wget" ; then
     _debug "WGET" "$WGET"
     if [ "$onlyheader" ] ; then
       $WGET --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null $url 2>&1 | sed 's/^[ ]*//g'
@@ -700,6 +703,9 @@ _get() {
       $WGET --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1"    -O - $url
     fi
     ret=$?
+  else
+    ret=$?
+    _err "Neither curl nor wget is found, can not do GET."
   fi
   _debug "ret" "$ret"
   return $ret
@@ -2517,7 +2523,7 @@ _installOnline() {
 
 upgrade() {
   if (
-    cd $LE_WORKING_DIR
+    cd "$LE_WORKING_DIR"
     _installOnline "nocron"
   ) ; then
     _info "Upgrade success!"
