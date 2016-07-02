@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.2.9
+VER=2.3.0
 
 PROJECT_NAME="acme.sh"
 
@@ -829,6 +829,19 @@ _cleardomainconf() {
   fi
 }
 
+#_readdomainconf   key
+_readdomainconf() {
+  key="$1"
+  if [ "$DOMAIN_CONF" ] ; then
+  (
+    eval $(grep "^$key *=" "$DOMAIN_CONF")
+    eval "printf \"%s\" \"\$$key\""
+  )
+  else
+    _err "DOMAIN_CONF is empty, can not read $key"
+  fi
+}
+
 #_saveaccountconf  key  value
 _saveaccountconf() {
   key="$1"
@@ -1270,7 +1283,7 @@ issue() {
   _initpath $Le_Domain
 
   if [ -f "$DOMAIN_CONF" ] ; then
-    Le_NextRenewTime=$(grep "^Le_NextRenewTime=" "$DOMAIN_CONF" | cut -d '=' -f 2 | tr -d "'\"")
+    Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
     _debug Le_NextRenewTime "$Le_NextRenewTime"
     if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ $(date -u "+%s" ) -lt $Le_NextRenewTime ] ; then 
       _info "Skip, Next renewal time is: $(grep "^Le_NextRenewTimeStr" "$DOMAIN_CONF" | cut -d '=' -f 2)"
@@ -1281,15 +1294,12 @@ issue() {
   _savedomainconf "Le_Domain"       "$Le_Domain"
   _savedomainconf "Le_Alt"          "$Le_Alt"
   _savedomainconf "Le_Webroot"      "$Le_Webroot"
-  _savedomainconf "Le_Keylength"    "$Le_Keylength"
   
+
   if [ "$Le_Alt" = "no" ] ; then
     Le_Alt=""
   fi
-  if [ "$Le_Keylength" = "no" ] ; then
-    Le_Keylength=""
-  fi
-  
+
   if _hasfield "$Le_Webroot" "no" ; then
     _info "Standalone mode."
     if ! _exists "nc" ; then
@@ -1385,7 +1395,9 @@ issue() {
     _info "Skip register account key"
   fi
 
-  if [ ! -f "$CERT_KEY_PATH" ] ; then
+  _key=$(_readdomainconf Le_Keylength)
+  _debug "Read key length:$_key"
+  if [ "$Le_Keylength" != "$_key" ] ; then
     if ! createDomainKey $Le_Domain $Le_Keylength ; then 
       _err "Create domain key error."
       _clearup
@@ -1393,6 +1405,11 @@ issue() {
     fi
   fi
   
+  _savedomainconf "Le_Keylength"    "$Le_Keylength"
+  if [ "$Le_Keylength" = "no" ] ; then
+    Le_Keylength=""
+  fi
+
   if ! createCSR  $Le_Domain  $Le_Alt ; then
     _err "Create CSR error."
     _clearup
