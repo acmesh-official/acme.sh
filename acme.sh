@@ -2508,8 +2508,10 @@ _installOnline() {
     _debug "Download error."
     return 1
   fi
+  (
   _info "Extracting $localname"
   tar xzf $localname
+  
   cd "$PROJECT_NAME-$BRANCH"
   chmod +x $PROJECT_ENTRY
   if ./$PROJECT_ENTRY install "$_nocron" ; then
@@ -2517,8 +2519,10 @@ _installOnline() {
   fi
   
   cd ..
+  
   rm -rf "$PROJECT_NAME-$BRANCH"
   rm -f "$localname"
+  )
 }
 
 upgrade() {
