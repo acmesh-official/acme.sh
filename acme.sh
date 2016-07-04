@@ -2531,8 +2531,10 @@ upgrade() {
     _installOnline "nocron"
   ) ; then
     _info "Upgrade success!"
+    exit 0
   else
     _err "Upgrade failed!"
+    exit 1
   fi
 }
 
