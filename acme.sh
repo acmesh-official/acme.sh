@@ -1825,16 +1825,10 @@ issue() {
   _savedomainconf  "Le_NextRenewTimeStr"  "$Le_NextRenewTimeStr"
 
 
-  _output="$(installcert $Le_Domain  "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" 2>&1)"
-  _ret="$?"
-  if [ "$_ret" = "9" ] ; then
-    #ignore the empty install error.
-    return 0
+  if [ "$Le_RealCertPath$Le_RealKeyPath$Le_RealCACertPath$Le_ReloadCmd$Le_RealFullChainPath" ] ; then
+    installcert $Le_Domain  "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath"
   fi
-  if [ "$_ret" != "0" ] ; then
-    _err "$_output"
-    return 1
-  fi
+
 }
 
 renew() {
@@ -2010,7 +2004,7 @@ installcert() {
 
   if [ "$_installed" = "0" ] ; then
     _err "Nothing to install. You don't specify any parameter."
-    return 9
+    return 1
   fi
 
 }
