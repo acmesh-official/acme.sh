@@ -2002,10 +2002,6 @@ installcert() {
     fi
   fi
 
-  if [ "$_installed" = "0" ] ; then
-    _err "Nothing to install. You don't specify any parameter."
-    return 1
-  fi
 
 }
 
