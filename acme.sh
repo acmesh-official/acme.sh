@@ -163,8 +163,8 @@ _h2b() {
   if _exists let ; then
     uselet="1"
   fi
-  _debug uselet "$uselet"
-  _debug _URGLY_PRINTF "$_URGLY_PRINTF"
+  _debug2 uselet "$uselet"
+  _debug2 _URGLY_PRINTF "$_URGLY_PRINTF"
   while true ; do
     if [ -z "$_URGLY_PRINTF" ] ; then
       h="$(printf $hex | cut -c $i-$j)"
