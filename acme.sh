@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.3.0
+VER=2.3.1
 
 PROJECT_NAME="acme.sh"
 
@@ -943,6 +943,7 @@ _starttlsserver() {
   fi
   
   #start openssl
+  _debug "openssl s_server -cert \"$TLS_CERT\"  -key \"$TLS_KEY\" -accept $port -naccept 1 -tlsextdebug"
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
     (printf "HTTP/1.1 200 OK\r\n\r\n$content" | openssl s_server -cert "$TLS_CERT"  -key "$TLS_KEY" -accept $port -naccept 1 -tlsextdebug ) &
   else
@@ -2533,12 +2534,12 @@ _process() {
   _domain=""
   _altdomains="no"
   _webroot=""
-  _keylength="no"
-  _accountkeylength="no"
-  _certpath="no"
-  _keypath="no"
-  _capath="no"
-  _fullchainpath="no"
+  _keylength=""
+  _accountkeylength=""
+  _certpath=""
+  _keypath=""
+  _capath=""
+  _fullchainpath=""
   _reloadcmd=""
   _password=""
   _accountconf=""
