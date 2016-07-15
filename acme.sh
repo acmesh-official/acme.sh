@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.3.1
+VER=2.3.2
 
 PROJECT_NAME="acme.sh"
 
@@ -902,9 +902,23 @@ _stopserver(){
     return
   fi
 
-  _get "http://localhost:$Le_HTTPPort" >/dev/null 2>&1
-  _get "https://localhost:$Le_TLSPort" >/dev/null 2>&1
-
+  _debug2 "Le_HTTPPort" "$Le_HTTPPort"
+  if [ "$Le_HTTPPort" ] ; then
+    if [ "$DEBUG" ] ; then
+      _get "http://localhost:$Le_HTTPPort"
+    else
+      _get "http://localhost:$Le_HTTPPort" >/dev/null 2>&1
+    fi
+  fi
+  
+  _debug2 "Le_TLSPort" "$Le_TLSPort"
+  if [ "$Le_TLSPort" ] ; then
+    if [ "$DEBUG" ] ; then
+      _get "https://localhost:$Le_TLSPort"
+    else
+      _get "https://localhost:$Le_TLSPort" >/dev/null 2>&1
+    fi
+  fi
 }
 
 
@@ -1244,17 +1258,23 @@ _clearupwebbroot() {
     return 0
   fi
   
+  _rmpath=""
   if [ "$2" = '1' ] ; then
-    _debug "remove $__webroot/.well-known"
-    rm -rf "$__webroot/.well-known"
+    _rmpath="$__webroot/.well-known"
   elif [ "$2" = '2' ] ; then
-    _debug "remove $__webroot/.well-known/acme-challenge"
-    rm -rf "$__webroot/.well-known/acme-challenge"
+    _rmpath="$__webroot/.well-known/acme-challenge"
   elif [ "$2" = '3' ] ; then
-    _debug "remove $__webroot/.well-known/acme-challenge/$3"
-    rm -rf "$__webroot/.well-known/acme-challenge/$3"
+    _rmpath="$__webroot/.well-known/acme-challenge/$3"
   else
     _debug "Skip for removelevel:$2"
+  fi
+  
+  if [ "$_rmpath" ] ; then
+    if [ "$DEBUG" ] ; then
+      _debug "Debugging, skip removing: $_rmpath"
+    else
+      rm -rf "$_rmpath"
+    fi
   fi
   
   return 0
@@ -1734,6 +1754,11 @@ issue() {
            _err "$d:Verify error:$errordetail"
          else
            _err "$d:Verify error:$error"
+         fi
+         if [ "$DEBUG" ] ; then
+           if [ "$vtype" = "$VTYPE_HTTP" ] ; then
+             _get "http://$d/.well-known/acme-challenge/$token"
+           fi
          fi
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
@@ -2806,6 +2831,9 @@ _process() {
     shift 1
   done
 
+  if [ "$DEBUG" ] ; then
+    version
+  fi
 
   case "${_CMD}" in
     install) install "$_nocron" ;;
