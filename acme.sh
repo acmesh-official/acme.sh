@@ -22,6 +22,8 @@ VTYPE_TLS2="tls-sni-02"
 
 MAX_RENEW=80
 
+DEFAULT_DNS_SLEEP=120
+
 W_TLS="tls"
 
 BEGIN_CSR="-----BEGIN CERTIFICATE REQUEST-----"
@@ -1592,7 +1594,7 @@ issue() {
   
   if [ "$dnsadded" = '1' ] ; then
     if [ -z "$Le_DNSSleep" ] ; then
-      Le_DNSSleep=60
+      Le_DNSSleep=$DEFAULT_DNS_SLEEP
     else
       _savedomainconf "Le_DNSSleep"  "$Le_DNSSleep"
     fi
@@ -2479,7 +2481,7 @@ Parameters:
   --tls                             Use standalone tls mode.
   --apache                          Use apache mode.
   --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
-  --dnssleep  [60]                  The time in seconds to wait for all the txt records to take effect in dns api mode. Default 60 seconds.
+  --dnssleep  [$DEFAULT_DNS_SLEEP]                  The time in seconds to wait for all the txt records to take effect in dns api mode. Default $DEFAULT_DNS_SLEEP seconds.
   
   --keylength, -k [2048]            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384.
   --accountkeylength, -ak [2048]    Specifies the account key length.
