@@ -302,4 +302,6 @@ Please Star and Fork me.
 [Issues](https://github.com/Neilpang/acme.sh/issues) and [pull requests](https://github.com/Neilpang/acme.sh/pulls) are welcomed.
 
 
+# Donate
+1. PayPal:  donate@acme.sh
 
