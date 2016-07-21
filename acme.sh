@@ -2111,7 +2111,7 @@ revoke() {
       return 0
     else 
       _err "Revoke error by domain key."
-      _err "$resource"
+      _err "$response"
     fi
   fi
   
@@ -2124,7 +2124,7 @@ revoke() {
       return 0
     else 
       _err "Revoke error."
-      _debug "$resource"
+      _debug "$response"
     fi
   fi
   return 1
