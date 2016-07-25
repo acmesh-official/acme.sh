@@ -549,7 +549,8 @@ _stat() {
   if stat -f  '%Su:%Sg' "$1" 2>/dev/null ; then
     return
   fi
-  return 3; #error, 'stat' not found
+  
+  return 1; #error, 'stat' not found
 }
 
 #keyfile
