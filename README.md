@@ -32,6 +32,7 @@ Wiki: https://github.com/Neilpang/acme.sh/wiki
 |14|-----| Cloud Linux  https://github.com/Neilpang/le/issues/111
 |15|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/openbsd.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|OpenBSD
 |16|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/mageia.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Mageia
+|17|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/Neilpang/acme.sh/wiki/How-to-run-on-OpenWRT)
 
 For all build statuses, check our [daily build project](https://github.com/Neilpang/acmetest): 
 

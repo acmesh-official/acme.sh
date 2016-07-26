@@ -549,6 +549,8 @@ _stat() {
   if stat -f  '%Su:%Sg' "$1" 2>/dev/null ; then
     return
   fi
+  
+  return 1; #error, 'stat' not found
 }
 
 #keyfile
@@ -1656,9 +1658,12 @@ issue() {
         mkdir -p "$wellknown_path"
         printf "%s" "$keyauthorization" > "$wellknown_path/$token"
         if [ ! "$usingApache" ] ; then
-          webroot_owner=$(_stat $_currentRoot)
-          _debug "Changing owner/group of .well-known to $webroot_owner"
-          chown -R $webroot_owner "$_currentRoot/.well-known"
+          if webroot_owner=$(_stat $_currentRoot) ; then
+            _debug "Changing owner/group of .well-known to $webroot_owner"
+            chown -R $webroot_owner "$_currentRoot/.well-known"
+          else
+            _debug "not chaning owner/group of webroot";
+          fi
         fi
         
       fi
