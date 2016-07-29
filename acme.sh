@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.3.2
+VER=2.3.3
 
 PROJECT_NAME="acme.sh"
 
@@ -640,6 +640,7 @@ _post() {
   fi
   _debug $httpmethod
   _debug "url" "$url"
+  _debug2 "body" "$body"
   if _exists "curl" ; then
     _CURL="$CURL --dump-header $HTTP_HEADER "
     _debug "_CURL" "$_CURL"
@@ -2216,6 +2217,12 @@ _initconf() {
 #CX_Key=\"1234\"
 #
 #CX_Secret=\"sADDsdasdgdsf\"
+
+#######################
+#Godaddy.com:
+#GD_Key=\"sdfdsgdgdfdasfds\"
+#
+#GD_Secret=\"sADDsdasdfsdfdssdgdsf\"
 
     " > $ACCOUNT_CONF_PATH
   fi
