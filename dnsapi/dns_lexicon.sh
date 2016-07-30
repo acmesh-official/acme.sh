@@ -61,7 +61,7 @@ dns_lexicon_add() {
     _saveaccountconf $Lx_domaintoken "$Lx_domaintoken_v"
   fi
 
-  $lexicon_cmd "$PROVIDER" create ${domain} TXT --name="_acme-challenge.${domain}." --content="${txtvalue}"
+  $lexicon_cmd "$PROVIDER" create ${domain} TXT --name="_acme-challenge.${domain}." --content="${txtvalue}" --ttl=120
 
 }
 
