@@ -2177,7 +2177,7 @@ _detect_profile() {
 
 _initconf() {
   _initpath
-  if [ ! -f "$ACCOUNT_CONF_PATH" ] ; then
+  if [ ! -f "$DESTDIR$ACCOUNT_CONF_PATH" ] ; then
     echo "#ACCOUNT_CONF_PATH=xxxx
 
 #Account configurations:
@@ -2224,7 +2224,7 @@ _initconf() {
 #
 #GD_Secret=\"sADDsdasdfsdfdssdgdsf\"
 
-    " > $ACCOUNT_CONF_PATH
+    " > $DESTDIR$ACCOUNT_CONF_PATH
   fi
 }
 
@@ -2281,7 +2281,7 @@ _setShebang() {
 _installalias() {
   _initpath
 
-  _envfile="$LE_WORKING_DIR/$PROJECT_ENTRY.env"
+  _envfile="$DESTDIR$LE_WORKING_DIR/$PROJECT_ENTRY.env"
   if [ "$_upgrading" ] && [ "$_upgrading" = "1" ] ; then
     echo "$(cat $_envfile)" | sed "s|^LE_WORKING_DIR.*$||" > "$_envfile"
     echo "$(cat $_envfile)" | sed "s|^alias le.*$||" > "$_envfile"
@@ -2302,8 +2302,8 @@ _installalias() {
   
 
   #for csh
-  _cshfile="$LE_WORKING_DIR/$PROJECT_ENTRY.csh"
-  _csh_profile="$HOME/.cshrc"
+  _cshfile="$DESTDIR$LE_WORKING_DIR/$PROJECT_ENTRY.csh"
+  _csh_profile="$DESTDIR$HOME/.cshrc"
   if [ -f "$_csh_profile" ] ; then
     _setopt "$_cshfile" "setenv LE_WORKING_DIR" " " "\"$LE_WORKING_DIR\""
     _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
@@ -2311,7 +2311,7 @@ _installalias() {
   fi
   
   #for tcsh
-  _tcsh_profile="$HOME/.tcshrc"
+  _tcsh_profile="$DESTDIR$HOME/.tcshrc"
   if [ -f "$_tcsh_profile" ] ; then
     _setopt "$_cshfile" "setenv LE_WORKING_DIR" " " "\"$LE_WORKING_DIR\""
     _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
@@ -2353,45 +2353,45 @@ install() {
     done
   fi
 
-  _info "Installing to $LE_WORKING_DIR"
+  _info "Installing to $DESTDIR$LE_WORKING_DIR"
 
-  if ! mkdir -p "$LE_WORKING_DIR" ; then
-    _err "Can not create working dir: $LE_WORKING_DIR"
+  if ! mkdir -p "$DESTDIR$LE_WORKING_DIR" ; then
+    _err "Can not create working dir: $DESTDIR$LE_WORKING_DIR"
     return 1
   fi
   
-  chmod 700 "$LE_WORKING_DIR"
+  chmod 700 "$DESTDIR$LE_WORKING_DIR"
 
-  cp $PROJECT_ENTRY "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/$PROJECT_ENTRY"
+  cp $PROJECT_ENTRY "$DESTDIR$LE_WORKING_DIR/" && chmod +x "$DESTDIR$LE_WORKING_DIR/$PROJECT_ENTRY"
 
   if [ "$?" != "0" ] ; then
     _err "Install failed, can not copy $PROJECT_ENTRY"
     return 1
   fi
 
-  _info "Installed to $LE_WORKING_DIR/$PROJECT_ENTRY"
+  _info "Installed to $DESTDIR$LE_WORKING_DIR/$PROJECT_ENTRY"
 
   _installalias
 
   if [ -d "dnsapi" ] ; then
-    mkdir -p $LE_WORKING_DIR/dnsapi
-    cp  dnsapi/* $LE_WORKING_DIR/dnsapi/
+    mkdir -p $DESTDIR$LE_WORKING_DIR/dnsapi
+    cp  dnsapi/* $DESTDIR$LE_WORKING_DIR/dnsapi/
   fi
 
-  if [ ! -f "$ACCOUNT_CONF_PATH" ] ; then
+  if [ ! -f "$DESTDIR$ACCOUNT_CONF_PATH" ] ; then
     _initconf
   fi
 
   if [ "$_DEFAULT_ACCOUNT_CONF_PATH" != "$ACCOUNT_CONF_PATH" ] ; then
-    _setopt "$_DEFAULT_ACCOUNT_CONF_PATH" "ACCOUNT_CONF_PATH" "=" "\"$ACCOUNT_CONF_PATH\""
+    _setopt "$DESTDIR$_DEFAULT_ACCOUNT_CONF_PATH" "ACCOUNT_CONF_PATH" "=" "\"$ACCOUNT_CONF_PATH\""
   fi
 
   if [ "$_DEFAULT_CERT_HOME" != "$CERT_HOME" ] ; then
-    _saveaccountconf "CERT_HOME" "$CERT_HOME"
+    _saveaccountconf "$DESTDIR$ACCOUNT_CONF_PATH" "CERT_HOME" "$CERT_HOME"
   fi
 
   if [ "$_DEFAULT_ACCOUNT_KEY_PATH" != "$ACCOUNT_KEY_PATH" ] ; then
-    _saveaccountconf "ACCOUNT_KEY_PATH" "$ACCOUNT_KEY_PATH"
+    _saveaccountconf "$DESTDIR$ACCOUNT_CONF_PATH" "ACCOUNT_KEY_PATH" "$ACCOUNT_KEY_PATH"
   fi
   
   if [ -z "$_nocron" ] ; then
@@ -2403,9 +2403,9 @@ install() {
     if _exists bash ; then
       _info "Good, bash is installed, change the shebang to use bash as prefered."
       _shebang='#!/usr/bin/env bash'
-      _setShebang "$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
-      if [ -d "$LE_WORKING_DIR/dnsapi" ] ; then
-        for _apifile in $(ls "$LE_WORKING_DIR/dnsapi/"*.sh) ; do
+      _setShebang "$DESTDIR/$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
+      if [ -d "$DESTDIR$LE_WORKING_DIR/dnsapi" ] ; then
+        for _apifile in $(ls "$DESTDIR$LE_WORKING_DIR/dnsapi/"*.sh) ; do
           _setShebang "$_apifile" "$_shebang"
         done
       fi
