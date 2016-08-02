@@ -1879,6 +1879,10 @@ renew() {
     return 0;
   fi
   
+  if [ "$Le_RenewalDays" ] ; then
+    _savedomainconf Le_RenewalDays "$Le_RenewalDays"
+  fi
+
   . "$DOMAIN_CONF"
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ] ; then 
     _info "Skip, Next renewal time is: $Le_NextRenewTimeStr"
