@@ -1401,19 +1401,19 @@ issue() {
   accountkey_json=$(echo -n "$jwk" |  tr -d ' ' )
   thumbprint=$(echo -n "$accountkey_json" | _digest "sha256" | _urlencode)
   
-  accountkeyhash="$(cat "$ACCOUNT_KEY_PATH" | _digest "sha256" )"
-  accountkeyhash="$(echo $accountkeyhash$API | _digest "sha256" )"
-  if [ "$accountkeyhash" != "$ACCOUNT_KEY_HASH" ] ; then
-    _info "Registering account"
-    regjson='{"resource": "new-reg", "agreement": "'$AGREEMENT'"}'
-    if [ "$ACCOUNT_EMAIL" ] ; then
-      regjson='{"resource": "new-reg", "contact": ["mailto: '$ACCOUNT_EMAIL'"], "agreement": "'$AGREEMENT'"}'
-    fi  
-    _send_signed_request   "$API/acme/new-reg"  "$regjson"
+  regjson='{"resource": "new-reg", "agreement": "'$AGREEMENT'"}'
+  if [ "$ACCOUNT_EMAIL" ] ; then
+    regjson='{"resource": "new-reg", "contact": ["mailto: '$ACCOUNT_EMAIL'"], "agreement": "'$AGREEMENT'"}'
+  fi
     
+  accountkeyhash="$(cat "$ACCOUNT_KEY_PATH" | _digest "sha256" )"
+  accountkeyhash="$(echo $accountkeyhash$API$regjson | _digest "sha256" )"
+  if [ "$accountkeyhash" != "$ACCOUNT_KEY_HASH" ] ; then
+    _info "Registering account"    
+    _send_signed_request   "$API/acme/new-reg"  "$regjson"    
     if [ "$code" = "" ] || [ "$code" = '201' ] ; then
       _info "Registered"
-      echo $response > $LE_WORKING_DIR/account.json
+      echo "$response" > $LE_WORKING_DIR/account.json
     elif [ "$code" = '409' ] ; then
       _info "Already registered"
     else
