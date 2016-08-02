@@ -26,6 +26,8 @@ DEFAULT_DNS_SLEEP=120
 
 W_TLS="tls"
 
+STATE_VERIFIED="verified_ok"
+
 BEGIN_CSR="-----BEGIN CERTIFICATE REQUEST-----"
 END_CSR="-----END CERTIFICATE REQUEST-----"
 
@@ -1508,6 +1510,14 @@ issue() {
       keyauthorization="$token.$thumbprint"
       _debug keyauthorization "$keyauthorization"
 
+      if [ "$STAGE" ] ; then
+        if printf "$response" | grep '"status":"valid"' >/dev/null 2>&1 ; then
+          _info "$d is already verified, skip."
+          keyauthorization=$STATE_VERIFIED
+          _debug keyauthorization "$keyauthorization"
+        fi
+      fi
+
       dvlist="$d$sep$keyauthorization$sep$uri$sep$vtype$sep$_currentRoot"
       _debug dvlist "$dvlist"
       
@@ -1524,6 +1534,12 @@ issue() {
       keyauthorization=$(echo $ventry | cut -d $sep -f 2)
       vtype=$(echo $ventry | cut -d $sep -f 4)
       _currentRoot=$(echo $ventry | cut -d $sep -f 5)
+
+      if [ "$keyauthorization" == "$STATE_VERIFIED" ] ; then
+        _info "$d is already verified, skip $vtype."
+        continue
+      fi
+
       if [ "$vtype" = "$VTYPE_DNS" ] ; then
         dnsadded='0'
         txtdomain="_acme-challenge.$d"
@@ -1616,6 +1632,12 @@ issue() {
     uri=$(echo $ventry | cut -d $sep -f 3)
     vtype=$(echo $ventry | cut -d $sep -f 4)
     _currentRoot=$(echo $ventry | cut -d $sep -f 5)
+
+    if [ "$keyauthorization" == "$STATE_VERIFIED" ] ; then
+      _info "$d is already verified, skip $vtype."
+      continue
+    fi
+
     _info "Verifying:$d"
     _debug "d" "$d"
     _debug "keyauthorization" "$keyauthorization"
