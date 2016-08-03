@@ -337,6 +337,18 @@ _createkey() {
     _info "Using ec name: $eccname"
   fi
 
+  # to prevent the key file from being world-readable
+  # create an empty file and chmod 600 before saving the key contents
+  if ! touch "$f"; then
+    _err "unable to create empty file '$f' for private key"
+    return 1
+  fi
+
+  if ! chmod 600 "$f"; then
+    _err "unable to chmod 600 key file $f"
+    return 1
+  fi
+
   #generate account key
   if [ "$isec" ] ; then
     openssl ecparam  -name $eccname -genkey 2>/dev/null > "$f"
