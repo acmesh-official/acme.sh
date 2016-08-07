@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.3.4
+VER=2.3.5
 
 PROJECT_NAME="acme.sh"
 
@@ -1510,13 +1510,13 @@ issue() {
       keyauthorization="$token.$thumbprint"
       _debug keyauthorization "$keyauthorization"
 
-      if [ "$STAGE" ] ; then
-        if printf "$response" | grep '"status":"valid"' >/dev/null 2>&1 ; then
-          _info "$d is already verified, skip."
-          keyauthorization=$STATE_VERIFIED
-          _debug keyauthorization "$keyauthorization"
-        fi
+
+      if printf "$response" | grep '"status":"valid"' >/dev/null 2>&1 ; then
+        _info "$d is already verified, skip."
+        keyauthorization=$STATE_VERIFIED
+        _debug keyauthorization "$keyauthorization"
       fi
+
 
       dvlist="$d$sep$keyauthorization$sep$uri$sep$vtype$sep$_currentRoot"
       _debug dvlist "$dvlist"
