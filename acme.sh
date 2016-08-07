@@ -11,7 +11,7 @@ PROJECT="https://github.com/Neilpang/$PROJECT_NAME"
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
 DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.1.1-August-1-2016.pdf"
 
-DEFAULT_USER_AGENT="$PROJECT_ENTRY client: $PROJECT"
+DEFAULT_USER_AGENT="$PROJECT_ENTRY client v$VER : $PROJECT"
 
 STAGE_CA="https://acme-staging.api.letsencrypt.org"
 
