@@ -688,26 +688,36 @@ _post() {
   return $_ret
 }
 
-# url getheader
+# url getheader timeout
 _get() {
   _debug GET
   url="$1"
   onlyheader="$2"
+  t="$3"
   _debug url $url
+  _debug "timeout" "$t"
   if _exists "curl" ; then
-    _debug "CURL" "$CURL"
+    _CURL="$CURL"
+    if [ "$t" ] ; then
+      _CURL="$_CURL --connect-timeout $t"
+    fi
+    _debug "_CURL" "$_CURL"
     if [ "$onlyheader" ] ; then
-      $CURL -I --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" $url
+      $_CURL -I --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" $url
     else
-      $CURL    --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" $url
+      $_CURL    --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" $url
     fi
     ret=$?
   elif _exists "wget" ; then
-    _debug "WGET" "$WGET"
+    _WGET="$WGET"
+    if [ "$t" ] ; then
+      _WGET="$_WGET --timeout=$t"
+    fi
+    _debug "_WGET" "$_WGET"
     if [ "$onlyheader" ] ; then
-      $WGET --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null $url 2>&1 | sed 's/^[ ]*//g'
+      $_WGET --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null $url 2>&1 | sed 's/^[ ]*//g'
     else
-      $WGET --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1"    -O - $url
+      $_WGET --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1"    -O - $url
     fi
     ret=$?
   else
@@ -921,9 +931,11 @@ _stopserver(){
   _debug2 "Le_TLSPort" "$Le_TLSPort"
   if [ "$Le_TLSPort" ] ; then
     if [ "$DEBUG" ] ; then
-      _get "https://localhost:$Le_TLSPort"
+      _get "https://localhost:$Le_TLSPort" "" 1
+      _get "https://localhost:$Le_TLSPort" "" 1
     else
-      _get "https://localhost:$Le_TLSPort" >/dev/null 2>&1
+      _get "https://localhost:$Le_TLSPort" "" 1 >/dev/null 2>&1
+      _get "https://localhost:$Le_TLSPort" "" 1 >/dev/null 2>&1
     fi
   fi
 }
@@ -966,9 +978,9 @@ _starttlsserver() {
   #start openssl
   _debug "openssl s_server -cert \"$TLS_CERT\"  -key \"$TLS_KEY\" -accept $port -naccept 1 -tlsextdebug"
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
-    (printf "HTTP/1.1 200 OK\r\n\r\n$content" | openssl s_server -cert "$TLS_CERT"  -key "$TLS_KEY" -accept $port -naccept 1 -tlsextdebug ) &
+    (printf "HTTP/1.1 200 OK\r\n\r\n$content" | openssl s_server -cert "$TLS_CERT"  -key "$TLS_KEY" -accept $port -tlsextdebug ) &
   else
-    (printf "HTTP/1.1 200 OK\r\n\r\n$content" | openssl s_server -cert "$TLS_CERT"  -key "$TLS_KEY" -accept $port -naccept 1 >/dev/null 2>&1) &
+    (printf "HTTP/1.1 200 OK\r\n\r\n$content" | openssl s_server -cert "$TLS_CERT"  -key "$TLS_KEY" -accept $port  >/dev/null 2>&1) &
   fi
 
   serverproc="$!"
