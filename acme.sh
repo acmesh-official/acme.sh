@@ -1547,7 +1547,7 @@ issue() {
       vtype=$(echo $ventry | cut -d $sep -f 4)
       _currentRoot=$(echo $ventry | cut -d $sep -f 5)
 
-      if [ "$keyauthorization" == "$STATE_VERIFIED" ] ; then
+      if [ "$keyauthorization" = "$STATE_VERIFIED" ] ; then
         _info "$d is already verified, skip $vtype."
         continue
       fi
@@ -1645,7 +1645,7 @@ issue() {
     vtype=$(echo $ventry | cut -d $sep -f 4)
     _currentRoot=$(echo $ventry | cut -d $sep -f 5)
 
-    if [ "$keyauthorization" == "$STATE_VERIFIED" ] ; then
+    if [ "$keyauthorization" = "$STATE_VERIFIED" ] ; then
       _info "$d is already verified, skip $vtype."
       continue
     fi
