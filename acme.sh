@@ -808,7 +808,7 @@ _setopt() {
     touch "$__conf"
   fi
 
-  if grep -H -n "^$__opt$__sep" "$__conf" > /dev/null ; then
+  if grep -n "^$__opt$__sep" "$__conf" > /dev/null ; then
     _debug2 OK
     if _contains "$__val" "&" ; then
       __val="$(echo $__val | sed 's/&/\\&/g')"
@@ -816,7 +816,7 @@ _setopt() {
     text="$(cat $__conf)"
     echo "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" > "$__conf"
 
-  elif grep -H -n "^#$__opt$__sep" "$__conf" > /dev/null ; then
+  elif grep -n "^#$__opt$__sep" "$__conf" > /dev/null ; then
     if _contains "$__val" "&" ; then
       __val="$(echo $__val | sed 's/&/\\&/g')"
     fi
@@ -827,7 +827,7 @@ _setopt() {
     _debug2 APP
     echo "$__opt$__sep$__val$__end" >> "$__conf"
   fi
-  _debug "$(grep -H -n "^$__opt$__sep" $__conf)"
+  _debug "$(grep -n "^$__opt$__sep" $__conf)"
 }
 
 #_savedomainconf   key  value
@@ -1925,7 +1925,7 @@ renew() {
   
   IS_RENEW="1"
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath"
-  local res=$?
+  res=$?
   IS_RENEW=""
 
   return $res
@@ -1961,7 +1961,7 @@ renewAll() {
 
 
 list() {
-  local _raw="$1"
+  _raw="$1"
   _initpath
   
   _sep="|"
@@ -2094,7 +2094,11 @@ installcronjob() {
       _err "Can not install cronjob, $PROJECT_ENTRY not found."
       return 1
     fi
-    crontab -l | { cat; echo "0 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" > /dev/null"; } | crontab -
+    if _exists uname && uname -a | grep solaris >/dev/null ; then
+      crontab -l | { cat; echo "0 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" > /dev/null"; } | crontab --
+    else
+      crontab -l | { cat; echo "0 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" > /dev/null"; } | crontab -
+    fi
   fi
   if [ "$?" != "0" ] ; then
     _err "Install cron job failed. You need to manually renew your certs."
@@ -2111,7 +2115,11 @@ uninstallcronjob() {
   _info "Removing cron job"
   cr="$(crontab -l | grep "$PROJECT_ENTRY --cron")"
   if [ "$cr" ] ; then 
-    crontab -l | sed "/$PROJECT_ENTRY --cron/d" | crontab -
+    if _exists uname && uname -a | grep solaris >/dev/null ; then
+      crontab -l | sed "/$PROJECT_ENTRY --cron/d" | crontab --
+    else
+      crontab -l | sed "/$PROJECT_ENTRY --cron/d" | crontab -
+    fi
     LE_WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 9 | tr -d '"')"
     _info LE_WORKING_DIR "$LE_WORKING_DIR"
   fi 
@@ -2181,9 +2189,7 @@ _detect_profile() {
     return
   fi
 
-  local DETECTED_PROFILE
   DETECTED_PROFILE=''
-  local SHELLTYPE
   SHELLTYPE="$(basename "/$SHELL")"
 
   if [ "$SHELLTYPE" = "bash" ] ; then
