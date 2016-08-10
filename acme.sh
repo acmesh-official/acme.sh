@@ -423,7 +423,7 @@ _ss() {
         netstat -an -p tcp | grep LISTEN | grep ":$_port "
       elif netstat -help 2>&1 | grep -- '-P protocol' >/dev/null ; then
         #for solaris
-        netstat -an -P tcp | grep "\.$_port "
+        netstat -an -P tcp | grep "\.$_port " | grep "LISTEN"
       else
         netstat -ntpl | grep ":$_port "
       fi
