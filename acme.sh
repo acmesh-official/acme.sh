@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.3.5
+VER=2.3.6
 
 PROJECT_NAME="acme.sh"
 
@@ -71,6 +71,13 @@ _debug() {
 
 _debug2() {
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
+    _debug "$@"
+  fi
+  return
+}
+
+_debug3() {
+  if [ "$DEBUG" ] && [ "$DEBUG" -ge "3" ] ; then
     _debug "$@"
   fi
   return
@@ -212,6 +219,14 @@ _sed_i() {
     _debug "No -i support in sed"
     text="$(cat "$filename")"
     echo "$text" | sed "$options" > "$filename"
+  fi
+}
+
+_egrep_o() {
+  if _contains "$(egrep -o 2>&1)" "egrep: illegal option -- o" ; then
+    sed -n 's/.*\('"$1"'\).*/\1/p'
+  else
+    egrep -o "$1"
   fi
 }
 
@@ -408,7 +423,7 @@ _ss() {
         netstat -an -p tcp | grep LISTEN | grep ":$_port "
       elif netstat -help 2>&1 | grep -- '-P protocol' >/dev/null ; then
         #for solaris
-        netstat -an -P tcp | grep ".$_port "
+        netstat -an -P tcp | grep "\.$_port "
       else
         netstat -ntpl | grep ":$_port "
       fi
@@ -538,6 +553,11 @@ _time2str() {
     return
   fi
   
+  #Soaris
+  if _exists adb ; then
+    echo $(echo "0t${1}=Y" | adb)
+  fi
+  
 }
 
 _normalizeJson() {
@@ -572,66 +592,67 @@ _calcjwk() {
     if [ "${#pub_exp}" = "5" ] ; then
       pub_exp=0$pub_exp
     fi
-    _debug2 pub_exp "$pub_exp"
+    _debug3 pub_exp "$pub_exp"
     
     e=$(echo $pub_exp | _h2b | _base64)
-    _debug2 e "$e"
+    _debug3 e "$e"
     
     modulus=$(openssl rsa -in $keyfile -modulus -noout | cut -d '=' -f 2 )
-    _debug2 modulus "$modulus"
+    _debug3 modulus "$modulus"
     n="$(printf "%s" "$modulus"| _h2b | _base64 | _urlencode )"
     jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
-    _debug2 jwk "$jwk"
+    _debug3 jwk "$jwk"
     
     HEADER='{"alg": "RS256", "jwk": '$jwk'}'
-    HEADERPLACE='{"nonce": "NONCE", "alg": "RS256", "jwk": '$jwk'}'
+    HEADERPLACE_PART1='{"nonce": "'
+    HEADERPLACE_PART2='", "alg": "RS256", "jwk": '$jwk'}'
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" > /dev/null 2>&1 ; then
     _debug "EC key"
     EC_SIGN="1"
     crv="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
-    _debug2 crv "$crv"
+    _debug3 crv "$crv"
     
     pubi="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep -n pub: | cut -d : -f 1)"
     pubi=$(_math $pubi + 1)
-    _debug2 pubi "$pubi"
+    _debug3 pubi "$pubi"
     
     pubj="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep -n "ASN1 OID:"  | cut -d : -f 1)"
     pubj=$(_math $pubj + 1)
-    _debug2 pubj "$pubj"
+    _debug3 pubj "$pubj"
     
     pubtext="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | sed  -n "$pubi,${pubj}p" | tr -d " \n\r")"
-    _debug2 pubtext "$pubtext"
+    _debug3 pubtext "$pubtext"
     
     xlen="$(printf "$pubtext" | tr -d ':' | wc -c)"
     xlen=$(_math $xlen / 4)
-    _debug2 xlen "$xlen"
+    _debug3 xlen "$xlen"
 
     xend=$(_math "$xend" + 1)
     x="$(printf $pubtext | cut -d : -f 2-$xend)"
-    _debug2 x "$x"
+    _debug3 x "$x"
     
     x64="$(printf $x | tr -d : | _h2b | _base64 | _urlencode)"
-    _debug2 x64 "$x64"
+    _debug3 x64 "$x64"
 
     xend=$(_math "$xend" + 1)
     y="$(printf $pubtext | cut -d : -f $xend-10000)"
-    _debug2 y "$y"
+    _debug3 y "$y"
     
     y64="$(printf $y | tr -d : | _h2b | _base64 | _urlencode)"
-    _debug2 y64 "$y64"
+    _debug3 y64 "$y64"
    
     jwk='{"kty": "EC", "crv": "'$crv'", "x": "'$x64'", "y": "'$y64'"}'
-    _debug2 jwk "$jwk"
+    _debug3 jwk "$jwk"
     
     HEADER='{"alg": "ES256", "jwk": '$jwk'}'
-    HEADERPLACE='{"nonce": "NONCE", "alg": "ES256", "jwk": '$jwk'}'
-
+    HEADERPLACE_PART1='{"nonce": "'
+    HEADERPLACE_PART2='", "alg": "ES256", "jwk": '$jwk'}'
   else
     _err "Only RSA or EC key is supported."
     return 1
   fi
 
-  _debug2 HEADER "$HEADER"
+  _debug3 HEADER "$HEADER"
 }
 # body  url [needbase64] [POST|PUT]
 _post() {
@@ -747,8 +768,8 @@ _send_signed_request() {
     return 1
   fi
 
-  payload64=$(echo -n $payload | _base64 | _urlencode)
-  _debug2 payload64 $payload64
+  payload64=$(printf "%s" "$payload" | _base64 | _urlencode)
+  _debug3 payload64 $payload64
   
   nonceurl="$API/directory"
   _headers="$(_get $nonceurl "onlyheader")"
@@ -758,23 +779,23 @@ _send_signed_request() {
     return 1
   fi
   
-  _debug2 _headers "$_headers"
+  _debug3 _headers "$_headers"
   
   nonce="$( echo "$_headers" | grep "Replay-Nonce:" | head -1 | tr -d "\r\n " | cut -d ':' -f 2)"
 
-  _debug nonce "$nonce"
+  _debug3 nonce "$nonce"
   
-  protected="$(printf "$HEADERPLACE" | sed "s/NONCE/$nonce/" )"
-  _debug2 protected "$protected"
+  protected="$HEADERPLACE_PART1$nonce$HEADERPLACE_PART2"
+  _debug3 protected "$protected"
   
   protected64="$(printf "$protected" | _base64 | _urlencode)"
-  _debug2 protected64 "$protected64"
+  _debug3 protected64 "$protected64"
 
-  sig=$(echo -n "$protected64.$payload64" |  _sign  "$keyfile" "sha256" | _urlencode)
-  _debug2 sig "$sig"
+  sig=$(printf "%s" "$protected64.$payload64" |  _sign  "$keyfile" "sha256" | _urlencode)
+  _debug3 sig "$sig"
   
   body="{\"header\": $HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
-  _debug2 body "$body"
+  _debug3 body "$body"
   
 
   response="$(_post "$body" $url "$needbase64")"
@@ -812,7 +833,7 @@ _setopt() {
   fi
 
   if grep -n "^$__opt$__sep" "$__conf" > /dev/null ; then
-    _debug2 OK
+    _debug3 OK
     if _contains "$__val" "&" ; then
       __val="$(echo $__val | sed 's/&/\\&/g')"
     fi
@@ -827,10 +848,10 @@ _setopt() {
     echo "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|" > "$__conf"
 
   else
-    _debug2 APP
+    _debug3 APP
     echo "$__opt$__sep$__val$__end" >> "$__conf"
   fi
-  _debug "$(grep -n "^$__opt$__sep" $__conf)"
+  _debug2 "$(grep -n "^$__opt$__sep" $__conf)"
 }
 
 #_savedomainconf   key  value
@@ -925,9 +946,9 @@ _stopserver(){
   _debug2 "Le_HTTPPort" "$Le_HTTPPort"
   if [ "$Le_HTTPPort" ] ; then
     if [ "$DEBUG" ] ; then
-      _get "http://localhost:$Le_HTTPPort"
+      _get "http://localhost:$Le_HTTPPort" "" 1
     else
-      _get "http://localhost:$Le_HTTPPort" >/dev/null 2>&1
+      _get "http://localhost:$Le_HTTPPort" "" 1 >/dev/null 2>&1
     fi
   fi
   
@@ -1415,8 +1436,8 @@ issue() {
     return 1
   fi
   
-  accountkey_json=$(echo -n "$jwk" |  tr -d ' ' )
-  thumbprint=$(echo -n "$accountkey_json" | _digest "sha256" | _urlencode)
+  accountkey_json=$(printf "%s" "$jwk" |  tr -d ' ' )
+  thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _urlencode)
   
   regjson='{"resource": "new-reg", "agreement": "'$AGREEMENT'"}'
   if [ "$ACCOUNT_EMAIL" ] ; then
@@ -1509,17 +1530,17 @@ issue() {
         return 1
       fi
 
-      entry="$(printf "$response" | egrep -o  '\{[^{]*"type":"'$vtype'"[^}]*')"
+      entry="$(printf "%s\n" "$response" | _egrep_o  '[^{]*"type":"'$vtype'"[^}]*')"
       _debug entry "$entry"
       if [ -z "$entry" ] ; then
         _err "Error, can not get domain token $d"
         _clearup
         return 1
       fi
-      token="$(printf "$entry" | egrep -o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
+      token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
       _debug token $token
       
-      uri="$(printf "$entry" | egrep -o '"uri":"[^"]*'| cut -d : -f 2,3 | tr -d '"' )"
+      uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*'| cut -d : -f 2,3 | tr -d '"' )"
       _debug uri $uri
       
       keyauthorization="$token.$thumbprint"
@@ -1559,7 +1580,7 @@ issue() {
         dnsadded='0'
         txtdomain="_acme-challenge.$d"
         _debug txtdomain "$txtdomain"
-        txt="$(echo -n $keyauthorization | _digest "sha256" | _urlencode)"
+        txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _urlencode)"
         _debug txt "$txt"
         #dns
         #1. check use api
@@ -1781,7 +1802,7 @@ issue() {
       response="$(echo "$response" | _normalizeJson )"
       _debug2 response "$response"
       
-      status=$(echo $response | egrep -o  '"status":"[^"]*' | cut -d : -f 2 | tr -d '"')
+      status=$(echo "$response" | _egrep_o  '"status":"[^"]*' | cut -d : -f 2 | tr -d '"')
       if [ "$status" = "valid" ] ; then
         _info "Success"
         _stopserver $serverproc
@@ -1791,9 +1812,9 @@ issue() {
       fi
       
       if [ "$status" = "invalid" ] ; then
-         error="$(echo $response | tr -d "\r\n" | egrep -o '"error":\{[^}]*}')"
+         error="$(echo "$response" | _egrep_o '"error":\{[^}]*}')"
          _debug2 error "$error"
-         errordetail="$(echo $error |  grep -o '"detail": *"[^"]*"' | cut -d '"' -f 4)"
+         errordetail="$(echo $error |  _egrep_o '"detail": *"[^"]*"' | cut -d '"' -f 4)"
          _debug2 errordetail "$errordetail"
          if [ "$errordetail" ] ; then
            _err "$d:Verify error:$errordetail"
@@ -1833,7 +1854,7 @@ issue() {
   fi
   
   
-  Le_LinkCert="$(grep -i -o '^Location.*$' $HTTP_HEADER | head -1 | tr -d "\r\n" | cut -d " " -f 2)"
+  Le_LinkCert="$(grep -i '^Location.*$' $HTTP_HEADER | head -1 | tr -d "\r\n" | cut -d " " -f 2)"
   _savedomainconf "Le_LinkCert"  "$Le_LinkCert"
 
   if [ "$Le_LinkCert" ] ; then
@@ -1855,7 +1876,7 @@ issue() {
 
   if [ -z "$Le_LinkCert" ] ; then
     response="$(echo $response | _dbase64 "multiline" | _normalizeJson )"
-    _err "Sign failed: $(echo "$response" | grep -o  '"detail":"[^"]*"')"
+    _err "Sign failed: $(echo "$response" | _egrep_o  '"detail":"[^"]*"')"
     return 1
   fi
   
@@ -1981,7 +2002,11 @@ list() {
       )
     done
   else
-    list "raw" | column -t -s "$_sep"  
+    if _exists column ; then
+      list "raw" | column -t -s "$_sep"
+    else
+      list "raw" | tr '|' '\t'
+    fi
   fi
 
 

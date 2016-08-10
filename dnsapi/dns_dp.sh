@@ -152,7 +152,7 @@ _get_root() {
     fi
     
     if printf "$response" | grep "Action completed successful" >/dev/null ; then
-      _domain_id=$(printf "$response" | grep -o \"id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \")
+      _domain_id=$(printf "%s\n" "$response" | _egrep_o \"id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \")
       _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ] ; then
         _sub_domain=$(printf $domain | cut -d . -f 1-$p)

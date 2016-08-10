@@ -69,7 +69,7 @@ existing_records() {
     return 1
   fi
   count=0
-  seg=$(printf "$response" | grep -o "{[^{]*host\":\"$_sub_domain\"[^}]*}")
+  seg=$(printf "%s\n" "$response" | _egrep_o "{[^{]*host\":\"$_sub_domain\"[^}]*}")
   _debug seg "$seg"
   if [ -z "$seg" ] ; then
     return 0
@@ -77,7 +77,7 @@ existing_records() {
 
   if printf "$response" | grep '"type":"TXT"' > /dev/null ; then
     count=1
-    record_id=$(printf "$seg" | grep -o \"record_id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \")
+    record_id=$(printf "%s\n" "$seg" | _egrep_o \"record_id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \")
     _debug record_id "$record_id"
     return 0    
   fi
@@ -145,9 +145,9 @@ _get_root() {
     fi
 
     if printf "$response" | grep "$h." >/dev/null ; then
-      seg=$(printf "$response" | grep -o "{[^{]*\"$h\.\"[^}]*\}" )
+      seg=$(printf "%s" "$response" | _egrep_o "{[^{]*\"$h\.\"[^}]*\}" )
       _debug seg "$seg"
-      _domain_id=$(printf "$seg" | grep -o \"id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \")
+      _domain_id=$(printf "%s" "$seg" | _egrep_o \"id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \")
       _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ] ; then
         _sub_domain=$(printf $domain | cut -d . -f 1-$p)
