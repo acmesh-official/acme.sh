@@ -334,6 +334,10 @@ _sign() {
 _isEccKey() {
   _length="$1"
 
+  if [ -z "$_length" ] ;then
+    return 1
+  fi
+
   [ "$_length" != "1024" ] \
   && [ "$_length" != "2048" ] \
   && [ "$_length" != "3172" ] \
@@ -1972,9 +1976,9 @@ renew() {
 
   _initpath $Le_Domain "$_isEcc"
 
-  _info "Renew: $Le_Domain"
+  _info "Renew: '$Le_Domain'"
   if [ ! -f "$DOMAIN_CONF" ] ; then
-    _info "$Le_Domain is not a issued domain, skip."
+    _info "'$Le_Domain' is not a issued domain, skip."
     return 0;
   fi
   
