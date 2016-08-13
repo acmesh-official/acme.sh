@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.3.6
+VER=2.4.0
 
 PROJECT_NAME="acme.sh"
 
@@ -50,25 +50,61 @@ if [ "$(printf '\x41')" != 'A' ] ; then
   _URGLY_PRINTF=1
 fi
 
+__green() {
+  printf '\033[1;31;32m'
+  printf -- "$1"
+  printf '\033[0m'
+}
+
+__red() {
+  printf '\033[1;31;40m'
+  printf -- "$1"
+  printf '\033[0m'
+}
 
 _info() {
   if [ -z "$2" ] ; then
-    echo "[$(date)] $1"
+    printf -- "[$(date)] $1"
   else
-    echo "[$(date)] $1='$2'"
+    printf -- "[$(date)] $1='$2'"
+  fi
+  printf "\n"
+}
+
+
+
+_err_e() {
+  if [ -z "$2" ] ; then
+    __red "$1" >&2
+  else
+    __red "$1='$2'" >&2
   fi
 }
 
 _err() {
-  _info "$@" >&2
+  printf -- "[$(date)] " >&2
+  _err_e "$@"  
+  printf "\n"
   return 1
+}
+
+_usage() {
+  version
+  _err_e "$@"
 }
 
 _debug() {
   if [ -z "$DEBUG" ] ; then
     return
   fi
-  _err "$@"
+  
+  if [ -z "$2" ] ; then
+    printf -- "[$(date)] $1" >&2
+  else
+    printf -- "[$(date)] $1='$2'" >&2
+  fi
+  
+  printf "\n"
   return 0
 }
 
@@ -109,7 +145,7 @@ _hasfield() {
   _field="$2"
   _sep="$3"
   if [ -z "$_field" ] ; then
-    _err "Usage: str field  [sep]"
+    _usage "Usage: str field  [sep]"
     return 1
   fi
   
@@ -130,7 +166,7 @@ _hasfield() {
 _exists(){
   cmd="$1"
   if [ -z "$cmd" ] ; then
-    _err "Usage: _exists cmd"
+    _usage "Usage: _exists cmd"
     return 1
   fi
   if type command >/dev/null 2>&1 ; then
@@ -217,7 +253,7 @@ _sed_i() {
   options="$1"
   filename="$2"
   if [ -z "$filename" ] ; then
-    _err "Usage:_sed_i options filename"
+    _usage "Usage:_sed_i options filename"
     return 1
   fi
   _debug2 options "$options"
@@ -245,7 +281,7 @@ _getfile() {
   startline="$2"
   endline="$3"
   if [ -z "$endline" ] ; then
-    _err "Usage: file startline endline"
+    _usage "Usage: file startline endline"
     return 1
   fi
   
@@ -292,7 +328,7 @@ _dbase64() {
 _digest() {
   alg="$1"
   if [ -z "$alg" ] ; then
-    _err "Usage: _digest hashalg"
+    _usage "Usage: _digest hashalg"
     return 1
   fi
   
@@ -317,7 +353,7 @@ _sign() {
   keyfile="$1"
   alg="$2"
   if [ -z "$alg" ] ; then
-    _err "Usage: _sign keyfile hashalg"
+    _usage "Usage: _sign keyfile hashalg"
     return 1
   fi
   
@@ -371,7 +407,6 @@ _createkey() {
   
   _info "Use length $length"
 
-  #generate account key
   if _isEccKey "$length" ; then
     _info "Using ec name: $eccname"
     openssl ecparam  -name $eccname -genkey 2>/dev/null > "$f"
@@ -409,7 +444,7 @@ _createcsr() {
     fi
     #multi 
     _info "Multi domain" "$alt"
-    printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\nkeyUsage = nonRepudiation, digitalSignature, keyEncipherment\nsubjectAltName=$alt" > "$csrconf"
+    printf -- "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\nkeyUsage = nonRepudiation, digitalSignature, keyEncipherment\nsubjectAltName=$alt" > "$csrconf"
     openssl req -new -sha256 -key "$key" -subj "/CN=$domain" -config "$csrconf" -out "$csr"
   fi
 }
@@ -463,7 +498,7 @@ toPkcs() {
   domain="$1"
   pfxPassword="$2"
   if [ -z "$domain" ] ; then
-    echo "Usage: $PROJECT_ENTRY --toPkcs -d domain [--password pfx-password]"
+    _usage "Usage: $PROJECT_ENTRY --toPkcs -d domain [--password pfx-password]"
     return 1
   fi
 
@@ -487,7 +522,7 @@ toPkcs() {
 createAccountKey() {
   _info "Creating account key"
   if [ -z "$1" ] ; then
-    echo Usage: $PROJECT_ENTRY --createAccountKey -d domain.com  [--accountkeylength 2048]
+    _usage "Usage: $PROJECT_ENTRY --createAccountKey -d domain.com  [--accountkeylength 2048]"
     return
   fi
   
@@ -519,7 +554,7 @@ createAccountKey() {
 createDomainKey() {
   _info "Creating domain key"
   if [ -z "$1" ] ; then
-    echo Usage: $PROJECT_ENTRY --createDomainKey -d domain.com  [ --keylength 2048 ]
+    _usage "Usage: $PROJECT_ENTRY --createDomainKey -d domain.com  [ --keylength 2048 ]"
     return
   fi
   
@@ -547,7 +582,7 @@ createDomainKey() {
 createCSR() {
   _info "Creating csr"
   if [ -z "$1" ] ; then
-    echo "Usage: $PROJECT_ENTRY --createCSR -d domain1.com [-d domain2.com  -d domain3.com ... ]"
+    _usage "Usage: $PROJECT_ENTRY --createCSR -d domain1.com [-d domain2.com  -d domain3.com ... ]"
     return
   fi
   
@@ -616,7 +651,7 @@ _stat() {
 _calcjwk() {
   keyfile="$1"
   if [ -z "$keyfile" ] ; then
-    _err "Usage: _calcjwk keyfile"
+    _usage "Usage: _calcjwk keyfile"
     return 1
   fi
   EC_SIGN=""
@@ -859,7 +894,7 @@ _setopt() {
   __val="$4"
   __end="$5"
   if [ -z "$__opt" ] ; then 
-    echo usage: _setopt  '"file"  "opt"  "="  "value" [";"]'
+    _usage usage: _setopt  '"file"  "opt"  "="  "value" [";"]'
     return
   fi
   if [ ! -f "$__conf" ] ; then
@@ -1131,54 +1166,62 @@ _initpath() {
     return 0
   fi
   
-  domainhome="$CERT_HOME/$domain"
-  if _isEccKey "$length" ; then
-    domainhome="$CERT_HOME/$domain$ECC_SUFFIX"
-  fi
-
-  mkdir -p "$domainhome"
 
   if [ -z "$DOMAIN_PATH" ] ; then
+    domainhome="$CERT_HOME/$domain"
+    domainhomeecc="$CERT_HOME/$domain$ECC_SUFFIX"
+    
     DOMAIN_PATH="$domainhome"
+    
+    if _isEccKey "$length" ; then
+      DOMAIN_PATH="$domainhomeecc"
+    else
+      if [ ! -d "$domainhome" ] && [ -d "$domainhomeecc" ] ; then
+        _info "The domain '$domain' seems to be a ECC domain, please add '$(__red "--ecc")' parameter next time."
+        DOMAIN_PATH="$domainhomeecc"
+      fi
+    fi
+    _debug DOMAIN_PATH "$DOMAIN_PATH"
   fi
+  
   if [ -z "$DOMAIN_CONF" ] ; then
-    DOMAIN_CONF="$domainhome/$domain.conf"
+    DOMAIN_CONF="$DOMAIN_PATH/$domain.conf"
   fi
   
   if [ -z "$DOMAIN_SSL_CONF" ] ; then
-    DOMAIN_SSL_CONF="$domainhome/$domain.ssl.conf"
+    DOMAIN_SSL_CONF="$DOMAIN_PATH/$domain.ssl.conf"
   fi
   
   if [ -z "$CSR_PATH" ] ; then
-    CSR_PATH="$domainhome/$domain.csr"
+    CSR_PATH="$DOMAIN_PATH/$domain.csr"
   fi
   if [ -z "$CERT_KEY_PATH" ] ; then 
-    CERT_KEY_PATH="$domainhome/$domain.key"
+    CERT_KEY_PATH="$DOMAIN_PATH/$domain.key"
   fi
   if [ -z "$CERT_PATH" ] ; then
-    CERT_PATH="$domainhome/$domain.cer"
+    CERT_PATH="$DOMAIN_PATH/$domain.cer"
   fi
   if [ -z "$CA_CERT_PATH" ] ; then
-    CA_CERT_PATH="$domainhome/ca.cer"
+    CA_CERT_PATH="$DOMAIN_PATH/ca.cer"
   fi
   if [ -z "$CERT_FULLCHAIN_PATH" ] ; then
-    CERT_FULLCHAIN_PATH="$domainhome/fullchain.cer"
+    CERT_FULLCHAIN_PATH="$DOMAIN_PATH/fullchain.cer"
   fi
   if [ -z "$CERT_PFX_PATH" ] ; then
-    CERT_PFX_PATH="$domainhome/$domain.pfx"
+    CERT_PFX_PATH="$DOMAIN_PATH/$domain.pfx"
   fi
   
   if [ -z "$TLS_CONF" ] ; then
-    TLS_CONF="$domainhome/tls.valdation.conf"
+    TLS_CONF="$DOMAIN_PATH/tls.valdation.conf"
   fi
   if [ -z "$TLS_CERT" ] ; then
-    TLS_CERT="$domainhome/tls.valdation.cert"
+    TLS_CERT="$DOMAIN_PATH/tls.valdation.cert"
   fi
   if [ -z "$TLS_KEY" ] ; then
-    TLS_KEY="$domainhome/tls.valdation.key"
+    TLS_KEY="$DOMAIN_PATH/tls.valdation.key"
   fi
   if [ -z "$TLS_CSR" ] ; then
-    TLS_CSR="$domainhome/tls.valdation.csr"
+    TLS_CSR="$DOMAIN_PATH/tls.valdation.csr"
   fi
   
 }
@@ -1365,7 +1408,7 @@ _clearupwebbroot() {
 
 issue() {
   if [ -z "$2" ] ; then
-    echo "Usage: $PROJECT_ENTRY --issue  -d  a.com  -w /path/to/webroot/a.com/ "
+    _usage "Usage: $PROJECT_ENTRY --issue  -d  a.com  -w /path/to/webroot/a.com/ "
     return 1
   fi
   Le_Webroot="$1"
@@ -1391,6 +1434,7 @@ issue() {
   
   if [ ! "$IS_RENEW" ] ; then
     _initpath $Le_Domain "$Le_Keylength"
+    mkdir -p "$DOMAIN_PATH"
   fi
 
   if [ -f "$DOMAIN_CONF" ] ; then
@@ -1902,7 +1946,7 @@ issue() {
     echo "$BEGIN_CERT" > "$CERT_PATH"
     _get "$Le_LinkCert" | _base64 "multiline"  >> "$CERT_PATH"
     echo "$END_CERT"  >> "$CERT_PATH"
-    _info "Cert success."
+    _info "$(__green "Cert success.")"
     cat "$CERT_PATH"
     
     _info "Your cert is in $CERT_PATH"
@@ -1959,7 +2003,7 @@ issue() {
 
 
   if [ "$Le_RealCertPath$Le_RealKeyPath$Le_RealCACertPath$Le_ReloadCmd$Le_RealFullChainPath" ] ; then
-    installcert $Le_Domain  "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath"
+    _installcert
   fi
 
 }
@@ -1968,7 +2012,7 @@ issue() {
 renew() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ] ; then
-    _err "Usage: $PROJECT_ENTRY --renew  -d domain.com"
+    _usage "Usage: $PROJECT_ENTRY --renew  -d domain.com [--ecc]"
     return 1
   fi
 
@@ -2069,7 +2113,7 @@ list() {
 installcert() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ] ; then
-    echo "Usage: $PROJECT_ENTRY --installcert -d domain.com  [--certpath cert-file-path]  [--keypath key-file-path]  [--capath ca-cert-file-path]   [ --reloadCmd reloadCmd] [--fullchainpath fullchain-path]"
+    _usage "Usage: $PROJECT_ENTRY --installcert -d domain.com  [--ecc] [--certpath cert-file-path]  [--keypath key-file-path]  [--capath ca-cert-file-path]   [ --reloadCmd reloadCmd] [--fullchainpath fullchain-path]"
     return 1
   fi
 
@@ -2079,9 +2123,18 @@ installcert() {
   Le_ReloadCmd="$5"
   Le_RealFullChainPath="$6"
   _isEcc="$7"
-  if [ ! "$IS_RENEW" ] ; then
-    _initpath $Le_Domain "$_isEcc"
+
+  _initpath $Le_Domain "$_isEcc"
+  if [ ! -d "$DOMAIN_PATH" ] ; then
+    _err "Domain is not valid:'$Le_Domain'"
+    return 1
   fi
+
+  _installcert
+}
+
+
+_installcert() {
 
   _savedomainconf "Le_RealCertPath"         "$Le_RealCertPath"
   _savedomainconf "Le_RealCACertPath"       "$Le_RealCACertPath"
@@ -2109,7 +2162,7 @@ installcert() {
   if [ "$Le_RealCertPath" ] ; then
     _installed=1
     _info "Installing cert to:$Le_RealCertPath"
-    if [ -f "$Le_RealCertPath" ] ; then
+    if [ -f "$Le_RealCertPath" ] && [ ! "$IS_RENEW" ] ; then
       cp "$Le_RealCertPath" "$Le_RealCertPath".bak
     fi
     cat "$CERT_PATH" > "$Le_RealCertPath"
@@ -2122,7 +2175,7 @@ installcert() {
       echo "" >> "$Le_RealCACertPath"
       cat "$CA_CERT_PATH" >> "$Le_RealCACertPath"
     else
-      if [ -f "$Le_RealCACertPath" ] ; then
+      if [ -f "$Le_RealCACertPath" ] && [ ! "$IS_RENEW" ] ; then
         cp "$Le_RealCACertPath" "$Le_RealCACertPath".bak
       fi
       cat "$CA_CERT_PATH" > "$Le_RealCACertPath"
@@ -2133,7 +2186,7 @@ installcert() {
   if [ "$Le_RealKeyPath" ] ; then
     _installed=1
     _info "Installing key to:$Le_RealKeyPath"
-    if [ -f "$Le_RealKeyPath" ] ; then
+    if [ -f "$Le_RealKeyPath" ] && [ ! "$IS_RENEW" ] ; then
       cp "$Le_RealKeyPath" "$Le_RealKeyPath".bak
     fi
     cat "$CERT_KEY_PATH" > "$Le_RealKeyPath"
@@ -2142,7 +2195,7 @@ installcert() {
   if [ "$Le_RealFullChainPath" ] ; then
     _installed=1
     _info "Installing full chain to:$Le_RealFullChainPath"
-    if [ -f "$Le_RealFullChainPath" ] ; then
+    if [ -f "$Le_RealFullChainPath" ] && [ ! "$IS_RENEW" ] ; then
       cp "$Le_RealFullChainPath" "$Le_RealFullChainPath".bak
     fi
     cat "$CERT_FULLCHAIN_PATH" > "$Le_RealFullChainPath"
@@ -2152,7 +2205,7 @@ installcert() {
     _installed=1
     _info "Run Le_ReloadCmd: $Le_ReloadCmd"
     if (cd "$DOMAIN_PATH" && eval "$Le_ReloadCmd") ; then
-      _info "Reload success."
+      _info "$(__green "Reload success")"
     else
       _err "Reload error for :$Le_Domain"
     fi
@@ -2214,7 +2267,7 @@ uninstallcronjob() {
 revoke() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ] ; then
-    echo "Usage: $PROJECT_ENTRY --revoke -d domain.com"
+    _usage "Usage: $PROJECT_ENTRY --revoke -d domain.com"
     return 1
   fi
   
@@ -2399,7 +2452,7 @@ _setShebang() {
   _file="$1"
   _shebang="$2"
   if [ -z "$_shebang" ] ; then
-    _err "Usage: file shebang"
+    _usage "Usage: file shebang"
     return 1
   fi
   cp "$_file" "$_file.tmp"
@@ -2650,6 +2703,7 @@ Parameters:
   --stopRenewOnError, -se           Only valid for '--renewall' command. Stop if one cert has error in renewal.
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
+  --ecc                             Specifies to use the ECC cert. Valid for '--installcert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
   "
 }
 
@@ -2723,6 +2777,7 @@ _process() {
   _stopRenewOnError=""
   _insecure=""
   _nocron=""
+  _ecc=""
   while [ ${#} -gt 0 ] ; do
     case "${1}" in
     
@@ -2966,6 +3021,10 @@ _process() {
     --nocron)
         _nocron="1"
         ;;
+    --ecc)
+        _ecc="isEcc"
+        ;;
+
     *)
         _err "Unknown parameter : $1"
         return 1
@@ -2987,16 +3046,16 @@ _process() {
       issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath"
       ;;
     installcert)
-      installcert "$_domain" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath"
+      installcert "$_domain" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath" "$_ecc"
       ;;
     renew) 
-      renew "$_domain" 
+      renew "$_domain" "$_ecc"
       ;;
     renewAll) 
       renewAll "$_stopRenewOnError"
       ;;
     revoke) 
-      revoke "$_domain" 
+      revoke "$_domain" "$_ecc"
       ;;
     list) 
       list "$_listraw"
@@ -3005,7 +3064,7 @@ _process() {
     uninstallcronjob) uninstallcronjob ;;
     cron) cron ;;
     toPkcs) 
-      toPkcs "$_domain" "$_password"
+      toPkcs "$_domain" "$_password" "$_ecc"
       ;;
     createAccountKey) 
       createAccountKey "$_domain" "$_accountkeylength"
@@ -3014,7 +3073,7 @@ _process() {
       createDomainKey "$_domain" "$_keylength"
       ;;
     createCSR) 
-      createCSR "$_domain" "$_altdomains"
+      createCSR "$_domain" "$_altdomains" "$_ecc"
       ;;
 
     *)
