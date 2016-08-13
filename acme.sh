@@ -84,14 +84,14 @@ _err_e() {
 _err() {
   printf -- "[$(date)] " >&2
   _err_e "$@"  
-  printf "\n"
+  printf "\n" >&2
   return 1
 }
 
 _usage() {
   version
   _err_e "$@"
-  printf "\n"
+  printf "\n" >&2
 }
 
 _debug() {
@@ -105,7 +105,7 @@ _debug() {
     printf -- "[$(date)] $1='$2'" >&2
   fi
   
-  printf "\n"
+  printf "\n" >&2
   return 0
 }
 
@@ -546,7 +546,7 @@ createAccountKey() {
     return
   else
     #generate account key
-    _createkey $length "$ACCOUNT_KEY_PATH"
+    _createkey "$length" "$ACCOUNT_KEY_PATH"
   fi
 
 }
