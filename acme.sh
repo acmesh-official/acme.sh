@@ -36,6 +36,9 @@ END_CERT="-----END CERTIFICATE-----"
 
 RENEW_SKIP=2
 
+ECC_SEP="_"
+ECC_SUFFIX="${ECC_SEP}ecc"
+
 if [ -z "$AGREEMENT" ] ; then
   AGREEMENT="$DEFAULT_AGREEMENT"
 fi
@@ -89,10 +92,16 @@ _startswith(){
   echo "$_str" | grep "^$_sub" >/dev/null 2>&1
 }
 
+_endswith(){
+  _str="$1"
+  _sub="$2"
+  echo "$_str" | grep -- "$_sub\$" >/dev/null 2>&1
+}
+
 _contains(){
   _str="$1"
   _sub="$2"
-  echo "$_str" | grep "$_sub" >/dev/null 2>&1
+  echo "$_str" | grep -- "$_sub" >/dev/null 2>&1
 }
 
 _hasfield() {
@@ -321,27 +330,25 @@ _sign() {
   
 }
 
+#keylength
+_isEccKey() {
+  _length="$1"
+
+  [ "$_length" != "1024" ] \
+  && [ "$_length" != "2048" ] \
+  && [ "$_length" != "3172" ] \
+  && [ "$_length" != "4096" ] \
+  && [ "$_length" != "8192" ]
+}
+
 # _createkey  2048|ec-256   file
 _createkey() {
   length="$1"
   f="$2"
-  isec=""
+  eccname="$length"
   if _startswith "$length" "ec-" ; then
-    isec="1"
     length=$(printf $length | cut -d '-' -f 2-100)
-    eccname="$length"
-  fi
 
-  if [ -z "$length" ] ; then
-    if [ "$isec" ] ; then
-      length=256
-    else
-      length=2048
-    fi
-  fi
-  _info "Use length $length"
-
-  if [ "$isec" ] ; then
     if [ "$length" = "256" ] ; then
       eccname="prime256v1"
     fi
@@ -351,14 +358,27 @@ _createkey() {
     if [ "$length" = "521" ] ; then
       eccname="secp521r1"
     fi
-    _info "Using ec name: $eccname"
+
   fi
 
+  if [ -z "$length" ] ; then
+     length=2048
+  fi
+  
+  _info "Use length $length"
+
   #generate account key
-  if [ "$isec" ] ; then
+  if _isEccKey "$length" ; then
+    _info "Using ec name: $eccname"
     openssl ecparam  -name $eccname -genkey 2>/dev/null > "$f"
   else
+    _info "Using RSA: $length"
     openssl genrsa $length 2>/dev/null > "$f"
+  fi
+
+  if [ "$?" != "0" ] ; then
+    _err "Create key error."
+    return 1
   fi
 }
 
@@ -434,6 +454,7 @@ _ss() {
   return 1
 }
 
+#domain [password] [isEcc]
 toPkcs() {
   domain="$1"
   pfxPassword="$2"
@@ -442,8 +463,10 @@ toPkcs() {
     return 1
   fi
 
-  _initpath "$domain"
+  _isEcc="$3"
   
+  _initpath "$domain" "$_isEcc"
+
   if [ "$pfxPassword" ] ; then
     openssl pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH" -password "pass:$pfxPassword"
   else
@@ -488,7 +511,7 @@ createAccountKey() {
 
 }
 
-#domain length
+#domain [length]
 createDomainKey() {
   _info "Creating domain key"
   if [ -z "$1" ] ; then
@@ -497,9 +520,9 @@ createDomainKey() {
   fi
   
   domain=$1
-  _initpath $domain
-  
   length=$2
+  
+  _initpath $domain "$length"  
 
   if [ ! -f "$CERT_KEY_PATH" ] || ( [ "$FORCE" ] && ! [ "$IS_RENEW" ] ); then 
     _createkey "$length" "$CERT_KEY_PATH"
@@ -516,23 +539,30 @@ createDomainKey() {
 
 }
 
-# domain  domainlist
+# domain  domainlist isEcc
 createCSR() {
   _info "Creating csr"
   if [ -z "$1" ] ; then
     echo "Usage: $PROJECT_ENTRY --createCSR -d domain1.com [-d domain2.com  -d domain3.com ... ]"
     return
   fi
-  domain=$1
-  _initpath "$domain"
   
-  domainlist=$2
+  domain="$1"
+  domainlist="$2"
+  _isEcc="$3"
+  
+  _initpath "$domain" "$_isEcc"
   
   if [ -f "$CSR_PATH" ]  && [ "$IS_RENEW" ] && [ -z "$FORCE" ]; then
     _info "CSR exists, skip"
     return
   fi
   
+  if [ ! -f "$CERT_KEY_PATH" ] ; then
+    _err "The key file is not found: $CERT_KEY_PATH"
+    _err "Please create the key file first."
+    return 1
+  fi
   _createcsr "$domain" "$domainlist" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"
   
 }
@@ -1012,6 +1042,7 @@ _starttlsserver() {
   _debug serverproc $serverproc
 }
 
+#[domain]  [keylength]
 _initpath() {
 
   if [ -z "$LE_WORKING_DIR" ] ; then
@@ -1091,12 +1122,16 @@ _initpath() {
   fi
 
   domain="$1"
-
+  length="$2"
   if [ -z "$domain" ] ; then
     return 0
   fi
   
   domainhome="$CERT_HOME/$domain"
+  if _isEccKey "$length" ; then
+    domainhome="$CERT_HOME/$domain$ECC_SUFFIX"
+  fi
+
   mkdir -p "$domainhome"
 
   if [ -z "$DOMAIN_PATH" ] ; then
@@ -1350,7 +1385,9 @@ issue() {
     Le_Webroot="dns_cx"
   fi
   
-  _initpath $Le_Domain
+  if [ ! "$IS_RENEW" ] ; then
+    _initpath $Le_Domain "$Le_Keylength"
+  fi
 
   if [ -f "$DOMAIN_CONF" ] ; then
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
@@ -1482,7 +1519,7 @@ issue() {
   _savedomainconf "Le_Keylength"    "$Le_Keylength"
   
 
-  if ! createCSR  $Le_Domain  $Le_Alt ; then
+  if ! _createcsr "$Le_Domain" "$Le_Alt" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"   ; then
     _err "Create CSR error."
     _clearup
     return 1
@@ -1923,6 +1960,7 @@ issue() {
 
 }
 
+#domain  [isEcc]
 renew() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ] ; then
@@ -1930,7 +1968,10 @@ renew() {
     return 1
   fi
 
-  _initpath $Le_Domain
+  _isEcc="$2"
+
+  _initpath $Le_Domain "$_isEcc"
+
   _info "Renew: $Le_Domain"
   if [ ! -f "$DOMAIN_CONF" ] ; then
     _info "$Le_Domain is not a issued domain, skip."
@@ -1961,10 +2002,15 @@ renewAll() {
   _stopRenewOnError="$1"
   _debug "_stopRenewOnError" "$_stopRenewOnError"
   _ret="0"
+
   for d in $(ls -F ${CERT_HOME}/ | grep [^.].*[.].*/$ ) ; do
     d=$(echo $d | cut -d '/' -f 1)
-    ( 
-      renew "$d"
+    (
+      if _endswith $d "$ECC_SUFFIX" ; then
+        _isEcc=$(echo $d | cut -d "$ECC_SEP" -f 2)
+        d=$(echo $d | cut -d "$ECC_SEP" -f 1)
+      fi
+      renew "$d" "$_isEcc"
     )
     rc="$?"
     _debug "Return code: $rc"
@@ -1990,14 +2036,18 @@ list() {
   
   _sep="|"
   if [ "$_raw" ] ; then
-    printf  "Main_Domain${_sep}SAN_Domains${_sep}Created${_sep}Renew\n"
+    printf  "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Created${_sep}Renew\n"
     for d in $(ls -F ${CERT_HOME}/ | grep [^.].*[.].*/$ ) ; do
       d=$(echo $d | cut -d '/' -f 1)
       (
-        _initpath $d
+        if _endswith $d "$ECC_SUFFIX" ; then
+          _isEcc=$(echo $d | cut -d "$ECC_SEP" -f 2)
+          d=$(echo $d | cut -d "$ECC_SEP" -f 1)
+        fi
+        _initpath $d "$_isEcc"
         if [ -f "$DOMAIN_CONF" ] ; then
           . "$DOMAIN_CONF"
-          printf "$Le_Domain${_sep}$Le_Alt${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr\n"
+          printf "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr\n"
         fi
       )
     done
@@ -2005,7 +2055,7 @@ list() {
     if _exists column ; then
       list "raw" | column -t -s "$_sep"
     else
-      list "raw" | tr '|' '\t'
+      list "raw" | tr "$_sep" '\t'
     fi
   fi
 
@@ -2024,8 +2074,10 @@ installcert() {
   Le_RealCACertPath="$4"
   Le_ReloadCmd="$5"
   Le_RealFullChainPath="$6"
-
-  _initpath $Le_Domain
+  _isEcc="$7"
+  if [ ! "$IS_RENEW" ] ; then
+    _initpath $Le_Domain "$_isEcc"
+  fi
 
   _savedomainconf "Le_RealCertPath"         "$Le_RealCertPath"
   _savedomainconf "Le_RealCACertPath"       "$Le_RealCACertPath"
@@ -2162,7 +2214,9 @@ revoke() {
     return 1
   fi
   
-  _initpath $Le_Domain
+  _isEcc="$2"
+
+  _initpath $Le_Domain "$_isEcc"
   if [ ! -f "$DOMAIN_CONF" ] ; then
     _err "$Le_Domain is not a issued domain, skip."
     return 1;
