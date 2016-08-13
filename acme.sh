@@ -91,6 +91,7 @@ _err() {
 _usage() {
   version
   _err_e "$@"
+  printf "\n"
 }
 
 _debug() {
