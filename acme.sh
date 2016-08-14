@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.4.0
+VER=2.4.1
 
 PROJECT_NAME="acme.sh"
 
@@ -45,11 +45,6 @@ fi
 
 
 
-_URGLY_PRINTF=""
-if [ "$(printf '\x41')" != 'A' ] ; then
-  _URGLY_PRINTF=1
-fi
-
 __green() {
   printf '\033[1;31;32m'
   printf -- "$1"
@@ -72,26 +67,24 @@ _info() {
 }
 
 
-
 _err_e() {
   if [ -z "$2" ] ; then
     __red "$1" >&2
   else
     __red "$1='$2'" >&2
   fi
+  printf "\n" >&2
 }
 
 _err() {
   printf -- "[$(date)] " >&2
-  _err_e "$@"  
-  printf "\n" >&2
+  _err_e "$@"
   return 1
 }
 
 _usage() {
   version
   _err_e "$@"
-  printf "\n" >&2
 }
 
 _debug() {
@@ -212,6 +205,12 @@ _h_char_2_dec() {
   esac
 
 }
+
+
+_URGLY_PRINTF=""
+if [ "$(printf '\x41')" != 'A' ] ; then
+  _URGLY_PRINTF=1
+fi
 
 _h2b() {
   hex=$(cat)
@@ -363,7 +362,7 @@ _sign() {
   else
     _err "$alg is not supported yet"
     return 1
-  fi  
+  fi
   
 }
 
@@ -724,6 +723,46 @@ _calcjwk() {
 
   _debug3 HEADER "$HEADER"
 }
+
+
+_mktemp() {
+  if _exists mktemp ; then
+    mktemp
+  fi
+}
+
+_inithttp() {
+
+  if [ -z "$HTTP_HEADER" ] ; then
+    HTTP_HEADER="$(_mktemp)"
+    _debug2 HTTP_HEADER "$HTTP_HEADER"
+  fi
+
+  if [ -z "$CURL" ] ; then
+    CURL="curl -L --silent --dump-header $HTTP_HEADER "
+    if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
+      _CURL_DUMP="$(_mktemp)"
+      CURL="$CURL --trace-ascii $_CURL_DUMP "
+    fi
+
+    if [ "$HTTPS_INSECURE" ] ; then
+      CURL="$CURL --insecure  "
+    fi
+  fi
+  
+  if [ -z "$WGET" ] ; then
+    WGET="wget -q"
+    if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
+      WGET="$WGET -d "
+    fi
+    if [ "$HTTPS_INSECURE" ] ; then
+      WGET="$WGET --no-check-certificate "
+    fi
+  fi
+
+}
+
+
 # body  url [needbase64] [POST|PUT]
 _post() {
   body="$1"
@@ -737,8 +776,11 @@ _post() {
   _debug $httpmethod
   _debug "url" "$url"
   _debug2 "body" "$body"
+  
+  _inithttp
+  
   if _exists "curl" ; then
-    _CURL="$CURL --dump-header $HTTP_HEADER "
+    _CURL="$CURL"
     _debug "_CURL" "$_CURL"
     if [ "$needbase64" ] ; then
       response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" --data "$body" "$url" | _base64)"
@@ -790,6 +832,9 @@ _get() {
   t="$3"
   _debug url $url
   _debug "timeout" "$t"
+
+  _inithttp
+
   if _exists "curl" ; then
     _CURL="$CURL"
     if [ "$t" ] ; then
@@ -802,6 +847,13 @@ _get() {
       $_CURL    --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" $url
     fi
     ret=$?
+    if [ "$ret" != "0" ] ; then
+      _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $_ret"
+      if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
+        _err "Here is the curl dump log:"
+        _err "$(cat "$_CURL_DUMP")"
+      fi
+    fi
   elif _exists "wget" ; then
     _WGET="$WGET"
     if [ "$t" ] ; then
@@ -814,6 +866,9 @@ _get() {
       $_WGET --user-agent="$USER_AGENT" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1"    -O - $url
     fi
     ret=$?
+    if [ "$ret" != "0" ] ; then
+      _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret" 
+    fi
   else
     ret=$?
     _err "Neither curl nor wget is found, can not do GET."
@@ -821,6 +876,7 @@ _get() {
   _debug "ret" "$ret"
   return $ret
 }
+
 
 # url  payload needbase64  keyfile
 _send_signed_request() {
@@ -967,6 +1023,16 @@ _saveaccountconf() {
     _setopt "$ACCOUNT_CONF_PATH" "$key" "=" "\"$value\""
   else
     _err "ACCOUNT_CONF_PATH is empty, can not save $key=$value"
+  fi
+}
+
+#_clearaccountconf   key
+_clearaccountconf() {
+  key="$1"
+  if [ "$ACCOUNT_CONF_PATH" ] ; then
+    _sed_i "s/^$key.*$//"  "$ACCOUNT_CONF_PATH"
+  else
+    _err "ACCOUNT_CONF_PATH is empty, can not clear $key"
   fi
 }
 
@@ -1134,22 +1200,6 @@ _initpath() {
   fi
   
   HTTP_HEADER="$LE_WORKING_DIR/http.header"
-  
-  WGET="wget -q"
-  if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
-    WGET="$WGET -d "
-  fi
-
-  _CURL_DUMP="$LE_WORKING_DIR/curl.dump"
-  CURL="curl -L --silent"
-  if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
-    CURL="$CURL --trace-ascii $_CURL_DUMP "
-  fi
-  
-  if [ "$Le_Insecure" ] ; then
-    WGET="$WGET --no-check-certificate "
-    CURL="$CURL --insecure  "
-  fi
 
   _DEFAULT_ACCOUNT_KEY_PATH="$LE_WORKING_DIR/account.key"
   if [ -z "$ACCOUNT_KEY_PATH" ] ; then
@@ -1969,6 +2019,10 @@ issue() {
   _cleardomainconf  "Le_Vlist"
   
   Le_LinkIssuer=$(grep -i '^Link' $HTTP_HEADER | head -1 | cut -d " " -f 2| cut -d ';' -f 1 | tr -d '<>' )
+  if ! _contains "$Le_LinkIssuer" ":" ; then
+    Le_LinkIssuer="$API$Le_LinkIssuer"
+  fi
+  
   _savedomainconf  "Le_LinkIssuer"  "$Le_LinkIssuer"
   
   if [ "$Le_LinkIssuer" ] ; then
@@ -1992,8 +2046,10 @@ issue() {
     _savedomainconf  "Le_RenewalDays"   "$Le_RenewalDays"
   fi
   
-  if [ "$Le_Insecure" ] ; then
-    _savedomainconf  "Le_Insecure"   "$Le_Insecure"
+  if [ "$HTTPS_INSECURE" ] ; then
+    _saveaccountconf HTTPS_INSECURE "$HTTPS_INSECURE"
+  else
+    _clearaccountconf  "HTTPS_INSECURE"
   fi
 
   Le_NextRenewTime=$(_math $Le_CertCreateTime + $Le_RenewalDays \* 24 \* 60 \* 60)
@@ -3017,7 +3073,7 @@ _process() {
         ;;
     --insecure)
         _insecure="1"
-        Le_Insecure="$_insecure"
+        HTTPS_INSECURE="1"
         ;;
     --nocron)
         _nocron="1"
