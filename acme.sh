@@ -824,6 +824,7 @@ _post() {
   return $_ret
 }
 
+
 # url getheader timeout
 _get() {
   _debug GET
@@ -848,7 +849,7 @@ _get() {
     fi
     ret=$?
     if [ "$ret" != "0" ] ; then
-      _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $_ret"
+      _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $ret"
       if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
         _err "Here is the curl dump log:"
         _err "$(cat "$_CURL_DUMP")"
@@ -867,7 +868,7 @@ _get() {
     fi
     ret=$?
     if [ "$ret" != "0" ] ; then
-      _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret" 
+      _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $ret" 
     fi
   else
     ret=$?
