@@ -2777,7 +2777,7 @@ _installOnline() {
   _info "Downloading $target"
   localname="$BRANCH.tar.gz"
   if ! _get "$target" > $localname ; then
-    _debug "Download error."
+    _err "Download error."
     return 1
   fi
   (
