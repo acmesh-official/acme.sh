@@ -733,7 +733,7 @@ _mktemp() {
 
 _inithttp() {
 
-  if [ -z "$HTTP_HEADER" ] ; then
+  if [ -z "$HTTP_HEADER" ] || ! touch "HTTP_HEADER" ; then
     HTTP_HEADER="$(_mktemp)"
     _debug2 HTTP_HEADER "$HTTP_HEADER"
   fi
@@ -2772,7 +2772,7 @@ _installOnline() {
   if [ ! "$BRANCH" ] ; then
     BRANCH="master"
   fi
-  _initpath
+
   target="$PROJECT/archive/$BRANCH.tar.gz"
   _info "Downloading $target"
   localname="$BRANCH.tar.gz"
