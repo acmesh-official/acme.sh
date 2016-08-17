@@ -1200,7 +1200,9 @@ _initpath() {
     USER_AGENT="$DEFAULT_USER_AGENT"
   fi
   
-  HTTP_HEADER="$LE_WORKING_DIR/http.header"
+  if [ -z "$HTTP_HEADER" ] ; then
+    HTTP_HEADER="$LE_WORKING_DIR/http.header"
+  fi
 
   _DEFAULT_ACCOUNT_KEY_PATH="$LE_WORKING_DIR/account.key"
   if [ -z "$ACCOUNT_KEY_PATH" ] ; then
@@ -1234,6 +1236,13 @@ _initpath() {
       fi
     fi
     _debug DOMAIN_PATH "$DOMAIN_PATH"
+  fi
+  
+  if [ ! -d "$DOMAIN_PATH" ] ; then
+    if ! mkdir -p "$DOMAIN_PATH" ; then
+      _err "Can not create domain path: $DOMAIN_PATH"
+      return 1
+    fi
   fi
   
   if [ -z "$DOMAIN_CONF" ] ; then
