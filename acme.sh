@@ -2010,7 +2010,8 @@ issue() {
     _info "$(__green "Cert success.")"
     cat "$CERT_PATH"
     
-    _info "Your cert is in $CERT_PATH"
+    _info "Your cert is in $( __green " $CERT_PATH ")"
+    _info "Your cert key is in $( __green " $CERT_KEY_PATH ")"
     cp "$CERT_PATH" "$CERT_FULLCHAIN_PATH"
 
     if [ ! "$USER_PATH" ] || [ ! "$IN_CRON" ] ; then
@@ -2039,9 +2040,9 @@ issue() {
     echo "$BEGIN_CERT" > "$CA_CERT_PATH"
     _get "$Le_LinkIssuer" | _base64 "multiline"  >> "$CA_CERT_PATH"
     echo "$END_CERT"  >> "$CA_CERT_PATH"
-    _info "The intermediate CA cert is in $CA_CERT_PATH"
+    _info "The intermediate CA cert is in $( __green " $CA_CERT_PATH ")"
     cat "$CA_CERT_PATH" >> "$CERT_FULLCHAIN_PATH"
-    _info "And the full chain certs is there: $CERT_FULLCHAIN_PATH"
+    _info "And the full chain certs is there: $( __green " $CERT_FULLCHAIN_PATH ")"
   fi
   
   Le_CertCreateTime=$(date -u "+%s")
