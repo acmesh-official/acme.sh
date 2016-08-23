@@ -308,3 +308,5 @@ Please Star and Fork me.
 # Donate
 1. PayPal:  donate@acme.sh
 
+[Donate List](https://github.com/Neilpang/acme.sh/wiki/Donate-list)
+
