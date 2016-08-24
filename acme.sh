@@ -334,11 +334,11 @@ _digest() {
   
   outputhex="$2"
   
-  if [ "$alg" = "sha256" ] ; then
+  if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ]; then
     if [ "$outputhex" ] ; then
-      echo $(openssl dgst -sha256 -hex | cut -d = -f 2)
+      echo $(openssl dgst -$alg -hex | cut -d = -f 2)
     else
-      openssl dgst -sha256 -binary | _base64
+      openssl dgst -$alg -binary | _base64
     fi
   else
     _err "$alg is not supported yet"
