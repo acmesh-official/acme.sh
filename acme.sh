@@ -3102,7 +3102,7 @@ _process() {
         HTTPS_INSECURE="1"
         ;;
     --ca-bundle)
-        _ca_bundle="$2"
+        _ca_bundle=$(readlink -f $2)
         CA_BUNDLE="$_ca_bundle"
         shift
         ;;
