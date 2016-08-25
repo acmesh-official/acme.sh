@@ -46,17 +46,9 @@ https://github.com/Neilpang/acmetest
 3. Apache mode
 4. Dns mode
 
-# Upgrade from 1.x to 2.x
 
-You can simply uninstall 1.x and re-install 2.x.
-2.x is 100% compatible to 1.x. You will feel right at home as if nothing has changed.
 
-# le.sh renamed to acme.sh NOW!
-
-All configurations are 100% compatible between `le.sh` and `acme.sh`. You just need to uninstall `le.sh` and re-install `acme.sh` again.
-Nothing will be broken during the process.
-
-# How to install
+# 1. How to install
 
 ### 1. Install online:
 
@@ -113,7 +105,7 @@ root@v1:~# acme.sh -h
 
 ```
  
-# Just issue a cert:
+# 2. Just issue a cert:
 
 **Example 1:** Single domain.
 
@@ -141,7 +133,7 @@ The issued cert will be renewed every 80 days automatically.
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
 
-# Install issued cert to apache/nginx etc.
+# 3. Install issued cert to apache/nginx etc.
 
 After you issue a cert, you probably want to install the cert with your nginx/apache or other servers you may be using.
 
@@ -160,7 +152,7 @@ Install the issued cert/key to the production apache or nginx path.
 
 The cert will be `renewed every 80 days by default` (which is configurable). Once the cert is renewed, the apache/nginx will be automatically reloaded by the command: `service apache2 reload` or `service nginx reload`.
 
-# Use Standalone server to issue cert
+# 4. Use Standalone server to issue cert
 
 **(requires you be root/sudoer, or you have permission to listen tcp 80 port)**
 
@@ -172,7 +164,7 @@ acme.sh --issue --standalone -d aa.com -d www.aa.com -d cp.aa.com
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
-# Use Standalone tls server to issue cert
+# 5. Use Standalone tls server to issue cert
 
 **(requires you be root/sudoer, or you have permission to listen tcp 443 port)**
 
@@ -186,7 +178,7 @@ acme.sh --issue --tls -d aa.com -d www.aa.com -d cp.aa.com
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
-# Use Apache mode
+# 6. Use Apache mode
 
 **(requires you be root/sudoer, since it is required to interact with apache server)**
 
@@ -202,7 +194,7 @@ acme.sh --issue --apache -d aa.com -d www.aa.com -d user.aa.com
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
-# Use DNS mode:
+# 7. Use DNS mode:
 
 Support the `dns-01` challenge.
 
@@ -233,7 +225,7 @@ acme.sh --renew -d aa.com
 
 Ok, it's finished.
 
-# Automatic DNS API integration
+# 8. Automatic DNS API integration
 
 If your DNS provider supports API access, we can use API to automatically issue the certs.
 
@@ -256,7 +248,7 @@ If your DNS provider is not on the supported list above, you can write your own 
 
 For more details: [How to use dns api](dnsapi)
 
-# Issue ECC certificate:
+# 9. Issue ECC certificate:
 
 `Let's Encrypt` now can issue **ECDSA** certificates.
 
@@ -285,6 +277,30 @@ Valid values are:
 1. **ec-256 (prime256v1, "ECDSA P-256")**
 2. **ec-384 (secp384r1,  "ECDSA P-384")**
 3. **ec-521 (secp521r1,  "ECDSA P-521", which is not supported by Let's Encrypt yet.)**
+
+
+# 10. How to renew the cert
+
+No, you don't need to renew the certs manually.  All the certs will be renewed automatically every 80 days.
+
+However, you can also force to renew any cert:
+
+```
+acme.sh --renew  -d  aa.com --force
+```
+
+or, for ECC cert:
+```
+acme.sh --renew  -d  aa.com  --force --ecc
+```
+
+# 11. How to upgrade `acme.sh`
+acme.sh is in developing, it's strongly recommended to use the latest code.
+
+You can update acme.sh to the latest code:
+```
+acme.sh --upgrade
+```
 
 # Under the Hood
 
