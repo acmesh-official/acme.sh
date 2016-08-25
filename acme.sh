@@ -743,6 +743,10 @@ _inithttp() {
       CURL="$CURL --trace-ascii $_CURL_DUMP "
     fi
 
+    if [ "$CA_BUNDLE" ] ; then
+      CURL="$CURL --cacert $CA_BUNDLE "
+    fi
+
     if [ "$HTTPS_INSECURE" ] ; then
       CURL="$CURL --insecure  "
     fi
@@ -752,6 +756,9 @@ _inithttp() {
     WGET="wget -q"
     if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
       WGET="$WGET -d "
+    fi
+    if [ "$CA_BUNDLE" ] ; then
+      WGET="$WGET --ca-certificate $CA_BUNDLE "
     fi
     if [ "$HTTPS_INSECURE" ] ; then
       WGET="$WGET --no-check-certificate "
@@ -2058,6 +2065,12 @@ issue() {
     _savedomainconf  "Le_RenewalDays"   "$Le_RenewalDays"
   fi
   
+  if [ "$CA_BUNDLE" ] ; then
+    _saveaccountconf CA_BUNDLE "$CA_BUNDLE"
+  else
+    _clearaccountconf "CA_BUNDLE"
+  fi
+
   if [ "$HTTPS_INSECURE" ] ; then
     _saveaccountconf HTTPS_INSECURE "$HTTPS_INSECURE"
   else
@@ -2772,6 +2785,7 @@ Parameters:
   --listraw                         Only used for '--list' command, list the certs in raw format.
   --stopRenewOnError, -se           Only valid for '--renewall' command. Stop if one cert has error in renewal.
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
+  --ca-bundle                       Specifices the path to the CA certificate bundle to verify api server's certificate.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
   --ecc                             Specifies to use the ECC cert. Valid for '--installcert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
   "
@@ -2846,6 +2860,7 @@ _process() {
   _listraw=""
   _stopRenewOnError=""
   _insecure=""
+  _ca_bundle=""
   _nocron=""
   _ecc=""
   while [ ${#} -gt 0 ] ; do
@@ -3087,6 +3102,11 @@ _process() {
     --insecure)
         _insecure="1"
         HTTPS_INSECURE="1"
+        ;;
+    --ca-bundle)
+        _ca_bundle=$(readlink -f $2)
+        CA_BUNDLE="$_ca_bundle"
+        shift
         ;;
     --nocron)
         _nocron="1"
