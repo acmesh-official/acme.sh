@@ -2064,6 +2064,12 @@ issue() {
     _savedomainconf  "Le_RenewalDays"   "$Le_RenewalDays"
   fi
   
+  if [ "$CA_BUNDLE" ] ; then
+    _saveaccountconf CA_BUNDLE "$CA_BUNDLE"
+  else
+    _clearaccountconf "CA_BUNDLE"
+  fi
+
   if [ "$HTTPS_INSECURE" ] ; then
     _saveaccountconf HTTPS_INSECURE "$HTTPS_INSECURE"
   else
