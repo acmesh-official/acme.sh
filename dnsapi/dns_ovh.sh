@@ -189,7 +189,7 @@ _ovh_authentication() {
   _H3=""
   _H4=""
   
-  _ovhdata='{"accessRules": [{"method": "GET","path": "/*"},{"method": "POST","path": "/*"},{"method": "PUT","path": "/*"}],"redirection":"$ovh_success"}'
+  _ovhdata='{"accessRules": [{"method": "GET","path": "/*"},{"method": "POST","path": "/*"},{"method": "PUT","path": "/*"}],"redirection":"'$ovh_success'"}'
   
   response="$(_post "$_ovhdata" "$OVH_API/auth/credential")"
   _debug3 response "$response"
