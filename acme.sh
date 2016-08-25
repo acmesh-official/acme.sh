@@ -743,6 +743,10 @@ _inithttp() {
       CURL="$CURL --trace-ascii $_CURL_DUMP "
     fi
 
+    if [ "$CACERT_BUNDLE" ] ; then
+      CURL="$CURL --cacert $CACERT_BUNDLE "
+    fi
+
     if [ "$HTTPS_INSECURE" ] ; then
       CURL="$CURL --insecure  "
     fi
@@ -752,6 +756,9 @@ _inithttp() {
     WGET="wget -q"
     if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
       WGET="$WGET -d "
+    fi
+    if [ "$CACERT_BUNDLE" ] ; then
+      WGET="$WGET --ca-certificate $CACERT_BUNDLE "
     fi
     if [ "$HTTPS_INSECURE" ] ; then
       WGET="$WGET --no-check-certificate "
@@ -2770,6 +2777,7 @@ Parameters:
   --listraw                         Only used for '--list' command, list the certs in raw format.
   --stopRenewOnError, -se           Only valid for '--renewall' command. Stop if one cert has error in renewal.
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
+  --cacert                          Specifices the path to the cacert bundle to verify api server's certificate.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
   --ecc                             Specifies to use the ECC cert. Valid for '--installcert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
   "
@@ -2844,6 +2852,7 @@ _process() {
   _listraw=""
   _stopRenewOnError=""
   _insecure=""
+  _cacert=""
   _nocron=""
   _ecc=""
   while [ ${#} -gt 0 ] ; do
@@ -3085,6 +3094,11 @@ _process() {
     --insecure)
         _insecure="1"
         HTTPS_INSECURE="1"
+        ;;
+    --cacert)
+        _cacert="$2"
+        CACERT_BUNDLE="$_cacert"
+        shift
         ;;
     --nocron)
         _nocron="1"
