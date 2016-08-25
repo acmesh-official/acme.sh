@@ -40,6 +40,50 @@ wiki="https://github.com/Neilpang/acme.sh/wiki/How-to-use-OVH-domain-api"
 
 ovh_success="https://github.com/Neilpang/acme.sh/wiki/OVH-Success"
 
+
+
+_ovh_get_api() {
+  _ogaep="$1"
+
+  case "${_ogaep}" in
+    
+    ovh-eu|ovheu)
+        printf "%s" $OVH_EU
+        return
+        ;;
+    ovh-ca|ovhca)
+        printf "%s" $OVH_CA
+        return
+        ;;
+    kimsufi-eu|kimsufieu)
+        printf "%s" $KSF_EU
+        return
+        ;;
+    kimsufi-ca|kimsufica)
+        printf "%s" $KSF_CA
+        return
+        ;;
+    soyoustart-eu|soyoustarteu)
+        printf "%s" $SYS_EU
+        return
+        ;;
+    soyoustart-ca|soyoustartca)
+        printf "%s" $SYS_CA
+        return
+        ;;      
+    runabove-ca|runaboveca)
+        printf "%s" $RAV_CA
+        return
+        ;;       
+        
+        
+    *)
+        _err "Unknown parameter : $1"
+        return 1
+        ;;
+    esac
+}
+
 ########  Public functions #####################
 
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
@@ -100,12 +144,14 @@ dns_ovh_add(){
   _debug _domain "$_domain"
   
   _debug "Getting txt records"
-  _ovh_rest GET "domain/zone/$domain/record?fieldType=TXT&subDomain=$_sub_domain"
+  _ovh_rest GET "domain/zone/$_domain/record?fieldType=TXT&subDomain=$_sub_domain"
     
-  if  _contains "$response" '[]' || _contains "$response" "This service does not exist" ; then
+  if  _contains "$response" '\[\]' || _contains "$response" "This service does not exist" ; then
     _info "Adding record"
-    if _ovh_rest POST "domain/zone/testit.ovh/record"  "{\"fieldType\":\"TXT\",\"subDomain\":\"$_sub_domain\",\"target\":\"$txtvalue\",\"ttl\":60}"; then
+    if _ovh_rest POST "domain/zone/$_domain/record"  "{\"fieldType\":\"TXT\",\"subDomain\":\"$_sub_domain\",\"target\":\"$txtvalue\",\"ttl\":60}"; then
       if _contains "$response" "$txtvalue" ; then
+        _ovh_rest POST "domain/zone/$_domain/refresh"
+        _debug "Refresh:$response"
         _info "Added, sleeping 10 seconds"
         sleep 10
         return 0
@@ -115,10 +161,16 @@ dns_ovh_add(){
   else
     _info "Updating record"
     record_id=$(printf "%s" "$response" | tr -d "[]" | cut -d , -f 1)
+    if [ -z "$record_id" ] ; then
+      _err "Can not get record id."
+      return 1
+    fi
     _debug "record_id" $record_id
 
     if _ovh_rest PUT "domain/zone/$_domain/record/$record_id"  "{\"target\":\"$txtvalue\",\"subDomain\":\"$_sub_domain\",\"ttl\":60}" ; then
-      if _contains "$response" "$txtvalue" ; then
+      if _contains "$response" "null" ; then
+        _ovh_rest POST "domain/zone/$_domain/refresh"
+        _debug "Refresh:$response"
         _info "Updated, sleeping 10 seconds"
         sleep 10
         return 0;
@@ -131,56 +183,7 @@ dns_ovh_add(){
 }
 
 
-
-
-
 ####################  Private functions bellow ##################################
-
-_ovh_get_api() {
-  _ogaep="$1"
-
-  case "${_ogaep}" in
-    
-    ovh-eu|ovheu)
-        printf "%s" $OVH_EU
-        return
-        ;;
-    ovh-ca|ovhca)
-        printf "%s" $OVH_CA
-        return
-        ;;
-    kimsufi-eu|kimsufieu)
-        printf "%s" $KSF_EU
-        return
-        ;;
-    kimsufi-ca|kimsufica)
-        printf "%s" $KSF_CA
-        return
-        ;;
-    soyoustart-eu|soyoustarteu)
-        printf "%s" $SYS_EU
-        return
-        ;;
-    soyoustart-ca|soyoustartca)
-        printf "%s" $SYS_CA
-        return
-        ;;      
-    runabove-ca|runaboveca)
-        printf "%s" $RAV_CA
-        return
-        ;;       
-        
-        
-    *)
-        _err "Unknown parameter : $1"
-        return 1
-        ;;
-    esac
-}
-
-
-
-
 
 _ovh_authentication() {
   
@@ -189,7 +192,7 @@ _ovh_authentication() {
   _H3=""
   _H4=""
   
-  _ovhdata='{"accessRules": [{"method": "GET","path": "/*"},{"method": "POST","path": "/*"},{"method": "PUT","path": "/*"}],"redirection":"'$ovh_success'"}'
+  _ovhdata='{"accessRules": [{"method": "GET","path": "/*"},{"method": "POST","path": "/*"},{"method": "PUT","path": "/*"},{"method": "DELETE","path": "/*"}],"redirection":"'$ovh_success'"}'
   
   response="$(_post "$_ovhdata" "$OVH_API/auth/credential")"
   _debug3 response "$response"
@@ -216,7 +219,6 @@ _ovh_authentication() {
   _info "Please retry after the authentication is done."
 
 }
-
 
 
 #_acme-challenge.www.domain.com
@@ -256,7 +258,7 @@ _ovh_timestamp() {
   _H3=""
   _H4=""
   _H5=""
-  _get "$OVH_API/auth/time"
+  _get "$OVH_API/auth/time" "" 30
 }
 
 _ovh_rest() {
@@ -275,15 +277,14 @@ _ovh_rest() {
   _ovh_hex="$(printf "%s" "$_ovh_p" | _digest sha1 hex)"
   _debug2 _ovh_hex "$_ovh_hex"
   
-  
-  
+
   _H1="X-Ovh-Application: $OVH_AK"
   _H2="X-Ovh-Signature: \$1\$$_ovh_hex"
   _debug2 _H2 "$_H2"
   _H3="X-Ovh-Timestamp: $_ovh_t"
   _H4="X-Ovh-Consumer: $OVH_CK"
   _H5="Content-Type: application/json;charset=utf-8"
-  if [ "$data" ] ; then
+  if [ "$data" ] || [ "$m" = "POST" ] || [ "$m" = "PUT" ] ; then
     _debug data "$data"
     response="$(_post "$data" "$_ovh_url" "" $m)"
   else
