@@ -1498,7 +1498,8 @@ issue() {
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
     _debug Le_NextRenewTime "$Le_NextRenewTime"
     if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ $(date -u "+%s" ) -lt $Le_NextRenewTime ] ; then 
-      _info "Skip, Next renewal time is: $(grep "^Le_NextRenewTimeStr" "$DOMAIN_CONF" | cut -d '=' -f 2)"
+      _info "Skip, Next renewal time is: $(__green "$(_readdomainconf Le_NextRenewTimeStr)")"
+      _info "Add '$(__red '--force')' to force to renew."    
       return $RENEW_SKIP
     fi
   fi
@@ -2088,7 +2089,7 @@ renew() {
 
   _initpath $Le_Domain "$_isEcc"
 
-  _info "Renew: '$Le_Domain'"
+  _info "$(__green "Renew: '$Le_Domain'")"
   if [ ! -f "$DOMAIN_CONF" ] ; then
     _info "'$Le_Domain' is not a issued domain, skip."
     return 0;
@@ -2100,7 +2101,8 @@ renew() {
 
   . "$DOMAIN_CONF"
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(date -u "+%s" )" -lt "$Le_NextRenewTime" ] ; then 
-    _info "Skip, Next renewal time is: $Le_NextRenewTimeStr"
+    _info "Skip, Next renewal time is: $(__green "$Le_NextRenewTimeStr")"
+    _info "Add '$(__red '--force')' to force to renew."
     return $RENEW_SKIP
   fi
   
