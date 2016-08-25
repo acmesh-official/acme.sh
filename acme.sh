@@ -731,7 +731,7 @@ _mktemp() {
 
 _inithttp() {
 
-  if [ -z "$HTTP_HEADER" ] || ! touch "HTTP_HEADER" ; then
+  if [ -z "$HTTP_HEADER" ] || ! touch "$HTTP_HEADER" ; then
     HTTP_HEADER="$(_mktemp)"
     _debug2 HTTP_HEADER "$HTTP_HEADER"
   fi
