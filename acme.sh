@@ -405,13 +405,13 @@ _createkey() {
      length=2048
   fi
   
-  _info "Use length $length"
+  _debug "Use length $length"
 
   if _isEccKey "$length" ; then
-    _info "Using ec name: $eccname"
+    _debug "Using ec name: $eccname"
     openssl ecparam  -name $eccname -genkey 2>/dev/null > "$f"
   else
-    _info "Using RSA: $length"
+    _debug "Using RSA: $length"
     openssl genrsa $length 2>/dev/null > "$f"
   fi
 
@@ -532,7 +532,7 @@ createAccountKey() {
   fi
   
   if [ -z "$length" ] || [ "$length" = "no" ] ; then
-    _info "Use default length 2048"
+    _debug "Use default length 2048"
     length=2048
   fi
   _debug length "$length"
@@ -1766,8 +1766,8 @@ issue() {
           _info "Found domain api file: $d_api"
         else
           _err "Add the following TXT record:"
-          _err "Domain: $txtdomain"
-          _err "TXT value: $txt"
+          _err "Domain: '$(__green $txtdomain)'"
+          _err "TXT value: '$(__green $txt)'"
           _err "Please be aware that you prepend _acme-challenge. before your domain"
           _err "so the resulting subdomain will be: $txtdomain"
           continue
