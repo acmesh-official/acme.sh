@@ -89,7 +89,9 @@ acme.sh   --issue   --dns dns_gd   -d aa.com  -d www.aa.com
 
 The `GD_Key` and `GD_Secret`  will be saved in `~/.acme.sh/account.conf`, when next time you use cloudflare api, it will reuse this key.
 
+## Use OVH/kimsufi/soyoustart/runabove API
 
+https://github.com/Neilpang/acme.sh/wiki/How-to-use-OVH-domain-api
 
 # Use custom api
 
