@@ -245,8 +245,9 @@ You don't have do anything manually!
 2. Dnspod.cn API
 3. Cloudxns.com API
 4. Godaddy.com API
-5. AWS Route 53, see: https://github.com/Neilpang/acme.sh/issues/65
-6. lexicon dns api: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
+5. OVH, kimsufi, soyoustart and runabove API
+6. AWS Route 53, see: https://github.com/Neilpang/acme.sh/issues/65
+7. lexicon dns api: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
    (DigitalOcean, DNSimple, DnsMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)
 
 ##### More APIs are coming soon...
