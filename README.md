@@ -302,6 +302,11 @@ You can update acme.sh to the latest code:
 acme.sh --upgrade
 ```
 
+# 12. Issue a cert from existing CSR
+
+https://github.com/Neilpang/acme.sh/wiki/Issue-a-cert-from-existing-CSR
+
+
 # Under the Hood
 
 Speak ACME language using shell, directly to "Let's Encrypt".
