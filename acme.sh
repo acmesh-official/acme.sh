@@ -2086,7 +2086,11 @@ issue() {
     cat "$CERT_PATH"
     
     _info "Your cert is in $( __green " $CERT_PATH ")"
-    _info "Your cert key is in $( __green " $CERT_KEY_PATH ")"
+
+    if [ -f "$CERT_KEY_PATH" ] ; then
+      _info "Your cert key is in $( __green " $CERT_KEY_PATH ")"
+    fi
+
     cp "$CERT_PATH" "$CERT_FULLCHAIN_PATH"
 
     if [ ! "$USER_PATH" ] || [ ! "$IN_CRON" ] ; then
