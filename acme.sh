@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.4.3
+VER=2.4.4
 
 PROJECT_NAME="acme.sh"
 
@@ -462,6 +462,60 @@ _signcsr() {
   _debug "$_msg"
   return $_ret
 }
+
+#_csrfile
+_readSubjectFromCSR() {
+  _csrfile="$1"
+  if [ -z "$_csrfile" ] ; then
+    _usage "_readSubjectFromCSR mycsr.csr"
+    return 1
+  fi
+  openssl req  -noout  -in  "$_csrfile"  -subject | _egrep_o "CN=.*" | cut -d = -f 2 |  cut -d / -f 1
+}
+
+#_csrfile
+#echo comma separated domain list
+_readSubjectAltNamesFromCSR() {
+  _csrfile="$1"
+  if [ -z "$_csrfile" ] ; then
+    _usage "_readSubjectAltNamesFromCSR mycsr.csr"
+    return 1
+  fi
+  
+  _csrsubj="$(_readSubjectFromCSR "$_csrfile")"
+  _debug _csrsubj "$_csrsubj"
+  
+  _dnsAltnames="$(openssl req  -noout -text  -in  "$_csrfile" | grep "^ *DNS:.*" | tr -d ' ')"
+  _debug _dnsAltnames "$_dnsAltnames"
+  
+  if _contains "$_dnsAltnames," "DNS:$_csrsubj," ; then
+    _debug "AltNames contains subject"
+    _dnsAltnames="$(echo "$_dnsAltnames," | sed "s/DNS:$_csrsubj,//g")"
+  else
+    _debug "AltNames doesn't contain subject"
+  fi
+  
+  echo "$_dnsAltnames" | sed "s/DNS://g"
+}
+
+#_csrfile 
+_readKeyLengthFromCSR() {
+  _csrfile="$1"
+  if [ -z "$_csrfile" ] ; then
+    _usage "_readAllDomainListFromCSR mycsr.csr"
+    return 1
+  fi
+  
+  _outcsr="$(openssl req  -noout -text  -in  "$_csrfile")"
+  if _contains "$_outcsr" "Public Key Algorithm: id-ecPublicKey" ; then
+    _debug "ECC CSR"
+    echo "$_outcsr" | _egrep_o "^ *ASN1 OID:.*" | cut -d ':' -f 2 | tr -d ' '
+  else
+    _debug "RSA CSR"
+    echo "$_outcsr" | _egrep_o "^ *Public-Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1
+  fi
+}
+
 
 _ss() {
   _port="$1"
@@ -1478,6 +1532,7 @@ _clearupwebbroot() {
 
 }
 
+#webroot, domain domainlist  keylength 
 issue() {
   if [ -z "$2" ] ; then
     _usage "Usage: $PROJECT_ENTRY --issue  -d  a.com  -w /path/to/webroot/a.com/ "
@@ -1631,25 +1686,29 @@ issue() {
     Le_Keylength=""
   fi
   
-  _key=$(_readdomainconf Le_Keylength)
-  _debug "Read key length:$_key"
-  if [ ! -f "$CERT_KEY_PATH" ] || [ "$Le_Keylength" != "$_key" ] ; then
-    if ! createDomainKey $Le_Domain $Le_Keylength ; then 
-      _err "Create domain key error."
+  
+  if [ -f "$CSR_PATH" ] && [ ! -f "$CERT_KEY_PATH" ] ; then
+    _info "Signing from existing CSR."
+  else
+    _key=$(_readdomainconf Le_Keylength)
+    _debug "Read key length:$_key"
+    if [ ! -f "$CERT_KEY_PATH" ] || [ "$Le_Keylength" != "$_key" ] ; then
+      if ! createDomainKey $Le_Domain $Le_Keylength ; then 
+        _err "Create domain key error."
+        _clearup
+        return 1
+      fi
+    fi
+
+    if ! _createcsr "$Le_Domain" "$Le_Alt" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"   ; then
+      _err "Create CSR error."
       _clearup
       return 1
     fi
   fi
-  
+
   _savedomainconf "Le_Keylength"    "$Le_Keylength"
   
-
-  if ! _createcsr "$Le_Domain" "$Le_Alt" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"   ; then
-    _err "Create CSR error."
-    _clearup
-    return 1
-  fi
-
   vlist="$Le_Vlist"
   # verify each domain
   _info "Verify each domain"
@@ -2168,6 +2227,82 @@ renewAll() {
   return $_ret
 }
 
+
+#csr webroot
+signcsr(){
+  _csrfile="$1"
+  _csrW="$2"
+  if [ -z "$_csrfile" ] || [ -z "$_csrW" ]; then
+    _usage "Usage: $PROJECT_ENTRY --signcsr  --csr mycsr.csr  -w /path/to/webroot/a.com/ "
+    return 1
+  fi
+
+  _initpath
+
+  _csrsubj=$(_readSubjectFromCSR "$_csrfile")
+  if [ "$?" != "0" ] || [ -z "$_csrsubj" ] ; then
+    _err "Can not read subject from csr: $_csrfile"
+    return 1
+  fi
+
+  _csrdomainlist=$(_readSubjectAltNamesFromCSR "$_csrfile")
+  if [ "$?" != "0" ] ; then
+    _err "Can not read domain list from csr: $_csrfile"
+    return 1
+  fi
+  _debug "_csrdomainlist" "$_csrdomainlist"
+  
+  _csrkeylength=$(_readKeyLengthFromCSR "$_csrfile")
+  if [ "$?" != "0" ] || [ -z "$_csrkeylength" ] ; then
+    _err "Can not read key length from csr: $_csrfile"
+    return 1
+  fi
+  
+  _initpath "$_csrsubj" "$_csrkeylength"
+  mkdir -p "$DOMAIN_PATH"
+  
+  _info "Copy csr to: $CSR_PATH"
+  cp "$_csrfile" "$CSR_PATH"
+  
+  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength"
+  
+}
+
+showcsr() {
+ _csrfile="$1"
+  _csrd="$2"
+  if [ -z "$_csrfile" ] && [ -z "$_csrd" ]; then
+    _usage "Usage: $PROJECT_ENTRY --showcsr  --csr mycsr.csr"
+    return 1
+  fi
+
+  _initpath
+  
+  _csrsubj=$(_readSubjectFromCSR "$_csrfile")
+  if [ "$?" != "0" ] || [ -z "$_csrsubj" ] ; then
+    _err "Can not read subject from csr: $_csrfile"
+    return 1
+  fi
+  
+  _info "Subject=$_csrsubj"
+
+  _csrdomainlist=$(_readSubjectAltNamesFromCSR "$_csrfile")
+  if [ "$?" != "0" ] ; then
+    _err "Can not read domain list from csr: $_csrfile"
+    return 1
+  fi
+  _debug "_csrdomainlist" "$_csrdomainlist"
+
+  _info "SubjectAltNames=$_csrdomainlist"
+
+
+  _csrkeylength=$(_readKeyLengthFromCSR "$_csrfile")
+  if [ "$?" != "0" ] || [ -z "$_csrkeylength" ] ; then
+    _err "Can not read key length from csr: $_csrfile"
+    return 1
+  fi
+  _info "KeyLength=$_csrkeylength"
+}
 
 list() {
   _raw="$1"
@@ -2741,13 +2876,15 @@ Commands:
   --version, -v            Show version info.
   --install                Install $PROJECT_NAME to your system.
   --uninstall              Uninstall $PROJECT_NAME, and uninstall the cron job.
-  --upgrade                Upgrade $PROJECT_NAME to the latest code from $PROJECT
+  --upgrade                Upgrade $PROJECT_NAME to the latest code from $PROJECT .
   --issue                  Issue a cert.
+  --signcsr                Issue a cert from an existing csr.
   --installcert            Install the issued cert to apache/nginx or any other server.
   --renew, -r              Renew a cert.
-  --renewAll               Renew all the certs
+  --renewAll               Renew all the certs.
   --revoke                 Revoke a cert.
-  --list                   List all the certs
+  --list                   List all the certs.
+  --showcsr                Show the content of a csr.
   --installcronjob         Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
   --uninstallcronjob       Uninstall the cron job. The 'uninstall' command can do this automatically.
   --cron                   Run cron job to renew all the certs.
@@ -2796,6 +2933,7 @@ Parameters:
   --ca-bundle                       Specifices the path to the CA certificate bundle to verify api server's certificate.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
   --ecc                             Specifies to use the ECC cert. Valid for '--installcert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
+  --csr                             Specifies the input csr.
   "
 }
 
@@ -2871,6 +3009,7 @@ _process() {
   _ca_bundle=""
   _nocron=""
   _ecc=""
+  _csr=""
   while [ ${#} -gt 0 ] ; do
     case "${1}" in
     
@@ -2893,6 +3032,12 @@ _process() {
         ;;
     --issue)
         _CMD="issue"
+        ;;
+    --signcsr)
+        _CMD="signcsr"
+        ;;
+    --showcsr)
+        _CMD="showcsr"
         ;;
     --installcert|-i)
         _CMD="installcert"
@@ -3122,7 +3267,10 @@ _process() {
     --ecc)
         _ecc="isEcc"
         ;;
-
+    --csr)
+        _csr="$2"
+        shift
+        ;;
     *)
         _err "Unknown parameter : $1"
         return 1
@@ -3142,6 +3290,12 @@ _process() {
     upgrade) upgrade ;;
     issue)
       issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath"
+      ;;
+    signcsr)
+      signcsr "$_csr" "$_webroot"
+      ;;
+    showcsr)
+      showcsr "$_csr" "$_domain"
       ;;
     installcert)
       installcert "$_domain" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath" "$_ecc"
