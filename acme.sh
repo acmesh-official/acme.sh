@@ -470,7 +470,7 @@ _readSubjectFromCSR() {
     _usage "_readSubjectFromCSR mycsr.csr"
     return 1
   fi
-  openssl req  -noout  -in  "$_csrfile"  -subject | _egrep_o "CN=.*" | cut -d = -f 2 |  cut -d / -f 1
+  openssl req  -noout  -in  "$_csrfile"  -subject | _egrep_o "CN=.*" | cut -d = -f 2 |  cut -d / -f 1 | tr -d '\n'
 }
 
 #_csrfile
@@ -485,24 +485,24 @@ _readSubjectAltNamesFromCSR() {
   _csrsubj="$(_readSubjectFromCSR "$_csrfile")"
   _debug _csrsubj "$_csrsubj"
   
-  _dnsAltnames="$(openssl req  -noout -text  -in  "$_csrfile" | grep "^ *DNS:.*" | tr -d ' ')"
+  _dnsAltnames="$(openssl req  -noout -text  -in  "$_csrfile" | grep "^ *DNS:.*" | tr -d ' \n')"
   _debug _dnsAltnames "$_dnsAltnames"
   
   if _contains "$_dnsAltnames," "DNS:$_csrsubj," ; then
     _debug "AltNames contains subject"
-    _dnsAltnames="$(echo "$_dnsAltnames," | sed "s/DNS:$_csrsubj,//g")"
+    _dnsAltnames="$(printf "%s" "$_dnsAltnames," | sed "s/DNS:$_csrsubj,//g")"
   else
     _debug "AltNames doesn't contain subject"
   fi
   
-  echo "$_dnsAltnames" | sed "s/DNS://g"
+  printf "%s" "$_dnsAltnames" | sed "s/DNS://g"
 }
 
 #_csrfile 
 _readKeyLengthFromCSR() {
   _csrfile="$1"
   if [ -z "$_csrfile" ] ; then
-    _usage "_readAllDomainListFromCSR mycsr.csr"
+    _usage "_readKeyLengthFromCSR mycsr.csr"
     return 1
   fi
   
@@ -581,7 +581,7 @@ createAccountKey() {
   fi
   
   length=$1
-  if _startswith "$length" "ec-" ; then
+  if _isEccKey "$length" ; then
     length=2048
   fi
   
