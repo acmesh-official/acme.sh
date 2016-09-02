@@ -1,12 +1,16 @@
 #!/usr/bin/env sh
 
-VER=2.4.4
+VER=2.4.5
 
 PROJECT_NAME="acme.sh"
 
 PROJECT_ENTRY="acme.sh"
 
 PROJECT="https://github.com/Neilpang/$PROJECT_NAME"
+
+DEFAULT_INSTALL_HOME="$HOME/.$PROJECT_NAME"
+_SCRIPT_="$0"
+
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
 DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.1.1-August-1-2016.pdf"
@@ -91,7 +95,6 @@ _err() {
 }
 
 _usage() {
-  version
   _err_e "$@"
 }
 
@@ -1227,10 +1230,37 @@ _starttlsserver() {
 #[domain]  [keylength]
 _initpath() {
 
+  if [ -z "$_SCRIPT_HOME" ] ; then
+    if _exists readlink && _exists dirname ; then
+      _debug "Lets guess script dir."
+      _debug "_SCRIPT_" "$_SCRIPT_"
+      _script="$(readlink -f "$_SCRIPT_")"
+      _debug "_script" "$_script"
+      _script_home="$(dirname "$_script")"
+      _debug "_script_home" "$_script_home"
+      if [ -d "$_script_home" ] ; then
+        _SCRIPT_HOME="$_script_home"
+      else
+        _err "It seems the script home is not correct:$_script_home"
+      fi
+    fi
+  fi
+
+
   if [ -z "$LE_WORKING_DIR" ] ; then
-    LE_WORKING_DIR=$HOME/.$PROJECT_NAME
+    if [ -f "$DEFAULT_INSTALL_HOME/account.conf" ] ; then
+      _debug "It seems tha $PROJECT_NAME is already installed in $DEFAULT_INSTALL_HOME"
+      LE_WORKING_DIR="$DEFAULT_INSTALL_HOME"
+    else
+      LE_WORKING_DIR="$_SCRIPT_HOME"
+    fi
   fi
   
+  if [ -z "$LE_WORKING_DIR" ] ; then
+    _debug "Using default home:$DEFAULT_INSTALL_HOME"
+    LE_WORKING_DIR="$DEFAULT_INSTALL_HOME"
+  fi
+
   _DEFAULT_ACCOUNT_CONF_PATH="$LE_WORKING_DIR/account.conf"
 
   if [ -z "$ACCOUNT_CONF_PATH" ] ; then
@@ -2743,6 +2773,11 @@ _installalias() {
 
 # nocron
 install() {
+
+  if [ -z "$LE_WORKING_DIR" ] ; then
+    LE_WORKING_DIR="$DEFAULT_INSTALL_HOME"
+  fi
+  
   _nocron="$1"
   if ! _initpath ; then
     _err "Install failed."
