@@ -46,15 +46,23 @@ fi
 
 
 __green() {
-  printf '\033[1;31;32m'
+  if [ -t 1 ] ; then
+    printf '\033[1;31;32m'
+  fi
   printf -- "$1"
-  printf '\033[0m'
+  if [ -t 1 ] ; then
+    printf '\033[0m'
+  fi
 }
 
 __red() {
-  printf '\033[1;31;40m'
+  if [ -t 1 ] ; then
+    printf '\033[1;31;40m'
+  fi
   printf -- "$1"
-  printf '\033[0m'
+  if [ -t 1 ] ; then
+    printf '\033[0m'
+  fi
 }
 
 _info() {
