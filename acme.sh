@@ -47,24 +47,27 @@ if [ -z "$AGREEMENT" ] ; then
   AGREEMENT="$DEFAULT_AGREEMENT"
 fi
 
-
+__INTERACTIVE=""
+if [ -t 1 ] ; then
+  __INTERACTIVE="1"
+fi
 
 __green() {
-  if [ -t 1 ] ; then
+  if [ "$__INTERACTIVE" ] ; then
     printf '\033[1;31;32m'
   fi
   printf -- "$1"
-  if [ -t 1 ] ; then
+  if [ "$__INTERACTIVE" ] ; then
     printf '\033[0m'
   fi
 }
 
 __red() {
-  if [ -t 1 ] ; then
+  if [ "$__INTERACTIVE" ] ; then
     printf '\033[1;31;40m'
   fi
   printf -- "$1"
-  if [ -t 1 ] ; then
+  if [ "$__INTERACTIVE" ] ; then
     printf '\033[0m'
   fi
 }
