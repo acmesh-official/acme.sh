@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.4.5
+VER=2.5.0
 
 PROJECT_NAME="acme.sh"
 
@@ -1573,6 +1573,58 @@ _clearupwebbroot() {
 
 }
 
+_on_before_issue() {
+  #run pre hook
+  if [ "$Le_PreHook" ] ; then
+    _info "Run pre hook:'$Le_PreHook'"
+    if ! (
+      cd "$DOMAIN_PATH" && eval "$Le_PreHook"
+    ) ; then
+      _err "Error when run pre hook."
+      return 1
+    fi
+  fi
+}
+
+_on_issue_err() {
+  #run the post hook
+  if [ "$Le_PostHook" ] ; then
+    _info "Run post hook:'$Le_PostHook'"
+    if ! (
+      cd "$DOMAIN_PATH" && eval "$Le_PostHook"
+    ) ; then
+      _err "Error when run post hook."
+      return 1
+    fi
+  fi
+}
+
+_on_issue_success() {
+  #run the post hook
+  if [ "$Le_PostHook" ] ; then
+    _info "Run post hook:'$Le_PostHook'"
+    if ! (
+      cd "$DOMAIN_PATH" && eval "$Le_PostHook"
+    ) ; then
+      _err "Error when run post hook."
+      return 1
+    fi
+  fi
+  
+  #run renew hook
+  if [ "$IS_RENEW" ] && [ "$Le_RenewHook" ] ; then
+    _info "Run renew hook:'$Le_RenewHook'"
+    if ! (
+      cd "$DOMAIN_PATH" && eval "$Le_RenewHook"
+    ) ; then
+      _err "Error when run renew hook."
+      return 1
+    fi
+  fi  
+  
+}
+
+
 #webroot, domain domainlist  keylength 
 issue() {
   if [ -z "$2" ] ; then
@@ -1588,6 +1640,9 @@ issue() {
   Le_RealCACertPath="$7"
   Le_ReloadCmd="$8"
   Le_RealFullChainPath="$9"
+  Le_PreHook="${10}"
+  Le_PostHook="${11}"
+  Le_RenewHook="${12}"
   
   #remove these later.
   if [ "$Le_Webroot" = "dns-cf" ] ; then
@@ -1619,6 +1674,14 @@ issue() {
   _savedomainconf "Le_Alt"          "$Le_Alt"
   _savedomainconf "Le_Webroot"      "$Le_Webroot"
   
+  _savedomainconf "Le_PreHook"      "$Le_PreHook"
+  _savedomainconf "Le_PostHook"     "$Le_PostHook"
+  _savedomainconf "Le_RenewHook"     "$Le_RenewHook"
+
+  if ! _on_before_issue ; then
+    _err "_on_before_issue."
+    return 1
+  fi
 
   if [ "$Le_Alt" = "no" ] ; then
     Le_Alt=""
@@ -1628,6 +1691,7 @@ issue() {
     _info "Standalone mode."
     if ! _exists "nc" ; then
       _err "Please install netcat(nc) tools first."
+      _on_issue_err
       return 1
     fi
     
@@ -1642,6 +1706,7 @@ issue() {
       _err "$netprc"
       _err "tcp port $Le_HTTPPort is already used by $(echo "$netprc" | cut -d :  -f 4)"
       _err "Please stop it first"
+      _on_issue_err
       return 1
     fi
   fi
@@ -1660,6 +1725,7 @@ issue() {
       _err "$netprc"
       _err "tcp port $Le_TLSPort is already used by $(echo "$netprc" | cut -d :  -f 4)"
       _err "Please stop it first"
+      _on_issue_err
       return 1
     fi
   fi
@@ -1667,6 +1733,7 @@ issue() {
   if _hasfield "$Le_Webroot" "apache" ; then
     if ! _setApache ; then
       _err "set up apache error. Report error to me."
+      _on_issue_err
       return 1
     fi
   else
@@ -1683,6 +1750,7 @@ issue() {
       if [ "$usingApache" ] ; then
         _restoreApache
       fi
+      _on_issue_err
       return 1
     fi
   fi
@@ -1691,6 +1759,7 @@ issue() {
     if [ "$usingApache" ] ; then
         _restoreApache
     fi
+    _on_issue_err
     return 1
   fi
   
@@ -1715,6 +1784,7 @@ issue() {
     else
       _err "Register account Error: $response"
       _clearup
+      _on_issue_err
       return 1
     fi
     ACCOUNT_KEY_HASH="$accountkeyhash"
@@ -1737,6 +1807,7 @@ issue() {
       if ! createDomainKey $Le_Domain $Le_Keylength ; then 
         _err "Create domain key error."
         _clearup
+        _on_issue_err
         return 1
       fi
     fi
@@ -1744,6 +1815,7 @@ issue() {
     if ! _createcsr "$Le_Domain" "$Le_Alt" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"   ; then
       _err "Create CSR error."
       _clearup
+      _on_issue_err
       return 1
     fi
   fi
@@ -1783,12 +1855,14 @@ issue() {
       if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$d\"}}" ; then
         _err "Can not get domain token."
         _clearup
+        _on_issue_err
         return 1
       fi
 
       if [ ! -z "$code" ] && [ ! "$code" = '201' ] ; then
         _err "new-authz error: $response"
         _clearup
+        _on_issue_err
         return 1
       fi
 
@@ -1797,6 +1871,7 @@ issue() {
       if [ -z "$entry" ] ; then
         _err "Error, can not get domain token $d"
         _clearup
+        _on_issue_err
         return 1
       fi
       token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
@@ -1876,23 +1951,27 @@ issue() {
         (
           if ! . $d_api ; then
             _err "Load file $d_api error. Please check your api file and try again."
+            _on_issue_err
             return 1
           fi
           
           addcommand="${_currentRoot}_add"
           if ! _exists $addcommand ; then 
             _err "It seems that your api file is not correct, it must have a function named: $addcommand"
+            _on_issue_err
             return 1
           fi
           
           if ! $addcommand $txtdomain $txt ; then
             _err "Error add txt for domain:$txtdomain"
+            _on_issue_err
             return 1
           fi
         )
         
         if [ "$?" != "0" ] ; then
           _clearup
+          _on_issue_err
           return 1
         fi
         dnsadded='1'
@@ -1904,6 +1983,7 @@ issue() {
       _debug "Dns record not added yet, so, save to $DOMAIN_CONF and exit."
       _err "Please add the TXT records to the domains, and retry again."
       _clearup
+      _on_issue_err
       return 1
     fi
     
@@ -1952,6 +2032,7 @@ issue() {
         _startserver "$keyauthorization" &
         if [ "$?" != "0" ] ; then
           _clearup
+          _on_issue_err
           return 1
         fi
         serverproc="$!"
@@ -2017,6 +2098,7 @@ issue() {
         _err "Start tls server error."
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
+        _on_issue_err
         return 1
       fi
     fi
@@ -2025,6 +2107,7 @@ issue() {
       _err "$d:Can not get challenge: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
       _clearup
+      _on_issue_err
       return 1
     fi
     
@@ -2032,6 +2115,7 @@ issue() {
       _err "$d:Challenge error: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
       _clearup
+      _on_issue_err
       return 1
     fi
     
@@ -2046,6 +2130,7 @@ issue() {
         _err "$d:Timeout"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
+        _on_issue_err
         return 1
       fi
       
@@ -2057,6 +2142,7 @@ issue() {
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
+        _on_issue_err
         return 1
       fi
       _debug2 original "$response"
@@ -2090,6 +2176,7 @@ issue() {
          fi
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
+        _on_issue_err
         return 1;
       fi
       
@@ -2099,6 +2186,7 @@ issue() {
         _err "$d:Verify error:$response" 
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
+        _on_issue_err
         return 1
       fi
       
@@ -2112,6 +2200,7 @@ issue() {
   
   if ! _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64" ; then
     _err "Sign failed."
+    _on_issue_err
     return 1
   fi
   
@@ -2144,6 +2233,7 @@ issue() {
   if [ -z "$Le_LinkCert" ] ; then
     response="$(echo $response | _dbase64 "multiline" | _normalizeJson )"
     _err "Sign failed: $(echo "$response" | _egrep_o  '"detail":"[^"]*"')"
+    _on_issue_err
     return 1
   fi
   
@@ -2195,6 +2285,7 @@ issue() {
   Le_NextRenewTimeStr=$( _time2str $Le_NextRenewTime )
   _savedomainconf  "Le_NextRenewTimeStr"  "$Le_NextRenewTimeStr"
 
+  _on_issue_success
 
   if [ "$Le_RealCertPath$Le_RealKeyPath$Le_RealCACertPath$Le_ReloadCmd$Le_RealFullChainPath" ] ; then
     _installcert
@@ -2232,7 +2323,7 @@ renew() {
   fi
   
   IS_RENEW="1"
-  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath"
+  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook"
   res=$?
   IS_RENEW=""
 
@@ -2984,6 +3075,9 @@ Parameters:
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
   --ecc                             Specifies to use the ECC cert. Valid for '--installcert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
   --csr                             Specifies the input csr.
+  --pre-hook                        Command to be run before obtaining any certificates.
+  --post-hook                       Command to be run after attempting to obtain/renew certificates. No matter the obain/renew is success or failed.
+  --renew-hook                      Command to be run once for each successfully renewed certificate.
   "
 }
 
@@ -3060,6 +3154,9 @@ _process() {
   _nocron=""
   _ecc=""
   _csr=""
+  _pre_hook=""
+  _post_hook=""
+  _renew_hook=""
   while [ ${#} -gt 0 ] ; do
     case "${1}" in
     
@@ -3321,6 +3418,18 @@ _process() {
         _csr="$2"
         shift
         ;;
+    --pre-hook)
+        _pre_hook="$2"
+        shift
+        ;;
+    --post-hook)
+        _post_hook="$2"
+        shift
+        ;;
+    --renew-hook)
+        _renew_hook="$2"
+        shift
+        ;;
     *)
         _err "Unknown parameter : $1"
         return 1
@@ -3339,7 +3448,7 @@ _process() {
     uninstall) uninstall "$_nocron" ;;
     upgrade) upgrade ;;
     issue)
-      issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath"
+      issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath" "$_pre_hook" "$_post_hook" "$_renew_hook"
       ;;
     signcsr)
       signcsr "$_csr" "$_webroot"
