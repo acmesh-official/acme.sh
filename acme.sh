@@ -797,6 +797,7 @@ _time() {
 _mktemp() {
   if _exists mktemp ; then
     mktemp
+    return
   fi
   if [ -d "/tmp" ] ; then
     echo "/tmp/${PROJECT_NAME}wefADf24sf.$(_time).tmp"
