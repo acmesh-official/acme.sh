@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.5.0
+VER=2.5.1
 
 PROJECT_NAME="acme.sh"
 
@@ -163,11 +163,11 @@ _hasfield() {
   
   for f in $(echo "$_str" |  tr ',' ' ') ; do
     if [ "$f" = "$_field" ] ; then
-      _debug "'$_str' contains '$_field'"
+      _debug2 "'$_str' contains '$_field'"
       return 0 #contains ok
     fi
   done
-  _debug "'$_str' does not contain '$_field'"
+  _debug2 "'$_str' does not contain '$_field'"
   return 1 #not contains 
 }
 
@@ -440,16 +440,20 @@ _createcsr() {
   _debug _createcsr
   domain="$1"
   domainlist="$2"
-  key="$3"
+  csrkey="$3"
   csr="$4"
   csrconf="$5"
   _debug2 domain "$domain"
   _debug2 domainlist "$domainlist"
+  _debug2 csrkey "$csrkey"
+  _debug2 csr "$csr"
+  _debug2 csrconf "$csrconf"
+  
+  printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\n\nkeyUsage = nonRepudiation, digitalSignature, keyEncipherment" > "$csrconf"
+  
   if [ -z "$domainlist" ] || [ "$domainlist" = "no" ]; then
     #single domain
     _info "Single domain" "$domain"
-    printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\n" > "$csrconf"
-    openssl req -new -sha256 -key "$key" -subj "/CN=$domain" -config "$csrconf" -out "$csr"
   else
     if _contains "$domainlist" "," ; then
       alt="DNS:$(echo $domainlist | sed "s/,/,DNS:/g")"
@@ -458,9 +462,13 @@ _createcsr() {
     fi
     #multi 
     _info "Multi domain" "$alt"
-    printf -- "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\nkeyUsage = nonRepudiation, digitalSignature, keyEncipherment\nsubjectAltName=$alt" > "$csrconf"
-    openssl req -new -sha256 -key "$key" -subj "/CN=$domain" -config "$csrconf" -out "$csr"
+    printf -- "\nsubjectAltName=$alt" >> "$csrconf"
   fi
+  if [ "$Le_OCSP_Stable" ] ; then
+    _savedomainconf Le_OCSP_Stable "$Le_OCSP_Stable"
+    printf -- "\nbasicConstraints = CA:FALSE\n1.3.6.1.5.5.7.1.24=DER:30:03:02:01:05" >> "$csrconf"
+  fi
+  openssl req -new -sha256 -key "$csrkey" -subj "/CN=$domain" -config "$csrconf" -out "$csr"
 }
 
 #_signcsr key  csr  conf cert
@@ -1066,56 +1074,56 @@ _setopt() {
 #_savedomainconf   key  value
 #save to domain.conf
 _savedomainconf() {
-  key="$1"
-  value="$2"
+  _sdkey="$1"
+  _sdvalue="$2"
   if [ "$DOMAIN_CONF" ] ; then
-    _setopt "$DOMAIN_CONF" "$key" "=" "\"$value\""
+    _setopt "$DOMAIN_CONF" "$_sdkey" "=" "\"$_sdvalue\""
   else
-    _err "DOMAIN_CONF is empty, can not save $key=$value"
+    _err "DOMAIN_CONF is empty, can not save $_sdkey=$_sdvalue"
   fi
 }
 
 #_cleardomainconf   key
 _cleardomainconf() {
-  key="$1"
+  _sdkey="$1"
   if [ "$DOMAIN_CONF" ] ; then
-    _sed_i "s/^$key.*$//"  "$DOMAIN_CONF"
+    _sed_i "s/^$_sdkey.*$//"  "$DOMAIN_CONF"
   else
-    _err "DOMAIN_CONF is empty, can not save $key=$value"
+    _err "DOMAIN_CONF is empty, can not save $_sdkey=$value"
   fi
 }
 
 #_readdomainconf   key
 _readdomainconf() {
-  key="$1"
+  _sdkey="$1"
   if [ "$DOMAIN_CONF" ] ; then
   (
-    eval $(grep "^$key *=" "$DOMAIN_CONF")
-    eval "printf \"%s\" \"\$$key\""
+    eval $(grep "^$_sdkey *=" "$DOMAIN_CONF")
+    eval "printf \"%s\" \"\$$_sdkey\""
   )
   else
-    _err "DOMAIN_CONF is empty, can not read $key"
+    _err "DOMAIN_CONF is empty, can not read $_sdkey"
   fi
 }
 
 #_saveaccountconf  key  value
 _saveaccountconf() {
-  key="$1"
-  value="$2"
+  _sckey="$1"
+  _scvalue="$2"
   if [ "$ACCOUNT_CONF_PATH" ] ; then
-    _setopt "$ACCOUNT_CONF_PATH" "$key" "=" "\"$value\""
+    _setopt "$ACCOUNT_CONF_PATH" "$_sckey" "=" "\"$_scvalue\""
   else
-    _err "ACCOUNT_CONF_PATH is empty, can not save $key=$value"
+    _err "ACCOUNT_CONF_PATH is empty, can not save $_sckey=$_scvalue"
   fi
 }
 
 #_clearaccountconf   key
 _clearaccountconf() {
-  key="$1"
+  _scvalue="$1"
   if [ "$ACCOUNT_CONF_PATH" ] ; then
-    _sed_i "s/^$key.*$//"  "$ACCOUNT_CONF_PATH"
+    _sed_i "s/^$_scvalue.*$//"  "$ACCOUNT_CONF_PATH"
   else
-    _err "ACCOUNT_CONF_PATH is empty, can not clear $key"
+    _err "ACCOUNT_CONF_PATH is empty, can not clear $_scvalue"
   fi
 }
 
@@ -1357,7 +1365,7 @@ _initpath() {
   fi
   
   if [ -z "$DOMAIN_SSL_CONF" ] ; then
-    DOMAIN_SSL_CONF="$DOMAIN_PATH/$domain.ssl.conf"
+    DOMAIN_SSL_CONF="$DOMAIN_PATH/$domain.csr.conf"
   fi
   
   if [ -z "$CSR_PATH" ] ; then
@@ -3079,6 +3087,7 @@ Parameters:
   --pre-hook                        Command to be run before obtaining any certificates.
   --post-hook                       Command to be run after attempting to obtain/renew certificates. No matter the obain/renew is success or failed.
   --renew-hook                      Command to be run once for each successfully renewed certificate.
+  --ocsp-must-staple, --ocsp        Generate ocsp must Staple extension.
   "
 }
 
@@ -3430,6 +3439,9 @@ _process() {
     --renew-hook)
         _renew_hook="$2"
         shift
+        ;;
+    --ocsp-must-staple|--ocsp)
+        Le_OCSP_Stable="1"
         ;;
     *)
         _err "Unknown parameter : $1"
