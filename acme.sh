@@ -1181,7 +1181,7 @@ _stopserver(){
   
   _debug2 "Le_TLSPort" "$Le_TLSPort"
   if [ "$Le_TLSPort" ] ; then
-    if [ "$DEBUG" ] && [ "$DEBUG" -ge "3" ] ;
+    if [ "$DEBUG" ] && [ "$DEBUG" -ge "3" ] ; then
       _get "https://localhost:$Le_TLSPort" "" 1
       _get "https://localhost:$Le_TLSPort" "" 1
     else
