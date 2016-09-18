@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.5.1
+VER=2.5.2
 
 PROJECT_NAME="acme.sh"
 
@@ -3125,6 +3125,8 @@ _installOnline() {
 
 upgrade() {
   if (
+    _initpath
+    export LE_WORKING_DIR
     cd "$LE_WORKING_DIR"
     _installOnline "nocron"
   ) ; then
