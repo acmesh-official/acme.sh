@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.5.2
+VER=2.5.3
 
 PROJECT_NAME="acme.sh"
 
@@ -72,27 +72,31 @@ __red() {
   fi
 }
 
+__mytee() {
+  tee -a $1
+}
+
 _info() {
   if [ -z "$2" ] ; then
-    printf -- "[$(date)] $1"
+    printf -- "[$(date)] $1" |  __mytee $LOG_FILE
   else
-    printf -- "[$(date)] $1='$2'"
+    printf -- "[$(date)] $1='$2'" | __mytee $LOG_FILE
   fi
-  printf "\n"
+  printf "\n" | __mytee  $LOG_FILE
 }
 
 
 _err_e() {
   if [ -z "$2" ] ; then
-    __red "$1" >&2
+    __red "$1" | __mytee  $LOG_FILE >&2
   else
-    __red "$1='$2'" >&2
+    __red "$1='$2'" | __mytee  $LOG_FILE >&2
   fi
-  printf "\n" >&2
+  printf "\n" | __mytee  $LOG_FILE >&2
 }
 
 _err() {
-  printf -- "[$(date)] " >&2
+  printf -- "[$(date)] " | __mytee  $LOG_FILE >&2
   _err_e "$@"
   return 1
 }
@@ -107,12 +111,12 @@ _debug() {
   fi
   
   if [ -z "$2" ] ; then
-    printf -- "[$(date)] $1" >&2
+    printf -- "[$(date)] $1" | __mytee  $LOG_FILE >&2
   else
-    printf -- "[$(date)] $1='$2'" >&2
+    printf -- "[$(date)] $1='$2'" | __mytee  $LOG_FILE >&2
   fi
   
-  printf "\n" >&2
+  printf "\n" | __mytee  $LOG_FILE >&2
   return 0
 }
 
@@ -1239,9 +1243,7 @@ _starttlsserver() {
   _debug serverproc $serverproc
 }
 
-#[domain]  [keylength]
-_initpath() {
-
+__initHome() {
   if [ -z "$_SCRIPT_HOME" ] ; then
     if _exists readlink && _exists dirname ; then
       _debug "Lets guess script dir."
@@ -1284,7 +1286,13 @@ _initpath() {
   if [ -z "$ACCOUNT_CONF_PATH" ] ; then
     ACCOUNT_CONF_PATH="$_DEFAULT_ACCOUNT_CONF_PATH"
   fi
-  
+}
+
+#[domain]  [keylength]
+_initpath() {
+
+  __initHome
+
   if [ -f "$ACCOUNT_CONF_PATH" ] ; then
     . "$ACCOUNT_CONF_PATH"
   fi
@@ -2741,6 +2749,8 @@ _initconf() {
 #ACCOUNT_KEY_PATH=\"/path/to/account.key\"
 #CERT_HOME=\"/path/to/cert/home\"
 
+#LOG_FILE=\"/var/log/$PROJECT_NAME.log\"
+
 #STAGE=1 # Use the staging api
 #FORCE=1 # Force to issue cert
 #DEBUG=1 # Debug mode
@@ -3058,6 +3068,7 @@ Parameters:
   
   --keylength, -k [2048]            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384.
   --accountkeylength, -ak [2048]    Specifies the account key length.
+  --logfile  /path/to/logfile       Specifies the log file.
   
   These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
   
@@ -3138,6 +3149,17 @@ upgrade() {
   fi
 }
 
+_processAccountConf() {
+  if [ "$_useragent" ] ; then
+    _saveaccountconf "USER_AGENT" "$_useragent"
+  fi
+  
+  if [ "$_accountemail" ] ; then
+    _saveaccountconf "ACCOUNT_EMAIL" "$_accountemail"
+  fi
+  
+}
+
 _process() {
   _CMD=""
   _domain=""
@@ -3169,6 +3191,7 @@ _process() {
   _pre_hook=""
   _post_hook=""
   _renew_hook=""
+  _logfile=""
   while [ ${#} -gt 0 ] ; do
     case "${1}" in
     
@@ -3445,6 +3468,12 @@ _process() {
     --ocsp-must-staple|--ocsp)
         Le_OCSP_Stable="1"
         ;;
+    --logfile)
+        _logfile="$2"
+        LOG_FILE="$_logfile"
+        shift
+        ;;
+
     *)
         _err "Unknown parameter : $1"
         return 1
@@ -3454,6 +3483,14 @@ _process() {
     shift 1
   done
 
+  if [ "${_CMD}" != "install" ] ; then
+    __initHome
+    if [ "$_logfile" ] ; then
+      _saveaccountconf "LOG_FILE" "$_logfile"
+    fi
+    _processAccountConf
+  fi
+ 
   if [ "$DEBUG" ] ; then
     version
   fi
@@ -3513,13 +3550,12 @@ _process() {
     return $_ret
   fi
   
-  if [ "$_useragent" ] ; then
-    _saveaccountconf "USER_AGENT" "$_useragent"
+  if [ "${_CMD}" = "install" ] ; then
+    if [ "$_logfile" ] ; then
+      _saveaccountconf "LOG_FILE" "$_logfile"
+    fi
+    _processAccountConf
   fi
-  if [ "$_accountemail" ] ; then
-    _saveaccountconf "ACCOUNT_EMAIL" "$_accountemail"
-  fi
- 
 
 }
 
