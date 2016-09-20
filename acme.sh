@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.5.4
+VER=2.5.5
 
 PROJECT_NAME="acme.sh"
 
@@ -2300,11 +2300,14 @@ issue() {
   fi
 
   Le_NextRenewTime=$(_math $Le_CertCreateTime + $Le_RenewalDays \* 24 \* 60 \* 60)
-  _savedomainconf "Le_NextRenewTime"   "$Le_NextRenewTime"
+  
   
   Le_NextRenewTimeStr=$( _time2str $Le_NextRenewTime )
   _savedomainconf  "Le_NextRenewTimeStr"  "$Le_NextRenewTimeStr"
-
+  
+  Le_NextRenewTime=$(_math $Le_NextRenewTime - 86400)
+  _savedomainconf "Le_NextRenewTime"   "$Le_NextRenewTime"
+  
   _on_issue_success
 
   if [ "$Le_RealCertPath$Le_RealKeyPath$Le_RealCACertPath$Le_ReloadCmd$Le_RealFullChainPath" ] ; then
