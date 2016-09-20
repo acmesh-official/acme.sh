@@ -3033,6 +3033,11 @@ cron() {
      fi
     )
     . $LE_WORKING_DIR/$PROJECT_ENTRY >/dev/null
+
+    if [ -t 1 ] ; then
+      __INTERACTIVE="1"
+    fi
+    
     _info "Auto upgraded to: $VER"
   fi
   renewAll
