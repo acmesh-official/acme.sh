@@ -2757,7 +2757,7 @@ _initconf() {
 
 #LOG_FILE=\"$DEFAULT_LOG_FILE\"
 
-#AUTO_UPGRADE=""
+#AUTO_UPGRADE=\"1\"
 
 #STAGE=1 # Use the staging api
 #FORCE=1 # Force to issue cert
