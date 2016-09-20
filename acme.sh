@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.5.3
+VER=2.5.4
 
 PROJECT_NAME="acme.sh"
 
@@ -2754,6 +2754,8 @@ _initconf() {
 
 #LOG_FILE=\"$DEFAULT_LOG_FILE\"
 
+#AUTO_UPGRADE=""
+
 #STAGE=1 # Use the staging api
 #FORCE=1 # Force to issue cert
 #DEBUG=1 # Debug mode
@@ -3020,6 +3022,19 @@ uninstall() {
 
 cron() {
   IN_CRON=1
+  _initpath
+  if [ "$AUTO_UPGRADE" ] ; then
+    export LE_WORKING_DIR
+    (
+     . $LE_WORKING_DIR/$PROJECT_ENTRY >/dev/null
+     if ! upgrade ; then
+       _err "Cron:Upgrade failed!"
+       return 1
+     fi
+    )
+    . $LE_WORKING_DIR/$PROJECT_ENTRY >/dev/null
+    _info "Auto upgraded to: $VER"
+  fi
   renewAll
   _ret="$?"
   IN_CRON=""
