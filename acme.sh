@@ -16,6 +16,7 @@ DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
 DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.1.1-August-1-2016.pdf"
 
 DEFAULT_USER_AGENT="$PROJECT_ENTRY client v$VER : $PROJECT"
+DEFAULT_ACCOUNT_EMAIL=""
 
 STAGE_CA="https://acme-staging.api.letsencrypt.org"
 
@@ -1286,6 +1287,8 @@ __initHome() {
   if [ -z "$ACCOUNT_CONF_PATH" ] ; then
     ACCOUNT_CONF_PATH="$_DEFAULT_ACCOUNT_CONF_PATH"
   fi
+  
+  DEFAULT_LOG_FILE="$LE_WORKING_DIR/$PROJECT_NAME.log"
 }
 
 #[domain]  [keylength]
@@ -2749,7 +2752,7 @@ _initconf() {
 #ACCOUNT_KEY_PATH=\"/path/to/account.key\"
 #CERT_HOME=\"/path/to/cert/home\"
 
-#LOG_FILE=\"/var/log/$PROJECT_NAME.log\"
+#LOG_FILE=\"$DEFAULT_LOG_FILE\"
 
 #STAGE=1 # Use the staging api
 #FORCE=1 # Force to issue cert
@@ -3029,6 +3032,7 @@ version() {
 }
 
 showhelp() {
+  _initpath
   version
   echo "Usage: $PROJECT_ENTRY  command ...[parameters]....
 Commands:
@@ -3068,7 +3072,7 @@ Parameters:
   
   --keylength, -k [2048]            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384.
   --accountkeylength, -ak [2048]    Specifies the account key length.
-  --logfile  /path/to/logfile       Specifies the log file.
+  --log    [/path/to/logfile]       Specifies the log file. The default is: \"$DEFAULT_LOG_FILE\" if you don't give a file path here.
   
   These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
   
@@ -3152,10 +3156,14 @@ upgrade() {
 _processAccountConf() {
   if [ "$_useragent" ] ; then
     _saveaccountconf "USER_AGENT" "$_useragent"
+  elif [ "$USER_AGENT" != "$DEFAULT_USER_AGENT" ] ; then
+    _saveaccountconf "USER_AGENT" "$USER_AGENT"
   fi
   
   if [ "$_accountemail" ] ; then
     _saveaccountconf "ACCOUNT_EMAIL" "$_accountemail"
+  elif [ "$ACCOUNT_EMAIL" != "$DEFAULT_ACCOUNT_EMAIL" ] ; then
+    _saveaccountconf "ACCOUNT_EMAIL" "$ACCOUNT_EMAIL"
   fi
   
 }
@@ -3192,6 +3200,7 @@ _process() {
   _post_hook=""
   _renew_hook=""
   _logfile=""
+  _log=""
   while [ ${#} -gt 0 ] ; do
     case "${1}" in
     
@@ -3468,10 +3477,15 @@ _process() {
     --ocsp-must-staple|--ocsp)
         Le_OCSP_Stable="1"
         ;;
-    --logfile)
+    --log|--logfile)
+        _log="1"
         _logfile="$2"
+        if [ -z "$_logfile" ] || _startswith "$_logfile" '-' ; then
+          _logfile=""
+        else
+          shift
+        fi
         LOG_FILE="$_logfile"
-        shift
         ;;
 
     *)
@@ -3485,9 +3499,13 @@ _process() {
 
   if [ "${_CMD}" != "install" ] ; then
     __initHome
+    if [ "$_log" ] && [ -z "$_logfile" ] ; then
+      _logfile="$DEFAULT_LOG_FILE"
+    fi
     if [ "$_logfile" ] ; then
       _saveaccountconf "LOG_FILE" "$_logfile"
     fi
+    LOG_FILE="$_logfile"
     _processAccountConf
   fi
  
@@ -3551,8 +3569,11 @@ _process() {
   fi
   
   if [ "${_CMD}" = "install" ] ; then
-    if [ "$_logfile" ] ; then
-      _saveaccountconf "LOG_FILE" "$_logfile"
+    if [ "$_log" ] ; then
+      if [ -z "$LOG_FILE" ] ; then
+        LOG_FILE="$DEFAULT_LOG_FILE"
+      fi
+      _saveaccountconf "LOG_FILE" "$LOG_FILE"
     fi
     _processAccountConf
   fi
