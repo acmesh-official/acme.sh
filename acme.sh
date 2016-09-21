@@ -3613,8 +3613,11 @@ fi
 
 
 
-[ -z "$1" ] && showhelp 
 
 
+main() {
+  [ -z "$1" ] && showhelp && return
+  if _startswith "$1" '-' ; then _process "$@"; else "$@";fi
+}
 
-if _startswith "$1" '-' ; then _process "$@" ; else "$@"; fi ;
+main "$@"
