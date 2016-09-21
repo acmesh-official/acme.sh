@@ -1177,7 +1177,7 @@ _stopserver(){
 
   _debug2 "Le_HTTPPort" "$Le_HTTPPort"
   if [ "$Le_HTTPPort" ] ; then
-    if [ "$DEBUG" ] && [ "$DEBUG" -ge "3" ] ; then
+    if [ "$DEBUG" ] && [ "$DEBUG" -gt "3" ] ; then
       _get "http://localhost:$Le_HTTPPort" "" 1
     else
       _get "http://localhost:$Le_HTTPPort" "" 1 >/dev/null 2>&1
@@ -1186,7 +1186,7 @@ _stopserver(){
   
   _debug2 "Le_TLSPort" "$Le_TLSPort"
   if [ "$Le_TLSPort" ] ; then
-    if [ "$DEBUG" ] && [ "$DEBUG" -ge "3" ] ; then
+    if [ "$DEBUG" ] && [ "$DEBUG" -gt "3" ] ; then
       _get "https://localhost:$Le_TLSPort" "" 1
       _get "https://localhost:$Le_TLSPort" "" 1
     else
@@ -2191,6 +2191,7 @@ issue() {
          fi
          if [ "$DEBUG" ] ; then
            if [ "$vtype" = "$VTYPE_HTTP" ] ; then
+             _debug "Debug: get token url."
              _get "http://$d/.well-known/acme-challenge/$token"
            fi
          fi
@@ -3610,14 +3611,9 @@ if [ "$INSTALLONLINE" ] ; then
   exit
 fi
 
-if [ -z "$1" ] ; then
-  showhelp
-else
-  if echo "$1" | grep "^-" >/dev/null 2>&1 ; then
-    _process "$@"
-  else
-    "$@"
-  fi
-fi
 
+[ -z "$1" ] && showhelp && exit
+
+
+if _startswith "$1" '-' ; then _process "$@" ; else "$@"; fi ; exit
 
