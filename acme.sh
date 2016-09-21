@@ -3612,8 +3612,9 @@ if [ "$INSTALLONLINE" ] ; then
 fi
 
 
-[ -z "$1" ] && showhelp
+
+[ -z "$1" ] && showhelp 
 
 
-if _startswith "$1" '-' ; then _process "$@" ; else "$@"; fi ; exit
 
+if _startswith "$1" '-' ; then _process "$@" ; else "$@"; fi ;
