@@ -48,7 +48,7 @@ dns_cf_add(){
   if [ "$count" = "0" ] ; then
     _info "Adding record"
     if _cf_rest POST "zones/$_domain_id/dns_records"  "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
-      if printf $response | grep $fulldomain > /dev/null ; then
+      if printf -- "%s" "$response" | grep $fulldomain > /dev/null ; then
         _info "Added, sleeping 10 seconds"
         sleep 10
         #todo: check if the record takes effect
