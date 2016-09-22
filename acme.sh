@@ -1883,7 +1883,7 @@ issue() {
         vtype="$VTYPE_TLS"
       fi
       
-      _info "Getting token for domain" $d
+      _info "Getting new-authz for domain" $d
 
       if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$d\"}}" ; then
         _err "Can not get domain token."
@@ -2720,6 +2720,82 @@ revoke() {
   return 1
 }
 
+
+#domain vtype
+_deactivate() {
+  _d_domain="$1"
+  _d_type="$2"
+  _initpath
+  
+  _d_i=0
+  _d_max_retry=9
+  while [ "$_d_i" -lt "$_d_max_retry" ] ;
+  do
+    _d_i="$(_math $_d_i + 1)"
+    if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$_d_domain\"}}" ; then
+      _err "Can not get domain token."
+      return 1
+    fi
+    
+    authzUri="$(echo "$responseHeaders" | grep "^Location:" | cut -d ' ' -f 2)"
+    _info "authzUri" "$authzUri"
+
+    if [ ! -z "$code" ] && [ ! "$code" = '201' ] ; then
+      _err "new-authz error: $response"
+      return 1
+    fi
+    
+    entry="$(printf "%s\n" "$response" | _egrep_o  '[^{]*"status":"valid","uri"[^}]*')"
+    _debug entry "$entry"
+    
+    if [ -z "$entry" ] ; then
+      _info "No valid entry found."
+      break
+    fi
+    
+    _vtype="$(printf "%s\n" "$entry" | _egrep_o '"type": *"[^"]*"' | cut -d : -f 2 | tr -d '"')"
+    _debug _vtype $_vtype
+    _info "Found $_vtype"
+
+    
+    uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*'| cut -d : -f 2,3 | tr -d '"' )"
+    _debug uri $uri
+    
+    if [ "$_d_type" ] && [ "$_d_type" != "$_vtype" ] ; then
+      _info "Skip $_vtype"
+      continue
+    fi
+    
+    _info "Deactivate: $_vtype"
+    
+    if ! _send_signed_request "$authzUri" "{\"resource\": \"authz\", \"status\":\"deactivated\"}" ; then
+      _err "Can not deactivate $_vtype."
+      return 1
+    fi
+    
+  done
+  _debug "$_d_i"
+  if [ "$_d_i" -lt "$_d_max_retry" ] ; then
+    _info "Deactivated success!"
+  else
+    _err "Deactivate failed."
+  fi
+
+}
+
+deactivate() {
+  _d_domain="$1"
+  _d_type="$2"
+  _initpath
+  
+  if [ -z "$_d_domain" ] ; then
+    _usage "Usage: $PROJECT_ENTRY --deactivate -d domain.com"
+    return 1
+  fi
+  
+  _deactivate "$_d_domain" $_d_type
+}
+
 # Detect profile file if not specified as environment variable
 _detect_profile() {
   if [ -n "$PROFILE" -a -f "$PROFILE" ] ; then
@@ -3093,6 +3169,7 @@ Commands:
   --createAccountKey, -cak Create an account private key, professional use.
   --createDomainKey, -cdk  Create an domain private key, professional use.
   --createCSR, -ccsr       Create CSR , professional use.
+  --deactivate             Deactivate the domain authz, professional use.
   
 Parameters:
   --domain, -d   domain.tld         Specifies a domain, used to issue, renew or revoke etc.
@@ -3303,7 +3380,9 @@ _process() {
     --createCSR|--createcsr|-ccr)
         _CMD="createCSR"
         ;;
-
+    --deactivate)
+        _CMD="deactivate"
+        ;;
      
     --domain|-d)
         _dvalue="$2"
@@ -3575,6 +3654,9 @@ _process() {
     revoke) 
       revoke "$_domain" "$_ecc"
       ;;
+    deactivate) 
+      deactivate "$_domain"
+      ;;      
     list) 
       list "$_listraw"
       ;;
