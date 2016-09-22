@@ -2749,7 +2749,7 @@ _deactivate() {
     _debug entry "$entry"
     
     if [ -z "$entry" ] ; then
-      _info "No valid entry found."
+      _info "No more valid entry found."
       break
     fi
     
@@ -2772,6 +2772,8 @@ _deactivate() {
       _err "Can not deactivate $_vtype."
       return 1
     fi
+    
+    _info "Deactivate: $_vtype success."
     
   done
   _debug "$_d_i"
