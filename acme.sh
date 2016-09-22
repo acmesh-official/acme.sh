@@ -1244,12 +1244,20 @@ _starttlsserver() {
   _debug serverproc $serverproc
 }
 
+#file
+_readlink() {
+  _rf="$1"
+  if ! readlink -f "$_rf" 2>/dev/null; then
+    readlink  "$_rf"
+  fi
+}
+
 __initHome() {
   if [ -z "$_SCRIPT_HOME" ] ; then
     if _exists readlink && _exists dirname ; then
       _debug "Lets guess script dir."
       _debug "_SCRIPT_" "$_SCRIPT_"
-      _script="$(readlink -f "$_SCRIPT_")"
+      _script="$(_readlink "$_SCRIPT_")"
       _debug "_script" "$_script"
       _script_home="$(dirname "$_script")"
       _debug "_script_home" "$_script_home"
