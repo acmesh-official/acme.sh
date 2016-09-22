@@ -1248,6 +1248,10 @@ _starttlsserver() {
 _readlink() {
   _rf="$1"
   if ! readlink -f "$_rf" 2>/dev/null; then
+    if _startswith "$_rf" "\./$PROJECT_ENTRY" ; then
+      printf -- "%s" "$(pwd)/$PROJECT_ENTRY"
+      return 0
+    fi
     readlink  "$_rf"
   fi
 }
@@ -1272,7 +1276,7 @@ __initHome() {
 
   if [ -z "$LE_WORKING_DIR" ] ; then
     if [ -f "$DEFAULT_INSTALL_HOME/account.conf" ] ; then
-      _debug "It seems tha $PROJECT_NAME is already installed in $DEFAULT_INSTALL_HOME"
+      _debug "It seems that $PROJECT_NAME is already installed in $DEFAULT_INSTALL_HOME"
       LE_WORKING_DIR="$DEFAULT_INSTALL_HOME"
     else
       LE_WORKING_DIR="$_SCRIPT_HOME"
@@ -1283,6 +1287,7 @@ __initHome() {
     _debug "Using default home:$DEFAULT_INSTALL_HOME"
     LE_WORKING_DIR="$DEFAULT_INSTALL_HOME"
   fi
+  export LE_WORKING_DIR
 
   _DEFAULT_ACCOUNT_CONF_PATH="$LE_WORKING_DIR/account.conf"
 
