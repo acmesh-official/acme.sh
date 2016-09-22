@@ -2737,7 +2737,7 @@ _deactivate() {
       return 1
     fi
     
-    authzUri="$(echo "$responseHeaders" | grep "^Location:" | cut -d ' ' -f 2)"
+    authzUri="$(echo "$responseHeaders" | grep "^Location:" | cut -d ' ' -f 2 | tr -d "\r\n")"
     _info "authzUri" "$authzUri"
 
     if [ ! -z "$code" ] && [ ! "$code" = '201' ] ; then
