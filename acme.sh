@@ -29,6 +29,8 @@ MAX_RENEW=80
 
 DEFAULT_DNS_SLEEP=120
 
+NO_VALUE="no"
+
 W_TLS="tls"
 
 STATE_VERIFIED="verified_ok"
@@ -456,7 +458,7 @@ _createcsr() {
   
   printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\n\nkeyUsage = nonRepudiation, digitalSignature, keyEncipherment" > "$csrconf"
   
-  if [ -z "$domainlist" ] || [ "$domainlist" = "no" ]; then
+  if [ -z "$domainlist" ] || [ "$domainlist" = "$NO_VALUE" ]; then
     #single domain
     _info "Single domain" "$domain"
   else
@@ -612,7 +614,7 @@ createAccountKey() {
     length=2048
   fi
   
-  if [ -z "$length" ] || [ "$length" = "no" ] ; then
+  if [ -z "$length" ] || [ "$length" = "$NO_VALUE" ] ; then
     _debug "Use default length 2048"
     length=2048
   fi
@@ -1716,11 +1718,11 @@ issue() {
     return 1
   fi
 
-  if [ "$Le_Alt" = "no" ] ; then
+  if [ "$Le_Alt" = "$NO_VALUE" ] ; then
     Le_Alt=""
   fi
 
-  if _hasfield "$Le_Webroot" "no" ; then
+  if _hasfield "$Le_Webroot" "$NO_VALUE" ; then
     _info "Standalone mode."
     if ! _exists "nc" ; then
       _err "Please install netcat(nc) tools first."
@@ -1774,7 +1776,7 @@ issue() {
   fi
   
   if [ ! -f "$ACCOUNT_KEY_PATH" ] ; then
-    _acck="no"
+    _acck="$NO_VALUE"
     if [ "$Le_Keylength" ] ; then
       _acck="$Le_Keylength"
     fi
@@ -1826,7 +1828,7 @@ issue() {
     _info "Skip register account key"
   fi
 
-  if [ "$Le_Keylength" = "no" ] ; then
+  if [ "$Le_Keylength" = "$NO_VALUE" ] ; then
     Le_Keylength=""
   fi
   
@@ -2060,7 +2062,7 @@ issue() {
 
       
     if [ "$vtype" = "$VTYPE_HTTP" ] ; then
-      if [ "$_currentRoot" = "no" ] ; then
+      if [ "$_currentRoot" = "$NO_VALUE" ] ; then
         _info "Standalone mode server"
         _startserver "$keyauthorization" &
         if [ "$?" != "0" ] ; then
@@ -2541,19 +2543,19 @@ _installcert() {
   _savedomainconf "Le_ReloadCmd"            "$Le_ReloadCmd"
   _savedomainconf "Le_RealFullChainPath"    "$Le_RealFullChainPath"
   
-  if [ "$Le_RealCertPath" = "no" ] ; then
+  if [ "$Le_RealCertPath" = "$NO_VALUE" ] ; then
     Le_RealCertPath=""
   fi
-  if [ "$Le_RealKeyPath" = "no" ] ; then
+  if [ "$Le_RealKeyPath" = "$NO_VALUE" ] ; then
     Le_RealKeyPath=""
   fi
-  if [ "$Le_RealCACertPath" = "no" ] ; then
+  if [ "$Le_RealCACertPath" = "$NO_VALUE" ] ; then
     Le_RealCACertPath=""
   fi
-  if [ "$Le_ReloadCmd" = "no" ] ; then
+  if [ "$Le_ReloadCmd" = "$NO_VALUE" ] ; then
     Le_ReloadCmd=""
   fi
-  if [ "$Le_RealFullChainPath" = "no" ] ; then
+  if [ "$Le_RealFullChainPath" = "$NO_VALUE" ] ; then
     Le_RealFullChainPath=""
   fi
   
@@ -2738,7 +2740,7 @@ _deactivate() {
     fi
     
     authzUri="$(echo "$responseHeaders" | grep "^Location:" | cut -d ' ' -f 2 | tr -d "\r\n")"
-    _info "authzUri" "$authzUri"
+    _debug "authzUri" "$authzUri"
 
     if [ ! -z "$code" ] && [ ! "$code" = '201' ] ; then
       _err "new-authz error: $response"
@@ -2786,16 +2788,21 @@ _deactivate() {
 }
 
 deactivate() {
-  _d_domain="$1"
+  _d_domain_list="$1"
   _d_type="$2"
   _initpath
-  
-  if [ -z "$_d_domain" ] ; then
-    _usage "Usage: $PROJECT_ENTRY --deactivate -d domain.com"
+  _debug _d_domain_list "$_d_domain_list"
+  if [ -z "$(echo $_d_domain_list | cut -d , -f 1 )" ] ; then
+    _usage "Usage: $PROJECT_ENTRY --deactivate -d domain.com [-d domain.com]"
     return 1
   fi
-  
-  _deactivate "$_d_domain" $_d_type
+  for _d_dm in $(echo "$_d_domain_list" |  tr ',' ' ' ) ; 
+  do
+    if [ -z "$_d_dm" ] || [ "$_d_dm" = "$NO_VALUE" ] ; then
+      continue
+    fi
+    _deactivate "$_d_dm" $_d_type
+  done
 }
 
 # Detect profile file if not specified as environment variable
@@ -3287,7 +3294,7 @@ _processAccountConf() {
 _process() {
   _CMD=""
   _domain=""
-  _altdomains="no"
+  _altdomains="$NO_VALUE"
   _webroot=""
   _keylength=""
   _accountkeylength=""
@@ -3398,7 +3405,7 @@ _process() {
           if [ -z "$_domain" ] ; then
             _domain="$_dvalue"
           else
-            if [ "$_altdomains" = "no" ] ; then
+            if [ "$_altdomains" = "$NO_VALUE" ] ; then
               _altdomains="$_dvalue"
             else
               _altdomains="$_altdomains,$_dvalue"
@@ -3433,7 +3440,7 @@ _process() {
         shift
         ;;        
     --standalone)
-        wvalue="no"
+        wvalue="$NO_VALUE"
         if [ -z "$_webroot" ] ; then
           _webroot="$wvalue"
         else
@@ -3476,7 +3483,7 @@ _process() {
         
     --keylength|-k)
         _keylength="$2"
-        if [ "$_accountkeylength" = "no" ] ; then
+        if [ "$_accountkeylength" = "$NO_VALUE" ] ; then
           _accountkeylength="$2"
         fi
         shift
@@ -3657,7 +3664,7 @@ _process() {
       revoke "$_domain" "$_ecc"
       ;;
     deactivate) 
-      deactivate "$_domain"
+      deactivate "$_domain,$_altdomains"
       ;;      
     list) 
       list "$_listraw"
