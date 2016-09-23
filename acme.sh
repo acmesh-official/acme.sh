@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.5.5
+VER=2.5.6
 
 PROJECT_NAME="acme.sh"
 
@@ -24,6 +24,8 @@ VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
 VTYPE_TLS="tls-sni-01"
 VTYPE_TLS2="tls-sni-02"
+
+LOCAL_ANY_ADDRESS="0.0.0.0"
 
 MAX_RENEW=80
 
@@ -176,6 +178,35 @@ _hasfield() {
   done
   _debug2 "'$_str' does not contain '$_field'"
   return 1 #not contains 
+}
+
+_getfield(){
+  _str="$1"
+  _findex="$2"
+  _sep="$3"
+  
+  if [ -z "$_findex" ] ; then
+    _usage "Usage: str field  [sep]"
+    return 1
+  fi
+  
+  if [ -z "$_sep" ] ; then
+    _sep=","
+  fi
+
+  _ffi=$_findex
+  while [ "$_ffi" -gt "0" ]
+  do
+    _fv="$(echo "$_str" |  cut -d $_sep -f $_ffi)"
+    if [ "$_fv" ] ; then
+      printf -- "%s" "$_fv"
+      return 0
+    fi
+    _ffi="$(_math $_ffi - 1)"
+  done
+  
+  printf -- "%s" "$_str"
+
 }
 
 _exists(){
@@ -559,7 +590,7 @@ _ss() {
     _debug "Using: netstat"
     if netstat -h 2>&1 | grep "\-p proto" >/dev/null ; then
       #for windows version netstat tool
-      netstat -anb -p tcp | grep "LISTENING" | grep ":$_port "
+      netstat -an -p tcp | grep "LISTENING" | grep ":$_port "
     else
       if netstat -help 2>&1 | grep "\-p protocol" >/dev/null ; then
         netstat -an -p tcp | grep LISTEN | grep ":$_port "
@@ -1134,20 +1165,24 @@ _clearaccountconf() {
   fi
 }
 
+# content localaddress
 _startserver() {
   content="$1"
+  ncaddr="$2"
+  _debug "ncaddr" "$ncaddr"
+
   _debug "startserver: $$"
   nchelp="$(nc -h 2>&1)"
   
   if echo "$nchelp" | grep "\-q[ ,]" >/dev/null ; then
-    _NC="nc -q 1 -l"
+    _NC="nc -q 1 -l $ncaddr"
   else
     if echo "$nchelp" | grep "GNU netcat" >/dev/null && echo "$nchelp" | grep "\-c, \-\-close" >/dev/null ; then
-      _NC="nc -c -l"
+      _NC="nc -c -l $ncaddr"
     elif echo "$nchelp" | grep "\-N" |grep "Shutdown the network socket after EOF on stdin"  >/dev/null ; then
-      _NC="nc -N -l"
+      _NC="nc -N -l $ncaddr"
     else
-      _NC="nc -l"
+      _NC="nc -l $ncaddr"
     fi
   fi
 
@@ -1234,7 +1269,7 @@ _starttlsserver() {
   fi
   
   #start openssl
-  _debug "openssl s_server -cert \"$TLS_CERT\"  -key \"$TLS_KEY\" -accept $port -naccept 1 -tlsextdebug"
+  _debug "openssl s_server -cert \"$TLS_CERT\"  -key \"$TLS_KEY\" -accept $port  -tlsextdebug"
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
     (printf "HTTP/1.1 200 OK\r\n\r\n$content" | openssl s_server -cert "$TLS_CERT"  -key "$TLS_KEY" -accept $port -tlsextdebug ) &
   else
@@ -1609,6 +1644,78 @@ _clearupwebbroot() {
 }
 
 _on_before_issue() {
+
+  if _hasfield "$Le_Webroot" "$NO_VALUE" ; then
+    if ! _exists "nc" ; then
+      _err "Please install netcat(nc) tools first."
+      return 1
+    fi
+  elif ! _hasfield "$Le_Webroot" "$W_TLS" ; then
+    #no need to check anymore
+    return 0
+  fi
+
+  _debug Le_LocalAddress "$Le_LocalAddress"
+  
+  alldomains=$(echo "$Le_Domain,$Le_Alt" |  tr ',' ' ' )
+  _index=1
+  _currentRoot=""
+  _addrIndex=1
+  for d in $alldomains   
+  do
+    _debug "Check for domain" $d
+    _currentRoot="$(_getfield "$Le_Webroot" $_index)"
+    _debug "_currentRoot" "$_currentRoot"
+    _index=$(_math $_index + 1)
+    _checkport=""
+    if [ "$_currentRoot" = "$NO_VALUE" ] ; then
+      _info "Standalone mode."
+      if [ -z "$Le_HTTPPort" ] ; then
+        Le_HTTPPort=80
+      else
+        _savedomainconf "Le_HTTPPort"  "$Le_HTTPPort"
+      fi
+      _checkport="$Le_HTTPPort"
+    elif [ "$_currentRoot" = "$W_TLS" ] ; then
+      _info "Standalone tls mode."
+      if [ -z "$Le_TLSPort" ] ; then
+        Le_TLSPort=443
+      else
+        _savedomainconf "Le_TLSPort"  "$Le_TLSPort"
+      fi
+      _checkport="$Le_TLSPort"
+    fi
+    
+    if [ "$_checkport" ] ; then
+      _debug _checkport "$_checkport"
+      _checkaddr="$(_getfield "$Le_LocalAddress" $_addrIndex)"
+      _debug _checkaddr "$_checkaddr"
+      
+      _addrIndex="$(_math $_addrIndex + 1)"
+      
+      _netprc="$(_ss "$_checkport" | grep "$_checkport")"
+      netprc="$(echo "$_netprc" | grep "$_checkaddr")"
+      if [ -z "$netprc" ] ; then
+        netprc="$(echo "$_netprc" | grep "$LOCAL_ANY_ADDRESS")"
+      fi
+      if [ "$netprc" ] ; then
+        _err "$netprc"
+        _err "tcp port $_checkport is already used by $(echo "$netprc" | cut -d :  -f 4)"
+        _err "Please stop it first"
+        return 1
+      fi
+    fi
+  done
+
+  if _hasfield "$Le_Webroot" "apache" ; then
+    if ! _setApache ; then
+      _err "set up apache error. Report error to me."
+      return 1
+    fi
+  else
+    usingApache=""
+  fi
+
   #run pre hook
   if [ "$Le_PreHook" ] ; then
     _info "Run pre hook:'$Le_PreHook'"
@@ -1678,6 +1785,7 @@ issue() {
   Le_PreHook="${10}"
   Le_PostHook="${11}"
   Le_RenewHook="${12}"
+  Le_LocalAddress="${13}"
   
   #remove these later.
   if [ "$Le_Webroot" = "dns-cf" ] ; then
@@ -1712,69 +1820,17 @@ issue() {
   _savedomainconf "Le_PreHook"      "$Le_PreHook"
   _savedomainconf "Le_PostHook"     "$Le_PostHook"
   _savedomainconf "Le_RenewHook"     "$Le_RenewHook"
-
+  _savedomainconf "Le_LocalAddress"     "$Le_LocalAddress"
+  
+  if [ "$Le_Alt" = "$NO_VALUE" ] ; then
+    Le_Alt=""
+  fi
+  
   if ! _on_before_issue ; then
     _err "_on_before_issue."
     return 1
   fi
 
-  if [ "$Le_Alt" = "$NO_VALUE" ] ; then
-    Le_Alt=""
-  fi
-
-  if _hasfield "$Le_Webroot" "$NO_VALUE" ; then
-    _info "Standalone mode."
-    if ! _exists "nc" ; then
-      _err "Please install netcat(nc) tools first."
-      _on_issue_err
-      return 1
-    fi
-    
-    if [ -z "$Le_HTTPPort" ] ; then
-      Le_HTTPPort=80
-    else
-      _savedomainconf "Le_HTTPPort"  "$Le_HTTPPort"
-    fi    
-    
-    netprc="$(_ss "$Le_HTTPPort" | grep "$Le_HTTPPort")"
-    if [ "$netprc" ] ; then
-      _err "$netprc"
-      _err "tcp port $Le_HTTPPort is already used by $(echo "$netprc" | cut -d :  -f 4)"
-      _err "Please stop it first"
-      _on_issue_err
-      return 1
-    fi
-  fi
-  
-  if _hasfield "$Le_Webroot" "$W_TLS" ; then
-    _info "Standalone tls mode."
-    
-    if [ -z "$Le_TLSPort" ] ; then
-      Le_TLSPort=443
-    else
-      _savedomainconf "Le_TLSPort"  "$Le_TLSPort"
-    fi    
-    
-    netprc="$(_ss "$Le_TLSPort" | grep "$Le_TLSPort")"
-    if [ "$netprc" ] ; then
-      _err "$netprc"
-      _err "tcp port $Le_TLSPort is already used by $(echo "$netprc" | cut -d :  -f 4)"
-      _err "Please stop it first"
-      _on_issue_err
-      return 1
-    fi
-  fi
-  
-  if _hasfield "$Le_Webroot" "apache" ; then
-    if ! _setApache ; then
-      _err "set up apache error. Report error to me."
-      _on_issue_err
-      return 1
-    fi
-  else
-    usingApache=""
-  fi
-  
   if [ ! -f "$ACCOUNT_KEY_PATH" ] ; then
     _acck="$NO_VALUE"
     if [ "$Le_Keylength" ] ; then
@@ -1869,7 +1925,7 @@ issue() {
     do
       _info "Getting webroot for domain" $d
       _w="$(echo $Le_Webroot | cut -d , -f $_index)"
-      _debug _w "$_w"
+      _info _w "$_w"
       if [ "$_w" ] ; then
         _currentRoot="$_w"
       fi
@@ -2037,6 +2093,7 @@ issue() {
   
   _debug "ok, let's start to verify"
 
+  _ncIndex=1
   ventries=$(echo "$vlist" |  tr ',' ' ' )
   for ventry in $ventries
   do
@@ -2064,7 +2121,9 @@ issue() {
     if [ "$vtype" = "$VTYPE_HTTP" ] ; then
       if [ "$_currentRoot" = "$NO_VALUE" ] ; then
         _info "Standalone mode server"
-        _startserver "$keyauthorization" &
+        _ncaddr="$(_getfield "$Le_LocalAddress" "$_ncIndex" )"
+        _ncIndex="$(_math $_ncIndex + 1)"
+        _startserver "$keyauthorization" "$_ncaddr" &
         if [ "$?" != "0" ] ; then
           _clearup
           _on_issue_err
@@ -2129,7 +2188,9 @@ issue() {
       _SAN_B="$_x.$_y.acme.invalid"
       _debug2 _SAN_B "$_SAN_B"
       
-      if ! _starttlsserver "$_SAN_B" "$_SAN_A" "$Le_TLSPort" "$keyauthorization" ; then
+      _ncaddr="$(_getfield "$Le_LocalAddress" "$_ncIndex" )"
+      _ncIndex="$(_math $_ncIndex + 1)"
+      if ! _starttlsserver "$_SAN_B" "$_SAN_A" "$Le_TLSPort" "$keyauthorization" "$_ncaddr"; then
         _err "Start tls server error."
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
@@ -2362,7 +2423,7 @@ renew() {
   fi
   
   IS_RENEW="1"
-  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook"
+  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress"
   res=$?
   IS_RENEW=""
 
@@ -3215,6 +3276,7 @@ Parameters:
   --days                            Specifies the days to renew the cert when using '--issue' command. The max value is $MAX_RENEW days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
+  --local-address                   Specifies the standalone server listening address, in case you have multiple ip addresses.
   --listraw                         Only used for '--list' command, list the certs in raw format.
   --stopRenewOnError, -se           Only valid for '--renewall' command. Stop if one cert has error in renewal.
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
@@ -3324,6 +3386,7 @@ _process() {
   _renew_hook=""
   _logfile=""
   _log=""
+  _local_address=""
   while [ ${#} -gt 0 ] ; do
     case "${1}" in
     
@@ -3446,6 +3509,11 @@ _process() {
         else
           _webroot="$_webroot,$wvalue"
         fi
+        ;;
+    --local-address)
+        lvalue="$2"
+        _local_address="$_local_address$lvalue,"
+        shift
         ;;
     --apache)
         wvalue="apache"
@@ -3643,7 +3711,7 @@ _process() {
     uninstall) uninstall "$_nocron" ;;
     upgrade) upgrade ;;
     issue)
-      issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath" "$_pre_hook" "$_post_hook" "$_renew_hook"
+      issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address"
       ;;
     signcsr)
       signcsr "$_csr" "$_webroot"
