@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.5.6
+VER=2.5.7
 
 PROJECT_NAME="acme.sh"
 
@@ -3189,7 +3189,6 @@ cron() {
   if [ "$AUTO_UPGRADE" ] ; then
     export LE_WORKING_DIR
     (
-     . $LE_WORKING_DIR/$PROJECT_ENTRY >/dev/null
      if ! upgrade ; then
        _err "Cron:Upgrade failed!"
        return 1
@@ -3206,7 +3205,7 @@ cron() {
   renewAll
   _ret="$?"
   IN_CRON=""
-  return $_ret
+  exit $_ret
 }
 
 version() {
