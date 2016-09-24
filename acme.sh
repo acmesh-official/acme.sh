@@ -2863,7 +2863,9 @@ deactivate() {
     if [ -z "$_d_dm" ] || [ "$_d_dm" = "$NO_VALUE" ] ; then
       continue
     fi
-    _deactivate "$_d_dm" $_d_type
+    if ! _deactivate "$_d_dm" $_d_type ; then
+      return 1
+    fi
   done
 }
 
