@@ -48,9 +48,6 @@ RENEW_SKIP=2
 ECC_SEP="_"
 ECC_SUFFIX="${ECC_SEP}ecc"
 
-if [ -z "$AGREEMENT" ] ; then
-  AGREEMENT="$DEFAULT_AGREEMENT"
-fi
 
 __INTERACTIVE=""
 if [ -t 1 ] ; then
@@ -1767,6 +1764,93 @@ _on_issue_success() {
 }
 
 
+
+_regAccount() {
+  _initpath
+  if [ ! -f "$ACCOUNT_KEY_PATH" ] ; then
+    _acck="no"
+    if [ "$Le_Keylength" ] ; then
+      _acck="$Le_Keylength"
+    fi
+    if ! createAccountKey "$_acck" ; then
+      _err "Create account key error."
+      return 1
+    fi
+  fi
+  
+  if ! _calcjwk "$ACCOUNT_KEY_PATH" ; then
+    return 1
+  fi
+
+  _updateTos=""
+  _reg_res="new-reg"
+  while true ;
+  do
+    _debug AGREEMENT "$AGREEMENT"
+    accountkey_json=$(printf "%s" "$jwk" |  tr -d ' ' )
+    thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _urlencode)
+    
+    regjson='{"resource": "'$_reg_res'", "agreement": "'$AGREEMENT'"}'
+
+    if [ "$ACCOUNT_EMAIL" ] ; then
+      regjson='{"resource": "'$_reg_res'", "contact": ["mailto: '$ACCOUNT_EMAIL'"], "agreement": "'$AGREEMENT'"}'
+    fi
+
+    if [ -z "$_updateTos" ] ; then
+      _info "Registering account"
+
+      if ! _send_signed_request   "$API/acme/new-reg"  "$regjson" ; then
+        _err "Register account Error: $response"
+        return 1
+      fi
+
+      if [ "$code" = "" ] || [ "$code" = '201' ] ; then
+        echo "$response" > $LE_WORKING_DIR/account.json
+        _info "Registered"
+      elif [ "$code" = '409' ] ; then
+        _info "Already registered"
+      else
+        _err "Register account Error: $response"
+        return 1
+      fi
+
+      _accUri="$(echo "$responseHeaders" | grep "^Location:" | cut -d ' ' -f 2| tr -d "\r\n")"
+      _debug "_accUri" "$_accUri"
+      ACCOUNT_URL="$_accUri"
+      _saveaccountconf ACCOUNT_URL "$ACCOUNT_URL"
+
+      _tos="$(echo "$responseHeaders" | grep "^Link:.*rel=\"terms-of-service\"" | _egrep_o "<.*>" | tr -d '<>')"
+      _debug "_tos" "$_tos"
+      if [ -z "$_tos" ] ; then
+        _debug "Use default tos: $DEFAULT_AGREEMENT"
+        _tos="$DEFAULT_AGREEMENT"
+      fi
+      if [ "$_tos" != "$AGREEMENT" ]; then
+        _updateTos=1
+        AGREEMENT="$_tos"
+        _reg_res="reg"
+        continue
+      fi
+      
+    else
+      _debug "Update tos: $_tos"
+      if ! _send_signed_request   "$_accUri"  "$regjson" ; then
+        _err "Update tos error."
+        return 1
+      fi
+      if [ "$code" = '202' ] ; then
+        _debug "Update tos success."
+      else
+        _err "Update tos error."
+        return 1
+      fi
+    fi
+    return 0
+  done
+
+}
+
+
 #webroot, domain domainlist  keylength 
 issue() {
   if [ -z "$2" ] ; then
@@ -1826,69 +1910,21 @@ issue() {
     Le_Alt=""
   fi
   
+  if [ "$Le_Keylength" = "$NO_VALUE" ] ; then
+    Le_Keylength=""
+  fi
+  
   if ! _on_before_issue ; then
     _err "_on_before_issue."
     return 1
   fi
 
-  if [ ! -f "$ACCOUNT_KEY_PATH" ] ; then
-    _acck="$NO_VALUE"
-    if [ "$Le_Keylength" ] ; then
-      _acck="$Le_Keylength"
-    fi
-    if ! createAccountKey "$_acck" ; then
-      _err "Create account key error."
-      if [ "$usingApache" ] ; then
-        _restoreApache
-      fi
-      _on_issue_err
-      return 1
-    fi
-  fi
-  
-  if ! _calcjwk "$ACCOUNT_KEY_PATH" ; then
-    if [ "$usingApache" ] ; then
-        _restoreApache
-    fi
+  if ! _regAccount ; then
     _on_issue_err
     return 1
   fi
   
-  accountkey_json=$(printf "%s" "$jwk" |  tr -d ' ' )
-  thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _urlencode)
-  
-  regjson='{"resource": "new-reg", "agreement": "'$AGREEMENT'"}'
-  if [ "$ACCOUNT_EMAIL" ] ; then
-    regjson='{"resource": "new-reg", "contact": ["mailto: '$ACCOUNT_EMAIL'"], "agreement": "'$AGREEMENT'"}'
-  fi
-    
-  accountkeyhash="$(cat "$ACCOUNT_KEY_PATH" | _digest "sha256" )"
-  accountkeyhash="$(echo $accountkeyhash$API$regjson | _digest "sha256" )"
-  if [ "$accountkeyhash" != "$ACCOUNT_KEY_HASH" ] ; then
-    _info "Registering account"    
-    _send_signed_request   "$API/acme/new-reg"  "$regjson"    
-    if [ "$code" = "" ] || [ "$code" = '201' ] ; then
-      _info "Registered"
-      echo "$response" > $LE_WORKING_DIR/account.json
-    elif [ "$code" = '409' ] ; then
-      _info "Already registered"
-    else
-      _err "Register account Error: $response"
-      _clearup
-      _on_issue_err
-      return 1
-    fi
-    ACCOUNT_KEY_HASH="$accountkeyhash"
-    _saveaccountconf "ACCOUNT_KEY_HASH" "$ACCOUNT_KEY_HASH"
-  else
-    _info "Skip register account key"
-  fi
 
-  if [ "$Le_Keylength" = "$NO_VALUE" ] ; then
-    Le_Keylength=""
-  fi
-  
-  
   if [ -f "$CSR_PATH" ] && [ ! -f "$CERT_KEY_PATH" ] ; then
     _info "Signing from existing CSR."
   else
@@ -2301,13 +2337,18 @@ issue() {
     return 1
   fi
   
-  
+  _rcert="$response"
   Le_LinkCert="$(grep -i '^Location.*$' $HTTP_HEADER | head -1 | tr -d "\r\n" | cut -d " " -f 2)"
   _savedomainconf "Le_LinkCert"  "$Le_LinkCert"
 
   if [ "$Le_LinkCert" ] ; then
     echo "$BEGIN_CERT" > "$CERT_PATH"
-    _get "$Le_LinkCert" | _base64 "multiline"  >> "$CERT_PATH"
+    
+    if ! _get "$Le_LinkCert" | _base64 "multiline"  >> "$CERT_PATH" ; then
+      _debug "Get cert failed. Let's try last response."
+      printf -- "%s" "$_rcert" | _dbase64 "multiline" | _base64 "multiline" >> "$CERT_PATH" 
+    fi
+
     echo "$END_CERT"  >> "$CERT_PATH"
     _info "$(__green "Cert success.")"
     cat "$CERT_PATH"
@@ -2917,6 +2958,9 @@ _initconf() {
 #ACCOUNT_EMAIL=aaa@aaa.com  # the account email used to register account.
 #ACCOUNT_KEY_PATH=\"/path/to/account.key\"
 #CERT_HOME=\"/path/to/cert/home\"
+
+#ACCOUNT_URL=\"\"
+
 
 #LOG_FILE=\"$DEFAULT_LOG_FILE\"
 
