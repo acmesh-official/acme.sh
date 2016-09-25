@@ -1836,8 +1836,6 @@ _regAccount() {
 
       _accUri="$(echo "$responseHeaders" | grep "^Location:" | cut -d ' ' -f 2| tr -d "\r\n")"
       _debug "_accUri" "$_accUri"
-      ACCOUNT_URL="$_accUri"
-      _saveaccountconf ACCOUNT_URL "$ACCOUNT_URL"
 
       _tos="$(echo "$responseHeaders" | grep "^Link:.*rel=\"terms-of-service\"" | _egrep_o "<.*>" | tr -d '<>')"
       _debug "_tos" "$_tos"
@@ -2979,7 +2977,6 @@ _initconf() {
 #ACCOUNT_KEY_PATH=\"/path/to/account.key\"
 #CERT_HOME=\"/path/to/cert/home\"
 
-#ACCOUNT_URL=\"\"
 
 
 #LOG_FILE=\"$DEFAULT_LOG_FILE\"
