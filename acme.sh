@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.5.7
+VER=2.5.8
 
 PROJECT_NAME="acme.sh"
 
@@ -1763,7 +1763,15 @@ _on_issue_success() {
   
 }
 
+updateaccount() {
+  _initpath
+  _regAccount
+}
 
+registeraccount() {
+  _initpath
+  _regAccount
+}
 
 _regAccount() {
   _initpath
@@ -1839,9 +1847,9 @@ _regAccount() {
         return 1
       fi
       if [ "$code" = '202' ] ; then
-        _debug "Update tos success."
+        _info "Update success."
       else
-        _err "Update tos error."
+        _err "Update error."
         return 1
       fi
     fi
@@ -2970,7 +2978,6 @@ _initconf() {
 #FORCE=1 # Force to issue cert
 #DEBUG=1 # Debug mode
 
-#ACCOUNT_KEY_HASH=account key hash
 
 #USER_AGENT=\"$USER_AGENT\"
 
@@ -3282,6 +3289,8 @@ Commands:
   --uninstallcronjob       Uninstall the cron job. The 'uninstall' command can do this automatically.
   --cron                   Run cron job to renew all the certs.
   --toPkcs                 Export the certificate and key to a pfx file.
+  --updateaccount          Update account info.
+  --registeraccount        Register account key.
   --createAccountKey, -cak Create an account private key, professional use.
   --createDomainKey, -cdk  Create an domain private key, professional use.
   --createCSR, -ccsr       Create CSR , professional use.
@@ -3501,7 +3510,12 @@ _process() {
     --deactivate)
         _CMD="deactivate"
         ;;
-     
+    --updateaccount)
+        _CMD="updateaccount"
+        ;;
+    --registeraccount)
+        _CMD="registeraccount"
+        ;;
     --domain|-d)
         _dvalue="$2"
         
@@ -3779,7 +3793,13 @@ _process() {
       ;;
     deactivate) 
       deactivate "$_domain,$_altdomains"
-      ;;      
+      ;;
+    registeraccount) 
+      registeraccount
+      ;;
+    updateaccount) 
+      updateaccount
+      ;;
     list) 
       list "$_listraw"
       ;;
