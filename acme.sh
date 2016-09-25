@@ -2983,7 +2983,7 @@ _initconf() {
 
 
 #LOG_FILE=\"$DEFAULT_LOG_FILE\"
-LOG_LEVEL=1
+#LOG_LEVEL=1
 
 #AUTO_UPGRADE=\"1\"
 
