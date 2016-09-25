@@ -48,6 +48,12 @@ RENEW_SKIP=2
 ECC_SEP="_"
 ECC_SUFFIX="${ECC_SEP}ecc"
 
+LOG_LEVEL_1=1
+LOG_LEVEL_2=2
+LOG_LEVEL_3=3
+DEFAULT_LOG_LEVEL="$LOG_LEVEL_1"
+
+_DEBUG_WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-debug-acme.sh"
 
 __INTERACTIVE=""
 if [ -t 1 ] ; then
@@ -74,66 +80,65 @@ __red() {
   fi
 }
 
-__mytee() {
-  tee -a $1
+
+_printargs() {
+  if [ -z "$2" ] ; then
+    printf -- "[$(date)] $1"
+  else
+    printf -- "[$(date)] $1='$2'"
+  fi
+  printf "\n"
+}
+
+
+_log() {
+  [ -z "$LOG_FILE" ] && return
+  _printargs "$@" >> "$LOG_FILE"
 }
 
 _info() {
-  if [ -z "$2" ] ; then
-    printf -- "[$(date)] $1" |  __mytee $LOG_FILE
-  else
-    printf -- "[$(date)] $1='$2'" | __mytee $LOG_FILE
-  fi
-  printf "\n" | __mytee  $LOG_FILE
+  _log "$@"
+  _printargs "$@"
 }
 
-
-_err_e() {
-  if [ -z "$2" ] ; then
-    __red "$1" | __mytee  $LOG_FILE >&2
-  else
-    __red "$1='$2'" | __mytee  $LOG_FILE >&2
-  fi
-  printf "\n" | __mytee  $LOG_FILE >&2
-}
 
 _err() {
-  printf -- "[$(date)] " | __mytee  $LOG_FILE >&2
-  _err_e "$@"
+  _log "$@"
+  __red "$(_printargs "$@")"  >&2
   return 1
 }
 
 _usage() {
-  _err_e "$@"
+  __red "$@"
 }
 
+
 _debug() {
+  if [ -z "$LOG_LEVEL" ] || [ "$LOG_LEVEL" -ge "$LOG_LEVEL_1" ] ; then
+    _log "$@"
+  fi
   if [ -z "$DEBUG" ] ; then
     return
   fi
-  
-  if [ -z "$2" ] ; then
-    printf -- "[$(date)] $1" | __mytee  $LOG_FILE >&2
-  else
-    printf -- "[$(date)] $1='$2'" | __mytee  $LOG_FILE >&2
-  fi
-  
-  printf "\n" | __mytee  $LOG_FILE >&2
-  return 0
+  _printargs "$@" >&2
 }
 
 _debug2() {
+  if [ "$LOG_LEVEL" ] && [ "$LOG_LEVEL" -ge "$LOG_LEVEL_2" ] ; then
+    _log "$@"
+  fi
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
     _debug "$@"
   fi
-  return
 }
 
 _debug3() {
+  if [ "$LOG_LEVEL" ] && [ "$LOG_LEVEL" -ge "$LOG_LEVEL_3" ] ; then
+    _log "$@"
+  fi
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "3" ] ; then
     _debug "$@"
   fi
-  return
 }
 
 _startswith(){
@@ -1726,6 +1731,13 @@ _on_before_issue() {
 }
 
 _on_issue_err() {
+  if [ "$LOG_FILE" ] ; then
+    _err "Please check log file for more details: $LOG_FILE"
+  else
+    _err "Please use add '--debug' or '--log' to check more details."
+    _err "See: $_DEBUG_WIKI"
+  fi
+  
   #run the post hook
   if [ "$Le_PostHook" ] ; then
     _info "Run post hook:'$Le_PostHook'"
@@ -2971,6 +2983,7 @@ _initconf() {
 
 
 #LOG_FILE=\"$DEFAULT_LOG_FILE\"
+LOG_LEVEL=1
 
 #AUTO_UPGRADE=\"1\"
 
@@ -3312,6 +3325,7 @@ Parameters:
   --keylength, -k [2048]            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384.
   --accountkeylength, -ak [2048]    Specifies the account key length.
   --log    [/path/to/logfile]       Specifies the log file. The default is: \"$DEFAULT_LOG_FILE\" if you don't give a file path here.
+  --log-level 1|2                   Specifies the log level, default is 1.
   
   These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
   
@@ -3442,6 +3456,7 @@ _process() {
   _logfile=""
   _log=""
   _local_address=""
+  _log_level=""
   while [ ${#} -gt 0 ] ; do
     case "${1}" in
     
@@ -3739,8 +3754,15 @@ _process() {
           shift
         fi
         LOG_FILE="$_logfile"
+        if [ -z "$LOG_LEVEL" ] ; then
+          LOG_LEVEL="$DEFAULT_LOG_LEVEL"
+        fi
         ;;
-
+    --log-level)
+        _log_level="$1"
+        LOG_LEVEL="$_log_level"
+        shift
+        ;;
     *)
         _err "Unknown parameter : $1"
         return 1
@@ -3759,6 +3781,12 @@ _process() {
       _saveaccountconf "LOG_FILE" "$_logfile"
     fi
     LOG_FILE="$_logfile"
+
+    if [ "$_log_level" ] ; then
+      _saveaccountconf "LOG_LEVEL" "$_log_level"
+      LOG_LEVEL="$_log_level"
+    fi
+    
     _processAccountConf
   fi
  
@@ -3836,6 +3864,10 @@ _process() {
         LOG_FILE="$DEFAULT_LOG_FILE"
       fi
       _saveaccountconf "LOG_FILE" "$LOG_FILE"
+    fi
+    
+    if [ "$_log_level" ] ; then
+      _saveaccountconf "LOG_LEVEL" "$_log_level"
     fi
     _processAccountConf
   fi
