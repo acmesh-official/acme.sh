@@ -104,7 +104,7 @@ _info() {
 
 _err() {
   _log "$@"
-  __red "$(_printargs "$@")"  >&2
+  __red "$(_printargs "$@")\n"  >&2
   return 1
 }
 
@@ -3407,13 +3407,13 @@ upgrade() {
 _processAccountConf() {
   if [ "$_useragent" ] ; then
     _saveaccountconf "USER_AGENT" "$_useragent"
-  elif [ "$USER_AGENT" != "$DEFAULT_USER_AGENT" ] ; then
+  elif [ "$USER_AGENT" ] && [ "$USER_AGENT" != "$DEFAULT_USER_AGENT" ] ; then
     _saveaccountconf "USER_AGENT" "$USER_AGENT"
   fi
   
   if [ "$_accountemail" ] ; then
     _saveaccountconf "ACCOUNT_EMAIL" "$_accountemail"
-  elif [ "$ACCOUNT_EMAIL" != "$DEFAULT_ACCOUNT_EMAIL" ] ; then
+  elif [ "$ACCOUNT_EMAIL" ] && [ "$ACCOUNT_EMAIL" != "$DEFAULT_ACCOUNT_EMAIL" ] ; then
     _saveaccountconf "ACCOUNT_EMAIL" "$ACCOUNT_EMAIL"
   fi
   
