@@ -1646,7 +1646,7 @@ _clearupwebbroot() {
 }
 
 _on_before_issue() {
-
+  _debug _on_before_issue
   if _hasfield "$Le_Webroot" "$NO_VALUE" ; then
     if ! _exists "nc" ; then
       _err "Please install netcat(nc) tools first."
@@ -1731,6 +1731,7 @@ _on_before_issue() {
 }
 
 _on_issue_err() {
+  _debug _on_issue_err
   if [ "$LOG_FILE" ] ; then
     _err "Please check log file for more details: $LOG_FILE"
   else
@@ -1751,6 +1752,7 @@ _on_issue_err() {
 }
 
 _on_issue_success() {
+  _debug _on_issue_success
   #run the post hook
   if [ "$Le_PostHook" ] ; then
     _info "Run post hook:'$Le_PostHook'"
@@ -2096,20 +2098,17 @@ issue() {
         (
           if ! . $d_api ; then
             _err "Load file $d_api error. Please check your api file and try again."
-            _on_issue_err
             return 1
           fi
           
           addcommand="${_currentRoot}_add"
           if ! _exists $addcommand ; then 
             _err "It seems that your api file is not correct, it must have a function named: $addcommand"
-            _on_issue_err
             return 1
           fi
           
           if ! $addcommand $txtdomain $txt ; then
             _err "Error add txt for domain:$txtdomain"
-            _on_issue_err
             return 1
           fi
         )
