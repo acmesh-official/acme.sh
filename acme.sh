@@ -1948,6 +1948,7 @@ issue() {
   if [ "$Le_Webroot" = "dns-cx" ] ; then
     Le_Webroot="dns_cx"
   fi
+  _debug "Using api: $API"
   
   if [ ! "$IS_RENEW" ] ; then
     _initpath $Le_Domain "$Le_Keylength"
