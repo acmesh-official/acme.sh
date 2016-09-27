@@ -3755,7 +3755,7 @@ _process() {
         fi
         ;;
     --log-level)
-        _log_level="$1"
+        _log_level="$2"
         LOG_LEVEL="$_log_level"
         shift
         ;;
