@@ -104,7 +104,8 @@ _info() {
 
 _err() {
   _log "$@"
-  __red "$(_printargs "$@")\n"  >&2
+  __red "$(_printargs "$@")"  >&2
+  printf "\n" >&2
   return 1
 }
 
@@ -844,8 +845,11 @@ _time() {
 
 _mktemp() {
   if _exists mktemp ; then
-    mktemp
-    return
+    if mktemp 2>/dev/null ; then
+      return
+    elif _contains "$(mktemp 2>&1)" "-t prefix" && mktemp -t "$PROJECT_NAME" 2>/dev/null ; then
+      return
+    fi
   fi
   if [ -d "/tmp" ] ; then
     echo "/tmp/${PROJECT_NAME}wefADf24sf.$(_time).tmp"
