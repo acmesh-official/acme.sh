@@ -302,6 +302,17 @@ You can update acme.sh to the latest code:
 acme.sh --upgrade
 ```
 
+You can enable auto upgrade:
+```
+acme.sh  --upgrade  --auto-upgrade
+```
+Then **acme.sh** will keep up to date automatically.
+
+Disable auto upgrade:
+```
+acme.sh  --upgrade  --auto-upgrade 0
+```
+
 # 12. Issue a cert from an existing CSR
 
 https://github.com/Neilpang/acme.sh/wiki/Issue-a-cert-from-existing-CSR
