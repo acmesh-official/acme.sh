@@ -1974,6 +1974,9 @@ issue() {
   _savedomainconf "Le_RenewHook"     "$Le_RenewHook"
   _savedomainconf "Le_LocalAddress"     "$Le_LocalAddress"
   
+  Le_API="$API"
+  _savedomainconf "Le_API" "$Le_API"
+  
   if [ "$Le_Alt" = "$NO_VALUE" ] ; then
     Le_Alt=""
   fi
@@ -2490,9 +2493,7 @@ issue() {
   
   Le_NextRenewTime=$(_math $Le_NextRenewTime - 86400)
   _savedomainconf "Le_NextRenewTime"   "$Le_NextRenewTime"
-  
-  Le_API="$API"
-  _savedomainconf "Le_API" "$Le_API"
+
   
   _on_issue_success
 
