@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.5.8
+VER=2.6.0
 
 PROJECT_NAME="acme.sh"
 
@@ -854,6 +854,7 @@ _mktemp() {
     if mktemp 2>/dev/null ; then
       return
     elif _contains "$(mktemp 2>&1)" "-t prefix" && mktemp -t "$PROJECT_NAME" 2>/dev/null ; then
+      #for Mac osx
       return
     fi
   fi
@@ -1351,6 +1352,8 @@ __initHome() {
   fi
   
   DEFAULT_LOG_FILE="$LE_WORKING_DIR/$PROJECT_NAME.log"
+  
+  DEFAULT_CA_HOME="$LE_WORKING_DIR/ca"
 }
 
 #[domain]  [keylength]
@@ -1368,6 +1371,10 @@ _initpath() {
       export PATH="$USER_PATH:$PATH"
     fi
   fi
+  
+  if [ -z "$CA_HOME" ] ; then
+    CA_HOME="$DEFAULT_CA_HOME"
+  fi
 
   if [ -z "$API" ] ; then
     if [ -z "$STAGE" ] ; then
@@ -1378,6 +1385,19 @@ _initpath() {
     fi  
   fi
   
+  _API_HOST="$(echo "$API" | cut -d : -f 2 | tr -d '/')"
+  CA_DIR="$CA_HOME/$_API_HOST"
+  
+  _DEFAULT_CA_CONF="$CA_DIR/ca.conf"
+  
+  if [ -z "$CA_CONF" ] ; then
+    CA_CONF="$_DEFAULT_CA_CONF"
+  fi
+  
+  if [ -f "$CA_CONF" ] ; then
+    . "$CA_CONF"
+  fi
+
   if [ -z "$ACME_DIR" ] ; then
     ACME_DIR="/home/.acme"
   fi
@@ -1394,10 +1414,19 @@ _initpath() {
     HTTP_HEADER="$LE_WORKING_DIR/http.header"
   fi
 
-  _DEFAULT_ACCOUNT_KEY_PATH="$LE_WORKING_DIR/account.key"
+  _OLD_ACCOUNT_KEY="$LE_WORKING_DIR/account.key"
+  _OLD_ACCOUNT_JSON="$LE_WORKING_DIR/account.json"
+  
+  _DEFAULT_ACCOUNT_KEY_PATH="$CA_DIR/account.key"
+  _DEFAULT_ACCOUNT_JSON_PATH="$CA_DIR/account.json"
   if [ -z "$ACCOUNT_KEY_PATH" ] ; then
     ACCOUNT_KEY_PATH="$_DEFAULT_ACCOUNT_KEY_PATH"
   fi
+  
+  if [ -z "$ACCOUNT_JSON_PATH" ] ; then
+    ACCOUNT_JSON_PATH="$_DEFAULT_ACCOUNT_JSON_PATH"
+  fi
+  
   
   _DEFAULT_CERT_HOME="$LE_WORKING_DIR"
   if [ -z "$CERT_HOME" ] ; then
@@ -1407,6 +1436,9 @@ _initpath() {
   if [ -z "$1" ] ; then
     return 0
   fi
+  
+  mkdir -p "$CA_DIR"
+  
   domain="$1"
   _ilength="$2"
 
@@ -1799,6 +1831,17 @@ registeraccount() {
 
 _regAccount() {
   _initpath
+  
+  if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
+    _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
+    mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
+  fi
+  
+  if [ ! -f "$ACCOUNT_JSON_PATH" ] && [ -f "$_OLD_ACCOUNT_JSON" ]; then
+    _info "mv $_OLD_ACCOUNT_JSON to $ACCOUNT_JSON_PATH"
+    mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
+  fi
+  
   if [ ! -f "$ACCOUNT_KEY_PATH" ] ; then
     _acck="no"
     if [ "$Le_Keylength" ] ; then
@@ -1837,7 +1880,7 @@ _regAccount() {
       fi
 
       if [ "$code" = "" ] || [ "$code" = '201' ] ; then
-        echo "$response" > $LE_WORKING_DIR/account.json
+        echo "$response" > $ACCOUNT_JSON_PATH
         _info "Registered"
       elif [ "$code" = '409' ] ; then
         _info "Already registered"
@@ -1911,6 +1954,7 @@ issue() {
   if [ "$Le_Webroot" = "dns-cx" ] ; then
     Le_Webroot="dns_cx"
   fi
+  _debug "Using api: $API"
   
   if [ ! "$IS_RENEW" ] ; then
     _initpath $Le_Domain "$Le_Keylength"
@@ -1935,6 +1979,9 @@ issue() {
   _savedomainconf "Le_PostHook"     "$Le_PostHook"
   _savedomainconf "Le_RenewHook"     "$Le_RenewHook"
   _savedomainconf "Le_LocalAddress"     "$Le_LocalAddress"
+  
+  Le_API="$API"
+  _savedomainconf "Le_API" "$Le_API"
   
   if [ "$Le_Alt" = "$NO_VALUE" ] ; then
     Le_Alt=""
@@ -2452,6 +2499,7 @@ issue() {
   
   Le_NextRenewTime=$(_math $Le_NextRenewTime - 86400)
   _savedomainconf "Le_NextRenewTime"   "$Le_NextRenewTime"
+
   
   _on_issue_success
 
@@ -2484,6 +2532,11 @@ renew() {
   fi
 
   . "$DOMAIN_CONF"
+  
+  if [ "$Le_API" ] ; then
+    API="$Le_API"
+  fi
+  
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ] ; then 
     _info "Skip, Next renewal time is: $(__green "$Le_NextRenewTimeStr")"
     _info "Add '$(__red '--force')' to force to renew."
