@@ -104,13 +104,19 @@ _info() {
 
 _err() {
   _log "$@"
-  __red "$(_printargs "$@")"  >&2
+  printf -- "[$(date)] " >&2
+  if [ -z "$2" ] ; then
+    __red "$1" >&2
+  else
+    __red "$1='$2'" >&2
+  fi
   printf "\n" >&2
   return 1
 }
 
 _usage() {
-  __red "$@"
+  __red "$@"  >&2
+  printf "\n" >&2
 }
 
 
