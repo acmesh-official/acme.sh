@@ -3312,7 +3312,7 @@ uninstall() {
 cron() {
   IN_CRON=1
   _initpath
-  if [ "$AUTO_UPGRADE" ] ; then
+  if [ "$AUTO_UPGRADE" = "1" ] ; then
     export LE_WORKING_DIR
     (
      if ! upgrade ; then
@@ -3416,6 +3416,7 @@ Parameters:
   --post-hook                       Command to be run after attempting to obtain/renew certificates. No matter the obain/renew is success or failed.
   --renew-hook                      Command to be run once for each successfully renewed certificate.
   --ocsp-must-staple, --ocsp        Generate ocsp must Staple extension.
+  --auto-upgrade   [0|1]            Valid for '--upgrade' command, indicating whether to upgrade automatically in future.
   "
 }
 
@@ -3479,6 +3480,12 @@ _processAccountConf() {
     _saveaccountconf "ACCOUNT_EMAIL" "$ACCOUNT_EMAIL"
   fi
   
+  if [ "$_auto_upgrade" ] ; then
+    _saveaccountconf "AUTO_UPGRADE" "$_auto_upgrade"
+  elif [ "$AUTO_UPGRADE" ] ; then
+    _saveaccountconf "AUTO_UPGRADE" "$AUTO_UPGRADE"
+  fi
+  
 }
 
 _process() {
@@ -3516,6 +3523,7 @@ _process() {
   _log=""
   _local_address=""
   _log_level=""
+  _auto_upgrade=""
   while [ ${#} -gt 0 ] ; do
     case "${1}" in
     
@@ -3807,7 +3815,7 @@ _process() {
     --log|--logfile)
         _log="1"
         _logfile="$2"
-        if [ -z "$_logfile" ] || _startswith "$_logfile" '-' ; then
+        if _startswith "$_logfile" '-' ; then
           _logfile=""
         else
           shift
@@ -3822,6 +3830,16 @@ _process() {
         LOG_LEVEL="$_log_level"
         shift
         ;;
+    --auto-upgrade)
+        _auto_upgrade="$2"
+        if [ -z "$_auto_upgrade" ] || _startswith "$_auto_upgrade" '-' ;  then
+          _auto_upgrade="1"
+        else
+          shift
+        fi
+        AUTO_UPGRADE="$_auto_upgrade"
+        ;;
+        
     *)
         _err "Unknown parameter : $1"
         return 1
