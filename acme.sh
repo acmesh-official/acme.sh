@@ -2597,10 +2597,11 @@ signcsr(){
   _initpath
 
   _csrsubj=$(_readSubjectFromCSR "$_csrfile")
-  if [ "$?" != "0" ] || [ -z "$_csrsubj" ] ; then
+  if [ "$?" != "0" ] ; then
     _err "Can not read subject from csr: $_csrfile"
     return 1
   fi
+  _debug _csrsubj "$_csrsubj"
 
   _csrdomainlist=$(_readSubjectAltNamesFromCSR "$_csrfile")
   if [ "$?" != "0" ] ; then
@@ -2608,6 +2609,19 @@ signcsr(){
     return 1
   fi
   _debug "_csrdomainlist" "$_csrdomainlist"
+  
+    
+  if [ -z "$_csrsubj" ] ; then
+    _csrsubj="$(_getfield "$_csrdomainlist" 1)"
+    _debug _csrsubj "$_csrsubj"
+    _csrdomainlist="$(echo "$_csrdomainlist" | cut -d , -f 2-)"
+    _debug "_csrdomainlist" "$_csrdomainlist"
+  fi
+  
+  if [ -z "$_csrsubj" ] ; then
+    _err "Can not read subject from csr: $_csrfile"
+    return 1
+  fi
   
   _csrkeylength=$(_readKeyLengthFromCSR "$_csrfile")
   if [ "$?" != "0" ] || [ -z "$_csrkeylength" ] ; then
