@@ -1049,7 +1049,7 @@ _send_signed_request() {
   
   _debug3 _headers "$_headers"
   
-  nonce="$( echo "$_headers" | grep "Replay-Nonce:" | head -1 | tr -d "\r\n " | cut -d ':' -f 2)"
+  nonce="$( echo "$_headers" | grep "Replay-Nonce:" | head -n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
 
   _debug3 nonce "$nonce"
   
@@ -2412,7 +2412,7 @@ issue() {
   fi
   
   _rcert="$response"
-  Le_LinkCert="$(grep -i '^Location.*$' $HTTP_HEADER | head -1 | tr -d "\r\n" | cut -d " " -f 2)"
+  Le_LinkCert="$(grep -i '^Location.*$' $HTTP_HEADER | head -n 1 | tr -d "\r\n" | cut -d " " -f 2)"
   _savedomainconf "Le_LinkCert"  "$Le_LinkCert"
 
   if [ "$Le_LinkCert" ] ; then
@@ -2451,7 +2451,7 @@ issue() {
   
   _cleardomainconf  "Le_Vlist"
   
-  Le_LinkIssuer=$(grep -i '^Link' $HTTP_HEADER | head -1 | cut -d " " -f 2| cut -d ';' -f 1 | tr -d '<>' )
+  Le_LinkIssuer=$(grep -i '^Link' $HTTP_HEADER | head -n 1 | cut -d " " -f 2| cut -d ';' -f 1 | tr -d '<>' )
   if ! _contains "$Le_LinkIssuer" ":" ; then
     Le_LinkIssuer="$API$Le_LinkIssuer"
   fi

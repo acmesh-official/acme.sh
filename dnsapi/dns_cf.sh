@@ -61,7 +61,7 @@ dns_cf_add(){
     _err "Add txt record error."
   else
     _info "Updating record"
-    record_id=$(printf "%s\n" "$response" | _egrep_o \"id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \"| head -1)
+    record_id=$(printf "%s\n" "$response" | _egrep_o \"id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \"| head -n 1)
     _debug "record_id" $record_id
     
     _cf_rest PUT "zones/$_domain_id/dns_records/$record_id"  "{\"id\":\"$record_id\",\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"zone_id\":\"$_domain_id\",\"zone_name\":\"$_domain\"}"
@@ -103,7 +103,7 @@ _get_root() {
     fi
     
     if printf $response | grep \"name\":\"$h\" >/dev/null ; then
-      _domain_id=$(printf "%s\n" "$response" | _egrep_o \"id\":\"[^\"]*\" | head -1 | cut -d : -f 2 | tr -d \")
+      _domain_id=$(printf "%s\n" "$response" | _egrep_o \"id\":\"[^\"]*\" | head -n 1 | cut -d : -f 2 | tr -d \")
       if [ "$_domain_id" ] ; then
         _sub_domain=$(printf $domain | cut -d . -f 1-$p)
         _domain=$h
