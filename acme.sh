@@ -1250,16 +1250,15 @@ _stopserver(){
 _sleep() {
   _sleep_sec="$1"
   if [ "$__INTERACTIVE" ] ; then
-    printf "\n"
     _sleep_c="$_sleep_sec"
     while [ "$_sleep_c" -ge "0" ] ;
     do 
-      printf "\r"
+      printf "\r      \r"
       __green "$_sleep_c"
       _sleep_c="$(_math $_sleep_c - 1)"
       sleep 1
     done
-    printf "\n"
+    printf "\r"
   else
     sleep "$_sleep_sec"
   fi
@@ -1308,7 +1307,7 @@ _starttlsserver() {
   fi
 
   serverproc="$!"
-  _sleep 2
+  sleep 2
   _debug serverproc $serverproc
 }
 
