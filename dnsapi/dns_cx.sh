@@ -69,7 +69,7 @@ existing_records() {
     return 1
   fi
   count=0
-  seg=$(printf "%s\n" "$response" | _egrep_o "{[^{]*host\":\"$_sub_domain\"[^}]*}")
+  seg=$(printf "%s\n" "$response" | _egrep_o "{[^\{]*host\":\"$_sub_domain\"[^\}]*\}")
   _debug seg "$seg"
   if [ -z "$seg" ] ; then
     return 0
@@ -145,7 +145,7 @@ _get_root() {
     fi
 
     if printf "$response" | grep "$h." >/dev/null ; then
-      seg=$(printf "%s" "$response" | _egrep_o "{[^{]*\"$h\.\"[^}]*\}" )
+      seg=$(printf "%s" "$response" | _egrep_o "\{[^\{]*\"$h\.\"[^\}]*\}" )
       _debug seg "$seg"
       _domain_id=$(printf "%s" "$seg" | _egrep_o \"id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \")
       _debug _domain_id "$_domain_id"

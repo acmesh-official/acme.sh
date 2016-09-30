@@ -1246,6 +1246,24 @@ _stopserver(){
   fi
 }
 
+# sleep sec
+_sleep() {
+  _sleep_sec="$1"
+  if [ "$__INTERACTIVE" ] ; then
+    printf "\n"
+    _sleep_c="$_sleep_sec"
+    while [ "$_sleep_c" -ge "0" ] ;
+    do 
+      printf "\r"
+      __green "$_sleep_c"
+      _sleep_c="$(_math $_sleep_c - 1)"
+      sleep 1
+    done
+    printf "\n"
+  else
+    sleep "$_sleep_sec"
+  fi
+}
 
 # _starttlsserver  san_a  san_b port content
 _starttlsserver() {
@@ -1290,7 +1308,7 @@ _starttlsserver() {
   fi
 
   serverproc="$!"
-  sleep 2
+  _sleep 2
   _debug serverproc $serverproc
 }
 
@@ -2070,7 +2088,7 @@ issue() {
         return 1
       fi
 
-      entry="$(printf "%s\n" "$response" | _egrep_o  '[^{]*"type":"'$vtype'"[^}]*')"
+      entry="$(printf "%s\n" "$response" | _egrep_o  '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
       if [ -z "$entry" ] ; then
         _err "Error, can not get domain token $d"
@@ -2198,7 +2216,7 @@ issue() {
     fi
 
     _info "Sleep $(__green $Le_DNSSleep) seconds for the txt records to take effect"
-    sleep $Le_DNSSleep
+    _sleep $Le_DNSSleep
   fi
   
   _debug "ok, let's start to verify"
@@ -2366,7 +2384,7 @@ issue() {
       fi
       
       if [ "$status" = "invalid" ] ; then
-         error="$(echo "$response" | _egrep_o '"error":\{[^}]*}')"
+         error="$(echo "$response" | _egrep_o '"error":\{[^\}]*\}')"
          _debug2 error "$error"
          errordetail="$(echo $error |  _egrep_o '"detail": *"[^"]*"' | cut -d '"' -f 4)"
          _debug2 errordetail "$errordetail"
@@ -2944,7 +2962,7 @@ _deactivate() {
       return 1
     fi
     
-    entry="$(printf "%s\n" "$response" | _egrep_o  '[^{]*"status":"valid","uri"[^}]*')"
+    entry="$(printf "%s\n" "$response" | _egrep_o  '[^\{]*"status":"valid","uri"[^\}]*')"
     _debug entry "$entry"
     
     if [ -z "$entry" ] ; then
