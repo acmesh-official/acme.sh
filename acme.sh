@@ -1307,9 +1307,9 @@ _starttlsserver() {
     return 1
   fi
   
-  __S_OPENSSL="openssl s_server -cert \"$TLS_CERT\"  -key \"$TLS_KEY\" "
+  __S_OPENSSL="openssl s_server -cert $TLS_CERT  -key $TLS_KEY "
   if [ "$opaddr" ] ; then
-    __S_OPENSSL="$__S_OPENSSL -accept \"$opaddr:$port\""
+    __S_OPENSSL="$__S_OPENSSL -accept $opaddr:$port"
   else
     __S_OPENSSL="$__S_OPENSSL -accept $port"
   fi
