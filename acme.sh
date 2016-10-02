@@ -2022,15 +2022,6 @@ issue() {
   _savedomainconf "Le_LocalAddress"     "$Le_LocalAddress"
   
 
-  if [ "$Le_Listen_V4" ] ; then
-    _savedomainconf "Le_Listen_V4"     "$Le_Listen_V4"
-    _cleardomainconf Le_Listen_V6
-  elif [ "$Le_Listen_V6" ] ; then
-    _savedomainconf "Le_Listen_V6"     "$Le_Listen_V6"
-    _cleardomainconf Le_Listen_V4
-  fi
-  
-  
   Le_API="$API"
   _savedomainconf "Le_API" "$Le_API"
   
@@ -2542,6 +2533,14 @@ issue() {
     _clearaccountconf  "HTTPS_INSECURE"
   fi
 
+  if [ "$Le_Listen_V4" ] ; then
+    _savedomainconf "Le_Listen_V4"     "$Le_Listen_V4"
+    _cleardomainconf Le_Listen_V6
+  elif [ "$Le_Listen_V6" ] ; then
+    _savedomainconf "Le_Listen_V6"     "$Le_Listen_V6"
+    _cleardomainconf Le_Listen_V4
+  fi
+  
   Le_NextRenewTime=$(_math $Le_CertCreateTime + $Le_RenewalDays \* 24 \* 60 \* 60)
   
   
