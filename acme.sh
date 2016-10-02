@@ -1199,8 +1199,16 @@ _startserver() {
     fi
   fi
 
-  _debug "_NC" "$_NC"
   _debug Le_HTTPPort "$Le_HTTPPort"
+  _debug Le_Listen_V4 "$Le_Listen_V4"
+  _debug Le_Listen_V6 "$Le_Listen_V6"
+  if [ "$Le_Listen_V4" ] ; then
+    _NC="$_NC -4"
+  elif [ "$Le_Listen_V6" ] ; then
+    _NC="$_NC -6"
+  fi
+  _debug "_NC" "$_NC"
+
 #  while true ; do
     if [ "$DEBUG" ] ; then
       if ! printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort ; then
@@ -1264,13 +1272,14 @@ _sleep() {
   fi
 }
 
-# _starttlsserver  san_a  san_b port content
+# _starttlsserver  san_a  san_b port content _ncaddr
 _starttlsserver() {
   _info "Starting tls server."
   san_a="$1"
   san_b="$2"
   port="$3"
   content="$4"
+  opaddr="$5"
   
   _debug san_a "$san_a"
   _debug san_b "$san_b"
@@ -1298,12 +1307,27 @@ _starttlsserver() {
     return 1
   fi
   
-  #start openssl
-  _debug "openssl s_server -cert \"$TLS_CERT\"  -key \"$TLS_KEY\" -accept $port  -tlsextdebug"
-  if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
-    (printf "HTTP/1.1 200 OK\r\n\r\n$content" | openssl s_server -cert "$TLS_CERT"  -key "$TLS_KEY" -accept $port -tlsextdebug ) &
+  __S_OPENSSL="openssl s_server -cert \"$TLS_CERT\"  -key \"$TLS_KEY\" "
+  if [ "$opaddr" ] ; then
+    __S_OPENSSL="$__S_OPENSSL -accept \"$opaddr:$port\""
   else
-    (printf "HTTP/1.1 200 OK\r\n\r\n$content" | openssl s_server -cert "$TLS_CERT"  -key "$TLS_KEY" -accept $port  >/dev/null 2>&1) &
+    __S_OPENSSL="$__S_OPENSSL -accept $port"
+  fi
+
+  _debug Le_Listen_V4 "$Le_Listen_V4"
+  _debug Le_Listen_V6 "$Le_Listen_V6"
+  if [ "$Le_Listen_V4" ] ; then
+    __S_OPENSSL="$__S_OPENSSL -4"
+  elif [ "$Le_Listen_V6" ] ; then
+    __S_OPENSSL="$__S_OPENSSL -6"
+  fi
+  
+  #start openssl
+  _debug "$__S_OPENSSL"
+  if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
+    (printf "HTTP/1.1 200 OK\r\n\r\n$content" | $__S_OPENSSL  -tlsextdebug ) &
+  else
+    (printf "HTTP/1.1 200 OK\r\n\r\n$content" | $__S_OPENSSL  >/dev/null 2>&1) &
   fi
 
   serverproc="$!"
@@ -1996,6 +2020,16 @@ issue() {
   _savedomainconf "Le_PostHook"     "$Le_PostHook"
   _savedomainconf "Le_RenewHook"     "$Le_RenewHook"
   _savedomainconf "Le_LocalAddress"     "$Le_LocalAddress"
+  
+
+  if [ "$Le_Listen_V4" ] ; then
+    _savedomainconf "Le_Listen_V4"     "$Le_Listen_V4"
+    _cleardomainconf Le_Listen_V6
+  elif [ "$Le_Listen_V6" ] ; then
+    _savedomainconf "Le_Listen_V6"     "$Le_Listen_V6"
+    _cleardomainconf Le_Listen_V4
+  fi
+  
   
   Le_API="$API"
   _savedomainconf "Le_API" "$Le_API"
@@ -3435,7 +3469,7 @@ Parameters:
   --days                            Specifies the days to renew the cert when using '--issue' command. The max value is $MAX_RENEW days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
-  --local-address                   Specifies the standalone server listening address, in case you have multiple ip addresses.
+  --local-address                   Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
   --listraw                         Only used for '--list' command, list the certs in raw format.
   --stopRenewOnError, -se           Only valid for '--renewall' command. Stop if one cert has error in renewal.
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
@@ -3448,6 +3482,8 @@ Parameters:
   --renew-hook                      Command to be run once for each successfully renewed certificate.
   --ocsp-must-staple, --ocsp        Generate ocsp must Staple extension.
   --auto-upgrade   [0|1]            Valid for '--upgrade' command, indicating whether to upgrade automatically in future.
+  --listen-v4                       Force standalone/tls server to listen at ipv4.
+  --listen-v6                       Force standalone/tls server to listen at ipv6.
   "
 }
 
@@ -3555,6 +3591,8 @@ _process() {
   _local_address=""
   _log_level=""
   _auto_upgrade=""
+  _listen_v4=""
+  _listen_v6=""
   while [ ${#} -gt 0 ] ; do
     case "${1}" in
     
@@ -3869,6 +3907,14 @@ _process() {
           shift
         fi
         AUTO_UPGRADE="$_auto_upgrade"
+        ;;
+    --listen-v4)
+        _listen_v4="1"
+        Le_Listen_V4="$_listen_v4"
+        ;;
+    --listen-v6)
+        _listen_v6="1"
+        Le_Listen_V6="$_listen_v6"
         ;;
         
     *)
