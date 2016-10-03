@@ -1027,6 +1027,13 @@ _get() {
   return $ret
 }
 
+_head_n() {
+  head -n $1
+}
+
+_tail_n() {
+  tail -n $1
+}
 
 # url  payload needbase64  keyfile
 _send_signed_request() {
@@ -1057,7 +1064,7 @@ _send_signed_request() {
   
   _debug3 _headers "$_headers"
   
-  nonce="$( echo "$_headers" | grep "Replay-Nonce:" | head -n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
+  nonce="$( echo "$_headers" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
 
   _debug3 nonce "$nonce"
   
@@ -1087,7 +1094,7 @@ _send_signed_request() {
   
   _debug2 responseHeaders "$responseHeaders"
   _debug2 response  "$response"
-  code="$(grep "^HTTP" $HTTP_HEADER | tail -1 | cut -d " " -f 2 | tr -d "\r\n" )"
+  code="$(grep "^HTTP" $HTTP_HEADER | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n" )"
   _debug code $code
 
 }
@@ -1938,10 +1945,10 @@ _regAccount() {
         return 1
       fi
 
-      _accUri="$(echo "$responseHeaders" | grep "^Location:" | cut -d ' ' -f 2| tr -d "\r\n")"
+      _accUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2| tr -d "\r\n")"
       _debug "_accUri" "$_accUri"
 
-      _tos="$(echo "$responseHeaders" | grep "^Link:.*rel=\"terms-of-service\"" | _egrep_o "<.*>" | tr -d '<>')"
+      _tos="$(echo "$responseHeaders" | grep "^Link:.*rel=\"terms-of-service\"" | _head_n 1 | _egrep_o "<.*>" | tr -d '<>')"
       _debug "_tos" "$_tos"
       if [ -z "$_tos" ] ; then
         _debug "Use default tos: $DEFAULT_AGREEMENT"
@@ -2462,7 +2469,7 @@ issue() {
   fi
   
   _rcert="$response"
-  Le_LinkCert="$(grep -i '^Location.*$' $HTTP_HEADER | head -n 1 | tr -d "\r\n" | cut -d " " -f 2)"
+  Le_LinkCert="$(grep -i '^Location.*$' $HTTP_HEADER | _head_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
   _savedomainconf "Le_LinkCert"  "$Le_LinkCert"
 
   if [ "$Le_LinkCert" ] ; then
@@ -2501,7 +2508,7 @@ issue() {
   
   _cleardomainconf  "Le_Vlist"
   
-  Le_LinkIssuer=$(grep -i '^Link' $HTTP_HEADER | head -n 1 | cut -d " " -f 2| cut -d ';' -f 1 | tr -d '<>' )
+  Le_LinkIssuer=$(grep -i '^Link' $HTTP_HEADER | _head_n 1 | cut -d " " -f 2| cut -d ';' -f 1 | tr -d '<>' )
   if ! _contains "$Le_LinkIssuer" ":" ; then
     Le_LinkIssuer="$API$Le_LinkIssuer"
   fi
@@ -2994,7 +3001,7 @@ _deactivate() {
       return 1
     fi
     
-    authzUri="$(echo "$responseHeaders" | grep "^Location:" | cut -d ' ' -f 2 | tr -d "\r\n")"
+    authzUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
     _debug "authzUri" "$authzUri"
 
     if [ ! -z "$code" ] && [ ! "$code" = '201' ] ; then
