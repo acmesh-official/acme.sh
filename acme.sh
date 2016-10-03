@@ -952,6 +952,10 @@ _post() {
       fi
     fi
     _ret="$?"
+    if [ "$_ret" = "8" ] ; then
+      _ret=0
+      _debug "wget returns 8, the server returns a 'Bad request' respons, lets process the response later."
+    fi
     if [ "$_ret" != "0" ] ; then
       _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret" 
     fi
@@ -1008,6 +1012,10 @@ _get() {
       $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1"    -O - $url
     fi
     ret=$?
+    if [ "$_ret" = "8" ] ; then
+      _ret=0
+      _debug "wget returns 8, the server returns a 'Bad request' respons, lets process the response later."
+    fi
     if [ "$ret" != "0" ] ; then
       _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $ret" 
     fi
@@ -1068,7 +1076,7 @@ _send_signed_request() {
 
   response="$(_post "$body" $url "$needbase64")"
   if [ "$?" != "0" ] ; then
-    _err "Can not post to $url."
+    _err "Can not post to $url"
     return 1
   fi
   _debug2 original "$response"
