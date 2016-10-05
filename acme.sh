@@ -2024,9 +2024,18 @@ issue() {
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
     _debug Le_NextRenewTime "$Le_NextRenewTime"
     if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ $(_time) -lt $Le_NextRenewTime ] ; then 
-      _info "Skip, Next renewal time is: $(__green "$(_readdomainconf Le_NextRenewTimeStr)")"
-      _info "Add '$(__red '--force')' to force to renew."    
-      return $RENEW_SKIP
+      _saved_domain=$(_readdomainconf Le_Domain)
+      _debug _saved_domain "$_saved_domain"
+      _saved_alt=$(_readdomainconf Le_Alt)
+      _debug _saved_alt "$_saved_alt"
+      if [ "$_saved_domain,$_saved_alt" = "$Le_Domain,$Le_Alt" ] ; then
+        _info "Domains not changed."
+        _info "Skip, Next renewal time is: $(__green "$(_readdomainconf Le_NextRenewTimeStr)")"
+        _info "Add '$(__red '--force')' to force to renew."    
+        return $RENEW_SKIP
+      else
+        _info "Domains have changed."
+      fi
     fi
   fi
 
