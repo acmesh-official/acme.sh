@@ -2029,12 +2029,12 @@ issue() {
       _saved_alt=$(_readdomainconf Le_Alt)
       _debug _saved_alt "$_saved_alt"
       if [ "$_saved_domain,$_saved_alt" = "$Le_Domain,$Le_Alt" ] ; then
-        _debug "Domains not changed."
+        _info "Domains not changed."
         _info "Skip, Next renewal time is: $(__green "$(_readdomainconf Le_NextRenewTimeStr)")"
         _info "Add '$(__red '--force')' to force to renew."    
         return $RENEW_SKIP
       else
-        _debug "Domains changed."
+        _info "Domains have changed."
       fi
     fi
   fi
