@@ -1032,7 +1032,10 @@ _head_n() {
 }
 
 _tail_n() {
-  tail -n $1
+  if ! tail -n $1 2>/dev/null ; then
+    #fix for solaris
+    tail -$1
+  fi
 }
 
 # url  payload needbase64  keyfile
