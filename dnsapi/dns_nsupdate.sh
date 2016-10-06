@@ -22,7 +22,6 @@ EOF
     return 1
   fi
   rm -f ${tmp}
-  [ -n "${NSUPDATE_LOG}" ] && echo "${fulldomain}" >> ${NSUPDATE_LOG}
   
   return 0
 }
