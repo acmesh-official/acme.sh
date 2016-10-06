@@ -1747,7 +1747,6 @@ _clearupwebbroot() {
 }
 
 _clearupdnsrr() {
-  _debug "_clearupdnsrr {$@}"
   [ "$1" -eq "1" ] || return 0
   [ -n "$2"  ] || return 0
   txtdomain="_acme-challenge.$2"
@@ -3231,6 +3230,11 @@ _initconf() {
 #GD_Key=\"sdfdsgdgdfdasfds\"
 #
 #GD_Secret=\"sADDsdasdfsdfdssdgdsf\"
+
+#######################
+#nsupdate:
+#NSUPDATE_KEY=\"/path/to/update.key\"
+#NSUPDATE_SERVER=\"192.168.0.1\"
 
     " > $ACCOUNT_CONF_PATH
   fi
