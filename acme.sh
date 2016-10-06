@@ -1746,6 +1746,58 @@ _clearupwebbroot() {
 
 }
 
+_clearupdnsrr() {
+  _debug "_clearupdnsrr {$@}"
+  [ "$1" -eq "1" ] || return 0
+  [ -n "$2"  ] || return 0
+  txtdomain="_acme-challenge.$2"
+
+  d_api=""
+  if [ -f "$LE_WORKING_DIR/$d/$_currentRoot" ] ; then
+    d_api="$LE_WORKING_DIR/$d/$_currentRoot"
+  elif [ -f "$LE_WORKING_DIR/$d/$_currentRoot.sh" ] ; then
+    d_api="$LE_WORKING_DIR/$d/$_currentRoot.sh"
+  elif [ -f "$LE_WORKING_DIR/$_currentRoot" ] ; then
+    d_api="$LE_WORKING_DIR/$_currentRoot"
+  elif [ -f "$LE_WORKING_DIR/$_currentRoot.sh" ] ; then
+    d_api="$LE_WORKING_DIR/$_currentRoot.sh"
+  elif [ -f "$LE_WORKING_DIR/dnsapi/$_currentRoot" ] ; then
+    d_api="$LE_WORKING_DIR/dnsapi/$_currentRoot"
+  elif [ -f "$LE_WORKING_DIR/dnsapi/$_currentRoot.sh" ] ; then
+    d_api="$LE_WORKING_DIR/dnsapi/$_currentRoot.sh"
+  fi
+  _debug d_api "$d_api"
+
+  if [ "$d_api" ] ; then
+    _info "Found domain api file: $d_api"
+  else
+    _err "Remove the following TXT record:"
+    _err "Domain: '$(__green $txtdomain)'"
+    _err "Please be aware that you prepend _acme-challenge. before your domain"
+    _err "so the resulting subdomain will be: $txtdomain"
+    return 0
+  fi
+
+  if ! . $d_api ; then
+    _err "Load file $d_api error. Please check your api file and try again."
+    return 1
+  fi
+
+  delcommand="${_currentRoot}_del"
+
+  if ! _exists $delcommand ; then
+    _err "It seems that your api file is not correct, it must have a function named: $delcommand"
+    return 1
+  fi
+
+  if ! $delcommand $txtdomain ; then
+    _err "Error del txt for domain:$txtdomain"
+    return 1
+  fi
+
+  return 0
+}
+
 _on_before_issue() {
   _debug _on_before_issue
   if _hasfield "$Le_Webroot" "$NO_VALUE" ; then
@@ -2381,6 +2433,7 @@ issue() {
     if ! _send_signed_request $uri "{\"resource\": \"challenge\", \"keyAuthorization\": \"$keyauthorization\"}" ; then
       _err "$d:Can not get challenge: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+      _clearupdnsrr $dnsadded $d
       _clearup
       _on_issue_err
       return 1
@@ -2389,6 +2442,7 @@ issue() {
     if [ ! -z "$code" ] && [ ! "$code" = '202' ] ; then
       _err "$d:Challenge error: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+      _clearupdnsrr $dnsadded $d
       _clearup
       _on_issue_err
       return 1
@@ -2404,6 +2458,7 @@ issue() {
       if [ "$waittimes" -ge "$MAX_RETRY_TIMES" ] ; then
         _err "$d:Timeout"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearupdnsrr $dnsadded $d
         _clearup
         _on_issue_err
         return 1
@@ -2416,6 +2471,7 @@ issue() {
       if [ "$?" != "0" ] ; then
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearupdnsrr $dnsadded $d
         _clearup
         _on_issue_err
         return 1
@@ -2431,6 +2487,7 @@ issue() {
         _stopserver $serverproc
         serverproc=""
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearupdnsrr $dnsadded $d
         break;
       fi
       
@@ -2451,6 +2508,7 @@ issue() {
            fi
          fi
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearupdnsrr $dnsadded $d
         _clearup
         _on_issue_err
         return 1;
@@ -2461,6 +2519,7 @@ issue() {
       else
         _err "$d:Verify error:$response" 
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearupdnsrr $dnsadded $d
         _clearup
         _on_issue_err
         return 1
