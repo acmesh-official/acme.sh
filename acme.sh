@@ -3331,7 +3331,7 @@ _installalias() {
 }
 
 # nocron
-install() {
+_install() {
 
   if [ -z "$LE_WORKING_DIR" ] ; then
     LE_WORKING_DIR="$DEFAULT_INSTALL_HOME"
@@ -3431,7 +3431,7 @@ install() {
 }
 
 # nocron
-uninstall() {
+_uninstall() {
   _nocron="$1"
   if [ -z "$_nocron" ] ; then
     uninstallcronjob
@@ -3603,7 +3603,7 @@ _installOnline() {
   )
 }
 
-upgrade() {
+_upgrade() {
   if (
     _initpath
     export LE_WORKING_DIR
@@ -4033,9 +4033,9 @@ _process() {
   fi
 
   case "${_CMD}" in
-    install) install "$_nocron" ;;
-    uninstall) uninstall "$_nocron" ;;
-    upgrade) upgrade ;;
+    install) _install "$_nocron" ;;
+    uninstall) _uninstall "$_nocron" ;;
+    upgrade) _upgrade ;;
     issue)
       issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address"
       ;;
