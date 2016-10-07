@@ -3440,20 +3440,17 @@ uninstall() {
 
   _profile="$(_detect_profile)"
   if [ "$_profile" ] ; then
-    text="$(cat $_profile)"
-    echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.env\"$||" > "$_profile"
+    sed -i "|/$LE_WORKING_DIR/$PROJECT_NAME\.env/d" "$_profile"
   fi
 
   _csh_profile="$HOME/.cshrc"
   if [ -f "$_csh_profile" ] ; then
-    text="$(cat $_csh_profile)"
-    echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.csh\"$||" > "$_csh_profile"
+    sed -i "|/$LE_WORKING_DIR/$PROJECT_NAME\.csh/d" "$_csh_profile"
   fi
   
   _tcsh_profile="$HOME/.tcshrc"
   if [ -f "$_tcsh_profile" ] ; then
-    text="$(cat $_tcsh_profile)"
-    echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.csh\"$||" > "$_tcsh_profile"
+    sed -i "|/$LE_WORKING_DIR/$PROJECT_NAME\.csh/d" "$_tcsh_profile"
   fi
   
   rm -f $LE_WORKING_DIR/$PROJECT_ENTRY
