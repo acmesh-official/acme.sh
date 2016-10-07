@@ -3295,9 +3295,7 @@ _installalias() {
 
   _envfile="$LE_WORKING_DIR/$PROJECT_ENTRY.env"
   if [ "$_upgrading" ] && [ "$_upgrading" = "1" ] ; then
-    echo "$(cat $_envfile)" | sed "s|^LE_WORKING_DIR.*$||" > "$_envfile"
-    echo "$(cat $_envfile)" | sed "s|^alias le.*$||" > "$_envfile"
-    echo "$(cat $_envfile)" | sed "s|^alias le.sh.*$||" > "$_envfile"
+    sed -i '/^LE_WORKING_DIR/d;/^alias le/d' "$_envfile"
   fi
 
   _setopt "$_envfile" "export LE_WORKING_DIR" "=" "\"$LE_WORKING_DIR\""
