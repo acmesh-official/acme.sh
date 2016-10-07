@@ -2897,7 +2897,7 @@ _installcert() {
     if [ -f "$Le_RealCertPath" ] && [ ! "$IS_RENEW" ] ; then
       cp "$Le_RealCertPath" "$Le_RealCertPath".bak
     fi
-    install -D "$CERT_PATH" "$Le_RealCertPath"
+    install -D -m0640 "$CERT_PATH" "$Le_RealCertPath"
   fi
   
   if [ "$Le_RealCACertPath" ] ; then
@@ -2910,7 +2910,7 @@ _installcert() {
       if [ -f "$Le_RealCACertPath" ] && [ ! "$IS_RENEW" ] ; then
         cp "$Le_RealCACertPath" "$Le_RealCACertPath".bak
       fi
-      install -D "$CA_CERT_PATH" "$Le_RealCACertPath"
+      install -D -m0640 "$CA_CERT_PATH" "$Le_RealCACertPath"
     fi
   fi
 
@@ -2921,7 +2921,7 @@ _installcert() {
     if [ -f "$Le_RealKeyPath" ] && [ ! "$IS_RENEW" ] ; then
       cp "$Le_RealKeyPath" "$Le_RealKeyPath".bak
     fi
-    install -D "$CERT_KEY_PATH" "$Le_RealKeyPath"
+    install -D -m0640 "$CERT_KEY_PATH" "$Le_RealKeyPath"
   fi
   
   if [ "$Le_RealFullChainPath" ] ; then
@@ -2930,7 +2930,7 @@ _installcert() {
     if [ -f "$Le_RealFullChainPath" ] && [ ! "$IS_RENEW" ] ; then
       cp "$Le_RealFullChainPath" "$Le_RealFullChainPath".bak
     fi
-    install -D "$CERT_FULLCHAIN_PATH" "$Le_RealFullChainPath"
+    install -D -m0640 "$CERT_FULLCHAIN_PATH" "$Le_RealFullChainPath"
   fi  
 
   if [ "$Le_ReloadCmd" ] ; then
