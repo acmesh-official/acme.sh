@@ -110,7 +110,7 @@ Ok, let's issue cert now:
 acme.sh   --issue   --dns dns_pdns   -d aa.com  -d www.aa.com
 ```
 
-The `PDNS_Url`, `PDNS_ServerId`, `PDNS_Token` and `PDNS_Ttl`  will be saved in `~/.acme.sh/account.conf`, when next time you use yandex domain api, it will reuse this key.
+The `PDNS_Url`, `PDNS_ServerId`, `PDNS_Token` and `PDNS_Ttl` will be saved in `~/.acme.sh/account.conf`.
 
 ## Use OVH/kimsufi/soyoustart/runabove API
 
@@ -131,8 +131,6 @@ acme.sh  --issue  --dns  dns_myapi  -d aa.com  -d www.aa.com
 ```
 
 For more details, please check our sample script: [dns_myapi.sh](dns_myapi.sh)
-
-
 
 # Use lexicon dns api
 

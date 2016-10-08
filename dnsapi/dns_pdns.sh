@@ -40,7 +40,6 @@ dns_pdns_add() {
   _saveaccountconf PDNS_Url "$PDNS_Url"
   _saveaccountconf PDNS_ServerId "$PDNS_ServerId"
   _saveaccountconf PDNS_Token "$PDNS_Token"
-  _saveaccountconf PDNS_Ttl "$PDNS_Ttl"
 
   _debug "First detect the root zone"
   if ! _get_root $fulldomain ; then
