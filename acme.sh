@@ -1368,7 +1368,7 @@ _readlink() {
 __initHome() {
   if [ -z "$_SCRIPT_HOME" ] ; then
     if _exists readlink && _exists dirname ; then
-      _debug "Lets guess script dir."
+      _debug "Lets find script dir."
       _debug "_SCRIPT_" "$_SCRIPT_"
       _script="$(_readlink "$_SCRIPT_")"
       _debug "_script" "$_script"
@@ -3362,7 +3362,7 @@ install() {
   if [ -z "$NO_DETECT_SH" ] ; then
     #Modify shebang
     if _exists bash ; then
-      _info "Good, bash is installed, change the shebang to use bash as prefered."
+      _info "Good, bash is found, so change the shebang to use bash as prefered."
       _shebang='#!/usr/bin/env bash'
       _setShebang "$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
       if [ -d "$LE_WORKING_DIR/dnsapi" ] ; then
