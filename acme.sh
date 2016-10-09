@@ -3173,6 +3173,13 @@ _initconf() {
 #
 #GD_Secret=\"sADDsdasdfsdfdssdgdsf\"
 
+#######################
+#PowerDNS:
+#PDNS_Url=\"http://ns.example.com:8081\"
+#PDNS_ServerId=\"localhost\"
+#PDNS_Token=\"0123456789ABCDEF\"
+#PDNS_Ttl=60
+
     " > $ACCOUNT_CONF_PATH
   fi
 }
