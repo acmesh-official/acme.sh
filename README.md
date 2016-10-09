@@ -241,7 +241,7 @@ You don't have do anything manually!
 4. Godaddy.com API
 5. OVH, kimsufi, soyoustart and runabove API
 6. AWS Route 53, see: https://github.com/Neilpang/acme.sh/issues/65
-7. PowerDNS API, see: https://doc.powerdns.com/md/httpapi/README/
+7. PowerDNS API
 8. lexicon dns api: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
    (DigitalOcean, DNSimple, DnsMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)
 
