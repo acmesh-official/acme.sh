@@ -8,6 +8,8 @@
 #PDNS_Token="0123456789ABCDEF"
 #PDNS_Ttl=60
 
+DEFAULT_PDNS_TTL=60
+
 ########  Public functions #####################
 #Usage: add _acme-challenge.www.domain.com "123456789ABCDEF0000000000000000000000000000000000000"
 dns_pdns_add() {
@@ -33,13 +35,17 @@ dns_pdns_add() {
   fi
 
   if [ -z "$PDNS_Ttl" ] ; then
-    PDNS_Ttl=60
+    PDNS_Ttl=$DEFAULT_PDNS_TTL
   fi
 
   #save the api addr and key to the account conf file.
   _saveaccountconf PDNS_Url "$PDNS_Url"
   _saveaccountconf PDNS_ServerId "$PDNS_ServerId"
   _saveaccountconf PDNS_Token "$PDNS_Token"
+  
+  if [ "$PDNS_Ttl" != "$DEFAULT_PDNS_TTL" ] ; then
+    _saveaccountconf PDNS_Ttl "$PDNS_Ttl"
+  fi
 
   _debug "First detect the root zone"
   if ! _get_root $fulldomain ; then
