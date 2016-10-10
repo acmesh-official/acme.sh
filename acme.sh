@@ -1205,26 +1205,30 @@ _startserver() {
   _debug "startserver: $$"
   nchelp="$(nc -h 2>&1)"
   
-  if echo "$nchelp" | grep "\-q[ ,]" >/dev/null ; then
-    _NC="nc -q 1 -l $ncaddr"
-  else
-    if echo "$nchelp" | grep "GNU netcat" >/dev/null && echo "$nchelp" | grep "\-c, \-\-close" >/dev/null ; then
-      _NC="nc -c -l $ncaddr"
-    elif echo "$nchelp" | grep "\-N" |grep "Shutdown the network socket after EOF on stdin"  >/dev/null ; then
-      _NC="nc -N -l $ncaddr"
-    else
-      _NC="nc -l $ncaddr"
-    fi
-  fi
-
   _debug Le_HTTPPort "$Le_HTTPPort"
   _debug Le_Listen_V4 "$Le_Listen_V4"
   _debug Le_Listen_V6 "$Le_Listen_V6"
+  _NC="nc"
+  
   if [ "$Le_Listen_V4" ] ; then
     _NC="$_NC -4"
   elif [ "$Le_Listen_V6" ] ; then
     _NC="$_NC -6"
   fi
+  
+  if echo "$nchelp" | grep "\-q[ ,]" >/dev/null ; then
+    _NC="$_NC -q 1 -l $ncaddr"
+  else
+    if echo "$nchelp" | grep "GNU netcat" >/dev/null && echo "$nchelp" | grep "\-c, \-\-close" >/dev/null ; then
+      _NC="$_NC -c -l $ncaddr"
+    elif echo "$nchelp" | grep "\-N" |grep "Shutdown the network socket after EOF on stdin"  >/dev/null ; then
+      _NC="$_NC -N -l $ncaddr"
+    else
+      _NC="$_NC -l $ncaddr"
+    fi
+  fi
+
+
   _debug "_NC" "$_NC"
 
 #  while true ; do
