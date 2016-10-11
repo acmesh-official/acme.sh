@@ -1205,26 +1205,30 @@ _startserver() {
   _debug "startserver: $$"
   nchelp="$(nc -h 2>&1)"
   
-  if echo "$nchelp" | grep "\-q[ ,]" >/dev/null ; then
-    _NC="nc -q 1 -l $ncaddr"
-  else
-    if echo "$nchelp" | grep "GNU netcat" >/dev/null && echo "$nchelp" | grep "\-c, \-\-close" >/dev/null ; then
-      _NC="nc -c -l $ncaddr"
-    elif echo "$nchelp" | grep "\-N" |grep "Shutdown the network socket after EOF on stdin"  >/dev/null ; then
-      _NC="nc -N -l $ncaddr"
-    else
-      _NC="nc -l $ncaddr"
-    fi
-  fi
-
   _debug Le_HTTPPort "$Le_HTTPPort"
   _debug Le_Listen_V4 "$Le_Listen_V4"
   _debug Le_Listen_V6 "$Le_Listen_V6"
+  _NC="nc"
+  
   if [ "$Le_Listen_V4" ] ; then
     _NC="$_NC -4"
   elif [ "$Le_Listen_V6" ] ; then
     _NC="$_NC -6"
   fi
+  
+  if echo "$nchelp" | grep "\-q[ ,]" >/dev/null ; then
+    _NC="$_NC -q 1 -l $ncaddr"
+  else
+    if echo "$nchelp" | grep "GNU netcat" >/dev/null && echo "$nchelp" | grep "\-c, \-\-close" >/dev/null ; then
+      _NC="$_NC -c -l $ncaddr"
+    elif echo "$nchelp" | grep "\-N" |grep "Shutdown the network socket after EOF on stdin"  >/dev/null ; then
+      _NC="$_NC -N -l $ncaddr"
+    else
+      _NC="$_NC -l $ncaddr"
+    fi
+  fi
+
+
   _debug "_NC" "$_NC"
 
 #  while true ; do
@@ -1368,7 +1372,7 @@ _readlink() {
 __initHome() {
   if [ -z "$_SCRIPT_HOME" ] ; then
     if _exists readlink && _exists dirname ; then
-      _debug "Lets guess script dir."
+      _debug "Lets find script dir."
       _debug "_SCRIPT_" "$_SCRIPT_"
       _script="$(_readlink "$_SCRIPT_")"
       _debug "_script" "$_script"
@@ -2491,9 +2495,9 @@ issue() {
       fi
       
       if [ "$status" = "invalid" ] ; then
-         error="$(echo "$response" | _egrep_o '"error":\{[^\}]*\}')"
+         error="$(echo "$response" | tr -d "\r\n" | _egrep_o '"error":\{[^\}]*')"
          _debug2 error "$error"
-         errordetail="$(echo $error |  _egrep_o '"detail": *"[^"]*"' | cut -d '"' -f 4)"
+         errordetail="$(echo "$error" |  _egrep_o '"detail": *"[^"]*' | cut -d '"' -f 4)"
          _debug2 errordetail "$errordetail"
          if [ "$errordetail" ] ; then
            _err "$d:Verify error:$errordetail"
@@ -2503,7 +2507,7 @@ issue() {
          if [ "$DEBUG" ] ; then
            if [ "$vtype" = "$VTYPE_HTTP" ] ; then
              _debug "Debug: get token url."
-             _get "http://$d/.well-known/acme-challenge/$token"
+             _get "http://$d/.well-known/acme-challenge/$token" "" 1
            fi
          fi
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
@@ -3236,6 +3240,13 @@ _initconf() {
 #NSUPDATE_KEY=\"/path/to/update.key\"
 #NSUPDATE_SERVER=\"192.168.0.1\"
 
+#######################
+#PowerDNS:
+#PDNS_Url=\"http://ns.example.com:8081\"
+#PDNS_ServerId=\"localhost\"
+#PDNS_Token=\"0123456789ABCDEF\"
+#PDNS_Ttl=60
+
     " > $ACCOUNT_CONF_PATH
   fi
 }
@@ -3416,7 +3427,7 @@ _install() {
   if [ -z "$NO_DETECT_SH" ] ; then
     #Modify shebang
     if _exists bash ; then
-      _info "Good, bash is installed, change the shebang to use bash as prefered."
+      _info "Good, bash is found, so change the shebang to use bash as prefered."
       _shebang='#!/usr/bin/env bash'
       _setShebang "$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
       if [ -d "$LE_WORKING_DIR/dnsapi" ] ; then
