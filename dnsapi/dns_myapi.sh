@@ -18,6 +18,11 @@ dns_myapi_add() {
   return 1;
 }
 
+#Usage: dns_myapi_del   _acme-challenge.www.domain.com
+dns_myapi_del(){
+  _err "Not implemented!"
+  return 1
+}
 
 
 
