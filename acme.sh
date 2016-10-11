@@ -2435,7 +2435,7 @@ issue() {
       fi
       
       if [ "$status" = "invalid" ] ; then
-         error="$(echo "$response" | _egrep_o '"error":\{[^\}]*\}')"
+         error="$(echo "$response" | tr -d "\r\n" | _egrep_o '"error":\{[^\}]*\}')"
          _debug2 error "$error"
          errordetail="$(echo $error |  _egrep_o '"detail": *"[^"]*"' | cut -d '"' -f 4)"
          _debug2 errordetail "$errordetail"
@@ -2447,7 +2447,7 @@ issue() {
          if [ "$DEBUG" ] ; then
            if [ "$vtype" = "$VTYPE_HTTP" ] ; then
              _debug "Debug: get token url."
-             _get "http://$d/.well-known/acme-challenge/$token"
+             _get "http://$d/.well-known/acme-challenge/$token" "" 1
            fi
          fi
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
