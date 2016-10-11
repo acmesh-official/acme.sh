@@ -2439,9 +2439,9 @@ issue() {
       fi
       
       if [ "$status" = "invalid" ] ; then
-         error="$(echo "$response" | tr -d "\r\n" | _egrep_o '"error":\{[^\}]*\}')"
+         error="$(echo "$response" | tr -d "\r\n" | _egrep_o '"error":\{[^\}]*')"
          _debug2 error "$error"
-         errordetail="$(echo $error |  _egrep_o '"detail": *"[^"]*"' | cut -d '"' -f 4)"
+         errordetail="$(echo "$error" |  _egrep_o '"detail": *"[^"]*' | cut -d '"' -f 4)"
          _debug2 errordetail "$errordetail"
          if [ "$errordetail" ] ; then
            _err "$d:Verify error:$errordetail"
