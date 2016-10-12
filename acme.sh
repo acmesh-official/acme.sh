@@ -93,7 +93,7 @@ _printargs() {
 
 _log() {
   [ -z "$LOG_FILE" ] && return
-  _printargs "$@" >> "$LOG_FILE"
+  _printargs "$@" >> $LOG_FILE
 }
 
 _info() {
