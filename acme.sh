@@ -3965,13 +3965,15 @@ _process() {
 
   if [ "${_CMD}" != "install" ] ; then
     __initHome
-    if [ "$_log" ] && [ -z "$_logfile" ] ; then
-      _logfile="$DEFAULT_LOG_FILE"
+    if [ "$_log" ]; then
+      if [ -z "$_logfile" ] ; then
+        _logfile="$DEFAULT_LOG_FILE"
+      fi
     fi
     if [ "$_logfile" ] ; then
       _saveaccountconf "LOG_FILE" "$_logfile"
+      LOG_FILE="$_logfile"
     fi
-    LOG_FILE="$_logfile"
 
     if [ "$_log_level" ] ; then
       _saveaccountconf "LOG_LEVEL" "$_log_level"
