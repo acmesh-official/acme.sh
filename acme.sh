@@ -3130,7 +3130,7 @@ _initconf() {
 #Account configurations:
 #Here are the supported macros, uncomment them to make them take effect.
 
-#ACCOUNT_EMAIL=aaa@aaa.com  # the account email used to register account.
+#ACCOUNT_EMAIL=aaa@example.com  # the account email used to register account.
 #ACCOUNT_KEY_PATH=\"/path/to/account.key\"
 #CERT_HOME=\"/path/to/cert/home\"
 
