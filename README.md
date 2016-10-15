@@ -112,23 +112,23 @@ root@v1:~# acme.sh -h
 **Example 1:** Single domain.
 
 ```bash
-acme.sh --issue -d aa.com -w /home/wwwroot/aa.com
+acme.sh --issue -d example.com -w /home/wwwroot/example.com
 ```
 
 **Example 2:** Multiple domains in the same cert.
 
 ```bash
-acme.sh --issue -d aa.com -d www.aa.com -d cp.aa.com -w /home/wwwroot/aa.com 
+acme.sh --issue -d example.com -d www.example.com -d cp.example.com -w /home/wwwroot/example.com 
 ```
 
-The parameter `/home/wwwroot/aa.com` is the web root folder. You **MUST** have `write access` to this folder.
+The parameter `/home/wwwroot/example.com` is the web root folder. You **MUST** have `write access` to this folder.
 
-Second argument **"aa.com"** is the main domain you want to issue cert for.
+Second argument **"example.com"** is the main domain you want to issue cert for.
 You must have at least a domain there.
 
-You must point and bind all the domains to the same webroot dir: `/home/wwwroot/aa.com`.
+You must point and bind all the domains to the same webroot dir: `/home/wwwroot/example.com`.
 
-Generate/issued certs will be placed in `~/.acme.sh/aa.com/`
+Generate/issued certs will be placed in `~/.acme.sh/example.com/`
 
 The issued cert will be renewed every **60** days automatically.
 
@@ -140,7 +140,7 @@ More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 After you issue a cert, you probably want to install/copy the cert to your nginx/apache or other servers you may be using.
 
 ```bash
-acme.sh --installcert -d aa.com \
+acme.sh --installcert -d example.com \
 --certpath /path/to/certfile/in/apache/nginx  \
 --keypath  /path/to/keyfile/in/apache/nginx  \
 --capath   /path/to/ca/certfile/apache/nginx   \
@@ -161,7 +161,7 @@ The cert will be `renewed every **60** days by default` (which is configurable).
 The tcp `80` port **MUST** be free to listen, otherwise you will be prompted to free the `80` port and try again.
 
 ```bash
-acme.sh --issue --standalone -d aa.com -d www.aa.com -d cp.aa.com
+acme.sh --issue --standalone -d example.com -d www.example.com -d cp.example.com
 ```
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
@@ -175,7 +175,7 @@ acme.sh supports `tls-sni-01` validation.
 The tcp `443` port **MUST** be free to listen, otherwise you will be prompted to free the `443` port and try again.
 
 ```bash
-acme.sh --issue --tls -d aa.com -d www.aa.com -d cp.aa.com
+acme.sh --issue --tls -d example.com -d www.example.com -d cp.example.com
 ```
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
@@ -191,7 +191,7 @@ Particularly, if you are running an apache server, you should use apache mode in
 Just set string "apache" as the second argument, it will force use of apache plugin automatically.
 
 ```
-acme.sh --issue --apache -d aa.com -d www.aa.com -d user.aa.com
+acme.sh --issue --apache -d example.com -d www.example.com -d user.example.com
 ```
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
@@ -201,18 +201,18 @@ More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 Support the `dns-01` challenge.
 
 ```bash
-acme.sh --issue --dns -d aa.com -d www.aa.com -d user.aa.com
+acme.sh --issue --dns -d example.com -d www.example.com -d user.example.com
 ```
 
 You should get the output like below:
 
 ```
 Add the following txt record:
-Domain:_acme-challenge.aa.com
+Domain:_acme-challenge.example.com
 Txt value:9ihDbjYfTExAYeDs4DBUeuTo18KBzwvTEjUnSwd32-c
 
 Add the following txt record:
-Domain:_acme-challenge.www.aa.com
+Domain:_acme-challenge.www.example.com
 Txt value:9ihDbjxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 Please add those txt records to the domains. Waiting for the dns to take effect.
@@ -222,7 +222,7 @@ Please add those txt records to the domains. Waiting for the dns to take effect.
 Then just rerun with `renew` argument:
 
 ```bash
-acme.sh --renew -d aa.com
+acme.sh --renew -d example.com
 ```
 
 Ok, it's finished.
@@ -264,13 +264,13 @@ For example:
 ### Single domain ECC cerfiticate:
 
 ```bash
-acme.sh --issue -w /home/wwwroot/aa.com -d aa.com --keylength  ec-256
+acme.sh --issue -w /home/wwwroot/example.com -d example.com --keylength  ec-256
 ```
 
 SAN multi domain ECC certificate:
 
 ```bash
-acme.sh --issue -w /home/wwwroot/aa.com -d aa.com -d www.aa.com --keylength  ec-256
+acme.sh --issue -w /home/wwwroot/example.com -d example.com -d www.example.com --keylength  ec-256
 ```
 
 Please look at the last parameter above.
@@ -289,12 +289,12 @@ No, you don't need to renew the certs manually.  All the certs will be renewed a
 However, you can also force to renew any cert:
 
 ```
-acme.sh --renew  -d  aa.com --force
+acme.sh --renew  -d  example.com --force
 ```
 
 or, for ECC cert:
 ```
-acme.sh --renew  -d  aa.com  --force --ecc
+acme.sh --renew  -d  example.com  --force --ecc
 ```
 
 # 11. How to upgrade `acme.sh`
