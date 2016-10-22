@@ -482,6 +482,42 @@ _createkey() {
   fi
 }
 
+
+#domain
+_is_idn() {
+  _is_idn_d="$1"
+  echo "$_is_idn_d" | grep "[^0-9a-zA-Z.,]" >/dev/null 2>&1
+}
+
+#aa.com
+#aa.com,bb.com,cc.com
+_idn() {
+  __idn_d="$1"
+  if ! _is_idn "$__idn_d" ; then
+    printf "%s" "$__idn_d"
+    return 0
+  fi
+  
+  if _exists idn ; then
+    if _contains "$__idn_d" ',' ; then
+      _i_first="1"
+      for f in $(echo "$__idn_d" |  tr ',' ' ') ; do
+        [ -z "$f" ] && continue
+        if [ -z "$_i_first" ] ; then
+          printf "%s" ","
+        else
+          _i_first=""
+        fi
+        idn "$f" | tr -d "\r\n"
+      done
+    else
+      idn "$__idn_d" | tr -d "\r\n"
+    fi
+  else
+    _err "Please install idn to process IDN names."
+  fi
+}
+
 #_createcsr  cn  san_list  keyfile csrfile conf
 _createcsr() {
   _debug _createcsr
@@ -502,6 +538,8 @@ _createcsr() {
     #single domain
     _info "Single domain" "$domain"
   else
+    domainlist="$(_idn $domainlist)"
+    _debug2 domainlist "$domainlist"
     if _contains "$domainlist" "," ; then
       alt="DNS:$(echo $domainlist | sed "s/,/,DNS:/g")"
     else
@@ -515,7 +553,10 @@ _createcsr() {
     _savedomainconf Le_OCSP_Stable "$Le_OCSP_Stable"
     printf -- "\nbasicConstraints = CA:FALSE\n1.3.6.1.5.5.7.1.24=DER:30:03:02:01:05" >> "$csrconf"
   fi
-  openssl req -new -sha256 -key "$csrkey" -subj "/CN=$domain" -config "$csrconf" -out "$csr"
+  
+  _csr_cn="$(_idn "$domain")"
+  _debug2 _csr_cn "$_csr_cn"
+  openssl req -new -sha256 -key "$csrkey" -subj "/CN=$_csr_cn" -config "$csrconf" -out "$csr"
 }
 
 #_signcsr key  csr  conf cert
@@ -2144,7 +2185,7 @@ issue() {
       
       _info "Getting new-authz for domain" $d
 
-      if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$d\"}}" ; then
+      if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$(_idn "$d")\"}}" ; then
         _err "Can not get domain token."
         _clearup
         _on_issue_err
@@ -3725,6 +3766,10 @@ _process() {
         if [ "$_dvalue" ] ; then
           if _startswith "$_dvalue" "-" ; then
             _err "'$_dvalue' is not a valid domain for parameter '$1'"
+            return 1
+          fi
+          if _is_idn "$_dvalue" && ! _exists idn ; then
+            _err "It seems that $_dvalue is an IDN( Internationalized Domain Names), please install 'idn' command first."
             return 1
           fi
           
