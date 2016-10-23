@@ -9,6 +9,9 @@ dns_nsupdate_add() {
   txtvalue=$2
   _checkKeyFile || return 1
   NSUPDATE_SERVER=${NSUPDATE_SERVER:-localhost}
+  # save the dns server and key to the account conf file.
+  _saveaccountconf NSUPDATE_SERVER "${NSUPDATE_SERVER}"
+  _saveaccountconf NSUPDATE_KEY "${NSUPDATE_KEY}"
   tmp=$(mktemp --tmpdir acme_nsupdate.XXXXXX)
   cat > ${tmp} <<EOF
 server ${NSUPDATE_SERVER}
