@@ -3310,6 +3310,7 @@ _installalias() {
   _profile="$(_detect_profile)"
   if [ "$_profile" ] ; then
     _debug "Found profile: $_profile"
+    _info "Installing alias to '$_profile'"
     _setopt "$_profile" ". \"$_envfile\""
     _info "OK, Close and reopen your terminal to start using $PROJECT_NAME"
   else
@@ -3321,6 +3322,7 @@ _installalias() {
   _cshfile="$LE_WORKING_DIR/$PROJECT_ENTRY.csh"
   _csh_profile="$HOME/.cshrc"
   if [ -f "$_csh_profile" ] ; then
+    _info "Installing alias to '$_csh_profile'"
     _setopt "$_cshfile" "setenv LE_WORKING_DIR" " " "\"$LE_WORKING_DIR\""
     _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
     _setopt "$_csh_profile"  "source \"$_cshfile\""
@@ -3329,6 +3331,7 @@ _installalias() {
   #for tcsh
   _tcsh_profile="$HOME/.tcshrc"
   if [ -f "$_tcsh_profile" ] ; then
+    _info "Installing alias to '$_tcsh_profile'"
     _setopt "$_cshfile" "setenv LE_WORKING_DIR" " " "\"$LE_WORKING_DIR\""
     _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
     _setopt "$_tcsh_profile"  "source \"$_cshfile\""
