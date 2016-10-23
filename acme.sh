@@ -3447,26 +3447,36 @@ uninstall() {
   fi
   _initpath
 
+  _uninstallalias
+  
+  rm -f $LE_WORKING_DIR/$PROJECT_ENTRY
+  _info "The keys and certs are in $LE_WORKING_DIR, you can remove them by yourself."
+
+}
+
+_uninstallalias() {
+  _initpath
+
   _profile="$(_detect_profile)"
   if [ "$_profile" ] ; then
+    _info "Uninstalling alias from: '$_profile'"
     text="$(cat $_profile)"
     echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.env\"$||" > "$_profile"
   fi
 
   _csh_profile="$HOME/.cshrc"
   if [ -f "$_csh_profile" ] ; then
+    _info "Uninstalling alias from: '$_csh_profile'"
     text="$(cat $_csh_profile)"
     echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.csh\"$||" > "$_csh_profile"
   fi
   
   _tcsh_profile="$HOME/.tcshrc"
   if [ -f "$_tcsh_profile" ] ; then
+    _info "Uninstalling alias from: '$_csh_profile'"
     text="$(cat $_tcsh_profile)"
     echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.csh\"$||" > "$_tcsh_profile"
   fi
-  
-  rm -f $LE_WORKING_DIR/$PROJECT_ENTRY
-  _info "The keys and certs are in $LE_WORKING_DIR, you can remove them by yourself."
 
 }
 
