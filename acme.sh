@@ -1180,7 +1180,7 @@ _saveaccountconf() {
   _sckey="$1"
   _scvalue="$2"
   if [ "$ACCOUNT_CONF_PATH" ] ; then
-    _setopt "$ACCOUNT_CONF_PATH" "$_sckey" "=" "\"$_scvalue\""
+    _setopt "$ACCOUNT_CONF_PATH" "$_sckey" "=" "'$_scvalue'"
   else
     _err "ACCOUNT_CONF_PATH is empty, can not save $_sckey=$_scvalue"
   fi
