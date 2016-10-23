@@ -3068,7 +3068,7 @@ _deactivate() {
   do
     _info "Deactivate: $_d_domain"
     _d_i="$(_math $_d_i + 1)"
-    if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$_d_domain\"}}" ; then
+    if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$(_idn "$_d_domain")\"}}" ; then
       _err "Can not get domain token."
       return 1
     fi
