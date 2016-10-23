@@ -486,7 +486,10 @@ _createkey() {
 #domain
 _is_idn() {
   _is_idn_d="$1"
-  echo "$_is_idn_d" | grep "[^0-9a-zA-Z.,]" >/dev/null 2>&1
+  _debug2 _is_idn_d "$_is_idn_d"
+  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d "[0-9a-zA-Z.,-]")
+  _debug2 _idn_temp "$_idn_temp"
+  [ "$_idn_temp" ]
 }
 
 #aa.com
