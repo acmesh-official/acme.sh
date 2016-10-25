@@ -11,6 +11,7 @@ PROJECT="https://github.com/Neilpang/$PROJECT_NAME"
 DEFAULT_INSTALL_HOME="$HOME/.$PROJECT_NAME"
 _SCRIPT_="$0"
 
+_SUB_FOLDERS="dnsapi deploy"
 
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
 DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.1.1-August-1-2016.pdf"
@@ -2046,6 +2047,29 @@ _regAccount() {
 }
 
 
+# domain folder  file
+_findHook() {
+  _hookdomain="$1"
+  _hookcat="$2"
+  _hookname="$3"
+
+  if [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname" ] ; then
+    d_api="$LE_WORKING_DIR/$_hookdomain/$_hookname"
+  elif [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname.sh" ] ; then
+    d_api="$LE_WORKING_DIR/$_hookdomain/$_hookname.sh"
+  elif [ -f "$LE_WORKING_DIR/$_hookname" ] ; then
+    d_api="$LE_WORKING_DIR/$_hookname"
+  elif [ -f "$LE_WORKING_DIR/$_hookname.sh" ] ; then
+    d_api="$LE_WORKING_DIR/$_hookname.sh"
+  elif [ -f "$LE_WORKING_DIR/$_hookcat/$_hookname" ] ; then
+    d_api="$LE_WORKING_DIR/$_hookcat/$_hookname"
+  elif [ -f "$LE_WORKING_DIR/$_hookcat/$_hookname.sh" ] ; then
+    d_api="$LE_WORKING_DIR/$_hookcat/$_hookname.sh"
+  fi
+
+  printf "%s" "$d_api"
+}
+
 #webroot, domain domainlist  keylength 
 issue() {
   if [ -z "$2" ] ; then
@@ -2255,22 +2279,9 @@ issue() {
         _debug txtdomain "$txtdomain"
         txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _urlencode)"
         _debug txt "$txt"
-        #dns
-        #1. check use api
-        d_api=""
-        if [ -f "$LE_WORKING_DIR/$d/$_currentRoot" ] ; then
-          d_api="$LE_WORKING_DIR/$d/$_currentRoot"
-        elif [ -f "$LE_WORKING_DIR/$d/$_currentRoot.sh" ] ; then
-          d_api="$LE_WORKING_DIR/$d/$_currentRoot.sh"
-        elif [ -f "$LE_WORKING_DIR/$_currentRoot" ] ; then
-          d_api="$LE_WORKING_DIR/$_currentRoot"
-        elif [ -f "$LE_WORKING_DIR/$_currentRoot.sh" ] ; then
-          d_api="$LE_WORKING_DIR/$_currentRoot.sh"
-        elif [ -f "$LE_WORKING_DIR/dnsapi/$_currentRoot" ] ; then
-          d_api="$LE_WORKING_DIR/dnsapi/$_currentRoot"
-        elif [ -f "$LE_WORKING_DIR/dnsapi/$_currentRoot.sh" ] ; then
-          d_api="$LE_WORKING_DIR/dnsapi/$_currentRoot.sh"
-        fi
+
+        d_api="$(_findHook $d dnsapi $_currentRoot)"
+
         _debug d_api "$d_api"
         
         if [ "$d_api" ] ; then
@@ -2686,6 +2697,15 @@ renew() {
   IS_RENEW="1"
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress"
   res=$?
+  if [ "$res" != "0" ] ; then
+    return $res
+  fi
+  
+  if [ "$Le_DeployHook" ] ; then
+    deploy $Le_Domain "$Le_DeployHook" "$Le_Keylength"
+    res=$?
+  fi
+  
   IS_RENEW=""
 
   return $res
@@ -2845,6 +2865,56 @@ list() {
   fi
 
 
+}
+
+deploy() {
+  Le_Domain="$1"
+  Le_DeployHook="$2"
+  _isEcc="$3"
+  if [ -z "$Le_DeployHook" ] ; then
+    _usage "Usage: $PROJECT_ENTRY --deploy -d domain.com --deploy-hook cpanel [--ecc] "
+    return 1
+  fi
+
+  _initpath $Le_Domain "$_isEcc"
+  if [ ! -d "$DOMAIN_PATH" ] ; then
+    _err "Domain is not valid:'$Le_Domain'"
+    return 1
+  fi
+
+  _deployApi="$(_findHook $Le_Domain deploy $Le_DeployHook)"
+  if [ -z "$_deployApi" ] ; then
+    _err "The deploy hook $Le_DeployHook is not found."
+    return 1
+  fi
+  _debug _deployApi "$_deployApi"
+  
+  _savedomainconf Le_DeployHook "$Le_DeployHook"
+  
+  if ! (
+    if ! . $_deployApi ; then
+      _err "Load file $_deployApi error. Please check your api file and try again."
+      return 1
+    fi
+    
+    d_command="${Le_DeployHook}_deploy"
+    if ! _exists $d_command ; then 
+      _err "It seems that your api file is not correct, it must have a function named: $d_command"
+      return 1
+    fi
+    
+    if ! $d_command $Le_Domain "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH" ; then
+      _err "Error deploy for domain:$Le_Domain"
+      _on_issue_err
+      return 1
+    fi
+  ) ; then
+    _err "Deploy error."
+    return 1
+  else
+    _info "$(__green Success)"
+  fi
+  
 }
 
 installcert() {
@@ -3400,10 +3470,13 @@ install() {
 
   _installalias
 
-  if [ -d "dnsapi" ] ; then
-    mkdir -p $LE_WORKING_DIR/dnsapi
-    cp  dnsapi/* $LE_WORKING_DIR/dnsapi/
-  fi
+  for subf in $_SUB_FOLDERS ; do
+    if [ -d "$subf" ] ; then
+      mkdir -p $LE_WORKING_DIR/$subf
+      cp  $subf/* $LE_WORKING_DIR/$subf/
+    fi
+  done
+
 
   if [ ! -f "$ACCOUNT_CONF_PATH" ] ; then
     _initconf
@@ -3431,11 +3504,13 @@ install() {
       _info "Good, bash is found, so change the shebang to use bash as prefered."
       _shebang='#!/usr/bin/env bash'
       _setShebang "$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
-      if [ -d "$LE_WORKING_DIR/dnsapi" ] ; then
-        for _apifile in $(ls "$LE_WORKING_DIR/dnsapi/"*.sh) ; do
-          _setShebang "$_apifile" "$_shebang"
-        done
-      fi
+      for subf in $_SUB_FOLDERS ; do
+        if [ -d "$LE_WORKING_DIR/$subf" ] ; then
+          for _apifile in "$LE_WORKING_DIR/$subf/"*.sh ; do
+            _setShebang "$_apifile" "$_shebang"
+          done
+        fi
+      done
     fi
   fi
 
@@ -3525,6 +3600,7 @@ Commands:
   --upgrade                Upgrade $PROJECT_NAME to the latest code from $PROJECT .
   --issue                  Issue a cert.
   --signcsr                Issue a cert from an existing csr.
+  --deploy                 Deploy the cert to your server.
   --installcert            Install the issued cert to apache/nginx or any other server.
   --renew, -r              Renew a cert.
   --renewAll               Renew all the certs.
@@ -3589,6 +3665,7 @@ Parameters:
   --pre-hook                        Command to be run before obtaining any certificates.
   --post-hook                       Command to be run after attempting to obtain/renew certificates. No matter the obain/renew is success or failed.
   --renew-hook                      Command to be run once for each successfully renewed certificate.
+  --deploy-hook                     The hook file to deploy cert
   --ocsp-must-staple, --ocsp        Generate ocsp must Staple extension.
   --auto-upgrade   [0|1]            Valid for '--upgrade' command, indicating whether to upgrade automatically in future.
   --listen-v4                       Force standalone/tls server to listen at ipv4.
@@ -3695,6 +3772,7 @@ _process() {
   _pre_hook=""
   _post_hook=""
   _renew_hook=""
+  _deploy_hook=""
   _logfile=""
   _log=""
   _local_address=""
@@ -3724,6 +3802,9 @@ _process() {
         ;;
     --issue)
         _CMD="issue"
+        ;;
+    --deploy)
+        _CMD="deploy"
         ;;
     --signcsr)
         _CMD="signcsr"
@@ -3991,6 +4072,10 @@ _process() {
         _renew_hook="$2"
         shift
         ;;
+    --deploy-hook)
+        _deploy_hook="$2"
+        shift
+        ;;
     --ocsp-must-staple|--ocsp)
         Le_OCSP_Stable="1"
         ;;
@@ -4069,6 +4154,9 @@ _process() {
     upgrade) upgrade ;;
     issue)
       issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address"
+      ;;
+    deploy)
+      deploy "$_domain" "$_deploy_hook" "$_ecc"
       ;;
     signcsr)
       signcsr "$_csr" "$_webroot"
