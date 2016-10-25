@@ -183,6 +183,13 @@ dns_ovh_add(){
 }
 
 
+#fulldomain
+dns_ovh_rm() {
+  fulldomain=$1
+
+}
+
+
 ####################  Private functions bellow ##################################
 
 _ovh_authentication() {

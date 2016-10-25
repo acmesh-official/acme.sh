@@ -51,6 +51,15 @@ dns_dp_add() {
   fi
 }
 
+
+#fulldomain
+dns_dp_rm() {
+  fulldomain=$1
+
+}
+
+
+
 #usage:  root  sub
 #return if the sub record already exists.
 #echos the existing records count.

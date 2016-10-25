@@ -56,6 +56,15 @@ dns_cx_add() {
   return 1
 }
 
+
+
+#fulldomain
+dns_cx_rm() {
+  fulldomain=$1
+
+}
+
+
 #usage:  root  sub
 #return if the sub record already exists.
 #echos the existing records count.

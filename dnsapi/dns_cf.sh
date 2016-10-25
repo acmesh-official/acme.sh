@@ -78,7 +78,11 @@ dns_cf_add(){
 }
 
 
+#fulldomain
+dns_cf_rm() {
+  fulldomain=$1
 
+}
 
 
 ####################  Private functions bellow ##################################

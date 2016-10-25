@@ -55,6 +55,13 @@ dns_gd_add(){
 
 
 
+#fulldomain
+dns_gd_rm() {
+  fulldomain=$1
+
+}
+
+
 
 
 ####################  Private functions bellow ##################################

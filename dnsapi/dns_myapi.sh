@@ -20,6 +20,11 @@ dns_myapi_add() {
 
 
 
+#fulldomain
+dns_myapi_rm() {
+  fulldomain=$1
+
+}
 
 
 ####################  Private functions bellow ##################################

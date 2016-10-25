@@ -66,4 +66,13 @@ dns_lexicon_add() {
 }
 
 
+#fulldomain
+dns_lexicon_rm() {
+  fulldomain=$1
+
+}
+
+
+
+
 

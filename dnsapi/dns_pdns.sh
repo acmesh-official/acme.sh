@@ -61,6 +61,14 @@ dns_pdns_add() {
   return 0
 }
 
+
+#fulldomain
+dns_pdns_rm() {
+  fulldomain=$1
+
+}
+
+
 set_record() {
   _info "Adding record"
   root=$1
