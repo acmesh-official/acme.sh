@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.6.1
+VER=2.6.2
 
 PROJECT_NAME="acme.sh"
 
@@ -1771,12 +1771,69 @@ _clearup() {
   _stopserver $serverproc
   serverproc=""
   _restoreApache
+  _clearupdns
   if [ -z "$DEBUG" ] ; then
     rm -f "$TLS_CONF"
     rm -f "$TLS_CERT"
     rm -f "$TLS_KEY"
     rm -f "$TLS_CSR"
   fi
+}
+
+_clearupdns() {
+  _debug "_clearupdns"
+  if [ "$dnsadded" != 1 ] || [ -z "$vlist" ] ; then
+    _info "Dns not added, skip."
+    return
+  fi
+
+  ventries=$(echo "$vlist" |  tr ',' ' ' )
+  for ventry in $ventries
+  do
+    d=$(echo $ventry | cut -d $sep -f 1)
+    keyauthorization=$(echo $ventry | cut -d $sep -f 2)
+    vtype=$(echo $ventry | cut -d $sep -f 4)
+    _currentRoot=$(echo $ventry | cut -d $sep -f 5)
+
+    if [ "$keyauthorization" = "$STATE_VERIFIED" ] ; then
+      _info "$d is already verified, skip $vtype."
+      continue
+    fi
+
+    if [ "$vtype" != "$VTYPE_DNS" ] ; then
+      _info "Skip $d for $vtype"
+      continue
+    fi
+    
+    d_api="$(_findHook $d dnsapi $_currentRoot)"
+    _debug d_api "$d_api"
+    
+    if [ -z "$d_api" ] ; then
+      _info "Not Found domain api file: $d_api"
+      continue
+    fi
+    
+    (
+      if ! . $d_api ; then
+        _err "Load file $d_api error. Please check your api file and try again."
+        return 1
+      fi
+      
+      rmcommand="${_currentRoot}_rm"
+      if ! _exists $rmcommand ; then 
+        _err "It seems that your api file doesn't define $rmcommand"
+        return 1
+      fi
+      
+      txtdomain="_acme-challenge.$d"
+      
+      if ! $rmcommand $txtdomain ; then
+        _err "Error removing txt for domain:$txtdomain"
+        return 1
+      fi
+    )
+        
+  done
 }
 
 # webroot  removelevel tokenfile
@@ -2037,7 +2094,7 @@ _regAccount() {
       if [ "$code" = '202' ] ; then
         _info "Update success."
       else
-        _err "Update error."
+        _err "Update account error."
         return 1
       fi
     fi
