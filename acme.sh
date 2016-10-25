@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.6.0
+VER=2.6.1
 
 PROJECT_NAME="acme.sh"
 
@@ -94,7 +94,7 @@ _printargs() {
 
 _log() {
   [ -z "$LOG_FILE" ] && return
-  _printargs "$@" >> "$LOG_FILE"
+  _printargs "$@" >> $LOG_FILE
 }
 
 _info() {
@@ -483,6 +483,45 @@ _createkey() {
   fi
 }
 
+
+#domain
+_is_idn() {
+  _is_idn_d="$1"
+  _debug2 _is_idn_d "$_is_idn_d"
+  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d "[0-9a-zA-Z.,-]")
+  _debug2 _idn_temp "$_idn_temp"
+  [ "$_idn_temp" ]
+}
+
+#aa.com
+#aa.com,bb.com,cc.com
+_idn() {
+  __idn_d="$1"
+  if ! _is_idn "$__idn_d" ; then
+    printf "%s" "$__idn_d"
+    return 0
+  fi
+  
+  if _exists idn ; then
+    if _contains "$__idn_d" ',' ; then
+      _i_first="1"
+      for f in $(echo "$__idn_d" |  tr ',' ' ') ; do
+        [ -z "$f" ] && continue
+        if [ -z "$_i_first" ] ; then
+          printf "%s" ","
+        else
+          _i_first=""
+        fi
+        idn "$f" | tr -d "\r\n"
+      done
+    else
+      idn "$__idn_d" | tr -d "\r\n"
+    fi
+  else
+    _err "Please install idn to process IDN names."
+  fi
+}
+
 #_createcsr  cn  san_list  keyfile csrfile conf
 _createcsr() {
   _debug _createcsr
@@ -503,6 +542,8 @@ _createcsr() {
     #single domain
     _info "Single domain" "$domain"
   else
+    domainlist="$(_idn $domainlist)"
+    _debug2 domainlist "$domainlist"
     if _contains "$domainlist" "," ; then
       alt="DNS:$(echo $domainlist | sed "s/,/,DNS:/g")"
     else
@@ -516,7 +557,10 @@ _createcsr() {
     _savedomainconf Le_OCSP_Stable "$Le_OCSP_Stable"
     printf -- "\nbasicConstraints = CA:FALSE\n1.3.6.1.5.5.7.1.24=DER:30:03:02:01:05" >> "$csrconf"
   fi
-  openssl req -new -sha256 -key "$csrkey" -subj "/CN=$domain" -config "$csrconf" -out "$csr"
+  
+  _csr_cn="$(_idn "$domain")"
+  _debug2 _csr_cn "$_csr_cn"
+  openssl req -new -sha256 -key "$csrkey" -subj "/CN=$_csr_cn" -config "$csrconf" -out "$csr"
 }
 
 #_signcsr key  csr  conf cert
@@ -940,13 +984,13 @@ _post() {
   elif _exists "wget" ; then
     _debug "WGET" "$WGET"
     if [ "$needbase64" ] ; then
-      if [ "$httpmethod"="POST" ] ; then
+      if [ "$httpmethod" = "POST" ] ; then
         response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
       else
         response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
       fi
     else
-      if [ "$httpmethod"="POST" ] ; then
+      if [ "$httpmethod" = "POST" ] ; then
         response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER")"
       else
         response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER")"
@@ -1181,7 +1225,7 @@ _saveaccountconf() {
   _sckey="$1"
   _scvalue="$2"
   if [ "$ACCOUNT_CONF_PATH" ] ; then
-    _setopt "$ACCOUNT_CONF_PATH" "$_sckey" "=" "\"$_scvalue\""
+    _setopt "$ACCOUNT_CONF_PATH" "$_sckey" "=" "'$_scvalue'"
   else
     _err "ACCOUNT_CONF_PATH is empty, can not save $_sckey=$_scvalue"
   fi
@@ -1232,14 +1276,29 @@ _startserver() {
 
   _debug "_NC" "$_NC"
 
+  #for centos ncat
+  if _contains "$nchelp" "nmap.org" ; then
+    _debug "Using ncat: nmap.org"
+    if [ "$DEBUG" ] ; then
+      if printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC  $Le_HTTPPort ; then
+        return
+      fi
+    else 
+      if printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC  $Le_HTTPPort > /dev/null 2>&1; then
+        return
+      fi
+    fi
+    _err "ncat listen error."
+  fi
+  
 #  while true ; do
     if [ "$DEBUG" ] ; then
-      if ! printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort ; then
-        printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC  -p $Le_HTTPPort ;
+      if ! printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort ; then
+        printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC  $Le_HTTPPort ;
       fi
     else
-      if ! printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort > /dev/null 2>&1; then
-        printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC  -p $Le_HTTPPort > /dev/null 2>&1
+      if ! printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort > /dev/null 2>&1; then
+        printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC  $Le_HTTPPort > /dev/null 2>&1
       fi      
     fi
     if [ "$?" != "0" ] ; then
@@ -2153,7 +2212,7 @@ issue() {
       
       _info "Getting new-authz for domain" $d
 
-      if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$d\"}}" ; then
+      if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$(_idn "$d")\"}}" ; then
         _err "Can not get domain token."
         _clearup
         _on_issue_err
@@ -3082,7 +3141,7 @@ _deactivate() {
   do
     _info "Deactivate: $_d_domain"
     _d_i="$(_math $_d_i + 1)"
-    if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$_d_domain\"}}" ; then
+    if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$(_idn "$_d_domain")\"}}" ; then
       _err "Can not get domain token."
       return 1
     fi
@@ -3200,7 +3259,7 @@ _initconf() {
 #Account configurations:
 #Here are the supported macros, uncomment them to make them take effect.
 
-#ACCOUNT_EMAIL=aaa@aaa.com  # the account email used to register account.
+#ACCOUNT_EMAIL=aaa@example.com  # the account email used to register account.
 #ACCOUNT_KEY_PATH=\"/path/to/account.key\"
 #CERT_HOME=\"/path/to/cert/home\"
 
@@ -3324,6 +3383,7 @@ _installalias() {
   _profile="$(_detect_profile)"
   if [ "$_profile" ] ; then
     _debug "Found profile: $_profile"
+    _info "Installing alias to '$_profile'"
     _setopt "$_profile" ". \"$_envfile\""
     _info "OK, Close and reopen your terminal to start using $PROJECT_NAME"
   else
@@ -3335,6 +3395,7 @@ _installalias() {
   _cshfile="$LE_WORKING_DIR/$PROJECT_ENTRY.csh"
   _csh_profile="$HOME/.cshrc"
   if [ -f "$_csh_profile" ] ; then
+    _info "Installing alias to '$_csh_profile'"
     _setopt "$_cshfile" "setenv LE_WORKING_DIR" " " "\"$LE_WORKING_DIR\""
     _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
     _setopt "$_csh_profile"  "source \"$_cshfile\""
@@ -3343,6 +3404,7 @@ _installalias() {
   #for tcsh
   _tcsh_profile="$HOME/.tcshrc"
   if [ -f "$_tcsh_profile" ] ; then
+    _info "Installing alias to '$_tcsh_profile'"
     _setopt "$_cshfile" "setenv LE_WORKING_DIR" " " "\"$LE_WORKING_DIR\""
     _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
     _setopt "$_tcsh_profile"  "source \"$_cshfile\""
@@ -3463,26 +3525,36 @@ uninstall() {
   fi
   _initpath
 
+  _uninstallalias
+  
+  rm -f $LE_WORKING_DIR/$PROJECT_ENTRY
+  _info "The keys and certs are in $LE_WORKING_DIR, you can remove them by yourself."
+
+}
+
+_uninstallalias() {
+  _initpath
+
   _profile="$(_detect_profile)"
   if [ "$_profile" ] ; then
+    _info "Uninstalling alias from: '$_profile'"
     text="$(cat $_profile)"
     echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.env\"$||" > "$_profile"
   fi
 
   _csh_profile="$HOME/.cshrc"
   if [ -f "$_csh_profile" ] ; then
+    _info "Uninstalling alias from: '$_csh_profile'"
     text="$(cat $_csh_profile)"
     echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.csh\"$||" > "$_csh_profile"
   fi
   
   _tcsh_profile="$HOME/.tcshrc"
   if [ -f "$_tcsh_profile" ] ; then
+    _info "Uninstalling alias from: '$_csh_profile'"
     text="$(cat $_tcsh_profile)"
     echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.csh\"$||" > "$_tcsh_profile"
   fi
-  
-  rm -f $LE_WORKING_DIR/$PROJECT_ENTRY
-  _info "The keys and certs are in $LE_WORKING_DIR, you can remove them by yourself."
 
 }
 
@@ -3793,6 +3865,10 @@ _process() {
             _err "'$_dvalue' is not a valid domain for parameter '$1'"
             return 1
           fi
+          if _is_idn "$_dvalue" && ! _exists idn ; then
+            _err "It seems that $_dvalue is an IDN( Internationalized Domain Names), please install 'idn' command first."
+            return 1
+          fi
           
           if [ -z "$_domain" ] ; then
             _domain="$_dvalue"
@@ -4050,13 +4126,15 @@ _process() {
 
   if [ "${_CMD}" != "install" ] ; then
     __initHome
-    if [ "$_log" ] && [ -z "$_logfile" ] ; then
-      _logfile="$DEFAULT_LOG_FILE"
+    if [ "$_log" ]; then
+      if [ -z "$_logfile" ] ; then
+        _logfile="$DEFAULT_LOG_FILE"
+      fi
     fi
     if [ "$_logfile" ] ; then
       _saveaccountconf "LOG_FILE" "$_logfile"
+      LOG_FILE="$_logfile"
     fi
-    LOG_FILE="$_logfile"
 
     if [ "$_log_level" ] ; then
       _saveaccountconf "LOG_LEVEL" "$_log_level"
