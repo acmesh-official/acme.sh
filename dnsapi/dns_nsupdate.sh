@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 
 ########  Public functions #####################
@@ -8,18 +8,16 @@ dns_nsupdate_add() {
   fulldomain=$1
   txtvalue=$2
   _checkKeyFile || return 1
-  NSUPDATE_SERVER=${NSUPDATE_SERVER:-localhost}
+  [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
   # save the dns server and key to the account conf file.
   _saveaccountconf NSUPDATE_SERVER "${NSUPDATE_SERVER}"
   _saveaccountconf NSUPDATE_KEY "${NSUPDATE_KEY}"
-  tmp=$(mktemp --tmpdir acme_nsupdate.XXXXXX)
-  cat > ${tmp} <<EOF
+  _info "adding ${fulldomain}. 60 in txt \"${txtvalue}\""
+  nsupdate -k ${NSUPDATE_KEY} <<EOF
 server ${NSUPDATE_SERVER}
 update add ${fulldomain}. 60 in txt "${txtvalue}"
 send
 EOF
-  _info "adding ${fulldomain}. 60 in txt \"${txtvalue}\""
-  nsupdate -k ${NSUPDATE_KEY} ${tmp}
   if [ $? -ne 0 ]; then
     _err "error updating domain, see ${tmp} for details"
     return 1
@@ -33,15 +31,13 @@ EOF
 dns_nsupdate_rm() {
   fulldomain=$1
   _checkKeyFile || return 1
-  NSUPDATE_SERVER=${NSUPDATE_SERVER:-localhost}
-  tmp=$(mktemp --tmpdir acme_nsupdate.XXXXXX)
-  cat > ${tmp} <<EOF
+  [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
+  _info "removing ${fulldomain}. txt"
+  nsupdate -k ${NSUPDATE_KEY} <<EOF
 server ${NSUPDATE_SERVER}
 update delete ${fulldomain}. txt
 send
 EOF
-  _info "removing ${fulldomain}. txt"
-  nsupdate -k ${NSUPDATE_KEY} ${tmp}
   if [ $? -ne 0 ]; then
     _err "error updating domain, see ${tmp} for details"
     return 1
@@ -63,32 +59,4 @@ _checkKeyFile() {
     _err "key ${NSUPDATE_KEY} is unreadable"
     return 1
   fi
-}
-
-_info() {
-  if [ -z "$2" ] ; then
-    echo "[$(date)] $1"
-  else
-    echo "[$(date)] $1='$2'"
-  fi
-}
-
-_err() {
-  _info "$@" >&2
-  return 1
-}
-
-_debug() {
-  if [ -z "$DEBUG" ] ; then
-    return
-  fi
-  _err "$@"
-  return 0
-}
-
-_debug2() {
-  if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
-    _debug "$@"
-  fi
-  return
 }
