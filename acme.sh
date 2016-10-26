@@ -419,10 +419,26 @@ _sign() {
     return 1
   fi
   
+  _sign_openssl="openssl   dgst -sign $keyfile "
   if [ "$alg" = "sha256" ] ; then
-    openssl   dgst   -sha256  -sign  "$keyfile" | _base64
+    _sign_openssl="$_sign_openssl -$alg"
   else
     _err "$alg is not supported yet"
+    return 1
+  fi
+  
+  if grep "BEGIN RSA PRIVATE KEY" "$keyfile" > /dev/null 2>&1 ; then
+    $_sign_openssl | _base64
+  elif grep "BEGIN EC PRIVATE KEY" "$keyfile" > /dev/null 2>&1 ; then
+    _signedECText="$($_sign_openssl | openssl asn1parse -inform DER)"
+    _debug3 "_signedECText" "$_signedECText"
+    _ec_r="$(echo "$_signedECText" | _head_n 2 | _tail_n 1 | cut -d : -f 4 | tr -d "\r\n")"
+    _debug3 "_ec_r" "$_ec_r"
+    _ec_s="$(echo "$_signedECText" | _head_n 3 | _tail_n 1 | cut -d : -f 4 | tr -d "\r\n")"
+    _debug3 "_ec_s" "$_ec_s"
+    printf "%s" "$_ec_r$_ec_s" | _h2b | _base64
+  else
+    _err "Unknown key file format."
     return 1
   fi
   
@@ -695,9 +711,6 @@ createAccountKey() {
   fi
   
   length=$1
-  if _isEccKey "$length" ; then
-    length=2048
-  fi
   
   if [ -z "$length" ] || [ "$length" = "$NO_VALUE" ] ; then
     _debug "Use default length 2048"
@@ -852,7 +865,7 @@ _calcjwk() {
     _debug3 pubi "$pubi"
     
     pubj="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep -n "ASN1 OID:"  | cut -d : -f 1)"
-    pubj=$(_math $pubj + 1)
+    pubj=$(_math $pubj - 1)
     _debug3 pubj "$pubj"
     
     pubtext="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | sed  -n "$pubi,${pubj}p" | tr -d " \n\r")"
@@ -862,7 +875,7 @@ _calcjwk() {
     xlen=$(_math $xlen / 4)
     _debug3 xlen "$xlen"
 
-    xend=$(_math "$xend" + 1)
+    xend=$(_math "$xlen" + 1)
     x="$(printf $pubtext | cut -d : -f 2-$xend)"
     _debug3 x "$x"
     
