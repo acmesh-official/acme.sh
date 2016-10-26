@@ -13,6 +13,11 @@ DP_Api="https://dnsapi.cn"
 #REST_API
 ########  Public functions #####################
 
+dns_dp_del(){
+  _err "Not implemented!"
+  return 1
+}
+
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_dp_add() {
   fulldomain=$1

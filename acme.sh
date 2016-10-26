@@ -1867,6 +1867,57 @@ _clearupwebbroot() {
 
 }
 
+_clearupdnsrr() {
+  [ "$1" -eq "1" ] || return 0
+  [ -n "$2"  ] || return 0
+  txtdomain="_acme-challenge.$2"
+
+  d_api=""
+  if [ -f "$LE_WORKING_DIR/$d/$_currentRoot" ] ; then
+    d_api="$LE_WORKING_DIR/$d/$_currentRoot"
+  elif [ -f "$LE_WORKING_DIR/$d/$_currentRoot.sh" ] ; then
+    d_api="$LE_WORKING_DIR/$d/$_currentRoot.sh"
+  elif [ -f "$LE_WORKING_DIR/$_currentRoot" ] ; then
+    d_api="$LE_WORKING_DIR/$_currentRoot"
+  elif [ -f "$LE_WORKING_DIR/$_currentRoot.sh" ] ; then
+    d_api="$LE_WORKING_DIR/$_currentRoot.sh"
+  elif [ -f "$LE_WORKING_DIR/dnsapi/$_currentRoot" ] ; then
+    d_api="$LE_WORKING_DIR/dnsapi/$_currentRoot"
+  elif [ -f "$LE_WORKING_DIR/dnsapi/$_currentRoot.sh" ] ; then
+    d_api="$LE_WORKING_DIR/dnsapi/$_currentRoot.sh"
+  fi
+  _debug d_api "$d_api"
+
+  if [ "$d_api" ] ; then
+    _info "Found domain api file: $d_api"
+  else
+    _err "Remove the following TXT record:"
+    _err "Domain: '$(__green $txtdomain)'"
+    _err "Please be aware that you prepend _acme-challenge. before your domain"
+    _err "so the resulting subdomain will be: $txtdomain"
+    return 0
+  fi
+
+  if ! . $d_api ; then
+    _err "Load file $d_api error. Please check your api file and try again."
+    return 1
+  fi
+
+  delcommand="${_currentRoot}_del"
+
+  if ! _exists $delcommand ; then
+    _err "It seems that your api file is not correct, it must have a function named: $delcommand"
+    return 1
+  fi
+
+  if ! $delcommand $txtdomain ; then
+    _err "Error del txt for domain:$txtdomain"
+    return 1
+  fi
+
+  return 0
+}
+
 _on_before_issue() {
   _debug _on_before_issue
   if _hasfield "$Le_Webroot" "$NO_VALUE" ; then
@@ -2512,6 +2563,7 @@ issue() {
     if ! _send_signed_request $uri "{\"resource\": \"challenge\", \"keyAuthorization\": \"$keyauthorization\"}" ; then
       _err "$d:Can not get challenge: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+      _clearupdnsrr $dnsadded $d
       _clearup
       _on_issue_err
       return 1
@@ -2520,6 +2572,7 @@ issue() {
     if [ ! -z "$code" ] && [ ! "$code" = '202' ] ; then
       _err "$d:Challenge error: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+      _clearupdnsrr $dnsadded $d
       _clearup
       _on_issue_err
       return 1
@@ -2535,6 +2588,7 @@ issue() {
       if [ "$waittimes" -ge "$MAX_RETRY_TIMES" ] ; then
         _err "$d:Timeout"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearupdnsrr $dnsadded $d
         _clearup
         _on_issue_err
         return 1
@@ -2547,6 +2601,7 @@ issue() {
       if [ "$?" != "0" ] ; then
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearupdnsrr $dnsadded $d
         _clearup
         _on_issue_err
         return 1
@@ -2562,6 +2617,7 @@ issue() {
         _stopserver $serverproc
         serverproc=""
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearupdnsrr $dnsadded $d
         break;
       fi
       
@@ -2582,6 +2638,7 @@ issue() {
            fi
          fi
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearupdnsrr $dnsadded $d
         _clearup
         _on_issue_err
         return 1;
@@ -2592,6 +2649,7 @@ issue() {
       else
         _err "$d:Verify error:$response" 
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearupdnsrr $dnsadded $d
         _clearup
         _on_issue_err
         return 1
@@ -3029,7 +3087,7 @@ _installcert() {
     if [ -f "$Le_RealCertPath" ] && [ ! "$IS_RENEW" ] ; then
       cp "$Le_RealCertPath" "$Le_RealCertPath".bak
     fi
-    cat "$CERT_PATH" > "$Le_RealCertPath"
+    install -D -m0640 "$CERT_PATH" "$Le_RealCertPath"
   fi
   
   if [ "$Le_RealCACertPath" ] ; then
@@ -3042,7 +3100,7 @@ _installcert() {
       if [ -f "$Le_RealCACertPath" ] && [ ! "$IS_RENEW" ] ; then
         cp "$Le_RealCACertPath" "$Le_RealCACertPath".bak
       fi
-      cat "$CA_CERT_PATH" > "$Le_RealCACertPath"
+      install -D -m0640 "$CA_CERT_PATH" "$Le_RealCACertPath"
     fi
   fi
 
@@ -3053,7 +3111,7 @@ _installcert() {
     if [ -f "$Le_RealKeyPath" ] && [ ! "$IS_RENEW" ] ; then
       cp "$Le_RealKeyPath" "$Le_RealKeyPath".bak
     fi
-    cat "$CERT_KEY_PATH" > "$Le_RealKeyPath"
+    install -D -m0640 "$CERT_KEY_PATH" "$Le_RealKeyPath"
   fi
   
   if [ "$Le_RealFullChainPath" ] ; then
@@ -3062,7 +3120,7 @@ _installcert() {
     if [ -f "$Le_RealFullChainPath" ] && [ ! "$IS_RENEW" ] ; then
       cp "$Le_RealFullChainPath" "$Le_RealFullChainPath".bak
     fi
-    cat "$CERT_FULLCHAIN_PATH" > "$Le_RealFullChainPath"
+    install -D -m0640 "$CERT_FULLCHAIN_PATH" "$Le_RealFullChainPath"
   fi  
 
   if [ "$Le_ReloadCmd" ] ; then
@@ -3364,6 +3422,11 @@ _initconf() {
 #GD_Secret=\"sADDsdasdfsdfdssdgdsf\"
 
 #######################
+#nsupdate:
+#NSUPDATE_KEY=\"/path/to/update.key\"
+#NSUPDATE_SERVER=\"192.168.0.1\"
+
+#######################
 #PowerDNS:
 #PDNS_Url=\"http://ns.example.com:8081\"
 #PDNS_ServerId=\"localhost\"
@@ -3429,9 +3492,7 @@ _installalias() {
 
   _envfile="$LE_WORKING_DIR/$PROJECT_ENTRY.env"
   if [ "$_upgrading" ] && [ "$_upgrading" = "1" ] ; then
-    echo "$(cat $_envfile)" | sed "s|^LE_WORKING_DIR.*$||" > "$_envfile"
-    echo "$(cat $_envfile)" | sed "s|^alias le.*$||" > "$_envfile"
-    echo "$(cat $_envfile)" | sed "s|^alias le.sh.*$||" > "$_envfile"
+    sed -i '/^LE_WORKING_DIR/d;/^alias le/d' "$_envfile"
   fi
 
   _setopt "$_envfile" "export LE_WORKING_DIR" "=" "\"$LE_WORKING_DIR\""
@@ -3470,7 +3531,7 @@ _installalias() {
 }
 
 # nocron
-install() {
+_install() {
 
   if [ -z "$LE_WORKING_DIR" ] ; then
     LE_WORKING_DIR="$DEFAULT_INSTALL_HOME"
@@ -3575,7 +3636,7 @@ install() {
 }
 
 # nocron
-uninstall() {
+_uninstall() {
   _nocron="$1"
   if [ -z "$_nocron" ] ; then
     uninstallcronjob
@@ -3595,22 +3656,19 @@ _uninstallalias() {
   _profile="$(_detect_profile)"
   if [ "$_profile" ] ; then
     _info "Uninstalling alias from: '$_profile'"
-    text="$(cat $_profile)"
-    echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.env\"$||" > "$_profile"
+    sed -i "\|/$LE_WORKING_DIR/$PROJECT_NAME\.env|d" "$_profile"
   fi
 
   _csh_profile="$HOME/.cshrc"
   if [ -f "$_csh_profile" ] ; then
     _info "Uninstalling alias from: '$_csh_profile'"
-    text="$(cat $_csh_profile)"
-    echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.csh\"$||" > "$_csh_profile"
+    sed -i "\|/$LE_WORKING_DIR/$PROJECT_NAME\.csh|d" "$_csh_profile"
   fi
   
   _tcsh_profile="$HOME/.tcshrc"
   if [ -f "$_tcsh_profile" ] ; then
     _info "Uninstalling alias from: '$_csh_profile'"
-    text="$(cat $_tcsh_profile)"
-    echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.csh\"$||" > "$_tcsh_profile"
+    sed -i "\|/$LE_WORKING_DIR/$PROJECT_NAME\.csh|d" "$_tcsh_profile"
   fi
 
 }
@@ -3762,7 +3820,7 @@ _installOnline() {
   )
 }
 
-upgrade() {
+_upgrade() {
   if (
     _initpath
     export LE_WORKING_DIR
@@ -4206,9 +4264,9 @@ _process() {
   fi
 
   case "${_CMD}" in
-    install) install "$_nocron" ;;
-    uninstall) uninstall "$_nocron" ;;
-    upgrade) upgrade ;;
+    install) _install "$_nocron" ;;
+    uninstall) _uninstall "$_nocron" ;;
+    upgrade) _upgrade ;;
     issue)
       issue  "$_webroot"  "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address"
       ;;
