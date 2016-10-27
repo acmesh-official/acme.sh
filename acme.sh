@@ -2140,6 +2140,39 @@ _findHook() {
   printf "%s" "$d_api"
 }
 
+#domain
+__get_domain_new_authz() {
+  _gdnd="$1"
+  _info "Getting new-authz for domain" "$_gdnd"
+  
+  _Max_new_authz_retry_times=5
+  _authz_i=0
+  while [ "$_authz_i" -lt "$_Max_new_authz_retry_times" ] ; do
+    _info "Try new-authz for the $_authz_i time."
+    if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$(_idn "$_gdnd")\"}}" ; then
+      _err "Can not get domain new authz."
+      return 1
+    fi
+    if ! _contains "$response" "An error occurred while processing your request" ; then
+      _info "The new-authz request is ok."
+      break
+    fi
+    _authz_i="$(_math "$_authz_i" + 1)"
+    _info "Sleep $_authz_i to retry."
+    _sleep "$_authz_i"
+  done;
+
+  if [ "$_authz_i" = "$_Max_new_authz_retry_times" ] ; then
+    _debug "new-authz retry reach the max $_Max_new_authz_retry_times times."
+  fi
+  
+  if [ ! -z "$code" ] && [ ! "$code" = '201' ] ; then
+    _err "new-authz error: $response"
+    return 1
+  fi
+
+}
+
 #webroot, domain domainlist  keylength 
 issue() {
   if [ -z "$2" ] ; then
@@ -2280,33 +2313,7 @@ issue() {
         vtype="$VTYPE_TLS"
       fi
       
-      _info "Getting new-authz for domain" $d
-
-      _Max_new_authz_retry_times=5
-      _authz_i=0
-      while [ "$_authz_i" -lt "$_Max_new_authz_retry_times" ] ; do
-        _info "Try new-authz for the $_authz_i time."
-        if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$(_idn "$d")\"}}" ; then
-          _err "Can not get domain token."
-          _clearup
-          _on_issue_err
-          return 1
-        fi
-        if ! _contains "$response" "An error occurred while processing your request" ; then
-          _info "The new-authz request is ok."
-          break
-        fi
-        _authz_i="$(_math "$_authz_i" + 1)"
-        _info "Sleep $_authz_i to retry."
-        _sleep "$_authz_i"
-      done;
-
-      if [ "$_authz_i" = "$_Max_new_authz_retry_times" ] ; then
-        _debug "new-authz retry reach the max $_Max_new_authz_retry_times times."
-      fi
-
-      if [ ! -z "$code" ] && [ ! "$code" = '201' ] ; then
-        _err "new-authz error: $response"
+      if ! __get_domain_new_authz "$d" ; then
         _clearup
         _on_issue_err
         return 1
@@ -3227,8 +3234,10 @@ _deactivate() {
   do
     _info "Deactivate: $_d_domain"
     _d_i="$(_math $_d_i + 1)"
-    if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$(_idn "$_d_domain")\"}}" ; then
-      _err "Can not get domain token."
+    
+    
+    if ! __get_domain_new_authz "$_d_domain" ; then
+      _err "Can not get domain new authz token."
       return 1
     fi
     
