@@ -2158,7 +2158,7 @@ __get_domain_new_authz() {
       break
     fi
     _authz_i="$(_math "$_authz_i" + 1)"
-    _info "Sleep $_authz_i to retry."
+    _info "The server is busy, Sleep $_authz_i to retry."
     _sleep "$_authz_i"
   done;
 
