@@ -833,6 +833,13 @@ _calcjwk() {
     _usage "Usage: _calcjwk keyfile"
     return 1
   fi
+  
+  if [ "$JWK_HEADER" ] && [ "$__CACHED_JWK_KEY_FILE" = "$keyfile" ] ; then
+    _debug2 "Use cached jwk for file: $__CACHED_JWK_KEY_FILE"
+    return 0
+  fi
+  
+  
   EC_SIGN=""
   if grep "BEGIN RSA PRIVATE KEY" "$keyfile" > /dev/null 2>&1 ; then
     _debug "RSA key"
@@ -901,6 +908,7 @@ _calcjwk() {
   fi
 
   _debug3 JWK_HEADER "$JWK_HEADER"
+  __CACHED_JWK_KEY_FILE="$keyfile"
 }
 
 _time() {
@@ -929,35 +937,44 @@ _inithttp() {
     HTTP_HEADER="$(_mktemp)"
     _debug2 HTTP_HEADER "$HTTP_HEADER"
   fi
-
-  if [ -z "$CURL" ] ; then
-    CURL="curl -L --silent --dump-header $HTTP_HEADER "
-    if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
-      _CURL_DUMP="$(_mktemp)"
-      CURL="$CURL --trace-ascii $_CURL_DUMP "
-    fi
-
-    if [ "$CA_BUNDLE" ] ; then
-      CURL="$CURL --cacert $CA_BUNDLE "
-    fi
-
-    if [ "$HTTPS_INSECURE" ] ; then
-      CURL="$CURL --insecure  "
+  
+  if [ "$__HTTP_INITIALIZED" ] ; then 
+    if [ "$_ACME_CURL$_ACME_WGET" ] ; then
+      _debug2 "Http already initialized."
+      return 0
     fi
   fi
   
-  if [ -z "$WGET" ] ; then
-    WGET="wget -q"
+  if [ -z "$_ACME_CURL" ] && _exists "curl" ; then
+    _ACME_CURL="curl -L --silent --dump-header $HTTP_HEADER "
     if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
-      WGET="$WGET -d "
+      _CURL_DUMP="$(_mktemp)"
+      _ACME_CURL="$_ACME_CURL --trace-ascii $_CURL_DUMP "
     fi
+
     if [ "$CA_BUNDLE" ] ; then
-      WGET="$WGET --ca-certificate $CA_BUNDLE "
+      _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
     fi
+
     if [ "$HTTPS_INSECURE" ] ; then
-      WGET="$WGET --no-check-certificate "
+      _ACME_CURL="$_ACME_CURL --insecure  "
     fi
   fi
+  
+  if [ -z "$_ACME_WGET" ] && _exists "wget"; then
+    _ACME_WGET="wget -q"
+    if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
+      _ACME_WGET="$_ACME_WGET -d "
+    fi
+    if [ "$CA_BUNDLE" ] ; then
+      _ACME_WGET="$_ACME_WGET --ca-certificate $CA_BUNDLE "
+    fi
+    if [ "$HTTPS_INSECURE" ] ; then
+      _ACME_WGET="$_ACME_WGET --no-check-certificate "
+    fi
+  fi
+  
+  __HTTP_INITIALIZED=1
 
 }
 
@@ -978,8 +995,8 @@ _post() {
   
   _inithttp
   
-  if _exists "curl" ; then
-    _CURL="$CURL"
+  if [ "$_ACME_CURL" ] ; then
+    _CURL="$_ACME_CURL"
     _debug "_CURL" "$_CURL"
     if [ "$needbase64" ] ; then
       response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$url" | _base64)"
@@ -994,19 +1011,19 @@ _post() {
         _err "$(cat "$_CURL_DUMP")"
       fi
     fi
-  elif _exists "wget" ; then
-    _debug "WGET" "$WGET"
+  elif [ "$_ACME_WGET" ] ; then
+    _debug "_ACME_WGET" "$_ACME_WGET"
     if [ "$needbase64" ] ; then
       if [ "$httpmethod" = "POST" ] ; then
-        response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
+        response="$($_ACME_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
       else
-        response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
+        response="$($_ACME_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
       fi
     else
       if [ "$httpmethod" = "POST" ] ; then
-        response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER")"
+        response="$($_ACME_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER")"
       else
-        response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER")"
+        response="$($_ACME_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER")"
       fi
     fi
     _ret="$?"
@@ -1039,8 +1056,8 @@ _get() {
 
   _inithttp
 
-  if _exists "curl" ; then
-    _CURL="$CURL"
+  if [ "$_ACME_CURL" ] ; then
+    _CURL="$_ACME_CURL"
     if [ "$t" ] ; then
       _CURL="$_CURL --connect-timeout $t"
     fi
@@ -1058,8 +1075,8 @@ _get() {
         _err "$(cat "$_CURL_DUMP")"
       fi
     fi
-  elif _exists "wget" ; then
-    _WGET="$WGET"
+  elif [ "$_ACME_WGET" ] ; then
+    _WGET="$_ACME_WGET"
     if [ "$t" ] ; then
       _WGET="$_WGET --timeout=$t"
     fi
@@ -3194,19 +3211,23 @@ revoke() {
   data="{\"resource\": \"revoke-cert\", \"certificate\": \"$cert\"}"
   uri="$API/acme/revoke-cert"
 
-  _info "Try domain key first."
-  if _send_signed_request $uri "$data" "" "$CERT_KEY_PATH"; then
-    if [ -z "$response" ] ; then
-      _info "Revoke success."
-      rm -f $CERT_PATH
-      return 0
-    else 
-      _err "Revoke error by domain key."
-      _err "$response"
+  if [ -f "$CERT_KEY_PATH" ] ; then
+    _info "Try domain key first."
+    if _send_signed_request $uri "$data" "" "$CERT_KEY_PATH"; then
+      if [ -z "$response" ] ; then
+        _info "Revoke success."
+        rm -f $CERT_PATH
+        return 0
+      else 
+        _err "Revoke error by domain key."
+        _err "$response"
+      fi
     fi
+  else 
+    _info "Domain key file doesn't exists."
   fi
   
-  _info "Then try account key."
+  _info "Try account key."
 
   if _send_signed_request $uri "$data" "" "$ACCOUNT_KEY_PATH" ; then
     if [ -z "$response" ] ; then
