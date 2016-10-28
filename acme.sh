@@ -2109,8 +2109,6 @@ _regAccount() {
   while true ;
   do
     _debug AGREEMENT "$AGREEMENT"
-    accountkey_json=$(printf "%s" "$jwk" |  tr -d ' ' )
-    thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _urlencode)
     
     regjson='{"resource": "'$_reg_res'", "agreement": "'$AGREEMENT'"}'
 
@@ -2348,8 +2346,8 @@ issue() {
   _savedomainconf "Le_Keylength"    "$Le_Keylength"
   
   vlist="$Le_Vlist"
-  # verify each domain
-  _info "Verify each domain"
+
+  _info "Getting domain auth token for each domain"
   sep='#'
   if [ -z "$vlist" ] ; then
     alldomains=$(echo "$Le_Domain,$Le_Alt" |  tr ',' ' ' )
@@ -2380,7 +2378,12 @@ issue() {
         _on_issue_err
         return 1
       fi
-
+      
+      if [ -z "$thumbprint" ] ; then
+        accountkey_json=$(printf "%s" "$jwk" |  tr -d ' ' )
+        thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _urlencode)
+      fi
+      
       entry="$(printf "%s\n" "$response" | _egrep_o  '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
       if [ -z "$entry" ] ; then
@@ -2394,7 +2397,7 @@ issue() {
       
       uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*'| cut -d : -f 2,3 | tr -d '"' )"
       _debug uri $uri
-      
+
       keyauthorization="$token.$thumbprint"
       _debug keyauthorization "$keyauthorization"
 
