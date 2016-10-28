@@ -833,6 +833,13 @@ _calcjwk() {
     _usage "Usage: _calcjwk keyfile"
     return 1
   fi
+  
+  if [ "$JWK_HEADER" ] && [ "$__CACHED_JWK_KEY_FILE" = "$keyfile" ] ; then
+    _debug2 "Use cached jwk for file: $__CACHED_JWK_KEY_FILE"
+    return 0
+  fi
+  
+  
   EC_SIGN=""
   if grep "BEGIN RSA PRIVATE KEY" "$keyfile" > /dev/null 2>&1 ; then
     _debug "RSA key"
@@ -851,9 +858,9 @@ _calcjwk() {
     jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
     _debug3 jwk "$jwk"
     
-    HEADER='{"alg": "RS256", "jwk": '$jwk'}'
-    HEADERPLACE_PART1='{"nonce": "'
-    HEADERPLACE_PART2='", "alg": "RS256", "jwk": '$jwk'}'
+    JWK_HEADER='{"alg": "RS256", "jwk": '$jwk'}'
+    JWK_HEADERPLACE_PART1='{"nonce": "'
+    JWK_HEADERPLACE_PART2='", "alg": "RS256", "jwk": '$jwk'}'
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" > /dev/null 2>&1 ; then
     _debug "EC key"
     EC_SIGN="1"
@@ -892,15 +899,16 @@ _calcjwk() {
     jwk='{"kty": "EC", "crv": "'$crv'", "x": "'$x64'", "y": "'$y64'"}'
     _debug3 jwk "$jwk"
     
-    HEADER='{"alg": "ES256", "jwk": '$jwk'}'
-    HEADERPLACE_PART1='{"nonce": "'
-    HEADERPLACE_PART2='", "alg": "ES256", "jwk": '$jwk'}'
+    JWK_HEADER='{"alg": "ES256", "jwk": '$jwk'}'
+    JWK_HEADERPLACE_PART1='{"nonce": "'
+    JWK_HEADERPLACE_PART2='", "alg": "ES256", "jwk": '$jwk'}'
   else
     _err "Only RSA or EC key is supported."
     return 1
   fi
 
-  _debug3 HEADER "$HEADER"
+  _debug3 JWK_HEADER "$JWK_HEADER"
+  __CACHED_JWK_KEY_FILE="$keyfile"
 }
 
 _time() {
@@ -929,35 +937,44 @@ _inithttp() {
     HTTP_HEADER="$(_mktemp)"
     _debug2 HTTP_HEADER "$HTTP_HEADER"
   fi
-
-  if [ -z "$CURL" ] ; then
-    CURL="curl -L --silent --dump-header $HTTP_HEADER "
-    if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
-      _CURL_DUMP="$(_mktemp)"
-      CURL="$CURL --trace-ascii $_CURL_DUMP "
-    fi
-
-    if [ "$CA_BUNDLE" ] ; then
-      CURL="$CURL --cacert $CA_BUNDLE "
-    fi
-
-    if [ "$HTTPS_INSECURE" ] ; then
-      CURL="$CURL --insecure  "
+  
+  if [ "$__HTTP_INITIALIZED" ] ; then 
+    if [ "$_ACME_CURL$_ACME_WGET" ] ; then
+      _debug2 "Http already initialized."
+      return 0
     fi
   fi
   
-  if [ -z "$WGET" ] ; then
-    WGET="wget -q"
+  if [ -z "$_ACME_CURL" ] && _exists "curl" ; then
+    _ACME_CURL="curl -L --silent --dump-header $HTTP_HEADER "
     if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
-      WGET="$WGET -d "
+      _CURL_DUMP="$(_mktemp)"
+      _ACME_CURL="$_ACME_CURL --trace-ascii $_CURL_DUMP "
     fi
+
     if [ "$CA_BUNDLE" ] ; then
-      WGET="$WGET --ca-certificate $CA_BUNDLE "
+      _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
     fi
+
     if [ "$HTTPS_INSECURE" ] ; then
-      WGET="$WGET --no-check-certificate "
+      _ACME_CURL="$_ACME_CURL --insecure  "
     fi
   fi
+  
+  if [ -z "$_ACME_WGET" ] && _exists "wget"; then
+    _ACME_WGET="wget -q"
+    if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
+      _ACME_WGET="$_ACME_WGET -d "
+    fi
+    if [ "$CA_BUNDLE" ] ; then
+      _ACME_WGET="$_ACME_WGET --ca-certificate $CA_BUNDLE "
+    fi
+    if [ "$HTTPS_INSECURE" ] ; then
+      _ACME_WGET="$_ACME_WGET --no-check-certificate "
+    fi
+  fi
+  
+  __HTTP_INITIALIZED=1
 
 }
 
@@ -978,8 +995,8 @@ _post() {
   
   _inithttp
   
-  if _exists "curl" ; then
-    _CURL="$CURL"
+  if [ "$_ACME_CURL" ] ; then
+    _CURL="$_ACME_CURL"
     _debug "_CURL" "$_CURL"
     if [ "$needbase64" ] ; then
       response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$url" | _base64)"
@@ -994,19 +1011,19 @@ _post() {
         _err "$(cat "$_CURL_DUMP")"
       fi
     fi
-  elif _exists "wget" ; then
-    _debug "WGET" "$WGET"
+  elif [ "$_ACME_WGET" ] ; then
+    _debug "_ACME_WGET" "$_ACME_WGET"
     if [ "$needbase64" ] ; then
       if [ "$httpmethod" = "POST" ] ; then
-        response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
+        response="$($_ACME_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
       else
-        response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
+        response="$($_ACME_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
       fi
     else
       if [ "$httpmethod" = "POST" ] ; then
-        response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER")"
+        response="$($_ACME_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER")"
       else
-        response="$($WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER")"
+        response="$($_ACME_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER")"
       fi
     fi
     _ret="$?"
@@ -1039,8 +1056,8 @@ _get() {
 
   _inithttp
 
-  if _exists "curl" ; then
-    _CURL="$CURL"
+  if [ "$_ACME_CURL" ] ; then
+    _CURL="$_ACME_CURL"
     if [ "$t" ] ; then
       _CURL="$_CURL --connect-timeout $t"
     fi
@@ -1058,8 +1075,8 @@ _get() {
         _err "$(cat "$_CURL_DUMP")"
       fi
     fi
-  elif _exists "wget" ; then
-    _WGET="$WGET"
+  elif [ "$_ACME_WGET" ] ; then
+    _WGET="$_ACME_WGET"
     if [ "$t" ] ; then
       _WGET="$_WGET --timeout=$t"
     fi
@@ -1115,21 +1132,26 @@ _send_signed_request() {
   payload64=$(printf "%s" "$payload" | _base64 | _urlencode)
   _debug3 payload64 $payload64
   
-  nonceurl="$API/directory"
-  _headers="$(_get $nonceurl "onlyheader")"
-  
-  if [ "$?" != "0" ] ; then
-    _err "Can not connect to $nonceurl to get nonce."
-    return 1
+  if [ -z "$_CACHED_NONCE" ] ; then
+    _debug2 "Get nonce."
+    nonceurl="$API/directory"
+    _headers="$(_get $nonceurl "onlyheader")"
+    
+    if [ "$?" != "0" ] ; then
+      _err "Can not connect to $nonceurl to get nonce."
+      return 1
+    fi
+    
+    _debug3 _headers "$_headers"
+    
+    _CACHED_NONCE="$( echo "$_headers" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
+  else
+    _debug2 "Use _CACHED_NONCE" "$_CACHED_NONCE"
   fi
-  
-  _debug3 _headers "$_headers"
-  
-  nonce="$( echo "$_headers" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
-
+  nonce="$_CACHED_NONCE"
   _debug3 nonce "$nonce"
   
-  protected="$HEADERPLACE_PART1$nonce$HEADERPLACE_PART2"
+  protected="$JWK_HEADERPLACE_PART1$nonce$JWK_HEADERPLACE_PART2"
   _debug3 protected "$protected"
   
   protected64="$(printf "$protected" | _base64 | _urlencode)"
@@ -1138,11 +1160,12 @@ _send_signed_request() {
   sig=$(printf "%s" "$protected64.$payload64" |  _sign  "$keyfile" "sha256" | _urlencode)
   _debug3 sig "$sig"
   
-  body="{\"header\": $HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
+  body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
   _debug3 body "$body"
   
 
   response="$(_post "$body" $url "$needbase64")"
+  _CACHED_NONCE=""
   if [ "$?" != "0" ] ; then
     _err "Can not post to $url"
     return 1
@@ -1151,12 +1174,14 @@ _send_signed_request() {
   
   response="$( echo "$response" | _normalizeJson )"
 
-  responseHeaders="$(cat $HTTP_HEADER)"
+  responseHeaders="$(cat "$HTTP_HEADER")"
   
   _debug2 responseHeaders "$responseHeaders"
   _debug2 response  "$response"
   code="$(grep "^HTTP" $HTTP_HEADER | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n" )"
   _debug code $code
+  
+  _CACHED_NONCE="$(echo "$responseHeaders" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
 
 }
 
@@ -1198,60 +1223,85 @@ _setopt() {
   _debug2 "$(grep -n "^$__opt$__sep" $__conf)"
 }
 
+
+#_save_conf  file key  value
+#save to conf
+_save_conf() {
+  _s_c_f="$1"
+  _sdkey="$2"
+  _sdvalue="$3"
+  if [ "$_s_c_f" ] ; then
+    _setopt "$_s_c_f" "$_sdkey" "=" "'$_sdvalue'"
+  else
+    _err "config file is empty, can not save $_sdkey=$_sdvalue"
+  fi
+}
+
+#_clear_conf file  key
+_clear_conf() {
+  _c_c_f="$1"
+  _sdkey="$2"
+  if [ "$_c_c_f" ] ; then
+    _sed_i "s/^$_sdkey.*$//"  "$_c_c_f"
+  else
+    _err "config file is empty, can not clear"
+  fi
+}
+
+#_read_conf file  key
+_read_conf() {
+  _r_c_f="$1"
+  _sdkey="$2"
+  if [ -f "$_r_c_f" ] ; then
+  (
+    eval $(grep "^$_sdkey *=" "$_r_c_f")
+    eval "printf \"%s\" \"\$$_sdkey\""
+  )
+  else
+    _err "config file is empty, can not read $_sdkey"
+  fi
+}
+
+
 #_savedomainconf   key  value
 #save to domain.conf
 _savedomainconf() {
-  _sdkey="$1"
-  _sdvalue="$2"
-  if [ "$DOMAIN_CONF" ] ; then
-    _setopt "$DOMAIN_CONF" "$_sdkey" "=" "\"$_sdvalue\""
-  else
-    _err "DOMAIN_CONF is empty, can not save $_sdkey=$_sdvalue"
-  fi
+  _save_conf "$DOMAIN_CONF" "$1" "$2"
 }
 
 #_cleardomainconf   key
 _cleardomainconf() {
-  _sdkey="$1"
-  if [ "$DOMAIN_CONF" ] ; then
-    _sed_i "s/^$_sdkey.*$//"  "$DOMAIN_CONF"
-  else
-    _err "DOMAIN_CONF is empty, can not save $_sdkey=$value"
-  fi
+  _clear_conf "$DOMAIN_CONF" "$1"
 }
 
 #_readdomainconf   key
 _readdomainconf() {
-  _sdkey="$1"
-  if [ "$DOMAIN_CONF" ] ; then
-  (
-    eval $(grep "^$_sdkey *=" "$DOMAIN_CONF")
-    eval "printf \"%s\" \"\$$_sdkey\""
-  )
-  else
-    _err "DOMAIN_CONF is empty, can not read $_sdkey"
-  fi
+  _read_conf "$DOMAIN_CONF" "$1"
 }
 
 #_saveaccountconf  key  value
 _saveaccountconf() {
-  _sckey="$1"
-  _scvalue="$2"
-  if [ "$ACCOUNT_CONF_PATH" ] ; then
-    _setopt "$ACCOUNT_CONF_PATH" "$_sckey" "=" "'$_scvalue'"
-  else
-    _err "ACCOUNT_CONF_PATH is empty, can not save $_sckey=$_scvalue"
-  fi
+  _save_conf "$ACCOUNT_CONF_PATH" "$1" "$2"
 }
 
 #_clearaccountconf   key
 _clearaccountconf() {
-  _scvalue="$1"
-  if [ "$ACCOUNT_CONF_PATH" ] ; then
-    _sed_i "s/^$_scvalue.*$//"  "$ACCOUNT_CONF_PATH"
-  else
-    _err "ACCOUNT_CONF_PATH is empty, can not clear $_scvalue"
-  fi
+  _clear_conf "$ACCOUNT_CONF_PATH" "$1"
+}
+
+#_savecaconf  key  value
+_savecaconf() {
+  _save_conf "$CA_CONF" "$1" "$2"
+}
+
+#_readcaconf   key
+_readcaconf() {
+  _read_conf "$CA_CONF" "$1"
+}
+
+#_clearaccountconf   key
+_clearcaconf() {
+  _clear_conf "$CA_CONF" "$1"
 }
 
 # content localaddress
@@ -2022,6 +2072,10 @@ registeraccount() {
   _regAccount
 }
 
+__calcAccountKeyHash() {
+  cat "$ACCOUNT_KEY_PATH" | _digest sha256
+}
+
 _regAccount() {
   _initpath
   
@@ -2055,8 +2109,6 @@ _regAccount() {
   while true ;
   do
     _debug AGREEMENT "$AGREEMENT"
-    accountkey_json=$(printf "%s" "$jwk" |  tr -d ' ' )
-    thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _urlencode)
     
     regjson='{"resource": "'$_reg_res'", "agreement": "'$AGREEMENT'"}'
 
@@ -2106,6 +2158,10 @@ _regAccount() {
       fi
       if [ "$code" = '202' ] ; then
         _info "Update success."
+        
+        CA_KEY_HASH="$(__calcAccountKeyHash)"
+        _debug "Calc CA_KEY_HASH" "$CA_KEY_HASH"
+        _savecaconf CA_KEY_HASH "$CA_KEY_HASH"
       else
         _err "Update account error."
         return 1
@@ -2255,11 +2311,15 @@ issue() {
     return 1
   fi
 
-  if ! _regAccount ; then
-    _on_issue_err
-    return 1
-  fi
+  _saved_account_key_hash="$(_readcaconf "CA_KEY_HASH")"
+  _debug2 _saved_account_key_hash "$_saved_account_key_hash"
   
+  if [ -z "$_saved_account_key_hash" ] || [ "$_saved_account_key_hash" != "$(__calcAccountKeyHash)" ] ; then
+    if ! _regAccount ; then
+      _on_issue_err
+      return 1
+    fi
+  fi
 
   if [ -f "$CSR_PATH" ] && [ ! -f "$CERT_KEY_PATH" ] ; then
     _info "Signing from existing CSR."
@@ -2286,8 +2346,8 @@ issue() {
   _savedomainconf "Le_Keylength"    "$Le_Keylength"
   
   vlist="$Le_Vlist"
-  # verify each domain
-  _info "Verify each domain"
+
+  _info "Getting domain auth token for each domain"
   sep='#'
   if [ -z "$vlist" ] ; then
     alldomains=$(echo "$Le_Domain,$Le_Alt" |  tr ',' ' ' )
@@ -2318,7 +2378,12 @@ issue() {
         _on_issue_err
         return 1
       fi
-
+      
+      if [ -z "$thumbprint" ] ; then
+        accountkey_json=$(printf "%s" "$jwk" |  tr -d ' ' )
+        thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _urlencode)
+      fi
+      
       entry="$(printf "%s\n" "$response" | _egrep_o  '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
       if [ -z "$entry" ] ; then
@@ -2332,7 +2397,7 @@ issue() {
       
       uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*'| cut -d : -f 2,3 | tr -d '"' )"
       _debug uri $uri
-      
+
       keyauthorization="$token.$thumbprint"
       _debug keyauthorization "$keyauthorization"
 
@@ -3194,19 +3259,23 @@ revoke() {
   data="{\"resource\": \"revoke-cert\", \"certificate\": \"$cert\"}"
   uri="$API/acme/revoke-cert"
 
-  _info "Try domain key first."
-  if _send_signed_request $uri "$data" "" "$CERT_KEY_PATH"; then
-    if [ -z "$response" ] ; then
-      _info "Revoke success."
-      rm -f $CERT_PATH
-      return 0
-    else 
-      _err "Revoke error by domain key."
-      _err "$response"
+  if [ -f "$CERT_KEY_PATH" ] ; then
+    _info "Try domain key first."
+    if _send_signed_request $uri "$data" "" "$CERT_KEY_PATH"; then
+      if [ -z "$response" ] ; then
+        _info "Revoke success."
+        rm -f $CERT_PATH
+        return 0
+      else 
+        _err "Revoke error by domain key."
+        _err "$response"
+      fi
     fi
+  else 
+    _info "Domain key file doesn't exists."
   fi
   
-  _info "Then try account key."
+  _info "Try account key."
 
   if _send_signed_request $uri "$data" "" "$ACCOUNT_KEY_PATH" ; then
     if [ -z "$response" ] ; then
