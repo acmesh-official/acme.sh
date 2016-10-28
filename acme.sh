@@ -851,9 +851,9 @@ _calcjwk() {
     jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
     _debug3 jwk "$jwk"
     
-    HEADER='{"alg": "RS256", "jwk": '$jwk'}'
-    HEADERPLACE_PART1='{"nonce": "'
-    HEADERPLACE_PART2='", "alg": "RS256", "jwk": '$jwk'}'
+    JWK_HEADER='{"alg": "RS256", "jwk": '$jwk'}'
+    JWK_HEADERPLACE_PART1='{"nonce": "'
+    JWK_HEADERPLACE_PART2='", "alg": "RS256", "jwk": '$jwk'}'
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" > /dev/null 2>&1 ; then
     _debug "EC key"
     EC_SIGN="1"
@@ -892,15 +892,15 @@ _calcjwk() {
     jwk='{"kty": "EC", "crv": "'$crv'", "x": "'$x64'", "y": "'$y64'"}'
     _debug3 jwk "$jwk"
     
-    HEADER='{"alg": "ES256", "jwk": '$jwk'}'
-    HEADERPLACE_PART1='{"nonce": "'
-    HEADERPLACE_PART2='", "alg": "ES256", "jwk": '$jwk'}'
+    JWK_HEADER='{"alg": "ES256", "jwk": '$jwk'}'
+    JWK_HEADERPLACE_PART1='{"nonce": "'
+    JWK_HEADERPLACE_PART2='", "alg": "ES256", "jwk": '$jwk'}'
   else
     _err "Only RSA or EC key is supported."
     return 1
   fi
 
-  _debug3 HEADER "$HEADER"
+  _debug3 JWK_HEADER "$JWK_HEADER"
 }
 
 _time() {
@@ -1129,7 +1129,7 @@ _send_signed_request() {
 
   _debug3 nonce "$nonce"
   
-  protected="$HEADERPLACE_PART1$nonce$HEADERPLACE_PART2"
+  protected="$JWK_HEADERPLACE_PART1$nonce$JWK_HEADERPLACE_PART2"
   _debug3 protected "$protected"
   
   protected64="$(printf "$protected" | _base64 | _urlencode)"
@@ -1138,7 +1138,7 @@ _send_signed_request() {
   sig=$(printf "%s" "$protected64.$payload64" |  _sign  "$keyfile" "sha256" | _urlencode)
   _debug3 sig "$sig"
   
-  body="{\"header\": $HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
+  body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
   _debug3 body "$body"
   
 
