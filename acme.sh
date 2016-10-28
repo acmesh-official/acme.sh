@@ -1132,18 +1132,23 @@ _send_signed_request() {
   payload64=$(printf "%s" "$payload" | _base64 | _urlencode)
   _debug3 payload64 $payload64
   
-  nonceurl="$API/directory"
-  _headers="$(_get $nonceurl "onlyheader")"
-  
-  if [ "$?" != "0" ] ; then
-    _err "Can not connect to $nonceurl to get nonce."
-    return 1
+  if [ -z "$_CACHED_NONCE" ] ; then
+    _debug2 "Get nonce."
+    nonceurl="$API/directory"
+    _headers="$(_get $nonceurl "onlyheader")"
+    
+    if [ "$?" != "0" ] ; then
+      _err "Can not connect to $nonceurl to get nonce."
+      return 1
+    fi
+    
+    _debug3 _headers "$_headers"
+    
+    _CACHED_NONCE="$( echo "$_headers" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
+  else
+    _debug2 "Use _CACHED_NONCE" "$_CACHED_NONCE"
   fi
-  
-  _debug3 _headers "$_headers"
-  
-  nonce="$( echo "$_headers" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
-
+  nonce="$_CACHED_NONCE"
   _debug3 nonce "$nonce"
   
   protected="$JWK_HEADERPLACE_PART1$nonce$JWK_HEADERPLACE_PART2"
@@ -1160,6 +1165,7 @@ _send_signed_request() {
   
 
   response="$(_post "$body" $url "$needbase64")"
+  _CACHED_NONCE=""
   if [ "$?" != "0" ] ; then
     _err "Can not post to $url"
     return 1
@@ -1168,12 +1174,14 @@ _send_signed_request() {
   
   response="$( echo "$response" | _normalizeJson )"
 
-  responseHeaders="$(cat $HTTP_HEADER)"
+  responseHeaders="$(cat "$HTTP_HEADER")"
   
   _debug2 responseHeaders "$responseHeaders"
   _debug2 response  "$response"
   code="$(grep "^HTTP" $HTTP_HEADER | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n" )"
   _debug code $code
+  
+  _CACHED_NONCE="$(echo "$responseHeaders" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
 
 }
 
