@@ -1223,60 +1223,85 @@ _setopt() {
   _debug2 "$(grep -n "^$__opt$__sep" $__conf)"
 }
 
+
+#_save_conf  file key  value
+#save to conf
+_save_conf() {
+  _s_c_f="$1"
+  _sdkey="$2"
+  _sdvalue="$3"
+  if [ "$_s_c_f" ] ; then
+    _setopt "$_s_c_f" "$_sdkey" "=" "'$_sdvalue'"
+  else
+    _err "config file is empty, can not save $_sdkey=$_sdvalue"
+  fi
+}
+
+#_clear_conf file  key
+_clear_conf() {
+  _c_c_f="$1"
+  _sdkey="$2"
+  if [ "$_c_c_f" ] ; then
+    _sed_i "s/^$_sdkey.*$//"  "$_c_c_f"
+  else
+    _err "config file is empty, can not clear"
+  fi
+}
+
+#_read_conf file  key
+_read_conf() {
+  _r_c_f="$1"
+  _sdkey="$2"
+  if [ -f "$_r_c_f" ] ; then
+  (
+    eval $(grep "^$_sdkey *=" "$_r_c_f")
+    eval "printf \"%s\" \"\$$_sdkey\""
+  )
+  else
+    _err "config file is empty, can not read $_sdkey"
+  fi
+}
+
+
 #_savedomainconf   key  value
 #save to domain.conf
 _savedomainconf() {
-  _sdkey="$1"
-  _sdvalue="$2"
-  if [ "$DOMAIN_CONF" ] ; then
-    _setopt "$DOMAIN_CONF" "$_sdkey" "=" "\"$_sdvalue\""
-  else
-    _err "DOMAIN_CONF is empty, can not save $_sdkey=$_sdvalue"
-  fi
+  _save_conf "$DOMAIN_CONF" "$1" "$2"
 }
 
 #_cleardomainconf   key
 _cleardomainconf() {
-  _sdkey="$1"
-  if [ "$DOMAIN_CONF" ] ; then
-    _sed_i "s/^$_sdkey.*$//"  "$DOMAIN_CONF"
-  else
-    _err "DOMAIN_CONF is empty, can not save $_sdkey=$value"
-  fi
+  _clear_conf "$DOMAIN_CONF" "$1"
 }
 
 #_readdomainconf   key
 _readdomainconf() {
-  _sdkey="$1"
-  if [ "$DOMAIN_CONF" ] ; then
-  (
-    eval $(grep "^$_sdkey *=" "$DOMAIN_CONF")
-    eval "printf \"%s\" \"\$$_sdkey\""
-  )
-  else
-    _err "DOMAIN_CONF is empty, can not read $_sdkey"
-  fi
+  _read_conf "$DOMAIN_CONF" "$1"
 }
 
 #_saveaccountconf  key  value
 _saveaccountconf() {
-  _sckey="$1"
-  _scvalue="$2"
-  if [ "$ACCOUNT_CONF_PATH" ] ; then
-    _setopt "$ACCOUNT_CONF_PATH" "$_sckey" "=" "'$_scvalue'"
-  else
-    _err "ACCOUNT_CONF_PATH is empty, can not save $_sckey=$_scvalue"
-  fi
+  _save_conf "$ACCOUNT_CONF_PATH" "$1" "$2"
 }
 
 #_clearaccountconf   key
 _clearaccountconf() {
-  _scvalue="$1"
-  if [ "$ACCOUNT_CONF_PATH" ] ; then
-    _sed_i "s/^$_scvalue.*$//"  "$ACCOUNT_CONF_PATH"
-  else
-    _err "ACCOUNT_CONF_PATH is empty, can not clear $_scvalue"
-  fi
+  _clear_conf "$ACCOUNT_CONF_PATH" "$1"
+}
+
+#_savecaconf  key  value
+_savecaconf() {
+  _save_conf "$CA_CONF" "$1" "$2"
+}
+
+#_readcaconf   key
+_readcaconf() {
+  _read_conf "$CA_CONF" "$1"
+}
+
+#_clearaccountconf   key
+_clearcaconf() {
+  _clear_conf "$CA_CONF" "$1"
 }
 
 # content localaddress
@@ -2047,6 +2072,10 @@ registeraccount() {
   _regAccount
 }
 
+__calcAccountKeyHash() {
+  cat "$ACCOUNT_KEY_PATH" | _digest sha256
+}
+
 _regAccount() {
   _initpath
   
@@ -2131,6 +2160,10 @@ _regAccount() {
       fi
       if [ "$code" = '202' ] ; then
         _info "Update success."
+        
+        CA_KEY_HASH="$(__calcAccountKeyHash)"
+        _debug "Calc CA_KEY_HASH" "$CA_KEY_HASH"
+        _savecaconf CA_KEY_HASH "$CA_KEY_HASH"
       else
         _err "Update account error."
         return 1
@@ -2280,11 +2313,15 @@ issue() {
     return 1
   fi
 
-  if ! _regAccount ; then
-    _on_issue_err
-    return 1
-  fi
+  _saved_account_key_hash="$(_readcaconf "CA_KEY_HASH")"
+  _debug2 _saved_account_key_hash "$_saved_account_key_hash"
   
+  if [ -z "$_saved_account_key_hash" ] || [ "$_saved_account_key_hash" != "$(__calcAccountKeyHash)" ] ; then
+    if ! _regAccount ; then
+      _on_issue_err
+      return 1
+    fi
+  fi
 
   if [ -f "$CSR_PATH" ] && [ ! -f "$CERT_KEY_PATH" ] ; then
     _info "Signing from existing CSR."
