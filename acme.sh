@@ -2292,8 +2292,12 @@ issue() {
   _savedomainconf "Le_PreHook"      "$Le_PreHook"
   _savedomainconf "Le_PostHook"     "$Le_PostHook"
   _savedomainconf "Le_RenewHook"     "$Le_RenewHook"
-  _savedomainconf "Le_LocalAddress"     "$Le_LocalAddress"
   
+  if [ "$Le_LocalAddress" ] ; then
+    _savedomainconf "Le_LocalAddress"     "$Le_LocalAddress"
+  else
+    _cleardomainconf "Le_LocalAddress"
+  fi
 
   Le_API="$API"
   _savedomainconf "Le_API" "$Le_API"
@@ -2719,9 +2723,14 @@ issue() {
   if [ "$Le_LinkCert" ] ; then
     echo "$BEGIN_CERT" > "$CERT_PATH"
     
-    if ! _get "$Le_LinkCert" | _base64 "multiline"  >> "$CERT_PATH" ; then
-      _debug "Get cert failed. Let's try last response."
-      printf -- "%s" "$_rcert" | _dbase64 "multiline" | _base64 "multiline" >> "$CERT_PATH" 
+    #if ! _get "$Le_LinkCert" | _base64 "multiline"  >> "$CERT_PATH" ; then
+    #  _debug "Get cert failed. Let's try last response."
+    #  printf -- "%s" "$_rcert" | _dbase64 "multiline" | _base64 "multiline" >> "$CERT_PATH" 
+    #fi
+    
+    if ! printf -- "%s" "$_rcert" | _dbase64 "multiline" | _base64 "multiline" >> "$CERT_PATH" ; then
+      _debug "Try cert link."
+      _get "$Le_LinkCert" | _base64 "multiline"  >> "$CERT_PATH"
     fi
 
     echo "$END_CERT"  >> "$CERT_PATH"
