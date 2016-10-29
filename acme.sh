@@ -2073,7 +2073,7 @@ registeraccount() {
 }
 
 __calcAccountKeyHash() {
-  cat "$ACCOUNT_KEY_PATH" | _digest sha256
+  [ -f "$ACCOUNT_KEY_PATH" ] && cat "$ACCOUNT_KEY_PATH" | _digest sha256
 }
 
 _regAccount() {
