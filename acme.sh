@@ -896,7 +896,7 @@ _calcjwk() {
     y64="$(printf $y | tr -d : | _h2b | _base64 | _urlencode)"
     _debug3 y64 "$y64"
    
-    jwk='{"kty": "EC", "crv": "'$crv'", "x": "'$x64'", "y": "'$y64'"}'
+    jwk='{"crv": "'$crv'", "kty": "EC", "x": "'$x64'", "y": "'$y64'"}'
     _debug3 jwk "$jwk"
     
     JWK_HEADER='{"alg": "ES256", "jwk": '$jwk'}'
