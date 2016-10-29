@@ -833,10 +833,7 @@ _calcjwk() {
     _usage "Usage: _calcjwk keyfile"
     return 1
   fi
-  
 
-  
-  
   EC_SIGN=""
   if grep "BEGIN RSA PRIVATE KEY" "$keyfile" > /dev/null 2>&1 ; then
     _debug "RSA key"
@@ -2383,11 +2380,10 @@ issue() {
         return 1
       fi
       
-      if [ -z "$thumbprint" ] ; then
-        accountkey_json=$(printf "%s" "$jwk" |  tr -d ' ' )
-        thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _urlencode)
-      fi
-      
+
+      accountkey_json=$(printf "%s" "$jwk" |  tr -d ' ' )
+      thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _urlencode)
+
       entry="$(printf "%s\n" "$response" | _egrep_o  '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
       if [ -z "$entry" ] ; then
