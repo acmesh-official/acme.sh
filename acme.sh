@@ -833,16 +833,16 @@ _calcjwk() {
     _usage "Usage: _calcjwk keyfile"
     return 1
   fi
-
+  
+  if [ "$JWK_HEADER" ] && [ "$__CACHED_JWK_KEY_FILE" = "$keyfile" ] ; then
+    _debug2 "Use cached jwk for file: $__CACHED_JWK_KEY_FILE"
+    return 0
+  fi
+  
+  
   EC_SIGN=""
   if grep "BEGIN RSA PRIVATE KEY" "$keyfile" > /dev/null 2>&1 ; then
     _debug "RSA key"
-    
-    if [ "$JWK_HEADER" ] && [ "$__CACHED_JWK_KEY_FILE" = "$keyfile" ] ; then
-      _debug2 "Use cached jwk for file: $__CACHED_JWK_KEY_FILE"
-      return 0
-    fi
-  
     pub_exp=$(openssl rsa -in $keyfile  -noout -text | grep "^publicExponent:"| cut -d '(' -f 2 | cut -d 'x' -f 2 | cut -d ')' -f 1)
     if [ "${#pub_exp}" = "5" ] ; then
       pub_exp=0$pub_exp
@@ -861,7 +861,6 @@ _calcjwk() {
     JWK_HEADER='{"alg": "RS256", "jwk": '$jwk'}'
     JWK_HEADERPLACE_PART1='{"nonce": "'
     JWK_HEADERPLACE_PART2='", "alg": "RS256", "jwk": '$jwk'}'
-    __CACHED_JWK_KEY_FILE="$keyfile"
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" > /dev/null 2>&1 ; then
     _debug "EC key"
     EC_SIGN="1"
@@ -897,7 +896,7 @@ _calcjwk() {
     y64="$(printf $y | tr -d : | _h2b | _base64 | _urlencode)"
     _debug3 y64 "$y64"
    
-    jwk='{"kty": "EC", "crv": "'$crv'", "x": "'$x64'", "y": "'$y64'"}'
+    jwk='{"crv": "'$crv'", "kty": "EC", "x": "'$x64'", "y": "'$y64'"}'
     _debug3 jwk "$jwk"
     
     JWK_HEADER='{"alg": "ES256", "jwk": '$jwk'}'
@@ -909,7 +908,7 @@ _calcjwk() {
   fi
 
   _debug3 JWK_HEADER "$JWK_HEADER"
-
+  __CACHED_JWK_KEY_FILE="$keyfile"
 }
 
 _time() {
@@ -2380,10 +2379,11 @@ issue() {
         return 1
       fi
       
-
-      accountkey_json=$(printf "%s" "$jwk" |  tr -d ' ' )
-      thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _urlencode)
-
+      if [ -z "$thumbprint" ] ; then
+        accountkey_json=$(printf "%s" "$jwk" |  tr -d ' ' )
+        thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _urlencode)
+      fi
+      
       entry="$(printf "%s\n" "$response" | _egrep_o  '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
       if [ -z "$entry" ] ; then
