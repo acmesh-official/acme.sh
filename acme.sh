@@ -1476,7 +1476,7 @@ _starttlsserver() {
   fi
 
   serverproc="$!"
-  sleep 2
+  sleep 1
   _debug serverproc $serverproc
 }
 
@@ -2541,7 +2541,7 @@ issue() {
           return 1
         fi
         serverproc="$!"
-        sleep 2
+        sleep 1
         _debug serverproc $serverproc
 
       else
@@ -2641,8 +2641,8 @@ issue() {
         return 1
       fi
       
-      _debug "sleep 5 secs to verify"
-      sleep 5
+      _debug "sleep 2 secs to verify"
+      sleep 2
       _debug "checking"
       response="$(_get $uri)"
       if [ "$?" != "0" ] ; then
