@@ -504,7 +504,7 @@ _createkey() {
 _is_idn() {
   _is_idn_d="$1"
   _debug2 _is_idn_d "$_is_idn_d"
-  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d "[0-9a-zA-Z.,-]")
+  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '[0-9]' | tr -d '[a-z]' | tr -d 'A-Z' | tr -d '.,-')
   _debug2 _idn_temp "$_idn_temp"
   [ "$_idn_temp" ]
 }
@@ -528,7 +528,7 @@ _idn() {
         else
           _i_first=""
         fi
-        idn "$f" | tr -d "\r\n"
+        idn --quiet "$f" | tr -d "\r\n"
       done
     else
       idn "$__idn_d" | tr -d "\r\n"
