@@ -528,7 +528,7 @@ _idn() {
         else
           _i_first=""
         fi
-        idn "$f" | tr -d "\r\n"
+        idn --quiet "$f" | tr -d "\r\n"
       done
     else
       idn "$__idn_d" | tr -d "\r\n"
