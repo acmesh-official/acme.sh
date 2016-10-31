@@ -2831,11 +2831,13 @@ issue() {
 renew() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ] ; then
-    _usage "Usage: $PROJECT_ENTRY --renew  -d domain.com [--ecc]"
+    _usage "Usage: $PROJECT_ENTRY --renew  -d domain.com [--ecc] [--reloadCmd reloadCmd]"
     return 1
   fi
 
   _isEcc="$2"
+
+  Le_ReloadCmd="$3"
 
   _initpath $Le_Domain "$_isEcc"
 
@@ -4341,7 +4343,7 @@ _process() {
       installcert "$_domain" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath" "$_ecc"
       ;;
     renew) 
-      renew "$_domain" "$_ecc"
+      renew "$_domain" "$_ecc" "$_reloadcmd"
       ;;
     renewAll) 
       renewAll "$_stopRenewOnError"
