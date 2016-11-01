@@ -1846,7 +1846,7 @@ _clearup() {
 _clearupdns() {
   _debug "_clearupdns"
   if [ "$dnsadded" != 1 ] || [ -z "$vlist" ] ; then
-    _info "Dns not added, skip."
+    _debug "Dns not added, skip."
     return
   fi
 
@@ -2567,7 +2567,15 @@ issue() {
         _debug "writing token:$token to $wellknown_path/$token"
 
         mkdir -p "$wellknown_path"
-        printf "%s" "$keyauthorization" > "$wellknown_path/$token"
+
+        if ! printf "%s" "$keyauthorization" > "$wellknown_path/$token" ; then
+          _err "$d:Can not write token to file : $wellknown_path/$token"
+          _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+          _clearup
+          _on_issue_err
+          return 1
+        fi
+
         if [ ! "$usingApache" ] ; then
           if webroot_owner=$(_stat $_currentRoot) ; then
             _debug "Changing owner/group of .well-known to $webroot_owner"
