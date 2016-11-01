@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.6.2
+VER=2.6.3
 
 PROJECT_NAME="acme.sh"
 
@@ -1937,9 +1937,6 @@ _on_before_issue() {
       _err "Please install netcat(nc) tools first."
       return 1
     fi
-  elif ! _hasfield "$Le_Webroot" "$W_TLS" ; then
-    #no need to check anymore
-    return 0
   fi
 
   _debug Le_LocalAddress "$Le_LocalAddress"
