@@ -1728,7 +1728,7 @@ _apachePath() {
     fi
   fi
   
-  if ! _exec $_APACHECTL -V  ; then
+  if ! _exec $_APACHECTL -V  >/dev/null ; then
     _exec_err
     return 1
   fi
