@@ -918,14 +918,17 @@ _time() {
 _mktemp() {
   if _exists mktemp ; then
     if mktemp 2>/dev/null ; then
-      return
+      return 0
     elif _contains "$(mktemp 2>&1)" "-t prefix" && mktemp -t "$PROJECT_NAME" 2>/dev/null ; then
       #for Mac osx
-      return
+      return 0
     fi
   fi
   if [ -d "/tmp" ] ; then
     echo "/tmp/${PROJECT_NAME}wefADf24sf.$(_time).tmp"
+    return 0
+  elif [ "$LE_TEMP_DIR" ] && mkdir -p "$LE_TEMP_DIR" ; then
+    echo "/$LE_TEMP_DIR/wefADf24sf.$(_time).tmp"
     return 0
   fi
   _err "Can not create temp file."
@@ -1540,6 +1543,10 @@ __initHome() {
   DEFAULT_LOG_FILE="$LE_WORKING_DIR/$PROJECT_NAME.log"
   
   DEFAULT_CA_HOME="$LE_WORKING_DIR/ca"
+  
+  if [ -z "$LE_TEMP_DIR" ] ; then
+    LE_TEMP_DIR="$LE_WORKING_DIR/tmp"
+  fi
 }
 
 #[domain]  [keylength]
@@ -1693,6 +1700,21 @@ _initpath() {
   
 }
 
+_exec() {
+  if [ -z "$_EXEC_TEMP_ERR" ] ; then
+    _EXEC_TEMP_ERR="$(_mktemp)"
+  fi
+
+  if [ "$_EXEC_TEMP_ERR" ] ; then
+    "$@" 2>"$_EXEC_TEMP_ERR"
+  else
+    "$@" 
+  fi
+}
+
+_exec_err() {
+  [ "$_EXEC_TEMP_ERR" ] && _err "$(cat "$_EXEC_TEMP_ERR")"
+}
 
 _apachePath() {
   _APACHECTL="apachectl"
@@ -1705,8 +1727,20 @@ _apachePath() {
       return 1
     fi
   fi
+  
+  if ! _exec $_APACHECTL -V  ; then
+    _exec_err
+    return 1
+  fi
+  
   httpdconfname="$($_APACHECTL -V | grep SERVER_CONFIG_FILE= | cut -d = -f 2 | tr -d '"' )"
   _debug httpdconfname "$httpdconfname"
+  
+  if [ -z "$httpdconfname" ] ; then
+    _err "Can not read apache config file."
+    return 1
+  fi
+  
   if _startswith "$httpdconfname" '/' ; then
     httpdconf="$httpdconfname"
     httpdconfname="$(basename $httpdconfname)"
@@ -1741,7 +1775,8 @@ _restoreApache() {
   
   cat "$APACHE_CONF_BACKUP_DIR/$httpdconfname" > "$httpdconf"
   _debug "Restored: $httpdconf."
-  if ! $_APACHECTL  -t >/dev/null 2>&1 ; then
+  if ! _exec $_APACHECTL -t ; then
+    _exec_err
     _err "Sorry, restore apache config error, please contact me."
     return 1;
   fi
@@ -1758,11 +1793,11 @@ _setApache() {
 
   #test the conf first
   _info "Checking if there is an error in the apache config file before starting."
-  _msg="$($_APACHECTL  -t  2>&1 )"
-  if [ "$?" != "0" ] ; then
-    _err "Sorry, apache config file has error, please fix it first, then try again."
+  
+  if ! _exec $_APACHECTL  -t >/dev/null ; then
+    _exec_err
+    _err "The apache config file has error, please fix it first, then try again."
     _err "Don't worry, there is nothing changed to your system."
-    _err "$_msg"
     return 1;
   else
     _info "OK"
@@ -1821,8 +1856,9 @@ Allow from all
     chmod 755 "$ACME_DIR"
   fi
   
-  if ! $_APACHECTL  graceful ; then
-    _err "Sorry, $_APACHECTL  graceful error, please contact me."
+  if ! _exec $_APACHECTL  graceful ; then
+    _exec_err 
+    _err "$_APACHECTL  graceful error, please contact me."
     _restoreApache
     return 1;
   fi
