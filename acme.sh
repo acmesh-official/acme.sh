@@ -1145,14 +1145,15 @@ _send_signed_request() {
       return 1
     fi
     
-    _debug3 _headers "$_headers"
+    _debug2 _headers "$_headers"
     
     _CACHED_NONCE="$( echo "$_headers" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
+    _debug2 _CACHED_NONCE "$_CACHED_NONCE"
   else
     _debug2 "Use _CACHED_NONCE" "$_CACHED_NONCE"
   fi
   nonce="$_CACHED_NONCE"
-  _debug3 nonce "$nonce"
+  _debug2 nonce "$nonce"
   
   protected="$JWK_HEADERPLACE_PART1$nonce$JWK_HEADERPLACE_PART2"
   _debug3 protected "$protected"
