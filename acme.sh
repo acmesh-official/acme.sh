@@ -91,6 +91,30 @@ _printargs() {
   printf "\n"
 }
 
+_dlg_versions() {
+  echo "Diagnosis versions: "
+  echo "openssl:"
+  if _exists openssl ; then
+    openssl version 2>&1
+  else
+    echo "openssl doesn't exists."
+  fi
+  
+  echo "apache:"
+  if [ "$_APACHECTL" ] && _exists "$_APACHECTL" ; then
+    _APACHECTL -V 2>&1
+  else
+    echo "apache doesn't exists."
+  fi
+  
+  echo "nc:"
+  if _exists "nc" ; then
+    nc -h 2>&1
+  else
+    _debug "nc doesn't exists."
+  fi
+}
+
 
 _log() {
   [ -z "$LOG_FILE" ] && return
@@ -867,6 +891,28 @@ _calcjwk() {
     crv="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
     _debug3 crv "$crv"
     
+    if [ -z "$crv" ] ; then
+      _debug "Let's try ASN1 OID"
+      crv_oid="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep "^ASN1 OID:" | cut -d ":" -f 2 | tr -d " \r\n")"
+      _debug3 crv_oid "$crv_oid"
+      case "${crv_oid}" in
+        "prime256v1")
+        crv="P-256"
+        ;;
+        "secp384r1")
+        crv="P-384"
+        ;;
+        "secp521r1")
+        crv="P-521"
+        ;;
+        *)
+        _err "ECC oid : $crv_oid"
+        return 1
+        ;;
+      esac
+      _debug3 crv "$crv"
+    fi
+    
     pubi="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep -n pub: | cut -d : -f 1)"
     pubi=$(_math $pubi + 1)
     _debug3 pubi "$pubi"
@@ -1161,7 +1207,13 @@ _send_signed_request() {
   protected64="$(printf "$protected" | _base64 | _urlencode)"
   _debug3 protected64 "$protected64"
 
-  sig=$(printf "%s" "$protected64.$payload64" |  _sign  "$keyfile" "sha256" | _urlencode)
+  if ! _sig_t="$(printf "%s" "$protected64.$payload64" |  _sign  "$keyfile" "sha256")" ; then
+    _err "Sign request failed."
+    return 1
+  fi
+  _debug3 _sig_t "$_sig_t"
+  
+  sig="$(printf "%s" "$_sig_t" | _urlencode)"
   _debug3 sig "$sig"
   
   body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
@@ -2056,6 +2108,10 @@ _on_issue_err() {
   else
     _err "Please use add '--debug' or '--log' to check more details."
     _err "See: $_DEBUG_WIKI"
+  fi
+  
+  if [ "$DEBUG" ] && [ "$DEBUG" -gt "0" ] ; then
+    _debug "$(_dlg_versions)"
   fi
   
   #run the post hook
@@ -4358,7 +4414,9 @@ _process() {
     
     _processAccountConf
   fi
- 
+  
+  _debug2 LE_WORKING_DIR "$LE_WORKING_DIR"
+  
   if [ "$DEBUG" ] ; then
     version
   fi
