@@ -457,7 +457,7 @@ _sign() {
     if ! _signedECText="$($_sign_openssl | openssl asn1parse -inform DER)" ; then
       _err "Sign failed: $_sign_openssl"
       _err "Key file: $keyfile"
-      _err "Key content:$(cat "$keyfile")"
+      _err "Key content:$(cat "$keyfile" | wc -l) lises"
       return 1
     fi
     _debug3 "_signedECText" "$_signedECText"
