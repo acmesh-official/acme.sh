@@ -908,6 +908,7 @@ _calcjwk() {
         _err "ECC oid : $crv_oid"
         return 1
         ;;
+      esac
       _debug3 crv "$crv"
     fi
     
