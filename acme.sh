@@ -894,6 +894,7 @@ _calcjwk() {
     if [ -z "$crv" ] ; then
       _debug "Let's try ASN1 OID"
       crv_oid="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep "^ASN1 OID:" | cut -d ":" -f 2 | tr -d " \r\n")"
+      _debug3 crv_oid "$crv_oid"
       case "${crv_oid}" in
         "prime256v1")
         crv="P-256"
