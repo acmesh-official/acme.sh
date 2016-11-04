@@ -891,6 +891,26 @@ _calcjwk() {
     crv="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
     _debug3 crv "$crv"
     
+    if [ -z "$crv" ] ; then
+      _debug "Let's try ASN1 OID"
+      crv_oid="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep "^ASN1 OID:" | cut -d ":" -f 2 | tr -d " \r\n")"
+      case "${crv_oid}" in
+        "prime256v1")
+        crv="P-256"
+        ;;
+        "secp384r1")
+        crv="P-384"
+        ;;
+        "secp521r1")
+        crv="P-521"
+        ;;
+        *)
+        _err "ECC oid : $crv_oid"
+        return 1
+        ;;
+      _debug3 crv "$crv"
+    fi
+    
     pubi="$(openssl ec  -in $keyfile  -noout -text 2>/dev/null | grep -n pub: | cut -d : -f 1)"
     pubi=$(_math $pubi + 1)
     _debug3 pubi "$pubi"
