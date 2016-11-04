@@ -91,6 +91,30 @@ _printargs() {
   printf "\n"
 }
 
+_dlg_versions() {
+  echo "Diagnosis versions: "
+  echo "openssl:"
+  if _exists openssl ; then
+    openssl version 2>&1
+  else
+    echo "openssl doesn't exists."
+  fi
+  
+  echo "apache:"
+  if [ "$_APACHECTL" ] && _exists "$_APACHECTL" ; then
+    _APACHECTL -V 2>&1
+  else
+    echo "apache doesn't exists."
+  fi
+  
+  echo "nc:"
+  if _exists "nc" ; then
+    nc -h 2>&1
+  else
+    _debug "nc doesn't exists."
+  fi
+}
+
 
 _log() {
   [ -z "$LOG_FILE" ] && return
@@ -2056,6 +2080,10 @@ _on_issue_err() {
   else
     _err "Please use add '--debug' or '--log' to check more details."
     _err "See: $_DEBUG_WIKI"
+  fi
+  
+  if [ "$DEBUG" ] && [ "$DEBUG" -gt "0" ] ; then
+    _debug "$(_dlg_versions)"
   fi
   
   #run the post hook
@@ -4358,7 +4386,9 @@ _process() {
     
     _processAccountConf
   fi
- 
+  
+  _debug2 LE_WORKING_DIR "$LE_WORKING_DIR"
+  
   if [ "$DEBUG" ] ; then
     version
   fi
