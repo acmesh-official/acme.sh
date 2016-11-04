@@ -1185,7 +1185,13 @@ _send_signed_request() {
   protected64="$(printf "$protected" | _base64 | _urlencode)"
   _debug3 protected64 "$protected64"
 
-  sig=$(printf "%s" "$protected64.$payload64" |  _sign  "$keyfile" "sha256" | _urlencode)
+  if ! _sig_t="$(printf "%s" "$protected64.$payload64" |  _sign  "$keyfile" "sha256")" ; then
+    _err "Sign request failed."
+    return 1
+  fi
+  _debug3 _sig_t "$_sig_t"
+  
+  sig="$(printf "%s" "$_sig_t" | _urlencode)"
   _debug3 sig "$sig"
   
   body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
