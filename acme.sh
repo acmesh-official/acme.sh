@@ -454,7 +454,12 @@ _sign() {
   if grep "BEGIN RSA PRIVATE KEY" "$keyfile" > /dev/null 2>&1 ; then
     $_sign_openssl | _base64
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" > /dev/null 2>&1 ; then
-    _signedECText="$($_sign_openssl | openssl asn1parse -inform DER)"
+    if ! _signedECText="$($_sign_openssl | openssl asn1parse -inform DER)" ; then
+      _err "Sign failed: $_sign_openssl"
+      _err "Key file: $keyfile"
+      _err "Key content:$(cat "$keyfile")"
+      return 1
+    fi
     _debug3 "_signedECText" "$_signedECText"
     _ec_r="$(echo "$_signedECText" | _head_n 2 | _tail_n 1 | cut -d : -f 4 | tr -d "\r\n")"
     _debug3 "_ec_r" "$_ec_r"
