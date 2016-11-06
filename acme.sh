@@ -1808,22 +1808,28 @@ _apachePath() {
     return 1
   fi
   
-  httpdconfname="$($_APACHECTL -V | grep SERVER_CONFIG_FILE= | cut -d = -f 2 | tr -d '"' )"
-  _debug httpdconfname "$httpdconfname"
-  
-  if [ -z "$httpdconfname" ] ; then
-    _err "Can not read apache config file."
-    return 1
-  fi
-  
-  if _startswith "$httpdconfname" '/' ; then
-    httpdconf="$httpdconfname"
+  if [ "$APACHE_HTTPD_CONF" ] ; then
+    _saveaccountconf APACHE_HTTPD_CONF "$APACHE_HTTPD_CONF"
+    httpdconf="$APACHE_HTTPD_CONF"
     httpdconfname="$(basename $httpdconfname)"
   else
-    httpdroot="$($_APACHECTL -V | grep HTTPD_ROOT= | cut -d = -f 2 | tr -d '"' )"
-    _debug httpdroot "$httpdroot"
-    httpdconf="$httpdroot/$httpdconfname"
-    httpdconfname="$(basename $httpdconfname)"
+    httpdconfname="$($_APACHECTL -V | grep SERVER_CONFIG_FILE= | cut -d = -f 2 | tr -d '"' )"
+    _debug httpdconfname "$httpdconfname"
+    
+    if [ -z "$httpdconfname" ] ; then
+      _err "Can not read apache config file."
+      return 1
+    fi
+    
+    if _startswith "$httpdconfname" '/' ; then
+      httpdconf="$httpdconfname"
+      httpdconfname="$(basename $httpdconfname)"
+    else
+      httpdroot="$($_APACHECTL -V | grep HTTPD_ROOT= | cut -d = -f 2 | tr -d '"' )"
+      _debug httpdroot "$httpdroot"
+      httpdconf="$httpdroot/$httpdconfname"
+      httpdconfname="$(basename $httpdconfname)"
+    fi
   fi
   _debug httpdconf "$httpdconf"
   _debug httpdconfname "$httpdconfname"
