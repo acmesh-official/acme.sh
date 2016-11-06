@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.6.3
+VER=2.6.4
 
 PROJECT_NAME="acme.sh"
 
@@ -18,6 +18,9 @@ DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.1.1-August-1-2016.
 
 DEFAULT_USER_AGENT="$PROJECT_ENTRY client v$VER : $PROJECT"
 DEFAULT_ACCOUNT_EMAIL=""
+
+DEFAULT_ACCOUNT_KEY_LENGTH=2048
+DEFAULT_DOMAIN_KEY_LENGTH=2048
 
 STAGE_CA="https://acme-staging.api.letsencrypt.org"
 
@@ -740,14 +743,23 @@ createAccountKey() {
   fi
   
   length=$1
+  _create_account_key "$length"
+
+}
+
+_create_account_key() {
+
+  length=$1
   
   if [ -z "$length" ] || [ "$length" = "$NO_VALUE" ] ; then
-    _debug "Use default length 2048"
-    length=2048
+    _debug "Use default length $DEFAULT_ACCOUNT_KEY_LENGTH"
+    length="$DEFAULT_ACCOUNT_KEY_LENGTH"
   fi
+  
   _debug length "$length"
   _initpath
 
+  mkdir -p "$CA_DIR"
   if [ -f "$ACCOUNT_KEY_PATH" ] ; then
     _info "Account key exists, skip"
     return
@@ -768,6 +780,11 @@ createDomainKey() {
   
   domain=$1
   length=$2
+  
+  if [ -z "$length" ] ; then
+    _debug "Use DEFAULT_DOMAIN_KEY_LENGTH=$DEFAULT_DOMAIN_KEY_LENGTH"
+    length="$DEFAULT_DOMAIN_KEY_LENGTH"
+  fi
   
   _initpath $domain "$length"  
 
@@ -1319,7 +1336,7 @@ _read_conf() {
     eval "printf \"%s\" \"\$$_sdkey\""
   )
   else
-    _err "config file is empty, can not read $_sdkey"
+    _debug "config file is empty, can not read $_sdkey"
   fi
 }
 
@@ -2163,16 +2180,21 @@ updateaccount() {
 }
 
 registeraccount() {
+  _reg_length="$1"
   _initpath
-  _regAccount
+  _regAccount "$_reg_length"
 }
 
 __calcAccountKeyHash() {
   [ -f "$ACCOUNT_KEY_PATH" ] && cat "$ACCOUNT_KEY_PATH" | _digest sha256
 }
 
+
+#keylength
 _regAccount() {
   _initpath
+  _reg_length="$1"
+  
   
   if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
     _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
@@ -2185,11 +2207,7 @@ _regAccount() {
   fi
   
   if [ ! -f "$ACCOUNT_KEY_PATH" ] ; then
-    _acck="no"
-    if [ "$Le_Keylength" ] ; then
-      _acck="$Le_Keylength"
-    fi
-    if ! createAccountKey "$_acck" ; then
+    if ! _create_account_key "$_reg_length" ; then
       _err "Create account key error."
       return 1
     fi
@@ -2414,10 +2432,12 @@ issue() {
   _debug2 _saved_account_key_hash "$_saved_account_key_hash"
   
   if [ -z "$_saved_account_key_hash" ] || [ "$_saved_account_key_hash" != "$(__calcAccountKeyHash)" ] ; then
-    if ! _regAccount ; then
+    if ! _regAccount "$_accountkeylength"; then
       _on_issue_err
       return 1
     fi
+  else
+    _debug "_saved_account_key_hash is not changed, skip register account."
   fi
 
   if [ -f "$CSR_PATH" ] && [ ! -f "$CERT_KEY_PATH" ] ; then
@@ -4232,9 +4252,6 @@ _process() {
         
     --keylength|-k)
         _keylength="$2"
-        if [ "$_accountkeylength" = "$NO_VALUE" ] ; then
-          _accountkeylength="$2"
-        fi
         shift
         ;;
     --accountkeylength|-ak)
@@ -4458,7 +4475,7 @@ _process() {
       deactivate "$_domain,$_altdomains"
       ;;
     registeraccount) 
-      registeraccount
+      registeraccount "$_accountkeylength"
       ;;
     updateaccount) 
       updateaccount
