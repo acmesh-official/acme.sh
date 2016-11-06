@@ -4,14 +4,11 @@
 #
 #LUA_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
 #
-#LUA_Email="xxxx%40sss.com"
+#LUA_Email="user@luadns.net"
 
 LUA_Api="https://api.luadns.com/v1"
 LUA_auth=$(printf $LUA_Email:$LUA_Key | base64)
-# _ACME_CURL="curl -L --silent -u $LUA_Email:$LUA_Key "
 
-#printf $LUA_Api
-#exit
 ########  Public functions #####################
 
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
