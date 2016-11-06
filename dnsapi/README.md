@@ -136,4 +136,22 @@ For more details, please check our sample script: [dns_myapi.sh](dns_myapi.sh)
 
 https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
 
+## Use LuaDNS domain API
+
+Get your API token at https://api.luadns.com/settings
+
+```
+export LUA_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+
+export LUA_Email="xxxx@sss.com"
+
+```
+
+To issue a cert:
+```
+acme.sh   --issue   --dns dns_lua --dnssleep 3  -d example.com  -d www.example.com
+```
+
+The `LUA_Key` and `LUA_Email`  will be saved in `~/.acme.sh/account.conf`, and will be reused when needed.
+
 
