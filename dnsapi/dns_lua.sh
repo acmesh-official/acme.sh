@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-# bug reports to justmwa@users.noreply.github.com
+# bug reports to dev@1e.ca
 
 #
 #LUA_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
