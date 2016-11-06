@@ -7,7 +7,7 @@
 #LUA_Email="user@luadns.net"
 
 LUA_Api="https://api.luadns.com/v1"
-LUA_auth=$(printf $LUA_Email:$LUA_Key | base64)
+LUA_auth=$(printf $LUA_Email:$LUA_Key | _base64)
 
 ########  Public functions #####################
 
