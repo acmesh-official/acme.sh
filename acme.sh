@@ -2297,8 +2297,12 @@ _findHook() {
   _hookdomain="$1"
   _hookcat="$2"
   _hookname="$3"
-
-  if [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname" ] ; then
+  
+  if [ -f "$_SCRIPT_HOME/$_hookdomain/$_hookname" ] ; then
+    d_api="$_SCRIPT_HOME/$_hookdomain/$_hookname"
+  elif [ -f "$_SCRIPT_HOME/$_hookdomain/$_hookname.sh" ] ; then
+    d_api="$_SCRIPT_HOME/$_hookdomain/$_hookname.sh"
+  elif [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname" ] ; then
     d_api="$LE_WORKING_DIR/$_hookdomain/$_hookname"
   elif [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname.sh" ] ; then
     d_api="$LE_WORKING_DIR/$_hookdomain/$_hookname.sh"
