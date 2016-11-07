@@ -46,7 +46,7 @@ dns_me_add(){
   if [ "$count" = "0" ] ; then
     _info "Adding record"
     if _me_rest POST "$_domain_id/records/"  "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"value\":\"$txtvalue\",\"gtdLocation\":\"DEFAULT\",\"ttl\":120}"; then
-      if [ "$?" = "0" ]; then
+      if printf -- "%s" "$response" | grep \"id\": > /dev/null ; then
         _info "Added"
         #todo: check if the record takes effect
         return 0
