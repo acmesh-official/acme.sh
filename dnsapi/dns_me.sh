@@ -123,8 +123,8 @@ _me_rest() {
   data="$3"
   _debug $ep
 
-  cdate=$(date -Ru)
-  hmac=$(printf "$cdate" | openssl dgst -sha1 -hmac $ME_Secret | cut -d = -f 2 | tr -d ' ')
+  cdate=$(date -u +"%a, %d %b %Y %T %Z")
+  hmac=$(printf "$cdate"  | _hmac  sha1  "$ME_Secret"   1)
 
   _H1="x-dnsme-apiKey: $ME_Key"
   _H2="x-dnsme-requestDate: $cdate"
