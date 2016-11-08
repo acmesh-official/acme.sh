@@ -436,6 +436,31 @@ _digest() {
 
 }
 
+#Usage: hashalg  secret  [outputhex]
+#Output Base64-encoded hmac
+_hmac() {
+  alg="$1"
+  hmac_sec="$2"
+  outputhex="$3"
+  
+  if [ -z "$hmac_sec" ] ; then
+    _usage "Usage: _hmac hashalg secret [outputhex]" 
+    return 1
+  fi
+
+  if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ]; then
+    if [ "$outputhex" ] ; then
+      openssl dgst -$alg -hmac "$hmac_sec" | cut -d = -f 2 | tr -d ' '
+    else
+      openssl dgst -$alg -hmac "$hmac_sec" -binary | _base64
+    fi
+  else
+    _err "$alg is not supported yet"
+    return 1
+  fi
+
+}
+
 #Usage: keyfile hashalg
 #Output: Base64-encoded signature value
 _sign() {
@@ -2297,8 +2322,12 @@ _findHook() {
   _hookdomain="$1"
   _hookcat="$2"
   _hookname="$3"
-
-  if [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname" ] ; then
+  
+  if [ -f "$_SCRIPT_HOME/$_hookdomain/$_hookname" ] ; then
+    d_api="$_SCRIPT_HOME/$_hookdomain/$_hookname"
+  elif [ -f "$_SCRIPT_HOME/$_hookdomain/$_hookname.sh" ] ; then
+    d_api="$_SCRIPT_HOME/$_hookdomain/$_hookname.sh"
+  elif [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname" ] ; then
     d_api="$LE_WORKING_DIR/$_hookdomain/$_hookname"
   elif [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname.sh" ] ; then
     d_api="$LE_WORKING_DIR/$_hookdomain/$_hookname.sh"
