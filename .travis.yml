@@ -1,0 +1,11 @@
+language: bash
+
+env:
+  global:
+    - SHFMT_URL=https://github.com/mvdan/sh/releases/download/v0.4.0/shfmt_v0.4.0_linux_amd64
+
+script:
+  - curl -sSL $SHFMT_URL -o ~/shfmt
+  - chmod +x ~/shfmt
+  - ~/shfmt -l -w -i 2 .
+  - git diff --exit-code || echo "Run shfmt to fix the formatting issues"
