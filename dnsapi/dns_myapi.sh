@@ -6,8 +6,6 @@
 #Which will be called by acme.sh to add the txt record to your api system.
 #returns 0 means success, otherwise error.
 
-
-
 ########  Public functions #####################
 
 #Usage: dns_myapi_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
@@ -15,10 +13,8 @@ dns_myapi_add() {
   fulldomain=$1
   txtvalue=$2
   _err "Not implemented!"
-  return 1;
+  return 1
 }
-
-
 
 #fulldomain
 dns_myapi_rm() {
@@ -26,10 +22,9 @@ dns_myapi_rm() {
 
 }
 
-
 ####################  Private functions bellow ##################################
 _info() {
-  if [ -z "$2" ] ; then
+  if [ -z "$2" ]; then
     echo "[$(date)] $1"
   else
     echo "[$(date)] $1='$2'"
@@ -42,7 +37,7 @@ _err() {
 }
 
 _debug() {
-  if [ -z "$DEBUG" ] ; then
+  if [ -z "$DEBUG" ]; then
     return
   fi
   _err "$@"
@@ -50,7 +45,7 @@ _debug() {
 }
 
 _debug2() {
-  if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ] ; then
+  if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
     _debug "$@"
   fi
   return
