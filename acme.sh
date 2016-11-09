@@ -901,7 +901,6 @@ _calcjwk() {
     return 0
   fi
 
-  EC_SIGN=""
   if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     _debug "RSA key"
     pub_exp=$(openssl rsa -in "$keyfile" -noout -text | grep "^publicExponent:" | cut -d '(' -f 2 | cut -d 'x' -f 2 | cut -d ')' -f 1)
@@ -924,7 +923,6 @@ _calcjwk() {
     JWK_HEADERPLACE_PART2='", "alg": "RS256", "jwk": '$jwk'}'
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     _debug "EC key"
-    EC_SIGN="1"
     crv="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
     _debug3 crv "$crv"
 
@@ -1974,10 +1972,10 @@ _clearupdns() {
 
   ventries=$(echo "$vlist" | tr ',' ' ')
   for ventry in $ventries; do
-    d=$(echo "$ventry" | cut -d $sep -f 1)
-    keyauthorization=$(echo "$ventry" | cut -d $sep -f 2)
-    vtype=$(echo "$ventry" | cut -d $sep -f 4)
-    _currentRoot=$(echo "$ventry" | cut -d $sep -f 5)
+    d=$(echo "$ventry" | cut -d "$sep" -f 1)
+    keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
+    vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
+    _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
 
     if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
       _info "$d is already verified, skip $vtype."
@@ -1989,7 +1987,7 @@ _clearupdns() {
       continue
     fi
 
-    d_api="$(_findHook $d dnsapi $_currentRoot)"
+    d_api="$(_findHook "$d" dnsapi "$_currentRoot")"
     _debug d_api "$d_api"
 
     if [ -z "$d_api" ]; then
@@ -2562,7 +2560,7 @@ issue() {
         txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _urlencode)"
         _debug txt "$txt"
 
-        d_api="$(_findHook $d dnsapi $_currentRoot)"
+        d_api="$(_findHook "$d" dnsapi "$_currentRoot")"
 
         _debug d_api "$d_api"
 
@@ -2570,8 +2568,8 @@ issue() {
           _info "Found domain api file: $d_api"
         else
           _err "Add the following TXT record:"
-          _err "Domain: '$(__green $txtdomain)'"
-          _err "TXT value: '$(__green $txt)'"
+          _err "Domain: '$(__green "$txtdomain")'"
+          _err "TXT value: '$(__green "$txt")'"
           _err "Please be aware that you prepend _acme-challenge. before your domain"
           _err "so the resulting subdomain will be: $txtdomain"
           continue
@@ -2717,11 +2715,11 @@ issue() {
       #_debug2 _SAN_A "$_SAN_A"
 
       #create B
-      _hash_B="$(printf "%s" $keyauthorization | _digest "sha256" "hex")"
+      _hash_B="$(printf "%s" "$keyauthorization" | _digest "sha256" "hex")"
       _debug2 _hash_B "$_hash_B"
-      _x="$(echo $_hash_B | cut -c 1-32)"
+      _x="$(echo "$_hash_B" | cut -c 1-32)"
       _debug2 _x "$_x"
-      _y="$(echo $_hash_B | cut -c 33-64)"
+      _y="$(echo "$_hash_B" | cut -c 33-64)"
       _debug2 _y "$_y"
 
       #_SAN_B="$_x.$_y.ka.acme.invalid"
@@ -2730,7 +2728,7 @@ issue() {
       _debug2 _SAN_B "$_SAN_B"
 
       _ncaddr="$(_getfield "$Le_LocalAddress" "$_ncIndex")"
-      _ncIndex="$(_math $_ncIndex + 1)"
+      _ncIndex="$(_math "$_ncIndex" + 1)"
       if ! _starttlsserver "$_SAN_B" "$_SAN_A" "$Le_TLSPort" "$keyauthorization" "$_ncaddr"; then
         _err "Start tls server error."
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
@@ -2762,7 +2760,7 @@ issue() {
     fi
 
     while true; do
-      waittimes=$(_math $waittimes + 1)
+      waittimes=$(_math "$waittimes" + 1)
       if [ "$waittimes" -ge "$MAX_RETRY_TIMES" ]; then
         _err "$d:Timeout"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
@@ -2843,7 +2841,7 @@ issue() {
   fi
 
   _rcert="$response"
-  Le_LinkCert="$(grep -i '^Location.*$' $HTTP_HEADER | _head_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
+  Le_LinkCert="$(grep -i '^Location.*$' "$HTTP_HEADER" | _head_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
   _savedomainconf "Le_LinkCert" "$Le_LinkCert"
 
   if [ "$Le_LinkCert" ]; then
@@ -2878,7 +2876,7 @@ issue() {
   fi
 
   if [ -z "$Le_LinkCert" ]; then
-    response="$(echo $response | _dbase64 "multiline" | _normalizeJson)"
+    response="$(echo "$response" | _dbase64 "multiline" | _normalizeJson)"
     _err "Sign failed: $(echo "$response" | _egrep_o '"detail":"[^"]*"')"
     _on_issue_err
     return 1
@@ -2886,7 +2884,7 @@ issue() {
 
   _cleardomainconf "Le_Vlist"
 
-  Le_LinkIssuer=$(grep -i '^Link' $HTTP_HEADER | _head_n 1 | cut -d " " -f 2 | cut -d ';' -f 1 | tr -d '<>')
+  Le_LinkIssuer=$(grep -i '^Link' "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2 | cut -d ';' -f 1 | tr -d '<>')
   if ! _contains "$Le_LinkIssuer" ":"; then
     Le_LinkIssuer="$API$Le_LinkIssuer"
   fi
