@@ -2195,7 +2195,7 @@ registeraccount() {
 }
 
 __calcAccountKeyHash() {
-  [ -f "$ACCOUNT_KEY_PATH" ] && cat "$ACCOUNT_KEY_PATH" | _digest sha256
+  [ -f "$ACCOUNT_KEY_PATH" ] && _digest sha256 <"$ACCOUNT_KEY_PATH"
 }
 
 #keylength
@@ -2244,7 +2244,7 @@ _regAccount() {
       fi
 
       if [ "$code" = "" ] || [ "$code" = '201' ]; then
-        echo "$response" >$ACCOUNT_JSON_PATH
+        echo "$response" >"$ACCOUNT_JSON_PATH"
         _info "Registered"
       elif [ "$code" = '409' ]; then
         _info "Already registered"
@@ -2384,7 +2384,7 @@ issue() {
   _debug "Using api: $API"
 
   if [ ! "$IS_RENEW" ]; then
-    _initpath $Le_Domain "$Le_Keylength"
+    _initpath "$Le_Domain" "$Le_Keylength"
     mkdir -p "$DOMAIN_PATH"
   fi
 
@@ -2455,7 +2455,7 @@ issue() {
     _key=$(_readdomainconf Le_Keylength)
     _debug "Read key length:$_key"
     if [ ! -f "$CERT_KEY_PATH" ] || [ "$Le_Keylength" != "$_key" ]; then
-      if ! createDomainKey $Le_Domain $Le_Keylength; then
+      if ! createDomainKey "$Le_Domain" "$Le_Keylength"; then
         _err "Create domain key error."
         _clearup
         _on_issue_err
@@ -2482,7 +2482,7 @@ issue() {
     _index=1
     _currentRoot=""
     for d in $alldomains; do
-      _info "Getting webroot for domain" $d
+      _info "Getting webroot for domain" "$d"
       _w="$(echo $Le_Webroot | cut -d , -f $_index)"
       _info _w "$_w"
       if [ "$_w" ]; then
@@ -2520,17 +2520,17 @@ issue() {
         return 1
       fi
       token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
-      _debug token $token
+      _debug token "$token"
 
       uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d : -f 2,3 | tr -d '"')"
-      _debug uri $uri
+      _debug uri "$uri"
 
       keyauthorization="$token.$thumbprint"
       _debug keyauthorization "$keyauthorization"
 
       if printf "%s" "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
         _info "$d is already verified, skip."
-        keyauthorization=$STATE_VERIFIED
+        keyauthorization="$STATE_VERIFIED"
         _debug keyauthorization "$keyauthorization"
       fi
 
@@ -2545,10 +2545,10 @@ issue() {
     dnsadded=""
     ventries=$(echo "$vlist" | tr ',' ' ')
     for ventry in $ventries; do
-      d=$(echo $ventry | cut -d $sep -f 1)
-      keyauthorization=$(echo $ventry | cut -d $sep -f 2)
-      vtype=$(echo $ventry | cut -d $sep -f 4)
-      _currentRoot=$(echo $ventry | cut -d $sep -f 5)
+      d=$(echo "$ventry" | cut -d "$sep" -f 1)
+      keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
+      vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
+      _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
 
       if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
         _info "$d is already verified, skip $vtype."
@@ -2578,18 +2578,18 @@ issue() {
         fi
 
         (
-          if ! . $d_api; then
+          if ! . "$d_api"; then
             _err "Load file $d_api error. Please check your api file and try again."
             return 1
           fi
 
           addcommand="${_currentRoot}_add"
-          if ! _exists $addcommand; then
+          if ! _exists "$addcommand"; then
             _err "It seems that your api file is not correct, it must have a function named: $addcommand"
             return 1
           fi
 
-          if ! $addcommand $txtdomain $txt; then
+          if ! $addcommand "$txtdomain" "$txt"; then
             _err "Error add txt for domain:$txtdomain"
             return 1
           fi
@@ -2617,13 +2617,13 @@ issue() {
 
   if [ "$dnsadded" = '1' ]; then
     if [ -z "$Le_DNSSleep" ]; then
-      Le_DNSSleep=$DEFAULT_DNS_SLEEP
+      Le_DNSSleep="$DEFAULT_DNS_SLEEP"
     else
       _savedomainconf "Le_DNSSleep" "$Le_DNSSleep"
     fi
 
     _info "Sleep $(__green $Le_DNSSleep) seconds for the txt records to take effect"
-    _sleep $Le_DNSSleep
+    _sleep "$Le_DNSSleep"
   fi
 
   _debug "ok, let's start to verify"
@@ -2631,11 +2631,11 @@ issue() {
   _ncIndex=1
   ventries=$(echo "$vlist" | tr ',' ' ')
   for ventry in $ventries; do
-    d=$(echo $ventry | cut -d $sep -f 1)
-    keyauthorization=$(echo $ventry | cut -d $sep -f 2)
-    uri=$(echo $ventry | cut -d $sep -f 3)
-    vtype=$(echo $ventry | cut -d $sep -f 4)
-    _currentRoot=$(echo $ventry | cut -d $sep -f 5)
+    d=$(echo "$ventry" | cut -d "$sep" -f 1)
+    keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
+    uri=$(echo "$ventry" | cut -d "$sep" -f 3)
+    vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
+    _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
 
     if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
       _info "$d is already verified, skip $vtype."
@@ -2664,7 +2664,7 @@ issue() {
         fi
         serverproc="$!"
         sleep 1
-        _debug serverproc $serverproc
+        _debug serverproc "$serverproc"
 
       else
         if [ "$_currentRoot" = "apache" ]; then
@@ -2697,7 +2697,7 @@ issue() {
         if [ ! "$usingApache" ]; then
           if webroot_owner=$(_stat $_currentRoot); then
             _debug "Changing owner/group of .well-known to $webroot_owner"
-            chown -R $webroot_owner "$_currentRoot/.well-known"
+            chown -R "$webroot_owner" "$_currentRoot/.well-known"
           else
             _debug "not chaning owner/group of webroot"
           fi
@@ -2740,7 +2740,7 @@ issue() {
       fi
     fi
 
-    if ! _send_signed_request $uri "{\"resource\": \"challenge\", \"keyAuthorization\": \"$keyauthorization\"}"; then
+    if ! _send_signed_request "$uri" "{\"resource\": \"challenge\", \"keyAuthorization\": \"$keyauthorization\"}"; then
       _err "$d:Can not get challenge: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
       _clearup
@@ -2790,7 +2790,7 @@ issue() {
       status=$(echo "$response" | _egrep_o '"status":"[^"]*' | cut -d : -f 2 | tr -d '"')
       if [ "$status" = "valid" ]; then
         _info "Success"
-        _stopserver $serverproc
+        _stopserver "$serverproc"
         serverproc=""
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         break
@@ -2909,7 +2909,7 @@ issue() {
   _savedomainconf "Le_CertCreateTimeStr" "$Le_CertCreateTimeStr"
 
   if [ -z "$Le_RenewalDays" ] || [ "$Le_RenewalDays" -lt "0" ] || [ "$Le_RenewalDays" -gt "$MAX_RENEW" ]; then
-    Le_RenewalDays=$MAX_RENEW
+    Le_RenewalDays="$MAX_RENEW"
   else
     _savedomainconf "Le_RenewalDays" "$Le_RenewalDays"
   fi
@@ -2934,12 +2934,12 @@ issue() {
     _cleardomainconf Le_Listen_V4
   fi
 
-  Le_NextRenewTime=$(_math $Le_CertCreateTime + $Le_RenewalDays \* 24 \* 60 \* 60)
+  Le_NextRenewTime=$(_math "$Le_CertCreateTime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
 
-  Le_NextRenewTimeStr=$(_time2str $Le_NextRenewTime)
+  Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
   _savedomainconf "Le_NextRenewTimeStr" "$Le_NextRenewTimeStr"
 
-  Le_NextRenewTime=$(_math $Le_NextRenewTime - 86400)
+  Le_NextRenewTime=$(_math "$Le_NextRenewTime" - 86400)
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
 
   _on_issue_success
