@@ -2958,7 +2958,7 @@ renew() {
 
   _isEcc="$2"
 
-  _initpath $Le_Domain "$_isEcc"
+  _initpath "$Le_Domain" "$_isEcc"
 
   _info "$(__green "Renew: '$Le_Domain'")"
   if [ ! -f "$DOMAIN_CONF" ]; then
@@ -2979,24 +2979,24 @@ renew() {
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
     _info "Skip, Next renewal time is: $(__green "$Le_NextRenewTimeStr")"
     _info "Add '$(__red '--force')' to force to renew."
-    return $RENEW_SKIP
+    return "$RENEW_SKIP"
   fi
 
   IS_RENEW="1"
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress"
-  res=$?
+  res="$?"
   if [ "$res" != "0" ]; then
-    return $res
+    return "$res"
   fi
 
   if [ "$Le_DeployHook" ]; then
-    deploy $Le_Domain "$Le_DeployHook" "$Le_Keylength"
-    res=$?
+    deploy "$Le_Domain" "$Le_DeployHook" "$Le_Keylength"
+    res="$?"
   fi
 
   IS_RENEW=""
 
-  return $res
+  return "$res"
 }
 
 #renewAll  [stopRenewOnError]
