@@ -1878,7 +1878,7 @@ _setApache() {
   #test the conf first
   _info "Checking if there is an error in the apache config file before starting."
 
-  if ! _exec $_APACHECTL -t >/dev/null; then
+  if ! _exec "$_APACHECTL" -t >/dev/null; then
     _exec_err
     _err "The apache config file has error, please fix it first, then try again."
     _err "Don't worry, there is nothing changed to your system."
@@ -1940,7 +1940,7 @@ Allow from all
     chmod 755 "$ACME_DIR"
   fi
 
-  if ! _exec $_APACHECTL graceful; then
+  if ! _exec "$_APACHECTL" graceful; then
     _exec_err
     _err "$_APACHECTL  graceful error, please contact me."
     _restoreApache
@@ -1951,7 +1951,7 @@ Allow from all
 }
 
 _clearup() {
-  _stopserver $serverproc
+  _stopserver "$serverproc"
   serverproc=""
   _restoreApache
   _clearupdns
@@ -2693,7 +2693,7 @@ issue() {
         fi
 
         if [ ! "$usingApache" ]; then
-          if webroot_owner=$(_stat $_currentRoot); then
+          if webroot_owner=$(_stat "$_currentRoot"); then
             _debug "Changing owner/group of .well-known to $webroot_owner"
             chown -R "$webroot_owner" "$_currentRoot/.well-known"
           else
@@ -2772,7 +2772,7 @@ issue() {
       _debug "sleep 2 secs to verify"
       sleep 2
       _debug "checking"
-      response="$(_get $uri)"
+      response="$(_get "$uri")"
       if [ "$?" != "0" ]; then
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
@@ -3663,9 +3663,9 @@ _installalias() {
 
   _envfile="$LE_WORKING_DIR/$PROJECT_ENTRY.env"
   if [ "$_upgrading" ] && [ "$_upgrading" = "1" ]; then
-    echo "$(cat $_envfile)" | sed "s|^LE_WORKING_DIR.*$||" >"$_envfile"
-    echo "$(cat $_envfile)" | sed "s|^alias le.*$||" >"$_envfile"
-    echo "$(cat $_envfile)" | sed "s|^alias le.sh.*$||" >"$_envfile"
+    echo "$(cat "$_envfile")" | sed "s|^LE_WORKING_DIR.*$||" >"$_envfile"
+    echo "$(cat "$_envfile")" | sed "s|^alias le.*$||" >"$_envfile"
+    echo "$(cat "$_envfile")" | sed "s|^alias le.sh.*$||" >"$_envfile"
   fi
 
   _setopt "$_envfile" "export LE_WORKING_DIR" "=" "\"$LE_WORKING_DIR\""
