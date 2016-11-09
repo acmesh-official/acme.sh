@@ -951,18 +951,18 @@ _calcjwk() {
     fi
 
     pubi="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | grep -n pub: | cut -d : -f 1)"
-    pubi=$(_math $pubi + 1)
+    pubi=$(_math "$pubi" + 1)
     _debug3 pubi "$pubi"
 
     pubj="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | grep -n "ASN1 OID:" | cut -d : -f 1)"
-    pubj=$(_math $pubj - 1)
+    pubj=$(_math "$pubj" - 1)
     _debug3 pubj "$pubj"
 
     pubtext="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | sed -n "$pubi,${pubj}p" | tr -d " \n\r")"
     _debug3 pubtext "$pubtext"
 
     xlen="$(printf "%s" "$pubtext" | tr -d ':' | wc -c)"
-    xlen=$(_math $xlen / 4)
+    xlen=$(_math "$xlen" / 4)
     _debug3 xlen "$xlen"
 
     xend=$(_math "$xlen" + 1)
@@ -1135,7 +1135,7 @@ _get() {
   url="$1"
   onlyheader="$2"
   t="$3"
-  _debug url $url
+  _debug url "$url"
   _debug "timeout" "$t"
 
   _inithttp
@@ -1187,7 +1187,7 @@ _get() {
 }
 
 _head_n() {
-  head -n $1
+  head -n "$1"
 }
 
 _tail_n() {
@@ -1219,7 +1219,7 @@ _send_signed_request() {
   if [ -z "$_CACHED_NONCE" ]; then
     _debug2 "Get nonce."
     nonceurl="$API/directory"
-    _headers="$(_get $nonceurl "onlyheader")"
+    _headers="$(_get "$nonceurl" "onlyheader")"
 
     if [ "$?" != "0" ]; then
       _err "Can not connect to $nonceurl to get nonce."
@@ -1268,8 +1268,8 @@ _send_signed_request() {
 
   _debug2 responseHeaders "$responseHeaders"
   _debug2 response "$response"
-  code="$(grep "^HTTP" $HTTP_HEADER | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
-  _debug code $code
+  code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
+  _debug code "$code"
 
   _CACHED_NONCE="$(echo "$responseHeaders" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
 
@@ -1293,23 +1293,23 @@ _setopt() {
   if grep -n "^$__opt$__sep" "$__conf" >/dev/null; then
     _debug3 OK
     if _contains "$__val" "&"; then
-      __val="$(echo $__val | sed 's/&/\\&/g')"
+      __val="$(echo "$__val" | sed 's/&/\\&/g')"
     fi
-    text="$(cat $__conf)"
+    text="$(cat "$__conf")"
     echo "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
 
   elif grep -n "^#$__opt$__sep" "$__conf" >/dev/null; then
     if _contains "$__val" "&"; then
-      __val="$(echo $__val | sed 's/&/\\&/g')"
+      __val="$(echo "$__val" | sed 's/&/\\&/g')"
     fi
-    text="$(cat $__conf)"
+    text="$(cat "$__conf")"
     echo "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
 
   else
     _debug3 APP
     echo "$__opt$__sep$__val$__end" >>"$__conf"
   fi
-  _debug2 "$(grep -n "^$__opt$__sep" $__conf)"
+  _debug2 "$(grep -n "^$__opt$__sep" "$__conf")"
 }
 
 #_save_conf  file key  value
@@ -1342,7 +1342,7 @@ _read_conf() {
   _sdkey="$2"
   if [ -f "$_r_c_f" ]; then
     (
-      eval $(grep "^$_sdkey *=" "$_r_c_f")
+      eval "$(grep "^$_sdkey *=" "$_r_c_f")"
       eval "printf \"%s\" \"\$$_sdkey\""
     )
   else
@@ -1493,7 +1493,7 @@ _sleep() {
     while [ "$_sleep_c" -ge "0" ]; do
       printf "\r      \r"
       __green "$_sleep_c"
-      _sleep_c="$(_math $_sleep_c - 1)"
+      _sleep_c="$(_math "$_sleep_c" - 1)"
       sleep 1
     done
     printf "\r"
@@ -1816,7 +1816,7 @@ _apachePath() {
   if [ "$APACHE_HTTPD_CONF" ]; then
     _saveaccountconf APACHE_HTTPD_CONF "$APACHE_HTTPD_CONF"
     httpdconf="$APACHE_HTTPD_CONF"
-    httpdconfname="$(basename $httpdconfname)"
+    httpdconfname="$(basename "$httpdconfname")"
   else
     httpdconfname="$($_APACHECTL -V | grep SERVER_CONFIG_FILE= | cut -d = -f 2 | tr -d '"')"
     _debug httpdconfname "$httpdconfname"
@@ -1828,12 +1828,12 @@ _apachePath() {
 
     if _startswith "$httpdconfname" '/'; then
       httpdconf="$httpdconfname"
-      httpdconfname="$(basename $httpdconfname)"
+      httpdconfname="$(basename "$httpdconfname")"
     else
       httpdroot="$($_APACHECTL -V | grep HTTPD_ROOT= | cut -d = -f 2 | tr -d '"')"
       _debug httpdroot "$httpdroot"
       httpdconf="$httpdroot/$httpdconfname"
-      httpdconfname="$(basename $httpdconfname)"
+      httpdconfname="$(basename "$httpdconfname")"
     fi
   fi
   _debug httpdconf "$httpdconf"
@@ -1974,10 +1974,10 @@ _clearupdns() {
 
   ventries=$(echo "$vlist" | tr ',' ' ')
   for ventry in $ventries; do
-    d=$(echo $ventry | cut -d $sep -f 1)
-    keyauthorization=$(echo $ventry | cut -d $sep -f 2)
-    vtype=$(echo $ventry | cut -d $sep -f 4)
-    _currentRoot=$(echo $ventry | cut -d $sep -f 5)
+    d=$(echo "$ventry" | cut -d $sep -f 1)
+    keyauthorization=$(echo "$ventry" | cut -d $sep -f 2)
+    vtype=$(echo "$ventry" | cut -d $sep -f 4)
+    _currentRoot=$(echo "$ventry" | cut -d $sep -f 5)
 
     if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
       _info "$d is already verified, skip $vtype."
