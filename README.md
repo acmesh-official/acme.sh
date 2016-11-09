@@ -255,6 +255,7 @@ You don't have do anything manually!
 8. lexicon dns api: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
    (DigitalOcean, DNSimple, DnsMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)
 9. LuaDNS.com API
+10. DNSMadeEasy.com API
 
 ##### More APIs are coming soon...
 
