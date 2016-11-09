@@ -306,7 +306,7 @@ _h2b() {
   _debug3 _URGLY_PRINTF "$_URGLY_PRINTF"
   while true; do
     if [ -z "$_URGLY_PRINTF" ]; then
-      h="$(printf $hex | cut -c $i-$j)"
+      h="$(printf "%s" "$hex" | cut -c $i-$j)"
       if [ -z "$h" ]; then
         break
       fi
@@ -479,7 +479,7 @@ _sign() {
     if ! _signedECText="$($_sign_openssl | openssl asn1parse -inform DER)"; then
       _err "Sign failed: $_sign_openssl"
       _err "Key file: $keyfile"
-      _err "Key content:$(cat "$keyfile" | wc -l) lises"
+      _err "Key content:$(wc -l <"$keyfile") lises"
       return 1
     fi
     _debug3 "_signedECText" "$_signedECText"
@@ -516,7 +516,7 @@ _createkey() {
   f="$2"
   eccname="$length"
   if _startswith "$length" "ec-"; then
-    length=$(printf "$length" | cut -d '-' -f 2-100)
+    length=$(printf "%s" "$length" | cut -d '-' -f 2-100)
 
     if [ "$length" = "256" ]; then
       eccname="prime256v1"
@@ -608,10 +608,10 @@ _createcsr() {
     #single domain
     _info "Single domain" "$domain"
   else
-    domainlist="$(_idn $domainlist)"
+    domainlist="$(_idn "$domainlist")"
     _debug2 domainlist "$domainlist"
     if _contains "$domainlist" ","; then
-      alt="DNS:$(echo $domainlist | sed "s/,/,DNS:/g")"
+      alt="DNS:$(echo "$domainlist" | sed "s/,/,DNS:/g")"
     else
       alt="DNS:$domainlist"
     fi
@@ -803,7 +803,7 @@ createDomainKey() {
     length="$DEFAULT_DOMAIN_KEY_LENGTH"
   fi
 
-  _initpath $domain "$length"
+  _initpath "$domain" "$length"
 
   if [ ! -f "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$IS_RENEW" ]); then
     _createkey "$length" "$CERT_KEY_PATH"
@@ -849,18 +849,17 @@ createCSR() {
 }
 
 _urlencode() {
-  __n=$(cat)
-  echo $__n | tr '/+' '_-' | tr -d '= '
+  tr '/+' '_-' | tr -d '= '
 }
 
 _time2str() {
   #BSD
-  if date -u -d@$1 2>/dev/null; then
+  if date -u -d@"$1" 2>/dev/null; then
     return
   fi
 
   #Linux
-  if date -u -r $1 2>/dev/null; then
+  if date -u -r "$1" 2>/dev/null; then
     return
   fi
 
@@ -905,16 +904,16 @@ _calcjwk() {
   EC_SIGN=""
   if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     _debug "RSA key"
-    pub_exp=$(openssl rsa -in $keyfile -noout -text | grep "^publicExponent:" | cut -d '(' -f 2 | cut -d 'x' -f 2 | cut -d ')' -f 1)
+    pub_exp=$(openssl rsa -in "$keyfile" -noout -text | grep "^publicExponent:" | cut -d '(' -f 2 | cut -d 'x' -f 2 | cut -d ')' -f 1)
     if [ "${#pub_exp}" = "5" ]; then
       pub_exp=0$pub_exp
     fi
     _debug3 pub_exp "$pub_exp"
 
-    e=$(echo $pub_exp | _h2b | _base64)
+    e=$(echo "$pub_exp" | _h2b | _base64)
     _debug3 e "$e"
 
-    modulus=$(openssl rsa -in $keyfile -modulus -noout | cut -d '=' -f 2)
+    modulus=$(openssl rsa -in "$keyfile" -modulus -noout | cut -d '=' -f 2)
     _debug3 modulus "$modulus"
     n="$(printf "%s" "$modulus" | _h2b | _base64 | _urlencode)"
     jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
@@ -926,12 +925,12 @@ _calcjwk() {
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     _debug "EC key"
     EC_SIGN="1"
-    crv="$(openssl ec -in $keyfile -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
+    crv="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
     _debug3 crv "$crv"
 
     if [ -z "$crv" ]; then
       _debug "Let's try ASN1 OID"
-      crv_oid="$(openssl ec -in $keyfile -noout -text 2>/dev/null | grep "^ASN1 OID:" | cut -d ":" -f 2 | tr -d " \r\n")"
+      crv_oid="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | grep "^ASN1 OID:" | cut -d ":" -f 2 | tr -d " \r\n")"
       _debug3 crv_oid "$crv_oid"
       case "${crv_oid}" in
         "prime256v1")
@@ -951,15 +950,15 @@ _calcjwk() {
       _debug3 crv "$crv"
     fi
 
-    pubi="$(openssl ec -in $keyfile -noout -text 2>/dev/null | grep -n pub: | cut -d : -f 1)"
+    pubi="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | grep -n pub: | cut -d : -f 1)"
     pubi=$(_math $pubi + 1)
     _debug3 pubi "$pubi"
 
-    pubj="$(openssl ec -in $keyfile -noout -text 2>/dev/null | grep -n "ASN1 OID:" | cut -d : -f 1)"
+    pubj="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | grep -n "ASN1 OID:" | cut -d : -f 1)"
     pubj=$(_math $pubj - 1)
     _debug3 pubj "$pubj"
 
-    pubtext="$(openssl ec -in $keyfile -noout -text 2>/dev/null | sed -n "$pubi,${pubj}p" | tr -d " \n\r")"
+    pubtext="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | sed -n "$pubi,${pubj}p" | tr -d " \n\r")"
     _debug3 pubtext "$pubtext"
 
     xlen="$(printf "%s" "$pubtext" | tr -d ':' | wc -c)"
@@ -967,14 +966,14 @@ _calcjwk() {
     _debug3 xlen "$xlen"
 
     xend=$(_math "$xlen" + 1)
-    x="$(printf "%s" "$pubtext" | cut -d : -f 2-$xend)"
+    x="$(printf "%s" "$pubtext" | cut -d : -f 2-"$xend")"
     _debug3 x "$x"
 
     x64="$(printf "%s" "$x" | tr -d : | _h2b | _base64 | _urlencode)"
     _debug3 x64 "$x64"
 
     xend=$(_math "$xend" + 1)
-    y="$(printf "%s" "$pubtext" | cut -d : -f $xend-10000)"
+    y="$(printf "%s" "$pubtext" | cut -d : -f "$xend"-10000)"
     _debug3 y "$y"
 
     y64="$(printf "%s" "$y" | tr -d : | _h2b | _base64 | _urlencode)"
@@ -1148,9 +1147,9 @@ _get() {
     fi
     _debug "_CURL" "$_CURL"
     if [ "$onlyheader" ]; then
-      $_CURL -I --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" $url
+      $_CURL -I --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
     else
-      $_CURL --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" $url
+      $_CURL --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
     fi
     ret=$?
     if [ "$ret" != "0" ]; then
@@ -1167,9 +1166,9 @@ _get() {
     fi
     _debug "_WGET" "$_WGET"
     if [ "$onlyheader" ]; then
-      $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null $url 2>&1 | sed 's/^[ ]*//g'
+      $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1 | sed 's/^[ ]*//g'
     else
-      $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -O - $url
+      $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -O - "$url"
     fi
     ret=$?
     if [ "$_ret" = "8" ]; then
@@ -1192,9 +1191,9 @@ _head_n() {
 }
 
 _tail_n() {
-  if ! tail -n $1 2>/dev/null; then
+  if ! tail -n "$1" 2>/dev/null; then
     #fix for solaris
-    tail -$1
+    tail -"$1"
   fi
 }
 
@@ -1207,7 +1206,7 @@ _send_signed_request() {
   if [ -z "$keyfile" ]; then
     keyfile="$ACCOUNT_KEY_PATH"
   fi
-  _debug url $url
+  _debug url "$url"
   _debug payload "$payload"
 
   if ! _calcjwk "$keyfile"; then
@@ -1215,7 +1214,7 @@ _send_signed_request() {
   fi
 
   payload64=$(printf "%s" "$payload" | _base64 | _urlencode)
-  _debug3 payload64 $payload64
+  _debug3 payload64 "$payload64"
 
   if [ -z "$_CACHED_NONCE" ]; then
     _debug2 "Get nonce."
@@ -1255,7 +1254,7 @@ _send_signed_request() {
   body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
   _debug3 body "$body"
 
-  response="$(_post "$body" $url "$needbase64")"
+  response="$(_post "$body" "$url" "$needbase64")"
   _CACHED_NONCE=""
   if [ "$?" != "0" ]; then
     _err "Can not post to $url"
