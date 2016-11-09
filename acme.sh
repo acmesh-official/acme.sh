@@ -1429,11 +1429,11 @@ _startserver() {
   if _contains "$nchelp" "nmap.org"; then
     _debug "Using ncat: nmap.org"
     if [ "$DEBUG" ]; then
-      if printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort; then
+      if printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC $Le_HTTPPort; then
         return
       fi
     else
-      if printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort >/dev/null 2>&1; then
+      if printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC $Le_HTTPPort >/dev/null 2>&1; then
         return
       fi
     fi
@@ -1442,12 +1442,12 @@ _startserver() {
 
   #  while true ; do
   if [ "$DEBUG" ]; then
-    if ! printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort; then
-      printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort
+    if ! printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC -p $Le_HTTPPort; then
+      printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC $Le_HTTPPort
     fi
   else
-    if ! printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC -p $Le_HTTPPort >/dev/null 2>&1; then
-      printf "HTTP/1.1 200 OK\r\n\r\n$content" | $_NC $Le_HTTPPort >/dev/null 2>&1
+    if ! printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC -p $Le_HTTPPort >/dev/null 2>&1; then
+      printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC $Le_HTTPPort >/dev/null 2>&1
     fi
   fi
   if [ "$?" != "0" ]; then
