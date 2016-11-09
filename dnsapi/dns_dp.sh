@@ -18,7 +18,7 @@ dns_dp_add() {
   fulldomain=$1
   txtvalue=$2
   
-  if [ -z "$DP_Id" ] || [ -z "$DP_Key" ] ; then
+  if [ -z "$DP_Id" ] || [ -z "$DP_Key" ]; then
     _err "You don't specify dnspod api key and key id yet."
     _err "Please create you key and try again."
     return 1
@@ -39,12 +39,12 @@ dns_dp_add() {
   
   existing_records  $_domain  $_sub_domain
   _debug count "$count"
-  if [ "$?" != "0" ] ; then
+  if [ "$?" != "0" ]; then
     _err "Error get existing records."
     return 1
   fi
 
-  if [ "$count" = "0" ] ; then
+  if [ "$count" = "0" ]; then
     add_record $_domain $_sub_domain $txtvalue
   else
     update_record $_domain $_sub_domain $txtvalue
@@ -149,9 +149,9 @@ _get_root() {
   domain=$1
   i=2
   p=1
-  while [ '1' ] ; do
+  while [ '1' ]; do
     h=$(printf $domain | cut -d . -f $i-100)
-    if [ -z "$h" ] ; then
+    if [ -z "$h" ]; then
       #not valid
       return 1;
     fi
@@ -163,7 +163,7 @@ _get_root() {
     if printf "$response" | grep "Action completed successful" >/dev/null ; then
       _domain_id=$(printf "%s\n" "$response" | _egrep_o \"id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \")
       _debug _domain_id "$_domain_id"
-      if [ "$_domain_id" ] ; then
+      if [ "$_domain_id" ]; then
         _sub_domain=$(printf $domain | cut -d . -f 1-$p)
         _debug _sub_domain $_sub_domain
         _domain=$h
@@ -189,14 +189,14 @@ _rest() {
   
   _debug url "$url"
   
-  if [ "$data" ] ; then
+  if [ "$data" ]; then
     _debug2 data "$data"
     response="$(_post $data "$url")"
   else
     response="$(_get "$url")"
   fi
   
-  if [ "$?" != "0" ] ; then
+  if [ "$?" != "0" ]; then
     _err "error $ep"
     return 1
   fi
