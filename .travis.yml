@@ -8,4 +8,4 @@ script:
   - curl -sSL $SHFMT_URL -o ~/shfmt
   - chmod +x ~/shfmt
   - ~/shfmt -l -w -i 2 .
-  - git diff --exit-code || echo "Run shfmt to fix the formatting issues"
+  - git diff --exit-code || (echo "Run shfmt to fix the formatting issues" && false)
