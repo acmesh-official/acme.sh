@@ -119,7 +119,7 @@ _dlg_versions() {
 
 _log() {
   [ -z "$LOG_FILE" ] && return
-  _printargs "$@" >>$LOG_FILE
+  _printargs "$@" >>"$LOG_FILE"
 }
 
 _info() {
@@ -229,12 +229,12 @@ _getfield() {
 
   _ffi=$_findex
   while [ "$_ffi" -gt "0" ]; do
-    _fv="$(echo "$_str" | cut -d $_sep -f $_ffi)"
+    _fv="$(echo "$_str" | cut -d $_sep -f "$_ffi")"
     if [ "$_fv" ]; then
       printf -- "%s" "$_fv"
       return 0
     fi
-    _ffi="$(_math $_ffi - 1)"
+    _ffi="$(_math "$_ffi" - 1)"
   done
 
   printf -- "%s" "$_str"
@@ -312,21 +312,21 @@ _h2b() {
       fi
       printf "\x$h"
     else
-      ic="$(printf $hex | cut -c $i)"
-      jc="$(printf $hex | cut -c $j)"
+      ic="$(printf "%s" "$hex" | cut -c $i)"
+      jc="$(printf "%s" "$hex" | cut -c $j)"
       if [ -z "$ic$jc" ]; then
         break
       fi
       ic="$(_h_char_2_dec "$ic")"
       jc="$(_h_char_2_dec "$jc")"
-      printf '\'"$(printf %o "$(_math $ic \* 16 + $jc)")"
+      printf '\'"$(printf "%o" "$(_math "$ic" \* 16 + $jc)")"
     fi
     if [ "$uselet" ]; then
       let "i+=2" >/dev/null
       let "j+=2" >/dev/null
     else
-      i="$(_math $i + 2)"
-      j="$(_math $j + 2)"
+      i="$(_math "$i" + 2)"
+      j="$(_math "$j" + 2)"
     fi
   done
 }
@@ -419,9 +419,9 @@ _digest() {
 
   if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ]; then
     if [ "$outputhex" ]; then
-      openssl dgst -$alg -hex | cut -d = -f 2 | tr -d ' '
+      openssl dgst -"$alg" -hex | cut -d = -f 2 | tr -d ' '
     else
-      openssl dgst -$alg -binary | _base64
+      openssl dgst -"$alg" -binary | _base64
     fi
   else
     _err "$alg is not supported yet"
@@ -444,9 +444,9 @@ _hmac() {
 
   if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ]; then
     if [ "$outputhex" ]; then
-      openssl dgst -$alg -hmac "$hmac_sec" | cut -d = -f 2 | tr -d ' '
+      openssl dgst -"$alg" -hmac "$hmac_sec" | cut -d = -f 2 | tr -d ' '
     else
-      openssl dgst -$alg -hmac "$hmac_sec" -binary | _base64
+      openssl dgst -"$alg" -hmac "$hmac_sec" -binary | _base64
     fi
   else
     _err "$alg is not supported yet"
@@ -516,7 +516,7 @@ _createkey() {
   f="$2"
   eccname="$length"
   if _startswith "$length" "ec-"; then
-    length=$(printf $length | cut -d '-' -f 2-100)
+    length=$(printf "$length" | cut -d '-' -f 2-100)
 
     if [ "$length" = "256" ]; then
       eccname="prime256v1"
@@ -962,22 +962,22 @@ _calcjwk() {
     pubtext="$(openssl ec -in $keyfile -noout -text 2>/dev/null | sed -n "$pubi,${pubj}p" | tr -d " \n\r")"
     _debug3 pubtext "$pubtext"
 
-    xlen="$(printf "$pubtext" | tr -d ':' | wc -c)"
+    xlen="$(printf "%s" "$pubtext" | tr -d ':' | wc -c)"
     xlen=$(_math $xlen / 4)
     _debug3 xlen "$xlen"
 
     xend=$(_math "$xlen" + 1)
-    x="$(printf $pubtext | cut -d : -f 2-$xend)"
+    x="$(printf "%s" "$pubtext" | cut -d : -f 2-$xend)"
     _debug3 x "$x"
 
-    x64="$(printf $x | tr -d : | _h2b | _base64 | _urlencode)"
+    x64="$(printf "%s" "$x" | tr -d : | _h2b | _base64 | _urlencode)"
     _debug3 x64 "$x64"
 
     xend=$(_math "$xend" + 1)
-    y="$(printf $pubtext | cut -d : -f $xend-10000)"
+    y="$(printf "%s" "$pubtext" | cut -d : -f $xend-10000)"
     _debug3 y "$y"
 
-    y64="$(printf $y | tr -d : | _h2b | _base64 | _urlencode)"
+    y64="$(printf "%s" "$y" | tr -d : | _h2b | _base64 | _urlencode)"
     _debug3 y64 "$y64"
 
     jwk='{"crv": "'$crv'", "kty": "EC", "x": "'$x64'", "y": "'$y64'"}'
@@ -1240,7 +1240,7 @@ _send_signed_request() {
   protected="$JWK_HEADERPLACE_PART1$nonce$JWK_HEADERPLACE_PART2"
   _debug3 protected "$protected"
 
-  protected64="$(printf "$protected" | _base64 | _urlencode)"
+  protected64="$(printf "%s" "$protected" | _base64 | _urlencode)"
   _debug3 protected64 "$protected64"
 
   if ! _sig_t="$(printf "%s" "$protected64.$payload64" | _sign "$keyfile" "sha256")"; then
@@ -2392,7 +2392,7 @@ issue() {
   if [ -f "$DOMAIN_CONF" ]; then
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
     _debug Le_NextRenewTime "$Le_NextRenewTime"
-    if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ $(_time) -lt $Le_NextRenewTime ]; then
+    if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
       _saved_domain=$(_readdomainconf Le_Domain)
       _debug _saved_domain "$_saved_domain"
       _saved_alt=$(_readdomainconf Le_Alt)
@@ -2529,7 +2529,7 @@ issue() {
       keyauthorization="$token.$thumbprint"
       _debug keyauthorization "$keyauthorization"
 
-      if printf "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
+      if printf "%s" "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
         _info "$d is already verified, skip."
         keyauthorization=$STATE_VERIFIED
         _debug keyauthorization "$keyauthorization"
