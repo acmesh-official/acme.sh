@@ -227,9 +227,9 @@ _getfield() {
     _sep=","
   fi
 
-  _ffi=$_findex
+  _ffi="$_findex"
   while [ "$_ffi" -gt "0" ]; do
-    _fv="$(echo "$_str" | cut -d $_sep -f "$_ffi")"
+    _fv="$(echo "$_str" | cut -d "$_sep" -f "$_ffi")"
     if [ "$_fv" ]; then
       printf -- "%s" "$_fv"
       return 0
@@ -3006,12 +3006,14 @@ renewAll() {
   _debug "_stopRenewOnError" "$_stopRenewOnError"
   _ret="0"
 
-  for d in $(ls -F ${CERT_HOME}/ | grep [^.].*[.].*/$); do
-    d=$(echo $d | cut -d '/' -f 1)
+  for d in "${CERT_HOME}"/*.*/; do
+    _debug d "$d"
+    d=$(basename "$d")
+    _debug d "$d"
     (
-      if _endswith $d "$ECC_SUFFIX"; then
-        _isEcc=$(echo $d | cut -d "$ECC_SEP" -f 2)
-        d=$(echo $d | cut -d "$ECC_SEP" -f 1)
+      if _endswith "$d" "$ECC_SUFFIX"; then
+        _isEcc=$(echo "$d" | cut -d "$ECC_SEP" -f 2)
+        d=$(echo "$d" | cut -d "$ECC_SEP" -f 1)
       fi
       renew "$d" "$_isEcc"
     )
@@ -3022,14 +3024,14 @@ renewAll() {
         _info "Skipped $d"
       elif [ "$_stopRenewOnError" ]; then
         _err "Error renew $d,  stop now."
-        return $rc
+        return "$rc"
       else
         _ret="$rc"
         _err "Error renew $d, Go ahead to next one."
       fi
     fi
   done
-  return $_ret
+  return "$_ret"
 }
 
 #csr webroot
@@ -3127,12 +3129,13 @@ list() {
   _sep="|"
   if [ "$_raw" ]; then
     printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Created${_sep}Renew"
-    for d in $(ls -F ${CERT_HOME}/ | grep [^.].*[.].*/$); do
-      d=$(echo $d | cut -d '/' -f 1)
+    for d in "${CERT_HOME}"/*.*/; do
+      d=$(basename "$d")
+      _debug d "$d"
       (
-        if _endswith $d "$ECC_SUFFIX"; then
-          _isEcc=$(echo $d | cut -d "$ECC_SEP" -f 2)
-          d=$(echo $d | cut -d "$ECC_SEP" -f 1)
+        if _endswith "$d" "$ECC_SUFFIX"; then
+          _isEcc=$(echo "$d" | cut -d "$ECC_SEP" -f 2)
+          d=$(echo "$d" | cut -d "$ECC_SEP" -f 1)
         fi
         _initpath $d "$_isEcc"
         if [ -f "$DOMAIN_CONF" ]; then
