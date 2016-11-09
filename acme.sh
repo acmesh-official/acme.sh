@@ -1429,11 +1429,11 @@ _startserver() {
   if _contains "$nchelp" "nmap.org"; then
     _debug "Using ncat: nmap.org"
     if [ "$DEBUG" ]; then
-      if printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC $Le_HTTPPort; then
+      if printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC "$Le_HTTPPort"; then
         return
       fi
     else
-      if printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC $Le_HTTPPort >/dev/null 2>&1; then
+      if printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC "$Le_HTTPPort" >/dev/null 2>&1; then
         return
       fi
     fi
@@ -1442,12 +1442,12 @@ _startserver() {
 
   #  while true ; do
   if [ "$DEBUG" ]; then
-    if ! printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC -p $Le_HTTPPort; then
-      printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC $Le_HTTPPort
+    if ! printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC -p "$Le_HTTPPort"; then
+      printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC "$Le_HTTPPort"
     fi
   else
-    if ! printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC -p $Le_HTTPPort >/dev/null 2>&1; then
-      printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC $Le_HTTPPort >/dev/null 2>&1
+    if ! printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC -p "$Le_HTTPPort" >/dev/null 2>&1; then
+      printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC "$Le_HTTPPort" >/dev/null 2>&1
     fi
   fi
   if [ "$?" != "0" ]; then
@@ -1555,14 +1555,14 @@ _starttlsserver() {
   #start openssl
   _debug "$__S_OPENSSL"
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
-    (printf "HTTP/1.1 200 OK\r\n\r\n$content" | $__S_OPENSSL -tlsextdebug) &
+    (printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $__S_OPENSSL -tlsextdebug) &
   else
-    (printf "HTTP/1.1 200 OK\r\n\r\n$content" | $__S_OPENSSL >/dev/null 2>&1) &
+    (printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $__S_OPENSSL >/dev/null 2>&1) &
   fi
 
   serverproc="$!"
   sleep 1
-  _debug serverproc $serverproc
+  _debug serverproc "$serverproc"
 }
 
 #file
@@ -1998,20 +1998,20 @@ _clearupdns() {
     fi
 
     (
-      if ! . $d_api; then
+      if ! . "$d_api"; then
         _err "Load file $d_api error. Please check your api file and try again."
         return 1
       fi
 
       rmcommand="${_currentRoot}_rm"
-      if ! _exists $rmcommand; then
+      if ! _exists "$rmcommand"; then
         _err "It seems that your api file doesn't define $rmcommand"
         return 1
       fi
 
       txtdomain="_acme-challenge.$d"
 
-      if ! $rmcommand $txtdomain; then
+      if ! $rmcommand "$txtdomain"; then
         _err "Error removing txt for domain:$txtdomain"
         return 1
       fi
@@ -2067,7 +2067,7 @@ _on_before_issue() {
   _currentRoot=""
   _addrIndex=1
   for d in $alldomains; do
-    _debug "Check for domain" $d
+    _debug "Check for domain" "$d"
     _currentRoot="$(_getfield "$Le_Webroot" $_index)"
     _debug "_currentRoot" "$_currentRoot"
     _index=$(_math $_index + 1)
@@ -3128,7 +3128,7 @@ list() {
 
   _sep="|"
   if [ "$_raw" ]; then
-    printf "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Created${_sep}Renew\n"
+    printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Created${_sep}Renew"
     for d in $(ls -F ${CERT_HOME}/ | grep [^.].*[.].*/$); do
       d=$(echo $d | cut -d '/' -f 1)
       (
@@ -3139,7 +3139,7 @@ list() {
         _initpath $d "$_isEcc"
         if [ -f "$DOMAIN_CONF" ]; then
           . "$DOMAIN_CONF"
-          printf "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr\n"
+          printf "%s\n" "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
         fi
       )
     done
@@ -3603,7 +3603,7 @@ _initconf() {
 #PDNS_Token=\"0123456789ABCDEF\"
 #PDNS_Ttl=60
 
-    " >$ACCOUNT_CONF_PATH
+    " >"$ACCOUNT_CONF_PATH"
   fi
 }
 
@@ -3747,7 +3747,7 @@ install() {
 
   chmod 700 "$LE_WORKING_DIR"
 
-  cp $PROJECT_ENTRY "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/$PROJECT_ENTRY"
+  cp "$PROJECT_ENTRY" "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/$PROJECT_ENTRY"
 
   if [ "$?" != "0" ]; then
     _err "Install failed, can not copy $PROJECT_ENTRY"
@@ -3760,8 +3760,8 @@ install() {
 
   for subf in $_SUB_FOLDERS; do
     if [ -d "$subf" ]; then
-      mkdir -p $LE_WORKING_DIR/$subf
-      cp $subf/* $LE_WORKING_DIR/$subf/
+      mkdir -p "$LE_WORKING_DIR/$subf"
+      cp "$subf"/* "$LE_WORKING_DIR"/"$subf"/
     fi
   done
 
@@ -3814,7 +3814,7 @@ uninstall() {
 
   _uninstallalias
 
-  rm -f $LE_WORKING_DIR/$PROJECT_ENTRY
+  rm -f "$LE_WORKING_DIR/$PROJECT_ENTRY"
   _info "The keys and certs are in $LE_WORKING_DIR, you can remove them by yourself."
 
 }
@@ -3825,21 +3825,21 @@ _uninstallalias() {
   _profile="$(_detect_profile)"
   if [ "$_profile" ]; then
     _info "Uninstalling alias from: '$_profile'"
-    text="$(cat $_profile)"
+    text="$(cat "$_profile")"
     echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.env\"$||" >"$_profile"
   fi
 
   _csh_profile="$HOME/.cshrc"
   if [ -f "$_csh_profile" ]; then
     _info "Uninstalling alias from: '$_csh_profile'"
-    text="$(cat $_csh_profile)"
+    text="$(cat "$_csh_profile")"
     echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.csh\"$||" >"$_csh_profile"
   fi
 
   _tcsh_profile="$HOME/.tcshrc"
   if [ -f "$_tcsh_profile" ]; then
     _info "Uninstalling alias from: '$_csh_profile'"
-    text="$(cat $_tcsh_profile)"
+    text="$(cat "$_tcsh_profile")"
     echo "$text" | sed "s|^.*\"$LE_WORKING_DIR/$PROJECT_NAME.csh\"$||" >"$_tcsh_profile"
   fi
 
@@ -3856,7 +3856,7 @@ cron() {
         return 1
       fi
     )
-    . $LE_WORKING_DIR/$PROJECT_ENTRY >/dev/null
+    . "$LE_WORKING_DIR/$PROJECT_ENTRY" >/dev/null
 
     if [ -t 1 ]; then
       __INTERACTIVE="1"
@@ -4330,7 +4330,7 @@ _process() {
         HTTPS_INSECURE="1"
         ;;
       --ca-bundle)
-        _ca_bundle="$(readlink -f $2)"
+        _ca_bundle="$(readlink -f "$2")"
         CA_BUNDLE="$_ca_bundle"
         shift
         ;;
