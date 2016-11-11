@@ -259,7 +259,7 @@ _exists() {
 
 #a + b
 _math() {
-  $(( "$@" ))
+  printf "%s" "$(( $@ ))"
 }
 
 _h_char_2_dec() {
