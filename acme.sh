@@ -2319,7 +2319,7 @@ __get_domain_new_authz() {
   _Max_new_authz_retry_times=5
   _authz_i=0
   while [ "$_authz_i" -lt "$_Max_new_authz_retry_times" ]; do
-    _info "Try new-authz for the $_authz_i time."
+    _debug "Try new-authz for the $_authz_i time."
     if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$(_idn "$_gdnd")\"}}"; then
       _err "Can not get domain new authz."
       return 1
@@ -2334,7 +2334,7 @@ __get_domain_new_authz() {
   done
 
   if [ "$_authz_i" = "$_Max_new_authz_retry_times" ]; then
-    _debug "new-authz retry reach the max $_Max_new_authz_retry_times times."
+    _err "new-authz retry reach the max $_Max_new_authz_retry_times times."
   fi
 
   if [ ! -z "$code" ] && [ ! "$code" = '201' ]; then
