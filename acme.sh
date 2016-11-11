@@ -27,7 +27,7 @@ STAGE_CA="https://acme-staging.api.letsencrypt.org"
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
 VTYPE_TLS="tls-sni-01"
-VTYPE_TLS2="tls-sni-02"
+#VTYPE_TLS2="tls-sni-02"
 
 LOCAL_ANY_ADDRESS="0.0.0.0"
 
@@ -247,10 +247,10 @@ _exists() {
     _usage "Usage: _exists cmd"
     return 1
   fi
-  if type command >/dev/null 2>&1; then
+  if command >/dev/null 2>&1; then
     command -v "$cmd" >/dev/null 2>&1
-  else
-    type "$cmd" >/dev/null 2>&1
+  else which >/dev/null 2>&1; 
+    which "$cmd" >/dev/null 2>&1
   fi
   ret="$?"
   _debug3 "$cmd exists=$ret"
@@ -259,7 +259,7 @@ _exists() {
 
 #a + b
 _math() {
-  expr "$@"
+  $(( "$@" ))
 }
 
 _h_char_2_dec() {
@@ -299,10 +299,7 @@ _h2b() {
   hex=$(cat)
   i=1
   j=2
-  if _exists let; then
-    uselet="1"
-  fi
-  _debug3 uselet "$uselet"
+
   _debug3 _URGLY_PRINTF "$_URGLY_PRINTF"
   while true; do
     if [ -z "$_URGLY_PRINTF" ]; then
@@ -310,7 +307,7 @@ _h2b() {
       if [ -z "$h" ]; then
         break
       fi
-      printf "\x$h"
+      printf "\x$h%s"
     else
       ic="$(printf "%s" "$hex" | cut -c $i)"
       jc="$(printf "%s" "$hex" | cut -c $j)"
@@ -321,13 +318,10 @@ _h2b() {
       jc="$(_h_char_2_dec "$jc")"
       printf '\'"$(printf "%o" "$(_math "$ic" \* 16 + $jc)")"
     fi
-    if [ "$uselet" ]; then
-      let "i+=2" >/dev/null
-      let "j+=2" >/dev/null
-    else
-      i="$(_math "$i" + 2)"
-      j="$(_math "$j" + 2)"
-    fi
+
+    i="$(_math "$i" + 2)"
+    j="$(_math "$j" + 2)"
+
   done
 }
 
@@ -3006,9 +3000,9 @@ renewAll() {
   _debug "_stopRenewOnError" "$_stopRenewOnError"
   _ret="0"
 
-  for d in "${CERT_HOME}"/*.*/; do
-    _debug d "$d"
-    d=$(basename "$d")
+  for di in "${CERT_HOME}"/*.*/; do
+    _debug di "$di"
+    d=$(basename "$di")
     _debug d "$d"
     (
       if _endswith "$d" "$ECC_SUFFIX"; then
@@ -3129,15 +3123,15 @@ list() {
   _sep="|"
   if [ "$_raw" ]; then
     printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Created${_sep}Renew"
-    for d in "${CERT_HOME}"/*.*/; do
-      d=$(basename "$d")
+    for di in "${CERT_HOME}"/*.*/; do
+      d=$(basename "$di")
       _debug d "$d"
       (
         if _endswith "$d" "$ECC_SUFFIX"; then
           _isEcc=$(echo "$d" | cut -d "$ECC_SEP" -f 2)
           d=$(echo "$d" | cut -d "$ECC_SEP" -f 1)
         fi
-        _initpath $d "$_isEcc"
+        _initpath "$d" "$_isEcc"
         if [ -f "$DOMAIN_CONF" ]; then
           . "$DOMAIN_CONF"
           printf "%s\n" "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
@@ -3163,13 +3157,13 @@ deploy() {
     return 1
   fi
 
-  _initpath $Le_Domain "$_isEcc"
+  _initpath "$Le_Domain" "$_isEcc"
   if [ ! -d "$DOMAIN_PATH" ]; then
     _err "Domain is not valid:'$Le_Domain'"
     return 1
   fi
 
-  _deployApi="$(_findHook $Le_Domain deploy $Le_DeployHook)"
+  _deployApi="$(_findHook "$Le_Domain" deploy "$Le_DeployHook")"
   if [ -z "$_deployApi" ]; then
     _err "The deploy hook $Le_DeployHook is not found."
     return 1
@@ -3179,18 +3173,18 @@ deploy() {
   _savedomainconf Le_DeployHook "$Le_DeployHook"
 
   if ! (
-    if ! . $_deployApi; then
+    if ! . "$_deployApi"; then
       _err "Load file $_deployApi error. Please check your api file and try again."
       return 1
     fi
 
     d_command="${Le_DeployHook}_deploy"
-    if ! _exists $d_command; then
+    if ! _exists "$d_command"; then
       _err "It seems that your api file is not correct, it must have a function named: $d_command"
       return 1
     fi
 
-    if ! $d_command $Le_Domain "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH"; then
+    if ! $d_command "$Le_Domain" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH"; then
       _err "Error deploy for domain:$Le_Domain"
       _on_issue_err
       return 1
