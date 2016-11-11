@@ -14,6 +14,6 @@ addons:
 script:
   - curl -sSL $SHFMT_URL -o ~/shfmt
   - chmod +x ~/shfmt
-  - ~/shfmt -l -w -i 2 . && echo "shfmt OK" || git diff --exit-code || (echo "Run shfmt to fix the formatting issues" && false)
-  - [ "$?" = "0" ] && shellcheck -e SC2021,SC2126,SC2034   **/*.sh && echo "shellcheck OK" || false
+  - ~/shfmt -l -w -i 2 . && echo "shfmt OK" || git diff --exit-code || (echo "Run shfmt to fix the formatting issues" && exit 1)
+  - shellcheck -e SC2021,SC2126,SC2034 **/*.sh && echo "shellcheck OK" || exit 1
 
