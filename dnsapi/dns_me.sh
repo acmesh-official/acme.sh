@@ -41,7 +41,7 @@ dns_me_add() {
     return 1
   fi
 
-  count=$(printf "%s\n" "$response" | _egrep_o \"totalRecords\":[^,]* | cut -d : -f 2)
+  count=$(printf "%s\n" "$response" | _egrep_o "\"totalRecords\":[^,]*" | cut -d : -f 2)
   _debug count "$count"
   if [ "$count" = "0" ]; then
     _info "Adding record"
@@ -58,7 +58,7 @@ dns_me_add() {
     _err "Add txt record error."
   else
     _info "Updating record"
-    record_id=$(printf "%s\n" "$response" | _egrep_o \"id\":[^,]* | cut -d : -f 2 | head -n 1)
+    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*" | cut -d : -f 2 | head -n 1)
     _debug "record_id" "$record_id"
 
     _me_rest PUT "$_domain_id/records/$record_id/" "{\"id\":\"$record_id\",\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"value\":\"$txtvalue\",\"gtdLocation\":\"DEFAULT\",\"ttl\":120}"
@@ -101,7 +101,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\""; then
-      _domain_id=$(printf "%s\n" "$response" | _egrep_o \"id\":[^,]* | head -n 1 | cut -d : -f 2)
+      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*" | head -n 1 | cut -d : -f 2)
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain="$h"

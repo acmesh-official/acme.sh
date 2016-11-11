@@ -131,7 +131,7 @@ dns_ovh_add() {
     _err "invalid domain"
     return 1
   fi
-  _debug _domain_id "$_domain_id"
+
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
@@ -221,7 +221,6 @@ _ovh_authentication() {
 #returns
 # _sub_domain=_acme-challenge.www
 # _domain=domain.com
-# _domain_id=sdjkglgdfewsdfg
 _get_root() {
   domain=$1
   i=2
