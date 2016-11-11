@@ -189,7 +189,7 @@ _rest() {
   _H4="Content-Type: application/json"
 
   if [ "$data" ]; then
-    response="$(_post "$data" "$url" "" $m)"
+    response="$(_post "$data" "$url" "" "$m")"
   else
     response="$(_get "$url")"
   fi

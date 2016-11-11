@@ -102,7 +102,7 @@ _gd_rest() {
 
   if [ "$data" ]; then
     _debug data "$data"
-    response="$(_post "$data" "$GD_Api/$ep" "" $m)"
+    response="$(_post "$data" "$GD_Api/$ep" "" "$m")"
   else
     response="$(_get "$GD_Api/$ep")"
   fi
