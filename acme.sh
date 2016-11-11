@@ -532,10 +532,10 @@ _createkey() {
 
   if _isEccKey "$length"; then
     _debug "Using ec name: $eccname"
-    openssl ecparam -name $eccname -genkey 2>/dev/null >"$f"
+    openssl ecparam -name "$eccname" -genkey 2>/dev/null >"$f"
   else
     _debug "Using RSA: $length"
-    openssl genrsa $length 2>/dev/null >"$f"
+    openssl genrsa "$length" 2>/dev/null >"$f"
   fi
 
   if [ "$?" != "0" ]; then
