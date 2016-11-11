@@ -85,8 +85,8 @@ _get_root() {
       _domain="$h"
       return 0
     fi
-    p=$i
-    i=$(expr $i + 1)
+    p="$i"
+    i=$(_math "$i" + 1)
   done
   return 1
 }

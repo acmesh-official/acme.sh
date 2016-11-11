@@ -29,7 +29,7 @@ dns_lexicon_add() {
   _savedomainconf PROVIDER "$PROVIDER"
   export PROVIDER
 
-  Lx_name=$(echo LEXICON_${PROVIDER}_USERNAME | tr '[a-z]' '[A-Z]')
+  Lx_name=$(echo LEXICON_"${PROVIDER}"_USERNAME | tr '[a-z]' '[A-Z]')
   eval Lx_name_v="\$$Lx_name"
   _debug "$Lx_name" "$Lx_name_v"
   if [ "$Lx_name_v" ]; then
@@ -37,7 +37,7 @@ dns_lexicon_add() {
     export "$Lx_name"
   fi
 
-  Lx_token=$(echo LEXICON_${PROVIDER}_TOKEN | tr '[a-z]' '[A-Z]')
+  Lx_token=$(echo LEXICON_"${PROVIDER}"_TOKEN | tr '[a-z]' '[A-Z]')
   eval Lx_token_v="\$$Lx_token"
   _debug "$Lx_token" "$Lx_token_v"
   if [ "$Lx_token_v" ]; then
@@ -45,7 +45,7 @@ dns_lexicon_add() {
     export "$Lx_token"
   fi
 
-  Lx_password=$(echo LEXICON_${PROVIDER}_PASSWORD | tr '[a-z]' '[A-Z]')
+  Lx_password=$(echo LEXICON_"${PROVIDER}"_PASSWORD | tr '[a-z]' '[A-Z]')
   eval Lx_password_v="\$$Lx_password"
   _debug "$Lx_password" "$Lx_password_v"
   if [ "$Lx_password_v" ]; then
@@ -53,7 +53,7 @@ dns_lexicon_add() {
     export "$Lx_password"
   fi
 
-  Lx_domaintoken=$(echo LEXICON_${PROVIDER}_DOMAINTOKEN | tr '[a-z]' '[A-Z]')
+  Lx_domaintoken=$(echo LEXICON_"${PROVIDER}"_DOMAINTOKEN | tr '[a-z]' '[A-Z]')
   eval Lx_domaintoken_v="\$$Lx_domaintoken"
   _debug "$Lx_domaintoken" "$Lx_domaintoken_v"
   if [ "$Lx_domaintoken_v" ]; then
@@ -61,7 +61,7 @@ dns_lexicon_add() {
     _saveaccountconf "$Lx_domaintoken" "$Lx_domaintoken_v"
   fi
 
-  $lexicon_cmd "$PROVIDER" create ${domain} TXT --name="_acme-challenge.${domain}." --content="${txtvalue}"
+  $lexicon_cmd "$PROVIDER" create "${domain}" TXT --name="_acme-challenge.${domain}." --content="${txtvalue}"
 
 }
 

@@ -91,7 +91,6 @@ set_record() {
 _get_root() {
   domain=$1
   i=1
-  p=1
 
   if _pdns_rest "GET" "/api/v1/servers/$PDNS_ServerId/zones"; then
     _zones_response="$response"
@@ -108,7 +107,6 @@ _get_root() {
       return 0
     fi
 
-    p=$i
     i=$(_math $i + 1)
   done
   _debug "$domain not found"

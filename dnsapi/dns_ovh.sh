@@ -127,7 +127,7 @@ dns_ovh_add() {
   _info "Consumer key is ok."
 
   _debug "First detect the root zone"
-  if ! _get_root $fulldomain; then
+  if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
@@ -157,7 +157,7 @@ dns_ovh_add() {
       _err "Can not get record id."
       return 1
     fi
-    _debug "record_id" $record_id
+    _debug "record_id" "$record_id"
 
     if _ovh_rest PUT "domain/zone/$_domain/record/$record_id" "{\"target\":\"$txtvalue\",\"subDomain\":\"$_sub_domain\",\"ttl\":60}"; then
       if _contains "$response" "null"; then
@@ -280,7 +280,7 @@ _ovh_rest() {
   _H5="Content-Type: application/json;charset=utf-8"
   if [ "$data" ] || [ "$m" = "POST" ] || [ "$m" = "PUT" ]; then
     _debug data "$data"
-    response="$(_post "$data" "$_ovh_url" "" $m)"
+    response="$(_post "$data" "$_ovh_url" "" "$m")"
   else
     response="$(_get "$_ovh_url")"
   fi

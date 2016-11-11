@@ -44,7 +44,7 @@ dns_lua_add() {
     return 1
   fi
 
-  count=$(printf "%s\n" "$response" | _egrep_o \"name\":\"$fulldomain\" | wc -l)
+  count=$(printf "%s\n" "$response" | _egrep_o "\"name\":\"$fulldomain\"" | wc -l)
   _debug count "$count"
   if [ "$count" = "0" ]; then
     _info "Adding record"
@@ -61,7 +61,7 @@ dns_lua_add() {
     _err "Add txt record error."
   else
     _info "Updating record"
-    record_id=$(printf "%s\n" "$response" | _egrep_o \"id\":[^,]*,\"name\":\"$fulldomain.\",\"type\":\"TXT\" | cut -d: -f2 | cut -d, -f1)
+    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*,\"name\":\"$fulldomain.\",\"type\":\"TXT\"" | cut -d: -f2 | cut -d, -f1)
     _debug "record_id" "$record_id"
 
     _LUA_rest PUT "zones/$_domain_id/records/$record_id" "{\"id\":\"$record_id\",\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"content\":\"$txtvalue\",\"zone_id\":\"$_domain_id\",\"ttl\":120}"
@@ -103,7 +103,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\""; then
-      _domain_id=$(printf "%s\n" "$response" | _egrep_o \"id\":[^,]*,\"name\":\"$h\" | cut -d : -f 2 | cut -d , -f 1)
+      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*,\"name\":\"$h\"" | cut -d : -f 2 | cut -d , -f 1)
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain="$h"
@@ -127,7 +127,7 @@ _LUA_rest() {
   _H2="Authorization: Basic $LUA_auth"
   if [ "$data" ]; then
     _debug data "$data"
-    response="$(_post "$data" "$LUA_Api/$ep" "" $m)"
+    response="$(_post "$data" "$LUA_Api/$ep" "" "$m")"
   else
     response="$(_get "$LUA_Api/$ep")"
   fi

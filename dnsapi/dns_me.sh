@@ -130,7 +130,7 @@ _me_rest() {
 
   if [ "$data" ]; then
     _debug data "$data"
-    response="$(_post "$data" "$ME_Api/$ep" "" $m)"
+    response="$(_post "$data" "$ME_Api/$ep" "" "$m")"
   else
     response="$(_get "$ME_Api/$ep")"
   fi
