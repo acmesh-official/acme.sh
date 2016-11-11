@@ -249,7 +249,7 @@ _exists() {
   fi
   if command >/dev/null 2>&1; then
     command -v "$cmd" >/dev/null 2>&1
-  elif which >/dev/null 2>&1; 
+  elif which >/dev/null 2>&1; then
     which "$cmd" >/dev/null 2>&1
   fi
   ret="$?"
