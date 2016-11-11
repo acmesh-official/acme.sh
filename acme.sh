@@ -316,7 +316,7 @@ _h2b() {
       fi
       ic="$(_h_char_2_dec "$ic")"
       jc="$(_h_char_2_dec "$jc")"
-      printf '\'"$(printf "%o" "$(_math "$ic" \* 16 + $jc)")"
+      printf '\'"$(printf "%o" "$(_math "$ic" \* 16 + $jc)")""%s"
     fi
 
     i="$(_math "$i" + 2)"
