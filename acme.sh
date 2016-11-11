@@ -3364,7 +3364,7 @@ revoke() {
 
   _isEcc="$2"
 
-  _initpath $Le_Domain "$_isEcc"
+  _initpath "$Le_Domain" "$_isEcc"
   if [ ! -f "$DOMAIN_CONF" ]; then
     _err "$Le_Domain is not a issued domain, skip."
     return 1
@@ -3387,10 +3387,10 @@ revoke() {
 
   if [ -f "$CERT_KEY_PATH" ]; then
     _info "Try domain key first."
-    if _send_signed_request $uri "$data" "" "$CERT_KEY_PATH"; then
+    if _send_signed_request "$uri" "$data" "" "$CERT_KEY_PATH"; then
       if [ -z "$response" ]; then
         _info "Revoke success."
-        rm -f $CERT_PATH
+        rm -f "$CERT_PATH"
         return 0
       else
         _err "Revoke error by domain key."
@@ -3403,10 +3403,10 @@ revoke() {
 
   _info "Try account key."
 
-  if _send_signed_request $uri "$data" "" "$ACCOUNT_KEY_PATH"; then
+  if _send_signed_request "$uri" "$data" "" "$ACCOUNT_KEY_PATH"; then
     if [ -z "$response" ]; then
       _info "Revoke success."
-      rm -f $CERT_PATH
+      rm -f "$CERT_PATH"
       return 0
     else
       _err "Revoke error."
@@ -3450,11 +3450,11 @@ _deactivate() {
     fi
 
     _vtype="$(printf "%s\n" "$entry" | _egrep_o '"type": *"[^"]*"' | cut -d : -f 2 | tr -d '"')"
-    _debug _vtype $_vtype
+    _debug _vtype "$_vtype"
     _info "Found $_vtype"
 
     uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d : -f 2,3 | tr -d '"')"
-    _debug uri $uri
+    _debug uri "$uri"
 
     if [ "$_d_type" ] && [ "$_d_type" != "$_vtype" ]; then
       _info "Skip $_vtype"
@@ -3493,7 +3493,7 @@ deactivate() {
     if [ -z "$_d_dm" ] || [ "$_d_dm" = "$NO_VALUE" ]; then
       continue
     fi
-    if ! _deactivate "$_d_dm" $_d_type; then
+    if ! _deactivate "$_d_dm" "$_d_type"; then
       return 1
     fi
   done
@@ -3562,7 +3562,7 @@ _initconf() {
 
 #USER_AGENT=\"$USER_AGENT\"
 
-#USER_PATH=""
+#USER_PATH=
 
 #dns api
 #######################
