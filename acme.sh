@@ -859,7 +859,8 @@ _time2str() {
 
   #Soaris
   if _exists adb; then
-    echo $(echo "0t${1}=Y" | adb)
+    _t_s_a=$(echo "0t${1}=Y" | adb)
+    echo "$_t_s_a"
   fi
 
 }
