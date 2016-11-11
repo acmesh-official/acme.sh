@@ -411,7 +411,7 @@ _digest() {
 
   outputhex="$2"
 
-  if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ]; then
+  if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ] || [ "$alg" = "md5" ]; then
     if [ "$outputhex" ]; then
       openssl dgst -"$alg" -hex | cut -d = -f 2 | tr -d ' '
     else
@@ -2290,10 +2290,10 @@ _findHook() {
   _hookcat="$2"
   _hookname="$3"
 
-  if [ -f "$_SCRIPT_HOME/$_hookdomain/$_hookname" ]; then
-    d_api="$_SCRIPT_HOME/$_hookdomain/$_hookname"
-  elif [ -f "$_SCRIPT_HOME/$_hookdomain/$_hookname.sh" ]; then
-    d_api="$_SCRIPT_HOME/$_hookdomain/$_hookname.sh"
+  if [ -f "$_SCRIPT_HOME/$_hookcat/$_hookname" ]; then
+    d_api="$_SCRIPT_HOME/$_hookcat/$_hookname"
+  elif [ -f "$_SCRIPT_HOME/$_hookcat/$_hookname.sh" ]; then
+    d_api="$_SCRIPT_HOME/$_hookcat/$_hookname.sh"
   elif [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname" ]; then
     d_api="$LE_WORKING_DIR/$_hookdomain/$_hookname"
   elif [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname.sh" ]; then

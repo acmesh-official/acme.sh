@@ -35,7 +35,7 @@ dns_pdns_add() {
   fi
 
   if [ -z "$PDNS_Ttl" ]; then
-    PDNS_Ttl=$DEFAULT_PDNS_TTL
+    PDNS_Ttl="$DEFAULT_PDNS_TTL"
   fi
 
   #save the api addr and key to the account conf file.
@@ -48,7 +48,7 @@ dns_pdns_add() {
   fi
 
   _debug "First detect the root zone"
-  if ! _get_root $fulldomain; then
+  if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
@@ -94,22 +94,22 @@ _get_root() {
   p=1
 
   if _pdns_rest "GET" "/api/v1/servers/$PDNS_ServerId/zones"; then
-    _zones_response=$response
+    _zones_response="$response"
   fi
 
-  while [ '1' ]; do
-    h=$(printf $domain | cut -d . -f $i-100)
+  while true; do
+    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     if [ -z "$h" ]; then
       return 1
     fi
 
-    if printf "$_zones_response" | grep "\"name\": \"$h.\"" >/dev/null; then
-      _domain=$h
+    if _contains "$_zones_response" "\"name\": \"$h.\""; then
+      _domain="$h"
       return 0
     fi
 
     p=$i
-    i=$(expr $i + 1)
+    i=$(_math $i + 1)
   done
   _debug "$domain not found"
   return 1

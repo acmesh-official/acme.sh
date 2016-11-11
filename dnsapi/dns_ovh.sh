@@ -226,8 +226,8 @@ _get_root() {
   domain=$1
   i=2
   p=1
-  while [ '1' ]; do
-    h=$(printf $domain | cut -d . -f $i-100)
+  while true; do
+    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -238,12 +238,12 @@ _get_root() {
     fi
 
     if ! _contains "$response" "This service does not exist" >/dev/null; then
-      _sub_domain=$(printf $domain | cut -d . -f 1-$p)
-      _domain=$h
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _domain="$h"
       return 0
     fi
     p=$i
-    i=$(expr $i + 1)
+    i=$(_math "$i" + 1)
   done
   return 1
 }
@@ -261,7 +261,7 @@ _ovh_rest() {
   m=$1
   ep="$2"
   data="$3"
-  _debug $ep
+  _debug "$ep"
 
   _ovh_url="$OVH_API/$ep"
   _debug2 _ovh_url "$_ovh_url"
