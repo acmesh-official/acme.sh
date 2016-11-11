@@ -4046,7 +4046,7 @@ _process() {
   _dnssleep=""
   _listraw=""
   _stopRenewOnError=""
-  _insecure=""
+  #_insecure=""
   _ca_bundle=""
   _nocron=""
   _ecc=""
@@ -4321,7 +4321,7 @@ _process() {
         _stopRenewOnError="1"
         ;;
       --insecure)
-        _insecure="1"
+        #_insecure="1"
         HTTPS_INSECURE="1"
         ;;
       --ca-bundle)
