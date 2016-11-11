@@ -3222,7 +3222,6 @@ installcert() {
 }
 
 _installcert() {
-
   _savedomainconf "Le_RealCertPath" "$Le_RealCertPath"
   _savedomainconf "Le_RealCACertPath" "$Le_RealCACertPath"
   _savedomainconf "Le_RealKeyPath" "$Le_RealKeyPath"
@@ -3244,7 +3243,6 @@ _installcert() {
   if [ "$Le_RealFullChainPath" = "$NO_VALUE" ]; then
     Le_RealFullChainPath=""
   fi
-
 
   if [ "$Le_RealCertPath" ]; then
 
