@@ -1,11 +1,19 @@
-language: bash
+language: shell
 
 env:
   global:
     - SHFMT_URL=https://github.com/mvdan/sh/releases/download/v0.4.0/shfmt_v0.4.0_linux_amd64
 
+addons:
+  apt:
+    sources:
+    - debian-sid    # Grab shellcheck from the Debian repo (o_O)
+    packages:
+    - shellcheck
+
 script:
   - curl -sSL $SHFMT_URL -o ~/shfmt
   - chmod +x ~/shfmt
-  - ~/shfmt -l -w -i 2 .
-  - git diff --exit-code || (echo "Run shfmt to fix the formatting issues" && false)
+  - ~/shfmt -l -w -i 2 . && echo "shfmt OK" || git diff --exit-code || (echo "Run shfmt to fix the formatting issues" && false)
+  - [ "$?" = "0" ] && shellcheck -e SC2021,SC2126,SC2034   **/*.sh && echo "shellcheck OK" || false
+
