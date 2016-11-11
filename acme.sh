@@ -3212,7 +3212,7 @@ installcert() {
   Le_RealFullChainPath="$6"
   _isEcc="$7"
 
-  _initpath $Le_Domain "$_isEcc"
+  _initpath "$Le_Domain" "$_isEcc"
   if [ ! -d "$DOMAIN_PATH" ]; then
     _err "Domain is not valid:'$Le_Domain'"
     return 1
@@ -3245,9 +3245,9 @@ _installcert() {
     Le_RealFullChainPath=""
   fi
 
-  _installed="0"
+
   if [ "$Le_RealCertPath" ]; then
-    _installed=1
+
     _info "Installing cert to:$Le_RealCertPath"
     if [ -f "$Le_RealCertPath" ] && [ ! "$IS_RENEW" ]; then
       cp "$Le_RealCertPath" "$Le_RealCertPath".bak
@@ -3256,7 +3256,7 @@ _installcert() {
   fi
 
   if [ "$Le_RealCACertPath" ]; then
-    _installed=1
+
     _info "Installing CA to:$Le_RealCACertPath"
     if [ "$Le_RealCACertPath" = "$Le_RealCertPath" ]; then
       echo "" >>"$Le_RealCACertPath"
@@ -3270,7 +3270,7 @@ _installcert() {
   fi
 
   if [ "$Le_RealKeyPath" ]; then
-    _installed=1
+
     _info "Installing key to:$Le_RealKeyPath"
     if [ -f "$Le_RealKeyPath" ] && [ ! "$IS_RENEW" ]; then
       cp "$Le_RealKeyPath" "$Le_RealKeyPath".bak
@@ -3279,7 +3279,7 @@ _installcert() {
   fi
 
   if [ "$Le_RealFullChainPath" ]; then
-    _installed=1
+
     _info "Installing full chain to:$Le_RealFullChainPath"
     if [ -f "$Le_RealFullChainPath" ] && [ ! "$IS_RENEW" ]; then
       cp "$Le_RealFullChainPath" "$Le_RealFullChainPath".bak
@@ -3288,7 +3288,7 @@ _installcert() {
   fi
 
   if [ "$Le_ReloadCmd" ]; then
-    _installed=1
+
     _info "Run Le_ReloadCmd: $Le_ReloadCmd"
     if (cd "$DOMAIN_PATH" && eval "$Le_ReloadCmd"); then
       _info "$(__green "Reload success")"
