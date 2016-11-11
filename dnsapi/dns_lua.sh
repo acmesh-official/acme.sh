@@ -8,7 +8,7 @@
 #LUA_Email="user@luadns.net"
 
 LUA_Api="https://api.luadns.com/v1"
-LUA_auth=$(printf $LUA_Email:$LUA_Key | _base64)
+LUA_auth=$(printf "%s" "$LUA_Email:$LUA_Key" | _base64)
 
 ########  Public functions #####################
 
@@ -39,7 +39,7 @@ dns_lua_add() {
   _debug "Getting txt records"
   _LUA_rest GET "zones/${_domain_id}/records"
 
-  if ! printf "$response" | grep \"id\": >/dev/null; then
+  if ! _contains "$response" "\"id\":"; then
     _err "Error"
     return 1
   fi
