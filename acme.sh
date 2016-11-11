@@ -249,7 +249,7 @@ _exists() {
   fi
   if command >/dev/null 2>&1; then
     command -v "$cmd" >/dev/null 2>&1
-  else which >/dev/null 2>&1; 
+  elif which >/dev/null 2>&1; 
     which "$cmd" >/dev/null 2>&1
   fi
   ret="$?"
@@ -259,7 +259,7 @@ _exists() {
 
 #a + b
 _math() {
-  printf "%s" "$(( $@ ))"
+  printf "%s" "$(($@))"
 }
 
 _h_char_2_dec() {
