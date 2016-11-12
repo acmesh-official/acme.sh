@@ -15,6 +15,8 @@ dns_cf_add() {
   txtvalue=$2
 
   if [ -z "$CF_Key" ] || [ -z "$CF_Email" ]; then
+    CF_Key=""
+    CF_Email=""
     _err "You don't specify cloudflare api key and email yet."
     _err "Please create you key and try again."
     return 1
