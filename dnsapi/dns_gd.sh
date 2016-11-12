@@ -16,6 +16,8 @@ dns_gd_add() {
   txtvalue=$2
 
   if [ -z "$GD_Key" ] || [ -z "$GD_Secret" ]; then
+    GD_Key=""
+    GD_Secret=""
     _err "You don't specify godaddy api key and secret yet."
     _err "Please create you key and try again."
     return 1

@@ -17,18 +17,21 @@ dns_pdns_add() {
   txtvalue=$2
 
   if [ -z "$PDNS_Url" ]; then
+    PDNS_Url=""
     _err "You don't specify PowerDNS address."
     _err "Please set PDNS_Url and try again."
     return 1
   fi
 
   if [ -z "$PDNS_ServerId" ]; then
+    PDNS_ServerId=""
     _err "You don't specify PowerDNS server id."
     _err "Please set you PDNS_ServerId and try again."
     return 1
   fi
 
   if [ -z "$PDNS_Token" ]; then
+    PDNS_Token=""
     _err "You don't specify PowerDNS token."
     _err "Please create you PDNS_Token and try again."
     return 1

@@ -17,6 +17,8 @@ dns_cx_add() {
   txtvalue=$2
 
   if [ -z "$CX_Key" ] || [ -z "$CX_Secret" ]; then
+    CX_Key=""
+    CX_Secret=""
     _err "You don't specify cloudxns.com  api key or secret yet."
     _err "Please create you key and try again."
     return 1

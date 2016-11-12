@@ -17,6 +17,8 @@ dns_dp_add() {
   txtvalue=$2
 
   if [ -z "$DP_Id" ] || [ -z "$DP_Key" ]; then
+    DP_Id=""
+    DP_Key=""
     _err "You don't specify dnspod api key and key id yet."
     _err "Please create you key and try again."
     return 1

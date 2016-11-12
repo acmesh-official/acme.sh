@@ -15,6 +15,8 @@ dns_me_add() {
   txtvalue=$2
 
   if [ -z "$ME_Key" ] || [ -z "$ME_Secret" ]; then
+    ME_Key=""
+    ME_Secret=""
     _err "You didn't specify DNSMadeEasy api key and secret yet."
     _err "Please create you key and try again."
     return 1

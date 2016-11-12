@@ -22,6 +22,7 @@ dns_lexicon_add() {
   fi
 
   if [ -z "$PROVIDER" ]; then
+    PROVIDER=""
     _err "Please define env PROVIDER first: $wiki"
     return 1
   fi

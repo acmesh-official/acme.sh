@@ -86,6 +86,8 @@ dns_ovh_add() {
   txtvalue=$2
 
   if [ -z "$OVH_AK" ] || [ -z "$OVH_AS" ]; then
+    OVH_AK=""
+    OVH_AS=""
     _err "You don't specify OVH application key and application secret yet."
     _err "Please create you key and try again."
     return 1
