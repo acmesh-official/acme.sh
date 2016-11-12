@@ -18,4 +18,7 @@ script:
   - shellcheck -e SC2021,SC2126,SC2034 **/*.sh && echo "shellcheck OK"
   - ~/shfmt -l -w -i 2 . && echo "shfmt OK" || git diff --exit-code || (echo "Run shfmt to fix the formatting issues" && false)
 
-
+matrix:
+  fast_finish: true
+  
+  
