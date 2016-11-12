@@ -18,6 +18,8 @@ dns_lua_add() {
   txtvalue=$2
 
   if [ -z "$LUA_Key" ] || [ -z "$LUA_Email" ]; then
+    LUA_Key=""
+    LUA_Email=""
     _err "You don't specify luadns api key and email yet."
     _err "Please create you key and try again."
     return 1
