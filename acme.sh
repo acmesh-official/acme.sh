@@ -259,7 +259,8 @@ _exists() {
 
 #a + b
 _math() {
-  printf "%s" "$(($@))"
+  _m_opts="$@"
+  printf "%s" "$(($_m_opts))"
 }
 
 _h_char_2_dec() {
