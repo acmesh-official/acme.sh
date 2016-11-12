@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.6.4
+VER=2.6.5
 
 PROJECT_NAME="acme.sh"
 
@@ -27,7 +27,7 @@ STAGE_CA="https://acme-staging.api.letsencrypt.org"
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
 VTYPE_TLS="tls-sni-01"
-VTYPE_TLS2="tls-sni-02"
+#VTYPE_TLS2="tls-sni-02"
 
 LOCAL_ANY_ADDRESS="0.0.0.0"
 
@@ -247,10 +247,10 @@ _exists() {
     _usage "Usage: _exists cmd"
     return 1
   fi
-  if type command >/dev/null 2>&1; then
+  if command >/dev/null 2>&1; then
     command -v "$cmd" >/dev/null 2>&1
-  else
-    type "$cmd" >/dev/null 2>&1
+  elif which >/dev/null 2>&1; then
+    which "$cmd" >/dev/null 2>&1
   fi
   ret="$?"
   _debug3 "$cmd exists=$ret"
@@ -259,7 +259,8 @@ _exists() {
 
 #a + b
 _math() {
-  expr "$@"
+  _m_opts="$@"
+  printf "%s" "$(($_m_opts))"
 }
 
 _h_char_2_dec() {
@@ -299,10 +300,7 @@ _h2b() {
   hex=$(cat)
   i=1
   j=2
-  if _exists let; then
-    uselet="1"
-  fi
-  _debug3 uselet "$uselet"
+
   _debug3 _URGLY_PRINTF "$_URGLY_PRINTF"
   while true; do
     if [ -z "$_URGLY_PRINTF" ]; then
@@ -310,7 +308,7 @@ _h2b() {
       if [ -z "$h" ]; then
         break
       fi
-      printf "\x$h"
+      printf "\x$h%s"
     else
       ic="$(printf "%s" "$hex" | cut -c $i)"
       jc="$(printf "%s" "$hex" | cut -c $j)"
@@ -319,15 +317,12 @@ _h2b() {
       fi
       ic="$(_h_char_2_dec "$ic")"
       jc="$(_h_char_2_dec "$jc")"
-      printf '\'"$(printf "%o" "$(_math "$ic" \* 16 + $jc)")"
+      printf '\'"$(printf "%o" "$(_math "$ic" \* 16 + $jc)")""%s"
     fi
-    if [ "$uselet" ]; then
-      let "i+=2" >/dev/null
-      let "j+=2" >/dev/null
-    else
-      i="$(_math "$i" + 2)"
-      j="$(_math "$j" + 2)"
-    fi
+
+    i="$(_math "$i" + 2)"
+    j="$(_math "$j" + 2)"
+
   done
 }
 
@@ -417,7 +412,7 @@ _digest() {
 
   outputhex="$2"
 
-  if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ]; then
+  if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ] || [ "$alg" = "md5" ]; then
     if [ "$outputhex" ]; then
       openssl dgst -"$alg" -hex | cut -d = -f 2 | tr -d ' '
     else
@@ -538,10 +533,10 @@ _createkey() {
 
   if _isEccKey "$length"; then
     _debug "Using ec name: $eccname"
-    openssl ecparam -name $eccname -genkey 2>/dev/null >"$f"
+    openssl ecparam -name "$eccname" -genkey 2>/dev/null >"$f"
   else
     _debug "Using RSA: $length"
-    openssl genrsa $length 2>/dev/null >"$f"
+    openssl genrsa "$length" 2>/dev/null >"$f"
   fi
 
   if [ "$?" != "0" ]; then
@@ -554,7 +549,7 @@ _createkey() {
 _is_idn() {
   _is_idn_d="$1"
   _debug2 _is_idn_d "$_is_idn_d"
-  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '[0-9]' | tr -d '[a-z]' | tr -d 'A-Z' | tr -d '.,-')
+  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '[0-9]' | tr -d '[a-z]' | tr -d '[A-Z]' | tr -d '.,-')
   _debug2 _idn_temp "$_idn_temp"
   [ "$_idn_temp" ]
 }
@@ -865,7 +860,8 @@ _time2str() {
 
   #Soaris
   if _exists adb; then
-    echo $(echo "0t${1}=Y" | adb)
+    _t_s_a=$(echo "0t${1}=Y" | adb)
+    echo "$_t_s_a"
   fi
 
 }
@@ -2295,10 +2291,10 @@ _findHook() {
   _hookcat="$2"
   _hookname="$3"
 
-  if [ -f "$_SCRIPT_HOME/$_hookdomain/$_hookname" ]; then
-    d_api="$_SCRIPT_HOME/$_hookdomain/$_hookname"
-  elif [ -f "$_SCRIPT_HOME/$_hookdomain/$_hookname.sh" ]; then
-    d_api="$_SCRIPT_HOME/$_hookdomain/$_hookname.sh"
+  if [ -f "$_SCRIPT_HOME/$_hookcat/$_hookname" ]; then
+    d_api="$_SCRIPT_HOME/$_hookcat/$_hookname"
+  elif [ -f "$_SCRIPT_HOME/$_hookcat/$_hookname.sh" ]; then
+    d_api="$_SCRIPT_HOME/$_hookcat/$_hookname.sh"
   elif [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname" ]; then
     d_api="$LE_WORKING_DIR/$_hookdomain/$_hookname"
   elif [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname.sh" ]; then
@@ -2324,7 +2320,7 @@ __get_domain_new_authz() {
   _Max_new_authz_retry_times=5
   _authz_i=0
   while [ "$_authz_i" -lt "$_Max_new_authz_retry_times" ]; do
-    _info "Try new-authz for the $_authz_i time."
+    _debug "Try new-authz for the $_authz_i time."
     if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$(_idn "$_gdnd")\"}}"; then
       _err "Can not get domain new authz."
       return 1
@@ -2339,7 +2335,7 @@ __get_domain_new_authz() {
   done
 
   if [ "$_authz_i" = "$_Max_new_authz_retry_times" ]; then
-    _debug "new-authz retry reach the max $_Max_new_authz_retry_times times."
+    _err "new-authz retry reach the max $_Max_new_authz_retry_times times."
   fi
 
   if [ ! -z "$code" ] && [ ! "$code" = '201' ]; then
@@ -3006,9 +3002,9 @@ renewAll() {
   _debug "_stopRenewOnError" "$_stopRenewOnError"
   _ret="0"
 
-  for d in "${CERT_HOME}"/*.*/; do
-    _debug d "$d"
-    d=$(basename "$d")
+  for di in "${CERT_HOME}"/*.*/; do
+    _debug di "$di"
+    d=$(basename "$di")
     _debug d "$d"
     (
       if _endswith "$d" "$ECC_SUFFIX"; then
@@ -3129,15 +3125,15 @@ list() {
   _sep="|"
   if [ "$_raw" ]; then
     printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Created${_sep}Renew"
-    for d in "${CERT_HOME}"/*.*/; do
-      d=$(basename "$d")
+    for di in "${CERT_HOME}"/*.*/; do
+      d=$(basename "$di")
       _debug d "$d"
       (
         if _endswith "$d" "$ECC_SUFFIX"; then
           _isEcc=$(echo "$d" | cut -d "$ECC_SEP" -f 2)
           d=$(echo "$d" | cut -d "$ECC_SEP" -f 1)
         fi
-        _initpath $d "$_isEcc"
+        _initpath "$d" "$_isEcc"
         if [ -f "$DOMAIN_CONF" ]; then
           . "$DOMAIN_CONF"
           printf "%s\n" "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
@@ -3163,13 +3159,13 @@ deploy() {
     return 1
   fi
 
-  _initpath $Le_Domain "$_isEcc"
+  _initpath "$Le_Domain" "$_isEcc"
   if [ ! -d "$DOMAIN_PATH" ]; then
     _err "Domain is not valid:'$Le_Domain'"
     return 1
   fi
 
-  _deployApi="$(_findHook $Le_Domain deploy $Le_DeployHook)"
+  _deployApi="$(_findHook "$Le_Domain" deploy "$Le_DeployHook")"
   if [ -z "$_deployApi" ]; then
     _err "The deploy hook $Le_DeployHook is not found."
     return 1
@@ -3179,18 +3175,18 @@ deploy() {
   _savedomainconf Le_DeployHook "$Le_DeployHook"
 
   if ! (
-    if ! . $_deployApi; then
+    if ! . "$_deployApi"; then
       _err "Load file $_deployApi error. Please check your api file and try again."
       return 1
     fi
 
     d_command="${Le_DeployHook}_deploy"
-    if ! _exists $d_command; then
+    if ! _exists "$d_command"; then
       _err "It seems that your api file is not correct, it must have a function named: $d_command"
       return 1
     fi
 
-    if ! $d_command $Le_Domain "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH"; then
+    if ! $d_command "$Le_Domain" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH"; then
       _err "Error deploy for domain:$Le_Domain"
       _on_issue_err
       return 1
@@ -3218,7 +3214,7 @@ installcert() {
   Le_RealFullChainPath="$6"
   _isEcc="$7"
 
-  _initpath $Le_Domain "$_isEcc"
+  _initpath "$Le_Domain" "$_isEcc"
   if [ ! -d "$DOMAIN_PATH" ]; then
     _err "Domain is not valid:'$Le_Domain'"
     return 1
@@ -3228,7 +3224,6 @@ installcert() {
 }
 
 _installcert() {
-
   _savedomainconf "Le_RealCertPath" "$Le_RealCertPath"
   _savedomainconf "Le_RealCACertPath" "$Le_RealCACertPath"
   _savedomainconf "Le_RealKeyPath" "$Le_RealKeyPath"
@@ -3251,9 +3246,8 @@ _installcert() {
     Le_RealFullChainPath=""
   fi
 
-  _installed="0"
   if [ "$Le_RealCertPath" ]; then
-    _installed=1
+
     _info "Installing cert to:$Le_RealCertPath"
     if [ -f "$Le_RealCertPath" ] && [ ! "$IS_RENEW" ]; then
       cp "$Le_RealCertPath" "$Le_RealCertPath".bak
@@ -3262,7 +3256,7 @@ _installcert() {
   fi
 
   if [ "$Le_RealCACertPath" ]; then
-    _installed=1
+
     _info "Installing CA to:$Le_RealCACertPath"
     if [ "$Le_RealCACertPath" = "$Le_RealCertPath" ]; then
       echo "" >>"$Le_RealCACertPath"
@@ -3276,7 +3270,7 @@ _installcert() {
   fi
 
   if [ "$Le_RealKeyPath" ]; then
-    _installed=1
+
     _info "Installing key to:$Le_RealKeyPath"
     if [ -f "$Le_RealKeyPath" ] && [ ! "$IS_RENEW" ]; then
       cp "$Le_RealKeyPath" "$Le_RealKeyPath".bak
@@ -3285,7 +3279,7 @@ _installcert() {
   fi
 
   if [ "$Le_RealFullChainPath" ]; then
-    _installed=1
+
     _info "Installing full chain to:$Le_RealFullChainPath"
     if [ -f "$Le_RealFullChainPath" ] && [ ! "$IS_RENEW" ]; then
       cp "$Le_RealFullChainPath" "$Le_RealFullChainPath".bak
@@ -3294,7 +3288,7 @@ _installcert() {
   fi
 
   if [ "$Le_ReloadCmd" ]; then
-    _installed=1
+
     _info "Run Le_ReloadCmd: $Le_ReloadCmd"
     if (cd "$DOMAIN_PATH" && eval "$Le_ReloadCmd"); then
       _info "$(__green "Reload success")"
@@ -3370,7 +3364,7 @@ revoke() {
 
   _isEcc="$2"
 
-  _initpath $Le_Domain "$_isEcc"
+  _initpath "$Le_Domain" "$_isEcc"
   if [ ! -f "$DOMAIN_CONF" ]; then
     _err "$Le_Domain is not a issued domain, skip."
     return 1
@@ -3393,10 +3387,10 @@ revoke() {
 
   if [ -f "$CERT_KEY_PATH" ]; then
     _info "Try domain key first."
-    if _send_signed_request $uri "$data" "" "$CERT_KEY_PATH"; then
+    if _send_signed_request "$uri" "$data" "" "$CERT_KEY_PATH"; then
       if [ -z "$response" ]; then
         _info "Revoke success."
-        rm -f $CERT_PATH
+        rm -f "$CERT_PATH"
         return 0
       else
         _err "Revoke error by domain key."
@@ -3409,10 +3403,10 @@ revoke() {
 
   _info "Try account key."
 
-  if _send_signed_request $uri "$data" "" "$ACCOUNT_KEY_PATH"; then
+  if _send_signed_request "$uri" "$data" "" "$ACCOUNT_KEY_PATH"; then
     if [ -z "$response" ]; then
       _info "Revoke success."
-      rm -f $CERT_PATH
+      rm -f "$CERT_PATH"
       return 0
     else
       _err "Revoke error."
@@ -3456,11 +3450,11 @@ _deactivate() {
     fi
 
     _vtype="$(printf "%s\n" "$entry" | _egrep_o '"type": *"[^"]*"' | cut -d : -f 2 | tr -d '"')"
-    _debug _vtype $_vtype
+    _debug _vtype "$_vtype"
     _info "Found $_vtype"
 
     uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d : -f 2,3 | tr -d '"')"
-    _debug uri $uri
+    _debug uri "$uri"
 
     if [ "$_d_type" ] && [ "$_d_type" != "$_vtype" ]; then
       _info "Skip $_vtype"
@@ -3499,7 +3493,7 @@ deactivate() {
     if [ -z "$_d_dm" ] || [ "$_d_dm" = "$NO_VALUE" ]; then
       continue
     fi
-    if ! _deactivate "$_d_dm" $_d_type; then
+    if ! _deactivate "$_d_dm" "$_d_type"; then
       return 1
     fi
   done
@@ -3568,7 +3562,7 @@ _initconf() {
 
 #USER_AGENT=\"$USER_AGENT\"
 
-#USER_PATH=""
+#USER_PATH=
 
 #dns api
 #######################
@@ -4052,7 +4046,7 @@ _process() {
   _dnssleep=""
   _listraw=""
   _stopRenewOnError=""
-  _insecure=""
+  #_insecure=""
   _ca_bundle=""
   _nocron=""
   _ecc=""
@@ -4327,7 +4321,7 @@ _process() {
         _stopRenewOnError="1"
         ;;
       --insecure)
-        _insecure="1"
+        #_insecure="1"
         HTTPS_INSECURE="1"
         ;;
       --ca-bundle)

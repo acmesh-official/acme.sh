@@ -17,25 +17,28 @@ dns_pdns_add() {
   txtvalue=$2
 
   if [ -z "$PDNS_Url" ]; then
+    PDNS_Url=""
     _err "You don't specify PowerDNS address."
     _err "Please set PDNS_Url and try again."
     return 1
   fi
 
   if [ -z "$PDNS_ServerId" ]; then
+    PDNS_ServerId=""
     _err "You don't specify PowerDNS server id."
     _err "Please set you PDNS_ServerId and try again."
     return 1
   fi
 
   if [ -z "$PDNS_Token" ]; then
+    PDNS_Token=""
     _err "You don't specify PowerDNS token."
     _err "Please create you PDNS_Token and try again."
     return 1
   fi
 
   if [ -z "$PDNS_Ttl" ]; then
-    PDNS_Ttl=$DEFAULT_PDNS_TTL
+    PDNS_Ttl="$DEFAULT_PDNS_TTL"
   fi
 
   #save the api addr and key to the account conf file.
@@ -48,7 +51,7 @@ dns_pdns_add() {
   fi
 
   _debug "First detect the root zone"
-  if ! _get_root $fulldomain; then
+  if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
@@ -91,25 +94,23 @@ set_record() {
 _get_root() {
   domain=$1
   i=1
-  p=1
 
   if _pdns_rest "GET" "/api/v1/servers/$PDNS_ServerId/zones"; then
-    _zones_response=$response
+    _zones_response="$response"
   fi
 
-  while [ '1' ]; do
-    h=$(printf $domain | cut -d . -f $i-100)
+  while true; do
+    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     if [ -z "$h" ]; then
       return 1
     fi
 
-    if printf "$_zones_response" | grep "\"name\": \"$h.\"" >/dev/null; then
-      _domain=$h
+    if _contains "$_zones_response" "\"name\": \"$h.\""; then
+      _domain="$h"
       return 0
     fi
 
-    p=$i
-    i=$(expr $i + 1)
+    i=$(_math $i + 1)
   done
   _debug "$domain not found"
   return 1

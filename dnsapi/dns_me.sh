@@ -15,6 +15,8 @@ dns_me_add() {
   txtvalue=$2
 
   if [ -z "$ME_Key" ] || [ -z "$ME_Secret" ]; then
+    ME_Key=""
+    ME_Secret=""
     _err "You didn't specify DNSMadeEasy api key and secret yet."
     _err "Please create you key and try again."
     return 1
@@ -25,7 +27,7 @@ dns_me_add() {
   _saveaccountconf ME_Secret "$ME_Secret"
 
   _debug "First detect the root zone"
-  if ! _get_root $fulldomain; then
+  if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
@@ -36,12 +38,12 @@ dns_me_add() {
   _debug "Getting txt records"
   _me_rest GET "${_domain_id}/records?recordName=$_sub_domain&type=TXT"
 
-  if ! printf "$response" | grep \"totalRecords\": >/dev/null; then
+  if ! _contains "$response" "\"totalRecords\":"; then
     _err "Error"
     return 1
   fi
 
-  count=$(printf "%s\n" "$response" | _egrep_o \"totalRecords\":[^,]* | cut -d : -f 2)
+  count=$(printf "%s\n" "$response" | _egrep_o "\"totalRecords\":[^,]*" | cut -d : -f 2)
   _debug count "$count"
   if [ "$count" = "0" ]; then
     _info "Adding record"
@@ -58,8 +60,8 @@ dns_me_add() {
     _err "Add txt record error."
   else
     _info "Updating record"
-    record_id=$(printf "%s\n" "$response" | _egrep_o \"id\":[^,]* | cut -d : -f 2 | head -n 1)
-    _debug "record_id" $record_id
+    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*" | cut -d : -f 2 | head -n 1)
+    _debug "record_id" "$record_id"
 
     _me_rest PUT "$_domain_id/records/$record_id/" "{\"id\":\"$record_id\",\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"value\":\"$txtvalue\",\"gtdLocation\":\"DEFAULT\",\"ttl\":120}"
     if [ "$?" = "0" ]; then
@@ -89,8 +91,8 @@ _get_root() {
   domain=$1
   i=2
   p=1
-  while [ '1' ]; do
-    h=$(printf $domain | cut -d . -f $i-100)
+  while true; do
+    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -100,17 +102,17 @@ _get_root() {
       return 1
     fi
 
-    if printf $response | grep \"name\":\"$h\" >/dev/null; then
-      _domain_id=$(printf "%s\n" "$response" | _egrep_o \"id\":[^,]* | head -n 1 | cut -d : -f 2)
+    if _contains "$response" "\"name\":\"$h\""; then
+      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*" | head -n 1 | cut -d : -f 2)
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf $domain | cut -d . -f 1-$p)
-        _domain=$h
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _domain="$h"
         return 0
       fi
       return 1
     fi
     p=$i
-    i=$(expr $i + 1)
+    i=$(_math "$i" + 1)
   done
   return 1
 }
@@ -119,10 +121,10 @@ _me_rest() {
   m=$1
   ep="$2"
   data="$3"
-  _debug $ep
+  _debug "$ep"
 
   cdate=$(date -u +"%a, %d %b %Y %T %Z")
-  hmac=$(printf "$cdate" | _hmac sha1 "$ME_Secret" 1)
+  hmac=$(printf "%s" "$cdate" | _hmac sha1 "$ME_Secret" 1)
 
   _H1="x-dnsme-apiKey: $ME_Key"
   _H2="x-dnsme-requestDate: $cdate"
@@ -130,7 +132,7 @@ _me_rest() {
 
   if [ "$data" ]; then
     _debug data "$data"
-    response="$(_post "$data" "$ME_Api/$ep" "" $m)"
+    response="$(_post "$data" "$ME_Api/$ep" "" "$m")"
   else
     response="$(_get "$ME_Api/$ep")"
   fi
