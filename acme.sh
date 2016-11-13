@@ -16,7 +16,7 @@ _SUB_FOLDERS="dnsapi deploy"
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
 DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.1.1-August-1-2016.pdf"
 
-DEFAULT_USER_AGENT="$PROJECT_ENTRY client v$VER : $PROJECT"
+DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 DEFAULT_ACCOUNT_EMAIL=""
 
 DEFAULT_ACCOUNT_KEY_LENGTH=2048
