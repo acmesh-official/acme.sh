@@ -13,16 +13,15 @@ dns_nsupdate_add() {
   _saveaccountconf NSUPDATE_SERVER "${NSUPDATE_SERVER}"
   _saveaccountconf NSUPDATE_KEY "${NSUPDATE_KEY}"
   _info "adding ${fulldomain}. 60 in txt \"${txtvalue}\""
-  nsupdate -k ${NSUPDATE_KEY} <<EOF
+  nsupdate -k "${NSUPDATE_KEY}" <<EOF
 server ${NSUPDATE_SERVER}
 update add ${fulldomain}. 60 in txt "${txtvalue}"
 send
 EOF
   if [ $? -ne 0 ]; then
-    _err "error updating domain, see ${tmp} for details"
+    _err "error updating domain"
     return 1
   fi
-  rm -f ${tmp}
   
   return 0
 }
@@ -33,16 +32,15 @@ dns_nsupdate_rm() {
   _checkKeyFile || return 1
   [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
   _info "removing ${fulldomain}. txt"
-  nsupdate -k ${NSUPDATE_KEY} <<EOF
+  nsupdate -k "${NSUPDATE_KEY}" <<EOF
 server ${NSUPDATE_SERVER}
 update delete ${fulldomain}. txt
 send
 EOF
   if [ $? -ne 0 ]; then
-    _err "error updating domain, see ${tmp} for details"
+    _err "error updating domain"
     return 1
   fi
-  rm -f ${tmp}
 
   return 0
 }
