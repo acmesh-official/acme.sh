@@ -2015,7 +2015,7 @@ _clearupdns() {
   done
 }
 
-# webroot  removelevel tokenfile
+# webroot  removelevel tokenfile sshCmd
 _clearupwebbroot() {
   __webroot="$1"
   if [ -z "$__webroot" ]; then
@@ -2038,7 +2038,12 @@ _clearupwebbroot() {
     if [ "$DEBUG" ]; then
       _debug "Debugging, skip removing: $_rmpath"
     else
-      rm -rf "$_rmpath"
+      _sshCmd="$4"
+      if [ ! "$_sshCmd" ]; then
+        rm -rf "$_rmpath"
+      else
+        ssh $_sshCmd "rm -rf \"$_rmpath\""
+      fi
     fi
   fi
 
@@ -2678,26 +2683,76 @@ issue() {
         _debug wellknown_path "$wellknown_path"
 
         _debug "writing token:$token to $wellknown_path/$token"
+        
+        _remoteRE='^(([^:]+)(:(.*?))?@)?([^:]+)(:([[:digit:]]+))?:(.*?)$'
+        
+        _remotePath=$(echo "$wellknown_path/$token" | sed -rn "s/$_remoteRE/\0/p")
 
-        mkdir -p "$wellknown_path"
+        if [ ! "$_remotePath" ]; then
+          mkdir -p "$wellknown_path"
 
-        if ! printf "%s" "$keyauthorization" >"$wellknown_path/$token"; then
-          _err "$d:Can not write token to file : $wellknown_path/$token"
-          _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
-          _clearup
-          _on_issue_err
-          return 1
-        fi
+          if ! printf "%s" "$keyauthorization" >"$wellknown_path/$token"; then
+            _err "$d:Can not write token to file : $wellknown_path/$token"
+            _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+            _clearup
+            _on_issue_err
+            return 1
+          fi
 
-        if [ ! "$usingApache" ]; then
-          if webroot_owner=$(_stat "$_currentRoot"); then
-            _debug "Changing owner/group of .well-known to $webroot_owner"
-            chown -R "$webroot_owner" "$_currentRoot/.well-known"
-          else
-            _debug "not chaning owner/group of webroot"
+          if [ ! "$usingApache" ]; then
+            if webroot_owner=$(_stat "$_currentRoot"); then
+              _debug "Changing owner/group of .well-known to $webroot_owner"
+              chown -R "$webroot_owner" "$_currentRoot/.well-known"
+            else
+              _debug "not chaning owner/group of webroot"
+            fi
+          fi
+        else
+          _debug "Detected remote webroot"
+
+          _user=$(echo "$wellknown_path" | sed -rn "s/$_remoteRE/\2/p")
+          _pass=$(echo "$wellknown_path" | sed -rn "s/$_remoteRE/\4/p")
+          _host=$(echo "$wellknown_path" | sed -rn "s/$_remoteRE/\5/p")
+          _port=$(echo "$wellknown_path" | sed -rn "s/$_remoteRE/\7/p")
+          _path=$(echo "$wellknown_path" | sed -rn "s/$_remoteRE/\8/p")
+
+          _debug _user "$_user"
+          _debug _pass "$_pass"
+          _debug _host "$_host"
+          _debug _port "$_port"
+          _debug _path "$_path"
+
+          _sshCmd=""
+          if [ "$_user" ]; then
+            _sshCmd="$_user"
+          fi
+          if [ "$_pass" ]; then
+            _sshCmd="$_sshCmd:$_pass@"
+          elif [ "$_user" ]; then
+            _sshCmd="$_sshCmd@"
+          fi
+
+          _sshCmd="$_sshCmd$_host"
+
+          if [ "$_port" ]; then
+            _sshCmd="-p $_port $_sshCmd"
+          fi
+
+          _sshCmd="-o ConnectTimeout=3 $_sshCmd"          
+
+          _debug _sshCmd "$_sshCmd"
+
+          # No quotes!
+          ssh $_sshCmd "mkdir -p \"$_path\""
+
+          if ! ssh $_sshCmd "printf \"%s\" \"$keyauthorization\" >\"$_path/$token\""; then
+            _err "$d:Can not write token to remote file : $_path/$token"
+            _clearupwebbroot "$_currentRoot" "$removelevel" "$token" "$_sshCmd"
+            _clearup
+            _on_issue_err
+            return 1
           fi
         fi
-
       fi
 
     elif [ "$vtype" = "$VTYPE_TLS" ]; then
