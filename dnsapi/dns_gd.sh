@@ -16,6 +16,8 @@ dns_gd_add() {
   txtvalue=$2
 
   if [ -z "$GD_Key" ] || [ -z "$GD_Secret" ]; then
+    GD_Key=""
+    GD_Secret=""
     _err "You don't specify godaddy api key and secret yet."
     _err "Please create you key and try again."
     return 1
@@ -26,11 +28,11 @@ dns_gd_add() {
   _saveaccountconf GD_Secret "$GD_Secret"
 
   _debug "First detect the root zone"
-  if ! _get_root $fulldomain; then
+  if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
-  _debug _domain_id "$_domain_id"
+
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
@@ -62,13 +64,12 @@ dns_gd_rm() {
 #returns
 # _sub_domain=_acme-challenge.www
 # _domain=domain.com
-# _domain_id=sdjkglgdfewsdfg
 _get_root() {
   domain=$1
   i=2
   p=1
-  while [ '1' ]; do
-    h=$(printf $domain | cut -d . -f $i-100)
+  while true; do
+    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -78,15 +79,15 @@ _get_root() {
       return 1
     fi
 
-    if printf "$response" | grep '"code":"NOT_FOUND"' >/dev/null; then
+    if _contains "$response" '"code":"NOT_FOUND"'; then
       _debug "$h not found"
     else
-      _sub_domain=$(printf $domain | cut -d . -f 1-$p)
-      _domain=$h
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _domain="$h"
       return 0
     fi
-    p=$i
-    i=$(expr $i + 1)
+    p="$i"
+    i=$(_math "$i" + 1)
   done
   return 1
 }
@@ -95,14 +96,14 @@ _gd_rest() {
   m=$1
   ep="$2"
   data="$3"
-  _debug $ep
+  _debug "$ep"
 
   _H1="Authorization: sso-key $GD_Key:$GD_Secret"
   _H2="Content-Type: application/json"
 
   if [ "$data" ]; then
     _debug data "$data"
-    response="$(_post "$data" "$GD_Api/$ep" "" $m)"
+    response="$(_post "$data" "$GD_Api/$ep" "" "$m")"
   else
     response="$(_get "$GD_Api/$ep")"
   fi

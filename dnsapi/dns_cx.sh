@@ -17,24 +17,26 @@ dns_cx_add() {
   txtvalue=$2
 
   if [ -z "$CX_Key" ] || [ -z "$CX_Secret" ]; then
+    CX_Key=""
+    CX_Secret=""
     _err "You don't specify cloudxns.com  api key or secret yet."
     _err "Please create you key and try again."
     return 1
   fi
 
-  REST_API=$CX_Api
+  REST_API="$CX_Api"
 
   #save the api key and email to the account conf file.
   _saveaccountconf CX_Key "$CX_Key"
   _saveaccountconf CX_Secret "$CX_Secret"
 
   _debug "First detect the root zone"
-  if ! _get_root $fulldomain; then
+  if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
 
-  existing_records $_domain $_sub_domain
+  existing_records "$_domain" "$_sub_domain"
   _debug count "$count"
   if [ "$?" != "0" ]; then
     _err "Error get existing records."
@@ -42,9 +44,9 @@ dns_cx_add() {
   fi
 
   if [ "$count" = "0" ]; then
-    add_record $_domain $_sub_domain $txtvalue
+    add_record "$_domain" "$_sub_domain" "$txtvalue"
   else
-    update_record $_domain $_sub_domain $txtvalue
+    update_record "$_domain" "$_sub_domain" "$txtvalue"
   fi
 
   if [ "$?" = "0" ]; then
@@ -78,9 +80,9 @@ existing_records() {
     return 0
   fi
 
-  if printf "$response" | grep '"type":"TXT"' >/dev/null; then
+  if printf "%s" "$response" | grep '"type":"TXT"' >/dev/null; then
     count=1
-    record_id=$(printf "%s\n" "$seg" | _egrep_o \"record_id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \")
+    record_id=$(printf "%s\n" "$seg" | _egrep_o "\"record_id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
     _debug record_id "$record_id"
     return 0
   fi
@@ -93,7 +95,7 @@ add_record() {
   root=$1
   sub=$2
   txtvalue=$3
-  fulldomain=$sub.$root
+  fulldomain="$sub.$root"
 
   _info "Adding record"
 
@@ -110,7 +112,7 @@ update_record() {
   root=$1
   sub=$2
   txtvalue=$3
-  fulldomain=$sub.$root
+  fulldomain="$sub.$root"
 
   _info "Updating record"
 
@@ -136,30 +138,30 @@ _get_root() {
     return 1
   fi
 
-  while [ '1' ]; do
-    h=$(printf $domain | cut -d . -f $i-100)
+  while true; do
+    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
       return 1
     fi
 
-    if printf "$response" | grep "$h." >/dev/null; then
+    if _contains "$response" "$h."; then
       seg=$(printf "%s" "$response" | _egrep_o "\{[^\{]*\"$h\.\"[^\}]*\}")
       _debug seg "$seg"
-      _domain_id=$(printf "%s" "$seg" | _egrep_o \"id\":\"[^\"]*\" | cut -d : -f 2 | tr -d \")
+      _domain_id=$(printf "%s" "$seg" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
       _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf $domain | cut -d . -f 1-$p)
-        _debug _sub_domain $_sub_domain
-        _domain=$h
-        _debug _domain $_domain
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _debug _sub_domain "$_sub_domain"
+        _domain="$h"
+        _debug _domain "$_domain"
         return 0
       fi
       return 1
     fi
-    p=$i
-    i=$(expr $i + 1)
+    p="$i"
+    i=$(_math "$i" + 1)
   done
   return 1
 }
@@ -168,7 +170,7 @@ _get_root() {
 _rest() {
   m=$1
   ep="$2"
-  _debug $ep
+  _debug "$ep"
   url="$REST_API/$ep"
   _debug url "$url"
 
@@ -180,7 +182,7 @@ _rest() {
 
   sec="$CX_Key$url$data$cdate$CX_Secret"
   _debug sec "$sec"
-  hmac=$(printf "$sec" | openssl md5 | cut -d " " -f 2)
+  hmac=$(printf "%s" "$sec" | _digest md5 hex)
   _debug hmac "$hmac"
 
   _H1="API-KEY: $CX_Key"
@@ -189,7 +191,7 @@ _rest() {
   _H4="Content-Type: application/json"
 
   if [ "$data" ]; then
-    response="$(_post "$data" "$url" "" $m)"
+    response="$(_post "$data" "$url" "" "$m")"
   else
     response="$(_get "$url")"
   fi
@@ -199,7 +201,7 @@ _rest() {
     return 1
   fi
   _debug2 response "$response"
-  if ! printf "$response" | grep '"message":"success"' >/dev/null; then
+  if ! _contains "$response" '"message":"success"'; then
     return 1
   fi
   return 0

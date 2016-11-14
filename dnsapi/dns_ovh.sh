@@ -86,6 +86,8 @@ dns_ovh_add() {
   txtvalue=$2
 
   if [ -z "$OVH_AK" ] || [ -z "$OVH_AS" ]; then
+    OVH_AK=""
+    OVH_AS=""
     _err "You don't specify OVH application key and application secret yet."
     _err "Please create you key and try again."
     return 1
@@ -127,11 +129,11 @@ dns_ovh_add() {
   _info "Consumer key is ok."
 
   _debug "First detect the root zone"
-  if ! _get_root $fulldomain; then
+  if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
-  _debug _domain_id "$_domain_id"
+
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
@@ -157,7 +159,7 @@ dns_ovh_add() {
       _err "Can not get record id."
       return 1
     fi
-    _debug "record_id" $record_id
+    _debug "record_id" "$record_id"
 
     if _ovh_rest PUT "domain/zone/$_domain/record/$record_id" "{\"target\":\"$txtvalue\",\"subDomain\":\"$_sub_domain\",\"ttl\":60}"; then
       if _contains "$response" "null"; then
@@ -221,13 +223,12 @@ _ovh_authentication() {
 #returns
 # _sub_domain=_acme-challenge.www
 # _domain=domain.com
-# _domain_id=sdjkglgdfewsdfg
 _get_root() {
   domain=$1
   i=2
   p=1
-  while [ '1' ]; do
-    h=$(printf $domain | cut -d . -f $i-100)
+  while true; do
+    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -238,12 +239,12 @@ _get_root() {
     fi
 
     if ! _contains "$response" "This service does not exist" >/dev/null; then
-      _sub_domain=$(printf $domain | cut -d . -f 1-$p)
-      _domain=$h
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _domain="$h"
       return 0
     fi
     p=$i
-    i=$(expr $i + 1)
+    i=$(_math "$i" + 1)
   done
   return 1
 }
@@ -261,7 +262,7 @@ _ovh_rest() {
   m=$1
   ep="$2"
   data="$3"
-  _debug $ep
+  _debug "$ep"
 
   _ovh_url="$OVH_API/$ep"
   _debug2 _ovh_url "$_ovh_url"
@@ -280,7 +281,7 @@ _ovh_rest() {
   _H5="Content-Type: application/json;charset=utf-8"
   if [ "$data" ] || [ "$m" = "POST" ] || [ "$m" = "PUT" ]; then
     _debug data "$data"
-    response="$(_post "$data" "$_ovh_url" "" $m)"
+    response="$(_post "$data" "$_ovh_url" "" "$m")"
   else
     response="$(_get "$_ovh_url")"
   fi
