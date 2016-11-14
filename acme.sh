@@ -3593,6 +3593,11 @@ _initconf() {
 #GD_Secret=\"sADDsdasdfsdfdssdgdsf\"
 
 #######################
+#nsupdate:
+#NSUPDATE_KEY=\"/path/to/update.key\"
+#NSUPDATE_SERVER=\"192.168.0.1\"
+
+#######################
 #PowerDNS:
 #PDNS_Url=\"http://ns.example.com:8081\"
 #PDNS_ServerId=\"localhost\"
