@@ -1324,7 +1324,8 @@ _clear_conf() {
   _c_c_f="$1"
   _sdkey="$2"
   if [ "$_c_c_f" ]; then
-    _sed_i "s/^$_sdkey.*$//" "$_c_c_f"
+    _conf_data="$(cat "$_c_c_f")"
+    echo "$_conf_data" | sed "s/^$_sdkey *=.*$//" > "$_c_c_f"
   else
     _err "config file is empty, can not clear"
   fi
