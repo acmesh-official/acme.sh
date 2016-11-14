@@ -244,6 +244,7 @@ You don't have do anything manually!
 7. PowerDNS API
 8. lexicon dns api: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
    (DigitalOcean, DNSimple, DnsMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)
+9. nsupdate
 
 ##### More APIs are coming soon...
 
