@@ -1,4 +1,4 @@
-# An ACME Shell script: acme.sh
+# An ACME Shell script: acme.sh [![Build Status](https://travis-ci.org/Neilpang/acme.sh.svg?branch=master)](https://travis-ci.org/Neilpang/acme.sh)
 - An ACME protocol client written purely in Shell (Unix shell) language.
 - Fully ACME protocol implementation.
 - Simple, powerful and very easy to use. You only need 3 minutes to learn.
@@ -256,6 +256,7 @@ You don't have do anything manually!
    (DigitalOcean, DNSimple, DnsMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)
 9. LuaDNS.com API
 10. DNSMadeEasy.com API
+11. nsupdate
 
 ##### More APIs are coming soon...
 
