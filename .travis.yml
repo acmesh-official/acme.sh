@@ -23,6 +23,7 @@ script:
   - $NGROK_BIN authtoken "$NGROK_TOKEN" 
   - git clone https://github.com/Neilpang/acmetest.git && cp -r acme.sh acmetest/ && cd acmetest
   - $NGROK_BIN http 80 --log stdout --log-format logfmt --log-level debug > ngrok.tmp &
+  - sleep 5
   - echo "==========================="
   - cat ngrok.tmp
   - echo ==============================
