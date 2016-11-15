@@ -1,6 +1,6 @@
 # How to use dns api
 
-## Use CloudFlare domain api to automatically issue cert
+## 1. Use CloudFlare domain api to automatically issue cert
 
 For now, we support clourflare integeration.
 
@@ -22,7 +22,7 @@ The `CF_Key` and `CF_Email`  will be saved in `~/.acme.sh/account.conf`, when ne
 
 
 
-## Use Dnspod.cn domain api to automatically issue cert
+## 2. Use Dnspod.cn domain api to automatically issue cert
 
 For now, we support dnspod.cn integeration.
 
@@ -43,7 +43,7 @@ acme.sh   --issue   --dns dns_dp   -d example.com  -d www.example.com
 The `DP_Id` and `DP_Key`  will be saved in `~/.acme.sh/account.conf`, when next time you use dnspod.cn api, it will reuse this key.
 
 
-## Use Cloudxns.com domain api to automatically issue cert
+## 3. Use Cloudxns.com domain api to automatically issue cert
 
 For now, we support Cloudxns.com integeration.
 
@@ -64,7 +64,7 @@ acme.sh   --issue   --dns dns_cx   -d example.com  -d www.example.com
 The `CX_Key` and `CX_Secret`  will be saved in `~/.acme.sh/account.conf`, when next time you use Cloudxns.com api, it will reuse this key.
 
 
-## Use Godaddy.com domain api to automatically issue cert
+## 4. Use Godaddy.com domain api to automatically issue cert
 
 We support Godaddy integration.
 
@@ -89,7 +89,7 @@ acme.sh   --issue   --dns dns_gd   -d example.com  -d www.example.com
 
 The `GD_Key` and `GD_Secret`  will be saved in `~/.acme.sh/account.conf`, when next time you use cloudflare api, it will reuse this key.
 
-## Use PowerDNS embedded api to automatically issue cert
+## 5. Use PowerDNS embedded api to automatically issue cert
 
 We support PowerDNS embedded API integration.
 
@@ -113,11 +113,11 @@ acme.sh   --issue   --dns dns_pdns   -d example.com  -d www.example.com
 The `PDNS_Url`, `PDNS_ServerId`, `PDNS_Token` and `PDNS_Ttl` will be saved in `~/.acme.sh/account.conf`.
 
 
-## Use OVH/kimsufi/soyoustart/runabove API
+## 6. Use OVH/kimsufi/soyoustart/runabove API
 
 https://github.com/Neilpang/acme.sh/wiki/How-to-use-OVH-domain-api
 
-## Use nsupdate to automatically issue cert
+## 7. Use nsupdate to automatically issue cert
 
 First, generate a key for updating the zone
 ```
@@ -166,27 +166,7 @@ acme.sh   --issue   --dns dns_nsupdate   -d example.com  -d www.example.com
 
 The `NSUPDATE_SERVER` and `NSUPDATE_KEY` settings will be saved in `~/.acme.sh/account.conf`.
 
-# Use custom api
-
-If your api is not supported yet,  you can write your own dns api.
-
-Let's assume you want to name it 'myapi',
-
-1. Create a bash script named  `~/.acme.sh/dns_myapi.sh`,
-2. In the script, you must have a function named `dns_myapi_add()`. Which will be called by acme.sh to add dns records.
-3. Then you can use your api to issue cert like:
-
-```
-acme.sh  --issue  --dns  dns_myapi  -d example.com  -d www.example.com
-```
-
-For more details, please check our sample script: [dns_myapi.sh](dns_myapi.sh)
-
-# Use lexicon dns api
-
-https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
-
-## Use LuaDNS domain API
+## 8. Use LuaDNS domain API
 
 Get your API token at https://api.luadns.com/settings
 
@@ -204,7 +184,7 @@ acme.sh   --issue   --dns dns_lua --dnssleep 3  -d example.com  -d www.example.c
 
 The `LUA_Key` and `LUA_Email`  will be saved in `~/.acme.sh/account.conf`, and will be reused when needed.
 
-## Use DNSMadeEasy domain API
+## 9. Use DNSMadeEasy domain API
 
 Get your API credentials at https://cp.dnsmadeeasy.com/account/info
 
@@ -221,6 +201,28 @@ acme.sh   --issue   --dns dns_me --dnssleep 3  -d example.com  -d www.example.co
 ```
 
 The `ME_Key` and `ME_Secret`  will be saved in `~/.acme.sh/account.conf`, and will be reused when needed.
+
+# 10. Use custom api
+
+If your api is not supported yet,  you can write your own dns api.
+
+Let's assume you want to name it 'myapi',
+
+1. Create a bash script named  `~/.acme.sh/dns_myapi.sh`,
+2. In the script, you must have a function named `dns_myapi_add()`. Which will be called by acme.sh to add dns records.
+3. Then you can use your api to issue cert like:
+
+```
+acme.sh  --issue  --dns  dns_myapi  -d example.com  -d www.example.com
+```
+
+For more details, please check our sample script: [dns_myapi.sh](dns_myapi.sh)
+
+# 11. Use lexicon dns api
+
+https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
+
+
 
 
 
