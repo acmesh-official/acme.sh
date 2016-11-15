@@ -20,6 +20,7 @@ script:
   - cd ..
   - curl -sSL https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip -o ngrok-stable-linux-amd64.zip && unzip ngrok-stable-linux-amd64.zip && export NGROK_BIN="$(pwd)/ngrok"
   - $NGROK_BIN
+  - $NGROK_BIN http 80 --log stdout --log-format logfmt --log-level debug
   - git clone https://github.com/Neilpang/acmetest.git && cp -r acme.sh acmetest/ && cd acmetest && ./letest.sh
 
 
