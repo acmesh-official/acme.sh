@@ -19,6 +19,7 @@ script:
   - ~/shfmt -l -w -i 2 . && echo "shfmt OK" || git diff --exit-code || (echo "Run shfmt to fix the formatting issues" && false)
   - cd ..
   - curl -sSL https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip -o ngrok-stable-linux-amd64.zip && unzip ngrok-stable-linux-amd64.zip && export NGROK_BIN="$(pwd)/ngrok"
+  - $NGROK_BIN
   - git clone https://github.com/Neilpang/acmetest.git && cp -r acme.sh acmetest/ && cd acmetest && ./letest.sh
 
 
