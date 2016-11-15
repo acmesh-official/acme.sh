@@ -19,15 +19,7 @@ script:
   - ~/shfmt -l -w -i 2 . && echo "shfmt OK" || git diff --exit-code || (echo "Run shfmt to fix the formatting issues" && false)
   - cd ..
   - curl -sSL https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip -o ngrok-stable-linux-amd64.zip && unzip ngrok-stable-linux-amd64.zip && export NGROK_BIN="$(pwd)/ngrok"
-  - $NGROK_BIN
-  - $NGROK_BIN authtoken "$NGROK_TOKEN" 
   - git clone https://github.com/Neilpang/acmetest.git && cp -r acme.sh acmetest/ && cd acmetest
-  - $NGROK_BIN http 80 --log stdout --log-format logfmt --log-level debug > ngrok.tmp &
-  - sleep 5
-  - echo "==========================="
-  - cat ngrok.tmp
-  - echo ==============================
-  - grep -o 'Hostname:[a-z0-9]+.ngrok.io' ngrok.tmp
   - ./letest.sh
 
 
