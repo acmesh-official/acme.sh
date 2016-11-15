@@ -112,9 +112,59 @@ acme.sh   --issue   --dns dns_pdns   -d example.com  -d www.example.com
 
 The `PDNS_Url`, `PDNS_ServerId`, `PDNS_Token` and `PDNS_Ttl` will be saved in `~/.acme.sh/account.conf`.
 
+
 ## Use OVH/kimsufi/soyoustart/runabove API
 
 https://github.com/Neilpang/acme.sh/wiki/How-to-use-OVH-domain-api
+
+## Use nsupdate to automatically issue cert
+
+First, generate a key for updating the zone
+```
+b=$(dnssec-keygen -a hmac-sha512 -b 512 -n USER -K /tmp foo)
+cat > /etc/named/keys/update.key <<EOF
+key "update" {
+    algorithm hmac-sha512;
+    secret "$(awk '/^Key/{print $2}' /tmp/$b.private)";
+};
+EOF
+rm -f /tmp/$b.{private,key}
+```
+
+Include this key in your named configuration
+```
+include "/etc/named/keys/update.key";
+```
+
+Next, configure your zone to allow dynamic updates.
+Depending on your named version, use either
+```
+zone "example.com" {
+    type master;
+    allow-update { key "update"; };
+};
+```
+or
+```
+zone "example.com" {
+    type master;
+    update-policy {
+        grant update subdomain example.com.;
+    };
+}
+```
+Finally, make the dns server and update key available to `acme.sh`
+```
+export NSUPDATE_SERVER=dns.example.com
+export NSUPDATE_KEY=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa==
+```
+
+Ok, let's issue cert now:
+```
+acme.sh   --issue   --dns dns_nsupdate   -d example.com  -d www.example.com
+```
+
+The `NSUPDATE_SERVER` and `NSUPDATE_KEY` settings will be saved in `~/.acme.sh/account.conf`.
 
 # Use custom api
 

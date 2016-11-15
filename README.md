@@ -256,6 +256,7 @@ You don't have do anything manually!
    (DigitalOcean, DNSimple, DnsMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)
 9. LuaDNS.com API
 10. DNSMadeEasy.com API
+11. nsupdate
 
 ##### More APIs are coming soon...
 
