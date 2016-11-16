@@ -2132,7 +2132,7 @@ _on_issue_err() {
   if [ "$LOG_FILE" ]; then
     _err "Please check log file for more details: $LOG_FILE"
   else
-    _err "Please use add '--debug' or '--log' to check more details."
+    _err "Please add '--debug' or '--log' to check more details."
     _err "See: $_DEBUG_WIKI"
   fi
 
