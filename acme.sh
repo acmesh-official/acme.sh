@@ -1325,7 +1325,7 @@ _clear_conf() {
   _sdkey="$2"
   if [ "$_c_c_f" ]; then
     _conf_data="$(cat "$_c_c_f")"
-    echo "$_conf_data" | sed "s/^$_sdkey *=.*$//" > "$_c_c_f"
+    echo "$_conf_data" | sed "s/^$_sdkey *=.*$//" >"$_c_c_f"
   else
     _err "config file is empty, can not clear"
   fi
@@ -1427,7 +1427,7 @@ _startserver() {
       _exec_err
       return 1
     fi
-    if [ "$DEBUG" ] ; then
+    if [ "$DEBUG" ]; then
       _exec_err
     fi
     return
@@ -1443,7 +1443,7 @@ _startserver() {
     _exec_err
     exit 1
   fi
-  if [ "$DEBUG" ] ; then
+  if [ "$DEBUG" ]; then
     _exec_err
   fi
   #  done

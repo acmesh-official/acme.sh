@@ -1,6 +1,5 @@
 #!/usr/bin/env sh
 
-
 ########  Public functions #####################
 
 #Usage: dns_nsupdate_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
@@ -22,7 +21,7 @@ EOF
     _err "error updating domain"
     return 1
   fi
-  
+
   return 0
 }
 
