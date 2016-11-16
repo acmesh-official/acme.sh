@@ -44,7 +44,6 @@ EOF
   return 0
 }
 
-
 ####################  Private functions bellow ##################################
 
 _checkKeyFile() {
