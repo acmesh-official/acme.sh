@@ -22,6 +22,12 @@ dns_cf_add() {
     return 1
   fi
 
+  if ! _contains "$CF_Email" "@"; then
+    _err "It seems that the CF_Email=$CF_Email is not a valid email address."
+    _err "Please check and retry."
+    return 1
+  fi
+  
   #save the api key and email to the account conf file.
   _saveaccountconf CF_Key "$CF_Key"
   _saveaccountconf CF_Email "$CF_Email"
