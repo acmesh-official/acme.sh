@@ -1325,7 +1325,7 @@ _clear_conf() {
   _sdkey="$2"
   if [ "$_c_c_f" ]; then
     _conf_data="$(cat "$_c_c_f")"
-    echo "$_conf_data" | sed "s/^$_sdkey *=.*$//" > "$_c_c_f"
+    echo "$_conf_data" | sed "s/^$_sdkey *=.*$//" >"$_c_c_f"
   else
     _err "config file is empty, can not clear"
   fi
@@ -1423,31 +1423,28 @@ _startserver() {
   #for centos ncat
   if _contains "$nchelp" "nmap.org"; then
     _debug "Using ncat: nmap.org"
-    if [ "$DEBUG" ]; then
-      if printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC "$Le_HTTPPort"; then
-        return
-      fi
-    else
-      if printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC "$Le_HTTPPort" >/dev/null 2>&1; then
-        return
-      fi
+    if ! _exec "printf \"%s\r\n\r\n%s\" \"HTTP/1.1 200 OK\" \"$content\" | $_NC \"$Le_HTTPPort\" >&2"; then
+      _exec_err
+      return 1
     fi
-    _err "ncat listen error."
+    if [ "$DEBUG" ]; then
+      _exec_err
+    fi
+    return
   fi
 
   #  while true ; do
-  if [ "$DEBUG" ]; then
-    if ! printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC -p "$Le_HTTPPort"; then
-      printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC "$Le_HTTPPort"
-    fi
-  else
-    if ! printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC -p "$Le_HTTPPort" >/dev/null 2>&1; then
-      printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC "$Le_HTTPPort" >/dev/null 2>&1
-    fi
+  if ! _exec "printf \"%s\r\n\r\n%s\" \"HTTP/1.1 200 OK\" \"$content\" | $_NC -p \"$Le_HTTPPort\" >&2"; then
+    _exec "printf \"%s\r\n\r\n%s\" \"HTTP/1.1 200 OK\" \"$content\" | $_NC \"$Le_HTTPPort\" >&2"
   fi
+
   if [ "$?" != "0" ]; then
     _err "nc listen error."
+    _exec_err
     exit 1
+  fi
+  if [ "$DEBUG" ]; then
+    _exec_err
   fi
   #  done
 }
@@ -1781,14 +1778,14 @@ _exec() {
   fi
 
   if [ "$_EXEC_TEMP_ERR" ]; then
-    "$@" 2>"$_EXEC_TEMP_ERR"
+    eval "$@ 2>>$_EXEC_TEMP_ERR"
   else
-    "$@"
+    eval "$@"
   fi
 }
 
 _exec_err() {
-  [ "$_EXEC_TEMP_ERR" ] && _err "$(cat "$_EXEC_TEMP_ERR")"
+  [ "$_EXEC_TEMP_ERR" ] && _err "$(cat "$_EXEC_TEMP_ERR")" && echo "" >"$_EXEC_TEMP_ERR"
 }
 
 _apachePath() {
