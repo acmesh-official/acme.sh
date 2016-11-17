@@ -247,9 +247,12 @@ _exists() {
     _usage "Usage: _exists cmd"
     return 1
   fi
-  if command >/dev/null 2>&1; then
+
+  if eval type type >/dev/null 2>&1; then
+    eval type "$cmd" >/dev/null 2>&1
+  elif command >/dev/null 2>&1; then
     command -v "$cmd" >/dev/null 2>&1
-  elif which ls >/dev/null 2>&1; then
+  else
     which "$cmd" >/dev/null 2>&1
   fi
   ret="$?"
