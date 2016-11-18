@@ -2996,7 +2996,7 @@ renewAll() {
 
   for di in "${CERT_HOME}"/*.*/; do
     _debug di "$di"
-    if ! [ -d "$di" ] ; then
+    if ! [ -d "$di" ]; then
       _debug "Not directory, skip: $di"
       continue
     fi
@@ -3122,7 +3122,7 @@ list() {
   if [ "$_raw" ]; then
     printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Created${_sep}Renew"
     for di in "${CERT_HOME}"/*.*/; do
-      if ! [ -d "$di" ] ; then
+      if ! [ -d "$di" ]; then
         _debug "Not directory, skip: $di"
         continue
       fi
