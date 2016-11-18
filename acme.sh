@@ -1705,8 +1705,6 @@ _initpath() {
     return 0
   fi
 
-  mkdir -p "$CA_DIR"
-
   domain="$1"
   _ilength="$2"
 
@@ -1724,13 +1722,6 @@ _initpath() {
       fi
     fi
     _debug DOMAIN_PATH "$DOMAIN_PATH"
-  fi
-
-  if [ ! -d "$DOMAIN_PATH" ]; then
-    if ! mkdir -p "$DOMAIN_PATH"; then
-      _err "Can not create domain path: $DOMAIN_PATH"
-      return 1
-    fi
   fi
 
   if [ -z "$DOMAIN_CONF" ]; then
@@ -3005,6 +2996,10 @@ renewAll() {
 
   for di in "${CERT_HOME}"/*.*/; do
     _debug di "$di"
+    if ! [ -d "$di" ] ; then
+      _debug "Not directory, skip: $di"
+      continue
+    fi
     d=$(basename "$di")
     _debug d "$d"
     (
@@ -3127,6 +3122,10 @@ list() {
   if [ "$_raw" ]; then
     printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Created${_sep}Renew"
     for di in "${CERT_HOME}"/*.*/; do
+      if ! [ -d "$di" ] ; then
+        _debug "Not directory, skip: $di"
+        continue
+      fi
       d=$(basename "$di")
       _debug d "$d"
       (
