@@ -349,10 +349,8 @@ _sed_i() {
 }
 
 _egrep_o() {
-  if _contains "$(egrep -o 2>&1)" "egrep: illegal option -- o"; then
+  if ! egrep -o "$1" 2>/dev/null; then
     sed -n 's/.*\('"$1"'\).*/\1/p'
-  else
-    egrep -o "$1"
   fi
 }
 
