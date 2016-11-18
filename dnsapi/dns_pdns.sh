@@ -12,6 +12,8 @@ DEFAULT_PDNS_TTL=60
 
 ########  Public functions #####################
 #Usage: add _acme-challenge.www.domain.com "123456789ABCDEF0000000000000000000000000000000000000"
+#fulldomain
+#txtvalue
 dns_pdns_add() {
   fulldomain=$1
   txtvalue=$2
@@ -50,7 +52,7 @@ dns_pdns_add() {
     _saveaccountconf PDNS_Ttl "$PDNS_Ttl"
   fi
 
-  _debug "First detect the root zone"
+  _debug "Detect root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
@@ -68,6 +70,18 @@ dns_pdns_add() {
 dns_pdns_rm() {
   fulldomain=$1
 
+  _debug "Detect root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+  _debug _domain "$_domain"
+
+  if ! rm_record "$_domain" "$fulldomain"; then
+    return 1
+  fi
+
+  return 0
 }
 
 set_record() {
@@ -76,14 +90,43 @@ set_record() {
   full=$2
   txtvalue=$3
 
-  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root." "{\"rrsets\": [{\"name\": \"$full.\", \"changetype\": \"REPLACE\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [{\"name\": \"$full.\", \"type\": \"TXT\", \"content\": \"\\\"$txtvalue\\\"\", \"disabled\": false, \"ttl\": $PDNS_Ttl}]}]}"; then
+  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root." "{\"rrsets\": [{\"changetype\": \"REPLACE\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [{\"name\": \"$full.\", \"type\": \"TXT\", \"content\": \"\\\"$txtvalue\\\"\", \"disabled\": false, \"ttl\": $PDNS_Ttl}]}]}"; then
     _err "Set txt record error."
     return 1
   fi
-  if ! _pdns_rest "PUT" "/api/v1/servers/$PDNS_ServerId/zones/$root./notify"; then
-    _err "Notify servers error."
+
+  if ! notify_slaves "$root"; then
     return 1
   fi
+
+  return 0
+}
+
+rm_record() {
+  _info "Remove record"
+  root=$1
+  full=$2
+
+  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root." "{\"rrsets\": [{\"changetype\": \"DELETE\", \"name\": \"$full.\", \"type\": \"TXT\"}]}"; then
+    _err "Delete txt record error."
+    return 1
+  fi
+
+  if ! notify_slaves "$root"; then
+    return 1
+  fi
+
+  return 0
+}
+
+notify_slaves() {
+  root=$1
+
+  if ! _pdns_rest "PUT" "/api/v1/servers/$PDNS_ServerId/zones/$root./notify"; then
+    _err "Notify slaves error."
+    return 1
+  fi
+
   return 0
 }
 
@@ -113,6 +156,7 @@ _get_root() {
     i=$(_math $i + 1)
   done
   _debug "$domain not found"
+
   return 1
 }
 
