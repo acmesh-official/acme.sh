@@ -20,7 +20,6 @@ script:
   - shellcheck -V
   - shellcheck -e SC2021,SC2126,SC2034 **/*.sh && echo "shellcheck OK"
   - cd ..
-  - curl -sSL https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip -o ngrok-stable-linux-amd64.zip && unzip ngrok-stable-linux-amd64.zip && export NGROK_BIN="$(pwd)/ngrok"
   - git clone https://github.com/Neilpang/acmetest.git && cp -r acme.sh acmetest/ && cd acmetest
   - sudo ./letest.sh
 
