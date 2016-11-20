@@ -185,7 +185,24 @@ acme.sh --issue --dns dns_me -d example.com -d www.example.com
 The `ME_Key` and `ME_Secret` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 
-# 10. Use custom API
+## 10. Use Aliyun domain API to automatically issue cert
+
+First you need to login to your Aliyun account to get your API key.
+[https://ak-console.aliyun.com/#/accesskey](https://ak-console.aliyun.com/#/accesskey)
+
+```
+export Ali_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+export Ali_Secret="jlsdflanljkljlfdsaklkjflsa"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_ali -d example.com -d www.example.com
+```
+
+The `Ali_Key` and `Ali_Secret` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+# 11. Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
 
@@ -202,6 +219,6 @@ acme.sh --issue --dns dns_myapi -d example.com -d www.example.com
 For more details, please check our sample script: [dns_myapi.sh](dns_myapi.sh)
 
 
-## 11. Use lexicon DNS API
+## 12. Use lexicon DNS API
 
 https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
