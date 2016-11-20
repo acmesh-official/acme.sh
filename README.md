@@ -253,7 +253,7 @@ You don't have to do anything manually!
 1. CloudXNS.com API
 1. GoDaddy.com API
 1. OVH, kimsufi, soyoustart and runabove API
-1. AWS Route 53, see: https://github.com/Neilpang/acme.sh/issues/65
+1. AWS Route 53
 1. PowerDNS.com API
 1. lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
    (DigitalOcean, DNSimple, DNSMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)
