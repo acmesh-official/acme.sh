@@ -132,7 +132,7 @@ aws_rest() {
 
   CanonicalRequest="$mtd\n$CanonicalURI\n$CanonicalQueryString\n$CanonicalHeaders\n$SignedHeaders\n$(printf "%s" "$RequestPayload" | _digest "$Hash" hex)"
   _debug2 CanonicalRequest "$CanonicalRequest"
-  
+
   HashedCanonicalRequest="$(printf "$CanonicalRequest%s" | _digest "$Hash" hex)"
   _debug2 HashedCanonicalRequest "$HashedCanonicalRequest"
 
@@ -197,6 +197,6 @@ aws_rest() {
       return 1
     fi
   fi
-  
+
   return "$_ret"
 }
