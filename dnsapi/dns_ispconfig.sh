@@ -104,7 +104,7 @@ _ISPC_addTxt () {
     curResult=$(curl -k --data "${curData}" "${ISPC_Api}?dns_txt_add")
     record_id=$(echo $curResult | _egrep_o "\"response.*" | cut -d ':' -f 2)
     record_id=${record_id:1:-2}
-    case ${record_id} in = false
+    case ${record_id} in
         ''|*[!0-9]*) _err "Record ID is not numeric. Aborting" ;;
                   *) _info "Successfully retrieved Record ID"; 
                      record_data="$record_data $record_id" ;;  # Make space seperated string of record IDs for later removal.
