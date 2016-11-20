@@ -335,7 +335,7 @@ _hex() {
   _str_len=${#_str}
   _h_i=1
   while [ "$_h_i" -le "$_str_len" ]; do
-    _str_c="$(printf "%s" "$_str" | cut -c "$_h_i" )"
+    _str_c="$(printf "%s" "$_str" | cut -c "$_h_i")"
     printf "%02x" "'$_str_c"
     _h_i="$(_math "$_h_i" + 1)"
   done

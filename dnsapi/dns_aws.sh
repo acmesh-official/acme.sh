@@ -40,16 +40,14 @@ dns_aws_add() {
   _debug _domain "$_domain"
 
   _aws_tmpl_xml="<ChangeResourceRecordSetsRequest xmlns=\"https://route53.amazonaws.com/doc/2013-04-01/\"><ChangeBatch><Changes><Change><Action>UPSERT</Action><ResourceRecordSet><Name>$fulldomain</Name><Type>TXT</Type><TTL>300</TTL><ResourceRecords><ResourceRecord><Value>\"$txtvalue\"</Value></ResourceRecord></ResourceRecords></ResourceRecordSet></Change></Changes></ChangeBatch></ChangeResourceRecordSetsRequest>"
-  
+
   if aws_rest POST "2013-04-01$_domain_id/rrset/" "" "$_aws_tmpl_xml" && _contains "$response" "ChangeResourceRecordSetsResponse"; then
     _info "txt record updated sucess."
     return 0
   fi
 
-  return 1;
+  return 1
 }
-
-
 
 #fulldomain
 dns_aws_rm() {
@@ -57,14 +55,13 @@ dns_aws_rm() {
 
 }
 
-
 ####################  Private functions bellow ##################################
 
 _get_root() {
   domain=$1
   i=2
   p=1
-  
+
   if aws_rest GET "2013-04-01/hostedzone"; then
     _debug "response" "$response"
     while true; do
@@ -95,7 +92,6 @@ _get_root() {
   fi
   return 1
 }
-
 
 #method uri qstr data
 aws_rest() {
@@ -137,13 +133,13 @@ aws_rest() {
   CanonicalRequest="$mtd\n$CanonicalURI\n$CanonicalQueryString\n$CanonicalHeaders\n$SignedHeaders\n$(printf "%s" "$RequestPayload" | _digest "$Hash" hex)"
   _debug2 CanonicalRequest "$CanonicalRequest"
   
-  HashedCanonicalRequest="$(printf "$CanonicalRequest%s" | _digest "$Hash" hex )"
+  HashedCanonicalRequest="$(printf "$CanonicalRequest%s" | _digest "$Hash" hex)"
   _debug2 HashedCanonicalRequest "$HashedCanonicalRequest"
 
   Algorithm="AWS4-HMAC-SHA256"
   _debug2 Algorithm "$Algorithm"
 
-  RequestDateOnly="$(echo "$RequestDate" | cut -c 1-8 )"
+  RequestDateOnly="$(echo "$RequestDate" | cut -c 1-8)"
   _debug2 RequestDateOnly "$RequestDateOnly"
 
   Region="us-east-1"
@@ -204,17 +200,3 @@ aws_rest() {
   
   return "$_ret"
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
