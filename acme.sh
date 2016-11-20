@@ -3613,6 +3613,11 @@ _initconf() {
 #PDNS_Token=\"0123456789ABCDEF\"
 #PDNS_Ttl=60
 
+#######################
+#Amazon Route53:
+#AWS_ACCESS_KEY_ID=XXXXXXXXXX
+#AWS_SECRET_ACCESS_KEY=XXXXXXXXXXXXXXX
+
     " >"$ACCOUNT_CONF_PATH"
   fi
 }
