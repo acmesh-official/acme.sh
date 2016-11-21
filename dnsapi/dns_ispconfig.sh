@@ -15,28 +15,13 @@
 dns_ispconfig_add() {
   fulldomain="${1}"
   txtvalue="${2}"
-  _ISPC_login
-  if [ $? -eq 0 ]; then
-    _ISPC_getZoneInfo
-  fi
-  if [ $? -eq 0 ]; then
-    _ISPC_addTxt
-  fi
-  if [ $? -ne 0 ]; then
-    return 1
-  fi
+  _ISPC_login && _ISPC_getZoneInfo && _ISPC_addTxt || return 1
 }
 
 #Usage: dns_myapi_rm   _acme-challenge.www.domain.com
 dns_ispconfig_rm() {
   fulldomain="${1}"
-  _ISPC_login
-  if [ $? -eq 0 ]; then
-    _ISPC_rmTxt
-  fi
-  if [ $? -ne 0 ]; then
-    return 1
-  fi
+  _ISPC_login && _ISPC_rmTxt || return 1
 }
 
 ####################  Private functions bellow ##################################
