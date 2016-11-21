@@ -329,6 +329,18 @@ _h2b() {
   done
 }
 
+#hex string
+_hex() {
+  _str="$1"
+  _str_len=${#_str}
+  _h_i=1
+  while [ "$_h_i" -le "$_str_len" ]; do
+    _str_c="$(printf "%s" "$_str" | cut -c "$_h_i")"
+    printf "%02x" "'$_str_c"
+    _h_i="$(_math "$_h_i" + 1)"
+  done
+}
+
 #options file
 _sed_i() {
   options="$1"
@@ -426,23 +438,23 @@ _digest() {
 
 }
 
-#Usage: hashalg  secret  [outputhex]
-#Output Base64-encoded hmac
+#Usage: hashalg  secret_hex  [outputhex]
+#Output binary hmac
 _hmac() {
   alg="$1"
-  hmac_sec="$2"
+  secret_hex="$2"
   outputhex="$3"
 
-  if [ -z "$hmac_sec" ]; then
+  if [ -z "$secret_hex" ]; then
     _usage "Usage: _hmac hashalg secret [outputhex]"
     return 1
   fi
 
   if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ]; then
     if [ "$outputhex" ]; then
-      openssl dgst -"$alg" -hmac "$hmac_sec" | cut -d = -f 2 | tr -d ' '
+      openssl dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" | cut -d = -f 2 | tr -d ' '
     else
-      openssl dgst -"$alg" -hmac "$hmac_sec" -binary | _base64
+      openssl dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" -binary
     fi
   else
     _err "$alg is not supported yet"
@@ -3600,6 +3612,11 @@ _initconf() {
 #PDNS_ServerId=\"localhost\"
 #PDNS_Token=\"0123456789ABCDEF\"
 #PDNS_Ttl=60
+
+#######################
+#Amazon Route53:
+#AWS_ACCESS_KEY_ID=XXXXXXXXXX
+#AWS_SECRET_ACCESS_KEY=XXXXXXXXXXXXXXX
 
     " >"$ACCOUNT_CONF_PATH"
   fi
