@@ -78,19 +78,19 @@ _ISPC_getZoneInfo() {
     server_id=$(echo "${curResult}" | _egrep_o "server_id.*" | cut -d ':' -f 2)
     server_id=${server_id:1:-10}
     case ${server_id} in
-      ''|*[!0-9]*) _err "Server ID is not numeric." ;;
+      '' | *[!0-9]*) _err "Server ID is not numeric." ;;
       *) _info "Successfully retrieved Server ID" ;;
     esac
-      zone=$(echo "${curResult}" | _egrep_o "\"id.*" | cut -d ':' -f 2)
-      zone=${zone:1:-14}
+    zone=$(echo "${curResult}" | _egrep_o "\"id.*" | cut -d ':' -f 2)
+    zone=${zone:1:-14}
     case ${zone} in
-      ''|*[!0-9]*) _err "Zone ID is not numeric." ;;
+      '' | *[!0-9]*) _err "Zone ID is not numeric." ;;
       *) _info "Successfully retrieved Zone ID" ;;
     esac
     client_id=$(echo "${curResult}" | _egrep_o "sys_userid.*" | cut -d ':' -f 2)
     client_id=${client_id:1:-15}
     case ${client_id} in
-      ''|*[!0-9]*) _err "Client ID is not numeric." ;;
+      '' | *[!0-9]*) _err "Client ID is not numeric." ;;
       *) _info "Successfully retrieved Client ID" ;;
     esac
       unset zoneFound
@@ -107,11 +107,12 @@ _ISPC_addTxt() {
   record_id=$(echo "${curResult}" | _egrep_o "\"response.*" | cut -d ':' -f 2)
   record_id=${record_id:1:-2}
   case ${record_id} in
-    ''|*[!0-9]*) _err "Record ID is not numeric." ;;
+    '' | *[!0-9]*) _err "Record ID is not numeric." ;;
     *)
-      _info "Successfully retrieved Record ID";
+      _info "Successfully retrieved Record ID"
       # Make space seperated string of record IDs for later removal.
-      record_data="$record_data $record_id" ;;
+      record_data="$record_data $record_id"
+      ;;
   esac
 }
 
@@ -128,3 +129,4 @@ _ISPC_rmTxt() {
     fi
   done
 }
+
