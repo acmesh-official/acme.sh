@@ -129,4 +129,3 @@ _ISPC_rmTxt() {
     fi
   done
 }
-
