@@ -2,7 +2,6 @@
 
 Ali_API='https://alidns.aliyuncs.com/'
 
-
 #Usage: dns_ali_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_ali_add() {
   fulldomain=$1
@@ -28,9 +27,9 @@ dns_ali_add() {
 
   _rest
 
-  record_id=`_process_check_result`
+  record_id=$(_process_check_result)
 
-  if [ $record_id == 0 ];then
+  if [  $record_id == 0  ]; then
     #Add
     _add_record_query "$_domain" "$_sub_domain" "$txtvalue"
   else
@@ -40,10 +39,11 @@ dns_ali_add() {
 
   _rest
 
-  echo $response
+  echo  $response
 
   return 0
 }
+
 
 dns_ali_rm() {
   fulldomain=$1
@@ -62,11 +62,10 @@ _get_root() {
       return 1
     fi
 
-    _describe_records_query $h
+    _describe_records_query  $h
     if ! _rest; then
       return 1
     fi
-
 
     if _contains "$response" "PageNumber"; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
@@ -82,9 +81,9 @@ _get_root() {
 }
 
 _rest() {
-  signature=`_sign $query`
-  signature=`_urlencode $signature`
-  url=${Ali_API}?${query}'&Signature='$signature
+  signature=$(_sign  $query)
+  signature=$(_urlencode  $signature)
+  url= ${Ali_API}?${query}'&Signature='$signature
 
   response="$(_get "$url")"
 
@@ -96,12 +95,12 @@ _rest() {
   return 0
 }
 
-_urlencode(){
+_urlencode() {
   python -c "import sys, urllib as ul;print ul.quote_plus('$1')"
 }
 
 
-_check_exist_query(){
+_check_exist_query() {
   query=''
   query=$query'AccessKeyId='$Ali_Key
   query=$query'&Action=DescribeDomainRecords'
@@ -111,12 +110,12 @@ _check_exist_query(){
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query'&SignatureNonce='$RANDOM
   query=$query'&SignatureVersion=1.0'
-  query=$query'&Timestamp='`_time`
+  query=$query'&Timestamp='$(_time)
   query=$query'&TypeKeyWord=TXT'
   query=$query'&Version=2015-01-09'
 }
 
-_add_record_query(){
+_add_record_query() {
   query=''
   query=$query'AccessKeyId='$Ali_Key
   query=$query'&Action=AddDomainRecord'
@@ -126,13 +125,13 @@ _add_record_query(){
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query'&SignatureNonce='$RANDOM
   query=$query'&SignatureVersion=1.0'
-  query=$query'&Timestamp='`_time`
+  query=$query'&Timestamp='$(_time)
   query=$query'&Type=TXT'
   query=$query'&Value='$3
   query=$query'&Version=2015-01-09'
 }
 
-_update_record_query(){
+_update_record_query() {
   query=''
   query=$query'AccessKeyId='$Ali_Key
   query=$query'&Action=UpdateDomainRecord'
@@ -142,13 +141,13 @@ _update_record_query(){
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query'&SignatureNonce='$RANDOM
   query=$query'&SignatureVersion=1.0'
-  query=$query'&Timestamp='`_time`
+  query=$query'&Timestamp='$(_time)
   query=$query'&Type=TXT'
   query=$query'&Value='$3
   query=$query'&Version=2015-01-09'
 }
 
-_describe_records_query(){
+_describe_records_query() {
   query=''
   query=$query'AccessKeyId='$Ali_Key
   query=$query'&Action=DescribeDomainRecords'
@@ -157,28 +156,28 @@ _describe_records_query(){
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query'&SignatureNonce='$RANDOM
   query=$query'&SignatureVersion=1.0'
-  query=$query'&Timestamp='`_time`
+  query=$query'&Timestamp='$(_time)
   query=$query'&Version=2015-01-09'
 }
 
-_time(){
-  zone=`date +%Z`
-  sec=`date +%s`
-  t=`date -d "1970-01-01 $zone $sec sec" +%Y-%m-%dT%H:%M:%SZ`
-  t=`_urlencode $t`
-  echo $t
+_time() {
+  zone=$(date +%Z)
+  sec=$(date +%s)
+  t=$(date -d "1970-01-01 $zone $sec sec" +%Y-%m-%dT%H:%M:%SZ)
+  t=$(_urlencode  $t)
+  echo  $t
 }
 
-_sign(){
-  StringToSign='GET&'`_urlencode '/'`'&'
-  StringToSign=$StringToSign`_urlencode $1`
-  echo -n $StringToSign | openssl sha1 -hmac $Ali_Secret'&' -binary | openssl base64
+_sign() {
+  StringToSign='GET&'$(_urlencode '/')'&'
+  StringToSign=$StringToSign$(_urlencode  $1)
+  echo -n  $StringToSign | openssl sha1 -hmac $Ali_Secret'&' -binary | openssl base64
 }
 
 
-_process_check_result(){
+_process_check_result() {
   python -c \
-"
+    "
 import json;
 result=json.loads('$response');
 if result.has_key('Message'):
@@ -192,4 +191,3 @@ for r in result['DomainRecords']['Record']:
 print(0);
 "
 }
-
