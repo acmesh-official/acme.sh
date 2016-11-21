@@ -4,8 +4,7 @@
 
 ISPC_User=""
 ISPC_Password=""
-ISPC_Api="https://ispc.domain.tld:8080/remote/json.php"  # Provider proper URL and port for your ISPC Installation
-
+ISPC_Api="https://ispc.domain.tld:8080/remote/json.php"  # Provide proper URL and port for your ISPC Installation
 
 ########  Public functions #####################
 
@@ -67,7 +66,7 @@ _ISPC_getZoneInfo () {
     fi
     if [ "${curZone#*.}" != "$curZone" ]; then
       _debug2 "$curZone still contains a '.' - so we can check next higher level"
-    else 
+    else
       zoneEnd=true
       _err "Couldn't retrieve zone info. Aborting."
     fi
