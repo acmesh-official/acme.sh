@@ -82,7 +82,7 @@ _get_root() {
 _rest() {
   signature=$(_sign "$query")
   signature=$(_urlencode "$signature")
-  url="$Ali_API"?"$query"'&Signature='"$signature"
+  url="$Ali_API?$query&Signature=$signature"
 
   response="$(_get "$url")"
 
