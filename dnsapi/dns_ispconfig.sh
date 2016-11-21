@@ -15,7 +15,7 @@
 dns_ispconfig_add() {
   fulldomain="${1}"
   txtvalue="${2}"
-  _ISPC_login && _ISPC_getZoneInfo && _ISPC_addTxt || return 1
+  _ISPC_Credentials && _ISPC_login && _ISPC_getZoneInfo && _ISPC_addTxt || return 1
 }
 
 #Usage: dns_myapi_rm   _acme-challenge.www.domain.com
@@ -25,6 +25,20 @@ dns_ispconfig_rm() {
 }
 
 ####################  Private functions bellow ##################################
+
+_ISPC_credentials() {
+  if [ -z "$ISPC_User" ] || [ -z "$ISPC_Password" ]  || [ -z "$ISPC_Api" ]; then
+    ISPC_User=""
+    ISPC_Password=""
+    ISPC_Api=""
+    _err "You haven't specified the ISPConfig Login data and the URL. Please try again."
+    return 1
+  else
+    _saveaccountconf ISPC_User "${ISPC_User}"
+    _saveaccountconf ISPC_Password "${ISPC_Password}"
+    _saveaccountconf ISPC_Api "${ISPC_Api}"
+  fi
+}
 
 _ISPC_login() {
   _info "Getting Session ID"
