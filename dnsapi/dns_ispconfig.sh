@@ -4,7 +4,8 @@
 
 ISPC_User=""
 ISPC_Password=""
-ISPC_Api="https://ispc.domain.tld:8080/remote/json.php" # Provide proper URL and port for your ISPC Installation
+# Provide proper URL and port for your ISPC Installation
+ISPC_Api="https://ispc.domain.tld:8080/remote/json.php"
 
 ########  Public functions #####################
 
@@ -56,8 +57,10 @@ _ISPC_getZoneInfo() {
   zoneEnd=false
   curZone="${fulldomain}"
   while [ ${zoneEnd} = false ]; do
-    curZone="${curZone#*.}" # we can strip the first part of the fulldomain, since it's just the _acme-challenge string
-    curData="{\"session_id\":\"${sessionID}\",\"primary_id\":[{\"origin\":\"${curZone}.\"}]}" # suffix . needed for zone -> domain.tld.
+    # we can strip the first part of the fulldomain, since it's just the _acme-challenge string
+    curZone="${curZone#*.}"
+    # suffix . needed for zone -> domain.tld.
+    curData="{\"session_id\":\"${sessionID}\",\"primary_id\":[{\"origin\":\"${curZone}.\"}]}"
     curResult=$(curl -k --data "${curData}" "${ISPC_Api}?dns_zone_get")
     if _contains "${curResult}" '"id":"'; then
       zoneFound=true
@@ -76,19 +79,19 @@ _ISPC_getZoneInfo() {
     server_id=${server_id:1:-10}
     case ${server_id} in
       ''|*[!0-9]*) _err "Server ID is not numeric." ;;
-                *) _info "Successfully retrieved Server ID" ;;
+      *) _info "Successfully retrieved Server ID" ;;
     esac
       zone=$(echo "${curResult}" | _egrep_o "\"id.*" | cut -d ':' -f 2)
       zone=${zone:1:-14}
-      case ${zone} in
-        ''|*[!0-9]*) _err "Zone ID is not numeric." ;;
-                  *) _info "Successfully retrieved Zone ID" ;;
+    case ${zone} in
+      ''|*[!0-9]*) _err "Zone ID is not numeric." ;;
+      *) _info "Successfully retrieved Zone ID" ;;
     esac
     client_id=$(echo "${curResult}" | _egrep_o "sys_userid.*" | cut -d ':' -f 2)
     client_id=${client_id:1:-15}
     case ${client_id} in
       ''|*[!0-9]*) _err "Client ID is not numeric." ;;
-                *) _info "Successfully retrieved Client ID" ;;
+      *) _info "Successfully retrieved Client ID" ;;
     esac
       unset zoneFound
       unset zoneEnd
@@ -105,8 +108,10 @@ _ISPC_addTxt() {
   record_id=${record_id:1:-2}
   case ${record_id} in
     ''|*[!0-9]*) _err "Record ID is not numeric." ;;
-              *) _info "Successfully retrieved Record ID";
-                 record_data="$record_data $record_id" ;; # Make space seperated string of record IDs for later removal.
+    *)
+      _info "Successfully retrieved Record ID";
+      # Make space seperated string of record IDs for later removal.
+      record_data="$record_data $record_id" ;;
   esac
 }
 
@@ -118,7 +123,8 @@ _ISPC_rmTxt() {
     if _contains "${curResult}" '"code":"ok"'; then
       _info "Successfully removed ACME challenge txt record."
     else
-      _debug "Couldn't remove ACME challenge txt record"; # Setting it to debug only because there's no harm if the txt remains
+      # Setting it to debug only because there's no harm if the txt remains
+      _debug "Couldn't remove ACME challenge txt record."
     fi
   done
 }
