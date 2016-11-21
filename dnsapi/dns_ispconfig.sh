@@ -15,7 +15,7 @@
 dns_ispconfig_add() {
   fulldomain="${1}"
   txtvalue="${2}"
-  _ISPC_Credentials && _ISPC_login && _ISPC_getZoneInfo && _ISPC_addTxt || return 1
+  _ISPC_credentials && _ISPC_login && _ISPC_getZoneInfo && _ISPC_addTxt || return 1
 }
 
 #Usage: dns_myapi_rm   _acme-challenge.www.domain.com
