@@ -29,7 +29,7 @@ dns_ali_add() {
 
   record_id=$(_process_check_result)
 
-  if [ $record_id == 0 ]; then
+  if [ "$record_id" == 0 ]; then
     #Add
     _add_record_query "$_domain" "$_sub_domain" "$txtvalue"
   else
@@ -39,7 +39,7 @@ dns_ali_add() {
 
   _rest
 
-  echo $response
+  echo "$response"
 
   return 0
 }
@@ -61,7 +61,7 @@ _get_root() {
       return 1
     fi
 
-    _describe_records_query $h
+    _describe_records_query "$h"
     if ! _rest; then
       return 1
     fi
@@ -80,9 +80,9 @@ _get_root() {
 }
 
 _rest() {
-  signature=$(_sign $query)
-  signature=$(_urlencode $signature)
-  url= ${Ali_API}?${query}'&Signature='$signature
+  signature=$(_sign "$query")
+  signature=$(_urlencode "$signature")
+  url="$Ali_API"?"$query"&Signature="$signature"
 
   response="$(_get "$url")"
 
@@ -162,14 +162,14 @@ _time() {
   zone=$(date +%Z)
   sec=$(date +%s)
   t=$(date -d "1970-01-01 $zone $sec sec" +%Y-%m-%dT%H:%M:%SZ)
-  t=$(_urlencode $t)
-  echo $t
+  t=$(_urlencode "$t")
+  echo "$t"
 }
 
 _sign() {
   StringToSign='GET&'$(_urlencode '/')'&'
-  StringToSign=$StringToSign$(_urlencode $1)
-  echo -n $StringToSign | openssl sha1 -hmac $Ali_Secret'&' -binary | openssl base64
+  StringToSign=$StringToSign$(_urlencode "$1")
+  echo -n "$StringToSign" | openssl sha1 -hmac $Ali_Secret'&' -binary | openssl base64
 }
 
 _process_check_result() {
