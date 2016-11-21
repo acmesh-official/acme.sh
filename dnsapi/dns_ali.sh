@@ -170,8 +170,8 @@ _time() {
 
 _sign() {
   StringToSign='GET&'$(_urlencode '/')'&'
-  StringToSign=$StringToSign$(_urlencode  $1)
-  echo -n  $StringToSign | openssl sha1 -hmac $Ali_Secret'&' -binary | openssl base64
+  StringToSign=$StringToSign$(_urlencode $1)
+  echo -n $StringToSign | openssl sha1 -hmac $Ali_Secret'&' -binary | openssl base64
 }
 
 _process_check_result() {
