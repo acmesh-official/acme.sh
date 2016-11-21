@@ -2,10 +2,12 @@
 
 #ISPConfig 3.1 API - Add remote user and give him access to at least the "DNS txt functions"
 
-ISPC_User=""
-ISPC_Password=""
-# Provide proper URL and port for your ISPC Installation
-ISPC_Api="https://ispc.domain.tld:8080/remote/json.php"
+# User must provide login data and URL to the ISPConfig installation incl. port. The remote user in ISPConfig must have access to the dns_txt_function
+# Values to export:
+
+# export ISPC_User="remoteUser"
+# export ISPC_Password="remotePasword"
+# export ISPC_Api="https://ispc.domain.tld:8080/remote/json.php"
 
 ########  Public functions #####################
 
