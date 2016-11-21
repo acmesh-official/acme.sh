@@ -44,7 +44,6 @@ dns_ali_add() {
   return 0
 }
 
-
 dns_ali_rm() {
   fulldomain=$1
 }
@@ -98,7 +97,6 @@ _rest() {
 _urlencode() {
   python -c "import sys, urllib as ul;print ul.quote_plus('$1')"
 }
-
 
 _check_exist_query() {
   query=''
