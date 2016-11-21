@@ -43,7 +43,7 @@ _ISPC_login() {
   curData="{\"username\":\"${ISPC_User}\",\"password\":\"${ISPC_Password}\",\"client_login\":false}"
   curResult=$(curl -k --data "${curData}" "${ISPC_Api}?login")
   if _contains "${curResult}" '"code":"ok"'; then 
-    sessionID=$(echo $curResult | _egrep_o "response.*" | cut -d ':' -f 2)
+    sessionID=$(echo "${curResult}" | _egrep_o "response.*" | cut -d ':' -f 2)
     sessionID=${sessionID:1:-2}
     _info "Successfully retrieved Session ID."
   else
@@ -72,19 +72,19 @@ _ISPC_getZoneInfo () {
     fi
   done
   if [ ${zoneFound} ]; then
-    server_id=$(echo $curResult | _egrep_o "server_id.*" | cut -d ':' -f 2)
+    server_id=$(echo "${curResult}" | _egrep_o "server_id.*" | cut -d ':' -f 2)
     server_id=${server_id:1:-10}
     case ${server_id} in
       ''|*[!0-9]*) _err "Server ID is not numeric. Aborting" ;;
                 *) _info "Successfully retrieved Server ID" ;;
     esac
-      zone=$(echo $curResult | _egrep_o "\"id.*" | cut -d ':' -f 2)
+      zone=$(echo "${curResult}" | _egrep_o "\"id.*" | cut -d ':' -f 2)
       zone=${zone:1:-14}
       case ${zone} in
         ''|*[!0-9]*) _err "Zone ID is not numeric. Aborting" ;;
                   *) _info "Successfully retrieved Zone ID" ;;
     esac
-    client_id=$(echo $curResult | _egrep_o "sys_userid.*" | cut -d ':' -f 2)
+    client_id=$(echo "${curResult}" | _egrep_o "sys_userid.*" | cut -d ':' -f 2)
     client_id=${client_id:1:-15}
     case ${client_id} in
       ''|*[!0-9]*) _err "Client ID is not numeric. Aborting" ;;
@@ -101,7 +101,7 @@ _ISPC_addTxt () {
   params="\"server_id\":\"${server_id}\",\"zone\":\"${zone}\",\"name\":\"${fulldomain}\",\"type\":\"txt\",\"data\":\"${txtvalue}\",\"aux\":\"0\",\"ttl\":\"3600\",\"active\":\"y\",\"stamp\":\"${curStamp}\",\"serial\":\"${curSerial}\""
   curData="{\"session_id\":\"${sessionID}\",\"client_id\":\"${client_id}\",\"params\":{${params}}}"
   curResult=$(curl -k --data "${curData}" "${ISPC_Api}?dns_txt_add")
-  record_id=$(echo $curResult | _egrep_o "\"response.*" | cut -d ':' -f 2)
+  record_id=$(echo "${curResult}" | _egrep_o "\"response.*" | cut -d ':' -f 2)
   record_id=${record_id:1:-2}
   case ${record_id} in
     ''|*[!0-9]*) _err "Record ID is not numeric. Aborting" ;;
@@ -115,7 +115,6 @@ _ISPC_rmTxt () {
   for i in $record_data; do
     curData="{\"session_id\":\"${sessionID}\",\"primary_id\":\"${i}\"}"
     curResult=$(curl -k --data "${curData}" "${ISPC_Api}?dns_txt_delete")
-    echo $curResult;
     if _contains "${curResult}" '"code":"ok"'; then 
       _info "Successfully removed ACME challenge txt record."
     else
