@@ -69,13 +69,16 @@ dns_cyon_rm() {
 
 _load_credentials() {
   # Convert loaded password to/from base64 as needed.
-  if [ "${cyon_password_b64}" ] ; then
+  if [ "${cyon_password_b64}" ]; then
     cyon_password="$(echo "${cyon_password_b64}" | _dbase64)"
-  elif [ "${cyon_password}" ] ; then
+  elif [ "${cyon_password}" ]; then
     cyon_password_b64="$(echo "${cyon_password}" | _base64)"
   fi
 
-  if [ -z "${cyon_username}" ] || [ -z "${cyon_password}" ] ; then
+  if [ -z "${cyon_username}" ] || [ -z "${cyon_password}" ]; then
+    cyon_username=""
+    cyon_password=""
+    cyon_otp_secret=""
     _err ""
     _err "You haven't set your cyon.ch login credentials yet."
     _err "Please set the required cyon environment variables."
@@ -87,7 +90,7 @@ _load_credentials() {
   _debug "Save credentials to account.conf"
   _saveaccountconf cyon_username "${cyon_username}"
   _saveaccountconf cyon_password_b64 "$cyon_password_b64"
-  if [ ! -z "${cyon_otp_secret}" ] ; then
+  if [ ! -z "${cyon_otp_secret}" ]; then
     _saveaccountconf cyon_otp_secret "$cyon_otp_secret"
   fi
 }
@@ -105,7 +108,7 @@ _load_parameters() {
 
   # Special case for IDNs, as cyon needs a domain environment change,
   # which uses the "pretty" instead of the punycode version.
-  if _is_idn "$1" ; then
+  if _is_idn "$1"; then
     if ! _exists idn; then
       _fail "Please install idn to process IDN names."
     fi
@@ -168,16 +171,13 @@ _login() {
 
   _info "    success"
 
-
   # NECESSARY!! Load the main page after login, before the OTP check.
   curl "https://my.cyon.ch/" -s --compressed -b "${cookiejar}" >/dev/null
 
-
   # todo: instead of just checking if the env variable is defined, check if we actually need to do a 2FA auth request.
 
-
   # 2FA authentication with OTP?
-  if [ ! -z "${cyon_otp_secret}" ] ; then
+  if [ ! -z "${cyon_otp_secret}" ]; then
     _info "  - Authorising with OTP code..."
 
     if ! _exists oathtool; then
@@ -298,9 +298,8 @@ _delete_txt() {
 
   _dns_entry_num=0
 
-  echo "${_dns_entries}" | while read -r _hash _identifier
-  do
-    ((_dns_entry_num++))
+  echo "${_dns_entries}" | while read -r _hash _identifier; do
+    _dns_entry_num=$((_dns_entry_num + 1))
 
     delete_txt_response=$(curl \
       "https://my.cyon.ch/domain/dnseditor/delete-record-async" \
@@ -335,7 +334,7 @@ _delete_txt() {
 
 _check_2fa_miss() {
   # Did we miss the 2FA?
-  if [[ "$1" =~ "multi_factor_form" ]] ; then
+  if test "${1#*multi_factor_form}" != "$1"; then
     _fail "    Missed OTP authentication!"
   fi
 }
