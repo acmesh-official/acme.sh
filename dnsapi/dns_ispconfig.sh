@@ -80,8 +80,8 @@ _ISPC_getZoneInfo() {
       '' | *[!0-9]*) _err "Client ID is not numeric." ;;
       *) _info "Successfully retrieved Client ID" ;;
     esac
-    unset zoneFound
-    unset zoneEnd
+    zoneFound=""
+    zoneEnd=""
   fi
 }
 
