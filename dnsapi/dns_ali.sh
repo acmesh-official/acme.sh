@@ -174,10 +174,10 @@ _clean() {
 
   local records="$(echo "$response" -n | _egrep_o "\"RecordId\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
   echo -n "$records" \
-  | while read -r record_id; do
-    _delete_record_query "$record_id"
-    _ali_rest "ignore"
-  done
+    | while read -r record_id; do
+      _delete_record_query "$record_id"
+      _ali_rest "ignore"
+    done
 }
 
 _timestamp() {
