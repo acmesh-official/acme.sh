@@ -1,10 +1,11 @@
 #!/usr/bin/env sh
 
-#ISPConfig 3.1 API - Add remote user and give him access to at least the "DNS txt functions"
-
+# ISPConfig 3.1 API
 # User must provide login data and URL to the ISPConfig installation incl. port. The remote user in ISPConfig must have access to:
 # - DNS zone Functions
 # - DNS txt Functions
+
+# Report bugs to https://github.com/sjau/acme.sh
 
 # Values to export:
 # export ISPC_User="remoteUser"
