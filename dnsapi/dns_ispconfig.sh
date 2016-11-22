@@ -146,19 +146,18 @@ _ISPC_rmTxt() {
       record_id=$(echo "${i}" | _egrep_o "\"id.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
       case "${record_id}" in
         '' | *[!0-9]*)
-          # Setting to debug only becase there's no harm if the txt record remains
-          _debug "Record ID is not numeric."
+          _err "Record ID is not numeric."
           return 1
           ;;
         *)
+          unset IFS
           _info "Successfully retrieved Record ID"
           curData="{\"session_id\":\"${sessionID}\",\"primary_id\":\"${record_id}\"}"
           curResult="$(_post "${curData}" "${ISPC_Api}?dns_txt_delete")"
           if _contains "${curResult}" '"code":"ok"'; then
             _info "Successfully removed ACME challenge txt record."
           else
-            # Setting it to debug only because there's no harm if the txt record remains
-            _debug "Couldn't remove ACME challenge txt record."
+            _err "Couldn't remove ACME challenge txt record."
             return 1
           fi
           ;;
