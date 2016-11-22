@@ -11,12 +11,12 @@
 # export ISPC_User="remoteUser"
 # export ISPC_Password="remotePasword"
 # export ISPC_Api="https://ispc.domain.tld:8080/remote/json.php"
+# export ISPC_Api_Insecure=1     # Set 1 for insecure and 0 for secure -> difference is whether ssl cert is checked for validity (0) or whether it is just accepted (1)
 
 ########  Public functions #####################
 
 #Usage: dns_myapi_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_ispconfig_add() {
-  HTTPS_INSECURE=1
   fulldomain="${1}"
   txtvalue="${2}"
   _ISPC_credentials && _ISPC_login && _ISPC_getZoneInfo && _ISPC_addTxt
@@ -24,24 +24,27 @@ dns_ispconfig_add() {
 
 #Usage: dns_myapi_rm   _acme-challenge.www.domain.com
 dns_ispconfig_rm() {
-  HTTPS_INSECURE=1
   fulldomain="${1}"
-  _ISPC_login && _ISPC_rmTxt
+  _ISPC_credentials && _ISPC_login && _ISPC_rmTxt
 }
 
 ####################  Private functions bellow ##################################
 
 _ISPC_credentials() {
-  if [ -z "$ISPC_User" ] || [ -z "$ISPC_Password" ] || [ -z "$ISPC_Api" ]; then
+  if [ -z "${ISPC_User}" ] || [ -z "$ISPC_Password" ] || [ -z "${ISPC_Api}" ] || [ -z "${ISPC_Api_Insecure}" ] ; then
     ISPC_User=""
     ISPC_Password=""
     ISPC_Api=""
-    _err "You haven't specified the ISPConfig Login data and the URL. Please try again."
+    ISPC_Api_Insecure=""
+    _err "You haven't specified the ISPConfig Login data, URL and whether you want check the ISPC SSL cert. Please try again."
     return 1
   else
     _saveaccountconf ISPC_User "${ISPC_User}"
     _saveaccountconf ISPC_Password "${ISPC_Password}"
     _saveaccountconf ISPC_Api "${ISPC_Api}"
+    _saveaccountconf ISPC_Api_Insecure "${ISPC_Api_Insecure}"
+    # Set whether curl should use secure or insecure mode
+    HTTPS_INSECURE="${ISPC_Api_Insecure}"
   fi
 }
 
