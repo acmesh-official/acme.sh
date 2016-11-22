@@ -1,24 +1,30 @@
 language: shell
 sudo: required
 
+os:
+  - linux
+  - osx
+
 env:
   global:
     - SHFMT_URL=https://github.com/mvdan/sh/releases/download/v0.4.0/shfmt_v0.4.0_linux_amd64
 
 addons:
   apt:
-    sources:
-    - debian-sid    # Grab shellcheck from the Debian repo (o_O)
     packages:
     - shellcheck
 
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then brew update          ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install shellcheck; fi
+  
 script:
-  - curl -sSL $SHFMT_URL -o ~/shfmt
-  - chmod +x ~/shfmt
-  - ~/shfmt -l -w -i 2 .
-  - git diff --exit-code && echo "shfmt OK"
-  - shellcheck -V
-  - shellcheck -e SC2021,SC2126,SC2034 **/*.sh && echo "shellcheck OK"
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl -sSL $SHFMT_URL -o ~/shfmt ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; chmod +x ~/shfmt ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; ~/shfmt -l -w -i 2 . ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; git diff --exit-code && echo "shfmt OK" ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; shellcheck -V ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; shellcheck -e SC2021,SC2126,SC2034 **/*.sh && echo "shellcheck OK" ; fi
   - cd ..
   - git clone https://github.com/Neilpang/acmetest.git && cp -r acme.sh acmetest/ && cd acmetest
   - sudo ./letest.sh
