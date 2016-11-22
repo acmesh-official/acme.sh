@@ -31,7 +31,7 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then shellcheck -e SC2021,SC2126,SC2034 **/*.sh && echo "shellcheck OK" ; fi
   - cd ..
   - git clone https://github.com/Neilpang/acmetest.git && cp -r acme.sh acmetest/ && cd acmetest
-  - sudo ./letest.sh
+  - sudo NGROK_TOKEN="$NGROK_TOKEN" ./letest.sh
 
 
 matrix:
