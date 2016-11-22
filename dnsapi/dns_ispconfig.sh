@@ -18,14 +18,14 @@ dns_ispconfig_add() {
   HTTPS_INSECURE=1
   fulldomain="${1}"
   txtvalue="${2}"
-  _ISPC_credentials && _ISPC_login && _ISPC_getZoneInfo && _ISPC_addTxt || return 1
+  _ISPC_credentials && _ISPC_login && _ISPC_getZoneInfo && _ISPC_addTxt
 }
 
 #Usage: dns_myapi_rm   _acme-challenge.www.domain.com
 dns_ispconfig_rm() {
   HTTPS_INSECURE=1
   fulldomain="${1}"
-  _ISPC_login && _ISPC_rmTxt || return 1
+  _ISPC_login && _ISPC_rmTxt
 }
 
 ####################  Private functions bellow ##################################
