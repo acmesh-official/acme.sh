@@ -172,7 +172,7 @@ _clean() {
     return 1
   fi
 
-  local records="$(echo "$response" -n | _egrep_o "\"RecordId\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
+  records="$(echo "$response" -n | _egrep_o "\"RecordId\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
   echo -n "$records" \
     | while read -r record_id; do
       _delete_record_query "$record_id"
