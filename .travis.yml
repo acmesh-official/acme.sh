@@ -16,13 +16,14 @@ addons:
     packages:
     - shellcheck
 
-#before_install:
-#  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
-#  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install shellcheck; fi
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install openssl ; fi
   
 script:
   - echo "TEST_LOCAL=$TEST_LOCAL"
   - echo "NGROK_TOKEN=$(echo "$NGROK_TOKEN" | wc -c)"
+  - openssl version
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl -sSL $SHFMT_URL -o ~/shfmt ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then chmod +x ~/shfmt ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ~/shfmt -l -w -i 2 . ; fi
