@@ -54,6 +54,7 @@ _ISPC_login() {
     _info "Successfully retrieved Session ID."
   else
     _err "Couldn't retrieve the Session ID."
+    return 1
   fi
 }
 
@@ -77,22 +78,32 @@ _ISPC_getZoneInfo() {
     else
       zoneEnd=true
       _err "Couldn't retrieve zone info."
+      return 1
     fi
   done
   if [ ${zoneFound} ]; then
     server_id=$(echo "${curResult}" | _egrep_o "server_id.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
     case ${server_id} in
-      '' | *[!0-9]*) _err "Server ID is not numeric." ;;
+      '' | *[!0-9]*)
+        _err "Server ID is not numeric."
+        return 1
+        ;;
       *) _info "Successfully retrieved Server ID" ;;
     esac
     zone=$(echo "${curResult}" | _egrep_o "\"id.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
     case ${zone} in
-      '' | *[!0-9]*) _err "Zone ID is not numeric." ;;
+      '' | *[!0-9]*)
+        _err "Zone ID is not numeric."
+        return 1
+        ;;
       *) _info "Successfully retrieved Zone ID" ;;
     esac
     client_id=$(echo "${curResult}" | _egrep_o "sys_userid.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
     case ${client_id} in
-      '' | *[!0-9]*) _err "Client ID is not numeric." ;;
+      '' | *[!0-9]*)
+        _err "Client ID is not numeric."
+        return 1
+        ;;
       *) _info "Successfully retrieved Client ID" ;;
     esac
     zoneFound=""
@@ -108,7 +119,10 @@ _ISPC_addTxt() {
   curResult=$(_post "${curData}" "${ISPC_Api}?dns_txt_add")
   record_id=$(echo "${curResult}" | _egrep_o "\"response.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
   case ${record_id} in
-    '' | *[!0-9]*) _err "Record ID is not numeric." ;;
+    '' | *[!0-9]*)
+      _err "Record ID is not numeric."
+      return 1
+      ;;
     *)
       _info "Successfully retrieved Record ID"
       # Make space seperated string of record IDs for later removal.
