@@ -22,6 +22,8 @@ DEFAULT_ACCOUNT_EMAIL=""
 DEFAULT_ACCOUNT_KEY_LENGTH=2048
 DEFAULT_DOMAIN_KEY_LENGTH=2048
 
+DEFAULT_OPENSSL_BIN="openssl"
+
 STAGE_CA="https://acme-staging.api.letsencrypt.org"
 
 VTYPE_HTTP="http-01"
@@ -95,11 +97,11 @@ _printargs() {
 
 _dlg_versions() {
   echo "Diagnosis versions: "
-  echo "openssl:"
-  if _exists openssl; then
-    openssl version 2>&1
+  echo "openssl:$OPENSSL_BIN"
+  if _exists "$OPENSSL_BIN"; then
+    $OPENSSL_BIN version 2>&1
   else
-    echo "openssl doesn't exists."
+    echo "$OPENSSL_BIN doesn't exists."
   fi
 
   echo "apache:"
@@ -399,18 +401,18 @@ _getfile() {
 #Usage: multiline
 _base64() {
   if [ "$1" ]; then
-    openssl base64 -e
+    $OPENSSL_BIN base64 -e
   else
-    openssl base64 -e | tr -d '\r\n'
+    $OPENSSL_BIN base64 -e | tr -d '\r\n'
   fi
 }
 
 #Usage: multiline
 _dbase64() {
   if [ "$1" ]; then
-    openssl base64 -d -A
+    $OPENSSL_BIN base64 -d -A
   else
-    openssl base64 -d
+    $OPENSSL_BIN base64 -d
   fi
 }
 
@@ -427,9 +429,9 @@ _digest() {
 
   if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ] || [ "$alg" = "md5" ]; then
     if [ "$outputhex" ]; then
-      openssl dgst -"$alg" -hex | cut -d = -f 2 | tr -d ' '
+      $OPENSSL_BIN dgst -"$alg" -hex | cut -d = -f 2 | tr -d ' '
     else
-      openssl dgst -"$alg" -binary | _base64
+      $OPENSSL_BIN dgst -"$alg" -binary | _base64
     fi
   else
     _err "$alg is not supported yet"
@@ -452,9 +454,9 @@ _hmac() {
 
   if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ]; then
     if [ "$outputhex" ]; then
-      openssl dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" | cut -d = -f 2 | tr -d ' '
+      $OPENSSL_BIN dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" | cut -d = -f 2 | tr -d ' '
     else
-      openssl dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" -binary
+      $OPENSSL_BIN dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" -binary
     fi
   else
     _err "$alg is not supported yet"
@@ -473,7 +475,7 @@ _sign() {
     return 1
   fi
 
-  _sign_openssl="openssl   dgst -sign $keyfile "
+  _sign_openssl="$OPENSSL_BIN   dgst -sign $keyfile "
   if [ "$alg" = "sha256" ]; then
     _sign_openssl="$_sign_openssl -$alg"
   else
@@ -484,7 +486,7 @@ _sign() {
   if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     $_sign_openssl | _base64
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
-    if ! _signedECText="$($_sign_openssl | openssl asn1parse -inform DER)"; then
+    if ! _signedECText="$($_sign_openssl | $OPENSSL_BIN asn1parse -inform DER)"; then
       _err "Sign failed: $_sign_openssl"
       _err "Key file: $keyfile"
       _err "Key content:$(wc -l <"$keyfile") lises"
@@ -546,10 +548,10 @@ _createkey() {
 
   if _isEccKey "$length"; then
     _debug "Using ec name: $eccname"
-    openssl ecparam -name "$eccname" -genkey 2>/dev/null >"$f"
+    $OPENSSL_BIN ecparam -name "$eccname" -genkey 2>/dev/null >"$f"
   else
     _debug "Using RSA: $length"
-    openssl genrsa "$length" 2>/dev/null >"$f"
+    $OPENSSL_BIN genrsa "$length" 2>/dev/null >"$f"
   fi
 
   if [ "$?" != "0" ]; then
@@ -634,7 +636,7 @@ _createcsr() {
 
   _csr_cn="$(_idn "$domain")"
   _debug2 _csr_cn "$_csr_cn"
-  openssl req -new -sha256 -key "$csrkey" -subj "/CN=$_csr_cn" -config "$csrconf" -out "$csr"
+  $OPENSSL_BIN req -new -sha256 -key "$csrkey" -subj "/CN=$_csr_cn" -config "$csrconf" -out "$csr"
 }
 
 #_signcsr key  csr  conf cert
@@ -645,7 +647,7 @@ _signcsr() {
   cert="$4"
   _debug "_signcsr"
 
-  _msg="$(openssl x509 -req -days 365 -in "$csr" -signkey "$key" -extensions v3_req -extfile "$conf" -out "$cert" 2>&1)"
+  _msg="$($OPENSSL_BIN x509 -req -days 365 -in "$csr" -signkey "$key" -extensions v3_req -extfile "$conf" -out "$cert" 2>&1)"
   _ret="$?"
   _debug "$_msg"
   return $_ret
@@ -658,7 +660,7 @@ _readSubjectFromCSR() {
     _usage "_readSubjectFromCSR mycsr.csr"
     return 1
   fi
-  openssl req -noout -in "$_csrfile" -subject | _egrep_o "CN=.*" | cut -d = -f 2 | cut -d / -f 1 | tr -d '\n'
+  $OPENSSL_BIN req -noout -in "$_csrfile" -subject | _egrep_o "CN=.*" | cut -d = -f 2 | cut -d / -f 1 | tr -d '\n'
 }
 
 #_csrfile
@@ -673,7 +675,7 @@ _readSubjectAltNamesFromCSR() {
   _csrsubj="$(_readSubjectFromCSR "$_csrfile")"
   _debug _csrsubj "$_csrsubj"
 
-  _dnsAltnames="$(openssl req -noout -text -in "$_csrfile" | grep "^ *DNS:.*" | tr -d ' \n')"
+  _dnsAltnames="$($OPENSSL_BIN req -noout -text -in "$_csrfile" | grep "^ *DNS:.*" | tr -d ' \n')"
   _debug _dnsAltnames "$_dnsAltnames"
 
   if _contains "$_dnsAltnames," "DNS:$_csrsubj,"; then
@@ -694,7 +696,7 @@ _readKeyLengthFromCSR() {
     return 1
   fi
 
-  _outcsr="$(openssl req -noout -text -in "$_csrfile")"
+  _outcsr="$($OPENSSL_BIN req -noout -text -in "$_csrfile")"
   if _contains "$_outcsr" "Public Key Algorithm: id-ecPublicKey"; then
     _debug "ECC CSR"
     echo "$_outcsr" | _egrep_o "^ *ASN1 OID:.*" | cut -d ':' -f 2 | tr -d ' '
@@ -748,9 +750,9 @@ toPkcs() {
   _initpath "$domain" "$_isEcc"
 
   if [ "$pfxPassword" ]; then
-    openssl pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH" -password "pass:$pfxPassword"
+    $OPENSSL_BIN pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH" -password "pass:$pfxPassword"
   else
-    openssl pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH"
+    $OPENSSL_BIN pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH"
   fi
 
   if [ "$?" = "0" ]; then
@@ -912,7 +914,7 @@ _calcjwk() {
 
   if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     _debug "RSA key"
-    pub_exp=$(openssl rsa -in "$keyfile" -noout -text | grep "^publicExponent:" | cut -d '(' -f 2 | cut -d 'x' -f 2 | cut -d ')' -f 1)
+    pub_exp=$($OPENSSL_BIN rsa -in "$keyfile" -noout -text | grep "^publicExponent:" | cut -d '(' -f 2 | cut -d 'x' -f 2 | cut -d ')' -f 1)
     if [ "${#pub_exp}" = "5" ]; then
       pub_exp=0$pub_exp
     fi
@@ -921,7 +923,7 @@ _calcjwk() {
     e=$(echo "$pub_exp" | _h2b | _base64)
     _debug3 e "$e"
 
-    modulus=$(openssl rsa -in "$keyfile" -modulus -noout | cut -d '=' -f 2)
+    modulus=$($OPENSSL_BIN rsa -in "$keyfile" -modulus -noout | cut -d '=' -f 2)
     _debug3 modulus "$modulus"
     n="$(printf "%s" "$modulus" | _h2b | _base64 | _urlencode)"
     jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
@@ -932,12 +934,12 @@ _calcjwk() {
     JWK_HEADERPLACE_PART2='", "alg": "RS256", "jwk": '$jwk'}'
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     _debug "EC key"
-    crv="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
+    crv="$($OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
     _debug3 crv "$crv"
 
     if [ -z "$crv" ]; then
       _debug "Let's try ASN1 OID"
-      crv_oid="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | grep "^ASN1 OID:" | cut -d ":" -f 2 | tr -d " \r\n")"
+      crv_oid="$($OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | grep "^ASN1 OID:" | cut -d ":" -f 2 | tr -d " \r\n")"
       _debug3 crv_oid "$crv_oid"
       case "${crv_oid}" in
         "prime256v1")
@@ -957,15 +959,15 @@ _calcjwk() {
       _debug3 crv "$crv"
     fi
 
-    pubi="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | grep -n pub: | cut -d : -f 1)"
+    pubi="$($OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | grep -n pub: | cut -d : -f 1)"
     pubi=$(_math "$pubi" + 1)
     _debug3 pubi "$pubi"
 
-    pubj="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | grep -n "ASN1 OID:" | cut -d : -f 1)"
+    pubj="$($OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | grep -n "ASN1 OID:" | cut -d : -f 1)"
     pubj=$(_math "$pubj" - 1)
     _debug3 pubj "$pubj"
 
-    pubtext="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | sed -n "$pubi,${pubj}p" | tr -d " \n\r")"
+    pubtext="$($OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | sed -n "$pubi,${pubj}p" | tr -d " \n\r")"
     _debug3 pubtext "$pubtext"
 
     xlen="$(printf "%s" "$pubtext" | tr -d ':' | wc -c)"
@@ -1549,7 +1551,7 @@ _starttlsserver() {
     return 1
   fi
 
-  __S_OPENSSL="openssl s_server -cert $TLS_CERT  -key $TLS_KEY "
+  __S_OPENSSL="$OPENSSL_BIN s_server -cert $TLS_CERT  -key $TLS_KEY "
   if [ "$opaddr" ]; then
     __S_OPENSSL="$__S_OPENSSL -accept $opaddr:$port"
   else
@@ -1564,7 +1566,6 @@ _starttlsserver() {
     __S_OPENSSL="$__S_OPENSSL -6"
   fi
 
-  #start openssl
   _debug "$__S_OPENSSL"
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
     (printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $__S_OPENSSL -tlsextdebug) &
@@ -1716,6 +1717,10 @@ _initpath() {
   _DEFAULT_CERT_HOME="$LE_WORKING_DIR"
   if [ -z "$CERT_HOME" ]; then
     CERT_HOME="$_DEFAULT_CERT_HOME"
+  fi
+
+  if [ -z "$OPENSSL_BIN" ]; then
+    OPENSSL_BIN="$DEFAULT_OPENSSL_BIN"
   fi
 
   if [ -z "$1" ]; then
@@ -3576,6 +3581,7 @@ _initconf() {
 #FORCE=1 # Force to issue cert
 #DEBUG=1 # Debug mode
 
+#OPENSSL_BIN=openssl
 
 #USER_AGENT=\"$USER_AGENT\"
 
@@ -3651,7 +3657,7 @@ _precheck() {
     fi
   fi
 
-  if ! _exists "openssl"; then
+  if ! _exists "$OPENSSL_BIN"; then
     _err "Please install openssl first."
     _err "We need openssl to generate keys."
     return 1
@@ -3979,6 +3985,7 @@ Parameters:
   --auto-upgrade   [0|1]            Valid for '--upgrade' command, indicating whether to upgrade automatically in future.
   --listen-v4                       Force standalone/tls server to listen at ipv4.
   --listen-v6                       Force standalone/tls server to listen at ipv6.
+  --openssl-bin                     Specifies a custom openssl bin location.
   "
 }
 
@@ -4042,6 +4049,12 @@ _processAccountConf() {
     _saveaccountconf "ACCOUNT_EMAIL" "$ACCOUNT_EMAIL"
   fi
 
+  if [ "$_openssl_bin" ]; then
+    _saveaccountconf "OPENSSL_BIN" "$_openssl_bin"
+  elif [ "$OPENSSL_BIN" ] && [ "$OPENSSL_BIN" != "$DEFAULT_OPENSSL_BIN" ]; then
+    _saveaccountconf "OPENSSL_BIN" "$OPENSSL_BIN"
+  fi
+
   if [ "$_auto_upgrade" ]; then
     _saveaccountconf "AUTO_UPGRADE" "$_auto_upgrade"
   elif [ "$AUTO_UPGRADE" ]; then
@@ -4089,6 +4102,7 @@ _process() {
   _auto_upgrade=""
   _listen_v4=""
   _listen_v6=""
+  _openssl_bin=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -4420,7 +4434,10 @@ _process() {
         _listen_v6="1"
         Le_Listen_V6="$_listen_v6"
         ;;
-
+      --openssl-bin)
+        _openssl_bin="$2"
+        OPENSSL_BIN="$_openssl_bin"
+        ;;
       *)
         _err "Unknown parameter : $1"
         return 1
