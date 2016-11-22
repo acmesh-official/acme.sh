@@ -2,7 +2,7 @@
 
 Ali_API="https://alidns.aliyuncs.com/"
 
-#Ali_Key="LTqIA87hOKdjevs5"
+#Ali_Key="LTqIA87hOKdjevsf5"
 #Ali_Secret="0p5EYueFNq501xnCPzKNbx6K51qPH2"
 
 #Usage: dns_ali_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
