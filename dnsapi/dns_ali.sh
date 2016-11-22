@@ -25,13 +25,13 @@ dns_ali_add() {
   if ! _get_root "$fulldomain"; then
     return 1
   fi
-  
+
   _add_record_query "$_domain" "$_sub_domain" "$txtvalue"
 
   if ! _ali_rest; then
     return 1
   fi
-  
+
   return 0
 }
 
@@ -88,7 +88,7 @@ _ali_rest() {
       return 1
     fi
   fi
-  
+
   _debug2 response "$response"
   return 0
 }
@@ -96,8 +96,8 @@ _ali_rest() {
 _urlencode() {
   local dataLength="${#1}"
   local index
- 
-  for ((index = 0;index < dataLength;index++)); do
+
+  for ((index = 0; index < dataLength; index++)); do
     local char="${1:index:1}"
     case $char in [a-zA-Z0-9.~_-])
       printf "$char"
@@ -117,7 +117,7 @@ _check_exist_query() {
   query=$query'&Format=json'
   query=$query'&RRKeyWord=_acme-challenge'
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query'&SignatureNonce='$RANDOM
+  query=$query'&SignatureNonce=$(cat /proc/sys/kernel/random/uuid)'
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&TypeKeyWord=TXT'
@@ -132,7 +132,7 @@ _add_record_query() {
   query=$query'&Format=json'
   query=$query'&RR='$2
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query'&SignatureNonce='$RANDOM
+  query=$query'&SignatureNonce=$(cat /proc/sys/kernel/random/uuid)'
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&Type=TXT'
@@ -147,7 +147,7 @@ _delete_record_query() {
   query=$query'&Format=json'
   query=$query'&RecordId='$1
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query'&SignatureNonce='$RANDOM
+  query=$query'&SignatureNonce=$(cat /proc/sys/kernel/random/uuid)'
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&Version=2015-01-09'
@@ -160,7 +160,7 @@ _describe_records_query() {
   query=$query'&DomainName='$1
   query=$query'&Format=json'
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query'&SignatureNonce='$RANDOM
+  query=$query'&SignatureNonce=$(cat /proc/sys/kernel/random/uuid)'
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&Version=2015-01-09'
@@ -171,12 +171,12 @@ _clean() {
   if ! _ali_rest "ignore"; then
     return 1
   fi
-  
+
   local records="$(echo "$response" -n | _egrep_o "\"RecordId\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
-  echo -n "$records" | 
-  while read record_id
+  echo -n "$records" \
+  | while read -r record_id;
   do
-    _delete_record_query $record_id
+    _delete_record_query "$record_id"
     _ali_rest "ignore"
   done
 }
