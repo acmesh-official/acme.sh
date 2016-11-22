@@ -2,9 +2,11 @@
 
 #ISPConfig 3.1 API - Add remote user and give him access to at least the "DNS txt functions"
 
-# User must provide login data and URL to the ISPConfig installation incl. port. The remote user in ISPConfig must have access to the dns_txt_function
-# Values to export:
+# User must provide login data and URL to the ISPConfig installation incl. port. The remote user in ISPConfig must have access to:
+# - DNS zone Functions
+# - DNS txt Functions
 
+# Values to export:
 # export ISPC_User="remoteUser"
 # export ISPC_Password="remotePasword"
 # export ISPC_Api="https://ispc.domain.tld:8080/remote/json.php"
@@ -45,8 +47,7 @@ _ISPC_login() {
   curData="{\"username\":\"${ISPC_User}\",\"password\":\"${ISPC_Password}\",\"client_login\":false}"
   curResult=$(curl -k --data "${curData}" "${ISPC_Api}?login")
   if _contains "${curResult}" '"code":"ok"'; then
-    sessionID=$(echo "${curResult}" | _egrep_o "response.*" | cut -d ':' -f 2)
-    sessionID=${sessionID:1:-2}
+    sessionID=$(echo "${curResult}" | _egrep_o "response.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
     _info "Successfully retrieved Session ID."
   else
     _err "Couldn't retrieve the Session ID."
@@ -76,20 +77,17 @@ _ISPC_getZoneInfo() {
     fi
   done
   if [ ${zoneFound} ]; then
-    server_id=$(echo "${curResult}" | _egrep_o "server_id.*" | cut -d ':' -f 2)
-    server_id=${server_id:1:-10}
+    server_id=$(echo "${curResult}" | _egrep_o "server_id.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
     case ${server_id} in
       '' | *[!0-9]*) _err "Server ID is not numeric." ;;
       *) _info "Successfully retrieved Server ID" ;;
     esac
-    zone=$(echo "${curResult}" | _egrep_o "\"id.*" | cut -d ':' -f 2)
-    zone=${zone:1:-14}
+    zone=$(echo "${curResult}" | _egrep_o "\"id.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
     case ${zone} in
       '' | *[!0-9]*) _err "Zone ID is not numeric." ;;
       *) _info "Successfully retrieved Zone ID" ;;
     esac
-    client_id=$(echo "${curResult}" | _egrep_o "sys_userid.*" | cut -d ':' -f 2)
-    client_id=${client_id:1:-15}
+    client_id=$(echo "${curResult}" | _egrep_o "sys_userid.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
     case ${client_id} in
       '' | *[!0-9]*) _err "Client ID is not numeric." ;;
       *) _info "Successfully retrieved Client ID" ;;
@@ -105,8 +103,7 @@ _ISPC_addTxt() {
   params="\"server_id\":\"${server_id}\",\"zone\":\"${zone}\",\"name\":\"${fulldomain}\",\"type\":\"txt\",\"data\":\"${txtvalue}\",\"aux\":\"0\",\"ttl\":\"3600\",\"active\":\"y\",\"stamp\":\"${curStamp}\",\"serial\":\"${curSerial}\""
   curData="{\"session_id\":\"${sessionID}\",\"client_id\":\"${client_id}\",\"params\":{${params}}}"
   curResult=$(curl -k --data "${curData}" "${ISPC_Api}?dns_txt_add")
-  record_id=$(echo "${curResult}" | _egrep_o "\"response.*" | cut -d ':' -f 2)
-  record_id=${record_id:1:-2}
+  record_id=$(echo "${curResult}" | _egrep_o "\"response.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
   case ${record_id} in
     '' | *[!0-9]*) _err "Record ID is not numeric." ;;
     *)
