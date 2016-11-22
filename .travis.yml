@@ -11,6 +11,8 @@ env:
 
 addons:
   apt:
+    sources:
+    - debian-sid    # Grab shellcheck from the Debian repo (o_O)
     packages:
     - shellcheck
 
