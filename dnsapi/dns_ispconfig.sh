@@ -45,7 +45,7 @@ _ISPC_credentials() {
 _ISPC_login() {
   _info "Getting Session ID"
   curData="{\"username\":\"${ISPC_User}\",\"password\":\"${ISPC_Password}\",\"client_login\":false}"
-  curResult=$(curl -k --data "${curData}" "${ISPC_Api}?login")
+  curResult=$(_post "${curData}" "${ISPC_Api}?login")
   if _contains "${curResult}" '"code":"ok"'; then
     sessionID=$(echo "${curResult}" | _egrep_o "response.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
     _info "Successfully retrieved Session ID."
@@ -63,7 +63,7 @@ _ISPC_getZoneInfo() {
     curZone="${curZone#*.}"
     # suffix . needed for zone -> domain.tld.
     curData="{\"session_id\":\"${sessionID}\",\"primary_id\":[{\"origin\":\"${curZone}.\"}]}"
-    curResult=$(curl -k --data "${curData}" "${ISPC_Api}?dns_zone_get")
+    curResult=$(_post "${curData}" "${ISPC_Api}?dns_zone_get")
     if _contains "${curResult}" '"id":"'; then
       zoneFound=true
       zoneEnd=true
@@ -102,7 +102,7 @@ _ISPC_addTxt() {
   curStamp="$(date +'%F %T')"
   params="\"server_id\":\"${server_id}\",\"zone\":\"${zone}\",\"name\":\"${fulldomain}\",\"type\":\"txt\",\"data\":\"${txtvalue}\",\"aux\":\"0\",\"ttl\":\"3600\",\"active\":\"y\",\"stamp\":\"${curStamp}\",\"serial\":\"${curSerial}\""
   curData="{\"session_id\":\"${sessionID}\",\"client_id\":\"${client_id}\",\"params\":{${params}}}"
-  curResult=$(curl -k --data "${curData}" "${ISPC_Api}?dns_txt_add")
+  curResult=$(_post "${curData}" "${ISPC_Api}?dns_txt_add")
   record_id=$(echo "${curResult}" | _egrep_o "\"response.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
   case ${record_id} in
     '' | *[!0-9]*) _err "Record ID is not numeric." ;;
@@ -118,7 +118,7 @@ _ISPC_rmTxt() {
   IFS=" "
   for i in $record_data; do
     curData="{\"session_id\":\"${sessionID}\",\"primary_id\":\"${i}\"}"
-    curResult=$(curl -k --data "${curData}" "${ISPC_Api}?dns_txt_delete")
+    curResult=$(_post "${curData}" "${ISPC_Api}?dns_txt_delete")
     if _contains "${curResult}" '"code":"ok"'; then
       _info "Successfully removed ACME challenge txt record."
     else
