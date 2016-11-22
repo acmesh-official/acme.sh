@@ -65,7 +65,7 @@ _ISPC_getZoneInfo() {
   _info "Getting Zoneinfo"
   zoneEnd=false
   curZone="${fulldomain}"
-  while [ ${zoneEnd} = false ]; do
+  while [ "${zoneEnd}" = false ]; do
     # we can strip the first part of the fulldomain, since it's just the _acme-challenge string
     curZone="${curZone#*.}"
     # suffix . needed for zone -> domain.tld.
@@ -84,9 +84,9 @@ _ISPC_getZoneInfo() {
       return 1
     fi
   done
-  if [ ${zoneFound} ]; then
+  if [ "${zoneFound}" ]; then
     server_id=$(echo "${curResult}" | _egrep_o "server_id.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
-    case ${server_id} in
+    case "${server_id}" in
       '' | *[!0-9]*)
         _err "Server ID is not numeric."
         return 1
@@ -94,7 +94,7 @@ _ISPC_getZoneInfo() {
       *) _info "Successfully retrieved Server ID" ;;
     esac
     zone=$(echo "${curResult}" | _egrep_o "\"id.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
-    case ${zone} in
+    case "${zone}" in
       '' | *[!0-9]*)
         _err "Zone ID is not numeric."
         return 1
@@ -102,7 +102,7 @@ _ISPC_getZoneInfo() {
       *) _info "Successfully retrieved Zone ID" ;;
     esac
     client_id=$(echo "${curResult}" | _egrep_o "sys_userid.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
-    case ${client_id} in
+    case "${client_id}" in
       '' | *[!0-9]*)
         _err "Client ID is not numeric."
         return 1
@@ -121,7 +121,7 @@ _ISPC_addTxt() {
   curData="{\"session_id\":\"${sessionID}\",\"client_id\":\"${client_id}\",\"params\":{${params}}}"
   curResult=$(_post "${curData}" "${ISPC_Api}?dns_txt_add")
   record_id=$(echo "${curResult}" | _egrep_o "\"response.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
-  case ${record_id} in
+  case "${record_id}" in
     '' | *[!0-9]*)
       _err "Record ID is not numeric."
       return 1
@@ -144,7 +144,7 @@ _ISPC_rmTxt() {
     if _contains "${i}" "${fulldomain}"; then
       _info "Successfully found ACME challenge txt record."
       record_id=$(echo "${i}" | _egrep_o "\"id.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
-      case ${record_id} in
+      case "${record_id}" in
         '' | *[!0-9]*)
           # Setting to debug only becase there's no harm if the txt record remains
           _debug "Record ID is not numeric."
