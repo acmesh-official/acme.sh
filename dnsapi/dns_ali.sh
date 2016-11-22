@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-Ali_API='https://alidns.aliyuncs.com/'
+Ali_API="https://alidns.aliyuncs.com/"
+
+#Ali_Key="LTqIA87hOKdjevs5"
+#Ali_Secret="0p5EYueFNq501xnCPzKNbx6K51qPH2"
 
 #Usage: dns_ali_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_ali_add() {
@@ -22,30 +25,19 @@ dns_ali_add() {
   if ! _get_root "$fulldomain"; then
     return 1
   fi
+  
+  _add_record_query "$_domain" "$_sub_domain" "$txtvalue"
 
-  _check_exist_query "$_domain" "$_sub_domain"
-
-  _rest
-
-  record_id=$(_process_check_result)
-
-  if [ "$record_id" == 0 ]; then
-    #Add
-    _add_record_query "$_domain" "$_sub_domain" "$txtvalue"
-  else
-    #Update
-    _update_record_query "$record_id" "$_sub_domain" "$txtvalue"
+  if ! _ali_rest; then
+    return 1
   fi
-
-  _rest
-
-  echo "$response"
-
+  
   return 0
 }
 
 dns_ali_rm() {
   fulldomain=$1
+  _clean
 }
 
 ####################  Private functions bellow ##################################
@@ -62,7 +54,7 @@ _get_root() {
     fi
 
     _describe_records_query "$h"
-    if ! _rest; then
+    if ! _ali_rest "ignore"; then
       return 1
     fi
 
@@ -79,23 +71,42 @@ _get_root() {
   return 1
 }
 
-_rest() {
-  signature=$(_sign "$query")
+_ali_rest() {
+  local signature=$(echo -n "GET&%2F&$(_urlencode "$query")" | _hmac "sha1" "$(_hex "$Ali_Secret&")" | _base64)
   signature=$(_urlencode "$signature")
   url="$Ali_API?$query&Signature=$signature"
 
-  response="$(_get "$url")"
-
-  if [ "$?" != "0" ]; then
+  if ! response="$(_get "$url")"; then
     _err "error!"
     return 1
   fi
+
+  if [ -z "$1" ]; then
+    local message="$(echo -n "$response" | _egrep_o "\"Message\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
+    if [ -n "$message" ]; then
+      _err "$message"
+      return 1
+    fi
+  fi
+  
   _debug2 response "$response"
   return 0
 }
 
 _urlencode() {
-  python -c "import sys, urllib as ul;print ul.quote_plus('$1')"
+  local dataLength="${#1}"
+  local index
+ 
+  for ((index = 0;index < dataLength;index++)); do
+    local char="${1:index:1}"
+    case $char in [a-zA-Z0-9.~_-])
+      printf "$char"
+      ;;
+    *)
+      printf "%%%02X" "'$char"
+      ;;
+    esac
+  done
 }
 
 _check_exist_query() {
@@ -104,11 +115,11 @@ _check_exist_query() {
   query=$query'&Action=DescribeDomainRecords'
   query=$query'&DomainName='$1
   query=$query'&Format=json'
-  query=$query'&RRKeyWord='$2
+  query=$query'&RRKeyWord=_acme-challenge'
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query'&SignatureNonce='$RANDOM
   query=$query'&SignatureVersion=1.0'
-  query=$query'&Timestamp='$(_time)
+  query=$query'&Timestamp='$(_timestamp)
   query=$query'&TypeKeyWord=TXT'
   query=$query'&Version=2015-01-09'
 }
@@ -123,25 +134,22 @@ _add_record_query() {
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query'&SignatureNonce='$RANDOM
   query=$query'&SignatureVersion=1.0'
-  query=$query'&Timestamp='$(_time)
+  query=$query'&Timestamp='$(_timestamp)
   query=$query'&Type=TXT'
   query=$query'&Value='$3
   query=$query'&Version=2015-01-09'
 }
 
-_update_record_query() {
+_delete_record_query() {
   query=''
   query=$query'AccessKeyId='$Ali_Key
-  query=$query'&Action=UpdateDomainRecord'
+  query=$query'&Action=DeleteDomainRecord'
   query=$query'&Format=json'
   query=$query'&RecordId='$1
-  query=$query'&RR='$2
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query'&SignatureNonce='$RANDOM
   query=$query'&SignatureVersion=1.0'
-  query=$query'&Timestamp='$(_time)
-  query=$query'&Type=TXT'
-  query=$query'&Value='$3
+  query=$query'&Timestamp='$(_timestamp)
   query=$query'&Version=2015-01-09'
 }
 
@@ -154,37 +162,25 @@ _describe_records_query() {
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query'&SignatureNonce='$RANDOM
   query=$query'&SignatureVersion=1.0'
-  query=$query'&Timestamp='$(_time)
+  query=$query'&Timestamp='$(_timestamp)
   query=$query'&Version=2015-01-09'
 }
 
-_time() {
-  zone=$(date +%Z)
-  sec=$(date +%s)
-  t=$(date -d "1970-01-01 $zone $sec sec" +%Y-%m-%dT%H:%M:%SZ)
-  t=$(_urlencode "$t")
-  echo "$t"
+_clean() {
+  _check_exist_query "$_domain"
+  if ! _ali_rest "ignore"; then
+    return 1
+  fi
+  
+  local records="$(echo "$response" -n | _egrep_o "\"RecordId\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
+  echo -n "$records" | 
+  while read record_id
+  do
+    _delete_record_query $record_id
+    _ali_rest "ignore"
+  done
 }
 
-_sign() {
-  StringToSign='GET&'$(_urlencode '/')'&'
-  StringToSign=$StringToSign$(_urlencode "$1")
-  echo -n "$StringToSign" | openssl sha1 -hmac $Ali_Secret'&' -binary | openssl base64
-}
-
-_process_check_result() {
-  python -c \
-    "
-import json;
-result=json.loads('$response');
-if result.has_key('Message'):
-  print(result['Message']);
-  quit(1);
-records=result['DomainRecords']['Record'];
-for r in result['DomainRecords']['Record']:
-  if r['RR'] == '_acme-challenge.passport':
-    print(r['RecordId']);
-    quit();
-print(0);
-"
+_timestamp() {
+  date -d "1970-01-01 $(date +%Z) $(date +%s) sec" +%Y-%m-%dT%H%%3A%M%%3A%SZ
 }
