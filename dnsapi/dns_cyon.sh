@@ -7,7 +7,6 @@
 #
 # Dependencies:
 # -------------
-# - jq (get it here: https://stedolan.github.io/jq/download)
 # - oathtool (When using 2 Factor Authentication)
 #
 # Author: Armando Lüscher <armando@noplanman.ch>
@@ -34,10 +33,6 @@
 ########
 
 dns_cyon_add() {
-  if ! _exists jq; then
-    _fail "Please install jq to use cyon.ch DNS API."
-  fi
-
   _load_credentials
   _load_parameters "$@"
 
@@ -165,8 +160,8 @@ _login() {
   _debug login_response "${login_response}"
 
   # Bail if login fails.
-  if [ "$(echo "${login_response}" | jq -r '.onSuccess')" != "success" ]; then
-    _fail "    $(echo "${login_response}" | jq -r '.message')"
+  if [ "$(echo "${login_response}" | _get_response_success)" != "success" ]; then
+    _fail "    $(echo "${login_response}" | _get_response_message)"
   fi
 
   _info "    success"
@@ -199,8 +194,8 @@ _login() {
     _debug otp_response "${otp_response}"
 
     # Bail if OTP authentication fails.
-    if [ "$(echo "${otp_response}" | jq -r '.onSuccess')" != "success" ]; then
-      _fail "    $(echo "${otp_response}" | jq -r '.message')"
+    if [ "$(echo "${otp_response}" | _get_response_success)" != "success" ]; then
+      _fail "    $(echo "${otp_response}" | _get_response_message)"
     fi
 
     _info "    success"
@@ -227,11 +222,11 @@ _domain_env() {
 
   _check_2fa_miss "${domain_env_response}"
 
-  domain_env_success=$(echo "${domain_env_response}" | jq -r '.authenticated')
+  domain_env_success=$(echo "${domain_env_response}" | _egrep_o '"authenticated":\w*' | cut -d : -f 2)
 
   # Bail if domain environment change fails.
   if [ "${domain_env_success}" != "true" ]; then
-    _fail "    $(echo "${domain_env_response}" | jq -r '.message')"
+    _fail "    $(echo "${domain_env_response}" | _get_response_message)"
   fi
 
   _info "    success"
@@ -252,14 +247,11 @@ _add_txt() {
 
   _check_2fa_miss "${addtxt_response}"
 
-  addtxt_message=$(echo "${addtxt_response}" | jq -r '.message')
-  addtxt_status=$(echo "${addtxt_response}" | jq -r '.status')
+  addtxt_message=$(echo "${addtxt_response}" | _get_response_message)
+  addtxt_status=$(echo "${addtxt_response}" | _get_response_status)
 
   # Bail if adding TXT entry fails.
   if [ "${addtxt_status}" != "true" ]; then
-    if [ "${addtxt_status}" = "null" ]; then
-      addtxt_message=$(echo "${addtxt_response}" | jq -r '.error.message')
-    fi
     _fail "    ${addtxt_message}"
   fi
 
@@ -306,14 +298,11 @@ _delete_txt() {
 
     _check_2fa_miss "${delete_txt_response}"
 
-    delete_txt_message=$(echo "${delete_txt_response}" | jq -r '.message')
-    delete_txt_status=$(echo "${delete_txt_response}" | jq -r '.status')
+    delete_txt_message=$(echo "${delete_txt_response}" | _get_response_message)
+    delete_txt_status=$(echo "${delete_txt_response}" | _get_response_status)
 
     # Skip if deleting TXT entry fails.
     if [ "${delete_txt_status}" != "true" ]; then
-      if [ "${delete_txt_status}" = "null" ]; then
-        delete_txt_message=$(echo "${delete_txt_response}" | jq -r '.error.message')
-      fi
       _err "    ${delete_txt_message} (${_identifier})"
     else
       _info "    success (${_identifier})"
@@ -322,6 +311,18 @@ _delete_txt() {
 
   _info "    done"
   _info ""
+}
+
+_get_response_message() {
+  _egrep_o '"message":"[^"]*"' | cut -d : -f 2 | tr -d '"'
+}
+
+_get_response_status() {
+  _egrep_o '"status":\w*' | cut -d : -f 2
+}
+
+_get_response_success() {
+  _egrep_o '"onSuccess":"[^"]*"' | cut -d : -f 2 | tr -d '"'
 }
 
 _check_2fa_miss() {
