@@ -72,7 +72,7 @@ _get_root() {
 }
 
 _ali_rest() {
-  local signature=$(echo -n "GET&%2F&$(_urlencode "$query")" | _hmac "sha1" "$(_hex "$Ali_Secret&")" | _base64)
+  signature=$(echo -n "GET&%2F&$(_urlencode "$query")" | _hmac "sha1" "$(_hex "$Ali_Secret&")" | _base64)
   signature=$(_urlencode "$signature")
   url="$Ali_API?$query&Signature=$signature"
 
@@ -82,7 +82,7 @@ _ali_rest() {
   fi
 
   if [ -z "$1" ]; then
-    local message="$(echo -n "$response" | _egrep_o "\"Message\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
+    message="$(echo -n "$response" | _egrep_o "\"Message\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
     if [ -n "$message" ]; then
       _err "$message"
       return 1
@@ -98,9 +98,9 @@ _urlencode() {
   local index
 
   for ((index = 0; index < dataLength; index++)); do
-    local char="${1:index:1}"
+    char="${1:index:1}"
     case $char in [a-zA-Z0-9.~_-])
-      printf "$char"
+      printf "%s" "$char"
       ;;
     *)
       printf "%%%02X" "'$char"
@@ -117,7 +117,7 @@ _check_exist_query() {
   query=$query'&Format=json'
   query=$query'&RRKeyWord=_acme-challenge'
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query'&SignatureNonce=$(cat /proc/sys/kernel/random/uuid)'
+  query=$query"&SignatureNonce=$(cat /proc/sys/kernel/random/uuid)"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&TypeKeyWord=TXT'
@@ -132,7 +132,7 @@ _add_record_query() {
   query=$query'&Format=json'
   query=$query'&RR='$2
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query'&SignatureNonce=$(cat /proc/sys/kernel/random/uuid)'
+  query=$query"&SignatureNonce=$(cat /proc/sys/kernel/random/uuid)"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&Type=TXT'
@@ -147,7 +147,7 @@ _delete_record_query() {
   query=$query'&Format=json'
   query=$query'&RecordId='$1
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query'&SignatureNonce=$(cat /proc/sys/kernel/random/uuid)'
+  query=$query"&SignatureNonce=$(cat /proc/sys/kernel/random/uuid)"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&Version=2015-01-09'
@@ -160,7 +160,7 @@ _describe_records_query() {
   query=$query'&DomainName='$1
   query=$query'&Format=json'
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query'&SignatureNonce=$(cat /proc/sys/kernel/random/uuid)'
+  query=$query"&SignatureNonce=$(cat /proc/sys/kernel/random/uuid)"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&Version=2015-01-09'
