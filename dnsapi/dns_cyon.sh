@@ -65,9 +65,9 @@ dns_cyon_rm() {
 _load_credentials() {
   # Convert loaded password to/from base64 as needed.
   if [ "${cyon_password_b64}" ]; then
-    cyon_password="$(echo "${cyon_password_b64}" | _dbase64)"
+    cyon_password="$(printf "%s" "${cyon_password_b64}" | _dbase64)"
   elif [ "${cyon_password}" ]; then
-    cyon_password_b64="$(echo "${cyon_password}" | _base64)"
+    cyon_password_b64="$(printf "%s" "${cyon_password}" | _base64)"
   fi
 
   if [ -z "${cyon_username}" ] || [ -z "${cyon_password}" ]; then
@@ -98,7 +98,7 @@ _is_idn() {
 
 _load_parameters() {
   # Read the required parameters to add the TXT entry.
-  fulldomain="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
+  fulldomain="$(printf "%s" "$1" | tr '[:upper:]' '[:lower:]')"
   fulldomain_idn="${fulldomain}"
 
   # Special case for IDNs, as cyon needs a domain environment change,
@@ -160,8 +160,8 @@ _login() {
   _debug login_response "${login_response}"
 
   # Bail if login fails.
-  if [ "$(echo "${login_response}" | _get_response_success)" != "success" ]; then
-    _fail "    $(echo "${login_response}" | _get_response_message)"
+  if [ "$(printf "%s" "${login_response}" | _get_response_success)" != "success" ]; then
+    _fail "    $(printf "%s" "${login_response}" | _get_response_message)"
   fi
 
   _info "    success"
@@ -194,8 +194,8 @@ _login() {
     _debug otp_response "${otp_response}"
 
     # Bail if OTP authentication fails.
-    if [ "$(echo "${otp_response}" | _get_response_success)" != "success" ]; then
-      _fail "    $(echo "${otp_response}" | _get_response_message)"
+    if [ "$(printf "%s" "${otp_response}" | _get_response_success)" != "success" ]; then
+      _fail "    $(printf "%s" "${otp_response}" | _get_response_message)"
     fi
 
     _info "    success"
@@ -208,7 +208,7 @@ _domain_env() {
   _info "  - Changing domain environment..."
 
   # Get the "example.com" part of the full domain name.
-  domain_env=$(echo "${fulldomain}" | sed -E -e 's/.*\.(.*\..*)$/\1/')
+  domain_env=$(printf "%s" "${fulldomain}" | sed -E -e 's/.*\.(.*\..*)$/\1/')
   _debug "Changing domain environment to ${domain_env}"
 
   domain_env_response=$(curl \
@@ -222,11 +222,11 @@ _domain_env() {
 
   _check_2fa_miss "${domain_env_response}"
 
-  domain_env_success=$(echo "${domain_env_response}" | _egrep_o '"authenticated":\w*' | cut -d : -f 2)
+  domain_env_success=$(printf "%s" "${domain_env_response}" | _egrep_o '"authenticated":\w*' | cut -d : -f 2)
 
   # Bail if domain environment change fails.
   if [ "${domain_env_success}" != "true" ]; then
-    _fail "    $(echo "${domain_env_response}" | _get_response_message)"
+    _fail "    $(printf "%s" "${domain_env_response}" | _get_response_message)"
   fi
 
   _info "    success"
@@ -247,8 +247,8 @@ _add_txt() {
 
   _check_2fa_miss "${addtxt_response}"
 
-  addtxt_message=$(echo "${addtxt_response}" | _get_response_message)
-  addtxt_status=$(echo "${addtxt_response}" | _get_response_status)
+  addtxt_message=$(printf "%s" "${addtxt_response}" | _get_response_message)
+  addtxt_status=$(printf "%s" "${addtxt_response}" | _get_response_status)
 
   # Bail if adding TXT entry fails.
   if [ "${addtxt_status}" != "true" ]; then
@@ -267,19 +267,19 @@ _delete_txt() {
     -s \
     -b "${cookiejar}" \
     --compressed \
-    -H "X-Requested-With: XMLHttpRequest" | \
-    sed -e 's/data-hash/\\ndata-hash/g')
+    -H "X-Requested-With: XMLHttpRequest" \
+    | sed -e 's/data-hash/\\ndata-hash/g')
 
   _debug list_txt_response "${list_txt_response}"
 
   _check_2fa_miss "${list_txt_response}"
 
   # Find and delete all acme challenge entries for the $fulldomain.
-  _dns_entries=$(echo -e "$list_txt_response" | sed -n 's/data-hash=\\"\([^"]*\)\\" data-identifier=\\"\([^"]*\)\\".*/\1 \2/p')
+  _dns_entries=$(printf "%s" "$list_txt_response" | sed -n 's/data-hash=\\"\([^"]*\)\\" data-identifier=\\"\([^"]*\)\\".*/\1 \2/p')
 
-  echo "${_dns_entries}" | while read -r _hash _identifier; do
-    dns_type="$(echo "$_identifier" | cut -d'|' -f1)"
-    dns_domain="$(echo "$_identifier" | cut -d'|' -f2)"
+  printf "%s" "${_dns_entries}" | while read -r _hash _identifier; do
+    dns_type="$(printf "%s" "$_identifier" | cut -d'|' -f1)"
+    dns_domain="$(printf "%s" "$_identifier" | cut -d'|' -f2)"
 
     if [ "${dns_type}" != "TXT" ] || [ "${dns_domain}" != "${fulldomain_idn}." ]; then
       continue
@@ -298,8 +298,8 @@ _delete_txt() {
 
     _check_2fa_miss "${delete_txt_response}"
 
-    delete_txt_message=$(echo "${delete_txt_response}" | _get_response_message)
-    delete_txt_status=$(echo "${delete_txt_response}" | _get_response_status)
+    delete_txt_message=$(printf "%s" "${delete_txt_response}" | _get_response_message)
+    delete_txt_status=$(printf "%s" "${delete_txt_response}" | _get_response_status)
 
     # Skip if deleting TXT entry fails.
     if [ "${delete_txt_status}" != "true" ]; then
