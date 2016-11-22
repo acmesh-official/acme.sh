@@ -161,9 +161,7 @@ _ISPC_rmTxt() {
   fi
   # Delete the record 
   curData="{\"session_id\":\"${sessionID}\",\"primary_id\":\"${record_id}\"}"
-  echo $curData; 
   curResult="$(_post "${curData}" "${ISPC_Api}?dns_txt_delete")"
-  echo $curResult; exit;
   if _contains "${curResult}" '"code":"ok"'; then
     _info "Successfully removed ACME challenge txt record."
   else
