@@ -150,23 +150,19 @@ _ISPC_rmTxt() {
           _debug "Record ID is not numeric."
           return 1
           ;;
-        *) _info "Successfully retrieved Record ID" ;;
+        *)
+          _info "Successfully retrieved Record ID"
+          curData="{\"session_id\":\"${sessionID}\",\"primary_id\":\"${record_id}\"}"
+          curResult="$(_post "${curData}" "${ISPC_Api}?dns_txt_delete")"
+          if _contains "${curResult}" '"code":"ok"'; then
+            _info "Successfully removed ACME challenge txt record."
+          else
+            # Setting it to debug only because there's no harm if the txt record remains
+            _debug "Couldn't remove ACME challenge txt record."
+            return 1
+          fi
+          ;;
       esac
     fi
   done
-  # Check if a record id was found
-  if [ -z "${record_id}" ]; then
-    _debug "No Record ID found for '${fulldomain}'"
-    return 1
-  fi
-  # Delete the record 
-  curData="{\"session_id\":\"${sessionID}\",\"primary_id\":\"${record_id}\"}"
-  curResult="$(_post "${curData}" "${ISPC_Api}?dns_txt_delete")"
-  if _contains "${curResult}" '"code":"ok"'; then
-    _info "Successfully removed ACME challenge txt record."
-  else
-    # Setting it to debug only because there's no harm if the txt record remains
-    _debug "Couldn't remove ACME challenge txt record."
-    return 1
-  fi
 }
