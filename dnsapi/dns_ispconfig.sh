@@ -135,15 +135,40 @@ _ISPC_addTxt() {
 }
 
 _ISPC_rmTxt() {
-  IFS=" "
-  for i in $record_data; do
-    curData="{\"session_id\":\"${sessionID}\",\"primary_id\":\"${i}\"}"
-    curResult=$(_post "${curData}" "${ISPC_Api}?dns_txt_delete")
-    if _contains "${curResult}" '"code":"ok"'; then
-      _info "Successfully removed ACME challenge txt record."
-    else
-      # Setting it to debug only because there's no harm if the txt remains
-      _debug "Couldn't remove ACME challenge txt record."
+  # Need to get the record ID.
+  curData="{\"session_id\":\"${sessionID}\",\"primary_id\":[{\"name\":\"${fulldomain}.\"}]}"
+  curResult=$(_post "${curData}" "${ISPC_Api}?dns_txt_get")
+  # The array search doesn't work properly... so we loop through all retrieved records and check if it contains $fulldomain
+  IFS='{'
+  for i in ${curResult}; do
+    if _contains "${i}" "${fulldomain}"; then
+      _info "Successfully found ACME challenge txt record."
+      record_id=$(echo "${i}" | _egrep_o "\"id.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
+      case ${record_id} in
+        '' | *[!0-9]*)
+          # Setting to debug only becase there's no harm if the txt record remains
+          _debug "Record ID is not numeric."
+          return 1
+          ;;
+        *) _info "Successfully retrieved Record ID" ;;
+      esac
     fi
   done
+  # Check if a record id was found
+  if [ -z "${record_id}" ]; then
+    _debug "No Record ID found for '${fulldomain}'"
+    return 1
+  fi
+  # Delete the record 
+  curData="{\"session_id\":\"${sessionID}\",\"primary_id\":\"${record_id}\"}"
+  echo $curData; 
+  curResult=$(_post "${curData}" "${ISPC_Api}?dns_txt_delete")
+  echo $curResult; exit;
+  if _contains "${curResult}" '"code":"ok"'; then
+    _info "Successfully removed ACME challenge txt record."
+  else
+    # Setting it to debug only because there's no harm if the txt record remains
+    _debug "Couldn't remove ACME challenge txt record."
+    return 1
+  fi
 }
