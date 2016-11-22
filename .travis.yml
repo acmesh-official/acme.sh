@@ -21,7 +21,7 @@ addons:
 #  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install shellcheck; fi
   
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then then curl -sSL $SHFMT_URL -o ~/shfmt ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl -sSL $SHFMT_URL -o ~/shfmt ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then chmod +x ~/shfmt ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ~/shfmt -l -w -i 2 . ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then git diff --exit-code && echo "shfmt OK" ; fi
