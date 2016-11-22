@@ -275,31 +275,23 @@ _delete_txt() {
     -s \
     -b "${cookiejar}" \
     --compressed \
-    -H "X-Requested-With: XMLHttpRequest")
+    -H "X-Requested-With: XMLHttpRequest" | \
+    sed -e 's/data-hash/\\ndata-hash/g')
 
   _debug list_txt_response "${list_txt_response}"
 
   _check_2fa_miss "${list_txt_response}"
 
   # Find and delete all acme challenge entries for the $fulldomain.
-  _dns_entries=$(echo "$list_txt_response" | jq -r --arg fulldomain_idn "${fulldomain_idn}." '
-    .rows[] |
-      label $out|
-      if .[0] != $fulldomain_idn then
-        break $out
-      else
-        .[4]|
-        capture("data-hash=\"(?<hash>[^\"]*)\" data-identifier=\"(?<identifier>[^\"]*)\"";"g")|
-        .hash + " " + .identifier
-    end')
-  _dns_entries_cnt=$(echo "${_dns_entries}" | wc -l | grep -o '\d')
-
-  _info "    (entries found: ${_dns_entries_cnt})"
-
-  _dns_entry_num=0
+  _dns_entries=$(echo -e "$list_txt_response" | sed -n 's/data-hash=\\"\([^"]*\)\\" data-identifier=\\"\([^"]*\)\\".*/\1 \2/p')
 
   echo "${_dns_entries}" | while read -r _hash _identifier; do
-    _dns_entry_num=$((_dns_entry_num + 1))
+    dns_type="$(echo "$_identifier" | cut -d'|' -f1)"
+    dns_domain="$(echo "$_identifier" | cut -d'|' -f2)"
+
+    if [ "${dns_type}" != "TXT" ] || [ "${dns_domain}" != "${fulldomain_idn}." ]; then
+      continue
+    fi
 
     delete_txt_response=$(curl \
       "https://my.cyon.ch/domain/dnseditor/delete-record-async" \
@@ -322,9 +314,9 @@ _delete_txt() {
       if [ "${delete_txt_status}" = "null" ]; then
         delete_txt_message=$(echo "${delete_txt_response}" | jq -r '.error.message')
       fi
-      _err "    [${_dns_entry_num}/${_dns_entries_cnt}] ${delete_txt_message} (${_identifier})"
+      _err "    ${delete_txt_message} (${_identifier})"
     else
-      _info "    [${_dns_entry_num}/${_dns_entries_cnt}] success (${_identifier})"
+      _info "    success (${_identifier})"
     fi
   done
 
