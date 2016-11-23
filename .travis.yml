@@ -20,7 +20,8 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then 
       brew update && brew install openssl && brew link openssl --force;
       _old_path="$PATH";
-      export PATH=;
+      export PATH="";
+      openssl version 2>&1 || true
       export PATH="$_old_path";
     fi
   
