@@ -132,32 +132,28 @@ _ISPC_addTxt() {
 
 _ISPC_rmTxt() {
   # Need to get the record ID.
-  curData="{\"session_id\":\"${sessionID}\",\"primary_id\":[{\"name\":\"${fulldomain}.\"}]}"
+  primary="\"primary_id\":{\"name\":\"${fulldomain}.\",\"type\":\"TXT\"}"
+  curData="{\"session_id\":\"${sessionID}\",\"primary_id\":{\"name\":\"${fulldomain}.\",\"type\":\"TXT\"}}"
   curResult="$(_post "${curData}" "${ISPC_Api}?dns_txt_get")"
-  # The array search doesn't work properly... so we loop through all retrieved records and check if it contains $fulldomain
-  IFS='{'
-  for i in ${curResult}; do
-    if _contains "${i}" "${fulldomain}"; then
-      _info "Retrieved ACME Challenge TXT record."
-      record_id=$(echo "${i}" | _egrep_o "\"id.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
-      case "${record_id}" in
-        '' | *[!0-9]*)
-          _err "Record ID is not numeric."
+  if _contains "${curResult}" '"code":"ok"'; then
+    record_id=$(echo "${curResult}" | _egrep_o "\"id.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
+    case "${record_id}" in
+      '' | *[!0-9]*)
+        _err "Record ID is not numeric."
+        return 1
+        ;;
+      *)
+        unset IFS
+        _info "Retrieved Record ID."
+        curData="{\"session_id\":\"${sessionID}\",\"primary_id\":\"${record_id}\"}"
+        curResult="$(_post "${curData}" "${ISPC_Api}?dns_txt_delete")"
+        if _contains "${curResult}" '"code":"ok"'; then
+          _info "Removed ACME Challenge TXT record from zone."
+        else
+          _err "Couldn't remove ACME Challenge TXT record from zone."
           return 1
-          ;;
-        *)
-          unset IFS
-          _info "Retrieved Record ID"
-          curData="{\"session_id\":\"${sessionID}\",\"primary_id\":\"${record_id}\"}"
-          curResult="$(_post "${curData}" "${ISPC_Api}?dns_txt_delete")"
-          if _contains "${curResult}" '"code":"ok"'; then
-            _info "Removed ACME Challenge TXT record from zone."
-          else
-            _err "Couldn't remove ACME Challenge TXT record from zone."
-            return 1
-          fi
-          ;;
-      esac
-    fi
-  done
+        fi
+        ;;
+    esac
+  fi
 }
