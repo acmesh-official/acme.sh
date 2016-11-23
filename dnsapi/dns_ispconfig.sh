@@ -132,7 +132,6 @@ _ISPC_addTxt() {
 
 _ISPC_rmTxt() {
   # Need to get the record ID.
-  primary="\"primary_id\":{\"name\":\"${fulldomain}.\",\"type\":\"TXT\"}"
   curData="{\"session_id\":\"${sessionID}\",\"primary_id\":{\"name\":\"${fulldomain}.\",\"type\":\"TXT\"}}"
   curResult="$(_post "${curData}" "${ISPC_Api}?dns_txt_get")"
   if _contains "${curResult}" '"code":"ok"'; then
