@@ -24,9 +24,10 @@ install:
       ln -s /usr/local/opt/openssl/lib/libssl.1.0.0.dylib /usr/local/lib/;
       ln -s /usr/local/Cellar/openssl/1.0.2j/bin/openssl /usr/local/openssl;
       _old_path="$PATH";
-      echo "PATH=$PATH"
+      echo "PATH=$PATH";
       export PATH="";
-      export OPENSSL_BIN="/usr/local/openssl"
+      export OPENSSL_BIN="/usr/local/openssl";
+      openssl version 2>&1 || true;
       $OPENSSL_BIN version 2>&1 || true;
       export PATH="$_old_path";
     fi
