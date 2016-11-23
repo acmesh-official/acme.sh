@@ -54,7 +54,7 @@ _ISPC_login() {
   curResult="$(_post "${curData}" "${ISPC_Api}?login")"
   if _contains "${curResult}" '"code":"ok"'; then
     sessionID=$(echo "${curResult}" | _egrep_o "response.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
-    _info "Successfully retrieved Session ID."
+    _info "Retrieved Session ID."
   else
     _err "Couldn't retrieve the Session ID."
     return 1
@@ -74,13 +74,13 @@ _ISPC_getZoneInfo() {
     if _contains "${curResult}" '"id":"'; then
       zoneFound=true
       zoneEnd=true
-      _info "Successfully retrieved zone data."
+      _info "Retrieved zone data."
     fi
     if [ "${curZone#*.}" != "$curZone" ]; then
       _debug2 "$curZone still contains a '.' - so we can check next higher level"
     else
       zoneEnd=true
-      _err "Couldn't retrieve zone info."
+      _err "Couldn't retrieve zone data."
       return 1
     fi
   done
@@ -91,7 +91,7 @@ _ISPC_getZoneInfo() {
         _err "Server ID is not numeric."
         return 1
         ;;
-      *) _info "Successfully retrieved Server ID" ;;
+      *) _info "Retrieved Server ID" ;;
     esac
     zone=$(echo "${curResult}" | _egrep_o "\"id.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
     case "${zone}" in
@@ -99,7 +99,7 @@ _ISPC_getZoneInfo() {
         _err "Zone ID is not numeric."
         return 1
         ;;
-      *) _info "Successfully retrieved Zone ID" ;;
+      *) _info "Retrieved Zone ID" ;;
     esac
     client_id=$(echo "${curResult}" | _egrep_o "sys_userid.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
     case "${client_id}" in
@@ -107,7 +107,7 @@ _ISPC_getZoneInfo() {
         _err "Client ID is not numeric."
         return 1
         ;;
-      *) _info "Successfully retrieved Client ID" ;;
+      *) _info "Retrieved Client ID." ;;
     esac
     zoneFound=""
     zoneEnd=""
@@ -123,11 +123,11 @@ _ISPC_addTxt() {
   record_id=$(echo "${curResult}" | _egrep_o "\"response.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
   case "${record_id}" in
     '' | *[!0-9]*)
-      _err "Record ID is not numeric."
+      _err "Couldn't add ACME Challenge TXT record to zone."
       return 1
       ;;
     *)
-      _info "Successfully retrieved Record ID"
+      _info "Added ACME Challenge TXT record to zone."
       # Make space seperated string of record IDs for later removal.
       record_data="$record_data $record_id"
       ;;
@@ -142,7 +142,7 @@ _ISPC_rmTxt() {
   IFS='{'
   for i in ${curResult}; do
     if _contains "${i}" "${fulldomain}"; then
-      _info "Successfully found ACME challenge txt record."
+      _info "Retrieved ACME Challenge TXT record."
       record_id=$(echo "${i}" | _egrep_o "\"id.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
       case "${record_id}" in
         '' | *[!0-9]*)
@@ -151,13 +151,13 @@ _ISPC_rmTxt() {
           ;;
         *)
           unset IFS
-          _info "Successfully retrieved Record ID"
+          _info "Retrieved Record ID"
           curData="{\"session_id\":\"${sessionID}\",\"primary_id\":\"${record_id}\"}"
           curResult="$(_post "${curData}" "${ISPC_Api}?dns_txt_delete")"
           if _contains "${curResult}" '"code":"ok"'; then
-            _info "Successfully removed ACME challenge txt record."
+            _info "Removed ACME Challenge TXT record from zone."
           else
-            _err "Couldn't remove ACME challenge txt record."
+            _err "Couldn't remove ACME Challenge TXT record from zone."
             return 1
           fi
           ;;
