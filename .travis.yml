@@ -45,7 +45,7 @@ script:
   - cd ..
   - git clone https://github.com/Neilpang/acmetest.git && cp -r acme.sh acmetest/ && cd acmetest
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo NGROK_TOKEN="$NGROK_TOKEN" ./letest.sh ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo NGROK_TOKEN="$NGROK_TOKEN_OSX" OPENSSL_BIN="$OPENSSL_BIN" ./letest.sh ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo NGROK_TOKEN="$NGROK_TOKEN" OPENSSL_BIN="$OPENSSL_BIN" ./letest.sh ; fi
 
 
 matrix:
