@@ -126,11 +126,7 @@ _ISPC_addTxt() {
       _err "Couldn't add ACME Challenge TXT record to zone."
       return 1
       ;;
-    *)
-      _info "Added ACME Challenge TXT record to zone."
-      # Make space seperated string of record IDs for later removal.
-      record_data="$record_data $record_id"
-      ;;
+    *) _info "Added ACME Challenge TXT record to zone." ;;
   esac
 }
 
