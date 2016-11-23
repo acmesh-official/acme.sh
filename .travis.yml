@@ -19,6 +19,10 @@ addons:
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then 
       brew update && brew install openssl && brew link openssl --force;
+      #we must reload PATH to make the new openssl live
+      _old_path="$PATH";
+      export PATH=;
+      export PATH="$_old_path";
     fi
   
 script:
