@@ -20,7 +20,7 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install openssl ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link openssl --force ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export openssl="/usr/local/bin/openssl" ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export OPENSSL_BIN="/usr/local/bin/openssl" ; fi
   
 script:
   - echo "TEST_LOCAL=$TEST_LOCAL"
@@ -35,7 +35,7 @@ script:
   - cd ..
   - git clone https://github.com/Neilpang/acmetest.git && cp -r acme.sh acmetest/ && cd acmetest
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo NGROK_TOKEN="$NGROK_TOKEN" ./letest.sh ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo NGROK_TOKEN="$NGROK_TOKEN_OSX" ./letest.sh ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo NGROK_TOKEN="$NGROK_TOKEN_OSX" OPENSSL_BIN="/usr/local/bin/openssl" ./letest.sh ; fi
 
 
 matrix:
