@@ -90,9 +90,9 @@ _ali_rest() {
 _ali_urlencode() {
   _str="$1"
   _str_len=${#_str}
-  _h_i=1
-  while [ "$_h_i" -le "$_str_len" ]; do
-    _str_c="$(printf "%s" "$_str" | cut -c "$_h_i")"
+  _u_i=1
+  while [ "$_u_i" -le "$_str_len" ]; do
+    _str_c="$(printf "%s" "$_str" | cut -c "$_u_i")"
     case $_str_c in [a-zA-Z0-9.~_-])
       printf "%s" "$_str_c"
       ;;
@@ -100,12 +100,12 @@ _ali_urlencode() {
       printf "%%%02X" "'$_str_c"
       ;;
     esac
-    _h_i="$(_math "$_h_i" + 1)"
+    _u_i="$(_math "$_u_i" + 1)"
   done
 }
 
 _ali_nonce() {
-  tr </dev/urandom -dc A-Za-z0-9 | head -c 32
+  cat /dev/urandom | _head_n 1 | _digest "sha256" hex | cut -c 1-31
 }
 
 _check_exist_query() {
