@@ -19,7 +19,7 @@ addons:
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install openssl ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export PATH=/usr/local/bin:$PATH ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link openssl --force ; fi
   
 script:
   - echo "TEST_LOCAL=$TEST_LOCAL"
