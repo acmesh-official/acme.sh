@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 Ali_API="https://alidns.aliyuncs.com/"
 
@@ -28,11 +28,7 @@ dns_ali_add() {
 
   _add_record_query "$_domain" "$_sub_domain" "$txtvalue"
 
-  if ! _ali_rest; then
-    return 1
-  fi
-
-  return 0
+  _ali_rest
 }
 
 dns_ali_rm() {
@@ -72,8 +68,8 @@ _get_root() {
 }
 
 _ali_rest() {
-  signature=$(echo -n "GET&%2F&$(_urlencode "$query")" | _hmac "sha1" "$(_hex "$Ali_Secret&")" | _base64)
-  signature=$(_urlencode "$signature")
+  signature=$(echo -n "GET&%2F&$(_ali_urlencode "$query")" | _hmac "sha1" "$(_hex "$Ali_Secret&")" | _base64)
+  signature=$(_ali_urlencode "$signature")
   url="$Ali_API?$query&Signature=$signature"
 
   if ! response="$(_get "$url")"; then
@@ -93,12 +89,10 @@ _ali_rest() {
   return 0
 }
 
-_urlencode() {
-  local dataLength="${#1}"
-  local index
-
-  for ((index = 0; index < dataLength; index++)); do
-    char="${1:index:1}"
+_ali_urlencode() {
+  echo -n "$1" \
+    | sed -e 's/\(.\)/\1\n/g' \
+    | while read -r char; do
     case $char in [a-zA-Z0-9.~_-])
       printf "%s" "$char"
       ;;
@@ -117,7 +111,7 @@ _check_exist_query() {
   query=$query'&Format=json'
   query=$query'&RRKeyWord=_acme-challenge'
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query"&SignatureNonce=$(cat /proc/sys/kernel/random/uuid)"
+  query=$query"&SignatureNonce=`< /dev/urandom tr -dc A-Za-z | head -c 16`"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&TypeKeyWord=TXT'
@@ -132,7 +126,7 @@ _add_record_query() {
   query=$query'&Format=json'
   query=$query'&RR='$2
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query"&SignatureNonce=$(cat /proc/sys/kernel/random/uuid)"
+  query=$query"&SignatureNonce=`< /dev/urandom tr -dc A-Za-z | head -c 16`"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&Type=TXT'
@@ -147,7 +141,7 @@ _delete_record_query() {
   query=$query'&Format=json'
   query=$query'&RecordId='$1
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query"&SignatureNonce=$(cat /proc/sys/kernel/random/uuid)"
+  query=$query"&SignatureNonce=`< /dev/urandom tr -dc A-Za-z | head -c 16`"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&Version=2015-01-09'
@@ -160,7 +154,7 @@ _describe_records_query() {
   query=$query'&DomainName='$1
   query=$query'&Format=json'
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query"&SignatureNonce=$(cat /proc/sys/kernel/random/uuid)"
+  query=$query"&SignatureNonce=`< /dev/urandom tr -dc A-Za-z | head -c 16`"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&Version=2015-01-09'
