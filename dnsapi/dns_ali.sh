@@ -93,14 +93,14 @@ _ali_urlencode() {
   echo -n "$1" \
     | sed -e 's/\(.\)/\1\n/g' \
     | while read -r char; do
-    case $char in [a-zA-Z0-9.~_-])
-      printf "%s" "$char"
-      ;;
-    *)
-      printf "%%%02X" "'$char"
-      ;;
-    esac
-  done
+      case $char in [a-zA-Z0-9.~_-])
+        printf "%s" "$char"
+        ;;
+      *)
+        printf "%%%02X" "'$char"
+        ;;
+      esac
+    done
 }
 
 _check_exist_query() {
@@ -111,7 +111,7 @@ _check_exist_query() {
   query=$query'&Format=json'
   query=$query'&RRKeyWord=_acme-challenge'
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query"&SignatureNonce=`< /dev/urandom tr -dc A-Za-z | head -c 16`"
+  query=$query"&SignatureNonce=$(tr </dev/urandom -dc A-Za-z | head -c 16)"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&TypeKeyWord=TXT'
@@ -126,7 +126,7 @@ _add_record_query() {
   query=$query'&Format=json'
   query=$query'&RR='$2
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query"&SignatureNonce=`< /dev/urandom tr -dc A-Za-z | head -c 16`"
+  query=$query"&SignatureNonce=$(tr </dev/urandom -dc A-Za-z | head -c 16)"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&Type=TXT'
@@ -141,7 +141,7 @@ _delete_record_query() {
   query=$query'&Format=json'
   query=$query'&RecordId='$1
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query"&SignatureNonce=`< /dev/urandom tr -dc A-Za-z | head -c 16`"
+  query=$query"&SignatureNonce=$(tr </dev/urandom -dc A-Za-z | head -c 16)"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&Version=2015-01-09'
@@ -154,7 +154,7 @@ _describe_records_query() {
   query=$query'&DomainName='$1
   query=$query'&Format=json'
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query"&SignatureNonce=`< /dev/urandom tr -dc A-Za-z | head -c 16`"
+  query=$query"&SignatureNonce=$(tr </dev/urandom -dc A-Za-z | head -c 16)"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&Version=2015-01-09'
