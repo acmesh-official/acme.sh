@@ -26,9 +26,7 @@ dns_ali_add() {
     return 1
   fi
 
-  _add_record_query "$_domain" "$_sub_domain" "$txtvalue"
-
-  _ali_rest
+  _add_record_query "$_domain" "$_sub_domain" "$txtvalue" && _ali_rest "Add record"
 }
 
 dns_ali_rm() {
@@ -50,7 +48,7 @@ _get_root() {
     fi
 
     _describe_records_query "$h"
-    if ! _ali_rest "ignore"; then
+    if ! _ali_rest "Get root" "ignore"; then
       return 1
     fi
 
@@ -73,11 +71,11 @@ _ali_rest() {
   url="$Ali_API?$query&Signature=$signature"
 
   if ! response="$(_get "$url")"; then
-    _err "error!"
+    _err "Error <$1>"
     return 1
   fi
 
-  if [ -z "$1" ]; then
+  if [ -z "$2" ]; then
     message="$(printf "%s" "$response" | _egrep_o "\"Message\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
     if [ -n "$message" ]; then
       _err "$message"
@@ -90,17 +88,24 @@ _ali_rest() {
 }
 
 _ali_urlencode() {
-  printf "%s" "$1" \
-    | sed -e 's/\(.\)/\1\n/g' \
-    | while read -r char; do
-      case $char in [a-zA-Z0-9.~_-])
-        printf "%s" "$char"
+  _str="$1"
+  _str_len=${#_str}
+  _h_i=1
+  while [ "$_h_i" -le "$_str_len" ]; do
+    _str_c="$(printf "%s" "$_str" | cut -c "$_h_i")"
+    case $_str_c in [a-zA-Z0-9.~_-])
+        printf "%s" "$_str_c"
         ;;
       *)
-        printf "%%%02X" "'$char"
+        printf "%%%02X" "'$_str_c"
         ;;
-      esac
-    done
+    esac
+    _h_i="$(_math "$_h_i" + 1)"
+  done
+}
+
+_ali_nonce() {
+  tr </dev/urandom -dc A-Za-z0-9 | head -c 32
 }
 
 _check_exist_query() {
@@ -111,7 +116,7 @@ _check_exist_query() {
   query=$query'&Format=json'
   query=$query'&RRKeyWord=_acme-challenge'
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query"&SignatureNonce=$(tr </dev/urandom -dc A-Za-z | head -c 16)"
+  query=$query"&SignatureNonce=$(_ali_nonce)"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&TypeKeyWord=TXT'
@@ -126,7 +131,7 @@ _add_record_query() {
   query=$query'&Format=json'
   query=$query'&RR='$2
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query"&SignatureNonce=$(tr </dev/urandom -dc A-Za-z | head -c 16)"
+  query=$query"&SignatureNonce=$(_ali_nonce)"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&Type=TXT'
@@ -141,7 +146,7 @@ _delete_record_query() {
   query=$query'&Format=json'
   query=$query'&RecordId='$1
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query"&SignatureNonce=$(tr </dev/urandom -dc A-Za-z | head -c 16)"
+  query=$query"&SignatureNonce=$(_ali_nonce)"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&Version=2015-01-09'
@@ -154,7 +159,7 @@ _describe_records_query() {
   query=$query'&DomainName='$1
   query=$query'&Format=json'
   query=$query'&SignatureMethod=HMAC-SHA1'
-  query=$query"&SignatureNonce=$(tr </dev/urandom -dc A-Za-z | head -c 16)"
+  query=$query"&SignatureNonce=$(_ali_nonce)"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
   query=$query'&Version=2015-01-09'
@@ -162,7 +167,7 @@ _describe_records_query() {
 
 _clean() {
   _check_exist_query "$_domain"
-  if ! _ali_rest "ignore"; then
+  if ! _ali_rest "Check exist records" "ignore"; then
     return 1
   fi
 
@@ -170,10 +175,10 @@ _clean() {
   printf "%s" "$records" \
     | while read -r record_id; do
       _delete_record_query "$record_id"
-      _ali_rest "ignore"
+      _ali_rest "Delete record $record_id" "ignore"
     done
 }
 
 _timestamp() {
-  date -d "1970-01-01 $(date +%Z) $(date +%s) sec" +%Y-%m-%dT%H%%3A%M%%3A%SZ
+  date -u +"%Y-%m-%dT%H%%3A%M%%3A%SZ"
 }
