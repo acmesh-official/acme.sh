@@ -17,15 +17,14 @@ addons:
     - shellcheck
 
 before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install openssl ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link openssl --force ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export OPENSSL_BIN="/usr/local/bin/openssl" ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then 
+      brew update && brew install openssl && brew link openssl --force
+    fi
   
 script:
   - echo "TEST_LOCAL=$TEST_LOCAL"
   - echo "NGROK_TOKEN=$(echo "$NGROK_TOKEN" | wc -c)"
-  - openssl version
+  - which openssl && openssl version
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl -sSL $SHFMT_URL -o ~/shfmt ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then chmod +x ~/shfmt ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ~/shfmt -l -w -i 2 . ; fi
@@ -35,7 +34,7 @@ script:
   - cd ..
   - git clone https://github.com/Neilpang/acmetest.git && cp -r acme.sh acmetest/ && cd acmetest
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo NGROK_TOKEN="$NGROK_TOKEN" ./letest.sh ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo NGROK_TOKEN="$NGROK_TOKEN_OSX" OPENSSL_BIN="/usr/local/bin/openssl" ./letest.sh ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo NGROK_TOKEN="$NGROK_TOKEN_OSX" ./letest.sh ; fi
 
 
 matrix:
