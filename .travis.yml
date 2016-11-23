@@ -22,8 +22,9 @@ install:
       brew info openssl;
       ln -s /usr/local/opt/openssl/lib/libcrypto.1.0.0.dylib /usr/local/lib/;
       ln -s /usr/local/opt/openssl/lib/libssl.1.0.0.dylib /usr/local/lib/;
-      ln -s /usr/local/Cellar/openssl/1.0.2j/bin/openssl openssl;
+      ln -s /usr/local/Cellar/openssl/1.0.2j/bin/openssl /usr/local/openssl;
       _old_path="$PATH";
+      echo "PATH=$PATH"
       export PATH="";
       openssl version 2>&1 || true;
       export PATH="$_old_path";
