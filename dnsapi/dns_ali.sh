@@ -68,7 +68,7 @@ _get_root() {
 }
 
 _ali_rest() {
-  signature=$(echo -n "GET&%2F&$(_ali_urlencode "$query")" | _hmac "sha1" "$(_hex "$Ali_Secret&")" | _base64)
+  signature=$(printf "%s" "GET&%2F&$(_ali_urlencode "$query")" | _hmac "sha1" "$(_hex "$Ali_Secret&")" | _base64)
   signature=$(_ali_urlencode "$signature")
   url="$Ali_API?$query&Signature=$signature"
 
@@ -78,7 +78,7 @@ _ali_rest() {
   fi
 
   if [ -z "$1" ]; then
-    message="$(echo -n "$response" | _egrep_o "\"Message\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
+    message="$(printf "%s" "$response" | _egrep_o "\"Message\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
     if [ -n "$message" ]; then
       _err "$message"
       return 1
@@ -90,7 +90,7 @@ _ali_rest() {
 }
 
 _ali_urlencode() {
-  echo -n "$1" \
+  printf "%s" "$1" \
     | sed -e 's/\(.\)/\1\n/g' \
     | while read -r char; do
       case $char in [a-zA-Z0-9.~_-])
@@ -167,7 +167,7 @@ _clean() {
   fi
 
   records="$(echo "$response" -n | _egrep_o "\"RecordId\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
-  echo -n "$records" \
+  printf "%s" "$records" \
     | while read -r record_id; do
       _delete_record_query "$record_id"
       _ali_rest "ignore"
