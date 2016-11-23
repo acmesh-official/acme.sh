@@ -105,7 +105,7 @@ _ali_urlencode() {
 }
 
 _ali_nonce() {
-  < /dev/urandom | _head_n 1 | _digest "sha256" hex | cut -c 1-31
+  </dev/urandom | _head_n 1 | _digest "sha256" hex | cut -c 1-31
 }
 
 _check_exist_query() {
