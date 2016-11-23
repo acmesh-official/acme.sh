@@ -1,6 +1,10 @@
 language: shell
 sudo: required
 
+os:
+  - linux
+  - osx
+
 env:
   global:
     - SHFMT_URL=https://github.com/mvdan/sh/releases/download/v0.4.0/shfmt_v0.4.0_linux_amd64
@@ -12,16 +16,36 @@ addons:
     packages:
     - shellcheck
 
+install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then 
+      brew update && brew install openssl;
+      brew info openssl;
+      ln -s /usr/local/opt/openssl/lib/libcrypto.1.0.0.dylib /usr/local/lib/;
+      ln -s /usr/local/opt/openssl/lib/libssl.1.0.0.dylib /usr/local/lib/;
+      ln -s /usr/local/Cellar/openssl/1.0.2j/bin/openssl /usr/local/openssl;
+      _old_path="$PATH";
+      echo "PATH=$PATH";
+      export PATH="";
+      export OPENSSL_BIN="/usr/local/openssl";
+      openssl version 2>&1 || true;
+      $OPENSSL_BIN version 2>&1 || true;
+      export PATH="$_old_path";
+    fi
+  
 script:
-  - curl -sSL $SHFMT_URL -o ~/shfmt
-  - chmod +x ~/shfmt
-  - ~/shfmt -l -w -i 2 .
-  - git diff --exit-code && echo "shfmt OK"
-  - shellcheck -V
-  - shellcheck -e SC2021,SC2126,SC2034 **/*.sh && echo "shellcheck OK"
+  - echo "TEST_LOCAL=$TEST_LOCAL"
+  - echo "NGROK_TOKEN=$(echo "$NGROK_TOKEN" | wc -c)"
+  - which openssl && openssl version
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl -sSL $SHFMT_URL -o ~/shfmt ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then chmod +x ~/shfmt ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ~/shfmt -l -w -i 2 . ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then git diff --exit-code && echo "shfmt OK" ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then shellcheck -V ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then shellcheck -e SC2021,SC2126,SC2034 **/*.sh && echo "shellcheck OK" ; fi
   - cd ..
   - git clone https://github.com/Neilpang/acmetest.git && cp -r acme.sh acmetest/ && cd acmetest
-  - sudo ./letest.sh
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo NGROK_TOKEN="$NGROK_TOKEN" ./letest.sh ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo NGROK_TOKEN="$NGROK_TOKEN_OSX" OPENSSL_BIN="$OPENSSL_BIN" ./letest.sh ; fi
 
 
 matrix:
