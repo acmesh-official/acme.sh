@@ -260,6 +260,7 @@ You don't have to do anything manually!
 1. LuaDNS.com API
 1. DNSMadeEasy.com API
 1. nsupdate API
+1. aliyun.com(阿里云) API
 
 **More APIs coming soon...**
 
