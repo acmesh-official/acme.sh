@@ -90,7 +90,7 @@ _printargs() {
   if [ -z "$2" ]; then
     printf -- "[$(date)] $1"
   else
-    printf -- "[$(date)] $1='$2'"
+    printf -- "%s" "[$(date)] $1='$2'"
   fi
   printf "\n"
 }
@@ -2797,7 +2797,7 @@ issue() {
 
       status=$(echo "$response" | _egrep_o '"status":"[^"]*' | cut -d : -f 2 | tr -d '"')
       if [ "$status" = "valid" ]; then
-        _info "Success"
+        _info "$(__green Success)"
         _stopserver "$serverproc"
         serverproc=""
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
