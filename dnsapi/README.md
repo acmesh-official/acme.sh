@@ -201,27 +201,22 @@ acme.sh --issue --dns dns_aws -d example.com -d www.example.com
 
 The `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-## 11. Use ISPConfig 3.1 API
+## 11. Use Aliyun domain API to automatically issue cert
 
-This only works for ISPConfig 3.1 (and newer).
-
-Create a Remote User in the ISPConfig Control Panel. The Remote User must have access to at least `DNS zone functions` and `DNS txt functions`.
+First you need to login to your Aliyun account to get your API key.
+[https://ak-console.aliyun.com/#/accesskey](https://ak-console.aliyun.com/#/accesskey)
 
 ```
-export ISPC_User="xxx"
-export ISPC_Password="xxx"
-export ISPC_Api="https://ispc.domain.tld:8080/remote/json.php"
-export ISPC_Api_Insecure=1
-```
-If you have installed ISPConfig on a different port, then alter the 8080 accordingly.
-Leaver ISPC_Api_Insecure set to 1 if you have not a valid ssl cert for your installation. Change it to 0 if you have a valid ssl cert.
-
-To issue a cert:
-```
-acme.sh --issue --dns dns_ispconfig -d example.com -d www.example.com
+export Ali_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+export Ali_Secret="jlsdflanljkljlfdsaklkjflsa"
 ```
 
-The `ISPC_User`, `ISPC_Password`, `ISPC_Api`and `ISPC_Api_Insecure` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_ali -d example.com -d www.example.com
+```
+
+The `Ali_Key` and `Ali_Secret` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 # 12. Use custom API
 
