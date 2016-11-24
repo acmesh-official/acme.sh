@@ -26,6 +26,7 @@ dns_ali_add() {
     return 1
   fi
 
+  _debug "Add record"
   _add_record_query "$_domain" "$_sub_domain" "$txtvalue" && _ali_rest "Add record"
 }
 
