@@ -33,7 +33,7 @@ install:
     fi
   
 script:
-  - echo "TRAVIS_PULL_REQUEST_BRANCH=$TRAVIS_PULL_REQUEST_BRANCH"
+  - env
   - echo "TEST_LOCAL=$TEST_LOCAL"
   - echo "NGROK_TOKEN=$(echo "$NGROK_TOKEN" | wc -c)"
   - which openssl && openssl version
