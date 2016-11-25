@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 # ISPConfig 3.1 API
 # User must provide login data and URL to the ISPConfig installation incl. port. The remote user in ISPConfig must have access to:
