@@ -240,7 +240,7 @@ acme.sh --issue --dns dns_ispconfig -d example.com -d www.example.com
 
 The `ISPC_User`, `ISPC_Password`, `ISPC_Api`and `ISPC_Api_Insecure` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-# 13. Use custom API
+# Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
 
@@ -257,6 +257,6 @@ acme.sh --issue --dns dns_myapi -d example.com -d www.example.com
 For more details, please check our sample script: [dns_myapi.sh](dns_myapi.sh)
 
 
-## 14. Use lexicon DNS API
+# Use lexicon DNS API
 
 https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
