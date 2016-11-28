@@ -87,10 +87,13 @@ __red() {
 }
 
 _printargs() {
+  if [ -z "$NO_TIMESTAMP" ] || [ "$NO_TIMESTAMP" = "0" ]; then
+    printf -- "%s" "[$(date)] "
+  fi
   if [ -z "$2" ]; then
-    printf -- "[$(date)] $1"
+    printf -- "%s" "$1"
   else
-    printf -- "%s" "[$(date)] $1='$2'"
+    printf -- "%s" "$1='$2'"
   fi
   printf "\n"
 }
@@ -131,7 +134,9 @@ _info() {
 
 _err() {
   _log "$@"
-  printf -- "[$(date)] " >&2
+  if [ -z "$NO_TIMESTAMP" ] || [ "$NO_TIMESTAMP" = "0" ]; then
+    printf -- "%s" "[$(date)] " >&2
+  fi
   if [ -z "$2" ]; then
     __red "$1" >&2
   else
@@ -3580,7 +3585,7 @@ _initconf() {
 #STAGE=1 # Use the staging api
 #FORCE=1 # Force to issue cert
 #DEBUG=1 # Debug mode
-
+#NO_TIMESTAMP=1
 #OPENSSL_BIN=openssl
 
 #USER_AGENT=\"$USER_AGENT\"
