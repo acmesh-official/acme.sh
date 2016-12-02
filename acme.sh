@@ -1612,14 +1612,14 @@ __initHome() {
     fi
   fi
 
-  if [ -z "$LE_WORKING_DIR" ]; then
-    if [ -f "$DEFAULT_INSTALL_HOME/account.conf" ]; then
-      _debug "It seems that $PROJECT_NAME is already installed in $DEFAULT_INSTALL_HOME"
-      LE_WORKING_DIR="$DEFAULT_INSTALL_HOME"
-    else
-      LE_WORKING_DIR="$_SCRIPT_HOME"
-    fi
-  fi
+  #  if [ -z "$LE_WORKING_DIR" ]; then
+  #    if [ -f "$DEFAULT_INSTALL_HOME/account.conf" ]; then
+  #      _debug "It seems that $PROJECT_NAME is already installed in $DEFAULT_INSTALL_HOME"
+  #      LE_WORKING_DIR="$DEFAULT_INSTALL_HOME"
+  #    else
+  #      LE_WORKING_DIR="$_SCRIPT_HOME"
+  #    fi
+  #  fi
 
   if [ -z "$LE_WORKING_DIR" ]; then
     _debug "Using default home:$DEFAULT_INSTALL_HOME"
