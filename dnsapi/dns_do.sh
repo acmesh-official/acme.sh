@@ -67,10 +67,11 @@ _dns_do_list_rrs() {
   _rr_list="$(echo "${response}" \
     | tr -d "\n\r\t" \
     | sed -e 's/<item xsi:type="ns2:Map">/\n/g' \
-    | grep -F ">${fulldomain}</value>" \
-    | sed -e 's/<item>/\n\0/g' \
-    | grep -F '>id</key>' \
-    | sed -re 's/.*<value[^>]*>([^<]+)<\/value>.*/\1/')"
+    | fgrep ">${fulldomain}</value>" \
+    | sed -e 's/<\/item>/\n/g' \
+    | grep '>id</key><value' \
+    | _egrep_o '>[0-9]{1,16}<' \
+    | tr -d '><')"
   [ "${_rr_list}" ]
 }
 
@@ -107,7 +108,7 @@ _dns_do_soap() {
   _debug2 "SOAP response $response"
 
   # retrieve cookie header
-  grep -F 'Set-Cookie:' "$HTTP_HEADER" | sed -re 's/^Set-(Cookie: [^;]+).*/\1/' | head -1 > "${_cookiejar}"
+  cat "$HTTP_HEADER" | _egrep_o 'Cookie: [^;]+' | head -1 > "${_cookiejar}"
 
   return 0
 }
@@ -118,7 +119,7 @@ _get_root() {
 
   _all_domains="$(_mktemp)"
   _dns_do_soap getDomainList
-  echo "${response}" | tr -d "\n\r\t " | grep -Eo 'domain</key><value[^>]+>[^<]+' | sed -re 's/^domain<\/key><value[^>]+>//g' > "${_all_domains}"
+  echo "${response}" | tr -d "\n\r\t " | _egrep_o 'domain</key><value[^>]+>[^<]+' | sed -e 's/^domain<\/key><value[^>]+>//g' > "${_all_domains}"
 
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
@@ -126,7 +127,7 @@ _get_root() {
       return 1
     fi
 
-    if grep -qF "$h" "${_all_domains}"; then
+    if fgrep -q "$h" "${_all_domains}"; then
       _domain="$h"
       return 0
     fi
@@ -136,32 +137,4 @@ _get_root() {
   _debug "$domain not found"
 
   return 1
-}
-
-_info() {
-  if [ -z "$2" ]; then
-    echo "[$(date)] $1"
-  else
-    echo "[$(date)] $1='$2'"
-  fi
-}
-
-_err() {
-  _info "$@" >&2
-  return 1
-}
-
-_debug() {
-  if [ -z "$DEBUG" ]; then
-    return
-  fi
-  _err "$@"
-  return 0
-}
-
-_debug2() {
-  if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
-    _debug "$@"
-  fi
-  return
 }
