@@ -58,7 +58,15 @@ dns_cx_add() {
 #fulldomain
 dns_cx_rm() {
   fulldomain=$1
-
+  REST_API="$CX_Api"
+  if _get_root "$fulldomain"; then
+    record_id=""
+    existing_records "$_domain" "$_sub_domain"
+    if ! [ "$record_id" = "" ]; then
+      _rest DELETE "record/$record_id/$_domain_id" "{}"
+      _info "Deleted record ${fulldomain}"
+    fi
+  fi
 }
 
 #usage:  root  sub
