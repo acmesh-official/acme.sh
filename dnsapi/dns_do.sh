@@ -80,7 +80,7 @@ _dns_do_soap() {
   shift
   # put the parameters to xml
   body="<tns:${func} xmlns:tns=\"${DO_URL}\">"
-  while [ "$1" ] ; do
+  while [ "$1" ]; do
     _k="$1"
     shift
     _v="$1"
@@ -108,7 +108,7 @@ _dns_do_soap() {
   _debug2 "SOAP response $response"
 
   # retrieve cookie header
-  cat "$HTTP_HEADER" | _egrep_o 'Cookie: [^;]+' | head -1 > "${_cookiejar}"
+  _egrep_o 'Cookie: [^;]+' < "$HTTP_HEADER" | head -1 >"${_cookiejar}"
 
   return 0
 }
@@ -119,7 +119,7 @@ _get_root() {
 
   _all_domains="$(_mktemp)"
   _dns_do_soap getDomainList
-  echo "${response}" | tr -d "\n\r\t " | _egrep_o 'domain</key><value[^>]+>[^<]+' | sed -e 's/^domain<\/key><value[^>]+>//g' > "${_all_domains}"
+  echo "${response}" | tr -d "\n\r\t " | _egrep_o 'domain</key><value[^>]+>[^<]+' | sed -e 's/^domain<\/key><value[^>]+>//g' >"${_all_domains}"
 
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
