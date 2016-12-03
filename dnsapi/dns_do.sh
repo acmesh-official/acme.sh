@@ -67,7 +67,7 @@ _dns_do_list_rrs() {
   _rr_list="$(echo "${response}" \
     | tr -d "\n\r\t" \
     | sed -e 's/<item xsi:type="ns2:Map">/\n/g' \
-    | fgrep ">${fulldomain}</value>" \
+    | grep ">$(_regexcape "$fulldomain")</value>" \
     | sed -e 's/<\/item>/\n/g' \
     | grep '>id</key><value' \
     | _egrep_o '>[0-9]{1,16}<' \
@@ -127,7 +127,7 @@ _get_root() {
       return 1
     fi
 
-    if fgrep -q "$h" "${_all_domains}"; then
+    if grep -q "$(_regexcape "$h")" "${_all_domains}"; then
       _domain="$h"
       return 0
     fi
@@ -137,4 +137,8 @@ _get_root() {
   _debug "$domain not found"
 
   return 1
+}
+
+_regexcape() {
+  echo "$1" | sed -e 's/\([]\.$*^[]\)/\\\1/g'
 }
