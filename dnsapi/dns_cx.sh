@@ -69,11 +69,11 @@ existing_records() {
   _debug "Getting txt records"
   root=$1
   sub=$2
-
+  count=0
   if ! _rest GET "record/$_domain_id?:domain_id?host_id=0&offset=0&row_num=100"; then
     return 1
   fi
-  count=0
+
   seg=$(printf "%s\n" "$response" | _egrep_o "{[^\{]*host\":\"$_sub_domain\"[^\}]*\}")
   _debug seg "$seg"
   if [ -z "$seg" ]; then
