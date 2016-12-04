@@ -74,7 +74,7 @@ existing_records() {
     return 1
   fi
 
-  seg=$(printf "%s\n" "$response" | _egrep_o "{[^\{]*host\":\"$_sub_domain\"[^\}]*\}")
+  seg=$(printf "%s\n" "$response" | _egrep_o '{[^{]*host":"'"$_sub_domain"'"[^}]*\}')
   _debug seg "$seg"
   if [ -z "$seg" ]; then
     return 0
@@ -82,7 +82,7 @@ existing_records() {
 
   if printf "%s" "$response" | grep '"type":"TXT"' >/dev/null; then
     count=1
-    record_id=$(printf "%s\n" "$seg" | _egrep_o "\"record_id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
+    record_id=$(printf "%s\n" "$seg" | _egrep_o '"record_id":"[^"]*"' | cut -d : -f 2 | tr -d \" | _head_n 1)
     _debug record_id "$record_id"
     return 0
   fi
@@ -170,7 +170,7 @@ _get_root() {
 _rest() {
   m=$1
   ep="$2"
-  _debug "$ep"
+  _debug ep "$ep"
   url="$REST_API/$ep"
   _debug url "$url"
 
