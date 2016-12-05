@@ -53,7 +53,7 @@ _dns_do_authenticate() {
     _debug "_domain $_domain"
     return 0
   else
-    _err "Authentication failed, check logs"
+    _err "Authentication failed, are DO_PID and DO_PW set correctly?"
   fi
   return 1
 }
