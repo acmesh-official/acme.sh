@@ -115,9 +115,11 @@ _get_root() {
   domain=$1
   i=1
 
-  _all_domains="$(_mktemp)"
   _dns_do_soap getDomainList
-  echo "${response}" | tr -d "\n\r\t " | _egrep_o 'domain</key><value[^>]+>[^<]+' | sed -e 's/^domain<\/key><value[^>]+>//g' >"${_all_domains}"
+  _all_domains="/$(echo "${response}" \
+    | tr -d "\n\r\t " \
+    | _egrep_o 'domain</key><value[^>]+>[^<]+' \
+    | sed -e 's/^domain<\/key><value[^>]*>//g')"
 
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
@@ -125,7 +127,7 @@ _get_root() {
       return 1
     fi
 
-    if grep -q "$(_regexcape "$h")" "${_all_domains}"; then
+    if _contains "${_all_domains}" "^$(_regexcape "$h")\$"; then
       _domain="$h"
       return 0
     fi
