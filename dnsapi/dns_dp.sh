@@ -67,7 +67,7 @@ dns_dp_rm() {
     return 0
   fi
 
-  record_id=$(echo "$response" | _egrep_o '{[^{]*"value":"'$txtvalue'"' | cut -d , -f 1 | cut -d : -f 2 | tr -d \")
+  record_id=$(echo "$response" | _egrep_o '{[^{]*"value":"'"$txtvalue"'"' | cut -d , -f 1 | cut -d : -f 2 | tr -d \")
   _debug record_id "$record_id"
   if [ -z "$record_id" ]; then
     _err "Can not get record id."
