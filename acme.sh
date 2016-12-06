@@ -3569,13 +3569,9 @@ _initconf() {
   if [ ! -f "$ACCOUNT_CONF_PATH" ]; then
     echo "#ACCOUNT_CONF_PATH=xxxx
 
-#Account configurations:
-#Here are the supported macros, uncomment them to make them take effect.
-
 #ACCOUNT_EMAIL=aaa@example.com  # the account email used to register account.
 #ACCOUNT_KEY_PATH=\"/path/to/account.key\"
 #CERT_HOME=\"/path/to/cert/home\"
-
 
 
 #LOG_FILE=\"$DEFAULT_LOG_FILE\"
@@ -3583,9 +3579,6 @@ _initconf() {
 
 #AUTO_UPGRADE=\"1\"
 
-#STAGE=1 # Use the staging api
-#FORCE=1 # Force to issue cert
-#DEBUG=1 # Debug mode
 #NO_TIMESTAMP=1
 #OPENSSL_BIN=openssl
 
@@ -3593,49 +3586,6 @@ _initconf() {
 
 #USER_PATH=
 
-#dns api
-#######################
-#Cloudflare:
-#api key
-#CF_Key=\"sdfsdfsdfljlbjkljlkjsdfoiwje\"
-#account email
-#CF_Email=\"xxxx@sss.com\"
-
-#######################
-#Dnspod.cn:
-#api key id
-#DP_Id=\"1234\"
-#api key
-#DP_Key=\"sADDsdasdgdsf\"
-
-#######################
-#Cloudxns.com:
-#CX_Key=\"1234\"
-#
-#CX_Secret=\"sADDsdasdgdsf\"
-
-#######################
-#Godaddy.com:
-#GD_Key=\"sdfdsgdgdfdasfds\"
-#
-#GD_Secret=\"sADDsdasdfsdfdssdgdsf\"
-
-#######################
-#nsupdate:
-#NSUPDATE_KEY=\"/path/to/update.key\"
-#NSUPDATE_SERVER=\"192.168.0.1\"
-
-#######################
-#PowerDNS:
-#PDNS_Url=\"http://ns.example.com:8081\"
-#PDNS_ServerId=\"localhost\"
-#PDNS_Token=\"0123456789ABCDEF\"
-#PDNS_Ttl=60
-
-#######################
-#Amazon Route53:
-#AWS_ACCESS_KEY_ID=XXXXXXXXXX
-#AWS_SECRET_ACCESS_KEY=XXXXXXXXXXXXXXX
 
     " >"$ACCOUNT_CONF_PATH"
   fi
