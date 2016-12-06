@@ -491,6 +491,9 @@ acme.sh --issue --dns dns_dnsimple -d example.com
 The `DNSimple_OAUTH_TOKEN` will be saved in `~/.acme.sh/account.conf` and will
 be reused when needed.
 
+If you have any issues with this integration please report them to
+https://github.com/pho3nixf1re/acme.sh/issues.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
