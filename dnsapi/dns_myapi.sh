@@ -22,11 +22,14 @@ dns_myapi_add() {
   return 1
 }
 
-#Usage: fulldomain
+#Usage: fulldomain txtvalue
 #Remove the txt record afer validation.
 dns_myapi_rm() {
   fulldomain=$1
-
+  txtvalue=$2
+  _info "Using myapi"
+  _debug fulldomain "$fulldomain"
+  _debug txtvalue "$txtvalue"
 }
 
 ####################  Private functions bellow ##################################
