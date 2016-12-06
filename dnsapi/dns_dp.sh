@@ -6,9 +6,8 @@
 #
 #DP_Key="sADDsdasdgdsf"
 
-DP_Api="https://dnsapi.cn"
+REST_API="https://dnsapi.cn"
 
-#REST_API
 ########  Public functions #####################
 
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
@@ -23,8 +22,6 @@ dns_dp_add() {
     _err "Please create you key and try again."
     return 1
   fi
-
-  REST_API="$DP_Api"
 
   #save the api key and email to the account conf file.
   _saveaccountconf DP_Id "$DP_Id"
@@ -50,9 +47,39 @@ dns_dp_add() {
   fi
 }
 
-#fulldomain
+#fulldomain txtvalue
 dns_dp_rm() {
   fulldomain=$1
+  txtvalue=$2
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+
+  if ! _rest POST "Record.List" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain"; then
+    _err "Record.Lis error."
+    return 1
+  fi
+
+  if _contains "$response" 'No records'; then
+    _info "Don't need to remove."
+    return 0
+  fi
+
+  record_id=$(echo "$response" | _egrep_o '{[^{]*"value":"'$txtvalue'"' | cut -d , -f 1 | cut -d : -f 2 | tr -d \")
+  _debug record_id "$record_id"
+  if [ -z "$record_id" ]; then
+    _err "Can not get record id."
+    return 1
+  fi
+
+  if ! _rest POST "Record.Remove" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&record_id=$record_id"; then
+    _err "Record.Remove error."
+    return 1
+  fi
+
+  _contains "$response" "Action completed successful"
 
 }
 
