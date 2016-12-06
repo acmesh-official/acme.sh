@@ -101,7 +101,7 @@ dns_cf_rm() {
     _err "Error"
     return 1
   fi
-  
+
   count=$(printf "%s\n" "$response" | _egrep_o "\"count\":[^,]*" | cut -d : -f 2)
   _debug count "$count"
   if [ "$count" = "0" ]; then
