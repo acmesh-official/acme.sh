@@ -55,9 +55,7 @@ dns_cf_add() {
     _info "Adding record"
     if _cf_rest POST "zones/$_domain_id/dns_records" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
       if printf -- "%s" "$response" | grep "$fulldomain" >/dev/null; then
-        _info "Added, sleeping 10 seconds"
-        sleep 10
-        #todo: check if the record takes effect
+        _info "Added, OK"
         return 0
       else
         _err "Add txt record error."
@@ -83,9 +81,44 @@ dns_cf_add() {
 
 }
 
-#fulldomain
+#fulldomain txtvalue
 dns_cf_rm() {
   fulldomain=$1
+  txtvalue=$2
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+  _debug _domain_id "$_domain_id"
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain "$_domain"
+
+  _debug "Getting txt records"
+  _cf_rest GET "zones/${_domain_id}/dns_records?type=TXT&name=$fulldomain&content=$txtvalue"
+
+  if ! printf "%s" "$response" | grep \"success\":true >/dev/null; then
+    _err "Error"
+    return 1
+  fi
+  
+  count=$(printf "%s\n" "$response" | _egrep_o "\"count\":[^,]*" | cut -d : -f 2)
+  _debug count "$count"
+  if [ "$count" = "0" ]; then
+    _info "Don't need to remove."
+  else
+    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | head -n 1)
+    _debug "record_id" "$record_id"
+    if [ -z "$record_id" ]; then
+      _err "Can not get record id to remove."
+      return 1
+    fi
+    if ! _cf_rest DELETE "zones/$_domain_id/dns_records/$record_id"; then
+      _err "Delete record error."
+      return 1
+    fi
+    _contains "$response" '"success":true'
+  fi
 
 }
 
@@ -135,7 +168,7 @@ _cf_rest() {
   _H2="X-Auth-Key: $CF_Key"
   _H3="Content-Type: application/json"
 
-  if [ "$data" ]; then
+  if [ "$m" != "GET" ]; then
     _debug data "$data"
     response="$(_post "$data" "$CF_Api/$ep" "" "$m")"
   else

@@ -1991,7 +1991,8 @@ _clearupdns() {
     keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
     vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
     _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
-
+    txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _urlencode)"
+    _debug txt "$txt"
     if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
       _info "$d is already verified, skip $vtype."
       continue
@@ -2024,7 +2025,7 @@ _clearupdns() {
 
       txtdomain="_acme-challenge.$d"
 
-      if ! $rmcommand "$txtdomain"; then
+      if ! $rmcommand "$txtdomain" "$txt"; then
         _err "Error removing txt for domain:$txtdomain"
         return 1
       fi
