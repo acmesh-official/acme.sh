@@ -13,7 +13,6 @@ DO_URL="https://soap.resellerinterface.de/"
 dns_do_add() {
   fulldomain=$1
   txtvalue=$2
-  _cookiejar="$(_mktemp)"
   if _dns_do_authenticate; then
     _info "Adding TXT record to ${_domain} as ${fulldomain}"
     _dns_do_soap createRR origin "${_domain}" name "${fulldomain}" type TXT data "${txtvalue}" ttl 300
