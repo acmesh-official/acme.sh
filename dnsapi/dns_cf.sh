@@ -70,9 +70,7 @@ dns_cf_add() {
 
     _cf_rest PUT "zones/$_domain_id/dns_records/$record_id" "{\"id\":\"$record_id\",\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"zone_id\":\"$_domain_id\",\"zone_name\":\"$_domain\"}"
     if [ "$?" = "0" ]; then
-      _info "Updated, sleeping 10 seconds"
-      sleep 10
-      #todo: check if the record takes effect
+      _info "Updated, OK"
       return 0
     fi
     _err "Update error"
