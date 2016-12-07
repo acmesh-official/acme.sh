@@ -38,7 +38,7 @@ dns_do_rm() {
           _err "Could not delete resource record for ${_domain}, id ${_rrid}"
         fi
       done
-      return _dns_do_had_error
+      return $_dns_do_had_error
     fi
   fi
   return 1
