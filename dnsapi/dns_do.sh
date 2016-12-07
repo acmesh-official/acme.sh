@@ -30,14 +30,16 @@ dns_do_rm() {
   _cookiejar="$(_mktemp)"
   if _dns_do_authenticate; then
     if _dns_do_list_rrs; then
+      _dns_do_had_error=0
       for _rrid in ${_rr_list}; do
         _info "Deleting resource record $_rrid for $_domain"
         _dns_do_soap deleteRR origin "${_domain}" rrid "${_rrid}"
         if ! _contains "${response}" '>success<'; then
+          _dns_do_had_error=1
           _err "Could not delete resource record for ${_domain}, id ${_rrid}"
         fi
       done
-      return 0
+      return _dns_do_had_error
     fi
   fi
   return 1
