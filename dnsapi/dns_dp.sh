@@ -102,7 +102,7 @@ existing_records() {
   fi
 
   if _contains "$response" "Action completed successful"; then
-    count=$(printf "%s" "$response" | grep '<type>TXT</type>' | wc -l)
+    count=$(printf "%s" "$response" | grep '<type>TXT</type>' | wc -l | tr -d ' ')
     record_id=$(printf "%s" "$response" | grep '^<id>' | tail -1 | cut -d '>' -f 2 | cut -d '<' -f 1)
     return 0
   else
@@ -208,9 +208,9 @@ _rest() {
 
   if [ "$data" ]; then
     _debug2 data "$data"
-    response="$(_post "$data" "$url")"
+    response="$(_post "$data" "$url" | tr -d '\r')"
   else
-    response="$(_get "$url")"
+    response="$(_get "$url" | tr -d '\r')"
   fi
 
   if [ "$?" != "0" ]; then
