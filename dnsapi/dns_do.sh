@@ -27,7 +27,6 @@ dns_do_add() {
 #fulldomain
 dns_do_rm() {
   fulldomain=$1
-  _cookiejar="$(_mktemp)"
   if _dns_do_authenticate; then
     if _dns_do_list_rrs; then
       _dns_do_had_error=0
