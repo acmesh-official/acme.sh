@@ -229,7 +229,11 @@ Add the following txt record:
 Domain:_acme-challenge.www.example.com
 Txt value:9ihDbjxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
+```
+
 Please add those txt records to the domains. Waiting for the dns to take effect.
+```
+If you did not wait until DNS knows your values the renew will fail, be patient!
 ```
 
 Then just rerun with `renew` argument:
