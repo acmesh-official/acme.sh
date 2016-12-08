@@ -2,6 +2,9 @@
 
 # DNS API for Domain-Offensive / Resellerinterface / Domainrobot
 
+# Report bugs at https://github.com/seidler2547/acme.sh/issues
+
+# set these environment variables to match your customer ID and password:
 # DO_PID="KD-1234567"
 # DO_PW="cdfkjl3n2"
 
@@ -106,7 +109,7 @@ _dns_do_soap() {
   _debug2 "SOAP response $response"
 
   # retrieve cookie header
-  _H2="$(_egrep_o 'Cookie: [^;]+' <"$HTTP_HEADER" | head -1)"
+  _H2="$(_egrep_o 'Cookie: [^;]+' <"$HTTP_HEADER" | _head_n 1)"
 
   return 0
 }
