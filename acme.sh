@@ -3469,7 +3469,7 @@ _deactivate() {
       return 1
     fi
 
-    entry="$(printf "%s\n" "$response" | _egrep_o '{"type":".*","status":"valid","uri"[^}]*')"
+    entry="$(printf "%s\n" "$response" | _egrep_o '{"type":"[^"]*","status":"valid","uri"[^}]*')"
     _debug entry "$entry"
 
     if [ -z "$entry" ]; then
