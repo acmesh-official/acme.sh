@@ -529,6 +529,7 @@ _isEccKey() {
 _createkey() {
   length="$1"
   f="$2"
+  _debug2 "_createkey for file:$f"
   eccname="$length"
   if _startswith "$length" "ec-"; then
     length=$(printf "%s" "$length" | cut -d '-' -f 2-100)
@@ -1685,6 +1686,7 @@ _initpath() {
   if [ -z "$CA_CONF" ]; then
     CA_CONF="$_DEFAULT_CA_CONF"
   fi
+  _debug3 CA_CONF "$CA_CONF"
 
   if [ -f "$CA_CONF" ]; then
     . "$CA_CONF"
@@ -2990,6 +2992,12 @@ renew() {
 
   if [ "$Le_API" ]; then
     API="$Le_API"
+    #reload ca configs
+    ACCOUNT_KEY_PATH=""
+    ACCOUNT_JSON_PATH=""
+    CA_CONF=""
+    _debug3 "initpath again."
+    _initpath "$Le_Domain" "$_isEcc"
   fi
 
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
