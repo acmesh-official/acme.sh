@@ -933,7 +933,7 @@ _calcjwk() {
 
     modulus=$($OPENSSL_BIN rsa -in "$keyfile" -modulus -noout | cut -d '=' -f 2)
     _debug3 modulus "$modulus"
-    n="$(printf "%s" "$modulus" | _h2b | _base64 | _urlencode)"
+    n="$(printf "%s" "$modulus" | _h2b | _base64 | tr -d '\r\n' | _urlencode)"
     _debug3 n "$n"
 
     jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
