@@ -406,8 +406,10 @@ _getfile() {
 #Usage: multiline
 _base64() {
   if [ "$1" ]; then
+    _debug3 "base64 multiline:$1"
     $OPENSSL_BIN base64 -e
   else
+    _debug3 "base64 single line."
     $OPENSSL_BIN base64 -e | tr -d '\r\n'
   fi
 }
@@ -932,6 +934,8 @@ _calcjwk() {
     modulus=$($OPENSSL_BIN rsa -in "$keyfile" -modulus -noout | cut -d '=' -f 2)
     _debug3 modulus "$modulus"
     n="$(printf "%s" "$modulus" | _h2b | _base64 | _urlencode)"
+    _debug3 n "$n"
+
     jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
     _debug3 jwk "$jwk"
 
