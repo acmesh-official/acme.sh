@@ -130,7 +130,7 @@ notify_slaves() {
   return 0
 }
 
-####################  Private functions bellow ##################################
+####################  Private functions below ##################################
 #_acme-challenge.www.domain.com
 #returns
 # _domain=domain.com

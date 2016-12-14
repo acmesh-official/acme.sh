@@ -1913,7 +1913,7 @@ _setApache() {
   fi
   _info "JFYI, Config file $httpdconf is backuped to $APACHE_CONF_BACKUP_DIR/$httpdconfname"
   _info "In case there is an error that can not be restored automatically, you may try restore it yourself."
-  _info "The backup file will be deleted on sucess, just forget it."
+  _info "The backup file will be deleted on success, just forget it."
 
   #add alias
 
@@ -3780,7 +3780,7 @@ install() {
   if [ -z "$NO_DETECT_SH" ]; then
     #Modify shebang
     if _exists bash; then
-      _info "Good, bash is found, so change the shebang to use bash as prefered."
+      _info "Good, bash is found, so change the shebang to use bash as preferred."
       _shebang='#!/usr/bin/env bash'
       _setShebang "$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
       for subf in $_SUB_FOLDERS; do

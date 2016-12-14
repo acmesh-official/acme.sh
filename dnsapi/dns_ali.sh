@@ -35,7 +35,7 @@ dns_ali_rm() {
   _clean
 }
 
-####################  Private functions bellow ##################################
+####################  Private functions below ##################################
 
 _get_root() {
   domain=$1
