@@ -182,7 +182,7 @@ dns_ovh_rm() {
 
 }
 
-####################  Private functions bellow ##################################
+####################  Private functions below ##################################
 
 _ovh_authentication() {
 

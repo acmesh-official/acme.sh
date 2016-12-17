@@ -131,7 +131,7 @@ update_record() {
   return 1
 }
 
-####################  Private functions bellow ##################################
+####################  Private functions below ##################################
 #_acme-challenge.www.domain.com
 #returns
 # _sub_domain=_acme-challenge.www
