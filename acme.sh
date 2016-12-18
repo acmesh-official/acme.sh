@@ -637,8 +637,9 @@ _createcsr() {
     _info "Multi domain" "$alt"
     printf -- "\nsubjectAltName=$alt" >>"$csrconf"
   fi
-  if [ "$Le_OCSP_Stable" ]; then
-    _savedomainconf Le_OCSP_Stable "$Le_OCSP_Stable"
+  if [ "$Le_OCSP_Staple" ] || [ "$Le_OCSP_Stable" ]; then
+    _savedomainconf Le_OCSP_Staple "$Le_OCSP_Staple"
+    _cleardomainconf Le_OCSP_Stable
     printf -- "\nbasicConstraints = CA:FALSE\n1.3.6.1.5.5.7.1.24=DER:30:03:02:01:05" >>"$csrconf"
   fi
 
@@ -4365,7 +4366,7 @@ _process() {
         shift
         ;;
       --ocsp-must-staple | --ocsp)
-        Le_OCSP_Stable="1"
+        Le_OCSP_Staple="1"
         ;;
       --log | --logfile)
         _log="1"
