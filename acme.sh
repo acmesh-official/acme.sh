@@ -406,8 +406,10 @@ _getfile() {
 #Usage: multiline
 _base64() {
   if [ "$1" ]; then
+    _debug3 "base64 multiline:'$1'"
     $OPENSSL_BIN base64 -e
   else
+    _debug3 "base64 single line."
     $OPENSSL_BIN base64 -e | tr -d '\r\n'
   fi
 }
@@ -932,6 +934,8 @@ _calcjwk() {
     modulus=$($OPENSSL_BIN rsa -in "$keyfile" -modulus -noout | cut -d '=' -f 2)
     _debug3 modulus "$modulus"
     n="$(printf "%s" "$modulus" | _h2b | _base64 | _urlencode)"
+    _debug3 n "$n"
+
     jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
     _debug3 jwk "$jwk"
 
@@ -1913,7 +1917,7 @@ _setApache() {
   fi
   _info "JFYI, Config file $httpdconf is backuped to $APACHE_CONF_BACKUP_DIR/$httpdconfname"
   _info "In case there is an error that can not be restored automatically, you may try restore it yourself."
-  _info "The backup file will be deleted on sucess, just forget it."
+  _info "The backup file will be deleted on success, just forget it."
 
   #add alias
 
@@ -3780,7 +3784,7 @@ install() {
   if [ -z "$NO_DETECT_SH" ]; then
     #Modify shebang
     if _exists bash; then
-      _info "Good, bash is found, so change the shebang to use bash as prefered."
+      _info "Good, bash is found, so change the shebang to use bash as preferred."
       _shebang='#!/usr/bin/env bash'
       _setShebang "$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
       for subf in $_SUB_FOLDERS; do

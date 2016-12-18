@@ -321,7 +321,7 @@ acme.sh --renew -d example.com --force --ecc
 
 # 11. How to upgrade `acme.sh`
 
-acme.sh is in constant developement, so it's strongly recommended to use the latest code.
+acme.sh is in constant development, so it's strongly recommended to use the latest code.
 
 You can update acme.sh to the latest code:
 
