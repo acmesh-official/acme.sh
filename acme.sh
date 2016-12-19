@@ -2563,6 +2563,7 @@ issue() {
     done
 
     #add entry
+    alldomains=""
     dnsadded=""
     ventries=$(echo "$vlist" | tr ',' ' ')
     for ventry in $ventries; do
@@ -2577,6 +2578,7 @@ issue() {
       fi
 
       if [ "$vtype" = "$VTYPE_DNS" ]; then
+        alldomains="-d $d $alldomains"
         dnsadded='0'
         txtdomain="_acme-challenge.$d"
         _debug txtdomain "$txtdomain"
@@ -2593,7 +2595,7 @@ issue() {
           _err "Add the following TXT record:"
           _err "Domain: '$(__green "$txtdomain")'"
           _err "TXT value: '$(__green "$txt")'"
-          _err "Please be aware that you prepend _acme-challenge. before your domain"
+          _err "Please ensure you prepend _acme-challenge before your domain name"
           _err "so the resulting subdomain will be: $txtdomain"
           continue
         fi
@@ -2627,8 +2629,8 @@ issue() {
 
     if [ "$dnsadded" = '0' ]; then
       _savedomainconf "Le_Vlist" "$vlist"
-      _debug "Dns record not added yet, so, save to $DOMAIN_CONF and exit."
-      _err "Please add the TXT records to the domains, and retry again."
+      _debug "DNS record not added yet, so, save to $DOMAIN_CONF and exit."
+      _err "Update the DNS TXT records and run: $(__green "acme.sh --renew $alldomains")"
       _clearup
       _on_issue_err
       return 1
