@@ -3359,7 +3359,7 @@ installcronjob() {
       _err "Can not install cronjob, $PROJECT_ENTRY not found."
       return 1
     fi
-    if _exists uname && uname -a | grep solaris >/dev/null; then
+    if _exists uname && uname -a | grep SunOS >/dev/null; then
       crontab -l | {
         cat
         echo "0 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" > /dev/null"
