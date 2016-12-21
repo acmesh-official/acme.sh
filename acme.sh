@@ -3977,7 +3977,10 @@ _installOnline() {
   fi
   (
     _info "Extracting $localname"
-    tar xzf $localname
+    if ! (tar xzf $localname || gtar xzf $localname); then
+      _err "Extraction error."
+      exit 1
+    fi
 
     cd "$PROJECT_NAME-$BRANCH"
     chmod +x $PROJECT_ENTRY
