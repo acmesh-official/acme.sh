@@ -147,7 +147,7 @@ acme.sh --installcert -d example.com \
 --certpath      /path/to/certfile/in/apache/cert.pem  \
 --keypath       /path/to/keyfile/in/apache/key.pem  \
 --fullchainpath /path/to/fullchain/certfile/apache/fullchain.pem \
---reloadcmd     "service apache2 restart"
+--reloadcmd     "service apache2 force-reload"
 ```
 
 **Nginx** example:
@@ -155,7 +155,7 @@ acme.sh --installcert -d example.com \
 acme.sh --installcert -d example.com \
 --keypath       /path/to/keyfile/in/nginx/key.pem  \
 --fullchainpath /path/to/fullchain/nginx/cert.pem \
---reloadcmd     "service nginx restart"
+--reloadcmd     "service nginx force-reload"
 ```
 
 Only the domain is required, all the other parameters are optional.
