@@ -9,27 +9,12 @@
 # -------------
 # - oathtool (When using 2 Factor Authentication)
 #
+# Issues:
+# -------
+# Any issues / questions / suggestions can be posted here:
+# https://github.com/noplanman/cyon-api/issues
+#
 # Author: Armando Lüscher <armando@noplanman.ch>
-########
-
-########
-# Define cyon.ch login credentials:
-#
-# Either set them here: (uncomment these lines)
-#
-# cyon_username='your_cyon_username'
-# cyon_password='your_cyon_password'
-# cyon_otp_secret='your_otp_secret' # Only required if using 2FA
-#
-# ...or export them as environment variables in your shell:
-#
-# $ export cyon_username='your_cyon_username'
-# $ export cyon_password='your_cyon_password'
-# $ export cyon_otp_secret='your_otp_secret' # Only required if using 2FA
-#
-# *Note:*
-# After the first run, the credentials are saved in the "account.conf"
-# file, so any hard-coded or environment variables can then be removed.
 ########
 
 dns_cyon_add() {
