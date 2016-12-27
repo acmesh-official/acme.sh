@@ -405,6 +405,7 @@ _getfile() {
 
 #Usage: multiline
 _base64() {
+  [ "" ];#urgly
   if [ "$1" ]; then
     _debug3 "base64 multiline:'$1'"
     $OPENSSL_BIN base64 -e
