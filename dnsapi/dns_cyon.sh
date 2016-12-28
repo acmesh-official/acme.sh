@@ -43,17 +43,17 @@ dns_cyon_rm() {
 
 _cyon_load_credentials() {
   # Convert loaded password to/from base64 as needed.
-  if [ "${cyon_password_b64}" ]; then
-    cyon_password="$(printf "%s" "${cyon_password_b64}" | _dbase64 "multiline")"
-  elif [ "${cyon_password}" ]; then
-    cyon_password_b64="$(printf "%s" "${cyon_password}" | _base64)"
+  if [ "${CY_Password_B64}" ]; then
+    CY_Password="$(printf "%s" "${CY_Password_B64}" | _dbase64 "multiline")"
+  elif [ "${CY_Password}" ]; then
+    CY_Password_B64="$(printf "%s" "${CY_Password}" | _base64)"
   fi
 
-  if [ -z "${cyon_username}" ] || [ -z "${cyon_password}" ]; then
+  if [ -z "${CY_Username}" ] || [ -z "${CY_Password}" ]; then
     # Dummy entries to satify script checker.
-    cyon_username=""
-    cyon_password=""
-    cyon_otp_secret=""
+    CY_Username=""
+    CY_Password=""
+    CY_OTP_Secret=""
 
     _err ""
     _err "You haven't set your cyon.ch login credentials yet."
@@ -64,12 +64,12 @@ _cyon_load_credentials() {
 
   # Save the login credentials to the account.conf file.
   _debug "Save credentials to account.conf"
-  _saveaccountconf cyon_username "${cyon_username}"
-  _saveaccountconf cyon_password_b64 "$cyon_password_b64"
-  if [ ! -z "${cyon_otp_secret}" ]; then
-    _saveaccountconf cyon_otp_secret "$cyon_otp_secret"
+  _saveaccountconf CY_Username "${CY_Username}"
+  _saveaccountconf CY_Password_B64 "$CY_Password_B64"
+  if [ ! -z "${CY_OTP_Secret}" ]; then
+    _saveaccountconf CY_OTP_Secret "$CY_OTP_Secret"
   else
-    _clearaccountconf cyon_otp_secret
+    _clearaccountconf CY_OTP_Secret
   fi
 }
 
@@ -140,8 +140,8 @@ _cyon_get_cookie_header() {
 _cyon_login() {
   _info "  - Logging in..."
 
-  username_encoded="$(printf "%s" "${cyon_username}" | _cyon_urlencode)"
-  password_encoded="$(printf "%s" "${cyon_password}" | _cyon_urlencode)"
+  username_encoded="$(printf "%s" "${CY_Username}" | _cyon_urlencode)"
+  password_encoded="$(printf "%s" "${CY_Password}" | _cyon_urlencode)"
 
   login_url="https://my.cyon.ch/auth/index/dologin-async"
   login_data="$(printf "%s" "username=${username_encoded}&password=${password_encoded}&pathname=%2F")"
@@ -165,7 +165,7 @@ _cyon_login() {
   # todo: instead of just checking if the env variable is defined, check if we actually need to do a 2FA auth request.
 
   # 2FA authentication with OTP?
-  if [ ! -z "${cyon_otp_secret}" ]; then
+  if [ ! -z "${CY_OTP_Secret}" ]; then
     _info "  - Authorising with OTP code..."
 
     if ! _exists oathtool; then
@@ -175,7 +175,7 @@ _cyon_login() {
     fi
 
     # Get OTP code with the defined secret.
-    otp_code="$(oathtool --base32 --totp "${cyon_otp_secret}" 2>/dev/null)"
+    otp_code="$(oathtool --base32 --totp "${CY_OTP_Secret}" 2>/dev/null)"
 
     login_otp_url="https://my.cyon.ch/auth/multi-factor/domultifactorauth-async"
     login_otp_data="totpcode=${otp_code}&pathname=%2F&rememberme=0"

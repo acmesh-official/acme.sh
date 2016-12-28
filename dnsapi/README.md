@@ -311,9 +311,9 @@ You only need to set your cyon.ch login credentials.
 If you also have 2 Factor Authentication (OTP) enabled, you need to set your secret token too and have `oathtool` installed.
 
 ```
-export cyon_username="your_cyon_username"
-export cyon_password="your_cyon_password"
-export cyon_otp_secret="your_otp_secret" # Only required if using 2FA
+export CY_Username="your_cyon_username"
+export CY_Password="your_cyon_password"
+export CY_OTP_Secret="your_otp_secret" # Only required if using 2FA
 ```
 
 To issue a cert:
@@ -321,7 +321,7 @@ To issue a cert:
 acme.sh --issue --dns dns_cyon -d example.com -d www.example.com
 ```
 
-The `cyon_username`, `cyon_password` and `cyon_otp_secret` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+The `CY_Username`, `CY_Password` and `CY_OTP_Secret` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 # Use custom API
 
