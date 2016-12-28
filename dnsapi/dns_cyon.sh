@@ -86,7 +86,7 @@ _cyon_urlencode() {
 
 _cyon_load_parameters() {
   # Read the required parameters to add the TXT entry.
-  fulldomain="$(printf "%s" "${1}" | tr '[:upper:]' '[:lower:]')"
+  fulldomain="$(printf "%s" "${1}" | tr '[A-Z]' '[a-z]')"
   fulldomain_idn="${fulldomain}"
 
   # Special case for IDNs, as cyon needs a domain environment change,
