@@ -134,7 +134,7 @@ _cyon_print_header() {
 }
 
 _cyon_get_cookie_header() {
-  printf "%s" "$(sed -n 's/Set-\(Cookie:.*cyon=[^;]*\).*/\1/p' "$HTTP_HEADER" | _tail_n 1)"
+  printf "Cookie: %s" "$(cat "$HTTP_HEADER" | grep "cyon=" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'cyon=[^;]*;' | tr -d ';')"
 }
 
 _cyon_login() {
