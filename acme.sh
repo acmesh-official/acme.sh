@@ -1214,6 +1214,69 @@ _get() {
   return $ret
 }
 
+# url getheader timeout
+_delete() {
+  _debug DELETE
+  url="$1"
+  onlyheader="$2"
+  t="$3"
+  _debug url "$url"
+  _debug "timeout" "$t"
+
+  _inithttp
+
+  if [ "$_ACME_CURL" ]; then
+    _CURL="$_ACME_CURL"
+    if [ "$HTTPS_INSECURE" ]; then
+      _CURL="$_CURL --insecure  "
+    fi
+    if [ "$t" ]; then
+      _CURL="$_CURL --connect-timeout $t"
+    fi
+    _debug "_CURL" "$_CURL"
+    if [ "$onlyheader" ]; then
+      $_CURL -I -X DELETE --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
+    else
+      $_CURL -X DELETE --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
+    fi
+    ret=$?
+    if [ "$ret" != "0" ]; then
+      _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $ret"
+      if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
+        _err "Here is the curl dump log:"
+        _err "$(cat "$_CURL_DUMP")"
+      fi
+    fi
+  elif [ "$_ACME_WGET" ]; then
+    _WGET="$_ACME_WGET"
+    if [ "$HTTPS_INSECURE" ]; then
+      _WGET="$_WGET --no-check-certificate "
+    fi
+    if [ "$t" ]; then
+      _WGET="$_WGET --timeout=$t"
+    fi
+    _debug "_WGET" "$_WGET"
+    if [ "$onlyheader" ]; then
+      $_WGET --method=DELETE --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1 | sed 's/^[ ]*//g'
+    else
+      $_WGET --method=DELETE --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -O - "$url"
+    fi
+    ret=$?
+    if [ "$_ret" = "8" ]; then
+      _ret=0
+      _debug "wget returns 8, the server returns a 'Bad request' respons, lets process the response later."
+    fi
+    if [ "$ret" != "0" ]; then
+      _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $ret"
+    fi
+  else
+    ret=$?
+    _err "Neither curl nor wget is found, can not do GET."
+  fi
+  _debug "ret" "$ret"
+  return $ret
+}
+
 _head_n() {
   head -n "$1"
 }
