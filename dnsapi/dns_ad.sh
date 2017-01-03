@@ -36,12 +36,12 @@ dns_ad_add() {
   _debug _domain "$_domain"
 
   _ad_tmpl_json="{\"domain\":$_domain_id,\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"value\":\"$txtvalue\"}"
-  
+
   if _ad_rest POST "record/" "$_ad_tmpl_json" && [ -z "$response" ]; then
     _info "txt record updated success."
     return 0
   fi
-  
+
   return 1
 }
 
@@ -61,7 +61,7 @@ dns_ad_rm() {
 
   _debug "Getting txt records"
   _ad_rest GET "record/?domain=$_domain_id&name=$_sub_domain"
-  
+
   if [ -n "$response" ]; then
     record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\s*[0-9]+" | cut -d : -f 2 | tr -d " " | _head_n 1)
     _debug record_id "$record_id"
@@ -129,7 +129,7 @@ _ad_rest() {
 
   _H1="Accept: application/json"
   _H2="Content-Type: application/json"
-  
+
   if [ "$mtd" != "GET" ]; then
     # both POST and DELETE.
     _debug data "$data"
