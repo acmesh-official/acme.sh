@@ -63,7 +63,7 @@ dns_ad_rm() {
   _ad_rest GET "record/?domain=$_domain_id&name=$_sub_domain"
   
   if [ -n "$response" ]; then
-    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\s*[0-9]+" | cut -d : -f 2 | tr -d \ | _head_n 1)
+    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\s*[0-9]+" | cut -d : -f 2 | tr -d " " | _head_n 1)
     _debug record_id "$record_id"
     if [ -z "$record_id" ]; then
       _err "Can not get record id to remove."
