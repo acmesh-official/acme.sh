@@ -240,6 +240,23 @@ acme.sh --issue --dns dns_ispconfig -d example.com -d www.example.com
 
 The `ISPC_User`, `ISPC_Password`, `ISPC_Api`and `ISPC_Api_Insecure` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 13. Use Alwaysdata domain API
+
+First you need to login to your Alwaysdata account to get your API Key.
+
+```sh
+export AD_API_KEY="myalwaysdataapikey"
+```
+
+Ok, let's issue a cert now:
+
+```sh
+acme.sh --issue --dns dns_ad -d example.com -d www.example.com
+```
+
+The `AD_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused
+when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
