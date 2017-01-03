@@ -4,6 +4,9 @@
 #AD_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
 
 #This is the Alwaysdata api wrapper for acme.sh
+#
+#Author: Paul Koppen
+#Report Bugs here: https://github.com/wpk-/acme.sh
 
 AD_API_URL="https://$AD_API_KEY:@api.alwaysdata.com/v1"
 
@@ -60,7 +63,7 @@ dns_ad_rm() {
   _ad_rest GET "record/?domain=$_domain_id&name=$_sub_domain"
   
   if [ -n "$response" ]; then
-    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\s*[0-9]+" | cut -d : -f 2 | tr -d \ | head -n 1)
+    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\s*[0-9]+" | cut -d : -f 2 | tr -d \ | _head_n 1)
     _debug record_id "$record_id"
     if [ -z "$record_id" ]; then
       _err "Can not get record id to remove."
@@ -100,7 +103,7 @@ _get_root() {
 
       hostedzone="$(echo "$response" | _egrep_o "{.*\"name\":\s*\"$h\".*}")"
       if [ "$hostedzone" ]; then
-        _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "\"id\":\s*[0-9]+" | head -n 1 | cut -d : -f 2 | tr -d \ )
+        _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
         if [ "$_domain_id" ]; then
           _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
           _domain=$h
