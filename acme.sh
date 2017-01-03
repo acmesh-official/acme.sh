@@ -2075,6 +2075,17 @@ _clearupwebbroot() {
 
 _on_before_issue() {
   _debug _on_before_issue
+  #run pre hook
+  if [ "$Le_PreHook" ]; then
+    _info "Run pre hook:'$Le_PreHook'"
+    if ! (
+      cd "$DOMAIN_PATH" && eval "$Le_PreHook"
+    ); then
+      _err "Error when run pre hook."
+      return 1
+    fi
+  fi
+
   if _hasfield "$Le_Webroot" "$NO_VALUE"; then
     if ! _exists "nc"; then
       _err "Please install netcat(nc) tools first."
@@ -2142,16 +2153,6 @@ _on_before_issue() {
     usingApache=""
   fi
 
-  #run pre hook
-  if [ "$Le_PreHook" ]; then
-    _info "Run pre hook:'$Le_PreHook'"
-    if ! (
-      cd "$DOMAIN_PATH" && eval "$Le_PreHook"
-    ); then
-      _err "Error when run pre hook."
-      return 1
-    fi
-  fi
 }
 
 _on_issue_err() {
