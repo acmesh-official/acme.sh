@@ -29,6 +29,10 @@ dns_aws_add() {
 
   _saveaccountconf AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
   _saveaccountconf AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
+  
+  if [ ! -z "$AWS_SESSION_TOKEN" ]; then
+    _saveaccountconf AWS_SESSION_TOKEN "$AWS_SESSION_TOKEN"
+  fi 
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -201,6 +205,11 @@ aws_rest() {
   _H3="Authorization: $Authorization"
   _debug _H3 "$_H3"
 
+  if [ ! -z "$AWS_SESSION_TOKEN" ]; then
+    _H4="x-amz-security-token: $AWS_SESSION_TOKEN"
+    _debug _H4 "$_H4"
+  fi 
+  
   url="$AWS_URL/$ep"
 
   if [ "$mtd" = "GET" ]; then
