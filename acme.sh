@@ -461,10 +461,19 @@ _hmac() {
   fi
 
   if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ]; then
-    if [ "$outputhex" ]; then
-      $OPENSSL_BIN dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" | cut -d = -f 2 | tr -d ' '
+    # OpenSSL only support -macopt from version 1.0. OS X ships version 0.9
+    if echo -n "" | $OPENSSL_BIN dgst -sha1 -mac HMAC -macopt hexkey:00 >/dev/null 2>&1; then
+      if [ "$outputhex" ]; then
+        $OPENSSL_BIN dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" | cut -d = -f 2 | tr -d ' '
+      else
+        $OPENSSL_BIN dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" -binary
+      fi
     else
-      $OPENSSL_BIN dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" -binary
+      # Try to fall back to python's built-in hmac/hashlib modules
+       [ -n "$outputhex" ] && outputhex=hex
+      python -u -c \
+          'import sys,binascii,hmac,hashlib;sys.stdout.write(getattr(hmac.new(binascii.unhexlify(sys.argv[3]),sys.stdin.read(),getattr(hashlib,sys.argv[1])),sys.argv[2])())' \
+          "$alg" "${outputhex}digest" "$secret_hex"
     fi
   else
     _err "$alg is not supported yet"
