@@ -27,8 +27,10 @@ dns_aws_add() {
     return 1
   fi
 
-  _saveaccountconf AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
-  _saveaccountconf AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
+  if [ -z "$AWS_SESSION_TOKEN" ]; then
+    _saveaccountconf AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
+    _saveaccountconf AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
+  fi
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -91,7 +93,7 @@ _get_root() {
       fi
 
       if _contains "$response" "<Name>$h.</Name>"; then
-        hostedzone="$(echo "$response" | sed 's/<HostedZone>/\n&/g' | _egrep_o "<HostedZone>.*<Name>$h.<.Name>.*<.HostedZone>")"
+        hostedzone="$(echo "$response" | sed 's/<HostedZone>/\n&/g' | _egrep_o "<HostedZone>.*?<Name>$h.<.Name>.*?<.HostedZone>")"
         _debug hostedzone "$hostedzone"
         if [ -z "$hostedzone" ]; then
           _err "Error, can not get hostedzone."
@@ -139,9 +141,13 @@ aws_rest() {
 
   aws_host="$AWS_HOST"
   CanonicalHeaders="host:$aws_host\nx-amz-date:$RequestDate\n"
-  _debug2 CanonicalHeaders "$CanonicalHeaders"
-
   SignedHeaders="host;x-amz-date"
+  if [ -n "$AWS_SESSION_TOKEN" ]; then
+    _H2="x-amz-security-token: $AWS_SESSION_TOKEN"
+    CanonicalHeaders="${CanonicalHeaders}x-amz-security-token:$AWS_SESSION_TOKEN\n"
+    SignedHeaders="${SignedHeaders};x-amz-security-token"
+  fi
+  _debug2 CanonicalHeaders "$CanonicalHeaders"
   _debug2 SignedHeaders "$SignedHeaders"
 
   RequestPayload="$data"
