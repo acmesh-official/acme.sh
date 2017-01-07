@@ -470,10 +470,10 @@ _hmac() {
       fi
     else
       # Try to fall back to python's built-in hmac/hashlib modules
-       [ -n "$outputhex" ] && outputhex=hex
+      [ -n "$outputhex" ] && outputhex=hex
       python -u -c \
-          'import sys,binascii,hmac,hashlib;sys.stdout.write(getattr(hmac.new(binascii.unhexlify(sys.argv[3]),sys.stdin.read(),getattr(hashlib,sys.argv[1])),sys.argv[2])())' \
-          "$alg" "${outputhex}digest" "$secret_hex"
+        'import sys,binascii,hmac,hashlib;sys.stdout.write(getattr(hmac.new(binascii.unhexlify(sys.argv[3]),sys.stdin.read(),getattr(hashlib,sys.argv[1])),sys.argv[2])())' \
+        "$alg" "${outputhex}digest" "$secret_hex"
     fi
   else
     _err "$alg is not supported yet"
