@@ -163,9 +163,9 @@ _cf_rest() {
   data="$3"
   _debug "$ep"
 
-  _H1="X-Auth-Email: $CF_Email"
-  _H2="X-Auth-Key: $CF_Key"
-  _H3="Content-Type: application/json"
+  export _H1="X-Auth-Email: $CF_Email"
+  export _H2="X-Auth-Key: $CF_Key"
+  export _H3="Content-Type: application/json"
 
   if [ "$m" != "GET" ]; then
     _debug data "$data"

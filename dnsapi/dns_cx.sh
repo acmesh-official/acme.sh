@@ -193,10 +193,10 @@ _rest() {
   hmac=$(printf "%s" "$sec" | _digest md5 hex)
   _debug hmac "$hmac"
 
-  _H1="API-KEY: $CX_Key"
-  _H2="API-REQUEST-DATE: $cdate"
-  _H3="API-HMAC: $hmac"
-  _H4="Content-Type: application/json"
+  export _H1="API-KEY: $CX_Key"
+  export _H2="API-REQUEST-DATE: $cdate"
+  export _H3="API-HMAC: $hmac"
+  export _H4="Content-Type: application/json"
 
   if [ "$data" ]; then
     response="$(_post "$data" "$url" "" "$m")"

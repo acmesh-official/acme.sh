@@ -2,8 +2,7 @@
 
 # dns api wrapper of lexicon for acme.sh
 
-lexicon_url="https://github.com/AnalogJ/lexicon"
-lexicon_cmd="lexicon"
+lexicon_cmd="lexicon"	# https://github.com/AnalogJ/lexicon
 
 wiki="https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api"
 

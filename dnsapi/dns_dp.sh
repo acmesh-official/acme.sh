@@ -199,7 +199,7 @@ _get_root() {
 
 #Usage: method  URI  data
 _rest() {
-  m=$1
+  export m=$1		# e.g. GET|POST
   ep="$2"
   data="$3"
   _debug "$ep"
