@@ -30,7 +30,9 @@ dns_lexicon_add() {
   _savedomainconf PROVIDER "$PROVIDER"
   export PROVIDER
 
-  Lx_name=$(echo LEXICON_"${PROVIDER}"_USERNAME | tr '[a-z]' '[A-Z]')
+  # e.g. busybox-ash does not know [:upper:]
+  # shellcheck disable=SC2018,SC2019
+  Lx_name=$(echo LEXICON_"${PROVIDER}"_USERNAME | tr 'a-z' 'A-Z')
   Lx_name_v=$(eval echo \$"$Lx_name")
   _debug "$Lx_name" "$Lx_name_v"
   if [ "$Lx_name_v" ]; then
@@ -38,7 +40,8 @@ dns_lexicon_add() {
     eval export "$Lx_name"
   fi
 
-  Lx_token=$(echo LEXICON_"${PROVIDER}"_TOKEN | tr '[a-z]' '[A-Z]')
+  # shellcheck disable=SC2018,SC2019
+  Lx_token=$(echo LEXICON_"${PROVIDER}"_TOKEN | tr 'a-z' 'A-Z')
   Lx_token_v=$(eval echo \$"$Lx_token")
   _debug "$Lx_token" "$Lx_token_v"
   if [ "$Lx_token_v" ]; then
@@ -46,7 +49,8 @@ dns_lexicon_add() {
     eval export "$Lx_token"
   fi
 
-  Lx_password=$(echo LEXICON_"${PROVIDER}"_PASSWORD | tr '[a-z]' '[A-Z]')
+  # shellcheck disable=SC2018,SC2019
+  Lx_password=$(echo LEXICON_"${PROVIDER}"_PASSWORD | tr 'a-z' 'A-Z')
   Lx_password_v=$(eval echo \$"$Lx_password")
   _debug "$Lx_password" "$Lx_password_v"
   if [ "$Lx_password_v" ]; then
@@ -54,7 +58,8 @@ dns_lexicon_add() {
     eval export "$Lx_password"
   fi
 
-  Lx_domaintoken=$(echo LEXICON_"${PROVIDER}"_DOMAINTOKEN | tr '[a-z]' '[A-Z]')
+  # shellcheck disable=SC2018,SC2019
+  Lx_domaintoken=$(echo LEXICON_"${PROVIDER}"_DOMAINTOKEN | tr 'a-z' 'A-Z')
   Lx_domaintoken_v=$(eval echo \$"$Lx_domaintoken")
   _debug "$Lx_domaintoken" "$Lx_domaintoken_v"
   if [ "$Lx_domaintoken_v" ]; then
