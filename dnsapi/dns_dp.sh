@@ -102,7 +102,7 @@ existing_records() {
   fi
 
   if _contains "$response" "Action completed successful"; then
-    count=$(printf "%s" "$response" | grep '<type>TXT</type>' | wc -l | tr -d ' ')
+    count=$(printf "%s" "$response" | grep -c '<type>TXT</type>' | tr -d ' ')
     record_id=$(printf "%s" "$response" | grep '^<id>' | tail -1 | cut -d '>' -f 2 | cut -d '<' -f 1)
     _debug record_id "$record_id"
     return 0
