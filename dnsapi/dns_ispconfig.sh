@@ -46,7 +46,7 @@ _ISPC_credentials() {
     _saveaccountconf ISPC_Api "${ISPC_Api}"
     _saveaccountconf ISPC_Api_Insecure "${ISPC_Api_Insecure}"
     # Set whether curl should use secure or insecure mode
-    HTTPS_INSECURE="${ISPC_Api_Insecure}"
+    export HTTPS_INSECURE="${ISPC_Api_Insecure}"
   fi
 }
 
