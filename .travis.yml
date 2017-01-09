@@ -41,7 +41,7 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ~/shfmt -l -w -i 2 . ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then git diff --exit-code && echo "shfmt OK" ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then shellcheck -V ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then shellcheck -e SC2021,SC2126,SC2034 **/*.sh && echo "shellcheck OK" ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then shellcheck -e SC2126,SC2034 **/*.sh && echo "shellcheck OK" ; fi
   - cd ..
   - git clone https://github.com/Neilpang/acmetest.git && cp -r acme.sh acmetest/ && cd acmetest
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$NGROK_TOKEN" ]]; then sudo NGROK_TOKEN="$NGROK_TOKEN" ./letest.sh ; fi
