@@ -199,7 +199,7 @@ _get_root() {
 
 #Usage: method  URI  data
 _rest() {
-  m=$1
+  m="$1"
   ep="$2"
   data="$3"
   _debug "$ep"
@@ -207,11 +207,11 @@ _rest() {
 
   _debug url "$url"
 
-  if [ "$data" ]; then
+  if [ "$m" = "GET" ]; then
+    response="$(_get "$url" | tr -d '\r')"
+  else
     _debug2 data "$data"
     response="$(_post "$data" "$url" | tr -d '\r')"
-  else
-    response="$(_get "$url" | tr -d '\r')"
   fi
 
   if [ "$?" != "0" ]; then
