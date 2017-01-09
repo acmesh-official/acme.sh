@@ -125,8 +125,8 @@ _LUA_rest() {
   data="$3"
   _debug "$ep"
 
-  _H1="Accept: application/json"
-  _H2="Authorization: Basic $LUA_auth"
+  export _H1="Accept: application/json"
+  export _H2="Authorization: Basic $LUA_auth"
   if [ "$data" ]; then
     _debug data "$data"
     response="$(_post "$data" "$LUA_Api/$ep" "" "$m")"

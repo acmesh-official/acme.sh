@@ -199,15 +199,16 @@ _get_root() {
 
 #Usage: method  URI  data
 _rest() {
-  m=$1
+  m="$1"	# method e.g. GET|POST|PUT|DELETE
   ep="$2"
   data="$3"
+
   _debug "$ep"
   url="$REST_API/$ep"
 
   _debug url "$url"
 
-  if [ "$data" ]; then
+  if [ "$m" != 'GET' -a "$data" ]; then
     _debug2 data "$data"
     response="$(_post "$data" "$url" | tr -d '\r')"
   else

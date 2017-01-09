@@ -137,13 +137,13 @@ aws_rest() {
 
   #RequestDate="20161120T141056Z" ##############
 
-  _H1="x-amz-date: $RequestDate"
+  export _H1="x-amz-date: $RequestDate"
 
   aws_host="$AWS_HOST"
   CanonicalHeaders="host:$aws_host\nx-amz-date:$RequestDate\n"
   SignedHeaders="host;x-amz-date"
   if [ -n "$AWS_SESSION_TOKEN" ]; then
-    _H2="x-amz-security-token: $AWS_SESSION_TOKEN"
+    export _H2="x-amz-security-token: $AWS_SESSION_TOKEN"
     CanonicalHeaders="${CanonicalHeaders}x-amz-security-token:$AWS_SESSION_TOKEN\n"
     SignedHeaders="${SignedHeaders};x-amz-security-token"
   fi
