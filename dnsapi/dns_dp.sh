@@ -199,7 +199,11 @@ _get_root() {
 
 #Usage: method  URI  data
 _rest() {
+<<<<<<< HEAD
   m="$1"	# method e.g. GET|POST|PUT|DELETE
+=======
+  export m=$1		# e.g. GET|POST
+>>>>>>> db75015a49bba555cd1f46de00a9fbf9a07aa562
   ep="$2"
   data="$3"
 
