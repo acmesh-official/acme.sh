@@ -2356,6 +2356,12 @@ __get_domain_new_authz() {
       _err "Can not get domain new authz."
       return 1
     fi
+    if _contains "$response" "No registration exists matching provided key"; then
+      _err "It seems there is an error, but it's recovered now, please try again."
+      _err "If you see this message for a second time, please report bug: $(__green "$PROJECT")"
+      _clearcaconf "CA_KEY_HASH"
+      break
+    fi
     if ! _contains "$response" "An error occurred while processing your request"; then
       _info "The new-authz request is ok."
       break
