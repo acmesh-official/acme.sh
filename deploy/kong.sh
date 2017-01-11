@@ -20,8 +20,7 @@ kong.sh_deploy() {
   _cca="$4"
   _cfullchain="$5"
   _info "Deploying certificate on Kong instance"
-  if [ -z "$KONG_URL" ]
-  then
+  if [ -z "$KONG_URL" ]; then
       _debug "KONG_URL Not set, using default http://localhost:8001"
       KONG_URL="http://localhost:8001"
   fi
@@ -33,9 +32,8 @@ kong.sh_deploy() {
   _debug _cfullchain "$_cfullchain"
 
   #Get uuid linked to the domain
-  uuid=$( _get "$KONG_URL/apis?request_host=$_cdomain" | _normalizeJson | _egrep_o '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' )
-  if [ "$uuid" = "" ]
-  then
+  uuid=$( _get "$KONG_URL/apis?request_host=$_cdomain" | _normalizeJson | _egrep_o '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
+  if [ "$uuid" = "" ]; then
     _err "Unable to get Kong uuid for domain $_cdomain"
     _err "Make sure that KONG_URL is correctly configured"
     _err "Make sure that a Kong api request_host match the domain"
@@ -46,7 +44,7 @@ kong.sh_deploy() {
   _saveaccountconf KONG_URL "$KONG_URL"
   #Generate DEIM
   delim="-----MultipartDelimeter$(date "+%s%N")"
-  nl=$( printf "\\r\\n" )
+  nl=$(printf "\\r\\n")
   #Set Header
   _H1="Content-Type: multipart/form-data; boundary=$delim"
   #Generate data for request (Multipart/form-data with mixed content)
@@ -62,18 +60,17 @@ kong.sh_deploy() {
   _debug header "$_H1"
   _debug content "$content"
   #Check if ssl plugins is aready enabled (if not => POST else => PATCH)
-  ssl_uuid=$(_get $KONG_URL/apis/$uuid/plugins | _egrep_o '"id":"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"[a-zA-Z0-9\-\,\"_\:]*"name":"ssl"' | _egrep_o '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' )
+  ssl_uuid=$(_get "$KONG_URL/apis/$uuid/plugins" | _egrep_o '"id":"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"[a-zA-Z0-9\-\,\"_\:]*"name":"ssl"' | _egrep_o '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
   _debug ssl_uuid "$ssl_uuid"
   if [ "$ssl_uuid" = "" ]
   then
     #Post certificate to Kong
-    response=$(_post "$content" "$KONG_URL/apis/$uuid/plugins" "" "POST" )
+    response=$(_post "$content" "$KONG_URL/apis/$uuid/plugins" "" "POST")
   else
     #patch
-    response=$(_post "$content" "$KONG_URL/apis/$uuid/plugins/$ssl_uuid" "" "PATCH" )
+    response=$(_post "$content" "$KONG_URL/apis/$uuid/plugins/$ssl_uuid" "" "PATCH")
   fi
-  if ! [ "$( echo "$response" | _egrep_o "ssl" )" = "ssl" ]
-  then
+  if ! [ "$( echo "$response" | _egrep_o "ssl" )" = "ssl" ]; then
     _err "An error occured with cert upload. Check response:"
     _err "$response"
     return 1
