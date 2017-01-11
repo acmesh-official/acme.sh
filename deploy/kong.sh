@@ -13,7 +13,7 @@
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
-kong.sh_deploy() {
+kong_deploy() {
   _cdomain="$1"
   _ckey="$2"
   _ccert="$3"
