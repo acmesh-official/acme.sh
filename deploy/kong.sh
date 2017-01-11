@@ -33,7 +33,7 @@ kong_deploy() {
 
   #Get uuid linked to the domain
   uuid=$(_get "$KONG_URL/apis?request_host=$_cdomain" | _normalizeJson | _egrep_o '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
-  if [ "$uuid" = "" ]; then
+  if [ -z "$uuid" ]; then
     _err "Unable to get Kong uuid for domain $_cdomain"
     _err "Make sure that KONG_URL is correctly configured"
     _err "Make sure that a Kong api request_host match the domain"
@@ -44,7 +44,7 @@ kong_deploy() {
   _saveaccountconf KONG_URL "$KONG_URL"
   #Generate DEIM
   delim="-----MultipartDelimeter$(date "+%s%N")"
-  nl=$(printf "\\r\\n")
+  nl="\015\012"
   #Set Header
   _H1="Content-Type: multipart/form-data; boundary=$delim"
   #Generate data for request (Multipart/form-data with mixed content)
@@ -56,13 +56,15 @@ kong_deploy() {
   content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"config.cert\"; filename=\"$(basename "$_cfullchain")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_cfullchain")"
   #Close multipart
   content="$content${nl}--$delim--${nl}"
+  #Convert CRLF
+  content=$(printf %b "$content")
   #DEBUG
   _debug header "$_H1"
   _debug content "$content"
   #Check if ssl plugins is aready enabled (if not => POST else => PATCH)
   ssl_uuid=$(_get "$KONG_URL/apis/$uuid/plugins" | _egrep_o '"id":"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"[a-zA-Z0-9\-\,\"_\:]*"name":"ssl"' | _egrep_o '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
   _debug ssl_uuid "$ssl_uuid"
-  if [ "$ssl_uuid" = "" ]; then
+  if [ -z "$ssl_uuid" ]; then
     #Post certificate to Kong
     response=$(_post "$content" "$KONG_URL/apis/$uuid/plugins" "" "POST")
   else
