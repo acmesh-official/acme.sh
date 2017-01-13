@@ -4540,7 +4540,7 @@ _process() {
 
 if [ "$INSTALLONLINE" ]; then
   INSTALLONLINE=""
-  _installOnline $BRANCH
+  _installOnline
   exit
 fi
 
