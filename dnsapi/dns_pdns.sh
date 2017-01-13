@@ -165,7 +165,7 @@ _pdns_rest() {
   ep=$2
   data=$3
 
-  _H1="X-API-Key: $PDNS_Token"
+  export _H1="X-API-Key: $PDNS_Token"
 
   if [ ! "$method" = "GET" ]; then
     _debug data "$data"

@@ -127,8 +127,8 @@ _ad_rest() {
   _debug mtd "$mtd"
   _debug ep "$ep"
 
-  _H1="Accept: application/json"
-  _H2="Content-Type: application/json"
+  export _H1="Accept: application/json"
+  export _H2="Content-Type: application/json"
 
   if [ "$mtd" != "GET" ]; then
     # both POST and DELETE.
