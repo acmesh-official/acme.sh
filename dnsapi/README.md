@@ -257,6 +257,25 @@ acme.sh --issue --dns dns_ad -d example.com -d www.example.com
 The `AD_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused
 when needed.
 
+## 14. Use Linode domain API
+
+You will need to install the Linode CLI and set it up accordingly.
+
+[https://www.linode.com/docs/platform/linode-cli](https://www.linode.com/docs/platform/linode-cli)
+
+Follow the installation instructions appropriate for your platform and then run the configuration.
+
+```linode configure
+```
+
+Make sure Linode CLI is working correctly before proceeding.
+
+Due to the reload time of any changes in the DNS records, we have to use the `dnssleep` option to wait at least 15 minutes for the changes to take effect.
+
+```sh
+acme.sh --issue --dns dns_linode --dnssleep 900 -d example.com -d www.example.com
+```
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
