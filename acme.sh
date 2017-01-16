@@ -3375,18 +3375,18 @@ installcronjob() {
     fi
 
     if [ "$_c_home" ]; then
-      _c_entry="--config-home \"$_c_home\""
+      _c_entry="--config-home \"$_c_home\" "
     fi
 
     if _exists uname && uname -a | grep SunOS >/dev/null; then
       crontab -l | {
         cat
-        echo "0 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry > /dev/null"
+        echo "0 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
       } | crontab --
     else
       crontab -l | {
         cat
-        echo "0 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry > /dev/null"
+        echo "0 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
       } | crontab -
     fi
   fi
