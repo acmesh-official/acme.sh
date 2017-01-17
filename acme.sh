@@ -4148,13 +4148,13 @@ _process() {
       --showcsr)
         _CMD="showcsr"
         ;;
-      --installcert | -i| --install-cert)
+      --installcert | -i | --install-cert)
         _CMD="installcert"
         ;;
       --renew | -r)
         _CMD="renew"
         ;;
-      --renewAll | --renewall|--renew-all)
+      --renewAll | --renewall | --renew-all)
         _CMD="renewAll"
         ;;
       --revoke)
@@ -4166,7 +4166,7 @@ _process() {
       --installcronjob | --install-cronjob)
         _CMD="installcronjob"
         ;;
-      --uninstallcronjob|--uninstall-cronjob)
+      --uninstallcronjob | --uninstall-cronjob)
         _CMD="uninstallcronjob"
         ;;
       --cron)
