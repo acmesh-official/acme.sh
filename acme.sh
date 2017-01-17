@@ -3381,16 +3381,17 @@ installcronjob() {
     if [ "$_c_home" ]; then
       _c_entry="--config-home \"$_c_home\" "
     fi
-
+    _t=$(_time)
+    random_minute=$(_math $_t % 60)
     if _exists uname && uname -a | grep SunOS >/dev/null; then
       crontab -l | {
         cat
-        echo "0 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
+        echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
       } | crontab --
     else
       crontab -l | {
         cat
-        echo "0 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
+        echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
       } | crontab -
     fi
   fi
