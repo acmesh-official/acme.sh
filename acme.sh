@@ -4148,7 +4148,7 @@ _process() {
       --showcsr)
         _CMD="showcsr"
         ;;
-      --installcert | -i|--install-cert)
+      --installcert | -i| --install-cert)
         _CMD="installcert"
         ;;
       --renew | -r)
@@ -4163,10 +4163,10 @@ _process() {
       --list)
         _CMD="list"
         ;;
-      --installcronjob|--install-cronjob)
+      --installcronjob | --install-cronjob)
         _CMD="installcronjob"
         ;;
-      --uninstallcronjob|--install-cronjob)
+      --uninstallcronjob|--uninstall-cronjob)
         _CMD="uninstallcronjob"
         ;;
       --cron)
@@ -4187,10 +4187,10 @@ _process() {
       --deactivate)
         _CMD="deactivate"
         ;;
-      --updateaccount|--update-account)
+      --updateaccount | --update-account)
         _CMD="updateaccount"
         ;;
-      --registeraccount|--register-account)
+      --registeraccount | --register-account)
         _CMD="registeraccount"
         ;;
       --domain | -d)
@@ -4332,7 +4332,7 @@ _process() {
         LE_WORKING_DIR="$2"
         shift
         ;;
-      --certhome|--cert-home)
+      --certhome | --cert-home)
         _certhome="$2"
         CERT_HOME="$_certhome"
         shift
