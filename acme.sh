@@ -4202,7 +4202,7 @@ _process() {
             return 1
           fi
           
-          _sepexis=$(echo $_dvalue | grep ",")
+          _sepexis=$(echo "$_dvalue" | grep ",")
           if [ "$_sepexis" ]; then
             _err "'$_dvalue' is not a valid domain for parameter '$1', please use more command to add domains"
             return 1
