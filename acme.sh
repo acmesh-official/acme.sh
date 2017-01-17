@@ -2391,6 +2391,10 @@ issue() {
   Le_Webroot="$1"
   Le_Domain="$2"
   Le_Alt="$3"
+  if _contains "$Le_Domain" ","; then
+    Le_Domain=$(echo "$2,$3" | cut -d , -f 1)
+    Le_Alt=$(echo "$2,$3" | cut -d , -f 2- | sed "s/,${NO_VALUE}$//")
+  fi
   Le_Keylength="$4"
   Le_RealCertPath="$5"
   Le_RealKeyPath="$6"
