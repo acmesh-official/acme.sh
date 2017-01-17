@@ -3371,15 +3371,18 @@ installcronjob() {
       _err "Can not install cronjob, $PROJECT_ENTRY not found."
       return 1
     fi
+
+    _t=$(_time)
+    random_minute=$(_math $_t % 60)
     if _exists uname && uname -a | grep SunOS >/dev/null; then
       crontab -l | {
         cat
-        echo "0 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" > /dev/null"
+        echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" > /dev/null"
       } | crontab --
     else
       crontab -l | {
         cat
-        echo "0 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" > /dev/null"
+        echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" > /dev/null"
       } | crontab -
     fi
   fi
