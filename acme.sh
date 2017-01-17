@@ -3371,7 +3371,7 @@ installcronjob() {
       _err "Can not install cronjob, $PROJECT_ENTRY not found."
       return 1
     fi
-    
+
     _t=$(_time)
     random_minute=$(_math $_t % 60)
     if _exists uname && uname -a | grep SunOS >/dev/null; then
