@@ -119,7 +119,7 @@ _get_root() {
   i=1
 
   _dns_do_soap getDomainList
-  _all_domains="/$(echo "${response}" \
+  _all_domains="$(echo "${response}" \
     | tr -d "\n\r\t " \
     | _egrep_o 'domain</key><value[^>]+>[^<]+' \
     | sed -e 's/^domain<\/key><value[^>]*>//g')"
