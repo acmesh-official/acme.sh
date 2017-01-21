@@ -1634,11 +1634,13 @@ __initHome() {
   fi
   export LE_WORKING_DIR
 
-  if [ -z "$CONFIG_HOME" ]; then
-    CONFIG_HOME="$LE_WORKING_DIR"
+  if [ -z "$LE_CONFIG_HOME" ]; then
+    LE_CONFIG_HOME="$LE_WORKING_DIR"
   fi
+  _debug "Using config home:$LE_CONFIG_HOME"
+  export LE_CONFIG_HOME
 
-  _DEFAULT_ACCOUNT_CONF_PATH="$CONFIG_HOME/account.conf"
+  _DEFAULT_ACCOUNT_CONF_PATH="$LE_CONFIG_HOME/account.conf"
 
   if [ -z "$ACCOUNT_CONF_PATH" ]; then
     if [ -f "$_DEFAULT_ACCOUNT_CONF_PATH" ]; then
@@ -1650,12 +1652,12 @@ __initHome() {
     ACCOUNT_CONF_PATH="$_DEFAULT_ACCOUNT_CONF_PATH"
   fi
 
-  DEFAULT_LOG_FILE="$CONFIG_HOME/$PROJECT_NAME.log"
+  DEFAULT_LOG_FILE="$LE_CONFIG_HOME/$PROJECT_NAME.log"
 
-  DEFAULT_CA_HOME="$CONFIG_HOME/ca"
+  DEFAULT_CA_HOME="$LE_CONFIG_HOME/ca"
 
   if [ -z "$LE_TEMP_DIR" ]; then
-    LE_TEMP_DIR="$CONFIG_HOME/tmp"
+    LE_TEMP_DIR="$LE_CONFIG_HOME/tmp"
   fi
 }
 
@@ -1707,7 +1709,7 @@ _initpath() {
   fi
 
   if [ -z "$APACHE_CONF_BACKUP_DIR" ]; then
-    APACHE_CONF_BACKUP_DIR="$CONFIG_HOME"
+    APACHE_CONF_BACKUP_DIR="$LE_CONFIG_HOME"
   fi
 
   if [ -z "$USER_AGENT" ]; then
@@ -1715,7 +1717,7 @@ _initpath() {
   fi
 
   if [ -z "$HTTP_HEADER" ]; then
-    HTTP_HEADER="$CONFIG_HOME/http.header"
+    HTTP_HEADER="$LE_CONFIG_HOME/http.header"
   fi
 
   _OLD_ACCOUNT_KEY="$LE_WORKING_DIR/account.key"
@@ -1731,7 +1733,7 @@ _initpath() {
     ACCOUNT_JSON_PATH="$_DEFAULT_ACCOUNT_JSON_PATH"
   fi
 
-  _DEFAULT_CERT_HOME="$CONFIG_HOME"
+  _DEFAULT_CERT_HOME="$LE_CONFIG_HOME"
   if [ -z "$CERT_HOME" ]; then
     CERT_HOME="$_DEFAULT_CERT_HOME"
   fi
@@ -3418,8 +3420,8 @@ uninstallcronjob() {
     LE_WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 9 | tr -d '"')"
     _info LE_WORKING_DIR "$LE_WORKING_DIR"
     if _contains "$cr" "--config-home"; then
-      CONFIG_HOME="$(echo "$cr" | cut -d ' ' -f 11 | tr -d '"')"
-      _debug CONFIG_HOME "$CONFIG_HOME"
+      LE_CONFIG_HOME="$(echo "$cr" | cut -d ' ' -f 11 | tr -d '"')"
+      _debug LE_CONFIG_HOME "$LE_CONFIG_HOME"
     fi
   fi
   _initpath
@@ -3701,6 +3703,9 @@ _installalias() {
   fi
 
   _setopt "$_envfile" "export LE_WORKING_DIR" "=" "\"$LE_WORKING_DIR\""
+  if [ "$_c_home" ]; then
+    _setopt "$_envfile" "export LE_CONFIG_HOME" "=" "\"$LE_CONFIG_HOME\""
+  fi
   _setopt "$_envfile" "alias $PROJECT_ENTRY" "=" "\"$LE_WORKING_DIR/$PROJECT_ENTRY $_c_entry\""
 
   _profile="$(_detect_profile)"
@@ -3719,6 +3724,9 @@ _installalias() {
   if [ -f "$_csh_profile" ]; then
     _info "Installing alias to '$_csh_profile'"
     _setopt "$_cshfile" "setenv LE_WORKING_DIR" " " "\"$LE_WORKING_DIR\""
+    if [ "$_c_home" ]; then
+      _setopt "$_cshfile" "setenv LE_CONFIG_HOME" " " "\"$LE_CONFIG_HOME\""
+    fi
     _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY $_c_entry\""
     _setopt "$_csh_profile" "source \"$_cshfile\""
   fi
@@ -3728,6 +3736,9 @@ _installalias() {
   if [ -f "$_tcsh_profile" ]; then
     _info "Installing alias to '$_tcsh_profile'"
     _setopt "$_cshfile" "setenv LE_WORKING_DIR" " " "\"$LE_WORKING_DIR\""
+    if [ "$_c_home" ]; then
+      _setopt "$_cshfile" "setenv LE_CONFIG_HOME" " " "\"$LE_CONFIG_HOME\""
+    fi
     _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY $_c_entry\""
     _setopt "$_tcsh_profile" "source \"$_cshfile\""
   fi
@@ -3781,12 +3792,12 @@ install() {
 
   chmod 700 "$LE_WORKING_DIR"
 
-  if ! mkdir -p "$CONFIG_HOME"; then
-    _err "Can not create config dir: $CONFIG_HOME"
+  if ! mkdir -p "$LE_CONFIG_HOME"; then
+    _err "Can not create config dir: $LE_CONFIG_HOME"
     return 1
   fi
 
-  chmod 700 "$CONFIG_HOME"
+  chmod 700 "$LE_CONFIG_HOME"
 
   cp "$PROJECT_ENTRY" "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/$PROJECT_ENTRY"
 
@@ -3856,7 +3867,7 @@ uninstall() {
   _uninstallalias
 
   rm -f "$LE_WORKING_DIR/$PROJECT_ENTRY"
-  _info "The keys and certs are in \"$(__green "$CONFIG_HOME")\", you can remove them by yourself."
+  _info "The keys and certs are in \"$(__green "$LE_CONFIG_HOME")\", you can remove them by yourself."
 
 }
 
@@ -4344,7 +4355,7 @@ _process() {
         ;;
       --config-home)
         _confighome="$2"
-        CONFIG_HOME="$_confighome"
+        LE_CONFIG_HOME="$_confighome"
         shift
         ;;
       --useragent)
