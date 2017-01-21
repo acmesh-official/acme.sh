@@ -25,7 +25,6 @@ dns_freedns_add() {
   _debug "txtvalue: $txtvalue"
   
   if [ -z "$FREEDNS_USER" ] || [ -z "$FREEDNS_PASSWORD" ]; then
-    AD_API_KEY=""
     _err "You didn't specify the FreeDNS username and password yet."
     _err "Please export as FREEDNS_USER / FREEDNS_PASSWORD and try again."
     return 1
