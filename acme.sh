@@ -3699,14 +3699,14 @@ _installalias() {
   fi
 
   if [ "$_c_home" ]; then
-    _c_entry="--config-home '$_c_home'"
+    _c_entry=" --config-home '$_c_home'"
   fi
 
   _setopt "$_envfile" "export LE_WORKING_DIR" "=" "\"$LE_WORKING_DIR\""
   if [ "$_c_home" ]; then
     _setopt "$_envfile" "export LE_CONFIG_HOME" "=" "\"$LE_CONFIG_HOME\""
   fi
-  _setopt "$_envfile" "alias $PROJECT_ENTRY" "=" "\"$LE_WORKING_DIR/$PROJECT_ENTRY $_c_entry\""
+  _setopt "$_envfile" "alias $PROJECT_ENTRY" "=" "\"$LE_WORKING_DIR/$PROJECT_ENTRY$_c_entry\""
 
   _profile="$(_detect_profile)"
   if [ "$_profile" ]; then
@@ -3727,7 +3727,7 @@ _installalias() {
     if [ "$_c_home" ]; then
       _setopt "$_cshfile" "setenv LE_CONFIG_HOME" " " "\"$LE_CONFIG_HOME\""
     fi
-    _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY $_c_entry\""
+    _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY$_c_entry\""
     _setopt "$_csh_profile" "source \"$_cshfile\""
   fi
 
@@ -3739,7 +3739,7 @@ _installalias() {
     if [ "$_c_home" ]; then
       _setopt "$_cshfile" "setenv LE_CONFIG_HOME" " " "\"$LE_CONFIG_HOME\""
     fi
-    _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY $_c_entry\""
+    _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY$_c_entry\""
     _setopt "$_tcsh_profile" "source \"$_cshfile\""
   fi
 
