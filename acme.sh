@@ -3511,7 +3511,7 @@ remove() {
   fi
 
   if mv "$DOMAIN_CONF" "$_removed_conf"; then
-    _info "$Le_Domain is removed, the key and cert files are in $(__green $DOMAIN_PATH )"
+    _info "$Le_Domain is removed, the key and cert files are in $(__green $DOMAIN_PATH)"
     _info "You can remove them by yourself."
     return 0
   else
