@@ -3431,7 +3431,7 @@ uninstallcronjob() {
 revoke() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ]; then
-    _usage "Usage: $PROJECT_ENTRY --revoke -d domain.com"
+    _usage "Usage: $PROJECT_ENTRY --revoke -d domain.com  [--ecc]"
     return 1
   fi
 
@@ -3487,6 +3487,37 @@ revoke() {
     fi
   fi
   return 1
+}
+
+#domain  ecc
+remove() {
+  Le_Domain="$1"
+  if [ -z "$Le_Domain" ]; then
+    _usage "Usage: $PROJECT_ENTRY --remove -d domain.com [--ecc]"
+    return 1
+  fi
+
+  _isEcc="$2"
+
+  _initpath "$Le_Domain" "$_isEcc"
+  _removed_conf="$DOMAIN_CONF.removed"
+  if [ ! -f "$DOMAIN_CONF" ]; then
+    if [ -f "$_removed_conf" ]; then
+      _err "$Le_Domain is already removed, You can remove the folder by yourself: $DOMAIN_PATH"
+    else
+      _err "$Le_Domain is not a issued domain, skip."
+    fi
+    return 1
+  fi
+
+  if mv "$DOMAIN_CONF" "$_removed_conf"; then
+    _info "$Le_Domain is removed, the key and cert files are in $(__green $DOMAIN_PATH )"
+    _info "You can remove them by yourself."
+    return 0
+  else
+    _err "Remove $Le_Domain failed."
+    return 1
+  fi
 }
 
 #domain vtype
@@ -3944,6 +3975,7 @@ Commands:
   --renew, -r              Renew a cert.
   --renew-all              Renew all the certs.
   --revoke                 Revoke a cert.
+  --remove                 Remove the cert from $PROJECT
   --list                   List all the certs.
   --showcsr                Show the content of a csr.
   --install-cronjob        Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
@@ -4175,6 +4207,9 @@ _process() {
         ;;
       --revoke)
         _CMD="revoke"
+        ;;
+      --remove)
+        _CMD="remove"
         ;;
       --list)
         _CMD="list"
@@ -4534,6 +4569,9 @@ _process() {
       ;;
     revoke)
       revoke "$_domain" "$_ecc"
+      ;;
+    remove)
+      remove "$_domain" "$_ecc"
       ;;
     deactivate)
       deactivate "$_domain,$_altdomains"
