@@ -3349,9 +3349,14 @@ _installcert() {
   fi
 
   if [ "$Le_ReloadCmd" ]; then
-
     _info "Run Le_ReloadCmd: $Le_ReloadCmd"
-    if (cd "$DOMAIN_PATH" && eval "$Le_ReloadCmd"); then
+    if (
+      export CERT_PATH
+      export CERT_KEY_PATH
+      export CA_CERT_PATH
+      export CERT_FULLCHAIN_PATH
+      cd "$DOMAIN_PATH" && eval "$Le_ReloadCmd"
+    ); then
       _info "$(__green "Reload success")"
     else
       _err "Reload error for :$Le_Domain"
