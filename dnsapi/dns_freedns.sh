@@ -11,9 +11,11 @@
 #
 ########  Public functions #####################
 
-# Requires FreeDNS userid and password in folowing variables...
-# FREEDNS_USER=username
-# FREEDNS_PASSWORD=password
+# Export FreeDNS userid and password in folowing variables...
+#  FREEDNS_USER=username
+#  FREEDNS_PASSWORD=password
+# login cookie is saved in acme account config file so userid / pw
+# need to be set only when changed.
 
 #Usage: dns_freedns_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_freedns_add() {
@@ -23,24 +25,33 @@ dns_freedns_add() {
   _info "Add TXT record using FreeDNS"
   _debug "fulldomain: $fulldomain"
   _debug "txtvalue: $txtvalue"
-  
-  if [ -z "$FREEDNS_USER" ] || [ -z "$FREEDNS_PASSWORD" ]; then
-    _err "You didn't specify the FreeDNS username and password yet."
-    _err "Please export as FREEDNS_USER / FREEDNS_PASSWORD and try again."
-    return 1
-  fi
-  
-  login_cookies="$(_freedns_login $FREEDNS_USER $FREEDNS_PASSWORD)"
-  if [ -z "$login_cookies" ]; then
-    return 1
-  fi
-  
-  _saveaccountconf FREEDNS_USER "$FREEDNS_USER"
-  _saveaccountconf FREEDNS_PASSWORD "$FREEDNS_PASSWORD"
 
-  htmlpage="$(_freedns_retrieve_subdomain_page $login_cookies)"
+  if [ -z "$FREEDNS_USER" ] || [ -z "$FREEDNS_PASSWORD" ]; then
+    if [ -z "$FREEDNS_COOKIE" ]; then
+      _err "You did not specify the FreeDNS username and password yet."
+      _err "Please export as FREEDNS_USER / FREEDNS_PASSWORD and try again."
+      return 1
+    fi
+    using_cached_cookies="true"
+  else
+    FREEDNS_COOKIE="$(_freedns_login $FREEDNS_USER $FREEDNS_PASSWORD)"
+    if [ -z "$FREEDNS_COOKIE" ]; then
+      return 1
+    fi
+    using_cached_cookies="false"
+  fi
+
+  _debug "FreeDNS login cookies: $FREEDNS_COOKIE (cached = $using_cached_cookies)"
+
+  _saveaccountconf FREEDNS_COOKIE "$FREEDNS_COOKIE"
+
+  htmlpage="$(_freedns_retrieve_subdomain_page $FREEDNS_COOKIE)"
   if [ $? != 0 ]; then
-    return $?
+    if [ "$using_cached_cookies" = "true" ]; then
+      _err "Has your FreeDNS username and password channged?  If so..."
+      _err "Please export as FREEDNS_USER / FREEDNS_PASSWORD and try again."
+    fi
+    return 1
   fi
 
   # split our full domain name into two parts...
@@ -118,8 +129,8 @@ dns_freedns_add() {
   if [ -z "$DNSdomainid" ]; then
     # If domain ID is empty then something went wrong (top level
     # domain not found at FreeDNS). Cannot proceed.
-    _debug2 "$htmlpage"
-    _debug2 "$subdomain_csv"
+    _debug "$htmlpage"
+    _debug "$subdomain_csv"
     _err "Domain $top_domain not found at FreeDNS"
     return 1
   fi
@@ -128,7 +139,7 @@ dns_freedns_add() {
     # If data ID is empty then specific subdomain does not exist yet, need
     # to create it this should always be the case as the acme client
     # deletes the entry after domain is validated.
-    _freedns_add_txt_record $login_cookies $DNSdomainid $sub_domain "$txtvalue"
+    _freedns_add_txt_record $FREEDNS_COOKIE $DNSdomainid $sub_domain "$txtvalue"
     return $?
   else
     if [ "$txtvalue" = "$DNSvalue" ]; then
@@ -143,10 +154,10 @@ dns_freedns_add() {
       return 0
     else
       # Delete the old TXT record (with the wrong value)
-      _freedns_delete_txt_record $login_cookies $DNSdataid
+      _freedns_delete_txt_record $FREEDNS_COOKIE $DNSdataid
       if [ $? = 0 ]; then
         # And add in new TXT record with the value provided
-        _freedns_add_txt_record $login_cookies $DNSdomainid $sub_domain "$txtvalue"
+        _freedns_add_txt_record $FREEDNS_COOKIE $DNSdomainid $sub_domain "$txtvalue"
       fi
       return $?
     fi
@@ -164,14 +175,16 @@ dns_freedns_rm() {
   _debug "fulldomain: $fulldomain"
   _debug "txtvalue: $txtvalue"
   
-  login_cookies="$(_freedns_login $FREEDNS_USER $FREEDNS_PASSWORD)"
-  if [ -z "$login_cookies" ]; then
-    return 1
-  fi
+  # Need to read cookie from conf file again in case new value set
+  # during login to FreeDNS when TXT record was created.
+  
+  #TODO acme.sh does not have a _readaccountconf() fuction
+  FREEDNS_COOKIE="$(_read_conf "$ACCOUNT_CONF_PATH" "FREEDNS_COOKIE")"
+  _debug "FreeDNS login cookies: $FREEDNS_COOKIE"
 
-  htmlpage="$(_freedns_retrieve_subdomain_page $login_cookies)"
+  htmlpage="$(_freedns_retrieve_subdomain_page $FREEDNS_COOKIE)"
   if [ $? != 0 ]; then
-    return $?
+    return 1
   fi
 
   # Now convert the tables in the HTML to CSV.  This litte gem from
@@ -213,7 +226,7 @@ dns_freedns_rm() {
         # field. So for now we will assume that there is only one TXT
         # field for the sub domain and just delete it. Currently this
         # is a safe assumption.
-        _freedns_delete_txt_record $login_cookies $DNSdataid
+        _freedns_delete_txt_record $FREEDNS_COOKIE $DNSdataid
         unset IFS
         return $?
 #     fi
@@ -239,7 +252,7 @@ _freedns_login() {
   url="https://freedns.afraid.org/zc.php?step=2"
   
   _debug "Login to FreeDNS as user $username"
-  # Not using acme.sh _post() function because I need to capture the cookies.
+  #TODO Not using acme.sh _post() function because I need to capture the cookies.
   cookie_file="$(curl --silent \
               --user-agent "$USER_AGENT" \
               --data "username=$(_freedns_urlencode "$username")&password=$(_freedns_urlencode "$password")&submit=Login&action=auth" \
@@ -248,7 +261,7 @@ _freedns_login() {
    
   if [ $? != 0 ]; then
     _err "FreeDNS login failed for user $username bad RC from cURL: $?"
-    return $?
+    return 1
   fi
   
   # convert from cookie file format to cookie string
@@ -264,7 +277,7 @@ _freedns_login() {
       if _contains "$line" "Netscape HTTP Cookie File"; then
         found=1
       else
-        _debug2 "$cookie_file"
+        _debug "$cookie_file"
         _err "FreeDNS login failed for user $username bad cookie file"
         unset IFS
         return 1
@@ -272,10 +285,12 @@ _freedns_login() {
     else
       # after first line skip blank line or comments
       if [ -n "$line" -a "$(echo $line | cut -c 1)" != "#" ]; then
-        if [ -n "$cookies" ]; then
-          cookies="$cookies;"
+        cookie_name="$(echo $line | cut -d ' ' -f 6)"
+        if [ "$cookie_name" = "dns_cookie" ]; then
+          # found the login cookie, that is all we need.
+          cookies="$cookie_name=$(echo $line | cut -d ' ' -f 7)"
+          break;
         fi
-        cookies="$cookies$(echo $line | cut -d ' ' -f 6)=$(echo $line | cut -d ' ' -f 7)"
       fi
     fi
   done
@@ -287,7 +302,6 @@ _freedns_login() {
     return 1
   fi
 
-  _debug "FreeDNS login cookies: $cookies"
   echo "$cookies"
   return 0
 }
@@ -300,7 +314,7 @@ _freedns_retrieve_subdomain_page() {
   url="https://freedns.afraid.org/subdomain/"
 
   _debug "Retrieve subdmoain page from FreeDNS"
-  # Not using acme.sh _get() function becuase I need to pass in the cookies.
+  #TODO Not using acme.sh _get() function becuase I need to pass in the cookies.
   htmlpage="$(curl --silent \
               --user-agent "$USER_AGENT" \
               --cookie "$cookies" \
@@ -308,7 +322,7 @@ _freedns_retrieve_subdomain_page() {
 
   if [ $? != 0 ]; then
     _err "FreeDNS retrieve subdomins failed bad RC from cURL: $?"
-    return $?
+    return 1
   fi
   
   if [ -z "$htmlpage" ]; then
@@ -329,7 +343,7 @@ _freedns_add_txt_record() {
   value="$(_freedns_urlencode "$4")"
   url="http://freedns.afraid.org/subdomain/save.php?step=2"
 
-  # Not using acme.sh _get() function becuase I need to pass in the cookies.  
+  #TODO Not using acme.sh _get() function becuase I need to pass in the cookies.  
   htmlpage="$(curl --silent \
             --user-agent "$USER_AGENT" \
             --cookie "$cookies" \
@@ -338,12 +352,12 @@ _freedns_add_txt_record() {
 
   if [ $? != 0 ]; then
     _err "FreeDNS failed to add TXT record for $subdomain bad RC from cURL: $?"
-    return $?
+    return 1
   fi
   
   # returned page should be empty on success
   if [ -n "$htmlpage" ]; then
-    _debug2 "$htmlpage"
+    _debug "$htmlpage"
     _err "FreeDNS failed to add TXT record for $subdomain"
     return 1
   fi
@@ -356,7 +370,7 @@ _freedns_delete_txt_record() {
   data_id=$2
   url="https://freedns.afraid.org/subdomain/delete2.php"
 
-  # Not using acme.sh _get() function becuase I need to pass in the cookies.
+  #TODO Not using acme.sh _get() function becuase I need to pass in the cookies.
   htmlpage="$(curl --silent \
             --user-agent "$USER_AGENT" \
             --cookie "$cookies" \
@@ -364,12 +378,12 @@ _freedns_delete_txt_record() {
 
   if [ $? != 0 ]; then
     _err "FreeDNS failed to delete TXT record for $subdomain bad RC from cURL: $?"
-    return $?
+    return 1
   fi
 
   # returned page should be empty on success
   if [ -n "$htmlpage" ]; then
-    _debug2 "$htmlpage"
+    _debug "$htmlpage"
     _err "FreeDNS failed to delete TXT record $data_id"
     return 1
   fi
