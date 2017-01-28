@@ -252,57 +252,24 @@ _freedns_login() {
   url="https://freedns.afraid.org/zc.php?step=2"
   
   _debug "Login to FreeDNS as user $username"
-  #TODO Not using acme.sh _post() function because I need to capture the cookies.
-  cookie_file="$(curl --silent \
-              --user-agent "$USER_AGENT" \
-              --data "username=$(_freedns_urlencode "$username")&password=$(_freedns_urlencode "$password")&submit=Login&action=auth" \
-              --cookie-jar - \
-              $url )"
-   
-  if [ $? != 0 ]; then
-    _err "FreeDNS login failed for user $username bad RC from cURL: $?"
-    return 1
-  fi
   
-  # convert from cookie file format to cookie string
-  cookies=""
-  found=0
-  IFS=$'\n'
-  for line in $cookie_file
-  do
-    # strip spaces from start and end of line
-    line="$(echo "$line" | xargs)"
-    if [ $found = 0 ]; then
-      # first line, validate that it is a cookie file
-      if _contains "$line" "Netscape HTTP Cookie File"; then
-        found=1
-      else
-        _debug "$cookie_file"
-        _err "FreeDNS login failed for user $username bad cookie file"
-        unset IFS
-        return 1
-      fi
-    else
-      # after first line skip blank line or comments
-      if [ -n "$line" -a "$(echo $line | cut -c 1)" != "#" ]; then
-        cookie_name="$(echo $line | cut -d ' ' -f 6)"
-        if [ "$cookie_name" = "dns_cookie" ]; then
-          # found the login cookie, that is all we need.
-          cookies="$cookie_name=$(echo $line | cut -d ' ' -f 7)"
-          break;
-        fi
-      fi
-    fi
-  done
-  unset IFS
+  htmlpage="$(_post "username=$(_freedns_urlencode "$username")&password=$(_freedns_urlencode "$password")&submit=Login&action=auth" "$url")"
   
-  # if cookies is not empty then logon successful
-  if [ -z "$cookies" ]; then
-    _err "FreeDNS login failed for user $username"
+  if [ "$?" != "0" ]; then
+    _err "FreeDNS login failed for user $username bad RC from _post: $?"
     return 1
   fi
 
-  echo "$cookies"
+  cookies="$(grep -i '^Set-Cookie.*dns_cookie.*$' "$HTTP_HEADER" | _head_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
+  
+  # if cookies is not empty then logon successful
+  if [ -z "$cookies" ]; then
+    _debug "$htmlpage"
+    _err "FreeDNS login failed for user $username. Check $HTTP_HEADER file"
+    return 1
+  fi
+
+  printf "%s" "$cookies"
   return 0
 }
 
