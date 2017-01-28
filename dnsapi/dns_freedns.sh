@@ -277,15 +277,12 @@ _freedns_login() {
 # echo page retrieved (html)
 # returns 0 success
 _freedns_retrieve_subdomain_page() {
-  cookies=$1
+  _H1="Cookie: $1"
   url="https://freedns.afraid.org/subdomain/"
 
   _debug "Retrieve subdmoain page from FreeDNS"
-  #TODO Not using acme.sh _get() function becuase I need to pass in the cookies.
-  htmlpage="$(curl --silent \
-              --user-agent "$USER_AGENT" \
-              --cookie "$cookies" \
-              $url )"
+  
+  htmlpage="$(_get "$url")"
 
   if [ $? != 0 ]; then
     _err "FreeDNS retrieve subdomins failed bad RC from cURL: $?"
@@ -299,7 +296,7 @@ _freedns_retrieve_subdomain_page() {
   
   _debug2 "$htmlpage"
 
-  echo "$htmlpage"
+  printf "%s"  "$htmlpage"
   return 0
 }
 
