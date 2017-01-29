@@ -19,8 +19,8 @@
 
 #Usage: dns_freedns_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_freedns_add() {
-  fulldomain=$1
-  txtvalue=$2
+  fulldomain="$1"
+  txtvalue="$2"
 
   _info "Add TXT record using FreeDNS"
   _debug "fulldomain: $fulldomain"
@@ -46,7 +46,7 @@ dns_freedns_add() {
   _saveaccountconf FREEDNS_COOKIE "$FREEDNS_COOKIE"
 
   htmlpage="$(_freedns_retrieve_subdomain_page $FREEDNS_COOKIE)"
-  if [ $? != 0 ]; then
+  if [ "$?" != "0" ]; then
     if [ "$using_cached_cookies" = "true" ]; then
       _err "Has your FreeDNS username and password channged?  If so..."
       _err "Please export as FREEDNS_USER / FREEDNS_PASSWORD and try again."
@@ -155,7 +155,7 @@ dns_freedns_add() {
     else
       # Delete the old TXT record (with the wrong value)
       _freedns_delete_txt_record $FREEDNS_COOKIE $DNSdataid
-      if [ $? = 0 ]; then
+      if [ "$?" = "0" ]; then
         # And add in new TXT record with the value provided
         _freedns_add_txt_record $FREEDNS_COOKIE $DNSdomainid $sub_domain "$txtvalue"
       fi
@@ -168,8 +168,8 @@ dns_freedns_add() {
 #Usage: fulldomain txtvalue
 #Remove the txt record after validation.
 dns_freedns_rm() {
-  fulldomain=$1
-  txtvalue=$2
+  fulldomain="$1"
+  txtvalue="$2"
 
   _info "Delete TXT record using FreeDNS"
   _debug "fulldomain: $fulldomain"
@@ -183,7 +183,7 @@ dns_freedns_rm() {
   _debug "FreeDNS login cookies: $FREEDNS_COOKIE"
 
   htmlpage="$(_freedns_retrieve_subdomain_page $FREEDNS_COOKIE)"
-  if [ $? != 0 ]; then
+  if [ "$?" != "0" ]; then
     return 1
   fi
 
@@ -226,8 +226,8 @@ dns_freedns_rm() {
         # field. So for now we will assume that there is only one TXT
         # field for the sub domain and just delete it. Currently this
         # is a safe assumption.
-        _freedns_delete_txt_record $FREEDNS_COOKIE $DNSdataid
         unset IFS
+        _freedns_delete_txt_record $FREEDNS_COOKIE $DNSdataid
         return $?
 #     fi
     fi
@@ -244,11 +244,11 @@ dns_freedns_rm() {
 ####################  Private functions below ##################################
 
 # usage: _freedns_login username password
-# echos string "cookie:value;cookie:value" etc
+# print string "cookie=value" etc.
 # returns 0 success
 _freedns_login() {
-  username=$1
-  password=$2
+  username="$1"
+  password="$2"
   url="https://freedns.afraid.org/zc.php?step=2"
   
   _debug "Login to FreeDNS as user $username"
@@ -256,7 +256,7 @@ _freedns_login() {
   htmlpage="$(_post "username=$(_freedns_urlencode "$username")&password=$(_freedns_urlencode "$password")&submit=Login&action=auth" "$url")"
   
   if [ "$?" != "0" ]; then
-    _err "FreeDNS login failed for user $username bad RC from _post: $?"
+    _err "FreeDNS login failed for user $username bad RC from _post"
     return 1
   fi
 
@@ -277,15 +277,15 @@ _freedns_login() {
 # echo page retrieved (html)
 # returns 0 success
 _freedns_retrieve_subdomain_page() {
-  _H1="Cookie: $1"
+  _H1="Cookie:$1"
   url="https://freedns.afraid.org/subdomain/"
 
   _debug "Retrieve subdmoain page from FreeDNS"
   
   htmlpage="$(_get "$url")"
 
-  if [ $? != 0 ]; then
-    _err "FreeDNS retrieve subdomins failed bad RC from cURL: $?"
+  if [ "$?" != "0" ]; then
+    _err "FreeDNS retrieve subdomins failed bad RC from _get"
     return 1
   fi
   
@@ -300,57 +300,51 @@ _freedns_retrieve_subdomain_page() {
   return 0
 }
 
+# usage _freedns_add_txt_record login_cookies domain_id subdomain value
+# returns 0 success
 _freedns_add_txt_record() {
-  cookies=$1
-  domain_id=$2
-  subdomain=$3
+  _H1="Cookie:$1"
+  domain_id="$2"
+  subdomain="$3"
   value="$(_freedns_urlencode "$4")"
   url="http://freedns.afraid.org/subdomain/save.php?step=2"
+  
+  htmlpage="$(_post "type=TXT&domain_id=$domain_id&subdomain=$subdomain&address=%22$value%22&send=Save%21" "$url")"
 
-  #TODO Not using acme.sh _get() function becuase I need to pass in the cookies.  
-  htmlpage="$(curl --silent \
-            --user-agent "$USER_AGENT" \
-            --cookie "$cookies" \
-            --data "type=TXT&domain_id=$domain_id&subdomain=$subdomain&address=%22$value%22&send=Save%21" \
-            $url )"
-
-  if [ $? != 0 ]; then
-    _err "FreeDNS failed to add TXT record for $subdomain bad RC from cURL: $?"
+  if [ "$?" != "0" ]; then
+    _err "FreeDNS failed to add TXT record for $subdomain bad RC from _post"
     return 1
   fi
   
-  # returned page should be empty on success
-  if [ -n "$htmlpage" ]; then
+  if ! grep "200 OK" "$HTTP_HEADER" >/dev/null; then
     _debug "$htmlpage"
-    _err "FreeDNS failed to add TXT record for $subdomain"
+    _err "FreeDNS failed to add TXT record for $subdomain. Check $HTTP_HEADER file"
     return 1
   fi
   _info "Added acme challenge TXT record for $fulldomain at FreeDNS"
   return 0
 }
 
+# usage _freedns_delete_txt_record login_cookies data_id
+# returns 0 success
 _freedns_delete_txt_record() {
-  cookies=$1
-  data_id=$2
+  _H1="Cookie:$1"
+  data_id="$2"
   url="https://freedns.afraid.org/subdomain/delete2.php"
 
-  #TODO Not using acme.sh _get() function becuase I need to pass in the cookies.
-  htmlpage="$(curl --silent \
-            --user-agent "$USER_AGENT" \
-            --cookie "$cookies" \
-            "$url?data_id%5B%5D=$data_id&submit=delete+selected" )"
+  htmlheader="$(_get "$url?data_id%5B%5D=$data_id&submit=delete+selected" "onlyheader")"
 
-  if [ $? != 0 ]; then
-    _err "FreeDNS failed to delete TXT record for $subdomain bad RC from cURL: $?"
+  if [ "$?" != "0" ]; then
+    _err "FreeDNS failed to delete TXT record for $data_id bad RC from _get"
     return 1
   fi
 
-  # returned page should be empty on success
-  if [ -n "$htmlpage" ]; then
-    _debug "$htmlpage"
+  if ! _contains "$htmlheader" "200 OK"; then
+    _debug "$htmlheader"
     _err "FreeDNS failed to delete TXT record $data_id"
     return 1
   fi
+
   _info "Deleted acme challenge TXT record for $fulldomain at FreeDNS"
   return 0
 }
