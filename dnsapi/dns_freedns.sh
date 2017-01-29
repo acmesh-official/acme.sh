@@ -82,14 +82,11 @@ dns_freedns_add() {
   found=0
   while [ "$i" -lt "$lines" ]; do
     i="$(_math "$i" + 1)"
-    line="$(echo "$subdomain_csv" | cut -d "$nl" -f $i)"
+    line="$(echo "$subdomain_csv" | cut -d "$nl" -f "$i")"
     tmp="$(echo "$line" | cut -d ',' -f 1)"
     if [ $found = 0 ] && _startswith "$tmp" "<td>$top_domain"; then
       # this line will contain DNSdomainid for the top_domain
-      tmp="$(echo "$line" | cut -d ',' -f 2)"
-      url=${tmp#*=}
-      url=${url%%>*}
-      DNSdomainid=${url#*domain_id=}
+      DNSdomainid="$(echo "$line" | cut -d ',' -f 2 | sed 's/^.*domain_id=//;s/>.*//')"
       found=1
     else
       # lines contain DNS records for all subdomains
@@ -207,7 +204,7 @@ dns_freedns_rm() {
   found=0
   while [ "$i" -lt "$lines" ]; do
     i="$(_math "$i" + 1)"
-    line="$(echo "$subdomain_csv" | cut -d "$nl" -f $i)"
+    line="$(echo "$subdomain_csv" | cut -d "$nl" -f "$i")"
     DNSname="$(echo "$line" | cut -d ',' -f 2 | sed 's/^[^>]*>//;s/<\/a>.*//')"
     DNStype="$(echo "$line" | cut -d ',' -f 3)"
     if [ "$DNSname" = "$fulldomain" ] && [ "$DNStype" = "TXT" ]; then
@@ -346,10 +343,12 @@ _freedns_delete_txt_record() {
 _freedns_urlencode() {
   # urlencode <string>
   length="${#1}"
-  for ((i = 0; i < length; i++)); do
+  i=0
+  while [ "$i" -lt "$length" ]; do
     c="${1:i:1}"
+    i="$(_math "$i" + 1)"
     case $c in
-      [a-zA-Z0-9.~_-]) printf "$c" ;;
+      [a-zA-Z0-9.~_-]) printf '%s' "$c" ;;
       *) printf '%%%02X' "'$c" ;;
     esac
   done
