@@ -1,4 +1,3 @@
-
 #!/usr/bin/env sh
 
 #This file name is "dns_freedns.sh"
@@ -59,27 +58,26 @@ dns_freedns_add() {
   sub_domain="$(echo $fulldomain | rev | cut -d. -f 3- | rev)"
 
   # Now convert the tables in the HTML to CSV.  This litte gem from
-  # http://stackoverflow.com/questions/1403087/how-can-i-convert-an-html-table-to-csv
-  subdomain_csv="$(echo $htmlpage |
-    grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' |
-    sed 's/^[\ \t]*//g' |
-    tr -d '\n' |
-    sed 's/<\/TR[^>]*>/\n/Ig' |
-    sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' |
-    sed 's/^<T[DH][^>]*>\|<\/\?T[DH][^>]*>$//Ig' |
-    sed 's/<\/T[DH][^>]*><T[DH][^>]*>/,/Ig' |
-    grep 'edit.php?' |
-    grep $top_domain)"
+  # http://stackoverflow.com/questions/1403087/how-can-i-convert-an-html-table-to-csv    
+  subdomain_csv="$(echo $htmlpage \
+    | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' \
+    | sed 's/^[\ \t]*//g' \
+    | tr -d '\n' \
+    | sed 's/<\/TR[^>]*>/\n/Ig' \
+    | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' \
+    | sed 's/^<T[DH][^>]*>\|<\/\?T[DH][^>]*>$//Ig' \
+    | sed 's/<\/T[DH][^>]*><T[DH][^>]*>/,/Ig' \
+    | grep 'edit.php?' \
+    | grep $top_domain)"
   # The above beauty ends with striping out rows that do not have an
   # href to edit.php and do not have the top domain we are looking for.
   # So all we should be left with is CSV of table of subdomains we are
   # interested in.
-  
+
   # Now we have to read through this table and extract the data we need
   IFS=$'\n'
   found=0
-  for line in $subdomain_csv
-  do
+  for line in $subdomain_csv; do
     tmp="$(echo $line | cut -d ',' -f 1)"
     if [ $found = 0 ] && _startswith "$tmp" "<td>$top_domain"; then
       # this line will contain DNSdomainid for the top_domain
@@ -97,7 +95,7 @@ dns_freedns_add() {
       if [ "$DNSname" = "$fulldomain" -a "$DNStype" = "TXT" ]; then
         tmp=${dns_href#*=}
         url=${tmp%%>*}
-        DNSdataid=${url#*data_id=}    
+        DNSdataid=${url#*data_id=}
         # Now get current value for the TXT record.  This method may
         # produce inaccurate results as the value field is truncated
         # on this webpage. To get full value we would need to load
@@ -174,10 +172,10 @@ dns_freedns_rm() {
   _info "Delete TXT record using FreeDNS"
   _debug "fulldomain: $fulldomain"
   _debug "txtvalue: $txtvalue"
-  
+
   # Need to read cookie from conf file again in case new value set
   # during login to FreeDNS when TXT record was created.
-  
+
   #TODO acme.sh does not have a _readaccountconf() fuction
   FREEDNS_COOKIE="$(_read_conf "$ACCOUNT_CONF_PATH" "FREEDNS_COOKIE")"
   _debug "FreeDNS login cookies: $FREEDNS_COOKIE"
@@ -189,25 +187,24 @@ dns_freedns_rm() {
 
   # Now convert the tables in the HTML to CSV.  This litte gem from
   # http://stackoverflow.com/questions/1403087/how-can-i-convert-an-html-table-to-csv
-  subdomain_csv="$(echo $htmlpage |
-    grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' |
-    sed 's/^[\ \t]*//g' |
-    tr -d '\n' |
-    sed 's/<\/TR[^>]*>/\n/Ig' |
-    sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' |
-    sed 's/^<T[DH][^>]*>\|<\/\?T[DH][^>]*>$//Ig' |
-    sed 's/<\/T[DH][^>]*><T[DH][^>]*>/,/Ig' |
-    grep 'edit.php?' |
-    grep $fulldomain)"
+  subdomain_csv="$(echo $htmlpage \
+    | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' \
+    | sed 's/^[\ \t]*//g' \
+    | tr -d '\n' \
+    | sed 's/<\/TR[^>]*>/\n/Ig' \
+    | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' \
+    | sed 's/^<T[DH][^>]*>\|<\/\?T[DH][^>]*>$//Ig' \
+    | sed 's/<\/T[DH][^>]*><T[DH][^>]*>/,/Ig' \
+    | grep 'edit.php?' \
+    | grep $fulldomain)"
   # The above beauty ends with striping out rows that do not have an
   # href to edit.php and do not have the domain name we are looking for.
   # So all we should be left with is CSV of table of subdomains we are
   # interested in.
-  
+
   # Now we have to read through this table and extract the data we need
   IFS=$'\n'
-  for line in $subdomain_csv
-  do
+  for line in $subdomain_csv; do
     dns_href="$(echo $line | cut -d ',' -f 2)"
     tmp=${dns_href#*>}
     DNSname=${tmp%%<*}
@@ -221,19 +218,19 @@ dns_freedns_rm() {
       tmp=${tmp#&quot;}
       DNSvalue=${tmp%&quot;}
       _debug "DNSvalue: $DNSvalue"
-#     if [ "$DNSvalue" = "$txtvalue" ]; then
-        # Testing value match fails.  Website is truncating the value
-        # field. So for now we will assume that there is only one TXT
-        # field for the sub domain and just delete it. Currently this
-        # is a safe assumption.
-        unset IFS
-        _freedns_delete_txt_record $FREEDNS_COOKIE $DNSdataid
-        return $?
-#     fi
+      #     if [ "$DNSvalue" = "$txtvalue" ]; then
+      # Testing value match fails.  Website is truncating the value
+      # field. So for now we will assume that there is only one TXT
+      # field for the sub domain and just delete it. Currently this
+      # is a safe assumption.
+      unset IFS
+      _freedns_delete_txt_record $FREEDNS_COOKIE $DNSdataid
+      return $?
+      #     fi
     fi
   done
   unset IFS
-  
+
   # If we get this far we did not find a match.
   # Not necessarily an error, but log anyway.
   _debug2 "$subdomain_csv"
@@ -250,18 +247,18 @@ _freedns_login() {
   username="$1"
   password="$2"
   url="https://freedns.afraid.org/zc.php?step=2"
-  
+
   _debug "Login to FreeDNS as user $username"
-  
+
   htmlpage="$(_post "username=$(_freedns_urlencode "$username")&password=$(_freedns_urlencode "$password")&submit=Login&action=auth" "$url")"
-  
+
   if [ "$?" != "0" ]; then
     _err "FreeDNS login failed for user $username bad RC from _post"
     return 1
   fi
 
   cookies="$(grep -i '^Set-Cookie.*dns_cookie.*$' "$HTTP_HEADER" | _head_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
-  
+
   # if cookies is not empty then logon successful
   if [ -z "$cookies" ]; then
     _debug "$htmlpage"
@@ -281,7 +278,7 @@ _freedns_retrieve_subdomain_page() {
   url="https://freedns.afraid.org/subdomain/"
 
   _debug "Retrieve subdmoain page from FreeDNS"
-  
+
   htmlpage="$(_get "$url")"
 
   if [ "$?" != "0" ]; then
@@ -293,10 +290,10 @@ _freedns_retrieve_subdomain_page() {
     _err "FreeDNS returned empty subdomain page"
     return 1
   fi
-  
+
   _debug2 "$htmlpage"
 
-  printf "%s"  "$htmlpage"
+  printf "%s" "$htmlpage"
   return 0
 }
 
@@ -308,14 +305,14 @@ _freedns_add_txt_record() {
   subdomain="$3"
   value="$(_freedns_urlencode "$4")"
   url="http://freedns.afraid.org/subdomain/save.php?step=2"
-  
+
   htmlpage="$(_post "type=TXT&domain_id=$domain_id&subdomain=$subdomain&address=%22$value%22&send=Save%21" "$url")"
 
   if [ "$?" != "0" ]; then
     _err "FreeDNS failed to add TXT record for $subdomain bad RC from _post"
     return 1
   fi
-  
+
   if ! grep "200 OK" "$HTTP_HEADER" >/dev/null; then
     _debug "$htmlpage"
     _err "FreeDNS failed to add TXT record for $subdomain. Check $HTTP_HEADER file"
@@ -355,11 +352,11 @@ _freedns_delete_txt_record() {
 _freedns_urlencode() {
   # urlencode <string>
   length="${#1}"
-  for (( i = 0; i < length; i++ )); do
+  for ((i = 0; i < length; i++)); do
     c="${1:i:1}"
     case $c in
       [a-zA-Z0-9.~_-]) printf "$c" ;;
-      *) printf '%%%02X' "'$c"
+      *) printf '%%%02X' "'$c" ;;
     esac
   done
 }
