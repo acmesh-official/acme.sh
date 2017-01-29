@@ -81,8 +81,8 @@ dns_freedns_add() {
   i=0
   found=0
   while [ $i -lt $lines ]; do
-    ((i++))
-    line="$(echo "$subdomain_csv"  | cut -d "$nl" -f $i)"
+    i=$(_math  $i + 1 )
+    line="$(echo "$subdomain_csv" | cut -d "$nl" -f $i)"
     tmp="$(echo "$line" | cut -d ',' -f 1)"
     if [ $found = 0 ] && _startswith "$tmp" "<td>$top_domain"; then
       # this line will contain DNSdomainid for the top_domain
@@ -213,8 +213,8 @@ dns_freedns_rm() {
   i=0
   found=0
   while [ $i -lt $lines ]; do
-    ((i++))
-    line="$(echo "$subdomain_csv"  | cut -d "$nl" -f $i)"
+    i=$(_math  $i + 1 )
+    line="$(echo "$subdomain_csv" | cut -d "$nl" -f $i)"
     dns_href="$(echo "$line" | cut -d ',' -f 2)"
     tmp=${dns_href#*>}
     DNSname=${tmp%%<*}
