@@ -44,6 +44,13 @@ dns_freedns_add() {
 
   _saveaccountconf FREEDNS_COOKIE "$FREEDNS_COOKIE"
 
+  # split our full domain name into two parts...
+  i="$(echo "$fulldomain" | tr '.' ' ' | wc -w)"
+  i="$(_math "$i" - 1)"
+  top_domain="$(echo "$fulldomain" | cut -d. -f "$i"-100)"
+  i="$(_math "$i" - 1)"
+  sub_domain="$(echo "$fulldomain" | cut -d. -f -"$i")"
+
   htmlpage="$(_freedns_retrieve_subdomain_page "$FREEDNS_COOKIE")"
   if [ "$?" != "0" ]; then
     if [ "$using_cached_cookies" = "true" ]; then
@@ -52,10 +59,6 @@ dns_freedns_add() {
     fi
     return 1
   fi
-
-  # split our full domain name into two parts...
-  top_domain="$(echo "$fulldomain" | rev | cut -d. -f -2 | rev)"
-  sub_domain="$(echo "$fulldomain" | rev | cut -d. -f 3- | rev)"
 
   # Now convert the tables in the HTML to CSV.  This litte gem from
   # http://stackoverflow.com/questions/1403087/how-can-i-convert-an-html-table-to-csv    
