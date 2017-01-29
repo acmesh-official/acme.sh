@@ -285,7 +285,7 @@ _freedns_retrieve_subdomain_page() {
     _err "FreeDNS retrieve subdomins failed bad RC from _get"
     return 1
   fi
-  
+
   if [ -z "$htmlpage" ]; then
     _err "FreeDNS returned empty subdomain page"
     return 1
