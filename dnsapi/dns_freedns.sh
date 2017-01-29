@@ -6,13 +6,13 @@
 #returns 0 means success, otherwise error.
 #
 #Author: David Kerr
-#Report Bugs here: https://github.com/Neilpang/acme.sh
+#Report Bugs here: https://github.com/dkerr64/acme.sh
 #
 ########  Public functions #####################
 
 # Export FreeDNS userid and password in folowing variables...
-#  FREEDNS_USER=username
-#  FREEDNS_PASSWORD=password
+#  FREEDNS_User=username
+#  FREEDNS_Password=password
 # login cookie is saved in acme account config file so userid / pw
 # need to be set only when changed.
 
@@ -25,15 +25,15 @@ dns_freedns_add() {
   _debug "fulldomain: $fulldomain"
   _debug "txtvalue: $txtvalue"
 
-  if [ -z "$FREEDNS_USER" ] || [ -z "$FREEDNS_PASSWORD" ]; then
+  if [ -z "$FREEDNS_User" ] || [ -z "$FREEDNS_Password" ]; then
     if [ -z "$FREEDNS_COOKIE" ]; then
       _err "You did not specify the FreeDNS username and password yet."
-      _err "Please export as FREEDNS_USER / FREEDNS_PASSWORD and try again."
+      _err "Please export as FREEDNS_User / FREEDNS_Password and try again."
       return 1
     fi
     using_cached_cookies="true"
   else
-    FREEDNS_COOKIE="$(_freedns_login $FREEDNS_USER $FREEDNS_PASSWORD)"
+    FREEDNS_COOKIE="$(_freedns_login "$FREEDNS_User" "$FREEDNS_Password")"
     if [ -z "$FREEDNS_COOKIE" ]; then
       return 1
     fi
@@ -44,22 +44,22 @@ dns_freedns_add() {
 
   _saveaccountconf FREEDNS_COOKIE "$FREEDNS_COOKIE"
 
-  htmlpage="$(_freedns_retrieve_subdomain_page $FREEDNS_COOKIE)"
+  htmlpage="$(_freedns_retrieve_subdomain_page "$FREEDNS_COOKIE")"
   if [ "$?" != "0" ]; then
     if [ "$using_cached_cookies" = "true" ]; then
       _err "Has your FreeDNS username and password channged?  If so..."
-      _err "Please export as FREEDNS_USER / FREEDNS_PASSWORD and try again."
+      _err "Please export as FREEDNS_User / FREEDNS_Password and try again."
     fi
     return 1
   fi
 
   # split our full domain name into two parts...
-  top_domain="$(echo $fulldomain | rev | cut -d. -f -2 | rev)"
-  sub_domain="$(echo $fulldomain | rev | cut -d. -f 3- | rev)"
+  top_domain="$(echo "$fulldomain" | rev | cut -d. -f -2 | rev)"
+  sub_domain="$(echo "$fulldomain" | rev | cut -d. -f 3- | rev)"
 
   # Now convert the tables in the HTML to CSV.  This litte gem from
   # http://stackoverflow.com/questions/1403087/how-can-i-convert-an-html-table-to-csv    
-  subdomain_csv="$(echo $htmlpage \
+  subdomain_csv="$(echo "$htmlpage" \
     | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' \
     | sed 's/^[\ \t]*//g' \
     | tr -d '\n' \
@@ -68,31 +68,36 @@ dns_freedns_add() {
     | sed 's/^<T[DH][^>]*>\|<\/\?T[DH][^>]*>$//Ig' \
     | sed 's/<\/T[DH][^>]*><T[DH][^>]*>/,/Ig' \
     | grep 'edit.php?' \
-    | grep $top_domain)"
+    | grep "$top_domain")"
   # The above beauty ends with striping out rows that do not have an
   # href to edit.php and do not have the top domain we are looking for.
   # So all we should be left with is CSV of table of subdomains we are
   # interested in.
 
   # Now we have to read through this table and extract the data we need
-  IFS=$'\n'
+  lines=$(echo "$subdomain_csv" | wc -l)
+  nl='
+'
+  i=0
   found=0
-  for line in $subdomain_csv; do
-    tmp="$(echo $line | cut -d ',' -f 1)"
+  while [ $i -lt $lines ]; do
+    ((i++))
+    line="$(echo "$subdomain_csv"  | cut -d "$nl" -f $i)"
+    tmp="$(echo "$line" | cut -d ',' -f 1)"
     if [ $found = 0 ] && _startswith "$tmp" "<td>$top_domain"; then
       # this line will contain DNSdomainid for the top_domain
-      tmp="$(echo $line | cut -d ',' -f 2)"
+      tmp="$(echo "$line" | cut -d ',' -f 2)"
       url=${tmp#*=}
       url=${url%%>*}
       DNSdomainid=${url#*domain_id=}
       found=1
     else
       # lines contain DNS records for all subdomains
-      dns_href="$(echo $line | cut -d ',' -f 2)"
+      dns_href="$(echo "$line" | cut -d ',' -f 2)"
       tmp=${dns_href#*>}
       DNSname=${tmp%%<*}
-      DNStype="$(echo $line | cut -d ',' -f 3)"
-      if [ "$DNSname" = "$fulldomain" -a "$DNStype" = "TXT" ]; then
+      DNStype="$(echo "$line" | cut -d ',' -f 3)"
+      if [ "$DNSname" = "$fulldomain" ] && [ "$DNStype" = "TXT" ]; then
         tmp=${dns_href#*=}
         url=${tmp%%>*}
         DNSdataid=${url#*data_id=}
@@ -101,7 +106,7 @@ dns_freedns_add() {
         # on this webpage. To get full value we would need to load
         # another page.  However we don't really need this so long as
         # there is only one TXT record for the acme chalenge subdomain.
-        tmp="$(echo $line | cut -d ',' -f 4)"
+        tmp="$(echo "$line" | cut -d ',' -f 4)"
         # strip the html double-quotes off the value
         tmp=${tmp#&quot;}
         DNSvalue=${tmp%&quot;}
@@ -119,7 +124,6 @@ dns_freedns_add() {
       fi
     fi
   done
-  unset IFS
 
   _debug "DNSname: $DNSname DNStype: $DNStype DNSdomainid: $DNSdomainid DNSdataid: $DNSdataid"
   _debug "DNSvalue: $DNSvalue"
@@ -137,7 +141,7 @@ dns_freedns_add() {
     # If data ID is empty then specific subdomain does not exist yet, need
     # to create it this should always be the case as the acme client
     # deletes the entry after domain is validated.
-    _freedns_add_txt_record $FREEDNS_COOKIE $DNSdomainid $sub_domain "$txtvalue"
+    _freedns_add_txt_record "$FREEDNS_COOKIE" "$DNSdomainid" "$sub_domain" "$txtvalue"
     return $?
   else
     if [ "$txtvalue" = "$DNSvalue" ]; then
@@ -152,10 +156,10 @@ dns_freedns_add() {
       return 0
     else
       # Delete the old TXT record (with the wrong value)
-      _freedns_delete_txt_record $FREEDNS_COOKIE $DNSdataid
+      _freedns_delete_txt_record "$FREEDNS_COOKIE" "$DNSdataid"
       if [ "$?" = "0" ]; then
         # And add in new TXT record with the value provided
-        _freedns_add_txt_record $FREEDNS_COOKIE $DNSdomainid $sub_domain "$txtvalue"
+        _freedns_add_txt_record "$FREEDNS_COOKIE" "$DNSdomainid" "$sub_domain" "$txtvalue"
       fi
       return $?
     fi
@@ -180,14 +184,14 @@ dns_freedns_rm() {
   FREEDNS_COOKIE="$(_read_conf "$ACCOUNT_CONF_PATH" "FREEDNS_COOKIE")"
   _debug "FreeDNS login cookies: $FREEDNS_COOKIE"
 
-  htmlpage="$(_freedns_retrieve_subdomain_page $FREEDNS_COOKIE)"
+  htmlpage="$(_freedns_retrieve_subdomain_page "$FREEDNS_COOKIE")"
   if [ "$?" != "0" ]; then
     return 1
   fi
 
   # Now convert the tables in the HTML to CSV.  This litte gem from
   # http://stackoverflow.com/questions/1403087/how-can-i-convert-an-html-table-to-csv
-  subdomain_csv="$(echo $htmlpage \
+  subdomain_csv="$(echo "$htmlpage" \
     | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' \
     | sed 's/^[\ \t]*//g' \
     | tr -d '\n' \
@@ -196,24 +200,30 @@ dns_freedns_rm() {
     | sed 's/^<T[DH][^>]*>\|<\/\?T[DH][^>]*>$//Ig' \
     | sed 's/<\/T[DH][^>]*><T[DH][^>]*>/,/Ig' \
     | grep 'edit.php?' \
-    | grep $fulldomain)"
+    | grep "$fulldomain")"
   # The above beauty ends with striping out rows that do not have an
   # href to edit.php and do not have the domain name we are looking for.
   # So all we should be left with is CSV of table of subdomains we are
   # interested in.
 
   # Now we have to read through this table and extract the data we need
-  IFS=$'\n'
-  for line in $subdomain_csv; do
-    dns_href="$(echo $line | cut -d ',' -f 2)"
+  lines=$(echo "$subdomain_csv" | wc -l)
+  nl='
+'
+  i=0
+  found=0
+  while [ $i -lt $lines ]; do
+    ((i++))
+    line="$(echo "$subdomain_csv"  | cut -d "$nl" -f $i)"
+    dns_href="$(echo "$line" | cut -d ',' -f 2)"
     tmp=${dns_href#*>}
     DNSname=${tmp%%<*}
-    DNStype="$(echo $line | cut -d ',' -f 3)"
-    if [ "$DNSname" = "$fulldomain" -a "$DNStype" = "TXT" ]; then
+    DNStype="$(echo "$line" | cut -d ',' -f 3)"
+    if [ "$DNSname" = "$fulldomain" ] && [ "$DNStype" = "TXT" ]; then
       tmp=${dns_href#*=}
       url=${tmp%%>*}
       DNSdataid=${url#*data_id=}
-      tmp="$(echo $line | cut -d ',' -f 4)"
+      tmp="$(echo "$line" | cut -d ',' -f 4)"
       # strip the html double-quotes off the value
       tmp=${tmp#&quot;}
       DNSvalue=${tmp%&quot;}
@@ -223,13 +233,11 @@ dns_freedns_rm() {
       # field. So for now we will assume that there is only one TXT
       # field for the sub domain and just delete it. Currently this
       # is a safe assumption.
-      unset IFS
-      _freedns_delete_txt_record $FREEDNS_COOKIE $DNSdataid
+      _freedns_delete_txt_record "$FREEDNS_COOKIE" "$DNSdataid"
       return $?
       #     fi
     fi
   done
-  unset IFS
 
   # If we get this far we did not find a match.
   # Not necessarily an error, but log anyway.
@@ -274,7 +282,7 @@ _freedns_login() {
 # echo page retrieved (html)
 # returns 0 success
 _freedns_retrieve_subdomain_page() {
-  _H1="Cookie:$1"
+  export _H1="Cookie:$1"
   url="https://freedns.afraid.org/subdomain/"
 
   _debug "Retrieve subdmoain page from FreeDNS"
@@ -300,7 +308,7 @@ _freedns_retrieve_subdomain_page() {
 # usage _freedns_add_txt_record login_cookies domain_id subdomain value
 # returns 0 success
 _freedns_add_txt_record() {
-  _H1="Cookie:$1"
+  export _H1="Cookie:$1"
   domain_id="$2"
   subdomain="$3"
   value="$(_freedns_urlencode "$4")"
@@ -325,7 +333,7 @@ _freedns_add_txt_record() {
 # usage _freedns_delete_txt_record login_cookies data_id
 # returns 0 success
 _freedns_delete_txt_record() {
-  _H1="Cookie:$1"
+  export _H1="Cookie:$1"
   data_id="$2"
   url="https://freedns.afraid.org/subdomain/delete2.php"
 
