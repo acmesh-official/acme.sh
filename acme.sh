@@ -868,7 +868,7 @@ createCSR() {
 
 }
 
-_urlencode() {
+_url_replace() {
   tr '/+' '_-' | tr -d '= '
 }
 
@@ -935,7 +935,7 @@ _calcjwk() {
 
     modulus=$($OPENSSL_BIN rsa -in "$keyfile" -modulus -noout | cut -d '=' -f 2)
     _debug3 modulus "$modulus"
-    n="$(printf "%s" "$modulus" | _h2b | _base64 | _urlencode)"
+    n="$(printf "%s" "$modulus" | _h2b | _base64 | _url_replace)"
     _debug3 n "$n"
 
     jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
@@ -990,14 +990,14 @@ _calcjwk() {
     x="$(printf "%s" "$pubtext" | cut -d : -f 2-"$xend")"
     _debug3 x "$x"
 
-    x64="$(printf "%s" "$x" | tr -d : | _h2b | _base64 | _urlencode)"
+    x64="$(printf "%s" "$x" | tr -d : | _h2b | _base64 | _url_replace)"
     _debug3 x64 "$x64"
 
     xend=$(_math "$xend" + 1)
     y="$(printf "%s" "$pubtext" | cut -d : -f "$xend"-10000)"
     _debug3 y "$y"
 
-    y64="$(printf "%s" "$y" | tr -d : | _h2b | _base64 | _urlencode)"
+    y64="$(printf "%s" "$y" | tr -d : | _h2b | _base64 | _url_replace)"
     _debug3 y64 "$y64"
 
     jwk='{"crv": "'$crv'", "kty": "EC", "x": "'$x64'", "y": "'$y64'"}'
@@ -1241,7 +1241,7 @@ _send_signed_request() {
     return 1
   fi
 
-  payload64=$(printf "%s" "$payload" | _base64 | _urlencode)
+  payload64=$(printf "%s" "$payload" | _base64 | _url_replace)
   _debug3 payload64 "$payload64"
 
   if [ -z "$_CACHED_NONCE" ]; then
@@ -1267,7 +1267,7 @@ _send_signed_request() {
   protected="$JWK_HEADERPLACE_PART1$nonce$JWK_HEADERPLACE_PART2"
   _debug3 protected "$protected"
 
-  protected64="$(printf "%s" "$protected" | _base64 | _urlencode)"
+  protected64="$(printf "%s" "$protected" | _base64 | _url_replace)"
   _debug3 protected64 "$protected64"
 
   if ! _sig_t="$(printf "%s" "$protected64.$payload64" | _sign "$keyfile" "sha256")"; then
@@ -1276,7 +1276,7 @@ _send_signed_request() {
   fi
   _debug3 _sig_t "$_sig_t"
 
-  sig="$(printf "%s" "$_sig_t" | _urlencode)"
+  sig="$(printf "%s" "$_sig_t" | _url_replace)"
   _debug3 sig "$sig"
 
   body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
@@ -2005,7 +2005,7 @@ _clearupdns() {
     keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
     vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
     _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
-    txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _urlencode)"
+    txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
     _debug txt "$txt"
     if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
       _info "$d is already verified, skip $vtype."
@@ -2549,7 +2549,7 @@ issue() {
 
       if [ -z "$thumbprint" ]; then
         accountkey_json=$(printf "%s" "$jwk" | tr -d ' ')
-        thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _urlencode)
+        thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _url_replace)
       fi
 
       entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
@@ -2600,7 +2600,7 @@ issue() {
         dnsadded='0'
         txtdomain="_acme-challenge.$d"
         _debug txtdomain "$txtdomain"
-        txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _urlencode)"
+        txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
         _debug txt "$txt"
 
         d_api="$(_findHook "$d" dnsapi "$_currentRoot")"
@@ -2875,7 +2875,7 @@ issue() {
 
   _clearup
   _info "Verify finished, start to sign."
-  der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _urlencode)"
+  der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _url_replace)"
 
   if ! _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"; then
     _err "Sign failed."
@@ -3453,7 +3453,7 @@ revoke() {
     return 1
   fi
 
-  cert="$(_getfile "${CERT_PATH}" "${BEGIN_CERT}" "${END_CERT}" | tr -d "\r\n" | _urlencode)"
+  cert="$(_getfile "${CERT_PATH}" "${BEGIN_CERT}" "${END_CERT}" | tr -d "\r\n" | _url_replace)"
 
   if [ -z "$cert" ]; then
     _err "Cert for $Le_Domain is empty found, skip."
