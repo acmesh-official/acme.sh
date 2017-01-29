@@ -51,84 +51,102 @@ dns_freedns_add() {
   i="$(_math "$i" - 1)"
   sub_domain="$(echo "$fulldomain" | cut -d. -f -"$i")"
 
-  htmlpage="$(_freedns_retrieve_subdomain_page "$FREEDNS_COOKIE")"
-  if [ "$?" != "0" ]; then
-    if [ "$using_cached_cookies" = "true" ]; then
-      _err "Has your FreeDNS username and password channged?  If so..."
-      _err "Please export as FREEDNS_User / FREEDNS_Password and try again."
-    fi
-    return 1
-  fi
+  # Sometimes FreeDNS does not reurn the subdomain page but rather 
+  # returns a page regarding becoming a premium member.  This usually
+  # happens after a period of inactivity.  Immediately trying again
+  # returns the correct subdomain page.  So, we will try twice to
+  # load the page and obtain our domain ID
+  attempts=2
+  while [ "$attempts" -gt "0" ]; do
+    attempts="$(_math "$attempts" - 1)"
 
-  # Now convert the tables in the HTML to CSV.  This litte gem from
-  # http://stackoverflow.com/questions/1403087/how-can-i-convert-an-html-table-to-csv    
-  subdomain_csv="$(echo "$htmlpage" \
-    | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' \
-    | sed 's/^[\ \t]*//g' \
-    | tr -d '\n' \
-    | sed 's/<\/TR[^>]*>/\n/Ig' \
-    | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' \
-    | sed 's/^<T[DH][^>]*>\|<\/\?T[DH][^>]*>$//Ig' \
-    | sed 's/<\/T[DH][^>]*><T[DH][^>]*>/,/Ig' \
-    | grep 'edit.php?' \
-    | grep "$top_domain")"
-  # The above beauty ends with striping out rows that do not have an
-  # href to edit.php and do not have the top domain we are looking for.
-  # So all we should be left with is CSV of table of subdomains we are
-  # interested in.
-
-  # Now we have to read through this table and extract the data we need
-  lines="$(echo "$subdomain_csv" | wc -l)"
-  nl='
-'
-  i=0
-  found=0
-  while [ "$i" -lt "$lines" ]; do
-    i="$(_math "$i" + 1)"
-    line="$(echo "$subdomain_csv" | cut -d "$nl" -f "$i")"
-    tmp="$(echo "$line" | cut -d ',' -f 1)"
-    if [ $found = 0 ] && _startswith "$tmp" "<td>$top_domain"; then
-      # this line will contain DNSdomainid for the top_domain
-      DNSdomainid="$(echo "$line" | cut -d ',' -f 2 | sed 's/^.*domain_id=//;s/>.*//')"
-      found=1
-    else
-      # lines contain DNS records for all subdomains
-      DNSname="$(echo "$line" | cut -d ',' -f 2 | sed 's/^[^>]*>//;s/<\/a>.*//')"
-      DNStype="$(echo "$line" | cut -d ',' -f 3)"
-      if [ "$DNSname" = "$fulldomain" ] && [ "$DNStype" = "TXT" ]; then
-        DNSdataid="$(echo "$line" | cut -d ',' -f 2 | sed 's/^.*data_id=//;s/>.*//')"
-        # Now get current value for the TXT record.  This method may
-        # not produce accurate results as the value field is truncated
-        # on this webpage. To get full value we would need to load
-        # another page. However we don't really need this so long as
-        # there is only one TXT record for the acme chalenge subdomain.
-        DNSvalue="$(echo "$line" | cut -d ',' -f 4 | sed 's/^[^&quot;]*&quot;//;s/&quot;.*//;s/<\/td>.*//')"
-        if [ $found != 0 ]; then
-          break
-          # we are breaking out of the loop at the first match of DNS name
-          # and DNS type (if we are past finding the domainid). This assumes
-          # that there is only ever one TXT record for the LetsEncrypt/acme
-          # challenge subdomain.  This seems to be a reasonable assumption
-          # as the acme client deletes the TXT record on successful validation.
-        fi
-      else
-        DNSname=""
-        DNStype=""
+    htmlpage="$(_freedns_retrieve_subdomain_page "$FREEDNS_COOKIE")"
+    if [ "$?" != "0" ]; then
+      if [ "$using_cached_cookies" = "true" ]; then
+        _err "Has your FreeDNS username and password channged?  If so..."
+        _err "Please export as FREEDNS_User / FREEDNS_Password and try again."
       fi
+      return 1
     fi
+
+    # Now convert the tables in the HTML to CSV.  This litte gem from
+    # http://stackoverflow.com/questions/1403087/how-can-i-convert-an-html-table-to-csv    
+    subdomain_csv="$(echo "$htmlpage" \
+      | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' \
+      | sed 's/^[\ \t]*//g' \
+      | tr -d '\n' \
+      | sed 's/<\/TR[^>]*>/\n/Ig' \
+      | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' \
+      | sed 's/^<T[DH][^>]*>\|<\/\?T[DH][^>]*>$//Ig' \
+      | sed 's/<\/T[DH][^>]*><T[DH][^>]*>/,/Ig' \
+      | grep 'edit.php?' \
+      | grep "$top_domain")"
+    # The above beauty ends with striping out rows that do not have an
+    # href to edit.php and do not have the top domain we are looking for.
+    # So all we should be left with is CSV of table of subdomains we are
+    # interested in.
+
+    # Now we have to read through this table and extract the data we need
+    lines="$(echo "$subdomain_csv" | wc -l)"
+    nl='
+'
+    i=0
+    found=0
+    while [ "$i" -lt "$lines" ]; do
+      i="$(_math "$i" + 1)"
+      line="$(echo "$subdomain_csv" | cut -d "$nl" -f "$i")"
+      tmp="$(echo "$line" | cut -d ',' -f 1)"
+      if [ $found = 0 ] && _startswith "$tmp" "<td>$top_domain"; then
+        # this line will contain DNSdomainid for the top_domain
+        DNSdomainid="$(echo "$line" | cut -d ',' -f 2 | sed 's/^.*domain_id=//;s/>.*//')"
+        found=1
+      else
+        # lines contain DNS records for all subdomains
+        DNSname="$(echo "$line" | cut -d ',' -f 2 | sed 's/^[^>]*>//;s/<\/a>.*//')"
+        DNStype="$(echo "$line" | cut -d ',' -f 3)"
+        if [ "$DNSname" = "$fulldomain" ] && [ "$DNStype" = "TXT" ]; then
+          DNSdataid="$(echo "$line" | cut -d ',' -f 2 | sed 's/^.*data_id=//;s/>.*//')"
+          # Now get current value for the TXT record.  This method may
+          # not produce accurate results as the value field is truncated
+          # on this webpage. To get full value we would need to load
+          # another page. However we don't really need this so long as
+          # there is only one TXT record for the acme chalenge subdomain.
+          DNSvalue="$(echo "$line" | cut -d ',' -f 4 | sed 's/^[^&quot;]*&quot;//;s/&quot;.*//;s/<\/td>.*//')"
+          if [ $found != 0 ]; then
+            break
+            # we are breaking out of the loop at the first match of DNS name
+            # and DNS type (if we are past finding the domainid). This assumes
+            # that there is only ever one TXT record for the LetsEncrypt/acme
+            # challenge subdomain.  This seems to be a reasonable assumption
+            # as the acme client deletes the TXT record on successful validation.
+          fi
+        else
+          DNSname=""
+          DNStype=""
+        fi
+      fi
+    done
+
+    _debug "DNSname: $DNSname DNStype: $DNStype DNSdomainid: $DNSdomainid DNSdataid: $DNSdataid"
+    _debug "DNSvalue: $DNSvalue"
+
+    if [ -z "$DNSdomainid" ]; then
+      # If domain ID is empty then something went wrong (top level
+      # domain not found at FreeDNS).
+      if [ "$attempts" = "0" ]; then
+        # exhausted maximum retry attempts
+        _debug "$htmlpage"
+        _debug "$subdomain_csv"
+        _err "Domain $top_domain not found at FreeDNS"
+        return 1
+      fi
+    else
+      # break out of the 'retry' loop... we have found our domain ID
+      break;
+    fi
+    _info "Domain $top_domain not found at FreeDNS"
+    _info "Retry loading subdomain page ($attempts attempts remaining)"
   done
-
-  _debug "DNSname: $DNSname DNStype: $DNStype DNSdomainid: $DNSdomainid DNSdataid: $DNSdataid"
-  _debug "DNSvalue: $DNSvalue"
-
-  if [ -z "$DNSdomainid" ]; then
-    # If domain ID is empty then something went wrong (top level
-    # domain not found at FreeDNS). Cannot proceed.
-    _debug "$htmlpage"
-    _debug "$subdomain_csv"
-    _err "Domain $top_domain not found at FreeDNS"
-    return 1
-  fi
 
   if [ -z "$DNSdataid" ]; then
     # If data ID is empty then specific subdomain does not exist yet, need
@@ -172,60 +190,69 @@ dns_freedns_rm() {
 
   # Need to read cookie from conf file again in case new value set
   # during login to FreeDNS when TXT record was created.
-
-  #TODO acme.sh does not have a _readaccountconf() fuction
+  # acme.sh does not have a _readaccountconf() fuction
   FREEDNS_COOKIE="$(_read_conf "$ACCOUNT_CONF_PATH" "FREEDNS_COOKIE")"
   _debug "FreeDNS login cookies: $FREEDNS_COOKIE"
 
-  htmlpage="$(_freedns_retrieve_subdomain_page "$FREEDNS_COOKIE")"
-  if [ "$?" != "0" ]; then
-    return 1
-  fi
+  # Sometimes FreeDNS does not reurn the subdomain page but rather 
+  # returns a page regarding becoming a premium member.  This usually
+  # happens after a period of inactivity.  Immediately trying again
+  # returns the correct subdomain page.  So, we will try twice to
+  # load the page and obtain our TXT record.
+  attempts=2
+  while [ "$attempts" -gt "0" ]; do
+    attempts="$(_math "$attempts" - 1)"
 
-  # Now convert the tables in the HTML to CSV.  This litte gem from
-  # http://stackoverflow.com/questions/1403087/how-can-i-convert-an-html-table-to-csv
-  subdomain_csv="$(echo "$htmlpage" \
-    | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' \
-    | sed 's/^[\ \t]*//g' \
-    | tr -d '\n' \
-    | sed 's/<\/TR[^>]*>/\n/Ig' \
-    | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' \
-    | sed 's/^<T[DH][^>]*>\|<\/\?T[DH][^>]*>$//Ig' \
-    | sed 's/<\/T[DH][^>]*><T[DH][^>]*>/,/Ig' \
-    | grep 'edit.php?' \
-    | grep "$fulldomain")"
-  # The above beauty ends with striping out rows that do not have an
-  # href to edit.php and do not have the domain name we are looking for.
-  # So all we should be left with is CSV of table of subdomains we are
-  # interested in.
-
-  # Now we have to read through this table and extract the data we need
-  lines="$(echo "$subdomain_csv" | wc -l)"
-  nl='
-'
-  i=0
-  found=0
-  while [ "$i" -lt "$lines" ]; do
-    i="$(_math "$i" + 1)"
-    line="$(echo "$subdomain_csv" | cut -d "$nl" -f "$i")"
-    DNSname="$(echo "$line" | cut -d ',' -f 2 | sed 's/^[^>]*>//;s/<\/a>.*//')"
-    DNStype="$(echo "$line" | cut -d ',' -f 3)"
-    if [ "$DNSname" = "$fulldomain" ] && [ "$DNStype" = "TXT" ]; then
-      DNSdataid="$(echo "$line" | cut -d ',' -f 2 | sed 's/^.*data_id=//;s/>.*//')"
-      DNSvalue="$(echo "$line" | cut -d ',' -f 4 | sed 's/^[^&quot;]*&quot;//;s/&quot;.*//;s/<\/td>.*//')"
-      _debug "DNSvalue: $DNSvalue"
-      #     if [ "$DNSvalue" = "$txtvalue" ]; then
-      # Testing value match fails.  Website is truncating the value
-      # field. So for now we will assume that there is only one TXT
-      # field for the sub domain and just delete it. Currently this
-      # is a safe assumption.
-      _freedns_delete_txt_record "$FREEDNS_COOKIE" "$DNSdataid"
-      return $?
-      #     fi
+    htmlpage="$(_freedns_retrieve_subdomain_page "$FREEDNS_COOKIE")"
+    if [ "$?" != "0" ]; then
+      return 1
     fi
+
+    # Now convert the tables in the HTML to CSV.  This litte gem from
+    # http://stackoverflow.com/questions/1403087/how-can-i-convert-an-html-table-to-csv
+    subdomain_csv="$(echo "$htmlpage" \
+      | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' \
+      | sed 's/^[\ \t]*//g' \
+      | tr -d '\n' \
+      | sed 's/<\/TR[^>]*>/\n/Ig' \
+      | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' \
+      | sed 's/^<T[DH][^>]*>\|<\/\?T[DH][^>]*>$//Ig' \
+      | sed 's/<\/T[DH][^>]*><T[DH][^>]*>/,/Ig' \
+      | grep 'edit.php?' \
+      | grep "$fulldomain")"
+    # The above beauty ends with striping out rows that do not have an
+    # href to edit.php and do not have the domain name we are looking for.
+    # So all we should be left with is CSV of table of subdomains we are
+    # interested in.
+
+    # Now we have to read through this table and extract the data we need
+    lines="$(echo "$subdomain_csv" | wc -l)"
+    nl='
+'
+    i=0
+    found=0
+    while [ "$i" -lt "$lines" ]; do
+      i="$(_math "$i" + 1)"
+      line="$(echo "$subdomain_csv" | cut -d "$nl" -f "$i")"
+      DNSname="$(echo "$line" | cut -d ',' -f 2 | sed 's/^[^>]*>//;s/<\/a>.*//')"
+      DNStype="$(echo "$line" | cut -d ',' -f 3)"
+      if [ "$DNSname" = "$fulldomain" ] && [ "$DNStype" = "TXT" ]; then
+        DNSdataid="$(echo "$line" | cut -d ',' -f 2 | sed 's/^.*data_id=//;s/>.*//')"
+        DNSvalue="$(echo "$line" | cut -d ',' -f 4 | sed 's/^[^&quot;]*&quot;//;s/&quot;.*//;s/<\/td>.*//')"
+        _debug "DNSvalue: $DNSvalue"
+        #     if [ "$DNSvalue" = "$txtvalue" ]; then
+        # Testing value match fails.  Website is truncating the value
+        # field. So for now we will assume that there is only one TXT
+        # field for the sub domain and just delete it. Currently this
+        # is a safe assumption.
+        _freedns_delete_txt_record "$FREEDNS_COOKIE" "$DNSdataid"
+        return $?
+        #     fi
+      fi
+    done
   done
 
-  # If we get this far we did not find a match.
+  # If we get this far we did not find a match (after two attempts)
   # Not necessarily an error, but log anyway.
   _debug2 "$subdomain_csv"
   _info "Cannot delete TXT record for $fulldomain/$txtvalue. Does not exist at FreeDNS"
