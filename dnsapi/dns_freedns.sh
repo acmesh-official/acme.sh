@@ -75,13 +75,13 @@ dns_freedns_add() {
   # interested in.
 
   # Now we have to read through this table and extract the data we need
-  lines=$(echo "$subdomain_csv" | wc -l)
+  lines="$(echo "$subdomain_csv" | wc -l)"
   nl='
 '
   i=0
   found=0
-  while [ $i -lt $lines ]; do
-    i=$(_math  $i + 1 )
+  while [ "$i" -lt "$lines" ]; do
+    i="$(_math "$i" + 1)"
     line="$(echo "$subdomain_csv" | cut -d "$nl" -f $i)"
     tmp="$(echo "$line" | cut -d ',' -f 1)"
     if [ $found = 0 ] && _startswith "$tmp" "<td>$top_domain"; then
@@ -93,23 +93,16 @@ dns_freedns_add() {
       found=1
     else
       # lines contain DNS records for all subdomains
-      dns_href="$(echo "$line" | cut -d ',' -f 2)"
-      tmp=${dns_href#*>}
-      DNSname=${tmp%%<*}
+      DNSname="$(echo "$line" | cut -d ',' -f 2 | sed 's/^[^>]*>//;s/<\/a>.*//')"
       DNStype="$(echo "$line" | cut -d ',' -f 3)"
       if [ "$DNSname" = "$fulldomain" ] && [ "$DNStype" = "TXT" ]; then
-        tmp=${dns_href#*=}
-        url=${tmp%%>*}
-        DNSdataid=${url#*data_id=}
+        DNSdataid="$(echo "$line" | cut -d ',' -f 2 | sed 's/^.*data_id=//;s/>.*//')"
         # Now get current value for the TXT record.  This method may
-        # produce inaccurate results as the value field is truncated
+        # not produce accurate results as the value field is truncated
         # on this webpage. To get full value we would need to load
-        # another page.  However we don't really need this so long as
+        # another page. However we don't really need this so long as
         # there is only one TXT record for the acme chalenge subdomain.
-        tmp="$(echo "$line" | cut -d ',' -f 4)"
-        # strip the html double-quotes off the value
-        tmp=${tmp#&quot;}
-        DNSvalue=${tmp%&quot;}
+        DNSvalue="$(echo "$line" | cut -d ',' -f 4 | sed 's/^[^&quot;]*&quot;//;s/&quot;.*//;s/<\/td>.*//')"
         if [ $found != 0 ]; then
           break
           # we are breaking out of the loop at the first match of DNS name
@@ -207,26 +200,19 @@ dns_freedns_rm() {
   # interested in.
 
   # Now we have to read through this table and extract the data we need
-  lines=$(echo "$subdomain_csv" | wc -l)
+  lines="$(echo "$subdomain_csv" | wc -l)"
   nl='
 '
   i=0
   found=0
-  while [ $i -lt $lines ]; do
-    i=$(_math  $i + 1 )
+  while [ "$i" -lt "$lines" ]; do
+    i="$(_math "$i" + 1)"
     line="$(echo "$subdomain_csv" | cut -d "$nl" -f $i)"
-    dns_href="$(echo "$line" | cut -d ',' -f 2)"
-    tmp=${dns_href#*>}
-    DNSname=${tmp%%<*}
+    DNSname="$(echo "$line" | cut -d ',' -f 2 | sed 's/^[^>]*>//;s/<\/a>.*//')"
     DNStype="$(echo "$line" | cut -d ',' -f 3)"
     if [ "$DNSname" = "$fulldomain" ] && [ "$DNStype" = "TXT" ]; then
-      tmp=${dns_href#*=}
-      url=${tmp%%>*}
-      DNSdataid=${url#*data_id=}
-      tmp="$(echo "$line" | cut -d ',' -f 4)"
-      # strip the html double-quotes off the value
-      tmp=${tmp#&quot;}
-      DNSvalue=${tmp%&quot;}
+      DNSdataid="$(echo "$line" | cut -d ',' -f 2 | sed 's/^.*data_id=//;s/>.*//')"
+      DNSvalue="$(echo "$line" | cut -d ',' -f 4 | sed 's/^[^&quot;]*&quot;//;s/&quot;.*//;s/<\/td>.*//')"
       _debug "DNSvalue: $DNSvalue"
       #     if [ "$DNSvalue" = "$txtvalue" ]; then
       # Testing value match fails.  Website is truncating the value
