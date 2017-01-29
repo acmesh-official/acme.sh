@@ -375,8 +375,8 @@ _freedns_urlencode() {
   length="${#1}"
   i=0
   while [ "$i" -lt "$length" ]; do
-    c="${1:i:1}"
     i="$(_math "$i" + 1)"
+    c="$(echo "$1" | cut -c "$i")"
     case $c in
       [a-zA-Z0-9.~_-]) printf '%s' "$c" ;;
       *) printf '%%%02X' "'$c" ;;
