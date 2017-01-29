@@ -142,7 +142,7 @@ dns_freedns_add() {
       fi
     else
       # break out of the 'retry' loop... we have found our domain ID
-      break;
+      break
     fi
     _info "Domain $top_domain not found at FreeDNS"
     _info "Retry loading subdomain page ($attempts attempts remaining)"
