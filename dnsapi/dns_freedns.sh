@@ -11,8 +11,8 @@
 ########  Public functions #####################
 
 # Export FreeDNS userid and password in folowing variables...
-#  FREEDNS_User=username
-#  FREEDNS_Password=password
+#  FREEDNS_USER=username
+#  FREEDNS_PASSWORD=password
 # login cookie is saved in acme account config file so userid / pw
 # need to be set only when changed.
 
@@ -25,15 +25,15 @@ dns_freedns_add() {
   _debug "fulldomain: $fulldomain"
   _debug "txtvalue: $txtvalue"
 
-  if [ -z "$FREEDNS_User" ] || [ -z "$FREEDNS_Password" ]; then
+  if [ -z "$FREEDNS_USER" ] || [ -z "$FREEDNS_PASSWORD" ]; then
     if [ -z "$FREEDNS_COOKIE" ]; then
       _err "You did not specify the FreeDNS username and password yet."
-      _err "Please export as FREEDNS_User / FREEDNS_Password and try again."
+      _err "Please export as FREEDNS_USER / FREEDNS_PASSWORD and try again."
       return 1
     fi
     using_cached_cookies="true"
   else
-    FREEDNS_COOKIE="$(_freedns_login "$FREEDNS_User" "$FREEDNS_Password")"
+    FREEDNS_COOKIE="$(_freedns_login "$FREEDNS_USER" "$FREEDNS_PASSWORD")"
     if [ -z "$FREEDNS_COOKIE" ]; then
       return 1
     fi
@@ -64,7 +64,7 @@ dns_freedns_add() {
     if [ "$?" != "0" ]; then
       if [ "$using_cached_cookies" = "true" ]; then
         _err "Has your FreeDNS username and password channged?  If so..."
-        _err "Please export as FREEDNS_User / FREEDNS_Password and try again."
+        _err "Please export as FREEDNS_USER / FREEDNS_PASSWORD and try again."
       fi
       return 1
     fi
