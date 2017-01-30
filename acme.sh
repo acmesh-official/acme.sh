@@ -336,15 +336,245 @@ _h2b() {
   done
 }
 
-#hex string
-_hex() {
-  _str="$1"
-  _str_len=${#_str}
-  _h_i=1
-  while [ "$_h_i" -le "$_str_len" ]; do
-    _str_c="$(printf "%s" "$_str" | cut -c "$_h_i")"
-    printf "%02x" "'$_str_c"
-    _h_i="$(_math "$_h_i" + 1)"
+_is_solaris() {
+  _contains "${__OS__:=$(uname -a)}" "solaris" || _contains "${__OS__:=$(uname -a)}" "SunOS"
+}
+
+#stdin  output hexstr splited by one space
+#input:"abc"
+#output: " 61 62 63"
+_hex_dump() {
+  if _is_solaris; then
+    od -A n -v -t x1 | tr -d "\r\n\t" | tr -s " " | tr -d "\n"
+  else
+    od -A n -v -t x1 | tr -d "\r\n\t" | tr -s " " | sed "s/ $//" | tr -d "\n"
+  fi
+}
+
+#url encode, no-preserved chars
+#A  B  C  D  E  F  G  H  I  J  K  L  M  N  O  P  Q  R  S  T  U  V  W  X  Y  Z
+#41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f 50 51 52 53 54 55 56 57 58 59 5a
+
+#a  b  c  d  e  f  g  h  i  j  k  l  m  n  o  p  q  r  s  t  u  v  w  x  y  z
+#61 62 63 64 65 66 67 68 69 6a 6b 6c 6d 6e 6f 70 71 72 73 74 75 76 77 78 79 7a
+
+#0  1  2  3  4  5  6  7  8  9  -  _  .  ~
+#30 31 32 33 34 35 36 37 38 39 2d 5f 2e 7e
+
+#stdin stdout
+_url_encode() {
+  _hex_str=$(_hex_dump)
+  _debug3 "_url_encode"
+  _debug3 "_hex_str" "$_hex_str"
+  for _hex_code in $_hex_str; do
+    #upper case
+    case "${_hex_code}" in
+      "41" )
+      printf "%s" "A"
+      ;;
+      "42" )
+      printf "%s" "B"
+      ;;
+      "43" )
+      printf "%s" "C"
+      ;;
+      "44" )
+      printf "%s" "D"
+      ;;
+      "45" )
+      printf "%s" "E"
+      ;;
+      "46" )
+      printf "%s" "F"
+      ;;
+      "47" )
+      printf "%s" "G"
+      ;;
+      "48" )
+      printf "%s" "H"
+      ;;
+      "49" )
+      printf "%s" "I"
+      ;;
+      "4a" )
+      printf "%s" "J"
+      ;;
+      "4b" )
+      printf "%s" "K"
+      ;;
+      "4c" )
+      printf "%s" "L"
+      ;;
+      "4d" )
+      printf "%s" "M"
+      ;;
+      "4e" )
+      printf "%s" "N"
+      ;;
+      "4f" )
+      printf "%s" "O"
+      ;;
+      "50" )
+      printf "%s" "P"
+      ;;
+      "51" )
+      printf "%s" "Q"
+      ;;
+      "52" )
+      printf "%s" "R"
+      ;;
+      "53" )
+      printf "%s" "S"
+      ;;
+      "54" )
+      printf "%s" "T"
+      ;;
+      "55" )
+      printf "%s" "U"
+      ;;
+      "56" )
+      printf "%s" "V"
+      ;;
+      "57" )
+      printf "%s" "W"
+      ;;
+      "58" )
+      printf "%s" "X"
+      ;;
+      "59" )
+      printf "%s" "Y"
+      ;;
+      "5a" )
+      printf "%s" "Z"
+      ;;
+
+    #lower case
+      "61" )
+      printf "%s" "a"
+      ;;
+      "62" )
+      printf "%s" "b"
+      ;;
+      "63" )
+      printf "%s" "c"
+      ;;
+      "64" )
+      printf "%s" "d"
+      ;;
+      "65" )
+      printf "%s" "e"
+      ;;
+      "66" )
+      printf "%s" "f"
+      ;;
+      "67" )
+      printf "%s" "g"
+      ;;
+      "68" )
+      printf "%s" "h"
+      ;;
+      "69" )
+      printf "%s" "i"
+      ;;
+      "6a" )
+      printf "%s" "j"
+      ;;
+      "6b" )
+      printf "%s" "k"
+      ;;
+      "6c" )
+      printf "%s" "l"
+      ;;
+      "6d" )
+      printf "%s" "m"
+      ;;
+      "6e" )
+      printf "%s" "n"
+      ;;
+      "6f" )
+      printf "%s" "o"
+      ;;
+      "70" )
+      printf "%s" "p"
+      ;;
+      "71" )
+      printf "%s" "q"
+      ;;
+      "72" )
+      printf "%s" "r"
+      ;;
+      "73" )
+      printf "%s" "s"
+      ;;
+      "74" )
+      printf "%s" "t"
+      ;;
+      "75" )
+      printf "%s" "u"
+      ;;
+      "76" )
+      printf "%s" "v"
+      ;;
+      "77" )
+      printf "%s" "w"
+      ;;
+      "78" )
+      printf "%s" "x"
+      ;;
+      "79" )
+      printf "%s" "y"
+      ;;
+      "7a" )
+      printf "%s" "z"
+      ;;
+    #numbers
+      "30" )
+      printf "%s" "0"
+      ;;
+      "31" )
+      printf "%s" "1"
+      ;;
+      "32" )
+      printf "%s" "2"
+      ;;
+      "33" )
+      printf "%s" "3"
+      ;;
+      "34" )
+      printf "%s" "4"
+      ;;
+      "35" )
+      printf "%s" "5"
+      ;;
+      "36" )
+      printf "%s" "6"
+      ;;
+      "37" )
+      printf "%s" "7"
+      ;;
+      "38" )
+      printf "%s" "8"
+      ;;
+      "39" )
+      printf "%s" "9"
+      ;;
+      "2d" )
+      printf "%s" "-"
+      ;;
+      "5f" )
+      printf "%s" "_"
+      ;;
+      "2e" )
+      printf "%s" "."
+      ;;
+      "7e" )
+      printf "%s" "~"
+      ;;
+    #other hex  
+      *)
+      printf '%%%s' "$_hex_code"
+      ;;
+    esac
   done
 }
 
