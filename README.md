@@ -13,6 +13,9 @@ It's probably the `easiest&smallest&smartest` shell script to automatically issu
 Wiki: https://github.com/Neilpang/acme.sh/wiki
 
 
+Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
+
+
 # [中文说明](https://github.com/Neilpang/acme.sh/wiki/%E8%AF%B4%E6%98%8E)
 
 
