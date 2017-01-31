@@ -259,22 +259,24 @@ when needed.
 
 ## 14. Use Linode domain API
 
-You will need to install the Linode CLI and set it up accordingly.
+First you need to login to your Linode account to get your API Key.
+[https://manager.linode.com/profile/api](https://manager.linode.com/profile/api)
 
-[https://www.linode.com/docs/platform/linode-cli](https://www.linode.com/docs/platform/linode-cli)
+Then add an API key with label *ACME* and copy the new key.
 
-Follow the installation instructions appropriate for your platform and then run the configuration.
-
-```linode configure
+```sh
+export LINODE_API_KEY="..."
 ```
 
-Make sure Linode CLI is working correctly before proceeding.
-
 Due to the reload time of any changes in the DNS records, we have to use the `dnssleep` option to wait at least 15 minutes for the changes to take effect.
+
+Ok, let's issue a cert now:
 
 ```sh
 acme.sh --issue --dns dns_linode --dnssleep 900 -d example.com -d www.example.com
 ```
+
+The `LINODE_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 # Use custom API
 

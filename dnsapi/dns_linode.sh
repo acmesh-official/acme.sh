@@ -1,11 +1,6 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 #Author: Philipp Grosswiler <philipp.grosswiler@swiss-design.net>
-
-#How to create the Linode API key:
-#Sign into your Linode account and go to this page: https://manager.linode.com/profile/api
-#Then add an API key with label ACME and copy the new key.
-#export LINODE_API_KEY="..."
 
 LINODE_API_URL="https://api.linode.com/?api_key=$LINODE_API_KEY&api_action="
 
