@@ -66,8 +66,8 @@ dns_lua_add() {
     record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*,\"name\":\"$fulldomain.\",\"type\":\"TXT\"" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
     _debug "record_id" "$record_id"
 
-    _LUA_rest PUT "zones/$_domain_id/records/$record_id" "{\"id\":\"$record_id\",\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"content\":\"$txtvalue\",\"zone_id\":\"$_domain_id\",\"ttl\":120}"
-    if [ "$?" = "0" ]; then
+    _LUA_rest PUT "zones/$_domain_id/records/$record_id" "{\"id\":$record_id,\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"content\":\"$txtvalue\",\"zone_id\":$_domain_id,\"ttl\":120}"
+    if [ "$?" = "0" ] && _contains "$response" "updated_at" ; then
       _info "Updated!"
       #todo: check if the record takes effect
       return 0
