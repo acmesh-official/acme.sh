@@ -271,7 +271,7 @@ _freedns_login() {
 
   _debug "Login to FreeDNS as user $username"
 
-  htmlpage="$(_post "username=$(_freedns_urlencode "$username")&password=$(_freedns_urlencode "$password")&submit=Login&action=auth" "$url")"
+  htmlpage="$(_post "username=$(_url_encode "$username")&password=$(_url_encode "$password")&submit=Login&action=auth" "$url")"
 
   if [ "$?" != "0" ]; then
     _err "FreeDNS login failed for user $username bad RC from _post"
@@ -324,7 +324,7 @@ _freedns_add_txt_record() {
   export _H1="Cookie:$1"
   domain_id="$2"
   subdomain="$3"
-  value="$(_freedns_urlencode "$4")"
+  value="$(_url_encode "$4")"
   url="http://freedns.afraid.org/subdomain/save.php?step=2"
 
   htmlpage="$(_post "type=TXT&domain_id=$domain_id&subdomain=$subdomain&address=%22$value%22&send=Save%21" "$url")"
@@ -365,21 +365,4 @@ _freedns_delete_txt_record() {
 
   _info "Deleted acme challenge TXT record for $fulldomain at FreeDNS"
   return 0
-}
-
-# urlencode magic from...
-# http://askubuntu.com/questions/53770/how-can-i-encode-and-decode-percent-encoded-strings-on-the-command-line
-# The _urlencode function in acme.sh does not work !
-_freedns_urlencode() {
-  # urlencode <string>
-  length="${#1}"
-  i=0
-  while [ "$i" -lt "$length" ]; do
-    i="$(_math "$i" + 1)"
-    c="$(echo "$1" | cut -c "$i")"
-    case $c in
-      [a-zA-Z0-9.~_-]) printf '%s' "$c" ;;
-      *) printf '%%%02X' "'$c" ;;
-    esac
-  done
 }
