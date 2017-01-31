@@ -11,13 +11,8 @@
 ########  Public functions #####################
 
 # Export FreeDNS userid and password in folowing variables...
-<<<<<<< HEAD
 #  FREEDNS_User=username
 #  FREEDNS_Password=password
-=======
-#  FREEDNS_USER=username
-#  FREEDNS_PASSWORD=password
->>>>>>> aebbb1ae570ea8061e496baced1b97630438a427
 # login cookie is saved in acme account config file so userid / pw
 # need to be set only when changed.
 
@@ -30,26 +25,15 @@ dns_freedns_add() {
   _debug "fulldomain: $fulldomain"
   _debug "txtvalue: $txtvalue"
 
-<<<<<<< HEAD
   if [ -z "$FREEDNS_User" ] || [ -z "$FREEDNS_Password" ]; then
     if [ -z "$FREEDNS_COOKIE" ]; then
       _err "You did not specify the FreeDNS username and password yet."
       _err "Please export as FREEDNS_User / FREEDNS_Password and try again."
-=======
-  if [ -z "$FREEDNS_USER" ] || [ -z "$FREEDNS_PASSWORD" ]; then
-    if [ -z "$FREEDNS_COOKIE" ]; then
-      _err "You did not specify the FreeDNS username and password yet."
-      _err "Please export as FREEDNS_USER / FREEDNS_PASSWORD and try again."
->>>>>>> aebbb1ae570ea8061e496baced1b97630438a427
       return 1
     fi
     using_cached_cookies="true"
   else
-<<<<<<< HEAD
     FREEDNS_COOKIE="$(_freedns_login "$FREEDNS_User" "$FREEDNS_Password")"
-=======
-    FREEDNS_COOKIE="$(_freedns_login "$FREEDNS_USER" "$FREEDNS_PASSWORD")"
->>>>>>> aebbb1ae570ea8061e496baced1b97630438a427
     if [ -z "$FREEDNS_COOKIE" ]; then
       return 1
     fi
@@ -80,11 +64,7 @@ dns_freedns_add() {
     if [ "$?" != "0" ]; then
       if [ "$using_cached_cookies" = "true" ]; then
         _err "Has your FreeDNS username and password channged?  If so..."
-<<<<<<< HEAD
         _err "Please export as FREEDNS_User / FREEDNS_Password and try again."
-=======
-        _err "Please export as FREEDNS_USER / FREEDNS_PASSWORD and try again."
->>>>>>> aebbb1ae570ea8061e496baced1b97630438a427
       fi
       return 1
     fi
@@ -291,11 +271,7 @@ _freedns_login() {
 
   _debug "Login to FreeDNS as user $username"
 
-<<<<<<< HEAD
   htmlpage="$(_post "username=$(_url_encode "$username")&password=$(_url_encode "$password")&submit=Login&action=auth" "$url")"
-=======
-  htmlpage="$(_post "username=$(_freedns_urlencode "$username")&password=$(_freedns_urlencode "$password")&submit=Login&action=auth" "$url")"
->>>>>>> aebbb1ae570ea8061e496baced1b97630438a427
 
   if [ "$?" != "0" ]; then
     _err "FreeDNS login failed for user $username bad RC from _post"
@@ -348,11 +324,8 @@ _freedns_add_txt_record() {
   export _H1="Cookie:$1"
   domain_id="$2"
   subdomain="$3"
-<<<<<<< HEAD
+
   value="$(_url_encode "$4")"
-=======
-  value="$(_freedns_urlencode "$4")"
->>>>>>> aebbb1ae570ea8061e496baced1b97630438a427
   url="http://freedns.afraid.org/subdomain/save.php?step=2"
 
   htmlpage="$(_post "type=TXT&domain_id=$domain_id&subdomain=$subdomain&address=%22$value%22&send=Save%21" "$url")"
@@ -394,23 +367,3 @@ _freedns_delete_txt_record() {
   _info "Deleted acme challenge TXT record for $fulldomain at FreeDNS"
   return 0
 }
-<<<<<<< HEAD
-=======
-
-# urlencode magic from...
-# http://askubuntu.com/questions/53770/how-can-i-encode-and-decode-percent-encoded-strings-on-the-command-line
-# The _urlencode function in acme.sh does not work !
-_freedns_urlencode() {
-  # urlencode <string>
-  length="${#1}"
-  i=0
-  while [ "$i" -lt "$length" ]; do
-    i="$(_math "$i" + 1)"
-    c="$(echo "$1" | cut -c "$i")"
-    case $c in
-      [a-zA-Z0-9.~_-]) printf '%s' "$c" ;;
-      *) printf '%%%02X' "'$c" ;;
-    esac
-  done
-}
->>>>>>> aebbb1ae570ea8061e496baced1b97630438a427
