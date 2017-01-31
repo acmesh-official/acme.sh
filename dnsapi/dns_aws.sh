@@ -183,7 +183,7 @@ aws_rest() {
 
   _debug2 kSecret "$kSecret"
 
-  kSecretH="$(printf "%s" "$kSecret" | _hex_dump | sed "s/ //g")"
+  kSecretH="$(printf "%s" "$kSecret" | _hex_dump | tr -d " ")"
   _debug2 kSecretH "$kSecretH"
 
   kDateH="$(printf "$RequestDateOnly%s" | _hmac "$Hash" "$kSecretH" hex)"
