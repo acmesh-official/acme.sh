@@ -269,6 +269,7 @@ You don't have to do anything manually!
 1. aliyun.com(阿里云) API
 1. ISPConfig 3.1 API
 1. Alwaysdata.com API
+1. Linode.com API
 
 **More APIs coming soon...**
 

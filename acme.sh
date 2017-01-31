@@ -344,11 +344,7 @@ _is_solaris() {
 #input:"abc"
 #output: " 61 62 63"
 _hex_dump() {
-  if _is_solaris; then
-    od -A n -v -t x1 | tr -d "\r\n\t" | tr -s " " | tr -d "\n"
-  else
-    od -A n -v -t x1 | tr -d "\r\n\t" | tr -s " " | sed "s/ $//" | tr -d "\n"
-  fi
+  od -A n -v -t x1 | tr -d "\r\t" | tr -s " " | sed "s/ $//" | tr -d "\n"
 }
 
 #url encode, no-preserved chars
