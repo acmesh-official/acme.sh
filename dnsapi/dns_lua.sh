@@ -63,7 +63,7 @@ dns_lua_add() {
     _err "Add txt record error."
   else
     _info "Updating record"
-    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*,\"name\":\"$fulldomain.\",\"type\":\"TXT\"" | cut -d: -f2 | cut -d, -f1)
+    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*,\"name\":\"$fulldomain.\",\"type\":\"TXT\"" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
     _debug "record_id" "$record_id"
 
     _LUA_rest PUT "zones/$_domain_id/records/$record_id" "{\"id\":\"$record_id\",\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"content\":\"$txtvalue\",\"zone_id\":\"$_domain_id\",\"ttl\":120}"
