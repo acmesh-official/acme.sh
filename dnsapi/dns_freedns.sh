@@ -26,6 +26,8 @@ dns_freedns_add() {
   _debug "txtvalue: $txtvalue"
 
   if [ -z "$FREEDNS_User" ] || [ -z "$FREEDNS_Password" ]; then
+    FREEDNS_User=""
+    FREEDNS_Password=""
     if [ -z "$FREEDNS_COOKIE" ]; then
       _err "You did not specify the FreeDNS username and password yet."
       _err "Please export as FREEDNS_User / FREEDNS_Password and try again."
@@ -324,7 +326,6 @@ _freedns_add_txt_record() {
   export _H1="Cookie:$1"
   domain_id="$2"
   subdomain="$3"
-
   value="$(_url_encode "$4")"
   url="http://freedns.afraid.org/subdomain/save.php?step=2"
 
@@ -367,3 +368,4 @@ _freedns_delete_txt_record() {
   _info "Deleted acme challenge TXT record for $fulldomain at FreeDNS"
   return 0
 }
+
