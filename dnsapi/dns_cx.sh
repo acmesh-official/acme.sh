@@ -155,7 +155,7 @@ _get_root() {
     fi
 
     if _contains "$response" "$h."; then
-      seg=$(printf "%s\n" "$response" | _egrep_o '[^{]*"'"$h"'."[^}]*}')
+      seg=$(printf "%s\n" "$response" | _egrep_o '"id":[^{]*"'"$h"'."[^}]*}')
       _debug seg "$seg"
       _domain_id=$(printf "%s\n" "$seg" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
       _debug _domain_id "$_domain_id"
