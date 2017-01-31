@@ -82,7 +82,7 @@ existing_records() {
     return 1
   fi
 
-  seg=$(printf "%s\n" "$response" | _egrep_o '[^{]*host":"'"$_sub_domain"'"[^}]*\}')
+  seg=$(printf "%s\n" "$response" | _egrep_o '"record_id":[^{]*host":"'"$_sub_domain"'"[^}]*\}')
   _debug seg "$seg"
   if [ -z "$seg" ]; then
     return 0
