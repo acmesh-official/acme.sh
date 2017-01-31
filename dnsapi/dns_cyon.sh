@@ -74,14 +74,14 @@ _cyon_load_credentials() {
 }
 
 _cyon_is_idn() {
-  _idn_temp="$(printf "%s" "${1}" | tr -d "[0-9a-zA-Z.,-_]")"
+  _idn_temp="$(printf "%s" "${1}" | tr -d "0-9a-zA-Z.,-_")"
   _idn_temp2="$(printf "%s" "${1}" | grep -o "xn--")"
   [ "$_idn_temp" ] || [ "$_idn_temp2" ]
 }
 
 _cyon_load_parameters() {
   # Read the required parameters to add the TXT entry.
-  fulldomain="$(printf "%s" "${1}" | tr '[A-Z]' '[a-z]')"
+  fulldomain="$(printf "%s" "${1}" | tr "A-Z" "a-z")"
   fulldomain_idn="${fulldomain}"
 
   # Special case for IDNs, as cyon needs a domain environment change,
@@ -105,6 +105,7 @@ _cyon_load_parameters() {
 
   # This header is required for curl calls.
   _H1="X-Requested-With: XMLHttpRequest"
+  export _H1
 }
 
 _cyon_print_header() {
@@ -155,6 +156,8 @@ _cyon_login() {
 
   # NECESSARY!! Load the main page after login, to get the new cookie.
   _H2="$(_cyon_get_cookie_header)"
+  export _H2
+
   _get "https://my.cyon.ch/" >/dev/null
 
   # todo: instead of just checking if the env variable is defined, check if we actually need to do a 2FA auth request.
