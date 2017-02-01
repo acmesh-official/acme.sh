@@ -273,7 +273,7 @@ _freedns_login() {
 
   _debug "Login to FreeDNS as user $username"
 
-  htmlpage="$(_post "username=$(_url_encode "$username")&password=$(_url_encode "$password")&submit=Login&action=auth" "$url")"
+  htmlpage="$(_post "username=$(echo "$username" | _url_encode)&password=$(echo "$password" | _url_encode)&submit=Login&action=auth" "$url")"
 
   if [ "$?" != "0" ]; then
     _err "FreeDNS login failed for user $username bad RC from _post"
@@ -326,7 +326,7 @@ _freedns_add_txt_record() {
   export _H1="Cookie:$1"
   domain_id="$2"
   subdomain="$3"
-  value="$(_url_encode "$4")"
+  value="$(echo "$4" | _url_encode)"
   url="http://freedns.afraid.org/subdomain/save.php?step=2"
 
   htmlpage="$(_post "type=TXT&domain_id=$domain_id&subdomain=$subdomain&address=%22$value%22&send=Save%21" "$url")"
