@@ -278,7 +278,7 @@ acme.sh --issue --dns dns_linode --dnssleep 900 -d example.com -d www.example.co
 
 The `LINODE_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-# 15.  Use FreeDNS
+## 15.  Use FreeDNS
 
 FreeDNS (https://freedns.afraid.org/) does not provide an API to update DNS records (other than IPv4 and IPv6
 dynamic DNS addresses).  The acme.sh plugin therefore retrieves and updates domain TXT records by logging
