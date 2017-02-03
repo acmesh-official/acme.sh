@@ -368,4 +368,3 @@ _freedns_delete_txt_record() {
   _info "Deleted acme challenge TXT record for $fulldomain at FreeDNS"
   return 0
 }
-
