@@ -67,7 +67,7 @@ _get_root() {
 }
 
 _ali_rest() {
-  signature=$(printf "%s" "GET&%2F&$(_ali_urlencode "$query")" | _hmac "sha1" "$(_hex "$Ali_Secret&")" | _base64)
+  signature=$(printf "%s" "GET&%2F&$(_ali_urlencode "$query")" | _hmac "sha1" "$(printf "%s" "$Ali_Secret&" | _hex_dump | tr -d " ")" | _base64)
   signature=$(_ali_urlencode "$signature")
   url="$Ali_API?$query&Signature=$signature"
 

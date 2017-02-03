@@ -46,12 +46,12 @@ dns_lua_add() {
     return 1
   fi
 
-  count=$(printf "%s\n" "$response" | _egrep_o "\"name\":\"$fulldomain\"" | wc -l)
+  count=$(printf "%s\n" "$response" | _egrep_o "\"name\":\"$fulldomain.\",\"type\":\"TXT\"" | wc -l | tr -d " ")
   _debug count "$count"
   if [ "$count" = "0" ]; then
     _info "Adding record"
     if _LUA_rest POST "zones/$_domain_id/records" "{\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
-      if printf -- "%s" "$response" | grep "$fulldomain" >/dev/null; then
+      if _contains "$response" "$fulldomain"; then
         _info "Added"
         #todo: check if the record takes effect
         return 0
@@ -63,11 +63,11 @@ dns_lua_add() {
     _err "Add txt record error."
   else
     _info "Updating record"
-    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*,\"name\":\"$fulldomain.\",\"type\":\"TXT\"" | cut -d: -f2 | cut -d, -f1)
+    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*,\"name\":\"$fulldomain.\",\"type\":\"TXT\"" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
     _debug "record_id" "$record_id"
 
-    _LUA_rest PUT "zones/$_domain_id/records/$record_id" "{\"id\":\"$record_id\",\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"content\":\"$txtvalue\",\"zone_id\":\"$_domain_id\",\"ttl\":120}"
-    if [ "$?" = "0" ]; then
+    _LUA_rest PUT "zones/$_domain_id/records/$record_id" "{\"id\":$record_id,\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"content\":\"$txtvalue\",\"zone_id\":$_domain_id,\"ttl\":120}"
+    if [ "$?" = "0" ] && _contains "$response" "updated_at"; then
       _info "Updated!"
       #todo: check if the record takes effect
       return 0
@@ -99,6 +99,7 @@ _get_root() {
   fi
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -106,6 +107,7 @@ _get_root() {
 
     if _contains "$response" "\"name\":\"$h\""; then
       _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*,\"name\":\"$h\"" | cut -d : -f 2 | cut -d , -f 1)
+      _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain="$h"

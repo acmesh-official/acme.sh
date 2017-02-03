@@ -336,15 +336,241 @@ _h2b() {
   done
 }
 
-#hex string
-_hex() {
-  _str="$1"
-  _str_len=${#_str}
-  _h_i=1
-  while [ "$_h_i" -le "$_str_len" ]; do
-    _str_c="$(printf "%s" "$_str" | cut -c "$_h_i")"
-    printf "%02x" "'$_str_c"
-    _h_i="$(_math "$_h_i" + 1)"
+_is_solaris() {
+  _contains "${__OS__:=$(uname -a)}" "solaris" || _contains "${__OS__:=$(uname -a)}" "SunOS"
+}
+
+#stdin  output hexstr splited by one space
+#input:"abc"
+#output: " 61 62 63"
+_hex_dump() {
+  od -A n -v -t x1 | tr -d "\r\t" | tr -s " " | sed "s/ $//" | tr -d "\n"
+}
+
+#url encode, no-preserved chars
+#A  B  C  D  E  F  G  H  I  J  K  L  M  N  O  P  Q  R  S  T  U  V  W  X  Y  Z
+#41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f 50 51 52 53 54 55 56 57 58 59 5a
+
+#a  b  c  d  e  f  g  h  i  j  k  l  m  n  o  p  q  r  s  t  u  v  w  x  y  z
+#61 62 63 64 65 66 67 68 69 6a 6b 6c 6d 6e 6f 70 71 72 73 74 75 76 77 78 79 7a
+
+#0  1  2  3  4  5  6  7  8  9  -  _  .  ~
+#30 31 32 33 34 35 36 37 38 39 2d 5f 2e 7e
+
+#stdin stdout
+_url_encode() {
+  _hex_str=$(_hex_dump)
+  _debug3 "_url_encode"
+  _debug3 "_hex_str" "$_hex_str"
+  for _hex_code in $_hex_str; do
+    #upper case
+    case "${_hex_code}" in
+      "41")
+        printf "%s" "A"
+        ;;
+      "42")
+        printf "%s" "B"
+        ;;
+      "43")
+        printf "%s" "C"
+        ;;
+      "44")
+        printf "%s" "D"
+        ;;
+      "45")
+        printf "%s" "E"
+        ;;
+      "46")
+        printf "%s" "F"
+        ;;
+      "47")
+        printf "%s" "G"
+        ;;
+      "48")
+        printf "%s" "H"
+        ;;
+      "49")
+        printf "%s" "I"
+        ;;
+      "4a")
+        printf "%s" "J"
+        ;;
+      "4b")
+        printf "%s" "K"
+        ;;
+      "4c")
+        printf "%s" "L"
+        ;;
+      "4d")
+        printf "%s" "M"
+        ;;
+      "4e")
+        printf "%s" "N"
+        ;;
+      "4f")
+        printf "%s" "O"
+        ;;
+      "50")
+        printf "%s" "P"
+        ;;
+      "51")
+        printf "%s" "Q"
+        ;;
+      "52")
+        printf "%s" "R"
+        ;;
+      "53")
+        printf "%s" "S"
+        ;;
+      "54")
+        printf "%s" "T"
+        ;;
+      "55")
+        printf "%s" "U"
+        ;;
+      "56")
+        printf "%s" "V"
+        ;;
+      "57")
+        printf "%s" "W"
+        ;;
+      "58")
+        printf "%s" "X"
+        ;;
+      "59")
+        printf "%s" "Y"
+        ;;
+      "5a")
+        printf "%s" "Z"
+        ;;
+
+      #lower case
+      "61")
+        printf "%s" "a"
+        ;;
+      "62")
+        printf "%s" "b"
+        ;;
+      "63")
+        printf "%s" "c"
+        ;;
+      "64")
+        printf "%s" "d"
+        ;;
+      "65")
+        printf "%s" "e"
+        ;;
+      "66")
+        printf "%s" "f"
+        ;;
+      "67")
+        printf "%s" "g"
+        ;;
+      "68")
+        printf "%s" "h"
+        ;;
+      "69")
+        printf "%s" "i"
+        ;;
+      "6a")
+        printf "%s" "j"
+        ;;
+      "6b")
+        printf "%s" "k"
+        ;;
+      "6c")
+        printf "%s" "l"
+        ;;
+      "6d")
+        printf "%s" "m"
+        ;;
+      "6e")
+        printf "%s" "n"
+        ;;
+      "6f")
+        printf "%s" "o"
+        ;;
+      "70")
+        printf "%s" "p"
+        ;;
+      "71")
+        printf "%s" "q"
+        ;;
+      "72")
+        printf "%s" "r"
+        ;;
+      "73")
+        printf "%s" "s"
+        ;;
+      "74")
+        printf "%s" "t"
+        ;;
+      "75")
+        printf "%s" "u"
+        ;;
+      "76")
+        printf "%s" "v"
+        ;;
+      "77")
+        printf "%s" "w"
+        ;;
+      "78")
+        printf "%s" "x"
+        ;;
+      "79")
+        printf "%s" "y"
+        ;;
+      "7a")
+        printf "%s" "z"
+        ;;
+      #numbers
+      "30")
+        printf "%s" "0"
+        ;;
+      "31")
+        printf "%s" "1"
+        ;;
+      "32")
+        printf "%s" "2"
+        ;;
+      "33")
+        printf "%s" "3"
+        ;;
+      "34")
+        printf "%s" "4"
+        ;;
+      "35")
+        printf "%s" "5"
+        ;;
+      "36")
+        printf "%s" "6"
+        ;;
+      "37")
+        printf "%s" "7"
+        ;;
+      "38")
+        printf "%s" "8"
+        ;;
+      "39")
+        printf "%s" "9"
+        ;;
+      "2d")
+        printf "%s" "-"
+        ;;
+      "5f")
+        printf "%s" "_"
+        ;;
+      "2e")
+        printf "%s" "."
+        ;;
+      "7e")
+        printf "%s" "~"
+        ;;
+      #other hex  
+      *)
+        printf '%%%s' "$_hex_code"
+        ;;
+    esac
   done
 }
 
@@ -868,7 +1094,7 @@ createCSR() {
 
 }
 
-_urlencode() {
+_url_replace() {
   tr '/+' '_-' | tr -d '= '
 }
 
@@ -935,7 +1161,7 @@ _calcjwk() {
 
     modulus=$($OPENSSL_BIN rsa -in "$keyfile" -modulus -noout | cut -d '=' -f 2)
     _debug3 modulus "$modulus"
-    n="$(printf "%s" "$modulus" | _h2b | _base64 | _urlencode)"
+    n="$(printf "%s" "$modulus" | _h2b | _base64 | _url_replace)"
     _debug3 n "$n"
 
     jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
@@ -990,14 +1216,14 @@ _calcjwk() {
     x="$(printf "%s" "$pubtext" | cut -d : -f 2-"$xend")"
     _debug3 x "$x"
 
-    x64="$(printf "%s" "$x" | tr -d : | _h2b | _base64 | _urlencode)"
+    x64="$(printf "%s" "$x" | tr -d : | _h2b | _base64 | _url_replace)"
     _debug3 x64 "$x64"
 
     xend=$(_math "$xend" + 1)
     y="$(printf "%s" "$pubtext" | cut -d : -f "$xend"-10000)"
     _debug3 y "$y"
 
-    y64="$(printf "%s" "$y" | tr -d : | _h2b | _base64 | _urlencode)"
+    y64="$(printf "%s" "$y" | tr -d : | _h2b | _base64 | _url_replace)"
     _debug3 y64 "$y64"
 
     jwk='{"crv": "'$crv'", "kty": "EC", "x": "'$x64'", "y": "'$y64'"}'
@@ -1241,7 +1467,7 @@ _send_signed_request() {
     return 1
   fi
 
-  payload64=$(printf "%s" "$payload" | _base64 | _urlencode)
+  payload64=$(printf "%s" "$payload" | _base64 | _url_replace)
   _debug3 payload64 "$payload64"
 
   if [ -z "$_CACHED_NONCE" ]; then
@@ -1267,7 +1493,7 @@ _send_signed_request() {
   protected="$JWK_HEADERPLACE_PART1$nonce$JWK_HEADERPLACE_PART2"
   _debug3 protected "$protected"
 
-  protected64="$(printf "%s" "$protected" | _base64 | _urlencode)"
+  protected64="$(printf "%s" "$protected" | _base64 | _url_replace)"
   _debug3 protected64 "$protected64"
 
   if ! _sig_t="$(printf "%s" "$protected64.$payload64" | _sign "$keyfile" "sha256")"; then
@@ -1276,7 +1502,7 @@ _send_signed_request() {
   fi
   _debug3 _sig_t "$_sig_t"
 
-  sig="$(printf "%s" "$_sig_t" | _urlencode)"
+  sig="$(printf "%s" "$_sig_t" | _url_replace)"
   _debug3 sig "$sig"
 
   body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
@@ -2009,7 +2235,7 @@ _clearupdns() {
     keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
     vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
     _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
-    txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _urlencode)"
+    txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
     _debug txt "$txt"
     if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
       _info "$d is already verified, skip $vtype."
@@ -2553,7 +2779,7 @@ issue() {
 
       if [ -z "$thumbprint" ]; then
         accountkey_json=$(printf "%s" "$jwk" | tr -d ' ')
-        thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _urlencode)
+        thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _url_replace)
       fi
 
       entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
@@ -2604,7 +2830,7 @@ issue() {
         dnsadded='0'
         txtdomain="_acme-challenge.$d"
         _debug txtdomain "$txtdomain"
-        txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _urlencode)"
+        txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
         _debug txt "$txt"
 
         d_api="$(_findHook "$d" dnsapi "$_currentRoot")"
@@ -2879,7 +3105,7 @@ issue() {
 
   _clearup
   _info "Verify finished, start to sign."
-  der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _urlencode)"
+  der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _url_replace)"
 
   if ! _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"; then
     _err "Sign failed."
@@ -3457,7 +3683,7 @@ revoke() {
     return 1
   fi
 
-  cert="$(_getfile "${CERT_PATH}" "${BEGIN_CERT}" "${END_CERT}" | tr -d "\r\n" | _urlencode)"
+  cert="$(_getfile "${CERT_PATH}" "${BEGIN_CERT}" "${END_CERT}" | tr -d "\r\n" | _url_replace)"
 
   if [ -z "$cert" ]; then
     _err "Cert for $Le_Domain is empty found, skip."

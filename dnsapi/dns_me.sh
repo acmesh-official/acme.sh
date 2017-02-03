@@ -124,7 +124,7 @@ _me_rest() {
   _debug "$ep"
 
   cdate=$(date -u +"%a, %d %b %Y %T %Z")
-  hmac=$(printf "%s" "$cdate" | _hmac sha1 "$(_hex "$ME_Secret")" hex)
+  hmac=$(printf "%s" "$cdate" | _hmac sha1 "$(printf "%s" "$ME_Secret" | _hex_dump | tr -d " ")" hex)
 
   export _H1="x-dnsme-apiKey: $ME_Key"
   export _H2="x-dnsme-requestDate: $cdate"

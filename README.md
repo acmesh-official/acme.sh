@@ -13,6 +13,9 @@ It's probably the `easiest&smallest&smartest` shell script to automatically issu
 Wiki: https://github.com/Neilpang/acme.sh/wiki
 
 
+Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
+
+
 # [中文说明](https://github.com/Neilpang/acme.sh/wiki/%E8%AF%B4%E6%98%8E)
 
 
@@ -266,6 +269,7 @@ You don't have to do anything manually!
 1. aliyun.com(阿里云) API
 1. ISPConfig 3.1 API
 1. Alwaysdata.com API
+1. Linode.com API
 
 **More APIs coming soon...**
 
