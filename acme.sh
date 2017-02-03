@@ -1820,12 +1820,16 @@ _starttlsserver() {
 _readlink() {
   _rf="$1"
   if ! readlink -f "$_rf" 2>/dev/null; then
-    if _startswith "$_rf" "\./$PROJECT_ENTRY"; then
-      printf -- "%s" "$(pwd)/$PROJECT_ENTRY"
+    if _startswith "$_rf" "/"; then
+      echo "$_rf"
       return 0
     fi
-    readlink "$_rf"
+    echo "$(pwd)/$_rf" | _conapath
   fi
+}
+
+_conapath() {
+  sed "s#/\./#/#g"
 }
 
 __initHome() {
@@ -4666,7 +4670,7 @@ _process() {
         HTTPS_INSECURE="1"
         ;;
       --ca-bundle)
-        _ca_bundle="$(readlink -f "$2")"
+        _ca_bundle="$(_readlink -f "$2")"
         CA_BUNDLE="$_ca_bundle"
         shift
         ;;
