@@ -136,7 +136,7 @@ _log() {
 _info() {
   _log "$@"
   if [ "$SYSLOG_LEVEL" -ge "$SYSLOG_INFO" ]; then
-    logger -i -t "acme.sh" -p "user.info"  "$@" >/dev/null 2>&1
+    logger -i -t "acme.sh" -p "user.info" "$@" >/dev/null 2>&1
   fi
   _printargs "$@"
 }
@@ -144,7 +144,7 @@ _info() {
 _err() {
   _log "$@"
   if [ "$SYSLOG_LEVEL" -ge "$SYSLOG_ERROR" ]; then
-    logger -i -t "acme.sh" -p "user.error"  "$@" >/dev/null 2>&1
+    logger -i -t "acme.sh" -p "user.error" "$@" >/dev/null 2>&1
   fi
   if [ -z "$NO_TIMESTAMP" ] || [ "$NO_TIMESTAMP" = "0" ]; then
     printf -- "%s" "[$(date)] " >&2
@@ -168,7 +168,7 @@ _debug() {
     _log "$@"
   fi
   if [ "$SYSLOG_LEVEL" -ge "$SYSLOG_DEBUG" ]; then
-    logger -i -t "acme.sh" -p "user.debug"  "$@" >/dev/null 2>&1
+    logger -i -t "acme.sh" -p "user.debug" "$@" >/dev/null 2>&1
   fi
   if [ -z "$DEBUG" ]; then
     return
@@ -181,7 +181,7 @@ _debug2() {
     _log "$@"
   fi
   if [ "$SYSLOG_LEVEL" -ge "$SYSLOG_DEBUG2" ]; then
-    logger -i -t "acme.sh" -p "user.debug"  "$@" >/dev/null 2>&1
+    logger -i -t "acme.sh" -p "user.debug" "$@" >/dev/null 2>&1
   fi
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
     _debug "$@"
@@ -193,7 +193,7 @@ _debug3() {
     _log "$@"
   fi
   if [ "$SYSLOG_LEVEL" -ge "$SYSLOG_DEBUG3" ]; then
-    logger -i -t "acme.sh" -p "user.debug"  "$@" >/dev/null 2>&1
+    logger -i -t "acme.sh" -p "user.debug" "$@" >/dev/null 2>&1
   fi
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "3" ]; then
     _debug "$@"
