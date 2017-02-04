@@ -307,9 +307,7 @@ _freedns_retrieve_subdomain_page() {
   if [ "$?" != "0" ]; then
     _err "FreeDNS retrieve subdomins failed bad RC from _get"
     return 1
-  fi
-
-  if [ -z "$htmlpage" ]; then
+  elif [ -z "$htmlpage" ]; then
     _err "FreeDNS returned empty subdomain page"
     return 1
   fi
@@ -334,13 +332,18 @@ _freedns_add_txt_record() {
   if [ "$?" != "0" ]; then
     _err "FreeDNS failed to add TXT record for $subdomain bad RC from _post"
     return 1
-  fi
-
-  if ! grep "200 OK" "$HTTP_HEADER" >/dev/null; then
+  elif ! grep "200 OK" "$HTTP_HEADER" >/dev/null; then
     _debug "$htmlpage"
     _err "FreeDNS failed to add TXT record for $subdomain. Check $HTTP_HEADER file"
     return 1
+  elif _contains "$htmlpage" "security code was incorrect"; then
+    _debug "$htmlpage"
+    _err "FreeDNS failed to add TXT record for $subdomain as FreeDNS requested seurity code"
+    _err "Note that you cannot use automatic DNS validation for FreeDNS public domains"
+    return 1
   fi
+
+  _debug2 "$htmlpage"
   _info "Added acme challenge TXT record for $fulldomain at FreeDNS"
   return 0
 }
@@ -357,9 +360,7 @@ _freedns_delete_txt_record() {
   if [ "$?" != "0" ]; then
     _err "FreeDNS failed to delete TXT record for $data_id bad RC from _get"
     return 1
-  fi
-
-  if ! _contains "$htmlheader" "200 OK"; then
+  elif ! _contains "$htmlheader" "200 OK"; then
     _debug "$htmlheader"
     _err "FreeDNS failed to delete TXT record $data_id"
     return 1

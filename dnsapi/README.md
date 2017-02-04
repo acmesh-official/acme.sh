@@ -301,6 +301,10 @@ Now you can issue a certificate.
 acme.sh --issue --dns dns_freedns -d example.com -d www.example.com
 ```
 
+Note that you cannot use acme.sh automatic DNS validation for FreeDNS public domains or for a subdomain that
+you create under a FreeDNS public domain.  You must own the top level domain in order to automaitcally
+validate with acme.sh at FreeDNS.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
