@@ -267,6 +267,7 @@ dns_freedns_rm() {
 # print string "cookie=value" etc.
 # returns 0 success
 _freedns_login() {
+  export _H1="Accept-Language:en-US"
   username="$1"
   password="$2"
   url="https://freedns.afraid.org/zc.php?step=2"
@@ -298,6 +299,7 @@ _freedns_login() {
 # returns 0 success
 _freedns_retrieve_subdomain_page() {
   export _H1="Cookie:$1"
+  export _H2="Accept-Language:en-US"
   url="https://freedns.afraid.org/subdomain/"
 
   _debug "Retrieve subdmoain page from FreeDNS"
@@ -322,6 +324,7 @@ _freedns_retrieve_subdomain_page() {
 # returns 0 success
 _freedns_add_txt_record() {
   export _H1="Cookie:$1"
+  export _H2="Accept-Language:en-US"
   domain_id="$2"
   subdomain="$3"
   value="$(printf '%s' "$4" | _url_encode)"
@@ -352,6 +355,7 @@ _freedns_add_txt_record() {
 # returns 0 success
 _freedns_delete_txt_record() {
   export _H1="Cookie:$1"
+  export _H2="Accept-Language:en-US"
   data_id="$2"
   url="https://freedns.afraid.org/subdomain/delete2.php"
 
