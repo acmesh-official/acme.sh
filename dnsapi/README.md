@@ -278,7 +278,7 @@ acme.sh --issue --dns dns_linode --dnssleep 900 -d example.com -d www.example.co
 
 The `LINODE_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-## 15.  Use FreeDNS
+## 15. Use FreeDNS
 
 FreeDNS (https://freedns.afraid.org/) does not provide an API to update DNS records (other than IPv4 and IPv6
 dynamic DNS addresses).  The acme.sh plugin therefore retrieves and updates domain TXT records by logging
@@ -298,11 +298,8 @@ reuses that when needed.
 Now you can issue a certificate.
 
 ```sh
-acme.sh --issue --dns dns_freedns --dnssleep 30 -d example.com -d www.example.com
+acme.sh --issue --dns dns_freedns -d example.com -d www.example.com
 ```
-
-FreeDNS updates records quite quickly so it is possible to reduce the dnssleep time, in the above example
-to 30 seconds.
 
 # Use custom API
 
