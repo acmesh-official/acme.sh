@@ -58,6 +58,12 @@ LOG_LEVEL_1=1
 LOG_LEVEL_2=2
 LOG_LEVEL_3=3
 DEFAULT_LOG_LEVEL="$LOG_LEVEL_1"
+SYSLOG_LEVEL=0
+SYSLOG_ERROR=3
+SYSLOG_INFO=6
+SYSLOG_DEBUG=7
+SYSLOG_DEBUG2=8
+SYSLOG_DEBUG3=9
 
 _DEBUG_WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-debug-acme.sh"
 
@@ -129,11 +135,17 @@ _log() {
 
 _info() {
   _log "$@"
+  if [ "$SYSLOG_LEVEL" -ge "$SYSLOG_INFO" ]; then
+    logger -i -t "acme.sh" -p "user.info"  "$@" >/dev/null 2>&1
+  fi
   _printargs "$@"
 }
 
 _err() {
   _log "$@"
+  if [ "$SYSLOG_LEVEL" -ge "$SYSLOG_ERROR" ]; then
+    logger -i -t "acme.sh" -p "user.error"  "$@" >/dev/null 2>&1
+  fi
   if [ -z "$NO_TIMESTAMP" ] || [ "$NO_TIMESTAMP" = "0" ]; then
     printf -- "%s" "[$(date)] " >&2
   fi
@@ -155,6 +167,9 @@ _debug() {
   if [ -z "$LOG_LEVEL" ] || [ "$LOG_LEVEL" -ge "$LOG_LEVEL_1" ]; then
     _log "$@"
   fi
+  if [ "$SYSLOG_LEVEL" -ge "$SYSLOG_DEBUG" ]; then
+    logger -i -t "acme.sh" -p "user.debug"  "$@" >/dev/null 2>&1
+  fi
   if [ -z "$DEBUG" ]; then
     return
   fi
@@ -165,6 +180,9 @@ _debug2() {
   if [ "$LOG_LEVEL" ] && [ "$LOG_LEVEL" -ge "$LOG_LEVEL_2" ]; then
     _log "$@"
   fi
+  if [ "$SYSLOG_LEVEL" -ge "$SYSLOG_DEBUG2" ]; then
+    logger -i -t "acme.sh" -p "user.debug"  "$@" >/dev/null 2>&1
+  fi
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
     _debug "$@"
   fi
@@ -173,6 +191,9 @@ _debug2() {
 _debug3() {
   if [ "$LOG_LEVEL" ] && [ "$LOG_LEVEL" -ge "$LOG_LEVEL_3" ]; then
     _log "$@"
+  fi
+  if [ "$SYSLOG_LEVEL" -ge "$SYSLOG_DEBUG3" ]; then
+    logger -i -t "acme.sh" -p "user.debug"  "$@" >/dev/null 2>&1
   fi
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "3" ]; then
     _debug "$@"
@@ -4241,6 +4262,7 @@ Parameters:
   --accountkeylength, -ak [2048]    Specifies the account key length.
   --log    [/path/to/logfile]       Specifies the log file. The default is: \"$DEFAULT_LOG_FILE\" if you don't give a file path here.
   --log-level 1|2                   Specifies the log level, default is 1.
+  --syslog [error|info|debug|debug2|debug3] Specifies that messages will be logged to system syslog.  Default level is error.
   
   These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
   
@@ -4393,6 +4415,7 @@ _process() {
   _deploy_hook=""
   _logfile=""
   _log=""
+  _syslog=""
   _local_address=""
   _log_level=""
   _auto_upgrade=""
@@ -4720,6 +4743,28 @@ _process() {
         _log_level="$2"
         LOG_LEVEL="$_log_level"
         shift
+        ;;
+      --syslog)
+        _syslog="$2"
+        if [ -z "$_syslog" ] || _startswith "$_syslog" '-'; then
+          _syslog="error"
+        else
+          shift
+        fi
+        if _startswith "$_syslog" "error"; then
+          SYSLOG_LEVEL=$SYSLOG_ERROR
+        elif _startswith "$_syslog" "info"; then
+          SYSLOG_LEVEL=$SYSLOG_INFO
+        elif _startswith "$_syslog" "debug3"; then
+          SYSLOG_LEVEL=$SYSLOG_DEBUG3
+        elif _startswith "$_syslog" "debug2"; then
+          SYSLOG_LEVEL=$SYSLOG_DEBUG2
+        elif _startswith "$_syslog" "debug"; then
+          SYSLOG_LEVEL=$SYSLOG_DEBUG
+        else
+          _err "Invalid parameter to --syslog, must be one of error, info or debug"
+          return 1
+        fi
         ;;
       --auto-upgrade)
         _auto_upgrade="$2"
