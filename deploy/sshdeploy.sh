@@ -37,6 +37,7 @@ sshdeploy_deploy() {
   _backupdir="$_homedir/certs-backup-$(date +%Y%m%d%H%M%S)"
 
   if [ -f "$DOMAIN_CONF" ]; then
+    # shellcheck disable=SC1090
     . "$DOMAIN_CONF"
   fi
 
