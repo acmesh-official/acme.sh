@@ -89,7 +89,7 @@ sshdeploy_deploy() {
     # backup file we are about to overwrite.
     _cmdstr="$_cmdstr cp $Le_Deploy_ssh_keyfile $_backupdir ;"
     # copy new certificate into file.
-    _cmdstr="$_cmdstr echo \"$(cat $_ckey)\" > $Le_Deploy_ssh_keyfile ;"
+    _cmdstr="$_cmdstr echo \"$(cat "$_ckey")\" > $Le_Deploy_ssh_keyfile ;"
     _info "will copy private key to remote file $Le_Deploy_ssh_keyfile"
   fi
 
@@ -102,13 +102,13 @@ sshdeploy_deploy() {
   if [ -n "$Le_Deploy_ssh_certfile" ]; then
     if [ "$Le_Deploy_ssh_certfile" = "$Le_Deploy_ssh_keyfile" ]; then
       # if filename is same as that provided for private key then append.
-      _cmdstr="$_cmdstr echo \"$(cat $_ccert)\" >> $Le_Deploy_ssh_certfile ;"
+      _cmdstr="$_cmdstr echo \"$(cat "$_ccert")\" >> $Le_Deploy_ssh_certfile ;"
       _info "will append certificate to same file"
     else
       # backup file we are about to overwrite.
       _cmdstr="$_cmdstr cp $Le_Deploy_ssh_certfile $_backupdir ;"
       # copy new certificate into file.
-      _cmdstr="$_cmdstr echo \"$(cat $_ccert)\" > $Le_Deploy_ssh_certfile ;"
+      _cmdstr="$_cmdstr echo \"$(cat "$_ccert")\" > $Le_Deploy_ssh_certfile ;"
       _info "will copy certificate to remote file $Le_Deploy_ssh_certfile"
     fi
   fi
@@ -123,7 +123,7 @@ sshdeploy_deploy() {
     # backup file we are about to overwrite.
     _cmdstr="$_cmdstr cp $Le_Deploy_ssh_cafile $_backupdir ;"
     # copy new certificate into file.
-    _cmdstr="$_cmdstr echo \"$(cat $_cca)\" > $Le_Deploy_ssh_cafile ;"
+    _cmdstr="$_cmdstr echo \"$(cat "$_cca")\" > $Le_Deploy_ssh_cafile ;"
     _info "will copy CA file to remote file $Le_Deploy_ssh_cafile"
   fi
 
@@ -137,7 +137,7 @@ sshdeploy_deploy() {
     # backup file we are about to overwrite.
     _cmdstr="$_cmdstr cp $Le_Deploy_ssh_fullchain $_backupdir ;"
     # copy new certificate into file.
-    _cmdstr="$_cmdstr echo \"$(cat $_cfullchain)\" > $Le_Deploy_ssh_fullchain ;"
+    _cmdstr="$_cmdstr echo \"$(cat "$_cfullchain")\" > $Le_Deploy_ssh_fullchain ;"
     _info "will copy full chain to remote file $Le_Deploy_ssh_fullchain"
   fi
 
@@ -188,6 +188,8 @@ sshdeploy_deploy() {
 
   _debug "Remote commands to execute: $_cmdstr"
   _info "Submitting sequence of commands to remote server by ssh"
+  # quotations in bash cmd below intended.  Squash travis spellcheck error
+  # shellcheck disable=SC2029
   ssh -T "$Le_Deploy_ssh_user@$Le_Deploy_ssh_url" bash -c "'$_cmdstr'"
 
   return 0
