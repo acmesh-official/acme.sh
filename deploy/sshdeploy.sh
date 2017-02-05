@@ -22,8 +22,6 @@
 # export ACME_DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart"
 # export ACME_DEPLOY_SSH_SERVICE_START=""
 
-. "$DOMAIN_CONF"
-
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
@@ -34,9 +32,12 @@ sshdeploy_deploy() {
   _cca="$4"
   _cfullchain="$5"
   _cmdstr=""
-  _homedir="~/.acme_ssh_deploy"
+  _homedir='~'
+  _homedir="$_homedir/.acme_ssh_deploy"
   _backupdir="$_homedir/certs-backup-$(date +%Y%m%d%H%M%S)"
 
+  . "$DOMAIN_CONF"
+  
   _debug _cdomain "$_cdomain"
   _debug _ckey "$_ckey"
   _debug _ccert "$_ccert"
@@ -61,7 +62,7 @@ sshdeploy_deploy() {
   elif [ -z "$Le_Deploy_ssh_url" ]; then
     Le_Deploy_ssh_url="$_cdomain"
   fi
-  
+
   _info "Deploy certificates to remote server $Le_Deploy_ssh_user@$Le_Deploy_ssh_url"
 
   # SERVICE_STOP is optional.
@@ -146,9 +147,9 @@ sshdeploy_deploy() {
     _savedomainconf Le_Deploy_ssh_remote_cmd "$Le_Deploy_ssh_remote_cmd"
   fi
   if [ -n "$Le_Deploy_ssh_remote_cmd" ]; then
-     if [ -n "$Le_Deploy_ssh_service_stop" ]; then
-       _cmdstr="$_cmdstr sleep 2 ;"
-     fi
+    if [ -n "$Le_Deploy_ssh_service_stop" ]; then
+      _cmdstr="$_cmdstr sleep 2 ;"
+    fi
     _cmdstr="$_cmdstr $Le_Deploy_ssh_remote_cmd ;"
     _info "Will execute remote command $Le_Deploy_ssh_remote_cmd"
   fi
@@ -162,9 +163,9 @@ sshdeploy_deploy() {
     _savedomainconf Le_Deploy_ssh_service_start "$Le_Deploy_ssh_service_start"
   fi
   if [ -n "$Le_Deploy_ssh_service_start" ]; then
-     if [ -n "$Le_Deploy_ssh_service_stop" ] || [ -n "$Le_Deploy_ssh_remote_cmd" ] ; then
-       _cmdstr="$_cmdstr sleep 2 ;"
-     fi
+    if [ -n "$Le_Deploy_ssh_service_stop" ] || [ -n "$Le_Deploy_ssh_remote_cmd" ] ; then
+      _cmdstr="$_cmdstr sleep 2 ;"
+    fi
     _cmdstr="$_cmdstr $Le_Deploy_ssh_service_start ;"
     _info "Will start remote service with command $Le_Deploy_ssh_remote_cmd"
   fi
