@@ -178,6 +178,8 @@ sshdeploy_deploy() {
     _cmdstr="find $_homedir/* -type d -mtime +180 2>/dev/null | xargs rm -rf ; $_cmdstr"
     # Create our backup directory for overwritten cert files.
     _cmdstr="mkdir -p $_backupdir ; $_cmdstr"
+    _info "Backup of old certificate files will be placed in remote directory $_backupdir"
+    _info "Backup directories erased after 180 days."
   fi
 
   _debug "Remote commands to execute: $_cmdstr"
