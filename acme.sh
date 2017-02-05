@@ -340,11 +340,29 @@ _is_solaris() {
   _contains "${__OS__:=$(uname -a)}" "solaris" || _contains "${__OS__:=$(uname -a)}" "SunOS"
 }
 
+#_ascii_hex str
+#this can only process ascii chars, should only be used when od command is missing as a backup way.
+_ascii_hex() {
+  _debug2 "Using _ascii_hex"
+  _str="$1"
+  _str_len=${#_str}
+  _h_i=1
+  while [ "$_h_i" -le "$_str_len" ]; do
+    _str_c="$(printf "%s" "$_str" | cut -c "$_h_i")"
+    printf " %02x" "'$_str_c"
+    _h_i="$(_math "$_h_i" + 1)"
+  done
+}
+
 #stdin  output hexstr splited by one space
 #input:"abc"
 #output: " 61 62 63"
 _hex_dump() {
-  od -A n -v -t x1 | tr -d "\r\t" | tr -s " " | sed "s/ $//" | tr -d "\n"
+  #in wired some system, the od command is missing.
+  if ! od -A n -v -t x1 | tr -d "\r\t" | tr -s " " | sed "s/ $//" | tr -d "\n" 2>/dev/null; then
+    str=$(cat)
+    _ascii_hex "$str"
+  fi
 }
 
 #url encode, no-preserved chars
