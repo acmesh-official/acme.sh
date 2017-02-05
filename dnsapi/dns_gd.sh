@@ -59,7 +59,7 @@ dns_gd_rm() {
 
 }
 
-####################  Private functions bellow ##################################
+####################  Private functions below ##################################
 #_acme-challenge.www.domain.com
 #returns
 # _sub_domain=_acme-challenge.www
@@ -98,8 +98,8 @@ _gd_rest() {
   data="$3"
   _debug "$ep"
 
-  _H1="Authorization: sso-key $GD_Key:$GD_Secret"
-  _H2="Content-Type: application/json"
+  export _H1="Authorization: sso-key $GD_Key:$GD_Secret"
+  export _H2="Content-Type: application/json"
 
   if [ "$data" ]; then
     _debug data "$data"

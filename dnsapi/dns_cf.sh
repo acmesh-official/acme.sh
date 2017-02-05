@@ -22,6 +22,12 @@ dns_cf_add() {
     return 1
   fi
 
+  if ! _contains "$CF_Email" "@"; then
+    _err "It seems that the CF_Email=$CF_Email is not a valid email address."
+    _err "Please check and retry."
+    return 1
+  fi
+
   #save the api key and email to the account conf file.
   _saveaccountconf CF_Key "$CF_Key"
   _saveaccountconf CF_Email "$CF_Email"
@@ -49,9 +55,7 @@ dns_cf_add() {
     _info "Adding record"
     if _cf_rest POST "zones/$_domain_id/dns_records" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
       if printf -- "%s" "$response" | grep "$fulldomain" >/dev/null; then
-        _info "Added, sleeping 10 seconds"
-        sleep 10
-        #todo: check if the record takes effect
+        _info "Added, OK"
         return 0
       else
         _err "Add txt record error."
@@ -66,9 +70,7 @@ dns_cf_add() {
 
     _cf_rest PUT "zones/$_domain_id/dns_records/$record_id" "{\"id\":\"$record_id\",\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"zone_id\":\"$_domain_id\",\"zone_name\":\"$_domain\"}"
     if [ "$?" = "0" ]; then
-      _info "Updated, sleeping 10 seconds"
-      sleep 10
-      #todo: check if the record takes effect
+      _info "Updated, OK"
       return 0
     fi
     _err "Update error"
@@ -77,13 +79,48 @@ dns_cf_add() {
 
 }
 
-#fulldomain
+#fulldomain txtvalue
 dns_cf_rm() {
   fulldomain=$1
+  txtvalue=$2
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+  _debug _domain_id "$_domain_id"
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain "$_domain"
+
+  _debug "Getting txt records"
+  _cf_rest GET "zones/${_domain_id}/dns_records?type=TXT&name=$fulldomain&content=$txtvalue"
+
+  if ! printf "%s" "$response" | grep \"success\":true >/dev/null; then
+    _err "Error"
+    return 1
+  fi
+
+  count=$(printf "%s\n" "$response" | _egrep_o "\"count\":[^,]*" | cut -d : -f 2)
+  _debug count "$count"
+  if [ "$count" = "0" ]; then
+    _info "Don't need to remove."
+  else
+    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | head -n 1)
+    _debug "record_id" "$record_id"
+    if [ -z "$record_id" ]; then
+      _err "Can not get record id to remove."
+      return 1
+    fi
+    if ! _cf_rest DELETE "zones/$_domain_id/dns_records/$record_id"; then
+      _err "Delete record error."
+      return 1
+    fi
+    _contains "$response" '"success":true'
+  fi
 
 }
 
-####################  Private functions bellow ##################################
+####################  Private functions below ##################################
 #_acme-challenge.www.domain.com
 #returns
 # _sub_domain=_acme-challenge.www
@@ -95,6 +132,7 @@ _get_root() {
   p=1
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -104,8 +142,8 @@ _get_root() {
       return 1
     fi
 
-    if printf "%s" "$response" | grep "\"name\":\"$h\"" >/dev/null; then
-      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\"" | head -n 1 | cut -d : -f 2 | tr -d \")
+    if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
+      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\[.\"id\":\"[^\"]*\"" | head -n 1 | cut -d : -f 2 | tr -d \")
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain=$h
@@ -125,11 +163,11 @@ _cf_rest() {
   data="$3"
   _debug "$ep"
 
-  _H1="X-Auth-Email: $CF_Email"
-  _H2="X-Auth-Key: $CF_Key"
-  _H3="Content-Type: application/json"
+  export _H1="X-Auth-Email: $CF_Email"
+  export _H2="X-Auth-Key: $CF_Key"
+  export _H3="Content-Type: application/json"
 
-  if [ "$data" ]; then
+  if [ "$m" != "GET" ]; then
     _debug data "$data"
     response="$(_post "$data" "$CF_Api/$ep" "" "$m")"
   else

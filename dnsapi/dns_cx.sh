@@ -58,7 +58,15 @@ dns_cx_add() {
 #fulldomain
 dns_cx_rm() {
   fulldomain=$1
-
+  REST_API="$CX_Api"
+  if _get_root "$fulldomain"; then
+    record_id=""
+    existing_records "$_domain" "$_sub_domain"
+    if ! [ "$record_id" = "" ]; then
+      _rest DELETE "record/$record_id/$_domain_id" "{}"
+      _info "Deleted record ${fulldomain}"
+    fi
+  fi
 }
 
 #usage:  root  sub
@@ -69,12 +77,12 @@ existing_records() {
   _debug "Getting txt records"
   root=$1
   sub=$2
-
+  count=0
   if ! _rest GET "record/$_domain_id?:domain_id?host_id=0&offset=0&row_num=100"; then
     return 1
   fi
-  count=0
-  seg=$(printf "%s\n" "$response" | _egrep_o "{[^\{]*host\":\"$_sub_domain\"[^\}]*\}")
+
+  seg=$(printf "%s\n" "$response" | _egrep_o '"record_id":[^{]*host":"'"$_sub_domain"'"[^}]*\}')
   _debug seg "$seg"
   if [ -z "$seg" ]; then
     return 0
@@ -82,7 +90,7 @@ existing_records() {
 
   if printf "%s" "$response" | grep '"type":"TXT"' >/dev/null; then
     count=1
-    record_id=$(printf "%s\n" "$seg" | _egrep_o "\"record_id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
+    record_id=$(printf "%s\n" "$seg" | _egrep_o '"record_id":"[^"]*"' | cut -d : -f 2 | tr -d \" | _head_n 1)
     _debug record_id "$record_id"
     return 0
   fi
@@ -123,7 +131,7 @@ update_record() {
   return 1
 }
 
-####################  Private functions bellow ##################################
+####################  Private functions below ##################################
 #_acme-challenge.www.domain.com
 #returns
 # _sub_domain=_acme-challenge.www
@@ -147,9 +155,9 @@ _get_root() {
     fi
 
     if _contains "$response" "$h."; then
-      seg=$(printf "%s" "$response" | _egrep_o "\{[^\{]*\"$h\.\"[^\}]*\}")
+      seg=$(printf "%s\n" "$response" | _egrep_o '"id":[^{]*"'"$h"'."[^}]*}')
       _debug seg "$seg"
-      _domain_id=$(printf "%s" "$seg" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
+      _domain_id=$(printf "%s\n" "$seg" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
       _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
@@ -170,7 +178,7 @@ _get_root() {
 _rest() {
   m=$1
   ep="$2"
-  _debug "$ep"
+  _debug ep "$ep"
   url="$REST_API/$ep"
   _debug url "$url"
 
@@ -185,10 +193,10 @@ _rest() {
   hmac=$(printf "%s" "$sec" | _digest md5 hex)
   _debug hmac "$hmac"
 
-  _H1="API-KEY: $CX_Key"
-  _H2="API-REQUEST-DATE: $cdate"
-  _H3="API-HMAC: $hmac"
-  _H4="Content-Type: application/json"
+  export _H1="API-KEY: $CX_Key"
+  export _H2="API-REQUEST-DATE: $cdate"
+  export _H3="API-HMAC: $hmac"
+  export _H4="Content-Type: application/json"
 
   if [ "$data" ]; then
     response="$(_post "$data" "$url" "" "$m")"

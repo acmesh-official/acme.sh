@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.6.5
+VER=2.6.6
 
 PROJECT_NAME="acme.sh"
 
@@ -21,6 +21,8 @@ DEFAULT_ACCOUNT_EMAIL=""
 
 DEFAULT_ACCOUNT_KEY_LENGTH=2048
 DEFAULT_DOMAIN_KEY_LENGTH=2048
+
+DEFAULT_OPENSSL_BIN="openssl"
 
 STAGE_CA="https://acme-staging.api.letsencrypt.org"
 
@@ -85,21 +87,24 @@ __red() {
 }
 
 _printargs() {
+  if [ -z "$NO_TIMESTAMP" ] || [ "$NO_TIMESTAMP" = "0" ]; then
+    printf -- "%s" "[$(date)] "
+  fi
   if [ -z "$2" ]; then
-    printf -- "[$(date)] $1"
+    printf -- "%s" "$1"
   else
-    printf -- "[$(date)] $1='$2'"
+    printf -- "%s" "$1='$2'"
   fi
   printf "\n"
 }
 
 _dlg_versions() {
   echo "Diagnosis versions: "
-  echo "openssl:"
-  if _exists openssl; then
-    openssl version 2>&1
+  echo "openssl:$OPENSSL_BIN"
+  if _exists "$OPENSSL_BIN"; then
+    $OPENSSL_BIN version 2>&1
   else
-    echo "openssl doesn't exists."
+    echo "$OPENSSL_BIN doesn't exists."
   fi
 
   echo "apache:"
@@ -129,7 +134,9 @@ _info() {
 
 _err() {
   _log "$@"
-  printf -- "[$(date)] " >&2
+  if [ -z "$NO_TIMESTAMP" ] || [ "$NO_TIMESTAMP" = "0" ]; then
+    printf -- "%s" "[$(date)] " >&2
+  fi
   if [ -z "$2" ]; then
     __red "$1" >&2
   else
@@ -247,9 +254,12 @@ _exists() {
     _usage "Usage: _exists cmd"
     return 1
   fi
-  if command >/dev/null 2>&1; then
+
+  if eval type type >/dev/null 2>&1; then
+    eval type "$cmd" >/dev/null 2>&1
+  elif command >/dev/null 2>&1; then
     command -v "$cmd" >/dev/null 2>&1
-  elif which >/dev/null 2>&1; then
+  else
     which "$cmd" >/dev/null 2>&1
   fi
   ret="$?"
@@ -326,6 +336,262 @@ _h2b() {
   done
 }
 
+_is_solaris() {
+  _contains "${__OS__:=$(uname -a)}" "solaris" || _contains "${__OS__:=$(uname -a)}" "SunOS"
+}
+
+#_ascii_hex str
+#this can only process ascii chars, should only be used when od command is missing as a backup way.
+_ascii_hex() {
+  _debug2 "Using _ascii_hex"
+  _str="$1"
+  _str_len=${#_str}
+  _h_i=1
+  while [ "$_h_i" -le "$_str_len" ]; do
+    _str_c="$(printf "%s" "$_str" | cut -c "$_h_i")"
+    printf " %02x" "'$_str_c"
+    _h_i="$(_math "$_h_i" + 1)"
+  done
+}
+
+#stdin  output hexstr splited by one space
+#input:"abc"
+#output: " 61 62 63"
+_hex_dump() {
+  #in wired some system, the od command is missing.
+  if ! od -A n -v -t x1 | tr -d "\r\t" | tr -s " " | sed "s/ $//" | tr -d "\n" 2>/dev/null; then
+    str=$(cat)
+    _ascii_hex "$str"
+  fi
+}
+
+#url encode, no-preserved chars
+#A  B  C  D  E  F  G  H  I  J  K  L  M  N  O  P  Q  R  S  T  U  V  W  X  Y  Z
+#41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f 50 51 52 53 54 55 56 57 58 59 5a
+
+#a  b  c  d  e  f  g  h  i  j  k  l  m  n  o  p  q  r  s  t  u  v  w  x  y  z
+#61 62 63 64 65 66 67 68 69 6a 6b 6c 6d 6e 6f 70 71 72 73 74 75 76 77 78 79 7a
+
+#0  1  2  3  4  5  6  7  8  9  -  _  .  ~
+#30 31 32 33 34 35 36 37 38 39 2d 5f 2e 7e
+
+#stdin stdout
+_url_encode() {
+  _hex_str=$(_hex_dump)
+  _debug3 "_url_encode"
+  _debug3 "_hex_str" "$_hex_str"
+  for _hex_code in $_hex_str; do
+    #upper case
+    case "${_hex_code}" in
+      "41")
+        printf "%s" "A"
+        ;;
+      "42")
+        printf "%s" "B"
+        ;;
+      "43")
+        printf "%s" "C"
+        ;;
+      "44")
+        printf "%s" "D"
+        ;;
+      "45")
+        printf "%s" "E"
+        ;;
+      "46")
+        printf "%s" "F"
+        ;;
+      "47")
+        printf "%s" "G"
+        ;;
+      "48")
+        printf "%s" "H"
+        ;;
+      "49")
+        printf "%s" "I"
+        ;;
+      "4a")
+        printf "%s" "J"
+        ;;
+      "4b")
+        printf "%s" "K"
+        ;;
+      "4c")
+        printf "%s" "L"
+        ;;
+      "4d")
+        printf "%s" "M"
+        ;;
+      "4e")
+        printf "%s" "N"
+        ;;
+      "4f")
+        printf "%s" "O"
+        ;;
+      "50")
+        printf "%s" "P"
+        ;;
+      "51")
+        printf "%s" "Q"
+        ;;
+      "52")
+        printf "%s" "R"
+        ;;
+      "53")
+        printf "%s" "S"
+        ;;
+      "54")
+        printf "%s" "T"
+        ;;
+      "55")
+        printf "%s" "U"
+        ;;
+      "56")
+        printf "%s" "V"
+        ;;
+      "57")
+        printf "%s" "W"
+        ;;
+      "58")
+        printf "%s" "X"
+        ;;
+      "59")
+        printf "%s" "Y"
+        ;;
+      "5a")
+        printf "%s" "Z"
+        ;;
+
+      #lower case
+      "61")
+        printf "%s" "a"
+        ;;
+      "62")
+        printf "%s" "b"
+        ;;
+      "63")
+        printf "%s" "c"
+        ;;
+      "64")
+        printf "%s" "d"
+        ;;
+      "65")
+        printf "%s" "e"
+        ;;
+      "66")
+        printf "%s" "f"
+        ;;
+      "67")
+        printf "%s" "g"
+        ;;
+      "68")
+        printf "%s" "h"
+        ;;
+      "69")
+        printf "%s" "i"
+        ;;
+      "6a")
+        printf "%s" "j"
+        ;;
+      "6b")
+        printf "%s" "k"
+        ;;
+      "6c")
+        printf "%s" "l"
+        ;;
+      "6d")
+        printf "%s" "m"
+        ;;
+      "6e")
+        printf "%s" "n"
+        ;;
+      "6f")
+        printf "%s" "o"
+        ;;
+      "70")
+        printf "%s" "p"
+        ;;
+      "71")
+        printf "%s" "q"
+        ;;
+      "72")
+        printf "%s" "r"
+        ;;
+      "73")
+        printf "%s" "s"
+        ;;
+      "74")
+        printf "%s" "t"
+        ;;
+      "75")
+        printf "%s" "u"
+        ;;
+      "76")
+        printf "%s" "v"
+        ;;
+      "77")
+        printf "%s" "w"
+        ;;
+      "78")
+        printf "%s" "x"
+        ;;
+      "79")
+        printf "%s" "y"
+        ;;
+      "7a")
+        printf "%s" "z"
+        ;;
+      #numbers
+      "30")
+        printf "%s" "0"
+        ;;
+      "31")
+        printf "%s" "1"
+        ;;
+      "32")
+        printf "%s" "2"
+        ;;
+      "33")
+        printf "%s" "3"
+        ;;
+      "34")
+        printf "%s" "4"
+        ;;
+      "35")
+        printf "%s" "5"
+        ;;
+      "36")
+        printf "%s" "6"
+        ;;
+      "37")
+        printf "%s" "7"
+        ;;
+      "38")
+        printf "%s" "8"
+        ;;
+      "39")
+        printf "%s" "9"
+        ;;
+      "2d")
+        printf "%s" "-"
+        ;;
+      "5f")
+        printf "%s" "_"
+        ;;
+      "2e")
+        printf "%s" "."
+        ;;
+      "7e")
+        printf "%s" "~"
+        ;;
+      #other hex  
+      *)
+        printf '%%%s' "$_hex_code"
+        ;;
+    esac
+  done
+}
+
 #options file
 _sed_i() {
   options="$1"
@@ -346,10 +612,8 @@ _sed_i() {
 }
 
 _egrep_o() {
-  if _contains "$(egrep -o 2>&1)" "egrep: illegal option -- o"; then
+  if ! egrep -o "$1" 2>/dev/null; then
     sed -n 's/.*\('"$1"'\).*/\1/p'
-  else
-    egrep -o "$1"
   fi
 }
 
@@ -385,19 +649,22 @@ _getfile() {
 
 #Usage: multiline
 _base64() {
+  [ "" ] #urgly
   if [ "$1" ]; then
-    openssl base64 -e
+    _debug3 "base64 multiline:'$1'"
+    $OPENSSL_BIN base64 -e
   else
-    openssl base64 -e | tr -d '\r\n'
+    _debug3 "base64 single line."
+    $OPENSSL_BIN base64 -e | tr -d '\r\n'
   fi
 }
 
 #Usage: multiline
 _dbase64() {
   if [ "$1" ]; then
-    openssl base64 -d -A
+    $OPENSSL_BIN base64 -d -A
   else
-    openssl base64 -d
+    $OPENSSL_BIN base64 -d
   fi
 }
 
@@ -414,9 +681,9 @@ _digest() {
 
   if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ] || [ "$alg" = "md5" ]; then
     if [ "$outputhex" ]; then
-      openssl dgst -"$alg" -hex | cut -d = -f 2 | tr -d ' '
+      $OPENSSL_BIN dgst -"$alg" -hex | cut -d = -f 2 | tr -d ' '
     else
-      openssl dgst -"$alg" -binary | _base64
+      $OPENSSL_BIN dgst -"$alg" -binary | _base64
     fi
   else
     _err "$alg is not supported yet"
@@ -425,23 +692,23 @@ _digest() {
 
 }
 
-#Usage: hashalg  secret  [outputhex]
-#Output Base64-encoded hmac
+#Usage: hashalg  secret_hex  [outputhex]
+#Output binary hmac
 _hmac() {
   alg="$1"
-  hmac_sec="$2"
+  secret_hex="$2"
   outputhex="$3"
 
-  if [ -z "$hmac_sec" ]; then
+  if [ -z "$secret_hex" ]; then
     _usage "Usage: _hmac hashalg secret [outputhex]"
     return 1
   fi
 
   if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ]; then
     if [ "$outputhex" ]; then
-      openssl dgst -"$alg" -hmac "$hmac_sec" | cut -d = -f 2 | tr -d ' '
+      $OPENSSL_BIN dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" | cut -d = -f 2 | tr -d ' '
     else
-      openssl dgst -"$alg" -hmac "$hmac_sec" -binary | _base64
+      $OPENSSL_BIN dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" -binary
     fi
   else
     _err "$alg is not supported yet"
@@ -460,7 +727,7 @@ _sign() {
     return 1
   fi
 
-  _sign_openssl="openssl   dgst -sign $keyfile "
+  _sign_openssl="$OPENSSL_BIN   dgst -sign $keyfile "
   if [ "$alg" = "sha256" ]; then
     _sign_openssl="$_sign_openssl -$alg"
   else
@@ -471,7 +738,7 @@ _sign() {
   if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     $_sign_openssl | _base64
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
-    if ! _signedECText="$($_sign_openssl | openssl asn1parse -inform DER)"; then
+    if ! _signedECText="$($_sign_openssl | $OPENSSL_BIN asn1parse -inform DER)"; then
       _err "Sign failed: $_sign_openssl"
       _err "Key file: $keyfile"
       _err "Key content:$(wc -l <"$keyfile") lises"
@@ -509,6 +776,7 @@ _isEccKey() {
 _createkey() {
   length="$1"
   f="$2"
+  _debug2 "_createkey for file:$f"
   eccname="$length"
   if _startswith "$length" "ec-"; then
     length=$(printf "%s" "$length" | cut -d '-' -f 2-100)
@@ -533,10 +801,10 @@ _createkey() {
 
   if _isEccKey "$length"; then
     _debug "Using ec name: $eccname"
-    openssl ecparam -name "$eccname" -genkey 2>/dev/null >"$f"
+    $OPENSSL_BIN ecparam -name "$eccname" -genkey 2>/dev/null >"$f"
   else
     _debug "Using RSA: $length"
-    openssl genrsa "$length" 2>/dev/null >"$f"
+    $OPENSSL_BIN genrsa "$length" 2>/dev/null >"$f"
   fi
 
   if [ "$?" != "0" ]; then
@@ -549,7 +817,7 @@ _createkey() {
 _is_idn() {
   _is_idn_d="$1"
   _debug2 _is_idn_d "$_is_idn_d"
-  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '[0-9]' | tr -d '[a-z]' | tr -d '[A-Z]' | tr -d '.,-')
+  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '0-9' | tr -d 'a-z' | tr -d 'A-Z' | tr -d '.,-')
   _debug2 _idn_temp "$_idn_temp"
   [ "$_idn_temp" ]
 }
@@ -614,14 +882,15 @@ _createcsr() {
     _info "Multi domain" "$alt"
     printf -- "\nsubjectAltName=$alt" >>"$csrconf"
   fi
-  if [ "$Le_OCSP_Stable" ]; then
-    _savedomainconf Le_OCSP_Stable "$Le_OCSP_Stable"
+  if [ "$Le_OCSP_Staple" ] || [ "$Le_OCSP_Stable" ]; then
+    _savedomainconf Le_OCSP_Staple "$Le_OCSP_Staple"
+    _cleardomainconf Le_OCSP_Stable
     printf -- "\nbasicConstraints = CA:FALSE\n1.3.6.1.5.5.7.1.24=DER:30:03:02:01:05" >>"$csrconf"
   fi
 
   _csr_cn="$(_idn "$domain")"
   _debug2 _csr_cn "$_csr_cn"
-  openssl req -new -sha256 -key "$csrkey" -subj "/CN=$_csr_cn" -config "$csrconf" -out "$csr"
+  $OPENSSL_BIN req -new -sha256 -key "$csrkey" -subj "/CN=$_csr_cn" -config "$csrconf" -out "$csr"
 }
 
 #_signcsr key  csr  conf cert
@@ -632,7 +901,7 @@ _signcsr() {
   cert="$4"
   _debug "_signcsr"
 
-  _msg="$(openssl x509 -req -days 365 -in "$csr" -signkey "$key" -extensions v3_req -extfile "$conf" -out "$cert" 2>&1)"
+  _msg="$($OPENSSL_BIN x509 -req -days 365 -in "$csr" -signkey "$key" -extensions v3_req -extfile "$conf" -out "$cert" 2>&1)"
   _ret="$?"
   _debug "$_msg"
   return $_ret
@@ -645,7 +914,7 @@ _readSubjectFromCSR() {
     _usage "_readSubjectFromCSR mycsr.csr"
     return 1
   fi
-  openssl req -noout -in "$_csrfile" -subject | _egrep_o "CN=.*" | cut -d = -f 2 | cut -d / -f 1 | tr -d '\n'
+  $OPENSSL_BIN req -noout -in "$_csrfile" -subject | _egrep_o "CN=.*" | cut -d = -f 2 | cut -d / -f 1 | tr -d '\n'
 }
 
 #_csrfile
@@ -660,7 +929,7 @@ _readSubjectAltNamesFromCSR() {
   _csrsubj="$(_readSubjectFromCSR "$_csrfile")"
   _debug _csrsubj "$_csrsubj"
 
-  _dnsAltnames="$(openssl req -noout -text -in "$_csrfile" | grep "^ *DNS:.*" | tr -d ' \n')"
+  _dnsAltnames="$($OPENSSL_BIN req -noout -text -in "$_csrfile" | grep "^ *DNS:.*" | tr -d ' \n')"
   _debug _dnsAltnames "$_dnsAltnames"
 
   if _contains "$_dnsAltnames," "DNS:$_csrsubj,"; then
@@ -681,7 +950,7 @@ _readKeyLengthFromCSR() {
     return 1
   fi
 
-  _outcsr="$(openssl req -noout -text -in "$_csrfile")"
+  _outcsr="$($OPENSSL_BIN req -noout -text -in "$_csrfile")"
   if _contains "$_outcsr" "Public Key Algorithm: id-ecPublicKey"; then
     _debug "ECC CSR"
     echo "$_outcsr" | _egrep_o "^ *ASN1 OID:.*" | cut -d ':' -f 2 | tr -d ' '
@@ -735,9 +1004,9 @@ toPkcs() {
   _initpath "$domain" "$_isEcc"
 
   if [ "$pfxPassword" ]; then
-    openssl pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH" -password "pass:$pfxPassword"
+    $OPENSSL_BIN pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH" -password "pass:$pfxPassword"
   else
-    openssl pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH"
+    $OPENSSL_BIN pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH"
   fi
 
   if [ "$?" = "0" ]; then
@@ -843,7 +1112,7 @@ createCSR() {
 
 }
 
-_urlencode() {
+_url_replace() {
   tr '/+' '_-' | tr -d '= '
 }
 
@@ -899,7 +1168,7 @@ _calcjwk() {
 
   if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     _debug "RSA key"
-    pub_exp=$(openssl rsa -in "$keyfile" -noout -text | grep "^publicExponent:" | cut -d '(' -f 2 | cut -d 'x' -f 2 | cut -d ')' -f 1)
+    pub_exp=$($OPENSSL_BIN rsa -in "$keyfile" -noout -text | grep "^publicExponent:" | cut -d '(' -f 2 | cut -d 'x' -f 2 | cut -d ')' -f 1)
     if [ "${#pub_exp}" = "5" ]; then
       pub_exp=0$pub_exp
     fi
@@ -908,9 +1177,11 @@ _calcjwk() {
     e=$(echo "$pub_exp" | _h2b | _base64)
     _debug3 e "$e"
 
-    modulus=$(openssl rsa -in "$keyfile" -modulus -noout | cut -d '=' -f 2)
+    modulus=$($OPENSSL_BIN rsa -in "$keyfile" -modulus -noout | cut -d '=' -f 2)
     _debug3 modulus "$modulus"
-    n="$(printf "%s" "$modulus" | _h2b | _base64 | _urlencode)"
+    n="$(printf "%s" "$modulus" | _h2b | _base64 | _url_replace)"
+    _debug3 n "$n"
+
     jwk='{"e": "'$e'", "kty": "RSA", "n": "'$n'"}'
     _debug3 jwk "$jwk"
 
@@ -919,12 +1190,12 @@ _calcjwk() {
     JWK_HEADERPLACE_PART2='", "alg": "RS256", "jwk": '$jwk'}'
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     _debug "EC key"
-    crv="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
+    crv="$($OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
     _debug3 crv "$crv"
 
     if [ -z "$crv" ]; then
       _debug "Let's try ASN1 OID"
-      crv_oid="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | grep "^ASN1 OID:" | cut -d ":" -f 2 | tr -d " \r\n")"
+      crv_oid="$($OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | grep "^ASN1 OID:" | cut -d ":" -f 2 | tr -d " \r\n")"
       _debug3 crv_oid "$crv_oid"
       case "${crv_oid}" in
         "prime256v1")
@@ -944,15 +1215,15 @@ _calcjwk() {
       _debug3 crv "$crv"
     fi
 
-    pubi="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | grep -n pub: | cut -d : -f 1)"
+    pubi="$($OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | grep -n pub: | cut -d : -f 1)"
     pubi=$(_math "$pubi" + 1)
     _debug3 pubi "$pubi"
 
-    pubj="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | grep -n "ASN1 OID:" | cut -d : -f 1)"
+    pubj="$($OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | grep -n "ASN1 OID:" | cut -d : -f 1)"
     pubj=$(_math "$pubj" - 1)
     _debug3 pubj "$pubj"
 
-    pubtext="$(openssl ec -in "$keyfile" -noout -text 2>/dev/null | sed -n "$pubi,${pubj}p" | tr -d " \n\r")"
+    pubtext="$($OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | sed -n "$pubi,${pubj}p" | tr -d " \n\r")"
     _debug3 pubtext "$pubtext"
 
     xlen="$(printf "%s" "$pubtext" | tr -d ':' | wc -c)"
@@ -963,14 +1234,14 @@ _calcjwk() {
     x="$(printf "%s" "$pubtext" | cut -d : -f 2-"$xend")"
     _debug3 x "$x"
 
-    x64="$(printf "%s" "$x" | tr -d : | _h2b | _base64 | _urlencode)"
+    x64="$(printf "%s" "$x" | tr -d : | _h2b | _base64 | _url_replace)"
     _debug3 x64 "$x64"
 
     xend=$(_math "$xend" + 1)
     y="$(printf "%s" "$pubtext" | cut -d : -f "$xend"-10000)"
     _debug3 y "$y"
 
-    y64="$(printf "%s" "$y" | tr -d : | _h2b | _base64 | _urlencode)"
+    y64="$(printf "%s" "$y" | tr -d : | _h2b | _base64 | _url_replace)"
     _debug3 y64 "$y64"
 
     jwk='{"crv": "'$crv'", "kty": "EC", "x": "'$x64'", "y": "'$y64'"}'
@@ -1036,9 +1307,6 @@ _inithttp() {
       _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
     fi
 
-    if [ "$HTTPS_INSECURE" ]; then
-      _ACME_CURL="$_ACME_CURL --insecure  "
-    fi
   fi
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
@@ -1048,9 +1316,6 @@ _inithttp() {
     fi
     if [ "$CA_BUNDLE" ]; then
       _ACME_WGET="$_ACME_WGET --ca-certificate $CA_BUNDLE "
-    fi
-    if [ "$HTTPS_INSECURE" ]; then
-      _ACME_WGET="$_ACME_WGET --no-check-certificate "
     fi
   fi
 
@@ -1076,6 +1341,9 @@ _post() {
 
   if [ "$_ACME_CURL" ]; then
     _CURL="$_ACME_CURL"
+    if [ "$HTTPS_INSECURE" ]; then
+      _CURL="$_CURL --insecure  "
+    fi
     _debug "_CURL" "$_CURL"
     if [ "$needbase64" ]; then
       response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$url" | _base64)"
@@ -1091,18 +1359,22 @@ _post() {
       fi
     fi
   elif [ "$_ACME_WGET" ]; then
-    _debug "_ACME_WGET" "$_ACME_WGET"
+    _WGET="$_ACME_WGET"
+    if [ "$HTTPS_INSECURE" ]; then
+      _WGET="$_WGET --no-check-certificate "
+    fi
+    _debug "_WGET" "$_WGET"
     if [ "$needbase64" ]; then
       if [ "$httpmethod" = "POST" ]; then
-        response="$($_ACME_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
       else
-        response="$($_ACME_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
       fi
     else
       if [ "$httpmethod" = "POST" ]; then
-        response="$($_ACME_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER")"
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER")"
       else
-        response="$($_ACME_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER")"
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER")"
       fi
     fi
     _ret="$?"
@@ -1136,6 +1408,9 @@ _get() {
 
   if [ "$_ACME_CURL" ]; then
     _CURL="$_ACME_CURL"
+    if [ "$HTTPS_INSECURE" ]; then
+      _CURL="$_CURL --insecure  "
+    fi
     if [ "$t" ]; then
       _CURL="$_CURL --connect-timeout $t"
     fi
@@ -1155,6 +1430,9 @@ _get() {
     fi
   elif [ "$_ACME_WGET" ]; then
     _WGET="$_ACME_WGET"
+    if [ "$HTTPS_INSECURE" ]; then
+      _WGET="$_WGET --no-check-certificate "
+    fi
     if [ "$t" ]; then
       _WGET="$_WGET --timeout=$t"
     fi
@@ -1207,7 +1485,7 @@ _send_signed_request() {
     return 1
   fi
 
-  payload64=$(printf "%s" "$payload" | _base64 | _urlencode)
+  payload64=$(printf "%s" "$payload" | _base64 | _url_replace)
   _debug3 payload64 "$payload64"
 
   if [ -z "$_CACHED_NONCE" ]; then
@@ -1233,7 +1511,7 @@ _send_signed_request() {
   protected="$JWK_HEADERPLACE_PART1$nonce$JWK_HEADERPLACE_PART2"
   _debug3 protected "$protected"
 
-  protected64="$(printf "%s" "$protected" | _base64 | _urlencode)"
+  protected64="$(printf "%s" "$protected" | _base64 | _url_replace)"
   _debug3 protected64 "$protected64"
 
   if ! _sig_t="$(printf "%s" "$protected64.$payload64" | _sign "$keyfile" "sha256")"; then
@@ -1242,7 +1520,7 @@ _send_signed_request() {
   fi
   _debug3 _sig_t "$_sig_t"
 
-  sig="$(printf "%s" "$_sig_t" | _urlencode)"
+  sig="$(printf "%s" "$_sig_t" | _url_replace)"
   _debug3 sig "$sig"
 
   body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
@@ -1325,7 +1603,7 @@ _clear_conf() {
   _sdkey="$2"
   if [ "$_c_c_f" ]; then
     _conf_data="$(cat "$_c_c_f")"
-    echo "$_conf_data" | sed "s/^$_sdkey *=.*$//" > "$_c_c_f"
+    echo "$_conf_data" | sed "s/^$_sdkey *=.*$//" >"$_c_c_f"
   else
     _err "config file is empty, can not clear"
   fi
@@ -1423,31 +1701,28 @@ _startserver() {
   #for centos ncat
   if _contains "$nchelp" "nmap.org"; then
     _debug "Using ncat: nmap.org"
-    if [ "$DEBUG" ]; then
-      if printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC "$Le_HTTPPort"; then
-        return
-      fi
-    else
-      if printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC "$Le_HTTPPort" >/dev/null 2>&1; then
-        return
-      fi
+    if ! _exec "printf \"%s\r\n\r\n%s\" \"HTTP/1.1 200 OK\" \"$content\" | $_NC \"$Le_HTTPPort\" >&2"; then
+      _exec_err
+      return 1
     fi
-    _err "ncat listen error."
+    if [ "$DEBUG" ]; then
+      _exec_err
+    fi
+    return
   fi
 
   #  while true ; do
-  if [ "$DEBUG" ]; then
-    if ! printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC -p "$Le_HTTPPort"; then
-      printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC "$Le_HTTPPort"
-    fi
-  else
-    if ! printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC -p "$Le_HTTPPort" >/dev/null 2>&1; then
-      printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $_NC "$Le_HTTPPort" >/dev/null 2>&1
-    fi
+  if ! _exec "printf \"%s\r\n\r\n%s\" \"HTTP/1.1 200 OK\" \"$content\" | $_NC -p \"$Le_HTTPPort\" >&2"; then
+    _exec "printf \"%s\r\n\r\n%s\" \"HTTP/1.1 200 OK\" \"$content\" | $_NC \"$Le_HTTPPort\" >&2"
   fi
+
   if [ "$?" != "0" ]; then
     _err "nc listen error."
+    _exec_err
     exit 1
+  fi
+  if [ "$DEBUG" ]; then
+    _exec_err
   fi
   #  done
 }
@@ -1532,7 +1807,7 @@ _starttlsserver() {
     return 1
   fi
 
-  __S_OPENSSL="openssl s_server -cert $TLS_CERT  -key $TLS_KEY "
+  __S_OPENSSL="$OPENSSL_BIN s_server -cert $TLS_CERT  -key $TLS_KEY "
   if [ "$opaddr" ]; then
     __S_OPENSSL="$__S_OPENSSL -accept $opaddr:$port"
   else
@@ -1547,7 +1822,6 @@ _starttlsserver() {
     __S_OPENSSL="$__S_OPENSSL -6"
   fi
 
-  #start openssl
   _debug "$__S_OPENSSL"
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
     (printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $__S_OPENSSL -tlsextdebug) &
@@ -1564,12 +1838,16 @@ _starttlsserver() {
 _readlink() {
   _rf="$1"
   if ! readlink -f "$_rf" 2>/dev/null; then
-    if _startswith "$_rf" "\./$PROJECT_ENTRY"; then
-      printf -- "%s" "$(pwd)/$PROJECT_ENTRY"
+    if _startswith "$_rf" "/"; then
+      echo "$_rf"
       return 0
     fi
-    readlink "$_rf"
+    echo "$(pwd)/$_rf" | _conapath
   fi
+}
+
+_conapath() {
+  sed "s#/\./#/#g"
 }
 
 __initHome() {
@@ -1589,14 +1867,14 @@ __initHome() {
     fi
   fi
 
-  if [ -z "$LE_WORKING_DIR" ]; then
-    if [ -f "$DEFAULT_INSTALL_HOME/account.conf" ]; then
-      _debug "It seems that $PROJECT_NAME is already installed in $DEFAULT_INSTALL_HOME"
-      LE_WORKING_DIR="$DEFAULT_INSTALL_HOME"
-    else
-      LE_WORKING_DIR="$_SCRIPT_HOME"
-    fi
-  fi
+  #  if [ -z "$LE_WORKING_DIR" ]; then
+  #    if [ -f "$DEFAULT_INSTALL_HOME/account.conf" ]; then
+  #      _debug "It seems that $PROJECT_NAME is already installed in $DEFAULT_INSTALL_HOME"
+  #      LE_WORKING_DIR="$DEFAULT_INSTALL_HOME"
+  #    else
+  #      LE_WORKING_DIR="$_SCRIPT_HOME"
+  #    fi
+  #  fi
 
   if [ -z "$LE_WORKING_DIR" ]; then
     _debug "Using default home:$DEFAULT_INSTALL_HOME"
@@ -1604,7 +1882,13 @@ __initHome() {
   fi
   export LE_WORKING_DIR
 
-  _DEFAULT_ACCOUNT_CONF_PATH="$LE_WORKING_DIR/account.conf"
+  if [ -z "$LE_CONFIG_HOME" ]; then
+    LE_CONFIG_HOME="$LE_WORKING_DIR"
+  fi
+  _debug "Using config home:$LE_CONFIG_HOME"
+  export LE_CONFIG_HOME
+
+  _DEFAULT_ACCOUNT_CONF_PATH="$LE_CONFIG_HOME/account.conf"
 
   if [ -z "$ACCOUNT_CONF_PATH" ]; then
     if [ -f "$_DEFAULT_ACCOUNT_CONF_PATH" ]; then
@@ -1616,12 +1900,12 @@ __initHome() {
     ACCOUNT_CONF_PATH="$_DEFAULT_ACCOUNT_CONF_PATH"
   fi
 
-  DEFAULT_LOG_FILE="$LE_WORKING_DIR/$PROJECT_NAME.log"
+  DEFAULT_LOG_FILE="$LE_CONFIG_HOME/$PROJECT_NAME.log"
 
-  DEFAULT_CA_HOME="$LE_WORKING_DIR/ca"
+  DEFAULT_CA_HOME="$LE_CONFIG_HOME/ca"
 
   if [ -z "$LE_TEMP_DIR" ]; then
-    LE_TEMP_DIR="$LE_WORKING_DIR/tmp"
+    LE_TEMP_DIR="$LE_CONFIG_HOME/tmp"
   fi
 }
 
@@ -1662,6 +1946,7 @@ _initpath() {
   if [ -z "$CA_CONF" ]; then
     CA_CONF="$_DEFAULT_CA_CONF"
   fi
+  _debug3 CA_CONF "$CA_CONF"
 
   if [ -f "$CA_CONF" ]; then
     . "$CA_CONF"
@@ -1672,7 +1957,7 @@ _initpath() {
   fi
 
   if [ -z "$APACHE_CONF_BACKUP_DIR" ]; then
-    APACHE_CONF_BACKUP_DIR="$LE_WORKING_DIR"
+    APACHE_CONF_BACKUP_DIR="$LE_CONFIG_HOME"
   fi
 
   if [ -z "$USER_AGENT" ]; then
@@ -1680,7 +1965,7 @@ _initpath() {
   fi
 
   if [ -z "$HTTP_HEADER" ]; then
-    HTTP_HEADER="$LE_WORKING_DIR/http.header"
+    HTTP_HEADER="$LE_CONFIG_HOME/http.header"
   fi
 
   _OLD_ACCOUNT_KEY="$LE_WORKING_DIR/account.key"
@@ -1696,16 +1981,18 @@ _initpath() {
     ACCOUNT_JSON_PATH="$_DEFAULT_ACCOUNT_JSON_PATH"
   fi
 
-  _DEFAULT_CERT_HOME="$LE_WORKING_DIR"
+  _DEFAULT_CERT_HOME="$LE_CONFIG_HOME"
   if [ -z "$CERT_HOME" ]; then
     CERT_HOME="$_DEFAULT_CERT_HOME"
+  fi
+
+  if [ -z "$OPENSSL_BIN" ]; then
+    OPENSSL_BIN="$DEFAULT_OPENSSL_BIN"
   fi
 
   if [ -z "$1" ]; then
     return 0
   fi
-
-  mkdir -p "$CA_DIR"
 
   domain="$1"
   _ilength="$2"
@@ -1724,13 +2011,6 @@ _initpath() {
       fi
     fi
     _debug DOMAIN_PATH "$DOMAIN_PATH"
-  fi
-
-  if [ ! -d "$DOMAIN_PATH" ]; then
-    if ! mkdir -p "$DOMAIN_PATH"; then
-      _err "Can not create domain path: $DOMAIN_PATH"
-      return 1
-    fi
   fi
 
   if [ -z "$DOMAIN_CONF" ]; then
@@ -1781,14 +2061,14 @@ _exec() {
   fi
 
   if [ "$_EXEC_TEMP_ERR" ]; then
-    "$@" 2>"$_EXEC_TEMP_ERR"
+    eval "$@ 2>>$_EXEC_TEMP_ERR"
   else
-    "$@"
+    eval "$@"
   fi
 }
 
 _exec_err() {
-  [ "$_EXEC_TEMP_ERR" ] && _err "$(cat "$_EXEC_TEMP_ERR")"
+  [ "$_EXEC_TEMP_ERR" ] && _err "$(cat "$_EXEC_TEMP_ERR")" && echo "" >"$_EXEC_TEMP_ERR"
 }
 
 _apachePath() {
@@ -1893,7 +2173,7 @@ _setApache() {
   fi
   _info "JFYI, Config file $httpdconf is backuped to $APACHE_CONF_BACKUP_DIR/$httpdconfname"
   _info "In case there is an error that can not be restored automatically, you may try restore it yourself."
-  _info "The backup file will be deleted on sucess, just forget it."
+  _info "The backup file will be deleted on success, just forget it."
 
   #add alias
 
@@ -1973,7 +2253,8 @@ _clearupdns() {
     keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
     vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
     _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
-
+    txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
+    _debug txt "$txt"
     if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
       _info "$d is already verified, skip $vtype."
       continue
@@ -2006,7 +2287,7 @@ _clearupdns() {
 
       txtdomain="_acme-challenge.$d"
 
-      if ! $rmcommand "$txtdomain"; then
+      if ! $rmcommand "$txtdomain" "$txt"; then
         _err "Error removing txt for domain:$txtdomain"
         return 1
       fi
@@ -2048,6 +2329,17 @@ _clearupwebbroot() {
 
 _on_before_issue() {
   _debug _on_before_issue
+  #run pre hook
+  if [ "$Le_PreHook" ]; then
+    _info "Run pre hook:'$Le_PreHook'"
+    if ! (
+      cd "$DOMAIN_PATH" && eval "$Le_PreHook"
+    ); then
+      _err "Error when run pre hook."
+      return 1
+    fi
+  fi
+
   if _hasfield "$Le_Webroot" "$NO_VALUE"; then
     if ! _exists "nc"; then
       _err "Please install netcat(nc) tools first."
@@ -2115,16 +2407,6 @@ _on_before_issue() {
     usingApache=""
   fi
 
-  #run pre hook
-  if [ "$Le_PreHook" ]; then
-    _info "Run pre hook:'$Le_PreHook'"
-    if ! (
-      cd "$DOMAIN_PATH" && eval "$Le_PreHook"
-    ); then
-      _err "Error when run pre hook."
-      return 1
-    fi
-  fi
 }
 
 _on_issue_err() {
@@ -2132,7 +2414,7 @@ _on_issue_err() {
   if [ "$LOG_FILE" ]; then
     _err "Please check log file for more details: $LOG_FILE"
   else
-    _err "Please use add '--debug' or '--log' to check more details."
+    _err "Please add '--debug' or '--log' to check more details."
     _err "See: $_DEBUG_WIKI"
   fi
 
@@ -2199,11 +2481,13 @@ _regAccount() {
   _reg_length="$1"
 
   if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
+    mkdir -p "$CA_DIR"
     _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
     mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
   fi
 
   if [ ! -f "$ACCOUNT_JSON_PATH" ] && [ -f "$_OLD_ACCOUNT_JSON" ]; then
+    mkdir -p "$CA_DIR"
     _info "mv $_OLD_ACCOUNT_JSON to $ACCOUNT_JSON_PATH"
     mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
   fi
@@ -2326,6 +2610,12 @@ __get_domain_new_authz() {
       _err "Can not get domain new authz."
       return 1
     fi
+    if _contains "$response" "No registration exists matching provided key"; then
+      _err "It seems there is an error, but it's recovered now, please try again."
+      _err "If you see this message for a second time, please report bug: $(__green "$PROJECT")"
+      _clearcaconf "CA_KEY_HASH"
+      break
+    fi
     if ! _contains "$response" "An error occurred while processing your request"; then
       _info "The new-authz request is ok."
       break
@@ -2355,6 +2645,10 @@ issue() {
   Le_Webroot="$1"
   Le_Domain="$2"
   Le_Alt="$3"
+  if _contains "$Le_Domain" ","; then
+    Le_Domain=$(echo "$2,$3" | cut -d , -f 1)
+    Le_Alt=$(echo "$2,$3" | cut -d , -f 2- | sed "s/,${NO_VALUE}$//")
+  fi
   Le_Keylength="$4"
   Le_RealCertPath="$5"
   Le_RealKeyPath="$6"
@@ -2503,7 +2797,7 @@ issue() {
 
       if [ -z "$thumbprint" ]; then
         accountkey_json=$(printf "%s" "$jwk" | tr -d ' ')
-        thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _urlencode)
+        thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _url_replace)
       fi
 
       entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
@@ -2554,7 +2848,7 @@ issue() {
         dnsadded='0'
         txtdomain="_acme-challenge.$d"
         _debug txtdomain "$txtdomain"
-        txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _urlencode)"
+        txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
         _debug txt "$txt"
 
         d_api="$(_findHook "$d" dnsapi "$_currentRoot")"
@@ -2784,7 +3078,7 @@ issue() {
 
       status=$(echo "$response" | _egrep_o '"status":"[^"]*' | cut -d : -f 2 | tr -d '"')
       if [ "$status" = "valid" ]; then
-        _info "Success"
+        _info "$(__green Success)"
         _stopserver "$serverproc"
         serverproc=""
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
@@ -2829,7 +3123,7 @@ issue() {
 
   _clearup
   _info "Verify finished, start to sign."
-  der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _urlencode)"
+  der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _url_replace)"
 
   if ! _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"; then
     _err "Sign failed."
@@ -2971,6 +3265,12 @@ renew() {
 
   if [ "$Le_API" ]; then
     API="$Le_API"
+    #reload ca configs
+    ACCOUNT_KEY_PATH=""
+    ACCOUNT_JSON_PATH=""
+    CA_CONF=""
+    _debug3 "initpath again."
+    _initpath "$Le_Domain" "$_isEcc"
   fi
 
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
@@ -3005,6 +3305,10 @@ renewAll() {
 
   for di in "${CERT_HOME}"/*.*/; do
     _debug di "$di"
+    if ! [ -d "$di" ]; then
+      _debug "Not directory, skip: $di"
+      continue
+    fi
     d=$(basename "$di")
     _debug d "$d"
     (
@@ -3127,6 +3431,10 @@ list() {
   if [ "$_raw" ]; then
     printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Created${_sep}Renew"
     for di in "${CERT_HOME}"/*.*/; do
+      if ! [ -d "$di" ]; then
+        _debug "Not directory, skip: $di"
+        continue
+      fi
       d=$(basename "$di")
       _debug d "$d"
       (
@@ -3289,9 +3597,14 @@ _installcert() {
   fi
 
   if [ "$Le_ReloadCmd" ]; then
-
     _info "Run Le_ReloadCmd: $Le_ReloadCmd"
-    if (cd "$DOMAIN_PATH" && eval "$Le_ReloadCmd"); then
+    if (
+      export CERT_PATH
+      export CERT_KEY_PATH
+      export CA_CERT_PATH
+      export CERT_FULLCHAIN_PATH
+      cd "$DOMAIN_PATH" && eval "$Le_ReloadCmd"
+    ); then
       _info "$(__green "Reload success")"
     else
       _err "Reload error for :$Le_Domain"
@@ -3300,7 +3613,9 @@ _installcert() {
 
 }
 
+#confighome
 installcronjob() {
+  _c_home="$1"
   _initpath
   if ! _exists "crontab"; then
     _err "crontab doesn't exist, so, we can not install cron jobs."
@@ -3317,15 +3632,21 @@ installcronjob() {
       _err "Can not install cronjob, $PROJECT_ENTRY not found."
       return 1
     fi
-    if _exists uname && uname -a | grep solaris >/dev/null; then
+
+    if [ "$_c_home" ]; then
+      _c_entry="--config-home \"$_c_home\" "
+    fi
+    _t=$(_time)
+    random_minute=$(_math $_t % 60)
+    if _exists uname && uname -a | grep SunOS >/dev/null; then
       crontab -l | {
         cat
-        echo "0 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" > /dev/null"
+        echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
       } | crontab --
     else
       crontab -l | {
         cat
-        echo "0 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" > /dev/null"
+        echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
       } | crontab -
     fi
   fi
@@ -3351,6 +3672,10 @@ uninstallcronjob() {
     fi
     LE_WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 9 | tr -d '"')"
     _info LE_WORKING_DIR "$LE_WORKING_DIR"
+    if _contains "$cr" "--config-home"; then
+      LE_CONFIG_HOME="$(echo "$cr" | cut -d ' ' -f 11 | tr -d '"')"
+      _debug LE_CONFIG_HOME "$LE_CONFIG_HOME"
+    fi
   fi
   _initpath
 
@@ -3359,7 +3684,7 @@ uninstallcronjob() {
 revoke() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ]; then
-    _usage "Usage: $PROJECT_ENTRY --revoke -d domain.com"
+    _usage "Usage: $PROJECT_ENTRY --revoke -d domain.com  [--ecc]"
     return 1
   fi
 
@@ -3376,7 +3701,7 @@ revoke() {
     return 1
   fi
 
-  cert="$(_getfile "${CERT_PATH}" "${BEGIN_CERT}" "${END_CERT}" | tr -d "\r\n" | _urlencode)"
+  cert="$(_getfile "${CERT_PATH}" "${BEGIN_CERT}" "${END_CERT}" | tr -d "\r\n" | _url_replace)"
 
   if [ -z "$cert" ]; then
     _err "Cert for $Le_Domain is empty found, skip."
@@ -3417,6 +3742,37 @@ revoke() {
   return 1
 }
 
+#domain  ecc
+remove() {
+  Le_Domain="$1"
+  if [ -z "$Le_Domain" ]; then
+    _usage "Usage: $PROJECT_ENTRY --remove -d domain.com [--ecc]"
+    return 1
+  fi
+
+  _isEcc="$2"
+
+  _initpath "$Le_Domain" "$_isEcc"
+  _removed_conf="$DOMAIN_CONF.removed"
+  if [ ! -f "$DOMAIN_CONF" ]; then
+    if [ -f "$_removed_conf" ]; then
+      _err "$Le_Domain is already removed, You can remove the folder by yourself: $DOMAIN_PATH"
+    else
+      _err "$Le_Domain is not a issued domain, skip."
+    fi
+    return 1
+  fi
+
+  if mv "$DOMAIN_CONF" "$_removed_conf"; then
+    _info "$Le_Domain is removed, the key and cert files are in $(__green $DOMAIN_PATH)"
+    _info "You can remove them by yourself."
+    return 0
+  else
+    _err "Remove $Le_Domain failed."
+    return 1
+  fi
+}
+
 #domain vtype
 _deactivate() {
   _d_domain="$1"
@@ -3442,7 +3798,7 @@ _deactivate() {
       return 1
     fi
 
-    entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"status":"valid","uri"[^\}]*')"
+    entry="$(printf "%s\n" "$response" | _egrep_o '{"type":"[^"]*","status":"valid","uri"[^}]*')"
     _debug entry "$entry"
 
     if [ -z "$entry" ]; then
@@ -3542,13 +3898,9 @@ _initconf() {
   if [ ! -f "$ACCOUNT_CONF_PATH" ]; then
     echo "#ACCOUNT_CONF_PATH=xxxx
 
-#Account configurations:
-#Here are the supported macros, uncomment them to make them take effect.
-
 #ACCOUNT_EMAIL=aaa@example.com  # the account email used to register account.
 #ACCOUNT_KEY_PATH=\"/path/to/account.key\"
 #CERT_HOME=\"/path/to/cert/home\"
-
 
 
 #LOG_FILE=\"$DEFAULT_LOG_FILE\"
@@ -3556,48 +3908,13 @@ _initconf() {
 
 #AUTO_UPGRADE=\"1\"
 
-#STAGE=1 # Use the staging api
-#FORCE=1 # Force to issue cert
-#DEBUG=1 # Debug mode
-
+#NO_TIMESTAMP=1
+#OPENSSL_BIN=openssl
 
 #USER_AGENT=\"$USER_AGENT\"
 
 #USER_PATH=
 
-#dns api
-#######################
-#Cloudflare:
-#api key
-#CF_Key=\"sdfsdfsdfljlbjkljlkjsdfoiwje\"
-#account email
-#CF_Email=\"xxxx@sss.com\"
-
-#######################
-#Dnspod.cn:
-#api key id
-#DP_Id=\"1234\"
-#api key
-#DP_Key=\"sADDsdasdgdsf\"
-
-#######################
-#Cloudxns.com:
-#CX_Key=\"1234\"
-#
-#CX_Secret=\"sADDsdasdgdsf\"
-
-#######################
-#Godaddy.com:
-#GD_Key=\"sdfdsgdgdfdasfds\"
-#
-#GD_Secret=\"sADDsdasdfsdfdssdgdsf\"
-
-#######################
-#PowerDNS:
-#PDNS_Url=\"http://ns.example.com:8081\"
-#PDNS_ServerId=\"localhost\"
-#PDNS_Token=\"0123456789ABCDEF\"
-#PDNS_Ttl=60
 
     " >"$ACCOUNT_CONF_PATH"
   fi
@@ -3625,7 +3942,7 @@ _precheck() {
     fi
   fi
 
-  if ! _exists "openssl"; then
+  if ! _exists "$OPENSSL_BIN"; then
     _err "Please install openssl first."
     _err "We need openssl to generate keys."
     return 1
@@ -3653,7 +3970,9 @@ _setShebang() {
   rm -f "$_file.tmp"
 }
 
+#confighome
 _installalias() {
+  _c_home="$1"
   _initpath
 
   _envfile="$LE_WORKING_DIR/$PROJECT_ENTRY.env"
@@ -3663,8 +3982,15 @@ _installalias() {
     echo "$(cat "$_envfile")" | sed "s|^alias le.sh.*$||" >"$_envfile"
   fi
 
+  if [ "$_c_home" ]; then
+    _c_entry=" --config-home '$_c_home'"
+  fi
+
   _setopt "$_envfile" "export LE_WORKING_DIR" "=" "\"$LE_WORKING_DIR\""
-  _setopt "$_envfile" "alias $PROJECT_ENTRY" "=" "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
+  if [ "$_c_home" ]; then
+    _setopt "$_envfile" "export LE_CONFIG_HOME" "=" "\"$LE_CONFIG_HOME\""
+  fi
+  _setopt "$_envfile" "alias $PROJECT_ENTRY" "=" "\"$LE_WORKING_DIR/$PROJECT_ENTRY$_c_entry\""
 
   _profile="$(_detect_profile)"
   if [ "$_profile" ]; then
@@ -3682,7 +4008,10 @@ _installalias() {
   if [ -f "$_csh_profile" ]; then
     _info "Installing alias to '$_csh_profile'"
     _setopt "$_cshfile" "setenv LE_WORKING_DIR" " " "\"$LE_WORKING_DIR\""
-    _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
+    if [ "$_c_home" ]; then
+      _setopt "$_cshfile" "setenv LE_CONFIG_HOME" " " "\"$LE_CONFIG_HOME\""
+    fi
+    _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY$_c_entry\""
     _setopt "$_csh_profile" "source \"$_cshfile\""
   fi
 
@@ -3691,13 +4020,16 @@ _installalias() {
   if [ -f "$_tcsh_profile" ]; then
     _info "Installing alias to '$_tcsh_profile'"
     _setopt "$_cshfile" "setenv LE_WORKING_DIR" " " "\"$LE_WORKING_DIR\""
-    _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY\""
+    if [ "$_c_home" ]; then
+      _setopt "$_cshfile" "setenv LE_CONFIG_HOME" " " "\"$LE_CONFIG_HOME\""
+    fi
+    _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY$_c_entry\""
     _setopt "$_tcsh_profile" "source \"$_cshfile\""
   fi
 
 }
 
-# nocron
+# nocron confighome
 install() {
 
   if [ -z "$LE_WORKING_DIR" ]; then
@@ -3705,6 +4037,7 @@ install() {
   fi
 
   _nocron="$1"
+  _c_home="$2"
   if ! _initpath; then
     _err "Install failed."
     return 1
@@ -3743,6 +4076,13 @@ install() {
 
   chmod 700 "$LE_WORKING_DIR"
 
+  if ! mkdir -p "$LE_CONFIG_HOME"; then
+    _err "Can not create config dir: $LE_CONFIG_HOME"
+    return 1
+  fi
+
+  chmod 700 "$LE_CONFIG_HOME"
+
   cp "$PROJECT_ENTRY" "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/$PROJECT_ENTRY"
 
   if [ "$?" != "0" ]; then
@@ -3752,7 +4092,7 @@ install() {
 
   _info "Installed to $LE_WORKING_DIR/$PROJECT_ENTRY"
 
-  _installalias
+  _installalias "$_c_home"
 
   for subf in $_SUB_FOLDERS; do
     if [ -d "$subf" ]; then
@@ -3778,13 +4118,13 @@ install() {
   fi
 
   if [ -z "$_nocron" ]; then
-    installcronjob
+    installcronjob "$_c_home"
   fi
 
   if [ -z "$NO_DETECT_SH" ]; then
     #Modify shebang
     if _exists bash; then
-      _info "Good, bash is found, so change the shebang to use bash as prefered."
+      _info "Good, bash is found, so change the shebang to use bash as preferred."
       _shebang='#!/usr/bin/env bash'
       _setShebang "$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
       for subf in $_SUB_FOLDERS; do
@@ -3811,7 +4151,7 @@ uninstall() {
   _uninstallalias
 
   rm -f "$LE_WORKING_DIR/$PROJECT_ENTRY"
-  _info "The keys and certs are in $LE_WORKING_DIR, you can remove them by yourself."
+  _info "The keys and certs are in \"$(__green "$LE_CONFIG_HOME")\", you can remove them by yourself."
 
 }
 
@@ -3884,18 +4224,19 @@ Commands:
   --issue                  Issue a cert.
   --signcsr                Issue a cert from an existing csr.
   --deploy                 Deploy the cert to your server.
-  --installcert            Install the issued cert to apache/nginx or any other server.
+  --install-cert           Install the issued cert to apache/nginx or any other server.
   --renew, -r              Renew a cert.
-  --renewAll               Renew all the certs.
+  --renew-all              Renew all the certs.
   --revoke                 Revoke a cert.
+  --remove                 Remove the cert from $PROJECT
   --list                   List all the certs.
   --showcsr                Show the content of a csr.
-  --installcronjob         Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
-  --uninstallcronjob       Uninstall the cron job. The 'uninstall' command can do this automatically.
+  --install-cronjob        Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
+  --uninstall-cronjob      Uninstall the cron job. The 'uninstall' command can do this automatically.
   --cron                   Run cron job to renew all the certs.
   --toPkcs                 Export the certificate and key to a pfx file.
-  --updateaccount          Update account info.
-  --registeraccount        Register account key.
+  --update-account         Update account info.
+  --register-account       Register account key.
   --createAccountKey, -cak Create an account private key, professional use.
   --createDomainKey, -cdk  Create an domain private key, professional use.
   --createCSR, -ccsr       Create CSR , professional use.
@@ -3930,7 +4271,8 @@ Parameters:
 
   --accountconf                     Specifies a customized account config file.
   --home                            Specifies the home dir for $PROJECT_NAME .
-  --certhome                        Specifies the home dir to save all the certs, only valid for '--install' command.
+  --cert-home                       Specifies the home dir to save all the certs, only valid for '--install' command.
+  --config-home                     Specifies the home dir to save all the configurations.
   --useragent                       Specifies the user agent string. it will be saved for future use too.
   --accountemail                    Specifies the account email for registering, Only valid for the '--install' command.
   --accountkey                      Specifies the account key path, Only valid for the '--install' command.
@@ -3939,11 +4281,11 @@ Parameters:
   --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --local-address                   Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
   --listraw                         Only used for '--list' command, list the certs in raw format.
-  --stopRenewOnError, -se           Only valid for '--renewall' command. Stop if one cert has error in renewal.
+  --stopRenewOnError, -se           Only valid for '--renew-all' command. Stop if one cert has error in renewal.
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
   --ca-bundle                       Specifices the path to the CA certificate bundle to verify api server's certificate.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
-  --ecc                             Specifies to use the ECC cert. Valid for '--installcert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
+  --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
   --csr                             Specifies the input csr.
   --pre-hook                        Command to be run before obtaining any certificates.
   --post-hook                       Command to be run after attempting to obtain/renew certificates. No matter the obain/renew is success or failed.
@@ -3953,6 +4295,7 @@ Parameters:
   --auto-upgrade   [0|1]            Valid for '--upgrade' command, indicating whether to upgrade automatically in future.
   --listen-v4                       Force standalone/tls server to listen at ipv4.
   --listen-v6                       Force standalone/tls server to listen at ipv6.
+  --openssl-bin                     Specifies a custom openssl bin location.
   "
 }
 
@@ -3973,7 +4316,10 @@ _installOnline() {
   fi
   (
     _info "Extracting $localname"
-    tar xzf $localname
+    if ! (tar xzf $localname || gtar xzf $localname); then
+      _err "Extraction error."
+      exit 1
+    fi
 
     cd "$PROJECT_NAME-$BRANCH"
     chmod +x $PROJECT_ENTRY
@@ -4016,6 +4362,12 @@ _processAccountConf() {
     _saveaccountconf "ACCOUNT_EMAIL" "$ACCOUNT_EMAIL"
   fi
 
+  if [ "$_openssl_bin" ]; then
+    _saveaccountconf "OPENSSL_BIN" "$_openssl_bin"
+  elif [ "$OPENSSL_BIN" ] && [ "$OPENSSL_BIN" != "$DEFAULT_OPENSSL_BIN" ]; then
+    _saveaccountconf "OPENSSL_BIN" "$OPENSSL_BIN"
+  fi
+
   if [ "$_auto_upgrade" ]; then
     _saveaccountconf "AUTO_UPGRADE" "$_auto_upgrade"
   elif [ "$AUTO_UPGRADE" ]; then
@@ -4042,6 +4394,7 @@ _process() {
   _accountemail=""
   _accountkey=""
   _certhome=""
+  _confighome=""
   _httpport=""
   _tlsport=""
   _dnssleep=""
@@ -4063,6 +4416,7 @@ _process() {
   _auto_upgrade=""
   _listen_v4=""
   _listen_v6=""
+  _openssl_bin=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -4095,25 +4449,28 @@ _process() {
       --showcsr)
         _CMD="showcsr"
         ;;
-      --installcert | -i)
+      --installcert | -i | --install-cert)
         _CMD="installcert"
         ;;
       --renew | -r)
         _CMD="renew"
         ;;
-      --renewAll | --renewall)
+      --renewAll | --renewall | --renew-all)
         _CMD="renewAll"
         ;;
       --revoke)
         _CMD="revoke"
         ;;
+      --remove)
+        _CMD="remove"
+        ;;
       --list)
         _CMD="list"
         ;;
-      --installcronjob)
+      --installcronjob | --install-cronjob)
         _CMD="installcronjob"
         ;;
-      --uninstallcronjob)
+      --uninstallcronjob | --uninstall-cronjob)
         _CMD="uninstallcronjob"
         ;;
       --cron)
@@ -4134,10 +4491,10 @@ _process() {
       --deactivate)
         _CMD="deactivate"
         ;;
-      --updateaccount)
+      --updateaccount | --update-account)
         _CMD="updateaccount"
         ;;
-      --registeraccount)
+      --registeraccount | --register-account)
         _CMD="registeraccount"
         ;;
       --domain | -d)
@@ -4279,9 +4636,14 @@ _process() {
         LE_WORKING_DIR="$2"
         shift
         ;;
-      --certhome)
+      --certhome | --cert-home)
         _certhome="$2"
         CERT_HOME="$_certhome"
+        shift
+        ;;
+      --config-home)
+        _confighome="$2"
+        LE_CONFIG_HOME="$_confighome"
         shift
         ;;
       --useragent)
@@ -4326,7 +4688,7 @@ _process() {
         HTTPS_INSECURE="1"
         ;;
       --ca-bundle)
-        _ca_bundle="$(readlink -f "$2")"
+        _ca_bundle="$(_readlink -f "$2")"
         CA_BUNDLE="$_ca_bundle"
         shift
         ;;
@@ -4357,7 +4719,7 @@ _process() {
         shift
         ;;
       --ocsp-must-staple | --ocsp)
-        Le_OCSP_Stable="1"
+        Le_OCSP_Staple="1"
         ;;
       --log | --logfile)
         _log="1"
@@ -4394,7 +4756,10 @@ _process() {
         _listen_v6="1"
         Le_Listen_V6="$_listen_v6"
         ;;
-
+      --openssl-bin)
+        _openssl_bin="$2"
+        OPENSSL_BIN="$_openssl_bin"
+        ;;
       *)
         _err "Unknown parameter : $1"
         return 1
@@ -4431,7 +4796,7 @@ _process() {
   fi
 
   case "${_CMD}" in
-    install) install "$_nocron" ;;
+    install) install "$_nocron" "$_confighome" ;;
     uninstall) uninstall "$_nocron" ;;
     upgrade) upgrade ;;
     issue)
@@ -4458,6 +4823,9 @@ _process() {
     revoke)
       revoke "$_domain" "$_ecc"
       ;;
+    remove)
+      remove "$_domain" "$_ecc"
+      ;;
     deactivate)
       deactivate "$_domain,$_altdomains"
       ;;
@@ -4470,7 +4838,7 @@ _process() {
     list)
       list "$_listraw"
       ;;
-    installcronjob) installcronjob ;;
+    installcronjob) installcronjob "$_confighome" ;;
     uninstallcronjob) uninstallcronjob ;;
     cron) cron ;;
     toPkcs)
@@ -4487,7 +4855,9 @@ _process() {
       ;;
 
     *)
-      _err "Invalid command: $_CMD"
+      if [ "$_CMD" ]; then
+        _err "Invalid command: $_CMD"
+      fi
       showhelp
       return 1
       ;;
@@ -4515,7 +4885,7 @@ _process() {
 
 if [ "$INSTALLONLINE" ]; then
   INSTALLONLINE=""
-  _installOnline $BRANCH
+  _installOnline
   exit
 fi
 

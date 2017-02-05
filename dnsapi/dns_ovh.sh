@@ -182,7 +182,7 @@ dns_ovh_rm() {
 
 }
 
-####################  Private functions bellow ##################################
+####################  Private functions below ##################################
 
 _ovh_authentication() {
 
@@ -273,12 +273,12 @@ _ovh_rest() {
   _ovh_hex="$(printf "%s" "$_ovh_p" | _digest sha1 hex)"
   _debug2 _ovh_hex "$_ovh_hex"
 
-  _H1="X-Ovh-Application: $OVH_AK"
-  _H2="X-Ovh-Signature: \$1\$$_ovh_hex"
+  export _H1="X-Ovh-Application: $OVH_AK"
+  export _H2="X-Ovh-Signature: \$1\$$_ovh_hex"
   _debug2 _H2 "$_H2"
-  _H3="X-Ovh-Timestamp: $_ovh_t"
-  _H4="X-Ovh-Consumer: $OVH_CK"
-  _H5="Content-Type: application/json;charset=utf-8"
+  export _H3="X-Ovh-Timestamp: $_ovh_t"
+  export _H4="X-Ovh-Consumer: $OVH_CK"
+  export _H5="Content-Type: application/json;charset=utf-8"
   if [ "$data" ] || [ "$m" = "POST" ] || [ "$m" = "PUT" ]; then
     _debug data "$data"
     response="$(_post "$data" "$_ovh_url" "" "$m")"

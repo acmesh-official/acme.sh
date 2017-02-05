@@ -81,7 +81,7 @@ dns_me_rm() {
 
 }
 
-####################  Private functions bellow ##################################
+####################  Private functions below ##################################
 #_acme-challenge.www.domain.com
 #returns
 # _sub_domain=_acme-challenge.www
@@ -103,7 +103,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\""; then
-      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*" | head -n 1 | cut -d : -f 2)
+      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*" | head -n 1 | cut -d : -f 2 | tr -d '}')
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain="$h"
@@ -124,11 +124,11 @@ _me_rest() {
   _debug "$ep"
 
   cdate=$(date -u +"%a, %d %b %Y %T %Z")
-  hmac=$(printf "%s" "$cdate" | _hmac sha1 "$ME_Secret" 1)
+  hmac=$(printf "%s" "$cdate" | _hmac sha1 "$(printf "%s" "$ME_Secret" | _hex_dump | tr -d " ")" hex)
 
-  _H1="x-dnsme-apiKey: $ME_Key"
-  _H2="x-dnsme-requestDate: $cdate"
-  _H3="x-dnsme-hmac: $hmac"
+  export _H1="x-dnsme-apiKey: $ME_Key"
+  export _H2="x-dnsme-requestDate: $cdate"
+  export _H3="x-dnsme-hmac: $hmac"
 
   if [ "$data" ]; then
     _debug data "$data"
