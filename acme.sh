@@ -914,7 +914,7 @@ _readSubjectFromCSR() {
     _usage "_readSubjectFromCSR mycsr.csr"
     return 1
   fi
-  $OPENSSL_BIN req -noout -in "$_csrfile" -subject | _egrep_o "CN=.*" | cut -d = -f 2 | cut -d / -f 1 | tr -d '\n'
+  $OPENSSL_BIN req -noout -in "$_csrfile" -subject | _egrep_o "CN *=.*" | cut -d = -f 2 | cut -d / -f 1 | tr -d '\n'
 }
 
 #_csrfile
