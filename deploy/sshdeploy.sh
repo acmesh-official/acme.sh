@@ -33,8 +33,8 @@ sshdeploy_deploy() {
   _cfullchain="$5"
   _cmdstr=""
   _homedir='~'
-  _homedir="$_homedir/.acme_ssh_deploy"
-  _backupdir="$_homedir/certs-backup-$(date +%Y%m%d%H%M%S)"
+  _backupprefix="$_homedir/.acme_ssh_deploy/certs-backup"
+  _backupdir="$_backupprefix-$(date +%Y%m%d%H%M%S)"
 
   if [ -f "$DOMAIN_CONF" ]; then
     # shellcheck disable=SC1090
@@ -179,7 +179,7 @@ sshdeploy_deploy() {
   else
     # something to execute.
     # run cleanup on the backup directory, erase all older than 180 days.
-    _cmdstr="find $_homedir/* -type d -mtime +180 2>/dev/null | xargs rm -rf ; $_cmdstr"
+    _cmdstr="find $_backupprefix* -type d -mtime +180 2>/dev/null | xargs rm -rf ; $_cmdstr"
     # Create our backup directory for overwritten cert files.
     _cmdstr="mkdir -p $_backupdir ; $_cmdstr"
     _info "Backup of old certificate files will be placed in remote directory $_backupdir"
