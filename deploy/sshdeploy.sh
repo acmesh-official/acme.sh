@@ -36,15 +36,9 @@ sshdeploy_deploy() {
   _homedir="$_homedir/.acme_ssh_deploy"
   _backupdir="$_homedir/certs-backup-$(date +%Y%m%d%H%M%S)"
 
-  if [ -z "$DOMAIN_CONF" ]; then
-    DOMAIN_CONF=""
+  if [ -f "$DOMAIN_CONF" ]; then
+    . "$DOMAIN_CONF"
   fi
-  if [ ! -f "$DOMAIN_CONF" ]; then
-    _err "$DOMAIN_CONF does not exist."
-    return 1
-  fi
-
-  . "$DOMAIN_CONF"
 
   _debug _cdomain "$_cdomain"
   _debug _ckey "$_ckey"
