@@ -61,6 +61,8 @@ DEFAULT_LOG_LEVEL="$LOG_LEVEL_1"
 
 _DEBUG_WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-debug-acme.sh"
 
+_PREPARE_LINK="https://github.com/Neilpang/acme.sh/wiki/Install-preparations"
+
 __INTERACTIVE=""
 if [ -t 1 ]; then
   __INTERACTIVE="1"
@@ -1682,6 +1684,14 @@ _startserver() {
     _NC="$_NC -4"
   elif [ "$Le_Listen_V6" ]; then
     _NC="$_NC -6"
+  fi
+
+  if [ "$Le_Listen_V4$Le_Listen_V6$ncaddr" ]; then
+    if ! _contains "$nchelp" "OpenBSD"; then
+      _err "The nc doesn't support '-4', '-6' or local-address, please install 'netcat-openbsd' and try again."
+      _err "See $(__green $_PREPARE_LINK)"
+      return 1
+    fi
   fi
 
   if echo "$nchelp" | grep "\-q[ ,]" >/dev/null; then
