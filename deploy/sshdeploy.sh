@@ -36,8 +36,16 @@ sshdeploy_deploy() {
   _homedir="$_homedir/.acme_ssh_deploy"
   _backupdir="$_homedir/certs-backup-$(date +%Y%m%d%H%M%S)"
 
+  if [ -z "$DOMAIN_CONF" ]; then
+    DOMAIN_CONF=""
+  fi
+  if [ ! -f "$DOMAIN_CONF" ]; then
+    _err "$DOMAIN_CONF does not exist."
+    return 1
+  fi
+
   . "$DOMAIN_CONF"
-  
+
   _debug _cdomain "$_cdomain"
   _debug _ckey "$_ckey"
   _debug _ccert "$_ccert"
@@ -163,7 +171,7 @@ sshdeploy_deploy() {
     _savedomainconf Le_Deploy_ssh_service_start "$Le_Deploy_ssh_service_start"
   fi
   if [ -n "$Le_Deploy_ssh_service_start" ]; then
-    if [ -n "$Le_Deploy_ssh_service_stop" ] || [ -n "$Le_Deploy_ssh_remote_cmd" ] ; then
+    if [ -n "$Le_Deploy_ssh_service_stop" ] || [ -n "$Le_Deploy_ssh_remote_cmd" ]; then
       _cmdstr="$_cmdstr sleep 2 ;"
     fi
     _cmdstr="$_cmdstr $Le_Deploy_ssh_service_start ;"
