@@ -2489,6 +2489,10 @@ __calcAccountKeyHash() {
   [ -f "$ACCOUNT_KEY_PATH" ] && _digest sha256 <"$ACCOUNT_KEY_PATH"
 }
 
+__calc_account_thumbprint() {
+  printf "%s" "$jwk" | tr -d ' ' | _digest "sha256" | _url_replace
+}
+
 #keylength
 _regAccount() {
   _initpath
@@ -2579,6 +2583,8 @@ _regAccount() {
         return 1
       fi
     fi
+    ACCOUNT_THUMBPRINT="$(__calc_account_thumbprint)"
+    _info "ACCOUNT_THUMBPRINT" "$ACCOUNT_THUMBPRINT"
     return 0
   done
 
@@ -2810,8 +2816,7 @@ issue() {
       fi
 
       if [ -z "$thumbprint" ]; then
-        accountkey_json=$(printf "%s" "$jwk" | tr -d ' ')
-        thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _url_replace)
+        thumbprint="$(__calc_account_thumbprint)"
       fi
 
       entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
