@@ -55,6 +55,7 @@ https://github.com/Neilpang/acmetest
 - Standalone mode
 - Apache mode
 - DNS mode
+- [Stateless mode](https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode)
 
 
 # 1. How to install
