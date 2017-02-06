@@ -41,6 +41,8 @@ NO_VALUE="no"
 
 W_TLS="tls"
 
+MODE_STATELESS="stateless"
+
 STATE_VERIFIED="verified_ok"
 
 BEGIN_CSR="-----BEGIN CERTIFICATE REQUEST-----"
@@ -62,6 +64,8 @@ DEFAULT_LOG_LEVEL="$LOG_LEVEL_1"
 _DEBUG_WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-debug-acme.sh"
 
 _PREPARE_LINK="https://github.com/Neilpang/acme.sh/wiki/Install-preparations"
+
+_STATELESS_WIKI="https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode"
 
 __INTERACTIVE=""
 if [ -t 1 ]; then
@@ -2973,7 +2977,9 @@ issue() {
         serverproc="$!"
         sleep 1
         _debug serverproc "$serverproc"
-
+      elif [ "$_currentRoot" = "$MODE_STATELESS" ]; then
+        _info "Stateless mode for domain:$d"
+        _sleep 1
       else
         if [ "$_currentRoot" = "apache" ]; then
           wellknown_path="$ACME_DIR"
@@ -4258,6 +4264,7 @@ Parameters:
     
   --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
+  --stateless                       Use stateless mode, see: $_STATELESS_WIKI
   --tls                             Use standalone tls mode.
   --apache                          Use apache mode.
   --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
@@ -4557,6 +4564,14 @@ _process() {
         ;;
       --standalone)
         wvalue="$NO_VALUE"
+        if [ -z "$_webroot" ]; then
+          _webroot="$wvalue"
+        else
+          _webroot="$_webroot,$wvalue"
+        fi
+        ;;
+      --stateless)
+        wvalue="$MODE_STATELESS"
         if [ -z "$_webroot" ]; then
           _webroot="$wvalue"
         else
