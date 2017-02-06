@@ -3906,12 +3906,7 @@ _detect_profile() {
 _initconf() {
   _initpath
   if [ ! -f "$ACCOUNT_CONF_PATH" ]; then
-    echo "#ACCOUNT_CONF_PATH=xxxx
-
-#ACCOUNT_EMAIL=aaa@example.com  # the account email used to register account.
-#ACCOUNT_KEY_PATH=\"/path/to/account.key\"
-#CERT_HOME=\"/path/to/cert/home\"
-
+    echo "
 
 #LOG_FILE=\"$DEFAULT_LOG_FILE\"
 #LOG_LEVEL=1
@@ -3919,12 +3914,6 @@ _initconf() {
 #AUTO_UPGRADE=\"1\"
 
 #NO_TIMESTAMP=1
-#OPENSSL_BIN=openssl
-
-#USER_AGENT=\"$USER_AGENT\"
-
-#USER_PATH=
-
 
     " >"$ACCOUNT_CONF_PATH"
   fi
