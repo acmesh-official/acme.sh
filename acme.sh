@@ -1687,7 +1687,7 @@ _startserver() {
   fi
 
   if [ "$Le_Listen_V4$Le_Listen_V6$ncaddr" ]; then
-    if ! _contains "$nchelp" "OpenBSD"; then
+    if ! _contains "$nchelp" "-4"; then
       _err "The nc doesn't support '-4', '-6' or local-address, please install 'netcat-openbsd' and try again."
       _err "See $(__green $_PREPARE_LINK)"
       return 1
