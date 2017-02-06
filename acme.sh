@@ -1265,6 +1265,10 @@ _time() {
   date -u "+%s"
 }
 
+_utc_date() {
+  date -u "+%Y-%m-%d %H:%M:%S"
+}
+
 _mktemp() {
   if _exists mktemp; then
     if mktemp 2>/dev/null; then
