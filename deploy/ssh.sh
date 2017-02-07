@@ -26,7 +26,7 @@
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
-sshdeploy_deploy() {
+ssh_deploy() {
   _cdomain="$1"
   _ckey="$2"
   _ccert="$3"
