@@ -3,7 +3,7 @@
 # Script to deploy certificates to remote server by SSH
 # Note that SSH must be able to login to remote host without a password...
 # SSH Keys must have been exchanged with the remote host.  Validate and
-# test that you can login to USER@URL from the host running acme.sh before
+# test that you can login to USER@SERVER from the host running acme.sh before
 # using this script.
 #
 # The following variables exported from environment will be used.
@@ -13,7 +13,8 @@
 #
 # The following examples are for QNAP NAS running QTS 4.2 
 # export ACME_DEPLOY_SSH_USER="admin"
-# export ACME_DEPLOY_SSH_URL="qnap"
+# export ACME_DEPLOY_SSH_SERVER="qnap"
+# export ACME_DEPLOY_SSH_PORT="22"
 # export ACME_DEPLOY_SSH_SERVICE_STOP=""
 # export ACME_DEPLOY_SSH_KEYFILE="/etc/stunnel/stunnel.pem"
 # export ACME_DEPLOY_SSH_CERTFILE="/etc/stunnel/stunnel.pem"
@@ -34,7 +35,7 @@ sshdeploy_deploy() {
   _cmdstr=""
   _homedir='~'
   _backupprefix="$_homedir/.acme_ssh_deploy/certs-backup"
-  _backupdir="$_backupprefix-$(date +%Y%m%d%H%M%S)"
+  _backupdir="$_backupprefix-$(_utc_date | tr ' ' '-')"
 
   if [ -f "$DOMAIN_CONF" ]; then
     # shellcheck disable=SC1090
@@ -58,15 +59,23 @@ sshdeploy_deploy() {
     _savedomainconf Le_Deploy_ssh_user "$Le_Deploy_ssh_user"
   fi
 
-  # URL is optional.  If not provided then use _cdomain
-  if [ -n "$ACME_DEPLOY_SSH_URL" ]; then
-    Le_Deploy_ssh_url="$ACME_DEPLOY_SSH_URL"
-    _savedomainconf Le_Deploy_ssh_url "$Le_Deploy_ssh_url"
-  elif [ -z "$Le_Deploy_ssh_url" ]; then
-    Le_Deploy_ssh_url="$_cdomain"
+  # SERVER is optional. If not provided then use _cdomain
+  if [ -n "$ACME_DEPLOY_SSH_SERVER" ]; then
+    Le_Deploy_ssh_server="$ACME_DEPLOY_SSH_SERVER"
+    _savedomainconf Le_Deploy_ssh_server "$Le_Deploy_ssh_server"
+  elif [ -z "$Le_Deploy_ssh_server" ]; then
+    Le_Deploy_ssh_server="$_cdomain"
   fi
 
-  _info "Deploy certificates to remote server $Le_Deploy_ssh_user@$Le_Deploy_ssh_url"
+  # PORT is optional. If not provided then use port 22
+  if [ -n "$ACME_DEPLOY_SSH_PORT" ]; then
+    Le_Deploy_ssh_port="$ACME_DEPLOY_SSH_PORT"
+    _savedomainconf Le_Deploy_ssh_port "$Le_Deploy_ssh_port"
+  elif [ -z "$Le_Deploy_ssh_port" ]; then
+    Le_Deploy_ssh_port="22"
+  fi
+
+  _info "Deploy certificates to remote server $Le_Deploy_ssh_user@$Le_Deploy_ssh_server on port $Le_Deploy_ssh_port"
 
   # SERVICE_STOP is optional.
   # If provided then this command will be executed on remote host.
@@ -190,7 +199,7 @@ sshdeploy_deploy() {
   _info "Submitting sequence of commands to remote server by ssh"
   # quotations in bash cmd below intended.  Squash travis spellcheck error
   # shellcheck disable=SC2029
-  ssh -T "$Le_Deploy_ssh_user@$Le_Deploy_ssh_url" bash -c "'$_cmdstr'"
+  ssh -T -p "$Le_Deploy_ssh_port" "$Le_Deploy_ssh_user@$Le_Deploy_ssh_server" sh -c "'$_cmdstr'"
 
-  return 0
+  return $?
 }
