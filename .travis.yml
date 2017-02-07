@@ -33,7 +33,6 @@ install:
     fi
   
 script:
-  - echo "TEST_LOCAL=$TEST_LOCAL"
   - echo "NGROK_TOKEN=$(echo "$NGROK_TOKEN" | wc -c)"
   - command -V openssl && openssl version
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then curl -sSL $SHFMT_URL -o ~/shfmt ; fi
@@ -44,8 +43,8 @@ script:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then shellcheck **/*.sh && echo "shellcheck OK" ; fi
   - cd ..
   - git clone https://github.com/Neilpang/acmetest.git && cp -r acme.sh acmetest/ && cd acmetest
-  - if [ "$TRAVIS_OS_NAME" = "linux" -a "$NGROK_TOKEN" ]; then sudo NGROK_TOKEN="$NGROK_TOKEN" ./letest.sh ; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" -a "$NGROK_TOKEN" ]; then sudo NGROK_TOKEN="$NGROK_TOKEN" OPENSSL_BIN="$OPENSSL_BIN" ./letest.sh ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" -a "$NGROK_TOKEN" ]; then sudo TEST_LOCAL="$TEST_LOCAL" NGROK_TOKEN="$NGROK_TOKEN" ./letest.sh ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" -a "$NGROK_TOKEN" ]; then sudo TEST_LOCAL="$TEST_LOCAL" NGROK_TOKEN="$NGROK_TOKEN" OPENSSL_BIN="$OPENSSL_BIN" ./letest.sh ; fi
 
 
 matrix:

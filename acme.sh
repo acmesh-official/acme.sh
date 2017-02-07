@@ -41,6 +41,8 @@ NO_VALUE="no"
 
 W_TLS="tls"
 
+MODE_STATELESS="stateless"
+
 STATE_VERIFIED="verified_ok"
 
 BEGIN_CSR="-----BEGIN CERTIFICATE REQUEST-----"
@@ -60,6 +62,10 @@ LOG_LEVEL_3=3
 DEFAULT_LOG_LEVEL="$LOG_LEVEL_1"
 
 _DEBUG_WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-debug-acme.sh"
+
+_PREPARE_LINK="https://github.com/Neilpang/acme.sh/wiki/Install-preparations"
+
+_STATELESS_WIKI="https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode"
 
 __INTERACTIVE=""
 if [ -t 1 ]; then
@@ -340,11 +346,29 @@ _is_solaris() {
   _contains "${__OS__:=$(uname -a)}" "solaris" || _contains "${__OS__:=$(uname -a)}" "SunOS"
 }
 
+#_ascii_hex str
+#this can only process ascii chars, should only be used when od command is missing as a backup way.
+_ascii_hex() {
+  _debug2 "Using _ascii_hex"
+  _str="$1"
+  _str_len=${#_str}
+  _h_i=1
+  while [ "$_h_i" -le "$_str_len" ]; do
+    _str_c="$(printf "%s" "$_str" | cut -c "$_h_i")"
+    printf " %02x" "'$_str_c"
+    _h_i="$(_math "$_h_i" + 1)"
+  done
+}
+
 #stdin  output hexstr splited by one space
 #input:"abc"
 #output: " 61 62 63"
 _hex_dump() {
-  od -A n -v -t x1 | tr -d "\r\t" | tr -s " " | sed "s/ $//" | tr -d "\n"
+  #in wired some system, the od command is missing.
+  if ! od -A n -v -t x1 | tr -d "\r\t" | tr -s " " | sed "s/ $//" | tr -d "\n" 2>/dev/null; then
+    str=$(cat)
+    _ascii_hex "$str"
+  fi
 }
 
 #url encode, no-preserved chars
@@ -896,7 +920,7 @@ _readSubjectFromCSR() {
     _usage "_readSubjectFromCSR mycsr.csr"
     return 1
   fi
-  $OPENSSL_BIN req -noout -in "$_csrfile" -subject | _egrep_o "CN=.*" | cut -d = -f 2 | cut -d / -f 1 | tr -d '\n'
+  $OPENSSL_BIN req -noout -in "$_csrfile" -subject | _egrep_o "CN *=.*" | cut -d = -f 2 | cut -d / -f 1 | tr -d '\n'
 }
 
 #_csrfile
@@ -1243,6 +1267,10 @@ _calcjwk() {
 
 _time() {
   date -u "+%s"
+}
+
+_utc_date() {
+  date -u "+%Y-%m-%d %H:%M:%S"
 }
 
 _mktemp() {
@@ -1664,6 +1692,14 @@ _startserver() {
     _NC="$_NC -4"
   elif [ "$Le_Listen_V6" ]; then
     _NC="$_NC -6"
+  fi
+
+  if [ "$Le_Listen_V4$Le_Listen_V6$ncaddr" ]; then
+    if ! _contains "$nchelp" "-4"; then
+      _err "The nc doesn't support '-4', '-6' or local-address, please install 'netcat-openbsd' and try again."
+      _err "See $(__green $_PREPARE_LINK)"
+      return 1
+    fi
   fi
 
   if echo "$nchelp" | grep "\-q[ ,]" >/dev/null; then
@@ -2457,6 +2493,10 @@ __calcAccountKeyHash() {
   [ -f "$ACCOUNT_KEY_PATH" ] && _digest sha256 <"$ACCOUNT_KEY_PATH"
 }
 
+__calc_account_thumbprint() {
+  printf "%s" "$jwk" | tr -d ' ' | _digest "sha256" | _url_replace
+}
+
 #keylength
 _regAccount() {
   _initpath
@@ -2547,6 +2587,8 @@ _regAccount() {
         return 1
       fi
     fi
+    ACCOUNT_THUMBPRINT="$(__calc_account_thumbprint)"
+    _info "ACCOUNT_THUMBPRINT" "$ACCOUNT_THUMBPRINT"
     return 0
   done
 
@@ -2778,8 +2820,7 @@ issue() {
       fi
 
       if [ -z "$thumbprint" ]; then
-        accountkey_json=$(printf "%s" "$jwk" | tr -d ' ')
-        thumbprint=$(printf "%s" "$accountkey_json" | _digest "sha256" | _url_replace)
+        thumbprint="$(__calc_account_thumbprint)"
       fi
 
       entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
@@ -2936,7 +2977,9 @@ issue() {
         serverproc="$!"
         sleep 1
         _debug serverproc "$serverproc"
-
+      elif [ "$_currentRoot" = "$MODE_STATELESS" ]; then
+        _info "Stateless mode for domain:$d"
+        _sleep 1
       else
         if [ "$_currentRoot" = "apache" ]; then
           wellknown_path="$ACME_DIR"
@@ -3878,12 +3921,7 @@ _detect_profile() {
 _initconf() {
   _initpath
   if [ ! -f "$ACCOUNT_CONF_PATH" ]; then
-    echo "#ACCOUNT_CONF_PATH=xxxx
-
-#ACCOUNT_EMAIL=aaa@example.com  # the account email used to register account.
-#ACCOUNT_KEY_PATH=\"/path/to/account.key\"
-#CERT_HOME=\"/path/to/cert/home\"
-
+    echo "
 
 #LOG_FILE=\"$DEFAULT_LOG_FILE\"
 #LOG_LEVEL=1
@@ -3891,12 +3929,6 @@ _initconf() {
 #AUTO_UPGRADE=\"1\"
 
 #NO_TIMESTAMP=1
-#OPENSSL_BIN=openssl
-
-#USER_AGENT=\"$USER_AGENT\"
-
-#USER_PATH=
-
 
     " >"$ACCOUNT_CONF_PATH"
   fi
@@ -4232,6 +4264,7 @@ Parameters:
     
   --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
+  --stateless                       Use stateless mode, see: $_STATELESS_WIKI
   --tls                             Use standalone tls mode.
   --apache                          Use apache mode.
   --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
@@ -4531,6 +4564,14 @@ _process() {
         ;;
       --standalone)
         wvalue="$NO_VALUE"
+        if [ -z "$_webroot" ]; then
+          _webroot="$wvalue"
+        else
+          _webroot="$_webroot,$wvalue"
+        fi
+        ;;
+      --stateless)
+        wvalue="$MODE_STATELESS"
         if [ -z "$_webroot" ]; then
           _webroot="$wvalue"
         else

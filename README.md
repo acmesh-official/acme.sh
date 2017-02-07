@@ -55,6 +55,7 @@ https://github.com/Neilpang/acmetest
 - Standalone mode
 - Apache mode
 - DNS mode
+- [Stateless mode](https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode)
 
 
 # 1. How to install
@@ -270,6 +271,7 @@ You don't have to do anything manually!
 1. ISPConfig 3.1 API
 1. Alwaysdata.com API
 1. Linode.com API
+1. FreeDNS (https://freedns.afraid.org/)
 
 **More APIs coming soon...**
 
