@@ -34,7 +34,7 @@ ssh_deploy() {
   _cfullchain="$5"
   _cmdstr=""
   _homedir='~'
-  _backupprefix="$_homedir/.acme_ssh_deploy/certs-backup"
+  _backupprefix="$_homedir/.acme_ssh_deploy/$_cdomain-backup"
   _backupdir="$_backupprefix-$(_utc_date | tr ' ' '-')"
 
   if [ -f "$DOMAIN_CONF" ]; then
