@@ -4246,7 +4246,7 @@ Commands:
   --version, -v            Show version info.
   --install                Install $PROJECT_NAME to your system.
   --uninstall              Uninstall $PROJECT_NAME, and uninstall the cron job.
-  --upgrade                Upgrade $PROJECT_NAME to the latest code from $PROJECT .
+  --upgrade                Upgrade $PROJECT_NAME to the latest code from $PROJECT.
   --issue                  Issue a cert.
   --signcsr                Issue a cert from an existing csr.
   --deploy                 Deploy the cert to your server.
