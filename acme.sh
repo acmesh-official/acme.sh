@@ -364,8 +364,16 @@ _ascii_hex() {
 #input:"abc"
 #output: " 61 62 63"
 _hex_dump() {
-  #in wired some system, the od command is missing.
-  if ! od -A n -v -t x1 | tr -d "\r\t" | tr -s " " | sed "s/ $//" | tr -d "\n" 2>/dev/null; then
+  if _exists od; then
+    od -A n -v -t x1 | tr -s " " | sed 's/ $//' | tr -d "\r\t\n"
+  elif _exists hexdump; then
+    _debug3 "using hexdump"
+    hexdump -v -e '/1 ""' -e '/1 " %02x" ""'
+  elif _exists xxd; then
+    _debug3 "using xxd"
+    xxd -ps -c 20 -i | sed "s/ 0x/ /g" | tr -d ",\n" | tr -s " "
+  else
+    _debug3 "using _ascii_hex"
     str=$(cat)
     _ascii_hex "$str"
   fi
