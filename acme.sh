@@ -896,7 +896,11 @@ _createcsr() {
 
   _csr_cn="$(_idn "$domain")"
   _debug2 _csr_cn "$_csr_cn"
-  $OPENSSL_BIN req -new -sha256 -key "$csrkey" -subj "/CN=$_csr_cn" -config "$csrconf" -out "$csr"
+  if _contains "$(uname -a)" "MINGW"; then
+    $OPENSSL_BIN req -new -sha256 -key "$csrkey" -subj "//CN=$_csr_cn" -config "$csrconf" -out "$csr"
+  else
+    $OPENSSL_BIN req -new -sha256 -key "$csrkey" -subj "/CN=$_csr_cn" -config "$csrconf" -out "$csr"
+  fi
 }
 
 #_signcsr key  csr  conf cert
