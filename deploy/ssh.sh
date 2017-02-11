@@ -12,16 +12,14 @@
 # Only a username is required.  All others are optional.
 #
 # The following examples are for QNAP NAS running QTS 4.2 
+# export ACME_DEPLOY_SSH_CMD=""
 # export ACME_DEPLOY_SSH_USER="admin"
 # export ACME_DEPLOY_SSH_SERVER="qnap"
-# export ACME_DEPLOY_SSH_PORT="22"
-# export ACME_DEPLOY_SSH_SERVICE_STOP=""
 # export ACME_DEPLOY_SSH_KEYFILE="/etc/stunnel/stunnel.pem"
 # export ACME_DEPLOY_SSH_CERTFILE="/etc/stunnel/stunnel.pem"
 # export ACME_DEPLOY_SSH_CAFILE="/etc/stunnel/uca.pem"
 # export ACME_DEPLOY_SSH_FULLCHAIN=""
-# export ACME_DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart"
-# export ACME_DEPLOY_SSH_SERVICE_START=""
+# export ACME_DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart" 
 
 ########  Public functions #####################
 
@@ -67,26 +65,15 @@ ssh_deploy() {
     Le_Deploy_ssh_server="$_cdomain"
   fi
 
-  # PORT is optional. If not provided then use port 22
-  if [ -n "$ACME_DEPLOY_SSH_PORT" ]; then
-    Le_Deploy_ssh_port="$ACME_DEPLOY_SSH_PORT"
-    _savedomainconf Le_Deploy_ssh_port "$Le_Deploy_ssh_port"
-  elif [ -z "$Le_Deploy_ssh_port" ]; then
-    Le_Deploy_ssh_port="22"
+  # CMD is optional. If not provided then use ssh
+  if [ -n "$ACME_DEPLOY_SSH_CMD" ]; then
+    Le_Deploy_ssh_cmd="$ACME_DEPLOY_SSH_CMD"
+    _savedomainconf Le_Deploy_ssh_cmd "$Le_Deploy_ssh_cmd"
+  elif [ -z "$Le_Deploy_ssh_cmd" ]; then
+    Le_Deploy_ssh_cmd="ssh"
   fi
 
-  _info "Deploy certificates to remote server $Le_Deploy_ssh_user@$Le_Deploy_ssh_server on port $Le_Deploy_ssh_port"
-
-  # SERVICE_STOP is optional.
-  # If provided then this command will be executed on remote host.
-  if [ -n "$ACME_DEPLOY_SSH_SERVICE_STOP" ]; then
-    Le_Deploy_ssh_service_stop="$ACME_DEPLOY_SSH_SERVICE_STOP"
-    _savedomainconf Le_Deploy_ssh_service_stop "$Le_Deploy_ssh_service_stop"
-  fi
-  if [ -n "$Le_Deploy_ssh_service_stop" ]; then
-    _cmdstr="$_cmdstr $Le_Deploy_ssh_service_stop ;"
-    _info "Will stop remote service with command $Le_Deploy_ssh_service_stop"
-  fi
+  _info "Deploy certificates to remote server $Le_Deploy_ssh_user@$Le_Deploy_ssh_server"
 
   # KEYFILE is optional.
   # If provided then private key will be copied to provided filename.
@@ -110,76 +97,70 @@ ssh_deploy() {
   fi
   if [ -n "$Le_Deploy_ssh_certfile" ]; then
     if [ "$Le_Deploy_ssh_certfile" = "$Le_Deploy_ssh_keyfile" ]; then
-      # if filename is same as that provided for private key then append.
-      _cmdstr="$_cmdstr echo \"$(cat "$_ccert")\" >> $Le_Deploy_ssh_certfile ;"
-      _info "will append certificate to same file"
+      # if filename is same as previous file then append.
+      _pipe=">>"
     else
       # backup file we are about to overwrite.
       _cmdstr="$_cmdstr cp $Le_Deploy_ssh_certfile $_backupdir ;"
-      # copy new certificate into file.
-      _cmdstr="$_cmdstr echo \"$(cat "$_ccert")\" > $Le_Deploy_ssh_certfile ;"
-      _info "will copy certificate to remote file $Le_Deploy_ssh_certfile"
+      _pipe=">"
     fi
+    # copy new certificate into file.
+    _cmdstr="$_cmdstr echo \"$(cat "$_ccert")\" $_pipe $Le_Deploy_ssh_certfile ;"
+    _info "will copy certificate to remote file $Le_Deploy_ssh_certfile"
   fi
 
   # CAFILE is optional.
-  # If provided then CA intermediate certificate will be copied to provided filename.
+  # If provided then CA intermediate certificate will be copied or appended to provided filename.
   if [ -n "$ACME_DEPLOY_SSH_CAFILE" ]; then
     Le_Deploy_ssh_cafile="$ACME_DEPLOY_SSH_CAFILE"
     _savedomainconf Le_Deploy_ssh_cafile "$Le_Deploy_ssh_cafile"
   fi
   if [ -n "$Le_Deploy_ssh_cafile" ]; then
-    # backup file we are about to overwrite.
-    _cmdstr="$_cmdstr cp $Le_Deploy_ssh_cafile $_backupdir ;"
+    if [ "$Le_Deploy_ssh_cafile" = "$Le_Deploy_ssh_keyfile" ] ||
+       [ "$Le_Deploy_ssh_cafile" = "$Le_Deploy_ssh_certfile" ]; then
+      # if filename is same as previous file then append.
+      _pipe=">>"
+    else
+      # backup file we are about to overwrite.
+      _cmdstr="$_cmdstr cp $Le_Deploy_ssh_cafile $_backupdir ;"
+      _pipe=">"
+    fi
     # copy new certificate into file.
-    _cmdstr="$_cmdstr echo \"$(cat "$_cca")\" > $Le_Deploy_ssh_cafile ;"
+    _cmdstr="$_cmdstr echo \"$(cat "$_cca")\" $_pipe $Le_Deploy_ssh_cafile ;"
     _info "will copy CA file to remote file $Le_Deploy_ssh_cafile"
   fi
 
   # FULLCHAIN is optional.
-  # If provided then fullchain certificate will be copied to provided filename.
+  # If provided then fullchain certificate will be copied or appended to provided filename.
   if [ -n "$ACME_DEPLOY_SSH_FULLCHAIN" ]; then
     Le_Deploy_ssh_fullchain="$ACME_DEPLOY_SSH_FULLCHAIN"
     _savedomainconf Le_Deploy_ssh_fullchain "$Le_Deploy_ssh_fullchain"
   fi
   if [ -n "$Le_Deploy_ssh_fullchain" ]; then
-    # backup file we are about to overwrite.
-    _cmdstr="$_cmdstr cp $Le_Deploy_ssh_fullchain $_backupdir ;"
+    if [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_keyfile" ] ||
+       [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_certfile" ] ||
+       [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_cafile" ]; then
+      # if filename is same as previous file then append.
+      _pipe=">>"
+    else
+      # backup file we are about to overwrite.
+      _cmdstr="$_cmdstr cp $Le_Deploy_ssh_fullchain $_backupdir ;"
+      _pipe=">"
+    fi
     # copy new certificate into file.
-    _cmdstr="$_cmdstr echo \"$(cat "$_cfullchain")\" > $Le_Deploy_ssh_fullchain ;"
-    _info "will copy full chain to remote file $Le_Deploy_ssh_fullchain"
+    _cmdstr="$_cmdstr echo \"$(cat "$_cfullchain")\" $_pipe $Le_Deploy_ssh_fullchain ;"
+    _info "will copy fullchain to remote file $Le_Deploy_ssh_fullchain"
   fi
 
   # REMOTE_CMD is optional.
   # If provided then this command will be executed on remote host.
-  # A 2 second delay is inserted to allow system to stabalize after
-  # executing a service stop.
   if [ -n "$ACME_DEPLOY_SSH_REMOTE_CMD" ]; then
     Le_Deploy_ssh_remote_cmd="$ACME_DEPLOY_SSH_REMOTE_CMD"
     _savedomainconf Le_Deploy_ssh_remote_cmd "$Le_Deploy_ssh_remote_cmd"
   fi
   if [ -n "$Le_Deploy_ssh_remote_cmd" ]; then
-    if [ -n "$Le_Deploy_ssh_service_stop" ]; then
-      _cmdstr="$_cmdstr sleep 2 ;"
-    fi
     _cmdstr="$_cmdstr $Le_Deploy_ssh_remote_cmd ;"
     _info "Will execute remote command $Le_Deploy_ssh_remote_cmd"
-  fi
-
-  # SERVICE_START is optional.
-  # If provided then this command will be executed on remote host.
-  # A 2 second delay is inserted to allow system to stabalize after
-  # executing a service stop or previous command.
-  if [ -n "$ACME_DEPLOY_SSH_SERVICE_START" ]; then
-    Le_Deploy_ssh_service_start="$ACME_DEPLOY_SSH_SERVICE_START"
-    _savedomainconf Le_Deploy_ssh_service_start "$Le_Deploy_ssh_service_start"
-  fi
-  if [ -n "$Le_Deploy_ssh_service_start" ]; then
-    if [ -n "$Le_Deploy_ssh_service_stop" ] || [ -n "$Le_Deploy_ssh_remote_cmd" ]; then
-      _cmdstr="$_cmdstr sleep 2 ;"
-    fi
-    _cmdstr="$_cmdstr $Le_Deploy_ssh_service_start ;"
-    _info "Will start remote service with command $Le_Deploy_ssh_remote_cmd"
   fi
 
   if [ -z "$_cmdstr" ]; then
@@ -199,7 +180,12 @@ ssh_deploy() {
   _info "Submitting sequence of commands to remote server by ssh"
   # quotations in bash cmd below intended.  Squash travis spellcheck error
   # shellcheck disable=SC2029
-  ssh -T -p "$Le_Deploy_ssh_port" "$Le_Deploy_ssh_user@$Le_Deploy_ssh_server" sh -c "'$_cmdstr'"
+  $Le_Deploy_ssh_cmd -T "$Le_Deploy_ssh_user@$Le_Deploy_ssh_server" sh -c "'$_cmdstr'"
+  _ret="$?"
 
-  return $?
+  if [ "$_ret" != "0" ]; then
+    _err "Error code $_ret returned from $Le_Deploy_ssh_cmd"
+  fi
+
+  return $_ret
 }
