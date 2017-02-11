@@ -61,6 +61,10 @@ LOG_LEVEL_2=2
 LOG_LEVEL_3=3
 DEFAULT_LOG_LEVEL="$LOG_LEVEL_1"
 
+SYSLOG_INFO="user.info"
+SYSLOG_ERROR="user.error"
+SYSLOG_DEBUG="user.debug"
+
 _DEBUG_WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-debug-acme.sh"
 
 _PREPARE_LINK="https://github.com/Neilpang/acme.sh/wiki/Install-preparations"
@@ -128,18 +132,30 @@ _dlg_versions() {
   fi
 }
 
+#class
+_syslog() {
+  if [ -z "$SYS_LOG" ] || [ "$SYS_LOG" = "0" ]; then
+    return
+  fi
+  _logclass="$1"
+  shift
+  logger -i -t "$PROJECT_NAME" -p "$_logclass" "$(_printargs "$@")" >/dev/null 2>&1
+}
+
 _log() {
+  _syslog "$@"
   [ -z "$LOG_FILE" ] && return
+  shift
   _printargs "$@" >>"$LOG_FILE"
 }
 
 _info() {
-  _log "$@"
+  _log "$SYSLOG_INFO" "$@"
   _printargs "$@"
 }
 
 _err() {
-  _log "$@"
+  _log "$SYSLOG_ERROR" "$@"
   if [ -z "$NO_TIMESTAMP" ] || [ "$NO_TIMESTAMP" = "0" ]; then
     printf -- "%s" "[$(date)] " >&2
   fi
@@ -159,7 +175,7 @@ _usage() {
 
 _debug() {
   if [ -z "$LOG_LEVEL" ] || [ "$LOG_LEVEL" -ge "$LOG_LEVEL_1" ]; then
-    _log "$@"
+    _log "$SYSLOG_DEBUG" "$@"
   fi
   if [ -z "$DEBUG" ]; then
     return
@@ -169,19 +185,19 @@ _debug() {
 
 _debug2() {
   if [ "$LOG_LEVEL" ] && [ "$LOG_LEVEL" -ge "$LOG_LEVEL_2" ]; then
-    _log "$@"
+    _log "$SYSLOG_DEBUG" "$@"
   fi
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
-    _debug "$@"
+    _printargs "$@" >&2
   fi
 }
 
 _debug3() {
   if [ "$LOG_LEVEL" ] && [ "$LOG_LEVEL" -ge "$LOG_LEVEL_3" ]; then
-    _log "$@"
+    _log "$SYSLOG_DEBUG" "$@"
   fi
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "3" ]; then
-    _debug "$@"
+    _printargs "$@" >&2
   fi
 }
 
@@ -364,8 +380,16 @@ _ascii_hex() {
 #input:"abc"
 #output: " 61 62 63"
 _hex_dump() {
-  #in wired some system, the od command is missing.
-  if ! od -A n -v -t x1 | tr -d "\r\t" | tr -s " " | sed "s/ $//" | tr -d "\n" 2>/dev/null; then
+  if _exists od; then
+    od -A n -v -t x1 | tr -s " " | sed 's/ $//' | tr -d "\r\t\n"
+  elif _exists hexdump; then
+    _debug3 "using hexdump"
+    hexdump -v -e '/1 ""' -e '/1 " %02x" ""'
+  elif _exists xxd; then
+    _debug3 "using xxd"
+    xxd -ps -c 20 -i | sed "s/ 0x/ /g" | tr -d ",\n" | tr -s " "
+  else
+    _debug3 "using _ascii_hex"
     str=$(cat)
     _ascii_hex "$str"
   fi
@@ -896,7 +920,11 @@ _createcsr() {
 
   _csr_cn="$(_idn "$domain")"
   _debug2 _csr_cn "$_csr_cn"
-  $OPENSSL_BIN req -new -sha256 -key "$csrkey" -subj "/CN=$_csr_cn" -config "$csrconf" -out "$csr"
+  if _contains "$(uname -a)" "MINGW"; then
+    $OPENSSL_BIN req -new -sha256 -key "$csrkey" -subj "//CN=$_csr_cn" -config "$csrconf" -out "$csr"
+  else
+    $OPENSSL_BIN req -new -sha256 -key "$csrkey" -subj "/CN=$_csr_cn" -config "$csrconf" -out "$csr"
+  fi
 }
 
 #_signcsr key  csr  conf cert
@@ -4234,7 +4262,7 @@ Commands:
   --version, -v            Show version info.
   --install                Install $PROJECT_NAME to your system.
   --uninstall              Uninstall $PROJECT_NAME, and uninstall the cron job.
-  --upgrade                Upgrade $PROJECT_NAME to the latest code from $PROJECT .
+  --upgrade                Upgrade $PROJECT_NAME to the latest code from $PROJECT.
   --issue                  Issue a cert.
   --signcsr                Issue a cert from an existing csr.
   --deploy                 Deploy the cert to your server.
@@ -4251,8 +4279,8 @@ Commands:
   --toPkcs                 Export the certificate and key to a pfx file.
   --update-account         Update account info.
   --register-account       Register account key.
-  --createAccountKey, -cak Create an account private key, professional use.
-  --createDomainKey, -cdk  Create an domain private key, professional use.
+  --create-account-key     Create an account private key, professional use.
+  --create-domain-key      Create an domain private key, professional use.
   --createCSR, -ccsr       Create CSR , professional use.
   --deactivate             Deactivate the domain authz, professional use.
   
@@ -4274,6 +4302,7 @@ Parameters:
   --accountkeylength, -ak [2048]    Specifies the account key length.
   --log    [/path/to/logfile]       Specifies the log file. The default is: \"$DEFAULT_LOG_FILE\" if you don't give a file path here.
   --log-level 1|2                   Specifies the log level, default is 1.
+  --syslog [1|0]                    Enable/Disable syslog.
   
   These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
   
@@ -4432,6 +4461,7 @@ _process() {
   _listen_v4=""
   _listen_v6=""
   _openssl_bin=""
+  _syslog=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -4494,10 +4524,10 @@ _process() {
       --toPkcs)
         _CMD="toPkcs"
         ;;
-      --createAccountKey | --createaccountkey | -cak)
+      --createAccountKey | --createaccountkey | -cak | --create-account-key)
         _CMD="createAccountKey"
         ;;
-      --createDomainKey | --createdomainkey | -cdk)
+      --createDomainKey | --createdomainkey | -cdk | --create-domain-key)
         _CMD="createDomainKey"
         ;;
       --createCSR | --createcsr | -ccr)
@@ -4762,6 +4792,15 @@ _process() {
         LOG_LEVEL="$_log_level"
         shift
         ;;
+      --syslog)
+        if ! _startswith "$2" '-'; then
+          _syslog="$2"
+          shift
+        fi
+        if [ -z "$_syslog" ]; then
+          _syslog="1"
+        fi
+        ;;
       --auto-upgrade)
         _auto_upgrade="$2"
         if [ -z "$_auto_upgrade" ] || _startswith "$_auto_upgrade" '-'; then
@@ -4807,6 +4846,21 @@ _process() {
     if [ "$_log_level" ]; then
       _saveaccountconf "LOG_LEVEL" "$_log_level"
       LOG_LEVEL="$_log_level"
+    fi
+
+    if [ "$_syslog" ]; then
+      if _exists logger; then
+        if [ "$_syslog" = "0" ]; then
+          _clearaccountconf "SYS_LOG"
+        else
+          _saveaccountconf "SYS_LOG" "$_syslog"
+        fi
+        SYS_LOG="$_syslog"
+      else
+        _err "The 'logger' command is not found, can not enable syslog."
+        _clearaccountconf "SYS_LOG"
+        SYS_LOG=""
+      fi
     fi
 
     _processAccountConf
@@ -4901,6 +4955,21 @@ _process() {
     if [ "$_log_level" ]; then
       _saveaccountconf "LOG_LEVEL" "$_log_level"
     fi
+
+    if [ "$_syslog" ]; then
+      if _exists logger; then
+        if [ "$_syslog" = "0" ]; then
+          _clearaccountconf "SYS_LOG"
+        else
+          _saveaccountconf "SYS_LOG" "$_syslog"
+        fi
+      else
+        _err "The 'logger' command is not found, can not enable syslog."
+        _clearaccountconf "SYS_LOG"
+        SYS_LOG=""
+      fi
+    fi
+
     _processAccountConf
   fi
 
