@@ -61,6 +61,10 @@ LOG_LEVEL_2=2
 LOG_LEVEL_3=3
 DEFAULT_LOG_LEVEL="$LOG_LEVEL_1"
 
+SYSLOG_INFO="user.info"
+SYSLOG_ERROR="user.error"
+SYSLOG_DEBUG="user.debug"
+
 _DEBUG_WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-debug-acme.sh"
 
 _PREPARE_LINK="https://github.com/Neilpang/acme.sh/wiki/Install-preparations"
@@ -128,18 +132,30 @@ _dlg_versions() {
   fi
 }
 
+#class
+_syslog() {
+  if [ -z "$SYS_LOG" ] || [ "$SYS_LOG" = "0" ]; then
+    return
+  fi
+  _logclass="$1"
+  shift
+  logger -i -t "$PROJECT_NAME" -p "$_logclass" "$(_printargs "$@")" >/dev/null 2>&1
+}
+
 _log() {
+  _syslog "$@"
   [ -z "$LOG_FILE" ] && return
+  shift
   _printargs "$@" >>"$LOG_FILE"
 }
 
 _info() {
-  _log "$@"
+  _log "$SYSLOG_INFO" "$@"
   _printargs "$@"
 }
 
 _err() {
-  _log "$@"
+  _log "$SYSLOG_ERROR" "$@"
   if [ -z "$NO_TIMESTAMP" ] || [ "$NO_TIMESTAMP" = "0" ]; then
     printf -- "%s" "[$(date)] " >&2
   fi
@@ -159,7 +175,7 @@ _usage() {
 
 _debug() {
   if [ -z "$LOG_LEVEL" ] || [ "$LOG_LEVEL" -ge "$LOG_LEVEL_1" ]; then
-    _log "$@"
+    _log "$SYSLOG_DEBUG" "$@"
   fi
   if [ -z "$DEBUG" ]; then
     return
@@ -169,19 +185,19 @@ _debug() {
 
 _debug2() {
   if [ "$LOG_LEVEL" ] && [ "$LOG_LEVEL" -ge "$LOG_LEVEL_2" ]; then
-    _log "$@"
+    _log "$SYSLOG_DEBUG" "$@"
   fi
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
-    _debug "$@"
+    _printargs "$@" >&2
   fi
 }
 
 _debug3() {
   if [ "$LOG_LEVEL" ] && [ "$LOG_LEVEL" -ge "$LOG_LEVEL_3" ]; then
-    _log "$@"
+    _log "$SYSLOG_DEBUG" "$@"
   fi
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "3" ]; then
-    _debug "$@"
+    _printargs "$@" >&2
   fi
 }
 
@@ -4286,6 +4302,7 @@ Parameters:
   --accountkeylength, -ak [2048]    Specifies the account key length.
   --log    [/path/to/logfile]       Specifies the log file. The default is: \"$DEFAULT_LOG_FILE\" if you don't give a file path here.
   --log-level 1|2                   Specifies the log level, default is 1.
+  --syslog [1|0]                    Enable/Disable syslog.
   
   These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
   
@@ -4444,6 +4461,7 @@ _process() {
   _listen_v4=""
   _listen_v6=""
   _openssl_bin=""
+  _syslog=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -4774,6 +4792,15 @@ _process() {
         LOG_LEVEL="$_log_level"
         shift
         ;;
+      --syslog)
+        if ! _startswith "$2" '-'; then
+          _syslog="$2"
+          shift
+        fi
+        if [ -z "$_syslog" ]; then
+          _syslog="1"
+        fi
+        ;;
       --auto-upgrade)
         _auto_upgrade="$2"
         if [ -z "$_auto_upgrade" ] || _startswith "$_auto_upgrade" '-'; then
@@ -4819,6 +4846,21 @@ _process() {
     if [ "$_log_level" ]; then
       _saveaccountconf "LOG_LEVEL" "$_log_level"
       LOG_LEVEL="$_log_level"
+    fi
+
+    if [ "$_syslog" ]; then
+      if _exists logger; then
+        if [ "$_syslog" = "0" ]; then
+          _clearaccountconf "SYS_LOG"
+        else
+          _saveaccountconf "SYS_LOG" "$_syslog"
+        fi
+        SYS_LOG="$_syslog"
+      else
+        _err "The 'logger' command is not found, can not enable syslog."
+        _clearaccountconf "SYS_LOG"
+        SYS_LOG=""
+      fi
     fi
 
     _processAccountConf
@@ -4913,6 +4955,21 @@ _process() {
     if [ "$_log_level" ]; then
       _saveaccountconf "LOG_LEVEL" "$_log_level"
     fi
+
+    if [ "$_syslog" ]; then
+      if _exists logger; then
+        if [ "$_syslog" = "0" ]; then
+          _clearaccountconf "SYS_LOG"
+        else
+          _saveaccountconf "SYS_LOG" "$_syslog"
+        fi
+      else
+        _err "The 'logger' command is not found, can not enable syslog."
+        _clearaccountconf "SYS_LOG"
+        SYS_LOG=""
+      fi
+    fi
+
     _processAccountConf
   fi
 
