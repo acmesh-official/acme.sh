@@ -4263,8 +4263,8 @@ Commands:
   --toPkcs                 Export the certificate and key to a pfx file.
   --update-account         Update account info.
   --register-account       Register account key.
-  --createAccountKey, -cak Create an account private key, professional use.
-  --createDomainKey, -cdk  Create an domain private key, professional use.
+  --create-account-key     Create an account private key, professional use.
+  --create-domain-key      Create an domain private key, professional use.
   --createCSR, -ccsr       Create CSR , professional use.
   --deactivate             Deactivate the domain authz, professional use.
   
@@ -4506,10 +4506,10 @@ _process() {
       --toPkcs)
         _CMD="toPkcs"
         ;;
-      --createAccountKey | --createaccountkey | -cak)
+      --createAccountKey | --createaccountkey | -cak | --create-account-key)
         _CMD="createAccountKey"
         ;;
-      --createDomainKey | --createdomainkey | -cdk)
+      --createDomainKey | --createdomainkey | -cdk | --create-domain-key)
         _CMD="createDomainKey"
         ;;
       --createCSR | --createcsr | -ccr)
