@@ -49,6 +49,7 @@ export ACME_DEPLOY_SSH_CERTFILE="/etc/stunnel/stunnel.pem"
 export ACME_DEPLOY_SSH_CAFILE="/etc/stunnel/uca.pem"
 export ACME_DEPLOY_SSH_FULLCHAIN=""
 export ACME_DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart"
+export ACME_DEPLOY_SSH_BACKUP=""
 ```
 The values used above are illustrative only and represent those that could 
 be used to deploy certificates to a QNAP NAS device running QTS 4.2
@@ -87,8 +88,7 @@ file
 Command to execute on the remote server after copying any certificates.  This
 could be any additional command required for example to stop and restart
 the service.
-
-###Backups
+###ACME_DEPLOY_SSH_BACKUP
 Before writing a certificate file to the remote server the existing
 certificate will be copied to a backup directory on the remote server.
 These are placed in a hidden directory in the home directory of the SSH
@@ -97,4 +97,4 @@ user
 ~/.acme_ssh_deploy/[domain name]-backup-[timestamp]
 ```
 Any backups older than 180 days will be deleted when new certificates
-are deployed.
+are deployed.  This defaults to "yes" set to "no" to disable backup.

@@ -12,15 +12,16 @@
 # Only a username is required.  All others are optional.
 #
 # The following examples are for QNAP NAS running QTS 4.2 
-# export ACME_DEPLOY_SSH_CMD=""
-# export ACME_DEPLOY_SSH_USER="admin"
-# export ACME_DEPLOY_SSH_SERVER="qnap"
+# export ACME_DEPLOY_SSH_CMD=""  # defaults to ssh
+# export ACME_DEPLOY_SSH_USER="admin"  # required
+# export ACME_DEPLOY_SSH_SERVER="qnap"  # defaults to domain name
 # export ACME_DEPLOY_SSH_KEYFILE="/etc/stunnel/stunnel.pem"
 # export ACME_DEPLOY_SSH_CERTFILE="/etc/stunnel/stunnel.pem"
 # export ACME_DEPLOY_SSH_CAFILE="/etc/stunnel/uca.pem"
 # export ACME_DEPLOY_SSH_FULLCHAIN=""
-# export ACME_DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart" 
-
+# export ACME_DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart"
+# export ACME_DEPLOY_SSH_BACKUP=""  # yes or no, default to yes
+#
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
@@ -73,6 +74,14 @@ ssh_deploy() {
     Le_Deploy_ssh_cmd="ssh"
   fi
 
+  # BACKUP is optional. If not provided then default to yes
+  if [ "$ACME_DEPLOY_SSH_BACKUP" = "no"]; then
+    Le_Deploy_ssh_backup="no"
+  elif [ -z "$Le_Deploy_ssh_backup" ]; then
+    Le_Deploy_ssh_backup="yes"
+  fi
+  _savedomainconf Le_Deploy_ssh_backup "$Le_Deploy_ssh_backup"
+
   _info "Deploy certificates to remote server $Le_Deploy_ssh_user@$Le_Deploy_ssh_server"
 
   # KEYFILE is optional.
@@ -82,8 +91,10 @@ ssh_deploy() {
     _savedomainconf Le_Deploy_ssh_keyfile "$Le_Deploy_ssh_keyfile"
   fi
   if [ -n "$Le_Deploy_ssh_keyfile" ]; then
-    # backup file we are about to overwrite.
-    _cmdstr="$_cmdstr cp $Le_Deploy_ssh_keyfile $_backupdir ;"
+    if [ "$Le_Deploy_ssh_backup" = "yes" ]; then
+      # backup file we are about to overwrite.
+      _cmdstr="$_cmdstr cp $Le_Deploy_ssh_keyfile $_backupdir ;"
+    fi
     # copy new certificate into file.
     _cmdstr="$_cmdstr echo \"$(cat "$_ckey")\" > $Le_Deploy_ssh_keyfile ;"
     _info "will copy private key to remote file $Le_Deploy_ssh_keyfile"
@@ -96,13 +107,13 @@ ssh_deploy() {
     _savedomainconf Le_Deploy_ssh_certfile "$Le_Deploy_ssh_certfile"
   fi
   if [ -n "$Le_Deploy_ssh_certfile" ]; then
+    _pipe=">"
     if [ "$Le_Deploy_ssh_certfile" = "$Le_Deploy_ssh_keyfile" ]; then
       # if filename is same as previous file then append.
       _pipe=">>"
-    else
+    elif [ "$Le_Deploy_ssh_backup" = "yes" ]; then
       # backup file we are about to overwrite.
       _cmdstr="$_cmdstr cp $Le_Deploy_ssh_certfile $_backupdir ;"
-      _pipe=">"
     fi
     # copy new certificate into file.
     _cmdstr="$_cmdstr echo \"$(cat "$_ccert")\" $_pipe $Le_Deploy_ssh_certfile ;"
@@ -116,14 +127,14 @@ ssh_deploy() {
     _savedomainconf Le_Deploy_ssh_cafile "$Le_Deploy_ssh_cafile"
   fi
   if [ -n "$Le_Deploy_ssh_cafile" ]; then
-    if [ "$Le_Deploy_ssh_cafile" = "$Le_Deploy_ssh_keyfile" ] ||
-       [ "$Le_Deploy_ssh_cafile" = "$Le_Deploy_ssh_certfile" ]; then
+    _pipe=">"
+    if [ "$Le_Deploy_ssh_cafile" = "$Le_Deploy_ssh_keyfile" ] \
+      || [ "$Le_Deploy_ssh_cafile" = "$Le_Deploy_ssh_certfile" ]; then
       # if filename is same as previous file then append.
       _pipe=">>"
-    else
+    elif [ "$Le_Deploy_ssh_backup" = "yes" ]; then
       # backup file we are about to overwrite.
       _cmdstr="$_cmdstr cp $Le_Deploy_ssh_cafile $_backupdir ;"
-      _pipe=">"
     fi
     # copy new certificate into file.
     _cmdstr="$_cmdstr echo \"$(cat "$_cca")\" $_pipe $Le_Deploy_ssh_cafile ;"
@@ -137,15 +148,15 @@ ssh_deploy() {
     _savedomainconf Le_Deploy_ssh_fullchain "$Le_Deploy_ssh_fullchain"
   fi
   if [ -n "$Le_Deploy_ssh_fullchain" ]; then
-    if [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_keyfile" ] ||
-       [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_certfile" ] ||
-       [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_cafile" ]; then
+    _pipe=">"
+    if [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_keyfile" ] \
+      || [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_certfile" ] \
+      || [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_cafile" ]; then
       # if filename is same as previous file then append.
       _pipe=">>"
-    else
+    elif [ "$Le_Deploy_ssh_backup" = "yes" ]; then
       # backup file we are about to overwrite.
       _cmdstr="$_cmdstr cp $Le_Deploy_ssh_fullchain $_backupdir ;"
-      _pipe=">"
     fi
     # copy new certificate into file.
     _cmdstr="$_cmdstr echo \"$(cat "$_cfullchain")\" $_pipe $Le_Deploy_ssh_fullchain ;"
@@ -166,8 +177,7 @@ ssh_deploy() {
   if [ -z "$_cmdstr" ]; then
     _err "No remote commands to excute. Failed to deploy certificates to remote server"
     return 1
-  else
-    # something to execute.
+  elif [ "$Le_Deploy_ssh_backup" = "yes" ]; then
     # run cleanup on the backup directory, erase all older than 180 days.
     _cmdstr="find $_backupprefix* -type d -mtime +180 2>/dev/null | xargs rm -rf ; $_cmdstr"
     # Create our backup directory for overwritten cert files.
