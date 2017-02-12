@@ -28,7 +28,7 @@ The ssh deploy plugin allows you to deploy certificates to a remote host
 using SSH command to connect to the remote server.  The ssh plugin is invoked
 with the following command...
 
-```bash
+```sh
 acme.sh --deploy -d example.com --deploy-hook ssh
 ```
 Prior to running this for the first time you must tell the plugin where
@@ -37,17 +37,17 @@ environment variables.  This is not required for subsequent runs as the
 values are stored by acme.sh in the domain configuration files.
 
 Required...
-```bash
+```
 export ACME_DEPLOY_SSH_USER=username
 ```
 Optional...
-```bash
+```
 export ACME_DEPLOY_SSH_CMD=custom ssh command
 export ACME_DEPLOY_SSH_SERVER=url or ip address of remote host
 export ACME_DEPLOY_SSH_KEYFILE=filename for private key
 export ACME_DEPLOY_SSH_CERTFILE=filename for certificate file
 export ACME_DEPLOY_SSH_CAFILE=filename for intermediate CA file
-export ACME_DEPLOY_SSH_FULLCHAIN=filename forfullchain file
+export ACME_DEPLOY_SSH_FULLCHAIN=filename for fullchain file
 export ACME_DEPLOY_SSH_REMOTE_CMD=command to execute on remote host
 export ACME_DEPLOY_SSH_BACKUP=yes or no
 ```
@@ -101,7 +101,7 @@ Before writing a certificate file to the remote server the existing
 certificate will be copied to a backup directory on the remote server.
 These are placed in a hidden directory in the home directory of the SSH
 user
-```bash
+```sh
 ~/.acme_ssh_deploy/[domain name]-backup-[timestamp]
 ```
 Any backups older than 180 days will be deleted when new certificates
@@ -112,7 +112,7 @@ are deployed.  This defaults to "yes" set to "no" to disable backup.
 The following example illustrates deploying certifcates to a QNAP NAS
 running QTS 4.2
 
-```bash
+```sh
 export ACME_DEPLOY_SSH_USER="admin"
 export ACME_DEPLOY_SSH_KEYFILE="/etc/stunnel/stunnel.pem"
 export ACME_DEPLOY_SSH_CERTFILE="/etc/stunnel/stunnel.pem"
@@ -125,7 +125,7 @@ acme.sh --deploy -d qnap.example.com --deploy-hook ssh
 The next example illustates deploying certificates to a Unifi
 Contolller (tested with version 5.4.11).
 
-```bash
+```sh
 export ACME_DEPLOY_SSH_USER="root"
 export ACME_DEPLOY_SSH_KEYFILE="/var/lib/unifi/unifi.example.com.key"
 export ACME_DEPLOY_SSH_FULLCHAIN="/var/lib/unifi/unifi.example.com.cer"
