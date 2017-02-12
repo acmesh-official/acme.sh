@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
 # DNSimple domain api
+# https://github.com/pho3nixf1re/acme.sh/issues
 #
 # This is your oauth token which can be acquired on the account page. Please
 # note that this must be an _account_ token and not a _user_ token.
