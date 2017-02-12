@@ -2060,7 +2060,7 @@ _initpath() {
   fi
 
   if [ -z "$DOMAIN_BACKUP_PATH" ]; then
-    DOMAIN_BACKUP_PATH="$DOMAIN_PATH"
+    DOMAIN_BACKUP_PATH="$DOMAIN_PATH/backup"
   fi
 
   if [ -z "$DOMAIN_CONF" ]; then
@@ -3616,6 +3616,7 @@ _installcert() {
 
     _info "Installing cert to:$Le_RealCertPath"
     if [ -f "$Le_RealCertPath" ] && [ ! "$IS_RENEW" ]; then
+      mkdir -p "$DOMAIN_BACKUP_PATH"
       cp "$Le_RealCertPath" "$DOMAIN_BACKUP_PATH/cert.bak"
     fi
     cat "$CERT_PATH" >"$Le_RealCertPath"
@@ -3629,6 +3630,7 @@ _installcert() {
       cat "$CA_CERT_PATH" >>"$Le_RealCACertPath"
     else
       if [ -f "$Le_RealCACertPath" ] && [ ! "$IS_RENEW" ]; then
+        mkdir -p "$DOMAIN_BACKUP_PATH"
         cp "$Le_RealCACertPath" "$DOMAIN_BACKUP_PATH/ca.bak"
       fi
       cat "$CA_CERT_PATH" >"$Le_RealCACertPath"
@@ -3639,6 +3641,7 @@ _installcert() {
 
     _info "Installing key to:$Le_RealKeyPath"
     if [ -f "$Le_RealKeyPath" ] && [ ! "$IS_RENEW" ]; then
+      mkdir -p "$DOMAIN_BACKUP_PATH"
       cp "$Le_RealKeyPath" "$DOMAIN_BACKUP_PATH/key.bak"
     fi
     cat "$CERT_KEY_PATH" >"$Le_RealKeyPath"
@@ -3648,6 +3651,7 @@ _installcert() {
 
     _info "Installing full chain to:$Le_RealFullChainPath"
     if [ -f "$Le_RealFullChainPath" ] && [ ! "$IS_RENEW" ]; then
+      mkdir -p "$DOMAIN_BACKUP_PATH"
       cp "$Le_RealFullChainPath" "$DOMAIN_BACKUP_PATH/fullchain.bak"
     fi
     cat "$CERT_FULLCHAIN_PATH" >"$Le_RealFullChainPath"
