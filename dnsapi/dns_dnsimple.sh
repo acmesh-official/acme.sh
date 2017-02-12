@@ -26,49 +26,35 @@ dns_dnsimple_add() {
   # save the oauth token for later
   _saveaccountconf DNSimple_OAUTH_TOKEN "$DNSimple_OAUTH_TOKEN"
 
-  _debug "Retrive account ID"
   if ! _get_account_id; then
     _err "failed to retrive account id"
     return 1
   fi
-  _debug _account_id "$_account_id"
 
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
-  _debug _domain "$_domain"
-  _debug _sub_domain "$_sub_domain"
 
-  _debug "Getting txt records"
-  _dnsimple_rest GET "$_account_id/zones/$_domain/records?per_page=100"
+  _get_records $_account_id $_domain $_sub_domain
 
-  if ! _contains "$response" "\"id\":"; then
-    _err "Error"
-    return 1
-  fi
-
-  count=$(printf "%s" "$response" | _egrep_o "\"name\":\"$_sub_domain\"" | wc -l | _egrep_o "[0-9]+")
-  _debug count "$count"
-
-  if [ "$count" = "0" ]; then
+  if [ "$_records_count" = "0" ]; then
     _info "Adding record"
     if _dnsimple_rest POST "$_account_id/zones/$_domain/records" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
       if printf -- "%s" "$response" | grep "\"name\":\"$_sub_domain\"" >/dev/null; then
         _info "Added"
         return 0
       else
-        _err "Add txt record error."
+        _err "Unexpected response while adding text record."
         return 1
       fi
     fi
     _err "Add txt record error."
   else
     _info "Updating record"
-    record_id=$(printf "%s" "$response" | _egrep_o "\"id\":[^,]*,\"zone_id\":\"[^,]*\",\"parent_id\":null,\"name\":\"$_sub_domain\"" | cut -d: -f2 | cut -d, -f1)
-    _debug "record_id" "$record_id"
+    _extract_record_id $_records $_sub_domain
 
-    _dnsimple_rest PATCH "$_account_id/zones/$_domain/records/$record_id" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"content\":\"$txtvalue\",\"ttl\":120}"
+    _dnsimple_rest PATCH "$_account_id/zones/$_domain/records/$_record_id" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"content\":\"$txtvalue\",\"ttl\":120}"
     if [ "$?" = "0" ]; then
       _info "Updated!"
       #todo: check if the record takes effect
@@ -83,6 +69,31 @@ dns_dnsimple_add() {
 dns_dnsimple_rm() {
   fulldomain=$1
 
+  if ! _get_account_id; then
+    _err "failed to retrive account id"
+    return 1
+  fi
+
+  if ! _get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+
+  _get_records $_account_id $_domain $_sub_domain
+  _extract_record_id $_records $_sub_domain
+
+  if [ "$_record_id" ]; then
+    _dnsimple_rest DELETE "$_account_id/zones/$_domain/records/$_record_id"
+
+    if [ "$?" = "0" ]; then
+      _info "removed record" "$_record_id"
+      return 0
+    fi
+  fi
+
+  _err "failed to remove record" "$_record_id"
+  return 1
+
 }
 
 ####################  Private functions bellow ##################################
@@ -93,7 +104,7 @@ dns_dnsimple_rm() {
 _get_root() {
   domain=$1
   i=2
-  p=1
+  previous=1
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     if [ -z "$h" ]; then
@@ -108,17 +119,24 @@ _get_root() {
     if _contains "$response" 'not found'; then
       _debug "$h not found"
     else
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$previous)
       _domain="$h"
+
+      _debug _domain "$_domain"
+      _debug _sub_domain "$_sub_domain"
+
       return 0
     fi
-    p="$i"
+
+    previous="$i"
     i=$(_math "$i" + 1)
   done
   return 1
 }
 
+# returns _account_id
 _get_account_id() {
+  _debug "retrive account id"
   if ! _dnsimple_rest GET "whoami"; then
     return 1
   fi
@@ -129,14 +147,44 @@ _get_account_id() {
   fi
 
   if _contains "$response" "timeout"; then
-    _err "timeout retrieving account_id"
+    _err "timeout retrieving account id"
     return 1
   fi
 
   _account_id=$(printf "%s" "$response" | _egrep_o "\"id\":[^,]*,\"email\":" | cut -d: -f2 | cut -d, -f1)
+  _debug _account_id "$_account_id"
+
   return 0
 }
 
+# returns
+#   _records
+#   _records_count
+_get_records() {
+  account_id=$1
+  domain=$2
+  sub_domain=$3
+
+  _debug "fetching txt records"
+  _dnsimple_rest GET "$account_id/zones/$domain/records?per_page=100"
+
+  if ! _contains "$response" "\"id\":"; then
+    _err "failed to retrieve records"
+    return 1
+  fi
+
+  _records_count=$(printf "%s" "$response" | _egrep_o "\"name\":\"$sub_domain\"" | wc -l | _egrep_o "[0-9]+")
+  _records=$response
+  _debug _records_count "$_records_count"
+}
+
+# returns _record_id
+_extract_record_id() {
+  _record_id=$(printf "%s" "$_records" | _egrep_o "\"id\":[^,]*,\"zone_id\":\"[^,]*\",\"parent_id\":null,\"name\":\"$_sub_domain\"" | cut -d: -f2 | cut -d, -f1)
+  _debug "_record_id" "$_record_id"
+}
+
+# returns response
 _dnsimple_rest() {
   method=$1
   path="$2"
@@ -151,7 +199,7 @@ _dnsimple_rest() {
     _debug data "$data"
     response="$(_post "$data" "$request_url" "" "$method")"
   else
-    response="$(_get "$request_url")"
+    response="$(_request "$request_url" "" "" "$method")"
   fi
 
   if [ "$?" != "0" ]; then
