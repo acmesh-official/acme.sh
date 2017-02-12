@@ -143,7 +143,21 @@ export ACME_DEPLOY_SSH_REMOTE_CMD="openssl pkcs12 -export \
 
 acme.sh --deploy -d unifi.example.com --deploy-hook ssh
 ```
-Note how in this exmple we execute several commands on the remote host
+In this exmple we execute several commands on the remote host
 after the certificate files have been copied... to generate a pkcs12 file
 compatible with Unifi, to import it into the Unifi keystore and then finaly
 to restart the service.
+
+Note also that once the certificate is imported
+into the keystore the individual certificate files are no longer
+required. We could if we desired delete those files immediately. If we
+do that then we should disable backup at the remote host (as there are
+no files to backup -- they were erased during deployment). For example...
+```sh
+export ACME_DEPLOY_SSH_BACKUP=no
+# modify the end of the remte command...
+&& rm /var/lib/unifi/unifi.example.com.key \
+      /var/lib/unifi/unifi.example.com.cer \
+      /var/lib/unifi/unifi.example.com.p12 \
+&& service unifi restart
+```
