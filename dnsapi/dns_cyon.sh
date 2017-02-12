@@ -210,7 +210,10 @@ _cyon_change_domain_env() {
   domain_env="$(printf "%s" "${fulldomain}" | sed -E -e 's/.*\.(.*\..*)$/\1/')"
   _debug "Changing domain environment to ${domain_env}"
 
-  domain_env_url="https://my.cyon.ch/user/environment/setdomain/d/${domain_env}/gik/domain%3A${domain_env}"
+  gloo_item_key="$(_get "https://my.cyon.ch/domain/" | tr '\n' ' ' | sed -E -e "s/.*data-domain=\"${domain_env}\"[^<]*data-itemkey=\"([^\"]*).*/\1/")"
+  _debug gloo_item_key "${gloo_item_key}"
+
+  domain_env_url="https://my.cyon.ch/user/environment/setdomain/d/${domain_env}/gik/${gloo_item_key}"
 
   domain_env_response="$(_get "${domain_env_url}")"
   _debug domain_env_response "${domain_env_response}"
