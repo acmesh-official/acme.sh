@@ -135,12 +135,13 @@ export ACME_DEPLOY_SSH_REMOTE_CMD="openssl pkcs12 -export \
    -out /var/lib/unifi/unifi.example.com.p12 \
    -name ubnt -password pass:temppass \
  && keytool -importkeystore -deststorepass aircontrolenterprise \
-   -destkeypass aircontrolenterprise -destkeystore /var/lib/unifi/keystore \
+   -destkeypass aircontrolenterprise \
+   -destkeystore /var/lib/unifi/keystore \
    -srckeystore /var/lib/unifi/unifi.example.com.p12 \
    -srcstoretype PKCS12 -srcstorepass temppass -alias ubnt -noprompt \
  && service unifi restart"
 
-acme.sh --deploy -d qnap.example.com --deploy-hook ssh
+acme.sh --deploy -d unifi.example.com --deploy-hook ssh
 ```
 Note how in this exmple we execute several commands on the remote host
 after the certificate files have been copied... to generate a pkcs12 file
