@@ -93,10 +93,10 @@ ssh_deploy() {
   if [ -n "$Le_Deploy_ssh_keyfile" ]; then
     if [ "$Le_Deploy_ssh_backup" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr cp $Le_Deploy_ssh_keyfile $_backupdir ;"
+      _cmdstr="$_cmdstr cp $Le_Deploy_ssh_keyfile $_backupdir >/dev/null;"
     fi
     # copy new certificate into file.
-    _cmdstr="$_cmdstr echo \"$(cat "$_ckey")\" > $Le_Deploy_ssh_keyfile ;"
+    _cmdstr="$_cmdstr echo \"$(cat "$_ckey")\" > $Le_Deploy_ssh_keyfile;"
     _info "will copy private key to remote file $Le_Deploy_ssh_keyfile"
   fi
 
@@ -113,10 +113,10 @@ ssh_deploy() {
       _pipe=">>"
     elif [ "$Le_Deploy_ssh_backup" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr cp $Le_Deploy_ssh_certfile $_backupdir ;"
+      _cmdstr="$_cmdstr cp $Le_Deploy_ssh_certfile $_backupdir >/dev/null;"
     fi
     # copy new certificate into file.
-    _cmdstr="$_cmdstr echo \"$(cat "$_ccert")\" $_pipe $Le_Deploy_ssh_certfile ;"
+    _cmdstr="$_cmdstr echo \"$(cat "$_ccert")\" $_pipe $Le_Deploy_ssh_certfile;"
     _info "will copy certificate to remote file $Le_Deploy_ssh_certfile"
   fi
 
@@ -134,10 +134,10 @@ ssh_deploy() {
       _pipe=">>"
     elif [ "$Le_Deploy_ssh_backup" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr cp $Le_Deploy_ssh_cafile $_backupdir ;"
+      _cmdstr="$_cmdstr cp $Le_Deploy_ssh_cafile $_backupdir >/dev/null;"
     fi
     # copy new certificate into file.
-    _cmdstr="$_cmdstr echo \"$(cat "$_cca")\" $_pipe $Le_Deploy_ssh_cafile ;"
+    _cmdstr="$_cmdstr echo \"$(cat "$_cca")\" $_pipe $Le_Deploy_ssh_cafile;"
     _info "will copy CA file to remote file $Le_Deploy_ssh_cafile"
   fi
 
@@ -156,10 +156,10 @@ ssh_deploy() {
       _pipe=">>"
     elif [ "$Le_Deploy_ssh_backup" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr cp $Le_Deploy_ssh_fullchain $_backupdir ;"
+      _cmdstr="$_cmdstr cp $Le_Deploy_ssh_fullchain $_backupdir >/dev/null;"
     fi
     # copy new certificate into file.
-    _cmdstr="$_cmdstr echo \"$(cat "$_cfullchain")\" $_pipe $Le_Deploy_ssh_fullchain ;"
+    _cmdstr="$_cmdstr echo \"$(cat "$_cfullchain")\" $_pipe $Le_Deploy_ssh_fullchain;"
     _info "will copy fullchain to remote file $Le_Deploy_ssh_fullchain"
   fi
 
@@ -170,7 +170,7 @@ ssh_deploy() {
     _savedomainconf Le_Deploy_ssh_remote_cmd "$Le_Deploy_ssh_remote_cmd"
   fi
   if [ -n "$Le_Deploy_ssh_remote_cmd" ]; then
-    _cmdstr="$_cmdstr $Le_Deploy_ssh_remote_cmd ;"
+    _cmdstr="$_cmdstr $Le_Deploy_ssh_remote_cmd;"
     _info "Will execute remote command $Le_Deploy_ssh_remote_cmd"
   fi
 
@@ -183,9 +183,9 @@ ssh_deploy() {
     _cmdstr="{ now=\"\$(date -u +%s)\"; for fn in $_backupprefix*; \
 do if [ -d \"\$fn\" ] && [ \"\$(expr \$now - \$(date -ur \$fn +%s) )\" -ge \"15552000\" ]; \
 then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; done; }; $_cmdstr"
-    # Alternate version of above... _cmdstr="find $_backupprefix* -type d -mtime +180 2>/dev/null | xargs rm -rf ; $_cmdstr"
+    # Alternate version of above... _cmdstr="find $_backupprefix* -type d -mtime +180 2>/dev/null | xargs rm -rf; $_cmdstr"
     # Create our backup directory for overwritten cert files.
-    _cmdstr="mkdir -p $_backupdir ; $_cmdstr"
+    _cmdstr="mkdir -p $_backupdir; $_cmdstr"
     _info "Backup of old certificate files will be placed in remote directory $_backupdir"
     _info "Backup directories erased after 180 days."
   fi
