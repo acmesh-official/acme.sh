@@ -45,6 +45,8 @@ MODE_STATELESS="stateless"
 
 STATE_VERIFIED="verified_ok"
 
+NGINX="nginx:"
+
 BEGIN_CSR="-----BEGIN CERTIFICATE REQUEST-----"
 END_CSR="-----END CERTIFICATE REQUEST-----"
 
@@ -2277,10 +2279,186 @@ Allow from all
   return 0
 }
 
+#find the real nginx conf file
+#backup
+#set the nginx conf
+#returns the real nginx conf file
+_setNginx() {
+  _d="$1"
+  _croot="$2"
+  _thumbpt="$3"
+  if ! _exists "nginx"; then
+    _err "nginx command is not found."
+    return 1
+  fi
+  FOUND_REAL_NGINX_CONF=""
+  BACKUP_NGINX_CONF=""
+  _debug _croot "$_croot"
+  _start_f="$(echo "$_croot" | cut -d : -f 2)"
+  _debug _start_f "$_start_f"
+  if [ -z "$_start_f" ]; then
+    _debug "find start conf from nginx command"
+    if [ -z "$NGINX_CONF" ]; then
+      NGINX_CONF="$(nginx -V 2>&1 | _egrep_o "--conf-path=[^ ]* " | tr -d " ")"
+      _debug NGINX_CONF "$NGINX_CONF"
+      NGINX_CONF="$(echo "$NGINX_CONF" | cut -d = -f 2)"
+      _debug NGINX_CONF "$NGINX_CONF"
+      if [ ! -f "$NGINX_CONF" ]; then
+        _err "'$NGINX_CONF' doesn't exist."
+        NGINX_CONF=""
+        return 1
+      fi
+      _debug "Found nginx conf file:$NGINX_CONF"
+    fi
+    _start_f="$NGINX_CONF"
+  fi
+  _info "Start detect nginx conf for $_d from:$_start_f"
+  if ! _checkConf "$_d" "$_start_f"; then
+    "Can not find conf file for domain $d"
+    return 1
+  fi
+  _info "Found conf file: $FOUND_REAL_NGINX_CONF"
+
+  mkdir -p "$DOMAIN_BACKUP_PATH"
+  _backup_conf="$DOMAIN_BACKUP_PATH/$_d.nginx.conf"
+  _debug _backup_conf "$_backup_conf"
+  BACKUP_NGINX_CONF="$_backup_conf"
+  _info "Backup $FOUND_REAL_NGINX_CONF to $_backup_conf"
+  if ! cp "$FOUND_REAL_NGINX_CONF" "$_backup_conf"; then
+    _err "backup error."
+    FOUND_REAL_NGINX_CONF=""
+    return 1
+  fi
+
+  _info "Check the nginx conf before setting up."
+  if ! _exec "nginx -t" >/dev/null; then
+    _exec_err
+    return 1
+  fi
+
+  _info "OK, Set up nginx config file"
+  _ln=$(grep -n "^ *server_name.* $_d" "$_backup_conf" | cut -d : -f 1 | tr -d "\n")
+  _debug "_ln" "$_ln"
+
+  if ! sed -n "1,${_ln}p" "$_backup_conf" > "$FOUND_REAL_NGINX_CONF"; then
+    cat "$_backup_conf" > "$FOUND_REAL_NGINX_CONF"
+    _err "write nginx conf error, but don't worry, the file is restored to the original version."
+    return 1
+  fi
+
+  echo "
+location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
+  default_type text/plain;
+  return 200 \"\$1.$_thumbpt\";
+}  
+" >> "$FOUND_REAL_NGINX_CONF"
+
+  _ln=$(_math $_ln + 1)
+  if ! sed -n "${_ln},99999p" "$_backup_conf" >> "$FOUND_REAL_NGINX_CONF"; then
+    cat "$_backup_conf" > "$FOUND_REAL_NGINX_CONF"
+    _err "write nginx conf error, but don't worry, the file is restored."
+    return 1
+  fi
+
+  _info "nginx conf is done, let's check it again."
+  if ! _exec "nginx -t" >/dev/null; then
+    _exec_err
+    _err "It seems that nginx conf was broken, let's restore."
+     cat "$_backup_conf" > "$FOUND_REAL_NGINX_CONF"
+    return 1
+  fi
+
+  _info "Reload nginx"
+  if ! _exec "nginx -s reload" >/dev/null; then
+    _exec_err
+    _err "It seems that nginx reload error, let's restore."
+     cat "$_backup_conf" > "$FOUND_REAL_NGINX_CONF"
+    return 1
+  fi
+
+  return 0
+}
+
+#d , conf
+_checkConf() {
+  _d="$1"
+  _c_file="$2"
+  _debug "Start _checkConf from:$_c_file"
+  if [ ! -f "$2" ] && ! echo "$2" | grep '*$' >/dev/null && echo "$2" | grep '*' >/dev/null; then
+    _debug "wildcard"
+    for _w_f in $2; do
+      if _checkConf "$1" "$_w_f"; then
+        return 0
+      fi
+    done
+    #not found
+    return 1
+  elif [ -f "$2" ]; then
+    _debug "single"
+    if _isRealNginxConf "$1" "$2"; then
+      _debug "$2 is found."
+      FOUND_REAL_NGINX_CONF="$2"
+      return 0
+    fi
+    if grep "^ *include *.*;" "$2" >/dev/null; then
+      _debug "Try include files"
+      for included in $(grep "^ *include *.*;" "$2"| sed "s/include //" | tr -d " ;" ); do
+        _debug "check included $included"
+        if _checkConf "$1" "$included"; then
+          return 0
+        fi
+      done
+    fi
+    return 1
+  else
+    _debug "$2 not found."
+    return 1
+  fi
+  return 1
+}
+
+#d , conf
+_isRealNginxConf() {
+  _debug "_isRealNginxConf $1 $2"
+  if [ -f "$2" ] && grep "^ *server_name " "$2" | grep " $1" >/dev/null; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+#restore all the nginx conf
+_restoreNginx() {
+  if [ -z "$NGINX_VLIST" ]; then
+    _debug "No need to restore nginx, skip."
+    return
+  fi
+  _debug "_restoreNginx"
+  _debug "NGINX_VLIST" "$NGINX_VLIST"
+
+  for ng_entry in $(echo "$NGINX_VLIST" | tr "$dvsep" ' '); do
+    _debug "ng_entry" "$ng_entry"
+    _nd=$(echo "$ng_entry" | cut -d "$sep" -f 1)
+    _ngconf=$(echo "$ng_entry" | cut -d "$sep" -f 2)
+    _ngbackupconf=$(echo "$ng_entry" | cut -d "$sep" -f 3)
+    _info "Restoring from $_ngbackupconf to $_ngconf"
+    cat "$_ngbackupconf" > "$_ngconf"
+  done
+
+  _info "Reload nginx"
+  if ! _exec "nginx -s reload" >/dev/null; then
+    _exec_err
+    _err "It seems that nginx reload error, please report bug."
+    return 1
+  fi
+  return 0
+}
+
 _clearup() {
   _stopserver "$serverproc"
   serverproc=""
   _restoreApache
+  _restoreNginx
   _clearupdns
   if [ -z "$DEBUG" ]; then
     rm -f "$TLS_CONF"
@@ -2822,6 +3000,7 @@ issue() {
 
   _info "Getting domain auth token for each domain"
   sep='#'
+  dvsep=','
   if [ -z "$vlist" ]; then
     alldomains=$(echo "$Le_Domain,$Le_Alt" | tr ',' ' ')
     _index=1
@@ -2829,7 +3008,7 @@ issue() {
     for d in $alldomains; do
       _info "Getting webroot for domain" "$d"
       _w="$(echo $Le_Webroot | cut -d , -f $_index)"
-      _info _w "$_w"
+      _debug _w "$_w"
       if [ "$_w" ]; then
         _currentRoot="$_w"
       fi
@@ -2881,13 +3060,13 @@ issue() {
       dvlist="$d$sep$keyauthorization$sep$uri$sep$vtype$sep$_currentRoot"
       _debug dvlist "$dvlist"
 
-      vlist="$vlist$dvlist,"
+      vlist="$vlist$dvlist$dvsep"
 
     done
-
+    _debug vlist "$vlist"
     #add entry
     dnsadded=""
-    ventries=$(echo "$vlist" | tr ',' ' ')
+    ventries=$(echo "$vlist" | tr "$dvsep" ' ')
     for ventry in $ventries; do
       d=$(echo "$ventry" | cut -d "$sep" -f 1)
       keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
@@ -2970,10 +3149,11 @@ issue() {
     _sleep "$Le_DNSSleep"
   fi
 
+  NGINX_VLIST=""
   _debug "ok, let's start to verify"
 
   _ncIndex=1
-  ventries=$(echo "$vlist" | tr ',' ' ')
+  ventries=$(echo "$vlist" | tr "$dvsep" ' ')
   for ventry in $ventries; do
     d=$(echo "$ventry" | cut -d "$sep" -f 1)
     keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
@@ -3011,6 +3191,22 @@ issue() {
         _debug serverproc "$serverproc"
       elif [ "$_currentRoot" = "$MODE_STATELESS" ]; then
         _info "Stateless mode for domain:$d"
+        _sleep 1
+      elif _startswith "$_currentRoot" "$NGINX"; then
+        _info "Nginx mode for domain:$d"
+        #set up nginx server
+        FOUND_REAL_NGINX_CONF=""
+        BACKUP_NGINX_CONF=""
+        if ! _setNginx "$d" "$_currentRoot" "$thumbprint"; then
+          _clearup
+          _on_issue_err
+          return 1
+        else
+          _realConf="$FOUND_REAL_NGINX_CONF"
+          _backup="$BACKUP_NGINX_CONF"
+          _debug _realConf "$_realConf"
+          NGINX_VLIST="$NGINX_VLIST$d$sep$_realConf$sep$_backup$dvsep"
+        fi
         _sleep 1
       else
         if [ "$_currentRoot" = "apache" ]; then
@@ -4623,6 +4819,14 @@ _process() {
         ;;
       --apache)
         wvalue="apache"
+        if [ -z "$_webroot" ]; then
+          _webroot="$wvalue"
+        else
+          _webroot="$_webroot,$wvalue"
+        fi
+        ;;
+      --nginx)
+        wvalue="$NGINX"
         if [ -z "$_webroot" ]; then
           _webroot="$wvalue"
         else

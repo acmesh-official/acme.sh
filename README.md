@@ -54,6 +54,7 @@ https://github.com/Neilpang/acmetest
 - Webroot mode
 - Standalone mode
 - Apache mode
+- Nginx mode
 - DNS mode
 - [Stateless mode](https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode)
 
@@ -215,8 +216,27 @@ acme.sh --issue --apache -d example.com -d www.example.com -d cp.example.com
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
+# 7. Use Nginx mode
 
-# 7. Use DNS mode:
+**(requires you to be root/sudoer, since it is required to interact with Nginx server)**
+
+If you are running a web server, Apache or Nginx, it is recommended to use the `Webroot mode`.
+
+Particularly, if you are running an nginx server, you can use nginx mode instead. This mode doesn't write any files to your web root folder.
+
+Just set string "nginx" as the second argument.
+
+It will configure nginx server automatically to verify the domain and then restore the nginx config to the original version.
+
+So, the config is not changed.
+
+```
+acme.sh --issue --nginx -d example.com -d www.example.com -d cp.example.com
+```
+
+More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
+
+# 8. Use DNS mode:
 
 Support the `dns-01` challenge.
 
@@ -247,7 +267,7 @@ acme.sh --renew -d example.com
 Ok, it's finished.
 
 
-# 8. Automatic DNS API integration
+# 9. Automatic DNS API integration
 
 If your DNS provider supports API access, we can use that API to automatically issue the certs.
 
@@ -280,7 +300,7 @@ If your DNS provider is not on the supported list above, you can write your own 
 For more details: [How to use DNS API](dnsapi)
 
 
-# 9. Issue ECC certificates
+# 10. Issue ECC certificates
 
 `Let's Encrypt` can now issue **ECDSA** certificates.
 
@@ -311,7 +331,7 @@ Valid values are:
 3. **ec-521 (secp521r1,  "ECDSA P-521", which is not supported by Let's Encrypt yet.)**
 
 
-# 10. How to renew the issued certs
+# 11. How to renew the issued certs
 
 No, you don't need to renew the certs manually. All the certs will be renewed automatically every **60** days.
 
@@ -328,7 +348,7 @@ acme.sh --renew -d example.com --force --ecc
 ```
 
 
-# 11. How to upgrade `acme.sh`
+# 12. How to upgrade `acme.sh`
 
 acme.sh is in constant development, so it's strongly recommended to use the latest code.
 
@@ -353,7 +373,7 @@ acme.sh --upgrade --auto-upgrade 0
 ```
 
 
-# 12. Issue a cert from an existing CSR
+# 13. Issue a cert from an existing CSR
 
 https://github.com/Neilpang/acme.sh/wiki/Issue-a-cert-from-existing-CSR
 
