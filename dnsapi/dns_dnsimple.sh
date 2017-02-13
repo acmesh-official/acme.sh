@@ -37,7 +37,7 @@ dns_dnsimple_add() {
     return 1
   fi
 
-  _get_records $_account_id $_domain $_sub_domain
+  _get_records "$_account_id" "$_domain" "$_sub_domain"
 
   if [ "$_records_count" = "0" ]; then
     _info "Adding record"
@@ -53,14 +53,17 @@ dns_dnsimple_add() {
     _err "Add txt record error."
   else
     _info "Updating record"
-    _extract_record_id $_records $_sub_domain
+    _extract_record_id "$_records" "$_sub_domain"
 
-    _dnsimple_rest PATCH "$_account_id/zones/$_domain/records/$_record_id" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"content\":\"$txtvalue\",\"ttl\":120}"
-    if [ "$?" = "0" ]; then
+    if _dnsimple_rest \
+      PATCH \
+      "$_account_id/zones/$_domain/records/$_record_id" \
+      "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
+
       _info "Updated!"
-      #todo: check if the record takes effect
       return 0
     fi
+
     _err "Update error"
     return 1
   fi
@@ -80,13 +83,12 @@ dns_dnsimple_rm() {
     return 1
   fi
 
-  _get_records $_account_id $_domain $_sub_domain
-  _extract_record_id $_records $_sub_domain
+  _get_records "$_account_id" "$_domain" "$_sub_domain"
+  _extract_record_id "$_records" "$_sub_domain"
 
   if [ "$_record_id" ]; then
-    _dnsimple_rest DELETE "$_account_id/zones/$_domain/records/$_record_id"
 
-    if [ "$?" = "0" ]; then
+    if _dnsimple_rest DELETE "$_account_id/zones/$_domain/records/$_record_id"; then
       _info "removed record" "$_record_id"
       return 0
     fi
@@ -193,8 +195,9 @@ _dnsimple_rest() {
   request_url="$DNSimple_API/$path"
   _debug "$path"
 
-  _H1="Accept: application/json"
-  _H2="Authorization: Bearer $DNSimple_OAUTH_TOKEN"
+  export _H1="Accept: application/json"
+  export _H2="Authorization: Bearer $DNSimple_OAUTH_TOKEN"
+
   if [ "$data" ]; then
     _H1="Content-Type: application/json"
     _debug data "$data"
