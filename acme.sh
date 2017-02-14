@@ -2294,6 +2294,7 @@ _setNginx() {
     return 1
   fi
   FOUND_REAL_NGINX_CONF=""
+  FOUND_REAL_NGINX_CONF_LN=""
   BACKUP_NGINX_CONF=""
   _debug _croot "$_croot"
   _start_f="$(echo "$_croot" | cut -d : -f 2)"
@@ -2321,7 +2322,7 @@ _setNginx() {
   fi
   _info "Found conf file: $FOUND_REAL_NGINX_CONF"
 
-  _ln=$(grep -n "^ *server_name.* $_d" "$FOUND_REAL_NGINX_CONF" | cut -d : -f 1 | tr -d "\n")
+  _ln=$FOUND_REAL_NGINX_CONF_LN
   _debug "_ln" "$_ln"
 
   _lnn=$(_math $_ln + 1)
@@ -2437,12 +2438,36 @@ _isRealNginxConf() {
     for _fln in $(grep -n "^ *server_name.* $1" "$2" | cut -d : -f 1); do
       _debug _fln "$_fln"
       if [ "$_fln" ]; then
-        _listen=$(cat "$2" | _head_n "$_fln" | grep "^ *listen .*" | _tail_n 1)
+        _start=$(cat "$2" | _head_n "$_fln" | grep -n "^ *server *{" | _tail_n 1)
+        _debug "_start" "$_start"
+        _start_n=$(echo "$_start" | cut -d : -f 1)
+        _start_nn=$(_math $_start_n + 1)
+        _debug "_start_n" "$_start_n"
+        _debug "_start_nn" "$_start_nn"
+
+        _left="$(sed -n "${_start_nn},99999p" "$2")"
+        _debug2 _left "$_left"
+        if echo "$_left" | grep -n "^ *server *{" >/dev/null; then
+          _end=$(echo "$_left" | grep -n "^ *server *{" | _head_n 1)
+          _debug "_end" "$_end"
+          _end_n=$(echo "$_end" | cut -d : -f 1)
+          _debug "_end_n" "$_end_n"
+          _seg_n=$(echo "$_left" | sed -n "1,${_end_n}p")
+        else
+          _seg_n="$_left"
+        fi
+
+        _debug "_seg_n" "$_seg_n"
+
+        if [ "$(echo "$_seg_n" | _egrep_o "^ *ssl  *on *;")" ]; then
+          _debug "ssl on, skip"
+          return 1
+        fi
+        FOUND_REAL_NGINX_CONF_LN=$_fln
+        return 0
       fi
     done
-    return 0
   fi
-
   return 1
 }
 
