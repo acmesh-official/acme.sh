@@ -2442,14 +2442,14 @@ _isRealNginxConf() {
 
 #restore all the nginx conf
 _restoreNginx() {
-  if [ -z "$NGINX_VLIST" ]; then
+  if [ -z "$NGINX_RESTORE_VLIST" ]; then
     _debug "No need to restore nginx, skip."
     return
   fi
   _debug "_restoreNginx"
-  _debug "NGINX_VLIST" "$NGINX_VLIST"
+  _debug "NGINX_RESTORE_VLIST" "$NGINX_RESTORE_VLIST"
 
-  for ng_entry in $(echo "$NGINX_VLIST" | tr "$dvsep" ' '); do
+  for ng_entry in $(echo "$NGINX_RESTORE_VLIST" | tr "$dvsep" ' '); do
     _debug "ng_entry" "$ng_entry"
     _nd=$(echo "$ng_entry" | cut -d "$sep" -f 1)
     _ngconf=$(echo "$ng_entry" | cut -d "$sep" -f 2)
@@ -3162,7 +3162,7 @@ issue() {
     _sleep "$Le_DNSSleep"
   fi
 
-  NGINX_VLIST=""
+  NGINX_RESTORE_VLIST=""
   _debug "ok, let's start to verify"
 
   _ncIndex=1
@@ -3220,7 +3220,7 @@ issue() {
           _realConf="$FOUND_REAL_NGINX_CONF"
           _backup="$BACKUP_NGINX_CONF"
           _debug _realConf "$_realConf"
-          NGINX_VLIST="$NGINX_VLIST$d$sep$_realConf$sep$_backup$dvsep"
+          NGINX_RESTORE_VLIST="$d$sep$_realConf$sep$_backup$dvsep$NGINX_RESTORE_VLIST"
         fi
         _sleep 1
       else
