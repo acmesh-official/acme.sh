@@ -46,6 +46,8 @@ MODE_STATELESS="stateless"
 STATE_VERIFIED="verified_ok"
 
 NGINX="nginx:"
+NGINX_START="#ACME_NGINX_START"
+NGINX_END="#ACME_NGINX_END"
 
 BEGIN_CSR="-----BEGIN CERTIFICATE REQUEST-----"
 END_CSR="-----END CERTIFICATE REQUEST-----"
@@ -2312,12 +2314,25 @@ _setNginx() {
     fi
     _start_f="$NGINX_CONF"
   fi
-  _info "Start detect nginx conf for $_d from:$_start_f"
+  _debug "Start detect nginx conf for $_d from:$_start_f"
   if ! _checkConf "$_d" "$_start_f"; then
     "Can not find conf file for domain $d"
     return 1
   fi
   _info "Found conf file: $FOUND_REAL_NGINX_CONF"
+
+  _ln=$(grep -n "^ *server_name.* $_d" "$FOUND_REAL_NGINX_CONF" | cut -d : -f 1 | tr -d "\n")
+  _debug "_ln" "$_ln"
+
+  _lnn=$(_math $_ln + 1)
+  _debug _lnn "$_lnn"
+  _start_tag="$(sed -n "$_lnn,${_lnn}p" "$FOUND_REAL_NGINX_CONF")"
+  _debug "_start_tag" "$_start_tag"
+  if [ "$_start_tag" = "$NGINX_START" ]; then
+    _info "The domain $_d is already configured, skip"
+    FOUND_REAL_NGINX_CONF=""
+    return 0
+  fi
 
   mkdir -p "$DOMAIN_BACKUP_PATH"
   _backup_conf="$DOMAIN_BACKUP_PATH/$_d.nginx.conf"
@@ -2337,25 +2352,23 @@ _setNginx() {
   fi
 
   _info "OK, Set up nginx config file"
-  _ln=$(grep -n "^ *server_name.* $_d" "$_backup_conf" | cut -d : -f 1 | tr -d "\n")
-  _debug "_ln" "$_ln"
 
   if ! sed -n "1,${_ln}p" "$_backup_conf" > "$FOUND_REAL_NGINX_CONF"; then
-    cat "$_backup_conf" > "$FOUND_REAL_NGINX_CONF"
+    cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
     _err "write nginx conf error, but don't worry, the file is restored to the original version."
     return 1
   fi
 
-  echo "
+  echo "$NGINX_START
 location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
   default_type text/plain;
   return 200 \"\$1.$_thumbpt\";
 }  
-" >> "$FOUND_REAL_NGINX_CONF"
+#NGINX_START
+" >>"$FOUND_REAL_NGINX_CONF"
 
-  _ln=$(_math $_ln + 1)
-  if ! sed -n "${_ln},99999p" "$_backup_conf" >> "$FOUND_REAL_NGINX_CONF"; then
-    cat "$_backup_conf" > "$FOUND_REAL_NGINX_CONF"
+  if ! sed -n "${_lnn},99999p" "$_backup_conf" >>"$FOUND_REAL_NGINX_CONF"; then
+    cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
     _err "write nginx conf error, but don't worry, the file is restored."
     return 1
   fi
@@ -2364,7 +2377,7 @@ location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
   if ! _exec "nginx -t" >/dev/null; then
     _exec_err
     _err "It seems that nginx conf was broken, let's restore."
-     cat "$_backup_conf" > "$FOUND_REAL_NGINX_CONF"
+     cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
     return 1
   fi
 
@@ -2372,7 +2385,7 @@ location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
   if ! _exec "nginx -s reload" >/dev/null; then
     _exec_err
     _err "It seems that nginx reload error, let's restore."
-     cat "$_backup_conf" > "$FOUND_REAL_NGINX_CONF"
+     cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
     return 1
   fi
 
@@ -3201,7 +3214,9 @@ issue() {
           _clearup
           _on_issue_err
           return 1
-        else
+        fi
+        
+        if [ "$FOUND_REAL_NGINX_CONF" ]; then
           _realConf="$FOUND_REAL_NGINX_CONF"
           _backup="$BACKUP_NGINX_CONF"
           _debug _realConf "$_realConf"
