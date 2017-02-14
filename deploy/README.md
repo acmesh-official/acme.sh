@@ -110,7 +110,7 @@ are deployed.  This defaults to "yes" set to "no" to disable backup.
 
 ###Eamples using SSH deploy
 The following example illustrates deploying certifcates to a QNAP NAS
-running QTS 4.2
+(tested with QTS version 4.2.3)
 
 ```sh
 export ACME_DEPLOY_SSH_USER="admin"
@@ -121,6 +121,10 @@ export ACME_DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart"
 
 acme.sh --deploy -d qnap.example.com --deploy-hook ssh
 ```
+Note how in this example both the private key and certificate point to
+the same file.  This will result in the certificate being appended
+to the same file as the private key... a common requirement of several
+services.
 
 The next example illustates deploying certificates to a Unifi
 Contolller (tested with version 5.4.11).
