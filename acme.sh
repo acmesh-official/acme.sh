@@ -2353,7 +2353,7 @@ _setNginx() {
 
   _info "OK, Set up nginx config file"
 
-  if ! sed -n "1,${_ln}p" "$_backup_conf" > "$FOUND_REAL_NGINX_CONF"; then
+  if ! sed -n "1,${_ln}p" "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"; then
     cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
     _err "write nginx conf error, but don't worry, the file is restored to the original version."
     return 1
@@ -2377,7 +2377,7 @@ location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
   if ! _exec "nginx -t" >/dev/null; then
     _exec_err
     _err "It seems that nginx conf was broken, let's restore."
-     cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
+    cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
     return 1
   fi
 
@@ -2385,7 +2385,7 @@ location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
   if ! _exec "nginx -s reload" >/dev/null; then
     _exec_err
     _err "It seems that nginx reload error, let's restore."
-     cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
+    cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
     return 1
   fi
 
@@ -2415,7 +2415,7 @@ _checkConf() {
     fi
     if grep "^ *include *.*;" "$2" >/dev/null; then
       _debug "Try include files"
-      for included in $(grep "^ *include *.*;" "$2"| sed "s/include //" | tr -d " ;" ); do
+      for included in $(grep "^ *include *.*;" "$2" | sed "s/include //" | tr -d " ;"); do
         _debug "check included $included"
         if _checkConf "$1" "$included"; then
           return 0
@@ -2433,11 +2433,17 @@ _checkConf() {
 #d , conf
 _isRealNginxConf() {
   _debug "_isRealNginxConf $1 $2"
-  if [ -f "$2" ] && grep "^ *server_name " "$2" | grep " $1" >/dev/null; then
+  if [ -f "$2" ]; then
+    for _fln in $(grep -n "^ *server_name.* $1" "$2" | cut -d : -f 1); do
+      _debug _fln "$_fln"
+      if [ "$_fln" ]; then
+        _listen=$(cat "$2" | _head_n "$_fln" | grep "^ *listen .*" | _tail_n 1)
+      fi
+    done
     return 0
-  else
-    return 1
   fi
+
+  return 1
 }
 
 #restore all the nginx conf
@@ -2455,7 +2461,7 @@ _restoreNginx() {
     _ngconf=$(echo "$ng_entry" | cut -d "$sep" -f 2)
     _ngbackupconf=$(echo "$ng_entry" | cut -d "$sep" -f 3)
     _info "Restoring from $_ngbackupconf to $_ngconf"
-    cat "$_ngbackupconf" > "$_ngconf"
+    cat "$_ngbackupconf" >"$_ngconf"
   done
 
   _info "Reload nginx"
@@ -3215,7 +3221,7 @@ issue() {
           _on_issue_err
           return 1
         fi
-        
+
         if [ "$FOUND_REAL_NGINX_CONF" ]; then
           _realConf="$FOUND_REAL_NGINX_CONF"
           _backup="$BACKUP_NGINX_CONF"
