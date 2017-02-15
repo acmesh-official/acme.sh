@@ -54,7 +54,7 @@ https://github.com/Neilpang/acmetest
 - Webroot mode
 - Standalone mode
 - Apache mode
-- Nginx mode
+- Nginx mode ( Beta )
 - DNS mode
 - [Stateless mode](https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode)
 
