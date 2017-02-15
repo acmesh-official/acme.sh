@@ -2528,7 +2528,7 @@ _clearupdns() {
     txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
     _debug txt "$txt"
     if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
-      _info "$d is already verified, skip $vtype."
+      _debug "$d is already verified, skip $vtype."
       continue
     fi
 
@@ -3096,7 +3096,7 @@ issue() {
       _debug keyauthorization "$keyauthorization"
 
       if printf "%s" "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
-        _info "$d is already verified, skip."
+        _debug "$d is already verified, skip."
         keyauthorization="$STATE_VERIFIED"
         _debug keyauthorization "$keyauthorization"
       fi
@@ -3118,7 +3118,7 @@ issue() {
       _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
 
       if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
-        _info "$d is already verified, skip $vtype."
+        _debug "$d is already verified, skip $vtype."
         continue
       fi
 
