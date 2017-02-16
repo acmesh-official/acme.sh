@@ -311,7 +311,6 @@ First, generate a TSIG key for updating the zone.
 
 ```
 keymgr tsig generate acme_key algorithm hmac-sha512 > /etc/knot/acme.key
-
 ```
 
 Include this key in your knot configuration file.
