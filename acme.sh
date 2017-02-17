@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.6.6
+VER=2.6.7
 
 PROJECT_NAME="acme.sh"
 
@@ -44,6 +44,10 @@ W_TLS="tls"
 MODE_STATELESS="stateless"
 
 STATE_VERIFIED="verified_ok"
+
+NGINX="nginx:"
+NGINX_START="#ACME_NGINX_START"
+NGINX_END="#ACME_NGINX_END"
 
 BEGIN_CSR="-----BEGIN CERTIFICATE REQUEST-----"
 END_CSR="-----END CERTIFICATE REQUEST-----"
@@ -736,9 +740,9 @@ _hmac() {
 
   if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ]; then
     if [ "$outputhex" ]; then
-      $OPENSSL_BIN dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" | cut -d = -f 2 | tr -d ' '
+      ($OPENSSL_BIN dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" 2>/dev/null || $OPENSSL_BIN dgst -"$alg" -hmac "$(printf "%s" "$secret_hex" | _h2b)") | cut -d = -f 2 | tr -d ' '
     else
-      $OPENSSL_BIN dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" -binary
+      $OPENSSL_BIN dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" -binary 2>/dev/null || $OPENSSL_BIN dgst -"$alg" -hmac "$(printf "%s" "$secret_hex" | _h2b)" -binary
     fi
   else
     _err "$alg is not supported yet"
@@ -990,7 +994,7 @@ _readKeyLengthFromCSR() {
     echo "$_outcsr" | _egrep_o "^ *ASN1 OID:.*" | cut -d ':' -f 2 | tr -d ' '
   else
     _debug "RSA CSR"
-    echo "$_outcsr" | _egrep_o "^ *Public-Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1
+    echo "$_outcsr" | _egrep_o "^ *Public.Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1
   fi
 }
 
@@ -1526,62 +1530,75 @@ _send_signed_request() {
   payload64=$(printf "%s" "$payload" | _base64 | _url_replace)
   _debug3 payload64 "$payload64"
 
-  if [ -z "$_CACHED_NONCE" ]; then
-    _debug2 "Get nonce."
-    nonceurl="$API/directory"
-    _headers="$(_get "$nonceurl" "onlyheader")"
+  MAX_REQUEST_RETRY_TIMES=5
+  _request_retry_times=0
+  while [ "${_request_retry_times}" -lt "$MAX_REQUEST_RETRY_TIMES" ]; do
+    _debug3 _request_retry_times "$_request_retry_times"
+    if [ -z "$_CACHED_NONCE" ]; then
+      _debug2 "Get nonce."
+      nonceurl="$API/directory"
+      _headers="$(_get "$nonceurl" "onlyheader")"
 
-    if [ "$?" != "0" ]; then
-      _err "Can not connect to $nonceurl to get nonce."
+      if [ "$?" != "0" ]; then
+        _err "Can not connect to $nonceurl to get nonce."
+        return 1
+      fi
+
+      _debug2 _headers "$_headers"
+
+      _CACHED_NONCE="$(echo "$_headers" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
+      _debug2 _CACHED_NONCE "$_CACHED_NONCE"
+    else
+      _debug2 "Use _CACHED_NONCE" "$_CACHED_NONCE"
+    fi
+    nonce="$_CACHED_NONCE"
+    _debug2 nonce "$nonce"
+
+    protected="$JWK_HEADERPLACE_PART1$nonce$JWK_HEADERPLACE_PART2"
+    _debug3 protected "$protected"
+
+    protected64="$(printf "%s" "$protected" | _base64 | _url_replace)"
+    _debug3 protected64 "$protected64"
+
+    if ! _sig_t="$(printf "%s" "$protected64.$payload64" | _sign "$keyfile" "sha256")"; then
+      _err "Sign request failed."
       return 1
     fi
+    _debug3 _sig_t "$_sig_t"
 
-    _debug2 _headers "$_headers"
+    sig="$(printf "%s" "$_sig_t" | _url_replace)"
+    _debug3 sig "$sig"
 
-    _CACHED_NONCE="$(echo "$_headers" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
-    _debug2 _CACHED_NONCE "$_CACHED_NONCE"
-  else
-    _debug2 "Use _CACHED_NONCE" "$_CACHED_NONCE"
-  fi
-  nonce="$_CACHED_NONCE"
-  _debug2 nonce "$nonce"
+    body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
+    _debug3 body "$body"
 
-  protected="$JWK_HEADERPLACE_PART1$nonce$JWK_HEADERPLACE_PART2"
-  _debug3 protected "$protected"
+    response="$(_post "$body" "$url" "$needbase64")"
+    _CACHED_NONCE=""
 
-  protected64="$(printf "%s" "$protected" | _base64 | _url_replace)"
-  _debug3 protected64 "$protected64"
+    if [ "$?" != "0" ]; then
+      _err "Can not post to $url"
+      return 1
+    fi
+    _debug2 original "$response"
+    response="$(echo "$response" | _normalizeJson)"
 
-  if ! _sig_t="$(printf "%s" "$protected64.$payload64" | _sign "$keyfile" "sha256")"; then
-    _err "Sign request failed."
-    return 1
-  fi
-  _debug3 _sig_t "$_sig_t"
+    responseHeaders="$(<"$HTTP_HEADER")"
 
-  sig="$(printf "%s" "$_sig_t" | _url_replace)"
-  _debug3 sig "$sig"
+    _debug2 responseHeaders "$responseHeaders"
+    _debug2 response "$response"
+    code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
+    _debug code "$code"
 
-  body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
-  _debug3 body "$body"
+    _CACHED_NONCE="$(echo "$responseHeaders" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
 
-  response="$(_post "$body" "$url" "$needbase64")"
-  _CACHED_NONCE=""
-  if [ "$?" != "0" ]; then
-    _err "Can not post to $url"
-    return 1
-  fi
-  _debug2 original "$response"
-
-  response="$(echo "$response" | _normalizeJson)"
-
-  responseHeaders="$(cat "$HTTP_HEADER")"
-
-  _debug2 responseHeaders "$responseHeaders"
-  _debug2 response "$response"
-  code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
-  _debug code "$code"
-
-  _CACHED_NONCE="$(echo "$responseHeaders" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
+    if _contains "$response" "JWS has invalid anti-replay nonce"; then
+      _info "It seems the CA server is busy now, let's wait and retry."
+      _request_retry_times=$(_math "$_request_retry_times" + 1)
+      _sleep 5
+      continue
+    fi
+    break
+  done
 
 }
 
@@ -1606,14 +1623,14 @@ _setopt() {
       __val="$(echo "$__val" | sed 's/&/\\&/g')"
     fi
     text="$(cat "$__conf")"
-    echo "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
+    printf -- "%s\n" "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
 
   elif grep -n "^#$__opt$__sep" "$__conf" >/dev/null; then
     if _contains "$__val" "&"; then
       __val="$(echo "$__val" | sed 's/&/\\&/g')"
     fi
     text="$(cat "$__conf")"
-    echo "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
+    printf -- "%s\n" "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
 
   else
     _debug3 APP
@@ -2277,10 +2294,228 @@ Allow from all
   return 0
 }
 
+#find the real nginx conf file
+#backup
+#set the nginx conf
+#returns the real nginx conf file
+_setNginx() {
+  _d="$1"
+  _croot="$2"
+  _thumbpt="$3"
+  if ! _exists "nginx"; then
+    _err "nginx command is not found."
+    return 1
+  fi
+  FOUND_REAL_NGINX_CONF=""
+  FOUND_REAL_NGINX_CONF_LN=""
+  BACKUP_NGINX_CONF=""
+  _debug _croot "$_croot"
+  _start_f="$(echo "$_croot" | cut -d : -f 2)"
+  _debug _start_f "$_start_f"
+  if [ -z "$_start_f" ]; then
+    _debug "find start conf from nginx command"
+    if [ -z "$NGINX_CONF" ]; then
+      NGINX_CONF="$(nginx -V 2>&1 | _egrep_o "--conf-path=[^ ]* " | tr -d " ")"
+      _debug NGINX_CONF "$NGINX_CONF"
+      NGINX_CONF="$(echo "$NGINX_CONF" | cut -d = -f 2)"
+      _debug NGINX_CONF "$NGINX_CONF"
+      if [ ! -f "$NGINX_CONF" ]; then
+        _err "'$NGINX_CONF' doesn't exist."
+        NGINX_CONF=""
+        return 1
+      fi
+      _debug "Found nginx conf file:$NGINX_CONF"
+    fi
+    _start_f="$NGINX_CONF"
+  fi
+  _debug "Start detect nginx conf for $_d from:$_start_f"
+  if ! _checkConf "$_d" "$_start_f"; then
+    "Can not find conf file for domain $d"
+    return 1
+  fi
+  _info "Found conf file: $FOUND_REAL_NGINX_CONF"
+
+  _ln=$FOUND_REAL_NGINX_CONF_LN
+  _debug "_ln" "$_ln"
+
+  _lnn=$(_math $_ln + 1)
+  _debug _lnn "$_lnn"
+  _start_tag="$(sed -n "$_lnn,${_lnn}p" "$FOUND_REAL_NGINX_CONF")"
+  _debug "_start_tag" "$_start_tag"
+  if [ "$_start_tag" = "$NGINX_START" ]; then
+    _info "The domain $_d is already configured, skip"
+    FOUND_REAL_NGINX_CONF=""
+    return 0
+  fi
+
+  mkdir -p "$DOMAIN_BACKUP_PATH"
+  _backup_conf="$DOMAIN_BACKUP_PATH/$_d.nginx.conf"
+  _debug _backup_conf "$_backup_conf"
+  BACKUP_NGINX_CONF="$_backup_conf"
+  _info "Backup $FOUND_REAL_NGINX_CONF to $_backup_conf"
+  if ! cp "$FOUND_REAL_NGINX_CONF" "$_backup_conf"; then
+    _err "backup error."
+    FOUND_REAL_NGINX_CONF=""
+    return 1
+  fi
+
+  _info "Check the nginx conf before setting up."
+  if ! _exec "nginx -t" >/dev/null; then
+    _exec_err
+    return 1
+  fi
+
+  _info "OK, Set up nginx config file"
+
+  if ! sed -n "1,${_ln}p" "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"; then
+    cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
+    _err "write nginx conf error, but don't worry, the file is restored to the original version."
+    return 1
+  fi
+
+  echo "$NGINX_START
+location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
+  default_type text/plain;
+  return 200 \"\$1.$_thumbpt\";
+}  
+#NGINX_START
+" >>"$FOUND_REAL_NGINX_CONF"
+
+  if ! sed -n "${_lnn},99999p" "$_backup_conf" >>"$FOUND_REAL_NGINX_CONF"; then
+    cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
+    _err "write nginx conf error, but don't worry, the file is restored."
+    return 1
+  fi
+
+  _info "nginx conf is done, let's check it again."
+  if ! _exec "nginx -t" >/dev/null; then
+    _exec_err
+    _err "It seems that nginx conf was broken, let's restore."
+    cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
+    return 1
+  fi
+
+  _info "Reload nginx"
+  if ! _exec "nginx -s reload" >/dev/null; then
+    _exec_err
+    _err "It seems that nginx reload error, let's restore."
+    cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
+    return 1
+  fi
+
+  return 0
+}
+
+#d , conf
+_checkConf() {
+  _d="$1"
+  _c_file="$2"
+  _debug "Start _checkConf from:$_c_file"
+  if [ ! -f "$2" ] && ! echo "$2" | grep '*$' >/dev/null && echo "$2" | grep '*' >/dev/null; then
+    _debug "wildcard"
+    for _w_f in $2; do
+      if _checkConf "$1" "$_w_f"; then
+        return 0
+      fi
+    done
+    #not found
+    return 1
+  elif [ -f "$2" ]; then
+    _debug "single"
+    if _isRealNginxConf "$1" "$2"; then
+      _debug "$2 is found."
+      FOUND_REAL_NGINX_CONF="$2"
+      return 0
+    fi
+    if grep "^ *include *.*;" "$2" >/dev/null; then
+      _debug "Try include files"
+      for included in $(grep "^ *include *.*;" "$2" | sed "s/include //" | tr -d " ;"); do
+        _debug "check included $included"
+        if _checkConf "$1" "$included"; then
+          return 0
+        fi
+      done
+    fi
+    return 1
+  else
+    _debug "$2 not found."
+    return 1
+  fi
+  return 1
+}
+
+#d , conf
+_isRealNginxConf() {
+  _debug "_isRealNginxConf $1 $2"
+  if [ -f "$2" ]; then
+    for _fln in $(grep -n "^ *server_name.* $1" "$2" | cut -d : -f 1); do
+      _debug _fln "$_fln"
+      if [ "$_fln" ]; then
+        _start=$(cat "$2" | _head_n "$_fln" | grep -n "^ *server *{" | _tail_n 1)
+        _debug "_start" "$_start"
+        _start_n=$(echo "$_start" | cut -d : -f 1)
+        _start_nn=$(_math $_start_n + 1)
+        _debug "_start_n" "$_start_n"
+        _debug "_start_nn" "$_start_nn"
+
+        _left="$(sed -n "${_start_nn},99999p" "$2")"
+        _debug2 _left "$_left"
+        if echo "$_left" | grep -n "^ *server *{" >/dev/null; then
+          _end=$(echo "$_left" | grep -n "^ *server *{" | _head_n 1)
+          _debug "_end" "$_end"
+          _end_n=$(echo "$_end" | cut -d : -f 1)
+          _debug "_end_n" "$_end_n"
+          _seg_n=$(echo "$_left" | sed -n "1,${_end_n}p")
+        else
+          _seg_n="$_left"
+        fi
+
+        _debug "_seg_n" "$_seg_n"
+
+        if [ "$(echo "$_seg_n" | _egrep_o "^ *ssl  *on *;")" ]; then
+          _debug "ssl on, skip"
+          return 1
+        fi
+        FOUND_REAL_NGINX_CONF_LN=$_fln
+        return 0
+      fi
+    done
+  fi
+  return 1
+}
+
+#restore all the nginx conf
+_restoreNginx() {
+  if [ -z "$NGINX_RESTORE_VLIST" ]; then
+    _debug "No need to restore nginx, skip."
+    return
+  fi
+  _debug "_restoreNginx"
+  _debug "NGINX_RESTORE_VLIST" "$NGINX_RESTORE_VLIST"
+
+  for ng_entry in $(echo "$NGINX_RESTORE_VLIST" | tr "$dvsep" ' '); do
+    _debug "ng_entry" "$ng_entry"
+    _nd=$(echo "$ng_entry" | cut -d "$sep" -f 1)
+    _ngconf=$(echo "$ng_entry" | cut -d "$sep" -f 2)
+    _ngbackupconf=$(echo "$ng_entry" | cut -d "$sep" -f 3)
+    _info "Restoring from $_ngbackupconf to $_ngconf"
+    cat "$_ngbackupconf" >"$_ngconf"
+  done
+
+  _info "Reload nginx"
+  if ! _exec "nginx -s reload" >/dev/null; then
+    _exec_err
+    _err "It seems that nginx reload error, please report bug."
+    return 1
+  fi
+  return 0
+}
+
 _clearup() {
   _stopserver "$serverproc"
   serverproc=""
   _restoreApache
+  _restoreNginx
   _clearupdns
   if [ -z "$DEBUG" ]; then
     rm -f "$TLS_CONF"
@@ -2306,7 +2541,7 @@ _clearupdns() {
     txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
     _debug txt "$txt"
     if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
-      _info "$d is already verified, skip $vtype."
+      _debug "$d is already verified, skip $vtype."
       continue
     fi
 
@@ -2822,6 +3057,7 @@ issue() {
 
   _info "Getting domain auth token for each domain"
   sep='#'
+  dvsep=','
   if [ -z "$vlist" ]; then
     alldomains=$(echo "$Le_Domain,$Le_Alt" | tr ',' ' ')
     _index=1
@@ -2829,7 +3065,7 @@ issue() {
     for d in $alldomains; do
       _info "Getting webroot for domain" "$d"
       _w="$(echo $Le_Webroot | cut -d , -f $_index)"
-      _info _w "$_w"
+      _debug _w "$_w"
       if [ "$_w" ]; then
         _currentRoot="$_w"
       fi
@@ -2873,7 +3109,7 @@ issue() {
       _debug keyauthorization "$keyauthorization"
 
       if printf "%s" "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
-        _info "$d is already verified, skip."
+        _debug "$d is already verified, skip."
         keyauthorization="$STATE_VERIFIED"
         _debug keyauthorization "$keyauthorization"
       fi
@@ -2881,13 +3117,13 @@ issue() {
       dvlist="$d$sep$keyauthorization$sep$uri$sep$vtype$sep$_currentRoot"
       _debug dvlist "$dvlist"
 
-      vlist="$vlist$dvlist,"
+      vlist="$vlist$dvlist$dvsep"
 
     done
-
+    _debug vlist "$vlist"
     #add entry
     dnsadded=""
-    ventries=$(echo "$vlist" | tr ',' ' ')
+    ventries=$(echo "$vlist" | tr "$dvsep" ' ')
     for ventry in $ventries; do
       d=$(echo "$ventry" | cut -d "$sep" -f 1)
       keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
@@ -2895,7 +3131,7 @@ issue() {
       _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
 
       if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
-        _info "$d is already verified, skip $vtype."
+        _debug "$d is already verified, skip $vtype."
         continue
       fi
 
@@ -2970,10 +3206,11 @@ issue() {
     _sleep "$Le_DNSSleep"
   fi
 
+  NGINX_RESTORE_VLIST=""
   _debug "ok, let's start to verify"
 
   _ncIndex=1
-  ventries=$(echo "$vlist" | tr ',' ' ')
+  ventries=$(echo "$vlist" | tr "$dvsep" ' ')
   for ventry in $ventries; do
     d=$(echo "$ventry" | cut -d "$sep" -f 1)
     keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
@@ -3011,6 +3248,24 @@ issue() {
         _debug serverproc "$serverproc"
       elif [ "$_currentRoot" = "$MODE_STATELESS" ]; then
         _info "Stateless mode for domain:$d"
+        _sleep 1
+      elif _startswith "$_currentRoot" "$NGINX"; then
+        _info "Nginx mode for domain:$d"
+        #set up nginx server
+        FOUND_REAL_NGINX_CONF=""
+        BACKUP_NGINX_CONF=""
+        if ! _setNginx "$d" "$_currentRoot" "$thumbprint"; then
+          _clearup
+          _on_issue_err
+          return 1
+        fi
+
+        if [ "$FOUND_REAL_NGINX_CONF" ]; then
+          _realConf="$FOUND_REAL_NGINX_CONF"
+          _backup="$BACKUP_NGINX_CONF"
+          _debug _realConf "$_realConf"
+          NGINX_RESTORE_VLIST="$d$sep$_realConf$sep$_backup$dvsep$NGINX_RESTORE_VLIST"
+        fi
         _sleep 1
       else
         if [ "$_currentRoot" = "apache" ]; then
@@ -4623,6 +4878,14 @@ _process() {
         ;;
       --apache)
         wvalue="apache"
+        if [ -z "$_webroot" ]; then
+          _webroot="$wvalue"
+        else
+          _webroot="$_webroot,$wvalue"
+        fi
+        ;;
+      --nginx)
+        wvalue="$NGINX"
         if [ -z "$_webroot" ]; then
           _webroot="$wvalue"
         else
