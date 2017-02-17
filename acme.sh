@@ -1533,7 +1533,7 @@ _send_signed_request() {
   MAX_REQUEST_RETRY_TIMES=5
   _request_retry_times=0
   while [ "${_request_retry_times}" -lt "$MAX_REQUEST_RETRY_TIMES" ]; do
-    _debug3 _request_retry_times "$_request_retry_times" 
+    _debug3 _request_retry_times "$_request_retry_times"
     if [ -z "$_CACHED_NONCE" ]; then
       _debug2 "Get nonce."
       nonceurl="$API/directory"
@@ -1582,7 +1582,7 @@ _send_signed_request() {
     _debug2 original "$response"
     response="$(echo "$response" | _normalizeJson)"
 
-    responseHeaders="$(< "$HTTP_HEADER")"
+    responseHeaders="$(<"$HTTP_HEADER")"
 
     _debug2 responseHeaders "$responseHeaders"
     _debug2 response "$response"
@@ -1597,7 +1597,7 @@ _send_signed_request() {
       _sleep 5
       continue
     fi
-    break;
+    break
   done
 
 }
