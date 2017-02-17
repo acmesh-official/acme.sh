@@ -1530,62 +1530,75 @@ _send_signed_request() {
   payload64=$(printf "%s" "$payload" | _base64 | _url_replace)
   _debug3 payload64 "$payload64"
 
-  if [ -z "$_CACHED_NONCE" ]; then
-    _debug2 "Get nonce."
-    nonceurl="$API/directory"
-    _headers="$(_get "$nonceurl" "onlyheader")"
+  MAX_REQUEST_RETRY_TIMES=5
+  _request_retry_times=0
+  while [ "${_request_retry_times}" -lt "$MAX_REQUEST_RETRY_TIMES" ]; do
+    _debug3 _request_retry_times "$_request_retry_times" 
+    if [ -z "$_CACHED_NONCE" ]; then
+      _debug2 "Get nonce."
+      nonceurl="$API/directory"
+      _headers="$(_get "$nonceurl" "onlyheader")"
 
-    if [ "$?" != "0" ]; then
-      _err "Can not connect to $nonceurl to get nonce."
+      if [ "$?" != "0" ]; then
+        _err "Can not connect to $nonceurl to get nonce."
+        return 1
+      fi
+
+      _debug2 _headers "$_headers"
+
+      _CACHED_NONCE="$(echo "$_headers" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
+      _debug2 _CACHED_NONCE "$_CACHED_NONCE"
+    else
+      _debug2 "Use _CACHED_NONCE" "$_CACHED_NONCE"
+    fi
+    nonce="$_CACHED_NONCE"
+    _debug2 nonce "$nonce"
+
+    protected="$JWK_HEADERPLACE_PART1$nonce$JWK_HEADERPLACE_PART2"
+    _debug3 protected "$protected"
+
+    protected64="$(printf "%s" "$protected" | _base64 | _url_replace)"
+    _debug3 protected64 "$protected64"
+
+    if ! _sig_t="$(printf "%s" "$protected64.$payload64" | _sign "$keyfile" "sha256")"; then
+      _err "Sign request failed."
       return 1
     fi
+    _debug3 _sig_t "$_sig_t"
 
-    _debug2 _headers "$_headers"
+    sig="$(printf "%s" "$_sig_t" | _url_replace)"
+    _debug3 sig "$sig"
 
-    _CACHED_NONCE="$(echo "$_headers" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
-    _debug2 _CACHED_NONCE "$_CACHED_NONCE"
-  else
-    _debug2 "Use _CACHED_NONCE" "$_CACHED_NONCE"
-  fi
-  nonce="$_CACHED_NONCE"
-  _debug2 nonce "$nonce"
+    body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
+    _debug3 body "$body"
 
-  protected="$JWK_HEADERPLACE_PART1$nonce$JWK_HEADERPLACE_PART2"
-  _debug3 protected "$protected"
+    response="$(_post "$body" "$url" "$needbase64")"
+    _CACHED_NONCE=""
 
-  protected64="$(printf "%s" "$protected" | _base64 | _url_replace)"
-  _debug3 protected64 "$protected64"
+    if [ "$?" != "0" ]; then
+      _err "Can not post to $url"
+      return 1
+    fi
+    _debug2 original "$response"
+    response="$(echo "$response" | _normalizeJson)"
 
-  if ! _sig_t="$(printf "%s" "$protected64.$payload64" | _sign "$keyfile" "sha256")"; then
-    _err "Sign request failed."
-    return 1
-  fi
-  _debug3 _sig_t "$_sig_t"
+    responseHeaders="$(< "$HTTP_HEADER")"
 
-  sig="$(printf "%s" "$_sig_t" | _url_replace)"
-  _debug3 sig "$sig"
+    _debug2 responseHeaders "$responseHeaders"
+    _debug2 response "$response"
+    code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
+    _debug code "$code"
 
-  body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
-  _debug3 body "$body"
+    _CACHED_NONCE="$(echo "$responseHeaders" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
 
-  response="$(_post "$body" "$url" "$needbase64")"
-  _CACHED_NONCE=""
-  if [ "$?" != "0" ]; then
-    _err "Can not post to $url"
-    return 1
-  fi
-  _debug2 original "$response"
-
-  response="$(echo "$response" | _normalizeJson)"
-
-  responseHeaders="$(cat "$HTTP_HEADER")"
-
-  _debug2 responseHeaders "$responseHeaders"
-  _debug2 response "$response"
-  code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
-  _debug code "$code"
-
-  _CACHED_NONCE="$(echo "$responseHeaders" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
+    if _contains "$response" "JWS has invalid anti-replay nonce"; then
+      _info "It seems the CA server is busy now, let's wait and retry."
+      _request_retry_times=$(_math "$_request_retry_times" + 1)
+      _sleep 5
+      continue
+    fi
+    break;
+  done
 
 }
 
