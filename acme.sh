@@ -1582,7 +1582,7 @@ _send_signed_request() {
     _debug2 original "$response"
     response="$(echo "$response" | _normalizeJson)"
 
-    responseHeaders="$(<"$HTTP_HEADER")"
+    responseHeaders="$(cat "$HTTP_HEADER")"
 
     _debug2 responseHeaders "$responseHeaders"
     _debug2 response "$response"
