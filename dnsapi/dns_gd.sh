@@ -40,7 +40,7 @@ dns_gd_add() {
   if _gd_rest PUT "domains/$_domain/records/TXT/$_sub_domain" "[{\"data\":\"$txtvalue\"}]"; then
     if [ "$response" = "{}" ]; then
       _info "Added, sleeping 10 seconds"
-      sleep 10
+      _sleep 10
       #todo: check if the record takes effect
       return 0
     else
