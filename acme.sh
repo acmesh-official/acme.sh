@@ -71,6 +71,8 @@ DEBUG_LEVEL_3=3
 DEBUG_LEVEL_DEFAULT=$DEBUG_LEVEL_1
 DEBUG_LEVEL_NONE=0
 
+HIDDEN_VALUE="[hidden](please add '--output-insecure' to see this value)"
+
 SYSLOG_ERROR="user.error"
 SYSLOG_INFO="user.info"
 SYSLOG_DEBUG="user.debug"
@@ -212,6 +214,27 @@ _debug() {
   fi
 }
 
+#output the sensitive messages
+_secure_debug() {
+  if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_1" ]; then
+    if [ "$OUTPUT_INSECURE" = "1" ]; then
+      _log "$@"
+    else
+      _log "$1" "$HIDDEN_VALUE"
+    fi
+  fi
+  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_DEBUG" ]; then
+    _syslog "$SYSLOG_DEBUG" "$1" "$HIDDEN_VALUE"
+  fi
+  if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_1" ]; then
+    if [ "$OUTPUT_INSECURE" = "1" ]; then
+      _printargs "$@" >&2
+    else
+      _printargs "$1" "$HIDDEN_VALUE" >&2
+    fi
+  fi
+}
+
 _debug2() {
   if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_2" ]; then
     _log "$@"
@@ -224,6 +247,26 @@ _debug2() {
   fi
 }
 
+_secure_debug2() {
+  if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_2" ]; then
+    if [ "$OUTPUT_INSECURE" = "1" ]; then
+      _log "$@"
+    else
+      _log "$1" "$HIDDEN_VALUE"
+    fi
+  fi
+  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_DEBUG_2" ]; then
+    _syslog "$SYSLOG_DEBUG" "$1" "$HIDDEN_VALUE"
+  fi
+  if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_2" ]; then
+    if [ "$OUTPUT_INSECURE" = "1" ]; then
+      _printargs "$@" >&2
+    else
+      _printargs "$1" "$HIDDEN_VALUE" >&2
+    fi
+  fi
+}
+
 _debug3() {
   if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_3" ]; then
     _log "$@"
@@ -233,6 +276,26 @@ _debug3() {
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_3" ]; then
     _printargs "$@" >&2
+  fi
+}
+
+_secure_debug3() {
+  if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_3" ]; then
+    if [ "$OUTPUT_INSECURE" = "1" ]; then
+      _log "$@"
+    else
+      _log "$1" "$HIDDEN_VALUE"
+    fi
+  fi
+  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_DEBUG_3" ]; then
+    _syslog "$SYSLOG_DEBUG" "$1" "$HIDDEN_VALUE"
+  fi
+  if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_3" ]; then
+    if [ "$OUTPUT_INSECURE" = "1" ]; then
+      _printargs "$@" >&2
+    else
+      _printargs "$1" "$HIDDEN_VALUE" >&2
+    fi
   fi
 }
 
@@ -4583,7 +4646,7 @@ Parameters:
   --force, -f                       Used to force to install or force to renew a cert immediately.
   --staging, --test                 Use staging server, just for test.
   --debug                           Output debug info.
-    
+  --output-insecure                 Output all the sensitive messages. By default all the credentials/sensitive messages are hidden from the output/debug/log for secure.
   --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
   --stateless                       Use stateless mode, see: $_STATELESS_WIKI
@@ -4876,6 +4939,9 @@ _process() {
           DEBUG="$2"
           shift
         fi
+        ;;
+      --output-insecure)
+        export OUTPUT_INSECURE=1
         ;;
       --webroot | -w)
         wvalue="$2"
