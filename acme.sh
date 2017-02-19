@@ -4596,7 +4596,7 @@ Parameters:
   --accountkeylength, -ak [2048]    Specifies the account key length.
   --log    [/path/to/logfile]       Specifies the log file. The default is: \"$DEFAULT_LOG_FILE\" if you don't give a file path here.
   --log-level 1|2                   Specifies the log level, default is 1.
-  --syslog [1|0]                    Enable/Disable syslog.
+  --syslog [0|3|6|7]                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
   
   These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
   
