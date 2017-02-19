@@ -65,9 +65,30 @@ LOG_LEVEL_2=2
 LOG_LEVEL_3=3
 DEFAULT_LOG_LEVEL="$LOG_LEVEL_1"
 
-SYSLOG_INFO="user.info"
+DEBUG_LEVEL_1=1
+DEBUG_LEVEL_2=2
+DEBUG_LEVEL_3=3
+DEBUG_LEVEL_DEFAULT=$DEBUG_LEVEL_1
+DEBUG_LEVEL_NONE=0
+
 SYSLOG_ERROR="user.error"
+SYSLOG_INFO="user.info"
 SYSLOG_DEBUG="user.debug"
+
+#error
+SYSLOG_LEVEL_1=1
+#info
+SYSLOG_LEVEL_2=2
+#debug
+SYSLOG_LEVEL_3=3
+#debug2
+SYSLOG_LEVEL_4=4
+#debug3
+SYSLOG_LEVEL_5=5
+
+SYSLOG_LEVEL_DEFAULT=$SYSLOG_LEVEL_1
+#none
+SYSLOG_LEVEL_NONE=0
 
 _DEBUG_WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-debug-acme.sh"
 
@@ -138,7 +159,7 @@ _dlg_versions() {
 
 #class
 _syslog() {
-  if [ -z "$SYS_LOG" ] || [ "$SYS_LOG" = "0" ]; then
+  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" = "$SYSLOG_LEVEL_NONE" ]; then
     return
   fi
   _logclass="$1"
@@ -147,19 +168,21 @@ _syslog() {
 }
 
 _log() {
-  _syslog "$@"
   [ -z "$LOG_FILE" ] && return
-  shift
   _printargs "$@" >>"$LOG_FILE"
 }
 
 _info() {
-  _log "$SYSLOG_INFO" "$@"
+  _log "$@"
+  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_2" ]; then
+    _syslog "$SYSLOG_INFO" "$@"
+  fi
   _printargs "$@"
 }
 
 _err() {
-  _log "$SYSLOG_ERROR" "$@"
+  _syslog "$SYSLOG_ERROR" "$@"
+  _log "$@"
   if [ -z "$NO_TIMESTAMP" ] || [ "$NO_TIMESTAMP" = "0" ]; then
     printf -- "%s" "[$(date)] " >&2
   fi
@@ -178,29 +201,37 @@ _usage() {
 }
 
 _debug() {
-  if [ -z "$LOG_LEVEL" ] || [ "$LOG_LEVEL" -ge "$LOG_LEVEL_1" ]; then
-    _log "$SYSLOG_DEBUG" "$@"
+  if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_1" ]; then
+    _log "$@"
   fi
-  if [ -z "$DEBUG" ]; then
-    return
+  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_3" ]; then
+    _syslog "$SYSLOG_DEBUG" "$@"
   fi
-  _printargs "$@" >&2
+  if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_1" ]; then
+    _printargs "$@" >&2
+  fi
 }
 
 _debug2() {
-  if [ "$LOG_LEVEL" ] && [ "$LOG_LEVEL" -ge "$LOG_LEVEL_2" ]; then
-    _log "$SYSLOG_DEBUG" "$@"
+  if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_2" ]; then
+    _log "$@"
   fi
-  if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
+  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_4" ]; then
+    _syslog "$SYSLOG_DEBUG" "$@"
+  fi
+  if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_2" ]; then
     _printargs "$@" >&2
   fi
 }
 
 _debug3() {
-  if [ "$LOG_LEVEL" ] && [ "$LOG_LEVEL" -ge "$LOG_LEVEL_3" ]; then
-    _log "$SYSLOG_DEBUG" "$@"
+  if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_3" ]; then
+    _log "$@"
   fi
-  if [ "$DEBUG" ] && [ "$DEBUG" -ge "3" ]; then
+  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_5" ]; then
+    _syslog "$SYSLOG_DEBUG" "$@"
+  fi
+  if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_3" ]; then
     _printargs "$@" >&2
   fi
 }
@@ -1582,7 +1613,7 @@ _send_signed_request() {
     _debug2 original "$response"
     response="$(echo "$response" | _normalizeJson)"
 
-    responseHeaders="$(<"$HTTP_HEADER")"
+    responseHeaders="$(cat "$HTTP_HEADER")"
 
     _debug2 responseHeaders "$responseHeaders"
     _debug2 response "$response"
@@ -4840,7 +4871,7 @@ _process() {
         ;;
       --debug)
         if [ -z "$2" ] || _startswith "$2" "-"; then
-          DEBUG="1"
+          DEBUG="$DEBUG_LEVEL_DEFAULT"
         else
           DEBUG="$2"
           shift
@@ -5069,7 +5100,7 @@ _process() {
           shift
         fi
         if [ -z "$_syslog" ]; then
-          _syslog="1"
+          _syslog="$SYSLOG_LEVEL_DEFAULT"
         fi
         ;;
       --auto-upgrade)
