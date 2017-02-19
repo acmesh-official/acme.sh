@@ -3037,7 +3037,7 @@ issue() {
     _main_domain=$(echo "$2,$3" | cut -d , -f 1)
     _alt_domains=$(echo "$2,$3" | cut -d , -f 2- | sed "s/,${NO_VALUE}$//")
   fi
-  Le_Keylength="$4"
+  _key_length="$4"
   Le_RealCertPath="$5"
   Le_RealKeyPath="$6"
   Le_RealCACertPath="$7"
@@ -3061,7 +3061,7 @@ issue() {
   _debug "Using api: $API"
 
   if [ ! "$IS_RENEW" ]; then
-    _initpath "$_main_domain" "$Le_Keylength"
+    _initpath "$_main_domain" "$_key_length"
     mkdir -p "$DOMAIN_PATH"
   fi
 
@@ -3105,8 +3105,8 @@ issue() {
     _alt_domains=""
   fi
 
-  if [ "$Le_Keylength" = "$NO_VALUE" ]; then
-    Le_Keylength=""
+  if [ "$_key_length" = "$NO_VALUE" ]; then
+    _key_length=""
   fi
 
   if ! _on_before_issue "$_web_roots" "$_main_domain" "$_alt_domains"; then
@@ -3131,8 +3131,8 @@ issue() {
   else
     _key=$(_readdomainconf Le_Keylength)
     _debug "Read key length:$_key"
-    if [ ! -f "$CERT_KEY_PATH" ] || [ "$Le_Keylength" != "$_key" ]; then
-      if ! createDomainKey "$_main_domain" "$Le_Keylength"; then
+    if [ ! -f "$CERT_KEY_PATH" ] || [ "$_key_length" != "$_key" ]; then
+      if ! createDomainKey "$_main_domain" "$_key_length"; then
         _err "Create domain key error."
         _clearup
         _on_issue_err
@@ -3148,7 +3148,7 @@ issue() {
     fi
   fi
 
-  _savedomainconf "Le_Keylength" "$Le_Keylength"
+  _savedomainconf "Le_Keylength" "$_key_length"
 
   vlist="$Le_Vlist"
 
