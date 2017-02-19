@@ -109,7 +109,8 @@ _dns_do_soap() {
   _debug2 "SOAP response $response"
 
   # retrieve cookie header
-  export _H2="$(_egrep_o 'Cookie: [^;]+' <"$HTTP_HEADER" | _head_n 1)"
+  _H2="$(_egrep_o 'Cookie: [^;]+' <"$HTTP_HEADER" | _head_n 1)"
+  export _H2
 
   return 0
 }
