@@ -2708,6 +2708,8 @@ _clearupwebbroot() {
 
 _on_before_issue() {
   _chk_web_roots="$1"
+  _chk_main_domain="$2"
+  _chk_alt_domains="$3"
   _debug _on_before_issue
   #run pre hook
   if [ "$Le_PreHook" ]; then
@@ -2729,7 +2731,7 @@ _on_before_issue() {
 
   _debug Le_LocalAddress "$Le_LocalAddress"
 
-  alldomains=$(echo "$Le_Domain,$Le_Alt" | tr ',' ' ')
+  alldomains=$(echo "$_chk_main_domain,$_chk_alt_domains" | tr ',' ' ')
   _index=1
   _currentRoot=""
   _addrIndex=1
@@ -3030,10 +3032,10 @@ issue() {
   fi
   _web_roots="$1"
   _main_domain="$2"
-  Le_Alt="$3"
+  _alt_domains="$3"
   if _contains "$_main_domain" ","; then
     _main_domain=$(echo "$2,$3" | cut -d , -f 1)
-    Le_Alt=$(echo "$2,$3" | cut -d , -f 2- | sed "s/,${NO_VALUE}$//")
+    _alt_domains=$(echo "$2,$3" | cut -d , -f 2- | sed "s/,${NO_VALUE}$//")
   fi
   Le_Keylength="$4"
   Le_RealCertPath="$5"
@@ -3071,7 +3073,7 @@ issue() {
       _debug _saved_domain "$_saved_domain"
       _saved_alt=$(_readdomainconf Le_Alt)
       _debug _saved_alt "$_saved_alt"
-      if [ "$_saved_domain,$_saved_alt" = "$_main_domain,$Le_Alt" ]; then
+      if [ "$_saved_domain,$_saved_alt" = "$_main_domain,$_alt_domains" ]; then
         _info "Domains not changed."
         _info "Skip, Next renewal time is: $(__green "$(_readdomainconf Le_NextRenewTimeStr)")"
         _info "Add '$(__red '--force')' to force to renew."
@@ -3083,7 +3085,7 @@ issue() {
   fi
 
   _savedomainconf "Le_Domain" "$_main_domain"
-  _savedomainconf "Le_Alt" "$Le_Alt"
+  _savedomainconf "Le_Alt" "$_alt_domains"
   _savedomainconf "Le_Webroot" "$_web_roots"
 
   _savedomainconf "Le_PreHook" "$Le_PreHook"
@@ -3099,15 +3101,15 @@ issue() {
   Le_API="$API"
   _savedomainconf "Le_API" "$Le_API"
 
-  if [ "$Le_Alt" = "$NO_VALUE" ]; then
-    Le_Alt=""
+  if [ "$_alt_domains" = "$NO_VALUE" ]; then
+    _alt_domains=""
   fi
 
   if [ "$Le_Keylength" = "$NO_VALUE" ]; then
     Le_Keylength=""
   fi
 
-  if ! _on_before_issue "$_web_roots"; then
+  if ! _on_before_issue "$_web_roots" "$_main_domain" "$_alt_domains"; then
     _err "_on_before_issue."
     return 1
   fi
@@ -3138,7 +3140,7 @@ issue() {
       fi
     fi
 
-    if ! _createcsr "$_main_domain" "$Le_Alt" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"; then
+    if ! _createcsr "$_main_domain" "$_alt_domains" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"; then
       _err "Create CSR error."
       _clearup
       _on_issue_err
@@ -3154,7 +3156,7 @@ issue() {
   sep='#'
   dvsep=','
   if [ -z "$vlist" ]; then
-    alldomains=$(echo "$_main_domain,$Le_Alt" | tr ',' ' ')
+    alldomains=$(echo "$_main_domain,$_alt_domains" | tr ',' ' ')
     _index=1
     _currentRoot=""
     for d in $alldomains; do
