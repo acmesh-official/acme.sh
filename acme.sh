@@ -76,17 +76,17 @@ SYSLOG_INFO="user.info"
 SYSLOG_DEBUG="user.debug"
 
 #error
-SYSLOG_LEVEL_1=1
+SYSLOG_LEVEL_ERROR=3
 #info
-SYSLOG_LEVEL_2=2
+SYSLOG_LEVEL_INFO=6
 #debug
-SYSLOG_LEVEL_3=3
+SYSLOG_LEVEL_DEBUG=7
 #debug2
-SYSLOG_LEVEL_4=4
+SYSLOG_LEVEL_DEBUG_2=8
 #debug3
-SYSLOG_LEVEL_5=5
+SYSLOG_LEVEL_DEBUG_3=9
 
-SYSLOG_LEVEL_DEFAULT=$SYSLOG_LEVEL_1
+SYSLOG_LEVEL_DEFAULT=$SYSLOG_LEVEL_ERROR
 #none
 SYSLOG_LEVEL_NONE=0
 
@@ -174,7 +174,7 @@ _log() {
 
 _info() {
   _log "$@"
-  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_2" ]; then
+  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_INFO" ]; then
     _syslog "$SYSLOG_INFO" "$@"
   fi
   _printargs "$@"
@@ -204,7 +204,7 @@ _debug() {
   if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_1" ]; then
     _log "$@"
   fi
-  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_3" ]; then
+  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_DEBUG" ]; then
     _syslog "$SYSLOG_DEBUG" "$@"
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_1" ]; then
@@ -216,7 +216,7 @@ _debug2() {
   if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_2" ]; then
     _log "$@"
   fi
-  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_4" ]; then
+  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_DEBUG_2" ]; then
     _syslog "$SYSLOG_DEBUG" "$@"
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_2" ]; then
@@ -228,7 +228,7 @@ _debug3() {
   if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_3" ]; then
     _log "$@"
   fi
-  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_5" ]; then
+  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_DEBUG_3" ]; then
     _syslog "$SYSLOG_DEBUG" "$@"
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_3" ]; then
