@@ -3693,7 +3693,7 @@ renew() {
   fi
 
   if [ "$Le_DeployHook" ]; then
-    deploy "$Le_Domain" "$Le_DeployHook" "$Le_Keylength"
+    _deploy "$Le_Domain" "$Le_DeployHook"
     res="$?"
   fi
 
@@ -3865,54 +3865,64 @@ list() {
 
 }
 
+_deploy() {
+  _d="$1"
+  _hooks="$2"
+
+  for _d_api in $(echo "$_hooks" | tr ',' " "); do
+    _deployApi="$(_findHook "$_d" deploy "$_d_api")"
+    if [ -z "$_deployApi" ]; then
+      _err "The deploy hook $_d_api is not found."
+      return 1
+    fi
+    _debug _deployApi "$_deployApi"
+
+    if ! (
+      if ! . "$_deployApi"; then
+        _err "Load file $_deployApi error. Please check your api file and try again."
+        return 1
+      fi
+
+      d_command="${_d_api}_deploy"
+      if ! _exists "$d_command"; then
+        _err "It seems that your api file is not correct, it must have a function named: $d_command"
+        return 1
+      fi
+
+      if ! $d_command "$_d" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH"; then
+        _err "Error deploy for domain:$_d"
+        return 1
+      fi
+    ); then
+      _err "Deploy error."
+      return 1
+    else
+      _info "$(__green Success)"
+    fi
+  done
+}
+
+#domain hooks
 deploy() {
-  Le_Domain="$1"
-  Le_DeployHook="$2"
+  _d="$1"
+  _hooks="$2"
   _isEcc="$3"
-  if [ -z "$Le_DeployHook" ]; then
+  if [ -z "$_hooks" ]; then
     _usage "Usage: $PROJECT_ENTRY --deploy -d domain.com --deploy-hook cpanel [--ecc] "
     return 1
   fi
 
-  _initpath "$Le_Domain" "$_isEcc"
+  _initpath "$_d" "$_isEcc"
   if [ ! -d "$DOMAIN_PATH" ]; then
-    _err "Domain is not valid:'$Le_Domain'"
+    _err "Domain is not valid:'$_d'"
     return 1
   fi
 
-  _deployApi="$(_findHook "$Le_Domain" deploy "$Le_DeployHook")"
-  if [ -z "$_deployApi" ]; then
-    _err "The deploy hook $Le_DeployHook is not found."
-    return 1
-  fi
-  _debug _deployApi "$_deployApi"
+  . "$DOMAIN_CONF"
 
-  _savedomainconf Le_DeployHook "$Le_DeployHook"
+  _savedomainconf Le_DeployHook "$_hooks"
 
-  if ! (
-    if ! . "$_deployApi"; then
-      _err "Load file $_deployApi error. Please check your api file and try again."
-      return 1
-    fi
-
-    d_command="${Le_DeployHook}_deploy"
-    if ! _exists "$d_command"; then
-      _err "It seems that your api file is not correct, it must have a function named: $d_command"
-      return 1
-    fi
-
-    if ! $d_command "$Le_Domain" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH"; then
-      _err "Error deploy for domain:$Le_Domain"
-      _on_issue_err
-      return 1
-    fi
-  ); then
-    _err "Deploy error."
-    return 1
-  else
-    _info "$(__green Success)"
-  fi
-
+  _deploy "$_d" "$_hooks"
 }
 
 installcert() {
@@ -5136,7 +5146,11 @@ _process() {
         shift
         ;;
       --deploy-hook)
-        _deploy_hook="$2"
+        if [ -z "$2" ] || _startswith "$2" "-"; then
+          _usage "Please specify a value for '--deploy-hook'"
+          return 1
+        fi
+        _deploy_hook="$_deploy_hook$2,"
         shift
         ;;
       --ocsp-must-staple | --ocsp)
