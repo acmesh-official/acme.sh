@@ -240,7 +240,6 @@ acme.sh --issue --dns dns_ispconfig -d example.com -d www.example.com
 
 The `ISPC_User`, `ISPC_Password`, `ISPC_Api`and `ISPC_Api_Insecure` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-<<<<<<< HEAD
 ## 13. Use Alwaysdata domain API
 
 First you need to login to your Alwaysdata account to get your API Key.
