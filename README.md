@@ -403,6 +403,6 @@ Please Star and Fork me.
 
 # Donate
 
-1. PayPal: donate@acme.sh
-
+1. PayPal/Alipay(支付宝)/Wechat(微信): [https://donate.acme.sh/](https://donate.acme.sh/)
+  
 [Donate List](https://github.com/Neilpang/acme.sh/wiki/Donate-list)
