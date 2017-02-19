@@ -100,7 +100,7 @@ _dns_do_soap() {
 </env:Envelope>'
 
   # set SOAP headers
-  _H1="SOAPAction: ${DO_URL}#${func}"
+  export _H1="SOAPAction: ${DO_URL}#${func}"
 
   if ! response="$(_post "${_xml}" "${DO_URL}")"; then
     _err "Error <$1>"
@@ -109,7 +109,7 @@ _dns_do_soap() {
   _debug2 "SOAP response $response"
 
   # retrieve cookie header
-  _H2="$(_egrep_o 'Cookie: [^;]+' <"$HTTP_HEADER" | _head_n 1)"
+  export _H2="$(_egrep_o 'Cookie: [^;]+' <"$HTTP_HEADER" | _head_n 1)"
 
   return 0
 }
