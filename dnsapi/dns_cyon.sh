@@ -81,6 +81,7 @@ _cyon_is_idn() {
 
 _cyon_load_parameters() {
   # Read the required parameters to add the TXT entry.
+  # shellcheck disable=SC2018,SC2019
   fulldomain="$(printf "%s" "${1}" | tr "A-Z" "a-z")"
   fulldomain_idn="${fulldomain}"
 
