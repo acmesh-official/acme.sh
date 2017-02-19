@@ -207,7 +207,7 @@ _ovh_authentication() {
     _err "Unable to get consumerKey"
     return 1
   fi
-  _debug consumerKey "$consumerKey"
+  _secure_debug consumerKey "$consumerKey"
 
   OVH_CK="$consumerKey"
   _saveaccountconf OVH_CK "$OVH_CK"
@@ -269,7 +269,7 @@ _ovh_rest() {
   _ovh_t="$(_ovh_timestamp)"
   _debug2 _ovh_t "$_ovh_t"
   _ovh_p="$OVH_AS+$OVH_CK+$m+$_ovh_url+$data+$_ovh_t"
-  _debug _ovh_p "$_ovh_p"
+  _secure_debug _ovh_p "$_ovh_p"
   _ovh_hex="$(printf "%s" "$_ovh_p" | _digest sha1 hex)"
   _debug2 _ovh_hex "$_ovh_hex"
 
