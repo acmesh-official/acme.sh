@@ -2707,6 +2707,7 @@ _clearupwebbroot() {
 }
 
 _on_before_issue() {
+  _chk_web_roots="$1"
   _debug _on_before_issue
   #run pre hook
   if [ "$Le_PreHook" ]; then
@@ -2719,7 +2720,7 @@ _on_before_issue() {
     fi
   fi
 
-  if _hasfield "$Le_Webroot" "$NO_VALUE"; then
+  if _hasfield "$_chk_web_roots" "$NO_VALUE"; then
     if ! _exists "nc"; then
       _err "Please install netcat(nc) tools first."
       return 1
@@ -2734,7 +2735,7 @@ _on_before_issue() {
   _addrIndex=1
   for d in $alldomains; do
     _debug "Check for domain" "$d"
-    _currentRoot="$(_getfield "$Le_Webroot" $_index)"
+    _currentRoot="$(_getfield "$_chk_web_roots" $_index)"
     _debug "_currentRoot" "$_currentRoot"
     _index=$(_math $_index + 1)
     _checkport=""
@@ -2777,7 +2778,7 @@ _on_before_issue() {
     fi
   done
 
-  if _hasfield "$Le_Webroot" "apache"; then
+  if _hasfield "$_chk_web_roots" "apache"; then
     if ! _setApache; then
       _err "set up apache error. Report error to me."
       return 1
@@ -3027,11 +3028,11 @@ issue() {
     _usage "Usage: $PROJECT_ENTRY --issue  -d  a.com  -w /path/to/webroot/a.com/ "
     return 1
   fi
-  Le_Webroot="$1"
-  Le_Domain="$2"
+  _web_roots="$1"
+  _main_domain="$2"
   Le_Alt="$3"
-  if _contains "$Le_Domain" ","; then
-    Le_Domain=$(echo "$2,$3" | cut -d , -f 1)
+  if _contains "$_main_domain" ","; then
+    _main_domain=$(echo "$2,$3" | cut -d , -f 1)
     Le_Alt=$(echo "$2,$3" | cut -d , -f 2- | sed "s/,${NO_VALUE}$//")
   fi
   Le_Keylength="$4"
@@ -3046,19 +3047,19 @@ issue() {
   Le_LocalAddress="${13}"
 
   #remove these later.
-  if [ "$Le_Webroot" = "dns-cf" ]; then
-    Le_Webroot="dns_cf"
+  if [ "$_web_roots" = "dns-cf" ]; then
+    _web_roots="dns_cf"
   fi
-  if [ "$Le_Webroot" = "dns-dp" ]; then
-    Le_Webroot="dns_dp"
+  if [ "$_web_roots" = "dns-dp" ]; then
+    _web_roots="dns_dp"
   fi
-  if [ "$Le_Webroot" = "dns-cx" ]; then
-    Le_Webroot="dns_cx"
+  if [ "$_web_roots" = "dns-cx" ]; then
+    _web_roots="dns_cx"
   fi
   _debug "Using api: $API"
 
   if [ ! "$IS_RENEW" ]; then
-    _initpath "$Le_Domain" "$Le_Keylength"
+    _initpath "$_main_domain" "$Le_Keylength"
     mkdir -p "$DOMAIN_PATH"
   fi
 
@@ -3070,7 +3071,7 @@ issue() {
       _debug _saved_domain "$_saved_domain"
       _saved_alt=$(_readdomainconf Le_Alt)
       _debug _saved_alt "$_saved_alt"
-      if [ "$_saved_domain,$_saved_alt" = "$Le_Domain,$Le_Alt" ]; then
+      if [ "$_saved_domain,$_saved_alt" = "$_main_domain,$Le_Alt" ]; then
         _info "Domains not changed."
         _info "Skip, Next renewal time is: $(__green "$(_readdomainconf Le_NextRenewTimeStr)")"
         _info "Add '$(__red '--force')' to force to renew."
@@ -3081,9 +3082,9 @@ issue() {
     fi
   fi
 
-  _savedomainconf "Le_Domain" "$Le_Domain"
+  _savedomainconf "Le_Domain" "$_main_domain"
   _savedomainconf "Le_Alt" "$Le_Alt"
-  _savedomainconf "Le_Webroot" "$Le_Webroot"
+  _savedomainconf "Le_Webroot" "$_web_roots"
 
   _savedomainconf "Le_PreHook" "$Le_PreHook"
   _savedomainconf "Le_PostHook" "$Le_PostHook"
@@ -3106,7 +3107,7 @@ issue() {
     Le_Keylength=""
   fi
 
-  if ! _on_before_issue; then
+  if ! _on_before_issue "$_web_roots"; then
     _err "_on_before_issue."
     return 1
   fi
@@ -3129,7 +3130,7 @@ issue() {
     _key=$(_readdomainconf Le_Keylength)
     _debug "Read key length:$_key"
     if [ ! -f "$CERT_KEY_PATH" ] || [ "$Le_Keylength" != "$_key" ]; then
-      if ! createDomainKey "$Le_Domain" "$Le_Keylength"; then
+      if ! createDomainKey "$_main_domain" "$Le_Keylength"; then
         _err "Create domain key error."
         _clearup
         _on_issue_err
@@ -3137,7 +3138,7 @@ issue() {
       fi
     fi
 
-    if ! _createcsr "$Le_Domain" "$Le_Alt" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"; then
+    if ! _createcsr "$_main_domain" "$Le_Alt" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"; then
       _err "Create CSR error."
       _clearup
       _on_issue_err
@@ -3153,12 +3154,12 @@ issue() {
   sep='#'
   dvsep=','
   if [ -z "$vlist" ]; then
-    alldomains=$(echo "$Le_Domain,$Le_Alt" | tr ',' ' ')
+    alldomains=$(echo "$_main_domain,$Le_Alt" | tr ',' ' ')
     _index=1
     _currentRoot=""
     for d in $alldomains; do
       _info "Getting webroot for domain" "$d"
-      _w="$(echo $Le_Webroot | cut -d , -f $_index)"
+      _w="$(echo $_web_roots | cut -d , -f $_index)"
       _debug _w "$_w"
       if [ "$_w" ]; then
         _currentRoot="$_w"
