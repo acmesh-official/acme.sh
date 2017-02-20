@@ -305,6 +305,24 @@ Note that you cannot use acme.sh automatic DNS validation for FreeDNS public dom
 you create under a FreeDNS public domain.  You must own the top level domain in order to automaitcally
 validate with acme.sh at FreeDNS.
 
+## 16. Use cyon.ch
+
+You only need to set your cyon.ch login credentials.
+If you also have 2 Factor Authentication (OTP) enabled, you need to set your secret token too and have `oathtool` installed.
+
+```
+export CY_Username="your_cyon_username"
+export CY_Password="your_cyon_password"
+export CY_OTP_Secret="your_otp_secret" # Only required if using 2FA
+```
+
+To issue a cert:
+```
+acme.sh --issue --dns dns_cyon -d example.com -d www.example.com
+```
+
+The `CY_Username`, `CY_Password` and `CY_OTP_Secret` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
