@@ -305,6 +305,51 @@ Note that you cannot use acme.sh automatic DNS validation for FreeDNS public dom
 you create under a FreeDNS public domain.  You must own the top level domain in order to automaitcally
 validate with acme.sh at FreeDNS.
 
+## 16. Use Knot (knsupdate) DNS API to automatically issue cert
+
+First, generate a TSIG key for updating the zone.
+
+```
+keymgr tsig generate acme_key algorithm hmac-sha512 > /etc/knot/acme.key
+```
+
+Include this key in your knot configuration file.
+
+```
+include: /etc/knot/acme.key
+```
+
+Next, configure your zone to allow dynamic updates.
+
+Dynamic updates for the zone are allowed via proper ACL rule with the `update` action. For in-depth instructions, please see [Knot DNS's documentation](https://www.knot-dns.cz/documentation/).
+
+```
+acl:
+  - id: acme_acl
+    address: 192.168.1.0/24
+    key: acme_key
+    action: update
+
+zone:
+  - domain: example.com
+    file: example.com.zone
+    acl: acme_acl
+```
+
+Finally, make the DNS server and TSIG Key available to `acme.sh`
+
+```
+export KNOT_SERVER="dns.example.com"
+export KNOT_KEY=`grep \# /etc/knot/acme.key | cut -d' ' -f2`
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_knot -d example.com -d www.example.com
+```
+
+The `KNOT_SERVER` and `KNOT_KEY` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
