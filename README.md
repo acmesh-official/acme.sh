@@ -292,6 +292,7 @@ You don't have to do anything manually!
 1. Alwaysdata.com API
 1. Linode.com API
 1. FreeDNS (https://freedns.afraid.org/)
+1. cyon.ch
 
 **More APIs coming soon...**
 
