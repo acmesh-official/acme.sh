@@ -71,6 +71,8 @@ DEBUG_LEVEL_3=3
 DEBUG_LEVEL_DEFAULT=$DEBUG_LEVEL_1
 DEBUG_LEVEL_NONE=0
 
+HIDDEN_VALUE="[hidden](please add '--output-insecure' to see this value)"
+
 SYSLOG_ERROR="user.error"
 SYSLOG_INFO="user.info"
 SYSLOG_DEBUG="user.debug"
@@ -212,6 +214,27 @@ _debug() {
   fi
 }
 
+#output the sensitive messages
+_secure_debug() {
+  if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_1" ]; then
+    if [ "$OUTPUT_INSECURE" = "1" ]; then
+      _log "$@"
+    else
+      _log "$1" "$HIDDEN_VALUE"
+    fi
+  fi
+  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_DEBUG" ]; then
+    _syslog "$SYSLOG_DEBUG" "$1" "$HIDDEN_VALUE"
+  fi
+  if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_1" ]; then
+    if [ "$OUTPUT_INSECURE" = "1" ]; then
+      _printargs "$@" >&2
+    else
+      _printargs "$1" "$HIDDEN_VALUE" >&2
+    fi
+  fi
+}
+
 _debug2() {
   if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_2" ]; then
     _log "$@"
@@ -224,6 +247,26 @@ _debug2() {
   fi
 }
 
+_secure_debug2() {
+  if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_2" ]; then
+    if [ "$OUTPUT_INSECURE" = "1" ]; then
+      _log "$@"
+    else
+      _log "$1" "$HIDDEN_VALUE"
+    fi
+  fi
+  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_DEBUG_2" ]; then
+    _syslog "$SYSLOG_DEBUG" "$1" "$HIDDEN_VALUE"
+  fi
+  if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_2" ]; then
+    if [ "$OUTPUT_INSECURE" = "1" ]; then
+      _printargs "$@" >&2
+    else
+      _printargs "$1" "$HIDDEN_VALUE" >&2
+    fi
+  fi
+}
+
 _debug3() {
   if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_3" ]; then
     _log "$@"
@@ -233,6 +276,26 @@ _debug3() {
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_3" ]; then
     _printargs "$@" >&2
+  fi
+}
+
+_secure_debug3() {
+  if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_3" ]; then
+    if [ "$OUTPUT_INSECURE" = "1" ]; then
+      _log "$@"
+    else
+      _log "$1" "$HIDDEN_VALUE"
+    fi
+  fi
+  if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" -ge "$SYSLOG_LEVEL_DEBUG_3" ]; then
+    _syslog "$SYSLOG_DEBUG" "$1" "$HIDDEN_VALUE"
+  fi
+  if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_3" ]; then
+    if [ "$OUTPUT_INSECURE" = "1" ]; then
+      _printargs "$@" >&2
+    else
+      _printargs "$1" "$HIDDEN_VALUE" >&2
+    fi
   fi
 }
 
@@ -1025,7 +1088,7 @@ _readKeyLengthFromCSR() {
     echo "$_outcsr" | _egrep_o "^ *ASN1 OID:.*" | cut -d ':' -f 2 | tr -d ' '
   else
     _debug "RSA CSR"
-    echo "$_outcsr" | _egrep_o "^ *Public.Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1
+    echo "$_outcsr" | _egrep_o "(^ *|^RSA )Public.Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1
   fi
 }
 
@@ -1667,7 +1730,7 @@ _setopt() {
     _debug3 APP
     echo "$__opt$__sep$__val$__end" >>"$__conf"
   fi
-  _debug2 "$(grep -n "^$__opt$__sep" "$__conf")"
+  _debug3 "$(grep -n "^$__opt$__sep" "$__conf")"
 }
 
 #_save_conf  file key  value
@@ -2644,34 +2707,39 @@ _clearupwebbroot() {
 }
 
 _on_before_issue() {
+  _chk_web_roots="$1"
+  _chk_main_domain="$2"
+  _chk_alt_domains="$3"
+  _chk_pre_hook="$4"
+  _chk_local_addr="$5"
   _debug _on_before_issue
   #run pre hook
-  if [ "$Le_PreHook" ]; then
-    _info "Run pre hook:'$Le_PreHook'"
+  if [ "$_chk_pre_hook" ]; then
+    _info "Run pre hook:'$_chk_pre_hook'"
     if ! (
-      cd "$DOMAIN_PATH" && eval "$Le_PreHook"
+      cd "$DOMAIN_PATH" && eval "$_chk_pre_hook"
     ); then
       _err "Error when run pre hook."
       return 1
     fi
   fi
 
-  if _hasfield "$Le_Webroot" "$NO_VALUE"; then
+  if _hasfield "$_chk_web_roots" "$NO_VALUE"; then
     if ! _exists "nc"; then
       _err "Please install netcat(nc) tools first."
       return 1
     fi
   fi
 
-  _debug Le_LocalAddress "$Le_LocalAddress"
+  _debug Le_LocalAddress "$_chk_local_addr"
 
-  alldomains=$(echo "$Le_Domain,$Le_Alt" | tr ',' ' ')
+  alldomains=$(echo "$_chk_main_domain,$_chk_alt_domains" | tr ',' ' ')
   _index=1
   _currentRoot=""
   _addrIndex=1
   for d in $alldomains; do
     _debug "Check for domain" "$d"
-    _currentRoot="$(_getfield "$Le_Webroot" $_index)"
+    _currentRoot="$(_getfield "$_chk_web_roots" $_index)"
     _debug "_currentRoot" "$_currentRoot"
     _index=$(_math $_index + 1)
     _checkport=""
@@ -2695,7 +2763,7 @@ _on_before_issue() {
 
     if [ "$_checkport" ]; then
       _debug _checkport "$_checkport"
-      _checkaddr="$(_getfield "$Le_LocalAddress" $_addrIndex)"
+      _checkaddr="$(_getfield "$_chk_local_addr" $_addrIndex)"
       _debug _checkaddr "$_checkaddr"
 
       _addrIndex="$(_math $_addrIndex + 1)"
@@ -2714,7 +2782,7 @@ _on_before_issue() {
     fi
   done
 
-  if _hasfield "$Le_Webroot" "apache"; then
+  if _hasfield "$_chk_web_roots" "apache"; then
     if ! _setApache; then
       _err "set up apache error. Report error to me."
       return 1
@@ -2726,6 +2794,7 @@ _on_before_issue() {
 }
 
 _on_issue_err() {
+  _chk_post_hook="$1"
   _debug _on_issue_err
   if [ "$LOG_FILE" ]; then
     _err "Please check log file for more details: $LOG_FILE"
@@ -2739,10 +2808,10 @@ _on_issue_err() {
   fi
 
   #run the post hook
-  if [ "$Le_PostHook" ]; then
-    _info "Run post hook:'$Le_PostHook'"
+  if [ "$_chk_post_hook" ]; then
+    _info "Run post hook:'$_chk_post_hook'"
     if ! (
-      cd "$DOMAIN_PATH" && eval "$Le_PostHook"
+      cd "$DOMAIN_PATH" && eval "$_chk_post_hook"
     ); then
       _err "Error when run post hook."
       return 1
@@ -2751,12 +2820,14 @@ _on_issue_err() {
 }
 
 _on_issue_success() {
+  _chk_post_hook="$1"
+  _chk_renew_hook="$2"
   _debug _on_issue_success
   #run the post hook
-  if [ "$Le_PostHook" ]; then
-    _info "Run post hook:'$Le_PostHook'"
+  if [ "$_chk_post_hook" ]; then
+    _info "Run post hook:'$_chk_post_hook'"
     if ! (
-      cd "$DOMAIN_PATH" && eval "$Le_PostHook"
+      cd "$DOMAIN_PATH" && eval "$_chk_post_hook"
     ); then
       _err "Error when run post hook."
       return 1
@@ -2764,10 +2835,10 @@ _on_issue_success() {
   fi
 
   #run renew hook
-  if [ "$IS_RENEW" ] && [ "$Le_RenewHook" ]; then
-    _info "Run renew hook:'$Le_RenewHook'"
+  if [ "$IS_RENEW" ] && [ "$_chk_renew_hook" ]; then
+    _info "Run renew hook:'$_chk_renew_hook'"
     if ! (
-      cd "$DOMAIN_PATH" && eval "$Le_RenewHook"
+      cd "$DOMAIN_PATH" && eval "$_chk_renew_hook"
     ); then
       _err "Error when run renew hook."
       return 1
@@ -2964,38 +3035,38 @@ issue() {
     _usage "Usage: $PROJECT_ENTRY --issue  -d  a.com  -w /path/to/webroot/a.com/ "
     return 1
   fi
-  Le_Webroot="$1"
-  Le_Domain="$2"
-  Le_Alt="$3"
-  if _contains "$Le_Domain" ","; then
-    Le_Domain=$(echo "$2,$3" | cut -d , -f 1)
-    Le_Alt=$(echo "$2,$3" | cut -d , -f 2- | sed "s/,${NO_VALUE}$//")
+  _web_roots="$1"
+  _main_domain="$2"
+  _alt_domains="$3"
+  if _contains "$_main_domain" ","; then
+    _main_domain=$(echo "$2,$3" | cut -d , -f 1)
+    _alt_domains=$(echo "$2,$3" | cut -d , -f 2- | sed "s/,${NO_VALUE}$//")
   fi
-  Le_Keylength="$4"
-  Le_RealCertPath="$5"
-  Le_RealKeyPath="$6"
-  Le_RealCACertPath="$7"
-  Le_ReloadCmd="$8"
-  Le_RealFullChainPath="$9"
-  Le_PreHook="${10}"
-  Le_PostHook="${11}"
-  Le_RenewHook="${12}"
-  Le_LocalAddress="${13}"
+  _key_length="$4"
+  _real_cert="$5"
+  _real_key="$6"
+  _real_ca="$7"
+  _reload_cmd="$8"
+  _real_fullchain="$9"
+  _pre_hook="${10}"
+  _post_hook="${11}"
+  _renew_hook="${12}"
+  _local_addr="${13}"
 
   #remove these later.
-  if [ "$Le_Webroot" = "dns-cf" ]; then
-    Le_Webroot="dns_cf"
+  if [ "$_web_roots" = "dns-cf" ]; then
+    _web_roots="dns_cf"
   fi
-  if [ "$Le_Webroot" = "dns-dp" ]; then
-    Le_Webroot="dns_dp"
+  if [ "$_web_roots" = "dns-dp" ]; then
+    _web_roots="dns_dp"
   fi
-  if [ "$Le_Webroot" = "dns-cx" ]; then
-    Le_Webroot="dns_cx"
+  if [ "$_web_roots" = "dns-cx" ]; then
+    _web_roots="dns_cx"
   fi
   _debug "Using api: $API"
 
   if [ ! "$IS_RENEW" ]; then
-    _initpath "$Le_Domain" "$Le_Keylength"
+    _initpath "$_main_domain" "$_key_length"
     mkdir -p "$DOMAIN_PATH"
   fi
 
@@ -3007,7 +3078,7 @@ issue() {
       _debug _saved_domain "$_saved_domain"
       _saved_alt=$(_readdomainconf Le_Alt)
       _debug _saved_alt "$_saved_alt"
-      if [ "$_saved_domain,$_saved_alt" = "$Le_Domain,$Le_Alt" ]; then
+      if [ "$_saved_domain,$_saved_alt" = "$_main_domain,$_alt_domains" ]; then
         _info "Domains not changed."
         _info "Skip, Next renewal time is: $(__green "$(_readdomainconf Le_NextRenewTimeStr)")"
         _info "Add '$(__red '--force')' to force to renew."
@@ -3018,16 +3089,16 @@ issue() {
     fi
   fi
 
-  _savedomainconf "Le_Domain" "$Le_Domain"
-  _savedomainconf "Le_Alt" "$Le_Alt"
-  _savedomainconf "Le_Webroot" "$Le_Webroot"
+  _savedomainconf "Le_Domain" "$_main_domain"
+  _savedomainconf "Le_Alt" "$_alt_domains"
+  _savedomainconf "Le_Webroot" "$_web_roots"
 
-  _savedomainconf "Le_PreHook" "$Le_PreHook"
-  _savedomainconf "Le_PostHook" "$Le_PostHook"
-  _savedomainconf "Le_RenewHook" "$Le_RenewHook"
+  _savedomainconf "Le_PreHook" "$_pre_hook"
+  _savedomainconf "Le_PostHook" "$_post_hook"
+  _savedomainconf "Le_RenewHook" "$_renew_hook"
 
-  if [ "$Le_LocalAddress" ]; then
-    _savedomainconf "Le_LocalAddress" "$Le_LocalAddress"
+  if [ "$_local_addr" ]; then
+    _savedomainconf "Le_LocalAddress" "$_local_addr"
   else
     _cleardomainconf "Le_LocalAddress"
   fi
@@ -3035,15 +3106,15 @@ issue() {
   Le_API="$API"
   _savedomainconf "Le_API" "$Le_API"
 
-  if [ "$Le_Alt" = "$NO_VALUE" ]; then
-    Le_Alt=""
+  if [ "$_alt_domains" = "$NO_VALUE" ]; then
+    _alt_domains=""
   fi
 
-  if [ "$Le_Keylength" = "$NO_VALUE" ]; then
-    Le_Keylength=""
+  if [ "$_key_length" = "$NO_VALUE" ]; then
+    _key_length=""
   fi
 
-  if ! _on_before_issue; then
+  if ! _on_before_issue "$_web_roots" "$_main_domain" "$_alt_domains" "$_pre_hook" "$_local_addr"; then
     _err "_on_before_issue."
     return 1
   fi
@@ -3053,7 +3124,7 @@ issue() {
 
   if [ -z "$_saved_account_key_hash" ] || [ "$_saved_account_key_hash" != "$(__calcAccountKeyHash)" ]; then
     if ! _regAccount "$_accountkeylength"; then
-      _on_issue_err
+      _on_issue_err "$_post_hook"
       return 1
     fi
   else
@@ -3065,24 +3136,24 @@ issue() {
   else
     _key=$(_readdomainconf Le_Keylength)
     _debug "Read key length:$_key"
-    if [ ! -f "$CERT_KEY_PATH" ] || [ "$Le_Keylength" != "$_key" ]; then
-      if ! createDomainKey "$Le_Domain" "$Le_Keylength"; then
+    if [ ! -f "$CERT_KEY_PATH" ] || [ "$_key_length" != "$_key" ]; then
+      if ! createDomainKey "$_main_domain" "$_key_length"; then
         _err "Create domain key error."
         _clearup
-        _on_issue_err
+        _on_issue_err "$_post_hook"
         return 1
       fi
     fi
 
-    if ! _createcsr "$Le_Domain" "$Le_Alt" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"; then
+    if ! _createcsr "$_main_domain" "$_alt_domains" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"; then
       _err "Create CSR error."
       _clearup
-      _on_issue_err
+      _on_issue_err "$_post_hook"
       return 1
     fi
   fi
 
-  _savedomainconf "Le_Keylength" "$Le_Keylength"
+  _savedomainconf "Le_Keylength" "$_key_length"
 
   vlist="$Le_Vlist"
 
@@ -3090,12 +3161,12 @@ issue() {
   sep='#'
   dvsep=','
   if [ -z "$vlist" ]; then
-    alldomains=$(echo "$Le_Domain,$Le_Alt" | tr ',' ' ')
+    alldomains=$(echo "$_main_domain,$_alt_domains" | tr ',' ' ')
     _index=1
     _currentRoot=""
     for d in $alldomains; do
       _info "Getting webroot for domain" "$d"
-      _w="$(echo $Le_Webroot | cut -d , -f $_index)"
+      _w="$(echo $_web_roots | cut -d , -f $_index)"
       _debug _w "$_w"
       if [ "$_w" ]; then
         _currentRoot="$_w"
@@ -3114,7 +3185,7 @@ issue() {
 
       if ! __get_domain_new_authz "$d"; then
         _clearup
-        _on_issue_err
+        _on_issue_err "$_post_hook"
         return 1
       fi
 
@@ -3127,7 +3198,7 @@ issue() {
       if [ -z "$entry" ]; then
         _err "Error, can not get domain token $d"
         _clearup
-        _on_issue_err
+        _on_issue_err "$_post_hook"
         return 1
       fi
       token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
@@ -3208,7 +3279,7 @@ issue() {
 
         if [ "$?" != "0" ]; then
           _clearup
-          _on_issue_err
+          _on_issue_err "$_post_hook"
           return 1
         fi
         dnsadded='1'
@@ -3220,7 +3291,7 @@ issue() {
       _debug "Dns record not added yet, so, save to $DOMAIN_CONF and exit."
       _err "Please add the TXT records to the domains, and retry again."
       _clearup
-      _on_issue_err
+      _on_issue_err "$_post_hook"
       return 1
     fi
 
@@ -3266,12 +3337,12 @@ issue() {
     if [ "$vtype" = "$VTYPE_HTTP" ]; then
       if [ "$_currentRoot" = "$NO_VALUE" ]; then
         _info "Standalone mode server"
-        _ncaddr="$(_getfield "$Le_LocalAddress" "$_ncIndex")"
+        _ncaddr="$(_getfield "$_local_addr" "$_ncIndex")"
         _ncIndex="$(_math $_ncIndex + 1)"
         _startserver "$keyauthorization" "$_ncaddr" &
         if [ "$?" != "0" ]; then
           _clearup
-          _on_issue_err
+          _on_issue_err "$_post_hook"
           return 1
         fi
         serverproc="$!"
@@ -3287,7 +3358,7 @@ issue() {
         BACKUP_NGINX_CONF=""
         if ! _setNginx "$d" "$_currentRoot" "$thumbprint"; then
           _clearup
-          _on_issue_err
+          _on_issue_err "$_post_hook"
           return 1
         fi
 
@@ -3322,7 +3393,7 @@ issue() {
           _err "$d:Can not write token to file : $wellknown_path/$token"
           _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
           _clearup
-          _on_issue_err
+          _on_issue_err "$_post_hook"
           return 1
         fi
 
@@ -3361,13 +3432,13 @@ issue() {
       _SAN_B="$_x.$_y.acme.invalid"
       _debug2 _SAN_B "$_SAN_B"
 
-      _ncaddr="$(_getfield "$Le_LocalAddress" "$_ncIndex")"
+      _ncaddr="$(_getfield "$_local_addr" "$_ncIndex")"
       _ncIndex="$(_math "$_ncIndex" + 1)"
       if ! _starttlsserver "$_SAN_B" "$_SAN_A" "$Le_TLSPort" "$keyauthorization" "$_ncaddr"; then
         _err "Start tls server error."
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err
+        _on_issue_err "$_post_hook"
         return 1
       fi
     fi
@@ -3376,7 +3447,7 @@ issue() {
       _err "$d:Can not get challenge: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
       _clearup
-      _on_issue_err
+      _on_issue_err "$_post_hook"
       return 1
     fi
 
@@ -3384,7 +3455,7 @@ issue() {
       _err "$d:Challenge error: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
       _clearup
-      _on_issue_err
+      _on_issue_err "$_post_hook"
       return 1
     fi
 
@@ -3411,7 +3482,7 @@ issue() {
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err
+        _on_issue_err "$_post_hook"
         return 1
       fi
       _debug2 original "$response"
@@ -3446,7 +3517,7 @@ issue() {
         fi
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err
+        _on_issue_err "$_post_hook"
         return 1
       fi
 
@@ -3456,7 +3527,7 @@ issue() {
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err
+        _on_issue_err "$_post_hook"
         return 1
       fi
 
@@ -3470,7 +3541,7 @@ issue() {
 
   if ! _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"; then
     _err "Sign failed."
-    _on_issue_err
+    _on_issue_err "$_post_hook"
     return 1
   fi
 
@@ -3512,7 +3583,7 @@ issue() {
   if [ -z "$Le_LinkCert" ]; then
     response="$(echo "$response" | _dbase64 "multiline" | _normalizeJson)"
     _err "Sign failed: $(echo "$response" | _egrep_o '"detail":"[^"]*"')"
-    _on_issue_err
+    _on_issue_err "$_post_hook"
     return 1
   fi
 
@@ -3574,10 +3645,15 @@ issue() {
   Le_NextRenewTime=$(_math "$Le_NextRenewTime" - 86400)
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
 
-  _on_issue_success
+  _on_issue_success "$_post_hook" "$_renew_hook"
 
-  if [ "$Le_RealCertPath$Le_RealKeyPath$Le_RealCACertPath$Le_ReloadCmd$Le_RealFullChainPath" ]; then
-    _installcert
+  if [ "$_real_cert$_real_key$_real_ca$_reload_cmd$_real_fullchain" ]; then
+    _savedomainconf "Le_RealCertPath" "$_real_cert"
+    _savedomainconf "Le_RealCACertPath" "$_real_ca"
+    _savedomainconf "Le_RealKeyPath" "$_real_key"
+    _savedomainconf "Le_ReloadCmd" "$_reload_cmd"
+    _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
+    _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain"
   fi
 
 }
@@ -3630,7 +3706,7 @@ renew() {
   fi
 
   if [ "$Le_DeployHook" ]; then
-    deploy "$Le_Domain" "$Le_DeployHook" "$Le_Keylength"
+    _deploy "$Le_Domain" "$Le_DeployHook"
     res="$?"
   fi
 
@@ -3802,155 +3878,168 @@ list() {
 
 }
 
+_deploy() {
+  _d="$1"
+  _hooks="$2"
+
+  for _d_api in $(echo "$_hooks" | tr ',' " "); do
+    _deployApi="$(_findHook "$_d" deploy "$_d_api")"
+    if [ -z "$_deployApi" ]; then
+      _err "The deploy hook $_d_api is not found."
+      return 1
+    fi
+    _debug _deployApi "$_deployApi"
+
+    if ! (
+      if ! . "$_deployApi"; then
+        _err "Load file $_deployApi error. Please check your api file and try again."
+        return 1
+      fi
+
+      d_command="${_d_api}_deploy"
+      if ! _exists "$d_command"; then
+        _err "It seems that your api file is not correct, it must have a function named: $d_command"
+        return 1
+      fi
+
+      if ! $d_command "$_d" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH"; then
+        _err "Error deploy for domain:$_d"
+        return 1
+      fi
+    ); then
+      _err "Deploy error."
+      return 1
+    else
+      _info "$(__green Success)"
+    fi
+  done
+}
+
+#domain hooks
 deploy() {
-  Le_Domain="$1"
-  Le_DeployHook="$2"
+  _d="$1"
+  _hooks="$2"
   _isEcc="$3"
-  if [ -z "$Le_DeployHook" ]; then
+  if [ -z "$_hooks" ]; then
     _usage "Usage: $PROJECT_ENTRY --deploy -d domain.com --deploy-hook cpanel [--ecc] "
     return 1
   fi
 
-  _initpath "$Le_Domain" "$_isEcc"
+  _initpath "$_d" "$_isEcc"
   if [ ! -d "$DOMAIN_PATH" ]; then
-    _err "Domain is not valid:'$Le_Domain'"
+    _err "Domain is not valid:'$_d'"
     return 1
   fi
 
-  _deployApi="$(_findHook "$Le_Domain" deploy "$Le_DeployHook")"
-  if [ -z "$_deployApi" ]; then
-    _err "The deploy hook $Le_DeployHook is not found."
-    return 1
-  fi
-  _debug _deployApi "$_deployApi"
+  . "$DOMAIN_CONF"
 
-  _savedomainconf Le_DeployHook "$Le_DeployHook"
+  _savedomainconf Le_DeployHook "$_hooks"
 
-  if ! (
-    if ! . "$_deployApi"; then
-      _err "Load file $_deployApi error. Please check your api file and try again."
-      return 1
-    fi
-
-    d_command="${Le_DeployHook}_deploy"
-    if ! _exists "$d_command"; then
-      _err "It seems that your api file is not correct, it must have a function named: $d_command"
-      return 1
-    fi
-
-    if ! $d_command "$Le_Domain" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH"; then
-      _err "Error deploy for domain:$Le_Domain"
-      _on_issue_err
-      return 1
-    fi
-  ); then
-    _err "Deploy error."
-    return 1
-  else
-    _info "$(__green Success)"
-  fi
-
+  _deploy "$_d" "$_hooks"
 }
 
 installcert() {
-  Le_Domain="$1"
-  if [ -z "$Le_Domain" ]; then
+  _main_domain="$1"
+  if [ -z "$_main_domain" ]; then
     _usage "Usage: $PROJECT_ENTRY --installcert -d domain.com  [--ecc] [--certpath cert-file-path]  [--keypath key-file-path]  [--capath ca-cert-file-path]   [ --reloadCmd reloadCmd] [--fullchainpath fullchain-path]"
     return 1
   fi
 
-  Le_RealCertPath="$2"
-  Le_RealKeyPath="$3"
-  Le_RealCACertPath="$4"
-  Le_ReloadCmd="$5"
-  Le_RealFullChainPath="$6"
+  _real_cert="$2"
+  _real_key="$3"
+  _real_ca="$4"
+  _reload_cmd="$5"
+  _real_fullchain="$6"
   _isEcc="$7"
 
-  _initpath "$Le_Domain" "$_isEcc"
+  _initpath "$_main_domain" "$_isEcc"
   if [ ! -d "$DOMAIN_PATH" ]; then
-    _err "Domain is not valid:'$Le_Domain'"
+    _err "Domain is not valid:'$_main_domain'"
     return 1
   fi
 
-  _installcert
+  _savedomainconf "Le_RealCertPath" "$_real_cert"
+  _savedomainconf "Le_RealCACertPath" "$_real_ca"
+  _savedomainconf "Le_RealKeyPath" "$_real_key"
+  _savedomainconf "Le_ReloadCmd" "$_reload_cmd"
+  _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
+
+  _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain"
 }
 
 _installcert() {
-  _savedomainconf "Le_RealCertPath" "$Le_RealCertPath"
-  _savedomainconf "Le_RealCACertPath" "$Le_RealCACertPath"
-  _savedomainconf "Le_RealKeyPath" "$Le_RealKeyPath"
-  _savedomainconf "Le_ReloadCmd" "$Le_ReloadCmd"
-  _savedomainconf "Le_RealFullChainPath" "$Le_RealFullChainPath"
+  _main_domain="$1"
+  _real_cert="$2"
+  _real_key="$3"
+  _real_ca="$4"
+  _reload_cmd="$5"
+  _real_fullchain="$6"
 
-  if [ "$Le_RealCertPath" = "$NO_VALUE" ]; then
-    Le_RealCertPath=""
+  if [ "$_real_cert" = "$NO_VALUE" ]; then
+    _real_cert=""
   fi
-  if [ "$Le_RealKeyPath" = "$NO_VALUE" ]; then
-    Le_RealKeyPath=""
+  if [ "$_real_key" = "$NO_VALUE" ]; then
+    _real_key=""
   fi
-  if [ "$Le_RealCACertPath" = "$NO_VALUE" ]; then
-    Le_RealCACertPath=""
+  if [ "$_real_ca" = "$NO_VALUE" ]; then
+    _real_ca=""
   fi
-  if [ "$Le_ReloadCmd" = "$NO_VALUE" ]; then
-    Le_ReloadCmd=""
+  if [ "$_reload_cmd" = "$NO_VALUE" ]; then
+    _reload_cmd=""
   fi
-  if [ "$Le_RealFullChainPath" = "$NO_VALUE" ]; then
-    Le_RealFullChainPath=""
+  if [ "$_real_fullchain" = "$NO_VALUE" ]; then
+    _real_fullchain=""
   fi
 
-  if [ "$Le_RealCertPath" ]; then
-
-    _info "Installing cert to:$Le_RealCertPath"
-    if [ -f "$Le_RealCertPath" ] && [ ! "$IS_RENEW" ]; then
+  if [ "$_real_cert" ]; then
+    _info "Installing cert to:$_real_cert"
+    if [ -f "$_real_cert" ] && [ ! "$IS_RENEW" ]; then
       mkdir -p "$DOMAIN_BACKUP_PATH"
-      cp "$Le_RealCertPath" "$DOMAIN_BACKUP_PATH/cert.bak"
+      cp "$_real_cert" "$DOMAIN_BACKUP_PATH/cert.bak"
     fi
-    cat "$CERT_PATH" >"$Le_RealCertPath"
+    cat "$CERT_PATH" >"$_real_cert"
   fi
 
-  if [ "$Le_RealCACertPath" ]; then
-
-    _info "Installing CA to:$Le_RealCACertPath"
-    if [ "$Le_RealCACertPath" = "$Le_RealCertPath" ]; then
-      echo "" >>"$Le_RealCACertPath"
-      cat "$CA_CERT_PATH" >>"$Le_RealCACertPath"
+  if [ "$_real_ca" ]; then
+    _info "Installing CA to:$_real_ca"
+    if [ "$_real_ca" = "$_real_cert" ]; then
+      echo "" >>"$_real_ca"
+      cat "$CA_CERT_PATH" >>"$_real_ca"
     else
-      if [ -f "$Le_RealCACertPath" ] && [ ! "$IS_RENEW" ]; then
+      if [ -f "$_real_ca" ] && [ ! "$IS_RENEW" ]; then
         mkdir -p "$DOMAIN_BACKUP_PATH"
-        cp "$Le_RealCACertPath" "$DOMAIN_BACKUP_PATH/ca.bak"
+        cp "$_real_ca" "$DOMAIN_BACKUP_PATH/ca.bak"
       fi
-      cat "$CA_CERT_PATH" >"$Le_RealCACertPath"
+      cat "$CA_CERT_PATH" >"$_real_ca"
     fi
   fi
 
-  if [ "$Le_RealKeyPath" ]; then
-
-    _info "Installing key to:$Le_RealKeyPath"
-    if [ -f "$Le_RealKeyPath" ] && [ ! "$IS_RENEW" ]; then
+  if [ "$_real_key" ]; then
+    _info "Installing key to:$_real_key"
+    if [ -f "$_real_key" ] && [ ! "$IS_RENEW" ]; then
       mkdir -p "$DOMAIN_BACKUP_PATH"
-      cp "$Le_RealKeyPath" "$DOMAIN_BACKUP_PATH/key.bak"
+      cp "$_real_key" "$DOMAIN_BACKUP_PATH/key.bak"
     fi
-    cat "$CERT_KEY_PATH" >"$Le_RealKeyPath"
+    cat "$CERT_KEY_PATH" >"$_real_key"
   fi
 
-  if [ "$Le_RealFullChainPath" ]; then
-
-    _info "Installing full chain to:$Le_RealFullChainPath"
-    if [ -f "$Le_RealFullChainPath" ] && [ ! "$IS_RENEW" ]; then
+  if [ "$_real_fullchain" ]; then
+    _info "Installing full chain to:$_real_fullchain"
+    if [ -f "$_real_fullchain" ] && [ ! "$IS_RENEW" ]; then
       mkdir -p "$DOMAIN_BACKUP_PATH"
-      cp "$Le_RealFullChainPath" "$DOMAIN_BACKUP_PATH/fullchain.bak"
+      cp "$_real_fullchain" "$DOMAIN_BACKUP_PATH/fullchain.bak"
     fi
-    cat "$CERT_FULLCHAIN_PATH" >"$Le_RealFullChainPath"
+    cat "$CERT_FULLCHAIN_PATH" >"$_real_fullchain"
   fi
 
-  if [ "$Le_ReloadCmd" ]; then
-    _info "Run Le_ReloadCmd: $Le_ReloadCmd"
+  if [ "$_reload_cmd" ]; then
+    _info "Run reload cmd: $_reload_cmd"
     if (
       export CERT_PATH
       export CERT_KEY_PATH
       export CA_CERT_PATH
       export CERT_FULLCHAIN_PATH
-      cd "$DOMAIN_PATH" && eval "$Le_ReloadCmd"
+      cd "$DOMAIN_PATH" && eval "$_reload_cmd"
     ); then
       _info "$(__green "Reload success")"
     else
@@ -4583,7 +4672,7 @@ Parameters:
   --force, -f                       Used to force to install or force to renew a cert immediately.
   --staging, --test                 Use staging server, just for test.
   --debug                           Output debug info.
-    
+  --output-insecure                 Output all the sensitive messages. By default all the credentials/sensitive messages are hidden from the output/debug/log for secure.
   --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
   --stateless                       Use stateless mode, see: $_STATELESS_WIKI
@@ -4596,7 +4685,7 @@ Parameters:
   --accountkeylength, -ak [2048]    Specifies the account key length.
   --log    [/path/to/logfile]       Specifies the log file. The default is: \"$DEFAULT_LOG_FILE\" if you don't give a file path here.
   --log-level 1|2                   Specifies the log level, default is 1.
-  --syslog [1|0]                    Enable/Disable syslog.
+  --syslog [0|3|6|7]                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
   
   These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
   
@@ -4877,6 +4966,9 @@ _process() {
           shift
         fi
         ;;
+      --output-insecure)
+        export OUTPUT_INSECURE=1
+        ;;
       --webroot | -w)
         wvalue="$2"
         if [ -z "$_webroot" ]; then
@@ -5070,7 +5162,11 @@ _process() {
         shift
         ;;
       --deploy-hook)
-        _deploy_hook="$2"
+        if [ -z "$2" ] || _startswith "$2" "-"; then
+          _usage "Please specify a value for '--deploy-hook'"
+          return 1
+        fi
+        _deploy_hook="$_deploy_hook$2,"
         shift
         ;;
       --ocsp-must-staple | --ocsp)

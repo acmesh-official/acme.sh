@@ -292,6 +292,7 @@ You don't have to do anything manually!
 1. Alwaysdata.com API
 1. Linode.com API
 1. FreeDNS (https://freedns.afraid.org/)
+1. cyon.ch
 
 **More APIs coming soon...**
 
@@ -378,21 +379,21 @@ acme.sh --upgrade --auto-upgrade 0
 https://github.com/Neilpang/acme.sh/wiki/Issue-a-cert-from-existing-CSR
 
 
-# Under the Hood
+# 14. Under the Hood
 
 Speak ACME language using shell, directly to "Let's Encrypt".
 
 TODO:
 
 
-# Acknowledgments
+# 15. Acknowledgments
 
 1. Acme-tiny: https://github.com/diafygi/acme-tiny
 2. ACME protocol: https://github.com/ietf-wg-acme/acme
 3. Certbot: https://github.com/certbot/certbot
 
 
-# License & Others
+# 16. License & Others
 
 License is GPLv3
 
@@ -401,8 +402,9 @@ Please Star and Fork me.
 [Issues](https://github.com/Neilpang/acme.sh/issues) and [pull requests](https://github.com/Neilpang/acme.sh/pulls) are welcome.
 
 
-# Donate
+# 17. Donate
+Your donation makes **acme.sh** better:
 
-1. PayPal: donate@acme.sh
-
+1. PayPal/Alipay(支付宝)/Wechat(微信): [https://donate.acme.sh/](https://donate.acme.sh/)
+  
 [Donate List](https://github.com/Neilpang/acme.sh/wiki/Donate-list)
