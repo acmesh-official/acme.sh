@@ -1730,7 +1730,7 @@ _setopt() {
     _debug3 APP
     echo "$__opt$__sep$__val$__end" >>"$__conf"
   fi
-  _debug2 "$(grep -n "^$__opt$__sep" "$__conf")"
+  _debug3 "$(grep -n "^$__opt$__sep" "$__conf")"
 }
 
 #_save_conf  file key  value
