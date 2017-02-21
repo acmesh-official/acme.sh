@@ -3653,7 +3653,7 @@ issue() {
     _savedomainconf "Le_RealKeyPath" "$_real_key"
     _savedomainconf "Le_ReloadCmd" "$_reload_cmd"
     _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
-    _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain"
+    _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"
   fi
 
 }
@@ -3964,16 +3964,18 @@ installcert() {
   _savedomainconf "Le_ReloadCmd" "$_reload_cmd"
   _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
 
-  _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain"
+  _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"
 }
 
+#domain  cert  key  ca  fullchain reloadcmd backup-prefix
 _installcert() {
   _main_domain="$1"
   _real_cert="$2"
   _real_key="$3"
   _real_ca="$4"
-  _reload_cmd="$5"
-  _real_fullchain="$6"
+  _real_fullchain="$5"
+  _reload_cmd="$6"
+  _backup_prefix="$7"
 
   if [ "$_real_cert" = "$NO_VALUE" ]; then
     _real_cert=""
@@ -3991,11 +3993,13 @@ _installcert() {
     _real_fullchain=""
   fi
 
+  _backup_path="$DOMAIN_BACKUP_PATH/$_backup_prefix"
+  mkdir -p "$_backup_path"
+
   if [ "$_real_cert" ]; then
     _info "Installing cert to:$_real_cert"
     if [ -f "$_real_cert" ] && [ ! "$IS_RENEW" ]; then
-      mkdir -p "$DOMAIN_BACKUP_PATH"
-      cp "$_real_cert" "$DOMAIN_BACKUP_PATH/cert.bak"
+      cp "$_real_cert" "$_backup_path/cert.bak"
     fi
     cat "$CERT_PATH" >"$_real_cert"
   fi
@@ -4007,8 +4011,7 @@ _installcert() {
       cat "$CA_CERT_PATH" >>"$_real_ca"
     else
       if [ -f "$_real_ca" ] && [ ! "$IS_RENEW" ]; then
-        mkdir -p "$DOMAIN_BACKUP_PATH"
-        cp "$_real_ca" "$DOMAIN_BACKUP_PATH/ca.bak"
+        cp "$_real_ca" "$_backup_path/ca.bak"
       fi
       cat "$CA_CERT_PATH" >"$_real_ca"
     fi
@@ -4017,8 +4020,7 @@ _installcert() {
   if [ "$_real_key" ]; then
     _info "Installing key to:$_real_key"
     if [ -f "$_real_key" ] && [ ! "$IS_RENEW" ]; then
-      mkdir -p "$DOMAIN_BACKUP_PATH"
-      cp "$_real_key" "$DOMAIN_BACKUP_PATH/key.bak"
+      cp "$_real_key" "$_backup_path/key.bak"
     fi
     cat "$CERT_KEY_PATH" >"$_real_key"
   fi
@@ -4026,8 +4028,7 @@ _installcert() {
   if [ "$_real_fullchain" ]; then
     _info "Installing full chain to:$_real_fullchain"
     if [ -f "$_real_fullchain" ] && [ ! "$IS_RENEW" ]; then
-      mkdir -p "$DOMAIN_BACKUP_PATH"
-      cp "$_real_fullchain" "$DOMAIN_BACKUP_PATH/fullchain.bak"
+      cp "$_real_fullchain" "$_backup_path/fullchain.bak"
     fi
     cat "$CERT_FULLCHAIN_PATH" >"$_real_fullchain"
   fi
