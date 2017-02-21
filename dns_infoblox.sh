@@ -1,4 +1,3 @@
-
 #!/usr/bin/env sh
 
 dns_infoblox_add() {
