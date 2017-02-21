@@ -41,10 +41,10 @@ weechat_deploy() {
     _info "WEECHAT_PEM not set, defaulting to ${HOME}/.weechat/ssl/relay.pem"
     WEECHAT_PEM="${HOME}/.weechat/ssl/relay.pem"
   fi
-  if [ -w $WEECHAT_PEM ]; then
+  if [ -w "$WEECHAT_PEM" ]; then
     _info "$WEECHAT_PEM exists and is writable, backing up and overwriting"
-    cp $WEECHAT_PEM $WEECHAT_PEM.bak
-    cat $_ckey $_cfullchain >$WEECHAT_PEM
+    cp "$WEECHAT_PEM" "$WEECHAT_PEM.bak"
+    cat "$_ckey" "$_cfullchain" >"$WEECHAT_PEM"
     _info "Deployed $_cdomain to weechat"
     _debug "Attempting to issue /relay sslcertky to weechat via fifo"
     for fifo in $WEECHAT_HOME/weechat_fifo_*; do
