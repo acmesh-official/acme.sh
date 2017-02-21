@@ -12,7 +12,7 @@
 # If you would like this script to automatically reload this certificate, you must ensure
 # weechat is configured with plugins.var.fifo.fifo = on
 
-# Usage Example: acme.sh --renew --deploy --deploy-hook weechat -d weechat.example.com --force
+# Usage Example: acme.sh --deploy --deploy-hook weechat -d weechat.example.com --force
 
 #returns 0 means success, otherwise error.
 
