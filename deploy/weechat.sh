@@ -44,14 +44,13 @@ weechat_deploy() {
   if [ -w $WEECHAT_PEM ]; then
     _info "$WEECHAT_PEM exists and is writable, backing up and overwriting"
     cp $WEECHAT_PEM $WEECHAT_PEM.bak
-    cat $_ckey $_cfullchain > $WEECHAT_PEM
+    cat $_ckey $_cfullchain >$WEECHAT_PEM
     _info "Deployed $_cdomain to weechat"
     _debug "Attempting to issue /relay sslcertky to weechat via fifo"
-    for fifo in $WEECHAT_HOME/weechat_fifo_*
-      do
-        _info "Issuing reload to weechat via $fifo"
-        printf '%b' '*/relay sslcertkey\n' > "$fifo"
-      done
+    for fifo in $WEECHAT_HOME/weechat_fifo_*; do
+      _info "Issuing reload to weechat via $fifo"
+      printf '%b' '*/relay sslcertkey\n' >"$fifo"
+    done
     exit 0
   else
     _err "$WEECHAT_PEM does not exist or is not writable.  If this is a first run \
