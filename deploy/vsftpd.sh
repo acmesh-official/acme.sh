@@ -39,7 +39,7 @@ vsftpd_deploy() {
     else
       _err "It seems that the specified vsftpd conf is not valid, please check."
       return 1
-    fi 
+    fi
   fi
 
   if [ ! -w "$_vsftpd_conf" ]; then
@@ -50,7 +50,7 @@ vsftpd_deploy() {
   _backup_conf="$DOMAIN_BACKUP_PATH/vsftpd.conf.bak"
   _info "Backup $_vsftpd_conf to $_backup_conf"
   cp "$_vsftpd_conf" "$_backup_conf"
-  
+
   _info "Copying key and cert"
   _real_key="$_ssl_path/vsftpd.key"
   if ! cat "$_ckey" >"$_real_key"; then
@@ -63,7 +63,7 @@ vsftpd_deploy() {
     return 1
   fi
   _info "Modify vsftpd conf: $_vsftpd_conf"
-  
+
   DEFAULT_VSFTPD_RELOAD="service vsftpd restart"
   _reload="${DEPLOY_VSFTPD_RELOAD:-$DEFAULT_VSFTPD_RELOAD}"
   if _setopt "$_vsftpd_conf" "rsa_cert_file" "=" "$_real_fullchain" \
