@@ -26,5 +26,25 @@ Before you can deploy your cert, you must [issue the cert first](https://github.
 
 (TODO)
 
+## 4. Deploy the cert to local vsftpd server.
 
+```sh
+acme.sh --deploy -d ftp.example.com --deploy-hook vsftpd
+```
+
+The default vsftpd conf file is `/etc/vsftpd.conf`,  if your vsftpd conf is not in the default location, you can specify one:
+
+```sh
+export DEPLOY_VSFTPD_CONF="/etc/vsftpd.conf"
+
+acme.sh --deploy -d ftp.example.com --deploy-hook vsftpd
+```
+
+The default command to restart vsftpd server is `service vsftpd restart`, if it doesn't work, you can specify one:
+
+```sh
+export DEPLOY_VSFTPD_RELOAD="/etc/init.d/vsftpd restart"
+
+acme.sh --deploy -d ftp.example.com --deploy-hook vsftpd
+```
 
