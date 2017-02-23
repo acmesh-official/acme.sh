@@ -13,7 +13,7 @@ Then you can deploy now:
 ```sh
 export DEPLOY_CPANEL_USER=myusername
 export DEPLOY_CPANEL_PASSWORD=PASSWORD
-acme.sh --deploy -d example.com --deploy --deploy-hook cpanel
+acme.sh --deploy -d example.com --deploy-hook cpanel
 ```
 
 ## 2. Deploy ssl cert on kong proxy engine based on api.
