@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 # Simple script to deploy certificates for Weechat relay servers
 # 
