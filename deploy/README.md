@@ -91,6 +91,7 @@ acme.sh --deploy -d weechat.example.com --deploy --deploy-hook weechat
 Notes:
 * Run acme.sh under the same user as the weechat client
 * Weechat must be configured with ```plugins.var.fifo.fifo = on```
+```
 
 On deploy, the weechat deploy hook copies the the relevant data to $DEPLOY_WEECHAT_PEM.
 Additionally, this hook attempts to issue a ```/relay sslcertkey``` command via the FIFO
