@@ -1,12 +1,14 @@
 # Using deploy api
 
+Before you can deploy your cert, you must [issue the cert first](https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert).
+
 Here are the scripts to deploy the certs/key to the server/services.
 
 ## 1. Deploy the certs to your cpanel host.
 
 (cpanel deploy hook is not finished yet, this is just an example.)
 
-Before you can deploy your cert, you must [issue the cert first](https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert).
+
 
 Then you can deploy now:
 
