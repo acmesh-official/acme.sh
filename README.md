@@ -293,6 +293,7 @@ You don't have to do anything manually!
 1. Linode.com API
 1. FreeDNS (https://freedns.afraid.org/)
 1. cyon.ch
+1. Domain-Offensive/Resellerinterface/Domainrobot API
 
 **More APIs coming soon...**
 
