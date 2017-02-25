@@ -4935,7 +4935,7 @@ _process() {
         ;;
       --toPkcs8)
         _CMD="toPkcs8"
-        ;; 
+        ;;
       --createAccountKey | --createaccountkey | -cak | --create-account-key)
         _CMD="createAccountKey"
         ;;
