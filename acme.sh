@@ -1147,6 +1147,27 @@ toPkcs() {
 
 }
 
+#domain [isEcc]
+toPkcs8() {
+  domain="$1"
+
+  if [ -z "$domain" ]; then
+    _usage "Usage: $PROJECT_ENTRY --toPkcs8 -d domain [--ecc]"
+    return 1
+  fi
+
+  _isEcc="$2"
+
+  _initpath "$domain" "$_isEcc"
+
+  $ACME_OPENSSL_BIN pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in "$CERT_KEY_PATH" -out "$CERT_PKCS8_PATH"
+
+  if [ "$?" = "0" ]; then
+    _info "Success, $CERT_PKCS8_PATH"
+  fi
+
+}
+
 #[2048]  
 createAccountKey() {
   _info "Creating account key"
@@ -2199,6 +2220,9 @@ _initpath() {
   fi
   if [ -z "$CERT_PFX_PATH" ]; then
     CERT_PFX_PATH="$DOMAIN_PATH/$domain.pfx"
+  fi
+  if [ -z "$CERT_PKCS8_PATH" ]; then
+    CERT_PKCS8_PATH="$DOMAIN_PATH/$domain.pkcs8"
   fi
 
   if [ -z "$TLS_CONF" ]; then
@@ -4661,6 +4685,7 @@ Commands:
   --uninstall-cronjob      Uninstall the cron job. The 'uninstall' command can do this automatically.
   --cron                   Run cron job to renew all the certs.
   --toPkcs                 Export the certificate and key to a pfx file.
+  --toPkcs8                Convert to pkcs8 format.
   --update-account         Update account info.
   --register-account       Register account key.
   --create-account-key     Create an account private key, professional use.
@@ -4908,6 +4933,9 @@ _process() {
       --toPkcs)
         _CMD="toPkcs"
         ;;
+      --toPkcs8)
+        _CMD="toPkcs8"
+        ;; 
       --createAccountKey | --createaccountkey | -cak | --create-account-key)
         _CMD="createAccountKey"
         ;;
@@ -5319,6 +5347,9 @@ _process() {
     cron) cron ;;
     toPkcs)
       toPkcs "$_domain" "$_password" "$_ecc"
+      ;;
+    toPkcs8)
+      toPkcs8 "$_domain" "$_ecc"
       ;;
     createAccountKey)
       createAccountKey "$_accountkeylength"
