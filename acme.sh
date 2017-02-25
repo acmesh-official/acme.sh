@@ -4369,7 +4369,7 @@ _precheck() {
   fi
 
   if ! _exists "$OPENSSL_BIN"; then
-    _err "Please install openssl first."
+    _err "Please install openssl first. OPENSSL_BIN=$OPENSSL_BIN"
     _err "We need openssl to generate keys."
     return 1
   fi
