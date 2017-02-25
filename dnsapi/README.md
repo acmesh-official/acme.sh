@@ -323,6 +323,19 @@ acme.sh --issue --dns dns_cyon -d example.com -d www.example.com
 
 The `CY_Username`, `CY_Password` and `CY_OTP_Secret` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 17. Use Domain-Offensive/Resellerinterface/Domainrobot API
+
+You will need your login credentials (Partner ID+Password) to the Resellerinterface, and export them before you run `acme.sh`:
+```
+export DO_PID="KD-1234567"
+export DO_PW="cdfkjl3n2"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_do -d example.com -d www.example.com
+```
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
