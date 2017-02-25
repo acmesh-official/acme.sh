@@ -50,3 +50,25 @@ export DEPLOY_VSFTPD_RELOAD="/etc/init.d/vsftpd restart"
 acme.sh --deploy -d ftp.example.com --deploy-hook vsftpd
 ```
 
+## 5. Deploy the cert to local exim4 server.
+
+```sh
+acme.sh --deploy -d ftp.example.com --deploy-hook exim4
+```
+
+The default exim4 conf file is `/etc/exim/exim.conf`,  if your exim4 conf is not in the default location, you can specify one:
+
+```sh
+export DEPLOY_EXIM4_CONF="/etc/exim4/exim4.conf.template"
+
+acme.sh --deploy -d ftp.example.com --deploy-hook exim4
+```
+
+The default command to restart exim4 server is `service exim4 restart`, if it doesn't work, you can specify one:
+
+```sh
+export DEPLOY_EXIM4_RELOAD="/etc/init.d/exim4 restart"
+
+acme.sh --deploy -d ftp.example.com --deploy-hook exim4
+```
+
