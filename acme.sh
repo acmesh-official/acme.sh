@@ -2143,7 +2143,7 @@ _initpath() {
     CERT_HOME="$_DEFAULT_CERT_HOME"
   fi
 
-  if [ -z "$ACME_OPENSSL_BIN" ] || [ ! -f "$ACME_OPENSSL_BIN" ] || [ ! -x "$ACME_OPENSSL_BIN" ] ; then
+  if [ -z "$ACME_OPENSSL_BIN" ] || [ ! -f "$ACME_OPENSSL_BIN" ] || [ ! -x "$ACME_OPENSSL_BIN" ]; then
     ACME_OPENSSL_BIN="$DEFAULT_OPENSSL_BIN"
   fi
 
