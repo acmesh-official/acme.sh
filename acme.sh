@@ -5277,6 +5277,7 @@ _process() {
       --openssl-bin)
         _openssl_bin="$2"
         ACME_OPENSSL_BIN="$_openssl_bin"
+        shift
         ;;
       *)
         _err "Unknown parameter : $1"
