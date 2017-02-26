@@ -2819,16 +2819,13 @@ _on_before_issue() {
 
 _on_issue_err() {
   _chk_post_hook="$1"
+  _chk_vlist="$2"
   _debug _on_issue_err
   if [ "$LOG_FILE" ]; then
     _err "Please check log file for more details: $LOG_FILE"
   else
     _err "Please add '--debug' or '--log' to check more details."
     _err "See: $_DEBUG_WIKI"
-  fi
-
-  if [ "$DEBUG" ] && [ "$DEBUG" -gt "0" ]; then
-    _debug "$(_dlg_versions)"
   fi
 
   #run the post hook
@@ -2841,6 +2838,28 @@ _on_issue_err() {
       return 1
     fi
   fi
+
+  #trigger the validation to flush the pending authz
+  if [ "$_chk_vlist" ]; then
+    (
+    _debug2 "_chk_vlist" "$_chk_vlist"
+    _debug2 "start to deactivate authz"
+    ventries=$(echo "$_chk_vlist" | tr "$dvsep" ' ')
+    for ventry in $ventries; do
+      d=$(echo "$ventry" | cut -d "$sep" -f 1)
+      keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
+      uri=$(echo "$ventry" | cut -d "$sep" -f 3)
+      vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
+      _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
+      __trigger_validaton "$uri" "$keyauthorization"
+    done
+    )
+  fi
+
+  if [ "$DEBUG" ] && [ "$DEBUG" -gt "0" ]; then
+    _debug "$(_dlg_versions)"
+  fi
+
 }
 
 _on_issue_success() {
@@ -3051,6 +3070,16 @@ __get_domain_new_authz() {
     return 1
   fi
 
+}
+
+#uri keyAuthorization
+__trigger_validaton() {
+  _debug2 "tigger domain validation."
+  _t_url="$1"
+  _debug2 _t_url "$_t_url"
+  _t_key_authz="$2"
+  _debug2 _t_key_authz "$_t_key_authz"
+  _send_signed_request "$_t_url" "{\"resource\": \"challenge\", \"keyAuthorization\": \"$_t_key_authz\"}"
 }
 
 #webroot, domain domainlist  keylength 
@@ -3366,7 +3395,7 @@ issue() {
         _startserver "$keyauthorization" "$_ncaddr" &
         if [ "$?" != "0" ]; then
           _clearup
-          _on_issue_err "$_post_hook"
+          _on_issue_err "$_post_hook" "$vlist"
           return 1
         fi
         serverproc="$!"
@@ -3382,7 +3411,7 @@ issue() {
         BACKUP_NGINX_CONF=""
         if ! _setNginx "$d" "$_currentRoot" "$thumbprint"; then
           _clearup
-          _on_issue_err "$_post_hook"
+          _on_issue_err "$_post_hook" "$vlist"
           return 1
         fi
 
@@ -3417,7 +3446,7 @@ issue() {
           _err "$d:Can not write token to file : $wellknown_path/$token"
           _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
           _clearup
-          _on_issue_err "$_post_hook"
+          _on_issue_err "$_post_hook" "$vlist"
           return 1
         fi
 
@@ -3462,16 +3491,16 @@ issue() {
         _err "Start tls server error."
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err "$_post_hook"
+        _on_issue_err "$_post_hook" "$vlist"
         return 1
       fi
     fi
 
-    if ! _send_signed_request "$uri" "{\"resource\": \"challenge\", \"keyAuthorization\": \"$keyauthorization\"}"; then
+    if ! __trigger_validaton "$uri" "$keyauthorization"; then
       _err "$d:Can not get challenge: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
       _clearup
-      _on_issue_err "$_post_hook"
+      _on_issue_err "$_post_hook" "$vlist"
       return 1
     fi
 
@@ -3479,7 +3508,7 @@ issue() {
       _err "$d:Challenge error: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
       _clearup
-      _on_issue_err "$_post_hook"
+      _on_issue_err "$_post_hook" "$vlist"
       return 1
     fi
 
@@ -3494,7 +3523,7 @@ issue() {
         _err "$d:Timeout"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err
+        _on_issue_err "$_post_hook" "$vlist"
         return 1
       fi
 
@@ -3506,7 +3535,7 @@ issue() {
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err "$_post_hook"
+        _on_issue_err "$_post_hook" "$vlist"
         return 1
       fi
       _debug2 original "$response"
@@ -3541,7 +3570,7 @@ issue() {
         fi
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err "$_post_hook"
+        _on_issue_err "$_post_hook" "$vlist"
         return 1
       fi
 
@@ -3551,7 +3580,7 @@ issue() {
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err "$_post_hook"
+        _on_issue_err "$_post_hook" "$vlist"
         return 1
       fi
 
