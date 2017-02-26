@@ -2842,17 +2842,17 @@ _on_issue_err() {
   #trigger the validation to flush the pending authz
   if [ "$_chk_vlist" ]; then
     (
-    _debug2 "_chk_vlist" "$_chk_vlist"
-    _debug2 "start to deactivate authz"
-    ventries=$(echo "$_chk_vlist" | tr "$dvsep" ' ')
-    for ventry in $ventries; do
-      d=$(echo "$ventry" | cut -d "$sep" -f 1)
-      keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
-      uri=$(echo "$ventry" | cut -d "$sep" -f 3)
-      vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
-      _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
-      __trigger_validaton "$uri" "$keyauthorization"
-    done
+      _debug2 "_chk_vlist" "$_chk_vlist"
+      _debug2 "start to deactivate authz"
+      ventries=$(echo "$_chk_vlist" | tr "$dvsep" ' ')
+      for ventry in $ventries; do
+        d=$(echo "$ventry" | cut -d "$sep" -f 1)
+        keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
+        uri=$(echo "$ventry" | cut -d "$sep" -f 3)
+        vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
+        _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
+        __trigger_validaton "$uri" "$keyauthorization"
+      done
     )
   fi
 
