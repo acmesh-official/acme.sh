@@ -1505,7 +1505,7 @@ _post() {
 
   _inithttp
 
-  if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" != "0" ]; then
+  if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
     _CURL="$_ACME_CURL"
     if [ "$HTTPS_INSECURE" ]; then
       _CURL="$_CURL --insecure  "
@@ -1572,7 +1572,7 @@ _get() {
 
   _inithttp
 
-  if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" != "0" ]; then
+  if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
     _CURL="$_ACME_CURL"
     if [ "$HTTPS_INSECURE" ]; then
       _CURL="$_CURL --insecure  "
