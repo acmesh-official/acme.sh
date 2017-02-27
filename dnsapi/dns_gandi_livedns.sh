@@ -24,6 +24,8 @@ dns_gandi_livedns_add() {
       return 1
   fi
 
+  _saveaccountconf GANDI_LIVEDNS_KEY   "$GANDI_LIVEDNS_KEY"
+
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
