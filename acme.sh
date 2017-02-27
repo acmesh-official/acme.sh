@@ -927,6 +927,15 @@ _createkey() {
 
   _debug "Use length $length"
 
+  if ! touch "$f" >/dev/null 2>&1; then
+    _f_path="$(dirname "$f")"
+    _debug _f_path "$_f_path"
+    if ! mkdir -p "$_f_path"; then
+      _err "Can not create path: $_f_path"
+      return 1
+    fi
+  fi
+
   if _isEccKey "$length"; then
     _debug "Using ec name: $eccname"
     $ACME_OPENSSL_BIN ecparam -name "$eccname" -genkey 2>/dev/null >"$f"
