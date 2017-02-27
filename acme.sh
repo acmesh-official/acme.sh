@@ -1505,7 +1505,7 @@ _post() {
 
   _inithttp
 
-  if [ "$_ACME_CURL" ]; then
+  if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" != "0" ]; then
     _CURL="$_ACME_CURL"
     if [ "$HTTPS_INSECURE" ]; then
       _CURL="$_CURL --insecure  "
@@ -1572,7 +1572,7 @@ _get() {
 
   _inithttp
 
-  if [ "$_ACME_CURL" ]; then
+  if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" != "0" ]; then
     _CURL="$_ACME_CURL"
     if [ "$HTTPS_INSECURE" ]; then
       _CURL="$_CURL --insecure  "
@@ -4787,6 +4787,7 @@ Parameters:
   --listen-v4                       Force standalone/tls server to listen at ipv4.
   --listen-v6                       Force standalone/tls server to listen at ipv6.
   --openssl-bin                     Specifies a custom openssl bin location.
+  --use-wget                        Force to use wget, if you have both curl and wget installed.
   "
 }
 
@@ -4865,6 +4866,12 @@ _processAccountConf() {
     _saveaccountconf "AUTO_UPGRADE" "$AUTO_UPGRADE"
   fi
 
+  if [ "$_use_wget" ]; then
+    _saveaccountconf "ACME_USE_WGET" "$_use_wget"
+  elif [ "$ACME_USE_WGET" ]; then
+    _saveaccountconf "ACME_USE_WGET" "$ACME_USE_WGET"
+  fi
+
 }
 
 _process() {
@@ -4909,6 +4916,7 @@ _process() {
   _listen_v6=""
   _openssl_bin=""
   _syslog=""
+  _use_wget=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -5287,6 +5295,10 @@ _process() {
         _openssl_bin="$2"
         ACME_OPENSSL_BIN="$_openssl_bin"
         shift
+        ;;
+      --use-wget)
+        _use_wget="1"
+        ACME_USE_WGET="1"
         ;;
       *)
         _err "Unknown parameter : $1"
