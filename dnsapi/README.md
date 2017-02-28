@@ -336,6 +336,18 @@ Ok, let's issue a cert now:
 acme.sh --issue --dns dns_do -d example.com -d www.example.com
 ```
 
+## 18. Use Gandi LiveDNS API
+
+You will need your Gandi API key (on your Account preferences, go to Security and generate your API key) and export it before you run `acme.sh`:
+```
+export GANDI_LIVEDNS_KEY="fdmlfsdklmfdkmqsdfk"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_gandi_livedns -d example.com -d www.example.com
+```
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
