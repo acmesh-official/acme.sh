@@ -1546,7 +1546,7 @@ _post() {
     _ret="$?"
     if [ "$_ret" = "8" ]; then
       _ret=0
-      _debug "wget returns 8, the server returns a 'Bad request' respons, lets process the response later."
+      _debug "wget returns 8, the server returns a 'Bad request' response, lets process the response later."
     fi
     if [ "$_ret" != "0" ]; then
       _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret"
@@ -1611,7 +1611,7 @@ _get() {
     ret=$?
     if [ "$ret" = "8" ]; then
       ret=0
-      _debug "wget returns 8, the server returns a 'Bad request' respons, lets process the response later."
+      _debug "wget returns 8, the server returns a 'Bad request' response, lets process the response later."
     fi
     if [ "$ret" != "0" ]; then
       _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $ret"
