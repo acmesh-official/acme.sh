@@ -104,7 +104,7 @@ _gandi_livedns_rest() {
   export _H1="Content-Type: application/json"
   export _H2="X-Api-Key: $GANDI_LIVEDNS_KEY"
 
-  if [ "$data" -o "$m" == "DELETE" ]; then
+  if [ "$data" ] || [ "$m" = "DELETE" ]; then
     _debug data "$data"
     response="$(_post "$data" "$GANDI_LIVEDNS_API/$ep" "" "$m")"
   else
