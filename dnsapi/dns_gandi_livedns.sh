@@ -37,7 +37,7 @@ dns_gandi_livedns_add() {
   _debug sub_domain "$_sub_domain"
 
   _gandi_livedns_rest PUT "domains/$_domain/records/$_sub_domain/TXT" "{\"rrset_ttl\": 300, \"rrset_values\":[\"$txtvalue\"]}"
-
+  _contains "$response" '{"message": "Zone Record Created"}'
 }
 
 #Usage: fulldomain txtvalue
@@ -71,6 +71,7 @@ _get_root() {
   p=1
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
       return 1
