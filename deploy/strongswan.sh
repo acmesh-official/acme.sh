@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 #Here is a sample custom api script.
 #This file name is "myapi.sh"
@@ -22,14 +22,10 @@ strongswan_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-#  _err "Not implemented yet"
-
-#  return 1
-
-  cp -pv $_ckey       /etc/ipsec.d/private/$(basename $_ckey)
-  cp -pv $_ccert      /etc/ipsec.d/certs/$(basename $_ccert)
-  cp -pv $_cca        /etc/ipsec.d/cacerts/$(basename $_cca)
-  cp -pv $_cfullchain /etc/ipsec.d/cacerts/$(basename $_cfullchain)
+  cat $_ckey       > /etc/ipsec.d/private/$(basename $_ckey)
+  cat $_ccert      > /etc/ipsec.d/certs/$(basename $_ccert)
+  cat $_cca        > /etc/ipsec.d/cacerts/$(basename $_cca)
+  cat $_cfullchain > /etc/ipsec.d/cacerts/$(basename $_cfullchain)
 
   ipsec secrets
 
