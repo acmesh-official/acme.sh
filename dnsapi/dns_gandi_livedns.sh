@@ -38,7 +38,6 @@ dns_gandi_livedns_add() {
 
   _gandi_livedns_rest PUT "domains/$_domain/records/$_sub_domain/TXT" "{\"rrset_ttl\": 300, \"rrset_values\":[\"$txtvalue\"]}"
 
-  return $?
 }
 
 #Usage: fulldomain txtvalue
@@ -59,7 +58,6 @@ dns_gandi_livedns_rm() {
 
   _gandi_livedns_rest DELETE "domains/$_domain/records/$_sub_domain/TXT" ""
 
-  return $?
 }
 
 ####################  Private functions below ##################################
@@ -82,7 +80,10 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$response" '"code": 404'; then
+    if _contains "$response" '"code": 401'; then
+      _err "$response"
+      return 1
+    elif _contains "$response" '"code": 404'; then
       _debug "$h not found"
     else
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
@@ -104,11 +105,11 @@ _gandi_livedns_rest() {
   export _H1="Content-Type: application/json"
   export _H2="X-Api-Key: $GANDI_LIVEDNS_KEY"
 
-  if [ "$data" ] || [ "$m" = "DELETE" ]; then
+  if [ "$m" = "GET" ]; then
+    response="$(_get "$GANDI_LIVEDNS_API/$ep")"
+  else
     _debug data "$data"
     response="$(_post "$data" "$GANDI_LIVEDNS_API/$ep" "" "$m")"
-  else
-    response="$(_get "$GANDI_LIVEDNS_API/$ep")"
   fi
 
   if [ "$?" != "0" ]; then

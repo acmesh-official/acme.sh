@@ -338,7 +338,8 @@ acme.sh --issue --dns dns_do -d example.com -d www.example.com
 
 ## 18. Use Gandi LiveDNS API
 
-You will need your Gandi API key (on your Account preferences, go to Security and generate your API key) and export it before you run `acme.sh`:
+You must enable the new Gandi LiveDNS API first and the create your api key, See: http://doc.livedns.gandi.net/
+
 ```
 export GANDI_LIVEDNS_KEY="fdmlfsdklmfdkmqsdfk"
 ```
