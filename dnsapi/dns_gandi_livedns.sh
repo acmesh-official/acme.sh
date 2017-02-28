@@ -19,12 +19,12 @@ dns_gandi_livedns_add() {
   txtvalue=$2
 
   if [ -z "$GANDI_LIVEDNS_KEY" ]; then
-      _err "No API key specifed for Gandi LiveDNS."
-      _err "Create your key and export it as GANDI_LIVEDNS_KEY"
-      return 1
+    _err "No API key specifed for Gandi LiveDNS."
+    _err "Create your key and export it as GANDI_LIVEDNS_KEY"
+    return 1
   fi
 
-  _saveaccountconf GANDI_LIVEDNS_KEY   "$GANDI_LIVEDNS_KEY"
+  _saveaccountconf GANDI_LIVEDNS_KEY "$GANDI_LIVEDNS_KEY"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
