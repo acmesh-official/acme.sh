@@ -1610,7 +1610,7 @@ _get() {
     fi
     ret=$?
     if [ "$_ret" = "8" ]; then
-      _ret=0
+      ret=0
       _debug "wget returns 8, the server returns a 'Bad request' respons, lets process the response later."
     fi
     if [ "$ret" != "0" ]; then
