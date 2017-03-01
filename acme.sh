@@ -1486,7 +1486,7 @@ _inithttp() {
   fi
 
   #from wget 1.14: do not skip body on 404 error
-  if [ "$_ACME_WGET" ] && _contains "$($_ACME_WGET --help)" "--content-on-error"; then
+  if [ "$_ACME_WGET" ] && _contains "$($_ACME_WGET --help 2>&1)" "--content-on-error"; then
     _ACME_WGET="$_ACME_WGET --content-on-error "
   fi
 
