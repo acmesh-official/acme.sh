@@ -78,7 +78,41 @@ dns_me_add() {
 #fulldomain
 dns_me_rm() {
   fulldomain=$1
+  txtvalue=$2
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+  _debug _domain_id "$_domain_id"
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain "$_domain"
 
+  _debug "Getting txt records"
+  _me_rest GET "${_domain_id}/records?recordName=$_sub_domain&type=TXT"
+
+  if ! printf "%s" "$response" | grep \"success\":true >/dev/null; then
+    _err "Error"
+    return 1
+  fi
+
+  count=$(printf "%s\n" "$response" | _egrep_o "\"totalRecords\":[^,]*" | cut -d : -f 2)
+  _debug count "$count"
+  if [ "$count" = "0" ]; then
+    _info "Don't need to remove."
+  else
+    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*" | cut -d : -f 2 | head -n 1)
+    _debug "record_id" "$record_id"
+    if [ -z "$record_id" ]; then
+      _err "Can not get record id to remove."
+      return 1
+    fi
+    if ! _me_rest DELETE "$_domain_id/records/$record_id"; then
+      _err "Delete record error."
+      return 1
+    fi
+    _contains "$response" '"success":true'
+  fi
 }
 
 ####################  Private functions below ##################################
@@ -130,7 +164,7 @@ _me_rest() {
   export _H2="x-dnsme-requestDate: $cdate"
   export _H3="x-dnsme-hmac: $hmac"
 
-  if [ "$data" ]; then
+  if [ "$m" != "GET" ]; then
     _debug data "$data"
     response="$(_post "$data" "$ME_Api/$ep" "" "$m")"
   else
