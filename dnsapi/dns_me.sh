@@ -91,11 +91,6 @@ dns_me_rm() {
   _debug "Getting txt records"
   _me_rest GET "${_domain_id}/records?recordName=$_sub_domain&type=TXT"
 
-  if ! printf "%s" "$response" | grep \"success\":true >/dev/null; then
-    _err "Error"
-    return 1
-  fi
-
   count=$(printf "%s\n" "$response" | _egrep_o "\"totalRecords\":[^,]*" | cut -d : -f 2)
   _debug count "$count"
   if [ "$count" = "0" ]; then
@@ -107,10 +102,7 @@ dns_me_rm() {
       _err "Can not get record id to remove."
       return 1
     fi
-    if ! _me_rest DELETE "$_domain_id/records/$record_id"; then
-      _err "Delete record error."
-      return 1
-    fi
+    _me_rest DELETE "$_domain_id/records/$record_id"
     _contains "$response" '"success":true'
   fi
 }
