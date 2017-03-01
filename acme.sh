@@ -1485,6 +1485,11 @@ _inithttp() {
     fi
   fi
 
+  #from wget 1.14: do not skip body on 404 error
+  if [ "$_ACME_WGET" ] && _contains "$($_ACME_WGET --help)" "--content-on-error"; then
+    _ACME_WGET="$_ACME_WGET --content-on-error "
+  fi
+
   __HTTP_INITIALIZED=1
 
 }
@@ -1546,7 +1551,7 @@ _post() {
     _ret="$?"
     if [ "$_ret" = "8" ]; then
       _ret=0
-      _debug "wget returns 8, the server returns a 'Bad request' respons, lets process the response later."
+      _debug "wget returns 8, the server returns a 'Bad request' response, lets process the response later."
     fi
     if [ "$_ret" != "0" ]; then
       _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret"
@@ -1609,9 +1614,9 @@ _get() {
       $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -O - "$url"
     fi
     ret=$?
-    if [ "$_ret" = "8" ]; then
-      _ret=0
-      _debug "wget returns 8, the server returns a 'Bad request' respons, lets process the response later."
+    if [ "$ret" = "8" ]; then
+      ret=0
+      _debug "wget returns 8, the server returns a 'Bad request' response, lets process the response later."
     fi
     if [ "$ret" != "0" ]; then
       _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $ret"
