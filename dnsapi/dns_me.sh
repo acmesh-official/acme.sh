@@ -102,8 +102,11 @@ dns_me_rm() {
       _err "Can not get record id to remove."
       return 1
     fi
-    _me_rest DELETE "$_domain_id/records/$record_id"
-    _contains "$response" '"success":true'
+    if ! _me_rest DELETE "$_domain_id/records/$record_id"; then
+      _err "Delete record error."
+      return 1
+    fi
+    _contains "$response" ''
   fi
 }
 
