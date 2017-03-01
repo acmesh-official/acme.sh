@@ -305,6 +305,50 @@ Note that you cannot use acme.sh automatic DNS validation for FreeDNS public dom
 you create under a FreeDNS public domain.  You must own the top level domain in order to automaitcally
 validate with acme.sh at FreeDNS.
 
+## 16. Use cyon.ch
+
+You only need to set your cyon.ch login credentials.
+If you also have 2 Factor Authentication (OTP) enabled, you need to set your secret token too and have `oathtool` installed.
+
+```
+export CY_Username="your_cyon_username"
+export CY_Password="your_cyon_password"
+export CY_OTP_Secret="your_otp_secret" # Only required if using 2FA
+```
+
+To issue a cert:
+```
+acme.sh --issue --dns dns_cyon -d example.com -d www.example.com
+```
+
+The `CY_Username`, `CY_Password` and `CY_OTP_Secret` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 17. Use Domain-Offensive/Resellerinterface/Domainrobot API
+
+You will need your login credentials (Partner ID+Password) to the Resellerinterface, and export them before you run `acme.sh`:
+```
+export DO_PID="KD-1234567"
+export DO_PW="cdfkjl3n2"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_do -d example.com -d www.example.com
+```
+
+## 18. Use Gandi LiveDNS API
+
+You must enable the new Gandi LiveDNS API first and the create your api key, See: http://doc.livedns.gandi.net/
+
+```
+export GANDI_LIVEDNS_KEY="fdmlfsdklmfdkmqsdfk"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_gandi_livedns -d example.com -d www.example.com
+```
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.

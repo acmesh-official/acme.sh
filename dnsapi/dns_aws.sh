@@ -93,7 +93,7 @@ _get_root() {
       fi
 
       if _contains "$response" "<Name>$h.</Name>"; then
-        hostedzone="$(echo "$response" | _egrep_o "<HostedZone><Id>[^<]*<.Id><Name>$h.<.Name>.*<.HostedZone>")"
+        hostedzone="$(echo "$response" | sed 's/<HostedZone>/#&/g' | tr '#' '\n' | _egrep_o "<HostedZone><Id>[^<]*<.Id><Name>$h.<.Name>.*<.HostedZone>")"
         _debug hostedzone "$hostedzone"
         if [ -z "$hostedzone" ]; then
           _err "Error, can not get hostedzone."
@@ -181,10 +181,10 @@ aws_rest() {
 
   #kSecret="wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY" ############################
 
-  _debug2 kSecret "$kSecret"
+  _secure_debug2 kSecret "$kSecret"
 
   kSecretH="$(printf "%s" "$kSecret" | _hex_dump | tr -d " ")"
-  _debug2 kSecretH "$kSecretH"
+  _secure_debug2 kSecretH "$kSecretH"
 
   kDateH="$(printf "$RequestDateOnly%s" | _hmac "$Hash" "$kSecretH" hex)"
   _debug2 kDateH "$kDateH"

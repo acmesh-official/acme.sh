@@ -1,15 +1,16 @@
 #!/usr/bin/env sh
 
-#Here is a sample custom api script.
-#This file name is "myapi.sh"
-#So, here must be a method   myapi_deploy()
-#Which will be called by acme.sh to deploy the cert
+#Here is the script to deploy the cert to your cpanel account by the cpanel APIs.
+
 #returns 0 means success, otherwise error.
+
+#export DEPLOY_CPANEL_USER=myusername
+#export DEPLOY_CPANEL_PASSWORD=PASSWORD
 
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
-myapi_deploy() {
+cpanel_deploy() {
   _cdomain="$1"
   _ckey="$2"
   _ccert="$3"

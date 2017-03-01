@@ -54,7 +54,9 @@ https://github.com/Neilpang/acmetest
 - Webroot mode
 - Standalone mode
 - Apache mode
+- Nginx mode ( Beta )
 - DNS mode
+- [Stateless mode](https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode)
 
 
 # 1. How to install
@@ -146,7 +148,7 @@ You **MUST** use this command to copy the certs to the target files, **DO NOT** 
 
 **Apache** example:
 ```bash
-acme.sh --installcert -d example.com \
+acme.sh --install-cert -d example.com \
 --certpath      /path/to/certfile/in/apache/cert.pem  \
 --keypath       /path/to/keyfile/in/apache/key.pem  \
 --fullchainpath /path/to/fullchain/certfile/apache/fullchain.pem \
@@ -155,7 +157,7 @@ acme.sh --installcert -d example.com \
 
 **Nginx** example:
 ```bash
-acme.sh --installcert -d example.com \
+acme.sh --install-cert -d example.com \
 --keypath       /path/to/keyfile/in/nginx/key.pem  \
 --fullchainpath /path/to/fullchain/nginx/cert.pem \
 --reloadcmd     "service nginx force-reload"
@@ -214,8 +216,27 @@ acme.sh --issue --apache -d example.com -d www.example.com -d cp.example.com
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
+# 7. Use Nginx mode
 
-# 7. Use DNS mode:
+**(requires you to be root/sudoer, since it is required to interact with Nginx server)**
+
+If you are running a web server, Apache or Nginx, it is recommended to use the `Webroot mode`.
+
+Particularly, if you are running an nginx server, you can use nginx mode instead. This mode doesn't write any files to your web root folder.
+
+Just set string "nginx" as the second argument.
+
+It will configure nginx server automatically to verify the domain and then restore the nginx config to the original version.
+
+So, the config is not changed.
+
+```
+acme.sh --issue --nginx -d example.com -d www.example.com -d cp.example.com
+```
+
+More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
+
+# 8. Use DNS mode:
 
 Support the `dns-01` challenge.
 
@@ -246,7 +267,7 @@ acme.sh --renew -d example.com
 Ok, it's finished.
 
 
-# 8. Automatic DNS API integration
+# 9. Automatic DNS API integration
 
 If your DNS provider supports API access, we can use that API to automatically issue the certs.
 
@@ -271,6 +292,9 @@ You don't have to do anything manually!
 1. Alwaysdata.com API
 1. Linode.com API
 1. FreeDNS (https://freedns.afraid.org/)
+1. cyon.ch
+1. Domain-Offensive/Resellerinterface/Domainrobot API
+1. Gandi LiveDNS API
 
 **More APIs coming soon...**
 
@@ -279,7 +303,7 @@ If your DNS provider is not on the supported list above, you can write your own 
 For more details: [How to use DNS API](dnsapi)
 
 
-# 9. Issue ECC certificates
+# 10. Issue ECC certificates
 
 `Let's Encrypt` can now issue **ECDSA** certificates.
 
@@ -310,7 +334,7 @@ Valid values are:
 3. **ec-521 (secp521r1,  "ECDSA P-521", which is not supported by Let's Encrypt yet.)**
 
 
-# 10. How to renew the issued certs
+# 11. How to renew the issued certs
 
 No, you don't need to renew the certs manually. All the certs will be renewed automatically every **60** days.
 
@@ -327,7 +351,7 @@ acme.sh --renew -d example.com --force --ecc
 ```
 
 
-# 11. How to upgrade `acme.sh`
+# 12. How to upgrade `acme.sh`
 
 acme.sh is in constant development, so it's strongly recommended to use the latest code.
 
@@ -352,26 +376,26 @@ acme.sh --upgrade --auto-upgrade 0
 ```
 
 
-# 12. Issue a cert from an existing CSR
+# 13. Issue a cert from an existing CSR
 
 https://github.com/Neilpang/acme.sh/wiki/Issue-a-cert-from-existing-CSR
 
 
-# Under the Hood
+# 14. Under the Hood
 
 Speak ACME language using shell, directly to "Let's Encrypt".
 
 TODO:
 
 
-# Acknowledgments
+# 15. Acknowledgments
 
 1. Acme-tiny: https://github.com/diafygi/acme-tiny
 2. ACME protocol: https://github.com/ietf-wg-acme/acme
 3. Certbot: https://github.com/certbot/certbot
 
 
-# License & Others
+# 16. License & Others
 
 License is GPLv3
 
@@ -380,8 +404,9 @@ Please Star and Fork me.
 [Issues](https://github.com/Neilpang/acme.sh/issues) and [pull requests](https://github.com/Neilpang/acme.sh/pulls) are welcome.
 
 
-# Donate
+# 17. Donate
+Your donation makes **acme.sh** better:
 
-1. PayPal: donate@acme.sh
-
+1. PayPal/Alipay(支付宝)/Wechat(微信): [https://donate.acme.sh/](https://donate.acme.sh/)
+  
 [Donate List](https://github.com/Neilpang/acme.sh/wiki/Donate-list)
