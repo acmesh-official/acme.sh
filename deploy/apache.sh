@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-#Here is a script to deploy cert to dovecot server.
+#Here is a script to deploy cert to apache server.
 
 #returns 0 means success, otherwise error.
 
