@@ -81,7 +81,36 @@ dns_lua_add() {
 #fulldomain
 dns_lua_rm() {
   fulldomain=$1
+  txtvalue=$2
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+  _debug _domain_id "$_domain_id"
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain "$_domain"
 
+  _debug "Getting txt records"
+  _LUA_rest GET "zones/${_domain_id}/records"
+
+  count=$(printf "%s\n" "$response" | _egrep_o "\"name\":\"$fulldomain.\",\"type\":\"TXT\"" | wc -l | tr -d " ")
+  _debug count "$count"
+  if [ "$count" = "0" ]; then
+    _info "Don't need to remove."
+  else
+    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*,\"name\":\"$fulldomain.\",\"type\":\"TXT\"" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
+    _debug "record_id" "$record_id"
+    if [ -z "$record_id" ]; then
+      _err "Can not get record id to remove."
+      return 1
+    fi
+    if ! _LUA_rest DELETE "/zones/$_domain_id/records/$record_id"; then
+      _err "Delete record error."
+      return 1
+    fi
+    _contains "$response" "$record_id"
+  fi
 }
 
 ####################  Private functions below ##################################
@@ -129,7 +158,7 @@ _LUA_rest() {
 
   export _H1="Accept: application/json"
   export _H2="Authorization: Basic $LUA_auth"
-  if [ "$data" ]; then
+  if [ "$m" != "GET" ]; then
     _debug data "$data"
     response="$(_post "$data" "$LUA_Api/$ep" "" "$m")"
   else
