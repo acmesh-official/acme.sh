@@ -146,7 +146,7 @@ _dlg_versions() {
 
   echo "apache:"
   if [ "$_APACHECTL" ] && _exists "$_APACHECTL"; then
-    _APACHECTL -V 2>&1
+    $_APACHECTL -V 2>&1
   else
     echo "apache doesn't exists."
   fi
