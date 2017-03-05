@@ -295,6 +295,7 @@ You don't have to do anything manually!
 1. cyon.ch
 1. Domain-Offensive/Resellerinterface/Domainrobot API
 1. Gandi LiveDNS API
+1. DigitalOcean API (native)
 
 **More APIs coming soon...**
 
