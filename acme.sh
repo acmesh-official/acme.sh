@@ -1279,12 +1279,12 @@ _url_replace() {
 }
 
 _time2str() {
-  #BSD
+  #Linux
   if date -u -d@"$1" 2>/dev/null; then
     return
   fi
 
-  #Linux
+  #BSD
   if date -u -r "$1" 2>/dev/null; then
     return
   fi
