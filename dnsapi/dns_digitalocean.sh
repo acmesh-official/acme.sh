@@ -35,7 +35,7 @@ dns_digitalocean_add() {
   fi
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
-  
+
   ## Set the header with our post type and key auth key
   export _H1="Content-Type: application/json"
   export _H2="Authorization: Bearer $DO_API_KEY"
@@ -48,14 +48,14 @@ dns_digitalocean_add() {
   ## the create request - post
   ## args: BODY, URL, [need64, httpmethod]
   response="$(_post "$PBODY" "$PURL")"
-  
+
   ## check response (sort of)
   if [ "$?" != "0" ]; then
     _err "error in response: $response"
     return 1
   fi
   _debug response "$response"
-  
+
   ## finished correctly
   return 0
 }
@@ -78,7 +78,7 @@ dns_digitalocean_rm() {
   fi
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
-  
+
   ## Set the header with our post type and key auth key
   export _H1="Content-Type: application/json"
   export _H2="Authorization: Bearer $DO_API_KEY"
@@ -94,11 +94,11 @@ dns_digitalocean_rm() {
     domain_list="$(_get "$GURL")"
     ## 2) find record
     ## check for what we are looing for: "type":"A","name":"$_sub_domain"
-    record="$(echo "$domain_list" | _egrep_o "\"id\"\s*\:\s*\"*\d+\"*[^}]*\"name\"\s*\:\s*\"$_sub_domain\"[^}]*\"data\"\s*\:\s*\"$txtvalue\"" )"
+    record="$(echo "$domain_list" | _egrep_o "\"id\"\s*\:\s*\"*\d+\"*[^}]*\"name\"\s*\:\s*\"$_sub_domain\"[^}]*\"data\"\s*\:\s*\"$txtvalue\"")"
     ## 3) check record and get next page
     if [ -z "$record" ]; then
       ## find the next page if we dont have a match
-      nextpage="$(echo "$domain_list" | _egrep_o "\"links\".*" | _egrep_o "\"next\".*" | _egrep_o "http.*page\=\d+" )"
+      nextpage="$(echo "$domain_list" | _egrep_o "\"links\".*" | _egrep_o "\"next\".*" | _egrep_o "http.*page\=\d+")"
       if [ -z "$nextpage" ]; then
         _err "no record and no nextpage in digital ocean DNS removal"
         return 1
@@ -110,24 +110,24 @@ dns_digitalocean_rm() {
   done
 
   ## we found the record
-  rec_id="$(echo "$record" | _egrep_o "id\"\s*\:\s*\"*\d+" | _egrep_o "\d+" )"
+  rec_id="$(echo "$record" | _egrep_o "id\"\s*\:\s*\"*\d+" | _egrep_o "\d+")"
   _debug rec_id "$rec_id"
-  
+
   ## delete the record
   ## delete URL for removing the one we dont want
   DURL="https://api.digitalocean.com/v2/domains/$_domain/records/$rec_id"
-  
+
   ## the create request - delete
   ## args: BODY, URL, [need64, httpmethod]
   response="$(_post "" "$DURL" "" "DELETE")"
-  
+
   ## check response (sort of)
   if [ "$?" != "0" ]; then
     _err "error in remove response: $response"
     return 1
   fi
   _debug response "$response"
-  
+
   ## finished correctly
   return 0
 }
@@ -148,7 +148,7 @@ _get_base_domain() {
   _debug "split domain" "$domain"
   _debug "split dom_point" "$dom_point"
   _debug "split sub_point" "$sub_point"
-  
+
   # domain max length - 253
   MAX_DOM=255
 
@@ -165,10 +165,10 @@ _get_base_domain() {
     _err "invalid split location"
     return 1
   fi
-  
+
   _debug "split _domain" "$_domain"
   _debug "split _sub_domain" "$_sub_domain"
-  
+
   ## all ok
   return 0
 }
