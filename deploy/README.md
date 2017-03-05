@@ -72,3 +72,19 @@ export DEPLOY_EXIM4_RELOAD="/etc/init.d/exim4 restart"
 acme.sh --deploy -d ftp.example.com --deploy-hook exim4
 ```
 
+## 6. Deploy the cert to remote routeros
+
+```sh
+acme.sh --deploy -d ftp.example.com --deploy-hook routeros
+```
+
+Before you can deploy the certificate to router os, you need to add the id_rsa.pub key to the routeros and assign a user to that key.
+The user need to have access to ssh, ftp, read and write.
+
+Then you need to set the environment variables for the deploy script to work.
+```sh
+export ROUTER_OS_USERNAME=certuser
+export ROUTER_OS_HOST=router.example.com
+
+acme.sh --deploy -d ftp.example.com --deploy-hook routeros
+```
