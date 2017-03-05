@@ -59,15 +59,6 @@ dns_digitalocean_add() {
 	fi
 	_debug response "$response"
 	
-	## check for result and get the ID so we can delete it later
-	#response="$(echo "$response" | tr -d "\n" | sed 's/{/\n&/g')"
-	#do_id="$(echo "$response" | _egrep_o "id\"\s*\:\s*\d+" | _egrep_o "\d+" )"
-	#if [ -z "$do_id" ]; then
-	#	_err "error getting ID from response: $response"
-	#	return 1;
-	#fi
-	#_debug do_id "$do_id"
-	
 	## finished correctly
 	return 0
 }
