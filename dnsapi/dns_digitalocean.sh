@@ -4,6 +4,7 @@
 ## returns 0 means success, otherwise error.
 
 ## Author: thewer <github at thewer.com>
+## GitHub: https://github.com/gitwer/acme.sh
 
 ##
 ## Environment Variables Required:
