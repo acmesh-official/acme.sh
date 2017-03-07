@@ -137,16 +137,16 @@ _printargs() {
 
 _dlg_versions() {
   echo "Diagnosis versions: "
-  echo "openssl:$OPENSSL_BIN"
-  if _exists "$OPENSSL_BIN"; then
-    $OPENSSL_BIN version 2>&1
+  echo "openssl:$ACME_OPENSSL_BIN"
+  if _exists "$ACME_OPENSSL_BIN"; then
+    $ACME_OPENSSL_BIN version 2>&1
   else
-    echo "$OPENSSL_BIN doesn't exists."
+    echo "$ACME_OPENSSL_BIN doesn't exists."
   fi
 
   echo "apache:"
   if [ "$_APACHECTL" ] && _exists "$_APACHECTL"; then
-    _APACHECTL -V 2>&1
+    $_APACHECTL -V 2>&1
   else
     echo "apache doesn't exists."
   fi
@@ -780,19 +780,19 @@ _base64() {
   [ "" ] #urgly
   if [ "$1" ]; then
     _debug3 "base64 multiline:'$1'"
-    $OPENSSL_BIN base64 -e
+    $ACME_OPENSSL_BIN base64 -e
   else
     _debug3 "base64 single line."
-    $OPENSSL_BIN base64 -e | tr -d '\r\n'
+    $ACME_OPENSSL_BIN base64 -e | tr -d '\r\n'
   fi
 }
 
 #Usage: multiline
 _dbase64() {
   if [ "$1" ]; then
-    $OPENSSL_BIN base64 -d -A
+    $ACME_OPENSSL_BIN base64 -d -A
   else
-    $OPENSSL_BIN base64 -d
+    $ACME_OPENSSL_BIN base64 -d
   fi
 }
 
@@ -809,9 +809,9 @@ _digest() {
 
   if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ] || [ "$alg" = "md5" ]; then
     if [ "$outputhex" ]; then
-      $OPENSSL_BIN dgst -"$alg" -hex | cut -d = -f 2 | tr -d ' '
+      $ACME_OPENSSL_BIN dgst -"$alg" -hex | cut -d = -f 2 | tr -d ' '
     else
-      $OPENSSL_BIN dgst -"$alg" -binary | _base64
+      $ACME_OPENSSL_BIN dgst -"$alg" -binary | _base64
     fi
   else
     _err "$alg is not supported yet"
@@ -834,9 +834,9 @@ _hmac() {
 
   if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ]; then
     if [ "$outputhex" ]; then
-      ($OPENSSL_BIN dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" 2>/dev/null || $OPENSSL_BIN dgst -"$alg" -hmac "$(printf "%s" "$secret_hex" | _h2b)") | cut -d = -f 2 | tr -d ' '
+      ($ACME_OPENSSL_BIN dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" 2>/dev/null || $ACME_OPENSSL_BIN dgst -"$alg" -hmac "$(printf "%s" "$secret_hex" | _h2b)") | cut -d = -f 2 | tr -d ' '
     else
-      $OPENSSL_BIN dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" -binary 2>/dev/null || $OPENSSL_BIN dgst -"$alg" -hmac "$(printf "%s" "$secret_hex" | _h2b)" -binary
+      $ACME_OPENSSL_BIN dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" -binary 2>/dev/null || $ACME_OPENSSL_BIN dgst -"$alg" -hmac "$(printf "%s" "$secret_hex" | _h2b)" -binary
     fi
   else
     _err "$alg is not supported yet"
@@ -855,7 +855,7 @@ _sign() {
     return 1
   fi
 
-  _sign_openssl="$OPENSSL_BIN   dgst -sign $keyfile "
+  _sign_openssl="$ACME_OPENSSL_BIN   dgst -sign $keyfile "
   if [ "$alg" = "sha256" ]; then
     _sign_openssl="$_sign_openssl -$alg"
   else
@@ -866,7 +866,7 @@ _sign() {
   if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     $_sign_openssl | _base64
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
-    if ! _signedECText="$($_sign_openssl | $OPENSSL_BIN asn1parse -inform DER)"; then
+    if ! _signedECText="$($_sign_openssl | $ACME_OPENSSL_BIN asn1parse -inform DER)"; then
       _err "Sign failed: $_sign_openssl"
       _err "Key file: $keyfile"
       _err "Key content:$(wc -l <"$keyfile") lises"
@@ -927,12 +927,21 @@ _createkey() {
 
   _debug "Use length $length"
 
+  if ! touch "$f" >/dev/null 2>&1; then
+    _f_path="$(dirname "$f")"
+    _debug _f_path "$_f_path"
+    if ! mkdir -p "$_f_path"; then
+      _err "Can not create path: $_f_path"
+      return 1
+    fi
+  fi
+
   if _isEccKey "$length"; then
     _debug "Using ec name: $eccname"
-    $OPENSSL_BIN ecparam -name "$eccname" -genkey 2>/dev/null >"$f"
+    $ACME_OPENSSL_BIN ecparam -name "$eccname" -genkey 2>/dev/null >"$f"
   else
     _debug "Using RSA: $length"
-    $OPENSSL_BIN genrsa "$length" 2>/dev/null >"$f"
+    $ACME_OPENSSL_BIN genrsa "$length" 2>/dev/null >"$f"
   fi
 
   if [ "$?" != "0" ]; then
@@ -1019,9 +1028,9 @@ _createcsr() {
   _csr_cn="$(_idn "$domain")"
   _debug2 _csr_cn "$_csr_cn"
   if _contains "$(uname -a)" "MINGW"; then
-    $OPENSSL_BIN req -new -sha256 -key "$csrkey" -subj "//CN=$_csr_cn" -config "$csrconf" -out "$csr"
+    $ACME_OPENSSL_BIN req -new -sha256 -key "$csrkey" -subj "//CN=$_csr_cn" -config "$csrconf" -out "$csr"
   else
-    $OPENSSL_BIN req -new -sha256 -key "$csrkey" -subj "/CN=$_csr_cn" -config "$csrconf" -out "$csr"
+    $ACME_OPENSSL_BIN req -new -sha256 -key "$csrkey" -subj "/CN=$_csr_cn" -config "$csrconf" -out "$csr"
   fi
 }
 
@@ -1033,7 +1042,7 @@ _signcsr() {
   cert="$4"
   _debug "_signcsr"
 
-  _msg="$($OPENSSL_BIN x509 -req -days 365 -in "$csr" -signkey "$key" -extensions v3_req -extfile "$conf" -out "$cert" 2>&1)"
+  _msg="$($ACME_OPENSSL_BIN x509 -req -days 365 -in "$csr" -signkey "$key" -extensions v3_req -extfile "$conf" -out "$cert" 2>&1)"
   _ret="$?"
   _debug "$_msg"
   return $_ret
@@ -1046,7 +1055,7 @@ _readSubjectFromCSR() {
     _usage "_readSubjectFromCSR mycsr.csr"
     return 1
   fi
-  $OPENSSL_BIN req -noout -in "$_csrfile" -subject | _egrep_o "CN *=.*" | cut -d = -f 2 | cut -d / -f 1 | tr -d '\n'
+  $ACME_OPENSSL_BIN req -noout -in "$_csrfile" -subject | _egrep_o "CN *=.*" | cut -d = -f 2 | cut -d / -f 1 | tr -d '\n'
 }
 
 #_csrfile
@@ -1061,7 +1070,7 @@ _readSubjectAltNamesFromCSR() {
   _csrsubj="$(_readSubjectFromCSR "$_csrfile")"
   _debug _csrsubj "$_csrsubj"
 
-  _dnsAltnames="$($OPENSSL_BIN req -noout -text -in "$_csrfile" | grep "^ *DNS:.*" | tr -d ' \n')"
+  _dnsAltnames="$($ACME_OPENSSL_BIN req -noout -text -in "$_csrfile" | grep "^ *DNS:.*" | tr -d ' \n')"
   _debug _dnsAltnames "$_dnsAltnames"
 
   if _contains "$_dnsAltnames," "DNS:$_csrsubj,"; then
@@ -1082,7 +1091,7 @@ _readKeyLengthFromCSR() {
     return 1
   fi
 
-  _outcsr="$($OPENSSL_BIN req -noout -text -in "$_csrfile")"
+  _outcsr="$($ACME_OPENSSL_BIN req -noout -text -in "$_csrfile")"
   if _contains "$_outcsr" "Public Key Algorithm: id-ecPublicKey"; then
     _debug "ECC CSR"
     echo "$_outcsr" | _egrep_o "^ *ASN1 OID:.*" | cut -d ':' -f 2 | tr -d ' '
@@ -1136,13 +1145,34 @@ toPkcs() {
   _initpath "$domain" "$_isEcc"
 
   if [ "$pfxPassword" ]; then
-    $OPENSSL_BIN pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH" -password "pass:$pfxPassword"
+    $ACME_OPENSSL_BIN pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH" -password "pass:$pfxPassword"
   else
-    $OPENSSL_BIN pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH"
+    $ACME_OPENSSL_BIN pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH"
   fi
 
   if [ "$?" = "0" ]; then
     _info "Success, Pfx is exported to: $CERT_PFX_PATH"
+  fi
+
+}
+
+#domain [isEcc]
+toPkcs8() {
+  domain="$1"
+
+  if [ -z "$domain" ]; then
+    _usage "Usage: $PROJECT_ENTRY --toPkcs8 -d domain [--ecc]"
+    return 1
+  fi
+
+  _isEcc="$2"
+
+  _initpath "$domain" "$_isEcc"
+
+  $ACME_OPENSSL_BIN pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in "$CERT_KEY_PATH" -out "$CERT_PKCS8_PATH"
+
+  if [ "$?" = "0" ]; then
+    _info "Success, $CERT_PKCS8_PATH"
   fi
 
 }
@@ -1249,12 +1279,12 @@ _url_replace() {
 }
 
 _time2str() {
-  #BSD
+  #Linux
   if date -u -d@"$1" 2>/dev/null; then
     return
   fi
 
-  #Linux
+  #BSD
   if date -u -r "$1" 2>/dev/null; then
     return
   fi
@@ -1300,7 +1330,7 @@ _calcjwk() {
 
   if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     _debug "RSA key"
-    pub_exp=$($OPENSSL_BIN rsa -in "$keyfile" -noout -text | grep "^publicExponent:" | cut -d '(' -f 2 | cut -d 'x' -f 2 | cut -d ')' -f 1)
+    pub_exp=$($ACME_OPENSSL_BIN rsa -in "$keyfile" -noout -text | grep "^publicExponent:" | cut -d '(' -f 2 | cut -d 'x' -f 2 | cut -d ')' -f 1)
     if [ "${#pub_exp}" = "5" ]; then
       pub_exp=0$pub_exp
     fi
@@ -1309,7 +1339,7 @@ _calcjwk() {
     e=$(echo "$pub_exp" | _h2b | _base64)
     _debug3 e "$e"
 
-    modulus=$($OPENSSL_BIN rsa -in "$keyfile" -modulus -noout | cut -d '=' -f 2)
+    modulus=$($ACME_OPENSSL_BIN rsa -in "$keyfile" -modulus -noout | cut -d '=' -f 2)
     _debug3 modulus "$modulus"
     n="$(printf "%s" "$modulus" | _h2b | _base64 | _url_replace)"
     _debug3 n "$n"
@@ -1322,12 +1352,12 @@ _calcjwk() {
     JWK_HEADERPLACE_PART2='", "alg": "RS256", "jwk": '$jwk'}'
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     _debug "EC key"
-    crv="$($OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
+    crv="$($ACME_OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
     _debug3 crv "$crv"
 
     if [ -z "$crv" ]; then
       _debug "Let's try ASN1 OID"
-      crv_oid="$($OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | grep "^ASN1 OID:" | cut -d ":" -f 2 | tr -d " \r\n")"
+      crv_oid="$($ACME_OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | grep "^ASN1 OID:" | cut -d ":" -f 2 | tr -d " \r\n")"
       _debug3 crv_oid "$crv_oid"
       case "${crv_oid}" in
         "prime256v1")
@@ -1347,15 +1377,15 @@ _calcjwk() {
       _debug3 crv "$crv"
     fi
 
-    pubi="$($OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | grep -n pub: | cut -d : -f 1)"
+    pubi="$($ACME_OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | grep -n pub: | cut -d : -f 1)"
     pubi=$(_math "$pubi" + 1)
     _debug3 pubi "$pubi"
 
-    pubj="$($OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | grep -n "ASN1 OID:" | cut -d : -f 1)"
+    pubj="$($ACME_OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | grep -n "ASN1 OID:" | cut -d : -f 1)"
     pubj=$(_math "$pubj" - 1)
     _debug3 pubj "$pubj"
 
-    pubtext="$($OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | sed -n "$pubi,${pubj}p" | tr -d " \n\r")"
+    pubtext="$($ACME_OPENSSL_BIN ec -in "$keyfile" -noout -text 2>/dev/null | sed -n "$pubi,${pubj}p" | tr -d " \n\r")"
     _debug3 pubtext "$pubtext"
 
     xlen="$(printf "%s" "$pubtext" | tr -d ':' | wc -c)"
@@ -1455,6 +1485,11 @@ _inithttp() {
     fi
   fi
 
+  #from wget 1.14: do not skip body on 404 error
+  if [ "$_ACME_WGET" ] && _contains "$($_ACME_WGET --help 2>&1)" "--content-on-error"; then
+    _ACME_WGET="$_ACME_WGET --content-on-error "
+  fi
+
   __HTTP_INITIALIZED=1
 
 }
@@ -1475,7 +1510,7 @@ _post() {
 
   _inithttp
 
-  if [ "$_ACME_CURL" ]; then
+  if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
     _CURL="$_ACME_CURL"
     if [ "$HTTPS_INSECURE" ]; then
       _CURL="$_CURL --insecure  "
@@ -1516,7 +1551,7 @@ _post() {
     _ret="$?"
     if [ "$_ret" = "8" ]; then
       _ret=0
-      _debug "wget returns 8, the server returns a 'Bad request' respons, lets process the response later."
+      _debug "wget returns 8, the server returns a 'Bad request' response, lets process the response later."
     fi
     if [ "$_ret" != "0" ]; then
       _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret"
@@ -1542,7 +1577,7 @@ _get() {
 
   _inithttp
 
-  if [ "$_ACME_CURL" ]; then
+  if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
     _CURL="$_ACME_CURL"
     if [ "$HTTPS_INSECURE" ]; then
       _CURL="$_CURL --insecure  "
@@ -1579,9 +1614,9 @@ _get() {
       $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -O - "$url"
     fi
     ret=$?
-    if [ "$_ret" = "8" ]; then
-      _ret=0
-      _debug "wget returns 8, the server returns a 'Bad request' respons, lets process the response later."
+    if [ "$ret" = "8" ]; then
+      ret=0
+      _debug "wget returns 8, the server returns a 'Bad request' response, lets process the response later."
     fi
     if [ "$ret" != "0" ]; then
       _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $ret"
@@ -1964,7 +1999,7 @@ _starttlsserver() {
     return 1
   fi
 
-  __S_OPENSSL="$OPENSSL_BIN s_server -cert $TLS_CERT  -key $TLS_KEY "
+  __S_OPENSSL="$ACME_OPENSSL_BIN s_server -cert $TLS_CERT  -key $TLS_KEY "
   if [ "$opaddr" ]; then
     __S_OPENSSL="$__S_OPENSSL -accept $opaddr:$port"
   else
@@ -2143,8 +2178,8 @@ _initpath() {
     CERT_HOME="$_DEFAULT_CERT_HOME"
   fi
 
-  if [ -z "$OPENSSL_BIN" ]; then
-    OPENSSL_BIN="$DEFAULT_OPENSSL_BIN"
+  if [ -z "$ACME_OPENSSL_BIN" ] || [ ! -f "$ACME_OPENSSL_BIN" ] || [ ! -x "$ACME_OPENSSL_BIN" ]; then
+    ACME_OPENSSL_BIN="$DEFAULT_OPENSSL_BIN"
   fi
 
   if [ -z "$1" ]; then
@@ -2199,6 +2234,9 @@ _initpath() {
   fi
   if [ -z "$CERT_PFX_PATH" ]; then
     CERT_PFX_PATH="$DOMAIN_PATH/$domain.pfx"
+  fi
+  if [ -z "$CERT_PKCS8_PATH" ]; then
+    CERT_PKCS8_PATH="$DOMAIN_PATH/$domain.pkcs8"
   fi
 
   if [ -z "$TLS_CONF" ]; then
@@ -2795,16 +2833,13 @@ _on_before_issue() {
 
 _on_issue_err() {
   _chk_post_hook="$1"
+  _chk_vlist="$2"
   _debug _on_issue_err
   if [ "$LOG_FILE" ]; then
     _err "Please check log file for more details: $LOG_FILE"
   else
     _err "Please add '--debug' or '--log' to check more details."
     _err "See: $_DEBUG_WIKI"
-  fi
-
-  if [ "$DEBUG" ] && [ "$DEBUG" -gt "0" ]; then
-    _debug "$(_dlg_versions)"
   fi
 
   #run the post hook
@@ -2817,6 +2852,28 @@ _on_issue_err() {
       return 1
     fi
   fi
+
+  #trigger the validation to flush the pending authz
+  if [ "$_chk_vlist" ]; then
+    (
+      _debug2 "_chk_vlist" "$_chk_vlist"
+      _debug2 "start to deactivate authz"
+      ventries=$(echo "$_chk_vlist" | tr "$dvsep" ' ')
+      for ventry in $ventries; do
+        d=$(echo "$ventry" | cut -d "$sep" -f 1)
+        keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
+        uri=$(echo "$ventry" | cut -d "$sep" -f 3)
+        vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
+        _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
+        __trigger_validaton "$uri" "$keyauthorization"
+      done
+    )
+  fi
+
+  if [ "$DEBUG" ] && [ "$DEBUG" -gt "0" ]; then
+    _debug "$(_dlg_versions)"
+  fi
+
 }
 
 _on_issue_success() {
@@ -3027,6 +3084,16 @@ __get_domain_new_authz() {
     return 1
   fi
 
+}
+
+#uri keyAuthorization
+__trigger_validaton() {
+  _debug2 "tigger domain validation."
+  _t_url="$1"
+  _debug2 _t_url "$_t_url"
+  _t_key_authz="$2"
+  _debug2 _t_key_authz "$_t_key_authz"
+  _send_signed_request "$_t_url" "{\"resource\": \"challenge\", \"keyAuthorization\": \"$_t_key_authz\"}"
 }
 
 #webroot, domain domainlist  keylength 
@@ -3342,7 +3409,7 @@ issue() {
         _startserver "$keyauthorization" "$_ncaddr" &
         if [ "$?" != "0" ]; then
           _clearup
-          _on_issue_err "$_post_hook"
+          _on_issue_err "$_post_hook" "$vlist"
           return 1
         fi
         serverproc="$!"
@@ -3358,7 +3425,7 @@ issue() {
         BACKUP_NGINX_CONF=""
         if ! _setNginx "$d" "$_currentRoot" "$thumbprint"; then
           _clearup
-          _on_issue_err "$_post_hook"
+          _on_issue_err "$_post_hook" "$vlist"
           return 1
         fi
 
@@ -3393,7 +3460,7 @@ issue() {
           _err "$d:Can not write token to file : $wellknown_path/$token"
           _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
           _clearup
-          _on_issue_err "$_post_hook"
+          _on_issue_err "$_post_hook" "$vlist"
           return 1
         fi
 
@@ -3438,16 +3505,16 @@ issue() {
         _err "Start tls server error."
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err "$_post_hook"
+        _on_issue_err "$_post_hook" "$vlist"
         return 1
       fi
     fi
 
-    if ! _send_signed_request "$uri" "{\"resource\": \"challenge\", \"keyAuthorization\": \"$keyauthorization\"}"; then
+    if ! __trigger_validaton "$uri" "$keyauthorization"; then
       _err "$d:Can not get challenge: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
       _clearup
-      _on_issue_err "$_post_hook"
+      _on_issue_err "$_post_hook" "$vlist"
       return 1
     fi
 
@@ -3455,7 +3522,7 @@ issue() {
       _err "$d:Challenge error: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
       _clearup
-      _on_issue_err "$_post_hook"
+      _on_issue_err "$_post_hook" "$vlist"
       return 1
     fi
 
@@ -3470,7 +3537,7 @@ issue() {
         _err "$d:Timeout"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err
+        _on_issue_err "$_post_hook" "$vlist"
         return 1
       fi
 
@@ -3482,7 +3549,7 @@ issue() {
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err "$_post_hook"
+        _on_issue_err "$_post_hook" "$vlist"
         return 1
       fi
       _debug2 original "$response"
@@ -3517,7 +3584,7 @@ issue() {
         fi
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err "$_post_hook"
+        _on_issue_err "$_post_hook" "$vlist"
         return 1
       fi
 
@@ -3527,7 +3594,7 @@ issue() {
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err "$_post_hook"
+        _on_issue_err "$_post_hook" "$vlist"
         return 1
       fi
 
@@ -3653,7 +3720,7 @@ issue() {
     _savedomainconf "Le_RealKeyPath" "$_real_key"
     _savedomainconf "Le_ReloadCmd" "$_reload_cmd"
     _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
-    _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain"
+    _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"
   fi
 
 }
@@ -3964,16 +4031,18 @@ installcert() {
   _savedomainconf "Le_ReloadCmd" "$_reload_cmd"
   _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
 
-  _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain"
+  _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"
 }
 
+#domain  cert  key  ca  fullchain reloadcmd backup-prefix
 _installcert() {
   _main_domain="$1"
   _real_cert="$2"
   _real_key="$3"
   _real_ca="$4"
-  _reload_cmd="$5"
-  _real_fullchain="$6"
+  _real_fullchain="$5"
+  _reload_cmd="$6"
+  _backup_prefix="$7"
 
   if [ "$_real_cert" = "$NO_VALUE" ]; then
     _real_cert=""
@@ -3991,11 +4060,13 @@ _installcert() {
     _real_fullchain=""
   fi
 
+  _backup_path="$DOMAIN_BACKUP_PATH/$_backup_prefix"
+  mkdir -p "$_backup_path"
+
   if [ "$_real_cert" ]; then
     _info "Installing cert to:$_real_cert"
     if [ -f "$_real_cert" ] && [ ! "$IS_RENEW" ]; then
-      mkdir -p "$DOMAIN_BACKUP_PATH"
-      cp "$_real_cert" "$DOMAIN_BACKUP_PATH/cert.bak"
+      cp "$_real_cert" "$_backup_path/cert.bak"
     fi
     cat "$CERT_PATH" >"$_real_cert"
   fi
@@ -4007,8 +4078,7 @@ _installcert() {
       cat "$CA_CERT_PATH" >>"$_real_ca"
     else
       if [ -f "$_real_ca" ] && [ ! "$IS_RENEW" ]; then
-        mkdir -p "$DOMAIN_BACKUP_PATH"
-        cp "$_real_ca" "$DOMAIN_BACKUP_PATH/ca.bak"
+        cp "$_real_ca" "$_backup_path/ca.bak"
       fi
       cat "$CA_CERT_PATH" >"$_real_ca"
     fi
@@ -4017,8 +4087,7 @@ _installcert() {
   if [ "$_real_key" ]; then
     _info "Installing key to:$_real_key"
     if [ -f "$_real_key" ] && [ ! "$IS_RENEW" ]; then
-      mkdir -p "$DOMAIN_BACKUP_PATH"
-      cp "$_real_key" "$DOMAIN_BACKUP_PATH/key.bak"
+      cp "$_real_key" "$_backup_path/key.bak"
     fi
     cat "$CERT_KEY_PATH" >"$_real_key"
   fi
@@ -4026,8 +4095,7 @@ _installcert() {
   if [ "$_real_fullchain" ]; then
     _info "Installing full chain to:$_real_fullchain"
     if [ -f "$_real_fullchain" ] && [ ! "$IS_RENEW" ]; then
-      mkdir -p "$DOMAIN_BACKUP_PATH"
-      cp "$_real_fullchain" "$DOMAIN_BACKUP_PATH/fullchain.bak"
+      cp "$_real_fullchain" "$_backup_path/fullchain.bak"
     fi
     cat "$CERT_FULLCHAIN_PATH" >"$_real_fullchain"
   fi
@@ -4367,8 +4435,8 @@ _precheck() {
     fi
   fi
 
-  if ! _exists "$OPENSSL_BIN"; then
-    _err "Please install openssl first."
+  if ! _exists "$ACME_OPENSSL_BIN"; then
+    _err "Please install openssl first. ACME_OPENSSL_BIN=$ACME_OPENSSL_BIN"
     _err "We need openssl to generate keys."
     return 1
   fi
@@ -4660,6 +4728,7 @@ Commands:
   --uninstall-cronjob      Uninstall the cron job. The 'uninstall' command can do this automatically.
   --cron                   Run cron job to renew all the certs.
   --toPkcs                 Export the certificate and key to a pfx file.
+  --toPkcs8                Convert to pkcs8 format.
   --update-account         Update account info.
   --register-account       Register account key.
   --create-account-key     Create an account private key, professional use.
@@ -4723,6 +4792,7 @@ Parameters:
   --listen-v4                       Force standalone/tls server to listen at ipv4.
   --listen-v6                       Force standalone/tls server to listen at ipv6.
   --openssl-bin                     Specifies a custom openssl bin location.
+  --use-wget                        Force to use wget, if you have both curl and wget installed.
   "
 }
 
@@ -4790,15 +4860,21 @@ _processAccountConf() {
   fi
 
   if [ "$_openssl_bin" ]; then
-    _saveaccountconf "OPENSSL_BIN" "$_openssl_bin"
-  elif [ "$OPENSSL_BIN" ] && [ "$OPENSSL_BIN" != "$DEFAULT_OPENSSL_BIN" ]; then
-    _saveaccountconf "OPENSSL_BIN" "$OPENSSL_BIN"
+    _saveaccountconf "ACME_OPENSSL_BIN" "$_openssl_bin"
+  elif [ "$ACME_OPENSSL_BIN" ] && [ "$ACME_OPENSSL_BIN" != "$DEFAULT_OPENSSL_BIN" ]; then
+    _saveaccountconf "ACME_OPENSSL_BIN" "$ACME_OPENSSL_BIN"
   fi
 
   if [ "$_auto_upgrade" ]; then
     _saveaccountconf "AUTO_UPGRADE" "$_auto_upgrade"
   elif [ "$AUTO_UPGRADE" ]; then
     _saveaccountconf "AUTO_UPGRADE" "$AUTO_UPGRADE"
+  fi
+
+  if [ "$_use_wget" ]; then
+    _saveaccountconf "ACME_USE_WGET" "$_use_wget"
+  elif [ "$ACME_USE_WGET" ]; then
+    _saveaccountconf "ACME_USE_WGET" "$ACME_USE_WGET"
   fi
 
 }
@@ -4845,6 +4921,7 @@ _process() {
   _listen_v6=""
   _openssl_bin=""
   _syslog=""
+  _use_wget=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -4906,6 +4983,9 @@ _process() {
         ;;
       --toPkcs)
         _CMD="toPkcs"
+        ;;
+      --toPkcs8)
+        _CMD="toPkcs8"
         ;;
       --createAccountKey | --createaccountkey | -cak | --create-account-key)
         _CMD="createAccountKey"
@@ -5218,7 +5298,12 @@ _process() {
         ;;
       --openssl-bin)
         _openssl_bin="$2"
-        OPENSSL_BIN="$_openssl_bin"
+        ACME_OPENSSL_BIN="$_openssl_bin"
+        shift
+        ;;
+      --use-wget)
+        _use_wget="1"
+        ACME_USE_WGET="1"
         ;;
       *)
         _err "Unknown parameter : $1"
@@ -5318,6 +5403,9 @@ _process() {
     cron) cron ;;
     toPkcs)
       toPkcs "$_domain" "$_password" "$_ecc"
+      ;;
+    toPkcs8)
+      toPkcs8 "$_domain" "$_ecc"
       ;;
     createAccountKey)
       createAccountKey "$_accountkeylength"
