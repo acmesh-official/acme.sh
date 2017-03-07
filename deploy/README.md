@@ -38,21 +38,21 @@ values are stored by acme.sh in the domain configuration files.
 
 Required...
 ```
-export ACME_DEPLOY_SSH_USER=username
+export DEPLOY_SSH_USER=username
 ```
 Optional...
 ```
-export ACME_DEPLOY_SSH_CMD=custom ssh command
-export ACME_DEPLOY_SSH_SERVER=url or ip address of remote host
-export ACME_DEPLOY_SSH_KEYFILE=filename for private key
-export ACME_DEPLOY_SSH_CERTFILE=filename for certificate file
-export ACME_DEPLOY_SSH_CAFILE=filename for intermediate CA file
-export ACME_DEPLOY_SSH_FULLCHAIN=filename for fullchain file
-export ACME_DEPLOY_SSH_REMOTE_CMD=command to execute on remote host
-export ACME_DEPLOY_SSH_BACKUP=yes or no
+export DEPLOY_SSH_CMD=custom ssh command
+export DEPLOY_SSH_SERVER=url or ip address of remote host
+export DEPLOY_SSH_KEYFILE=filename for private key
+export DEPLOY_SSH_CERTFILE=filename for certificate file
+export DEPLOY_SSH_CAFILE=filename for intermediate CA file
+export DEPLOY_SSH_FULLCHAIN=filename for fullchain file
+export DEPLOY_SSH_REMOTE_CMD=command to execute on remote host
+export DEPLOY_SSH_BACKUP=yes or no
 ```
 
-**ACME_DEPLOY_SSH_USER**
+**DEPLOY_SSH_USER**
 Username at the remote host that SSH will login with. Note that
 SSH must be able to login to remote host without a password... SSH Keys
 must have been exchanged with the remote host. Validate and test that you
@@ -62,41 +62,41 @@ The USER@URL at the remote server must also have has permissions to write to
 the target location of the certificate files and to execute any commands
 (e.g. to stop/start services).
 
-**ACME_DEPLOY_SSH_CMD**
+**DEPLOY_SSH_CMD**
 You can customize the ssh command used to connect to the remote host. For example
 if you need to connect to a specific port at the remote server you can set this
 to, for example, "ssh -p 22" or to use `sshpass` to provide password inline
 instead of exchanging ssh keys (this is not recommended, using keys is
 more secure).
 
-**ACME_DEPLOY_SSH_SERVER**
+**DEPLOY_SSH_SERVER**
 URL or IP Address of the remote server.  If not provided then the domain
 name provided on the acme.sh --deploy command line is used.
 
-**ACME_DEPLOY_SSH_KEYFILE**
+**DEPLOY_SSH_KEYFILE**
 Target filename for the private key issued by LetsEncrypt.
 
-**ACME_DEPLOY_SSH_CERTFILE**
+**DEPLOY_SSH_CERTFILE**
 Target filename for the certificate issued by LetsEncrypt.
 If this is the same as the previous filename (for keyfile) then it is
 appended to the same file.
 
-**ACME_DEPLOY_SSH_CAFILE**
+**DEPLOY_SSH_CAFILE**
 Target filename for the CA intermediate certificate issued by LetsEncrypt.
 If this is the same as a previous filename (for keyfile or certfile) then
 it is appended to the same file.
 
-**ACME_DEPLOY_SSH_FULLCHAIN**
+**DEPLOY_SSH_FULLCHAIN**
 Target filename for the fullchain certificate issued by LetsEncrypt.
 If this is the same as a previous filename (for keyfile, certfile or
 cafile) then it is appended to the same file.
 
-**ACME_DEPLOY_SSH_REMOTE_CMD**
+**DEPLOY_SSH_REMOTE_CMD**
 Command to execute on the remote server after copying any certificates.  This
 could be any additional command required for example to stop and restart
 the service.
 
-**ACME_DEPLOY_SSH_BACKUP**
+**DEPLOY_SSH_BACKUP**
 Before writing a certificate file to the remote server the existing
 certificate will be copied to a backup directory on the remote server.
 These are placed in a hidden directory in the home directory of the SSH
@@ -113,11 +113,11 @@ The following example illustrates deploying certifcates to a QNAP NAS
 (tested with QTS version 4.2.3)
 
 ```sh
-export ACME_DEPLOY_SSH_USER="admin"
-export ACME_DEPLOY_SSH_KEYFILE="/etc/stunnel/stunnel.pem"
-export ACME_DEPLOY_SSH_CERTFILE="/etc/stunnel/stunnel.pem"
-export ACME_DEPLOY_SSH_CAFILE="/etc/stunnel/uca.pem"
-export ACME_DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart"
+export DEPLOY_SSH_USER="admin"
+export DEPLOY_SSH_KEYFILE="/etc/stunnel/stunnel.pem"
+export DEPLOY_SSH_CERTFILE="/etc/stunnel/stunnel.pem"
+export DEPLOY_SSH_CAFILE="/etc/stunnel/uca.pem"
+export DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart"
 
 acme.sh --deploy -d qnap.example.com --deploy-hook ssh
 ```
@@ -130,10 +130,10 @@ The next example illustates deploying certificates to a Unifi
 Contolller (tested with version 5.4.11).
 
 ```sh
-export ACME_DEPLOY_SSH_USER="root"
-export ACME_DEPLOY_SSH_KEYFILE="/var/lib/unifi/unifi.example.com.key"
-export ACME_DEPLOY_SSH_FULLCHAIN="/var/lib/unifi/unifi.example.com.cer"
-export ACME_DEPLOY_SSH_REMOTE_CMD="openssl pkcs12 -export \
+export DEPLOY_SSH_USER="root"
+export DEPLOY_SSH_KEYFILE="/var/lib/unifi/unifi.example.com.key"
+export DEPLOY_SSH_FULLCHAIN="/var/lib/unifi/unifi.example.com.cer"
+export DEPLOY_SSH_REMOTE_CMD="openssl pkcs12 -export \
    -inkey /var/lib/unifi/unifi.example.com.key \
    -in /var/lib/unifi/unifi.example.com.cer \
    -out /var/lib/unifi/unifi.example.com.p12 \
@@ -158,7 +158,7 @@ required. We could if we desired delete those files immediately. If we
 do that then we should disable backup at the remote host (as there are
 no files to backup -- they were erased during deployment). For example...
 ```sh
-export ACME_DEPLOY_SSH_BACKUP=no
+export DEPLOY_SSH_BACKUP=no
 # modify the end of the remote command...
 && rm /var/lib/unifi/unifi.example.com.key \
       /var/lib/unifi/unifi.example.com.cer \

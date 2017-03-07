@@ -12,15 +12,15 @@
 # Only a username is required.  All others are optional.
 #
 # The following examples are for QNAP NAS running QTS 4.2 
-# export ACME_DEPLOY_SSH_CMD=""  # defaults to ssh
-# export ACME_DEPLOY_SSH_USER="admin"  # required
-# export ACME_DEPLOY_SSH_SERVER="qnap"  # defaults to domain name
-# export ACME_DEPLOY_SSH_KEYFILE="/etc/stunnel/stunnel.pem"
-# export ACME_DEPLOY_SSH_CERTFILE="/etc/stunnel/stunnel.pem"
-# export ACME_DEPLOY_SSH_CAFILE="/etc/stunnel/uca.pem"
-# export ACME_DEPLOY_SSH_FULLCHAIN=""
-# export ACME_DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart"
-# export ACME_DEPLOY_SSH_BACKUP=""  # yes or no, default to yes
+# export DEPLOY_SSH_CMD=""  # defaults to ssh
+# export DEPLOY_SSH_USER="admin"  # required
+# export DEPLOY_SSH_SERVER="qnap"  # defaults to domain name
+# export DEPLOY_SSH_KEYFILE="/etc/stunnel/stunnel.pem"
+# export DEPLOY_SSH_CERTFILE="/etc/stunnel/stunnel.pem"
+# export DEPLOY_SSH_CAFILE="/etc/stunnel/uca.pem"
+# export DEPLOY_SSH_FULLCHAIN=""
+# export DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart"
+# export DEPLOY_SSH_BACKUP=""  # yes or no, default to yes
 #
 ########  Public functions #####################
 
@@ -48,34 +48,34 @@ ssh_deploy() {
   _debug _cfullchain "$_cfullchain"
 
   # USER is required to login by SSH to remote host.
-  if [ -z "$ACME_DEPLOY_SSH_USER" ]; then
+  if [ -z "$DEPLOY_SSH_USER" ]; then
     if [ -z "$Le_Deploy_ssh_user" ]; then
-      _err "ACME_DEPLOY_SSH_USER not defined."
+      _err "DEPLOY_SSH_USER not defined."
       return 1
     fi
   else
-    Le_Deploy_ssh_user="$ACME_DEPLOY_SSH_USER"
+    Le_Deploy_ssh_user="$DEPLOY_SSH_USER"
     _savedomainconf Le_Deploy_ssh_user "$Le_Deploy_ssh_user"
   fi
 
   # SERVER is optional. If not provided then use _cdomain
-  if [ -n "$ACME_DEPLOY_SSH_SERVER" ]; then
-    Le_Deploy_ssh_server="$ACME_DEPLOY_SSH_SERVER"
+  if [ -n "$DEPLOY_SSH_SERVER" ]; then
+    Le_Deploy_ssh_server="$DEPLOY_SSH_SERVER"
     _savedomainconf Le_Deploy_ssh_server "$Le_Deploy_ssh_server"
   elif [ -z "$Le_Deploy_ssh_server" ]; then
     Le_Deploy_ssh_server="$_cdomain"
   fi
 
   # CMD is optional. If not provided then use ssh
-  if [ -n "$ACME_DEPLOY_SSH_CMD" ]; then
-    Le_Deploy_ssh_cmd="$ACME_DEPLOY_SSH_CMD"
+  if [ -n "$DEPLOY_SSH_CMD" ]; then
+    Le_Deploy_ssh_cmd="$DEPLOY_SSH_CMD"
     _savedomainconf Le_Deploy_ssh_cmd "$Le_Deploy_ssh_cmd"
   elif [ -z "$Le_Deploy_ssh_cmd" ]; then
     Le_Deploy_ssh_cmd="ssh"
   fi
 
   # BACKUP is optional. If not provided then default to yes
-  if [ "$ACME_DEPLOY_SSH_BACKUP" = "no" ]; then
+  if [ "$DEPLOY_SSH_BACKUP" = "no" ]; then
     Le_Deploy_ssh_backup="no"
   elif [ -z "$Le_Deploy_ssh_backup" ]; then
     Le_Deploy_ssh_backup="yes"
@@ -86,8 +86,8 @@ ssh_deploy() {
 
   # KEYFILE is optional.
   # If provided then private key will be copied to provided filename.
-  if [ -n "$ACME_DEPLOY_SSH_KEYFILE" ]; then
-    Le_Deploy_ssh_keyfile="$ACME_DEPLOY_SSH_KEYFILE"
+  if [ -n "$DEPLOY_SSH_KEYFILE" ]; then
+    Le_Deploy_ssh_keyfile="$DEPLOY_SSH_KEYFILE"
     _savedomainconf Le_Deploy_ssh_keyfile "$Le_Deploy_ssh_keyfile"
   fi
   if [ -n "$Le_Deploy_ssh_keyfile" ]; then
@@ -102,8 +102,8 @@ ssh_deploy() {
 
   # CERTFILE is optional.
   # If provided then private key will be copied or appended to provided filename.
-  if [ -n "$ACME_DEPLOY_SSH_CERTFILE" ]; then
-    Le_Deploy_ssh_certfile="$ACME_DEPLOY_SSH_CERTFILE"
+  if [ -n "$DEPLOY_SSH_CERTFILE" ]; then
+    Le_Deploy_ssh_certfile="$DEPLOY_SSH_CERTFILE"
     _savedomainconf Le_Deploy_ssh_certfile "$Le_Deploy_ssh_certfile"
   fi
   if [ -n "$Le_Deploy_ssh_certfile" ]; then
@@ -122,8 +122,8 @@ ssh_deploy() {
 
   # CAFILE is optional.
   # If provided then CA intermediate certificate will be copied or appended to provided filename.
-  if [ -n "$ACME_DEPLOY_SSH_CAFILE" ]; then
-    Le_Deploy_ssh_cafile="$ACME_DEPLOY_SSH_CAFILE"
+  if [ -n "$DEPLOY_SSH_CAFILE" ]; then
+    Le_Deploy_ssh_cafile="$DEPLOY_SSH_CAFILE"
     _savedomainconf Le_Deploy_ssh_cafile "$Le_Deploy_ssh_cafile"
   fi
   if [ -n "$Le_Deploy_ssh_cafile" ]; then
@@ -143,8 +143,8 @@ ssh_deploy() {
 
   # FULLCHAIN is optional.
   # If provided then fullchain certificate will be copied or appended to provided filename.
-  if [ -n "$ACME_DEPLOY_SSH_FULLCHAIN" ]; then
-    Le_Deploy_ssh_fullchain="$ACME_DEPLOY_SSH_FULLCHAIN"
+  if [ -n "$DEPLOY_SSH_FULLCHAIN" ]; then
+    Le_Deploy_ssh_fullchain="$DEPLOY_SSH_FULLCHAIN"
     _savedomainconf Le_Deploy_ssh_fullchain "$Le_Deploy_ssh_fullchain"
   fi
   if [ -n "$Le_Deploy_ssh_fullchain" ]; then
@@ -165,8 +165,8 @@ ssh_deploy() {
 
   # REMOTE_CMD is optional.
   # If provided then this command will be executed on remote host.
-  if [ -n "$ACME_DEPLOY_SSH_REMOTE_CMD" ]; then
-    Le_Deploy_ssh_remote_cmd="$ACME_DEPLOY_SSH_REMOTE_CMD"
+  if [ -n "$DEPLOY_SSH_REMOTE_CMD" ]; then
+    Le_Deploy_ssh_remote_cmd="$DEPLOY_SSH_REMOTE_CMD"
     _savedomainconf Le_Deploy_ssh_remote_cmd "$Le_Deploy_ssh_remote_cmd"
   fi
   if [ -n "$Le_Deploy_ssh_remote_cmd" ]; then
