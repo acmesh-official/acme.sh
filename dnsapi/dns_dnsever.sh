@@ -1,13 +1,13 @@
 #!/usr/bin/env sh
 
 #Here is a sample custom api script.
-#This file name is "dns_dnsever.sh"
-#So, here must be a method   dns_dnsever_add()
+#This file name is "dns_myapi.sh"
+#So, here must be a method   dns_myapi_add()
 #Which will be called by acme.sh to add the txt record to your api system.
 #returns 0 means success, otherwise error.
 #
-#Author: hiska
-#Report Bugs here: https://github.com/hiskang/acme.sh
+#Author: Neilpang
+#Report Bugs here: https://github.com/Neilpang/acme.sh
 #
 ########  Public functions #####################
 
@@ -67,32 +67,25 @@ dnsever_txt(){
 
   _inithttp
 
-  if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
-    httpmethod_save="POST -c /tmp/dnsever.txt"
-    httpmethod_load="POST -b /tmp/dnsever.txt"
-  else
-    httpmethod_save="POST --load-cookies /tmp/dnsever.txt"
-    httpmethod_load="POST --save-cookies /tmp/dnsever.txt"
-  fi
-
-  response=$(_post "login_id=$login_id&login_password=$login_password" "https://kr.dnsever.com/index.html" "" "$httpmethod_save")
+  response=$(_post "login_id=$login_id&login_password=$login_password" "https://kr.dnsever.com/index.html")
   if [ $? != 0 -o -z "$response" ]; then
     _err "dnsever_txt:$action ERROR login failed. Please check https://kr.dnsever.com/index.html with login_id=$login_id login_password=$login_password"
-    dnsever_logout "" "$httpmethod_load"
     return 1
   fi
 
-  response=$(_post "" "https://kr.dnsever.com/start.html" "" "$httpmethod_load")
+  _H2="$(grep PHPSESSID "$HTTP_HEADER" | sed s/^Set-//)"
+  export _H2
+
+  response=$(_post "" "https://kr.dnsever.com/start.html")
   if [ $? != 0 -o -z "$response" ]; then
     _err "dnsever_txt:$action ERROR login failed. Please check https://kr.dnsever.com/start.html after login"
-    dnsever_logout "" "$httpmethod_load"
     return 1
   fi
- 
+
   skey=$(printf "%s\n" "$response" | grep skey | sed -n -e "s/^.*value=['\"]\(.*\)['\"].*/\1/p")
   if [ -z "$skey" ]; then
     _err "dnsever_txt:$action ERROR login failed with login_id=$login_id login_password=$login_password"
-    dnsever_logout "$skey" "$httpmethod_load"
+    response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
     return 1
   fi
 
@@ -100,7 +93,7 @@ dnsever_txt(){
 
   if [ -z "$user_domain" ]; then
     _err "dnsever_txt:$action ERROR no matching domain in DNSEver"
-    dnsever_logout "$skey" "$httpmethod_load"
+    response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
     return 1
   fi
 
@@ -110,75 +103,76 @@ dnsever_txt(){
 
     if [ -z "$subname" -o -z "$txt" ]; then
       _err "dnsever_txt ERROR subname=$subname or txt=$txt is empty"
-      dnsever_logout "$skey" "$httpmethod_load"
+      response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
     fi
 
     _info "dnsever_txt:$action skey=$skey user_domain=$user_domain selected_menu=edittxt command=add_txt subname=$subname txt=$txt"
 
-    response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt" "https://kr.dnsever.com/start.html" "" "$httpmethod_load")
+    response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt" "https://kr.dnsever.com/start.html")
     if [ $? != 0 -o -z "$response" ]; then
       _err "dnsever_txt:$action ERROR failed to get TXT records from DNSEver"
-      dnsever_logout "$skey" "$httpmethod_load"
+      response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
     fi
 
     check=$(dnsever_check "$fulldomain" "$txt" "$response")
     if [ $? = 0 -o -n "$check" ]; then
       _err "dnsever_txt:$action ERROR $fulldomain=$txt already exists"
-      dnsever_logout "$skey" "$httpmethod_load"
+      response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
     fi
 
-    response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt&command=add_txt&subname=$subname&new_txt=$txt" "https://kr.dnsever.com/start.html" "" "$httpmethod_load")
+    response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt&command=add_txt&subname=$subname&new_txt=$txt" "https://kr.dnsever.com/start.html")
     if [ $? != 0 -o -z "$response" ]; then
       _err "dnsever_txt:$action ERROR failed to add_text $fulldomain=$txt"
-      dnsever_logout "$skey" "$httpmethod_load"
+      response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
     fi
 
     check=$(dnsever_check "$fulldomain" "$txt" "$response")
     if [ $? != 0 -o -z "$check" ]; then
       _err "dnsever_txt:$action ERROR failed to get newly added $fulldomain=$txt"
-      dnsever_logout "$skey" "$httpmethod_load"
+      response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
+      return 1
     fi
 
   elif [ "$action" = "delete" ]; then
 
-    response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt" "https://kr.dnsever.com/start.html" "" "$httpmethod_load")
+    response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt" "https://kr.dnsever.com/start.html")
     if [ $? != 0 -o -z "$response" ]; then
       _err "dnsever_txt:$action ERROR failed to get TXT records from DNSEver"
-      dnsever_logout "$skey" "$httpmethod_load"
+      response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
     fi
 
     check=$(dnsever_check "$fulldomain" "$txt" "$response")
     if [ $? != 0 -o -z "$check" ]; then
       _err "dnsever_txt:$action ERROR $fulldomain=$txt does not exists"
-      dnsever_logout "$skey" "$httpmethod_load"
+      response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
     fi
 
     _info "dnsever_txt:$action skey=$skey user_domain=$user_domain selected_menu=edittxt command=delete_txt$(echo "$check"|sed 's/\&/ /g')"
 
-    response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt&command=delete_txt&$check" "https://kr.dnsever.com/start.html" "" "$httpmethod_load")
+    response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt&command=delete_txt&$check" "https://kr.dnsever.com/start.html")
     if [ $? != 0 -o -z "&response" ]; then
       _err "dnsever_txt:$action ERROR failed to delete $fulldomain=$txt from DNSEver"
-      dnsever_logout "$skey" "$httpmethod_load"
+      response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
     fi
-  
-    response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt" "https://kr.dnsever.com/start.html" "" "$httpmethod_load")
+
+    response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt" "https://kr.dnsever.com/start.html")
     if [ $? != 0 -o -z "&response" ]; then
       _err "dnsever_txt:$action ERROR failed to get $fulldomain=$txt from DNSEver"
-      dnsever_logout "$skey" "$httpmethod_load"
+      response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
     fi
 
     check=$(dnsever_check "$fulldomain" "$txt" "$response")
     if [ $? = 0 -a -n "$check" ]; then
       _err "dnsever_txt:$action ERROR $fulldomain=$txt still exists"
-      dnsever_logout "$skey" "$httpmethod_load"
+      response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
     fi
 
@@ -186,19 +180,8 @@ dnsever_txt(){
     _err "dnsever_txt:$action action should be add or delete"
   fi
 
-  dnsever_logout "$skey" "$httpmethod_load"
-  return 0 
-}
-
-dnsever_logout(){
-  skey="$1"; httpmethod_load="$2"
-
-  if [ -n "$skey" -a -n "$httpmethod_load" ]; then
-    response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php" "" "$httpmethod_load")  
-  fi
-  if [ -e /tmp/dnsever.txt ]; then
-    rm -f /tmp/dnsever.txt
-  fi
+  response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
+  return 0
 }
 
 dnsever_select_user_domain(){
