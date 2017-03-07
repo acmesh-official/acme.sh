@@ -1,13 +1,13 @@
 #!/usr/bin/env sh
 
 #Here is a sample custom api script.
-#This file name is "dns_myapi.sh"
+#This file name is "dns_dnsever.sh"
 #So, here must be a method   dns_myapi_add()
 #Which will be called by acme.sh to add the txt record to your api system.
 #returns 0 means success, otherwise error.
 #
-#Author: Neilpang
-#Report Bugs here: https://github.com/Neilpang/acme.sh
+#Author: hiska
+#Report Bugs here: https://github.com/hiskang/acme.sh
 #
 ########  Public functions #####################
 
