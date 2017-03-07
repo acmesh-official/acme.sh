@@ -26,8 +26,6 @@ Before you can deploy your cert, you must [issue the cert first](https://github.
 
 ## 3. Deploy the cert to remote server through SSH access.
 
-Before you can deploy your cert, you must [issue the cert first](https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert).
-
 The ssh deploy plugin allows you to deploy certificates to a remote host
 using SSH command to connect to the remote server.  The ssh plugin is invoked
 with the following command...
