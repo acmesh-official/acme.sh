@@ -2546,7 +2546,7 @@ _checkConf() {
   if [ ! -f "$2" ] && ! echo "$2" | grep '*$' >/dev/null && echo "$2" | grep '*' >/dev/null; then
     _debug "wildcard"
     for _w_f in $2; do
-      if _checkConf "$1" "$_w_f"; then
+      if [ -f "$_w_f"] && _checkConf "$1" "$_w_f"; then
         return 0
       fi
     done
@@ -2559,9 +2559,9 @@ _checkConf() {
       FOUND_REAL_NGINX_CONF="$2"
       return 0
     fi
-    if cat "$2" | tr  "\t" " " | grep "^ *include *.*;" >/dev/null; then
+    if cat "$2" | tr "\t" " " | grep "^ *include *.*;" >/dev/null; then
       _debug "Try include files"
-      for included in $(grep "^ *include *.*;" "$2" | sed "s/include //" | tr -d " ;"); do
+      for included in $(cat "$2" | tr "\t" " " | grep "^ *include *.*;" | sed "s/include //" | tr -d " ;"); do
         _debug "check included $included"
         if _checkConf "$1" "$included"; then
           return 0
