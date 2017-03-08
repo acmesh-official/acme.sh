@@ -11,10 +11,6 @@
 ##
 ## DO_API_KEY="75310dc4ca779ac39a19f6355db573b49ce92ae126553ebd61ac3a3ae34834cc"
 ##
-## DO_DOMAIN_START="3"
-## start of the digital ocean dns base domain from the LEFT
-## (EG: one.two.three.four.five.com -> one.two & three.four.five.com)
-##
 
 #####################  Public functions  #####################
 
@@ -22,20 +18,18 @@
 ## Usage: fulldomain txtvalue
 ## EG: "_acme-challenge.www.other.domain.com" "XKrxpRBosdq0HG9i01zxXp5CPBs"
 dns_dgon_add() {
-  fulldomain=$1
+  fulldomain="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
   txtvalue=$2
   _info "Using digitalocean dns validation - add record"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
-  _debug DO_DOMAIN_START "$DO_DOMAIN_START"
 
   ## save the env vars (key and domain split location) for later automated use
   _saveaccountconf DO_API_KEY "$DO_API_KEY"
-  _saveaccountconf DO_DOMAIN_START "$DO_DOMAIN_START"
 
   ## split the domain for DO API
-  if ! _get_base_domain "$fulldomain" "$DO_DOMAIN_START"; then
-    _err "invalid domain or split"
+  if ! _get_base_domain "$fulldomain"; then
+    _err "domain not found in your account for addition"
     return 1
   fi
   _debug _sub_domain "$_sub_domain"
@@ -54,7 +48,7 @@ dns_dgon_add() {
   ## args: BODY, URL, [need64, httpmethod]
   response="$(_post "$PBODY" "$PURL")"
 
-  ## check response (sort of)
+  ## check response
   if [ "$?" != "0" ]; then
     _err "error in response: $response"
     return 1
@@ -69,16 +63,15 @@ dns_dgon_add() {
 ## Usage: fulldomain txtvalue
 ## EG: "_acme-challenge.www.other.domain.com" "XKrxpRBosdq0HG9i01zxXp5CPBs"
 dns_dgon_rm() {
-  fulldomain=$1
+  fulldomain="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
   txtvalue=$2
   _info "Using digitalocean dns validation - remove record"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
-  _debug DO_DOMAIN_START "$DO_DOMAIN_START"
 
   ## split the domain for DO API
-  if ! _get_base_domain "$fulldomain" "$DO_DOMAIN_START"; then
-    _err "invalid domain or split in remove"
+  if ! _get_base_domain "$fulldomain"; then
+    _err "domain not found in your account for removal"
     return 1
   fi
   _debug _sub_domain "$_sub_domain"
@@ -139,41 +132,74 @@ dns_dgon_rm() {
 
 #####################  Private functions below  #####################
 
-## Split the domain provided at "base_domain_start_position" from the FRONT
-## USAGE: fulldomain base_domain_start_position
-## EG: "_acme-challenge.two.three.four.domain.com" "3"
+## Split the domain provided into the "bade domain" and the "start prefix".
+## This function searches for the longest subdomain in your account
+## for the full domain given and splits it into the base domain (zone)
+## and the prefix/record to be added/removed
+## USAGE: fulldomain
+## EG: "_acme-challenge.two.three.four.domain.com"
 ## returns
 ## _sub_domain="_acme-challenge.two"
-## _domain="three.four.domain.com"
+## _domain="three.four.domain.com" *IF* zone "three.four.domain.com" exists
+## if only "domain.com" exists it will return
+## _sub_domain="_acme-challenge.two.three.four"
+## _domain="domain.com"
 _get_base_domain() {
   # args
-  domain=$1
-  dom_point=$2
-  sub_point=$(_math "$dom_point" - 1)
-  _debug "split domain" "$domain"
-  _debug "split dom_point" "$dom_point"
-  _debug "split sub_point" "$sub_point"
+  fulldomain="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
+  _debug fulldomain "$fulldomain"
 
-  # domain max length - 253
+  # domain max legal length = 253
   MAX_DOM=255
 
-  ## cut in half and check
-  _domain=$(printf "%s" "$domain" | cut -d . -f "$dom_point"-"$MAX_DOM")
-  _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$sub_point")
-  if [ -z "$_domain" ]; then
-    ## not valid
-    _err "invalid split location"
+  ## get a list of domains for the account to check thru
+  ## Set the headers
+  export _H1="Content-Type: application/json"
+  export _H2="Authorization: Bearer $DO_API_KEY"
+  _debug DO_API_KEY "$DO_API_KEY"
+  ## get URL for the list of domains
+  ## havent seen this request paginated, tested with 18 domains (more requres manual requests with DO)
+  DOMURL="https://api.digitalocean.com/v2/domains"
+
+  ## get the domain list (DO gives basically a full XFER!)
+  domain_list="$(_get "$DOMURL")"
+
+  ## check response
+  if [ "$?" != "0" ]; then
+    _err "error in domain_list response: $domain_list"
     return 1
   fi
-  if [ -z "$_sub_domain" ]; then
-    ## not valid
-    _err "invalid split location"
-    return 1
-  fi
+  _debug2 domain_list "$domain_list"
 
-  _debug "split _domain" "$_domain"
-  _debug "split _sub_domain" "$_sub_domain"
+  ## for each shortening of our $fulldomain, check if it exists in the $domain_list
+  ## can never start on 1 (aka whole $fulldomain) as $fulldomain starts with "_acme-challenge"
+  i=2
+  while [ $i -gt 0 ]; do
+    ## get next longest domain
+    _domain=$(printf "%s" "$fulldomain" | cut -d . -f "$i"-"$MAX_DOM")
+    ## check we got something back from our cut (or are we at the end)
+    if [ -z "$_domain" ]; then
+      ## we got to the end of the domain - invalid domain
+      _err "domain not found in DigitalOcean account"
+      return 1
+    fi
+    ## we got part of a domain back - grep it out
+    found="$(echo "$domain_list" | _egrep_o "\"name\"\s*\:\s*\"$_domain\"")"
+    ## check if it exists
+    if [ ! -z "$found" ]; then
+      ## exists - exit loop returning the parts
+      sub_point=$(_math $i - 1)
+      _sub_domain=$(printf "%s" "$fulldomain" | cut -d . -f 1-"$sub_point")
+      _debug _domain "$_domain"
+      _debug _sub_domain "$_sub_domain"
+      return 0
+    fi
+    ## increment cut point $i
+    i=$(_math $i + 1)
+  done
 
-  ## all ok
-  return 0
+  ## we went through the entire domain zone list and dint find one that matched
+  ## doesnt look like we can add in the record
+  _err "domain not found in DigitalOcean account, but we should never get here"
+  return 1
 }
