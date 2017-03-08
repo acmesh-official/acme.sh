@@ -2,7 +2,7 @@
 
 #Here is a sample custom api script.
 #This file name is "dns_dnsever.sh"
-#So, here must be a method   dns_myapi_add()
+#So, here must be a method   dns_dnsever_add()
 #Which will be called by acme.sh to add the txt record to your api system.
 #returns 0 means success, otherwise error.
 #
@@ -68,7 +68,7 @@ dnsever_txt(){
   _inithttp
 
   response=$(_post "login_id=$login_id&login_password=$login_password" "https://kr.dnsever.com/index.html")
-  if [ $? != 0 -o -z "$response" ]; then
+  if [ $? != 0 ] || [ -z "$response" ]; then
     _err "dnsever_txt:$action ERROR login failed. Please check https://kr.dnsever.com/index.html with login_id=$login_id login_password=$login_password"
     return 1
   fi
@@ -77,7 +77,7 @@ dnsever_txt(){
   export _H2
 
   response=$(_post "" "https://kr.dnsever.com/start.html")
-  if [ $? != 0 -o -z "$response" ]; then
+  if [ $? != 0 ] || [ -z "$response" ]; then
     _err "dnsever_txt:$action ERROR login failed. Please check https://kr.dnsever.com/start.html after login"
     return 1
   fi
@@ -101,7 +101,7 @@ dnsever_txt(){
 
     subname=$(echo "$fulldomain" | sed "s/\.$user_domain\$//")
 
-    if [ -z "$subname" -o -z "$txt" ]; then
+    if [ -z "$subname" ] || [ -z "$txt" ]; then
       _err "dnsever_txt ERROR subname=$subname or txt=$txt is empty"
       response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
@@ -110,28 +110,28 @@ dnsever_txt(){
     _info "dnsever_txt:$action skey=$skey user_domain=$user_domain selected_menu=edittxt command=add_txt subname=$subname txt=$txt"
 
     response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt" "https://kr.dnsever.com/start.html")
-    if [ $? != 0 -o -z "$response" ]; then
+    if [ $? != 0 ] || [ -z "$response" ]; then
       _err "dnsever_txt:$action ERROR failed to get TXT records from DNSEver"
       response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
     fi
 
     check=$(dnsever_check "$fulldomain" "$txt" "$response")
-    if [ $? = 0 -o -n "$check" ]; then
+    if [ $? = 0 ] || [ -n "$check" ]; then
       _err "dnsever_txt:$action ERROR $fulldomain=$txt already exists"
       response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
     fi
 
     response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt&command=add_txt&subname=$subname&new_txt=$txt" "https://kr.dnsever.com/start.html")
-    if [ $? != 0 -o -z "$response" ]; then
+    if [ $? != 0 ] || [ -z "$response" ]; then
       _err "dnsever_txt:$action ERROR failed to add_text $fulldomain=$txt"
       response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
     fi
 
     check=$(dnsever_check "$fulldomain" "$txt" "$response")
-    if [ $? != 0 -o -z "$check" ]; then
+    if [ $? != 0 ] || [ -z "$check" ]; then
       _err "dnsever_txt:$action ERROR failed to get newly added $fulldomain=$txt"
       response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
@@ -140,14 +140,14 @@ dnsever_txt(){
   elif [ "$action" = "delete" ]; then
 
     response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt" "https://kr.dnsever.com/start.html")
-    if [ $? != 0 -o -z "$response" ]; then
+    if [ $? != 0 ] || [ -z "$response" ]; then
       _err "dnsever_txt:$action ERROR failed to get TXT records from DNSEver"
       response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
     fi
 
     check=$(dnsever_check "$fulldomain" "$txt" "$response")
-    if [ $? != 0 -o -z "$check" ]; then
+    if [ $? != 0 ] || [ -z "$check" ]; then
       _err "dnsever_txt:$action ERROR $fulldomain=$txt does not exists"
       response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
@@ -156,21 +156,21 @@ dnsever_txt(){
     _info "dnsever_txt:$action skey=$skey user_domain=$user_domain selected_menu=edittxt command=delete_txt$(echo "$check"|sed 's/\&/ /g')"
 
     response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt&command=delete_txt&$check" "https://kr.dnsever.com/start.html")
-    if [ $? != 0 -o -z "&response" ]; then
+    if [ $? != 0 ] || [ -z "&response" ]; then
       _err "dnsever_txt:$action ERROR failed to delete $fulldomain=$txt from DNSEver"
       response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
     fi
 
     response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt" "https://kr.dnsever.com/start.html")
-    if [ $? != 0 -o -z "&response" ]; then
+    if [ $? != 0 ] || [ -z "&response" ]; then
       _err "dnsever_txt:$action ERROR failed to get $fulldomain=$txt from DNSEver"
       response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
     fi
 
     check=$(dnsever_check "$fulldomain" "$txt" "$response")
-    if [ $? = 0 -a -n "$check" ]; then
+    if [ $? = 0 ] && [ -n "$check" ]; then
       _err "dnsever_txt:$action ERROR $fulldomain=$txt still exists"
       response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
@@ -213,7 +213,7 @@ dnsever_check(){
     seq=$(printf "%s\n" "$response" | grep "seq_$n" | sed -n -e "s/^.*value=['\"]\(.*\)['\"].*/\1/p")
     old_txt=$(printf "%s\n" "$response" | grep "old_txt_$n" | sed -n -e "s/^.*value=['\"]\(.*\)['\"].*id=.*$/\1/p")
     if [ "$txtvalue" != "$old_txt" ]; then
-      _info "dnsever_check skip deleting seq=$seq fulldomain=$fulldomain due to old_txt=$old_txt was different from txtvalue=$txtvalue skip"
+      _info "dnsever_check skip seq=$seq fulldomain=$fulldomain due to old_txt=$old_txt is different from txtvalue=$txtvalue skip"
       continue
     fi
     check="${check}&check[]=$n&domain_for_txt_$n=$fulldomain&seq_$n=$seq&old_txt_$n=$old_txt"
