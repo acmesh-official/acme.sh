@@ -2462,7 +2462,7 @@ _setNginx() {
   fi
   _debug "Start detect nginx conf for $_d from:$_start_f"
   if ! _checkConf "$_d" "$_start_f"; then
-    "Can not find conf file for domain $d"
+    _err "Can not find conf file for domain $d"
     return 1
   fi
   _info "Found conf file: $FOUND_REAL_NGINX_CONF"
@@ -2559,7 +2559,7 @@ _checkConf() {
       FOUND_REAL_NGINX_CONF="$2"
       return 0
     fi
-    if grep "^ *include *.*;" "$2" >/dev/null; then
+    if cat "$2" | tr  "\t" " " | grep "^ *include *.*;" >/dev/null; then
       _debug "Try include files"
       for included in $(grep "^ *include *.*;" "$2" | sed "s/include //" | tr -d " ;"); do
         _debug "check included $included"
