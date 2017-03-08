@@ -62,7 +62,7 @@ dns_nsone_add() {
     record_id=$(printf "%s\n" "$response" | _egrep_o "\"domain\":\"$fulldomain.\",[^{]*\"type\":\"TXT\",\"id\":\"[^,]*\"" | _head_n 1 | cut -d: -f7 | cut -d, -f1)
     _debug "record_id" "$record_id"
 
-    _nsone_rest POST "zones/$_domain_/$fulldomain/TXT" "{\"answers\": [{\"answer\": [\"$txtvalue\"]}],\"type\": \"TXT\",\"domain\":\"$fulldomain\",\"zone\": \"$_domain\"}"
+    _nsone_rest POST "zones/$_domain/$fulldomain/TXT" "{\"answers\": [{\"answer\": [\"$txtvalue\"]}],\"type\": \"TXT\",\"domain\":\"$fulldomain\",\"zone\": \"$_domain\"}"
     if [ "$?" = "0" ] && _contains "$response" "$fulldomain"; then
       _info "Updated!"
       #todo: check if the record takes effect
