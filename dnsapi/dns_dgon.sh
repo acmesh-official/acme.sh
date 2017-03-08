@@ -21,13 +21,17 @@
 ## Create the text record for validation.
 ## Usage: fulldomain txtvalue
 ## EG: "_acme-challenge.www.other.domain.com" "XKrxpRBosdq0HG9i01zxXp5CPBs"
-dns_digitalocean_add() {
+dns_dgon_add() {
   fulldomain=$1
   txtvalue=$2
   _info "Using digitalocean dns validation - add record"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
   _debug DO_DOMAIN_START "$DO_DOMAIN_START"
+
+  ## save the env vars (key and domain split location) for later automated use
+  _saveaccountconf DO_API_KEY "$DO_API_KEY"
+  _saveaccountconf DO_DOMAIN_START "$DO_DOMAIN_START"
 
   ## split the domain for DO API
   if ! _get_base_domain "$fulldomain" "$DO_DOMAIN_START"; then
@@ -55,7 +59,7 @@ dns_digitalocean_add() {
     _err "error in response: $response"
     return 1
   fi
-  _debug response "$response"
+  _debug2 response "$response"
 
   ## finished correctly
   return 0
@@ -64,7 +68,7 @@ dns_digitalocean_add() {
 ## Remove the txt record after validation.
 ## Usage: fulldomain txtvalue
 ## EG: "_acme-challenge.www.other.domain.com" "XKrxpRBosdq0HG9i01zxXp5CPBs"
-dns_digitalocean_rm() {
+dns_dgon_rm() {
   fulldomain=$1
   txtvalue=$2
   _info "Using digitalocean dns validation - remove record"
@@ -104,7 +108,7 @@ dns_digitalocean_rm() {
         _err "no record and no nextpage in digital ocean DNS removal"
         return 1
       fi
-      _debug nextpage "$nextpage"
+      _debug2 nextpage "$nextpage"
       GURL="$nextpage"
     fi
     ## we break out of the loop when we have a record
@@ -127,7 +131,7 @@ dns_digitalocean_rm() {
     _err "error in remove response: $response"
     return 1
   fi
-  _debug response "$response"
+  _debug2 response "$response"
 
   ## finished correctly
   return 0
