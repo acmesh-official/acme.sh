@@ -72,3 +72,8 @@ export DEPLOY_EXIM4_RELOAD="/etc/init.d/exim4 restart"
 acme.sh --deploy -d ftp.example.com --deploy-hook exim4
 ```
 
+## 6. Deploy the cert to OSX Keychain
+
+```sh
+acme.sh --deploy -d ftp.example.com --deploy-hook keychain
+```
