@@ -18,6 +18,18 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
 # [中文说明](https://github.com/Neilpang/acme.sh/wiki/%E8%AF%B4%E6%98%8E)
 
+# Who are using **acme.sh**
+- [FreeBSD.org](https://blog.crashed.org/letsencrypt-in-freebsd-org/)
+- [ruby-china.org](https://ruby-china.org/topics/31983)
+- [Proxmox](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x_and_newer))
+- [pfsense](https://github.com/pfsense/FreeBSD-ports/pull/89)
+- [webfaction](https://community.webfaction.com/questions/19988/using-letsencrypt)
+- [Loadbalancer.org](https://www.loadbalancer.org/blog/loadbalancer-org-with-lets-encrypt-quick-and-dirty)
+- [discourse.org](https://meta.discourse.org/t/setting-up-lets-encrypt/40709)
+- [Centminmod](http://centminmod.com/letsencrypt-acmetool-https.html)
+- [splynx](https://forum.splynx.com/t/free-ssl-cert-for-splynx-lets-encrypt/297)
+- [archlinux](https://aur.archlinux.org/packages/acme.sh-git/)
+- [more...](https://github.com/Neilpang/acme.sh/wiki/Blogs-and-tutorials)
 
 # Tested OS
 
@@ -295,6 +307,7 @@ You don't have to do anything manually!
 1. cyon.ch
 1. Domain-Offensive/Resellerinterface/Domainrobot API
 1. Gandi LiveDNS API
+1. Knot DNS API
 
 **More APIs coming soon...**
 
