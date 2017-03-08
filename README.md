@@ -29,7 +29,7 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 - [Centminmod](http://centminmod.com/letsencrypt-acmetool-https.html)
 - [splynx](https://forum.splynx.com/t/free-ssl-cert-for-splynx-lets-encrypt/297)
 - [archlinux](https://aur.archlinux.org/packages/acme.sh-git/)
-- [more and more](https://github.com/Neilpang/acme.sh/wiki/Blogs-and-tutorials)
+- [more...](https://github.com/Neilpang/acme.sh/wiki/Blogs-and-tutorials)
 
 # Tested OS
 
