@@ -394,6 +394,17 @@ acme.sh --issue --dns dns_knot -d example.com -d www.example.com
 
 The `KNOT_SERVER` and `KNOT_KEY` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 20. Use NS1. API
+
+```
+export NS1_Key="fdmlfsdklmfdkmqsdfk"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_nsone -d example.com -d www.example.com
+```
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
