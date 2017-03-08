@@ -41,7 +41,7 @@ dns_nsone_add() {
     return 1
   fi
 
-  count=$(printf "%s\n" "$response" | _egrep_o "\"domain\":\"$fulldomain.\",[^{]*\"type\":\"TXT\"" | wc -l | tr -d " ")
+  count=$(printf "%s\n" "$response" | _egrep_o "\"domain\":\"$fulldomain\",[^{]*\"type\":\"TXT\"" | wc -l | tr -d " ")
   _debug count "$count"
   if [ "$count" = "0" ]; then
     _info "Adding record"
