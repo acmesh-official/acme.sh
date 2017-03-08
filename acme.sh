@@ -299,6 +299,16 @@ _secure_debug3() {
   fi
 }
 
+_upper_case() {
+  # shellcheck disable=SC2018,SC2019
+  tr 'a-z' 'A-Z'
+}
+
+_lower_case() {
+  # shellcheck disable=SC2018,SC2019
+  tr 'A-Z' 'a-z'
+}
+
 _startswith() {
   _str="$1"
   _sub="$2"
