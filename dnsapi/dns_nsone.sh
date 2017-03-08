@@ -5,7 +5,6 @@
 #
 #NS1_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
 #
-#NS1_Email="user@luadns.net"
 
 NS1_Api="https://api.nsone.net/v1"
 
