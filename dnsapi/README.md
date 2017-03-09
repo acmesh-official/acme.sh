@@ -394,6 +394,19 @@ acme.sh --issue --dns dns_knot -d example.com -d www.example.com
 
 The `KNOT_SERVER` and `KNOT_KEY` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 20. Use DigitalOcean API (native)
+
+You need to obtain a read and write capable API key from your DigitalOcean account. See: https://www.digitalocean.com/help/api/
+
+```
+export DO_API_KEY="75310dc4ca779ac39a19f6355db573b49ce92ae126553ebd61ac3a3ae34834cc"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_dgon -d example.com -d www.example.com
+```
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
