@@ -4628,7 +4628,7 @@ install() {
     #Modify shebang
     if _exists bash; then
       _info "Good, bash is found, so change the shebang to use bash as preferred."
-      _shebang='#!/usr/bin/env bash'
+      _shebang='#!'"$(env bash -c "command -v bash")"
       _setShebang "$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
       for subf in $_SUB_FOLDERS; do
         if [ -d "$LE_WORKING_DIR/$subf" ]; then
