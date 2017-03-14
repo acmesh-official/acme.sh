@@ -24,7 +24,7 @@ dns_infoblox_add() {
 
 result=`curl -k -u $Infoblox_Creds -X POST $baseurlnObject`
 
-if [[ $result =~ record:txt/.*:.*/default ]]; then
+if [ $result =~ record:txt/.*:.*/default ]; then
   echo "Successfully created the txt record"
   return 0
 else 
@@ -50,13 +50,13 @@ echo $baseurlnObject
 
 result=`curl -k -u $Infoblox_Creds -X GET $baseurlnObject`
 
-if [[ $result =~ record:txt/.*:.*/default ]]; then
+if [ $result =~ record:txt/.*:.*/default ]; then
     # Extract object ref
     objRef=`grep -Po 'record:txt/.*:.*/default' <<< $result`
     objRmUrl="https://$Infoblox_Server/wapi/v2.2.2/$objRef"
     rmResult=`curl -k -u $Infoblox_Creds -X DELETE $objRmUrl`
     # Check if rm succeeded
-	if [[ $rmResult =~ record:txt/.*:.*/default ]]; then
+	if [ $rmResult =~ record:txt/.*:.*/default ]; then
 	       echo "Successfully deleted $objRef"
 	       return 0
 	else 
