@@ -7,7 +7,7 @@ CLOUDNS_API="https://api.cloudns.net"
 ########  Public functions #####################
 
 #Usage: dns_cloudns_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
-dns_cloudns_add () {
+dns_cloudns_add() {
   _info "Using cloudns"
 
   if ! _dns_cloudns_init_check; then
@@ -20,8 +20,8 @@ dns_cloudns_add () {
     return 1
   fi
 
-  host="$(echo $1 | sed "s/\.$zone\$//")"
-  record=$2 
+  host="$(echo "$1" | sed "s/\.$zone\$//")"
+  record=$2
   record_id=$(_dns_cloudns_get_record_id "$zone" "$host")
 
   _debug zone "$zone"
@@ -52,14 +52,14 @@ dns_cloudns_add () {
 }
 
 #Usage: dns_cloudns_rm   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
-dns_cloudns_rm () {
+dns_cloudns_rm() {
   _info "Using cloudns"
 
   if ! _dns_cloudns_init_check; then
-     return 1
+    return 1
   fi
 
-  if [ -z $zone ]; then
+  if [ -z "$zone" ]; then
     zone="$(_dns_cloudns_get_zone_name $1)"
     if [ -z "$zone" ]; then
       _err "Missing DNS zone at ClouDNS. Please log into your control panel and create the required DNS zone for the initial setup."
@@ -67,8 +67,8 @@ dns_cloudns_rm () {
     fi
   fi
 
-  host="$(echo $1|sed "s/\.$zone\$//")"
-  record=$2 
+  host="$(echo "$1" | sed "s/\.$zone\$//")"
+  record=$2
   record_id=$(_dns_cloudns_get_record_id "$zone" "$host")
 
   _debug zone "$zone"
@@ -89,8 +89,8 @@ dns_cloudns_rm () {
 }
 
 ####################  Private functions below ##################################
-_dns_cloudns_init_check () {
-  if [ ! -z $CLOUDNS_INIT_CHECK_COMPLETED ]; then
+_dns_cloudns_init_check() {
+  if [ ! -z "$CLOUDNS_INIT_CHECK_COMPLETED" ]; then
     return 0
   fi
 
@@ -109,7 +109,7 @@ _dns_cloudns_init_check () {
   return 0
 }
 
-_dns_cloudns_get_zone_name () {
+_dns_cloudns_get_zone_name() {
   i=2
   while true; do
     zoneForCheck=$(printf "%s" "$1" | cut -d . -f $i-100)
@@ -123,7 +123,7 @@ _dns_cloudns_get_zone_name () {
     _dns_cloudns_http_api_call "dns/get-zone-info.json" "domain-name=$zoneForCheck"
 
     if ! _contains "$response" "\"status\":\"Failed\""; then
-      echo $zoneForCheck
+      echo "$zoneForCheck"
       return 0
     fi
 
@@ -132,16 +132,16 @@ _dns_cloudns_get_zone_name () {
   return 1
 }
 
-_dns_cloudns_get_record_id () {
+_dns_cloudns_get_record_id() {
   _dns_cloudns_http_api_call "dns/records.json" "domain-name=$1&host=$2&type=TXT"
   if _contains "$response" "\"id\":"; then
-    echo $response | awk 'BEGIN { FS="\"" } {print $2}'
+    echo "$response" | awk 'BEGIN { FS="\"" } {print $2}'
     return 0
   fi
   return 1
 }
 
-_dns_cloudns_http_api_call () {
+_dns_cloudns_http_api_call() {
   method=$1
 
   _debug CLOUDNS_AUTH_ID "$CLOUDNS_AUTH_ID"
