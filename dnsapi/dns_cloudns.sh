@@ -28,7 +28,7 @@ dns_cloudns_add() {
   _debug host "$host"
   _debug record "$record"
   _debug record_id "$record_id"
-  
+
   if [ -z "$record_id" ]; then
     _info "Adding the TXT record for $1"
     _dns_cloudns_http_api_call "dns/add-record.json" "domain-name=$zone&record-type=TXT&host=$host&record=$record&ttl=60"
@@ -126,7 +126,7 @@ _dns_cloudns_get_zone_name() {
       return 0
     fi
 
-    i=$((${i} + 1))
+    i=$((i + 1))
   done
   return 1
 }
