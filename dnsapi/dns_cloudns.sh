@@ -14,7 +14,7 @@ dns_cloudns_add() {
     return 1
   fi
 
-  zone="$(_dns_cloudns_get_zone_name $1)"
+  zone="$(_dns_cloudns_get_zone_name "$1")"
   if [ -z "$zone" ]; then
     _err "Missing DNS zone at ClouDNS. Please log into your control panel and create the required DNS zone for the initial setup."
     return 1
@@ -28,7 +28,6 @@ dns_cloudns_add() {
   _debug host "$host"
   _debug record "$record"
   _debug record_id "$record_id"
- 
   
   if [ -z "$record_id" ]; then
     _info "Adding the TXT record for $1"
@@ -60,7 +59,7 @@ dns_cloudns_rm() {
   fi
 
   if [ -z "$zone" ]; then
-    zone="$(_dns_cloudns_get_zone_name $1)"
+    zone="$(_dns_cloudns_get_zone_name "$1")"
     if [ -z "$zone" ]; then
       _err "Missing DNS zone at ClouDNS. Please log into your control panel and create the required DNS zone for the initial setup."
       return 1
@@ -118,7 +117,7 @@ _dns_cloudns_get_zone_name() {
       return 1
     fi
 
-    _debug zoneForCheck $zoneForCheck
+    _debug zoneForCheck "$zoneForCheck"
 
     _dns_cloudns_http_api_call "dns/get-zone-info.json" "domain-name=$zoneForCheck"
 
@@ -127,7 +126,7 @@ _dns_cloudns_get_zone_name() {
       return 0
     fi
 
-    i=$(expr "$i" + 1)
+    i=$(($i+1))
   done
   return 1
 }
