@@ -127,7 +127,7 @@ _dns_cloudns_get_zone_name() {
       return 0
     fi
 
-    i=$(expr $i + 1)
+    i=$(expr "$i" + 1)
   done
   return 1
 }
