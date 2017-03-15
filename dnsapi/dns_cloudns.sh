@@ -126,7 +126,7 @@ _dns_cloudns_get_zone_name() {
       return 0
     fi
 
-    i=$((i + 1))
+    i=$(_math "$i" + 1)
   done
   return 1
 }
@@ -150,7 +150,7 @@ _dns_cloudns_http_api_call() {
 
   response="$(_get "$CLOUDNS_API/$method?$data")"
 
-  _debug response "$response"
+  _debug2 response "$response"
 
-  return 1
+  return 0
 }
