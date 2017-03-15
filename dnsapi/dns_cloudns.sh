@@ -77,7 +77,7 @@ dns_cloudns_rm() {
 
   if [ ! -z "$record_id" ]; then
     _info "Deleting the TXT record for $1"
-    _dns_cloudns_http_api_call "dns/delete-record.json" "domain-name=$zone&record-id="
+    _dns_cloudns_http_api_call "dns/delete-record.json" "domain-name=$zone&record-id=$record_id"
     if ! _contains "$response" "\"status\":\"Success\""; then
       _err "The TXT record for $1 cannot be deleted."
       return 1
@@ -100,6 +100,13 @@ _dns_cloudns_init_check() {
 
   if [ -z "$CLOUDNS_AUTH_PASSWORD" ]; then
     _err "CLOUDNS_AUTH_PASSWORD is not configured"
+    return 1
+  fi
+
+  _dns_cloudns_http_api_call "dns/login.json" ""
+
+  if ! _contains "$response" "\"status\":\"Success\""; then
+    _err "Invalid CLOUDNS_AUTH_ID or CLOUDNS_AUTH_PASSWORD. Please check your login credentials."
     return 1
   fi
 
@@ -134,7 +141,7 @@ _dns_cloudns_get_zone_name() {
 _dns_cloudns_get_record_id() {
   _dns_cloudns_http_api_call "dns/records.json" "domain-name=$1&host=$2&type=TXT"
   if _contains "$response" "\"id\":"; then
-    echo "$response" | awk 'BEGIN { FS="\"" } {print $2}'
+    echo "$response" | cut -d '"' -f 2
     return 0
   fi
   return 1
@@ -146,7 +153,11 @@ _dns_cloudns_http_api_call() {
   _debug CLOUDNS_AUTH_ID "$CLOUDNS_AUTH_ID"
   _debug CLOUDNS_AUTH_PASSWORD "$CLOUDNS_AUTH_PASSWORD"
 
-  data="auth-id=$CLOUDNS_AUTH_ID&auth-password=$CLOUDNS_AUTH_PASSWORD&$2"
+  if [ -z $2 ]; then
+    data="auth-id=$CLOUDNS_AUTH_ID&auth-password=$CLOUDNS_AUTH_PASSWORD"
+  else
+    data="auth-id=$CLOUDNS_AUTH_ID&auth-password=$CLOUDNS_AUTH_PASSWORD&$2"
+  fi
 
   response="$(_get "$CLOUDNS_API/$method?$data")"
 
