@@ -34,8 +34,8 @@ if _info "$result" | egrep 'record:txt/.*:.*/default'; then
   return 0
 else
   _info "Error encountered during record addition"
-  _info $result
-  _err $result
+  _info "$result"
+  _err "$result"
    return 1
 fi
 
@@ -56,7 +56,7 @@ dns_infoblox_rm() {
 
 baseurlnObject="https://$Infoblox_Server/wapi/v2.2.2/record:txt?name=$fulldomain&text=$txtvalue&_return_type=xml-pretty"
 
-_info $baseurlnObject
+_info "$baseurlnObject"
 
 result=`curl -k -u $Infoblox_Creds -X GET $baseurlnObject`
 
@@ -71,14 +71,14 @@ if _info "$result" | egrep 'record:txt/.*:.*/default'; then
                return 0
         else
             _info "Error occurred during txt record delete"
-            _info  $rmResult
-            _err $rmResult
+            _info  "$rmResult"
+            _err "$rmResult"
             return 1
         fi
 else
   _info "Record to delete didn't match an existing record"
-  _info $result
-  _err $result
+  _info "$result"
+  _err "$result"
    return 1
 fi
 }
