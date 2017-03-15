@@ -299,6 +299,16 @@ _secure_debug3() {
   fi
 }
 
+_upper_case() {
+  # shellcheck disable=SC2018,SC2019
+  tr 'a-z' 'A-Z'
+}
+
+_lower_case() {
+  # shellcheck disable=SC2018,SC2019
+  tr 'A-Z' 'a-z'
+}
+
 _startswith() {
   _str="$1"
   _sub="$2"
@@ -2462,7 +2472,7 @@ _setNginx() {
   fi
   _debug "Start detect nginx conf for $_d from:$_start_f"
   if ! _checkConf "$_d" "$_start_f"; then
-    "Can not find conf file for domain $d"
+    _err "Can not find conf file for domain $d"
     return 1
   fi
   _info "Found conf file: $FOUND_REAL_NGINX_CONF"
@@ -2546,7 +2556,7 @@ _checkConf() {
   if [ ! -f "$2" ] && ! echo "$2" | grep '*$' >/dev/null && echo "$2" | grep '*' >/dev/null; then
     _debug "wildcard"
     for _w_f in $2; do
-      if _checkConf "$1" "$_w_f"; then
+      if [ -f "$_w_f"] && _checkConf "$1" "$_w_f"; then
         return 0
       fi
     done
@@ -2559,9 +2569,9 @@ _checkConf() {
       FOUND_REAL_NGINX_CONF="$2"
       return 0
     fi
-    if grep "^ *include *.*;" "$2" >/dev/null; then
+    if cat "$2" | tr "\t" " " | grep "^ *include *.*;" >/dev/null; then
       _debug "Try include files"
-      for included in $(grep "^ *include *.*;" "$2" | sed "s/include //" | tr -d " ;"); do
+      for included in $(cat "$2" | tr "\t" " " | grep "^ *include *.*;" | sed "s/include //" | tr -d " ;"); do
         _debug "check included $included"
         if _checkConf "$1" "$included"; then
           return 0
@@ -4618,7 +4628,7 @@ install() {
     #Modify shebang
     if _exists bash; then
       _info "Good, bash is found, so change the shebang to use bash as preferred."
-      _shebang='#!/usr/bin/env bash'
+      _shebang='#!'"$(env bash -c "command -v bash")"
       _setShebang "$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
       for subf in $_SUB_FOLDERS; do
         if [ -d "$LE_WORKING_DIR/$subf" ]; then
