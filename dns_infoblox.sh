@@ -29,7 +29,7 @@ dns_infoblox_add() {
 
 result=`curl -k -u $Infoblox_Creds -X POST $baseurlnObject`
 
-if _info "$result" | grep -Eq 'record:txt/.*:.*/default'; then
+if _info "$result" | egrep 'record:txt/.*:.*/default'; then
   _info "Successfully created the txt record"
   return 0
 else
@@ -60,13 +60,13 @@ _info $baseurlnObject
 
 result=`curl -k -u $Infoblox_Creds -X GET $baseurlnObject`
 
-if _info "$result" | grep -Eq 'record:txt/.*:.*/default'; then
+if _info "$result" | egrep 'record:txt/.*:.*/default'; then
     # Extract object ref
     objRef=`grep -Po 'record:txt/.*:.*/default' <<< $result`
     objRmUrl="https://$Infoblox_Server/wapi/v2.2.2/$objRef"
     rmResult=`curl -k -u $Infoblox_Creds -X DELETE $objRmUrl`
     # Check if rm succeeded
-        if _info "$rmResult" | grep -Eq 'record:txt/.*:.*/default'; then
+        if _info "$rmResult" | egrep 'record:txt/.*:.*/default'; then
                _info "Successfully deleted $objRef"
                return 0
         else
