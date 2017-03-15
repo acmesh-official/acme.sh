@@ -407,7 +407,7 @@ Ok, let's issue a cert now:
 acme.sh --issue --dns dns_dgon -d example.com -d www.example.com
 ```
 
-## 21. Use ClouDNS API
+## 21. Use ClouDNS.net API
 
 You need to set the HTTP API user ID and password credentials. See: https://www.cloudns.net/wiki/article/42/
 
