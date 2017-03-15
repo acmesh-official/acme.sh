@@ -29,12 +29,12 @@ dns_infoblox_add() {
 
 result=`curl -k -u $Infoblox_Creds -X POST $baseurlnObject`
 
-if echo "$result" | grep -Eq 'record:txt/.*:.*/default'; then
-  echo "Successfully created the txt record"
+if _info "$result" | grep -Eq 'record:txt/.*:.*/default'; then
+  _info "Successfully created the txt record"
   return 0
 else
-  echo "Error encountered during record addition"
-  echo $result
+  _info "Error encountered during record addition"
+  _info $result
   _err $result
    return 1
 fi
@@ -56,28 +56,28 @@ dns_infoblox_rm() {
 
 baseurlnObject="https://$Infoblox_Server/wapi/v2.2.2/record:txt?name=$fulldomain&text=$txtvalue&_return_type=xml-pretty"
 
-echo $baseurlnObject
+_info $baseurlnObject
 
 result=`curl -k -u $Infoblox_Creds -X GET $baseurlnObject`
 
-if echo $result | grep -Eq 'record:txt/.*:.*/default'; then
+if _info "$result" | grep -Eq 'record:txt/.*:.*/default'; then
     # Extract object ref
     objRef=`grep -Po 'record:txt/.*:.*/default' <<< $result`
     objRmUrl="https://$Infoblox_Server/wapi/v2.2.2/$objRef"
     rmResult=`curl -k -u $Infoblox_Creds -X DELETE $objRmUrl`
     # Check if rm succeeded
-        if echo "$rmResult" | grep -Eq 'record:txt/.*:.*/default'; then
-               echo "Successfully deleted $objRef"
+        if _info "$rmResult" | grep -Eq 'record:txt/.*:.*/default'; then
+               _info "Successfully deleted $objRef"
                return 0
         else
-            echo "Error occurred during txt record delete"
-            echo  $rmResult
+            _info "Error occurred during txt record delete"
+            _info  $rmResult
             _err $rmResult
             return 1
         fi
 else
-  echo "Record to delete didn't match an existing record"
-  echo $result
+  _info "Record to delete didn't match an existing record"
+  _info $result
   _err $result
    return 1
 fi
