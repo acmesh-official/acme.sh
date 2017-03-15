@@ -309,6 +309,7 @@ You don't have to do anything manually!
 1. Gandi LiveDNS API
 1. Knot DNS API
 1. DigitalOcean API (native)
+1. ClouDNS API
 
 **More APIs coming soon...**
 
