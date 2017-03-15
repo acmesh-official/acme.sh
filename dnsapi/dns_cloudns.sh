@@ -1,5 +1,8 @@
 #!/usr/bin/env sh
 
+# Author: Boyan Peychev <boyan at cloudns dot net>
+# Repository: https://github.com/ClouDNS/acme.sh/
+
 #CLOUDNS_AUTH_ID=XXXXX
 #CLOUDNS_AUTH_PASSWORD="YYYYYYYYY"
 CLOUDNS_API="https://api.cloudns.net"
