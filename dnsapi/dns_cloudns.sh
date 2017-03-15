@@ -153,7 +153,7 @@ _dns_cloudns_http_api_call() {
   _debug CLOUDNS_AUTH_ID "$CLOUDNS_AUTH_ID"
   _debug CLOUDNS_AUTH_PASSWORD "$CLOUDNS_AUTH_PASSWORD"
 
-  if [ -z $2 ]; then
+  if [ -z "$2" ]; then
     data="auth-id=$CLOUDNS_AUTH_ID&auth-password=$CLOUDNS_AUTH_PASSWORD"
   else
     data="auth-id=$CLOUDNS_AUTH_ID&auth-password=$CLOUDNS_AUTH_PASSWORD&$2"
