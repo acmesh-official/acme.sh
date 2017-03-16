@@ -36,7 +36,7 @@ dns_infoblox_add() {
     _info "Error encountered during record addition"
     _info "$result"
     _err "$result"
-     return 1
+    return 1
   fi
 
 }
@@ -62,19 +62,19 @@ dns_infoblox_rm() {
 
   if _info "$result" | egrep 'record:txt/.*:.*/default'; then
     # Extract object ref
-    objRef=`grep -Po 'record:txt/.*:.*/default' <<< $result`
+    objRef=$(grep -Po 'record:txt/.*:.*/default' <<< $result)
     objRmUrl="https://$Infoblox_Server/wapi/v2.2.2/$objRef"
-    rmResult=`curl -k -u $Infoblox_Creds -X DELETE $objRmUrl`
+    rmResult=$(curl -k -u $Infoblox_Creds -X DELETE $objRmUrl)
     # Check if rm succeeded
-      if _info "$rmResult" | egrep 'record:txt/.*:.*/default'; then
-        _info "Successfully deleted $objRef"
-        return 0
-      else
-        _info "Error occurred during txt record delete"
-        _info  "$rmResult"
-        _err "$rmResult"
-        return 1
-      fi
+    if _info "$rmResult" | egrep 'record:txt/.*:.*/default'; then
+      _info "Successfully deleted $objRef"
+      return 0
+    else
+      _info "Error occurred during txt record delete"
+      _info  "$rmResult"
+      _err "$rmResult"
+      return 1
+    fi
   else
     _info "Record to delete didn't match an existing record"
     _info "$result"
