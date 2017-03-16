@@ -15,7 +15,7 @@ dns_infoblox_add() {
 
   #_err "Not implemented!"
 
-    if [ -z "$Infoblox_Creds" ] || [ -z "$Infoblox_Server" ]; then
+  if [ -z "$Infoblox_Creds" ] || [ -z "$Infoblox_Server" ]; then
     Infoblox_Creds=""
     Infoblox_Server=""
     _err "You didn't specify the credentials or server yet (Infoblox_Creds and Infoblox_Server)."
@@ -27,17 +27,17 @@ dns_infoblox_add() {
   _saveaccountconf Infoblox_Creds "$Infoblox_Creds"
   _saveaccountconf Infoblox_Server "$Infoblox_Server"
 
-result=`curl -k -u $Infoblox_Creds -X POST $baseurlnObject`
+  result=$(curl -k -u $Infoblox_Creds -X POST $baseurlnObject)
 
-if _info "$result" | egrep 'record:txt/.*:.*/default'; then
-  _info "Successfully created the txt record"
-  return 0
-else
-  _info "Error encountered during record addition"
-  _info "$result"
-  _err "$result"
-   return 1
-fi
+  if _info "$result" | egrep 'record:txt/.*:.*/default'; then
+    _info "Successfully created the txt record"
+    return 0
+  else
+    _info "Error encountered during record addition"
+    _info "$result"
+    _err "$result"
+     return 1
+  fi
 
 }
 
@@ -52,35 +52,35 @@ dns_infoblox_rm() {
 
   _debug txtvalue "$txtvalue"
 
- # Does the record exist?
+  # Does the record exist?
 
-baseurlnObject="https://$Infoblox_Server/wapi/v2.2.2/record:txt?name=$fulldomain&text=$txtvalue&_return_type=xml-pretty"
+  baseurlnObject="https://$Infoblox_Server/wapi/v2.2.2/record:txt?name=$fulldomain&text=$txtvalue&_return_type=xml-pretty"
 
-_info "$baseurlnObject"
+  _info "$baseurlnObject"
 
-result=`curl -k -u $Infoblox_Creds -X GET $baseurlnObject`
+  result=$(curl -k -u $Infoblox_Creds -X GET $baseurlnObject)
 
-if _info "$result" | egrep 'record:txt/.*:.*/default'; then
+  if _info "$result" | egrep 'record:txt/.*:.*/default'; then
     # Extract object ref
     objRef=`grep -Po 'record:txt/.*:.*/default' <<< $result`
     objRmUrl="https://$Infoblox_Server/wapi/v2.2.2/$objRef"
     rmResult=`curl -k -u $Infoblox_Creds -X DELETE $objRmUrl`
     # Check if rm succeeded
-        if _info "$rmResult" | egrep 'record:txt/.*:.*/default'; then
-               _info "Successfully deleted $objRef"
-               return 0
-        else
-            _info "Error occurred during txt record delete"
-            _info  "$rmResult"
-            _err "$rmResult"
-            return 1
-        fi
-else
-  _info "Record to delete didn't match an existing record"
-  _info "$result"
-  _err "$result"
-   return 1
-fi
+      if _info "$rmResult" | egrep 'record:txt/.*:.*/default'; then
+        _info "Successfully deleted $objRef"
+        return 0
+      else
+        _info "Error occurred during txt record delete"
+        _info  "$rmResult"
+        _err "$rmResult"
+        return 1
+      fi
+  else
+    _info "Record to delete didn't match an existing record"
+    _info "$result"
+    _err "$result"
+    return 1
+  fi
 }
 
 ####################  Private functions below ##################################
