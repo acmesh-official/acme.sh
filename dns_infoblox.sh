@@ -62,7 +62,7 @@ dns_infoblox_rm() {
 
   if _info "$result" | egrep 'record:txt/.*:.*/default'; then
     # Extract object ref
-    objRef=$(grep -Po 'record:txt/.*:.*/default' <<< $result)
+    objRef=$(grep -Po 'record:txt/.*:.*/default' <<<$result)
     objRmUrl="https://$Infoblox_Server/wapi/v2.2.2/$objRef"
     rmResult=$(curl -k -u $Infoblox_Creds -X DELETE $objRmUrl)
     # Check if rm succeeded
@@ -71,7 +71,7 @@ dns_infoblox_rm() {
       return 0
     else
       _info "Error occurred during txt record delete"
-      _info  "$rmResult"
+      _info "$rmResult"
       _err "$rmResult"
       return 1
     fi
