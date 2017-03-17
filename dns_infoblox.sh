@@ -2,19 +2,16 @@
 
 dns_infoblox_add() {
 
+  ## Nothing to see here, just some housekeeping
   fulldomain=$1
   txtvalue=$2
-
   baseurlnObject="https://$Infoblox_Server/wapi/v2.2.2/record:txt?name=$fulldomain&text=$txtvalue"
 
   _info "Using Infoblox API"
-
   _debug fulldomain "$fulldomain"
-
   _debug txtvalue "$txtvalue"
 
-  #_err "Not implemented!"
-
+  ## Check for the credentials
   if [ -z "$Infoblox_Creds" ] || [ -z "$Infoblox_Server" ]; then
     Infoblox_Creds=""
     Infoblox_Server=""
@@ -23,13 +20,21 @@ dns_infoblox_add() {
     return 1
   fi
 
-  #save the login info to the account conf file.
+  ## Save the credentials to the account file
   _saveaccountconf Infoblox_Creds "$Infoblox_Creds"
   _saveaccountconf Infoblox_Server "$Infoblox_Server"
+  
+  ## Base64 encode the credentials
+  Infoblox_CredsEncoded=$(echo -n "$Infoblox_Creds" | base64)
+  
+  ## Construct the HTTP Authorization header
+  export _H2="Authorization: Basic $Infoblox_CredsEncoded"
+  
+  ## Add the challenge record to the Infoblox grid member
+  result=$(_post "" "$baseurlnObject" "" "POST")
 
-  result=$(curl -k -u $Infoblox_Creds -X POST $baseurlnObject)
-
-  if _info "$result" | egrep 'record:txt/.*:.*/default'; then
+  ## Let's see if we get something intelligible back from the unit
+  if echo "$result" | egrep 'record:txt/.*:.*/default'; then
     _info "Successfully created the txt record"
     return 0
   else
@@ -43,30 +48,33 @@ dns_infoblox_add() {
 
 dns_infoblox_rm() {
 
+  ## Nothing to see here, just some housekeeping
   fulldomain=$1
   txtvalue=$2
 
   _info "Using Infoblox API"
-
   _debug fulldomain "$fulldomain"
-
   _debug txtvalue "$txtvalue"
 
-  # Does the record exist?
-
+  ## Base64 encode the credentials
+  Infoblox_CredsEncoded=$(echo -n "$Infoblox_Creds" | base64)
+  
+  ## Construct the HTTP Authorization header
+  export _H2="Authorization: Basic $Infoblox_CredsEncoded"
+  
+  ## Does the record exist?  Let's check.
   baseurlnObject="https://$Infoblox_Server/wapi/v2.2.2/record:txt?name=$fulldomain&text=$txtvalue&_return_type=xml-pretty"
+  result=$(_get "$baseurlnObject")
 
-  _info "$baseurlnObject"
-
-  result=$(curl -k -u $Infoblox_Creds -X GET $baseurlnObject)
-
-  if _info "$result" | egrep 'record:txt/.*:.*/default'; then
-    # Extract object ref
-    objRef=$(grep -Po 'record:txt/.*:.*/default' <<<$result)
+  ## Let's see if we get something intelligible back from the grid
+  if echo "$result" | egrep 'record:txt/.*:.*/default'; then
+    ## Extract the object reference
+    objRef=$(egrep -o 'record:txt/.*:.*/default' <<<$result)
     objRmUrl="https://$Infoblox_Server/wapi/v2.2.2/$objRef"
-    rmResult=$(curl -k -u $Infoblox_Creds -X DELETE $objRmUrl)
-    # Check if rm succeeded
-    if _info "$rmResult" | egrep 'record:txt/.*:.*/default'; then
+    ## Delete them! All the stale records!
+	rmResult=$(_post "" "$objRmUrl" "" "DELETE")
+    ## Let's see if that worked
+    if echo "$rmResult" | egrep 'record:txt/.*:.*/default'; then
       _info "Successfully deleted $objRef"
       return 0
     else
