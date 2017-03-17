@@ -23,7 +23,7 @@ dns_infoblox_add() {
   ## Save the credentials to the account file
   _saveaccountconf Infoblox_Creds "$Infoblox_Creds"
   _saveaccountconf Infoblox_Server "$Infoblox_Server"
-  
+
   ## Base64 encode the credentials
   Infoblox_CredsEncoded=$(echo -n "$Infoblox_Creds" | base64)
 
