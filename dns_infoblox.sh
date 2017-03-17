@@ -26,10 +26,10 @@ dns_infoblox_add() {
   
   ## Base64 encode the credentials
   Infoblox_CredsEncoded=$(echo -n "$Infoblox_Creds" | base64)
-  
+
   ## Construct the HTTP Authorization header
   export _H2="Authorization: Basic $Infoblox_CredsEncoded"
-  
+
   ## Add the challenge record to the Infoblox grid member
   result=$(_post "" "$baseurlnObject" "" "POST")
 
@@ -58,10 +58,10 @@ dns_infoblox_rm() {
 
   ## Base64 encode the credentials
   Infoblox_CredsEncoded=$(echo -n "$Infoblox_Creds" | base64)
-  
+
   ## Construct the HTTP Authorization header
   export _H2="Authorization: Basic $Infoblox_CredsEncoded"
-  
+
   ## Does the record exist?  Let's check.
   baseurlnObject="https://$Infoblox_Server/wapi/v2.2.2/record:txt?name=$fulldomain&text=$txtvalue&_return_type=xml-pretty"
   result=$(_get "$baseurlnObject")
@@ -72,7 +72,7 @@ dns_infoblox_rm() {
     objRef=$(egrep -o 'record:txt/.*:.*/default' <<<$result)
     objRmUrl="https://$Infoblox_Server/wapi/v2.2.2/$objRef"
     ## Delete them! All the stale records!
-	rmResult=$(_post "" "$objRmUrl" "" "DELETE")
+    rmResult=$(_post "" "$objRmUrl" "" "DELETE")
     ## Let's see if that worked
     if echo "$rmResult" | egrep 'record:txt/.*:.*/default'; then
       _info "Successfully deleted $objRef"
