@@ -3477,7 +3477,10 @@ issue() {
         if [ ! "$usingApache" ]; then
           if webroot_owner=$(_stat "$_currentRoot"); then
             _debug "Changing owner/group of .well-known to $webroot_owner"
-            chown -R "$webroot_owner" "$_currentRoot/.well-known"
+            if ! _exec "chown -R \"$webroot_owner\" \"$_currentRoot/.well-known\""; then
+              _debug "$(cat "$_EXEC_TEMP_ERR")"
+              _exec_err >/dev/null 2>&1
+            fi
           else
             _debug "not chaning owner/group of webroot"
           fi
