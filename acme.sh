@@ -1131,8 +1131,12 @@ _ss() {
       elif netstat -help 2>&1 | grep -- '-P protocol' >/dev/null; then
         #for solaris
         netstat -an -P tcp | grep "\.$_port " | grep "LISTEN"
-      else
+      elif netstat -help 2>&1 | grep "\-p" > /dev/null; then
+        #for full linux
         netstat -ntpl | grep ":$_port "
+      else
+        #for busybox (embedded linux; no pid support)
+        netstat -ntl 2>/dev/null | grep ":$_port "
       fi
     fi
     return 0
