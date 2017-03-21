@@ -28,6 +28,7 @@ dns_infoblox_add() {
   Infoblox_CredsEncoded=$(printf "$Infoblox_Creds" | _base64)
 
   ## Construct the HTTP Authorization header
+  export _H1="Accept-Language:en-US"
   export _H2="Authorization: Basic $Infoblox_CredsEncoded"
 
   ## Add the challenge record to the Infoblox grid member
@@ -39,7 +40,6 @@ dns_infoblox_add() {
     return 0
   else
     _info "Error encountered during record addition"
-    _info "$result"
     _err "$result"
     return 1
   fi
@@ -60,6 +60,7 @@ dns_infoblox_rm() {
   Infoblox_CredsEncoded=$(printf "$Infoblox_Creds" | _base64)
 
   ## Construct the HTTP Authorization header
+  export _H1="Accept-Language:en-US"
   export _H2="Authorization: Basic $Infoblox_CredsEncoded"
 
   ## Does the record exist?  Let's check.
@@ -69,7 +70,7 @@ dns_infoblox_rm() {
   ## Let's see if we get something intelligible back from the grid
   if echo "$result" | egrep 'record:txt/.*:.*/default'; then
     ## Extract the object reference
-    objRef=$(egrep -o 'record:txt/.*:.*/default' <<<$result)
+    objRef=$(_egrep_o 'record:txt/.*:.*/default' <<<$result)
     objRmUrl="https://$Infoblox_Server/wapi/v2.2.2/$objRef"
     ## Delete them! All the stale records!
     rmResult=$(_post "" "$objRmUrl" "" "DELETE")
@@ -79,13 +80,11 @@ dns_infoblox_rm() {
       return 0
     else
       _info "Error occurred during txt record delete"
-      _info "$rmResult"
       _err "$rmResult"
       return 1
     fi
   else
     _info "Record to delete didn't match an existing record"
-    _info "$result"
     _err "$result"
     return 1
   fi
