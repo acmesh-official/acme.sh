@@ -25,7 +25,7 @@ dns_infoblox_add() {
   _saveaccountconf Infoblox_Server "$Infoblox_Server"
 
   ## Base64 encode the credentials
-  Infoblox_CredsEncoded=$(echo -n "$Infoblox_Creds" | base64)
+  Infoblox_CredsEncoded=$(printf "$Infoblox_Creds" | _base64)
 
   ## Construct the HTTP Authorization header
   export _H2="Authorization: Basic $Infoblox_CredsEncoded"
@@ -57,7 +57,7 @@ dns_infoblox_rm() {
   _debug txtvalue "$txtvalue"
 
   ## Base64 encode the credentials
-  Infoblox_CredsEncoded=$(echo -n "$Infoblox_Creds" | base64)
+  Infoblox_CredsEncoded=$(printf "$Infoblox_Creds" | _base64)
 
   ## Construct the HTTP Authorization header
   export _H2="Authorization: Basic $Infoblox_CredsEncoded"
