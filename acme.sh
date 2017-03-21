@@ -1131,8 +1131,12 @@ _ss() {
       elif netstat -help 2>&1 | grep -- '-P protocol' >/dev/null; then
         #for solaris
         netstat -an -P tcp | grep "\.$_port " | grep "LISTEN"
-      else
+      elif netstat -help 2>&1 | grep "\-p" >/dev/null; then
+        #for full linux
         netstat -ntpl | grep ":$_port "
+      else
+        #for busybox (embedded linux; no pid support)
+        netstat -ntl 2>/dev/null | grep ":$_port "
       fi
     fi
     return 0
@@ -3477,7 +3481,10 @@ issue() {
         if [ ! "$usingApache" ]; then
           if webroot_owner=$(_stat "$_currentRoot"); then
             _debug "Changing owner/group of .well-known to $webroot_owner"
-            chown -R "$webroot_owner" "$_currentRoot/.well-known"
+            if ! _exec "chown -R \"$webroot_owner\" \"$_currentRoot/.well-known\""; then
+              _debug "$(cat "$_EXEC_TEMP_ERR")"
+              _exec_err >/dev/null 2>&1
+            fi
           else
             _debug "not chaning owner/group of webroot"
           fi

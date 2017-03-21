@@ -407,6 +407,20 @@ Ok, let's issue a cert now:
 acme.sh --issue --dns dns_dgon -d example.com -d www.example.com
 ```
 
+## 21. Use ClouDNS.net API
+
+You need to set the HTTP API user ID and password credentials. See: https://www.cloudns.net/wiki/article/42/
+
+```
+export CLOUDNS_AUTH_ID=XXXXX
+export CLOUDNS_AUTH_PASSWORD="YYYYYYYYY"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_cloudns -d example.com -d www.example.com
+```
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
