@@ -39,7 +39,7 @@ dns_infoblox_add() {
     _info "Successfully created the txt record"
     return 0
   else
-    _info "Error encountered during record addition"
+    _err "Error encountered during record addition"
     _err "$result"
     return 1
   fi
@@ -79,12 +79,12 @@ dns_infoblox_rm() {
       _info "Successfully deleted $objRef"
       return 0
     else
-      _info "Error occurred during txt record delete"
+      _err "Error occurred during txt record delete"
       _err "$rmResult"
       return 1
     fi
   else
-    _info "Record to delete didn't match an existing record"
+    _err "Record to delete didn't match an existing record"
     _err "$result"
     return 1
   fi
