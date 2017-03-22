@@ -4785,10 +4785,10 @@ Parameters:
   
   These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
   
-  --cert-file /path/to/real/cert/file After issue/renew, the cert will be copied to this path.
-  --key-file  /path/to/real/key/file  After issue/renew, the key will be copied to this path.
-  --ca-file   /path/to/real/ca/file   After issue/renew, the intermediate cert will be copied to this path.
-  --fullchain-file /path/to/fullchain/file After issue/renew, the fullchain cert will be copied to this path.
+  --cert-file                       After issue/renew, the cert will be copied to this path.
+  --key-file                        After issue/renew, the key will be copied to this path.
+  --ca-file                         After issue/renew, the intermediate cert will be copied to this path.
+  --fullchain-file                  After issue/renew, the fullchain cert will be copied to this path.
   
   --reloadcmd \"service nginx reload\" After issue/renew, it's used to reload the server.
 
@@ -4807,6 +4807,7 @@ Parameters:
   --stopRenewOnError, -se           Only valid for '--renew-all' command. Stop if one cert has error in renewal.
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
   --ca-bundle                       Specifices the path to the CA certificate bundle to verify api server's certificate.
+  --ca-path                         Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
   --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
   --csr                             Specifies the input csr.
