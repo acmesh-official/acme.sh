@@ -1483,7 +1483,9 @@ _inithttp() {
       _ACME_CURL="$_ACME_CURL --trace-ascii $_CURL_DUMP "
     fi
 
-    if [ "$CA_BUNDLE" ]; then
+    if [ "$CA_PATH" ]; then
+      _ACME_CURL="$_ACME_CURL --capath $CA_PATH "
+    elif [ "$CA_BUNDLE" ]; then
       _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
     fi
 
@@ -1494,8 +1496,10 @@ _inithttp() {
     if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
       _ACME_WGET="$_ACME_WGET -d "
     fi
-    if [ "$CA_BUNDLE" ]; then
-      _ACME_WGET="$_ACME_WGET --ca-certificate $CA_BUNDLE "
+    if [ "$CA_PATH" ]; then
+      _ACME_WGET="$_ACME_WGET --ca-directory=$CA_PATH "
+    elif [ "$CA_BUNDLE" ]; then
+      _ACME_WGET="$_ACME_WGET --ca-certificate=$CA_BUNDLE "
     fi
   fi
 
@@ -3707,6 +3711,12 @@ issue() {
     _clearaccountconf "CA_BUNDLE"
   fi
 
+  if [ "$CA_PATH" ]; then
+    _saveaccountconf CA_PATH "$CA_PATH"
+  else
+    _clearaccountconf "CA_PATH"
+  fi
+
   if [ "$HTTPS_INSECURE" ]; then
     _saveaccountconf HTTPS_INSECURE "$HTTPS_INSECURE"
   else
@@ -4922,6 +4932,7 @@ _process() {
   _stopRenewOnError=""
   #_insecure=""
   _ca_bundle=""
+  _ca_path=""
   _nocron=""
   _ecc=""
   _csr=""
@@ -5234,6 +5245,11 @@ _process() {
       --ca-bundle)
         _ca_bundle="$(_readlink -f "$2")"
         CA_BUNDLE="$_ca_bundle"
+        shift
+        ;;
+      --ca-path)
+        _ca_path="$2"
+        CA_PATH="$_ca_path"
         shift
         ;;
       --nocron)
