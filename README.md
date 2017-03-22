@@ -293,7 +293,7 @@ You don't have to do anything manually!
 1. Linode.com API
 1. FreeDNS (https://freedns.afraid.org/)
 1. cyon.ch
-1. Infoblox API
+1. Infoblox NIOS API (https://www.infoblox.com/)
 
 **More APIs coming soon...**
 
