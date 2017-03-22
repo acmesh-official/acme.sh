@@ -161,17 +161,17 @@ You **MUST** use this command to copy the certs to the target files, **DO NOT** 
 **Apache** example:
 ```bash
 acme.sh --install-cert -d example.com \
---certpath      /path/to/certfile/in/apache/cert.pem  \
---keypath       /path/to/keyfile/in/apache/key.pem  \
---fullchainpath /path/to/fullchain/certfile/apache/fullchain.pem \
+--cert-file      /path/to/certfile/in/apache/cert.pem  \
+--key-file       /path/to/keyfile/in/apache/key.pem  \
+--fullchain-file /path/to/fullchain/certfile/apache/fullchain.pem \
 --reloadcmd     "service apache2 force-reload"
 ```
 
 **Nginx** example:
 ```bash
 acme.sh --install-cert -d example.com \
---keypath       /path/to/keyfile/in/nginx/key.pem  \
---fullchainpath /path/to/fullchain/nginx/cert.pem \
+--key-file       /path/to/keyfile/in/nginx/key.pem  \
+--fullchain-file /path/to/fullchain/nginx/cert.pem \
 --reloadcmd     "service nginx force-reload"
 ```
 
