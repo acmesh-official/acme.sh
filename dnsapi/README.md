@@ -316,6 +316,26 @@ export CY_Password="your_cyon_password"
 export CY_OTP_Secret="your_otp_secret" # Only required if using 2FA
 ```
 
+
+## 17. Use Infoblox API
+
+First you need to create/obtain API credentials on your Infoblox appliance.
+
+```
+export Infoblox_Creds="username:password"
+export Infoblox_Server="ip or fqdn of infoblox appliance"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_infoblox -d example.com -d www.example.com
+```
+
+Note: This script will automatically create and delete the ephemeral txt record.
+The `Infoblox_Creds` and `Infoblox_Server` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+
+
 To issue a cert:
 ```
 acme.sh --issue --dns dns_cyon -d example.com -d www.example.com
