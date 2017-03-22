@@ -4035,7 +4035,7 @@ deploy() {
 installcert() {
   _main_domain="$1"
   if [ -z "$_main_domain" ]; then
-    _usage "Usage: $PROJECT_ENTRY --installcert -d domain.com  [--ecc] [--certpath cert-file-path]  [--keypath key-file-path]  [--capath ca-cert-file-path]   [ --reloadCmd reloadCmd] [--fullchainpath fullchain-path]"
+    _usage "Usage: $PROJECT_ENTRY --installcert -d domain.com  [--ecc] [--cert-file cert-file-path]  [--key-file key-file-path]  [--ca-file ca-cert-file-path]   [ --reloadCmd reloadCmd] [--fullchain-file fullchain-path]"
     return 1
   fi
 
@@ -4785,10 +4785,10 @@ Parameters:
   
   These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
   
-  --certpath /path/to/real/cert/file  After issue/renew, the cert will be copied to this path.
-  --keypath /path/to/real/key/file  After issue/renew, the key will be copied to this path.
-  --capath /path/to/real/ca/file    After issue/renew, the intermediate cert will be copied to this path.
-  --fullchainpath /path/to/fullchain/file After issue/renew, the fullchain cert will be copied to this path.
+  --cert-file /path/to/real/cert/file After issue/renew, the cert will be copied to this path.
+  --key-file  /path/to/real/key/file  After issue/renew, the key will be copied to this path.
+  --ca-file   /path/to/real/ca/file   After issue/renew, the intermediate cert will be copied to this path.
+  --fullchain-file /path/to/fullchain/file After issue/renew, the fullchain cert will be copied to this path.
   
   --reloadcmd \"service nginx reload\" After issue/renew, it's used to reload the server.
 
@@ -4913,10 +4913,10 @@ _process() {
   _webroot=""
   _keylength=""
   _accountkeylength=""
-  _certpath=""
-  _keypath=""
-  _capath=""
-  _fullchainpath=""
+  _cert_file=""
+  _key_file=""
+  _ca_file=""
+  _fullchain_file=""
   _reloadcmd=""
   _password=""
   _accountconf=""
@@ -5158,20 +5158,20 @@ _process() {
         shift
         ;;
 
-      --certpath)
-        _certpath="$2"
+      --cert-file | --certpath)
+        _cert_file="$2"
         shift
         ;;
-      --keypath)
-        _keypath="$2"
+      --key-file | --keypath)
+        _key_file="$2"
         shift
         ;;
-      --capath)
-        _capath="$2"
+      --ca-file | --capath)
+        _ca_file="$2"
         shift
         ;;
-      --fullchainpath)
-        _fullchainpath="$2"
+      --fullchain-file | --fullchainpath)
+        _fullchain_file="$2"
         shift
         ;;
       --reloadcmd | --reloadCmd)
@@ -5393,7 +5393,7 @@ _process() {
     uninstall) uninstall "$_nocron" ;;
     upgrade) upgrade ;;
     issue)
-      issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address"
+      issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address"
       ;;
     deploy)
       deploy "$_domain" "$_deploy_hook" "$_ecc"
@@ -5405,7 +5405,7 @@ _process() {
       showcsr "$_csr" "$_domain"
       ;;
     installcert)
-      installcert "$_domain" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath" "$_ecc"
+      installcert "$_domain" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_ecc"
       ;;
     renew)
       renew "$_domain" "$_ecc"
