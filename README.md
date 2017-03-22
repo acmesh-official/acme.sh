@@ -310,6 +310,8 @@ You don't have to do anything manually!
 1. Knot DNS API
 1. DigitalOcean API (native)
 1. ClouDNS.net API
+1. Infoblox NIOS API (https://www.infoblox.com/)
+
 
 **More APIs coming soon...**
 
