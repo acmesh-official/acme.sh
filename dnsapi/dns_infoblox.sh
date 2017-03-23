@@ -25,7 +25,7 @@ dns_infoblox_add() {
   _saveaccountconf Infoblox_Server "$Infoblox_Server"
 
   ## Base64 encode the credentials
-  Infoblox_CredsEncoded=$(echo -n "$Infoblox_Creds" | _base64)
+  Infoblox_CredsEncoded=$(printf "%b" "$Infoblox_Creds" | _base64)
 
   ## Construct the HTTP Authorization header
   export _H1="Accept-Language:en-US"
@@ -57,7 +57,7 @@ dns_infoblox_rm() {
   _debug txtvalue "$txtvalue"
 
   ## Base64 encode the credentials
-  Infoblox_CredsEncoded=$(echo -n "$Infoblox_Creds" | _base64)
+  Infoblox_CredsEncoded=$(printf "%b" "$Infoblox_Creds" | _base64)
 
   ## Construct the HTTP Authorization header
   export _H1="Accept-Language:en-US"
@@ -70,7 +70,7 @@ dns_infoblox_rm() {
   ## Let's see if we get something intelligible back from the grid
   if echo "$result" | egrep 'record:txt/.*:.*/default'; then
     ## Extract the object reference
-    objRef=$(_egrep_o 'record:txt/.*:.*/default' <<<$result)
+    objRef=$(printf "%b" "$result" | _egrep_o 'record:txt/.*:.*/default')
     objRmUrl="https://$Infoblox_Server/wapi/v2.2.2/$objRef"
     ## Delete them! All the stale records!
     rmResult=$(_post "" "$objRmUrl" "" "DELETE")
