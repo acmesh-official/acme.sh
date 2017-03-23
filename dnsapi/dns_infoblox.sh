@@ -70,7 +70,7 @@ dns_infoblox_rm() {
   ## Let's see if we get something intelligible back from the grid
   if echo "$result" | egrep 'record:txt/.*:.*/default'; then
     ## Extract the object reference
-    objRef=$(_egrep_o 'record:txt/.*:.*/default' <<< $result)
+    objRef=$(_egrep_o 'record:txt/.*:.*/default' <<<$result)
     objRmUrl="https://$Infoblox_Server/wapi/v2.2.2/$objRef"
     ## Delete them! All the stale records!
     rmResult=$(_post "" "$objRmUrl" "" "DELETE")
