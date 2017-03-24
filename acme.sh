@@ -1483,7 +1483,9 @@ _inithttp() {
       _ACME_CURL="$_ACME_CURL --trace-ascii $_CURL_DUMP "
     fi
 
-    if [ "$CA_BUNDLE" ]; then
+    if [ "$CA_PATH" ]; then
+      _ACME_CURL="$_ACME_CURL --capath $CA_PATH "
+    elif [ "$CA_BUNDLE" ]; then
       _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
     fi
 
@@ -1494,8 +1496,10 @@ _inithttp() {
     if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
       _ACME_WGET="$_ACME_WGET -d "
     fi
-    if [ "$CA_BUNDLE" ]; then
-      _ACME_WGET="$_ACME_WGET --ca-certificate $CA_BUNDLE "
+    if [ "$CA_PATH" ]; then
+      _ACME_WGET="$_ACME_WGET --ca-directory=$CA_PATH "
+    elif [ "$CA_BUNDLE" ]; then
+      _ACME_WGET="$_ACME_WGET --ca-certificate=$CA_BUNDLE "
     fi
   fi
 
@@ -3707,6 +3711,12 @@ issue() {
     _clearaccountconf "CA_BUNDLE"
   fi
 
+  if [ "$CA_PATH" ]; then
+    _saveaccountconf CA_PATH "$CA_PATH"
+  else
+    _clearaccountconf "CA_PATH"
+  fi
+
   if [ "$HTTPS_INSECURE" ]; then
     _saveaccountconf HTTPS_INSECURE "$HTTPS_INSECURE"
   else
@@ -4025,7 +4035,7 @@ deploy() {
 installcert() {
   _main_domain="$1"
   if [ -z "$_main_domain" ]; then
-    _usage "Usage: $PROJECT_ENTRY --installcert -d domain.com  [--ecc] [--certpath cert-file-path]  [--keypath key-file-path]  [--capath ca-cert-file-path]   [ --reloadCmd reloadCmd] [--fullchainpath fullchain-path]"
+    _usage "Usage: $PROJECT_ENTRY --installcert -d domain.com  [--ecc] [--cert-file cert-file-path]  [--key-file key-file-path]  [--ca-file ca-cert-file-path]   [ --reloadCmd reloadCmd] [--fullchain-file fullchain-path]"
     return 1
   fi
 
@@ -4775,10 +4785,10 @@ Parameters:
   
   These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
   
-  --certpath /path/to/real/cert/file  After issue/renew, the cert will be copied to this path.
-  --keypath /path/to/real/key/file  After issue/renew, the key will be copied to this path.
-  --capath /path/to/real/ca/file    After issue/renew, the intermediate cert will be copied to this path.
-  --fullchainpath /path/to/fullchain/file After issue/renew, the fullchain cert will be copied to this path.
+  --cert-file                       After issue/renew, the cert will be copied to this path.
+  --key-file                        After issue/renew, the key will be copied to this path.
+  --ca-file                         After issue/renew, the intermediate cert will be copied to this path.
+  --fullchain-file                  After issue/renew, the fullchain cert will be copied to this path.
   
   --reloadcmd \"service nginx reload\" After issue/renew, it's used to reload the server.
 
@@ -4797,6 +4807,7 @@ Parameters:
   --stopRenewOnError, -se           Only valid for '--renew-all' command. Stop if one cert has error in renewal.
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
   --ca-bundle                       Specifices the path to the CA certificate bundle to verify api server's certificate.
+  --ca-path                         Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
   --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
   --csr                             Specifies the input csr.
@@ -4903,10 +4914,10 @@ _process() {
   _webroot=""
   _keylength=""
   _accountkeylength=""
-  _certpath=""
-  _keypath=""
-  _capath=""
-  _fullchainpath=""
+  _cert_file=""
+  _key_file=""
+  _ca_file=""
+  _fullchain_file=""
   _reloadcmd=""
   _password=""
   _accountconf=""
@@ -4922,6 +4933,7 @@ _process() {
   _stopRenewOnError=""
   #_insecure=""
   _ca_bundle=""
+  _ca_path=""
   _nocron=""
   _ecc=""
   _csr=""
@@ -5147,20 +5159,20 @@ _process() {
         shift
         ;;
 
-      --certpath)
-        _certpath="$2"
+      --cert-file | --certpath)
+        _cert_file="$2"
         shift
         ;;
-      --keypath)
-        _keypath="$2"
+      --key-file | --keypath)
+        _key_file="$2"
         shift
         ;;
-      --capath)
-        _capath="$2"
+      --ca-file | --capath)
+        _ca_file="$2"
         shift
         ;;
-      --fullchainpath)
-        _fullchainpath="$2"
+      --fullchain-file | --fullchainpath)
+        _fullchain_file="$2"
         shift
         ;;
       --reloadcmd | --reloadCmd)
@@ -5234,6 +5246,11 @@ _process() {
       --ca-bundle)
         _ca_bundle="$(_readlink -f "$2")"
         CA_BUNDLE="$_ca_bundle"
+        shift
+        ;;
+      --ca-path)
+        _ca_path="$2"
+        CA_PATH="$_ca_path"
         shift
         ;;
       --nocron)
@@ -5377,7 +5394,7 @@ _process() {
     uninstall) uninstall "$_nocron" ;;
     upgrade) upgrade ;;
     issue)
-      issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address"
+      issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address"
       ;;
     deploy)
       deploy "$_domain" "$_deploy_hook" "$_ecc"
@@ -5389,7 +5406,7 @@ _process() {
       showcsr "$_csr" "$_domain"
       ;;
     installcert)
-      installcert "$_domain" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath" "$_ecc"
+      installcert "$_domain" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_ecc"
       ;;
     renew)
       renew "$_domain" "$_ecc"
