@@ -1,5 +1,9 @@
 #!/usr/bin/env sh
 
+## Infoblox API integration by Jason Keller and Elijah Tenai
+##
+## Report any bugs via https://github.com/jasonkeller/acme.sh
+
 dns_infoblox_add() {
 
   ## Nothing to see here, just some housekeeping
