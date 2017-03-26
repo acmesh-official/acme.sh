@@ -192,7 +192,7 @@ dns_freedns_rm() {
 
   # Need to read cookie from conf file again in case new value set
   # during login to FreeDNS when TXT record was created.
-  # acme.sh does not have a _readaccountconf() fuction
+  # acme.sh does not have a _readaccountconf() function
   FREEDNS_COOKIE="$(_read_conf "$ACCOUNT_CONF_PATH" "FREEDNS_COOKIE")"
   _debug "FreeDNS login cookies: $FREEDNS_COOKIE"
 
