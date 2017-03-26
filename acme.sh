@@ -2385,7 +2385,7 @@ _setApache() {
   _debug "Backup apache config file" "$httpdconf"
   if ! cp "$httpdconf" "$APACHE_CONF_BACKUP_DIR/"; then
     _err "Can not backup apache config file, so abort. Don't worry, the apache config is not changed."
-    _err "This might be a bug of $PROJECT_NAME , pleae report issue: $PROJECT"
+    _err "This might be a bug of $PROJECT_NAME , please report issue: $PROJECT"
     return 1
   fi
   _info "JFYI, Config file $httpdconf is backuped to $APACHE_CONF_BACKUP_DIR/$httpdconfname"
