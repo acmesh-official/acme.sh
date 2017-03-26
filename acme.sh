@@ -879,7 +879,7 @@ _sign() {
     if ! _signedECText="$($_sign_openssl | $ACME_OPENSSL_BIN asn1parse -inform DER)"; then
       _err "Sign failed: $_sign_openssl"
       _err "Key file: $keyfile"
-      _err "Key content:$(wc -l <"$keyfile") lises"
+      _err "Key content:$(wc -l <"$keyfile") lines"
       return 1
     fi
     _debug3 "_signedECText" "$_signedECText"
