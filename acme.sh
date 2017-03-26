@@ -3490,7 +3490,7 @@ issue() {
               _exec_err >/dev/null 2>&1
             fi
           else
-            _debug "not chaning owner/group of webroot"
+            _debug "not changing owner/group of webroot"
           fi
         fi
 
