@@ -2258,16 +2258,16 @@ _initpath() {
   fi
 
   if [ -z "$TLS_CONF" ]; then
-    TLS_CONF="$DOMAIN_PATH/tls.valdation.conf"
+    TLS_CONF="$DOMAIN_PATH/tls.validation.conf"
   fi
   if [ -z "$TLS_CERT" ]; then
-    TLS_CERT="$DOMAIN_PATH/tls.valdation.cert"
+    TLS_CERT="$DOMAIN_PATH/tls.validation.cert"
   fi
   if [ -z "$TLS_KEY" ]; then
-    TLS_KEY="$DOMAIN_PATH/tls.valdation.key"
+    TLS_KEY="$DOMAIN_PATH/tls.validation.key"
   fi
   if [ -z "$TLS_CSR" ]; then
-    TLS_CSR="$DOMAIN_PATH/tls.valdation.csr"
+    TLS_CSR="$DOMAIN_PATH/tls.validation.csr"
   fi
 
 }
@@ -2883,7 +2883,7 @@ _on_issue_err() {
         uri=$(echo "$ventry" | cut -d "$sep" -f 3)
         vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
         _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
-        __trigger_validaton "$uri" "$keyauthorization"
+        __trigger_validation "$uri" "$keyauthorization"
       done
     )
   fi
@@ -3105,7 +3105,7 @@ __get_domain_new_authz() {
 }
 
 #uri keyAuthorization
-__trigger_validaton() {
+__trigger_validation() {
   _debug2 "tigger domain validation."
   _t_url="$1"
   _debug2 _t_url "$_t_url"
@@ -3531,7 +3531,7 @@ issue() {
       fi
     fi
 
-    if ! __trigger_validaton "$uri" "$keyauthorization"; then
+    if ! __trigger_validation "$uri" "$keyauthorization"; then
       _err "$d:Can not get challenge: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
       _clearup
