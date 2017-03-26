@@ -302,12 +302,12 @@ _freedns_retrieve_subdomain_page() {
   export _H2="Accept-Language:en-US"
   url="https://freedns.afraid.org/subdomain/"
 
-  _debug "Retrieve subdmoain page from FreeDNS"
+  _debug "Retrieve subdomain page from FreeDNS"
 
   htmlpage="$(_get "$url")"
 
   if [ "$?" != "0" ]; then
-    _err "FreeDNS retrieve subdomins failed bad RC from _get"
+    _err "FreeDNS retrieve subdomains failed bad RC from _get"
     return 1
   elif [ -z "$htmlpage" ]; then
     _err "FreeDNS returned empty subdomain page"
