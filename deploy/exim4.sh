@@ -79,7 +79,7 @@ exim4_deploy() {
         _info "Restore conf success"
         eval "$_reload"
       else
-        _err "Opps, error restore exim4 conf, please report bug to us."
+        _err "Oops, error restore exim4 conf, please report bug to us."
       fi
       return 1
     fi
@@ -105,7 +105,7 @@ exim4_deploy() {
       _info "Restore conf success"
       eval "$_reload"
     else
-      _err "Opps, error restore exim4 conf, please report bug to us."
+      _err "Oops, error restore exim4 conf, please report bug to us."
     fi
     return 1
   fi

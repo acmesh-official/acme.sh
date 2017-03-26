@@ -302,7 +302,7 @@ acme.sh --issue --dns dns_freedns -d example.com -d www.example.com
 ```
 
 Note that you cannot use acme.sh automatic DNS validation for FreeDNS public domains or for a subdomain that
-you create under a FreeDNS public domain.  You must own the top level domain in order to automaitcally
+you create under a FreeDNS public domain.  You must own the top level domain in order to automatically
 validate with acme.sh at FreeDNS.
 
 ## 16. Use cyon.ch

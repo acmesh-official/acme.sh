@@ -158,7 +158,7 @@ _get_base_domain() {
   export _H2="Authorization: Bearer $DO_API_KEY"
   _debug DO_API_KEY "$DO_API_KEY"
   ## get URL for the list of domains
-  ## havent seen this request paginated, tested with 18 domains (more requres manual requests with DO)
+  ## havent seen this request paginated, tested with 18 domains (more requires manual requests with DO)
   DOMURL="https://api.digitalocean.com/v2/domains"
 
   ## get the domain list (DO gives basically a full XFER!)
