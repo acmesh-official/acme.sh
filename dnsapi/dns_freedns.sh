@@ -341,7 +341,7 @@ _freedns_add_txt_record() {
     return 1
   elif _contains "$htmlpage" "security code was incorrect"; then
     _debug "$htmlpage"
-    _err "FreeDNS failed to add TXT record for $subdomain as FreeDNS requested seurity code"
+    _err "FreeDNS failed to add TXT record for $subdomain as FreeDNS requested security code"
     _err "Note that you cannot use automatic DNS validation for FreeDNS public domains"
     return 1
   fi
