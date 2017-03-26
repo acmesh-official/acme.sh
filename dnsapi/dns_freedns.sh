@@ -65,7 +65,7 @@ dns_freedns_add() {
     htmlpage="$(_freedns_retrieve_subdomain_page "$FREEDNS_COOKIE")"
     if [ "$?" != "0" ]; then
       if [ "$using_cached_cookies" = "true" ]; then
-        _err "Has your FreeDNS username and password channged?  If so..."
+        _err "Has your FreeDNS username and password changed?  If so..."
         _err "Please export as FREEDNS_User / FREEDNS_Password and try again."
       fi
       return 1
