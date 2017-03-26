@@ -112,7 +112,7 @@ dns_freedns_add() {
           # not produce accurate results as the value field is truncated
           # on this webpage. To get full value we would need to load
           # another page. However we don't really need this so long as
-          # there is only one TXT record for the acme chalenge subdomain.
+          # there is only one TXT record for the acme challenge subdomain.
           DNSvalue="$(echo "$line" | cut -d ',' -f 4 | sed 's/^[^&quot;]*&quot;//;s/&quot;.*//;s/<\/td>.*//')"
           if [ $found != 0 ]; then
             break
