@@ -43,7 +43,7 @@ kong_deploy() {
   #Save kong url if it's succesful (First run case)
   _saveaccountconf KONG_URL "$KONG_URL"
   #Generate DEIM
-  delim="-----MultipartDelimeter$(date "+%s%N")"
+  delim="-----MultipartDelimiter$(date "+%s%N")"
   nl="\015\012"
   #Set Header
   _H1="Content-Type: multipart/form-data; boundary=$delim"
