@@ -329,7 +329,7 @@ Just set the `length` parameter with a prefix `ec-`.
 
 For example:
 
-### Single domain ECC cerfiticate
+### Single domain ECC certificate
 
 ```bash
 acme.sh --issue -w /home/wwwroot/example.com -d example.com --keylength ec-256
