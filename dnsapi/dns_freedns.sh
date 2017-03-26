@@ -10,7 +10,7 @@
 #
 ########  Public functions #####################
 
-# Export FreeDNS userid and password in folowing variables...
+# Export FreeDNS userid and password in following variables...
 #  FREEDNS_User=username
 #  FREEDNS_Password=password
 # login cookie is saved in acme account config file so userid / pw
