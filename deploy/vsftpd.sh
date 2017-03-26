@@ -76,7 +76,7 @@ vsftpd_deploy() {
         _info "Restore conf success"
         eval "$_reload"
       else
-        _err "Opps, error restore vsftpd conf, please report bug to us."
+        _err "Oops, error restore vsftpd conf, please report bug to us."
       fi
       return 1
     fi
@@ -102,7 +102,7 @@ vsftpd_deploy() {
       _info "Restore conf success"
       eval "$_reload"
     else
-      _err "Opps, error restore vsftpd conf, please report bug to us."
+      _err "Oops, error restore vsftpd conf, please report bug to us."
     fi
     return 1
   fi

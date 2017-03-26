@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-#PowerDNS Emdedded API
+#PowerDNS Embedded API
 #https://doc.powerdns.com/md/httpapi/api_spec/
 #
 #PDNS_Url="http://ns.example.com:8081"
