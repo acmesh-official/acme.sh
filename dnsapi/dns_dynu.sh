@@ -42,7 +42,7 @@ dns_dynu_add() {
   if ! _get_root "$fulldomain"; then
     _err "Invalid domain"
     return 1
-  fi    
+  fi
 
   _debug _node "$_node"
   _debug _domain_name "$_domain_name"
@@ -83,7 +83,7 @@ _get_root() {
 
   _domain_name=$(printf "%s" "$response" | tr -d "{}" | cut -d , -f 1 | cut -d : -f 2 | cut -d '"' -f 2)
   _node=$(printf "%s" "$response" | tr -d "{}" | cut -d , -f 3 | cut -d : -f 2 | cut -d '"' -f 2)
-  return 0  
+  return 0
 }
 
 _dynu_rest() {
@@ -113,7 +113,7 @@ _dynu_rest() {
 
 _dynu_authentication() {
   realm="$(printf "%s" "$Dynu_ClientId:$Dynu_Secret" | _base64)"
-  
+
   export _H1="Authorization: Basic $realm"
   export _H2="Content-Type: application/json"
 
@@ -128,7 +128,7 @@ _dynu_authentication() {
   if _contains "$Dynu_Token" "null"; then
     Dynu_Token=""
   fi
-  
+
   _debug2 response "$response"
   return 0
 }
