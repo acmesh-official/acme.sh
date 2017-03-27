@@ -112,7 +112,7 @@ _dynu_rest() {
 }
 
 _dynu_authentication() {
-  realm = "$(printf "%s" "$Dynu_ClientId:$Dynu_Secret" | _base64)"
+  realm="$(printf "%s" "$Dynu_ClientId:$Dynu_Secret" | _base64)"
   
   export _H1="Authorization: Basic $realm"
   export _H2="Content-Type: application/json"
