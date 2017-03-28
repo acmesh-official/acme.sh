@@ -86,7 +86,7 @@ Then you can deploy now:
 ```sh
 export DEPLOY_WEECHAT_PEM=~/.weechat/ssl/relay.pem
 export DEPLOY_WEECHAT_HOME=~/.weechat
-acme.sh --deploy -d weechat.example.com --deploy --deploy-hook weechat
+acme.sh -d weechat.example.com --deploy --deploy-hook weechat
 
 Notes:
 * Run acme.sh under the same user as the weechat client

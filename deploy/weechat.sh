@@ -36,10 +36,14 @@ weechat_deploy() {
   if [ -z "$DEPLOY_WEECHAT_HOME" ]; then
     _info "DEPLOY_WEECHAT_HOME not set, defaulting to ${HOME}/.weechat"
     DEPLOY_WEECHAT_HOME="${HOME}/.weechat"
+  else
+    _savedomainconf "DEPLOY_WEECHAT_HOME" "$DEPLOY_WEECHAT_HOME"
   fi
   if [ -z "$DEPLOY_WEECHAT_PEM" ]; then
     _info "DEPLOY_WEECHAT_PEM not set, defaulting to ${HOME}/.weechat/ssl/relay.pem"
     DEPLOY_WEECHAT_PEM="${HOME}/.weechat/ssl/relay.pem"
+  else
+    _savedomainconf "DEPLOY_WEECHAT_PEM" "$DEPLOY_WEECHAT_PEM"
   fi
   if [ -w "$DEPLOY_WEECHAT_PEM" ]; then
     _info "$DEPLOY_WEECHAT_PEM exists and is writable, backing up and overwriting"
