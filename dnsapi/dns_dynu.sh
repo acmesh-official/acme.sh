@@ -1,10 +1,10 @@
 #!/usr/bin/env sh
 
 #Client ID
-Dynu_ClientId="0b71cae7-a099-4f6b-8ddf-94571cdb760d"
+#Dynu_ClientId="0b71cae7-a099-4f6b-8ddf-94571cdb760d"
 #
 #Secret
-Dynu_Secret="aCUEY4BDCV45KI8CSIC3sp2LKQ9"
+#Dynu_Secret="aCUEY4BDCV45KI8CSIC3sp2LKQ9"
 #
 #Token
 Dynu_Token=""
