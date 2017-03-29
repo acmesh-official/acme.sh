@@ -361,7 +361,7 @@ Ok, let's issue a cert now:
 acme.sh --issue --dns dns_dnsever -d example.com -d www.example.com
 ```
 
-
+The `DNSEVER_ID` and `DNSEVER_PW` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 # Use custom API
 
