@@ -62,8 +62,12 @@ dns_dnsever_rm() {
 
 ####################  Private functions below ##################################
 
-dnsever_txt(){
-  action="$1"; login_id="$2"; login_password="$3"; fulldomain="$4"; txt="$5"
+dnsever_txt() {
+  action="$1"
+  login_id="$2"
+  login_password="$3"
+  fulldomain="$4"
+  txt="$5"
 
   _inithttp
 
@@ -153,7 +157,7 @@ dnsever_txt(){
       return 1
     fi
 
-    _info "dnsever_txt:$action skey=$skey user_domain=$user_domain selected_menu=edittxt command=delete_txt$(echo "$check"|sed 's/\&/ /g')"
+    _info "dnsever_txt:$action skey=$skey user_domain=$user_domain selected_menu=edittxt command=delete_txt$(echo "$check" | sed 's/\&/ /g')"
 
     response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt&command=delete_txt&$check" "https://kr.dnsever.com/start.html")
     if [ $? != 0 ] || [ -z "&response" ]; then
@@ -184,11 +188,13 @@ dnsever_txt(){
   return 0
 }
 
-dnsever_select_user_domain(){
-  fulldomain="$1"; response="$2"
+dnsever_select_user_domain() {
+  fulldomain="$1"
+  response="$2"
 
   domains=$(printf "%s\n" "$response" | grep OPTION | sed -n -e "s/^.*value=['\"]\(.*\)['\"].*/\1/p" | grep -v "^$")
-  nmax=0; selected=""
+  nmax=0
+  selected=""
   for domain in $domains; do
     if echo "$fulldomain" | grep -q "$domain\$"; then
       n=${#domain}
@@ -201,9 +207,9 @@ dnsever_select_user_domain(){
   echo "$selected"
 }
 
-dnsever_check(){
+dnsever_check() {
   fulldomain="$1"
-  old_txt="$1"
+  old_txt="$2"
   response="$3"
 
   matched=$(printf "%s\n" "$response" | grep "$fulldomain" | sed -n -e "s/^.*name=['\"]\(.*\)['\"].*value.*$/\1/p" | sed 's/domain_for_txt_//g')
