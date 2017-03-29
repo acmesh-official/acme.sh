@@ -340,7 +340,7 @@ _hasfield() {
     _sep=","
   fi
 
-  for f in $(echo "$_str" | tr ',' ' '); do
+  for f in $(echo "$_str" | tr "$_sep" ' '); do
     if [ "$f" = "$_field" ]; then
       _debug2 "'$_str' contains '$_field'"
       return 0 #contains ok
