@@ -340,7 +340,7 @@ _hasfield() {
     _sep=","
   fi
 
-  for f in $(echo "$_str" | tr ',' ' '); do
+  for f in $(echo "$_str" | tr "$_sep" ' '); do
     if [ "$f" = "$_field" ]; then
       _debug2 "'$_str' contains '$_field'"
       return 0 #contains ok
@@ -879,7 +879,7 @@ _sign() {
     if ! _signedECText="$($_sign_openssl | $ACME_OPENSSL_BIN asn1parse -inform DER)"; then
       _err "Sign failed: $_sign_openssl"
       _err "Key file: $keyfile"
-      _err "Key content:$(wc -l <"$keyfile") lises"
+      _err "Key content:$(wc -l <"$keyfile") lines"
       return 1
     fi
     _debug3 "_signedECText" "$_signedECText"
@@ -2258,16 +2258,16 @@ _initpath() {
   fi
 
   if [ -z "$TLS_CONF" ]; then
-    TLS_CONF="$DOMAIN_PATH/tls.valdation.conf"
+    TLS_CONF="$DOMAIN_PATH/tls.validation.conf"
   fi
   if [ -z "$TLS_CERT" ]; then
-    TLS_CERT="$DOMAIN_PATH/tls.valdation.cert"
+    TLS_CERT="$DOMAIN_PATH/tls.validation.cert"
   fi
   if [ -z "$TLS_KEY" ]; then
-    TLS_KEY="$DOMAIN_PATH/tls.valdation.key"
+    TLS_KEY="$DOMAIN_PATH/tls.validation.key"
   fi
   if [ -z "$TLS_CSR" ]; then
-    TLS_CSR="$DOMAIN_PATH/tls.valdation.csr"
+    TLS_CSR="$DOMAIN_PATH/tls.validation.csr"
   fi
 
 }
@@ -2385,7 +2385,7 @@ _setApache() {
   _debug "Backup apache config file" "$httpdconf"
   if ! cp "$httpdconf" "$APACHE_CONF_BACKUP_DIR/"; then
     _err "Can not backup apache config file, so abort. Don't worry, the apache config is not changed."
-    _err "This might be a bug of $PROJECT_NAME , pleae report issue: $PROJECT"
+    _err "This might be a bug of $PROJECT_NAME , please report issue: $PROJECT"
     return 1
   fi
   _info "JFYI, Config file $httpdconf is backuped to $APACHE_CONF_BACKUP_DIR/$httpdconfname"
@@ -2883,7 +2883,7 @@ _on_issue_err() {
         uri=$(echo "$ventry" | cut -d "$sep" -f 3)
         vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
         _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
-        __trigger_validaton "$uri" "$keyauthorization"
+        __trigger_validation "$uri" "$keyauthorization"
       done
     )
   fi
@@ -3105,7 +3105,7 @@ __get_domain_new_authz() {
 }
 
 #uri keyAuthorization
-__trigger_validaton() {
+__trigger_validation() {
   _debug2 "tigger domain validation."
   _t_url="$1"
   _debug2 _t_url "$_t_url"
@@ -3490,7 +3490,7 @@ issue() {
               _exec_err >/dev/null 2>&1
             fi
           else
-            _debug "not chaning owner/group of webroot"
+            _debug "not changing owner/group of webroot"
           fi
         fi
 
@@ -3531,7 +3531,7 @@ issue() {
       fi
     fi
 
-    if ! __trigger_validaton "$uri" "$keyauthorization"; then
+    if ! __trigger_validation "$uri" "$keyauthorization"; then
       _err "$d:Can not get challenge: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
       _clearup
@@ -4134,6 +4134,7 @@ _installcert() {
       export CERT_KEY_PATH
       export CA_CERT_PATH
       export CERT_FULLCHAIN_PATH
+      export Le_Domain
       cd "$DOMAIN_PATH" && eval "$_reload_cmd"
     ); then
       _info "$(__green "Reload success")"
@@ -4806,13 +4807,13 @@ Parameters:
   --listraw                         Only used for '--list' command, list the certs in raw format.
   --stopRenewOnError, -se           Only valid for '--renew-all' command. Stop if one cert has error in renewal.
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
-  --ca-bundle                       Specifices the path to the CA certificate bundle to verify api server's certificate.
+  --ca-bundle                       Specifies the path to the CA certificate bundle to verify api server's certificate.
   --ca-path                         Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
   --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
   --csr                             Specifies the input csr.
   --pre-hook                        Command to be run before obtaining any certificates.
-  --post-hook                       Command to be run after attempting to obtain/renew certificates. No matter the obain/renew is success or failed.
+  --post-hook                       Command to be run after attempting to obtain/renew certificates. No matter the obtain/renew is success or failed.
   --renew-hook                      Command to be run once for each successfully renewed certificate.
   --deploy-hook                     The hook file to deploy cert
   --ocsp-must-staple, --ocsp        Generate ocsp must Staple extension.
