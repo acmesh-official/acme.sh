@@ -209,8 +209,7 @@ _rest() {
     return 1
   fi
   _debug2 response "$response"
-  if ! _contains "$response" '"message":"success"'; then
-    return 1
-  fi
-  return 0
+
+  _contains "$response" '"code":1'
+
 }

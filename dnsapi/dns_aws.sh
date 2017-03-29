@@ -143,7 +143,7 @@ aws_rest() {
   CanonicalHeaders="host:$aws_host\nx-amz-date:$RequestDate\n"
   SignedHeaders="host;x-amz-date"
   if [ -n "$AWS_SESSION_TOKEN" ]; then
-    export _H2="x-amz-security-token: $AWS_SESSION_TOKEN"
+    export _H3="x-amz-security-token: $AWS_SESSION_TOKEN"
     CanonicalHeaders="${CanonicalHeaders}x-amz-security-token:$AWS_SESSION_TOKEN\n"
     SignedHeaders="${SignedHeaders};x-amz-security-token"
   fi
@@ -204,8 +204,8 @@ aws_rest() {
   Authorization="$Algorithm Credential=$AWS_ACCESS_KEY_ID/$CredentialScope, SignedHeaders=$SignedHeaders, Signature=$signature"
   _debug2 Authorization "$Authorization"
 
-  _H3="Authorization: $Authorization"
-  _debug _H3 "$_H3"
+  _H2="Authorization: $Authorization"
+  _debug _H2 "$_H2"
 
   url="$AWS_URL/$ep"
 

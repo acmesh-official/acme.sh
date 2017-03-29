@@ -18,6 +18,18 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
 # [中文说明](https://github.com/Neilpang/acme.sh/wiki/%E8%AF%B4%E6%98%8E)
 
+# Who are using **acme.sh**
+- [FreeBSD.org](https://blog.crashed.org/letsencrypt-in-freebsd-org/)
+- [ruby-china.org](https://ruby-china.org/topics/31983)
+- [Proxmox](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x_and_newer))
+- [pfsense](https://github.com/pfsense/FreeBSD-ports/pull/89)
+- [webfaction](https://community.webfaction.com/questions/19988/using-letsencrypt)
+- [Loadbalancer.org](https://www.loadbalancer.org/blog/loadbalancer-org-with-lets-encrypt-quick-and-dirty)
+- [discourse.org](https://meta.discourse.org/t/setting-up-lets-encrypt/40709)
+- [Centminmod](http://centminmod.com/letsencrypt-acmetool-https.html)
+- [splynx](https://forum.splynx.com/t/free-ssl-cert-for-splynx-lets-encrypt/297)
+- [archlinux](https://aur.archlinux.org/packages/acme.sh-git/)
+- [more...](https://github.com/Neilpang/acme.sh/wiki/Blogs-and-tutorials)
 
 # Tested OS
 
@@ -149,17 +161,17 @@ You **MUST** use this command to copy the certs to the target files, **DO NOT** 
 **Apache** example:
 ```bash
 acme.sh --install-cert -d example.com \
---certpath      /path/to/certfile/in/apache/cert.pem  \
---keypath       /path/to/keyfile/in/apache/key.pem  \
---fullchainpath /path/to/fullchain/certfile/apache/fullchain.pem \
+--cert-file      /path/to/certfile/in/apache/cert.pem  \
+--key-file       /path/to/keyfile/in/apache/key.pem  \
+--fullchain-file /path/to/fullchain/certfile/apache/fullchain.pem \
 --reloadcmd     "service apache2 force-reload"
 ```
 
 **Nginx** example:
 ```bash
 acme.sh --install-cert -d example.com \
---keypath       /path/to/keyfile/in/nginx/key.pem  \
---fullchainpath /path/to/fullchain/nginx/cert.pem \
+--key-file       /path/to/keyfile/in/nginx/key.pem  \
+--fullchain-file /path/to/fullchain/nginx/cert.pem \
 --reloadcmd     "service nginx force-reload"
 ```
 
@@ -295,6 +307,10 @@ You don't have to do anything manually!
 1. cyon.ch
 1. Domain-Offensive/Resellerinterface/Domainrobot API
 1. Gandi LiveDNS API
+1. Knot DNS API
+1. DigitalOcean API (native)
+1. ClouDNS.net API
+1. Infoblox NIOS API (https://www.infoblox.com/)
 
 **More APIs coming soon...**
 
@@ -313,7 +329,7 @@ Just set the `length` parameter with a prefix `ec-`.
 
 For example:
 
-### Single domain ECC cerfiticate
+### Single domain ECC certificate
 
 ```bash
 acme.sh --issue -w /home/wwwroot/example.com -d example.com --keylength ec-256

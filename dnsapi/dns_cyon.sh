@@ -50,7 +50,7 @@ _cyon_load_credentials() {
   fi
 
   if [ -z "${CY_Username}" ] || [ -z "${CY_Password}" ]; then
-    # Dummy entries to satify script checker.
+    # Dummy entries to satisfy script checker.
     CY_Username=""
     CY_Password=""
     CY_OTP_Secret=""

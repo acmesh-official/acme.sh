@@ -146,7 +146,7 @@ _dlg_versions() {
 
   echo "apache:"
   if [ "$_APACHECTL" ] && _exists "$_APACHECTL"; then
-    _APACHECTL -V 2>&1
+    $_APACHECTL -V 2>&1
   else
     echo "apache doesn't exists."
   fi
@@ -299,6 +299,16 @@ _secure_debug3() {
   fi
 }
 
+_upper_case() {
+  # shellcheck disable=SC2018,SC2019
+  tr 'a-z' 'A-Z'
+}
+
+_lower_case() {
+  # shellcheck disable=SC2018,SC2019
+  tr 'A-Z' 'a-z'
+}
+
 _startswith() {
   _str="$1"
   _sub="$2"
@@ -330,7 +340,7 @@ _hasfield() {
     _sep=","
   fi
 
-  for f in $(echo "$_str" | tr ',' ' '); do
+  for f in $(echo "$_str" | tr "$_sep" ' '); do
     if [ "$f" = "$_field" ]; then
       _debug2 "'$_str' contains '$_field'"
       return 0 #contains ok
@@ -869,7 +879,7 @@ _sign() {
     if ! _signedECText="$($_sign_openssl | $ACME_OPENSSL_BIN asn1parse -inform DER)"; then
       _err "Sign failed: $_sign_openssl"
       _err "Key file: $keyfile"
-      _err "Key content:$(wc -l <"$keyfile") lises"
+      _err "Key content:$(wc -l <"$keyfile") lines"
       return 1
     fi
     _debug3 "_signedECText" "$_signedECText"
@@ -1121,8 +1131,12 @@ _ss() {
       elif netstat -help 2>&1 | grep -- '-P protocol' >/dev/null; then
         #for solaris
         netstat -an -P tcp | grep "\.$_port " | grep "LISTEN"
-      else
+      elif netstat -help 2>&1 | grep "\-p" >/dev/null; then
+        #for full linux
         netstat -ntpl | grep ":$_port "
+      else
+        #for busybox (embedded linux; no pid support)
+        netstat -ntl 2>/dev/null | grep ":$_port "
       fi
     fi
     return 0
@@ -1279,12 +1293,12 @@ _url_replace() {
 }
 
 _time2str() {
-  #BSD
+  #Linux
   if date -u -d@"$1" 2>/dev/null; then
     return
   fi
 
-  #Linux
+  #BSD
   if date -u -r "$1" 2>/dev/null; then
     return
   fi
@@ -1469,7 +1483,9 @@ _inithttp() {
       _ACME_CURL="$_ACME_CURL --trace-ascii $_CURL_DUMP "
     fi
 
-    if [ "$CA_BUNDLE" ]; then
+    if [ "$CA_PATH" ]; then
+      _ACME_CURL="$_ACME_CURL --capath $CA_PATH "
+    elif [ "$CA_BUNDLE" ]; then
       _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
     fi
 
@@ -1480,8 +1496,10 @@ _inithttp() {
     if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
       _ACME_WGET="$_ACME_WGET -d "
     fi
-    if [ "$CA_BUNDLE" ]; then
-      _ACME_WGET="$_ACME_WGET --ca-certificate $CA_BUNDLE "
+    if [ "$CA_PATH" ]; then
+      _ACME_WGET="$_ACME_WGET --ca-directory=$CA_PATH "
+    elif [ "$CA_BUNDLE" ]; then
+      _ACME_WGET="$_ACME_WGET --ca-certificate=$CA_BUNDLE "
     fi
   fi
 
@@ -2240,16 +2258,16 @@ _initpath() {
   fi
 
   if [ -z "$TLS_CONF" ]; then
-    TLS_CONF="$DOMAIN_PATH/tls.valdation.conf"
+    TLS_CONF="$DOMAIN_PATH/tls.validation.conf"
   fi
   if [ -z "$TLS_CERT" ]; then
-    TLS_CERT="$DOMAIN_PATH/tls.valdation.cert"
+    TLS_CERT="$DOMAIN_PATH/tls.validation.cert"
   fi
   if [ -z "$TLS_KEY" ]; then
-    TLS_KEY="$DOMAIN_PATH/tls.valdation.key"
+    TLS_KEY="$DOMAIN_PATH/tls.validation.key"
   fi
   if [ -z "$TLS_CSR" ]; then
-    TLS_CSR="$DOMAIN_PATH/tls.valdation.csr"
+    TLS_CSR="$DOMAIN_PATH/tls.validation.csr"
   fi
 
 }
@@ -2367,7 +2385,7 @@ _setApache() {
   _debug "Backup apache config file" "$httpdconf"
   if ! cp "$httpdconf" "$APACHE_CONF_BACKUP_DIR/"; then
     _err "Can not backup apache config file, so abort. Don't worry, the apache config is not changed."
-    _err "This might be a bug of $PROJECT_NAME , pleae report issue: $PROJECT"
+    _err "This might be a bug of $PROJECT_NAME , please report issue: $PROJECT"
     return 1
   fi
   _info "JFYI, Config file $httpdconf is backuped to $APACHE_CONF_BACKUP_DIR/$httpdconfname"
@@ -2462,7 +2480,7 @@ _setNginx() {
   fi
   _debug "Start detect nginx conf for $_d from:$_start_f"
   if ! _checkConf "$_d" "$_start_f"; then
-    "Can not find conf file for domain $d"
+    _err "Can not find conf file for domain $d"
     return 1
   fi
   _info "Found conf file: $FOUND_REAL_NGINX_CONF"
@@ -2546,7 +2564,7 @@ _checkConf() {
   if [ ! -f "$2" ] && ! echo "$2" | grep '*$' >/dev/null && echo "$2" | grep '*' >/dev/null; then
     _debug "wildcard"
     for _w_f in $2; do
-      if _checkConf "$1" "$_w_f"; then
+      if [ -f "$_w_f"] && _checkConf "$1" "$_w_f"; then
         return 0
       fi
     done
@@ -2559,9 +2577,9 @@ _checkConf() {
       FOUND_REAL_NGINX_CONF="$2"
       return 0
     fi
-    if grep "^ *include *.*;" "$2" >/dev/null; then
+    if cat "$2" | tr "\t" " " | grep "^ *include *.*;" >/dev/null; then
       _debug "Try include files"
-      for included in $(grep "^ *include *.*;" "$2" | sed "s/include //" | tr -d " ;"); do
+      for included in $(cat "$2" | tr "\t" " " | grep "^ *include *.*;" | sed "s/include //" | tr -d " ;"); do
         _debug "check included $included"
         if _checkConf "$1" "$included"; then
           return 0
@@ -2865,7 +2883,7 @@ _on_issue_err() {
         uri=$(echo "$ventry" | cut -d "$sep" -f 3)
         vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
         _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
-        __trigger_validaton "$uri" "$keyauthorization"
+        __trigger_validation "$uri" "$keyauthorization"
       done
     )
   fi
@@ -3087,7 +3105,7 @@ __get_domain_new_authz() {
 }
 
 #uri keyAuthorization
-__trigger_validaton() {
+__trigger_validation() {
   _debug2 "tigger domain validation."
   _t_url="$1"
   _debug2 _t_url "$_t_url"
@@ -3467,9 +3485,12 @@ issue() {
         if [ ! "$usingApache" ]; then
           if webroot_owner=$(_stat "$_currentRoot"); then
             _debug "Changing owner/group of .well-known to $webroot_owner"
-            chown -R "$webroot_owner" "$_currentRoot/.well-known"
+            if ! _exec "chown -R \"$webroot_owner\" \"$_currentRoot/.well-known\""; then
+              _debug "$(cat "$_EXEC_TEMP_ERR")"
+              _exec_err >/dev/null 2>&1
+            fi
           else
-            _debug "not chaning owner/group of webroot"
+            _debug "not changing owner/group of webroot"
           fi
         fi
 
@@ -3510,7 +3531,7 @@ issue() {
       fi
     fi
 
-    if ! __trigger_validaton "$uri" "$keyauthorization"; then
+    if ! __trigger_validation "$uri" "$keyauthorization"; then
       _err "$d:Can not get challenge: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
       _clearup
@@ -3688,6 +3709,12 @@ issue() {
     _saveaccountconf CA_BUNDLE "$CA_BUNDLE"
   else
     _clearaccountconf "CA_BUNDLE"
+  fi
+
+  if [ "$CA_PATH" ]; then
+    _saveaccountconf CA_PATH "$CA_PATH"
+  else
+    _clearaccountconf "CA_PATH"
   fi
 
   if [ "$HTTPS_INSECURE" ]; then
@@ -4008,7 +4035,7 @@ deploy() {
 installcert() {
   _main_domain="$1"
   if [ -z "$_main_domain" ]; then
-    _usage "Usage: $PROJECT_ENTRY --installcert -d domain.com  [--ecc] [--certpath cert-file-path]  [--keypath key-file-path]  [--capath ca-cert-file-path]   [ --reloadCmd reloadCmd] [--fullchainpath fullchain-path]"
+    _usage "Usage: $PROJECT_ENTRY --installcert -d domain.com  [--ecc] [--cert-file cert-file-path]  [--key-file key-file-path]  [--ca-file ca-cert-file-path]   [ --reloadCmd reloadCmd] [--fullchain-file fullchain-path]"
     return 1
   fi
 
@@ -4107,6 +4134,7 @@ _installcert() {
       export CERT_KEY_PATH
       export CA_CERT_PATH
       export CERT_FULLCHAIN_PATH
+      export Le_Domain
       cd "$DOMAIN_PATH" && eval "$_reload_cmd"
     ); then
       _info "$(__green "Reload success")"
@@ -4618,7 +4646,7 @@ install() {
     #Modify shebang
     if _exists bash; then
       _info "Good, bash is found, so change the shebang to use bash as preferred."
-      _shebang='#!/usr/bin/env bash'
+      _shebang='#!'"$(env bash -c "command -v bash")"
       _setShebang "$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
       for subf in $_SUB_FOLDERS; do
         if [ -d "$LE_WORKING_DIR/$subf" ]; then
@@ -4758,10 +4786,10 @@ Parameters:
   
   These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
   
-  --certpath /path/to/real/cert/file  After issue/renew, the cert will be copied to this path.
-  --keypath /path/to/real/key/file  After issue/renew, the key will be copied to this path.
-  --capath /path/to/real/ca/file    After issue/renew, the intermediate cert will be copied to this path.
-  --fullchainpath /path/to/fullchain/file After issue/renew, the fullchain cert will be copied to this path.
+  --cert-file                       After issue/renew, the cert will be copied to this path.
+  --key-file                        After issue/renew, the key will be copied to this path.
+  --ca-file                         After issue/renew, the intermediate cert will be copied to this path.
+  --fullchain-file                  After issue/renew, the fullchain cert will be copied to this path.
   
   --reloadcmd \"service nginx reload\" After issue/renew, it's used to reload the server.
 
@@ -4779,12 +4807,13 @@ Parameters:
   --listraw                         Only used for '--list' command, list the certs in raw format.
   --stopRenewOnError, -se           Only valid for '--renew-all' command. Stop if one cert has error in renewal.
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
-  --ca-bundle                       Specifices the path to the CA certificate bundle to verify api server's certificate.
+  --ca-bundle                       Specifies the path to the CA certificate bundle to verify api server's certificate.
+  --ca-path                         Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
   --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
   --csr                             Specifies the input csr.
   --pre-hook                        Command to be run before obtaining any certificates.
-  --post-hook                       Command to be run after attempting to obtain/renew certificates. No matter the obain/renew is success or failed.
+  --post-hook                       Command to be run after attempting to obtain/renew certificates. No matter the obtain/renew is success or failed.
   --renew-hook                      Command to be run once for each successfully renewed certificate.
   --deploy-hook                     The hook file to deploy cert
   --ocsp-must-staple, --ocsp        Generate ocsp must Staple extension.
@@ -4886,10 +4915,10 @@ _process() {
   _webroot=""
   _keylength=""
   _accountkeylength=""
-  _certpath=""
-  _keypath=""
-  _capath=""
-  _fullchainpath=""
+  _cert_file=""
+  _key_file=""
+  _ca_file=""
+  _fullchain_file=""
   _reloadcmd=""
   _password=""
   _accountconf=""
@@ -4905,6 +4934,7 @@ _process() {
   _stopRenewOnError=""
   #_insecure=""
   _ca_bundle=""
+  _ca_path=""
   _nocron=""
   _ecc=""
   _csr=""
@@ -5130,20 +5160,20 @@ _process() {
         shift
         ;;
 
-      --certpath)
-        _certpath="$2"
+      --cert-file | --certpath)
+        _cert_file="$2"
         shift
         ;;
-      --keypath)
-        _keypath="$2"
+      --key-file | --keypath)
+        _key_file="$2"
         shift
         ;;
-      --capath)
-        _capath="$2"
+      --ca-file | --capath)
+        _ca_file="$2"
         shift
         ;;
-      --fullchainpath)
-        _fullchainpath="$2"
+      --fullchain-file | --fullchainpath)
+        _fullchain_file="$2"
         shift
         ;;
       --reloadcmd | --reloadCmd)
@@ -5217,6 +5247,11 @@ _process() {
       --ca-bundle)
         _ca_bundle="$(_readlink -f "$2")"
         CA_BUNDLE="$_ca_bundle"
+        shift
+        ;;
+      --ca-path)
+        _ca_path="$2"
+        CA_PATH="$_ca_path"
         shift
         ;;
       --nocron)
@@ -5360,7 +5395,7 @@ _process() {
     uninstall) uninstall "$_nocron" ;;
     upgrade) upgrade ;;
     issue)
-      issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address"
+      issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address"
       ;;
     deploy)
       deploy "$_domain" "$_deploy_hook" "$_ecc"
@@ -5372,7 +5407,7 @@ _process() {
       showcsr "$_csr" "$_domain"
       ;;
     installcert)
-      installcert "$_domain" "$_certpath" "$_keypath" "$_capath" "$_reloadcmd" "$_fullchainpath" "$_ecc"
+      installcert "$_domain" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_ecc"
       ;;
     renew)
       renew "$_domain" "$_ecc"
