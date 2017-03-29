@@ -22,10 +22,10 @@ strongswan_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  cat "$_ckey"       > "/etc/ipsec.d/private/$(basename "$_ckey")"
-  cat "$_ccert"      > "/etc/ipsec.d/certs/$(basename "$_ccert")"
-  cat "$_cca"        > "/etc/ipsec.d/cacerts/$(basename "$_cca")"
-  cat "$_cfullchain" > "/etc/ipsec.d/cacerts/$(basename "$_cfullchain")"
+  cat "$_ckey" >"/etc/ipsec.d/private/$(basename "$_ckey")"
+  cat "$_ccert" >"/etc/ipsec.d/certs/$(basename "$_ccert")"
+  cat "$_cca" >"/etc/ipsec.d/cacerts/$(basename "$_cca")"
+  cat "$_cfullchain" >"/etc/ipsec.d/cacerts/$(basename "$_cfullchain")"
 
   ipsec secrets
 
