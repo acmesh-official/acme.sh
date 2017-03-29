@@ -160,14 +160,14 @@ dnsever_txt() {
     _info "dnsever_txt:$action skey=$skey user_domain=$user_domain selected_menu=edittxt command=delete_txt$(echo "$check" | sed 's/\&/ /g')"
 
     response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt&command=delete_txt&$check" "https://kr.dnsever.com/start.html")
-    if [ $? != 0 ] || [ -z "&response" ]; then
+    if [ $? != 0 ] || [ -z "$response" ]; then
       _err "dnsever_txt:$action ERROR failed to delete $fulldomain=$txt from DNSEver"
       response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
     fi
 
     response=$(_post "skey=$skey&user_domain=$user_domain&selected_menu=edittxt" "https://kr.dnsever.com/start.html")
-    if [ $? != 0 ] || [ -z "&response" ]; then
+    if [ $? != 0 ] || [ -z "$response" ]; then
       _err "dnsever_txt:$action ERROR failed to get $fulldomain=$txt from DNSEver"
       response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       return 1
