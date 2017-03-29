@@ -348,6 +348,20 @@ Ok, let's issue a cert now:
 ```
 acme.sh --issue --dns dns_gandi_livedns -d example.com -d www.example.com
 ```
+## 19. Use DNSEver (https://www.dnsever.com/)
+
+You will need your login credentials (ID+PW) to the DNSEver, and export them before you run `acme.sh`:
+```
+export DNSEVER_ID="KD-1234567"
+export DNSEVER_PW="cdfkjl3n2"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_dnsever -d example.com -d www.example.com
+```
+
+
 
 # Use custom API
 
