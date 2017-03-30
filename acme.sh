@@ -3686,8 +3686,8 @@ issue() {
   _savedomainconf "Le_LinkIssuer" "$Le_LinkIssuer"
 
   if [ "$Le_LinkIssuer" ]; then
-    _link_issuer_retry=0;
-    _MAX_ISSUER_RETRY=5;
+    _link_issuer_retry=0
+    _MAX_ISSUER_RETRY=5
     while [ "$_link_issuer_retry" -lt "$_MAX_ISSUER_RETRY" ]; do
       _debug _link_issuer_retry "$_link_issuer_retry"
       if _get "$Le_LinkIssuer" >"$CA_CERT_PATH.der"; then
