@@ -438,6 +438,20 @@ acme.sh --issue --dns dns_infoblox -d example.com -d www.example.com
 Note: This script will automatically create and delete the ephemeral txt record.
 The `Infoblox_Creds` and `Infoblox_Server` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 23. Use IBM Bluemix API (formerly SoftLayer)
+
+First you need to create/obtain API credentials on your IBM Bluemix account.
+
+```
+export BLUEMIX_USER="<username>"
+export BLUEMIX_KEY="<api_key>"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_bluemix -d example.com -d www.example.com
+```
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
