@@ -4,7 +4,7 @@
 #
 # Author: luizgn
 # Based on sample from Neilpang
-# Report Bugs here: https://github.com/Neilpang/acme.sh
+# Report Bugs here: https://github.com/luizgn/acme.sh
 #
 ########  Public functions #####################
 
