@@ -438,6 +438,22 @@ acme.sh --issue --dns dns_infoblox -d example.com -d www.example.com
 Note: This script will automatically create and delete the ephemeral txt record.
 The `Infoblox_Creds` and `Infoblox_Server` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+##  23. Use Dynu API
+
+First you need to create/obtain API credentials from your Dynu account. See: https://www.dynu.com/resources/api/documentation
+
+```
+export Dynu_ClientId="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+export Dynu_Secret="yyyyyyyyyyyyyyyyyyyyyyyyy"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_dynu -d example.com -d www.example.com
+```
+
+The `Dynu_ClientId` and `Dynu_Secret` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
