@@ -11,7 +11,10 @@ Dynu_Token=""
 #
 #Endpoint
 Dynu_EndPoint="https://api.dynu.com/v1"
-
+#
+#Author: David Kerr
+#Report Bugs here: https://github.com/dkerr64/acme.sh
+#
 ########  Public functions #####################
 
 #Usage: add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
