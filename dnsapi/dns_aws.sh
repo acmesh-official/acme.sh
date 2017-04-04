@@ -92,7 +92,7 @@ _get_root() {
           _debug "IsTruncated"
           _nextMarker="$(echo "$response" | _egrep_o "<NextMarker>.*</NextMarker>" | cut -d '>' -f 2 | cut -d '<' -f 1)"
           _debug "NextMarker" "$_nextMarker"
-          if aws_rest GET "2013-04-01/hostedzone?marker=$_nextMarker"; then
+          if aws_rest GET "2013-04-01/hostedzone" "marker=$_nextMarker"; then
             _debug "Truncated request OK"
             i=2
             p=1
@@ -220,7 +220,7 @@ aws_rest() {
   _H2="Authorization: $Authorization"
   _debug _H2 "$_H2"
 
-  url="$AWS_URL/$ep"
+  url="$AWS_URL/$ep?$qsr"
 
   if [ "$mtd" = "GET" ]; then
     response="$(_get "$url")"
