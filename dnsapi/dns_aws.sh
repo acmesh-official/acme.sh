@@ -88,7 +88,7 @@ _get_root() {
     while true; do
       h=$(printf "%s" "$domain" | cut -d . -f $i-100)
       if [ -z "$h" ]; then
-        if _contains "$response" "<IsTruncated>true</IsTruncated>" && _contains "$response"  "<NextMarker>"; then
+        if _contains "$response" "<IsTruncated>true</IsTruncated>" && _contains "$response" "<NextMarker>"; then
           _debug "IsTruncated"
           _nextMarker="$(echo "$response" | _egrep_o "<NextMarker>.*</NextMarker>" | cut -d '>' -f 2 | cut -d '<' -f 1)"
           _debug "NextMarker" "$_nextMarker"
