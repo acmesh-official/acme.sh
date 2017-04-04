@@ -220,7 +220,10 @@ aws_rest() {
   _H2="Authorization: $Authorization"
   _debug _H2 "$_H2"
 
-  url="$AWS_URL/$ep?$qsr"
+  url="$AWS_URL/$ep"
+  if [ "$qsr" ]; then
+    url="$AWS_URL/$ep?$qsr"
+  fi
 
   if [ "$mtd" = "GET" ]; then
     response="$(_get "$url")"
