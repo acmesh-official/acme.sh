@@ -12,8 +12,8 @@ Dynu_Token=""
 #Endpoint
 Dynu_EndPoint="https://api.dynu.com/v1"
 #
-#Author: David Kerr
-#Report Bugs here: https://github.com/dkerr64/acme.sh
+#Author: Dynu Systems, Inc.
+#Report Bugs here: https://github.com/shar0119/acme.sh
 #
 ########  Public functions #####################
 
