@@ -107,7 +107,7 @@ __green() {
   if [ "$__INTERACTIVE" ]; then
     printf '\033[1;31;32m'
   fi
-  printf -- "$1"
+  printf -- "%b" "$1"
   if [ "$__INTERACTIVE" ]; then
     printf '\033[0m'
   fi
@@ -117,7 +117,7 @@ __red() {
   if [ "$__INTERACTIVE" ]; then
     printf '\033[1;31;40m'
   fi
-  printf -- "$1"
+  printf -- "%b" "$1"
   if [ "$__INTERACTIVE" ]; then
     printf '\033[0m'
   fi
