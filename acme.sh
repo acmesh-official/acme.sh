@@ -3121,6 +3121,10 @@ issue() {
     _usage "Usage: $PROJECT_ENTRY --issue  -d  a.com  -w /path/to/webroot/a.com/ "
     return 1
   fi
+  if [ -z "$1" ]; then
+    _usage "Please specify at least one validation method: '--webroot', '--standalone', '--apache', '--nginx' or '--dns' etc."
+    return 1
+  fi
   _web_roots="$1"
   _main_domain="$2"
   _alt_domains="$3"
