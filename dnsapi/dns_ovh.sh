@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-#Applcation Key
+#Application Key
 #OVH_AK="sdfsdfsdfljlbjkljlkjsdfoiwje"
 #
 #Application Secret

@@ -10,7 +10,7 @@
 #
 ########  Public functions #####################
 
-# Export FreeDNS userid and password in folowing variables...
+# Export FreeDNS userid and password in following variables...
 #  FREEDNS_User=username
 #  FREEDNS_Password=password
 # login cookie is saved in acme account config file so userid / pw
@@ -53,7 +53,7 @@ dns_freedns_add() {
   i="$(_math "$i" - 1)"
   sub_domain="$(echo "$fulldomain" | cut -d. -f -"$i")"
 
-  # Sometimes FreeDNS does not reurn the subdomain page but rather 
+  # Sometimes FreeDNS does not return the subdomain page but rather 
   # returns a page regarding becoming a premium member.  This usually
   # happens after a period of inactivity.  Immediately trying again
   # returns the correct subdomain page.  So, we will try twice to
@@ -65,7 +65,7 @@ dns_freedns_add() {
     htmlpage="$(_freedns_retrieve_subdomain_page "$FREEDNS_COOKIE")"
     if [ "$?" != "0" ]; then
       if [ "$using_cached_cookies" = "true" ]; then
-        _err "Has your FreeDNS username and password channged?  If so..."
+        _err "Has your FreeDNS username and password changed?  If so..."
         _err "Please export as FREEDNS_User / FREEDNS_Password and try again."
       fi
       return 1
@@ -112,7 +112,7 @@ dns_freedns_add() {
           # not produce accurate results as the value field is truncated
           # on this webpage. To get full value we would need to load
           # another page. However we don't really need this so long as
-          # there is only one TXT record for the acme chalenge subdomain.
+          # there is only one TXT record for the acme challenge subdomain.
           DNSvalue="$(echo "$line" | cut -d ',' -f 4 | sed 's/^[^&quot;]*&quot;//;s/&quot;.*//;s/<\/td>.*//')"
           if [ $found != 0 ]; then
             break
@@ -192,11 +192,11 @@ dns_freedns_rm() {
 
   # Need to read cookie from conf file again in case new value set
   # during login to FreeDNS when TXT record was created.
-  # acme.sh does not have a _readaccountconf() fuction
+  # acme.sh does not have a _readaccountconf() function
   FREEDNS_COOKIE="$(_read_conf "$ACCOUNT_CONF_PATH" "FREEDNS_COOKIE")"
   _debug "FreeDNS login cookies: $FREEDNS_COOKIE"
 
-  # Sometimes FreeDNS does not reurn the subdomain page but rather 
+  # Sometimes FreeDNS does not return the subdomain page but rather 
   # returns a page regarding becoming a premium member.  This usually
   # happens after a period of inactivity.  Immediately trying again
   # returns the correct subdomain page.  So, we will try twice to
@@ -302,12 +302,12 @@ _freedns_retrieve_subdomain_page() {
   export _H2="Accept-Language:en-US"
   url="https://freedns.afraid.org/subdomain/"
 
-  _debug "Retrieve subdmoain page from FreeDNS"
+  _debug "Retrieve subdomain page from FreeDNS"
 
   htmlpage="$(_get "$url")"
 
   if [ "$?" != "0" ]; then
-    _err "FreeDNS retrieve subdomins failed bad RC from _get"
+    _err "FreeDNS retrieve subdomains failed bad RC from _get"
     return 1
   elif [ -z "$htmlpage" ]; then
     _err "FreeDNS returned empty subdomain page"
@@ -341,7 +341,7 @@ _freedns_add_txt_record() {
     return 1
   elif _contains "$htmlpage" "security code was incorrect"; then
     _debug "$htmlpage"
-    _err "FreeDNS failed to add TXT record for $subdomain as FreeDNS requested seurity code"
+    _err "FreeDNS failed to add TXT record for $subdomain as FreeDNS requested security code"
     _err "Note that you cannot use automatic DNS validation for FreeDNS public domains"
     return 1
   fi
