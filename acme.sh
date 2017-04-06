@@ -1105,10 +1105,10 @@ _readKeyLengthFromCSR() {
   _debug2 _outcsr "$_outcsr"
   if _contains "$_outcsr" "Public Key Algorithm: id-ecPublicKey"; then
     _debug "ECC CSR"
-    echo "$_outcsr" | _egrep_o "^ *ASN1 OID:.*" | cut -d ':' -f 2 | tr -d ' '
+    echo "$_outcsr" | tr "\t" " " | _egrep_o "^ *ASN1 OID:.*" | cut -d ':' -f 2 | tr -d ' '
   else
     _debug "RSA CSR"
-    echo "$_outcsr" | _egrep_o "(^ *|^RSA )Public.Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1
+    echo "$_outcsr" | tr "\t" " " | _egrep_o "(^ *|RSA )Public.Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1
   fi
 }
 
@@ -3865,7 +3865,7 @@ renewAll() {
         return "$rc"
       else
         _ret="$rc"
-        _err "Error renew $d, Go ahead to next one."
+        _err "Error renew $d."
       fi
     fi
   done
