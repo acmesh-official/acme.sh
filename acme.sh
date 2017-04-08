@@ -2565,7 +2565,7 @@ _checkConf() {
   if [ ! -f "$2" ] && ! echo "$2" | grep '*$' >/dev/null && echo "$2" | grep '*' >/dev/null; then
     _debug "wildcard"
     for _w_f in $2; do
-      if [ -f "$_w_f"] && _checkConf "$1" "$_w_f"; then
+      if [ -f "$_w_f" ] && _checkConf "$1" "$_w_f"; then
         return 0
       fi
     done
