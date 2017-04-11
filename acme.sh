@@ -1594,8 +1594,8 @@ _get() {
   onlyheader="$2"
   t="$3"
   if [ -z "$t" ]; then
-	  # Set default timeout
-	  t=$DEFAULT_TIMEOUT
+    # Set default timeout
+    t=$DEFAULT_TIMEOUT
   fi
   _debug url "$url"
   _debug "timeout" "$t"
