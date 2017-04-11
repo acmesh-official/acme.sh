@@ -98,6 +98,8 @@ _PREPARE_LINK="https://github.com/Neilpang/acme.sh/wiki/Install-preparations"
 
 _STATELESS_WIKI="https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode"
 
+DEFAULT_TIMEOUT=60
+
 __INTERACTIVE=""
 if [ -t 1 ]; then
   __INTERACTIVE="1"
@@ -1591,6 +1593,10 @@ _get() {
   url="$1"
   onlyheader="$2"
   t="$3"
+  if [ -z "$t" ]; then
+	  # Set default timeout
+	  t=$DEFAULT_TIMEOUT
+  fi
   _debug url "$url"
   _debug "timeout" "$t"
 
