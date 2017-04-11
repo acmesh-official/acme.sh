@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.6.8
+VER=2.6.9
 
 PROJECT_NAME="acme.sh"
 
@@ -1845,6 +1845,24 @@ _readdomainconf() {
 #_saveaccountconf  key  value
 _saveaccountconf() {
   _save_conf "$ACCOUNT_CONF_PATH" "$1" "$2"
+}
+
+#key  value
+_saveaccountconf_mutable() {
+  _save_conf "$ACCOUNT_CONF_PATH" "SAVED_$1" "$2"
+  #remove later
+  _clearaccountconf "$1"
+}
+
+#key
+_readaccountconf() {
+  _read_conf "$ACCOUNT_CONF_PATH" "$1"
+}
+
+#key
+_readaccountconf_mutable() {
+  _rac_key="$1"
+  _readaccountconf "SAVED_$_rac_key"
 }
 
 #_clearaccountconf   key
