@@ -14,8 +14,8 @@ dns_cf_add() {
   fulldomain=$1
   txtvalue=$2
 
-  CF_Key="${CF_Key:-$(_readaccountconf_mutable CF_Key )}"
-  CF_Email="${CF_Email:-$(_readaccountconf_mutable CF_Email )}"
+  CF_Key="${CF_Key:-$(_readaccountconf_mutable CF_Key)}"
+  CF_Email="${CF_Email:-$(_readaccountconf_mutable CF_Email)}"
   if [ -z "$CF_Key" ] || [ -z "$CF_Email" ]; then
     CF_Key=""
     CF_Email=""
