@@ -112,7 +112,7 @@ dns_dynu_rm() {
     _err "Could not remove TXT record $_dns_record_id."
   fi
 
-  return 0  
+  return 0
 }
 
 ########  Private functions below ##################################
