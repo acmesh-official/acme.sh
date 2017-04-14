@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.6.8
+VER=2.6.9
 
 PROJECT_NAME="acme.sh"
 
@@ -107,7 +107,7 @@ __green() {
   if [ "$__INTERACTIVE" ]; then
     printf '\033[1;31;32m'
   fi
-  printf -- "$1"
+  printf -- "%b" "$1"
   if [ "$__INTERACTIVE" ]; then
     printf '\033[0m'
   fi
@@ -117,7 +117,7 @@ __red() {
   if [ "$__INTERACTIVE" ]; then
     printf '\033[1;31;40m'
   fi
-  printf -- "$1"
+  printf -- "%b" "$1"
   if [ "$__INTERACTIVE" ]; then
     printf '\033[0m'
   fi
@@ -1102,12 +1102,13 @@ _readKeyLengthFromCSR() {
   fi
 
   _outcsr="$(${ACME_OPENSSL_BIN:-openssl} req -noout -text -in "$_csrfile")"
+  _debug2 _outcsr "$_outcsr"
   if _contains "$_outcsr" "Public Key Algorithm: id-ecPublicKey"; then
     _debug "ECC CSR"
-    echo "$_outcsr" | _egrep_o "^ *ASN1 OID:.*" | cut -d ':' -f 2 | tr -d ' '
+    echo "$_outcsr" | tr "\t" " " | _egrep_o "^ *ASN1 OID:.*" | cut -d ':' -f 2 | tr -d ' '
   else
     _debug "RSA CSR"
-    echo "$_outcsr" | _egrep_o "(^ *|^RSA )Public.Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1
+    echo "$_outcsr" | tr "\t" " " | _egrep_o "(^ *|RSA )Public.Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1
   fi
 }
 
@@ -1846,6 +1847,24 @@ _saveaccountconf() {
   _save_conf "$ACCOUNT_CONF_PATH" "$1" "$2"
 }
 
+#key  value
+_saveaccountconf_mutable() {
+  _save_conf "$ACCOUNT_CONF_PATH" "SAVED_$1" "$2"
+  #remove later
+  _clearaccountconf "$1"
+}
+
+#key
+_readaccountconf() {
+  _read_conf "$ACCOUNT_CONF_PATH" "$1"
+}
+
+#key
+_readaccountconf_mutable() {
+  _rac_key="$1"
+  _readaccountconf "SAVED_$_rac_key"
+}
+
 #_clearaccountconf   key
 _clearaccountconf() {
   _clear_conf "$ACCOUNT_CONF_PATH" "$1"
@@ -2564,7 +2583,7 @@ _checkConf() {
   if [ ! -f "$2" ] && ! echo "$2" | grep '*$' >/dev/null && echo "$2" | grep '*' >/dev/null; then
     _debug "wildcard"
     for _w_f in $2; do
-      if [ -f "$_w_f"] && _checkConf "$1" "$_w_f"; then
+      if [ -f "$_w_f" ] && _checkConf "$1" "$_w_f"; then
         return 0
       fi
     done
@@ -3118,6 +3137,10 @@ __trigger_validation() {
 issue() {
   if [ -z "$2" ]; then
     _usage "Usage: $PROJECT_ENTRY --issue  -d  a.com  -w /path/to/webroot/a.com/ "
+    return 1
+  fi
+  if [ -z "$1" ]; then
+    _usage "Please specify at least one validation method: '--webroot', '--standalone', '--apache', '--nginx' or '--dns' etc."
     return 1
   fi
   _web_roots="$1"
@@ -3860,7 +3883,7 @@ renewAll() {
         return "$rc"
       else
         _ret="$rc"
-        _err "Error renew $d, Go ahead to next one."
+        _err "Error renew $d."
       fi
     fi
   done
