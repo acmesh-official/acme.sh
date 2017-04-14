@@ -149,7 +149,7 @@ _get_recordid() {
     return 0
   fi
 
-  _dns_record_id=$(printf "%s" "$response" grep -o -e "{[^}]*}" | grep '"text_data":"This is another TXT record."' | grep -o -e ",[^,]*," | grep ',"id":' | tr -d ",," | cut -d : -f 2)
+  _dns_record_id=$(printf "%s" "$response" | _egrep_o "{[^}]*}" | grep "\"text_data\":\"$txtvalue\"" | grep -Po '"id":\K[0-9]+')
 
   return 0
 }
