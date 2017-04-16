@@ -85,6 +85,17 @@ dns_cf_add() {
 dns_cf_rm() {
   fulldomain=$1
   txtvalue=$2
+
+  CF_Key="${CF_Key:-$(_readaccountconf_mutable CF_Key)}"
+  CF_Email="${CF_Email:-$(_readaccountconf_mutable CF_Email)}"
+  if [ -z "$CF_Key" ] || [ -z "$CF_Email" ]; then
+    CF_Key=""
+    CF_Email=""
+    _err "You don't specify cloudflare api key and email yet."
+    _err "Please create you key and try again."
+    return 1
+  fi
+
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
