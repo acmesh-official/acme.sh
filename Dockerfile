@@ -48,5 +48,12 @@ RUN for verb in help \
     printf -- "%b" "#!/usr/bin/env sh\n/root/.acme.sh/acme.sh --${verb} --config-home /acme.sh \"\$@\"" >/usr/local/bin/--${verb} && chmod +x /usr/local/bin/--${verb} \
   ; done
 
-ENTRYPOINT ["/root/.acme.sh/acme.sh", "--config-home", "/acme.sh"]
+RUN printf "%b" '#!'"/usr/bin/env sh\n \
+if [ \"\$1\" = \"daemon\" ];  then \n \
+ crond; tail -f /dev/null;\n \
+else \n \
+ /root/.acme.sh/acme.sh --config-home /acme.sh \"\$@\"\n \
+fi" >/entry.sh && chmod +x /entry.sh
+
+ENTRYPOINT ["/entry.sh"]
 CMD ["--help"]
