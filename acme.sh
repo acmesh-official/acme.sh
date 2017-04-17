@@ -347,7 +347,7 @@ _hasfield() {
     fi
   done
   _debug2 "'$_str' does not contain '$_field'"
-  return 1 #not contains 
+  return 1 #not contains
 }
 
 _getfield() {
@@ -722,7 +722,7 @@ _url_encode() {
       "7e")
         printf "%s" "~"
         ;;
-      #other hex  
+      #other hex
       *)
         printf '%%%s' "$_hex_code"
         ;;
@@ -1025,7 +1025,7 @@ _createcsr() {
     else
       alt="DNS:$domainlist"
     fi
-    #multi 
+    #multi
     _info "Multi domain" "$alt"
     printf -- "\nsubjectAltName=$alt" >>"$csrconf"
   fi
@@ -1093,7 +1093,7 @@ _readSubjectAltNamesFromCSR() {
   printf "%s" "$_dnsAltnames" | sed "s/DNS://g"
 }
 
-#_csrfile 
+#_csrfile
 _readKeyLengthFromCSR() {
   _csrfile="$1"
   if [ -z "$_csrfile" ]; then
@@ -1192,7 +1192,7 @@ toPkcs8() {
 
 }
 
-#[2048]  
+#[2048]
 createAccountKey() {
   _info "Creating account key"
   if [ -z "$1" ]; then
@@ -2546,7 +2546,7 @@ _setNginx() {
 location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
   default_type text/plain;
   return 200 \"\$1.$_thumbpt\";
-}  
+}
 #NGINX_START
 " >>"$FOUND_REAL_NGINX_CONF"
 
@@ -3133,7 +3133,7 @@ __trigger_validation() {
   _send_signed_request "$_t_url" "{\"resource\": \"challenge\", \"keyAuthorization\": \"$_t_key_authz\"}"
 }
 
-#webroot, domain domainlist  keylength 
+#webroot, domain domainlist  keylength
 issue() {
   if [ -z "$2" ]; then
     _usage "Usage: $PROJECT_ENTRY --issue  -d  a.com  -w /path/to/webroot/a.com/ "
@@ -3666,7 +3666,7 @@ issue() {
 
     #if ! _get "$Le_LinkCert" | _base64 "multiline"  >> "$CERT_PATH" ; then
     #  _debug "Get cert failed. Let's try last response."
-    #  printf -- "%s" "$_rcert" | _dbase64 "multiline" | _base64 "multiline" >> "$CERT_PATH" 
+    #  printf -- "%s" "$_rcert" | _dbase64 "multiline" | _base64 "multiline" >> "$CERT_PATH"
     #fi
 
     if ! printf -- "%s" "$_rcert" | _dbase64 "multiline" | _base64 "multiline" >>"$CERT_PATH"; then
@@ -4807,7 +4807,7 @@ Commands:
   --create-domain-key      Create an domain private key, professional use.
   --createCSR, -ccsr       Create CSR , professional use.
   --deactivate             Deactivate the domain authz, professional use.
-  
+
 Parameters:
   --domain, -d   domain.tld         Specifies a domain, used to issue, renew or revoke etc.
   --force, -f                       Used to force to install or force to renew a cert immediately.
@@ -4821,20 +4821,20 @@ Parameters:
   --apache                          Use apache mode.
   --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
   --dnssleep  [$DEFAULT_DNS_SLEEP]                  The time in seconds to wait for all the txt records to take effect in dns api mode. Default $DEFAULT_DNS_SLEEP seconds.
-  
+
   --keylength, -k [2048]            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384.
   --accountkeylength, -ak [2048]    Specifies the account key length.
   --log    [/path/to/logfile]       Specifies the log file. The default is: \"$DEFAULT_LOG_FILE\" if you don't give a file path here.
   --log-level 1|2                   Specifies the log level, default is 1.
   --syslog [0|3|6|7]                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
-  
+
   These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
-  
+
   --cert-file                       After issue/renew, the cert will be copied to this path.
   --key-file                        After issue/renew, the key will be copied to this path.
   --ca-file                         After issue/renew, the intermediate cert will be copied to this path.
   --fullchain-file                  After issue/renew, the fullchain cert will be copied to this path.
-  
+
   --reloadcmd \"service nginx reload\" After issue/renew, it's used to reload the server.
 
   --accountconf                     Specifies a customized account config file.
