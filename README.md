@@ -314,6 +314,7 @@ You don't have to do anything manually!
 1. DigitalOcean API (native)
 1. ClouDNS.net API
 1. Infoblox NIOS API (https://www.infoblox.com/)
+1. VSCALE (https://vscale.io/)
 
 **More APIs coming soon...**
 
