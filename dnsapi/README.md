@@ -449,7 +449,7 @@ VSCALE_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
  
 Ok, let's issue a cert now:
 ```
-acme.sh --issue --dns vscale -d example.com -d www.example.com
+acme.sh --issue --dns dns_vscale -d example.com -d www.example.com
 ```
 
 
