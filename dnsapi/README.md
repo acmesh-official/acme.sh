@@ -439,7 +439,7 @@ Note: This script will automatically create and delete the ephemeral txt record.
 The `Infoblox_Creds` and `Infoblox_Server` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 
-## 22. Use VSCALE API
+## 23. Use VSCALE API
  
 First you need to create/obtain API tokens on your [settings panel](https://vscale.io/panel/settings/tokens/).
  
