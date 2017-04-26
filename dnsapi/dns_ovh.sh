@@ -14,7 +14,7 @@
 #'ovh-eu'
 OVH_EU='https://eu.api.ovh.com/1.0'
 
-#'ovh-ca': 
+#'ovh-ca':
 OVH_CA='https://ca.api.ovh.com/1.0'
 
 #'kimsufi-eu'
