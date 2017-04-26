@@ -9,7 +9,7 @@
 - DOES NOT require `root/sudoer` access.
 - Docker friendly
 
-It's probably the `easiest&smallest&smartest` shell script to automatically issue & renew the free certificates from Let's Encrypt.
+It's probably the `easiest & smartest` shell script to automatically issue & renew the free certificates from Let's Encrypt.
 
 Wiki: https://github.com/Neilpang/acme.sh/wiki
 
@@ -31,6 +31,7 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 - [Centminmod](http://centminmod.com/letsencrypt-acmetool-https.html)
 - [splynx](https://forum.splynx.com/t/free-ssl-cert-for-splynx-lets-encrypt/297)
 - [archlinux](https://aur.archlinux.org/packages/acme.sh-git/)
+- [opnsense.org](https://github.com/opnsense/plugins/tree/master/security/acme-client/src/opnsense/scripts/OPNsense/AcmeClient)
 - [more...](https://github.com/Neilpang/acme.sh/wiki/Blogs-and-tutorials)
 
 # Tested OS
@@ -313,6 +314,7 @@ You don't have to do anything manually!
 1. DigitalOcean API (native)
 1. ClouDNS.net API
 1. Infoblox NIOS API (https://www.infoblox.com/)
+1. VSCALE (https://vscale.io/)
 1. Dynu API (https://www.dynu.com)
 
 **More APIs coming soon...**
