@@ -67,7 +67,7 @@ kong_deploy() {
   _debug content "$content"
   #Check if sslcreated (if not => POST else => PATCH)
 
-  if [ -z "$ssl_uuid" ]; then
+  if [ ! -z "$ssl_uuid" ]; then
     #Post certificate to Kong
     response=$(_post "$content" "$KONG_URL/certificates" "" "POST")
   else
