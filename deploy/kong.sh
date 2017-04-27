@@ -1,11 +1,7 @@
 #!/usr/bin/env sh
-# Note that ssl plugin should be available on Kong instance
-# The hook will match cdomain to request_host, in case of multiple domain it will always take the first
-# one (acme.sh behaviour).
-# If ssl config already exist it will update only cert and key not touching other parameter
-# If ssl config doesn't exist it will only upload cert and key and not set other parameter
-# Not that we deploy full chain
-# See https://getkong.org/plugins/dynamic-ssl/ for other options
+# If certificate already exist it will update only cert and key not touching other parameter
+# If certificate  doesn't exist it will only upload cert and key and not set other parameter
+# Note that we deploy full chain
 # Written by Geoffroi Genot <ggenot@voxbone.com>
 
 ########  Public functions #####################
