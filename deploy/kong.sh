@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-
-# This deploy hook will deploy ssl cert on kong proxy engine based on api request_host parameter.
 # Note that ssl plugin should be available on Kong instance
 # The hook will match cdomain to request_host, in case of multiple domain it will always take the first
 # one (acme.sh behaviour).
@@ -49,10 +46,9 @@ kong_deploy() {
   #Set Header
   _H1="Content-Type: multipart/form-data; boundary=$delim"
   #Generate data for request (Multipart/form-data with mixed content)
-  content="--$delim${nl}"
   if [ -z "$ssl_uuid" ]; then
     #set sni to domain
-    content="$content{nl}Content-Disposition: form-data; name=\"snis\"${nl}${nl}$_cdomain"
+    content="--$delim${nl}Content-Disposition: form-data; name=\"snis\"${nl}${nl}$_cdomain"
   fi
   #add key
   content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"key\"; filename=\"$(basename "$_ckey")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ckey")"
@@ -67,7 +63,7 @@ kong_deploy() {
   _debug content "$content"
   #Check if sslcreated (if not => POST else => PATCH)
 
-  if [ ! -z "$ssl_uuid" ]; then
+  if [ -z "$ssl_uuid" ]; then
     #Post certificate to Kong
     response=$(_post "$content" "$KONG_URL/certificates" "" "POST")
   else
