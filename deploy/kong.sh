@@ -1,3 +1,4 @@
+#!/usr/bin/env sh
 # Note that ssl plugin should be available on Kong instance
 # The hook will match cdomain to request_host, in case of multiple domain it will always take the first
 # one (acme.sh behaviour).
