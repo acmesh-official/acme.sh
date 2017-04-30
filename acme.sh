@@ -166,7 +166,14 @@ _syslog() {
   fi
   _logclass="$1"
   shift
-  logger -i -t "$PROJECT_NAME" -p "$_logclass" "$(_printargs "$@")" >/dev/null 2>&1
+  if [ -z "$__logger_i" ]; then
+    if _contains "$(logger --help 2>&1)" "-i"; then
+      __logger_i="logger -i"
+    else
+      __logger_i="logger"
+    fi
+  fi
+  $__logger_i -t "$PROJECT_NAME" -p "$_logclass" "$(_printargs "$@")" >/dev/null 2>&1
 }
 
 _log() {
