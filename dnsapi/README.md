@@ -452,6 +452,22 @@ Ok, let's issue a cert now:
 acme.sh --issue --dns dns_vscale -d example.com -d www.example.com
 ```
 
+##  24. Use Dynu API
+
+First you need to create/obtain API credentials from your Dynu account. See: https://www.dynu.com/resources/api/documentation
+
+```
+export Dynu_ClientId="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+export Dynu_Secret="yyyyyyyyyyyyyyyyyyyyyyyyy"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_dynu -d example.com -d www.example.com
+```
+
+The `Dynu_ClientId` and `Dynu_Secret` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 
 # Use custom API
 
