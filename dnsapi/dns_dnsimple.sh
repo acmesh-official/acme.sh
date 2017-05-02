@@ -198,12 +198,12 @@ _dnsimple_rest() {
   export _H1="Accept: application/json"
   export _H2="Authorization: Bearer $DNSimple_OAUTH_TOKEN"
 
-  if [ "$data" ]; then
+  if [ "$data" ] || [ "$method" = "DELETE" ]; then
     _H1="Content-Type: application/json"
     _debug data "$data"
     response="$(_post "$data" "$request_url" "" "$method")"
   else
-    response="$(_request "$request_url" "" "" "$method")"
+    response="$(_get "$request_url" "" "" "$method")"
   fi
 
   if [ "$?" != "0" ]; then
