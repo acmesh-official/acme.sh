@@ -1592,17 +1592,12 @@ _post() {
   return $_ret
 }
 
-_get() {
-  _request "$1" "$2" "$3" GET
-}
-
 # url getheader timeout
-_request() {
+_get() {
+  _debug GET
   url="$1"
   onlyheader="$2"
   t="$3"
-  method="$4"
-  _debug method $method
   _debug url "$url"
   _debug "timeout" "$t"
 
@@ -1615,9 +1610,6 @@ _request() {
     fi
     if [ "$t" ]; then
       _CURL="$_CURL --connect-timeout $t"
-    fi
-    if [ "$method" ]; then
-      _CURL="$_CURL -X $method"
     fi
     _debug "_CURL" "$_CURL"
     if [ "$onlyheader" ]; then
@@ -1640,9 +1632,6 @@ _request() {
     fi
     if [ "$t" ]; then
       _WGET="$_WGET --timeout=$t"
-    fi
-    if [ "$method" ]; then
-      _WGET="$_WGET --method=$method"
     fi
     _debug "_WGET" "$_WGET"
     if [ "$onlyheader" ]; then
