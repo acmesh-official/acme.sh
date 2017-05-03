@@ -136,13 +136,25 @@ root@v1:~# acme.sh -h
 acme.sh --issue -d example.com -w /home/wwwroot/example.com
 ```
 
+or:
+
+```bash
+acme.sh --issue -d example.com -w /home/username/public_html
+```
+
+or:
+
+```bash
+acme.sh --issue -d example.com -w /var/www/html
+```
+
 **Example 2:** Multiple domains in the same cert.
 
 ```bash
 acme.sh --issue -d example.com -d www.example.com -d cp.example.com -w /home/wwwroot/example.com
 ```
 
-The parameter `/home/wwwroot/example.com` is the web root folder. You **MUST** have `write access` to this folder.
+The parameter `/home/wwwroot/example.com` or `/home/username/public_html` or `/var/www/html` is the web root folder where you host your website files. You **MUST** have `write access` to this folder.
 
 Second argument **"example.com"** is the main domain you want to issue the cert for.
 You must have at least one domain there.
@@ -292,6 +304,7 @@ You don't have to do anything manually!
 
 1. CloudFlare.com API
 1. DNSPod.cn API
+1. DNSimple API
 1. CloudXNS.com API
 1. GoDaddy.com API
 1. OVH, kimsufi, soyoustart and runabove API
@@ -315,6 +328,8 @@ You don't have to do anything manually!
 1. ClouDNS.net API
 1. Infoblox NIOS API (https://www.infoblox.com/)
 1. VSCALE (https://vscale.io/)
+1. Dynu API (https://www.dynu.com)
+
 
 **More APIs coming soon...**
 
