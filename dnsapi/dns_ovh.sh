@@ -119,7 +119,7 @@ dns_ovh_add() {
 
   _info "Checking authentication"
 
-  response="$(_ovh_rest GET "domain/")"
+  response="$(_ovh_rest GET "domain")"
   if _contains "$response" "INVALID_CREDENTIAL"; then
     _err "The consumer key is invalid: $OVH_CK"
     _err "Please retry to create a new one."
@@ -191,7 +191,7 @@ _ovh_authentication() {
   _H3=""
   _H4=""
 
-  _ovhdata='{"accessRules": [{"method": "GET","path": "/*"},{"method": "POST","path": "/*"},{"method": "PUT","path": "/*"},{"method": "DELETE","path": "/*"}],"redirection":"'$ovh_success'"}'
+  _ovhdata='{"accessRules": [{"method": "GET","path": "/auth/time"},{"method": "GET","path": "/domain"},{"method": "GET","path": "/domain/zone/*"},{"method": "GET","path": "/domain/zone/*/record"},{"method": "POST","path": "/domain/zone/*/record"},{"method": "POST","path": "/domain/zone/*/refresh"},{"method": "PUT","path": "/domain/zone/*/record/*"}],"redirection":"'$ovh_success'"}'
 
   response="$(_post "$_ovhdata" "$OVH_API/auth/credential")"
   _debug3 response "$response"
