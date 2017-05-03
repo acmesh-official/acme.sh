@@ -136,13 +136,25 @@ root@v1:~# acme.sh -h
 acme.sh --issue -d example.com -w /home/wwwroot/example.com
 ```
 
+or:
+
+```bash
+acme.sh --issue -d example.com -w /home/username/public_html
+```
+
+or:
+
+```bash
+acme.sh --issue -d example.com -w /var/www/html
+```
+
 **Example 2:** Multiple domains in the same cert.
 
 ```bash
 acme.sh --issue -d example.com -d www.example.com -d cp.example.com -w /home/wwwroot/example.com
 ```
 
-The parameter `/home/wwwroot/example.com` is the web root folder. You **MUST** have `write access` to this folder.
+The parameter `/home/wwwroot/example.com` or `/home/username/public_html` or `/var/www/html` is the web root folder where you host your website files. You **MUST** have `write access` to this folder.
 
 Second argument **"example.com"** is the main domain you want to issue the cert for.
 You must have at least one domain there.
