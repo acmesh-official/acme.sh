@@ -292,6 +292,7 @@ You don't have to do anything manually!
 
 1. CloudFlare.com API
 1. DNSPod.cn API
+1. DNSimple API
 1. CloudXNS.com API
 1. GoDaddy.com API
 1. OVH, kimsufi, soyoustart and runabove API
