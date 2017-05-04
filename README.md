@@ -300,6 +300,30 @@ If your DNS provider supports API access, we can use that API to automatically i
 
 You don't have to do anything manually!
 
+# Run on Nginx Reverse Proxy
+
+**(requires you be root/sudoer, since it is required to interact with nginx server)**
+
+This can be useful if you can't (or don't want to) edit the server (e.g. a HTML5 application server) to support the ACME client.
+
+Include the following configuration in your nginx configuration for a specified virtual host:
+
+```
+# Config to use with the acme.sh client for Let's Encrypt
+   location ~* /.well-known {                                                   
+      allow all;                                                                
+      root /var/www/html;                                                       
+   }  
+```
+
+And create the .well-known directory on your system
+
+```
+mkdir -p /var/www/html/.well-known
+```
+
+This will allow your Nginx reverse proxy to answer the ACME client's proof of ownership request. All other requests will still be handled by the backend.
+
 ### Currently acme.sh supports:
 
 1. CloudFlare.com API
