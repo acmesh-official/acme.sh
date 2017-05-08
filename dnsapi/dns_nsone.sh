@@ -1,6 +1,4 @@
-<<<<<<< HEAD
 #!/usr/bin/env sh
->>>>>>> 9201e0a5b905812da1157efa075dd1ab52362c09
 
 # bug reports to dev@1e.ca
 
