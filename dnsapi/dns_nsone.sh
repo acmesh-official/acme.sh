@@ -45,7 +45,7 @@ dns_nsone_add() {
   _debug count "$count"
   if [ "$count" = "0" ]; then
     _info "Adding record"
-  
+
     if _nsone_rest PUT "zones/$_domain/$fulldomain/TXT" "{\"answers\":[{\"answer\":[\"$txtvalue\"]}],\"type\":\"TXT\",\"domain\":\"$fulldomain\",\"zone\":\"$_domain\"}"; then
       if _contains "$response" "$fulldomain"; then
         _info "Added"
