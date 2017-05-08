@@ -69,8 +69,6 @@ dnsever_txt() {
   fulldomain="$4"
   txt="$5"
 
-  _inithttp
-
   response=$(_post "login_id=$login_id&login_password=$login_password" "https://kr.dnsever.com/index.html")
   if [ $? != 0 ] || [ -z "$response" ]; then
     _err "dnsever_txt:$action ERROR login failed. Please check https://kr.dnsever.com/index.html with login_id=$login_id login_password=$login_password"
