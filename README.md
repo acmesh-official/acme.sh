@@ -304,17 +304,14 @@ You don't have to do anything manually!
 
 1. CloudFlare.com API
 1. DNSPod.cn API
-1. DNSimple API
 1. CloudXNS.com API
 1. GoDaddy.com API
-1. OVH, kimsufi, soyoustart and runabove API
-1. AWS Route 53
 1. PowerDNS.com API
-1. lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
-   (DigitalOcean, DNSimple, DNSMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)
+1. OVH, kimsufi, soyoustart and runabove API
+1. nsupdate API
 1. LuaDNS.com API
 1. DNSMadeEasy.com API
-1. nsupdate API
+1. AWS Route 53
 1. aliyun.com(阿里云) API
 1. ISPConfig 3.1 API
 1. Alwaysdata.com API
@@ -329,9 +326,18 @@ You don't have to do anything manually!
 1. Infoblox NIOS API (https://www.infoblox.com/)
 1. VSCALE (https://vscale.io/)
 1. Dynu API (https://www.dynu.com)
+1. DNSimple API
 1. NS1.com API
 
 
+
+And: 
+
+1. lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
+   (DigitalOcean, DNSimple, DNSMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)
+
+
+   
 **More APIs coming soon...**
 
 If your DNS provider is not on the supported list above, you can write your own DNS API script easily. If you do, please consider submitting a [Pull Request](https://github.com/Neilpang/acme.sh/pulls) and contribute it to the project.
