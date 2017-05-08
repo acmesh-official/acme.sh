@@ -7,11 +7,13 @@
 - Purely written in Shell with no dependencies on python or the official Let's Encrypt client.
 - Just one script to issue, renew and install your certificates automatically.
 - DOES NOT require `root/sudoer` access.
+- Docker friendly
 
-It's probably the `easiest&smallest&smartest` shell script to automatically issue & renew the free certificates from Let's Encrypt.
+It's probably the `easiest & smartest` shell script to automatically issue & renew the free certificates from Let's Encrypt.
 
 Wiki: https://github.com/Neilpang/acme.sh/wiki
 
+For Docker Fans: [acme.sh :two_hearts: Docker ](https://github.com/Neilpang/acme.sh/wiki/Run-acme.sh-in-docker)
 
 Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
@@ -29,6 +31,7 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 - [Centminmod](http://centminmod.com/letsencrypt-acmetool-https.html)
 - [splynx](https://forum.splynx.com/t/free-ssl-cert-for-splynx-lets-encrypt/297)
 - [archlinux](https://aur.archlinux.org/packages/acme.sh-git/)
+- [opnsense.org](https://github.com/opnsense/plugins/tree/master/security/acme-client/src/opnsense/scripts/OPNsense/AcmeClient)
 - [more...](https://github.com/Neilpang/acme.sh/wiki/Blogs-and-tutorials)
 
 # Tested OS
@@ -133,13 +136,25 @@ root@v1:~# acme.sh -h
 acme.sh --issue -d example.com -w /home/wwwroot/example.com
 ```
 
+or:
+
+```bash
+acme.sh --issue -d example.com -w /home/username/public_html
+```
+
+or:
+
+```bash
+acme.sh --issue -d example.com -w /var/www/html
+```
+
 **Example 2:** Multiple domains in the same cert.
 
 ```bash
 acme.sh --issue -d example.com -d www.example.com -d cp.example.com -w /home/wwwroot/example.com
 ```
 
-The parameter `/home/wwwroot/example.com` is the web root folder. You **MUST** have `write access` to this folder.
+The parameter `/home/wwwroot/example.com` or `/home/username/public_html` or `/var/www/html` is the web root folder where you host your website files. You **MUST** have `write access` to this folder.
 
 Second argument **"example.com"** is the main domain you want to issue the cert for.
 You must have at least one domain there.
@@ -161,17 +176,17 @@ You **MUST** use this command to copy the certs to the target files, **DO NOT** 
 **Apache** example:
 ```bash
 acme.sh --install-cert -d example.com \
---certpath      /path/to/certfile/in/apache/cert.pem  \
---keypath       /path/to/keyfile/in/apache/key.pem  \
---fullchainpath /path/to/fullchain/certfile/apache/fullchain.pem \
+--cert-file      /path/to/certfile/in/apache/cert.pem  \
+--key-file       /path/to/keyfile/in/apache/key.pem  \
+--fullchain-file /path/to/fullchain/certfile/apache/fullchain.pem \
 --reloadcmd     "service apache2 force-reload"
 ```
 
 **Nginx** example:
 ```bash
 acme.sh --install-cert -d example.com \
---keypath       /path/to/keyfile/in/nginx/key.pem  \
---fullchainpath /path/to/fullchain/nginx/cert.pem \
+--key-file       /path/to/keyfile/in/nginx/key.pem  \
+--fullchain-file /path/to/fullchain/nginx/cert.pem \
 --reloadcmd     "service nginx force-reload"
 ```
 
@@ -289,6 +304,7 @@ You don't have to do anything manually!
 
 1. CloudFlare.com API
 1. DNSPod.cn API
+1. DNSimple API
 1. CloudXNS.com API
 1. GoDaddy.com API
 1. OVH, kimsufi, soyoustart and runabove API
@@ -308,7 +324,13 @@ You don't have to do anything manually!
 1. Domain-Offensive/Resellerinterface/Domainrobot API
 1. Gandi LiveDNS API
 1. Knot DNS API
-1. NS1. API
+1. NS1.com API
+1. DigitalOcean API (native)
+1. ClouDNS.net API
+1. Infoblox NIOS API (https://www.infoblox.com/)
+1. VSCALE (https://vscale.io/)
+1. Dynu API (https://www.dynu.com)
+
 
 **More APIs coming soon...**
 
@@ -327,7 +349,7 @@ Just set the `length` parameter with a prefix `ec-`.
 
 For example:
 
-### Single domain ECC cerfiticate
+### Single domain ECC certificate
 
 ```bash
 acme.sh --issue -w /home/wwwroot/example.com -d example.com --keylength ec-256

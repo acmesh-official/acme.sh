@@ -88,12 +88,25 @@ _get_root() {
     while true; do
       h=$(printf "%s" "$domain" | cut -d . -f $i-100)
       if [ -z "$h" ]; then
+        if _contains "$response" "<IsTruncated>true</IsTruncated>" && _contains "$response" "<NextMarker>"; then
+          _debug "IsTruncated"
+          _nextMarker="$(echo "$response" | _egrep_o "<NextMarker>.*</NextMarker>" | cut -d '>' -f 2 | cut -d '<' -f 1)"
+          _debug "NextMarker" "$_nextMarker"
+          if aws_rest GET "2013-04-01/hostedzone" "marker=$_nextMarker"; then
+            _debug "Truncated request OK"
+            i=2
+            p=1
+            continue
+          else
+            _err "Truncated request error."
+          fi
+        fi
         #not valid
         return 1
       fi
 
       if _contains "$response" "<Name>$h.</Name>"; then
-        hostedzone="$(echo "$response" | sed 's/<HostedZone>/#&/g' | tr '#' '\n' | _egrep_o "<HostedZone><Id>[^<]*<.Id><Name>$h.<.Name>.*<.HostedZone>")"
+        hostedzone="$(echo "$response" | sed 's/<HostedZone>/#&/g' | tr '#' '\n' | _egrep_o "<HostedZone><Id>[^<]*<.Id><Name>$h.<.Name>.*<PrivateZone>false<.PrivateZone>.*<.HostedZone>")"
         _debug hostedzone "$hostedzone"
         if [ -z "$hostedzone" ]; then
           _err "Error, can not get hostedzone."
@@ -143,7 +156,7 @@ aws_rest() {
   CanonicalHeaders="host:$aws_host\nx-amz-date:$RequestDate\n"
   SignedHeaders="host;x-amz-date"
   if [ -n "$AWS_SESSION_TOKEN" ]; then
-    export _H2="x-amz-security-token: $AWS_SESSION_TOKEN"
+    export _H3="x-amz-security-token: $AWS_SESSION_TOKEN"
     CanonicalHeaders="${CanonicalHeaders}x-amz-security-token:$AWS_SESSION_TOKEN\n"
     SignedHeaders="${SignedHeaders};x-amz-security-token"
   fi
@@ -204,10 +217,13 @@ aws_rest() {
   Authorization="$Algorithm Credential=$AWS_ACCESS_KEY_ID/$CredentialScope, SignedHeaders=$SignedHeaders, Signature=$signature"
   _debug2 Authorization "$Authorization"
 
-  _H3="Authorization: $Authorization"
-  _debug _H3 "$_H3"
+  _H2="Authorization: $Authorization"
+  _debug _H2 "$_H2"
 
   url="$AWS_URL/$ep"
+  if [ "$qsr" ]; then
+    url="$AWS_URL/$ep?$qsr"
+  fi
 
   if [ "$mtd" = "GET" ]; then
     response="$(_get "$url")"

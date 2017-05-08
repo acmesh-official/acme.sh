@@ -302,7 +302,7 @@ acme.sh --issue --dns dns_freedns -d example.com -d www.example.com
 ```
 
 Note that you cannot use acme.sh automatic DNS validation for FreeDNS public domains or for a subdomain that
-you create under a FreeDNS public domain.  You must own the top level domain in order to automaitcally
+you create under a FreeDNS public domain.  You must own the top level domain in order to automatically
 validate with acme.sh at FreeDNS.
 
 ## 16. Use cyon.ch
@@ -394,7 +394,8 @@ acme.sh --issue --dns dns_knot -d example.com -d www.example.com
 
 The `KNOT_SERVER` and `KNOT_KEY` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-## 20. Use NS1. API
+
+## 20. Use NS1.com API
 
 ```
 export NS1_Key="fdmlfsdklmfdkmqsdfk"
@@ -404,6 +405,107 @@ Ok, let's issue a cert now:
 ```
 acme.sh --issue --dns dns_nsone -d example.com -d www.example.com
 ```
+
+## 20. Use DigitalOcean API (native)
+
+You need to obtain a read and write capable API key from your DigitalOcean account. See: https://www.digitalocean.com/help/api/
+
+```
+export DO_API_KEY="75310dc4ca779ac39a19f6355db573b49ce92ae126553ebd61ac3a3ae34834cc"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_dgon -d example.com -d www.example.com
+```
+
+## 21. Use ClouDNS.net API
+
+You need to set the HTTP API user ID and password credentials. See: https://www.cloudns.net/wiki/article/42/
+
+```
+export CLOUDNS_AUTH_ID=XXXXX
+export CLOUDNS_AUTH_PASSWORD="YYYYYYYYY"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_cloudns -d example.com -d www.example.com
+```
+
+## 22. Use Infoblox API
+
+First you need to create/obtain API credentials on your Infoblox appliance.
+
+```
+export Infoblox_Creds="username:password"
+export Infoblox_Server="ip or fqdn of infoblox appliance"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_infoblox -d example.com -d www.example.com
+```
+
+Note: This script will automatically create and delete the ephemeral txt record.
+The `Infoblox_Creds` and `Infoblox_Server` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+
+## 23. Use VSCALE API
+
+First you need to create/obtain API tokens on your [settings panel](https://vscale.io/panel/settings/tokens/).
+
+```
+VSCALE_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_vscale -d example.com -d www.example.com
+```
+
+##  24. Use Dynu API
+
+First you need to create/obtain API credentials from your Dynu account. See: https://www.dynu.com/resources/api/documentation
+
+```
+export Dynu_ClientId="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+export Dynu_Secret="yyyyyyyyyyyyyyyyyyyyyyyyy"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_dynu -d example.com -d www.example.com
+```
+
+The `Dynu_ClientId` and `Dynu_Secret` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 25. Use DNSimple API
+
+First you need to login to your DNSimple account and generate a new oauth token.
+
+https://dnsimple.com/a/{your account id}/account/access_tokens
+
+Note that this is an _account_ token and not a user token. The account token is
+needed to infer the `account_id` used in requests. A user token will not be able
+to determine the correct account to use.
+
+```
+export DNSimple_OAUTH_TOKEN="sdfsdfsdfljlbjkljlkjsdfoiwje"
+```
+
+To issue the cert just specify the `dns_dnsimple` API.
+
+```
+acme.sh --issue --dns dns_dnsimple -d example.com
+```
+
+The `DNSimple_OAUTH_TOKEN` will be saved in `~/.acme.sh/account.conf` and will
+be reused when needed.
+
+If you have any issues with this integration please report them to
+https://github.com/pho3nixf1re/acme.sh/issues.
+
 
 # Use custom API
 
