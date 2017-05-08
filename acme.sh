@@ -4851,6 +4851,7 @@ Parameters:
   --useragent                       Specifies the user agent string. it will be saved for future use too.
   --accountemail                    Specifies the account email for registering, Only valid for the '--install' command.
   --accountkey                      Specifies the account key path, Only valid for the '--install' command.
+  --apiurl, --server, -s [acme api URL]   Specifies the particular acme api endpoint to use
   --days                            Specifies the days to renew the cert when using '--issue' command. The max value is $MAX_RENEW days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
@@ -4976,6 +4977,7 @@ _process() {
   _useragent=""
   _accountemail=""
   _accountkey=""
+  _apiurl=""
   _certhome=""
   _confighome=""
   _httpport=""
@@ -5267,6 +5269,11 @@ _process() {
       --accountkey)
         _accountkey="$2"
         ACCOUNT_KEY_PATH="$_accountkey"
+        shift
+        ;;
+      --apiurl | --server | -s)
+        _apiurl="$2"
+        API="$_apiurl"
         shift
         ;;
       --days)
