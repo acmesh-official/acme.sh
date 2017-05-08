@@ -75,8 +75,8 @@ dnsever_txt() {
     return 1
   fi
 
-  _H2="$(grep PHPSESSID "$HTTP_HEADER" | sed s/^Set-//)"
-  export _H2
+  _H1="$(grep PHPSESSID "$HTTP_HEADER" | sed s/^Set-//)"
+  export _H1
 
   response=$(_post "" "https://kr.dnsever.com/start.html")
   if [ $? != 0 ] || [ -z "$response" ]; then
