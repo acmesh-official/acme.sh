@@ -45,7 +45,7 @@ dns_nsone_add() {
   _debug count "$count"
   if [ "$count" = "0" ]; then
     _info "Adding record"
-	
+  
     if _nsone_rest PUT "zones/$_domain/$fulldomain/TXT" "{\"answers\":[{\"answer\":[\"$txtvalue\"]}],\"type\":\"TXT\",\"domain\":\"$fulldomain\",\"zone\":\"$_domain\"}"; then
       if _contains "$response" "$fulldomain"; then
         _info "Added"
@@ -124,9 +124,9 @@ _get_root() {
     fi
 
     if _contains "$response" "\"zone\":\"$h\""; then
-		_sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
-		_domain="$h"
-    return 0
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _domain="$h"
+      return 0
     fi
     p=$i
     i=$(_math "$i" + 1)
