@@ -494,7 +494,8 @@ be reused when needed.
 If you have any issues with this integration please report them to
 https://github.com/pho3nixf1re/acme.sh/issues.
 
-## 26. Use NS1.com API
+<<<<<<< HEAD
+## 28. Use NS1.com API
 
 ```
 export NS1_Key="fdmlfsdklmfdkmqsdfk"
@@ -504,6 +505,8 @@ Ok, let's issue a cert now:
 ```
 acme.sh --issue --dns dns_nsone -d example.com -d www.example.com
 ```
+=======
+>>>>>>> 9201e0a5b905812da1157efa075dd1ab52362c09
 
 # Use custom API
 
