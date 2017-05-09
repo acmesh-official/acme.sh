@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 #Here is a sample custom api script.
 #This file name is "myapi.sh"
@@ -9,7 +9,7 @@
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
-keychain_deploy() {
+strongswan_deploy() {
   _cdomain="$1"
   _ckey="$2"
   _ccert="$3"
@@ -22,10 +22,17 @@ keychain_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  /usr/bin/security import "$_ckey" -k "/Library/Keychains/System.keychain"
-  /usr/bin/security import "$_ccert" -k "/Library/Keychains/System.keychain"
-  /usr/bin/security import "$_cca" -k "/Library/Keychains/System.keychain"
-  /usr/bin/security import "$_cfullchain" -k "/Library/Keychains/System.keychain"
+#  _err "Not implemented yet"
+
+#  return 1
+
+  cp -pv $_ckey       /etc/ipsec.d/private/$(basename $_ckey)
+  cp -pv $_ccert      /etc/ipsec.d/certs/$(basename $_ccert)
+  cp -pv $_cca        /etc/ipsec.d/cacerts/$(basename $_cca)
+  cp -pv $_cfullchain /etc/ipsec.d/cacerts/$(basename $_cfullchain)
+
+  ipsec secrets
 
   return 0
+
 }
