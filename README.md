@@ -8,6 +8,7 @@
 - Just one script to issue, renew and install your certificates automatically.
 - DOES NOT require `root/sudoer` access.
 - Docker friendly
+- IPv6 support
 
 It's probably the `easiest & smartest` shell script to automatically issue & renew the free certificates from Let's Encrypt.
 
