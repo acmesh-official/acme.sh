@@ -55,5 +55,7 @@ else \n \
  /root/.acme.sh/acme.sh --config-home /acme.sh \"\$@\"\n \
 fi" >/entry.sh && chmod +x /entry.sh
 
+VOLUME /acme.sh
+
 ENTRYPOINT ["/entry.sh"]
 CMD ["--help"]
