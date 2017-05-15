@@ -1244,17 +1244,20 @@ createDomainKey() {
   fi
 
   domain=$1
-  length=$2
+  _cdl=$2
 
-  if [ -z "$length" ]; then
+  if [ -z "$_cdl" ]; then
     _debug "Use DEFAULT_DOMAIN_KEY_LENGTH=$DEFAULT_DOMAIN_KEY_LENGTH"
-    length="$DEFAULT_DOMAIN_KEY_LENGTH"
+    _cdl="$DEFAULT_DOMAIN_KEY_LENGTH"
   fi
 
-  _initpath "$domain" "$length"
+  _initpath "$domain" "$_cdl"
 
   if [ ! -f "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$IS_RENEW" ]); then
-    _createkey "$length" "$CERT_KEY_PATH"
+    if _createkey "$_cdl" "$CERT_KEY_PATH"; then
+      _savedomainconf Le_Keylength "$_cdl"
+      _info "The domain key is here: $(__green $CERT_KEY_PATH)"
+    fi
   else
     if [ "$IS_RENEW" ]; then
       _info "Domain key exists, skip"
