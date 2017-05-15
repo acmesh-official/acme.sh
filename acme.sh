@@ -4166,6 +4166,7 @@ _installcert() {
       cp "$_real_key" "$_backup_path/key.bak"
     fi
     cat "$CERT_KEY_PATH" >"$_real_key"
+    chmod go-rwx "$_real_key"
   fi
 
   if [ "$_real_fullchain" ]; then
