@@ -53,7 +53,7 @@ dns_freedns_add() {
   i="$(_math "$i" - 1)"
   sub_domain="$(echo "$fulldomain" | cut -d. -f -"$i")"
 
-  # Sometimes FreeDNS does not return the subdomain page but rather 
+  # Sometimes FreeDNS does not return the subdomain page but rather
   # returns a page regarding becoming a premium member.  This usually
   # happens after a period of inactivity.  Immediately trying again
   # returns the correct subdomain page.  So, we will try twice to
@@ -72,7 +72,7 @@ dns_freedns_add() {
     fi
 
     # Now convert the tables in the HTML to CSV.  This litte gem from
-    # http://stackoverflow.com/questions/1403087/how-can-i-convert-an-html-table-to-csv    
+    # http://stackoverflow.com/questions/1403087/how-can-i-convert-an-html-table-to-csv
     subdomain_csv="$(echo "$htmlpage" \
       | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' \
       | sed 's/^[\ \t]*//g' \
@@ -196,7 +196,7 @@ dns_freedns_rm() {
   FREEDNS_COOKIE="$(_read_conf "$ACCOUNT_CONF_PATH" "FREEDNS_COOKIE")"
   _debug "FreeDNS login cookies: $FREEDNS_COOKIE"
 
-  # Sometimes FreeDNS does not return the subdomain page but rather 
+  # Sometimes FreeDNS does not return the subdomain page but rather
   # returns a page regarding becoming a premium member.  This usually
   # happens after a period of inactivity.  Immediately trying again
   # returns the correct subdomain page.  So, we will try twice to
