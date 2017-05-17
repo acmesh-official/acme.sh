@@ -334,7 +334,6 @@ You don't have to do anything manually!
 1. IBM Bluemix API (formerly SoftLayer)
 
 
-
 And: 
 
 1. lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api

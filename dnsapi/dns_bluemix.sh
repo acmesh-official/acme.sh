@@ -6,7 +6,7 @@
 # Based on sample from Neilpang
 # Report Bugs here: https://github.com/luizgn/acme.sh
 #
-########  Public functions #####################
+####################  Public functions ##################################
 
 BLUEMIX_API_URL="https://${BLUEMIX_USER}:${BLUEMIX_KEY}@api.softlayer.com/rest/v3"
 
