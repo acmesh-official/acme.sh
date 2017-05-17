@@ -444,19 +444,27 @@ if [ "$(printf '\x41')" != 'A' ]; then
 fi
 
 _h2b() {
+  if _exists xxd; then
+    xxd -r -p
+    return
+  fi
+
   hex=$(cat)
   i=1
   j=2
-
-  _debug3 _URGLY_PRINTF "$_URGLY_PRINTF"
-  while true; do
-    if [ -z "$_URGLY_PRINTF" ]; then
+  _debug2 _URGLY_PRINTF "$_URGLY_PRINTF"
+  if [ -z "$_URGLY_PRINTF" ]; then
+    while true; do
       h="$(printf "%s" "$hex" | cut -c $i-$j)"
       if [ -z "$h" ]; then
         break
       fi
       printf "\x$h%s"
-    else
+      i="$(_math "$i" + 2)"
+      j="$(_math "$j" + 2)"
+    done
+  else
+    while true; do
       ic="$(printf "%s" "$hex" | cut -c $i)"
       jc="$(printf "%s" "$hex" | cut -c $j)"
       if [ -z "$ic$jc" ]; then
@@ -465,12 +473,11 @@ _h2b() {
       ic="$(_h_char_2_dec "$ic")"
       jc="$(_h_char_2_dec "$jc")"
       printf '\'"$(printf "%o" "$(_math "$ic" \* 16 + $jc)")""%s"
-    fi
+      i="$(_math "$i" + 2)"
+      j="$(_math "$j" + 2)"
+    done
+  fi
 
-    i="$(_math "$i" + 2)"
-    j="$(_math "$j" + 2)"
-
-  done
 }
 
 _is_solaris() {
