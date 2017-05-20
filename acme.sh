@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.6.9
+VER=2.7.0
 
 PROJECT_NAME="acme.sh"
 
@@ -450,31 +450,35 @@ _h2b() {
   fi
 
   hex=$(cat)
-  i=1
-  j=2
+  ic=""
+  jc=""
   _debug2 _URGLY_PRINTF "$_URGLY_PRINTF"
   if [ -z "$_URGLY_PRINTF" ]; then
-    while true; do
-      h="$(printf "%s" "$hex" | cut -c $i-$j)"
-      if [ -z "$h" ]; then
-        break
-      fi
-      printf "\x$h%s"
-      i="$(_math "$i" + 2)"
-      j="$(_math "$j" + 2)"
-    done
+    if _exists xargs; then
+      _debug2 "xargs"
+      echo "$hex" | sed 's/\([0-9A-F]\{2\}\)/\\\\\\x\1/gI' | xargs printf
+    else
+      for h in $(echo "$hex" | sed 's/\([0-9A-F]\{2\}\)/ \1/gI')
+      do
+        if [ -z "$h" ]; then
+          break
+        fi
+        printf "\x$h%s"
+      done
+    fi
   else
-    while true; do
-      ic="$(printf "%s" "$hex" | cut -c $i)"
-      jc="$(printf "%s" "$hex" | cut -c $j)"
-      if [ -z "$ic$jc" ]; then
-        break
+    for c in $(echo "$hex" | sed 's/\([0-9A-F]\)/ \1/gI')
+    do
+      if [ -z "$ic" ]; then
+        ic=$c
+        continue
       fi
+      jc=$c
       ic="$(_h_char_2_dec "$ic")"
       jc="$(_h_char_2_dec "$jc")"
       printf '\'"$(printf "%o" "$(_math "$ic" \* 16 + $jc)")""%s"
-      i="$(_math "$i" + 2)"
-      j="$(_math "$j" + 2)"
+      ic=""
+      jc=""
     done
   fi
 
