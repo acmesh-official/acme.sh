@@ -4,17 +4,17 @@ RUN apk update -f \
   && apk --no-cache add -f \
   openssl \
   curl \
-  netcat-openbsd
+  netcat-openbsd \
+  && rm -rf /var/cache/apk/*
 
 ENV LE_CONFIG_HOME /acme.sh
 
 ENV AUTO_UPGRADE 1
 
 #Install
-RUN mkdir -p /install_acme.sh/
 ADD ./ /install_acme.sh/
-RUN cd /install_acme.sh && ([ -f /install_acme.sh/acme.sh ] && /install_acme.sh/acme.sh --install || curl https://get.acme.sh | sh)
-RUN rm -rf /install_acme.sh/
+RUN cd /install_acme.sh && ([ -f /install_acme.sh/acme.sh ] && /install_acme.sh/acme.sh --install || curl https://get.acme.sh | sh) && rm -rf /install_acme.sh/
+
 
 RUN ln -s  /root/.acme.sh/acme.sh  /usr/local/bin/acme.sh
 
@@ -54,6 +54,8 @@ if [ \"\$1\" = \"daemon\" ];  then \n \
 else \n \
  /root/.acme.sh/acme.sh --config-home /acme.sh \"\$@\"\n \
 fi" >/entry.sh && chmod +x /entry.sh
+
+VOLUME /acme.sh
 
 ENTRYPOINT ["/entry.sh"]
 CMD ["--help"]

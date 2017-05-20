@@ -444,19 +444,27 @@ if [ "$(printf '\x41')" != 'A' ]; then
 fi
 
 _h2b() {
+  if _exists xxd; then
+    xxd -r -p
+    return
+  fi
+
   hex=$(cat)
   i=1
   j=2
-
-  _debug3 _URGLY_PRINTF "$_URGLY_PRINTF"
-  while true; do
-    if [ -z "$_URGLY_PRINTF" ]; then
+  _debug2 _URGLY_PRINTF "$_URGLY_PRINTF"
+  if [ -z "$_URGLY_PRINTF" ]; then
+    while true; do
       h="$(printf "%s" "$hex" | cut -c $i-$j)"
       if [ -z "$h" ]; then
         break
       fi
       printf "\x$h%s"
-    else
+      i="$(_math "$i" + 2)"
+      j="$(_math "$j" + 2)"
+    done
+  else
+    while true; do
       ic="$(printf "%s" "$hex" | cut -c $i)"
       jc="$(printf "%s" "$hex" | cut -c $j)"
       if [ -z "$ic$jc" ]; then
@@ -465,12 +473,11 @@ _h2b() {
       ic="$(_h_char_2_dec "$ic")"
       jc="$(_h_char_2_dec "$jc")"
       printf '\'"$(printf "%o" "$(_math "$ic" \* 16 + $jc)")""%s"
-    fi
+      i="$(_math "$i" + 2)"
+      j="$(_math "$j" + 2)"
+    done
+  fi
 
-    i="$(_math "$i" + 2)"
-    j="$(_math "$j" + 2)"
-
-  done
 }
 
 _is_solaris() {
@@ -1244,17 +1251,20 @@ createDomainKey() {
   fi
 
   domain=$1
-  length=$2
+  _cdl=$2
 
-  if [ -z "$length" ]; then
+  if [ -z "$_cdl" ]; then
     _debug "Use DEFAULT_DOMAIN_KEY_LENGTH=$DEFAULT_DOMAIN_KEY_LENGTH"
-    length="$DEFAULT_DOMAIN_KEY_LENGTH"
+    _cdl="$DEFAULT_DOMAIN_KEY_LENGTH"
   fi
 
-  _initpath "$domain" "$length"
+  _initpath "$domain" "$_cdl"
 
   if [ ! -f "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$IS_RENEW" ]); then
-    _createkey "$length" "$CERT_KEY_PATH"
+    if _createkey "$_cdl" "$CERT_KEY_PATH"; then
+      _savedomainconf Le_Keylength "$_cdl"
+      _info "The domain key is here: $(__green $CERT_KEY_PATH)"
+    fi
   else
     if [ "$IS_RENEW" ]; then
       _info "Domain key exists, skip"

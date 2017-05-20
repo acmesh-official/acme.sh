@@ -37,7 +37,7 @@ dns_gandi_livedns_add() {
   _debug sub_domain "$_sub_domain"
 
   _gandi_livedns_rest PUT "domains/$_domain/records/$_sub_domain/TXT" "{\"rrset_ttl\": 300, \"rrset_values\":[\"$txtvalue\"]}" \
-    && _contains "$response" '{"message": "Zone Record Created"}' \
+    && _contains "$response" '{"message": "DNS Record Created"}' \
     && _info "Add $(__green "success")"
 }
 
