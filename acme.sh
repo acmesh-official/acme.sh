@@ -458,8 +458,7 @@ _h2b() {
       _debug2 "xargs"
       echo "$hex" | sed 's/\([0-9A-F]\{2\}\)/\\\\\\x\1/gI' | xargs printf
     else
-      for h in $(echo "$hex" | sed 's/\([0-9A-F]\{2\}\)/ \1/gI')
-      do
+      for h in $(echo "$hex" | sed 's/\([0-9A-F]\{2\}\)/ \1/gI'); do
         if [ -z "$h" ]; then
           break
         fi
@@ -467,8 +466,7 @@ _h2b() {
       done
     fi
   else
-    for c in $(echo "$hex" | sed 's/\([0-9A-F]\)/ \1/gI')
-    do
+    for c in $(echo "$hex" | sed 's/\([0-9A-F]\)/ \1/gI'); do
       if [ -z "$ic" ]; then
         ic=$c
         continue
