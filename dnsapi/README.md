@@ -140,7 +140,7 @@ Finally, make the DNS server and update Key available to `acme.sh`
 
 ```
 export NSUPDATE_SERVER="dns.example.com"
-export NSUPDATE_KEY="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa=="
+export NSUPDATE_KEY="/path/to/your/nsupdate.key"
 ```
 
 Ok, let's issue a cert now:
