@@ -238,7 +238,7 @@ _get_root() {
       return 1
     fi
 
-    if ! _contains "$response" "This service does not exist" >/dev/null; then
+    if ! _contains "$response" "This service does not exist" >/dev/null && ! _contains "$response" "NOT_GRANTED_CALL" >/dev/null; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain="$h"
       return 0
