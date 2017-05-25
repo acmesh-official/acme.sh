@@ -62,7 +62,7 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 |19|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/gentoo-stage3-amd64.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Gentoo Linux
 |20|[![Build Status](https://travis-ci.org/Neilpang/acme.sh.svg?branch=master)](https://travis-ci.org/Neilpang/acme.sh)|Mac OSX
 
-For all build statuses, check our [daily build project](https://github.com/Neilpang/acmetest):
+For all build statuses, check our [weekly build project](https://github.com/Neilpang/acmetest):
 
 https://github.com/Neilpang/acmetest
 
