@@ -456,9 +456,9 @@ _h2b() {
   if [ -z "$_URGLY_PRINTF" ]; then
     if _exists xargs; then
       _debug2 "xargs"
-      echo "$hex" | sed 's/\([0-9A-F]\{2\}\)/\\\\\\x\1/gI' | xargs printf
+      echo "$hex" | _upper_case | sed 's/\([0-9A-F]\{2\}\)/\\\\\\x\1/g' | xargs printf
     else
-      for h in $(echo "$hex" | sed 's/\([0-9A-F]\{2\}\)/ \1/gI'); do
+      for h in $(echo "$hex" | _upper_case | sed 's/\([0-9A-F]\{2\}\)/ \1/g'); do
         if [ -z "$h" ]; then
           break
         fi
@@ -466,7 +466,7 @@ _h2b() {
       done
     fi
   else
-    for c in $(echo "$hex" | sed 's/\([0-9A-F]\)/ \1/gI'); do
+    for c in $(echo "$hex" | _upper_case | sed 's/\([0-9A-F]\)/ \1/g'); do
       if [ -z "$ic" ]; then
         ic=$c
         continue
