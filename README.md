@@ -199,7 +199,7 @@ The ownership and permission info of existing files are preserved. You may want 
 
 Install/copy the issued cert/key to the production Apache or Nginx path.
 
-The cert will be `renewed every **60** days by default` (which is configurable). Once the cert is renewed, the Apache/Nginx service will be restarted automatically by the command: `service apache2 restart` or `service nginx restart`.
+The cert will be renewed every **60** days by default (which is configurable). Once the cert is renewed, the Apache/Nginx service will be reloaded automatically by the command: `service apache2 force-reload` or `service nginx force-reload`.
 
 
 # 4. Use Standalone server to issue cert
