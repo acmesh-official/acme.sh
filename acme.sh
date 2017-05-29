@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.7.0
+VER=2.7.1
 
 PROJECT_NAME="acme.sh"
 
@@ -443,6 +443,11 @@ if [ "$(printf '\x41')" != 'A' ]; then
   _URGLY_PRINTF=1
 fi
 
+_ESCAPE_XARGS=""
+if [ "$(printf %s '\\x41' | xargs printf)" == 'A' ]; then
+  _ESCAPE_XARGS=1
+fi
+
 _h2b() {
   if _exists xxd; then
     xxd -r -p
@@ -454,7 +459,7 @@ _h2b() {
   jc=""
   _debug2 _URGLY_PRINTF "$_URGLY_PRINTF"
   if [ -z "$_URGLY_PRINTF" ]; then
-    if _exists xargs; then
+    if [ "$_ESCAPE_XARGS" ] && _exists xargs; then
       _debug2 "xargs"
       echo "$hex" | _upper_case | sed 's/\([0-9A-F]\{2\}\)/\\\\\\x\1/g' | xargs printf
     else
