@@ -444,7 +444,7 @@ if [ "$(printf '\x41')" != 'A' ]; then
 fi
 
 _ESCAPE_XARGS=""
-if [ "$(printf %s '\\x41' | xargs printf)" == 'A' ]; then
+if [ "$(printf %s '\\x41' | xargs printf)" = 'A' ]; then
   _ESCAPE_XARGS=1
 fi
 
