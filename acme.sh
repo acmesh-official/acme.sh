@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.6.9
+VER=2.7.1
 
 PROJECT_NAME="acme.sh"
 
@@ -166,7 +166,14 @@ _syslog() {
   fi
   _logclass="$1"
   shift
-  logger -i -t "$PROJECT_NAME" -p "$_logclass" "$(_printargs "$@")" >/dev/null 2>&1
+  if [ -z "$__logger_i" ]; then
+    if _contains "$(logger --help 2>&1)" "-i"; then
+      __logger_i="logger -i"
+    else
+      __logger_i="logger"
+    fi
+  fi
+  $__logger_i -t "$PROJECT_NAME" -p "$_logclass" "$(_printargs "$@")" >/dev/null 2>&1
 }
 
 _log() {
@@ -436,34 +443,48 @@ if [ "$(printf '\x41')" != 'A' ]; then
   _URGLY_PRINTF=1
 fi
 
-_h2b() {
-  hex=$(cat)
-  i=1
-  j=2
+_ESCAPE_XARGS=""
+if [ "$(printf %s '\\x41' | xargs printf)" = 'A' ]; then
+  _ESCAPE_XARGS=1
+fi
 
-  _debug3 _URGLY_PRINTF "$_URGLY_PRINTF"
-  while true; do
-    if [ -z "$_URGLY_PRINTF" ]; then
-      h="$(printf "%s" "$hex" | cut -c $i-$j)"
-      if [ -z "$h" ]; then
-        break
-      fi
-      printf "\x$h%s"
+_h2b() {
+  if _exists xxd; then
+    xxd -r -p
+    return
+  fi
+
+  hex=$(cat)
+  ic=""
+  jc=""
+  _debug2 _URGLY_PRINTF "$_URGLY_PRINTF"
+  if [ -z "$_URGLY_PRINTF" ]; then
+    if [ "$_ESCAPE_XARGS" ] && _exists xargs; then
+      _debug2 "xargs"
+      echo "$hex" | _upper_case | sed 's/\([0-9A-F]\{2\}\)/\\\\\\x\1/g' | xargs printf
     else
-      ic="$(printf "%s" "$hex" | cut -c $i)"
-      jc="$(printf "%s" "$hex" | cut -c $j)"
-      if [ -z "$ic$jc" ]; then
-        break
+      for h in $(echo "$hex" | _upper_case | sed 's/\([0-9A-F]\{2\}\)/ \1/g'); do
+        if [ -z "$h" ]; then
+          break
+        fi
+        printf "\x$h%s"
+      done
+    fi
+  else
+    for c in $(echo "$hex" | _upper_case | sed 's/\([0-9A-F]\)/ \1/g'); do
+      if [ -z "$ic" ]; then
+        ic=$c
+        continue
       fi
+      jc=$c
       ic="$(_h_char_2_dec "$ic")"
       jc="$(_h_char_2_dec "$jc")"
       printf '\'"$(printf "%o" "$(_math "$ic" \* 16 + $jc)")""%s"
-    fi
+      ic=""
+      jc=""
+    done
+  fi
 
-    i="$(_math "$i" + 2)"
-    j="$(_math "$j" + 2)"
-
-  done
 }
 
 _is_solaris() {
@@ -1237,17 +1258,20 @@ createDomainKey() {
   fi
 
   domain=$1
-  length=$2
+  _cdl=$2
 
-  if [ -z "$length" ]; then
+  if [ -z "$_cdl" ]; then
     _debug "Use DEFAULT_DOMAIN_KEY_LENGTH=$DEFAULT_DOMAIN_KEY_LENGTH"
-    length="$DEFAULT_DOMAIN_KEY_LENGTH"
+    _cdl="$DEFAULT_DOMAIN_KEY_LENGTH"
   fi
 
-  _initpath "$domain" "$length"
+  _initpath "$domain" "$_cdl"
 
   if [ ! -f "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$IS_RENEW" ]); then
-    _createkey "$length" "$CERT_KEY_PATH"
+    if _createkey "$_cdl" "$CERT_KEY_PATH"; then
+      _savedomainconf Le_Keylength "$_cdl"
+      _info "The domain key is here: $(__green $CERT_KEY_PATH)"
+    fi
   else
     if [ "$IS_RENEW" ]; then
       _info "Domain key exists, skip"
@@ -2617,10 +2641,10 @@ _checkConf() {
 _isRealNginxConf() {
   _debug "_isRealNginxConf $1 $2"
   if [ -f "$2" ]; then
-    for _fln in $(grep -n "^ *server_name.* $1" "$2" | cut -d : -f 1); do
+    for _fln in $(tr "\t" ' ' <"$2" | grep -n "^ *server_name.* $1" | cut -d : -f 1); do
       _debug _fln "$_fln"
       if [ "$_fln" ]; then
-        _start=$(cat "$2" | _head_n "$_fln" | grep -n "^ *server *{" | _tail_n 1)
+        _start=$(tr "\t" ' ' <"$2" | _head_n "$_fln" | grep -n "^ *server *{" | _tail_n 1)
         _debug "_start" "$_start"
         _start_n=$(echo "$_start" | cut -d : -f 1)
         _start_nn=$(_math $_start_n + 1)
@@ -2629,8 +2653,8 @@ _isRealNginxConf() {
 
         _left="$(sed -n "${_start_nn},99999p" "$2")"
         _debug2 _left "$_left"
-        if echo "$_left" | grep -n "^ *server *{" >/dev/null; then
-          _end=$(echo "$_left" | grep -n "^ *server *{" | _head_n 1)
+        if echo "$_left" | tr "\t" ' ' | grep -n "^ *server *{" >/dev/null; then
+          _end=$(echo "$_left" | tr "\t" ' ' | grep -n "^ *server *{" | _head_n 1)
           _debug "_end" "$_end"
           _end_n=$(echo "$_end" | cut -d : -f 1)
           _debug "_end_n" "$_end_n"
