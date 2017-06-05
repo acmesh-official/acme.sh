@@ -2665,7 +2665,7 @@ _isRealNginxConf() {
 
         _debug "_seg_n" "$_seg_n"
 
-        if [ "$(echo "$_seg_n" | _egrep_o "^ *ssl  *on *;")" ]
+        if [ "$(echo "$_seg_n" | _egrep_o "^ *ssl  *on *;")" ] \
           || [ "$(echo "$_seg_n" | _egrep_o "listen .* ssl[ |;]")" ]; then
           _debug "ssl on, skip"
           return 1
