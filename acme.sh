@@ -2579,7 +2579,7 @@ location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
     _err "write nginx conf error, but don't worry, the file is restored."
     return 1
   fi
-
+  _debug3 "Modified config:$(cat $FOUND_REAL_NGINX_CONF)"
   _info "nginx conf is done, let's check it again."
   if ! _exec "nginx -t" >/dev/null; then
     _exec_err
