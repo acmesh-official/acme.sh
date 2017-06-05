@@ -2665,12 +2665,14 @@ _isRealNginxConf() {
 
         _debug "_seg_n" "$_seg_n"
 
-        if [ "$(echo "$_seg_n" | _egrep_o "^ *ssl  *on *;")" ]; then
+        if [ "$(echo "$_seg_n" | _egrep_o "^ *ssl  *on *;")" ] \
+          || [ "$(echo "$_seg_n" | _egrep_o "listen .* ssl[ |;]")" ]; then
           _debug "ssl on, skip"
-          return 1
+        else
+          FOUND_REAL_NGINX_CONF_LN=$_fln
+          _debug3 "found FOUND_REAL_NGINX_CONF_LN" "$FOUND_REAL_NGINX_CONF_LN"
+          return 0
         fi
-        FOUND_REAL_NGINX_CONF_LN=$_fln
-        return 0
       fi
     done
   fi
