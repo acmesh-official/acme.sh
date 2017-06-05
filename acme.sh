@@ -2672,7 +2672,7 @@ _isRealNginxConf() {
           FOUND_REAL_NGINX_CONF_LN=$_fln
           _debug3 "found FOUND_REAL_NGINX_CONF_LN" "$FOUND_REAL_NGINX_CONF_LN"
           return 0
-        fi        
+        fi
       fi
     done
   fi
