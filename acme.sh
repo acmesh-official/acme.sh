@@ -4640,6 +4640,11 @@ install() {
     return 1
   fi
 
+  if [ -z "$_c_home" ] && [ "$LE_CONFIG_HOME" != "$LE_WORKING_DIR" ]; then
+    _info "Using config home: $LE_CONFIG_HOME"
+    _c_home="$LE_CONFIG_HOME"
+  fi
+
   #convert from le
   if [ -d "$HOME/.le" ]; then
     for envfile in "le.env" "le.sh.env"; do
