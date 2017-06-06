@@ -271,7 +271,7 @@ More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 Support the `dns-01` challenge.
 
 ```bash
-acme.sh --issue --dns -d example.com -d www.example.com -d cp.example.com
+acme.sh --issue --dns -d example.com --dns -d www.example.com --dns -d cp.example.com
 ```
 
 You should get an output like below:
@@ -291,7 +291,7 @@ Please add those txt records to the domains. Waiting for the dns to take effect.
 Then just rerun with `renew` argument:
 
 ```bash
-acme.sh --renew -d example.com
+acme.sh --renew -d example.com -d www.example.com -d cp.example.com
 ```
 
 Ok, it's finished.
