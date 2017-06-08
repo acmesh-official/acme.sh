@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/env sh
 
 ## Infoblox API integration by Jason Keller and Elijah Tenai
 ##
@@ -43,7 +43,7 @@ dns_infoblox_add() {
   result=$(_post "" "$baseurlnObject" "" "POST")
 
   ## Let's see if we get something intelligible back from the unit
-  if echo "$result" | egrep "record:txt/.*:.*/${Infoblox_View}"; then
+  if echo "$result" | egrep "record:txt/.*:.*/$Infoblox_View"; then
     _info "Successfully created the txt record"
     return 0
   else
@@ -78,12 +78,12 @@ dns_infoblox_rm() {
   ## Let's see if we get something intelligible back from the grid
   if echo "$result" | egrep 'record:txt/.*:.*/default'; then
     ## Extract the object reference
-    objRef=$(printf "%b" "$result" | _egrep_o "record:txt/.*:.*/${Infoblox_View}")
+    objRef=$(printf "%b" "$result" | _egrep_o "record:txt/.*:.*/$Infoblox_View")
     objRmUrl="https://$Infoblox_Server/wapi/v2.2.2/$objRef"
     ## Delete them! All the stale records!
     rmResult=$(_post "" "$objRmUrl" "" "DELETE")
     ## Let's see if that worked
-    if echo "$rmResult" | egrep "record:txt/.*:.*/${Infoblox_View}"; then
+    if echo "$rmResult" | egrep "record:txt/.*:.*/$Infoblox_View"; then
       _info "Successfully deleted $objRef"
       return 0
     else
