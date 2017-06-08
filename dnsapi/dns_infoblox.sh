@@ -1,4 +1,4 @@
-#!/bin/env sh
+#!/usr/bin/env sh
 
 ## Infoblox API integration by Jason Keller and Elijah Tenai
 ##
