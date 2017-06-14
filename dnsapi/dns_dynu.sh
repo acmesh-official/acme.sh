@@ -122,18 +122,30 @@ dns_dynu_rm() {
 # _domain_name=domain.com
 _get_root() {
   domain=$1
-  if ! _dynu_rest GET "dns/getroot/$domain"; then
-    return 1
-  fi
+  i=2
+  p=1
+  while true; do
+    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _debug h "$h"
+    if [ -z "$h" ]; then
+      #not valid
+      return 1
+    fi
 
-  if ! _contains "$response" "domain_name"; then
-    _debug "Domain name not found."
-    return 1
-  fi
+    if ! _dynu_rest GET "dns/get/$h"; then
+      return 1
+    fi
 
-  _domain_name=$(printf "%s" "$response" | tr -d "{}" | cut -d , -f 1 | cut -d : -f 2 | cut -d '"' -f 2)
-  _node=$(printf "%s" "$response" | tr -d "{}" | cut -d , -f 3 | cut -d : -f 2 | cut -d '"' -f 2)
-  return 0
+    if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
+      _domain_name=$h
+      _node=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      return 0
+    fi
+    p=$i
+    i=$(_math "$i" + 1)
+  done
+  return 1
+
 }
 
 _get_recordid() {
