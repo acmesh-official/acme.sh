@@ -77,7 +77,7 @@ dns_infoblox_rm() {
   result=$(_get "$baseurlnObject")
 
   ## Let's see if we get something intelligible back from the grid
-  if echo "$result" | egrep 'record:txt/.*:.*/default'; then
+  if echo "$result" | egrep "record:txt/.*:.*/$Infoblox_View"; then
     ## Extract the object reference
     objRef=$(printf "%b" "$result" | _egrep_o "record:txt/.*:.*/$Infoblox_View")
     objRmUrl="https://$Infoblox_Server/wapi/v2.2.2/$objRef"
