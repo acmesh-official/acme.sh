@@ -151,6 +151,13 @@ _dlg_versions() {
     echo "apache doesn't exists."
   fi
 
+  echo "nginx:"
+  if _exists "nginx"; then
+    nginx -V 2>&1
+  else
+    echo "nginx doesn't exists."
+  fi
+
   echo "nc:"
   if _exists "nc"; then
     nc -h 2>&1
