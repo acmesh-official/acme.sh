@@ -2723,7 +2723,7 @@ _clearup() {
 _clearupdns() {
   _debug "_clearupdns"
   if [ "$dnsadded" != 1 ] || [ -z "$vlist" ]; then
-    _debug "Dns not added, skip."
+    _debug "skip dns."
     return
   fi
 
