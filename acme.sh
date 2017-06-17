@@ -26,6 +26,7 @@ DEFAULT_DOMAIN_KEY_LENGTH=2048
 DEFAULT_OPENSSL_BIN="openssl"
 
 STAGE_CA="https://acme-staging.api.letsencrypt.org/directory"
+_OLD_STAGE_CA_HOST="https://acme-staging.api.letsencrypt.org"
 
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
@@ -3908,6 +3909,10 @@ renew() {
   if [ "$Le_API" ]; then
     if [ "$_OLD_CA_HOST" = "$Le_API" ]; then
       export Le_API="$DEFAULT_CA"
+      _savedomainconf Le_API "$Le_API"
+    fi
+    if [ "$_OLD_STAGE_CA_HOST" = "$Le_API" ]; then
+      export Le_API="$STAGE_CA"
       _savedomainconf Le_API "$Le_API"
     fi
     export ACME_DIRECTORY="$Le_API"
