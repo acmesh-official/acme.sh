@@ -4512,6 +4512,7 @@ deactivate() {
   _d_domain_list="$1"
   _d_type="$2"
   _initpath
+  _initAPI
   _debug _d_domain_list "$_d_domain_list"
   if [ -z "$(echo $_d_domain_list | cut -d , -f 1)" ]; then
     _usage "Usage: $PROJECT_ENTRY --deactivate -d domain.com [-d domain.com]"
