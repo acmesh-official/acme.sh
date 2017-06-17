@@ -13,7 +13,8 @@ _SCRIPT_="$0"
 
 _SUB_FOLDERS="dnsapi deploy"
 
-DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
+_OLD_CA_HOST="https://acme-v01.api.letsencrypt.org"
+DEFAULT_CA="https://acme-v01.api.letsencrypt.org/directory"
 DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.1.1-August-1-2016.pdf"
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
@@ -24,7 +25,7 @@ DEFAULT_DOMAIN_KEY_LENGTH=2048
 
 DEFAULT_OPENSSL_BIN="openssl"
 
-STAGE_CA="https://acme-staging.api.letsencrypt.org"
+STAGE_CA="https://acme-staging.api.letsencrypt.org/directory"
 
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
@@ -1714,8 +1715,8 @@ _send_signed_request() {
   while [ "${_request_retry_times}" -lt "$MAX_REQUEST_RETRY_TIMES" ]; do
     _debug3 _request_retry_times "$_request_retry_times"
     if [ -z "$_CACHED_NONCE" ]; then
-      _debug2 "Get nonce."
-      nonceurl="$API/directory"
+      _debug2 "Get nonce. ACME_DIRECTORY" "$ACME_DIRECTORY"
+      nonceurl="$ACME_DIRECTORY"
       _headers="$(_get "$nonceurl" "onlyheader")"
 
       if [ "$?" != "0" ]; then
@@ -2169,6 +2170,53 @@ __initHome() {
   fi
 }
 
+#server
+_initAPI() {
+  _api_server="${1:-$ACME_DIRECTORY}"
+  _debug "_init api for server: $_api_server"
+  
+  if [ "$_api_server" = "$DEFAULT_CA" ]; then
+    #just for performance, hardcode the default entry points
+    export ACME_KEY_CHANGE="https://acme-v01.api.letsencrypt.org/acme/key-change"
+    export ACME_NEW_AUTHZ="https://acme-v01.api.letsencrypt.org/acme/new-authz"
+    export ACME_NEW_CERT="https://acme-v01.api.letsencrypt.org/acme/new-cert"
+    export ACME_NEW_REG="https://acme-v01.api.letsencrypt.org/acme/new-reg"
+    export ACME_REVOKE_CERT="https://acme-v01.api.letsencrypt.org/acme/revoke-cert"
+  fi
+
+  if [ -z "$ACME_KEY_CHANGE" ]; then
+    response=$(_get "$_api_server")
+    if [ "$?" != "0" ]; then
+      _debug2 "response" "$response"
+      _err "Can not init api."
+      return 1
+    fi
+    _debug2 "response" "$response"
+
+    ACME_KEY_CHANGE=$(echo "$response" | _egrep_o 'key-change" *: *"[^"]*"' | cut -d '"' -f 3)
+    export ACME_KEY_CHANGE
+
+    ACME_NEW_AUTHZ=$(echo "$response" | _egrep_o 'new-authz" *: *"[^"]*"' | cut -d '"' -f 3)
+    export ACME_NEW_AUTHZ
+
+    ACME_NEW_CERT=$(echo "$response" | _egrep_o 'new-cert" *: *"[^"]*"' | cut -d '"' -f 3)
+    export ACME_NEW_CERT
+
+    ACME_NEW_REG=$(echo "$response" | _egrep_o 'new-reg" *: *"[^"]*"' | cut -d '"' -f 3)
+    export ACME_NEW_REG
+
+    ACME_REVOKE_CERT=$(echo "$response" | _egrep_o 'revoke-cert" *: *"[^"]*"' | cut -d '"' -f 3)
+    export ACME_REVOKE_CERT
+
+  fi
+
+  _debug "ACME_KEY_CHANGE" "$ACME_KEY_CHANGE"
+  _debug "ACME_NEW_AUTHZ" "$ACME_NEW_AUTHZ"
+  _debug "ACME_NEW_CERT" "$ACME_NEW_CERT"
+  _debug "ACME_NEW_REG" "$ACME_NEW_REG"
+  _debug "ACME_REVOKE_CERT" "$ACME_REVOKE_CERT"
+}
+
 #[domain]  [keylength]
 _initpath() {
 
@@ -2189,17 +2237,19 @@ _initpath() {
     CA_HOME="$DEFAULT_CA_HOME"
   fi
 
-  if [ -z "$API" ]; then
+  if [ -z "$ACME_DIRECTORY" ]; then
     if [ -z "$STAGE" ]; then
-      API="$DEFAULT_CA"
+      ACME_DIRECTORY="$DEFAULT_CA"
     else
-      API="$STAGE_CA"
-      _info "Using stage api:$API"
+      ACME_DIRECTORY="$STAGE_CA"
+      _info "Using stage ACME_DIRECTORY: $ACME_DIRECTORY"
     fi
   fi
 
-  _API_HOST="$(echo "$API" | cut -d : -f 2 | tr -d '/')"
-  CA_DIR="$CA_HOME/$_API_HOST"
+  _ACME_SERVER_HOST="$(echo "$ACME_DIRECTORY" | cut -d : -f 2 | tr -d '/')"
+  _debug2 "_ACME_SERVER_HOST" "$_ACME_SERVER_HOST"
+
+  CA_DIR="$CA_HOME/$_ACME_SERVER_HOST"
 
   _DEFAULT_CA_CONF="$CA_DIR/ca.conf"
 
@@ -3020,7 +3070,7 @@ _regAccount() {
   if ! _calcjwk "$ACCOUNT_KEY_PATH"; then
     return 1
   fi
-
+  _initAPI
   _updateTos=""
   _reg_res="new-reg"
   while true; do
@@ -3035,7 +3085,7 @@ _regAccount() {
     if [ -z "$_updateTos" ]; then
       _info "Registering account"
 
-      if ! _send_signed_request "$API/acme/new-reg" "$regjson"; then
+      if ! _send_signed_request "${ACME_NEW_REG}" "$regjson"; then
         _err "Register account Error: $response"
         return 1
       fi
@@ -3126,7 +3176,7 @@ __get_domain_new_authz() {
   _authz_i=0
   while [ "$_authz_i" -lt "$_Max_new_authz_retry_times" ]; do
     _debug "Try new-authz for the $_authz_i time."
-    if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$(_idn "$_gdnd")\"}}"; then
+    if ! _send_signed_request "${ACME_NEW_AUTHZ}" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$(_idn "$_gdnd")\"}}"; then
       _err "Can not get domain new authz."
       return 1
     fi
@@ -3204,12 +3254,15 @@ issue() {
   if [ "$_web_roots" = "dns-cx" ]; then
     _web_roots="dns_cx"
   fi
-  _debug "Using api: $API"
 
   if [ ! "$IS_RENEW" ]; then
     _initpath "$_main_domain" "$_key_length"
     mkdir -p "$DOMAIN_PATH"
   fi
+
+  _debug "Using ACME_DIRECTORY: $ACME_DIRECTORY"
+
+  _initAPI
 
   if [ -f "$DOMAIN_CONF" ]; then
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
@@ -3244,7 +3297,7 @@ issue() {
     _cleardomainconf "Le_LocalAddress"
   fi
 
-  Le_API="$API"
+  Le_API="$ACME_DIRECTORY"
   _savedomainconf "Le_API" "$Le_API"
 
   if [ "$_alt_domains" = "$NO_VALUE" ]; then
@@ -3683,7 +3736,7 @@ issue() {
   _info "Verify finished, start to sign."
   der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _url_replace)"
 
-  if ! _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"; then
+  if ! _send_signed_request "${ACME_NEW_CERT}" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"; then
     _err "Sign failed."
     _on_issue_err "$_post_hook"
     return 1
@@ -3736,7 +3789,8 @@ issue() {
 
   Le_LinkIssuer=$(grep -i '^Link' "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2 | cut -d ';' -f 1 | tr -d '<>')
   if ! _contains "$Le_LinkIssuer" ":"; then
-    Le_LinkIssuer="$API$Le_LinkIssuer"
+    _info "$(__red "Relative issuer link found.")"
+    Le_LinkIssuer="$_ACME_SERVER_HOST$Le_LinkIssuer"
   fi
   _debug Le_LinkIssuer "$Le_LinkIssuer"
   _savedomainconf "Le_LinkIssuer" "$Le_LinkIssuer"
@@ -3852,7 +3906,11 @@ renew() {
   . "$DOMAIN_CONF"
 
   if [ "$Le_API" ]; then
-    API="$Le_API"
+    if [ "$_OLD_CA_HOST" = "$Le_API" ]; then
+      export Le_API="$DEFAULT_CA"
+      _savedomainconf Le_API "$Le_API"
+    fi
+    export ACME_DIRECTORY="$Le_API"
     #reload ca configs
     ACCOUNT_KEY_PATH=""
     ACCOUNT_JSON_PATH=""
@@ -4315,8 +4373,10 @@ revoke() {
     return 1
   fi
 
+  _initAPI
+
   data="{\"resource\": \"revoke-cert\", \"certificate\": \"$cert\"}"
-  uri="$API/acme/revoke-cert"
+  uri="${ACME_REVOKE_CERT}"
 
   if [ -f "$CERT_KEY_PATH" ]; then
     _info "Try domain key first."
@@ -4875,6 +4935,7 @@ Parameters:
 
   --reloadcmd \"service nginx reload\" After issue/renew, it's used to reload the server.
 
+  --server SERVER                   ACME Directory Resource URI. (default: https://acme-v01.api.letsencrypt.org/directory)
   --accountconf                     Specifies a customized account config file.
   --home                            Specifies the home dir for $PROJECT_NAME .
   --cert-home                       Specifies the home dir to save all the certs, only valid for '--install' command.
@@ -5149,6 +5210,11 @@ _process() {
         ;;
       --staging | --test)
         STAGE="1"
+        ;;
+      --server)
+        ACME_DIRECTORY="$2"
+        export ACME_DIRECTORY
+        shift
         ;;
       --debug)
         if [ -z "$2" ] || _startswith "$2" "-"; then
