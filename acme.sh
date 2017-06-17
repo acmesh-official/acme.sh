@@ -2174,7 +2174,7 @@ __initHome() {
 _initAPI() {
   _api_server="${1:-$ACME_DIRECTORY}"
   _debug "_init api for server: $_api_server"
-  
+
   if [ "$_api_server" = "$DEFAULT_CA" ]; then
     #just for performance, hardcode the default entry points
     export ACME_KEY_CHANGE="https://acme-v01.api.letsencrypt.org/acme/key-change"
