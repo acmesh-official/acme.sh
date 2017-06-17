@@ -3171,7 +3171,7 @@ _findHook() {
 __get_domain_new_authz() {
   _gdnd="$1"
   _info "Getting new-authz for domain" "$_gdnd"
-
+  _initAPI
   _Max_new_authz_retry_times=5
   _authz_i=0
   while [ "$_authz_i" -lt "$_Max_new_authz_retry_times" ]; do
