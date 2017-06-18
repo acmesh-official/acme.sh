@@ -104,21 +104,21 @@ if [ -t 1 ]; then
 fi
 
 __green() {
-  if [ "$__INTERACTIVE" ]; then
+  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" ]; then
     printf '\033[1;31;32m'
   fi
   printf -- "%b" "$1"
-  if [ "$__INTERACTIVE" ]; then
+  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" ]; then
     printf '\033[0m'
   fi
 }
 
 __red() {
-  if [ "$__INTERACTIVE" ]; then
+  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" ]; then
     printf '\033[1;31;40m'
   fi
   printf -- "%b" "$1"
-  if [ "$__INTERACTIVE" ]; then
+  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" ]; then
     printf '\033[0m'
   fi
 }
@@ -4896,6 +4896,7 @@ Parameters:
   --ca-bundle                       Specifies the path to the CA certificate bundle to verify api server's certificate.
   --ca-path                         Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
+  --no-color                        Do not output color text.
   --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
   --csr                             Specifies the input csr.
   --pre-hook                        Command to be run before obtaining any certificates.
@@ -5342,6 +5343,9 @@ _process() {
         ;;
       --nocron)
         _nocron="1"
+        ;;
+      --no-color)
+        export ACME_NO_COLOR=1
         ;;
       --ecc)
         _ecc="isEcc"
