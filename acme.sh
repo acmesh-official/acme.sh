@@ -102,6 +102,10 @@ __INTERACTIVE=""
 if [ -t 1 ]; then
   __INTERACTIVE="1"
 fi
+if [[ "$TERM" =~ "^vt" ]]
+then
+  unset __INTERACTIVE
+fi
 
 __green() {
   if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" ]; then
