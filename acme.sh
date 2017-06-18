@@ -3940,6 +3940,10 @@ signcsr() {
     return 1
   fi
   _debug _csrsubj "$_csrsubj"
+  if _contains "$_csrsubj" ' ' || ! _contains "$_csrsubj" '.'; then
+    _info "It seems that the subject: $_csrsubj is not a valid domain name. Drop it."
+    _csrsubj=""
+  fi
 
   _csrdomainlist=$(_readSubjectAltNamesFromCSR "$_csrfile")
   if [ "$?" != "0" ]; then
