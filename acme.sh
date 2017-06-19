@@ -2265,7 +2265,7 @@ _initpath() {
     fi
   fi
 
-  _ACME_SERVER_HOST="$(echo "$ACME_DIRECTORY" | cut -d : -f 2 | tr -d '/')"
+  _ACME_SERVER_HOST="$(echo "$ACME_DIRECTORY" | cut -d : -f 2 | tr -s / | cut -d / -f 2)"
   _debug2 "_ACME_SERVER_HOST" "$_ACME_SERVER_HOST"
 
   CA_DIR="$CA_HOME/$_ACME_SERVER_HOST"
@@ -5119,6 +5119,7 @@ _process() {
   _openssl_bin=""
   _syslog=""
   _use_wget=""
+  _server=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -5237,6 +5238,7 @@ _process() {
         ;;
       --server)
         ACME_DIRECTORY="$2"
+        _server="$ACME_DIRECTORY"
         export ACME_DIRECTORY
         shift
         ;;
@@ -5560,6 +5562,9 @@ _process() {
 
   if [ "$DEBUG" ]; then
     version
+    if [ "$_server" ]; then
+      _debug "Using server: $_server"
+    fi
   fi
 
   case "${_CMD}" in
