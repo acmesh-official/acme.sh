@@ -1716,9 +1716,18 @@ _send_signed_request() {
   while [ "${_request_retry_times}" -lt "$MAX_REQUEST_RETRY_TIMES" ]; do
     _debug3 _request_retry_times "$_request_retry_times"
     if [ -z "$_CACHED_NONCE" ]; then
-      _debug2 "Get nonce. ACME_DIRECTORY" "$ACME_DIRECTORY"
-      nonceurl="$ACME_DIRECTORY"
-      _headers="$(_get "$nonceurl" "onlyheader")"
+      if [ "$ACME_NEW_NONCE" ]; then
+        _debug2 "Get nonce. ACME_NEW_NONCE" "$ACME_NEW_NONCE"
+        nonceurl="$ACME_NEW_NONCE"
+        if _post "" "$nonceurl" "" "HEAD"; then
+          _headers="$(cat "$HTTP_HEADER")"
+        fi
+      fi
+      if [ -z "$_headers" ]; then
+        _debug2 "Get nonce. ACME_DIRECTORY" "$ACME_DIRECTORY"
+        nonceurl="$ACME_DIRECTORY"
+        _headers="$(_get "$nonceurl" "onlyheader")"
+      fi
 
       if [ "$?" != "0" ]; then
         _err "Can not connect to $nonceurl to get nonce."
@@ -2180,12 +2189,12 @@ _initAPI() {
     #just for performance, hardcode the default entry points
     export ACME_KEY_CHANGE="https://acme-v01.api.letsencrypt.org/acme/key-change"
     export ACME_NEW_AUTHZ="https://acme-v01.api.letsencrypt.org/acme/new-authz"
-    export ACME_NEW_CERT="https://acme-v01.api.letsencrypt.org/acme/new-cert"
-    export ACME_NEW_REG="https://acme-v01.api.letsencrypt.org/acme/new-reg"
+    export ACME_NEW_ORDER="https://acme-v01.api.letsencrypt.org/acme/new-cert"
+    export ACME_NEW_ACCOUNT="https://acme-v01.api.letsencrypt.org/acme/new-reg"
     export ACME_REVOKE_CERT="https://acme-v01.api.letsencrypt.org/acme/revoke-cert"
   fi
 
-  if [ -z "$ACME_KEY_CHANGE" ]; then
+  if [ -z "$ACME_NEW_ACCOUNT" ]; then
     response=$(_get "$_api_server")
     if [ "$?" != "0" ]; then
       _debug2 "response" "$response"
@@ -2200,21 +2209,30 @@ _initAPI() {
     ACME_NEW_AUTHZ=$(echo "$response" | _egrep_o 'new-authz" *: *"[^"]*"' | cut -d '"' -f 3)
     export ACME_NEW_AUTHZ
 
-    ACME_NEW_CERT=$(echo "$response" | _egrep_o 'new-cert" *: *"[^"]*"' | cut -d '"' -f 3)
-    export ACME_NEW_CERT
+    ACME_NEW_ORDER=$(echo "$response" | _egrep_o 'new-cert" *: *"[^"]*"' | cut -d '"' -f 3)
+    if [ -z "$ACME_NEW_ORDER" ]; then
+      ACME_NEW_ORDER=$(echo "$response" | _egrep_o 'new-order" *: *"[^"]*"' | cut -d '"' -f 3)
+    fi
+    export ACME_NEW_ORDER
 
-    ACME_NEW_REG=$(echo "$response" | _egrep_o 'new-reg" *: *"[^"]*"' | cut -d '"' -f 3)
-    export ACME_NEW_REG
+    ACME_NEW_ACCOUNT=$(echo "$response" | _egrep_o 'new-reg" *: *"[^"]*"' | cut -d '"' -f 3)
+    if [ -z "$ACME_NEW_ACCOUNT" ]; then
+      ACME_NEW_ACCOUNT=$(echo "$response" | _egrep_o 'new-account" *: *"[^"]*"' | cut -d '"' -f 3)
+    fi
+    export ACME_NEW_ACCOUNT
 
     ACME_REVOKE_CERT=$(echo "$response" | _egrep_o 'revoke-cert" *: *"[^"]*"' | cut -d '"' -f 3)
     export ACME_REVOKE_CERT
+
+    ACME_NEW_NONCE=$(echo "$response" | _egrep_o 'new-nonce" *: *"[^"]*"' | cut -d '"' -f 3)
+    export ACME_NEW_NONCE
 
   fi
 
   _debug "ACME_KEY_CHANGE" "$ACME_KEY_CHANGE"
   _debug "ACME_NEW_AUTHZ" "$ACME_NEW_AUTHZ"
-  _debug "ACME_NEW_CERT" "$ACME_NEW_CERT"
-  _debug "ACME_NEW_REG" "$ACME_NEW_REG"
+  _debug "ACME_NEW_ORDER" "$ACME_NEW_ORDER"
+  _debug "ACME_NEW_ACCOUNT" "$ACME_NEW_ACCOUNT"
   _debug "ACME_REVOKE_CERT" "$ACME_REVOKE_CERT"
 }
 
@@ -3086,7 +3104,7 @@ _regAccount() {
     if [ -z "$_updateTos" ]; then
       _info "Registering account"
 
-      if ! _send_signed_request "${ACME_NEW_REG}" "$regjson"; then
+      if ! _send_signed_request "${ACME_NEW_ACCOUNT}" "$regjson"; then
         _err "Register account Error: $response"
         return 1
       fi
@@ -3737,7 +3755,7 @@ issue() {
   _info "Verify finished, start to sign."
   der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _url_replace)"
 
-  if ! _send_signed_request "${ACME_NEW_CERT}" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"; then
+  if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"; then
     _err "Sign failed."
     _on_issue_err "$_post_hook"
     return 1
