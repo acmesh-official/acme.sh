@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.6.9
+VER=2.7.3
 
 PROJECT_NAME="acme.sh"
 
@@ -13,7 +13,8 @@ _SCRIPT_="$0"
 
 _SUB_FOLDERS="dnsapi deploy"
 
-DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
+_OLD_CA_HOST="https://acme-v01.api.letsencrypt.org"
+DEFAULT_CA="https://acme-v01.api.letsencrypt.org/directory"
 DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.1.1-August-1-2016.pdf"
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
@@ -24,7 +25,8 @@ DEFAULT_DOMAIN_KEY_LENGTH=2048
 
 DEFAULT_OPENSSL_BIN="openssl"
 
-STAGE_CA="https://acme-staging.api.letsencrypt.org"
+STAGE_CA="https://acme-staging.api.letsencrypt.org/directory"
+_OLD_STAGE_CA_HOST="https://acme-staging.api.letsencrypt.org"
 
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
@@ -104,21 +106,21 @@ if [ -t 1 ]; then
 fi
 
 __green() {
-  if [ "$__INTERACTIVE" ]; then
+  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" ]; then
     printf '\033[1;31;32m'
   fi
   printf -- "%b" "$1"
-  if [ "$__INTERACTIVE" ]; then
+  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" ]; then
     printf '\033[0m'
   fi
 }
 
 __red() {
-  if [ "$__INTERACTIVE" ]; then
+  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" ]; then
     printf '\033[1;31;40m'
   fi
   printf -- "%b" "$1"
-  if [ "$__INTERACTIVE" ]; then
+  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" ]; then
     printf '\033[0m'
   fi
 }
@@ -149,6 +151,13 @@ _dlg_versions() {
     $_APACHECTL -V 2>&1
   else
     echo "apache doesn't exists."
+  fi
+
+  echo "nginx:"
+  if _exists "nginx"; then
+    nginx -V 2>&1
+  else
+    echo "nginx doesn't exists."
   fi
 
   echo "nc:"
@@ -443,6 +452,11 @@ if [ "$(printf '\x41')" != 'A' ]; then
   _URGLY_PRINTF=1
 fi
 
+_ESCAPE_XARGS=""
+if [ "$(printf %s '\\x41' | xargs printf)" = 'A' ]; then
+  _ESCAPE_XARGS=1
+fi
+
 _h2b() {
   if _exists xxd; then
     xxd -r -p
@@ -450,31 +464,33 @@ _h2b() {
   fi
 
   hex=$(cat)
-  i=1
-  j=2
+  ic=""
+  jc=""
   _debug2 _URGLY_PRINTF "$_URGLY_PRINTF"
   if [ -z "$_URGLY_PRINTF" ]; then
-    while true; do
-      h="$(printf "%s" "$hex" | cut -c $i-$j)"
-      if [ -z "$h" ]; then
-        break
-      fi
-      printf "\x$h%s"
-      i="$(_math "$i" + 2)"
-      j="$(_math "$j" + 2)"
-    done
+    if [ "$_ESCAPE_XARGS" ] && _exists xargs; then
+      _debug2 "xargs"
+      echo "$hex" | _upper_case | sed 's/\([0-9A-F]\{2\}\)/\\\\\\x\1/g' | xargs printf
+    else
+      for h in $(echo "$hex" | _upper_case | sed 's/\([0-9A-F]\{2\}\)/ \1/g'); do
+        if [ -z "$h" ]; then
+          break
+        fi
+        printf "\x$h%s"
+      done
+    fi
   else
-    while true; do
-      ic="$(printf "%s" "$hex" | cut -c $i)"
-      jc="$(printf "%s" "$hex" | cut -c $j)"
-      if [ -z "$ic$jc" ]; then
-        break
+    for c in $(echo "$hex" | _upper_case | sed 's/\([0-9A-F]\)/ \1/g'); do
+      if [ -z "$ic" ]; then
+        ic=$c
+        continue
       fi
+      jc=$c
       ic="$(_h_char_2_dec "$ic")"
       jc="$(_h_char_2_dec "$jc")"
       printf '\'"$(printf "%o" "$(_math "$ic" \* 16 + $jc)")""%s"
-      i="$(_math "$i" + 2)"
-      j="$(_math "$j" + 2)"
+      ic=""
+      jc=""
     done
   fi
 
@@ -1079,7 +1095,7 @@ _readSubjectFromCSR() {
     _usage "_readSubjectFromCSR mycsr.csr"
     return 1
   fi
-  ${ACME_OPENSSL_BIN:-openssl} req -noout -in "$_csrfile" -subject | _egrep_o "CN *=.*" | cut -d = -f 2 | cut -d / -f 1 | tr -d '\n'
+  ${ACME_OPENSSL_BIN:-openssl} req -noout -in "$_csrfile" -subject | tr ',' "\n" | _egrep_o "CN *=.*" | cut -d = -f 2 | cut -d / -f 1 | tr -d ' \n'
 }
 
 #_csrfile
@@ -1122,7 +1138,7 @@ _readKeyLengthFromCSR() {
     echo "$_outcsr" | tr "\t" " " | _egrep_o "^ *ASN1 OID:.*" | cut -d ':' -f 2 | tr -d ' '
   else
     _debug "RSA CSR"
-    echo "$_outcsr" | tr "\t" " " | _egrep_o "(^ *|RSA )Public.Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1
+    echo "$_outcsr" | tr "\t" " " | (_egrep_o "^ *Public.Key:.*" || _egrep_o "RSA Public.Key:.*") | cut -d '(' -f 2 | cut -d ' ' -f 1
   fi
 }
 
@@ -1700,9 +1716,19 @@ _send_signed_request() {
   while [ "${_request_retry_times}" -lt "$MAX_REQUEST_RETRY_TIMES" ]; do
     _debug3 _request_retry_times "$_request_retry_times"
     if [ -z "$_CACHED_NONCE" ]; then
-      _debug2 "Get nonce."
-      nonceurl="$API/directory"
-      _headers="$(_get "$nonceurl" "onlyheader")"
+      _headers=""
+      if [ "$ACME_NEW_NONCE" ]; then
+        _debug2 "Get nonce. ACME_NEW_NONCE" "$ACME_NEW_NONCE"
+        nonceurl="$ACME_NEW_NONCE"
+        if _post "" "$nonceurl" "" "HEAD"; then
+          _headers="$(cat "$HTTP_HEADER")"
+        fi
+      fi
+      if [ -z "$_headers" ]; then
+        _debug2 "Get nonce. ACME_DIRECTORY" "$ACME_DIRECTORY"
+        nonceurl="$ACME_DIRECTORY"
+        _headers="$(_get "$nonceurl" "onlyheader")"
+      fi
 
       if [ "$?" != "0" ]; then
         _err "Can not connect to $nonceurl to get nonce."
@@ -1719,7 +1745,7 @@ _send_signed_request() {
     nonce="$_CACHED_NONCE"
     _debug2 nonce "$nonce"
 
-    protected="$JWK_HEADERPLACE_PART1$nonce$JWK_HEADERPLACE_PART2"
+    protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2"
     _debug3 protected "$protected"
 
     protected64="$(printf "%s" "$protected" | _base64 | _url_replace)"
@@ -2155,6 +2181,62 @@ __initHome() {
   fi
 }
 
+#server
+_initAPI() {
+  _api_server="${1:-$ACME_DIRECTORY}"
+  _debug "_init api for server: $_api_server"
+
+  if [ "$_api_server" = "$DEFAULT_CA" ]; then
+    #just for performance, hardcode the default entry points
+    export ACME_KEY_CHANGE="https://acme-v01.api.letsencrypt.org/acme/key-change"
+    export ACME_NEW_AUTHZ="https://acme-v01.api.letsencrypt.org/acme/new-authz"
+    export ACME_NEW_ORDER="https://acme-v01.api.letsencrypt.org/acme/new-cert"
+    export ACME_NEW_ACCOUNT="https://acme-v01.api.letsencrypt.org/acme/new-reg"
+    export ACME_REVOKE_CERT="https://acme-v01.api.letsencrypt.org/acme/revoke-cert"
+  fi
+
+  if [ -z "$ACME_NEW_ACCOUNT" ]; then
+    response=$(_get "$_api_server")
+    if [ "$?" != "0" ]; then
+      _debug2 "response" "$response"
+      _err "Can not init api."
+      return 1
+    fi
+    _debug2 "response" "$response"
+
+    ACME_KEY_CHANGE=$(echo "$response" | _egrep_o 'key-change" *: *"[^"]*"' | cut -d '"' -f 3)
+    export ACME_KEY_CHANGE
+
+    ACME_NEW_AUTHZ=$(echo "$response" | _egrep_o 'new-authz" *: *"[^"]*"' | cut -d '"' -f 3)
+    export ACME_NEW_AUTHZ
+
+    ACME_NEW_ORDER=$(echo "$response" | _egrep_o 'new-cert" *: *"[^"]*"' | cut -d '"' -f 3)
+    if [ -z "$ACME_NEW_ORDER" ]; then
+      ACME_NEW_ORDER=$(echo "$response" | _egrep_o 'new-order" *: *"[^"]*"' | cut -d '"' -f 3)
+    fi
+    export ACME_NEW_ORDER
+
+    ACME_NEW_ACCOUNT=$(echo "$response" | _egrep_o 'new-reg" *: *"[^"]*"' | cut -d '"' -f 3)
+    if [ -z "$ACME_NEW_ACCOUNT" ]; then
+      ACME_NEW_ACCOUNT=$(echo "$response" | _egrep_o 'new-account" *: *"[^"]*"' | cut -d '"' -f 3)
+    fi
+    export ACME_NEW_ACCOUNT
+
+    ACME_REVOKE_CERT=$(echo "$response" | _egrep_o 'revoke-cert" *: *"[^"]*"' | cut -d '"' -f 3)
+    export ACME_REVOKE_CERT
+
+    ACME_NEW_NONCE=$(echo "$response" | _egrep_o 'new-nonce" *: *"[^"]*"' | cut -d '"' -f 3)
+    export ACME_NEW_NONCE
+
+  fi
+
+  _debug "ACME_KEY_CHANGE" "$ACME_KEY_CHANGE"
+  _debug "ACME_NEW_AUTHZ" "$ACME_NEW_AUTHZ"
+  _debug "ACME_NEW_ORDER" "$ACME_NEW_ORDER"
+  _debug "ACME_NEW_ACCOUNT" "$ACME_NEW_ACCOUNT"
+  _debug "ACME_REVOKE_CERT" "$ACME_REVOKE_CERT"
+}
+
 #[domain]  [keylength]
 _initpath() {
 
@@ -2175,17 +2257,19 @@ _initpath() {
     CA_HOME="$DEFAULT_CA_HOME"
   fi
 
-  if [ -z "$API" ]; then
+  if [ -z "$ACME_DIRECTORY" ]; then
     if [ -z "$STAGE" ]; then
-      API="$DEFAULT_CA"
+      ACME_DIRECTORY="$DEFAULT_CA"
     else
-      API="$STAGE_CA"
-      _info "Using stage api:$API"
+      ACME_DIRECTORY="$STAGE_CA"
+      _info "Using stage ACME_DIRECTORY: $ACME_DIRECTORY"
     fi
   fi
 
-  _API_HOST="$(echo "$API" | cut -d : -f 2 | tr -d '/')"
-  CA_DIR="$CA_HOME/$_API_HOST"
+  _ACME_SERVER_HOST="$(echo "$ACME_DIRECTORY" | cut -d : -f 2 | tr -s / | cut -d / -f 2)"
+  _debug2 "_ACME_SERVER_HOST" "$_ACME_SERVER_HOST"
+
+  CA_DIR="$CA_HOME/$_ACME_SERVER_HOST"
 
   _DEFAULT_CA_CONF="$CA_DIR/ca.conf"
 
@@ -2572,7 +2656,7 @@ location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
     _err "write nginx conf error, but don't worry, the file is restored."
     return 1
   fi
-
+  _debug3 "Modified config:$(cat $FOUND_REAL_NGINX_CONF)"
   _info "nginx conf is done, let's check it again."
   if ! _exec "nginx -t" >/dev/null; then
     _exec_err
@@ -2658,12 +2742,14 @@ _isRealNginxConf() {
 
         _debug "_seg_n" "$_seg_n"
 
-        if [ "$(echo "$_seg_n" | _egrep_o "^ *ssl  *on *;")" ]; then
+        if [ "$(echo "$_seg_n" | _egrep_o "^ *ssl  *on *;")" ] \
+          || [ "$(echo "$_seg_n" | _egrep_o "listen .* ssl[ |;]")" ]; then
           _debug "ssl on, skip"
-          return 1
+        else
+          FOUND_REAL_NGINX_CONF_LN=$_fln
+          _debug3 "found FOUND_REAL_NGINX_CONF_LN" "$FOUND_REAL_NGINX_CONF_LN"
+          return 0
         fi
-        FOUND_REAL_NGINX_CONF_LN=$_fln
-        return 0
       fi
     done
   fi
@@ -2714,7 +2800,7 @@ _clearup() {
 _clearupdns() {
   _debug "_clearupdns"
   if [ "$dnsadded" != 1 ] || [ -z "$vlist" ]; then
-    _debug "Dns not added, skip."
+    _debug "skip dns."
     return
   fi
 
@@ -3004,7 +3090,7 @@ _regAccount() {
   if ! _calcjwk "$ACCOUNT_KEY_PATH"; then
     return 1
   fi
-
+  _initAPI
   _updateTos=""
   _reg_res="new-reg"
   while true; do
@@ -3019,7 +3105,7 @@ _regAccount() {
     if [ -z "$_updateTos" ]; then
       _info "Registering account"
 
-      if ! _send_signed_request "$API/acme/new-reg" "$regjson"; then
+      if ! _send_signed_request "${ACME_NEW_ACCOUNT}" "$regjson"; then
         _err "Register account Error: $response"
         return 1
       fi
@@ -3105,12 +3191,12 @@ _findHook() {
 __get_domain_new_authz() {
   _gdnd="$1"
   _info "Getting new-authz for domain" "$_gdnd"
-
+  _initAPI
   _Max_new_authz_retry_times=5
   _authz_i=0
   while [ "$_authz_i" -lt "$_Max_new_authz_retry_times" ]; do
     _debug "Try new-authz for the $_authz_i time."
-    if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$(_idn "$_gdnd")\"}}"; then
+    if ! _send_signed_request "${ACME_NEW_AUTHZ}" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$(_idn "$_gdnd")\"}}"; then
       _err "Can not get domain new authz."
       return 1
     fi
@@ -3188,12 +3274,15 @@ issue() {
   if [ "$_web_roots" = "dns-cx" ]; then
     _web_roots="dns_cx"
   fi
-  _debug "Using api: $API"
 
   if [ ! "$IS_RENEW" ]; then
     _initpath "$_main_domain" "$_key_length"
     mkdir -p "$DOMAIN_PATH"
   fi
+
+  _debug "Using ACME_DIRECTORY: $ACME_DIRECTORY"
+
+  _initAPI
 
   if [ -f "$DOMAIN_CONF" ]; then
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
@@ -3228,7 +3317,7 @@ issue() {
     _cleardomainconf "Le_LocalAddress"
   fi
 
-  Le_API="$API"
+  Le_API="$ACME_DIRECTORY"
   _savedomainconf "Le_API" "$Le_API"
 
   if [ "$_alt_domains" = "$NO_VALUE" ]; then
@@ -3667,7 +3756,7 @@ issue() {
   _info "Verify finished, start to sign."
   der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _url_replace)"
 
-  if ! _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"; then
+  if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"; then
     _err "Sign failed."
     _on_issue_err "$_post_hook"
     return 1
@@ -3720,7 +3809,8 @@ issue() {
 
   Le_LinkIssuer=$(grep -i '^Link' "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2 | cut -d ';' -f 1 | tr -d '<>')
   if ! _contains "$Le_LinkIssuer" ":"; then
-    Le_LinkIssuer="$API$Le_LinkIssuer"
+    _info "$(__red "Relative issuer link found.")"
+    Le_LinkIssuer="$_ACME_SERVER_HOST$Le_LinkIssuer"
   fi
   _debug Le_LinkIssuer "$Le_LinkIssuer"
   _savedomainconf "Le_LinkIssuer" "$Le_LinkIssuer"
@@ -3836,7 +3926,15 @@ renew() {
   . "$DOMAIN_CONF"
 
   if [ "$Le_API" ]; then
-    API="$Le_API"
+    if [ "$_OLD_CA_HOST" = "$Le_API" ]; then
+      export Le_API="$DEFAULT_CA"
+      _savedomainconf Le_API "$Le_API"
+    fi
+    if [ "$_OLD_STAGE_CA_HOST" = "$Le_API" ]; then
+      export Le_API="$STAGE_CA"
+      _savedomainconf Le_API "$Le_API"
+    fi
+    export ACME_DIRECTORY="$Le_API"
     #reload ca configs
     ACCOUNT_KEY_PATH=""
     ACCOUNT_JSON_PATH=""
@@ -3924,6 +4022,10 @@ signcsr() {
     return 1
   fi
   _debug _csrsubj "$_csrsubj"
+  if _contains "$_csrsubj" ' ' || ! _contains "$_csrsubj" '.'; then
+    _info "It seems that the subject: $_csrsubj is not a valid domain name. Drop it."
+    _csrsubj=""
+  fi
 
   _csrdomainlist=$(_readSubjectAltNamesFromCSR "$_csrfile")
   if [ "$?" != "0" ]; then
@@ -4299,8 +4401,10 @@ revoke() {
     return 1
   fi
 
+  _initAPI
+
   data="{\"resource\": \"revoke-cert\", \"certificate\": \"$cert\"}"
-  uri="$API/acme/revoke-cert"
+  uri="${ACME_REVOKE_CERT}"
 
   if [ -f "$CERT_KEY_PATH" ]; then
     _info "Try domain key first."
@@ -4432,6 +4536,7 @@ deactivate() {
   _d_domain_list="$1"
   _d_type="$2"
   _initpath
+  _initAPI
   _debug _d_domain_list "$_d_domain_list"
   if [ -z "$(echo $_d_domain_list | cut -d , -f 1)" ]; then
     _usage "Usage: $PROJECT_ENTRY --deactivate -d domain.com [-d domain.com]"
@@ -4629,6 +4734,11 @@ install() {
   if ! _precheck "$_nocron"; then
     _err "Pre-check failed, can not install."
     return 1
+  fi
+
+  if [ -z "$_c_home" ] && [ "$LE_CONFIG_HOME" != "$LE_WORKING_DIR" ]; then
+    _info "Using config home: $LE_CONFIG_HOME"
+    _c_home="$LE_CONFIG_HOME"
   fi
 
   #convert from le
@@ -4854,6 +4964,7 @@ Parameters:
 
   --reloadcmd \"service nginx reload\" After issue/renew, it's used to reload the server.
 
+  --server SERVER                   ACME Directory Resource URI. (default: https://acme-v01.api.letsencrypt.org/directory)
   --accountconf                     Specifies a customized account config file.
   --home                            Specifies the home dir for $PROJECT_NAME .
   --cert-home                       Specifies the home dir to save all the certs, only valid for '--install' command.
@@ -4871,6 +4982,7 @@ Parameters:
   --ca-bundle                       Specifies the path to the CA certificate bundle to verify api server's certificate.
   --ca-path                         Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
+  --no-color                        Do not output color text.
   --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
   --csr                             Specifies the input csr.
   --pre-hook                        Command to be run before obtaining any certificates.
@@ -5013,6 +5125,7 @@ _process() {
   _openssl_bin=""
   _syslog=""
   _use_wget=""
+  _server=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -5128,6 +5241,12 @@ _process() {
         ;;
       --staging | --test)
         STAGE="1"
+        ;;
+      --server)
+        ACME_DIRECTORY="$2"
+        _server="$ACME_DIRECTORY"
+        export ACME_DIRECTORY
+        shift
         ;;
       --debug)
         if [ -z "$2" ] || _startswith "$2" "-"; then
@@ -5318,6 +5437,9 @@ _process() {
       --nocron)
         _nocron="1"
         ;;
+      --no-color)
+        export ACME_NO_COLOR=1
+        ;;
       --ecc)
         _ecc="isEcc"
         ;;
@@ -5449,6 +5571,9 @@ _process() {
 
   if [ "$DEBUG" ]; then
     version
+    if [ "$_server" ]; then
+      _debug "Using server: $_server"
+    fi
   fi
 
   case "${_CMD}" in

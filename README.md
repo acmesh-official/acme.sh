@@ -62,7 +62,7 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 |19|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/gentoo-stage3-amd64.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Gentoo Linux
 |20|[![Build Status](https://travis-ci.org/Neilpang/acme.sh.svg?branch=master)](https://travis-ci.org/Neilpang/acme.sh)|Mac OSX
 
-For all build statuses, check our [daily build project](https://github.com/Neilpang/acmetest):
+For all build statuses, check our [weekly build project](https://github.com/Neilpang/acmetest):
 
 https://github.com/Neilpang/acmetest
 
@@ -199,7 +199,7 @@ The ownership and permission info of existing files are preserved. You may want 
 
 Install/copy the issued cert/key to the production Apache or Nginx path.
 
-The cert will be `renewed every **60** days by default` (which is configurable). Once the cert is renewed, the Apache/Nginx service will be restarted automatically by the command: `service apache2 restart` or `service nginx restart`.
+The cert will be renewed every **60** days by default (which is configurable). Once the cert is renewed, the Apache/Nginx service will be reloaded automatically by the command: `service apache2 force-reload` or `service nginx force-reload`.
 
 
 # 4. Use Standalone server to issue cert
