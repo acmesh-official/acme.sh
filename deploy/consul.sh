@@ -1,10 +1,8 @@
 #!/bin/bash
 
-#Here is a sample custom api script.
-#This file name is "myapi.sh"
-#So, here must be a method   myapi_deploy()
-#Which will be called by acme.sh to deploy the cert
-#returns 0 means success, otherwise error.
+#Here is the script to deploy the cert to your consul key/value store.
+#export DEPLOY_CONSUL_URL=http://localhost:8500/v1/kv
+#export DEPLOY_CONSUL_ROOT_KEY=acme
 
 ########  Public functions #####################
 
