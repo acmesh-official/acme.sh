@@ -11,6 +11,10 @@
 # Make sure your keys have access to upload objects.
 # Also make sure your default region is correct, otherwise, override with $S3_REGION
 
+# IMPORTANT
+# If you're using acme.sh on a mac, make sure you have the latest version of openssl
+# Upgrade easily with homebrew: brew install openssl
+
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
