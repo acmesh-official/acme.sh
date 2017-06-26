@@ -58,9 +58,6 @@ s3_deploy() {
   _debug S3_BUCKET "$S3_BUCKET"
   _debug AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
   _debug AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
-  
-  # REMOVE BEFORE COMMIT, ONLY FOR DEBUGGING
-  _aws_cli_installed=1
 
   _info "Deploying certificate to s3 bucket: $S3_BUCKET in $S3_REGION"
   
