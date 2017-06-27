@@ -54,6 +54,9 @@ s3_deploy() {
   _secure_debug AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
   _secure_debug AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
   
+  # REMOVE BEFORE COMMIT, ONLY FOR DEBUGGING
+  _aws_cli_installed=1
+
   _info "Deploying certificate to s3 bucket: $S3_BUCKET in $S3_REGION"
   
   if [ "$_aws_cli_installed" -eq "0" ]; then
@@ -126,8 +129,7 @@ _deploy_with_curl() {
 }
 
 _payload_hash() {
-  hash_output=$(shasum -ba 256 "$file")
-  echo "${hash_output%% *}"
+  echo "$(shasum -ba 256 "$file")%% *"
 }
 
 _canonical_request() {
@@ -145,8 +147,7 @@ _canonical_request() {
 }
 
 _canonical_request_hash() {
-  _canonical_request_output=$(_canonical_request | shasum -a 256)
-  echo "${_canonical_request_output%% *}"
+  echo "$(_canonical_request | shasum -a 256)%% *"
 }
 
 _string_to_sign() {
@@ -157,13 +158,13 @@ _string_to_sign() {
 }
 
 _signature_key() {
-  secret_key=$(printf "AWS4${AWS_SECRET_ACCESS_KEY?}" | _hex_dump | tr -d " ")
-  date_key=$(printf ${date_scope} | _hmac "sha256" "${secret_key}" | _hex_dump | tr -d " ")
-  region_key=$(printf ${region} | _hmac "sha256" "${date_key}" | _hex_dump | tr -d " ")
-  service_key=$(printf "s3" | _hmac "sha256" "${region_key}" | _hex_dump | tr -d " ")
-  printf "aws4_request" | _hmac "sha256" "${service_key}" | _hex_dump | tr -d " "
+  secret_key=$(printf "AWS4${AWS_SECRET_ACCESS_KEY?}" | _hex_dump)
+  date_key=$(printf ${date_scope} | _hmac "sha256" "${secret_key}" | _hex_dump)
+  region_key=$(printf ${region} | _hmac "sha256" "${date_key}" | _hex_dump)
+  service_key=$(printf "s3" | _hmac "sha256" "${region_key}" | _hex_dump)
+  printf "aws4_request" | _hmac "sha256" "${service_key}" | _hex_dump
 }
 
 _signature() {
-  _string_to_sign | _hmac "sha256" $(_signature_key) | _hex_dump | tr -d " " | sed "s/^.* //"
+  _string_to_sign | _hmac "sha256" $(_signature_key) | _hex_dump | sed "s/^.* //"
 }
