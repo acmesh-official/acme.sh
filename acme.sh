@@ -453,7 +453,7 @@ if [ "$(printf '\x41')" != 'A' ]; then
 fi
 
 _ESCAPE_XARGS=""
-if [ "$(printf %s '\\x41' | xargs printf)" = 'A' ]; then
+if _exists xargs && [ "$(printf %s '\\x41' | xargs printf)" = 'A' ]; then
   _ESCAPE_XARGS=1
 fi
 
@@ -1138,7 +1138,12 @@ _readKeyLengthFromCSR() {
     echo "$_outcsr" | tr "\t" " " | _egrep_o "^ *ASN1 OID:.*" | cut -d ':' -f 2 | tr -d ' '
   else
     _debug "RSA CSR"
-    echo "$_outcsr" | tr "\t" " " | (_egrep_o "^ *Public.Key:.*" || _egrep_o "RSA Public.Key:.*") | cut -d '(' -f 2 | cut -d ' ' -f 1
+    _rkl="$(echo "$_outcsr" | tr "\t" " " | _egrep_o "^ *Public.Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1)"
+    if [ "$_rkl" ]; then
+      echo "$_rkl"
+    else
+      echo "$_outcsr" | tr "\t" " " | _egrep_o "RSA Public.Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1
+    fi
   fi
 }
 
