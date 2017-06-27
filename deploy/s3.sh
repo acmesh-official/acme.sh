@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 # This script deploys your cert to a s3 bucket.
 # export S3_BUCKET=acme
