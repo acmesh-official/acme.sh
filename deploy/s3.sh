@@ -1,19 +1,10 @@
 #!/bin/bash
 
-#Here is the script to deploy the cert to your s3 bucket.
-#export S3_BUCKET=acme
-#export S3_REGION=eu-central-1
-#export AWS_ACCESS_KEY_ID=exampleid
-#export AWS_SECRET_ACCESS_KEY=examplekey
-
-# Checks to see if awscli present
-# If not, use curl + aws v4 signature to upload object
-# Make sure your keys have access to upload objects.
-# Also make sure your default region is correct, otherwise, override with $S3_REGION
-
-# IMPORTANT
-# If you're using acme.sh on a mac, make sure you have the latest version of openssl
-# Upgrade easily with homebrew: brew install openssl
+#Here is a sample custom api script.
+#This file name is "myapi.sh"
+#So, here must be a method   myapi_deploy()
+#Which will be called by acme.sh to deploy the cert
+#returns 0 means success, otherwise error.
 
 ########  Public functions #####################
 
@@ -32,7 +23,7 @@ s3_deploy() {
     return 1
   fi
 
-  if ! command -v aws; then
+  if ! _exists aws; then
     _debug "AWS CLI not installed, defaulting to curl method"
     _aws_cli_installed=0
   else
@@ -60,9 +51,9 @@ s3_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
   _debug S3_BUCKET "$S3_BUCKET"
-  _debug AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
-  _debug AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
-
+  _secure_debug AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
+  _secure_debug AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
+  
   _info "Deploying certificate to s3 bucket: $S3_BUCKET in $S3_REGION"
   
   if [ "$_aws_cli_installed" -eq "0" ]; then
@@ -125,20 +116,18 @@ _deploy_with_curl() {
 
   _info "Uploading $S3_BUCKET/$prefix"
 
-  curl \
-    -T "${file}" \
-    -H "Authorization: AWS4-HMAC-SHA256 Credential=${AWS_ACCESS_KEY_ID}/${date_scope}/${region}/s3/aws4_request,SignedHeaders=${signed_headers},Signature=$(_signature)" \
-    -H "Date:${date_header}" \
-    -H "x-amz-acl:${acl}" \
-    -H "x-amz-content-sha256:$(_payload_hash)" \
-    -H "x-amz-date:${iso_timestamp}" \
-    "https://${bucket}.s3.${region}.amazonaws.com/${prefix}"
-
+  export _H1="Authorization: AWS4-HMAC-SHA256 Credential=${AWS_ACCESS_KEY_ID}/${date_scope}/${region}/s3/aws4_request,SignedHeaders=${signed_headers},Signature=$(_signature)"
+  export _H2="Date:${date_header}"
+  export _H3="x-amz-acl:${acl}"
+  export _H4="x-amz-content-sha256:$(_payload_hash)"
+  export _H5="x-amz-date:${iso_timestamp}"
+  response=$(_post "${file}" "https://${bucket}.s3.${region}.amazonaws.com/${prefix}")
+  _debug response
 }
 
 _payload_hash() {
-  local output=$(shasum -ba 256 "$file")
-  echo "${output%% *}"
+  hash_output=$(shasum -ba 256 "$file")
+  echo "${hash_output%% *}"
 }
 
 _canonical_request() {
@@ -156,8 +145,8 @@ _canonical_request() {
 }
 
 _canonical_request_hash() {
-  local output=$(_canonical_request | shasum -a 256)
-  echo "${output%% *}"
+  _canonical_request_output=$(_canonical_request | shasum -a 256)
+  echo "${_canonical_request_output%% *}"
 }
 
 _string_to_sign() {
@@ -168,22 +157,13 @@ _string_to_sign() {
 }
 
 _signature_key() {
-  local secret=$(printf "AWS4${AWS_SECRET_ACCESS_KEY?}" | _hex_key)
-  local date_key=$(printf ${date_scope} | _hmac_sha256 "${secret}" | _hex_key)
-  local region_key=$(printf ${region} | _hmac_sha256 "${date_key}" | _hex_key)
-  local service_key=$(printf "s3" | _hmac_sha256 "${region_key}" | _hex_key)
-  printf "aws4_request" | _hmac_sha256 "${service_key}" | _hex_key
-}
-
-_hex_key() {
-  hexdump -ve '1/1 "%.2x"'; echo
-}
-
-_hmac_sha256() {
-  local hexkey=$1
-  openssl dgst -binary -sha256 -mac HMAC -macopt hexkey:${hexkey}
+  secret_key=$(printf "AWS4${AWS_SECRET_ACCESS_KEY?}" | _hex_dump | tr -d " ")
+  date_key=$(printf ${date_scope} | _hmac "sha256" "${secret_key}" | _hex_dump | tr -d " ")
+  region_key=$(printf ${region} | _hmac "sha256" "${date_key}" | _hex_dump | tr -d " ")
+  service_key=$(printf "s3" | _hmac "sha256" "${region_key}" | _hex_dump | tr -d " ")
+  printf "aws4_request" | _hmac "sha256" "${service_key}" | _hex_dump | tr -d " "
 }
 
 _signature() {
-  _string_to_sign | _hmac_sha256 $(_signature_key) | _hex_key | sed "s/^.* //"
+  _string_to_sign | _hmac "sha256" $(_signature_key) | _hex_dump | tr -d " " | sed "s/^.* //"
 }
