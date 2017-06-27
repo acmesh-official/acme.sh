@@ -507,7 +507,7 @@ acme.sh --issue --dns dns_nsone -d example.com -d www.example.com
 
 ## 27. Use DreamHost DNS API
 
-DNS API keys may be created at https://panel.dreamhost.com/?tree=home.api
+DNS API keys may be created at https://panel.dreamhost.com/?tree=home.api.  
 Ensure the created key has add and remove privelages.
 
 ```
