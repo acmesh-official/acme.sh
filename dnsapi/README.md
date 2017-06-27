@@ -507,16 +507,19 @@ acme.sh --issue --dns dns_nsone -d example.com -d www.example.com
 
 ## 27. Use DreamHost DNS API
 
-Create an DNS API key at https://panel.dreamhost.com/?tree=home.api
+DNS API keys may be created at https://panel.dreamhost.com/?tree=home.api
 
 ```
-export DH_API_Key="fdmlfsdklmfdkmqsdfk"
+export DH_API_Key="<api key>"
 ```
 
 Ok, let's issue a cert now:
 ```
 acme.sh --issue --dns dns_dreamhost -d example.com -d www.example.com
 ```
+
+The 'DH_API_KEY' will be saved in `~/.acme.sh/account.conf` and will
+be reused when needed.
 
 # Use custom API
 
