@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 #Here is the script to deploy the cert to your consul key/value store.
 #export DEPLOY_CONSUL_URL=http://localhost:8500/v1/kv
