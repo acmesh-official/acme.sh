@@ -331,6 +331,7 @@ You don't have to do anything manually!
 1. Dynu API (https://www.dynu.com)
 1. DNSimple API
 1. NS1.com API
+1. DreamHost.com API
 
 
 
