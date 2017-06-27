@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 #Here is the script to deploy the cert to your consul key/value store.
 #export DEPLOY_CONSUL_URL=http://localhost:8500/v1/kv
@@ -42,22 +42,22 @@ consul_deploy() {
   # private
   _info uploading "$_ckey"
   response=$(_post "@${_ckey}" "${upload_base_url}/${_cdomain}.key" "" "PUT")
-  _debug response "$response"
+  _debugw response "$response"
 
   # public
   _info uploading "$_ccert"
   response=$(_post "@${_ccert}" "${upload_base_url}/${_cdomain}.cer" "" "PUT")
-  _debug response "$response"
+  _debugw response "$response"
 
   # ca
   _info uploading "$_cca"
   response=$(_post "@${_cca}" "${upload_base_url}/ca.cer" "" "PUT")
-  _debug response "$response"
+  _debugw response "$response"
 
   # fullchain
   _info uploading "$_cfullchain"
   response=$(_post "@${_cfullchain}" "${upload_base_url}/fullchain.cer" "" "PUT")
-  _debug response "$response"
+  _debugw response "$response"
 
   return 0
 
