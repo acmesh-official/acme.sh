@@ -4,11 +4,10 @@
 #06/27/2017
 
 # Currently only support single domain access
+# Due to the fact that DuckDNS uses StartSSL as cert provider, --insecure must be used with acme.sh
 
-# DuckDNS uses StartSSL as their cert provider
-# Seems not supported natively on Linux
-# So I fall back to HTTP for API
-DuckDNS_API="http://www.duckdns.org/update"
+DuckDNS_API="https://www.duckdns.org/update"
+API_Params="domains=$DuckDNS_domain&token=$DuckDNS_token"
 
 ########  Public functions #####################
 
@@ -43,7 +42,7 @@ dns_duckdns_add() {
 
   # Now add the TXT record to DuckDNS
   _info "Trying to add TXT record"
-  if _duckdns_rest GET "domains=$DuckDNS_domain&token=$DuckDNS_token&txt=$txtvalue" && [ $response == "OK" ]; then
+  if _duckdns_rest GET "$API_Params&txt=$txtvalue" && [ $response == "OK" ]; then
     _info "TXT record has been successfully added to your DuckDNS domain."
     _info "Note that all subdomains under this domain uses the same TXT record."
     return 0
@@ -60,8 +59,8 @@ dns_duckdns_rm() {
   txtvalue=$2
 
   # Now remove the TXT record from DuckDNS
-  _info "Trying to from TXT record"
-  if _duckdns_rest GET "domains=$DuckDNS_domain&token=$DuckDNS_token&txt=''&clear=true" && [ $response == "OK" ]; then
+  _info "Trying to remove TXT record"
+  if _duckdns_rest GET "$API_Params&txt=''&clear=true" && [ $response == "OK" ]; then
     _info "TXT record has been successfully removed from your DuckDNS domain."
     return 0
   else
@@ -72,7 +71,7 @@ dns_duckdns_rm() {
 
 ####################  Private functions below ##################################
 
-#Usage: method  URI  data
+#Usage: method URI
 _duckdns_rest() {
   method=$1
   param="$2"
