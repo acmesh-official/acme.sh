@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 #Here is a sample custom api script.
 #This file name is "myapi.sh"
@@ -121,8 +121,9 @@ _deploy_with_curl() {
   export _H3="x-amz-acl:${acl}"
   export _H4="x-amz-content-sha256:$(_payload_hash)"
   export _H5="x-amz-date:${iso_timestamp}"
+  
   response=$(_post "${file}" "https://${bucket}.s3.${region}.amazonaws.com/${prefix}")
-  _debug response
+  _debug2 response
 }
 
 _payload_hash() {
