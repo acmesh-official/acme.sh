@@ -60,7 +60,7 @@ dns_duckdns_rm() {
 
   # Now remove the TXT record from DuckDNS
   _info "Trying to remove TXT record"
-  if _duckdns_rest GET "$API_Params&txt=''&clear=true" && [ $response == "OK" ]; then
+  if _duckdns_rest GET "$API_Params&txt=&clear=true" && [ $response == "OK" ]; then
     _info "TXT record has been successfully removed from your DuckDNS domain."
     return 0
   else
