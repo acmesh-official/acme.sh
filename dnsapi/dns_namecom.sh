@@ -45,15 +45,15 @@ dns_namecom_add() {
   _namecom_addtxt_json="{\"hostname\":\"$_sub_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"ttl\":\"300\",\"priority\":\"10\"}"
   if _namecom_rest POST "dns/create/$_domain" "$_namecom_addtxt_json"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "\"code\":100")
-      if [ ! -z "$retcode" ]; then
-        _info "Successfully added TXT record, ready for validation."
-        _namecom_logout
-        return 0
-      else
-        _err "Unable to add the DNS record."
-        _namecom_logout
-        return 1
-      fi
+    if [ ! -z "$retcode" ]; then
+      _info "Successfully added TXT record, ready for validation."
+      _namecom_logout
+      return 0
+    else
+      _err "Unable to add the DNS record."
+      _namecom_logout
+      return 1
+    fi
   fi
 }
 
@@ -75,30 +75,30 @@ dns_namecom_rm() {
   # Get the record id.
   if _namecom_rest GET "dns/list/$_domain"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "\"code\":100")
-      if [ ! -z "$retcode" ]; then
-        _record_id=$(printf "%s\n" "$response" | _egrep_o "\"record_id\":\"[0-9]+\",\"name\":\"$fulldomain\",\"type\":\"TXT\"" | cut -d : -f 2 | cut -d \" -f 2)
-        _debug record_id "$_record_id"
-        _info "Successfully retrieved the record id for ACME challenge."
-      else
-        _err "Unable to retrieve the record id."
-        _namecom_logout
-        return 1
-      fi
+    if [ ! -z "$retcode" ]; then
+      _record_id=$(printf "%s\n" "$response" | _egrep_o "\"record_id\":\"[0-9]+\",\"name\":\"$fulldomain\",\"type\":\"TXT\"" | cut -d : -f 2 | cut -d \" -f 2)
+      _debug record_id "$_record_id"
+      _info "Successfully retrieved the record id for ACME challenge."
+    else
+      _err "Unable to retrieve the record id."
+      _namecom_logout
+      return 1
+    fi
   fi
 
   # Remove the DNS record using record id.
   _namecom_rmtxt_json="{\"record_id\":\"$_record_id\"}"
   if _namecom_rest POST "dns/delete/$_domain" "$_namecom_rmtxt_json"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "\"code\":100")
-      if [ ! -z "$retcode" ]; then
-        _info "Successfully removed the TXT record."
-        _namecom_logout
-        return 0
-      else
-        _err "Unable to remove the DNS record."
-        _namecom_logout
-        return 1
-      fi
+    if [ ! -z "$retcode" ]; then
+      _info "Successfully removed the TXT record."
+      _namecom_logout
+      return 0
+    else
+      _err "Unable to remove the DNS record."
+      _namecom_logout
+      return 1
+    fi
   fi
 }
 
@@ -130,32 +130,32 @@ _namecom_login() {
 
   if _namecom_rest POST "login" "$namecom_login_json"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "\"code\":100")
-      if [ ! -z "$retcode" ]; then
-        _info "Successfully logged in. Fetching session token..."
-        sessionkey=$(printf "%s\n" "$response" | _egrep_o "\"session_token\":\".+" | cut -d \" -f 4)
-        if [ ! -z "$sessionkey" ]; then
-          _debug sessionkey "$sessionkey"
-          _info "Session key obtained."
-        else
-          _err "Unable to get session key."
-          return 1
-        fi
+    if [ ! -z "$retcode" ]; then
+      _info "Successfully logged in. Fetching session token..."
+      sessionkey=$(printf "%s\n" "$response" | _egrep_o "\"session_token\":\".+" | cut -d \" -f 4)
+      if [ ! -z "$sessionkey" ]; then
+        _debug sessionkey "$sessionkey"
+        _info "Session key obtained."
       else
-        _err "Logging in failed."
+        _err "Unable to get session key."
         return 1
       fi
-   fi
+    else
+      _err "Logging in failed."
+      return 1
+    fi
+  fi
 }
 
 _namecom_logout() {
   if _namecom_rest GET "logout"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "\"code\":100")
-      if [ ! -z "$retcode" ]; then
-        _info "Successfully logged out."
-      else
-        _err "Error logging out."
-        return 1
-      fi
+    if [ ! -z "$retcode" ]; then
+      _info "Successfully logged out."
+    else
+      _err "Error logging out."
+      return 1
+    fi
   fi
 }
 
@@ -171,13 +171,13 @@ _namecom_get_root() {
         return 1
       fi
 
-     if _contains "$response" "$host"; then
-       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
-       _domain="$host"
-       return 0
-     fi
-     p=$i
-     i=$(_math "$i" + 1)
+      if _contains "$response" "$host"; then
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _domain="$host"
+        return 0
+      fi
+      p=$i
+      i=$(_math "$i" + 1)
     done
   fi
   return 1
