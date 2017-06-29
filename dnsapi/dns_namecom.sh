@@ -5,7 +5,7 @@
 #Utilize name.com API to finish dns-01 verifications.
 ########  Public functions #####################
 
-namecom_api="https://api.name.com/api/"
+namecom_api="https://api.name.com/api"
 
 #Usage: dns_namecom_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_namecom_add() {
@@ -45,7 +45,6 @@ dns_namecom_add() {
   _namecom_addtxt_json="{\"hostname\":\"$_sub_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"ttl\":\"300\",\"priority\":\"10\"}"
   if _namecom_rest POST "dns/create/$_domain" "$_namecom_addtxt_json"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "\"code\":100")
-    _debug retcode "$retcode"
       if [ ! -z "$retcode" ]; then
         _info "Successfully added TXT record, ready for validation."
         _namecom_logout
@@ -76,7 +75,6 @@ dns_namecom_rm() {
   # Get the record id.
   if _namecom_rest GET "dns/list/$_domain"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "\"code\":100")
-    _debug retcode "$retcode"
       if [ ! -z "$retcode" ]; then
         _record_id=$(printf "%s\n" "$response" | _egrep_o "\"record_id\":\"[0-9]+\",\"name\":\"$fulldomain\",\"type\":\"TXT\"" | cut -d : -f 2 | cut -d \" -f 2)
         _debug record_id "$_record_id"
@@ -92,7 +90,6 @@ dns_namecom_rm() {
   _namecom_rmtxt_json="{\"record_id\":\"$_record_id\"}"
   if _namecom_rest POST "dns/delete/$_domain" "$_namecom_rmtxt_json"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "\"code\":100")
-    _debug retcode "$retcode"
       if [ ! -z "$retcode" ]; then
         _info "Successfully removed the TXT record."
         _namecom_logout
@@ -133,7 +130,6 @@ _namecom_login() {
 
   if _namecom_rest POST "login" "$namecom_login_json"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "\"code\":100")
-    _debug retcode "$retcode"
       if [ ! -z "$retcode" ]; then
         _info "Successfully logged in. Fetching session token..."
         sessionkey=$(printf "%s\n" "$response" | _egrep_o "\"session_token\":\".+" | cut -d \" -f 4)
