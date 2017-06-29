@@ -41,7 +41,7 @@ dns_duckdns_add() {
 
   # Now add the TXT record to DuckDNS
   _info "Trying to add TXT record"
-  if _duckdns_rest GET "$API_Params&txt=$txtvalue" && [ "$response" -eq "OK" ]; then
+  if _duckdns_rest GET "$API_Params&txt=$txtvalue" && [ "$response" = "OK" ]; then
     _info "TXT record has been successfully added to your DuckDNS domain."
     _info "Note that all subdomains under this domain uses the same TXT record."
     return 0
@@ -59,7 +59,7 @@ dns_duckdns_rm() {
 
   # Now remove the TXT record from DuckDNS
   _info "Trying to remove TXT record"
-  if _duckdns_rest GET "$API_Params&txt=&clear=true" && [ "$response" -eq "OK" ]; then
+  if _duckdns_rest GET "$API_Params&txt=&clear=true" && [ "$response" = "OK" ]; then
     _info "TXT record has been successfully removed from your DuckDNS domain."
     return 0
   else
@@ -79,7 +79,7 @@ _duckdns_rest() {
   _debug url "$url"
 
   # DuckDNS uses GET to update domain info
-  if [ "$method" -eq "GET" ]; then
+  if [ "$method" = "GET" ]; then
     response="$(_get "$url")"
   else
     _err "Unsupported method"
