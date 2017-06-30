@@ -76,7 +76,7 @@ dns_namecom_rm() {
   if _namecom_rest GET "dns/list/$_domain"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "\"code\":100")
     if [ ! -z "$retcode" ]; then
-      _record_id=$(printf "%s\n" "$response" | _egrep_o "\"record_id\":\"[0-9]+\",\"name\":\"$fulldomain\",\"type\":\"TXT\"" | cut -d : -f 2 | cut -d \" -f 2)
+      _record_id=$(printf "%s\n" "$response" | _egrep_o "\"record_id\":\"[0-9]+\",\"name\":\"$fulldomain\",\"type\":\"TXT\"" | cut -d \" -f 4)
       _debug record_id "$_record_id"
       _info "Successfully retrieved the record id for ACME challenge."
     else

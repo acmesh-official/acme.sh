@@ -17,7 +17,7 @@ dns_duckdns_add() {
   txtvalue=$2
 
   # We'll extract the domain/username from full domain
-  DuckDNS_domain=$(printf "%s\n" "$fulldomain" | rev | cut -d \. -f 3 | rev)
+  DuckDNS_domain=$(printf "%s\n" "$fulldomain" | rev | cut -d . -f 3 | rev)
 
   if [ -z "$DuckDNS_domain" ]; then
     _err "Error extracting the domain."
