@@ -50,9 +50,10 @@ RUN for verb in help \
 
 RUN printf "%b" '#!'"/usr/bin/env sh\n \
 if [ \"\$1\" = \"daemon\" ];  then \n \
- crond -f\n \
+ trap \"echo stop && killall crond && exit 0\" SIGTERM SIGINT \n \
+ crond && while true; do sleep 1; done;\n \
 else \n \
- /root/.acme.sh/acme.sh --config-home /acme.sh \"\$@\"\n \
+ exec -- \"\$@\"\n \
 fi" >/entry.sh && chmod +x /entry.sh
 
 VOLUME /acme.sh
