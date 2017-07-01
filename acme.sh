@@ -1152,7 +1152,7 @@ _ss() {
 
   if _exists "ss"; then
     _debug "Using: ss"
-    ss -ntpl | grep ":$_port "
+    ss -ntpl 2>/dev/null | grep ":$_port "
     return 0
   fi
 
@@ -4479,26 +4479,51 @@ _deactivate() {
   _d_type="$2"
   _initpath
 
+  if ! __get_domain_new_authz "$_d_domain"; then
+    _err "Can not get domain new authz token."
+    return 1
+  fi
+
+  authzUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
+  _debug "authzUri" "$authzUri"
+
+  if [ "$code" ] && [ ! "$code" = '201' ]; then
+    _err "new-authz error: $response"
+    return 1
+  fi
+
+  entries="$(echo "$response" | _egrep_o '{ *"type":"[^"]*", *"status": *"valid", *"uri"[^}]*')"
+  if [ -z "$entries" ]; then
+    _info "No valid entries found."
+    if [ -z "$thumbprint" ]; then
+      thumbprint="$(__calc_account_thumbprint)"
+    fi
+    _debug "Trigger validation."
+    vtype="$VTYPE_HTTP"
+    entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
+    _debug entry "$entry"
+    if [ -z "$entry" ]; then
+      _err "Error, can not get domain token $d"
+      return 1
+    fi
+    token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
+    _debug token "$token"
+
+    uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d : -f 2,3 | tr -d '"')"
+    _debug uri "$uri"
+
+    keyauthorization="$token.$thumbprint"
+    _debug keyauthorization "$keyauthorization"
+    __trigger_validation "$uri" "$keyauthorization"
+
+  fi
+
   _d_i=0
-  _d_max_retry=9
+  _d_max_retry=$(echo "$entries" | wc -l)
   while [ "$_d_i" -lt "$_d_max_retry" ]; do
     _info "Deactivate: $_d_domain"
     _d_i="$(_math $_d_i + 1)"
-
-    if ! __get_domain_new_authz "$_d_domain"; then
-      _err "Can not get domain new authz token."
-      return 1
-    fi
-
-    authzUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
-    _debug "authzUri" "$authzUri"
-
-    if [ ! -z "$code" ] && [ ! "$code" = '201' ]; then
-      _err "new-authz error: $response"
-      return 1
-    fi
-
-    entry="$(printf "%s\n" "$response" | _egrep_o '{"type":"[^"]*","status":"valid","uri"[^}]*')"
+    entry="$(echo "$entries" | sed -n "${_d_i}p")"
     _debug entry "$entry"
 
     if [ -z "$entry" ]; then
@@ -4520,16 +4545,16 @@ _deactivate() {
 
     _info "Deactivate: $_vtype"
 
-    if ! _send_signed_request "$authzUri" "{\"resource\": \"authz\", \"status\":\"deactivated\"}"; then
+    if _send_signed_request "$authzUri" "{\"resource\": \"authz\", \"status\":\"deactivated\"}" && _contains "$response" '"deactivated"'; then
+      _info "Deactivate: $_vtype success."
+    else
       _err "Can not deactivate $_vtype."
-      return 1
+      break
     fi
-
-    _info "Deactivate: $_vtype success."
 
   done
   _debug "$_d_i"
-  if [ "$_d_i" -lt "$_d_max_retry" ]; then
+  if [ "$_d_i" -eq "$_d_max_retry" ]; then
     _info "Deactivated success!"
   else
     _err "Deactivate failed."
