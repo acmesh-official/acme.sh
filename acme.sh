@@ -2999,9 +2999,9 @@ _on_issue_err() {
   fi
 
   #trigger the validation to flush the pending authz
+  _debug2 "_chk_vlist" "$_chk_vlist"
   if [ "$_chk_vlist" ]; then
     (
-      _debug2 "_chk_vlist" "$_chk_vlist"
       _debug2 "start to deactivate authz"
       ventries=$(echo "$_chk_vlist" | tr "$dvsep" ' ')
       for ventry in $ventries; do
@@ -3498,7 +3498,7 @@ issue() {
 
         if [ "$?" != "0" ]; then
           _clearup
-          _on_issue_err "$_post_hook"
+          _on_issue_err "$_post_hook" "$vlist"
           return 1
         fi
         dnsadded='1'
@@ -3510,7 +3510,7 @@ issue() {
       _debug "Dns record not added yet, so, save to $DOMAIN_CONF and exit."
       _err "Please add the TXT records to the domains, and retry again."
       _clearup
-      _on_issue_err "$_post_hook"
+      _on_issue_err "$_post_hook" "$vlist"
       return 1
     fi
 
