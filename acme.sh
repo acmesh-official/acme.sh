@@ -4679,6 +4679,8 @@ _installalias() {
   _setopt "$_envfile" "export LE_WORKING_DIR" "=" "\"$LE_WORKING_DIR\""
   if [ "$_c_home" ]; then
     _setopt "$_envfile" "export LE_CONFIG_HOME" "=" "\"$LE_CONFIG_HOME\""
+  else
+    _sed_i "/^export LE_CONFIG_HOME/d" "$_envfile"
   fi
   _setopt "$_envfile" "alias $PROJECT_ENTRY" "=" "\"$LE_WORKING_DIR/$PROJECT_ENTRY$_c_entry\""
 
@@ -4700,6 +4702,8 @@ _installalias() {
     _setopt "$_cshfile" "setenv LE_WORKING_DIR" " " "\"$LE_WORKING_DIR\""
     if [ "$_c_home" ]; then
       _setopt "$_cshfile" "setenv LE_CONFIG_HOME" " " "\"$LE_CONFIG_HOME\""
+    else
+      _sed_i "/^setenv LE_CONFIG_HOME/d" "$_cshfile"
     fi
     _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY$_c_entry\""
     _setopt "$_csh_profile" "source \"$_cshfile\""
@@ -4764,19 +4768,23 @@ install() {
 
   _info "Installing to $LE_WORKING_DIR"
 
-  if ! mkdir -p "$LE_WORKING_DIR"; then
-    _err "Can not create working dir: $LE_WORKING_DIR"
-    return 1
+  if [ ! -d "$LE_WORKING_DIR" ]; then
+    if ! mkdir -p "$LE_WORKING_DIR"; then
+      _err "Can not create working dir: $LE_WORKING_DIR"
+      return 1
+    fi
+
+    chmod 700 "$LE_WORKING_DIR"
   fi
 
-  chmod 700 "$LE_WORKING_DIR"
+  if [ ! -d "$LE_CONFIG_HOME" ]; then
+    if ! mkdir -p "$LE_CONFIG_HOME"; then
+      _err "Can not create config dir: $LE_CONFIG_HOME"
+      return 1
+    fi
 
-  if ! mkdir -p "$LE_CONFIG_HOME"; then
-    _err "Can not create config dir: $LE_CONFIG_HOME"
-    return 1
+    chmod 700 "$LE_CONFIG_HOME"
   fi
-
-  chmod 700 "$LE_CONFIG_HOME"
 
   cp "$PROJECT_ENTRY" "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/$PROJECT_ENTRY"
 
