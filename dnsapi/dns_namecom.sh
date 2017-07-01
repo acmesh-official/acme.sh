@@ -5,7 +5,7 @@
 #Utilize name.com API to finish dns-01 verifications.
 ########  Public functions #####################
 
-namecom_api="https://api.name.com/api"
+Namecom_API="https://api.name.com/api"
 
 #Usage: dns_namecom_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_namecom_add() {
@@ -13,23 +13,23 @@ dns_namecom_add() {
   txtvalue=$2
 
   # First we need name.com credentials.
-  if [ -z "$namecom_username" ]; then
-    namecom_username=""
+  if [ -z "$Namecom_Username" ]; then
+    Namecom_Username=""
     _err "Username for name.com is missing."
     _err "Please specify that in your environment variable."
     return 1
   fi
 
-  if [ -z "$namecom_token" ]; then
-    namecom_token=""
+  if [ -z "$Namecom_Token" ]; then
+    Namecom_Token=""
     _err "API token for name.com is missing."
     _err "Please specify that in your environment variable."
     return 1
   fi
 
   # Save them in configuration.
-  _saveaccountconf namecom_username "$namecom_username"
-  _saveaccountconf namecom_token "$namecom_token"
+  _saveaccountconf Namecom_Username "$Namecom_Username"
+  _saveaccountconf Namecom_Token "$Namecom_Token"
 
   # Login in using API
   _namecom_login
@@ -45,7 +45,7 @@ dns_namecom_add() {
   _namecom_addtxt_json="{\"hostname\":\"$_sub_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"ttl\":\"300\",\"priority\":\"10\"}"
   if _namecom_rest POST "dns/create/$_domain" "$_namecom_addtxt_json"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "\"code\":100")
-    if [ ! -z "$retcode" ]; then
+    if [ "$retcode" ]; then
       _info "Successfully added TXT record, ready for validation."
       _namecom_logout
       return 0
@@ -75,7 +75,7 @@ dns_namecom_rm() {
   # Get the record id.
   if _namecom_rest GET "dns/list/$_domain"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "\"code\":100")
-    if [ ! -z "$retcode" ]; then
+    if [ "$retcode" ]; then
       _record_id=$(printf "%s\n" "$response" | _egrep_o "\"record_id\":\"[0-9]+\",\"name\":\"$fulldomain\",\"type\":\"TXT\"" | cut -d \" -f 4)
       _debug record_id "$_record_id"
       _info "Successfully retrieved the record id for ACME challenge."
@@ -90,7 +90,7 @@ dns_namecom_rm() {
   _namecom_rmtxt_json="{\"record_id\":\"$_record_id\"}"
   if _namecom_rest POST "dns/delete/$_domain" "$_namecom_rmtxt_json"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "\"code\":100")
-    if [ ! -z "$retcode" ]; then
+    if [ "$retcode" ]; then
       _info "Successfully removed the TXT record."
       _namecom_logout
       return 0
@@ -111,9 +111,9 @@ _namecom_rest() {
   export _H1="Content-Type: application/json"
   export _H2="Api-Session-Token: $sessionkey"
   if [ "$method" != "GET" ]; then
-    response="$(_post "$data" "$namecom_api/$param" "" "$method")"
+    response="$(_post "$data" "$Namecom_API/$param" "" "$method")"
   else
-    response="$(_get "$namecom_api/$param")"
+    response="$(_get "$Namecom_API/$param")"
   fi
 
   if [ "$?" != "0" ]; then
@@ -121,16 +121,16 @@ _namecom_rest() {
     return 1
   fi
 
-  _debug response "$response"
+  _debug2 response "$response"
   return 0
 }
 
 _namecom_login() {
-  namecom_login_json="{\"username\":\"$namecom_username\",\"api_token\":\"$namecom_token\"}"
+  namecom_login_json="{\"username\":\"$Namecom_Username\",\"api_token\":\"$Namecom_Token\"}"
 
   if _namecom_rest POST "login" "$namecom_login_json"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "\"code\":100")
-    if [ ! -z "$retcode" ]; then
+    if [ "$retcode" ]; then
       _info "Successfully logged in. Fetching session token..."
       sessionkey=$(printf "%s\n" "$response" | _egrep_o "\"session_token\":\".+" | cut -d \" -f 4)
       if [ ! -z "$sessionkey" ]; then
@@ -150,7 +150,7 @@ _namecom_login() {
 _namecom_logout() {
   if _namecom_rest GET "logout"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "\"code\":100")
-    if [ ! -z "$retcode" ]; then
+    if [ "$retcode" ]; then
       _info "Successfully logged out."
     else
       _err "Error logging out."
