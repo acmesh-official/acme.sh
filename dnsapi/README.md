@@ -525,6 +525,10 @@ For issues, please report to https://github.com/raidenii/acme.sh/issues.
 ## 28. Use Name.com API
 
 ```
+You'll need to fill out the form at https://www.name.com/reseller/apply to apply
+for API username and token.
+```
+
 export Namecom_Username="testuser"
 export Namecom_Token="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 ```
