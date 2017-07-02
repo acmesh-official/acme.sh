@@ -2197,7 +2197,9 @@ _initAPI() {
     export ACME_KEY_CHANGE="https://acme-v01.api.letsencrypt.org/acme/key-change"
     export ACME_NEW_AUTHZ="https://acme-v01.api.letsencrypt.org/acme/new-authz"
     export ACME_NEW_ORDER="https://acme-v01.api.letsencrypt.org/acme/new-cert"
+    export ACME_NEW_ORDER_RES="new-cert"
     export ACME_NEW_ACCOUNT="https://acme-v01.api.letsencrypt.org/acme/new-reg"
+    export ACME_NEW_ACCOUNT_RES="new-reg"
     export ACME_REVOKE_CERT="https://acme-v01.api.letsencrypt.org/acme/revoke-cert"
   fi
 
@@ -2217,16 +2219,22 @@ _initAPI() {
     export ACME_NEW_AUTHZ
 
     ACME_NEW_ORDER=$(echo "$response" | _egrep_o 'new-cert" *: *"[^"]*"' | cut -d '"' -f 3)
+    ACME_NEW_ORDER_RES="new-cert"
     if [ -z "$ACME_NEW_ORDER" ]; then
       ACME_NEW_ORDER=$(echo "$response" | _egrep_o 'new-order" *: *"[^"]*"' | cut -d '"' -f 3)
+      ACME_NEW_ORDER_RES="new-order"
     fi
     export ACME_NEW_ORDER
+    export ACME_NEW_ORDER_RES
 
     ACME_NEW_ACCOUNT=$(echo "$response" | _egrep_o 'new-reg" *: *"[^"]*"' | cut -d '"' -f 3)
+    ACME_NEW_ACCOUNT_RES="new-reg"
     if [ -z "$ACME_NEW_ACCOUNT" ]; then
       ACME_NEW_ACCOUNT=$(echo "$response" | _egrep_o 'new-account" *: *"[^"]*"' | cut -d '"' -f 3)
+      ACME_NEW_ACCOUNT_RES="new-account"
     fi
     export ACME_NEW_ACCOUNT
+    export ACME_NEW_ACCOUNT_RES
 
     ACME_REVOKE_CERT=$(echo "$response" | _egrep_o 'revoke-cert" *: *"[^"]*"' | cut -d '"' -f 3)
     export ACME_REVOKE_CERT
@@ -3098,7 +3106,7 @@ _regAccount() {
   fi
   _initAPI
   _updateTos=""
-  _reg_res="new-reg"
+  _reg_res="$ACME_NEW_ACCOUNT_RES"
   while true; do
     _debug AGREEMENT "$AGREEMENT"
 
@@ -3830,7 +3838,7 @@ issue() {
   _info "Verify finished, start to sign."
   der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _url_replace)"
 
-  if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"; then
+  if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"$ACME_NEW_ORDER_RES\", \"csr\": \"$der\"}" "needbase64"; then
     _err "Sign failed."
     _on_issue_err "$_post_hook"
     return 1
