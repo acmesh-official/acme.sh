@@ -32,7 +32,9 @@ dns_namecom_add() {
   _saveaccountconf Namecom_Token "$Namecom_Token"
 
   # Login in using API
-  _namecom_login
+  if ! _namecom_login; then
+    return 1
+  fi
 
   # Find domain in domain list.
   if ! _namecom_get_root "$fulldomain"; then
@@ -63,7 +65,9 @@ dns_namecom_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  _namecom_login
+  if ! _namecom_login; then
+    return 1
+  fi
 
   # Find domain in domain list.
   if ! _namecom_get_root "$fulldomain"; then
