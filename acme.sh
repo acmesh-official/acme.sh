@@ -4614,9 +4614,7 @@ _detect_profile() {
     fi
   fi
 
-  if [ ! -z "$DETECTED_PROFILE" ]; then
-    echo "$DETECTED_PROFILE"
-  fi
+  echo "$DETECTED_PROFILE"
 }
 
 _initconf() {
