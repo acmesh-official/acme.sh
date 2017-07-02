@@ -1281,7 +1281,7 @@ createDomainKey() {
 
   _initpath "$domain" "$_cdl"
 
-  if [ ! -f "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$IS_RENEW" ]); then
+  if [ ! -f "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$IS_RENEW" ]) || [ "$Le_ForceNewDomainKey" = "1" ] ; then
     if _createkey "$_cdl" "$CERT_KEY_PATH"; then
       _savedomainconf Le_Keylength "$_cdl"
       _info "The domain key is here: $(__green $CERT_KEY_PATH)"
@@ -3148,7 +3148,7 @@ _regAccount() {
         return 1
       fi
       if [ "$code" = '202' ]; then
-        _info "Update success."
+        _info "Update account tos info success."
 
         CA_KEY_HASH="$(__calcAccountKeyHash)"
         _debug "Calc CA_KEY_HASH" "$CA_KEY_HASH"
@@ -3355,7 +3355,7 @@ issue() {
   else
     _key=$(_readdomainconf Le_Keylength)
     _debug "Read key length:$_key"
-    if [ ! -f "$CERT_KEY_PATH" ] || [ "$_key_length" != "$_key" ]; then
+    if [ ! -f "$CERT_KEY_PATH" ] || [ "$_key_length" != "$_key" ] || [ "$Le_ForceNewDomainKey" = "1" ]; then
       if ! createDomainKey "$_main_domain" "$_key_length"; then
         _err "Create domain key error."
         _clearup
@@ -3883,6 +3883,12 @@ issue() {
   elif [ "$Le_Listen_V6" ]; then
     _savedomainconf "Le_Listen_V6" "$Le_Listen_V6"
     _cleardomainconf Le_Listen_V4
+  fi
+
+  if [ "$Le_ForceNewDomainKey" = "1" ]; then
+    _savedomainconf "Le_ForceNewDomainKey" "$Le_ForceNewDomainKey"
+  else
+    _cleardomainconf Le_ForceNewDomainKey
   fi
 
   Le_NextRenewTime=$(_math "$Le_CertCreateTime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
@@ -5026,6 +5032,7 @@ Parameters:
   --renew-hook                      Command to be run once for each successfully renewed certificate.
   --deploy-hook                     The hook file to deploy cert
   --ocsp-must-staple, --ocsp        Generate ocsp must Staple extension.
+  --always-force-new-domain-key     Generate new domain key when renewal. Otherwise, the domain key is not changed by default.
   --auto-upgrade   [0|1]            Valid for '--upgrade' command, indicating whether to upgrade automatically in future.
   --listen-v4                       Force standalone/tls server to listen at ipv4.
   --listen-v6                       Force standalone/tls server to listen at ipv6.
@@ -5505,6 +5512,14 @@ _process() {
         ;;
       --ocsp-must-staple | --ocsp)
         Le_OCSP_Staple="1"
+        ;;
+      --always-force-new-domain-key)
+        if [ -z "$2" ] || _startswith "$2" "-"; then
+          Le_ForceNewDomainKey=1
+        else
+          Le_ForceNewDomainKey="$2"
+          shift
+        fi
         ;;
       --log | --logfile)
         _log="1"
