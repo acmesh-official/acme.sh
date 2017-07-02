@@ -366,6 +366,7 @@ _hasfield() {
   return 1 #not contains
 }
 
+# str index [sep]
 _getfield() {
   _str="$1"
   _findex="$2"
@@ -3127,7 +3128,7 @@ _regAccount() {
 
       _accUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
       _debug "_accUri" "$_accUri"
-
+      _savecaconf "ACCOUNT_URL" "$_accUri"
       _tos="$(echo "$responseHeaders" | grep "^Link:.*rel=\"terms-of-service\"" | _head_n 1 | _egrep_o "<.*>" | tr -d '<>')"
       _debug "_tos" "$_tos"
       if [ -z "$_tos" ]; then
@@ -3153,6 +3154,9 @@ _regAccount() {
         CA_KEY_HASH="$(__calcAccountKeyHash)"
         _debug "Calc CA_KEY_HASH" "$CA_KEY_HASH"
         _savecaconf CA_KEY_HASH "$CA_KEY_HASH"
+      elif [ "$code" = '403' ]; then
+        _err "It seems that the account key is already deactivated, please use a new account key."
+        return 1
       else
         _err "Update account error."
         return 1
@@ -3163,6 +3167,71 @@ _regAccount() {
     return 0
   done
 
+}
+
+
+#Implement deactivate account
+deactivateaccount() {
+  _initpath
+
+  if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
+    mkdir -p "$CA_DIR"
+    _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
+    mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
+  fi
+
+  if [ ! -f "$ACCOUNT_JSON_PATH" ] && [ -f "$_OLD_ACCOUNT_JSON" ]; then
+    mkdir -p "$CA_DIR"
+    _info "mv $_OLD_ACCOUNT_JSON to $ACCOUNT_JSON_PATH"
+    mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
+  fi
+
+  if [ ! -f "$ACCOUNT_KEY_PATH" ]; then
+    _err "Account key is not found at: $ACCOUNT_KEY_PATH"
+    return 1
+  fi
+
+  _accUri=$(_readcaconf "ACCOUNT_URL")
+  _debug _accUri "$_accUri"
+
+  if [ -z "$_accUri" ]; then
+    _err "The account url is empty, please run '--update-account' first to update the account info first,"
+    _err "Then try again."
+    return 1
+  fi
+
+  if ! _calcjwk "$ACCOUNT_KEY_PATH"; then
+    return 1
+  fi
+  _initAPI
+
+  if _send_signed_request "$_accUri" "{\"resource\": \"reg\", \"status\":\"deactivated\"}" && _contains "$response" '"deactivated"'; then
+    _info "Deactivate account success for $_accUri."
+    _accid=$(echo "$response" | _egrep_o "\"id\" *: *[^,]*," | cut -d : -f 2 | tr -d ' ,')
+  elif [ "$code" = "403" ]; then
+    _info "The account is already deactivated."
+    _accid=$(_getfield "$_accUri" "999" "/")
+  else
+    _err "Deactivate: account failed for $_accUri."
+    return 1
+  fi
+
+  _debug "Account id: $_accid"
+  if [ "$_accid" ]; then
+    _deactivated_account_path="$CA_DIR/deactivated/$_accid"
+    _debug _deactivated_account_path "$_deactivated_account_path"
+    if mkdir -p "$_deactivated_account_path"; then
+      _info "Moving deactivated account info to $_deactivated_account_path/"
+      mv "$CA_CONF" "$_deactivated_account_path/"
+      mv "$ACCOUNT_JSON_PATH" "$_deactivated_account_path/"
+      mv "$ACCOUNT_KEY_PATH" "$_deactivated_account_path/"
+    else
+      _err "Can not create dir: $_deactivated_account_path, try to remove the deactivated account key."
+      rm -f "$CA_CONF"
+      rm -f "$ACCOUNT_JSON_PATH"
+      rm -f "$ACCOUNT_KEY_PATH"
+    fi
+  fi
 }
 
 # domain folder  file
@@ -4972,6 +5041,7 @@ Commands:
   --toPkcs8                Convert to pkcs8 format.
   --update-account         Update account info.
   --register-account       Register account key.
+  --deactivate-account     Deactivate the account.
   --create-account-key     Create an account private key, professional use.
   --create-domain-key      Create an domain private key, professional use.
   --createCSR, -ccsr       Create CSR , professional use.
@@ -5251,6 +5321,9 @@ _process() {
         ;;
       --registeraccount | --register-account)
         _CMD="registeraccount"
+        ;;
+      --deactivate-account)
+        _CMD="deactivateaccount"
         ;;
       --domain | -d)
         _dvalue="$2"
@@ -5666,6 +5739,9 @@ _process() {
       ;;
     updateaccount)
       updateaccount
+      ;;
+    deactivateaccount)
+      deactivateaccount
       ;;
     list)
       list "$_listraw"
