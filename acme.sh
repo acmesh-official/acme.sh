@@ -366,6 +366,7 @@ _hasfield() {
   return 1 #not contains
 }
 
+# str index [sep]
 _getfield() {
   _str="$1"
   _findex="$2"
@@ -1281,7 +1282,7 @@ createDomainKey() {
 
   _initpath "$domain" "$_cdl"
 
-  if [ ! -f "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$IS_RENEW" ]); then
+  if [ ! -f "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$IS_RENEW" ]) || [ "$Le_ForceNewDomainKey" = "1" ]; then
     if _createkey "$_cdl" "$CERT_KEY_PATH"; then
       _savedomainconf Le_Keylength "$_cdl"
       _info "The domain key is here: $(__green $CERT_KEY_PATH)"
@@ -2196,7 +2197,9 @@ _initAPI() {
     export ACME_KEY_CHANGE="https://acme-v01.api.letsencrypt.org/acme/key-change"
     export ACME_NEW_AUTHZ="https://acme-v01.api.letsencrypt.org/acme/new-authz"
     export ACME_NEW_ORDER="https://acme-v01.api.letsencrypt.org/acme/new-cert"
+    export ACME_NEW_ORDER_RES="new-cert"
     export ACME_NEW_ACCOUNT="https://acme-v01.api.letsencrypt.org/acme/new-reg"
+    export ACME_NEW_ACCOUNT_RES="new-reg"
     export ACME_REVOKE_CERT="https://acme-v01.api.letsencrypt.org/acme/revoke-cert"
   fi
 
@@ -2216,16 +2219,22 @@ _initAPI() {
     export ACME_NEW_AUTHZ
 
     ACME_NEW_ORDER=$(echo "$response" | _egrep_o 'new-cert" *: *"[^"]*"' | cut -d '"' -f 3)
+    ACME_NEW_ORDER_RES="new-cert"
     if [ -z "$ACME_NEW_ORDER" ]; then
       ACME_NEW_ORDER=$(echo "$response" | _egrep_o 'new-order" *: *"[^"]*"' | cut -d '"' -f 3)
+      ACME_NEW_ORDER_RES="new-order"
     fi
     export ACME_NEW_ORDER
+    export ACME_NEW_ORDER_RES
 
     ACME_NEW_ACCOUNT=$(echo "$response" | _egrep_o 'new-reg" *: *"[^"]*"' | cut -d '"' -f 3)
+    ACME_NEW_ACCOUNT_RES="new-reg"
     if [ -z "$ACME_NEW_ACCOUNT" ]; then
       ACME_NEW_ACCOUNT=$(echo "$response" | _egrep_o 'new-account" *: *"[^"]*"' | cut -d '"' -f 3)
+      ACME_NEW_ACCOUNT_RES="new-account"
     fi
     export ACME_NEW_ACCOUNT
+    export ACME_NEW_ACCOUNT_RES
 
     ACME_REVOKE_CERT=$(echo "$response" | _egrep_o 'revoke-cert" *: *"[^"]*"' | cut -d '"' -f 3)
     export ACME_REVOKE_CERT
@@ -3073,14 +3082,13 @@ _regAccount() {
   _initpath
   _reg_length="$1"
 
+  mkdir -p "$CA_DIR"
   if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
-    mkdir -p "$CA_DIR"
     _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
     mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
   fi
 
   if [ ! -f "$ACCOUNT_JSON_PATH" ] && [ -f "$_OLD_ACCOUNT_JSON" ]; then
-    mkdir -p "$CA_DIR"
     _info "mv $_OLD_ACCOUNT_JSON to $ACCOUNT_JSON_PATH"
     mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
   fi
@@ -3097,7 +3105,7 @@ _regAccount() {
   fi
   _initAPI
   _updateTos=""
-  _reg_res="new-reg"
+  _reg_res="$ACME_NEW_ACCOUNT_RES"
   while true; do
     _debug AGREEMENT "$AGREEMENT"
 
@@ -3127,7 +3135,7 @@ _regAccount() {
 
       _accUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
       _debug "_accUri" "$_accUri"
-
+      _savecaconf "ACCOUNT_URL" "$_accUri"
       _tos="$(echo "$responseHeaders" | grep "^Link:.*rel=\"terms-of-service\"" | _head_n 1 | _egrep_o "<.*>" | tr -d '<>')"
       _debug "_tos" "$_tos"
       if [ -z "$_tos" ]; then
@@ -3148,11 +3156,14 @@ _regAccount() {
         return 1
       fi
       if [ "$code" = '202' ]; then
-        _info "Update success."
+        _info "Update account tos info success."
 
         CA_KEY_HASH="$(__calcAccountKeyHash)"
         _debug "Calc CA_KEY_HASH" "$CA_KEY_HASH"
         _savecaconf CA_KEY_HASH "$CA_KEY_HASH"
+      elif [ "$code" = '403' ]; then
+        _err "It seems that the account key is already deactivated, please use a new account key."
+        return 1
       else
         _err "Update account error."
         return 1
@@ -3163,6 +3174,68 @@ _regAccount() {
     return 0
   done
 
+}
+
+#Implement deactivate account
+deactivateaccount() {
+  _initpath
+
+  if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
+    _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
+    mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
+  fi
+
+  if [ ! -f "$ACCOUNT_JSON_PATH" ] && [ -f "$_OLD_ACCOUNT_JSON" ]; then
+    _info "mv $_OLD_ACCOUNT_JSON to $ACCOUNT_JSON_PATH"
+    mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
+  fi
+
+  if [ ! -f "$ACCOUNT_KEY_PATH" ]; then
+    _err "Account key is not found at: $ACCOUNT_KEY_PATH"
+    return 1
+  fi
+
+  _accUri=$(_readcaconf "ACCOUNT_URL")
+  _debug _accUri "$_accUri"
+
+  if [ -z "$_accUri" ]; then
+    _err "The account url is empty, please run '--update-account' first to update the account info first,"
+    _err "Then try again."
+    return 1
+  fi
+
+  if ! _calcjwk "$ACCOUNT_KEY_PATH"; then
+    return 1
+  fi
+  _initAPI
+
+  if _send_signed_request "$_accUri" "{\"resource\": \"reg\", \"status\":\"deactivated\"}" && _contains "$response" '"deactivated"'; then
+    _info "Deactivate account success for $_accUri."
+    _accid=$(echo "$response" | _egrep_o "\"id\" *: *[^,]*," | cut -d : -f 2 | tr -d ' ,')
+  elif [ "$code" = "403" ]; then
+    _info "The account is already deactivated."
+    _accid=$(_getfield "$_accUri" "999" "/")
+  else
+    _err "Deactivate: account failed for $_accUri."
+    return 1
+  fi
+
+  _debug "Account id: $_accid"
+  if [ "$_accid" ]; then
+    _deactivated_account_path="$CA_DIR/deactivated/$_accid"
+    _debug _deactivated_account_path "$_deactivated_account_path"
+    if mkdir -p "$_deactivated_account_path"; then
+      _info "Moving deactivated account info to $_deactivated_account_path/"
+      mv "$CA_CONF" "$_deactivated_account_path/"
+      mv "$ACCOUNT_JSON_PATH" "$_deactivated_account_path/"
+      mv "$ACCOUNT_KEY_PATH" "$_deactivated_account_path/"
+    else
+      _err "Can not create dir: $_deactivated_account_path, try to remove the deactivated account key."
+      rm -f "$CA_CONF"
+      rm -f "$ACCOUNT_JSON_PATH"
+      rm -f "$ACCOUNT_KEY_PATH"
+    fi
+  fi
 }
 
 # domain folder  file
@@ -3355,7 +3428,7 @@ issue() {
   else
     _key=$(_readdomainconf Le_Keylength)
     _debug "Read key length:$_key"
-    if [ ! -f "$CERT_KEY_PATH" ] || [ "$_key_length" != "$_key" ]; then
+    if [ ! -f "$CERT_KEY_PATH" ] || [ "$_key_length" != "$_key" ] || [ "$Le_ForceNewDomainKey" = "1" ]; then
       if ! createDomainKey "$_main_domain" "$_key_length"; then
         _err "Create domain key error."
         _clearup
@@ -3761,7 +3834,7 @@ issue() {
   _info "Verify finished, start to sign."
   der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _url_replace)"
 
-  if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"; then
+  if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"$ACME_NEW_ORDER_RES\", \"csr\": \"$der\"}" "needbase64"; then
     _err "Sign failed."
     _on_issue_err "$_post_hook"
     return 1
@@ -3883,6 +3956,12 @@ issue() {
   elif [ "$Le_Listen_V6" ]; then
     _savedomainconf "Le_Listen_V6" "$Le_Listen_V6"
     _cleardomainconf Le_Listen_V4
+  fi
+
+  if [ "$Le_ForceNewDomainKey" = "1" ]; then
+    _savedomainconf "Le_ForceNewDomainKey" "$Le_ForceNewDomainKey"
+  else
+    _cleardomainconf Le_ForceNewDomainKey
   fi
 
   Le_NextRenewTime=$(_math "$Le_CertCreateTime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
@@ -4614,9 +4693,7 @@ _detect_profile() {
     fi
   fi
 
-  if [ ! -z "$DETECTED_PROFILE" ]; then
-    echo "$DETECTED_PROFILE"
-  fi
+  echo "$DETECTED_PROFILE"
 }
 
 _initconf() {
@@ -4968,6 +5045,7 @@ Commands:
   --toPkcs8                Convert to pkcs8 format.
   --update-account         Update account info.
   --register-account       Register account key.
+  --deactivate-account     Deactivate the account.
   --create-account-key     Create an account private key, professional use.
   --create-domain-key      Create an domain private key, professional use.
   --createCSR, -ccsr       Create CSR , professional use.
@@ -5028,6 +5106,7 @@ Parameters:
   --renew-hook                      Command to be run once for each successfully renewed certificate.
   --deploy-hook                     The hook file to deploy cert
   --ocsp-must-staple, --ocsp        Generate ocsp must Staple extension.
+  --always-force-new-domain-key     Generate new domain key when renewal. Otherwise, the domain key is not changed by default.
   --auto-upgrade   [0|1]            Valid for '--upgrade' command, indicating whether to upgrade automatically in future.
   --listen-v4                       Force standalone/tls server to listen at ipv4.
   --listen-v6                       Force standalone/tls server to listen at ipv6.
@@ -5246,6 +5325,9 @@ _process() {
         ;;
       --registeraccount | --register-account)
         _CMD="registeraccount"
+        ;;
+      --deactivate-account)
+        _CMD="deactivateaccount"
         ;;
       --domain | -d)
         _dvalue="$2"
@@ -5508,6 +5590,14 @@ _process() {
       --ocsp-must-staple | --ocsp)
         Le_OCSP_Staple="1"
         ;;
+      --always-force-new-domain-key)
+        if [ -z "$2" ] || _startswith "$2" "-"; then
+          Le_ForceNewDomainKey=1
+        else
+          Le_ForceNewDomainKey="$2"
+          shift
+        fi
+        ;;
       --log | --logfile)
         _log="1"
         _logfile="$2"
@@ -5653,6 +5743,9 @@ _process() {
       ;;
     updateaccount)
       updateaccount
+      ;;
+    deactivateaccount)
+      deactivateaccount
       ;;
     list)
       list "$_listraw"
