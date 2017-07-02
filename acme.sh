@@ -3082,14 +3082,13 @@ _regAccount() {
   _initpath
   _reg_length="$1"
 
+  mkdir -p "$CA_DIR"
   if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
-    mkdir -p "$CA_DIR"
     _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
     mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
   fi
 
   if [ ! -f "$ACCOUNT_JSON_PATH" ] && [ -f "$_OLD_ACCOUNT_JSON" ]; then
-    mkdir -p "$CA_DIR"
     _info "mv $_OLD_ACCOUNT_JSON to $ACCOUNT_JSON_PATH"
     mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
   fi
@@ -3183,13 +3182,11 @@ deactivateaccount() {
   _initpath
 
   if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
-    mkdir -p "$CA_DIR"
     _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
     mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
   fi
 
   if [ ! -f "$ACCOUNT_JSON_PATH" ] && [ -f "$_OLD_ACCOUNT_JSON" ]; then
-    mkdir -p "$CA_DIR"
     _info "mv $_OLD_ACCOUNT_JSON to $ACCOUNT_JSON_PATH"
     mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
   fi
