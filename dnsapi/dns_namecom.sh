@@ -168,21 +168,26 @@ _namecom_get_root() {
   i=2
   p=1
 
-  if _namecom_rest GET "domain/list"; then
-    while true; do
-      host=$(printf "%s" "$domain" | cut -d . -f $i-100)
-      if [ -z "$host" ]; then
-        return 1
-      fi
-
-      if _contains "$response" "$host"; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
-        _domain="$host"
-        return 0
-      fi
-      p=$i
-      i=$(_math "$i" + 1)
-    done
+  if ! _namecom_rest GET "domain/list"; then
+    return 1
   fi
+
+  # Need to exclude the last field (tld)
+  numfields=$(echo "$domain" | _egrep_o "\." | wc -l)
+  while [ $i -le "$numfields" ]; do
+    host=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _debug host "$host"
+    if [ -z "$host" ]; then
+      return 1
+    fi
+
+    if _contains "$response" "$host"; then
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _domain="$host"
+      return 0
+    fi
+    p=$i
+    i=$(_math "$i" + 1)
+  done
   return 1
 }
