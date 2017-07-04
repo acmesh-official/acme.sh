@@ -34,7 +34,7 @@ cpanel_deploy() {
   _debug _cert "$_cert"
   _debug _key "$_key"
 
-  if [ "$(id -u)" = 0 ]; then 
+  if [ "$(id -u)" = 0 ]; then
     _opt="--user=$DEPLOY_CPANEL_USER"
     _debug _opt "$_opt"
   fi
