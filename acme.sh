@@ -3544,10 +3544,10 @@ issue() {
           _info "Found domain api file: $d_api"
         else
           _info "$(__red "Add the following TXT record:")"
-          _info "$(__red  "Domain: '$(__green "$txtdomain")'")"
-          _info "$(__red  "TXT value: '$(__green "$txt")'")"
-          _info "$(__red  "Please be aware that you prepend _acme-challenge. before your domain")"
-          _info "$(__red  "so the resulting subdomain will be: $txtdomain")"
+          _info "$(__red "Domain: '$(__green "$txtdomain")'")"
+          _info "$(__red "TXT value: '$(__green "$txt")'")"
+          _info "$(__red "Please be aware that you prepend _acme-challenge. before your domain")"
+          _info "$(__red "so the resulting subdomain will be: $txtdomain")"
           continue
         fi
 
