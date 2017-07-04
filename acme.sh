@@ -3543,11 +3543,11 @@ issue() {
         if [ "$d_api" ]; then
           _info "Found domain api file: $d_api"
         else
-          _err "Add the following TXT record:"
-          _err "Domain: '$(__green "$txtdomain")'"
-          _err "TXT value: '$(__green "$txt")'"
-          _err "Please be aware that you prepend _acme-challenge. before your domain"
-          _err "so the resulting subdomain will be: $txtdomain"
+          _info "$(__red "Add the following TXT record:")"
+          _info "$(__red  "Domain: '$(__green "$txtdomain")'")"
+          _info "$(__red  "TXT value: '$(__green "$txt")'")"
+          _info "$(__red  "Please be aware that you prepend _acme-challenge. before your domain")"
+          _info "$(__red  "so the resulting subdomain will be: $txtdomain")"
           continue
         fi
 
@@ -3583,7 +3583,7 @@ issue() {
       _debug "Dns record not added yet, so, save to $DOMAIN_CONF and exit."
       _err "Please add the TXT records to the domains, and retry again."
       _clearup
-      _on_issue_err "$_post_hook" "$vlist"
+      _on_issue_err "$_post_hook"
       return 1
     fi
 
