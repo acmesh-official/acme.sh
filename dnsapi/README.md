@@ -540,6 +540,39 @@ acme.sh --issue --dns dns_namecom -d example.com -d www.example.com
 
 For issues, please report to https://github.com/raidenii/acme.sh/issues.
 
+## 29. Use Dyn Managed DNS API to automatically issue cert
+
+First, login to your Dyn Managed DNS account: https://portal.dynect.net/login/
+
+It is recommended to add a new user specific for API access.
+
+The minimum "Zones & Records Permissions" required are:
+```
+RecordAdd
+RecordUpdate
+RecordDelete
+RecordGet
+ZoneGet
+ZoneAddNode
+ZoneRemoveNode
+ZonePublish
+```
+
+Pass the API user credentials to the environment:
+```
+export DYN_Customer="customer"
+export DYN_Username="apiuser"
+export DYN_Password="secret"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_dyn -d example.com -d www.example.com
+```
+
+The `DYN_Customer`, `DYN_Username` and `DYN_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
