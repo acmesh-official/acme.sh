@@ -240,7 +240,7 @@ _dyn_publish_zone() {
 
   _info "Publishing zone"
 
-  data="{\"publish\":\"true\"}"    
+  data="{\"publish\":\"true\"}"
   dyn_url="$DYN_API/Zone/$_dyn_zone/"
   method="PUT"
 
