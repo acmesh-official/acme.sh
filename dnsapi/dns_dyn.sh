@@ -337,4 +337,3 @@ _dyn_end_session() {
   _dyn_authtoken=""
   return 0
 }
-
