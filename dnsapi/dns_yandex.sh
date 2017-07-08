@@ -16,8 +16,8 @@ dns_yandex_add() {
   _PDD_credentials
   export _H1="PddToken: $PDD_Token"
 
-  curDomain="$(echo ${fulldomain}|awk -F. '{printf("%s.%s\n",$(NF-1), $NF)}' )"
-  curSubdomain="$(echo ${fulldomain} | sed -e 's#$curDomain##')"
+  curDomain="$(echo "${fulldomain}" | awk -F. '{printf("%s.%s\n",$(NF-1), $NF)}' )"
+  curSubdomain="$(echo "${fulldomain}" | sed -e 's#$curDomain##')"
   curData="domain=${curDomain}&type=TXT&subdomain=${curSubdomain}&ttl=360&content=${txtvalue}"
   curUri="https://pddimp.yandex.ru/api2/admin/dns/add"
   curResult="$(_post "${curData}" "${curUri}")"
@@ -30,10 +30,10 @@ dns_yandex_rm() {
   _debug "Calling: dns_yandex_rm() '${fulldomain}'"
   _PDD_credentials
   export _H1="PddToken: $PDD_Token"
-  local record_id=$( pdd_get_record_id ${fulldomain} )
+  record_id=$( pdd_get_record_id ${fulldomain} )
 
-  curDomain="$(echo ${fulldomain}|awk -F. '{printf("%s.%s\n",$(NF-1), $NF)}' )"
-  curSubdomain="$(echo ${fulldomain} | sed -e 's#$curDomain##')"
+  curDomain="$(echo "${fulldomain}" | awk -F. '{printf("%s.%s\n",$(NF-1), $NF)}' )"
+  curSubdomain="$(echo "${fulldomain}" | sed -e 's#$curDomain##')"
   curUri="https://pddimp.yandex.ru/api2/admin/dns/del"
   curData="domain=${curDomain}&record_id=${record_id}"
   curResult="$(_post "${curData}" "${curUri}")"
@@ -53,17 +53,17 @@ _PDD_credentials() {
 }
 
 pdd_get_record_id() {
-  local fulldomain="${1}"
-  local curDomain="$(echo ${fulldomain}|awk -F. '{printf("%s.%s\n",$(NF-1), $NF)}' )"
-  local curUri="https://pddimp.yandex.ru/api2/admin/dns/list?domain=${curDomain}"
-  local curResult="$(_get "${curUri}")"
+  fulldomain="${1}"
+  curDomain="$(echo "${fulldomain}" |awk -F. '{printf("%s.%s\n",$(NF-1), $NF)}' )"
+  curUri="https://pddimp.yandex.ru/api2/admin/dns/list?domain=${curDomain}"
+  curResult="$(_get "${curUri}")"
   echo ${curResult} | \
-python -c '
+  python -c "
 import sys, json;
-rs=json.load(sys.stdin)["records"]
+rs=json.load(sys.stdin)[\"records\"]
 for r in rs:
-  if r["fqdn"]=="${fulldomain}":
-    print r["record_id"]
+  if r[\"fqdn\"]==\"${fulldomain}\":
+    print r[\"record_id\"]
     exit
-'
+"
 }
