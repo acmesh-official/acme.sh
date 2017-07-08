@@ -208,7 +208,7 @@ aws_rest() {
   kServiceH="$(printf "$Service%s" | _hmac "$Hash" "$kRegionH" hex)"
   _debug2 kServiceH "$kServiceH"
 
-  kSigningH="$(printf "aws4_request%s" | _hmac "$Hash" "$kServiceH" hex)"
+  kSigningH="$(printf "%s" "aws4_request" | _hmac "$Hash" "$kServiceH" hex)"
   _debug2 kSigningH "$kSigningH"
 
   signature="$(printf "$StringToSign%s" | _hmac "$Hash" "$kSigningH" hex)"
