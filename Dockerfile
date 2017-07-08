@@ -44,6 +44,7 @@ RUN for verb in help \
   create-domain-key \
   createCSR \
   deactivate \
+  deactivate-account \
   ; do \
     printf -- "%b" "#!/usr/bin/env sh\n/root/.acme.sh/acme.sh --${verb} --config-home /acme.sh \"\$@\"" >/usr/local/bin/--${verb} && chmod +x /usr/local/bin/--${verb} \
   ; done
