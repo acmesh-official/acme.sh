@@ -156,13 +156,13 @@ _dyn_get_authtoken() {
   export _H1="Content-Type: application/json"
 
   response="$(_post "$data" "$dyn_url" "" "$method")"
-  sessionstatus="$(printf "%s\n" "$response" | _egrep_o '"status" *: *"[^"]*' | head -n 1 | sed 's#^"status" *: *"##')"
+  sessionstatus="$(printf "%s\n" "$response" | _egrep_o '"status" *: *"[^"]*' | _head_n 1 | sed 's#^"status" *: *"##')"
 
   _debug response "$response"
   _debug sessionstatus "$sessionstatus"
 
   if [ "$sessionstatus" = "success" ]; then
-    _dyn_authtoken="$(printf "%s\n" "$response" | _egrep_o '"token" *: *"[^"]*' | head -n 1 | sed 's#^"token" *: *"##')"
+    _dyn_authtoken="$(printf "%s\n" "$response" | _egrep_o '"token" *: *"[^"]*' | _head_n 1 | sed 's#^"token" *: *"##')"
     _info "Token received"
     _debug _dyn_authtoken "$_dyn_authtoken"
     return 0
@@ -190,7 +190,7 @@ _dyn_get_zone() {
     export _H2="Content-Type: application/json"
 
     response="$(_get "$dyn_url" "" "")"
-    sessionstatus="$(printf "%s\n" "$response" | _egrep_o '"status" *: *"[^"]*' | head -n 1 | sed 's#^"status" *: *"##')"
+    sessionstatus="$(printf "%s\n" "$response" | _egrep_o '"status" *: *"[^"]*' | _head_n 1 | sed 's#^"status" *: *"##')"
 
     _debug dyn_url "$dyn_url"
     _debug response "$response"
@@ -221,7 +221,7 @@ _dyn_add_record() {
   export _H2="Content-Type: application/json"
 
   response="$(_post "$data" "$dyn_url" "" "$method")"
-  sessionstatus="$(printf "%s\n" "$response" | _egrep_o '"status" *: *"[^"]*' | head -n 1 | sed 's#^"status" *: *"##')"
+  sessionstatus="$(printf "%s\n" "$response" | _egrep_o '"status" *: *"[^"]*' | _head_n 1 | sed 's#^"status" *: *"##')"
 
   _debug response "$response"
   _debug sessionstatus "$sessionstatus"
@@ -248,7 +248,7 @@ _dyn_publish_zone() {
   export _H2="Content-Type: application/json"
 
   response="$(_post "$data" "$dyn_url" "" "$method")"
-  sessionstatus="$(printf "%s\n" "$response" | _egrep_o '"status" *: *"[^"]*' | head -n 1 | sed 's#^"status" *: *"##')"
+  sessionstatus="$(printf "%s\n" "$response" | _egrep_o '"status" *: *"[^"]*' | _head_n 1 | sed 's#^"status" *: *"##')"
 
   _debug response "$response"
   _debug sessionstatus "$sessionstatus"
@@ -273,13 +273,13 @@ _dyn_get_record_id() {
   export _H2="Content-Type: application/json"
 
   response="$(_get "$dyn_url" "" "")"
-  sessionstatus="$(printf "%s\n" "$response" | _egrep_o '"status" *: *"[^"]*' | head -n 1 | sed 's#^"status" *: *"##')"
+  sessionstatus="$(printf "%s\n" "$response" | _egrep_o '"status" *: *"[^"]*' | _head_n 1 | sed 's#^"status" *: *"##')"
 
   _debug response "$response"
   _debug sessionstatus "$sessionstatus"
 
   if [ "$sessionstatus" = "success" ]; then
-    _dyn_record_id="$(printf "%s\n" "$response" | _egrep_o "\"data\" *: *\[\"/REST/TXTRecord/$_dyn_zone/$fulldomain/[^\"]*" | head -n 1 | sed "s#^\"data\" *: *\[\"/REST/TXTRecord/$_dyn_zone/$fulldomain/##")"
+    _dyn_record_id="$(printf "%s\n" "$response" | _egrep_o "\"data\" *: *\[\"/REST/TXTRecord/$_dyn_zone/$fulldomain/[^\"]*" | _head_n 1 | sed "s#^\"data\" *: *\[\"/REST/TXTRecord/$_dyn_zone/$fulldomain/##")"
     _debug _dyn_record_id "$_dyn_record_id"
     return 0
   fi
@@ -303,7 +303,7 @@ _dyn_rm_record() {
   export _H2="Content-Type: application/json"
 
   response="$(_post "" "$dyn_url" "" "$method")"
-  sessionstatus="$(printf "%s\n" "$response" | _egrep_o '"status" *: *"[^"]*' | head -n 1 | sed 's#^"status" *: *"##')"
+  sessionstatus="$(printf "%s\n" "$response" | _egrep_o '"status" *: *"[^"]*' | _head_n 1 | sed 's#^"status" *: *"##')"
 
   _debug response "$response"
   _debug sessionstatus "$sessionstatus"
