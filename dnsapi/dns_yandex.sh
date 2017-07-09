@@ -13,7 +13,7 @@ dns_yandex_add() {
   fulldomain="${1}"
   txtvalue="${2}"
   _debug "Calling: dns_yandex_add() '${fulldomain}' '${txtvalue}'"
-  _PDD_credentials
+  _PDD_credentials || exit 1
   export _H1="PddToken: $PDD_Token"
 
   curDomain="$(echo "${fulldomain}" | awk -F. '{printf("%s.%s\n",$(NF-1), $NF)}')"
@@ -28,7 +28,7 @@ dns_yandex_add() {
 dns_yandex_rm() {
   fulldomain="${1}"
   _debug "Calling: dns_yandex_rm() '${fulldomain}'"
-  _PDD_credentials
+  _PDD_credentials || exit 1
   export _H1="PddToken: $PDD_Token"
   record_id=$(pdd_get_record_id "${fulldomain}")
 
@@ -67,3 +67,4 @@ for r in rs:
     exit
 "
 }
+
