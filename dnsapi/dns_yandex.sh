@@ -16,8 +16,8 @@ dns_yandex_add() {
   _PDD_credentials || exit 1
   export _H1="PddToken: $PDD_Token"
 
-  curDomain="$(echo "${fulldomain}" | awk -F. '{printf("%s.%s\n",$(NF-1), $NF)}')"
-  curSubdomain="$(echo "${fulldomain}" | sed -e "s#$curDomain##")"
+  curDomain="$(echo "${fulldomain}" | rev | cut -d . -f 1-2 | rev )"
+  curSubdomain="$(echo "${fulldomain}" | rev | cut -d . -f 3- | rev )"
   curData="domain=${curDomain}&type=TXT&subdomain=${curSubdomain}&ttl=360&content=${txtvalue}"
   curUri="https://pddimp.yandex.ru/api2/admin/dns/add"
   curResult="$(_post "${curData}" "${curUri}")"
@@ -32,8 +32,8 @@ dns_yandex_rm() {
   export _H1="PddToken: $PDD_Token"
   record_id=$(pdd_get_record_id "${fulldomain}")
 
-  curDomain="$(echo "${fulldomain}" | awk -F. '{printf("%s.%s\n",$(NF-1), $NF)}')"
-  curSubdomain="$(echo "${fulldomain}" | sed -e "s#$curDomain##")"
+  curDomain="$(echo "${fulldomain}" | rev | cut -d . -f 1-2 | rev )"
+  curSubdomain="$(echo "${fulldomain}" | rev | cut -d . -f 3- | rev )"
   curUri="https://pddimp.yandex.ru/api2/admin/dns/del"
   curData="domain=${curDomain}&record_id=${record_id}"
   curResult="$(_post "${curData}" "${curUri}")"
