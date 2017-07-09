@@ -41,10 +41,10 @@ dns_infoblox_add() {
   export _H2="Authorization: Basic $Infoblox_CredsEncoded"
 
   ## Add the challenge record to the Infoblox grid member
-  result=$(_post "" "$baseurlnObject" "" "POST")
+  result="$(_post "" "$baseurlnObject" "" "POST")"
 
   ## Let's see if we get something intelligible back from the unit
-  if echo "$result" | egrep "record:txt/.*:.*/$Infoblox_View"; then
+  if [ "$(echo "$result" | _egrep_o "record:txt/.*:.*/$Infoblox_View")" ]; then
     _info "Successfully created the txt record"
     return 0
   else
@@ -66,7 +66,7 @@ dns_infoblox_rm() {
   _debug txtvalue "$txtvalue"
 
   ## Base64 encode the credentials
-  Infoblox_CredsEncoded=$(printf "%b" "$Infoblox_Creds" | _base64)
+  Infoblox_CredsEncoded="$(printf "%b" "$Infoblox_Creds" | _base64)"
 
   ## Construct the HTTP Authorization header
   export _H1="Accept-Language:en-US"
@@ -74,17 +74,17 @@ dns_infoblox_rm() {
 
   ## Does the record exist?  Let's check.
   baseurlnObject="https://$Infoblox_Server/wapi/v2.2.2/record:txt?name=$fulldomain&text=$txtvalue&view=$Infoblox_View&_return_type=xml-pretty"
-  result=$(_get "$baseurlnObject")
+  result="$(_get "$baseurlnObject")"
 
   ## Let's see if we get something intelligible back from the grid
-  if echo "$result" | egrep "record:txt/.*:.*/$Infoblox_View"; then
+  if [ "$(echo "$result" | _egrep_o "record:txt/.*:.*/$Infoblox_View")" ]; then
     ## Extract the object reference
-    objRef=$(printf "%b" "$result" | _egrep_o "record:txt/.*:.*/$Infoblox_View")
+    objRef="$(printf "%b" "$result" | _egrep_o "record:txt/.*:.*/$Infoblox_View")"
     objRmUrl="https://$Infoblox_Server/wapi/v2.2.2/$objRef"
     ## Delete them! All the stale records!
-    rmResult=$(_post "" "$objRmUrl" "" "DELETE")
+    rmResult="$(_post "" "$objRmUrl" "" "DELETE")"
     ## Let's see if that worked
-    if echo "$rmResult" | egrep "record:txt/.*:.*/$Infoblox_View"; then
+    if [ "$(echo "$rmResult" | _egrep_o "record:txt/.*:.*/$Infoblox_View")" ]; then
       _info "Successfully deleted $objRef"
       return 0
     else
