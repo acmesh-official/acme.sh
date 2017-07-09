@@ -31,6 +31,7 @@ dns_yandex_rm() {
   _PDD_credentials || exit 1
   export _H1="PddToken: $PDD_Token"
   record_id=$(pdd_get_record_id "${fulldomain}")
+  _debug "Result: $record_id"
 
   curDomain="$(echo "${fulldomain}" | rev | cut -d . -f 1-2 | rev)"
   curSubdomain="$(echo "${fulldomain}" | rev | cut -d . -f 3- | rev)"
@@ -54,16 +55,10 @@ _PDD_credentials() {
 
 pdd_get_record_id() {
   fulldomain="${1}"
-  curDomain="$(echo "${fulldomain}" | awk -F. '{printf("%s.%s\n",$(NF-1), $NF)}')"
+  curDomain="$(echo "${fulldomain}" | rev | cut -d . -f 1-2 | rev)"
+  curSubdomain="$(echo "${fulldomain}" | rev | cut -d . -f 3- | rev)"
   curUri="https://pddimp.yandex.ru/api2/admin/dns/list?domain=${curDomain}"
-  curResult="$(_get "${curUri}")"
-  echo "${curResult}" \
-    | python -c "
-import sys, json;
-rs=json.load(sys.stdin)[\"records\"]
-for r in rs:
-  if r[\"fqdn\"]==\"${fulldomain}\":
-    print r[\"record_id\"]
-    exit
-"
+  curResult="$(_get "${curUri}" | _normalizeJson)"
+  _debug "Result: $curResult"
+  echo "$curResult" | grep -o "{[^{]*\"content\":[^{]*\"subdomain\":\"${curSubdomain}\"" | sed -n -e 's#.* "record_id": \(.*\),[^,]*#\1#p'
 }
