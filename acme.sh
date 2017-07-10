@@ -4033,6 +4033,11 @@ renew() {
     return "$RENEW_SKIP"
   fi
 
+  if [ "$IN_CRON" = "1" ] && [ -z "$Le_CertCreateTime" ]; then
+    _info "Skip invalid cert for: $Le_Domain"
+    return 0
+  fi
+
   IS_RENEW="1"
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress"
   res="$?"
