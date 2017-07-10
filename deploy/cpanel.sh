@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 # Here is the script to deploy the cert to your cpanel using the cpanel API.
-# Uses command line uapi. 
-# Cpanel username is needed only when run as root (I did not test this).
+# Uses command line uapi.  --user option is needed only if run as root.
 # Returns 0 when success.
 # Written by Santeri Kannisto <santeri.kannisto@2globalnomads.info>
 # Public domain, 2017
@@ -35,11 +34,10 @@ cpanel_deploy() {
   _debug _key "$_key"
 
   if [ "$(id -u)" = 0 ]; then
-    _opt="--user=$DEPLOY_CPANEL_USER"
-    _debug _opt "$_opt"
+    _response=$(uapi --user="$DEPLOY_CPANEL_USER" SSL install_ssl domain="$_cdomain" cert="$_cert" key="$_key")
+  else
+    _response=$(uapi SSL install_ssl domain="$_cdomain" cert="$_cert" key="$_key")
   fi
-
-  _response=$(uapi $_opt SSL install_ssl domain="$_cdomain" cert="$_cert" key="$_key")
 
   if [ $? -ne 0 ]; then
     _err "Error in deploying certificate:"
