@@ -66,9 +66,6 @@ s3_deploy() {
   _debug AWS_PROFILE "$AWS_PROFILE"
   _secure_debug AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
   _secure_debug AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
-  
-  # REMOVE BEFORE COMMIT, ONLY FOR DEBUGGING
-  _aws_cli_installed=1
 
   _info "Deploying certificate to s3 bucket: $S3_BUCKET in $S3_REGION"
   
@@ -147,7 +144,7 @@ _deploy_with_curl() {
 ####################  Private functions below ##################################
 
 _payload_hash() {
-  echo "$(shasum -ba 256 "$file")%% *"
+  printf "%s" "$file" | _digest "sha256"
 }
 
 _canonical_request() {
@@ -161,19 +158,14 @@ _canonical_request() {
   echo "x-amz-date:${iso_timestamp}"
   echo ""
   echo "${signed_headers}"
-
   _payload_hash
-}
-
-_canonical_request_hash() {
-  echo "$(_canonical_request | shasum -a 256)%% *"
 }
 
 _string_to_sign() {
   echo "AWS4-HMAC-SHA256"
   echo "${iso_timestamp}"
   echo "${date_scope}/${region}/s3/aws4_request"
-  _canonical_request_hash
+  printf "%s" "$(_canonical_request)" | _digest "sha256" hex
 }
 
 _signature_key() {
