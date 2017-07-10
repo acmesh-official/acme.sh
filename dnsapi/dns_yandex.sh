@@ -13,7 +13,7 @@ dns_yandex_add() {
   fulldomain="${1}"
   txtvalue="${2}"
   _debug "Calling: dns_yandex_add() '${fulldomain}' '${txtvalue}'"
-  _PDD_credentials || exit 1
+  _PDD_credentials || return 1
   export _H1="PddToken: $PDD_Token"
 
   curDomain="$(echo "${fulldomain}" | rev | cut -d . -f 1-2 | rev)"
@@ -28,7 +28,7 @@ dns_yandex_add() {
 dns_yandex_rm() {
   fulldomain="${1}"
   _debug "Calling: dns_yandex_rm() '${fulldomain}'"
-  _PDD_credentials || exit 1
+  _PDD_credentials || return 1
   export _H1="PddToken: $PDD_Token"
   record_id=$(pdd_get_record_id "${fulldomain}")
   _debug "Result: $record_id"
@@ -60,5 +60,5 @@ pdd_get_record_id() {
   curUri="https://pddimp.yandex.ru/api2/admin/dns/list?domain=${curDomain}"
   curResult="$(_get "${curUri}" | _normalizeJson)"
   _debug "Result: $curResult"
-  echo "$curResult" | grep -o "{[^{]*\"content\":[^{]*\"subdomain\":\"${curSubdomain}\"" | sed -n -e 's#.* "record_id": \(.*\),[^,]*#\1#p'
+  echo "$curResult" | _egrep_o "{[^{]*\"content\":[^{]*\"subdomain\":\"${curSubdomain}\"" | sed -n -e 's#.* "record_id": \(.*\),[^,]*#\1#p'
 }
