@@ -16,7 +16,7 @@ dns_yandex_add() {
   _PDD_credentials || return 1
   export _H1="PddToken: $PDD_Token"
 
-  curDomain=$(_PDD_get_domain $fulldomain)
+  curDomain=$(_PDD_get_domain "$fulldomain")
   _debug "Found suitable domain in pdd: $curDomain"
   curSubdomain="$(echo "${fulldomain}" | sed -e "s@.${curDomain}\$@@")"
   curData="domain=${curDomain}&type=TXT&subdomain=${curSubdomain}&ttl=360&content=${txtvalue}"
@@ -34,7 +34,7 @@ dns_yandex_rm() {
   record_id=$(pdd_get_record_id "${fulldomain}")
   _debug "Result: $record_id"
 
-  curDomain=$(_PDD_get_domain $fulldomain)
+  curDomain=$(_PDD_get_domain "$fulldomain")
   _debug "Found suitable domain in pdd: $curDomain"
   curSubdomain="$(echo "${fulldomain}" | sed -e "s@.${curDomain}\$@@")"
 
@@ -52,11 +52,11 @@ _PDD_get_domain() {
   __last=0
   while [ $__last -eq 0 ]; do
     uri1="https://pddimp.yandex.ru/api2/admin/domain/domains?page=${__page}&on_page=20"
-    res1=$(_get $uri1 | _normalizeJson)
+    res1=$(_get "$uri1" | _normalizeJson)
     #_debug "$res1"
     __found=$(echo "$res1" | sed -n -e 's#.* "found": \([^,]*\),.*#\1#p')
     _debug "found: $__found results on page"
-    if [ $__found -lt 20 ]; then
+    if [ "$__found" -lt 20 ]; then
       _debug "last page: $__page"
       __last=1
     fi
@@ -71,7 +71,7 @@ _PDD_get_domain() {
     __t=$(echo "$fulldomain" | cut -d . -f $k-100)
     _debug "finding zone for domain $__t"
     for d in $__all_domains; do
-      if [ "$d" == "$__t" ]; then
+      if [ "$d" = "$__t" ]; then
         echo "$__t"
         return
       fi
@@ -96,7 +96,7 @@ _PDD_credentials() {
 pdd_get_record_id() {
   fulldomain="${1}"
 
-  curDomain=$(_PDD_get_domain $fulldomain)
+  curDomain=$(_PDD_get_domain "$fulldomain")
   _debug "Found suitable domain in pdd: $curDomain"
   curSubdomain="$(echo "${fulldomain}" | sed -e "s@.${curDomain}\$@@")"
 
