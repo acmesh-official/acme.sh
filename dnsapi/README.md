@@ -572,6 +572,24 @@ acme.sh --issue --dns dns_dyn -d example.com -d www.example.com
 
 The `DYN_Customer`, `DYN_Username` and `DYN_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+# 30. Use Hurricane Electric
+
+Hurricane Electric doesn't have an API so just set your login credentials like so:
+
+```
+export HE_Username="yourusername"
+export HE_Password="password"
+```
+
+Then you can issue your certificate:
+
+```
+acme.sh --issue --dns dns_he -d example.com -d www.example.com
+```
+
+The `HE_Username` and `HE_Password` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+Please report any issues to https://github.com/angel333/acme.sh or to <me@ondrejsimek.com>.
 
 # Use custom API
 
