@@ -335,6 +335,7 @@ You don't have to do anything manually!
 1. DNSimple API
 1. NS1.com API
 1. DuckDNS.org API
+1. Yandex PDD API (https://pdd.yandex.ru)
 1. Name.com API
 
 
