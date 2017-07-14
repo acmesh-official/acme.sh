@@ -522,22 +522,7 @@ account file will always store the lastly used domain name.
 
 For issues, please report to https://github.com/raidenii/acme.sh/issues.
 
-
-## 28. Use pdd.yandex.ru API
-
-```
-export PDD_Token="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-```
-
-Follow these instructions to get the token for your domain https://tech.yandex.com/domain/doc/concepts/access-docpage/
-```
-acme.sh --issue --dns dns_yandex -d mydomain.example.org
-```
-
-For issues, please report to https://github.com/non7top/acme.sh/issues.
-
-
-## 29. Use Name.com API
+## 28. Use Name.com API
 
 You'll need to fill out the form at https://www.name.com/reseller/apply to apply
 for API username and token.
@@ -587,6 +572,18 @@ acme.sh --issue --dns dns_dyn -d example.com -d www.example.com
 
 The `DYN_Customer`, `DYN_Username` and `DYN_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 30. Use pdd.yandex.ru API
+
+```
+export PDD_Token="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+```
+
+Follow these instructions to get the token for your domain https://tech.yandex.com/domain/doc/concepts/access-docpage/
+```
+acme.sh --issue --dns dns_yandex -d mydomain.example.org
+```
+
+For issues, please report to https://github.com/non7top/acme.sh/issues.
 
 # Use custom API
 
