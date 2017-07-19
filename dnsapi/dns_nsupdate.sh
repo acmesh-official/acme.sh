@@ -7,7 +7,6 @@ dns_nsupdate_add() {
   fulldomain=$1
   txtvalue=$2
   _checkKeyFile || return 1
-  [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
   # save the dns server and key to the account conf file.
   _saveaccountconf NSUPDATE_SERVER "${NSUPDATE_SERVER}"
   _saveaccountconf NSUPDATE_KEY "${NSUPDATE_KEY}"
@@ -29,7 +28,6 @@ EOF
 dns_nsupdate_rm() {
   fulldomain=$1
   _checkKeyFile || return 1
-  [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
   _info "removing ${fulldomain}. txt"
   nsupdate -k "${NSUPDATE_KEY}" <<EOF
 server ${NSUPDATE_SERVER}
@@ -47,6 +45,10 @@ EOF
 ####################  Private functions below ##################################
 
 _checkKeyFile() {
+  [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
+  if [ "${NSUPDATE_SERVER}" = "localhost" -a -z "${NSUPDATE_KEY}" ]; then
+    NSUPDATE_KEY=/var/run/named/session.key
+  fi
   if [ -z "${NSUPDATE_KEY}" ]; then
     _err "you must specify a path to the nsupdate key file"
     return 1

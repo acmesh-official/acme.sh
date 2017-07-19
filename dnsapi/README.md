@@ -100,6 +100,10 @@ https://github.com/Neilpang/acme.sh/wiki/How-to-use-OVH-domain-api
 
 ## 7. Use nsupdate to automatically issue cert
 
+If `nsupdate -l` already works for the domain in question, you are all set:
+neither preparation nor environment variables are required.
+Otherwise, follow these instructions:
+
 First, generate a key for updating the zone
 ```
 b=$(dnssec-keygen -a hmac-sha512 -b 512 -n USER -K /tmp foo)
