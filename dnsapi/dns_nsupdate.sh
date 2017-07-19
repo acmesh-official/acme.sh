@@ -10,10 +10,11 @@ dns_nsupdate_add() {
   # save the dns server and key to the account conf file.
   _saveaccountconf NSUPDATE_SERVER "${NSUPDATE_SERVER}"
   _saveaccountconf NSUPDATE_KEY "${NSUPDATE_KEY}"
-  _info "adding ${fulldomain}. 60 in txt \"${txtvalue}\""
+  _savedomainconf NSUPDATE_SUFFIX "${NSUPDATE_SUFFIX}"
+  _info "adding ${fulldomain}${NSUPDATE_SUFFIX}. 60 in txt \"${txtvalue}\""
   nsupdate -k "${NSUPDATE_KEY}" <<EOF
 server ${NSUPDATE_SERVER}
-update add ${fulldomain}. 60 in txt "${txtvalue}"
+update add ${fulldomain}${NSUPDATE_SUFFIX}. 60 in txt "${txtvalue}"
 send
 EOF
   if [ $? -ne 0 ]; then
@@ -28,10 +29,10 @@ EOF
 dns_nsupdate_rm() {
   fulldomain=$1
   _checkKeyFile || return 1
-  _info "removing ${fulldomain}. txt"
+  _info "removing ${fulldomain}${NSUPDATE_SUFFIX}. txt"
   nsupdate -k "${NSUPDATE_KEY}" <<EOF
 server ${NSUPDATE_SERVER}
-update delete ${fulldomain}. txt
+update delete ${fulldomain}${NSUPDATE_SUFFIX}. txt
 send
 EOF
   if [ $? -ne 0 ]; then

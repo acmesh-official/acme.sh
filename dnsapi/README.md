@@ -154,6 +154,34 @@ acme.sh --issue --dns dns_nsupdate -d example.com -d www.example.com
 
 The `NSUPDATE_SERVER` and `NSUPDATE_KEY` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+### 7a. Create a delegated certificate with `dns_nsupdate`
+
+If the certificate requestor does not have real-time write access to the
+domain name the certificate is for (`example.com` and `www.example.com`),
+but to another domain (`example.net`), it is possible to delegate the
+certificate request rights ahead of time by creating a as follows:
+
+```DNS Zone
+_acme-challenge.example.com.     60 CNAME _acme-challenge.example.org.rq.example.net.
+_acme-challenge.www.example.com. 60 CNAME _acme-challenge.www.example.org.rq.example.net.
+```
+
+1. The TTL of 60 seconds is a courtesy to the caching domain name servers
+   so that they can free the space in their caches quickly.
+1. The choice of `rq.example.net` as the subdomain is arbitrary; anything
+   below `example.net` (including `example.net` itself) is fine.
+
+To issue the certificate with write access to `rq.example.net`, use
+
+```sh
+env NSUPDATE_SUFFIX=.rq.example.net \
+  acme.sh --issue --dns dns_nsupdate -d example.com -d  www.example.com
+```
+
+(The value of `NSUPDATE_SUFFIX` is stored in the per-domain settings,
+for reuse in renewals. Unlike `NSUPDATE_SERVER` and `NSUPDATE_KEY`,
+this is not a global setting, as it is useful for delegated domains only.)
+
 
 ## 8. Use LuaDNS domain API
 
