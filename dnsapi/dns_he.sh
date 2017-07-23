@@ -1,8 +1,5 @@
 #!/usr/bin/env sh
 
-# TODO Somehow use _get instead of curl - not sure how to support
-#      cookies though...
-
 ########################################################################
 # Hurricane Electric hook script for acme.sh
 #
@@ -23,7 +20,12 @@ dns_he_add() {
   _txt_value=$2
   _info "Using DNS-01 Hurricane Electric hook"
 
-  _authenticate || return 1
+  if [ -z "$HE_Username" ] && [ -z "$HE_Password" ]; then
+    _err \
+      'No auth details provided. Please set user credentials using the \
+      \$HE_Username and \$HE_Password envoronment variables.'
+    return 1
+  fi
   _saveaccountconf HE_Username "$HE_Username"
   _saveaccountconf HE_Password "$HE_Password"
 
@@ -31,20 +33,20 @@ dns_he_add() {
   _find_zone $_full_domain || return 1
   _debug "Zone id \"$_zone_id\" will be used."
 
-  curl -L --silent --show-error --cookie "$_he_cookie" \
-    --form "account=" \
-    --form "menu=edit_zone" \
-    --form "Type=TXT" \
-    --form "hosted_dns_zoneid=$_zone_id" \
-    --form "hosted_dns_recordid=" \
-    --form "hosted_dns_editzone=1" \
-    --form "Priority=" \
-    --form "Name=$_full_domain" \
-    --form "Content=$_txt_value" \
-    --form "TTL=300" \
-    --form "hosted_dns_editrecord=Submit" \
-    "https://dns.he.net/" \
-    > /dev/null
+  body="email=${HE_Username}&pass=${HE_Password}"
+  body="$body&account="
+  body="$body&account="
+  body="$body&menu=edit_zone"
+  body="$body&Type=TXT"
+  body="$body&hosted_dns_zoneid=$_zone_id"
+  body="$body&hosted_dns_recordid="
+  body="$body&hosted_dns_editzone=1"
+  body="$body&Priority="
+  body="$body&Name=$_full_domain"
+  body="$body&Content=$_txt_value"
+  body="$body&TTL=300"
+  body="$body&hosted_dns_editrecord=Submit"
+  _post $body "https://dns.he.net/" >/dev/null
 }
 
 
@@ -56,16 +58,16 @@ dns_he_rm() {
   _txt_value=$2
   _info "Cleaning up after DNS-01 Hurricane Electric hook"
 
-  _authenticate || return 1
-
   # fills in the $_zone_id
   _find_zone $_full_domain || return 1
   _debug "Zone id \"$_zone_id\" will be used."
 
   # Find the record id to clean
-  _record_id=$( \
-    curl -L --silent --show-error --cookie "$_he_cookie" \
-      "https://dns.he.net/?hosted_dns_zoneid=$_zone_id&menu=edit_zone&hosted_dns_editzone" \
+  body="email=${HE_Username}&pass=${HE_Password}"
+  body="$body&hosted_dns_zoneid=$_zone_id"
+  body="$body&menu=edit_zone"
+  body="$body&hosted_dns_editzone="
+  _record_id=$(_post $body "https://dns.he.net/" \
       | grep -A 1 "data=\"\(&quot;\)\?${_txt_value}\(&quot;\)\?\"" \
       | tail -n 1 \
       | _egrep_o "'[[:digit:]]+','[^']+','TXT'" \
@@ -74,15 +76,15 @@ dns_he_rm() {
       | head -n1) # ... oh my, what have I done...
 
   # Remove the record
-  curl -L --silent --show-error --cookie "$_he_cookie" \
-    --form "menu=edit_zone" \
-    --form "hosted_dns_zoneid=$_zone_id" \
-    --form "hosted_dns_recordid=$_record_id" \
-    --form "hosted_dns_editzone=1" \
-    --form "hosted_dns_delrecord=1" \
-    --form "hosted_dns_delconfirm=delete" \
-    --form "hosted_dns_editzone=1" \
-    "https://dns.he.net/" \
+  body="email=${HE_Username}&pass=${HE_Password}"
+  body="$body&menu=edit_zone"
+  body="$body&hosted_dns_zoneid=$_zone_id"
+  body="$body&hosted_dns_recordid=$_record_id"
+  body="$body&hosted_dns_editzone=1"
+  body="$body&hosted_dns_delrecord=1"
+  body="$body&hosted_dns_delconfirm=delete"
+  body="$body&hosted_dns_editzone=1"
+  _post $body "https://dns.he.net/" \
     | grep '<div id="dns_status" onClick="hideThis(this);">Successfully removed record.</div>' \
     > /dev/null
   if [ $? -eq 0 ]; then
@@ -100,38 +102,7 @@ dns_he_rm() {
 
 #-- _find_zone() -------------------------------------------------------
 
-# Usage: _authenticate
-#
-# - needs $HE_Username and $HE_Password
-# - sets the $_he_cookie
-
-_authenticate() {
-  if [ -z "$HE_Username" ] && [ -z "$HE_Password" ]; then
-    _err \
-      'No auth details provided. Please set user credentials using the \
-      \$HE_Username and \$HE_Password envoronment variables.'
-    return 1
-  fi
-  # Just get a session
-  _he_cookie=$( \
-    curl -L --silent --show-error -I "https://dns.he.net/" \
-      | grep '^Set-Cookie:' \
-      | _egrep_o 'CGISESSID=[a-z0-9]*')
-  # Attempt login
-  curl -L --silent --show-error --cookie "$_he_cookie" \
-    --form "email=${HE_Username}" \
-    --form "pass=${HE_Password}" \
-    "https://dns.he.net/" \
-    > /dev/null
-  # TODO detect unsuccessful logins
-}
-
-
-#-- _find_zone() -------------------------------------------------------
-
 # Returns the most specific zone found in administration interface.
-#
-# - needs $_he_cookie
 #
 # Example:
 #
@@ -155,8 +126,9 @@ _find_zone() {
 
   ## _all_zones is an array that looks like this:
   ## ( zone1:id zone2:id ... )
-  _all_zones=( $(curl -L --silent --show-error --cookie "$_he_cookie" \
-    "https://dns.he.net/" \
+
+  body="email=${HE_Username}&pass=${HE_Password}"
+  _all_zones=( $(_post $body "https://dns.he.net/" \
     | _egrep_o "delete_dom.*name=\"[^\"]+\" value=\"[0-9]+" \
     | cut -d '"' -f 3,5 --output-delimiter=":" \
   ) )
