@@ -20,7 +20,7 @@ dns_he_add() {
   _txt_value=$2
   _info "Using DNS-01 Hurricane Electric hook"
 
-  if [ -z "$HE_Username" ] && [ -z "$HE_Password" ]; then
+  if [ -z "$HE_Username" ] || [ -z "$HE_Password" ]; then
     _err \
       'No auth details provided. Please set user credentials using the \
       \$HE_Username and \$HE_Password envoronment variables.'
@@ -46,7 +46,8 @@ dns_he_add() {
   body="$body&Content=$_txt_value"
   body="$body&TTL=300"
   body="$body&hosted_dns_editrecord=Submit"
-  _post $body "https://dns.he.net/" >/dev/null
+  response="$(_post $body "https://dns.he.net/")"
+  _debug2 response "$response"
 }
 
 
@@ -68,12 +69,14 @@ dns_he_rm() {
   body="$body&menu=edit_zone"
   body="$body&hosted_dns_editzone="
   _record_id=$(_post $body "https://dns.he.net/" \
-      | grep -A 1 "data=\"\(&quot;\)\?${_txt_value}\(&quot;\)\?\"" \
-      | tail -n 1 \
-      | _egrep_o "'[[:digit:]]+','[^']+','TXT'" \
-      | cut -b 2- \
-      | _egrep_o "[[:digit:]]+" \
-      | head -n1) # ... oh my, what have I done...
+    | tr -d '\n' \
+    | _egrep_o "data=\"&quot;${_txt_value}&quot;([^>]+>){6}[^<]+<[^;]+;deleteRecord\('[0-9]+','${_full_domain}','TXT'\)" \
+    | _egrep_o "[0-9]+','${_full_domain}','TXT'\)$" \
+    | _egrep_o "^[0-9]+"
+  )
+  # The series of egreps above could have been done a bit shorter but
+  #  I wanted to double-check whether it's the correct record (in case
+  #  HE changes their website somehow).
 
   # Remove the record
   body="email=${HE_Username}&pass=${HE_Password}"
@@ -134,12 +137,12 @@ _find_zone() {
   ) )
 
   _strip_counter=1
-  while [ true ]
+  while true
   do
     _attempted_zone=$(echo $_domain | cut -d . -f ${_strip_counter}-)
 
     # All possible zone names have been tried
-    if [ "$_attempted_zone" == "" ]
+    if [ -z "$_attempted_zone" ]
     then
       _err "No zone for domain \"$_domain\" found."
       break
@@ -151,7 +154,7 @@ _find_zone() {
     do
       _zone_name=$(echo $i | cut -d ':' -f 1)
       _zone_id=$(echo $i | cut -d ':' -f 2)
-      if [ "$_zone_name" == "$_attempted_zone" ]
+      if [ "$_zone_name" = "$_attempted_zone" ]
       then
         # Zone found - we got $_zone_name and $_zone_id, let's get out...
         _debug "Found relevant zone \"$_zone_name\" with id" \
@@ -162,7 +165,7 @@ _find_zone() {
 
     _debug "Zone \"$_attempted_zone\" doesn't exist, let's try another \
       variation."
-    _strip_counter=$(expr $_strip_counter + 1)
+    _strip_counter=$(_math $_strip_counter + 1)
   done
 
   # No zone found.
