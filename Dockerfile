@@ -16,7 +16,7 @@ ADD ./ /install_acme.sh/
 RUN cd /install_acme.sh && ([ -f /install_acme.sh/acme.sh ] && /install_acme.sh/acme.sh --install || curl https://get.acme.sh | sh) && rm -rf /install_acme.sh/
 
 
-RUN ln -s  /root/.acme.sh/acme.sh  /usr/local/bin/acme.sh
+RUN ln -s  /root/.acme.sh/acme.sh  /usr/local/bin/acme.sh && crontab -l | sed 's#> /dev/null##' | crontab -
 
 RUN for verb in help \ 
   version \
