@@ -69,9 +69,11 @@ _dns_do_list_rrs() {
   fi
   _rr_list="$(echo "${response}" \
     | tr -d "\n\r\t" \
-    | sed -e 's/<item xsi:type="ns2:Map">/\n/g' \
+    | sed -e 's/<item xsi:type="ns2:Map">/\
+/g' \
     | grep ">$(_regexcape "$fulldomain")</value>" \
-    | sed -e 's/<\/item>/\n/g' \
+    | sed -e 's/<\/item>/\
+/g' \
     | grep '>id</key><value' \
     | _egrep_o '>[0-9]{1,16}<' \
     | tr -d '><')"

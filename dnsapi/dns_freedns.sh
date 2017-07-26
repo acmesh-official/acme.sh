@@ -77,7 +77,8 @@ dns_freedns_add() {
       | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' \
       | sed 's/^[\ \t]*//g' \
       | tr -d '\n' \
-      | sed 's/<\/TR[^>]*>/\n/Ig' \
+      | sed 's/<\/TR[^>]*>/\
+/Ig' \
       | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' \
       | sed 's/^<T[DH][^>]*>\|<\/\?T[DH][^>]*>$//Ig' \
       | sed 's/<\/T[DH][^>]*><T[DH][^>]*>/,/Ig' \
@@ -216,7 +217,8 @@ dns_freedns_rm() {
       | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' \
       | sed 's/^[\ \t]*//g' \
       | tr -d '\n' \
-      | sed 's/<\/TR[^>]*>/\n/Ig' \
+      | sed 's/<\/TR[^>]*>/\
+/Ig' \
       | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' \
       | sed 's/^<T[DH][^>]*>\|<\/\?T[DH][^>]*>$//Ig' \
       | sed 's/<\/T[DH][^>]*><T[DH][^>]*>/,/Ig' \
