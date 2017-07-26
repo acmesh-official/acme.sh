@@ -21,16 +21,14 @@ dns_he_add() {
   _info "Using DNS-01 Hurricane Electric hook"
 
   if [ -z "$HE_Username" ] || [ -z "$HE_Password" ]; then
-    _err \
-      'No auth details provided. Please set user credentials using the \
-      \$HE_Username and \$HE_Password envoronment variables.'
+    _err "No auth details provided. Please set user credentials using the \$HE_Username and \$HE_Password envoronment variables."
     return 1
   fi
   _saveaccountconf HE_Username "$HE_Username"
   _saveaccountconf HE_Password "$HE_Password"
 
   # fills in the $_zone_id
-  _find_zone $_full_domain || return 1
+  _find_zone "$_full_domain" || return 1
   _debug "Zone id \"$_zone_id\" will be used."
 
   body="email=${HE_Username}&pass=${HE_Password}"
@@ -46,10 +44,9 @@ dns_he_add() {
   body="$body&Content=$_txt_value"
   body="$body&TTL=300"
   body="$body&hosted_dns_editrecord=Submit"
-  response="$(_post $body "https://dns.he.net/")"
+  response="$(_post "$body" "https://dns.he.net/")"
   _debug2 response "$response"
 }
-
 
 #-- dns_he_rm() - Remove TXT record ------------------------------------
 # Usage: dns_he_rm _acme-challenge.subdomain.domain.com "XyZ123..."
@@ -60,7 +57,7 @@ dns_he_rm() {
   _info "Cleaning up after DNS-01 Hurricane Electric hook"
 
   # fills in the $_zone_id
-  _find_zone $_full_domain || return 1
+  _find_zone "$_full_domain" || return 1
   _debug "Zone id \"$_zone_id\" will be used."
 
   # Find the record id to clean
@@ -68,7 +65,7 @@ dns_he_rm() {
   body="$body&hosted_dns_zoneid=$_zone_id"
   body="$body&menu=edit_zone"
   body="$body&hosted_dns_editzone="
-  _record_id=$(_post $body "https://dns.he.net/" \
+  _record_id=$(_post "$body" "https://dns.he.net/" \
     | tr -d '\n' \
     | _egrep_o "data=\"&quot;${_txt_value}&quot;([^>]+>){6}[^<]+<[^;]+;deleteRecord\('[0-9]+','${_full_domain}','TXT'\)" \
     | _egrep_o "[0-9]+','${_full_domain}','TXT'\)$" \
@@ -87,9 +84,9 @@ dns_he_rm() {
   body="$body&hosted_dns_delrecord=1"
   body="$body&hosted_dns_delconfirm=delete"
   body="$body&hosted_dns_editzone=1"
-  _post $body "https://dns.he.net/" \
+  _post "$body" "https://dns.he.net/" \
     | grep '<div id="dns_status" onClick="hideThis(this);">Successfully removed record.</div>' \
-    > /dev/null
+    >/dev/null
   if [ $? -eq 0 ]; then
     _info "Record removed successfuly."
   else
@@ -99,12 +96,9 @@ dns_he_rm() {
   fi
 }
 
-
 ########################## PRIVATE FUNCTIONS ###########################
 
-
 #-- _find_zone() -------------------------------------------------------
-
 # Returns the most specific zone found in administration interface.
 #
 # Example:
@@ -131,31 +125,28 @@ _find_zone() {
   ## ( zone1:id zone2:id ... )
 
   body="email=${HE_Username}&pass=${HE_Password}"
-  _all_zones=( $(_post $body "https://dns.he.net/" \
+  # TODO arrays aren't supported in POSIX sh
+  _all_zones=($(_post $body "https://dns.he.net/" \
     | _egrep_o "delete_dom.*name=\"[^\"]+\" value=\"[0-9]+" \
-    | cut -d '"' -f 3,5 --output-delimiter=":" \
-  ) )
+    | cut -d '"' -f 3,5 --output-delimiter=":"
+  ))
 
   _strip_counter=1
-  while true
-  do
-    _attempted_zone=$(echo $_domain | cut -d . -f ${_strip_counter}-)
+  while true; do
+    _attempted_zone=$(echo "$_domain" | cut -d . -f ${_strip_counter}-)
 
     # All possible zone names have been tried
-    if [ -z "$_attempted_zone" ]
-    then
+    if [ -z "$_attempted_zone" ]; then
       _err "No zone for domain \"$_domain\" found."
       break
     fi
 
     # Walk through all zones on the account
     #echo "$_all_zones" | while IFS=' ' read _zone_name _zone_id
-    for i in ${_all_zones[@]}
-    do
-      _zone_name=$(echo $i | cut -d ':' -f 1)
-      _zone_id=$(echo $i | cut -d ':' -f 2)
-      if [ "$_zone_name" = "$_attempted_zone" ]
-      then
+    for i in ${_all_zones[@]}; do
+      _zone_name=$(echo "$i" | cut -d ':' -f 1)
+      _zone_id=$(echo "$i" | cut -d ':' -f 2)
+      if [ "$_zone_name" = "$_attempted_zone" ]; then
         # Zone found - we got $_zone_name and $_zone_id, let's get out...
         _debug "Found relevant zone \"$_zone_name\" with id" \
           "\"$_zone_id\" - will be used for domain \"$_domain\"."
