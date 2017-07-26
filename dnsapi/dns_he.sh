@@ -126,7 +126,7 @@ _find_zone() {
 
   body="email=${HE_Username}&pass=${HE_Password}"
   # TODO arrays aren't supported in POSIX sh
-  _all_zones=($(_post $body "https://dns.he.net/" \
+  _all_zones=($(_post "$body" "https://dns.he.net/" \
     | _egrep_o "delete_dom.*name=\"[^\"]+\" value=\"[0-9]+" \
     | cut -d '"' -f 3,5 --output-delimiter=":"
   ))
