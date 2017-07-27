@@ -121,16 +121,19 @@ _find_zone() {
 
   _domain="$1"
 
-  ## _all_zones is an array that looks like this:
-  ## ( zone1:id zone2:id ... )
-
   body="email=${HE_Username}&pass=${HE_Password}"
-  # TODO arrays aren't supported in POSIX sh
-  _all_zones=($(_post "$body" "https://dns.he.net/" \
-    | _egrep_o "delete_dom.*name=\"[^\"]+\" value=\"[0-9]+" \
-    | cut -d '"' -f 3,5 --output-delimiter=":"
-  ))
+  _matches=$(_post "$body" "https://dns.he.net/" \
+    | _egrep_o "delete_dom.*name=\"[^\"]+\" value=\"[0-9]+"
+  )
+  # Zone names and zone IDs are in same order
+  _zone_ids=$(echo "$_matches" | cut -d '"' -f 5 --output-delimiter=":")
+  _zone_names=$(echo "$_matches" | cut -d '"' -f 3 --output-delimiter=":")
+  _debug2 "These are the zones on this HE account:"
+  _debug2 "$_zone_names"
+  _debug2 "And these are their respective IDs:"
+  _debug2 "$_zone_ids"
 
+  # Walk through all possible zone names
   _strip_counter=1
   while true; do
     _attempted_zone=$(echo "$_domain" | cut -d . -f ${_strip_counter}-)
@@ -138,28 +141,46 @@ _find_zone() {
     # All possible zone names have been tried
     if [ -z "$_attempted_zone" ]; then
       _err "No zone for domain \"$_domain\" found."
-      break
+      return 1
     fi
 
-    # Walk through all zones on the account
-    #echo "$_all_zones" | while IFS=' ' read _zone_name _zone_id
-    for i in ${_all_zones[@]}; do
-      _zone_name=$(echo "$i" | cut -d ':' -f 1)
-      _zone_id=$(echo "$i" | cut -d ':' -f 2)
-      if [ "$_zone_name" = "$_attempted_zone" ]; then
-        # Zone found - we got $_zone_name and $_zone_id, let's get out...
-        _debug "Found relevant zone \"$_zone_name\" with id" \
-          "\"$_zone_id\" - will be used for domain \"$_domain\"."
-        return 0
-      fi
-    done
+    _debug "Looking for zone \"${_attempted_zone}\""
+    _line_num=$(echo "$_zone_names" | _find_linenum "$_attempted_zone")
+    if [ -n "$_line_num" ]; then
+      _zone_id=$(echo "$_zone_ids" | sed "${_line_num}q;d")
+      _debug "Found relevant zone \"$_attempted_zone\" with id" \
+        "\"$_zone_id\" - will be used for domain \"$_domain\"."
+      return 0
+    fi
 
-    _debug "Zone \"$_attempted_zone\" doesn't exist, let's try another \
-      variation."
+    _debug "Zone \"$_attempted_zone\" doesn't exist, let's try a less" \
+      "specific zone."
     _strip_counter=$(_math $_strip_counter + 1)
   done
+}
 
-  # No zone found.
+#-- _find_linenum()-----------------------------------------------------
+# Returns line number of line (supplied as an argument) in STDIN.
+#
+# Example:
+#
+#   printf "a\nb\nc" | _find_linenum "b"
+#
+#   This will:
+#    - print out 2 because that's the line number of "b"
+#    - return code 0 because it was found
+
+_find_linenum() {
+  _current_line_num=0
+  while read line; do
+    _current_line_num=$(expr "$_current_line_num" + 1)
+    if [ "$line" = "$1" ]; then
+      # Found! Let's echo the line number and quit
+      echo $_current_line_num
+      return 0
+    fi
+  done
+  # Not found
   return 1
 }
 
