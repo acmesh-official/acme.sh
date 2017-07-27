@@ -11,7 +11,6 @@
 # Author: Ondrej Simek <me@ondrejsimek.com>
 # Git repo: https://github.com/angel333/acme.sh
 
-
 #-- dns_he_add() - Add TXT record --------------------------------------
 # Usage: dns_he_add _acme-challenge.subdomain.domain.com "XyZ123..."
 
@@ -86,7 +85,7 @@ dns_he_rm() {
   body="$body&hosted_dns_editzone=1"
   _post "$body" "https://dns.he.net/" \
     | grep '<div id="dns_status" onClick="hideThis(this);">Successfully removed record.</div>' \
-    >/dev/null
+      >/dev/null
   if [ $? -eq 0 ]; then
     _info "Record removed successfuly."
   else
