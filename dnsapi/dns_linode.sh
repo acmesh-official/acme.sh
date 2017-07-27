@@ -68,8 +68,7 @@ dns_linode_rm() {
   _parameters="&DomainID=$_domain_id"
 
   if _rest GET "domain.resource.list" "$_parameters" && [ -n "$response" ]; then
-    response="$(echo "$response" | tr -d "\n" | sed 's/{/\
-&/g')"
+    response="$(echo "$response" | tr -d "\n" | awk '{ gsub("{","\n{",$1); print $1 }')"
 
     resource="$(echo "$response" | _egrep_o "{.*\"NAME\":\s*\"$_sub_domain\".*}")"
     if [ "$resource" ]; then
@@ -129,8 +128,7 @@ _get_root() {
   p=1
 
   if _rest GET "domain.list"; then
-    response="$(echo "$response" | tr -d "\n" | sed 's/{/\
-&/g')"
+    response="$(echo "$response" | tr -d "\n" | awk '{ gsub("{","\n{",$1); print $1 }')"
     while true; do
       h=$(printf "%s" "$domain" | cut -d . -f $i-100)
       _debug h "$h"
