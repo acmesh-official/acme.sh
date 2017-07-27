@@ -154,7 +154,7 @@ _find_zone() {
 
     _debug "Zone \"$_attempted_zone\" doesn't exist, let's try a less" \
       "specific zone."
-    _strip_counter=$(_math $_strip_counter + 1)
+    _strip_counter=$(_math "$_strip_counter" + 1)
   done
 }
 
@@ -171,11 +171,11 @@ _find_zone() {
 
 _find_linenum() {
   _current_line_num=0
-  while read line; do
-    _current_line_num=$(expr "$_current_line_num" + 1)
+  while read -r line; do
+    _current_line_num=$(_math "$_current_line_num" + 1)
     if [ "$line" = "$1" ]; then
       # Found! Let's echo the line number and quit
-      echo $_current_line_num
+      echo "$_current_line_num"
       return 0
     fi
   done
