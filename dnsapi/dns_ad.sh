@@ -92,8 +92,7 @@ _get_root() {
   p=1
 
   if _ad_rest GET "domain/"; then
-    response="$(echo "$response" | tr -d "\n" | sed 's/{/\
-&/g')"
+    response="$(echo "$response" | tr -d "\n" | sed 's/{/\n&/g')"
     while true; do
       h=$(printf "%s" "$domain" | cut -d . -f $i-100)
       _debug h "$h"
