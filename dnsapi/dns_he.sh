@@ -46,7 +46,9 @@ dns_he_add() {
   body="$body&TTL=300"
   body="$body&hosted_dns_editrecord=Submit"
   response="$(_post "$body" "https://dns.he.net/")"
+  exitcode=$?
   _debug2 response "$response"
+  return $exitvalue
 }
 
 #-- dns_he_rm() - Remove TXT record ------------------------------------
