@@ -46,9 +46,14 @@ dns_he_add() {
   body="$body&TTL=300"
   body="$body&hosted_dns_editrecord=Submit"
   response="$(_post "$body" "https://dns.he.net/")"
-  exitcode=$?
+  exit_code="$?"
+  if [ "$exit_code" -eq 0 ]; then
+    _info "TXT record added successfuly."
+  else
+    _err "Couldn't add the TXT record."
+    return "$exit_code"
+  fi
   _debug2 response "$response"
-  return $exitvalue
 }
 
 #-- dns_he_rm() - Remove TXT record ------------------------------------
@@ -90,7 +95,7 @@ dns_he_rm() {
   _post "$body" "https://dns.he.net/" \
     | grep '<div id="dns_status" onClick="hideThis(this);">Successfully removed record.</div>' \
       >/dev/null
-  if [ $? -eq 0 ]; then
+  if [ "$?" -eq 0 ]; then
     _info "Record removed successfuly."
   else
     _err \
