@@ -72,10 +72,11 @@ dns_he_rm() {
   body="$body&hosted_dns_zoneid=$_zone_id"
   body="$body&menu=edit_zone"
   body="$body&hosted_dns_editzone="
+  domain_regex="$(echo "$_full_domain" | sed 's/\./\\./g')" # escape dots
   _record_id=$(_post "$body" "https://dns.he.net/" \
     | tr -d '\n' \
-    | _egrep_o "data=\"&quot;${_txt_value}&quot;([^>]+>){6}[^<]+<[^;]+;deleteRecord\('[0-9]+','${_full_domain}','TXT'\)" \
-    | _egrep_o "[0-9]+','${_full_domain}','TXT'\)$" \
+    | _egrep_o "data=\"&quot;${_txt_value}&quot;([^>]+>){6}[^<]+<[^;]+;deleteRecord\('[0-9]+','${domain_regex}','TXT'\)" \
+    | _egrep_o "[0-9]+','${domain_regex}','TXT'\)$" \
     | _egrep_o "^[0-9]+"
   )
   # The series of egreps above could have been done a bit shorter but
