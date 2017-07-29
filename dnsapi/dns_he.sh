@@ -28,12 +28,11 @@ dns_he_add() {
   _saveaccountconf HE_Username "$HE_Username"
   _saveaccountconf HE_Password "$HE_Password"
 
-  # fills in the $_zone_id
+  # Fills in the $_zone_id
   _find_zone "$_full_domain" || return 1
   _debug "Zone id \"$_zone_id\" will be used."
 
   body="email=${HE_Username}&pass=${HE_Password}"
-  body="$body&account="
   body="$body&account="
   body="$body&menu=edit_zone"
   body="$body&Type=TXT"
@@ -91,16 +90,13 @@ dns_he_rm() {
   body="$body&hosted_dns_editzone=1"
   body="$body&hosted_dns_delrecord=1"
   body="$body&hosted_dns_delconfirm=delete"
-  body="$body&hosted_dns_editzone=1"
   _post "$body" "https://dns.he.net/" \
     | grep '<div id="dns_status" onClick="hideThis(this);">Successfully removed record.</div>' \
       >/dev/null
   if [ "$?" -eq 0 ]; then
     _info "Record removed successfuly."
   else
-    _err \
-      "Could not clean (remove) up the record. Please go to HE" \
-      "administration interface and clean it by hand."
+    _err "Could not clean (remove) up the record. Please go to HE administration interface and clean it by hand."
   fi
 }
 
@@ -134,8 +130,8 @@ _find_zone() {
     | _egrep_o "delete_dom.*name=\"[^\"]+\" value=\"[0-9]+"
   )
   # Zone names and zone IDs are in same order
-  _zone_ids=$(echo "$_matches" | cut -d '"' -f 5 --output-delimiter=":")
-  _zone_names=$(echo "$_matches" | cut -d '"' -f 3 --output-delimiter=":")
+  _zone_ids=$(echo "$_matches" | cut -d '"' -f 5)
+  _zone_names=$(echo "$_matches" | cut -d '"' -f 3)
   _debug2 "These are the zones on this HE account:"
   _debug2 "$_zone_names"
   _debug2 "And these are their respective IDs:"
@@ -156,13 +152,11 @@ _find_zone() {
     _line_num=$(echo "$_zone_names" | _find_linenum "$_attempted_zone")
     if [ -n "$_line_num" ]; then
       _zone_id=$(echo "$_zone_ids" | sed "${_line_num}q;d")
-      _debug "Found relevant zone \"$_attempted_zone\" with id" \
-        "\"$_zone_id\" - will be used for domain \"$_domain\"."
+      _debug "Found relevant zone \"$_attempted_zone\" with id \"$_zone_id\" - will be used for domain \"$_domain\"."
       return 0
     fi
 
-    _debug "Zone \"$_attempted_zone\" doesn't exist, let's try a less" \
-      "specific zone."
+    _debug "Zone \"$_attempted_zone\" doesn't exist, let's try a less specific zone."
     _strip_counter=$(_math "$_strip_counter" + 1)
   done
 }
