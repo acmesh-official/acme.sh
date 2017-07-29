@@ -94,10 +94,12 @@ dns_he_rm() {
   _post "$body" "https://dns.he.net/" \
     | grep '<div id="dns_status" onClick="hideThis(this);">Successfully removed record.</div>' \
       >/dev/null
-  if [ "$?" -eq 0 ]; then
+  exit_code="$?"
+  if [ "$exit_code" -eq 0 ]; then
     _info "Record removed successfuly."
   else
     _err "Could not clean (remove) up the record. Please go to HE administration interface and clean it by hand."
+    return "$exit_code"
   fi
 }
 
