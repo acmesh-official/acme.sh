@@ -50,9 +50,9 @@ dns_he_add() {
     _info "TXT record added successfuly."
   else
     _err "Couldn't add the TXT record."
-    return "$exit_code"
   fi
   _debug2 response "$response"
+  return "$exit_code"
 }
 
 #-- dns_he_rm() - Remove TXT record ------------------------------------
