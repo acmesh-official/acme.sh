@@ -149,9 +149,18 @@ _find_zone() {
     fi
 
     _debug "Looking for zone \"${_attempted_zone}\""
-    _line_num=$(echo "$_zone_names" | _find_linenum "$_attempted_zone")
-    if [ -n "$_line_num" ]; then
-      _zone_id=$(echo "$_zone_ids" | sed "${_line_num}q;d")
+
+    # Take care of "." and only match whole lines. Note that grep -F
+    # cannot be used because there's no way to make it match whole
+    # lines.
+    regex="^$(echo "$_attempted_zone" | sed 's/\./\\./g')$"
+    line_num=$(echo "$_zone_names" \
+      | grep -n "$regex" \
+      | cut -d : -f 1
+    )
+
+    if [ -n "$line_num" ]; then
+      _zone_id=$(echo "$_zone_ids" | sed "${line_num}q;d")
       _debug "Found relevant zone \"$_attempted_zone\" with id \"$_zone_id\" - will be used for domain \"$_domain\"."
       return 0
     fi
@@ -160,30 +169,4 @@ _find_zone() {
     _strip_counter=$(_math "$_strip_counter" + 1)
   done
 }
-
-#-- _find_linenum()-----------------------------------------------------
-# Returns line number of line (supplied as an argument) in STDIN.
-#
-# Example:
-#
-#   printf "a\nb\nc" | _find_linenum "b"
-#
-#   This will:
-#    - print out 2 because that's the line number of "b"
-#    - return code 0 because it was found
-
-_find_linenum() {
-  _current_line_num=0
-  while read -r line; do
-    _current_line_num=$(_math "$_current_line_num" + 1)
-    if [ "$line" = "$1" ]; then
-      # Found! Let's echo the line number and quit
-      echo "$_current_line_num"
-      return 0
-    fi
-  done
-  # Not found
-  return 1
-}
-
 # vim: et:ts=2:sw=2:
