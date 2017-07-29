@@ -926,7 +926,7 @@ _sign() {
 
 }
 
-#keylength
+#keylength or isEcc flag (empty str => not ecc)
 _isEccKey() {
   _length="$1"
 
@@ -2251,7 +2251,7 @@ _initAPI() {
   _debug "ACME_REVOKE_CERT" "$ACME_REVOKE_CERT"
 }
 
-#[domain]  [keylength]
+#[domain]  [keylength or isEcc flag]
 _initpath() {
 
   __initHome
@@ -5440,7 +5440,7 @@ _process() {
         ;;
       --dns)
         wvalue="dns"
-        if ! _startswith "$2" "-"; then
+        if [ "$2" ] && ! _startswith "$2" "-"; then
           wvalue="$2"
           shift
         fi
