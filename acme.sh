@@ -5440,7 +5440,7 @@ _process() {
         ;;
       --dns)
         wvalue="dns"
-        if ! _startswith "$2" "-"; then
+        if [ "$2" ] && ! _startswith "$2" "-"; then
           wvalue="$2"
           shift
         fi
