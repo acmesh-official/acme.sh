@@ -1182,6 +1182,28 @@ _ss() {
   return 1
 }
 
+#outfile key cert cacert [password [name [caname]]]
+_toPkcs() {
+  _cpfx="$1"
+  _ckey="$2"
+  _ccert="$3"
+  _cca="$4"
+  pfxPassword="$5"
+  pfxName="$6"
+  pfxCaname="$7"
+
+  if [ "$pfxCaname" ]; then
+    ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -inkey "$_ckey" -in "$_ccert" -certfile "$_cca" -password "pass:$pfxPassword" -name "$pfxName" -caname "$pfxCaname"
+  elif [ "$pfxName" ]; then
+    ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -inkey "$_ckey" -in "$_ccert" -certfile "$_cca" -password "pass:$pfxPassword" -name "$pfxName"
+  elif [ "$pfxPassword" ]; then
+    ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -inkey "$_ckey" -in "$_ccert" -certfile "$_cca" -password "pass:$pfxPassword"
+  else
+    ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -inkey "$_ckey" -in "$_ccert" -certfile "$_cca"
+  fi
+
+}
+
 #domain [password] [isEcc]
 toPkcs() {
   domain="$1"
@@ -1195,11 +1217,7 @@ toPkcs() {
 
   _initpath "$domain" "$_isEcc"
 
-  if [ "$pfxPassword" ]; then
-    ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH" -password "pass:$pfxPassword"
-  else
-    ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH"
-  fi
+  _toPkcs "$CERT_PFX_PATH" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$pfxPassword"
 
   if [ "$?" = "0" ]; then
     _info "Success, Pfx is exported to: $CERT_PFX_PATH"
