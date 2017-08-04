@@ -585,7 +585,7 @@ acme.sh --issue --dns dns_yandex -d mydomain.example.org
 
 For issues, please report to https://github.com/non7top/acme.sh/issues.
 
-# 31. Use Hurricane Electric
+## 31. Use Hurricane Electric
 
 Hurricane Electric doesn't have an API so just set your login credentials like so:
 
