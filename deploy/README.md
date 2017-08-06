@@ -80,3 +80,26 @@ acme.sh --deploy -d ftp.example.com --deploy-hook exim4
 ```sh
 acme.sh --deploy -d ftp.example.com --deploy-hook keychain
 ```
+
+## 7. Deploy the cert to Lighttpd
+
+```sh
+
+acme.sh --deploy -d ftp.example.com --deploy-hook lighttpd
+```
+
+The default lighttpd conf file is `/etc/lighttpd/lighttpd.conf`,  if your lighttpd conf is not in the default location, you can specify one:
+
+```sh
+export DEPLOY_LIGHTTTPD_CONF="/etc/lighttpd/external.conf"
+
+acme.sh --deploy -d ftp.example.com --deploy-hook lighttpd
+```
+
+The default command to restart Lighttpd server is `service lighttpd restart`, if it doesn't work, you can specify one:
+
+```sh
+export DEPLOY_LIGHTTTPD_RELOAD="/etc/init.d/lighttpd restart"
+
+acme.sh --deploy -d ftp.example.com --deploy-hook lighttpd
+```
