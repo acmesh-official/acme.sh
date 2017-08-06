@@ -296,6 +296,9 @@ acme.sh --renew -d example.com
 
 Ok, it's finished.
 
+**Take care, this is dns manual mode, it can not be renewed automatically. you will have to add a new txt record to your domain by your hand when you renew your cert.**
+
+**Please use dns api mode instead.**
 
 # 9. Automatic DNS API integration
 
@@ -331,7 +334,11 @@ You don't have to do anything manually!
 1. Dynu API (https://www.dynu.com)
 1. DNSimple API
 1. NS1.com API
-
+1. DuckDNS.org API
+1. Name.com API
+1. Dyn Managed DNS API
+1. Yandex PDD API (https://pdd.yandex.ru)
+1. Hurricane Electric DNS service (https://dns.he.net)
 
 
 And: 

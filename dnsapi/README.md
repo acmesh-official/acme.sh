@@ -505,6 +505,105 @@ Ok, let's issue a cert now:
 acme.sh --issue --dns dns_nsone -d example.com -d www.example.com
 ```
 
+## 27. Use DuckDNS.org API
+
+```
+export DuckDNS_Token="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+```
+
+Please note that since DuckDNS uses StartSSL as their cert provider, thus 
+--insecure must be used when issuing certs:
+```
+acme.sh --insecure --issue --dns dns_duckdns -d mydomain.duckdns.org
+```
+
+Also, DuckDNS uses the domain name as username for recording changing, so the
+account file will always store the lastly used domain name.
+
+For issues, please report to https://github.com/raidenii/acme.sh/issues.
+
+## 28. Use Name.com API
+
+You'll need to fill out the form at https://www.name.com/reseller/apply to apply
+for API username and token.
+
+```
+export Namecom_Username="testuser"
+export Namecom_Token="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+```
+
+And now you can issue certs with:
+
+```
+acme.sh --issue --dns dns_namecom -d example.com -d www.example.com
+```
+
+For issues, please report to https://github.com/raidenii/acme.sh/issues.
+
+## 29. Use Dyn Managed DNS API to automatically issue cert
+
+First, login to your Dyn Managed DNS account: https://portal.dynect.net/login/
+
+It is recommended to add a new user specific for API access.
+
+The minimum "Zones & Records Permissions" required are:
+```
+RecordAdd
+RecordUpdate
+RecordDelete
+RecordGet
+ZoneGet
+ZoneAddNode
+ZoneRemoveNode
+ZonePublish
+```
+
+Pass the API user credentials to the environment:
+```
+export DYN_Customer="customer"
+export DYN_Username="apiuser"
+export DYN_Password="secret"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_dyn -d example.com -d www.example.com
+```
+
+The `DYN_Customer`, `DYN_Username` and `DYN_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 30. Use pdd.yandex.ru API
+
+```
+export PDD_Token="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+```
+
+Follow these instructions to get the token for your domain https://tech.yandex.com/domain/doc/concepts/access-docpage/
+```
+acme.sh --issue --dns dns_yandex -d mydomain.example.org
+```
+
+For issues, please report to https://github.com/non7top/acme.sh/issues.
+
+## 31. Use Hurricane Electric
+
+Hurricane Electric doesn't have an API so just set your login credentials like so:
+
+```
+export HE_Username="yourusername"
+export HE_Password="password"
+```
+
+Then you can issue your certificate:
+
+```
+acme.sh --issue --dns dns_he -d example.com -d www.example.com
+```
+
+The `HE_Username` and `HE_Password` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+Please report any issues to https://github.com/angel333/acme.sh or to <me@ondrejsimek.com>.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.

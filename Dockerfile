@@ -16,7 +16,7 @@ ADD ./ /install_acme.sh/
 RUN cd /install_acme.sh && ([ -f /install_acme.sh/acme.sh ] && /install_acme.sh/acme.sh --install || curl https://get.acme.sh | sh) && rm -rf /install_acme.sh/
 
 
-RUN ln -s  /root/.acme.sh/acme.sh  /usr/local/bin/acme.sh
+RUN ln -s  /root/.acme.sh/acme.sh  /usr/local/bin/acme.sh && crontab -l | sed 's#> /dev/null##' | crontab -
 
 RUN for verb in help \ 
   version \
@@ -44,15 +44,17 @@ RUN for verb in help \
   create-domain-key \
   createCSR \
   deactivate \
+  deactivate-account \
   ; do \
     printf -- "%b" "#!/usr/bin/env sh\n/root/.acme.sh/acme.sh --${verb} --config-home /acme.sh \"\$@\"" >/usr/local/bin/--${verb} && chmod +x /usr/local/bin/--${verb} \
   ; done
 
 RUN printf "%b" '#!'"/usr/bin/env sh\n \
 if [ \"\$1\" = \"daemon\" ];  then \n \
- crond -f\n \
+ trap \"echo stop && killall crond && exit 0\" SIGTERM SIGINT \n \
+ crond && while true; do sleep 1; done;\n \
 else \n \
- /root/.acme.sh/acme.sh --config-home /acme.sh \"\$@\"\n \
+ exec -- \"\$@\"\n \
 fi" >/entry.sh && chmod +x /entry.sh
 
 VOLUME /acme.sh
