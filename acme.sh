@@ -4417,15 +4417,19 @@ _installcert() {
 installcronjob() {
   _c_home="$1"
   _initpath
-  if ! _exists "crontab"; then
-    _err "crontab doesn't exist, so, we can not install cron jobs."
+  _CRONTAB="crontab"
+  if ! _exists "$_CRONTAB" && _exists "fcrontab"; then
+    _CRONTAB="fcrontab"
+  fi
+  if ! _exists "$_CRONTAB"; then
+    _err "crontab/fcrontab doesn't exist, so, we can not install cron jobs."
     _err "All your certs will not be renewed automatically."
     _err "You must add your own cron job to call '$PROJECT_ENTRY --cron' everyday."
     return 1
   fi
 
   _info "Installing cron job"
-  if ! crontab -l | grep "$PROJECT_ENTRY --cron"; then
+  if ! $_CRONTAB -l | grep "$PROJECT_ENTRY --cron"; then
     if [ -f "$LE_WORKING_DIR/$PROJECT_ENTRY" ]; then
       lesh="\"$LE_WORKING_DIR\"/$PROJECT_ENTRY"
     else
@@ -4439,15 +4443,15 @@ installcronjob() {
     _t=$(_time)
     random_minute=$(_math $_t % 60)
     if _exists uname && uname -a | grep SunOS >/dev/null; then
-      crontab -l | {
+      $_CRONTAB -l | {
         cat
         echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
-      } | crontab --
+      } | $_CRONTAB --
     else
-      crontab -l | {
+      $_CRONTAB -l | {
         cat
         echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
-      } | crontab -
+      } | $_CRONTAB -
     fi
   fi
   if [ "$?" != "0" ]; then
@@ -4459,16 +4463,21 @@ installcronjob() {
 }
 
 uninstallcronjob() {
-  if ! _exists "crontab"; then
+  _CRONTAB="crontab"
+  if ! _exists "$_CRONTAB" && _exists "fcrontab"; then
+    _CRONTAB="fcrontab"
+  fi
+
+  if ! _exists "$_CRONTAB"; then
     return
   fi
   _info "Removing cron job"
-  cr="$(crontab -l | grep "$PROJECT_ENTRY --cron")"
+  cr="$($_CRONTAB -l | grep "$PROJECT_ENTRY --cron")"
   if [ "$cr" ]; then
     if _exists uname && uname -a | grep solaris >/dev/null; then
-      crontab -l | sed "/$PROJECT_ENTRY --cron/d" | crontab --
+      $_CRONTAB -l | sed "/$PROJECT_ENTRY --cron/d" | $_CRONTAB --
     else
-      crontab -l | sed "/$PROJECT_ENTRY --cron/d" | crontab -
+      $_CRONTAB -l | sed "/$PROJECT_ENTRY --cron/d" | $_CRONTAB -
     fi
     LE_WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 9 | tr -d '"')"
     _info LE_WORKING_DIR "$LE_WORKING_DIR"
@@ -4745,7 +4754,7 @@ _precheck() {
   fi
 
   if [ -z "$_nocron" ]; then
-    if ! _exists "crontab"; then
+    if ! _exists "crontab" && ! _exists "fcrontab"; then
       _err "It is recommended to install crontab first. try to install 'cron, crontab, crontabs or vixie-cron'."
       _err "We need to set cron job to renew the certs automatically."
       _err "Otherwise, your certs will not be able to be renewed automatically."
