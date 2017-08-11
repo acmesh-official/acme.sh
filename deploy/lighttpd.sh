@@ -29,12 +29,12 @@ lighttpd_deploy() {
   fi
 
   _info "Copying combined key and cert and CA chain"
-  _real_ca="$_ssl_path/lighttpd.ca.pem"
+  _real_ca="$_ssl_path/letsencrypt.ca.pem"
   if ! cat "$_cca" >"$_real_ca"; then
     _err "Error: write ca file to: $_real_ca"
     return 1
   fi
-  _real_combinedkeyandcert="$_ssl_path/lighttpd.combined.pem"
+  _real_combinedkeyandcert="$_ssl_path/$_cdomain.pem"
   if ! cat "$_ckey" "$_ccert" >"$_real_combinedkeyandcert"; then
     _err "Error: write key file to: $_real_combinedkeyandcert"
     return 1
