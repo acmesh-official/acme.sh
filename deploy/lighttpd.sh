@@ -22,7 +22,7 @@ lighttpd_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-    _ssl_path="/etc/acme.sh/lighttpd"
+  _ssl_path="/etc/acme.sh/lighttpd"
   if ! mkdir -p "$_ssl_path"; then
     _err "Can not create folder:$_ssl_path"
     return 1
