@@ -512,13 +512,10 @@ export DuckDNS_Token="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 ```
 
 Please note that since DuckDNS uses StartSSL as their cert provider, thus 
---insecure must be used when issuing certs:
+--insecure may need to be used when issuing certs:
 ```
 acme.sh --insecure --issue --dns dns_duckdns -d mydomain.duckdns.org
 ```
-
-Also, DuckDNS uses the domain name as username for recording changing, so the
-account file will always store the lastly used domain name.
 
 For issues, please report to https://github.com/raidenii/acme.sh/issues.
 
