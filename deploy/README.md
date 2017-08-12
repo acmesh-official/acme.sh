@@ -83,15 +83,9 @@ acme.sh --deploy -d ftp.example.com --deploy-hook keychain
 
 ## 7. Deploy the cert to Lighttpd
 
-```sh
-
-acme.sh --deploy -d ftp.example.com --deploy-hook lighttpd
-```
-
-The default lighttpd conf file is `/etc/lighttpd/lighttpd.conf`,  if your lighttpd conf is not in the default location, you can specify one:
+The config file does not get updated automatically.  Configure Lighttpd config file SSL settings to point to /etc/acme.sh/lighttpd/primarydomain.pem.  For example, /etc/acme.sh/lighttpd/ftp.example.com.pem.
 
 ```sh
-export DEPLOY_LIGHTTTPD_CONF="/etc/lighttpd/external.conf"
 
 acme.sh --deploy -d ftp.example.com --deploy-hook lighttpd
 ```
