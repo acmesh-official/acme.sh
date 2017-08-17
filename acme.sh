@@ -1367,6 +1367,10 @@ _time2str() {
     echo "$_t_s_a"
   fi
 
+  #Busybox
+  if echo "$1" | awk '{ print strftime("%c", $0); }' 2>/dev/null; then
+    return
+  fi
 }
 
 _normalizeJson() {
