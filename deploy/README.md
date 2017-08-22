@@ -80,3 +80,9 @@ acme.sh --deploy -d ftp.example.com --deploy-hook exim4
 ```sh
 acme.sh --deploy -d ftp.example.com --deploy-hook keychain
 ```
+
+## 7. Deploy the cert to local strongswan server.
+
+```sh
+acme.sh --deploy -d ftp.example.com --deploy-hook strongswan
+```
