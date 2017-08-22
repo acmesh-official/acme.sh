@@ -117,7 +117,7 @@ scp_deploy() {
 
 _SCP_check_params() {
   # at least one of key, cert or fullchain must be set
-  if [ -z "$DEPLOY_SCP_KEY_TARGET" ] && [ -z "$DEPLOY_SCP_CERT_TARGET" ] && [ -z "$DEPLOY_SCP_FULLCHAIN_TARGET " ]; then
+  if [ -z "$DEPLOY_SCP_KEY_TARGET" ] && [ -z "$DEPLOY_SCP_CERT_TARGET" ] && [ -z "$DEPLOY_SCP_FULLCHAIN_TARGET" ]; then
     DEPLOY_SCP_CA_TARGET=""
     DEPLOY_SCP_KEY_TARGET=""
     DEPLOY_SCP_CERT_TARGET=""
