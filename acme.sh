@@ -100,6 +100,10 @@ _PREPARE_LINK="https://github.com/Neilpang/acme.sh/wiki/Install-preparations"
 
 _STATELESS_WIKI="https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode"
 
+_DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
+
+_DNS_MANUAL_WARN="It seems that you are using dns manual mode. please take care: $_DNS_MANUAL_ERR"
+
 __INTERACTIVE=""
 if [ -t 1 ]; then
   __INTERACTIVE="1"
@@ -3046,6 +3050,10 @@ _on_issue_err() {
     )
   fi
 
+  if [ "$IS_RENEW" = "1" ] && _hasfield "$Le_Webroot" "dns"; then
+    _err "$_DNS_MANUAL_ERR"
+  fi
+
   if [ "$DEBUG" ] && [ "$DEBUG" -gt "0" ]; then
     _debug "$(_dlg_versions)"
   fi
@@ -3076,6 +3084,10 @@ _on_issue_success() {
       _err "Error when run renew hook."
       return 1
     fi
+  fi
+
+  if _hasfield "$Le_Webroot" "dns"; then
+    _err "$_DNS_MANUAL_WARN"
   fi
 
 }
