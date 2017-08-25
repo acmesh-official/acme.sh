@@ -11,7 +11,7 @@
 
 #domain keyfile certfile cafile fullchain
 
-cpanel_uapi() {
+cpanel_uapi_deploy() {
   _cdomain="$1"
   _ckey="$2"
   _ccert="$3"
@@ -24,6 +24,14 @@ cpanel_uapi() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
+  if ! _exists uapi; then
+    _err "The command uapi is not found."
+    return 1
+  fi
+  if ! _exists php; then
+    _err "The command php is not found."
+    return 1
+  fi
   # read cert and key files and urlencode both
   _certstr=$(cat "$_ccert")
   _keystr=$(cat "$_ckey")
@@ -34,6 +42,11 @@ cpanel_uapi() {
   _debug _key "$_key"
 
   if [ "$(id -u)" = 0 ]; then
+    if [ -z "$DEPLOY_CPANEL_USER" ]; then
+      _err "It seems that you are root, please define the target user name: export DEPLOY_CPANEL_USER=username"
+      return 1;
+    fi
+    _savedomainconf DEPLOY_CPANEL_USER "$DEPLOY_CPANEL_USER"
     _response=$(uapi --user="$DEPLOY_CPANEL_USER" SSL install_ssl domain="$_cdomain" cert="$_cert" key="$_key")
   else
     _response=$(uapi SSL install_ssl domain="$_cdomain" cert="$_cert" key="$_key")
