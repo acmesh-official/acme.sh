@@ -44,7 +44,7 @@ cpanel_uapi_deploy() {
   if [ "$(id -u)" = 0 ]; then
     if [ -z "$DEPLOY_CPANEL_USER" ]; then
       _err "It seems that you are root, please define the target user name: export DEPLOY_CPANEL_USER=username"
-      return 1;
+      return 1
     fi
     _savedomainconf DEPLOY_CPANEL_USER "$DEPLOY_CPANEL_USER"
     _response=$(uapi --user="$DEPLOY_CPANEL_USER" SSL install_ssl domain="$_cdomain" cert="$_cert" key="$_key")
