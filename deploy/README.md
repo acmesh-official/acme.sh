@@ -80,3 +80,21 @@ acme.sh --deploy -d ftp.example.com --deploy-hook exim4
 ```sh
 acme.sh --deploy -d ftp.example.com --deploy-hook keychain
 ```
+
+## 7. Deploy to cpanel host.
+
+```
+acme.sh  --deploy  -d example.com  --deploy-hook cpanel_uapi
+```
+
+If you are login as root, please specify the username to deploy cert to:
+
+```sh
+export DEPLOY_CPANEL_USER=username
+acme.sh  --deploy  -d example.com  --deploy-hook cpanel_uapi
+```
+
+
+
+
+
