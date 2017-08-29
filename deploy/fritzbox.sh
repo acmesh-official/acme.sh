@@ -41,7 +41,7 @@ fritzbox_deploy() {
   _fritzbox_url="${DEPLOY_FRITZBOX_URL}"
 
   _debug _fritzbox_url "$_fritzbox_url"
-  _debug _fritzbox_usename "$_fritzbox_username"
+  _debug _fritzbox_username "$_fritzbox_username"
   _secure_debug _fritzbox_password "$_fritzbox_password"
   if [ -z "$_fritzbox_username" ]; then
     _err "FRITZ!Box username is not found, please define DEPLOY_FRITZBOX_USERNAME."
