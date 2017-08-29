@@ -8,6 +8,9 @@
 #DEPLOY_FRITZBOX_PASSWORD="password"
 #DEPLOY_FRITZBOX_URL="https://fritz.box"
 
+# Kudos to wikrie at Github for his FRITZ!Box update script:
+# https://gist.github.com/wikrie/f1d5747a714e0a34d0582981f7cb4cfb
+
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
