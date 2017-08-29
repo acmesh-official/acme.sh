@@ -47,7 +47,7 @@ dns_he_add() {
   response="$(_post "$body" "https://dns.he.net/")"
   exit_code="$?"
   if [ "$exit_code" -eq 0 ]; then
-    _info "TXT record added successfuly."
+    _info "TXT record added successfully."
   else
     _err "Couldn't add the TXT record."
   fi
@@ -96,7 +96,7 @@ dns_he_rm() {
       >/dev/null
   exit_code="$?"
   if [ "$exit_code" -eq 0 ]; then
-    _info "Record removed successfuly."
+    _info "Record removed successfully."
   else
     _err "Could not clean (remove) up the record. Please go to HE administration interface and clean it by hand."
     return "$exit_code"
