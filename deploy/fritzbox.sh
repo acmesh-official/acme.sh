@@ -61,11 +61,11 @@ fritzbox_deploy() {
   _saveaccountconf DEPLOY_FRITZBOX_URL "${_fritzbox_url}"
 
   _info "Log in to the FRITZ!Box"
-  _fritzbox_challenge="$(wget --no-check-certificate -q -O - ${_fritzbox_url}/login_sid.lua | sed -e 's/^.*<Challenge>//' -e 's/<\/Challenge>.*$//')"
-  _fritzbox_hash="$(echo -n ${_fritzbox_challenge}-${_fritzbox_password} | iconv -f ASCII -t UTF16LE | md5sum | awk '{print $1}')"
-  _fritzbox_sid="$(wget --no-check-certificate -q -O - ${_fritzbox_url}/login_sid.lua?sid=0000000000000000\&username=${_fritzbox_username}\&response=${_fritzbox_challenge}-${_fritzbox_hash} | sed -e 's/^.*<SID>//' -e 's/<\/SID>.*$//')"
+  _fritzbox_challenge="$(wget --no-check-certificate -q -O - "${_fritzbox_url}/login_sid.lua" | sed -e 's/^.*<Challenge>//' -e 's/<\/Challenge>.*$//')"
+  _fritzbox_hash="$(echo -n "${_fritzbox_challenge}-${_fritzbox_password}" | iconv -f ASCII -t UTF16LE | md5sum | awk '{print $1}')"
+  _fritzbox_sid="$(wget --no-check-certificate -q -O - "${_fritzbox_url}/login_sid.lua?sid=0000000000000000\&username=${_fritzbox_username}\&response=${_fritzbox_challenge}-${_fritzbox_hash}" | sed -e 's/^.*<SID>//' -e 's/<\/SID>.*$//')"
 
-  if [ -z "${_fritzbox_sid}" -o "${_fritzbox_sid}" = "0000000000000000" ] ; then
+  if [ -z "${_fritzbox_sid}" ] || [ "${_fritzbox_sid}" = "0000000000000000" ]; then
     _err "Logging in to the FRITZ!Box failed. Please check username, password and URL."
     return 1
   fi
@@ -73,19 +73,24 @@ fritzbox_deploy() {
   _info "Generate form POST request"
   _post_request="$(_mktemp)"
   _post_boundary="---------------------------$(date +%Y%m%d%H%M%S)"
-  printf -- "--${_post_boundary}\r\n" >> "${_post_request}"
-  printf "Content-Disposition: form-data; name=\"sid\"\r\n\r\n${_fritzbox_sid}\r\n" >> "${_post_request}"
-  printf -- "--${_post_boundary}\r\n" >> "${_post_request}"
+  {
+    printf -- "--%s\r\n" "${_post_boundary}";
+    printf "Content-Disposition: form-data; name=\"sid\"\r\n\r\n%s\r\n" "${_fritzbox_sid}";
+    printf -- "--%s\r\n""${_post_boundary}";
+  } >>"${_post_request}"
   # _CERTPASSWORD_ is unset because Let's Encrypt certificates don't have a passwort. But if they ever do, here's the place to use it!
   _CERTPASSWORD_=
-  printf "Content-Disposition: form-data; name=\"BoxCertPassword\"\r\n\r\n${_CERTPASSWORD_}\r\n" >> "${_post_request}"
-  printf -- "--${_post_boundary}\r\n" >> "${_post_request}"
-  printf "Content-Disposition: form-data; name=\"BoxCertImportFile\"; filename=\"BoxCert.pem\"\r\n" >> "${_post_request}"
-  printf "Content-Type: application/octet-stream\r\n\r\n" >> "${_post_request}"
-  cat "${_ckey}" >> "${_post_request}"
-  cat "${_cfullchain}" >> "${_post_request}"
-  printf "\r\n" >> "${_post_request}"
-  printf -- "--${_post_boundary}--" >> "${_post_request}"
+  {
+    printf "Content-Disposition: form-data; name=\"BoxCertPassword\"\r\n\r\n%s\r\n" "${_CERTPASSWORD_}";
+    printf -- "--%s\r\n" "${_post_boundary}";
+    printf "Content-Disposition: form-data; name=\"BoxCertImportFile\"; filename=\"BoxCert.pem\"\r\n";
+    printf "Content-Type: application/octet-stream\r\n\r\n";
+  } >>"${_post_request}"
+  cat "${_ckey}${_cfullchain}" >>"${_post_request}"
+  {
+    printf "\r\n";
+    printf -- "--%s--" "${_post_boundary}";
+  } >>"${_post_request}"
 
   _info "Upload certificate to the FRITZ!Box"
   wget --no-check-certificate -q -O - "${_fritzbox_url}/cgi-bin/firmwarecfg" --header="Content-type: multipart/form-data boundary=${_post_boundary}" --post-file "${_post_request}" | grep SSL
