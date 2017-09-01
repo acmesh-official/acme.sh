@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.7.3
+VER=2.7.4
 
 PROJECT_NAME="acme.sh"
 
@@ -164,11 +164,11 @@ _dlg_versions() {
     echo "nginx doesn't exists."
   fi
 
-  echo "nc:"
-  if _exists "nc"; then
-    nc -h 2>&1
+  echo "socat:"
+  if _exists "socat"; then
+    socat -h 2>&1
   else
-    _debug "nc doesn't exists."
+    _debug "socat doesn't exists."
   fi
 }
 
@@ -1967,68 +1967,22 @@ _startserver() {
   _debug "ncaddr" "$ncaddr"
 
   _debug "startserver: $$"
-  nchelp="$(nc -h 2>&1)"
 
   _debug Le_HTTPPort "$Le_HTTPPort"
   _debug Le_Listen_V4 "$Le_Listen_V4"
   _debug Le_Listen_V6 "$Le_Listen_V6"
-  _NC="nc"
 
+  _NC="socat"
   if [ "$Le_Listen_V4" ]; then
     _NC="$_NC -4"
   elif [ "$Le_Listen_V6" ]; then
     _NC="$_NC -6"
   fi
 
-  if [ "$Le_Listen_V4$Le_Listen_V6$ncaddr" ]; then
-    if ! _contains "$nchelp" "-4"; then
-      _err "The nc doesn't support '-4', '-6' or local-address, please install 'netcat-openbsd' and try again."
-      _err "See $(__green $_PREPARE_LINK)"
-      return 1
-    fi
-  fi
-
-  if echo "$nchelp" | grep "\-q[ ,]" >/dev/null; then
-    _NC="$_NC -q 1 -l $ncaddr"
-  else
-    if echo "$nchelp" | grep "GNU netcat" >/dev/null && echo "$nchelp" | grep "\-c, \-\-close" >/dev/null; then
-      _NC="$_NC -c -l $ncaddr"
-    elif echo "$nchelp" | grep "\-N" | grep "Shutdown the network socket after EOF on stdin" >/dev/null; then
-      _NC="$_NC -N -l $ncaddr"
-    else
-      _NC="$_NC -l $ncaddr"
-    fi
-  fi
-
   _debug "_NC" "$_NC"
-
-  #for centos ncat
-  if _contains "$nchelp" "nmap.org"; then
-    _debug "Using ncat: nmap.org"
-    if ! _exec "printf \"%s\r\n\r\n%s\" \"HTTP/1.1 200 OK\" \"$content\" | $_NC \"$Le_HTTPPort\" >&2"; then
-      _exec_err
-      return 1
-    fi
-    if [ "$DEBUG" ]; then
-      _exec_err
-    fi
-    return
-  fi
-
-  #  while true ; do
-  if ! _exec "printf \"%s\r\n\r\n%s\" \"HTTP/1.1 200 OK\" \"$content\" | $_NC -p \"$Le_HTTPPort\" >&2"; then
-    _exec "printf \"%s\r\n\r\n%s\" \"HTTP/1.1 200 OK\" \"$content\" | $_NC \"$Le_HTTPPort\" >&2"
-  fi
-
-  if [ "$?" != "0" ]; then
-    _err "nc listen error."
-    _exec_err
-    exit 1
-  fi
-  if [ "$DEBUG" ]; then
-    _exec_err
-  fi
-  #  done
+  #todo  listen address
+  socat TCP-LISTEN:$Le_HTTPPort,crlf,reuseaddr,fork SYSTEM:"echo HTTP/1.1 200 OK'; echo ; echo  $content; echo;" &
+  serverproc="$!"
 }
 
 _stopserver() {
@@ -2037,6 +1991,8 @@ _stopserver() {
   if [ -z "$pid" ]; then
     return
   fi
+
+  kill $pid
 
   _debug2 "Le_HTTPPort" "$Le_HTTPPort"
   if [ "$Le_HTTPPort" ]; then
@@ -2943,8 +2899,8 @@ _on_before_issue() {
   fi
 
   if _hasfield "$_chk_web_roots" "$NO_VALUE"; then
-    if ! _exists "nc"; then
-      _err "Please install netcat(nc) tools first."
+    if ! _exists "socat"; then
+      _err "Please install socat tools first."
       return 1
     fi
   fi
@@ -3665,13 +3621,12 @@ issue() {
         _info "Standalone mode server"
         _ncaddr="$(_getfield "$_local_addr" "$_ncIndex")"
         _ncIndex="$(_math $_ncIndex + 1)"
-        _startserver "$keyauthorization" "$_ncaddr" &
+        _startserver "$keyauthorization" "$_ncaddr"
         if [ "$?" != "0" ]; then
           _clearup
           _on_issue_err "$_post_hook" "$vlist"
           return 1
         fi
-        serverproc="$!"
         sleep 1
         _debug serverproc "$serverproc"
       elif [ "$_currentRoot" = "$MODE_STATELESS" ]; then
@@ -4788,9 +4743,9 @@ _precheck() {
     return 1
   fi
 
-  if ! _exists "nc"; then
-    _err "It is recommended to install nc first, try to install 'nc' or 'netcat'."
-    _err "We use nc for standalone server if you use standalone mode."
+  if ! _exists "socat"; then
+    _err "It is recommended to install socat first."
+    _err "We use socat for standalone server if you use standalone mode."
     _err "If you don't use standalone mode, just ignore this warning."
   fi
 
