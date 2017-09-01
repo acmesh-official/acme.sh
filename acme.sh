@@ -1994,25 +1994,6 @@ _stopserver() {
 
   kill $pid
 
-  _debug2 "Le_HTTPPort" "$Le_HTTPPort"
-  if [ "$Le_HTTPPort" ]; then
-    if [ "$DEBUG" ] && [ "$DEBUG" -gt "3" ]; then
-      _get "http://localhost:$Le_HTTPPort" "" 1
-    else
-      _get "http://localhost:$Le_HTTPPort" "" 1 >/dev/null 2>&1
-    fi
-  fi
-
-  _debug2 "Le_TLSPort" "$Le_TLSPort"
-  if [ "$Le_TLSPort" ]; then
-    if [ "$DEBUG" ] && [ "$DEBUG" -gt "3" ]; then
-      _get "https://localhost:$Le_TLSPort" "" 1
-      _get "https://localhost:$Le_TLSPort" "" 1
-    else
-      _get "https://localhost:$Le_TLSPort" "" 1 >/dev/null 2>&1
-      _get "https://localhost:$Le_TLSPort" "" 1 >/dev/null 2>&1
-    fi
-  fi
 }
 
 # sleep sec
@@ -2067,12 +2048,7 @@ _starttlsserver() {
     return 1
   fi
 
-  __S_OPENSSL="${ACME_OPENSSL_BIN:-openssl} s_server -cert $TLS_CERT  -key $TLS_KEY "
-  if [ "$opaddr" ]; then
-    __S_OPENSSL="$__S_OPENSSL -accept $opaddr:$port"
-  else
-    __S_OPENSSL="$__S_OPENSSL -accept $port"
-  fi
+  __S_OPENSSL="socat"
 
   _debug Le_Listen_V4 "$Le_Listen_V4"
   _debug Le_Listen_V6 "$Le_Listen_V6"
@@ -2083,12 +2059,9 @@ _starttlsserver() {
   fi
 
   _debug "$__S_OPENSSL"
-  if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
-    (printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $__S_OPENSSL -tlsextdebug) &
-  else
-    (printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $__S_OPENSSL >/dev/null 2>&1) &
-  fi
 
+  #todo listen address
+  $__S_OPENSSL openssl-listen:$port,cert=$TLS_CERT,key=$TLS_KEY,verify=0,reuseaddr,fork SYSTEM:"echo HTTP/1.1 200 OK'; echo ; echo  $content; echo;" &
   serverproc="$!"
   sleep 1
   _debug serverproc "$serverproc"
