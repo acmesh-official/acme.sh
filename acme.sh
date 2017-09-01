@@ -4006,6 +4006,10 @@ issue() {
   Le_NextRenewTime=$(_math "$Le_NextRenewTime" - 86400)
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
 
+  _initpath "$_main_domain" "$_ecc"
+
+  . "$DOMAIN_CONF"
+
   _on_issue_success "$_post_hook" "$_renew_hook"
 
   if [ "$_real_cert$_real_key$_real_ca$_reload_cmd$_real_fullchain" ]; then
