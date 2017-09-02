@@ -1981,7 +1981,7 @@ _startserver() {
 
   _debug "_NC" "$_NC"
   #todo  listen address
-  socat TCP-LISTEN:$Le_HTTPPort,crlf,reuseaddr,fork SYSTEM:"echo HTTP/1.1 200 OK'; echo ; echo  $content; echo;" &
+  socat TCP-LISTEN:$Le_HTTPPort,crlf,reuseaddr,fork SYSTEM:"sleep 0.5; echo HTTP/1.1 200 OK'; echo ; echo  $content; echo;" &
   serverproc="$!"
 }
 
@@ -2061,7 +2061,7 @@ _starttlsserver() {
   _debug "$__S_OPENSSL"
 
   #todo listen address
-  $__S_OPENSSL openssl-listen:$port,cert=$TLS_CERT,key=$TLS_KEY,verify=0,reuseaddr,fork SYSTEM:"echo HTTP/1.1 200 OK'; echo ; echo  $content; echo;" &
+  $__S_OPENSSL openssl-listen:$port,cert=$TLS_CERT,key=$TLS_KEY,verify=0,reuseaddr,fork SYSTEM:"sleep 0.5; echo HTTP/1.1 200 OK'; echo ; echo  $content; echo;" &
   serverproc="$!"
   sleep 1
   _debug serverproc "$serverproc"
