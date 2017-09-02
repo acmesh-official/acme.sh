@@ -18,9 +18,8 @@ addons:
 
 install:
   - if [ "$TRAVIS_OS_NAME" = 'osx' ]; then
-      brew update && brew install openssl;
+      brew update && brew install openssl socat;
       brew info openssl;
-      brew info socat;
       ln -s /usr/local/opt/openssl/lib/libcrypto.1.0.0.dylib /usr/local/lib/;
       ln -s /usr/local/opt/openssl/lib/libssl.1.0.0.dylib /usr/local/lib/;
       ln -s /usr/local/Cellar/openssl/1.0.2j/bin/openssl /usr/local/openssl;
