@@ -4970,7 +4970,7 @@ _uninstallalias() {
 }
 
 cron() {
-  IN_CRON=1
+  export IN_CRON=1
   _initpath
   _info "$(__green "===Starting cron===")"
   if [ "$AUTO_UPGRADE" = "1" ]; then
