@@ -4821,9 +4821,11 @@ install() {
     _debug "Skip install cron job"
   fi
 
-  if ! _precheck "$_nocron"; then
-    _err "Pre-check failed, can not install."
-    return 1
+  if [ "$IN_CRON" != "1" ]; then
+    if ! _precheck "$_nocron"; then
+      _err "Pre-check failed, can not install."
+      return 1
+    fi
   fi
 
   if [ -z "$_c_home" ] && [ "$LE_CONFIG_HOME" != "$LE_WORKING_DIR" ]; then
@@ -4876,7 +4878,9 @@ install() {
 
   _info "Installed to $LE_WORKING_DIR/$PROJECT_ENTRY"
 
-  _installalias "$_c_home"
+  if [ "$IN_CRON" != "1" ]; then
+    _installalias "$_c_home"
+  fi
 
   for subf in $_SUB_FOLDERS; do
     if [ -d "$subf" ]; then
