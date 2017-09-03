@@ -6,17 +6,13 @@ Here are the scripts to deploy the certs/key to the server/services.
 
 ## 1. Deploy the certs to your cpanel host.
 
-(cpanel deploy hook is not finished yet, this is just an example.)
-
-
-
-Then you can deploy now:
+This hook is using UAPI and works in cPanel & WHM version 56 or newer.
 
 ```sh
-export DEPLOY_CPANEL_USER=myusername
-export DEPLOY_CPANEL_PASSWORD=PASSWORD
-acme.sh --deploy -d example.com --deploy-hook cpanel
+export DEPLOY_CPANEL_USER=cpanel_username
+acme.sh --deploy -d example.com --deploy-hook cpanel_uapi
 ```
+DEPLOY_CPANEL_USER is required only if you run the script as root and it should contain cpanel username.
 
 ## 2. Deploy ssl cert on kong proxy engine based on api.
 
