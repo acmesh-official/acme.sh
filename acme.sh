@@ -3934,7 +3934,10 @@ issue() {
   Le_NextRenewTime=$(_math "$Le_NextRenewTime" - 86400)
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
 
-  _on_issue_success "$_post_hook" "$_renew_hook"
+  if ! _on_issue_success "$_post_hook" "$_renew_hook"; then
+    _err "Call hook error."
+    return 1
+  fi
 
   if [ "$_real_cert$_real_key$_real_ca$_reload_cmd$_real_fullchain" ]; then
     _savedomainconf "Le_RealCertPath" "$_real_cert"
@@ -4818,9 +4821,11 @@ install() {
     _debug "Skip install cron job"
   fi
 
-  if ! _precheck "$_nocron"; then
-    _err "Pre-check failed, can not install."
-    return 1
+  if [ "$IN_CRON" != "1" ]; then
+    if ! _precheck "$_nocron"; then
+      _err "Pre-check failed, can not install."
+      return 1
+    fi
   fi
 
   if [ -z "$_c_home" ] && [ "$LE_CONFIG_HOME" != "$LE_WORKING_DIR" ]; then
@@ -4873,7 +4878,9 @@ install() {
 
   _info "Installed to $LE_WORKING_DIR/$PROJECT_ENTRY"
 
-  _installalias "$_c_home"
+  if [ "$IN_CRON" != "1" ]; then
+    _installalias "$_c_home"
+  fi
 
   for subf in $_SUB_FOLDERS; do
     if [ -d "$subf" ]; then
@@ -4963,7 +4970,7 @@ _uninstallalias() {
 }
 
 cron() {
-  IN_CRON=1
+  export IN_CRON=1
   _initpath
   _info "$(__green "===Starting cron===")"
   if [ "$AUTO_UPGRADE" = "1" ]; then
