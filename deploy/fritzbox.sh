@@ -62,7 +62,7 @@ fritzbox_deploy() {
 
   _info "Log in to the FRITZ!Box"
   _fritzbox_challenge="$(wget --no-check-certificate -q -O - "${_fritzbox_url}/login_sid.lua" | sed -e 's/^.*<Challenge>//' -e 's/<\/Challenge>.*$//')"
-  _fritzbox_hash="$(echo -n "${_fritzbox_challenge}-${_fritzbox_password}" | iconv -f ASCII -t UTF16LE | md5sum | awk '{print $1}')"
+  _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${_fritzbox_password}" | iconv -f ASCII -t UTF16LE | md5sum | awk '{print $1}')"
   _fritzbox_sid="$(wget --no-check-certificate -q -O - "${_fritzbox_url}/login_sid.lua?sid=0000000000000000&username=${_fritzbox_username}&response=${_fritzbox_challenge}-${_fritzbox_hash}" | sed -e 's/^.*<SID>//' -e 's/<\/SID>.*$//')"
 
   if [ -z "${_fritzbox_sid}" ] || [ "${_fritzbox_sid}" = "0000000000000000" ]; then
@@ -73,14 +73,12 @@ fritzbox_deploy() {
   _info "Generate form POST request"
   _post_request="$(_mktemp)"
   _post_boundary="---------------------------$(date +%Y%m%d%H%M%S)"
+  # _CERTPASSWORD_ is unset because Let's Encrypt certificates don't have a password. But if they ever do, here's the place to use it!
+  _CERTPASSWORD_=
   {
     printf -- "--%s\r\n" "${_post_boundary}"
     printf "Content-Disposition: form-data; name=\"sid\"\r\n\r\n%s\r\n" "${_fritzbox_sid}"
     printf -- "--%s\r\n" "${_post_boundary}"
-  } >>"${_post_request}"
-  # _CERTPASSWORD_ is unset because Let's Encrypt certificates don't have a passwort. But if they ever do, here's the place to use it!
-  _CERTPASSWORD_=
-  {
     printf "Content-Disposition: form-data; name=\"BoxCertPassword\"\r\n\r\n%s\r\n" "${_CERTPASSWORD_}"
     printf -- "--%s\r\n" "${_post_boundary}"
     printf "Content-Disposition: form-data; name=\"BoxCertImportFile\"; filename=\"BoxCert.pem\"\r\n"
