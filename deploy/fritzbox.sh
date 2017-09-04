@@ -92,10 +92,10 @@ fritzbox_deploy() {
   _info "Upload certificate to the FRITZ!Box"
 
   export _H1="Content-type: multipart/form-data boundary=${_post_boundary}"
-  _post "$(cat ${_post_request})" "${_fritzbox_url}/cgi-bin/firmwarecfg" | grep SSL
+  _post "$(cat "${_post_request}")" "${_fritzbox_url}/cgi-bin/firmwarecfg" | grep SSL
 
   retval=$?
-  if [ $retval = 0 ] ; then
+  if [ $retval = 0 ]; then
     _info "Upload successful"
   else
     _err "Upload failed"
