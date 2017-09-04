@@ -27,10 +27,6 @@ fritzbox_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  if ! _exists wget; then
-    _err "wget not found"
-    return 1
-  fi
   if ! _exists iconv; then
     _err "iconv not found"
     return 1
@@ -60,10 +56,13 @@ fritzbox_deploy() {
   _saveaccountconf DEPLOY_FRITZBOX_PASSWORD "${_fritzbox_password}"
   _saveaccountconf DEPLOY_FRITZBOX_URL "${_fritzbox_url}"
 
+  # Do not check for a valid SSL certificate, because initially the cert is not valid, so it could not install the LE generated certificate
+  export HTTPS_INSECURE=1
+
   _info "Log in to the FRITZ!Box"
-  _fritzbox_challenge="$(wget --no-check-certificate -q -O - "${_fritzbox_url}/login_sid.lua" | sed -e 's/^.*<Challenge>//' -e 's/<\/Challenge>.*$//')"
+  _fritzbox_challenge="$(_get "${_fritzbox_url}/login_sid.lua" | sed -e 's/^.*<Challenge>//' -e 's/<\/Challenge>.*$//')"
   _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${_fritzbox_password}" | iconv -f ASCII -t UTF16LE | md5sum | awk '{print $1}')"
-  _fritzbox_sid="$(wget --no-check-certificate -q -O - "${_fritzbox_url}/login_sid.lua?sid=0000000000000000&username=${_fritzbox_username}&response=${_fritzbox_challenge}-${_fritzbox_hash}" | sed -e 's/^.*<SID>//' -e 's/<\/SID>.*$//')"
+  _fritzbox_sid="$(_get "${_fritzbox_url}/login_sid.lua?sid=0000000000000000&username=${_fritzbox_username}&response=${_fritzbox_challenge}-${_fritzbox_hash}" | sed -e 's/^.*<SID>//' -e 's/<\/SID>.*$//')"
 
   if [ -z "${_fritzbox_sid}" ] || [ "${_fritzbox_sid}" = "0000000000000000" ]; then
     _err "Logging in to the FRITZ!Box failed. Please check username, password and URL."
@@ -91,10 +90,17 @@ fritzbox_deploy() {
   } >>"${_post_request}"
 
   _info "Upload certificate to the FRITZ!Box"
-  wget --no-check-certificate -q -O - "${_fritzbox_url}/cgi-bin/firmwarecfg" --header="Content-type: multipart/form-data boundary=${_post_boundary}" --post-file "${_post_request}" | grep SSL
 
-  _info "Upload successful"
+  export _H1="Content-type: multipart/form-data boundary=${_post_boundary}"
+  _post "$(cat ${_post_request})" "${_fritzbox_url}/cgi-bin/firmwarecfg" | grep SSL
+
+  retval=$?
+  if [ $retval = 0 ] ; then
+    _info "Upload successful"
+  else
+    _err "Upload failed"
+  fi
   rm "${_post_request}"
 
-  return 0
+  return $retval
 }
