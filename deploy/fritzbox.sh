@@ -75,16 +75,20 @@ fritzbox_deploy() {
   # _CERTPASSWORD_ is unset because Let's Encrypt certificates don't have a password. But if they ever do, here's the place to use it!
   _CERTPASSWORD_=
   {
-    printf -- "--%s\r\n" "${_post_boundary}"
+    printf -- "--"
+    printf -- "%s\r\n" "${_post_boundary}"
     printf "Content-Disposition: form-data; name=\"sid\"\r\n\r\n%s\r\n" "${_fritzbox_sid}"
-    printf -- "--%s\r\n" "${_post_boundary}"
+    printf -- "--"
+    printf -- "%s\r\n" "${_post_boundary}"
     printf "Content-Disposition: form-data; name=\"BoxCertPassword\"\r\n\r\n%s\r\n" "${_CERTPASSWORD_}"
-    printf -- "--%s\r\n" "${_post_boundary}"
+    printf -- "--"
+    printf -- "%s\r\n" "${_post_boundary}"
     printf "Content-Disposition: form-data; name=\"BoxCertImportFile\"; filename=\"BoxCert.pem\"\r\n"
     printf "Content-Type: application/octet-stream\r\n\r\n"
     cat "${_ckey}" "${_cfullchain}"
     printf "\r\n"
-    printf -- "--%s--" "${_post_boundary}"
+    printf -- "--"
+    printf -- "%s--" "${_post_boundary}"
   } >>"${_post_request}"
 
   _info "Upload certificate to the FRITZ!Box"
