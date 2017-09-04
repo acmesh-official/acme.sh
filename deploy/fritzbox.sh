@@ -82,9 +82,7 @@ fritzbox_deploy() {
     printf -- "--%s\r\n" "${_post_boundary}"
     printf "Content-Disposition: form-data; name=\"BoxCertImportFile\"; filename=\"BoxCert.pem\"\r\n"
     printf "Content-Type: application/octet-stream\r\n\r\n"
-  } >>"${_post_request}"
-  cat "${_ckey}" "${_cfullchain}" >>"${_post_request}"
-  {
+    cat "${_ckey}" "${_cfullchain}"
     printf "\r\n"
     printf -- "--%s--" "${_post_boundary}"
   } >>"${_post_request}"
