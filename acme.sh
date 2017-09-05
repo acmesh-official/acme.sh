@@ -1814,7 +1814,12 @@ _send_signed_request() {
 
     _CACHED_NONCE="$(echo "$responseHeaders" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
 
-    if _contains "$response" "JWS has invalid anti-replay nonce"; then
+    _body="$response"
+    if [ "$needbase64" ]; then
+      _body="$(echo "$_body" | _dbase64)"
+    fi
+    _debug3 _body "$_body"
+    if _contains "$_body" "JWS has invalid anti-replay nonce"; then
       _info "It seems the CA server is busy now, let's wait and retry."
       _request_retry_times=$(_math "$_request_retry_times" + 1)
       _sleep 5
