@@ -11,7 +11,7 @@
 #
 ########  Public functions #####################
 
-GANDI_LIVEDNS_API="https://dns.beta.gandi.net/api/v5"
+GANDI_LIVEDNS_API="https://dns.api.gandi.net/api/v5"
 
 #Usage: dns_gandi_livedns_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_gandi_livedns_add() {
