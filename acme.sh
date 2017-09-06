@@ -2053,7 +2053,12 @@ _starttlsserver() {
     return 1
   fi
 
-  __S_OPENSSL="socat"
+  __S_OPENSSL="${ACME_OPENSSL_BIN:-openssl} s_server -www -cert $TLS_CERT  -key $TLS_KEY "
+  if [ "$opaddr" ]; then
+    __S_OPENSSL="$__S_OPENSSL -accept $opaddr:$port"
+  else
+    __S_OPENSSL="$__S_OPENSSL -accept $port"
+  fi
 
   _debug Le_Listen_V4 "$Le_Listen_V4"
   _debug Le_Listen_V6 "$Le_Listen_V6"
@@ -2064,9 +2069,12 @@ _starttlsserver() {
   fi
 
   _debug "$__S_OPENSSL"
+  if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
+    $__S_OPENSSL -tlsextdebug &
+  else
+    $__S_OPENSSL >/dev/null 2>&1 &
+  fi
 
-  #todo listen address
-  $__S_OPENSSL openssl-listen:$port,cert=$TLS_CERT,key=$TLS_KEY,verify=0,reuseaddr,fork SYSTEM:"sleep 0.5; echo HTTP/1.1 200 OK'; echo ; echo  $content; echo;" &
   serverproc="$!"
   sleep 1
   _debug serverproc "$serverproc"
