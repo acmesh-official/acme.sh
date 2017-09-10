@@ -4,7 +4,7 @@ RUN apk update -f \
   && apk --no-cache add -f \
   openssl \
   curl \
-  netcat-openbsd \
+  socat \
   && rm -rf /var/cache/apk/*
 
 ENV LE_CONFIG_HOME /acme.sh
