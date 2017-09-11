@@ -1987,7 +1987,7 @@ _startserver() {
 
   _debug "_NC" "$_NC"
   #todo  listen address
-  socat TCP-LISTEN:$Le_HTTPPort,crlf,reuseaddr,fork SYSTEM:"sleep 0.5; echo HTTP/1.1 200 OK'; echo ; echo  $content; echo;" &
+  $_NC TCP-LISTEN:$Le_HTTPPort,crlf,reuseaddr,fork SYSTEM:"sleep 0.5; echo HTTP/1.1 200 OK'; echo ; echo  $content; echo;" &
   serverproc="$!"
 }
 
