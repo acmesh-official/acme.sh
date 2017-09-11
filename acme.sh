@@ -1817,8 +1817,9 @@ _send_signed_request() {
     _body="$response"
     if [ "$needbase64" ]; then
       _body="$(echo "$_body" | _dbase64)"
+      _debug2 _body "$_body"
     fi
-    _debug3 _body "$_body"
+
     if _contains "$_body" "JWS has invalid anti-replay nonce"; then
       _info "It seems the CA server is busy now, let's wait and retry."
       _request_retry_times=$(_math "$_request_retry_times" + 1)
