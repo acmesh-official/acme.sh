@@ -6,6 +6,8 @@ Here are the scripts to deploy the certs/key to the server/services.
 
 ## 1. Deploy the certs to your cpanel host.
 
+If you want to deploy using cpanel UAPI see 7.
+
 (cpanel deploy hook is not finished yet, this is just an example.)
 
 
@@ -81,18 +83,19 @@ acme.sh --deploy -d ftp.example.com --deploy-hook exim4
 acme.sh --deploy -d ftp.example.com --deploy-hook keychain
 ```
 
-## 7. Deploy to cpanel host.
+## 7. Deploy to cpanel host using UAPI
 
+This hook is using UAPI and works in cPanel & WHM version 56 or newer.
 ```
 acme.sh  --deploy  -d example.com  --deploy-hook cpanel_uapi
 ```
-
-If you are login as root, please specify the username to deploy cert to:
-
+DEPLOY_CPANEL_USER is required only if you run the script as root and it should contain cpanel username.
 ```sh
 export DEPLOY_CPANEL_USER=username
 acme.sh  --deploy  -d example.com  --deploy-hook cpanel_uapi
 ```
+Please note, that the cpanel_uapi hook will deploy only the first domain when your certificate will automatically renew. Therefore you should issue a separete certificate for each domain. 
+
 ## 8. Deploy the cert to your FRITZ!Box router
 
 You must specify the credentials that have administrative privileges on the FRITZ!Box in order to deploy the certificate, plus the URL of your FRITZ!Box, through the following environment variables:
