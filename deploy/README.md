@@ -108,6 +108,6 @@ $ export DEPLOY_FRITZBOX_URL=https://fritzbox.example.com
 After the first deployment, these values will be stored in your $HOME/.acme.sh/account.conf. You may now deploy the certificate like this:
 
 ```sh
-acme.sh --deploy -d fritz.box --deploy-hook fritzbox
+acme.sh --deploy -d fritzbox.example.com --deploy-hook fritzbox
 ```
 
