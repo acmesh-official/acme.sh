@@ -34,13 +34,21 @@ dns_he_add() {
     _clearaccountconf HE_OTP_Secret
   fi
 
-  _sign_in
+  if [ ! -z "$HE_OTP_Secret" ]; then
+    _sign_in
+  fi
 
   # Fills in the $_zone_id
   _find_zone "$_full_domain" || return 1
   _debug "Zone id \"$_zone_id\" will be used."
 
-  body="account="
+  if [ ! -z "$HE_OTP_Secret" ]; then
+    body="account="
+  else
+    body="email=${HE_Username}&pass=${HE_Password}"
+    body="$body&account="
+  fi
+
   body="$body&menu=edit_zone"
   body="$body&Type=TXT"
   body="$body&hosted_dns_zoneid=$_zone_id"
@@ -60,7 +68,9 @@ dns_he_add() {
   fi
   _debug2 response "$response"
 
-  _sign_out
+  if [ ! -z "$HE_OTP_Secret" ]; then
+    _sign_out
+  fi
 
   return "$exit_code"
 }
@@ -73,14 +83,22 @@ dns_he_rm() {
   _txt_value=$2
   _info "Cleaning up after DNS-01 Hurricane Electric hook"
 
-  _sign_in
+  if [ ! -z "$HE_OTP_Secret" ]; then
+    _sign_in
+  fi
 
   # fills in the $_zone_id
   _find_zone "$_full_domain" || return 1
   _debug "Zone id \"$_zone_id\" will be used."
 
   # Find the record id to clean
-  body="hosted_dns_zoneid=$_zone_id"
+  if [ ! -z "$HE_OTP_Secret" ]; then
+    body="hosted_dns_zoneid=$_zone_id"
+  else
+    body="email=${HE_Username}&pass=${HE_Password}"
+    body="$body&hosted_dns_zoneid=$_zone_id"
+  fi
+  
   body="$body&menu=edit_zone"
   body="$body&hosted_dns_editzone="
   domain_regex="$(echo "$_full_domain" | sed 's/\./\\./g')" # escape dots
@@ -95,6 +113,13 @@ dns_he_rm() {
   #  HE changes their website somehow).
 
   # Remove the record
+  if [ ! -z "$HE_OTP_Secret" ]; then
+    body="menu=edit_zone"
+  else
+    body="email=${HE_Username}&pass=${HE_Password}"
+    body="$body&menu=edit_zone"
+  fi
+  
   body="menu=edit_zone"
   body="$body&hosted_dns_zoneid=$_zone_id"
   body="$body&hosted_dns_recordid=$_record_id"
@@ -107,10 +132,14 @@ dns_he_rm() {
   exit_code="$?"
   if [ "$exit_code" -eq 0 ]; then
     _info "Record removed successfully."
-    _sign_out
+    if [ ! -z "$HE_OTP_Secret" ]; then
+      _sign_out
+    fi
   else
     _err "Could not clean (remove) up the record. Please go to HE administration interface and clean it by hand."
-    _sign_out
+    if [ ! -z "$HE_OTP_Secret" ]; then
+      _sign_out
+    fi
     return "$exit_code"
   fi
 }
@@ -124,7 +153,7 @@ dns_he_rm() {
 _sign_in() {
   _debug "Signing into Hurricane Electric account."
 
-  body="email=${HE_Username}&pass=${HE_Password}&submit=Login%21"
+  body="email=${HE_Username}&pass=${HE_Password}"
 
   response="$(_post "$body" "https://dns.he.net/")"
 
@@ -176,6 +205,10 @@ _sign_out() {
 _find_zone() {
 
   _domain="$1"
+
+  if [ -z "$HE_OTP_Secret" ]; then
+    body="email=${HE_Username}&pass=${HE_Password}"
+  fi
 
   _matches=$(_post "$body" "https://dns.he.net/" \
     | _egrep_o "delete_dom.*name=\"[^\"]+\" value=\"[0-9]+"
