@@ -591,13 +591,19 @@ export HE_Username="yourusername"
 export HE_Password="password"
 ```
 
+If your accout has 2FA set up, also set your OTP secret:
+
+```
+export HE_OTP_Secret="yourotpsecret"
+```
+
 Then you can issue your certificate:
 
 ```
 acme.sh --issue --dns dns_he -d example.com -d www.example.com
 ```
 
-The `HE_Username` and `HE_Password` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+The `HE_Username`, `HE_Password`, and `HE_OTP_Secret` (if configured) settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 Please report any issues to https://github.com/angel333/acme.sh or to <me@ondrejsimek.com>.
 
