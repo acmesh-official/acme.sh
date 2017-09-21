@@ -99,7 +99,7 @@ dns_he_rm() {
     body="email=${HE_Username}&pass=${HE_Password}"
     body="$body&hosted_dns_zoneid=$_zone_id"
   fi
-  
+
   body="$body&menu=edit_zone"
   body="$body&hosted_dns_editzone="
   domain_regex="$(echo "$_full_domain" | sed 's/\./\\./g')" # escape dots
@@ -120,7 +120,7 @@ dns_he_rm() {
     body="email=${HE_Username}&pass=${HE_Password}"
     body="$body&menu=edit_zone"
   fi
-  
+
   body="menu=edit_zone"
   body="$body&hosted_dns_zoneid=$_zone_id"
   body="$body&hosted_dns_recordid=$_record_id"
