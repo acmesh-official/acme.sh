@@ -31,6 +31,7 @@ dns_he_add() {
   if [ ! -z "$HE_OTP_Secret" ]; then
     _saveaccountconf HE_OTP_Secret "$HE_OTP_Secret"
   else
+    HE_OTP_Secret=
     _clearaccountconf HE_OTP_Secret
   fi
 
