@@ -1601,9 +1601,9 @@ _post() {
     fi
     _debug "_CURL" "$_CURL"
     if [ "$needbase64" ]; then
-      response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$url" | _base64)"
+      response="$($_CURL --user-agent "$USER_AGENT" --cookie "$COOKIE_JAR" --cookie-jar "$COOKIE_JAR" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$url" | _base64)"
     else
-      response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$url")"
+      response="$($_CURL --user-agent "$USER_AGENT" --cookie "$COOKIE_JAR" --cookie-jar "$COOKIE_JAR" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$url")"
     fi
     _ret="$?"
     if [ "$_ret" != "0" ]; then
@@ -1621,15 +1621,15 @@ _post() {
     _debug "_WGET" "$_WGET"
     if [ "$needbase64" ]; then
       if [ "$httpmethod" = "POST" ]; then
-        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --keep-session-cookies --save-cookies "$COOKIE_JAR" --load-cookies "$COOKIE_JAR" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
       else
-        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --keep-session-cookies --save-cookies "$COOKIE_JAR" --load-cookies "$COOKIE_JAR" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
       fi
     else
       if [ "$httpmethod" = "POST" ]; then
-        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER")"
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --keep-session-cookies --save-cookies "$COOKIE_JAR" --load-cookies "$COOKIE_JAR" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER")"
       else
-        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER")"
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --keep-session-cookies --save-cookies "$COOKIE_JAR" --load-cookies "$COOKIE_JAR" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER")"
       fi
     fi
     _ret="$?"
@@ -1671,9 +1671,9 @@ _get() {
     fi
     _debug "_CURL" "$_CURL"
     if [ "$onlyheader" ]; then
-      $_CURL -I --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
+      $_CURL -I --user-agent "$USER_AGENT" --cookie "$COOKIE_JAR" --cookie-jar "$COOKIE_JAR" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
     else
-      $_CURL --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
+      $_CURL --user-agent "$USER_AGENT" --cookie "$COOKIE_JAR" --cookie-jar "$COOKIE_JAR" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
     fi
     ret=$?
     if [ "$ret" != "0" ]; then
@@ -1693,9 +1693,9 @@ _get() {
     fi
     _debug "_WGET" "$_WGET"
     if [ "$onlyheader" ]; then
-      $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1 | sed 's/^[ ]*//g'
+      $_WGET --user-agent="$USER_AGENT" --keep-session-cookies --save-cookies "$COOKIE_JAR" --load-cookies "$COOKIE_JAR" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1 | sed 's/^[ ]*//g'
     else
-      $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -O - "$url"
+      $_WGET --user-agent="$USER_AGENT" --keep-session-cookies --save-cookies "$COOKIE_JAR" --load-cookies "$COOKIE_JAR" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -O - "$url"
     fi
     ret=$?
     if [ "$ret" = "8" ]; then
@@ -3330,6 +3330,11 @@ issue() {
   _debug "Using ACME_DIRECTORY: $ACME_DIRECTORY"
 
   _initAPI
+
+  if [ -z "$COOKIE_JAR" ]; then
+    COOKIE_JAR="$(_mktemp)"
+    _debug2 COOKIE_JAR "$COOKIE_JAR"
+  fi
 
   if [ -f "$DOMAIN_CONF" ]; then
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
