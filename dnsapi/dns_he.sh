@@ -28,12 +28,19 @@ dns_he_add() {
   _saveaccountconf HE_Username "$HE_Username"
   _saveaccountconf HE_Password "$HE_Password"
 
+  if [ ! -z "$HE_OTP_Secret" ]; then
+    _saveaccountconf HE_OTP_Secret "$HE_OTP_Secret"
+  else
+    _clearaccountconf HE_OTP_Secret
+  fi
+
+  _sign_in
+
   # Fills in the $_zone_id
   _find_zone "$_full_domain" || return 1
   _debug "Zone id \"$_zone_id\" will be used."
 
-  body="email=${HE_Username}&pass=${HE_Password}"
-  body="$body&account="
+  body="account="
   body="$body&menu=edit_zone"
   body="$body&Type=TXT"
   body="$body&hosted_dns_zoneid=$_zone_id"
@@ -52,6 +59,9 @@ dns_he_add() {
     _err "Couldn't add the TXT record."
   fi
   _debug2 response "$response"
+
+  _sign_out
+
   return "$exit_code"
 }
 
@@ -63,13 +73,14 @@ dns_he_rm() {
   _txt_value=$2
   _info "Cleaning up after DNS-01 Hurricane Electric hook"
 
+  _sign_in
+
   # fills in the $_zone_id
   _find_zone "$_full_domain" || return 1
   _debug "Zone id \"$_zone_id\" will be used."
 
   # Find the record id to clean
-  body="email=${HE_Username}&pass=${HE_Password}"
-  body="$body&hosted_dns_zoneid=$_zone_id"
+  body="hosted_dns_zoneid=$_zone_id"
   body="$body&menu=edit_zone"
   body="$body&hosted_dns_editzone="
   domain_regex="$(echo "$_full_domain" | sed 's/\./\\./g')" # escape dots
@@ -84,8 +95,7 @@ dns_he_rm() {
   #  HE changes their website somehow).
 
   # Remove the record
-  body="email=${HE_Username}&pass=${HE_Password}"
-  body="$body&menu=edit_zone"
+  body="menu=edit_zone"
   body="$body&hosted_dns_zoneid=$_zone_id"
   body="$body&hosted_dns_recordid=$_record_id"
   body="$body&hosted_dns_editzone=1"
@@ -97,13 +107,52 @@ dns_he_rm() {
   exit_code="$?"
   if [ "$exit_code" -eq 0 ]; then
     _info "Record removed successfully."
+    _sign_out
   else
     _err "Could not clean (remove) up the record. Please go to HE administration interface and clean it by hand."
+    _sign_out
     return "$exit_code"
   fi
 }
 
 ########################## PRIVATE FUNCTIONS ###########################
+
+#-- _sign_in() ---------------------------------------------------------
+# Signs into the Hurricane Electric account.
+# This assumes cookies are usable and available.
+
+_sign_in() {
+  _debug "Signing into Hurricane Electric account."
+
+  body="email=${HE_Username}&pass=${HE_Password}&submit=Login%21"
+
+  response="$(_post "$body" "https://dns.he.net/")"
+
+  # Check whether we're using an OTP code
+  if [ ! -z "$HE_OTP_Secret" ]; then
+    _debug "  - Using OTP code..."
+    _saveaccountconf HE_OTP_Secret "$HE_OTP_Secret"
+
+    if ! _exists oathtool; then
+      _err "Please install oathtool to use 2 Factor Authentication."
+      _err ""
+      return 1
+    fi
+
+    otp_code="$(oathtool --base32 --totp "${HE_OTP_Secret}" 2>/dev/null)"
+    body="tfacode=${otp_code}&submit=Submit"
+    response="$(_post "$body" "https://dns.he.net/")"
+  fi
+}
+
+#-- _sign_out() --------------------------------------------------------
+# Signs out of the Hurricane Electric account.
+# This assumes cookies are usable and available.
+
+_sign_out() {
+  _debug "Signing out of Hurricane Electric account."
+  _get "https://dns.he.net/?action=logout"
+}
 
 #-- _find_zone() -------------------------------------------------------
 # Returns the most specific zone found in administration interface.
@@ -128,7 +177,6 @@ _find_zone() {
 
   _domain="$1"
 
-  body="email=${HE_Username}&pass=${HE_Password}"
   _matches=$(_post "$body" "https://dns.he.net/" \
     | _egrep_o "delete_dom.*name=\"[^\"]+\" value=\"[0-9]+"
   )
