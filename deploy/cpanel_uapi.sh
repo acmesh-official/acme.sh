@@ -51,8 +51,8 @@ cpanel_uapi_deploy() {
   else
     _response=$(uapi SSL install_ssl domain="$_cdomain" cert="$_cert" key="$_key")
   fi
-
-  if [ $? -ne 0 ]; then
+  error_response="status: 0"
+  if test "${_response#*$error_response}" != "$_response"; then
     _err "Error in deploying certificate:"
     _err "$_response"
     return 1
