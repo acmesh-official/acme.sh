@@ -96,7 +96,18 @@ acme.sh  --deploy  -d example.com  --deploy-hook cpanel_uapi
 ```
 Please note, that the cpanel_uapi hook will deploy only the first domain when your certificate will automatically renew. Therefore you should issue a separete certificate for each domain. 
 
+## 8. Deploy the cert to your FRITZ!Box router
 
+You must specify the credentials that have administrative privileges on the FRITZ!Box in order to deploy the certificate, plus the URL of your FRITZ!Box, through the following environment variables:
+```sh
+$ export DEPLOY_FRITZBOX_USERNAME=my_username
+$ export DEPLOY_FRITZBOX_PASSWORD=the_password
+$ export DEPLOY_FRITZBOX_URL=https://fritzbox.example.com
+```
 
+After the first deployment, these values will be stored in your $HOME/.acme.sh/account.conf. You may now deploy the certificate like this:
 
+```sh
+acme.sh --deploy -d fritzbox.example.com --deploy-hook fritzbox
+```
 
