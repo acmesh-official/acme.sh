@@ -2021,7 +2021,7 @@ _sleep() {
 
 # _starttlsserver  san_a  san_b port content _ncaddr
 _starttlsserver() {
-  _info "Starting tls server."
+  _info "Starting TLS server."
   san_a="$1"
   san_b="$2"
   port="$3"
@@ -3831,10 +3831,10 @@ issue() {
     _info "$(__green "Cert success.")"
     cat "$CERT_PATH"
 
-    _info "Your cert is in $(__green " $CERT_PATH ")"
+    _info "Your cert is in: $(__green " $CERT_PATH ")"
 
     if [ -f "$CERT_KEY_PATH" ]; then
-      _info "Your cert key is in $(__green " $CERT_KEY_PATH ")"
+      _info "Your private key is in: $(__green " $CERT_KEY_PATH ")"
     fi
 
     cp "$CERT_PATH" "$CERT_FULLCHAIN_PATH"
@@ -3872,9 +3872,9 @@ issue() {
         _base64 "multiline" <"$CA_CERT_PATH.der" >>"$CA_CERT_PATH"
         echo "$END_CERT" >>"$CA_CERT_PATH"
 
-        _info "The intermediate CA cert is in $(__green " $CA_CERT_PATH ")"
+        _info "The intermediate CA cert is in: $(__green " $CA_CERT_PATH ")"
         cat "$CA_CERT_PATH" >>"$CERT_FULLCHAIN_PATH"
-        _info "And the full chain certs is there: $(__green " $CERT_FULLCHAIN_PATH ")"
+        _info "The full chain cert is in: $(__green " $CERT_FULLCHAIN_PATH ")"
 
         rm -f "$CA_CERT_PATH.der"
         break
@@ -4313,7 +4313,7 @@ _installcert() {
   mkdir -p "$_backup_path"
 
   if [ "$_real_cert" ]; then
-    _info "Installing cert to:$_real_cert"
+    _info "Installing cert to: $_real_cert"
     if [ -f "$_real_cert" ] && [ ! "$IS_RENEW" ]; then
       cp "$_real_cert" "$_backup_path/cert.bak"
     fi
@@ -4321,7 +4321,7 @@ _installcert() {
   fi
 
   if [ "$_real_ca" ]; then
-    _info "Installing CA to:$_real_ca"
+    _info "Installing CA to: $_real_ca"
     if [ "$_real_ca" = "$_real_cert" ]; then
       echo "" >>"$_real_ca"
       cat "$CA_CERT_PATH" >>"$_real_ca"
@@ -4334,7 +4334,7 @@ _installcert() {
   fi
 
   if [ "$_real_key" ]; then
-    _info "Installing key to:$_real_key"
+    _info "Installing key to: $_real_key"
     if [ -f "$_real_key" ] && [ ! "$IS_RENEW" ]; then
       cp "$_real_key" "$_backup_path/key.bak"
     fi
@@ -4342,7 +4342,7 @@ _installcert() {
   fi
 
   if [ "$_real_fullchain" ]; then
-    _info "Installing full chain to:$_real_fullchain"
+    _info "Installing full chain to: $_real_fullchain"
     if [ -f "$_real_fullchain" ] && [ ! "$IS_RENEW" ]; then
       cp "$_real_fullchain" "$_backup_path/fullchain.bak"
     fi
@@ -5025,7 +5025,7 @@ Commands:
   --renew, -r              Renew a cert.
   --renew-all              Renew all the certs.
   --revoke                 Revoke a cert.
-  --remove                 Remove the cert from $PROJECT
+  --remove                 Remove the cert from $PROJECT.
   --list                   List all the certs.
   --showcsr                Show the content of a csr.
   --install-cronjob        Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
@@ -5038,22 +5038,22 @@ Commands:
   --deactivate-account     Deactivate the account.
   --create-account-key     Create an account private key, professional use.
   --create-domain-key      Create an domain private key, professional use.
-  --createCSR, -ccsr       Create CSR , professional use.
+  --createCSR, -ccsr       Create CSR, professional use.
   --deactivate             Deactivate the domain authz, professional use.
 
 Parameters:
-  --domain, -d   domain.tld         Specifies a domain, used to issue, renew or revoke etc.
-  --force, -f                       Used to force to install or force to renew a cert immediately.
-  --staging, --test                 Use staging server, just for test.
+  --domain, -d   domain.tld         Specifies a domain, used to issue, renew or revoke, etc.
+  --force, -f                       Used to force install or renewal of a cert immediately.
+  --staging, --test                 Use staging server, just for testing.
   --debug                           Output debug info.
-  --output-insecure                 Output all the sensitive messages. By default all the credentials/sensitive messages are hidden from the output/debug/log for secure.
+  --output-insecure                 Output all the sensitive messages. By default all the credentials/sensitive messages are hidden from the output/debug/log for security.
   --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
   --stateless                       Use stateless mode, see: $_STATELESS_WIKI
-  --tls                             Use standalone tls mode.
-  --apache                          Use apache mode.
-  --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
-  --dnssleep  [$DEFAULT_DNS_SLEEP]                  The time in seconds to wait for all the txt records to take effect in dns api mode. Default $DEFAULT_DNS_SLEEP seconds.
+  --tls                             Use standalone TLS mode.
+  --apache                          Use Apache mode.
+  --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use DNS mode or DNS API.
+  --dnssleep  [$DEFAULT_DNS_SLEEP]                  The time in seconds to wait for all the txt records to take effect in DNS API mode. Default $DEFAULT_DNS_SLEEP seconds.
 
   --keylength, -k [2048]            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384.
   --accountkeylength, -ak [2048]    Specifies the account key length.
@@ -5080,12 +5080,12 @@ Parameters:
   --accountkey                      Specifies the account key path, Only valid for the '--install' command.
   --days                            Specifies the days to renew the cert when using '--issue' command. The max value is $MAX_RENEW days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
-  --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
-  --local-address                   Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
+  --tlsport                         Specifies the standalone/TLS listening port. Only valid if the server is behind a reverse proxy or load balancer.
+  --local-address                   Specifies the standalone/TLS server listening address, in case you have multiple IP addresses.
   --listraw                         Only used for '--list' command, list the certs in raw format.
   --stopRenewOnError, -se           Only valid for '--renew-all' command. Stop if one cert has error in renewal.
-  --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
-  --ca-bundle                       Specifies the path to the CA certificate bundle to verify api server's certificate.
+  --insecure                        Do not check the server certificate, in some devices, the API server's certificate may not be trusted.
+  --ca-bundle                       Specifies the path to the CA certificate bundle to verify API server's certificate.
   --ca-path                         Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
   --no-color                        Do not output color text.
@@ -5098,8 +5098,8 @@ Parameters:
   --ocsp-must-staple, --ocsp        Generate ocsp must Staple extension.
   --always-force-new-domain-key     Generate new domain key when renewal. Otherwise, the domain key is not changed by default.
   --auto-upgrade   [0|1]            Valid for '--upgrade' command, indicating whether to upgrade automatically in future.
-  --listen-v4                       Force standalone/tls server to listen at ipv4.
-  --listen-v6                       Force standalone/tls server to listen at ipv6.
+  --listen-v4                       Force standalone/TLS server to listen at IPv4.
+  --listen-v6                       Force standalone/TLS server to listen at IPv6.
   --openssl-bin                     Specifies a custom openssl bin location.
   --use-wget                        Force to use wget, if you have both curl and wget installed.
   "
