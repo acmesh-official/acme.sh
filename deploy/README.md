@@ -97,6 +97,10 @@ acme.sh  --deploy  -d example.com  --deploy-hook cpanel_uapi
 Please note, that the cpanel_uapi hook will deploy only the first domain when your certificate will automatically renew. Therefore you should issue a separete certificate for each domain. 
 
 
+## 8. Deploy the cert to strongswan
 
+```sh
+acme.sh --deploy -d ftp.example.com --deploy-hook strongswan
+```
 
 
