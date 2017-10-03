@@ -96,6 +96,16 @@ _dns_cloudns_init_check() {
     return 0
   fi
 
+  CLOUDNS_AUTH_ID="${CLOUDNS_AUTH_ID:-$(_readaccountconf_mutable CLOUDNS_AUTH_ID)}"
+  CLOUDNS_AUTH_PASSWORD="${CLOUDNS_AUTH_PASSWORD:-$(_readaccountconf_mutable CLOUDNS_AUTH_PASSWORD)}"
+  if [ -z "$CLOUDNS_AUTH_ID" ] || [ -z "$CLOUDNS_AUTH_PASSWORD" ]; then
+    CLOUDNS_AUTH_ID=""
+    CLOUDNS_AUTH_PASSWORD=""
+    _err "You don't specify cloudns api id and password yet."
+    _err "Please create you id and password and try again."
+    return 1
+  fi
+
   if [ -z "$CLOUDNS_AUTH_ID" ]; then
     _err "CLOUDNS_AUTH_ID is not configured"
     return 1
@@ -112,6 +122,10 @@ _dns_cloudns_init_check() {
     _err "Invalid CLOUDNS_AUTH_ID or CLOUDNS_AUTH_PASSWORD. Please check your login credentials."
     return 1
   fi
+
+  #save the api id and password to the account conf file.
+  _saveaccountconf_mutable CLOUDNS_AUTH_ID "$CLOUDNS_AUTH_ID"
+  _saveaccountconf_mutable CLOUDNS_AUTH_PASSWORD "$CLOUDNS_AUTH_PASSWORD"
 
   CLOUDNS_INIT_CHECK_COMPLETED=1
 
