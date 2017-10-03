@@ -4,7 +4,7 @@ Before you can deploy your cert, you must [issue the cert first](https://github.
 
 Here are the scripts to deploy the certs/key to the server/services.
 
-## 1. Deploy the certs to your cpanel host.
+## 1. Deploy the certs to your cpanel host
 
 If you want to deploy using cpanel UAPI see 7.
 
@@ -20,7 +20,7 @@ export DEPLOY_CPANEL_PASSWORD=PASSWORD
 acme.sh --deploy -d example.com --deploy-hook cpanel
 ```
 
-## 2. Deploy ssl cert on kong proxy engine based on api.
+## 2. Deploy ssl cert on kong proxy engine based on api
 
 Before you can deploy your cert, you must [issue the cert first](https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert).
 Currently supports Kong-v0.10.x.
@@ -29,11 +29,11 @@ Currently supports Kong-v0.10.x.
 acme.sh --deploy -d ftp.example.com --deploy-hook kong
 ```
 
-## 3. Deploy the cert to remote server through SSH access.
+## 3. Deploy the cert to remote server through SSH access
 
 (TODO)
 
-## 4. Deploy the cert to local vsftpd server.
+## 4. Deploy the cert to local vsftpd server
 
 ```sh
 acme.sh --deploy -d ftp.example.com --deploy-hook vsftpd
@@ -55,7 +55,7 @@ export DEPLOY_VSFTPD_RELOAD="/etc/init.d/vsftpd restart"
 acme.sh --deploy -d ftp.example.com --deploy-hook vsftpd
 ```
 
-## 5. Deploy the cert to local exim4 server.
+## 5. Deploy the cert to local exim4 server
 
 ```sh
 acme.sh --deploy -d ftp.example.com --deploy-hook exim4
