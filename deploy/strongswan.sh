@@ -29,6 +29,4 @@ strongswan_deploy() {
 
   ipsec reload
 
-  return 0
-
 }
