@@ -111,3 +111,8 @@ After the first deployment, these values will be stored in your $HOME/.acme.sh/a
 acme.sh --deploy -d fritzbox.example.com --deploy-hook fritzbox
 ```
 
+## 9. Deploy the cert to strongswan
+
+```sh
+acme.sh --deploy -d ftp.example.com --deploy-hook strongswan
+```
