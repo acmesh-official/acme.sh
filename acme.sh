@@ -4885,8 +4885,9 @@ install() {
   fi
 
   cp "$PROJECT_ENTRY" "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/$PROJECT_ENTRY"
+  _status=`echo $?`
 
-  if [ "$?" != "0" ]; then
+  if [ "$_status" != "0" ]; then
     _err "Install failed, can not copy $PROJECT_ENTRY"
     return 1
   fi
