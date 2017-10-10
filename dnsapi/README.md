@@ -420,6 +420,7 @@ Ok, let's issue a cert now:
 ```
 acme.sh --issue --dns dns_cloudns -d example.com -d www.example.com
 ```
+The `CLOUDNS_AUTH_ID` and `CLOUDNS_AUTH_PASSWORD` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 ## 22. Use Infoblox API
 
