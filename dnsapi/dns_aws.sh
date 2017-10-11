@@ -105,13 +105,9 @@ _get_root() {
         return 1
       fi
 
-      if _contains "$response" "<Name>$h.</Name>"; then
-        hostedzone="$(echo "$response" | sed 's/<HostedZone>/#&/g' | tr '#' '\n' | _egrep_o "<HostedZone><Id>[^<]*<.Id><Name>$h.<.Name>.*<PrivateZone>false<.PrivateZone>.*<.HostedZone>")"
+      hostedzone="$(echo "$response" | sed 's/<HostedZone>/#&/g' | tr '#' '\n' | _egrep_o "<HostedZone><Id>[^<]*<.Id><Name>$h.<.Name>.*<PrivateZone>false<.PrivateZone>.*<.HostedZone>")"
+      if [ -n "$hostedzone" ]; then
         _debug hostedzone "$hostedzone"
-        if [ -z "$hostedzone" ]; then
-          _err "Error, can not get hostedzone."
-          return 1
-        fi
         _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "<Id>.*<.Id>" | head -n 1 | _egrep_o ">.*<" | tr -d "<>")
         if [ "$_domain_id" ]; then
           _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
