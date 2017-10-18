@@ -3135,7 +3135,7 @@ _regAccount() {
       fi
       if [ "$code" = '202' ]; then
         _info "Update account tos info success."
-
+        echo "$response" >"$ACCOUNT_JSON_PATH"
         CA_KEY_HASH="$(__calcAccountKeyHash)"
         _debug "Calc CA_KEY_HASH" "$CA_KEY_HASH"
         _savecaconf CA_KEY_HASH "$CA_KEY_HASH"
