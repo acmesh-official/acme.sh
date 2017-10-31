@@ -7,7 +7,7 @@
 # test and use at your own peril. 
 #returns 0 means success, otherwise error.
 #
-#Author: smithec
+#Author: smythe811
 #Report Bugs here: https://github.com/Neilpang/acme.sh
 #
 #Tested on DD-WRT, Linux Mint 18
