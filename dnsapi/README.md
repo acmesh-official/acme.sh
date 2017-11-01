@@ -618,6 +618,7 @@ acme.sh --issue --dns dns_myapi -d example.com -d www.example.com
 
 For more details, please check our sample script: [dns_myapi.sh](dns_myapi.sh)
 
+See:  https://github.com/Neilpang/acme.sh/wiki/DNS-API-Dev-Guide
 
 # Use lexicon DNS API
 
