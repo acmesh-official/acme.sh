@@ -115,12 +115,13 @@ acme.sh --deploy -d fritzbox.example.com --deploy-hook fritzbox
 
 ```sh
 acme.sh --deploy -d ftp.example.com --deploy-hook strongswan
+```
 
-## 10. Deploy the cert to Aliyun SLB```
+## 10. Deploy the cert to Aliyun SLB
 
 WARN, this hook just upload cert to Aliyun SLB, U should signin aliyun console & update slb instance by yourself.
 
-```
+```sh
 $ export Ali_Region="cn-hangzhou"
 $ export Ali_Api_Key="my-api-key"
 $ export Ali_Api_Secret="my-api-secret"
