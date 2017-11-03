@@ -1,7 +1,7 @@
 #!/bin/bash
 ########  Public functions #####################
 #domain keyfile certfile cafile fullchain
-Ali_Region="cn-hangzhou"
+#Ali_Region="cn-hangzhou"
 #Ali_Api_Key=""
 #Ali_Api_Secret=""
 Ali_Api="https://slb.aliyuncs.com/"
@@ -31,6 +31,7 @@ ali_slb_deploy() {
   return 0
 }
 
+########  Private functions #####################
 _ali_rest() {
 
   signature=$(printf "%s" "GET&%2F&$(_ali_urlencode "$query")" | _hmac "sha1" "$(printf "%s" "$Ali_Api_Secret&" | _hex_dump | tr -d " ")" | _base64)
