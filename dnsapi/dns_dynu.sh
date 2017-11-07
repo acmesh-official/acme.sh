@@ -152,7 +152,15 @@ _get_recordid() {
   fulldomain=$1
   txtvalue=$2
 
-  if ! _dynu_rest GET "dns/record/get?hostname=$fulldomain&rrtype=TXT"; then
+  if ! _get_root "$fulldomain"; then
+    _err "Invalid domain."
+    return 1
+  fi
+
+  _debug _node "$_node"
+  _debug _domain_name "$_domain_name"
+
+  if ! _dynu_rest GET "dns/records/$_domain_name"; then
     return 1
   fi
 
@@ -161,7 +169,7 @@ _get_recordid() {
     return 0
   fi
 
-  _dns_record_id=$(printf "%s" "$response" | _egrep_o "{[^}]*}" | grep "\"text_data\":\"$txtvalue\"" | _egrep_o ",[^,]*," | grep ',"id":' | tr -d ",," | cut -d : -f 2)
+  _dns_record_id=$(printf "%s" "$response" | sed -e 's/[^{]*\({[^}]*}\)[^{]*/\1\n/g' | grep "\"text_data\":\"$txtvalue\"" | sed -e 's/.*"id":\([^,]*\).*/\1/')
 
   return 0
 }
