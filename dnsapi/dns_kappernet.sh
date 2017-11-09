@@ -6,7 +6,6 @@
 #
 # 20171107 - v1: initial version uploaded to GitHub Project Neilpang/acme.sh
 
-
 #KAPPERNETDNS_Key="yourKAPPERNETapikey"
 #KAPPERNETDNS_Secret="yourKAPPERNETapisecret"
 KAPPERNETDNS_Api="https://dnspanel.kapper.net/API/1.1?APIKey=$KAPPERNETDNS_Key&APISecret=$KAPPERNETDNS_Secret"
@@ -91,4 +90,59 @@ dns_kappernet_rm()
                 fi
         fi
         _err "Problem creating the TXT record/Fehler beim Anlegen eines TXT records"
+}
+####################  Private functions below ##################################
+# called with hostname
+# e.g._acme-challenge.www.domain.com returns
+# _sub_domain=_acme-challenge.www
+# _domain=domain.com
+_get_root()
+{
+        domain=$1
+        i=2
+        p=1
+        while true; do
+                h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+                if [ -z "$h" ]; then
+                        #not valid
+                        return 1
+                fi
+                if ! _kappernet_api GET "action=list&subject=$h"; then
+                        return 1
+                fi
+                if _contains "$response" '"OK":false'; then
+                        _debug "$h not found"
+                else
+                        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+                        _domain="$h"
+                        return 0
+                fi
+                p="$i"
+                i=$(_math "$i" + 1)
+        done
+        return 1
+}
+################################################################################
+# calls the kapper.net DNS Panel API
+# with
+# method
+# param
+_kappernet_api()
+{
+        method=$1
+        param="$2"
+
+        _debug param "PARAMETER=$param"
+        url="$KAPPERNETDNS_Api&$param"
+        _debug url "URL=$url"
+
+        if [ "$method" = "GET" ]; then
+                response="$(_get "$url")"
+        else
+                _err "Unsupported method"
+        return 1
+        fi
+
+        _debug2 response "$response"
+        return 0
 }
