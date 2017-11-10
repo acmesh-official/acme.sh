@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.7.4
+VER=2.7.5
 
 PROJECT_NAME="acme.sh"
 
@@ -3474,7 +3474,7 @@ issue() {
       token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
       _debug token "$token"
 
-      uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d : -f 2,3 | tr -d '"')"
+      uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d '"' -f 4)"
       _debug uri "$uri"
 
       keyauthorization="$token.$thumbprint"
