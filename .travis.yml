@@ -30,7 +30,7 @@ install:
       openssl version 2>&1 || true;
       $ACME_OPENSSL_BIN version 2>&1 || true;
       export PATH="$_old_path";
-    else sudo apt-get install socat;
+    else sudo apt-get -y update && sudo apt-get install -y socat;
     fi
   
 script:
