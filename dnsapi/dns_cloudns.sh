@@ -4,6 +4,7 @@
 # Repository: https://github.com/ClouDNS/acme.sh/
 
 #CLOUDNS_AUTH_ID=XXXXX
+#CLOUDNS_SUB_AUTH_ID=XXXXX
 #CLOUDNS_AUTH_PASSWORD="YYYYYYYYY"
 CLOUDNS_API="https://api.cloudns.net"
 
@@ -178,7 +179,7 @@ _dns_cloudns_http_api_call() {
     auth_user="sub-auth-id=$CLOUDNS_SUB_AUTH_ID"
   else
     auth_user="auth-id=$CLOUDNS_AUTH_ID"
-  fi;
+  fi
 
   if [ -z "$2" ]; then
     data="$auth_user&auth-password=$CLOUDNS_AUTH_PASSWORD"
