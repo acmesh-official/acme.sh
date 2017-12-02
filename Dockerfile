@@ -1,4 +1,4 @@
-FROM alpine
+FROM alpine:3.6
 
 RUN apk update -f \
   && apk --no-cache add -f \
