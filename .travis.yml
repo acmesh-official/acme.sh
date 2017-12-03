@@ -1,9 +1,13 @@
 language: shell
 sudo: required
+dist: trusty
 
 os:
   - linux
   - osx
+
+services:
+  - docker
 
 env:
   global:
@@ -30,7 +34,6 @@ install:
       openssl version 2>&1 || true;
       $ACME_OPENSSL_BIN version 2>&1 || true;
       export PATH="$_old_path";
-    else sudo apt-get -y update && sudo apt-get install -y socat;
     fi
   
 script:
@@ -44,7 +47,7 @@ script:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then shellcheck -e SC2181 **/*.sh && echo "shellcheck OK" ; fi
   - cd ..
   - git clone https://github.com/Neilpang/acmetest.git && cp -r acme.sh acmetest/ && cd acmetest
-  - if [ "$TRAVIS_OS_NAME" = "linux" -a "$NGROK_TOKEN" ]; then sudo TEST_LOCAL="$TEST_LOCAL" NGROK_TOKEN="$NGROK_TOKEN" ./letest.sh ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" -a "$NGROK_TOKEN" ]; then sudo TEST_LOCAL="$TEST_LOCAL" NGROK_TOKEN="$NGROK_TOKEN" ./rundocker.sh testplat ubuntu:latest ; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" -a "$NGROK_TOKEN" ]; then sudo TEST_LOCAL="$TEST_LOCAL" NGROK_TOKEN="$NGROK_TOKEN" ACME_OPENSSL_BIN="$ACME_OPENSSL_BIN" ./letest.sh ; fi
 
 
