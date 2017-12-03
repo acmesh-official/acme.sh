@@ -73,7 +73,7 @@ dns_freedns_add() {
     fi
     _debug2 htmlpage "$htmlpage"
 
-    subdomain_csv="$(echo "$htmlpage" | tr -d "\n\r" | _egrep_o '<form .*</form>' | sed 's/<tr>/@<tr>/g' | tr '@' '\n' | grep edit.php | grep $top_domain)"
+    subdomain_csv="$(echo "$htmlpage" | tr -d "\n\r" | _egrep_o '<form .*</form>' | sed 's/<tr>/@<tr>/g' | tr '@' '\n' | grep edit.php | grep "$top_domain")"
     _debug2 subdomain_csv "$subdomain_csv"
 
     # The above beauty ends with striping out rows that do not have an
@@ -87,7 +87,7 @@ dns_freedns_add() {
     found=0
     while [ "$i" -lt "$lines" ]; do
       i="$(_math "$i" + 1)"
-      line="$(echo "$subdomain_csv" | sed -n ${i}p)"
+      line="$(echo "$subdomain_csv" | sed -n "${i}p")"
       _debug2 line "$line"
       if [ $found = 0 ] && _contains "$line" "<td>$top_domain</td>"; then
         # this line will contain DNSdomainid for the top_domain
@@ -204,7 +204,7 @@ dns_freedns_rm() {
       return 1
     fi
 
-    subdomain_csv="$(echo "$htmlpage" | tr -d "\n\r" | _egrep_o '<form .*</form>' | sed 's/<tr>/@<tr>/g' | tr '@' '\n' | grep edit.php | grep $fulldomain)"
+    subdomain_csv="$(echo "$htmlpage" | tr -d "\n\r" | _egrep_o '<form .*</form>' | sed 's/<tr>/@<tr>/g' | tr '@' '\n' | grep edit.php | grep "$fulldomain")"
     _debug2 subdomain_csv "$subdomain_csv"
 
     # The above beauty ends with striping out rows that do not have an
@@ -218,7 +218,7 @@ dns_freedns_rm() {
     found=0
     while [ "$i" -lt "$lines" ]; do
       i="$(_math "$i" + 1)"
-      line="$(echo "$subdomain_csv" | sed -n ${i}p)"
+      line="$(echo "$subdomain_csv" | sed -n "${i}p")"
       _debug2 line "$line"
       DNSname="$(echo "$line" | _egrep_o 'edit.php.*</a>' | cut -d '>' -f 2 | cut -d '<' -f 1)"
       _debug2 DNSname "$DNSname"
