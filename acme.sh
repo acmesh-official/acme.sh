@@ -15,7 +15,7 @@ _SUB_FOLDERS="dnsapi deploy"
 
 _OLD_CA_HOST="https://acme-v01.api.letsencrypt.org"
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org/directory"
-DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.1.1-August-1-2016.pdf"
+DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf"
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 DEFAULT_ACCOUNT_EMAIL=""
