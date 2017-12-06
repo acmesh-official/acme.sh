@@ -65,7 +65,7 @@ dns_unoeuro_add() {
     _err "Add txt record error."
   else
     _info "Updating record"
-    record_id=$(echo "$response" | grep -B 1 "$_sub_domain" | head -1 | _egrep_o "[0-9]{1,}")
+    record_id=$(echo "$response" | grep -B 1 "$_sub_domain" | _head_n -1 | _egrep_o "[0-9]{1,}")
     _debug "record_id" "$record_id"
 
     _uno_rest PUT "my/products/$h/dns/records/$record_id" "{\"name\":\"$fulldomain\",\"type\":\"TXT\",\"data\":\"$txtvalue\",\"ttl\":120}"
@@ -114,7 +114,7 @@ dns_unoeuro_rm() {
   if ! _contains "$response" "$_sub_domain" >/dev/null; then
     _info "Don't need to remove."
   else
-    record_id=$(echo "$response" | grep -B 1 "$_sub_domain" | head -1 | _egrep_o "[0-9]{1,}")
+    record_id=$(echo "$response" | grep -B 1 "$_sub_domain" | _head_n -1 | _egrep_o "[0-9]{1,}")
     _debug "record_id" "$record_id"
 
     if [ -z "$record_id" ]; then
