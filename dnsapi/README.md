@@ -602,6 +602,22 @@ The `HE_Username` and `HE_Password` settings will be saved in `~/.acme.sh/accoun
 
 Please report any issues to https://github.com/angel333/acme.sh or to <me@ondrejsimek.com>.
 
+## 32. Use UnoEuro API to automatically issue cert
+
+First you need to login to your UnoEuro account to get your API key.
+
+```
+export Uno_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+export Uno_User="UExxxxxx"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_unoeuro -d example.com -d www.example.com
+```
+
+The `Uno_Key` and `Uno_User` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
