@@ -78,7 +78,7 @@ dns_inwx_add() {
     _info "Adding record"
     _inwx_add_record "$_domain" "$_sub_domain" "$txtvalue"
   else
-    _record_id=$(printf '%s' "$response" | _egrep_o '.*(<member><name>record){1}(.*)([0-9]+){1}' | _egrep_o '<name>id<\/name><value><int>[0-9]+' | egrep -o '[0-9]+')
+    _record_id=$(printf '%s' "$response" | _egrep_o '.*(<member><name>record){1}(.*)([0-9]+){1}' | _egrep_o '<name>id<\/name><value><int>[0-9]+' | _egrep_o '[0-9]+')
     _info "Updating record"
     _inwx_update_record "$_record_id" "$txtvalue"
   fi
@@ -155,7 +155,7 @@ dns_inwx_rm() {
   if ! printf "%s" "$response" | grep "count" >/dev/null; then
     _info "Do not need to delete record"
   else
-    _record_id=$(printf '%s' "$response" | _egrep_o '.*(<member><name>record){1}(.*)([0-9]+){1}' | _egrep_o '<name>id<\/name><value><int>[0-9]+' | egrep -o '[0-9]+')
+    _record_id=$(printf '%s' "$response" | _egrep_o '.*(<member><name>record){1}(.*)([0-9]+){1}' | _egrep_o '<name>id<\/name><value><int>[0-9]+' | _egrep_o '[0-9]+')
     _info "Deleting record"
     _inwx_delete_record "$_record_id"
   fi
