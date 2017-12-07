@@ -602,6 +602,23 @@ The `HE_Username` and `HE_Password` settings will be saved in `~/.acme.sh/accoun
 
 Please report any issues to https://github.com/angel333/acme.sh or to <me@ondrejsimek.com>.
 
+## 31. Use INWX
+
+INWX offers an xmlrpc api with your standard login credentials, set them like so:
+
+```
+export INWX_User="yourusername"
+export INWX_Password="password"
+```
+
+Then you can issue your certificates with:
+
+```
+acme.sh --issue --dns dns_inwx -d example.com -d www.example.com
+```
+
+The `INWX_User` and `INWX_Password` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
