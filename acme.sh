@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.7.5
+VER=2.7.6
 
 PROJECT_NAME="acme.sh"
 
@@ -15,7 +15,7 @@ _SUB_FOLDERS="dnsapi deploy"
 
 _OLD_CA_HOST="https://acme-v01.api.letsencrypt.org"
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org/directory"
-DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.1.1-August-1-2016.pdf"
+
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 DEFAULT_ACCOUNT_EMAIL=""
@@ -900,17 +900,11 @@ _sign() {
   fi
 
   _sign_openssl="${ACME_OPENSSL_BIN:-openssl} dgst -sign $keyfile "
-  if [ "$alg" = "sha256" ]; then
-    _sign_openssl="$_sign_openssl -$alg"
-  else
-    _err "$alg is not supported yet"
-    return 1
-  fi
 
   if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
-    $_sign_openssl | _base64
+    $_sign_openssl -$alg | _base64
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
-    if ! _signedECText="$($_sign_openssl | ${ACME_OPENSSL_BIN:-openssl} asn1parse -inform DER)"; then
+    if ! _signedECText="$($_sign_openssl -sha$__ECC_KEY_LEN | ${ACME_OPENSSL_BIN:-openssl} asn1parse -inform DER)"; then
       _err "Sign failed: $_sign_openssl"
       _err "Key file: $keyfile"
       _err "Key content:$(wc -l <"$keyfile") lines"
@@ -1433,7 +1427,11 @@ _calcjwk() {
     _debug "EC key"
     crv="$(${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
     _debug3 crv "$crv"
-
+    __ECC_KEY_LEN=$(echo "$crv" | cut -d "-" -f 2)
+    if [ "$__ECC_KEY_LEN" = "521" ]; then
+      __ECC_KEY_LEN=512
+    fi
+    _debug3 __ECC_KEY_LEN "$__ECC_KEY_LEN"
     if [ -z "$crv" ]; then
       _debug "Let's try ASN1 OID"
       crv_oid="$(${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^ASN1 OID:" | cut -d ":" -f 2 | tr -d " \r\n")"
@@ -1441,12 +1439,15 @@ _calcjwk() {
       case "${crv_oid}" in
         "prime256v1")
           crv="P-256"
+          __ECC_KEY_LEN=256
           ;;
         "secp384r1")
           crv="P-384"
+          __ECC_KEY_LEN=384
           ;;
         "secp521r1")
           crv="P-521"
+          __ECC_KEY_LEN=512
           ;;
         *)
           _err "ECC oid : $crv_oid"
@@ -1488,9 +1489,9 @@ _calcjwk() {
     jwk='{"crv": "'$crv'", "kty": "EC", "x": "'$x64'", "y": "'$y64'"}'
     _debug3 jwk "$jwk"
 
-    JWK_HEADER='{"alg": "ES256", "jwk": '$jwk'}'
+    JWK_HEADER='{"alg": "ES'$__ECC_KEY_LEN'", "jwk": '$jwk'}'
     JWK_HEADERPLACE_PART1='{"nonce": "'
-    JWK_HEADERPLACE_PART2='", "alg": "ES256", "jwk": '$jwk'}'
+    JWK_HEADERPLACE_PART2='", "alg": "ES'$__ECC_KEY_LEN'", "jwk": '$jwk'}'
   else
     _err "Only RSA or EC key is supported."
     return 1
@@ -2160,17 +2161,6 @@ _initAPI() {
   _api_server="${1:-$ACME_DIRECTORY}"
   _debug "_init api for server: $_api_server"
 
-  if [ "$_api_server" = "$DEFAULT_CA" ]; then
-    #just for performance, hardcode the default entry points
-    export ACME_KEY_CHANGE="https://acme-v01.api.letsencrypt.org/acme/key-change"
-    export ACME_NEW_AUTHZ="https://acme-v01.api.letsencrypt.org/acme/new-authz"
-    export ACME_NEW_ORDER="https://acme-v01.api.letsencrypt.org/acme/new-cert"
-    export ACME_NEW_ORDER_RES="new-cert"
-    export ACME_NEW_ACCOUNT="https://acme-v01.api.letsencrypt.org/acme/new-reg"
-    export ACME_NEW_ACCOUNT_RES="new-reg"
-    export ACME_REVOKE_CERT="https://acme-v01.api.letsencrypt.org/acme/revoke-cert"
-  fi
-
   if [ -z "$ACME_NEW_ACCOUNT" ]; then
     response=$(_get "$_api_server")
     if [ "$?" != "0" ]; then
@@ -2209,14 +2199,18 @@ _initAPI() {
 
     ACME_NEW_NONCE=$(echo "$response" | _egrep_o 'new-nonce" *: *"[^"]*"' | cut -d '"' -f 3)
     export ACME_NEW_NONCE
+    
+    ACME_AGREEMENT=$(echo "$response" | _egrep_o 'terms-of-service" *: *"[^"]*"' | cut -d '"' -f 3)
+    export ACME_AGREEMENT
+
+    _debug "ACME_KEY_CHANGE" "$ACME_KEY_CHANGE"
+    _debug "ACME_NEW_AUTHZ" "$ACME_NEW_AUTHZ"
+    _debug "ACME_NEW_ORDER" "$ACME_NEW_ORDER"
+    _debug "ACME_NEW_ACCOUNT" "$ACME_NEW_ACCOUNT"
+    _debug "ACME_REVOKE_CERT" "$ACME_REVOKE_CERT"
+    _debug "ACME_AGREEMENT" "$ACME_AGREEMENT"
 
   fi
-
-  _debug "ACME_KEY_CHANGE" "$ACME_KEY_CHANGE"
-  _debug "ACME_NEW_AUTHZ" "$ACME_NEW_AUTHZ"
-  _debug "ACME_NEW_ORDER" "$ACME_NEW_ORDER"
-  _debug "ACME_NEW_ACCOUNT" "$ACME_NEW_ACCOUNT"
-  _debug "ACME_REVOKE_CERT" "$ACME_REVOKE_CERT"
 }
 
 #[domain]  [keylength or isEcc flag]
@@ -3058,7 +3052,7 @@ __calc_account_thumbprint() {
 _regAccount() {
   _initpath
   _reg_length="$1"
-
+  _debug3 _regAccount "$_regAccount"
   mkdir -p "$CA_DIR"
   if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
     _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
@@ -3081,75 +3075,46 @@ _regAccount() {
     return 1
   fi
   _initAPI
-  _updateTos=""
   _reg_res="$ACME_NEW_ACCOUNT_RES"
-  while true; do
-    _debug AGREEMENT "$AGREEMENT"
+  regjson='{"resource": "'$_reg_res'", "terms-of-service-agreed": true, "agreement": "'$ACME_AGREEMENT'"}'
+  if [ "$ACCOUNT_EMAIL" ]; then
+    regjson='{"resource": "'$_reg_res'", "contact": ["mailto: '$ACCOUNT_EMAIL'"], "terms-of-service-agreed": true, "agreement": "'$ACME_AGREEMENT'"}'
+  fi
 
-    regjson='{"resource": "'$_reg_res'", "agreement": "'$AGREEMENT'"}'
+  if [ -z "$_updateTos" ]; then
+    _info "Registering account"
 
-    if [ "$ACCOUNT_EMAIL" ]; then
-      regjson='{"resource": "'$_reg_res'", "contact": ["mailto: '$ACCOUNT_EMAIL'"], "agreement": "'$AGREEMENT'"}'
-    fi
+  if ! _send_signed_request "${ACME_NEW_ACCOUNT}" "$regjson"; then
+    _err "Register account Error: $response"
+    return 1
+  fi
 
-    if [ -z "$_updateTos" ]; then
-      _info "Registering account"
+  if [ "$code" = "" ] || [ "$code" = '201' ]; then
+    echo "$response" >"$ACCOUNT_JSON_PATH"
+    _info "Registered"
+  elif [ "$code" = '409' ]; then
+    _info "Already registered"
+  else
+    _err "Register account Error: $response"
+    return 1
+  fi
 
-      if ! _send_signed_request "${ACME_NEW_ACCOUNT}" "$regjson"; then
-        _err "Register account Error: $response"
-        return 1
-      fi
+  _accUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
+  _debug "_accUri" "$_accUri"
+  _savecaconf "ACCOUNT_URL" "$_accUri"
 
-      if [ "$code" = "" ] || [ "$code" = '201' ]; then
-        echo "$response" >"$ACCOUNT_JSON_PATH"
-        _info "Registered"
-      elif [ "$code" = '409' ]; then
-        _info "Already registered"
-      else
-        _err "Register account Error: $response"
-        return 1
-      fi
+  echo "$response" >"$ACCOUNT_JSON_PATH"
+  CA_KEY_HASH="$(__calcAccountKeyHash)"
+  _debug "Calc CA_KEY_HASH" "$CA_KEY_HASH"
+  _savecaconf CA_KEY_HASH "$CA_KEY_HASH"
 
-      _accUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
-      _debug "_accUri" "$_accUri"
-      _savecaconf "ACCOUNT_URL" "$_accUri"
-      _tos="$(echo "$responseHeaders" | grep "^Link:.*rel=\"terms-of-service\"" | _head_n 1 | _egrep_o "<.*>" | tr -d '<>')"
-      _debug "_tos" "$_tos"
-      if [ -z "$_tos" ]; then
-        _debug "Use default tos: $DEFAULT_AGREEMENT"
-        _tos="$DEFAULT_AGREEMENT"
-      fi
-      if [ "$_tos" != "$AGREEMENT" ]; then
-        _updateTos=1
-        AGREEMENT="$_tos"
-        _reg_res="reg"
-        continue
-      fi
+  if [ "$code" = '403' ]; then
+    _err "It seems that the account key is already deactivated, please use a new account key."
+    return 1
+  fi
 
-    else
-      _debug "Update tos: $_tos"
-      if ! _send_signed_request "$_accUri" "$regjson"; then
-        _err "Update tos error."
-        return 1
-      fi
-      if [ "$code" = '202' ]; then
-        _info "Update account tos info success."
-        echo "$response" >"$ACCOUNT_JSON_PATH"
-        CA_KEY_HASH="$(__calcAccountKeyHash)"
-        _debug "Calc CA_KEY_HASH" "$CA_KEY_HASH"
-        _savecaconf CA_KEY_HASH "$CA_KEY_HASH"
-      elif [ "$code" = '403' ]; then
-        _err "It seems that the account key is already deactivated, please use a new account key."
-        return 1
-      else
-        _err "Update account error."
-        return 1
-      fi
-    fi
-    ACCOUNT_THUMBPRINT="$(__calc_account_thumbprint)"
-    _info "ACCOUNT_THUMBPRINT" "$ACCOUNT_THUMBPRINT"
-    return 0
-  done
+  ACCOUNT_THUMBPRINT="$(__calc_account_thumbprint)"
+  _info "ACCOUNT_THUMBPRINT" "$ACCOUNT_THUMBPRINT"
 
 }
 
