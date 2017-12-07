@@ -35,11 +35,9 @@ dns_inwx_add() {
   fi
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
-
   _debug "Getting txt records"
 
-
-  printf -v xml_content  '<?xml version="1.0" encoding="UTF-8"?>
+  printf -v xml_content '<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
   <methodName>nameserver.info</methodName>
   <params>
@@ -68,21 +66,21 @@ dns_inwx_add() {
     </value>
    </param>
   </params>
-  </methodCall>' $_domain $_sub_domain
+  </methodCall>' "$_domain" "$_sub_domain"
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
 
-  if ! printf "%s" "$response" | grep "Command completed successfully" > /dev/null; then
+  if ! printf "%s" "$response" | grep "Command completed successfully" >/dev/null; then
     _err "Error could net get txt records"
     return 1
   fi
 
   if ! printf "%s" "$response" | grep "count" -q; then
     _info "Adding record"
-    _inwx_add_record $_domain $_sub_domain $txtvalue
+    _inwx_add_record "$_domain" "$_sub_domain" "$txtvalue"
   else
-    _record_id=$(printf '%s' $response |  sed -nE 's/.*(<member><name>record){1}(.*)(<name>id<\/name><value><int>)([0-9]+){1}.*/\4/p')
+    _record_id=$(printf '%s' "$response" | sed -nE 's/.*(<member><name>record){1}(.*)(<name>id<\/name><value><int>)([0-9]+){1}.*/\4/p')
     _info "Updating record"
-    _inwx_update_record $_record_id $txtvalue
+    _inwx_update_record "$_record_id" "$txtvalue"
   fi
 
 }
@@ -117,8 +115,7 @@ dns_inwx_rm() {
 
   _debug "Getting txt records"
 
-
-  printf -v xml_content  '<?xml version="1.0" encoding="UTF-8"?>
+  printf -v xml_content '<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
   <methodName>nameserver.info</methodName>
   <params>
@@ -147,10 +144,10 @@ dns_inwx_rm() {
     </value>
    </param>
   </params>
-  </methodCall>' $_domain $_sub_domain
+  </methodCall>' "$_domain" "$_sub_domain"
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
 
-  if ! printf "%s" "$response" | grep "Command completed successfully" > /dev/null; then
+  if ! printf "%s" "$response" | grep "Command completed successfully" >/dev/null; then
     _err "Error could not get txt records"
     return 1
   fi
@@ -158,11 +155,10 @@ dns_inwx_rm() {
   if ! printf "%s" "$response" | grep "count" -q; then
     _info "Do not need to delete record"
   else
-    _record_id=$(printf '%s' $response |  sed -nE 's/.*(<member><name>record){1}(.*)(<name>id<\/name><value><int>)([0-9]+){1}.*/\4/p')
+    _record_id=$(printf '%s' "$response" |  sed -nE 's/.*(<member><name>record){1}(.*)(<name>id<\/name><value><int>)([0-9]+){1}.*/\4/p')
     _info "Deleting record"
-    _inwx_delete_record $_record_id
+    _inwx_delete_record "$_record_id"
   fi
-
 
 }
 
@@ -196,26 +192,26 @@ _inwx_login() {
   </methodCall>' $INWX_User $INWX_Password
 
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
-  
+
   printf "Cookie: %s" "$(grep "domrobot=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'domrobot=[^;]*;' | tr -d ';')"
 
 }
 
 _get_root() {
-  domain=$1 
+  domain=$1
   _debug "get root"
 
   domain=$1
   i=2
   p=1
 
-
-  export _H1=$(_inwx_login)
+  _H1=$(_inwx_login)
+  export _H1
   printf -v xml_content '<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
   <methodName>nameserver.list</methodName>
   </methodCall>'
-  
+
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
@@ -256,17 +252,16 @@ _inwx_delete_record() {
     </value>
    </param>
   </params>
-  </methodCall>' $record_id
-  
+  </methodCall>' "$record_id"
+ 
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
-  
+
   if ! printf "%s" "$response" | grep "Command completed successfully" >/dev/null; then
     _err "Error"
     return 1
   fi
   return 0
-  
-  
+ 
 }
 
 _inwx_update_record() {
@@ -295,17 +290,16 @@ _inwx_update_record() {
     </value>
    </param>
   </params>
-  </methodCall>' $txtval $record_id
-  
-  
+  </methodCall>' "$txtval" "$record_id"
+
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
-  
+ 
   if ! printf "%s" "$response" | grep "Command completed successfully" >/dev/null; then
     _err "Error"
     return 1
   fi
   return 0
-  
+ 
 }
 
 _inwx_add_record() {
@@ -313,10 +307,6 @@ _inwx_add_record() {
   domain=$1
   sub_domain=$2
   txtval=$3
-
-  _debug domain: $domain
-  _debug value: $txtval
-  _debug subd: $sub_domain
 
   printf -v xml_content '<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
@@ -353,10 +343,10 @@ _inwx_add_record() {
     </value>
    </param>
   </params>
-  </methodCall>' $domain $txtval $sub_domain
-  
+  </methodCall>' "$domain" "$txtval" "$sub_domain"
+
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
-  
+
   if ! printf "%s" "$response" | grep "Command completed successfully" >/dev/null; then
     _err "Error"
     return 1
