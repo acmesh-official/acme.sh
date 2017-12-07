@@ -5,7 +5,7 @@
 #
 #Uno_User="UExxxxxx"
 
-Uno_Api="https://api.unoeuro.com/1/$Uno_User/$Uno_Key"
+Uno_Api="https://api.unoeuro.com/1"
 
 ########  Public functions #####################
 
@@ -25,7 +25,7 @@ dns_unoeuro_add() {
   fi
 
   if ! _contains "$Uno_User" "UE"; then
-    _err "It seems that the Uno_User=$Uno_User is not a valid email address."
+    _err "It seems that the Uno_User=$Uno_User is not a valid username."
     _err "Please check and retry."
     return 1
   fi
@@ -91,6 +91,12 @@ dns_unoeuro_rm() {
     Uno_User=""
     _err "You haven't specified a UnoEuro api key and account yet."
     _err "Please create your key and try again."
+    return 1
+  fi
+
+  if ! _contains "$Uno_User" "UE"; then
+    _err "It seems that the Uno_User=$Uno_User is not a valid username."
+    _err "Please check and retry."
     return 1
   fi
 
@@ -174,15 +180,13 @@ _uno_rest() {
   data="$3"
   _debug "$ep"
 
-  #export _H1="X-Auth-Email: $Uno_User"
-  #export _H2="X-Auth-Key: $Uno_Key"
   export _H1="Content-Type: application/json"
 
   if [ "$m" != "GET" ]; then
     _debug data "$data"
-    response="$(_post "$data" "$Uno_Api/$ep" "" "$m")"
+    response="$(_post "$data" "$Uno_Api/$Uno_User/$Uno_Key/$ep" "" "$m")"
   else
-    response="$(_get "$Uno_Api/$ep")"
+    response="$(_get "$Uno_Api/$Uno_User/$Uno_Key/$ep")"
   fi
 
   if [ "$?" != "0" ]; then
