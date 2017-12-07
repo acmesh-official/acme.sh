@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/usr/local/bin/sh
 
 #
 #INWX_User="username"
