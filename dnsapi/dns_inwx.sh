@@ -155,7 +155,7 @@ dns_inwx_rm() {
   if ! printf "%s" "$response" | grep "count" -q; then
     _info "Do not need to delete record"
   else
-    _record_id=$(printf '%s' "$response" |  sed -nE 's/.*(<member><name>record){1}(.*)(<name>id<\/name><value><int>)([0-9]+){1}.*/\4/p')
+    _record_id=$(printf '%s' "$response" | sed -nE 's/.*(<member><name>record){1}(.*)(<name>id<\/name><value><int>)([0-9]+){1}.*/\4/p')
     _info "Deleting record"
     _inwx_delete_record "$_record_id"
   fi
@@ -253,7 +253,7 @@ _inwx_delete_record() {
    </param>
   </params>
   </methodCall>' "$record_id"
- 
+
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
 
   if ! printf "%s" "$response" | grep "Command completed successfully" >/dev/null; then
@@ -261,7 +261,7 @@ _inwx_delete_record() {
     return 1
   fi
   return 0
- 
+
 }
 
 _inwx_update_record() {
@@ -293,13 +293,13 @@ _inwx_update_record() {
   </methodCall>' "$txtval" "$record_id"
 
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
- 
+
   if ! printf "%s" "$response" | grep "Command completed successfully" >/dev/null; then
     _err "Error"
     return 1
   fi
   return 0
- 
+
 }
 
 _inwx_add_record() {
