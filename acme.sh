@@ -463,8 +463,7 @@ if _exists xargs && [ "$(printf %s '\\x41' | xargs printf)" = 'A' ]; then
 fi
 
 _h2b() {
-  if _exists xxd; then
-    xxd -r -p
+  if _exists xxd && xxd -r -p 2>/dev/null; then
     return
   fi
 
