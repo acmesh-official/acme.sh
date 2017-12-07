@@ -37,7 +37,7 @@ dns_inwx_add() {
   _debug _domain "$_domain"
   _debug "Getting txt records"
 
-  printf -v xml_content '<?xml version="1.0" encoding="UTF-8"?>
+  xml_content=$(printf '<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
   <methodName>nameserver.info</methodName>
   <params>
@@ -66,7 +66,7 @@ dns_inwx_add() {
     </value>
    </param>
   </params>
-  </methodCall>' "$_domain" "$_sub_domain"
+  </methodCall>' "$_domain" "$_sub_domain")
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
 
   if ! printf "%s" "$response" | grep "Command completed successfully" >/dev/null; then
@@ -74,11 +74,11 @@ dns_inwx_add() {
     return 1
   fi
 
-  if ! printf "%s" "$response" | grep "count" -q; then
+  if ! printf "%s" "$response" | grep "count" >/dev/null; then
     _info "Adding record"
     _inwx_add_record "$_domain" "$_sub_domain" "$txtvalue"
   else
-    _record_id=$(printf '%s' "$response" | sed -nE 's/.*(<member><name>record){1}(.*)(<name>id<\/name><value><int>)([0-9]+){1}.*/\4/p')
+    _record_id=$(printf '%s' "$response" | _egrep_o '.*(<member><name>record){1}(.*)([0-9]+){1}' | _egrep_o '<name>id<\/name><value><int>[0-9]+' | egrep -o '[0-9]+')
     _info "Updating record"
     _inwx_update_record "$_record_id" "$txtvalue"
   fi
@@ -115,7 +115,7 @@ dns_inwx_rm() {
 
   _debug "Getting txt records"
 
-  printf -v xml_content '<?xml version="1.0" encoding="UTF-8"?>
+  xml_content=$(printf '<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
   <methodName>nameserver.info</methodName>
   <params>
@@ -144,7 +144,7 @@ dns_inwx_rm() {
     </value>
    </param>
   </params>
-  </methodCall>' "$_domain" "$_sub_domain"
+  </methodCall>' "$_domain" "$_sub_domain")
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
 
   if ! printf "%s" "$response" | grep "Command completed successfully" >/dev/null; then
@@ -152,10 +152,10 @@ dns_inwx_rm() {
     return 1
   fi
 
-  if ! printf "%s" "$response" | grep "count" -q; then
+  if ! printf "%s" "$response" | grep "count" >/dev/null; then
     _info "Do not need to delete record"
   else
-    _record_id=$(printf '%s' "$response" | sed -nE 's/.*(<member><name>record){1}(.*)(<name>id<\/name><value><int>)([0-9]+){1}.*/\4/p')
+    _record_id=$(printf '%s' "$response" | _egrep_o '.*(<member><name>record){1}(.*)([0-9]+){1}' | _egrep_o '<name>id<\/name><value><int>[0-9]+' | egrep -o '[0-9]+')
     _info "Deleting record"
     _inwx_delete_record "$_record_id"
   fi
@@ -166,7 +166,7 @@ dns_inwx_rm() {
 
 _inwx_login() {
 
-  printf -v xml_content '<?xml version="1.0" encoding="UTF-8"?>
+  xml_content=$(printf '<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
   <methodName>account.login</methodName>
   <params>
@@ -189,7 +189,7 @@ _inwx_login() {
     </value>
    </param>
   </params>
-  </methodCall>' $INWX_User $INWX_Password
+  </methodCall>' $INWX_User $INWX_Password)
 
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
 
@@ -207,7 +207,7 @@ _get_root() {
 
   _H1=$(_inwx_login)
   export _H1
-  printf -v xml_content '<?xml version="1.0" encoding="UTF-8"?>
+  xml_content='<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
   <methodName>nameserver.list</methodName>
   </methodCall>'
@@ -235,7 +235,7 @@ _get_root() {
 
 _inwx_delete_record() {
   record_id=$1
-  printf -v xml_content '<?xml version="1.0" encoding="UTF-8"?>
+  xml_content=$(printf '<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
   <methodName>nameserver.deleteRecord</methodName>
   <params>
@@ -252,7 +252,7 @@ _inwx_delete_record() {
     </value>
    </param>
   </params>
-  </methodCall>' "$record_id"
+  </methodCall>' "$record_id")
 
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
 
@@ -267,7 +267,7 @@ _inwx_delete_record() {
 _inwx_update_record() {
   record_id=$1
   txtval=$2
-  printf -v xml_content '<?xml version="1.0" encoding="UTF-8"?>
+  xml_content=$(printf '<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
   <methodName>nameserver.updateRecord</methodName>
   <params>
@@ -290,7 +290,7 @@ _inwx_update_record() {
     </value>
    </param>
   </params>
-  </methodCall>' "$txtval" "$record_id"
+  </methodCall>' "$txtval" "$record_id")
 
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
 
@@ -308,7 +308,7 @@ _inwx_add_record() {
   sub_domain=$2
   txtval=$3
 
-  printf -v xml_content '<?xml version="1.0" encoding="UTF-8"?>
+  xml_content=$(printf '<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
   <methodName>nameserver.createRecord</methodName>
   <params>
@@ -343,7 +343,7 @@ _inwx_add_record() {
     </value>
    </param>
   </params>
-  </methodCall>' "$domain" "$txtval" "$sub_domain"
+  </methodCall>' "$domain" "$txtval" "$sub_domain")
 
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
 
