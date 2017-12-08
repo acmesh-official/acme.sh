@@ -607,8 +607,8 @@ Please report any issues to https://github.com/angel333/acme.sh or to <me@ondrej
 First you need to login to your UnoEuro account to get your API key.
 
 ```
-export Uno_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
-export Uno_User="UExxxxxx"
+export UNO_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+export UNO_User="UExxxxxx"
 ```
 
 Ok, let's issue a cert now:
@@ -616,7 +616,7 @@ Ok, let's issue a cert now:
 acme.sh --issue --dns dns_unoeuro -d example.com -d www.example.com
 ```
 
-The `Uno_Key` and `Uno_User` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+The `UNO_Key` and `UNO_User` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 # Use custom API
 
