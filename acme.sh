@@ -3081,8 +3081,7 @@ _regAccount() {
     regjson='{"resource": "'$_reg_res'", "contact": ["mailto: '$ACCOUNT_EMAIL'"], "terms-of-service-agreed": true, "agreement": "'$ACME_AGREEMENT'"}'
   fi
 
-  if [ -z "$_updateTos" ]; then
-    _info "Registering account"
+  _info "Registering account"
 
   if ! _send_signed_request "${ACME_NEW_ACCOUNT}" "$regjson"; then
     _err "Register account Error: $response"
