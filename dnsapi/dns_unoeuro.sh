@@ -67,7 +67,7 @@ dns_unoeuro_add() {
   else
     _info "Updating record"
     record_line_number=$(echo "$response" | grep -n "$_sub_domain" | cut -d : -f 1)
-    record_line_number=$((record_line_number - 1))
+    record_line_number=$(_math "$record_line_number" - 1)
     record_id=$(echo "$response" | _head_n "$record_line_number" | _tail_n 1 1 | _egrep_o "[0-9]{1,}")
     _debug "record_id" "$record_id"
 
@@ -123,7 +123,7 @@ dns_unoeuro_rm() {
     _info "Don't need to remove."
   else
     record_line_number=$(echo "$response" | grep -n "$_sub_domain" | cut -d : -f 1)
-    record_line_number=$((record_line_number - 1))
+    record_line_number=$(_math "$record_line_number" - 1)
     record_id=$(echo "$response" | _head_n "$record_line_number" | _tail_n 1 1 | _egrep_o "[0-9]{1,}")
     _debug "record_id" "$record_id"
 
