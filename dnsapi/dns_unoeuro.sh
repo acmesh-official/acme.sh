@@ -114,12 +114,12 @@ dns_unoeuro_rm() {
   _debug "Getting txt records"
   _uno_rest GET "my/products/$h/dns/records"
 
-  if ! _contains "$response" "\"status\": 200" >/dev/null; then
+  if ! _contains "$response" "\"status\": 200"; then
     _err "Error"
     return 1
   fi
 
-  if ! _contains "$response" "$_sub_domain" >/dev/null; then
+  if ! _contains "$response" "$_sub_domain"; then
     _info "Don't need to remove."
   else
     record_line_number=$(echo "$response" | grep -n "$_sub_domain" | cut -d : -f 1)
@@ -163,7 +163,7 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$response" "\"status\": 200" >/dev/null; then
+    if _contains "$response" "\"status\": 200"; then
       _domain_id=$h
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
