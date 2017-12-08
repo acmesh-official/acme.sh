@@ -16,7 +16,6 @@ _SUB_FOLDERS="dnsapi deploy"
 _OLD_CA_HOST="https://acme-v01.api.letsencrypt.org"
 DEFAULT_CA="https://acme-v01.api.letsencrypt.org/directory"
 
-
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 DEFAULT_ACCOUNT_EMAIL=""
 
@@ -2199,7 +2198,7 @@ _initAPI() {
 
     ACME_NEW_NONCE=$(echo "$response" | _egrep_o 'new-nonce" *: *"[^"]*"' | cut -d '"' -f 3)
     export ACME_NEW_NONCE
-    
+
     ACME_AGREEMENT=$(echo "$response" | _egrep_o 'terms-of-service" *: *"[^"]*"' | cut -d '"' -f 3)
     export ACME_AGREEMENT
 
