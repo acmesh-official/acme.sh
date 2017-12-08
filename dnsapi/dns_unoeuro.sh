@@ -1,9 +1,9 @@
 #!/usr/bin/env sh
 
 #
-#Uno_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+#UNO_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
 #
-#Uno_User="UExxxxxx"
+#UNO_User="UExxxxxx"
 
 Uno_Api="https://api.unoeuro.com/1"
 
@@ -14,25 +14,25 @@ dns_unoeuro_add() {
   fulldomain=$1
   txtvalue=$2
 
-  Uno_Key="${Uno_Key:-$(_readaccountconf_mutable Uno_Key)}"
-  Uno_User="${Uno_User:-$(_readaccountconf_mutable Uno_User)}"
-  if [ -z "$Uno_Key" ] || [ -z "$Uno_User" ]; then
-    Uno_Key=""
-    Uno_User=""
+  UNO_Key="${UNO_Key:-$(_readaccountconf_mutable UNO_Key)}"
+  UNO_User="${UNO_User:-$(_readaccountconf_mutable UNO_User)}"
+  if [ -z "$UNO_Key" ] || [ -z "$UNO_User" ]; then
+    UNO_Key=""
+    UNO_User=""
     _err "You haven't specified a UnoEuro api key and account yet."
     _err "Please create your key and try again."
     return 1
   fi
 
-  if ! _contains "$Uno_User" "UE"; then
-    _err "It seems that the Uno_User=$Uno_User is not a valid username."
+  if ! _contains "$UNO_User" "UE"; then
+    _err "It seems that the UNO_User=$UNO_User is not a valid username."
     _err "Please check and retry."
     return 1
   fi
 
   #save the api key and email to the account conf file.
-  _saveaccountconf_mutable Uno_Key "$Uno_Key"
-  _saveaccountconf_mutable Uno_User "$Uno_User"
+  _saveaccountconf_mutable UNO_Key "$UNO_Key"
+  _saveaccountconf_mutable UNO_User "$UNO_User"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -86,18 +86,18 @@ dns_unoeuro_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  Uno_Key="${Uno_Key:-$(_readaccountconf_mutable Uno_Key)}"
-  Uno_User="${Uno_User:-$(_readaccountconf_mutable Uno_User)}"
-  if [ -z "$Uno_Key" ] || [ -z "$Uno_User" ]; then
-    Uno_Key=""
-    Uno_User=""
+  UNO_Key="${UNO_Key:-$(_readaccountconf_mutable UNO_Key)}"
+  UNO_User="${UNO_User:-$(_readaccountconf_mutable UNO_User)}"
+  if [ -z "$UNO_Key" ] || [ -z "$UNO_User" ]; then
+    UNO_Key=""
+    UNO_User=""
     _err "You haven't specified a UnoEuro api key and account yet."
     _err "Please create your key and try again."
     return 1
   fi
 
-  if ! _contains "$Uno_User" "UE"; then
-    _err "It seems that the Uno_User=$Uno_User is not a valid username."
+  if ! _contains "$UNO_User" "UE"; then
+    _err "It seems that the UNO_User=$UNO_User is not a valid username."
     _err "Please check and retry."
     return 1
   fi
@@ -188,9 +188,9 @@ _uno_rest() {
 
   if [ "$m" != "GET" ]; then
     _debug data "$data"
-    response="$(_post "$data" "$Uno_Api/$Uno_User/$Uno_Key/$ep" "" "$m")"
+    response="$(_post "$data" "$Uno_Api/$UNO_User/$UNO_Key/$ep" "" "$m")"
   else
-    response="$(_get "$Uno_Api/$Uno_User/$Uno_Key/$ep")"
+    response="$(_get "$Uno_Api/$UNO_User/$UNO_Key/$ep")"
   fi
 
   if [ "$?" != "0" ]; then
