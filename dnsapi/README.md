@@ -602,7 +602,23 @@ The `HE_Username` and `HE_Password` settings will be saved in `~/.acme.sh/accoun
 
 Please report any issues to https://github.com/angel333/acme.sh or to <me@ondrejsimek.com>.
 
-## 31. Use INWX
+## 32. Use UnoEuro API to automatically issue cert
+
+First you need to login to your UnoEuro account to get your API key.
+
+```
+export UNO_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+export UNO_User="UExxxxxx"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_unoeuro -d example.com -d www.example.com
+```
+
+The `UNO_Key` and `UNO_User` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 33. Use INWX
 
 INWX offers an xmlrpc api with your standard login credentials, set them like so:
 

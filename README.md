@@ -340,6 +340,7 @@ You don't have to do anything manually!
 1. Yandex PDD API (https://pdd.yandex.ru)
 1. Hurricane Electric DNS service (https://dns.he.net)
 1. INWX (https://www.inwx.de/)
+1. UnoEuro API (https://www.unoeuro.com/)
 
 
 And: 
