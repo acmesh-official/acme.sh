@@ -128,7 +128,7 @@ _get_root() {
       return 1
     fi
 
-    if ! _contains "$response" '"error":"no such domain in user context"' > /dev/null; then
+    if ! _contains "$response" '"error":"no such domain in user context"' >/dev/null; then
       _sub_domain=$(printf "%s" "$fulldomain" | cut -d . -f 1-$p)
       if [ -z "$_sub_domain" ]; then
         # not valid
