@@ -50,7 +50,7 @@ dns_servercow_add() {
   _debug _domain "$_domain"
 
   if _servercow_api POST "$_domain" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":20}"; then
-    if printf -- "%s" "$response" | grep "ok" > /dev/null; then
+    if printf -- "%s" "$response" | grep "ok" >/dev/null; then
       _info "Added, OK"
       return 0
     else
@@ -92,8 +92,8 @@ dns_servercow_rm() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  if _servercow_api DELETE "$_domain"  "{\"type\":\"TXT\",\"name\":\"$fulldomain\"}"; then
-    if printf -- "%s" "$response" | grep "ok" > /dev/null; then
+  if _servercow_api DELETE "$_domain" "{\"type\":\"TXT\",\"name\":\"$fulldomain\"}"; then
+    if printf -- "%s" "$response" | grep "ok" >/dev/null; then
       _info "Deleted, OK"
       _contains "$response" '"message":"ok"'
     else
@@ -140,7 +140,7 @@ _get_root() {
 
     p=$i
     i=$(_math "$i" + 1)
-  done;
+  done
 
   return 1
 }
