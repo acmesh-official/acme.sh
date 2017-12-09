@@ -618,6 +618,23 @@ acme.sh --issue --dns dns_unoeuro -d example.com -d www.example.com
 
 The `UNO_Key` and `UNO_User` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 33. Use INWX
+
+[INWX](https://www.inwx.de/) offers an [xmlrpc api](https://www.inwx.de/de/help/apidoc)  with your standard login credentials, set them like so:
+
+```
+export INWX_User="yourusername"
+export INWX_Password="password"
+```
+
+Then you can issue your certificates with:
+
+```
+acme.sh --issue --dns dns_inwx -d example.com -d www.example.com
+```
+
+The `INWX_User` and `INWX_Password` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
