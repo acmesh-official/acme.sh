@@ -620,7 +620,7 @@ The `UNO_Key` and `UNO_User` will be saved in `~/.acme.sh/account.conf` and will
 
 ## 33. Use INWX
 
-INWX offers an xmlrpc api with your standard login credentials, set them like so:
+[INWX](https://www.inwx.de/) offers an [xmlrpc api](https://www.inwx.de/de/help/apidoc)  with your standard login credentials, set them like so:
 
 ```
 export INWX_User="yourusername"
