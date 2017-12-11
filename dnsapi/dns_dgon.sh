@@ -20,12 +20,22 @@
 dns_dgon_add() {
   fulldomain="$(echo "$1" | _lower_case)"
   txtvalue=$2
+
+  DO_API_KEY="${DO_API_KEY:-$(_readaccountconf_mutable DO_API_KEY)}"
+  # Check if API Key Exist
+  if [ -z "$DO_API_KEY" ]; then
+    DO_API_KEY=""
+    _err "You did not specify DigitalOcean API key."
+    _err "Please export DO_API_KEY and try again."
+    return 1
+  fi
+
   _info "Using digitalocean dns validation - add record"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
   ## save the env vars (key and domain split location) for later automated use
-  _saveaccountconf DO_API_KEY "$DO_API_KEY"
+  _saveaccountconf_mutable DO_API_KEY "$DO_API_KEY"
 
   ## split the domain for DO API
   if ! _get_base_domain "$fulldomain"; then
@@ -39,7 +49,7 @@ dns_dgon_add() {
   export _H1="Content-Type: application/json"
   export _H2="Authorization: Bearer $DO_API_KEY"
   PURL='https://api.digitalocean.com/v2/domains/'$_domain'/records'
-  PBODY='{"type":"TXT","name":"'$_sub_domain'","data":"'$txtvalue'"}'
+  PBODY='{"type":"TXT","name":"'$_sub_domain'","data":"'$txtvalue'","ttl":120}'
 
   _debug PURL "$PURL"
   _debug PBODY "$PBODY"
@@ -65,6 +75,16 @@ dns_dgon_add() {
 dns_dgon_rm() {
   fulldomain="$(echo "$1" | _lower_case)"
   txtvalue=$2
+
+  DO_API_KEY="${DO_API_KEY:-$(_readaccountconf_mutable DO_API_KEY)}"
+  # Check if API Key Exist
+  if [ -z "$DO_API_KEY" ]; then
+    DO_API_KEY=""
+    _err "You did not specify DigitalOcean API key."
+    _err "Please export DO_API_KEY and try again."
+    return 1
+  fi
+
   _info "Using digitalocean dns validation - remove record"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
