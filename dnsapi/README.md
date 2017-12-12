@@ -635,6 +635,22 @@ acme.sh --issue --dns dns_inwx -d example.com -d www.example.com
 
 The `INWX_User` and `INWX_Password` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 34. User Servercow API v1
+
+Create a new user from the servercow control center. Don't forget to activate **DNS API** for this user.
+
+```
+export SERVERCOW_API_Username=username
+export SERVERCOW_API_Password=password
+```
+
+Now you cann issue a cert:
+
+```
+acme.sh --issue --dns dns_servercow -d example.com -d www.example.com
+```
+Both, `SERVERCOW_API_Username` and `SERVERCOW_API_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
