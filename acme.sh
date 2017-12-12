@@ -4308,7 +4308,12 @@ _installcert() {
     if [ -f "$_real_key" ] && [ ! "$IS_RENEW" ]; then
       cp "$_real_key" "$_backup_path/key.bak"
     fi
-    cat "$CERT_KEY_PATH" >"$_real_key"
+    if [ -f "$_real_key" ]; then
+      cat "$CERT_KEY_PATH" >"$_real_key"
+    else
+      cat "$CERT_KEY_PATH" >"$_real_key"
+      chmod 700 "$_real_key"
+    fi
   fi
 
   if [ "$_real_fullchain" ]; then
