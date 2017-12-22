@@ -672,3 +672,28 @@ See:  https://github.com/Neilpang/acme.sh/wiki/DNS-API-Dev-Guide
 # Use lexicon DNS API
 
 https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
+
+# Use kapper.net DNS API to automatically issue SSL certificate
+
+Contact kapper.net support via support@kapper.net to get your kapper.net DNS Panel API Key and Secret.
+
+For initialzation open dns_kappernet.sh file and configure with the credentials provided by kapper.net.
+Be sure, that the leading "#" is removed.
+```
+KAPPERNETDNS_Key="yourKAPPERNETapikey"
+KAPPERNETDNS_Secret="yourKAPPERNETapisecret"
+```
+You can start the acme.sh with following parameters for testing
+```
+acme.sh --issue --dns dns_kappernet -d <example.com> --debug --test --force
+```
+Please replace "<example.com>" with the name of the domain you wish to create a certificate for.
+
+After the test you can replace your kapper.net DNS Panel API Key and Secret, it is stored in ~/.acme.sh/account.conf.
+
+For repeated calls use
+```
+acme.sh --issue --dns dns_kappernet -d <example.com>
+```
+
+
