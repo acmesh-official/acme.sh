@@ -9,7 +9,7 @@
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
-myapi_deploy() {
+keychain_deploy() {
   _cdomain="$1"
   _ckey="$2"
   _ccert="$3"
@@ -22,7 +22,10 @@ myapi_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  _err "Not implemented yet"
-  return 1
+  /usr/bin/security import "$_ckey" -k "/Library/Keychains/System.keychain"
+  /usr/bin/security import "$_ccert" -k "/Library/Keychains/System.keychain"
+  /usr/bin/security import "$_cca" -k "/Library/Keychains/System.keychain"
+  /usr/bin/security import "$_cfullchain" -k "/Library/Keychains/System.keychain"
 
+  return 0
 }

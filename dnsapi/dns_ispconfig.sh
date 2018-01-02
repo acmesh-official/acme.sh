@@ -30,7 +30,7 @@ dns_ispconfig_rm() {
   _ISPC_credentials && _ISPC_login && _ISPC_rmTxt
 }
 
-####################  Private functions bellow ##################################
+####################  Private functions below ##################################
 
 _ISPC_credentials() {
   if [ -z "${ISPC_User}" ] || [ -z "$ISPC_Password" ] || [ -z "${ISPC_Api}" ] || [ -z "${ISPC_Api_Insecure}" ]; then
@@ -46,7 +46,7 @@ _ISPC_credentials() {
     _saveaccountconf ISPC_Api "${ISPC_Api}"
     _saveaccountconf ISPC_Api_Insecure "${ISPC_Api_Insecure}"
     # Set whether curl should use secure or insecure mode
-    HTTPS_INSECURE="${ISPC_Api_Insecure}"
+    export HTTPS_INSECURE="${ISPC_Api_Insecure}"
   fi
 }
 

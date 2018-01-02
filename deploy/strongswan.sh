@@ -9,7 +9,7 @@
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
-myapi_deploy() {
+strongswan_deploy() {
   _cdomain="$1"
   _ckey="$2"
   _ccert="$3"
@@ -22,7 +22,11 @@ myapi_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  _err "Not implemented yet"
-  return 1
+  cat "$_ckey" >"/etc/ipsec.d/private/$(basename "$_ckey")"
+  cat "$_ccert" >"/etc/ipsec.d/certs/$(basename "$_ccert")"
+  cat "$_cca" >"/etc/ipsec.d/cacerts/$(basename "$_cca")"
+  cat "$_cfullchain" >"/etc/ipsec.d/cacerts/$(basename "$_cfullchain")"
+
+  ipsec reload
 
 }

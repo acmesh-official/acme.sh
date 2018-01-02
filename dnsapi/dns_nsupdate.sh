@@ -44,7 +44,7 @@ EOF
   return 0
 }
 
-####################  Private functions bellow ##################################
+####################  Private functions below ##################################
 
 _checkKeyFile() {
   if [ -z "${NSUPDATE_KEY}" ]; then

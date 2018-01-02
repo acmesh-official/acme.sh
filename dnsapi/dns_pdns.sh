@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-#PowerDNS Emdedded API
+#PowerDNS Embedded API
 #https://doc.powerdns.com/md/httpapi/api_spec/
 #
 #PDNS_Url="http://ns.example.com:8081"
@@ -130,7 +130,7 @@ notify_slaves() {
   return 0
 }
 
-####################  Private functions bellow ##################################
+####################  Private functions below ##################################
 #_acme-challenge.www.domain.com
 #returns
 # _domain=domain.com
@@ -165,7 +165,7 @@ _pdns_rest() {
   ep=$2
   data=$3
 
-  _H1="X-API-Key: $PDNS_Token"
+  export _H1="X-API-Key: $PDNS_Token"
 
   if [ ! "$method" = "GET" ]; then
     _debug data "$data"

@@ -1,9 +1,13 @@
 language: shell
 sudo: required
+dist: trusty
 
 os:
   - linux
   - osx
+
+services:
+  - docker
 
 env:
   global:
@@ -17,35 +21,24 @@ addons:
     - shellcheck
 
 install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then 
-      brew update && brew install openssl;
-      brew info openssl;
-      ln -s /usr/local/opt/openssl/lib/libcrypto.1.0.0.dylib /usr/local/lib/;
-      ln -s /usr/local/opt/openssl/lib/libssl.1.0.0.dylib /usr/local/lib/;
-      ln -s /usr/local/Cellar/openssl/1.0.2j/bin/openssl /usr/local/openssl;
-      _old_path="$PATH";
-      echo "PATH=$PATH";
-      export PATH="";
-      export OPENSSL_BIN="/usr/local/openssl";
-      openssl version 2>&1 || true;
-      $OPENSSL_BIN version 2>&1 || true;
-      export PATH="$_old_path";
+  - if [ "$TRAVIS_OS_NAME" = 'osx' ]; then
+      brew update && brew install socat;
+      export PATH="/usr/local/opt/openssl@1.1/bin:$PATH" ;
     fi
-  
+
 script:
-  - echo "TEST_LOCAL=$TEST_LOCAL"
   - echo "NGROK_TOKEN=$(echo "$NGROK_TOKEN" | wc -c)"
-  - which openssl && openssl version
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl -sSL $SHFMT_URL -o ~/shfmt ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then chmod +x ~/shfmt ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ~/shfmt -l -w -i 2 . ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then git diff --exit-code && echo "shfmt OK" ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then shellcheck -V ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then shellcheck -e SC2021,SC2126,SC2034 **/*.sh && echo "shellcheck OK" ; fi
+  - command -V openssl && openssl version
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then curl -sSL $SHFMT_URL -o ~/shfmt ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then chmod +x ~/shfmt ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ~/shfmt -l -w -i 2 . ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then git diff --exit-code && echo "shfmt OK" ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then shellcheck -V ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then shellcheck -e SC2181 **/*.sh && echo "shellcheck OK" ; fi
   - cd ..
   - git clone https://github.com/Neilpang/acmetest.git && cp -r acme.sh acmetest/ && cd acmetest
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$NGROK_TOKEN" ]]; then sudo NGROK_TOKEN="$NGROK_TOKEN" ./letest.sh ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$NGROK_TOKEN" ]]; then sudo NGROK_TOKEN="$NGROK_TOKEN" OPENSSL_BIN="$OPENSSL_BIN" ./letest.sh ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" -a "$NGROK_TOKEN" ]; then sudo TEST_LOCAL="$TEST_LOCAL" NGROK_TOKEN="$NGROK_TOKEN" ./rundocker.sh testplat ubuntu:latest ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" -a "$NGROK_TOKEN" ]; then sudo TEST_LOCAL="$TEST_LOCAL" NGROK_TOKEN="$NGROK_TOKEN" ACME_OPENSSL_BIN="$ACME_OPENSSL_BIN" ./letest.sh ; fi
 
 
 matrix:

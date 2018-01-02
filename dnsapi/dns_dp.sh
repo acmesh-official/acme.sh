@@ -6,9 +6,8 @@
 #
 #DP_Key="sADDsdasdgdsf"
 
-DP_Api="https://dnsapi.cn"
+REST_API="https://dnsapi.cn"
 
-#REST_API
 ########  Public functions #####################
 
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
@@ -23,8 +22,6 @@ dns_dp_add() {
     _err "Please create you key and try again."
     return 1
   fi
-
-  REST_API="$DP_Api"
 
   #save the api key and email to the account conf file.
   _saveaccountconf DP_Id "$DP_Id"
@@ -50,9 +47,39 @@ dns_dp_add() {
   fi
 }
 
-#fulldomain
+#fulldomain txtvalue
 dns_dp_rm() {
   fulldomain=$1
+  txtvalue=$2
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+
+  if ! _rest POST "Record.List" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain"; then
+    _err "Record.Lis error."
+    return 1
+  fi
+
+  if _contains "$response" 'No records'; then
+    _info "Don't need to remove."
+    return 0
+  fi
+
+  record_id=$(echo "$response" | _egrep_o '{[^{]*"value":"'"$txtvalue"'"' | cut -d , -f 1 | cut -d : -f 2 | tr -d \")
+  _debug record_id "$record_id"
+  if [ -z "$record_id" ]; then
+    _err "Can not get record id."
+    return 1
+  fi
+
+  if ! _rest POST "Record.Remove" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&record_id=$record_id"; then
+    _err "Record.Remove error."
+    return 1
+  fi
+
+  _contains "$response" "Action completed successful"
 
 }
 
@@ -75,8 +102,9 @@ existing_records() {
   fi
 
   if _contains "$response" "Action completed successful"; then
-    count=$(printf "%s" "$response" | grep '<type>TXT</type>' | wc -l)
+    count=$(printf "%s" "$response" | grep -c '<type>TXT</type>' | tr -d ' ')
     record_id=$(printf "%s" "$response" | grep '^<id>' | tail -1 | cut -d '>' -f 2 | cut -d '<' -f 1)
+    _debug record_id "$record_id"
     return 0
   else
     _err "get existing records error."
@@ -130,7 +158,7 @@ update_record() {
   return 1 #error
 }
 
-####################  Private functions bellow ##################################
+####################  Private functions below ##################################
 #_acme-challenge.www.domain.com
 #returns
 # _sub_domain=_acme-challenge.www
@@ -171,7 +199,7 @@ _get_root() {
 
 #Usage: method  URI  data
 _rest() {
-  m=$1
+  m="$1"
   ep="$2"
   data="$3"
   _debug "$ep"
@@ -179,11 +207,11 @@ _rest() {
 
   _debug url "$url"
 
-  if [ "$data" ]; then
-    _debug2 data "$data"
-    response="$(_post "$data" "$url")"
+  if [ "$m" = "GET" ]; then
+    response="$(_get "$url" | tr -d '\r')"
   else
-    response="$(_get "$url")"
+    _debug2 data "$data"
+    response="$(_post "$data" "$url" | tr -d '\r')"
   fi
 
   if [ "$?" != "0" ]; then

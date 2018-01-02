@@ -1,15 +1,13 @@
 #!/usr/bin/env sh
 
-#Here is a sample custom api script.
-#This file name is "myapi.sh"
-#So, here must be a method   myapi_deploy()
-#Which will be called by acme.sh to deploy the cert
+#Here is a script to deploy cert to haproxy server.
+
 #returns 0 means success, otherwise error.
 
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
-myapi_deploy() {
+haproxy_deploy() {
   _cdomain="$1"
   _ckey="$2"
   _ccert="$3"
@@ -22,7 +20,7 @@ myapi_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  _err "Not implemented yet"
+  _err "deploy cert to haproxy server, Not implemented yet"
   return 1
 
 }

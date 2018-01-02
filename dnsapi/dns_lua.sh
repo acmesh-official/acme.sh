@@ -46,12 +46,12 @@ dns_lua_add() {
     return 1
   fi
 
-  count=$(printf "%s\n" "$response" | _egrep_o "\"name\":\"$fulldomain\"" | wc -l)
+  count=$(printf "%s\n" "$response" | _egrep_o "\"name\":\"$fulldomain.\",\"type\":\"TXT\"" | wc -l | tr -d " ")
   _debug count "$count"
   if [ "$count" = "0" ]; then
     _info "Adding record"
     if _LUA_rest POST "zones/$_domain_id/records" "{\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
-      if printf -- "%s" "$response" | grep "$fulldomain" >/dev/null; then
+      if _contains "$response" "$fulldomain"; then
         _info "Added"
         #todo: check if the record takes effect
         return 0
@@ -63,11 +63,11 @@ dns_lua_add() {
     _err "Add txt record error."
   else
     _info "Updating record"
-    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*,\"name\":\"$fulldomain.\",\"type\":\"TXT\"" | cut -d: -f2 | cut -d, -f1)
+    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*,\"name\":\"$fulldomain.\",\"type\":\"TXT\"" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
     _debug "record_id" "$record_id"
 
-    _LUA_rest PUT "zones/$_domain_id/records/$record_id" "{\"id\":\"$record_id\",\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"content\":\"$txtvalue\",\"zone_id\":\"$_domain_id\",\"ttl\":120}"
-    if [ "$?" = "0" ]; then
+    _LUA_rest PUT "zones/$_domain_id/records/$record_id" "{\"id\":$record_id,\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"content\":\"$txtvalue\",\"zone_id\":$_domain_id,\"ttl\":120}"
+    if [ "$?" = "0" ] && _contains "$response" "updated_at"; then
       _info "Updated!"
       #todo: check if the record takes effect
       return 0
@@ -81,10 +81,39 @@ dns_lua_add() {
 #fulldomain
 dns_lua_rm() {
   fulldomain=$1
+  txtvalue=$2
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+  _debug _domain_id "$_domain_id"
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain "$_domain"
 
+  _debug "Getting txt records"
+  _LUA_rest GET "zones/${_domain_id}/records"
+
+  count=$(printf "%s\n" "$response" | _egrep_o "\"name\":\"$fulldomain.\",\"type\":\"TXT\"" | wc -l | tr -d " ")
+  _debug count "$count"
+  if [ "$count" = "0" ]; then
+    _info "Don't need to remove."
+  else
+    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*,\"name\":\"$fulldomain.\",\"type\":\"TXT\"" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
+    _debug "record_id" "$record_id"
+    if [ -z "$record_id" ]; then
+      _err "Can not get record id to remove."
+      return 1
+    fi
+    if ! _LUA_rest DELETE "/zones/$_domain_id/records/$record_id"; then
+      _err "Delete record error."
+      return 1
+    fi
+    _contains "$response" "$record_id"
+  fi
 }
 
-####################  Private functions bellow ##################################
+####################  Private functions below ##################################
 #_acme-challenge.www.domain.com
 #returns
 # _sub_domain=_acme-challenge.www
@@ -99,6 +128,7 @@ _get_root() {
   fi
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -106,6 +136,7 @@ _get_root() {
 
     if _contains "$response" "\"name\":\"$h\""; then
       _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*,\"name\":\"$h\"" | cut -d : -f 2 | cut -d , -f 1)
+      _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain="$h"
@@ -125,9 +156,9 @@ _LUA_rest() {
   data="$3"
   _debug "$ep"
 
-  _H1="Accept: application/json"
-  _H2="Authorization: Basic $LUA_auth"
-  if [ "$data" ]; then
+  export _H1="Accept: application/json"
+  export _H2="Authorization: Basic $LUA_auth"
+  if [ "$m" != "GET" ]; then
     _debug data "$data"
     response="$(_post "$data" "$LUA_Api/$ep" "" "$m")"
   else

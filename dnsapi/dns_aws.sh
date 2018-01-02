@@ -27,8 +27,10 @@ dns_aws_add() {
     return 1
   fi
 
-  _saveaccountconf AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
-  _saveaccountconf AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
+  if [ -z "$AWS_SESSION_TOKEN" ]; then
+    _saveaccountconf AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
+    _saveaccountconf AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
+  fi
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -42,20 +44,39 @@ dns_aws_add() {
   _aws_tmpl_xml="<ChangeResourceRecordSetsRequest xmlns=\"https://route53.amazonaws.com/doc/2013-04-01/\"><ChangeBatch><Changes><Change><Action>UPSERT</Action><ResourceRecordSet><Name>$fulldomain</Name><Type>TXT</Type><TTL>300</TTL><ResourceRecords><ResourceRecord><Value>\"$txtvalue\"</Value></ResourceRecord></ResourceRecords></ResourceRecordSet></Change></Changes></ChangeBatch></ChangeResourceRecordSetsRequest>"
 
   if aws_rest POST "2013-04-01$_domain_id/rrset/" "" "$_aws_tmpl_xml" && _contains "$response" "ChangeResourceRecordSetsResponse"; then
-    _info "txt record updated sucess."
+    _info "txt record updated success."
     return 0
   fi
 
   return 1
 }
 
-#fulldomain
+#fulldomain txtvalue
 dns_aws_rm() {
   fulldomain=$1
+  txtvalue=$2
+
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+  _debug _domain_id "$_domain_id"
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain "$_domain"
+
+  _aws_tmpl_xml="<ChangeResourceRecordSetsRequest xmlns=\"https://route53.amazonaws.com/doc/2013-04-01/\"><ChangeBatch><Changes><Change><Action>DELETE</Action><ResourceRecordSet><ResourceRecords><ResourceRecord><Value>\"$txtvalue\"</Value></ResourceRecord></ResourceRecords><Name>$fulldomain.</Name><Type>TXT</Type><TTL>300</TTL></ResourceRecordSet></Change></Changes></ChangeBatch></ChangeResourceRecordSetsRequest>"
+
+  if aws_rest POST "2013-04-01$_domain_id/rrset/" "" "$_aws_tmpl_xml" && _contains "$response" "ChangeResourceRecordSetsResponse"; then
+    _info "txt record deleted success."
+    return 0
+  fi
+
+  return 1
 
 }
 
-####################  Private functions bellow ##################################
+####################  Private functions below ##################################
 
 _get_root() {
   domain=$1
@@ -66,25 +87,39 @@ _get_root() {
     _debug "response" "$response"
     while true; do
       h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+      _debug2 "Checking domain: $h"
       if [ -z "$h" ]; then
+        if _contains "$response" "<IsTruncated>true</IsTruncated>" && _contains "$response" "<NextMarker>"; then
+          _debug "IsTruncated"
+          _nextMarker="$(echo "$response" | _egrep_o "<NextMarker>.*</NextMarker>" | cut -d '>' -f 2 | cut -d '<' -f 1)"
+          _debug "NextMarker" "$_nextMarker"
+          if aws_rest GET "2013-04-01/hostedzone" "marker=$_nextMarker"; then
+            _debug "Truncated request OK"
+            i=2
+            p=1
+            continue
+          else
+            _err "Truncated request error."
+          fi
+        fi
         #not valid
+        _err "Invalid domain"
         return 1
       fi
 
       if _contains "$response" "<Name>$h.</Name>"; then
-        hostedzone="$(echo "$response" | _egrep_o "<HostedZone>.*<Name>$h.</Name>.*</HostedZone>")"
+        hostedzone="$(echo "$response" | sed 's/<HostedZone>/#&/g' | tr '#' '\n' | _egrep_o "<HostedZone><Id>[^<]*<.Id><Name>$h.<.Name>.*<PrivateZone>false<.PrivateZone>.*<.HostedZone>")"
         _debug hostedzone "$hostedzone"
-        if [ -z "$hostedzone" ]; then
-          _err "Error, can not get hostedzone."
+        if [ "$hostedzone" ]; then
+          _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "<Id>.*<.Id>" | head -n 1 | _egrep_o ">.*<" | tr -d "<>")
+          if [ "$_domain_id" ]; then
+            _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+            _domain=$h
+            return 0
+          fi
+          _err "Can not find domain id: $h"
           return 1
         fi
-        _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "<Id>.*</Id>" | head -n 1 | _egrep_o ">.*<" | tr -d "<>")
-        if [ "$_domain_id" ]; then
-          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
-          _domain=$h
-          return 0
-        fi
-        return 1
       fi
       p=$i
       i=$(_math "$i" + 1)
@@ -116,13 +151,17 @@ aws_rest() {
 
   #RequestDate="20161120T141056Z" ##############
 
-  _H1="x-amz-date: $RequestDate"
+  export _H1="x-amz-date: $RequestDate"
 
   aws_host="$AWS_HOST"
   CanonicalHeaders="host:$aws_host\nx-amz-date:$RequestDate\n"
-  _debug2 CanonicalHeaders "$CanonicalHeaders"
-
   SignedHeaders="host;x-amz-date"
+  if [ -n "$AWS_SESSION_TOKEN" ]; then
+    export _H3="x-amz-security-token: $AWS_SESSION_TOKEN"
+    CanonicalHeaders="${CanonicalHeaders}x-amz-security-token:$AWS_SESSION_TOKEN\n"
+    SignedHeaders="${SignedHeaders};x-amz-security-token"
+  fi
+  _debug2 CanonicalHeaders "$CanonicalHeaders"
   _debug2 SignedHeaders "$SignedHeaders"
 
   RequestPayload="$data"
@@ -156,10 +195,10 @@ aws_rest() {
 
   #kSecret="wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY" ############################
 
-  _debug2 kSecret "$kSecret"
+  _secure_debug2 kSecret "$kSecret"
 
-  kSecretH="$(_hex "$kSecret")"
-  _debug2 kSecretH "$kSecretH"
+  kSecretH="$(printf "%s" "$kSecret" | _hex_dump | tr -d " ")"
+  _secure_debug2 kSecretH "$kSecretH"
 
   kDateH="$(printf "$RequestDateOnly%s" | _hmac "$Hash" "$kSecretH" hex)"
   _debug2 kDateH "$kDateH"
@@ -170,7 +209,7 @@ aws_rest() {
   kServiceH="$(printf "$Service%s" | _hmac "$Hash" "$kRegionH" hex)"
   _debug2 kServiceH "$kServiceH"
 
-  kSigningH="$(printf "aws4_request%s" | _hmac "$Hash" "$kServiceH" hex)"
+  kSigningH="$(printf "%s" "aws4_request" | _hmac "$Hash" "$kServiceH" hex)"
   _debug2 kSigningH "$kSigningH"
 
   signature="$(printf "$StringToSign%s" | _hmac "$Hash" "$kSigningH" hex)"
@@ -179,10 +218,13 @@ aws_rest() {
   Authorization="$Algorithm Credential=$AWS_ACCESS_KEY_ID/$CredentialScope, SignedHeaders=$SignedHeaders, Signature=$signature"
   _debug2 Authorization "$Authorization"
 
-  _H3="Authorization: $Authorization"
-  _debug _H3 "$_H3"
+  _H2="Authorization: $Authorization"
+  _debug _H2 "$_H2"
 
   url="$AWS_URL/$ep"
+  if [ "$qsr" ]; then
+    url="$AWS_URL/$ep?$qsr"
+  fi
 
   if [ "$mtd" = "GET" ]; then
     response="$(_get "$url")"

@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-#Applcation Key
+#Application Key
 #OVH_AK="sdfsdfsdfljlbjkljlkjsdfoiwje"
 #
 #Application Secret
@@ -14,7 +14,7 @@
 #'ovh-eu'
 OVH_EU='https://eu.api.ovh.com/1.0'
 
-#'ovh-ca': 
+#'ovh-ca':
 OVH_CA='https://ca.api.ovh.com/1.0'
 
 #'kimsufi-eu'
@@ -119,7 +119,7 @@ dns_ovh_add() {
 
   _info "Checking authentication"
 
-  response="$(_ovh_rest GET "domain/")"
+  response="$(_ovh_rest GET "domain")"
   if _contains "$response" "INVALID_CREDENTIAL"; then
     _err "The consumer key is invalid: $OVH_CK"
     _err "Please retry to create a new one."
@@ -182,7 +182,7 @@ dns_ovh_rm() {
 
 }
 
-####################  Private functions bellow ##################################
+####################  Private functions below ##################################
 
 _ovh_authentication() {
 
@@ -191,7 +191,7 @@ _ovh_authentication() {
   _H3=""
   _H4=""
 
-  _ovhdata='{"accessRules": [{"method": "GET","path": "/*"},{"method": "POST","path": "/*"},{"method": "PUT","path": "/*"},{"method": "DELETE","path": "/*"}],"redirection":"'$ovh_success'"}'
+  _ovhdata='{"accessRules": [{"method": "GET","path": "/auth/time"},{"method": "GET","path": "/domain"},{"method": "GET","path": "/domain/zone/*"},{"method": "GET","path": "/domain/zone/*/record"},{"method": "POST","path": "/domain/zone/*/record"},{"method": "POST","path": "/domain/zone/*/refresh"},{"method": "PUT","path": "/domain/zone/*/record/*"}],"redirection":"'$ovh_success'"}'
 
   response="$(_post "$_ovhdata" "$OVH_API/auth/credential")"
   _debug3 response "$response"
@@ -207,7 +207,7 @@ _ovh_authentication() {
     _err "Unable to get consumerKey"
     return 1
   fi
-  _debug consumerKey "$consumerKey"
+  _secure_debug consumerKey "$consumerKey"
 
   OVH_CK="$consumerKey"
   _saveaccountconf OVH_CK "$OVH_CK"
@@ -238,7 +238,7 @@ _get_root() {
       return 1
     fi
 
-    if ! _contains "$response" "This service does not exist" >/dev/null; then
+    if ! _contains "$response" "This service does not exist" >/dev/null && ! _contains "$response" "NOT_GRANTED_CALL" >/dev/null; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain="$h"
       return 0
@@ -269,16 +269,16 @@ _ovh_rest() {
   _ovh_t="$(_ovh_timestamp)"
   _debug2 _ovh_t "$_ovh_t"
   _ovh_p="$OVH_AS+$OVH_CK+$m+$_ovh_url+$data+$_ovh_t"
-  _debug _ovh_p "$_ovh_p"
+  _secure_debug _ovh_p "$_ovh_p"
   _ovh_hex="$(printf "%s" "$_ovh_p" | _digest sha1 hex)"
   _debug2 _ovh_hex "$_ovh_hex"
 
-  _H1="X-Ovh-Application: $OVH_AK"
-  _H2="X-Ovh-Signature: \$1\$$_ovh_hex"
+  export _H1="X-Ovh-Application: $OVH_AK"
+  export _H2="X-Ovh-Signature: \$1\$$_ovh_hex"
   _debug2 _H2 "$_H2"
-  _H3="X-Ovh-Timestamp: $_ovh_t"
-  _H4="X-Ovh-Consumer: $OVH_CK"
-  _H5="Content-Type: application/json;charset=utf-8"
+  export _H3="X-Ovh-Timestamp: $_ovh_t"
+  export _H4="X-Ovh-Consumer: $OVH_CK"
+  export _H5="Content-Type: application/json;charset=utf-8"
   if [ "$data" ] || [ "$m" = "POST" ] || [ "$m" = "PUT" ]; then
     _debug data "$data"
     response="$(_post "$data" "$_ovh_url" "" "$m")"
