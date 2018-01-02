@@ -35,11 +35,14 @@ cpanel_uapi_deploy() {
   # read cert and key files and urlencode both
   _certstr=$(cat "$_ccert")
   _keystr=$(cat "$_ckey")
+  _castr=$(cat "$_cca")
   _cert=$(php -r "echo urlencode(\"$_certstr\");")
   _key=$(php -r "echo urlencode(\"$_keystr\");")
+  _ca=$(php -r "echo urlencode(\"$_castr\");")
 
   _debug _cert "$_cert"
   _debug _key "$_key"
+  _debug _ca "$_ca"
 
   if [ "$(id -u)" = 0 ]; then
     if [ -z "$DEPLOY_CPANEL_USER" ]; then
@@ -47,9 +50,9 @@ cpanel_uapi_deploy() {
       return 1
     fi
     _savedomainconf DEPLOY_CPANEL_USER "$DEPLOY_CPANEL_USER"
-    _response=$(uapi --user="$DEPLOY_CPANEL_USER" SSL install_ssl domain="$_cdomain" cert="$_cert" key="$_key")
+    _response=$(uapi --user="$DEPLOY_CPANEL_USER" SSL install_ssl domain="$_cdomain" cert="$_cert" key="$_key" cabundle="$_ca")
   else
-    _response=$(uapi SSL install_ssl domain="$_cdomain" cert="$_cert" key="$_key")
+    _response=$(uapi SSL install_ssl domain="$_cdomain" cert="$_cert" key="$_key" cabundle="$_ca")
   fi
   error_response="status: 0"
   if test "${_response#*$error_response}" != "$_response"; then
