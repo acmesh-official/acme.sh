@@ -420,6 +420,7 @@ Ok, let's issue a cert now:
 ```
 acme.sh --issue --dns dns_cloudns -d example.com -d www.example.com
 ```
+The `CLOUDNS_AUTH_ID` and `CLOUDNS_AUTH_PASSWORD` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 ## 22. Use Infoblox API
 
@@ -511,7 +512,7 @@ acme.sh --issue --dns dns_nsone -d example.com -d www.example.com
 export DuckDNS_Token="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 ```
 
-Please note that since DuckDNS uses StartSSL as their cert provider, thus 
+Please note that since DuckDNS uses StartSSL as their cert provider, thus
 --insecure may need to be used when issuing certs:
 ```
 acme.sh --insecure --issue --dns dns_duckdns -d mydomain.duckdns.org
@@ -601,7 +602,56 @@ The `HE_Username` and `HE_Password` settings will be saved in `~/.acme.sh/accoun
 
 Please report any issues to https://github.com/angel333/acme.sh or to <me@ondrejsimek.com>.
 
-##32. Use DNSEver (https://www.dnsever.com/)
+## 32. Use UnoEuro API to automatically issue cert
+
+First you need to login to your UnoEuro account to get your API key.
+
+```
+export UNO_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+export UNO_User="UExxxxxx"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_unoeuro -d example.com -d www.example.com
+```
+
+The `UNO_Key` and `UNO_User` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 33. Use INWX
+
+[INWX](https://www.inwx.de/) offers an [xmlrpc api](https://www.inwx.de/de/help/apidoc)  with your standard login credentials, set them like so:
+
+```
+export INWX_User="yourusername"
+export INWX_Password="password"
+```
+
+Then you can issue your certificates with:
+
+```
+acme.sh --issue --dns dns_inwx -d example.com -d www.example.com
+```
+
+The `INWX_User` and `INWX_Password` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 34. User Servercow API v1
+
+Create a new user from the servercow control center. Don't forget to activate **DNS API** for this user.
+
+```
+export SERVERCOW_API_Username=username
+export SERVERCOW_API_Password=password
+```
+
+Now you cann issue a cert:
+
+```
+acme.sh --issue --dns dns_servercow -d example.com -d www.example.com
+```
+Both, `SERVERCOW_API_Username` and `SERVERCOW_API_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+##35. Use DNSEver (https://www.dnsever.com/)
 
 You will need your login credentials (ID+PW) to the DNSEver, and export them before you run acme.sh:
 ```
@@ -631,6 +681,7 @@ acme.sh --issue --dns dns_myapi -d example.com -d www.example.com
 
 For more details, please check our sample script: [dns_myapi.sh](dns_myapi.sh)
 
+See:  https://github.com/Neilpang/acme.sh/wiki/DNS-API-Dev-Guide
 
 # Use lexicon DNS API
 
