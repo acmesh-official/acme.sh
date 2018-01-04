@@ -84,7 +84,7 @@ dnsever_txt() {
     return 1
   fi
 
-  skey=$(printf "%s\n" "$response" | grep skey | sed -n -e "s/^.*value=['\"]\(.*\)['\"].*/\1/p")
+  skey=$(printf "%s\n" "$response" | grep skey | sed -n "s/^.*value=['\"]\(.*\)['\"].*/\1/p")
   if [ -z "$skey" ]; then
     _err "dnsever_txt:$action ERROR login failed with login_id=$login_id login_password=$login_password"
     response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
@@ -190,7 +190,7 @@ dnsever_select_user_domain() {
   fulldomain="$1"
   response="$2"
 
-  domains=$(printf "%s\n" "$response" | grep OPTION | sed -n -e "s/^.*value=['\"]\(.*\)['\"].*/\1/p" | grep -v "^$")
+  domains=$(printf "%s\n" "$response" | grep OPTION | sed -n "s/^.*value=['\"]\(.*\)['\"].*/\1/p" | grep -v "^$")
   nmax=0
   selected=""
   for domain in $domains; do
@@ -210,12 +210,12 @@ dnsever_check() {
   old_txt="$2"
   response="$3"
 
-  matched=$(printf "%s\n" "$response" | grep "$fulldomain" | sed -n -e "s/^.*name=['\"]\(.*\)['\"].*value.*$/\1/p" | sed 's/domain_for_txt_//g')
+  matched=$(printf "%s\n" "$response" | grep "$fulldomain" | sed -n "s/^.*name=['\"]\(.*\)['\"].*value.*$/\1/p" | sed 's/domain_for_txt_//g')
 
   check=""
   for n in $matched; do
-    seq=$(printf "%s\n" "$response" | grep "seq_$n" | sed -n -e "s/^.*value=['\"]\(.*\)['\"].*/\1/p")
-    old_txt=$(printf "%s\n" "$response" | grep "old_txt_$n" | sed -n -e "s/^.*value=['\"]\(.*\)['\"].*id=.*$/\1/p")
+    seq=$(printf "%s\n" "$response" | grep "seq_$n" | sed -n "s/^.*value=['\"]\(.*\)['\"].*/\1/p")
+    old_txt=$(printf "%s\n" "$response" | grep "old_txt_$n" | sed -n "s/^.*value=['\"]\(.*\)['\"].*id=.*$/\1/p")
     if [ "$txtvalue" != "$old_txt" ]; then
       _info "dnsever_check skip seq=$seq fulldomain=$fulldomain due to old_txt=$old_txt is different from txtvalue=$txtvalue skip"
       continue
