@@ -22,7 +22,6 @@ LETSENCRYPT_STAGING_CA_V2="https://acme-staging-v02.api.letsencrypt.org/director
 DEFAULT_CA=$LETSENCRYPT_CA_V1
 DEFAULT_STAGING_CA=$LETSENCRYPT_STAGING_CA_V1
 
-
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 DEFAULT_ACCOUNT_EMAIL=""
 
@@ -3122,7 +3121,7 @@ _regAccount() {
   if ! _calcjwk "$ACCOUNT_KEY_PATH"; then
     return 1
   fi
-  
+
   if [ "$ACME_VERSION" = "2" ]; then
     regjson='{"termsOfServiceAgreed": true}'
     if [ "$ACCOUNT_EMAIL" ]; then
@@ -3469,7 +3468,7 @@ issue() {
         return 1
       fi
 
-      ORDER_FINALIZE="$(echo "$response"| tr -d '\r\n' | _egrep_o '"finalize" *: *"[^"]*"' | cut -d '"' -f 4)"
+      ORDER_FINALIZE="$(echo "$response" | tr -d '\r\n' | _egrep_o '"finalize" *: *"[^"]*"' | cut -d '"' -f 4)"
       _debug ORDER_FINALIZE "$ORDER_FINALIZE"
       if [ -z "$ORDER_FINALIZE" ]; then
         _err "ORDER_FINALIZE not found."
@@ -3481,7 +3480,7 @@ issue() {
       #for dns manual mode
       _savedomainconf "ORDER_FINALIZE" "$ORDER_FINALIZE"
 
-      _authorizations_seg="$(echo "$response"| tr -d '\r\n' | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
+      _authorizations_seg="$(echo "$response" | tr -d '\r\n' | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
       _debug2 _authorizations_seg "$_authorizations_seg"
       if [ -z "$_authorizations_seg" ]; then
         _err "_authorizations_seg not found."
@@ -3492,7 +3491,7 @@ issue() {
 
       #domain and authz map
       _authorizations_map=""
-      for _authz_url in $(echo "$_authorizations_seg" | tr ',' ' ' ); do
+      for _authz_url in $(echo "$_authorizations_seg" | tr ',' ' '); do
         _debug2 "_authz_url" "$_authz_url"
         if ! response="$(_get "$_authz_url")"; then
           _err "get to authz error."
@@ -3926,9 +3925,9 @@ $_authorizations_map"
       _on_issue_err "$_post_hook"
       return 1
     fi
-    Le_LinkCert="$(echo "$response"| tr -d '\r\n' | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
+    Le_LinkCert="$(echo "$response" | tr -d '\r\n' | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
 
-    if ! _get "$Le_LinkCert" > "$CERT_PATH"; then
+    if ! _get "$Le_LinkCert" >"$CERT_PATH"; then
       _err "Sign failed, code is not 200."
       _on_issue_err "$_post_hook"
       return 1
@@ -4000,7 +3999,6 @@ $_authorizations_map"
     _MAX_ISSUER_RETRY=5
     while [ "$_link_issuer_retry" -lt "$_MAX_ISSUER_RETRY" ]; do
       _debug _link_issuer_retry "$_link_issuer_retry"
-      
       if [ "$ACME_VERSION" = "2" ]; then
         if _get "$Le_LinkIssuer" >"$CA_CERT_PATH"; then
           break
