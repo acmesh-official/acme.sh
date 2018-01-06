@@ -3005,7 +3005,7 @@ _on_issue_err() {
   _chk_post_hook="$1"
   _chk_vlist="$2"
   _debug _on_issue_err
-  _cleardomainconf "Le_OrderFinalize"
+
   if [ "$LOG_FILE" ]; then
     _err "Please check log file for more details: $LOG_FILE"
   else
