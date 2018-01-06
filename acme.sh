@@ -1784,7 +1784,7 @@ _send_signed_request() {
     _debug2 nonce "$nonce"
 
     if [ "$ACME_VERSION" = "2" ]; then
-      if [ "$url" = "$ACME_NEW_ACCOUNT" ]; then
+      if [ "$url" = "$ACME_NEW_ACCOUNT" ] || [ "$url" = "$ACME_REVOKE_CERT" ]; then
         protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"jwk\": $jwk"'}'
       else
         protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"kid\": \"$ACCOUNT_URL\""'}'
@@ -3005,7 +3005,7 @@ _on_issue_err() {
   _chk_post_hook="$1"
   _chk_vlist="$2"
   _debug _on_issue_err
-  _cleardomainconf "ORDER_FINALIZE"
+  _cleardomainconf "Le_OrderFinalize"
   if [ "$LOG_FILE" ]; then
     _err "Please check log file for more details: $LOG_FILE"
   else
@@ -3212,7 +3212,12 @@ deactivateaccount() {
   fi
   _initAPI
 
-  if _send_signed_request "$_accUri" "{\"resource\": \"reg\", \"status\":\"deactivated\"}" && _contains "$response" '"deactivated"'; then
+  if [ "$ACME_VERSION" = "2" ]; then
+    _djson="{\"status\":\"deactivated\"}"
+  else
+    _djson="{\"resource\": \"reg\", \"status\":\"deactivated\"}"
+  fi
+  if _send_signed_request "$_accUri" "$_djson" && _contains "$response" '"deactivated"'; then
     _info "Deactivate account success for $_accUri."
     _accid=$(echo "$response" | _egrep_o "\"id\" *: *[^,]*," | cut -d : -f 2 | tr -d ' ,')
   elif [ "$code" = "403" ]; then
@@ -3334,6 +3339,11 @@ issue() {
   _web_roots="$1"
   _main_domain="$2"
   _alt_domains="$3"
+
+  if _startswith "$_main_domain" "*."; then
+    _err "The first domain can not be wildcard, '$_main_domain' is a wildcard domain."
+    return 1
+  fi
   if _contains "$_main_domain" ","; then
     _main_domain=$(echo "$2,$3" | cut -d , -f 1)
     _alt_domains=$(echo "$2,$3" | cut -d , -f 2- | sed "s/,${NO_VALUE}$//")
@@ -3460,7 +3470,7 @@ issue() {
   sep='#'
   dvsep=','
   if [ -z "$vlist" ]; then
-    if [ "$ACME_VERSION" = "2" ] && [ -z "$ORDER_FINALIZE" ]; then
+    if [ "$ACME_VERSION" = "2" ]; then
       #make new order request
       _identifiers="{\"type\":\"dns\",\"value\":\"$_main_domain\"}"
       for d in $(echo "$_alt_domains" | tr ',' ' '); do
@@ -3477,17 +3487,17 @@ issue() {
         return 1
       fi
 
-      ORDER_FINALIZE="$(echo "$response" | tr -d '\r\n' | _egrep_o '"finalize" *: *"[^"]*"' | cut -d '"' -f 4)"
-      _debug ORDER_FINALIZE "$ORDER_FINALIZE"
-      if [ -z "$ORDER_FINALIZE" ]; then
-        _err "ORDER_FINALIZE not found."
+      Le_OrderFinalize="$(echo "$response" | tr -d '\r\n' | _egrep_o '"finalize" *: *"[^"]*"' | cut -d '"' -f 4)"
+      _debug Le_OrderFinalize "$Le_OrderFinalize"
+      if [ -z "$Le_OrderFinalize" ]; then
+        _err "Le_OrderFinalize not found."
         _clearup
         _on_issue_err "$_post_hook"
         return 1
       fi
 
       #for dns manual mode
-      _savedomainconf "ORDER_FINALIZE" "$ORDER_FINALIZE"
+      _savedomainconf "Le_OrderFinalize" "$Le_OrderFinalize"
 
       _authorizations_seg="$(echo "$response" | tr -d '\r\n' | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
       _debug2 _authorizations_seg "$_authorizations_seg"
@@ -3931,7 +3941,7 @@ $_authorizations_map"
   der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _url_replace)"
 
   if [ "$ACME_VERSION" = "2" ]; then
-    if ! _send_signed_request "${ORDER_FINALIZE}" "{\"csr\": \"$der\"}"; then
+    if ! _send_signed_request "${Le_OrderFinalize}" "{\"csr\": \"$der\"}"; then
       _err "Sign failed."
       _on_issue_err "$_post_hook"
       return 1
@@ -4632,7 +4642,11 @@ revoke() {
 
   _initAPI
 
-  data="{\"resource\": \"revoke-cert\", \"certificate\": \"$cert\"}"
+  if [ "$ACME_VERSION" = "2" ]; then
+    data="{\"certificate\": \"$cert\"}"
+  else
+    data="{\"resource\": \"revoke-cert\", \"certificate\": \"$cert\"}"
+  fi
   uri="${ACME_REVOKE_CERT}"
 
   if [ -f "$CERT_KEY_PATH" ]; then
@@ -4703,27 +4717,56 @@ _deactivate() {
   _d_type="$2"
   _initpath
 
-  if ! __get_domain_new_authz "$_d_domain"; then
-    _err "Can not get domain new authz token."
-    return 1
+  if [ "$ACME_VERSION" = "2" ]; then
+    _identifiers="{\"type\":\"dns\",\"value\":\"$_d_domain\"}"
+    if ! _send_signed_request "$ACME_NEW_ORDER" "{\"identifiers\": [$_identifiers]}"; then
+      _err "Can not get domain new order."
+      return 1
+    fi
+    _authorizations_seg="$(echo "$response" | tr -d '\r\n' | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
+    _debug2 _authorizations_seg "$_authorizations_seg"
+    if [ -z "$_authorizations_seg" ]; then
+      _err "_authorizations_seg not found."
+      _clearup
+      _on_issue_err "$_post_hook"
+      return 1
+    fi
+
+    authzUri="$_authorizations_seg"
+    _debug2 "authzUri" "$authzUri"
+    if ! response="$(_get "$authzUri")"; then
+      _err "get to authz error."
+      _clearup
+      _on_issue_err "$_post_hook"
+      return 1
+    fi
+
+    response="$(echo "$response" | _normalizeJson)"
+    _debug2 response "$response"
+    _URL_NAME="url"
+  else
+    if ! __get_domain_new_authz "$_d_domain"; then
+      _err "Can not get domain new authz token."
+      return 1
+    fi
+
+    authzUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
+    _debug "authzUri" "$authzUri"
+    if [ "$code" ] && [ ! "$code" = '201' ]; then
+      _err "new-authz error: $response"
+      return 1
+    fi
+    _URL_NAME="uri"
   fi
 
-  authzUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
-  _debug "authzUri" "$authzUri"
-
-  if [ "$code" ] && [ ! "$code" = '201' ]; then
-    _err "new-authz error: $response"
-    return 1
-  fi
-
-  entries="$(echo "$response" | _egrep_o '{ *"type":"[^"]*", *"status": *"valid", *"uri"[^}]*')"
+  entries="$(echo "$response" | _egrep_o "{ *\"type\":\"[^\"]*\", *\"status\": *\"valid\", *\"$_URL_NAME\"[^}]*")"
   if [ -z "$entries" ]; then
     _info "No valid entries found."
     if [ -z "$thumbprint" ]; then
       thumbprint="$(__calc_account_thumbprint)"
     fi
     _debug "Trigger validation."
-    vtype="$VTYPE_HTTP"
+    vtype="$VTYPE_DNS"
     entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
     _debug entry "$entry"
     if [ -z "$entry" ]; then
@@ -4733,7 +4776,7 @@ _deactivate() {
     token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
     _debug token "$token"
 
-    uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d : -f 2,3 | tr -d '"')"
+    uri="$(printf "%s\n" "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
     _debug uri "$uri"
 
     keyauthorization="$token.$thumbprint"
@@ -4759,7 +4802,7 @@ _deactivate() {
     _debug _vtype "$_vtype"
     _info "Found $_vtype"
 
-    uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d : -f 2,3 | tr -d '"')"
+    uri="$(printf "%s\n" "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
     _debug uri "$uri"
 
     if [ "$_d_type" ] && [ "$_d_type" != "$_vtype" ]; then
@@ -4769,7 +4812,13 @@ _deactivate() {
 
     _info "Deactivate: $_vtype"
 
-    if _send_signed_request "$authzUri" "{\"resource\": \"authz\", \"status\":\"deactivated\"}" && _contains "$response" '"deactivated"'; then
+    if [ "$ACME_VERSION" = "2" ]; then
+      _djson="{\"status\":\"deactivated\"}"
+    else
+      _djson="{\"resource\": \"authz\", \"status\":\"deactivated\"}"
+    fi
+
+    if _send_signed_request "$authzUri" "$_djson" && _contains "$response" '"deactivated"'; then
       _info "Deactivate: $_vtype success."
     else
       _err "Can not deactivate $_vtype."
@@ -5492,10 +5541,6 @@ _process() {
           fi
 
           if [ -z "$_domain" ]; then
-            if _startswith "$_dvalue" "*."; then
-              _err "The first domain can not be wildcard, '$_dvalue' is a wildcard domain."
-              return 1
-            fi
             _domain="$_dvalue"
           else
             if _startswith "$_dvalue" "*."; then
