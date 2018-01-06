@@ -51,11 +51,11 @@ dns_cf_add() {
     return 1
   fi
 
-# For wildcard cert, the main root domain and the wildcard domain have the same txt subdomain name, so
-# we can not use updating anymore.
-#  count=$(printf "%s\n" "$response" | _egrep_o "\"count\":[^,]*" | cut -d : -f 2)
-#  _debug count "$count"
-#  if [ "$count" = "0" ]; then
+  # For wildcard cert, the main root domain and the wildcard domain have the same txt subdomain name, so
+  # we can not use updating anymore.
+  #  count=$(printf "%s\n" "$response" | _egrep_o "\"count\":[^,]*" | cut -d : -f 2)
+  #  _debug count "$count"
+  #  if [ "$count" = "0" ]; then
   _info "Adding record"
   if _cf_rest POST "zones/$_domain_id/dns_records" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
     if printf -- "%s" "$response" | grep "$fulldomain" >/dev/null; then
@@ -68,19 +68,19 @@ dns_cf_add() {
   fi
   _err "Add txt record error."
   return 1
-#  else
-#    _info "Updating record"
-#    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | head -n 1)
-#    _debug "record_id" "$record_id"
-#
-#    _cf_rest PUT "zones/$_domain_id/dns_records/$record_id" "{\"id\":\"$record_id\",\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"zone_id\":\"$_domain_id\",\"zone_name\":\"$_domain\"}"
-#    if [ "$?" = "0" ]; then
-#      _info "Updated, OK"
-#      return 0
-#    fi
-#    _err "Update error"
-#    return 1
-#  fi
+  #  else
+  #    _info "Updating record"
+  #    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | head -n 1)
+  #    _debug "record_id" "$record_id"
+  #
+  #    _cf_rest PUT "zones/$_domain_id/dns_records/$record_id" "{\"id\":\"$record_id\",\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"zone_id\":\"$_domain_id\",\"zone_name\":\"$_domain\"}"
+  #    if [ "$?" = "0" ]; then
+  #      _info "Updated, OK"
+  #      return 0
+  #    fi
+  #    _err "Update error"
+  #    return 1
+  #  fi
 
 }
 
