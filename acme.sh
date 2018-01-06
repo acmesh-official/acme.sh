@@ -997,7 +997,7 @@ _createkey() {
 _is_idn() {
   _is_idn_d="$1"
   _debug2 _is_idn_d "$_is_idn_d"
-  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '0-9' | tr -d 'a-z' | tr -d 'A-Z' | tr -d '.,-')
+  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '0-9' | tr -d 'a-z' | tr -d 'A-Z' | tr -d '*.,-')
   _debug2 _idn_temp "$_idn_temp"
   [ "$_idn_temp" ]
 }
@@ -1055,7 +1055,7 @@ _createcsr() {
     domainlist="$(_idn "$domainlist")"
     _debug2 domainlist "$domainlist"
     if _contains "$domainlist" ","; then
-      alt="DNS:$domain,DNS:$(echo "$domainlist" | sed "s/,/,DNS:/g")"
+      alt="DNS:$domain,DNS:$(echo "$domainlist" | sed "s/,,/,/g" | sed "s/,/,DNS:/g")"
     else
       alt="DNS:$domain,DNS:$domainlist"
     fi
@@ -1663,7 +1663,7 @@ _get() {
   onlyheader="$2"
   t="$3"
   _debug url "$url"
-  _debug "timeout" "$t"
+  _debug "timeout=$t"
 
   _inithttp
 
@@ -2277,6 +2277,11 @@ _initpath() {
     CA_HOME="$DEFAULT_CA_HOME"
   fi
 
+  if [ "$ACME_VERSION" = "2" ]; then
+    DEFAULT_CA="$LETSENCRYPT_CA_V2"
+    DEFAULT_STAGING_CA="$LETSENCRYPT_STAGING_CA_V2"
+  fi
+
   if [ -z "$ACME_DIRECTORY" ]; then
     if [ -z "$STAGE" ]; then
       ACME_DIRECTORY="$DEFAULT_CA"
@@ -2863,7 +2868,11 @@ _clearupdns() {
         return 1
       fi
 
-      txtdomain="_acme-challenge.$d"
+      _dns_root_d="$d"
+      if _startswith "$_dns_root_d" "*."; then
+        _dns_root_d="$(echo "$_dns_root_d" | sed 's/*.//')"
+      fi
+      txtdomain="_acme-challenge.$_dns_root_d"
 
       if ! $rmcommand "$txtdomain" "$txt"; then
         _err "Error removing txt for domain:$txtdomain"
@@ -3503,6 +3512,9 @@ issue() {
         response="$(echo "$response" | _normalizeJson)"
         _debug2 response "$response"
         _d="$(echo "$response" | _egrep_o '"value" *: *"[^"]*"' | cut -d : -f 2 | tr -d ' "')"
+        if _contains "$response" "\"wildcard\" *: *true"; then
+          _d="*.$_d"
+        fi
         _debug2 _d "$_d"
         _authorizations_map="$_d,$response
 $_authorizations_map"
@@ -3600,7 +3612,7 @@ $_authorizations_map"
       keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
       vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
       _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
-
+      _debug d "$d"
       if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
         _debug "$d is already verified, skip $vtype."
         continue
@@ -3608,12 +3620,16 @@ $_authorizations_map"
 
       if [ "$vtype" = "$VTYPE_DNS" ]; then
         dnsadded='0'
-        txtdomain="_acme-challenge.$d"
+        _dns_root_d="$d"
+        if _startswith "$_dns_root_d" "*."; then
+          _dns_root_d="$(echo "$_dns_root_d" | sed 's/*.//')"
+        fi
+        txtdomain="_acme-challenge.$_dns_root_d"
         _debug txtdomain "$txtdomain"
         txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
         _debug txt "$txt"
 
-        d_api="$(_findHook "$d" dnsapi "$_currentRoot")"
+        d_api="$(_findHook "$_dns_root_d" dnsapi "$_currentRoot")"
 
         _debug d_api "$d_api"
 
@@ -5476,8 +5492,16 @@ _process() {
           fi
 
           if [ -z "$_domain" ]; then
+            if _startswith "$_dvalue" "*."; then
+              _err "The first domain can not be wildcard, '$_dvalue' is a wildcard domain."
+              return 1
+            fi
             _domain="$_dvalue"
           else
+            if _startswith "$_dvalue" "*."; then
+              _debug "Wildcard domain"
+              export ACME_VERSION=2
+            fi
             if [ "$_altdomains" = "$NO_VALUE" ]; then
               _altdomains="$_dvalue"
             else
