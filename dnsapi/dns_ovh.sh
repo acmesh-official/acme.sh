@@ -78,7 +78,6 @@ _ovh_get_api() {
   esac
 }
 
-
 _initAuth() {
   if [ -z "$OVH_AK" ] || [ -z "$OVH_AS" ]; then
     OVH_AK=""
@@ -181,7 +180,7 @@ dns_ovh_rm() {
     return 1
   fi
 
-  for rid in $(echo "$response" | tr '[,]' '   '); do
+  for rid in $(echo "$response" | tr '][,' '   '); do
     _debug rid "$rid"
     if ! _ovh_rest GET "domain/zone/$_domain/record/$rid"; then
       return 1
