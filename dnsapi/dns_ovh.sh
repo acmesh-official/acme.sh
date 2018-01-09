@@ -114,8 +114,7 @@ _initAuth() {
 
   _info "Checking authentication"
 
-  response="$(_ovh_rest GET "domain")"
-  if _contains "$response" "INVALID_CREDENTIAL"; then
+  if ! _ovh_rest GET "domain" || _contains "$response" "INVALID_CREDENTIAL"; then
     _err "The consumer key is invalid: $OVH_CK"
     _err "Please retry to create a new one."
     _clearaccountconf OVH_CK
@@ -150,8 +149,7 @@ dns_ovh_add() {
     if _contains "$response" "$txtvalue"; then
       _ovh_rest POST "domain/zone/$_domain/refresh"
       _debug "Refresh:$response"
-      _info "Added, sleeping 10 seconds"
-      sleep 10
+      _info "Added"
       return 0
     fi
   fi
@@ -303,8 +301,8 @@ _ovh_rest() {
     response="$(_get "$_ovh_url")"
   fi
 
-  if [ "$?" != "0" ]; then
-    _err "error $ep"
+  if [ "$?" != "0" ] || _contains "$response" "INVALID_CREDENTIAL"; then
+    _err "error $response"
     return 1
   fi
   _debug2 response "$response"
