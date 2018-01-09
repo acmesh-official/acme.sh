@@ -149,7 +149,8 @@ dns_ovh_add() {
     if _contains "$response" "$txtvalue"; then
       _ovh_rest POST "domain/zone/$_domain/refresh"
       _debug "Refresh:$response"
-      _info "Added"
+      _info "Added, sleep 10 seconds."
+      _sleep 10
       return 0
     fi
   fi
