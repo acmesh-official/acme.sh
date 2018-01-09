@@ -137,48 +137,27 @@ dns_ovh_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  _debug "Getting txt records"
-  _ovh_rest GET "domain/zone/$_domain/record?fieldType=TXT&subDomain=$_sub_domain"
-
-  if _contains "$response" '\[\]' || _contains "$response" "This service does not exist"; then
-    _info "Adding record"
-    if _ovh_rest POST "domain/zone/$_domain/record" "{\"fieldType\":\"TXT\",\"subDomain\":\"$_sub_domain\",\"target\":\"$txtvalue\",\"ttl\":60}"; then
-      if _contains "$response" "$txtvalue"; then
-        _ovh_rest POST "domain/zone/$_domain/refresh"
-        _debug "Refresh:$response"
-        _info "Added, sleeping 10 seconds"
-        sleep 10
-        return 0
-      fi
+  _info "Adding record"
+  if _ovh_rest POST "domain/zone/$_domain/record" "{\"fieldType\":\"TXT\",\"subDomain\":\"$_sub_domain\",\"target\":\"$txtvalue\",\"ttl\":60}"; then
+    if _contains "$response" "$txtvalue"; then
+      _ovh_rest POST "domain/zone/$_domain/refresh"
+      _debug "Refresh:$response"
+      _info "Added, sleeping 10 seconds"
+      sleep 10
+      return 0
     fi
-    _err "Add txt record error."
-  else
-    _info "Updating record"
-    record_id=$(printf "%s" "$response" | tr -d "[]" | cut -d , -f 1)
-    if [ -z "$record_id" ]; then
-      _err "Can not get record id."
-      return 1
-    fi
-    _debug "record_id" "$record_id"
-
-    if _ovh_rest PUT "domain/zone/$_domain/record/$record_id" "{\"target\":\"$txtvalue\",\"subDomain\":\"$_sub_domain\",\"ttl\":60}"; then
-      if _contains "$response" "null"; then
-        _ovh_rest POST "domain/zone/$_domain/refresh"
-        _debug "Refresh:$response"
-        _info "Updated, sleeping 10 seconds"
-        sleep 10
-        return 0
-      fi
-    fi
-    _err "Update error"
-    return 1
   fi
+  _err "Add txt record error."
+  return 1
 
 }
 
 #fulldomain
 dns_ovh_rm() {
   fulldomain=$1
+  txtvalue=$2
+  _debug "Getting txt records"
+  #_ovh_rest GET "domain/zone/$_domain/record?fieldType=TXT&subDomain=$_sub_domain"
 
 }
 
