@@ -3340,10 +3340,6 @@ issue() {
   _main_domain="$2"
   _alt_domains="$3"
 
-  if _startswith "$_main_domain" "*."; then
-    _err "The first domain can not be wildcard, '$_main_domain' is a wildcard domain."
-    return 1
-  fi
   if _contains "$_main_domain" ","; then
     _main_domain=$(echo "$2,$3" | cut -d , -f 1)
     _alt_domains=$(echo "$2,$3" | cut -d , -f 2- | sed "s/,${NO_VALUE}$//")
@@ -5539,13 +5535,13 @@ _process() {
             return 1
           fi
 
+          if _startswith "$_dvalue" "*."; then
+            _debug "Wildcard domain"
+            export ACME_VERSION=2
+          fi
           if [ -z "$_domain" ]; then
             _domain="$_dvalue"
           else
-            if _startswith "$_dvalue" "*."; then
-              _debug "Wildcard domain"
-              export ACME_VERSION=2
-            fi
             if [ "$_altdomains" = "$NO_VALUE" ]; then
               _altdomains="$_dvalue"
             else
