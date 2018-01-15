@@ -651,7 +651,21 @@ acme.sh --issue --dns dns_servercow -d example.com -d www.example.com
 ```
 Both, `SERVERCOW_API_Username` and `SERVERCOW_API_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-##35. Use DNSEver (https://www.dnsever.com/)
+## 35. Use Namesilo.com API
+
+You'll need to generate an API key at https://www.namesilo.com/account_api.php
+Optionally you may restrict the access to an IP range there.
+
+```
+export Namesilo_Key="xxxxxxxxxxxxxxxxxxxxxxxx"
+```
+
+And now you can issue certs with:
+
+```
+acme.sh --issue --dns dns_namesilo --dnssleep 900 -d example.com -d www.example.com
+```
+## 36. Use DNSEver (https://www.dnsever.com/)
 
 You will need your login credentials (ID+PW) to the DNSEver, and export them before you run acme.sh:
 ```
