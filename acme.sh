@@ -3474,7 +3474,6 @@ issue() {
       #make new order request
       _identifiers="{\"type\":\"dns\",\"value\":\"$_main_domain\"}"
       for d in $(echo "$_alt_domains" | tr ',' ' '); do
-        #todo: check wildcard ?
         if [ "$d" ]; then
           _identifiers="$_identifiers,{\"type\":\"dns\",\"value\":\"$d\"}"
         fi
