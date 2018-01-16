@@ -50,8 +50,8 @@ NGINX="nginx:"
 NGINX_START="#ACME_NGINX_START"
 NGINX_END="#ACME_NGINX_END"
 
-BEGIN_CSR="-----BEGIN CERTIFICATE REQUEST-----"
-END_CSR="-----END CERTIFICATE REQUEST-----"
+BEGIN_CSR="-----BEGIN( NEW)? CERTIFICATE REQUEST-----"
+END_CSR="-----END( NEW)? CERTIFICATE REQUEST-----"
 
 BEGIN_CERT="-----BEGIN CERTIFICATE-----"
 END_CERT="-----END CERTIFICATE-----"
@@ -798,7 +798,7 @@ _getfile() {
     return 1
   fi
 
-  i="$(grep -n -- "$startline" "$filename" | cut -d : -f 1)"
+  i="$(grep -n -E -- "$startline" "$filename" | cut -d : -f 1)"
   if [ -z "$i" ]; then
     _err "Can not find start line: $startline"
     return 1
@@ -806,7 +806,7 @@ _getfile() {
   i="$(_math "$i" + 1)"
   _debug i "$i"
 
-  j="$(grep -n -- "$endline" "$filename" | cut -d : -f 1)"
+  j="$(grep -n -E -- "$endline" "$filename" | cut -d : -f 1)"
   if [ -z "$j" ]; then
     _err "Can not find end line: $endline"
     return 1
