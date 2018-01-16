@@ -2259,6 +2259,8 @@ _initAPI() {
 
 #[domain]  [keylength or isEcc flag]
 _initpath() {
+  domain="$1"
+  _ilength="$2"
 
   __initHome
 
@@ -2346,12 +2348,9 @@ _initpath() {
     ACME_OPENSSL_BIN="$DEFAULT_OPENSSL_BIN"
   fi
 
-  if [ -z "$1" ]; then
+  if [ -z "$domain" ]; then
     return 0
   fi
-
-  domain="$1"
-  _ilength="$2"
 
   if [ -z "$DOMAIN_PATH" ]; then
     domainhome="$CERT_HOME/$domain"
@@ -4234,8 +4233,6 @@ signcsr() {
     return 1
   fi
 
-  _initpath
-
   _csrsubj=$(_readSubjectFromCSR "$_csrfile")
   if [ "$?" != "0" ]; then
     _err "Can not read subject from csr: $_csrfile"
@@ -4272,6 +4269,9 @@ signcsr() {
     return 1
   fi
 
+  if [ -z "$ACME_VERSION" ] && _contains "$_csrsubj,$_csrdomainlist" "*."; then
+    export ACME_VERSION=2
+  fi
   _initpath "$_csrsubj" "$_csrkeylength"
   mkdir -p "$DOMAIN_PATH"
 
