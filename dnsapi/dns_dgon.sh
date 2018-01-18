@@ -112,11 +112,11 @@ dns_dgon_rm() {
     domain_list="$(_get "$GURL")"
     ## 2) find record
     ## check for what we are looing for: "type":"A","name":"$_sub_domain"
-    record="$(echo "$domain_list" | _egrep_o "\"id\"\s*\:\s*\"*[[:digit:]]+\"*[^}]*\"name\"\s*\:\s*\"$_sub_domain\"[^}]*\"data\"\s*\:\s*\"$txtvalue\"")"
+    record="$(echo "$domain_list" | _egrep_o "\"id\"\s*\:\s*\"*[0-9]+\"*[^}]*\"name\"\s*\:\s*\"$_sub_domain\"[^}]*\"data\"\s*\:\s*\"$txtvalue\"")"
     ## 3) check record and get next page
     if [ -z "$record" ]; then
       ## find the next page if we dont have a match
-      nextpage="$(echo "$domain_list" | _egrep_o "\"links\".*" | _egrep_o "\"next\".*" | _egrep_o "http.*page\=[[:digit:]]+")"
+      nextpage="$(echo "$domain_list" | _egrep_o "\"links\".*" | _egrep_o "\"next\".*" | _egrep_o "http.*page\=[0-9]+")"
       if [ -z "$nextpage" ]; then
         _err "no record and no nextpage in digital ocean DNS removal"
         return 1
@@ -128,7 +128,7 @@ dns_dgon_rm() {
   done
 
   ## we found the record
-  rec_id="$(echo "$record" | _egrep_o "id\"\s*\:\s*\"*[[:digit:]]+" | _egrep_o "[[:digit:]]+")"
+  rec_id="$(echo "$record" | _egrep_o "id\"\s*\:\s*\"*[0-9]+" | _egrep_o "[0-9]+")"
   _debug rec_id "$rec_id"
 
   ## delete the record
