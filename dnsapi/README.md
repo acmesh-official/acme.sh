@@ -666,7 +666,7 @@ And now you can issue certs with:
 acme.sh --issue --dns dns_namesilo --dnssleep 900 -d example.com -d www.example.com
 ```
 
-## 37. Use autoDNS (InternetX)
+## 36. Use autoDNS (InternetX)
 
 [InternetX](https://www.internetx.com/) offers an [xml api](https://help.internetx.com/display/API/AutoDNS+XML-API)  with your standard login credentials, set them like so:
 
