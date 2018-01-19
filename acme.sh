@@ -2548,10 +2548,7 @@ _setNginx() {
   _d="$1"
   _croot="$2"
   _thumbpt="$3"
-  if ! _exists "nginx"; then
-    _err "nginx command is not found."
-    return 1
-  fi
+
   FOUND_REAL_NGINX_CONF=""
   FOUND_REAL_NGINX_CONF_LN=""
   BACKUP_NGINX_CONF=""
@@ -2561,6 +2558,10 @@ _setNginx() {
   if [ -z "$_start_f" ]; then
     _debug "find start conf from nginx command"
     if [ -z "$NGINX_CONF" ]; then
+      if ! _exists "nginx"; then
+        _err "nginx command is not found."
+        return 1
+      fi
       NGINX_CONF="$(nginx -V 2>&1 | _egrep_o "--conf-path=[^ ]* " | tr -d " ")"
       _debug NGINX_CONF "$NGINX_CONF"
       NGINX_CONF="$(echo "$NGINX_CONF" | cut -d = -f 2)"
@@ -2605,6 +2606,10 @@ _setNginx() {
     return 1
   fi
 
+  if ! _exists "nginx"; then
+    _err "nginx command is not found."
+    return 1
+  fi
   _info "Check the nginx conf before setting up."
   if ! _exec "nginx -t" >/dev/null; then
     _exec_err
@@ -5510,7 +5515,7 @@ _process() {
         HTTPS_INSECURE="1"
         ;;
       --ca-bundle)
-        _ca_bundle="$(_readlink -f "$2")"
+        _ca_bundle="$(_readlink "$2")"
         CA_BUNDLE="$_ca_bundle"
         shift
         ;;

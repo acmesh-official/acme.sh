@@ -19,6 +19,8 @@ dns_aws_add() {
   fulldomain=$1
   txtvalue=$2
 
+  AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-$(_readaccountconf_mutable AWS_ACCESS_KEY_ID)}"
+  AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     AWS_ACCESS_KEY_ID=""
     AWS_SECRET_ACCESS_KEY=""
@@ -27,10 +29,9 @@ dns_aws_add() {
     return 1
   fi
 
-  if [ -z "$AWS_SESSION_TOKEN" ]; then
-    _saveaccountconf AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
-    _saveaccountconf AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
-  fi
+  #save for future use
+  _saveaccountconf_mutable AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
+  _saveaccountconf_mutable AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -56,6 +57,8 @@ dns_aws_rm() {
   fulldomain=$1
   txtvalue=$2
 
+  AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-$(_readaccountconf_mutable AWS_ACCESS_KEY_ID)}"
+  AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
