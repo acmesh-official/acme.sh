@@ -2702,7 +2702,7 @@ _isRealNginxConf() {
     for _fln in $(tr "\t" ' ' <"$2" | grep -n "^ *server_name.* $1" | cut -d : -f 1); do
       _debug _fln "$_fln"
       if [ "$_fln" ]; then
-        _start=$(tr "\t" ' ' <"$2" | _head_n "$_fln" | grep -n "^ *server *{" | _tail_n 1)
+        _start=$(tr "\t" ' ' <"$2" | _head_n "$_fln" | grep -n "^ *server *" | grep -v server_name | _tail_n 1)
         _debug "_start" "$_start"
         _start_n=$(echo "$_start" | cut -d : -f 1)
         _start_nn=$(_math $_start_n + 1)
@@ -2711,8 +2711,8 @@ _isRealNginxConf() {
 
         _left="$(sed -n "${_start_nn},99999p" "$2")"
         _debug2 _left "$_left"
-        if echo "$_left" | tr "\t" ' ' | grep -n "^ *server *{" >/dev/null; then
-          _end=$(echo "$_left" | tr "\t" ' ' | grep -n "^ *server *{" | _head_n 1)
+        if echo "$_left" | tr "\t" ' ' | grep -n "^ *server *" >/dev/null; then
+          _end=$(echo "$_left" | tr "\t" ' ' | grep -n "^ *server *" | _head_n 1)
           _debug "_end" "$_end"
           _end_n=$(echo "$_end" | cut -d : -f 1)
           _debug "_end_n" "$_end_n"
@@ -2723,8 +2723,20 @@ _isRealNginxConf() {
 
         _debug "_seg_n" "$_seg_n"
 
-        if [ "$(echo "$_seg_n" | _egrep_o "^ *ssl  *on *;")" ] \
-          || [ "$(echo "$_seg_n" | _egrep_o "listen .* ssl[ |;]")" ]; then
+        _skip_ssl=1
+        for _listen_i in $(echo "$_seg_n" | grep "^ *listen" | tr -d " "); do
+          if [ "$_listen_i" ]; then
+            if [ "$(echo "$_listen_i" | _egrep_o "listen.*ssl[ |;]")" ]; then
+              _debug2 "$_listen_i is ssl"
+            else
+              _debug2 "$_listen_i is plain text"
+              _skip_ssl=""
+              break;
+            fi          
+          fi
+        done
+
+        if [ "$_skip_ssl" = "1" ]; then
           _debug "ssl on, skip"
         else
           FOUND_REAL_NGINX_CONF_LN=$_fln
