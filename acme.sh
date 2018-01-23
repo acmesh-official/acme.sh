@@ -2731,8 +2731,8 @@ _isRealNginxConf() {
             else
               _debug2 "$_listen_i is plain text"
               _skip_ssl=""
-              break;
-            fi          
+              break
+            fi
           fi
         done
 
