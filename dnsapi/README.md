@@ -686,7 +686,7 @@ The `AUTODNS_USER`, `AUTODNS_PASSWORD` and `AUTODNS_CONTEXT` settings will be sa
 
 ## 37. Use Azure DNS
 
-You have to create a service principal first. See: https://github.com/Neilpang/acme.sh/wiki/How-to-use-AzureDns-API
+You have to create a service principal first. See:[How to use Azure DNS](../../../wiki/How-to-use-Azure-DNS)
 
 ```
 export AZUREDNS_SUBSCRIPTIONID="12345678-9abc-def0-1234-567890abcdef"
