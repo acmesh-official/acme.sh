@@ -684,6 +684,25 @@ acme.sh --issue --dns dns_autodns -d example.com -d www.example.com
 
 The `AUTODNS_USER`, `AUTODNS_PASSWORD` and `AUTODNS_CONTEXT` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 37. Use Azure DNS
+
+You have to create a service principal first. See: https://github.com/Neilpang/acme.sh/wiki/How-to-use-AzureDns-API
+
+```
+export AZUREDNS_SUBSCRIPTIONID="12345678-9abc-def0-1234-567890abcdef"
+export AZUREDNS_TENANTID="11111111-2222-3333-4444-555555555555"
+export AZUREDNS_APPID="3b5033b5-7a66-43a5-b3b9-a36b9e7c25ed"
+export AZUREDNS_CLIENTSECRET="1b0224ef-34d4-5af9-110f-77f527d561bd"
+```
+
+Then you can issue your certificates with:
+
+```
+acme.sh --issue --dns dns_azure -d example.com -d www.example.com
+```
+
+`AZUREDNS_SUBSCRIPTIONID`, `AZUREDNS_TENANTID`,`AZUREDNS_APPID` and `AZUREDNS_CLIENTSECRET` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
