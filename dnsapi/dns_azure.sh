@@ -73,7 +73,11 @@ dns_azure_add()
    _debug $acmeRecordURI
    body="{\"properties\": {\"TTL\": 3600, \"TXTRecords\": [{\"value\": [\"$txtvalue\"]}]}}"
    _azure_rest PUT "$acmeRecordURI" "$body" "$accesstoken"
-   _debug $response
+   if [ "$_code" = "200" ] || [ "$code" = '201' ]; then
+        _info "validation record added"
+   else
+        _err "error adding validation record ($_code)"
+   fi   
 }
 
 # Usage: fulldomain txtvalue
@@ -141,7 +145,11 @@ dns_azure_rm()
    _debug $acmeRecordURI
    body="{\"properties\": {\"TTL\": 3600, \"TXTRecords\": [{\"value\": [\"$txtvalue\"]}]}}"
    _azure_rest DELETE "$acmeRecordURI" "" "$accesstoken"
-   _debug $response
+    if [ "$_code" = "200" ] || [ "$code" = '204' ]; then
+        _info "validation record removed"
+    else
+        _err "error removing validation record ($_code)"
+    fi   
 }
 
 ###################  Private functions below ##################################
@@ -168,6 +176,10 @@ _azure_rest() {
     response="$(_get "$ep")"
    fi
    _debug2 response "$response"
+
+   _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
+   _debug2 "http response code $_code"   
+   
    if [ "$?" != "0" ]; then
     _err "error $ep"
     return 1
@@ -189,13 +201,18 @@ _azure_getaccess_token() {
    _debug data "$body"
    response="$(_post "$body" "https://login.windows.net/$TENANTID/oauth2/token" "" "POST" )"
    accesstoken=$(printf "%s\n" "$response" | _egrep_o "\"access_token\":\"[^\"]*\"" | head -n 1 | cut -d : -f 2 | tr -d \")
-
+   _debug2 "response $response"
+   
+   if [ -Z "$accesstoken" ] ; then 
+     _err "no acccess token received"
+     return 1    
+   fi
    if [ "$?" != "0" ]; then
      _err "error $response"
      return 1
    fi
    printf $accesstoken
-   _debug2 response "$response"
+
    return 0
 }
 
