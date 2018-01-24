@@ -77,6 +77,7 @@ dns_azure_add()
         _info "validation record added"
    else
         _err "error adding validation record ($_code)"
+        return 1
    fi   
 }
 
@@ -149,6 +150,7 @@ dns_azure_rm()
         _info "validation record removed"
     else
         _err "error removing validation record ($_code)"
+        return 1
     fi   
 }
 
@@ -160,15 +162,11 @@ _azure_rest() {
    data="$3"
    accesstoken="$4"
 
-   _debug "$ep"
-
    export _H1="authorization: Bearer $accesstoken"
    export _H2="accept: application/json"
    export _H3="Content-Type: application/json"
-   _H1="authorization: Bearer $accesstoken"
-   _H2="accept: application/json"
-   _H3="Content-Type: application/json"
-
+   
+   _debug "$ep"
    if [ "$m" != "GET" ]; then
     _debug data "$data"
     response="$(_post "$data" "$ep" "" "$m")"
@@ -195,7 +193,6 @@ _azure_getaccess_token() {
 
    export _H1="accept: application/json"
    export _H2="Content-Type: application/x-www-form-urlencoded"
-   export _H3=""
 
    body="resource=$(printf "%s" 'https://management.core.windows.net/'| _url_encode)&client_id=$(printf "%s" $clientID | _url_encode)&client_secret=$(printf "%s" $clientSecret| _url_encode)&grant_type=client_credentials"
    _debug data "$body"
@@ -203,7 +200,7 @@ _azure_getaccess_token() {
    accesstoken=$(printf "%s\n" "$response" | _egrep_o "\"access_token\":\"[^\"]*\"" | head -n 1 | cut -d : -f 2 | tr -d \")
    _debug2 "response $response"
    
-   if [ -Z "$accesstoken" ] ; then 
+   if [ -z "$accesstoken" ] ; then 
      _err "no acccess token received"
      return 1    
    fi
