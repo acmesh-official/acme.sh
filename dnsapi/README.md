@@ -703,6 +703,23 @@ acme.sh --issue --dns dns_azure -d example.com -d www.example.com
 
 `AZUREDNS_SUBSCRIPTIONID`, `AZUREDNS_TENANTID`,`AZUREDNS_APPID` and `AZUREDNS_CLIENTSECRET` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 38. Use selectel.com(selectel.ru) domain API to automatically issue cert
+
+First you need to login to your account to get your API key from: https://my.selectel.ru/profile/apikeys.
+
+```sh
+export SL_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_selectel -d example.com -d www.example.com
+```
+
+The `SL_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
