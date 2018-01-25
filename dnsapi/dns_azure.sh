@@ -29,9 +29,9 @@ dns_azure_add() {
     AZUREDNS_SUBSCRIPTIONID=""
     AZUREDNS_TENANTID=""
     AZUREDNS_APPID=""
-     AZUREDNS_CLIENTSECRET=""
-     _err "You didn't specify then Azure Tenant ID "
-     return 1
+    AZUREDNS_CLIENTSECRET=""
+    _err "You didn't specify then Azure Tenant ID "
+    return 1
   fi
 
   if [ -z "$AZUREDNS_APPID" ] ; then
@@ -194,7 +194,7 @@ _azure_getaccess_token() {
   body="resource=$(printf "%s" 'https://management.core.windows.net/'| _url_encode)&client_id=$(printf "%s" "$clientID" | _url_encode)&client_secret=$(printf "%s" "$clientSecret"| _url_encode)&grant_type=client_credentials"
   _debug data "$body"
   response="$(_post "$body" "https://login.windows.net/$TENANTID/oauth2/token" "" "POST" )"
-  accesstoken=$(printf "%s\n" "$response" | _egrep_o "\"access_token\":\"[^\"]*\"" | head -n 1 | cut -d : -f 2 | tr -d \")
+  accesstoken=$(echo "$response" | _egrep_o "\"access_token\":\"[^\"]*\"" | head -n 1 | cut -d : -f 2 | tr -d \")
   _debug2 "response $response"
 
   if [ -z "$accesstoken" ] ; then 
@@ -234,7 +234,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
-      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\{\"id\":\"[^\"]*$h\"" | head -n 1 | cut -d : -f 2 | tr -d \")
+      _domain_id=$(echo "$response" | _egrep_o "\{\"id\":\"[^\"]*$h\"" | head -n 1 | cut -d : -f 2 | tr -d \")
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain=$h
