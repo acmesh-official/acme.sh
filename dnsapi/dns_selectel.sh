@@ -36,7 +36,7 @@ dns_selectel_add() {
 
   _info "Adding record"
   if _sl_rest POST "/$_domain_id/records/" "{\"type\": \"TXT\", \"ttl\": 60, \"name\": \"$fulldomain\", \"content\": \"$txtvalue\"}"; then
-    if _contains "$response" "$txtvalue"; then
+    if _contains "$response" "$txtvalue" || _contains "$response" "record_already_exists"; then
       _info "Added, OK"
       return 0
     fi
