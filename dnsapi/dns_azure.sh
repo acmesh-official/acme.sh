@@ -146,7 +146,7 @@ dns_azure_rm()
    _debug "$acmeRecordURI"
    body="{\"properties\": {\"TTL\": 3600, \"TXTRecords\": [{\"value\": [\"$txtvalue\"]}]}}"
    _azure_rest DELETE "$acmeRecordURI" "" "$accesstoken"
-    if [ "$_code" = "200" ] || [ "$code" = '204' ]; then
+    if [ "$_code" = "200" ] || [ "$_code" = '204' ]; then
         _info "validation record removed"
     else
         _err "error removing validation record ($_code)"
@@ -208,7 +208,7 @@ _azure_getaccess_token() {
      _err "error $response"
      return 1
    fi
-   printf "$accesstoken"
+   printf "%s" "$accesstoken"
 
    return 0
 }
