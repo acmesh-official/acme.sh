@@ -69,11 +69,11 @@ dns_azure_add()
    _debug _sub_domain "$_sub_domain"
    _debug _domain "$_domain"
 
-   acmeRecordURI="https://management.azure.com$(printf '%s' $_domain_id |sed 's/\\//g')/TXT/$_sub_domain?api-version=2017-09-01"
-   _debug $acmeRecordURI
+   acmeRecordURI="https://management.azure.com$(printf '%s' "$_domain_id" |sed 's/\\//g')/TXT/$_sub_domain?api-version=2017-09-01"
+   _debug "$acmeRecordURI"
    body="{\"properties\": {\"TTL\": 3600, \"TXTRecords\": [{\"value\": [\"$txtvalue\"]}]}}"
    _azure_rest PUT "$acmeRecordURI" "$body" "$accesstoken"
-   if [ "$_code" = "200" ] || [ "$code" = '201' ]; then
+   if [ "$_code" = "200" ] || [ "$_code" = '201' ]; then
         _info "validation record added"
    else
         _err "error adding validation record ($_code)"
@@ -142,8 +142,8 @@ dns_azure_rm()
    _debug _sub_domain "$_sub_domain"
    _debug _domain "$_domain"
 
-   acmeRecordURI="https://management.azure.com$(printf '%s' $_domain_id |sed 's/\\//g')/TXT/$_sub_domain?api-version=2017-09-01"
-   _debug $acmeRecordURI
+   acmeRecordURI="https://management.azure.com$(printf '%s' "$_domain_id" |sed 's/\\//g')/TXT/$_sub_domain?api-version=2017-09-01"
+   _debug "$acmeRecordURI"
    body="{\"properties\": {\"TTL\": 3600, \"TXTRecords\": [{\"value\": [\"$txtvalue\"]}]}}"
    _azure_rest DELETE "$acmeRecordURI" "" "$accesstoken"
     if [ "$_code" = "200" ] || [ "$code" = '204' ]; then
@@ -194,7 +194,7 @@ _azure_getaccess_token() {
    export _H1="accept: application/json"
    export _H2="Content-Type: application/x-www-form-urlencoded"
 
-   body="resource=$(printf "%s" 'https://management.core.windows.net/'| _url_encode)&client_id=$(printf "%s" $clientID | _url_encode)&client_secret=$(printf "%s" $clientSecret| _url_encode)&grant_type=client_credentials"
+   body="resource=$(printf "%s" 'https://management.core.windows.net/'| _url_encode)&client_id=$(printf "%s" "$clientID" | _url_encode)&client_secret=$(printf "%s" "$clientSecret"| _url_encode)&grant_type=client_credentials"
    _debug data "$body"
    response="$(_post "$body" "https://login.windows.net/$TENANTID/oauth2/token" "" "POST" )"
    accesstoken=$(printf "%s\n" "$response" | _egrep_o "\"access_token\":\"[^\"]*\"" | head -n 1 | cut -d : -f 2 | tr -d \")
@@ -208,7 +208,7 @@ _azure_getaccess_token() {
      _err "error $response"
      return 1
    fi
-   printf $accesstoken
+   printf "$accesstoken"
 
    return 0
 }
@@ -225,7 +225,7 @@ _get_root() {
    ## (ZoneListResult with  continuation token for the next page of results)
    ## Per https://docs.microsoft.com/en-us/azure/azure-subscription-service-limits#dns-limits you are limited to 100 Zone/subscriptions anyways
    ##
-   _azure_rest GET "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Network/dnszones?api-version=2017-09-01" "" $accesstoken
+   _azure_rest GET "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Network/dnszones?api-version=2017-09-01" "" "$accesstoken"
 
    # Find matching domain name is Json response
    while true; do
