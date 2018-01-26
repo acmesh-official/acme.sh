@@ -42,7 +42,7 @@ dns_selectel_add() {
     fi
   fi
   _err "Add txt record error."
-  return 1 
+  return 1
 }
 
 #fulldomain txtvalue
@@ -94,7 +94,7 @@ dns_selectel_rm() {
     _err "Delete record error."
     return 1
   fi
-  return 0;
+  return 0
 }
 
 ####################  Private functions below ##################################

@@ -15,7 +15,7 @@ dns_azure_add() {
   AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
   AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
   AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
-  
+
   if [ -z "$AZUREDNS_SUBSCRIPTIONID" ]; then
     AZUREDNS_SUBSCRIPTIONID=""
     AZUREDNS_TENANTID=""
@@ -25,7 +25,7 @@ dns_azure_add() {
     return 1
   fi
 
-  if [ -z "$AZUREDNS_TENANTID" ] ; then
+  if [ -z "$AZUREDNS_TENANTID" ]; then
     AZUREDNS_SUBSCRIPTIONID=""
     AZUREDNS_TENANTID=""
     AZUREDNS_APPID=""
@@ -34,7 +34,7 @@ dns_azure_add() {
     return 1
   fi
 
-  if [ -z "$AZUREDNS_APPID" ] ; then
+  if [ -z "$AZUREDNS_APPID" ]; then
     AZUREDNS_SUBSCRIPTIONID=""
     AZUREDNS_TENANTID=""
     AZUREDNS_APPID=""
@@ -59,15 +59,15 @@ dns_azure_add() {
 
   accesstoken=$(_azure_getaccess_token "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
 
-  if ! _get_root "$fulldomain"  "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
-   _err "invalid domain"
-   return 1
+  if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
+    _err "invalid domain"
+    return 1
   fi
   _debug _domain_id "$_domain_id"
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  acmeRecordURI="https://management.azure.com$(printf '%s' "$_domain_id" |sed 's/\\//g')/TXT/$_sub_domain?api-version=2017-09-01"
+  acmeRecordURI="https://management.azure.com$(printf '%s' "$_domain_id" | sed 's/\\//g')/TXT/$_sub_domain?api-version=2017-09-01"
   _debug "$acmeRecordURI"
   body="{\"properties\": {\"TTL\": 3600, \"TXTRecords\": [{\"value\": [\"$txtvalue\"]}]}}"
   _azure_rest PUT "$acmeRecordURI" "$body" "$accesstoken"
@@ -76,7 +76,7 @@ dns_azure_add() {
   else
     _err "error adding validation record ($_code)"
     return 1
-  fi   
+  fi
 }
 
 # Usage: fulldomain txtvalue
@@ -102,7 +102,7 @@ dns_azure_rm() {
     return 1
   fi
 
-  if [ -z "$AZUREDNS_TENANTID" ] ; then
+  if [ -z "$AZUREDNS_TENANTID" ]; then
     AZUREDNS_SUBSCRIPTIONID=""
     AZUREDNS_TENANTID=""
     AZUREDNS_APPID=""
@@ -111,7 +111,7 @@ dns_azure_rm() {
     return 1
   fi
 
-  if [ -z "$AZUREDNS_APPID" ]  ;then
+  if [ -z "$AZUREDNS_APPID" ];then
     AZUREDNS_SUBSCRIPTIONID=""
     AZUREDNS_TENANTID=""
     AZUREDNS_APPID=""
@@ -131,15 +131,15 @@ dns_azure_rm() {
 
   accesstoken=$(_azure_getaccess_token "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
 
-  if ! _get_root "$fulldomain"  "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
-   _err "invalid domain"
-   return 1
+  if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
+    _err "invalid domain"
+    return 1
   fi
   _debug _domain_id "$_domain_id"
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  acmeRecordURI="https://management.azure.com$(printf '%s' "$_domain_id" |sed 's/\\//g')/TXT/$_sub_domain?api-version=2017-09-01"
+  acmeRecordURI="https://management.azure.com$(printf '%s' "$_domain_id" | sed 's/\\//g')/TXT/$_sub_domain?api-version=2017-09-01"
   _debug "$acmeRecordURI"
   body="{\"properties\": {\"TTL\": 3600, \"TXTRecords\": [{\"value\": [\"$txtvalue\"]}]}}"
   _azure_rest DELETE "$acmeRecordURI" "" "$accesstoken"
@@ -165,10 +165,10 @@ _azure_rest() {
   
   _debug "$ep"
   if [ "$m" != "GET" ]; then
-   _debug data "$data"
-   response="$(_post "$data" "$ep" "" "$m")"
+    _debug data "$data"
+    response="$(_post "$data" "$ep" "" "$m")"
   else
-   response="$(_get "$ep")"
+    response="$(_get "$ep")"
   fi
   _debug2 response "$response"
 
@@ -176,8 +176,8 @@ _azure_rest() {
   _debug2 "http response code $_code"   
 
   if [ "$?" != "0" ]; then
-   _err "error $ep"
-   return 1
+    _err "error $ep"
+    return 1
   fi
   return 0
 }
@@ -191,15 +191,15 @@ _azure_getaccess_token() {
   export _H1="accept: application/json"
   export _H2="Content-Type: application/x-www-form-urlencoded"
 
-  body="resource=$(printf "%s" 'https://management.core.windows.net/'| _url_encode)&client_id=$(printf "%s" "$clientID" | _url_encode)&client_secret=$(printf "%s" "$clientSecret"| _url_encode)&grant_type=client_credentials"
+  body="resource=$(printf "%s" 'https://management.core.windows.net/' | _url_encode)&client_id=$(printf "%s" "$clientID" | _url_encode)&client_secret=$(printf "%s" "$clientSecret" | _url_encode)&grant_type=client_credentials"
   _debug data "$body"
-  response="$(_post "$body" "https://login.windows.net/$TENANTID/oauth2/token" "" "POST" )"
-  accesstoken=$(echo "$response" | _egrep_o "\"access_token\":\"[^\"]*\"" | head -n 1 | cut -d : -f 2 | tr -d \")
+  response="$(_post "$body" "https://login.windows.net/$TENANTID/oauth2/token" "" "POST")"
+  accesstoken=$(echo "$response" | _egrep_o "\"access_token\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
   _debug2 "response $response"
 
-  if [ -z "$accesstoken" ] ; then 
+  if [ -z "$accesstoken" ]; then 
     _err "no acccess token received"
-    return 1    
+    return 1
   fi
   if [ "$?" != "0" ]; then
     _err "error $response"
