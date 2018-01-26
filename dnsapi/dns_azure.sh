@@ -30,7 +30,7 @@ dns_azure_add() {
     AZUREDNS_TENANTID=""
     AZUREDNS_APPID=""
     AZUREDNS_CLIENTSECRET=""
-    _err "You didn't specify then Azure Tenant ID "
+    _err "You didn't specify the Azure Tenant ID "
     return 1
   fi
 
@@ -125,7 +125,7 @@ dns_azure_rm() {
     AZUREDNS_TENANTID=""
     AZUREDNS_APPID=""
     AZUREDNS_CLIENTSECRET=""
-    _err "You didn't specify Azure Client Secret"
+    _err "You didn't specify the Azure Client Secret"
     return 1
   fi
 
