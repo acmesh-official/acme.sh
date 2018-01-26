@@ -3969,6 +3969,16 @@ $_authorizations_map"
       _on_issue_err "$_post_hook"
       return 1
     fi
+
+    if [ "$(grep -- "$BEGIN_CERT" "$CERT_PATH" | wc -l)" -gt "1" ]; then
+      _debug "Found cert chain"
+      cat "$CERT_PATH" > "$CERT_FULLCHAIN_PATH"
+      _end_n="$(grep -n -- "$END_CERT" "$CERT_FULLCHAIN_PATH" | _head_n 1 | cut -d : -f 1)"
+      _debug _end_n "$_end_n"
+      sed -n "1,${_end_n}p" "$CERT_FULLCHAIN_PATH" > "$CERT_PATH"
+      _end_n="$(_math $_end_n + 1)"
+      sed -n "${_end_n},9999p" "$CERT_FULLCHAIN_PATH" > "$CA_CERT_PATH"
+    fi
   else
     if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"$ACME_NEW_ORDER_RES\", \"csr\": \"$der\"}" "needbase64"; then
       _err "Sign failed."
@@ -4022,47 +4032,49 @@ $_authorizations_map"
 
   _cleardomainconf "Le_Vlist"
 
-  Le_LinkIssuer=$(grep -i '^Link' "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2 | cut -d ';' -f 1 | tr -d '<>')
-
-  if [ "$Le_LinkIssuer" ]; then
-    if ! _contains "$Le_LinkIssuer" ":"; then
-      _info "$(__red "Relative issuer link found.")"
-      Le_LinkIssuer="$_ACME_SERVER_HOST$Le_LinkIssuer"
-    fi
-    _debug Le_LinkIssuer "$Le_LinkIssuer"
-    _savedomainconf "Le_LinkIssuer" "$Le_LinkIssuer"
-
-    _link_issuer_retry=0
-    _MAX_ISSUER_RETRY=5
-    while [ "$_link_issuer_retry" -lt "$_MAX_ISSUER_RETRY" ]; do
-      _debug _link_issuer_retry "$_link_issuer_retry"
-      if [ "$ACME_VERSION" = "2" ]; then
-        if _get "$Le_LinkIssuer" >"$CA_CERT_PATH"; then
-          break
-        fi
-      else
-        if _get "$Le_LinkIssuer" >"$CA_CERT_PATH.der"; then
-          echo "$BEGIN_CERT" >"$CA_CERT_PATH"
-          _base64 "multiline" <"$CA_CERT_PATH.der" >>"$CA_CERT_PATH"
-          echo "$END_CERT" >>"$CA_CERT_PATH"
-
-          _info "The intermediate CA cert is in $(__green " $CA_CERT_PATH ")"
-          cat "$CA_CERT_PATH" >>"$CERT_FULLCHAIN_PATH"
-          _info "And the full chain certs is there: $(__green " $CERT_FULLCHAIN_PATH ")"
-
-          rm -f "$CA_CERT_PATH.der"
-          break
-        fi
-      fi
-      _link_issuer_retry=$(_math $_link_issuer_retry + 1)
-      _sleep "$_link_issuer_retry"
-    done
-    if [ "$_link_issuer_retry" = "$_MAX_ISSUER_RETRY" ]; then
-      _err "Max retry for issuer ca cert is reached."
-    fi
+  if [ "$ACME_VERSION" = "2" ]; then
+    _debug "v2 chain."
   else
-    _debug "No Le_LinkIssuer header found."
+    Le_LinkIssuer=$(grep -i '^Link' "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2 | cut -d ';' -f 1 | tr -d '<>')
+
+    if [ "$Le_LinkIssuer" ]; then
+      if ! _contains "$Le_LinkIssuer" ":"; then
+        _info "$(__red "Relative issuer link found.")"
+        Le_LinkIssuer="$_ACME_SERVER_HOST$Le_LinkIssuer"
+      fi
+      _debug Le_LinkIssuer "$Le_LinkIssuer"
+      _savedomainconf "Le_LinkIssuer" "$Le_LinkIssuer"
+
+      _link_issuer_retry=0
+      _MAX_ISSUER_RETRY=5
+      while [ "$_link_issuer_retry" -lt "$_MAX_ISSUER_RETRY" ]; do
+        _debug _link_issuer_retry "$_link_issuer_retry"
+        if [ "$ACME_VERSION" = "2" ]; then
+          if _get "$Le_LinkIssuer" >"$CA_CERT_PATH"; then
+            break
+          fi
+        else
+          if _get "$Le_LinkIssuer" >"$CA_CERT_PATH.der"; then
+            echo "$BEGIN_CERT" >"$CA_CERT_PATH"
+            _base64 "multiline" <"$CA_CERT_PATH.der" >>"$CA_CERT_PATH"
+            echo "$END_CERT" >>"$CA_CERT_PATH"
+            cat "$CA_CERT_PATH" >>"$CERT_FULLCHAIN_PATH"
+            rm -f "$CA_CERT_PATH.der"
+            break
+          fi
+        fi
+        _link_issuer_retry=$(_math $_link_issuer_retry + 1)
+        _sleep "$_link_issuer_retry"
+      done
+      if [ "$_link_issuer_retry" = "$_MAX_ISSUER_RETRY" ]; then
+        _err "Max retry for issuer ca cert is reached."
+      fi
+    else
+      _debug "No Le_LinkIssuer header found."
+    fi
   fi
+  [ -f "$CA_CERT_PATH" ] && _info "The intermediate CA cert is in $(__green " $CA_CERT_PATH ")"
+  [ -f "$CERT_FULLCHAIN_PATH" ] && _info "And the full chain certs is there: $(__green " $CERT_FULLCHAIN_PATH ")"
 
   Le_CertCreateTime=$(_time)
   _savedomainconf "Le_CertCreateTime" "$Le_CertCreateTime"
