@@ -51,11 +51,11 @@ edgemax_deploy() {
 
    # Obtain session environment
    session_env=$(cli-shell-api getSessionEnv $PPID)
-
+   eval $session_env
+    
    # Setup the session
    cli-shell-api setupSession
-   eval $session_env
-   
+
    # Verify Session Started
    cli-shell-api inSession
    if [ $? -ne 0 ]; then
