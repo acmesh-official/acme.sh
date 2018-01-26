@@ -83,7 +83,7 @@ dns_selectel_rm() {
     return 1
   fi
 
-  _record_id="$(echo "$_record_seg" | tr ",}" "\n\n" | tr -d " " | grep "\"id\"" | cut -d : -f 2)"
+  _record_id="$(echo "$_record_seg" | tr "," "\n" | tr "}" "\n" | tr -d " " | grep "\"id\"" | cut -d : -f 2)"
   _debug2 "_record_id" "$_record_id"
   if [ -z "$_record_id" ]; then
     _err "can not find _record_id"
@@ -127,7 +127,7 @@ _get_root() {
       if ! _sl_rest GET "/$h"; then
         return 1
       fi
-      _domain_id="$(echo "$response" | tr ",}" "\n\n" | tr -d " " | grep "\"id\":" | cut -d : -f 2)"
+      _domain_id="$(echo "$response" | tr "," "\n" | tr "}" "\n" | tr -d " " | grep "\"id\":" | cut -d : -f 2)"
       return 0
     fi
     p=$i

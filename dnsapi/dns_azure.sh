@@ -111,7 +111,7 @@ dns_azure_rm() {
     return 1
   fi
 
-  if [ -z "$AZUREDNS_APPID" ];then
+  if [ -z "$AZUREDNS_APPID" ]; then
     AZUREDNS_SUBSCRIPTIONID=""
     AZUREDNS_TENANTID=""
     AZUREDNS_APPID=""
@@ -162,7 +162,7 @@ _azure_rest() {
   export _H1="authorization: Bearer $accesstoken"
   export _H2="accept: application/json"
   export _H3="Content-Type: application/json"
-  
+
   _debug "$ep"
   if [ "$m" != "GET" ]; then
     _debug data "$data"
@@ -173,7 +173,7 @@ _azure_rest() {
   _debug2 response "$response"
 
   _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
-  _debug2 "http response code $_code"   
+  _debug2 "http response code $_code"
 
   if [ "$?" != "0" ]; then
     _err "error $ep"
@@ -197,7 +197,7 @@ _azure_getaccess_token() {
   accesstoken=$(echo "$response" | _egrep_o "\"access_token\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
   _debug2 "response $response"
 
-  if [ -z "$accesstoken" ]; then 
+  if [ -z "$accesstoken" ]; then
     _err "no acccess token received"
     return 1
   fi
