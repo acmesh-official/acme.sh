@@ -54,7 +54,8 @@ edgemax_deploy() {
 
    # Setup the session
    cli-shell-api setupSession
-
+   eval $session_env
+   
    # Verify Session Started
    cli-shell-api inSession
    if [ $? -ne 0 ]; then
