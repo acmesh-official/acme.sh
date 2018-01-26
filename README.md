@@ -346,6 +346,8 @@ You don't have to do anything manually!
 1. Servercow (https://servercow.de)
 1. Namesilo (https://www.namesilo.com)
 1. InternetX autoDNS API (https://internetx.com)
+1. Azure DNS
+1. selectel.com(selectel.ru) DNS API
 
 And: 
 

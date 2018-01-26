@@ -666,7 +666,7 @@ And now you can issue certs with:
 acme.sh --issue --dns dns_namesilo --dnssleep 900 -d example.com -d www.example.com
 ```
 
-## 37. Use autoDNS (InternetX)
+## 36. Use autoDNS (InternetX)
 
 [InternetX](https://www.internetx.com/) offers an [xml api](https://help.internetx.com/display/API/AutoDNS+XML-API)  with your standard login credentials, set them like so:
 
@@ -683,6 +683,42 @@ acme.sh --issue --dns dns_autodns -d example.com -d www.example.com
 ```
 
 The `AUTODNS_USER`, `AUTODNS_PASSWORD` and `AUTODNS_CONTEXT` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 37. Use Azure DNS
+
+You have to create a service principal first. See:[How to use Azure DNS](../../../wiki/How-to-use-Azure-DNS)
+
+```
+export AZUREDNS_SUBSCRIPTIONID="12345678-9abc-def0-1234-567890abcdef"
+export AZUREDNS_TENANTID="11111111-2222-3333-4444-555555555555"
+export AZUREDNS_APPID="3b5033b5-7a66-43a5-b3b9-a36b9e7c25ed"
+export AZUREDNS_CLIENTSECRET="1b0224ef-34d4-5af9-110f-77f527d561bd"
+```
+
+Then you can issue your certificates with:
+
+```
+acme.sh --issue --dns dns_azure -d example.com -d www.example.com
+```
+
+`AZUREDNS_SUBSCRIPTIONID`, `AZUREDNS_TENANTID`,`AZUREDNS_APPID` and `AZUREDNS_CLIENTSECRET` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 38. Use selectel.com(selectel.ru) domain API to automatically issue cert
+
+First you need to login to your account to get your API key from: https://my.selectel.ru/profile/apikeys.
+
+```sh
+export SL_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_selectel -d example.com -d www.example.com
+```
+
+The `SL_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 
 # Use custom API
 

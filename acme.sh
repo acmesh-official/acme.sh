@@ -2597,10 +2597,7 @@ _setNginx() {
   _d="$1"
   _croot="$2"
   _thumbpt="$3"
-  if ! _exists "nginx"; then
-    _err "nginx command is not found."
-    return 1
-  fi
+
   FOUND_REAL_NGINX_CONF=""
   FOUND_REAL_NGINX_CONF_LN=""
   BACKUP_NGINX_CONF=""
@@ -2610,6 +2607,10 @@ _setNginx() {
   if [ -z "$_start_f" ]; then
     _debug "find start conf from nginx command"
     if [ -z "$NGINX_CONF" ]; then
+      if ! _exists "nginx"; then
+        _err "nginx command is not found."
+        return 1
+      fi
       NGINX_CONF="$(nginx -V 2>&1 | _egrep_o "--conf-path=[^ ]* " | tr -d " ")"
       _debug NGINX_CONF "$NGINX_CONF"
       NGINX_CONF="$(echo "$NGINX_CONF" | cut -d = -f 2)"
@@ -2654,6 +2655,10 @@ _setNginx() {
     return 1
   fi
 
+  if ! _exists "nginx"; then
+    _err "nginx command is not found."
+    return 1
+  fi
   _info "Check the nginx conf before setting up."
   if ! _exec "nginx -t" >/dev/null; then
     _exec_err
@@ -2746,7 +2751,7 @@ _isRealNginxConf() {
     for _fln in $(tr "\t" ' ' <"$2" | grep -n "^ *server_name.* $1" | cut -d : -f 1); do
       _debug _fln "$_fln"
       if [ "$_fln" ]; then
-        _start=$(tr "\t" ' ' <"$2" | _head_n "$_fln" | grep -n "^ *server *{" | _tail_n 1)
+        _start=$(tr "\t" ' ' <"$2" | _head_n "$_fln" | grep -n "^ *server *" | grep -v server_name | _tail_n 1)
         _debug "_start" "$_start"
         _start_n=$(echo "$_start" | cut -d : -f 1)
         _start_nn=$(_math $_start_n + 1)
@@ -2755,8 +2760,8 @@ _isRealNginxConf() {
 
         _left="$(sed -n "${_start_nn},99999p" "$2")"
         _debug2 _left "$_left"
-        if echo "$_left" | tr "\t" ' ' | grep -n "^ *server *{" >/dev/null; then
-          _end=$(echo "$_left" | tr "\t" ' ' | grep -n "^ *server *{" | _head_n 1)
+        if echo "$_left" | tr "\t" ' ' | grep -n "^ *server *" >/dev/null; then
+          _end=$(echo "$_left" | tr "\t" ' ' | grep -n "^ *server *" | _head_n 1)
           _debug "_end" "$_end"
           _end_n=$(echo "$_end" | cut -d : -f 1)
           _debug "_end_n" "$_end_n"
@@ -2767,8 +2772,20 @@ _isRealNginxConf() {
 
         _debug "_seg_n" "$_seg_n"
 
-        if [ "$(echo "$_seg_n" | _egrep_o "^ *ssl  *on *;")" ] \
-          || [ "$(echo "$_seg_n" | _egrep_o "listen .* ssl[ |;]")" ]; then
+        _skip_ssl=1
+        for _listen_i in $(echo "$_seg_n" | tr "\t" ' ' | grep "^ *listen" | tr -d " "); do
+          if [ "$_listen_i" ]; then
+            if [ "$(echo "$_listen_i" | _egrep_o "listen.*ssl[ |;]")" ]; then
+              _debug2 "$_listen_i is ssl"
+            else
+              _debug2 "$_listen_i is plain text"
+              _skip_ssl=""
+              break
+            fi
+          fi
+        done
+
+        if [ "$_skip_ssl" = "1" ]; then
           _debug "ssl on, skip"
         else
           FOUND_REAL_NGINX_CONF_LN=$_fln
@@ -5742,7 +5759,7 @@ _process() {
         HTTPS_INSECURE="1"
         ;;
       --ca-bundle)
-        _ca_bundle="$(_readlink -f "$2")"
+        _ca_bundle="$(_readlink "$2")"
         CA_BUNDLE="$_ca_bundle"
         shift
         ;;
