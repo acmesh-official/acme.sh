@@ -3972,12 +3972,12 @@ $_authorizations_map"
 
     if [ "$(grep -- "$BEGIN_CERT" "$CERT_PATH" | wc -l)" -gt "1" ]; then
       _debug "Found cert chain"
-      cat "$CERT_PATH" > "$CERT_FULLCHAIN_PATH"
+      cat "$CERT_PATH" >"$CERT_FULLCHAIN_PATH"
       _end_n="$(grep -n -- "$END_CERT" "$CERT_FULLCHAIN_PATH" | _head_n 1 | cut -d : -f 1)"
       _debug _end_n "$_end_n"
-      sed -n "1,${_end_n}p" "$CERT_FULLCHAIN_PATH" > "$CERT_PATH"
+      sed -n "1,${_end_n}p" "$CERT_FULLCHAIN_PATH" >"$CERT_PATH"
       _end_n="$(_math $_end_n + 1)"
-      sed -n "${_end_n},9999p" "$CERT_FULLCHAIN_PATH" > "$CA_CERT_PATH"
+      sed -n "${_end_n},9999p" "$CERT_FULLCHAIN_PATH" >"$CA_CERT_PATH"
     fi
   else
     if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"$ACME_NEW_ORDER_RES\", \"csr\": \"$der\"}" "needbase64"; then
