@@ -20,7 +20,6 @@ function atexit() {
   return "$1"
 }
 
-
 #domain keyfile certfile cafile fullchain
 edgemax_deploy() {
   _cdomain="$1"
@@ -73,7 +72,7 @@ edgemax_deploy() {
     _info "EdgeMax cert-file already set to $lighttpd_pem"
   fi
   _info Restarting lighttpd
-  sudo kill -SIGTERM $(cat /var/run/lighttpd.pid)
+  sudo kill -SIGTERM "$(cat /var/run/lighttpd.pid)"
   sudo /usr/sbin/lighttpd -f /etc/lighttpd/lighttpd.conf
 
   atexit 0
