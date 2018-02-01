@@ -5017,7 +5017,7 @@ Commands:
   --renew, -r              Renew a cert.
   --renew-all              Renew all the certs.
   --revoke                 Revoke a cert.
-  --remove                 Remove the cert from $PROJECT
+  --remove                 Remove the cert from list of certs known to $PROJECT_NAME.
   --list                   List all the certs.
   --showcsr                Show the content of a csr.
   --install-cronjob        Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
