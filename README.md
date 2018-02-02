@@ -3,6 +3,8 @@
 [![Join the chat at https://gitter.im/acme-sh/Lobby](https://badges.gitter.im/acme-sh/Lobby.svg)](https://gitter.im/acme-sh/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 - An ACME protocol client written purely in Shell (Unix shell) language.
 - Full ACME protocol implementation.
+- Support ACME v1 and ACME v2
+- Support ACME v2 wildcard certs
 - Simple, powerful and very easy to use. You only need 3 minutes to learn it.
 - Bash, dash and sh compatible.
 - Simplest shell script for Let's Encrypt free certificate client.

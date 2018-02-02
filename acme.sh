@@ -13,8 +13,14 @@ _SCRIPT_="$0"
 
 _SUB_FOLDERS="dnsapi deploy"
 
-_OLD_CA_HOST="https://acme-v01.api.letsencrypt.org"
-DEFAULT_CA="https://acme-v01.api.letsencrypt.org/directory"
+LETSENCRYPT_CA_V1="https://acme-v01.api.letsencrypt.org/directory"
+LETSENCRYPT_STAGING_CA_V1="https://acme-staging.api.letsencrypt.org/directory"
+
+LETSENCRYPT_CA_V2="https://acme-v02.api.letsencrypt.org/directory"
+LETSENCRYPT_STAGING_CA_V2="https://acme-staging-v02.api.letsencrypt.org/directory"
+
+DEFAULT_CA=$LETSENCRYPT_CA_V1
+DEFAULT_STAGING_CA=$LETSENCRYPT_STAGING_CA_V1
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 DEFAULT_ACCOUNT_EMAIL=""
@@ -24,13 +30,13 @@ DEFAULT_DOMAIN_KEY_LENGTH=2048
 
 DEFAULT_OPENSSL_BIN="openssl"
 
-STAGE_CA="https://acme-staging.api.letsencrypt.org/directory"
+_OLD_CA_HOST="https://acme-v01.api.letsencrypt.org"
 _OLD_STAGE_CA_HOST="https://acme-staging.api.letsencrypt.org"
 
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
 VTYPE_TLS="tls-sni-01"
-#VTYPE_TLS2="tls-sni-02"
+VTYPE_TLS2="tls-sni-02"
 
 LOCAL_ANY_ADDRESS="0.0.0.0"
 
@@ -991,7 +997,7 @@ _createkey() {
 _is_idn() {
   _is_idn_d="$1"
   _debug2 _is_idn_d "$_is_idn_d"
-  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '0-9' | tr -d 'a-z' | tr -d 'A-Z' | tr -d '.,-')
+  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '0-9' | tr -d 'a-z' | tr -d 'A-Z' | tr -d '*.,-')
   _debug2 _idn_temp "$_idn_temp"
   [ "$_idn_temp" ]
 }
@@ -1044,13 +1050,14 @@ _createcsr() {
   if [ -z "$domainlist" ] || [ "$domainlist" = "$NO_VALUE" ]; then
     #single domain
     _info "Single domain" "$domain"
+    printf -- "\nsubjectAltName=DNS:$domain" >>"$csrconf"
   else
     domainlist="$(_idn "$domainlist")"
     _debug2 domainlist "$domainlist"
     if _contains "$domainlist" ","; then
-      alt="DNS:$(echo "$domainlist" | sed "s/,/,DNS:/g")"
+      alt="DNS:$domain,DNS:$(echo "$domainlist" | sed "s/,,/,/g" | sed "s/,/,DNS:/g")"
     else
-      alt="DNS:$domainlist"
+      alt="DNS:$domain,DNS:$domainlist"
     fi
     #multi
     _info "Multi domain" "$alt"
@@ -1421,7 +1428,7 @@ _calcjwk() {
 
     JWK_HEADER='{"alg": "RS256", "jwk": '$jwk'}'
     JWK_HEADERPLACE_PART1='{"nonce": "'
-    JWK_HEADERPLACE_PART2='", "alg": "RS256", "jwk": '$jwk'}'
+    JWK_HEADERPLACE_PART2='", "alg": "RS256"'
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     _debug "EC key"
     crv="$(${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
@@ -1490,7 +1497,7 @@ _calcjwk() {
 
     JWK_HEADER='{"alg": "ES'$__ECC_KEY_LEN'", "jwk": '$jwk'}'
     JWK_HEADERPLACE_PART1='{"nonce": "'
-    JWK_HEADERPLACE_PART2='", "alg": "ES'$__ECC_KEY_LEN'", "jwk": '$jwk'}'
+    JWK_HEADERPLACE_PART2='", "alg": "ES'$__ECC_KEY_LEN'"'
   else
     _err "Only RSA or EC key is supported."
     return 1
@@ -1580,7 +1587,7 @@ _inithttp() {
 # body  url [needbase64] [POST|PUT]
 _post() {
   body="$1"
-  url="$2"
+  _post_url="$2"
   needbase64="$3"
   httpmethod="$4"
 
@@ -1588,7 +1595,7 @@ _post() {
     httpmethod="POST"
   fi
   _debug $httpmethod
-  _debug "url" "$url"
+  _debug "_post_url" "$_post_url"
   _debug2 "body" "$body"
 
   _inithttp
@@ -1600,9 +1607,9 @@ _post() {
     fi
     _debug "_CURL" "$_CURL"
     if [ "$needbase64" ]; then
-      response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$url" | _base64)"
+      response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
     else
-      response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$url")"
+      response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
     fi
     _ret="$?"
     if [ "$_ret" != "0" ]; then
@@ -1620,15 +1627,15 @@ _post() {
     _debug "_WGET" "$_WGET"
     if [ "$needbase64" ]; then
       if [ "$httpmethod" = "POST" ]; then
-        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
       else
-        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
       fi
     else
       if [ "$httpmethod" = "POST" ]; then
-        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER")"
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
       else
-        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER")"
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
       fi
     fi
     _ret="$?"
@@ -1656,7 +1663,7 @@ _get() {
   onlyheader="$2"
   t="$3"
   _debug url "$url"
-  _debug "timeout" "$t"
+  _debug "timeout=$t"
 
   _inithttp
 
@@ -1776,7 +1783,15 @@ _send_signed_request() {
     nonce="$_CACHED_NONCE"
     _debug2 nonce "$nonce"
 
-    protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2"
+    if [ "$ACME_VERSION" = "2" ]; then
+      if [ "$url" = "$ACME_NEW_ACCOUNT" ] || [ "$url" = "$ACME_REVOKE_CERT" ]; then
+        protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"jwk\": $jwk"'}'
+      else
+        protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"kid\": \"$ACCOUNT_URL\""'}'
+      fi
+    else
+      protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"jwk\": $jwk"'}'
+    fi
     _debug3 protected "$protected"
 
     protected64="$(printf "%s" "$protected" | _base64 | _url_replace)"
@@ -1791,7 +1806,11 @@ _send_signed_request() {
     sig="$(printf "%s" "$_sig_t" | _url_replace)"
     _debug3 sig "$sig"
 
-    body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
+    if [ "$ACME_VERSION" = "2" ]; then
+      body="{\"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
+    else
+      body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
+    fi
     _debug3 body "$body"
 
     response="$(_post "$body" "$url" "$needbase64")"
@@ -2170,9 +2189,15 @@ _initAPI() {
     _debug2 "response" "$response"
 
     ACME_KEY_CHANGE=$(echo "$response" | _egrep_o 'key-change" *: *"[^"]*"' | cut -d '"' -f 3)
+    if [ -z "$ACME_KEY_CHANGE" ]; then
+      ACME_KEY_CHANGE=$(echo "$response" | _egrep_o 'keyChange" *: *"[^"]*"' | cut -d '"' -f 3)
+    fi
     export ACME_KEY_CHANGE
 
     ACME_NEW_AUTHZ=$(echo "$response" | _egrep_o 'new-authz" *: *"[^"]*"' | cut -d '"' -f 3)
+    if [ -z "$ACME_NEW_AUTHZ" ]; then
+      ACME_NEW_AUTHZ=$(echo "$response" | _egrep_o 'newAuthz" *: *"[^"]*"' | cut -d '"' -f 3)
+    fi
     export ACME_NEW_AUTHZ
 
     ACME_NEW_ORDER=$(echo "$response" | _egrep_o 'new-cert" *: *"[^"]*"' | cut -d '"' -f 3)
@@ -2180,6 +2205,9 @@ _initAPI() {
     if [ -z "$ACME_NEW_ORDER" ]; then
       ACME_NEW_ORDER=$(echo "$response" | _egrep_o 'new-order" *: *"[^"]*"' | cut -d '"' -f 3)
       ACME_NEW_ORDER_RES="new-order"
+      if [ -z "$ACME_NEW_ORDER" ]; then
+        ACME_NEW_ORDER=$(echo "$response" | _egrep_o 'newOrder" *: *"[^"]*"' | cut -d '"' -f 3)
+      fi
     fi
     export ACME_NEW_ORDER
     export ACME_NEW_ORDER_RES
@@ -2189,17 +2217,32 @@ _initAPI() {
     if [ -z "$ACME_NEW_ACCOUNT" ]; then
       ACME_NEW_ACCOUNT=$(echo "$response" | _egrep_o 'new-account" *: *"[^"]*"' | cut -d '"' -f 3)
       ACME_NEW_ACCOUNT_RES="new-account"
+      if [ -z "$ACME_NEW_ACCOUNT" ]; then
+        ACME_NEW_ACCOUNT=$(echo "$response" | _egrep_o 'newAccount" *: *"[^"]*"' | cut -d '"' -f 3)
+        if [ "$ACME_NEW_ACCOUNT" ]; then
+          export ACME_VERSION=2
+        fi
+      fi
     fi
     export ACME_NEW_ACCOUNT
     export ACME_NEW_ACCOUNT_RES
 
     ACME_REVOKE_CERT=$(echo "$response" | _egrep_o 'revoke-cert" *: *"[^"]*"' | cut -d '"' -f 3)
+    if [ -z "$ACME_REVOKE_CERT" ]; then
+      ACME_REVOKE_CERT=$(echo "$response" | _egrep_o 'revokeCert" *: *"[^"]*"' | cut -d '"' -f 3)
+    fi
     export ACME_REVOKE_CERT
 
     ACME_NEW_NONCE=$(echo "$response" | _egrep_o 'new-nonce" *: *"[^"]*"' | cut -d '"' -f 3)
+    if [ -z "$ACME_NEW_NONCE" ]; then
+      ACME_NEW_NONCE=$(echo "$response" | _egrep_o 'newNonce" *: *"[^"]*"' | cut -d '"' -f 3)
+    fi
     export ACME_NEW_NONCE
 
     ACME_AGREEMENT=$(echo "$response" | _egrep_o 'terms-of-service" *: *"[^"]*"' | cut -d '"' -f 3)
+    if [ -z "$ACME_AGREEMENT" ]; then
+      ACME_AGREEMENT=$(echo "$response" | _egrep_o 'termsOfService" *: *"[^"]*"' | cut -d '"' -f 3)
+    fi
     export ACME_AGREEMENT
 
     _debug "ACME_KEY_CHANGE" "$ACME_KEY_CHANGE"
@@ -2208,12 +2251,16 @@ _initAPI() {
     _debug "ACME_NEW_ACCOUNT" "$ACME_NEW_ACCOUNT"
     _debug "ACME_REVOKE_CERT" "$ACME_REVOKE_CERT"
     _debug "ACME_AGREEMENT" "$ACME_AGREEMENT"
+    _debug "ACME_NEW_NONCE" "$ACME_NEW_NONCE"
+    _debug "ACME_VERSION" "$ACME_VERSION"
 
   fi
 }
 
 #[domain]  [keylength or isEcc flag]
 _initpath() {
+  domain="$1"
+  _ilength="$2"
 
   __initHome
 
@@ -2232,11 +2279,16 @@ _initpath() {
     CA_HOME="$DEFAULT_CA_HOME"
   fi
 
+  if [ "$ACME_VERSION" = "2" ]; then
+    DEFAULT_CA="$LETSENCRYPT_CA_V2"
+    DEFAULT_STAGING_CA="$LETSENCRYPT_STAGING_CA_V2"
+  fi
+
   if [ -z "$ACME_DIRECTORY" ]; then
     if [ -z "$STAGE" ]; then
       ACME_DIRECTORY="$DEFAULT_CA"
     else
-      ACME_DIRECTORY="$STAGE_CA"
+      ACME_DIRECTORY="$DEFAULT_STAGING_CA"
       _info "Using stage ACME_DIRECTORY: $ACME_DIRECTORY"
     fi
   fi
@@ -2296,12 +2348,9 @@ _initpath() {
     ACME_OPENSSL_BIN="$DEFAULT_OPENSSL_BIN"
   fi
 
-  if [ -z "$1" ]; then
+  if [ -z "$domain" ]; then
     return 0
   fi
-
-  domain="$1"
-  _ilength="$2"
 
   if [ -z "$DOMAIN_PATH" ]; then
     domainhome="$CERT_HOME/$domain"
@@ -2835,7 +2884,11 @@ _clearupdns() {
         return 1
       fi
 
-      txtdomain="_acme-challenge.$d"
+      _dns_root_d="$d"
+      if _startswith "$_dns_root_d" "*."; then
+        _dns_root_d="$(echo "$_dns_root_d" | sed 's/*.//')"
+      fi
+      txtdomain="_acme-challenge.$_dns_root_d"
 
       if ! $rmcommand "$txtdomain" "$txt"; then
         _err "Error removing txt for domain:$txtdomain"
@@ -2968,6 +3021,7 @@ _on_issue_err() {
   _chk_post_hook="$1"
   _chk_vlist="$2"
   _debug _on_issue_err
+
   if [ "$LOG_FILE" ]; then
     _err "Please check log file for more details: $LOG_FILE"
   else
@@ -3069,6 +3123,8 @@ _regAccount() {
   _initpath
   _reg_length="$1"
   _debug3 _regAccount "$_regAccount"
+  _initAPI
+
   mkdir -p "$CA_DIR"
   if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
     _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
@@ -3090,11 +3146,18 @@ _regAccount() {
   if ! _calcjwk "$ACCOUNT_KEY_PATH"; then
     return 1
   fi
-  _initAPI
-  _reg_res="$ACME_NEW_ACCOUNT_RES"
-  regjson='{"resource": "'$_reg_res'", "terms-of-service-agreed": true, "agreement": "'$ACME_AGREEMENT'"}'
-  if [ "$ACCOUNT_EMAIL" ]; then
-    regjson='{"resource": "'$_reg_res'", "contact": ["mailto: '$ACCOUNT_EMAIL'"], "terms-of-service-agreed": true, "agreement": "'$ACME_AGREEMENT'"}'
+
+  if [ "$ACME_VERSION" = "2" ]; then
+    regjson='{"termsOfServiceAgreed": true}'
+    if [ "$ACCOUNT_EMAIL" ]; then
+      regjson='{"contact": ["mailto: '$ACCOUNT_EMAIL'"], "termsOfServiceAgreed": true}'
+    fi
+  else
+    _reg_res="$ACME_NEW_ACCOUNT_RES"
+    regjson='{"resource": "'$_reg_res'", "terms-of-service-agreed": true, "agreement": "'$ACME_AGREEMENT'"}'
+    if [ "$ACCOUNT_EMAIL" ]; then
+      regjson='{"resource": "'$_reg_res'", "contact": ["mailto: '$ACCOUNT_EMAIL'"], "terms-of-service-agreed": true, "agreement": "'$ACME_AGREEMENT'"}'
+    fi
   fi
 
   _info "Registering account"
@@ -3117,8 +3180,8 @@ _regAccount() {
   _accUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
   _debug "_accUri" "$_accUri"
   _savecaconf "ACCOUNT_URL" "$_accUri"
+  export ACCOUNT_URL="$ACCOUNT_URL"
 
-  echo "$response" >"$ACCOUNT_JSON_PATH"
   CA_KEY_HASH="$(__calcAccountKeyHash)"
   _debug "Calc CA_KEY_HASH" "$CA_KEY_HASH"
   _savecaconf CA_KEY_HASH "$CA_KEY_HASH"
@@ -3130,7 +3193,6 @@ _regAccount() {
 
   ACCOUNT_THUMBPRINT="$(__calc_account_thumbprint)"
   _info "ACCOUNT_THUMBPRINT" "$ACCOUNT_THUMBPRINT"
-
 }
 
 #Implement deactivate account
@@ -3166,7 +3228,12 @@ deactivateaccount() {
   fi
   _initAPI
 
-  if _send_signed_request "$_accUri" "{\"resource\": \"reg\", \"status\":\"deactivated\"}" && _contains "$response" '"deactivated"'; then
+  if [ "$ACME_VERSION" = "2" ]; then
+    _djson="{\"status\":\"deactivated\"}"
+  else
+    _djson="{\"resource\": \"reg\", \"status\":\"deactivated\"}"
+  fi
+  if _send_signed_request "$_accUri" "$_djson" && _contains "$response" '"deactivated"'; then
     _info "Deactivate account success for $_accUri."
     _accid=$(echo "$response" | _egrep_o "\"id\" *: *[^,]*," | cut -d : -f 2 | tr -d ' ,')
   elif [ "$code" = "403" ]; then
@@ -3268,7 +3335,11 @@ __trigger_validation() {
   _debug2 _t_url "$_t_url"
   _t_key_authz="$2"
   _debug2 _t_key_authz "$_t_key_authz"
-  _send_signed_request "$_t_url" "{\"resource\": \"challenge\", \"keyAuthorization\": \"$_t_key_authz\"}"
+  if [ "$ACME_VERSION" = "2" ]; then
+    _send_signed_request "$_t_url" "{\"keyAuthorization\": \"$_t_key_authz\"}"
+  else
+    _send_signed_request "$_t_url" "{\"resource\": \"challenge\", \"keyAuthorization\": \"$_t_key_authz\"}"
+  fi
 }
 
 #webroot, domain domainlist  keylength
@@ -3284,6 +3355,7 @@ issue() {
   _web_roots="$1"
   _main_domain="$2"
   _alt_domains="$3"
+
   if _contains "$_main_domain" ","; then
     _main_domain=$(echo "$2,$3" | cut -d , -f 1)
     _alt_domains=$(echo "$2,$3" | cut -d , -f 2- | sed "s/,${NO_VALUE}$//")
@@ -3410,32 +3482,109 @@ issue() {
   sep='#'
   dvsep=','
   if [ -z "$vlist" ]; then
+    if [ "$ACME_VERSION" = "2" ]; then
+      #make new order request
+      _identifiers="{\"type\":\"dns\",\"value\":\"$_main_domain\"}"
+      for d in $(echo "$_alt_domains" | tr ',' ' '); do
+        if [ "$d" ]; then
+          _identifiers="$_identifiers,{\"type\":\"dns\",\"value\":\"$d\"}"
+        fi
+      done
+      _debug2 _identifiers "$_identifiers"
+      if ! _send_signed_request "$ACME_NEW_ORDER" "{\"identifiers\": [$_identifiers]}"; then
+        _err "Create new order error."
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
+
+      Le_OrderFinalize="$(echo "$response" | tr -d '\r\n' | _egrep_o '"finalize" *: *"[^"]*"' | cut -d '"' -f 4)"
+      _debug Le_OrderFinalize "$Le_OrderFinalize"
+      if [ -z "$Le_OrderFinalize" ]; then
+        _err "Le_OrderFinalize not found."
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
+
+      #for dns manual mode
+      _savedomainconf "Le_OrderFinalize" "$Le_OrderFinalize"
+
+      _authorizations_seg="$(echo "$response" | tr -d '\r\n' | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
+      _debug2 _authorizations_seg "$_authorizations_seg"
+      if [ -z "$_authorizations_seg" ]; then
+        _err "_authorizations_seg not found."
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
+
+      #domain and authz map
+      _authorizations_map=""
+      for _authz_url in $(echo "$_authorizations_seg" | tr ',' ' '); do
+        _debug2 "_authz_url" "$_authz_url"
+        if ! response="$(_get "$_authz_url")"; then
+          _err "get to authz error."
+          _clearup
+          _on_issue_err "$_post_hook"
+          return 1
+        fi
+
+        response="$(echo "$response" | _normalizeJson)"
+        _debug2 response "$response"
+        _d="$(echo "$response" | _egrep_o '"value" *: *"[^"]*"' | cut -d : -f 2 | tr -d ' "')"
+        if _contains "$response" "\"wildcard\" *: *true"; then
+          _d="*.$_d"
+        fi
+        _debug2 _d "$_d"
+        _authorizations_map="$_d,$response
+$_authorizations_map"
+      done
+      _debug2 _authorizations_map "$_authorizations_map"
+    fi
+
     alldomains=$(echo "$_main_domain,$_alt_domains" | tr ',' ' ')
-    _index=1
+    _index=0
     _currentRoot=""
     for d in $alldomains; do
       _info "Getting webroot for domain" "$d"
+      _index=$(_math $_index + 1)
       _w="$(echo $_web_roots | cut -d , -f $_index)"
       _debug _w "$_w"
       if [ "$_w" ]; then
         _currentRoot="$_w"
       fi
       _debug "_currentRoot" "$_currentRoot"
-      _index=$(_math $_index + 1)
 
       vtype="$VTYPE_HTTP"
+      #todo, v2 wildcard force to use dns
       if _startswith "$_currentRoot" "dns"; then
         vtype="$VTYPE_DNS"
       fi
 
       if [ "$_currentRoot" = "$W_TLS" ]; then
-        vtype="$VTYPE_TLS"
+        if [ "$ACME_VERSION" = "2" ]; then
+          vtype="$VTYPE_TLS2"
+        else
+          vtype="$VTYPE_TLS"
+        fi
       fi
 
-      if ! __get_domain_new_authz "$d"; then
-        _clearup
-        _on_issue_err "$_post_hook"
-        return 1
+      if [ "$ACME_VERSION" = "2" ]; then
+        response="$(echo "$_authorizations_map" | grep "^$d," | sed "s/$d,//")"
+        _debug2 "response" "$response"
+        if [ -z "$response" ]; then
+          _err "get to authz error."
+          _clearup
+          _on_issue_err "$_post_hook"
+          return 1
+        fi
+      else
+        if ! __get_domain_new_authz "$d"; then
+          _clearup
+          _on_issue_err "$_post_hook"
+          return 1
+        fi
       fi
 
       if [ -z "$thumbprint" ]; then
@@ -3453,14 +3602,18 @@ issue() {
       token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
       _debug token "$token"
 
-      uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d '"' -f 4)"
+      if [ "$ACME_VERSION" = "2" ]; then
+        uri="$(printf "%s\n" "$entry" | _egrep_o '"url":"[^"]*' | cut -d '"' -f 4 | _head_n 1)"
+      else
+        uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d '"' -f 4)"
+      fi
       _debug uri "$uri"
 
       keyauthorization="$token.$thumbprint"
       _debug keyauthorization "$keyauthorization"
 
       if printf "%s" "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
-        _debug "$d is already verified, skip."
+        _debug "$d is already verified."
         keyauthorization="$STATE_VERIFIED"
         _debug keyauthorization "$keyauthorization"
       fi
@@ -3480,7 +3633,7 @@ issue() {
       keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
       vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
       _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
-
+      _debug d "$d"
       if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
         _debug "$d is already verified, skip $vtype."
         continue
@@ -3488,12 +3641,16 @@ issue() {
 
       if [ "$vtype" = "$VTYPE_DNS" ]; then
         dnsadded='0'
-        txtdomain="_acme-challenge.$d"
+        _dns_root_d="$d"
+        if _startswith "$_dns_root_d" "*."; then
+          _dns_root_d="$(echo "$_dns_root_d" | sed 's/*.//')"
+        fi
+        txtdomain="_acme-challenge.$_dns_root_d"
         _debug txtdomain "$txtdomain"
         txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
         _debug txt "$txt"
 
-        d_api="$(_findHook "$d" dnsapi "$_currentRoot")"
+        d_api="$(_findHook "$_dns_root_d" dnsapi "$_currentRoot")"
 
         _debug d_api "$d_api"
 
@@ -3702,12 +3859,16 @@ issue() {
       return 1
     fi
 
-    if [ ! -z "$code" ] && [ ! "$code" = '202' ]; then
-      _err "$d:Challenge error: $response"
-      _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
-      _clearup
-      _on_issue_err "$_post_hook" "$vlist"
-      return 1
+    if [ "$code" ] && [ "$code" != '202' ]; then
+      if [ "$ACME_VERSION" = "2" ] && [ "$code" = '200' ]; then
+        _debug "trigger validation code: $code"
+      else
+        _err "$d:Challenge error: $response"
+        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearup
+        _on_issue_err "$_post_hook" "$vlist"
+        return 1
+      fi
     fi
 
     waittimes=0
@@ -3790,18 +3951,42 @@ issue() {
   _info "Verify finished, start to sign."
   der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _url_replace)"
 
-  if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"$ACME_NEW_ORDER_RES\", \"csr\": \"$der\"}" "needbase64"; then
-    _err "Sign failed."
-    _on_issue_err "$_post_hook"
-    return 1
-  fi
+  if [ "$ACME_VERSION" = "2" ]; then
+    if ! _send_signed_request "${Le_OrderFinalize}" "{\"csr\": \"$der\"}"; then
+      _err "Sign failed."
+      _on_issue_err "$_post_hook"
+      return 1
+    fi
+    if [ "$code" != "200" ]; then
+      _err "Sign failed, code is not 200."
+      _on_issue_err "$_post_hook"
+      return 1
+    fi
+    Le_LinkCert="$(echo "$response" | tr -d '\r\n' | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
 
-  _rcert="$response"
-  Le_LinkCert="$(grep -i '^Location.*$' "$HTTP_HEADER" | _head_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
-  _debug "Le_LinkCert" "$Le_LinkCert"
-  _savedomainconf "Le_LinkCert" "$Le_LinkCert"
+    if ! _get "$Le_LinkCert" >"$CERT_PATH"; then
+      _err "Sign failed, code is not 200."
+      _on_issue_err "$_post_hook"
+      return 1
+    fi
 
-  if [ "$Le_LinkCert" ]; then
+    if [ "$(grep -- "$BEGIN_CERT" "$CERT_PATH" | wc -l)" -gt "1" ]; then
+      _debug "Found cert chain"
+      cat "$CERT_PATH" >"$CERT_FULLCHAIN_PATH"
+      _end_n="$(grep -n -- "$END_CERT" "$CERT_FULLCHAIN_PATH" | _head_n 1 | cut -d : -f 1)"
+      _debug _end_n "$_end_n"
+      sed -n "1,${_end_n}p" "$CERT_FULLCHAIN_PATH" >"$CERT_PATH"
+      _end_n="$(_math $_end_n + 1)"
+      sed -n "${_end_n},9999p" "$CERT_FULLCHAIN_PATH" >"$CA_CERT_PATH"
+    fi
+  else
+    if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"$ACME_NEW_ORDER_RES\", \"csr\": \"$der\"}" "needbase64"; then
+      _err "Sign failed."
+      _on_issue_err "$_post_hook"
+      return 1
+    fi
+    _rcert="$response"
+    Le_LinkCert="$(grep -i '^Location.*$' "$HTTP_HEADER" | _head_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
     echo "$BEGIN_CERT" >"$CERT_PATH"
 
     #if ! _get "$Le_LinkCert" | _base64 "multiline"  >> "$CERT_PATH" ; then
@@ -3815,6 +4000,12 @@ issue() {
     fi
 
     echo "$END_CERT" >>"$CERT_PATH"
+  fi
+
+  _debug "Le_LinkCert" "$Le_LinkCert"
+  _savedomainconf "Le_LinkCert" "$Le_LinkCert"
+
+  if [ "$Le_LinkCert" ]; then
     _info "$(__green "Cert success.")"
     cat "$CERT_PATH"
 
@@ -3841,40 +4032,49 @@ issue() {
 
   _cleardomainconf "Le_Vlist"
 
-  Le_LinkIssuer=$(grep -i '^Link' "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2 | cut -d ';' -f 1 | tr -d '<>')
-  if ! _contains "$Le_LinkIssuer" ":"; then
-    _info "$(__red "Relative issuer link found.")"
-    Le_LinkIssuer="$_ACME_SERVER_HOST$Le_LinkIssuer"
-  fi
-  _debug Le_LinkIssuer "$Le_LinkIssuer"
-  _savedomainconf "Le_LinkIssuer" "$Le_LinkIssuer"
-
-  if [ "$Le_LinkIssuer" ]; then
-    _link_issuer_retry=0
-    _MAX_ISSUER_RETRY=5
-    while [ "$_link_issuer_retry" -lt "$_MAX_ISSUER_RETRY" ]; do
-      _debug _link_issuer_retry "$_link_issuer_retry"
-      if _get "$Le_LinkIssuer" >"$CA_CERT_PATH.der"; then
-        echo "$BEGIN_CERT" >"$CA_CERT_PATH"
-        _base64 "multiline" <"$CA_CERT_PATH.der" >>"$CA_CERT_PATH"
-        echo "$END_CERT" >>"$CA_CERT_PATH"
-
-        _info "The intermediate CA cert is in $(__green " $CA_CERT_PATH ")"
-        cat "$CA_CERT_PATH" >>"$CERT_FULLCHAIN_PATH"
-        _info "And the full chain certs is there: $(__green " $CERT_FULLCHAIN_PATH ")"
-
-        rm -f "$CA_CERT_PATH.der"
-        break
-      fi
-      _link_issuer_retry=$(_math $_link_issuer_retry + 1)
-      _sleep "$_link_issuer_retry"
-    done
-    if [ "$_link_issuer_retry" = "$_MAX_ISSUER_RETRY" ]; then
-      _err "Max retry for issuer ca cert is reached."
-    fi
+  if [ "$ACME_VERSION" = "2" ]; then
+    _debug "v2 chain."
   else
-    _debug "No Le_LinkIssuer header found."
+    Le_LinkIssuer=$(grep -i '^Link' "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2 | cut -d ';' -f 1 | tr -d '<>')
+
+    if [ "$Le_LinkIssuer" ]; then
+      if ! _contains "$Le_LinkIssuer" ":"; then
+        _info "$(__red "Relative issuer link found.")"
+        Le_LinkIssuer="$_ACME_SERVER_HOST$Le_LinkIssuer"
+      fi
+      _debug Le_LinkIssuer "$Le_LinkIssuer"
+      _savedomainconf "Le_LinkIssuer" "$Le_LinkIssuer"
+
+      _link_issuer_retry=0
+      _MAX_ISSUER_RETRY=5
+      while [ "$_link_issuer_retry" -lt "$_MAX_ISSUER_RETRY" ]; do
+        _debug _link_issuer_retry "$_link_issuer_retry"
+        if [ "$ACME_VERSION" = "2" ]; then
+          if _get "$Le_LinkIssuer" >"$CA_CERT_PATH"; then
+            break
+          fi
+        else
+          if _get "$Le_LinkIssuer" >"$CA_CERT_PATH.der"; then
+            echo "$BEGIN_CERT" >"$CA_CERT_PATH"
+            _base64 "multiline" <"$CA_CERT_PATH.der" >>"$CA_CERT_PATH"
+            echo "$END_CERT" >>"$CA_CERT_PATH"
+            cat "$CA_CERT_PATH" >>"$CERT_FULLCHAIN_PATH"
+            rm -f "$CA_CERT_PATH.der"
+            break
+          fi
+        fi
+        _link_issuer_retry=$(_math $_link_issuer_retry + 1)
+        _sleep "$_link_issuer_retry"
+      done
+      if [ "$_link_issuer_retry" = "$_MAX_ISSUER_RETRY" ]; then
+        _err "Max retry for issuer ca cert is reached."
+      fi
+    else
+      _debug "No Le_LinkIssuer header found."
+    fi
   fi
+  [ -f "$CA_CERT_PATH" ] && _info "The intermediate CA cert is in $(__green " $CA_CERT_PATH ")"
+  [ -f "$CERT_FULLCHAIN_PATH" ] && _info "And the full chain certs is there: $(__green " $CERT_FULLCHAIN_PATH ")"
 
   Le_CertCreateTime=$(_time)
   _savedomainconf "Le_CertCreateTime" "$Le_CertCreateTime"
@@ -3974,7 +4174,7 @@ renew() {
       _savedomainconf Le_API "$Le_API"
     fi
     if [ "$_OLD_STAGE_CA_HOST" = "$Le_API" ]; then
-      export Le_API="$STAGE_CA"
+      export Le_API="$DEFAULT_STAGING_CA"
       _savedomainconf Le_API "$Le_API"
     fi
     export ACME_DIRECTORY="$Le_API"
@@ -4062,8 +4262,6 @@ signcsr() {
     return 1
   fi
 
-  _initpath
-
   _csrsubj=$(_readSubjectFromCSR "$_csrfile")
   if [ "$?" != "0" ]; then
     _err "Can not read subject from csr: $_csrfile"
@@ -4100,6 +4298,9 @@ signcsr() {
     return 1
   fi
 
+  if [ -z "$ACME_VERSION" ] && _contains "$_csrsubj,$_csrdomainlist" "*."; then
+    export ACME_VERSION=2
+  fi
   _initpath "$_csrsubj" "$_csrkeylength"
   mkdir -p "$DOMAIN_PATH"
 
@@ -4465,7 +4666,11 @@ revoke() {
 
   _initAPI
 
-  data="{\"resource\": \"revoke-cert\", \"certificate\": \"$cert\"}"
+  if [ "$ACME_VERSION" = "2" ]; then
+    data="{\"certificate\": \"$cert\"}"
+  else
+    data="{\"resource\": \"revoke-cert\", \"certificate\": \"$cert\"}"
+  fi
   uri="${ACME_REVOKE_CERT}"
 
   if [ -f "$CERT_KEY_PATH" ]; then
@@ -4536,27 +4741,56 @@ _deactivate() {
   _d_type="$2"
   _initpath
 
-  if ! __get_domain_new_authz "$_d_domain"; then
-    _err "Can not get domain new authz token."
-    return 1
+  if [ "$ACME_VERSION" = "2" ]; then
+    _identifiers="{\"type\":\"dns\",\"value\":\"$_d_domain\"}"
+    if ! _send_signed_request "$ACME_NEW_ORDER" "{\"identifiers\": [$_identifiers]}"; then
+      _err "Can not get domain new order."
+      return 1
+    fi
+    _authorizations_seg="$(echo "$response" | tr -d '\r\n' | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
+    _debug2 _authorizations_seg "$_authorizations_seg"
+    if [ -z "$_authorizations_seg" ]; then
+      _err "_authorizations_seg not found."
+      _clearup
+      _on_issue_err "$_post_hook"
+      return 1
+    fi
+
+    authzUri="$_authorizations_seg"
+    _debug2 "authzUri" "$authzUri"
+    if ! response="$(_get "$authzUri")"; then
+      _err "get to authz error."
+      _clearup
+      _on_issue_err "$_post_hook"
+      return 1
+    fi
+
+    response="$(echo "$response" | _normalizeJson)"
+    _debug2 response "$response"
+    _URL_NAME="url"
+  else
+    if ! __get_domain_new_authz "$_d_domain"; then
+      _err "Can not get domain new authz token."
+      return 1
+    fi
+
+    authzUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
+    _debug "authzUri" "$authzUri"
+    if [ "$code" ] && [ ! "$code" = '201' ]; then
+      _err "new-authz error: $response"
+      return 1
+    fi
+    _URL_NAME="uri"
   fi
 
-  authzUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
-  _debug "authzUri" "$authzUri"
-
-  if [ "$code" ] && [ ! "$code" = '201' ]; then
-    _err "new-authz error: $response"
-    return 1
-  fi
-
-  entries="$(echo "$response" | _egrep_o '{ *"type":"[^"]*", *"status": *"valid", *"uri"[^}]*')"
+  entries="$(echo "$response" | _egrep_o "{ *\"type\":\"[^\"]*\", *\"status\": *\"valid\", *\"$_URL_NAME\"[^}]*")"
   if [ -z "$entries" ]; then
     _info "No valid entries found."
     if [ -z "$thumbprint" ]; then
       thumbprint="$(__calc_account_thumbprint)"
     fi
     _debug "Trigger validation."
-    vtype="$VTYPE_HTTP"
+    vtype="$VTYPE_DNS"
     entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
     _debug entry "$entry"
     if [ -z "$entry" ]; then
@@ -4566,7 +4800,7 @@ _deactivate() {
     token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
     _debug token "$token"
 
-    uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d : -f 2,3 | tr -d '"')"
+    uri="$(printf "%s\n" "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
     _debug uri "$uri"
 
     keyauthorization="$token.$thumbprint"
@@ -4592,7 +4826,7 @@ _deactivate() {
     _debug _vtype "$_vtype"
     _info "Found $_vtype"
 
-    uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d : -f 2,3 | tr -d '"')"
+    uri="$(printf "%s\n" "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
     _debug uri "$uri"
 
     if [ "$_d_type" ] && [ "$_d_type" != "$_vtype" ]; then
@@ -4602,7 +4836,13 @@ _deactivate() {
 
     _info "Deactivate: $_vtype"
 
-    if _send_signed_request "$authzUri" "{\"resource\": \"authz\", \"status\":\"deactivated\"}" && _contains "$response" '"deactivated"'; then
+    if [ "$ACME_VERSION" = "2" ]; then
+      _djson="{\"status\":\"deactivated\"}"
+    else
+      _djson="{\"resource\": \"authz\", \"status\":\"deactivated\"}"
+    fi
+
+    if _send_signed_request "$authzUri" "$_djson" && _contains "$response" '"deactivated"'; then
       _info "Deactivate: $_vtype success."
     else
       _err "Can not deactivate $_vtype."
@@ -5324,6 +5564,10 @@ _process() {
             return 1
           fi
 
+          if _startswith "$_dvalue" "*."; then
+            _debug "Wildcard domain"
+            export ACME_VERSION=2
+          fi
           if [ -z "$_domain" ]; then
             _domain="$_dvalue"
           else
