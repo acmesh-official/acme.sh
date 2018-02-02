@@ -25,7 +25,7 @@ dns_aws_add() {
     AWS_ACCESS_KEY_ID=""
     AWS_SECRET_ACCESS_KEY=""
     _err "You don't specify aws route53 api key id and and api key secret yet."
-    _err "Please create you key and try again. see $(__green $AWS_WIKI)"
+    _err "Please create your key and try again. see $(__green $AWS_WIKI)"
     return 1
   fi
 

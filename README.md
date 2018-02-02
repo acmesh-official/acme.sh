@@ -3,6 +3,8 @@
 [![Join the chat at https://gitter.im/acme-sh/Lobby](https://badges.gitter.im/acme-sh/Lobby.svg)](https://gitter.im/acme-sh/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 - An ACME protocol client written purely in Shell (Unix shell) language.
 - Full ACME protocol implementation.
+- Support ACME v1 and ACME v2
+- Support ACME v2 wildcard certs
 - Simple, powerful and very easy to use. You only need 3 minutes to learn it.
 - Bash, dash and sh compatible.
 - Simplest shell script for Let's Encrypt free certificate client.
@@ -409,7 +411,18 @@ acme.sh --renew -d example.com --force --ecc
 ```
 
 
-# 12. How to upgrade `acme.sh`
+# 12. How to stop cert renewal
+
+To stop renewal of a cert, you can execute:
+
+```
+acme.sh --remove -d example.com [--ecc]
+```
+
+or remove the respective directory (e.g. `~/.acme.sh/example.com`).
+
+
+# 13. How to upgrade `acme.sh`
 
 acme.sh is in constant development, so it's strongly recommended to use the latest code.
 
@@ -434,26 +447,26 @@ acme.sh --upgrade --auto-upgrade 0
 ```
 
 
-# 13. Issue a cert from an existing CSR
+# 14. Issue a cert from an existing CSR
 
 https://github.com/Neilpang/acme.sh/wiki/Issue-a-cert-from-existing-CSR
 
 
-# 14. Under the Hood
+# 15. Under the Hood
 
 Speak ACME language using shell, directly to "Let's Encrypt".
 
 TODO:
 
 
-# 15. Acknowledgments
+# 16. Acknowledgments
 
 1. Acme-tiny: https://github.com/diafygi/acme-tiny
 2. ACME protocol: https://github.com/ietf-wg-acme/acme
 3. Certbot: https://github.com/certbot/certbot
 
 
-# 16. License & Others
+# 17. License & Others
 
 License is GPLv3
 
@@ -462,7 +475,7 @@ Please Star and Fork me.
 [Issues](https://github.com/Neilpang/acme.sh/issues) and [pull requests](https://github.com/Neilpang/acme.sh/pulls) are welcome.
 
 
-# 17. Donate
+# 18. Donate
 Your donation makes **acme.sh** better:
 
 1. PayPal/Alipay(支付宝)/Wechat(微信): [https://donate.acme.sh/](https://donate.acme.sh/)
