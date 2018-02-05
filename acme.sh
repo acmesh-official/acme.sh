@@ -3695,7 +3695,7 @@ $_authorizations_map"
     if [ "$dnsadded" = '0' ]; then
       _savedomainconf "Le_Vlist" "$vlist"
       _debug "Dns record not added yet, so, save to $DOMAIN_CONF and exit."
-      _err "Please add the TXT records to the domains, and retry again."
+      _err "Please add the TXT records to the domains, and --renew instead of --install."
       _clearup
       _on_issue_err "$_post_hook"
       return 1
