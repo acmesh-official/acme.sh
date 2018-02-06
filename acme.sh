@@ -3594,7 +3594,7 @@ $_authorizations_map"
       entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
       if [ -z "$entry" ]; then
-        _err "Error, can not get domain token $d"
+        _err "Error, can not get domain token entry $d"
         _clearup
         _on_issue_err "$_post_hook"
         return 1
@@ -3602,6 +3602,12 @@ $_authorizations_map"
       token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
       _debug token "$token"
 
+      if [ -z "$token" ]; then
+        _err "Error, can not get domain token $entry"
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
       if [ "$ACME_VERSION" = "2" ]; then
         uri="$(printf "%s\n" "$entry" | _egrep_o '"url":"[^"]*' | cut -d '"' -f 4 | _head_n 1)"
       else
@@ -3609,6 +3615,12 @@ $_authorizations_map"
       fi
       _debug uri "$uri"
 
+      if [ -z "$uri" ]; then
+        _err "Error, can not get domain uri. $entry"
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
       keyauthorization="$token.$thumbprint"
       _debug keyauthorization "$keyauthorization"
 
