@@ -3170,7 +3170,7 @@ _regAccount() {
   if [ "$code" = "" ] || [ "$code" = '201' ]; then
     echo "$response" >"$ACCOUNT_JSON_PATH"
     _info "Registered"
-  elif [ "$code" = '409' ]; then
+  elif [ "$code" = '409' ] || [ "$code" = '200' ]; then
     _info "Already registered"
   else
     _err "Register account Error: $response"
