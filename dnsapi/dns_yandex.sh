@@ -71,7 +71,7 @@ _PDD_get_domain() {
     for d in $__all_domains; do
       if [ "$d" = "$__t" ]; then
         p=$(_math $k - 1)
-        curSubdomain="$(echo "$fulldomain" | cut -d . -f 1-$p)"
+        curSubdomain="$(echo "$fulldomain" | cut -d . -f "1-$p")"
         echo "$__t"
         return
       fi
