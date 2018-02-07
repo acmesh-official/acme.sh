@@ -354,7 +354,7 @@ acme.sh --issue --dns dns_gandi_livedns -d example.com -d www.example.com
 First, generate a TSIG key for updating the zone.
 
 ```
-keymgr tsig generate acme_key algorithm hmac-sha512 > /etc/knot/acme.key
+keymgr tsig generate -t acme_key hmac-sha512 > /etc/knot/acme.key
 ```
 
 Include this key in your knot configuration file.
