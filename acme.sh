@@ -5163,8 +5163,14 @@ install() {
   if [ -z "$NO_DETECT_SH" ]; then
     #Modify shebang
     if _exists bash; then
+      _bash_path="$(bash -c "command -v bash 2>/dev/null")"
+      if [ -z "$_bash_path" ]; then
+        _bash_path="$(bash -c 'echo $SHELL')"
+      fi
+    fi
+    if [ "$_bash_path" ]; then
       _info "Good, bash is found, so change the shebang to use bash as preferred."
-      _shebang='#!'"$(bash -c "command -v bash")"
+      _shebang='#!'"$_bash_path"
       _setShebang "$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
       for subf in $_SUB_FOLDERS; do
         if [ -d "$LE_WORKING_DIR/$subf" ]; then
