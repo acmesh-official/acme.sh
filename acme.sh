@@ -1787,7 +1787,7 @@ _send_signed_request() {
       if [ "$url" = "$ACME_NEW_ACCOUNT" ] || [ "$url" = "$ACME_REVOKE_CERT" ]; then
         protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"jwk\": $jwk"'}'
       else
-        protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"kid\": \"$ACCOUNT_URL\""'}'
+        protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"kid\": \"${ACCOUNT_URL}\""'}'
       fi
     else
       protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"jwk\": $jwk"'}'
@@ -3170,7 +3170,7 @@ _regAccount() {
   if [ "$code" = "" ] || [ "$code" = '201' ]; then
     echo "$response" >"$ACCOUNT_JSON_PATH"
     _info "Registered"
-  elif [ "$code" = '409' ]; then
+  elif [ "$code" = '409' ] || [ "$code" = '200' ]; then
     _info "Already registered"
   else
     _err "Register account Error: $response"
@@ -3594,7 +3594,7 @@ $_authorizations_map"
       entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
       if [ -z "$entry" ]; then
-        _err "Error, can not get domain token $d"
+        _err "Error, can not get domain token entry $d"
         _clearup
         _on_issue_err "$_post_hook"
         return 1
@@ -3602,6 +3602,12 @@ $_authorizations_map"
       token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
       _debug token "$token"
 
+      if [ -z "$token" ]; then
+        _err "Error, can not get domain token $entry"
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
       if [ "$ACME_VERSION" = "2" ]; then
         uri="$(printf "%s\n" "$entry" | _egrep_o '"url":"[^"]*' | cut -d '"' -f 4 | _head_n 1)"
       else
@@ -3609,6 +3615,12 @@ $_authorizations_map"
       fi
       _debug uri "$uri"
 
+      if [ -z "$uri" ]; then
+        _err "Error, can not get domain uri. $entry"
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
       keyauthorization="$token.$thumbprint"
       _debug keyauthorization "$keyauthorization"
 
@@ -5151,8 +5163,14 @@ install() {
   if [ -z "$NO_DETECT_SH" ]; then
     #Modify shebang
     if _exists bash; then
+      _bash_path="$(bash -c "command -v bash 2>/dev/null")"
+      if [ -z "$_bash_path" ]; then
+        _bash_path="$(bash -c 'echo $SHELL')"
+      fi
+    fi
+    if [ "$_bash_path" ]; then
       _info "Good, bash is found, so change the shebang to use bash as preferred."
-      _shebang='#!'"$(bash -c "command -v bash")"
+      _shebang='#!'"$_bash_path"
       _setShebang "$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
       for subf in $_SUB_FOLDERS; do
         if [ -d "$LE_WORKING_DIR/$subf" ]; then

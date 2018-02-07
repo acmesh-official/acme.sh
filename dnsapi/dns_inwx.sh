@@ -35,53 +35,9 @@ dns_inwx_add() {
   fi
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
-  _debug "Getting txt records"
 
-  xml_content=$(printf '<?xml version="1.0" encoding="UTF-8"?>
-  <methodCall>
-  <methodName>nameserver.info</methodName>
-  <params>
-   <param>
-    <value>
-     <struct>
-      <member>
-       <name>domain</name>
-       <value>
-        <string>%s</string>
-       </value>
-      </member>
-      <member>
-       <name>type</name>
-       <value>
-        <string>TXT</string>
-       </value>
-      </member>
-      <member>
-       <name>name</name>
-       <value>
-        <string>%s</string>
-       </value>
-      </member>
-     </struct>
-    </value>
-   </param>
-  </params>
-  </methodCall>' "$_domain" "$_sub_domain")
-  response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
-
-  if ! printf "%s" "$response" | grep "Command completed successfully" >/dev/null; then
-    _err "Error could net get txt records"
-    return 1
-  fi
-
-  if ! printf "%s" "$response" | grep "count" >/dev/null; then
-    _info "Adding record"
-    _inwx_add_record "$_domain" "$_sub_domain" "$txtvalue"
-  else
-    _record_id=$(printf '%s' "$response" | _egrep_o '.*(<member><name>record){1}(.*)([0-9]+){1}' | _egrep_o '<name>id<\/name><value><int>[0-9]+' | _egrep_o '[0-9]+')
-    _info "Updating record"
-    _inwx_update_record "$_record_id" "$txtvalue"
-  fi
+  _info "Adding record"
+  _inwx_add_record "$_domain" "$_sub_domain" "$txtvalue"
 
 }
 
@@ -147,7 +103,7 @@ dns_inwx_rm() {
   </methodCall>' "$_domain" "$_sub_domain")
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
 
-  if ! printf "%s" "$response" | grep "Command completed successfully" >/dev/null; then
+  if ! _contains "$response" "Command completed successfully"; then
     _err "Error could not get txt records"
     return 1
   fi
