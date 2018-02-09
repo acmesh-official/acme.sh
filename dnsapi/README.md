@@ -665,19 +665,6 @@ And now you can issue certs with:
 ```
 acme.sh --issue --dns dns_namesilo --dnssleep 900 -d example.com -d www.example.com
 ```
-## 36. Use DNSEver (https://www.dnsever.com/)
-
-You will need your login credentials (ID+PW) to the DNSEver, and export them before you run acme.sh:
-```
-export DNSEVER_ID="KD-1234567"
-export DNSEVER_PW="cdfkjl3n2"
-```
-
-Ok, let's issue a cert now:
-```
-acme.sh --issue --dns dns_dnsever -d example.com -d www.example.com
-```
-The DNSEVER_ID and DNSEVER_PW will be saved in ~/.acme.sh/account.conf and will be reused when needed.
 
 ## 36. Use autoDNS (InternetX)
 
@@ -732,6 +719,19 @@ acme.sh --issue --dns dns_selectel -d example.com -d www.example.com
 
 The `SL_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 39. Use DNSEver (https://www.dnsever.com/)
+
+You will need your login credentials (ID+PW) to the DNSEver, and export them before you run acme.sh:
+```
+export DNSEVER_ID="KD-1234567"
+export DNSEVER_PW="cdfkjl3n2"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_dnsever -d example.com -d www.example.com
+```
+The DNSEVER_ID and DNSEVER_PW will be saved in ~/.acme.sh/account.conf and will be reused when needed.
 
 # Use custom API
 
