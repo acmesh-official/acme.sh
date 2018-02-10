@@ -76,6 +76,7 @@ https://github.com/Neilpang/acmetest
 - Apache mode
 - Nginx mode ( Beta )
 - DNS mode
+- [DNS alias mode](https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode)
 - [Stateless mode](https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode)
 
 
