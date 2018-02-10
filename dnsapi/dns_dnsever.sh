@@ -84,6 +84,19 @@ dnsever_txt() {
     return 1
   fi
 
+  if printf "%s\n" "$response" | grep /confirm_email.html >/dev/null; then
+    response=$(_post "command=skipemail" "https://kr.dnsever.com/confirm_email.html")
+    if [ $? != 0 ] || [ -z "$response" ]; then
+      _err "dnsever_txt:$action ERROR skipemail"
+      return 1
+    fi
+    response=$(_post "" "https://kr.dnsever.com/start.html")
+    if [ $? != 0 ] || [ -z "$response" ]; then
+      _err "dnsever_txt:$action ERROR login failed. Please check https://kr.dnsever.com/start.html after login"
+      return 1
+    fi
+  fi
+  
   skey=$(printf "%s\n" "$response" | grep skey | sed -n "s/^.*value=['\"]\(.*\)['\"].*/\1/p")
   if [ -z "$skey" ]; then
     _err "dnsever_txt:$action ERROR login failed with login_id=$login_id login_password=$login_password"
