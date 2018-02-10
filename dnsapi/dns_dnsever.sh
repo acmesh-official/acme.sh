@@ -84,7 +84,7 @@ dnsever_txt() {
     return 1
   fi
 
-  if printf "%s\n" "$response" | grep /confirm_email.html >/dev/null; then
+  if printf "%s\n" "$response" | grep "/confirm_email.html" >/dev/null; then
     response=$(_post "command=skipemail" "https://kr.dnsever.com/confirm_email.html")
     if [ $? != 0 ] || [ -z "$response" ]; then
       _err "dnsever_txt:$action ERROR skipemail"
