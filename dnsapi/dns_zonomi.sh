@@ -31,7 +31,7 @@ dns_zonomi_add() {
     _err "error"
     return 1
   fi
-  
+
   if _contains "$response" "<record"; then
     _debug "get and update records"
     _qstr="action[1]=SET&type[1]=TXT&name[1]=$fulldomain&value[1]=$txtvalue"
