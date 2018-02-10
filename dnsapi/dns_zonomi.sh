@@ -35,7 +35,7 @@ dns_zonomi_add() {
   if _contains "$response" "<record"; then
     _debug "get and update records"
     _qstr="action[1]=SET&type[1]=TXT&name[1]=$fulldomain&value[1]=$txtvalue"
-    _qindex=2;
+    _qindex=2
     for t in $(echo "$response" | tr -d "\r\n" | _egrep_o '<action.*</action>' | tr "<" "\n" | grep record | grep 'type="TXT"' | cut -d '"' -f 6); do
       _debug2 t "$t"
       _qstr="$_qstr&action[$_qindex]=SET&type[$_qindex]=TXT&name[$_qindex]=$fulldomain&value[$_qindex]=$t"
@@ -71,7 +71,6 @@ dns_zonomi_rm() {
 _zm_request() {
   qstr="$1"
 
-  _debug2 "action" "$action"
   _debug2 "qstr" "$qstr"
 
   _zm_url="$ZM_Api?api_key=$ZM_Key&$qstr"
@@ -79,7 +78,6 @@ _zm_request() {
   response="$(_get "$_zm_url")"
 
   if [ "$?" != "0" ]; then
-    _err "error $ep"
     return 1
   fi
   _debug2 response "$response"
