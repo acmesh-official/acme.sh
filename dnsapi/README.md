@@ -634,6 +634,124 @@ The `HE_Username` and `HE_Password` settings will be saved in `~/.acme.sh/accoun
 
 Please report any issues to https://github.com/angel333/acme.sh or to <me@ondrejsimek.com>.
 
+## 32. Use UnoEuro API to automatically issue cert
+
+First you need to login to your UnoEuro account to get your API key.
+
+```
+export UNO_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+export UNO_User="UExxxxxx"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_unoeuro -d example.com -d www.example.com
+```
+
+The `UNO_Key` and `UNO_User` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 33. Use INWX
+
+[INWX](https://www.inwx.de/) offers an [xmlrpc api](https://www.inwx.de/de/help/apidoc)  with your standard login credentials, set them like so:
+
+```
+export INWX_User="yourusername"
+export INWX_Password="password"
+```
+
+Then you can issue your certificates with:
+
+```
+acme.sh --issue --dns dns_inwx -d example.com -d www.example.com
+```
+
+The `INWX_User` and `INWX_Password` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 34. User Servercow API v1
+
+Create a new user from the servercow control center. Don't forget to activate **DNS API** for this user.
+
+```
+export SERVERCOW_API_Username=username
+export SERVERCOW_API_Password=password
+```
+
+Now you cann issue a cert:
+
+```
+acme.sh --issue --dns dns_servercow -d example.com -d www.example.com
+```
+Both, `SERVERCOW_API_Username` and `SERVERCOW_API_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 35. Use Namesilo.com API
+
+You'll need to generate an API key at https://www.namesilo.com/account_api.php
+Optionally you may restrict the access to an IP range there.
+
+```
+export Namesilo_Key="xxxxxxxxxxxxxxxxxxxxxxxx"
+```
+
+And now you can issue certs with:
+
+```
+acme.sh --issue --dns dns_namesilo --dnssleep 900 -d example.com -d www.example.com
+```
+
+## 36. Use autoDNS (InternetX)
+
+[InternetX](https://www.internetx.com/) offers an [xml api](https://help.internetx.com/display/API/AutoDNS+XML-API)  with your standard login credentials, set them like so:
+
+```
+export AUTODNS_USER="yourusername"
+export AUTODNS_PASSWORD="password"
+export AUTODNS_CONTEXT="context"
+```
+
+Then you can issue your certificates with:
+
+```
+acme.sh --issue --dns dns_autodns -d example.com -d www.example.com
+```
+
+The `AUTODNS_USER`, `AUTODNS_PASSWORD` and `AUTODNS_CONTEXT` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 37. Use Azure DNS
+
+You have to create a service principal first. See:[How to use Azure DNS](../../../wiki/How-to-use-Azure-DNS)
+
+```
+export AZUREDNS_SUBSCRIPTIONID="12345678-9abc-def0-1234-567890abcdef"
+export AZUREDNS_TENANTID="11111111-2222-3333-4444-555555555555"
+export AZUREDNS_APPID="3b5033b5-7a66-43a5-b3b9-a36b9e7c25ed"
+export AZUREDNS_CLIENTSECRET="1b0224ef-34d4-5af9-110f-77f527d561bd"
+```
+
+Then you can issue your certificates with:
+
+```
+acme.sh --issue --dns dns_azure -d example.com -d www.example.com
+```
+
+`AZUREDNS_SUBSCRIPTIONID`, `AZUREDNS_TENANTID`,`AZUREDNS_APPID` and `AZUREDNS_CLIENTSECRET` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 38. Use selectel.com(selectel.ru) domain API to automatically issue cert
+
+First you need to login to your account to get your API key from: https://my.selectel.ru/profile/apikeys.
+
+```sh
+export SL_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_selectel -d example.com -d www.example.com
+```
+
+The `SL_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.

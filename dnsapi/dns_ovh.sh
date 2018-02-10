@@ -78,13 +78,7 @@ _ovh_get_api() {
   esac
 }
 
-########  Public functions #####################
-
-#Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
-dns_ovh_add() {
-  fulldomain=$1
-  txtvalue=$2
-
+_initAuth() {
   if [ -z "$OVH_AK" ] || [ -z "$OVH_AS" ]; then
     OVH_AK=""
     OVH_AS=""
@@ -119,14 +113,26 @@ dns_ovh_add() {
 
   _info "Checking authentication"
 
-  response="$(_ovh_rest GET "domain")"
-  if _contains "$response" "INVALID_CREDENTIAL"; then
+  if ! _ovh_rest GET "domain" || _contains "$response" "INVALID_CREDENTIAL"; then
     _err "The consumer key is invalid: $OVH_CK"
     _err "Please retry to create a new one."
     _clearaccountconf OVH_CK
     return 1
   fi
   _info "Consumer key is ok."
+  return 0
+}
+
+########  Public functions #####################
+
+#Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+dns_ovh_add() {
+  fulldomain=$1
+  txtvalue=$2
+
+  if ! _initAuth; then
+    return 1
+  fi
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -137,49 +143,58 @@ dns_ovh_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  _debug "Getting txt records"
-  _ovh_rest GET "domain/zone/$_domain/record?fieldType=TXT&subDomain=$_sub_domain"
-
-  if _contains "$response" '\[\]' || _contains "$response" "This service does not exist"; then
-    _info "Adding record"
-    if _ovh_rest POST "domain/zone/$_domain/record" "{\"fieldType\":\"TXT\",\"subDomain\":\"$_sub_domain\",\"target\":\"$txtvalue\",\"ttl\":60}"; then
-      if _contains "$response" "$txtvalue"; then
-        _ovh_rest POST "domain/zone/$_domain/refresh"
-        _debug "Refresh:$response"
-        _info "Added, sleeping 10 seconds"
-        sleep 10
-        return 0
-      fi
+  _info "Adding record"
+  if _ovh_rest POST "domain/zone/$_domain/record" "{\"fieldType\":\"TXT\",\"subDomain\":\"$_sub_domain\",\"target\":\"$txtvalue\",\"ttl\":60}"; then
+    if _contains "$response" "$txtvalue"; then
+      _ovh_rest POST "domain/zone/$_domain/refresh"
+      _debug "Refresh:$response"
+      _info "Added, sleep 10 seconds."
+      _sleep 10
+      return 0
     fi
-    _err "Add txt record error."
-  else
-    _info "Updating record"
-    record_id=$(printf "%s" "$response" | tr -d "[]" | cut -d , -f 1)
-    if [ -z "$record_id" ]; then
-      _err "Can not get record id."
-      return 1
-    fi
-    _debug "record_id" "$record_id"
-
-    if _ovh_rest PUT "domain/zone/$_domain/record/$record_id" "{\"target\":\"$txtvalue\",\"subDomain\":\"$_sub_domain\",\"ttl\":60}"; then
-      if _contains "$response" "null"; then
-        _ovh_rest POST "domain/zone/$_domain/refresh"
-        _debug "Refresh:$response"
-        _info "Updated, sleeping 10 seconds"
-        sleep 10
-        return 0
-      fi
-    fi
-    _err "Update error"
-    return 1
   fi
+  _err "Add txt record error."
+  return 1
 
 }
 
 #fulldomain
 dns_ovh_rm() {
   fulldomain=$1
+  txtvalue=$2
 
+  if ! _initAuth; then
+    return 1
+  fi
+
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain "$_domain"
+  _debug "Getting txt records"
+  if ! _ovh_rest GET "domain/zone/$_domain/record?fieldType=TXT&subDomain=$_sub_domain"; then
+    return 1
+  fi
+
+  for rid in $(echo "$response" | tr '][,' '   '); do
+    _debug rid "$rid"
+    if ! _ovh_rest GET "domain/zone/$_domain/record/$rid"; then
+      return 1
+    fi
+    if _contains "$response" "\"target\":\"$txtvalue\""; then
+      _debug "Found txt id:$rid"
+      if ! _ovh_rest DELETE "domain/zone/$_domain/record/$rid"; then
+        return 1
+      fi
+      return 0
+    fi
+  done
+
+  return 1
 }
 
 ####################  Private functions below ##################################
@@ -191,7 +206,7 @@ _ovh_authentication() {
   _H3=""
   _H4=""
 
-  _ovhdata='{"accessRules": [{"method": "GET","path": "/auth/time"},{"method": "GET","path": "/domain"},{"method": "GET","path": "/domain/zone/*"},{"method": "GET","path": "/domain/zone/*/record"},{"method": "POST","path": "/domain/zone/*/record"},{"method": "POST","path": "/domain/zone/*/refresh"},{"method": "PUT","path": "/domain/zone/*/record/*"}],"redirection":"'$ovh_success'"}'
+  _ovhdata='{"accessRules": [{"method": "GET","path": "/auth/time"},{"method": "GET","path": "/domain"},{"method": "GET","path": "/domain/zone/*"},{"method": "GET","path": "/domain/zone/*/record"},{"method": "POST","path": "/domain/zone/*/record"},{"method": "POST","path": "/domain/zone/*/refresh"},{"method": "PUT","path": "/domain/zone/*/record/*"},{"method": "DELETE","path": "/domain/zone/*/record/*"}],"redirection":"'$ovh_success'"}'
 
   response="$(_post "$_ovhdata" "$OVH_API/auth/credential")"
   _debug3 response "$response"
@@ -279,15 +294,15 @@ _ovh_rest() {
   export _H3="X-Ovh-Timestamp: $_ovh_t"
   export _H4="X-Ovh-Consumer: $OVH_CK"
   export _H5="Content-Type: application/json;charset=utf-8"
-  if [ "$data" ] || [ "$m" = "POST" ] || [ "$m" = "PUT" ]; then
+  if [ "$data" ] || [ "$m" = "POST" ] || [ "$m" = "PUT" ] || [ "$m" = "DELETE" ]; then
     _debug data "$data"
     response="$(_post "$data" "$_ovh_url" "" "$m")"
   else
     response="$(_get "$_ovh_url")"
   fi
 
-  if [ "$?" != "0" ]; then
-    _err "error $ep"
+  if [ "$?" != "0" ] || _contains "$response" "INVALID_CREDENTIAL"; then
+    _err "error $response"
     return 1
   fi
   _debug2 response "$response"
