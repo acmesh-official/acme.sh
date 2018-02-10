@@ -96,7 +96,7 @@ dnsever_txt() {
       return 1
     fi
   fi
-  
+
   skey=$(printf "%s\n" "$response" | grep skey | sed -n "s/^.*value=['\"]\(.*\)['\"].*/\1/p")
   if [ -z "$skey" ]; then
     _err "dnsever_txt:$action ERROR login failed with login_id=$login_id login_password=$login_password"
