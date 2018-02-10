@@ -3,11 +3,14 @@
 #Created by RaidenII, to use DuckDNS's API to add/remove text records
 #06/27/2017
 
-# Currently only support single domain access
-# Due to the fact that DuckDNS uses StartSSL as cert provider, --insecure must be used with acme.sh
+# Pass credentials before "acme.sh --issue --dns dns_duckdns ..."
+# --
+# export DuckDNS_Token="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+# --
+#
+# Due to the fact that DuckDNS uses StartSSL as cert provider, --insecure may need to be used with acme.sh
 
 DuckDNS_API="https://www.duckdns.org/update"
-API_Params="domains=$DuckDNS_Domain&token=$DuckDNS_Token"
 
 ########  Public functions #####################
 
@@ -16,35 +19,36 @@ dns_duckdns_add() {
   fulldomain=$1
   txtvalue=$2
 
-  # We'll extract the domain/username from full domain
-  DuckDNS_Domain=$(echo "$fulldomain" | _lower_case | _egrep_o '.[^.]*.duckdns.org' | cut -d . -f 2)
-
-  if [ -z "$DuckDNS_Domain" ]; then
-    _err "Error extracting the domain."
-    return 1
-  fi
-
+  DuckDNS_Token="${DuckDNS_Token:-$(_readaccountconf_mutable DuckDNS_Token)}"
   if [ -z "$DuckDNS_Token" ]; then
-    DuckDNS_Token=""
+    _err "You must export variable: DuckDNS_Token"
     _err "The token for your DuckDNS account is necessary."
     _err "You can look it up in your DuckDNS account."
     return 1
   fi
 
   # Now save the credentials.
-  _saveaccountconf DuckDNS_Domain "$DuckDNS_Domain"
-  _saveaccountconf DuckDNS_Token "$DuckDNS_Token"
+  _saveaccountconf_mutable DuckDNS_Token "$DuckDNS_Token"
 
   # Unfortunately, DuckDNS does not seems to support lookup domain through API
   # So I assume your credentials (which are your domain and token) are correct
   # If something goes wrong, we will get a KO response from DuckDNS
 
+  if ! _duckdns_get_domain; then
+    return 1
+  fi
+
   # Now add the TXT record to DuckDNS
   _info "Trying to add TXT record"
-  if _duckdns_rest GET "$API_Params&txt=$txtvalue" && [ "$response" = "OK" ]; then
-    _info "TXT record has been successfully added to your DuckDNS domain."
-    _info "Note that all subdomains under this domain uses the same TXT record."
-    return 0
+  if _duckdns_rest GET "domains=$_duckdns_domain&token=$DuckDNS_Token&txt=$txtvalue"; then
+    if [ "$response" = "OK" ]; then
+      _info "TXT record has been successfully added to your DuckDNS domain."
+      _info "Note that all subdomains under this domain uses the same TXT record."
+      return 0
+    else
+      _err "Errors happened during adding the TXT record, response=$response"
+      return 1
+    fi
   else
     _err "Errors happened during adding the TXT record."
     return 1
@@ -57,11 +61,28 @@ dns_duckdns_rm() {
   fulldomain=$1
   txtvalue=$2
 
+  DuckDNS_Token="${DuckDNS_Token:-$(_readaccountconf_mutable DuckDNS_Token)}"
+  if [ -z "$DuckDNS_Token" ]; then
+    _err "You must export variable: DuckDNS_Token"
+    _err "The token for your DuckDNS account is necessary."
+    _err "You can look it up in your DuckDNS account."
+    return 1
+  fi
+
+  if ! _duckdns_get_domain; then
+    return 1
+  fi
+
   # Now remove the TXT record from DuckDNS
   _info "Trying to remove TXT record"
-  if _duckdns_rest GET "$API_Params&txt=&clear=true" && [ "$response" = "OK" ]; then
-    _info "TXT record has been successfully removed from your DuckDNS domain."
-    return 0
+  if _duckdns_rest GET "domains=$_duckdns_domain&token=$DuckDNS_Token&txt=&clear=true"; then
+    if [ "$response" = "OK" ]; then
+      _info "TXT record has been successfully removed from your DuckDNS domain."
+      return 0
+    else
+      _err "Errors happened during removing the TXT record, response=$response"
+      return 1
+    fi
   else
     _err "Errors happened during removing the TXT record."
     return 1
@@ -69,6 +90,22 @@ dns_duckdns_rm() {
 }
 
 ####################  Private functions below ##################################
+
+#fulldomain=_acme-challenge.domain.duckdns.org
+#returns
+# _duckdns_domain=domain
+_duckdns_get_domain() {
+
+  # We'll extract the domain/username from full domain
+  _duckdns_domain="$(printf "%s" "$fulldomain" | _lower_case | _egrep_o '[.][^.][^.]*[.]duckdns.org' | cut -d . -f 2)"
+
+  if [ -z "$_duckdns_domain" ]; then
+    _err "Error extracting the domain."
+    return 1
+  fi
+
+  return 0
+}
 
 #Usage: method URI
 _duckdns_rest() {

@@ -87,6 +87,7 @@ _get_root() {
     _debug "response" "$response"
     while true; do
       h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+      _debug2 "Checking domain: $h"
       if [ -z "$h" ]; then
         if _contains "$response" "<IsTruncated>true</IsTruncated>" && _contains "$response" "<NextMarker>"; then
           _debug "IsTruncated"
@@ -102,23 +103,23 @@ _get_root() {
           fi
         fi
         #not valid
+        _err "Invalid domain"
         return 1
       fi
 
       if _contains "$response" "<Name>$h.</Name>"; then
         hostedzone="$(echo "$response" | sed 's/<HostedZone>/#&/g' | tr '#' '\n' | _egrep_o "<HostedZone><Id>[^<]*<.Id><Name>$h.<.Name>.*<PrivateZone>false<.PrivateZone>.*<.HostedZone>")"
         _debug hostedzone "$hostedzone"
-        if [ -z "$hostedzone" ]; then
-          _err "Error, can not get hostedzone."
+        if [ "$hostedzone" ]; then
+          _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "<Id>.*<.Id>" | head -n 1 | _egrep_o ">.*<" | tr -d "<>")
+          if [ "$_domain_id" ]; then
+            _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+            _domain=$h
+            return 0
+          fi
+          _err "Can not find domain id: $h"
           return 1
         fi
-        _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "<Id>.*<.Id>" | head -n 1 | _egrep_o ">.*<" | tr -d "<>")
-        if [ "$_domain_id" ]; then
-          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
-          _domain=$h
-          return 0
-        fi
-        return 1
       fi
       p=$i
       i=$(_math "$i" + 1)
