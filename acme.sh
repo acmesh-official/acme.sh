@@ -3321,7 +3321,7 @@ __get_domain_new_authz() {
     _err "new-authz retry reach the max $_Max_new_authz_retry_times times."
   fi
 
-  if [ ! -z "$code" ] && [ ! "$code" = '201' ]; then
+  if [ "$code" ] && [ "$code" != '201' ]; then
     _err "new-authz error: $response"
     return 1
   fi
@@ -3501,7 +3501,7 @@ issue() {
       Le_OrderFinalize="$(echo "$response" | tr -d '\r\n' | _egrep_o '"finalize" *: *"[^"]*"' | cut -d '"' -f 4)"
       _debug Le_OrderFinalize "$Le_OrderFinalize"
       if [ -z "$Le_OrderFinalize" ]; then
-        _err "Le_OrderFinalize not found."
+        _err "Create new order error. Le_OrderFinalize not found. $response"
         _clearup
         _on_issue_err "$_post_hook"
         return 1
