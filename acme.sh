@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.7.6
+VER=2.7.7
 
 PROJECT_NAME="acme.sh"
 
@@ -1561,6 +1561,9 @@ _inithttp() {
       _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
     fi
 
+    if _contains "$(curl --help 2>&1)" "--globoff"; then
+      _ACME_CURL="$_ACME_CURL -g "
+    fi
   fi
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
