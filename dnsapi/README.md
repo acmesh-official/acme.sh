@@ -512,7 +512,7 @@ acme.sh --issue --dns dns_nsone -d example.com -d www.example.com
 export DuckDNS_Token="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 ```
 
-Please note that since DuckDNS uses StartSSL as their cert provider, thus 
+Please note that since DuckDNS uses StartSSL as their cert provider, thus
 --insecure may need to be used when issuing certs:
 ```
 acme.sh --insecure --issue --dns dns_duckdns -d mydomain.duckdns.org
@@ -719,6 +719,18 @@ acme.sh --issue --dns dns_selectel -d example.com -d www.example.com
 
 The `SL_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 39. Use DreamHost DNS API
+
+DNS API keys may be created at https://panel.dreamhost.com/?tree=home.api.
+Ensure the created key has add and remove privelages.
+
+```
+export DH_API_Key="<api key>"
+acme.sh --issue --dns dns_dreamhost -d example.com -d www.example.com
+```
+
+The 'DH_API_KEY' will be saved in `~/.acme.sh/account.conf` and will
+be reused when needed.
 
 # Use custom API
 
