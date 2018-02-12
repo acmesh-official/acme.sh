@@ -315,15 +315,10 @@ You don't have to do anything manually!
 1. Azure DNS
 1. selectel.com(selectel.ru) DNS API
 1. zonomi.com DNS API
-1. DNSEver(https://www.dnsever.com)
-
-And: 
-
 1. lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
    (DigitalOcean, DNSimple, DNSMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)
+1. DNSEver(https://www.dnsever.com)
 
-
-   
 **More APIs coming soon...**
 
 If your DNS provider is not on the supported list above, you can write your own DNS API script easily. If you do, please consider submitting a [Pull Request](https://github.com/Neilpang/acme.sh/pulls) and contribute it to the project.
