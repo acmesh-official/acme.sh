@@ -585,7 +585,7 @@ For issues, please report to https://github.com/non7top/acme.sh/issues.
 
 ## 31. Use Hurricane Electric
 
-Hurricane Electric doesn't have an API so just set your login credentials like so:
+Hurricane Electric (https://dns.he.net/) doesn't have an API so just set your login credentials like so:
 
 ```
 export HE_Username="yourusername"
