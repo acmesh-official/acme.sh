@@ -235,7 +235,7 @@ dnsever_check() {
   check=""
   for n in $matched; do
     seq=$(printf "%s\n" "$response" | _egrep_o "name=\"seq_$n\" value=\".+\"" | cut -f3 -d= | tr -d \")
-    old_txt=$(printf "%s\n" "$response" | _egrep_o  "name=\"old_txt_$n\" value=\".+\" " | cut -f3 -d= | tr -d "\" ")
+    old_txt=$(printf "%s\n" "$response" | _egrep_o "name=\"old_txt_$n\" value=\".+\" " | cut -f3 -d= | tr -d "\" ")
     if [ "$txtvalue" != "$old_txt" ]; then
       _info "dnsever_check skip seq=$seq fulldomain=$fulldomain due to old_txt=$old_txt is different from txtvalue=$txtvalue skip"
       continue
