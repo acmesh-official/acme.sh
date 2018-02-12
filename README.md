@@ -314,6 +314,7 @@ You don't have to do anything manually!
 1. InternetX autoDNS API (https://internetx.com)
 1. Azure DNS
 1. selectel.com(selectel.ru) DNS API
+1. zonomi.com DNS API
 1. DNSEver(https://www.dnsever.com)
 
 And: 
