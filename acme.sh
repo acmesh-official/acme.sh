@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.7.6
+VER=2.7.7
 
 PROJECT_NAME="acme.sh"
 
@@ -1561,6 +1561,9 @@ _inithttp() {
       _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
     fi
 
+    if _contains "$(curl --help 2>&1)" "--globoff"; then
+      _ACME_CURL="$_ACME_CURL -g "
+    fi
   fi
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
@@ -2760,9 +2763,9 @@ _isRealNginxConf() {
 
         _left="$(sed -n "${_start_nn},99999p" "$2")"
         _debug2 _left "$_left"
-        if echo "$_left" | tr "\t" ' ' | grep -n "^ *server *" >/dev/null; then
-          _end=$(echo "$_left" | tr "\t" ' ' | grep -n "^ *server *" | _head_n 1)
-          _debug "_end" "$_end"
+        _end="$(echo "$_left" | tr "\t" ' ' | grep -n "^ *server *" | grep -v server_name | _head_n 1)"
+        _debug "_end" "$_end"
+        if [ "$_end" ]; then
           _end_n=$(echo "$_end" | cut -d : -f 1)
           _debug "_end_n" "$_end_n"
           _seg_n=$(echo "$_left" | sed -n "1,${_end_n}p")

@@ -719,6 +719,28 @@ acme.sh --issue --dns dns_selectel -d example.com -d www.example.com
 
 The `SL_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 39. Use zonomi.com domain API to automatically issue cert
+
+First you need to login to your account to find your API key from: http://zonomi.com/app/dns/dyndns.jsp
+
+Your will find your api key in the example urls:
+
+```sh
+https://zonomi.com/app/dns/dyndns.jsp?host=example.com&api_key=1063364558943540954358668888888888
+```
+
+```sh
+export ZM_Key="1063364558943540954358668888888888"
+
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_zonomi -d example.com -d www.example.com
+```
+
+The `ZM_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 
 # Use custom API
 
