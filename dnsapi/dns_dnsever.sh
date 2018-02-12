@@ -97,7 +97,9 @@ dnsever_txt() {
     fi
   fi
 
-  skey=$(printf "%s\n" "$response" | grep skey | sed -n "s/^.*value=['\"]\(.*\)['\"].*/\1/p")
+  skey=$(printf "%s\n" "$response" | _egrep_o "name=\"skey\" value=\".+\"" | cut -f3 -d= | tr -d \")
+  _debug skey "$skey"
+
   if [ -z "$skey" ]; then
     _err "dnsever_txt:$action ERROR login failed with login_id=$login_id login_password=$login_password"
     response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
@@ -105,6 +107,7 @@ dnsever_txt() {
   fi
 
   user_domain=$(dnsever_select_user_domain "$fulldomain" "$response")
+  _debug user_domain "$user_domain"
 
   if [ -z "$user_domain" ]; then
     _err "dnsever_txt:$action ERROR no matching domain in DNSEver"
@@ -115,6 +118,7 @@ dnsever_txt() {
   if [ "$action" = "add" ]; then
 
     subname=$(echo "$fulldomain" | sed "s/\.$user_domain\$//")
+    _debug subname "$subname"
 
     if [ -z "$subname" ] || [ -z "$txt" ]; then
       _err "dnsever_txt ERROR subname=$subname or txt=$txt is empty"
@@ -203,7 +207,9 @@ dnsever_select_user_domain() {
   fulldomain="$1"
   response="$2"
 
-  domains=$(printf "%s\n" "$response" | grep OPTION | sed -n "s/^.*value=['\"]\(.*\)['\"].*/\1/p" | grep -v "^$")
+  domains=$(printf "%s\n" "$response" | awk '/<SELECT name="user_domain"/,/<\/SELECT>/' | _egrep_o "<OPTION value=\".+\"" | cut -f2 -d= | tr -d \")
+  _debug domains "$domains"
+
   nmax=0
   selected=""
   for domain in $domains; do
@@ -220,15 +226,16 @@ dnsever_select_user_domain() {
 
 dnsever_check() {
   fulldomain="$1"
-  old_txt="$2"
+  txtvalue="$2"
   response="$3"
 
-  matched=$(printf "%s\n" "$response" | grep "$fulldomain" | sed -n "s/^.*name=['\"]\(.*\)['\"].*value.*$/\1/p" | sed 's/domain_for_txt_//g')
+  matched=$(printf "%s\n" "$response" | grep "$fulldomain" | _egrep_o "name=\"domain_for_txt_.+\" " | sed s/name=\"domain_for_txt_// | tr -d "\" ")
+  _debug matched "$matched"
 
   check=""
   for n in $matched; do
-    seq=$(printf "%s\n" "$response" | grep "seq_$n" | sed -n "s/^.*value=['\"]\(.*\)['\"].*/\1/p")
-    old_txt=$(printf "%s\n" "$response" | grep "old_txt_$n" | sed -n "s/^.*value=['\"]\(.*\)['\"].*id=.*$/\1/p")
+    seq=$(printf "%s\n" "$response" | _egrep_o "name=\"seq_$n\" value=\".+\"" | cut -f3 -d= | tr -d \")
+    old_txt=$(printf "%s\n" "$response" | _egrep_o  "name=\"old_txt_$n\" value=\".+\" " | cut -f3 -d= | tr -d "\" ")
     if [ "$txtvalue" != "$old_txt" ]; then
       _info "dnsever_check skip seq=$seq fulldomain=$fulldomain due to old_txt=$old_txt is different from txtvalue=$txtvalue skip"
       continue
@@ -236,6 +243,7 @@ dnsever_check() {
     check="${check}&check[]=$n&domain_for_txt_$n=$fulldomain&seq_$n=$seq&old_txt_$n=$old_txt"
   done
 
+  _debug check "$check"
   if [ -z "$check" ]; then
     return 1
   fi
