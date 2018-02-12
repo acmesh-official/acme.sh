@@ -47,6 +47,7 @@ DEFAULT_DNS_SLEEP=120
 NO_VALUE="no"
 
 W_TLS="tls"
+DNS_ALIAS_PREFIX="="
 
 MODE_STATELESS="stateless"
 
@@ -2896,7 +2897,11 @@ _clearupdns() {
       _alias_index="$(_math "$_alias_index" + 1)"
       _debug "_d_alias" "$_d_alias"
       if [ "$_d_alias" ]; then
-        txtdomain="_acme-challenge.$_d_alias"
+        if _startswith "$_d_alias" "$DNS_ALIAS_PREFIX"; then
+          txtdomain="$(echo "$_d_alias" | sed "s/$DNS_ALIAS_PREFIX//")"
+        else
+          txtdomain="_acme-challenge.$_d_alias"
+        fi
       else
         txtdomain="_acme-challenge.$_dns_root_d"
       fi
@@ -3679,7 +3684,11 @@ $_authorizations_map"
         _alias_index="$(_math "$_alias_index" + 1)"
         _debug "_d_alias" "$_d_alias"
         if [ "$_d_alias" ]; then
-          txtdomain="_acme-challenge.$_d_alias"
+          if _startswith "$_d_alias" "$DNS_ALIAS_PREFIX"; then
+            txtdomain="$(echo "$_d_alias" | sed "s/$DNS_ALIAS_PREFIX//")"
+          else
+            txtdomain="_acme-challenge.$_d_alias"
+          fi
         else
           txtdomain="_acme-challenge.$_dns_root_d"
         fi
@@ -5329,7 +5338,8 @@ Commands:
 
 Parameters:
   --domain, -d   domain.tld         Specifies a domain, used to issue, renew or revoke etc.
-  --challenge-alias domain.tld      The domain alis for DNS alias mode: $_DNS_ALIAS_WIKI
+  --challenge-alias domain.tld      The challenge domain alias for DNS alias mode: $_DNS_ALIAS_WIKI
+  --domain-alias domain.tld         The domain alias for DNS alias mode: $_DNS_ALIAS_WIKI
   --force, -f                       Used to force to install or force to renew a cert immediately.
   --staging, --test                 Use staging server, just for test.
   --debug                           Output debug info.
@@ -5675,6 +5685,11 @@ _process() {
         _challenge_alias="$_challenge_alias$cvalue,"
         shift
         ;;
+      --domain-alias)
+        cvalue="$DNS_ALIAS_PREFIX$2"
+        _challenge_alias="$_challenge_alias$cvalue,"
+        shift
+        ;;        
       --standalone)
         wvalue="$NO_VALUE"
         if [ -z "$_webroot" ]; then
