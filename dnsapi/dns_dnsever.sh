@@ -207,7 +207,7 @@ dnsever_select_user_domain() {
   fulldomain="$1"
   response="$2"
 
-  domains=$(printf "%s\n" "$response" | awk '/<SELECT name="user_domain"/,/<\/SELECT>/' | _egrep_o "<OPTION value=\".+\"" | cut -f2 -d= | tr -d \")
+  domains=$(printf "%s\n" "$response" | _egrep_o "<OPTION value=\".+\"" | cut -f2 -d= | tr -d \")
   _debug domains "$domains"
 
   nmax=0
