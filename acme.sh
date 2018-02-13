@@ -3444,8 +3444,7 @@ issue() {
   else
     _cleardomainconf "Le_ChallengeAlias"
   fi
-  
-  
+
   Le_API="$ACME_DIRECTORY"
   _savedomainconf "Le_API" "$Le_API"
 
@@ -3662,7 +3661,7 @@ $_authorizations_map"
     #add entry
     dnsadded=""
     ventries=$(echo "$vlist" | tr "$dvsep" ' ')
-    _alias_index=1;
+    _alias_index=1
     for ventry in $ventries; do
       d=$(echo "$ventry" | cut -d "$sep" -f 1)
       keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
@@ -5689,7 +5688,7 @@ _process() {
         cvalue="$DNS_ALIAS_PREFIX$2"
         _challenge_alias="$_challenge_alias$cvalue,"
         shift
-        ;;        
+        ;;
       --standalone)
         wvalue="$NO_VALUE"
         if [ -z "$_webroot" ]; then
