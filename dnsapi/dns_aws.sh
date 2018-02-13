@@ -48,7 +48,7 @@ dns_aws_add() {
   fi
 
   if _contains "$response" "<Name>$fulldomain.</Name>"; then
-    _resource_record="$(echo  "$response"  | _egrep_o "<ResourceRecords.*</ResourceRecords>" | sed "s/<ResourceRecords>//" | sed "s#</ResourceRecords>##")"
+    _resource_record="$(echo "$response" | _egrep_o "<ResourceRecords.*</ResourceRecords>" | sed "s/<ResourceRecords>//" | sed "s#</ResourceRecords>##")"
     _debug "_resource_record" "$_resource_record"
   else
     _debug "single new add"
@@ -93,7 +93,7 @@ dns_aws_rm() {
   fi
 
   if _contains "$response" "<Name>$fulldomain.</Name>"; then
-    _resource_record="$(echo  "$response"  | _egrep_o "<ResourceRecords.*</ResourceRecords>" | sed "s/<ResourceRecords>//" | sed "s#</ResourceRecords>##")"
+    _resource_record="$(echo "$response" | _egrep_o "<ResourceRecords.*</ResourceRecords>" | sed "s/<ResourceRecords>//" | sed "s#</ResourceRecords>##")"
     _debug "_resource_record" "$_resource_record"
   else
     _debug "no records exists, skip"

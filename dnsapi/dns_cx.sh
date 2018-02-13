@@ -74,7 +74,6 @@ existing_records() {
   fi
 
   if printf "%s" "$response" | grep '"type":"TXT"' >/dev/null; then
-    count=1
     record_id=$(printf "%s\n" "$seg" | _egrep_o '"record_id":"[^"]*"' | cut -d : -f 2 | tr -d \" | _head_n 1)
     _debug record_id "$record_id"
     return 0
