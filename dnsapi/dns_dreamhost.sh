@@ -61,7 +61,7 @@ submit() {
   fi
 
   if [ -z "$2" ]; then
-    message="$(printf "%s" "$response" | _egrep_o "\"Message\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
+    message="$(echo "$response" | _egrep_o "\"Message\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
     if [ -n "$message" ]; then
       _err "$message"
       return 1

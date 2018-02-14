@@ -302,7 +302,6 @@ You don't have to do anything manually!
 1. Dynu API (https://www.dynu.com)
 1. DNSimple API
 1. NS1.com API
-1. DreamHost.com API
 1. DuckDNS.org API
 1. Name.com API
 1. Dyn Managed DNS API
@@ -316,6 +315,7 @@ You don't have to do anything manually!
 1. Azure DNS
 1. selectel.com(selectel.ru) DNS API
 1. zonomi.com DNS API
+1. DreamHost.com API
 And: 
 
 1. lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
