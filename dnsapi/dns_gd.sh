@@ -45,11 +45,11 @@ dns_gd_add() {
 
   if _contains "$response" "$txtvalue"; then
     _info "The record is existing, skip"
-    return 0;
+    return 0
   fi
 
   _add_data="{\"data\":\"$txtvalue\"}"
-  for t in $(echo "$response" | tr '{' "\n"  | grep "\"name\":\"$_sub_domain\"" | tr ',' "\n" | grep '"data"' | cut -d : -f 2); do
+  for t in $(echo "$response" | tr '{' "\n" | grep "\"name\":\"$_sub_domain\"" | tr ',' "\n" | grep '"data"' | cut -d : -f 2); do
     _debug2 t "$t"
     if [ "$t" ]; then
       _add_data="$_add_data,{\"data\":$t}"
@@ -98,11 +98,11 @@ dns_gd_rm() {
 
   if ! _contains "$response" "$txtvalue"; then
     _info "The record is not existing, skip"
-    return 0;
+    return 0
   fi
 
   _add_data=""
-  for t in $(echo "$response" | tr '{' "\n"  | grep "\"name\":\"$_sub_domain\"" | tr ',' "\n" | grep '"data"' | cut -d : -f 2); do
+  for t in $(echo "$response" | tr '{' "\n" | grep "\"name\":\"$_sub_domain\"" | tr ',' "\n" | grep '"data"' | cut -d : -f 2); do
     _debug2 t "$t"
     if [ "$t" ] && [ "$t" != "\"$txtvalue\"" ]; then
       if [ "$_add_data" ]; then
@@ -117,7 +117,7 @@ dns_gd_rm() {
   fi
   _debug2 _add_data "$_add_data"
 
-  _gd_rest PUT "domains/$_domain/records/TXT/$_sub_domain" "[$_add_data]";
+  _gd_rest PUT "domains/$_domain/records/TXT/$_sub_domain" "[$_add_data]"
 }
 
 ####################  Private functions below ##################################
