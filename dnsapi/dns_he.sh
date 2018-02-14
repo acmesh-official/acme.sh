@@ -19,14 +19,16 @@ dns_he_add() {
   _txt_value=$2
   _info "Using DNS-01 Hurricane Electric hook"
 
+  HE_Username="${HE_Username:-$(_readaccountconf_mutable HE_Username)}"
+  HE_Password="${HE_Password:-$(_readaccountconf_mutable HE_Password)}"
   if [ -z "$HE_Username" ] || [ -z "$HE_Password" ]; then
     HE_Username=
     HE_Password=
     _err "No auth details provided. Please set user credentials using the \$HE_Username and \$HE_Password envoronment variables."
     return 1
   fi
-  _saveaccountconf HE_Username "$HE_Username"
-  _saveaccountconf HE_Password "$HE_Password"
+  _saveaccountconf_mutable HE_Username "$HE_Username"
+  _saveaccountconf_mutable HE_Password "$HE_Password"
 
   # Fills in the $_zone_id
   _find_zone "$_full_domain" || return 1
@@ -62,7 +64,8 @@ dns_he_rm() {
   _full_domain=$1
   _txt_value=$2
   _info "Cleaning up after DNS-01 Hurricane Electric hook"
-
+  HE_Username="${HE_Username:-$(_readaccountconf_mutable HE_Username)}"
+  HE_Password="${HE_Password:-$(_readaccountconf_mutable HE_Password)}"
   # fills in the $_zone_id
   _find_zone "$_full_domain" || return 1
   _debug "Zone id \"$_zone_id\" will be used."
