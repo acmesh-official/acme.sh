@@ -79,6 +79,9 @@ _ovh_get_api() {
 }
 
 _initAuth() {
+  OVH_AK="${OVH_AK:-$(_readaccountconf_mutable OVH_AK)}"
+  OVH_AS="${OVH_AS:-$(_readaccountconf_mutable OVH_AS)}"
+
   if [ -z "$OVH_AK" ] || [ -z "$OVH_AS" ]; then
     OVH_AK=""
     OVH_AS=""
@@ -87,21 +90,22 @@ _initAuth() {
     return 1
   fi
 
-  #save the api key and email to the account conf file.
-  _saveaccountconf OVH_AK "$OVH_AK"
-  _saveaccountconf OVH_AS "$OVH_AS"
+  _saveaccountconf_mutable OVH_AK "$OVH_AK"
+  _saveaccountconf_mutable OVH_AS "$OVH_AS"
 
+  OVH_END_POINT="${OVH_END_POINT:-$(_readaccountconf_mutable OVH_END_POINT)}"
   if [ -z "$OVH_END_POINT" ]; then
     OVH_END_POINT="ovh-eu"
   fi
   _info "Using OVH endpoint: $OVH_END_POINT"
   if [ "$OVH_END_POINT" != "ovh-eu" ]; then
-    _saveaccountconf OVH_END_POINT "$OVH_END_POINT"
+    _saveaccountconf_mutable OVH_END_POINT "$OVH_END_POINT"
   fi
 
   OVH_API="$(_ovh_get_api $OVH_END_POINT)"
   _debug OVH_API "$OVH_API"
 
+  OVH_CK="${OVH_CK:-$(_readaccountconf_mutable OVH_CK)}"
   if [ -z "$OVH_CK" ]; then
     _info "OVH consumer key is empty, Let's get one:"
     if ! _ovh_authentication; then

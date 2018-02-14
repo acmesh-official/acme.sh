@@ -409,10 +409,13 @@ acme.sh --issue --dns dns_dgon -d example.com -d www.example.com
 
 ## 21. Use ClouDNS.net API
 
-You need to set the HTTP API user ID and password credentials. See: https://www.cloudns.net/wiki/article/42/
+You need to set the HTTP API user ID and password credentials. See: https://www.cloudns.net/wiki/article/42/. For security reasons, it's recommended to use a sub user ID that only has access to the necessary zones, as a regular API user has access to your entire account.
 
 ```
-export CLOUDNS_AUTH_ID=XXXXX
+# Use this for a sub auth ID
+export CLOUDNS_SUB_AUTH_ID=XXXXX
+# Use this for a regular auth ID
+#export CLOUDNS_AUTH_ID=XXXXX
 export CLOUDNS_AUTH_PASSWORD="YYYYYYYYY"
 ```
 
@@ -585,7 +588,7 @@ For issues, please report to https://github.com/non7top/acme.sh/issues.
 
 ## 31. Use Hurricane Electric
 
-Hurricane Electric doesn't have an API so just set your login credentials like so:
+Hurricane Electric (https://dns.he.net/) doesn't have an API so just set your login credentials like so:
 
 ```
 export HE_Username="yourusername"
