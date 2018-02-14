@@ -4545,7 +4545,7 @@ _installcert() {
       cat "$CERT_KEY_PATH" >"$_real_key"
     else
       cat "$CERT_KEY_PATH" >"$_real_key"
-      chmod 700 "$_real_key"
+      chmod 600 "$_real_key"
     fi
   fi
 
