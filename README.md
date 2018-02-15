@@ -315,12 +315,7 @@ You don't have to do anything manually!
 1. Azure DNS
 1. selectel.com(selectel.ru) DNS API
 1. zonomi.com DNS API
-
-
-
-
-
-
+1. DreamHost.com API
 
 And: 
 
