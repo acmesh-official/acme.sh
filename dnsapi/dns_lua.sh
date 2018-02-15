@@ -17,6 +17,8 @@ dns_lua_add() {
   fulldomain=$1
   txtvalue=$2
 
+  LUA_Key="${LUA_Key:-$(_readaccountconf_mutable LUA_Key)}"
+  LUA_Email="${LUA_Email:-$(_readaccountconf_mutable LUA_Email)}"
   if [ -z "$LUA_Key" ] || [ -z "$LUA_Email" ]; then
     LUA_Key=""
     LUA_Email=""
@@ -26,8 +28,8 @@ dns_lua_add() {
   fi
 
   #save the api key and email to the account conf file.
-  _saveaccountconf LUA_Key "$LUA_Key"
-  _saveaccountconf LUA_Email "$LUA_Email"
+  _saveaccountconf_mutable LUA_Key "$LUA_Key"
+  _saveaccountconf_mutable LUA_Email "$LUA_Email"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -38,50 +40,26 @@ dns_lua_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  _debug "Getting txt records"
-  _LUA_rest GET "zones/${_domain_id}/records"
-
-  if ! _contains "$response" "\"id\":"; then
-    _err "Error"
-    return 1
-  fi
-
-  count=$(printf "%s\n" "$response" | _egrep_o "\"name\":\"$fulldomain.\",\"type\":\"TXT\"" | wc -l | tr -d " ")
-  _debug count "$count"
-  if [ "$count" = "0" ]; then
-    _info "Adding record"
-    if _LUA_rest POST "zones/$_domain_id/records" "{\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
-      if _contains "$response" "$fulldomain"; then
-        _info "Added"
-        #todo: check if the record takes effect
-        return 0
-      else
-        _err "Add txt record error."
-        return 1
-      fi
-    fi
-    _err "Add txt record error."
-  else
-    _info "Updating record"
-    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*,\"name\":\"$fulldomain.\",\"type\":\"TXT\"" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
-    _debug "record_id" "$record_id"
-
-    _LUA_rest PUT "zones/$_domain_id/records/$record_id" "{\"id\":$record_id,\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"content\":\"$txtvalue\",\"zone_id\":$_domain_id,\"ttl\":120}"
-    if [ "$?" = "0" ] && _contains "$response" "updated_at"; then
-      _info "Updated!"
+  _info "Adding record"
+  if _LUA_rest POST "zones/$_domain_id/records" "{\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
+    if _contains "$response" "$fulldomain"; then
+      _info "Added"
       #todo: check if the record takes effect
       return 0
+    else
+      _err "Add txt record error."
+      return 1
     fi
-    _err "Update error"
-    return 1
   fi
-
 }
 
 #fulldomain
 dns_lua_rm() {
   fulldomain=$1
   txtvalue=$2
+
+  LUA_Key="${LUA_Key:-$(_readaccountconf_mutable LUA_Key)}"
+  LUA_Email="${LUA_Email:-$(_readaccountconf_mutable LUA_Email)}"
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
