@@ -93,12 +93,7 @@ add_record() {
     return 1
   fi
 
-  if _contains "$response" "Action completed successful"; then
-
-    return 0
-  fi
-
-  return 1 #error
+  _contains "$response" "Action completed successful" || _contains "$response" "Domain record already exists"
 }
 
 ####################  Private functions below ##################################
