@@ -979,13 +979,16 @@ _createkey() {
     fi
   fi
 
-  if _isEccKey "$length"; then
-    _debug "Using ec name: $eccname"
-    ${ACME_OPENSSL_BIN:-openssl} ecparam -name "$eccname" -genkey 2>/dev/null >"$f"
-  else
-    _debug "Using RSA: $length"
-    ${ACME_OPENSSL_BIN:-openssl} genrsa "$length" 2>/dev/null >"$f"
-  fi
+  (
+    umask 0077
+    if _isEccKey "$length"; then
+      _debug "Using ec name: $eccname"
+      ${ACME_OPENSSL_BIN:-openssl} ecparam -name "$eccname" -genkey 2>/dev/null >"$f"
+    else
+      _debug "Using RSA: $length"
+      ${ACME_OPENSSL_BIN:-openssl} genrsa "$length" 2>/dev/null >"$f"
+    fi
+  )
 
   if [ "$?" != "0" ]; then
     _err "Create key error."
