@@ -3598,7 +3598,7 @@ $_authorizations_map"
       _debug entry "$entry"
       if [ -z "$entry" ]; then
         _err "Error, can not get domain token entry $d"
-        _supported_vtypes="$(echo "$response" | _egrep_o "\"challenges\":\[[^]]*]" |  tr '{' "\n" | grep type | cut -d '"' -f 4 | tr "\n" ' ')"
+        _supported_vtypes="$(echo "$response" | _egrep_o "\"challenges\":\[[^]]*]" | tr '{' "\n" | grep type | cut -d '"' -f 4 | tr "\n" ' ')"
         if [ "$_supported_vtypes" ]; then
           _err "The supported validation types are: $_supported_vtypes, but you specified: $vtype"
         fi
