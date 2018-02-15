@@ -90,6 +90,10 @@ _initAuth() {
     return 1
   fi
 
+  if [ "$OVH_AK" != "$(_readaccountconf OVH_AK)" ]; then
+    _info "It seems that your ovh key is changed, let's clear consumer key first."
+    _clearaccountconf OVH_CK
+  fi
   _saveaccountconf_mutable OVH_AK "$OVH_AK"
   _saveaccountconf_mutable OVH_AS "$OVH_AS"
 
