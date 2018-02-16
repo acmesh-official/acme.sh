@@ -1838,7 +1838,7 @@ _send_signed_request() {
     _body="$response"
     if [ "$needbase64" ]; then
       _body="$(echo "$_body" | _dbase64)"
-      _debug2 _body "$_body"
+      _debug3 _body "$_body"
     fi
 
     if _contains "$_body" "JWS has invalid anti-replay nonce"; then
