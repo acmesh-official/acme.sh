@@ -74,7 +74,7 @@ https://github.com/Neilpang/acmetest
 - Webroot mode
 - Standalone mode
 - Apache mode
-- Nginx mode ( Beta )
+- Nginx mode
 - DNS mode
 - [Stateless mode](https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode)
 
@@ -238,13 +238,17 @@ More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
 If you are running a web server, Apache or Nginx, it is recommended to use the `Webroot mode`.
 
-Particularly, if you are running an Apache server, you should use Apache mode instead. This mode doesn't write any files to your web root folder.
+Particularly, if you are running an Apache server, you can use Apache mode instead. This mode doesn't write any files to your web root folder.
 
 Just set string "apache" as the second argument and it will force use of apache plugin automatically.
 
 ```sh
 acme.sh --issue --apache -d example.com -d www.example.com -d cp.example.com
 ```
+
+**This apache mode is only to issue the cert, it will not change your apache config files. 
+You will need to configure your website config files to use the cert by yourself.
+We don't want to mess your apache server, don't worry.**
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
@@ -265,6 +269,10 @@ So, the config is not changed.
 ```sh
 acme.sh --issue --nginx -d example.com -d www.example.com -d cp.example.com
 ```
+
+**This apache mode is only to issue the cert, it will not change your apache config files. 
+You will need to configure your website config files to use the cert by yourself.
+We don't want to mess your apache server, don't worry.**
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
@@ -332,7 +340,7 @@ For more details: [How to use DNS API](dnsapi)
 
 # 9. Use DNS manual mode:
 
-If your dns provider doesn't support any api access, you will have to add the txt record by your hand.
+If your dns provider doesn't support any api access, you can add the txt record by your hand.
 
 ```bash
 acme.sh --issue --dns -d example.com -d www.example.com -d cp.example.com
@@ -370,7 +378,7 @@ Ok, it's done.
 
 And we support them too!
 
-Just set the `length` parameter with a prefix `ec-`.
+Just set the `keylength` parameter with a prefix `ec-`.
 
 For example:
 
@@ -386,7 +394,7 @@ acme.sh --issue -w /home/wwwroot/example.com -d example.com --keylength ec-256
 acme.sh --issue -w /home/wwwroot/example.com -d example.com -d www.example.com --keylength ec-256
 ```
 
-Please look at the last parameter above.
+Please look at the `keylength` parameter above.
 
 Valid values are:
 
