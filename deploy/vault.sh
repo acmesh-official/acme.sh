@@ -44,7 +44,7 @@ vault_deploy() {
   fi
 
   VAULT_CMD=$(which vault)
-  if [ ! $?  ]; then
+  if [ ! $? ]; then
     _err "cannot find vault binary!"
     return 1
   fi
