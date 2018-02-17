@@ -2007,9 +2007,15 @@ _startserver() {
     _NC="$_NC -6"
   fi
 
+  SOCAT_OPTIONS=TCP-LISTEN:$Le_HTTPPort,crlf,reuseaddr,fork
+
+  #Adding bind to local-address
+  if [ "$_local_address" ]; then
+    $SOCAT_OPTIONS="$SOCAT_OPTIONS,bind=${_local_address}"
+  fi
+
   _debug "_NC" "$_NC"
-  #todo  listen address
-  $_NC TCP-LISTEN:$Le_HTTPPort,crlf,reuseaddr,fork SYSTEM:"sleep 0.5; echo HTTP/1.1 200 OK; echo ; echo  $content; echo;" &
+  $_NC $SOCAT_OPTIONS SYSTEM:"sleep 0.5; echo HTTP/1.1 200 OK; echo ; echo  $content; echo;" &
   serverproc="$!"
 }
 
