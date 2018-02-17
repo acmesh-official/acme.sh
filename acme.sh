@@ -4601,29 +4601,31 @@ installcronjob() {
     return 1
   fi
 
+  _c_cron_param="--home \"$LE_WORKING_DIR\""
+  if [ "$_c_home" ]; then
+    _c_entry="--config-home \"$_c_home\""
+    _c_cron_param="--home \"$LE_WORKING_DIR\" $_c_entry"
+  fi
+  _debug "_c_cron_param" "$_c_cron_param"
   _info "Installing cron job"
-  if ! $_CRONTAB -l | grep "$PROJECT_ENTRY --cron"; then
+  if ! $_CRONTAB -l | grep -- "$PROJECT_ENTRY --cron $_c_cron_param >"; then
     if [ -f "$LE_WORKING_DIR/$PROJECT_ENTRY" ]; then
       lesh="\"$LE_WORKING_DIR\"/$PROJECT_ENTRY"
     else
       _err "Can not install cronjob, $PROJECT_ENTRY not found."
       return 1
     fi
-
-    if [ "$_c_home" ]; then
-      _c_entry="--config-home \"$_c_home\" "
-    fi
     _t=$(_time)
     random_minute=$(_math $_t % 60)
     if _exists uname && uname -a | grep SunOS >/dev/null; then
       $_CRONTAB -l | {
         cat
-        echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
+        echo "$random_minute 0 * * * $lesh --cron $_c_cron_param > /dev/null"
       } | $_CRONTAB --
     else
       $_CRONTAB -l | {
         cat
-        echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
+        echo "$random_minute 0 * * * $lesh --cron $_c_cron_param > /dev/null"
       } | $_CRONTAB -
     fi
   fi
@@ -4636,6 +4638,7 @@ installcronjob() {
 }
 
 uninstallcronjob() {
+  _c_home="$1"
   _CRONTAB="crontab"
   if ! _exists "$_CRONTAB" && _exists "fcrontab"; then
     _CRONTAB="fcrontab"
@@ -4644,13 +4647,20 @@ uninstallcronjob() {
   if ! _exists "$_CRONTAB"; then
     return
   fi
+  _c_cron_param="--home \"$LE_WORKING_DIR\""
+  if [ "$_c_home" ]; then
+    _c_entry="--config-home \"$_c_home\""
+    _c_cron_param="--home \"$LE_WORKING_DIR\" $_c_entry"
+  fi
+  _debug "_c_cron_param" "$_c_cron_param"
   _info "Removing cron job"
-  cr="$($_CRONTAB -l | grep "$PROJECT_ENTRY --cron")"
+  cr="$($_CRONTAB -l | grep "$PROJECT_ENTRY --cron $_c_cron_param >")"
+  _debug "cr" "$cr"
   if [ "$cr" ]; then
     if _exists uname && uname -a | grep solaris >/dev/null; then
-      $_CRONTAB -l | sed "/$PROJECT_ENTRY --cron/d" | $_CRONTAB --
+      $_CRONTAB -l | grep -v "$PROJECT_ENTRY --cron $_c_cron_param >" | $_CRONTAB --
     else
-      $_CRONTAB -l | sed "/$PROJECT_ENTRY --cron/d" | $_CRONTAB -
+      $_CRONTAB -l | grep -v "$PROJECT_ENTRY --cron $_c_cron_param >" | $_CRONTAB -
     fi
     LE_WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 9 | tr -d '"')"
     _info LE_WORKING_DIR "$LE_WORKING_DIR"
@@ -6009,7 +6019,7 @@ _process() {
       list "$_listraw"
       ;;
     installcronjob) installcronjob "$_confighome" ;;
-    uninstallcronjob) uninstallcronjob ;;
+    uninstallcronjob) uninstallcronjob "$_confighome" ;;
     cron) cron ;;
     toPkcs)
       toPkcs "$_domain" "$_password" "$_ecc"
