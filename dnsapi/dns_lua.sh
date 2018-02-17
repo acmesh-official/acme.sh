@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/bash
 
 # bug reports to dev@1e.ca
 
@@ -8,7 +8,6 @@
 #LUA_Email="user@luadns.net"
 
 LUA_Api="https://api.luadns.com/v1"
-LUA_auth=$(printf "%s" "$LUA_Email:$LUA_Key" | _base64)
 
 ########  Public functions #####################
 
@@ -19,6 +18,8 @@ dns_lua_add() {
 
   LUA_Key="${LUA_Key:-$(_readaccountconf_mutable LUA_Key)}"
   LUA_Email="${LUA_Email:-$(_readaccountconf_mutable LUA_Email)}"
+  LUA_auth=$(printf "%s" "$LUA_Email:$LUA_Key" | _base64)
+
   if [ -z "$LUA_Key" ] || [ -z "$LUA_Email" ]; then
     LUA_Key=""
     LUA_Email=""
@@ -60,6 +61,7 @@ dns_lua_rm() {
 
   LUA_Key="${LUA_Key:-$(_readaccountconf_mutable LUA_Key)}"
   LUA_Email="${LUA_Email:-$(_readaccountconf_mutable LUA_Email)}"
+  LUA_auth=$(printf "%s" "$LUA_Email:$LUA_Key" | _base64)
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
