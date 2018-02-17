@@ -2010,8 +2010,8 @@ _startserver() {
   SOCAT_OPTIONS=TCP-LISTEN:$Le_HTTPPort,crlf,reuseaddr,fork
 
   #Adding bind to local-address
-  if [ "$_local_address" ]; then
-    $SOCAT_OPTIONS="$SOCAT_OPTIONS,bind=${_local_address}"
+  if [ "$ncaddr" ]; then
+    $SOCAT_OPTIONS="$SOCAT_OPTIONS,bind=${ncaddr}"
   fi
 
   _debug "_NC" "$_NC"
