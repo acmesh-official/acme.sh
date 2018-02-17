@@ -1281,6 +1281,7 @@ _create_account_key() {
   else
     #generate account key
     _createkey "$length" "$ACCOUNT_KEY_PATH"
+    chmod 600 "$ACCOUNT_KEY_PATH"
   fi
 
 }
