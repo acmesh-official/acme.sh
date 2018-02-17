@@ -2007,6 +2007,10 @@ _startserver() {
     _NC="$_NC -6"
   fi
 
+  if [ "$DEBUG" -gt "1" ]; then
+    _NC="$_NC -d -d -v"
+  fi
+
   SOCAT_OPTIONS=TCP-LISTEN:$Le_HTTPPort,crlf,reuseaddr,fork
 
   #Adding bind to local-address
@@ -2014,8 +2018,8 @@ _startserver() {
     $SOCAT_OPTIONS="$SOCAT_OPTIONS,bind=${ncaddr}"
   fi
 
-  _debug "_NC" "$_NC"
-  $_NC $SOCAT_OPTIONS SYSTEM:"sleep 0.5; echo HTTP/1.1 200 OK; echo ; echo  $content; echo;" &
+  _debug "_NC" "$_NC $SOCAT_OPTIONS"
+  $_NC $SOCAT_OPTIONS SYSTEM:"sleep 0.5; echo HTTP/1.0 200 OK; echo ; echo  $content; echo;" &
   serverproc="$!"
 }
 
