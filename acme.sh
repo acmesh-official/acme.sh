@@ -2007,7 +2007,7 @@ _startserver() {
     _NC="$_NC -6"
   fi
 
-  if [ "$DEBUG" -gt "1" ]; then
+  if [ "$DEBUG" ] && [ "$DEBUG" -gt "1" ]; then
     _NC="$_NC -d -d -v"
   fi
 
@@ -2015,7 +2015,7 @@ _startserver() {
 
   #Adding bind to local-address
   if [ "$ncaddr" ]; then
-    $SOCAT_OPTIONS="$SOCAT_OPTIONS,bind=${ncaddr}"
+    SOCAT_OPTIONS="$SOCAT_OPTIONS,bind=${ncaddr}"
   fi
 
   _debug "_NC" "$_NC $SOCAT_OPTIONS"
