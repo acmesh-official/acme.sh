@@ -9,6 +9,7 @@
 
 AWS_HOST="route53.amazonaws.com"
 AWS_URL="https://$AWS_HOST"
+AWS_METADATA_URL="http://169.254.169.254/latest/meta-data"
 
 AWS_WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-use-Amazon-Route53-API"
 
@@ -18,6 +19,10 @@ AWS_WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-use-Amazon-Route53-API
 dns_aws_add() {
   fulldomain=$1
   txtvalue=$2
+
+  if [ -n "${AWS_USE_INSTANCE_ROLE:=$(_readaccountconf_mutable AWS_USE_INSTANCE_ROLE)}" ]; then
+    _use_instance_role
+  fi
 
   AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-$(_readaccountconf_mutable AWS_ACCESS_KEY_ID)}"
   AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
@@ -30,8 +35,12 @@ dns_aws_add() {
   fi
 
   #save for future use
-  _saveaccountconf_mutable AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
-  _saveaccountconf_mutable AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
+  if [ -n "$AWS_USE_INSTANCE_ROLE" ]; then
+    _saveaccountconf_mutable AWS_USE_INSTANCE_ROLE "$AWS_USE_INSTANCE_ROLE"
+  else
+    _saveaccountconf_mutable AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
+    _saveaccountconf_mutable AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
+  fi
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -75,6 +84,10 @@ dns_aws_add() {
 dns_aws_rm() {
   fulldomain=$1
   txtvalue=$2
+
+  if [ -n "${AWS_USE_INSTANCE_ROLE:=$(_readaccountconf_mutable AWS_USE_INSTANCE_ROLE)}" ]; then
+    _use_instance_role
+  fi
 
   AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-$(_readaccountconf_mutable AWS_ACCESS_KEY_ID)}"
   AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
@@ -160,6 +173,34 @@ _get_root() {
     done
   fi
   return 1
+}
+
+_use_instance_role() {
+  if ! _get "$AWS_METADATA_URL/iam/security-credentials/" true | _head_n 1 | grep -Fq 200; then
+    _err "Unable to fetch IAM role from AWS instance metadata."
+    return
+  fi
+  _aws_role=$(_get "$AWS_METADATA_URL/iam/security-credentials/")
+  _debug "_aws_role" "$_aws_role"
+  _aws_creds="$(
+    _get "$AWS_METADATA_URL/iam/security-credentials/$_aws_role" \
+      | _normalizeJson \
+      | tr '{,}' '\n' \
+      | while read -r _line; do
+        _key="$(echo "${_line%%:*}" | tr -d '"')"
+        _value="${_line#*:}"
+        _debug3 "_key" "$_key"
+        _secure_debug3 "_value" "$_value"
+        case "$_key" in
+          AccessKeyId) echo "AWS_ACCESS_KEY_ID=$_value" ;;
+          SecretAccessKey) echo "AWS_SECRET_ACCESS_KEY=$_value" ;;
+          Token) echo "AWS_SESSION_TOKEN=$_value" ;;
+        esac
+      done \
+        | paste -sd' ' -
+  )"
+  _secure_debug "_aws_creds" "$_aws_creds"
+  eval "$_aws_creds"
 }
 
 #method uri qstr data
