@@ -26,30 +26,18 @@ dns_cloudns_add() {
 
   host="$(echo "$1" | sed "s/\.$zone\$//")"
   record=$2
-  record_id=$(_dns_cloudns_get_record_id "$zone" "$host")
 
   _debug zone "$zone"
   _debug host "$host"
   _debug record "$record"
-  _debug record_id "$record_id"
 
-  if [ -z "$record_id" ]; then
-    _info "Adding the TXT record for $1"
-    _dns_cloudns_http_api_call "dns/add-record.json" "domain-name=$zone&record-type=TXT&host=$host&record=$record&ttl=60"
-    if ! _contains "$response" "\"status\":\"Success\""; then
-      _err "Record cannot be added."
-      return 1
-    fi
-    _info "Added."
-  else
-    _info "Updating the TXT record for $1"
-    _dns_cloudns_http_api_call "dns/mod-record.json" "domain-name=$zone&record-id=$record_id&record-type=TXT&host=$host&record=$record&ttl=60"
-    if ! _contains "$response" "\"status\":\"Success\""; then
-      _err "The TXT record for $1 cannot be updated."
-      return 1
-    fi
-    _info "Updated."
+  _info "Adding the TXT record for $1"
+  _dns_cloudns_http_api_call "dns/add-record.json" "domain-name=$zone&record-type=TXT&host=$host&record=$record&ttl=60"
+  if ! _contains "$response" "\"status\":\"Success\""; then
+    _err "Record cannot be added."
+    return 1
   fi
+  _info "Added."
 
   return 0
 }
