@@ -60,22 +60,32 @@ dns_cloudns_rm() {
 
   host="$(echo "$1" | sed "s/\.$zone\$//")"
   record=$2
-  record_id=$(_dns_cloudns_get_record_id "$zone" "$host")
 
-  _debug zone "$zone"
-  _debug host "$host"
-  _debug record "$record"
-  _debug record_id "$record_id"
-
-  if [ ! -z "$record_id" ]; then
-    _info "Deleting the TXT record for $1"
-    _dns_cloudns_http_api_call "dns/delete-record.json" "domain-name=$zone&record-id=$record_id"
-    if ! _contains "$response" "\"status\":\"Success\""; then
-      _err "The TXT record for $1 cannot be deleted."
-      return 1
-    fi
-    _info "Deleted."
+  _dns_cloudns_http_api_call "dns/records.json" "domain-name=$zone&host=$host&type=TXT"
+  if ! _contains "$response" "\"id\":"; then
+    return 1
   fi
+
+  for i in $(echo $response | tr '{' "\n" | grep $record); do
+    record_id=$(echo $i | tr ',' "\n"| grep -E '^"id"'| sed -re 's/^\"id\"\:\"([0-9]+)\"$/\1/g');
+
+    if [ ! -z "$record_id" ]; then
+      _debug zone "$zone"
+      _debug host "$host"
+      _debug record "$record"
+      _debug record_id "$record_id"
+
+      _info "Deleting the TXT record for $1"
+      _dns_cloudns_http_api_call "dns/delete-record.json" "domain-name=$zone&record-id=$record_id"
+
+      if ! _contains "$response" "\"status\":\"Success\""; then
+        _err "The TXT record for $1 cannot be deleted."
+      else
+        _info "Deleted."
+      fi
+    fi
+  done
+
   return 0
 }
 
@@ -114,7 +124,7 @@ _dns_cloudns_init_check() {
     return 1
   fi
 
-  #save the api id and password to the account conf file.
+  # save the api id and password to the account conf file.
   _saveaccountconf_mutable CLOUDNS_AUTH_ID "$CLOUDNS_AUTH_ID"
   _saveaccountconf_mutable CLOUDNS_SUB_AUTH_ID "$CLOUDNS_SUB_AUTH_ID"
   _saveaccountconf_mutable CLOUDNS_AUTH_PASSWORD "$CLOUDNS_AUTH_PASSWORD"
@@ -147,15 +157,6 @@ _dns_cloudns_get_zone_name() {
   return 1
 }
 
-_dns_cloudns_get_record_id() {
-  _dns_cloudns_http_api_call "dns/records.json" "domain-name=$1&host=$2&type=TXT"
-  if _contains "$response" "\"id\":"; then
-    echo "$response" | cut -d '"' -f 2
-    return 0
-  fi
-  return 1
-}
-
 _dns_cloudns_http_api_call() {
   method=$1
 
@@ -177,7 +178,7 @@ _dns_cloudns_http_api_call() {
 
   response="$(_get "$CLOUDNS_API/$method?$data")"
 
-  _debug2 response "$response"
+  _debug response "$response"
 
   return 0
 }
