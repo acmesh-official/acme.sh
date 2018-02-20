@@ -66,8 +66,8 @@ dns_cloudns_rm() {
     return 1
   fi
 
-  for i in $(echo "$response" | tr '{' "\n" | grep $record); do
-    record_id=$(echo "$i" | tr ',' "\n" | grep -E '^"id"'| sed -re 's/^\"id\"\:\"([0-9]+)\"$/\1/g')
+  for i in $(echo "$response" | tr '{' "\n" | grep "$record"); do
+    record_id=$(echo "$i" | tr ',' "\n" | grep -E '^"id"' | sed -re 's/^\"id\"\:\"([0-9]+)\"$/\1/g')
 
     if [ ! -z "$record_id" ]; then
       _debug zone "$zone"
