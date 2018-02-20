@@ -18,7 +18,7 @@
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
-vault_deploy() {
+vault_cli_deploy() {
 
   _cdomain="$1"
   _ckey="$2"
