@@ -23,7 +23,7 @@ dns_aws_add() {
   AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
 
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-    _use_instance_role
+    _use_container_role || _use_instance_role
   fi
 
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
@@ -87,7 +87,7 @@ dns_aws_rm() {
   AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
 
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-    _use_instance_role
+    _use_container_role || _use_instance_role
   fi
 
   _debug "First detect the root zone"
@@ -174,17 +174,30 @@ _get_root() {
   return 1
 }
 
+_use_container_role() {
+  # automatically set if running inside ECS
+  if [ -z "$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI" ]; then
+    _debug "No ECS environment variable detected"
+    return 1
+  fi
+  _use_metadata "169.254.170.2$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"
+}
+
 _use_instance_role() {
   _url="http://169.254.169.254/latest/meta-data/iam/security-credentials/"
   _debug "_url" "$_url"
   if ! _get "$_url" true 1 | _head_n 1 | grep -Fq 200; then
-    _err "Unable to fetch IAM role from AWS instance metadata."
-    return
+    _debug "Unable to fetch IAM role from instance metadata"
+    return 1
   fi
   _aws_role=$(_get "$_url" "" 1)
   _debug "_aws_role" "$_aws_role"
+  _use_metadata "$_url$_aws_role"
+}
+
+_use_metadata() {
   _aws_creds="$(
-    _get "$_url$_aws_role" "" 1 \
+    _get "$1" "" 1 \
       | _normalizeJson \
       | tr '{,}' '\n' \
       | while read -r _line; do
@@ -201,6 +214,11 @@ _use_instance_role() {
         | paste -sd' ' -
   )"
   _secure_debug "_aws_creds" "$_aws_creds"
+
+  if [ -z "$_aws_creds" ]; then
+    return 1
+  fi
+
   eval "$_aws_creds"
   _using_role=true
 }
