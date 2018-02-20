@@ -20,12 +20,13 @@ dns_aws_add() {
   fulldomain=$1
   txtvalue=$2
 
-  if [ -n "${AWS_USE_INSTANCE_ROLE:=$(_readaccountconf_mutable AWS_USE_INSTANCE_ROLE)}" ]; then
+  AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-$(_readaccountconf_mutable AWS_ACCESS_KEY_ID)}"
+  AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
+
+  if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     _use_instance_role
   fi
 
-  AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-$(_readaccountconf_mutable AWS_ACCESS_KEY_ID)}"
-  AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     AWS_ACCESS_KEY_ID=""
     AWS_SECRET_ACCESS_KEY=""
@@ -34,10 +35,8 @@ dns_aws_add() {
     return 1
   fi
 
-  #save for future use
-  if [ -n "$AWS_USE_INSTANCE_ROLE" ]; then
-    _saveaccountconf_mutable AWS_USE_INSTANCE_ROLE "$AWS_USE_INSTANCE_ROLE"
-  else
+  #save for future use, unless using a role which will be fetched as needed
+  if [ -z "$_using_instance_role" ]; then
     _saveaccountconf_mutable AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
     _saveaccountconf_mutable AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
   fi
@@ -85,12 +84,13 @@ dns_aws_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  if [ -n "${AWS_USE_INSTANCE_ROLE:=$(_readaccountconf_mutable AWS_USE_INSTANCE_ROLE)}" ]; then
+  AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-$(_readaccountconf_mutable AWS_ACCESS_KEY_ID)}"
+  AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
+
+  if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     _use_instance_role
   fi
 
-  AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-$(_readaccountconf_mutable AWS_ACCESS_KEY_ID)}"
-  AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
@@ -176,14 +176,14 @@ _get_root() {
 }
 
 _use_instance_role() {
-  if ! _get "$AWS_METADATA_URL/iam/security-credentials/" true | _head_n 1 | grep -Fq 200; then
+  if ! _get "$AWS_METADATA_URL/iam/security-credentials/" true 1 | _head_n 1 | grep -Fq 200; then
     _err "Unable to fetch IAM role from AWS instance metadata."
     return
   fi
-  _aws_role=$(_get "$AWS_METADATA_URL/iam/security-credentials/")
+  _aws_role=$(_get "$AWS_METADATA_URL/iam/security-credentials/" "" 1)
   _debug "_aws_role" "$_aws_role"
   _aws_creds="$(
-    _get "$AWS_METADATA_URL/iam/security-credentials/$_aws_role" \
+    _get "$AWS_METADATA_URL/iam/security-credentials/$_aws_role" "" 1 \
       | _normalizeJson \
       | tr '{,}' '\n' \
       | while read -r _line; do
@@ -201,6 +201,7 @@ _use_instance_role() {
   )"
   _secure_debug "_aws_creds" "$_aws_creds"
   eval "$_aws_creds"
+  _using_instance_role=true
 }
 
 #method uri qstr data
