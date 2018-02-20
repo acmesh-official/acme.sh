@@ -9,7 +9,6 @@
 
 AWS_HOST="route53.amazonaws.com"
 AWS_URL="https://$AWS_HOST"
-AWS_METADATA_URL="http://169.254.169.254/latest/meta-data"
 
 AWS_WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-use-Amazon-Route53-API"
 
@@ -36,7 +35,7 @@ dns_aws_add() {
   fi
 
   #save for future use, unless using a role which will be fetched as needed
-  if [ -z "$_using_instance_role" ]; then
+  if [ -z "$_using_role" ]; then
     _saveaccountconf_mutable AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
     _saveaccountconf_mutable AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
   fi
@@ -176,14 +175,16 @@ _get_root() {
 }
 
 _use_instance_role() {
-  if ! _get "$AWS_METADATA_URL/iam/security-credentials/" true 1 | _head_n 1 | grep -Fq 200; then
+  _url="http://169.254.169.254/latest/meta-data/iam/security-credentials/"
+  _debug "_url" "$_url"
+  if ! _get "$_url" true 1 | _head_n 1 | grep -Fq 200; then
     _err "Unable to fetch IAM role from AWS instance metadata."
     return
   fi
-  _aws_role=$(_get "$AWS_METADATA_URL/iam/security-credentials/" "" 1)
+  _aws_role=$(_get "$_url" "" 1)
   _debug "_aws_role" "$_aws_role"
   _aws_creds="$(
-    _get "$AWS_METADATA_URL/iam/security-credentials/$_aws_role" "" 1 \
+    _get "$_url$_aws_role" "" 1 \
       | _normalizeJson \
       | tr '{,}' '\n' \
       | while read -r _line; do
@@ -201,7 +202,7 @@ _use_instance_role() {
   )"
   _secure_debug "_aws_creds" "$_aws_creds"
   eval "$_aws_creds"
-  _using_instance_role=true
+  _using_role=true
 }
 
 #method uri qstr data
