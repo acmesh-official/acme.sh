@@ -25,7 +25,7 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
 # [中文说明](https://github.com/Neilpang/acme.sh/wiki/%E8%AF%B4%E6%98%8E)
 
-# Who are using **acme.sh**
+# Who:
 - [FreeBSD.org](https://blog.crashed.org/letsencrypt-in-freebsd-org/)
 - [ruby-china.org](https://ruby-china.org/topics/31983)
 - [Proxmox](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x_and_newer))
@@ -203,6 +203,8 @@ Install/copy the cert/key to the production Apache or Nginx path.
 
 The cert will be renewed every **60** days by default (which is configurable). Once the cert is renewed, the Apache/Nginx service will be reloaded automatically by the command: `service apache2 force-reload` or `service nginx force-reload`.
 
+
+**Please take care:  The reloadcmd is very important. The cert can be automatically renewed, but, without a correct 'reloadcmd' the cert may not be flushed to your server(like nginx or apache), then your website will not be able to show renewwed cert in 60 days.**
 
 # 4. Use Standalone server to issue cert
 

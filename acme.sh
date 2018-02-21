@@ -2019,7 +2019,7 @@ _startserver() {
   fi
 
   _debug "_NC" "$_NC $SOCAT_OPTIONS"
-  $_NC $SOCAT_OPTIONS SYSTEM:"sleep 0.5; echo HTTP/1.0 200 OK; echo ; echo  $content; echo;" &
+  $_NC $SOCAT_OPTIONS SYSTEM:"sleep 1; echo HTTP/1.0 200 OK; echo ; echo  $content; echo;" &
   serverproc="$!"
 }
 
