@@ -5073,7 +5073,7 @@ _installalias() {
 
 }
 
-# nocron confighome
+# nocron confighome noprofile
 install() {
 
   if [ -z "$LE_WORKING_DIR" ]; then
@@ -5082,6 +5082,7 @@ install() {
 
   _nocron="$1"
   _c_home="$2"
+  _noprofile="$3"
   if ! _initpath; then
     _err "Install failed."
     return 1
@@ -5147,7 +5148,7 @@ install() {
 
   _info "Installed to $LE_WORKING_DIR/$PROJECT_ENTRY"
 
-  if [ "$IN_CRON" != "1" ]; then
+  if [ "$IN_CRON" != "1" ] && [ -z "$_noprofile" ]; then
     _installalias "$_c_home"
   fi
 
@@ -5373,10 +5374,11 @@ Parameters:
   "
 }
 
-# nocron
+# nocron noprofile
 _installOnline() {
   _info "Installing from online archive."
   _nocron="$1"
+  _noprofile="$2"
   if [ ! "$BRANCH" ]; then
     BRANCH="master"
   fi
@@ -5397,7 +5399,7 @@ _installOnline() {
 
     cd "$PROJECT_NAME-$BRANCH"
     chmod +x $PROJECT_ENTRY
-    if ./$PROJECT_ENTRY install "$_nocron"; then
+    if ./$PROJECT_ENTRY install "$_nocron" "" "$_noprofile"; then
       _info "Install success!"
     fi
 
@@ -5413,7 +5415,7 @@ upgrade() {
     _initpath
     export LE_WORKING_DIR
     cd "$LE_WORKING_DIR"
-    _installOnline "nocron"
+    _installOnline "nocron" "noprofile"
   ); then
     _info "Upgrade success!"
     exit 0
