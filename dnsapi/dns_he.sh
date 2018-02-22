@@ -19,14 +19,16 @@ dns_he_add() {
   _txt_value=$2
   _info "Using DNS-01 Hurricane Electric hook"
 
+  HE_Username="${HE_Username:-$(_readaccountconf_mutable HE_Username)}"
+  HE_Password="${HE_Password:-$(_readaccountconf_mutable HE_Password)}"
   if [ -z "$HE_Username" ] || [ -z "$HE_Password" ]; then
     HE_Username=
     HE_Password=
     _err "No auth details provided. Please set user credentials using the \$HE_Username and \$HE_Password envoronment variables."
     return 1
   fi
-  _saveaccountconf HE_Username "$HE_Username"
-  _saveaccountconf HE_Password "$HE_Password"
+  _saveaccountconf_mutable HE_Username "$HE_Username"
+  _saveaccountconf_mutable HE_Password "$HE_Password"
 
   # Fills in the $_zone_id
   _find_zone "$_full_domain" || return 1
@@ -62,7 +64,8 @@ dns_he_rm() {
   _full_domain=$1
   _txt_value=$2
   _info "Cleaning up after DNS-01 Hurricane Electric hook"
-
+  HE_Username="${HE_Username:-$(_readaccountconf_mutable HE_Username)}"
+  HE_Password="${HE_Password:-$(_readaccountconf_mutable HE_Password)}"
   # fills in the $_zone_id
   _find_zone "$_full_domain" || return 1
   _debug "Zone id \"$_zone_id\" will be used."
@@ -72,17 +75,19 @@ dns_he_rm() {
   body="$body&hosted_dns_zoneid=$_zone_id"
   body="$body&menu=edit_zone"
   body="$body&hosted_dns_editzone="
-  domain_regex="$(echo "$_full_domain" | sed 's/\./\\./g')" # escape dots
-  _record_id=$(_post "$body" "https://dns.he.net/" \
-    | tr -d '\n' \
-    | _egrep_o "data=\"&quot;${_txt_value}&quot;([^>]+>){6}[^<]+<[^;]+;deleteRecord\('[0-9]+','${domain_regex}','TXT'\)" \
-    | _egrep_o "[0-9]+','${domain_regex}','TXT'\)$" \
-    | _egrep_o "^[0-9]+"
-  )
-  # The series of egreps above could have been done a bit shorter but
-  #  I wanted to double-check whether it's the correct record (in case
-  #  HE changes their website somehow).
 
+  response="$(_post "$body" "https://dns.he.net/")"
+  _debug2 "response" "$response"
+  if ! _contains "$response" "$_txt_value"; then
+    _debug "The txt record is not found, just skip"
+    return 0
+  fi
+  _record_id="$(echo "$response" | tr -d "#" | sed "s/<tr/#<tr/g" | tr -d "\n" | tr "#" "\n" | grep "$_full_domain" | grep '"dns_tr"' | grep "$_txt_value" | cut -d '"' -f 4)"
+  _debug2 _record_id "$_record_id"
+  if [ -z "$_record_id" ]; then
+    _err "Can not find record id"
+    return 1
+  fi
   # Remove the record
   body="email=${HE_Username}&pass=${HE_Password}"
   body="$body&menu=edit_zone"
@@ -105,41 +110,26 @@ dns_he_rm() {
 
 ########################## PRIVATE FUNCTIONS ###########################
 
-#-- _find_zone() -------------------------------------------------------
-# Returns the most specific zone found in administration interface.
-#
-# Example:
-#
-# _find_zone first.second.third.co.uk
-#
-# ... will return the first zone that exists in admin out of these:
-# - "first.second.third.co.uk"
-# - "second.third.co.uk"
-# - "third.co.uk"
-# - "co.uk" <-- unlikely
-# - "uk"    <-'
-#
-# (another approach would be something like this:
-#   https://github.com/hlandau/acme/blob/master/_doc/dns.hook
-#   - that's better if there are multiple pages. It's so much simpler.
-# )
-
 _find_zone() {
-
   _domain="$1"
-
   body="email=${HE_Username}&pass=${HE_Password}"
-  _matches=$(_post "$body" "https://dns.he.net/" \
-    | _egrep_o "delete_dom.*name=\"[^\"]+\" value=\"[0-9]+"
-  )
+  response="$(_post "$body" "https://dns.he.net/")"
+  _debug2 response "$response"
+  _table="$(echo "$response" | tr -d "#" | sed "s/<table/#<table/g" | tr -d "\n" | tr "#" "\n" | grep 'id="domains_table"')"
+  _debug2 _table "$_table"
+  _matches="$(echo "$_table" | sed "s/<tr/#<tr/g" | tr "#" "\n" | grep 'alt="edit"' | tr -d " " | sed "s/<td/#<td/g" | tr "#" "\n" | sed -n 3p)"
+  _debug2 _matches "$_matches"
   # Zone names and zone IDs are in same order
-  _zone_ids=$(echo "$_matches" | cut -d '"' -f 5)
-  _zone_names=$(echo "$_matches" | cut -d '"' -f 3)
+  _zone_ids=$(echo "$_matches" | _egrep_o "hosted_dns_zoneid=[0-9]*&" | cut -d = -f 2 | tr -d '&')
+  _zone_names=$(echo "$_matches" | _egrep_o "name=.*onclick" | cut -d '"' -f 2)
   _debug2 "These are the zones on this HE account:"
   _debug2 "$_zone_names"
   _debug2 "And these are their respective IDs:"
   _debug2 "$_zone_ids"
-
+  if [ -z "$_zone_names" ] || [ -z "$_zone_ids" ]; then
+    _err "Can not get zone names."
+    return 1
+  fi
   # Walk through all possible zone names
   _strip_counter=1
   while true; do
@@ -153,17 +143,10 @@ _find_zone() {
 
     _debug "Looking for zone \"${_attempted_zone}\""
 
-    # Take care of "." and only match whole lines. Note that grep -F
-    # cannot be used because there's no way to make it match whole
-    # lines.
-    regex="^$(echo "$_attempted_zone" | sed 's/\./\\./g')$"
-    line_num=$(echo "$_zone_names" \
-      | grep -n "$regex" \
-      | cut -d : -f 1
-    )
+    line_num="$(echo "$_zone_names" | grep -n "$_attempted_zone" | cut -d : -f 1)"
 
-    if [ -n "$line_num" ]; then
-      _zone_id=$(echo "$_zone_ids" | sed "${line_num}q;d")
+    if [ "$line_num" ]; then
+      _zone_id=$(echo "$_zone_ids" | sed -n "${line_num}p")
       _debug "Found relevant zone \"$_attempted_zone\" with id \"$_zone_id\" - will be used for domain \"$_domain\"."
       return 0
     fi
