@@ -11,7 +11,7 @@ PROJECT="https://github.com/Neilpang/$PROJECT_NAME"
 DEFAULT_INSTALL_HOME="$HOME/.$PROJECT_NAME"
 _SCRIPT_="$0"
 
-_SUB_FOLDERS="dnsapi deploy"
+_SUB_FOLDERS="lib dnsapi deploy"
 
 LETSENCRYPT_CA_V1="https://acme-v01.api.letsencrypt.org/directory"
 LETSENCRYPT_STAGING_CA_V1="https://acme-staging.api.letsencrypt.org/directory"
