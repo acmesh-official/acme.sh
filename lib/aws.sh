@@ -6,6 +6,9 @@
 #
 #   ACM: _aws acm <rpc> <region> [json]
 #        _aws acm ListCertificates us-east-1 '{"MaxItems": 2}'
+#
+#   R53: _aws r53 <verb> <path> [query] [xml]
+#        _aws r53 GET /2013-04-01/hostedzone maxitems=2
 
 _aws() {
   _svc="$1" # _args=...
@@ -31,6 +34,14 @@ _aws_svc_acm() {
   _aws_wrap '"__type":' \
     POST "acm.$_region.amazonaws.com" '/' '' "$_region/acm" \
     "$_rpc$n$_type" "${_json:-$_empty}"
+}
+
+_aws_svc_r53() {
+  _verb="$1" _path="$2" _query="$3" _xml="$4"
+
+  _aws_wrap '<ErrorResponse' \
+    "$_verb" 'route53.amazonaws.com' "$_path" "$_query" 'us-east-1/route53' \
+    '' "$_xml"
 }
 
 # core
