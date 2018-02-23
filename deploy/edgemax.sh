@@ -13,7 +13,7 @@
 #returns 0 means success, otherwise error.
 
 ########  Public functions #####################
-function atexit() {
+atexit() {
   #closes CLI session
   cli-shell-api teardownSession
   _debug EXITCODE: "$1"
