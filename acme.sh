@@ -1633,15 +1633,15 @@ _post() {
     _debug "_CURL" "$_CURL"
     if [ "$needbase64" ]; then
       if [ "$_postContentType" ]; then
-        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" -H "$_H6" -H "$_H7" -H "$_H8" -H "$_H9" --data "$body" "$_post_url" | _base64)"
       else
-        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" -H "$_H6" -H "$_H7" -H "$_H8" -H "$_H9" --data "$body" "$_post_url" | _base64)"
       fi
     else
       if [ "$_postContentType" ]; then
-        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" -H "$_H6" -H "$_H7" -H "$_H8" -H "$_H9" --data "$body" "$_post_url")"
       else
-        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" -H "$_H6" -H "$_H7" -H "$_H8" -H "$_H9" --data "$body" "$_post_url")"
       fi
     fi
     _ret="$?"
@@ -1661,29 +1661,29 @@ _post() {
     if [ "$needbase64" ]; then
       if [ "$httpmethod" = "POST" ]; then
         if [ "$_postContentType" ]; then
-          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H9" --header "$_H8" --header "$_H7" --header "$_H6" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
         else
-          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H9" --header "$_H8" --header "$_H7" --header "$_H6" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
         fi
       else
         if [ "$_postContentType" ]; then
-          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H9" --header "$_H8" --header "$_H7" --header "$_H6" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
         else
-          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H9" --header "$_H8" --header "$_H7" --header "$_H6" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
         fi
       fi
     else
       if [ "$httpmethod" = "POST" ]; then
         if [ "$_postContentType" ]; then
-          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H9" --header "$_H8" --header "$_H7" --header "$_H6" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
         else
-          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H9" --header "$_H8" --header "$_H7" --header "$_H6" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
         fi
       else
         if [ "$_postContentType" ]; then
-          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H9" --header "$_H8" --header "$_H7" --header "$_H6" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
         else
-          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H9" --header "$_H8" --header "$_H7" --header "$_H6" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
         fi
       fi
     fi
@@ -1726,9 +1726,9 @@ _get() {
     fi
     _debug "_CURL" "$_CURL"
     if [ "$onlyheader" ]; then
-      $_CURL -I --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
+      $_CURL -I --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" -H "$_H6" -H "$_H7" -H "$_H8" -H "$_H9" "$url"
     else
-      $_CURL --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
+      $_CURL --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" -H "$_H6" -H "$_H7" -H "$_H8" -H "$_H9" "$url"
     fi
     ret=$?
     if [ "$ret" != "0" ]; then
@@ -1748,9 +1748,9 @@ _get() {
     fi
     _debug "_WGET" "$_WGET"
     if [ "$onlyheader" ]; then
-      $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1 | sed 's/^[ ]*//g'
+      $_WGET --user-agent="$USER_AGENT" --header "$_H9" --header "$_H8" --header "$_H7" --header "$_H6" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1 | sed 's/^[ ]*//g'
     else
-      $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -O - "$url"
+      $_WGET --user-agent="$USER_AGENT" --header "$_H9" --header "$_H8" --header "$_H7" --header "$_H6" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -O - "$url"
     fi
     ret=$?
     if [ "$ret" = "8" ]; then
