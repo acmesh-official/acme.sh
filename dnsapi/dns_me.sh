@@ -43,8 +43,6 @@ dns_me_add() {
     return 1
   fi
 
-  count=$(printf "%s\n" "$response" | _egrep_o "\"totalRecords\":[^,]*" | cut -d : -f 2)
-  _debug count "$count"
 #    _info "Adding record"
     if _me_rest POST "$_domain_id/records/" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"value\":\"$txtvalue\",\"gtdLocation\":\"DEFAULT\",\"ttl\":120}"; then
       if printf -- "%s" "$response" | grep \"id\": >/dev/null; then
@@ -56,8 +54,6 @@ dns_me_add() {
         return 1
       fi
     fi
-    _err "Add txt record error."
-    return 1
 
 }
 
