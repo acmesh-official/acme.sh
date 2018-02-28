@@ -99,6 +99,7 @@ First you need to set your user:pass:database in the configuration.
 Ok, let's issue a cert now:
 ```
 acme.sh --issue --dns dns_pdns-mysql -d example.com -d www.example.com
+```
 
 
 ## 6. Use OVH/kimsufi/soyoustart/runabove API to automatically issue cert
