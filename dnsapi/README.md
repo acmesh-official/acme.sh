@@ -94,20 +94,12 @@ The `PDNS_Url`, `PDNS_ServerId`, `PDNS_Token` and `PDNS_Ttl` will be saved in `~
 
 ## 5a. Use PowerDNS mysql backend to automatically issue cert
 
-First you need to login to your PowerDNS account to enable the API and set your API-Token in the configuration.
-
-https://doc.powerdns.com/md/httpapi/README/
-
-```
-export PDNS_Url="http://ns.example.com:8081"
-export PDNS_ServerId="localhost"
-export PDNS_Token="0123456789ABCDEF"
-export PDNS_Ttl=60
-```
+First you need to set your user:pass:database in the configuration.
 
 Ok, let's issue a cert now:
 ```
 acme.sh --issue --dns dns_pdns-mysql -d example.com -d www.example.com
+
 
 ## 6. Use OVH/kimsufi/soyoustart/runabove API to automatically issue cert
 
