@@ -76,7 +76,7 @@ _get_root() {
   p=1
   # Get a list of all the domains
   # response will contain "list[]=example.com&list[]=example.org"
-  _da_api CMD_API_SHOW_DOMAINS "" ${domain}
+  _da_api CMD_API_SHOW_DOMAINS "" "${domain}"
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     _debug h "$h"
@@ -125,13 +125,13 @@ _da_api() {
       error="$(_getfield "$err_field" 2 '=')"
       text="$(_getfield "$txt_field" 2 '=')"
       details="$(_getfield "$details_field" 2 '=')"
+      _debug "error: ${error}, text: ${text}, details: ${details}"
       if [ "$error" != "0" ]; then
         _err "error $response"
         return 1
       fi
       ;;
-    CMD_API_SHOW_DOMAINS)
-      ;;
+    CMD_API_SHOW_DOMAINS) ;;
   esac
   return 0
 }
@@ -155,7 +155,7 @@ _DA_getDomainInfo() {
 _DA_addTxt() {
   curData="domain=${_domain}&action=add&type=TXT&name=${_sub_domain}&value=\"${txtvalue}\""
   _debug "Calling _DA_addTxt: '${curData}' '${DA_Api}/CMD_API_DNS_CONTROL'"
-  _da_api CMD_API_DNS_CONTROL ${curData} ${_domain}
+  _da_api CMD_API_DNS_CONTROL "${curData}" "${_domain}"
   _debug "Result of _DA_addTxt: '$response'"
   if _contains "${response}" 'error=0'; then
     _debug "Add TXT succeeded"
@@ -170,7 +170,7 @@ _DA_addTxt() {
 _DA_rmTxt() {
   curData="domain=${_domain}&action=select&txtrecs0=name=${_sub_domain}&amp;value=\"${txtvalue}\""
   _debug "Calling _DA_rmTxt: '${curData}' '${DA_Api}/CMD_API_DNS_CONTROL'"
-  if [ "$(_da_api CMD_API_DNS_CONTROL ${curData} ${_domain})" == "0" ]; then
+  if _da_api CMD_API_DNS_CONTROL "${curData}" "${_domain}"; then
     _debug "Result of _DA_rmTxt: '$response'"
   else
     _err "Result of _DA_rmTxt: '$response'"
