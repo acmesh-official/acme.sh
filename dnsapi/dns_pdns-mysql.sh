@@ -108,9 +108,15 @@ set_record() {
   full=$2
   txtvalue=$3
 
-  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_User/zones/$root." "{\"rrsets\": [{\"changetype\": \"REPLACE\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [{\"name\": \"$full.\", \"type\": \"TXT\", \"content\": \"\\\"$txtvalue\\\"\", \"disabled\": false, \"ttl\": $PDNS_Ttl}]}]}"; then
-    _err "Set txt record error."
-    return 1
+  # check if challenge exists update if so else insert.
+  UNIQUE_ID=$(mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "SELECT id FROM ${PDNS_Database}.records WHERE name='${full}' AND type='TXT'")
+  if [[ -z "${UNIQUE_ID}" ]]; then
+	  mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "INSERT INTO ${PDNS_Database}.records \
+	  (name, content, type,ttl,prio) VALUES \
+	  ('${full}','${txtvalue}','TXT',120,NULL);"
+  else
+	  mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "UPDATE ${PDNS_Database}.records SET content='${txtvalue}' \
+	  WHERE id='${UNIQUE_ID}' AND name='${full}' AND type='TXT' LIMIT 1;"
   fi
 
   if ! notify_slaves "$root"; then
@@ -125,7 +131,8 @@ rm_record() {
   root=$1
   full=$2
 
-  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_User/zones/$root." "{\"rrsets\": [{\"changetype\": \"DELETE\", \"name\": \"$full.\", \"type\": \"TXT\"}]}"; then
+  _delete_challenge=$(mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "DELETE FROM ${PDNS_Database}.records WHERE name='${full}'")
+  if [ -z "$_delete_challenge" ]; then
     _err "Delete txt record error."
     return 1
   fi
@@ -140,10 +147,7 @@ rm_record() {
 notify_slaves() {
   root=$1
 
-  if ! _pdns_rest "PUT" "/api/v1/servers/$PDNS_User/zones/$root./notify"; then
-    _err "Notify slaves error."
-    return 1
-  fi
+  ### Need finished ###
 
   return 0
 }
@@ -156,8 +160,8 @@ _get_root() {
   domain=$1
   i=1
   _pdns_domains=$(mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "SELECT name FROM ${PDNS_Database}.domains")
-  if _pdns_rest "GET" "/api/v1/servers/$PDNS_User/zones"; then
-    _zones_response="$response"
+  if [ -z "$_pdns_domains" ]; then
+    return 1
   fi
 
   while true; do
@@ -166,7 +170,7 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$_zones_response" "\"name\": \"$h.\""; then
+    if _contains "$_pdns_domains" "$h."; then
       _domain="$h"
       return 0
     fi
