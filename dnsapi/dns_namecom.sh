@@ -30,7 +30,7 @@ _saveaccountconf Namecom_Token "$Namecom_Token"
 # Auth string
 # Name.com API v4 uses http basic auth to authenticate
 # need to convert the token for http auth
-_namecom_auth=`echo -n "$Namecom_Username:$Namecom_Token" | base64`
+_namecom_auth=`printf "$Namecom_Username:$Namecom_Token" | base64`
 
 #Usage: dns_namecom_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_namecom_add() {
