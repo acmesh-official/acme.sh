@@ -164,4 +164,3 @@ _namecom_get_root() {
   done
   return 1
 }
-
