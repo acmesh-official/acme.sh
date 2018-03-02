@@ -16,7 +16,7 @@ DEFAULT_PDNS_TTL=60
 #Usage: add _acme-challenge.www.domain.com "123456789ABCDEF0000000000000000000000000000000000000"
 #fulldomain
 #txtvalue
-dns_pdns-mysql_add() {
+dns_pdnsMysql_add() {
   fulldomain=$1
   txtvalue=$2
 
@@ -85,7 +85,7 @@ dns_pdns-mysql_add() {
 }
 
 #fulldomain
-dns_pdns-mysql_rm() {
+dns_pdnsMysql_rm() {
   fulldomain=$1
 
   _debug "Detect root zone"
@@ -107,17 +107,10 @@ set_record() {
   root=$1
   full=$2
   txtvalue=$3
-
-  # check if challenge exists update if so else insert.
-  UNIQUE_ID=$(mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "SELECT id FROM ${PDNS_Database}.records WHERE name='${full}' AND type='TXT'")
-  if [[ -z "${UNIQUE_ID}" ]]; then
-	  mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "INSERT INTO ${PDNS_Database}.records \
-	  (name, content, type,ttl,prio) VALUES \
-	  ('${full}','${txtvalue}','TXT',120,NULL);"
-  else
-	  mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "UPDATE ${PDNS_Database}.records SET content='${txtvalue}' \
-	  WHERE id='${UNIQUE_ID}' AND name='${full}' AND type='TXT' LIMIT 1;"
-  fi
+  _domain_id=$(mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "SELECT id FROM ${PDNS_Database}.domains WHERE name='${root}'")
+  # insert challenge.
+  mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "INSERT INTO ${PDNS_Database}.records (domain_id,name, content, type,ttl,prio) VALUES \
+	  (${_domain_id},'${full}','${txtvalue}','TXT',60,NULL);"
 
   if ! notify_slaves "$root"; then
     return 1
@@ -131,11 +124,7 @@ rm_record() {
   root=$1
   full=$2
 
-  _delete_challenge=$(mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "DELETE FROM ${PDNS_Database}.records WHERE name='${full}'")
-  if [ -z "$_delete_challenge" ]; then
-    _err "Delete txt record error."
-    return 1
-  fi
+  mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "DELETE FROM ${PDNS_Database}.records WHERE name='${full}' AND type='TXT';"
 
   if ! notify_slaves "$root"; then
     return 1
@@ -170,7 +159,7 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$_pdns_domains" "$h."; then
+    if _contains "$_pdns_domains" "$h"; then
       _domain="$h"
       return 0
     fi
