@@ -94,11 +94,17 @@ The `PDNS_Url`, `PDNS_ServerId`, `PDNS_Token` and `PDNS_Ttl` will be saved in `~
 
 ## 5a. Use PowerDNS mysql backend to automatically issue cert
 
-First you need to set your user:pass:database in the configuration.
+First you need to set your host:user:pass:database in the configuration.
+Make sure the following are in your records table:
+INSERT INTO `records` (`domain_id`, `name`, `type`, `content`, `ttl`, `prio`, `change_date`)
+VALUES ({your domain_id}, 'example.com', 'SOA', 'ns1.example.com.net admin.example.com 1 10800 3600 604800 3600', 120, NULL, 0),
+({your domain_id}, '_acme-challenge.example.com', 'A', '{ipv4 address}', 60, NULL, 0),
+({your domain_id}, '_acme-challenge.example.com', 'AAAA', '{ipv6 address}', 60, NULL, NULL, 'N', 0, NULL, 0),
+({your domain_id}, 'example.com', 'CAA', '0 issue "letsencrypt.org"', 60, NULL, 0);
 
 Ok, let's issue a cert now:
 ```
-acme.sh --issue --dns dns_pdns-mysql -d example.com -d *.example.com
+acme.sh --issue --dns dns_pdnsMysql -d example.com -d *.example.com
 ```
 
 
