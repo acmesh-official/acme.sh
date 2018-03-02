@@ -117,7 +117,7 @@ _find_zone() {
   _debug2 response "$response"
   _table="$(echo "$response" | tr -d "#" | sed "s/<table/#<table/g" | tr -d "\n" | tr "#" "\n" | grep 'id="domains_table"')"
   _debug2 _table "$_table"
-  _matches="$(echo "$_table" | sed "s/<tr/#<tr/g" | tr "#" "\n" | grep 'alt="edit"' | tr -d " " | sed "s/<td/#<td/g" | tr "#" "\n" | sed -n 3p)"
+  _matches="$(echo "$_table" | sed "s/<tr/#<tr/g" | tr "#" "\n" | grep 'alt="edit"' | tr -d " " | sed "s/<td/#<td/g" | tr "#" "\n" | grep 'hosted_dns_zoneid')"
   _debug2 _matches "$_matches"
   # Zone names and zone IDs are in same order
   _zone_ids=$(echo "$_matches" | _egrep_o "hosted_dns_zoneid=[0-9]*&" | cut -d = -f 2 | tr -d '&')
