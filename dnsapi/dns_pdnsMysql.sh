@@ -136,7 +136,7 @@ rm_record() {
 notify_slaves() {
   root=$1
 
-  ### Need finished ###
+  mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "UPDATE ${PDNS_Database}.domains SET last_check=NULL WHERE name='${root}';"
 
   return 0
 }
