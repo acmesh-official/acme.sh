@@ -2455,8 +2455,13 @@ _apachePath() {
   if ! _exists apachectl; then
     if _exists apache2ctl; then
       _APACHECTL="apache2ctl"
+    elif _exists apache2; then #added
+      _APACHECTL="apache2" #added
+    elif _exists httpd; then #added
+      _APACHECTL="httpd" #added
     else
-      _err "'apachectl not found. It seems that apache is not installed, or you are not root user.'"
+      _err "'apachectl (or apache2 or httpd) not found. It seems that apache is not installed, or you are not root user.'"
+      #_err "'apachectl not found. It seems that apache is not installed, or you are not root user.'"
       _err "Please use webroot mode to try again."
       return 1
     fi
