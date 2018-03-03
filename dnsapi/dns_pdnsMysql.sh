@@ -108,10 +108,16 @@ set_record() {
   full=$2
   txtvalue=$3
   _domain_id=$(mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "SELECT id FROM ${PDNS_Database}.domains WHERE name='${root}'")
-  # insert challenge.
-  mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "INSERT INTO ${PDNS_Database}.records (domain_id,name, content, type,ttl,prio) VALUES \
-	  (${_domain_id},'${full}','${txtvalue}','TXT',60,NULL);"
-
+  if [ -z "$_domain_id" ]; then
+    return 1
+  fi
+# insert challenge.
+  _dns_insert=$(mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "INSERT INTO ${PDNS_Database}.records (domain_id,name, content, type,ttl,prio) VALUES \
+	  (${_domain_id},'${full}','${txtvalue}','TXT',60,NULL);")
+  if [ -z "$_dns_insert" ]; then
+    return 1
+  fi
+  
   if ! notify_slaves "$root"; then
     return 1
   fi
@@ -124,8 +130,10 @@ rm_record() {
   root=$1
   full=$2
 
-  mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "DELETE FROM ${PDNS_Database}.records WHERE name='${full}' AND type='TXT';"
-
+  _pdns_rm=$(mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "DELETE FROM ${PDNS_Database}.records WHERE name='${full}' AND type='TXT';")
+  if [ -z "$_pdns_rm" ]; then
+    return 1
+  fi
   if ! notify_slaves "$root"; then
     return 1
   fi
@@ -136,8 +144,10 @@ rm_record() {
 notify_slaves() {
   root=$1
   # hack set last_check to null to force update. #
-  mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "UPDATE ${PDNS_Database}.domains SET last_check=NULL WHERE name='${root}';"
-
+  _pdns_notify=$(mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "UPDATE ${PDNS_Database}.domains SET last_check=NULL WHERE name='${root}';")
+  if [ -z "$_pdns_notify" ]; then
+    return 1
+  fi
   return 0
 }
 
