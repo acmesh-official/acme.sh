@@ -21,14 +21,14 @@ dns_pdnsMysql_add() {
   txtvalue=$2
 
   if [ -z "$PDNS_Host" ]; then
-    PDNS_Url=""
+    PDNS_Host=""
     _err "You didn't specify PowerDNS Mysql address."
     _err "Please set PDNS_Host and try again."
     return 1
   fi
 
   if [ -z "$PDNS_Port" ]; then
-    PDNS_Url=""
+    PDNS_Port=""
     _err "You didn't specify PowerDNS Mysql Port."
     _err "Please set PDNS_Port and try again."
     return 1
