@@ -75,7 +75,7 @@ dns_namecom_rm() {
 
   # Get the record id.
   if _namecom_rest GET "domains/$_domain/records"; then
-    _record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[0-9]+,\"domainName\":\"$_domain\",\"host\":\"$_sub_domain\"" | cut -d \" -f 3 | _egrep_o [0-9]+)
+    _record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[0-9]+,\"domainName\":\"$_domain\",\"host\":\"$_sub_domain\",\"fqdn\":\"$fulldomain.\",\"type\":\"$txtvalue\"" | cut -d \" -f 3 | _egrep_o [0-9]+)
     _debug record_id "$_record_id"
     if [ "$_record_id" ]; then
       _info "Successfully retrieved the record id for ACME challenge."
@@ -115,7 +115,7 @@ _namecom_rest() {
     return 1
   fi
 
-  _debug response "$response"
+  _debug2 response "$response"
   return 0
 }
 
