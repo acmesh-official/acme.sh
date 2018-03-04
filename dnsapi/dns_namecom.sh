@@ -8,34 +8,29 @@
 
 Namecom_API="https://api.name.com/v4"
 
-# First we need name.com credentials.
-if [ -z "$Namecom_Username" ]; then
-  Namecom_Username=""
-  _err "Username for name.com is missing."
-  _err "Please specify that in your environment variable."
-  return 1
-fi
-
-if [ -z "$Namecom_Token" ]; then
-  Namecom_Token=""
-  _err "API token for name.com is missing."
-  _err "Please specify that in your environment variable."
-  return 1
-fi
-
-# Save them in configuration.
-_saveaccountconf Namecom_Username "$Namecom_Username"
-_saveaccountconf Namecom_Token "$Namecom_Token"
-
-# Auth string
-# Name.com API v4 uses http basic auth to authenticate
-# need to convert the token for http auth
-_namecom_auth=$(printf "%s:%s" "$Namecom_Username" "$Namecom_Token" | base64)
-
 #Usage: dns_namecom_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_namecom_add() {
   fulldomain=$1
   txtvalue=$2
+
+  # First we need name.com credentials.
+  if [ -z "$Namecom_Username" ]; then
+    Namecom_Username=""
+    _err "Username for name.com is missing."
+    _err "Please specify that in your environment variable."
+    return 1
+  fi
+
+  if [ -z "$Namecom_Token" ]; then
+    Namecom_Token=""
+    _err "API token for name.com is missing."
+    _err "Please specify that in your environment variable."
+    return 1
+  fi
+
+  # Save them in configuration.
+  _saveaccountconf Namecom_Username "$Namecom_Username"
+  _saveaccountconf Namecom_Token "$Namecom_Token"
 
   # Login in using API
   if ! _namecom_login; then
@@ -125,6 +120,11 @@ _namecom_rest() {
 }
 
 _namecom_login() {
+  # Auth string
+  # Name.com API v4 uses http basic auth to authenticate
+  # need to convert the token for http auth
+  _namecom_auth=$(printf "%s:%s" "$Namecom_Username" "$Namecom_Token" | base64)
+
   if _namecom_rest GET "hello"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "\"username\"\:\"$Namecom_Username\"")
     if [ "$retcode" ]; then
