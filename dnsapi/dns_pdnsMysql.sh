@@ -12,6 +12,10 @@ PDNS_Ttl=60
 
 DEFAULT_PDNS_TTL=60
 
+if ! _exists mysql; then
+  _err "'mysql not found. It seems that mysql client is not installed.'"
+fi
+
 ########  Public functions #####################
 #Usage: add _acme-challenge.www.domain.com "123456789ABCDEF0000000000000000000000000000000000000"
 #fulldomain
