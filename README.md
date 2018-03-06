@@ -25,7 +25,7 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
 # [中文说明](https://github.com/Neilpang/acme.sh/wiki/%E8%AF%B4%E6%98%8E)
 
-# Who are using **acme.sh**
+# Who:
 - [FreeBSD.org](https://blog.crashed.org/letsencrypt-in-freebsd-org/)
 - [ruby-china.org](https://ruby-china.org/topics/31983)
 - [Proxmox](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x_and_newer))
@@ -74,8 +74,9 @@ https://github.com/Neilpang/acmetest
 - Webroot mode
 - Standalone mode
 - Apache mode
-- Nginx mode ( Beta )
+- Nginx mode
 - DNS mode
+- [DNS alias mode](https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode)
 - [Stateless mode](https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode)
 
 
@@ -204,6 +205,8 @@ Install/copy the cert/key to the production Apache or Nginx path.
 The cert will be renewed every **60** days by default (which is configurable). Once the cert is renewed, the Apache/Nginx service will be reloaded automatically by the command: `service apache2 force-reload` or `service nginx force-reload`.
 
 
+**Please take care:  The reloadcmd is very important. The cert can be automatically renewed, but, without a correct 'reloadcmd' the cert may not be flushed to your server(like nginx or apache), then your website will not be able to show renewed cert in 60 days.**
+
 # 4. Use Standalone server to issue cert
 
 **(requires you to be root/sudoer or have permission to listen on port 80 (TCP))**
@@ -238,13 +241,17 @@ More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
 If you are running a web server, Apache or Nginx, it is recommended to use the `Webroot mode`.
 
-Particularly, if you are running an Apache server, you should use Apache mode instead. This mode doesn't write any files to your web root folder.
+Particularly, if you are running an Apache server, you can use Apache mode instead. This mode doesn't write any files to your web root folder.
 
 Just set string "apache" as the second argument and it will force use of apache plugin automatically.
 
 ```sh
 acme.sh --issue --apache -d example.com -d www.example.com -d cp.example.com
 ```
+
+**This apache mode is only to issue the cert, it will not change your apache config files. 
+You will need to configure your website config files to use the cert by yourself.
+We don't want to mess your apache server, don't worry.**
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
@@ -265,6 +272,10 @@ So, the config is not changed.
 ```sh
 acme.sh --issue --nginx -d example.com -d www.example.com -d cp.example.com
 ```
+
+**This nginx mode is only to issue the cert, it will not change your nginx config files. 
+You will need to configure your website config files to use the cert by yourself.
+We don't want to mess your nginx server, don't worry.**
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
@@ -315,7 +326,9 @@ You don't have to do anything manually!
 1. Azure DNS
 1. selectel.com(selectel.ru) DNS API
 1. zonomi.com DNS API
+1. DreamHost.com API
 1. DNSEver(https://www.dnsever.com)
+
 
 
 
@@ -324,9 +337,8 @@ You don't have to do anything manually!
 
 And: 
 
-1. lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
-   (DigitalOcean, DNSimple, DNSMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)
-
+**lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
+   (DigitalOcean, DNSimple, DNSMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)**
 
 
 **More APIs coming soon...**
@@ -337,7 +349,7 @@ For more details: [How to use DNS API](dnsapi)
 
 # 9. Use DNS manual mode:
 
-If your dns provider doesn't support any api access, you will have to add the txt record by your hand.
+If your dns provider doesn't support any api access, you can add the txt record by your hand.
 
 ```bash
 acme.sh --issue --dns -d example.com -d www.example.com -d cp.example.com
@@ -375,7 +387,7 @@ Ok, it's done.
 
 And we support them too!
 
-Just set the `length` parameter with a prefix `ec-`.
+Just set the `keylength` parameter with a prefix `ec-`.
 
 For example:
 
@@ -391,7 +403,7 @@ acme.sh --issue -w /home/wwwroot/example.com -d example.com --keylength ec-256
 acme.sh --issue -w /home/wwwroot/example.com -d example.com -d www.example.com --keylength ec-256
 ```
 
-Please look at the last parameter above.
+Please look at the `keylength` parameter above.
 
 Valid values are:
 

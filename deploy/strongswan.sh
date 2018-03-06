@@ -22,6 +22,8 @@ strongswan_deploy() {
     _ipsec=/usr/sbin/ipsec
   elif [ -x /usr/sbin/strongswan ]; then
     _ipsec=/usr/sbin/strongswan
+  elif [ -x /usr/local/sbin/ipsec ]; then
+    _ipsec=/usr/local/sbin/ipsec
   else
     _err "no strongswan or ipsec command is detected"
     return 1

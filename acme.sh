@@ -47,6 +47,7 @@ DEFAULT_DNS_SLEEP=120
 NO_VALUE="no"
 
 W_TLS="tls"
+DNS_ALIAS_PREFIX="="
 
 MODE_STATELESS="stateless"
 
@@ -104,6 +105,8 @@ _DEBUG_WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-debug-acme.sh"
 _PREPARE_LINK="https://github.com/Neilpang/acme.sh/wiki/Install-preparations"
 
 _STATELESS_WIKI="https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode"
+
+_DNS_ALIAS_WIKI="https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode"
 
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
@@ -1281,6 +1284,7 @@ _create_account_key() {
   else
     #generate account key
     _createkey "$length" "$ACCOUNT_KEY_PATH"
+    chmod 600 "$ACCOUNT_KEY_PATH"
   fi
 
 }
@@ -1838,7 +1842,7 @@ _send_signed_request() {
     _body="$response"
     if [ "$needbase64" ]; then
       _body="$(echo "$_body" | _dbase64)"
-      _debug2 _body "$_body"
+      _debug3 _body "$_body"
     fi
 
     if _contains "$_body" "JWS has invalid anti-replay nonce"; then
@@ -2006,9 +2010,19 @@ _startserver() {
     _NC="$_NC -6"
   fi
 
-  _debug "_NC" "$_NC"
-  #todo  listen address
-  $_NC TCP-LISTEN:$Le_HTTPPort,crlf,reuseaddr,fork SYSTEM:"sleep 0.5; echo HTTP/1.1 200 OK; echo ; echo  $content; echo;" &
+  if [ "$DEBUG" ] && [ "$DEBUG" -gt "1" ]; then
+    _NC="$_NC -d -d -v"
+  fi
+
+  SOCAT_OPTIONS=TCP-LISTEN:$Le_HTTPPort,crlf,reuseaddr,fork
+
+  #Adding bind to local-address
+  if [ "$ncaddr" ]; then
+    SOCAT_OPTIONS="$SOCAT_OPTIONS,bind=${ncaddr}"
+  fi
+
+  _debug "_NC" "$_NC $SOCAT_OPTIONS"
+  $_NC $SOCAT_OPTIONS SYSTEM:"sleep 1; echo HTTP/1.0 200 OK; echo ; echo  $content; echo;" &
   serverproc="$!"
 }
 
@@ -2848,8 +2862,9 @@ _clearupdns() {
     _debug "skip dns."
     return
   fi
-
+  _info "Removing DNS records."
   ventries=$(echo "$vlist" | tr ',' ' ')
+  _alias_index=1
   for ventry in $ventries; do
     d=$(echo "$ventry" | cut -d "$sep" -f 1)
     keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
@@ -2863,7 +2878,7 @@ _clearupdns() {
     fi
 
     if [ "$vtype" != "$VTYPE_DNS" ]; then
-      _info "Skip $d for $vtype"
+      _debug "Skip $d for $vtype"
       continue
     fi
 
@@ -2891,7 +2906,19 @@ _clearupdns() {
       if _startswith "$_dns_root_d" "*."; then
         _dns_root_d="$(echo "$_dns_root_d" | sed 's/*.//')"
       fi
-      txtdomain="_acme-challenge.$_dns_root_d"
+
+      _d_alias="$(_getfield "$_challenge_alias" "$_alias_index")"
+      _alias_index="$(_math "$_alias_index" + 1)"
+      _debug "_d_alias" "$_d_alias"
+      if [ "$_d_alias" ]; then
+        if _startswith "$_d_alias" "$DNS_ALIAS_PREFIX"; then
+          txtdomain="$(echo "$_d_alias" | sed "s/$DNS_ALIAS_PREFIX//")"
+        else
+          txtdomain="_acme-challenge.$_d_alias"
+        fi
+      else
+        txtdomain="_acme-challenge.$_dns_root_d"
+      fi
 
       if ! $rmcommand "$txtdomain" "$txt"; then
         _err "Error removing txt for domain:$txtdomain"
@@ -3373,7 +3400,7 @@ issue() {
   _post_hook="${11}"
   _renew_hook="${12}"
   _local_addr="${13}"
-
+  _challenge_alias="${14}"
   #remove these later.
   if [ "$_web_roots" = "dns-cf" ]; then
     _web_roots="dns_cf"
@@ -3425,6 +3452,11 @@ issue() {
     _savedomainconf "Le_LocalAddress" "$_local_addr"
   else
     _cleardomainconf "Le_LocalAddress"
+  fi
+  if [ "$_challenge_alias" ]; then
+    _savedomainconf "Le_ChallengeAlias" "$_challenge_alias"
+  else
+    _cleardomainconf "Le_ChallengeAlias"
   fi
 
   Le_API="$ACME_DIRECTORY"
@@ -3598,6 +3630,10 @@ $_authorizations_map"
       _debug entry "$entry"
       if [ -z "$entry" ]; then
         _err "Error, can not get domain token entry $d"
+        _supported_vtypes="$(echo "$response" | _egrep_o "\"challenges\":\[[^]]*]" | tr '{' "\n" | grep type | cut -d '"' -f 4 | tr "\n" ' ')"
+        if [ "$_supported_vtypes" ]; then
+          _err "The supported validation types are: $_supported_vtypes, but you specified: $vtype"
+        fi
         _clearup
         _on_issue_err "$_post_hook"
         return 1
@@ -3643,6 +3679,7 @@ $_authorizations_map"
     #add entry
     dnsadded=""
     ventries=$(echo "$vlist" | tr "$dvsep" ' ')
+    _alias_index=1
     for ventry in $ventries; do
       d=$(echo "$ventry" | cut -d "$sep" -f 1)
       keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
@@ -3660,7 +3697,18 @@ $_authorizations_map"
         if _startswith "$_dns_root_d" "*."; then
           _dns_root_d="$(echo "$_dns_root_d" | sed 's/*.//')"
         fi
-        txtdomain="_acme-challenge.$_dns_root_d"
+        _d_alias="$(_getfield "$_challenge_alias" "$_alias_index")"
+        _alias_index="$(_math "$_alias_index" + 1)"
+        _debug "_d_alias" "$_d_alias"
+        if [ "$_d_alias" ]; then
+          if _startswith "$_d_alias" "$DNS_ALIAS_PREFIX"; then
+            txtdomain="$(echo "$_d_alias" | sed "s/$DNS_ALIAS_PREFIX//")"
+          else
+            txtdomain="_acme-challenge.$_d_alias"
+          fi
+        else
+          txtdomain="_acme-challenge.$_dns_root_d"
+        fi
         _debug txtdomain "$txtdomain"
         txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
         _debug txt "$txt"
@@ -4213,7 +4261,7 @@ renew() {
   fi
 
   IS_RENEW="1"
-  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress"
+  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias"
   res="$?"
   if [ "$res" != "0" ]; then
     return "$res"
@@ -4277,6 +4325,17 @@ signcsr() {
     return 1
   fi
 
+  _real_cert="$3"
+  _real_key="$4"
+  _real_ca="$5"
+  _reload_cmd="$6"
+  _real_fullchain="$7"
+  _pre_hook="${8}"
+  _post_hook="${9}"
+  _renew_hook="${10}"
+  _local_addr="${11}"
+  _challenge_alias="${12}"
+
   _csrsubj=$(_readSubjectFromCSR "$_csrfile")
   if [ "$?" != "0" ]; then
     _err "Can not read subject from csr: $_csrfile"
@@ -4322,7 +4381,7 @@ signcsr() {
   _info "Copy csr to: $CSR_PATH"
   cp "$_csrfile" "$CSR_PATH"
 
-  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength"
+  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_addr" "$_challenge_alias"
 
 }
 
@@ -4545,7 +4604,7 @@ _installcert() {
       cat "$CERT_KEY_PATH" >"$_real_key"
     else
       cat "$CERT_KEY_PATH" >"$_real_key"
-      chmod 700 "$_real_key"
+      chmod 600 "$_real_key"
     fi
   fi
 
@@ -5058,7 +5117,7 @@ _installalias() {
 
 }
 
-# nocron confighome
+# nocron confighome noprofile
 install() {
 
   if [ -z "$LE_WORKING_DIR" ]; then
@@ -5067,6 +5126,7 @@ install() {
 
   _nocron="$1"
   _c_home="$2"
+  _noprofile="$3"
   if ! _initpath; then
     _err "Install failed."
     return 1
@@ -5132,7 +5192,7 @@ install() {
 
   _info "Installed to $LE_WORKING_DIR/$PROJECT_ENTRY"
 
-  if [ "$IN_CRON" != "1" ]; then
+  if [ "$IN_CRON" != "1" ] && [ -z "$_noprofile" ]; then
     _installalias "$_c_home"
   fi
 
@@ -5296,6 +5356,8 @@ Commands:
 
 Parameters:
   --domain, -d   domain.tld         Specifies a domain, used to issue, renew or revoke etc.
+  --challenge-alias domain.tld      The challenge domain alias for DNS alias mode: $_DNS_ALIAS_WIKI
+  --domain-alias domain.tld         The domain alias for DNS alias mode: $_DNS_ALIAS_WIKI
   --force, -f                       Used to force to install or force to renew a cert immediately.
   --staging, --test                 Use staging server, just for test.
   --debug                           Output debug info.
@@ -5358,10 +5420,11 @@ Parameters:
   "
 }
 
-# nocron
+# nocron noprofile
 _installOnline() {
   _info "Installing from online archive."
   _nocron="$1"
+  _noprofile="$2"
   if [ ! "$BRANCH" ]; then
     BRANCH="master"
   fi
@@ -5382,7 +5445,7 @@ _installOnline() {
 
     cd "$PROJECT_NAME-$BRANCH"
     chmod +x $PROJECT_ENTRY
-    if ./$PROJECT_ENTRY install "$_nocron"; then
+    if ./$PROJECT_ENTRY install "$_nocron" "" "$_noprofile"; then
       _info "Install success!"
     fi
 
@@ -5398,7 +5461,7 @@ upgrade() {
     _initpath
     export LE_WORKING_DIR
     cd "$LE_WORKING_DIR"
-    _installOnline "nocron"
+    _installOnline "nocron" "noprofile"
   ); then
     _info "Upgrade success!"
     exit 0
@@ -5446,6 +5509,7 @@ _process() {
   _domain=""
   _altdomains="$NO_VALUE"
   _webroot=""
+  _challenge_alias=""
   _keylength=""
   _accountkeylength=""
   _cert_file=""
@@ -5633,6 +5697,16 @@ _process() {
         else
           _webroot="$_webroot,$wvalue"
         fi
+        shift
+        ;;
+      --challenge-alias)
+        cvalue="$2"
+        _challenge_alias="$_challenge_alias$cvalue,"
+        shift
+        ;;
+      --domain-alias)
+        cvalue="$DNS_ALIAS_PREFIX$2"
+        _challenge_alias="$_challenge_alias$cvalue,"
         shift
         ;;
       --standalone)
@@ -5956,13 +6030,13 @@ _process() {
     uninstall) uninstall "$_nocron" ;;
     upgrade) upgrade ;;
     issue)
-      issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address"
+      issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias"
       ;;
     deploy)
       deploy "$_domain" "$_deploy_hook" "$_ecc"
       ;;
     signcsr)
-      signcsr "$_csr" "$_webroot"
+      signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias"
       ;;
     showcsr)
       showcsr "$_csr" "$_domain"

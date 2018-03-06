@@ -354,7 +354,7 @@ acme.sh --issue --dns dns_gandi_livedns -d example.com -d www.example.com
 First, generate a TSIG key for updating the zone.
 
 ```
-keymgr tsig generate acme_key algorithm hmac-sha512 > /etc/knot/acme.key
+keymgr tsig generate -t acme_key hmac-sha512 > /etc/knot/acme.key
 ```
 
 Include this key in your knot configuration file.
@@ -409,10 +409,13 @@ acme.sh --issue --dns dns_dgon -d example.com -d www.example.com
 
 ## 21. Use ClouDNS.net API
 
-You need to set the HTTP API user ID and password credentials. See: https://www.cloudns.net/wiki/article/42/
+You need to set the HTTP API user ID and password credentials. See: https://www.cloudns.net/wiki/article/42/. For security reasons, it's recommended to use a sub user ID that only has access to the necessary zones, as a regular API user has access to your entire account.
 
 ```
-export CLOUDNS_AUTH_ID=XXXXX
+# Use this for a sub auth ID
+export CLOUDNS_SUB_AUTH_ID=XXXXX
+# Use this for a regular auth ID
+#export CLOUDNS_AUTH_ID=XXXXX
 export CLOUDNS_AUTH_PASSWORD="YYYYYYYYY"
 ```
 
@@ -741,7 +744,20 @@ acme.sh --issue --dns dns_zonomi -d example.com -d www.example.com
 
 The `ZM_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-## 40. Use DNSEver (https://www.dnsever.com/)
+## 40. Use DreamHost DNS API
+
+DNS API keys may be created at https://panel.dreamhost.com/?tree=home.api.
+Ensure the created key has add and remove privelages.
+
+```
+export DH_API_Key="<api key>"
+acme.sh --issue --dns dns_dreamhost -d example.com -d www.example.com
+```
+
+The 'DH_API_KEY' will be saved in `~/.acme.sh/account.conf` and will
+be reused when needed.
+
+## 41. Use DNSEver (https://www.dnsever.com/)
 
 You will need your login credentials (ID+PW) to the DNSEver, and export them before you run acme.sh:
 ```
