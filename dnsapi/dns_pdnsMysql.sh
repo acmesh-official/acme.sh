@@ -3,18 +3,14 @@
 #PowerDNS Mysql backend
 #
 #
-PDNS_Host="example.com"
-PDNS_Port=3306
-PDNS_User="username"
-PDNS_Pass="password"
-PDNS_Database="powerdns"
-PDNS_Ttl=60
+#PDNS_Host="example.com"
+#PDNS_Port=3306
+#PDNS_User="username"
+#PDNS_Pass="password"
+#PDNS_Database="powerdns"
+#PDNS_Ttl=60
 
 DEFAULT_PDNS_TTL=60
-
-if ! _exists mysql; then
-  _err "'mysql not found. It seems that mysql client is not installed.'"
-fi
 
 ########  Public functions #####################
 #Usage: add _acme-challenge.www.domain.com "123456789ABCDEF0000000000000000000000000000000000000"
@@ -24,6 +20,17 @@ dns_pdnsMysql_add() {
   fulldomain=$1
   txtvalue=$2
 
+  if ! _exists mysql; then
+    _err "'mysql not found. It seems that mysql client is not installed.'"
+  fi
+
+  PDNS_Host="${PDNS_Host:-$(_readaccountconf_mutable PDNS_Host)}"
+  PDNS_Port="${PDNS_Port:-$(_readaccountconf_mutable PDNS_Port)}"
+  PDNS_User="${PDNS_User:-$(_readaccountconf_mutable PDNS_User)}"
+  PDNS_Pass="${PDNS_Pass:-$(_readaccountconf_mutable PDNS_Pass)}"
+  PDNS_Database="${PDNS_Database:-$(_readaccountconf_mutable PDNS_Database)}"
+  PDNS_Ttl="${PDNS_Ttl:-$(_readaccountconf_mutable PDNS_Ttl)}"
+  
   if [ -z "$PDNS_Host" ]; then
     PDNS_Host=""
     _err "You didn't specify PowerDNS Mysql address."
