@@ -10,7 +10,7 @@
 #PDNS_Database="powerdns"
 #PDNS_Ttl=60
 
-DEFAULT_PDNS_TTL=60
+#DEFAULT_PDNS_TTL=60
 
 ########  Public functions #####################
 #Usage: add _acme-challenge.www.domain.com "123456789ABCDEF0000000000000000000000000000000000000"
@@ -19,7 +19,7 @@ DEFAULT_PDNS_TTL=60
 dns_pdnsMysql_add() {
   fulldomain=$1
   txtvalue=$2
-
+  DEFAULT_PDNS_TTL=60
   if ! _exists mysql; then
     _err "'mysql not found. It seems that mysql client is not installed.'"
   fi
@@ -118,7 +118,7 @@ set_record() {
   root=$1
   full=$2
   txtvalue=$3
-  
+  DEFAULT_PDNS_TTL=60  
   if ! _exists mysql; then
     _err "'mysql not found. It seems that mysql client is not installed.'"
   fi
@@ -202,7 +202,7 @@ rm_record() {
   _info "Remove record"
   root=$1
   full=$2
-
+  DEFAULT_PDNS_TTL=60
   if ! _exists mysql; then
     _err "'mysql not found. It seems that mysql client is not installed.'"
   fi
@@ -279,6 +279,7 @@ rm_record() {
 
 notify_slaves() {
   root=$1
+  DEFAULT_PDNS_TTL=60
   # hack set last_check to null to force update. #
   
    if ! _exists mysql; then
@@ -358,7 +359,7 @@ notify_slaves() {
 _get_root() {
   domain=$1
   i=1
-  
+  DEFAULT_PDNS_TTL=60 
   if ! _exists mysql; then
     _err "'mysql not found. It seems that mysql client is not installed.'"
   fi
