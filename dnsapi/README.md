@@ -354,7 +354,7 @@ acme.sh --issue --dns dns_gandi_livedns -d example.com -d www.example.com
 First, generate a TSIG key for updating the zone.
 
 ```
-keymgr tsig generate acme_key algorithm hmac-sha512 > /etc/knot/acme.key
+keymgr tsig generate -t acme_key hmac-sha512 > /etc/knot/acme.key
 ```
 
 Include this key in your knot configuration file.
@@ -756,6 +756,34 @@ acme.sh --issue --dns dns_dreamhost -d example.com -d www.example.com
 
 The 'DH_API_KEY' will be saved in `~/.acme.sh/account.conf` and will
 be reused when needed.
+
+## 41. Use DirectAdmin API
+The DirectAdmin interface has it's own Let's encrypt functionality, but this
+script can be used to generate certificates for names which are not hosted on
+DirectAdmin
+
+User must provide login data and URL to the DirectAdmin incl. port.
+You can create an user which only has access to
+
+- CMD_API_DNS_CONTROL
+- CMD_API_SHOW_DOMAINS
+
+By using the Login Keys function.
+See also https://www.directadmin.com/api.php and https://www.directadmin.com/features.php?id=1298
+
+```
+export DA_Api="https://remoteUser:remotePassword@da.domain.tld:8443"
+export DA_Api_Insecure=1
+```
+Set `DA_Api_Insecure` to 1 for insecure and 0 for secure -> difference is whether ssl cert is checked for validity (0) or whether it is just accepted (1)
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_da -d example.com -d www.example.com
+```
+
+The `DA_Api` and `DA_Api_Insecure` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 
 # Use custom API
 

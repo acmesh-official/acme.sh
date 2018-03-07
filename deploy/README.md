@@ -114,8 +114,8 @@ user
 Any backups older than 180 days will be deleted when new certificates
 are deployed.  This defaults to "yes" set to "no" to disable backup.
 
-###Eamples using SSH deploy
-The following example illustrates deploying certifcates to a QNAP NAS
+###Examples using SSH deploy
+The following example illustrates deploying certificates to a QNAP NAS
 (tested with QTS version 4.2.3)
 
 ```sh
@@ -132,8 +132,8 @@ the same file.  This will result in the certificate being appended
 to the same file as the private key... a common requirement of several
 services.
 
-The next example illustates deploying certificates to a Unifi
-Contolller (tested with version 5.4.11).
+The next example illustrates deploying certificates to a Unifi
+Controller (tested with version 5.4.11).
 
 ```sh
 export DEPLOY_SSH_USER="root"
@@ -153,9 +153,9 @@ export DEPLOY_SSH_REMOTE_CMD="openssl pkcs12 -export \
 
 acme.sh --deploy -d unifi.example.com --deploy-hook ssh
 ```
-In this exmple we execute several commands on the remote host
+In this example we execute several commands on the remote host
 after the certificate files have been copied... to generate a pkcs12 file
-compatible with Unifi, to import it into the Unifi keystore and then finaly
+compatible with Unifi, to import it into the Unifi keystore and then finally
 to restart the service.
 
 Note also that once the certificate is imported
@@ -233,7 +233,7 @@ DEPLOY_CPANEL_USER is required only if you run the script as root and it should 
 export DEPLOY_CPANEL_USER=username
 acme.sh  --deploy  -d example.com  --deploy-hook cpanel_uapi
 ```
-Please note, that the cpanel_uapi hook will deploy only the first domain when your certificate will automatically renew. Therefore you should issue a separete certificate for each domain. 
+Please note, that the cpanel_uapi hook will deploy only the first domain when your certificate will automatically renew. Therefore you should issue a separate certificate for each domain. 
 
 ## 8. Deploy the cert to your FRITZ!Box router
 
