@@ -1841,7 +1841,7 @@ _send_signed_request() {
 
     _body="$response"
     if [ "$needbase64" ]; then
-      _body="$(echo "$_body" | _dbase64)"
+      _body="$(echo "$_body" | _dbase64 | tr -d '\0')"
       _debug3 _body "$_body"
     fi
 
