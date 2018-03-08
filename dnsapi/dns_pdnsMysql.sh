@@ -2,14 +2,12 @@
 
 #PowerDNS Mysql backend
 #
-#
 #PDNS_Host="example.com"
 #PDNS_Port=3306
 #PDNS_User="username"
 #PDNS_Pass="password"
 #PDNS_Database="powerdns"
 #PDNS_Ttl=60
-
 #DEFAULT_PDNS_TTL=60
 
 ########  Public functions #####################
@@ -19,7 +17,7 @@
 dns_pdnsMysql_add() {
   fulldomain=$1
   txtvalue=$2
-  DEFAULT_PDNS_TTL=60
+
   if ! _exists mysql; then
     _err "'mysql not found. It seems that mysql client is not installed.'"
   fi
@@ -30,7 +28,8 @@ dns_pdnsMysql_add() {
   PDNS_Pass="${PDNS_Pass:-$(_readaccountconf_mutable PDNS_Pass)}"
   PDNS_Database="${PDNS_Database:-$(_readaccountconf_mutable PDNS_Database)}"
   PDNS_Ttl="${PDNS_Ttl:-$(_readaccountconf_mutable PDNS_Ttl)}"
-  
+  DEFAULT_PDNS_TTL="${DEFAULT_PDNS_TTL:-$(_readaccountconf_mutable DEFAULT_PDNS_TTL)}"
+
   if [ -z "$PDNS_Host" ]; then
     PDNS_Host=""
     _err "You didn't specify PowerDNS Mysql address."
@@ -76,7 +75,7 @@ dns_pdnsMysql_add() {
   _saveaccountconf PDNS_User "$PDNS_User"
   _saveaccountconf PDNS_Pass "$PDNS_Pass"
   _saveaccountconf PDNS_Database "$PDNS_Database"
-  
+
   if [ "$PDNS_Ttl" != "$DEFAULT_PDNS_TTL" ]; then
     _saveaccountconf PDNS_Ttl "$PDNS_Ttl"
   fi
@@ -118,10 +117,6 @@ set_record() {
   root=$1
   full=$2
   txtvalue=$3
-  DEFAULT_PDNS_TTL=60  
-  if ! _exists mysql; then
-    _err "'mysql not found. It seems that mysql client is not installed.'"
-  fi
 
   PDNS_Host="${PDNS_Host:-$(_readaccountconf_mutable PDNS_Host)}"
   PDNS_Port="${PDNS_Port:-$(_readaccountconf_mutable PDNS_Port)}"
@@ -129,55 +124,10 @@ set_record() {
   PDNS_Pass="${PDNS_Pass:-$(_readaccountconf_mutable PDNS_Pass)}"
   PDNS_Database="${PDNS_Database:-$(_readaccountconf_mutable PDNS_Database)}"
   PDNS_Ttl="${PDNS_Ttl:-$(_readaccountconf_mutable PDNS_Ttl)}"
-  
-  if [ -z "$PDNS_Host" ]; then
-    PDNS_Host=""
-    _err "You didn't specify PowerDNS Mysql address."
-    _err "Please set PDNS_Host and try again."
-    return 1
-  fi
-
-  if [ -z "$PDNS_Port" ]; then
-    PDNS_Port=""
-    _err "You didn't specify PowerDNS Mysql Port."
-    _err "Please set PDNS_Port and try again."
-    return 1
-  fi
-
-  if [ -z "$PDNS_User" ]; then
-    PDNS_User=""
-    _err "You didn't specify PowerDNS Mysql username."
-    _err "Please set PDNS_User and try again."
-    return 1
-  fi
-
-  if [ -z "$PDNS_Pass" ]; then
-    PDNS_Pass=""
-    _err "You didn't specify PowerDNS Mysql password."
-    _err "Please set PDNS_Pass and try again."
-    return 1
-  fi
-
-  if [ -z "$PDNS_Database" ]; then
-    PDNS_Database=""
-    _err "You didn't specify PowerDNS Mysql database."
-    _err "Please set PDNS_Database and try again."
-    return 1
-  fi
+  DEFAULT_PDNS_TTL="${DEFAULT_PDNS_TTL:-$(_readaccountconf_mutable DEFAULT_PDNS_TTL)}"
 
   if [ -z "$PDNS_Ttl" ]; then
     PDNS_Ttl="$DEFAULT_PDNS_TTL"
-  fi
-
-  #save the api addr and key to the account conf file.
-  _saveaccountconf PDNS_Host "$PDNS_Host"
-  _saveaccountconf PDNS_Port "$PDNS_Port"
-  _saveaccountconf PDNS_User "$PDNS_User"
-  _saveaccountconf PDNS_Pass "$PDNS_Pass"
-  _saveaccountconf PDNS_Database "$PDNS_Database"
-  
-  if [ "$PDNS_Ttl" != "$DEFAULT_PDNS_TTL" ]; then
-    _saveaccountconf PDNS_Ttl "$PDNS_Ttl"
   fi
 
   _domain_id=$(mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "SELECT id FROM ${PDNS_Database}.domains WHERE name='${root}';")
@@ -186,11 +136,11 @@ set_record() {
   fi
 # insert challenge.
   _dns_insert=$(mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "INSERT INTO ${PDNS_Database}.records (domain_id,name, content, type,ttl,prio) VALUES (${_domain_id},'${full}','${txtvalue}','TXT',60,NULL);")
-  
+
   if [ -z "$_dns_insert" ]; then
     return 1
   fi
-  
+
   if ! notify_slaves "$root"; then
     return 1
   fi
@@ -202,10 +152,6 @@ rm_record() {
   _info "Remove record"
   root=$1
   full=$2
-  DEFAULT_PDNS_TTL=60
-  if ! _exists mysql; then
-    _err "'mysql not found. It seems that mysql client is not installed.'"
-  fi
 
   PDNS_Host="${PDNS_Host:-$(_readaccountconf_mutable PDNS_Host)}"
   PDNS_Port="${PDNS_Port:-$(_readaccountconf_mutable PDNS_Port)}"
@@ -213,63 +159,18 @@ rm_record() {
   PDNS_Pass="${PDNS_Pass:-$(_readaccountconf_mutable PDNS_Pass)}"
   PDNS_Database="${PDNS_Database:-$(_readaccountconf_mutable PDNS_Database)}"
   PDNS_Ttl="${PDNS_Ttl:-$(_readaccountconf_mutable PDNS_Ttl)}"
-  
-  if [ -z "$PDNS_Host" ]; then
-    PDNS_Host=""
-    _err "You didn't specify PowerDNS Mysql address."
-    _err "Please set PDNS_Host and try again."
-    return 1
-  fi
-
-  if [ -z "$PDNS_Port" ]; then
-    PDNS_Port=""
-    _err "You didn't specify PowerDNS Mysql Port."
-    _err "Please set PDNS_Port and try again."
-    return 1
-  fi
-
-  if [ -z "$PDNS_User" ]; then
-    PDNS_User=""
-    _err "You didn't specify PowerDNS Mysql username."
-    _err "Please set PDNS_User and try again."
-    return 1
-  fi
-
-  if [ -z "$PDNS_Pass" ]; then
-    PDNS_Pass=""
-    _err "You didn't specify PowerDNS Mysql password."
-    _err "Please set PDNS_Pass and try again."
-    return 1
-  fi
-
-  if [ -z "$PDNS_Database" ]; then
-    PDNS_Database=""
-    _err "You didn't specify PowerDNS Mysql database."
-    _err "Please set PDNS_Database and try again."
-    return 1
-  fi
+  DEFAULT_PDNS_TTL="${DEFAULT_PDNS_TTL:-$(_readaccountconf_mutable DEFAULT_PDNS_TTL)}"
 
   if [ -z "$PDNS_Ttl" ]; then
     PDNS_Ttl="$DEFAULT_PDNS_TTL"
   fi
 
-  #save the api addr and key to the account conf file.
-  _saveaccountconf PDNS_Host "$PDNS_Host"
-  _saveaccountconf PDNS_Port "$PDNS_Port"
-  _saveaccountconf PDNS_User "$PDNS_User"
-  _saveaccountconf PDNS_Pass "$PDNS_Pass"
-  _saveaccountconf PDNS_Database "$PDNS_Database"
-  
-  if [ "$PDNS_Ttl" != "$DEFAULT_PDNS_TTL" ]; then
-    _saveaccountconf PDNS_Ttl "$PDNS_Ttl"
-  fi
-
   _pdns_rm=$(mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "DELETE FROM ${PDNS_Database}.records WHERE name='${full}' AND type='TXT';")
-  
+
   if [ -z "$_pdns_rm" ]; then
     return 1
   fi
-  
+
   if ! notify_slaves "$root"; then
     return 1
   fi
@@ -279,12 +180,7 @@ rm_record() {
 
 notify_slaves() {
   root=$1
-  DEFAULT_PDNS_TTL=60
   # hack set last_check to null to force update. #
-  
-   if ! _exists mysql; then
-    _err "'mysql not found. It seems that mysql client is not installed.'"
-  fi
 
   PDNS_Host="${PDNS_Host:-$(_readaccountconf_mutable PDNS_Host)}"
   PDNS_Port="${PDNS_Port:-$(_readaccountconf_mutable PDNS_Port)}"
@@ -292,63 +188,18 @@ notify_slaves() {
   PDNS_Pass="${PDNS_Pass:-$(_readaccountconf_mutable PDNS_Pass)}"
   PDNS_Database="${PDNS_Database:-$(_readaccountconf_mutable PDNS_Database)}"
   PDNS_Ttl="${PDNS_Ttl:-$(_readaccountconf_mutable PDNS_Ttl)}"
-  
-  if [ -z "$PDNS_Host" ]; then
-    PDNS_Host=""
-    _err "You didn't specify PowerDNS Mysql address."
-    _err "Please set PDNS_Host and try again."
-    return 1
-  fi
-
-  if [ -z "$PDNS_Port" ]; then
-    PDNS_Port=""
-    _err "You didn't specify PowerDNS Mysql Port."
-    _err "Please set PDNS_Port and try again."
-    return 1
-  fi
-
-  if [ -z "$PDNS_User" ]; then
-    PDNS_User=""
-    _err "You didn't specify PowerDNS Mysql username."
-    _err "Please set PDNS_User and try again."
-    return 1
-  fi
-
-  if [ -z "$PDNS_Pass" ]; then
-    PDNS_Pass=""
-    _err "You didn't specify PowerDNS Mysql password."
-    _err "Please set PDNS_Pass and try again."
-    return 1
-  fi
-
-  if [ -z "$PDNS_Database" ]; then
-    PDNS_Database=""
-    _err "You didn't specify PowerDNS Mysql database."
-    _err "Please set PDNS_Database and try again."
-    return 1
-  fi
+  DEFAULT_PDNS_TTL="${DEFAULT_PDNS_TTL:-$(_readaccountconf_mutable DEFAULT_PDNS_TTL)}"
 
   if [ -z "$PDNS_Ttl" ]; then
     PDNS_Ttl="$DEFAULT_PDNS_TTL"
   fi
 
-  #save the api addr and key to the account conf file.
-  _saveaccountconf PDNS_Host "$PDNS_Host"
-  _saveaccountconf PDNS_Port "$PDNS_Port"
-  _saveaccountconf PDNS_User "$PDNS_User"
-  _saveaccountconf PDNS_Pass "$PDNS_Pass"
-  _saveaccountconf PDNS_Database "$PDNS_Database"
-  
-  if [ "$PDNS_Ttl" != "$DEFAULT_PDNS_TTL" ]; then
-    _saveaccountconf PDNS_Ttl "$PDNS_Ttl"
-  fi
- 
   _pdns_notify=$(mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "UPDATE ${PDNS_Database}.domains SET last_check=NULL WHERE name='${root}';")
-  
+
   if [ -z "$_pdns_notify" ]; then
     return 1
   fi
-  
+
   return 0
 }
 
@@ -359,10 +210,6 @@ notify_slaves() {
 _get_root() {
   domain=$1
   i=1
-  DEFAULT_PDNS_TTL=60 
-  if ! _exists mysql; then
-    _err "'mysql not found. It seems that mysql client is not installed.'"
-  fi
 
   PDNS_Host="${PDNS_Host:-$(_readaccountconf_mutable PDNS_Host)}"
   PDNS_Port="${PDNS_Port:-$(_readaccountconf_mutable PDNS_Port)}"
@@ -370,55 +217,10 @@ _get_root() {
   PDNS_Pass="${PDNS_Pass:-$(_readaccountconf_mutable PDNS_Pass)}"
   PDNS_Database="${PDNS_Database:-$(_readaccountconf_mutable PDNS_Database)}"
   PDNS_Ttl="${PDNS_Ttl:-$(_readaccountconf_mutable PDNS_Ttl)}"
-  
-  if [ -z "$PDNS_Host" ]; then
-    PDNS_Host=""
-    _err "You didn't specify PowerDNS Mysql address."
-    _err "Please set PDNS_Host and try again."
-    return 1
-  fi
-
-  if [ -z "$PDNS_Port" ]; then
-    PDNS_Port=""
-    _err "You didn't specify PowerDNS Mysql Port."
-    _err "Please set PDNS_Port and try again."
-    return 1
-  fi
-
-  if [ -z "$PDNS_User" ]; then
-    PDNS_User=""
-    _err "You didn't specify PowerDNS Mysql username."
-    _err "Please set PDNS_User and try again."
-    return 1
-  fi
-
-  if [ -z "$PDNS_Pass" ]; then
-    PDNS_Pass=""
-    _err "You didn't specify PowerDNS Mysql password."
-    _err "Please set PDNS_Pass and try again."
-    return 1
-  fi
-
-  if [ -z "$PDNS_Database" ]; then
-    PDNS_Database=""
-    _err "You didn't specify PowerDNS Mysql database."
-    _err "Please set PDNS_Database and try again."
-    return 1
-  fi
+  DEFAULT_PDNS_TTL="${DEFAULT_PDNS_TTL:-$(_readaccountconf_mutable DEFAULT_PDNS_TTL)}"
 
   if [ -z "$PDNS_Ttl" ]; then
     PDNS_Ttl="$DEFAULT_PDNS_TTL"
-  fi
-
-  #save the api addr and key to the account conf file.
-  _saveaccountconf PDNS_Host "$PDNS_Host"
-  _saveaccountconf PDNS_Port "$PDNS_Port"
-  _saveaccountconf PDNS_User "$PDNS_User"
-  _saveaccountconf PDNS_Pass "$PDNS_Pass"
-  _saveaccountconf PDNS_Database "$PDNS_Database"
-  
-  if [ "$PDNS_Ttl" != "$DEFAULT_PDNS_TTL" ]; then
-    _saveaccountconf PDNS_Ttl "$PDNS_Ttl"
   fi
 
   _pdns_domains=$(mysql -ss "-h${PDNS_Host}" "-P${PDNS_Port}" "-u${PDNS_User}" "-p${PDNS_Pass}" -e "SELECT name FROM ${PDNS_Database}.domains;")
