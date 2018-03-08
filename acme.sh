@@ -63,6 +63,7 @@ END_CSR="-----END CERTIFICATE REQUEST-----"
 BEGIN_CERT="-----BEGIN CERTIFICATE-----"
 END_CERT="-----END CERTIFICATE-----"
 
+CONTENT_TYPE_JSON="application/jose+json"
 RENEW_SKIP=2
 
 ECC_SEP="_"
@@ -1591,12 +1592,13 @@ _inithttp() {
 
 }
 
-# body  url [needbase64] [POST|PUT]
+# body  url [needbase64] [POST|PUT] [ContentType]
 _post() {
   body="$1"
   _post_url="$2"
   needbase64="$3"
   httpmethod="$4"
+  _postContentType="$5"
 
   if [ -z "$httpmethod" ]; then
     httpmethod="POST"
@@ -1611,6 +1613,9 @@ _post() {
     _CURL="$_ACME_CURL"
     if [ "$HTTPS_INSECURE" ]; then
       _CURL="$_CURL --insecure  "
+    fi
+    if [ "$_postContentType" ]; then
+      _CURL="$_CURL -H \"Content-Type: $_postContentType\" "
     fi
     _debug "_CURL" "$_CURL"
     if [ "$needbase64" ]; then
@@ -1630,6 +1635,9 @@ _post() {
     _WGET="$_ACME_WGET"
     if [ "$HTTPS_INSECURE" ]; then
       _WGET="$_WGET --no-check-certificate "
+    fi
+    if [ "$_postContentType" ]; then
+      _WGET="$_WGET --header \"Content-Type: $_postContentType\" "
     fi
     _debug "_WGET" "$_WGET"
     if [ "$needbase64" ]; then
@@ -1765,7 +1773,7 @@ _send_signed_request() {
       if [ "$ACME_NEW_NONCE" ]; then
         _debug2 "Get nonce. ACME_NEW_NONCE" "$ACME_NEW_NONCE"
         nonceurl="$ACME_NEW_NONCE"
-        if _post "" "$nonceurl" "" "HEAD"; then
+        if _post "" "$nonceurl" "" "HEAD" "$CONTENT_TYPE_JSON"; then
           _headers="$(cat "$HTTP_HEADER")"
         fi
       fi
@@ -1820,7 +1828,7 @@ _send_signed_request() {
     fi
     _debug3 body "$body"
 
-    response="$(_post "$body" "$url" "$needbase64")"
+    response="$(_post "$body" "$url" "$needbase64" "POST" "$CONTENT_TYPE_JSON")"
     _CACHED_NONCE=""
 
     if [ "$?" != "0" ]; then
