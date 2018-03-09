@@ -849,6 +849,16 @@ _dbase64() {
   fi
 }
 
+#file
+_checkcert() {
+  _cf="$1"
+  if [ "$DEBUG" ]; then
+    openssl x509  -noout -text -in "$_cf"
+  else
+    openssl x509  -noout -text -in "$_cf" >/dev/null 2>&1
+  fi
+}
+
 #Usage: hashalg  [outputhex]
 #Output Base64-encoded digest
 _digest() {
@@ -4089,6 +4099,13 @@ $_authorizations_map"
   _debug "Le_LinkCert" "$Le_LinkCert"
   _savedomainconf "Le_LinkCert" "$Le_LinkCert"
 
+  if [ -z "$Le_LinkCert" ] || ! _checkcert "$CERT_PATH"; then
+    response="$(echo "$response" | _dbase64 "multiline" | _normalizeJson)"
+    _err "Sign failed: $(echo "$response" | _egrep_o '"detail":"[^"]*"')"
+    _on_issue_err "$_post_hook"
+    return 1
+  fi
+
   if [ "$Le_LinkCert" ]; then
     _info "$(__green "Cert success.")"
     cat "$CERT_PATH"
@@ -4099,21 +4116,10 @@ $_authorizations_map"
       _info "Your cert key is in $(__green " $CERT_KEY_PATH ")"
     fi
 
-    if [ "$ACME_VERSION" != "2" ]; then
-      cp "$CERT_PATH" "$CERT_FULLCHAIN_PATH"
-    fi
-
     if [ ! "$USER_PATH" ] || [ ! "$IN_CRON" ]; then
       USER_PATH="$PATH"
       _saveaccountconf "USER_PATH" "$USER_PATH"
     fi
-  fi
-
-  if [ -z "$Le_LinkCert" ]; then
-    response="$(echo "$response" | _dbase64 "multiline" | _normalizeJson)"
-    _err "Sign failed: $(echo "$response" | _egrep_o '"detail":"[^"]*"')"
-    _on_issue_err "$_post_hook"
-    return 1
   fi
 
   _cleardomainconf "Le_Vlist"
@@ -4121,6 +4127,7 @@ $_authorizations_map"
   if [ "$ACME_VERSION" = "2" ]; then
     _debug "v2 chain."
   else
+    cp "$CERT_PATH" "$CERT_FULLCHAIN_PATH"
     Le_LinkIssuer=$(grep -i '^Link' "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2 | cut -d ';' -f 1 | tr -d '<>')
 
     if [ "$Le_LinkIssuer" ]; then
@@ -4144,6 +4151,10 @@ $_authorizations_map"
             echo "$BEGIN_CERT" >"$CA_CERT_PATH"
             _base64 "multiline" <"$CA_CERT_PATH.der" >>"$CA_CERT_PATH"
             echo "$END_CERT" >>"$CA_CERT_PATH"
+            if !_checkcert "$CA_CERT_PATH"; then
+              _err "Can not get the ca cert."
+              break
+            fi
             cat "$CA_CERT_PATH" >>"$CERT_FULLCHAIN_PATH"
             rm -f "$CA_CERT_PATH.der"
             break
