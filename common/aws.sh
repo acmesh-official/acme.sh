@@ -9,6 +9,9 @@
 #
 #   R53: _aws r53 <verb> <path> [query] [xml]
 #        _aws r53 GET /2013-04-01/hostedzone maxitems=2
+#
+#   S3:  _aws s3 <verb> <bucket> <path> <region> [query] [headers] [data]
+#        _aws s3 PUT a-bucket /prefix/notes.txt us-east-1 <notes.txt
 
 _aws() {
   _svc="$1" # _args=...
@@ -42,6 +45,32 @@ _aws_svc_r53() {
   _aws_wrap '<ErrorResponse' \
     "$_verb" 'route53.amazonaws.com' "$_path" "$_query" 'us-east-1/route53' \
     '' "$_xml"
+}
+
+_aws_svc_s3() {
+  _verb="$1" _bucket="$2" _path="$3" _region="$4" _query="$5" _headers="$6"
+
+  if [ -t 0 ]; then
+    _data="$7"
+  else
+    unset _data
+    while read -r _line; do
+      _data="$_data$_line$n"
+    done
+    _data="$_data$_line"
+  fi
+
+  _hash="x-amz-content-sha256:$(printf %s "$_data" | _digest sha256 hex)"
+  if _contains "$_bucket" '.'; then
+    _host="s3.$_region.amazonaws.com"
+    _path="/$_bucket$_path"
+  else
+    _host="$_bucket.s3.$_region.amazonaws.com"
+  fi
+
+  _aws_wrap '<Error' \
+    "$_verb" "$_host" "$_path" "$_query" "$_region/s3" \
+    "$_hash$n$_headers" "$_data"
 }
 
 # core
@@ -134,7 +163,8 @@ _aws_req4() {
   case "$(printf %s "$_verb" | tr '[:upper:]' '[:lower:]')" in
   get) _get "$_url" ;;
   post) _post "$_data" "$_url" ;;
-  *) _err '_aws only supports get and post' ;;
+  put) _post "$_data" "$_url" '' PUT ;;
+  *) _err '_aws only supports get, post and put' ;;
   esac
 }
 
