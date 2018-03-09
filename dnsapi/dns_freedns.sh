@@ -90,13 +90,13 @@ dns_freedns_add() {
     while [ "$i" -lt "$lines" ]; do
       i="$(_math "$i" + 1)"
       line="$(echo "$subdomain_csv" | sed -n "${i}p")"
-      _debug2 "line $line"
+      _debug2 "line: $line"
       if [ $found = 0 ] && _contains "$line" "<td>$top_domain</td>"; then
         # this line will contain DNSdomainid for the top_domain
         DNSdomainid="$(echo "$line" | _egrep_o "edit_domain_id *= *.*>" | cut -d = -f 2 | cut -d '>' -f 1)"
         _debug2 "DNSdomainid: $DNSdomainid"
         found=1
-        break;
+        break
       fi
     done
 
@@ -191,7 +191,7 @@ dns_freedns_rm() {
           fi
           _debug2 "DNSvalue: $DNSvalue"
 
-          if [ -n "$DNSdataid" ] && _startswith "$txtvalue" "$DNSvalue";  then
+          if [ -n "$DNSdataid" ] && _startswith "$txtvalue" "$DNSvalue"; then
             # Found a match. But note... Website is truncating the
             # value field so we are only testing that part that is not 
             # truncated.  This should be accurate enough.
