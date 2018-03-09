@@ -10,7 +10,7 @@
 #
 # Author: Martin Kammerlander, Phlegx Systems OG <martin.kammerlander@phlegx.com>
 # Credits: Inspired by dns_he.sh. Thanks a lot man!
-# Git repo: TODO
+# Git repo: https://github.com/phlegx/acme.sh
 # TODO: Better Error handling
 # TODO: Does not work with Domains that have double endings like i.e. 'co.uk'
 #       => Get all root zones and compare once the provider offers that.
