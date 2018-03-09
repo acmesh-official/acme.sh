@@ -4100,7 +4100,7 @@ $_authorizations_map"
   _savedomainconf "Le_LinkCert" "$Le_LinkCert"
 
   if [ -z "$Le_LinkCert" ] || ! _checkcert "$CERT_PATH"; then
-    response="$(echo "$response" | _dbase64 "multiline" | _normalizeJson)"
+    response="$(echo "$response" | _dbase64 "multiline" | tr -d '\0' | _normalizeJson)"
     _err "Sign failed: $(echo "$response" | _egrep_o '"detail":"[^"]*"')"
     _on_issue_err "$_post_hook"
     return 1
