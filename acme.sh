@@ -853,9 +853,9 @@ _dbase64() {
 _checkcert() {
   _cf="$1"
   if [ "$DEBUG" ]; then
-    openssl x509  -noout -text -in "$_cf"
+    openssl x509 -noout -text -in "$_cf"
   else
-    openssl x509  -noout -text -in "$_cf" >/dev/null 2>&1
+    openssl x509 -noout -text -in "$_cf" >/dev/null 2>&1
   fi
 }
 
