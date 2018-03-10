@@ -5399,7 +5399,6 @@ Parameters:
   --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
   --stateless                       Use stateless mode, see: $_STATELESS_WIKI
-  --tls                             Use standalone tls mode.
   --apache                          Use apache mode.
   --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
   --dnssleep  [$DEFAULT_DNS_SLEEP]                  The time in seconds to wait for all the txt records to take effect in dns api mode. Default $DEFAULT_DNS_SLEEP seconds.
@@ -5429,7 +5428,6 @@ Parameters:
   --accountkey                      Specifies the account key path, Only valid for the '--install' command.
   --days                            Specifies the days to renew the cert when using '--issue' command. The max value is $MAX_RENEW days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
-  --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --local-address                   Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
   --listraw                         Only used for '--list' command, list the certs in raw format.
   --stopRenewOnError, -se           Only valid for '--renew-all' command. Stop if one cert has error in renewal.
@@ -5780,14 +5778,6 @@ _process() {
           _webroot="$_webroot,$wvalue"
         fi
         ;;
-      --tls)
-        wvalue="$W_TLS"
-        if [ -z "$_webroot" ]; then
-          _webroot="$wvalue"
-        else
-          _webroot="$_webroot,$wvalue"
-        fi
-        ;;
       --dns)
         wvalue="dns"
         if [ "$2" ] && ! _startswith "$2" "-"; then
@@ -5883,12 +5873,6 @@ _process() {
         Le_HTTPPort="$_httpport"
         shift
         ;;
-      --tlsport)
-        _tlsport="$2"
-        Le_TLSPort="$_tlsport"
-        shift
-        ;;
-
       --listraw)
         _listraw="raw"
         ;;
