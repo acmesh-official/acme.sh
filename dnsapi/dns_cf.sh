@@ -34,6 +34,12 @@ dns_cf_add() {
   _saveaccountconf_mutable CF_Key "$CF_Key"
   _saveaccountconf_mutable CF_Email "$CF_Email"
 
+  if _is_idna_punycode $fulldomain && [ ! _exists idn ]; then
+    _err "Please install idn to process IDN names."
+    _err ""
+    return 1
+  fi
+
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
@@ -58,7 +64,7 @@ dns_cf_add() {
   #  if [ "$count" = "0" ]; then
   _info "Adding record"
   if _cf_rest POST "zones/$_domain_id/dns_records" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
-    if printf -- "%s" "$response" | grep "$fulldomain" >/dev/null; then
+    if _cf_response_name_contains $fulldomain; then
       _info "Added, OK"
       return 0
     else
@@ -158,7 +164,7 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
+    if _cf_response_name_contains $h; then
       _domain_id=$(printf "%s\n" "$response" | _egrep_o "\[.\"id\":\"[^\"]*\"" | head -n 1 | cut -d : -f 2 | tr -d \")
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
@@ -196,4 +202,33 @@ _cf_rest() {
   fi
   _debug2 response "$response"
   return 0
+}
+
+# Check if Cloudflare's reponse name value contains given domain
+_cf_response_name_contains() {
+
+  if _is_idna_punycode $1; then
+    # Because name value in Cloudflare's IDNA punycode queries is
+    # decoded we also need to decode domain using idn
+    if _contains "$response" "\"name\":\"$(idn --idna-to-unicode $1)\"" >/dev/null; then
+      return 0
+    fi
+  else
+    if _contains "$response" "\"name\":\"$1\"" >/dev/null; then
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
+# Check if supplied domain is in IDNA punycode format
+_is_idna_punycode() {
+
+  if echo "$1" | grep -E "(^|\.)xn--" >/dev/null 2>&1; then
+    _debug2 "$1 will be handled as IDNA punycode"
+    return 0
+  fi
+
+  return 1
 }
