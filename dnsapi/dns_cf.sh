@@ -34,7 +34,7 @@ dns_cf_add() {
   _saveaccountconf_mutable CF_Key "$CF_Key"
   _saveaccountconf_mutable CF_Email "$CF_Email"
 
-  if _is_idna_punycode $fulldomain && [ ! _exists idn ]; then
+  if _is_idna_punycode "$fulldomain" && ! _exists idn; then
     _err "Please install idn to process IDN names."
     _err ""
     return 1
@@ -207,7 +207,7 @@ _cf_rest() {
 # Check if Cloudflare's reponse name value contains given domain
 _cf_response_name_contains() {
 
-  if _is_idna_punycode $1; then
+  if _is_idna_punycode "$1"; then
     # Because name value in Cloudflare's IDNA punycode queries is
     # decoded we also need to decode domain using idn
     if _contains "$response" "\"name\":\"$(idn --idna-to-unicode $1)\"" >/dev/null; then
