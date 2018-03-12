@@ -64,7 +64,7 @@ dns_cf_add() {
   #  if [ "$count" = "0" ]; then
   _info "Adding record"
   if _cf_rest POST "zones/$_domain_id/dns_records" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
-    if _cf_response_name_contains $fulldomain; then
+    if _cf_response_name_contains "$fulldomain"; then
       _info "Added, OK"
       return 0
     else
@@ -164,7 +164,7 @@ _get_root() {
       return 1
     fi
 
-    if _cf_response_name_contains $h; then
+    if _cf_response_name_contains "$h"; then
       _domain_id=$(printf "%s\n" "$response" | _egrep_o "\[.\"id\":\"[^\"]*\"" | head -n 1 | cut -d : -f 2 | tr -d \")
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
@@ -210,7 +210,8 @@ _cf_response_name_contains() {
   if _is_idna_punycode "$1"; then
     # Because name value in Cloudflare's IDNA punycode queries is
     # decoded we also need to decode domain using idn
-    if _contains "$response" "\"name\":\"$(idn --idna-to-unicode $1)\"" >/dev/null; then
+    _decoded_domain=$(idn --idna-to-unicode "$1")
+    if _contains "$response" "\"name\":\"$_decoded_domain\"" >/dev/null; then
       return 0
     fi
   else
