@@ -3018,11 +3018,17 @@ _on_before_issue() {
 
   _debug Le_LocalAddress "$_chk_local_addr"
 
-  alldomains=$(echo "$_chk_main_domain,$_chk_alt_domains" | tr ',' ' ')
+  remainingdomains="$_chk_main_domain,$_chk_alt_domains"
   _index=1
   _currentRoot=""
   _addrIndex=1
-  for d in $alldomains; do
+  while [ "$remainingdomains" ]; do
+    d="${remainingdomains%%,*}"
+    if [ "$remainingdomains" = "$d" ]; then
+      remainingdomains=""
+    else
+      remainingdomains="${remainingdomains#*,}"
+    fi
     _debug "Check for domain" "$d"
     _currentRoot="$(_getfield "$_chk_web_roots" $_index)"
     _debug "_currentRoot" "$_currentRoot"
@@ -3609,10 +3615,16 @@ $_authorizations_map"
       _debug2 _authorizations_map "$_authorizations_map"
     fi
 
-    alldomains=$(echo "$_main_domain,$_alt_domains" | tr ',' ' ')
+    remainingdomains="$_main_domain,$_alt_domains"
     _index=0
     _currentRoot=""
-    for d in $alldomains; do
+    while [ "$remainingdomains" ]; do
+      d="${remainingdomains%%,*}"
+      if [ "$remainingdomains" = "$d" ]; then
+        remainingdomains=""
+      else
+        remainingdomains="${remainingdomains#*,}"
+      fi
       _info "Getting webroot for domain" "$d"
       _index=$(_math $_index + 1)
       _w="$(echo $_web_roots | cut -d , -f $_index)"
