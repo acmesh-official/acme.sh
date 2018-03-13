@@ -6,13 +6,11 @@
 #Please note: the Wildcard Feature must be turned on for the Host record
 #and the checkbox for TXT needs to be enabled
 
-
 # Pass credentials before "acme.sh --issue --dns dns_ddnss ..."
 # --
 # export DDNSS_Token="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 # --
 #
-
 
 DDNSS_DNS_API="https://ddnss.de/upd.php"
 
