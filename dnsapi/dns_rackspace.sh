@@ -140,7 +140,7 @@ _get_root_zone() {
     _debug2 response "$response"
 
     if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
-      _domain_id=$(echo "$response" | jq ".domains[] |select(.name == \"$h\") | .id")
+      _domain_id=$(echo "$response" | sed -n "s/^.*\"name\":\"$h\",\"id\":\([^,]*\),.*/\1/p")
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain=$h
@@ -169,7 +169,7 @@ _get_recordid() {
     return 0
   fi
 
-  _dns_record_id=$(echo "$response" | jq ".records[] |select(.data == \"$txtvalue\") | .id" | cut -d '"' -f 2)
+  _dns_record_id=$(echo "$response" | tr '{' "\n" |grep "\"data\":\"$txtvalue\"" | sed -n 's/^.*"id":"\([^"]*\)".*/\1/p')
   _debug _dns_record_id "$_dns_record_id"
   return 0
 }
@@ -228,8 +228,8 @@ _rackspace_authorization() {
     return 1
   fi
   if _contains "$response" "token"; then
-    RACKSPACE_Token=$(echo "$response" | jq .access.token.id | cut -d '"' -f 2)
-    RACKSPACE_Tenant=$(echo "$response" | jq .access.token.tenant.id | cut -d '"' -f 2)
+    RACKSPACE_Token=$(echo "$response" | _normalizeJson | sed -n 's/^.*"token":{.*,"id":"\([^"]*\)",".*/\1/p')
+    RACKSPACE_Tenant=$(echo "$response" | _normalizeJson | sed -n 's/^.*"token":{.*,"id":"\([^"]*\)"}.*/\1/p')
     _debug RACKSPACE_Token $RACKSPACE_Token
     _debug RACKSPACE_Tenant $RACKSPACE_Tenant
   fi
