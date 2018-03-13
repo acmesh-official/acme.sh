@@ -204,7 +204,7 @@ _cf_rest() {
   return 0
 }
 
-# Check if Cloudflare's reponse name value contains given domain
+# Check if Cloudflare's response name value contains given domain
 _cf_response_name_contains() {
 
   if _is_idna_punycode "$1"; then
