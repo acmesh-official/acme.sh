@@ -806,3 +806,13 @@ See:  https://github.com/Neilpang/acme.sh/wiki/DNS-API-Dev-Guide
 # Use lexicon DNS API
 
 https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
+
+# Use DDNSS.de API
+
+1. create account at ddnss.de
+2. create Host record
+3. set checkbox for Wildcard
+4. set checkbox for TXT record
+5. Note your Api Key displayed at ddnss.de and export in DDNSS_Token variable
+export DDNSS_Token="e4155767few8erwf59353633tz342ce85werddc99432"
+acme.sh --issue --dns dns_ddnss -d example.com
