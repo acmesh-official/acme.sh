@@ -47,6 +47,7 @@ DEFAULT_DNS_SLEEP=120
 NO_VALUE="no"
 
 W_TLS="tls"
+W_DNS="dns"
 DNS_ALIAS_PREFIX="="
 
 MODE_STATELESS="stateless"
@@ -3118,7 +3119,7 @@ _on_issue_err() {
     )
   fi
 
-  if [ "$IS_RENEW" = "1" ] && _hasfield "$Le_Webroot" "dns"; then
+  if [ "$IS_RENEW" = "1" ] && _hasfield "$Le_Webroot" "$W_DNS"; then
     _err "$_DNS_MANUAL_ERR"
   fi
 
@@ -3154,7 +3155,7 @@ _on_issue_success() {
     fi
   fi
 
-  if _hasfield "$Le_Webroot" "dns"; then
+  if _hasfield "$Le_Webroot" "$W_DNS"; then
     _err "$_DNS_MANUAL_WARN"
   fi
 
@@ -3624,7 +3625,7 @@ $_authorizations_map"
 
       vtype="$VTYPE_HTTP"
       #todo, v2 wildcard force to use dns
-      if _startswith "$_currentRoot" "dns"; then
+      if _startswith "$_currentRoot" "$W_DNS"; then
         vtype="$VTYPE_DNS"
       fi
 
@@ -3751,6 +3752,10 @@ $_authorizations_map"
         if [ "$d_api" ]; then
           _info "Found domain api file: $d_api"
         else
+          if [ "$_currentRoot" != "$W_DNS" ]; then
+            _err "Can not find dns api hook for: $_currentRoot"
+            _info "You need to add the txt record manually."
+          fi
           _info "$(__red "Add the following TXT record:")"
           _info "$(__red "Domain: '$(__green "$txtdomain")'")"
           _info "$(__red "TXT value: '$(__green "$txt")'")"
@@ -5779,7 +5784,7 @@ _process() {
         fi
         ;;
       --dns)
-        wvalue="dns"
+        wvalue="$W_DNS"
         if [ "$2" ] && ! _startswith "$2" "-"; then
           wvalue="$2"
           shift
