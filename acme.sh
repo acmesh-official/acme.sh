@@ -4264,7 +4264,7 @@ renew() {
   fi
 
   . "$DOMAIN_CONF"
-
+  _debug Le_API "$Le_API"
   if [ "$Le_API" ]; then
     if [ "$_OLD_CA_HOST" = "$Le_API" ]; then
       export Le_API="$DEFAULT_CA"
