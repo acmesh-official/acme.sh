@@ -63,6 +63,7 @@ END_CSR="-----END CERTIFICATE REQUEST-----"
 BEGIN_CERT="-----BEGIN CERTIFICATE-----"
 END_CERT="-----END CERTIFICATE-----"
 
+CONTENT_TYPE_JSON="application/jose+json"
 RENEW_SKIP=2
 
 ECC_SEP="_"
@@ -848,6 +849,16 @@ _dbase64() {
   fi
 }
 
+#file
+_checkcert() {
+  _cf="$1"
+  if [ "$DEBUG" ]; then
+    openssl x509 -noout -text -in "$_cf"
+  else
+    openssl x509 -noout -text -in "$_cf" >/dev/null 2>&1
+  fi
+}
+
 #Usage: hashalg  [outputhex]
 #Output Base64-encoded digest
 _digest() {
@@ -1591,12 +1602,13 @@ _inithttp() {
 
 }
 
-# body  url [needbase64] [POST|PUT]
+# body  url [needbase64] [POST|PUT] [ContentType]
 _post() {
   body="$1"
   _post_url="$2"
   needbase64="$3"
   httpmethod="$4"
+  _postContentType="$5"
 
   if [ -z "$httpmethod" ]; then
     httpmethod="POST"
@@ -1611,6 +1623,9 @@ _post() {
     _CURL="$_ACME_CURL"
     if [ "$HTTPS_INSECURE" ]; then
       _CURL="$_CURL --insecure  "
+    fi
+    if [ "$_postContentType" ]; then
+      _CURL="$_CURL -H \"Content-Type: $_postContentType\" "
     fi
     _debug "_CURL" "$_CURL"
     if [ "$needbase64" ]; then
@@ -1634,15 +1649,31 @@ _post() {
     _debug "_WGET" "$_WGET"
     if [ "$needbase64" ]; then
       if [ "$httpmethod" = "POST" ]; then
-        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+        if [ "$_postContentType" ]; then
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+        else
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+        fi
       else
-        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+        if [ "$_postContentType" ]; then
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+        else
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+        fi
       fi
     else
       if [ "$httpmethod" = "POST" ]; then
-        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+        if [ "$_postContentType" ]; then
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+        else
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+        fi
       else
-        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+        if [ "$_postContentType" ]; then
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+        else
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+        fi
       fi
     fi
     _ret="$?"
@@ -1765,7 +1796,7 @@ _send_signed_request() {
       if [ "$ACME_NEW_NONCE" ]; then
         _debug2 "Get nonce. ACME_NEW_NONCE" "$ACME_NEW_NONCE"
         nonceurl="$ACME_NEW_NONCE"
-        if _post "" "$nonceurl" "" "HEAD"; then
+        if _post "" "$nonceurl" "" "HEAD" "$CONTENT_TYPE_JSON"; then
           _headers="$(cat "$HTTP_HEADER")"
         fi
       fi
@@ -1820,7 +1851,7 @@ _send_signed_request() {
     fi
     _debug3 body "$body"
 
-    response="$(_post "$body" "$url" "$needbase64")"
+    response="$(_post "$body" "$url" "$needbase64" "POST" "$CONTENT_TYPE_JSON")"
     _CACHED_NONCE=""
 
     if [ "$?" != "0" ]; then
@@ -1841,7 +1872,7 @@ _send_signed_request() {
 
     _body="$response"
     if [ "$needbase64" ]; then
-      _body="$(echo "$_body" | _dbase64)"
+      _body="$(echo "$_body" | _dbase64 | tr -d '\0')"
       _debug3 _body "$_body"
     fi
 
@@ -4068,6 +4099,13 @@ $_authorizations_map"
   _debug "Le_LinkCert" "$Le_LinkCert"
   _savedomainconf "Le_LinkCert" "$Le_LinkCert"
 
+  if [ -z "$Le_LinkCert" ] || ! _checkcert "$CERT_PATH"; then
+    response="$(echo "$response" | _dbase64 "multiline" | tr -d '\0' | _normalizeJson)"
+    _err "Sign failed: $(echo "$response" | _egrep_o '"detail":"[^"]*"')"
+    _on_issue_err "$_post_hook"
+    return 1
+  fi
+
   if [ "$Le_LinkCert" ]; then
     _info "$(__green "Cert success.")"
     cat "$CERT_PATH"
@@ -4078,21 +4116,10 @@ $_authorizations_map"
       _info "Your cert key is in $(__green " $CERT_KEY_PATH ")"
     fi
 
-    if [ "$ACME_VERSION" != "2" ]; then
-      cp "$CERT_PATH" "$CERT_FULLCHAIN_PATH"
-    fi
-
     if [ ! "$USER_PATH" ] || [ ! "$IN_CRON" ]; then
       USER_PATH="$PATH"
       _saveaccountconf "USER_PATH" "$USER_PATH"
     fi
-  fi
-
-  if [ -z "$Le_LinkCert" ]; then
-    response="$(echo "$response" | _dbase64 "multiline" | _normalizeJson)"
-    _err "Sign failed: $(echo "$response" | _egrep_o '"detail":"[^"]*"')"
-    _on_issue_err "$_post_hook"
-    return 1
   fi
 
   _cleardomainconf "Le_Vlist"
@@ -4100,6 +4127,7 @@ $_authorizations_map"
   if [ "$ACME_VERSION" = "2" ]; then
     _debug "v2 chain."
   else
+    cp "$CERT_PATH" "$CERT_FULLCHAIN_PATH"
     Le_LinkIssuer=$(grep -i '^Link' "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2 | cut -d ';' -f 1 | tr -d '<>')
 
     if [ "$Le_LinkIssuer" ]; then
@@ -4123,6 +4151,10 @@ $_authorizations_map"
             echo "$BEGIN_CERT" >"$CA_CERT_PATH"
             _base64 "multiline" <"$CA_CERT_PATH.der" >>"$CA_CERT_PATH"
             echo "$END_CERT" >>"$CA_CERT_PATH"
+            if !_checkcert "$CA_CERT_PATH"; then
+              _err "Can not get the ca cert."
+              break
+            fi
             cat "$CA_CERT_PATH" >>"$CERT_FULLCHAIN_PATH"
             rm -f "$CA_CERT_PATH.der"
             break
@@ -5367,7 +5399,6 @@ Parameters:
   --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
   --stateless                       Use stateless mode, see: $_STATELESS_WIKI
-  --tls                             Use standalone tls mode.
   --apache                          Use apache mode.
   --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
   --dnssleep  [$DEFAULT_DNS_SLEEP]                  The time in seconds to wait for all the txt records to take effect in dns api mode. Default $DEFAULT_DNS_SLEEP seconds.
@@ -5397,7 +5428,6 @@ Parameters:
   --accountkey                      Specifies the account key path, Only valid for the '--install' command.
   --days                            Specifies the days to renew the cert when using '--issue' command. The max value is $MAX_RENEW days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
-  --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --local-address                   Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
   --listraw                         Only used for '--list' command, list the certs in raw format.
   --stopRenewOnError, -se           Only valid for '--renew-all' command. Stop if one cert has error in renewal.
@@ -5748,14 +5778,6 @@ _process() {
           _webroot="$_webroot,$wvalue"
         fi
         ;;
-      --tls)
-        wvalue="$W_TLS"
-        if [ -z "$_webroot" ]; then
-          _webroot="$wvalue"
-        else
-          _webroot="$_webroot,$wvalue"
-        fi
-        ;;
       --dns)
         wvalue="dns"
         if [ "$2" ] && ! _startswith "$2" "-"; then
@@ -5851,12 +5873,6 @@ _process() {
         Le_HTTPPort="$_httpport"
         shift
         ;;
-      --tlsport)
-        _tlsport="$2"
-        Le_TLSPort="$_tlsport"
-        shift
-        ;;
-
       --listraw)
         _listraw="raw"
         ;;
