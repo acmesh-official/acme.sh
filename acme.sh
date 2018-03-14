@@ -4151,7 +4151,7 @@ $_authorizations_map"
             echo "$BEGIN_CERT" >"$CA_CERT_PATH"
             _base64 "multiline" <"$CA_CERT_PATH.der" >>"$CA_CERT_PATH"
             echo "$END_CERT" >>"$CA_CERT_PATH"
-            if !_checkcert "$CA_CERT_PATH"; then
+            if ! _checkcert "$CA_CERT_PATH"; then
               _err "Can not get the ca cert."
               break
             fi
