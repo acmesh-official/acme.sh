@@ -3592,6 +3592,8 @@ issue() {
         _debug2 "_authz_url" "$_authz_url"
         if ! response="$(_get "$_authz_url")"; then
           _err "get to authz error."
+          _err "_authorizations_seg" "$_authorizations_seg"
+          _err "_authz_url" "$_authz_url"
           _clearup
           _on_issue_err "$_post_hook"
           return 1
@@ -3642,6 +3644,7 @@ $_authorizations_map"
         _debug2 "response" "$response"
         if [ -z "$response" ]; then
           _err "get to authz error."
+          _err "_authorizations_map" "$_authorizations_map"
           _clearup
           _on_issue_err "$_post_hook"
           return 1
@@ -4873,6 +4876,8 @@ _deactivate() {
     _debug2 "authzUri" "$authzUri"
     if ! response="$(_get "$authzUri")"; then
       _err "get to authz error."
+      _err "_authorizations_seg" "$_authorizations_seg"
+      _err "authzUri" "$authzUri"
       _clearup
       _on_issue_err "$_post_hook"
       return 1
