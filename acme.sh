@@ -3557,7 +3557,7 @@ issue() {
       _identifiers="{\"type\":\"dns\",\"value\":\"$_main_domain\"}"
       while true; do
         _w_index=1
-        d="$(echo "$$_alt_domains" | cut -d , -f "$_w_index")"
+        d="$(echo "$_alt_domains," | cut -d , -f "$_w_index")"
         _w_index="$(_math "$_w_index" + 1)"
         _debug d "$d"
         if [ -z "$d" ]; then
