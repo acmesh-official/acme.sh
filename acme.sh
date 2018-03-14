@@ -2341,7 +2341,7 @@ _initpath() {
     fi
   fi
 
-  _debug2 ACME_DIRECTORY "$ACME_DIRECTORY"
+  _debug ACME_DIRECTORY "$ACME_DIRECTORY"
   _ACME_SERVER_HOST="$(echo "$ACME_DIRECTORY" | cut -d : -f 2 | tr -s / | cut -d / -f 2)"
   _debug2 "_ACME_SERVER_HOST" "$_ACME_SERVER_HOST"
 
