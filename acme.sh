@@ -3019,11 +3019,17 @@ _on_before_issue() {
 
   _debug Le_LocalAddress "$_chk_local_addr"
 
-  alldomains=$(echo "$_chk_main_domain,$_chk_alt_domains" | tr ',' ' ')
   _index=1
   _currentRoot=""
   _addrIndex=1
-  for d in $alldomains; do
+  while true; do
+    _w_index=1
+    d="$(echo "$_chk_main_domain,$_chk_alt_domains," | cut -d , -f "$_w_index")"
+    _w_index="$(_math "$_w_index" + 1)"
+    _debug d "$d"
+    if [ -z "$d" ]; then
+      break
+    fi
     _debug "Check for domain" "$d"
     _currentRoot="$(_getfield "$_chk_web_roots" $_index)"
     _debug "_currentRoot" "$_currentRoot"
