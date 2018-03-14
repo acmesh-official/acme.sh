@@ -3422,6 +3422,9 @@ issue() {
     _main_domain=$(echo "$2,$3" | cut -d , -f 1)
     _alt_domains=$(echo "$2,$3" | cut -d , -f 2- | sed "s/,${NO_VALUE}$//")
   fi
+  _debug _main_domain "$_main_domain"
+  _debug _alt_domains "$_alt_domains"
+
   _key_length="$4"
   _real_cert="$5"
   _real_key="$6"
@@ -3552,10 +3555,15 @@ issue() {
     if [ "$ACME_VERSION" = "2" ]; then
       #make new order request
       _identifiers="{\"type\":\"dns\",\"value\":\"$_main_domain\"}"
-      for d in $(echo "$_alt_domains" | tr ',' ' '); do
-        if [ "$d" ]; then
-          _identifiers="$_identifiers,{\"type\":\"dns\",\"value\":\"$d\"}"
+      while true; do
+        _w_index=1
+        d="$(echo "$$_alt_domains" | cut -d , -f "$_w_index")"
+        _w_index="$(_math "$_w_index" + 1)"
+        _debug d "$d"
+        if [ -z "$d" ]; then
+          break
         fi
+        _identifiers="$_identifiers,{\"type\":\"dns\",\"value\":\"$d\"}"
       done
       _debug2 _identifiers "$_identifiers"
       if ! _send_signed_request "$ACME_NEW_ORDER" "{\"identifiers\": [$_identifiers]}"; then
