@@ -793,8 +793,9 @@ _sed_i() {
 }
 
 _egrep_o() {
-  if ! egrep -o "$1" 2>/dev/null; then
-    sed -n 's/.*\('"$1"'\).*/\1/p'
+  stdin=$(cat)
+  if ! echo "$stdin" | egrep -o "$1" 2>/dev/null; then
+    echo "$stdin" | sed -n 's/.*\('"$1"'\).*/\1/p'
   fi
 }
 
