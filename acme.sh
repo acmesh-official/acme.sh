@@ -4078,7 +4078,9 @@ $_authorizations_map"
       _info "Your cert key is in $(__green " $CERT_KEY_PATH ")"
     fi
 
-    cp "$CERT_PATH" "$CERT_FULLCHAIN_PATH"
+    if [ "$ACME_VERSION" != "2" ]; then
+      cp "$CERT_PATH" "$CERT_FULLCHAIN_PATH"
+    fi
 
     if [ ! "$USER_PATH" ] || [ ! "$IN_CRON" ]; then
       USER_PATH="$PATH"
