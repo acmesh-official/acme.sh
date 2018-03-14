@@ -27,8 +27,8 @@ dns_rackspace_add() {
   fi
 
   #save the username and api key to the account conf file.
-  _saveaccountconf_mutable CF_Key "$RACKSPACE_Username"
-  _saveaccountconf_mutable CF_Email "$RACKSPACE_Apikey"
+  _saveaccountconf_mutable RACKSPACE_Username "$RACKSPACE_Username"
+  _saveaccountconf_mutable RACKSPACE_Apikey "$RACKSPACE_Apikey"
 
   if [ -z "$RACKSPACE_Token" ]; then
     _info "Getting authorization token."
