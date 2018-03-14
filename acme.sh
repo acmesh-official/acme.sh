@@ -2999,6 +2999,8 @@ _on_before_issue() {
   _chk_pre_hook="$4"
   _chk_local_addr="$5"
   _debug _on_before_issue
+  _debug _chk_main_domain "$_chk_main_domain"
+  _debug _chk_alt_domains "$_chk_alt_domains"
   #run pre hook
   if [ "$_chk_pre_hook" ]; then
     _info "Run pre hook:'$_chk_pre_hook'"
@@ -3022,8 +3024,8 @@ _on_before_issue() {
   _index=1
   _currentRoot=""
   _addrIndex=1
+  _w_index=1
   while true; do
-    _w_index=1
     d="$(echo "$_chk_main_domain,$_chk_alt_domains," | cut -d , -f "$_w_index")"
     _w_index="$(_math "$_w_index" + 1)"
     _debug d "$d"
@@ -3561,8 +3563,8 @@ issue() {
     if [ "$ACME_VERSION" = "2" ]; then
       #make new order request
       _identifiers="{\"type\":\"dns\",\"value\":\"$_main_domain\"}"
+      _w_index=1
       while true; do
-        _w_index=1
         d="$(echo "$_alt_domains," | cut -d , -f "$_w_index")"
         _w_index="$(_math "$_w_index" + 1)"
         _debug d "$d"
@@ -3628,8 +3630,8 @@ $_authorizations_map"
 
     _index=0
     _currentRoot=""
+    _w_index=1
     while true; do
-      _w_index=1
       d="$(echo "$_main_domain,$_alt_domains," | cut -d , -f "$_w_index")"
       _w_index="$(_math "$_w_index" + 1)"
       _debug d "$d"
