@@ -1826,6 +1826,17 @@ _send_signed_request() {
       if [ "$url" = "$ACME_NEW_ACCOUNT" ] || [ "$url" = "$ACME_REVOKE_CERT" ]; then
         protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"jwk\": $jwk"'}'
       else
+        if [ -z "${ACCOUNT_URL}" ]; then
+          _info "Re-reading ACCOUNT_URL"
+          _debug2 "ACCOUNT_URL was empty!"
+          _accUri=$(_readcaconf "ACCOUNT_URL")
+          export ACCOUNT_URL="${_accUri}"
+          _debug2 ACCOUNT_URL "${ACCOUNT_URL}"
+          if [ -z "${ACCOUNT_URL}" ]; then
+            _err "Cannot locate account URL."
+            return 1
+          fi
+        fi
         protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"kid\": \"${ACCOUNT_URL}\""'}'
       fi
     else
