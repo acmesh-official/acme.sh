@@ -3620,10 +3620,16 @@ $_authorizations_map"
       _debug2 _authorizations_map "$_authorizations_map"
     fi
 
-    alldomains=$(echo "$_main_domain,$_alt_domains" | tr ',' ' ')
     _index=0
     _currentRoot=""
-    for d in $alldomains; do
+    while true; do
+      _w_index=1
+      d="$(echo "$_main_domain,$_alt_domains," | cut -d , -f "$_w_index")"
+      _w_index="$(_math "$_w_index" + 1)"
+      _debug d "$d"
+      if [ -z "$d" ]; then
+        break
+      fi
       _info "Getting webroot for domain" "$d"
       _index=$(_math $_index + 1)
       _w="$(echo $_web_roots | cut -d , -f $_index)"
