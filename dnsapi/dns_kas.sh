@@ -20,14 +20,14 @@ KAS_Api="https://kasapi.kasserver.com/dokumentation/formular.php"
 ########  Public functions #####################
 
 dns_kas_add() {
-  _full_domain=$1
-  _txt_value=$2
+  _fulldomain=$1
+  _txtvalue=$2
   _info "Using DNS-01 All-inkl/Kasserver hook"
-  _info "Adding or Updating $_full_domain DNS TXT entry on All-inkl/Kasserver"
+  _info "Adding or Updating $_fulldomain DNS TXT entry on All-inkl/Kasserver"
 
   _check_and_save
-  _get_zone "$_full_domain"
-  _get_record_name "$_full_domain"
+  _get_zone "$_fulldomain"
+  _get_record_name "$_fulldomain"
   _get_record_id
 
   _info "Creating TXT DNS record"
@@ -39,7 +39,7 @@ dns_kas_add() {
   params="$params&var2=record_type"
   params="$params&wert2=TXT"
   params="$params&var3=record_data"
-  params="$params&wert3=$_txt_value"
+  params="$params&wert3=$_txtvalue"
   params="$params&var4=record_aux"
   params="$params&wert4=0"
   params="$params&kas_action=add_dns_settings"
@@ -57,15 +57,15 @@ dns_kas_add() {
 }
 
 dns_kas_rm() {
-  _full_domain=$1
-  _txt_value=$2
+  _fulldomain=$1
+  _txtvalue=$2
   _info "Using DNS-01 All-inkl/Kasserver hook"
   _info "Cleaning up after All-inkl/Kasserver hook"
-  _info "Removing $_full_domain DNS TXT entry on All-inkl/Kasserver"
+  _info "Removing $_fulldomain DNS TXT entry on All-inkl/Kasserver"
 
   _check_and_save
-  _get_zone "$_full_domain"
-  _get_record_name "$_full_domain"
+  _get_zone "$_fulldomain"
+  _get_record_name "$_fulldomain"
   _get_record_id
 
   # If there is a record_id, delete the entry
@@ -86,7 +86,6 @@ dns_kas_rm() {
     _err "No record_id found that can be deleted. Please check manually."
     return 1
   fi
-
  return 0
 }
 
@@ -120,7 +119,7 @@ _get_zone() {
 }
 
 # Removes the domain/subdomain from the entry since kasserver
-# cannot handle _full_domain
+# cannot handle _fulldomain
 # TODO Get a list of all possible root zones and compare (Currently not possible via provider)
 # See: https://github.com/Neilpang/acme.sh/wiki/DNS-API-Dev-Guide
 _get_record_name() {
@@ -141,7 +140,12 @@ _get_record_id() {
   _debug2 "response" "$response"
 
   _record_id="$(echo "$response" | grep -A 4  "$_record_name" | grep "record_id" | cut -f2 -d">" | xargs)"
+  echo "###########################"
+  echo "$_record_name"
+  echo "$_record_id"
+  echo "###########################"
+  echo "$response"
+  echo "###########################"
   _debug2 _record_id "$_record_id"
-
   return 0
 }
