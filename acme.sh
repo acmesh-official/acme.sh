@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.7.7
+VER=2.7.8
 
 PROJECT_NAME="acme.sh"
 
@@ -47,6 +47,7 @@ DEFAULT_DNS_SLEEP=120
 NO_VALUE="no"
 
 W_TLS="tls"
+W_DNS="dns"
 DNS_ALIAS_PREFIX="="
 
 MODE_STATELESS="stateless"
@@ -2341,7 +2342,7 @@ _initpath() {
     fi
   fi
 
-  _debug2 ACME_DIRECTORY "$ACME_DIRECTORY"
+  _debug ACME_DIRECTORY "$ACME_DIRECTORY"
   _ACME_SERVER_HOST="$(echo "$ACME_DIRECTORY" | cut -d : -f 2 | tr -s / | cut -d / -f 2)"
   _debug2 "_ACME_SERVER_HOST" "$_ACME_SERVER_HOST"
 
@@ -2998,6 +2999,8 @@ _on_before_issue() {
   _chk_pre_hook="$4"
   _chk_local_addr="$5"
   _debug _on_before_issue
+  _debug _chk_main_domain "$_chk_main_domain"
+  _debug _chk_alt_domains "$_chk_alt_domains"
   #run pre hook
   if [ "$_chk_pre_hook" ]; then
     _info "Run pre hook:'$_chk_pre_hook'"
@@ -3018,11 +3021,17 @@ _on_before_issue() {
 
   _debug Le_LocalAddress "$_chk_local_addr"
 
-  alldomains=$(echo "$_chk_main_domain,$_chk_alt_domains" | tr ',' ' ')
   _index=1
   _currentRoot=""
   _addrIndex=1
-  for d in $alldomains; do
+  _w_index=1
+  while true; do
+    d="$(echo "$_chk_main_domain,$_chk_alt_domains," | cut -d , -f "$_w_index")"
+    _w_index="$(_math "$_w_index" + 1)"
+    _debug d "$d"
+    if [ -z "$d" ]; then
+      break
+    fi
     _debug "Check for domain" "$d"
     _currentRoot="$(_getfield "$_chk_web_roots" $_index)"
     _debug "_currentRoot" "$_currentRoot"
@@ -3118,7 +3127,7 @@ _on_issue_err() {
     )
   fi
 
-  if [ "$IS_RENEW" = "1" ] && _hasfield "$Le_Webroot" "dns"; then
+  if [ "$IS_RENEW" = "1" ] && _hasfield "$Le_Webroot" "$W_DNS"; then
     _err "$_DNS_MANUAL_ERR"
   fi
 
@@ -3154,7 +3163,7 @@ _on_issue_success() {
     fi
   fi
 
-  if _hasfield "$Le_Webroot" "dns"; then
+  if _hasfield "$Le_Webroot" "$W_DNS"; then
     _err "$_DNS_MANUAL_WARN"
   fi
 
@@ -3421,6 +3430,9 @@ issue() {
     _main_domain=$(echo "$2,$3" | cut -d , -f 1)
     _alt_domains=$(echo "$2,$3" | cut -d , -f 2- | sed "s/,${NO_VALUE}$//")
   fi
+  _debug _main_domain "$_main_domain"
+  _debug _alt_domains "$_alt_domains"
+
   _key_length="$4"
   _real_cert="$5"
   _real_key="$6"
@@ -3551,10 +3563,15 @@ issue() {
     if [ "$ACME_VERSION" = "2" ]; then
       #make new order request
       _identifiers="{\"type\":\"dns\",\"value\":\"$_main_domain\"}"
-      for d in $(echo "$_alt_domains" | tr ',' ' '); do
-        if [ "$d" ]; then
-          _identifiers="$_identifiers,{\"type\":\"dns\",\"value\":\"$d\"}"
+      _w_index=1
+      while true; do
+        d="$(echo "$_alt_domains," | cut -d , -f "$_w_index")"
+        _w_index="$(_math "$_w_index" + 1)"
+        _debug d "$d"
+        if [ -z "$d" ]; then
+          break
         fi
+        _identifiers="$_identifiers,{\"type\":\"dns\",\"value\":\"$d\"}"
       done
       _debug2 _identifiers "$_identifiers"
       if ! _send_signed_request "$ACME_NEW_ORDER" "{\"identifiers\": [$_identifiers]}"; then
@@ -3591,6 +3608,8 @@ issue() {
         _debug2 "_authz_url" "$_authz_url"
         if ! response="$(_get "$_authz_url")"; then
           _err "get to authz error."
+          _err "_authorizations_seg" "$_authorizations_seg"
+          _err "_authz_url" "$_authz_url"
           _clearup
           _on_issue_err "$_post_hook"
           return 1
@@ -3609,10 +3628,16 @@ $_authorizations_map"
       _debug2 _authorizations_map "$_authorizations_map"
     fi
 
-    alldomains=$(echo "$_main_domain,$_alt_domains" | tr ',' ' ')
     _index=0
     _currentRoot=""
-    for d in $alldomains; do
+    _w_index=1
+    while true; do
+      d="$(echo "$_main_domain,$_alt_domains," | cut -d , -f "$_w_index")"
+      _w_index="$(_math "$_w_index" + 1)"
+      _debug d "$d"
+      if [ -z "$d" ]; then
+        break
+      fi
       _info "Getting webroot for domain" "$d"
       _index=$(_math $_index + 1)
       _w="$(echo $_web_roots | cut -d , -f $_index)"
@@ -3624,7 +3649,7 @@ $_authorizations_map"
 
       vtype="$VTYPE_HTTP"
       #todo, v2 wildcard force to use dns
-      if _startswith "$_currentRoot" "dns"; then
+      if _startswith "$_currentRoot" "$W_DNS"; then
         vtype="$VTYPE_DNS"
       fi
 
@@ -3641,6 +3666,7 @@ $_authorizations_map"
         _debug2 "response" "$response"
         if [ -z "$response" ]; then
           _err "get to authz error."
+          _err "_authorizations_map" "$_authorizations_map"
           _clearup
           _on_issue_err "$_post_hook"
           return 1
@@ -3751,6 +3777,10 @@ $_authorizations_map"
         if [ "$d_api" ]; then
           _info "Found domain api file: $d_api"
         else
+          if [ "$_currentRoot" != "$W_DNS" ]; then
+            _err "Can not find dns api hook for: $_currentRoot"
+            _info "You need to add the txt record manually."
+          fi
           _info "$(__red "Add the following TXT record:")"
           _info "$(__red "Domain: '$(__green "$txtdomain")'")"
           _info "$(__red "TXT value: '$(__green "$txt")'")"
@@ -3789,7 +3819,7 @@ $_authorizations_map"
     if [ "$dnsadded" = '0' ]; then
       _savedomainconf "Le_Vlist" "$vlist"
       _debug "Dns record not added yet, so, save to $DOMAIN_CONF and exit."
-      _err "Please add the TXT records to the domains, and retry again."
+      _err "Please add the TXT records to the domains, and re-run with --renew."
       _clearup
       _on_issue_err "$_post_hook"
       return 1
@@ -4151,7 +4181,7 @@ $_authorizations_map"
             echo "$BEGIN_CERT" >"$CA_CERT_PATH"
             _base64 "multiline" <"$CA_CERT_PATH.der" >>"$CA_CERT_PATH"
             echo "$END_CERT" >>"$CA_CERT_PATH"
-            if !_checkcert "$CA_CERT_PATH"; then
+            if ! _checkcert "$CA_CERT_PATH"; then
               _err "Can not get the ca cert."
               break
             fi
@@ -4264,7 +4294,7 @@ renew() {
   fi
 
   . "$DOMAIN_CONF"
-
+  _debug Le_API "$Le_API"
   if [ "$Le_API" ]; then
     if [ "$_OLD_CA_HOST" = "$Le_API" ]; then
       export Le_API="$DEFAULT_CA"
@@ -4868,6 +4898,8 @@ _deactivate() {
     _debug2 "authzUri" "$authzUri"
     if ! response="$(_get "$authzUri")"; then
       _err "get to authz error."
+      _err "_authorizations_seg" "$_authorizations_seg"
+      _err "authzUri" "$authzUri"
       _clearup
       _on_issue_err "$_post_hook"
       return 1
@@ -5399,7 +5431,6 @@ Parameters:
   --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
   --stateless                       Use stateless mode, see: $_STATELESS_WIKI
-  --tls                             Use standalone tls mode.
   --apache                          Use apache mode.
   --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
   --dnssleep  [$DEFAULT_DNS_SLEEP]                  The time in seconds to wait for all the txt records to take effect in dns api mode. Default $DEFAULT_DNS_SLEEP seconds.
@@ -5429,7 +5460,6 @@ Parameters:
   --accountkey                      Specifies the account key path, Only valid for the '--install' command.
   --days                            Specifies the days to renew the cert when using '--issue' command. The max value is $MAX_RENEW days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
-  --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --local-address                   Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
   --listraw                         Only used for '--list' command, list the certs in raw format.
   --stopRenewOnError, -se           Only valid for '--renew-all' command. Stop if one cert has error in renewal.
@@ -5780,16 +5810,8 @@ _process() {
           _webroot="$_webroot,$wvalue"
         fi
         ;;
-      --tls)
-        wvalue="$W_TLS"
-        if [ -z "$_webroot" ]; then
-          _webroot="$wvalue"
-        else
-          _webroot="$_webroot,$wvalue"
-        fi
-        ;;
       --dns)
-        wvalue="dns"
+        wvalue="$W_DNS"
         if [ "$2" ] && ! _startswith "$2" "-"; then
           wvalue="$2"
           shift
@@ -5883,12 +5905,6 @@ _process() {
         Le_HTTPPort="$_httpport"
         shift
         ;;
-      --tlsport)
-        _tlsport="$2"
-        Le_TLSPort="$_tlsport"
-        shift
-        ;;
-
       --listraw)
         _listraw="raw"
         ;;

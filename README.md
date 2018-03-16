@@ -37,6 +37,8 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 - [splynx](https://forum.splynx.com/t/free-ssl-cert-for-splynx-lets-encrypt/297)
 - [archlinux](https://aur.archlinux.org/packages/acme.sh-git/)
 - [opnsense.org](https://github.com/opnsense/plugins/tree/master/security/acme-client/src/opnsense/scripts/OPNsense/AcmeClient)
+- [CentOS Web Panel](http://centos-webpanel.com/)
+- [lnmp.org](https://lnmp.org/)
 - [more...](https://github.com/Neilpang/acme.sh/wiki/Blogs-and-tutorials)
 
 # Tested OS
@@ -220,22 +222,7 @@ acme.sh --issue --standalone -d example.com -d www.example.com -d cp.example.com
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
 
-# 5. Use Standalone TLS server to issue cert
-
-**(requires you to be root/sudoer or have permission to listen on port 443 (TCP))**
-
-acme.sh supports `tls-sni-01` validation.
-
-Port `443` (TCP) **MUST** be free to listen on, otherwise you will be prompted to free it and try again.
-
-```bash
-acme.sh --issue --tls -d example.com -d www.example.com -d cp.example.com
-```
-
-More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
-
-
-# 6. Use Apache mode
+# 5. Use Apache mode
 
 **(requires you to be root/sudoer, since it is required to interact with Apache server)**
 
@@ -255,7 +242,7 @@ We don't want to mess your apache server, don't worry.**
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
-# 7. Use Nginx mode
+# 6. Use Nginx mode
 
 **(requires you to be root/sudoer, since it is required to interact with Nginx server)**
 
@@ -279,7 +266,7 @@ We don't want to mess your nginx server, don't worry.**
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
-# 8. Automatic DNS API integration
+# 7. Automatic DNS API integration
 
 If your DNS provider supports API access, we can use that API to automatically issue the certs.
 
@@ -343,7 +330,7 @@ If your DNS provider is not on the supported list above, you can write your own 
 
 For more details: [How to use DNS API](dnsapi)
 
-# 9. Use DNS manual mode:
+# 8. Use DNS manual mode:
 
 If your dns provider doesn't support any api access, you can add the txt record by your hand.
 
@@ -377,7 +364,7 @@ Ok, it's done.
 
 **Please use dns api mode instead.**
 
-# 10. Issue ECC certificates
+# 9. Issue ECC certificates
 
 `Let's Encrypt` can now issue **ECDSA** certificates.
 
@@ -409,7 +396,7 @@ Valid values are:
 
 
 
-# 11. Issue Wildcard certificates
+# 10. Issue Wildcard certificates
 
 It's simple, just give a wildcard domain as the `-d` parameter.
 
@@ -419,7 +406,7 @@ acme.sh  --issue -d example.com  -d *.example.com  --dns dns_cf
 
 
 
-# 12. How to renew the certs
+# 11. How to renew the certs
 
 No, you don't need to renew the certs manually. All the certs will be renewed automatically every **60** days.
 
@@ -436,7 +423,7 @@ acme.sh --renew -d example.com --force --ecc
 ```
 
 
-# 13. How to stop cert renewal
+# 12. How to stop cert renewal
 
 To stop renewal of a cert, you can execute the following to remove the cert from the renewal list:
 
@@ -449,7 +436,7 @@ The cert/key file is not removed from the disk.
 You can remove the respective directory (e.g. `~/.acme.sh/example.com`) by yourself.
 
 
-# 14. How to upgrade `acme.sh`
+# 13. How to upgrade `acme.sh`
 
 acme.sh is in constant development, so it's strongly recommended to use the latest code.
 
@@ -474,25 +461,25 @@ acme.sh --upgrade --auto-upgrade 0
 ```
 
 
-# 15. Issue a cert from an existing CSR
+# 14. Issue a cert from an existing CSR
 
 https://github.com/Neilpang/acme.sh/wiki/Issue-a-cert-from-existing-CSR
 
 
-# 16. Under the Hood
+# 15. Under the Hood
 
 Speak ACME language using shell, directly to "Let's Encrypt".
 
 TODO:
 
 
-# 17. Acknowledgments
+# 16. Acknowledgments
 
 1. Acme-tiny: https://github.com/diafygi/acme-tiny
 2. ACME protocol: https://github.com/ietf-wg-acme/acme
 
 
-# 18. License & Others
+# 17. License & Others
 
 License is GPLv3
 
@@ -501,7 +488,7 @@ Please Star and Fork me.
 [Issues](https://github.com/Neilpang/acme.sh/issues) and [pull requests](https://github.com/Neilpang/acme.sh/pulls) are welcome.
 
 
-# 19. Donate
+# 18. Donate
 Your donation makes **acme.sh** better:
 
 1. PayPal/Alipay(支付宝)/Wechat(微信): [https://donate.acme.sh/](https://donate.acme.sh/)
