@@ -116,6 +116,7 @@ _check_and_save() {
 # See: https://github.com/Neilpang/acme.sh/wiki/DNS-API-Dev-Guide
 _get_zone() {
   _zone=$(echo "$1" | rev | cut -d . -f1-2 | rev).
+  return 0
 }
 
 # Removes the domain/subdomain from the entry since kasserver
@@ -124,6 +125,7 @@ _get_zone() {
 # See: https://github.com/Neilpang/acme.sh/wiki/DNS-API-Dev-Guide
 _get_record_name() {
   _record_name=$(echo "$1" | rev | cut -d"." -f3- | rev)
+  return 0
 }
 
 # Retrieve the DNS record ID
