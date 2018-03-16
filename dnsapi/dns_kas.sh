@@ -30,6 +30,7 @@ dns_kas_add() {
   _get_record_name "$_full_domain"
   _get_record_id
 
+  _info "Creating TXT DNS record"
   params="?kas_login=$KAS_Login"
   params="$params&kas_auth_type=$KAS_Authtype"
   params="$params&kas_auth_data=$KAS_Authdata"
@@ -41,18 +42,9 @@ dns_kas_add() {
   params="$params&wert3=$_txt_value"
   params="$params&var4=record_aux"
   params="$params&wert4=0"
-  # If there is no record_id create the record
-  if [ -z "$_record_id" ]; then
-    _info "Creating TXT DNS record"
-    params="$params&kas_action=add_dns_settings"
-    params="$params&var5=zone_host"
-    params="$params&wert5=$_zone"
-  else # Update the existing record
-    _info "Updating existing TXT DNS record"
-    params="$params&kas_action=update_dns_settings"
-    params="$params&var5=record_id"
-    params="$params&wert5=$_record_id"
-  fi
+  params="$params&kas_action=add_dns_settings"
+  params="$params&var5=zone_host"
+  params="$params&wert5=$_zone"
 
   response="$(_get "$KAS_Api$params")"
   _debug2 "response" "$response"
