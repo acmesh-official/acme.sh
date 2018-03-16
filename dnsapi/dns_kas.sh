@@ -140,12 +140,6 @@ _get_record_id() {
   _debug2 "response" "$response"
 
   _record_id="$(echo "$response" | grep -A 4  "$_record_name" | grep "record_id" | cut -f2 -d">" | xargs)"
-  echo "###########################"
-  echo "$_record_name"
-  echo "$_record_id"
-  echo "###########################"
-  echo "$response"
-  echo "###########################"
   _debug2 _record_id "$_record_id"
   return 0
 }
