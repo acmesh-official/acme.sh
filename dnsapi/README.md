@@ -784,6 +784,27 @@ acme.sh --issue --dns dns_da -d example.com -d www.example.com
 
 The `DA_Api` and `DA_Api_Insecure` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 42. Use All-inkl Kasserver API
+
+All-inkl Kasserver API (https://kasapi.kasserver.com/dokumentation) needs you to set your Login credentials like so:
+
+```
+export KAS_Login="yourusername"
+export KAS_Authtype="sha1"
+export KAS_Authdata="password"
+```
+
+Note: Please for now always set the `KAS_Authtype` always simply to `sha1`.
+
+Then you can issue your certificate:
+
+```
+acme.sh --issue --dns dns_kas -d example.com -d www.example.com
+```
+
+The `KAS_Login`, `KAS_Authtype` and `KAS_Authdata` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+Please report any issues to https://github.com/phlegx/acme.sh.
 
 # Use custom API
 
