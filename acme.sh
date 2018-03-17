@@ -5456,8 +5456,8 @@ Parameters:
   --cert-home                       Specifies the home dir to save all the certs, only valid for '--install' command.
   --config-home                     Specifies the home dir to save all the configurations.
   --useragent                       Specifies the user agent string. it will be saved for future use too.
-  --accountemail                    Specifies the account email for registering, Only valid for the '--install' command.
-  --accountkey                      Specifies the account key path, Only valid for the '--install' command.
+  --accountemail                    Specifies the account email, only valid for the '--install' and '--update-account' command.
+  --accountkey                      Specifies the account key path, only valid for the '--install' command.
   --days                            Specifies the days to renew the cert when using '--issue' command. The max value is $MAX_RENEW days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --local-address                   Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
