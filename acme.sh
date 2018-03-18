@@ -3538,7 +3538,7 @@ issue() {
   _saved_account_key_hash="$(_readcaconf "CA_KEY_HASH")"
   _debug2 _saved_account_key_hash "$_saved_account_key_hash"
 
-  if [ -z "$_saved_account_key_hash" ] || [ "$_saved_account_key_hash" != "$(__calcAccountKeyHash)" ]; then
+  if [ -z "$ACCOUNT_URL" ] || [ -z "$_saved_account_key_hash" ] || [ "$_saved_account_key_hash" != "$(__calcAccountKeyHash)" ]; then
     if ! _regAccount "$_accountkeylength"; then
       _on_issue_err "$_post_hook"
       return 1
