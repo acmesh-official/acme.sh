@@ -400,7 +400,7 @@ Valid values are:
 It's simple, just give a wildcard domain as the `-d` parameter.
 
 ```sh
-acme.sh  --issue -d example.com  -d *.example.com  --dns dns_cf
+acme.sh  --issue -d example.com  -d '*.example.com'  --dns dns_cf
 ```
 
 
