@@ -1626,14 +1626,19 @@ _post() {
     if [ "$HTTPS_INSECURE" ]; then
       _CURL="$_CURL --insecure  "
     fi
-    if [ "$_postContentType" ]; then
-      _CURL="$_CURL -H \"Content-Type: $_postContentType\" "
-    fi
     _debug "_CURL" "$_CURL"
     if [ "$needbase64" ]; then
-      response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+      if [ "$_postContentType" ]; then
+        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+      else
+        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+      fi
     else
-      response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+      if [ "$_postContentType" ]; then
+        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+      else
+        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+      fi
     fi
     _ret="$?"
     if [ "$_ret" != "0" ]; then
