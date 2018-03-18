@@ -119,7 +119,7 @@ _get_root() {
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(echo "$domain" | cut -d . -f $i-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -187,7 +187,7 @@ _loopia_update_record() {
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
 
-  if ! printf "%s" "$response" | grep "OK" >/dev/null; then
+  if ! echo "$response" | grep "OK" >/dev/null; then
     _err "Error"
     return 1
   fi
@@ -219,7 +219,7 @@ _loopia_add_record() {
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
 
-  if ! printf "%s" "$response" | grep "OK" >/dev/null; then
+  if ! echo "$response" | grep "OK" >/dev/null; then
     _err "Error"
     return 1
   fi
