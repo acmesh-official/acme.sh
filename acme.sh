@@ -3250,8 +3250,13 @@ _regAccount() {
   _debug2 responseHeaders "$responseHeaders"
   _accUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
   _debug "_accUri" "$_accUri"
+  if [ -z "$_accUri" ]; then
+    _err "Can not find account id url."
+    _err "$responseHeaders"
+    return 1
+  fi
   _savecaconf "ACCOUNT_URL" "$_accUri"
-  export ACCOUNT_URL="$ACCOUNT_URL"
+  export ACCOUNT_URL="$_accUri"
 
   CA_KEY_HASH="$(__calcAccountKeyHash)"
   _debug "Calc CA_KEY_HASH" "$CA_KEY_HASH"
