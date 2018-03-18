@@ -4105,7 +4105,7 @@ $_authorizations_map"
     fi
   else
     if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"$ACME_NEW_ORDER_RES\", \"csr\": \"$der\"}" "needbase64"; then
-      _err "Sign failed."
+      _err "Sign failed. $response"
       _on_issue_err "$_post_hook"
       return 1
     fi
