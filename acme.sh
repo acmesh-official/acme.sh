@@ -4116,7 +4116,7 @@ $_authorizations_map"
       return 1
     fi
     _rcert="$response"
-    Le_LinkCert="$(grep -i '^Location.*$' "$HTTP_HEADER" | _head_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
+    Le_LinkCert="$(grep -i '^Location.*$' "$HTTP_HEADER" | _tail_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
     echo "$BEGIN_CERT" >"$CERT_PATH"
 
     #if ! _get "$Le_LinkCert" | _base64 "multiline"  >> "$CERT_PATH" ; then
