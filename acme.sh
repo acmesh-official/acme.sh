@@ -4100,13 +4100,15 @@ $_authorizations_map"
     fi
     if [ "$code" != "200" ]; then
       _err "Sign failed, code is not 200."
+      _err "$response"
       _on_issue_err "$_post_hook"
       return 1
     fi
     Le_LinkCert="$(echo "$response" | tr -d '\r\n' | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
 
     if ! _get "$Le_LinkCert" >"$CERT_PATH"; then
-      _err "Sign failed, code is not 200."
+      _err "Sign failed, can not download cert:$Le_LinkCert."
+      _err "$response"
       _on_issue_err "$_post_hook"
       return 1
     fi
