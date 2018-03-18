@@ -37,6 +37,8 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 - [splynx](https://forum.splynx.com/t/free-ssl-cert-for-splynx-lets-encrypt/297)
 - [archlinux](https://aur.archlinux.org/packages/acme.sh-git/)
 - [opnsense.org](https://github.com/opnsense/plugins/tree/master/security/acme-client/src/opnsense/scripts/OPNsense/AcmeClient)
+- [CentOS Web Panel](http://centos-webpanel.com/)
+- [lnmp.org](https://lnmp.org/)
 - [more...](https://github.com/Neilpang/acme.sh/wiki/Blogs-and-tutorials)
 
 # Tested OS
@@ -398,7 +400,7 @@ Valid values are:
 It's simple, just give a wildcard domain as the `-d` parameter.
 
 ```sh
-acme.sh  --issue -d example.com  -d *.example.com  --dns dns_cf
+acme.sh  --issue -d example.com  -d '*.example.com'  --dns dns_cf
 ```
 
 

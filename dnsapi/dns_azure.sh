@@ -99,6 +99,7 @@ dns_azure_add() {
   _azure_rest PUT "$acmeRecordURI" "$body" "$accesstoken"
   if [ "$_code" = "200" ] || [ "$_code" = '201' ]; then
     _info "validation value added"
+    return 0
   else
     _err "error adding validation value ($_code)"
     return 1
@@ -194,6 +195,7 @@ dns_azure_rm() {
       _azure_rest PUT "$acmeRecordURI" "$body" "$accesstoken"
       if [ "$_code" = "200" ] || [ "$_code" = '201' ]; then
         _info "validation value removed"
+        return 0
       else
         _err "error removing validation value ($_code)"
         return 1
@@ -226,6 +228,7 @@ _azure_rest() {
     else
       response="$(_get "$ep")"
     fi
+    _ret="$?"
     _secure_debug2 "response $response"
     _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
     _debug "http response code $_code"
@@ -236,7 +239,7 @@ _azure_rest() {
       return 1
     fi
     # See https://docs.microsoft.com/en-us/azure/architecture/best-practices/retry-service-specific#general-rest-and-retry-guidelines for retryable HTTP codes
-    if [ "$?" != "0" ] || [ -z "$_code" ] || [ "$_code" = "408" ] || [ "$_code" = "500" ] || [ "$_code" = "503" ] || [ "$_code" = "504" ]; then
+    if [ "$_ret" != "0" ] || [ -z "$_code" ] || [ "$_code" = "408" ] || [ "$_code" = "500" ] || [ "$_code" = "503" ] || [ "$_code" = "504" ]; then
       _request_retry_times="$(_math "$_request_retry_times" + 1)"
       _info "REST call error $_code retrying $ep in $_request_retry_times s"
       _sleep "$_request_retry_times"
@@ -281,6 +284,7 @@ _azure_getaccess_token() {
   body="resource=$(printf "%s" 'https://management.core.windows.net/' | _url_encode)&client_id=$(printf "%s" "$clientID" | _url_encode)&client_secret=$(printf "%s" "$clientSecret" | _url_encode)&grant_type=client_credentials"
   _secure_debug2 "data $body"
   response="$(_post "$body" "https://login.microsoftonline.com/$tenantID/oauth2/token" "" "POST")"
+  _ret="$?"
   _secure_debug2 "response $response"
   response="$(echo "$response" | _normalizeJson)"
   accesstoken=$(echo "$response" | _egrep_o "\"access_token\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
@@ -290,7 +294,7 @@ _azure_getaccess_token() {
     _err "no acccess token received. Check your Azure settings see $WIKI"
     return 1
   fi
-  if [ "$?" != "0" ]; then
+  if [ "$_ret" != "0" ]; then
     _err "error $response"
     return 1
   fi
