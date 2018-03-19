@@ -279,7 +279,7 @@ _freedns_add_txt_record() {
   domain_id="$2"
   subdomain="$3"
   value="$(printf '%s' "$4" | _url_encode)"
-  url="http://freedns.afraid.org/subdomain/save.php?step=2"
+  url="https://freedns.afraid.org/subdomain/save.php?step=2"
 
   htmlpage="$(_post "type=TXT&domain_id=$domain_id&subdomain=$subdomain&address=%22$value%22&send=Save%21" "$url")"
 
