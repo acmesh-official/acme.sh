@@ -1,7 +1,16 @@
 #!/usr/bin/env sh
 
-#KINGHOST_username="xxxx@sss.com"
-#KINGHOST_Password="sdfsdfsdfljlbjkljlkjsdfoiwje"
+############################################################
+# KingHost API support                                     #
+# http://api.kinghost.net/doc/                             #
+#                                                          #
+# Author: Felipe Keller Braz <felipebraz@kinghost.com.br>  #
+# Report Bugs here: https://github.com/kinghost/acme.sh    #
+#                                                          #
+# Values to export:                                        #
+# export KINGHOST_username="email@provider.com"            #
+# export KINGHOST_Password="xxxxxxxxxx"                    #
+############################################################
 
 KING_Api="https://api.kinghost.net/acme"
 
@@ -82,7 +91,6 @@ dns_kinghost_rm() {
 
     return 0;
 }
-
 
 ####################  Private functions below ##################################
 _kinghost_rest() {
