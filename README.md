@@ -313,6 +313,7 @@ You don't have to do anything manually!
 1. zonomi.com DNS API
 1. DreamHost.com API
 1. DirectAdmin API
+1. KingHost (https://www.kinghost.com.br/)
 
 
 And: 
