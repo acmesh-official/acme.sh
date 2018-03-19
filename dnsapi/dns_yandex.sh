@@ -50,9 +50,9 @@ _PDD_get_domain() {
   __last=0
   while [ $__last -eq 0 ]; do
     uri1="https://pddimp.yandex.ru/api2/admin/domain/domains?page=${__page}&on_page=20"
-    res1=$(_get "$uri1" | _normalizeJson)
-    #_debug "$res1"
-    __found=$(echo "$res1" | sed -n -e 's#.* "found": \([^,]*\),.*#\1#p')
+    res1="$(_get "$uri1" | _normalizeJson)"
+    _debug2 "res1" "$res1"
+    __found="$(echo "$res1" | sed -n -e 's#.* "found": \([^,]*\),.*#\1#p')"
     _debug "found: $__found results on page"
     if [ "$__found" -lt 20 ]; then
       _debug "last page: $__page"

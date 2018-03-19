@@ -90,7 +90,7 @@ set_record() {
   full=$2
   txtvalue=$3
 
-  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root." "{\"rrsets\": [{\"changetype\": \"REPLACE\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [{\"name\": \"$full.\", \"type\": \"TXT\", \"content\": \"\\\"$txtvalue\\\"\", \"disabled\": false, \"ttl\": $PDNS_Ttl}]}]}"; then
+  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"REPLACE\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [{\"name\": \"$full.\", \"type\": \"TXT\", \"content\": \"\\\"$txtvalue\\\"\", \"disabled\": false, \"ttl\": $PDNS_Ttl}]}]}"; then
     _err "Set txt record error."
     return 1
   fi
@@ -107,7 +107,7 @@ rm_record() {
   root=$1
   full=$2
 
-  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root." "{\"rrsets\": [{\"changetype\": \"DELETE\", \"name\": \"$full.\", \"type\": \"TXT\"}]}"; then
+  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"DELETE\", \"name\": \"$full.\", \"type\": \"TXT\"}]}"; then
     _err "Delete txt record error."
     return 1
   fi
@@ -122,7 +122,7 @@ rm_record() {
 notify_slaves() {
   root=$1
 
-  if ! _pdns_rest "PUT" "/api/v1/servers/$PDNS_ServerId/zones/$root./notify"; then
+  if ! _pdns_rest "PUT" "/api/v1/servers/$PDNS_ServerId/zones/$root/notify"; then
     _err "Notify slaves error."
     return 1
   fi
@@ -144,15 +144,18 @@ _get_root() {
 
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
-    if [ -z "$h" ]; then
-      return 1
-    fi
 
     if _contains "$_zones_response" "\"name\": \"$h.\""; then
-      _domain="$h"
+      _domain="$h."
+      if [ -z "$h" ]; then
+        _domain="=2E"
+      fi
       return 0
     fi
 
+    if [ -z "$h" ]; then
+      return 1
+    fi
     i=$(_math $i + 1)
   done
   _debug "$domain not found"
