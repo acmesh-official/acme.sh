@@ -8,7 +8,7 @@
 # Report Bugs here: https://github.com/kinghost/acme.sh    #
 #                                                          #
 # Values to export:                                        #
-# export KINGHOST_username="email@provider.com"            #
+# export KINGHOST_Username="email@provider.com"            #
 # export KINGHOST_Password="xxxxxxxxxx"                    #
 ############################################################
 
@@ -20,10 +20,10 @@ dns_kinghost_add() {
     fulldomain=$1
     txtvalue=$2
 
-    KINGHOST_username="${KINGHOST_username:-$(_readaccountconf_mutable KINGHOST_username)}"
+    KINGHOST_Username="${KINGHOST_Username:-$(_readaccountconf_mutable KINGHOST_Username)}"
     KINGHOST_Password="${KINGHOST_Password:-$(_readaccountconf_mutable KINGHOST_Password)}"
-    if [ -z "$KINGHOST_username" ] || [ -z "$KINGHOST_Password" ]; then
-        KINGHOST_username=""
+    if [ -z "$KINGHOST_Username" ] || [ -z "$KINGHOST_Password" ]; then
+        KINGHOST_Username=""
         KINGHOST_Password=""
         _err "You don't specify KingHost api password and email yet."
         _err "Please create you key and try again."
@@ -31,7 +31,7 @@ dns_kinghost_add() {
     fi
     
     #save the credentials to the account conf file.
-    _saveaccountconf_mutable KINGHOST_username  "$KINGHOST_username"
+    _saveaccountconf_mutable KINGHOST_Username  "$KINGHOST_Username"
     _saveaccountconf_mutable KINGHOST_Password  "$KINGHOST_Password"
 
     _debug "Getting txt records"
@@ -62,10 +62,10 @@ dns_kinghost_rm() {
     txtvalue=$2
 
     KINGHOST_Password="${KINGHOST_Password:-$(_readaccountconf_mutable KINGHOST_Password)}"
-    KINGHOST_username="${KINGHOST_username:-$(_readaccountconf_mutable KINGHOST_username)}"
-        if [ -z "$KINGHOST_Password" ] || [ -z "$KINGHOST_username" ]; then
+    KINGHOST_Username="${KINGHOST_Username:-$(_readaccountconf_mutable KINGHOST_Username)}"
+        if [ -z "$KINGHOST_Password" ] || [ -z "$KINGHOST_Username" ]; then
         KINGHOST_Password=""
-        KINGHOST_username=""
+        KINGHOST_Username=""
         _err "You don't specify KingHost api key and email yet."
         _err "Please create you key and try again."
         return 1
@@ -99,7 +99,7 @@ _kinghost_rest() {
   data="$3"
   _debug "$uri"
 
-  export _H1="X-Auth-Email: $KINGHOST_username"
+  export _H1="X-Auth-Email: $KINGHOST_Username"
   export _H2="X-Auth-Key: $KINGHOST_Password"
 
   if [ "$method" != "GET" ]; then
