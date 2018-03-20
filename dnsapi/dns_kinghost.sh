@@ -39,14 +39,14 @@ dns_kinghost_add() {
 
     #This API call returns "status":"ok" if dns record does not exists
     #We are creating a new txt record here, so we expect the "ok" status
-    if ! printf "%s" "$response" | grep '"status":"ok"' >/dev/null; then
+    if ! echo "$response" | grep '"status":"ok"' >/dev/null; then
         _err "Error"
         _err "$response"
         return 1
     fi
 
     _kinghost_rest POST "dns" "name=$fulldomain&content=$txtvalue"
-    if ! printf "%s" "$response" | grep '"status":"ok"' >/dev/null; then
+    if ! echo "$response" | grep '"status":"ok"' >/dev/null; then
         _err "Error"
         _err "$response"
         return 1
@@ -76,14 +76,14 @@ dns_kinghost_rm() {
 
     #This API call returns "status":"ok" if dns record does not exists
     #We are removing a txt record here, so the record must exists
-    if printf "%s" "$response" | grep '"status":"ok"' >/dev/null; then
+    if echo "$response" | grep '"status":"ok"' >/dev/null; then
         _err "Error"
         _err "$response"
         return 1
     fi
 
     _kinghost_rest DELETE "dns" "name=$fulldomain&content=$txtvalue"
-    if ! printf "%s" "$response" | grep '"status":"ok"' >/dev/null; then
+    if ! echo "$response" | grep '"status":"ok"' >/dev/null; then
         _err "Error"
         _err "$response"
         return 1
