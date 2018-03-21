@@ -784,7 +784,7 @@ acme.sh --issue --dns dns_da -d example.com -d www.example.com
 
 The `DA_Api` and `DA_Api_Insecure` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-## 42. Use Loopia API
+## 42. Use Loopia.se API
 User must provide login credentials to the Loopia API.
 The user needs the following permissions:
 
