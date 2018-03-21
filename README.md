@@ -331,6 +331,8 @@ For more details: [How to use DNS API](dnsapi)
 
 # 8. Use DNS manual mode:
 
+See: https://github.com/Neilpang/acme.sh/wiki/dns-manual-mode first.
+
 If your dns provider doesn't support any api access, you can add the txt record by your hand.
 
 ```bash
