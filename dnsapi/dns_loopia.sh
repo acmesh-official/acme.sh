@@ -187,7 +187,7 @@ _loopia_update_record() {
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
 
-  if ! echo "$response" | grep "OK" >/dev/null; then
+  if ! _contains "$response" "OK"; then
     _err "Error"
     return 1
   fi
@@ -219,7 +219,7 @@ _loopia_add_record() {
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
 
-  if ! echo "$response" | grep "OK" >/dev/null; then
+  if ! _contains "$response" "OK"; then
     _err "Error"
     return 1
   fi
