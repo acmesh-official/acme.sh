@@ -88,9 +88,20 @@ set_record() {
   _info "Adding record"
   root=$1
   full=$2
-  txtvalue=$3
+  new_challenge=$3
 
-  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"REPLACE\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [{\"name\": \"$full.\", \"type\": \"TXT\", \"content\": \"\\\"$txtvalue\\\"\", \"disabled\": false, \"ttl\": $PDNS_Ttl}]}]}"; then
+  _pdns_rest "GET" "/api/v1/servers/$PDNS_ServerId/zones/$root"
+  _existing_challenges=($(echo "$response" | _normalizeJson | grep -Po "\"name\":\"$fulldomain\K.*?}]" | grep -Po 'content\":\"\\"\K[^\\]*'))
+  _record_string=""
+  _build_record_string $new_challenge
+
+  for i in "${_existing_challenges[@]}"
+    do
+        _record_string+=", "
+        _build_record_string $i
+  done
+
+  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"REPLACE\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [$_record_string]}]}"; then
     _err "Set txt record error."
     return 1
   fi
@@ -184,4 +195,8 @@ _pdns_rest() {
   _debug2 response "$response"
 
   return 0
+}
+
+_build_record_string() {
+  _record_string+="{\"content\": \"\\\"$1\\\"\", \"disabled\": false}"
 }
