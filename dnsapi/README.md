@@ -325,6 +325,8 @@ The `CY_Username`, `CY_Password` and `CY_OTP_Secret` will be saved in `~/.acme.s
 
 ## 17. Use Domain-Offensive/Resellerinterface/Domainrobot API
 
+ATTENTION: You need to be a registered Reseller to be able to use the ResellerInterface. As a normal user you can not use this method.
+
 You will need your login credentials (Partner ID+Password) to the Resellerinterface, and export them before you run `acme.sh`:
 ```
 export DO_PID="KD-1234567"
