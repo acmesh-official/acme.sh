@@ -110,9 +110,13 @@ _STATELESS_WIKI="https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode"
 
 _DNS_ALIAS_WIKI="https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode"
 
+_DNS_MANUAL_WIKI="https://github.com/Neilpang/acme.sh/wiki/dns-manual-mode"
+
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
 _DNS_MANUAL_WARN="It seems that you are using dns manual mode. please take care: $_DNS_MANUAL_ERR"
+
+_DNS_MANUAL_ERROR="It seems that you are using dns manual mode. Read this link first: $_DNS_MANUAL_WIKI"
 
 __INTERACTIVE=""
 if [ -t 1 ]; then
@@ -3477,6 +3481,11 @@ issue() {
     mkdir -p "$DOMAIN_PATH"
   fi
 
+  if _hasfield "$_web_roots" "$W_DNS" && [ -z "$FORCE_DNS_MANUAL" ]; then
+    _err "$_DNS_MANUAL_ERROR"
+    return 1
+  fi
+
   _debug "Using ACME_DIRECTORY: $ACME_DIRECTORY"
 
   _initAPI
@@ -5500,6 +5509,7 @@ Parameters:
   --listen-v6                       Force standalone/tls server to listen at ipv6.
   --openssl-bin                     Specifies a custom openssl bin location.
   --use-wget                        Force to use wget, if you have both curl and wget installed.
+  --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force to use dns manual mode: $_DNS_MANUAL_WIKI
   "
 }
 
@@ -5987,6 +5997,9 @@ _process() {
           Le_ForceNewDomainKey="$2"
           shift
         fi
+        ;;
+      --yes-I-know-dns-manual-mode-enough-go-ahead-please)
+        export FORCE_DNS_MANUAL=1
         ;;
       --log | --logfile)
         _log="1"
