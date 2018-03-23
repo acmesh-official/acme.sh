@@ -1,11 +1,5 @@
 #!/usr/bin/env sh
 
-#Here is a sample custom api script.
-#This file name is "myapi.sh"
-#So, here must be a method   myapi_deploy()
-#Which will be called by acme.sh to deploy the cert
-#returns 0 means success, otherwise error.
-
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
