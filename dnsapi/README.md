@@ -750,7 +750,7 @@ DNS API keys may be created at https://panel.dreamhost.com/?tree=home.api.
 Ensure the created key has add and remove privelages.
 
 ```
-export DH_API_Key="<api key>"
+export DH_API_KEY="<api key>"
 acme.sh --issue --dns dns_dreamhost -d example.com -d www.example.com
 ```
 
