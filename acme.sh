@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.6.9
+VER=2.7.8
 
 PROJECT_NAME="acme.sh"
 
@@ -13,8 +13,14 @@ _SCRIPT_="$0"
 
 _SUB_FOLDERS="dnsapi deploy"
 
-DEFAULT_CA="https://acme-v01.api.letsencrypt.org"
-DEFAULT_AGREEMENT="https://letsencrypt.org/documents/LE-SA-v1.1.1-August-1-2016.pdf"
+LETSENCRYPT_CA_V1="https://acme-v01.api.letsencrypt.org/directory"
+LETSENCRYPT_STAGING_CA_V1="https://acme-staging.api.letsencrypt.org/directory"
+
+LETSENCRYPT_CA_V2="https://acme-v02.api.letsencrypt.org/directory"
+LETSENCRYPT_STAGING_CA_V2="https://acme-staging-v02.api.letsencrypt.org/directory"
+
+DEFAULT_CA=$LETSENCRYPT_CA_V1
+DEFAULT_STAGING_CA=$LETSENCRYPT_STAGING_CA_V1
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 DEFAULT_ACCOUNT_EMAIL=""
@@ -24,12 +30,13 @@ DEFAULT_DOMAIN_KEY_LENGTH=2048
 
 DEFAULT_OPENSSL_BIN="openssl"
 
-STAGE_CA="https://acme-staging.api.letsencrypt.org"
+_OLD_CA_HOST="https://acme-v01.api.letsencrypt.org"
+_OLD_STAGE_CA_HOST="https://acme-staging.api.letsencrypt.org"
 
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
 VTYPE_TLS="tls-sni-01"
-#VTYPE_TLS2="tls-sni-02"
+VTYPE_TLS2="tls-sni-02"
 
 LOCAL_ANY_ADDRESS="0.0.0.0"
 
@@ -40,6 +47,8 @@ DEFAULT_DNS_SLEEP=120
 NO_VALUE="no"
 
 W_TLS="tls"
+W_DNS="dns"
+DNS_ALIAS_PREFIX="="
 
 MODE_STATELESS="stateless"
 
@@ -55,6 +64,7 @@ END_CSR="-----END CERTIFICATE REQUEST-----"
 BEGIN_CERT="-----BEGIN CERTIFICATE-----"
 END_CERT="-----END CERTIFICATE-----"
 
+CONTENT_TYPE_JSON="application/jose+json"
 RENEW_SKIP=2
 
 ECC_SEP="_"
@@ -98,27 +108,37 @@ _PREPARE_LINK="https://github.com/Neilpang/acme.sh/wiki/Install-preparations"
 
 _STATELESS_WIKI="https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode"
 
+_DNS_ALIAS_WIKI="https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode"
+
+_DNS_MANUAL_WIKI="https://github.com/Neilpang/acme.sh/wiki/dns-manual-mode"
+
+_DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
+
+_DNS_MANUAL_WARN="It seems that you are using dns manual mode. please take care: $_DNS_MANUAL_ERR"
+
+_DNS_MANUAL_ERROR="It seems that you are using dns manual mode. Read this link first: $_DNS_MANUAL_WIKI"
+
 __INTERACTIVE=""
 if [ -t 1 ]; then
   __INTERACTIVE="1"
 fi
 
 __green() {
-  if [ "$__INTERACTIVE" ]; then
+  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" ]; then
     printf '\033[1;31;32m'
   fi
   printf -- "%b" "$1"
-  if [ "$__INTERACTIVE" ]; then
+  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" ]; then
     printf '\033[0m'
   fi
 }
 
 __red() {
-  if [ "$__INTERACTIVE" ]; then
+  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" ]; then
     printf '\033[1;31;40m'
   fi
   printf -- "%b" "$1"
-  if [ "$__INTERACTIVE" ]; then
+  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" ]; then
     printf '\033[0m'
   fi
 }
@@ -151,11 +171,18 @@ _dlg_versions() {
     echo "apache doesn't exists."
   fi
 
-  echo "nc:"
-  if _exists "nc"; then
-    nc -h 2>&1
+  echo "nginx:"
+  if _exists "nginx"; then
+    nginx -V 2>&1
   else
-    _debug "nc doesn't exists."
+    echo "nginx doesn't exists."
+  fi
+
+  echo "socat:"
+  if _exists "socat"; then
+    socat -h 2>&1
+  else
+    _debug "socat doesn't exists."
   fi
 }
 
@@ -357,6 +384,7 @@ _hasfield() {
   return 1 #not contains
 }
 
+# str index [sep]
 _getfield() {
   _str="$1"
   _findex="$2"
@@ -443,34 +471,47 @@ if [ "$(printf '\x41')" != 'A' ]; then
   _URGLY_PRINTF=1
 fi
 
-_h2b() {
-  hex=$(cat)
-  i=1
-  j=2
+_ESCAPE_XARGS=""
+if _exists xargs && [ "$(printf %s '\\x41' | xargs printf)" = 'A' ]; then
+  _ESCAPE_XARGS=1
+fi
 
-  _debug3 _URGLY_PRINTF "$_URGLY_PRINTF"
-  while true; do
-    if [ -z "$_URGLY_PRINTF" ]; then
-      h="$(printf "%s" "$hex" | cut -c $i-$j)"
-      if [ -z "$h" ]; then
-        break
-      fi
-      printf "\x$h%s"
+_h2b() {
+  if _exists xxd && xxd -r -p 2>/dev/null; then
+    return
+  fi
+
+  hex=$(cat)
+  ic=""
+  jc=""
+  _debug2 _URGLY_PRINTF "$_URGLY_PRINTF"
+  if [ -z "$_URGLY_PRINTF" ]; then
+    if [ "$_ESCAPE_XARGS" ] && _exists xargs; then
+      _debug2 "xargs"
+      echo "$hex" | _upper_case | sed 's/\([0-9A-F]\{2\}\)/\\\\\\x\1/g' | xargs printf
     else
-      ic="$(printf "%s" "$hex" | cut -c $i)"
-      jc="$(printf "%s" "$hex" | cut -c $j)"
-      if [ -z "$ic$jc" ]; then
-        break
+      for h in $(echo "$hex" | _upper_case | sed 's/\([0-9A-F]\{2\}\)/ \1/g'); do
+        if [ -z "$h" ]; then
+          break
+        fi
+        printf "\x$h%s"
+      done
+    fi
+  else
+    for c in $(echo "$hex" | _upper_case | sed 's/\([0-9A-F]\)/ \1/g'); do
+      if [ -z "$ic" ]; then
+        ic=$c
+        continue
       fi
+      jc=$c
       ic="$(_h_char_2_dec "$ic")"
       jc="$(_h_char_2_dec "$jc")"
       printf '\'"$(printf "%o" "$(_math "$ic" \* 16 + $jc)")""%s"
-    fi
+      ic=""
+      jc=""
+    done
+  fi
 
-    i="$(_math "$i" + 2)"
-    j="$(_math "$j" + 2)"
-
-  done
 }
 
 _is_solaris() {
@@ -813,6 +854,16 @@ _dbase64() {
   fi
 }
 
+#file
+_checkcert() {
+  _cf="$1"
+  if [ "$DEBUG" ]; then
+    openssl x509 -noout -text -in "$_cf"
+  else
+    openssl x509 -noout -text -in "$_cf" >/dev/null 2>&1
+  fi
+}
+
 #Usage: hashalg  [outputhex]
 #Output Base64-encoded digest
 _digest() {
@@ -873,17 +924,11 @@ _sign() {
   fi
 
   _sign_openssl="${ACME_OPENSSL_BIN:-openssl} dgst -sign $keyfile "
-  if [ "$alg" = "sha256" ]; then
-    _sign_openssl="$_sign_openssl -$alg"
-  else
-    _err "$alg is not supported yet"
-    return 1
-  fi
 
   if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
-    $_sign_openssl | _base64
+    $_sign_openssl -$alg | _base64
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
-    if ! _signedECText="$($_sign_openssl | ${ACME_OPENSSL_BIN:-openssl} asn1parse -inform DER)"; then
+    if ! _signedECText="$($_sign_openssl -sha$__ECC_KEY_LEN | ${ACME_OPENSSL_BIN:-openssl} asn1parse -inform DER)"; then
       _err "Sign failed: $_sign_openssl"
       _err "Key file: $keyfile"
       _err "Key content:$(wc -l <"$keyfile") lines"
@@ -902,7 +947,7 @@ _sign() {
 
 }
 
-#keylength
+#keylength or isEcc flag (empty str => not ecc)
 _isEccKey() {
   _length="$1"
 
@@ -971,7 +1016,7 @@ _createkey() {
 _is_idn() {
   _is_idn_d="$1"
   _debug2 _is_idn_d "$_is_idn_d"
-  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '0-9' | tr -d 'a-z' | tr -d 'A-Z' | tr -d '.,-')
+  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '0-9' | tr -d 'a-z' | tr -d 'A-Z' | tr -d '*.,-')
   _debug2 _idn_temp "$_idn_temp"
   [ "$_idn_temp" ]
 }
@@ -1024,13 +1069,14 @@ _createcsr() {
   if [ -z "$domainlist" ] || [ "$domainlist" = "$NO_VALUE" ]; then
     #single domain
     _info "Single domain" "$domain"
+    printf -- "\nsubjectAltName=DNS:$domain" >>"$csrconf"
   else
     domainlist="$(_idn "$domainlist")"
     _debug2 domainlist "$domainlist"
     if _contains "$domainlist" ","; then
-      alt="DNS:$(echo "$domainlist" | sed "s/,/,DNS:/g")"
+      alt="DNS:$domain,DNS:$(echo "$domainlist" | sed "s/,,/,/g" | sed "s/,/,DNS:/g")"
     else
-      alt="DNS:$domainlist"
+      alt="DNS:$domain,DNS:$domainlist"
     fi
     #multi
     _info "Multi domain" "$alt"
@@ -1072,7 +1118,7 @@ _readSubjectFromCSR() {
     _usage "_readSubjectFromCSR mycsr.csr"
     return 1
   fi
-  ${ACME_OPENSSL_BIN:-openssl} req -noout -in "$_csrfile" -subject | _egrep_o "CN *=.*" | cut -d = -f 2 | cut -d / -f 1 | tr -d '\n'
+  ${ACME_OPENSSL_BIN:-openssl} req -noout -in "$_csrfile" -subject | tr ',' "\n" | _egrep_o "CN *=.*" | cut -d = -f 2 | cut -d / -f 1 | tr -d ' \n'
 }
 
 #_csrfile
@@ -1115,7 +1161,12 @@ _readKeyLengthFromCSR() {
     echo "$_outcsr" | tr "\t" " " | _egrep_o "^ *ASN1 OID:.*" | cut -d ':' -f 2 | tr -d ' '
   else
     _debug "RSA CSR"
-    echo "$_outcsr" | tr "\t" " " | _egrep_o "(^ *|RSA )Public.Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1
+    _rkl="$(echo "$_outcsr" | tr "\t" " " | _egrep_o "^ *Public.Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1)"
+    if [ "$_rkl" ]; then
+      echo "$_rkl"
+    else
+      echo "$_outcsr" | tr "\t" " " | _egrep_o "RSA Public.Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1
+    fi
   fi
 }
 
@@ -1124,7 +1175,7 @@ _ss() {
 
   if _exists "ss"; then
     _debug "Using: ss"
-    ss -ntpl | grep ":$_port "
+    ss -ntpl 2>/dev/null | grep ":$_port "
     return 0
   fi
 
@@ -1153,6 +1204,28 @@ _ss() {
   return 1
 }
 
+#outfile key cert cacert [password [name [caname]]]
+_toPkcs() {
+  _cpfx="$1"
+  _ckey="$2"
+  _ccert="$3"
+  _cca="$4"
+  pfxPassword="$5"
+  pfxName="$6"
+  pfxCaname="$7"
+
+  if [ "$pfxCaname" ]; then
+    ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -inkey "$_ckey" -in "$_ccert" -certfile "$_cca" -password "pass:$pfxPassword" -name "$pfxName" -caname "$pfxCaname"
+  elif [ "$pfxName" ]; then
+    ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -inkey "$_ckey" -in "$_ccert" -certfile "$_cca" -password "pass:$pfxPassword" -name "$pfxName"
+  elif [ "$pfxPassword" ]; then
+    ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -inkey "$_ckey" -in "$_ccert" -certfile "$_cca" -password "pass:$pfxPassword"
+  else
+    ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -inkey "$_ckey" -in "$_ccert" -certfile "$_cca"
+  fi
+
+}
+
 #domain [password] [isEcc]
 toPkcs() {
   domain="$1"
@@ -1166,11 +1239,7 @@ toPkcs() {
 
   _initpath "$domain" "$_isEcc"
 
-  if [ "$pfxPassword" ]; then
-    ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH" -password "pass:$pfxPassword"
-  else
-    ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$CERT_PFX_PATH" -inkey "$CERT_KEY_PATH" -in "$CERT_PATH" -certfile "$CA_CERT_PATH"
-  fi
+  _toPkcs "$CERT_PFX_PATH" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$pfxPassword"
 
   if [ "$?" = "0" ]; then
     _info "Success, Pfx is exported to: $CERT_PFX_PATH"
@@ -1231,6 +1300,7 @@ _create_account_key() {
   else
     #generate account key
     _createkey "$length" "$ACCOUNT_KEY_PATH"
+    chmod 600 "$ACCOUNT_KEY_PATH"
   fi
 
 }
@@ -1244,17 +1314,20 @@ createDomainKey() {
   fi
 
   domain=$1
-  length=$2
+  _cdl=$2
 
-  if [ -z "$length" ]; then
+  if [ -z "$_cdl" ]; then
     _debug "Use DEFAULT_DOMAIN_KEY_LENGTH=$DEFAULT_DOMAIN_KEY_LENGTH"
-    length="$DEFAULT_DOMAIN_KEY_LENGTH"
+    _cdl="$DEFAULT_DOMAIN_KEY_LENGTH"
   fi
 
-  _initpath "$domain" "$length"
+  _initpath "$domain" "$_cdl"
 
-  if [ ! -f "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$IS_RENEW" ]); then
-    _createkey "$length" "$CERT_KEY_PATH"
+  if [ ! -f "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$IS_RENEW" ]) || [ "$Le_ForceNewDomainKey" = "1" ]; then
+    if _createkey "$_cdl" "$CERT_KEY_PATH"; then
+      _savedomainconf Le_Keylength "$_cdl"
+      _info "The domain key is here: $(__green $CERT_KEY_PATH)"
+    fi
   else
     if [ "$IS_RENEW" ]; then
       _info "Domain key exists, skip"
@@ -1317,6 +1390,10 @@ _time2str() {
     echo "$_t_s_a"
   fi
 
+  #Busybox
+  if echo "$1" | awk '{ print strftime("%c", $0); }' 2>/dev/null; then
+    return
+  fi
 }
 
 _normalizeJson() {
@@ -1371,12 +1448,16 @@ _calcjwk() {
 
     JWK_HEADER='{"alg": "RS256", "jwk": '$jwk'}'
     JWK_HEADERPLACE_PART1='{"nonce": "'
-    JWK_HEADERPLACE_PART2='", "alg": "RS256", "jwk": '$jwk'}'
+    JWK_HEADERPLACE_PART2='", "alg": "RS256"'
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     _debug "EC key"
     crv="$(${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
     _debug3 crv "$crv"
-
+    __ECC_KEY_LEN=$(echo "$crv" | cut -d "-" -f 2)
+    if [ "$__ECC_KEY_LEN" = "521" ]; then
+      __ECC_KEY_LEN=512
+    fi
+    _debug3 __ECC_KEY_LEN "$__ECC_KEY_LEN"
     if [ -z "$crv" ]; then
       _debug "Let's try ASN1 OID"
       crv_oid="$(${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^ASN1 OID:" | cut -d ":" -f 2 | tr -d " \r\n")"
@@ -1384,12 +1465,15 @@ _calcjwk() {
       case "${crv_oid}" in
         "prime256v1")
           crv="P-256"
+          __ECC_KEY_LEN=256
           ;;
         "secp384r1")
           crv="P-384"
+          __ECC_KEY_LEN=384
           ;;
         "secp521r1")
           crv="P-521"
+          __ECC_KEY_LEN=512
           ;;
         *)
           _err "ECC oid : $crv_oid"
@@ -1431,9 +1515,9 @@ _calcjwk() {
     jwk='{"crv": "'$crv'", "kty": "EC", "x": "'$x64'", "y": "'$y64'"}'
     _debug3 jwk "$jwk"
 
-    JWK_HEADER='{"alg": "ES256", "jwk": '$jwk'}'
+    JWK_HEADER='{"alg": "ES'$__ECC_KEY_LEN'", "jwk": '$jwk'}'
     JWK_HEADERPLACE_PART1='{"nonce": "'
-    JWK_HEADERPLACE_PART2='", "alg": "ES256", "jwk": '$jwk'}'
+    JWK_HEADERPLACE_PART2='", "alg": "ES'$__ECC_KEY_LEN'"'
   else
     _err "Only RSA or EC key is supported."
     return 1
@@ -1497,6 +1581,9 @@ _inithttp() {
       _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
     fi
 
+    if _contains "$(curl --help 2>&1)" "--globoff"; then
+      _ACME_CURL="$_ACME_CURL -g "
+    fi
   fi
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
@@ -1520,19 +1607,21 @@ _inithttp() {
 
 }
 
-# body  url [needbase64] [POST|PUT]
+# body  url [needbase64] [POST|PUT] [ContentType]
 _post() {
   body="$1"
-  url="$2"
+  _post_url="$2"
   needbase64="$3"
   httpmethod="$4"
+  _postContentType="$5"
 
   if [ -z "$httpmethod" ]; then
     httpmethod="POST"
   fi
   _debug $httpmethod
-  _debug "url" "$url"
+  _debug "_post_url" "$_post_url"
   _debug2 "body" "$body"
+  _debug2 "_postContentType" "$_postContentType"
 
   _inithttp
 
@@ -1543,9 +1632,17 @@ _post() {
     fi
     _debug "_CURL" "$_CURL"
     if [ "$needbase64" ]; then
-      response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$url" | _base64)"
+      if [ "$_postContentType" ]; then
+        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+      else
+        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+      fi
     else
-      response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$url")"
+      if [ "$_postContentType" ]; then
+        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+      else
+        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+      fi
     fi
     _ret="$?"
     if [ "$_ret" != "0" ]; then
@@ -1563,15 +1660,31 @@ _post() {
     _debug "_WGET" "$_WGET"
     if [ "$needbase64" ]; then
       if [ "$httpmethod" = "POST" ]; then
-        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
+        if [ "$_postContentType" ]; then
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+        else
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+        fi
       else
-        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER" | _base64)"
+        if [ "$_postContentType" ]; then
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+        else
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+        fi
       fi
     else
       if [ "$httpmethod" = "POST" ]; then
-        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$url" 2>"$HTTP_HEADER")"
+        if [ "$_postContentType" ]; then
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+        else
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+        fi
       else
-        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$url" 2>"$HTTP_HEADER")"
+        if [ "$_postContentType" ]; then
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+        else
+          response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+        fi
       fi
     fi
     _ret="$?"
@@ -1599,7 +1712,7 @@ _get() {
   onlyheader="$2"
   t="$3"
   _debug url "$url"
-  _debug "timeout" "$t"
+  _debug "timeout=$t"
 
   _inithttp
 
@@ -1682,6 +1795,11 @@ _send_signed_request() {
     return 1
   fi
 
+  if [ "$ACME_VERSION" = "2" ]; then
+    __request_conent_type="$CONTENT_TYPE_JSON"
+  else
+    __request_conent_type=""
+  fi
   payload64=$(printf "%s" "$payload" | _base64 | _url_replace)
   _debug3 payload64 "$payload64"
 
@@ -1690,9 +1808,19 @@ _send_signed_request() {
   while [ "${_request_retry_times}" -lt "$MAX_REQUEST_RETRY_TIMES" ]; do
     _debug3 _request_retry_times "$_request_retry_times"
     if [ -z "$_CACHED_NONCE" ]; then
-      _debug2 "Get nonce."
-      nonceurl="$API/directory"
-      _headers="$(_get "$nonceurl" "onlyheader")"
+      _headers=""
+      if [ "$ACME_NEW_NONCE" ]; then
+        _debug2 "Get nonce. ACME_NEW_NONCE" "$ACME_NEW_NONCE"
+        nonceurl="$ACME_NEW_NONCE"
+        if _post "" "$nonceurl" "" "HEAD" "$__request_conent_type"; then
+          _headers="$(cat "$HTTP_HEADER")"
+        fi
+      fi
+      if [ -z "$_headers" ]; then
+        _debug2 "Get nonce. ACME_DIRECTORY" "$ACME_DIRECTORY"
+        nonceurl="$ACME_DIRECTORY"
+        _headers="$(_get "$nonceurl" "onlyheader")"
+      fi
 
       if [ "$?" != "0" ]; then
         _err "Can not connect to $nonceurl to get nonce."
@@ -1709,7 +1837,15 @@ _send_signed_request() {
     nonce="$_CACHED_NONCE"
     _debug2 nonce "$nonce"
 
-    protected="$JWK_HEADERPLACE_PART1$nonce$JWK_HEADERPLACE_PART2"
+    if [ "$ACME_VERSION" = "2" ]; then
+      if [ "$url" = "$ACME_NEW_ACCOUNT" ] || [ "$url" = "$ACME_REVOKE_CERT" ]; then
+        protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"jwk\": $jwk"'}'
+      else
+        protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"kid\": \"${ACCOUNT_URL}\""'}'
+      fi
+    else
+      protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"jwk\": $jwk"'}'
+    fi
     _debug3 protected "$protected"
 
     protected64="$(printf "%s" "$protected" | _base64 | _url_replace)"
@@ -1724,10 +1860,14 @@ _send_signed_request() {
     sig="$(printf "%s" "$_sig_t" | _url_replace)"
     _debug3 sig "$sig"
 
-    body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
+    if [ "$ACME_VERSION" = "2" ]; then
+      body="{\"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
+    else
+      body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
+    fi
     _debug3 body "$body"
 
-    response="$(_post "$body" "$url" "$needbase64")"
+    response="$(_post "$body" "$url" "$needbase64" "POST" "$__request_conent_type")"
     _CACHED_NONCE=""
 
     if [ "$?" != "0" ]; then
@@ -1746,7 +1886,13 @@ _send_signed_request() {
 
     _CACHED_NONCE="$(echo "$responseHeaders" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
 
-    if _contains "$response" "JWS has invalid anti-replay nonce"; then
+    _body="$response"
+    if [ "$needbase64" ]; then
+      _body="$(echo "$_body" | _dbase64 | tr -d '\0')"
+      _debug3 _body "$_body"
+    fi
+
+    if _contains "$_body" "JWS has invalid anti-replay nonce"; then
       _info "It seems the CA server is busy now, let's wait and retry."
       _request_retry_times=$(_math "$_request_retry_times" + 1)
       _sleep 5
@@ -1899,68 +2045,32 @@ _startserver() {
   _debug "ncaddr" "$ncaddr"
 
   _debug "startserver: $$"
-  nchelp="$(nc -h 2>&1)"
 
   _debug Le_HTTPPort "$Le_HTTPPort"
   _debug Le_Listen_V4 "$Le_Listen_V4"
   _debug Le_Listen_V6 "$Le_Listen_V6"
-  _NC="nc"
 
+  _NC="socat"
   if [ "$Le_Listen_V4" ]; then
     _NC="$_NC -4"
   elif [ "$Le_Listen_V6" ]; then
     _NC="$_NC -6"
   fi
 
-  if [ "$Le_Listen_V4$Le_Listen_V6$ncaddr" ]; then
-    if ! _contains "$nchelp" "-4"; then
-      _err "The nc doesn't support '-4', '-6' or local-address, please install 'netcat-openbsd' and try again."
-      _err "See $(__green $_PREPARE_LINK)"
-      return 1
-    fi
+  if [ "$DEBUG" ] && [ "$DEBUG" -gt "1" ]; then
+    _NC="$_NC -d -d -v"
   fi
 
-  if echo "$nchelp" | grep "\-q[ ,]" >/dev/null; then
-    _NC="$_NC -q 1 -l $ncaddr"
-  else
-    if echo "$nchelp" | grep "GNU netcat" >/dev/null && echo "$nchelp" | grep "\-c, \-\-close" >/dev/null; then
-      _NC="$_NC -c -l $ncaddr"
-    elif echo "$nchelp" | grep "\-N" | grep "Shutdown the network socket after EOF on stdin" >/dev/null; then
-      _NC="$_NC -N -l $ncaddr"
-    else
-      _NC="$_NC -l $ncaddr"
-    fi
+  SOCAT_OPTIONS=TCP-LISTEN:$Le_HTTPPort,crlf,reuseaddr,fork
+
+  #Adding bind to local-address
+  if [ "$ncaddr" ]; then
+    SOCAT_OPTIONS="$SOCAT_OPTIONS,bind=${ncaddr}"
   fi
 
-  _debug "_NC" "$_NC"
-
-  #for centos ncat
-  if _contains "$nchelp" "nmap.org"; then
-    _debug "Using ncat: nmap.org"
-    if ! _exec "printf \"%s\r\n\r\n%s\" \"HTTP/1.1 200 OK\" \"$content\" | $_NC \"$Le_HTTPPort\" >&2"; then
-      _exec_err
-      return 1
-    fi
-    if [ "$DEBUG" ]; then
-      _exec_err
-    fi
-    return
-  fi
-
-  #  while true ; do
-  if ! _exec "printf \"%s\r\n\r\n%s\" \"HTTP/1.1 200 OK\" \"$content\" | $_NC -p \"$Le_HTTPPort\" >&2"; then
-    _exec "printf \"%s\r\n\r\n%s\" \"HTTP/1.1 200 OK\" \"$content\" | $_NC \"$Le_HTTPPort\" >&2"
-  fi
-
-  if [ "$?" != "0" ]; then
-    _err "nc listen error."
-    _exec_err
-    exit 1
-  fi
-  if [ "$DEBUG" ]; then
-    _exec_err
-  fi
-  #  done
+  _debug "_NC" "$_NC $SOCAT_OPTIONS"
+  $_NC $SOCAT_OPTIONS SYSTEM:"sleep 1; echo HTTP/1.0 200 OK; echo ; echo  $content; echo;" &
+  serverproc="$!"
 }
 
 _stopserver() {
@@ -1970,25 +2080,8 @@ _stopserver() {
     return
   fi
 
-  _debug2 "Le_HTTPPort" "$Le_HTTPPort"
-  if [ "$Le_HTTPPort" ]; then
-    if [ "$DEBUG" ] && [ "$DEBUG" -gt "3" ]; then
-      _get "http://localhost:$Le_HTTPPort" "" 1
-    else
-      _get "http://localhost:$Le_HTTPPort" "" 1 >/dev/null 2>&1
-    fi
-  fi
+  kill $pid
 
-  _debug2 "Le_TLSPort" "$Le_TLSPort"
-  if [ "$Le_TLSPort" ]; then
-    if [ "$DEBUG" ] && [ "$DEBUG" -gt "3" ]; then
-      _get "https://localhost:$Le_TLSPort" "" 1
-      _get "https://localhost:$Le_TLSPort" "" 1
-    else
-      _get "https://localhost:$Le_TLSPort" "" 1 >/dev/null 2>&1
-      _get "https://localhost:$Le_TLSPort" "" 1 >/dev/null 2>&1
-    fi
-  fi
 }
 
 # sleep sec
@@ -2043,7 +2136,7 @@ _starttlsserver() {
     return 1
   fi
 
-  __S_OPENSSL="${ACME_OPENSSL_BIN:-openssl} s_server -cert $TLS_CERT  -key $TLS_KEY "
+  __S_OPENSSL="${ACME_OPENSSL_BIN:-openssl} s_server -www -cert $TLS_CERT  -key $TLS_KEY "
   if [ "$opaddr" ]; then
     __S_OPENSSL="$__S_OPENSSL -accept $opaddr:$port"
   else
@@ -2060,9 +2153,9 @@ _starttlsserver() {
 
   _debug "$__S_OPENSSL"
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
-    (printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $__S_OPENSSL -tlsextdebug) &
+    $__S_OPENSSL -tlsextdebug &
   else
-    (printf "%s\r\n\r\n%s" "HTTP/1.1 200 OK" "$content" | $__S_OPENSSL >/dev/null 2>&1) &
+    $__S_OPENSSL >/dev/null 2>&1 &
   fi
 
   serverproc="$!"
@@ -2145,8 +2238,93 @@ __initHome() {
   fi
 }
 
-#[domain]  [keylength]
+#server
+_initAPI() {
+  _api_server="${1:-$ACME_DIRECTORY}"
+  _debug "_init api for server: $_api_server"
+
+  if [ -z "$ACME_NEW_ACCOUNT" ]; then
+    response=$(_get "$_api_server")
+    if [ "$?" != "0" ]; then
+      _debug2 "response" "$response"
+      _err "Can not init api."
+      return 1
+    fi
+    _debug2 "response" "$response"
+
+    ACME_KEY_CHANGE=$(echo "$response" | _egrep_o 'key-change" *: *"[^"]*"' | cut -d '"' -f 3)
+    if [ -z "$ACME_KEY_CHANGE" ]; then
+      ACME_KEY_CHANGE=$(echo "$response" | _egrep_o 'keyChange" *: *"[^"]*"' | cut -d '"' -f 3)
+    fi
+    export ACME_KEY_CHANGE
+
+    ACME_NEW_AUTHZ=$(echo "$response" | _egrep_o 'new-authz" *: *"[^"]*"' | cut -d '"' -f 3)
+    if [ -z "$ACME_NEW_AUTHZ" ]; then
+      ACME_NEW_AUTHZ=$(echo "$response" | _egrep_o 'newAuthz" *: *"[^"]*"' | cut -d '"' -f 3)
+    fi
+    export ACME_NEW_AUTHZ
+
+    ACME_NEW_ORDER=$(echo "$response" | _egrep_o 'new-cert" *: *"[^"]*"' | cut -d '"' -f 3)
+    ACME_NEW_ORDER_RES="new-cert"
+    if [ -z "$ACME_NEW_ORDER" ]; then
+      ACME_NEW_ORDER=$(echo "$response" | _egrep_o 'new-order" *: *"[^"]*"' | cut -d '"' -f 3)
+      ACME_NEW_ORDER_RES="new-order"
+      if [ -z "$ACME_NEW_ORDER" ]; then
+        ACME_NEW_ORDER=$(echo "$response" | _egrep_o 'newOrder" *: *"[^"]*"' | cut -d '"' -f 3)
+      fi
+    fi
+    export ACME_NEW_ORDER
+    export ACME_NEW_ORDER_RES
+
+    ACME_NEW_ACCOUNT=$(echo "$response" | _egrep_o 'new-reg" *: *"[^"]*"' | cut -d '"' -f 3)
+    ACME_NEW_ACCOUNT_RES="new-reg"
+    if [ -z "$ACME_NEW_ACCOUNT" ]; then
+      ACME_NEW_ACCOUNT=$(echo "$response" | _egrep_o 'new-account" *: *"[^"]*"' | cut -d '"' -f 3)
+      ACME_NEW_ACCOUNT_RES="new-account"
+      if [ -z "$ACME_NEW_ACCOUNT" ]; then
+        ACME_NEW_ACCOUNT=$(echo "$response" | _egrep_o 'newAccount" *: *"[^"]*"' | cut -d '"' -f 3)
+        if [ "$ACME_NEW_ACCOUNT" ]; then
+          export ACME_VERSION=2
+        fi
+      fi
+    fi
+    export ACME_NEW_ACCOUNT
+    export ACME_NEW_ACCOUNT_RES
+
+    ACME_REVOKE_CERT=$(echo "$response" | _egrep_o 'revoke-cert" *: *"[^"]*"' | cut -d '"' -f 3)
+    if [ -z "$ACME_REVOKE_CERT" ]; then
+      ACME_REVOKE_CERT=$(echo "$response" | _egrep_o 'revokeCert" *: *"[^"]*"' | cut -d '"' -f 3)
+    fi
+    export ACME_REVOKE_CERT
+
+    ACME_NEW_NONCE=$(echo "$response" | _egrep_o 'new-nonce" *: *"[^"]*"' | cut -d '"' -f 3)
+    if [ -z "$ACME_NEW_NONCE" ]; then
+      ACME_NEW_NONCE=$(echo "$response" | _egrep_o 'newNonce" *: *"[^"]*"' | cut -d '"' -f 3)
+    fi
+    export ACME_NEW_NONCE
+
+    ACME_AGREEMENT=$(echo "$response" | _egrep_o 'terms-of-service" *: *"[^"]*"' | cut -d '"' -f 3)
+    if [ -z "$ACME_AGREEMENT" ]; then
+      ACME_AGREEMENT=$(echo "$response" | _egrep_o 'termsOfService" *: *"[^"]*"' | cut -d '"' -f 3)
+    fi
+    export ACME_AGREEMENT
+
+    _debug "ACME_KEY_CHANGE" "$ACME_KEY_CHANGE"
+    _debug "ACME_NEW_AUTHZ" "$ACME_NEW_AUTHZ"
+    _debug "ACME_NEW_ORDER" "$ACME_NEW_ORDER"
+    _debug "ACME_NEW_ACCOUNT" "$ACME_NEW_ACCOUNT"
+    _debug "ACME_REVOKE_CERT" "$ACME_REVOKE_CERT"
+    _debug "ACME_AGREEMENT" "$ACME_AGREEMENT"
+    _debug "ACME_NEW_NONCE" "$ACME_NEW_NONCE"
+    _debug "ACME_VERSION" "$ACME_VERSION"
+
+  fi
+}
+
+#[domain]  [keylength or isEcc flag]
 _initpath() {
+  domain="$1"
+  _ilength="$2"
 
   __initHome
 
@@ -2165,17 +2343,25 @@ _initpath() {
     CA_HOME="$DEFAULT_CA_HOME"
   fi
 
-  if [ -z "$API" ]; then
+  if [ "$ACME_VERSION" = "2" ]; then
+    DEFAULT_CA="$LETSENCRYPT_CA_V2"
+    DEFAULT_STAGING_CA="$LETSENCRYPT_STAGING_CA_V2"
+  fi
+
+  if [ -z "$ACME_DIRECTORY" ]; then
     if [ -z "$STAGE" ]; then
-      API="$DEFAULT_CA"
+      ACME_DIRECTORY="$DEFAULT_CA"
     else
-      API="$STAGE_CA"
-      _info "Using stage api:$API"
+      ACME_DIRECTORY="$DEFAULT_STAGING_CA"
+      _info "Using stage ACME_DIRECTORY: $ACME_DIRECTORY"
     fi
   fi
 
-  _API_HOST="$(echo "$API" | cut -d : -f 2 | tr -d '/')"
-  CA_DIR="$CA_HOME/$_API_HOST"
+  _debug ACME_DIRECTORY "$ACME_DIRECTORY"
+  _ACME_SERVER_HOST="$(echo "$ACME_DIRECTORY" | cut -d : -f 2 | tr -s / | cut -d / -f 2)"
+  _debug2 "_ACME_SERVER_HOST" "$_ACME_SERVER_HOST"
+
+  CA_DIR="$CA_HOME/$_ACME_SERVER_HOST"
 
   _DEFAULT_CA_CONF="$CA_DIR/ca.conf"
 
@@ -2226,12 +2412,9 @@ _initpath() {
     ACME_OPENSSL_BIN="$DEFAULT_OPENSSL_BIN"
   fi
 
-  if [ -z "$1" ]; then
+  if [ -z "$domain" ]; then
     return 0
   fi
-
-  domain="$1"
-  _ilength="$2"
 
   if [ -z "$DOMAIN_PATH" ]; then
     domainhome="$CERT_HOME/$domain"
@@ -2478,10 +2661,7 @@ _setNginx() {
   _d="$1"
   _croot="$2"
   _thumbpt="$3"
-  if ! _exists "nginx"; then
-    _err "nginx command is not found."
-    return 1
-  fi
+
   FOUND_REAL_NGINX_CONF=""
   FOUND_REAL_NGINX_CONF_LN=""
   BACKUP_NGINX_CONF=""
@@ -2491,6 +2671,10 @@ _setNginx() {
   if [ -z "$_start_f" ]; then
     _debug "find start conf from nginx command"
     if [ -z "$NGINX_CONF" ]; then
+      if ! _exists "nginx"; then
+        _err "nginx command is not found."
+        return 1
+      fi
       NGINX_CONF="$(nginx -V 2>&1 | _egrep_o "--conf-path=[^ ]* " | tr -d " ")"
       _debug NGINX_CONF "$NGINX_CONF"
       NGINX_CONF="$(echo "$NGINX_CONF" | cut -d = -f 2)"
@@ -2535,6 +2719,10 @@ _setNginx() {
     return 1
   fi
 
+  if ! _exists "nginx"; then
+    _err "nginx command is not found."
+    return 1
+  fi
   _info "Check the nginx conf before setting up."
   if ! _exec "nginx -t" >/dev/null; then
     _exec_err
@@ -2562,7 +2750,7 @@ location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
     _err "write nginx conf error, but don't worry, the file is restored."
     return 1
   fi
-
+  _debug3 "Modified config:$(cat $FOUND_REAL_NGINX_CONF)"
   _info "nginx conf is done, let's check it again."
   if ! _exec "nginx -t" >/dev/null; then
     _exec_err
@@ -2627,7 +2815,7 @@ _isRealNginxConf() {
     for _fln in $(tr "\t" ' ' <"$2" | grep -n "^ *server_name.* $1" | cut -d : -f 1); do
       _debug _fln "$_fln"
       if [ "$_fln" ]; then
-        _start=$(tr "\t" ' ' <"$2" | _head_n "$_fln" | grep -n "^ *server *{" | _tail_n 1)
+        _start=$(tr "\t" ' ' <"$2" | _head_n "$_fln" | grep -n "^ *server *" | grep -v server_name | _tail_n 1)
         _debug "_start" "$_start"
         _start_n=$(echo "$_start" | cut -d : -f 1)
         _start_nn=$(_math $_start_n + 1)
@@ -2636,9 +2824,9 @@ _isRealNginxConf() {
 
         _left="$(sed -n "${_start_nn},99999p" "$2")"
         _debug2 _left "$_left"
-        if echo "$_left" | tr "\t" ' ' | grep -n "^ *server *{" >/dev/null; then
-          _end=$(echo "$_left" | tr "\t" ' ' | grep -n "^ *server *{" | _head_n 1)
-          _debug "_end" "$_end"
+        _end="$(echo "$_left" | tr "\t" ' ' | grep -n "^ *server *" | grep -v server_name | _head_n 1)"
+        _debug "_end" "$_end"
+        if [ "$_end" ]; then
           _end_n=$(echo "$_end" | cut -d : -f 1)
           _debug "_end_n" "$_end_n"
           _seg_n=$(echo "$_left" | sed -n "1,${_end_n}p")
@@ -2648,12 +2836,26 @@ _isRealNginxConf() {
 
         _debug "_seg_n" "$_seg_n"
 
-        if [ "$(echo "$_seg_n" | _egrep_o "^ *ssl  *on *;")" ]; then
+        _skip_ssl=1
+        for _listen_i in $(echo "$_seg_n" | tr "\t" ' ' | grep "^ *listen" | tr -d " "); do
+          if [ "$_listen_i" ]; then
+            if [ "$(echo "$_listen_i" | _egrep_o "listen.*ssl[ |;]")" ]; then
+              _debug2 "$_listen_i is ssl"
+            else
+              _debug2 "$_listen_i is plain text"
+              _skip_ssl=""
+              break
+            fi
+          fi
+        done
+
+        if [ "$_skip_ssl" = "1" ]; then
           _debug "ssl on, skip"
-          return 1
+        else
+          FOUND_REAL_NGINX_CONF_LN=$_fln
+          _debug3 "found FOUND_REAL_NGINX_CONF_LN" "$FOUND_REAL_NGINX_CONF_LN"
+          return 0
         fi
-        FOUND_REAL_NGINX_CONF_LN=$_fln
-        return 0
       fi
     done
   fi
@@ -2704,11 +2906,12 @@ _clearup() {
 _clearupdns() {
   _debug "_clearupdns"
   if [ "$dnsadded" != 1 ] || [ -z "$vlist" ]; then
-    _debug "Dns not added, skip."
+    _debug "skip dns."
     return
   fi
-
+  _info "Removing DNS records."
   ventries=$(echo "$vlist" | tr ',' ' ')
+  _alias_index=1
   for ventry in $ventries; do
     d=$(echo "$ventry" | cut -d "$sep" -f 1)
     keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
@@ -2722,7 +2925,7 @@ _clearupdns() {
     fi
 
     if [ "$vtype" != "$VTYPE_DNS" ]; then
-      _info "Skip $d for $vtype"
+      _debug "Skip $d for $vtype"
       continue
     fi
 
@@ -2746,7 +2949,23 @@ _clearupdns() {
         return 1
       fi
 
-      txtdomain="_acme-challenge.$d"
+      _dns_root_d="$d"
+      if _startswith "$_dns_root_d" "*."; then
+        _dns_root_d="$(echo "$_dns_root_d" | sed 's/*.//')"
+      fi
+
+      _d_alias="$(_getfield "$_challenge_alias" "$_alias_index")"
+      _alias_index="$(_math "$_alias_index" + 1)"
+      _debug "_d_alias" "$_d_alias"
+      if [ "$_d_alias" ]; then
+        if _startswith "$_d_alias" "$DNS_ALIAS_PREFIX"; then
+          txtdomain="$(echo "$_d_alias" | sed "s/$DNS_ALIAS_PREFIX//")"
+        else
+          txtdomain="_acme-challenge.$_d_alias"
+        fi
+      else
+        txtdomain="_acme-challenge.$_dns_root_d"
+      fi
 
       if ! $rmcommand "$txtdomain" "$txt"; then
         _err "Error removing txt for domain:$txtdomain"
@@ -2795,6 +3014,8 @@ _on_before_issue() {
   _chk_pre_hook="$4"
   _chk_local_addr="$5"
   _debug _on_before_issue
+  _debug _chk_main_domain "$_chk_main_domain"
+  _debug _chk_alt_domains "$_chk_alt_domains"
   #run pre hook
   if [ "$_chk_pre_hook" ]; then
     _info "Run pre hook:'$_chk_pre_hook'"
@@ -2807,19 +3028,25 @@ _on_before_issue() {
   fi
 
   if _hasfield "$_chk_web_roots" "$NO_VALUE"; then
-    if ! _exists "nc"; then
-      _err "Please install netcat(nc) tools first."
+    if ! _exists "socat"; then
+      _err "Please install socat tools first."
       return 1
     fi
   fi
 
   _debug Le_LocalAddress "$_chk_local_addr"
 
-  alldomains=$(echo "$_chk_main_domain,$_chk_alt_domains" | tr ',' ' ')
   _index=1
   _currentRoot=""
   _addrIndex=1
-  for d in $alldomains; do
+  _w_index=1
+  while true; do
+    d="$(echo "$_chk_main_domain,$_chk_alt_domains," | cut -d , -f "$_w_index")"
+    _w_index="$(_math "$_w_index" + 1)"
+    _debug d "$d"
+    if [ -z "$d" ]; then
+      break
+    fi
     _debug "Check for domain" "$d"
     _currentRoot="$(_getfield "$_chk_web_roots" $_index)"
     _debug "_currentRoot" "$_currentRoot"
@@ -2879,6 +3106,7 @@ _on_issue_err() {
   _chk_post_hook="$1"
   _chk_vlist="$2"
   _debug _on_issue_err
+
   if [ "$LOG_FILE" ]; then
     _err "Please check log file for more details: $LOG_FILE"
   else
@@ -2898,9 +3126,9 @@ _on_issue_err() {
   fi
 
   #trigger the validation to flush the pending authz
+  _debug2 "_chk_vlist" "$_chk_vlist"
   if [ "$_chk_vlist" ]; then
     (
-      _debug2 "_chk_vlist" "$_chk_vlist"
       _debug2 "start to deactivate authz"
       ventries=$(echo "$_chk_vlist" | tr "$dvsep" ' ')
       for ventry in $ventries; do
@@ -2912,6 +3140,10 @@ _on_issue_err() {
         __trigger_validation "$uri" "$keyauthorization"
       done
     )
+  fi
+
+  if [ "$IS_RENEW" = "1" ] && _hasfield "$Le_Webroot" "$W_DNS"; then
+    _err "$_DNS_MANUAL_ERR"
   fi
 
   if [ "$DEBUG" ] && [ "$DEBUG" -gt "0" ]; then
@@ -2946,6 +3178,10 @@ _on_issue_success() {
     fi
   fi
 
+  if _hasfield "$Le_Webroot" "$W_DNS"; then
+    _err "$_DNS_MANUAL_WARN"
+  fi
+
 }
 
 updateaccount() {
@@ -2971,15 +3207,16 @@ __calc_account_thumbprint() {
 _regAccount() {
   _initpath
   _reg_length="$1"
+  _debug3 _regAccount "$_regAccount"
+  _initAPI
 
+  mkdir -p "$CA_DIR"
   if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
-    mkdir -p "$CA_DIR"
     _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
     mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
   fi
 
   if [ ! -f "$ACCOUNT_JSON_PATH" ] && [ -f "$_OLD_ACCOUNT_JSON" ]; then
-    mkdir -p "$CA_DIR"
     _info "mv $_OLD_ACCOUNT_JSON to $ACCOUNT_JSON_PATH"
     mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
   fi
@@ -2995,73 +3232,125 @@ _regAccount() {
     return 1
   fi
 
-  _updateTos=""
-  _reg_res="new-reg"
-  while true; do
-    _debug AGREEMENT "$AGREEMENT"
-
-    regjson='{"resource": "'$_reg_res'", "agreement": "'$AGREEMENT'"}'
-
+  if [ "$ACME_VERSION" = "2" ]; then
+    regjson='{"termsOfServiceAgreed": true}'
     if [ "$ACCOUNT_EMAIL" ]; then
-      regjson='{"resource": "'$_reg_res'", "contact": ["mailto: '$ACCOUNT_EMAIL'"], "agreement": "'$AGREEMENT'"}'
+      regjson='{"contact": ["mailto: '$ACCOUNT_EMAIL'"], "termsOfServiceAgreed": true}'
     fi
+  else
+    _reg_res="$ACME_NEW_ACCOUNT_RES"
+    regjson='{"resource": "'$_reg_res'", "terms-of-service-agreed": true, "agreement": "'$ACME_AGREEMENT'"}'
+    if [ "$ACCOUNT_EMAIL" ]; then
+      regjson='{"resource": "'$_reg_res'", "contact": ["mailto: '$ACCOUNT_EMAIL'"], "terms-of-service-agreed": true, "agreement": "'$ACME_AGREEMENT'"}'
+    fi
+  fi
 
-    if [ -z "$_updateTos" ]; then
-      _info "Registering account"
+  _info "Registering account"
 
-      if ! _send_signed_request "$API/acme/new-reg" "$regjson"; then
-        _err "Register account Error: $response"
-        return 1
-      fi
+  if ! _send_signed_request "${ACME_NEW_ACCOUNT}" "$regjson"; then
+    _err "Register account Error: $response"
+    return 1
+  fi
 
-      if [ "$code" = "" ] || [ "$code" = '201' ]; then
-        echo "$response" >"$ACCOUNT_JSON_PATH"
-        _info "Registered"
-      elif [ "$code" = '409' ]; then
-        _info "Already registered"
-      else
-        _err "Register account Error: $response"
-        return 1
-      fi
+  if [ "$code" = "" ] || [ "$code" = '201' ]; then
+    echo "$response" >"$ACCOUNT_JSON_PATH"
+    _info "Registered"
+  elif [ "$code" = '409' ] || [ "$code" = '200' ]; then
+    _info "Already registered"
+  else
+    _err "Register account Error: $response"
+    return 1
+  fi
 
-      _accUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
-      _debug "_accUri" "$_accUri"
+  _debug2 responseHeaders "$responseHeaders"
+  _accUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
+  _debug "_accUri" "$_accUri"
+  if [ -z "$_accUri" ]; then
+    _err "Can not find account id url."
+    _err "$responseHeaders"
+    return 1
+  fi
+  _savecaconf "ACCOUNT_URL" "$_accUri"
+  export ACCOUNT_URL="$_accUri"
 
-      _tos="$(echo "$responseHeaders" | grep "^Link:.*rel=\"terms-of-service\"" | _head_n 1 | _egrep_o "<.*>" | tr -d '<>')"
-      _debug "_tos" "$_tos"
-      if [ -z "$_tos" ]; then
-        _debug "Use default tos: $DEFAULT_AGREEMENT"
-        _tos="$DEFAULT_AGREEMENT"
-      fi
-      if [ "$_tos" != "$AGREEMENT" ]; then
-        _updateTos=1
-        AGREEMENT="$_tos"
-        _reg_res="reg"
-        continue
-      fi
+  CA_KEY_HASH="$(__calcAccountKeyHash)"
+  _debug "Calc CA_KEY_HASH" "$CA_KEY_HASH"
+  _savecaconf CA_KEY_HASH "$CA_KEY_HASH"
 
+  if [ "$code" = '403' ]; then
+    _err "It seems that the account key is already deactivated, please use a new account key."
+    return 1
+  fi
+
+  ACCOUNT_THUMBPRINT="$(__calc_account_thumbprint)"
+  _info "ACCOUNT_THUMBPRINT" "$ACCOUNT_THUMBPRINT"
+}
+
+#Implement deactivate account
+deactivateaccount() {
+  _initpath
+
+  if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
+    _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
+    mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
+  fi
+
+  if [ ! -f "$ACCOUNT_JSON_PATH" ] && [ -f "$_OLD_ACCOUNT_JSON" ]; then
+    _info "mv $_OLD_ACCOUNT_JSON to $ACCOUNT_JSON_PATH"
+    mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
+  fi
+
+  if [ ! -f "$ACCOUNT_KEY_PATH" ]; then
+    _err "Account key is not found at: $ACCOUNT_KEY_PATH"
+    return 1
+  fi
+
+  _accUri=$(_readcaconf "ACCOUNT_URL")
+  _debug _accUri "$_accUri"
+
+  if [ -z "$_accUri" ]; then
+    _err "The account url is empty, please run '--update-account' first to update the account info first,"
+    _err "Then try again."
+    return 1
+  fi
+
+  if ! _calcjwk "$ACCOUNT_KEY_PATH"; then
+    return 1
+  fi
+  _initAPI
+
+  if [ "$ACME_VERSION" = "2" ]; then
+    _djson="{\"status\":\"deactivated\"}"
+  else
+    _djson="{\"resource\": \"reg\", \"status\":\"deactivated\"}"
+  fi
+  if _send_signed_request "$_accUri" "$_djson" && _contains "$response" '"deactivated"'; then
+    _info "Deactivate account success for $_accUri."
+    _accid=$(echo "$response" | _egrep_o "\"id\" *: *[^,]*," | cut -d : -f 2 | tr -d ' ,')
+  elif [ "$code" = "403" ]; then
+    _info "The account is already deactivated."
+    _accid=$(_getfield "$_accUri" "999" "/")
+  else
+    _err "Deactivate: account failed for $_accUri."
+    return 1
+  fi
+
+  _debug "Account id: $_accid"
+  if [ "$_accid" ]; then
+    _deactivated_account_path="$CA_DIR/deactivated/$_accid"
+    _debug _deactivated_account_path "$_deactivated_account_path"
+    if mkdir -p "$_deactivated_account_path"; then
+      _info "Moving deactivated account info to $_deactivated_account_path/"
+      mv "$CA_CONF" "$_deactivated_account_path/"
+      mv "$ACCOUNT_JSON_PATH" "$_deactivated_account_path/"
+      mv "$ACCOUNT_KEY_PATH" "$_deactivated_account_path/"
     else
-      _debug "Update tos: $_tos"
-      if ! _send_signed_request "$_accUri" "$regjson"; then
-        _err "Update tos error."
-        return 1
-      fi
-      if [ "$code" = '202' ]; then
-        _info "Update success."
-
-        CA_KEY_HASH="$(__calcAccountKeyHash)"
-        _debug "Calc CA_KEY_HASH" "$CA_KEY_HASH"
-        _savecaconf CA_KEY_HASH "$CA_KEY_HASH"
-      else
-        _err "Update account error."
-        return 1
-      fi
+      _err "Can not create dir: $_deactivated_account_path, try to remove the deactivated account key."
+      rm -f "$CA_CONF"
+      rm -f "$ACCOUNT_JSON_PATH"
+      rm -f "$ACCOUNT_KEY_PATH"
     fi
-    ACCOUNT_THUMBPRINT="$(__calc_account_thumbprint)"
-    _info "ACCOUNT_THUMBPRINT" "$ACCOUNT_THUMBPRINT"
-    return 0
-  done
-
+  fi
 }
 
 # domain folder  file
@@ -3095,12 +3384,12 @@ _findHook() {
 __get_domain_new_authz() {
   _gdnd="$1"
   _info "Getting new-authz for domain" "$_gdnd"
-
+  _initAPI
   _Max_new_authz_retry_times=5
   _authz_i=0
   while [ "$_authz_i" -lt "$_Max_new_authz_retry_times" ]; do
     _debug "Try new-authz for the $_authz_i time."
-    if ! _send_signed_request "$API/acme/new-authz" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$(_idn "$_gdnd")\"}}"; then
+    if ! _send_signed_request "${ACME_NEW_AUTHZ}" "{\"resource\": \"new-authz\", \"identifier\": {\"type\": \"dns\", \"value\": \"$(_idn "$_gdnd")\"}}"; then
       _err "Can not get domain new authz."
       return 1
     fi
@@ -3123,7 +3412,7 @@ __get_domain_new_authz() {
     _err "new-authz retry reach the max $_Max_new_authz_retry_times times."
   fi
 
-  if [ ! -z "$code" ] && [ ! "$code" = '201' ]; then
+  if [ "$code" ] && [ "$code" != '201' ]; then
     _err "new-authz error: $response"
     return 1
   fi
@@ -3137,7 +3426,11 @@ __trigger_validation() {
   _debug2 _t_url "$_t_url"
   _t_key_authz="$2"
   _debug2 _t_key_authz "$_t_key_authz"
-  _send_signed_request "$_t_url" "{\"resource\": \"challenge\", \"keyAuthorization\": \"$_t_key_authz\"}"
+  if [ "$ACME_VERSION" = "2" ]; then
+    _send_signed_request "$_t_url" "{\"keyAuthorization\": \"$_t_key_authz\"}"
+  else
+    _send_signed_request "$_t_url" "{\"resource\": \"challenge\", \"keyAuthorization\": \"$_t_key_authz\"}"
+  fi
 }
 
 #webroot, domain domainlist  keylength
@@ -3153,10 +3446,14 @@ issue() {
   _web_roots="$1"
   _main_domain="$2"
   _alt_domains="$3"
+
   if _contains "$_main_domain" ","; then
     _main_domain=$(echo "$2,$3" | cut -d , -f 1)
     _alt_domains=$(echo "$2,$3" | cut -d , -f 2- | sed "s/,${NO_VALUE}$//")
   fi
+  _debug _main_domain "$_main_domain"
+  _debug _alt_domains "$_alt_domains"
+
   _key_length="$4"
   _real_cert="$5"
   _real_key="$6"
@@ -3167,7 +3464,7 @@ issue() {
   _post_hook="${11}"
   _renew_hook="${12}"
   _local_addr="${13}"
-
+  _challenge_alias="${14}"
   #remove these later.
   if [ "$_web_roots" = "dns-cf" ]; then
     _web_roots="dns_cf"
@@ -3178,12 +3475,20 @@ issue() {
   if [ "$_web_roots" = "dns-cx" ]; then
     _web_roots="dns_cx"
   fi
-  _debug "Using api: $API"
 
   if [ ! "$IS_RENEW" ]; then
     _initpath "$_main_domain" "$_key_length"
     mkdir -p "$DOMAIN_PATH"
   fi
+
+  if _hasfield "$_web_roots" "$W_DNS" && [ -z "$FORCE_DNS_MANUAL" ]; then
+    _err "$_DNS_MANUAL_ERROR"
+    return 1
+  fi
+
+  _debug "Using ACME_DIRECTORY: $ACME_DIRECTORY"
+
+  _initAPI
 
   if [ -f "$DOMAIN_CONF" ]; then
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
@@ -3217,8 +3522,13 @@ issue() {
   else
     _cleardomainconf "Le_LocalAddress"
   fi
+  if [ "$_challenge_alias" ]; then
+    _savedomainconf "Le_ChallengeAlias" "$_challenge_alias"
+  else
+    _cleardomainconf "Le_ChallengeAlias"
+  fi
 
-  Le_API="$API"
+  Le_API="$ACME_DIRECTORY"
   _savedomainconf "Le_API" "$Le_API"
 
   if [ "$_alt_domains" = "$NO_VALUE" ]; then
@@ -3237,7 +3547,7 @@ issue() {
   _saved_account_key_hash="$(_readcaconf "CA_KEY_HASH")"
   _debug2 _saved_account_key_hash "$_saved_account_key_hash"
 
-  if [ -z "$_saved_account_key_hash" ] || [ "$_saved_account_key_hash" != "$(__calcAccountKeyHash)" ]; then
+  if [ -z "$ACCOUNT_URL" ] || [ -z "$_saved_account_key_hash" ] || [ "$_saved_account_key_hash" != "$(__calcAccountKeyHash)" ]; then
     if ! _regAccount "$_accountkeylength"; then
       _on_issue_err "$_post_hook"
       return 1
@@ -3251,7 +3561,7 @@ issue() {
   else
     _key=$(_readdomainconf Le_Keylength)
     _debug "Read key length:$_key"
-    if [ ! -f "$CERT_KEY_PATH" ] || [ "$_key_length" != "$_key" ]; then
+    if [ ! -f "$CERT_KEY_PATH" ] || [ "$_key_length" != "$_key" ] || [ "$Le_ForceNewDomainKey" = "1" ]; then
       if ! createDomainKey "$_main_domain" "$_key_length"; then
         _err "Create domain key error."
         _clearup
@@ -3276,32 +3586,123 @@ issue() {
   sep='#'
   dvsep=','
   if [ -z "$vlist" ]; then
-    alldomains=$(echo "$_main_domain,$_alt_domains" | tr ',' ' ')
-    _index=1
+    if [ "$ACME_VERSION" = "2" ]; then
+      #make new order request
+      _identifiers="{\"type\":\"dns\",\"value\":\"$_main_domain\"}"
+      _w_index=1
+      while true; do
+        d="$(echo "$_alt_domains," | cut -d , -f "$_w_index")"
+        _w_index="$(_math "$_w_index" + 1)"
+        _debug d "$d"
+        if [ -z "$d" ]; then
+          break
+        fi
+        _identifiers="$_identifiers,{\"type\":\"dns\",\"value\":\"$d\"}"
+      done
+      _debug2 _identifiers "$_identifiers"
+      if ! _send_signed_request "$ACME_NEW_ORDER" "{\"identifiers\": [$_identifiers]}"; then
+        _err "Create new order error."
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
+
+      Le_OrderFinalize="$(echo "$response" | tr -d '\r\n' | _egrep_o '"finalize" *: *"[^"]*"' | cut -d '"' -f 4)"
+      _debug Le_OrderFinalize "$Le_OrderFinalize"
+      if [ -z "$Le_OrderFinalize" ]; then
+        _err "Create new order error. Le_OrderFinalize not found. $response"
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
+
+      #for dns manual mode
+      _savedomainconf "Le_OrderFinalize" "$Le_OrderFinalize"
+
+      _authorizations_seg="$(echo "$response" | tr -d '\r\n' | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
+      _debug2 _authorizations_seg "$_authorizations_seg"
+      if [ -z "$_authorizations_seg" ]; then
+        _err "_authorizations_seg not found."
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
+
+      #domain and authz map
+      _authorizations_map=""
+      for _authz_url in $(echo "$_authorizations_seg" | tr ',' ' '); do
+        _debug2 "_authz_url" "$_authz_url"
+        if ! response="$(_get "$_authz_url")"; then
+          _err "get to authz error."
+          _err "_authorizations_seg" "$_authorizations_seg"
+          _err "_authz_url" "$_authz_url"
+          _clearup
+          _on_issue_err "$_post_hook"
+          return 1
+        fi
+
+        response="$(echo "$response" | _normalizeJson)"
+        _debug2 response "$response"
+        _d="$(echo "$response" | _egrep_o '"value" *: *"[^"]*"' | cut -d : -f 2 | tr -d ' "')"
+        if _contains "$response" "\"wildcard\" *: *true"; then
+          _d="*.$_d"
+        fi
+        _debug2 _d "$_d"
+        _authorizations_map="$_d,$response
+$_authorizations_map"
+      done
+      _debug2 _authorizations_map "$_authorizations_map"
+    fi
+
+    _index=0
     _currentRoot=""
-    for d in $alldomains; do
+    _w_index=1
+    while true; do
+      d="$(echo "$_main_domain,$_alt_domains," | cut -d , -f "$_w_index")"
+      _w_index="$(_math "$_w_index" + 1)"
+      _debug d "$d"
+      if [ -z "$d" ]; then
+        break
+      fi
       _info "Getting webroot for domain" "$d"
+      _index=$(_math $_index + 1)
       _w="$(echo $_web_roots | cut -d , -f $_index)"
       _debug _w "$_w"
       if [ "$_w" ]; then
         _currentRoot="$_w"
       fi
       _debug "_currentRoot" "$_currentRoot"
-      _index=$(_math $_index + 1)
 
       vtype="$VTYPE_HTTP"
-      if _startswith "$_currentRoot" "dns"; then
+      #todo, v2 wildcard force to use dns
+      if _startswith "$_currentRoot" "$W_DNS"; then
         vtype="$VTYPE_DNS"
       fi
 
       if [ "$_currentRoot" = "$W_TLS" ]; then
-        vtype="$VTYPE_TLS"
+        if [ "$ACME_VERSION" = "2" ]; then
+          vtype="$VTYPE_TLS2"
+        else
+          vtype="$VTYPE_TLS"
+        fi
       fi
 
-      if ! __get_domain_new_authz "$d"; then
-        _clearup
-        _on_issue_err "$_post_hook"
-        return 1
+      if [ "$ACME_VERSION" = "2" ]; then
+        response="$(echo "$_authorizations_map" | grep "^$d," | sed "s/$d,//")"
+        _debug2 "response" "$response"
+        if [ -z "$response" ]; then
+          _err "get to authz error."
+          _err "_authorizations_map" "$_authorizations_map"
+          _clearup
+          _on_issue_err "$_post_hook"
+          return 1
+        fi
+      else
+        if ! __get_domain_new_authz "$d"; then
+          _clearup
+          _on_issue_err "$_post_hook"
+          return 1
+        fi
       fi
 
       if [ -z "$thumbprint" ]; then
@@ -3311,7 +3712,11 @@ issue() {
       entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
       if [ -z "$entry" ]; then
-        _err "Error, can not get domain token $d"
+        _err "Error, can not get domain token entry $d"
+        _supported_vtypes="$(echo "$response" | _egrep_o "\"challenges\":\[[^]]*]" | tr '{' "\n" | grep type | cut -d '"' -f 4 | tr "\n" ' ')"
+        if [ "$_supported_vtypes" ]; then
+          _err "The supported validation types are: $_supported_vtypes, but you specified: $vtype"
+        fi
         _clearup
         _on_issue_err "$_post_hook"
         return 1
@@ -3319,14 +3724,30 @@ issue() {
       token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
       _debug token "$token"
 
-      uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d : -f 2,3 | tr -d '"')"
+      if [ -z "$token" ]; then
+        _err "Error, can not get domain token $entry"
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
+      if [ "$ACME_VERSION" = "2" ]; then
+        uri="$(printf "%s\n" "$entry" | _egrep_o '"url":"[^"]*' | cut -d '"' -f 4 | _head_n 1)"
+      else
+        uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d '"' -f 4)"
+      fi
       _debug uri "$uri"
 
+      if [ -z "$uri" ]; then
+        _err "Error, can not get domain uri. $entry"
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
       keyauthorization="$token.$thumbprint"
       _debug keyauthorization "$keyauthorization"
 
       if printf "%s" "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
-        _debug "$d is already verified, skip."
+        _debug "$d is already verified."
         keyauthorization="$STATE_VERIFIED"
         _debug keyauthorization "$keyauthorization"
       fi
@@ -3341,12 +3762,13 @@ issue() {
     #add entry
     dnsadded=""
     ventries=$(echo "$vlist" | tr "$dvsep" ' ')
+    _alias_index=1
     for ventry in $ventries; do
       d=$(echo "$ventry" | cut -d "$sep" -f 1)
       keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
       vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
       _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
-
+      _debug d "$d"
       if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
         _debug "$d is already verified, skip $vtype."
         continue
@@ -3354,23 +3776,42 @@ issue() {
 
       if [ "$vtype" = "$VTYPE_DNS" ]; then
         dnsadded='0'
-        txtdomain="_acme-challenge.$d"
+        _dns_root_d="$d"
+        if _startswith "$_dns_root_d" "*."; then
+          _dns_root_d="$(echo "$_dns_root_d" | sed 's/*.//')"
+        fi
+        _d_alias="$(_getfield "$_challenge_alias" "$_alias_index")"
+        _alias_index="$(_math "$_alias_index" + 1)"
+        _debug "_d_alias" "$_d_alias"
+        if [ "$_d_alias" ]; then
+          if _startswith "$_d_alias" "$DNS_ALIAS_PREFIX"; then
+            txtdomain="$(echo "$_d_alias" | sed "s/$DNS_ALIAS_PREFIX//")"
+          else
+            txtdomain="_acme-challenge.$_d_alias"
+          fi
+        else
+          txtdomain="_acme-challenge.$_dns_root_d"
+        fi
         _debug txtdomain "$txtdomain"
         txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
         _debug txt "$txt"
 
-        d_api="$(_findHook "$d" dnsapi "$_currentRoot")"
+        d_api="$(_findHook "$_dns_root_d" dnsapi "$_currentRoot")"
 
         _debug d_api "$d_api"
 
         if [ "$d_api" ]; then
           _info "Found domain api file: $d_api"
         else
-          _err "Add the following TXT record:"
-          _err "Domain: '$(__green "$txtdomain")'"
-          _err "TXT value: '$(__green "$txt")'"
-          _err "Please be aware that you prepend _acme-challenge. before your domain"
-          _err "so the resulting subdomain will be: $txtdomain"
+          if [ "$_currentRoot" != "$W_DNS" ]; then
+            _err "Can not find dns api hook for: $_currentRoot"
+            _info "You need to add the txt record manually."
+          fi
+          _info "$(__red "Add the following TXT record:")"
+          _info "$(__red "Domain: '$(__green "$txtdomain")'")"
+          _info "$(__red "TXT value: '$(__green "$txt")'")"
+          _info "$(__red "Please be aware that you prepend _acme-challenge. before your domain")"
+          _info "$(__red "so the resulting subdomain will be: $txtdomain")"
           continue
         fi
 
@@ -3394,7 +3835,7 @@ issue() {
 
         if [ "$?" != "0" ]; then
           _clearup
-          _on_issue_err "$_post_hook"
+          _on_issue_err "$_post_hook" "$vlist"
           return 1
         fi
         dnsadded='1'
@@ -3404,7 +3845,7 @@ issue() {
     if [ "$dnsadded" = '0' ]; then
       _savedomainconf "Le_Vlist" "$vlist"
       _debug "Dns record not added yet, so, save to $DOMAIN_CONF and exit."
-      _err "Please add the TXT records to the domains, and retry again."
+      _err "Please add the TXT records to the domains, and re-run with --renew."
       _clearup
       _on_issue_err "$_post_hook"
       return 1
@@ -3454,13 +3895,12 @@ issue() {
         _info "Standalone mode server"
         _ncaddr="$(_getfield "$_local_addr" "$_ncIndex")"
         _ncIndex="$(_math $_ncIndex + 1)"
-        _startserver "$keyauthorization" "$_ncaddr" &
+        _startserver "$keyauthorization" "$_ncaddr"
         if [ "$?" != "0" ]; then
           _clearup
           _on_issue_err "$_post_hook" "$vlist"
           return 1
         fi
-        serverproc="$!"
         sleep 1
         _debug serverproc "$serverproc"
       elif [ "$_currentRoot" = "$MODE_STATELESS" ]; then
@@ -3569,12 +4009,16 @@ issue() {
       return 1
     fi
 
-    if [ ! -z "$code" ] && [ ! "$code" = '202' ]; then
-      _err "$d:Challenge error: $response"
-      _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
-      _clearup
-      _on_issue_err "$_post_hook" "$vlist"
-      return 1
+    if [ "$code" ] && [ "$code" != '202' ]; then
+      if [ "$ACME_VERSION" = "2" ] && [ "$code" = '200' ]; then
+        _debug "trigger validation code: $code"
+      else
+        _err "$d:Challenge error: $response"
+        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearup
+        _on_issue_err "$_post_hook" "$vlist"
+        return 1
+      fi
     fi
 
     waittimes=0
@@ -3657,18 +4101,44 @@ issue() {
   _info "Verify finished, start to sign."
   der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _url_replace)"
 
-  if ! _send_signed_request "$API/acme/new-cert" "{\"resource\": \"new-cert\", \"csr\": \"$der\"}" "needbase64"; then
-    _err "Sign failed."
-    _on_issue_err "$_post_hook"
-    return 1
-  fi
+  if [ "$ACME_VERSION" = "2" ]; then
+    if ! _send_signed_request "${Le_OrderFinalize}" "{\"csr\": \"$der\"}"; then
+      _err "Sign failed."
+      _on_issue_err "$_post_hook"
+      return 1
+    fi
+    if [ "$code" != "200" ]; then
+      _err "Sign failed, code is not 200."
+      _err "$response"
+      _on_issue_err "$_post_hook"
+      return 1
+    fi
+    Le_LinkCert="$(echo "$response" | tr -d '\r\n' | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
 
-  _rcert="$response"
-  Le_LinkCert="$(grep -i '^Location.*$' "$HTTP_HEADER" | _head_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
-  _debug "Le_LinkCert" "$Le_LinkCert"
-  _savedomainconf "Le_LinkCert" "$Le_LinkCert"
+    if ! _get "$Le_LinkCert" >"$CERT_PATH"; then
+      _err "Sign failed, can not download cert:$Le_LinkCert."
+      _err "$response"
+      _on_issue_err "$_post_hook"
+      return 1
+    fi
 
-  if [ "$Le_LinkCert" ]; then
+    if [ "$(grep -- "$BEGIN_CERT" "$CERT_PATH" | wc -l)" -gt "1" ]; then
+      _debug "Found cert chain"
+      cat "$CERT_PATH" >"$CERT_FULLCHAIN_PATH"
+      _end_n="$(grep -n -- "$END_CERT" "$CERT_FULLCHAIN_PATH" | _head_n 1 | cut -d : -f 1)"
+      _debug _end_n "$_end_n"
+      sed -n "1,${_end_n}p" "$CERT_FULLCHAIN_PATH" >"$CERT_PATH"
+      _end_n="$(_math $_end_n + 1)"
+      sed -n "${_end_n},9999p" "$CERT_FULLCHAIN_PATH" >"$CA_CERT_PATH"
+    fi
+  else
+    if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"$ACME_NEW_ORDER_RES\", \"csr\": \"$der\"}" "needbase64"; then
+      _err "Sign failed. $response"
+      _on_issue_err "$_post_hook"
+      return 1
+    fi
+    _rcert="$response"
+    Le_LinkCert="$(grep -i '^Location.*$' "$HTTP_HEADER" | _tail_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
     echo "$BEGIN_CERT" >"$CERT_PATH"
 
     #if ! _get "$Le_LinkCert" | _base64 "multiline"  >> "$CERT_PATH" ; then
@@ -3682,6 +4152,19 @@ issue() {
     fi
 
     echo "$END_CERT" >>"$CERT_PATH"
+  fi
+
+  _debug "Le_LinkCert" "$Le_LinkCert"
+  _savedomainconf "Le_LinkCert" "$Le_LinkCert"
+
+  if [ -z "$Le_LinkCert" ] || ! _checkcert "$CERT_PATH"; then
+    response="$(echo "$response" | _dbase64 "multiline" | tr -d '\0' | _normalizeJson)"
+    _err "Sign failed: $(echo "$response" | _egrep_o '"detail":"[^"]*"')"
+    _on_issue_err "$_post_hook"
+    return 1
+  fi
+
+  if [ "$Le_LinkCert" ]; then
     _info "$(__green "Cert success.")"
     cat "$CERT_PATH"
 
@@ -3691,56 +4174,62 @@ issue() {
       _info "Your cert key is in $(__green " $CERT_KEY_PATH ")"
     fi
 
-    cp "$CERT_PATH" "$CERT_FULLCHAIN_PATH"
-
     if [ ! "$USER_PATH" ] || [ ! "$IN_CRON" ]; then
       USER_PATH="$PATH"
       _saveaccountconf "USER_PATH" "$USER_PATH"
     fi
   fi
 
-  if [ -z "$Le_LinkCert" ]; then
-    response="$(echo "$response" | _dbase64 "multiline" | _normalizeJson)"
-    _err "Sign failed: $(echo "$response" | _egrep_o '"detail":"[^"]*"')"
-    _on_issue_err "$_post_hook"
-    return 1
-  fi
-
   _cleardomainconf "Le_Vlist"
 
-  Le_LinkIssuer=$(grep -i '^Link' "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2 | cut -d ';' -f 1 | tr -d '<>')
-  if ! _contains "$Le_LinkIssuer" ":"; then
-    Le_LinkIssuer="$API$Le_LinkIssuer"
-  fi
-  _debug Le_LinkIssuer "$Le_LinkIssuer"
-  _savedomainconf "Le_LinkIssuer" "$Le_LinkIssuer"
-
-  if [ "$Le_LinkIssuer" ]; then
-    _link_issuer_retry=0
-    _MAX_ISSUER_RETRY=5
-    while [ "$_link_issuer_retry" -lt "$_MAX_ISSUER_RETRY" ]; do
-      _debug _link_issuer_retry "$_link_issuer_retry"
-      if _get "$Le_LinkIssuer" >"$CA_CERT_PATH.der"; then
-        echo "$BEGIN_CERT" >"$CA_CERT_PATH"
-        _base64 "multiline" <"$CA_CERT_PATH.der" >>"$CA_CERT_PATH"
-        echo "$END_CERT" >>"$CA_CERT_PATH"
-
-        _info "The intermediate CA cert is in $(__green " $CA_CERT_PATH ")"
-        cat "$CA_CERT_PATH" >>"$CERT_FULLCHAIN_PATH"
-        _info "And the full chain certs is there: $(__green " $CERT_FULLCHAIN_PATH ")"
-
-        rm -f "$CA_CERT_PATH.der"
-        break
-      fi
-      _link_issuer_retry=$(_math $_link_issuer_retry + 1)
-      _sleep "$_link_issuer_retry"
-    done
-    if [ "$_link_issuer_retry" = "$_MAX_ISSUER_RETRY" ]; then
-      _err "Max retry for issuer ca cert is reached."
-    fi
+  if [ "$ACME_VERSION" = "2" ]; then
+    _debug "v2 chain."
   else
-    _debug "No Le_LinkIssuer header found."
+    cp "$CERT_PATH" "$CERT_FULLCHAIN_PATH"
+    Le_LinkIssuer=$(grep -i '^Link' "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2 | cut -d ';' -f 1 | tr -d '<>')
+
+    if [ "$Le_LinkIssuer" ]; then
+      if ! _contains "$Le_LinkIssuer" ":"; then
+        _info "$(__red "Relative issuer link found.")"
+        Le_LinkIssuer="$_ACME_SERVER_HOST$Le_LinkIssuer"
+      fi
+      _debug Le_LinkIssuer "$Le_LinkIssuer"
+      _savedomainconf "Le_LinkIssuer" "$Le_LinkIssuer"
+
+      _link_issuer_retry=0
+      _MAX_ISSUER_RETRY=5
+      while [ "$_link_issuer_retry" -lt "$_MAX_ISSUER_RETRY" ]; do
+        _debug _link_issuer_retry "$_link_issuer_retry"
+        if [ "$ACME_VERSION" = "2" ]; then
+          if _get "$Le_LinkIssuer" >"$CA_CERT_PATH"; then
+            break
+          fi
+        else
+          if _get "$Le_LinkIssuer" >"$CA_CERT_PATH.der"; then
+            echo "$BEGIN_CERT" >"$CA_CERT_PATH"
+            _base64 "multiline" <"$CA_CERT_PATH.der" >>"$CA_CERT_PATH"
+            echo "$END_CERT" >>"$CA_CERT_PATH"
+            if ! _checkcert "$CA_CERT_PATH"; then
+              _err "Can not get the ca cert."
+              break
+            fi
+            cat "$CA_CERT_PATH" >>"$CERT_FULLCHAIN_PATH"
+            rm -f "$CA_CERT_PATH.der"
+            break
+          fi
+        fi
+        _link_issuer_retry=$(_math $_link_issuer_retry + 1)
+        _sleep "$_link_issuer_retry"
+      done
+      if [ "$_link_issuer_retry" = "$_MAX_ISSUER_RETRY" ]; then
+        _err "Max retry for issuer ca cert is reached."
+      fi
+    else
+      _debug "No Le_LinkIssuer header found."
+    fi
   fi
+  [ -f "$CA_CERT_PATH" ] && _info "The intermediate CA cert is in $(__green " $CA_CERT_PATH ")"
+  [ -f "$CERT_FULLCHAIN_PATH" ] && _info "And the full chain certs is there: $(__green " $CERT_FULLCHAIN_PATH ")"
 
   Le_CertCreateTime=$(_time)
   _savedomainconf "Le_CertCreateTime" "$Le_CertCreateTime"
@@ -3780,6 +4269,12 @@ issue() {
     _cleardomainconf Le_Listen_V4
   fi
 
+  if [ "$Le_ForceNewDomainKey" = "1" ]; then
+    _savedomainconf "Le_ForceNewDomainKey" "$Le_ForceNewDomainKey"
+  else
+    _cleardomainconf Le_ForceNewDomainKey
+  fi
+
   Le_NextRenewTime=$(_math "$Le_CertCreateTime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
 
   Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
@@ -3788,7 +4283,10 @@ issue() {
   Le_NextRenewTime=$(_math "$Le_NextRenewTime" - 86400)
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
 
-  _on_issue_success "$_post_hook" "$_renew_hook"
+  if ! _on_issue_success "$_post_hook" "$_renew_hook"; then
+    _err "Call hook error."
+    return 1
+  fi
 
   if [ "$_real_cert$_real_key$_real_ca$_reload_cmd$_real_fullchain" ]; then
     _savedomainconf "Le_RealCertPath" "$_real_cert"
@@ -3824,9 +4322,17 @@ renew() {
   fi
 
   . "$DOMAIN_CONF"
-
+  _debug Le_API "$Le_API"
   if [ "$Le_API" ]; then
-    API="$Le_API"
+    if [ "$_OLD_CA_HOST" = "$Le_API" ]; then
+      export Le_API="$DEFAULT_CA"
+      _savedomainconf Le_API "$Le_API"
+    fi
+    if [ "$_OLD_STAGE_CA_HOST" = "$Le_API" ]; then
+      export Le_API="$DEFAULT_STAGING_CA"
+      _savedomainconf Le_API "$Le_API"
+    fi
+    export ACME_DIRECTORY="$Le_API"
     #reload ca configs
     ACCOUNT_KEY_PATH=""
     ACCOUNT_JSON_PATH=""
@@ -3841,8 +4347,13 @@ renew() {
     return "$RENEW_SKIP"
   fi
 
+  if [ "$IN_CRON" = "1" ] && [ -z "$Le_CertCreateTime" ]; then
+    _info "Skip invalid cert for: $Le_Domain"
+    return 0
+  fi
+
   IS_RENEW="1"
-  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress"
+  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias"
   res="$?"
   if [ "$res" != "0" ]; then
     return "$res"
@@ -3906,7 +4417,16 @@ signcsr() {
     return 1
   fi
 
-  _initpath
+  _real_cert="$3"
+  _real_key="$4"
+  _real_ca="$5"
+  _reload_cmd="$6"
+  _real_fullchain="$7"
+  _pre_hook="${8}"
+  _post_hook="${9}"
+  _renew_hook="${10}"
+  _local_addr="${11}"
+  _challenge_alias="${12}"
 
   _csrsubj=$(_readSubjectFromCSR "$_csrfile")
   if [ "$?" != "0" ]; then
@@ -3914,6 +4434,10 @@ signcsr() {
     return 1
   fi
   _debug _csrsubj "$_csrsubj"
+  if _contains "$_csrsubj" ' ' || ! _contains "$_csrsubj" '.'; then
+    _info "It seems that the subject: $_csrsubj is not a valid domain name. Drop it."
+    _csrsubj=""
+  fi
 
   _csrdomainlist=$(_readSubjectAltNamesFromCSR "$_csrfile")
   if [ "$?" != "0" ]; then
@@ -3940,13 +4464,16 @@ signcsr() {
     return 1
   fi
 
+  if [ -z "$ACME_VERSION" ] && _contains "$_csrsubj,$_csrdomainlist" "*."; then
+    export ACME_VERSION=2
+  fi
   _initpath "$_csrsubj" "$_csrkeylength"
   mkdir -p "$DOMAIN_PATH"
 
   _info "Copy csr to: $CSR_PATH"
   cp "$_csrfile" "$CSR_PATH"
 
-  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength"
+  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_addr" "$_challenge_alias"
 
 }
 
@@ -4165,7 +4692,12 @@ _installcert() {
     if [ -f "$_real_key" ] && [ ! "$IS_RENEW" ]; then
       cp "$_real_key" "$_backup_path/key.bak"
     fi
-    cat "$CERT_KEY_PATH" >"$_real_key"
+    if [ -f "$_real_key" ]; then
+      cat "$CERT_KEY_PATH" >"$_real_key"
+    else
+      cat "$CERT_KEY_PATH" >"$_real_key"
+      chmod 600 "$_real_key"
+    fi
   fi
 
   if [ "$_real_fullchain" ]; then
@@ -4198,15 +4730,19 @@ _installcert() {
 installcronjob() {
   _c_home="$1"
   _initpath
-  if ! _exists "crontab"; then
-    _err "crontab doesn't exist, so, we can not install cron jobs."
+  _CRONTAB="crontab"
+  if ! _exists "$_CRONTAB" && _exists "fcrontab"; then
+    _CRONTAB="fcrontab"
+  fi
+  if ! _exists "$_CRONTAB"; then
+    _err "crontab/fcrontab doesn't exist, so, we can not install cron jobs."
     _err "All your certs will not be renewed automatically."
     _err "You must add your own cron job to call '$PROJECT_ENTRY --cron' everyday."
     return 1
   fi
 
   _info "Installing cron job"
-  if ! crontab -l | grep "$PROJECT_ENTRY --cron"; then
+  if ! $_CRONTAB -l | grep "$PROJECT_ENTRY --cron"; then
     if [ -f "$LE_WORKING_DIR/$PROJECT_ENTRY" ]; then
       lesh="\"$LE_WORKING_DIR\"/$PROJECT_ENTRY"
     else
@@ -4220,15 +4756,15 @@ installcronjob() {
     _t=$(_time)
     random_minute=$(_math $_t % 60)
     if _exists uname && uname -a | grep SunOS >/dev/null; then
-      crontab -l | {
+      $_CRONTAB -l | {
         cat
         echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
-      } | crontab --
+      } | $_CRONTAB --
     else
-      crontab -l | {
+      $_CRONTAB -l | {
         cat
         echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
-      } | crontab -
+      } | $_CRONTAB -
     fi
   fi
   if [ "$?" != "0" ]; then
@@ -4240,16 +4776,21 @@ installcronjob() {
 }
 
 uninstallcronjob() {
-  if ! _exists "crontab"; then
+  _CRONTAB="crontab"
+  if ! _exists "$_CRONTAB" && _exists "fcrontab"; then
+    _CRONTAB="fcrontab"
+  fi
+
+  if ! _exists "$_CRONTAB"; then
     return
   fi
   _info "Removing cron job"
-  cr="$(crontab -l | grep "$PROJECT_ENTRY --cron")"
+  cr="$($_CRONTAB -l | grep "$PROJECT_ENTRY --cron")"
   if [ "$cr" ]; then
     if _exists uname && uname -a | grep solaris >/dev/null; then
-      crontab -l | sed "/$PROJECT_ENTRY --cron/d" | crontab --
+      $_CRONTAB -l | sed "/$PROJECT_ENTRY --cron/d" | $_CRONTAB --
     else
-      crontab -l | sed "/$PROJECT_ENTRY --cron/d" | crontab -
+      $_CRONTAB -l | sed "/$PROJECT_ENTRY --cron/d" | $_CRONTAB -
     fi
     LE_WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 9 | tr -d '"')"
     _info LE_WORKING_DIR "$LE_WORKING_DIR"
@@ -4289,8 +4830,14 @@ revoke() {
     return 1
   fi
 
-  data="{\"resource\": \"revoke-cert\", \"certificate\": \"$cert\"}"
-  uri="$API/acme/revoke-cert"
+  _initAPI
+
+  if [ "$ACME_VERSION" = "2" ]; then
+    data="{\"certificate\": \"$cert\"}"
+  else
+    data="{\"resource\": \"revoke-cert\", \"certificate\": \"$cert\"}"
+  fi
+  uri="${ACME_REVOKE_CERT}"
 
   if [ -f "$CERT_KEY_PATH" ]; then
     _info "Try domain key first."
@@ -4360,12 +4907,36 @@ _deactivate() {
   _d_type="$2"
   _initpath
 
-  _d_i=0
-  _d_max_retry=9
-  while [ "$_d_i" -lt "$_d_max_retry" ]; do
-    _info "Deactivate: $_d_domain"
-    _d_i="$(_math $_d_i + 1)"
+  if [ "$ACME_VERSION" = "2" ]; then
+    _identifiers="{\"type\":\"dns\",\"value\":\"$_d_domain\"}"
+    if ! _send_signed_request "$ACME_NEW_ORDER" "{\"identifiers\": [$_identifiers]}"; then
+      _err "Can not get domain new order."
+      return 1
+    fi
+    _authorizations_seg="$(echo "$response" | tr -d '\r\n' | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
+    _debug2 _authorizations_seg "$_authorizations_seg"
+    if [ -z "$_authorizations_seg" ]; then
+      _err "_authorizations_seg not found."
+      _clearup
+      _on_issue_err "$_post_hook"
+      return 1
+    fi
 
+    authzUri="$_authorizations_seg"
+    _debug2 "authzUri" "$authzUri"
+    if ! response="$(_get "$authzUri")"; then
+      _err "get to authz error."
+      _err "_authorizations_seg" "$_authorizations_seg"
+      _err "authzUri" "$authzUri"
+      _clearup
+      _on_issue_err "$_post_hook"
+      return 1
+    fi
+
+    response="$(echo "$response" | _normalizeJson)"
+    _debug2 response "$response"
+    _URL_NAME="url"
+  else
     if ! __get_domain_new_authz "$_d_domain"; then
       _err "Can not get domain new authz token."
       return 1
@@ -4373,13 +4944,45 @@ _deactivate() {
 
     authzUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
     _debug "authzUri" "$authzUri"
-
-    if [ ! -z "$code" ] && [ ! "$code" = '201' ]; then
+    if [ "$code" ] && [ ! "$code" = '201' ]; then
       _err "new-authz error: $response"
       return 1
     fi
+    _URL_NAME="uri"
+  fi
 
-    entry="$(printf "%s\n" "$response" | _egrep_o '{"type":"[^"]*","status":"valid","uri"[^}]*')"
+  entries="$(echo "$response" | _egrep_o "{ *\"type\":\"[^\"]*\", *\"status\": *\"valid\", *\"$_URL_NAME\"[^}]*")"
+  if [ -z "$entries" ]; then
+    _info "No valid entries found."
+    if [ -z "$thumbprint" ]; then
+      thumbprint="$(__calc_account_thumbprint)"
+    fi
+    _debug "Trigger validation."
+    vtype="$VTYPE_DNS"
+    entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
+    _debug entry "$entry"
+    if [ -z "$entry" ]; then
+      _err "Error, can not get domain token $d"
+      return 1
+    fi
+    token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
+    _debug token "$token"
+
+    uri="$(printf "%s\n" "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
+    _debug uri "$uri"
+
+    keyauthorization="$token.$thumbprint"
+    _debug keyauthorization "$keyauthorization"
+    __trigger_validation "$uri" "$keyauthorization"
+
+  fi
+
+  _d_i=0
+  _d_max_retry=$(echo "$entries" | wc -l)
+  while [ "$_d_i" -lt "$_d_max_retry" ]; do
+    _info "Deactivate: $_d_domain"
+    _d_i="$(_math $_d_i + 1)"
+    entry="$(echo "$entries" | sed -n "${_d_i}p")"
     _debug entry "$entry"
 
     if [ -z "$entry" ]; then
@@ -4391,7 +4994,7 @@ _deactivate() {
     _debug _vtype "$_vtype"
     _info "Found $_vtype"
 
-    uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d : -f 2,3 | tr -d '"')"
+    uri="$(printf "%s\n" "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
     _debug uri "$uri"
 
     if [ "$_d_type" ] && [ "$_d_type" != "$_vtype" ]; then
@@ -4401,16 +5004,22 @@ _deactivate() {
 
     _info "Deactivate: $_vtype"
 
-    if ! _send_signed_request "$authzUri" "{\"resource\": \"authz\", \"status\":\"deactivated\"}"; then
-      _err "Can not deactivate $_vtype."
-      return 1
+    if [ "$ACME_VERSION" = "2" ]; then
+      _djson="{\"status\":\"deactivated\"}"
+    else
+      _djson="{\"resource\": \"authz\", \"status\":\"deactivated\"}"
     fi
 
-    _info "Deactivate: $_vtype success."
+    if _send_signed_request "$authzUri" "$_djson" && _contains "$response" '"deactivated"'; then
+      _info "Deactivate: $_vtype success."
+    else
+      _err "Can not deactivate $_vtype."
+      break
+    fi
 
   done
   _debug "$_d_i"
-  if [ "$_d_i" -lt "$_d_max_retry" ]; then
+  if [ "$_d_i" -eq "$_d_max_retry" ]; then
     _info "Deactivated success!"
   else
     _err "Deactivate failed."
@@ -4422,6 +5031,7 @@ deactivate() {
   _d_domain_list="$1"
   _d_type="$2"
   _initpath
+  _initAPI
   _debug _d_domain_list "$_d_domain_list"
   if [ -z "$(echo $_d_domain_list | cut -d , -f 1)" ]; then
     _usage "Usage: $PROJECT_ENTRY --deactivate -d domain.com [-d domain.com]"
@@ -4469,9 +5079,7 @@ _detect_profile() {
     fi
   fi
 
-  if [ ! -z "$DETECTED_PROFILE" ]; then
-    echo "$DETECTED_PROFILE"
-  fi
+  echo "$DETECTED_PROFILE"
 }
 
 _initconf() {
@@ -4500,7 +5108,7 @@ _precheck() {
   fi
 
   if [ -z "$_nocron" ]; then
-    if ! _exists "crontab"; then
+    if ! _exists "crontab" && ! _exists "fcrontab"; then
       _err "It is recommended to install crontab first. try to install 'cron, crontab, crontabs or vixie-cron'."
       _err "We need to set cron job to renew the certs automatically."
       _err "Otherwise, your certs will not be able to be renewed automatically."
@@ -4518,9 +5126,9 @@ _precheck() {
     return 1
   fi
 
-  if ! _exists "nc"; then
-    _err "It is recommended to install nc first, try to install 'nc' or 'netcat'."
-    _err "We use nc for standalone server if you use standalone mode."
+  if ! _exists "socat"; then
+    _err "It is recommended to install socat first."
+    _err "We use socat for standalone server if you use standalone mode."
     _err "If you don't use standalone mode, just ignore this warning."
   fi
 
@@ -4559,6 +5167,8 @@ _installalias() {
   _setopt "$_envfile" "export LE_WORKING_DIR" "=" "\"$LE_WORKING_DIR\""
   if [ "$_c_home" ]; then
     _setopt "$_envfile" "export LE_CONFIG_HOME" "=" "\"$LE_CONFIG_HOME\""
+  else
+    _sed_i "/^export LE_CONFIG_HOME/d" "$_envfile"
   fi
   _setopt "$_envfile" "alias $PROJECT_ENTRY" "=" "\"$LE_WORKING_DIR/$PROJECT_ENTRY$_c_entry\""
 
@@ -4580,6 +5190,8 @@ _installalias() {
     _setopt "$_cshfile" "setenv LE_WORKING_DIR" " " "\"$LE_WORKING_DIR\""
     if [ "$_c_home" ]; then
       _setopt "$_cshfile" "setenv LE_CONFIG_HOME" " " "\"$LE_CONFIG_HOME\""
+    else
+      _sed_i "/^setenv LE_CONFIG_HOME/d" "$_cshfile"
     fi
     _setopt "$_cshfile" "alias $PROJECT_ENTRY" " " "\"$LE_WORKING_DIR/$PROJECT_ENTRY$_c_entry\""
     _setopt "$_csh_profile" "source \"$_cshfile\""
@@ -4599,7 +5211,7 @@ _installalias() {
 
 }
 
-# nocron confighome
+# nocron confighome noprofile
 install() {
 
   if [ -z "$LE_WORKING_DIR" ]; then
@@ -4608,6 +5220,7 @@ install() {
 
   _nocron="$1"
   _c_home="$2"
+  _noprofile="$3"
   if ! _initpath; then
     _err "Install failed."
     return 1
@@ -4616,9 +5229,16 @@ install() {
     _debug "Skip install cron job"
   fi
 
-  if ! _precheck "$_nocron"; then
-    _err "Pre-check failed, can not install."
-    return 1
+  if [ "$IN_CRON" != "1" ]; then
+    if ! _precheck "$_nocron"; then
+      _err "Pre-check failed, can not install."
+      return 1
+    fi
+  fi
+
+  if [ -z "$_c_home" ] && [ "$LE_CONFIG_HOME" != "$LE_WORKING_DIR" ]; then
+    _info "Using config home: $LE_CONFIG_HOME"
+    _c_home="$LE_CONFIG_HOME"
   fi
 
   #convert from le
@@ -4639,19 +5259,23 @@ install() {
 
   _info "Installing to $LE_WORKING_DIR"
 
-  if ! mkdir -p "$LE_WORKING_DIR"; then
-    _err "Can not create working dir: $LE_WORKING_DIR"
-    return 1
+  if [ ! -d "$LE_WORKING_DIR" ]; then
+    if ! mkdir -p "$LE_WORKING_DIR"; then
+      _err "Can not create working dir: $LE_WORKING_DIR"
+      return 1
+    fi
+
+    chmod 700 "$LE_WORKING_DIR"
   fi
 
-  chmod 700 "$LE_WORKING_DIR"
+  if [ ! -d "$LE_CONFIG_HOME" ]; then
+    if ! mkdir -p "$LE_CONFIG_HOME"; then
+      _err "Can not create config dir: $LE_CONFIG_HOME"
+      return 1
+    fi
 
-  if ! mkdir -p "$LE_CONFIG_HOME"; then
-    _err "Can not create config dir: $LE_CONFIG_HOME"
-    return 1
+    chmod 700 "$LE_CONFIG_HOME"
   fi
-
-  chmod 700 "$LE_CONFIG_HOME"
 
   cp "$PROJECT_ENTRY" "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/$PROJECT_ENTRY"
 
@@ -4662,7 +5286,9 @@ install() {
 
   _info "Installed to $LE_WORKING_DIR/$PROJECT_ENTRY"
 
-  _installalias "$_c_home"
+  if [ "$IN_CRON" != "1" ] && [ -z "$_noprofile" ]; then
+    _installalias "$_c_home"
+  fi
 
   for subf in $_SUB_FOLDERS; do
     if [ -d "$subf" ]; then
@@ -4694,8 +5320,14 @@ install() {
   if [ -z "$NO_DETECT_SH" ]; then
     #Modify shebang
     if _exists bash; then
+      _bash_path="$(bash -c "command -v bash 2>/dev/null")"
+      if [ -z "$_bash_path" ]; then
+        _bash_path="$(bash -c 'echo $SHELL')"
+      fi
+    fi
+    if [ "$_bash_path" ]; then
       _info "Good, bash is found, so change the shebang to use bash as preferred."
-      _shebang='#!'"$(env bash -c "command -v bash")"
+      _shebang='#!'"$_bash_path"
       _setShebang "$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
       for subf in $_SUB_FOLDERS; do
         if [ -d "$LE_WORKING_DIR/$subf" ]; then
@@ -4752,7 +5384,7 @@ _uninstallalias() {
 }
 
 cron() {
-  IN_CRON=1
+  export IN_CRON=1
   _initpath
   _info "$(__green "===Starting cron===")"
   if [ "$AUTO_UPGRADE" = "1" ]; then
@@ -4800,7 +5432,7 @@ Commands:
   --renew, -r              Renew a cert.
   --renew-all              Renew all the certs.
   --revoke                 Revoke a cert.
-  --remove                 Remove the cert from $PROJECT
+  --remove                 Remove the cert from list of certs known to $PROJECT_NAME.
   --list                   List all the certs.
   --showcsr                Show the content of a csr.
   --install-cronjob        Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
@@ -4810,6 +5442,7 @@ Commands:
   --toPkcs8                Convert to pkcs8 format.
   --update-account         Update account info.
   --register-account       Register account key.
+  --deactivate-account     Deactivate the account.
   --create-account-key     Create an account private key, professional use.
   --create-domain-key      Create an domain private key, professional use.
   --createCSR, -ccsr       Create CSR , professional use.
@@ -4817,6 +5450,8 @@ Commands:
 
 Parameters:
   --domain, -d   domain.tld         Specifies a domain, used to issue, renew or revoke etc.
+  --challenge-alias domain.tld      The challenge domain alias for DNS alias mode: $_DNS_ALIAS_WIKI
+  --domain-alias domain.tld         The domain alias for DNS alias mode: $_DNS_ALIAS_WIKI
   --force, -f                       Used to force to install or force to renew a cert immediately.
   --staging, --test                 Use staging server, just for test.
   --debug                           Output debug info.
@@ -4824,7 +5459,6 @@ Parameters:
   --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
   --stateless                       Use stateless mode, see: $_STATELESS_WIKI
-  --tls                             Use standalone tls mode.
   --apache                          Use apache mode.
   --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
   --dnssleep  [$DEFAULT_DNS_SLEEP]                  The time in seconds to wait for all the txt records to take effect in dns api mode. Default $DEFAULT_DNS_SLEEP seconds.
@@ -4844,16 +5478,16 @@ Parameters:
 
   --reloadcmd \"service nginx reload\" After issue/renew, it's used to reload the server.
 
+  --server SERVER                   ACME Directory Resource URI. (default: https://acme-v01.api.letsencrypt.org/directory)
   --accountconf                     Specifies a customized account config file.
   --home                            Specifies the home dir for $PROJECT_NAME .
   --cert-home                       Specifies the home dir to save all the certs, only valid for '--install' command.
   --config-home                     Specifies the home dir to save all the configurations.
   --useragent                       Specifies the user agent string. it will be saved for future use too.
-  --accountemail                    Specifies the account email for registering, Only valid for the '--install' command.
-  --accountkey                      Specifies the account key path, Only valid for the '--install' command.
+  --accountemail                    Specifies the account email, only valid for the '--install' and '--update-account' command.
+  --accountkey                      Specifies the account key path, only valid for the '--install' command.
   --days                            Specifies the days to renew the cert when using '--issue' command. The max value is $MAX_RENEW days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
-  --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --local-address                   Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
   --listraw                         Only used for '--list' command, list the certs in raw format.
   --stopRenewOnError, -se           Only valid for '--renew-all' command. Stop if one cert has error in renewal.
@@ -4861,6 +5495,7 @@ Parameters:
   --ca-bundle                       Specifies the path to the CA certificate bundle to verify api server's certificate.
   --ca-path                         Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
+  --no-color                        Do not output color text.
   --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
   --csr                             Specifies the input csr.
   --pre-hook                        Command to be run before obtaining any certificates.
@@ -4868,18 +5503,21 @@ Parameters:
   --renew-hook                      Command to be run once for each successfully renewed certificate.
   --deploy-hook                     The hook file to deploy cert
   --ocsp-must-staple, --ocsp        Generate ocsp must Staple extension.
+  --always-force-new-domain-key     Generate new domain key when renewal. Otherwise, the domain key is not changed by default.
   --auto-upgrade   [0|1]            Valid for '--upgrade' command, indicating whether to upgrade automatically in future.
   --listen-v4                       Force standalone/tls server to listen at ipv4.
   --listen-v6                       Force standalone/tls server to listen at ipv6.
   --openssl-bin                     Specifies a custom openssl bin location.
   --use-wget                        Force to use wget, if you have both curl and wget installed.
+  --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force to use dns manual mode: $_DNS_MANUAL_WIKI
   "
 }
 
-# nocron
+# nocron noprofile
 _installOnline() {
   _info "Installing from online archive."
   _nocron="$1"
+  _noprofile="$2"
   if [ ! "$BRANCH" ]; then
     BRANCH="master"
   fi
@@ -4900,7 +5538,7 @@ _installOnline() {
 
     cd "$PROJECT_NAME-$BRANCH"
     chmod +x $PROJECT_ENTRY
-    if ./$PROJECT_ENTRY install "$_nocron"; then
+    if ./$PROJECT_ENTRY install "$_nocron" "" "$_noprofile"; then
       _info "Install success!"
     fi
 
@@ -4916,7 +5554,7 @@ upgrade() {
     _initpath
     export LE_WORKING_DIR
     cd "$LE_WORKING_DIR"
-    _installOnline "nocron"
+    _installOnline "nocron" "noprofile"
   ); then
     _info "Upgrade success!"
     exit 0
@@ -4964,6 +5602,7 @@ _process() {
   _domain=""
   _altdomains="$NO_VALUE"
   _webroot=""
+  _challenge_alias=""
   _keylength=""
   _accountkeylength=""
   _cert_file=""
@@ -5003,6 +5642,7 @@ _process() {
   _openssl_bin=""
   _syslog=""
   _use_wget=""
+  _server=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -5086,6 +5726,9 @@ _process() {
       --registeraccount | --register-account)
         _CMD="registeraccount"
         ;;
+      --deactivate-account)
+        _CMD="deactivateaccount"
+        ;;
       --domain | -d)
         _dvalue="$2"
 
@@ -5099,6 +5742,10 @@ _process() {
             return 1
           fi
 
+          if _startswith "$_dvalue" "*."; then
+            _debug "Wildcard domain"
+            export ACME_VERSION=2
+          fi
           if [ -z "$_domain" ]; then
             _domain="$_dvalue"
           else
@@ -5119,6 +5766,12 @@ _process() {
       --staging | --test)
         STAGE="1"
         ;;
+      --server)
+        ACME_DIRECTORY="$2"
+        _server="$ACME_DIRECTORY"
+        export ACME_DIRECTORY
+        shift
+        ;;
       --debug)
         if [ -z "$2" ] || _startswith "$2" "-"; then
           DEBUG="$DEBUG_LEVEL_DEFAULT"
@@ -5137,6 +5790,16 @@ _process() {
         else
           _webroot="$_webroot,$wvalue"
         fi
+        shift
+        ;;
+      --challenge-alias)
+        cvalue="$2"
+        _challenge_alias="$_challenge_alias$cvalue,"
+        shift
+        ;;
+      --domain-alias)
+        cvalue="$DNS_ALIAS_PREFIX$2"
+        _challenge_alias="$_challenge_alias$cvalue,"
         shift
         ;;
       --standalone)
@@ -5176,17 +5839,9 @@ _process() {
           _webroot="$_webroot,$wvalue"
         fi
         ;;
-      --tls)
-        wvalue="$W_TLS"
-        if [ -z "$_webroot" ]; then
-          _webroot="$wvalue"
-        else
-          _webroot="$_webroot,$wvalue"
-        fi
-        ;;
       --dns)
-        wvalue="dns"
-        if ! _startswith "$2" "-"; then
+        wvalue="$W_DNS"
+        if [ "$2" ] && ! _startswith "$2" "-"; then
           wvalue="$2"
           shift
         fi
@@ -5279,12 +5934,6 @@ _process() {
         Le_HTTPPort="$_httpport"
         shift
         ;;
-      --tlsport)
-        _tlsport="$2"
-        Le_TLSPort="$_tlsport"
-        shift
-        ;;
-
       --listraw)
         _listraw="raw"
         ;;
@@ -5296,7 +5945,7 @@ _process() {
         HTTPS_INSECURE="1"
         ;;
       --ca-bundle)
-        _ca_bundle="$(_readlink -f "$2")"
+        _ca_bundle="$(_readlink "$2")"
         CA_BUNDLE="$_ca_bundle"
         shift
         ;;
@@ -5307,6 +5956,9 @@ _process() {
         ;;
       --nocron)
         _nocron="1"
+        ;;
+      --no-color)
+        export ACME_NO_COLOR=1
         ;;
       --ecc)
         _ecc="isEcc"
@@ -5337,6 +5989,17 @@ _process() {
         ;;
       --ocsp-must-staple | --ocsp)
         Le_OCSP_Staple="1"
+        ;;
+      --always-force-new-domain-key)
+        if [ -z "$2" ] || _startswith "$2" "-"; then
+          Le_ForceNewDomainKey=1
+        else
+          Le_ForceNewDomainKey="$2"
+          shift
+        fi
+        ;;
+      --yes-I-know-dns-manual-mode-enough-go-ahead-please)
+        export FORCE_DNS_MANUAL=1
         ;;
       --log | --logfile)
         _log="1"
@@ -5439,6 +6102,9 @@ _process() {
 
   if [ "$DEBUG" ]; then
     version
+    if [ "$_server" ]; then
+      _debug "Using server: $_server"
+    fi
   fi
 
   case "${_CMD}" in
@@ -5446,13 +6112,13 @@ _process() {
     uninstall) uninstall "$_nocron" ;;
     upgrade) upgrade ;;
     issue)
-      issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address"
+      issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias"
       ;;
     deploy)
       deploy "$_domain" "$_deploy_hook" "$_ecc"
       ;;
     signcsr)
-      signcsr "$_csr" "$_webroot"
+      signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias"
       ;;
     showcsr)
       showcsr "$_csr" "$_domain"
@@ -5480,6 +6146,9 @@ _process() {
       ;;
     updateaccount)
       updateaccount
+      ;;
+    deactivateaccount)
+      deactivateaccount
       ;;
     list)
       list "$_listraw"

@@ -4,6 +4,7 @@
 # Repository: https://github.com/ClouDNS/acme.sh/
 
 #CLOUDNS_AUTH_ID=XXXXX
+#CLOUDNS_SUB_AUTH_ID=XXXXX
 #CLOUDNS_AUTH_PASSWORD="YYYYYYYYY"
 CLOUDNS_API="https://api.cloudns.net"
 
@@ -25,30 +26,18 @@ dns_cloudns_add() {
 
   host="$(echo "$1" | sed "s/\.$zone\$//")"
   record=$2
-  record_id=$(_dns_cloudns_get_record_id "$zone" "$host")
 
   _debug zone "$zone"
   _debug host "$host"
   _debug record "$record"
-  _debug record_id "$record_id"
 
-  if [ -z "$record_id" ]; then
-    _info "Adding the TXT record for $1"
-    _dns_cloudns_http_api_call "dns/add-record.json" "domain-name=$zone&record-type=TXT&host=$host&record=$record&ttl=60"
-    if ! _contains "$response" "\"status\":\"Success\""; then
-      _err "Record cannot be added."
-      return 1
-    fi
-    _info "Added."
-  else
-    _info "Updating the TXT record for $1"
-    _dns_cloudns_http_api_call "dns/mod-record.json" "domain-name=$zone&record-id=$record_id&record-type=TXT&host=$host&record=$record&ttl=60"
-    if ! _contains "$response" "\"status\":\"Success\""; then
-      _err "The TXT record for $1 cannot be updated."
-      return 1
-    fi
-    _info "Updated."
+  _info "Adding the TXT record for $1"
+  _dns_cloudns_http_api_call "dns/add-record.json" "domain-name=$zone&record-type=TXT&host=$host&record=$record&ttl=60"
+  if ! _contains "$response" "\"status\":\"Success\""; then
+    _err "Record cannot be added."
+    return 1
   fi
+  _info "Added."
 
   return 0
 }
@@ -71,22 +60,32 @@ dns_cloudns_rm() {
 
   host="$(echo "$1" | sed "s/\.$zone\$//")"
   record=$2
-  record_id=$(_dns_cloudns_get_record_id "$zone" "$host")
 
-  _debug zone "$zone"
-  _debug host "$host"
-  _debug record "$record"
-  _debug record_id "$record_id"
-
-  if [ ! -z "$record_id" ]; then
-    _info "Deleting the TXT record for $1"
-    _dns_cloudns_http_api_call "dns/delete-record.json" "domain-name=$zone&record-id=$record_id"
-    if ! _contains "$response" "\"status\":\"Success\""; then
-      _err "The TXT record for $1 cannot be deleted."
-      return 1
-    fi
-    _info "Deleted."
+  _dns_cloudns_http_api_call "dns/records.json" "domain-name=$zone&host=$host&type=TXT"
+  if ! _contains "$response" "\"id\":"; then
+    return 1
   fi
+
+  for i in $(echo "$response" | tr '{' "\n" | grep "$record"); do
+    record_id=$(echo "$i" | tr ',' "\n" | grep -E '^"id"' | sed -re 's/^\"id\"\:\"([0-9]+)\"$/\1/g')
+
+    if [ ! -z "$record_id" ]; then
+      _debug zone "$zone"
+      _debug host "$host"
+      _debug record "$record"
+      _debug record_id "$record_id"
+
+      _info "Deleting the TXT record for $1"
+      _dns_cloudns_http_api_call "dns/delete-record.json" "domain-name=$zone&record-id=$record_id"
+
+      if ! _contains "$response" "\"status\":\"Success\""; then
+        _err "The TXT record for $1 cannot be deleted."
+      else
+        _info "Deleted."
+      fi
+    fi
+  done
+
   return 0
 }
 
@@ -96,8 +95,20 @@ _dns_cloudns_init_check() {
     return 0
   fi
 
-  if [ -z "$CLOUDNS_AUTH_ID" ]; then
-    _err "CLOUDNS_AUTH_ID is not configured"
+  CLOUDNS_AUTH_ID="${CLOUDNS_AUTH_ID:-$(_readaccountconf_mutable CLOUDNS_AUTH_ID)}"
+  CLOUDNS_SUB_AUTH_ID="${CLOUDNS_SUB_AUTH_ID:-$(_readaccountconf_mutable CLOUDNS_SUB_AUTH_ID)}"
+  CLOUDNS_AUTH_PASSWORD="${CLOUDNS_AUTH_PASSWORD:-$(_readaccountconf_mutable CLOUDNS_AUTH_PASSWORD)}"
+  if [ -z "$CLOUDNS_AUTH_ID$CLOUDNS_SUB_AUTH_ID" ] || [ -z "$CLOUDNS_AUTH_PASSWORD" ]; then
+    CLOUDNS_AUTH_ID=""
+    CLOUDNS_SUB_AUTH_ID=""
+    CLOUDNS_AUTH_PASSWORD=""
+    _err "You don't specify cloudns api id and password yet."
+    _err "Please create you id and password and try again."
+    return 1
+  fi
+
+  if [ -z "$CLOUDNS_AUTH_ID" ] && [ -z "$CLOUDNS_SUB_AUTH_ID" ]; then
+    _err "CLOUDNS_AUTH_ID or CLOUDNS_SUB_AUTH_ID is not configured"
     return 1
   fi
 
@@ -112,6 +123,11 @@ _dns_cloudns_init_check() {
     _err "Invalid CLOUDNS_AUTH_ID or CLOUDNS_AUTH_PASSWORD. Please check your login credentials."
     return 1
   fi
+
+  # save the api id and password to the account conf file.
+  _saveaccountconf_mutable CLOUDNS_AUTH_ID "$CLOUDNS_AUTH_ID"
+  _saveaccountconf_mutable CLOUDNS_SUB_AUTH_ID "$CLOUDNS_SUB_AUTH_ID"
+  _saveaccountconf_mutable CLOUDNS_AUTH_PASSWORD "$CLOUDNS_AUTH_PASSWORD"
 
   CLOUDNS_INIT_CHECK_COMPLETED=1
 
@@ -141,30 +157,28 @@ _dns_cloudns_get_zone_name() {
   return 1
 }
 
-_dns_cloudns_get_record_id() {
-  _dns_cloudns_http_api_call "dns/records.json" "domain-name=$1&host=$2&type=TXT"
-  if _contains "$response" "\"id\":"; then
-    echo "$response" | cut -d '"' -f 2
-    return 0
-  fi
-  return 1
-}
-
 _dns_cloudns_http_api_call() {
   method=$1
 
   _debug CLOUDNS_AUTH_ID "$CLOUDNS_AUTH_ID"
+  _debug CLOUDNS_SUB_AUTH_ID "$CLOUDNS_SUB_AUTH_ID"
   _debug CLOUDNS_AUTH_PASSWORD "$CLOUDNS_AUTH_PASSWORD"
 
-  if [ -z "$2" ]; then
-    data="auth-id=$CLOUDNS_AUTH_ID&auth-password=$CLOUDNS_AUTH_PASSWORD"
+  if [ ! -z "$CLOUDNS_SUB_AUTH_ID" ]; then
+    auth_user="sub-auth-id=$CLOUDNS_SUB_AUTH_ID"
   else
-    data="auth-id=$CLOUDNS_AUTH_ID&auth-password=$CLOUDNS_AUTH_PASSWORD&$2"
+    auth_user="auth-id=$CLOUDNS_AUTH_ID"
+  fi
+
+  if [ -z "$2" ]; then
+    data="$auth_user&auth-password=$CLOUDNS_AUTH_PASSWORD"
+  else
+    data="$auth_user&auth-password=$CLOUDNS_AUTH_PASSWORD&$2"
   fi
 
   response="$(_get "$CLOUDNS_API/$method?$data")"
 
-  _debug2 response "$response"
+  _debug response "$response"
 
   return 0
 }

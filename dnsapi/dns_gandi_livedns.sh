@@ -11,7 +11,7 @@
 #
 ########  Public functions #####################
 
-GANDI_LIVEDNS_API="https://dns.beta.gandi.net/api/v5"
+GANDI_LIVEDNS_API="https://dns.api.gandi.net/api/v5"
 
 #Usage: dns_gandi_livedns_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_gandi_livedns_add() {
@@ -37,7 +37,7 @@ dns_gandi_livedns_add() {
   _debug sub_domain "$_sub_domain"
 
   _gandi_livedns_rest PUT "domains/$_domain/records/$_sub_domain/TXT" "{\"rrset_ttl\": 300, \"rrset_values\":[\"$txtvalue\"]}" \
-    && _contains "$response" '{"message": "Zone Record Created"}' \
+    && _contains "$response" '{"message": "DNS Record Created"}' \
     && _info "Add $(__green "success")"
 }
 

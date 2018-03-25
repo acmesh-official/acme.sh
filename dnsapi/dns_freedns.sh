@@ -53,6 +53,9 @@ dns_freedns_add() {
   i="$(_math "$i" - 1)"
   sub_domain="$(echo "$fulldomain" | cut -d. -f -"$i")"
 
+  _debug "top_domain: $top_domain"
+  _debug "sub_domain: $sub_domain"
+
   # Sometimes FreeDNS does not return the subdomain page but rather
   # returns a page regarding becoming a premium member.  This usually
   # happens after a period of inactivity.  Immediately trying again
@@ -71,18 +74,9 @@ dns_freedns_add() {
       return 1
     fi
 
-    # Now convert the tables in the HTML to CSV.  This litte gem from
-    # http://stackoverflow.com/questions/1403087/how-can-i-convert-an-html-table-to-csv
-    subdomain_csv="$(echo "$htmlpage" \
-      | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' \
-      | sed 's/^[\ \t]*//g' \
-      | tr -d '\n' \
-      | sed 's/<\/TR[^>]*>/\n/Ig' \
-      | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' \
-      | sed 's/^<T[DH][^>]*>\|<\/\?T[DH][^>]*>$//Ig' \
-      | sed 's/<\/T[DH][^>]*><T[DH][^>]*>/,/Ig' \
-      | grep 'edit.php?' \
-      | grep "$top_domain")"
+    subdomain_csv="$(echo "$htmlpage" | tr -d "\n\r" | _egrep_o '<form .*</form>' | sed 's/<tr>/@<tr>/g' | tr '@' '\n' | grep edit.php | grep "$top_domain")"
+    _debug3 "subdomain_csv: $subdomain_csv"
+
     # The above beauty ends with striping out rows that do not have an
     # href to edit.php and do not have the top domain we are looking for.
     # So all we should be left with is CSV of table of subdomains we are
@@ -90,55 +84,27 @@ dns_freedns_add() {
 
     # Now we have to read through this table and extract the data we need
     lines="$(echo "$subdomain_csv" | wc -l)"
-    nl='
-'
     i=0
     found=0
+    DNSdomainid=""
     while [ "$i" -lt "$lines" ]; do
       i="$(_math "$i" + 1)"
-      line="$(echo "$subdomain_csv" | cut -d "$nl" -f "$i")"
-      tmp="$(echo "$line" | cut -d ',' -f 1)"
-      if [ $found = 0 ] && _startswith "$tmp" "<td>$top_domain"; then
+      line="$(echo "$subdomain_csv" | sed -n "${i}p")"
+      _debug2 "line: $line"
+      if [ $found = 0 ] && _contains "$line" "<td>$top_domain</td>"; then
         # this line will contain DNSdomainid for the top_domain
-        DNSdomainid="$(echo "$line" | cut -d ',' -f 2 | sed 's/^.*domain_id=//;s/>.*//')"
+        DNSdomainid="$(echo "$line" | _egrep_o "edit_domain_id *= *.*>" | cut -d = -f 2 | cut -d '>' -f 1)"
+        _debug2 "DNSdomainid: $DNSdomainid"
         found=1
-      else
-        # lines contain DNS records for all subdomains
-        DNSname="$(echo "$line" | cut -d ',' -f 2 | sed 's/^[^>]*>//;s/<\/a>.*//')"
-        DNStype="$(echo "$line" | cut -d ',' -f 3)"
-        if [ "$DNSname" = "$fulldomain" ] && [ "$DNStype" = "TXT" ]; then
-          DNSdataid="$(echo "$line" | cut -d ',' -f 2 | sed 's/^.*data_id=//;s/>.*//')"
-          # Now get current value for the TXT record.  This method may
-          # not produce accurate results as the value field is truncated
-          # on this webpage. To get full value we would need to load
-          # another page. However we don't really need this so long as
-          # there is only one TXT record for the acme challenge subdomain.
-          DNSvalue="$(echo "$line" | cut -d ',' -f 4 | sed 's/^[^&quot;]*&quot;//;s/&quot;.*//;s/<\/td>.*//')"
-          if [ $found != 0 ]; then
-            break
-            # we are breaking out of the loop at the first match of DNS name
-            # and DNS type (if we are past finding the domainid). This assumes
-            # that there is only ever one TXT record for the LetsEncrypt/acme
-            # challenge subdomain.  This seems to be a reasonable assumption
-            # as the acme client deletes the TXT record on successful validation.
-          fi
-        else
-          DNSname=""
-          DNStype=""
-        fi
+        break
       fi
     done
-
-    _debug "DNSname: $DNSname DNStype: $DNStype DNSdomainid: $DNSdomainid DNSdataid: $DNSdataid"
-    _debug "DNSvalue: $DNSvalue"
 
     if [ -z "$DNSdomainid" ]; then
       # If domain ID is empty then something went wrong (top level
       # domain not found at FreeDNS).
       if [ "$attempts" = "0" ]; then
         # exhausted maximum retry attempts
-        _debug "$htmlpage"
-        _debug "$subdomain_csv"
         _err "Domain $top_domain not found at FreeDNS"
         return 1
       fi
@@ -150,34 +116,10 @@ dns_freedns_add() {
     _info "Retry loading subdomain page ($attempts attempts remaining)"
   done
 
-  if [ -z "$DNSdataid" ]; then
-    # If data ID is empty then specific subdomain does not exist yet, need
-    # to create it this should always be the case as the acme client
-    # deletes the entry after domain is validated.
-    _freedns_add_txt_record "$FREEDNS_COOKIE" "$DNSdomainid" "$sub_domain" "$txtvalue"
-    return $?
-  else
-    if [ "$txtvalue" = "$DNSvalue" ]; then
-      # if value in TXT record matches value requested then DNS record
-      # does not need to be updated. But...
-      # Testing value match fails.  Website is truncating the value field.
-      # So for now we will always go down the else path.  Though in theory
-      # should never come here anyway as the acme client deletes
-      # the TXT record on successful validation, so we should not even
-      # have found a TXT record !!
-      _info "No update necessary for $fulldomain at FreeDNS"
-      return 0
-    else
-      # Delete the old TXT record (with the wrong value)
-      _freedns_delete_txt_record "$FREEDNS_COOKIE" "$DNSdataid"
-      if [ "$?" = "0" ]; then
-        # And add in new TXT record with the value provided
-        _freedns_add_txt_record "$FREEDNS_COOKIE" "$DNSdomainid" "$sub_domain" "$txtvalue"
-      fi
-      return $?
-    fi
-  fi
-  return 0
+  # Add in new TXT record with the value provided
+  _debug "Adding TXT record for $fulldomain, $txtvalue"
+  _freedns_add_txt_record "$FREEDNS_COOKIE" "$DNSdomainid" "$sub_domain" "$txtvalue"
+  return $?
 }
 
 #Usage: fulldomain txtvalue
@@ -210,18 +152,9 @@ dns_freedns_rm() {
       return 1
     fi
 
-    # Now convert the tables in the HTML to CSV.  This litte gem from
-    # http://stackoverflow.com/questions/1403087/how-can-i-convert-an-html-table-to-csv
-    subdomain_csv="$(echo "$htmlpage" \
-      | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' \
-      | sed 's/^[\ \t]*//g' \
-      | tr -d '\n' \
-      | sed 's/<\/TR[^>]*>/\n/Ig' \
-      | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' \
-      | sed 's/^<T[DH][^>]*>\|<\/\?T[DH][^>]*>$//Ig' \
-      | sed 's/<\/T[DH][^>]*><T[DH][^>]*>/,/Ig' \
-      | grep 'edit.php?' \
-      | grep "$fulldomain")"
+    subdomain_csv="$(echo "$htmlpage" | tr -d "\n\r" | _egrep_o '<form .*</form>' | sed 's/<tr>/@<tr>/g' | tr '@' '\n' | grep edit.php | grep "$fulldomain")"
+    _debug3 "subdomain_csv: $subdomain_csv"
+
     # The above beauty ends with striping out rows that do not have an
     # href to edit.php and do not have the domain name we are looking for.
     # So all we should be left with is CSV of table of subdomains we are
@@ -229,35 +162,53 @@ dns_freedns_rm() {
 
     # Now we have to read through this table and extract the data we need
     lines="$(echo "$subdomain_csv" | wc -l)"
-    nl='
-'
     i=0
     found=0
+    DNSdataid=""
     while [ "$i" -lt "$lines" ]; do
       i="$(_math "$i" + 1)"
-      line="$(echo "$subdomain_csv" | cut -d "$nl" -f "$i")"
-      DNSname="$(echo "$line" | cut -d ',' -f 2 | sed 's/^[^>]*>//;s/<\/a>.*//')"
-      DNStype="$(echo "$line" | cut -d ',' -f 3)"
-      if [ "$DNSname" = "$fulldomain" ] && [ "$DNStype" = "TXT" ]; then
-        DNSdataid="$(echo "$line" | cut -d ',' -f 2 | sed 's/^.*data_id=//;s/>.*//')"
-        DNSvalue="$(echo "$line" | cut -d ',' -f 4 | sed 's/^[^&quot;]*&quot;//;s/&quot;.*//;s/<\/td>.*//')"
-        _debug "DNSvalue: $DNSvalue"
-        #     if [ "$DNSvalue" = "$txtvalue" ]; then
-        # Testing value match fails.  Website is truncating the value
-        # field. So for now we will assume that there is only one TXT
-        # field for the sub domain and just delete it. Currently this
-        # is a safe assumption.
-        _freedns_delete_txt_record "$FREEDNS_COOKIE" "$DNSdataid"
-        return $?
-        #     fi
+      line="$(echo "$subdomain_csv" | sed -n "${i}p")"
+      _debug3 "line: $line"
+      DNSname="$(echo "$line" | _egrep_o 'edit.php.*</a>' | cut -d '>' -f 2 | cut -d '<' -f 1)"
+      _debug2 "DNSname: $DNSname"
+      if [ "$DNSname" = "$fulldomain" ]; then
+        DNStype="$(echo "$line" | sed 's/<td/@<td/g' | tr '@' '\n' | sed -n '4p' | cut -d '>' -f 2 | cut -d '<' -f 1)"
+        _debug2 "DNStype: $DNStype"
+        if [ "$DNStype" = "TXT" ]; then
+          DNSdataid="$(echo "$line" | _egrep_o 'data_id=.*' | cut -d = -f 2 | cut -d '>' -f 1)"
+          _debug2 "DNSdataid: $DNSdataid"
+          DNSvalue="$(echo "$line" | sed 's/<td/@<td/g' | tr '@' '\n' | sed -n '5p' | cut -d '>' -f 2 | cut -d '<' -f 1)"
+          if _startswith "$DNSvalue" "&quot;"; then
+            # remove the quotation from the start
+            DNSvalue="$(echo "$DNSvalue" | cut -c 7-)"
+          fi
+          if _endswith "$DNSvalue" "..."; then
+            # value was truncated, remove the dot dot dot from the end
+            DNSvalue="$(echo "$DNSvalue" | sed 's/...$//')"
+          elif _endswith "$DNSvalue" "&quot;"; then
+            # else remove the closing quotation from the end
+            DNSvalue="$(echo "$DNSvalue" | sed 's/......$//')"
+          fi
+          _debug2 "DNSvalue: $DNSvalue"
+
+          if [ -n "$DNSdataid" ] && _startswith "$txtvalue" "$DNSvalue"; then
+            # Found a match. But note... Website is truncating the
+            # value field so we are only testing that part that is not 
+            # truncated.  This should be accurate enough.
+            _debug "Deleting TXT record for $fulldomain, $txtvalue"
+            _freedns_delete_txt_record "$FREEDNS_COOKIE" "$DNSdataid"
+            return $?
+          fi
+
+        fi
       fi
     done
   done
 
   # If we get this far we did not find a match (after two attempts)
   # Not necessarily an error, but log anyway.
-  _debug2 "$subdomain_csv"
-  _info "Cannot delete TXT record for $fulldomain/$txtvalue. Does not exist at FreeDNS"
+  _debug3 "$subdomain_csv"
+  _info "Cannot delete TXT record for $fulldomain, $txtvalue. Does not exist at FreeDNS"
   return 0
 }
 
@@ -285,7 +236,7 @@ _freedns_login() {
 
   # if cookies is not empty then logon successful
   if [ -z "$cookies" ]; then
-    _debug "$htmlpage"
+    _debug3 "htmlpage: $htmlpage"
     _err "FreeDNS login failed for user $username. Check $HTTP_HEADER file"
     return 1
   fi
@@ -314,7 +265,7 @@ _freedns_retrieve_subdomain_page() {
     return 1
   fi
 
-  _debug2 "$htmlpage"
+  _debug3 "htmlpage: $htmlpage"
 
   printf "%s" "$htmlpage"
   return 0
@@ -328,7 +279,7 @@ _freedns_add_txt_record() {
   domain_id="$2"
   subdomain="$3"
   value="$(printf '%s' "$4" | _url_encode)"
-  url="http://freedns.afraid.org/subdomain/save.php?step=2"
+  url="https://freedns.afraid.org/subdomain/save.php?step=2"
 
   htmlpage="$(_post "type=TXT&domain_id=$domain_id&subdomain=$subdomain&address=%22$value%22&send=Save%21" "$url")"
 
@@ -336,17 +287,17 @@ _freedns_add_txt_record() {
     _err "FreeDNS failed to add TXT record for $subdomain bad RC from _post"
     return 1
   elif ! grep "200 OK" "$HTTP_HEADER" >/dev/null; then
-    _debug "$htmlpage"
+    _debug3 "htmlpage: $htmlpage"
     _err "FreeDNS failed to add TXT record for $subdomain. Check $HTTP_HEADER file"
     return 1
   elif _contains "$htmlpage" "security code was incorrect"; then
-    _debug "$htmlpage"
+    _debug3 "htmlpage: $htmlpage"
     _err "FreeDNS failed to add TXT record for $subdomain as FreeDNS requested security code"
     _err "Note that you cannot use automatic DNS validation for FreeDNS public domains"
     return 1
   fi
 
-  _debug2 "$htmlpage"
+  _debug3 "htmlpage: $htmlpage"
   _info "Added acme challenge TXT record for $fulldomain at FreeDNS"
   return 0
 }
@@ -365,7 +316,7 @@ _freedns_delete_txt_record() {
     _err "FreeDNS failed to delete TXT record for $data_id bad RC from _get"
     return 1
   elif ! _contains "$htmlheader" "200 OK"; then
-    _debug "$htmlheader"
+    _debug2 "htmlheader: $htmlheader"
     _err "FreeDNS failed to delete TXT record $data_id"
     return 1
   fi
