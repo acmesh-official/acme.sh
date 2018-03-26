@@ -22,7 +22,7 @@ routeros_deploy() {
 
   if [ -z "$ROUTER_OS_HOST" ]; then
     _debug "Using _cdomain as ROUTER_OS_HOST, please set if not correct."
-    ROUTER_OS_HOST = "$_cdomain"
+    ROUTER_OS_HOST="$_cdomain"
   fi
 
   if [ -z "$ROUTER_OS_USERNAME" ]; then
