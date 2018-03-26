@@ -31,8 +31,8 @@ dns_kinghost_add() {
   fi
 
   #save the credentials to the account conf file.
- _saveaccountconf_mutable KINGHOST_Username  "$KINGHOST_Username"
- _saveaccountconf_mutable KINGHOST_Password  "$KINGHOST_Password"
+  _saveaccountconf_mutable KINGHOST_Username "$KINGHOST_Username"
+  _saveaccountconf_mutable KINGHOST_Password "$KINGHOST_Password"
 
   _debug "Getting txt records"
   _kinghost_rest GET "dns" "name=$fulldomain&content=$txtvalue"
