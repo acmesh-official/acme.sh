@@ -39,34 +39,17 @@ dns_dnsimple_add() {
 
   _get_records "$_account_id" "$_domain" "$_sub_domain"
 
-# if [ "$_records_count" = "0" ]; then
-    _info "Adding record"
-    if _dnsimple_rest POST "$_account_id/zones/$_domain/records" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
-      if printf -- "%s" "$response" | grep "\"name\":\"$_sub_domain\"" >/dev/null; then
-        _info "Added"
-        return 0
-      else
-        _err "Unexpected response while adding text record."
-        return 1
-      fi
+  _info "Adding record"
+  if _dnsimple_rest POST "$_account_id/zones/$_domain/records" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
+    if printf -- "%s" "$response" | grep "\"name\":\"$_sub_domain\"" >/dev/null; then
+      _info "Added"
+      return 0
+    else
+      _err "Unexpected response while adding text record."
+      return 1
     fi
-    _err "Add txt record error."
-# else
-#   _info "Updating record"
-#   _extract_record_id "$_records" "$_sub_domain"
-
-#   if _dnsimple_rest \
-#     PATCH \
-#     "$_account_id/zones/$_domain/records/$_record_id" \
-#     "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
-
-#     _info "Updated!"
-#     return 0
-#   fi
-
-#   _err "Update error"
-#   return 1
-# fi
+  fi
+  _err "Add txt record error."
 }
 
 # fulldomain
@@ -87,8 +70,7 @@ dns_dnsimple_rm() {
 
   _extract_record_id "$_records" "$_sub_domain"
   if [ "$_record_id" ]; then
-    echo "$_record_id" | while read -r item
-    do
+    echo "$_record_id" | while read -r item; do
       if _dnsimple_rest DELETE "$_account_id/zones/$_domain/records/$item"; then
         _info "removed record" "$item"
         return 0
