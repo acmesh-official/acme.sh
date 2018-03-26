@@ -254,6 +254,7 @@ acme.sh --deploy -d fritzbox.example.com --deploy-hook fritzbox
 
 ```sh
 acme.sh --deploy -d ftp.example.com --deploy-hook strongswan
+```
 
 ## 10. Deploy the cert to remote routeros
 
