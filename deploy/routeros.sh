@@ -21,8 +21,8 @@ routeros_deploy() {
   _debug _cfullchain "$_cfullchain"
 
   if [ -z "$ROUTER_OS_HOST" ]; then
-    _err "Need to set the env variable ROUTER_OS_HOST"
-    return 1
+    _debug "Using _cdomain as ROUTER_OS_HOST, please set if not correct."
+    ROUTER_OS_HOST = "$_cdomain"
   fi
 
   if [ -z "$ROUTER_OS_USERNAME" ]; then
