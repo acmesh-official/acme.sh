@@ -71,17 +71,6 @@ dns_kinghost_rm() {
     return 1
   fi
 
-  _debug "Getting txt records"
-  _kinghost_rest GET "dns" "name=$fulldomain&content=$txtvalue"
-
-  #This API call returns "status":"ok" if dns record does not exists
-  #We are removing a txt record here, so the record must exists
-  if echo "$response" | grep '"status":"ok"' >/dev/null; then
-    _err "Error"
-    _err "$response"
-    return 1
-  fi
-
   _kinghost_rest DELETE "dns" "name=$fulldomain&content=$txtvalue"
   if ! echo "$response" | grep '"status":"ok"' >/dev/null; then
     _err "Error"
