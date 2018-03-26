@@ -265,6 +265,8 @@ acme.sh --deploy -d ftp.example.com --deploy-hook routeros
 Before you can deploy the certificate to router os, you need to add the id_rsa.pub key to the routeros and assign a user to that key.
 The user need to have access to ssh, ftp, read and write.
 
+There are no need to enable ftp service for the script to work, as they are transmitted over SCP, however ftp is needed to store the files on the router.
+
 Then you need to set the environment variables for the deploy script to work.
 ```sh
 export ROUTER_OS_USERNAME=certuser
@@ -272,3 +274,17 @@ export ROUTER_OS_HOST=router.example.com
 
 acme.sh --deploy -d ftp.example.com --deploy-hook routeros
 ```
+
+The deploy script will remove previously deployed certificates, and it does this with an assumption on how RouterOS names imported certificates, adding a "cer_0" suffix at the end. This is true for versions 6.32 -> 6.41.3, but it is not guaranteed that it will be true for future versions when upgrading.
+
+If the router have other certificates with the same name as the one beeing deployed, then this script will remove those certificates.
+
+At the end of the script, the services that use those certificates could be updated. Currently only the www-ssl service is beeing updated, but more services could be added.
+
+For instance:
+```
+/ip service set www-ssl certificate=$_cdomain.cer_0
+/ip service set api-ssl certificate=$_cdomain.cer_0
+```
+
+One optional thing to do as well is to create a script that updates all the required services and run that script in a single command.
