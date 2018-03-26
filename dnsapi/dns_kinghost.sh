@@ -31,8 +31,8 @@ dns_kinghost_add() {
   fi
 
   #save the credentials to the account conf file.
-  _saveaccountconf_mutable KINGHOST_Username  "$KINGHOST_Username"
-  _saveaccountconf_mutable KINGHOST_Password  "$KINGHOST_Password"
+ _saveaccountconf_mutable KINGHOST_Username  "$KINGHOST_Username"
+ _saveaccountconf_mutable KINGHOST_Password  "$KINGHOST_Password"
 
   _debug "Getting txt records"
   _kinghost_rest GET "dns" "name=$fulldomain&content=$txtvalue"
@@ -52,7 +52,7 @@ dns_kinghost_add() {
     return 1
   fi
 
-  return 0;
+  return 0
 }
 
 # Usage: fulldomain txtvalue
@@ -63,7 +63,7 @@ dns_kinghost_rm() {
 
   KINGHOST_Password="${KINGHOST_Password:-$(_readaccountconf_mutable KINGHOST_Password)}"
   KINGHOST_Username="${KINGHOST_Username:-$(_readaccountconf_mutable KINGHOST_Username)}"
-    if [ -z "$KINGHOST_Password" ] || [ -z "$KINGHOST_Username" ]; then
+  if [ -z "$KINGHOST_Password" ] || [ -z "$KINGHOST_Username" ]; then
     KINGHOST_Password=""
     KINGHOST_Username=""
     _err "You don't specify KingHost api key and email yet."
@@ -89,7 +89,7 @@ dns_kinghost_rm() {
     return 1
   fi
 
-  return 0;
+  return 0
 }
 
 ####################  Private functions below ##################################

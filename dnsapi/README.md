@@ -792,7 +792,7 @@ The `DA_Api` and `DA_Api_Insecure` will be saved in `~/.acme.sh/account.conf` an
 API access must be enabled at https://painel.kinghost.com.br/painel.api.php
 
 ```
-export KINGHOST_username="yourusername"
+export KINGHOST_Username="yourusername"
 export KINGHOST_Password="yourpassword"
 acme.sh --issue --dns dns_kinghost -d example.com -d *.example.com
 ```
