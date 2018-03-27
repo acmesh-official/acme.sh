@@ -152,7 +152,7 @@ _printargs() {
   else
     printf -- "%s" "$1='$2'"
   fi
-  printf "\n"
+  printf '\n'
 }
 
 _dlg_versions() {
@@ -227,13 +227,13 @@ _err() {
   else
     __red "$1='$2'" >&2
   fi
-  printf "\n" >&2
+  printf '\n' >&2
   return 1
 }
 
 _usage() {
   __red "$@" >&2
-  printf "\n" >&2
+  printf '\n' >&2
 }
 
 _debug() {
@@ -537,13 +537,13 @@ _ascii_hex() {
 #output: " 61 62 63"
 _hex_dump() {
   if _exists od; then
-    od -A n -v -t x1 | tr -s " " | sed 's/ $//' | tr -d "\r\t\n"
+    od -A n -v -t x1 | tr -s " " | sed 's/ $//' | tr -d '\r\t\n'
   elif _exists hexdump; then
     _debug3 "using hexdump"
     hexdump -v -e '/1 ""' -e '/1 " %02x" ""'
   elif _exists xxd; then
     _debug3 "using xxd"
-    xxd -ps -c 20 -i | sed "s/ 0x/ /g" | tr -d ",\n" | tr -s " "
+    xxd -ps -c 20 -i | sed "s/ 0x/ /g" | tr -d ',\n' | tr -s " "
   else
     _debug3 "using _ascii_hex"
     str=$(cat)
@@ -935,9 +935,9 @@ _sign() {
       return 1
     fi
     _debug3 "_signedECText" "$_signedECText"
-    _ec_r="$(echo "$_signedECText" | _head_n 2 | _tail_n 1 | cut -d : -f 4 | tr -d "\r\n")"
+    _ec_r="$(echo "$_signedECText" | _head_n 2 | _tail_n 1 | cut -d : -f 4 | tr -d '\r\n')"
     _debug3 "_ec_r" "$_ec_r"
-    _ec_s="$(echo "$_signedECText" | _head_n 3 | _tail_n 1 | cut -d : -f 4 | tr -d "\r\n")"
+    _ec_s="$(echo "$_signedECText" | _head_n 3 | _tail_n 1 | cut -d : -f 4 | tr -d '\r\n')"
     _debug3 "_ec_s" "$_ec_s"
     printf "%s" "$_ec_r$_ec_s" | _h2b | _base64
   else
@@ -1040,10 +1040,10 @@ _idn() {
         else
           _i_first=""
         fi
-        idn --quiet "$f" | tr -d "\r\n"
+        idn --quiet "$f" | tr -d '\r\n'
       done
     else
-      idn "$__idn_d" | tr -d "\r\n"
+      idn "$__idn_d" | tr -d '\r\n'
     fi
   else
     _err "Please install idn to process IDN names."
@@ -1118,7 +1118,7 @@ _readSubjectFromCSR() {
     _usage "_readSubjectFromCSR mycsr.csr"
     return 1
   fi
-  ${ACME_OPENSSL_BIN:-openssl} req -noout -in "$_csrfile" -subject | tr ',' "\n" | _egrep_o "CN *=.*" | cut -d = -f 2 | cut -d / -f 1 | tr -d ' \n'
+  ${ACME_OPENSSL_BIN:-openssl} req -noout -in "$_csrfile" -subject | tr ',' '\n' | _egrep_o "CN *=.*" | cut -d = -f 2 | cut -d / -f 1 | tr -d ' \n'
 }
 
 #_csrfile
@@ -1158,14 +1158,14 @@ _readKeyLengthFromCSR() {
   _debug2 _outcsr "$_outcsr"
   if _contains "$_outcsr" "Public Key Algorithm: id-ecPublicKey"; then
     _debug "ECC CSR"
-    echo "$_outcsr" | tr "\t" " " | _egrep_o "^ *ASN1 OID:.*" | cut -d ':' -f 2 | tr -d ' '
+    echo "$_outcsr" | tr '\t' " " | _egrep_o "^ *ASN1 OID:.*" | cut -d ':' -f 2 | tr -d ' '
   else
     _debug "RSA CSR"
-    _rkl="$(echo "$_outcsr" | tr "\t" " " | _egrep_o "^ *Public.Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1)"
+    _rkl="$(echo "$_outcsr" | tr '\t' " " | _egrep_o "^ *Public.Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1)"
     if [ "$_rkl" ]; then
       echo "$_rkl"
     else
-      echo "$_outcsr" | tr "\t" " " | _egrep_o "RSA Public.Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1
+      echo "$_outcsr" | tr '\t' " " | _egrep_o "RSA Public.Key:.*" | cut -d '(' -f 2 | cut -d ' ' -f 1
     fi
   fi
 }
@@ -1181,16 +1181,16 @@ _ss() {
 
   if _exists "netstat"; then
     _debug "Using: netstat"
-    if netstat -h 2>&1 | grep "\-p proto" >/dev/null; then
+    if netstat -h 2>&1 | grep '\-p proto' >/dev/null; then
       #for windows version netstat tool
       netstat -an -p tcp | grep "LISTENING" | grep ":$_port "
     else
-      if netstat -help 2>&1 | grep "\-p protocol" >/dev/null; then
+      if netstat -help 2>&1 | grep '\-p protocol' >/dev/null; then
         netstat -an -p tcp | grep LISTEN | grep ":$_port "
       elif netstat -help 2>&1 | grep -- '-P protocol' >/dev/null; then
         #for solaris
         netstat -an -P tcp | grep "\.$_port " | grep "LISTEN"
-      elif netstat -help 2>&1 | grep "\-p" >/dev/null; then
+      elif netstat -help 2>&1 | grep '\-p' >/dev/null; then
         #for full linux
         netstat -ntpl | grep ":$_port "
       else
@@ -1397,7 +1397,7 @@ _time2str() {
 }
 
 _normalizeJson() {
-  sed "s/\" *: *\([\"{\[]\)/\":\1/g" | sed "s/^ *\([^ ]\)/\1/" | tr -d "\r\n"
+  sed "s/\" *: *\([\"{\[]\)/\":\1/g" | sed "s/^ *\([^ ]\)/\1/" | tr -d '\r\n'
 }
 
 _stat() {
@@ -1451,7 +1451,7 @@ _calcjwk() {
     JWK_HEADERPLACE_PART2='", "alg": "RS256"'
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     _debug "EC key"
-    crv="$(${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
+    crv="$(${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d ' \r\n')"
     _debug3 crv "$crv"
     __ECC_KEY_LEN=$(echo "$crv" | cut -d "-" -f 2)
     if [ "$__ECC_KEY_LEN" = "521" ]; then
@@ -1460,7 +1460,7 @@ _calcjwk() {
     _debug3 __ECC_KEY_LEN "$__ECC_KEY_LEN"
     if [ -z "$crv" ]; then
       _debug "Let's try ASN1 OID"
-      crv_oid="$(${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^ASN1 OID:" | cut -d ":" -f 2 | tr -d " \r\n")"
+      crv_oid="$(${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^ASN1 OID:" | cut -d ":" -f 2 | tr -d ' \r\n')"
       _debug3 crv_oid "$crv_oid"
       case "${crv_oid}" in
         "prime256v1")
@@ -1491,7 +1491,7 @@ _calcjwk() {
     pubj=$(_math "$pubj" - 1)
     _debug3 pubj "$pubj"
 
-    pubtext="$(${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | sed -n "$pubi,${pubj}p" | tr -d " \n\r")"
+    pubtext="$(${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | sed -n "$pubi,${pubj}p" | tr -d ' \n\r')"
     _debug3 pubtext "$pubtext"
 
     xlen="$(printf "%s" "$pubtext" | tr -d ':' | wc -c)"
@@ -1830,7 +1830,7 @@ _send_signed_request() {
 
       _debug2 _headers "$_headers"
 
-      _CACHED_NONCE="$(echo "$_headers" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
+      _CACHED_NONCE="$(echo "$_headers" | grep "Replay-Nonce:" | _head_n 1 | tr -d '\r\n ' | cut -d ':' -f 2)"
       _debug2 _CACHED_NONCE "$_CACHED_NONCE"
     else
       _debug2 "Use _CACHED_NONCE" "$_CACHED_NONCE"
@@ -1886,10 +1886,10 @@ _send_signed_request() {
 
     _debug2 responseHeaders "$responseHeaders"
     _debug2 response "$response"
-    code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
+    code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d '\r\n')"
     _debug code "$code"
 
-    _CACHED_NONCE="$(echo "$responseHeaders" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
+    _CACHED_NONCE="$(echo "$responseHeaders" | grep "Replay-Nonce:" | _head_n 1 | tr -d '\r\n ' | cut -d ':' -f 2)"
 
     _body="$response"
     if [ "$needbase64" ]; then
@@ -1928,14 +1928,14 @@ _setopt() {
       __val="$(echo "$__val" | sed 's/&/\\&/g')"
     fi
     text="$(cat "$__conf")"
-    printf -- "%s\n" "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
+    printf -- '%s\n' "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
 
   elif grep -n "^#$__opt$__sep" "$__conf" >/dev/null; then
     if _contains "$__val" "&"; then
       __val="$(echo "$__val" | sed 's/&/\\&/g')"
     fi
     text="$(cat "$__conf")"
-    printf -- "%s\n" "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
+    printf -- '%s\n' "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
 
   else
     _debug3 APP
@@ -2094,12 +2094,12 @@ _sleep() {
   if [ "$__INTERACTIVE" ]; then
     _sleep_c="$_sleep_sec"
     while [ "$_sleep_c" -ge "0" ]; do
-      printf "\r      \r"
+      printf '\r      \r'
       __green "$_sleep_c"
       _sleep_c="$(_math "$_sleep_c" - 1)"
       sleep 1
     done
-    printf "\r"
+    printf '\r'
   else
     sleep "$_sleep_sec"
   fi
@@ -2795,9 +2795,9 @@ _checkConf() {
       FOUND_REAL_NGINX_CONF="$2"
       return 0
     fi
-    if cat "$2" | tr "\t" " " | grep "^ *include *.*;" >/dev/null; then
+    if cat "$2" | tr '\t' " " | grep "^ *include *.*;" >/dev/null; then
       _debug "Try include files"
-      for included in $(cat "$2" | tr "\t" " " | grep "^ *include *.*;" | sed "s/include //" | tr -d " ;"); do
+      for included in $(cat "$2" | tr '\t' " " | grep "^ *include *.*;" | sed "s/include //" | tr -d " ;"); do
         _debug "check included $included"
         if _checkConf "$1" "$included"; then
           return 0
@@ -2816,10 +2816,10 @@ _checkConf() {
 _isRealNginxConf() {
   _debug "_isRealNginxConf $1 $2"
   if [ -f "$2" ]; then
-    for _fln in $(tr "\t" ' ' <"$2" | grep -n "^ *server_name.* $1" | cut -d : -f 1); do
+    for _fln in $(tr '\t' ' ' <"$2" | grep -n "^ *server_name.* $1" | cut -d : -f 1); do
       _debug _fln "$_fln"
       if [ "$_fln" ]; then
-        _start=$(tr "\t" ' ' <"$2" | _head_n "$_fln" | grep -n "^ *server *" | grep -v server_name | _tail_n 1)
+        _start=$(tr '\t' ' ' <"$2" | _head_n "$_fln" | grep -n "^ *server *" | grep -v server_name | _tail_n 1)
         _debug "_start" "$_start"
         _start_n=$(echo "$_start" | cut -d : -f 1)
         _start_nn=$(_math $_start_n + 1)
@@ -2828,7 +2828,7 @@ _isRealNginxConf() {
 
         _left="$(sed -n "${_start_nn},99999p" "$2")"
         _debug2 _left "$_left"
-        _end="$(echo "$_left" | tr "\t" ' ' | grep -n "^ *server *" | grep -v server_name | _head_n 1)"
+        _end="$(echo "$_left" | tr '\t' ' ' | grep -n "^ *server *" | grep -v server_name | _head_n 1)"
         _debug "_end" "$_end"
         if [ "$_end" ]; then
           _end_n=$(echo "$_end" | cut -d : -f 1)
@@ -2841,7 +2841,7 @@ _isRealNginxConf() {
         _debug "_seg_n" "$_seg_n"
 
         _skip_ssl=1
-        for _listen_i in $(echo "$_seg_n" | tr "\t" ' ' | grep "^ *listen" | tr -d " "); do
+        for _listen_i in $(echo "$_seg_n" | tr '\t' ' ' | grep "^ *listen" | tr -d " "); do
           if [ "$_listen_i" ]; then
             if [ "$(echo "$_listen_i" | _egrep_o "listen.*ssl[ |;]")" ]; then
               _debug2 "$_listen_i is ssl"
@@ -3267,7 +3267,7 @@ _regAccount() {
   fi
 
   _debug2 responseHeaders "$responseHeaders"
-  _accUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
+  _accUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d '\r\n')"
   _debug "_accUri" "$_accUri"
   if [ -z "$_accUri" ]; then
     _err "Can not find account id url."
@@ -3713,11 +3713,11 @@ $_authorizations_map"
         thumbprint="$(__calc_account_thumbprint)"
       fi
 
-      entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
+      entry="$(printf '%s\n' "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
       if [ -z "$entry" ]; then
         _err "Error, can not get domain token entry $d"
-        _supported_vtypes="$(echo "$response" | _egrep_o "\"challenges\":\[[^]]*]" | tr '{' "\n" | grep type | cut -d '"' -f 4 | tr "\n" ' ')"
+        _supported_vtypes="$(echo "$response" | _egrep_o "\"challenges\":\[[^]]*]" | tr '{' '\n' | grep type | cut -d '"' -f 4 | tr '\n' ' ')"
         if [ "$_supported_vtypes" ]; then
           _err "The supported validation types are: $_supported_vtypes, but you specified: $vtype"
         fi
@@ -3725,7 +3725,7 @@ $_authorizations_map"
         _on_issue_err "$_post_hook"
         return 1
       fi
-      token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
+      token="$(printf '%s\n' "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
       _debug token "$token"
 
       if [ -z "$token" ]; then
@@ -3735,9 +3735,9 @@ $_authorizations_map"
         return 1
       fi
       if [ "$ACME_VERSION" = "2" ]; then
-        uri="$(printf "%s\n" "$entry" | _egrep_o '"url":"[^"]*' | cut -d '"' -f 4 | _head_n 1)"
+        uri="$(printf '%s\n' "$entry" | _egrep_o '"url":"[^"]*' | cut -d '"' -f 4 | _head_n 1)"
       else
-        uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d '"' -f 4)"
+        uri="$(printf '%s\n' "$entry" | _egrep_o '"uri":"[^"]*' | cut -d '"' -f 4)"
       fi
       _debug uri "$uri"
 
@@ -4066,7 +4066,7 @@ $_authorizations_map"
       fi
 
       if [ "$status" = "invalid" ]; then
-        error="$(echo "$response" | tr -d "\r\n" | _egrep_o '"error":\{[^\}]*')"
+        error="$(echo "$response" | tr -d '\r\n' | _egrep_o '"error":\{[^\}]*')"
         _debug2 error "$error"
         errordetail="$(echo "$error" | _egrep_o '"detail": *"[^"]*' | cut -d '"' -f 4)"
         _debug2 errordetail "$errordetail"
@@ -4103,7 +4103,7 @@ $_authorizations_map"
 
   _clearup
   _info "Verify finished, start to sign."
-  der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _url_replace)"
+  der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d '\r\n' | _url_replace)"
 
   if [ "$ACME_VERSION" = "2" ]; then
     if ! _send_signed_request "${Le_OrderFinalize}" "{\"csr\": \"$der\"}"; then
@@ -4142,7 +4142,7 @@ $_authorizations_map"
       return 1
     fi
     _rcert="$response"
-    Le_LinkCert="$(grep -i '^Location.*$' "$HTTP_HEADER" | _tail_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
+    Le_LinkCert="$(grep -i '^Location.*$' "$HTTP_HEADER" | _tail_n 1 | tr -d '\r\n' | cut -d " " -f 2)"
     echo "$BEGIN_CERT" >"$CERT_PATH"
 
     #if ! _get "$Le_LinkCert" | _base64 "multiline"  >> "$CERT_PATH" ; then
@@ -4522,7 +4522,7 @@ list() {
 
   _sep="|"
   if [ "$_raw" ]; then
-    printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Created${_sep}Renew"
+    printf '%s\n' "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Created${_sep}Renew"
     for di in "${CERT_HOME}"/*.*/; do
       if ! [ -d "$di" ]; then
         _debug "Not directory, skip: $di"
@@ -4538,7 +4538,7 @@ list() {
         _initpath "$d" "$_isEcc"
         if [ -f "$DOMAIN_CONF" ]; then
           . "$DOMAIN_CONF"
-          printf "%s\n" "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
+          printf '%s\n' "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
         fi
       )
     done
@@ -4827,7 +4827,7 @@ revoke() {
     return 1
   fi
 
-  cert="$(_getfile "${CERT_PATH}" "${BEGIN_CERT}" "${END_CERT}" | tr -d "\r\n" | _url_replace)"
+  cert="$(_getfile "${CERT_PATH}" "${BEGIN_CERT}" "${END_CERT}" | tr -d '\r\n' | _url_replace)"
 
   if [ -z "$cert" ]; then
     _err "Cert for $Le_Domain is empty found, skip."
@@ -4946,7 +4946,7 @@ _deactivate() {
       return 1
     fi
 
-    authzUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
+    authzUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d '\r\n')"
     _debug "authzUri" "$authzUri"
     if [ "$code" ] && [ ! "$code" = '201' ]; then
       _err "new-authz error: $response"
@@ -4963,16 +4963,16 @@ _deactivate() {
     fi
     _debug "Trigger validation."
     vtype="$VTYPE_DNS"
-    entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
+    entry="$(printf '%s\n' "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
     _debug entry "$entry"
     if [ -z "$entry" ]; then
       _err "Error, can not get domain token $d"
       return 1
     fi
-    token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
+    token="$(printf '%s\n' "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
     _debug token "$token"
 
-    uri="$(printf "%s\n" "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
+    uri="$(printf '%s\n' "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
     _debug uri "$uri"
 
     keyauthorization="$token.$thumbprint"
@@ -4994,11 +4994,11 @@ _deactivate() {
       break
     fi
 
-    _vtype="$(printf "%s\n" "$entry" | _egrep_o '"type": *"[^"]*"' | cut -d : -f 2 | tr -d '"')"
+    _vtype="$(printf '%s\n' "$entry" | _egrep_o '"type": *"[^"]*"' | cut -d : -f 2 | tr -d '"')"
     _debug _vtype "$_vtype"
     _info "Found $_vtype"
 
-    uri="$(printf "%s\n" "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
+    uri="$(printf '%s\n' "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
     _debug uri "$uri"
 
     if [ "$_d_type" ] && [ "$_d_type" != "$_vtype" ]; then
