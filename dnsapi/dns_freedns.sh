@@ -47,11 +47,10 @@ dns_freedns_add() {
   _saveaccountconf FREEDNS_COOKIE "$FREEDNS_COOKIE"
 
   # split our full domain name into two parts...
-  i="$(echo "$fulldomain" | tr '.' ' ' | wc -w)"
-  i="$(_math "$i" - 1)"
-  top_domain="$(echo "$fulldomain" | cut -d. -f "$i"-100)"
-  i="$(_math "$i" - 1)"
-  sub_domain="$(echo "$fulldomain" | cut -d. -f -"$i")"
+  # top_domain is everything after the first dot
+  # sub_domain is the element before the first dot
+  top_domain="$(echo "$fulldomain" | cut -d. -f 2-)"
+  sub_domain="$(echo "$fulldomain" | cut -d. -f 1)"
 
   _debug "top_domain: $top_domain"
   _debug "sub_domain: $sub_domain"
