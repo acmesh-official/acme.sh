@@ -106,7 +106,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"$h\"" >/dev/null; then
-        _domain=$h
+      _domain=$h
       return 0
     else
       _debug "$h not found"
