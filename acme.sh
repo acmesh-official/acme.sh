@@ -1016,7 +1016,7 @@ _createkey() {
 _is_idn() {
   _is_idn_d="$1"
   _debug2 _is_idn_d "$_is_idn_d"
-  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '0-9' | tr -d 'a-z' | tr -d 'A-Z' | tr -d '*.,-')
+  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '0-9' | tr -d '[:lower:]' | tr -d '[:upper:]' | tr -d '*.,-')
   _debug2 _idn_temp "$_idn_temp"
   [ "$_idn_temp" ]
 }
@@ -1064,12 +1064,12 @@ _createcsr() {
   _debug2 csr "$csr"
   _debug2 csrconf "$csrconf"
 
-  printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\n\nkeyUsage = nonRepudiation, digitalSignature, keyEncipherment" >"$csrconf"
+  printf '[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\n\nkeyUsage = nonRepudiation, digitalSignature, keyEncipherment' >"$csrconf"
 
   if [ -z "$domainlist" ] || [ "$domainlist" = "$NO_VALUE" ]; then
     #single domain
     _info "Single domain" "$domain"
-    printf -- "\nsubjectAltName=DNS:$domain" >>"$csrconf"
+    printf -- '\nsubjectAltName=DNS:%s' "$domain" >>"$csrconf"
   else
     domainlist="$(_idn "$domainlist")"
     _debug2 domainlist "$domainlist"
@@ -1080,12 +1080,12 @@ _createcsr() {
     fi
     #multi
     _info "Multi domain" "$alt"
-    printf -- "\nsubjectAltName=$alt" >>"$csrconf"
+    printf -- '\nsubjectAltName=%s' "$alt" >>"$csrconf"
   fi
   if [ "$Le_OCSP_Staple" ] || [ "$Le_OCSP_Stable" ]; then
     _savedomainconf Le_OCSP_Staple "$Le_OCSP_Staple"
     _cleardomainconf Le_OCSP_Stable
-    printf -- "\nbasicConstraints = CA:FALSE\n1.3.6.1.5.5.7.1.24=DER:30:03:02:01:05" >>"$csrconf"
+    printf -- '\nbasicConstraints = CA:FALSE\n1.3.6.1.5.5.7.1.24=DER:30:03:02:01:05' >>"$csrconf"
   fi
 
   _csr_cn="$(_idn "$domain")"
