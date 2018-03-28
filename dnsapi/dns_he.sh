@@ -143,7 +143,7 @@ _find_zone() {
 
     _debug "Looking for zone \"${_attempted_zone}\""
 
-    line_num="$(echo "$_zone_names" | grep -n "$_attempted_zone" | cut -d : -f 1)"
+    line_num="$(echo "$_zone_names" | grep -n "^$_attempted_zone" | cut -d : -f 1)"
 
     if [ "$line_num" ]; then
       _zone_id=$(echo "$_zone_ids" | sed -n "${line_num}p")
