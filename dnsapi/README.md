@@ -787,20 +787,6 @@ acme.sh --issue --dns dns_da -d example.com -d www.example.com
 
 The `DA_Api` and `DA_Api_Insecure` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-## 42. Use Zilore API to automatically issue cert
-
-First you need to login to your Zilore account to get your API key.
-
-```
-export Zilore_Key="5dcad3a2-36cb-50e8-cb92-000002f9"
-```
-
-Ok, let's issue a cert now:
-```
-acme.sh --issue --dns dns_zilore -d example.com -d www.example.com
-```
-
-The `Zilore_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 # Use custom API
 
