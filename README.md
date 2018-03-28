@@ -37,6 +37,8 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 - [splynx](https://forum.splynx.com/t/free-ssl-cert-for-splynx-lets-encrypt/297)
 - [archlinux](https://aur.archlinux.org/packages/acme.sh-git/)
 - [opnsense.org](https://github.com/opnsense/plugins/tree/master/security/acme-client/src/opnsense/scripts/OPNsense/AcmeClient)
+- [CentOS Web Panel](http://centos-webpanel.com/)
+- [lnmp.org](https://lnmp.org/)
 - [more...](https://github.com/Neilpang/acme.sh/wiki/Blogs-and-tutorials)
 
 # Tested OS
@@ -313,8 +315,8 @@ You don't have to do anything manually!
 1. zonomi.com DNS API
 1. DreamHost.com API
 1. DirectAdmin API
+1. KingHost (https://www.kinghost.com.br/)
 1. Loopia.se API
-
 
 And: 
 
@@ -329,6 +331,8 @@ If your DNS provider is not on the supported list above, you can write your own 
 For more details: [How to use DNS API](dnsapi)
 
 # 8. Use DNS manual mode:
+
+See: https://github.com/Neilpang/acme.sh/wiki/dns-manual-mode first.
 
 If your dns provider doesn't support any api access, you can add the txt record by your hand.
 
@@ -399,7 +403,7 @@ Valid values are:
 It's simple, just give a wildcard domain as the `-d` parameter.
 
 ```sh
-acme.sh  --issue -d example.com  -d *.example.com  --dns dns_cf
+acme.sh  --issue -d example.com  -d '*.example.com'  --dns dns_cf
 ```
 
 
