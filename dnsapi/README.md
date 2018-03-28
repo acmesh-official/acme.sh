@@ -787,6 +787,32 @@ acme.sh --issue --dns dns_da -d example.com -d www.example.com
 
 The `DA_Api` and `DA_Api_Insecure` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 42. Use KingHost DNS API
+
+API access must be enabled at https://painel.kinghost.com.br/painel.api.php
+
+```
+export KINGHOST_Username="yourusername"
+export KINGHOST_Password="yourpassword"
+acme.sh --issue --dns dns_kinghost -d example.com -d *.example.com
+```
+
+The `KINGHOST_username` and `KINGHOST_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 43. Use Zilore DNS API
+
+First you need to login to your Zilore account to get your API key.
+
+```
+export Zilore_Key="5dcad3a2-36cb-50e8-cb92-000002f9"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_zilore -d example.com -d www.example.com
+```
+
+The `Zilore_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 # Use custom API
 
