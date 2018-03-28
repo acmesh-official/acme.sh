@@ -73,7 +73,7 @@ dns_zilore_rm() {
     _err "Error while getting records list"
     return 1
   else
-    _record_id=$(printf "%s\n" "$response" | _egrep_o "\"record_id\":\"[^\"]+\"" | cut -d : -f 2 | tr -d \" | head -n 1)
+    _record_id=$(printf "%s\n" "$response" | _egrep_o "\"record_id\":\"[^\"]+\"" | cut -d : -f 2 | tr -d \" | _head_n 1)
     if [ -z "$_record_id" ]; then
       _err "Cannot determine _record_id"
       return 1
