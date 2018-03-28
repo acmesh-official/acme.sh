@@ -315,6 +315,7 @@ You don't have to do anything manually!
 1. zonomi.com DNS API
 1. DreamHost.com API
 1. DirectAdmin API
+1. KingHost (https://www.kinghost.com.br/)
 
 
 And: 
@@ -330,6 +331,8 @@ If your DNS provider is not on the supported list above, you can write your own 
 For more details: [How to use DNS API](dnsapi)
 
 # 8. Use DNS manual mode:
+
+See: https://github.com/Neilpang/acme.sh/wiki/dns-manual-mode first.
 
 If your dns provider doesn't support any api access, you can add the txt record by your hand.
 

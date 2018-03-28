@@ -325,6 +325,8 @@ The `CY_Username`, `CY_Password` and `CY_OTP_Secret` will be saved in `~/.acme.s
 
 ## 17. Use Domain-Offensive/Resellerinterface/Domainrobot API
 
+ATTENTION: You need to be a registered Reseller to be able to use the ResellerInterface. As a normal user you can not use this method.
+
 You will need your login credentials (Partner ID+Password) to the Resellerinterface, and export them before you run `acme.sh`:
 ```
 export DO_PID="KD-1234567"
@@ -525,8 +527,9 @@ For issues, please report to https://github.com/raidenii/acme.sh/issues.
 
 ## 28. Use Name.com API
 
-You'll need to fill out the form at https://www.name.com/reseller/apply to apply
-for API username and token.
+Create your API token here: https://www.name.com/account/settings/api
+
+Note: `Namecom_Username` should be your Name.com username and not the token name.  If you accidentally run the script with the token name as the username see `~/.acme.sh/account.conf` to fix the issue
 
 ```
 export Namecom_Username="testuser"
@@ -784,6 +787,17 @@ acme.sh --issue --dns dns_da -d example.com -d www.example.com
 
 The `DA_Api` and `DA_Api_Insecure` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 42. Use KingHost DNS API
+
+API access must be enabled at https://painel.kinghost.com.br/painel.api.php
+
+```
+export KINGHOST_Username="yourusername"
+export KINGHOST_Password="yourpassword"
+acme.sh --issue --dns dns_kinghost -d example.com -d *.example.com
+```
+
+The `KINGHOST_username` and `KINGHOST_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 # Use custom API
 
