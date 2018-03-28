@@ -821,8 +821,6 @@ acme.sh --issue --dns dns_loopia -d example.com -d *.example.com
 
 The username and password will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-=======
-
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
