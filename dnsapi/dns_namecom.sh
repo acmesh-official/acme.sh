@@ -123,7 +123,7 @@ _namecom_login() {
   # Auth string
   # Name.com API v4 uses http basic auth to authenticate
   # need to convert the token for http auth
-  _namecom_auth=$(printf "%s:%s" "$Namecom_Username" "$Namecom_Token" | base64)
+  _namecom_auth=$(printf "%s:%s" "$Namecom_Username" "$Namecom_Token" | _base64)
 
   if _namecom_rest GET "hello"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "\"username\"\:\"$Namecom_Username\"")
