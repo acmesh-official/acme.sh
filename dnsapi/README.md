@@ -799,6 +799,21 @@ acme.sh --issue --dns dns_kinghost -d example.com -d *.example.com
 
 The `KINGHOST_username` and `KINGHOST_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 43. Use Zilore DNS API
+
+First you need to login to your Zilore account to get your API key.
+
+```
+export Zilore_Key="5dcad3a2-36cb-50e8-cb92-000002f9"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_zilore -d example.com -d www.example.com
+```
+
+The `Zilore_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
