@@ -51,6 +51,7 @@ vault_cli_deploy() {
 
   $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/cert.pem" value=@"$_ccert" || return 1
   $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/cert.key" value=@"$_ckey" || return 1
+  $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/chain.pem" value=@"$_cca" || return 1
   $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/fullchain.pem" value=@"$_cfullchain" || return 1
 
 }
