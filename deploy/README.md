@@ -277,6 +277,7 @@ export DEPLOY_CDN_Ali_Key="AK"
 export DEPLOY_CDN_Ali_Secret="SK"
 export DEPLOY_CDN_Ali_Prefix=""
 acme.sh --deploy -d example.com --deploy-hook cdn_ali
+```
 
 If your cdn domain is cdn.example.com but cert domain is example.com(subject alternative names: example.com,\*.example.com), you must specify the prefix in deployment: 
 ```sh
