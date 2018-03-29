@@ -799,7 +799,22 @@ acme.sh --issue --dns dns_kinghost -d example.com -d *.example.com
 
 The `KINGHOST_username` and `KINGHOST_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-## 43. Use Loopia.se API
+## 43. Use Zilore DNS API
+
+First, get your API key at https://my.zilore.com/account/api
+
+```
+export Zilore_Key="5dcad3a2-36cb-50e8-cb92-000002f9"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_zilore -d example.com -d *.example.com
+```
+
+The `Zilore_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 44. Use Loopia.se API
 User must provide login credentials to the Loopia API.
 The user needs the following permissions:
 
