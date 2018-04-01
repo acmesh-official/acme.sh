@@ -814,6 +814,28 @@ acme.sh --issue --dns dns_zilore -d example.com -d *.example.com
 
 The `Zilore_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 44. Use Loopia.se API
+User must provide login credentials to the Loopia API.
+The user needs the following permissions:
+
+- addSubdomain
+- updateZoneRecord
+- getDomains
+- removeSubdomain
+
+Set the login credentials:
+```
+export LOOPIA_User="user@loopiaapi"
+export LOOPIA_Password="password"
+```
+
+And to issue a cert:
+```
+acme.sh --issue --dns dns_loopia -d example.com -d *.example.com
+```
+
+The username and password will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
