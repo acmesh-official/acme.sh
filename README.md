@@ -317,7 +317,7 @@ You don't have to do anything manually!
 1. DirectAdmin API
 1. KingHost (https://www.kinghost.com.br/)
 1. Zilore (https://zilore.com)
-
+1. Loopia.se API
 
 And: 
 
