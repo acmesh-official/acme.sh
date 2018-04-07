@@ -318,6 +318,7 @@ You don't have to do anything manually!
 1. KingHost (https://www.kinghost.com.br/)
 1. Zilore (https://zilore.com)
 1. Loopia.se API
+1. acme-dns (https://github.com/joohoi/acme-dns)
 
 And: 
 
