@@ -876,6 +876,20 @@ acme.sh --issue --dns dns_tele3 -d example.com -d *.example.com
 ```
 
 The TELE3_Key and TELE3_Secret will be saved in ~/.acme.sh/account.conf and will be reused when needed.
+## 47. Use metaname dns api
+
+Create an API key from the "my account" -> "settings" page.
+
+```
+export METANAME_ACCOUNT="abc1"
+export METANAME_KEY="xyz"
+
+acme.sh --issue --dns dns_metaname -d example.com -d www.example.com
+```
+
+The account and key will be saved in `~/.acme.sh/account.conf` and will be
+reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
