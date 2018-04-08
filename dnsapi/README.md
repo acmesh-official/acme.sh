@@ -641,6 +641,14 @@ acme.sh --issue --dns dns_inwx -d example.com -d www.example.com
 
 The `INWX_User` and `INWX_Password` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+If your account is secured by mobile tan you have also defined the shared secret.
+
+```
+export INWX_Shared_Secret="shared secret"
+```
+
+You may need to re-enable the mobile tan to gain the shared secret.
+
 ## 34. User Servercow API v1
 
 Create a new user from the servercow control center. Don't forget to activate **DNS API** for this user.
