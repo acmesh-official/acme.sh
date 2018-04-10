@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.7.8
+VER=2.7.9
 
 PROJECT_NAME="acme.sh"
 
@@ -1806,6 +1806,7 @@ _send_signed_request() {
   MAX_REQUEST_RETRY_TIMES=5
   _request_retry_times=0
   while [ "${_request_retry_times}" -lt "$MAX_REQUEST_RETRY_TIMES" ]; do
+    _request_retry_times=$(_math "$_request_retry_times" + 1)
     _debug3 _request_retry_times "$_request_retry_times"
     if [ -z "$_CACHED_NONCE" ]; then
       _headers=""
@@ -1836,7 +1837,11 @@ _send_signed_request() {
     fi
     nonce="$_CACHED_NONCE"
     _debug2 nonce "$nonce"
-
+    if [ -z "$nonce" ]; then
+      _info "Could not get nonce, let's try again."
+      _sleep 2
+      continue
+    fi
     if [ "$ACME_VERSION" = "2" ]; then
       if [ "$url" = "$ACME_NEW_ACCOUNT" ] || [ "$url" = "$ACME_REVOKE_CERT" ]; then
         protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"jwk\": $jwk"'}'
@@ -1894,7 +1899,6 @@ _send_signed_request() {
 
     if _contains "$_body" "JWS has invalid anti-replay nonce"; then
       _info "It seems the CA server is busy now, let's wait and retry."
-      _request_retry_times=$(_math "$_request_retry_times" + 1)
       _sleep 5
       continue
     fi
