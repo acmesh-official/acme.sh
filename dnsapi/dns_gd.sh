@@ -59,7 +59,7 @@ dns_gd_add() {
 
   _info "Adding record"
   if _gd_rest PUT "domains/$_domain/records/TXT/$_sub_domain" "[$_add_data]"; then
-    if [ "$response" = "{}" ]; then
+    if [ "$response" = "{}" ] || [ "$response" = "null" ]; then
       _info "Added, sleeping 10 seconds"
       _sleep 10
       #todo: check if the record takes effect
