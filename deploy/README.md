@@ -1,257 +1,267 @@
-# Using deploy api
+Using the deploy API
+====================
 
-Before you can deploy your cert, you must [issue the cert first](https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert).
+Before you can deploy your cert, you must [issue the cert first].
 
-Here are the scripts to deploy the certs/key to the server/services.
+[issue the cert first]: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
-## 1. Deploy the certs to your cpanel host
+Here are the scripts to deploy the certs/key to the server/services:
 
-If you want to deploy using cpanel UAPI see 7.
+1. [Deploy the certs to your cpanel host](#deploy-the-certs-to-your-cpanel-host)
+2. [Deploy ssl cert on kong proxy engine based on API](#deploy-ssl-cert-on-kong-proxy-engine-based-on-api)
+3. [Deploy the cert to remote server through SSH access](#deploy-the-cert-to-remote-server-through-ssh-access)
+4. [Deploy the cert to local vsftpd server](#deploy-the-cert-to-local-vsftpd-server)
+5. [Deploy the cert to local exim4 server](#deploy-the-cert-to-local-exim4-server)
+6. [Deploy the cert to OSX Keychain](#deploy-the-cert-to-osx-keychain)
+7. [Deploy to cpanel host using UAPI](#deploy-to-cpanel-host-using-uapi)
+8. [Deploy the cert to your FRITZ!Box router](#deploy-the-cert-to-your-fritzbox-router)
+9. [Deploy the cert to strongSwan](#deploy-the-cert-to-strongswan)
+
+------------------------------------------------------------------------
+
+Deploy the certs to your cpanel host
+------------------------------------
+
+If you want to deploy using cpanel UAPI see
+[Deploy to cpanel host using UAPI].
 
 (cpanel deploy hook is not finished yet, this is just an example.)
 
+Then you can deploy:
 
+    export DEPLOY_CPANEL_USER=myusername
+    export DEPLOY_CPANEL_PASSWORD=PASSWORD
+    acme.sh --deploy -d example.com --deploy-hook cpanel
 
-Then you can deploy now:
+Deploy ssl cert on kong proxy engine based on API
+-------------------------------------------------
 
-```sh
-export DEPLOY_CPANEL_USER=myusername
-export DEPLOY_CPANEL_PASSWORD=PASSWORD
-acme.sh --deploy -d example.com --deploy-hook cpanel
-```
-
-## 2. Deploy ssl cert on kong proxy engine based on api
-
-Before you can deploy your cert, you must [issue the cert first](https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert).
+Before you can deploy your cert, you must [issue the cert first].
 Currently supports Kong-v0.10.x.
 
-```sh
-acme.sh --deploy -d ftp.example.com --deploy-hook kong
-```
 
-## 3. Deploy the cert to remote server through SSH access
+    acme.sh --deploy -d ftp.example.com --deploy-hook kong
+
+Deploy the cert to remote server through SSH access
+---------------------------------------------------
 
 The ssh deploy plugin allows you to deploy certificates to a remote host
-using SSH command to connect to the remote server.  The ssh plugin is invoked
-with the following command...
+using SSH command to connect to the remote server.  The ssh plugin is
+invoked with the following command:
 
-```sh
-acme.sh --deploy -d example.com --deploy-hook ssh
-```
+    acme.sh --deploy -d example.com --deploy-hook ssh
+
 Prior to running this for the first time you must tell the plugin where
-and how to deploy the certificates.  This is done by exporting the following
-environment variables.  This is not required for subsequent runs as the
-values are stored by acme.sh in the domain configuration files.
+and how to deploy the certificates.  This is done by exporting the
+following environment variables.  This is not required for subsequent
+runs as the values are stored by acme.sh in the domain configuration
+files.
 
-Required...
-```
-export DEPLOY_SSH_USER=username
-```
-Optional...
-```
-export DEPLOY_SSH_CMD=custom ssh command
-export DEPLOY_SSH_SERVER=url or ip address of remote host
-export DEPLOY_SSH_KEYFILE=filename for private key
-export DEPLOY_SSH_CERTFILE=filename for certificate file
-export DEPLOY_SSH_CAFILE=filename for intermediate CA file
-export DEPLOY_SSH_FULLCHAIN=filename for fullchain file
-export DEPLOY_SSH_REMOTE_CMD=command to execute on remote host
-export DEPLOY_SSH_BACKUP=yes or no
-```
+Required:
 
-**DEPLOY_SSH_USER**
-Username at the remote host that SSH will login with. Note that
-SSH must be able to login to remote host without a password... SSH Keys
-must have been exchanged with the remote host. Validate and test that you
-can login to USER@URL from the host running acme.sh before using this script.
+    export DEPLOY_SSH_USER=username
 
-The USER@URL at the remote server must also have has permissions to write to
-the target location of the certificate files and to execute any commands
-(e.g. to stop/start services).
+Optional:
 
-**DEPLOY_SSH_CMD**
-You can customize the ssh command used to connect to the remote host. For example
-if you need to connect to a specific port at the remote server you can set this
-to, for example, "ssh -p 22" or to use `sshpass` to provide password inline
-instead of exchanging ssh keys (this is not recommended, using keys is
-more secure).
+    export DEPLOY_SSH_CMD=custom ssh command
+    export DEPLOY_SSH_SERVER=url or ip address of remote host
+    export DEPLOY_SSH_KEYFILE=filename for private key
+    export DEPLOY_SSH_CERTFILE=filename for certificate file
+    export DEPLOY_SSH_CAFILE=filename for intermediate CA file
+    export DEPLOY_SSH_FULLCHAIN=filename for fullchain file
+    export DEPLOY_SSH_REMOTE_CMD=command to execute on remote host
+    export DEPLOY_SSH_BACKUP=yes or no
 
-**DEPLOY_SSH_SERVER**
+`DEPLOY_SSH_USER`
+Username at the remote host that SSH will login with.  Note that SSH
+must be able to login to remote host without a password.  SSH Keys must
+have been exchanged with the remote host.  Validate and test that you
+can login to `USER@URL` from the host running acme.sh before using this
+script.
+
+The `USER@URL` at the remote server must also have has permissions to
+write to the target location of the certificate files and to execute any
+commands (e.g. to stop/start services).
+
+`DEPLOY_SSH_CMD`
+You can customize the ssh command used to connect to the remote host.
+For example if you need to connect to a specific port at the remote
+server you can set this to, for example, "ssh -p 22" or to use `sshpass`
+to provide password inline instead of exchanging ssh keys (this is not
+recommended, using keys is more secure).
+
+`DEPLOY_SSH_SERVER`
 URL or IP Address of the remote server.  If not provided then the domain
 name provided on the acme.sh --deploy command line is used.
 
-**DEPLOY_SSH_KEYFILE**
-Target filename for the private key issued by LetsEncrypt.
+`DEPLOY_SSH_KEYFILE`
+Target filename for the private key issued by Let's Encrypt.
 
-**DEPLOY_SSH_CERTFILE**
-Target filename for the certificate issued by LetsEncrypt.
-If this is the same as the previous filename (for keyfile) then it is
-appended to the same file.
+`DEPLOY_SSH_CERTFILE`
+Target filename for the certificate issued by Let's Encrypt.  If this is
+the same as the previous filename (for keyfile) then it is appended to
+the same file.
 
-**DEPLOY_SSH_CAFILE**
-Target filename for the CA intermediate certificate issued by LetsEncrypt.
-If this is the same as a previous filename (for keyfile or certfile) then
-it is appended to the same file.
+`DEPLOY_SSH_CAFILE`
+Target filename for the CA intermediate certificate issued by Let's
+Encrypt.  If this is the same as a previous filename (for keyfile or
+certfile) then it is appended to the same file.
 
-**DEPLOY_SSH_FULLCHAIN**
-Target filename for the fullchain certificate issued by LetsEncrypt.
+`DEPLOY_SSH_FULLCHAIN`
+Target filename for the fullchain certificate issued by Let's Encrypt.
 If this is the same as a previous filename (for keyfile, certfile or
 cafile) then it is appended to the same file.
 
-**DEPLOY_SSH_REMOTE_CMD**
-Command to execute on the remote server after copying any certificates.  This
-could be any additional command required for example to stop and restart
-the service.
+`DEPLOY_SSH_REMOTE_CMD`
+Command to execute on the remote server after copying any certificates.
+This could be any additional command required for example to stop and
+restart the service.
 
-**DEPLOY_SSH_BACKUP**
+`DEPLOY_SSH_BACKUP`
 Before writing a certificate file to the remote server the existing
 certificate will be copied to a backup directory on the remote server.
 These are placed in a hidden directory in the home directory of the SSH
 user
-```sh
-~/.acme_ssh_deploy/[domain name]-backup-[timestamp]
-```
+
+    ~/.acme_ssh_deploy/[domain name]-backup-[timestamp]
+
 Any backups older than 180 days will be deleted when new certificates
 are deployed.  This defaults to "yes" set to "no" to disable backup.
 
-###Examples using SSH deploy
+### Examples using SSH deploy
+
 The following example illustrates deploying certificates to a QNAP NAS
 (tested with QTS version 4.2.3)
 
-```sh
-export DEPLOY_SSH_USER="admin"
-export DEPLOY_SSH_KEYFILE="/etc/stunnel/stunnel.pem"
-export DEPLOY_SSH_CERTFILE="/etc/stunnel/stunnel.pem"
-export DEPLOY_SSH_CAFILE="/etc/stunnel/uca.pem"
-export DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart"
+    export DEPLOY_SSH_USER="admin"
+    export DEPLOY_SSH_KEYFILE="/etc/stunnel/stunnel.pem"
+    export DEPLOY_SSH_CERTFILE="/etc/stunnel/stunnel.pem"
+    export DEPLOY_SSH_CAFILE="/etc/stunnel/uca.pem"
+    export DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart"
 
-acme.sh --deploy -d qnap.example.com --deploy-hook ssh
-```
+    acme.sh --deploy -d qnap.example.com --deploy-hook ssh
+
 Note how in this example both the private key and certificate point to
-the same file.  This will result in the certificate being appended
-to the same file as the private key... a common requirement of several
+the same file.  This will result in the certificate being appended to
+the same file as the private key, a common requirement of several
 services.
 
-The next example illustrates deploying certificates to a Unifi
+The next example illustrates deploying certificates to a UniFi
 Controller (tested with version 5.4.11).
 
-```sh
-export DEPLOY_SSH_USER="root"
-export DEPLOY_SSH_KEYFILE="/var/lib/unifi/unifi.example.com.key"
-export DEPLOY_SSH_FULLCHAIN="/var/lib/unifi/unifi.example.com.cer"
-export DEPLOY_SSH_REMOTE_CMD="openssl pkcs12 -export \
-   -inkey /var/lib/unifi/unifi.example.com.key \
-   -in /var/lib/unifi/unifi.example.com.cer \
-   -out /var/lib/unifi/unifi.example.com.p12 \
-   -name ubnt -password pass:temppass \
- && keytool -importkeystore -deststorepass aircontrolenterprise \
-   -destkeypass aircontrolenterprise \
-   -destkeystore /var/lib/unifi/keystore \
-   -srckeystore /var/lib/unifi/unifi.example.com.p12 \
-   -srcstoretype PKCS12 -srcstorepass temppass -alias ubnt -noprompt \
- && service unifi restart"
+    export DEPLOY_SSH_USER="root"
+    export DEPLOY_SSH_KEYFILE="/var/lib/unifi/unifi.example.com.key"
+    export DEPLOY_SSH_FULLCHAIN="/var/lib/unifi/unifi.example.com.cer"
+    export DEPLOY_SSH_REMOTE_CMD="openssl pkcs12 -export \
+       -inkey /var/lib/unifi/unifi.example.com.key \
+       -in /var/lib/unifi/unifi.example.com.cer \
+       -out /var/lib/unifi/unifi.example.com.p12 \
+       -name ubnt -password pass:temppass \
+     && keytool -importkeystore -deststorepass aircontrolenterprise \
+       -destkeypass aircontrolenterprise \
+       -destkeystore /var/lib/unifi/keystore \
+       -srckeystore /var/lib/unifi/unifi.example.com.p12 \
+       -srcstoretype PKCS12 -srcstorepass temppass -alias ubnt -noprompt \
+     && service unifi restart"
 
-acme.sh --deploy -d unifi.example.com --deploy-hook ssh
-```
-In this example we execute several commands on the remote host
-after the certificate files have been copied... to generate a pkcs12 file
-compatible with Unifi, to import it into the Unifi keystore and then finally
-to restart the service.
+    acme.sh --deploy -d unifi.example.com --deploy-hook ssh
 
-Note also that once the certificate is imported
-into the keystore the individual certificate files are no longer
-required. We could if we desired delete those files immediately. If we
-do that then we should disable backup at the remote host (as there are
-no files to backup -- they were erased during deployment). For example...
-```sh
-export DEPLOY_SSH_BACKUP=no
-# modify the end of the remote command...
-&& rm /var/lib/unifi/unifi.example.com.key \
-      /var/lib/unifi/unifi.example.com.cer \
-      /var/lib/unifi/unifi.example.com.p12 \
-&& service unifi restart
-```
+In this example we execute several commands on the remote host after the
+certificate files have been copied to generate a pkcs12 file compatible
+with UniFi, to import it into the UniFi keystore and then finally to
+restart the service.
 
-## 4. Deploy the cert to local vsftpd server
+Note also that once the certificate is imported into the keystore the
+individual certificate files are no longer required.  We could if we
+desired delete those files immediately.  If we do that then we should
+disable backup at the remote host (as there are no files to backup --
+they were erased during deployment).  For example:
 
-```sh
-acme.sh --deploy -d ftp.example.com --deploy-hook vsftpd
-```
+    export DEPLOY_SSH_BACKUP=no
+    # modify the end of the remote command...
+    && rm /var/lib/unifi/unifi.example.com.key \
+          /var/lib/unifi/unifi.example.com.cer \
+          /var/lib/unifi/unifi.example.com.p12 \
+    && service unifi restart
 
-The default vsftpd conf file is `/etc/vsftpd.conf`,  if your vsftpd conf is not in the default location, you can specify one:
+Deploy the cert to local vsftpd server
+--------------------------------------
 
-```sh
-export DEPLOY_VSFTPD_CONF="/etc/vsftpd.conf"
+    acme.sh --deploy -d ftp.example.com --deploy-hook vsftpd
 
-acme.sh --deploy -d ftp.example.com --deploy-hook vsftpd
-```
+The default vsftpd conf file is `/etc/vsftpd.conf`,  if your vsftpd conf
+is not in the default location, you can specify one:
 
-The default command to restart vsftpd server is `service vsftpd restart`, if it doesn't work, you can specify one:
+    export DEPLOY_VSFTPD_CONF="/etc/vsftpd.conf"
 
-```sh
-export DEPLOY_VSFTPD_RELOAD="/etc/init.d/vsftpd restart"
+    acme.sh --deploy -d ftp.example.com --deploy-hook vsftpd
 
-acme.sh --deploy -d ftp.example.com --deploy-hook vsftpd
-```
+The default command to restart vsftpd server is `service vsftpd
+restart`, if it doesn't work, you can specify one:
 
-## 5. Deploy the cert to local exim4 server
+    export DEPLOY_VSFTPD_RELOAD="/etc/init.d/vsftpd restart"
 
-```sh
-acme.sh --deploy -d ftp.example.com --deploy-hook exim4
-```
+    acme.sh --deploy -d ftp.example.com --deploy-hook vsftpd
 
-The default exim4 conf file is `/etc/exim/exim.conf`,  if your exim4 conf is not in the default location, you can specify one:
+Deploy the cert to local exim4 server
+-------------------------------------
 
-```sh
-export DEPLOY_EXIM4_CONF="/etc/exim4/exim4.conf.template"
+    acme.sh --deploy -d ftp.example.com --deploy-hook exim4
 
-acme.sh --deploy -d ftp.example.com --deploy-hook exim4
-```
+The default exim4 conf file is `/etc/exim/exim.conf`, if your exim4 conf
+is not in the default location, you can specify one:
 
-The default command to restart exim4 server is `service exim4 restart`, if it doesn't work, you can specify one:
+    export DEPLOY_EXIM4_CONF="/etc/exim4/exim4.conf.template"
 
-```sh
-export DEPLOY_EXIM4_RELOAD="/etc/init.d/exim4 restart"
+    acme.sh --deploy -d ftp.example.com --deploy-hook exim4
 
-acme.sh --deploy -d ftp.example.com --deploy-hook exim4
-```
+The default command to restart exim4 server is `service exim4 restart`,
+if it doesn't work, you can specify one:
 
-## 6. Deploy the cert to OSX Keychain
+    export DEPLOY_EXIM4_RELOAD="/etc/init.d/exim4 restart"
 
-```sh
-acme.sh --deploy -d ftp.example.com --deploy-hook keychain
-```
+    acme.sh --deploy -d ftp.example.com --deploy-hook exim4
 
-## 7. Deploy to cpanel host using UAPI
+Deploy the cert to OSX Keychain
+-------------------------------
+
+    acme.sh --deploy -d ftp.example.com --deploy-hook keychain
+
+Deploy to cpanel host using UAPI
+--------------------------------
 
 This hook is using UAPI and works in cPanel & WHM version 56 or newer.
-```
-acme.sh  --deploy  -d example.com  --deploy-hook cpanel_uapi
-```
-DEPLOY_CPANEL_USER is required only if you run the script as root and it should contain cpanel username.
-```sh
-export DEPLOY_CPANEL_USER=username
-acme.sh  --deploy  -d example.com  --deploy-hook cpanel_uapi
-```
-Please note, that the cpanel_uapi hook will deploy only the first domain when your certificate will automatically renew. Therefore you should issue a separate certificate for each domain. 
 
-## 8. Deploy the cert to your FRITZ!Box router
+    acme.sh  --deploy  -d example.com  --deploy-hook cpanel_uapi
 
-You must specify the credentials that have administrative privileges on the FRITZ!Box in order to deploy the certificate, plus the URL of your FRITZ!Box, through the following environment variables:
-```sh
-$ export DEPLOY_FRITZBOX_USERNAME=my_username
-$ export DEPLOY_FRITZBOX_PASSWORD=the_password
-$ export DEPLOY_FRITZBOX_URL=https://fritzbox.example.com
-```
+`DEPLOY_CPANEL_USER` is required only if you run the script as root and
+it should contain cpanel username.
 
-After the first deployment, these values will be stored in your $HOME/.acme.sh/account.conf. You may now deploy the certificate like this:
+    export DEPLOY_CPANEL_USER=username
+    acme.sh  --deploy  -d example.com  --deploy-hook cpanel_uapi
 
-```sh
-acme.sh --deploy -d fritzbox.example.com --deploy-hook fritzbox
-```
+Please note, that the `cpanel_uapi` hook will deploy only the first
+domain when your certificate will automatically renew.  Therefore you
+should issue a separate certificate for each domain.
 
-## 9. Deploy the cert to strongswan
+Deploy the cert to your FRITZ!Box router
+----------------------------------------
 
-```sh
-acme.sh --deploy -d ftp.example.com --deploy-hook strongswan
-```
+You must specify the credentials that have administrative privileges on
+the FRITZ!Box in order to deploy the certificate, plus the URL of your
+FRITZ!Box, through the following environment variables:
+
+    export DEPLOY_FRITZBOX_USERNAME=my_username
+    export DEPLOY_FRITZBOX_PASSWORD=the_password
+    export DEPLOY_FRITZBOX_URL=https://fritzbox.example.com
+
+After the first deployment, these values will be stored in your
+`$HOME/.acme.sh/account.conf`.  You may now deploy the certificate like
+this:
+
+    acme.sh --deploy -d fritzbox.example.com --deploy-hook fritzbox
+
+Deploy the cert to strongSwan
+-----------------------------
+
+    acme.sh --deploy -d ftp.example.com --deploy-hook strongswan
