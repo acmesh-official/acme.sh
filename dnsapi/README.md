@@ -680,14 +680,15 @@ And now you can issue certs with:
 acme.sh --issue --dns dns_namesilo --dnssleep 900 -d example.com -d www.example.com
 ```
 
-## 36. Use autoDNS (InternetX)
+## 36. Use autoDNS (InternetX or Schlund Technologies)
 
-[InternetX](https://www.internetx.com/) offers an [xml api](https://help.internetx.com/display/API/AutoDNS+XML-API)  with your standard login credentials, set them like so:
+[InternetX](https://www.internetx.com/) offers an [xml api](https://help.internetx.com/display/API/AutoDNS+XML-API)  with your standard login credentials. You can also use this API for [Schlund Technologies](https://www.schlundtech.de/). Set them like so:
 
 ```
 export AUTODNS_USER="yourusername"
 export AUTODNS_PASSWORD="password"
 export AUTODNS_CONTEXT="context"
+export AUTODNS_API="https://gateway.autodns.com" # or export AUTODNS_API="https://gateway.schlundtech.de"
 ```
 
 Then you can issue your certificates with:
@@ -696,7 +697,7 @@ Then you can issue your certificates with:
 acme.sh --issue --dns dns_autodns -d example.com -d www.example.com
 ```
 
-The `AUTODNS_USER`, `AUTODNS_PASSWORD` and `AUTODNS_CONTEXT` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+The `AUTODNS_USER`, `AUTODNS_PASSWORD`, `AUTODNS_CONTEXT` and `AUTODNS_API` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 ## 37. Use Azure DNS
 
