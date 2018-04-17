@@ -1,18 +1,17 @@
 #!/usr/bin/env sh
 # -*- mode: sh; tab-width: 2; indent-tabs-mode: s; coding: utf-8 -*-
 
-# This is the InternetX autoDNS xml api wrapper for acme.sh
+# This is the InternetX autoDNS xml api wrapper for acme.sh (and also works with schlundtech.de)
 # Author: auerswald@gmail.com
 # Created: 2018-01-14
 #
 #     export AUTODNS_USER="username"
 #     export AUTODNS_PASSWORD="password"
 #     export AUTODNS_CONTEXT="context"
+#     export AUTODNS_API="https://gateway.autodns.com" (or https://gateway.schlundtech.de)
 #
 # Usage:
 #     acme.sh --issue --dns dns_autodns -d example.com
-
-AUTODNS_API="https://gateway.autodns.com"
 
 # Arguments:
 #   txtdomain
@@ -24,15 +23,17 @@ dns_autodns_add() {
   AUTODNS_USER="${AUTODNS_USER:-$(_readaccountconf_mutable AUTODNS_USER)}"
   AUTODNS_PASSWORD="${AUTODNS_PASSWORD:-$(_readaccountconf_mutable AUTODNS_PASSWORD)}"
   AUTODNS_CONTEXT="${AUTODNS_CONTEXT:-$(_readaccountconf_mutable AUTODNS_CONTEXT)}"
+  AUTODNS_API="${AUTODNS_API:-$(_readaccountconf_mutable AUTODNS_API)}"
 
-  if [ -z "$AUTODNS_USER" ] || [ -z "$AUTODNS_CONTEXT" ] || [ -z "$AUTODNS_PASSWORD" ]; then
-    _err "You don't specify autodns user, password and context."
+  if [ -z "$AUTODNS_USER" ] || [ -z "$AUTODNS_CONTEXT" ] || [ -z "$AUTODNS_PASSWORD" ] || [ -z "$AUTODNS_API" ]; then
+    _err "You didn't specify autodns user, password, context or api."
     return 1
   fi
 
   _saveaccountconf_mutable AUTODNS_USER "$AUTODNS_USER"
   _saveaccountconf_mutable AUTODNS_PASSWORD "$AUTODNS_PASSWORD"
   _saveaccountconf_mutable AUTODNS_CONTEXT "$AUTODNS_CONTEXT"
+  _saveaccountconf_mutable AUTODNS_API "$AUTODNS_API"
 
   _debug "First detect the root zone"
 
@@ -67,9 +68,10 @@ dns_autodns_rm() {
   AUTODNS_USER="${AUTODNS_USER:-$(_readaccountconf_mutable AUTODNS_USER)}"
   AUTODNS_PASSWORD="${AUTODNS_PASSWORD:-$(_readaccountconf_mutable AUTODNS_PASSWORD)}"
   AUTODNS_CONTEXT="${AUTODNS_CONTEXT:-$(_readaccountconf_mutable AUTODNS_CONTEXT)}"
+  AUTODNS_API="${AUTODNS_API:-$(_readaccountconf_mutable AUTODNS_API)}"
 
-  if [ -z "$AUTODNS_USER" ] || [ -z "$AUTODNS_CONTEXT" ] || [ -z "$AUTODNS_PASSWORD" ]; then
-    _err "You don't specify autodns user, password and context."
+  if [ -z "$AUTODNS_USER" ] || [ -z "$AUTODNS_CONTEXT" ] || [ -z "$AUTODNS_PASSWORD" ] || [ -z "$AUTODNS_API" ]; then
+    _err "You didn't specify autodns user, password, context or api."
     return 1
   fi
 
