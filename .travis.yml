@@ -23,9 +23,7 @@ install:
 script:
   - echo "NGROK_TOKEN=$(echo "$NGROK_TOKEN" | wc -c)"
   - command -V openssl && openssl version
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then curl -sSL $SHFMT_URL -o ~/shfmt ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then chmod +x ~/shfmt ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ~/shfmt -l -w -i 2 . ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then curl -sSL $SHFMT_URL -o ~/shfmt && chmod +x ~/shfmt && ~/shfmt -l -w -i 2 . ; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then git diff --exit-code && echo "shfmt OK" ; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then shellcheck -V ; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then shellcheck -e SC2181 **/*.sh && echo "shellcheck OK" ; fi
