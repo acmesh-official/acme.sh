@@ -4287,20 +4287,21 @@ $_authorizations_map"
   Le_NextRenewTime=$(_math "$Le_NextRenewTime" - 86400)
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
 
-  if ! _on_issue_success "$_post_hook" "$_renew_hook"; then
-    _err "Call hook error."
-    return 1
-  fi
-
   if [ "$_real_cert$_real_key$_real_ca$_reload_cmd$_real_fullchain" ]; then
     _savedomainconf "Le_RealCertPath" "$_real_cert"
     _savedomainconf "Le_RealCACertPath" "$_real_ca"
     _savedomainconf "Le_RealKeyPath" "$_real_key"
     _savedomainconf "Le_ReloadCmd" "$_reload_cmd"
     _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
-    _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"
+    if ! _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"; then
+      return 1
+    fi
   fi
 
+  if ! _on_issue_success "$_post_hook" "$_renew_hook"; then
+    _err "Call hook error."
+    return 1
+  fi
 }
 
 #domain  [isEcc]
