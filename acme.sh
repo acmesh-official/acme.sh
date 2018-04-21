@@ -4401,6 +4401,7 @@ renewAll() {
     if [ "$rc" != "0" ]; then
       if [ "$rc" = "$RENEW_SKIP" ]; then
         _info "Skipped $d"
+        _ret="$RENEW_SKIP"
       elif [ "$_stopRenewOnError" ]; then
         _err "Error renew $d,  stop now."
         return "$rc"
