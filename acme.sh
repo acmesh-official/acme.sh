@@ -4539,7 +4539,7 @@ list() {
         _initpath "$d" "$_isEcc"
         if [ -f "$DOMAIN_CONF" ]; then
           . "$DOMAIN_CONF"
-          printf "%s\n" "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
+          printf "%s\n" "$Le_Domain${_sep}$(if [ -z "$Le_Keylength" ]; then echo "[$DEFAULT_DOMAIN_KEY_LENGTH]"; else echo "\"$Le_Keylength\""; fi)${_sep}$Le_Alt${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
         fi
       )
     done
