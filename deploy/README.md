@@ -233,7 +233,7 @@ DEPLOY_CPANEL_USER is required only if you run the script as root and it should 
 export DEPLOY_CPANEL_USER=username
 acme.sh  --deploy  -d example.com  --deploy-hook cpanel_uapi
 ```
-Please note, that the cpanel_uapi hook will deploy only the first domain when your certificate will automatically renew. Therefore you should issue a separate certificate for each domain. 
+Please note, that the cpanel_uapi hook will deploy only the first domain when your certificate will automatically renew. Therefore you should issue a separate certificate for each domain.
 
 ## 8. Deploy the cert to your FRITZ!Box router
 

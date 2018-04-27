@@ -11,7 +11,7 @@
 #
 # Only a username is required.  All others are optional.
 #
-# The following examples are for QNAP NAS running QTS 4.2 
+# The following examples are for QNAP NAS running QTS 4.2
 # export DEPLOY_SSH_CMD=""  # defaults to ssh
 # export DEPLOY_SSH_USER="admin"  # required
 # export DEPLOY_SSH_SERVER="qnap"  # defaults to domain name

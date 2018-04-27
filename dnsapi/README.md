@@ -845,7 +845,7 @@ acme.sh --issue --dns dns_loopia -d example.com -d *.example.com
 The username and password will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 ## 45. Use ACME DNS API
 
-ACME DNS is a limited DNS server with RESTful HTTP API to handle ACME DNS challenges easily and securely. 
+ACME DNS is a limited DNS server with RESTful HTTP API to handle ACME DNS challenges easily and securely.
 https://github.com/joohoi/acme-dns
 
 ```

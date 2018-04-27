@@ -2,10 +2,10 @@
 
 # Here is a script to deploy cert to hashicorp vault
 # (https://www.vaultproject.io/)
-# 
+#
 # it requires the vault binary to be available in PATH, and the following
 # environment variables:
-# 
+#
 # VAULT_PREFIX - this contains the prefix path in vault
 # VAULT_ADDR - vault requires this to find your vault server
 #

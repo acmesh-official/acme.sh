@@ -193,7 +193,7 @@ dns_freedns_rm() {
 
           if [ -n "$DNSdataid" ] && _startswith "$txtvalue" "$DNSvalue"; then
             # Found a match. But note... Website is truncating the
-            # value field so we are only testing that part that is not 
+            # value field so we are only testing that part that is not
             # truncated.  This should be accurate enough.
             _debug "Deleting TXT record for $fulldomain, $txtvalue"
             _freedns_delete_txt_record "$FREEDNS_COOKIE" "$DNSdataid"
