@@ -40,8 +40,8 @@ cdn_ali_deploy() {
 
   # read cert and key files and urlencode both
   _certnamestr=$DEPLOY_CDN_Ali_Prefix$_cdomain'-'$(sha1sum "$_ccert" | cut -c1-20)
-  _certtext=$(sed '/^$/d' < "$_cfullchain")
-  _keytext=$(sed '/^$/d' < "$_ckey")
+  _certtext=$(sed '/^$/d' <"$_cfullchain")
+  _keytext=$(sed '/^$/d' <"$_ckey")
   _certstr=$(_ali_urlencode "$_certtext")
   _keystr=$(_ali_urlencode "$_keytext")
 
@@ -103,9 +103,8 @@ _ali_urlencode() {
   _str="$1"
   _str_length="${#1}"
   i=1
-  while [ "$i" -le "$_str_length" ]
-  do
-    _str_c="$(expr substr "$_str" "$i" 1)"
+  while [ "$i" -le "$_str_length" ]; do
+    _str_c="$(printf "%s" "$_str" | head -c "$i" | tail -c 1)"
     case $_str_c in
       [a-zA-Z0-9.~_-]) printf "%s" "$_str_c" ;;
       "") printf "%s" "%0A" ;;
