@@ -40,17 +40,17 @@ cdn_ali_deploy() {
 
   # read cert and key files and urlencode both
   _certnamestr=$DEPLOY_CDN_Ali_Prefix$_cdomain'-'$(sha1sum "$_ccert" | cut -c1-20)
-  _certtext=$(cat "$_cfullchain" | sed '/^$/d')
-  _keytext=$(cat "$_ckey" | sed '/^$/d')
-  _certstr=$(_urlencode "$_certtext")
-  _keystr=$(_urlencode "$_keytext")
+  _certtext=$(sed '/^$/d' < "$_cfullchain")
+  _keytext=$(sed '/^$/d' < "$_ckey")
+  _certstr=$(_ali_urlencode "$_certtext")
+  _keystr=$(_ali_urlencode "$_keytext")
 
   _debug _certname "$_certnamestr"
   _debug2 _cert "$_certstr"
   _debug2 _key "$_keystr"
 
   _debug "Set Cert"
-  _set_cert_query $(_urlencode "$DEPLOY_CDN_Ali_Prefix$_cdomain") $(_urlencode "$_certnamestr") "$_certstr" "$_keystr" && _ali_rest "Set Cert"
+  _set_cert_query "$(_ali_urlencode "$DEPLOY_CDN_Ali_Prefix$_cdomain")" "$(_ali_urlencode "$_certnamestr")" "$_certstr" "$_keystr" && _ali_rest "Set Cert"
   return 0
 }
 
@@ -96,20 +96,25 @@ _ali_rest() {
 }
 
 _ali_urlencode() {
+  # urlencode <string>
+  old_lc_collate=$LC_COLLATE
+  LC_COLLATE=C
+
   _str="$1"
-  _str_len=${#_str}
-  _u_i=1
-  while [ "$_u_i" -le "$_str_len" ]; do
-    _str_c="$(printf "%s" "$_str" | cut -c "$_u_i")"
-    case $_str_c in [a-zA-Z0-9.~_-])
-      printf "%s" "$_str_c"
-      ;;
-    *)
-      printf "%%%02X" "'$_str_c"
-      ;;
+  _str_length="${#1}"
+  i=1
+  while [ "$i" -le "$_str_length" ]
+  do
+    _str_c="$(expr substr "$_str" "$i" 1)"
+    case $_str_c in
+      [a-zA-Z0-9.~_-]) printf "%s" "$_str_c" ;;
+      "") printf "%s" "%0A" ;;
+      *) printf '%%%02X' "'$_str_c" ;;
     esac
-    _u_i="$(_math "$_u_i" + 1)"
+    i=$((i + 1))
   done
+
+  LC_COLLATE=$old_lc_collate
 }
 
 _ali_nonce() {
@@ -120,19 +125,4 @@ _ali_nonce() {
 
 _timestamp() {
   date -u +"%Y-%m-%dT%H%%3A%M%%3A%SZ"
-}
-
-_urlencode() {
-  # urlencode <string>
-  old_lc_collate=$LC_COLLATE
-  LC_COLLATE=C
-  local length="${#1}"
-  for (( i = 0; i < length; i++ )); do
-    local c="${1:i:1}"
-    case $c in
-      [a-zA-Z0-9.~_-]) printf "$c" ;;
-    *) printf '%%%02X' "'$c" ;;
-    esac
-  done
-  LC_COLLATE=$old_lc_collate
 }
