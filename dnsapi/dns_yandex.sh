@@ -16,7 +16,7 @@ dns_yandex_add() {
   _PDD_credentials || return 1
   export _H1="PddToken: $PDD_Token"
 
-  _PDD_get_domain "$fulldomain"
+  _PDD_get_domain "$fulldomain" || return 1
   _debug "Found suitable domain in pdd: $curDomain"
   curData="domain=${curDomain}&type=TXT&subdomain=${curSubdomain}&ttl=360&content=${txtvalue}"
   curUri="https://pddimp.yandex.ru/api2/admin/dns/add"
@@ -33,7 +33,7 @@ dns_yandex_rm() {
   record_id=$(pdd_get_record_id "${fulldomain}")
   _debug "Result: $record_id"
 
-  _PDD_get_domain "$fulldomain"
+  _PDD_get_domain "$fulldomain" || return 1
   _debug "Found suitable domain in pdd: $curDomain"
 
   curUri="https://pddimp.yandex.ru/api2/admin/dns/del"
