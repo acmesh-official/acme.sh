@@ -37,10 +37,12 @@ dns_yandex_rm() {
   record_id=$(pdd_get_record_id "${fulldomain}")
   _debug "Result: $record_id"
 
-  curUri="https://pddimp.yandex.ru/api2/admin/dns/del"
-  curData="domain=${curDomain}&record_id=${record_id}"
-  curResult="$(_post "${curData}" "${curUri}")"
-  _debug "Result: $curResult"
+  for rec_i in $record_id; do
+    curUri="https://pddimp.yandex.ru/api2/admin/dns/del"
+    curData="domain=${curDomain}&record_id=${rec_i}"
+    curResult="$(_post "${curData}" "${curUri}")"
+    _debug "Result: $curResult"
+  done
 }
 
 ####################  Private functions below ##################################
