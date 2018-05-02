@@ -67,4 +67,3 @@ _tele3_call() {
     return 1
   fi
 }
-
