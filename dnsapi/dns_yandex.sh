@@ -30,11 +30,12 @@ dns_yandex_rm() {
   _debug "Calling: dns_yandex_rm() '${fulldomain}'"
   _PDD_credentials || return 1
   export _H1="PddToken: $PDD_Token"
-  record_id=$(pdd_get_record_id "${fulldomain}")
-  _debug "Result: $record_id"
 
   _PDD_get_domain "$fulldomain" || return 1
   _debug "Found suitable domain in pdd: $curDomain"
+
+  record_id=$(pdd_get_record_id "${fulldomain}")
+  _debug "Result: $record_id"
 
   curUri="https://pddimp.yandex.ru/api2/admin/dns/del"
   curData="domain=${curDomain}&record_id=${record_id}"
