@@ -54,7 +54,7 @@ _PDD_get_domain() {
     _debug2 "res1" "$res1"
     __found="$(echo "$res1" | sed -n -e 's#.* "found": \([^,]*\),.*#\1#p')"
     _debug "found: $__found results on page"
-    if [ "$__found" -lt 20 ]; then
+    if [ "0$__found" -lt 20 ]; then
       _debug "last page: $__page"
       __last=1
     fi
