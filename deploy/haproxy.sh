@@ -23,7 +23,13 @@ haproxy_deploy() {
   # combine the key and fullchain into a single pem and install
   _savedomainconf DEPLOY_HAPROXY_PEM_PATH "$DEPLOY_HAPROXY_PEM_PATH"
 
-  _pem_full_path="$DEPLOY_HAPROXY_PEM_PATH/$_cdomain.pem"
+  _pem_path="${DEPLOY_HAPROXY_PEM_PATH}"
+  if [ -z "$_pem_path" ]; then
+    _err "Path to save PEM file not found. Please define DEPLOY_HAPROXY_PEM_PATH."
+    return 1
+  fi
+  
+  _pem_full_path="$_pem_path/$_cdomain.pem"
   _info "Full path to PEM $_pem_full_path"
 
   cat "$_cfullchain" "$_ckey" > "$_pem_full_path"
