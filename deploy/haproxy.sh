@@ -32,7 +32,7 @@ haproxy_deploy() {
   _pem_full_path="$_pem_path/$_cdomain.pem"
   _info "Full path to PEM $_pem_full_path"
 
-  cat "$_cfullchain" "$_ckey" > "$_pem_full_path"
+  cat "$_cfullchain" "$_ckey" >"$_pem_full_path"
   chmod 600 "$_pem_full_path"
 
   _info "Certificate successfully deployed"
