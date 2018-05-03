@@ -97,9 +97,9 @@ _PDD_get_domain() {
 
 _PDD_credentials() {
   fulldomain="${1}"
-  domainhash="$(echo -n "$fulldomain" | openssl md5 | cut -d ' ' -f2)"
+  domainhash="$(printf "%s" "$fulldomain" | openssl md5 | cut -d ' ' -f2)"
   if [ -z "${PDD_Multi_Token}" ]; then
-    eval PDD_Multi_Token=\$PDD_Multi_Token_$domainhash
+    eval "PDD_Multi_Token=\$PDD_Multi_Token_$domainhash"
     if [ -z "${PDD_Multi_Token}" ]; then
       PDD_Multi_Token=""
       _err "You need to export PDD_Multi_Token=xxxxxxxxxxxxxxxxx"
@@ -107,7 +107,7 @@ _PDD_credentials() {
       return 1
     fi
   else
-    _saveaccountconf PDD_Multi_Token_$domainhash "${PDD_Multi_Token}"
+    _saveaccountconf "PDD_Multi_Token_$domainhash" "${PDD_Multi_Token}"
   fi
 }
 
