@@ -28,7 +28,6 @@ haproxy_deploy() {
     _err "Path to save PEM file not found. Please define DEPLOY_HAPROXY_PEM_PATH."
     return 1
   fi
-  
   _pem_full_path="$_pem_path/$_cdomain.pem"
   _info "Full path to PEM $_pem_full_path"
 
