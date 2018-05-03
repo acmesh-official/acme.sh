@@ -20,7 +20,16 @@ haproxy_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  _err "deploy cert to haproxy server, Not implemented yet"
-  return 1
+  # combine the key and fullchain into a single pem and install
+  _savedomainconf DEPLOY_HAPROXY_PEM_PATH "$DEPLOY_HAPROXY_PEM_PATH"
+
+  _pem_full_path="$DEPLOY_HAPROXY_PEM_PATH/$_cdomain.pem"
+  _info "Full path to PEM $_pem_full_path"
+
+  cat "$_cfullchain" "$_ckey" > "$_pem_full_path"
+  chmod 600 "$_pem_full_path"
+
+  _info "Certificate successfully deployed"
+  return 0
 
 }
