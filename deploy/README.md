@@ -263,6 +263,12 @@ You must specify the path where you want the concatenated key and certificate ch
 export DEPLOY_HAPROXY_PEM_PATH=/etc/haproxy
 ```
 
+You may optionally define the command to reload HAProxy. The value shown below will be used as the default if you don't set this environment variable.
+
+```sh
+export DEPLOY_HAPROXY_RELOAD="/usr/sbin/service haproxy restart"
+```
+
 You can then deploy the certificate as follows
 ```sh
 acme.sh --deploy -d haproxy.example.com --deploy-hook haproxy
