@@ -863,7 +863,19 @@ acme.sh --issue --dns dns_acmedns -d example.com -d www.example.com
 
 The credentials will be saved in `~/.acme.sh/account.conf` and will
 be reused when needed.
+## 46. Use TELE3 API
 
+First you need to login to your TELE3 account to set your API-KEY.
+https://www.tele3.cz/system-acme-api.html
+
+```
+export TELE3_Key="MS2I4uPPaI..."
+export TELE3_Secret="kjhOIHGJKHg"
+
+acme.sh --issue --dns dns_tele3 -d example.com -d *.example.com
+```
+
+The TELE3_Key and TELE3_Secret will be saved in ~/.acme.sh/account.conf and will be reused when needed.
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
