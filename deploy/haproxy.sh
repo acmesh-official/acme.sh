@@ -22,7 +22,7 @@ haproxy_deploy() {
 
   # handle reload preference
   DEFAULT_HAPROXY_RELOAD="/usr/sbin/service haproxy restart"
-  if [[ -z "${DEPLOY_HAPROXY_RELOAD}" ]]; then
+  if [ -z "${DEPLOY_HAPROXY_RELOAD}" ]; then
     _reload="${DEFAULT_HAPROXY_RELOAD}"
     _cleardomainconf DEPLOY_HAPROXY_RELOAD
   else
