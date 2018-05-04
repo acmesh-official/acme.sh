@@ -1,5 +1,9 @@
 # How to use DNS API
 
+If your dns provider doesn't provide api access, you can use our dns alias mode: 
+
+https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode
+
 ## 1. Use CloudFlare domain API to automatically issue cert
 
 First you need to login to your CloudFlare account to get your API key.
