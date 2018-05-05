@@ -116,12 +116,12 @@ dns_one_rm() {
   response="$(_post "$postdata" "https://www.one.com/admin/ajax-dns-entries.do" "" "POST")"
   response="$(echo "$response" | _normalizeJson)"
 
-  _debug response $response
+  _debug response "$response"
 
   # remove _acme-challenge subdomain
   mysubdomainid=$(printf -- "%s" "$response" | sed -n "s/.*{\"subDomain\":\"$mysubdomain\"[^}]*,\"value\":\"$txtvalue\",\"id\":\"\([0-9][0-9]*\)\"}.*/\1/p")
 
-  if [ $mysubdomainid ]; then
+  if [ "$mysubdomainid" ]; then
 
     _debug mysubdomainid "$mysubdomainid"
 
