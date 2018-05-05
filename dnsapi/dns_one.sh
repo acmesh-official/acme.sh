@@ -14,7 +14,7 @@
 #     only single domain supported atm
 
 dns_one_add() {
-  mysubdomain=$(echo $1 | rev | cut -d"." -f3- | rev)
+  mysubdomain=$(printf -- "%s" "$1" | rev | cut -d"." -f3- | rev)
   txtvalue=$2
 
   # get credentials
@@ -35,10 +35,10 @@ dns_one_add() {
 
   # Login with user and password
   postdata="loginDomain=true"
-  postdata+="&displayUsername=$ONECOM_USER&username=$ONECOM_USER"
-  postdata+="&targetDomain="
-  postdata+="&password1=$ONECOM_PASSWORD"
-  postdata+="&loginTarget="
+  postdata=postdata+"&displayUsername=$ONECOM_USER&username=$ONECOM_USER"
+  postdata=postdata+"&targetDomain="
+  postdata=postdata+"&password1=$ONECOM_PASSWORD"
+  postdata=postdata+"&loginTarget="
 
   response="$(_post "$postdata" "https://www.one.com/admin/login.do" "" "POST")"
 
@@ -55,16 +55,15 @@ dns_one_add() {
 
   # create txt record
   postdata="cmd=create"
-  postdata+="&subDomain=$mysubdomain"
-  postdata+="&priority="
-  postdata+="&ttl=600"
-  postdata+="&type=TXT"
-  postdata+="&value=$txtvalue"
-  postdata+="&csrft=$mycsrft"
+  postdata=postdata+"&subDomain=$mysubdomain"
+  postdata=postdata+"&priority="
+  postdata=postdata+"&ttl=600"
+  postdata=postdata+"&type=TXT"
+  postdata=postdata+"&value=$txtvalue"
+  postdata=postdata+"&csrft=$mycsrft"
 
   response="$(_post "$postdata" "https://www.one.com/admin/dns-web-handler.do" "" "POST")"
   _debug response "$response"
-
 
   if printf -- "%s" "$response" | grep "\"success\":true" >/dev/null; then
     _info "Added, OK"
@@ -77,7 +76,7 @@ dns_one_add() {
 }
 
 dns_one_rm() {
-  mysubdomain=$(echo $1 | rev | cut -d"." -f3- | rev)
+  mysubdomain=$(printf -- "%s" "$1" | rev | cut -d"." -f3- | rev)
   txtvalue=$2
 
   # get credentials
@@ -94,10 +93,10 @@ dns_one_rm() {
 
   # Login with user and password
   postdata="loginDomain=true"
-  postdata+="&displayUsername=$ONECOM_USER&username=$ONECOM_USER"
-  postdata+="&targetDomain="
-  postdata+="&password1=$ONECOM_PASSWORD"
-  postdata+="&loginTarget="
+  postdata=postdata+"&displayUsername=$ONECOM_USER&username=$ONECOM_USER"
+  postdata=postdata+"&targetDomain="
+  postdata=postdata+"&password1=$ONECOM_PASSWORD"
+  postdata=postdata+"&loginTarget="
 
   response="$(_post "$postdata" "https://www.one.com/admin/login.do" "" "POST")"
 
@@ -124,7 +123,7 @@ dns_one_rm() {
 
   if [ $mysubdomainid ]; then
 
-    _debug mysubdomainid $mysubdomainid
+    _debug mysubdomainid "$mysubdomainid"
 
     response="$(_get "https://www.one.com/admin/dns-overview.do")"
     CSRF_G_TOKEN="$(grep "CSRF_G_TOKEN=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'CSRF_G_TOKEN=[^;]*;' | tr -d ';')"
@@ -135,15 +134,15 @@ dns_one_rm() {
 
     # delete txt record
     postdata="cmd=delete"
-    postdata+="&subDomain=$mysubdomain"
-    postdata+="&priority="
-    postdata+="&ttl=600"
-    postdata+="&type=TXT"
-    postdata+="&id=$mysubdomainid"
-    postdata+="&csrft=$mycsrft"
+    postdata=postdata+"&subDomain=$mysubdomain"
+    postdata=postdata+"&priority="
+    postdata=postdata+"&ttl=600"
+    postdata=postdata+"&type=TXT"
+    postdata=postdata+"&id=$mysubdomainid"
+    postdata=postdata+"&csrft=$mycsrft"
 
     response="$(_post "$postdata" "https://www.one.com/admin/dns-web-handler.do" "" "POST")"
-    _debug $response
+    _debug "$response"
 
     if printf -- "%s" "$response" | grep "\"success\":true" >/dev/null; then
       _info "Removed, OK"
