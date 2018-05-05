@@ -14,10 +14,24 @@
 #     only single domain supported atm
 
 dns_one_add() {
-  # todo use $1 but split host and domain
-  #mysubdomain=$1
-  mysubdomain="_acme-challenge"
+  mysubdomain=$(echo $1 | rev | cut -d"." -f3- | rev)
   txtvalue=$2
+
+  # get credentials
+  ONECOM_USER="${ONECOM_USER:-$(_readaccountconf_mutable ONECOM_USER)}"
+  ONECOM_PASSWORD="${ONECOM_PASSWORD:-$(_readaccountconf_mutable ONECOM_PASSWORD)}"
+  if [ -z "$ONECOM_USER" ] || [ -z "$ONECOM_PASSWORD" ]; then
+    ONECOM_USER=""
+    ONECOM_PASSWORD=""
+    _err "You didn't specify a cloudflare api key and email yet."
+    _err "Please create the key and try again."
+    return 1
+  fi
+
+  #save the api key and email to the account conf file.
+  _saveaccountconf_mutable ONECOM_USER "$ONECOM_USER"
+  _saveaccountconf_mutable ONECOM_PASSWORD "$ONECOM_PASSWORD"
+
 
   # Login with user and password
   postdata="loginDomain=true"
@@ -49,15 +63,34 @@ dns_one_add() {
   postdata+="&csrft=$mycsrft"
 
   response="$(_post "$postdata" "https://www.one.com/admin/dns-web-handler.do" "" "POST")"
-  echo $response
+  _debug response "$response"
+
+
+  if printf -- "%s" "$response" | grep "\"success\":true" >/dev/null; then
+    _info "Added, OK"
+    return 0
+  else
+    _err "Add txt record error."
+    return 1
+  fi
 
 }
 
 dns_one_rm() {
-  # todo use $1 but split host and domain
-  #mysubdomain=$1
-  mysubdomain="_acme-challenge"
+  mysubdomain=$(echo $1 | rev | cut -d"." -f3- | rev)
   txtvalue=$2
+
+  # get credentials
+  ONECOM_USER="${ONECOM_USER:-$(_readaccountconf_mutable ONECOM_USER)}"
+  ONECOM_PASSWORD="${ONECOM_PASSWORD:-$(_readaccountconf_mutable ONECOM_PASSWORD)}"
+  if [ -z "$ONECOM_USER" ] || [ -z "$ONECOM_PASSWORD" ]; then
+    ONECOM_USER=""
+    ONECOM_PASSWORD=""
+    _err "You didn't specify a cloudflare api key and email yet."
+    _err "Please create the key and try again."
+    return 1
+  fi
+
 
   # Login with user and password
   postdata="loginDomain=true"
@@ -84,9 +117,14 @@ dns_one_rm() {
   response="$(_post "$postdata" "https://www.one.com/admin/ajax-dns-entries.do" "" "POST")"
   response="$(echo "$response" | _normalizeJson)"
 
-  # remove all records named _acme-challenge
-  echo  $response | egrep -o '\{"subDomain":"_acme-challenge"[^}]*,"id":"[0-9][0-9]*"\}' | while read line ; do
-    mysubdomainid=$(echo $line | sed -n 's/.*{"subDomain":"_acme-challenge"[^}]*"id":"\([0-9][0-9]*\)"}.*/\1/p')
+  _debug response $response
+
+  # remove _acme-challenge subdomain
+  mysubdomainid=$(printf -- "%s" "$response" | sed -n "s/.*{\"subDomain\":\"$mysubdomain\"[^}]*,\"value\":\"$txtvalue\",\"id\":\"\([0-9][0-9]*\)\"}.*/\1/p")
+
+  if [ $mysubdomainid ]; then
+
+    _debug mysubdomainid $mysubdomainid
 
     response="$(_get "https://www.one.com/admin/dns-overview.do")"
     CSRF_G_TOKEN="$(grep "CSRF_G_TOKEN=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'CSRF_G_TOKEN=[^;]*;' | tr -d ';')"
@@ -105,8 +143,19 @@ dns_one_rm() {
     postdata+="&csrft=$mycsrft"
 
     response="$(_post "$postdata" "https://www.one.com/admin/dns-web-handler.do" "" "POST")"
-    echo $response
+    _debug $response
 
-  done
+    if printf -- "%s" "$response" | grep "\"success\":true" >/dev/null; then
+      _info "Removed, OK"
+      return 0
+    else
+      _err "Removing txt record error."
+      return 1
+    fi
+
+  fi
+
+  _err "Removing txt record error. (not existing)"
+  return 1
 
 }
