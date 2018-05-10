@@ -258,15 +258,27 @@ acme.sh --deploy -d ftp.example.com --deploy-hook strongswan
 
 ## 10. Deploy the cert to HAProxy
 
-You must specify the path where you want the concatenated key and certificate chain written.
+You must specify the file where you want the concatenated key and certificate chain written.
 ```sh
-export DEPLOY_HAPROXY_PEM_PATH=/etc/haproxy
+export DEPLOY_HAPROXY_PEM=/etc/haproxy/server.pem
 ```
 
 You may optionally define the command to reload HAProxy. The value shown below will be used as the default if you don't set this environment variable.
 
 ```sh
-export DEPLOY_HAPROXY_RELOAD="/usr/sbin/service haproxy restart"
+export DEPLOY_HAPROXY_RELOAD="systemctl reload haproxy"
+```
+
+You may optionally specify that the issuer certificate is transferred to "${DEPLOY_HAPROXY_PEM}.issuer". This is a requirement to support OCSP stapling in HAProxy. The value shown below will be used as the default if you don't set this environment variable.
+
+```sh
+export DEPLOY_HAPROXY_ISSUER="no"
+```
+
+You may optionally specify that you wish to support HAProxy's multi-cert bundle functionality.  This allows serving of both RSA and ECC certificates on the same proxy. This adds a ".rsa" or ".ecc" suffix to the files generated (.pem, .ocsp and .issuer). The value shown below will be used as the default if you don't set this environment variable.
+
+```sh
+export DEPLOY_HAPROXY_BUNDLE="no"
 ```
 
 You can then deploy the certificate as follows
