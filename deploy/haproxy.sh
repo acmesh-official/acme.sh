@@ -117,7 +117,7 @@ haproxy_deploy() {
   # Create a temporary PEM file
   _temppem="$(_mktemp)"
   _debug _temppem "${_temppem}"
-  cat "${_ckey}" "${_ccert}" "${_cca}" > "${_temppem}"
+  cat "${_ckey}" "${_ccert}" "${_cca}" >"${_temppem}"
   _ret="$?"
 
   # Check that we could create the temporary file
@@ -130,7 +130,7 @@ haproxy_deploy() {
   # Move PEM file into place
   _info "Moving new certificate into place"
   _debug _pem "${_pem}"
-  cat "${_temppem}" > "${_pem}"
+  cat "${_temppem}" >"${_pem}"
   _ret=$?
 
   # Clean up temp file
@@ -146,7 +146,7 @@ haproxy_deploy() {
   if [ "${Le_Deploy_haproxy_issuer}" = "yes" ]; then
     _info "Updating .issuer file"
     _debug _issuer "${_issuer}"
-    cat "${_cca}" > "${_issuer}"
+    cat "${_cca}" >"${_issuer}"
     _ret="$?"
 
     if [ "${_ret}" != "0" ]; then
@@ -187,25 +187,25 @@ haproxy_deploy() {
         if [ "${_subjectdn}" = "${_issuerdn}" ]; then
           # If the issuer is a CA cert then our command line has "-CAfile" added
           openssl ocsp \
-          -issuer "${_issuer}" \
-          -cert "${_pem}" \
-          -url "${_ocsp_url}" \
-          -header Host "${_ocsp_host}" \
-          -respout "${_ocsp}" \
-          -verify_other "${_issuer}" \
-          -no_nonce \
-          -CAfile "${_issuer}"
+            -issuer "${_issuer}" \
+            -cert "${_pem}" \
+            -url "${_ocsp_url}" \
+            -header Host "${_ocsp_host}" \
+            -respout "${_ocsp}" \
+            -verify_other "${_issuer}" \
+            -no_nonce \
+            -CAfile "${_issuer}"
           _ret=$?
         else
           # Issuer is not a root CA so no "-CAfile" option
           openssl ocsp \
-          -issuer "${_issuer}" \
-          -cert "${_pem}" \
-          -url "${_ocsp_url}" \
-          -header Host "${_ocsp_host}" \
-          -respout "${_ocsp}" \
-          -verify_other "${_issuer}" \
-          -no_nonce
+            -issuer "${_issuer}" \
+            -cert "${_pem}" \
+            -url "${_ocsp_url}" \
+            -header Host "${_ocsp_host}" \
+            -respout "${_ocsp}" \
+            -verify_other "${_issuer}" \
+            -no_nonce
           _ret=$?
         fi
       else
@@ -219,8 +219,8 @@ haproxy_deploy() {
 
     # Check return code of openssl command
     if [ "${_ret}" != "0" ]; then
-        _err "Updating OCSP stapling failed with return code ${_ret}"
-        return ${_ret}
+      _err "Updating OCSP stapling failed with return code ${_ret}"
+      return ${_ret}
     fi
   else
     # An OCSP file was already present but certificate did not have OCSP extension
@@ -228,7 +228,7 @@ haproxy_deploy() {
       _err "OCSP was not requested but .ocsp file exists."
       # Should remove the file at this step, although HAProxy just ignores it in this case
       # rm -f "${_ocsp}" || _err "Problem removing stale .ocsp file"
-    fi 
+    fi
   fi
 
   # Reload HAProxy
