@@ -258,9 +258,16 @@ acme.sh --deploy -d ftp.example.com --deploy-hook strongswan
 
 ## 10. Deploy the cert to HAProxy
 
-You must specify the file where you want the concatenated key and certificate chain written.
+You may specify the directory where you want the concatenated key and certificate chain written. The value shown below will be used as the default if you don't set this environment variable.
+
 ```sh
-export DEPLOY_HAPROXY_PEM=/etc/haproxy/server.pem
+export DEPLOY_HAPROXY_PEM_PATH=/etc/haproxy
+```
+
+You may optionally specify the file name where you want the concatenated key and certificate chain written. The value shown below will be used as the default if you don't set this environment variable.
+
+```sh
+export DEPLOY_HAPROXY_PEM_PATH=$domain
 ```
 
 You may optionally define the command to reload HAProxy. The value shown below will be used as the default if you don't set this environment variable.
