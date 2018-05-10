@@ -4,9 +4,15 @@
 #
 # The following variables can be exported:
 #
-# export DEPLOY_HAPROXY_PEM=""
+# export DEPLOY_HAPROXY_PEM_NAME="${domain}.pem"
 #
-# REQUIRED: Defines location of PEM file for HAProxy
+# Defines the name of the PEM file.
+# Defaults to "domain.pem"
+#
+# export DEPLOY_HAPROXY_PEM_PATH="/etc/haproxy"
+#
+# Defines location of PEM file for HAProxy.
+# Defaults to /etc/haproxy
 #
 # export DEPLOY_HAPROXY_RELOAD="systemctl reload haproxy"
 #
@@ -39,6 +45,8 @@ haproxy_deploy() {
   _cfullchain="$5"
 
   # Some defaults
+  DEPLOY_HAPROXY_PEM_PATH_DEFAULT="/etc/haproxy"
+  DEPLOY_HAPROXY_PEM_NAME_DEFAULT="${_cdomain}.pem"
   DEPLOY_HAPROXY_BUNDLE_DEFAULT="no"
   DEPLOY_HAPROXY_ISSUER_DEFAULT="no"
   DEPLOY_HAPROXY_RELOAD_DEFAULT="systemctl reload haproxy"
@@ -54,15 +62,28 @@ haproxy_deploy() {
   _debug _cca "${_cca}"
   _debug _cfullchain "${_cfullchain}"
 
-  # CERT is required
-  if [ -z "${DEPLOY_HAPROXY_PEM}" ]; then
-    if [ -z "${Le_Deploy_haproxy_pem}" ]; then
-      _err "{DEPLOY_HAPROXY_PEM} not defined."
-      return 1
-    fi
+  # PEM_PATH is optional. If not provided then assume "${DEPLOY_HAPROXY_PEM_PATH_DEFAULT}"
+  if [ -n "${DEPLOY_HAPROXY_PEM_PATH}" ]; then
+    Le_Deploy_haproxy_pem_path="${DEPLOY_HAPROXY_PEM_PATH}"
+    _savedomainconf Le_Deploy_haproxy_pem_path "${Le_Deploy_haproxy_pem_path}"
+  elif [ -z "${Le_Deploy_haproxy_pem_path}" ]; then
+    Le_Deploy_haproxy_pem_path="${DEPLOY_HAPROXY_PEM_PATH_DEFAULT}"
+  fi
+
+  # Ensure PEM_PATH exists
+  if [ -d "${Le_Deploy_haproxy_pem_path}" ]; then
+    _debug "PEM_PATH ${Le_Deploy_haproxy_pem_path} exists"
   else
-    Le_Deploy_haproxy_pem="${DEPLOY_HAPROXY_PEM}"
-    _savedomainconf Le_Deploy_haproxy_pem "${Le_Deploy_haproxy_pem}"
+    _err "PEM_PATH ${Le_Deploy_haproxy_pem_path} does not exist"
+    return 1
+  fi
+
+  # PEM_NAME is optional. If not provided then assume "${DEPLOY_HAPROXY_PEM_NAME_DEFAULT}"
+  if [ -n "${DEPLOY_HAPROXY_PEM_NAME}" ]; then
+    Le_Deploy_haproxy_pem_name="${DEPLOY_HAPROXY_PEM_NAME}"
+    _savedomainconf Le_Deploy_haproxy_pem_name "${Le_Deploy_haproxy_pem_name}"
+  elif [ -z "${Le_Deploy_haproxy_pem_name}" ]; then
+    Le_Deploy_haproxy_pem_name="${DEPLOY_HAPROXY_PEM_NAME_DEFAULT}"
   fi
 
   # BUNDLE is optional. If not provided then assume "${DEPLOY_HAPROXY_BUNDLE_DEFAULT}"
@@ -108,7 +129,7 @@ haproxy_deploy() {
   fi
 
   # Set variables for later
-  _pem="${Le_Deploy_haproxy_pem}${_suffix}"
+  _pem="${Le_Deploy_haproxy_pem_path}/${Le_Deploy_haproxy_pem_name}${_suffix}"
   _issuer="${_pem}.issuer"
   _ocsp="${_pem}.ocsp"
   _reload="${Le_Deploy_haproxy_reload}"
