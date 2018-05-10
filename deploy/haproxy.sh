@@ -61,8 +61,8 @@ haproxy_deploy() {
       return 1
     fi
   else
-    Le_Deploy_haproxy_cert="${DEPLOY_HAPROXY_PEM}"
-    _savedomainconf Le_Deploy_haproxy_cert "${Le_Deploy_haproxy_pem}"
+    Le_Deploy_haproxy_pem="${DEPLOY_HAPROXY_PEM}"
+    _savedomainconf Le_Deploy_haproxy_pem "${Le_Deploy_haproxy_pem}"
   fi
 
   # BUNDLE is optional. If not provided then assume "${DEPLOY_HAPROXY_BUNDLE_DEFAULT}"
