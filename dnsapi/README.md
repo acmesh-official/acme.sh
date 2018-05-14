@@ -864,6 +864,24 @@ acme.sh --issue --dns dns_acmedns -d example.com -d www.example.com
 The credentials will be saved in `~/.acme.sh/account.conf` and will
 be reused when needed.
 
+## 47. Use Netcup DNS API to automatically issue cert
+
+First you need to login to your CCP account to get your API Key and API Password.
+
+```
+export NC_Apikey="<Apikey>"
+export NC_Apipw="<Apipassword>"
+export NC_CID="<Customernumber>"
+```
+
+Now, let's issue a cert:
+```
+acme.sh --issue --dns dns_netcup -d example.com -d www.example.com
+```
+
+The `NC_Apikey`,`NC_Apipw` and `NC_CID` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
