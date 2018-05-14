@@ -257,10 +257,10 @@ haproxy_deploy() {
   eval "${_reload}"
   _ret=$?
   if [ "${_ret}" != "0" ]; then
-    _info "Reload successful"
-  else
     _err "Error code ${_ret} during reload"
     return ${_ret}
+  else
+    _info "Reload successful"
   fi
 
   return 0
