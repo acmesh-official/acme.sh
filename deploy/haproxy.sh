@@ -216,8 +216,8 @@ haproxy_deploy() {
             -respout "${_ocsp}" \
             -verify_other "${_issuer}" \
             -no_nonce \
-            -CAfile "${_issuer}" | \
-          grep -q "${_pem}: good" 
+            -CAfile "${_issuer}" \
+            | grep -q "${_pem}: good"
           _ret=$?
         else
           # Issuer is not a root CA so no "-CAfile" option
@@ -228,8 +228,8 @@ haproxy_deploy() {
             -header Host "${_ocsp_host}" \
             -respout "${_ocsp}" \
             -verify_other "${_issuer}" \
-            -no_nonce | \
-          grep -q "${_pem}: good" 
+            -no_nonce \
+            | grep -q "${_pem}: good"
           _ret=$?
         fi
       else
