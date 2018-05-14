@@ -118,15 +118,16 @@ haproxy_deploy() {
       Le_Keylength=""
     fi
     if _isEccKey "${Le_Keylength}"; then
-      _info "ECC key type so set suffix to .ecc"
-      _suffix=".ecc"
+      _info "ECC key type detected"
+      _suffix=".ecdsa"
     else
-      _info "RSA key type so set suffix to .rsa"
+      _info "RSA key type detected"
       _suffix=".rsa"
     fi
   else
     _suffix=""
   fi
+  _debug _suffix "${_suffix}"
 
   # Set variables for later
   _pem="${Le_Deploy_haproxy_pem_path}/${Le_Deploy_haproxy_pem_name}${_suffix}"
@@ -215,7 +216,8 @@ haproxy_deploy() {
             -respout "${_ocsp}" \
             -verify_other "${_issuer}" \
             -no_nonce \
-            -CAfile "${_issuer}"
+            -CAfile "${_issuer}" | \
+          grep -q "${_pem}: good" 
           _ret=$?
         else
           # Issuer is not a root CA so no "-CAfile" option
@@ -226,7 +228,8 @@ haproxy_deploy() {
             -header Host "${_ocsp_host}" \
             -respout "${_ocsp}" \
             -verify_other "${_issuer}" \
-            -no_nonce
+            -no_nonce | \
+          grep -q "${_pem}: good" 
           _ret=$?
         fi
       else
@@ -238,10 +241,9 @@ haproxy_deploy() {
       _err "OCSP update requested but no OCSP URL was found in certificate"
     fi
 
-    # Check return code of openssl command
+    # Non fatal: Check return code of openssl command
     if [ "${_ret}" != "0" ]; then
       _err "Updating OCSP stapling failed with return code ${_ret}"
-      return ${_ret}
     fi
   else
     # An OCSP file was already present but certificate did not have OCSP extension
