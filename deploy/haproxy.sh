@@ -113,11 +113,11 @@ haproxy_deploy() {
   # Set the suffix depending if we are creating a bundle or not
   if [ "${Le_Deploy_haproxy_bundle}" = "yes" ]; then
     _info "Bundle creation requested"
-    # Initialise $Le_KeyLength if its not already set
-    if [ -z "${Le_KeyLength}" ]; then
-      Le_KeyLength=""
+    # Initialise $Le_Keylength if its not already set
+    if [ -z "${Le_Keylength}" ]; then
+      Le_Keylength=""
     fi
-    if _isEccKey "${Le_KeyLength}"; then
+    if _isEccKey "${Le_Keylength}"; then
       _info "ECC key type so set suffix to .ecc"
       _suffix=".ecc"
     else
