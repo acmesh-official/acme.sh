@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-#Requirments: jq
+
 #developed by linux-insideDE
 
 NC_Apikey="${NC_Apikey:-$(_readaccountconf_mutable NC_Apikey)}"
@@ -58,7 +58,7 @@ dns_netcup_add() {
 	tmp=$(echo "$fulldomain" | cut -d'.' -f$inc)
 	msg=$(_post "{\"action\": \"updateDnsRecords\", \"param\": {\"apikey\": \"$NC_Apikey\", \"apisessionid\": \"$sid\", \"customernumber\": \"$NC_CID\",\"clientrequestid\": \"$client\" , \"domainname\": \"$domain.$tld\", \"dnsrecordset\": { \"dnsrecords\": [ {\"id\": \"\", \"hostname\": \"$tmp\", \"type\": \"TXT\", \"priority\": \"\", \"destination\": \"$txtvalue\", \"deleterecord\": \"false\", \"state\": \"yes\"} ]}}}" "$end" "" "POST")
 	_debug "$msg"
-	if [ "$(echo "$msg" | jq -r .status)" != "success" ]; then
+	if [ "$(_getfield "$msg" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
 		_err "$msg"
 		return 1
 	fi
@@ -106,10 +106,29 @@ dns_netcup_rm() {
 	tmp=$(echo "$fulldomain" | cut -d'.' -f$inc)	
 	doma="$domain.$tld"
 	rec=$(getRecords "$doma")
-	ids=$(echo "$rec" | jq -r ".[]|select(.destination==\"$txtvalue\")|.id")
+	
+	ida=0000
+	idv=0001
+	ids=0000000000	
+	i=1
+	while [ "$i" -ne 0 ];
+	do
+		specrec=$(_getfield "$rec" "$i" ";")
+		idv="$ida"
+		ida=$(_getfield "$specrec" "1" "," | sed 's/\"id\":\"//g' | sed 's/\"//g')
+		txtv=$(_getfield "$specrec" "5" "," | sed 's/\"destination\":\"//g' | sed 's/\"//g')			 
+		i=$(_math "$i" + 1)
+		if [ "$txtvalue" = "$txtv" ]; then
+			i=0
+			ids="$ida"
+		fi	
+		if [ "$ida" = "$idv" ]; then
+			i=0
+		fi
+	done	
 	msg=$(_post "{\"action\": \"updateDnsRecords\", \"param\": {\"apikey\": \"$NC_Apikey\", \"apisessionid\": \"$sid\", \"customernumber\": \"$NC_CID\",\"clientrequestid\": \"$client\" , \"domainname\": \"$doma\", \"dnsrecordset\": { \"dnsrecords\": [ {\"id\": \"$ids\", \"hostname\": \"$tmp\", \"type\": \"TXT\", \"priority\": \"\", \"destination\": \"$txtvalue\", \"deleterecord\": \"TRUE\", \"state\": \"yes\"} ]}}}" "$end" "" "POST")
 	_debug "$msg"
-	if [ "$(echo "$msg" | jq -r .status)" != "success" ]; then
+	if [ "$(_getfield "$msg" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
 		_err "$msg"
 		return 1
 	fi
@@ -117,30 +136,28 @@ dns_netcup_rm() {
 }
 
 login() {
-	tmp=$(_post "{\"action\": \"login\", \"param\": {\"apikey\": \"$NC_Apikey\", \"apipassword\": \"$NC_Apipw\", \"customernumber\": \"$NC_CID\"}}" "$end" "" "POST")
-	sid=$(echo "$tmp" | jq -r .responsedata.apisessionid)
+	tmp=$(_post "{\"action\": \"login\", \"param\": {\"apikey\": \"$NC_Apikey\", \"apipassword\": \"$NC_Apipw\", \"customernumber\": \"$NC_CID\"}}" "$end" "" "POST")	
+	sid=$(_getfield "$tmp" "8" | sed s/\"responsedata\":\{\"apisessionid\":\"//g | sed 's/\"\}\}//g')
 	_debug "$tmp"
-	if [ "$(echo "$tmp" | jq -r .status)" != "success" ]; then
-		_err "$tmp"
+	if [ "$(_getfield "$msg" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
+		_err "$msg"
 		return 1
 	fi
 }
 logout() {
 	tmp=$(_post "{\"action\": \"logout\", \"param\": {\"apikey\": \"$NC_Apikey\", \"apisessionid\": \"$sid\", \"customernumber\": \"$NC_CID\"}}" "$end" "" "POST")
 	_debug "$tmp"
-	if [ "$(echo "$tmp" | jq -r .status)" != "success" ]; then
-		_err "$tmp"
+	if [ "$(_getfield "$msg" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
+		_err "$msg"
 		return 1
 	fi
 }
 getRecords() {	
 	tmp2=$(_post "{\"action\": \"infoDnsRecords\", \"param\": {\"apikey\": \"$NC_Apikey\", \"apisessionid\": \"$sid\", \"customernumber\": \"$NC_CID\", \"domainname\": \"$1\"}}" "$end" "" "POST")
-	xxd=$(echo "$tmp2" | jq -r ".responsedata.dnsrecords" | tr '[' ' ' | tr ']' ' ')
-	xcd=$(echo "$xxd" | sed 's/}\s{/},{/g')
-	echo "[ $xcd ]"
+	echo $(echo "$tmp2" | sed 's/\[//g' | sed 's/\]//g' | sed 's/{\"serverrequestid\".*\"dnsrecords\"://g' | sed 's/},{/};{/g' | sed 's/{//g' | sed 's/}//g')
 	_debug "$tmp2"
-	if [ "$(echo "$tmp2" | jq -r .status)" != "success" ]; then
-		_err "$tmp2"
+	if [ "$(_getfield "$msg" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
+		_err "$msg"
 		return 1
 	fi
 }
