@@ -83,6 +83,7 @@ vmwareuag_deploy() {
   # Set variables for later use
   _user="${Le_Deploy_vmwareuag_username}:${Le_Deploy_vmwareuag_password}"
   _contenttype="Content-Type: application/json"
+  # shellcheck disable=SC2002
   _privatekeypem="$(cat "${_ckey}" | awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}')"
   _certchainpem="$(cat "${_ccert}" "${_cca}" | awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}')"
   _port="${Le_Deploy_vmwareuag_port}"
@@ -96,10 +97,10 @@ vmwareuag_deploy() {
   _debug _path "${_path}"
 
   # Create JSON request
-  _jsonreq=(_mktemp)
+  _jsonreq=$(_mktemp)
   _debug _jsonreq "${_jsonreq}"
   
-  printf '{ "privateKeyPem": "%s", "certChainPem": "%s" }' "${_privatekeypem}" "${_certchainpem}" > "${_jsonreq}"
+  printf '{ "privateKeyPem": "%s", "certChainPem": "%s" }' "${_privatekeypem}" "${_certchainpem}" >"${_jsonreq}"
   _debug JSON "$(cat "${_jsonreq}")"
 
   # Send request via curl
