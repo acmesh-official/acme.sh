@@ -36,7 +36,7 @@ dns_netcup_add() {
 				break;
 			fi
 		fi		
-		i=$((i - 1))
+		i=$(_math "$i" - 1)
 	done	
 	inc=""
 	i=1	
@@ -52,7 +52,7 @@ dns_netcup_add() {
 				inc="$inc$i,"			
 			fi			
 		fi	
-		i=$((i + 1))
+		i=$(_math "$i" + 1)
 	done
 	
 	tmp=$(echo "$fulldomain" | cut -d'.' -f$inc)
@@ -85,7 +85,7 @@ dns_netcup_rm() {
 				break;
 			fi
 		fi
-		i=$((i - 1))
+		i=$(_math "$i" - 1)
 	done
 	inc=""	
 	i=1	
@@ -101,7 +101,7 @@ dns_netcup_rm() {
 				inc="$inc$i,"
 			fi
 		fi
-		i=$((i + 1))
+		i=$(_math "$i" + 1)
 	done
 	tmp=$(echo "$fulldomain" | cut -d'.' -f$inc)	
 	doma="$domain.$tld"
