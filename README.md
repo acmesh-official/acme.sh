@@ -319,6 +319,7 @@ You don't have to do anything manually!
 1. Zilore (https://zilore.com)
 1. Loopia.se API
 1. acme-dns (https://github.com/joohoi/acme-dns)
+1. GratisDNS.dk (https://gratisdns.dk)
 
 And: 
 
