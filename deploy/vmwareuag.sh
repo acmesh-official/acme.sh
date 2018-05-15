@@ -99,7 +99,7 @@ vmwareuag_deploy() {
   # Create JSON request
   _jsonreq=$(_mktemp)
   _debug _jsonreq "${_jsonreq}"
-  
+
   printf '{ "privateKeyPem": "%s", "certChainPem": "%s" }' "${_privatekeypem}" "${_certchainpem}" >"${_jsonreq}"
   _debug JSON "$(cat "${_jsonreq}")"
 
