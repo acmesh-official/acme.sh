@@ -879,7 +879,6 @@ The TELE3_Key and TELE3_Secret will be saved in ~/.acme.sh/account.conf and will
 ## 47. Use netcup DNS API to automatically issue cert
 
 First you need to login to your CCP account to get your API Key and API Password.
-This script requires ``jq``
 ```
 export NC_Apikey="<Apikey>"
 export NC_Apipw="<Apipassword>"
