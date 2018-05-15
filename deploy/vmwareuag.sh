@@ -83,9 +83,8 @@ vmwareuag_deploy() {
   # Set variables for later use
   _user="${Le_Deploy_vmwareuag_username}:${Le_Deploy_vmwareuag_password}"
   _contenttype="Content-Type: application/json"
-  # shellcheck disable=SC2002
-  _privatekeypem="$(cat "${_ckey}" | awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}')"
-  _certchainpem="$(cat "${_ccert}" "${_cca}" | awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}')"
+  _privatekeypem="$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' <"${_ckey}")"
+  _certchainpem="$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' <"${_cfullchain}")"
   _port="${Le_Deploy_vmwareuag_port}"
   _path="/rest/v1/config/certs/ssl/end_user"
 
