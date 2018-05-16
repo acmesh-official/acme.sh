@@ -1,6 +1,4 @@
 #!/usr/bin/env sh
-
-
 #developed by linux-insideDE
 
 NC_Apikey="${NC_Apikey:-$(_readaccountconf_mutable NC_Apikey)}"
@@ -154,7 +152,8 @@ logout() {
 }
 getRecords() {	
 	tmp2=$(_post "{\"action\": \"infoDnsRecords\", \"param\": {\"apikey\": \"$NC_Apikey\", \"apisessionid\": \"$sid\", \"customernumber\": \"$NC_CID\", \"domainname\": \"$1\"}}" "$end" "" "POST")
-	echo $(echo "$tmp2" | sed 's/\[//g' | sed 's/\]//g' | sed 's/{\"serverrequestid\".*\"dnsrecords\"://g' | sed 's/},{/};{/g' | sed 's/{//g' | sed 's/}//g')
+	out=$(echo "$tmp2" | sed 's/\[//g' | sed 's/\]//g' | sed 's/{\"serverrequestid\".*\"dnsrecords\"://g' | sed 's/},{/};{/g' | sed 's/{//g' | sed 's/}//g')
+	echo "$out"
 	_debug "$tmp2"
 	if [ "$(_getfield "$msg" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
 		_err "$msg"
