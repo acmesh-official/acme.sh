@@ -24,7 +24,7 @@ dns_one_add() {
   if [ -z "$ONECOM_USER" ] || [ -z "$ONECOM_PASSWORD" ]; then
     ONECOM_USER=""
     ONECOM_PASSWORD=""
-    _err "You didn't specify a cloudflare api key and email yet."
+    _err "You didn't specify a one.com username and password yet."
     _err "Please create the key and try again."
     return 1
   fi
@@ -120,7 +120,7 @@ dns_one_rm() {
   if [ -z "$ONECOM_USER" ] || [ -z "$ONECOM_PASSWORD" ]; then
     ONECOM_USER=""
     ONECOM_PASSWORD=""
-    _err "You didn't specify a cloudflare api key and email yet."
+    _err "You didn't specify a one.com username and password yet."
     _err "Please create the key and try again."
     return 1
   fi
