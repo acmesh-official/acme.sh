@@ -15,6 +15,7 @@
 
 dns_one_add() {
   mysubdomain=$(printf -- "%s" "$1" | rev | cut -d"." -f3- | rev)
+  mydomain=$(printf -- "%s" "$1" | rev | cut -d"." -f1-2 | rev)
   txtvalue=$2
 
   # get credentials
@@ -35,18 +36,51 @@ dns_one_add() {
 
   # Login with user and password
   postdata="loginDomain=true"
-  postdata=postdata+"&displayUsername=$ONECOM_USER&username=$ONECOM_USER"
-  postdata=postdata+"&targetDomain="
-  postdata=postdata+"&password1=$ONECOM_PASSWORD"
-  postdata=postdata+"&loginTarget="
+  postdata="$postdata&displayUsername=$ONECOM_USER"
+  postdata="$postdata&username=$ONECOM_USER"
+  postdata="$postdata&targetDomain="
+  postdata="$postdata&password1=$ONECOM_PASSWORD"
+  postdata="$postdata&loginTarget="
+
+  _debug postdata "$postdata"
 
   response="$(_post "$postdata" "https://www.one.com/admin/login.do" "" "POST")"
+  _debug response "$response"
 
   JSESSIONID="$(grep "JSESSIONID=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'JSESSIONID=[^;]*;' | tr -d ';')"
 
   export _H1="Cookie: ${JSESSIONID}"
 
+
+  # check for domain name
   response="$(_get "https://www.one.com/admin/dns-overview.do")"
+  CSRF_G_TOKEN="$(grep "CSRF_G_TOKEN=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'CSRF_G_TOKEN=[^;]*;' | tr -d ';')"
+
+  export _H2="Cookie: ${CSRF_G_TOKEN}"
+
+  mycsrft=$(echo "${CSRF_G_TOKEN}" | sed -n 's/CSRF_G_TOKEN=\(.*\)/\1/p')
+
+  # Update the IP address for domain entry
+  postdata="csrft=$mycsrft"
+  response="$(_post "$postdata" "https://www.one.com/admin/ajax-dns-entries.do" "" "POST")"
+  response="$(echo "$response" | _normalizeJson)"
+
+  _debug response "$response"
+
+  domain=$(printf -- "%s" "$response" | sed -n "s/.*,\"nsView\":{[^}]*,\"domain\":\"\([^\"]*\)\".*/\1/p")
+
+  if [ "$mydomain" = "$domain" ];
+  then
+    _debug "domain matches"
+  else
+    _err "requested domain does not match."
+    return 1
+  fi
+
+
+  response="$(_get "https://www.one.com/admin/dns-overview.do")"
+  _debug response "$response"
+
   CSRF_G_TOKEN="$(grep "CSRF_G_TOKEN=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'CSRF_G_TOKEN=[^;]*;' | tr -d ';')"
 
   export _H2="Cookie: ${CSRF_G_TOKEN}"
@@ -55,12 +89,12 @@ dns_one_add() {
 
   # create txt record
   postdata="cmd=create"
-  postdata=postdata+"&subDomain=$mysubdomain"
-  postdata=postdata+"&priority="
-  postdata=postdata+"&ttl=600"
-  postdata=postdata+"&type=TXT"
-  postdata=postdata+"&value=$txtvalue"
-  postdata=postdata+"&csrft=$mycsrft"
+  postdata="$postdata&subDomain=$mysubdomain"
+  postdata="$postdata&priority="
+  postdata="$postdata&ttl=600"
+  postdata="$postdata&type=TXT"
+  postdata="$postdata&value=$txtvalue"
+  postdata="$postdata&csrft=$mycsrft"
 
   response="$(_post "$postdata" "https://www.one.com/admin/dns-web-handler.do" "" "POST")"
   _debug response "$response"
@@ -77,6 +111,7 @@ dns_one_add() {
 
 dns_one_rm() {
   mysubdomain=$(printf -- "%s" "$1" | rev | cut -d"." -f3- | rev)
+  mydomain=$(printf -- "%s" "$1" | rev | cut -d"." -f1-2 | rev)
   txtvalue=$2
 
   # get credentials
@@ -93,10 +128,11 @@ dns_one_rm() {
 
   # Login with user and password
   postdata="loginDomain=true"
-  postdata=postdata+"&displayUsername=$ONECOM_USER&username=$ONECOM_USER"
-  postdata=postdata+"&targetDomain="
-  postdata=postdata+"&password1=$ONECOM_PASSWORD"
-  postdata=postdata+"&loginTarget="
+  postdata="$postdata&displayUsername=$ONECOM_USER"
+  postdata="$postdata&username=$ONECOM_USER"
+  postdata="$postdata&targetDomain="
+  postdata="$postdata&password1=$ONECOM_PASSWORD"
+  postdata="$postdata&loginTarget="
 
   response="$(_post "$postdata" "https://www.one.com/admin/login.do" "" "POST")"
 
@@ -104,6 +140,8 @@ dns_one_rm() {
 
   export _H1="Cookie: ${JSESSIONID}"
 
+
+  # check for domain name
   response="$(_get "https://www.one.com/admin/dns-overview.do")"
   CSRF_G_TOKEN="$(grep "CSRF_G_TOKEN=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'CSRF_G_TOKEN=[^;]*;' | tr -d ';')"
 
@@ -117,6 +155,17 @@ dns_one_rm() {
   response="$(echo "$response" | _normalizeJson)"
 
   _debug response "$response"
+
+  domain=$(printf -- "%s" "$response" | sed -n "s/.*,\"nsView\":{[^}]*,\"domain\":\"\([^\"]*\)\".*/\1/p")
+
+  if [ "$mydomain" = "$domain" ];
+  then
+    _debug "domain matches"
+  else
+    _err "requested domain does not match."
+    return 1
+  fi
+
 
   # remove _acme-challenge subdomain
   mysubdomainid=$(printf -- "%s" "$response" | sed -n "s/.*{\"subDomain\":\"$mysubdomain\"[^}]*,\"value\":\"$txtvalue\",\"id\":\"\([0-9][0-9]*\)\"}.*/\1/p")
@@ -134,12 +183,12 @@ dns_one_rm() {
 
     # delete txt record
     postdata="cmd=delete"
-    postdata=postdata+"&subDomain=$mysubdomain"
-    postdata=postdata+"&priority="
-    postdata=postdata+"&ttl=600"
-    postdata=postdata+"&type=TXT"
-    postdata=postdata+"&id=$mysubdomainid"
-    postdata=postdata+"&csrft=$mycsrft"
+    postdata="$postdata&subDomain=$mysubdomain"
+    postdata="$postdata&priority="
+    postdata="$postdata&ttl=600"
+    postdata="$postdata&type=TXT"
+    postdata="$postdata&id=$mysubdomainid"
+    postdata="$postdata&csrft=$mycsrft"
 
     response="$(_post "$postdata" "https://www.one.com/admin/dns-web-handler.do" "" "POST")"
     _debug "$response"
