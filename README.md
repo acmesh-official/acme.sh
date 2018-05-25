@@ -274,6 +274,7 @@ You don't have to do anything manually!
 
 ### Currently acme.sh supports:
 
+1. Google Cloud DNS API
 1. CloudFlare.com API
 1. DNSPod.cn API
 1. CloudXNS.com API

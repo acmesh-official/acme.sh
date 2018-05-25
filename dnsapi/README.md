@@ -4,6 +4,27 @@ If your dns provider doesn't provide api access, you can use our dns alias mode:
 
 https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode
 
+## 1. Use Google Cloud DNS API to automatically issue cert
+
+First you need to authenticate to gcloud.
+
+```
+gcloud init
+```
+
+**The `dns_gcloud` script uses the active gcloud configuration and credentials.**
+There is no logic inside `dns_gcloud` to override the project and other settings.
+If needed, create additional [gcloud configurations](https://cloud.google.com/sdk/gcloud/reference/topic/configurations).
+You can change the configuration being used without *activating* it; simply set the `CLOUDSDK_ACTIVE_CONFIG_NAME` environment variable.
+
+To issue a certificate you can:
+```
+export CLOUDSDK_ACTIVE_CONFIG_NAME=default  # see the note above
+acme.sh --issue --dns dns_gcloud -d example.com -d '*.example.com'
+```
+
+`dns_gcloud` also supports [DNS alias mode](https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode).
+
 ## 1. Use CloudFlare domain API to automatically issue cert
 
 First you need to login to your CloudFlare account to get your API key.
