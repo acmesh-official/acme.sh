@@ -18,7 +18,7 @@ dns_gcloud_add() {
   _dns_gcloud_start_tr || return $?
   _dns_gcloud_get_rrdatas || return $?
   echo "$rrdatas" | _dns_gcloud_remove_rrs || return $?
-  echo -e "$rrdatas\n\"$txtvalue\"" | grep -v '^$' | _dns_gcloud_add_rrs || return $?
+  printf "%s\n%s\n" "$rrdatas" "\"$txtvalue\"" | grep -v '^$' | _dns_gcloud_add_rrs || return $?
   _dns_gcloud_execute_tr || return $?
 
   _info "$fulldomain record added"
@@ -39,7 +39,7 @@ dns_gcloud_rm() {
   _dns_gcloud_start_tr || return $?
   _dns_gcloud_get_rrdatas || return $?
   echo "$rrdatas" | _dns_gcloud_remove_rrs || return $?
-  echo "$rrdatas" | fgrep -v "\"$txtvalue\"" | _dns_gcloud_add_rrs || return $?
+  echo "$rrdatas" | grep -F -v "\"$txtvalue\"" | _dns_gcloud_add_rrs || return $?
   _dns_gcloud_execute_tr || return $?
 
   _info "$fulldomain record added"
@@ -48,7 +48,7 @@ dns_gcloud_rm() {
 ####################  Private functions below ##################################
 
 _dns_gcloud_start_tr() {
-  if ! trd=`mktemp -d`; then
+  if ! trd=$(mktemp -d); then
     _err "_dns_gcloud_start_tr: failed to create temporary directory"
     return 1
   fi
@@ -56,8 +56,8 @@ _dns_gcloud_start_tr() {
   _debug tr "$tr"
 
   if ! gcloud dns record-sets transaction start \
-         --transaction-file="$tr" \
-         --zone="$managedZone"; then
+    --transaction-file="$tr" \
+    --zone="$managedZone"; then
     rm -r "$trd"
     _err "_dns_gcloud_start_tr: failed to execute transaction"
     return 1
@@ -66,22 +66,22 @@ _dns_gcloud_start_tr() {
 
 _dns_gcloud_execute_tr() {
   if ! gcloud dns record-sets transaction execute \
-         --transaction-file="$tr" \
-         --zone="$managedZone"; then
-    _debug tr "`cat \"$tr\"`"
+    --transaction-file="$tr" \
+    --zone="$managedZone"; then
+    _debug tr "$(cat "$tr")"
     rm -r "$trd"
     _err "_dns_gcloud_execute_tr: failed to execute transaction"
     return 1
   fi
   rm -r "$trd"
 
-  for i in `seq 1 120`; do
+  for i in $(seq 1 120); do
     if gcloud dns record-sets changes list \
-          --zone=lenart \
-          --filter='status != done' \
-          | grep -q '.*'; then
-       _info "_dns_gcloud_execute_tr: waiting for transaction to be comitted ..."
-       sleep 5
+      --zone=lenart \
+      --filter='status != done' \
+      | grep -q '^.*'; then
+      _info "_dns_gcloud_execute_tr: waiting for transaction to be comitted ($i/120)..."
+      sleep 5
     else
       return 0
     fi
@@ -94,12 +94,12 @@ _dns_gcloud_execute_tr() {
 
 _dns_gcloud_remove_rrs() {
   if ! xargs --no-run-if-empty gcloud dns record-sets transaction remove \
-         --name="$fulldomain." \
-         --ttl="$ttl" \
-         --type=TXT \
-         --zone="$managedZone" \
-         --transaction-file="$tr"; then
-    _debug tr "`cat \"$tr\"`"
+    --name="$fulldomain." \
+    --ttl="$ttl" \
+    --type=TXT \
+    --zone="$managedZone" \
+    --transaction-file="$tr"; then
+    _debug tr "$(cat "$tr")"
     rm -r "$trd"
     _err "_dns_gcloud_remove_rrs: failed to remove RRs"
     return 1
@@ -109,12 +109,12 @@ _dns_gcloud_remove_rrs() {
 _dns_gcloud_add_rrs() {
   ttl=60
   if ! xargs --no-run-if-empty gcloud dns record-sets transaction add \
-         --name="$fulldomain." \
-         --ttl="$ttl" \
-         --type=TXT \
-         --zone="$managedZone" \
-         --transaction-file="$tr"; then
-    _debug tr "`cat \"$tr\"`"
+    --name="$fulldomain." \
+    --ttl="$ttl" \
+    --type=TXT \
+    --zone="$managedZone" \
+    --transaction-file="$tr"; then
+    _debug tr "$(cat "$tr")"
     rm -r "$trd"
     _err "_dns_gcloud_add_rrs: failed to add RRs"
     return 1
@@ -129,19 +129,19 @@ _dns_gcloud_find_zone() {
   filter="dnsName=( "
   while [ "$part" != "" ]; do
     filter="$filter$part. "
-    part="`echo \"$part\" | sed 's/[^.]*\.*//'`"
+    part="$(echo "$part" | sed 's/[^.]*\.*//')"
   done
   filter="$filter)"
   _debug filter "$filter"
 
   # List domains and find the longest match (in case of some levels of delegation)
   if ! match=$(gcloud dns managed-zones list \
-                 --format="value(name, dnsName)" \
-                 --filter="$filter" \
-                 | while read dnsName name; do
-                     echo -e "${#dnsName}\t$dnsName\t$name"
-                   done \
-                 | sort -n -r | head -n1 | cut -f2,3 | grep '.*'); then
+    --format="value(name, dnsName)" \
+    --filter="$filter" \
+    | while read -r dnsName name; do
+      printf "%s\t%s\t%s\n" "${#dnsName}" "$dnsName" "$name"
+    done \
+    | sort -n -r | head -n1 | cut -f2,3 | grep '^.*'); then
     _err "_dns_gcloud_find_zone: Can't find a matching managed zone! Perhaps wrong project or gcloud credentials?"
     return 1
   fi
@@ -154,10 +154,10 @@ _dns_gcloud_find_zone() {
 
 _dns_gcloud_get_rrdatas() {
   if ! rrdatas=$(gcloud dns record-sets list \
-                   --zone="$managedZone" \
-                   --name="$fulldomain." \
-                   --type=TXT \
-                   --format="value(ttl,rrdatas)"); then
+    --zone="$managedZone" \
+    --name="$fulldomain." \
+    --type=TXT \
+    --format="value(ttl,rrdatas)"); then
     _err "_dns_gcloud_get_rrdatas: Failed to list record-sets"
     rm -r "$trd"
     return 1
