@@ -58,6 +58,7 @@ dns_aws_add() {
     _resource_record="$(echo "$response" | sed 's/<ResourceRecordSet>/"/g' | tr '"' "\n" | grep "<Name>$fulldomain.</Name>" | _egrep_o "<ResourceRecords.*</ResourceRecords>" | sed "s/<ResourceRecords>//" | sed "s#</ResourceRecords>##")"
     _debug "_resource_record" "$_resource_record"
   else
+    _resource_record=""
     _debug "single new add"
   fi
 
