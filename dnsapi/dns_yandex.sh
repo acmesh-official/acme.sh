@@ -102,5 +102,5 @@ pdd_get_record_id() {
   curUri="https://pddimp.yandex.ru/api2/admin/dns/list?domain=${curDomain}"
   curResult="$(_get "${curUri}" | _normalizeJson)"
   _debug "Result: $curResult"
-  echo "$curResult" | _egrep_o "{[^{]*\"content\":[^{]*\"subdomain\":\"${curSubdomain}\"" | sed -n -e 's#.* "record_id": \(.*\),[^,]*#\1#p' | head -1
+  echo "$curResult" | _egrep_o "{[^{]*\"content\":[^{]*\"subdomain\":\"${curSubdomain}\"" | sed -n -e 's#.* "record_id": \(.*\),[^,]*#\1#p' | _head_n 1
 }
