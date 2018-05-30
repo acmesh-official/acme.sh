@@ -11,7 +11,7 @@
 #
 # Only a username is required.  All others are optional.
 #
-# The following examples are for QNAP NAS running QTS 4.2 
+# The following examples are for QNAP NAS running QTS 4.2
 # export DEPLOY_SSH_CMD=""  # defaults to ssh
 # export DEPLOY_SSH_USER="admin"  # required
 # export DEPLOY_SSH_SERVER="qnap"  # defaults to domain name
@@ -190,7 +190,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
     _info "Backup directories erased after 180 days."
   fi
 
-  _debug "Remote commands to execute: $_cmdstr"
+  _secure_debug "Remote commands to execute: $_cmdstr"
   _info "Submitting sequence of commands to remote server by ssh"
   # quotations in bash cmd below intended.  Squash travis spellcheck error
   # shellcheck disable=SC2029
