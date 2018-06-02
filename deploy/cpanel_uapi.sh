@@ -2,8 +2,8 @@
 # Here is the script to deploy the cert to your cpanel using the cpanel API.
 # Uses command line uapi.  --user option is needed only if run as root.
 # Returns 0 when success.
-# Written by Santeri Kannisto <santeri.kannisto@2globalnomads.info>
-# Public domain, 2017
+# Written by Santeri Kannisto <santeri.kannisto@webseodesigners.com>
+# Public domain, 2017-2018
 
 #export DEPLOY_CPANEL_USER=myusername
 
@@ -28,15 +28,11 @@ cpanel_uapi_deploy() {
     _err "The command uapi is not found."
     return 1
   fi
-  if ! _exists php; then
-    _err "The command php is not found."
-    return 1
-  fi
   # read cert and key files and urlencode both
   _certstr=$(cat "$_ccert")
   _keystr=$(cat "$_ckey")
-  _cert=$(php -r "echo urlencode(\"$_certstr\");")
-  _key=$(php -r "echo urlencode(\"$_keystr\");")
+  _cert=$(_cpanel_uapi_urlencode "$_certstr")
+  _key=$(_cpanel_uapi_urlencode "$_keystr")
 
   _debug _cert "$_cert"
   _debug _key "$_key"
@@ -61,4 +57,10 @@ cpanel_uapi_deploy() {
   _debug response "$_response"
   _info "Certificate successfully deployed"
   return 0
+}
+
+########  Private functions below #####################
+
+_cpanel_uapi_urlencode() {
+  printf "%s" "$1" | sed --posix -e 's/%/%25/g' -e ':a;N;$!ba;s/\n/%0a/g' -e 's/+/%2b/g' -e 's/[[:space:]]/%20/g' -e 's/\!/%21/g' -e 's/"/%22/g' -e 's/#/%23/g' -e 's/\$/%24/g' -e 's/&/%26/g' -e 's/'\''/%27/g' -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\*/%2a/g' -e 's/,/%2c/g' -e 's/\./%2e/g' -e 's/\//%2f/g' -e 's/:/%3a/g' -e 's/;/%3b/g' -e 's/</%3c/g' -e 's/=/%3d/g' -e 's/>/%3e/g' -e 's/?/%3f/g' -e 's/@/%40/g' -e 's/\[/%5b/g' -e 's/\\/%5c/g' -e 's/\]/%5d/g' -e 's/\^/%5e/g' -e 's/_/%5f/g' -e 's/`/%60/g' -e 's/{/%7b/g' -e 's/|/%7c/g' -e 's/}/%7d/g' -e 's/~/%7e/g'
 }
