@@ -2,10 +2,29 @@
 # Here is the script to deploy the cert to your cpanel using the cpanel API.
 # Uses command line uapi.  --user option is needed only if run as root.
 # Returns 0 when success.
-# Written by Santeri Kannisto <santeri.kannisto@2globalnomads.info>
+# Written by Santeri Kannisto <santeri.kannisto@webseodesigners.com>
 # Public domain, 2017
 
 #export DEPLOY_CPANEL_USER=myusername
+
+########  Private functions #####################
+
+__urlencode() {
+  local string="${1}"
+  local strlen=${#string}
+  local encoded=""
+  local pos c o
+
+  for (( pos=0 ; pos<strlen ; pos++ )); do
+     c=${string:$pos:1}
+     case "$c" in
+        [-_.~a-zA-Z0-9] ) o="${c}" ;;
+        * )               printf -v o '%%%02x' "'$c"
+     esac
+     encoded+="${o}"
+  done
+  echo "${encoded}"
+}
 
 ########  Public functions #####################
 
@@ -35,8 +54,8 @@ cpanel_uapi_deploy() {
   # read cert and key files and urlencode both
   _certstr=$(cat "$_ccert")
   _keystr=$(cat "$_ckey")
-  _cert=$(php -r "echo urlencode(\"$_certstr\");")
-  _key=$(php -r "echo urlencode(\"$_keystr\");")
+  _cert=$(__urlencode "$_certstr")
+  _key=$(__urlencode  "$_keystr")
 
   _debug _cert "$_cert"
   _debug _key "$_key"
