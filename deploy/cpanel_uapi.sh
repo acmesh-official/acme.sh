@@ -19,7 +19,7 @@ __urlencode() {
      c=${string:$pos:1}
      case "$c" in
         [-_.~a-zA-Z0-9] ) o="${c}" ;;
-        * )               printf -v o '%%%02x' "'$c"
+        *) printf -v o '%%%02x' "'$c"
      esac
      encoded+="${o}"
   done
@@ -55,7 +55,7 @@ cpanel_uapi_deploy() {
   _certstr=$(cat "$_ccert")
   _keystr=$(cat "$_ckey")
   _cert=$(__urlencode "$_certstr")
-  _key=$(__urlencode  "$_keystr")
+  _key=$(__urlencode "$_keystr")
 
   _debug _cert "$_cert"
   _debug _key "$_key"
