@@ -61,7 +61,7 @@ First you need to login to your GoDaddy account to get your API Key and Secret.
 
 https://developer.godaddy.com/keys/
 
-Please create a Production key, instead of a Test key.
+Please create a **Production** key, instead of a Test key.
 
 ```
 export GD_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
