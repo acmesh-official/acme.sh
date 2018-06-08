@@ -1,5 +1,9 @@
 # How to use DNS API
 
+If your dns provider doesn't provide api access, you can use our dns alias mode: 
+
+https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode
+
 ## 1. Use CloudFlare domain API to automatically issue cert
 
 First you need to login to your CloudFlare account to get your API key.
@@ -325,6 +329,8 @@ The `CY_Username`, `CY_Password` and `CY_OTP_Secret` will be saved in `~/.acme.s
 
 ## 17. Use Domain-Offensive/Resellerinterface/Domainrobot API
 
+ATTENTION: You need to be a registered Reseller to be able to use the ResellerInterface. As a normal user you can not use this method.
+
 You will need your login credentials (Partner ID+Password) to the Resellerinterface, and export them before you run `acme.sh`:
 ```
 export DO_PID="KD-1234567"
@@ -525,8 +531,9 @@ For issues, please report to https://github.com/raidenii/acme.sh/issues.
 
 ## 28. Use Name.com API
 
-You'll need to fill out the form at https://www.name.com/reseller/apply to apply
-for API username and token.
+Create your API token here: https://www.name.com/account/settings/api
+
+Note: `Namecom_Username` should be your Name.com username and not the token name.  If you accidentally run the script with the token name as the username see `~/.acme.sh/account.conf` to fix the issue
 
 ```
 export Namecom_Username="testuser"
@@ -637,6 +644,14 @@ acme.sh --issue --dns dns_inwx -d example.com -d www.example.com
 ```
 
 The `INWX_User` and `INWX_Password` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+If your account is secured by mobile tan you have also defined the shared secret.
+
+```
+export INWX_Shared_Secret="shared secret"
+```
+
+You may need to re-enable the mobile tan to gain the shared secret.
 
 ## 34. User Servercow API v1
 
@@ -750,7 +765,7 @@ DNS API keys may be created at https://panel.dreamhost.com/?tree=home.api.
 Ensure the created key has add and remove privelages.
 
 ```
-export DH_API_Key="<api key>"
+export DH_API_KEY="<api key>"
 acme.sh --issue --dns dns_dreamhost -d example.com -d www.example.com
 ```
 
@@ -784,7 +799,85 @@ acme.sh --issue --dns dns_da -d example.com -d www.example.com
 
 The `DA_Api` and `DA_Api_Insecure` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-## 42. Use All-inkl Kasserver API
+## 42. Use KingHost DNS API
+
+API access must be enabled at https://painel.kinghost.com.br/painel.api.php
+
+```
+export KINGHOST_Username="yourusername"
+export KINGHOST_Password="yourpassword"
+acme.sh --issue --dns dns_kinghost -d example.com -d *.example.com
+```
+
+The `KINGHOST_username` and `KINGHOST_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 43. Use Zilore DNS API
+
+First, get your API key at https://my.zilore.com/account/api
+
+```
+export Zilore_Key="5dcad3a2-36cb-50e8-cb92-000002f9"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_zilore -d example.com -d *.example.com
+```
+
+The `Zilore_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 44. Use Loopia.se API
+User must provide login credentials to the Loopia API.
+The user needs the following permissions:
+
+- addSubdomain
+- updateZoneRecord
+- getDomains
+- removeSubdomain
+
+Set the login credentials:
+```
+export LOOPIA_User="user@loopiaapi"
+export LOOPIA_Password="password"
+```
+
+And to issue a cert:
+```
+acme.sh --issue --dns dns_loopia -d example.com -d *.example.com
+```
+
+The username and password will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+## 45. Use ACME DNS API
+
+ACME DNS is a limited DNS server with RESTful HTTP API to handle ACME DNS challenges easily and securely. 
+https://github.com/joohoi/acme-dns
+
+```
+export ACMEDNS_UPDATE_URL="https://auth.acme-dns.io/update"
+export ACMEDNS_USERNAME="<username>"
+export ACMEDNS_PASSWORD="<password>"
+export ACMEDNS_SUBDOMAIN="<subdomain>"
+
+acme.sh --issue --dns dns_acmedns -d example.com -d www.example.com
+```
+
+The credentials will be saved in `~/.acme.sh/account.conf` and will
+be reused when needed.
+## 46. Use TELE3 API
+
+First you need to login to your TELE3 account to set your API-KEY.
+https://www.tele3.cz/system-acme-api.html
+
+```
+export TELE3_Key="MS2I4uPPaI..."
+export TELE3_Secret="kjhOIHGJKHg"
+
+acme.sh --issue --dns dns_tele3 -d example.com -d *.example.com
+```
+
+The TELE3_Key and TELE3_Secret will be saved in ~/.acme.sh/account.conf and will be reused when needed.
+
+## 47. Use All-inkl Kasserver API
 
 All-inkl Kasserver API (https://kasapi.kasserver.com/dokumentation) needs you to set your Login credentials like so:
 

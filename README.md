@@ -315,8 +315,12 @@ You don't have to do anything manually!
 1. zonomi.com DNS API
 1. DreamHost.com API
 1. DirectAdmin API
-1. All-inkl/Kasserver API
-
+1. KingHost (https://www.kinghost.com.br/)
+1. Zilore (https://zilore.com)
+1. Loopia.se API
+1. acme-dns (https://github.com/joohoi/acme-dns)
+1. TELE3 (https://www.tele3.cz)
+1. All-inkl/Kasserver API (https://all-inkl.com)
 
 And: 
 
@@ -331,6 +335,8 @@ If your DNS provider is not on the supported list above, you can write your own 
 For more details: [How to use DNS API](dnsapi)
 
 # 8. Use DNS manual mode:
+
+See: https://github.com/Neilpang/acme.sh/wiki/dns-manual-mode first.
 
 If your dns provider doesn't support any api access, you can add the txt record by your hand.
 
@@ -401,7 +407,7 @@ Valid values are:
 It's simple, just give a wildcard domain as the `-d` parameter.
 
 ```sh
-acme.sh  --issue -d example.com  -d *.example.com  --dns dns_cf
+acme.sh  --issue -d example.com  -d '*.example.com'  --dns dns_cf
 ```
 
 
