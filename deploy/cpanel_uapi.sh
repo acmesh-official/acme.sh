@@ -2,8 +2,14 @@
 # Here is the script to deploy the cert to your cpanel using the cpanel API.
 # Uses command line uapi.  --user option is needed only if run as root.
 # Returns 0 when success.
-# Written by Santeri Kannisto <santeri.kannisto@2globalnomads.info>
-# Public domain, 2017
+#
+# Please note that I am no longer using Github. If you want to report an issue
+# or contact me, visit https://forum.webseodesigners.com/web-design-seo-and-hosting-f16/
+#
+# I am maintaining the urlencode function at GitLab: https://gitlab.com/santerikannisto/urlencode
+#
+# Written by Santeri Kannisto <santeri.kannisto@webseodesigners.com>
+# Public domain, 2017-2018
 
 #export DEPLOY_CPANEL_USER=myusername
 
@@ -28,15 +34,11 @@ cpanel_uapi_deploy() {
     _err "The command uapi is not found."
     return 1
   fi
-  if ! _exists php; then
-    _err "The command php is not found."
-    return 1
-  fi
   # read cert and key files and urlencode both
   _certstr=$(cat "$_ccert")
   _keystr=$(cat "$_ckey")
-  _cert=$(php -r "echo urlencode(\"$_certstr\");")
-  _key=$(php -r "echo urlencode(\"$_keystr\");")
+  _cert=$(_cpanel_uapi_urlencode "$_certstr")
+  _key=$(_cpanel_uapi_urlencode "$_keystr")
 
   _debug _cert "$_cert"
   _debug _key "$_key"
@@ -61,4 +63,14 @@ cpanel_uapi_deploy() {
   _debug response "$_response"
   _info "Certificate successfully deployed"
   return 0
+}
+
+########  Private functions below #####################
+
+_cpanel_uapi_urlencode() {
+  printf "%s" "$1" |
+# convert newlines to audible bell so that that sed can handle the input without using non-POSIX extensions
+  tr "\\r\\n" "\\a" |  
+# urlencode characters
+  sed -e 's/%/%25/g' -e 's/ /%20/g' -e 's/\!/%21/g' -e 's/"/%22/g' -e 's/#/%23/g' -e 's/\$/%24/g' -e 's/&/%26/g' -e 's/'\''/%27/g' -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\*/%2A/g' -e 's/+/%2B/g' -e 's/,/%2C/g' -e 's/\./%2E/g' -e 's/\//%2F/g' -e 's/:/%3A/g' -e 's/;/%3B/g' -e 's/</%3C/g' -e 's/=/%3D/g' -e 's/>/%3E/g' -e 's/?/%3F/g' -e 's/@/%40/g' -e 's/\[/%5B/g' -e 's/\\/%5C/g' -e 's/\]/%5D/g' -e 's/\^/%5E/g' -e 's/_/%5F/g' -e 's/`/%60/g' -e 's/{/%7B/g' -e 's/|/%7C/g' -e 's/}/%7D/g' -e 's/~/%7E/g' -e 's/\a/%0A/g' --posix
 }
