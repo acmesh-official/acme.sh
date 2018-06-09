@@ -25,62 +25,113 @@ cpanel_deploy() {
   _debug _cfullchain "$_cfullchain"
 
 export _ckey _ccert _cdomain
-# PHP code taken from https://documentation.cpanel.net/display/DD/Tutorial+-+Call+UAPI's+SSL::install_ssl+Function+in+Custom+Code
-php <<'END'
-<?php
-// Log everything during development.
-// If you run this on the CLI, set 'display_errors = On' in php.ini.
-error_reporting(E_ALL);
+# Perl code taken from https://documentation.cpanel.net/display/SDK/Tutorial+-+Call+UAPI%27s+SSL%3A%3Ainstall_ssl+Function+in+Custom+Code
+perl -f <<'END'
+# Return errors if Perl experiences problems.
+use strict;
+use warnings;
+# Allow my code to perform web requests.
+use LWP::UserAgent;
+use LWP::Protocol::https;
+# Use the correct encoding to prevent wide character warnings.
+use Encode;
+use utf8;
+# Properly decode JSON.
+use JSON;
+# Function properly with Base64 authentication headers.
+use MIME::Base64;
 
-// Authentication information.
-$username = getenv('DEPLOY_CPANEL_USER');
-$password = getenv('DEPLOY_CPANEL_PASSWORD');
+# Authentication information.
+my $username = $ENV{'DEPLOY_CPANEL_USER'};
+my $password = $ENV{'DEPLOY_CPANEL_PASSWORD'};
+my $hostname = $ENV{'DEPLOY_CPANEL_HOSTNAME'};
 
-// The URL for the SSL::install_ssl UAPI function.
-$request = "https://cpanel61.fastdnsservers.com:2083/execute/SSL/install_ssl";
-$request = "https://localhost:2083/execute/SSL/install_ssl";
+# The URL for the SSL::install_ssl UAPI function.
+my $request = "https://".$hostname."/execute/SSL/install_ssl";
 
-// Read in the SSL certificate and key file.
-$cert = getenv('_ccert');
-$key = getenv('_ckey');
+# Required to allow HTTPS connections to unsigned services.
+# Services on localhost are always unsigned.
+$ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
 
-// Set up the payload to send to the server.
-$domain = getenv('_cdomain');
-$payload = array(
-    'domain' => "$domain",
-    'cert'   => file_get_contents($cert),
-    'key'    => file_get_contents($key)
+# Create a useragent object.
+my $ua = LWP::UserAgent->new();
+
+# Add authentication headers.
+$ua->default_header(
+    'Authorization' => 'Basic ' . MIME::Base64::encode("$username:$password"),
 );
 
-// Set up the cURL request object.
-$ch = curl_init( $request );
-curl_setopt( $ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC );
-curl_setopt( $ch, CURLOPT_USERPWD, $username . ':' . $password );
-curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, false );
-curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, false );
+# Read in the SSL certificate and key file.
+my $cert = $ENV{'_ccert'};
+my $key = $ENV{'_ckey'};
+{
+    local $/;
+    open ( my $fh, '<', $cert );
+    $cert = <$fh>;
+    close $fh;
 
-// Set up a POST request with the payload.
-curl_setopt( $ch, CURLOPT_POST, true );
-curl_setopt( $ch, CURLOPT_POSTFIELDS, $payload );
-curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-
-// Make the call, and then terminate the cURL caller object.
-$curl_response = curl_exec( $ch );
-curl_close( $ch );
-
-// Decode and validate output.
-$response = json_decode( $curl_response );
-if( empty( $response ) ) {
-    echo "The cURL call did not return valid JSON:\n";
-    die( $response );
-} elseif ( !$response->status ) {
-    echo "The cURL call returned valid JSON, but reported errors:\n";
-    die( $response->errors[0] . "\n" );
+    open ( $fh, '<', $key );
+    $key = <$fh>;
+    close $fh;
 }
 
-// Print and exit.
-die( print_r( $response ) );
+my $domain = $ENV{'_cdomain'};
+
+# Make the call.
+my $response = $ua->post($request,
+    Content_Type => 'form-data',
+    Content => [
+        domain => $domain,
+        cert   => $cert,
+        key    => $key,
+    ],
+);
+
+# Create an object to decode the JSON.
+# Sorted by keys and pretty-printed.
+my $json_printer = JSON->new->pretty->canonical(1);
+
+# UTF-8 encode before decoding to avoid wide character warnings.
+my $content = JSON::decode_json(Encode::encode_utf8($response->decoded_content));
+
+# Print output, UTF-8 encoded to avoid wide character warnings.
+print Encode::encode_utf8($json_printer->encode($content));
+
+=pod
+{
+   "data" : {
+      "action" : "none",
+      "aliases" : [
+         "mail.example.com"
+      ],
+      "cert_id" : "example_com_xxx_yyy_zzzzzzzzzzzzzzzzzz",
+      "domain" : "example.com",
+      "extra_certificate_domains" : [],
+      "html" : "<br /><b>This certificate was already installed on this host. The system made no changes.</b><br />\n",
+      "ip" : "127.0.0.1",
+      "key_id" : "xxx_yyy_zzzzzzzzzzzzzzzz",
+      "message" : "This certificate was already installed on this host. The system made no changes.",
+      "servername" : "example.com",
+      "status" : 1,
+      "statusmsg" : "This certificate was already installed on this host. The system made no changes.",
+      "user" : "username",
+      "warning_domains" : [
+         "mail.example.com"
+      ],
+      "working_domains" : [
+         "example.com"
+      ]
+   },
+   "errors" : null,
+   "messages" : [
+      "The certificate was successfully installed on the domain “example.com”."
+   ],
+   "metadata" : {},
+   "status" : 1
+}
+=cut
 
 END
 
 }
+
