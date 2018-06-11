@@ -4721,6 +4721,7 @@ _installcert() {
       export CA_CERT_PATH
       export CERT_FULLCHAIN_PATH
       export Le_Domain
+      export domain
       cd "$DOMAIN_PATH" && eval "$_reload_cmd"
     ); then
       _info "$(__green "Reload success")"
