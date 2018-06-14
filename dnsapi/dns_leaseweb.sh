@@ -1,163 +1,193 @@
 #!/usr/bin/env sh
 
-# Author: Boyan Peychev <boyan at cloudns dot net>
-# Modified for Leaseweb: M-Boone
+#
+#Leaseweb_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+#
 
-LEASEWEB_API="https://api.leaseweb.com/hosting/v2/domains"
+Leaseweb_Api="https://api.leaseweb.com/hosting/v2/domains"
 
 ########  Public functions #####################
 
-#Usage: dns_leaseweb_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+#Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_leaseweb_add() {
-  
-  if ! _dns_leaseweb_init_check; then
-    return 1
-  fi
-  
-  zone="$(_dns_leaseweb_get_zone_name "$1")"
-  if [ -z "$zone" ]; then
-    _err "Missing DNS zone at Leaseweb. Please log into your control panel and create the required DNS zone for the initial setup."
-    return 1
-  fi
+  fulldomain=$1
+  txtvalue=$2
 
-  host="$(echo "$1" | sed "s/\.$zone\$//")"
-  record=$2
-
-  _debug zone "$zone"
-  _debug host "$host"
-  _debug record "$record"
-
-  _info "Adding the TXT record for $1"
-  _dns_leaseweb_http_api_call "POST" "/$zone/resourceRecordSets" "{\"name\": \"$1\",  \"type\": \"TXT\",  \"content\": [    \"$record\"  ],  \"ttl\": 60}" 
-  if [ -z "$response" ] || _contains "$response" "\"errorMessage\""; then
-    _err "Record cannot be added. $response"
-    return 1
-  fi
-  _info "Added."
-
-  return 0
-}
-
-#Usage: dns_leaseweb_rm   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
-dns_leaseweb_rm() {
-  if ! _dns_leaseweb_init_check; then
-    return 1
-  fi
-
-  if [ -z "$zone" ]; then
-    zone="$(_dns_leaseweb_get_zone_name "$1")"
-    if [ -z "$zone" ]; then
-      _err "Missing DNS zone at leaseweb. Please log into your control panel and create the required DNS zone for the initial setup."
-      return 1
-    fi
-  fi
-
-  host="$(echo "$1" | sed "s/\.$zone\$//")"
-  record=$2
-  
-  _debug zone "$zone"
-  _debug host "$host"
-  _debug record "$record"
-
-  _dns_leaseweb_http_api_call "GET" "/$zone/resourceRecordSets/$1/TXT"
-   if [ -z "$response" ] || _contains "$response" "\"errorMessage\""; then
-   _err "Could not find resource records sets."
-    return 1
-  fi
-
-  _info "Deleting the TXT record for $1"
-  _dns_leaseweb_http_api_call "DELETE" "/$zone/resourceRecordSets/$1/TXT"
-
-   #no response from deleting, maybe because we mis-used _post() function, check again
-   _dns_leaseweb_http_api_call "GET" "/$zone/resourceRecordSets/$1/TXT"
-   if [ -n "$response" ] && ! _contains "$response" "\"errorMessage\""; then
-   _err "The TXT record for $1 cannot be deleted."
-    return 1
-  fi
-
-  return 0
-}
-
-####################  Private functions below ##################################
-_dns_leaseweb_init_check() {
-  _info "Using leaseweb"
-
-  if [ ! -z "$leaseweb_INIT_CHECK_COMPLETED" ]; then
-    return 0
-  fi
-
-  leaseweb_API_KEY="${leaseweb_API_KEY:-$(_readaccountconf_mutable leaseweb_API_KEY)}"
-  if [ -z "$leaseweb_API_KEY" ]; then
-    leaseweb_API_KEY=""
-    _err "You didn't specify a leaseweb api key yet."
+  Leaseweb_Key="${Leaseweb_Key:-$(_readaccountconf_mutable Leaseweb_Key)}"
+  if [ -z "$Leaseweb_Key" ]; then
+    Leaseweb_Key=""
+    _err "You didn't specify a leaseweb api key and email yet."
     _err "Please create the key and try again."
     return 1
   fi
 
-  _dns_leaseweb_http_api_call "GET" ""
+  #save the api key and email to the account conf file.
+  _saveaccountconf_mutable Leaseweb_Key "$Leaseweb_Key"
 
-  if [ -z "$response" ] || _contains "$response" "\"errorMessage\""; then
-    _err "Invalid leaseweb_API_KEY. Please check your API KEY credentials. Error: $response"
+  _debug "First detect the root zone"
+  if ! _dns_leaseweb_get_root "$fulldomain"; then
+    _err "invalid domain"
     return 1
   fi
 
-  # save the api id and password to the account conf file.
-  _saveaccountconf_mutable leaseweb_API_KEY "$leaseweb_API_KEY"
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain "$_domain"
 
-  leaseweb_INIT_CHECK_COMPLETED=1
+  _debug "Getting txt records"
+  if ! _dns_leaseweb_api_call GET "/$_domain/resourceRecordSets/$fulldomain/TXT"; then
+   _err "Error"
+   return 1
+  fi
 
-  return 0
+  #if empty or error response then we create it, otherwise we will need to grab the content from the response and update it with the new line
+  if _contains "$response" "\"name\":\"$fulldomain.\"" >/dev/null; then
+    _info "TXT Records set found. Updating records set with new item"
+    recordSet=$(printf "%s\n" "$response" | _egrep_o "\"content\":\[.*\]" | cut -d [ -f 2 | cut -d ] -f 1 | sed -e "s/\\\u0022//g")
+	_debug recordSet "$recordSet"
+	if ! _contains "$recordSet" "\"$txtvalue\"" >/dev/null; then
+      if _dns_leaseweb_api_call PUT "/$_domain/resourceRecordSets/$fulldomain/TXT" "{\"content\":[\"$txtvalue\",$recordSet], \"ttl\":60}"; then
+	    response_decoded="$(echo "$response" | _dbase64)"
+	    _debug response_decoded "$response_decoded"
+        if _contains "$response_decoded" "\"name\":\"$fulldomain.\"" >/dev/null; then
+          _info "Added, OK"
+          return 0
+        fi
+      fi
+	else
+      _info "Record already present, OK"
+      return 0	
+	fi
+  else
+      _info "No TXT records set found. Adding records set"
+    if _dns_leaseweb_api_call POST "/$_domain/resourceRecordSets" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\": [ \"$txtvalue\" ],\"ttl\":60}"; then
+	  response_decoded="$(echo "$response" | _dbase64)"
+	  _debug response_decoded "$response_decoded"
+      if _contains "$response_decoded" "\"name\":\"$fulldomain.\"" >/dev/null; then
+        _info "Added, OK"
+        return 0
+      fi
+    fi
+  fi
+  _err "Add txt record error."
+  return 1
 }
 
-_dns_leaseweb_get_zone_name() {
-  i=2
-  while true; do
-    zoneForCheck=$(printf "%s" "$1" | cut -d . -f $i-100)
+#fulldomain txtvalue
+dns_leaseweb_rm() {
+  fulldomain=$1
+  txtvalue=$2
 
-    if [ -z "$zoneForCheck" ]; then
+  Leaseweb_Key="${Leaseweb_Key:-$(_readaccountconf_mutable Leaseweb_Key)}"
+  if [ -z "$Leaseweb_Key" ]; then
+    Leaseweb_Key=""
+    _err "You didn't specify a leaseweb api key and email yet."
+    _err "Please create the key and try again."
+    return 1
+  fi
+
+  _debug "First detect the root zone"
+  if ! _dns_leaseweb_get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain "$_domain"
+
+  _debug "Getting txt records"
+  _dns_leaseweb_api_call GET "/$_domain/resourceRecordSets/$fulldomain/TXT"
+
+  if ! _contains "$response" "\"name\":\"$fulldomain.\"" >/dev/null; then
+    _err "Error no TXT record found"
+    return 1
+  fi
+
+  recordSet=$(printf "%s\n" "$response" | _egrep_o "\"content\":\[.*\]" | cut -d [ -f 2 | cut -d ] -f 1 | sed -e "s/\\\u0022//g")
+  _debug recordSet "$recordSet"
+
+  if _contains "$recordSet" "\"$txtvalue\"" >/dev/null; then
+    #todo: break record set into array then join again
+    recordSet=$(printf "%s\n" "$recordSet" | sed -e "s/,\"$txtvalue\"//")
+	recordSet=$(printf "%s\n" "$recordSet" | sed -e "s/\"$txtvalue\",//")
+	recordSet=$(printf "%s\n" "$recordSet" | sed -e "s/\"$txtvalue\"//")
+    if [ -z "$recordSet" ]; then
+	  _info "TXT Record is the only item in records set. Deleting records set"
+      if ! _dns_leaseweb_api_call DELETE "/$_domain/resourceRecordSets/$fulldomain/TXT"; then
+	    _err "Delete record error."
+        return 1
+	  fi
+	else
+	  _info "TXT Record is not the only item in records set. Updating records set to remove this item."
+	  if _dns_leaseweb_api_call PUT "/$_domain/resourceRecordSets/$fulldomain/TXT" "{\"content\": [ $recordSet ], \"ttl\":60}"; then
+	    response_decoded="$(echo "$response" | _dbase64)"
+	    _debug response_decoded "$response_decoded"
+        if ! _contains "$response_decoded" "\"name\":\"$fulldomain.\"" >/dev/null; then
+          _err "Delete record error."
+          return 1
+        fi
+	  else
+	    _err "Delete record error."
+        return 1
+      fi
+	fi
+  else
+	_info "Record not found. Don't need to remove."
+  fi
+}
+
+####################  Private functions below ##################################
+#_acme-challenge.www.domain.com
+#returns
+# _sub_domain=_acme-challenge.www
+# _domain=domain.com
+# _domain_id=sdjkglgdfewsdfg
+_dns_leaseweb_get_root() {
+  domain=$1
+  i=2
+  p=1
+  while true; do
+    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _debug h "$h"
+    if [ -z "$h" ]; then
+      #not valid
       return 1
     fi
 
-    _debug zoneForCheck "$zoneForCheck"
-
-    _dns_leaseweb_http_api_call "GET" "/$zoneForCheck"
-
-    if [ -n "$response" ] && ! _contains "$response" "\"errorMessage\""; then
-      echo "$zoneForCheck"
-      return 0
+    if ! _dns_leaseweb_api_call GET "/$h"; then
+      return 1
     fi
 
+    if _contains "$response" "\"domainName\":\"$h\"" >/dev/null; then
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _domain=$h
+        return 0
+    fi
+    p=$i
     i=$(_math "$i" + 1)
   done
   return 1
 }
 
-#usage: method    path (with leading slash)   data
-_dns_leaseweb_http_api_call() {
-  method=$1
-  path=$2
+_dns_leaseweb_api_call() {
+  m=$1
+  ep="$2"
+  data="$3"
+  _debug "$ep"
 
-  _debug leasewebParams "$1 $2 $3"
-  _debug leaseweb_API_KEY "$leaseweb_API_KEY"  
-  export _H1="X-Lsw-Auth: $leaseweb_API_KEY"
+  export _H1="X-Lsw-Auth: $Leaseweb_Key"
+  export _H2="Content-Type: application/json"
 
-
-  if [ "$method" != "GET" ]; then
-	data=""
-	base64enc=""
-	mimetype=""
-	
-	if [ -n "$3" ]; then
-		data=$3
-		base64enc="1"
-		mimetype="application/json"
-	fi
-	response="$(_post "$data" "$LEASEWEB_API$path" "$base64enc" "$method" "$mimetype")"	
+  if [ "$m" != "GET" ]; then
+    _debug data "$data"
+    response="$(_post "$data" "$Leaseweb_Api$ep" "1" "$m")"
   else
-    response="$(_get "$LEASEWEB_API$path")"
+    response="$(_get "$Leaseweb_Api$ep")"
   fi
 
+  if [ "$?" != "0" ]; then
+    _err "error $ep"
+    return 1
+  fi
   _debug response "$response"
-
   return 0
 }
