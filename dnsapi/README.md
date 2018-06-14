@@ -876,6 +876,18 @@ acme.sh --issue --dns dns_tele3 -d example.com -d *.example.com
 ```
 
 The TELE3_Key and TELE3_Secret will be saved in ~/.acme.sh/account.conf and will be reused when needed.
+## 47. Use Leaseweb API
+
+First you need to login to your Leaseweb account to set your API-KEY.
+https://secure.leaseweb.com
+
+```
+export Leaseweb_Key="MS2I4uPPaI..."
+
+acme.sh --issue --dns dns_leaseweb -d example.com -d *.example.com
+```
+
+The Leaseweb_Key will be saved in ~/.acme.sh/account.conf and will be reused when needed.
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
