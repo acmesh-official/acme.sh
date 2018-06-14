@@ -22,7 +22,7 @@ dns_leaseweb_add() {
     return 1
   fi
 
-  #save the api key and email to the account conf file.
+  #save the api key to the account conf file.
   _saveaccountconf_mutable Leaseweb_Key "$Leaseweb_Key"
 
   _debug "First detect the root zone"
