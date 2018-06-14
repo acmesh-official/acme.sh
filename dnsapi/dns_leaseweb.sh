@@ -56,7 +56,7 @@ dns_leaseweb_add() {
       fi
     else
       _info "Record already present, OK"
-      return 0	
+      return 0
     fi
   else
     _info "No TXT records set found. Adding records set"
@@ -159,9 +159,9 @@ _dns_leaseweb_get_root() {
     fi
 
     if _contains "$response" "\"domainName\":\"$h\"" >/dev/null; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
-        _domain=$h
-        return 0
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _domain=$h
+      return 0
     fi
     p=$i
     i=$(_math "$i" + 1)
