@@ -36,33 +36,33 @@ dns_leaseweb_add() {
 
   _debug "Getting txt records"
   if ! _dns_leaseweb_api_call GET "/$_domain/resourceRecordSets/$fulldomain/TXT"; then
-   _err "Error"
-   return 1
+    _err "Error"
+    return 1
   fi
 
   #if empty or error response then we create it, otherwise we will need to grab the content from the response and update it with the new line
   if _contains "$response" "\"name\":\"$fulldomain.\"" >/dev/null; then
     _info "TXT Records set found. Updating records set with new item"
     recordSet=$(printf "%s\n" "$response" | _egrep_o "\"content\":\[.*\]" | cut -d [ -f 2 | cut -d ] -f 1 | sed -e "s/\\\u0022//g")
-	_debug recordSet "$recordSet"
-	if ! _contains "$recordSet" "\"$txtvalue\"" >/dev/null; then
+    _debug recordSet "$recordSet"
+    if ! _contains "$recordSet" "\"$txtvalue\"" >/dev/null; then
       if _dns_leaseweb_api_call PUT "/$_domain/resourceRecordSets/$fulldomain/TXT" "{\"content\":[\"$txtvalue\",$recordSet], \"ttl\":60}"; then
-	    response_decoded="$(echo "$response" | _dbase64)"
-	    _debug response_decoded "$response_decoded"
+        response_decoded="$(echo "$response" | _dbase64)"
+        _debug response_decoded "$response_decoded"
         if _contains "$response_decoded" "\"name\":\"$fulldomain.\"" >/dev/null; then
           _info "Added, OK"
           return 0
         fi
       fi
-	else
+    else
       _info "Record already present, OK"
       return 0	
-	fi
+    fi
   else
-      _info "No TXT records set found. Adding records set"
+    _info "No TXT records set found. Adding records set"
     if _dns_leaseweb_api_call POST "/$_domain/resourceRecordSets" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\": [ \"$txtvalue\" ],\"ttl\":60}"; then
-	  response_decoded="$(echo "$response" | _dbase64)"
-	  _debug response_decoded "$response_decoded"
+      response_decoded="$(echo "$response" | _dbase64)"
+      _debug response_decoded "$response_decoded"
       if _contains "$response_decoded" "\"name\":\"$fulldomain.\"" >/dev/null; then
         _info "Added, OK"
         return 0
@@ -109,30 +109,30 @@ dns_leaseweb_rm() {
   if _contains "$recordSet" "\"$txtvalue\"" >/dev/null; then
     #todo: break record set into array then join again
     recordSet=$(printf "%s\n" "$recordSet" | sed -e "s/,\"$txtvalue\"//")
-	recordSet=$(printf "%s\n" "$recordSet" | sed -e "s/\"$txtvalue\",//")
-	recordSet=$(printf "%s\n" "$recordSet" | sed -e "s/\"$txtvalue\"//")
+    recordSet=$(printf "%s\n" "$recordSet" | sed -e "s/\"$txtvalue\",//")
+    recordSet=$(printf "%s\n" "$recordSet" | sed -e "s/\"$txtvalue\"//")
     if [ -z "$recordSet" ]; then
-	  _info "TXT Record is the only item in records set. Deleting records set"
+      _info "TXT Record is the only item in records set. Deleting records set"
       if ! _dns_leaseweb_api_call DELETE "/$_domain/resourceRecordSets/$fulldomain/TXT"; then
-	    _err "Delete record error."
+        _err "Delete record error."
         return 1
-	  fi
-	else
-	  _info "TXT Record is not the only item in records set. Updating records set to remove this item."
-	  if _dns_leaseweb_api_call PUT "/$_domain/resourceRecordSets/$fulldomain/TXT" "{\"content\": [ $recordSet ], \"ttl\":60}"; then
-	    response_decoded="$(echo "$response" | _dbase64)"
-	    _debug response_decoded "$response_decoded"
+      fi
+    else
+      _info "TXT Record is not the only item in records set. Updating records set to remove this item."
+      if _dns_leaseweb_api_call PUT "/$_domain/resourceRecordSets/$fulldomain/TXT" "{\"content\": [ $recordSet ], \"ttl\":60}"; then
+        response_decoded="$(echo "$response" | _dbase64)"
+        _debug response_decoded "$response_decoded"
         if ! _contains "$response_decoded" "\"name\":\"$fulldomain.\"" >/dev/null; then
           _err "Delete record error."
           return 1
         fi
-	  else
-	    _err "Delete record error."
+      else
+        _err "Delete record error."
         return 1
       fi
-	fi
+    fi
   else
-	_info "Record not found. Don't need to remove."
+    _info "Record not found. Don't need to remove."
   fi
 }
 
