@@ -17,7 +17,7 @@ dns_leaseweb_add() {
   Leaseweb_Key="${Leaseweb_Key:-$(_readaccountconf_mutable Leaseweb_Key)}"
   if [ -z "$Leaseweb_Key" ]; then
     Leaseweb_Key=""
-    _err "You didn't specify a leaseweb api key and email yet."
+    _err "You didn't specify a leaseweb api key yet."
     _err "Please create the key and try again."
     return 1
   fi
@@ -81,7 +81,7 @@ dns_leaseweb_rm() {
   Leaseweb_Key="${Leaseweb_Key:-$(_readaccountconf_mutable Leaseweb_Key)}"
   if [ -z "$Leaseweb_Key" ]; then
     Leaseweb_Key=""
-    _err "You didn't specify a leaseweb api key and email yet."
+    _err "You didn't specify a leaseweb api key yet."
     _err "Please create the key and try again."
     return 1
   fi
