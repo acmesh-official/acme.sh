@@ -32,9 +32,9 @@ fritzbox_deploy() {
     return 1
   fi
 
-  _fritzbox_username="${DEPLOY_FRITZBOX_USERNAME}"
-  _fritzbox_password="${DEPLOY_FRITZBOX_PASSWORD}"
-  _fritzbox_url="${DEPLOY_FRITZBOX_URL}"
+  _fritzbox_username="${DEPLOY_FRITZBOX_USERNAME:-$(_readaccountconf_mutable DEPLOY_FRITZBOX_USERNAME)}"
+  _fritzbox_password="${DEPLOY_FRITZBOX_PASSWORD:-$(_readaccountconf_mutable DEPLOY_FRITZBOX_PASSWORD)}"
+  _fritzbox_url="${DEPLOY_FRITZBOX_URL:-$(_readaccountconf_mutable DEPLOY_FRITZBOX_URL)}"
 
   _debug _fritzbox_url "$_fritzbox_url"
   _debug _fritzbox_username "$_fritzbox_username"
@@ -52,9 +52,9 @@ fritzbox_deploy() {
     return 1
   fi
 
-  _saveaccountconf DEPLOY_FRITZBOX_USERNAME "${_fritzbox_username}"
-  _saveaccountconf DEPLOY_FRITZBOX_PASSWORD "${_fritzbox_password}"
-  _saveaccountconf DEPLOY_FRITZBOX_URL "${_fritzbox_url}"
+  _saveaccountconf_mutable DEPLOY_FRITZBOX_USERNAME "${_fritzbox_username}"
+  _saveaccountconf_mutable DEPLOY_FRITZBOX_PASSWORD "${_fritzbox_password}"
+  _saveaccountconf_mutable DEPLOY_FRITZBOX_URL "${_fritzbox_url}"
 
   # Do not check for a valid SSL certificate, because initially the cert is not valid, so it could not install the LE generated certificate
   export HTTPS_INSECURE=1
