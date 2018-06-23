@@ -853,15 +853,16 @@ ACME DNS is a limited DNS server with RESTful HTTP API to handle ACME DNS challe
 https://github.com/joohoi/acme-dns
 
 ```
-export ACMEDNS_UPDATE_URL="https://auth.acme-dns.io/update"
-export ACMEDNS_USERNAME="<username>"
-export ACMEDNS_PASSWORD="<password>"
-export ACMEDNS_SUBDOMAIN="<subdomain>"
-
-acme.sh --issue --dns dns_acmedns -d example.com -d www.example.com
+export ACMEDNS_BASE_URL="https://auth.acme-dns.io"
 ```
 
-The credentials will be saved in `~/.acme.sh/account.conf` and will
+And to issue a cert:
+```
+acme.sh --issue --dns dns_acmedns -d example.com -d *.example.com
+```
+The needed domain account is automatically created. The script will tell you the needed cname to create.
+
+The credentials will be saved in `~/.acme.sh/#DOMAIN/#DOMAIN.conf` and will
 be reused when needed.
 ## 46. Use TELE3 API
 
