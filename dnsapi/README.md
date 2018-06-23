@@ -876,6 +876,21 @@ acme.sh --issue --dns dns_tele3 -d example.com -d *.example.com
 ```
 
 The TELE3_Key and TELE3_Secret will be saved in ~/.acme.sh/account.conf and will be reused when needed.
+## 47. Use WEDOS WAPI
+
+First you need login to WEDOS customer administration to set your WAPI password and allowed IP addresses.
+https://client.wedos.com/client/wapi.html
+
+```
+export WEDOS_Email="customer@example.com"
+export WEDOS_ApiPassword="1l+C+}mcFT0c38"
+
+acme.sh --issue --dns dns_wedos --dnssleep 1800 -d example.com -d *.example.com
+```
+
+The `WEDOS_Email` and `WEDOS_ApiPassword` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+**Notice:** Verifying a single domain (creating and deleting a record) generates 7 requests to WAPI. The limit is 1000 requests per hour.
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
