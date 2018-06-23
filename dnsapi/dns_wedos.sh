@@ -14,7 +14,6 @@
 WEDOS_URL="https://api.wedos.com/wapi/json"
 WEDOS_PREFIX="WEDOS WAPI:"
 
-
 ##################################
 #        Private functions       #
 ##################################
@@ -147,8 +146,6 @@ _wedos_commit() {
   fi
   _info "$WEDOS_PREFIX OK."
 }
-
-
 
 ##################################
 #        Public functions        #
