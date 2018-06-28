@@ -33,8 +33,8 @@ cpanel_uapi_deploy() {
     return 1
   fi
   # read cert and key files and urlencode both
-  _cert=$(_url_encode < "$_ccert")
-  _key=$(_url_encode < "$_ckey")
+  _cert=$(_url_encode <"$_ccert")
+  _key=$(_url_encode <"$_ckey")
 
   _debug _cert "$_cert"
   _debug _key "$_key"
