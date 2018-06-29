@@ -35,6 +35,10 @@ exim4_deploy() {
     _err "Error: write key file to: $_real_key"
     return 1
   fi
+  if ! chmod 600 "$_real_key"; then
+    _err "Error: set mode 600 on: $_real_key"
+    return 1
+  fi
   _real_fullchain="$_ssl_path/exim4.pem"
   if ! cat "$_cfullchain" >"$_real_fullchain"; then
     _err "Error: write key file to: $_real_fullchain"
