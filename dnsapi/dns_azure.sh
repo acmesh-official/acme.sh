@@ -76,10 +76,10 @@ dns_azure_add() {
   values="{\"value\":[\"$txtvalue\"]}"
   timestamp="$(_time)"
   if [ "$_code" = "200" ]; then
-    vlist="$(echo "$response" | _egrep_o "\"value\"\s*:\s*\[\s*\"[^\"]*\"\s*]" | cut -d : -f 2 | tr -d "[]\"")"
+    vlist="$(echo "$response" | _egrep_o "\"value\"\\s*:\\s*\\[\\s*\"[^\"]*\"\\s*]" | cut -d : -f 2 | tr -d "[]\"")"
     _debug "existing TXT found"
     _debug "$vlist"
-    existingts="$(echo "$response" | _egrep_o "\"acmetscheck\"\s*:\s*\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d "\"")"
+    existingts="$(echo "$response" | _egrep_o "\"acmetscheck\"\\s*:\\s*\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d "\"")"
     if [ -z "$existingts" ]; then
       # the record was not created by acme.sh. Copy the exisiting entires
       existingts=$timestamp
@@ -99,6 +99,7 @@ dns_azure_add() {
   _azure_rest PUT "$acmeRecordURI" "$body" "$accesstoken"
   if [ "$_code" = "200" ] || [ "$_code" = '201' ]; then
     _info "validation value added"
+    return 0
   else
     _err "error adding validation value ($_code)"
     return 1
@@ -171,7 +172,7 @@ dns_azure_rm() {
   _azure_rest GET "$acmeRecordURI" "" "$accesstoken"
   timestamp="$(_time)"
   if [ "$_code" = "200" ]; then
-    vlist="$(echo "$response" | _egrep_o "\"value\"\s*:\s*\[\s*\"[^\"]*\"\s*]" | cut -d : -f 2 | tr -d "[]\"" | grep -v "$txtvalue")"
+    vlist="$(echo "$response" | _egrep_o "\"value\"\\s*:\\s*\\[\\s*\"[^\"]*\"\\s*]" | cut -d : -f 2 | tr -d "[]\"" | grep -v "$txtvalue")"
     values=""
     comma=""
     for v in $vlist; do
@@ -194,6 +195,7 @@ dns_azure_rm() {
       _azure_rest PUT "$acmeRecordURI" "$body" "$accesstoken"
       if [ "$_code" = "200" ] || [ "$_code" = '201' ]; then
         _info "validation value removed"
+        return 0
       else
         _err "error removing validation value ($_code)"
         return 1
@@ -226,8 +228,9 @@ _azure_rest() {
     else
       response="$(_get "$ep")"
     fi
+    _ret="$?"
     _secure_debug2 "response $response"
-    _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
+    _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
     _debug "http response code $_code"
     if [ "$_code" = "401" ]; then
       # we have an invalid access token set to expired
@@ -236,7 +239,7 @@ _azure_rest() {
       return 1
     fi
     # See https://docs.microsoft.com/en-us/azure/architecture/best-practices/retry-service-specific#general-rest-and-retry-guidelines for retryable HTTP codes
-    if [ "$?" != "0" ] || [ -z "$_code" ] || [ "$_code" = "408" ] || [ "$_code" = "500" ] || [ "$_code" = "503" ] || [ "$_code" = "504" ]; then
+    if [ "$_ret" != "0" ] || [ -z "$_code" ] || [ "$_code" = "408" ] || [ "$_code" = "500" ] || [ "$_code" = "503" ] || [ "$_code" = "504" ]; then
       _request_retry_times="$(_math "$_request_retry_times" + 1)"
       _info "REST call error $_code retrying $ep in $_request_retry_times s"
       _sleep "$_request_retry_times"
@@ -281,6 +284,7 @@ _azure_getaccess_token() {
   body="resource=$(printf "%s" 'https://management.core.windows.net/' | _url_encode)&client_id=$(printf "%s" "$clientID" | _url_encode)&client_secret=$(printf "%s" "$clientSecret" | _url_encode)&grant_type=client_credentials"
   _secure_debug2 "data $body"
   response="$(_post "$body" "https://login.microsoftonline.com/$tenantID/oauth2/token" "" "POST")"
+  _ret="$?"
   _secure_debug2 "response $response"
   response="$(echo "$response" | _normalizeJson)"
   accesstoken=$(echo "$response" | _egrep_o "\"access_token\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
@@ -290,7 +294,7 @@ _azure_getaccess_token() {
     _err "no acccess token received. Check your Azure settings see $WIKI"
     return 1
   fi
-  if [ "$?" != "0" ]; then
+  if [ "$_ret" != "0" ]; then
     _err "error $response"
     return 1
   fi
@@ -304,7 +308,7 @@ _get_root() {
   domain=$1
   subscriptionId=$2
   accesstoken=$3
-  i=2
+  i=1
   p=1
 
   ## Ref: https://docs.microsoft.com/en-us/rest/api/dns/zones/list
@@ -324,9 +328,14 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
-      _domain_id=$(echo "$response" | _egrep_o "\{\"id\":\"[^\"]*$h\"" | head -n 1 | cut -d : -f 2 | tr -d \")
+      _domain_id=$(echo "$response" | _egrep_o "\\{\"id\":\"[^\"]*$h\"" | head -n 1 | cut -d : -f 2 | tr -d \")
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        if [ "$i" = 1 ]; then
+          #create the record at the domain apex (@) if only the domain name was provided as --domain-alias
+          _sub_domain="@"
+        else
+          _sub_domain=$(echo "$domain" | cut -d . -f 1-$p)
+        fi
         _domain=$h
         return 0
       fi
