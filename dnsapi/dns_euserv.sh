@@ -42,11 +42,12 @@ dns_euserv_add() {
     _err "invalid domain"
     return 1
   fi
-  _debug _sub_domain "$_sub_domain"
-  _debug _domain "$_domain"
-   
+  _debug "_sub_domain" "$_sub_domain"
+  _debug "_domain" "$_domain" 
   _info "Adding record"
-  _euserv_add_record "$_domain" "$_sub_domain" "$txtvalue"
+    if ! _euserv_add_record "$_domain" "$_sub_domain" "$txtvalue"; then
+      return 1
+  fi
 
 }
 
@@ -114,24 +115,20 @@ dns_euserv_rm() {
   export _H1="Content-Type: text/xml"
   response="$(_post "$xml_content" "$EUSERV_Api" "" "POST")"
 
-  ok="$(printf '%s' "$response" | grep "<member><name>status</name><value><i4>100</i4></value></member>")"
-  if [ -z "$ok" ]; then
-      _err "Error could not get txt records"
+  if ! _contains "$response" "<member><name>status</name><value><i4>100</i4></value></member>"; then
+    _err "Error could not get txt records"
     _debug "xml_content" "$xml_content"
     _debug "response" "$response"
     return 1
   fi
 
-#  _startLine=$(printf '%s' "$_euserv_domain_orders" | grep -n '>domain_name<.*>'"$domain"'<' | cut -d ':' -f 1 )
-#  _euserv_domain_id=$(printf '%s' "$_euserv_domain_orders" | sed -n "$_startLine"',$p' | grep '>domain_id<' | head -n 1 | sed 's/.*<i4>\([0-9]*\)<\/i4>.*/\1/' )  
-  
   if ! printf "%s" "$response" | grep '>dns_record_content<.*>'"$txtvalue"'<' >/dev/null; then
     _info "Do not need to delete record"
   else
-	# find block where txtvalue is in. the record_id is allways prior this line!
-	_endLine=$(printf '%s' "$response" | grep -n '>dns_record_content<.*>'"$txtvalue"'<' | cut -d ':' -f 1 )
-	# record_id is the last entry with a number, identified by the postfix of </name><value><struct> 
-    _record_id=$(printf '%s' "$response" | sed -n '1,'"$_endLine"'p' | grep '</name><value><struct>' | tail -n 1 | sed 's/.*<name>\([0-9]*\)<\/name>.*/\1/' )  
+    # find XML block where txtvalue is in. The record_id is allways prior this line!
+    _endLine=$(printf '%s' "$response" | grep -n '>dns_record_content<.*>'"$txtvalue"'<' | cut -d ':' -f 1 )
+    # record_id is the last <name> Tag with a number before the row _endLine, identified by </name><value><struct> 
+    _record_id=$(printf '%s' "$response" | sed -n '1,'"$_endLine"'p' | grep '</name><value><struct>' | tail -n 1 | sed 's/.*<name>\([0-9]*\)<\/name>.*/\1/' )
     _info "Deleting record"
     _euserv_delete_record "$_record_id"
   fi
@@ -140,11 +137,52 @@ dns_euserv_rm() {
 
 ####################  Private functions below ##################################
 
+_get_root() {
+  domain=$1
+  _debug "get root"
+
+  # Just to read the domain_orders once
+
+  domain=$1
+  i=2
+  p=1
+
+  if ! _euserv_get_domain_orders; then
+    return 1
+  fi
+
+  # Get saved response with domain_orders
+  response="$_euserv_domain_orders"
+
+  while true; do
+    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _debug h "$h"
+    if [ -z "$h" ]; then
+      #not valid
+      return 1
+    fi
+
+    if _contains "$response" "$h"; then
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _domain="$h"
+      if ! _euserv_get_domain_id "$_domain"; then
+        _err "invalid domain"
+        return 1
+      fi 
+      return 0
+    fi
+    p=$i
+    i=$(_math "$i" + 1)
+  done
+
+  return 1
+}
+
 _euserv_get_domain_orders() {
-# returns: _euserv_domain_orders
+  # returns: _euserv_domain_orders
 
   _debug "get domain_orders"
-  
+
   xml_content=$(printf '<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
     <methodName>domain.get_domain_orders</methodName>
@@ -165,76 +203,41 @@ _euserv_get_domain_orders() {
       </param>
     </params>
   </methodCall>' "$EUSERV_Username" "$EUSERV_Password")
-  
+
   export _H1="Content-Type: text/xml"
   response="$(_post "$xml_content" "$EUSERV_Api" "" "POST")"
-  
-  ok="$(printf '%s' "$response" | grep "<member><name>status</name><value><i4>100</i4></value></member>")"
-  if [ -z "$ok" ]; then
+
+  if ! _contains "$response" "<member><name>status</name><value><i4>100</i4></value></member>"; then
     _err "Error could not get domain orders"
     _debug "xml_content" "$xml_content"
     _debug "response" "$response"
     return 1
   fi
-  
+
+  # save response to reduce API calls
   _euserv_domain_orders="$response"
   return 0
 }
 
 _euserv_get_domain_id() {
-# returns: _euserv_domain_id
+  # returns: _euserv_domain_id
   domain=$1
   _debug "get domain_id"
 
-  _startLine=$(printf '%s' "$_euserv_domain_orders" | grep -n '>domain_name<.*>'"$domain"'<' | cut -d ':' -f 1 )
-  _euserv_domain_id=$(printf '%s' "$_euserv_domain_orders" | sed -n "$_startLine"',$p' | grep '>domain_id<' | head -n 1 | sed 's/.*<i4>\([0-9]*\)<\/i4>.*/\1/' ) 
+  # find line where the domain name is within the $response
+  _startLine=$(printf '%s' "$_euserv_domain_orders" | grep -n '>domain_name<.*>'"$domain"'<' | cut -d ':' -f 1)
+  # next occurency of domain_id after the domain_name is the correct one
+  _euserv_domain_id=$(printf '%s' "$_euserv_domain_orders" | sed -n "$_startLine"',$p' | grep '>domain_id<' | head -n 1 | sed 's/.*<i4>\([0-9]*\)<\/i4>.*/\1/')
 
-  if [ -z "$_euserv_domain_id" ] ; then
+  if [ -z "$_euserv_domain_id" ]; then
     _err "Could not find domain_id for domain $domain"
     _debug "_euserv_domain_orders" "$_euserv_domain_orders"
     return 1
   fi
+
   return 0
-  
 }
 
-_get_root() {
-  domain=$1
-  _debug "get root"
-
-  # Just to read the domain_orders once
-
-  domain=$1
-  i=2
-  p=1
-  _euserv_get_domain_orders
-  response="$_euserv_domain_orders"
-
-  while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
-    _debug h "$h"
-    if [ -z "$h" ]; then
-      #not valid
-      return 1
-    fi
-
-    if _contains "$response" "$h"; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
-      _domain="$h"
-	  if ! _euserv_get_domain_id "$_domain"; then
-        _err "invalid domain"
-        return 1
-      fi 
-      return 0
-    fi
-    p=$i
-    i=$(_math "$i" + 1)
-  done
-  return 1
-
-}
-
-# TODO
 _euserv_delete_record() {
   record_id=$1
   xml_content=$(printf '<?xml version="1.0" encoding="UTF-8"?>
@@ -271,14 +274,13 @@ _euserv_delete_record() {
   export _H1="Content-Type: text/xml"
   response="$(_post "$xml_content" "$EUSERV_Api" "" "POST")"
 
-  ok="$(printf '%s' "$response" | grep "<member><name>status</name><value><i4>100</i4></value></member>")"
-  if [ -z "$ok" ]; then
+  if ! _contains "$response" "<member><name>status</name><value><i4>100</i4></value></member>"; then
     _err "Error deleting record"
     _debug "xml_content" "$xml_content"
     _debug "response" "$response"
     return 1
   fi
- 
+
   return 0
 
 }
@@ -340,19 +342,17 @@ _euserv_add_record() {
     </value>
    </param>
   </params>
-  </methodCall>'  "$EUSERV_Username" "$EUSERV_Password" "$_euserv_domain_id" "$sub_domain" "$txtval" )
+  </methodCall>' "$EUSERV_Username" "$EUSERV_Password" "$_euserv_domain_id" "$sub_domain" "$txtval")
   
   export _H1="Content-Type: text/xml"
   response="$(_post "$xml_content" "$EUSERV_Api" "" "POST")"
 
- ok="$(printf '%s' "$response" | grep "<member><name>status</name><value><i4>100</i4></value></member>")"
-  if [ -z "$ok" ]; then
+  if ! _contains "$response" "<member><name>status</name><value><i4>100</i4></value></member>"; then
     _err "Error could not create record"
     _debug "xml_content" "$xml_content"
     _debug "response" "$response"
     return 1
   fi
-#  _dns_record_id="$(echo "$response" | _egrep_o "[\s\S]<name>dns_record_id<\/name>[\s]*?<value>[\s]*?<i4>(\K\d*)")"
-#  _debug "_dns_record_id" "$_dns_record_id"
+
   return 0
 }

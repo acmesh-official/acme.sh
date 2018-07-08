@@ -876,7 +876,7 @@ acme.sh --issue --dns dns_tele3 -d example.com -d *.example.com
 ```
 
 The TELE3_Key and TELE3_Secret will be saved in ~/.acme.sh/account.conf and will be reused when needed.
-## 47. euserv.eu API to automatically issue cert
+## 47. Use Euserv.eu API
 
 First you need to login to your euserv.eu account and activate your API Administration (API Verwaltung).
 [https://support.euserv.com](https://support.euserv.com)
@@ -884,14 +884,12 @@ First you need to login to your euserv.eu account and activate your API Administ
 Once you've activate, login to your API Admin Interface and create an API account.
 Please specify the scope (active groups: domain) and assign the allowed IPs.
 
-Be aware to use the `--insecure` flag, cause euserv.eu is still using self-signed certificates!
-
 ```
 export EUSERV_Username="99999.user123"
 export EUSERV_Password="Asbe54gHde"
 ```
 
-Ok, let's issue a cert now:
+Ok, let's issue a cert now: (Be aware to use the `--insecure` flag, cause euserv.eu is still using self-signed certificates!)
 ```
 acme.sh --issue --dns dns_euserv -d example.com -d *.example.com --insecure
 ```
