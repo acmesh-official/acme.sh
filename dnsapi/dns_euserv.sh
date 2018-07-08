@@ -43,10 +43,10 @@ dns_euserv_add() {
     return 1
   fi
   _debug "_sub_domain" "$_sub_domain"
-  _debug "_domain" "$_domain" 
+  _debug "_domain" "$_domain"
   _info "Adding record"
-    if ! _euserv_add_record "$_domain" "$_sub_domain" "$txtvalue"; then
-      return 1
+  if ! _euserv_add_record "$_domain" "$_sub_domain" "$txtvalue"; then
+    return 1
   fi
 
 }
@@ -80,7 +80,7 @@ dns_euserv_rm() {
   _debug "_domain" "$_domain"
 
   _debug "Getting txt records"
- 
+
   xml_content=$(printf '<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
     <methodName>domain.dns_get_active_records</methodName>
@@ -111,7 +111,7 @@ dns_euserv_rm() {
       </param>
     </params>
   </methodCall>' "$EUSERV_Username" "$EUSERV_Password" "$_euserv_domain_id")
-  
+
   export _H1="Content-Type: text/xml"
   response="$(_post "$xml_content" "$EUSERV_Api" "" "POST")"
 
@@ -126,9 +126,9 @@ dns_euserv_rm() {
     _info "Do not need to delete record"
   else
     # find XML block where txtvalue is in. The record_id is allways prior this line!
-    _endLine=$(printf '%s' "$response" | grep -n '>dns_record_content<.*>'"$txtvalue"'<' | cut -d ':' -f 1 )
+    _endLine=$(printf '%s' "$response" | grep -n '>dns_record_content<.*>'"$txtvalue"'<' | cut -d ':' -f 1)
     # record_id is the last <name> Tag with a number before the row _endLine, identified by </name><value><struct> 
-    _record_id=$(printf '%s' "$response" | sed -n '1,'"$_endLine"'p' | grep '</name><value><struct>' | tail -n 1 | sed 's/.*<name>\([0-9]*\)<\/name>.*/\1/' )
+    _record_id=$(printf '%s' "$response" | sed -n '1,'"$_endLine"'p' | grep '</name><value><struct>' | tail -n 1 | sed 's/.*<name>\([0-9]*\)<\/name>.*/\1/')
     _info "Deleting record"
     _euserv_delete_record "$_record_id"
   fi
@@ -168,7 +168,7 @@ _get_root() {
       if ! _euserv_get_domain_id "$_domain"; then
         _err "invalid domain"
         return 1
-      fi 
+      fi
       return 0
     fi
     p=$i
@@ -343,7 +343,7 @@ _euserv_add_record() {
    </param>
   </params>
   </methodCall>' "$EUSERV_Username" "$EUSERV_Password" "$_euserv_domain_id" "$sub_domain" "$txtval")
-  
+
   export _H1="Content-Type: text/xml"
   response="$(_post "$xml_content" "$EUSERV_Api" "" "POST")"
 
