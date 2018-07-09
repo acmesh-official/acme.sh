@@ -122,13 +122,13 @@ dns_euserv_rm() {
     return 1
   fi
 
-  if ! printf "%s" "$response" | grep '>dns_record_content<.*>'"$txtvalue"'<' >/dev/null; then
+  if ! echo "$response" | grep '>dns_record_content<.*>'"$txtvalue"'<' >/dev/null; then
     _info "Do not need to delete record"
   else
     # find XML block where txtvalue is in. The record_id is allways prior this line!
-    _endLine=$(printf '%s' "$response" | grep -n '>dns_record_content<.*>'"$txtvalue"'<' | cut -d ':' -f 1)
+    _endLine=$(echo "$response" | grep -n '>dns_record_content<.*>'"$txtvalue"'<' | cut -d ':' -f 1)
     # record_id is the last <name> Tag with a number before the row _endLine, identified by </name><value><struct> 
-    _record_id=$(printf '%s' "$response" | sed -n '1,'"$_endLine"'p' | grep '</name><value><struct>' | tail -n 1 | sed 's/.*<name>\([0-9]*\)<\/name>.*/\1/')
+    _record_id=$(echo "$response" | sed -n '1,'"$_endLine"'p' | grep '</name><value><struct>' | _tail_n 1 | sed 's/.*<name>\([0-9]*\)<\/name>.*/\1/')
     _info "Deleting record"
     _euserv_delete_record "$_record_id"
   fi
@@ -155,7 +155,7 @@ _get_root() {
   response="$_euserv_domain_orders"
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(echo "$domain" | cut -d . -f $i-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -163,7 +163,7 @@ _get_root() {
     fi
 
     if _contains "$response" "$h"; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(echo "$domain" | cut -d . -f 1-$p)
       _domain="$h"
       if ! _euserv_get_domain_id "$_domain"; then
         _err "invalid domain"
@@ -225,9 +225,9 @@ _euserv_get_domain_id() {
   _debug "get domain_id"
 
   # find line where the domain name is within the $response
-  _startLine=$(printf '%s' "$_euserv_domain_orders" | grep -n '>domain_name<.*>'"$domain"'<' | cut -d ':' -f 1)
+  _startLine=$(echo "$_euserv_domain_orders" | grep -n '>domain_name<.*>'"$domain"'<' | cut -d ':' -f 1)
   # next occurency of domain_id after the domain_name is the correct one
-  _euserv_domain_id=$(printf '%s' "$_euserv_domain_orders" | sed -n "$_startLine"',$p' | grep '>domain_id<' | head -n 1 | sed 's/.*<i4>\([0-9]*\)<\/i4>.*/\1/')
+  _euserv_domain_id=$(echo "$_euserv_domain_orders" | sed -n "$_startLine"',$p' | grep '>domain_id<' | _head_n 1 | sed 's/.*<i4>\([0-9]*\)<\/i4>.*/\1/')
 
   if [ -z "$_euserv_domain_id" ]; then
     _err "Could not find domain_id for domain $domain"
