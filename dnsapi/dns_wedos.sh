@@ -123,7 +123,7 @@ _wedos_get_record_id() {
       fi
 
       if _contains "$row" "\"name\":\"$sub_domain\"" >/dev/null && _contains "$row" "\"rdata\":\"$r_data\"" >/dev/null; then
-        _record_id=$(printf "%s" "$row" | _egrep_o "\[*\"ID\":\"[^\"]*\"" | head -n 1 | cut -d : -f 2 | tr -d \")
+        _record_id=$(printf "%s" "$row" | _egrep_o "\[*\"ID\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
         if [ "$_record_id" ]; then
           _info "$WEDOS_PREFIX OK."
           return 0
