@@ -180,7 +180,7 @@ _dlg_versions() {
 
   echo "socat:"
   if _exists "socat"; then
-    socat -h 2>&1
+    socat -V 2>&1
   else
     _debug "socat doesn't exists."
   fi
