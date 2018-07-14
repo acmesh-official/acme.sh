@@ -104,7 +104,7 @@ dns_selectel_rm() {
 # _domain=domain.com
 # _domain_id=sdjkglgdfewsdfg
 _get_root() {
-  domain=$1
+  domain="$(echo "$1" | idn -u)"
 
   if ! _sl_rest GET "/"; then
     return 1
@@ -124,7 +124,7 @@ _get_root() {
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain=$h
       _debug "Getting domain id for $h"
-      if ! _sl_rest GET "/$h"; then
+      if ! _sl_rest GET "/$(_idn "$h")"; then
         return 1
       fi
       _domain_id="$(echo "$response" | tr "," "\n" | tr "}" "\n" | tr -d " " | grep "\"id\":" | cut -d : -f 2)"
@@ -147,9 +147,9 @@ _sl_rest() {
 
   if [ "$m" != "GET" ]; then
     _debug data "$data"
-    response="$(_post "$data" "$SL_Api/$ep" "" "$m")"
+    response="$(printf '%b' "$(_post "$data" "$SL_Api/$ep" "" "$m")")"
   else
-    response="$(_get "$SL_Api/$ep")"
+    response="$(printf '%b' "$(_get "$SL_Api/$ep")")"
   fi
 
   if [ "$?" != "0" ]; then
