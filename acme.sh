@@ -1607,7 +1607,7 @@ _inithttp() {
 
 }
 
-# body  url [needbase64] [POST|PUT] [ContentType]
+# body  url [needbase64] [POST|PUT|DELETE] [ContentType]
 _post() {
   body="$1"
   _post_url="$2"
@@ -1897,7 +1897,7 @@ _send_signed_request() {
       _debug3 _body "$_body"
     fi
 
-    if _contains "$_body" "JWS has invalid anti-replay nonce"; then
+    if _contains "$_body" "JWS has invalid anti-replay nonce" || _contains "$_body" "JWS has an invalid anti-replay nonce"; then
       _info "It seems the CA server is busy now, let's wait and retry."
       _sleep 5
       continue
