@@ -10,6 +10,8 @@ dns_ali_add() {
   fulldomain=$1
   txtvalue=$2
 
+  Ali_Key="${Ali_Key:-$(_readaccountconf_mutable Ali_Key)}"
+  Ali_Secret="${Ali_Secret:-$(_readaccountconf_mutable Ali_Secret)}"
   if [ -z "$Ali_Key" ] || [ -z "$Ali_Secret" ]; then
     Ali_Key=""
     Ali_Secret=""
@@ -18,8 +20,8 @@ dns_ali_add() {
   fi
 
   #save the api key and secret to the account conf file.
-  _saveaccountconf Ali_Key "$Ali_Key"
-  _saveaccountconf Ali_Secret "$Ali_Secret"
+  _saveaccountconf_mutable Ali_Key "$Ali_Key"
+  _saveaccountconf_mutable Ali_Secret "$Ali_Secret"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -32,6 +34,15 @@ dns_ali_add() {
 
 dns_ali_rm() {
   fulldomain=$1
+  txtvalue=$2
+  Ali_Key="${Ali_Key:-$(_readaccountconf_mutable Ali_Key)}"
+  Ali_Secret="${Ali_Secret:-$(_readaccountconf_mutable Ali_Secret)}"
+
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    return 1
+  fi
+
   _clean
 }
 
@@ -76,16 +87,14 @@ _ali_rest() {
     return 1
   fi
 
+  _debug2 response "$response"
   if [ -z "$2" ]; then
-    message="$(printf "%s" "$response" | _egrep_o "\"Message\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
-    if [ -n "$message" ]; then
+    message="$(echo "$response" | _egrep_o "\"Message\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
+    if [ "$message" ]; then
       _err "$message"
       return 1
     fi
   fi
-
-  _debug2 response "$response"
-  return 0
 }
 
 _ali_urlencode() {
@@ -112,12 +121,14 @@ _ali_nonce() {
 }
 
 _check_exist_query() {
+  _qdomain="$1"
+  _qsubdomain="$2"
   query=''
   query=$query'AccessKeyId='$Ali_Key
   query=$query'&Action=DescribeDomainRecords'
-  query=$query'&DomainName='$1
+  query=$query'&DomainName='$_qdomain
   query=$query'&Format=json'
-  query=$query'&RRKeyWord=_acme-challenge'
+  query=$query'&RRKeyWord='$_qsubdomain
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query"&SignatureNonce=$(_ali_nonce)"
   query=$query'&SignatureVersion=1.0'
@@ -169,17 +180,21 @@ _describe_records_query() {
 }
 
 _clean() {
-  _check_exist_query "$_domain"
+  _check_exist_query "$_domain" "$_sub_domain"
   if ! _ali_rest "Check exist records" "ignore"; then
     return 1
   fi
 
-  records="$(echo "$response" -n | _egrep_o "\"RecordId\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
-  printf "%s" "$records" \
-    | while read -r record_id; do
-      _delete_record_query "$record_id"
-      _ali_rest "Delete record $record_id" "ignore"
-    done
+  record_id="$(echo "$response" | tr '{' "\n" | grep "$_sub_domain" | grep "$txtvalue" | tr "," "\n" | grep RecordId | cut -d '"' -f 4)"
+  _debug2 record_id "$record_id"
+
+  if [ -z "$record_id" ]; then
+    _debug "record not found, skip"
+  else
+    _delete_record_query "$record_id"
+    _ali_rest "Delete record $record_id" "ignore"
+  fi
+
 }
 
 _timestamp() {

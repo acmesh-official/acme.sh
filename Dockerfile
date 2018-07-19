@@ -3,6 +3,7 @@ FROM alpine:3.6
 RUN apk update -f \
   && apk --no-cache add -f \
   openssl \
+  coreutils \
   curl \
   socat \
   && rm -rf /var/cache/apk/*

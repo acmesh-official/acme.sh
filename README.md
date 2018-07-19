@@ -25,7 +25,7 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
 # [中文说明](https://github.com/Neilpang/acme.sh/wiki/%E8%AF%B4%E6%98%8E)
 
-# Who are using **acme.sh**
+# Who:
 - [FreeBSD.org](https://blog.crashed.org/letsencrypt-in-freebsd-org/)
 - [ruby-china.org](https://ruby-china.org/topics/31983)
 - [Proxmox](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x_and_newer))
@@ -33,10 +33,12 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 - [webfaction](https://community.webfaction.com/questions/19988/using-letsencrypt)
 - [Loadbalancer.org](https://www.loadbalancer.org/blog/loadbalancer-org-with-lets-encrypt-quick-and-dirty)
 - [discourse.org](https://meta.discourse.org/t/setting-up-lets-encrypt/40709)
-- [Centminmod](http://centminmod.com/letsencrypt-acmetool-https.html)
+- [Centminmod](https://centminmod.com/letsencrypt-acmetool-https.html)
 - [splynx](https://forum.splynx.com/t/free-ssl-cert-for-splynx-lets-encrypt/297)
 - [archlinux](https://aur.archlinux.org/packages/acme.sh-git/)
 - [opnsense.org](https://github.com/opnsense/plugins/tree/master/security/acme-client/src/opnsense/scripts/OPNsense/AcmeClient)
+- [CentOS Web Panel](http://centos-webpanel.com/)
+- [lnmp.org](https://lnmp.org/)
 - [more...](https://github.com/Neilpang/acme.sh/wiki/Blogs-and-tutorials)
 
 # Tested OS
@@ -74,8 +76,9 @@ https://github.com/Neilpang/acmetest
 - Webroot mode
 - Standalone mode
 - Apache mode
-- Nginx mode ( Beta )
+- Nginx mode
 - DNS mode
+- [DNS alias mode](https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode)
 - [Stateless mode](https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode)
 
 
@@ -204,6 +207,8 @@ Install/copy the cert/key to the production Apache or Nginx path.
 The cert will be renewed every **60** days by default (which is configurable). Once the cert is renewed, the Apache/Nginx service will be reloaded automatically by the command: `service apache2 force-reload` or `service nginx force-reload`.
 
 
+**Please take care:  The reloadcmd is very important. The cert can be automatically renewed, but, without a correct 'reloadcmd' the cert may not be flushed to your server(like nginx or apache), then your website will not be able to show renewed cert in 60 days.**
+
 # 4. Use Standalone server to issue cert
 
 **(requires you to be root/sudoer or have permission to listen on port 80 (TCP))**
@@ -217,28 +222,13 @@ acme.sh --issue --standalone -d example.com -d www.example.com -d cp.example.com
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
 
-# 5. Use Standalone TLS server to issue cert
-
-**(requires you to be root/sudoer or have permission to listen on port 443 (TCP))**
-
-acme.sh supports `tls-sni-01` validation.
-
-Port `443` (TCP) **MUST** be free to listen on, otherwise you will be prompted to free it and try again.
-
-```bash
-acme.sh --issue --tls -d example.com -d www.example.com -d cp.example.com
-```
-
-More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
-
-
-# 6. Use Apache mode
+# 5. Use Apache mode
 
 **(requires you to be root/sudoer, since it is required to interact with Apache server)**
 
 If you are running a web server, Apache or Nginx, it is recommended to use the `Webroot mode`.
 
-Particularly, if you are running an Apache server, you should use Apache mode instead. This mode doesn't write any files to your web root folder.
+Particularly, if you are running an Apache server, you can use Apache mode instead. This mode doesn't write any files to your web root folder.
 
 Just set string "apache" as the second argument and it will force use of apache plugin automatically.
 
@@ -246,9 +236,13 @@ Just set string "apache" as the second argument and it will force use of apache 
 acme.sh --issue --apache -d example.com -d www.example.com -d cp.example.com
 ```
 
+**This apache mode is only to issue the cert, it will not change your apache config files. 
+You will need to configure your website config files to use the cert by yourself.
+We don't want to mess your apache server, don't worry.**
+
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
-# 7. Use Nginx mode
+# 6. Use Nginx mode
 
 **(requires you to be root/sudoer, since it is required to interact with Nginx server)**
 
@@ -266,9 +260,13 @@ So, the config is not changed.
 acme.sh --issue --nginx -d example.com -d www.example.com -d cp.example.com
 ```
 
+**This nginx mode is only to issue the cert, it will not change your nginx config files. 
+You will need to configure your website config files to use the cert by yourself.
+We don't want to mess your nginx server, don't worry.**
+
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
-# 8. Automatic DNS API integration
+# 7. Automatic DNS API integration
 
 If your DNS provider supports API access, we can use that API to automatically issue the certs.
 
@@ -314,23 +312,33 @@ You don't have to do anything manually!
 1. InternetX autoDNS API (https://internetx.com)
 1. Azure DNS
 1. selectel.com(selectel.ru) DNS API
+1. zonomi.com DNS API
+1. DreamHost.com API
+1. DirectAdmin API
+1. KingHost (https://www.kinghost.com.br/)
+1. Zilore (https://zilore.com)
+1. Loopia.se API
+1. acme-dns (https://github.com/joohoi/acme-dns)
+1. TELE3 (https://www.tele3.cz)
+1. EUSERV.EU (https://www.euserv.eu)
 
 And: 
 
-1. lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
-   (DigitalOcean, DNSimple, DNSMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)
+**lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
+   (DigitalOcean, DNSimple, DNSMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)**
 
 
-   
 **More APIs coming soon...**
 
 If your DNS provider is not on the supported list above, you can write your own DNS API script easily. If you do, please consider submitting a [Pull Request](https://github.com/Neilpang/acme.sh/pulls) and contribute it to the project.
 
 For more details: [How to use DNS API](dnsapi)
 
-# 9. Use DNS manual mode:
+# 8. Use DNS manual mode:
 
-If your dns provider doesn't support any api access, you will have to add the txt record by your hand.
+See: https://github.com/Neilpang/acme.sh/wiki/dns-manual-mode first.
+
+If your dns provider doesn't support any api access, you can add the txt record by your hand.
 
 ```bash
 acme.sh --issue --dns -d example.com -d www.example.com -d cp.example.com
@@ -362,13 +370,13 @@ Ok, it's done.
 
 **Please use dns api mode instead.**
 
-# 10. Issue ECC certificates
+# 9. Issue ECC certificates
 
 `Let's Encrypt` can now issue **ECDSA** certificates.
 
 And we support them too!
 
-Just set the `length` parameter with a prefix `ec-`.
+Just set the `keylength` parameter with a prefix `ec-`.
 
 For example:
 
@@ -384,7 +392,7 @@ acme.sh --issue -w /home/wwwroot/example.com -d example.com --keylength ec-256
 acme.sh --issue -w /home/wwwroot/example.com -d example.com -d www.example.com --keylength ec-256
 ```
 
-Please look at the last parameter above.
+Please look at the `keylength` parameter above.
 
 Valid values are:
 
@@ -394,17 +402,17 @@ Valid values are:
 
 
 
-# 11. Issue Wildcard certificates
+# 10. Issue Wildcard certificates
 
 It's simple, just give a wildcard domain as the `-d` parameter.
 
 ```sh
-acme.sh  --issue -d example.com  -d *.example.com  --dns dns_cf
+acme.sh  --issue -d example.com  -d '*.example.com'  --dns dns_cf
 ```
 
 
 
-# 12. How to renew the certs
+# 11. How to renew the certs
 
 No, you don't need to renew the certs manually. All the certs will be renewed automatically every **60** days.
 
@@ -421,7 +429,7 @@ acme.sh --renew -d example.com --force --ecc
 ```
 
 
-# 13. How to stop cert renewal
+# 12. How to stop cert renewal
 
 To stop renewal of a cert, you can execute the following to remove the cert from the renewal list:
 
@@ -434,7 +442,7 @@ The cert/key file is not removed from the disk.
 You can remove the respective directory (e.g. `~/.acme.sh/example.com`) by yourself.
 
 
-# 14. How to upgrade `acme.sh`
+# 13. How to upgrade `acme.sh`
 
 acme.sh is in constant development, so it's strongly recommended to use the latest code.
 
@@ -459,25 +467,25 @@ acme.sh --upgrade --auto-upgrade 0
 ```
 
 
-# 15. Issue a cert from an existing CSR
+# 14. Issue a cert from an existing CSR
 
 https://github.com/Neilpang/acme.sh/wiki/Issue-a-cert-from-existing-CSR
 
 
-# 16. Under the Hood
+# 15. Under the Hood
 
 Speak ACME language using shell, directly to "Let's Encrypt".
 
 TODO:
 
 
-# 17. Acknowledgments
+# 16. Acknowledgments
 
 1. Acme-tiny: https://github.com/diafygi/acme-tiny
 2. ACME protocol: https://github.com/ietf-wg-acme/acme
 
 
-# 18. License & Others
+# 17. License & Others
 
 License is GPLv3
 
@@ -486,7 +494,7 @@ Please Star and Fork me.
 [Issues](https://github.com/Neilpang/acme.sh/issues) and [pull requests](https://github.com/Neilpang/acme.sh/pulls) are welcome.
 
 
-# 19. Donate
+# 18. Donate
 Your donation makes **acme.sh** better:
 
 1. PayPal/Alipay(支付宝)/Wechat(微信): [https://donate.acme.sh/](https://donate.acme.sh/)
