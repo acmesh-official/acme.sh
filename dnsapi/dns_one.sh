@@ -69,8 +69,7 @@ dns_one_add() {
 
   domain=$(printf -- "%s" "$response" | sed -n "s/.*,\"nsView\":{[^}]*,\"domain\":\"\([^\"]*\)\".*/\1/p")
 
-  if [ "$mydomain" = "$domain" ];
-  then
+  if [ "$mydomain" = "$domain" ]; then
     _debug "domain matches"
   else
     _err "requested domain does not match."
