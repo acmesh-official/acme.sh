@@ -7,15 +7,7 @@ lexicon_cmd="lexicon"
 
 wiki="https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api"
 
-########  Public functions #####################
-
-#Usage: add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
-dns_lexicon_add() {
-  fulldomain=$1
-  txtvalue=$2
-
-  domain=$(printf "%s" "$fulldomain" | cut -d . -f 2-999)
-
+_initLexicon() {
   if ! _exists "$lexicon_cmd"; then
     _err "Please install $lexicon_cmd first: $wiki"
     return 1
@@ -66,13 +58,36 @@ dns_lexicon_add() {
     eval export "$Lx_domaintoken"
     _saveaccountconf "$Lx_domaintoken" "$Lx_domaintoken_v"
   fi
+}
+
+########  Public functions #####################
+
+#Usage: dns_lexicon_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+dns_lexicon_add() {
+  fulldomain=$1
+  txtvalue=$2
+
+  if ! _initLexicon; then
+    return 1
+  fi
+
+  domain=$(printf "%s" "$fulldomain" | cut -d . -f 2-999)
 
   $lexicon_cmd "$PROVIDER" create "${domain}" TXT --name="_acme-challenge.${domain}." --content="${txtvalue}"
 
 }
 
-#fulldomain
+#Usage: dns_lexicon_rm   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_lexicon_rm() {
   fulldomain=$1
+  txtvalue=$2
+
+  if ! _initLexicon; then
+    return 1
+  fi
+
+  domain=$(printf "%s" "$fulldomain" | cut -d . -f 2-999)
+
+  $lexicon_cmd "$PROVIDER" delete "${domain}" TXT --name="_acme-challenge.${domain}." --content="${txtvalue}"
 
 }
