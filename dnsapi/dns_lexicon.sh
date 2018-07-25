@@ -26,7 +26,7 @@ _lexicon_init() {
   # e.g. busybox-ash does not know [:upper:]
   # shellcheck disable=SC2018,SC2019
   Lx_name=$(echo LEXICON_"${PROVIDER}"_USERNAME | tr 'a-z' 'A-Z')
-  eval $Lx_name="\${$Lx_name:-$(_readaccountconf_mutable $Lx_name)}"
+  eval "$Lx_name=\${$Lx_name:-$(_readaccountconf_mutable "$Lx_name")}"
   Lx_name_v=$(eval echo \$"$Lx_name")
   _secure_debug "$Lx_name" "$Lx_name_v"
   if [ "$Lx_name_v" ]; then
@@ -36,7 +36,7 @@ _lexicon_init() {
 
   # shellcheck disable=SC2018,SC2019
   Lx_token=$(echo LEXICON_"${PROVIDER}"_TOKEN | tr 'a-z' 'A-Z')
-  eval $Lx_token="\${$Lx_token:-$(_readaccountconf_mutable $Lx_token)}"
+  eval "$Lx_token=\${$Lx_token:-$(_readaccountconf_mutable "$Lx_token")}"
   Lx_token_v=$(eval echo \$"$Lx_token")
   _secure_debug "$Lx_token" "$Lx_token_v"
   if [ "$Lx_token_v" ]; then
@@ -46,7 +46,7 @@ _lexicon_init() {
 
   # shellcheck disable=SC2018,SC2019
   Lx_password=$(echo LEXICON_"${PROVIDER}"_PASSWORD | tr 'a-z' 'A-Z')
-  eval $Lx_password="\${$Lx_password:-$(_readaccountconf_mutable $Lx_password)}"
+  eval "$Lx_password=\${$Lx_password:-$(_readaccountconf_mutable "$Lx_password")}"
   Lx_password_v=$(eval echo \$"$Lx_password")
   _secure_debug "$Lx_password" "$Lx_password_v"
   if [ "$Lx_password_v" ]; then
@@ -56,7 +56,7 @@ _lexicon_init() {
 
   # shellcheck disable=SC2018,SC2019
   Lx_domaintoken=$(echo LEXICON_"${PROVIDER}"_DOMAINTOKEN | tr 'a-z' 'A-Z')
-  eval $Lx_domaintoken="\${$Lx_domaintoken:-$(_readaccountconf_mutable $Lx_domaintoken)}"
+  eval "$Lx_domaintoken=\${$Lx_domaintoken:-$(_readaccountconf_mutable "$Lx_domaintoken")}"
   Lx_domaintoken_v=$(eval echo \$"$Lx_domaintoken")
   _secure_debug "$Lx_domaintoken" "$Lx_domaintoken_v"
   if [ "$Lx_domaintoken_v" ]; then
