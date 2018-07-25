@@ -24,7 +24,7 @@ dns_http_net_add() {
   #save the api key and email to the account conf file.
   _saveaccountconf_mutable HTTP_NET_AUTHTOKEN "$HTTP_NET_AUTHTOKEN"
 
-  _get_root $fulldomain
+  _get_root "$fulldomain"
 
   payload=$(printf '{
     "authToken": "%s",
@@ -50,7 +50,7 @@ dns_http_net_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  _get_root $fulldomain
+  _get_root "$fulldomain"
 
   payload=$(printf '{
     "authToken": "%s",
@@ -86,7 +86,7 @@ _get_root() {
     fi
     _debug "Detecting if $h is the dns zone"
 
-    if _check_http_net_zone $h; then
+    if _check_http_net_zone "$h"; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain="$h"
       return 0
@@ -111,7 +111,7 @@ _check_http_net_zone() {
 }' "$HTTP_NET_AUTHTOKEN" "$domain2check")
 
 
-  _post "$payload" "${HTTP_NET_API}/zoneConfigsFind" "" "POST" "text/json"
+  response="$(_post "$payload" "${HTTP_NET_API}/zoneConfigsFind" "" "POST" "text/json")"
 
   if _contains "$response" '"totalEntries": 1,' > /dev/null; then
     _debug "Detect $domain2check as a valid DNS zone"
