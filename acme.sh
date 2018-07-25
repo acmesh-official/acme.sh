@@ -1374,17 +1374,17 @@ _url_replace() {
 }
 
 _time2str() {
-  #Linux
-  if date -u -d@"$1" 2>/dev/null; then
-    return
-  fi
-
   #BSD
   if date -u -r "$1" 2>/dev/null; then
     return
   fi
 
-  #Soaris
+  #Linux
+  if date -u -d@"$1" 2>/dev/null; then
+    return
+  fi
+
+  #Solaris
   if _exists adb; then
     _t_s_a=$(echo "0t${1}=Y" | adb)
     echo "$_t_s_a"
