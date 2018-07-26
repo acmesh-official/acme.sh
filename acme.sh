@@ -1795,11 +1795,8 @@ _send_signed_request() {
     return 1
   fi
 
-  if [ "$ACME_VERSION" = "2" ]; then
-    __request_conent_type="$CONTENT_TYPE_JSON"
-  else
-    __request_conent_type=""
-  fi
+  __request_conent_type="$CONTENT_TYPE_JSON"
+
   payload64=$(printf "%s" "$payload" | _base64 | _url_replace)
   _debug3 payload64 "$payload64"
 
