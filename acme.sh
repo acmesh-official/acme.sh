@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.7.9
+VER=2.8.0
 
 PROJECT_NAME="acme.sh"
 
@@ -1374,17 +1374,17 @@ _url_replace() {
 }
 
 _time2str() {
-  #Linux
-  if date -u -d@"$1" 2>/dev/null; then
-    return
-  fi
-
   #BSD
   if date -u -r "$1" 2>/dev/null; then
     return
   fi
 
-  #Soaris
+  #Linux
+  if date -u -d@"$1" 2>/dev/null; then
+    return
+  fi
+
+  #Solaris
   if _exists adb; then
     _t_s_a=$(echo "0t${1}=Y" | adb)
     echo "$_t_s_a"
@@ -1899,6 +1899,7 @@ _send_signed_request() {
 
     if _contains "$_body" "JWS has invalid anti-replay nonce" || _contains "$_body" "JWS has an invalid anti-replay nonce"; then
       _info "It seems the CA server is busy now, let's wait and retry."
+      _CACHED_NONCE=""
       _sleep 5
       continue
     fi
