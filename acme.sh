@@ -1800,7 +1800,8 @@ _send_signed_request() {
   payload64=$(printf "%s" "$payload" | _base64 | _url_replace)
   _debug3 payload64 "$payload64"
 
-  MAX_REQUEST_RETRY_TIMES=5
+  MAX_REQUEST_RETRY_TIMES=20
+  _sleep_retry_sec=1
   _request_retry_times=0
   while [ "${_request_retry_times}" -lt "$MAX_REQUEST_RETRY_TIMES" ]; do
     _request_retry_times=$(_math "$_request_retry_times" + 1)
@@ -1895,9 +1896,9 @@ _send_signed_request() {
     fi
 
     if _contains "$_body" "JWS has invalid anti-replay nonce" || _contains "$_body" "JWS has an invalid anti-replay nonce"; then
-      _info "It seems the CA server is busy now, let's wait and retry."
+      _info "It seems the CA server is busy now, let's wait and retry. Sleeping $_sleep_retry_sec seconds."
       _CACHED_NONCE=""
-      _sleep 5
+      _sleep $_sleep_retry_sec
       continue
     fi
     break
