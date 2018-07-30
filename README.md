@@ -323,6 +323,7 @@ You don't have to do anything manually!
 1. EUSERV.EU (https://www.euserv.eu)
 1. DNSPod.com API (https://www.dnspod.com)
 1. Google Cloud DNS API
+1. ConoHa (https://www.conoha.jp)
 
 And: 
 
