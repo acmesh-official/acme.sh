@@ -38,7 +38,6 @@ dns_conoha_add() {
   else
     return 1
   fi
-  #return 1 #XXX
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain" "$CONOHA_Api" "$accesstoken"; then
@@ -48,7 +47,6 @@ dns_conoha_add() {
   _debug _domain_id "$_domain_id"
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
-  #return 1 #XXX
 
   _info "Adding record"
   body="{\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"data\":\"$txtvalue\",\"ttl\":60}"
@@ -176,7 +174,7 @@ _conoha_get_accesstoken() {
   accesstoken="$(_readaccountconf_mutable conoha_accesstoken)"
   expires="$(_readaccountconf_mutable conoha_tokenvalidto)"
   CONOHA_Api="$(_readaccountconf_mutable conoha_dns_ep)"
-  
+
   # can we reuse the access token?
   if [ -n "$accesstoken" ] && [ -n "$expires" ] && [ -n "$CONOHA_Api" ]; then
     utc_date="$(_utc_date | sed "s/ /T/")"
