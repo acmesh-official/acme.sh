@@ -32,9 +32,9 @@ dns_conoha_add() {
   _saveaccountconf_mutable CONOHA_TenantId "$CONOHA_TenantId"
   _saveaccountconf_mutable CONOHA_IdentityServiceApi "$CONOHA_IdentityServiceApi"
 
-  if set -- $(_conoha_get_accesstoken "$CONOHA_IdentityServiceApi/tokens" "$CONOHA_Username" "$CONOHA_Password" "$CONOHA_TenantId"); then
-    accesstoken=$1
-    CONOHA_Api=$2
+  if token="$(_conoha_get_accesstoken "$CONOHA_IdentityServiceApi/tokens" "$CONOHA_Username" "$CONOHA_Password" "$CONOHA_TenantId")"; then
+    accesstoken="$(printf "%s" "$token" | sed -n 1p)"
+    CONOHA_Api="$(printf "%s" "$token" | sed -n 2p)"
   else
     return 1
   fi
@@ -93,9 +93,9 @@ dns_conoha_rm() {
   _saveaccountconf_mutable CONOHA_TenantId "$CONOHA_TenantId"
   _saveaccountconf_mutable CONOHA_IdentityServiceApi "$CONOHA_IdentityServiceApi"
 
-  if set -- $(_conoha_get_accesstoken "$CONOHA_IdentityServiceApi/tokens" "$CONOHA_Username" "$CONOHA_Password" "$CONOHA_TenantId"); then
-    accesstoken=$1
-    CONOHA_Api=$2
+  if token="$(_conoha_get_accesstoken "$CONOHA_IdentityServiceApi/tokens" "$CONOHA_Username" "$CONOHA_Password" "$CONOHA_TenantId")"; then
+    accesstoken="$(printf "%s" "$token" | sed -n 1p)"
+    CONOHA_Api="$(printf "%s" "$token" | sed -n 2p)"
   else
     return 1
   fi
@@ -181,7 +181,7 @@ _conoha_get_accesstoken() {
     if expr "$utc_date" "<" "$expires" >/dev/null; then
       # access token is still valid - reuse it
       _debug "reusing access token"
-      printf "%s\n%s" "$accesstoken" "$CONOHA_Api"
+      printf "%s\n%s\n" "$accesstoken" "$CONOHA_Api"
       return 0
     else
       _debug "access token expired"
@@ -210,7 +210,7 @@ _conoha_get_accesstoken() {
   fi
   _saveaccountconf_mutable conoha_dns_ep "$CONOHA_Api"
 
-  printf "%s\n%s" "$accesstoken" "$CONOHA_Api"
+  printf "%s\n%s\n" "$accesstoken" "$CONOHA_Api"
   return 0
 }
 
