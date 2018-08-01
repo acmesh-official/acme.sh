@@ -6,7 +6,6 @@
 # export HOSTINGDE_ENDPOINT='https://secure.hosting.de'
 # export HOSTINGDE_APIKEY='xxxxx'
 
-
 ########  Public functions #####################
 
 dns_hostingde_add() {
@@ -55,7 +54,7 @@ _hostingde_getZoneConfig() {
         _err "UNKNOWN API ERROR"
       fi
       returnCode=1
-      break;
+      break
     fi
     if _contains "${curResult}" '"totalEntries": 1'; then
       _info "Retrieved zone data."
@@ -70,7 +69,7 @@ _hostingde_getZoneConfig() {
     curZone="${curZone#*.}"
   done
   if [ $returnCode -ne 0 ]; then
-      _info "ZoneEnd reached, Zone ${curZone} not found in hosting.de API"
+    _info "ZoneEnd reached, Zone ${curZone} not found in hosting.de API"
   fi
   return $returnCode
 }
