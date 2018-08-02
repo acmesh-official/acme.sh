@@ -908,8 +908,8 @@ The key needs the following rights:
 Set your API Key and endpoint:
 
 ```
-export HOSTINGDE_APIKEY="xxx"
-export HOSTINGDE_ENDPOINT="https://secure.hosting.de"
+export HOSTINGDE_APIKEY='xxx'
+export HOSTINGDE_ENDPOINT='https://secure.hosting.de'
 ```
 
 The plugin can also be used for the http.net API. http.net customers have to set endpoint to https://partner.http.net.
