@@ -45,7 +45,8 @@ dns_kas_add() {
   params="$params&kas_action=add_dns_settings"
   params="$params&var5=zone_host"
   params="$params&wert5=$_zone"
-
+  _debug2 "Wait for 10 seconds by default before calling KAS API."
+  sleep 10
   response="$(_get "$KAS_Api$params")"
   _debug2 "response" "$response"
 
@@ -76,6 +77,8 @@ dns_kas_rm() {
     params="$params&kas_action=delete_dns_settings"
     params="$params&var1=record_id"
     params="$params&wert1=$_record_id"
+    _debug2 "Wait for 10 seconds by default before calling KAS API."
+    sleep 10
     response="$(_get "$KAS_Api$params")"
     _debug2 "response" "$response"
     if ! _contains "$response" "TRUE"; then
@@ -136,6 +139,8 @@ _get_record_id() {
   params="$params&var1=zone_host"
   params="$params&wert1=$_zone"
 
+  _debug2 "Wait for 10 seconds by default before calling KAS API."
+  sleep 10
   response="$(_get "$KAS_Api$params")"
   _debug2 "response" "$response"
 
