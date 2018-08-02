@@ -897,6 +897,29 @@ acme.sh --issue --dns dns_euserv -d example.com -d *.example.com --insecure
 The `EUSERV_Username` and `EUSERV_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 Please report any issues to https://github.com/initit/acme.sh or to <github@initit.de>
+## 48. Use hosting.de API
+
+Create an API key in your hosting.de account here: https://secure.hosting.de
+
+The key needs the following rights:
+- DNS_ZONES_EDIT
+- DNS_ZONES_LIST
+
+Set your API Key and endpoint:
+
+```
+export HOSTINGDE_APIKEY="xxx"
+export HOSTINGDE_ENDPOINT="https://secure.hosting.de"
+```
+
+The plugin can also be used for the http.net API. http.net customers have to set endpoint to https://partner.http.net.
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_hostingde -d example.com -d *.example.com
+```
+
+The hosting.de API key and endpoint will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
