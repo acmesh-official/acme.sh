@@ -902,9 +902,9 @@ Please report any issues to https://github.com/initit/acme.sh or to <github@init
 
 Before you start using acme.sh with this CPanel plugin you have to set the following variables once and only on first use, these are:
 
--CPANELDNS_AUTH_ID = Your CPanel's User ID
--CPANELDNS_AUTH_PASSWORD = Your CPanel's User ID password
--CPANELDNS_API = Your CPanel's web address including portnumber, mostly 2083
+* CPANELDNS_AUTH_ID = Your CPanel's User ID
+* CPANELDNS_AUTH_PASSWORD = Your CPanel's User ID password
+* CPANELDNS_API = Your CPanel's web address including portnumber, mostly 2083
 
 Like:
 
