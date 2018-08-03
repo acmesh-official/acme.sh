@@ -83,9 +83,8 @@ dns_cpaneldns_rm() {
   host="$(echo "$1" | sed "s/\.$zone\$//")"
   record=$2
 
-  while _dns_cpaneldns_get_record $zone $host $record ;
-  do
-    record_id="$( _dns_cpaneldns_get_record $zone $host $record )"
+  while _dns_cpaneldns_get_record "$zone" "$host" "$record"; do
+    record_id="$(_dns_cpaneldns_get_record "$zone" "$host" "$record")"
 
     if [ ! -z "$record_id" ]; then
       _debug zone "$zone"
@@ -115,7 +114,7 @@ _dns_cpaneldns_init_check() {
 
   CPANELDNS_AUTH_ID="${CPANELDNS_AUTH_ID:-$(_readaccountconf_mutable CPANELDNS_AUTH_ID)}"
   CPANELDNS_AUTH_PASSWORD="${CPANELDNS_AUTH_PASSWORD:-$(_readaccountconf_mutable CPANELDNS_AUTH_PASSWORD)}"
-  CPANELDNS_API="${CPANELDNS_API:-$(_readaccountconf_mutable CPANELDNS_API)}" 
+  CPANELDNS_API="${CPANELDNS_API:-$(_readaccountconf_mutable CPANELDNS_API)}"
 
   if [ -z "$CPANELDNS_AUTH_ID" ] || [ -z "$CPANELDNS_AUTH_PASSWORD" ] || [ -z "$CPANELDNS_API" ]; then
     CPANELDNS_AUTH_ID=""
@@ -126,7 +125,7 @@ _dns_cpaneldns_init_check() {
     return 1
   fi
 
-  if [ -z "$CPANELDNS_AUTH_ID" ] ; then
+  if [ -z "$CPANELDNS_AUTH_ID" ]; then
     _err "CPANELDNS_AUTH_ID is not configured"
     return 1
   fi
@@ -193,7 +192,7 @@ _dns_cpaneldns_http_api_call() {
     data="&$method&$2"
   fi
 
-  export _H1="Authorization: Basic $(printf %s "$CPANELDNS_AUTH_ID:$CPANELDNS_AUTH_PASSWORD" | _base64 )"
+  export _H1="Authorization: Basic $(printf %s "$CPANELDNS_AUTH_ID:$CPANELDNS_AUTH_PASSWORD" | _base64)"
 
   response="$(_get "$CPANELDNS_API/json-api/cpanel?cpanel_jsonapi_user=user&cpanel_jsonapi_apiversion=2$data")"
   _debug response "$response"
@@ -206,24 +205,24 @@ _dns_cpaneldns_get_record() {
   host=$2
   record=$3
 
-  _debug zone $zone
-  _debug host $host
-  _debug record $record
+  _debug zone "$zone"
+  _debug host "$host"
+  _debug record "$record"
 
   _dns_cpaneldns_http_api_call "cpanel_jsonapi_module=ZoneEdit" "cpanel_jsonapi_func=fetchzone_records&domain=$zone&$name=$host&type=TXT&txtdata=$record"
-   if ! _contains "$response" "\"line\":"; then
-     _info "No records left matching TXT host."
-     return 1
-   fi
+  if ! _contains "$response" "\"line\":"; then
+    _info "No records left matching TXT host."
+    return 1
+  fi
 
-   if $respose ;
-   then
-       recordlist="$(echo "$response" | tr '{' "\n" | grep "$record" | _head_n 1 )"
-       record_id="$(echo "$recordlist" | tr ',' "\n" | grep -E '^"line"' | sed -re 's/^\"line\"\:\"([0-9]+)\"$/\1/g' | cut -d ":" -f 2)"
-       echo $record_id
+  if $response;
+  then
+    recordlist="$(echo "$response" | tr '{' "\n" | grep "$record" | _head_n 1 )"
+    record_id="$(echo "$recordlist" | tr ',' "\n" | grep -E '^"line"' | sed -re 's/^\"line\"\:\"([0-9]+)\"$/\1/g' | cut -d ":" -f 2)"
+    echo "$record_id"
 
-       _debug record_id $record_id
+    _debug record_id "$record_id"
 
-       return 0
-   fi
+    return 0
+ fi
 }
