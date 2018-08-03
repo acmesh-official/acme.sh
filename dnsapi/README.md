@@ -897,6 +897,30 @@ acme.sh --issue --dns dns_euserv -d example.com -d *.example.com --insecure
 The `EUSERV_Username` and `EUSERV_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 Please report any issues to https://github.com/initit/acme.sh or to <github@initit.de>
+
+## 48. Use dns_cpaneldns API
+
+Before you start using acme.sh with this CPanel plugin you have to set the following variables once and only on first use, these are:
+
+* CPANELDNS_AUTH_ID = Your CPanel's User ID
+* CPANELDNS_AUTH_PASSWORD = Your CPanel's User ID password
+* CPANELDNS_API = Your CPanel's web address including portnumber, mostly 2083
+
+Like:
+
+```
+export CPANELDNS_AUTH_ID="Administrator"
+export CPANELDNS_AUTH_PASSWORD="34Flip787!"
+export CPANELDNS_API="https://www.example.com:2083/"
+```
+
+Then execute:
+
+```
+acme.sh --issue --dns dns_cpaneldns -d example.com -d www.example.com
+```
+
+The CPANELDNS_AUTH_ID, CPANELDNS_AUTH_PASSWORD and CPANELDNS_API values will be saved in ~/.acme.sh/account.conf and will be reused when needed.
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
