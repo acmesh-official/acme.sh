@@ -192,7 +192,8 @@ _dns_cpaneldns_http_api_call() {
     data="&$method&$2"
   fi
 
-  export _H1="Authorization: Basic $(printf %s "$CPANELDNS_AUTH_ID:$CPANELDNS_AUTH_PASSWORD" | _base64)"
+  basicauth="$(printf %s "$CPANELDNS_AUTH_ID:$CPANELDNS_AUTH_PASSWORD" | _base64)"
+  export _H1="Authorization: Basic $basicauth)"
 
   response="$(_get "$CPANELDNS_API/json-api/cpanel?cpanel_jsonapi_user=user&cpanel_jsonapi_apiversion=2$data")"
   _debug response "$response"
@@ -215,8 +216,7 @@ _dns_cpaneldns_get_record() {
     return 1
   fi
 
-  if $response;
-  then
+  if $response; then
     recordlist="$(echo "$response" | tr '{' "\n" | grep "$record" | _head_n 1 )"
     record_id="$(echo "$recordlist" | tr ',' "\n" | grep -E '^"line"' | sed -re 's/^\"line\"\:\"([0-9]+)\"$/\1/g' | cut -d ":" -f 2)"
     echo "$record_id"
@@ -224,5 +224,5 @@ _dns_cpaneldns_get_record() {
     _debug record_id "$record_id"
 
     return 0
- fi
+  fi
 }
