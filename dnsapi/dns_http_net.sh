@@ -107,10 +107,9 @@ _check_http_net_zone() {
   }
 }' "$HTTP_NET_AUTHTOKEN" "$domain2check")
 
-
   response="$(_post "$payload" "${HTTP_NET_API}/zoneConfigsFind" "" "POST" "text/json")"
 
-  if _contains "$response" '"totalEntries": 1,' > /dev/null; then
+  if _contains "$response" '"totalEntries": 1,' >/dev/null; then
     _debug "Detect $domain2check as a valid DNS zone"
     return 0
   fi
