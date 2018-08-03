@@ -77,7 +77,6 @@ dns_http_net_rm() {
 _get_root() {
   domain=$1
   i=2
-  p=1
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     if [ -z "$h" ]; then
@@ -87,11 +86,9 @@ _get_root() {
     _debug "Detecting if $h is the dns zone"
 
     if _check_http_net_zone "$h"; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain="$h"
       return 0
     fi
-    p=$i
     i=$(_math "$i" + 1)
   done
   return 1
