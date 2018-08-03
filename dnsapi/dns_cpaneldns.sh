@@ -84,7 +84,6 @@ dns_cpaneldns_rm() {
   record=$2
 
   while _dns_cpaneldns_get_record "$zone" "$host" "$record"; do
-    record_id="$(_dns_cpaneldns_get_record "$zone" "$host" "$record")"
 
     if [ ! -z "$record_id" ]; then
       _debug zone "$zone"
@@ -180,7 +179,35 @@ _dns_cpaneldns_get_zone_name() {
   return 1
 }
 
+_dns_cpaneldns_get_record() {
+
+  zone=$1
+  host=$2
+  record=$3
+
+  _debug zone "$zone"
+  _debug host "$host"
+  _debug record "$record"
+
+  _dns_cpaneldns_http_api_call "cpanel_jsonapi_module=ZoneEdit" "cpanel_jsonapi_func=fetchzone_records&domain=$zone&$name=$host&type=TXT&txtdata=$record"
+  if ! _contains "$response" "\"line\":"; then
+    _info "No records left matching TXT host."
+    record_id=""
+    return 1
+  else
+    recordlist="$(echo "$response" | tr '{' "\n" | grep "$record" | _head_n 1)"
+    record_id="$(echo "$recordlist" | tr ',' "\n" | grep -E '^"line"' | sed -re 's/^\"line\"\:\"([0-9]+)\"$/\1/g' | cut -d ":" -f 2)"
+
+    _info "Removing record ID: $record_id"
+
+    _debug record_id "$record_id"
+
+    return 0
+  fi
+}
+
 _dns_cpaneldns_http_api_call() {
+
   method=$1
 
   _debug CPANELDNS_AUTH_ID "$CPANELDNS_AUTH_ID"
@@ -198,31 +225,4 @@ _dns_cpaneldns_http_api_call() {
   response="$(_get "$CPANELDNS_API/json-api/cpanel?cpanel_jsonapi_user=user&cpanel_jsonapi_apiversion=2$data")"
   _debug response "$response"
   return 0
-}
-
-_dns_cpaneldns_get_record() {
-
-  zone=$1
-  host=$2
-  record=$3
-
-  _debug zone "$zone"
-  _debug host "$host"
-  _debug record "$record"
-
-  _dns_cpaneldns_http_api_call "cpanel_jsonapi_module=ZoneEdit" "cpanel_jsonapi_func=fetchzone_records&domain=$zone&$name=$host&type=TXT&txtdata=$record"
-  if ! _contains "$response" "\"line\":"; then
-    _info "No records left matching TXT host."
-    return 1
-  fi
-
-  if $response; then
-    recordlist="$(echo "$response" | tr '{' "\n" | grep "$record" | _head_n 1)"
-    record_id="$(echo "$recordlist" | tr ',' "\n" | grep -E '^"line"' | sed -re 's/^\"line\"\:\"([0-9]+)\"$/\1/g' | cut -d ":" -f 2)"
-    echo "$record_id"
-
-    _debug record_id "$record_id"
-
-    return 0
-  fi
 }
