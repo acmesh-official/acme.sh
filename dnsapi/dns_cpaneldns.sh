@@ -189,7 +189,8 @@ _dns_cpaneldns_get_record() {
   _debug host "$host"
   _debug record "$record"
 
-  _dns_cpaneldns_http_api_call "cpanel_jsonapi_module=ZoneEdit" "cpanel_jsonapi_func=fetchzone_records&domain=$zone&$name=$host&type=TXT&txtdata=$record"
+  _dns_cpaneldns_http_api_call "cpanel_jsonapi_module=ZoneEdit" "cpanel_jsonapi_func=fetchzone_records&domain=$zone&type=TXT&txtdata=$record"
+
   if ! _contains "$response" "\"line\":"; then
     _info "No records left matching TXT host."
     record_id=""
