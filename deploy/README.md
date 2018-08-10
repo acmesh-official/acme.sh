@@ -275,3 +275,17 @@ acme.sh --deploy -d haproxy.example.com --deploy-hook haproxy
 ```
 
 The path for the PEM file will be stored with the domain configuration and will be available when renewing, so that deploy will happen automatically when renewed.
+
+## 11. Deploy the cert to AWS ACM
+
+Ensure your access key owner or role has a polcy attached that allows the
+actions `acm:ListCertificates` and `acm:ImportCertificate`. Role credentials
+will be picked up automatically from EC2 instances and ECS containers, in other
+cases you must set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in your
+environment.
+
+```sh
+export AWS_ACM_REGIONS="us-east-1,us-west-2"
+
+acme.sh --deploy -d ftp.example.com --deploy-hook aws_acm
+```
