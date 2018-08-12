@@ -897,6 +897,23 @@ acme.sh --issue --dns dns_euserv -d example.com -d *.example.com --insecure
 The `EUSERV_Username` and `EUSERV_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 Please report any issues to https://github.com/initit/acme.sh or to <github@initit.de>
+
+## 48. Use DNSPod.com domain API to automatically issue cert
+
+First you need to get your API Key and ID by this [get-the-user-token](https://www.dnspod.com/docs/info.html#get-the-user-token).
+
+```
+export DPI_Id="1234"
+export DPI_Key="sADDsdasdgdsf"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_dpi -d example.com -d www.example.com
+```
+
+The `DPI_Id` and `DPI_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
