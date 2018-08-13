@@ -106,15 +106,12 @@ _DBG_ERR_TRAP() {
 
 _DBG_EARLY_CHECK_MODE
 
-
 ############  Set up static/private variables #####################
-
 
 _pleskxml_curlpath=/usr/local/bin/curl
 
 _pleskxml_newline='
 '
-
 
 # Plesk XML templates.
 #   Note ALL TEMPLATES MUST HAVE EXACTLY 3 %s PLACEHOLDERS
@@ -141,7 +138,6 @@ _pleskxml_tplt_get_dns_records="<packet><dns><get_rec><filter><site-id>%s</site-
 #   Gets all DNS records for a Plesk domain ID
 #   Args:
 #     the domain id to query
-
 
 ############  Define public functions #####################
 
