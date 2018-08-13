@@ -121,26 +121,26 @@ _pleskxml_newline='
 #   (otherwise printf repeats the string causing the API call to fail)
 
 _pleskxml_tplt_get_domain_id="<packet><webspace><get><filter><name>%s</name></filter><dataset></dataset></get></webspace></packet>"
-  # Convert domain name to a Plesk internal domain ID
-  # Args:
-  #   the domain name to query
+#   Convert domain name to a Plesk internal domain ID
+#   Args:
+#     the domain name to query
 
 _pleskxml_tplt_add_txt_record="<packet><dns><add_rec><site-id>%s</site-id><type>TXT</type><host>%s</host><value>%s</value></add_rec></dns></packet>"
-  # Adds a TXT record to a domain
-  # Args:
-  #   the Plesk internal domain ID for the domain
-  #   the "host" entry within the domain, to add this to (eg '_acme_challenge')
-  #   the TXT record value
+#   Adds a TXT record to a domain
+#   Args:
+#     the Plesk internal domain ID for the domain
+#     the "host" entry within the domain, to add this to (eg '_acme_challenge')
+#     the TXT record value
 
 _pleskxml_tplt_rmv_dns_record="<packet><dns><del_rec><filter><id>%s</id></filter></del_rec></dns></packet>"
-  # Adds a TXT record to a domain
-  # Args:
-  #   the Plesk internal ID for the dns record to delete
+#   Adds a TXT record to a domain
+#   Args:
+#     the Plesk internal ID for the dns record to delete
 
 _pleskxml_tplt_get_dns_records="<packet><dns><get_rec><filter><site-id>%s</site-id></filter></get_rec></dns></packet>"
-  # Gets all DNS records for a Plesk domain ID
-  # Args:
-  #   the domain id to query
+#   Gets all DNS records for a Plesk domain ID
+#   Args:
+#     the domain id to query
 
 
 ############  Define public functions #####################
@@ -812,7 +812,7 @@ _pleskxml_rmv_txt_record() {
     | grep -F "<host>${2:-<NON_MATCHING_GARBAGE>}." \
     | grep -F "<value>${3:-<NON_MATCHING_GARBAGE>}</value>" \
     | sed -E 's/(^[[:space:]]+|[[:space:]]+$)//g' \
-32m    | tr -d '\n'
+    | tr -d '\n'
   )"
   # Run 2 separate GREP filters, because the host and value order isn't mandatory in the API return data
   # ands this avoids regex and escaping which is easier
