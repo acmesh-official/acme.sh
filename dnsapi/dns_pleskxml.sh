@@ -94,6 +94,7 @@ _pleskxml_DBG() {
 _pleskxml_DBG_GET_VAR() {
   case "$1" in _pleskxml_*)
     __pleskxml_vars="${__pleskxml_vars}$(printf '%s' "$1" | sed 's/^_pleskxml_DBG_GET_VAR //' | sed -E '1 s~^([^=]+)=~    \1 --> "~')\"${_pleskxml_newline}"
+    ;;
   esac
   # Old code in case:
   #   if printf '%s' "$1" | grep -qE '^_pleskxml_'; then
