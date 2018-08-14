@@ -88,9 +88,22 @@ _pleskxml_DBG() {
   fi
 }
 
+# Used by _pleskxml_DBG_VARDUMP to capture all _pleskxml_* variables for debug output
+# Credit to/based on Stephanie Chazelas' snippet:
+# https://unix.stackexchange.com/questions/462280/listing-shell-variables-with-a-fixed-prefix
+_pleskxml_DBG_GET_VAR() {
+  if printf '%s' "$1" | grep -qE '^_pleskxml_'; then
+    __pleskxml_vars="${__pleskxml_vars}$(printf '%s' "$1" | sed 's/^_pleskxml_DBG_GET_VAR //' | sed -E '1 s~^([^=]+)=~    \1 --> ~')${_pleskxml_newline}"
+  fi
+}
+
 # arg1 = severity level (1=least serious, 3=most serious)
 _pleskxml_DBG_VARDUMP() {
-  _pleskxml_DBG "$1" "$(printf '1st lines of current defined variables are now:\n%s\n\n' "$(set | grep '_pleskxml' | sort)")"
+  __pleskxml_vars=''
+  eval "$( set | sed 's/^/_pleskxml_DBG_GET_VAR /' )"
+  _pleskxml_DBG "$1" "$(printf 'Currently defined _pleskxml_* variables are:\n%s\n\n' "$__pleskxml_vars")"
+  #  Old code in case:
+  #  _pleskxml_DBG "$1" "$(printf '1st lines of current defined variables are now:\n%s\n\n' "$(set | grep '_pleskxml' | sort)")"
 }
 
 _pleskxml_DBG_ERR_TRAP() {
