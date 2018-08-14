@@ -92,9 +92,13 @@ _pleskxml_DBG() {
 # Credit to/based on Stephanie Chazelas' snippet:
 # https://unix.stackexchange.com/questions/462280/listing-shell-variables-with-a-fixed-prefix
 _pleskxml_DBG_GET_VAR() {
-  if printf '%s' "$1" | grep -qE '^_pleskxml_'; then
-    __pleskxml_vars="${__pleskxml_vars}$(printf '%s' "$1" | sed 's/^_pleskxml_DBG_GET_VAR //' | sed -E '1 s~^([^=]+)=~    \1 --> ~')${_pleskxml_newline}"
-  fi
+  case "$1" in (_pleskxml_*)
+    __pleskxml_vars="${__pleskxml_vars}$(printf '%s' "$1" | sed 's/^_pleskxml_DBG_GET_VAR //' | sed -E '1 s~^([^=]+)=~    \1 --> "~')\"${_pleskxml_newline}"
+  esac
+  # Old code in case:
+  #   if printf '%s' "$1" | grep -qE '^_pleskxml_'; then
+  #     __pleskxml_vars="${__pleskxml_vars}$(printf '%s' "$1" | sed 's/^_pleskxml_DBG_GET_VAR //' | sed -E '1 s~^([^=]+)=~    \1 --> ~')${_pleskxml_newline}"
+  #   fi
 }
 
 # arg1 = severity level (1=least serious, 3=most serious)
