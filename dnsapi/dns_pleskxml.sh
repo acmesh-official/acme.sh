@@ -66,7 +66,7 @@ _DBG_EARLY_CHECK_MODE() {
     return 1
   fi
 
-  if [ $_pleskxml_DBG_LEVEL -gt 0 ]; then
+  if [ "$_pleskxml_DBG_LEVEL" -gt 0 ]; then
     _info "plesk XML running in debug mode. Debug level =  '${_pleskxml_DBG_LEVEL}' "
     # This won't display if DBG level was set to zero.
   fi
