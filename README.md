@@ -348,10 +348,6 @@ You should get an output like below:
 
 ```sh
 Add the following txt record:
-Domain:_acme-challenge.example.com
-Txt value:9ihDbjYfTExAYeDs4DBUeuTo18KBzwvTEjUnSwd32-c
-
-Add the following txt record:
 Domain:_acme-challenge.www.example.com
 Txt value:9ihDbjxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
