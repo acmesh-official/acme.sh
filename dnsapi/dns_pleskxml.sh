@@ -72,27 +72,25 @@ _DBG_EARLY_CHECK_MODE() {
   fi
 }
 
-# arg1 = LINENO
-# arg2 = severity level (1=least serious, 3=most serious)
+# arg1 = severity level (1=least serious, 3=most serious)
 #   By design if DBG level is 9 for a MESSAGE, the message is ALWAYS shown, this is used for _info and _err
-# arg3 = message
+# arg2 = message
 _DBG() {
-  if [ "$2" -eq 9 ] || ([ "$_pleskxml_DBG_LEVEL" -gt 0 ] && [ "$2" -ge "$_pleskxml_DBG_LEVEL" ]); then
-    case $2 in
+  if [ "$1" -eq 9 ] || ([ "$_pleskxml_DBG_LEVEL" -gt 0 ] && [ "$1" -ge "$_pleskxml_DBG_LEVEL" ]); then
+    case $1 in
       1) _pleskxml_severity='MAX_DETAIL' ;;
       2) _pleskxml_severity='DETAIL' ;;
       3) _pleskxml_severity='INFO' ;;
       9) _pleskxml_severity='ACME.SH' ;;
     esac
     _pleskxml_DBG_COUNT=$((_pleskxml_DBG_COUNT + 1))
-    printf '%04d DEBUG [%s/%d, line %s]:\n%s\n\n' "$_pleskxml_DBG_COUNT" "$_pleskxml_severity" "$2" "$1" "$3"
+    printf '%04d DEBUG [%s/%d]:\n%s\n\n' "$_pleskxml_DBG_COUNT" "$_pleskxml_severity" "$1" "$2"
   fi
 }
 
-# arg1 = LINENO
-# arg2 = severity level (1=least serious, 3=most serious)
+# arg1 = severity level (1=least serious, 3=most serious)
 _DBG_VARDUMP() {
-  _DBG "$1" "$2" "$(printf '1st lines of current defined variables are now:\n%s\n\n' "$(set | grep '_pleskxml' | sort)")"
+  _DBG "$1" "$(printf '1st lines of current defined variables are now:\n%s\n\n' "$(set | grep '_pleskxml' | sort)")"
 }
 
 _DBG_ERR_TRAP() {
@@ -148,7 +146,7 @@ _pleskxml_tplt_get_dns_records="<packet><dns><get_rec><filter><site-id>%s</site-
 
 dns_pleskxml_add() {
 
-  _DBG "$LINENO" 3 "Entered dns_pleskxml_add($*)..."
+  _DBG 3 "Entered dns_pleskxml_add($*)..."
 
   _pleskxml_FQDN="$1"
   _pleskxml_TXT_string="$2"
@@ -163,9 +161,9 @@ dns_pleskxml_add() {
   _pleskxml_get_variables
   _pleskxml_retcode=$?
 
-  _DBG "$LINENO" 3 'Returned from _pleskxml_get_variables(). Back in dns_pleskxml_add().'
-  _DBG_VARDUMP "$LINENO" 2
-  
+  _DBG 3 'Returned from _pleskxml_get_variables(). Back in dns_pleskxml_add().'
+  _DBG_VARDUMP 2
+
   if [ $_pleskxml_retcode -ne 0 ] || [ "$_pleskxml_errors" != '' ]; then
     _err "$_pleskxml_errors"
     return 1
@@ -180,14 +178,14 @@ dns_pleskxml_add() {
   _info "Plesk XML: Variables are valid and loaded."
   _info "Trying to connect to Plesk ($_pleskxml_uri), and request Plesk's internal reference ID for domain '${_pleskxml_domain}'"
 
-  _DBG "$LINENO" 3 "Calling API to get domain ID for $_pleskxml_domain"
+  _DBG 3 "Calling API to get domain ID for $_pleskxml_domain"
 
   _pleskxml_get_domain_ID "$_pleskxml_domain"
   _pleskxml_retcode=$?
 
-  _DBG "$LINENO" 3 'Returned from API call. Back in dns_pleskxml_add().'
-  _DBG_VARDUMP "$LINENO" 2
-  
+  _DBG 3 'Returned from API call. Back in dns_pleskxml_add().'
+  _DBG_VARDUMP 2
+
   if [ $_pleskxml_retcode -ne 0 ] || [ "$_pleskxml_errors" != '' ] || [ "$_pleskxml_result" = '' ]; then
     # Really, just testing return code should be enough, based on above code, but let's go "all-in" and test all variables returned
     _err "$_pleskxml_errors"
@@ -199,15 +197,15 @@ dns_pleskxml_add() {
 
   # Try to add the TXT record
 
-  _DBG "$LINENO" 3 "Calling API to add TXT record to domain ID #$_pleskxml_domain_id ('$_pleskxml_domain')"
+  _DBG 3 "Calling API to add TXT record to domain ID #$_pleskxml_domain_id ('$_pleskxml_domain')"
 
   _info "Plesk XML: Got ID for domain. Trying to add TXT record to domain ID $_pleskxml_domain_id ('$_pleskxml_domain'), host '$_pleskxml_host'. The TXT string is: '$_pleskxml_TXT_string'."
 
   _pleskxml_add_txt_record "$_pleskxml_domain_id" "$_pleskxml_host" "$_pleskxml_TXT_string"
   _pleskxml_retcode=$?
 
-  _DBG "$LINENO" 3 'Call has returned. dns_pleskxml_add().'
-  _DBG_VARDUMP "$LINENO" 2
+  _DBG 3 'Call has returned. dns_pleskxml_add().'
+  _DBG_VARDUMP 2
 
   if [ $_pleskxml_retcode -ne 0 ] || [ "$_pleskxml_errors" != '' ] || [ "$_pleskxml_result" = '' ]; then
     # Really, just testing return code should be enough, based on above code, but let's go "all-in" and test all variables returned
@@ -217,7 +215,7 @@ dns_pleskxml_add() {
 
   _info 'An ACME Challenge TXT record for '"$_pleskxml_domain"' was added to Plesk. Plesk returned a successful response.\nThe TXT field was: '"'$_pleskxml_TXT_string'"
 
-  _DBG "$LINENO" 2 "SUCCESSFULLY exiting dns_pleskxml_add()..."
+  _DBG 2 "SUCCESSFULLY exiting dns_pleskxml_add()..."
 
   return 0
 }
@@ -227,7 +225,7 @@ dns_pleskxml_add() {
 
 dns_pleskxml_rm() {
 
-  _DBG "$LINENO" 2 "Entered dns_pleskxml_rm($*)..."
+  _DBG 2 "Entered dns_pleskxml_rm($*)..."
 
   _pleskxml_FQDN="$1"
   _pleskxml_TXT_string="$2"
@@ -242,8 +240,8 @@ dns_pleskxml_rm() {
   _pleskxml_get_variables
   _pleskxml_retcode=$?
 
-  _DBG "$LINENO" 2 'Called _pleskxml_get_variables()'
-  _DBG_VARDUMP "$LINENO" 2
+  _DBG 2 'Called _pleskxml_get_variables()'
+  _DBG_VARDUMP 2
 
   if [ $_pleskxml_retcode -ne 0 ] || [ "$_pleskxml_errors" != '' ]; then
     _err "$_pleskxml_errors"
@@ -259,13 +257,13 @@ dns_pleskxml_rm() {
   _info "Plesk XML: Variables are valid and loaded."
   _info "Trying to connect to Plesk ($_pleskxml_uri), and request Plesk's internal reference ID for domain '${_pleskxml_domain}'"
 
-  _DBG "$LINENO" 2 "Calling API to get domain ID for $_pleskxml_domain"
+  _DBG 2 "Calling API to get domain ID for $_pleskxml_domain"
 
   _pleskxml_get_domain_ID "$_pleskxml_domain"
   _pleskxml_retcode=$?
 
-  _DBG "$LINENO" 2 'Call has returned'
-  _DBG_VARDUMP "$LINENO" 2
+  _DBG 2 'Call has returned'
+  _DBG_VARDUMP 2
 
   if [ $_pleskxml_retcode -ne 0 ] || [ "$_pleskxml_errors" != '' ] || [ "$_pleskxml_result" = '' ]; then
     # Really, just testing return code should be enough, based on above code, but let's go "all-in" and test all variables returned
@@ -280,13 +278,13 @@ dns_pleskxml_rm() {
 
   _info "Plesk XML: Got ID for domain. Trying to remove TXT record from domain ID $_pleskxml_domain_id ('$_pleskxml_domain'), host '$_pleskxml_host'."
 
-  _DBG "$LINENO" 2 "Calling API to remove TXT record from domain ID #$_pleskxml_domain_id ('$_pleskxml_domain')"
+  _DBG 2 "Calling API to remove TXT record from domain ID #$_pleskxml_domain_id ('$_pleskxml_domain')"
 
   _pleskxml_rmv_txt_record "$_pleskxml_domain_id" "$_pleskxml_host" "$_pleskxml_TXT_string"
   _pleskxml_retcode=$?
 
-  _DBG "$LINENO" 2 'Call has returned'
-  _DBG_VARDUMP "$LINENO" 2
+  _DBG 2 'Call has returned'
+  _DBG_VARDUMP 2
 
   if [ $_pleskxml_retcode -ne 0 ] || [ "$_pleskxml_errors" != '' ] || [ "$_pleskxml_result" = '' ]; then
     # Really, just testing return code should be enough, based on above code, but let's go "all-in" and test all variables returned
@@ -296,7 +294,7 @@ dns_pleskxml_rm() {
 
   _info 'A TXT record for '"$_pleskxml_domain"' was removed from Plesk. Plesk returned a successful response.\nThe TXT field was: '"'$_pleskxml_TXT_string'"
 
-  _DBG "$LINENO" 2 "SUCCESSFULLY exiting dns_pleskxml_rm()..."
+  _DBG 2 "SUCCESSFULLY exiting dns_pleskxml_rm()..."
 
   return 0
 }
@@ -307,8 +305,8 @@ dns_pleskxml_rm() {
 
 _pleskxml_get_variables() {
 
-  _DBG "$LINENO" 2 'Entered _pleskxml_get_variables()'
-  _DBG_VARDUMP "$LINENO" 2
+  _DBG 2 'Entered _pleskxml_get_variables()'
+  _DBG_VARDUMP 2
 
   _pleskxml_errors=''
 
@@ -366,13 +364,13 @@ _pleskxml_get_variables() {
   _pleskxml_optional_curl_args="${pleskxml_optional_curl_args:-}"
 
   if [ "$_pleskxml_errors" != '' ]; then
-    _DBG "$LINENO" 2 "UNSUCCESSFULLY exiting _pleskxml_get_variables() (UNSUCCESSFUL CALL!)"
-    _DBG_VARDUMP "$LINENO" 2
+    _DBG 2 "UNSUCCESSFULLY exiting _pleskxml_get_variables() (UNSUCCESSFUL CALL!)"
+    _DBG_VARDUMP 2
     _err 'Can'\''t parse user-defined variables. Exiting.'
     return 1
   else
-    _DBG "$LINENO" 2 "SUCCESSFULLY exiting _pleskxml_get_variables()"
-    _DBG_VARDUMP "$LINENO" 2
+    _DBG 2 "SUCCESSFULLY exiting _pleskxml_get_variables()"
+    _DBG_VARDUMP 2
     return 0
   fi
 }
@@ -383,7 +381,7 @@ _pleskxml_get_variables() {
 
 _pleskxml_api_request() {
 
-  _DBG "$LINENO" 2 "Entered _pleskxml_api_request($*), to make an XML request.${_pleskxml_newline}  arg1=^$1^${_pleskxml_newline}  arg2=^$2^${_pleskxml_newline}  arg3=^$3^${_pleskxml_newline}  arg4=^$4^"
+  _DBG 2 "Entered _pleskxml_api_request($*), to make an XML request.${_pleskxml_newline}  arg1=^$1^${_pleskxml_newline}  arg2=^$2^${_pleskxml_newline}  arg3=^$3^${_pleskxml_newline}  arg4=^$4^"
 
   _pleskxml_errors=''
   _pleskxml_result=''
@@ -417,14 +415,14 @@ _pleskxml_api_request() {
          -d '${_pleskxml_APICMD}' \
          ${_pleskxml_optional_curl_args}"
 
-  _DBG "$LINENO" 2 'About to call Plesk via cURL'
-  _DBG_VARDUMP "$LINENO" 2
+  _DBG 2 'About to call Plesk via cURL'
+  _DBG_VARDUMP 2
 
-  _DBG "$LINENO" 2 "$(printf 'cURL command: %s %s %s' "$_pleskxml_curlpath" "$_pleskxml_curlargs" "$_pleskxml_uri")"
+  _DBG 2 "$(printf 'cURL command: %s %s %s' "$_pleskxml_curlpath" "$_pleskxml_curlargs" "$_pleskxml_uri")"
   _pleskxml_prettyprint_result="$(eval "$_pleskxml_curlpath" "$_pleskxml_curlargs" "$_pleskxml_uri" 2>/dev/null)"
   _pleskxml_retcode="$?"
-  _DBG "$LINENO" 1 "_pleskxml_prettyprint_result =${_pleskxml_newline}'$_pleskxml_prettyprint_result' "
-  _DBG "$LINENO" 2 "retcode = $_pleskxml_retcode"
+  _DBG 1 "_pleskxml_prettyprint_result =${_pleskxml_newline}'$_pleskxml_prettyprint_result' "
+  _DBG 2 "retcode = $_pleskxml_retcode"
 
   # BUGFIX TO CHECK - WILL RETCODE FROM cURL BE AVAILABLE HERE?
 
@@ -448,15 +446,15 @@ _pleskxml_api_request() {
     | tr -d '\n'
   )"
 
-  _DBG "$LINENO" 2 'cURL succeeded, valid cURL response obtained'
-  _DBG_VARDUMP "$LINENO" 2
+  _DBG 2 'cURL succeeded, valid cURL response obtained'
+  _DBG_VARDUMP 2
 
   # Now we need to check item by item if it's OK.
   # As we go, we will strip out "known OK" stuff to leave the core reply.
 
   # XML header and packet version?
 
-  _DBG "$LINENO" 2 'Checking <?xml> and <packet> tags exist...'
+  _DBG 2 'Checking <?xml> and <packet> tags exist...'
 
   if printf '%s' "$_pleskxml_result" | grep -qiEv '^<\?xml version=[^>]+><packet version=[^>]+>.*</packet>$'; then
     # Error - should have <?xml><packet>...</packet>. Abort
@@ -470,7 +468,7 @@ _pleskxml_api_request() {
     )"
   fi
 
-  _DBG "$LINENO" 2 "Checking <system> tags don't exist..."
+  _DBG 2 "Checking <system> tags don't exist..."
 
   # <system> section found anywhere in response?
   # This usually means some kind of basic API error such as login failure, bad XML request, etc
@@ -482,7 +480,7 @@ _pleskxml_api_request() {
     return 1
   fi
 
-  _DBG "$LINENO" 2 'Checking 1 or >=1 <result> tag (or tags) found, each containing 'status:ok'...'
+  _DBG 2 'Checking 1 or >=1 <result> tag (or tags) found, each containing 'status:ok'...'
 
   # Check results section. Most commands only have one results section.
   # But some (i.e., get all DNS records for a domain) have many results sections,
@@ -501,7 +499,7 @@ _pleskxml_api_request() {
     return 1
   fi
 
-  _DBG "$LINENO" 2 'Found at least 1 <result> section. Splitting each result section to a separate line'
+  _DBG 2 'Found at least 1 <result> section. Splitting each result section to a separate line'
 
   _pleskxml_result="$(printf '%s' "$_pleskxml_result" \
     | sed "s/<result>/\\${_pleskxml_newline}<result>/g" \
@@ -513,10 +511,10 @@ _pleskxml_api_request() {
 
   _pleskxml_linecount=$(printf '%s\n' "$_pleskxml_result" | wc -l)
 
-  _DBG "$LINENO" 2 "Result is: '$_pleskxml_result' (${_pleskxml_linecount} line(s))"
+  _DBG 2 "Result is: '$_pleskxml_result' (${_pleskxml_linecount} line(s))"
 
-  _DBG "$LINENO" 2 'Testing <result> section linecount is OK (1 or >=1 as required)'
-  _DBG_VARDUMP "$LINENO" 2
+  _DBG 2 'Testing <result> section linecount is OK (1 or >=1 as required)'
+  _DBG_VARDUMP 2
 
   if [ $_pleskxml_multiple_results_allowed -eq 0 ] && [ "$_pleskxml_linecount" -gt 1 ]; then
     # Error - contains multiple <result> sections. Abort
@@ -525,7 +523,7 @@ _pleskxml_api_request() {
     return 1
   fi
 
-  _DBG "$LINENO" 2 "Found ${_pleskxml_linecount} <result> section(s), checking each has status:ok..."
+  _DBG 2 "Found ${_pleskxml_linecount} <result> section(s), checking each has status:ok..."
 
   # Loop through each <result> section, checking every line has exactly one result section,
   # containing exactly one status section, which contains <status>ok</status>
@@ -535,7 +533,7 @@ _pleskxml_api_request() {
     # _pleskxml_line *should* contain a single result section.
     # Check this is correct.
 
-    # _DBG "$LINENO" "Checking a <result> section... content is ${_pleskxml_line}"
+    # _DBG "Checking a <result> section... content is ${_pleskxml_line}"
 
     if printf '%s' "$_pleskxml_line" | grep -qiEv '^<result>.*</result>$'; then
       # Error - doesn't contain <result>...</result>. Abort
@@ -551,12 +549,12 @@ _pleskxml_api_request() {
     if printf '%s' "$_pleskxml_line" | grep -qiEv '<status>.*</status>'; then
       # Error - doesn't contain <status>...</status>. Abort
       _pleskxml_errors='Error when querying Plesk XML API. A <result> section did not contain a <status> section.\nThis is unexpected: something has gone wrong. Please raise this as a bug/issue in the module. The response was:\n'"$_pleskxml_prettyprint_result"'\n'
-      _DBG "$LINENO" 2 "$_pleskxml_errors"
+      _DBG 2 "$_pleskxml_errors"
       return 1
     elif printf '%s' "$_pleskxml_line" | grep -qiE '<status>.*</status>.*<status>'; then
       # Error - contains <status>...</status>...<status>. Abort
       _pleskxml_errors='Error when querying Plesk XML API. A <result> section contained more than one <status> section.\nThis is unexpected: something has gone wrong. Please raise this as a bug/issue in the module. The response was:\n'"$_pleskxml_prettyprint_result"'\n'
-      _DBG "$LINENO" 2 "$_pleskxml_errors"
+      _DBG 2 "$_pleskxml_errors"
       return 1
     elif printf '%s' "$_pleskxml_line" | grep -qiEv '<status>ok</status>'; then
       # Error - doesn't contain <status>ok</status>. Abort
@@ -565,7 +563,7 @@ _pleskxml_api_request() {
       return 1
     fi
 
-    # _DBG "$LINENO" "Line is OK. Looping to next line or exiting..."
+    # _DBG "Line is OK. Looping to next line or exiting..."
 
   done <<EOL
 $_pleskxml_result
@@ -573,7 +571,7 @@ EOL
 
   # So far so good. Remove all <status>ok</status> sections as they're checked now.
 
-  _DBG "$LINENO" 2 "All results lines had status:ok. Exiting loop,  and removing all <status>ok</status> tags now they've been checked"
+  _DBG 2 "All results lines had status:ok. Exiting loop,  and removing all <status>ok</status> tags now they've been checked"
 
   _pleskxml_result="$(printf '%s' "$_pleskxml_result" \
     | sed -E 's/<status>ok<\/status>//g'
@@ -581,16 +579,16 @@ EOL
 
   # Result is OK. Remove any redundant self-closing tags, and <data> or </data> tags, and exit
 
-  _DBG "$LINENO" 2 'Now removing any self-closing tags, or <data>...</data> tags'
+  _DBG 2 'Now removing any self-closing tags, or <data>...</data> tags'
 
   _pleskxml_result="$(printf '%s' "$_pleskxml_result" \
     | sed -E 's/(<[a-zA-Z0-9._-]+[[:space:]]*\/>|<\/?data\/?>)//g'
   )"
 
-  _DBG "$LINENO" 2 "About to exit API function. Result = ${_pleskxml_newline}'${_pleskxml_result}' "
+  _DBG 2 "About to exit API function. Result = ${_pleskxml_newline}'${_pleskxml_result}' "
 
-  _DBG "$LINENO" 2 'Successfully exiting Plesk XML API function'
-  _DBG_VARDUMP "$LINENO" 2
+  _DBG 2 'Successfully exiting Plesk XML API function'
+  _DBG_VARDUMP 2
 
   return 0
 
@@ -598,17 +596,17 @@ EOL
 
 _pleskxml_get_domain_ID() {
 
-  _DBG "$LINENO" 2 "Entered Plesk get_domain_ID($*), to get the domain's Plesk ID."
+  _DBG 2 "Entered Plesk get_domain_ID($*), to get the domain's Plesk ID."
 
   # Call cURL to convert a domain name to a plesk domain ID.
 
-  _DBG "$LINENO" 2 'About to make API request (domain name -> domain ID)'
+  _DBG 2 'About to make API request (domain name -> domain ID)'
 
   _pleskxml_api_request "$_pleskxml_tplt_get_domain_id" "$1"
   _pleskxml_retcode=$?
   # $1 is the domain name we wish to convert to a Plesk domain ID
 
-  _DBG "$LINENO" 2 'Returned from API request, now back in get_domain_ID()'
+  _DBG 2 'Returned from API request, now back in get_domain_ID()'
 
   if [ $_pleskxml_retcode -ne 0 ] || [ "$_pleskxml_errors" != '' ] || [ "$_pleskxml_result" = '' ]; then
     # Really, just testing return code should be enough, based on above code, but let's go "all-in" and test all variables returned
@@ -620,7 +618,7 @@ _pleskxml_get_domain_ID() {
 
   # Result should comprise precisely one <result> section
 
-  _DBG "$LINENO" 2 'Testing API return data for one <result> and removing if so'
+  _DBG 2 'Testing API return data for one <result> and removing if so'
 
   if printf '%s' "$_pleskxml_result" | grep -qiEv '^<result>.*</result>$'; then
     # Error - doesn't comprise <result>DOMAINNAME</result>. Something's wrong. Abort
@@ -641,7 +639,7 @@ _pleskxml_get_domain_ID() {
 
   # Result should contain precisely one <filter-id> section, containing the domain name inquired.
 
-  _DBG "$LINENO" 2 'Testing API return data for one <filter-id> and removing if so'
+  _DBG 2 'Testing API return data for one <filter-id> and removing if so'
 
   if printf '%s' "$_pleskxml_result" | grep -qiv "<filter-id>$1</filter-id>"; then
     # Error - doesn't contain <filter-id>DOMAINNAME</filter-id>. Something's wrong. Abort
@@ -662,7 +660,7 @@ _pleskxml_get_domain_ID() {
 
   # All that should be left is one section, containing <id>DOMAIN_ID</id>
 
-  _DBG "$LINENO" 2 "Remaining part of result is now: '$_pleskxml_result' "
+  _DBG 2 "Remaining part of result is now: '$_pleskxml_result' "
 
   if printf '%s' "$_pleskxml_result" | grep -qiEv '^<id>[0-9]+</id>$'; then
     # Error - doesn't contain just <id>NUMBERS</id>. Something's wrong. Abort
@@ -679,8 +677,8 @@ _pleskxml_get_domain_ID() {
 
   _pleskxml_domain_id="$_pleskxml_result"
 
-  _DBG "$LINENO" 2 'SUCCESSFULLY exiting Plesk get_domain_ID'
-  _DBG_VARDUMP "$LINENO" 2
+  _DBG 2 'SUCCESSFULLY exiting Plesk get_domain_ID'
+  _DBG_VARDUMP 2
 
   return 0
 
@@ -692,17 +690,17 @@ _pleskxml_get_domain_ID() {
 
 _pleskxml_get_dns_records() {
 
-  _DBG "$LINENO" 2 "Entered Plesk _pleskxml_get_dns_records($*)"
+  _DBG 2 "Entered Plesk _pleskxml_get_dns_records($*)"
 
   # First, we need to get all DNS records, and check the list is valid
 
-  _DBG "$LINENO" 2 'About to make API request (get DNS records)'
+  _DBG 2 'About to make API request (get DNS records)'
 
   _pleskxml_api_request "$_pleskxml_tplt_get_dns_records" "$1"
   _pleskxml_retcode=$?
   # $1 is the Plesk internal domain ID for the domain
 
-  _DBG "$LINENO" 2 'Returned from API request, now back in get_txt_records()'
+  _DBG 2 'Returned from API request, now back in get_txt_records()'
 
   if [ $_pleskxml_retcode -ne 0 ] || [ "$_pleskxml_errors" != '' ] || [ "$_pleskxml_result" = '' ]; then
     # Really, just testing return code should be enough, based on above code, but let's go "all-in" and test all variables returned
@@ -713,26 +711,26 @@ _pleskxml_get_dns_records() {
   # OK, we should have a <result> section containing a list of DNS records.
   # Now keep only the TXT records
 
-  _DBG "$LINENO" 2 "Full DNS records were:${_pleskxml_newline}${_pleskxml_newline}'${_pleskxml_result}' "
+  _DBG 2 "Full DNS records were:${_pleskxml_newline}${_pleskxml_newline}'${_pleskxml_result}' "
 
   if [ -n "${2:-}" ]; then
     _pleskxml_result="$(printf '%s' "$_pleskxml_result" \
       | grep "<type>$2</type>"
     )"
-    _DBG "$LINENO" 2 "Filtered relevant DNS records. Records to be returned are:${_pleskxml_newline}${_pleskxml_newline}'${_pleskxml_result}' "
+    _DBG 2 "Filtered relevant DNS records. Records to be returned are:${_pleskxml_newline}${_pleskxml_newline}'${_pleskxml_result}' "
   else
-    _DBG "$LINENO" 2 'Not filtering DNS records. All records will be returned.'
+    _DBG 2 'Not filtering DNS records. All records will be returned.'
   fi
 
-  _DBG "$LINENO" 2 "SUCCESSFULLY exiting _pleskxml_get_dns_records"
+  _DBG 2 "SUCCESSFULLY exiting _pleskxml_get_dns_records"
   return 0
 }
 
 _pleskxml_add_txt_record() {
 
-  _DBG "$LINENO" 2 "Entered Plesk _pleskxml_add_txt_record($*)"
+  _DBG 2 "Entered Plesk _pleskxml_add_txt_record($*)"
 
-  _DBG "$LINENO" 2 'About to make API request (add TXT record)'
+  _DBG 2 'About to make API request (add TXT record)'
 
   _pleskxml_api_request "$_pleskxml_tplt_add_txt_record" "$1" "$2" "$3"
   _pleskxml_retcode=$?
@@ -741,7 +739,7 @@ _pleskxml_add_txt_record() {
   # $2 is the "host" entry within the domain, to add this to (eg '_acme_challenge')
   # $3 is the TXT record value
 
-  _DBG "$LINENO" 2 'Returned from API request, now back in add_txt_record()'
+  _DBG 2 'Returned from API request, now back in add_txt_record()'
 
   if [ $_pleskxml_retcode -ne 0 ] || [ "$_pleskxml_errors" != '' ] || [ "$_pleskxml_result" = '' ]; then
     # Really, just testing return code should be enough, based on above code, but let's go "all-in" and test all variables returned
@@ -766,24 +764,24 @@ _pleskxml_add_txt_record() {
     | sed -E "s/^<result><id>([0-9]+)<\/id><\/result>$/\1/"
   )"
 
-  _DBG "$LINENO" 2 'SUCCESSFULLY exiting Plesk _pleskxml_add_txt_record'
-  _DBG_VARDUMP "$LINENO" 2
+  _DBG 2 'SUCCESSFULLY exiting Plesk _pleskxml_add_txt_record'
+  _DBG_VARDUMP 2
 
   return 0
 }
 
 _pleskxml_rmv_dns_record() {
 
-  _DBG "$LINENO" 2 "Entered Plesk _pleskxml_rmv_dns_record($*)"
+  _DBG 2 "Entered Plesk _pleskxml_rmv_dns_record($*)"
 
-  _DBG "$LINENO" 2 'About to make API request (rmv TXT record)'
+  _DBG 2 'About to make API request (rmv TXT record)'
 
   _pleskxml_api_request "$_pleskxml_tplt_rmv_dns_record" "$1"
   _pleskxml_retcode=$?
 
   # $1 is the Plesk internal domain ID for the TXT record
 
-  _DBG "$LINENO" 2 'Returned from API request, now back in rmv_dns_record()'
+  _DBG 2 'Returned from API request, now back in rmv_dns_record()'
 
   if [ $_pleskxml_retcode -ne 0 ] || [ "$_pleskxml_errors" != '' ] || [ "$_pleskxml_result" = '' ]; then
     # Really, just testing return code should be enough, based on above code, but let's go "all-in" and test all variables returned
@@ -793,8 +791,8 @@ _pleskxml_rmv_dns_record() {
 
   # OK, we should have removed a TXT record. If it failed, there wouldn't have been a "status:ok" above
 
-  _DBG "$LINENO" 2 'SUCCESSFULLY exiting Plesk _pleskxml_rmv_dns_record'
-  _DBG_VARDUMP "$LINENO" 2
+  _DBG 2 'SUCCESSFULLY exiting Plesk _pleskxml_rmv_dns_record'
+  _DBG_VARDUMP 2
 
   return 0
 }
@@ -804,13 +802,13 @@ _pleskxml_rmv_dns_record() {
 # 3rd arg = value of TXT record string to be found and removed
 _pleskxml_rmv_txt_record() {
 
-  _DBG "$LINENO" 2 "Entered Plesk _pleskxml_rmv_dns_TXT_record($*). Getting DNS TXT records for the domain ID"
+  _DBG 2 "Entered Plesk _pleskxml_rmv_dns_TXT_record($*). Getting DNS TXT records for the domain ID"
 
   _pleskxml_get_dns_records "$1" 'TXT'
   _pleskxml_retcode=$?
   # $1 is the Plesk internal domain ID for the domain
 
-  _DBG "$LINENO" 2 'Returned from API request, now back in rmv_txt_record()'
+  _DBG 2 'Returned from API request, now back in rmv_txt_record()'
 
   if [ $_pleskxml_retcode -ne 0 ] || [ "$_pleskxml_errors" != '' ] || [ "$_pleskxml_result" = '' ]; then
     # Really, just testing return code should be enough, based on above code, but let's go "all-in" and test all variables returned
@@ -822,7 +820,7 @@ _pleskxml_rmv_txt_record() {
   # Now we need to find our desired record in it (if it exists).
   # and might as well collapse any successful matches to a single line for line-count purposes at the same time
 
-  _DBG "$LINENO" 2 "Filters to apply (as literal strings):${_pleskxml_newline}'<host>${2:-<NON_MATCHING_GARBAGE>}.'${_pleskxml_newline}'<value>${3:-<NON_MATCHING_GARBAGE>}</value>' "
+  _DBG 2 "Filters to apply (as literal strings):${_pleskxml_newline}'<host>${2:-<NON_MATCHING_GARBAGE>}.'${_pleskxml_newline}'<value>${3:-<NON_MATCHING_GARBAGE>}</value>' "
 
   _pleskxml_result="$(printf '%s' "$_pleskxml_result" \
     | grep -F "<host>${2:-<NON_MATCHING_GARBAGE>}." \
@@ -834,7 +832,7 @@ _pleskxml_rmv_txt_record() {
   # ands this avoids regex and escaping which is easier
   # NOTE: the returned "host" field is actually the FQDN, not just the host ID, hence the grep match on that field.
 
-  _DBG "$LINENO" 2 "Filtered result:${_pleskxml_newline}'$_pleskxml_result' "
+  _DBG 2 "Filtered result:${_pleskxml_newline}'$_pleskxml_result' "
 
   if printf '%s' "$_pleskxml_result" | grep -qiE "<result>.*<result>"; then
     # Error - contains <result>...</result>...<result>. Abort
@@ -846,7 +844,7 @@ _pleskxml_rmv_txt_record() {
   if printf '%s\n' "$_pleskxml_result" | grep -qiv "<result>"; then
     # No matching TXT records, so we're done.
     _info "Couldn't find a TXT record matching the requested host/value. Not an error, but a concern..."
-    _DBG "$LINENO" 2 "Exiting Plesk _pleskxml_rmv_txt_record (without raising an error), as nothing more to do: the record requested for deletion doesn't exist"
+    _DBG 2 "Exiting Plesk _pleskxml_rmv_txt_record (without raising an error), as nothing more to do: the record requested for deletion doesn't exist"
     _pleskxml_result=''
     return 0
   fi
@@ -857,12 +855,12 @@ _pleskxml_rmv_txt_record() {
     | sed -E 's/^.*<id>([0-9]+)<\/id>.*$/\1/'
   )"
 
-  _DBG "$LINENO" 2 "A unique matching DNS TXT record was found, with Plesk record ID = '$_pleskxml_result'. Calling API to delete this record."
+  _DBG 2 "A unique matching DNS TXT record was found, with Plesk record ID = '$_pleskxml_result'. Calling API to delete this record."
 
   _pleskxml_rmv_dns_record "$_pleskxml_result"
   _pleskxml_retcode=$?
 
-  _DBG "$LINENO" 2 'Returned from API request, now back in rmv_txt_record()'
+  _DBG 2 'Returned from API request, now back in rmv_txt_record()'
 
   if [ $_pleskxml_retcode -ne 0 ] || [ "$_pleskxml_errors" != '' ] || [ "$_pleskxml_result" = '' ]; then
     # Really, just testing return code should be enough, based on above code, but let's go "all-in" and test all variables returned
@@ -870,8 +868,8 @@ _pleskxml_rmv_txt_record() {
     return 1
   fi
 
-  _DBG "$LINENO" 2 'SUCCESSFULLY exiting Plesk _pleskxml_rmv_txt_record'
-  _DBG_VARDUMP "$LINENO" 2
+  _DBG 2 'SUCCESSFULLY exiting Plesk _pleskxml_rmv_txt_record'
+  _DBG_VARDUMP 2
 
   return 0
 }
@@ -896,70 +894,70 @@ if false; then
 
   _DBG_EARLY_CHECK_MODE
 
-  _DBG "$LINENO" 3 'Debug mode done. Now testing _pleskxml_get_variables()'
+  _DBG 3 'Debug mode done. Now testing _pleskxml_get_variables()'
 
   _pleskxml_get_variables
-  _DBG "$LINENO" 3 "$(printf 'RESULT:\n  _pleskxml_errors: "%s"\n  _pleskxml_retcode: "%s"\n  _pleskxml_result: "%s"\n\n' "$_pleskxml_errors" "$_pleskxml_retcode" "$_pleskxml_result")"
-  _DBG_VARDUMP "$LINENO" 3
+  _DBG 3 "$(printf 'RESULT:\n  _pleskxml_errors: "%s"\n  _pleskxml_retcode: "%s"\n  _pleskxml_result: "%s"\n\n' "$_pleskxml_errors" "$_pleskxml_retcode" "$_pleskxml_result")"
+  _DBG_VARDUMP 3
 
-  _DBG "$LINENO" 3 '==============================================================='
+  _DBG 3 '==============================================================='
 
-  _DBG "$LINENO" 3 'Testing _pleskxml_get_domain_ID()'
+  _DBG 3 'Testing _pleskxml_get_domain_ID()'
   _pleskxml_get_domain_ID "atticflat.uk"
 
-  _DBG "$LINENO" 3 "$(printf 'RESULT:\n  _pleskxml_errors: "%s"\n  _pleskxml_retcode: "%s"\n  _pleskxml_result: "%s"\n\n' "$_pleskxml_errors" "$_pleskxml_retcode" "$_pleskxml_result")"
-  _DBG_VARDUMP "$LINENO" 3
+  _DBG 3 "$(printf 'RESULT:\n  _pleskxml_errors: "%s"\n  _pleskxml_retcode: "%s"\n  _pleskxml_result: "%s"\n\n' "$_pleskxml_errors" "$_pleskxml_retcode" "$_pleskxml_result")"
+  _DBG_VARDUMP 3
 
-  _DBG "$LINENO" 3 '==============================================================='
+  _DBG 3 '==============================================================='
 
   test_string="TEST STRING ADDED @ $(date)"
 
-  _DBG "$LINENO" 3 "Testing add a TXT string: '$test_string' "
+  _DBG 3 "Testing add a TXT string: '$test_string' "
   _pleskxml_add_txt_record 874 '_test_subdomain' "$test_string"
 
-  _DBG "$LINENO" 3 "$(printf 'RESULT:\n  _pleskxml_errors: "%s"\n  _pleskxml_retcode: "%s"\n  _pleskxml_result: "%s"\n\n' "$_pleskxml_errors" "$_pleskxml_retcode" "$_pleskxml_result")"
-  _DBG_VARDUMP "$LINENO" 3
+  _DBG 3 "$(printf 'RESULT:\n  _pleskxml_errors: "%s"\n  _pleskxml_retcode: "%s"\n  _pleskxml_result: "%s"\n\n' "$_pleskxml_errors" "$_pleskxml_retcode" "$_pleskxml_result")"
+  _DBG_VARDUMP 3
 
-  _DBG "$LINENO" 3 '==============================================================='
+  _DBG 3 '==============================================================='
 
-  _DBG "$LINENO" 3 'Testing get DNS records (ALL)'
+  _DBG 3 'Testing get DNS records (ALL)'
   _pleskxml_get_dns_records 874
 
-  _DBG "$LINENO" 3 "$(printf 'RESULT:\n  _pleskxml_errors: "%s"\n  _pleskxml_retcode: "%s"\n  _pleskxml_result: "%s"\n\n' "$_pleskxml_errors" "$_pleskxml_retcode" "$_pleskxml_result")"
-  _DBG_VARDUMP "$LINENO" 3
+  _DBG 3 "$(printf 'RESULT:\n  _pleskxml_errors: "%s"\n  _pleskxml_retcode: "%s"\n  _pleskxml_result: "%s"\n\n' "$_pleskxml_errors" "$_pleskxml_retcode" "$_pleskxml_result")"
+  _DBG_VARDUMP 3
 
-  _DBG "$LINENO" 3 '==============================================================='
+  _DBG 3 '==============================================================='
 
-  _DBG "$LINENO" 3 'Testing get DNS records (TXT ONLY)'
+  _DBG 3 'Testing get DNS records (TXT ONLY)'
   _pleskxml_get_dns_records 874 TXT
 
-  _DBG "$LINENO" 3 "$(printf 'RESULT:\n  _pleskxml_errors: "%s"\n  _pleskxml_retcode: "%s"\n  _pleskxml_result: "%s"\n\n' "$_pleskxml_errors" "$_pleskxml_retcode" "$_pleskxml_result")"
-  _DBG_VARDUMP "$LINENO" 3
+  _DBG 3 "$(printf 'RESULT:\n  _pleskxml_errors: "%s"\n  _pleskxml_retcode: "%s"\n  _pleskxml_result: "%s"\n\n' "$_pleskxml_errors" "$_pleskxml_retcode" "$_pleskxml_result")"
+  _DBG_VARDUMP 3
 
-  _DBG "$LINENO" 3 '==============================================================='
+  _DBG 3 '==============================================================='
 
-  _DBG "$LINENO" 3 'Testing rmv a TXT string'
+  _DBG 3 'Testing rmv a TXT string'
   _pleskxml_rmv_txt_record 874 '_test_subdomain' "$test_string"
 
-  _DBG "$LINENO" 3 "$(printf 'RESULT:\n  _pleskxml_errors: "%s"\n  _pleskxml_retcode: "%s"\n  _pleskxml_result: "%s"\n\n' "$_pleskxml_errors" "$_pleskxml_retcode" "$_pleskxml_result")"
-  _DBG_VARDUMP "$LINENO" 3
+  _DBG 3 "$(printf 'RESULT:\n  _pleskxml_errors: "%s"\n  _pleskxml_retcode: "%s"\n  _pleskxml_result: "%s"\n\n' "$_pleskxml_errors" "$_pleskxml_retcode" "$_pleskxml_result")"
+  _DBG_VARDUMP 3
 
-  _DBG "$LINENO" 3 '==============================================================='
+  _DBG 3 '==============================================================='
 
-  _DBG "$LINENO" 3 'Re-testing get DNS records (TXT ONLY) after TXT string removal'
+  _DBG 3 'Re-testing get DNS records (TXT ONLY) after TXT string removal'
   _pleskxml_get_dns_records 874 TXT
 
-  _DBG "$LINENO" 3 "$(printf 'RESULT:\n  _pleskxml_errors: "%s"\n  _pleskxml_retcode: "%s"\n  _pleskxml_result: "%s"\n\n' "$_pleskxml_errors" "$_pleskxml_retcode" "$_pleskxml_result")"
-  _DBG_VARDUMP "$LINENO" 3
+  _DBG 3 "$(printf 'RESULT:\n  _pleskxml_errors: "%s"\n  _pleskxml_retcode: "%s"\n  _pleskxml_result: "%s"\n\n' "$_pleskxml_errors" "$_pleskxml_retcode" "$_pleskxml_result")"
+  _DBG_VARDUMP 3
 
-  _DBG "$LINENO" 3 '==============================================================='
+  _DBG 3 '==============================================================='
 
-  _DBG "$LINENO" 3 'Testing rmv a TXT string, with a non-matching string'
+  _DBG 3 'Testing rmv a TXT string, with a non-matching string'
   _pleskxml_rmv_txt_record 874 '_test_subdomain' 'JUNKegqw4bw4bb2'
 
-  _DBG "$LINENO" 3 "$(printf 'RESULT:\n  _pleskxml_errors: "%s"\n  _pleskxml_retcode: "%s"\n  _pleskxml_result: "%s"\n\n' "$_pleskxml_errors" "$_pleskxml_retcode" "$_pleskxml_result")"
-  _DBG_VARDUMP "$LINENO" 3
+  _DBG 3 "$(printf 'RESULT:\n  _pleskxml_errors: "%s"\n  _pleskxml_retcode: "%s"\n  _pleskxml_result: "%s"\n\n' "$_pleskxml_errors" "$_pleskxml_retcode" "$_pleskxml_result")"
+  _DBG_VARDUMP 3
 
-  _DBG "$LINENO" 3 '=============================================================== END OF RUN'
+  _DBG 3 '=============================================================== END OF RUN'
 
 fi
