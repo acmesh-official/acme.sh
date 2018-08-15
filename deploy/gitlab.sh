@@ -54,7 +54,7 @@ gitlab_deploy() {
     _savedomainconf Le_Deploy_gitlab_domain "$Le_Deploy_gitlab_domain"
   fi 
 
-  curl -s --fail --request PUT --header "PRIVATE-TOKEN: $Le_Deploy_gitlab_token" --form "certificate=@$_cfullchain" --form "key=@$_ckey" https://gitlab.com/api/v4/projects/$Le_Deploy_gitlab_project_id/pages/domains/$Le_Deploy_gitlab_domain > /dev/null && exit 0
+  curl -s --fail --request PUT --header "PRIVATE-TOKEN: $Le_Deploy_gitlab_token" --form "certificate=@$_cfullchain" --form "key=@$_ckey" "https://gitlab.com/api/v4/projects/$Le_Deploy_gitlab_project_id/pages/domains/$Le_Deploy_gitlab_domain" > /dev/null && exit 0
   
   # Exit curl status code if curl didn't work
   exit $?
