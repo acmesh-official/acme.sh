@@ -133,7 +133,7 @@ _get_root() {
 
 #parameters: [record type] [record name]
 _delete_dns_record() {
-  _dns_records=$(echo $_dns_records | sed 's/{"type":"'"$1"'","name":"'"$2"'"[^}]*}[,]\?//' | sed 's/,$//')
+  _dns_records=$(echo "$_dns_records" | sed 's/{"type":"'"$1"'","name":"'"$2"'"[^}]*}[,]\?//' | sed 's/,$//')
 }
 
 #parameters: [type] [name] [value] [prio] [ttl]
@@ -147,7 +147,7 @@ _add_dns_record() {
 _get_dns_records() {
 
   if _versio_rest GET "domains/$1?show_dns_records=true"; then
-    _dns_records=$(echo $response | grep -oP '(?<="dns_records":\[)[^\]]*')
+    _dns_records=$(echo "$response" | grep -oP '(?<="dns_records":\[)[^\]]*')
     return 0
   fi
   return 1
@@ -164,9 +164,11 @@ _versio_rest() {
 
   VERSIO_API_URL="https://www.versio.nl/api/v1"
   
+  VERSIO_CREDENTIALS_BASE64=$(printf "%s:%s" "$Versio_Username" "$Versio_Password" | openssl enc -base64)
+  
   export _H1="Accept: application/json"
   export _H2="Content-Type: application/json"
-  export _H3="Authorization: Basic $(echo -n """$Versio_Username:$Versio_Password""" | openssl enc -base64)"
+  export _H3="Authorization: Basic $VERSIO_CREDENTIALS_BASE64"
   
   if [ "$mtd" != "GET" ]; then
     # both POST and DELETE.
@@ -178,6 +180,8 @@ _versio_rest() {
   
   case $? in
   0)
+    _debug response "$response"
+    return 0
     ;;
   6)
     _err "Authentication failure. Check your Versio email address and password"
@@ -188,9 +192,6 @@ _versio_rest() {
     return 1
     ;;
   esac
-  
-  _debug response "$response"
-  return 0
 }
 
 #parameters: []
