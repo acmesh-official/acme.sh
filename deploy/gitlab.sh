@@ -32,7 +32,7 @@ gitlab_deploy() {
   else
     Le_Deploy_gitlab_token="$GITLAB_TOKEN"
     _savedomainconf Le_Deploy_gitlab_token "$Le_Deploy_gitlab_token"
-  fi 
+  fi
 
   if [ -z "$GITLAB_PROJECT_ID" ]; then
     if [ -z "$Le_Deploy_gitlab_project_id" ]; then
@@ -42,7 +42,7 @@ gitlab_deploy() {
   else
     Le_Deploy_gitlab_project_id="$GITLAB_PROJECT_ID"
     _savedomainconf Le_Deploy_gitlab_project_id "$Le_Deploy_gitlab_project_id"
-  fi 
+  fi
 
   if [ -z "$GITLAB_DOMAIN" ]; then
     if [ -z "$Le_Deploy_gitlab_domain" ]; then
@@ -52,9 +52,9 @@ gitlab_deploy() {
   else
     Le_Deploy_gitlab_domain="$GITLAB_DOMAIN"
     _savedomainconf Le_Deploy_gitlab_domain "$Le_Deploy_gitlab_domain"
-  fi 
+  fi
 
-  curl -s --fail --request PUT --header "PRIVATE-TOKEN: $Le_Deploy_gitlab_token" --form "certificate=@$_cfullchain" --form "key=@$_ckey" "https://gitlab.com/api/v4/projects/$Le_Deploy_gitlab_project_id/pages/domains/$Le_Deploy_gitlab_domain" > /dev/null && exit 0
+  curl -s --fail --request PUT --header "PRIVATE-TOKEN: $Le_Deploy_gitlab_token" --form "certificate=@$_cfullchain" --form "key=@$_ckey" "https://gitlab.com/api/v4/projects/$Le_Deploy_gitlab_project_id/pages/domains/$Le_Deploy_gitlab_domain" >/dev/null && exit 0  
   
   # Exit curl status code if curl didn't work
   exit $?
