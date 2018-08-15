@@ -275,3 +275,24 @@ acme.sh --deploy -d haproxy.example.com --deploy-hook haproxy
 ```
 
 The path for the PEM file will be stored with the domain configuration and will be available when renewing, so that deploy will happen automatically when renewed.
+
+## 11. Deploy your cert to Gitlab pages
+
+You must define the API key and the informations for the project and Gitlab page you are updating the certificate for.
+
+```sh
+# The token can be created in your user settings under "Access Tokens"
+export GITLAB_TOKEN="xxxxxxxxxxx"
+
+# The project ID is displayed on the home page of the project
+export GITLAB_PROJECT_ID=12345678
+
+# The domain must match the one defined for the Gitlab page, without "https://"
+export GITLAB_DOMAIN="www.mydomain.com"
+```
+
+You can then deploy the certificate as follows
+
+```sh
+acme.sh --deploy -d www.mydomain.com --deploy-hook gitlab
+```
