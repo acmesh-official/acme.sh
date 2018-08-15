@@ -77,7 +77,7 @@ _dns_gcloud_execute_tr() {
 
   for i in $(seq 1 120); do
     if gcloud dns record-sets changes list \
-      --zone=lenart \
+      --zone="$managedZone" \
       --filter='status != done' \
       | grep -q '^.*'; then
       _info "_dns_gcloud_execute_tr: waiting for transaction to be comitted ($i/120)..."
@@ -141,7 +141,7 @@ _dns_gcloud_find_zone() {
     | while read -r dnsName name; do
       printf "%s\t%s\t%s\n" "${#dnsName}" "$dnsName" "$name"
     done \
-    | sort -n -r | head -n1 | cut -f2,3 | grep '^.*'); then
+    | sort -n -r | _head_n 1 | cut -f2,3 | grep '^.*'); then
     _err "_dns_gcloud_find_zone: Can't find a matching managed zone! Perhaps wrong project or gcloud credentials?"
     return 1
   fi
