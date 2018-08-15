@@ -329,6 +329,25 @@ See: https://github.com/acmesh-official/acme.sh/wiki/dns-manual-mode first.
 
 If your dns provider doesn't support any api access, you can add the txt record by hand.
 
+And: 
+
+**lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
+   (DigitalOcean, DNSimple, DNSMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)**
+
+
+**More APIs coming soon...**
+
+If your DNS provider is not on the supported list above, you can write your own DNS API script easily. If you do, please consider submitting a [Pull Request](https://github.com/Neilpang/acme.sh/pulls) and contribute it to the project.
+
+For more details: [How to use DNS API](dnsapi)
+
+# 8. Use DNS manual mode:
+
+See: https://github.com/Neilpang/acme.sh/wiki/dns-manual-mode first.
+
+If your dns provider doesn't support any api access, you can add the txt record by your hand.
+>>>>>>> 10a24dc... add versio API (dns_versio.sh)
+
 ```bash
 acme.sh --issue --dns -d example.com -d www.example.com -d cp.example.com
 ```
