@@ -1,7 +1,8 @@
 #!/usr/bin/env sh
 #
-#Author: lebaned
-#Report Bugs here: https://github.com/lebaned/acme.sh
+# DNS API for Versio.nl
+# Author: lebaned <github@bakker.cloud>
+# Report Bugs here: https://github.com/lebaned/acme.sh
 #
 ########  Public functions #####################
 
@@ -13,11 +14,10 @@ dns_versio_add() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
-
   if ! _get_credentials; then
     return 1
   fi
-  
+
   #save the credentials to the account conf file.
   _saveaccountconf_mutable Versio_Username  "$Versio_Username"
   _saveaccountconf_mutable Versio_Password  "$Versio_Password"
@@ -31,7 +31,7 @@ dns_versio_add() {
   _info fulldomain "$fulldomain"
   _info _domain "$_domain"
   _info _sub_domain "$_sub_domain"
-  
+
   if ! _get_dns_records "$_domain"; then
     _err "invalid domain"
     return 1
@@ -71,9 +71,9 @@ dns_versio_rm() {
     return 1
   fi
 
-  _info fulldomain "$fulldomain"
-  _info _domain "$_domain"
-  _info _sub_domain "$_sub_domain"
+  _debug fulldomain "$fulldomain"
+  _debug _domain "$_domain"
+  _debug _sub_domain "$_sub_domain"
 
   if ! _get_dns_records "$_domain"; then
     _err "invalid domain"
@@ -95,8 +95,6 @@ dns_versio_rm() {
 }
 
 ####################  Private functions below ##################################
-
-
 
 #_acme-challenge.www.domain.com
 #returns
@@ -163,13 +161,12 @@ _versio_rest() {
   _debug ep "$ep"
 
   VERSIO_API_URL="https://www.versio.nl/api/v1"
-  
   VERSIO_CREDENTIALS_BASE64=$(printf "%s:%s" "$Versio_Username" "$Versio_Password" | openssl enc -base64)
-  
+
   export _H1="Accept: application/json"
   export _H2="Content-Type: application/json"
   export _H3="Authorization: Basic $VERSIO_CREDENTIALS_BASE64"
-  
+
   if [ "$mtd" != "GET" ]; then
     # both POST and DELETE.
     _debug data "$data"
@@ -177,7 +174,7 @@ _versio_rest() {
   else
     response="$(_get "$VERSIO_API_URL/$ep")"
   fi
-  
+
   case $? in
   0)
     _debug response "$response"
@@ -208,7 +205,6 @@ _get_credentials() {
     _err "Example:"
     _err "export Versio_Username=[email address]"
     _err "export Versio_Password=[password]"
-    _err "Please create you key and try again."
     return 1
   fi
   return 0
