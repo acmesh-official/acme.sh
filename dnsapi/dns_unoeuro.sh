@@ -50,34 +50,16 @@ dns_unoeuro_add() {
     _err "Error"
     return 1
   fi
+  _info "Adding record"
 
-  if ! _contains "$response" "$_sub_domain" >/dev/null; then
-    _info "Adding record"
-
-    if _uno_rest POST "my/products/$h/dns/records" "{\"name\":\"$fulldomain\",\"type\":\"TXT\",\"data\":\"$txtvalue\",\"ttl\":120}"; then
-      if _contains "$response" "\"status\": 200" >/dev/null; then
-        _info "Added, OK"
-        return 0
-      else
-        _err "Add txt record error."
-        return 1
-      fi
-    fi
-    _err "Add txt record error."
-  else
-    _info "Updating record"
-    record_line_number=$(echo "$response" | grep -n "$_sub_domain" | cut -d : -f 1)
-    record_line_number=$(_math "$record_line_number" - 1)
-    record_id=$(echo "$response" | _head_n "$record_line_number" | _tail_n 1 1 | _egrep_o "[0-9]{1,}")
-    _debug "record_id" "$record_id"
-
-    _uno_rest PUT "my/products/$h/dns/records/$record_id" "{\"name\":\"$fulldomain\",\"type\":\"TXT\",\"data\":\"$txtvalue\",\"ttl\":120}"
+  if _uno_rest POST "my/products/$h/dns/records" "{\"name\":\"$fulldomain\",\"type\":\"TXT\",\"data\":\"$txtvalue\",\"ttl\":120}"; then
     if _contains "$response" "\"status\": 200" >/dev/null; then
-      _info "Updated, OK"
+      _info "Added, OK"
       return 0
+    else
+      _err "Add txt record error."
+      return 1
     fi
-    _err "Update error"
-    return 1
   fi
 }
 
@@ -122,23 +104,24 @@ dns_unoeuro_rm() {
   if ! _contains "$response" "$_sub_domain"; then
     _info "Don't need to remove."
   else
-    record_line_number=$(echo "$response" | grep -n "$_sub_domain" | cut -d : -f 1)
-    record_line_number=$(_math "$record_line_number" - 1)
-    record_id=$(echo "$response" | _head_n "$record_line_number" | _tail_n 1 1 | _egrep_o "[0-9]{1,}")
-    _debug "record_id" "$record_id"
+    for record_line_number in $(echo "$response" | grep -n "$_sub_domain" | cut -d : -f 1); do
+      record_line_number=$(_math "$record_line_number" - 1)
+      _debug "record_line_number" "$record_line_number"
+      record_id=$(echo "$response" | _head_n "$record_line_number" | _tail_n 1 1 | _egrep_o "[0-9]{1,}")
+      _debug "record_id" "$record_id"
 
-    if [ -z "$record_id" ]; then
-      _err "Can not get record id to remove."
-      return 1
-    fi
+      if [ -z "$record_id" ]; then
+        _err "Can not get record id to remove."
+        return 1
+      fi
 
-    if ! _uno_rest DELETE "my/products/$h/dns/records/$record_id"; then
-      _err "Delete record error."
-      return 1
-    fi
-    _contains "$response" "\"status\": 200"
+      if ! _uno_rest DELETE "my/products/$h/dns/records/$record_id"; then
+        _err "Delete record error."
+        return 1
+      fi
+      _contains "$response" "\"status\": 200"
+    done
   fi
-
 }
 
 ####################  Private functions below ##################################
