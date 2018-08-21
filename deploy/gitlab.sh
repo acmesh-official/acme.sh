@@ -56,7 +56,7 @@ gitlab_deploy() {
 
   string_fullchain=$(_url_encode <$_cfullchain)
   string_key=$(_url_encode <$_ckey)
-  
+
   body="certificate=$string_fullchain&key=$string_key"
 
   export _H1="PRIVATE-TOKEN: $Le_Deploy_gitlab_token"
