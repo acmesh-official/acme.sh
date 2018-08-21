@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env sh -x
 
 # Script to deploy certificate to a Gitlab hosted page
 
@@ -54,8 +54,29 @@ gitlab_deploy() {
     _savedomainconf Le_Deploy_gitlab_domain "$Le_Deploy_gitlab_domain"
   fi
 
-  curl -s --fail --request PUT --header "PRIVATE-TOKEN: $Le_Deploy_gitlab_token" --form "certificate=@$_cfullchain" --form "key=@$_ckey" "https://gitlab.com/api/v4/projects/$Le_Deploy_gitlab_project_id/pages/domains/$Le_Deploy_gitlab_domain" >/dev/null && exit 0
+  #curl -s --fail --request PUT --header "PRIVATE-TOKEN: $Le_Deploy_gitlab_token" --form "certificate=@$_cfullchain" --form "key=@$_ckey" "https://gitlab.com/api/v4/projects/$Le_Deploy_gitlab_project_id/pages/domains/$Le_Deploy_gitlab_domain" >/dev/null && exit 0
+  
+  string_fullchain=$( _url_encode < $_cfullchain )
+  string_key=$( _url_encode <  $_ckey )
+  
+  body="certificate=$string_fullchain&key=$string_key"
+  
+  export _H1="PRIVATE-TOKEN: $Le_Deploy_gitlab_token"
 
-  # Exit curl status code if curl didn't work
-  exit $?
+  gitlab_url="https://gitlab.com/api/v4/projects/$Le_Deploy_gitlab_project_id/pages/domains/$Le_Deploy_gitlab_domain"
+  
+  _response=$( _post "$body" "$gitlab_url" 0 PUT | _dbase64 "multiline" )
+
+  error_response="error"
+  
+  if test "${_response#*$error_response}" != "$_response"; then
+    _err "Error in deploying certificate:"
+    _err "$_response"
+    return 1
+  fi
+
+  _debug response "$_response"
+  _info "Certificate successfully deployed"
+
+  return 0
 }
