@@ -54,8 +54,8 @@ gitlab_deploy() {
     _savedomainconf Le_Deploy_gitlab_domain "$Le_Deploy_gitlab_domain"
   fi
 
-  string_fullchain=$(_url_encode <$_cfullchain)
-  string_key=$(_url_encode <$_ckey)
+  string_fullchain=$(_url_encode <"$_cfullchain")
+  string_key=$(_url_encode <"$_ckey")
 
   body="certificate=$string_fullchain&key=$string_key"
 
