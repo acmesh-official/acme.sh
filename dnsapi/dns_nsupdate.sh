@@ -27,7 +27,7 @@ dns_nsupdate_add() {
   fi
   $ECHO "update add ${fulldomain}. 60 in txt \"${txtvalue}\"" >>${NSUPDATE_COMMANDS_FILE}
   $ECHO "send" >>${NSUPDATE_COMMANDS_FILE}
-  
+
   _debug "$(cat ${NSUPDATE_COMMANDS_FILE})"
 
   if ! $NSUPDATE -k "${NSUPDATE_KEY}" -v ${NSUPDATE_COMMANDS_FILE}; then
@@ -46,7 +46,7 @@ dns_nsupdate_rm() {
   [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
   [ -n "${NSUPDATE_SERVER_PORT}" ] || NSUPDATE_SERVER_PORT=53
   _info "removing ${fulldomain}. txt"
-  
+
   $ECHO "server ${NSUPDATE_SERVER} ${NSUPDATE_SERVER_PORT}" >${NSUPDATE_COMMANDS_FILE}
   if ! [ -z "$NSUPDATE_ZONE" ]; then
     $ECHO "zone ${NSUPDATE_ZONE}" >>${NSUPDATE_COMMANDS_FILE}
