@@ -876,7 +876,67 @@ acme.sh --issue --dns dns_tele3 -d example.com -d *.example.com
 ```
 
 The TELE3_Key and TELE3_Secret will be saved in ~/.acme.sh/account.conf and will be reused when needed.
-## 47. Use WEDOS WAPI
+<<<<<<< HEAD
+## 47. Use Euserv.eu API
+
+First you need to login to your euserv.eu account and activate your API Administration (API Verwaltung).
+[https://support.euserv.com](https://support.euserv.com)
+
+Once you've activate, login to your API Admin Interface and create an API account.
+Please specify the scope (active groups: domain) and assign the allowed IPs.
+
+```
+export EUSERV_Username="99999.user123"
+export EUSERV_Password="Asbe54gHde"
+```
+
+Ok, let's issue a cert now: (Be aware to use the `--insecure` flag, cause euserv.eu is still using self-signed certificates!)
+```
+acme.sh --issue --dns dns_euserv -d example.com -d *.example.com --insecure
+```
+
+The `EUSERV_Username` and `EUSERV_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+Please report any issues to https://github.com/initit/acme.sh or to <github@initit.de>
+
+## 48. Use DNSPod.com domain API to automatically issue cert
+
+First you need to get your API Key and ID by this [get-the-user-token](https://www.dnspod.com/docs/info.html#get-the-user-token).
+
+```
+export DPI_Id="1234"
+export DPI_Key="sADDsdasdgdsf"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_dpi -d example.com -d www.example.com
+```
+
+The `DPI_Id` and `DPI_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 49. Use Google Cloud DNS API to automatically issue cert
+
+First you need to authenticate to gcloud.
+
+```
+gcloud init
+```
+
+**The `dns_gcloud` script uses the active gcloud configuration and credentials.**
+There is no logic inside `dns_gcloud` to override the project and other settings.
+If needed, create additional [gcloud configurations](https://cloud.google.com/sdk/gcloud/reference/topic/configurations).
+You can change the configuration being used without *activating* it; simply set the `CLOUDSDK_ACTIVE_CONFIG_NAME` environment variable.
+
+To issue a certificate you can:
+```
+export CLOUDSDK_ACTIVE_CONFIG_NAME=default  # see the note above
+acme.sh --issue --dns dns_gcloud -d example.com -d '*.example.com'
+```
+
+`dns_gcloud` also supports [DNS alias mode](https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode).
+
+## 50. Use WEDOS WAPI
 
 First you need login to WEDOS customer administration to set your WAPI password and allowed IP addresses.
 https://client.wedos.com/client/wapi.html
