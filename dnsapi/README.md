@@ -899,7 +899,23 @@ The `EUSERV_Username` and `EUSERV_Password` will be saved in `~/.acme.sh/account
 
 Please report any issues to https://github.com/initit/acme.sh or to <github@initit.de>
 
-## 48. Use Google Cloud DNS API to automatically issue cert
+## 48. Use DNSPod.com domain API to automatically issue cert
+
+First you need to get your API Key and ID by this [get-the-user-token](https://www.dnspod.com/docs/info.html#get-the-user-token).
+
+```
+export DPI_Id="1234"
+export DPI_Key="sADDsdasdgdsf"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_dpi -d example.com -d www.example.com
+```
+
+The `DPI_Id` and `DPI_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 49. Use Google Cloud DNS API to automatically issue cert
 
 First you need to authenticate to gcloud.
 
@@ -920,6 +936,7 @@ acme.sh --issue --dns dns_gcloud -d example.com -d '*.example.com'
 
 `dns_gcloud` also supports [DNS alias mode](https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode).
 
+=======
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
