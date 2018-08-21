@@ -24,7 +24,8 @@ dns_netcup_add() {
   i=$exit
 
   while
-    [ "$exit" -gt 0 ]; do
+    [ "$exit" -gt 0 ]
+  do
     tmp=$(echo "$fulldomain" | cut -d'.' -f"$exit")
     if [ "$(_math "$i" - "$exit")" -eq 0 ]; then
       domain="$tmp"
@@ -60,7 +61,8 @@ dns_netcup_rm() {
   rec=""
 
   while
-    [ "$exit" -gt 0 ]; do
+    [ "$exit" -gt 0 ]
+  do
     tmp=$(echo "$fulldomain" | cut -d'.' -f"$exit")
     if [ "$(_math "$i" - "$exit")" -eq 0 ]; then
       domain="$tmp"
@@ -88,7 +90,8 @@ dns_netcup_rm() {
   ids=0000000000
   i=1
   while
-    [ "$i" -ne 0 ]; do
+    [ "$i" -ne 0 ]
+  do
     specrec=$(_getfield "$rec" "$i" ";")
     idv="$ida"
     ida=$(_getfield "$specrec" "1" "," | sed 's/\"id\":\"//g' | sed 's/\"//g')
