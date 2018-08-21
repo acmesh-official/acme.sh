@@ -61,7 +61,6 @@ dns_unoeuro_add() {
       return 1
     fi
   fi
-  _err "Add txt record error."
 }
 
 #fulldomain txtvalue
@@ -121,7 +120,7 @@ dns_unoeuro_rm() {
         return 1
       fi
       _contains "$response" "\"status\": 200"
-     done
+    done
   fi
 }
 
