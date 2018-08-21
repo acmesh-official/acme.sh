@@ -56,8 +56,8 @@ gitlab_deploy() {
 
   #curl -s --fail --request PUT --header "PRIVATE-TOKEN: $Le_Deploy_gitlab_token" --form "certificate=@$_cfullchain" --form "key=@$_ckey" "https://gitlab.com/api/v4/projects/$Le_Deploy_gitlab_project_id/pages/domains/$Le_Deploy_gitlab_domain" >/dev/null && exit 0
   
-  string_fullchain=$(_url_encode < $_cfullchain)
-  string_key=$(_url_encode <  $_ckey)
+  string_fullchain=$(_url_encode <$_cfullchain)
+  string_key=$(_url_encode <$_ckey)
   
   body="certificate=$string_fullchain&key=$string_key"
 
