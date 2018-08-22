@@ -876,7 +876,6 @@ acme.sh --issue --dns dns_tele3 -d example.com -d *.example.com
 ```
 
 The TELE3_Key and TELE3_Secret will be saved in ~/.acme.sh/account.conf and will be reused when needed.
-<<<<<<< HEAD
 ## 47. Use Euserv.eu API
 
 First you need to login to your euserv.eu account and activate your API Administration (API Verwaltung).
@@ -935,6 +934,24 @@ acme.sh --issue --dns dns_gcloud -d example.com -d '*.example.com'
 ```
 
 `dns_gcloud` also supports [DNS alias mode](https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode).
+
+## 50. Use ConoHa API
+
+First you need to login to your ConoHa account to get your API credentials.
+
+```
+export CONOHA_Username="xxxxxx"
+export CONOHA_Password="xxxxxx"
+export CONOHA_TenantId="xxxxxx"
+export CONOHA_IdentityServiceApi="https://identity.xxxx.conoha.io/v2.0"
+```
+
+To issue a cert:
+```
+acme.sh --issue --dns dns_conoha -d example.com -d www.example.com
+```
+
+The `CONOHA_Username`, `CONOHA_Password`, `CONOHA_TenantId` and `CONOHA_IdentityServiceApi` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 =======
 # Use custom API
