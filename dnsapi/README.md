@@ -936,7 +936,25 @@ acme.sh --issue --dns dns_gcloud -d example.com -d '*.example.com'
 
 `dns_gcloud` also supports [DNS alias mode](https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode).
 
-## 50. Use netcup DNS API to automatically issue cert
+## 50. Use ConoHa API
+
+First you need to login to your ConoHa account to get your API credentials.
+
+```
+export CONOHA_Username="xxxxxx"
+export CONOHA_Password="xxxxxx"
+export CONOHA_TenantId="xxxxxx"
+export CONOHA_IdentityServiceApi="https://identity.xxxx.conoha.io/v2.0"
+```
+
+To issue a cert:
+```
+acme.sh --issue --dns dns_conoha -d example.com -d www.example.com
+```
+
+The `CONOHA_Username`, `CONOHA_Password`, `CONOHA_TenantId` and `CONOHA_IdentityServiceApi` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 51. Use netcup DNS API to automatically issue cert
 
 First you need to login in your CCP account to get your API Key and API Password.
 ```
