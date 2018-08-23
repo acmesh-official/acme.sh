@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
 #Author: Roy Kaldung
 #Created 06/4/2018
@@ -42,7 +42,7 @@ dns_http_net_add() {
 }' "$HTTP_NET_AUTHTOKEN" "$_domain" "$fulldomain" "$txtvalue")
 
   response="$(_post "$payload" "${HTTP_NET_API}/zoneUpdate" "" "POST" "text/json")"
-  _debug response "$response"
+  _debug2 response "$response"
 }
 
 dns_http_net_rm() {
@@ -67,7 +67,7 @@ dns_http_net_rm() {
 }' "$HTTP_NET_AUTHTOKEN" "$_domain" "$fulldomain" "$txtvalue")
 
   response="$(_post "$payload" "${HTTP_NET_API}/zoneUpdate" "" "POST" "text/json")"
-  _debug response "$response"
+  _debug2 response "$response"
 }
 
 #_acme-challenge.www.domain.com
@@ -79,7 +79,7 @@ _get_root() {
   domain=$1
   i=2
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(echo "$domain" | cut -d . -f $i-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
