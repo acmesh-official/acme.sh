@@ -907,10 +907,10 @@ Once you have a token, set it in your systems environment:
 export NEXCESS_API_TOKEN="YOUR_TOKEN_HERE"
 ```
 
-Finally, we'll issue the certificate: (Nexcess DNS publishes at max every 15 minutes, we recommend setting a 1200 second `--dnssleep`)
+Finally, we'll issue the certificate: (Nexcess DNS publishes at max every 15 minutes, we recommend setting a 900 second `--dnssleep`)
 
 ```
-acme.sh --issue --dns dns_nexcess -d example.com --dnssleep 1200
+acme.sh --issue --dns dns_nexcess -d example.com --dnssleep 900
 ```
 
 The `NEXCESS_API_TOKEN will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
@@ -924,10 +924,10 @@ Once you have a token, set it in your systems environment:
 export THERMO_API_TOKEN="YOUR_TOKEN_HERE"
 ```
 
-Finally, we'll issue the certificate: (Thermo DNS publishes at max every 15 minutes, we recommend setting a 1200 second `--dnssleep`)
+Finally, we'll issue the certificate: (Thermo DNS publishes at max every 15 minutes, we recommend setting a 900 second `--dnssleep`)
 
 ```
-acme.sh --issue --dns dns_thermo -d example.com --dnssleep 1200
+acme.sh --issue --dns dns_thermo -d example.com --dnssleep 900
 ```
 
 The `THERMO_API_TOKEN will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
@@ -941,10 +941,10 @@ Once you have a token, set it in your systems environment:
 export FH_API_TOKEN="YOUR_TOKEN_HERE"
 ```
 
-Finally, we'll issue the certificate: (Futurehosting DNS publishes at max every 15 minutes, we recommend setting a 1200 second `--dnssleep`)
+Finally, we'll issue the certificate: (Futurehosting DNS publishes at max every 15 minutes, we recommend setting a 900 second `--dnssleep`)
 
 ```
-acme.sh --issue --dns dns_fh -d example.com --dnssleep 1200
+acme.sh --issue --dns dns_fh -d example.com --dnssleep 900
 ```
 
 The `FH_API_TOKEN will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
