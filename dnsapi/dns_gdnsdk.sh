@@ -137,7 +137,7 @@ _mypost() {
 
 _get_domain() {
   _myget 'action=dns_primarydns'
-  _domains=$(echo "$_result" | grep -o -P ' domain="\K([[:alnum:].-_]+)')
+  _domains=$(echo "$_result" | _egrep_o ' domain="[[:alnum:].-_]+' | sed 's/^.*"//')
   if [ -z "$_domains" ]; then
     _err "Primary domain list not found!"
     return 1
@@ -159,7 +159,7 @@ _successful_update() {
 _findentry() {
   #returns id of dns entry, if it exists
   _myget "action=dns_primary_changeDNSsetup&user_domain=$_domain"
-  _id=$(echo "$_result" | grep -o -P "$1</td>\s*<td>$2.*?id=\K(\d*)")
+  _id=$(echo "$_result" | _egrep_o "<td>$1</td>\s*<td>$2</td>[^?]*[^&]*&id=[^&]*" | sed 's/^.*=//')
   if [ -n "$_id" ]; then
     _debug "Entry found with _id=$_id"
     return 0
