@@ -41,8 +41,8 @@ dns_http_net_add() {
     ]
 }' "$HTTP_NET_AUTHTOKEN" "$_domain" "$fulldomain" "$txtvalue")
 
-  _post "$payload" "${HTTP_NET_API}/zoneUpdate" "" "POST" "text/json"
-
+  response="$(_post "$payload" "${HTTP_NET_API}/zoneUpdate" "" "POST" "text/json")"
+  _debug response "$response"
 }
 
 dns_http_net_rm() {
@@ -66,7 +66,8 @@ dns_http_net_rm() {
     ]
 }' "$HTTP_NET_AUTHTOKEN" "$_domain" "$fulldomain" "$txtvalue")
 
-  _post "$payload" "${HTTP_NET_API}/zoneUpdate" "" "POST" "text/json"
+  response="$(_post "$payload" "${HTTP_NET_API}/zoneUpdate" "" "POST" "text/json")"
+  _debug response "$response"
 }
 
 #_acme-challenge.www.domain.com
