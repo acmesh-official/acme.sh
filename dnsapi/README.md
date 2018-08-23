@@ -1,6 +1,6 @@
 # How to use DNS API
 
-If your dns provider doesn't provide api access, you can use our dns alias mode: 
+If your dns provider doesn't provide api access, you can use our dns alias mode:
 
 https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode
 
@@ -849,7 +849,7 @@ acme.sh --issue --dns dns_loopia -d example.com -d *.example.com
 The username and password will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 ## 45. Use ACME DNS API
 
-ACME DNS is a limited DNS server with RESTful HTTP API to handle ACME DNS challenges easily and securely. 
+ACME DNS is a limited DNS server with RESTful HTTP API to handle ACME DNS challenges easily and securely.
 https://github.com/joohoi/acme-dns
 
 ```
@@ -897,6 +897,57 @@ acme.sh --issue --dns dns_euserv -d example.com -d *.example.com --insecure
 The `EUSERV_Username` and `EUSERV_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 Please report any issues to https://github.com/initit/acme.sh or to <github@initit.de>
+## 48. Use Nexcess.net API
+
+First, you'll need to login to the [Nexcess.net Client Portal](https://portal.nexcess.net) and [generate a new API token](https://portal.nexcess.net/api-token).
+
+Once you have a token, set it in your systems environment:
+
+```
+export NEXCESS_API_TOKEN="YOUR_TOKEN_HERE"
+```
+
+Finally, we'll issue the certificate: (Nexcess DNS publishes at max every 15 minutes, we recommend setting a 1200 second `--dnssleep`)
+
+```
+acme.sh --issue --dns dns_nexcess -d example.com --dnssleep 1200
+```
+
+The `NEXCESS_API_TOKEN will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+## 49. Use Thermo.io API
+
+First, you'll need to login to the [Thermo.io Client Portal](https://core.thermo.io) and [generate a new API token](https://core.thermo.io/api-token).
+
+Once you have a token, set it in your systems environment:
+
+```
+export THERMO_API_TOKEN="YOUR_TOKEN_HERE"
+```
+
+Finally, we'll issue the certificate: (Thermo DNS publishes at max every 15 minutes, we recommend setting a 1200 second `--dnssleep`)
+
+```
+acme.sh --issue --dns dns_thermo -d example.com --dnssleep 1200
+```
+
+The `THERMO_API_TOKEN will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+## 50. Use Futurehosting API
+
+First, you'll need to login to the [Futurehosting Client Portal](https://my.futurehosting.com) and [generate a new API token](https://my.futurehosting.com/api-token).
+
+Once you have a token, set it in your systems environment:
+
+```
+export FH_API_TOKEN="YOUR_TOKEN_HERE"
+```
+
+Finally, we'll issue the certificate: (Futurehosting DNS publishes at max every 15 minutes, we recommend setting a 1200 second `--dnssleep`)
+
+```
+acme.sh --issue --dns dns_fh -d example.com --dnssleep 1200
+```
+
+The `FH_API_TOKEN will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
