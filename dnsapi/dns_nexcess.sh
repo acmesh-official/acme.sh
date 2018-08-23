@@ -54,9 +54,13 @@ dns_nexcess_add() {
 }
 
 # dns_nexcess_rm() - Remove TXT record
-# Usage: dns_nexcess_rm _acme-challenge.subdomain.domain.com
+# Usage: dns_nexcess_rm _acme-challenge.subdomain.domain.com "XyZ123..."
 dns_nexcess_rm() {
   host="${1}"
+  txtvalue="${2}"
+
+  _debug host "${host}"
+  _debug txtvalue "${txtvalue}"
 
   if ! _check_nexcess_api_token; then
     return 1
@@ -78,8 +82,11 @@ dns_nexcess_rm() {
 
   if _rest GET "dns-record" "${_parameters}" && [ -n "${response}" ]; then
     response="$(echo "${response}" | tr -d "\n" | sed 's/^\[\(.*\)\]$/\1/' | sed -e 's/{"record_id":/|"record_id":/g' | sed 's/|/&{/g' | tr "|" "\n")"
+    _debug response "${response}"
 
-    record="$(echo "${response}" | _egrep_o "{.*\"host\":\s*\"${_sub_domain}\".*}")"
+    record="$(echo "${response}" | _egrep_o "{.*\"host\":\s*\"${_sub_domain}\",\s*\"target\":\s*\"${txtvalue}\".*}")"
+    _debug record "${record}"
+
     if [ "${record}" ]; then
       _record_id=$(printf "%s\n" "${record}" | _egrep_o "\"record_id\":\s*[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
       if [ "${_record_id}" ]; then
@@ -102,7 +109,7 @@ dns_nexcess_rm() {
 
 _check_nexcess_api_token() {
   if [ -z "${NEXCESS_API_TOKEN}" ]; then
-    NEXCESS_API_TOKEN=""
+    NEXCESS_API_TOKEN="${NEXCESS_API_TOKEN:-$(_readaccountconf NEXCESS_API_TOKEN)}"
 
     _err "You have not defined your NEXCESS_API_TOKEN."
     _err "Please create your token and try again."
