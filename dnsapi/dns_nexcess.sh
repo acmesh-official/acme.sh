@@ -19,6 +19,9 @@ dns_nexcess_add() {
   host="${1}"
   txtvalue="${2}"
 
+  _debug host "${host}"
+  _debug txtvalue "${txtvalue}"
+
   if ! _check_nexcess_api_token; then
     return 1
   fi
