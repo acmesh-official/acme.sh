@@ -969,7 +969,26 @@ acme.sh --issue --dns dns_netcup -d example.com -d www.example.com
 ```
 
 The `NC_Apikey`,`NC_Apipw` and `NC_CID` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
-## 52. Use Nexcess API
+## 52. Use GratisDNS.dk
+
+GratisDNS.dk (https://gratisdns.dj/) does not provide an API to update DNS records (other than IPv4 and IPv6
+dynamic DNS addresses).  The acme.sh plugin therefore retrieves and updates domain TXT records by logging
+into the GratisDNS website to read the HTML and posting updates as HTTP.  The plugin needs to know your
+userid and password for the GratisDNS website.
+
+```sh
+export GDNSDK_Username="..."
+export GDNSDK_Password="..."
+```
+The username and password will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+
+Now you can issue a certificate.
+
+```sh
+acme.sh --issue --dns dns_gdnsdk -d example.com -d *.example.com
+```
+## 53. Use Nexcess API
 
 First, you'll need to login to the [Nexcess.net Client Portal](https://portal.nexcess.net) and [generate a new API token](https://portal.nexcess.net/api-token).
 
@@ -986,7 +1005,7 @@ acme.sh --issue --dns dns_nexcess -d example.com --dnssleep 900
 ```
 
 The `NEXCESS_API_TOKEN will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
-## 52. Use Thermo.io API
+## 54. Use Thermo.io API
 
 First, you'll need to login to the [Thermo.io Client Portal](https://core.thermo.io) and [generate a new API token](https://core.thermo.io/api-token).
 
@@ -1003,7 +1022,7 @@ acme.sh --issue --dns dns_thermo -d example.com --dnssleep 900
 ```
 
 The `THERMO_API_TOKEN will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
-## 54. Use Futurehosting API
+## 55. Use Futurehosting API
 
 First, you'll need to login to the [Futurehosting Client Portal](https://my.futurehosting.com) and [generate a new API token](https://my.futurehosting.com/api-token).
 
