@@ -325,6 +325,7 @@ You don't have to do anything manually!
 1. Google Cloud DNS API
 1. ConoHa (https://www.conoha.jp)
 1. netcup DNS API (https://www.netcup.de)
+1. GratisDNS.dk (https://gratisdns.dk)
 
 And: 
 
