@@ -972,7 +972,7 @@ The `NC_Apikey`,`NC_Apipw` and `NC_CID` will be saved in `~/.acme.sh/account.con
 
 ## 52. Use GratisDNS.dk
 
-GratisDNS.dk (https://gratisdns.dj/) does not provide an API to update DNS records (other than IPv4 and IPv6
+GratisDNS.dk (https://gratisdns.dk/) does not provide an API to update DNS records (other than IPv4 and IPv6
 dynamic DNS addresses).  The acme.sh plugin therefore retrieves and updates domain TXT records by logging
 into the GratisDNS website to read the HTML and posting updates as HTTP.  The plugin needs to know your
 userid and password for the GratisDNS website.
@@ -986,8 +986,11 @@ The username and password will be saved in `~/.acme.sh/account.conf` and will be
 
 Now you can issue a certificate.
 
+Note: It usually takes a few minutes (usually 3-4 minutes) before the changes propagates to gratisdns.dk nameservers (ns3.gratisdns.dk often are slow),
+and in rare cases I have seen over 5 minutes before google DNS catches it. Therefor a DNS sleep of at least 300 seconds are recommended-
+
 ```sh
-acme.sh --issue --dns dns_gdnsdk -d example.com -d *.example.com
+acme.sh --issue --dns dns_gdnsdk --dnssleep 300 -d example.com -d *.example.com
 ```
 
 # Use custom API
