@@ -321,6 +321,8 @@ dns_pleskxml_rm() {
 
 ####################  Plesk related functions
 
+# Get variables, and store DNS info as required
+
 _pleskxml_get_variables() {
 
   _pleskxml_DBG 2 'Entered _pleskxml_get_variables()'
@@ -362,20 +364,22 @@ _pleskxml_get_variables() {
     _pleskxml_errors="$_pleskxml_errors"'\nBad or unacceptable URI (If non-SSL HTTP is required, did you set "pleskxml_allow_insecure_uri"?).\nYou should set and export '"$pleskxml_uri"', containing the URI for your Plesk XML API.\nThe URI usually looks like this: https://my_plesk_uri.tld:8443'
   fi
 
-  if printf '%s' "${pleskxml_user:-}" | grep -qiE '^[a-z0-9@%._-]+$'; then
-    # USER is "valid enough" to use - Plesk doesn't stipulate valid chars, but thewse are probably "safe enough". We will find out if they aren't, the hard way :)
-    # Note, we cannot assume "safe" characters when we use this value!
-    _pleskxml_user="$pleskxml_user"
-  else
+  pleskxml_user="${pleskxml_user:-$(_readaccountconf_mutable pleskxml_user)}"
+  if [ -z "$pleskxml_user" ]; then
+    # clear password as well, and raise error
+    pleskxml_pass=""
     _pleskxml_errors="$_pleskxml_errors"'\nBad or unacceptable USER ACCOUNT for Plesk authentication. You should set and export '"$pleskxml_user."
+  else
+    _pleskxml_user="$pleskxml_user"
   fi
 
-  if [ "${pleskxml_pass:-}" != "" ]; then
-    # PASS is "valid enough" to use - Plesk doesn't stipulate valid chars, but thewse are probably "safe enough". We will find out if they aren't, the hard way :)
-    # Note, we cannot assume "safe" characters when we use this value!
-    _pleskxml_pass="$pleskxml_pass"
-  else
+  pleskxml_pass="${pleskxml_pass:-$(_readaccountconf_mutable pleskxml_pass)}"
+  if [ -z "$pleskxml_pass" ]; then
+    # clear username as well, and raise error
+    pleskxml_user=""
     _pleskxml_errors="$_pleskxml_errors"'\nEmpty USER PASSWORD for Plesk authentication. You should set and export '"$pleskxml_pass."
+  else
+    _pleskxml_pass="$pleskxml_pass"
   fi
 
   # Ensure if not supplied, optional curl args are an empty string
@@ -386,11 +390,15 @@ _pleskxml_get_variables() {
     _pleskxml_DBG_VARDUMP 2
     _err 'Can'\''t parse user-defined variables. Exiting.'
     return 1
-  else
-    _pleskxml_DBG 2 "SUCCESSFULLY exiting _pleskxml_get_variables()"
-    _pleskxml_DBG_VARDUMP 2
-    return 0
   fi
+
+  #save the api credentials to the account conf file, and return successfully
+  _saveaccountconf_mutable pleskxml_Key "$pleskxml_user"
+  _saveaccountconf_mutable pleskxml_Email "$pleskxml_pass"
+
+  _pleskxml_DBG 2 "SUCCESSFULLY exiting _pleskxml_get_variables()"
+  _pleskxml_DBG_VARDUMP 2
+  return 0
 }
 
 # Build a cURL request for the Plesk API
