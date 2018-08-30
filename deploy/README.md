@@ -296,3 +296,12 @@ You can then deploy the certificate as follows
 ```sh
 acme.sh --deploy -d www.mydomain.com --deploy-hook gitlab
 ```
+## 12. Deploy the cert to Aliyun SLB
+modify on https://github.com/Neilpang/acme.sh/tree/6e9ffe94c948017491749a6db6fd45a4e941d204/deploy
+
+```
+$ export Ali_Region="cn-hangzhou"
+$ export Ali_Api_Key="my-api-key"
+$ export Ali_Api_Secret="my-api-secret"
+$ acme.sh --deploy -d example.com --deploy-hook ali_slb
+```
