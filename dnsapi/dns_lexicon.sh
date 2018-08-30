@@ -78,7 +78,11 @@ dns_lexicon_add() {
 
   domain=$(printf "%s" "$fulldomain" | cut -d . -f 2-999)
 
-  $lexicon_cmd "$PROVIDER" create "${domain}" TXT --name="_acme-challenge.${domain}." --content="${txtvalue}"
+  _secure_debug LEXICON_OPTS "$LEXICON_OPTS"
+  _savedomainconf LEXICON_OPTS "$LEXICON_OPTS"
+
+  # shellcheck disable=SC2086
+  $lexicon_cmd "$PROVIDER" $LEXICON_OPTS create "${domain}" TXT --name="_acme-challenge.${domain}." --content="${txtvalue}"
 
 }
 
@@ -93,6 +97,7 @@ dns_lexicon_rm() {
 
   domain=$(printf "%s" "$fulldomain" | cut -d . -f 2-999)
 
-  $lexicon_cmd "$PROVIDER" delete "${domain}" TXT --name="_acme-challenge.${domain}." --content="${txtvalue}"
+  # shellcheck disable=SC2086
+  $lexicon_cmd "$PROVIDER" $LEXICON_OPTS delete "${domain}" TXT --name="_acme-challenge.${domain}." --content="${txtvalue}"
 
 }
