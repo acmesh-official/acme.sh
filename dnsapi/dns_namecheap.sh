@@ -19,7 +19,9 @@ dns_namecheap_add() {
      return 1
   fi
 
-  _namecheap_set_publicip
+  if ! _namecheap_set_publicip; then
+     return 1
+  fi
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -40,8 +42,10 @@ dns_namecheap_add() {
 dns_namecheap_rm() {
   fulldomain=$1
   txtvalue=$2
-
-  _namecheap_set_publicip
+  
+  if ! _namecheap_set_publicip; then
+     return 1
+  fi
 
   if ! _namecheap_check_config; then
      _err "$error"
@@ -102,7 +106,35 @@ _get_root() {
 }
 
 _namecheap_set_publicip() {
-  _publicip="$(_get https://ifconfig.co/ip)"
+  
+  if [ -z "$NAMECHEAP_SOURCEIP" ]; then
+    _err "No Source IP specified for Namecheap API."
+    _err "Use your public ip address or an url to retrieve it (e.g. https://ipconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
+    return 1
+  else
+  	_saveaccountconf NAMECHEAP_SOURCEIP "$NAMECHEAP_SOURCEIP"
+    _debug sourceip "$NAMECHEAP_SOURCEIP"
+    
+    ip=$(echo "$NAMECHEAP_SOURCEIP" | _egrep_o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
+    addr=$(echo "$NAMECHEAP_SOURCEIP" | _egrep_o '(http|https)://.*')
+    
+    _debug2 ip "$ip"
+    _debug2 addr "$addr"
+    
+    if [ -n "$ip" ]; then
+      _publicip="$ip"
+    elif [ -n "$addr" ]; then
+      _publicip=$(_get "$addr")
+	else
+      _err "No Source IP specified for Namecheap API."
+      _err "Use your public ip address or an url to retrieve it (e.g. https://ipconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
+      return 1
+    fi
+  fi
+  
+  _debug publicip "$_publicip"
+  
+  return 0
 }
 
 _namecheap_post() {
@@ -124,14 +156,6 @@ _namecheap_post() {
 
 _namecheap_parse_host() {
   _host=$1
-
-#HostID 	UniqueID of the host records
-#Name 	The domain or subdomain for which host record is set
-#Type 	The type of host record that is set
-#Address 	The value that is set for the host record (IP address for A record, URL for URL redirects, etc.)
-#MXPref 	MXPreference number
-#TTL	TTL value for the host record
-
   _debug _host "$_host"
 
   _hostid=$(echo "$_host" | _egrep_o 'HostId=".*"' | cut -d '"' -f 2)
@@ -190,38 +214,35 @@ _set_namecheap_TXT() {
      return 1
   fi
 
-  i=0
+  _namecheap_reset_hostList
   found=0
 
-  while read host; do
+  while read -r host; do
 
     if _contains "$host" "<host"; then
-      i=$(_math "$i" + 1)
       _namecheap_parse_host "$host"
 
       if [ "$_hosttype" = "TXT" ] && [ "$_hostname" = "$subdomain" ]; then
-	hostrequest=$(printf '%s&HostName%d=%s&RecordType%d=%s&Address%d=%s&MXPref%d=%s&TTL%d=%s' "$hostrequest" $i "$_hostname" $i "$_hosttype" $i "$txt" $i "$_hostmxpref" $i "$_hostttl")
+      	_namecheap_add_host "$_hostname" "$_hosttype" "$txt" "$_hostmxpref" "$_hostttl"
         found=1
       else
-	hostrequest=$(printf '%s&HostName%d=%s&RecordType%d=%s&Address%d=%s&MXPref%d=%s&TTL%d=%s' "$hostrequest" $i "$_hostname" $i "$_hosttype" $i "$_hostaddress" $i "$_hostmxpref" $i "$_hostttl")
-	_debug hostrequest "$hostrequest"
+        _namecheap_add_host "$_hostname" "$_hosttype" "$_hostaddress" "$_hostmxpref" "$_hostttl"
       fi 
 
     fi
 
   done <<EOT
-$(echo -e "$hosts")
+echo "$hosts"
 EOT
 
   if [ $found -eq 0 ]; then
-    i=$(_math "$i" + 1)
-    hostrequest=$(printf '%s&HostName%d=%s&RecordType%d=%s&Address%d=%s&MXPref%d=10&TTL%d=120' "$hostrequest" $i "$subdomain" $i "TXT" $i "$txt" $i $i)
+    _namecheap_add_host "$subdomain" "TXT" "$txt" 10 120
     _debug "not found"
   fi
 
-  _debug hostrequestfinal "$hostrequest"
+  _debug hostrequestfinal "$_hostrequest"
 
-  request="namecheap.domains.dns.setHosts&SLD=${sld}&TLD=${tld}${hostrequest}"
+  request="namecheap.domains.dns.setHosts&SLD=${sld}&TLD=${tld}${_hostrequest}"
 
   if ! _namecheap_post "$request"; then
      _err "$error"
@@ -231,3 +252,14 @@ EOT
   return 0
 }
 
+
+_namecheap_reset_hostList() {
+  _hostindex=0
+  _hostrequest=""
+}
+
+#Usage: _namecheap_add_host HostName RecordType Address MxPref TTL
+_namecheap_add_host() {
+  _hostindex=$(_math "$_hostindex" + 1)
+  _hostrequest=$(printf '%s&HostName%d=%s&RecordType%d=%s&Address%d=%s&MXPref%d=%d&TTL%d=%d' "$_hostrequest" "$_hostindex" "$1" "$_hostindex" "$2" "$_hostindex" "$3" "$_hostindex" "$4" "$_hostindex" "$5")
+}
