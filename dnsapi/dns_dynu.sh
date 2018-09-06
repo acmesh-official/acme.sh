@@ -152,7 +152,7 @@ _get_recordid() {
   fulldomain=$1
   txtvalue=$2
 
-  if ! _dynu_rest GET "dns/record/get?hostname=$fulldomain&rrtype=TXT"; then
+  if ! _dynu_rest GET "dns/records/$_domain_name"; then
     return 1
   fi
 
