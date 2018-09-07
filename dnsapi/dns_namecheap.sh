@@ -270,8 +270,7 @@ _del_namecheap_TXT() {
   while read -r host; do
     if _contains "$host" "<host"; then
       _namecheap_parse_host "$host"
-	  if [ "$_hosttype" = "TXT" ] && [ "$_hostname" = "$subdomain" ]; then
-	  	#&& [ "$_hostaddress" = "$txt" ]
+	  if [ "$_hosttype" = "TXT" ] && [ "$_hostname" = "$subdomain" ] && [ "$_hostaddress" = "$txt" ]; then
 	  	_debug "TXT entry found"
 	  	found=1      
       else
