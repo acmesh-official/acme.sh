@@ -990,6 +990,27 @@ Now you can issue a certificate.
 acme.sh --issue --dns dns_gdnsdk -d example.com -d *.example.com
 ```
 
+## 53. Use Namecheap
+
+You will need your namecheap username, API KEY (https://www.namecheap.com/support/api/intro.aspx) and your external IP address (or an URL to get it), this IP will need to be whitelisted at Namecheap.
+Due to Namecheap's AP limitation all the records of your domain will be read and re applied, make sure to have a backup of your records you could apply if any issue would arise.
+
+```sh
+export NAMECHEAP_USERNAME="..."
+export NAMECHEAP_API_KEY="..."
+export NAMECHEAP_SOURCEIP="..."
+```
+
+NAMECHEAP_SOURCEIP can either be an IP address (e.g. 145.34.23.54) or an URL to provide it (e.g. https://ifconfig.co/ip).
+
+The username and password will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+Now you can issue a certificate.
+
+```sh
+acme.sh --issue --dns dns_namecheap -d example.com -d *.example.com
+```
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
