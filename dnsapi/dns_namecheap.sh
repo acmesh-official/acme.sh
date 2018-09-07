@@ -129,7 +129,7 @@ _namecheap_set_publicip() {
       _publicip="$ip"
     elif [ -n "$addr" ]; then
       _publicip=$(_get "$addr")
-	else
+    else
       _err "No Source IP specified for Namecheap API."
       _err "Use your public ip address or an url to retrieve it (e.g. https://ipconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
       return 1
@@ -162,12 +162,12 @@ _namecheap_parse_host() {
   _host=$1
   _debug _host "$_host"
 
-  _hostid=$(echo "$_host" | _egrep_o 'HostId=".*"' | cut -d '"' -f 2)
-  _hostname=$(echo "$_host" | _egrep_o 'Name=".*"' | cut -d '"' -f 2)
-  _hosttype=$(echo "$_host" | _egrep_o 'Type=".*"' | cut -d '"' -f 2)
-  _hostaddress=$(echo "$_host" | _egrep_o 'Address=".*"' | cut -d '"' -f 2)
-  _hostmxpref=$(echo "$_host" | _egrep_o 'MXPref=".*"' | cut -d '"' -f 2)
-  _hostttl=$(echo "$_host" | _egrep_o 'TTL=".*"' | cut -d '"' -f 2)
+  _hostid=$(echo "$_host" | _egrep_o '\sHostId="[^"]*' | cut -d '"' -f 2)
+  _hostname=$(echo "$_host" | _egrep_o '\sName="[^"]*' | cut -d '"' -f 2)
+  _hosttype=$(echo "$_host" | _egrep_o '\sType="[^"]*' | cut -d '"' -f 2)
+  _hostaddress=$(echo "$_host" | _egrep_o '\sAddress="[^"]*' | cut -d '"' -f 2)
+  _hostmxpref=$(echo "$_host" | _egrep_o '\sMXPref="[^"]*' | cut -d '"' -f 2)
+  _hostttl=$(echo "$_host" | _egrep_o '\sTTL="[^"]*' | cut -d '"' -f 2)
 
   _debug hostid "$_hostid"
   _debug hostname "$_hostname"
@@ -210,7 +210,7 @@ _set_namecheap_TXT() {
      return 1
   fi
 
-  hosts=$(echo "$response" | _egrep_o '<host .+ />')
+  hosts=$(echo "$response" | _egrep_o '<host[^>]*')
   _debug hosts "$hosts"
 
   if [ -z "$hosts" ]; then
@@ -219,30 +219,17 @@ _set_namecheap_TXT() {
   fi
 
   _namecheap_reset_hostList
-  found=0
 
   while read -r host; do
-
     if _contains "$host" "<host"; then
       _namecheap_parse_host "$host"
-
-      if [ "$_hosttype" = "TXT" ] && [ "$_hostname" = "$subdomain" ]; then
-      	_namecheap_add_host "$_hostname" "$_hosttype" "$txt" "$_hostmxpref" "$_hostttl"
-        found=1
-      else
-        _namecheap_add_host "$_hostname" "$_hosttype" "$_hostaddress" "$_hostmxpref" "$_hostttl"
-      fi 
-
+      _namecheap_add_host "$_hostname" "$_hosttype" "$_hostaddress" "$_hostmxpref" "$_hostttl"
     fi
-
   done <<EOT
 echo "$hosts"
 EOT
 
-  if [ $found -eq 0 ]; then
-    _namecheap_add_host "$subdomain" "TXT" "$txt" 10 120
-    _debug "not found"
-  fi
+  _namecheap_add_host "$subdomain" "TXT" "$txt" 10 120
 
   _debug hostrequestfinal "$_hostrequest"
 
@@ -256,6 +243,61 @@ EOT
   return 0
 }
 
+_del_namecheap_TXT() {
+  subdomain=$2
+  txt=$3
+  tld=$(echo "$1" | cut -d '.' -f 2)
+  sld=$(echo "$1" | cut -d '.' -f 1)
+  request="namecheap.domains.dns.getHosts&SLD=$sld&TLD=$tld"
+
+  if ! _namecheap_post "$request"; then
+     _err "$error"
+     return 1
+  fi
+
+  hosts=$(echo "$response" | _egrep_o '<host[^>]*')
+  _debug hosts "$hosts"
+
+  if [ -z "$hosts" ]; then
+     _error "Hosts not found"
+     return 1
+  fi
+
+  _namecheap_reset_hostList
+
+  found=0
+
+  while read -r host; do
+    if _contains "$host" "<host"; then
+      _namecheap_parse_host "$host"
+	  if [ "$_hosttype" = "TXT" ] && [ "$_hostname" = "$subdomain" ]; then
+	  	#&& [ "$_hostaddress" = "$txt" ]
+	  	_debug "TXT entry found"
+	  	found=1      
+      else
+        _namecheap_add_host "$_hostname" "$_hosttype" "$_hostaddress" "$_hostmxpref" "$_hostttl"
+      fi
+    fi
+  done <<EOT
+echo "$hosts"
+EOT
+
+  if [ $found -eq 0 ]; then
+    _debug "TXT entry not found"
+    return 0
+  fi
+
+  _debug hostrequestfinal "$_hostrequest"
+
+  request="namecheap.domains.dns.setHosts&SLD=${sld}&TLD=${tld}${_hostrequest}"
+
+  if ! _namecheap_post "$request"; then
+     _err "$error"
+     return 1
+  fi
+
+  return 0
+}
 
 _namecheap_reset_hostList() {
   _hostindex=0
