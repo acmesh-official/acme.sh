@@ -20,12 +20,12 @@ dns_namecheap_add() {
   txtvalue=$2
 
   if ! _namecheap_check_config; then
-     _err "$error"
-     return 1
+    _err "$error"
+    return 1
   fi
 
   if ! _namecheap_set_publicip; then
-     return 1
+    return 1
   fi
 
   _debug "First detect the root zone"
@@ -49,12 +49,12 @@ dns_namecheap_rm() {
   txtvalue=$2
   
   if ! _namecheap_set_publicip; then
-     return 1
+    return 1
   fi
 
   if ! _namecheap_check_config; then
-     _err "$error"
-     return 1
+    _err "$error"
+    return 1
   fi
 
   _debug "First detect the root zone"
@@ -81,8 +81,8 @@ _get_root() {
   domain=$1
 
   if ! _namecheap_post "namecheap.domains.getList"; then
-     _err "$error"
-     return 1
+    _err "$error"
+    return 1
   fi
 
   i=2
@@ -117,7 +117,7 @@ _namecheap_set_publicip() {
     _err "Use your public ip address or an url to retrieve it (e.g. https://ipconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
     return 1
   else
-  	_saveaccountconf NAMECHEAP_SOURCEIP "$NAMECHEAP_SOURCEIP"
+    _saveaccountconf NAMECHEAP_SOURCEIP "$NAMECHEAP_SOURCEIP"
     _debug sourceip "$NAMECHEAP_SOURCEIP"
     
     ip=$(echo "$NAMECHEAP_SOURCEIP" | _egrep_o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
@@ -207,16 +207,16 @@ _set_namecheap_TXT() {
   request="namecheap.domains.dns.getHosts&SLD=$sld&TLD=$tld"
 
   if ! _namecheap_post "$request"; then
-     _err "$error"
-     return 1
+    _err "$error"
+    return 1
   fi
 
   hosts=$(echo "$response" | _egrep_o '<host[^>]*')
   _debug hosts "$hosts"
 
   if [ -z "$hosts" ]; then
-     _error "Hosts not found"
-     return 1
+    _error "Hosts not found"
+    return 1
   fi
 
   _namecheap_reset_hostList
@@ -237,8 +237,8 @@ EOT
   request="namecheap.domains.dns.setHosts&SLD=${sld}&TLD=${tld}${_hostrequest}"
 
   if ! _namecheap_post "$request"; then
-     _err "$error"
-     return 1
+    _err "$error"
+    return 1
   fi
 
   return 0
@@ -252,16 +252,16 @@ _del_namecheap_TXT() {
   request="namecheap.domains.dns.getHosts&SLD=$sld&TLD=$tld"
 
   if ! _namecheap_post "$request"; then
-     _err "$error"
-     return 1
+    _err "$error"
+    return 1
   fi
 
   hosts=$(echo "$response" | _egrep_o '<host[^>]*')
   _debug hosts "$hosts"
 
   if [ -z "$hosts" ]; then
-     _error "Hosts not found"
-     return 1
+    _error "Hosts not found"
+    return 1
   fi
 
   _namecheap_reset_hostList
@@ -271,9 +271,9 @@ _del_namecheap_TXT() {
   while read -r host; do
     if _contains "$host" "<host"; then
       _namecheap_parse_host "$host"
-	  if [ "$_hosttype" = "TXT" ] && [ "$_hostname" = "$subdomain" ] && [ "$_hostaddress" = "$txt" ]; then
-	  	_debug "TXT entry found"
-	  	found=1      
+      if [ "$_hosttype" = "TXT" ] && [ "$_hostname" = "$subdomain" ] && [ "$_hostaddress" = "$txt" ]; then
+        _debug "TXT entry found"
+        found=1      
       else
         _namecheap_add_host "$_hostname" "$_hosttype" "$_hostaddress" "$_hostmxpref" "$_hostttl"
       fi
@@ -292,8 +292,8 @@ EOT
   request="namecheap.domains.dns.setHosts&SLD=${sld}&TLD=${tld}${_hostrequest}"
 
   if ! _namecheap_post "$request"; then
-     _err "$error"
-     return 1
+    _err "$error"
+    return 1
   fi
 
   return 0
