@@ -3,8 +3,9 @@
 # Namecheap API
 # https://www.namecheap.com/support/api/intro.aspx
 #
-# Requires Namecheap API key set in NAMECHEAP_API_KEY and NAMECHEAP_USERNAME set as environment variable
-#
+# Requires Namecheap API key set in NAMECHEAP_API_KEY, NAMECHEAP_SOURCEIP and NAMECHEAP_USERNAME set as environment variable
+# Due to Namecheap's API limitation all the records of your domain will be read and re applied, make sure to have a backup of your records you could apply if any issue would arise.
+
 ########  Public functions #####################
 
 if [ "$STAGE" -eq 1 ]; then
