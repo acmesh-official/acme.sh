@@ -7,7 +7,11 @@
 #
 ########  Public functions #####################
 
-NAMECHEAP_API="https://api.sandbox.namecheap.com/xml.response"
+if [ "$STAGE" -eq 1 ]; then
+  NAMECHEAP_API="https://api.sandbox.namecheap.com/xml.response"
+else
+  NAMECHEAP_API="https://api.namecheap.com/xml.response"
+fi
 
 #Usage: dns_namecheap_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_namecheap_add() {
