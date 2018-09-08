@@ -47,7 +47,7 @@ dns_namecheap_add() {
 dns_namecheap_rm() {
   fulldomain=$1
   txtvalue=$2
-  
+
   if ! _namecheap_set_publicip; then
     return 1
   fi
@@ -69,7 +69,6 @@ dns_namecheap_rm() {
   _debug sub_domain "$_sub_domain"
 
   _del_namecheap_TXT "$_domain" "$_sub_domain" "$txtvalue"
-
 }
 
 ####################  Private functions below ##################################
@@ -89,7 +88,7 @@ _get_root() {
   p=1
 
   while true; do
-    
+
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     _debug h "$h"
     if [ -z "$h" ]; then
@@ -111,7 +110,7 @@ _get_root() {
 }
 
 _namecheap_set_publicip() {
-  
+
   if [ -z "$NAMECHEAP_SOURCEIP" ]; then
     _err "No Source IP specified for Namecheap API."
     _err "Use your public ip address or an url to retrieve it (e.g. https://ipconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
@@ -119,13 +118,13 @@ _namecheap_set_publicip() {
   else
     _saveaccountconf NAMECHEAP_SOURCEIP "$NAMECHEAP_SOURCEIP"
     _debug sourceip "$NAMECHEAP_SOURCEIP"
-    
+
     ip=$(echo "$NAMECHEAP_SOURCEIP" | _egrep_o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
     addr=$(echo "$NAMECHEAP_SOURCEIP" | _egrep_o '(http|https)://.*')
-    
+
     _debug2 ip "$ip"
     _debug2 addr "$addr"
-    
+
     if [ -n "$ip" ]; then
       _publicip="$ip"
     elif [ -n "$addr" ]; then
@@ -136,16 +135,16 @@ _namecheap_set_publicip() {
       return 1
     fi
   fi
-  
+
   _debug publicip "$_publicip"
-  
+
   return 0
 }
 
 _namecheap_post() {
   command=$1
   data="ApiUser=${NAMECHEAP_USERNAME}&ApiKey=${NAMECHEAP_API_KEY}&ClientIp=${_publicip}&UserName=${NAMECHEAP_USERNAME}&Command=${command}"
- 
+
   response="$(_post "$data" "$NAMECHEAP_API" "" "POST")"
   _debug2 response "$response"
 
@@ -157,7 +156,6 @@ _namecheap_post() {
 
   return 0
 }
-
 
 _namecheap_parse_host() {
   _host=$1
@@ -176,7 +174,6 @@ _namecheap_parse_host() {
   _debug hostaddress "$_hostaddress"
   _debug hostmxpref "$_hostmxpref"
   _debug hostttl "$_hostttl"
- 
 }
 
 _namecheap_check_config() {
@@ -273,7 +270,7 @@ _del_namecheap_TXT() {
       _namecheap_parse_host "$host"
       if [ "$_hosttype" = "TXT" ] && [ "$_hostname" = "$subdomain" ] && [ "$_hostaddress" = "$txt" ]; then
         _debug "TXT entry found"
-        found=1      
+        found=1
       else
         _namecheap_add_host "$_hostname" "$_hosttype" "$_hostaddress" "$_hostmxpref" "$_hostttl"
       fi
