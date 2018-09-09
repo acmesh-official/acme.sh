@@ -1014,7 +1014,7 @@ Now you can issue a certificate.
 acme.sh --issue --dns dns_namecheap -d example.com -d *.example.com
 ```
 
-## 54. Use plesk domain API to automatically issue cert
+## 54. Use plesk xml API to automatically issue cert
 
 The plesk plugin uses the xml api to add and remvoe the dns records. Therefore the url, username
 and password have to be configured.
