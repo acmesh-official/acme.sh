@@ -4714,19 +4714,7 @@ _installcert() {
   fi
 
   if [ "$_reload_cmd" ]; then
-    _info "Run reload cmd: $_reload_cmd"
-    if (
-      export CERT_PATH
-      export CERT_KEY_PATH
-      export CA_CERT_PATH
-      export CERT_FULLCHAIN_PATH
-      export Le_Domain
-      cd "$DOMAIN_PATH" && eval "$_reload_cmd"
-    ); then
-      _info "$(__green "Reload success")"
-    else
-      _err "Reload error for :$Le_Domain"
-    fi
+    _eval_reload_cmd "$_reload_cmd"
   fi
 
 }
@@ -5389,6 +5377,12 @@ _uninstallalias() {
 }
 
 cron() {
+  _reload_cmd="$1"
+
+  if [ "$_reload_cmd" = "$NO_VALUE" ]; then
+    _reload_cmd=""
+  fi
+
   export IN_CRON=1
   _initpath
   _info "$(__green "===Starting cron===")"
@@ -5410,9 +5404,30 @@ cron() {
   fi
   renewAll
   _ret="$?"
+  if [ "$_reload_cmd" ]; then
+    _eval_reload_cmd "$_reload_cmd"
+  fi
   IN_CRON=""
   _info "$(__green "===End cron===")"
   exit $_ret
+}
+
+_eval_reload_cmd() {
+  _reload_cmd="$1"
+
+  _info "Run reload cmd: $_reload_cmd"
+  if (
+    export CERT_PATH
+    export CERT_KEY_PATH
+    export CA_CERT_PATH
+    export CERT_FULLCHAIN_PATH
+    export Le_Domain
+    cd "$DOMAIN_PATH" && eval "$_reload_cmd"
+  ); then
+    _info "$(__green "Reload success")"
+  else
+    _err "Reload error for :$Le_Domain"
+  fi
 }
 
 version() {
@@ -6169,7 +6184,7 @@ _process() {
       ;;
     installcronjob) installcronjob "$_confighome" ;;
     uninstallcronjob) uninstallcronjob ;;
-    cron) cron ;;
+    cron) cron "$_reloadcmd" ;;
     toPkcs)
       toPkcs "$_domain" "$_password" "$_ecc"
       ;;
