@@ -327,6 +327,7 @@ You don't have to do anything manually!
 1. netcup DNS API (https://www.netcup.de)
 1. GratisDNS.dk (https://gratisdns.dk)
 1. Namecheap API (https://www.namecheap.com/)
+1. Plesk (https://www.plesk.com)
 
 And: 
 
