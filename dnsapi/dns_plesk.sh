@@ -30,7 +30,7 @@ dns_plesk_add() {
   _debug _domain "$_domain"
 
   _info "Adding record"
-  add_txt_record $_domain_id $_sub_domain $txtvalue
+  add_txt_record "$_domain_id" "$_sub_domain" "$txtvalue"
   
 }
 
@@ -54,7 +54,7 @@ dns_plesk_rm() {
   _debug _domain "$_domain"
 
   _info "Remove record"
-  del_txt_record $_domain_id $fulldomain
+  del_txt_record "$_domain_id" "$fulldomain"
 }
 
 ####################  Private functions below ##################################
@@ -80,25 +80,25 @@ function init_config(){
 }
   
 function plesk_api() {
-    local request="$1"
+    request="$1"
 
     export _H1="HTTP_AUTH_LOGIN: $PLESK_User"
     export _H2="HTTP_AUTH_PASSWD: $PLESK_Password"
     export _H3="content-Type: text/xml"
     export _H4="HTTP_PRETTY_PRINT: true"
 
-    response="$(_post $request "https://$PLESK_Host:8443/enterprise/control/agent.php" "" "POST")"
+    response="$(_post "$request" "https://$PLESK_Host:8443/enterprise/control/agent.php" "" "POST")"
     _debug2 "response" "$response"
     return 0
 
 }
 
 function add_txt_record() {
-    local site_id=$1
-    local subdomain=$2
-    local txt_value=$3
-    local request="<packet><dns><add_rec><site-id>$site_id</site-id><type>TXT</type><host>$subdomain</host><value>$txt_value</value></add_rec></dns></packet>"
-    plesk_api $request
+    site_id=$1
+    subdomain=$2
+    txt_value=$3
+    request="<packet><dns><add_rec><site-id>$site_id</site-id><type>TXT</type><host>$subdomain</host><value>$txt_value</value></add_rec></dns></packet>"
+    plesk_api "$request"
 
     if ! _contains "${response}" '<status>ok</status>'; then
       return 1
@@ -107,15 +107,15 @@ function add_txt_record() {
 }
 
 function del_txt_record() {
-    local site_id=$1
-    local fulldomain="${2}."
+    site_id=$1
+    fulldomain="${2}."
     
-    get_dns_record_list $site_id
+    get_dns_record_list "$site_id"
 
     j=0
     for item in "${_plesk_dns_host[@]}"
     do
-      _debug "item" $item
+      _debug "item" "$item"
       if [  "$fulldomain" = "$item" ]; then
         _dns_record_id=${_plesk_dns_ids[$j]}
       fi
@@ -123,8 +123,8 @@ function del_txt_record() {
     done
 
     _debug "record id" "$_dns_record_id"
-    local request="<packet><dns><del_rec><filter><id>$_dns_record_id</id></filter></del_rec></dns></packet>"
-    plesk_api $request
+    request="<packet><dns><del_rec><filter><id>$_dns_record_id</id></filter></del_rec></dns></packet>"
+    plesk_api "$request"
 
     if ! _contains "${response}" '<status>ok</status>'; then
         return 1
@@ -134,9 +134,9 @@ function del_txt_record() {
 
 #fetches the domain list for the given account
 function get_domain_list() {
-  local request='<packet><customer><get-domain-list><filter></filter></get-domain-list></customer></packet>'
+  request='<packet><customer><get-domain-list><filter></filter></get-domain-list></customer></packet>'
   
-  plesk_api $request
+  plesk_api "$request"
 
   if ! _contains "${response}" '<status>ok</status>'; then
     return 1
@@ -150,10 +150,10 @@ function get_domain_list() {
 
 #fetches all dns records fo rthe given sit
 function get_dns_record_list() {
-  local siteid=$1
-  local request="<packet><dns><get_rec><filter><site-id>$siteid</site-id></filter></get_rec></dns></packet>"
+  siteid=$1
+  request="<packet><dns><get_rec><filter><site-id>$siteid</site-id></filter></get_rec></dns></packet>"
   
-  plesk_api $request
+  plesk_api "$request"
 
   if ! _contains "${response}" '<status>ok</status>'; then
     return 1
@@ -187,7 +187,7 @@ _get_root() {
     j=0
     for item in "${_plesk_domain_names[@]}"
     do
-      _debug "item" $item
+      _debug "item" "$item"
       if [  "$h" = "$item" ]; then
         
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
