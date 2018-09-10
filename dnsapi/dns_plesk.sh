@@ -7,7 +7,6 @@
 #
 #PLESK_Password="xxxx@sss.com"
 
-
 ########  Public functions #####################
 
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
@@ -24,7 +23,7 @@ dns_plesk_add() {
     _err "invalid domain"
     return 1
   fi
-  
+
   _debug _domain_id "$_domain_id"
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
@@ -58,7 +57,7 @@ dns_plesk_rm() {
 }
 
 ####################  Private functions below ##################################
-function init_config(){
+init_config() {
   PLESK_Host="${PLESK_Host:-$(_readaccountconf_mutable PLESK_Host)}"
   PLESK_User="${PLESK_User:-$(_readaccountconf_mutable PLESK_User)}"
   PLESK_Password="${PLESK_Password:-$(_readaccountconf_mutable PLESK_Password)}"
@@ -79,61 +78,61 @@ function init_config(){
  
 }
   
-function plesk_api() {
-    request="$1"
+plesk_api() {
+  request="$1"
 
-    export _H1="HTTP_AUTH_LOGIN: $PLESK_User"
-    export _H2="HTTP_AUTH_PASSWD: $PLESK_Password"
-    export _H3="content-Type: text/xml"
-    export _H4="HTTP_PRETTY_PRINT: true"
+  export _H1="HTTP_AUTH_LOGIN: $PLESK_User"
+  export _H2="HTTP_AUTH_PASSWD: $PLESK_Password"
+  export _H3="content-Type: text/xml"
+  export _H4="HTTP_PRETTY_PRINT: true"
 
-    response="$(_post "$request" "https://$PLESK_Host:8443/enterprise/control/agent.php" "" "POST")"
-    _debug2 "response" "$response"
-    return 0
+  response="$(_post "$request" "https://$PLESK_Host:8443/enterprise/control/agent.php" "" "POST")"
+  _debug2 "response" "$response"
+  return 0
 
 }
 
-function add_txt_record() {
-    site_id=$1
-    subdomain=$2
-    txt_value=$3
-    request="<packet><dns><add_rec><site-id>$site_id</site-id><type>TXT</type><host>$subdomain</host><value>$txt_value</value></add_rec></dns></packet>"
-    plesk_api "$request"
+add_txt_record() {
+  site_id=$1
+  subdomain=$2
+  txt_value=$3
+  request="<packet><dns><add_rec><site-id>$site_id</site-id><type>TXT</type><host>$subdomain</host><value>$txt_value</value></add_rec></dns></packet>"
+  plesk_api "$request"
 
-    if ! _contains "${response}" '<status>ok</status>'; then
+  if ! _contains "${response}" '<status>ok</status>'; then
+    return 1
+  fi
+    return 0
+}
+
+del_txt_record() {
+  site_id=$1
+  fulldomain="${2}."
+  
+  get_dns_record_list "$site_id"
+
+  j=0
+  for item in "${_plesk_dns_host[@]}"
+  do
+    _debug "item" "$item"
+    if [  "$fulldomain" = "$item" ]; then
+      _dns_record_id=${_plesk_dns_ids[$j]}
+    fi
+    j=$(_math "$j" +1)
+  done
+
+  _debug "record id" "$_dns_record_id"
+  request="<packet><dns><del_rec><filter><id>$_dns_record_id</id></filter></del_rec></dns></packet>"
+  plesk_api "$request"
+
+  if ! _contains "${response}" '<status>ok</status>'; then
       return 1
-    fi
-      return 0
-}
-
-function del_txt_record() {
-    site_id=$1
-    fulldomain="${2}."
-    
-    get_dns_record_list "$site_id"
-
-    j=0
-    for item in "${_plesk_dns_host[@]}"
-    do
-      _debug "item" "$item"
-      if [  "$fulldomain" = "$item" ]; then
-        _dns_record_id=${_plesk_dns_ids[$j]}
-      fi
-      j=$(_math "$j" +1)
-    done
-
-    _debug "record id" "$_dns_record_id"
-    request="<packet><dns><del_rec><filter><id>$_dns_record_id</id></filter></del_rec></dns></packet>"
-    plesk_api "$request"
-
-    if ! _contains "${response}" '<status>ok</status>'; then
-        return 1
-    fi
-    return 0
+  fi
+  return 0
 }
 
 #fetches the domain list for the given account
-function get_domain_list() {
+get_domain_list() {
   request='<packet><customer><get-domain-list><filter></filter></get-domain-list></customer></packet>'
   
   plesk_api "$request"
@@ -149,7 +148,7 @@ function get_domain_list() {
 }
 
 #fetches all dns records fo rthe given sit
-function get_dns_record_list() {
+get_dns_record_list() {
   siteid=$1
   request="<packet><dns><get_rec><filter><site-id>$siteid</site-id></filter></get_rec></dns></packet>"
   
@@ -159,8 +158,8 @@ function get_dns_record_list() {
     return 1
   fi
 
-  _plesk_dns_host=($(echo "${response}" | sed -nr 's_<host>(.*)</host>_\1_p'));
-  _plesk_dns_ids=($(echo "${response}"| sed -nr 's_<id>(.*)</id>_\1_p'));
+  _plesk_dns_host=($(echo "${response}" | sed -nr 's_<host>(.*)</host>_\1_p'))
+  _plesk_dns_ids=($(echo "${response}"| sed -nr 's_<id>(.*)</id>_\1_p'))
   
 }
  
