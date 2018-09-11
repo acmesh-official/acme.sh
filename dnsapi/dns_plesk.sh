@@ -100,10 +100,15 @@ function add_txt_record() {
     request="<packet><dns><add_rec><site-id>$site_id</site-id><type>TXT</type><host>$subdomain</host><value>$txt_value</value></add_rec></dns></packet>"
     plesk_api "$request"
 
-    if ! _contains "${response}" '<status>ok</status>'; then
+  if ! _contains "${response}" '<status>ok</status>'; then
+    # check if record already exists
+    if ! _contains "${response}" '<errcode>1007</errcode>'; then
       return 1
-    fi
+    else
       return 0
+    fi
+  fi
+    return 0
 }
 
 function del_txt_record() {
