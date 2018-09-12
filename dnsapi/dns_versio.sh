@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 #
-# DNS API for Versio.nl
+# DNS API for Versio.nl/Versio.eu/Versio.uk
 # Author: lebaned <github@bakker.cloud>
-# Report Bugs here: https://github.com/lebaned/acme.sh
+# Author: Tom Blauwendraat <tom@sunflowerweb.nl>
 #
 ########  Public functions #####################
 
@@ -14,13 +14,9 @@ dns_versio_add() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
-  if ! _get_credentials; then
+  if ! _get_configuration; then
     return 1
   fi
-
-  #save the credentials to the account conf file.
-  _saveaccountconf_mutable Versio_Username  "$Versio_Username"
-  _saveaccountconf_mutable Versio_Password  "$Versio_Password"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -37,14 +33,13 @@ dns_versio_add() {
     return 1
   fi
 
-  _debug "orginal dnsrecords" "$_dns_records"
-  _delete_dns_record "TXT" "$fulldomain."
-  _debug "dnsrecords after deleted old record" "$_dns_records"
-  _add_dns_record "TXT" "$fulldomain" "\\\"$txtvalue\\\"" 0 300
+  _debug "original dnsrecords" "$_dns_records"
+  _add_dns_record "TXT" "$fulldomain." "\\\"$txtvalue\\\"" 0 300
   _debug "dnsrecords after add record" "{\"dns_records\":[$_dns_records]}"
 
   if _versio_rest POST "domains/$_domain/update" "{\"dns_records\":[$_dns_records]}"; then
     _debug "rest update response" "$response"
+    _debug "changed dnsrecords" "$_dns_records"
     return 0
   fi
 
@@ -61,7 +56,7 @@ dns_versio_rm() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
-  if ! _get_credentials; then
+  if ! _get_configuration; then
     return 1
   fi
 
@@ -80,12 +75,13 @@ dns_versio_rm() {
     return 1
   fi
 
-  _debug "orginal dnsrecords" "$_dns_records"
+  _debug "original dnsrecords" "$_dns_records"
   _delete_dns_record "TXT" "$fulldomain."
   _debug "dnsrecords after deleted old record" "$_dns_records"
 
   if _versio_rest POST "domains/$_domain/update" "{\"dns_records\":[$_dns_records]}"; then
     _debug "rest update response" "$response"
+    _debug "changed dnsrecords" "$_dns_records"
     return 0
   fi
 
@@ -102,11 +98,11 @@ dns_versio_rm() {
 # _domain=domain.com
 _get_root() {
   domain=$1
-  i=2
+  i=1
   p=1
 
   if _versio_rest GET "domains?status=OK"; then
-    response="$(echo "$response" | tr -d "\n" | sed 's/{/\n&/g')"
+    response="$(echo "$response" | tr -d "\n")"
     while true; do
       h=$(printf "%s" "$domain" | cut -d . -f $i-100)
       _info h "$h"
@@ -115,8 +111,7 @@ _get_root() {
         #not valid
         return 1
       fi
-
-      hostedzone="$(echo "$response" | _egrep_o "{.*\"domain\":\s*\"$h\".*}")"
+      hostedzone="$(echo "$response" | _egrep_o "{.*\"domain\":\s*\"$h\"")"
       if [ "$hostedzone" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain=$h
@@ -143,9 +138,8 @@ _add_dns_record() {
 #returns
 # _dns_records
 _get_dns_records() {
-
   if _versio_rest GET "domains/$1?show_dns_records=true"; then
-    _dns_records=$(echo "$response" | grep -oP '(?<="dns_records":\[)[^\]]*')
+    _dns_records="$(echo "$response" | sed -n 's/.*\"dns\_records\":\[\([^][]*\).*/\1/p')"
     return 0
   fi
   return 1
@@ -161,22 +155,44 @@ _versio_rest() {
   _debug ep "$ep"
 
   VERSIO_API_URL="https://www.versio.nl/api/v1"
-  VERSIO_CREDENTIALS_BASE64=$(printf "%s:%s" "$Versio_Username" "$Versio_Password" | openssl enc -base64)
+  VERSIO_CREDENTIALS_BASE64=$(printf "%s:%s" "$VERSIO_Username" "$VERSIO_Password" | _base64)
 
   export _H1="Accept: application/json"
-  export _H2="Content-Type: application/json"
-  export _H3="Authorization: Basic $VERSIO_CREDENTIALS_BASE64"
+  export _H2="Authorization: Basic $VERSIO_CREDENTIALS_BASE64"
+  export _H3=""
+  export _H4=""
+  export _H5=""
 
   if [ "$mtd" != "GET" ]; then
     # both POST and DELETE.
     _debug data "$data"
-    response="$(_post "$data" "$VERSIO_API_URL/$ep" "" "$mtd")"
+    response="$(_post "$data" "$VERSIO_API_URL/$ep" "" "$mtd" "application/json")"
   else
     response="$(_get "$VERSIO_API_URL/$ep")"
   fi
 
+  # sleeping in order not to exceed rate limit
+  if [ -n "$VERSIO_Slow_rate" ]; then
+    _info "Sleeping $VERSIO_Slow_rate seconds to slow down hit rate on API"
+    _sleep "$VERSIO_Slow_rate"
+  fi
+
   case $? in
   0)
+    if [ "$response" = "Rate limit exceeded" ]; then
+      _err "Rate limit exceeded. Try again later."
+      return 1
+    fi
+    case $response in
+    "<"*)
+      _err "Invalid non-JSON response! $response"
+      return 1
+      ;;
+    "{\"error\":"*)
+      _err "Error response! $response"
+      return 1
+      ;;
+    esac
     _debug response "$response"
     return 0
     ;;
@@ -193,19 +209,28 @@ _versio_rest() {
 
 #parameters: []
 #returns:
-#  Versio_Username
-#  Versio_Password
-_get_credentials() {
-  Versio_Username="${Versio_Username:-$(_readaccountconf_mutable Versio_Username)}"
-  Versio_Password="${Versio_Password:-$(_readaccountconf_mutable Versio_Password)}"
-  if [ -z "$Versio_Username" ] || [ -z "$Versio_Password" ]; then
-    Versio_Username=""
-    Versio_Password=""
+#  VERSIO_Username
+#  VERSIO_Password
+#  VERSIO_Slow_rate
+_get_configuration() {
+  VERSIO_Username="${VERSIO_Username:-$(_readaccountconf_mutable VERSIO_Username)}"
+  VERSIO_Password="${VERSIO_Password:-$(_readaccountconf_mutable VERSIO_Password)}"
+  if [ -z "$VERSIO_Username" ] || [ -z "$VERSIO_Password" ]; then
+    VERSIO_Username=""
+    VERSIO_Password=""
     _err "You don't specify Versio email address and/or password yet."
     _err "Example:"
-    _err "export Versio_Username=[email address]"
-    _err "export Versio_Password=[password]"
+    _err "export VERSIO_Username=[email address]"
+    _err "export VERSIO_Password=[password]"
     return 1
   fi
+  VERSIO_Slow_rate="${VERSIO_Slow_rate:-$(_readaccountconf_mutable VERSIO_Slow_rate)}"
+  _info "Using slowdown rate: $VERSIO_Slow_rate seconds"
+  if [ -z "$VERSIO_Slow_rate" ]; then
+    VERSIO_Slow_rate=""
+  fi
+  _saveaccountconf_mutable VERSIO_Username "$VERSIO_Username"
+  _saveaccountconf_mutable VERSIO_Password "$VERSIO_Password"
+  _saveaccountconf_mutable VERSIO_Slow_rate "$VERSIO_Slow_rate"
   return 0
 }
