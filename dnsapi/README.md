@@ -910,7 +910,6 @@ Now you can issue your cert:
 ```
 acme.sh --issue --dns versio -d example.com -d *.example.com
 ```
-
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
