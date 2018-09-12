@@ -105,7 +105,7 @@ dns_dgon_rm() {
   GURL="https://api.digitalocean.com/v2/domains/$_domain/records"
 
   ## Get all the matching records
-  while [ true ]; do
+  while true; do
     ## 1) get the URL
     ## the create request - get
     ## args: URL, [onlyheader, timeout]
@@ -128,7 +128,7 @@ dns_dgon_rm() {
       rec_ids="$(echo "$record" | _egrep_o "id\"\s*\:\s*\"*[0-9]+" | _egrep_o "[0-9]+")"
       _debug rec_ids "$rec_ids"
       if [ ! -z "$rec_ids" ]; then
-        echo "$rec_ids" | while IFS= read -r rec_id ; do
+        echo "$rec_ids" | while IFS= read -r rec_id; do
           ## delete the record
           ## delete URL for removing the one we dont want
           DURL="https://api.digitalocean.com/v2/domains/$_domain/records/$rec_id"
