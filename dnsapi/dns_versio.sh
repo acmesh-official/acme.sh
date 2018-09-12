@@ -19,8 +19,8 @@ dns_versio_add() {
   fi
 
   #save the credentials to the account conf file.
-  _saveaccountconf_mutable Versio_Username  "$Versio_Username"
-  _saveaccountconf_mutable Versio_Password  "$Versio_Password"
+  _saveaccountconf_mutable VERSIO_Username "$VERSIO_Username"
+  _saveaccountconf_mutable VERSIO_Password "$VERSIO_Password"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -38,11 +38,9 @@ dns_versio_add() {
   fi
 
   _debug "orginal dnsrecords" "$_dns_records"
-  _delete_dns_record "TXT" "$fulldomain."
-  _debug "dnsrecords after deleted old record" "$_dns_records"
   _add_dns_record "TXT" "$fulldomain" "\\\"$txtvalue\\\"" 0 300
-  _debug "dnsrecords after add record" "{\"dns_records\":[$_dns_records]}"
-
+  _debug "dnsrecords after add_dns_record" "{\"dns_records\":[$_dns_records]}"
+  
   if _versio_rest POST "domains/$_domain/update" "{\"dns_records\":[$_dns_records]}"; then
     _debug "rest update response" "$response"
     return 0
@@ -81,7 +79,7 @@ dns_versio_rm() {
   fi
 
   _debug "orginal dnsrecords" "$_dns_records"
-  _delete_dns_record "TXT" "$fulldomain."
+  _delete_dns_record "TXT" "$fulldomain." "$txtvalue"
   _debug "dnsrecords after deleted old record" "$_dns_records"
 
   if _versio_rest POST "domains/$_domain/update" "{\"dns_records\":[$_dns_records]}"; then
@@ -116,7 +114,7 @@ _get_root() {
         return 1
       fi
 
-      hostedzone="$(echo "$response" | _egrep_o "{.*\"domain\":\s*\"$h\".*}")"
+      hostedzone="$(echo "$response" | _egrep_o "{.*\"domain\":\s*\"$h\"")"
       if [ "$hostedzone" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain=$h
@@ -129,9 +127,14 @@ _get_root() {
   return 1
 }
 
-#parameters: [record type] [record name]
+#parameters: [record type] [record name] [optional: record value]
 _delete_dns_record() {
-  _dns_records=$(echo "$_dns_records" | sed 's/{"type":"'"$1"'","name":"'"$2"'"[^}]*}[,]\?//' | sed 's/,$//')
+  if [ -z "$3" ]
+  then
+    _dns_records=$(echo "$_dns_records" | sed 's/{"type":"'"$1"'","name":"'"$2"'"[^}]*}[,]\?//' | sed 's/,$//')
+  else
+    _dns_records=$(echo "$_dns_records" | sed 's/{"type":"'"$1"'","name":"'"$2"'","value":"\\\"'"$3"'\\\""[^}]*}[,]\?//' | sed 's/,$//')
+  fi
 }
 
 #parameters: [type] [name] [value] [prio] [ttl]
@@ -161,7 +164,7 @@ _versio_rest() {
   _debug ep "$ep"
 
   VERSIO_API_URL="https://www.versio.nl/api/v1"
-  VERSIO_CREDENTIALS_BASE64=$(printf "%s:%s" "$Versio_Username" "$Versio_Password" | openssl enc -base64)
+  VERSIO_CREDENTIALS_BASE64=$(printf "%s:%s" "$VERSIO_Username" "$VERSIO_Password" | openssl enc -base64)
 
   export _H1="Accept: application/json"
   export _H2="Content-Type: application/json"
@@ -176,35 +179,35 @@ _versio_rest() {
   fi
 
   case $? in
-  0)
-    _debug response "$response"
-    return 0
-    ;;
-  6)
-    _err "Authentication failure. Check your Versio email address and password"
-    return 1
-    ;;
-  *)
-    _err "Unknown error"
-    return 1
-    ;;
+    0)
+      _debug response "$response"
+      return 0
+      ;;
+    6)
+      _err "Authentication failure. Check your Versio email address and password"
+      return 1
+      ;;
+    *)
+      _err "Unknown error"
+      return 1
+      ;;
   esac
 }
 
 #parameters: []
 #returns:
-#  Versio_Username
-#  Versio_Password
+#  VERSIO_Username
+#  VERSIO_Password
 _get_credentials() {
-  Versio_Username="${Versio_Username:-$(_readaccountconf_mutable Versio_Username)}"
-  Versio_Password="${Versio_Password:-$(_readaccountconf_mutable Versio_Password)}"
-  if [ -z "$Versio_Username" ] || [ -z "$Versio_Password" ]; then
-    Versio_Username=""
-    Versio_Password=""
+  Versio_Username="${VERSIO_Username:-$(_readaccountconf_mutable VERSIO_Username)}"
+  Versio_Password="${VERSIO_Password:-$(_readaccountconf_mutable VERSIO_Password)}"
+  if [ -z "$VERSIO_Username" ] || [ -z "$VERSIO_Password" ]; then
+    VERSIO_Username=""
+    VERSIO_Password=""
     _err "You don't specify Versio email address and/or password yet."
     _err "Example:"
-    _err "export Versio_Username=[email address]"
-    _err "export Versio_Password=[password]"
+    _err "export VERSIO_Username=[email address]"
+    _err "export VERSIO_Password=[password]"
     return 1
   fi
   return 0

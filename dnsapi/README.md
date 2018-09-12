@@ -897,18 +897,18 @@ acme.sh --issue --dns dns_euserv -d example.com -d *.example.com --insecure
 The `EUSERV_Username` and `EUSERV_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 Please report any issues to https://github.com/initit/acme.sh or to <github@initit.de>
-## 48. Use Versio.nl API
+## 48. Use Versio API
 
 First you've to add your ip address to the whitelist in your Versio portal. (Account > Versio API)
 Then set your credentials:
 ```
-export Versio_Username=[email address]
-export Versio_Password=[password]
+export Versio_Username="..."
+export Versio_Password="..."
 ```
 
 Now you can issue your cert:
 ```
-acme.sh --issue --dns versio -d example.com -d *.example.com
+acme.sh --issue --dns dns_versio -d example.com -d www.example.com
 ```
 # Use custom API
 
