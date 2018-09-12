@@ -990,7 +990,7 @@ Now you can issue a certificate.
 acme.sh --issue --dns dns_gdnsdk -d example.com -d *.example.com
 ```
 
-## 8. Use Clodo.ru domain API
+## 53. Use Clodo.ru domain API
 
 Get your API token at Clodo CP (https://panel.clodo.ru)
 
