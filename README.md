@@ -321,6 +321,12 @@ You don't have to do anything manually!
 1. acme-dns (https://github.com/joohoi/acme-dns)
 1. TELE3 (https://www.tele3.cz)
 1. EUSERV.EU (https://www.euserv.eu)
+1. DNSPod.com API (https://www.dnspod.com)
+1. Google Cloud DNS API
+1. ConoHa (https://www.conoha.jp)
+1. netcup DNS API (https://www.netcup.de)
+1. GratisDNS.dk (https://gratisdns.dk)
+1. Namecheap API (https://www.namecheap.com/)
 1. Versio (https://versio.eu)
 
 And: 
