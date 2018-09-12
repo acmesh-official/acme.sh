@@ -110,8 +110,8 @@ _clodo_init() {
 
   _get $CLODO_AUTH_URL "onlyheader"
 
-  CLODO_TOKEN=$(grep "^X-Auth-Token" $HTTP_HEADER | tr -d "\r" | cut -d " " -f 2)
-  CLODO_API=$(grep "^X-Server-Management-Url" $HTTP_HEADER | tr -d "\r" | cut -d " " -f 2)
+  CLODO_TOKEN=$(grep "^X-Auth-Token" "$HTTP_HEADER" | tr -d "\r" | cut -d " " -f 2)
+  CLODO_API=$(grep "^X-Server-Management-Url" "$HTTP_HEADER" | tr -d "\r" | cut -d " " -f 2)
 
   if [ -z "$CLODO_TOKEN" ] || [ -z "$CLODO_API" ]; then
     _err "Authentication error"
@@ -168,7 +168,9 @@ _clodo_rest() {
   else
     response="$(_get "$CLODO_API/$ep")"
   fi
-  if [ "$?" != "0" ]; then
+
+  _ret=$?
+  if [ "$_ret" != "0" ]; then
     _err "error $ep"
     return 1
   fi
