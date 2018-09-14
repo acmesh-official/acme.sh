@@ -4117,6 +4117,16 @@ $_authorizations_map"
       _on_issue_err "$_post_hook"
       return 1
     fi
+
+    Le_LinkLoc="$(grep -i '^Location.*$' "$HTTP_HEADER" | _tail_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
+    response="$(_get "$Le_LinkLoc")"
+    if [ "$ret" != "0" ]; then
+      _err "Cannot get Order Location:$Le_LinkLoc"
+      _err "$response"
+      _on_issue_err "$_post_hook"
+      return 1
+    fi
+
     Le_LinkCert="$(echo "$response" | tr -d '\r\n' | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
 
     if ! _get "$Le_LinkCert" >"$CERT_PATH"; then
