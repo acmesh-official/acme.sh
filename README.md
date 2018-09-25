@@ -326,6 +326,7 @@ You don't have to do anything manually!
 1. ConoHa (https://www.conoha.jp)
 1. netcup DNS API (https://www.netcup.de)
 1. GratisDNS.dk (https://gratisdns.dk)
+1. Namecheap API (https://www.namecheap.com/)
 1. Nexcess API (https://www.nexcess.net)
 1. Thermo.io API (https://www.thermo.io)
 1. Futurehosting API (https://www.futurehosting.com)
