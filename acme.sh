@@ -1809,14 +1809,14 @@ _send_signed_request() {
     if [ -z "$_CACHED_NONCE" ]; then
       _headers=""
       if [ "$ACME_NEW_NONCE" ]; then
-        _debug2 "Get nonce. ACME_NEW_NONCE" "$ACME_NEW_NONCE"
+        _debug2 "Get nonce with HEAD. ACME_NEW_NONCE" "$ACME_NEW_NONCE"
         nonceurl="$ACME_NEW_NONCE"
         if _post "" "$nonceurl" "" "HEAD" "$__request_conent_type"; then
           _headers="$(cat "$HTTP_HEADER")"
         fi
       fi
       if [ -z "$_headers" ]; then
-        _debug2 "Get nonce. ACME_DIRECTORY" "$ACME_DIRECTORY"
+        _debug2 "Get nonce with GET. ACME_DIRECTORY" "$ACME_DIRECTORY"
         nonceurl="$ACME_DIRECTORY"
         _headers="$(_get "$nonceurl" "onlyheader")"
       fi
