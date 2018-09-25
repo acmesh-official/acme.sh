@@ -1327,6 +1327,7 @@ createDomainKey() {
     if _createkey "$_cdl" "$CERT_KEY_PATH"; then
       _savedomainconf Le_Keylength "$_cdl"
       _info "The domain key is here: $(__green $CERT_KEY_PATH)"
+      return 0
     fi
   else
     if [ "$IS_RENEW" ]; then

@@ -876,6 +876,7 @@ acme.sh --issue --dns dns_tele3 -d example.com -d *.example.com
 ```
 
 The TELE3_Key and TELE3_Secret will be saved in ~/.acme.sh/account.conf and will be reused when needed.
+
 ## 47. Use Euserv.eu API
 
 First you need to login to your euserv.eu account and activate your API Administration (API Verwaltung).
@@ -897,6 +898,122 @@ acme.sh --issue --dns dns_euserv -d example.com -d *.example.com --insecure
 The `EUSERV_Username` and `EUSERV_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 Please report any issues to https://github.com/initit/acme.sh or to <github@initit.de>
+
+## 48. Use DNSPod.com domain API to automatically issue cert
+
+First you need to get your API Key and ID by this [get-the-user-token](https://www.dnspod.com/docs/info.html#get-the-user-token).
+
+```
+export DPI_Id="1234"
+export DPI_Key="sADDsdasdgdsf"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_dpi -d example.com -d www.example.com
+```
+
+The `DPI_Id` and `DPI_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 49. Use Google Cloud DNS API to automatically issue cert
+
+First you need to authenticate to gcloud.
+
+```
+gcloud init
+```
+
+**The `dns_gcloud` script uses the active gcloud configuration and credentials.**
+There is no logic inside `dns_gcloud` to override the project and other settings.
+If needed, create additional [gcloud configurations](https://cloud.google.com/sdk/gcloud/reference/topic/configurations).
+You can change the configuration being used without *activating* it; simply set the `CLOUDSDK_ACTIVE_CONFIG_NAME` environment variable.
+
+To issue a certificate you can:
+```
+export CLOUDSDK_ACTIVE_CONFIG_NAME=default  # see the note above
+acme.sh --issue --dns dns_gcloud -d example.com -d '*.example.com'
+```
+
+`dns_gcloud` also supports [DNS alias mode](https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode).
+
+## 50. Use ConoHa API
+
+First you need to login to your ConoHa account to get your API credentials.
+
+```
+export CONOHA_Username="xxxxxx"
+export CONOHA_Password="xxxxxx"
+export CONOHA_TenantId="xxxxxx"
+export CONOHA_IdentityServiceApi="https://identity.xxxx.conoha.io/v2.0"
+```
+
+To issue a cert:
+```
+acme.sh --issue --dns dns_conoha -d example.com -d www.example.com
+```
+
+The `CONOHA_Username`, `CONOHA_Password`, `CONOHA_TenantId` and `CONOHA_IdentityServiceApi` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 51. Use netcup DNS API to automatically issue cert
+
+First you need to login in your CCP account to get your API Key and API Password.
+```
+export NC_Apikey="<Apikey>"
+export NC_Apipw="<Apipassword>"
+export NC_CID="<Customernumber>"
+```
+
+Now, let's issue a cert:
+```
+acme.sh --issue --dns dns_netcup -d example.com -d www.example.com
+```
+
+The `NC_Apikey`,`NC_Apipw` and `NC_CID` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 52. Use GratisDNS.dk
+
+GratisDNS.dk (https://gratisdns.dk/) does not provide an API to update DNS records (other than IPv4 and IPv6
+dynamic DNS addresses).  The acme.sh plugin therefore retrieves and updates domain TXT records by logging
+into the GratisDNS website to read the HTML and posting updates as HTTP.  The plugin needs to know your
+userid and password for the GratisDNS website.
+
+```sh
+export GDNSDK_Username="..."
+export GDNSDK_Password="..."
+```
+The username and password will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+
+Now you can issue a certificate.
+
+Note: It usually takes a few minutes (usually 3-4 minutes) before the changes propagates to gratisdns.dk nameservers (ns3.gratisdns.dk often are slow),
+and in rare cases I have seen over 5 minutes before google DNS catches it. Therefor a DNS sleep of at least 300 seconds are recommended-
+
+```sh
+acme.sh --issue --dns dns_gdnsdk --dnssleep 300 -d example.com -d *.example.com
+```
+
+## 53. Use Namecheap
+
+You will need your namecheap username, API KEY (https://www.namecheap.com/support/api/intro.aspx) and your external IP address (or an URL to get it), this IP will need to be whitelisted at Namecheap.
+Due to Namecheap's API limitation all the records of your domain will be read and re applied, make sure to have a backup of your records you could apply if any issue would arise.
+
+```sh
+export NAMECHEAP_USERNAME="..."
+export NAMECHEAP_API_KEY="..."
+export NAMECHEAP_SOURCEIP="..."
+```
+
+NAMECHEAP_SOURCEIP can either be an IP address or an URL to provide it (e.g. https://ifconfig.co/ip).
+
+The username and password will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+Now you can issue a certificate.
+
+```sh
+acme.sh --issue --dns dns_namecheap -d example.com -d *.example.com
+```
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
