@@ -33,7 +33,7 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 - [webfaction](https://community.webfaction.com/questions/19988/using-letsencrypt)
 - [Loadbalancer.org](https://www.loadbalancer.org/blog/loadbalancer-org-with-lets-encrypt-quick-and-dirty)
 - [discourse.org](https://meta.discourse.org/t/setting-up-lets-encrypt/40709)
-- [Centminmod](http://centminmod.com/letsencrypt-acmetool-https.html)
+- [Centminmod](https://centminmod.com/letsencrypt-acmetool-https.html)
 - [splynx](https://forum.splynx.com/t/free-ssl-cert-for-splynx-lets-encrypt/297)
 - [archlinux](https://aur.archlinux.org/packages/acme.sh-git/)
 - [opnsense.org](https://github.com/opnsense/plugins/tree/master/security/acme-client/src/opnsense/scripts/OPNsense/AcmeClient)
@@ -319,6 +319,13 @@ You don't have to do anything manually!
 1. Zilore (https://zilore.com)
 1. Loopia.se API
 1. acme-dns (https://github.com/joohoi/acme-dns)
+1. TELE3 (https://www.tele3.cz)
+1. EUSERV.EU (https://www.euserv.eu)
+1. DNSPod.com API (https://www.dnspod.com)
+1. Google Cloud DNS API
+1. ConoHa (https://www.conoha.jp)
+1. netcup DNS API (https://www.netcup.de)
+1. GratisDNS.dk (https://gratisdns.dk)
 1. Hosteurope (https://www.hosteurope.de/)
 
 And: 

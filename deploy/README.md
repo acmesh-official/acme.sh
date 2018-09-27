@@ -255,3 +255,44 @@ acme.sh --deploy -d fritzbox.example.com --deploy-hook fritzbox
 ```sh
 acme.sh --deploy -d ftp.example.com --deploy-hook strongswan
 ```
+
+## 10. Deploy the cert to HAProxy
+
+You must specify the path where you want the concatenated key and certificate chain written.
+```sh
+export DEPLOY_HAPROXY_PEM_PATH=/etc/haproxy
+```
+
+You may optionally define the command to reload HAProxy. The value shown below will be used as the default if you don't set this environment variable.
+
+```sh
+export DEPLOY_HAPROXY_RELOAD="/usr/sbin/service haproxy restart"
+```
+
+You can then deploy the certificate as follows
+```sh
+acme.sh --deploy -d haproxy.example.com --deploy-hook haproxy
+```
+
+The path for the PEM file will be stored with the domain configuration and will be available when renewing, so that deploy will happen automatically when renewed.
+
+## 11. Deploy your cert to Gitlab pages
+
+You must define the API key and the informations for the project and Gitlab page you are updating the certificate for.
+
+```sh
+# The token can be created in your user settings under "Access Tokens"
+export GITLAB_TOKEN="xxxxxxxxxxx"
+
+# The project ID is displayed on the home page of the project
+export GITLAB_PROJECT_ID=12345678
+
+# The domain must match the one defined for the Gitlab page, without "https://"
+export GITLAB_DOMAIN="www.mydomain.com"
+```
+
+You can then deploy the certificate as follows
+
+```sh
+acme.sh --deploy -d www.mydomain.com --deploy-hook gitlab
+```
