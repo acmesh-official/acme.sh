@@ -13,6 +13,7 @@
 # export HOSTEUROPE_Password="password"
 # --
 
+HOSTEUROPE_Sso="https://sso.hosteurope.de/api/app/v1/login"
 HOSTEUROPE_Api="https://kis.hosteurope.de/administration/domainservices/index.php?menu=2&mode=autodns"
 
 ########  Public functions #####################
@@ -34,7 +35,7 @@ dns_hosteurope_add() {
   #save the credentials to the account conf file.
   _saveaccountconf_mutable HOSTEUROPE_Username  "$HOSTEUROPE_Username"
   _saveaccountconf_mutable HOSTEUROPE_Password  "$HOSTEUROPE_Password"
-  
+
   _debug "detect the root zone"
   if ! _get_root "$fulldomain"; then
     return 1
@@ -70,7 +71,7 @@ dns_hosteurope_rm() {
   _debug _domain "$_domain"
 
   _debug "get records"    
-  
+
   _hosteurope_get "&submode=edit&domain=$_domain"
   _hostid="$(echo "$response" | grep -a -A 50 "$txtvalue" | grep -m 1 "hostid" | grep -o 'value="[^"]*' | grep -o '[^"]*$')"
   _debug _hostid "$_hostid"
@@ -113,15 +114,77 @@ _get_root() {
   return 1
 }
 
+_hosteurope_login() {
+
+  _readaccountconf_mutable HOSTEUROPE_Cookie   "$HOSTEUROPE_Cookie"
+  _readaccountconf_mutable HOSTEUROPE_Expires  "$HOSTEUROPE_Expires"
+  
+  if [ ! -z "$HOSTEUROPE_Cookie" ] && [ ! -z "$HOSTEUROPE_Expires" ] && [ $HOSTEUROPE_Expires -gt $(date "+%s") ]; then
+    return 0
+  fi
+
+  # a call to _inithttp is needed to set HTTP_HEADER correctly (see https://github.com/Neilpang/acme.sh/issues/1859)
+  _inithttp
+
+  response="$(_post "{\"identifier\":\"$1\",\"password\":\"$2\",\"brandId\":\"b9c8f0f0-60dd-4cab-9da8-512b352d9c1a\"}" "${HOSTEUROPE_Sso}" "" "POST" "application/json")"
+
+  if [ "$response" != '{"success":true}' ]; then
+    _err "error $response"
+    _debug2 response $response
+    return 1
+  fi
+
+  headers=$(cat $HTTP_HEADER)
+  if [ $? -ne 0 ]; then
+    _err "error headers not found"
+    _debug2 HTTP_HEADER $HTTP_HEADER
+    return 1
+  fi
+
+  cookies=$(echo "$headers" | sed -n -e 's/^Set-Cookie: //p')
+  if [ $? -ne 0 ]; then
+    _err "error authidp cookie not found"
+    _debug2 headers $headers
+    _debug2 cookies $cookies
+    return 1
+  fi
+  
+  authidp=$(echo "$cookies" | grep "auth_idp=")
+  if [ $? -ne 0 ]; then
+    _err "error authidp cookie not found"
+    _debug2 cookies $cookies
+    return 1
+  fi
+
+  HOSTEUROPE_Cookie=$(echo "$cookies" | awk '{print $1}' | tr -d '\n')
+  if [ $? -ne 0 ]; then
+    _err "error parsing cookie"
+    _debug2 cookies $cookies
+    return 1
+  fi
+
+  HOSTEUROPE_Expires=$(echo "$authidp" | sed -n -e 's/.*Expires=//p' | sed -n -e 's/;.*//p' | { read gmt ; date -d "$gmt" "+%s" ; })
+  if [ $? -ne 0 ]; then
+    _err "error parsing cookie expiration date"
+    _debug2 authidp $authidp
+    return 1
+  fi
+  
+  _saveaccountconf_mutable HOSTEUROPE_Cookie   "$HOSTEUROPE_Cookie"
+  _saveaccountconf_mutable HOSTEUROPE_Expires  "$HOSTEUROPE_Expires"
+
+  return 0
+}
+
 _hosteurope_get() {
   ep="$1"
   _debug "$ep"
 
-  kdnummer="$(printf '%s' "$HOSTEUROPE_Username" | _url_encode)"
-  passwd="$(printf '%s' "$HOSTEUROPE_Password" | _url_encode)"
-  url="$HOSTEUROPE_Api&kdnummer=$kdnummer&passwd=$passwd"
+  _hosteurope_login "$HOSTEUROPE_Username" "$HOSTEUROPE_Password"
+  _H1="Cookie: $HOSTEUROPE_Cookie"
+  _debug2 Cookie $_H1
 
-  response="$(_get "${url}${ep}")"
+  response="$(_get "${HOSTEUROPE_Api}${ep}")"
   res="$?"
   _debug2 response "$response"
 
@@ -148,5 +211,5 @@ _hosteurope_get() {
 }
 
 _hosteurope_result() {
-    echo "$1" |  grep -a -A 10 "$2" | grep -a "<li>" | sed 's/^\s*<li>//g' | sed 's/<\/li>*$//g'
+  echo "$1" | awk '/INFO/ {for(i=1; i<=10; i++) {getline; print}}' | grep -a "<li>" | sed 's/^\s*<li>//g' | sed 's/<\/li>*$//g'
 }
