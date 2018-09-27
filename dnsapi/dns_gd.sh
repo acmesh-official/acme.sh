@@ -59,19 +59,13 @@ dns_gd_add() {
 
   _info "Adding record"
   if _gd_rest PUT "domains/$_domain/records/TXT/$_sub_domain" "[$_add_data]"; then
-    if [ "$response" = "{}" ]; then
-      _info "Added, sleeping 10 seconds"
-      _sleep 10
-      #todo: check if the record takes effect
-      return 0
-    else
-      _err "Add txt record error."
-      _err "$response"
-      return 1
-    fi
+    _info "Added, sleeping 10 seconds"
+    _sleep 10
+    #todo: check if the record takes effect
+    return 0
   fi
   _err "Add txt record error."
-
+  return 1
 }
 
 #fulldomain
@@ -174,5 +168,9 @@ _gd_rest() {
     return 1
   fi
   _debug2 response "$response"
+  if _contains "$response" "UNABLE_TO_AUTHENTICATE"; then
+    _err "It seems that your api key or secret is not correct."
+    return 1
+  fi
   return 0
 }
