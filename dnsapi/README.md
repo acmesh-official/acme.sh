@@ -972,7 +972,7 @@ The `NC_Apikey`,`NC_Apipw` and `NC_CID` will be saved in `~/.acme.sh/account.con
 
 ## 52. Use GratisDNS.dk
 
-GratisDNS.dk (https://gratisdns.dj/) does not provide an API to update DNS records (other than IPv4 and IPv6
+GratisDNS.dk (https://gratisdns.dk/) does not provide an API to update DNS records (other than IPv4 and IPv6
 dynamic DNS addresses).  The acme.sh plugin therefore retrieves and updates domain TXT records by logging
 into the GratisDNS website to read the HTML and posting updates as HTTP.  The plugin needs to know your
 userid and password for the GratisDNS website.
@@ -986,8 +986,32 @@ The username and password will be saved in `~/.acme.sh/account.conf` and will be
 
 Now you can issue a certificate.
 
+Note: It usually takes a few minutes (usually 3-4 minutes) before the changes propagates to gratisdns.dk nameservers (ns3.gratisdns.dk often are slow),
+and in rare cases I have seen over 5 minutes before google DNS catches it. Therefor a DNS sleep of at least 300 seconds are recommended-
+
 ```sh
-acme.sh --issue --dns dns_gdnsdk -d example.com -d *.example.com
+acme.sh --issue --dns dns_gdnsdk --dnssleep 300 -d example.com -d *.example.com
+```
+
+## 53. Use Namecheap
+
+You will need your namecheap username, API KEY (https://www.namecheap.com/support/api/intro.aspx) and your external IP address (or an URL to get it), this IP will need to be whitelisted at Namecheap.
+Due to Namecheap's API limitation all the records of your domain will be read and re applied, make sure to have a backup of your records you could apply if any issue would arise.
+
+```sh
+export NAMECHEAP_USERNAME="..."
+export NAMECHEAP_API_KEY="..."
+export NAMECHEAP_SOURCEIP="..."
+```
+
+NAMECHEAP_SOURCEIP can either be an IP address or an URL to provide it (e.g. https://ifconfig.co/ip).
+
+The username and password will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+Now you can issue a certificate.
+
+```sh
+acme.sh --issue --dns dns_namecheap -d example.com -d *.example.com
 ```
 
 ## 46. Hosteurope
