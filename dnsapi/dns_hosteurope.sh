@@ -33,8 +33,8 @@ dns_hosteurope_add() {
   fi
 
   #save the credentials to the account conf file.
-  _saveaccountconf_mutable HOSTEUROPE_Username  "$HOSTEUROPE_Username"
-  _saveaccountconf_mutable HOSTEUROPE_Password  "$HOSTEUROPE_Password"
+  _saveaccountconf_mutable HOSTEUROPE_Username "$HOSTEUROPE_Username"
+  _saveaccountconf_mutable HOSTEUROPE_Password "$HOSTEUROPE_Password"
 
   _debug "detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -70,13 +70,13 @@ dns_hosteurope_rm() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  _debug "get records"    
+  _debug "get records"
 
   _hosteurope_get "&submode=edit&domain=$_domain"
   _hostid="$(echo "$response" | grep -a -A 50 "$txtvalue" | grep -m 1 "hostid" | grep -o 'value="[^"]*' | grep -o '[^"]*$')"
   _debug _hostid "$_hostid"
 
-  if [ -z "$_hostid" ] ; then
+  if [ -z "$_hostid" ]; then
     _err "record not found"
     return 1
   fi
@@ -102,10 +102,10 @@ _get_root() {
   _debug2 domains "$_domains"
 
   for _d in $_domains; do
-    if echo "$domain" | grep "$_d$" > /dev/null; then
-        _domain="$_d"
-        _sub_domain="$(echo "$domain" | sed "s/$_d$//g" | sed "s/\\.$//g")"
-        return 0
+    if echo "$domain" | grep "$_d$" >/dev/null; then
+      _domain="$_d"
+      _sub_domain="$(echo "$domain" | sed "s/$_d$//g" | sed "s/\\.$//g")"
+      return 0
     fi
   done
 
@@ -116,10 +116,10 @@ _get_root() {
 
 _hosteurope_login() {
 
-  _readaccountconf_mutable HOSTEUROPE_Cookie   "$HOSTEUROPE_Cookie"
-  _readaccountconf_mutable HOSTEUROPE_Expires  "$HOSTEUROPE_Expires"
-  
-  if [ ! -z "$HOSTEUROPE_Cookie" ] && [ ! -z "$HOSTEUROPE_Expires" ] && [ $HOSTEUROPE_Expires -gt $(date "+%s") ]; then
+  _readaccountconf_mutable HOSTEUROPE_Cookie "$HOSTEUROPE_Cookie"
+  _readaccountconf_mutable HOSTEUROPE_Expires "$HOSTEUROPE_Expires"
+
+  if [ -n "$HOSTEUROPE_Cookie" ] && [ -n "$HOSTEUROPE_Expires" ] && [ "$HOSTEUROPE_Expires" -gt "$(date "+%s")" ]; then
     return 0
   fi
 
@@ -130,48 +130,45 @@ _hosteurope_login() {
 
   if [ "$response" != '{"success":true}' ]; then
     _err "error $response"
-    _debug2 response $response
+    _debug2 response "$response"
     return 1
   fi
 
-  headers=$(cat $HTTP_HEADER)
-  if [ $? -ne 0 ]; then
+  if ! headers=$(cat "$HTTP_HEADER"); then
     _err "error headers not found"
-    _debug2 HTTP_HEADER $HTTP_HEADER
+    _debug2 HTTP_HEADER "$HTTP_HEADER"
     return 1
   fi
 
-  cookies=$(echo "$headers" | sed -n -e 's/^Set-Cookie: //p')
-  if [ $? -ne 0 ]; then
+  if ! cookies=$(echo "$headers" | sed -n -e 's/^Set-Cookie: //p'); then
     _err "error authidp cookie not found"
-    _debug2 headers $headers
-    _debug2 cookies $cookies
-    return 1
-  fi
-  
-  authidp=$(echo "$cookies" | grep "auth_idp=")
-  if [ $? -ne 0 ]; then
-    _err "error authidp cookie not found"
-    _debug2 cookies $cookies
+    _debug2 headers "$headers"
+    _debug2 cookies "$cookies"
     return 1
   fi
 
-  HOSTEUROPE_Cookie=$(echo "$cookies" | awk '{print $1}' | tr -d '\n')
-  if [ $? -ne 0 ]; then
+  if ! authidp=$(echo "$cookies" | grep "auth_idp="); then
+    _err "error authidp cookie not found"
+    _debug2 cookies "$cookies"
+    return 1
+  fi
+
+  if ! HOSTEUROPE_Cookie=$(echo "$cookies" | awk '{print $1}' | tr -d '\n'); then
     _err "error parsing cookie"
-    _debug2 cookies $cookies
+    _debug2 cookies "$cookies"
     return 1
   fi
 
-  HOSTEUROPE_Expires=$(echo "$authidp" | sed -n -e 's/.*Expires=//p' | sed -n -e 's/;.*//p' | { read gmt ; date -d "$gmt" "+%s" ; })
-  if [ $? -ne 0 ]; then
+  if ! expires=$(echo "$authidp" | sed -n -e 's/.*Expires=//p' | sed -n -e 's/;.*//p'); then
     _err "error parsing cookie expiration date"
-    _debug2 authidp $authidp
+    _debug2 authidp "$authidp"
     return 1
   fi
-  
-  _saveaccountconf_mutable HOSTEUROPE_Cookie   "$HOSTEUROPE_Cookie"
-  _saveaccountconf_mutable HOSTEUROPE_Expires  "$HOSTEUROPE_Expires"
+
+  HOSTEUROPE_Expires=$(date -d "$expires" "+%s")
+
+  _saveaccountconf_mutable HOSTEUROPE_Cookie "$HOSTEUROPE_Cookie"
+  _saveaccountconf_mutable HOSTEUROPE_Expires "$HOSTEUROPE_Expires"
 
   return 0
 }
@@ -182,7 +179,7 @@ _hosteurope_get() {
 
   _hosteurope_login "$HOSTEUROPE_Username" "$HOSTEUROPE_Password"
   _H1="Cookie: $HOSTEUROPE_Cookie"
-  _debug2 Cookie $_H1
+  _debug2 Cookie "$_H1"
 
   response="$(_get "${HOSTEUROPE_Api}${ep}")"
   res="$?"
@@ -193,17 +190,17 @@ _hosteurope_get() {
     return 1
   fi
 
-  if echo "$response" | grep "<title>KIS Login</title>" > /dev/null; then
+  if echo "$response" | grep "<title>KIS Login</title>" >/dev/null; then
     _err "Invalid Credentials"
     return 1
   fi
 
-  if echo "$response" | grep "FEHLER" > /dev/null; then
+  if echo "$response" | grep "FEHLER" >/dev/null; then
     _err "$(_hosteurope_result "$response" "FEHLER")"
     return 1
   fi
 
-  if echo "$response" | grep "INFO" > /dev/null; then
+  if echo "$response" | grep "INFO" >/dev/null; then
     _info "$(_hosteurope_result "$response" "INFO")"
   fi
 
