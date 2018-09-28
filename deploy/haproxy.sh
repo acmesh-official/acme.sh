@@ -7,7 +7,7 @@
 # export DEPLOY_HAPROXY_PEM_NAME="${domain}.pem"
 #
 # Defines the name of the PEM file.
-# Defaults to "domain.pem"
+# Defaults to "<domain>.pem"
 #
 # export DEPLOY_HAPROXY_PEM_PATH="/etc/haproxy"
 #
@@ -52,7 +52,7 @@ haproxy_deploy() {
   DEPLOY_HAPROXY_PEM_NAME_DEFAULT="${_cdomain}.pem"
   DEPLOY_HAPROXY_BUNDLE_DEFAULT="no"
   DEPLOY_HAPROXY_ISSUER_DEFAULT="no"
-  DEPLOY_HAPROXY_RELOAD_DEFAULT="systemctl reload haproxy"
+  DEPLOY_HAPROXY_RELOAD_DEFAULT="true"
 
   if [ -f "${DOMAIN_CONF}" ]; then
     # shellcheck disable=SC1090
