@@ -267,13 +267,13 @@ export DEPLOY_HAPROXY_PEM_PATH=/etc/haproxy
 You may optionally specify the file name where you want the concatenated key and certificate chain written. The value shown below will be used as the default if you don't set this environment variable.
 
 ```sh
-export DEPLOY_HAPROXY_PEM_PATH=$domain
+export DEPLOY_HAPROXY_PEM_NAME=$domain
 ```
 
 You may optionally define the command to reload HAProxy. The value shown below will be used as the default if you don't set this environment variable.
 
 ```sh
-export DEPLOY_HAPROXY_RELOAD="systemctl reload haproxy"
+export DEPLOY_HAPROXY_RELOAD="true"
 ```
 
 You may optionally specify that the issuer certificate is transferred to "${DEPLOY_HAPROXY_PEM}.issuer". This is a requirement to support OCSP stapling in HAProxy. The value shown below will be used as the default if you don't set this environment variable.
