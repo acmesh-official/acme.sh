@@ -17,6 +17,9 @@
 # export DEPLOY_HAPROXY_RELOAD="systemctl reload haproxy"
 #
 # OPTIONAL: Reload command used post deploy
+# This defaults to be a no-op (ie "true").
+# It is strongly recommended to set this something that makes sense
+# for your distro.
 #
 # export DEPLOY_HAPROXY_ISSUER="no"
 #
@@ -249,7 +252,7 @@ haproxy_deploy() {
     # An OCSP file was already present but certificate did not have OCSP extension
     if [ -f "${_ocsp}" ]; then
       _err "OCSP was not requested but .ocsp file exists."
-      # Should remove the file at this step, although HAProxy just ignores it in this case
+      # Could remove the file at this step, although HAProxy just ignores it in this case
       # rm -f "${_ocsp}" || _err "Problem removing stale .ocsp file"
     fi
   fi
