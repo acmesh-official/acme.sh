@@ -17,6 +17,7 @@
 
 ########  Public functions #####################
 
+HOSTEUROPE_Sso="https://sso.hosteurope.de/api/app/v1/login"
 HOSTEUROPE_Deploy_Api="https://kis.hosteurope.de/administration/webhosting/admin.php"
 
 #domain keyfile certfile cafile fullchain
@@ -33,11 +34,13 @@ hosteurope_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  if [ -z "$DEPLOY_HOSTEUROPE_Username" ] && [ ! -z "$HOSTEUROPE_Username" ]; then
+  # shellcheck disable=SC2154
+  if [ -z "$DEPLOY_HOSTEUROPE_Username" ] && [ -n "$HOSTEUROPE_Username" ]; then
     DEPLOY_HOSTEUROPE_Username="$HOSTEUROPE_Username"
   fi
 
-  if [ -z "$DEPLOY_HOSTEUROPE_Password" ] && ! [ -z "$HOSTEUROPE_Password" ]; then
+  # shellcheck disable=SC2154
+  if [ -z "$DEPLOY_HOSTEUROPE_Password" ] && [ -n "$HOSTEUROPE_Password" ]; then
     DEPLOY_HOSTEUROPE_Password="$HOSTEUROPE_Password"
   fi
 
@@ -55,31 +58,91 @@ hosteurope_deploy() {
   fi
 
   #save the credentials to the account conf file.
-  _saveaccountconf_mutable DEPLOY_HOSTEUROPE_Username  "$DEPLOY_HOSTEUROPE_Username"
-  _saveaccountconf_mutable DEPLOY_HOSTEUROPE_Password  "$DEPLOY_HOSTEUROPE_Password"
+  _saveaccountconf_mutable DEPLOY_HOSTEUROPE_Username "$DEPLOY_HOSTEUROPE_Username"
+  _saveaccountconf_mutable DEPLOY_HOSTEUROPE_Password "$DEPLOY_HOSTEUROPE_Password"
   _saveaccountconf_mutable DEPLOY_HOSTEUROPE_WebServer "$DEPLOY_HOSTEUROPE_WebServer"
   _saveaccountconf_mutable DEPLOY_HOSTEUROPE_Directory "$DEPLOY_HOSTEUROPE_Directory"
 
   _debug "deploy cert"
   _debug "wp_id" "$DEPLOY_HOSTEUROPE_WebServer"
-  _debug "v_id"  "$DEPLOY_HOSTEUROPE_Directory"
+  _debug "v_id" "$DEPLOY_HOSTEUROPE_Directory"
 
-  _hosteurope_upload "$DEPLOY_HOSTEUROPE_Username" "$DEPLOY_HOSTEUROPE_Password" "$DEPLOY_HOSTEUROPE_WebServer" "$DEPLOY_HOSTEUROPE_Directory" "$(cat "$_ccert")" "$(cat "$_ckey")" "$(cat "$_cca")"
+  _hosteurope_upload "$(cat "$_ccert")" "$(cat "$_ckey")" "$(cat "$_cca")"
 }
 
 ####################  Private functions below ##################################
 
+_hosteurope_login() {
+
+  _readaccountconf_mutable HOSTEUROPE_Cookie "$HOSTEUROPE_Cookie"
+  _readaccountconf_mutable HOSTEUROPE_Expires "$HOSTEUROPE_Expires"
+
+  if [ -n "$HOSTEUROPE_Cookie" ] && [ -n "$HOSTEUROPE_Expires" ] && [ "$HOSTEUROPE_Expires" -gt "$(date "+%s")" ]; then
+    return 0
+  fi
+
+  # a call to _inithttp is needed to set HTTP_HEADER correctly (see https://github.com/Neilpang/acme.sh/issues/1859)
+  _inithttp
+
+  response="$(_post "{\"identifier\":\"$1\",\"password\":\"$2\",\"brandId\":\"b9c8f0f0-60dd-4cab-9da8-512b352d9c1a\"}" "${HOSTEUROPE_Sso}" "" "POST" "application/json")"
+
+  if [ "$response" != '{"success":true}' ]; then
+    _err "error $response"
+    _debug2 response "$response"
+    return 1
+  fi
+
+  if ! headers=$(cat "$HTTP_HEADER"); then
+    _err "error headers not found"
+    _debug2 HTTP_HEADER "$HTTP_HEADER"
+    return 1
+  fi
+
+  if ! cookies=$(echo "$headers" | sed -n -e 's/^Set-Cookie: //p'); then
+    _err "error authidp cookie not found"
+    _debug2 headers "$headers"
+    _debug2 cookies "$cookies"
+    return 1
+  fi
+
+  if ! authidp=$(echo "$cookies" | grep "auth_idp="); then
+    _err "error authidp cookie not found"
+    _debug2 cookies "$cookies"
+    return 1
+  fi
+
+  if ! HOSTEUROPE_Cookie=$(echo "$cookies" | awk '{print $1}' | tr -d '\n'); then
+    _err "error parsing cookie"
+    _debug2 cookies "$cookies"
+    return 1
+  fi
+
+  if ! expires=$(echo "$authidp" | sed -n -e 's/.*Expires=//p' | sed -n -e 's/;.*//p'); then
+    _err "error parsing cookie expiration date"
+    _debug2 authidp "$authidp"
+    return 1
+  fi
+
+  HOSTEUROPE_Expires=$(date -d "$expires" "+%s")
+
+  _saveaccountconf_mutable HOSTEUROPE_Cookie "$HOSTEUROPE_Cookie"
+  _saveaccountconf_mutable HOSTEUROPE_Expires "$HOSTEUROPE_Expires"
+
+  return 0
+}
+
 _hosteurope_upload() {
 
-  kdnummer="$(printf '%s' "$1" | _url_encode)"
-  passwd="$(printf '%s' "$2" | _url_encode)"
-  wp_id="$(printf '%s' "$3" | _url_encode)"
-  v_id="$(printf '%s' "$4" | _url_encode)"
-  certfile="$5"
-  keyfile="$6" 
-  cafile="$7"
+  wp_id="$(printf '%s' "$DEPLOY_HOSTEUROPE_WebServer" | _url_encode)"
+  v_id="$(printf '%s' "$DEPLOY_HOSTEUROPE_Directory" | _url_encode)"
 
-  url="$HOSTEUROPE_Deploy_Api?kdnummer=$kdnummer&passwd=$passwd"
+  certfile="$1"
+  keyfile="$2"
+  cafile="$3"
+
+  _hosteurope_login "$DEPLOY_HOSTEUROPE_Username" "$DEPLOY_HOSTEUROPE_Password"
+  _H1="Cookie: $HOSTEUROPE_Cookie"
+  _debug2 Cookie "$_H1"
 
   data="$(printf '
 -----------------------------XXX\nContent-Disposition: form-data; name="v_id"\n\n%s
@@ -92,26 +155,25 @@ _hosteurope_upload() {
 -----------------------------XXX\nContent-Disposition: form-data; name="keypass"\n\n\n
 -----------------------------XXX\nContent-Disposition: form-data; name="cafile"; filename="ca.cert"\nContent-Type: application/x-x509-ca-cert\n\n%s\n
 -----------------------------XXX--' "$v_id" "$wp_id" "$certfile" "$keyfile" "$cafile")"
-  _debug2 data
 
-  if ! response="$(_post "$data" "$url" "" "POST" "multipart/form-data; boundary=---------------------------XXX")"; then
+  if ! response="$(_post "$data" "$HOSTEUROPE_Deploy_Api" "" "POST" "multipart/form-data; boundary=---------------------------XXX")"; then
     _err "error"
     return 1
   fi
 
   _debug2 response "$response"
 
-  if echo "$response" | grep "<title>KIS Login</title>" > /dev/null; then
+  if echo "$response" | grep "<title>KIS Login</title>" >/dev/null; then
     _err "Invalid Credentials"
     return 1
   fi
 
-  if echo "$response" | grep "FEHLER" > /dev/null; then
+  if echo "$response" | grep "FEHLER" >/dev/null; then
     _err "$(_hosteurope_result "$response" "FEHLER")"
     return 1
   fi
 
-  if echo "$response" | grep "INFO" > /dev/null; then
+  if echo "$response" | grep "INFO" >/dev/null; then
     _info "$(_hosteurope_result "$response" "INFO")"
     return 0
   fi
@@ -121,5 +183,5 @@ _hosteurope_upload() {
 }
 
 _hosteurope_result() {
-    echo "$1" |  grep -a -A 10 "$2" | grep -a "<li>" | sed 's/^\s*<li>//g' | sed 's/<\/li>*$//g'
+  echo "$1" | awk '/INFO/ {for(i=1; i<=10; i++) {getline; print}}' | grep -a "<li>" | sed 's/^\s*<li>//g' | sed 's/<\/li>*$//g'
 }
