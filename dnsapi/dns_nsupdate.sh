@@ -7,13 +7,16 @@ dns_nsupdate_add() {
   fulldomain=$1
   txtvalue=$2
   _checkKeyFile || return 1
+  [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
+  [ -n "${NSUPDATE_SERVER_PORT}" ] || NSUPDATE_SERVER_PORT=53
   # save the dns server and key to the account conf file.
   _saveaccountconf NSUPDATE_SERVER "${NSUPDATE_SERVER}"
+  _saveaccountconf NSUPDATE_SERVER_PORT "${NSUPDATE_SERVER_PORT}"
   _saveaccountconf NSUPDATE_KEY "${NSUPDATE_KEY}"
   _savedomainconf NSUPDATE_SUFFIX "${NSUPDATE_SUFFIX}"
   _info "adding ${fulldomain}${NSUPDATE_SUFFIX}. 60 in txt \"${txtvalue}\""
   nsupdate -k "${NSUPDATE_KEY}" <<EOF
-server ${NSUPDATE_SERVER}
+server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT} 
 update add ${fulldomain}${NSUPDATE_SUFFIX}. 60 in txt "${txtvalue}"
 send
 EOF
@@ -29,9 +32,11 @@ EOF
 dns_nsupdate_rm() {
   fulldomain=$1
   _checkKeyFile || return 1
-  _info "removing ${fulldomain}${NSUPDATE_SUFFIX}. txt"
+  [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
+  [ -n "${NSUPDATE_SERVER_PORT}" ] || NSUPDATE_SERVER_PORT=53
+  _info "removing ${fulldomain}. txt"
   nsupdate -k "${NSUPDATE_KEY}" <<EOF
-server ${NSUPDATE_SERVER}
+server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT} 
 update delete ${fulldomain}${NSUPDATE_SUFFIX}. txt
 send
 EOF
