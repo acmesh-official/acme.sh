@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.7.9
+VER=2.8.0
 
 PROJECT_NAME="acme.sh"
 
@@ -1327,6 +1327,7 @@ createDomainKey() {
     if _createkey "$_cdl" "$CERT_KEY_PATH"; then
       _savedomainconf Le_Keylength "$_cdl"
       _info "The domain key is here: $(__green $CERT_KEY_PATH)"
+      return 0
     fi
   else
     if [ "$IS_RENEW" ]; then
@@ -1374,17 +1375,17 @@ _url_replace() {
 }
 
 _time2str() {
-  #Linux
-  if date -u -d@"$1" 2>/dev/null; then
-    return
-  fi
-
   #BSD
   if date -u -r "$1" 2>/dev/null; then
     return
   fi
 
-  #Soaris
+  #Linux
+  if date -u -d@"$1" 2>/dev/null; then
+    return
+  fi
+
+  #Solaris
   if _exists adb; then
     _t_s_a=$(echo "0t${1}=Y" | adb)
     echo "$_t_s_a"
@@ -1795,15 +1796,13 @@ _send_signed_request() {
     return 1
   fi
 
-  if [ "$ACME_VERSION" = "2" ]; then
-    __request_conent_type="$CONTENT_TYPE_JSON"
-  else
-    __request_conent_type=""
-  fi
+  __request_conent_type="$CONTENT_TYPE_JSON"
+
   payload64=$(printf "%s" "$payload" | _base64 | _url_replace)
   _debug3 payload64 "$payload64"
 
-  MAX_REQUEST_RETRY_TIMES=5
+  MAX_REQUEST_RETRY_TIMES=20
+  _sleep_retry_sec=1
   _request_retry_times=0
   while [ "${_request_retry_times}" -lt "$MAX_REQUEST_RETRY_TIMES" ]; do
     _request_retry_times=$(_math "$_request_retry_times" + 1)
@@ -1898,8 +1897,9 @@ _send_signed_request() {
     fi
 
     if _contains "$_body" "JWS has invalid anti-replay nonce" || _contains "$_body" "JWS has an invalid anti-replay nonce"; then
-      _info "It seems the CA server is busy now, let's wait and retry."
-      _sleep 5
+      _info "It seems the CA server is busy now, let's wait and retry. Sleeping $_sleep_retry_sec seconds."
+      _CACHED_NONCE=""
+      _sleep $_sleep_retry_sec
       continue
     fi
     break
