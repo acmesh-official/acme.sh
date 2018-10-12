@@ -69,7 +69,7 @@ dns_internetbs_rm() {
   _debug _domain "$_domain"
 
   _debug "Getting txt records"
-   # https://testapi.internet.bs/Domain/DnsRecord/List?ApiKey=testapi&Password=testpass&Domain=test-api-domain7.net&FilterType=CNAME&ResponseFormat=json
+  # https://testapi.internet.bs/Domain/DnsRecord/List?ApiKey=testapi&Password=testpass&Domain=test-api-domain7.net&FilterType=CNAME&ResponseFormat=json
   _internetbs_rest POST "Domain/DnsRecord/List" "Domain=$_domain&FilterType=TXT&ResponseFormat=json"
 
   if ! _contains "$response" "\"status\":\"SUCCESS\""; then
