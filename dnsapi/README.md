@@ -1014,6 +1014,23 @@ Now you can issue a certificate.
 acme.sh --issue --dns dns_namecheap -d example.com -d *.example.com
 ```
 
+## 54. Use zone.ee
+
+You will need your zone.ee username and API key (https://help.zone.eu/Knowledgebase/Article/View/546/50/zoneid-api-v2).  
+
+```sh
+export ZONEEE_User="..."
+export ZONEEE_Key="..."
+```
+
+The username and password will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+Now you can issue a certificate.
+
+```sh
+acme.sh --issue --dns dns_zoneee -d example.com -d *.example.com
+```
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
