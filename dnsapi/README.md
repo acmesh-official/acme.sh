@@ -1014,6 +1014,22 @@ Now you can issue a certificate.
 acme.sh --issue --dns dns_namecheap -d example.com -d *.example.com
 ```
 
+## 54. Use Internet.bs
+
+First you need to create/obtain API credentials on your Internet.bs (https://internetbs.net) account. Go to the "Get my API Key" section in the "My Domains" section.
+
+```
+export INTERNETBS_API_KEY="..."
+export INTERNETBS_API_PASSWORD="..."
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_internetbs -d example.com -d www.example.com
+```
+
+The `INTERNETBS_API_KEY` and `INTERNETBS_API_PASSWORD` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
