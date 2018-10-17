@@ -147,6 +147,14 @@ export NSUPDATE_SERVER="dns.example.com"
 export NSUPDATE_KEY="/path/to/your/nsupdate.key"
 ```
 
+If you want to use multiple update keys you can create a keyfolder and tell acme.sh to use it.
+Acme.sh then tries to use the key file `${NSUPDATE_KEYDIR}/example.com.key`. If there is none it falls back to the default `NSUPDATE_KEY`.
+
+```
+mkdir ~/.acme.sh/keys
+export NSUPDATE_KEYDIR="~/.acme.sh/keys"
+```
+
 Ok, let's issue a cert now:
 ```
 acme.sh --issue --dns dns_nsupdate -d example.com -d www.example.com
