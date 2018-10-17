@@ -36,8 +36,8 @@ dns_zoneee_add() {
   _debug "Getting txt records"
   _zoneee_rest GET "$_domain/txt"
 
-  if printf "%s" "$response" | grep \"result\":error >/dev/null; then
-    _err "Error"
+  if echo "$response" | grep \"result\":\"error\" >/dev/null; then
+    _err "Error Getting TXT records"
     return 1
   fi
 
