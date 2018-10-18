@@ -2925,6 +2925,7 @@ _clearupdns() {
     _debug txt "$txt"
     if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
       _debug "$d is already verified, skip $vtype."
+      _alias_index="$(_math "$_alias_index" + 1)"
       continue
     fi
 
@@ -3775,6 +3776,7 @@ $_authorizations_map"
       _debug d "$d"
       if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
         _debug "$d is already verified, skip $vtype."
+        _alias_index="$(_math "$_alias_index" + 1)"
         continue
       fi
 
