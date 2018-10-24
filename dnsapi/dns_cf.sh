@@ -19,7 +19,8 @@ dns_cf_add() {
   if [ -z "$CF_Key" ] || [ -z "$CF_Email" ]; then
     CF_Key=""
     CF_Email=""
-    _err "You didn't specify a cloudflare api key and email yet."
+    _err "You didn't specify a Cloudflare api key and email yet."
+    _err "You can get yours from here https://dash.cloudflare.com/profile."
     _err "Please create the key and try again."
     return 1
   fi
@@ -94,7 +95,8 @@ dns_cf_rm() {
   if [ -z "$CF_Key" ] || [ -z "$CF_Email" ]; then
     CF_Key=""
     CF_Email=""
-    _err "You didn't specify a cloudflare api key and email yet."
+    _err "You didn't specify a Cloudflare api key and email yet."
+    _err "You can get yours from here https://dash.cloudflare.com/profile."
     _err "Please create the key and try again."
     return 1
   fi
