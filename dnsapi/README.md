@@ -6,7 +6,7 @@ https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode
 
 ## 1. Use CloudFlare domain API to automatically issue cert
 
-First you need to login to your CloudFlare account to get your API key.
+First you need to login to your CloudFlare account to get your [API key](https://dash.cloudflare.com/profile). 
 
 ```
 export CF_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
