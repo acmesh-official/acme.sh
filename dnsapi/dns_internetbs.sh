@@ -137,7 +137,7 @@ _get_root() {
         return 0
       fi
 
-      p=i
+      p=${i}
       i=$(_math "$i" + 1)
     done
   fi
