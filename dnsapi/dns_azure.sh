@@ -76,10 +76,10 @@ dns_azure_add() {
   values="{\"value\":[\"$txtvalue\"]}"
   timestamp="$(_time)"
   if [ "$_code" = "200" ]; then
-    vlist="$(echo "$response" | _egrep_o "\"value\"\s*:\s*\[\s*\"[^\"]*\"\s*]" | cut -d : -f 2 | tr -d "[]\"")"
+    vlist="$(echo "$response" | _egrep_o "\"value\"\\s*:\\s*\\[\\s*\"[^\"]*\"\\s*]" | cut -d : -f 2 | tr -d "[]\"")"
     _debug "existing TXT found"
     _debug "$vlist"
-    existingts="$(echo "$response" | _egrep_o "\"acmetscheck\"\s*:\s*\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d "\"")"
+    existingts="$(echo "$response" | _egrep_o "\"acmetscheck\"\\s*:\\s*\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d "\"")"
     if [ -z "$existingts" ]; then
       # the record was not created by acme.sh. Copy the exisiting entires
       existingts=$timestamp
@@ -172,7 +172,7 @@ dns_azure_rm() {
   _azure_rest GET "$acmeRecordURI" "" "$accesstoken"
   timestamp="$(_time)"
   if [ "$_code" = "200" ]; then
-    vlist="$(echo "$response" | _egrep_o "\"value\"\s*:\s*\[\s*\"[^\"]*\"\s*]" | cut -d : -f 2 | tr -d "[]\"" | grep -v "$txtvalue")"
+    vlist="$(echo "$response" | _egrep_o "\"value\"\\s*:\\s*\\[\\s*\"[^\"]*\"\\s*]" | cut -d : -f 2 | tr -d "[]\"" | grep -v "$txtvalue")"
     values=""
     comma=""
     for v in $vlist; do
@@ -230,7 +230,7 @@ _azure_rest() {
     fi
     _ret="$?"
     _secure_debug2 "response $response"
-    _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
+    _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
     _debug "http response code $_code"
     if [ "$_code" = "401" ]; then
       # we have an invalid access token set to expired
@@ -308,7 +308,7 @@ _get_root() {
   domain=$1
   subscriptionId=$2
   accesstoken=$3
-  i=2
+  i=1
   p=1
 
   ## Ref: https://docs.microsoft.com/en-us/rest/api/dns/zones/list
@@ -328,9 +328,14 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
-      _domain_id=$(echo "$response" | _egrep_o "\{\"id\":\"[^\"]*$h\"" | head -n 1 | cut -d : -f 2 | tr -d \")
+      _domain_id=$(echo "$response" | _egrep_o "\\{\"id\":\"[^\"]*$h\"" | head -n 1 | cut -d : -f 2 | tr -d \")
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        if [ "$i" = 1 ]; then
+          #create the record at the domain apex (@) if only the domain name was provided as --domain-alias
+          _sub_domain="@"
+        else
+          _sub_domain=$(echo "$domain" | cut -d . -f 1-$p)
+        fi
         _domain=$h
         return 0
       fi

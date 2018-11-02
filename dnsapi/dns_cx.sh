@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-# Cloudxns.com Domain api
+# CloudXNS Domain api
 #
 #CX_Key="1234"
 #
@@ -19,7 +19,7 @@ dns_cx_add() {
   if [ -z "$CX_Key" ] || [ -z "$CX_Secret" ]; then
     CX_Key=""
     CX_Secret=""
-    _err "You don't specify cloudxns.com  api key or secret yet."
+    _err "You don't specify cloudxns.net  api key or secret yet."
     _err "Please create you key and try again."
     return 1
   fi

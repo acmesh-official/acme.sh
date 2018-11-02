@@ -13,12 +13,6 @@ env:
   global:
     - SHFMT_URL=https://github.com/mvdan/sh/releases/download/v0.4.0/shfmt_v0.4.0_linux_amd64
 
-addons:
-  apt:
-    sources:
-    - debian-sid    # Grab shellcheck from the Debian repo (o_O)
-    packages:
-    - shellcheck
 
 install:
   - if [ "$TRAVIS_OS_NAME" = 'osx' ]; then
@@ -29,9 +23,7 @@ install:
 script:
   - echo "NGROK_TOKEN=$(echo "$NGROK_TOKEN" | wc -c)"
   - command -V openssl && openssl version
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then curl -sSL $SHFMT_URL -o ~/shfmt ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then chmod +x ~/shfmt ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ~/shfmt -l -w -i 2 . ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then curl -sSL $SHFMT_URL -o ~/shfmt && chmod +x ~/shfmt && ~/shfmt -l -w -i 2 . ; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then git diff --exit-code && echo "shfmt OK" ; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then shellcheck -V ; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then shellcheck -e SC2181 **/*.sh && echo "shellcheck OK" ; fi
@@ -39,7 +31,6 @@ script:
   - git clone https://github.com/Neilpang/acmetest.git && cp -r acme.sh acmetest/ && cd acmetest
   - if [ "$TRAVIS_OS_NAME" = "linux" -a "$NGROK_TOKEN" ]; then sudo TEST_LOCAL="$TEST_LOCAL" NGROK_TOKEN="$NGROK_TOKEN" ./rundocker.sh testplat ubuntu:latest ; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" -a "$NGROK_TOKEN" ]; then sudo TEST_LOCAL="$TEST_LOCAL" NGROK_TOKEN="$NGROK_TOKEN" ACME_OPENSSL_BIN="$ACME_OPENSSL_BIN" ./letest.sh ; fi
-
 
 matrix:
   fast_finish: true

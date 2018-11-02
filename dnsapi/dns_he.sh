@@ -33,8 +33,9 @@ dns_he_add() {
   # Fills in the $_zone_id
   _find_zone "$_full_domain" || return 1
   _debug "Zone id \"$_zone_id\" will be used."
-
-  body="email=${HE_Username}&pass=${HE_Password}"
+  username_encoded="$(printf "%s" "${HE_Username}" | _url_encode)"
+  password_encoded="$(printf "%s" "${HE_Password}" | _url_encode)"
+  body="email=${username_encoded}&pass=${password_encoded}"
   body="$body&account="
   body="$body&menu=edit_zone"
   body="$body&Type=TXT"
@@ -71,7 +72,9 @@ dns_he_rm() {
   _debug "Zone id \"$_zone_id\" will be used."
 
   # Find the record id to clean
-  body="email=${HE_Username}&pass=${HE_Password}"
+  username_encoded="$(printf "%s" "${HE_Username}" | _url_encode)"
+  password_encoded="$(printf "%s" "${HE_Password}" | _url_encode)"
+  body="email=${username_encoded}&pass=${password_encoded}"
   body="$body&hosted_dns_zoneid=$_zone_id"
   body="$body&menu=edit_zone"
   body="$body&hosted_dns_editzone="
@@ -89,7 +92,9 @@ dns_he_rm() {
     return 1
   fi
   # Remove the record
-  body="email=${HE_Username}&pass=${HE_Password}"
+  username_encoded="$(printf "%s" "${HE_Username}" | _url_encode)"
+  password_encoded="$(printf "%s" "${HE_Password}" | _url_encode)"
+  body="email=${username_encoded}&pass=${password_encoded}"
   body="$body&menu=edit_zone"
   body="$body&hosted_dns_zoneid=$_zone_id"
   body="$body&hosted_dns_recordid=$_record_id"
@@ -112,9 +117,15 @@ dns_he_rm() {
 
 _find_zone() {
   _domain="$1"
-  body="email=${HE_Username}&pass=${HE_Password}"
+  username_encoded="$(printf "%s" "${HE_Username}" | _url_encode)"
+  password_encoded="$(printf "%s" "${HE_Password}" | _url_encode)"
+  body="email=${username_encoded}&pass=${password_encoded}"
   response="$(_post "$body" "https://dns.he.net/")"
   _debug2 response "$response"
+  if _contains "$response" '>Incorrect<'; then
+    _err "Unable to login to dns.he.net please check username and password"
+    return 1
+  fi
   _table="$(echo "$response" | tr -d "#" | sed "s/<table/#<table/g" | tr -d "\n" | tr "#" "\n" | grep 'id="domains_table"')"
   _debug2 _table "$_table"
   _matches="$(echo "$_table" | sed "s/<tr/#<tr/g" | tr "#" "\n" | grep 'alt="edit"' | tr -d " " | sed "s/<td/#<td/g" | tr "#" "\n" | grep 'hosted_dns_zoneid')"
