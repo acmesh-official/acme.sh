@@ -454,7 +454,7 @@ The `Infoblox_Creds` and `Infoblox_Server` will be saved in `~/.acme.sh/account.
 First you need to create/obtain API tokens on your [settings panel](https://vscale.io/panel/settings/tokens/).
 
 ```
-VSCALE_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
+export VSCALE_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
 ```
 
 Ok, let's issue a cert now:
