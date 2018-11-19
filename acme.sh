@@ -5485,7 +5485,7 @@ Parameters:
 
   --server SERVER                   ACME Directory Resource URI. (default: https://acme-v01.api.letsencrypt.org/directory)
   --accountconf                     Specifies a customized account config file.
-  --home                            Specifies the home dir for $PROJECT_NAME .
+  --home                            Specifies the home dir for $PROJECT_NAME.
   --cert-home                       Specifies the home dir to save all the certs, only valid for '--install' command.
   --config-home                     Specifies the home dir to save all the configurations.
   --useragent                       Specifies the user agent string. it will be saved for future use too.
