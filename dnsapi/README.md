@@ -6,7 +6,7 @@ https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode
 
 ## 1. Use CloudFlare domain API to automatically issue cert
 
-First you need to login to your CloudFlare account to get your API key.
+First you need to login to your CloudFlare account to get your [API key](https://dash.cloudflare.com/profile). 
 
 ```
 export CF_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
@@ -454,7 +454,7 @@ The `Infoblox_Creds` and `Infoblox_Server` will be saved in `~/.acme.sh/account.
 First you need to create/obtain API tokens on your [settings panel](https://vscale.io/panel/settings/tokens/).
 
 ```
-VSCALE_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
+export VSCALE_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
 ```
 
 Ok, let's issue a cert now:
