@@ -1014,6 +1014,22 @@ Now you can issue a certificate.
 acme.sh --issue --dns dns_namecheap -d example.com -d *.example.com
 ```
 
+## 54. Use MyDNS.JP API
+
+First, register to MyDNS.JP and get MasterID and Password.
+
+```
+export MYDNSJP_MasterID=MasterID
+export MYDNSJP_Password=Password
+```
+
+To issue a certificate:
+
+```
+acme.sh --issue --dns dns_mydnsjp -d example.com -d www.example.com
+```
+The `MYDNSJP_MasterID` and `MYDNSJP_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
