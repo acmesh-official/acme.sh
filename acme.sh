@@ -124,23 +124,19 @@ if [ -t 1 ]; then
 fi
 
 __green() {
-  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[1;31;32m'
+  if [ "${__INTERACTIVE}${ACME_NO_COLOR:-0}" = "10" -o "${ACME_FORCE_COLOR}" = "1" ]; then
+    printf '\033[1;31;32m%b\033[0m' "$1"
+    return
   fi
   printf -- "%b" "$1"
-  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[0m'
-  fi
 }
 
 __red() {
-  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[1;31;40m'
+  if [ "${__INTERACTIVE}${ACME_NO_COLOR:-0}" = "10" -o "${ACME_FORCE_COLOR}" = "1" ]; then
+    printf '\033[1;31;40m%b\033[0m' "$1"
+    return
   fi
   printf -- "%b" "$1"
-  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[0m'
-  fi
 }
 
 _printargs() {
