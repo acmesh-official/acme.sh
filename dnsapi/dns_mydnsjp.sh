@@ -15,7 +15,7 @@
 #  MYDNSJP_MasterID=MasterID
 #  MYDNSJP_Password=Password
 
-MYDNSJP_API="http://www.mydns.jp"
+MYDNSJP_API="https://www.mydns.jp"
 
 #Usage: dns_mydnsjp_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_mydnsjp_add() {
@@ -151,7 +151,7 @@ _mydnsjp_retrieve_domain() {
   _debug "Login to MyDNS.JP"
 
   response="$(_post "masterid=$MYDNSJP_MasterID&masterpwd=$MYDNSJP_Password" "$MYDNSJP_API/?MENU=100")"
-  cookie="$(grep '^Set-Cookie:' "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2)"
+  cookie="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2)"
 
   # If cookies is not empty then logon successful
   if [ -z "$cookie" ]; then
