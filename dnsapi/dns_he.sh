@@ -92,7 +92,9 @@ dns_he_rm() {
     return 1
   fi
   # Remove the record
-  body="email=${HE_Username}&pass=${HE_Password}"
+  username_encoded="$(printf "%s" "${HE_Username}" | _url_encode)"
+  password_encoded="$(printf "%s" "${HE_Password}" | _url_encode)"
+  body="email=${username_encoded}&pass=${password_encoded}"
   body="$body&menu=edit_zone"
   body="$body&hosted_dns_zoneid=$_zone_id"
   body="$body&hosted_dns_recordid=$_record_id"
