@@ -1054,6 +1054,24 @@ acme.sh --issue --dns dns_hostingde -d example.com -d *.example.com
 
 The hosting.de API key and endpoint will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 56. Use Vultr API
+
+You'll need an API key for your Vultr account which you can find [under the Account settings](https://my.vultr.com/settings/#settingsapi) and you'll want to ensure the API key is allowed for any IPs you might be using acme.sh with.
+
+Vultr supports creating sub-accounts with limited permissions, and it's a good idea to create a sub-account with only the 'Manage DNS' permission and use an API key from that sub-account.
+
+```sh
+export VULTR_API_KEY="<Your API key>"
+```
+
+To issue a cert:
+
+```sh
+acme.sh --issue --dns dns_vultr -d example.com -d www.example.com
+```
+
+The `VULTR_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
