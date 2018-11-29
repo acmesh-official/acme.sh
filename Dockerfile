@@ -4,6 +4,7 @@ RUN apk update -f \
   && apk --no-cache add -f \
   openssl \
   coreutils \
+  bind-tools \
   curl \
   socat \
   && rm -rf /var/cache/apk/*
