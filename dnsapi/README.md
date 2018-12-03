@@ -1054,6 +1054,19 @@ acme.sh --issue --dns dns_hostingde -d example.com -d *.example.com
 
 The hosting.de API key and endpoint will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 56. Use Neodigit.net API
+
+```
+export NEODIGIT_API_TOKEN="eXJxTkdUVUZmcHQ3QWJackQ4ZGlMejRDSklRYmo5VG5zcFFKK2thYnE0WnVnNnMy"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_neodigit -d example.com -d www.example.com
+```
+
+Neodigit API Token will be saved in `~/.acme.sh/account.conf` and will be used when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
