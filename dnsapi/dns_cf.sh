@@ -155,7 +155,7 @@ dns_cf_rm() {
 # _domain_id=sdjkglgdfewsdfg
 _get_root() {
 
-  _cf_zones="$(_readdomainconf $_DOMAIN_CF_ZONES_CACHE_NAME_)"
+  _cf_zones="$(_readdomainconf "$_DOMAIN_CF_ZONES_CACHE_NAME_")"
   _debug2 "_cf_zones" "$_cf_zones"
   if [ -z "$_cf_zones" ]; then
     _debug "$_DOMAIN_CF_ZONES_CACHE_NAME_ is none, so get it."
