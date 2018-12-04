@@ -329,8 +329,9 @@ You don't have to do anything manually!
 1. Namecheap API (https://www.namecheap.com/)
 1. MyDNS.JP API (https://www.mydns.jp/)
 1. hosting.de (https://www.hosting.de)
+1. Neodigit.net API (https://www.neodigit.net)
 
-And: 
+And:
 
 **lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
    (DigitalOcean, DNSimple, DNSMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)**
