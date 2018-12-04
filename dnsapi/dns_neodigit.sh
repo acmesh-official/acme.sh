@@ -17,7 +17,7 @@ dns_neodigit_add() {
   fulldomain=$1
   txtvalue=$2
 
-  NEODIGIT_API_TOKEN="${NEODIGIT_API_TOKEN:-$(_readaccountconf_mutable NEODIGIT_API_TOKEN)}"
+  NEODIGIT_API_TOKEN="$(_readaccountconf_mutable NEODIGIT_API_TOKEN)}"
   if [ -z "$NEODIGIT_API_TOKEN" ]; then
     NEODIGIT_API_TOKEN=""
     _err "You haven't specified a Token api key."
@@ -73,7 +73,7 @@ dns_neodigit_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  NEODIGIT_API_TOKEN="${NEODIGIT_API_TOKEN:-$(_readaccountconf_mutable NEODIGIT_API_TOKEN)}"
+  NEODIGIT_API_TOKEN="$(_readaccountconf_mutable NEODIGIT_API_TOKEN)}"
   if [ -z "$NEODIGIT_API_TOKEN" ]; then
     NEODIGIT_API_TOKEN=""
     _err "You haven't specified a Token api key."
@@ -102,7 +102,7 @@ dns_neodigit_rm() {
     return 1
   fi
 
-  record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
+  record_id=$(echo "$response" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
   _debug "record_id" "$record_id"
   if [ -z "$record_id" ]; then
     _err "Can not get record id to remove."
@@ -140,7 +140,7 @@ _get_root() {
     _debug p "$p"
 
     if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
-      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
+      _domain_id=$(echo "$response" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain=$h
