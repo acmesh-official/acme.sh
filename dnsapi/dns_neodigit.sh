@@ -17,7 +17,7 @@ dns_neodigit_add() {
   fulldomain=$1
   txtvalue=$2
 
-  NEODIGIT_API_TOKEN="$(_readaccountconf_mutable NEODIGIT_API_TOKEN)}"
+  NEODIGIT_API_TOKEN="${NEODIGIT_API_TOKEN:-$(_readaccountconf_mutable NEODIGIT_API_TOKEN)}"
   if [ -z "$NEODIGIT_API_TOKEN" ]; then
     NEODIGIT_API_TOKEN=""
     _err "You haven't specified a Token api key."
@@ -73,7 +73,7 @@ dns_neodigit_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  NEODIGIT_API_TOKEN="$(_readaccountconf_mutable NEODIGIT_API_TOKEN)}"
+  NEODIGIT_API_TOKEN="${NEODIGIT_API_TOKEN:-$(_readaccountconf_mutable NEODIGIT_API_TOKEN)}"
   if [ -z "$NEODIGIT_API_TOKEN" ]; then
     NEODIGIT_API_TOKEN=""
     _err "You haven't specified a Token api key."
