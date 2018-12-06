@@ -2839,7 +2839,7 @@ _isRealNginxConf() {
         _skip_ssl=1
         for _listen_i in $(echo "$_seg_n" | tr "\t" ' ' | grep "^ *listen" | tr -d " "); do
           if [ "$_listen_i" ]; then
-            if [ "$(echo "$_listen_i" | _egrep_o "listen.*ssl[ |;]")" ]; then
+            if [ "$(echo "$_listen_i" | _egrep_o "listen.*ssl")" ]; then
               _debug2 "$_listen_i is ssl"
             else
               _debug2 "$_listen_i is plain text"
