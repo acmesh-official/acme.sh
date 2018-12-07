@@ -18,12 +18,12 @@
 
 rancher_deploy() {
   _cdomain="$1"
-  # Further $(echo "$1" | sed 's/$/\\n/' | tr -d '\n')
+  # Further $(sed 's/$/\\n/' "$1" | tr -d '\n')
   # Made for iclude cert in var in one line with \n
-  _ckey=$(echo "$2" | sed 's/$/\\n/' | tr -d '\n')
-  _ccert=$(echo "$3" | sed 's/$/\\n/' | tr -d '\n')
-  _cca=$(echo "$4" | sed 's/$/\\n/' | tr -d '\n')
-  _cfullchain=$(echo "$5" | sed 's/$/\\n/' | tr -d '\n')
+  _ckey=$(sed 's/$/\\n/' "$2" | tr -d '\n')
+  _ccert=$(sed 's/$/\\n/' "$3" | tr -d '\n')
+  _cca=$(sed 's/$/\\n/' "$4" | tr -d '\n')
+  _cfullchain=$(sed 's/$/\\n/' "$5" | tr -d '\n')
 
   _debug _cdomain "$_cdomain"
   _debug _ckey "$_ckey"
