@@ -35,7 +35,7 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 - [discourse.org](https://meta.discourse.org/t/setting-up-lets-encrypt/40709)
 - [Centminmod](https://centminmod.com/letsencrypt-acmetool-https.html)
 - [splynx](https://forum.splynx.com/t/free-ssl-cert-for-splynx-lets-encrypt/297)
-- [archlinux](https://aur.archlinux.org/packages/acme.sh-git/)
+- [archlinux](https://www.archlinux.org/packages/community/any/acme.sh)
 - [opnsense.org](https://github.com/opnsense/plugins/tree/master/security/acme-client/src/opnsense/scripts/OPNsense/AcmeClient)
 - [CentOS Web Panel](http://centos-webpanel.com/)
 - [lnmp.org](https://lnmp.org/)
@@ -329,8 +329,9 @@ You don't have to do anything manually!
 1. Namecheap API (https://www.namecheap.com/)
 1. MyDNS.JP API (https://www.mydns.jp/)
 1. hosting.de (https://www.hosting.de)
+1. Neodigit.net API (https://www.neodigit.net)
 
-And: 
+And:
 
 **lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
    (DigitalOcean, DNSimple, DNSMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)**

@@ -2,7 +2,7 @@
 
 #Author: Philipp Grosswiler <philipp.grosswiler@swiss-design.net>
 
-LINODE_API_URL="https://api.linode.com/?api_key=$LINODE_API_KEY&api_action="
+LINODE_API_URL="https://api.linode.com/v4/domains"
 
 ########  Public functions #####################
 
@@ -27,10 +27,14 @@ dns_linode_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  _parameters="&DomainID=$_domain_id&Type=TXT&Name=$_sub_domain&Target=$txtvalue"
+  _payload="{
+              \"type\": \"TXT\",
+              \"name\": \"$_sub_domain\",
+              \"target\": \"$txtvalue\"
+            }"
 
-  if _rest GET "domain.resource.create" "$_parameters" && [ -n "$response" ]; then
-    _resource_id=$(printf "%s\n" "$response" | _egrep_o "\"ResourceID\":\s*[0-9]+" | cut -d : -f 2 | tr -d " " | _head_n 1)
+  if _rest POST "/$_domain_id/records" "$_payload" && [ -n "$response" ]; then
+    _resource_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\s*[0-9]+" | cut -d : -f 2 | tr -d " " | _head_n 1)
     _debug _resource_id "$_resource_id"
 
     if [ -z "$_resource_id" ]; then
@@ -65,25 +69,21 @@ dns_linode_rm() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  _parameters="&DomainID=$_domain_id"
-
-  if _rest GET "domain.resource.list" "$_parameters" && [ -n "$response" ]; then
+  if _rest GET "/$_domain_id/records" && [ -n "$response" ]; then
     response="$(echo "$response" | tr -d "\n" | tr '{' "|" | sed 's/|/&{/g' | tr "|" "\n")"
 
-    resource="$(echo "$response" | _egrep_o "{.*\"NAME\":\s*\"$_sub_domain\".*}")"
+    resource="$(echo "$response" | _egrep_o "{.*\"name\":\s*\"$_sub_domain\".*}")"
     if [ "$resource" ]; then
-      _resource_id=$(printf "%s\n" "$resource" | _egrep_o "\"RESOURCEID\":\s*[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
+      _resource_id=$(printf "%s\n" "$resource" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
       if [ "$_resource_id" ]; then
         _debug _resource_id "$_resource_id"
 
-        _parameters="&DomainID=$_domain_id&ResourceID=$_resource_id"
+        if _rest DELETE "/$_domain_id/records/$_resource_id" && [ -n "$response" ]; then
+          # On 200/OK, empty set is returned. Check for error, if any.
+          _error_response=$(printf "%s\n" "$response" | _egrep_o "\"errors\"" | cut -d : -f 2 | tr -d " " | _head_n 1)
 
-        if _rest GET "domain.resource.delete" "$_parameters" && [ -n "$response" ]; then
-          _resource_id=$(printf "%s\n" "$response" | _egrep_o "\"ResourceID\":\s*[0-9]+" | cut -d : -f 2 | tr -d " " | _head_n 1)
-          _debug _resource_id "$_resource_id"
-
-          if [ -z "$_resource_id" ]; then
-            _err "Error deleting the domain resource."
+          if [ -n "$_error_response" ]; then
+            _err "Error deleting the domain resource: $_error_response"
             return 1
           fi
 
@@ -127,7 +127,7 @@ _get_root() {
   i=2
   p=1
 
-  if _rest GET "domain.list"; then
+  if _rest GET; then
     response="$(echo "$response" | tr -d "\n" | tr '{' "|" | sed 's/|/&{/g' | tr "|" "\n")"
     while true; do
       h=$(printf "%s" "$domain" | cut -d . -f $i-100)
@@ -137,9 +137,9 @@ _get_root() {
         return 1
       fi
 
-      hostedzone="$(echo "$response" | _egrep_o "{.*\"DOMAIN\":\s*\"$h\".*}")"
+      hostedzone="$(echo "$response" | _egrep_o "{.*\"domain\":\s*\"$h\".*}")"
       if [ "$hostedzone" ]; then
-        _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "\"DOMAINID\":\s*[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
+        _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
         if [ "$_domain_id" ]; then
           _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
           _domain=$h
@@ -165,6 +165,7 @@ _rest() {
 
   export _H1="Accept: application/json"
   export _H2="Content-Type: application/json"
+  export _H3="Authorization: Bearer $LINODE_API_KEY"
 
   if [ "$mtd" != "GET" ]; then
     # both POST and DELETE.

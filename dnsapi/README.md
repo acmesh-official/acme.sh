@@ -264,9 +264,18 @@ when needed.
 ## 14. Use Linode domain API
 
 First you need to login to your Linode account to get your API Key.
-[https://manager.linode.com/profile/api](https://manager.linode.com/profile/api)
 
-Then add an API key with label *ACME* and copy the new key.
+  * [Classic Manager](https://manager.linode.com/profile/api)
+
+   Under "Add an API key", Give the new key a "Label" (we recommend *ACME*),
+   set the expiry to never, "Create API Key", and copy the new key into the `LINODE_API_KEY` command
+   below.
+
+  * [Cloud Manager](https://cloud.linode.com/profile/tokens)
+
+   Click on "Add a Personal Access Token". Give the new key a "Label" (we
+   recommend *ACME*), give it Read/Write access to "Domains". "Submit", and
+   copy the new key into the `LINODE_API_KEY` command below.
 
 ```sh
 export LINODE_API_KEY="..."
@@ -1053,6 +1062,19 @@ acme.sh --issue --dns dns_hostingde -d example.com -d *.example.com
 ```
 
 The hosting.de API key and endpoint will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 56. Use Neodigit.net API
+
+```
+export NEODIGIT_API_TOKEN="eXJxTkdUVUZmcHQ3QWJackQ4ZGlMejRDSklRYmo5VG5zcFFKK2thYnE0WnVnNnMy"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_neodigit -d example.com -d www.example.com
+```
+
+Neodigit API Token will be saved in `~/.acme.sh/account.conf` and will be used when needed.
 
 # Use custom API
 
