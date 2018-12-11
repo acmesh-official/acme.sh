@@ -181,7 +181,7 @@ _get_root() {
     fi
 
     if _contains "$_cf_zones" "\"name\":\"$h\"" >/dev/null; then
-      _domain_id=$(printf "%s\n" "$_cf_zones" | _egrep_o "\[.\"id\":\"[^\"]*\"" | head -n 1 | cut -d : -f 2 | tr -d \")
+      _domain_id=$(echo "$_cf_zones" | tr '{' "\n" | grep "\"name\":\"$h\"" | _egrep_o "^\"id\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain=$h
