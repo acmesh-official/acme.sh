@@ -39,7 +39,6 @@ dns_pointhq_add() {
     _err "invalid domain"
     return 1
   fi
-  _debug _domain_id "$_domain_id"
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
@@ -77,7 +76,6 @@ dns_pointhq_rm() {
     _err "invalid domain"
     return 1
   fi
-  _debug _domain_id "$_domain_id"
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
@@ -111,7 +109,6 @@ dns_pointhq_rm() {
 #returns
 # _sub_domain=_acme-challenge.www
 # _domain=domain.com
-# _domain_id=sdjkglgdfewsdfg
 _get_root() {
   domain=$1
   i=2
@@ -145,7 +142,7 @@ _pointhq_rest() {
   data="$3"
   _debug "$ep"
 
-  _pointhq_auth=$(printf "%s:%s" "$PointHQ_Username" "$PointHQ_Key" | _base64)
+  _pointhq_auth=$(printf "%s:%s" "$PointHQ_Email" "$PointHQ_Key" | _base64)
 
   export _H1="Authorization: Basic $_pointhq_auth"
   export _H2="Content-Type: application/json"
