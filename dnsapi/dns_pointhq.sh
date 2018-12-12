@@ -142,7 +142,7 @@ _pointhq_rest() {
   data="$3"
   _debug "$ep"
 
-  _pointhq_auth=$(printf "%s:%s" "$PointHQ_Username" "$PointHQ_Key" | _base64)
+  _pointhq_auth=$(printf "%s:%s" "$PointHQ_Email" "$PointHQ_Key" | _base64)
 
   export _H1="Authorization: Basic $_pointhq_auth"
   export _H2="Content-Type: application/json"
