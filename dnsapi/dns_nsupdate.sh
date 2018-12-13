@@ -14,7 +14,9 @@ dns_nsupdate_add() {
   _saveaccountconf NSUPDATE_SERVER_PORT "${NSUPDATE_SERVER_PORT}"
   _saveaccountconf NSUPDATE_KEY "${NSUPDATE_KEY}"
   _info "adding ${fulldomain}. 60 in txt \"${txtvalue}\""
-  nsupdate -k "${NSUPDATE_KEY}" <<EOF
+  [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_1" ] && nsdebug="-d"
+  [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_2" ] && nsdebug="-D"
+  nsupdate -k "${NSUPDATE_KEY}" $nsdebug <<EOF
 server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT} 
 update add ${fulldomain}. 60 in txt "${txtvalue}"
 send
@@ -34,7 +36,9 @@ dns_nsupdate_rm() {
   [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
   [ -n "${NSUPDATE_SERVER_PORT}" ] || NSUPDATE_SERVER_PORT=53
   _info "removing ${fulldomain}. txt"
-  nsupdate -k "${NSUPDATE_KEY}" <<EOF
+  [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_1" ] && nsdebug="-d"
+  [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_2" ] && nsdebug="-D"
+  nsupdate -k "${NSUPDATE_KEY}" $nsdebug <<EOF
 server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT} 
 update delete ${fulldomain}. txt
 send
