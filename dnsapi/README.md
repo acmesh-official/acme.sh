@@ -146,13 +146,17 @@ Finally, make the DNS server and update Key available to `acme.sh`
 export NSUPDATE_SERVER="dns.example.com"
 export NSUPDATE_KEY="/path/to/your/nsupdate.key"
 ```
+and optionally (depending on DNS server)
+```
+export NSUPDATE_ZONE="example.com"
+```
 
 Ok, let's issue a cert now:
 ```
 acme.sh --issue --dns dns_nsupdate -d example.com -d www.example.com
 ```
 
-The `NSUPDATE_SERVER` and `NSUPDATE_KEY` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+The `NSUPDATE_SERVER`, `NSUPDATE_KEY`, and `NSUPDATE_ZONE` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 
 ## 8. Use LuaDNS domain API
