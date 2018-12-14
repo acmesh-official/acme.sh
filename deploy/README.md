@@ -296,3 +296,39 @@ You can then deploy the certificate as follows
 ```sh
 acme.sh --deploy -d www.mydomain.com --deploy-hook gitlab
 ```
+
+## 12. Deploy your cert to Hashicorp Vault
+
+```sh
+export VAULT_PREFIX="acme"
+```
+
+You can then deploy the certificate as follows
+
+```sh
+acme.sh --deploy -d www.mydomain.com --deploy-hook vault_cli
+```
+
+Your certs will be saved in Vault using this structure:
+
+```sh
+vault write "${VAULT_PREFIX}/${domain}/cert.pem"      value=@"..."
+vault write "${VAULT_PREFIX}/${domain}/cert.key"      value=@"..."
+vault write "${VAULT_PREFIX}/${domain}/chain.pem"     value=@"..."
+vault write "${VAULT_PREFIX}/${domain}/fullchain.pem" value=@"..."
+```
+
+You might be using Fabio load balancer (which can get certs from
+Vault). It needs a bit different structure of your certs in Vault. It
+gets certs only from keys that were saved in `prefix/domain`, like this:
+
+```bash
+vault write <PREFIX>/www.domain.com cert=@cert.pem key=@key.pem
+```
+
+If you want to save certs in Vault this way just set "FABIO" env
+variable to anything (ex: "1") before running `acme.sh`:
+
+```sh
+export FABIO="1"
+```

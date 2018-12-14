@@ -6,7 +6,7 @@ https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode
 
 ## 1. Use CloudFlare domain API to automatically issue cert
 
-First you need to login to your CloudFlare account to get your API key.
+First you need to login to your CloudFlare account to get your [API key](https://dash.cloudflare.com/profile). 
 
 ```
 export CF_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
@@ -264,9 +264,18 @@ when needed.
 ## 14. Use Linode domain API
 
 First you need to login to your Linode account to get your API Key.
-[https://manager.linode.com/profile/api](https://manager.linode.com/profile/api)
 
-Then add an API key with label *ACME* and copy the new key.
+  * [Classic Manager](https://manager.linode.com/profile/api)
+
+   Under "Add an API key", Give the new key a "Label" (we recommend *ACME*),
+   set the expiry to never, "Create API Key", and copy the new key into the `LINODE_API_KEY` command
+   below.
+
+  * [Cloud Manager](https://cloud.linode.com/profile/tokens)
+
+   Click on "Add a Personal Access Token". Give the new key a "Label" (we
+   recommend *ACME*), give it Read/Write access to "Domains". "Submit", and
+   copy the new key into the `LINODE_API_KEY` command below.
 
 ```sh
 export LINODE_API_KEY="..."
@@ -454,7 +463,7 @@ The `Infoblox_Creds` and `Infoblox_Server` will be saved in `~/.acme.sh/account.
 First you need to create/obtain API tokens on your [settings panel](https://vscale.io/panel/settings/tokens/).
 
 ```
-VSCALE_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
+export VSCALE_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
 ```
 
 Ok, let's issue a cert now:
@@ -971,6 +980,8 @@ acme.sh --issue --dns dns_netcup -d example.com -d www.example.com
 The `NC_Apikey`,`NC_Apipw` and `NC_CID` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 ## 52. Use GratisDNS.dk
 
+
+
 GratisDNS.dk (https://gratisdns.dk/) does not provide an API to update DNS records (other than IPv4 and IPv6
 dynamic DNS addresses).  The acme.sh plugin therefore retrieves and updates domain TXT records by logging
 into the GratisDNS website to read the HTML and posting updates as HTTP.  The plugin needs to know your
@@ -1012,7 +1023,61 @@ Now you can issue a certificate.
 ```sh
 acme.sh --issue --dns dns_namecheap -d example.com -d *.example.com
 ```
-## 53. Use Nexcess API
+
+## 54. Use MyDNS.JP API
+
+First, register to MyDNS.JP and get MasterID and Password.
+
+```
+export MYDNSJP_MasterID=MasterID
+export MYDNSJP_Password=Password
+```
+
+To issue a certificate:
+
+```
+acme.sh --issue --dns dns_mydnsjp -d example.com -d www.example.com
+```
+The `MYDNSJP_MasterID` and `MYDNSJP_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 55. Use hosting.de API
+
+Create an API key in your hosting.de account here: https://secure.hosting.de
+
+The key needs the following rights:
+- DNS_ZONES_EDIT
+- DNS_ZONES_LIST
+
+Set your API Key and endpoint:
+
+```
+export HOSTINGDE_APIKEY='xxx'
+export HOSTINGDE_ENDPOINT='https://secure.hosting.de'
+```
+
+The plugin can also be used for the http.net API. http.net customers have to set endpoint to https://partner.http.net.
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_hostingde -d example.com -d *.example.com
+```
+
+The hosting.de API key and endpoint will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 56. Use Neodigit.net API
+
+```
+export NEODIGIT_API_TOKEN="eXJxTkdUVUZmcHQ3QWJackQ4ZGlMejRDSklRYmo5VG5zcFFKK2thYnE0WnVnNnMy"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_neodigit -d example.com -d www.example.com
+```
+
+Neodigit API Token will be saved in `~/.acme.sh/account.conf` and will be used when needed.
+
+## 57. Use Nexcess API
 
 First, you'll need to login to the [Nexcess.net Client Portal](https://portal.nexcess.net) and [generate a new API token](https://portal.nexcess.net/api-token).
 
@@ -1029,7 +1094,8 @@ acme.sh --issue --dns dns_nexcess -d example.com --dnssleep 900
 ```
 
 The `NEXCESS_API_TOKEN will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
-## 54. Use Thermo.io API
+
+## 58. Use Thermo.io API
 
 First, you'll need to login to the [Thermo.io Client Portal](https://core.thermo.io) and [generate a new API token](https://core.thermo.io/api-token).
 
@@ -1046,7 +1112,8 @@ acme.sh --issue --dns dns_thermo -d example.com --dnssleep 900
 ```
 
 The `THERMO_API_TOKEN will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
-## 55. Use Futurehosting API
+
+## 59. Use Futurehosting API
 
 First, you'll need to login to the [Futurehosting Client Portal](https://my.futurehosting.com) and [generate a new API token](https://my.futurehosting.com/api-token).
 
@@ -1063,6 +1130,7 @@ acme.sh --issue --dns dns_fh -d example.com --dnssleep 900
 ```
 
 The `FH_API_TOKEN will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.

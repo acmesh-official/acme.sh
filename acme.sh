@@ -124,23 +124,19 @@ if [ -t 1 ]; then
 fi
 
 __green() {
-  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[1;31;32m'
+  if [ "${__INTERACTIVE}${ACME_NO_COLOR:-0}" = "10" -o "${ACME_FORCE_COLOR}" = "1" ]; then
+    printf '\033[1;31;32m%b\033[0m' "$1"
+    return
   fi
   printf -- "%b" "$1"
-  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[0m'
-  fi
 }
 
 __red() {
-  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[1;31;40m'
+  if [ "${__INTERACTIVE}${ACME_NO_COLOR:-0}" = "10" -o "${ACME_FORCE_COLOR}" = "1" ]; then
+    printf '\033[1;31;40m%b\033[0m' "$1"
+    return
   fi
   printf -- "%b" "$1"
-  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[0m'
-  fi
 }
 
 _printargs() {
@@ -1810,14 +1806,14 @@ _send_signed_request() {
     if [ -z "$_CACHED_NONCE" ]; then
       _headers=""
       if [ "$ACME_NEW_NONCE" ]; then
-        _debug2 "Get nonce. ACME_NEW_NONCE" "$ACME_NEW_NONCE"
+        _debug2 "Get nonce with HEAD. ACME_NEW_NONCE" "$ACME_NEW_NONCE"
         nonceurl="$ACME_NEW_NONCE"
         if _post "" "$nonceurl" "" "HEAD" "$__request_conent_type"; then
           _headers="$(cat "$HTTP_HEADER")"
         fi
       fi
       if [ -z "$_headers" ]; then
-        _debug2 "Get nonce. ACME_DIRECTORY" "$ACME_DIRECTORY"
+        _debug2 "Get nonce with GET. ACME_DIRECTORY" "$ACME_DIRECTORY"
         nonceurl="$ACME_DIRECTORY"
         _headers="$(_get "$nonceurl" "onlyheader")"
       fi
@@ -2843,7 +2839,7 @@ _isRealNginxConf() {
         _skip_ssl=1
         for _listen_i in $(echo "$_seg_n" | tr "\t" ' ' | grep "^ *listen" | tr -d " "); do
           if [ "$_listen_i" ]; then
-            if [ "$(echo "$_listen_i" | _egrep_o "listen.*ssl[ |;]")" ]; then
+            if [ "$(echo "$_listen_i" | _egrep_o "listen.*ssl")" ]; then
               _debug2 "$_listen_i is ssl"
             else
               _debug2 "$_listen_i is plain text"
@@ -2925,6 +2921,7 @@ _clearupdns() {
     _debug txt "$txt"
     if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
       _debug "$d is already verified, skip $vtype."
+      _alias_index="$(_math "$_alias_index" + 1)"
       continue
     fi
 
@@ -3775,6 +3772,7 @@ $_authorizations_map"
       _debug d "$d"
       if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
         _debug "$d is already verified, skip $vtype."
+        _alias_index="$(_math "$_alias_index" + 1)"
         continue
       fi
 
@@ -4602,7 +4600,8 @@ deploy() {
 
   _initpath "$_d" "$_isEcc"
   if [ ! -d "$DOMAIN_PATH" ]; then
-    _err "Domain is not valid:'$_d'"
+    _err "The domain '$_d' is not a cert name. You must use the cert name to specify the cert to install."
+    _err "Can not find path:'$DOMAIN_PATH'"
     return 1
   fi
 
@@ -4629,7 +4628,8 @@ installcert() {
 
   _initpath "$_main_domain" "$_isEcc"
   if [ ! -d "$DOMAIN_PATH" ]; then
-    _err "Domain is not valid:'$_main_domain'"
+    _err "The domain '$_main_domain' is not a cert name. You must use the cert name to specify the cert to install."
+    _err "Can not find path:'$DOMAIN_PATH'"
     return 1
   fi
 
@@ -5474,7 +5474,7 @@ Parameters:
   --log-level 1|2                   Specifies the log level, default is 1.
   --syslog [0|3|6|7]                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
 
-  These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
+  These parameters are to install the cert to nginx/apache or any other server after issue/renew a cert:
 
   --cert-file                       After issue/renew, the cert will be copied to this path.
   --key-file                        After issue/renew, the key will be copied to this path.
@@ -5485,7 +5485,7 @@ Parameters:
 
   --server SERVER                   ACME Directory Resource URI. (default: https://acme-v01.api.letsencrypt.org/directory)
   --accountconf                     Specifies a customized account config file.
-  --home                            Specifies the home dir for $PROJECT_NAME .
+  --home                            Specifies the home dir for $PROJECT_NAME.
   --cert-home                       Specifies the home dir to save all the certs, only valid for '--install' command.
   --config-home                     Specifies the home dir to save all the configurations.
   --useragent                       Specifies the user agent string. it will be saved for future use too.
