@@ -1516,7 +1516,8 @@ _calcjwk() {
     JWK_HEADERPLACE_PART1='{"nonce": "'
     JWK_HEADERPLACE_PART2='", "alg": "ES'$__ECC_KEY_LEN'"'
   else
-    _err "Only RSA or EC key is supported."
+    _err "Only RSA or EC key is supported. keyfile=$keyfile"
+    _debug2 "$(cat "$keyfile")"
     return 1
   fi
 
