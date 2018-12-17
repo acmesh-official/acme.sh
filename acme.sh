@@ -1134,12 +1134,17 @@ _readSubjectAltNamesFromCSR() {
 
   if _contains "$_dnsAltnames," "DNS:$_csrsubj,"; then
     _debug "AltNames contains subject"
-    _dnsAltnames="$(printf "%s" "$_dnsAltnames," | sed "s/DNS:$_csrsubj,//g")"
+    _excapedAlgnames="$(echo "$_dnsAltnames" | tr '*' '#')"
+    _debug _excapedAlgnames "$_excapedAlgnames"
+    _escapedSubject="$(echo "$_csrsubj" | tr '*' '#')"
+    _debug _escapedSubject "$_escapedSubject"
+    _dnsAltnames="$(echo "$_excapedAlgnames," | sed "s/DNS:$_escapedSubject,//g" | tr '#' '*' | sed "s/,\$//g")"
+    _debug _dnsAltnames "$_dnsAltnames"
   else
     _debug "AltNames doesn't contain subject"
   fi
 
-  printf "%s" "$_dnsAltnames" | sed "s/DNS://g"
+  echo "$_dnsAltnames" | sed "s/DNS://g"
 }
 
 #_csrfile
@@ -1516,7 +1521,8 @@ _calcjwk() {
     JWK_HEADERPLACE_PART1='{"nonce": "'
     JWK_HEADERPLACE_PART2='", "alg": "ES'$__ECC_KEY_LEN'"'
   else
-    _err "Only RSA or EC key is supported."
+    _err "Only RSA or EC key is supported. keyfile=$keyfile"
+    _debug2 "$(cat "$keyfile")"
     return 1
   fi
 
