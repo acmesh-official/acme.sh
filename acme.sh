@@ -5529,6 +5529,7 @@ Parameters:
   --accountkey                      Specifies the account key path, only valid for the '--install' command.
   --days                            Specifies the days to renew the cert when using '--issue' command. The max value is $MAX_RENEW days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
+  --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --local-address                   Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
   --listraw                         Only used for '--list' command, list the certs in raw format.
   --stopRenewOnError, -se           Only valid for '--renew-all' command. Stop if one cert has error in renewal.
@@ -5983,6 +5984,11 @@ _process() {
       --httpport)
         _httpport="$2"
         Le_HTTPPort="$_httpport"
+        shift
+        ;;
+      --tlsport)
+        _tlsport="$2"
+        Le_TLSPort="$_tlsport"
         shift
         ;;
       --listraw)
