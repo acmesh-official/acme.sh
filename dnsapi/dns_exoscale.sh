@@ -2,7 +2,6 @@
 
 EXOSCALE_API=https://api.exoscale.com/dns/v1
 
-
 ########  Public functions #####################
 
 # Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
@@ -75,7 +74,6 @@ dns_exoscale_rm() {
 
   return 0
 }
-
 
 ####################  Private functions below ##################################
 
