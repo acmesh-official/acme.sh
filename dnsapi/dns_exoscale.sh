@@ -61,7 +61,7 @@ dns_exoscale_rm() {
     _record_id=$(echo "$response" | tr '{' "\n" | grep "\"content\":\"$txtvalue\"" | _egrep_o "\"id\":[^,]+" | _head_n 1 | cut -d : -f 2 | tr -d \")
   fi
 
-  if [ -z  "$_record_id" ] ; then
+  if [ -z "$_record_id" ]; then
     _err "Can not get record id to remove."
     return 1
   fi
@@ -123,7 +123,7 @@ _get_root() {
     if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
       _domain_id=$(echo "$response" | tr '{' "\n" | grep "\"name\":\"$h\"" | _egrep_o "\"id\":[^,]+" | _head_n 1 | cut -d : -f 2 | tr -d \")
       _domain_token=$(echo "$response" | tr '{' "\n" | grep "\"name\":\"$h\"" | _egrep_o "\"token\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
-      if [ "$_domain_token" ] && [ "$_domain_id" ] ; then
+      if [ "$_domain_token" ] && [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain=$h
         return 0
