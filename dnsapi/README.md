@@ -268,18 +268,9 @@ when needed.
 ## 14. Use Linode domain API
 
 First you need to login to your Linode account to get your API Key.
+[https://manager.linode.com/profile/api](https://manager.linode.com/profile/api)
 
-  * [Classic Manager](https://manager.linode.com/profile/api)
-
-   Under "Add an API key", Give the new key a "Label" (we recommend *ACME*),
-   set the expiry to never, "Create API Key", and copy the new key into the `LINODE_API_KEY` command
-   below.
-
-  * [Cloud Manager](https://cloud.linode.com/profile/tokens)
-
-   Click on "Add a Personal Access Token". Give the new key a "Label" (we
-   recommend *ACME*), give it Read/Write access to "Domains". "Submit", and
-   copy the new key into the `LINODE_API_KEY` command below.
+Then add an API key with label *ACME* and copy the new key.
 
 ```sh
 export LINODE_API_KEY="..."
