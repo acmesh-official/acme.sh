@@ -154,7 +154,7 @@ _exoscale_rest() {
   fi
 
   if [ "$data" ] || [ "$method" = "DELETE" ]; then
-    _H3="Content-Type: application/json"
+    export _H3="Content-Type: application/json"
     _debug data "$data"
     response="$(_post "$data" "$request_url" "" "$method")"
   else
