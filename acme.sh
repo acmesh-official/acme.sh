@@ -37,6 +37,7 @@ VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
 VTYPE_TLS="tls-sni-01"
 VTYPE_TLS2="tls-sni-02"
+VTYPE_ALPN="tls-alpn-01"
 
 LOCAL_ANY_ADDRESS="0.0.0.0"
 
@@ -48,6 +49,7 @@ NO_VALUE="no"
 
 W_TLS="tls"
 W_DNS="dns"
+W_ALPN="alpn"
 DNS_ALIAS_PREFIX="="
 
 MODE_STATELESS="stateless"
@@ -1046,7 +1048,7 @@ _idn() {
   fi
 }
 
-#_createcsr  cn  san_list  keyfile csrfile conf
+#_createcsr  cn  san_list  keyfile csrfile conf acmeValidationv1
 _createcsr() {
   _debug _createcsr
   domain="$1"
@@ -1054,6 +1056,7 @@ _createcsr() {
   csrkey="$3"
   csr="$4"
   csrconf="$5"
+  acmeValidationv1="$6"
   _debug2 domain "$domain"
   _debug2 domainlist "$domainlist"
   _debug2 csrkey "$csrkey"
@@ -1062,7 +1065,9 @@ _createcsr() {
 
   printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\n\nkeyUsage = nonRepudiation, digitalSignature, keyEncipherment" >"$csrconf"
 
-  if [ -z "$domainlist" ] || [ "$domainlist" = "$NO_VALUE" ]; then
+  if [ "$acmeValidationv1" ]; then
+    printf -- "\nsubjectAltName=DNS:$domainlist" >>"$csrconf"
+  elif [ -z "$domainlist" ] || [ "$domainlist" = "$NO_VALUE" ]; then
     #single domain
     _info "Single domain" "$domain"
     printf -- "\nsubjectAltName=DNS:$domain" >>"$csrconf"
@@ -1082,6 +1087,10 @@ _createcsr() {
     _savedomainconf Le_OCSP_Staple "$Le_OCSP_Staple"
     _cleardomainconf Le_OCSP_Stable
     printf -- "\nbasicConstraints = CA:FALSE\n1.3.6.1.5.5.7.1.24=DER:30:03:02:01:05" >>"$csrconf"
+  fi
+
+  if [ "$acmeValidationv1" ]; then
+    printf "\n1.3.6.1.5.5.7.1.30.1=critical,DER:04:20:${acmeValidationv1}" >>"${csrconf}"
   fi
 
   _csr_cn="$(_idn "$domain")"
@@ -2107,7 +2116,7 @@ _sleep() {
   fi
 }
 
-# _starttlsserver  san_a  san_b port content _ncaddr
+# _starttlsserver  san_a  san_b port content _ncaddr acmeValidationv1
 _starttlsserver() {
   _info "Starting tls server."
   san_a="$1"
@@ -2115,10 +2124,12 @@ _starttlsserver() {
   port="$3"
   content="$4"
   opaddr="$5"
+  acmeValidationv1="$6"
 
   _debug san_a "$san_a"
   _debug san_b "$san_b"
   _debug port "$port"
+  _debug acmeValidationv1 "$acmeValidationv1"
 
   #create key TLS_KEY
   if ! _createkey "2048" "$TLS_KEY"; then
@@ -2131,7 +2142,7 @@ _starttlsserver() {
   if [ "$san_b" ]; then
     alt="$alt,$san_b"
   fi
-  if ! _createcsr "tls.acme.sh" "$alt" "$TLS_KEY" "$TLS_CSR" "$TLS_CONF"; then
+  if ! _createcsr "tls.acme.sh" "$alt" "$TLS_KEY" "$TLS_CSR" "$TLS_CONF" "$acmeValidationv1"; then
     _err "Create tls validation csr error."
     return 1
   fi
@@ -2155,6 +2166,10 @@ _starttlsserver() {
     __S_OPENSSL="$__S_OPENSSL -4"
   elif [ "$Le_Listen_V6" ]; then
     __S_OPENSSL="$__S_OPENSSL -6"
+  fi
+
+  if [ "$acmeValidationv1" ]; then
+    __S_OPENSSL="$__S_OPENSSL -alpn acme-tls/1"
   fi
 
   _debug "$__S_OPENSSL"
@@ -3067,8 +3082,8 @@ _on_before_issue() {
         _savedomainconf "Le_HTTPPort" "$Le_HTTPPort"
       fi
       _checkport="$Le_HTTPPort"
-    elif [ "$_currentRoot" = "$W_TLS" ]; then
-      _info "Standalone tls mode."
+    elif [ "$_currentRoot" = "$W_TLS" ] || [ "$_currentRoot" = "$W_ALPN" ]; then
+      _info "Standalone tls/alpn mode."
       if [ -z "$Le_TLSPort" ]; then
         Le_TLSPort=443
       else
@@ -3694,6 +3709,10 @@ $_authorizations_map"
         fi
       fi
 
+      if [ "$_currentRoot" = "$W_ALPN" ]; then
+        vtype="$VTYPE_ALPN"
+      fi
+
       if [ "$ACME_VERSION" = "2" ]; then
         response="$(echo "$_authorizations_map" | grep "^$d," | sed "s/$d,//")"
         _debug2 "response" "$response"
@@ -4001,6 +4020,16 @@ $_authorizations_map"
       _ncaddr="$(_getfield "$_local_addr" "$_ncIndex")"
       _ncIndex="$(_math "$_ncIndex" + 1)"
       if ! _starttlsserver "$_SAN_B" "$_SAN_A" "$Le_TLSPort" "$keyauthorization" "$_ncaddr"; then
+        _err "Start tls server error."
+        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearup
+        _on_issue_err "$_post_hook" "$vlist"
+        return 1
+      fi
+    elif [ "$vtype" = "$VTYPE_ALPN" ]; then
+      acmevalidationv1="$(printf "%s" "$keyauthorization" | _digest "sha256" "hex")"
+      _debug acmevalidationv1 "$acmevalidationv1"
+      if ! _starttlsserver "$d" "" "$Le_TLSPort" "$keyauthorization" "$_ncaddr" "$acmevalidationv1"; then
         _err "Start tls server error."
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
@@ -5469,6 +5498,7 @@ Parameters:
   --output-insecure                 Output all the sensitive messages. By default all the credentials/sensitive messages are hidden from the output/debug/log for secure.
   --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
+  --alpn                            Use standalone alpn mode.
   --stateless                       Use stateless mode, see: $_STATELESS_WIKI
   --apache                          Use apache mode.
   --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
@@ -5499,6 +5529,7 @@ Parameters:
   --accountkey                      Specifies the account key path, only valid for the '--install' command.
   --days                            Specifies the days to renew the cert when using '--issue' command. The max value is $MAX_RENEW days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
+  --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --local-address                   Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
   --listraw                         Only used for '--list' command, list the certs in raw format.
   --stopRenewOnError, -se           Only valid for '--renew-all' command. Stop if one cert has error in renewal.
@@ -5823,6 +5854,14 @@ _process() {
           _webroot="$_webroot,$wvalue"
         fi
         ;;
+      --alpn)
+        wvalue="$W_ALPN"
+        if [ -z "$_webroot" ]; then
+          _webroot="$wvalue"
+        else
+          _webroot="$_webroot,$wvalue"
+        fi
+        ;;
       --stateless)
         wvalue="$MODE_STATELESS"
         if [ -z "$_webroot" ]; then
@@ -5945,6 +5984,11 @@ _process() {
       --httpport)
         _httpport="$2"
         Le_HTTPPort="$_httpport"
+        shift
+        ;;
+      --tlsport)
+        _tlsport="$2"
+        Le_TLSPort="$_tlsport"
         shift
         ;;
       --listraw)
