@@ -1109,6 +1109,24 @@ acme.sh --issue --dns dns_neodigit -d example.com -d www.example.com
 
 Neodigit API Token will be saved in `~/.acme.sh/account.conf` and will be used when needed.
 
+## 57. Use Exoscale API
+
+Create an API key and secret key in the Exoscale account section
+
+Set your API and secret key:
+
+```
+export EXOSCALE_API_KEY='xxx'
+export EXOSCALE_SECRET_KEY='xxx'
+```
+
+Now, let's issue a cert:
+```
+acme.sh --issue --dns dns_netcup -d example.com -d www.example.com
+```
+
+The `EXOSCALE_API_KEY` and `EXOSCALE_SECRET_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
