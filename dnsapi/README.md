@@ -267,25 +267,26 @@ when needed.
 
 ## 14. Use Linode domain API
 
+The tokens created in the classic manager and cloud manager are incompatible
+with one another. While the classic manager makes an all or nothing API, the
+newer cloud manager interface promises to produce API keys with a finer
+permission system. However, either way works just fine.
+
+### Classic Manager ###
+
+Classic Manager: https://manager.linode.com/profile/api
+
 First you need to login to your Linode account to get your API Key.
 
-  * [Classic Manager](https://manager.linode.com/profile/api)
-
-   Under "Add an API key", Give the new key a "Label" (we recommend *ACME*),
-   set the expiry to never, "Create API Key", and copy the new key into the `LINODE_API_KEY` command
-   below.
-
-  * [Cloud Manager](https://cloud.linode.com/profile/tokens)
-
-   Click on "Add a Personal Access Token". Give the new key a "Label" (we
-   recommend *ACME*), give it Read/Write access to "Domains". "Submit", and
-   copy the new key into the `LINODE_API_KEY` command below.
+Then add an API key with label *ACME* and copy the new key into the following
+command.
 
 ```sh
 export LINODE_API_KEY="..."
 ```
 
-Due to the reload time of any changes in the DNS records, we have to use the `dnssleep` option to wait at least 15 minutes for the changes to take effect.
+Due to the reload time of any changes in the DNS records, we have to use the
+`dnssleep` option to wait at least 15 minutes for the changes to take effect.
 
 Ok, let's issue a cert now:
 
@@ -293,7 +294,35 @@ Ok, let's issue a cert now:
 acme.sh --issue --dns dns_linode --dnssleep 900 -d example.com -d www.example.com
 ```
 
-The `LINODE_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+The `LINODE_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be
+reused when needed.
+
+### Cloud Manager ###
+
+Cloud Manager: https://cloud.linode.com/profile/tokens
+
+First you need to login to your Linode account to get your API Key.
+
+   1. Click on "Add a Personal Access Token".
+   2. Give the new key a "Label" (we recommend *ACME*)
+   3. Give it Read/Write access to "Domains"
+   4. "Submit" and copy the new key into the `LINODE_V4_API_KEY` command below.
+
+```sh
+export LINODE_V4_API_KEY="..."
+```
+
+Due to the reload time of any changes in the DNS records, we have to use the
+`dnssleep` option to wait at least 15 minutes for the changes to take effect.
+
+Ok, let's issue a cert now:
+
+```sh
+acme.sh --issue --dns dns_linode_v4 --dnssleep 900 -d example.com -d www.example.com
+```
+
+The `LINODE_V4_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be
+reused when needed.
 
 ## 15. Use FreeDNS
 
@@ -1079,6 +1108,24 @@ acme.sh --issue --dns dns_neodigit -d example.com -d www.example.com
 ```
 
 Neodigit API Token will be saved in `~/.acme.sh/account.conf` and will be used when needed.
+
+## 57. Use Exoscale API
+
+Create an API key and secret key in the Exoscale account section
+
+Set your API and secret key:
+
+```
+export EXOSCALE_API_KEY='xxx'
+export EXOSCALE_SECRET_KEY='xxx'
+```
+
+Now, let's issue a cert:
+```
+acme.sh --issue --dns dns_netcup -d example.com -d www.example.com
+```
+
+The `EXOSCALE_API_KEY` and `EXOSCALE_SECRET_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 # Use custom API
 
