@@ -41,8 +41,6 @@ dns_internetbs_add() {
     if ! _contains "$response" "\"status\":\"SUCCESS\""; then
       _err "ERROR add TXT record"
       _err "$response"
-      _clearaccountconf INTERNETBS_API_KEY
-      _clearaccountconf INTERNETBS_API_PASSWORD
       return 1
     fi
 
@@ -75,8 +73,6 @@ dns_internetbs_rm() {
   if ! _contains "$response" "\"status\":\"SUCCESS\""; then
     _err "ERROR list dns records"
     _err "$response"
-    _clearaccountconf INTERNETBS_API_KEY
-    _clearaccountconf INTERNETBS_API_PASSWORD
     return 1
   fi
 
@@ -89,8 +85,6 @@ dns_internetbs_rm() {
     if ! _contains "$response" "\"status\":\"SUCCESS\""; then
       _err "ERROR remove dns record"
       _err "$response"
-      _clearaccountconf INTERNETBS_API_KEY
-      _clearaccountconf INTERNETBS_API_PASSWORD
       return 1
     fi
 
@@ -118,8 +112,6 @@ _get_root() {
     if ! _contains "$response" "\"status\":\"SUCCESS\""; then
       _err "ERROR fetch domain list"
       _err "$response"
-      _clearaccountconf INTERNETBS_API_KEY
-      _clearaccountconf INTERNETBS_API_PASSWORD
       return 1
     fi
 
