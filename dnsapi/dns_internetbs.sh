@@ -7,6 +7,7 @@
 
 #INTERNETBS_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
 #INTERNETBS_API_PASSWORD="sdfsdfsdfljlbjkljlkjsdfoiwje"
+
 INTERNETBS_API_URL="https://api.internet.bs"
 
 ########  Public functions #####################
@@ -16,6 +17,9 @@ dns_internetbs_add() {
   fulldomain=$1
   txtvalue=$2
 
+  INTERNETBS_API_KEY="${INTERNETBS_API_KEY:-$(_readaccountconf_mutable INTERNETBS_API_KEY)}"
+  INTERNETBS_API_PASSWORD="${INTERNETBS_API_PASSWORD:-$(_readaccountconf_mutable INTERNETBS_API_PASSWORD)}"
+
   if [ -z "$INTERNETBS_API_KEY" ] || [ -z "$INTERNETBS_API_PASSWORD" ]; then
     INTERNETBS_API_KEY=""
     INTERNETBS_API_PASSWORD=""
@@ -24,8 +28,8 @@ dns_internetbs_add() {
     return 1
   fi
 
-  _saveaccountconf INTERNETBS_API_KEY "$INTERNETBS_API_KEY"
-  _saveaccountconf INTERNETBS_API_PASSWORD "$INTERNETBS_API_PASSWORD"
+  _saveaccountconf_mutable INTERNETBS_API_KEY "$INTERNETBS_API_KEY"
+  _saveaccountconf_mutable INTERNETBS_API_PASSWORD "$INTERNETBS_API_PASSWORD"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -56,6 +60,17 @@ dns_internetbs_add() {
 dns_internetbs_rm() {
   fulldomain=$1
   txtvalue=$2
+
+  INTERNETBS_API_KEY="${INTERNETBS_API_KEY:-$(_readaccountconf_mutable INTERNETBS_API_KEY)}"
+  INTERNETBS_API_PASSWORD="${INTERNETBS_API_PASSWORD:-$(_readaccountconf_mutable INTERNETBS_API_PASSWORD)}"
+
+  if [ -z "$INTERNETBS_API_KEY" ] || [ -z "$INTERNETBS_API_PASSWORD" ]; then
+    INTERNETBS_API_KEY=""
+    INTERNETBS_API_PASSWORD=""
+    _err "You didn't specify the INTERNET.BS api key and password yet."
+    _err "Please create you key and try again."
+    return 1
+  fi
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
