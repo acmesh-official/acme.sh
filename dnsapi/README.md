@@ -6,7 +6,7 @@ https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode
 
 ## 1. Use CloudFlare domain API to automatically issue cert
 
-First you need to login to your CloudFlare account to get your API key.
+First you need to login to your CloudFlare account to get your [API key](https://dash.cloudflare.com/profile). 
 
 ```
 export CF_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
@@ -146,13 +146,17 @@ Finally, make the DNS server and update Key available to `acme.sh`
 export NSUPDATE_SERVER="dns.example.com"
 export NSUPDATE_KEY="/path/to/your/nsupdate.key"
 ```
+and optionally (depending on DNS server)
+```
+export NSUPDATE_ZONE="example.com"
+```
 
 Ok, let's issue a cert now:
 ```
 acme.sh --issue --dns dns_nsupdate -d example.com -d www.example.com
 ```
 
-The `NSUPDATE_SERVER` and `NSUPDATE_KEY` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+The `NSUPDATE_SERVER`, `NSUPDATE_KEY`, and `NSUPDATE_ZONE` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 
 ## 8. Use LuaDNS domain API
@@ -263,16 +267,26 @@ when needed.
 
 ## 14. Use Linode domain API
 
-First you need to login to your Linode account to get your API Key.
-[https://manager.linode.com/profile/api](https://manager.linode.com/profile/api)
+The tokens created in the classic manager and cloud manager are incompatible
+with one another. While the classic manager makes an all or nothing API, the
+newer cloud manager interface promises to produce API keys with a finer
+permission system. However, either way works just fine.
 
-Then add an API key with label *ACME* and copy the new key.
+### Classic Manager ###
+
+Classic Manager: https://manager.linode.com/profile/api
+
+First you need to login to your Linode account to get your API Key.
+
+Then add an API key with label *ACME* and copy the new key into the following
+command.
 
 ```sh
 export LINODE_API_KEY="..."
 ```
 
-Due to the reload time of any changes in the DNS records, we have to use the `dnssleep` option to wait at least 15 minutes for the changes to take effect.
+Due to the reload time of any changes in the DNS records, we have to use the
+`dnssleep` option to wait at least 15 minutes for the changes to take effect.
 
 Ok, let's issue a cert now:
 
@@ -280,7 +294,35 @@ Ok, let's issue a cert now:
 acme.sh --issue --dns dns_linode --dnssleep 900 -d example.com -d www.example.com
 ```
 
-The `LINODE_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+The `LINODE_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be
+reused when needed.
+
+### Cloud Manager ###
+
+Cloud Manager: https://cloud.linode.com/profile/tokens
+
+First you need to login to your Linode account to get your API Key.
+
+   1. Click on "Add a Personal Access Token".
+   2. Give the new key a "Label" (we recommend *ACME*)
+   3. Give it Read/Write access to "Domains"
+   4. "Submit" and copy the new key into the `LINODE_V4_API_KEY` command below.
+
+```sh
+export LINODE_V4_API_KEY="..."
+```
+
+Due to the reload time of any changes in the DNS records, we have to use the
+`dnssleep` option to wait at least 15 minutes for the changes to take effect.
+
+Ok, let's issue a cert now:
+
+```sh
+acme.sh --issue --dns dns_linode_v4 --dnssleep 900 -d example.com -d www.example.com
+```
+
+The `LINODE_V4_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be
+reused when needed.
 
 ## 15. Use FreeDNS
 
@@ -454,7 +496,7 @@ The `Infoblox_Creds` and `Infoblox_Server` will be saved in `~/.acme.sh/account.
 First you need to create/obtain API tokens on your [settings panel](https://vscale.io/panel/settings/tokens/).
 
 ```
-VSCALE_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
+export VSCALE_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
 ```
 
 Ok, let's issue a cert now:
@@ -1014,7 +1056,78 @@ Now you can issue a certificate.
 acme.sh --issue --dns dns_namecheap -d example.com -d *.example.com
 ```
 
-## 54. Use Internet.bs
+## 54. Use MyDNS.JP API
+
+First, register to MyDNS.JP and get MasterID and Password.
+
+```
+export MYDNSJP_MasterID=MasterID
+export MYDNSJP_Password=Password
+```
+
+To issue a certificate:
+
+```
+acme.sh --issue --dns dns_mydnsjp -d example.com -d www.example.com
+```
+The `MYDNSJP_MasterID` and `MYDNSJP_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 55. Use hosting.de API
+
+Create an API key in your hosting.de account here: https://secure.hosting.de
+
+The key needs the following rights:
+- DNS_ZONES_EDIT
+- DNS_ZONES_LIST
+
+Set your API Key and endpoint:
+
+```
+export HOSTINGDE_APIKEY='xxx'
+export HOSTINGDE_ENDPOINT='https://secure.hosting.de'
+```
+
+The plugin can also be used for the http.net API. http.net customers have to set endpoint to https://partner.http.net.
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_hostingde -d example.com -d *.example.com
+```
+
+The hosting.de API key and endpoint will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 56. Use Neodigit.net API
+
+```
+export NEODIGIT_API_TOKEN="eXJxTkdUVUZmcHQ3QWJackQ4ZGlMejRDSklRYmo5VG5zcFFKK2thYnE0WnVnNnMy"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_neodigit -d example.com -d www.example.com
+```
+
+Neodigit API Token will be saved in `~/.acme.sh/account.conf` and will be used when needed.
+
+## 57. Use Exoscale API
+
+Create an API key and secret key in the Exoscale account section
+
+Set your API and secret key:
+
+```
+export EXOSCALE_API_KEY='xxx'
+export EXOSCALE_SECRET_KEY='xxx'
+```
+
+Now, let's issue a cert:
+```
+acme.sh --issue --dns dns_netcup -d example.com -d www.example.com
+```
+
+The `EXOSCALE_API_KEY` and `EXOSCALE_SECRET_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 58. Use Internet.bs
 
 First you need to create/obtain API credentials on your Internet.bs (https://internetbs.net) account. Go to the "Get my API Key" section in the "My Domains" section.
 
