@@ -34,7 +34,7 @@ dns_cf_add() {
   _saveaccountconf_mutable CF_Key "$CF_Key"
   _saveaccountconf_mutable CF_Email "$CF_Email"
 
-  _DOMAIN_CF_ZONES_CACHE_NAME_="$(echo "${CF_Email}_CF_ZONES_" | tr '@.' '__')"
+  _DOMAIN_CF_ZONES_CACHE_NAME_="$(echo "${CF_Email}_CF_ZONES_" | tr '+@.' '___')"
   _cleardomainconf "$_DOMAIN_CF_ZONES_CACHE_NAME_"
 
   _debug "First detect the root zone"
@@ -105,7 +105,7 @@ dns_cf_rm() {
     return 1
   fi
 
-  _DOMAIN_CF_ZONES_CACHE_NAME_="$(echo "${CF_Email}_CF_ZONES_" | tr '@.' '__')"
+  _DOMAIN_CF_ZONES_CACHE_NAME_="$(echo "${CF_Email}_CF_ZONES_" | tr '+@.' '___')"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
