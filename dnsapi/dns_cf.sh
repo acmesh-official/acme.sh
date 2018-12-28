@@ -166,7 +166,7 @@ _get_root() {
     _savedomainconf "$_DOMAIN_CF_ZONES_CACHE_NAME_" "$(echo "$_cf_zones" | _base64)"
   else
     _debug "$_DOMAIN_CF_ZONES_CACHE_NAME_ found"
-    _cf_zones="$(echo "$_cf_zones" | _dbase64)"
+    _cf_zones="$(echo "$_cf_zones" | _dbase64 "multiline")"
   fi
 
   domain=$1
