@@ -36,7 +36,6 @@ _OLD_STAGE_CA_HOST="https://acme-staging.api.letsencrypt.org"
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
 VTYPE_TLS="tls-sni-01"
-VTYPE_TLS2="tls-sni-02"
 VTYPE_ALPN="tls-alpn-01"
 
 LOCAL_ANY_ADDRESS="0.0.0.0"
@@ -3700,11 +3699,7 @@ $_authorizations_map"
       fi
 
       if [ "$_currentRoot" = "$W_TLS" ]; then
-        if [ "$ACME_VERSION" = "2" ]; then
-          vtype="$VTYPE_TLS2"
-        else
-          vtype="$VTYPE_TLS"
-        fi
+        vtype="$VTYPE_TLS"
       fi
 
       if [ "$_currentRoot" = "$W_ALPN" ]; then
