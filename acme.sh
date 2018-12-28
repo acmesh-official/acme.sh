@@ -3443,7 +3443,7 @@ __get_domain_new_authz() {
 
 #uri keyAuthorization
 __trigger_validation() {
-  _debug2 "tigger domain validation."
+  _debug2 "Trigger domain validation."
   _t_url="$1"
   _debug2 _t_url "$_t_url"
   _t_key_authz="$2"
