@@ -36,12 +36,11 @@ _OLD_STAGE_CA_HOST="https://acme-staging.api.letsencrypt.org"
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
 VTYPE_TLS="tls-sni-01"
-VTYPE_TLS2="tls-sni-02"
 VTYPE_ALPN="tls-alpn-01"
 
 LOCAL_ANY_ADDRESS="0.0.0.0"
 
-MAX_RENEW=60
+DEFAULT_RENEW=60
 
 DEFAULT_DNS_SLEEP=120
 
@@ -1875,11 +1874,7 @@ _send_signed_request() {
     sig="$(printf "%s" "$_sig_t" | _url_replace)"
     _debug3 sig "$sig"
 
-    if [ "$ACME_VERSION" = "2" ]; then
-      body="{\"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
-    else
-      body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
-    fi
+    body="{\"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
     _debug3 body "$body"
 
     response="$(_post "$body" "$url" "$needbase64" "POST" "$__request_conent_type")"
@@ -3448,10 +3443,12 @@ __trigger_validation() {
   _debug2 _t_url "$_t_url"
   _t_key_authz="$2"
   _debug2 _t_key_authz "$_t_key_authz"
+  _t_vtype="$3"
+  _debug2 _t_vtype "$_t_vtype"
   if [ "$ACME_VERSION" = "2" ]; then
     _send_signed_request "$_t_url" "{\"keyAuthorization\": \"$_t_key_authz\"}"
   else
-    _send_signed_request "$_t_url" "{\"resource\": \"challenge\", \"keyAuthorization\": \"$_t_key_authz\"}"
+    _send_signed_request "$_t_url" "{\"resource\": \"challenge\", \"type\": \"$_t_vtype\", \"keyAuthorization\": \"$_t_key_authz\"}"
   fi
 }
 
@@ -3702,11 +3699,7 @@ $_authorizations_map"
       fi
 
       if [ "$_currentRoot" = "$W_TLS" ]; then
-        if [ "$ACME_VERSION" = "2" ]; then
-          vtype="$VTYPE_TLS2"
-        else
-          vtype="$VTYPE_TLS"
-        fi
+        vtype="$VTYPE_TLS"
       fi
 
       if [ "$_currentRoot" = "$W_ALPN" ]; then
@@ -4038,7 +4031,7 @@ $_authorizations_map"
       fi
     fi
 
-    if ! __trigger_validation "$uri" "$keyauthorization"; then
+    if ! __trigger_validation "$uri" "$keyauthorization" "$vtype"; then
       _err "$d:Can not get challenge: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
       _clearup
@@ -4047,7 +4040,7 @@ $_authorizations_map"
     fi
 
     if [ "$code" ] && [ "$code" != '202' ]; then
-      if [ "$ACME_VERSION" = "2" ] && [ "$code" = '200' ]; then
+      if [ "$code" = '200' ]; then
         _debug "trigger validation code: $code"
       else
         _err "$d:Challenge error: $response"
@@ -4274,8 +4267,8 @@ $_authorizations_map"
   Le_CertCreateTimeStr=$(date -u)
   _savedomainconf "Le_CertCreateTimeStr" "$Le_CertCreateTimeStr"
 
-  if [ -z "$Le_RenewalDays" ] || [ "$Le_RenewalDays" -lt "0" ] || [ "$Le_RenewalDays" -gt "$MAX_RENEW" ]; then
-    Le_RenewalDays="$MAX_RENEW"
+  if [ -z "$Le_RenewalDays" ] || [ "$Le_RenewalDays" -lt "0" ]; then
+    Le_RenewalDays="$DEFAULT_RENEW"
   else
     _savedomainconf "Le_RenewalDays" "$Le_RenewalDays"
   fi
@@ -5527,7 +5520,7 @@ Parameters:
   --useragent                       Specifies the user agent string. it will be saved for future use too.
   --accountemail                    Specifies the account email, only valid for the '--install' and '--update-account' command.
   --accountkey                      Specifies the account key path, only valid for the '--install' command.
-  --days                            Specifies the days to renew the cert when using '--issue' command. The max value is $MAX_RENEW days.
+  --days                            Specifies the days to renew the cert when using '--issue' command. The default value is $DEFAULT_RENEW days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --local-address                   Specifies the standalone/tls server listening address, in case you have multiple ip addresses.

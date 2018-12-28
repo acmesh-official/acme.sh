@@ -70,6 +70,10 @@ For all build statuses, check our [weekly build project](https://github.com/Neil
 
 https://github.com/Neilpang/acmetest
 
+# Supported CA
+
+- Letsencrypt.org CA(default)
+- [BuyPass.com CA](https://github.com/Neilpang/acme.sh/wiki/BuyPass.com-CA)
 
 # Supported modes
 
