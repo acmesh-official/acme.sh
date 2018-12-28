@@ -1822,12 +1822,9 @@ _send_signed_request() {
     _debug3 _request_retry_times "$_request_retry_times"
     if [ -z "$_CACHED_NONCE" ]; then
       _headers=""
-      if [ "$ACME_NEW_NONCE" ] || [ "$BUYPASS" ]; then
+      if [ "$ACME_NEW_NONCE" ]; then
+        _debug2 "Get nonce with HEAD. ACME_NEW_NONCE" "$ACME_NEW_NONCE"
         nonceurl="$ACME_NEW_NONCE"
-        if [ "$BUYPASS" ]; then
-          nonceurl=$url
-        fi
-        _debug2 "Get nonce with HEAD. ACME_NEW_NONCE" "$nonceurl"
         if _post "" "$nonceurl" "" "HEAD" "$__request_conent_type"; then
           _headers="$(cat "$HTTP_HEADER")"
         fi
@@ -1880,11 +1877,7 @@ _send_signed_request() {
     sig="$(printf "%s" "$_sig_t" | _url_replace)"
     _debug3 sig "$sig"
 
-    if [ "$ACME_VERSION" = "2" ] || [ "$BUYPASS" ]; then
-      body="{\"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
-    else
-      body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
-    fi
+    body="{\"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
     _debug3 body "$body"
 
     response="$(_post "$body" "$url" "$needbase64" "POST" "$__request_conent_type")"
@@ -2334,13 +2327,6 @@ _initAPI() {
       ACME_AGREEMENT=$(echo "$response" | _egrep_o 'termsOfService" *: *"[^"]*"' | cut -d '"' -f 3)
     fi
     export ACME_AGREEMENT
-
-    BUYPASS=$(echo "$_api_server" | _egrep_o 'buypass')
-    if [ "$BUYPASS" ]; then
-      BUYPASS=1
-    fi
-    export BUYPASS
-    _debug "BUYPASS" "$BUYPASS"
 
     _debug "ACME_KEY_CHANGE" "$ACME_KEY_CHANGE"
     _debug "ACME_NEW_AUTHZ" "$ACME_NEW_AUTHZ"
@@ -3455,7 +3441,7 @@ __get_domain_new_authz() {
 
 #uri keyAuthorization
 __trigger_validation() {
-  _debug2 "tigger domain validation."
+  _debug2 "Trigger domain validation."
   _t_url="$1"
   _debug2 _t_url "$_t_url"
   _t_key_authz="$2"
@@ -3465,11 +3451,7 @@ __trigger_validation() {
   if [ "$ACME_VERSION" = "2" ]; then
     _send_signed_request "$_t_url" "{\"keyAuthorization\": \"$_t_key_authz\"}"
   else
-    if [ "$BUYPASS" ]; then
-      _send_signed_request "$_t_url" "{\"resource\": \"challenge\", \"type\": \"$_t_vtype\", \"keyAuthorization\": \"$_t_key_authz\"}"
-    else
-      _send_signed_request "$_t_url" "{\"resource\": \"challenge\", \"keyAuthorization\": \"$_t_key_authz\"}"
-    fi
+    _send_signed_request "$_t_url" "{\"resource\": \"challenge\", \"type\": \"$_t_vtype\", \"keyAuthorization\": \"$_t_key_authz\"}"
   fi
 }
 
@@ -4065,18 +4047,14 @@ $_authorizations_map"
     fi
 
     if [ "$code" ] && [ "$code" != '202' ]; then
-      if [ "$BUYPASS" ] && [ "$code" = '200' ]; then
+      if [ "$code" = '200' ]; then
         _debug "trigger validation code: $code"
       else
-        if [ "$ACME_VERSION" = "2" ] && [ "$code" = '200' ]; then
-          _debug "trigger validation code: $code"
-        else
-          _err "$d:Challenge error: $response"
-          _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
-          _clearup
-          _on_issue_err "$_post_hook" "$vlist"
-          return 1
-        fi
+        _err "$d:Challenge error: $response"
+        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearup
+        _on_issue_err "$_post_hook" "$vlist"
+        return 1
       fi
     fi
 
