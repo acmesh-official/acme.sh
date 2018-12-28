@@ -1875,11 +1875,7 @@ _send_signed_request() {
     sig="$(printf "%s" "$_sig_t" | _url_replace)"
     _debug3 sig "$sig"
 
-    if [ "$ACME_VERSION" = "2" ]; then
-      body="{\"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
-    else
-      body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
-    fi
+    body="{\"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
     _debug3 body "$body"
 
     response="$(_post "$body" "$url" "$needbase64" "POST" "$__request_conent_type")"
@@ -3448,10 +3444,12 @@ __trigger_validation() {
   _debug2 _t_url "$_t_url"
   _t_key_authz="$2"
   _debug2 _t_key_authz "$_t_key_authz"
+  _t_vtype="$3"
+  _debug2 _t_vtype "$_t_vtype"
   if [ "$ACME_VERSION" = "2" ]; then
     _send_signed_request "$_t_url" "{\"keyAuthorization\": \"$_t_key_authz\"}"
   else
-    _send_signed_request "$_t_url" "{\"resource\": \"challenge\", \"keyAuthorization\": \"$_t_key_authz\"}"
+    _send_signed_request "$_t_url" "{\"resource\": \"challenge\", \"type\": \"$_t_vtype\", \"keyAuthorization\": \"$_t_key_authz\"}"
   fi
 }
 
@@ -4038,7 +4036,7 @@ $_authorizations_map"
       fi
     fi
 
-    if ! __trigger_validation "$uri" "$keyauthorization"; then
+    if ! __trigger_validation "$uri" "$keyauthorization" "$vtype"; then
       _err "$d:Can not get challenge: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
       _clearup
@@ -4047,7 +4045,7 @@ $_authorizations_map"
     fi
 
     if [ "$code" ] && [ "$code" != '202' ]; then
-      if [ "$ACME_VERSION" = "2" ] && [ "$code" = '200' ]; then
+      if [ "$code" = '200' ]; then
         _debug "trigger validation code: $code"
       else
         _err "$d:Challenge error: $response"
