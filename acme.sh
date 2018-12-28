@@ -13,8 +13,6 @@ _SCRIPT_="$0"
 
 _SUB_FOLDERS="dnsapi deploy"
 
-BUYPASS_CA="https://api.buypass.no/acme/directory"
-
 LETSENCRYPT_CA_V1="https://acme-v01.api.letsencrypt.org/directory"
 LETSENCRYPT_STAGING_CA_V1="https://acme-staging.api.letsencrypt.org/directory"
 
