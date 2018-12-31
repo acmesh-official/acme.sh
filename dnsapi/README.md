@@ -1139,6 +1139,24 @@ You can then issue certs by using:
 ```acme.sh --issue --dns dns_pointhq -d example.com -d www.example.com
 ```
 
+## 59. Use Active24 API
+
+Create an API token in the Active24 account section, documentation on https://faq.active24.com/cz/790131-REST-API-rozhran%C3%AD.
+
+Set your API token:
+
+```
+export ACTIVE24_Token='xxx'
+```
+
+Now, let's issue a cert, set `dnssleep` for propagation new DNS record:
+```
+acme.sh --issue --dns dns_active24 -d example.com -d www.example.com --dnssleep 1000
+```
+
+The `ACTIVE24_Token` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
