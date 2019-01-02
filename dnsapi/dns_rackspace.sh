@@ -17,21 +17,17 @@ dns_rackspace_add() {
   _debug fulldomain="$fulldomain"
   txtvalue="$2"
   _debug txtvalue="$txtvalue"
-
   _rackspace_check_auth || return 1
   _rackspace_check_rootzone || return 1
-
   _info "Creating TXT record."
   if ! _rackspace_rest POST "$RACKSPACE_Tenant/domains/$_domain_id/records" "{\"records\":[{\"name\":\"$fulldomain\",\"type\":\"TXT\",\"data\":\"$txtvalue\",\"ttl\":300}]}"; then
     return 1
   fi
   _debug2 response "$response"
-
   if ! _contains "$response" "$txtvalue" >/dev/null; then
     _err "Could not add TXT record."
     return 1
   fi
-
   return 0
 }
 #fulldomain txtvalue
@@ -40,26 +36,21 @@ dns_rackspace_rm() {
   _debug fulldomain="$fulldomain"
   txtvalue=$2
   _debug txtvalue="$txtvalue"
-
   _rackspace_check_auth || return 1
   _rackspace_check_rootzone || return 1
-
   _info "Checking for TXT record."
   if ! _get_recordid "$_domain_id" "$fulldomain" "$txtvalue"; then
     _err "Could not get TXT record id."
     return 1
   fi
-
   if [ "$_dns_record_id" = "" ]; then
     _err "TXT record not found."
     return 1
   fi
-
   _info "Removing TXT record."
   if ! _delete_txt_record "$_domain_id" "$_dns_record_id"; then
     _err "Could not remove TXT record $_dns_record_id."
   fi
-
   return 0
 }
 
@@ -80,12 +71,10 @@ _get_root_zone() {
       #not valid
       return 1
     fi
-
     if ! _rackspace_rest GET "$RACKSPACE_Tenant/domains"; then
       return 1
     fi
     _debug2 response "$response"
-
     if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
       _domain_id=$(echo "$response" | sed -n "s/^.*\"name\":\"$h\",\"id\":\([^,]*\),.*/\1/p")
       if [ -n "$_domain_id" ]; then
@@ -104,17 +93,14 @@ _get_recordid() {
   domainid="$1"
   fulldomain="$2"
   txtvalue="$3"
-
   if ! _rackspace_rest GET "$RACKSPACE_Tenant/domains/$domainid/records?name=$fulldomain&type=TXT"; then
     return 1
   fi
   _debug response "$response"
-
   if ! _contains "$response" "$txtvalue"; then
     _dns_record_id=0
     return 0
   fi
-
   _dns_record_id=$(echo "$response" | tr '{' "\n" | grep "\"data\":\"$txtvalue\"" | sed -n 's/^.*"id":"\([^"]*\)".*/\1/p')
   _debug _dns_record_id "$_dns_record_id"
   return 0
@@ -122,16 +108,13 @@ _get_recordid() {
 _delete_txt_record() {
   domainid="$1"
   _dns_record_id="$2"
-
   if ! _rackspace_rest DELETE "$RACKSPACE_Tenant/domains/$domainid/records?id=$_dns_record_id"; then
     return 1
   fi
   _debug response "$response"
-
   if ! _contains "$response" "RUNNING"; then
     return 1
   fi
-
   return 0
 }
 _rackspace_rest() {
@@ -139,12 +122,10 @@ _rackspace_rest() {
   ep="$2"
   data="$3"
   _debug ep "$ep"
-
   export _H1="Accept: application/json"
   export _H2="X-Auth-Token: $RACKSPACE_Token"
   export _H3="X-Project-Id: $RACKSPACE_Tenant"
   export _H4="Content-Type: application/json"
-
   if [ "$m" != "GET" ]; then
     _debug data "$data"
     response="$(_post "$data" "$RACKSPACE_Endpoint/$ep" "" "$m")"
@@ -185,7 +166,6 @@ _rackspace_check_auth() {
   # retrieve the rackspace creds
   RACKSPACE_Username="${RACKSPACE_Username:-$(_readaccountconf_mutable RACKSPACE_Username)}"
   RACKSPACE_Apikey="${RACKSPACE_Apikey:-$(_readaccountconf_mutable RACKSPACE_Apikey)}"
-  
   # check their vals for null
   if [ -z "$RACKSPACE_Username" ] || [ -z "$RACKSPACE_Apikey" ]; then
     RACKSPACE_Username=""
@@ -194,11 +174,9 @@ _rackspace_check_auth() {
     _err "Please set those values and try again."
     return 1
   fi
-
   # save the username and api key to the account conf file.
   _saveaccountconf_mutable RACKSPACE_Username "$RACKSPACE_Username"
   _saveaccountconf_mutable RACKSPACE_Apikey "$RACKSPACE_Apikey"
-  
   if [ -z "$RACKSPACE_Token" ]; then
     _info "Getting authorization token."
     if ! _rackspace_authorization; then
