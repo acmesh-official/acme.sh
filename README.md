@@ -354,6 +354,7 @@ You don't have to do anything manually!
 1. Nexcess API (https://www.nexcess.net)
 1. Thermo.io API (https://www.thermo.io)
 1. Futurehosting API (https://www.futurehosting.com)
+1. Rackspace Cloud DNS (https://www.rackspace.com)
 
 And:
 
