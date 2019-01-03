@@ -34,9 +34,6 @@ dns_cf_add() {
   _saveaccountconf_mutable CF_Key "$CF_Key"
   _saveaccountconf_mutable CF_Email "$CF_Email"
 
-  _DOMAIN_CF_ZONES_CACHE_NAME_="$(echo "${CF_Email}_CF_ZONES_" | tr '@.' '__')"
-  _cleardomainconf "$_DOMAIN_CF_ZONES_CACHE_NAME_"
-
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
@@ -105,16 +102,11 @@ dns_cf_rm() {
     return 1
   fi
 
-  _DOMAIN_CF_ZONES_CACHE_NAME_="$(echo "${CF_Email}_CF_ZONES_" | tr '@.' '__')"
-
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
-    _cleardomainconf "$_DOMAIN_CF_ZONES_CACHE_NAME_"
     _err "invalid domain"
     return 1
   fi
-  _cleardomainconf "$_DOMAIN_CF_ZONES_CACHE_NAME_"
-
   _debug _domain_id "$_domain_id"
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
@@ -154,21 +146,6 @@ dns_cf_rm() {
 # _domain=domain.com
 # _domain_id=sdjkglgdfewsdfg
 _get_root() {
-
-  _cf_zones="$(_readdomainconf "$_DOMAIN_CF_ZONES_CACHE_NAME_")"
-  _debug2 "_cf_zones" "$_cf_zones"
-  if [ -z "$_cf_zones" ]; then
-    _debug "$_DOMAIN_CF_ZONES_CACHE_NAME_ is none, so get it."
-    if ! _cf_rest GET "zones"; then
-      return 1
-    fi
-    _cf_zones="$response"
-    _savedomainconf "$_DOMAIN_CF_ZONES_CACHE_NAME_" "$(echo "$_cf_zones" | _base64)"
-  else
-    _debug "$_DOMAIN_CF_ZONES_CACHE_NAME_ found"
-    _cf_zones="$(echo "$_cf_zones" | _dbase64)"
-  fi
-
   domain=$1
   i=2
   p=1
@@ -180,8 +157,12 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$_cf_zones" "\"name\":\"$h\"" >/dev/null; then
-      _domain_id=$(echo "$_cf_zones" | tr '{' "\n" | grep "\"name\":\"$h\"" | _egrep_o "^\"id\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
+    if ! _cf_rest GET "zones?name=$h"; then
+      return 1
+    fi
+
+    if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
+      _domain_id=$(echo "$response" | _egrep_o "\[.\"id\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain=$h
