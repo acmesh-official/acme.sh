@@ -1122,7 +1122,7 @@ export EXOSCALE_SECRET_KEY='xxx'
 
 Now, let's issue a cert:
 ```
-acme.sh --issue --dns dns_netcup -d example.com -d www.example.com
+acme.sh --issue --dns dns_exoscale -d example.com -d www.example.com
 ```
 
 The `EXOSCALE_API_KEY` and `EXOSCALE_SECRET_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
