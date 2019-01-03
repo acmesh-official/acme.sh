@@ -90,7 +90,7 @@ _hostingde_addRecord() {
   _hostingde_getZoneStatus
   _debug "Result of zoneStatus: '${zoneStatus}'"
   while [ "${zoneStatus}" != "active" ]; do
-    sleep 5
+    _sleep 5
     _hostingde_getZoneStatus
     _debug "Result of zoneStatus: '${zoneStatus}'"
   done
@@ -114,7 +114,7 @@ _hostingde_removeRecord() {
   _hostingde_getZoneStatus
   _debug "Result of zoneStatus: '$zoneStatus'"
   while [ "$zoneStatus" != "active" ]; do
-    sleep 5
+    _sleep 5
     _hostingde_getZoneStatus
     _debug "Result of zoneStatus: '$zoneStatus'"
   done
