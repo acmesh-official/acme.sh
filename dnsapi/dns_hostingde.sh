@@ -74,8 +74,26 @@ _hostingde_getZoneConfig() {
   return $returnCode
 }
 
+_hostingde_getZoneStatus() {
+  _debug "Checking Zone status"
+  curData="{\"filter\":{\"field\":\"zoneConfigId\",\"value\":\"${zoneConfigId}\"},\"limit\":1,\"authToken\":\"${HOSTINGDE_APIKEY}\"}"
+  curResult="$(_post "${curData}" "${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zonesFind")"
+  _debug "Calling zonesFind '${curData}' '${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zonesFind'"
+  _debug "Result of zonesFind '$curResult'"
+  zoneStatus=$(echo "${curResult}" | grep -v success | _egrep_o '"status":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
+  _debug "zoneStatus '${zoneStatus}'"
+  return 0
+}
+
 _hostingde_addRecord() {
   _info "Adding record to zone"
+  _hostingde_getZoneStatus
+  _debug "Result of zoneStatus: '${zoneStatus}'"
+  while [ "${zoneStatus}" != "active" ]; do
+    _sleep 5
+    _hostingde_getZoneStatus
+    _debug "Result of zoneStatus: '${zoneStatus}'"
+  done
   curData="{\"authToken\":\"${HOSTINGDE_APIKEY}\",\"zoneConfig\":{\"id\":\"${zoneConfigId}\"},\"recordsToAdd\":[{\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"content\":\"\\\"${txtvalue}\\\"\",\"ttl\":3600}]}"
   curResult="$(_post "${curData}" "${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate")"
   _debug "Calling zoneUpdate: '${curData}' '${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate'"
@@ -93,6 +111,13 @@ _hostingde_addRecord() {
 
 _hostingde_removeRecord() {
   _info "Removing record from zone"
+  _hostingde_getZoneStatus
+  _debug "Result of zoneStatus: '$zoneStatus'"
+  while [ "$zoneStatus" != "active" ]; do
+    _sleep 5
+    _hostingde_getZoneStatus
+    _debug "Result of zoneStatus: '$zoneStatus'"
+  done
   curData="{\"authToken\":\"${HOSTINGDE_APIKEY}\",\"zoneConfig\":{\"id\":\"${zoneConfigId}\"},\"recordsToDelete\":[{\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"content\":\"\\\"${txtvalue}\\\"\"}]}"
   curResult="$(_post "${curData}" "${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate")"
   _debug "Calling zoneUpdate: '${curData}' '${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate'"
