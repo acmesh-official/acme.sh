@@ -1089,7 +1089,7 @@ _createcsr() {
   fi
 
   if [ "$acmeValidationv1" ]; then
-    printf "\n1.3.6.1.5.5.7.1.30.1=critical,DER:04:20:${acmeValidationv1}" >>"${csrconf}"
+    printf "\n1.3.6.1.5.5.7.1.31=critical,DER:04:20:${acmeValidationv1}" >>"${csrconf}"
   fi
 
   _csr_cn="$(_idn "$domain")"
