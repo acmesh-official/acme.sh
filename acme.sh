@@ -4146,14 +4146,14 @@ $_authorizations_map"
     Le_LinkCert="$(echo "$response" | tr -d '\r\n' | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
 
     _tempSignedResponse="$response"
-    if ! _send_signed_request "$Le_LinkCert"; then
+    if ! _send_signed_request "$Le_LinkCert" "" "needbase64"; then
       _err "Sign failed, can not download cert:$Le_LinkCert."
       _err "$response"
       _on_issue_err "$_post_hook"
       return 1
     fi
 
-    echo "$response" >"$CERT_PATH";
+    echo "$response" | _dbase64 >"$CERT_PATH";
 
     if [ "$(grep -- "$BEGIN_CERT" "$CERT_PATH" | wc -l)" -gt "1" ]; then
       _debug "Found cert chain"
