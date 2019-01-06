@@ -3651,7 +3651,7 @@ issue() {
       _authorizations_map=""
       for _authz_url in $(echo "$_authorizations_seg" | tr ',' ' '); do
         _debug2 "_authz_url" "$_authz_url"
-        if ! response="$(_get "$_authz_url")"; then
+        if ! _send_signed_request "$_authz_url"; then
           _err "get to authz error."
           _err "_authorizations_seg" "$_authorizations_seg"
           _err "_authz_url" "$_authz_url"
@@ -4069,7 +4069,11 @@ $_authorizations_map"
       _debug "sleep 2 secs to verify"
       sleep 2
       _debug "checking"
-      response="$(_get "$uri")"
+      if [ "$ACME_VERSION" = "2" ]; then
+        _send_signed_request "$uri"
+      else
+        response="$(_get "$uri")"
+      fi
       if [ "$?" != "0" ]; then
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
@@ -4145,12 +4149,15 @@ $_authorizations_map"
     fi
     Le_LinkCert="$(echo "$response" | tr -d '\r\n' | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
 
-    if ! _get "$Le_LinkCert" >"$CERT_PATH"; then
+    _tempSignedResponse="$response"
+    if ! _send_signed_request "$Le_LinkCert" "" "needbase64"; then
       _err "Sign failed, can not download cert:$Le_LinkCert."
       _err "$response"
       _on_issue_err "$_post_hook"
       return 1
     fi
+
+    echo "$response" | _dbase64 "multiline" >"$CERT_PATH"
 
     if [ "$(grep -- "$BEGIN_CERT" "$CERT_PATH" | wc -l)" -gt "1" ]; then
       _debug "Found cert chain"
@@ -4161,6 +4168,7 @@ $_authorizations_map"
       _end_n="$(_math $_end_n + 1)"
       sed -n "${_end_n},9999p" "$CERT_FULLCHAIN_PATH" >"$CA_CERT_PATH"
     fi
+    response="$_tempSignedResponse"
   else
     if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"$ACME_NEW_ORDER_RES\", \"csr\": \"$der\"}" "needbase64"; then
       _err "Sign failed. $response"
@@ -4231,7 +4239,8 @@ $_authorizations_map"
       while [ "$_link_issuer_retry" -lt "$_MAX_ISSUER_RETRY" ]; do
         _debug _link_issuer_retry "$_link_issuer_retry"
         if [ "$ACME_VERSION" = "2" ]; then
-          if _get "$Le_LinkIssuer" >"$CA_CERT_PATH"; then
+          if _send_signed_request "$Le_LinkIssuer"; then
+            echo "$response" >"$CA_CERT_PATH"
             break
           fi
         else
@@ -4957,7 +4966,7 @@ _deactivate() {
 
     authzUri="$_authorizations_seg"
     _debug2 "authzUri" "$authzUri"
-    if ! response="$(_get "$authzUri")"; then
+    if ! _send_signed_request "$authzUri"; then
       _err "get to authz error."
       _err "_authorizations_seg" "$_authorizations_seg"
       _err "authzUri" "$authzUri"
