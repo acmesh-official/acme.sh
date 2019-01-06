@@ -4069,8 +4069,12 @@ $_authorizations_map"
       _debug "sleep 2 secs to verify"
       sleep 2
       _debug "checking"
-
-      if ! _send_signed_request "$uri"; then
+      if [ "$ACME_VERSION" = "2" ]; then
+        _send_signed_request "$uri"
+      else
+        response="$(_get "$uri")"
+      fi
+      if [ "$?" != "0" ]; then
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
