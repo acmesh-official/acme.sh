@@ -4153,7 +4153,7 @@ $_authorizations_map"
       return 1
     fi
 
-    echo "$response" | _dbase64 >"$CERT_PATH";
+    echo "$response" | _dbase64 "multiline" >"$CERT_PATH";
 
     if [ "$(grep -- "$BEGIN_CERT" "$CERT_PATH" | wc -l)" -gt "1" ]; then
       _debug "Found cert chain"
