@@ -1,12 +1,12 @@
 # How to use DNS API
 
-If your dns provider doesn't provide api access, you can use our dns alias mode: 
+If your dns provider doesn't provide api access, you can use our dns alias mode:
 
 https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode
 
 ## 1. Use CloudFlare domain API to automatically issue cert
 
-First you need to login to your CloudFlare account to get your [API key](https://dash.cloudflare.com/profile). 
+First you need to login to your CloudFlare account to get your [API key](https://dash.cloudflare.com/profile).
 
 ```
 export CF_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
@@ -891,7 +891,7 @@ acme.sh --issue --dns dns_loopia -d example.com -d *.example.com
 The username and password will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 ## 45. Use ACME DNS API
 
-ACME DNS is a limited DNS server with RESTful HTTP API to handle ACME DNS challenges easily and securely. 
+ACME DNS is a limited DNS server with RESTful HTTP API to handle ACME DNS challenges easily and securely.
 https://github.com/joohoi/acme-dns
 
 ```
@@ -1056,6 +1056,7 @@ Now you can issue a certificate.
 acme.sh --issue --dns dns_namecheap -d example.com -d *.example.com
 ```
 
+<<<<<<< HEAD
 ## 54. Use MyDNS.JP API
 
 First, register to MyDNS.JP and get MasterID and Password.
@@ -1126,6 +1127,18 @@ acme.sh --issue --dns dns_exoscale -d example.com -d www.example.com
 ```
 
 The `EXOSCALE_API_KEY` and `EXOSCALE_SECRET_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 58. Using PointHQ API to issue certs
+
+Log into [PointHQ account management](https://app.pointhq.com/profile) and copy the API key from the page there.
+
+```export PointHQ_Key="apikeystringgoeshere"
+exportPointHQ_Email="accountemail@yourdomain.com"
+```
+
+You can then issue certs by using:
+```acme.sh --issue --dns dns_pointhq -d example.com -d www.example.com
+```
 
 # Use custom API
 
