@@ -1014,6 +1014,18 @@ Now you can issue a certificate.
 acme.sh --issue --dns dns_namecheap -d example.com -d *.example.com
 ```
 
+## 54. Using PointHQ API to issue certs
+
+Log into [PointHQ account management](https://app.pointhq.com/profile) and copy the API key from the page there.
+
+```export PointHQ_Key="apikeystringgoeshere"
+exportPointHQ_Email="accountemail@yourdomain.com"
+```
+
+You can then issue certs by using:
+```acme.sh --issue --dns dns_pointhq -d example.com -d www.example.com
+```
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
