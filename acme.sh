@@ -36,11 +36,11 @@ _OLD_STAGE_CA_HOST="https://acme-staging.api.letsencrypt.org"
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
 VTYPE_TLS="tls-sni-01"
-VTYPE_TLS2="tls-sni-02"
+VTYPE_ALPN="tls-alpn-01"
 
 LOCAL_ANY_ADDRESS="0.0.0.0"
 
-MAX_RENEW=60
+DEFAULT_RENEW=60
 
 DEFAULT_DNS_SLEEP=120
 
@@ -48,6 +48,7 @@ NO_VALUE="no"
 
 W_TLS="tls"
 W_DNS="dns"
+W_ALPN="alpn"
 DNS_ALIAS_PREFIX="="
 
 MODE_STATELESS="stateless"
@@ -124,23 +125,19 @@ if [ -t 1 ]; then
 fi
 
 __green() {
-  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[1;31;32m'
+  if [ "${__INTERACTIVE}${ACME_NO_COLOR:-0}" = "10" -o "${ACME_FORCE_COLOR}" = "1" ]; then
+    printf '\033[1;31;32m%b\033[0m' "$1"
+    return
   fi
   printf -- "%b" "$1"
-  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[0m'
-  fi
 }
 
 __red() {
-  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[1;31;40m'
+  if [ "${__INTERACTIVE}${ACME_NO_COLOR:-0}" = "10" -o "${ACME_FORCE_COLOR}" = "1" ]; then
+    printf '\033[1;31;40m%b\033[0m' "$1"
+    return
   fi
   printf -- "%b" "$1"
-  if [ "$__INTERACTIVE${ACME_NO_COLOR}" = "1" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[0m'
-  fi
 }
 
 _printargs() {
@@ -1050,7 +1047,7 @@ _idn() {
   fi
 }
 
-#_createcsr  cn  san_list  keyfile csrfile conf
+#_createcsr  cn  san_list  keyfile csrfile conf acmeValidationv1
 _createcsr() {
   _debug _createcsr
   domain="$1"
@@ -1058,6 +1055,7 @@ _createcsr() {
   csrkey="$3"
   csr="$4"
   csrconf="$5"
+  acmeValidationv1="$6"
   _debug2 domain "$domain"
   _debug2 domainlist "$domainlist"
   _debug2 csrkey "$csrkey"
@@ -1066,7 +1064,9 @@ _createcsr() {
 
   printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\n\nkeyUsage = nonRepudiation, digitalSignature, keyEncipherment" >"$csrconf"
 
-  if [ -z "$domainlist" ] || [ "$domainlist" = "$NO_VALUE" ]; then
+  if [ "$acmeValidationv1" ]; then
+    printf -- "\nsubjectAltName=DNS:$domainlist" >>"$csrconf"
+  elif [ -z "$domainlist" ] || [ "$domainlist" = "$NO_VALUE" ]; then
     #single domain
     _info "Single domain" "$domain"
     printf -- "\nsubjectAltName=DNS:$domain" >>"$csrconf"
@@ -1086,6 +1086,10 @@ _createcsr() {
     _savedomainconf Le_OCSP_Staple "$Le_OCSP_Staple"
     _cleardomainconf Le_OCSP_Stable
     printf -- "\nbasicConstraints = CA:FALSE\n1.3.6.1.5.5.7.1.24=DER:30:03:02:01:05" >>"$csrconf"
+  fi
+
+  if [ "$acmeValidationv1" ]; then
+    printf "\n1.3.6.1.5.5.7.1.31=critical,DER:04:20:${acmeValidationv1}" >>"${csrconf}"
   fi
 
   _csr_cn="$(_idn "$domain")"
@@ -1138,12 +1142,17 @@ _readSubjectAltNamesFromCSR() {
 
   if _contains "$_dnsAltnames," "DNS:$_csrsubj,"; then
     _debug "AltNames contains subject"
-    _dnsAltnames="$(printf "%s" "$_dnsAltnames," | sed "s/DNS:$_csrsubj,//g")"
+    _excapedAlgnames="$(echo "$_dnsAltnames" | tr '*' '#')"
+    _debug _excapedAlgnames "$_excapedAlgnames"
+    _escapedSubject="$(echo "$_csrsubj" | tr '*' '#')"
+    _debug _escapedSubject "$_escapedSubject"
+    _dnsAltnames="$(echo "$_excapedAlgnames," | sed "s/DNS:$_escapedSubject,//g" | tr '#' '*' | sed "s/,\$//g")"
+    _debug _dnsAltnames "$_dnsAltnames"
   else
     _debug "AltNames doesn't contain subject"
   fi
 
-  printf "%s" "$_dnsAltnames" | sed "s/DNS://g"
+  echo "$_dnsAltnames" | sed "s/DNS://g"
 }
 
 #_csrfile
@@ -1520,7 +1529,8 @@ _calcjwk() {
     JWK_HEADERPLACE_PART1='{"nonce": "'
     JWK_HEADERPLACE_PART2='", "alg": "ES'$__ECC_KEY_LEN'"'
   else
-    _err "Only RSA or EC key is supported."
+    _err "Only RSA or EC key is supported. keyfile=$keyfile"
+    _debug2 "$(cat "$keyfile")"
     return 1
   fi
 
@@ -1864,11 +1874,7 @@ _send_signed_request() {
     sig="$(printf "%s" "$_sig_t" | _url_replace)"
     _debug3 sig "$sig"
 
-    if [ "$ACME_VERSION" = "2" ]; then
-      body="{\"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
-    else
-      body="{\"header\": $JWK_HEADER, \"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
-    fi
+    body="{\"protected\": \"$protected64\", \"payload\": \"$payload64\", \"signature\": \"$sig\"}"
     _debug3 body "$body"
 
     response="$(_post "$body" "$url" "$needbase64" "POST" "$__request_conent_type")"
@@ -2105,7 +2111,7 @@ _sleep() {
   fi
 }
 
-# _starttlsserver  san_a  san_b port content _ncaddr
+# _starttlsserver  san_a  san_b port content _ncaddr acmeValidationv1
 _starttlsserver() {
   _info "Starting tls server."
   san_a="$1"
@@ -2113,10 +2119,12 @@ _starttlsserver() {
   port="$3"
   content="$4"
   opaddr="$5"
+  acmeValidationv1="$6"
 
   _debug san_a "$san_a"
   _debug san_b "$san_b"
   _debug port "$port"
+  _debug acmeValidationv1 "$acmeValidationv1"
 
   #create key TLS_KEY
   if ! _createkey "2048" "$TLS_KEY"; then
@@ -2129,7 +2137,7 @@ _starttlsserver() {
   if [ "$san_b" ]; then
     alt="$alt,$san_b"
   fi
-  if ! _createcsr "tls.acme.sh" "$alt" "$TLS_KEY" "$TLS_CSR" "$TLS_CONF"; then
+  if ! _createcsr "tls.acme.sh" "$alt" "$TLS_KEY" "$TLS_CSR" "$TLS_CONF" "$acmeValidationv1"; then
     _err "Create tls validation csr error."
     return 1
   fi
@@ -2153,6 +2161,10 @@ _starttlsserver() {
     __S_OPENSSL="$__S_OPENSSL -4"
   elif [ "$Le_Listen_V6" ]; then
     __S_OPENSSL="$__S_OPENSSL -6"
+  fi
+
+  if [ "$acmeValidationv1" ]; then
+    __S_OPENSSL="$__S_OPENSSL -alpn acme-tls/1"
   fi
 
   _debug "$__S_OPENSSL"
@@ -2843,7 +2855,7 @@ _isRealNginxConf() {
         _skip_ssl=1
         for _listen_i in $(echo "$_seg_n" | tr "\t" ' ' | grep "^ *listen" | tr -d " "); do
           if [ "$_listen_i" ]; then
-            if [ "$(echo "$_listen_i" | _egrep_o "listen.*ssl[ |;]")" ]; then
+            if [ "$(echo "$_listen_i" | _egrep_o "listen.*ssl")" ]; then
               _debug2 "$_listen_i is ssl"
             else
               _debug2 "$_listen_i is plain text"
@@ -2925,6 +2937,7 @@ _clearupdns() {
     _debug txt "$txt"
     if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
       _debug "$d is already verified, skip $vtype."
+      _alias_index="$(_math "$_alias_index" + 1)"
       continue
     fi
 
@@ -3064,8 +3077,8 @@ _on_before_issue() {
         _savedomainconf "Le_HTTPPort" "$Le_HTTPPort"
       fi
       _checkport="$Le_HTTPPort"
-    elif [ "$_currentRoot" = "$W_TLS" ]; then
-      _info "Standalone tls mode."
+    elif [ "$_currentRoot" = "$W_TLS" ] || [ "$_currentRoot" = "$W_ALPN" ]; then
+      _info "Standalone tls/alpn mode."
       if [ -z "$Le_TLSPort" ]; then
         Le_TLSPort=443
       else
@@ -3425,15 +3438,17 @@ __get_domain_new_authz() {
 
 #uri keyAuthorization
 __trigger_validation() {
-  _debug2 "tigger domain validation."
+  _debug2 "Trigger domain validation."
   _t_url="$1"
   _debug2 _t_url "$_t_url"
   _t_key_authz="$2"
   _debug2 _t_key_authz "$_t_key_authz"
+  _t_vtype="$3"
+  _debug2 _t_vtype "$_t_vtype"
   if [ "$ACME_VERSION" = "2" ]; then
     _send_signed_request "$_t_url" "{\"keyAuthorization\": \"$_t_key_authz\"}"
   else
-    _send_signed_request "$_t_url" "{\"resource\": \"challenge\", \"keyAuthorization\": \"$_t_key_authz\"}"
+    _send_signed_request "$_t_url" "{\"resource\": \"challenge\", \"type\": \"$_t_vtype\", \"keyAuthorization\": \"$_t_key_authz\"}"
   fi
 }
 
@@ -3636,7 +3651,7 @@ issue() {
       _authorizations_map=""
       for _authz_url in $(echo "$_authorizations_seg" | tr ',' ' '); do
         _debug2 "_authz_url" "$_authz_url"
-        if ! response="$(_get "$_authz_url")"; then
+        if ! _send_signed_request "$_authz_url"; then
           _err "get to authz error."
           _err "_authorizations_seg" "$_authorizations_seg"
           _err "_authz_url" "$_authz_url"
@@ -3684,11 +3699,11 @@ $_authorizations_map"
       fi
 
       if [ "$_currentRoot" = "$W_TLS" ]; then
-        if [ "$ACME_VERSION" = "2" ]; then
-          vtype="$VTYPE_TLS2"
-        else
-          vtype="$VTYPE_TLS"
-        fi
+        vtype="$VTYPE_TLS"
+      fi
+
+      if [ "$_currentRoot" = "$W_ALPN" ]; then
+        vtype="$VTYPE_ALPN"
       fi
 
       if [ "$ACME_VERSION" = "2" ]; then
@@ -3775,6 +3790,7 @@ $_authorizations_map"
       _debug d "$d"
       if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
         _debug "$d is already verified, skip $vtype."
+        _alias_index="$(_math "$_alias_index" + 1)"
         continue
       fi
 
@@ -4003,9 +4019,19 @@ $_authorizations_map"
         _on_issue_err "$_post_hook" "$vlist"
         return 1
       fi
+    elif [ "$vtype" = "$VTYPE_ALPN" ]; then
+      acmevalidationv1="$(printf "%s" "$keyauthorization" | _digest "sha256" "hex")"
+      _debug acmevalidationv1 "$acmevalidationv1"
+      if ! _starttlsserver "$d" "" "$Le_TLSPort" "$keyauthorization" "$_ncaddr" "$acmevalidationv1"; then
+        _err "Start tls server error."
+        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearup
+        _on_issue_err "$_post_hook" "$vlist"
+        return 1
+      fi
     fi
 
-    if ! __trigger_validation "$uri" "$keyauthorization"; then
+    if ! __trigger_validation "$uri" "$keyauthorization" "$vtype"; then
       _err "$d:Can not get challenge: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
       _clearup
@@ -4014,7 +4040,7 @@ $_authorizations_map"
     fi
 
     if [ "$code" ] && [ "$code" != '202' ]; then
-      if [ "$ACME_VERSION" = "2" ] && [ "$code" = '200' ]; then
+      if [ "$code" = '200' ]; then
         _debug "trigger validation code: $code"
       else
         _err "$d:Challenge error: $response"
@@ -4043,7 +4069,11 @@ $_authorizations_map"
       _debug "sleep 2 secs to verify"
       sleep 2
       _debug "checking"
-      response="$(_get "$uri")"
+      if [ "$ACME_VERSION" = "2" ]; then
+        _send_signed_request "$uri"
+      else
+        response="$(_get "$uri")"
+      fi
       if [ "$?" != "0" ]; then
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
@@ -4119,12 +4149,15 @@ $_authorizations_map"
     fi
     Le_LinkCert="$(echo "$response" | tr -d '\r\n' | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
 
-    if ! _get "$Le_LinkCert" >"$CERT_PATH"; then
+    _tempSignedResponse="$response"
+    if ! _send_signed_request "$Le_LinkCert" "" "needbase64"; then
       _err "Sign failed, can not download cert:$Le_LinkCert."
       _err "$response"
       _on_issue_err "$_post_hook"
       return 1
     fi
+
+    echo "$response" | _dbase64 "multiline" >"$CERT_PATH"
 
     if [ "$(grep -- "$BEGIN_CERT" "$CERT_PATH" | wc -l)" -gt "1" ]; then
       _debug "Found cert chain"
@@ -4135,6 +4168,7 @@ $_authorizations_map"
       _end_n="$(_math $_end_n + 1)"
       sed -n "${_end_n},9999p" "$CERT_FULLCHAIN_PATH" >"$CA_CERT_PATH"
     fi
+    response="$_tempSignedResponse"
   else
     if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"$ACME_NEW_ORDER_RES\", \"csr\": \"$der\"}" "needbase64"; then
       _err "Sign failed. $response"
@@ -4205,7 +4239,8 @@ $_authorizations_map"
       while [ "$_link_issuer_retry" -lt "$_MAX_ISSUER_RETRY" ]; do
         _debug _link_issuer_retry "$_link_issuer_retry"
         if [ "$ACME_VERSION" = "2" ]; then
-          if _get "$Le_LinkIssuer" >"$CA_CERT_PATH"; then
+          if _send_signed_request "$Le_LinkIssuer"; then
+            echo "$response" >"$CA_CERT_PATH"
             break
           fi
         else
@@ -4241,8 +4276,8 @@ $_authorizations_map"
   Le_CertCreateTimeStr=$(date -u)
   _savedomainconf "Le_CertCreateTimeStr" "$Le_CertCreateTimeStr"
 
-  if [ -z "$Le_RenewalDays" ] || [ "$Le_RenewalDays" -lt "0" ] || [ "$Le_RenewalDays" -gt "$MAX_RENEW" ]; then
-    Le_RenewalDays="$MAX_RENEW"
+  if [ -z "$Le_RenewalDays" ] || [ "$Le_RenewalDays" -lt "0" ]; then
+    Le_RenewalDays="$DEFAULT_RENEW"
   else
     _savedomainconf "Le_RenewalDays" "$Le_RenewalDays"
   fi
@@ -4602,7 +4637,8 @@ deploy() {
 
   _initpath "$_d" "$_isEcc"
   if [ ! -d "$DOMAIN_PATH" ]; then
-    _err "Domain is not valid:'$_d'"
+    _err "The domain '$_d' is not a cert name. You must use the cert name to specify the cert to install."
+    _err "Can not find path:'$DOMAIN_PATH'"
     return 1
   fi
 
@@ -4629,7 +4665,8 @@ installcert() {
 
   _initpath "$_main_domain" "$_isEcc"
   if [ ! -d "$DOMAIN_PATH" ]; then
-    _err "Domain is not valid:'$_main_domain'"
+    _err "The domain '$_main_domain' is not a cert name. You must use the cert name to specify the cert to install."
+    _err "Can not find path:'$DOMAIN_PATH'"
     return 1
   fi
 
@@ -4929,7 +4966,7 @@ _deactivate() {
 
     authzUri="$_authorizations_seg"
     _debug2 "authzUri" "$authzUri"
-    if ! response="$(_get "$authzUri")"; then
+    if ! _send_signed_request "$authzUri"; then
       _err "get to authz error."
       _err "_authorizations_seg" "$_authorizations_seg"
       _err "authzUri" "$authzUri"
@@ -5463,6 +5500,7 @@ Parameters:
   --output-insecure                 Output all the sensitive messages. By default all the credentials/sensitive messages are hidden from the output/debug/log for secure.
   --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
+  --alpn                            Use standalone alpn mode.
   --stateless                       Use stateless mode, see: $_STATELESS_WIKI
   --apache                          Use apache mode.
   --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
@@ -5474,7 +5512,7 @@ Parameters:
   --log-level 1|2                   Specifies the log level, default is 1.
   --syslog [0|3|6|7]                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
 
-  These parameters are to install the cert to nginx/apache or anyother server after issue/renew a cert:
+  These parameters are to install the cert to nginx/apache or any other server after issue/renew a cert:
 
   --cert-file                       After issue/renew, the cert will be copied to this path.
   --key-file                        After issue/renew, the key will be copied to this path.
@@ -5485,14 +5523,15 @@ Parameters:
 
   --server SERVER                   ACME Directory Resource URI. (default: https://acme-v01.api.letsencrypt.org/directory)
   --accountconf                     Specifies a customized account config file.
-  --home                            Specifies the home dir for $PROJECT_NAME .
+  --home                            Specifies the home dir for $PROJECT_NAME.
   --cert-home                       Specifies the home dir to save all the certs, only valid for '--install' command.
   --config-home                     Specifies the home dir to save all the configurations.
   --useragent                       Specifies the user agent string. it will be saved for future use too.
   --accountemail                    Specifies the account email, only valid for the '--install' and '--update-account' command.
   --accountkey                      Specifies the account key path, only valid for the '--install' command.
-  --days                            Specifies the days to renew the cert when using '--issue' command. The max value is $MAX_RENEW days.
+  --days                            Specifies the days to renew the cert when using '--issue' command. The default value is $DEFAULT_RENEW days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
+  --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --local-address                   Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
   --listraw                         Only used for '--list' command, list the certs in raw format.
   --stopRenewOnError, -se           Only valid for '--renew-all' command. Stop if one cert has error in renewal.
@@ -5817,6 +5856,14 @@ _process() {
           _webroot="$_webroot,$wvalue"
         fi
         ;;
+      --alpn)
+        wvalue="$W_ALPN"
+        if [ -z "$_webroot" ]; then
+          _webroot="$wvalue"
+        else
+          _webroot="$_webroot,$wvalue"
+        fi
+        ;;
       --stateless)
         wvalue="$MODE_STATELESS"
         if [ -z "$_webroot" ]; then
@@ -5939,6 +5986,11 @@ _process() {
       --httpport)
         _httpport="$2"
         Le_HTTPPort="$_httpport"
+        shift
+        ;;
+      --tlsport)
+        _tlsport="$2"
+        Le_TLSPort="$_tlsport"
         shift
         ;;
       --listraw)
