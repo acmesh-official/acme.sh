@@ -44,30 +44,53 @@ qiniu_deploy() {
   string_fullchain=$(awk '{printf "%s\\n", $0}' "$_cfullchain")
   string_key=$(awk '{printf "%s\\n", $0}' "$_ckey")
 
-  body="{\"name\":\"$_cdomain\",\"common_name\":\"$_cdomain\",\"ca\":\""$string_fullchain"\",\"pri\":\"$string_key\"}"
+  sslcerl_body="{\"name\":\"$_cdomain\",\"common_name\":\"$_cdomain\",\"ca\":\""$string_fullchain"\",\"pri\":\"$string_key\"}"
 
   create_ssl_url="$QINIU_API_BASE/sslcert"
 
-  ACCESSTOKEN="$(_make_sslcreate_access_token)"
-  export _H1="Authorization: QBox $ACCESSTOKEN"
+  sslcert_access_token="$(_make_sslcreate_access_token "/sslcert\\n")"
+  _debug sslcert_access_token "$sslcert_access_token"
+  export _H1="Authorization: QBox $sslcert_access_token"
 
-  _response=$(_post "$body" "$create_ssl_url" 0 "POST" "application/json" | _dbase64 "multiline")
+  sslcert_response=$(_post "$sslcerl_body" "$create_ssl_url" 0 "POST" "application/json" | _dbase64 "multiline")
 
   success_response="certID"
-  if test "${_response#*$success_response}" == "$_response"; then
-    _err "Error in deploying certificate:"
-    _err "$_response"
+  if test "${sslcert_response#*$success_response}" == "$sslcert_response"; then
+    _err "Error in creating certificate:"
+    _err "$sslcert_response"
     return 1
   fi
 
-  _debug response "$_response"
+  _debug sslcert_response "$sslcert_response"
+  _info "Certificate successfully uploaded, updating domain $_cdomain"
+
+  _certId=$(printf "%s" $sslcert_response | sed -e "s/^.*certID\":\"//" -e "s/\"\}$//")
+  _debug certId "$_certId"
+
+  update_path="/domain/$_cdomain/httpsconf"
+  update_url="$QINIU_API_BASE$update_path"
+  update_body="{\"certid\":\""$_certId"\",\"forceHttps\":true}"
+
+  update_access_token="$(_make_sslcreate_access_token "$update_path\\n")"
+  _debug update_access_token "$update_access_token"
+  export _H1="Authorization: QBox $update_access_token"
+  update_response=$(_post "$update_body" "$update_url" 0 "PUT" "application/json" | _dbase64 "multiline")
+
+  err_response="error"
+  if test "${update_response#*$err_response}" != "$update_response"; then
+    _err "Error in updating domain:"
+    _err "$update_response"
+    return 1
+  fi
+
+  _debug update_response "$update_response"
   _info "Certificate successfully deployed"
 
   return 0
 }
 
 _make_sslcreate_access_token() {
-  _data="/sslcert\\n"
+  _data="$1"
   _token="$(printf "$_data" | openssl sha1 -hmac $Le_Deploy_Qiniu_SK -binary | openssl base64 -e)"
   echo "$Le_Deploy_Qiniu_AK:$_token"
 }
