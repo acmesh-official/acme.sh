@@ -52,8 +52,7 @@ qiniu_deploy() {
   export _H1="Authorization: QBox $sslcert_access_token"
   sslcert_response=$(_post "$sslcerl_body" "$QINIU_API_BASE$sslcert_path" 0 "POST" "application/json" | _dbase64 "multiline")
 
-  success_response="certID"
-  if test "${sslcert_response#*$success_response}" == "$sslcert_response"; then
+  if ! _contains "$sslcert_response" "certID"; then
     _err "Error in creating certificate:"
     _err "$sslcert_response"
     return 1
@@ -63,7 +62,7 @@ qiniu_deploy() {
   _info "Certificate successfully uploaded, updating domain $_cdomain"
 
   ## extract certId
-  _certId="$(printf "%s" "$sslcert_response" | _normalizeJson | _egrep_o "certID\":\s*\"[^\"]*\"" | cut -d : -f 2)"
+  _certId="$(printf "%s" "$sslcert_response" | _normalizeJson | _egrep_o "certID\": *\"[^\"]*\"" | cut -d : -f 2)"
   _debug certId "$_certId"
 
   ## update domain ssl config
@@ -74,8 +73,7 @@ qiniu_deploy() {
   export _H1="Authorization: QBox $update_access_token"
   update_response=$(_post "$update_body" "$QINIU_API_BASE$update_path" 0 "PUT" "application/json" | _dbase64 "multiline")
 
-  err_response="error"
-  if test "${update_response#*$err_response}" != "$update_response"; then
+  if _contains "$update_response" "error"; then
     _err "Error in updating domain httpsconf:"
     _err "$update_response"
     return 1
@@ -88,6 +86,6 @@ qiniu_deploy() {
 }
 
 _make_sslcreate_access_token() {
-  _token="$(printf "%s\\n" "$1" | _hmac "sha1" "$(printf "%s" "$Le_Deploy_Qiniu_SK" | _hex_dump | tr -d " ")" | _base64)"
+  _token="$(printf "%s\n" "$1" | _hmac "sha1" "$(printf "%s" "$Le_Deploy_Qiniu_SK" | _hex_dump | tr -d " ")" | _base64)"
   echo "$Le_Deploy_Qiniu_AK:$_token"
 }
