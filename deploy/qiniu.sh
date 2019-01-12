@@ -41,18 +41,16 @@ qiniu_deploy() {
     _savedomainconf Le_Deploy_Qiniu_SK "$Le_Deploy_Qiniu_SK"
   fi
 
+  ## upload certificate
   string_fullchain=$(awk '{printf "%s\\n", $0}' "$_cfullchain")
   string_key=$(awk '{printf "%s\\n", $0}' "$_ckey")
 
-  sslcerl_body="{\"name\":\"$_cdomain\",\"common_name\":\"$_cdomain\",\"ca\":\""$string_fullchain"\",\"pri\":\"$string_key\"}"
-
-  create_ssl_url="$QINIU_API_BASE/sslcert"
-
-  sslcert_access_token="$(_make_sslcreate_access_token "/sslcert\\n")"
+  sslcert_path="/sslcert"
+  sslcerl_body="{\"name\":\"$_cdomain\",\"common_name\":\"$_cdomain\",\"ca\":\"$string_fullchain\",\"pri\":\"$string_key\"}"
+  sslcert_access_token="$(_make_sslcreate_access_token "$sslcert_path")"
   _debug sslcert_access_token "$sslcert_access_token"
   export _H1="Authorization: QBox $sslcert_access_token"
-
-  sslcert_response=$(_post "$sslcerl_body" "$create_ssl_url" 0 "POST" "application/json" | _dbase64 "multiline")
+  sslcert_response=$(_post "$sslcerl_body" "$QINIU_API_BASE$sslcert_path" 0 "POST" "application/json" | _dbase64 "multiline")
 
   success_response="certID"
   if test "${sslcert_response#*$success_response}" == "$sslcert_response"; then
@@ -64,21 +62,21 @@ qiniu_deploy() {
   _debug sslcert_response "$sslcert_response"
   _info "Certificate successfully uploaded, updating domain $_cdomain"
 
-  _certId=$(printf "%s" $sslcert_response | sed -e "s/^.*certID\":\"//" -e "s/\"\}$//")
+  ## extract certId
+  _certId=$(printf "%s" "$sslcert_response" | sed -e "s/^.*certID\":\"//" -e "s/\"\}$//")
   _debug certId "$_certId"
 
+  ## update domain ssl config
   update_path="/domain/$_cdomain/httpsconf"
-  update_url="$QINIU_API_BASE$update_path"
-  update_body="{\"certid\":\""$_certId"\",\"forceHttps\":true}"
-
-  update_access_token="$(_make_sslcreate_access_token "$update_path\\n")"
+  update_body="{\"certid\":\"$_certId\",\"forceHttps\":true}"
+  update_access_token="$(_make_sslcreate_access_token "$update_path")"
   _debug update_access_token "$update_access_token"
   export _H1="Authorization: QBox $update_access_token"
-  update_response=$(_post "$update_body" "$update_url" 0 "PUT" "application/json" | _dbase64 "multiline")
+  update_response=$(_post "$update_body" "$QINIU_API_BASE$update_body" 0 "PUT" "application/json" | _dbase64 "multiline")
 
   err_response="error"
   if test "${update_response#*$err_response}" != "$update_response"; then
-    _err "Error in updating domain:"
+    _err "Error in updating domain httpsconf:"
     _err "$update_response"
     return 1
   fi
@@ -90,7 +88,7 @@ qiniu_deploy() {
 }
 
 _make_sslcreate_access_token() {
-  _data="$1"
-  _token="$(printf "$_data" | openssl sha1 -hmac $Le_Deploy_Qiniu_SK -binary | openssl base64 -e)"
+  _data="$1\\n"
+  _token="$(printf "%s" "$_data" | openssl sha1 -hmac "$Le_Deploy_Qiniu_SK" -binary | openssl base64 -e)"
   echo "$Le_Deploy_Qiniu_AK:$_token"
 }
