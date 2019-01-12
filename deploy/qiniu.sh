@@ -42,8 +42,8 @@ qiniu_deploy() {
   fi
 
   ## upload certificate
-  string_fullchain=$(awk '{printf "%s\\n", $0}' "$_cfullchain")
-  string_key=$(awk '{printf "%s\\n", $0}' "$_ckey")
+  string_fullchain=$(sed 's/$/\\n/' "$_cfullchain" | tr -d '\n')
+  string_key=$(sed 's/$/\\n/' "$_ckey" | tr -d '\n')
 
   sslcert_path="/sslcert"
   sslcerl_body="{\"name\":\"$_cdomain\",\"common_name\":\"$_cdomain\",\"ca\":\"$string_fullchain\",\"pri\":\"$string_key\"}"
@@ -63,12 +63,12 @@ qiniu_deploy() {
   _info "Certificate successfully uploaded, updating domain $_cdomain"
 
   ## extract certId
-  _certId=$(printf "%s" "$sslcert_response" | sed -e "s/^.*certID\":\"//" -e "s/\"\}$//")
+  _certId="$(printf "%s" "$sslcert_response" | _normalizeJson | _egrep_o "certID\":\s*\"[^\"]*\"" | cut -d : -f 2)"
   _debug certId "$_certId"
 
   ## update domain ssl config
   update_path="/domain/$_cdomain/httpsconf"
-  update_body="{\"certid\":\"$_certId\",\"forceHttps\":true}"
+  update_body="{\"certid\":$_certId,\"forceHttps\":true}"
   update_access_token="$(_make_sslcreate_access_token "$update_path")"
   _debug update_access_token "$update_access_token"
   export _H1="Authorization: QBox $update_access_token"
