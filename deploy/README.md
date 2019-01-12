@@ -332,3 +332,61 @@ variable to anything (ex: "1") before running `acme.sh`:
 ```sh
 export FABIO="1"
 ```
+
+## 13. Deploy the cert to remote cPanel host through SSH access
+
+The ssh_cpanel deploy plugin allows you to deploy certificates to a remote cPanel host
+using SSH to connect to the remote server.  The ssh_cpanel plugin is invoked
+with the following command...
+
+```sh
+acme.sh --deploy -d example.com --deploy-hook ssh_cpanel
+```
+Prior to running this for the first time you must tell the plugin where
+and how to deploy the certificates. This is done by exporting the following
+environment variables. This is not required for subsequent runs as the
+values are stored by acme.sh in the domain configuration files.
+
+Required...
+```
+export DEPLOY_SSH_CPANEL_USER=username
+```
+Optional...
+```
+export DEPLOY_SSH_CPANEL_CMD=custom ssh command
+export DEPLOY_SSH_CPANEL_SERVER=url or ip address of remote host
+export DEPLOY_SSH_CPANEL_UAPIUSER=cPanel User Name, defaults to same as DEPLOY_SSH_CPANEL_USER
+```
+
+**DEPLOY_SSH_CPANEL_USER**
+Username at the remote host that SSH will login with. Note that
+SSH must be able to login to remote host without a password... SSH Keys
+must have been exchanged with the remote host. Validate and test that you
+can login to USER@URL from the host running acme.sh before using this script.
+
+**DEPLOY_SSH_CPANEL_CMD**
+You can customize the ssh command used to connect to the remote host. For example
+if you need to connect to a specific port at the remote server you can set this
+to, for example, "ssh -p 22" or to use `sshpass` to provide password inline
+instead of exchanging ssh keys (this is not recommended, using keys is
+more secure).
+
+**DEPLOY_SSH_CPANEL_SERVER**
+URL or IP Address of the remote server. If not provided then the domain
+name provided on the acme.sh --deploy command line is used.
+
+**DEPLOY_SSH_CPANEL_UAPIUSER**
+Username to log into cPanel, if different from SSH username.
+
+###Example using SSH_cPanel deploy
+The following example illustrates deploying a certificate to the server
+at example.com where the SSH username is admin and the cPanel
+username is cpaneluser.
+
+```sh
+export DEPLOY_SSH_CPANEL_USER="admin"
+export DEPLOY_SSH_CPANEL_CMD="ssh -i ~/.ssh/private.key"
+export DEPLOY_SSH_CPANEL_UAPIUSER="cpaneluser"
+
+acme.sh --deploy -d example.com --deploy-hook ssh_cpanel
+```
