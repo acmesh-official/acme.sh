@@ -332,3 +332,19 @@ variable to anything (ex: "1") before running `acme.sh`:
 ```sh
 export FABIO="1"
 ```
+
+## 13. Deploy your certificate to Qiniu.com
+
+You should create AccessKey/SecretKey pair in https://portal.qiniu.com/user/key before deploying
+your certificate.
+
+```sh
+$ export QINIU_AK="foo"
+$ export QINIU_SK="bar"
+```
+
+then you can deploy certificate by following command:
+
+```sh
+$ acme.sh --deploy -d example.com --deploy-hook qiniu
+```
