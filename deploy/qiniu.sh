@@ -72,7 +72,7 @@ qiniu_deploy() {
   update_access_token="$(_make_sslcreate_access_token "$update_path")"
   _debug update_access_token "$update_access_token"
   export _H1="Authorization: QBox $update_access_token"
-  update_response=$(_post "$update_body" "$QINIU_API_BASE$update_body" 0 "PUT" "application/json" | _dbase64 "multiline")
+  update_response=$(_post "$update_body" "$QINIU_API_BASE$update_path" 0 "PUT" "application/json" | _dbase64 "multiline")
 
   err_response="error"
   if test "${update_response#*$err_response}" != "$update_response"; then
@@ -88,7 +88,6 @@ qiniu_deploy() {
 }
 
 _make_sslcreate_access_token() {
-  _data="$1\\n"
-  _token="$(printf "%s" "$_data" | openssl sha1 -hmac "$Le_Deploy_Qiniu_SK" -binary | openssl base64 -e)"
+  _token="$(printf "%s\\n" "$1" | _hmac "sha1" "$(printf "%s" "$Le_Deploy_Qiniu_SK" | _hex_dump | tr -d " ")" | _base64)"
   echo "$Le_Deploy_Qiniu_AK:$_token"
 }
