@@ -3901,7 +3901,7 @@ $_authorizations_map"
       continue
     fi
 
-    _info "Verifying:$d"
+    _info "Verifying: $d"
     _debug "d" "$d"
     _debug "keyauthorization" "$keyauthorization"
     _debug "uri" "$uri"
