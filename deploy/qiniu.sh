@@ -5,6 +5,7 @@
 # This deployment required following variables
 # export QINIU_AK="QINIUACCESSKEY"
 # export QINIU_SK="QINIUSECRETKEY"
+# export QINIU_CDN_DOMAIN="cdn.example.com"
 
 QINIU_API_BASE="https://api.qiniu.com"
 
@@ -14,6 +15,7 @@ qiniu_deploy() {
   _ccert="$3"
   _cca="$4"
   _cfullchain="$5"
+  _cdndomain="${QINIU_CDN_DOMAIN:-$_cdomain}"
 
   _debug _cdomain "$_cdomain"
   _debug _ckey "$_ckey"
@@ -46,7 +48,7 @@ qiniu_deploy() {
   string_key=$(sed 's/$/\\n/' "$_ckey" | tr -d '\n')
 
   sslcert_path="/sslcert"
-  sslcerl_body="{\"name\":\"$_cdomain\",\"common_name\":\"$_cdomain\",\"ca\":\"$string_fullchain\",\"pri\":\"$string_key\"}"
+  sslcerl_body="{\"name\":\"$_cdomain\",\"common_name\":\"$_cdndomain\",\"ca\":\"$string_fullchain\",\"pri\":\"$string_key\"}"
   sslcert_access_token="$(_make_sslcreate_access_token "$sslcert_path")"
   _debug sslcert_access_token "$sslcert_access_token"
   export _H1="Authorization: QBox $sslcert_access_token"
@@ -66,7 +68,7 @@ qiniu_deploy() {
   _debug certId "$_certId"
 
   ## update domain ssl config
-  update_path="/domain/$_cdomain/httpsconf"
+  update_path="/domain/$_cdndomain/httpsconf"
   update_body="{\"certid\":$_certId,\"forceHttps\":true}"
   update_access_token="$(_make_sslcreate_access_token "$update_path")"
   _debug update_access_token "$update_access_token"

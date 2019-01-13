@@ -335,8 +335,9 @@ export FABIO="1"
 
 ## 13. Deploy your certificate to Qiniu.com
 
-You should create AccessKey/SecretKey pair in https://portal.qiniu.com/user/key before deploying
-your certificate.
+You should create AccessKey/SecretKey pair in https://portal.qiniu.com/user/key 
+before deploying your certificate, and please ensure you have enabled HTTPS for
+your domain name. You can enable it in https://portal.qiniu.com/cdn/domain.
 
 ```sh
 $ export QINIU_AK="foo"
@@ -346,5 +347,14 @@ $ export QINIU_SK="bar"
 then you can deploy certificate by following command:
 
 ```sh
+$ acme.sh --deploy -d example.com --deploy-hook qiniu
+```
+
+(Optional), If you are using wildcard certificate,
+you may need export `QINIU_CDN_DOMAIN` to specify which domain
+you want to update:
+
+```sh
+$ export QINIU_CDN_DOMAIN="cdn.example.com"
 $ acme.sh --deploy -d example.com --deploy-hook qiniu
 ```
