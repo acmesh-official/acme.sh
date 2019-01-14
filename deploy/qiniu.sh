@@ -15,7 +15,6 @@ qiniu_deploy() {
   _ccert="$3"
   _cca="$4"
   _cfullchain="$5"
-  _cdndomain="${QINIU_CDN_DOMAIN:-$_cdomain}"
 
   _debug _cdomain "$_cdomain"
   _debug _ckey "$_ckey"
@@ -43,13 +42,20 @@ qiniu_deploy() {
     _savedomainconf Le_Deploy_Qiniu_SK "$Le_Deploy_Qiniu_SK"
   fi
 
+  Le_Deploy_Qiniu_Cdn_Domain="${QINIU_CDN_DOMAIN:-$(_readdomainconf Le_Deploy_Qiniu_Cdn_Domain)}"
+  if [ -z "$Le_Deploy_Qiniu_Cdn_Domain" ]; then
+    Le_Deploy_Qiniu_Cdn_Domain="$_cdomain"
+  fi
+
+  _savedomainconf Le_Deploy_Qiniu_Cdn_Domain "$Le_Deploy_Qiniu_Cdn_Domain"
+
   ## upload certificate
   string_fullchain=$(sed 's/$/\\n/' "$_cfullchain" | tr -d '\n')
   string_key=$(sed 's/$/\\n/' "$_ckey" | tr -d '\n')
 
   sslcert_path="/sslcert"
-  sslcerl_body="{\"name\":\"$_cdomain\",\"common_name\":\"$_cdndomain\",\"ca\":\"$string_fullchain\",\"pri\":\"$string_key\"}"
-  sslcert_access_token="$(_make_sslcreate_access_token "$sslcert_path")"
+  sslcerl_body="{\"name\":\"$_cdomain\",\"common_name\":\"$Le_Deploy_Qiniu_Cdn_Domain\",\"ca\":\"$string_fullchain\",\"pri\":\"$string_key\"}"
+  sslcert_access_token="$(_make_access_token "$sslcert_path")"
   _debug sslcert_access_token "$sslcert_access_token"
   export _H1="Authorization: QBox $sslcert_access_token"
   sslcert_response=$(_post "$sslcerl_body" "$QINIU_API_BASE$sslcert_path" 0 "POST" "application/json" | _dbase64 "multiline")
@@ -68,9 +74,9 @@ qiniu_deploy() {
   _debug certId "$_certId"
 
   ## update domain ssl config
-  update_path="/domain/$_cdndomain/httpsconf"
-  update_body="{\"certid\":$_certId,\"forceHttps\":true}"
-  update_access_token="$(_make_sslcreate_access_token "$update_path")"
+  update_path="/domain/$Le_Deploy_Qiniu_Cdn_Domain/httpsconf"
+  update_body="{\"certid\":$_certId,\"forceHttps\":false}"
+  update_access_token="$(_make_access_token "$update_path")"
   _debug update_access_token "$update_access_token"
   export _H1="Authorization: QBox $update_access_token"
   update_response=$(_post "$update_body" "$QINIU_API_BASE$update_path" 0 "PUT" "application/json" | _dbase64 "multiline")
@@ -87,7 +93,7 @@ qiniu_deploy() {
   return 0
 }
 
-_make_sslcreate_access_token() {
+_make_access_token() {
   _token="$(printf "%s\n" "$1" | _hmac "sha1" "$(printf "%s" "$Le_Deploy_Qiniu_SK" | _hex_dump | tr -d " ")" | _base64)"
   echo "$Le_Deploy_Qiniu_AK:$_token"
 }
