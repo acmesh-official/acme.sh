@@ -3882,6 +3882,17 @@ $_authorizations_map"
 
     _info "Sleep $(__green $Le_DNSSleep) seconds for the txt records to take effect"
     _sleep "$Le_DNSSleep"
+
+    while true; do
+      doesTxtExist=$(dig @$(dig @8.8.8.8 $_main_domain ns +short | head -n1) TXT $txtdomain | grep "$txt")
+      if [ -z "$doesTxtExist" ]; then
+        _info "DNS TXT record has not been applied yet, sleep $(__green 3) seconds for the txt records to take effect"
+        _sleep "3"
+      else
+        _info "DNS records has been applied"
+        break
+      fi
+    done
   fi
 
   NGINX_RESTORE_VLIST=""
