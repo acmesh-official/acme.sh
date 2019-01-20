@@ -36,11 +36,11 @@ qiniu_deploy() {
     _savedomainconf QINIU_SK "$QINIU_SK"
   fi
 
-  if [ -z "$QINIU_CDN_DOMAIN" ]; then
-    QINIU_CDN_DOMAIN="$_cdomain"
+  if [ "$QINIU_CDN_DOMAIN" ]; then
+      _savedomainconf QINIU_CDN_DOMAIN "$QINIU_CDN_DOMAIN"
+  else
+      QINIU_CDN_DOMAIN="$_cdomain"
   fi
-
-  _savedomainconf QINIU_CDN_DOMAIN "$QINIU_CDN_DOMAIN"
 
   ## upload certificate
   string_fullchain=$(sed 's/$/\\n/' "$_cfullchain" | tr -d '\n')
