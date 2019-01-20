@@ -335,6 +335,8 @@ export FABIO="1"
 
 ## 13. Deploy your certificate to Qiniu.com
 
+[中文文档](https://github.com/Neilpang/acme.sh/blob/master/deploy/README_zh.md#13-%E9%83%A8%E7%BD%B2%E5%88%B0%E4%B8%83%E7%89%9B%E5%9F%9F%E5%90%8D%E8%AF%81%E4%B9%A6%E6%9C%8D%E5%8A%A1)
+
 You should create AccessKey/SecretKey pair in https://portal.qiniu.com/user/key 
 before deploying your certificate, and please ensure you have enabled HTTPS for
 your domain name. You can enable it in https://portal.qiniu.com/cdn/domain.
