@@ -70,7 +70,7 @@ _hostingde_getZoneConfig() {
       zoneConfigDnsServerGroupId=$(echo "${curResult}" | _egrep_o '"dnsServerGroupId":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
       zoneConfigEmailAddress=$(echo "${curResult}" | _egrep_o '"emailAddress":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
       zoneConfigDnsSecMode=$(echo "${curResult}" | _egrep_o '"dnsSecMode":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
-      if [ $zoneConfigType != "NATIVE" ]; then
+      if [ "${zoneConfigType}" != "NATIVE" ]; then
         _err "Zone is not native"
         returnCode=1
         break
