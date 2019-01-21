@@ -37,9 +37,9 @@ qiniu_deploy() {
   fi
 
   if [ "$QINIU_CDN_DOMAIN" ]; then
-      _savedomainconf QINIU_CDN_DOMAIN "$QINIU_CDN_DOMAIN"
+    _savedomainconf QINIU_CDN_DOMAIN "$QINIU_CDN_DOMAIN"
   else
-      QINIU_CDN_DOMAIN="$_cdomain"
+    QINIU_CDN_DOMAIN="$_cdomain"
   fi
 
   ## upload certificate
