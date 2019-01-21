@@ -2921,7 +2921,10 @@ _clearup() {
 
 _clearupdns() {
   _debug "_clearupdns"
-  if [ "$dnsadded" != 1 ] || [ -z "$vlist" ]; then
+  _debug "dnsadded" "$dnsadded"
+  _debug "vlist" "$vlist"
+  #dnsadded is "0" or "1" means dns-01 method was used for at least one domain
+  if [ -z "$dnsadded" ] || [ -z "$vlist" ]; then
     _debug "skip dns."
     return
   fi
