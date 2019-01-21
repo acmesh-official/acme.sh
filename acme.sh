@@ -2921,7 +2921,10 @@ _clearup() {
 
 _clearupdns() {
   _debug "_clearupdns"
-  if [ "$dnsadded" != 1 ] || [ -z "$vlist" ]; then
+  _debug "dnsadded" "$dnsadded"
+  _debug "vlist" "$vlist"
+  #dnsadded is "0" or "1" means dns-01 method was used for at least one domain
+  if [ -z "$dnsadded" ] || [ -z "$vlist" ]; then
     _debug "skip dns."
     return
   fi
@@ -3854,8 +3857,8 @@ $_authorizations_map"
         )
 
         if [ "$?" != "0" ]; then
-          _clearup
           _on_issue_err "$_post_hook" "$vlist"
+          _clearup
           return 1
         fi
         dnsadded='1'
@@ -3866,8 +3869,8 @@ $_authorizations_map"
       _savedomainconf "Le_Vlist" "$vlist"
       _debug "Dns record not added yet, so, save to $DOMAIN_CONF and exit."
       _err "Please add the TXT records to the domains, and re-run with --renew."
-      _clearup
       _on_issue_err "$_post_hook"
+      _clearup
       return 1
     fi
 
@@ -3901,7 +3904,7 @@ $_authorizations_map"
       continue
     fi
 
-    _info "Verifying:$d"
+    _info "Verifying: $d"
     _debug "d" "$d"
     _debug "keyauthorization" "$keyauthorization"
     _debug "uri" "$uri"

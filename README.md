@@ -348,6 +348,7 @@ You don't have to do anything manually!
 1. hosting.de (https://www.hosting.de)
 1. Neodigit.net API (https://www.neodigit.net)
 1. Exoscale.com API (https://www.exoscale.com/)
+1. PointDNS API (https://pointhq.com/)
 
 And:
 

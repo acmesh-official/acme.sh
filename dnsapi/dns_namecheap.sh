@@ -161,12 +161,12 @@ _namecheap_parse_host() {
   _host=$1
   _debug _host "$_host"
 
-  _hostid=$(echo "$_host" | _egrep_o '\sHostId="[^"]*' | cut -d '"' -f 2)
-  _hostname=$(echo "$_host" | _egrep_o '\sName="[^"]*' | cut -d '"' -f 2)
-  _hosttype=$(echo "$_host" | _egrep_o '\sType="[^"]*' | cut -d '"' -f 2)
-  _hostaddress=$(echo "$_host" | _egrep_o '\sAddress="[^"]*' | cut -d '"' -f 2)
-  _hostmxpref=$(echo "$_host" | _egrep_o '\sMXPref="[^"]*' | cut -d '"' -f 2)
-  _hostttl=$(echo "$_host" | _egrep_o '\sTTL="[^"]*' | cut -d '"' -f 2)
+  _hostid=$(echo "$_host" | _egrep_o ' HostId="[^"]*' | cut -d '"' -f 2)
+  _hostname=$(echo "$_host" | _egrep_o ' Name="[^"]*' | cut -d '"' -f 2)
+  _hosttype=$(echo "$_host" | _egrep_o ' Type="[^"]*' | cut -d '"' -f 2)
+  _hostaddress=$(echo "$_host" | _egrep_o ' Address="[^"]*' | cut -d '"' -f 2)
+  _hostmxpref=$(echo "$_host" | _egrep_o ' MXPref="[^"]*' | cut -d '"' -f 2)
+  _hostttl=$(echo "$_host" | _egrep_o ' TTL="[^"]*' | cut -d '"' -f 2)
 
   _debug hostid "$_hostid"
   _debug hostname "$_hostname"

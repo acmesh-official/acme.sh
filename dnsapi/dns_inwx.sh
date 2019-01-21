@@ -158,7 +158,8 @@ _inwx_login() {
   export _H1
 
   #https://github.com/inwx/php-client/blob/master/INWX/Domrobot.php#L71
-  if _contains "$response" "tfa"; then
+  if _contains "$response" "<member><name>code</name><value><int>1000</int></value></member>" \
+    && _contains "$response" "<member><name>tfa</name><value><string>GOOGLE-AUTH</string></value></member>"; then
     if [ -z "$INWX_Shared_Secret" ]; then
       _err "Mobile TAN detected."
       _err "Please define a shared secret."
