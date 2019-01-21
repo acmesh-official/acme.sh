@@ -3857,8 +3857,8 @@ $_authorizations_map"
         )
 
         if [ "$?" != "0" ]; then
-          _clearup
           _on_issue_err "$_post_hook" "$vlist"
+          _clearup
           return 1
         fi
         dnsadded='1'
@@ -3869,8 +3869,8 @@ $_authorizations_map"
       _savedomainconf "Le_Vlist" "$vlist"
       _debug "Dns record not added yet, so, save to $DOMAIN_CONF and exit."
       _err "Please add the TXT records to the domains, and re-run with --renew."
-      _clearup
       _on_issue_err "$_post_hook"
+      _clearup
       return 1
     fi
 
