@@ -59,9 +59,22 @@ _hostingde_getZoneConfig() {
     if _contains "${curResult}" '"totalEntries": 1'; then
       _info "Retrieved zone data."
       _debug "Zone data: '${curResult}'"
-
-      # read ZoneConfigId for later update
       zoneConfigId=$(echo "${curResult}" | _egrep_o '"id":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
+      zoneConfigName=$(echo "${curResult}" | _egrep_o '"name":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
+      zoneConfigType=$(echo "${curResult}" | grep -v "FindZoneConfigsResult" | _egrep_o '"type":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
+      zoneConfigExpire=$(echo "${curResult}" | _egrep_o '"expire":.*' | cut -d ':' -f 2 | cut -d '"' -f 2 | cut -d ',' -f 1)
+      zoneConfigNegativeTtl=$(echo "${curResult}" | _egrep_o '"negativeTtl":.*' | cut -d ':' -f 2 | cut -d '"' -f 2 | cut -d ',' -f 1)
+      zoneConfigRefresh=$(echo "${curResult}" | _egrep_o '"refresh":.*' | cut -d ':' -f 2 | cut -d '"' -f 2 | cut -d ',' -f 1)
+      zoneConfigRetry=$(echo "${curResult}" | _egrep_o '"retry":.*' | cut -d ':' -f 2 | cut -d '"' -f 2 | cut -d ',' -f 1)
+      zoneConfigTtl=$(echo "${curResult}" | _egrep_o '"ttl":.*' | cut -d ':' -f 2 | cut -d '"' -f 2 | cut -d ',' -f 1)
+      zoneConfigDnsServerGroupId=$(echo "${curResult}" | _egrep_o '"dnsServerGroupId":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
+      zoneConfigEmailAddress=$(echo "${curResult}" | _egrep_o '"emailAddress":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
+      zoneConfigDnsSecMode=$(echo "${curResult}" | _egrep_o '"dnsSecMode":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
+      if [ "${zoneConfigType}" != "NATIVE" ]; then
+        _err "Zone is not native"
+        returnCode=1
+        break
+      fi
       _debug "zoneConfigId '${zoneConfigId}'"
       returnCode=0
       break
@@ -94,7 +107,7 @@ _hostingde_addRecord() {
     _hostingde_getZoneStatus
     _debug "Result of zoneStatus: '${zoneStatus}'"
   done
-  curData="{\"authToken\":\"${HOSTINGDE_APIKEY}\",\"zoneConfig\":{\"id\":\"${zoneConfigId}\"},\"recordsToAdd\":[{\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"content\":\"\\\"${txtvalue}\\\"\",\"ttl\":3600}]}"
+  curData="{\"authToken\":\"${HOSTINGDE_APIKEY}\",\"zoneConfig\":{\"id\":\"${zoneConfigId}\",\"name\":\"${zoneConfigName}\",\"type\":\"${zoneConfigType}\",\"dnsServerGroupId\":\"${zoneConfigDnsServerGroupId}\",\"dnsSecMode\":\"${zoneConfigDnsSecMode}\",\"emailAddress\":\"${zoneConfigEmailAddress}\",\"soaValues\":{\"expire\":${zoneConfigExpire},\"negativeTtl\":${zoneConfigNegativeTtl},\"refresh\":${zoneConfigRefresh},\"retry\":${zoneConfigRetry},\"ttl\":${zoneConfigTtl}}},\"recordsToAdd\":[{\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"content\":\"\\\"${txtvalue}\\\"\",\"ttl\":3600}]}"
   curResult="$(_post "${curData}" "${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate")"
   _debug "Calling zoneUpdate: '${curData}' '${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate'"
   _debug "Result of zoneUpdate: '$curResult'"
@@ -118,7 +131,7 @@ _hostingde_removeRecord() {
     _hostingde_getZoneStatus
     _debug "Result of zoneStatus: '$zoneStatus'"
   done
-  curData="{\"authToken\":\"${HOSTINGDE_APIKEY}\",\"zoneConfig\":{\"id\":\"${zoneConfigId}\"},\"recordsToDelete\":[{\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"content\":\"\\\"${txtvalue}\\\"\"}]}"
+  curData="{\"authToken\":\"${HOSTINGDE_APIKEY}\",\"zoneConfig\":{\"id\":\"${zoneConfigId}\",\"name\":\"${zoneConfigName}\",\"type\":\"${zoneConfigType}\",\"dnsServerGroupId\":\"${zoneConfigDnsServerGroupId}\",\"dnsSecMode\":\"${zoneConfigDnsSecMode}\",\"emailAddress\":\"${zoneConfigEmailAddress}\",\"soaValues\":{\"expire\":${zoneConfigExpire},\"negativeTtl\":${zoneConfigNegativeTtl},\"refresh\":${zoneConfigRefresh},\"retry\":${zoneConfigRetry},\"ttl\":${zoneConfigTtl}}},\"recordsToDelete\":[{\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"content\":\"\\\"${txtvalue}\\\"\"}]}"
   curResult="$(_post "${curData}" "${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate")"
   _debug "Calling zoneUpdate: '${curData}' '${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate'"
   _debug "Result of zoneUpdate: '$curResult'"
