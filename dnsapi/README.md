@@ -1013,8 +1013,6 @@ acme.sh --issue --dns dns_netcup -d example.com -d www.example.com
 The `NC_Apikey`,`NC_Apipw` and `NC_CID` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 ## 52. Use GratisDNS.dk
 
-
-
 GratisDNS.dk (https://gratisdns.dk/) does not provide an API to update DNS records (other than IPv4 and IPv6
 dynamic DNS addresses).  The acme.sh plugin therefore retrieves and updates domain TXT records by logging
 into the GratisDNS website to read the HTML and posting updates as HTTP.  The plugin needs to know your

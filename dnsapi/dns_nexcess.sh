@@ -41,7 +41,7 @@ dns_nexcess_add() {
   _post_data="{\"zone_id\": \"${_zone_id}\", \"type\": \"TXT\", \"host\": \"${host}\", \"target\": \"${txtvalue}\", \"ttl\": \"300\"}"
 
   if _rest POST "dns-record" "${_post_data}" && [ -n "${response}" ]; then
-    _record_id=$(printf "%s\n" "${response}" | _egrep_o "\"record_id\":\s*[0-9]+" | cut -d : -f 2 | tr -d " " | _head_n 1)
+    _record_id=$(printf "%s\n" "${response}" | _egrep_o "\"record_id\": *[0-9]+" | cut -d : -f 2 | tr -d " " | _head_n 1)
     _debug _record_id "${_record_id}"
 
     if [ -z "$_record_id" ]; then
@@ -87,11 +87,11 @@ dns_nexcess_rm() {
     response="$(echo "${response}" | tr -d "\n" | sed 's/^\[\(.*\)\]$/\1/' | sed -e 's/{"record_id":/|"record_id":/g' | sed 's/|/&{/g' | tr "|" "\n")"
     _debug response "${response}"
 
-    record="$(echo "${response}" | _egrep_o "{.*\"host\":\s*\"${_sub_domain}\",\s*\"target\":\s*\"${txtvalue}\".*}")"
+    record="$(echo "${response}" | _egrep_o "{.*\"host\": *\"${_sub_domain}\", *\"target\": *\"${txtvalue}\".*}")"
     _debug record "${record}"
 
     if [ "${record}" ]; then
-      _record_id=$(printf "%s\n" "${record}" | _egrep_o "\"record_id\":\s*[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
+      _record_id=$(printf "%s\n" "${record}" | _egrep_o "\"record_id\": *[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
       if [ "${_record_id}" ]; then
         _debug _record_id "${_record_id}"
 
@@ -112,7 +112,7 @@ dns_nexcess_rm() {
 
 _check_nexcess_api_token() {
   if [ -z "${NEXCESS_API_TOKEN}" ]; then
-    NEXCESS_API_TOKEN="${NEXCESS_API_TOKEN:-$(_readaccountconf NEXCESS_API_TOKEN)}"
+    NEXCESS_API_TOKEN="${NEXCESS_API_TOKEN:-$(_readaccountconf_mutable NEXCESS_API_TOKEN)}"
 
     _err "You have not defined your NEXCESS_API_TOKEN."
     _err "Please create your token and try again."
@@ -122,7 +122,7 @@ _check_nexcess_api_token() {
     return 1
   fi
 
-  _saveaccountconf NEXCESS_API_TOKEN "${NEXCESS_API_TOKEN}"
+   _saveaccountconf_mutable NEXCESS_API_TOKEN "${NEXCESS_API_TOKEN}"
 }
 
 _get_root() {
@@ -142,9 +142,9 @@ _get_root() {
         return 1
       fi
 
-      hostedzone="$(echo "${response}" | _egrep_o "{.*\"domain\":\s*\"${h}\".*}")"
+      hostedzone="$(echo "${response}" | _egrep_o "{.*\"domain\": *\"${h}\".*}")"
       if [ "${hostedzone}" ]; then
-        _zone_id=$(printf "%s\n" "${hostedzone}" | _egrep_o "\"zone_id\":\s*[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
+        _zone_id=$(printf "%s\n" "${hostedzone}" | _egrep_o "\"zone_id\": *[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
         if [ "${_zone_id}" ]; then
           _sub_domain=$(printf "%s" "${domain}" | cut -d . -f 1-${p})
           _domain="${h}"
