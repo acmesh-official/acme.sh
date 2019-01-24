@@ -26,13 +26,13 @@ dns_doapi_add() {
   fi
   _saveaccountconf_mutable DO_LETOKEN  "$DO_LETOKEN"
 
-  _info "Adding TXT record to ${_domain} as ${fulldomain}"
+  _info "Adding TXT record to ${fulldomain}"
   response="$(_get "$DO_API?token=$DO_LETOKEN&domain=${fulldomain}&value=${txtvalue}")"
   if _contains "${response}" 'success'; then
     return 0
   fi
   _err "Could not create resource record, check logs"
-  _err $response
+  _err "${response}"
   return 1
 }
 
@@ -54,6 +54,6 @@ dns_doapi_rm() {
     return 0
   fi
   _err "Could not delete resource record, check logs"
-  _err $response
+  _err "${response}"
   return 1
 }
