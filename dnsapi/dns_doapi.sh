@@ -24,7 +24,7 @@ dns_doapi_add() {
     _err "Please set DO_LETOKEN and try again."
     return 1
   fi
-  _saveaccountconf_mutable DO_LETOKEN  "$DO_LETOKEN"
+  _saveaccountconf_mutable DO_LETOKEN "$DO_LETOKEN"
 
   _info "Adding TXT record to ${fulldomain}"
   response="$(_get "$DO_API?token=$DO_LETOKEN&domain=${fulldomain}&value=${txtvalue}")"
@@ -46,7 +46,7 @@ dns_doapi_rm() {
     _err "Please set DO_LETOKEN and try again."
     return 1
   fi
-  _saveaccountconf_mutable DO_LETOKEN  "$DO_LETOKEN"
+  _saveaccountconf_mutable DO_LETOKEN "$DO_LETOKEN"
 
   _info "Deleting resource record $fulldomain"
   response="$(_get "$DO_API?token=$DO_LETOKEN&domain=${fulldomain}&action=delete")"
