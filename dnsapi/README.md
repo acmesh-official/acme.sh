@@ -1139,6 +1139,22 @@ You can then issue certs by using:
 ```acme.sh --issue --dns dns_pointhq -d example.com -d www.example.com
 ```
 
+## 59. Use do.de API
+
+Create an API token in your do.de account.
+
+Set your API token:
+```
+export DO_LETOKEN='FmD408PdqT1E269gUK57'
+```
+
+To issue a certificate run:
+```
+acme.sh --issue --dns dns_doapi -d example.com -d *.example.com
+```
+
+The API token will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
