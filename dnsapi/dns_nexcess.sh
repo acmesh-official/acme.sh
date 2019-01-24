@@ -122,7 +122,7 @@ _check_nexcess_api_token() {
     return 1
   fi
 
-   _saveaccountconf_mutable NEXCESS_API_TOKEN "${NEXCESS_API_TOKEN}"
+  _saveaccountconf_mutable NEXCESS_API_TOKEN "${NEXCESS_API_TOKEN}"
 }
 
 _get_root() {
