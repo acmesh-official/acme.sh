@@ -1138,59 +1138,95 @@ You can then issue certs by using:
 ```acme.sh --issue --dns dns_pointhq -d example.com -d www.example.com
 ```
 
-## 59. Use Nexcess API
+## 59. Use Active24 API
+
+Create an API token in the Active24 account section, documentation on https://faq.active24.com/cz/790131-REST-API-rozhran%C3%AD.
+
+Set your API token:
+
+```
+export ACTIVE24_Token='xxx'
+```
+
+Now, let's issue a cert, set `dnssleep` for propagation new DNS record:
+```
+acme.sh --issue --dns dns_active24 -d example.com -d www.example.com --dnssleep 1000
+```
+
+The `ACTIVE24_Token` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 60. Use do.de API
+
+Create an API token in your do.de account.
+
+Set your API token:
+```
+export DO_LETOKEN='FmD408PdqT1E269gUK57'
+```
+
+To issue a certificate run:
+```
+acme.sh --issue --dns dns_doapi -d example.com -d *.example.com
+```
+
+The API token will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 61. Use Nexcess API
 
 First, you'll need to login to the [Nexcess.net Client Portal](https://portal.nexcess.net) and [generate a new API token](https://portal.nexcess.net/api-token).
 
 Once you have a token, set it in your systems environment:
 
 ```
-export NEXCESS_API_TOKEN="YOUR_TOKEN_HERE"
+export NW_API_TOKEN="YOUR_TOKEN_HERE"
+export NW_API_ENDPOINT="https://portal.nexcess.net"
 ```
 
 Finally, we'll issue the certificate: (Nexcess DNS publishes at max every 15 minutes, we recommend setting a 900 second `--dnssleep`)
 
 ```
-acme.sh --issue --dns dns_nexcess -d example.com --dnssleep 900
+acme.sh --issue --dns dns_nw -d example.com --dnssleep 900
 ```
 
-The `NEXCESS_API_TOKEN will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+The `NW_API_TOKEN` and `NW_API_ENDPOINT` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-## 60. Use Thermo.io API
+## 62. Use Thermo.io API
 
 First, you'll need to login to the [Thermo.io Client Portal](https://core.thermo.io) and [generate a new API token](https://core.thermo.io/api-token).
 
 Once you have a token, set it in your systems environment:
 
 ```
-export THERMO_API_TOKEN="YOUR_TOKEN_HERE"
+export NW_API_TOKEN="YOUR_TOKEN_HERE"
+export NW_API_ENDPOINT="https://core.thermo.io"
 ```
 
 Finally, we'll issue the certificate: (Thermo DNS publishes at max every 15 minutes, we recommend setting a 900 second `--dnssleep`)
 
 ```
-acme.sh --issue --dns dns_thermo -d example.com --dnssleep 900
+acme.sh --issue --dns dns_nw -d example.com --dnssleep 900
 ```
 
-The `THERMO_API_TOKEN will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+The `NW_API_TOKEN` and `NW_API_ENDPOINT` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-## 61. Use Futurehosting API
+## 63. Use Futurehosting API
 
 First, you'll need to login to the [Futurehosting Client Portal](https://my.futurehosting.com) and [generate a new API token](https://my.futurehosting.com/api-token).
 
 Once you have a token, set it in your systems environment:
 
 ```
-export FH_API_TOKEN="YOUR_TOKEN_HERE"
+export NW_API_TOKEN="YOUR_TOKEN_HERE"
+export NW_API_ENDPOINT="https://my.futurehosting.com"
 ```
 
 Finally, we'll issue the certificate: (Futurehosting DNS publishes at max every 15 minutes, we recommend setting a 900 second `--dnssleep`)
 
 ```
-acme.sh --issue --dns dns_fh -d example.com --dnssleep 900
+acme.sh --issue --dns dns_nw -d example.com --dnssleep 900
 ```
 
-The `FH_API_TOKEN will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+The `NW_API_TOKEN` and `NW_API_ENDPOINT` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 # Use custom API
 

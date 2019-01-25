@@ -349,6 +349,8 @@ You don't have to do anything manually!
 1. Neodigit.net API (https://www.neodigit.net)
 1. Exoscale.com API (https://www.exoscale.com/)
 1. PointDNS API (https://pointhq.com/)
+1. Active24.cz API (https://www.active24.cz/)
+1. do.de API (https://www.do.de/)
 1. Nexcess API (https://www.nexcess.net)
 1. Thermo.io API (https://www.thermo.io)
 1. Futurehosting API (https://www.futurehosting.com)

@@ -1,33 +1,47 @@
 #!/usr/bin/env sh
 ########################################################################
-# Thermo.io script for acme.sh
+# NocWorx script for acme.sh
+#
+# Handles DNS Updates for the Following vendors:
+#   - Nexcess.net
+#   - Thermo.io
+#   - Futurehosting.com
 #
 # Environment variables:
 #
-#  - THERMO_API_TOKEN  (Your Thermo.io API Token)
-#  Note: If you do not have an API token, one can be generated at:
-#        https://core.thermo.io//api-token
+#  - NW_API_TOKEN  (Your API Token)
+#  - NW_API_ENDPOINT (One of the following listed below)
+#
+# Endpoints:
+#   - https://portal.nexcess.net (default)
+#   - https://core.thermo.io
+#   - https://my.futurehosting.com
+#
+#  Note: If you do not have an API token, one can be generated at one
+#        of the following URLs:
+#        - https://portal.nexcess.net/api-token
+#        - https://core.thermo.io/api-token
+#        - https://my.futurehosting.com/api-token
 #
 # Author: Frank Laszlo <flaszlo@nexcess.net>
 
-THERMO_API_URL="https://core.thermo.io/"
-THERMO_API_VERSION="0"
+NW_API_VERSION="0"
 
-# dns_thermo_add() - Add TXT record
-# Usage: dns_thermo_add _acme-challenge.subdomain.domain.com "XyZ123..."
-dns_thermo_add() {
+# dns_nw_add() - Add TXT record
+# Usage: dns_nw_add _acme-challenge.subdomain.domain.com "XyZ123..."
+dns_nw_add() {
   host="${1}"
   txtvalue="${2}"
 
   _debug host "${host}"
   _debug txtvalue "${txtvalue}"
 
-  if ! _check_thermo_api_token; then
+  if ! _check_nw_api_creds; then
     return 1
   fi
 
-  _info "Using Thermo.io"
-  _debug "Calling: dns_thermo_add() '${host}' '${txtvalue}'"
+  _info "Using NocWorx (${NW_API_ENDPOINT})"
+  _debug "Calling: dns_nw_add() '${host}' '${txtvalue}'"
 
   _debug "Detecting root zone"
   if ! _get_root "${host}"; then
@@ -56,21 +70,21 @@ dns_thermo_add() {
   return 1
 }
 
-# dns_thermo_rm() - Remove TXT record
-# Usage: dns_thermo_rm _acme-challenge.subdomain.domain.com "XyZ123..."
-dns_thermo_rm() {
+# dns_nw_rm() - Remove TXT record
+# Usage: dns_nw_rm _acme-challenge.subdomain.domain.com "XyZ123..."
+dns_nw_rm() {
   host="${1}"
   txtvalue="${2}"
 
   _debug host "${host}"
   _debug txtvalue "${txtvalue}"
 
-  if ! _check_thermo_api_token; then
+  if ! _check_nw_api_creds; then
     return 1
   fi
 
-  _info "Using Thermo.io"
-  _debug "Calling: dns_thermo_rm() '${host}'"
+  _info "Using NocWorx (${NW_API_ENDPOINT})"
+  _debug "Calling: dns_nw_rm() '${host}'"
 
   _debug "Detecting root zone"
   if ! _get_root "${host}"; then
@@ -110,19 +124,27 @@ dns_thermo_rm() {
   return 1
 }
 
-_check_thermo_api_token() {
-  if [ -z "${THERMO_API_TOKEN}" ]; then
-    THERMO_API_TOKEN="${THERMO_API_TOKEN:-$(_readaccountconf_mutable THERMO_API_TOKEN)}"
+_check_nw_api_creds() {
+  NW_API_TOKEN="${NW_API_TOKEN:-$(_readaccountconf_mutable NW_API_TOKEN)}"
+  NW_API_ENDPOINT="${NW_API_TOKEN:-$(_readaccountconf_mutable NW_API_TOKEN)}"
 
-    _err "You have not defined your THERMO_API_TOKEN."
+  if [ -z "${NW_API_ENDPOINT}" ]; then
+    NW_API_ENDPOINT="https://portal.nexcess.net"
+  fi
+
+  if [ -z "${NW_API_TOKEN}" ]; then
+    _err "You have not defined your NW_API_TOKEN."
     _err "Please create your token and try again."
-    _err "If you need to generate a new token, please visit:"
-    _err "https://portal.thermo.net/api-token"
+    _err "If you need to generate a new token, please visit one of the following URLs:"
+    _err "  - https://portal.nexcess.net/api-token"
+    _err "  - https://core.thermo.io/api-token"
+    _err "  - https://my.futurehosting.com/api-token"
 
     return 1
   fi
 
-  _saveaccountconf_mutable THERMO_API_TOKEN "${THERMO_API_TOKEN}"
+  _saveaccountconf_mutable NW_API_TOKEN "${NW_API_TOKEN}"
+  _saveaccountconf_mutable NW_API_ENDPOINT "${NW_API_ENDPOINT}"
 }
 
 _get_root() {
@@ -169,15 +191,15 @@ _rest() {
 
   export _H1="Accept: application/json"
   export _H2="Content-Type: application/json"
-  export _H3="Api-Version: ${THERMO_API_VERSION}"
-  export _H4="User-Agent: THERMO-ACME-CLIENT"
-  export _H5="Authorization: Bearer ${THERMO_API_TOKEN}"
+  export _H3="Api-Version: ${NW_API_VERSION}"
+  export _H4="User-Agent: NW-ACME-CLIENT"
+  export _H5="Authorization: Bearer ${NW_API_TOKEN}"
 
   if [ "${method}" != "GET" ]; then
     _debug data "${data}"
-    response="$(_post "${data}" "${THERMO_API_URL}${ep}" "" "${method}")"
+    response="$(_post "${data}" "${NW_API_ENDPOINT}${ep}" "" "${method}")"
   else
-    response="$(_get "${THERMO_API_URL}${ep}${data}")"
+    response="$(_get "${NW_API_ENDPOINT}${ep}${data}")"
   fi
 
   if [ "${?}" != "0" ]; then
