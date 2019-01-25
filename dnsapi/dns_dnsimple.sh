@@ -152,7 +152,7 @@ _get_records() {
   sub_domain=$3
 
   _debug "fetching txt records"
-  _dnsimple_rest GET "$account_id/zones/$domain/records?per_page=100"
+  _dnsimple_rest GET "$account_id/zones/$domain/records?per_page=5000&sort=id:desc"
 
   if ! _contains "$response" "\"id\":"; then
     _err "failed to retrieve records"
