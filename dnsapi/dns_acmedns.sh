@@ -9,9 +9,9 @@
 #
 # You can optionally define an already existing account:
 #
-# export ACMEDNS_USERNAME="https://auth.acme-dns.io"
-# export ACMEDNS_PASSWORD="https://auth.acme-dns.io"
-# export ACMEDNS_SUBDOMAIN="https://auth.acme-dns.io"
+# export ACMEDNS_USERNAME="<username>"
+# export ACMEDNS_PASSWORD="<password>"
+# export ACMEDNS_SUBDOMAIN="<subdomain>"
 #
 ########  Public functions #####################
 
@@ -39,13 +39,13 @@ dns_acmedns_add() {
   if [ -z "$ACMEDNS_USERNAME" ] || [ -z "$ACMEDNS_PASSWORD" ]; then
     response="$(_post "" "$ACMEDNS_REGISTER_URL" "" "POST")"
     _debug response "$response"
-    ACMEDNS_USERNAME=$(echo "$response" | sed -E 's/^\{.*?\"username\":\"([^\"]*)\".*\}/\1/g;t;d')
+    ACMEDNS_USERNAME=$(echo "$response" | sed -n 's/^{.*\"username\":[ ]*\"\([^\"]*\)\".*}/\1/p')
     _debug "received username: $ACMEDNS_USERNAME"
-    ACMEDNS_PASSWORD=$(echo "$response" | sed -E 's/^\{.*?\"password\":\"([^\"]*)\".*\}/\1/g;t;d')
+    ACMEDNS_PASSWORD=$(echo "$response" | sed -n 's/^{.*\"password\":[ ]*\"\([^\"]*\)\".*}/\1/p')
     _debug "received password: $ACMEDNS_PASSWORD"
-    ACMEDNS_SUBDOMAIN=$(echo "$response" | sed -E 's/^\{.*?\"subdomain\":\"([^\"]*)\".*\}/\1/g;t;d')
+    ACMEDNS_SUBDOMAIN=$(echo "$response" | sed -n 's/^{.*\"subdomain\":[ ]*\"\([^\"]*\)\".*}/\1/p')
     _debug "received subdomain: $ACMEDNS_SUBDOMAIN"
-    ACMEDNS_FULLDOMAIN=$(echo "$response" | sed -E 's/^\{.*?\"fulldomain\":\"([^\"]*)\".*\}/\1/g;t;d')
+    ACMEDNS_FULLDOMAIN=$(echo "$response" | sed -n 's/^{.*\"fulldomain\":[ ]*\"\([^\"]*\)\".*}/\1/p')
     _info "##########################################################"
     _info "# Create $fulldomain CNAME $ACMEDNS_FULLDOMAIN DNS entry #"
     _info "##########################################################"
