@@ -283,6 +283,7 @@ _del_namecheap_TXT() {
         _debug "TXT entry found"
         found=1
       else
+        _hostaddress="$(printf "%s" "$_hostaddress" | _url_encode)"
         _namecheap_add_host "$_hostname" "$_hosttype" "$_hostaddress" "$_hostmxpref" "$_hostttl"
       fi
     fi
