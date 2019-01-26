@@ -35,7 +35,6 @@ _OLD_STAGE_CA_HOST="https://acme-staging.api.letsencrypt.org"
 
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
-VTYPE_TLS="tls-sni-01"
 VTYPE_ALPN="tls-alpn-01"
 
 LOCAL_ANY_ADDRESS="0.0.0.0"
@@ -46,7 +45,6 @@ DEFAULT_DNS_SLEEP=120
 
 NO_VALUE="no"
 
-W_TLS="tls"
 W_DNS="dns"
 W_ALPN="alpn"
 DNS_ALIAS_PREFIX="="
@@ -3080,8 +3078,8 @@ _on_before_issue() {
         _savedomainconf "Le_HTTPPort" "$Le_HTTPPort"
       fi
       _checkport="$Le_HTTPPort"
-    elif [ "$_currentRoot" = "$W_TLS" ] || [ "$_currentRoot" = "$W_ALPN" ]; then
-      _info "Standalone tls/alpn mode."
+    elif [ "$_currentRoot" = "$W_ALPN" ]; then
+      _info "Standalone alpn mode."
       if [ -z "$Le_TLSPort" ]; then
         Le_TLSPort=443
       else
@@ -3701,10 +3699,6 @@ $_authorizations_map"
         vtype="$VTYPE_DNS"
       fi
 
-      if [ "$_currentRoot" = "$W_TLS" ]; then
-        vtype="$VTYPE_TLS"
-      fi
-
       if [ "$_currentRoot" = "$W_ALPN" ]; then
         vtype="$VTYPE_ALPN"
       fi
@@ -3987,40 +3981,6 @@ $_authorizations_map"
           fi
         fi
 
-      fi
-
-    elif [ "$vtype" = "$VTYPE_TLS" ]; then
-      #create A
-      #_hash_A="$(printf "%s" $token | _digest "sha256" "hex" )"
-      #_debug2 _hash_A "$_hash_A"
-      #_x="$(echo $_hash_A | cut -c 1-32)"
-      #_debug2 _x "$_x"
-      #_y="$(echo $_hash_A | cut -c 33-64)"
-      #_debug2 _y "$_y"
-      #_SAN_A="$_x.$_y.token.acme.invalid"
-      #_debug2 _SAN_A "$_SAN_A"
-
-      #create B
-      _hash_B="$(printf "%s" "$keyauthorization" | _digest "sha256" "hex")"
-      _debug2 _hash_B "$_hash_B"
-      _x="$(echo "$_hash_B" | cut -c 1-32)"
-      _debug2 _x "$_x"
-      _y="$(echo "$_hash_B" | cut -c 33-64)"
-      _debug2 _y "$_y"
-
-      #_SAN_B="$_x.$_y.ka.acme.invalid"
-
-      _SAN_B="$_x.$_y.acme.invalid"
-      _debug2 _SAN_B "$_SAN_B"
-
-      _ncaddr="$(_getfield "$_local_addr" "$_ncIndex")"
-      _ncIndex="$(_math "$_ncIndex" + 1)"
-      if ! _starttlsserver "$_SAN_B" "$_SAN_A" "$Le_TLSPort" "$keyauthorization" "$_ncaddr"; then
-        _err "Start tls server error."
-        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
-        _clearup
-        _on_issue_err "$_post_hook" "$vlist"
-        return 1
       fi
     elif [ "$vtype" = "$VTYPE_ALPN" ]; then
       acmevalidationv1="$(printf "%s" "$keyauthorization" | _digest "sha256" "hex")"
