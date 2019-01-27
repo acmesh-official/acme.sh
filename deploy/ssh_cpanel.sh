@@ -77,7 +77,7 @@ ssh_cpanel_deploy() {
 
   _info "Deploy certificates to remote server $Le_Deploy_ssh_cpanel_user@$Le_Deploy_ssh_cpanel_server"
 
- # read cert and key files and urlencode both
+  # read cert and key files and urlencode both
   _info "URL Encode Certificate..."
   _cert=$(_url_encode <"$_ccert")
 
