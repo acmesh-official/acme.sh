@@ -350,6 +350,7 @@ You don't have to do anything manually!
 1. Exoscale.com API (https://www.exoscale.com/)
 1. PointDNS API (https://pointhq.com/)
 1. Active24.cz API (https://www.active24.cz/)
+1. do.de API (https://www.do.de/)
 
 And:
 

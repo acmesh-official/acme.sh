@@ -3,16 +3,15 @@
 # Namecheap API
 # https://www.namecheap.com/support/api/intro.aspx
 #
-# Requires Namecheap API key set in NAMECHEAP_API_KEY, NAMECHEAP_SOURCEIP and NAMECHEAP_USERNAME set as environment variable
+# Requires Namecheap API key set in 
+#NAMECHEAP_API_KEY, 
+#NAMECHEAP_USERNAME,
+#NAMECHEAP_SOURCEIP 
 # Due to Namecheap's API limitation all the records of your domain will be read and re applied, make sure to have a backup of your records you could apply if any issue would arise.
 
 ########  Public functions #####################
 
-if [ "$STAGE" -eq 1 ]; then
-  NAMECHEAP_API="https://api.sandbox.namecheap.com/xml.response"
-else
-  NAMECHEAP_API="https://api.namecheap.com/xml.response"
-fi
+NAMECHEAP_API="https://api.namecheap.com/xml.response"
 
 #Usage: dns_namecheap_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_namecheap_add() {
@@ -144,7 +143,7 @@ _namecheap_set_publicip() {
 _namecheap_post() {
   command=$1
   data="ApiUser=${NAMECHEAP_USERNAME}&ApiKey=${NAMECHEAP_API_KEY}&ClientIp=${_publicip}&UserName=${NAMECHEAP_USERNAME}&Command=${command}"
-
+  _debug2 "_namecheap_post data" "$data"
   response="$(_post "$data" "$NAMECHEAP_API" "" "POST")"
   _debug2 response "$response"
 
@@ -224,6 +223,12 @@ _set_namecheap_TXT() {
   while read -r host; do
     if _contains "$host" "<host"; then
       _namecheap_parse_host "$host"
+      _debug2 _hostname "_hostname"
+      _debug2 _hosttype "_hosttype"
+      _debug2 _hostaddress "_hostaddress"
+      _debug2 _hostmxpref "_hostmxpref"
+      _hostaddress="$(printf "%s" "$_hostaddress" | _url_encode)"
+      _debug2 "encoded _hostaddress" "_hostaddress"
       _namecheap_add_host "$_hostname" "$_hosttype" "$_hostaddress" "$_hostmxpref" "$_hostttl"
     fi
   done <<EOT
@@ -278,6 +283,7 @@ _del_namecheap_TXT() {
         _debug "TXT entry found"
         found=1
       else
+        _hostaddress="$(printf "%s" "$_hostaddress" | _url_encode)"
         _namecheap_add_host "$_hostname" "$_hosttype" "$_hostaddress" "$_hostmxpref" "$_hostttl"
       fi
     fi
