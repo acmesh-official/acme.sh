@@ -115,4 +115,3 @@ ssh_cpanel_deploy() {
   _info "Certificate successfully deployed"
   return 0
 }
-
