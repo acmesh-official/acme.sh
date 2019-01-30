@@ -126,7 +126,7 @@ dns_nw_rm() {
 
 _check_nw_api_creds() {
   NW_API_TOKEN="${NW_API_TOKEN:-$(_readaccountconf_mutable NW_API_TOKEN)}"
-  NW_API_ENDPOINT="${NW_API_TOKEN:-$(_readaccountconf_mutable NW_API_TOKEN)}"
+  NW_API_ENDPOINT="${NW_API_ENDPOINT:-$(_readaccountconf_mutable NW_API_ENDPOINT)}"
 
   if [ -z "${NW_API_ENDPOINT}" ]; then
     NW_API_ENDPOINT="https://portal.nexcess.net"
@@ -183,7 +183,7 @@ _get_root() {
 
 _rest() {
   method="${1}"
-  ep="${2}"
+  ep="/${2}"
   data="${3}"
 
   _debug method "${method}"
