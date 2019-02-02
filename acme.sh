@@ -2919,40 +2919,33 @@ _clearup() {
 
 _clearupdns() {
   _debug "_clearupdns"
-  _debug "dnsadded" "$dnsadded"
-  _debug "vlist" "$vlist"
-  #dnsadded is "0" or "1" means dns-01 method was used for at least one domain
-  if [ -z "$dnsadded" ] || [ -z "$vlist" ]; then
+  _debug "dns_entries" "$dns_entries"
+
+  if [ -z "$dns_entries" ]; then
     _debug "skip dns."
     return
   fi
   _info "Removing DNS records."
-  ventries=$(echo "$vlist" | tr ',' ' ')
-  _alias_index=1
-  for ventry in $ventries; do
-    d=$(echo "$ventry" | cut -d "$sep" -f 1)
-    keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
-    vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
-    _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
-    txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
-    _debug txt "$txt"
-    if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
-      _debug "$d is already verified, skip $vtype."
-      _alias_index="$(_math "$_alias_index" + 1)"
-      continue
-    fi
 
-    if [ "$vtype" != "$VTYPE_DNS" ]; then
-      _debug "Skip $d for $vtype"
-      continue
-    fi
-
-    d_api="$(_findHook "$d" dnsapi "$_currentRoot")"
-    _debug d_api "$d_api"
+  for entry in $dns_entries; do
+    d=$(_getfield "$entry" 1)
+    txtdomain=$(_getfield "$entry" 2)
+    aliasDomain=$(_getfield "$entry" 3)
+    txt=$(_getfield "$entry" 5)
+    d_api=$(_getfield "$entry" 6)
+    _debug "d" "$d"
+    _debug "txtdomain" "$txtdomain"
+    _debug "aliasDomain" "$aliasDomain"
+    _debug "txt" "$txt"
+    _debug "d_api" "$d_api"
 
     if [ -z "$d_api" ]; then
       _info "Not Found domain api file: $d_api"
       continue
+    fi
+
+    if [ "$aliasDomain" ]; then
+      txtdomain="$aliasDomain"
     fi
 
     (
@@ -2965,24 +2958,6 @@ _clearupdns() {
       if ! _exists "$rmcommand"; then
         _err "It seems that your api file doesn't define $rmcommand"
         return 1
-      fi
-
-      _dns_root_d="$d"
-      if _startswith "$_dns_root_d" "*."; then
-        _dns_root_d="$(echo "$_dns_root_d" | sed 's/*.//')"
-      fi
-
-      _d_alias="$(_getfield "$_challenge_alias" "$_alias_index")"
-      _alias_index="$(_math "$_alias_index" + 1)"
-      _debug "_d_alias" "$_d_alias"
-      if [ "$_d_alias" ]; then
-        if _startswith "$_d_alias" "$DNS_ALIAS_PREFIX"; then
-          txtdomain="$(echo "$_d_alias" | sed "s/$DNS_ALIAS_PREFIX//")"
-        else
-          txtdomain="_acme-challenge.$_d_alias"
-        fi
-      else
-        txtdomain="_acme-challenge.$_dns_root_d"
       fi
 
       if ! $rmcommand "$txtdomain" "$txt"; then
@@ -3776,6 +3751,7 @@ $_authorizations_map"
     done
     _debug vlist "$vlist"
     #add entry
+    dns_entries="";
     dnsadded=""
     ventries=$(echo "$vlist" | tr "$dvsep" ' ')
     _alias_index=1
@@ -3806,8 +3782,10 @@ $_authorizations_map"
           else
             txtdomain="_acme-challenge.$_d_alias"
           fi
+          dns_entries="${dns_entries}${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$txtdomain$dvsep$_currentRoot"
         else
           txtdomain="_acme-challenge.$_dns_root_d"
+          dns_entries="${dns_entries}${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$dvsep$_currentRoot"
         fi
         _debug txtdomain "$txtdomain"
         txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
@@ -3816,7 +3794,9 @@ $_authorizations_map"
         d_api="$(_findHook "$_dns_root_d" dnsapi "$_currentRoot")"
 
         _debug d_api "$d_api"
-
+        dns_entries="$dns_entries$dvsep$txt${dvsep}$d_api
+"
+        _debug2 "$dns_entries"
         if [ "$d_api" ]; then
           _info "Found domain api file: $d_api"
         else
@@ -3870,7 +3850,7 @@ $_authorizations_map"
 
   fi
 
-  if [ "$dnsadded" = '1' ]; then
+  if [ "$dns_entries" ]; then
     if [ -z "$Le_DNSSleep" ]; then
       Le_DNSSleep="$DEFAULT_DNS_SLEEP"
     else
