@@ -16,11 +16,12 @@
 dns_mydevil_add() {
   local fulldomain=$1
   local txtvalue=$2
-  local domain=$(mydevil_get_domain "$fulldomain")
+  local domain=""
 
   _info "Using mydevil"
 
-  if ! mydevil_check_record $fulldomain ; then
+  domain=$(mydevil_get_domain "$fulldomain")
+  if ! mydevil_check_record "$fulldomain" ; then
     _err "Invalid record name: does not start with '_acme-challenge'."
     return 1
   fi
@@ -45,11 +46,12 @@ dns_mydevil_add() {
 dns_mydevil_rm() {
   local fulldomain=$1
   local txtvalue=$2
-  local domain=$(mydevil_get_domain "$fulldomain")
+  local domain=""
 
   _info "Using mydevil"
 
-  if ! mydevil_check_record $fulldomain ; then
+  domain=$(mydevil_get_domain "$fulldomain")
+  if ! mydevil_check_record "$fulldomain" ; then
     _err "Invalid record name: does not start with '_acme-challenge'."
     return 1
   fi
@@ -59,7 +61,7 @@ dns_mydevil_rm() {
     return 1
   fi
 
-  for id in `devil dns list "$domain" | grep "$fulldomain" | awk '{print $1}'` ; do
+  for id in $(devil dns list "$domain" | grep "$fulldomain" | awk '{print $1}') ; do
     _info "Removing record $id from domain $domain"
     devil dns del "$domain" "$id" || _err "Could not remove DNS record."
   done
@@ -87,7 +89,7 @@ mydevil_get_domain() {
   local fulldomain=$1
   local domain=""
 
-  for domain in `devil dns list | grep . | awk '{if(NR>1)print $1}'` ; do
+  for domain in $(devil dns list | grep . | awk '{if(NR>1)print $1}') ; do
     if _endswith "$fulldomain" "$domain" ; then
       printf -- "%s" "$domain"
       return 0

@@ -14,11 +14,12 @@
 
 # Usage: mydevil_deploy domain keyfile certfile cafile fullchain
 mydevil_deploy() {
-  _cdomain="$1"
-  _ckey="$2"
-  _ccert="$3"
-  _cca="$4"
-  _cfullchain="$5"
+  local _cdomain="$1"
+  local _ckey="$2"
+  local _ccert="$3"
+  local _cca="$4"
+  local _cfullchain="$5"
+  local ip=""
 
   _debug _cdomain "$_cdomain"
   _debug _ckey "$_ckey"
@@ -26,8 +27,7 @@ mydevil_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  local ip=$(mydevil_get_ip $_cdomain)
-
+  ip=$(mydevil_get_ip "$_cdomain")
   if [ -z "$ip" ] ; then
     _err "Could not find IP for domain $_cdomain."
     return 1
