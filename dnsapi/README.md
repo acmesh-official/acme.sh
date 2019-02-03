@@ -1172,6 +1172,30 @@ acme.sh --issue --dns dns_doapi -d example.com -d *.example.com
 
 The API token will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 61. Use MyDevil.net
+
+Make sure that you can execute own binaries:
+
+```sh
+devil binexec on
+```
+
+Install acme.sh somewhere on your mydevil host account, probably in your home directory.
+Once it is installed, add it to your bin directory (and make sure it exists first):
+
+```sh
+mkdir ~/bin
+ln -s /path/to/installed/directory/of/.acme.sh/acme.sh ~/bin/acme.sh
+```
+
+To issue a new certificate, run:
+
+```sh
+acme.sh --issue --dns dns_mydevil -d example.com -d *.example.com
+```
+
+After certificate is ready, you can install it with [deploy command](../deploy/README.md).
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
