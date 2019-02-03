@@ -28,7 +28,7 @@ mydevil_deploy() {
   _debug _cfullchain "$_cfullchain"
 
   ip=$(mydevil_get_ip "$_cdomain")
-  if [ -z "$ip" ] ; then
+  if [ -z "$ip" ]; then
     _err "Could not find IP for domain $_cdomain."
     return 1
   fi
