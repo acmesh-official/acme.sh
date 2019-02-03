@@ -1181,12 +1181,14 @@ devil binexec on
 ```
 
 Install acme.sh somewhere on your mydevil host account, probably in your home directory.
-Once it is installed, add it to your bin directory (and make sure it exists first):
+Once it is installed, add it to your `~/bin` directory (and make sure it exists first):
 
 ```sh
 mkdir ~/bin
 ln -s /path/to/installed/directory/of/.acme.sh/acme.sh ~/bin/acme.sh
 ```
+
+If you're not using private IP and depend on default IP provided by host, you may want to edit `crontab` too, and make sure that `acme.sh --cron` is run also after reboot (you can find out how to do that on their wiki pages).
 
 To issue a new certificate, run:
 
