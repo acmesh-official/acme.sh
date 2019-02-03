@@ -26,7 +26,7 @@ dns_mydevil_add() {
     return 1
   fi
 
-  if [ -z  "$domain" ]; then
+  if [ -z "$domain" ]; then
     _err "Invalid domain name: could not find root domain of $fulldomain."
     return 1
   fi
@@ -56,7 +56,7 @@ dns_mydevil_rm() {
     return 1
   fi
 
-  if [ -z  "$domain" ]; then
+  if [ -z "$domain" ]; then
     _err "Invalid domain name: could not find root domain of $fulldomain."
     return 1
   fi
