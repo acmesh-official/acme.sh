@@ -13,6 +13,7 @@ dns_hostingde_add() {
   txtvalue="${2}"
   _debug "Calling: _hostingde_addRecord() '${fulldomain}' '${txtvalue}'"
   _hostingde_apiKey && _hostingde_getZoneConfig && _hostingde_addRecord
+  return $?
 }
 
 dns_hostingde_rm() {
@@ -20,6 +21,7 @@ dns_hostingde_rm() {
   txtvalue="${2}"
   _debug "Calling: _hostingde_removeRecord() '${fulldomain}' '${txtvalue}'"
   _hostingde_apiKey && _hostingde_getZoneConfig && _hostingde_removeRecord
+  return $?
 }
 
 #################### own Private functions below ##################################
@@ -36,6 +38,18 @@ _hostingde_apiKey() {
 
   _saveaccountconf_mutable HOSTINGDE_APIKEY "$HOSTINGDE_APIKEY"
   _saveaccountconf_mutable HOSTINGDE_ENDPOINT "$HOSTINGDE_ENDPOINT"
+}
+
+_hostingde_parse() {
+  find="${1}"
+  if [ "${2}" ]; then
+    notfind="${2}"
+  fi
+  if [ "${notfind}" ]; then
+    _egrep_o \""${find}\":.*" | grep -v "${notfind}" | cut -d ':' -f 2 | cut -d ',' -f 1 | tr -d '[:space:]'
+  else
+    _egrep_o \""${find}\":.*" | cut -d ':' -f 2 | cut -d ',' -f 1 | tr -d '[:space:]'
+  fi
 }
 
 _hostingde_getZoneConfig() {
@@ -59,18 +73,18 @@ _hostingde_getZoneConfig() {
     if _contains "${curResult}" '"totalEntries": 1'; then
       _info "Retrieved zone data."
       _debug "Zone data: '${curResult}'"
-      zoneConfigId=$(echo "${curResult}" | _egrep_o '"id":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
-      zoneConfigName=$(echo "${curResult}" | _egrep_o '"name":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
-      zoneConfigType=$(echo "${curResult}" | grep -v "FindZoneConfigsResult" | _egrep_o '"type":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
-      zoneConfigExpire=$(echo "${curResult}" | _egrep_o '"expire":.*' | cut -d ':' -f 2 | cut -d '"' -f 2 | cut -d ',' -f 1)
-      zoneConfigNegativeTtl=$(echo "${curResult}" | _egrep_o '"negativeTtl":.*' | cut -d ':' -f 2 | cut -d '"' -f 2 | cut -d ',' -f 1)
-      zoneConfigRefresh=$(echo "${curResult}" | _egrep_o '"refresh":.*' | cut -d ':' -f 2 | cut -d '"' -f 2 | cut -d ',' -f 1)
-      zoneConfigRetry=$(echo "${curResult}" | _egrep_o '"retry":.*' | cut -d ':' -f 2 | cut -d '"' -f 2 | cut -d ',' -f 1)
-      zoneConfigTtl=$(echo "${curResult}" | _egrep_o '"ttl":.*' | cut -d ':' -f 2 | cut -d '"' -f 2 | cut -d ',' -f 1)
-      zoneConfigDnsServerGroupId=$(echo "${curResult}" | _egrep_o '"dnsServerGroupId":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
-      zoneConfigEmailAddress=$(echo "${curResult}" | _egrep_o '"emailAddress":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
-      zoneConfigDnsSecMode=$(echo "${curResult}" | _egrep_o '"dnsSecMode":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
-      if [ "${zoneConfigType}" != "NATIVE" ]; then
+      zoneConfigId=$(echo "${curResult}" | _hostingde_parse "id")
+      zoneConfigName=$(echo "${curResult}" | _hostingde_parse "name")
+      zoneConfigType=$(echo "${curResult}" | _hostingde_parse "type" "FindZoneConfigsResult")
+      zoneConfigExpire=$(echo "${curResult}" | _hostingde_parse "expire")
+      zoneConfigNegativeTtl=$(echo "${curResult}" | _hostingde_parse "negativeTtl")
+      zoneConfigRefresh=$(echo "${curResult}" | _hostingde_parse "refresh")
+      zoneConfigRetry=$(echo "${curResult}" | _hostingde_parse "retry")
+      zoneConfigTtl=$(echo "${curResult}" | _hostingde_parse "ttl")
+      zoneConfigDnsServerGroupId=$(echo "${curResult}" | _hostingde_parse "dnsServerGroupId")
+      zoneConfigEmailAddress=$(echo "${curResult}" | _hostingde_parse "emailAddress")
+      zoneConfigDnsSecMode=$(echo "${curResult}" | _hostingde_parse "dnsSecMode")
+      if [ ${zoneConfigType} != "\"NATIVE\"" ]; then
         _err "Zone is not native"
         returnCode=1
         break
@@ -89,11 +103,11 @@ _hostingde_getZoneConfig() {
 
 _hostingde_getZoneStatus() {
   _debug "Checking Zone status"
-  curData="{\"filter\":{\"field\":\"zoneConfigId\",\"value\":\"${zoneConfigId}\"},\"limit\":1,\"authToken\":\"${HOSTINGDE_APIKEY}\"}"
+  curData="{\"filter\":{\"field\":\"zoneConfigId\",\"value\":${zoneConfigId}},\"limit\":1,\"authToken\":\"${HOSTINGDE_APIKEY}\"}"
   curResult="$(_post "${curData}" "${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zonesFind")"
   _debug "Calling zonesFind '${curData}' '${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zonesFind'"
   _debug "Result of zonesFind '$curResult'"
-  zoneStatus=$(echo "${curResult}" | grep -v success | _egrep_o '"status":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
+  zoneStatus=$(echo "${curResult}" | _hostingde_parse "status" "success")
   _debug "zoneStatus '${zoneStatus}'"
   return 0
 }
@@ -102,12 +116,12 @@ _hostingde_addRecord() {
   _info "Adding record to zone"
   _hostingde_getZoneStatus
   _debug "Result of zoneStatus: '${zoneStatus}'"
-  while [ "${zoneStatus}" != "active" ]; do
+  while [ "${zoneStatus}" != "\"active\"" ]; do
     _sleep 5
     _hostingde_getZoneStatus
     _debug "Result of zoneStatus: '${zoneStatus}'"
   done
-  curData="{\"authToken\":\"${HOSTINGDE_APIKEY}\",\"zoneConfig\":{\"id\":\"${zoneConfigId}\",\"name\":\"${zoneConfigName}\",\"type\":\"${zoneConfigType}\",\"dnsServerGroupId\":\"${zoneConfigDnsServerGroupId}\",\"dnsSecMode\":\"${zoneConfigDnsSecMode}\",\"emailAddress\":\"${zoneConfigEmailAddress}\",\"soaValues\":{\"expire\":${zoneConfigExpire},\"negativeTtl\":${zoneConfigNegativeTtl},\"refresh\":${zoneConfigRefresh},\"retry\":${zoneConfigRetry},\"ttl\":${zoneConfigTtl}}},\"recordsToAdd\":[{\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"content\":\"\\\"${txtvalue}\\\"\",\"ttl\":3600}]}"
+  curData="{\"authToken\":\"${HOSTINGDE_APIKEY}\",\"zoneConfig\":{\"id\":${zoneConfigId},\"name\":${zoneConfigName},\"type\":${zoneConfigType},\"dnsServerGroupId\":${zoneConfigDnsServerGroupId},\"dnsSecMode\":${zoneConfigDnsSecMode},\"emailAddress\":${zoneConfigEmailAddress},\"soaValues\":{\"expire\":${zoneConfigExpire},\"negativeTtl\":${zoneConfigNegativeTtl},\"refresh\":${zoneConfigRefresh},\"retry\":${zoneConfigRetry},\"ttl\":${zoneConfigTtl}}},\"recordsToAdd\":[{\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"content\":\"\\\"${txtvalue}\\\"\",\"ttl\":3600}]}"
   curResult="$(_post "${curData}" "${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate")"
   _debug "Calling zoneUpdate: '${curData}' '${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate'"
   _debug "Result of zoneUpdate: '$curResult'"
@@ -126,12 +140,12 @@ _hostingde_removeRecord() {
   _info "Removing record from zone"
   _hostingde_getZoneStatus
   _debug "Result of zoneStatus: '$zoneStatus'"
-  while [ "$zoneStatus" != "active" ]; do
+  while [ "$zoneStatus" != "\"active\"" ]; do
     _sleep 5
     _hostingde_getZoneStatus
     _debug "Result of zoneStatus: '$zoneStatus'"
   done
-  curData="{\"authToken\":\"${HOSTINGDE_APIKEY}\",\"zoneConfig\":{\"id\":\"${zoneConfigId}\",\"name\":\"${zoneConfigName}\",\"type\":\"${zoneConfigType}\",\"dnsServerGroupId\":\"${zoneConfigDnsServerGroupId}\",\"dnsSecMode\":\"${zoneConfigDnsSecMode}\",\"emailAddress\":\"${zoneConfigEmailAddress}\",\"soaValues\":{\"expire\":${zoneConfigExpire},\"negativeTtl\":${zoneConfigNegativeTtl},\"refresh\":${zoneConfigRefresh},\"retry\":${zoneConfigRetry},\"ttl\":${zoneConfigTtl}}},\"recordsToDelete\":[{\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"content\":\"\\\"${txtvalue}\\\"\"}]}"
+  curData="{\"authToken\":\"${HOSTINGDE_APIKEY}\",\"zoneConfig\":{\"id\":${zoneConfigId},\"name\":${zoneConfigName},\"type\":${zoneConfigType},\"dnsServerGroupId\":${zoneConfigDnsServerGroupId},\"dnsSecMode\":${zoneConfigDnsSecMode},\"emailAddress\":${zoneConfigEmailAddress},\"soaValues\":{\"expire\":${zoneConfigExpire},\"negativeTtl\":${zoneConfigNegativeTtl},\"refresh\":${zoneConfigRefresh},\"retry\":${zoneConfigRetry},\"ttl\":${zoneConfigTtl}}},\"recordsToDelete\":[{\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"content\":\"\\\"${txtvalue}\\\"\"}]}"
   curResult="$(_post "${curData}" "${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate")"
   _debug "Calling zoneUpdate: '${curData}' '${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate'"
   _debug "Result of zoneUpdate: '$curResult'"
