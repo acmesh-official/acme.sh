@@ -84,7 +84,7 @@ _hostingde_getZoneConfig() {
       zoneConfigDnsServerGroupId=$(echo "${curResult}" | _hostingde_parse "dnsServerGroupId")
       zoneConfigEmailAddress=$(echo "${curResult}" | _hostingde_parse "emailAddress")
       zoneConfigDnsSecMode=$(echo "${curResult}" | _hostingde_parse "dnsSecMode")
-      if [ ${zoneConfigType} != "\"NATIVE\"" ]; then
+      if [ "${zoneConfigType}" != "\"NATIVE\"" ]; then
         _err "Zone is not native"
         returnCode=1
         break
