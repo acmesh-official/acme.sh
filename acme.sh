@@ -3476,12 +3476,12 @@ __check_txt() {
 
 #wait and check each dns entries
 _check_dns_entries() {
-  _success_txt=",";
+  _success_txt=","
   _end_time="$(_time)"
   _end_time="$(_math "$_end_time" + 1200)" #let's check no more than 20 minutes.
 
   while [ "$(_time)" -le "$_end_time" ]; do
-    _left="";
+    _left=""
     for entry in $dns_entries; do
       d=$(_getfield "$entry" 1)
       txtdomain=$(_getfield "$entry" 2)
@@ -3496,7 +3496,7 @@ _check_dns_entries() {
       _info "Checking $d for $aliasDomain"
       if _contains "$_success_txt" ",$txt,"; then
         _info "Already success, continue next one."
-        continue;
+        continue
       fi
       
       if __check_txt "$txtdomain" "$aliasDomain" "$txt"; then
@@ -3506,7 +3506,7 @@ _check_dns_entries() {
       fi
       _left=1
       _info "Not valid yet, let's wait 5 seconds and check next one."
-      _sleep 5;
+      _sleep 5
     done
     if [ "$_left" ]; then
       _info "Let's wait 10 seconds and check again".
@@ -3842,7 +3842,7 @@ $_authorizations_map"
     done
     _debug vlist "$vlist"
     #add entry
-    dns_entries="";
+    dns_entries=""
     dnsadded=""
     ventries=$(echo "$vlist" | tr "$dvsep" ' ')
     _alias_index=1
