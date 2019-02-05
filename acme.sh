@@ -3428,6 +3428,92 @@ __trigger_validation() {
   fi
 }
 
+#endpoint  domain type
+_ns_lookup() {
+  _ns_ep="$1"
+  _ns_domain="$2"
+  _ns_type="$3"
+  _debug2 "_ns_ep" "$_ns_ep"
+  _debug2 "_ns_domain" "$_ns_domain"
+  _debug2 "_ns_type" "$_ns_type"
+
+  response="$(_H1="accept: application/dns-json" _get "$_ns_ep?name=$_ns_domain&type=$_ns_type")"
+  _ret=$?
+  _debug2 "response" "$response"
+  if [ "$_ret" != "0" ]; then
+    return $_ret
+  fi
+  _answers="$(echo "$response" | tr '{}' '<>' | _egrep_o '"Answer":\[[^]]*]' | tr '<>' '\n\n')"
+  _debug2 "_answers" "$_answers"
+  echo "$_answers"
+}
+
+#domain, type
+_ns_lookup_cf() {
+  _cf_ld="$1"
+  _cf_ld_type="$2"
+  _cf_ep="https://cloudflare-dns.com/dns-query"
+  _ns_lookup "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
+}
+
+#txtdomain, alias, txt
+__check_txt() {
+  _c_txtdomain="$1"
+  _c_aliasdomain="$2"
+  _c_txt="$3"
+  _debug "_c_txtdomain" "$_c_txtdomain"
+  _debug "_c_aliasdomain" "$_c_aliasdomain"
+  _debug "_c_txt" "$_c_txt"
+  _answers="$(_ns_lookup_cf "$_c_aliasdomain" TXT)"
+  _contains "$_answers" "$_c_txt"
+
+}
+
+#wait and check each dns entries
+_check_dns_entries() {
+  _success_txt=",";
+  _end_time="$(_time)"
+  _end_time="$(_math "$_end_time" + 1200)" #let's check no more than 20 minutes.
+
+  while [ "$(_time)" -le "$_end_time" ]; do
+    _left="";
+    for entry in $dns_entries; do
+      d=$(_getfield "$entry" 1)
+      txtdomain=$(_getfield "$entry" 2)
+      aliasDomain=$(_getfield "$entry" 3)
+      txt=$(_getfield "$entry" 5)
+      d_api=$(_getfield "$entry" 6)
+      _debug "d" "$d"
+      _debug "txtdomain" "$txtdomain"
+      _debug "aliasDomain" "$aliasDomain"
+      _debug "txt" "$txt"
+      _debug "d_api" "$d_api"
+      _info "Checking $d for $aliasDomain"
+      if _contains "$_success_txt" ",$txt,"; then
+        _info "Already success, continue next one."
+        continue;
+      fi
+      
+      if __check_txt "$txtdomain" "$aliasDomain" "$txt"; then
+        _info "Domain $d '$aliasDomain' success."
+        _success_txt="$_success_txt,$txt,"
+        continue
+      fi
+      _left=1
+      _info "Not valid yet, let's wait 5 seconds and check next one."
+      _sleep 5;
+    done
+    if [ "$_left" ]; then
+      _info "Let's wait 10 seconds and check again".
+      _sleep 10
+    else
+      _info "All success, let's return"
+      break
+    fi
+  done
+
+}
+
 #webroot, domain domainlist  keylength
 issue() {
   if [ -z "$2" ]; then
@@ -3852,13 +3938,18 @@ $_authorizations_map"
 
   if [ "$dns_entries" ]; then
     if [ -z "$Le_DNSSleep" ]; then
-      Le_DNSSleep="$DEFAULT_DNS_SLEEP"
+      _info "Let's check each dns records now."
+      if ! _check_dns_entries; then
+        _err "check dns error."
+        _on_issue_err "$_post_hook"
+        _clearup
+        return 1
+      fi
     else
       _savedomainconf "Le_DNSSleep" "$Le_DNSSleep"
+      _info "Sleep $(__green $Le_DNSSleep) seconds for the txt records to take effect"
+      _sleep "$Le_DNSSleep"
     fi
-
-    _info "Sleep $(__green $Le_DNSSleep) seconds for the txt records to take effect"
-    _sleep "$Le_DNSSleep"
   fi
 
   NGINX_RESTORE_VLIST=""
