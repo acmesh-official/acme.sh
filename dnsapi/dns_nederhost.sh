@@ -91,7 +91,7 @@ _get_root() {
     fi
 
     if _nederhost_rest GET "zones/${_domain}"; then
-      if [ "${_code}" == "204" ]; then
+      if [ "${_code}" = "204" ]; then
         return 0;
       fi
     else
@@ -112,7 +112,7 @@ _nederhost_rest() {
   export _H1="Authorization: Bearer $NederHost_Key"
   export _H2="Content-Type: application/json"
 
-  :>$HTTP_HEADER
+  :>"$HTTP_HEADER"
 
   if [ "$m" != "GET" ]; then
     _debug data "$data"
