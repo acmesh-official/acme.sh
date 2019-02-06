@@ -351,6 +351,7 @@ You don't have to do anything manually!
 1. PointDNS API (https://pointhq.com/)
 1. Active24.cz API (https://www.active24.cz/)
 1. do.de API (https://www.do.de/)
+1. NederHost API (https://www.nederhost.nl/)
 
 And:
 

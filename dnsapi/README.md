@@ -1172,6 +1172,20 @@ acme.sh --issue --dns dns_doapi -d example.com -d *.example.com
 
 The API token will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 61. Use NederHost API
+
+Create an API token in Mijn NederHost.
+
+Set your API key:
+```
+export NederHost_Key='xxx'
+```
+
+To issue a certificate run:
+```
+acme.sh --issue --dns dns_nederhost -d example.com -d *.example.com
+```
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
