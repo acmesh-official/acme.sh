@@ -92,10 +92,10 @@ _get_root() {
 
     if _nederhost_rest GET "zones/${_domain}"; then
       if [ "${_code}" = "204" ]; then
-        return 0;
+        return 0
       fi
     else
-      return 1;
+      return 1
     fi
     p=$i
     i=$(_math "$i" + 1)
