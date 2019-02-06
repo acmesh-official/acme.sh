@@ -3493,7 +3493,7 @@ _check_dns_entries() {
         _info "Already success, continue next one."
         continue
       fi
-      
+
       if __check_txt "$txtdomain" "$aliasDomain" "$txt"; then
         _info "Domain $d '$aliasDomain' success."
         _success_txt="$_success_txt,$txt,"
