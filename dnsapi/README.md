@@ -1122,21 +1122,67 @@ export EXOSCALE_SECRET_KEY='xxx'
 
 Now, let's issue a cert:
 ```
-acme.sh --issue --dns dns_netcup -d example.com -d www.example.com
+acme.sh --issue --dns dns_exoscale -d example.com -d www.example.com
 ```
 
 The `EXOSCALE_API_KEY` and `EXOSCALE_SECRET_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-## 58. Use Internet.bs
+## 58. Using PointHQ API to issue certs
 
-First you need to create/obtain API credentials on your Internet.bs (https://internetbs.net) account. Go to the "Get my API Key" section in the "My Domains" section.
+Log into [PointHQ account management](https://app.pointhq.com/profile) and copy the API key from the page there.
 
+```export PointHQ_Key="apikeystringgoeshere"
+exportPointHQ_Email="accountemail@yourdomain.com"
+```
+
+You can then issue certs by using:
+```acme.sh --issue --dns dns_pointhq -d example.com -d www.example.com
+```
+
+## 59. Use Active24 API
+
+Create an API token in the Active24 account section, documentation on https://faq.active24.com/cz/790131-REST-API-rozhran%C3%AD.
+
+Set your API token:
+
+```
+export ACTIVE24_Token='xxx'
+```
+
+Now, let's issue a cert, set `dnssleep` for propagation new DNS record:
+```
+acme.sh --issue --dns dns_active24 -d example.com -d www.example.com --dnssleep 1000
+```
+
+The `ACTIVE24_Token` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 60. Use do.de API
+
+Create an API token in your do.de account.
+
+Set your API token:
+```
+export DO_LETOKEN='FmD408PdqT1E269gUK57'
+```
+
+To issue a certificate run:
+```
+acme.sh --issue --dns dns_doapi -d example.com -d *.example.com
+```
+
+The API token will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 61. Use internetbs.net API
+
+Create an API token in your internetbs.net account.
+
+Set your API token:
 ```
 export INTERNETBS_API_KEY="..."
 export INTERNETBS_API_PASSWORD="..."
 ```
 
-Ok, let's issue a cert now:
+To issue a certificate run:
 ```
 acme.sh --issue --dns dns_internetbs -d example.com -d www.example.com
 ```
