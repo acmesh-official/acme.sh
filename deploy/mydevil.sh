@@ -27,6 +27,11 @@ mydevil_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
+  if ! _exists "devil" ; then
+    _err "Could not find 'devil' command."
+    return 1
+  fi
+
   ip=$(mydevil_get_ip "$_cdomain")
   if [ -z "$ip" ]; then
     _err "Could not find IP for domain $_cdomain."

@@ -18,6 +18,11 @@ dns_mydevil_add() {
   txtvalue=$2
   domain=""
 
+  if ! _exists "devil" ; then
+    _err "Could not find 'devil' command."
+    return 1
+  fi
+
   _info "Using mydevil"
 
   domain=$(mydevil_get_domain "$fulldomain")
@@ -47,6 +52,11 @@ dns_mydevil_rm() {
   fulldomain=$1
   txtvalue=$2
   domain=""
+
+  if ! _exists "devil" ; then
+    _err "Could not find 'devil' command."
+    return 1
+  fi
 
   _info "Using mydevil"
 
