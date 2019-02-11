@@ -46,9 +46,9 @@ _hostingde_parse() {
     notfind="${2}"
   fi
   if [ "${notfind}" ]; then
-    _egrep_o \""${find}\":.*" | grep -v "${notfind}" | cut -d ':' -f 2 | cut -d ',' -f 1 | tr -d '[:space:]'
+    _egrep_o \""${find}\":.*" | grep -v "${notfind}" | cut -d ':' -f 2 | cut -d ',' -f 1 | tr -d ' '
   else
-    _egrep_o \""${find}\":.*" | cut -d ':' -f 2 | cut -d ',' -f 1 | tr -d '[:space:]'
+    _egrep_o \""${find}\":.*" | cut -d ':' -f 2 | cut -d ',' -f 1 | tr -d ' '
   fi
 }
 
