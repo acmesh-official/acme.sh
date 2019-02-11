@@ -14,12 +14,12 @@
 
 # Usage: mydevil_deploy domain keyfile certfile cafile fullchain
 mydevil_deploy() {
-  local _cdomain="$1"
-  local _ckey="$2"
-  local _ccert="$3"
-  local _cca="$4"
-  local _cfullchain="$5"
-  local ip=""
+  _cdomain="$1"
+  _ckey="$2"
+  _ccert="$3"
+  _cca="$4"
+  _cfullchain="$5"
+  ip=""
 
   _debug _cdomain "$_cdomain"
   _debug _ckey "$_ckey"
@@ -49,8 +49,6 @@ mydevil_deploy() {
 # Usage: ip=$(mydevil_get_ip domain.com)
 #        echo $ip
 mydevil_get_ip() {
-  local domain=$1
-
-  devil dns list "$domain" | awk '{print $3"\t"$7}' | grep "^A$(printf '\t')" | awk '{print $2}' || return 1
+  devil dns list "$1" | awk '{print $3"\t"$7}' | grep "^A$(printf '\t')" | awk '{print $2}' || return 1
   return 0
 }

@@ -14,9 +14,9 @@
 
 #Usage: dns_mydevil_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_mydevil_add() {
-  local fulldomain=$1
-  local txtvalue=$2
-  local domain=""
+  fulldomain=$1
+  txtvalue=$2
+  domain=""
 
   _info "Using mydevil"
 
@@ -44,9 +44,9 @@ dns_mydevil_add() {
 #Usage: fulldomain txtvalue
 #Remove the txt record after validation.
 dns_mydevil_rm() {
-  local fulldomain=$1
-  local txtvalue=$2
-  local domain=""
+  fulldomain=$1
+  txtvalue=$2
+  domain=""
 
   _info "Using mydevil"
 
@@ -71,9 +71,7 @@ dns_mydevil_rm() {
 
 # Usage: mydevil_check_record "_acme-challenge.www.domain.com" || _err "Invalid record name"
 mydevil_check_record() {
-  local record=$1
-
-  case "$record" in
+  case "$1" in
     "_acme-challenge."*)
       return 0
       ;;
@@ -86,8 +84,8 @@ mydevil_check_record() {
 # Usage: domain=$(mydevil_get_domain "_acme-challenge.www.domain.com" || _err "Invalid domain name")
 #        echo $domain
 mydevil_get_domain() {
-  local fulldomain=$1
-  local domain=""
+  fulldomain=$1
+  domain=""
 
   for domain in $(devil dns list | grep . | awk '{if(NR>1)print $1}'); do
     if _endswith "$fulldomain" "$domain"; then
