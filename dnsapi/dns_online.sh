@@ -68,10 +68,10 @@ dns_online_rm() {
     return 1
   fi
   
-  rid=$(echo $response|_egrep_o "\"id\":[0-9]+,\"name\":\"$_sub_domain\",\"data\":\"\\\u0022$txtvalue\\\u0022\""|cut -d ':' -f 2|cut -d ',' -f 1)
+  rid=$(echo $response | _egrep_o "\"id\":[0-9]+,\"name\":\"$_sub_domain\",\"data\":\"\\\u0022$txtvalue\\\u0022\"" | cut -d ':' -f 2 | cut -d ',' -f 1)
   _debug rid "$rid"
   if [ -z "$rid" ]; then
-     return 1
+    return 1
   fi
 
   _info "Creating temporary zone version"
@@ -126,7 +126,7 @@ _get_root() {
     if ! _contains "$response" "Domain not found" >/dev/null; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain="$h"
-      _real_dns_version=$(echo "$response"|_egrep_o '"uuid_ref":.*'|cut -d ':' -f 2|cut -d '"' -f 2)
+      _real_dns_version=$(echo "$response" | _egrep_o '"uuid_ref":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
       return 0
     fi
     p=$i
@@ -141,11 +141,11 @@ _get_root() {
 _online_create_temporary_zone_version() {
   
   _online_rest POST "domain/$_domain/version" "name=acme.sh"
-  if [ "$?" != "0" ] ; then
+  if [ "$?" != "0" ]; then
     return 1
   fi 
 
-  _temporary_dns_version=$(echo "$response"|_egrep_o '"uuid_ref":.*'|cut -d ':' -f 2|cut -d '"' -f 2)
+  _temporary_dns_version=$(echo "$response" | _egrep_o '"uuid_ref":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
 
   # Creating a dummy record in this temporary version, because online.net doesn't accept enabling an empty version
   _online_create_TXT_record "$_temporary_dns_version" "dummy.acme.sh" "dummy"
@@ -157,17 +157,17 @@ _online_destroy_zone() {
   version_id=$1
   _online_rest DELETE "domain/$_domain/version/$version_id"
 
-  if [ "$?" != "0" ] ; then
+  if [ "$?" != "0" ]; then
     return 1
-  fi 
+  fi
   return 0
- }
+}
 
 _online_enable_zone() {
   version_id=$1
   _online_rest PATCH "domain/$_domain/version/$version_id/enable"
 
-  if [ "$?" != "0" ] ; then
+  if [ "$?" != "0" ]; then
     return 1
   fi 
   return 0
@@ -183,7 +183,7 @@ _online_create_TXT_record() {
   # Note : the normal, expected response SHOULD be "Unknown method".
   # this happens because the API HTTP response contains a Location: header, that redirect
   # to an unknown online.net endpoint.
-  if [ "$?" != "0" ] || _contains "$response" "Unknown method" ; then
+  if [ "$?" != "0" ] || _contains "$response" "Unknown method"; then
     return 0
   else
     _err "error $response"
