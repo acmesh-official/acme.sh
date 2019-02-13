@@ -1228,6 +1228,21 @@ acme.sh --issue --dns dns_nw -d example.com --dnssleep 900
 
 The `NW_API_TOKEN` and `NW_API_ENDPOINT` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 64. Use Rackspace API
+
+Set username and API key, which is available under "My Profile & Settings"
+
+```
+export RACKSPACE_Username='username'
+export RACKSPACE_Apikey='xxx'
+```
+
+Now, let's issue a cert:
+
+```
+acme.sh --issue --dns dns_rackspace -d example.com -d www.example.com
+```
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
