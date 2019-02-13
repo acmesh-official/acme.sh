@@ -67,8 +67,8 @@ dns_online_rm() {
   if ! _online_rest GET "domain/$_domain/version/active"; then
     return 1
   fi
-  
-  rid=$(echo $response | _egrep_o "\"id\":[0-9]+,\"name\":\"$_sub_domain\",\"data\":\"\\\u0022$txtvalue\\\u0022\"" | cut -d ':' -f 2 | cut -d ',' -f 1)
+
+  rid=$(echo "$response" | _egrep_o "\"id\":[0-9]+,\"name\":\"$_sub_domain\",\"data\":\"\\\u0022$txtvalue\\\u0022\"" | cut -d ':' -f 2 | cut -d ',' -f 1)
   _debug rid "$rid"
   if [ -z "$rid" ]; then
     return 1
@@ -135,15 +135,14 @@ _get_root() {
   return 1
 }
 
-
 # this function create a temporary zone version
 # as online.net does not allow updating an active version
 _online_create_temporary_zone_version() {
-  
+ 
   _online_rest POST "domain/$_domain/version" "name=acme.sh"
   if [ "$?" != "0" ]; then
     return 1
-  fi 
+  fi
 
   _temporary_dns_version=$(echo "$response" | _egrep_o '"uuid_ref":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
 
@@ -169,7 +168,7 @@ _online_enable_zone() {
 
   if [ "$?" != "0" ]; then
     return 1
-  fi 
+  fi
   return 0
 }
 
