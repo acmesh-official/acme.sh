@@ -138,7 +138,7 @@ _get_root() {
 # this function create a temporary zone version
 # as online.net does not allow updating an active version
 _online_create_temporary_zone_version() {
- 
+
   _online_rest POST "domain/$_domain/version" "name=acme.sh"
   if [ "$?" != "0" ]; then
     return 1
