@@ -122,10 +122,8 @@ _get_root() {
       #not valid
       return 1
     fi
-    if ! _online_rest GET "domain/$h/version/active"; then
-      _err "Unable to retrive DNS zone matching this domain"
-      return 1
-    fi
+
+    _online_rest GET "domain/$h/version/active"
 
     if ! _contains "$response" "Domain not found" >/dev/null; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
@@ -136,7 +134,8 @@ _get_root() {
     p=$i
     i=$(_math "$i" + 1)
   done
-  return 1
+ _err "Unable to retrive DNS zone matching this domain"
+ return 1
 }
 
 # this function create a temporary zone version
