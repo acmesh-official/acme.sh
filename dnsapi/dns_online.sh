@@ -185,7 +185,7 @@ _online_create_TXT_record() {
   # Note : the normal, expected response SHOULD be "Unknown method".
   # this happens because the API HTTP response contains a Location: header, that redirect
   # to an unknown online.net endpoint.
-  if [ "$?" != "0" ] || _contains "$response" "Unknown method"; then
+  if [ "$?" != "0" ] || _contains "$response" "Unknown method" || _contains "$response" "\$ref"; then
     return 0
   else
     _err "error $response"
