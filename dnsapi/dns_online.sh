@@ -92,14 +92,18 @@ dns_online_rm() {
 ####################  Private functions below ##################################
 
 _online_check_config() {
-
+  ONLINE_API_KEY="${CF_Key:-$(_readaccountconf_mutable ONLINE_API_KEY)}"
   if [ -z "$ONLINE_API_KEY" ]; then
     _err "No API key specified for Online API."
     _err "Create your key and export it as ONLINE_API_KEY"
     return 1
   fi
+  if [ ! _online_rest GET "domain/" ]; then
+    _err "Invalid API key specified for Online API."
+    return 1
+  fi
 
-  _saveaccountconf ONLINE_API_KEY "$ONLINE_API_KEY"
+  _saveaccountconf_mutable ONLINE_API_KEY "$ONLINE_API_KEY"
 
   return 0
 }
