@@ -135,7 +135,7 @@ _get_root() {
     i=$(_math "$i" + 1)
   done
   _err "Unable to retrive DNS zone matching this domain"
- return 1
+  return 1
 }
 
 # this function create a temporary zone version
