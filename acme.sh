@@ -3456,6 +3456,15 @@ _ns_lookup_cf() {
   _ns_lookup "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
 }
 
+#domain, type
+_ns_purge_cf() {
+  _cf_d="$1"
+  _cf_d_type="$2"
+  _debug "Cloudflare purge $_cf_d_type record for domain $_cf_d"
+  _cf_purl="https://1.1.1.1/api/v1/purge?domain=$_cf_d&type=$_cf_d_type"
+  _post "" "$_cf_purl"
+}
+
 #txtdomain, alias, txt
 __check_txt() {
   _c_txtdomain="$1"
@@ -3467,6 +3476,13 @@ __check_txt() {
   _answers="$(_ns_lookup_cf "$_c_aliasdomain" TXT)"
   _contains "$_answers" "$_c_txt"
 
+}
+
+#txtdomain
+__purge_txt() {
+  _p_txtdomain="$1"
+  _debug _p_txtdomain "$_p_txtdomain"
+  _ns_purge_cf "$_p_txtdomain" "TXT"
 }
 
 #wait and check each dns entries
@@ -3500,8 +3516,9 @@ _check_dns_entries() {
         continue
       fi
       _left=1
-      _info "Not valid yet, let's wait 5 seconds and check next one."
-      _sleep 5
+      _info "Not valid yet, let's wait 10 seconds and check next one."
+      _sleep 10
+      __purge_txt 
     done
     if [ "$_left" ]; then
       _info "Let's wait 10 seconds and check again".
@@ -3938,7 +3955,8 @@ $_authorizations_map"
 
   if [ "$dns_entries" ]; then
     if [ -z "$Le_DNSSleep" ]; then
-      _info "Let's check each dns records now."
+      _info "Let's check each dns records now. Sleep 20 seconds first."
+      _sleep 20
       if ! _check_dns_entries; then
         _err "check dns error."
         _on_issue_err "$_post_hook"
