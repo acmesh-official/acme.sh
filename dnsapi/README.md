@@ -1243,6 +1243,22 @@ Now, let's issue a cert:
 acme.sh --issue --dns dns_rackspace -d example.com -d www.example.com
 ```
 
+## 65. Use Online API
+
+First, you'll need to retrive your API key, which is available under https://console.online.net/en/api/access
+
+```
+export ONLINE_API_KEY='xxx'
+```
+
+To issue a cert run:
+
+```
+acme.sh --issue --dns dns_online -d example.com -d www.example.com
+```
+
+`ONLINE_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
