@@ -2943,6 +2943,9 @@ _clearupdns() {
     _debug "aliasDomain" "$aliasDomain"
     _debug "txt" "$txt"
     _debug "d_api" "$d_api"
+    if [ "$d_api" = "$txt" ]; then
+      d_api=""
+    fi
 
     if [ -z "$d_api" ]; then
       _info "Not Found domain api file: $d_api"
