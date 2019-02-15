@@ -134,7 +134,7 @@ _get_root() {
     p=$i
     i=$(_math "$i" + 1)
   done
- _err "Unable to retrive DNS zone matching this domain"
+  _err "Unable to retrive DNS zone matching this domain"
  return 1
 }
 
