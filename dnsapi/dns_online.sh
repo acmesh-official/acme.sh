@@ -202,7 +202,7 @@ _online_rest() {
   _debug2 _online_url "$_online_url"
   export _H1="Authorization: Bearer $ONLINE_API_KEY"
   export _H2="X-Pretty-JSON: 1"
-  if [ "$data" ] || [ "$m" = "PATCH" ] || [ "$m" = "POST" ] || [ "$m" = "PUT" ] || [ "$m" = "DELETE" ]; then
+  if [ "$data" ] || [ "$m" != "GET" ]; then
     _debug data "$data"
     response="$(_post "$data" "$_online_url" "" "$m")"
   else
