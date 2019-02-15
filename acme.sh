@@ -3523,7 +3523,7 @@ _check_dns_entries() {
       _left=1
       _info "Not valid yet, let's wait 10 seconds and check next one."
       _sleep 10
-      __purge_txt 
+      __purge_txt
     done
     if [ "$_left" ]; then
       _info "Let's wait 10 seconds and check again".
