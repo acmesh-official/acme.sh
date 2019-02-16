@@ -3470,7 +3470,8 @@ _ns_purge_cf() {
   _cf_d_type="$2"
   _debug "Cloudflare purge $_cf_d_type record for domain $_cf_d"
   _cf_purl="https://1.1.1.1/api/v1/purge?domain=$_cf_d&type=$_cf_d_type"
-  _post "" "$_cf_purl"
+  response="$(_post "" "$_cf_purl")"
+  _debug2 response "$response"
 }
 
 #txtdomain, alias, txt
@@ -3526,7 +3527,10 @@ _check_dns_entries() {
       _left=1
       _info "Not valid yet, let's wait 10 seconds and check next one."
       _sleep 10
-      __purge_txt
+      __purge_txt "$txtdomain"
+      if [ "$txtdomain" != "$aliasDomain" ]; then
+        __purge_txt "$aliasDomain"
+      fi
     done
     if [ "$_left" ]; then
       _info "Let's wait 10 seconds and check again".
