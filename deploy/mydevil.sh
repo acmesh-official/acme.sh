@@ -27,7 +27,7 @@ mydevil_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  if ! _exists "devil" ; then
+  if ! _exists "devil"; then
     _err "Could not find 'devil' command."
     return 1
   fi

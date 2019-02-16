@@ -18,7 +18,7 @@ dns_mydevil_add() {
   txtvalue=$2
   domain=""
 
-  if ! _exists "devil" ; then
+  if ! _exists "devil"; then
     _err "Could not find 'devil' command."
     return 1
   fi
@@ -53,7 +53,7 @@ dns_mydevil_rm() {
   txtvalue=$2
   domain=""
 
-  if ! _exists "devil" ; then
+  if ! _exists "devil"; then
     _err "Could not find 'devil' command."
     return 1
   fi
