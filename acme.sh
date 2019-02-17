@@ -1897,7 +1897,7 @@ _send_signed_request() {
 
     _CACHED_NONCE="$(echo "$responseHeaders" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
 
-    if ! _startswith "$code" "2"; then 
+    if ! _startswith "$code" "2"; then
       _body="$response"
       if [ "$needbase64" ]; then
         _body="$(echo "$_body" | _dbase64 multiline)"
