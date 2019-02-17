@@ -71,7 +71,7 @@ dns_mydevil_rm() {
     return 1
   fi
 
-  for id in $(devil dns list "$domain" | grep "$fulldomain" | awk '{print $1}'); do
+  for id in $(devil dns list "$domain" | grep "$fulldomain" | cut -w -s -f 1); do
     _info "Removing record $id from domain $domain"
     devil dns del "$domain" "$id" || _err "Could not remove DNS record."
   done
@@ -97,7 +97,7 @@ mydevil_get_domain() {
   fulldomain=$1
   domain=""
 
-  for domain in $(devil dns list | grep . | awk '{if(NR>1)print $1}'); do
+  for domain in $(devil dns list | cut -w -s -f 1 | tail -n+2); do
     if _endswith "$fulldomain" "$domain"; then
       printf -- "%s" "$domain"
       return 0

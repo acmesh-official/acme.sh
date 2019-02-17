@@ -54,6 +54,6 @@ mydevil_deploy() {
 # Usage: ip=$(mydevil_get_ip domain.com)
 #        echo $ip
 mydevil_get_ip() {
-  devil dns list "$1" | awk '{print $3"\t"$7}' | grep "^A$(printf '\t')" | awk '{print $2}' || return 1
+  devil dns list "$1" | cut -w -s -f 3,7 | grep "^A$(printf '\t')" | cut -w -s -f 2 || return 1
   return 0
 }
