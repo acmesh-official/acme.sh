@@ -26,15 +26,13 @@ dns_mydevil_add() {
   _info "Using mydevil"
 
   domain=$(mydevil_get_domain "$fulldomain")
-  if ! mydevil_check_record "$fulldomain"; then
-    _err "Invalid record name: does not start with '_acme-challenge'."
-    return 1
-  fi
-
   if [ -z "$domain" ]; then
     _err "Invalid domain name: could not find root domain of $fulldomain."
     return 1
   fi
+
+  # No need to check if record name exists, `devil` always adds new record.
+  # In worst case scenario, we end up with multiple identical records.
 
   _info "Adding $fulldomain record for domain $domain"
   if devil dns add "$domain" "$fulldomain" TXT "$txtvalue"; then
@@ -61,35 +59,26 @@ dns_mydevil_rm() {
   _info "Using mydevil"
 
   domain=$(mydevil_get_domain "$fulldomain")
-  if ! mydevil_check_record "$fulldomain"; then
-    _err "Invalid record name: does not start with '_acme-challenge'."
-    return 1
-  fi
-
   if [ -z "$domain" ]; then
     _err "Invalid domain name: could not find root domain of $fulldomain."
     return 1
   fi
 
-  for id in $(devil dns list "$domain" | grep "$fulldomain" | cut -w -s -f 1); do
+  # catch one or more numbers
+  num='[0-9][0-9]*'
+  # catch one or more whitespace
+  w=$(printf '[\t ][\t ]*')
+  # catch anything, except newline
+  any='.*'
+  # filter to make sure we do not delete other records
+  validRecords="^${num}${w}${fulldomain}${w}TXT${w}${any}${txtvalue}$"
+  for id in $(devil dns list "$domain" | tail -n+2 | grep "${validRecords}" | cut -w -s -f 1); do
     _info "Removing record $id from domain $domain"
     devil dns del "$domain" "$id" || _err "Could not remove DNS record."
   done
 }
 
 ####################  Private functions below ##################################
-
-# Usage: mydevil_check_record "_acme-challenge.www.domain.com" || _err "Invalid record name"
-mydevil_check_record() {
-  case "$1" in
-    "_acme-challenge."*)
-      return 0
-      ;;
-    *)
-      return 1
-      ;;
-  esac
-}
 
 # Usage: domain=$(mydevil_get_domain "_acme-challenge.www.domain.com" || _err "Invalid domain name")
 #        echo $domain
