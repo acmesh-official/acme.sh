@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
 # MyDevil.net API (2019-02-03)
 #
