@@ -253,7 +253,7 @@ Just set string "apache" as the second argument and it will force use of apache 
 acme.sh --issue --apache -d example.com -d www.example.com -d cp.example.com
 ```
 
-**This apache mode is only to issue the cert, it will not change your apache config files. 
+**This apache mode is only to issue the cert, it will not change your apache config files.
 You will need to configure your website config files to use the cert by yourself.
 We don't want to mess your apache server, don't worry.**
 
@@ -277,7 +277,7 @@ So, the config is not changed.
 acme.sh --issue --nginx -d example.com -d www.example.com -d cp.example.com
 ```
 
-**This nginx mode is only to issue the cert, it will not change your nginx config files. 
+**This nginx mode is only to issue the cert, it will not change your nginx config files.
 You will need to configure your website config files to use the cert by yourself.
 We don't want to mess your nginx server, don't worry.**
 
@@ -351,6 +351,11 @@ You don't have to do anything manually!
 1. PointDNS API (https://pointhq.com/)
 1. Active24.cz API (https://www.active24.cz/)
 1. do.de API (https://www.do.de/)
+1. Nexcess API (https://www.nexcess.net)
+1. Thermo.io API (https://www.thermo.io)
+1. Futurehosting API (https://www.futurehosting.com)
+1. Rackspace Cloud DNS (https://www.rackspace.com)
+1. Online.net API (https://online.net/)
 
 And:
 
@@ -528,5 +533,5 @@ Please Star and Fork me.
 Your donation makes **acme.sh** better:
 
 1. PayPal/Alipay(支付宝)/Wechat(微信): [https://donate.acme.sh/](https://donate.acme.sh/)
-  
+
 [Donate List](https://github.com/Neilpang/acme.sh/wiki/Donate-list)
