@@ -5,7 +5,7 @@
 # MyDevil.net already supports automatic Let's Encrypt certificates,
 # except for wildcard domains.
 #
-# This script depends on `devil dns` that MyDevil.net provides,
+# This script depends on `devil` command that MyDevil.net provides,
 # which means that it works only on server side.
 #
 # Author: Marcin Konicki <https://ahwayakchih.neoni.net>
