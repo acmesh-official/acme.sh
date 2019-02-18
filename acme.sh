@@ -139,6 +139,7 @@ __red() {
 }
 
 _printargs() {
+  _exitstatus="$?"
   if [ -z "$NO_TIMESTAMP" ] || [ "$NO_TIMESTAMP" = "0" ]; then
     printf -- "%s" "[$(date)] "
   fi
@@ -148,6 +149,8 @@ _printargs() {
     printf -- "%s" "$1='$2'"
   fi
   printf "\n"
+  # return the saved exit status 
+  return "$_exitstatus"
 }
 
 _dlg_versions() {
@@ -183,6 +186,7 @@ _dlg_versions() {
 
 #class
 _syslog() {
+  _exitstatus="$?"
   if [ "${SYS_LOG:-$SYSLOG_LEVEL_NONE}" = "$SYSLOG_LEVEL_NONE" ]; then
     return
   fi
@@ -196,6 +200,7 @@ _syslog() {
     fi
   fi
   $__logger_i -t "$PROJECT_NAME" -p "$_logclass" "$(_printargs "$@")" >/dev/null 2>&1
+  return "$_exitstatus"
 }
 
 _log() {
@@ -1188,7 +1193,7 @@ _ss() {
 
   if _exists "netstat"; then
     _debug "Using: netstat"
-    if netstat -h 2>&1 | grep "\-p proto" >/dev/null; then
+    if netstat -help 2>&1 | grep "\-p proto" >/dev/null; then
       #for windows version netstat tool
       netstat -an -p tcp | grep "LISTENING" | grep ":$_port "
     else
@@ -1882,29 +1887,34 @@ _send_signed_request() {
       _err "Can not post to $url"
       return 1
     fi
-    _debug2 original "$response"
-    response="$(echo "$response" | _normalizeJson)"
 
     responseHeaders="$(cat "$HTTP_HEADER")"
-
     _debug2 responseHeaders "$responseHeaders"
-    _debug2 response "$response"
+
     code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
     _debug code "$code"
 
-    _CACHED_NONCE="$(echo "$responseHeaders" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
-
-    _body="$response"
-    if [ "$needbase64" ]; then
-      _body="$(echo "$_body" | _dbase64 | tr -d '\0')"
-      _debug3 _body "$_body"
+    _debug2 original "$response"
+    if echo "$responseHeaders" | grep -i "Content-Type: application/json" >/dev/null 2>&1; then
+      response="$(echo "$response" | _normalizeJson)"
     fi
+    _debug2 response "$response"
 
-    if _contains "$_body" "JWS has invalid anti-replay nonce" || _contains "$_body" "JWS has an invalid anti-replay nonce"; then
-      _info "It seems the CA server is busy now, let's wait and retry. Sleeping $_sleep_retry_sec seconds."
-      _CACHED_NONCE=""
-      _sleep $_sleep_retry_sec
-      continue
+    _CACHED_NONCE="$(echo "$responseHeaders" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
+
+    if ! _startswith "$code" "2"; then
+      _body="$response"
+      if [ "$needbase64" ]; then
+        _body="$(echo "$_body" | _dbase64 multiline)"
+        _debug3 _body "$_body"
+      fi
+
+      if _contains "$_body" "JWS has invalid anti-replay nonce" || _contains "$_body" "JWS has an invalid anti-replay nonce"; then
+        _info "It seems the CA server is busy now, let's wait and retry. Sleeping $_sleep_retry_sec seconds."
+        _CACHED_NONCE=""
+        _sleep $_sleep_retry_sec
+        continue
+      fi
     fi
     break
   done
@@ -4113,14 +4123,14 @@ $_authorizations_map"
     Le_LinkCert="$(echo "$response" | tr -d '\r\n' | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
 
     _tempSignedResponse="$response"
-    if ! _send_signed_request "$Le_LinkCert" "" "needbase64"; then
+    if ! _send_signed_request "$Le_LinkCert"; then
       _err "Sign failed, can not download cert:$Le_LinkCert."
       _err "$response"
       _on_issue_err "$_post_hook"
       return 1
     fi
 
-    echo "$response" | _dbase64 "multiline" >"$CERT_PATH"
+    echo "$response" >"$CERT_PATH"
 
     if [ "$(grep -- "$BEGIN_CERT" "$CERT_PATH" | wc -l)" -gt "1" ]; then
       _debug "Found cert chain"
