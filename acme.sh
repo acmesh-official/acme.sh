@@ -1188,7 +1188,7 @@ _ss() {
 
   if _exists "netstat"; then
     _debug "Using: netstat"
-    if netstat -h 2>&1 | grep "\-p proto" >/dev/null; then
+    if netstat -help 2>&1 | grep "\-p proto" >/dev/null; then
       #for windows version netstat tool
       netstat -an -p tcp | grep "LISTENING" | grep ":$_port "
     else
