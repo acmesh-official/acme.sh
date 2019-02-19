@@ -2929,40 +2929,36 @@ _clearup() {
 
 _clearupdns() {
   _debug "_clearupdns"
-  _debug "dnsadded" "$dnsadded"
-  _debug "vlist" "$vlist"
-  #dnsadded is "0" or "1" means dns-01 method was used for at least one domain
-  if [ -z "$dnsadded" ] || [ -z "$vlist" ]; then
+  _debug "dns_entries" "$dns_entries"
+
+  if [ -z "$dns_entries" ]; then
     _debug "skip dns."
     return
   fi
   _info "Removing DNS records."
-  ventries=$(echo "$vlist" | tr ',' ' ')
-  _alias_index=1
-  for ventry in $ventries; do
-    d=$(echo "$ventry" | cut -d "$sep" -f 1)
-    keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
-    vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
-    _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
-    txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
-    _debug txt "$txt"
-    if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
-      _debug "$d is already verified, skip $vtype."
-      _alias_index="$(_math "$_alias_index" + 1)"
-      continue
-    fi
 
-    if [ "$vtype" != "$VTYPE_DNS" ]; then
-      _debug "Skip $d for $vtype"
-      continue
+  for entry in $dns_entries; do
+    d=$(_getfield "$entry" 1)
+    txtdomain=$(_getfield "$entry" 2)
+    aliasDomain=$(_getfield "$entry" 3)
+    txt=$(_getfield "$entry" 5)
+    d_api=$(_getfield "$entry" 6)
+    _debug "d" "$d"
+    _debug "txtdomain" "$txtdomain"
+    _debug "aliasDomain" "$aliasDomain"
+    _debug "txt" "$txt"
+    _debug "d_api" "$d_api"
+    if [ "$d_api" = "$txt" ]; then
+      d_api=""
     fi
-
-    d_api="$(_findHook "$d" dnsapi "$_currentRoot")"
-    _debug d_api "$d_api"
 
     if [ -z "$d_api" ]; then
       _info "Not Found domain api file: $d_api"
       continue
+    fi
+
+    if [ "$aliasDomain" ]; then
+      txtdomain="$aliasDomain"
     fi
 
     (
@@ -2975,24 +2971,6 @@ _clearupdns() {
       if ! _exists "$rmcommand"; then
         _err "It seems that your api file doesn't define $rmcommand"
         return 1
-      fi
-
-      _dns_root_d="$d"
-      if _startswith "$_dns_root_d" "*."; then
-        _dns_root_d="$(echo "$_dns_root_d" | sed 's/*.//')"
-      fi
-
-      _d_alias="$(_getfield "$_challenge_alias" "$_alias_index")"
-      _alias_index="$(_math "$_alias_index" + 1)"
-      _debug "_d_alias" "$_d_alias"
-      if [ "$_d_alias" ]; then
-        if _startswith "$_d_alias" "$DNS_ALIAS_PREFIX"; then
-          txtdomain="$(echo "$_d_alias" | sed "s/$DNS_ALIAS_PREFIX//")"
-        else
-          txtdomain="_acme-challenge.$_d_alias"
-        fi
-      else
-        txtdomain="_acme-challenge.$_dns_root_d"
       fi
 
       if ! $rmcommand "$txtdomain" "$txt"; then
@@ -3463,6 +3441,113 @@ __trigger_validation() {
   fi
 }
 
+#endpoint  domain type
+_ns_lookup() {
+  _ns_ep="$1"
+  _ns_domain="$2"
+  _ns_type="$3"
+  _debug2 "_ns_ep" "$_ns_ep"
+  _debug2 "_ns_domain" "$_ns_domain"
+  _debug2 "_ns_type" "$_ns_type"
+
+  response="$(_H1="accept: application/dns-json" _get "$_ns_ep?name=$_ns_domain&type=$_ns_type")"
+  _ret=$?
+  _debug2 "response" "$response"
+  if [ "$_ret" != "0" ]; then
+    return $_ret
+  fi
+  _answers="$(echo "$response" | tr '{}' '<>' | _egrep_o '"Answer":\[[^]]*]' | tr '<>' '\n\n')"
+  _debug2 "_answers" "$_answers"
+  echo "$_answers"
+}
+
+#domain, type
+_ns_lookup_cf() {
+  _cf_ld="$1"
+  _cf_ld_type="$2"
+  _cf_ep="https://cloudflare-dns.com/dns-query"
+  _ns_lookup "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
+}
+
+#domain, type
+_ns_purge_cf() {
+  _cf_d="$1"
+  _cf_d_type="$2"
+  _debug "Cloudflare purge $_cf_d_type record for domain $_cf_d"
+  _cf_purl="https://1.1.1.1/api/v1/purge?domain=$_cf_d&type=$_cf_d_type"
+  response="$(_post "" "$_cf_purl")"
+  _debug2 response "$response"
+}
+
+#txtdomain, alias, txt
+__check_txt() {
+  _c_txtdomain="$1"
+  _c_aliasdomain="$2"
+  _c_txt="$3"
+  _debug "_c_txtdomain" "$_c_txtdomain"
+  _debug "_c_aliasdomain" "$_c_aliasdomain"
+  _debug "_c_txt" "$_c_txt"
+  _answers="$(_ns_lookup_cf "$_c_aliasdomain" TXT)"
+  _contains "$_answers" "$_c_txt"
+
+}
+
+#txtdomain
+__purge_txt() {
+  _p_txtdomain="$1"
+  _debug _p_txtdomain "$_p_txtdomain"
+  _ns_purge_cf "$_p_txtdomain" "TXT"
+}
+
+#wait and check each dns entries
+_check_dns_entries() {
+  _success_txt=","
+  _end_time="$(_time)"
+  _end_time="$(_math "$_end_time" + 1200)" #let's check no more than 20 minutes.
+
+  while [ "$(_time)" -le "$_end_time" ]; do
+    _left=""
+    for entry in $dns_entries; do
+      d=$(_getfield "$entry" 1)
+      txtdomain=$(_getfield "$entry" 2)
+      aliasDomain=$(_getfield "$entry" 3)
+      txt=$(_getfield "$entry" 5)
+      d_api=$(_getfield "$entry" 6)
+      _debug "d" "$d"
+      _debug "txtdomain" "$txtdomain"
+      _debug "aliasDomain" "$aliasDomain"
+      _debug "txt" "$txt"
+      _debug "d_api" "$d_api"
+      _info "Checking $d for $aliasDomain"
+      if _contains "$_success_txt" ",$txt,"; then
+        _info "Already success, continue next one."
+        continue
+      fi
+
+      if __check_txt "$txtdomain" "$aliasDomain" "$txt"; then
+        _info "Domain $d '$aliasDomain' success."
+        _success_txt="$_success_txt,$txt,"
+        continue
+      fi
+      _left=1
+      _info "Not valid yet, let's wait 10 seconds and check next one."
+      _sleep 10
+      __purge_txt "$txtdomain"
+      if [ "$txtdomain" != "$aliasDomain" ]; then
+        __purge_txt "$aliasDomain"
+      fi
+    done
+    if [ "$_left" ]; then
+      _info "Let's wait 10 seconds and check again".
+      _sleep 10
+    else
+      _info "All success, let's return"
+      break
+    fi
+  done
+
+}
+
 #webroot, domain domainlist  keylength
 issue() {
   if [ -z "$2" ]; then
@@ -3786,6 +3871,7 @@ $_authorizations_map"
     done
     _debug vlist "$vlist"
     #add entry
+    dns_entries=""
     dnsadded=""
     ventries=$(echo "$vlist" | tr "$dvsep" ' ')
     _alias_index=1
@@ -3816,8 +3902,10 @@ $_authorizations_map"
           else
             txtdomain="_acme-challenge.$_d_alias"
           fi
+          dns_entries="${dns_entries}${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$txtdomain$dvsep$_currentRoot"
         else
           txtdomain="_acme-challenge.$_dns_root_d"
+          dns_entries="${dns_entries}${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$dvsep$_currentRoot"
         fi
         _debug txtdomain "$txtdomain"
         txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
@@ -3826,7 +3914,9 @@ $_authorizations_map"
         d_api="$(_findHook "$_dns_root_d" dnsapi "$_currentRoot")"
 
         _debug d_api "$d_api"
-
+        dns_entries="$dns_entries$dvsep$txt${dvsep}$d_api
+"
+        _debug2 "$dns_entries"
         if [ "$d_api" ]; then
           _info "Found domain api file: $d_api"
         else
@@ -3880,15 +3970,21 @@ $_authorizations_map"
 
   fi
 
-  if [ "$dnsadded" = '1' ]; then
+  if [ "$dns_entries" ]; then
     if [ -z "$Le_DNSSleep" ]; then
-      Le_DNSSleep="$DEFAULT_DNS_SLEEP"
+      _info "Let's check each dns records now. Sleep 20 seconds first."
+      _sleep 20
+      if ! _check_dns_entries; then
+        _err "check dns error."
+        _on_issue_err "$_post_hook"
+        _clearup
+        return 1
+      fi
     else
       _savedomainconf "Le_DNSSleep" "$Le_DNSSleep"
+      _info "Sleep $(__green $Le_DNSSleep) seconds for the txt records to take effect"
+      _sleep "$Le_DNSSleep"
     fi
-
-    _info "Sleep $(__green $Le_DNSSleep) seconds for the txt records to take effect"
-    _sleep "$Le_DNSSleep"
   fi
 
   NGINX_RESTORE_VLIST=""
