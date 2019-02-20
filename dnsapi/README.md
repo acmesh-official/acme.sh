@@ -1259,6 +1259,26 @@ acme.sh --issue --dns dns_online -d example.com -d www.example.com
 
 `ONLINE_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 66. Use MyDevil.net
+
+Make sure that you can execute own binaries:
+
+```sh
+devil binexec on
+```
+
+Install acme.sh, or simply `git clone` it into some directory on your MyDevil host account (in which case you should link to it from your `~/bin` directory).
+
+If you're not using private IP and depend on default IP provided by host, you may want to edit `crontab` too, and make sure that `acme.sh --cron` is run also after reboot (you can find out how to do that on their wiki pages).
+
+To issue a new certificate, run:
+
+```sh
+acme.sh --issue --dns dns_mydevil -d example.com -d *.example.com
+```
+
+After certificate is ready, you can install it with [deploy command](../deploy/README.md#14-deploy-your-cert-on-mydevilnet).
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
