@@ -40,6 +40,37 @@ edgemax_deploy() {
   _info "Generating PEM file for lighttpd"
   sudo sh -c "cat ${_ccert} ${_ckey} > ${lighttpd_pem}"
 
+  _info "$(__green "Checking for Cron Job")"
+  cronval=$(cli-shell-api returnEffectiveValue system task-scheduler task LetsEncrypt executable path)
+  if [ "$cronval" != "/config/user-data/acme.sh/acme.sh" ]; then
+    _info "$(__green "Job not found. Adding")"
+     vyatta_sbindir="/opt/vyatta/sbin" #overwritten by eval command but needed to pass github checks.
+    # Obtain session environment
+    session_env=$(cli-shell-api getSessionEnv $PPID)
+    eval "$session_env"
+
+    # Setup the session
+    cli-shell-api setupSession
+
+    # Verify Session Started
+    cli-shell-api inSession
+    if [ $? -ne 0 ]; then
+      _err "Something went wrong starting CLI Session!"
+      atexit 1
+    fi
+    SET=${vyatta_sbindir}/my_set
+    COMMIT=${vyatta_sbindir}/my_commit
+    SAVE=${vyatta_sbindir}/vyatta-save-config.pl
+    _info "Setting CRON job parameter."
+    $SET system task-scheduler task LetsEncrypt crontab-spec '39 1 * * *'
+    $SET system task-scheduler task LetsEncrypt executable arguments '--cron --home /config/user-data/acme.sh --config-home /config/user-data/acme.sh'
+    $SET system task-scheduler task LetsEncrypt executable path /config/user-data/acme.sh/acme.sh
+    $COMMIT
+    $SAVE
+  else
+    _info "CRON job already set"
+  fi
+
   _info "$(__green "Checking EdgeMax Config for SSL Settings: $lighttpd_pem")"
   vals=$(cli-shell-api returnEffectiveValue service gui cert-file)
   certfile=$vals
