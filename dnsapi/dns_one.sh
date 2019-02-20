@@ -33,7 +33,6 @@ dns_one_add() {
   _saveaccountconf_mutable ONECOM_USER "$ONECOM_USER"
   _saveaccountconf_mutable ONECOM_PASSWORD "$ONECOM_PASSWORD"
 
-
   # Login with user and password
   postdata="loginDomain=true"
   postdata="$postdata&displayUsername=$ONECOM_USER"
@@ -51,15 +50,12 @@ dns_one_add() {
 
   export _H1="Cookie: ${JSESSIONID}"
 
-
   # get entries
   response="$(_get "https://www.one.com/admin/api/domains/$mydomain/dns/custom_records")"
   _debug response "$response"
 
-
   CSRF_G_TOKEN="$(grep "CSRF_G_TOKEN=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'CSRF_G_TOKEN=[^;]*;' | tr -d ';')"
   export _H2="Cookie: ${CSRF_G_TOKEN}"
-
 
   # Update the IP address for domain entry
   postdata="{\"type\":\"dns_custom_records\",\"attributes\":{\"priority\":0,\"ttl\":600,\"type\":\"TXT\",\"prefix\":\"$mysubdomain\",\"content\":\"$txtvalue\"}}"
@@ -96,7 +92,6 @@ dns_one_rm() {
     return 1
   fi
 
-
   # Login with user and password
   postdata="loginDomain=true"
   postdata="$postdata&displayUsername=$ONECOM_USER"
@@ -112,7 +107,6 @@ dns_one_rm() {
   _debug jsessionid "$JSESSIONID"
 
   export _H1="Cookie: ${JSESSIONID}"
-
 
   # get entries
   response="$(_get "https://www.one.com/admin/api/domains/$mydomain/dns/custom_records")"
