@@ -41,13 +41,12 @@ dns_one_add() {
   postdata="$postdata&targetDomain=$mydomain"
   postdata="$postdata&password1=$ONECOM_PASSWORD"
   postdata="$postdata&loginTarget="
-
   #_debug postdata "$postdata"
 
-  response="$(_post "$postdata" "https://www.one.com/admin/login.do" "" "POST")"
+  response="$(_post "$postdata" "https://www.one.com/admin/login.do" "" "POST" "application/x-www-form-urlencoded")"
   #_debug response "$response"
 
-  JSESSIONID="$(grep "JSESSIONID=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'JSESSIONID=[^;]*;' | tr -d ';')"
+  JSESSIONID="$(grep "JSESSIONID" "$HTTP_HEADER" | grep "^[Ss]et-[Cc]ookie:" | _tail_n 1 | _egrep_o 'JSESSIONID=[^;]*;' | tr -d ';')"
   _debug jsessionid "$JSESSIONID"
 
   export _H1="Cookie: ${JSESSIONID}"
@@ -106,9 +105,10 @@ dns_one_rm() {
   postdata="$postdata&password1=$ONECOM_PASSWORD"
   postdata="$postdata&loginTarget="
 
-  response="$(_post "$postdata" "https://www.one.com/admin/login.do" "" "POST")"
+  response="$(_post "$postdata" "https://www.one.com/admin/login.do" "" "POST" "application/x-www-form-urlencoded")"
+  #_debug response "$response"
 
-  JSESSIONID="$(grep "JSESSIONID=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'JSESSIONID=[^;]*;' | tr -d ';')"
+  JSESSIONID="$(grep "JSESSIONID" "$HTTP_HEADER" | grep "^[Ss]et-[Cc]ookie:" | _tail_n 1 | _egrep_o 'JSESSIONID=[^;]*;' | tr -d ';')"
   _debug jsessionid "$JSESSIONID"
 
   export _H1="Cookie: ${JSESSIONID}"
