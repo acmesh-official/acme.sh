@@ -134,8 +134,7 @@ dns_one_rm() {
   response="$(echo "$response" | _normalizeJson)"
   _debug response "$response"
 
-  if [ "$response" = '{"result":null,"metadata":null}' ];
-  then
+  if [ "$response" = '{"result":null,"metadata":null}' ]; then
       _info "Removed, OK"
       return 0
     else
