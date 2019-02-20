@@ -135,11 +135,11 @@ dns_one_rm() {
   _debug response "$response"
 
   if [ "$response" = '{"result":null,"metadata":null}' ]; then
-      _info "Removed, OK"
-      return 0
-    else
-      _err "Removing txt record error."
-      return 1
+    _info "Removed, OK"
+    return 0
+  else
+    _err "Removing txt record error."
+    return 1
   fi
 
 }
