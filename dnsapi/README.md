@@ -1280,3 +1280,19 @@ See:  https://github.com/Neilpang/acme.sh/wiki/DNS-API-Dev-Guide
 # Use lexicon DNS API
 
 https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
+
+## 66. Use one.com domain API to automatically issue cert
+
+Use your one.com credentials as you would login into the control panel.
+
+```
+export ONECOM_USER="sdfsdfsdfljlbjkljlkjsdfoiwje"
+export ONECOM_PASSWORD="xxxx@sss.com"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_one -d example.com -d www.example.com
+```
+
+The `ONECOM_USER` and `ONECOM_PASSWORD` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
