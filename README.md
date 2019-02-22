@@ -357,6 +357,7 @@ You don't have to do anything manually!
 1. Rackspace Cloud DNS (https://www.rackspace.com)
 1. Online.net API (https://online.net/)
 1. MyDevil.net (https://www.mydevil.net/)
+1. OpenProvider API (https://www.openprovider.com/)
 
 And:
 

@@ -1279,6 +1279,23 @@ acme.sh --issue --dns dns_mydevil -d example.com -d *.example.com
 
 After certificate is ready, you can install it with [deploy command](../deploy/README.md#14-deploy-your-cert-on-mydevilnet).
 
+## 67. Use OpenProvider API
+
+First, you need to enable API access and retrieve your password hash on https://rcp.openprovider.eu/account/dashboard.php
+
+```
+export OPENPROVIDER_USER='username'
+export OPENPROVIDER_PASSWORDHASH='xxx'
+```
+
+To issue a cert run:
+
+```
+acme.sh --issue --dns dns_openprovider -d example.com -d www.example.com
+```
+
+`OPENPROVIDER_USER` and `OPENPROVIDER_PASSWORDHASH` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
