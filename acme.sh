@@ -1827,23 +1827,29 @@ _send_signed_request() {
         nonceurl="$ACME_NEW_NONCE"
         if _post "" "$nonceurl" "" "HEAD" "$__request_conent_type"; then
           _headers="$(cat "$HTTP_HEADER")"
+          _debug2 _headers "$_headers"
+          _CACHED_NONCE="$(echo "$_headers" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
         fi
       fi
-      if [ -z "$_headers" ]; then
+      if [ -z "$_CACHED_NONCE" ]; then
         _debug2 "Get nonce with GET. ACME_DIRECTORY" "$ACME_DIRECTORY"
         nonceurl="$ACME_DIRECTORY"
         _headers="$(_get "$nonceurl" "onlyheader")"
+        _debug2 _headers "$_headers"
+        _CACHED_NONCE="$(echo "$_headers" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
       fi
-
+      if [ -z "$_CACHED_NONCE" && "$ACME_NEW_NONCE" ]; then
+        _debug2 "Get nonce with GET. ACME_NEW_NONCE" "$ACME_NEW_NONCE"
+        nonceurl="$ACME_NEW_NONCE"
+        _headers="$(_get "$nonceurl" "onlyheader")"
+        _debug2 _headers "$_headers"
+        _CACHED_NONCE="$(echo "$_headers" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
+      fi
+      _debug2 _CACHED_NONCE "$_CACHED_NONCE"
       if [ "$?" != "0" ]; then
         _err "Can not connect to $nonceurl to get nonce."
         return 1
       fi
-
-      _debug2 _headers "$_headers"
-
-      _CACHED_NONCE="$(echo "$_headers" | grep "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
-      _debug2 _CACHED_NONCE "$_CACHED_NONCE"
     else
       _debug2 "Use _CACHED_NONCE" "$_CACHED_NONCE"
     fi
@@ -2060,6 +2066,7 @@ _clearcaconf() {
 _startserver() {
   content="$1"
   ncaddr="$2"
+  _debug "content" "$content"
   _debug "ncaddr" "$ncaddr"
 
   _debug "startserver: $$"
@@ -2086,8 +2093,14 @@ _startserver() {
     SOCAT_OPTIONS="$SOCAT_OPTIONS,bind=${ncaddr}"
   fi
 
+  _content_len="$(printf "%s" "$content" | wc -c)"
+  _debug _content_len "$_content_len"
   _debug "_NC" "$_NC $SOCAT_OPTIONS"
-  $_NC $SOCAT_OPTIONS SYSTEM:"sleep 1; echo HTTP/1.0 200 OK; echo ; echo  $content; echo;" &
+  $_NC $SOCAT_OPTIONS SYSTEM:"sleep 1; \
+echo 'HTTP/1.0 200 OK'; \
+echo 'Content-Length\: $_content_len'; \
+echo ''; \
+printf '$content';" &
   serverproc="$!"
 }
 
@@ -3269,7 +3282,7 @@ _regAccount() {
   fi
 
   _debug2 responseHeaders "$responseHeaders"
-  _accUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
+  _accUri="$(echo "$responseHeaders" | grep -i "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
   _debug "_accUri" "$_accUri"
   if [ -z "$_accUri" ]; then
     _err "Can not find account id url."
@@ -3435,7 +3448,7 @@ __trigger_validation() {
   _t_vtype="$3"
   _debug2 _t_vtype "$_t_vtype"
   if [ "$ACME_VERSION" = "2" ]; then
-    _send_signed_request "$_t_url" "{\"keyAuthorization\": \"$_t_key_authz\"}"
+    _send_signed_request "$_t_url" "{}"
   else
     _send_signed_request "$_t_url" "{\"resource\": \"challenge\", \"type\": \"$_t_vtype\", \"keyAuthorization\": \"$_t_key_authz\"}"
   fi
