@@ -1838,7 +1838,7 @@ _send_signed_request() {
         _debug2 _headers "$_headers"
         _CACHED_NONCE="$(echo "$_headers" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
       fi
-      if [ -z "$_CACHED_NONCE" && "$ACME_NEW_NONCE" ]; then
+      if [ -z "$_CACHED_NONCE" ] && [ "$ACME_NEW_NONCE" ]; then
         _debug2 "Get nonce with GET. ACME_NEW_NONCE" "$ACME_NEW_NONCE"
         nonceurl="$ACME_NEW_NONCE"
         _headers="$(_get "$nonceurl" "onlyheader")"
