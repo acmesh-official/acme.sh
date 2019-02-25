@@ -356,6 +356,7 @@ You don't have to do anything manually!
 1. Futurehosting API (https://www.futurehosting.com)
 1. Rackspace Cloud DNS (https://www.rackspace.com)
 1. Online.net API (https://online.net/)
+1. UltraDNS API (https://portal.ultradns.com)
 
 And:
 

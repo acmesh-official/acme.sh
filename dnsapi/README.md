@@ -1259,6 +1259,22 @@ acme.sh --issue --dns dns_online -d example.com -d www.example.com
 
 `ONLINE_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 66. Use UltraDNS API
+
+Set your UltraDNS User name, and password
+```
+export ULTRA_USR="abcd"
+export ULTRA_PWD="efgh"
+```
+
+To issue a cert run:
+
+```
+acme.sh --issue --dns dns_ultra -d example.com -d www.example.com
+```
+
+`ULTRA_USR` and `ULTRA_PWD` will be saved in `~/.acme.sh/account.conf` and will be resued when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
