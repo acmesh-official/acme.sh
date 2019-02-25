@@ -12,7 +12,6 @@
 #DEFAULT_POSTFIX_CONF="/etc/postfix/main.cf"
 #DEFAULT_DOVECOT_CONF="/etc/dovecot/dovecot.conf"
 
-
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain

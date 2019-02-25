@@ -7,7 +7,6 @@
 #DEFAULT_POSTFIX_RELOAD="service postfix restart"
 #DEFAULT_POSTFIX_CONF="/etc/postfix/main.cf"
 
-
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
