@@ -391,3 +391,84 @@ acme.sh --deploy --deploy-hook mydevil -d example.com
 ```
 
 That will remove old certificate and install new one.
+
+
+## 15. Deploy your cert to Postfix
+
+```sh
+acme.sh --deploy -d ftp.example.com --deploy-hook postfix
+```
+
+The default postfix conf file is `/etc/postfix/main.cf", if your main.cf is 
+not in the default location, you can specify one:
+
+```sh
+export DEPLOY_POSTFIX_CONF="/other/dir/postfix/main.cf"
+
+acme.sh --deploy -d ftp.example.com --deploy-hook postfix
+```
+
+The default command to restart postfix is `service postfix restart`, if 
+it doesn't work, you can specify one:
+
+```sh
+export DEPLOY_POSTFIX_RELOAD="/etc/init.d/postfix restart"
+
+acme.sh --deploy -d ftp.example.com --deploy-hook postfix
+```
+
+## 16. Deploy your cert to Dovecot
+
+```sh
+acme.sh --deploy -d ftp.example.com --deploy-hook dovecot
+```
+
+The default dovecot conf file is `/etc/dovecot/dovecot.conf", if your dovecot.conf is 
+not in the default location, you can specify one:
+
+```sh
+export DEPLOY_DOVECOT_CONF="/other/dir/dovecot/dovecot.conf"
+
+acme.sh --deploy -d ftp.example.com --deploy-hook dovecot
+```
+
+The default command to restart dovecot is `service dovecot restart`, if 
+it doesn't work, you can specify one:
+
+```sh
+export DEPLOY_DOVECOT_RELOAD="/etc/init.d/dovecot restart"
+
+acme.sh --deploy -d ftp.example.com --deploy-hook dovecot
+```
+
+## 17. Deploy one cert to both Postfix and Dovecot on the same host
+
+```sh
+acme.sh --deploy -d mail.example.com --deploy-hook postfix-and-dovecot
+```
+
+The default conf files are, respectively:
+- `/etc/postfix/main.cf`
+- `/etc/dovecot/dovecot.conf`
+
+If yours are not in the default locations, you can specify new ones:
+
+```sh
+export DEPLOY_POSTFIX_CONF="/other/dir/postfix/main.cf"
+export DEPLOY_DOVECOT_CONF="/other/dir/dovecot/dovecot.conf"
+
+acme.sh --deploy -d mail.example.com --deploy-hook postfix-and-dovecot
+```
+
+The default commands to restart postfix or dovecot are, respectively:
+- `service postfix restart`
+- `service dovecot restart`
+
+If those don't work, you can specify new ones:
+
+```sh
+export DEPLOY_POSTFIX_RELOAD="/etc/init.d/postfix restart"
+export DEPLOY_DOVECOT_RELOAD="/etc/init.d/dovecot restart"
+
+acme.sh --deploy -d mail.example.com --deploy-hook postfix-and-dovecot
+```
