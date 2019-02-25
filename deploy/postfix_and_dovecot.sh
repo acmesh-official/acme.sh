@@ -16,7 +16,7 @@
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
-postfix-and-dovecot_deploy() {
+postfix_and_dovecot_deploy() {
   _cdomain="$1"
   _ckey="$2"
   _ccert="$3"
@@ -29,19 +29,19 @@ postfix-and-dovecot_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  _ssl_path="/etc/acme.sh/postfix-and-dovecot"
+  _ssl_path="/etc/acme.sh/postfix_and_dovecot"
   if ! mkdir -p "$_ssl_path"; then
     _err "Can not create folder:$_ssl_path"
     return 1
   fi
 
   _info "Copying key and cert"
-  _real_key="$_ssl_path/postfix-and-dovecot.key"
+  _real_key="$_ssl_path/postfix_and_dovecot.key"
   if ! cat "$_ckey" >"$_real_key"; then
     _err "Error: write key file to: $_real_key"
     return 1
   fi
-  _real_fullchain="$_ssl_path/postfix-and-dovecot.chain.pem"
+  _real_fullchain="$_ssl_path/postfix_and_dovecot.chain.pem"
   if ! cat "$_cfullchain" >"$_real_fullchain"; then
     _err "Error: write key file to: $_real_fullchain"
     return 1
