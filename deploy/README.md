@@ -444,7 +444,7 @@ acme.sh --deploy -d ftp.example.com --deploy-hook dovecot
 ## 17. Deploy one cert to both Postfix and Dovecot on the same host
 
 ```sh
-acme.sh --deploy -d mail.example.com --deploy-hook postfix-and-dovecot
+acme.sh --deploy -d mail.example.com --deploy-hook postfix_and_dovecot
 ```
 
 The default conf files are, respectively:
@@ -457,7 +457,7 @@ If yours are not in the default locations, you can specify new ones:
 export DEPLOY_POSTFIX_CONF="/other/dir/postfix/main.cf"
 export DEPLOY_DOVECOT_CONF="/other/dir/dovecot/dovecot.conf"
 
-acme.sh --deploy -d mail.example.com --deploy-hook postfix-and-dovecot
+acme.sh --deploy -d mail.example.com --deploy-hook postfix_and_dovecot
 ```
 
 The default commands to restart postfix or dovecot are, respectively:
@@ -470,5 +470,5 @@ If those don't work, you can specify new ones:
 export DEPLOY_POSTFIX_RELOAD="/etc/init.d/postfix restart"
 export DEPLOY_DOVECOT_RELOAD="/etc/init.d/dovecot restart"
 
-acme.sh --deploy -d mail.example.com --deploy-hook postfix-and-dovecot
+acme.sh --deploy -d mail.example.com --deploy-hook postfix_and_dovecot
 ```
