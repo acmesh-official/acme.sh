@@ -24,7 +24,7 @@ dns_ultra_add(){
   _saveaccountconf_mutable ULTRA_USR "$ULTRA_USR"
   _saveaccountconf_mutable ULTRA_PWD "$ULTRA_PWD"
   _debug "First detect the root zone"
-  if ! _get_root "${fulldomain}"; then
+  if ! _get_root "$fulldomain"; then
   	_err "invalid domain"
   	return 1
   fi
@@ -69,7 +69,7 @@ dns_ultra_rm(){
   fi
 
   _debug "First detect the root zone"
-  if ! _get_root "${fulldomain}"; then
+  if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
@@ -87,7 +87,7 @@ dns_ultra_rm(){
 
   count=$(printf "%s\n" "$response" | _egrep_o "\"returnedCount\":[^,]*" | cut -d: -f2 | cut -d'}' -f1)
   _debug count "${count}"
-  if [ "${count}" -eq "" ]; then
+  if [ "${count}" = "" ]; then
     _info "Text record is not present, will not delete anything."
   else
     if ! _ultra_rest DELETE "zones/$_domain_id/rrsets/TXT/${_sub_domain}" '{"ttl":300,"rdata":["'"${txtvalue}"'"]}'; then
@@ -152,7 +152,7 @@ _ultra_rest(){
   	_debug data "${data}"
     response="$(_post "${data}" "${ULTRA_API}"/"${ep}" "" "${m}")"
   else
-    response="$(_get ${data} ${ULTRA_API}/${ep})"
+    response="$(_get "$ULTRA_API/$ep")"
   fi
 }
 
