@@ -85,7 +85,7 @@ dns_ultra_rm() {
     return 1
   fi
 
-  count=$(echo "%s\n" "$response" | _egrep_o "\"returnedCount\":[^,]*" | cut -d: -f2 | cut -d'}' -f1)
+  count=$(echo "$response" | _egrep_o "\"returnedCount\":[^,]*" | cut -d: -f2 | cut -d'}' -f1)
   _debug count "${count}"
   if [ "${count}" = "" ]; then
     _info "Text record is not present, will not delete anything."
@@ -157,8 +157,8 @@ _ultra_rest() {
 }
 
 _ultra_login() {
-  AUTH_TOKEN=$(curl -X POST --data \
-    "grant_type=password&username=${ULTRA_USR}&password=${ULTRA_PWD}" \
-    "${ULTRA_API}authorization/token" | cut -d, -f3 | cut -d\" -f4)
+  export _H1=""
+  export _H2=""
+  AUTH_TOKEN=$(_post "grant_type=password&username=${ULTRA_USR}&password=${ULTRA_PWD}" "${ULTRA_API}authorization/token" | cut -d, -f3 | cut -d\" -f4)
   export AUTH_TOKEN
 }
