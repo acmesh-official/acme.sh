@@ -1261,6 +1261,12 @@ acme.sh --issue --dns dns_online -d example.com -d www.example.com
 
 ## 66. Use UltraDNS API
 
+UltraDNS is a paid for service that provides DNS, as well as Web and Mail forwarding (as well as reporting, auditing, and advanced tools).
+
+More information can be found here: https://www.security.neustar/lp/ultra20/index.html
+
+The REST API documentation for this service is found here: https://portal.ultradns.com/static/docs/REST-API_User_Guide.pdf 
+
 Set your UltraDNS User name, and password; these would be the same you would use here:
 
 https://portal.ultradns.com/ - or if you create an API only user, that username and password would be better utilized.
