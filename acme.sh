@@ -4758,6 +4758,10 @@ _installcert() {
   _reload_cmd="$6"
   _backup_prefix="$7"
 
+  if [ "$Le_Domain" = "" ]; then
+    Le_Domain="$_main_domain"
+  fi
+
   if [ "$_real_cert" = "$NO_VALUE" ]; then
     _real_cert=""
   fi
