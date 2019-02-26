@@ -4,6 +4,10 @@
 #INWX_User="username"
 #
 #INWX_Password="password"
+#
+# Dependencies:
+# -------------
+# - oathtool (When using 2 Factor Authentication)
 
 INWX_Api="https://api.domrobot.com/xmlrpc/"
 
@@ -16,6 +20,7 @@ dns_inwx_add() {
 
   INWX_User="${INWX_User:-$(_readaccountconf_mutable INWX_User)}"
   INWX_Password="${INWX_Password:-$(_readaccountconf_mutable INWX_Password)}"
+  INWX_Shared_Secret="${INWX_Shared_Secret:-$(_readaccountconf_mutable INWX_Shared_Secret)}"
   if [ -z "$INWX_User" ] || [ -z "$INWX_Password" ]; then
     INWX_User=""
     INWX_Password=""
@@ -27,6 +32,7 @@ dns_inwx_add() {
   #save the api key and email to the account conf file.
   _saveaccountconf_mutable INWX_User "$INWX_User"
   _saveaccountconf_mutable INWX_Password "$INWX_Password"
+  _saveaccountconf_mutable INWX_Shared_Secret "$INWX_Shared_Secret"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -148,8 +154,47 @@ _inwx_login() {
   </methodCall>' $INWX_User $INWX_Password)
 
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
+  _H1=$(printf "Cookie: %s" "$(grep "domrobot=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'domrobot=[^;]*;' | tr -d ';')")
+  export _H1
 
-  printf "Cookie: %s" "$(grep "domrobot=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'domrobot=[^;]*;' | tr -d ';')"
+  #https://github.com/inwx/php-client/blob/master/INWX/Domrobot.php#L71
+  if _contains "$response" "<member><name>code</name><value><int>1000</int></value></member>" \
+    && _contains "$response" "<member><name>tfa</name><value><string>GOOGLE-AUTH</string></value></member>"; then
+    if [ -z "$INWX_Shared_Secret" ]; then
+      _err "Mobile TAN detected."
+      _err "Please define a shared secret."
+      return 1
+    fi
+
+    if ! _exists oathtool; then
+      _err "Please install oathtool to use 2 Factor Authentication."
+      _err ""
+      return 1
+    fi
+
+    tan="$(oathtool --base32 --totp "${INWX_Shared_Secret}" 2>/dev/null)"
+
+    xml_content=$(printf '<?xml version="1.0" encoding="UTF-8"?>
+    <methodCall>
+    <methodName>account.unlock</methodName>
+    <params>
+     <param>
+      <value>
+       <struct>
+        <member>
+         <name>tan</name>
+         <value>
+          <string>%s</string>
+         </value>
+        </member>
+       </struct>
+      </value>
+     </param>
+    </params>
+    </methodCall>' "$tan")
+
+    response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
+  fi
 
 }
 
@@ -161,8 +206,8 @@ _get_root() {
   i=2
   p=1
 
-  _H1=$(_inwx_login)
-  export _H1
+  _inwx_login
+
   xml_content='<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
   <methodName>nameserver.list</methodName>

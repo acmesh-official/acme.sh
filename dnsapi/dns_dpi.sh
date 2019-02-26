@@ -1,33 +1,33 @@
 #!/usr/bin/env sh
 
-# Dnspod.cn Domain api
+# Dnspod.com Domain api
 #
-#DP_Id="1234"
+#DPI_Id="1234"
 #
-#DP_Key="sADDsdasdgdsf"
+#DPI_Key="sADDsdasdgdsf"
 
-REST_API="https://dnsapi.cn"
+REST_API="https://api.dnspod.com"
 
 ########  Public functions #####################
 
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
-dns_dp_add() {
+dns_dpi_add() {
   fulldomain=$1
   txtvalue=$2
 
-  DP_Id="${DP_Id:-$(_readaccountconf_mutable DP_Id)}"
-  DP_Key="${DP_Key:-$(_readaccountconf_mutable DP_Key)}"
-  if [ -z "$DP_Id" ] || [ -z "$DP_Key" ]; then
-    DP_Id=""
-    DP_Key=""
+  DPI_Id="${DPI_Id:-$(_readaccountconf_mutable DPI_Id)}"
+  DPI_Key="${DPI_Key:-$(_readaccountconf_mutable DPI_Key)}"
+  if [ -z "$DPI_Id" ] || [ -z "$DPI_Key" ]; then
+    DPI_Id=""
+    DPI_Key=""
     _err "You don't specify dnspod api key and key id yet."
     _err "Please create you key and try again."
     return 1
   fi
 
   #save the api key and email to the account conf file.
-  _saveaccountconf_mutable DP_Id "$DP_Id"
-  _saveaccountconf_mutable DP_Key "$DP_Key"
+  _saveaccountconf_mutable DPI_Id "$DPI_Id"
+  _saveaccountconf_mutable DPI_Key "$DPI_Key"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -40,12 +40,12 @@ dns_dp_add() {
 }
 
 #fulldomain txtvalue
-dns_dp_rm() {
+dns_dpi_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  DP_Id="${DP_Id:-$(_readaccountconf_mutable DP_Id)}"
-  DP_Key="${DP_Key:-$(_readaccountconf_mutable DP_Key)}"
+  DPI_Id="${DPI_Id:-$(_readaccountconf_mutable DPI_Id)}"
+  DPI_Key="${DPI_Key:-$(_readaccountconf_mutable DPI_Key)}"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -53,7 +53,7 @@ dns_dp_rm() {
     return 1
   fi
 
-  if ! _rest POST "Record.List" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain"; then
+  if ! _rest POST "Record.List" "user_token=$DPI_Id,$DPI_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain"; then
     _err "Record.Lis error."
     return 1
   fi
@@ -63,14 +63,14 @@ dns_dp_rm() {
     return 0
   fi
 
-  record_id=$(echo "$response" | tr "{" "\n" | grep "$txtvalue" | grep '^"id"' | cut -d : -f 2 | cut -d '"' -f 2)
+  record_id=$(echo "$response" | _egrep_o '{[^{]*"value":"'"$txtvalue"'"' | cut -d , -f 1 | cut -d : -f 2 | tr -d \")
   _debug record_id "$record_id"
   if [ -z "$record_id" ]; then
     _err "Can not get record id."
     return 1
   fi
 
-  if ! _rest POST "Record.Remove" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&record_id=$record_id"; then
+  if ! _rest POST "Record.Remove" "user_token=$DPI_Id,$DPI_Key&format=json&domain_id=$_domain_id&record_id=$record_id"; then
     _err "Record.Remove error."
     return 1
   fi
@@ -89,7 +89,7 @@ add_record() {
 
   _info "Adding record"
 
-  if ! _rest POST "Record.Create" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain&record_type=TXT&value=$txtvalue&record_line=默认"; then
+  if ! _rest POST "Record.Create" "user_token=$DPI_Id,$DPI_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain&record_type=TXT&value=$txtvalue&record_line=default"; then
     return 1
   fi
 
@@ -113,7 +113,7 @@ _get_root() {
       return 1
     fi
 
-    if ! _rest POST "Domain.Info" "login_token=$DP_Id,$DP_Key&format=json&domain=$h"; then
+    if ! _rest POST "Domain.Info" "user_token=$DPI_Id,$DPI_Key&format=json&domain=$h"; then
       return 1
     fi
 

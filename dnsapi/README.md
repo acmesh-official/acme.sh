@@ -1,8 +1,12 @@
 # How to use DNS API
 
+If your dns provider doesn't provide api access, you can use our dns alias mode:
+
+https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode
+
 ## 1. Use CloudFlare domain API to automatically issue cert
 
-First you need to login to your CloudFlare account to get your API key.
+First you need to login to your CloudFlare account to get your [API key](https://dash.cloudflare.com/profile). 
 
 ```
 export CF_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
@@ -142,13 +146,17 @@ Finally, make the DNS server and update Key available to `acme.sh`
 export NSUPDATE_SERVER="dns.example.com"
 export NSUPDATE_KEY="/path/to/your/nsupdate.key"
 ```
+and optionally (depending on DNS server)
+```
+export NSUPDATE_ZONE="example.com"
+```
 
 Ok, let's issue a cert now:
 ```
 acme.sh --issue --dns dns_nsupdate -d example.com -d www.example.com
 ```
 
-The `NSUPDATE_SERVER` and `NSUPDATE_KEY` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+The `NSUPDATE_SERVER`, `NSUPDATE_KEY`, and `NSUPDATE_ZONE` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 
 ## 8. Use LuaDNS domain API
@@ -259,16 +267,26 @@ when needed.
 
 ## 14. Use Linode domain API
 
-First you need to login to your Linode account to get your API Key.
-[https://manager.linode.com/profile/api](https://manager.linode.com/profile/api)
+The tokens created in the classic manager and cloud manager are incompatible
+with one another. While the classic manager makes an all or nothing API, the
+newer cloud manager interface promises to produce API keys with a finer
+permission system. However, either way works just fine.
 
-Then add an API key with label *ACME* and copy the new key.
+### Classic Manager ###
+
+Classic Manager: https://manager.linode.com/profile/api
+
+First you need to login to your Linode account to get your API Key.
+
+Then add an API key with label *ACME* and copy the new key into the following
+command.
 
 ```sh
 export LINODE_API_KEY="..."
 ```
 
-Due to the reload time of any changes in the DNS records, we have to use the `dnssleep` option to wait at least 15 minutes for the changes to take effect.
+Due to the reload time of any changes in the DNS records, we have to use the
+`dnssleep` option to wait at least 15 minutes for the changes to take effect.
 
 Ok, let's issue a cert now:
 
@@ -276,7 +294,35 @@ Ok, let's issue a cert now:
 acme.sh --issue --dns dns_linode --dnssleep 900 -d example.com -d www.example.com
 ```
 
-The `LINODE_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+The `LINODE_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be
+reused when needed.
+
+### Cloud Manager ###
+
+Cloud Manager: https://cloud.linode.com/profile/tokens
+
+First you need to login to your Linode account to get your API Key.
+
+   1. Click on "Add a Personal Access Token".
+   2. Give the new key a "Label" (we recommend *ACME*)
+   3. Give it Read/Write access to "Domains"
+   4. "Submit" and copy the new key into the `LINODE_V4_API_KEY` command below.
+
+```sh
+export LINODE_V4_API_KEY="..."
+```
+
+Due to the reload time of any changes in the DNS records, we have to use the
+`dnssleep` option to wait at least 15 minutes for the changes to take effect.
+
+Ok, let's issue a cert now:
+
+```sh
+acme.sh --issue --dns dns_linode_v4 --dnssleep 900 -d example.com -d www.example.com
+```
+
+The `LINODE_V4_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be
+reused when needed.
 
 ## 15. Use FreeDNS
 
@@ -324,6 +370,8 @@ acme.sh --issue --dns dns_cyon -d example.com -d www.example.com
 The `CY_Username`, `CY_Password` and `CY_OTP_Secret` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 ## 17. Use Domain-Offensive/Resellerinterface/Domainrobot API
+
+ATTENTION: You need to be a registered Reseller to be able to use the ResellerInterface. As a normal user you can not use this method.
 
 You will need your login credentials (Partner ID+Password) to the Resellerinterface, and export them before you run `acme.sh`:
 ```
@@ -448,7 +496,7 @@ The `Infoblox_Creds` and `Infoblox_Server` will be saved in `~/.acme.sh/account.
 First you need to create/obtain API tokens on your [settings panel](https://vscale.io/panel/settings/tokens/).
 
 ```
-VSCALE_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
+export VSCALE_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
 ```
 
 Ok, let's issue a cert now:
@@ -525,8 +573,9 @@ For issues, please report to https://github.com/raidenii/acme.sh/issues.
 
 ## 28. Use Name.com API
 
-You'll need to fill out the form at https://www.name.com/reseller/apply to apply
-for API username and token.
+Create your API token here: https://www.name.com/account/settings/api
+
+Note: `Namecom_Username` should be your Name.com username and not the token name.  If you accidentally run the script with the token name as the username see `~/.acme.sh/account.conf` to fix the issue
 
 ```
 export Namecom_Username="testuser"
@@ -637,6 +686,14 @@ acme.sh --issue --dns dns_inwx -d example.com -d www.example.com
 ```
 
 The `INWX_User` and `INWX_Password` settings will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+If your account is secured by mobile tan you have also defined the shared secret.
+
+```
+export INWX_Shared_Secret="shared secret"
+```
+
+You may need to re-enable the mobile tan to gain the shared secret.
 
 ## 34. User Servercow API v1
 
@@ -750,7 +807,7 @@ DNS API keys may be created at https://panel.dreamhost.com/?tree=home.api.
 Ensure the created key has add and remove privelages.
 
 ```
-export DH_API_Key="<api key>"
+export DH_API_KEY="<api key>"
 acme.sh --issue --dns dns_dreamhost -d example.com -d www.example.com
 ```
 
@@ -784,6 +841,443 @@ acme.sh --issue --dns dns_da -d example.com -d www.example.com
 
 The `DA_Api` and `DA_Api_Insecure` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
+## 42. Use KingHost DNS API
+
+API access must be enabled at https://painel.kinghost.com.br/painel.api.php
+
+```
+export KINGHOST_Username="yourusername"
+export KINGHOST_Password="yourpassword"
+acme.sh --issue --dns dns_kinghost -d example.com -d *.example.com
+```
+
+The `KINGHOST_username` and `KINGHOST_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 43. Use Zilore DNS API
+
+First, get your API key at https://my.zilore.com/account/api
+
+```
+export Zilore_Key="5dcad3a2-36cb-50e8-cb92-000002f9"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_zilore -d example.com -d *.example.com
+```
+
+The `Zilore_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 44. Use Loopia.se API
+User must provide login credentials to the Loopia API.
+The user needs the following permissions:
+
+- addSubdomain
+- updateZoneRecord
+- getDomains
+- removeSubdomain
+
+Set the login credentials:
+```
+export LOOPIA_User="user@loopiaapi"
+export LOOPIA_Password="password"
+```
+
+And to issue a cert:
+```
+acme.sh --issue --dns dns_loopia -d example.com -d *.example.com
+```
+
+The username and password will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+## 45. Use ACME DNS API
+
+ACME DNS is a limited DNS server with RESTful HTTP API to handle ACME DNS challenges easily and securely.
+https://github.com/joohoi/acme-dns
+
+```
+export ACMEDNS_UPDATE_URL="https://auth.acme-dns.io/update"
+export ACMEDNS_USERNAME="<username>"
+export ACMEDNS_PASSWORD="<password>"
+export ACMEDNS_SUBDOMAIN="<subdomain>"
+
+acme.sh --issue --dns dns_acmedns -d example.com -d www.example.com
+```
+
+The credentials will be saved in `~/.acme.sh/account.conf` and will
+be reused when needed.
+## 46. Use TELE3 API
+
+First you need to login to your TELE3 account to set your API-KEY.
+https://www.tele3.cz/system-acme-api.html
+
+```
+export TELE3_Key="MS2I4uPPaI..."
+export TELE3_Secret="kjhOIHGJKHg"
+
+acme.sh --issue --dns dns_tele3 -d example.com -d *.example.com
+```
+
+The TELE3_Key and TELE3_Secret will be saved in ~/.acme.sh/account.conf and will be reused when needed.
+
+## 47. Use Euserv.eu API
+
+First you need to login to your euserv.eu account and activate your API Administration (API Verwaltung).
+[https://support.euserv.com](https://support.euserv.com)
+
+Once you've activate, login to your API Admin Interface and create an API account.
+Please specify the scope (active groups: domain) and assign the allowed IPs.
+
+```
+export EUSERV_Username="99999.user123"
+export EUSERV_Password="Asbe54gHde"
+```
+
+Ok, let's issue a cert now: (Be aware to use the `--insecure` flag, cause euserv.eu is still using self-signed certificates!)
+```
+acme.sh --issue --dns dns_euserv -d example.com -d *.example.com --insecure
+```
+
+The `EUSERV_Username` and `EUSERV_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+Please report any issues to https://github.com/initit/acme.sh or to <github@initit.de>
+
+## 48. Use DNSPod.com domain API to automatically issue cert
+
+First you need to get your API Key and ID by this [get-the-user-token](https://www.dnspod.com/docs/info.html#get-the-user-token).
+
+```
+export DPI_Id="1234"
+export DPI_Key="sADDsdasdgdsf"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_dpi -d example.com -d www.example.com
+```
+
+The `DPI_Id` and `DPI_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 49. Use Google Cloud DNS API to automatically issue cert
+
+First you need to authenticate to gcloud.
+
+```
+gcloud init
+```
+
+**The `dns_gcloud` script uses the active gcloud configuration and credentials.**
+There is no logic inside `dns_gcloud` to override the project and other settings.
+If needed, create additional [gcloud configurations](https://cloud.google.com/sdk/gcloud/reference/topic/configurations).
+You can change the configuration being used without *activating* it; simply set the `CLOUDSDK_ACTIVE_CONFIG_NAME` environment variable.
+
+To issue a certificate you can:
+```
+export CLOUDSDK_ACTIVE_CONFIG_NAME=default  # see the note above
+acme.sh --issue --dns dns_gcloud -d example.com -d '*.example.com'
+```
+
+`dns_gcloud` also supports [DNS alias mode](https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode).
+
+## 50. Use ConoHa API
+
+First you need to login to your ConoHa account to get your API credentials.
+
+```
+export CONOHA_Username="xxxxxx"
+export CONOHA_Password="xxxxxx"
+export CONOHA_TenantId="xxxxxx"
+export CONOHA_IdentityServiceApi="https://identity.xxxx.conoha.io/v2.0"
+```
+
+To issue a cert:
+```
+acme.sh --issue --dns dns_conoha -d example.com -d www.example.com
+```
+
+The `CONOHA_Username`, `CONOHA_Password`, `CONOHA_TenantId` and `CONOHA_IdentityServiceApi` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 51. Use netcup DNS API to automatically issue cert
+
+First you need to login in your CCP account to get your API Key and API Password.
+```
+export NC_Apikey="<Apikey>"
+export NC_Apipw="<Apipassword>"
+export NC_CID="<Customernumber>"
+```
+
+Now, let's issue a cert:
+```
+acme.sh --issue --dns dns_netcup -d example.com -d www.example.com
+```
+
+The `NC_Apikey`,`NC_Apipw` and `NC_CID` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+## 52. Use GratisDNS.dk
+
+GratisDNS.dk (https://gratisdns.dk/) does not provide an API to update DNS records (other than IPv4 and IPv6
+dynamic DNS addresses).  The acme.sh plugin therefore retrieves and updates domain TXT records by logging
+into the GratisDNS website to read the HTML and posting updates as HTTP.  The plugin needs to know your
+userid and password for the GratisDNS website.
+
+```sh
+export GDNSDK_Username="..."
+export GDNSDK_Password="..."
+```
+The username and password will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+
+Now you can issue a certificate.
+
+Note: It usually takes a few minutes (usually 3-4 minutes) before the changes propagates to gratisdns.dk nameservers (ns3.gratisdns.dk often are slow),
+and in rare cases I have seen over 5 minutes before google DNS catches it. Therefor a DNS sleep of at least 300 seconds are recommended-
+
+```sh
+acme.sh --issue --dns dns_gdnsdk --dnssleep 300 -d example.com -d *.example.com
+```
+
+## 53. Use Namecheap
+
+You will need your namecheap username, API KEY (https://www.namecheap.com/support/api/intro.aspx) and your external IP address (or an URL to get it), this IP will need to be whitelisted at Namecheap.
+Due to Namecheap's API limitation all the records of your domain will be read and re applied, make sure to have a backup of your records you could apply if any issue would arise.
+
+```sh
+export NAMECHEAP_USERNAME="..."
+export NAMECHEAP_API_KEY="..."
+export NAMECHEAP_SOURCEIP="..."
+```
+
+NAMECHEAP_SOURCEIP can either be an IP address or an URL to provide it (e.g. https://ifconfig.co/ip).
+
+The username and password will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+Now you can issue a certificate.
+
+```sh
+acme.sh --issue --dns dns_namecheap -d example.com -d *.example.com
+```
+
+## 54. Use MyDNS.JP API
+
+First, register to MyDNS.JP and get MasterID and Password.
+
+```
+export MYDNSJP_MasterID=MasterID
+export MYDNSJP_Password=Password
+```
+
+To issue a certificate:
+
+```
+acme.sh --issue --dns dns_mydnsjp -d example.com -d www.example.com
+```
+The `MYDNSJP_MasterID` and `MYDNSJP_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 55. Use hosting.de API
+
+Create an API key in your hosting.de account here: https://secure.hosting.de
+
+The key needs the following rights:
+- DNS_ZONES_EDIT
+- DNS_ZONES_LIST
+
+Set your API Key and endpoint:
+
+```
+export HOSTINGDE_APIKEY='xxx'
+export HOSTINGDE_ENDPOINT='https://secure.hosting.de'
+```
+
+The plugin can also be used for the http.net API. http.net customers have to set endpoint to https://partner.http.net.
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_hostingde -d example.com -d *.example.com
+```
+
+The hosting.de API key and endpoint will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 56. Use Neodigit.net API
+
+```
+export NEODIGIT_API_TOKEN="eXJxTkdUVUZmcHQ3QWJackQ4ZGlMejRDSklRYmo5VG5zcFFKK2thYnE0WnVnNnMy"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_neodigit -d example.com -d www.example.com
+```
+
+Neodigit API Token will be saved in `~/.acme.sh/account.conf` and will be used when needed.
+
+## 57. Use Exoscale API
+
+Create an API key and secret key in the Exoscale account section
+
+Set your API and secret key:
+
+```
+export EXOSCALE_API_KEY='xxx'
+export EXOSCALE_SECRET_KEY='xxx'
+```
+
+Now, let's issue a cert:
+```
+acme.sh --issue --dns dns_exoscale -d example.com -d www.example.com
+```
+
+The `EXOSCALE_API_KEY` and `EXOSCALE_SECRET_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 58. Using PointHQ API to issue certs
+
+Log into [PointHQ account management](https://app.pointhq.com/profile) and copy the API key from the page there.
+
+```export PointHQ_Key="apikeystringgoeshere"
+exportPointHQ_Email="accountemail@yourdomain.com"
+```
+
+You can then issue certs by using:
+```acme.sh --issue --dns dns_pointhq -d example.com -d www.example.com
+```
+
+## 59. Use Active24 API
+
+Create an API token in the Active24 account section, documentation on https://faq.active24.com/cz/790131-REST-API-rozhran%C3%AD.
+
+Set your API token:
+
+```
+export ACTIVE24_Token='xxx'
+```
+
+Now, let's issue a cert, set `dnssleep` for propagation new DNS record:
+```
+acme.sh --issue --dns dns_active24 -d example.com -d www.example.com --dnssleep 1000
+```
+
+The `ACTIVE24_Token` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 60. Use do.de API
+
+Create an API token in your do.de account.
+
+Set your API token:
+```
+export DO_LETOKEN='FmD408PdqT1E269gUK57'
+```
+
+To issue a certificate run:
+```
+acme.sh --issue --dns dns_doapi -d example.com -d *.example.com
+```
+
+The API token will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 61. Use Nexcess API
+
+First, you'll need to login to the [Nexcess.net Client Portal](https://portal.nexcess.net) and [generate a new API token](https://portal.nexcess.net/api-token).
+
+Once you have a token, set it in your systems environment:
+
+```
+export NW_API_TOKEN="YOUR_TOKEN_HERE"
+export NW_API_ENDPOINT="https://portal.nexcess.net"
+```
+
+Finally, we'll issue the certificate: (Nexcess DNS publishes at max every 15 minutes, we recommend setting a 900 second `--dnssleep`)
+
+```
+acme.sh --issue --dns dns_nw -d example.com --dnssleep 900
+```
+
+The `NW_API_TOKEN` and `NW_API_ENDPOINT` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 62. Use Thermo.io API
+
+First, you'll need to login to the [Thermo.io Client Portal](https://core.thermo.io) and [generate a new API token](https://core.thermo.io/api-token).
+
+Once you have a token, set it in your systems environment:
+
+```
+export NW_API_TOKEN="YOUR_TOKEN_HERE"
+export NW_API_ENDPOINT="https://core.thermo.io"
+```
+
+Finally, we'll issue the certificate: (Thermo DNS publishes at max every 15 minutes, we recommend setting a 900 second `--dnssleep`)
+
+```
+acme.sh --issue --dns dns_nw -d example.com --dnssleep 900
+```
+
+The `NW_API_TOKEN` and `NW_API_ENDPOINT` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 63. Use Futurehosting API
+
+First, you'll need to login to the [Futurehosting Client Portal](https://my.futurehosting.com) and [generate a new API token](https://my.futurehosting.com/api-token).
+
+Once you have a token, set it in your systems environment:
+
+```
+export NW_API_TOKEN="YOUR_TOKEN_HERE"
+export NW_API_ENDPOINT="https://my.futurehosting.com"
+```
+
+Finally, we'll issue the certificate: (Futurehosting DNS publishes at max every 15 minutes, we recommend setting a 900 second `--dnssleep`)
+
+```
+acme.sh --issue --dns dns_nw -d example.com --dnssleep 900
+```
+
+The `NW_API_TOKEN` and `NW_API_ENDPOINT` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 64. Use Rackspace API
+
+Set username and API key, which is available under "My Profile & Settings"
+
+```
+export RACKSPACE_Username='username'
+export RACKSPACE_Apikey='xxx'
+```
+
+Now, let's issue a cert:
+
+```
+acme.sh --issue --dns dns_rackspace -d example.com -d www.example.com
+```
+
+## 65. Use Online API
+
+First, you'll need to retrive your API key, which is available under https://console.online.net/en/api/access
+
+```
+export ONLINE_API_KEY='xxx'
+```
+
+To issue a cert run:
+
+```
+acme.sh --issue --dns dns_online -d example.com -d www.example.com
+```
+
+`ONLINE_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 66. Use MyDevil.net
+
+Make sure that you can execute own binaries:
+
+```sh
+devil binexec on
+```
+
+Install acme.sh, or simply `git clone` it into some directory on your MyDevil host account (in which case you should link to it from your `~/bin` directory).
+
+If you're not using private IP and depend on default IP provided by host, you may want to edit `crontab` too, and make sure that `acme.sh --cron` is run also after reboot (you can find out how to do that on their wiki pages).
+
+To issue a new certificate, run:
+
+```sh
+acme.sh --issue --dns dns_mydevil -d example.com -d *.example.com
+```
+
+After certificate is ready, you can install it with [deploy command](../deploy/README.md#14-deploy-your-cert-on-mydevilnet).
 
 # Use custom API
 

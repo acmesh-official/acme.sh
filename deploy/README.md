@@ -256,7 +256,143 @@ acme.sh --deploy -d fritzbox.example.com --deploy-hook fritzbox
 acme.sh --deploy -d ftp.example.com --deploy-hook strongswan
 ```
 
-## 10. Deploy the cert to remote routeros
+## 10. Deploy the cert to HAProxy
+
+You must specify the path where you want the concatenated key and certificate chain written.
+```sh
+export DEPLOY_HAPROXY_PEM_PATH=/etc/haproxy
+```
+
+You may optionally define the command to reload HAProxy. The value shown below will be used as the default if you don't set this environment variable.
+
+```sh
+export DEPLOY_HAPROXY_RELOAD="/usr/sbin/service haproxy restart"
+```
+
+You can then deploy the certificate as follows
+```sh
+acme.sh --deploy -d haproxy.example.com --deploy-hook haproxy
+```
+
+The path for the PEM file will be stored with the domain configuration and will be available when renewing, so that deploy will happen automatically when renewed.
+
+## 11. Deploy your cert to Gitlab pages
+
+You must define the API key and the informations for the project and Gitlab page you are updating the certificate for.
+
+```sh
+# The token can be created in your user settings under "Access Tokens"
+export GITLAB_TOKEN="xxxxxxxxxxx"
+
+# The project ID is displayed on the home page of the project
+export GITLAB_PROJECT_ID=12345678
+
+# The domain must match the one defined for the Gitlab page, without "https://"
+export GITLAB_DOMAIN="www.mydomain.com"
+```
+
+You can then deploy the certificate as follows
+
+```sh
+acme.sh --deploy -d www.mydomain.com --deploy-hook gitlab
+```
+
+## 12. Deploy your cert to Hashicorp Vault
+
+```sh
+export VAULT_PREFIX="acme"
+```
+
+You can then deploy the certificate as follows
+
+```sh
+acme.sh --deploy -d www.mydomain.com --deploy-hook vault_cli
+```
+
+Your certs will be saved in Vault using this structure:
+
+```sh
+vault write "${VAULT_PREFIX}/${domain}/cert.pem"      value=@"..."
+vault write "${VAULT_PREFIX}/${domain}/cert.key"      value=@"..."
+vault write "${VAULT_PREFIX}/${domain}/chain.pem"     value=@"..."
+vault write "${VAULT_PREFIX}/${domain}/fullchain.pem" value=@"..."
+```
+
+You might be using Fabio load balancer (which can get certs from
+Vault). It needs a bit different structure of your certs in Vault. It
+gets certs only from keys that were saved in `prefix/domain`, like this:
+
+```bash
+vault write <PREFIX>/www.domain.com cert=@cert.pem key=@key.pem
+```
+
+If you want to save certs in Vault this way just set "FABIO" env
+variable to anything (ex: "1") before running `acme.sh`:
+
+```sh
+export FABIO="1"
+```
+
+## 13. Deploy your certificate to Qiniu.com
+
+使用 acme.sh 部署到七牛之前，需要确保部署的域名已打开 HTTPS 功能，您可以访问[融合 CDN - 域名管理](https://portal.qiniu.com/cdn/domain) 设置。
+另外还需要先导出 AK/SK 环境变量，您可以访问[密钥管理](https://portal.qiniu.com/user/key) 获得。
+
+```sh
+$ export QINIU_AK="foo"
+$ export QINIU_SK="bar"
+```
+
+完成准备工作之后，您就可以通过下面的命令开始部署 SSL 证书到七牛上：
+
+```sh
+$ acme.sh --deploy -d example.com --deploy-hook qiniu
+```
+
+假如您部署的证书为泛域名证书，您还需要设置 `QINIU_CDN_DOMAIN` 变量，指定实际需要部署的域名：
+
+```sh
+$ export QINIU_CDN_DOMAIN="cdn.example.com"
+$ acme.sh --deploy -d example.com --deploy-hook qiniu
+```
+
+### English version
+
+You should create AccessKey/SecretKey pair in https://portal.qiniu.com/user/key 
+before deploying your certificate, and please ensure you have enabled HTTPS for
+your domain name. You can enable it in https://portal.qiniu.com/cdn/domain.
+
+```sh
+$ export QINIU_AK="foo"
+$ export QINIU_SK="bar"
+```
+
+then you can deploy certificate by following command:
+
+```sh
+$ acme.sh --deploy -d example.com --deploy-hook qiniu
+```
+
+(Optional), If you are using wildcard certificate,
+you may need export `QINIU_CDN_DOMAIN` to specify which domain
+you want to update:
+
+```sh
+$ export QINIU_CDN_DOMAIN="cdn.example.com"
+$ acme.sh --deploy -d example.com --deploy-hook qiniu
+```
+
+## 14. Deploy your cert on MyDevil.net
+
+Once you have acme.sh installed and certificate issued (see info in [DNS API](../dnsapi/README.md#61-use-mydevilnet)), you can install it by following command:
+
+```sh
+acme.sh --deploy --deploy-hook mydevil -d example.com
+```
+
+That will remove old certificate and install new one.
+
+## 15. Deploy the cert to remote routeros
 
 ```sh
 acme.sh --deploy -d ftp.example.com --deploy-hook routeros
