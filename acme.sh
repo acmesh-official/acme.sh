@@ -4218,20 +4218,39 @@ $_authorizations_map"
   der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _url_replace)"
 
   if [ "$ACME_VERSION" = "2" ]; then
-    if ! _send_signed_request "${Le_OrderFinalize}" "{\"csr\": \"$der\"}"; then
-      _err "Sign failed."
-      _on_issue_err "$_post_hook"
-      return 1
-    fi
-    if [ "$code" != "200" ]; then
-      _err "Sign failed, code is not 200."
+    _link_cert_retry=0
+    _MAX_CERT_RETRY=5
+    while [ "$_link_cert_retry" -lt "$_MAX_CERT_RETRY" ]; do
+      if ! _send_signed_request "${Le_OrderFinalize}" "{\"csr\": \"$der\"}"; then
+        _err "Sign failed."
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
+      if [ "$code" != "200" ]; then
+        _err "Sign failed, code is not 200."
+        _err "$response"
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
+      Le_LinkCert="$(echo "$response" | tr -d '\r\n' | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
+      _debug Le_LinkCert "$Le_LinkCert"
+      _tempSignedResponse="$response"
+      if [ -z "$Le_LinkCert" ]; then
+        if ! _contains "$response" "\"status\": \"processing\""; then
+          _err "Sign error, wrong status"
+          _err "$response"
+        fi
+      fi
+      if [ "$Le_LinkCert" ]; then
+        break;
+      fi
+      _link_cert_retry="$($_link_cert_retry + 1)"
+      _sleep 5
+    done
+    if [ -z "$Le_LinkCert" ]; then
+      _err "Sign failed, can not get Le_LinkCert."
       _err "$response"
-      _on_issue_err "$_post_hook"
-      return 1
     fi
-    Le_LinkCert="$(echo "$response" | tr -d '\r\n' | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
-
-    _tempSignedResponse="$response"
     if ! _send_signed_request "$Le_LinkCert"; then
       _err "Sign failed, can not download cert:$Le_LinkCert."
       _err "$response"
