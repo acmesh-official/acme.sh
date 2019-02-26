@@ -85,7 +85,7 @@ dns_ultra_rm() {
     return 1
   fi
 
-  count=$(printf "%s\n" "$response" | _egrep_o "\"returnedCount\":[^,]*" | cut -d: -f2 | cut -d'}' -f1)
+  count=$(echo "%s\n" "$response" | _egrep_o "\"returnedCount\":[^,]*" | cut -d: -f2 | cut -d'}' -f1)
   _debug count "${count}"
   if [ "${count}" = "" ]; then
     _info "Text record is not present, will not delete anything."
