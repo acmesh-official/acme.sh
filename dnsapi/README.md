@@ -1261,7 +1261,10 @@ acme.sh --issue --dns dns_online -d example.com -d www.example.com
 
 ## 66. Use UltraDNS API
 
-Set your UltraDNS User name, and password
+Set your UltraDNS User name, and password; these would be the same you would use here:
+
+https://portal.ultradns.com/ - or if you create an API only user, that username and password would be better utilized.
+
 ```
 export ULTRA_USR="abcd"
 export ULTRA_PWD="efgh"
