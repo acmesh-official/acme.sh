@@ -4236,7 +4236,7 @@ $_authorizations_map"
       _debug Le_LinkCert "$Le_LinkCert"
       _tempSignedResponse="$response"
       if [ -z "$Le_LinkCert" ]; then
-        if ! _contains "$response" "\"status\": \"processing\""; then
+        if ! _contains "$response" "\"processing\""; then
           _err "Sign error, wrong status"
           _err "$response"
         fi
@@ -4244,7 +4244,7 @@ $_authorizations_map"
       if [ "$Le_LinkCert" ]; then
         break;
       fi
-      _link_cert_retry="$($_link_cert_retry + 1)"
+      _link_cert_retry="$(_math $_link_cert_retry + 1)"
       _sleep 5
     done
     if [ -z "$Le_LinkCert" ]; then
