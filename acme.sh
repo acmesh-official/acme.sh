@@ -4461,6 +4461,11 @@ renew() {
     return 0
   fi
 
+  # allow overriding domain-config
+  if [ -n "$_renew_hook" ]; then
+    Le_RenewHook="$_renew_hook"
+  fi
+
   IS_RENEW="1"
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias"
   res="$?"
