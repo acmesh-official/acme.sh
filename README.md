@@ -74,6 +74,7 @@ https://github.com/Neilpang/acmetest
 
 - Letsencrypt.org CA(default)
 - [BuyPass.com CA](https://github.com/Neilpang/acme.sh/wiki/BuyPass.com-CA)
+- [Pebble strict Mode](https://github.com/letsencrypt/pebble)
 
 # Supported modes
 
