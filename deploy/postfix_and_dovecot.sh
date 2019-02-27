@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-#Here is a script to deploy cert to postfix and dovecot servers, when
+#Here is a script to deploy a cert to postfix and dovecot servers, when
 #they use the same certificate (e.g., when both are on the same host or 
 #use the same hostname).
 
