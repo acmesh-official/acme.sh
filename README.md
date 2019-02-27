@@ -74,6 +74,7 @@ https://github.com/Neilpang/acmetest
 
 - Letsencrypt.org CA(default)
 - [BuyPass.com CA](https://github.com/Neilpang/acme.sh/wiki/BuyPass.com-CA)
+- [Pebble strict Mode](https://github.com/letsencrypt/pebble)
 
 # Supported modes
 
@@ -356,6 +357,7 @@ You don't have to do anything manually!
 1. Futurehosting API (https://www.futurehosting.com)
 1. Rackspace Cloud DNS (https://www.rackspace.com)
 1. Online.net API (https://online.net/)
+1. MyDevil.net (https://www.mydevil.net/)
 
 And:
 
