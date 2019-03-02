@@ -1,6 +1,6 @@
 # How to use DNS API
 
-If your dns provider doesn't provide api access, you can use our dns alias mode: 
+If your dns provider doesn't provide api access, you can use our dns alias mode:
 
 https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode
 
@@ -891,7 +891,7 @@ acme.sh --issue --dns dns_loopia -d example.com -d *.example.com
 The username and password will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 ## 45. Use ACME DNS API
 
-ACME DNS is a limited DNS server with RESTful HTTP API to handle ACME DNS challenges easily and securely. 
+ACME DNS is a limited DNS server with RESTful HTTP API to handle ACME DNS challenges easily and securely.
 https://github.com/joohoi/acme-dns
 
 ```
@@ -1011,7 +1011,6 @@ acme.sh --issue --dns dns_netcup -d example.com -d www.example.com
 ```
 
 The `NC_Apikey`,`NC_Apipw` and `NC_CID` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
-
 ## 52. Use GratisDNS.dk
 
 GratisDNS.dk (https://gratisdns.dk/) does not provide an API to update DNS records (other than IPv4 and IPv6
@@ -1172,7 +1171,115 @@ acme.sh --issue --dns dns_doapi -d example.com -d *.example.com
 
 The API token will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-## 61. Use NederHost API
+## 61. Use Nexcess API
+
+First, you'll need to login to the [Nexcess.net Client Portal](https://portal.nexcess.net) and [generate a new API token](https://portal.nexcess.net/api-token).
+
+Once you have a token, set it in your systems environment:
+
+```
+export NW_API_TOKEN="YOUR_TOKEN_HERE"
+export NW_API_ENDPOINT="https://portal.nexcess.net"
+```
+
+Finally, we'll issue the certificate: (Nexcess DNS publishes at max every 15 minutes, we recommend setting a 900 second `--dnssleep`)
+
+```
+acme.sh --issue --dns dns_nw -d example.com --dnssleep 900
+```
+
+The `NW_API_TOKEN` and `NW_API_ENDPOINT` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 62. Use Thermo.io API
+
+First, you'll need to login to the [Thermo.io Client Portal](https://core.thermo.io) and [generate a new API token](https://core.thermo.io/api-token).
+
+Once you have a token, set it in your systems environment:
+
+```
+export NW_API_TOKEN="YOUR_TOKEN_HERE"
+export NW_API_ENDPOINT="https://core.thermo.io"
+```
+
+Finally, we'll issue the certificate: (Thermo DNS publishes at max every 15 minutes, we recommend setting a 900 second `--dnssleep`)
+
+```
+acme.sh --issue --dns dns_nw -d example.com --dnssleep 900
+```
+
+The `NW_API_TOKEN` and `NW_API_ENDPOINT` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 63. Use Futurehosting API
+
+First, you'll need to login to the [Futurehosting Client Portal](https://my.futurehosting.com) and [generate a new API token](https://my.futurehosting.com/api-token).
+
+Once you have a token, set it in your systems environment:
+
+```
+export NW_API_TOKEN="YOUR_TOKEN_HERE"
+export NW_API_ENDPOINT="https://my.futurehosting.com"
+```
+
+Finally, we'll issue the certificate: (Futurehosting DNS publishes at max every 15 minutes, we recommend setting a 900 second `--dnssleep`)
+
+```
+acme.sh --issue --dns dns_nw -d example.com --dnssleep 900
+```
+
+The `NW_API_TOKEN` and `NW_API_ENDPOINT` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 64. Use Rackspace API
+
+Set username and API key, which is available under "My Profile & Settings"
+
+```
+export RACKSPACE_Username='username'
+export RACKSPACE_Apikey='xxx'
+```
+
+Now, let's issue a cert:
+
+```
+acme.sh --issue --dns dns_rackspace -d example.com -d www.example.com
+```
+
+## 65. Use Online API
+
+First, you'll need to retrive your API key, which is available under https://console.online.net/en/api/access
+
+```
+export ONLINE_API_KEY='xxx'
+```
+
+To issue a cert run:
+
+```
+acme.sh --issue --dns dns_online -d example.com -d www.example.com
+```
+
+`ONLINE_API_KEY` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 66. Use MyDevil.net
+
+Make sure that you can execute own binaries:
+
+```sh
+devil binexec on
+```
+
+Install acme.sh, or simply `git clone` it into some directory on your MyDevil host account (in which case you should link to it from your `~/bin` directory).
+
+If you're not using private IP and depend on default IP provided by host, you may want to edit `crontab` too, and make sure that `acme.sh --cron` is run also after reboot (you can find out how to do that on their wiki pages).
+
+To issue a new certificate, run:
+
+```sh
+acme.sh --issue --dns dns_mydevil -d example.com -d *.example.com
+```
+
+After certificate is ready, you can install it with [deploy command](../deploy/README.md#14-deploy-your-cert-on-mydevilnet).
+
+## 67. Use NederHost API
 
 Create an API token in Mijn NederHost.
 

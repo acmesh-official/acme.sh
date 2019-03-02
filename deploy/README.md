@@ -349,10 +349,10 @@ $ export QINIU_SK="bar"
 $ acme.sh --deploy -d example.com --deploy-hook qiniu
 ```
 
-假如您部署的证书为泛域名证书，您还需要设置 `QINIU_CDN_DOMAIN` 变量，指定实际需要部署的域名：
+假如您部署的证书为泛域名证书，您还需要设置 `QINIU_CDN_DOMAIN` 变量，指定实际需要部署的域名(请注意泛域名前的点)：
 
 ```sh
-$ export QINIU_CDN_DOMAIN="cdn.example.com"
+$ export QINIU_CDN_DOMAIN=".cdn.example.com"
 $ acme.sh --deploy -d example.com --deploy-hook qiniu
 ```
 
@@ -375,9 +375,19 @@ $ acme.sh --deploy -d example.com --deploy-hook qiniu
 
 (Optional), If you are using wildcard certificate,
 you may need export `QINIU_CDN_DOMAIN` to specify which domain
-you want to update:
+you want to update (please note the leading dot):
 
 ```sh
-$ export QINIU_CDN_DOMAIN="cdn.example.com"
+$ export QINIU_CDN_DOMAIN=".cdn.example.com"
 $ acme.sh --deploy -d example.com --deploy-hook qiniu
 ```
+
+## 14. Deploy your cert on MyDevil.net
+
+Once you have acme.sh installed and certificate issued (see info in [DNS API](../dnsapi/README.md#61-use-mydevilnet)), you can install it by following command:
+
+```sh
+acme.sh --deploy --deploy-hook mydevil -d example.com
+```
+
+That will remove old certificate and install new one.

@@ -76,6 +76,22 @@ dns_namecheap_rm() {
 # _sub_domain=_acme-challenge.www
 # _domain=domain.com
 _get_root() {
+  fulldomain=$1
+
+  if ! _get_root_by_getList "$fulldomain"; then
+    _debug "Failed domain lookup via domains.getList api call. Trying domain lookup via domains.dns.getHosts api."
+    # The above "getList" api will only return hosts *owned* by the calling user. However, if the calling
+    # user is not the owner, but still has administrative rights, we must query the getHosts api directly.
+    # See this comment and the official namecheap response: http://disq.us/p/1q6v9x9
+    if ! _get_root_by_getHosts "$fulldomain"; then
+      return 1
+    fi
+  fi
+
+  return 0
+}
+
+_get_root_by_getList() {
   domain=$1
 
   if ! _namecheap_post "namecheap.domains.getList"; then
@@ -94,6 +110,10 @@ _get_root() {
       #not valid
       return 1
     fi
+    if ! _contains "$h" "\\."; then
+      #not valid
+      return 1
+    fi
 
     if ! _contains "$response" "$h"; then
       _debug "$h not found"
@@ -104,6 +124,31 @@ _get_root() {
     fi
     p="$i"
     i=$(_math "$i" + 1)
+  done
+  return 1
+}
+
+_get_root_by_getHosts() {
+  i=100
+  p=99
+
+  while [ $p -ne 0 ]; do
+
+    h=$(printf "%s" "$1" | cut -d . -f $i-100)
+    if [ -n "$h" ]; then
+      if _contains "$h" "\\."; then
+        _debug h "$h"
+        if _namecheap_set_tld_sld "$h"; then
+          _sub_domain=$(printf "%s" "$1" | cut -d . -f 1-$p)
+          _domain="$h"
+          return 0
+        else
+          _debug "$h not found"
+        fi
+      fi
+    fi
+    i="$p"
+    p=$(_math "$p" - 1)
   done
   return 1
 }
