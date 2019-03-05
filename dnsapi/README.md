@@ -872,10 +872,12 @@ The `Zilore_Key` will be saved in `~/.acme.sh/account.conf` and will be reused w
 User must provide login credentials to the Loopia API.
 The user needs the following permissions:
 
-- addSubdomain
-- updateZoneRecord
 - getDomains
+- getSubdomains
+- addSubdomain
 - removeSubdomain
+- getZoneRecords
+- addZoneRecord
 
 Set the login credentials:
 ```
