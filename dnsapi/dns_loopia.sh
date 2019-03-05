@@ -18,9 +18,7 @@ dns_loopia_add() {
     return 1
   fi
 
-  #save the api key and email to the account conf file.
-  _saveaccountconf_mutable LOOPIA_User "$LOOPIA_User"
-  _saveaccountconf_mutable LOOPIA_Password "$LOOPIA_Password"
+  _loopia_save_config
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -45,9 +43,7 @@ dns_loopia_rm() {
     return 1
   fi
 
-  #save the api key and email to the account conf file.
-  _saveaccountconf_mutable LOOPIA_User "$LOOPIA_User"
-  _saveaccountconf_mutable LOOPIA_Password "$LOOPIA_Password"
+  _loopia_save_config
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -99,6 +95,11 @@ _loopia_load_config() {
   fi
 
   return 0
+}
+
+_loopia_save_config() {
+  _saveaccountconf_mutable LOOPIA_User "$LOOPIA_User"
+  _saveaccountconf_mutable LOOPIA_Password "$LOOPIA_Password"
 }
 
 _loopia_get_records() {
