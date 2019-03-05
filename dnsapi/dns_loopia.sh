@@ -88,8 +88,8 @@ _loopia_load_config() {
     LOOPIA_User=""
     LOOPIA_Password=""
 
-    _err "You don't specify loopia user and password yet."
-    _err "Please create you key and try again."
+    _err "A valid Loopia API user and password not provided."
+    _err "Please provide a valid API user and try again."
 
     return 1
   fi
