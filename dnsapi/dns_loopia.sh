@@ -4,8 +4,10 @@
 #LOOPIA_User="username"
 #
 #LOOPIA_Password="password"
+#
+#LOOPIA_Api="https://api.loopia.<TLD>/RPCSERV"
 
-LOOPIA_Api="https://api.loopia.se/RPCSERV"
+LOOPIA_Api_Default="https://api.loopia.se/RPCSERV"
 
 ########  Public functions #####################
 
@@ -81,8 +83,13 @@ dns_loopia_rm() {
 ####################  Private functions below ##################################
 
 _loopia_load_config() {
+  LOOPIA_Api="${LOOPIA_Api:-$(_readaccountconf_mutable LOOPIA_Api)}"
   LOOPIA_User="${LOOPIA_User:-$(_readaccountconf_mutable LOOPIA_User)}"
   LOOPIA_Password="${LOOPIA_Password:-$(_readaccountconf_mutable LOOPIA_Password)}"
+
+  if [ -z "$LOOPIA_Api" ]; then
+    LOOPIA_Api="$LOOPIA_Api_Default"
+  fi
 
   if [ -z "$LOOPIA_User" ] || [ -z "$LOOPIA_Password" ]; then
     LOOPIA_User=""
@@ -98,6 +105,9 @@ _loopia_load_config() {
 }
 
 _loopia_save_config() {
+  if [ "$LOOPIA_Api" != "$LOOPIA_Api_Default" ]; then
+    _saveaccountconf_mutable LOOPIA_Api "$LOOPIA_Api"
+  fi
   _saveaccountconf_mutable LOOPIA_User "$LOOPIA_User"
   _saveaccountconf_mutable LOOPIA_Password "$LOOPIA_Password"
 }
