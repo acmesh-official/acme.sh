@@ -3650,9 +3650,9 @@ issue() {
   _savedomainconf "Le_Alt" "$_alt_domains"
   _savedomainconf "Le_Webroot" "$_web_roots"
 
-  _savedomainconf "Le_PreHook" "$_pre_hook"
-  _savedomainconf "Le_PostHook" "$_post_hook"
-  _savedomainconf "Le_RenewHook" "$_renew_hook"
+  _savedomainconf "Le_PreHook" "$_pre_hook" "base64"
+  _savedomainconf "Le_PostHook" "$_post_hook" "base64"
+  _savedomainconf "Le_RenewHook" "$_renew_hook" "base64"
 
   if [ "$_local_addr" ]; then
     _savedomainconf "Le_LocalAddress" "$_local_addr"
@@ -4531,6 +4531,9 @@ renew() {
 
   IS_RENEW="1"
   Le_ReloadCmd="$(_readdomainconf Le_ReloadCmd)"
+  Le_PreHook="$(_readdomainconf Le_PreHook)"
+  Le_PostHook="$(_readdomainconf Le_PostHook)"
+  Le_RenewHook="$(_readdomainconf Le_RenewHook)"
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias"
   res="$?"
   if [ "$res" != "0" ]; then
