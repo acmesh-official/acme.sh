@@ -14,13 +14,7 @@ dns_loopia_add() {
   fulldomain=$1
   txtvalue=$2
 
-  LOOPIA_User="${LOOPIA_User:-$(_readaccountconf_mutable LOOPIA_User)}"
-  LOOPIA_Password="${LOOPIA_Password:-$(_readaccountconf_mutable LOOPIA_Password)}"
-  if [ -z "$LOOPIA_User" ] || [ -z "$LOOPIA_Password" ]; then
-    LOOPIA_User=""
-    LOOPIA_Password=""
-    _err "You don't specify loopia user and password yet."
-    _err "Please create you key and try again."
+  if ! _loopia_load_config; then
     return 1
   fi
 
@@ -47,13 +41,7 @@ dns_loopia_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  LOOPIA_User="${LOOPIA_User:-$(_readaccountconf_mutable LOOPIA_User)}"
-  LOOPIA_Password="${LOOPIA_Password:-$(_readaccountconf_mutable LOOPIA_Password)}"
-  if [ -z "$LOOPIA_User" ] || [ -z "$LOOPIA_Password" ]; then
-    LOOPIA_User=""
-    LOOPIA_Password=""
-    _err "You don't specify LOOPIA user and password yet."
-    _err "Please create you key and try again."
+  if ! _loopia_load_config; then
     return 1
   fi
 
@@ -95,6 +83,23 @@ dns_loopia_rm() {
 }
 
 ####################  Private functions below ##################################
+
+_loopia_load_config() {
+  LOOPIA_User="${LOOPIA_User:-$(_readaccountconf_mutable LOOPIA_User)}"
+  LOOPIA_Password="${LOOPIA_Password:-$(_readaccountconf_mutable LOOPIA_Password)}"
+
+  if [ -z "$LOOPIA_User" ] || [ -z "$LOOPIA_Password" ]; then
+    LOOPIA_User=""
+    LOOPIA_Password=""
+
+    _err "You don't specify loopia user and password yet."
+    _err "Please create you key and try again."
+
+    return 1
+  fi
+
+  return 0
+}
 
 _loopia_get_records() {
   domain=$1
