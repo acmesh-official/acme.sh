@@ -87,6 +87,6 @@ qiniu_deploy() {
 }
 
 _make_access_token() {
-  _token="$(printf "%s\n" "$1" | _hmac "sha1" "$(printf "%s" "$QINIU_SK" | _hex_dump | tr -d " ")" | _base64)"
+  _token="$(printf "%s\n" "$1" | _hmac "sha1" "$(printf "%s" "$QINIU_SK" | _hex_dump | tr -d " ")" | _base64 | tr -- '+/' '-_')"
   echo "$QINIU_AK:$_token"
 }
