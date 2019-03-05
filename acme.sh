@@ -66,6 +66,9 @@ END_CERT="-----END CERTIFICATE-----"
 CONTENT_TYPE_JSON="application/jose+json"
 RENEW_SKIP=2
 
+B64CONF_START="__ACME_BASE64__START_"
+B64CONF_END="__ACME_BASE64__END_"
+
 ECC_SEP="_"
 ECC_SUFFIX="${ECC_SEP}ecc"
 
@@ -1964,12 +1967,16 @@ _setopt() {
   _debug3 "$(grep -n "^$__opt$__sep" "$__conf")"
 }
 
-#_save_conf  file key  value
+#_save_conf  file key  value base64encode
 #save to conf
 _save_conf() {
   _s_c_f="$1"
   _sdkey="$2"
   _sdvalue="$3"
+  _b64encode="$4"
+  if [ "$_b64encode" ]; then
+    _sdvalue="${B64CONF_START}$(printf "%s" "${_sdvalue}" | _base64)${B64CONF_END}"
+  fi
   if [ "$_s_c_f" ]; then
     _setopt "$_s_c_f" "$_sdkey" "=" "'$_sdvalue'"
   else
@@ -1994,19 +2001,20 @@ _read_conf() {
   _r_c_f="$1"
   _sdkey="$2"
   if [ -f "$_r_c_f" ]; then
-    (
-      eval "$(grep "^$_sdkey *=" "$_r_c_f")"
-      eval "printf \"%s\" \"\$$_sdkey\""
-    )
+    _sdv="$(grep "^$_sdkey *=" "$_r_c_f" | cut -d = -f 2-1000 | tr -d "'")"
+    if _startswith "$_sdv" "${B64CONF_START}" && _endswith "$_sdv" "${B64CONF_END}"; then
+      _sdv="$(echo "$_sdv" | sed "s/${B64CONF_START}//" | sed "s/${B64CONF_END}//" | _dbase64)"
+    fi
+    printf "%s" "$_sdv"
   else
     _debug "config file is empty, can not read $_sdkey"
   fi
 }
 
-#_savedomainconf   key  value
+#_savedomainconf   key  value  base64encode
 #save to domain.conf
 _savedomainconf() {
-  _save_conf "$DOMAIN_CONF" "$1" "$2"
+  _save_conf "$DOMAIN_CONF" "$@"
 }
 
 #_cleardomainconf   key
@@ -2019,14 +2027,14 @@ _readdomainconf() {
   _read_conf "$DOMAIN_CONF" "$1"
 }
 
-#_saveaccountconf  key  value
+#_saveaccountconf  key  value  base64encode
 _saveaccountconf() {
-  _save_conf "$ACCOUNT_CONF_PATH" "$1" "$2"
+  _save_conf "$ACCOUNT_CONF_PATH" "$@"
 }
 
-#key  value
+#key  value base64encode
 _saveaccountconf_mutable() {
-  _save_conf "$ACCOUNT_CONF_PATH" "SAVED_$1" "$2"
+  _save_conf "$ACCOUNT_CONF_PATH" "SAVED_$1" "$2" "$3"
   #remove later
   _clearaccountconf "$1"
 }
@@ -3642,9 +3650,9 @@ issue() {
   _savedomainconf "Le_Alt" "$_alt_domains"
   _savedomainconf "Le_Webroot" "$_web_roots"
 
-  _savedomainconf "Le_PreHook" "$_pre_hook"
-  _savedomainconf "Le_PostHook" "$_post_hook"
-  _savedomainconf "Le_RenewHook" "$_renew_hook"
+  _savedomainconf "Le_PreHook" "$_pre_hook" "base64"
+  _savedomainconf "Le_PostHook" "$_post_hook" "base64"
+  _savedomainconf "Le_RenewHook" "$_renew_hook" "base64"
 
   if [ "$_local_addr" ]; then
     _savedomainconf "Le_LocalAddress" "$_local_addr"
@@ -4455,7 +4463,7 @@ $_authorizations_map"
     _savedomainconf "Le_RealCertPath" "$_real_cert"
     _savedomainconf "Le_RealCACertPath" "$_real_ca"
     _savedomainconf "Le_RealKeyPath" "$_real_key"
-    _savedomainconf "Le_ReloadCmd" "$_reload_cmd"
+    _savedomainconf "Le_ReloadCmd" "$_reload_cmd" "base64"
     _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
     if ! _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"; then
       return 1
@@ -4522,6 +4530,10 @@ renew() {
   fi
 
   IS_RENEW="1"
+  Le_ReloadCmd="$(_readdomainconf Le_ReloadCmd)"
+  Le_PreHook="$(_readdomainconf Le_PreHook)"
+  Le_PostHook="$(_readdomainconf Le_PostHook)"
+  Le_RenewHook="$(_readdomainconf Le_RenewHook)"
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias"
   res="$?"
   if [ "$res" != "0" ]; then
@@ -4802,7 +4814,7 @@ installcert() {
   _savedomainconf "Le_RealCertPath" "$_real_cert"
   _savedomainconf "Le_RealCACertPath" "$_real_ca"
   _savedomainconf "Le_RealKeyPath" "$_real_key"
-  _savedomainconf "Le_ReloadCmd" "$_reload_cmd"
+  _savedomainconf "Le_ReloadCmd" "$_reload_cmd" "base64"
   _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
 
   _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"
