@@ -74,6 +74,7 @@ https://github.com/Neilpang/acmetest
 
 - Letsencrypt.org CA(default)
 - [BuyPass.com CA](https://github.com/Neilpang/acme.sh/wiki/BuyPass.com-CA)
+- [Pebble strict Mode](https://github.com/letsencrypt/pebble)
 
 # Supported modes
 
@@ -357,8 +358,8 @@ You don't have to do anything manually!
 1. Rackspace Cloud DNS (https://www.rackspace.com)
 1. Online.net API (https://online.net/)
 1. MyDevil.net (https://www.mydevil.net/)
+1. Core-Networks.de (https://core-networks.de)
 1. OpenProvider API (https://www.openprovider.com/)
-
 And:
 
 **lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
