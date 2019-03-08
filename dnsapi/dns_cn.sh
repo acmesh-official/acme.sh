@@ -7,7 +7,7 @@ CN_API="https://beta.api.core-networks.de"
 
 ########  Public functions  #####################
 
-dns_cn_add(){
+dns_cn_add() {
   fulldomain=$1
   txtvalue=$2
 
@@ -21,17 +21,17 @@ dns_cn_add(){
     _err "invalid domain"
     return 1
   fi
-  
+
   _debug "_sub_domain $_sub_domain"
   _debug "_domain $_domain"
-  
+
   _info "Adding record"
   curData="{\"name\":\"$_sub_domain\",\"ttl\":120,\"type\":\"TXT\",\"data\":\"$txtvalue\"}"
   curResult="$(_post "${curData}" "${CN_API}/dnszones/${_domain}/records/")"
 
   _debug "curData $curData"
   _debug "curResult $curResult"
-  
+
   if _contains "$curResult" ""; then
     _info "Added, OK"
 
@@ -40,7 +40,7 @@ dns_cn_add(){
       return 1
     fi
     return 0
-  
+
   else
     _err "Add txt record error."
     _debug "curData is $curData"
@@ -50,7 +50,7 @@ dns_cn_add(){
   fi
 }
 
-dns_cn_rm(){
+dns_cn_rm() {
   fulldomain=$1
   txtvalue=$2
 
@@ -64,14 +64,14 @@ dns_cn_rm(){
     _err "invalid domain"
     return 1
   fi
-  
+
   _info "Deleting record"
   curData="{\"name\":\"$_sub_domain\",\"data\":\"$txtvalue\"}"
   curResult="$(_post "${curData}" "${CN_API}/dnszones/${_domain}/records/delete")"
   _debug curData is "$curData"
   
   _info "commiting changes"
-    if ! _cn_commit; then
+  if ! _cn_commit; then
     _err "commiting changes failed"
     return 1
   fi
@@ -79,7 +79,6 @@ dns_cn_rm(){
   _info "Deletet txt record"
   return 0
 }
-
 
 ###################  Private functions below  ##################################
 _cn_login() {
@@ -100,7 +99,7 @@ _cn_login() {
   curData="{\"login\":\"${CN_User}\",\"password\":\"${CN_Password}\"}"
   curResult="$(_post "${curData}" "${CN_API}/auth/token")"
   _debug "Calling _CN_login: '${curData}' '${CN_API}/auth/token'"
-  
+
   if _contains "${curResult}" '"token":"'; then
     authToken=$(echo "${curResult}" | cut -d ":" -f2 | cut -d "," -f1 | sed 's/^.\(.*\).$/\1/')
     export _H1="Authorization: Bearer $authToken"
@@ -114,12 +113,12 @@ _cn_login() {
 }
 
 # Commit changes
-_cn_commit(){
+_cn_commit() {
   _info "Commiting changes"
   _post "" "${CN_API}/dnszones/$h/records/commit"
 }
 
-_cn_get_root(){
+_cn_get_root() {
   domain=$1
   i=2
   p=1
