@@ -4250,7 +4250,7 @@ $_authorizations_map"
 
     _link_cert_retry=0
     _MAX_CERT_RETRY=5
-    while [ -z "$Le_LinkCert" ] && [ "$_link_cert_retry" -lt "$_MAX_CERT_RETRY" ]; do
+    while [ "$_link_cert_retry" -lt "$_MAX_CERT_RETRY" ]; do
       if _contains "$response" "\"status\":\"valid\""; then
         _debug "Order status is valid."
         Le_LinkCert="$(echo "$response" | tr -d '\r\n' | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
