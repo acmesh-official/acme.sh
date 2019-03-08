@@ -6425,7 +6425,7 @@ _process() {
 
 if [ "$INSTALLONLINE" ]; then
   INSTALLONLINE=""
-  _installOnline
+  _installOnline "$1" "$2"
   exit
 fi
 
