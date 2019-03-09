@@ -5704,7 +5704,8 @@ Parameters:
 _installOnline() {
   _info "Installing from online archive."
   _nocron="$1"
-  _noprofile="$2"
+  _c_home="$2"
+  _noprofile="$3"
   if [ ! "$BRANCH" ]; then
     BRANCH="master"
   fi
@@ -5725,7 +5726,7 @@ _installOnline() {
 
     cd "$PROJECT_NAME-$BRANCH"
     chmod +x $PROJECT_ENTRY
-    if ./$PROJECT_ENTRY install "$_nocron" "" "$_noprofile"; then
+    if ./$PROJECT_ENTRY install "$_nocron" "$_c_home" "$_noprofile"; then
       _info "Install success!"
     fi
 
@@ -6425,7 +6426,7 @@ _process() {
 
 if [ "$INSTALLONLINE" ]; then
   INSTALLONLINE=""
-  _installOnline "$1" "$2"
+  _installOnline "$1" "$2" "$3"
   exit
 fi
 
