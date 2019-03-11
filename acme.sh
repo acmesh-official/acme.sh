@@ -1974,7 +1974,7 @@ _save_conf() {
   _sdkey="$2"
   _sdvalue="$3"
   _b64encode="$4"
-  if [ "$_b64encode" ]; then
+  if [ "$_sdvalue" ] && [ "$_b64encode" ]; then
     _sdvalue="${B64CONF_START}$(printf "%s" "${_sdvalue}" | _base64)${B64CONF_END}"
   fi
   if [ "$_s_c_f" ]; then
