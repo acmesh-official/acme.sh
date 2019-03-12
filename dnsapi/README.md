@@ -1279,7 +1279,24 @@ acme.sh --issue --dns dns_mydevil -d example.com -d *.example.com
 
 After certificate is ready, you can install it with [deploy command](../deploy/README.md#14-deploy-your-cert-on-mydevilnet).
 
-## 67. Use NederHost API
+## 67. Use Core-Networks API to automatically issue cert
+
+First you need to login to your Core-Networks account to to set up an API-User.
+Then export username and password to use these credentials.
+
+```
+export CN_User="user"
+export CN_Password="passowrd"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_cn -d example.com -d www.example.com
+```
+
+The `CN_User` and `CN_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 68. Use NederHost API
 
 Create an API token in Mijn NederHost.
 
@@ -1314,3 +1331,5 @@ See:  https://github.com/Neilpang/acme.sh/wiki/DNS-API-Dev-Guide
 # Use lexicon DNS API
 
 https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
+
+
