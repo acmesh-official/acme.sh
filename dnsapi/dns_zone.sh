@@ -30,39 +30,18 @@ dns_zone_add() {
     return 1
   fi
 
-  _debug "Getting txt records"
-  _debug _domain "$_domain"
+  _debug "Adding txt record"
 
-  _zone_rest GET "dns/${_domain}/txt"
-
-  if printf "%s" "$response" | grep \"error\" >/dev/null; then
-    _err "Error"
-    return 1
-  fi
-
-  count=$(printf "%s\n" "$response" | _egrep_o "\"name\":\"$fulldomain\"" | wc -l)
-  _debug count "$count"
-  if [ "$count" = "0" ]; then
-    if _zone_rest POST "dns/${_domain}/txt" "{\"name\": \"$fulldomain\", \"destination\": \"$txtvalue\"}"; then
-      if printf -- "%s" "$response" | grep "$fulldomain" >/dev/null; then
-        _info "Added, OK"
-        return 0
-      else
-        _err "Adding txt record error."
-        return 1
-      fi
-    fi
-    _err "Adding txt record error."
-  else
-    _info "Updating record"
-    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\",\"resource_url\":\"[^\"]*\",\"name\":\"$fulldomain\"," | cut -d : -f4 | cut -d , -f1 | tr -d \" | head -n 1)
-    _zone_rest PUT "dns/${_domain}/txt/$record_id" "{\"name\": \"$fulldomain\", \"destination\": \"$txtvalue\"}"
-    if [ "$?" = "0" ]; then
-      _info "Updated, OK"
+  if _zone_rest POST "dns/${_domain}/txt" "{\"name\": \"$fulldomain\", \"destination\": \"$txtvalue\"}"; then
+    if printf -- "%s" "$response" | grep "$fulldomain" >/dev/null; then
+      _info "Added, OK"
       return 0
+    else
+      _err "Adding txt record error."
+      return 1
     fi
-    _err "Update error"
-    return 1
+  else
+    _err "Adding txt record error."
   fi
 }
 
