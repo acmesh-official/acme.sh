@@ -359,6 +359,8 @@ You don't have to do anything manually!
 1. Online.net API (https://online.net/)
 1. MyDevil.net (https://www.mydevil.net/)
 1. Core-Networks.de (https://core-networks.de)
+1. NederHost API (https://www.nederhost.nl/)
+
 And:
 
 **lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
