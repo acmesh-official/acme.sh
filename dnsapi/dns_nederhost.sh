@@ -112,8 +112,6 @@ _nederhost_rest() {
   export _H1="Authorization: Bearer $NederHost_Key"
   export _H2="Content-Type: application/json"
 
-  :>"$HTTP_HEADER"
-
   if [ "$m" != "GET" ]; then
     _debug data "$data"
     response="$(_post "$data" "$NederHost_Api/$ep" "" "$m")"
