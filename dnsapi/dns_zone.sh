@@ -71,7 +71,7 @@ dns_zone_add() {
 dns_zone_rm() {
   fulldomain=$1
   txtvalue=$2
-  _info "Using myapi"
+  _info "Using zone.ee dns api"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
   ZONE_Username="${ZONE_Username:-$(_readaccountconf_mutable ZONE_Username)}"
