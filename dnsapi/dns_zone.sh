@@ -84,7 +84,7 @@ dns_zone_rm() {
   if [ "$count" = "0" ]; then
     _info "Nothing to remove."
   else
-    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\",\"resource_url\":\"[^\"]*\",\"name\":\"$fulldomain\"," | cut -d : -f2 | cut -d , -f1 | tr -d \" | head -n 1)
+    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\",\"resource_url\":\"[^\"]*\",\"name\":\"$fulldomain\"," | cut -d : -f2 | cut -d , -f1 | tr -d \" | _head_n 1)
     if [ -z "$record_id" ]; then
       _err "No id found to remove."
       return 1
