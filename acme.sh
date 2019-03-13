@@ -9,6 +9,9 @@ PROJECT_ENTRY="acme.sh"
 PROJECT="https://github.com/Neilpang/$PROJECT_NAME"
 
 DEFAULT_INSTALL_HOME="$HOME/.$PROJECT_NAME"
+
+_WINDOWS_SCHEDULER_NAME="$PROJECT_NAME.cron"
+
 _SCRIPT_="$0"
 
 _SUB_FOLDERS="dnsapi deploy"
@@ -19,8 +22,8 @@ LETSENCRYPT_STAGING_CA_V1="https://acme-staging.api.letsencrypt.org/directory"
 LETSENCRYPT_CA_V2="https://acme-v02.api.letsencrypt.org/directory"
 LETSENCRYPT_STAGING_CA_V2="https://acme-staging-v02.api.letsencrypt.org/directory"
 
-DEFAULT_CA=$LETSENCRYPT_CA_V1
-DEFAULT_STAGING_CA=$LETSENCRYPT_STAGING_CA_V1
+DEFAULT_CA=$LETSENCRYPT_CA_V2
+DEFAULT_STAGING_CA=$LETSENCRYPT_STAGING_CA_V2
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 DEFAULT_ACCOUNT_EMAIL=""
@@ -65,6 +68,9 @@ END_CERT="-----END CERTIFICATE-----"
 
 CONTENT_TYPE_JSON="application/jose+json"
 RENEW_SKIP=2
+
+B64CONF_START="__ACME_BASE64__START_"
+B64CONF_END="__ACME_BASE64__END_"
 
 ECC_SEP="_"
 ECC_SUFFIX="${ECC_SEP}ecc"
@@ -1964,12 +1970,16 @@ _setopt() {
   _debug3 "$(grep -n "^$__opt$__sep" "$__conf")"
 }
 
-#_save_conf  file key  value
+#_save_conf  file key  value base64encode
 #save to conf
 _save_conf() {
   _s_c_f="$1"
   _sdkey="$2"
   _sdvalue="$3"
+  _b64encode="$4"
+  if [ "$_sdvalue" ] && [ "$_b64encode" ]; then
+    _sdvalue="${B64CONF_START}$(printf "%s" "${_sdvalue}" | _base64)${B64CONF_END}"
+  fi
   if [ "$_s_c_f" ]; then
     _setopt "$_s_c_f" "$_sdkey" "=" "'$_sdvalue'"
   else
@@ -1994,19 +2004,20 @@ _read_conf() {
   _r_c_f="$1"
   _sdkey="$2"
   if [ -f "$_r_c_f" ]; then
-    (
-      eval "$(grep "^$_sdkey *=" "$_r_c_f")"
-      eval "printf \"%s\" \"\$$_sdkey\""
-    )
+    _sdv="$(grep "^$_sdkey *=" "$_r_c_f" | cut -d = -f 2-1000 | tr -d "'")"
+    if _startswith "$_sdv" "${B64CONF_START}" && _endswith "$_sdv" "${B64CONF_END}"; then
+      _sdv="$(echo "$_sdv" | sed "s/${B64CONF_START}//" | sed "s/${B64CONF_END}//" | _dbase64)"
+    fi
+    printf "%s" "$_sdv"
   else
     _debug "config file is empty, can not read $_sdkey"
   fi
 }
 
-#_savedomainconf   key  value
+#_savedomainconf   key  value  base64encode
 #save to domain.conf
 _savedomainconf() {
-  _save_conf "$DOMAIN_CONF" "$1" "$2"
+  _save_conf "$DOMAIN_CONF" "$@"
 }
 
 #_cleardomainconf   key
@@ -2019,14 +2030,14 @@ _readdomainconf() {
   _read_conf "$DOMAIN_CONF" "$1"
 }
 
-#_saveaccountconf  key  value
+#_saveaccountconf  key  value  base64encode
 _saveaccountconf() {
-  _save_conf "$ACCOUNT_CONF_PATH" "$1" "$2"
+  _save_conf "$ACCOUNT_CONF_PATH" "$@"
 }
 
-#key  value
+#key  value base64encode
 _saveaccountconf_mutable() {
-  _save_conf "$ACCOUNT_CONF_PATH" "SAVED_$1" "$2"
+  _save_conf "$ACCOUNT_CONF_PATH" "SAVED_$1" "$2" "$3"
   #remove later
   _clearaccountconf "$1"
 }
@@ -3642,9 +3653,9 @@ issue() {
   _savedomainconf "Le_Alt" "$_alt_domains"
   _savedomainconf "Le_Webroot" "$_web_roots"
 
-  _savedomainconf "Le_PreHook" "$_pre_hook"
-  _savedomainconf "Le_PostHook" "$_post_hook"
-  _savedomainconf "Le_RenewHook" "$_renew_hook"
+  _savedomainconf "Le_PreHook" "$_pre_hook" "base64"
+  _savedomainconf "Le_PostHook" "$_post_hook" "base64"
+  _savedomainconf "Le_RenewHook" "$_renew_hook" "base64"
 
   if [ "$_local_addr" ]; then
     _savedomainconf "Le_LocalAddress" "$_local_addr"
@@ -3657,8 +3668,12 @@ issue() {
     _cleardomainconf "Le_ChallengeAlias"
   fi
 
-  Le_API="$ACME_DIRECTORY"
-  _savedomainconf "Le_API" "$Le_API"
+  if [ "$ACME_DIRECTORY" != "$DEFAULT_CA" ]; then
+    Le_API="$ACME_DIRECTORY"
+    _savedomainconf "Le_API" "$Le_API"
+  else
+    _cleardomainconf Le_API
+  fi
 
   if [ "$_alt_domains" = "$NO_VALUE" ]; then
     _alt_domains=""
@@ -4242,7 +4257,7 @@ $_authorizations_map"
 
     _link_cert_retry=0
     _MAX_CERT_RETRY=5
-    while [ -z "$Le_LinkCert" ] && [ "$_link_cert_retry" -lt "$_MAX_CERT_RETRY" ]; do
+    while [ "$_link_cert_retry" -lt "$_MAX_CERT_RETRY" ]; do
       if _contains "$response" "\"status\":\"valid\""; then
         _debug "Order status is valid."
         Le_LinkCert="$(echo "$response" | tr -d '\r\n' | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
@@ -4455,7 +4470,7 @@ $_authorizations_map"
     _savedomainconf "Le_RealCertPath" "$_real_cert"
     _savedomainconf "Le_RealCACertPath" "$_real_ca"
     _savedomainconf "Le_RealKeyPath" "$_real_key"
-    _savedomainconf "Le_ReloadCmd" "$_reload_cmd"
+    _savedomainconf "Le_ReloadCmd" "$_reload_cmd" "base64"
     _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
     if ! _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"; then
       return 1
@@ -4492,6 +4507,16 @@ renew() {
 
   . "$DOMAIN_CONF"
   _debug Le_API "$Le_API"
+
+  if [ "$Le_API" = "$LETSENCRYPT_CA_V1" ]; then
+    _cleardomainconf Le_API
+    Le_API="$DEFAULT_CA"
+  fi
+  if [ "$Le_API" = "$LETSENCRYPT_STAGING_CA_V1" ]; then
+    _cleardomainconf Le_API
+    Le_API="$DEFAULT_STAGING_CA"
+  fi
+
   if [ "$Le_API" ]; then
     if [ "$_OLD_CA_HOST" = "$Le_API" ]; then
       export Le_API="$DEFAULT_CA"
@@ -4522,6 +4547,10 @@ renew() {
   fi
 
   IS_RENEW="1"
+  Le_ReloadCmd="$(_readdomainconf Le_ReloadCmd)"
+  Le_PreHook="$(_readdomainconf Le_PreHook)"
+  Le_PostHook="$(_readdomainconf Le_PostHook)"
+  Le_RenewHook="$(_readdomainconf Le_RenewHook)"
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias"
   res="$?"
   if [ "$res" != "0" ]; then
@@ -4802,7 +4831,7 @@ installcert() {
   _savedomainconf "Le_RealCertPath" "$_real_cert"
   _savedomainconf "Le_RealCACertPath" "$_real_ca"
   _savedomainconf "Le_RealKeyPath" "$_real_key"
-  _savedomainconf "Le_ReloadCmd" "$_reload_cmd"
+  _savedomainconf "Le_ReloadCmd" "$_reload_cmd" "base64"
   _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
 
   _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"
@@ -4886,7 +4915,7 @@ _installcert() {
       export CERT_KEY_PATH
       export CA_CERT_PATH
       export CERT_FULLCHAIN_PATH
-      export Le_Domain
+      export Le_Domain="$_main_domain"
       cd "$DOMAIN_PATH" && eval "$_reload_cmd"
     ); then
       _info "$(__green "Reload success")"
@@ -4897,35 +4926,107 @@ _installcert() {
 
 }
 
+__read_password() {
+  unset _pp
+  prompt="Enter Password:"
+  while IFS= read -p "$prompt" -r -s -n 1 char; do
+    if [ "$char" = $'\0' ]; then
+      break
+    fi
+    prompt='*'
+    _pp="$_pp$char"
+  done
+  echo "$_pp"
+}
+
+_install_win_taskscheduler() {
+  _lesh="$1"
+  _centry="$2"
+  _randomminute="$3"
+  if ! _exists cygpath; then
+    _err "cygpath not found"
+    return 1
+  fi
+  if ! _exists schtasks; then
+    _err "schtasks.exe is not found, are you on Windows?"
+    return 1
+  fi
+  _winbash="$(cygpath -w $(which bash))"
+  _debug _winbash "$_winbash"
+  if [ -z "$_winbash" ]; then
+    _err "can not find bash path"
+    return 1
+  fi
+  _myname="$(whoami)"
+  _debug "_myname" "$_myname"
+  if [ -z "$_myname" ]; then
+    _err "can not find my user name"
+    return 1
+  fi
+  _debug "_lesh" "$_lesh"
+
+  _info "To install scheduler task in your Windows account, you must input your windows password."
+  _info "$PROJECT_NAME doesn't save your password."
+  _info "Please input your Windows password for: $(__green "$_myname")"
+  _password="$(__read_password)"
+  #SCHTASKS.exe '/create' '/SC' 'DAILY' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "00:$_randomminute" '/RU' "$_myname" '/RP' "$_password" '/TR' "$_winbash -l -c '$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry'" >/dev/null
+  echo SCHTASKS.exe '/create' '/SC' 'DAILY' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "00:$_randomminute" '/RU' "$_myname" '/RP' "$_password" '/TR' "\"$_winbash -l -c '$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry'\"" | cmd.exe >/dev/null
+  echo
+
+}
+
+_uninstall_win_taskscheduler() {
+  if ! _exists schtasks; then
+    _err "schtasks.exe is not found, are you on Windows?"
+    return 1
+  fi
+  if ! echo SCHTASKS /query /tn "$_WINDOWS_SCHEDULER_NAME" | cmd.exe >/dev/null; then
+    _debug "scheduler $_WINDOWS_SCHEDULER_NAME is not found."
+  else
+    _info "Removing $_WINDOWS_SCHEDULER_NAME"
+    echo SCHTASKS /delete /f /tn "$_WINDOWS_SCHEDULER_NAME" | cmd.exe >/dev/null
+  fi
+}
+
 #confighome
 installcronjob() {
   _c_home="$1"
   _initpath
   _CRONTAB="crontab"
+  if [ -f "$LE_WORKING_DIR/$PROJECT_ENTRY" ]; then
+    lesh="\"$LE_WORKING_DIR\"/$PROJECT_ENTRY"
+  else
+    _err "Can not install cronjob, $PROJECT_ENTRY not found."
+    return 1
+  fi
+  if [ "$_c_home" ]; then
+    _c_entry="--config-home \"$_c_home\" "
+  fi
+  _t=$(_time)
+  random_minute=$(_math $_t % 60)
+
   if ! _exists "$_CRONTAB" && _exists "fcrontab"; then
     _CRONTAB="fcrontab"
   fi
+
   if ! _exists "$_CRONTAB"; then
+    if _exists cygpath && _exists schtasks.exe; then
+      _info "It seems you are on Windows,  let's install Windows scheduler task."
+      if _install_win_taskscheduler "$lesh" "$_c_entry" "$random_minute"; then
+        _info "Install Windows scheduler task success."
+        return 0
+      else
+        _err "Install Windows scheduler task failed."
+        return 1
+      fi
+    fi
     _err "crontab/fcrontab doesn't exist, so, we can not install cron jobs."
     _err "All your certs will not be renewed automatically."
     _err "You must add your own cron job to call '$PROJECT_ENTRY --cron' everyday."
     return 1
   fi
-
   _info "Installing cron job"
   if ! $_CRONTAB -l | grep "$PROJECT_ENTRY --cron"; then
-    if [ -f "$LE_WORKING_DIR/$PROJECT_ENTRY" ]; then
-      lesh="\"$LE_WORKING_DIR\"/$PROJECT_ENTRY"
-    else
-      _err "Can not install cronjob, $PROJECT_ENTRY not found."
-      return 1
-    fi
-
-    if [ "$_c_home" ]; then
-      _c_entry="--config-home \"$_c_home\" "
-    fi
-    _t=$(_time)
-    random_minute=$(_math $_t % 60)
     if _exists uname && uname -a | grep SunOS >/dev/null; then
       $_CRONTAB -l | {
         cat
@@ -4953,6 +5054,16 @@ uninstallcronjob() {
   fi
 
   if ! _exists "$_CRONTAB"; then
+    if _exists cygpath && _exists schtasks.exe; then
+      _info "It seems you are on Windows,  let's uninstall Windows scheduler task."
+      if _uninstall_win_taskscheduler; then
+        _info "Uninstall Windows scheduler task success."
+        return 0
+      else
+        _err "Uninstall Windows scheduler task failed."
+        return 1
+      fi
+    fi
     return
   fi
   _info "Removing cron job"
@@ -5280,13 +5391,17 @@ _precheck() {
 
   if [ -z "$_nocron" ]; then
     if ! _exists "crontab" && ! _exists "fcrontab"; then
-      _err "It is recommended to install crontab first. try to install 'cron, crontab, crontabs or vixie-cron'."
-      _err "We need to set cron job to renew the certs automatically."
-      _err "Otherwise, your certs will not be able to be renewed automatically."
-      if [ -z "$FORCE" ]; then
-        _err "Please add '--force' and try install again to go without crontab."
-        _err "./$PROJECT_ENTRY --install --force"
-        return 1
+      if _exists cygpath && _exists schtasks.exe; then
+        _info "It seems you are on Windows,  we will install Windows scheduler task."
+      else
+        _err "It is recommended to install crontab first. try to install 'cron, crontab, crontabs or vixie-cron'."
+        _err "We need to set cron job to renew the certs automatically."
+        _err "Otherwise, your certs will not be able to be renewed automatically."
+        if [ -z "$FORCE" ]; then
+          _err "Please add '--force' and try install again to go without crontab."
+          _err "./$PROJECT_ENTRY --install --force"
+          return 1
+        fi
       fi
     fi
   fi

@@ -358,6 +358,8 @@ You don't have to do anything manually!
 1. Rackspace Cloud DNS (https://www.rackspace.com)
 1. Online.net API (https://online.net/)
 1. MyDevil.net (https://www.mydevil.net/)
+1. Core-Networks.de (https://core-networks.de)
+1. NederHost API (https://www.nederhost.nl/)
 1. UltraDNS API (https://portal.ultradns.com)
 
 And:
