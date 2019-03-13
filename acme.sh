@@ -4931,7 +4931,7 @@ __read_password() {
   prompt="Enter Password:"
   while IFS= read -p "$prompt" -r -s -n 1 char; do
     if [ "$char" = $'\0' ]; then
-        break
+      break
     fi
     prompt='*'
     _pp="$_pp$char"
