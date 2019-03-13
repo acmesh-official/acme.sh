@@ -9,6 +9,9 @@ PROJECT_ENTRY="acme.sh"
 PROJECT="https://github.com/Neilpang/$PROJECT_NAME"
 
 DEFAULT_INSTALL_HOME="$HOME/.$PROJECT_NAME"
+
+_WINDOWS_SCHEDULER_NAME="$PROJECT_NAME.cron"
+
 _SCRIPT_="$0"
 
 _SUB_FOLDERS="dnsapi deploy"
@@ -4923,35 +4926,107 @@ _installcert() {
 
 }
 
+__read_password() {
+  unset _pp
+  prompt="Enter Password:"
+  while IFS= read -p "$prompt" -r -s -n 1 char; do
+    if [ "$char" = $'\0' ]; then
+      break
+    fi
+    prompt='*'
+    _pp="$_pp$char"
+  done
+  echo "$_pp"
+}
+
+_install_win_taskscheduler() {
+  _lesh="$1"
+  _centry="$2"
+  _randomminute="$3"
+  if ! _exists cygpath; then
+    _err "cygpath not found"
+    return 1
+  fi
+  if ! _exists schtasks; then
+    _err "schtasks.exe is not found, are you on Windows?"
+    return 1
+  fi
+  _winbash="$(cygpath -w $(which bash))"
+  _debug _winbash "$_winbash"
+  if [ -z "$_winbash" ]; then
+    _err "can not find bash path"
+    return 1
+  fi
+  _myname="$(whoami)"
+  _debug "_myname" "$_myname"
+  if [ -z "$_myname" ]; then
+    _err "can not find my user name"
+    return 1
+  fi
+  _debug "_lesh" "$_lesh"
+
+  _info "To install scheduler task in your Windows account, you must input your windows password."
+  _info "$PROJECT_NAME doesn't save your password."
+  _info "Please input your Windows password for: $(__green "$_myname")"
+  _password="$(__read_password)"
+  #SCHTASKS.exe '/create' '/SC' 'DAILY' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "00:$_randomminute" '/RU' "$_myname" '/RP' "$_password" '/TR' "$_winbash -l -c '$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry'" >/dev/null
+  echo SCHTASKS.exe '/create' '/SC' 'DAILY' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "00:$_randomminute" '/RU' "$_myname" '/RP' "$_password" '/TR' "\"$_winbash -l -c '$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry'\"" | cmd.exe >/dev/null
+  echo
+
+}
+
+_uninstall_win_taskscheduler() {
+  if ! _exists schtasks; then
+    _err "schtasks.exe is not found, are you on Windows?"
+    return 1
+  fi
+  if ! echo SCHTASKS /query /tn "$_WINDOWS_SCHEDULER_NAME" | cmd.exe >/dev/null; then
+    _debug "scheduler $_WINDOWS_SCHEDULER_NAME is not found."
+  else
+    _info "Removing $_WINDOWS_SCHEDULER_NAME"
+    echo SCHTASKS /delete /f /tn "$_WINDOWS_SCHEDULER_NAME" | cmd.exe >/dev/null
+  fi
+}
+
 #confighome
 installcronjob() {
   _c_home="$1"
   _initpath
   _CRONTAB="crontab"
+  if [ -f "$LE_WORKING_DIR/$PROJECT_ENTRY" ]; then
+    lesh="\"$LE_WORKING_DIR\"/$PROJECT_ENTRY"
+  else
+    _err "Can not install cronjob, $PROJECT_ENTRY not found."
+    return 1
+  fi
+  if [ "$_c_home" ]; then
+    _c_entry="--config-home \"$_c_home\" "
+  fi
+  _t=$(_time)
+  random_minute=$(_math $_t % 60)
+
   if ! _exists "$_CRONTAB" && _exists "fcrontab"; then
     _CRONTAB="fcrontab"
   fi
+
   if ! _exists "$_CRONTAB"; then
+    if _exists cygpath && _exists schtasks.exe; then
+      _info "It seems you are on Windows,  let's install Windows scheduler task."
+      if _install_win_taskscheduler "$lesh" "$_c_entry" "$random_minute"; then
+        _info "Install Windows scheduler task success."
+        return 0
+      else
+        _err "Install Windows scheduler task failed."
+        return 1
+      fi
+    fi
     _err "crontab/fcrontab doesn't exist, so, we can not install cron jobs."
     _err "All your certs will not be renewed automatically."
     _err "You must add your own cron job to call '$PROJECT_ENTRY --cron' everyday."
     return 1
   fi
-
   _info "Installing cron job"
   if ! $_CRONTAB -l | grep "$PROJECT_ENTRY --cron"; then
-    if [ -f "$LE_WORKING_DIR/$PROJECT_ENTRY" ]; then
-      lesh="\"$LE_WORKING_DIR\"/$PROJECT_ENTRY"
-    else
-      _err "Can not install cronjob, $PROJECT_ENTRY not found."
-      return 1
-    fi
-
-    if [ "$_c_home" ]; then
-      _c_entry="--config-home \"$_c_home\" "
-    fi
-    _t=$(_time)
-    random_minute=$(_math $_t % 60)
     if _exists uname && uname -a | grep SunOS >/dev/null; then
       $_CRONTAB -l | {
         cat
@@ -4979,6 +5054,16 @@ uninstallcronjob() {
   fi
 
   if ! _exists "$_CRONTAB"; then
+    if _exists cygpath && _exists schtasks.exe; then
+      _info "It seems you are on Windows,  let's uninstall Windows scheduler task."
+      if _uninstall_win_taskscheduler; then
+        _info "Uninstall Windows scheduler task success."
+        return 0
+      else
+        _err "Uninstall Windows scheduler task failed."
+        return 1
+      fi
+    fi
     return
   fi
   _info "Removing cron job"
@@ -5306,13 +5391,17 @@ _precheck() {
 
   if [ -z "$_nocron" ]; then
     if ! _exists "crontab" && ! _exists "fcrontab"; then
-      _err "It is recommended to install crontab first. try to install 'cron, crontab, crontabs or vixie-cron'."
-      _err "We need to set cron job to renew the certs automatically."
-      _err "Otherwise, your certs will not be able to be renewed automatically."
-      if [ -z "$FORCE" ]; then
-        _err "Please add '--force' and try install again to go without crontab."
-        _err "./$PROJECT_ENTRY --install --force"
-        return 1
+      if _exists cygpath && _exists schtasks.exe; then
+        _info "It seems you are on Windows,  we will install Windows scheduler task."
+      else
+        _err "It is recommended to install crontab first. try to install 'cron, crontab, crontabs or vixie-cron'."
+        _err "We need to set cron job to renew the certs automatically."
+        _err "Otherwise, your certs will not be able to be renewed automatically."
+        if [ -z "$FORCE" ]; then
+          _err "Please add '--force' and try install again to go without crontab."
+          _err "./$PROJECT_ENTRY --install --force"
+          return 1
+        fi
       fi
     fi
   fi
