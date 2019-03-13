@@ -28,6 +28,7 @@ dns_hostingde_rm() {
 
 _hostingde_apiKey() {
   HOSTINGDE_APIKEY="${HOSTINGDE_APIKEY:-$(_readaccountconf_mutable HOSTINGDE_APIKEY)}"
+  HOSTINGDE_ENDPOINT="${HOSTINGDE_ENDPOINT:-$(_readaccountconf_mutable HOSTINGDE_ENDPOINT)}"
   if [ -z "$HOSTINGDE_APIKEY" ] || [ -z "$HOSTINGDE_ENDPOINT" ]; then
     HOSTINGDE_APIKEY=""
     HOSTINGDE_ENDPOINT=""
