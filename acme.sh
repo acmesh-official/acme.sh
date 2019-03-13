@@ -19,8 +19,8 @@ LETSENCRYPT_STAGING_CA_V1="https://acme-staging.api.letsencrypt.org/directory"
 LETSENCRYPT_CA_V2="https://acme-v02.api.letsencrypt.org/directory"
 LETSENCRYPT_STAGING_CA_V2="https://acme-staging-v02.api.letsencrypt.org/directory"
 
-DEFAULT_CA=$LETSENCRYPT_CA_V1
-DEFAULT_STAGING_CA=$LETSENCRYPT_STAGING_CA_V1
+DEFAULT_CA=$LETSENCRYPT_CA_V2
+DEFAULT_STAGING_CA=$LETSENCRYPT_STAGING_CA_V2
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 DEFAULT_ACCOUNT_EMAIL=""
@@ -1974,7 +1974,7 @@ _save_conf() {
   _sdkey="$2"
   _sdvalue="$3"
   _b64encode="$4"
-  if [ "$_b64encode" ]; then
+  if [ "$_sdvalue" ] && [ "$_b64encode" ]; then
     _sdvalue="${B64CONF_START}$(printf "%s" "${_sdvalue}" | _base64)${B64CONF_END}"
   fi
   if [ "$_s_c_f" ]; then
@@ -3665,8 +3665,12 @@ issue() {
     _cleardomainconf "Le_ChallengeAlias"
   fi
 
-  Le_API="$ACME_DIRECTORY"
-  _savedomainconf "Le_API" "$Le_API"
+  if [ "$ACME_DIRECTORY" != "$DEFAULT_CA" ]; then
+    Le_API="$ACME_DIRECTORY"
+    _savedomainconf "Le_API" "$Le_API"
+  else
+    _cleardomainconf Le_API
+  fi
 
   if [ "$_alt_domains" = "$NO_VALUE" ]; then
     _alt_domains=""
@@ -4500,6 +4504,16 @@ renew() {
 
   . "$DOMAIN_CONF"
   _debug Le_API "$Le_API"
+
+  if [ "$Le_API" = "$LETSENCRYPT_CA_V1" ]; then
+    _cleardomainconf Le_API
+    Le_API="$DEFAULT_CA"
+  fi
+  if [ "$Le_API" = "$LETSENCRYPT_STAGING_CA_V1" ]; then
+    _cleardomainconf Le_API
+    Le_API="$DEFAULT_STAGING_CA"
+  fi
+
   if [ "$Le_API" ]; then
     if [ "$_OLD_CA_HOST" = "$Le_API" ]; then
       export Le_API="$DEFAULT_CA"

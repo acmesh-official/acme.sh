@@ -1296,7 +1296,21 @@ acme.sh --issue --dns dns_cn -d example.com -d www.example.com
 
 The `CN_User` and `CN_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
-## 68. Use OpenProvider API
+## 68. Use NederHost API
+
+Create an API token in Mijn NederHost.
+
+Set your API key:
+```
+export NederHost_Key='xxx'
+```
+
+To issue a certificate run:
+```
+acme.sh --issue --dns dns_nederhost -d example.com -d *.example.com
+```
+
+## 69. Use OpenProvider API
 
 First, you need to enable API access and retrieve your password hash on https://rcp.openprovider.eu/account/dashboard.php
 

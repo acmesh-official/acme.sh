@@ -69,7 +69,7 @@ dns_cn_rm() {
   curData="{\"name\":\"$_sub_domain\",\"data\":\"$txtvalue\"}"
   curResult="$(_post "${curData}" "${CN_API}/dnszones/${_domain}/records/delete")"
   _debug curData is "$curData"
-  
+
   _info "commiting changes"
   if ! _cn_commit; then
     _err "commiting changes failed"
@@ -132,7 +132,7 @@ _cn_get_root() {
       #not valid
       return 1
     fi
-    
+
     _cn_zonelist="$(_get ${CN_API}/dnszones/)"
     _debug _cn_zonelist "${_cn_zonelist}"
 
