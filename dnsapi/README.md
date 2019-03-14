@@ -1310,7 +1310,24 @@ To issue a certificate run:
 acme.sh --issue --dns dns_nederhost -d example.com -d *.example.com
 ```
 
-## 69. Use UltraDNS API
+## 69. Use Zone.ee DNS API
+
+First, you'll need to retrive your API key. Estonian insructions https://help.zone.eu/kb/zoneid-api-v2/
+
+```
+export ZONE_Username=yourusername
+export ZONE_Key=keygoeshere
+```
+
+To issue a cert run:
+
+```
+acme.sh --issue -d example.com -d www.example.com --dns dns_zone
+```
+
+`ZONE_Username` and `ZONE_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 70. Use UltraDNS API
 
 UltraDNS is a paid for service that provides DNS, as well as Web and Mail forwarding (as well as reporting, auditing, and advanced tools).
 
@@ -1325,11 +1342,9 @@ https://portal.ultradns.com/ - or if you create an API only user, that username 
 ```
 export ULTRA_USR="abcd"
 export ULTRA_PWD="efgh"
-```
 
 To issue a cert run:
 
-```
 acme.sh --issue --dns dns_ultra -d example.com -d www.example.com
 ```
 
