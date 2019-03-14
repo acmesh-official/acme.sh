@@ -1310,6 +1310,22 @@ To issue a certificate run:
 acme.sh --issue --dns dns_nederhost -d example.com -d *.example.com
 ```
 
+## 69. Use Zone.ee DNS API
+
+First, you'll need to retrive your API key. Estonian insructions https://help.zone.eu/kb/zoneid-api-v2/
+
+```
+export ZONE_Username=yourusername
+export ZONE_Key=keygoeshere
+```
+
+To issue a cert run:
+
+```
+acme.sh --issue -d example.com -d www.example.com --dns dns_zone
+```
+
+`ZONE_Username` and `ZONE_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
