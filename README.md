@@ -360,6 +360,8 @@ You don't have to do anything manually!
 1. MyDevil.net (https://www.mydevil.net/)
 1. Core-Networks.de (https://core-networks.de)
 1. NederHost API (https://www.nederhost.nl/)
+1. Zone.ee (zone.eu) API (https://api.zone.eu/v2)
+1. UltraDNS API (https://portal.ultradns.com)
 
 And:
 
