@@ -29,7 +29,8 @@ dns_namecom_add() {
     _err "Please specify that in your environment variable."
     return 1
   fi
-
+  _debug Namecom_Username "$Namecom_Username"
+  _secure_debug Namecom_Token "$Namecom_Token"
   # Save them in configuration.
   _saveaccountconf_mutable Namecom_Username "$Namecom_Username"
   _saveaccountconf_mutable Namecom_Token "$Namecom_Token"
