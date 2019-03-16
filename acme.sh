@@ -3931,21 +3931,21 @@ $_authorizations_map"
           else
             txtdomain="_acme-challenge.$_d_alias"
           fi
-          dns_entries="${dns_entries}${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$txtdomain$dvsep$_currentRoot"
+          dns_entry="${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$txtdomain$dvsep$_currentRoot"
         else
           txtdomain="_acme-challenge.$_dns_root_d"
-          dns_entries="${dns_entries}${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$dvsep$_currentRoot"
+          dns_entry="${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$dvsep$_currentRoot"
         fi
+
         _debug txtdomain "$txtdomain"
         txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
         _debug txt "$txt"
 
         d_api="$(_findHook "$_dns_root_d" dnsapi "$_currentRoot")"
-
         _debug d_api "$d_api"
-        dns_entries="$dns_entries$dvsep$txt${dvsep}$d_api
-"
-        _debug2 "$dns_entries"
+
+        dns_entry="$dns_entry$dvsep$txt${dvsep}$d_api"
+        _debug2 dns_entry "$dns_entry"
         if [ "$d_api" ]; then
           _info "Found domain api file: $d_api"
         else
@@ -3984,6 +3984,9 @@ $_authorizations_map"
           _clearup
           return 1
         fi
+        dns_entries="$dns_entries$dns_entry
+"
+        _debug2 "$dns_entries"
         dnsadded='1'
       fi
     done
