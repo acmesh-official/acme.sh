@@ -130,6 +130,8 @@ _namecom_login() {
     if [ "$retcode" ]; then
       _info "Successfully logged in."
     else
+      _err "$response"
+      _err "Please add your ip to api whitelist"
       _err "Logging in failed."
       return 1
     fi
