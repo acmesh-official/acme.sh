@@ -1310,18 +1310,54 @@ To issue a certificate run:
 acme.sh --issue --dns dns_nederhost -d example.com -d *.example.com
 ```
 
-## 69. Use OpenProvider API
+## 69. Use Zone.ee DNS API
+
+First, you'll need to retrive your API key. Estonian insructions https://help.zone.eu/kb/zoneid-api-v2/
+
+```
+export ZONE_Username=yourusername
+export ZONE_Key=keygoeshere
+```
+
+To issue a cert run:
+
+```
+acme.sh --issue -d example.com -d www.example.com --dns dns_zone
+```
+
+`ZONE_Username` and `ZONE_Key` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
+
+## 70. Use UltraDNS API
+
+UltraDNS is a paid for service that provides DNS, as well as Web and Mail forwarding (as well as reporting, auditing, and advanced tools).
+
+More information can be found here: https://www.security.neustar/lp/ultra20/index.html
+
+The REST API documentation for this service is found here: https://portal.ultradns.com/static/docs/REST-API_User_Guide.pdf 
+
+Set your UltraDNS User name, and password; these would be the same you would use here:
+
+https://portal.ultradns.com/ - or if you create an API only user, that username and password would be better utilized.
+
+```
+export ULTRA_USR="abcd"
+export ULTRA_PWD="efgh"
+
+To issue a cert run:
+
+acme.sh --issue --dns dns_ultra -d example.com -d www.example.com
+```
+
+`ULTRA_USR` and `ULTRA_PWD` will be saved in `~/.acme.sh/account.conf` and will be resued when needed.
+
+## 71. Use OpenProvider API
 
 First, you need to enable API access and retrieve your password hash on https://rcp.openprovider.eu/account/dashboard.php
 
 ```
 export OPENPROVIDER_USER='username'
 export OPENPROVIDER_PASSWORDHASH='xxx'
-```
 
-To issue a cert run:
-
-```
 acme.sh --issue --dns dns_openprovider -d example.com -d www.example.com
 ```
 
