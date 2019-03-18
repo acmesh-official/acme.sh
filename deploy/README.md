@@ -391,3 +391,23 @@ acme.sh --deploy --deploy-hook mydevil -d example.com
 ```
 
 That will remove old certificate and install new one.
+
+## 15. Deploy the cert to nuster
+
+You must specify the path where you want the concatenated key and certificate chain written.
+```sh
+export DEPLOY_NUSTER_PEM_PATH=/etc/nuster
+```
+
+You may optionally define the command to reload nuster. The value shown below will be used as the default if you don't set this environment variable.
+
+```sh
+export DEPLOY_NUSTER_RELOAD="/usr/sbin/service nuster restart"
+```
+
+You can then deploy the certificate as follows
+```sh
+acme.sh --deploy -d nuster.example.com --deploy-hook nuster
+```
+
+The path for the PEM file will be stored with the domain configuration and will be available when renewing, so that deploy will happen automatically when renewed.
