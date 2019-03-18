@@ -50,7 +50,7 @@ dns_openprovider_add() {
 
     items="$response"
     while true; do
-      item="$(printf '%s' "$items" | _egrep_o '<openXML>.*<\/openXML>' | sed -n -E 's/.*(<item>.*<\/item>).*/\1/p')"
+      item="$(echo "$items" | _egrep_o '<openXML>.*<\/openXML>' | sed -n 's/.*\(<item>.*<\/item>\).*/\1/p')"
       _debug existing_items "$existing_items"
       _debug results_retrieved "$results_retrieved"
       _debug item "$item"
@@ -59,24 +59,24 @@ dns_openprovider_add() {
         break
       fi
 
-      items="$(printf '%s' "$items" | sed "s$item")"
+      items="$(echo "$items" | sed "s|${item}||")"
 
-      results_retrieved=$((results_retrieved + 1))
-      new_item="$(printf '%s' "$item" | sed -n -E "s/.*<item>.*(<name>(.*)\.$_domain_name\.$_domain_extension<\/name>.*(<type>.*<\/type>).*(<value>.*<\/value>).*(<prio>.*<\/prio>).*(<ttl>.*<\/ttl>)).*<\/item>.*/<item><name>\2<\/name>\3\4\5\6<\/item>/p")"
+      results_retrieved="$(_math "$results_retrieved" + 1)"
+      new_item="$(echo "$item" | sed -n 's/.*<item>.*\(<name>\(.*\)\.'"$_domain_name"'\.'"$_domain_extension"'<\/name>.*\(<type>.*<\/type>\).*\(<value>.*<\/value>\).*\(<prio>.*<\/prio>\).*\(<ttl>.*<\/ttl>\)\).*<\/item>.*/<item><name>\2<\/name>\3\4\5\6<\/item>/p')"
       if [ -z "$new_item" ]; then
         # Base record
-        new_item="$(printf '%s' "$item" | sed -n -E "s/.*<item>.*(<name>(.*)$_domain_name\.$_domain_extension<\/name>.*(<type>.*<\/type>).*(<value>.*<\/value>).*(<prio>.*<\/prio>).*(<ttl>.*<\/ttl>)).*<\/item>.*/<item><name>\2<\/name>\3\4\5\6<\/item>/p")"
+        new_item="$(echo "$item" | sed -n 's/.*<item>.*\(<name>\(.*\)'"$_domain_name"'\.'"$_domain_extension"'<\/name>.*\(<type>.*<\/type>\).*\(<value>.*<\/value>\).*\(<prio>.*<\/prio>\).*\(<ttl>.*<\/ttl>\)\).*<\/item>.*/<item><name>\2<\/name>\3\4\5\6<\/item>/p')"
       fi
 
-      if [ -z "$(printf '%s' "$new_item" | _egrep_o ".*<type>(A|AAAA|CNAME|MX|SPF|SRV|TXT|TLSA|SSHFP|CAA)<\/type>.*")" ]; then
+      if [ -z "$(echo "$new_item" | _egrep_o ".*<type>(A|AAAA|CNAME|MX|SPF|SRV|TXT|TLSA|SSHFP|CAA)<\/type>.*")" ]; then
         _debug "not an allowed record type, skipping" "$new_item"
         continue
       fi
 
-      existing_items="$(printf '%s%s' "$existing_items" "$new_item")"
+      existing_items="$existing_items$new_item"
     done
 
-    total="$(printf '%s' "$response" | _egrep_o '<total>.*?<\/total>' | sed -n -E 's/.*<total>(.*)<\/total>.*/\1/p')"
+    total="$(echo "$response" | _egrep_o '<total>.*?<\/total>' | sed -n 's/.*<total>\(.*\)<\/total>.*/\1/p')"
 
     _debug total "$total"
     if [ "$results_retrieved" -eq "$total" ]; then
@@ -85,7 +85,7 @@ dns_openprovider_add() {
   done
 
   _debug "Creating acme record"
-  acme_record="$(printf '%s' "$fulldomain" | sed -e "s/.$_domain_name.$_domain_extension$//")"
+  acme_record="$(echo "$fulldomain" | sed -e "s/.$_domain_name.$_domain_extension$//")"
   _openprovider_request "$(printf '<modifyZoneDnsRequest><domain><name>%s</name><extension>%s</extension></domain><type>master</type><records><array>%s<item><name>%s</name><type>TXT</type><value>%s</value><ttl>86400</ttl></item></array></records></modifyZoneDnsRequest>' "$_domain_name" "$_domain_extension" "$existing_items" "$acme_record" "$txtvalue")"
 
   return 0
@@ -127,7 +127,7 @@ dns_openprovider_rm() {
     # Remove acme records from items
     items="$response"
     while true; do
-      item="$(printf '%s' "$items" | _egrep_o '<openXML>.*<\/openXML>' | sed -n -E 's/.*(<item>.*<\/item>).*/\1/p')"
+      item="$(echo "$items" | _egrep_o '<openXML>.*<\/openXML>' | sed -n 's/.*\(<item>.*<\/item>\).*/\1/p')"
       _debug existing_items "$existing_items"
       _debug results_retrieved "$results_retrieved"
       _debug item "$item"
@@ -136,30 +136,30 @@ dns_openprovider_rm() {
         break
       fi
 
-      items="$(printf '%s' "$items" | sed "s$item")"
+      items="$(echo "$items" | sed "s|${item}||")"
 
-      results_retrieved=$((results_retrieved + 1))
-      if ! printf '%s' "$item" | grep -v "$fulldomain"; then
+      results_retrieved="$(_math "$results_retrieved" + 1)"
+      if ! echo "$item" | grep -v "$fulldomain"; then
         _debug "acme record, skipping" "$item"
         continue
       fi
 
-      new_item="$(printf '%s' "$item" | sed -n -E "s/.*<item>.*(<name>(.*)\.$_domain_name\.$_domain_extension<\/name>.*(<type>.*<\/type>).*(<value>.*<\/value>).*(<prio>.*<\/prio>).*(<ttl>.*<\/ttl>)).*<\/item>.*/<item><name>\2<\/name>\3\4\5\6<\/item>/p")"
+      new_item="$(echo "$item" | sed -n 's/.*<item>.*\(<name>\(.*\)\.'"$_domain_name"'\.'"$_domain_extension"'<\/name>.*\(<type>.*<\/type>\).*\(<value>.*<\/value>\).*\(<prio>.*<\/prio>\).*\(<ttl>.*<\/ttl>\)\).*<\/item>.*/<item><name>\2<\/name>\3\4\5\6<\/item>/p')"
 
       if [ -z "$new_item" ]; then
         # Base record
-        new_item="$(printf '%s' "$item" | sed -n -E "s/.*<item>.*(<name>(.*)$_domain_name\.$_domain_extension<\/name>.*(<type>.*<\/type>).*(<value>.*<\/value>).*(<prio>.*<\/prio>).*(<ttl>.*<\/ttl>)).*<\/item>.*/<item><name>\2<\/name>\3\4\5\6<\/item>/p")"
+        new_item="$(echo "$item" | sed -n 's/.*<item>.*\(<name>\(.*\)'"$_domain_name"'\.'"$_domain_extension"'<\/name>.*\(<type>.*<\/type>\).*\(<value>.*<\/value>\).*\(<prio>.*<\/prio>\).*\(<ttl>.*<\/ttl>\)\).*<\/item>.*/<item><name>\2<\/name>\3\4\5\6<\/item>/p')"
       fi
 
-      if [ -z "$(printf '%s' "$new_item" | _egrep_o ".*<type>(A|AAAA|CNAME|MX|SPF|SRV|TXT|TLSA|SSHFP|CAA)<\/type>.*")" ]; then
+      if [ -z "$(echo "$new_item" | _egrep_o ".*<type>(A|AAAA|CNAME|MX|SPF|SRV|TXT|TLSA|SSHFP|CAA)<\/type>.*")" ]; then
         _debug "not an allowed record type, skipping" "$new_item"
         continue
       fi
 
-      existing_items="$(printf '%s%s' "$existing_items" "$new_item")"
+      existing_items="$existing_items$new_item"
     done
 
-    total="$(printf '%s' "$response" | _egrep_o '<total>.*?<\/total>' | sed -n -E 's/.*<total>(.*)<\/total>.*/\1/p')"
+    total="$(echo "$response" | _egrep_o '<total>.*?<\/total>' | sed -n 's/.*<total>\(.*\)<\/total>.*/\1/p')"
 
     _debug total "$total"
 
@@ -185,18 +185,18 @@ _get_root() {
 
   results_retrieved=0
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(echo "$domain" | cut -d . -f $i-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
       return 1
     fi
 
-    _openprovider_request "$(printf '<searchDomainRequest><domainNamePattern>%s</domainNamePattern><offset>%s</offset></searchDomainRequest>' "$(printf "%s" "$h" | cut -d . -f 1)" "$results_retrieved")"
+    _openprovider_request "$(printf '<searchDomainRequest><domainNamePattern>%s</domainNamePattern><offset>%s</offset></searchDomainRequest>' "$(echo "$h" | cut -d . -f 1)" "$results_retrieved")"
 
     items="$response"
     while true; do
-      item="$(printf '%s' "$items" | _egrep_o '<openXML>.*<\/openXML>' | sed -n -E 's/.*(<domain>.*<\/domain>).*/\1/p')"
+      item="$(echo "$items" | _egrep_o '<openXML>.*<\/openXML>' | sed -n 's/.*\(<domain>.*<\/domain>\).*/\1/p')"
       _debug existing_items "$existing_items"
       _debug results_retrieved "$results_retrieved"
       _debug item "$item"
@@ -205,26 +205,26 @@ _get_root() {
         break
       fi
 
-      items="$(printf '%s' "$items" | sed "s$item")"
+      items="$(echo "$items" | sed "s|${item}||")"
 
-      results_retrieved=$((results_retrieved + 1))
+      results_retrieved="$(_math "$results_retrieved" + 1)"
 
-      _domain_name="$(printf "%s" "$item" | sed -n -E 's/.*<domain>.*<name>(.*)<\/name>.*<\/domain>.*/\1/p')"
-      _domain_extension="$(printf "%s" "$item" | sed -n -E 's/.*<domain>.*<extension>(.*)<\/extension>.*<\/domain>.*/\1/p')"
+      _domain_name="$(echo "$item" | sed -n 's/.*<domain>.*<name>\(.*\)<\/name>.*<\/domain>.*/\1/p')"
+      _domain_extension="$(echo "$item" | sed -n 's/.*<domain>.*<extension>\(.*\)<\/extension>.*<\/domain>.*/\1/p')"
       _debug _domain_name "$_domain_name"
       _debug _domain_extension "$_domain_extension"
-      if [ "$(printf "%s.%s" "$_domain_name" "$_domain_extension")" = "$h" ]; then
+      if [ "$_domain_name.$_domain_extension" = "$h" ]; then
         return 0
       fi
     done
 
-    total="$(printf '%s' "$response" | _egrep_o '<total>.*?<\/total>' | sed -n -E 's/.*<total>(.*)<\/total>.*/\1/p')"
+    total="$(echo "$response" | _egrep_o '<total>.*?<\/total>' | sed -n 's/.*<total>\(.*\)<\/total>.*/\1/p')"
 
     _debug total "$total"
 
     if [ "$results_retrieved" -eq "$total" ]; then
       results_retrieved=0
-      i=$(_math "$i" + 1)
+      i="$(_math "$i" + 1)"
     fi
   done
   return 1
@@ -233,9 +233,9 @@ _get_root() {
 _openprovider_request() {
   request_xml=$1
 
-  xml_prefix=$(printf '<?xml version="1.0" encoding="UTF-8"?>')
+  xml_prefix=$(echo '<?xml version="1.0" encoding="UTF-8"?>')
   xml_content=$(printf '<openXML><credentials><username>%s</username><hash>%s</hash></credentials>%s</openXML>' "$OPENPROVIDER_USER" "$OPENPROVIDER_PASSWORDHASH" "$request_xml")
-  response="$(_post "$(printf "%s%s" "$xml_prefix" "$xml_content" | tr -d '\n')" "$OPENPROVIDER_API" "" "POST" "application/xml")"
+  response="$(_post "$(echo "$xml_prefix$xml_content" | tr -d '\n')" "$OPENPROVIDER_API" "" "POST" "application/xml")"
   _debug response "$response"
   if ! _contains "$response" "<openXML><reply><code>0</code>.*</reply></openXML>"; then
     _err "API request failed."
