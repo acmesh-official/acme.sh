@@ -233,7 +233,7 @@ _get_root() {
 _openprovider_request() {
   request_xml=$1
 
-  xml_prefix=$(echo '<?xml version="1.0" encoding="UTF-8"?>')
+  xml_prefix='<?xml version="1.0" encoding="UTF-8"?>'
   xml_content=$(printf '<openXML><credentials><username>%s</username><hash>%s</hash></credentials>%s</openXML>' "$OPENPROVIDER_USER" "$OPENPROVIDER_PASSWORDHASH" "$request_xml")
   response="$(_post "$(echo "$xml_prefix$xml_content" | tr -d '\n')" "$OPENPROVIDER_API" "" "POST" "application/xml")"
   _debug response "$response"
