@@ -137,7 +137,7 @@ _mypost() {
 
 _get_domain() {
   _myget 'action=dns_primarydns'
-  _domains=$(echo "$_result" | _egrep_o ' domain="[[:alnum:].-_]+' | sed 's/^.*"//')
+  _domains=$(echo "$_result" | _egrep_o ' domain="[[:alnum:]._-]+' | sed 's/^.*"//')
   if [ -z "$_domains" ]; then
     _err "Primary domain list not found!"
     return 1
