@@ -23,14 +23,14 @@ mailcow_deploy() {
   _mailcow_path="${DEPLOY_MAILCOW_PATH}"
 
   if [ -z "$_mailcow_path" ]; then
-      _err "Mailcow path is not found, please define DEPLOY_MAILCOW_PATH."
-      return 1
+    _err "Mailcow path is not found, please define DEPLOY_MAILCOW_PATH."
+    return 1
   fi
 
   _ssl_path="${_mailcow_path}/data/assets/ssl/"
   if [ ! -d "$_ssl_path" ]; then
-      _err "Cannot find mailcow ssl path: $_ssl_path"
-      return 1
+    _err "Cannot find mailcow ssl path: $_ssl_path"
+    return 1
   fi
 
   _info "Copying key and cert"
