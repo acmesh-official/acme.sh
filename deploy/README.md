@@ -391,3 +391,23 @@ acme.sh --deploy --deploy-hook mydevil -d example.com
 ```
 
 That will remove old certificate and install new one.
+
+## 15. Deploy your cert to local mailcow server
+
+You can install your certificates to a local [mailcow](https://github.com/mailcow/mailcow-dockerized/) instance. The
+deploy hook will copy the certificates and reload the containers, that use the certificates (`postfix-mailcow`
+`dovecot-mailcow` and `nginx-mailcow`).
+
+```sh
+$ export DEPLOY_MAILCOW_PATH="/path/to/mailcow"
+$ acme.sh --deploy -d example.com --deploy-hook mailcow
+```
+
+The default command to restart is `docker-compose restart postfix-mailcow dovecot-mailcow nginx-mailcow`, if you want a
+custom restart command, specify it by setting `DEPLOY_MAILCOW_RELOAD`:
+
+```sh
+$ export DEPLOY_MAILCOW_PATH="/path/to/mailcow"
+$ export DEPLOY_MAILCOW_RELOAD="docker-compose restart"
+$ acme.sh --deploy -d example.com --deploy-hook mailcow
+```
