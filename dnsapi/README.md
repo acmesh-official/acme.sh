@@ -1157,7 +1157,7 @@ The `ACTIVE24_Token` will be saved in `~/.acme.sh/account.conf` and will be reus
 
 ## 60. Use do.de API
 
-Create an API token in your do.de account.
+Create an API token in your do.de account ([Create token here](https://www.do.de/account/letsencrypt/) | [Documentation](https://www.do.de/wiki/LetsEncrypt_-_Entwickler)).
 
 Set your API token:
 ```
