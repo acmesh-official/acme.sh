@@ -20,8 +20,15 @@ mailcow_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  _ssl_path="${DEPLOY_MAILCOW_PATH}/data/assets/ssl/"
-  if [ ! -d "$_ssl_path"; ] then
+  _mailcow_path="${DEPLOY_MAILCOW_PATH}"
+
+  if [ -z "$_mailcow_path" ]; then
+      _err "Mailcow path is not found, please define DEPLOY_MAILCOW_PATH."
+      return 1
+  fi
+
+  _ssl_path="${_mailcow_path}/data/assets/ssl/"
+  if [ ! -d "$_ssl_path" ]; then
       _err "Cannot find mailcow ssl path: $_ssl_path"
       return 1
   fi
@@ -39,7 +46,7 @@ mailcow_deploy() {
     return 1
   fi
 
-  DEFAULT_MAILCOW_RELOAD="docker-compose restart postfix-mailcow dovecot-mailcow nginx-mailcow"
+  DEFAULT_MAILCOW_RELOAD="cd ${_mailcow_path} && docker-compose restart postfix-mailcow dovecot-mailcow nginx-mailcow"
   _reload="${DEPLOY_MAILCOW_RELOAD:-$DEFAULT_MAILCOW_RELOAD}"
 
   _info "Run reload: $_reload"
