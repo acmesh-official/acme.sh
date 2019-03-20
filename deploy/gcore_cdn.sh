@@ -65,7 +65,7 @@ gcore_cdn_deploy() {
   _debug _response "$_response"
   _token=$(echo "$_response" | jq -r '.token')
   _debug _token "$_token"
-  
+
   if [ "$_token" = "null" ]; then
     _err "Error G-Core Labs API authorization"
     return 1
@@ -97,7 +97,7 @@ gcore_cdn_deploy() {
   _sslDataAdd=$(echo "$_response" | jq -r '.id')
   _debug _sslDataAdd "$_sslDataAdd"
 
-  if [ "$_sslDataAdd" == "null" ]; then
+  if [ "$_sslDataAdd" = "null" ]; then
     _err "Error new SSL certificate add"
     return 1
   fi
