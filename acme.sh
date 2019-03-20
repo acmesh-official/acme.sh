@@ -3750,7 +3750,8 @@ issue() {
         _on_issue_err "$_post_hook"
         return 1
       fi
-
+      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
+      _debug Le_LinkOrder "$Le_LinkOrder"
       Le_OrderFinalize="$(echo "$response" | _egrep_o '"finalize" *: *"[^"]*"' | cut -d '"' -f 4)"
       _debug Le_OrderFinalize "$Le_OrderFinalize"
       if [ -z "$Le_OrderFinalize" ]; then
@@ -4249,13 +4250,10 @@ $_authorizations_map"
       _on_issue_err "$_post_hook"
       return 1
     fi
-    Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
     if [ -z "$Le_LinkOrder" ]; then
-      _err "Sign error, can not get order link location header"
-      _err "responseHeaders" "$responseHeaders"
-      _on_issue_err "$_post_hook"
-      return 1
+      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
     fi
+
     _savedomainconf "Le_LinkOrder" "$Le_LinkOrder"
 
     _link_cert_retry=0
@@ -4281,6 +4279,14 @@ $_authorizations_map"
         _on_issue_err "$_post_hook"
         return 1
       fi
+      #the order is processing, so we are going to poll order status
+      if [ -z "$Le_LinkOrder" ]; then
+        _err "Sign error, can not get order link location header"
+        _err "responseHeaders" "$responseHeaders"
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
+      _info "Polling order status: $Le_LinkOrder"
       if ! _send_signed_request "$Le_LinkOrder"; then
         _err "Sign failed, can not post to Le_LinkOrder cert:$Le_LinkOrder."
         _err "$response"
