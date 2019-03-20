@@ -8,6 +8,7 @@ RUN apk update -f \
   curl \
   socat \
   tzdata \
+  && apk add --no-cache -X http://dl-cdn.alpinelinux.org/alpine/edge/testing oath-toolkit-oathtool \
   && rm -rf /var/cache/apk/*
 
 ENV LE_CONFIG_HOME /acme.sh
