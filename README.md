@@ -294,7 +294,6 @@ You don't have to do anything manually!
 
 https://github.com/Neilpang/acme.sh/wiki/dnsapi
 
-
 # 9. Use DNS manual mode:
 
 See: https://github.com/Neilpang/acme.sh/wiki/dns-manual-mode first.
