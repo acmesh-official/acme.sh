@@ -392,9 +392,9 @@ acme.sh --deploy --deploy-hook mydevil -d example.com
 
 That will remove old certificate and install new one.
 
-## 15. Deploy the cert to G-Core CDN servise
+## 15. Deploy the cert to G-Core CDN service
 
-Deploy the cert to G-Core CDN servise (https://gcorelabs.com/ru/) using the G-Core Labs API (https://docs.gcorelabs.com/cdn/).
+Deploy the cert to G-Core CDN service (https://gcorelabs.com/ru/) using the G-Core Labs API (https://docs.gcorelabs.com/cdn/).
 Uses command line curl for send requests and jq for parse responses.
 
 Then you can deploy now:

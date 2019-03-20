@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-# Here is the script to deploy the cert to G-Core CDN servise (https://gcorelabs.com/ru/) using the G-Core Labs API (https://docs.gcorelabs.com/cdn/).
+# Here is the script to deploy the cert to G-Core CDN service (https://gcorelabs.com/ru/) using the G-Core Labs API (https://docs.gcorelabs.com/cdn/).
 # Uses command line curl for send requests and jq for parse responses.
 # Returns 0 when success.
 #
@@ -37,22 +37,20 @@ gcore_cdn_deploy() {
     if [ -z "$Le_Deploy_gcore_cdn_username" ]; then
       _err "Please define the target username: export DEPLOY_GCORE_CDN_USERNAME=username"
       return 1
-    else
-      DEPLOY_GCORE_CDN_USERNAME="$Le_Deploy_gcore_cdn_username"
     fi
   else
-  	_savedomainconf Le_Deploy_gcore_cdn_username "$DEPLOY_GCORE_CDN_USERNAME"
+    Le_Deploy_gcore_cdn_username="$DEPLOY_GCORE_CDN_USERNAME"
+    _savedomainconf Le_Deploy_gcore_cdn_username "$Le_Deploy_gcore_cdn_username"
   fi
 
   if [ -z "$DEPLOY_GCORE_CDN_PASSWORD" ]; then
     if [ -z "$Le_Deploy_gcore_cdn_password" ]; then
       _err "Please define the target password: export DEPLOY_GCORE_CDN_PASSWORD=password"
       return 1
-    else
-      DEPLOY_GCORE_CDN_PASSWORD="$Le_Deploy_gcore_cdn_password"
     fi
   else
-  	_savedomainconf Le_Deploy_gcore_cdn_password "$DEPLOY_GCORE_CDN_PASSWORD"
+    Le_Deploy_gcore_cdn_password="$DEPLOY_GCORE_CDN_PASSWORD"
+    _savedomainconf Le_Deploy_gcore_cdn_password "$Le_Deploy_gcore_cdn_password"
   fi
 
   if ! [ -x "$(command -v jq)" ]; then
@@ -61,14 +59,14 @@ gcore_cdn_deploy() {
   fi
 
   _info "Get authorization token"
-  _request="{ \"username\": \"$DEPLOY_GCORE_CDN_USERNAME\", \"password\": \"$DEPLOY_GCORE_CDN_PASSWORD\" }"
+  _request="{ \"username\": \"$Le_Deploy_gcore_cdn_username\", \"password\": \"$Le_Deploy_gcore_cdn_password\" }"
   _debug _request "$_request"
   _response=$(curl -s -X POST https://api.gcdn.co/auth/signin -H "Content-Type:application/json" -d "$_request")
   _debug _response "$_response"
   _token=$(echo "$_response" | jq -r '.token')
   _debug _token "$_token"
   
-  if [ "$_token" == "null" ]; then
+  if [ "$_token" = "null" ]; then
     _err "Error G-Core Labs API authorization"
     return 1
   fi
@@ -85,7 +83,7 @@ gcore_cdn_deploy() {
   _debug _sslDataOld "$_sslDataOld"
   _debug _originGroup "$_originGroup"
 
-  if [ -z "$_resourceId" ] || [ "$_resourceId" == "null" ] || [ -z "$_originGroup" ] || [ "$_originGroup" == "null" ]; then
+  if [ -z "$_resourceId" ] || [ "$_resourceId" = "null" ] || [ -z "$_originGroup" ] || [ "$_originGroup" = "null" ]; then
     _err "Not found CDN resource with cname $_cdomain"
     return 1
   fi
@@ -107,7 +105,7 @@ gcore_cdn_deploy() {
   _info "Update CDN resource"
   _request="{ \"originGroup\": $_originGroup, \"sslData\": $_sslDataAdd }"
   _debug _request "$_request"
-  _response=$(curl -s -X PUT https://api.gcdn.co/resources/$_resourceId -H "Content-Type:application/json" -H "Authorization:Token $_token" -d "$_request")
+  _response=$(curl -s -X PUT "https://api.gcdn.co/resources/$_resourceId" -H "Content-Type:application/json" -H "Authorization:Token $_token" -d "$_request")
   _debug _response "$_response"
   _sslDataNew=$(echo "$_response" | jq -r '.sslData')
   _debug _sslDataNew "$_sslDataNew"
@@ -118,10 +116,10 @@ gcore_cdn_deploy() {
   fi
 
   if [ -z "$_sslDataOld" ] || [ "$_sslDataOld" = "null" ]; then
-  	_info "Not found old SSL certificate"
+    _info "Not found old SSL certificate"
   else
     _info "Delete old SSL certificate"
-    _response=$(curl -s -X DELETE https://api.gcdn.co/sslData/$_sslDataOld -H "Authorization:Token $_token")
+    _response=$(curl -s -X DELETE "https://api.gcdn.co/sslData/$_sslDataOld" -H "Authorization:Token $_token")
     _debug _response "$_response"
   fi
 
