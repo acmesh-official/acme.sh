@@ -290,90 +290,9 @@ If your DNS provider supports API access, we can use that API to automatically i
 
 You don't have to do anything manually!
 
-### Currently acme.sh supports:
+### Currently acme.sh supports most of the dns providers:
 
-1. CloudFlare.com API
-1. DNSPod.cn API
-1. CloudXNS.com API
-1. GoDaddy.com API
-1. PowerDNS.com API
-1. OVH, kimsufi, soyoustart and runabove API
-1. nsupdate API
-1. LuaDNS.com API
-1. DNSMadeEasy.com API
-1. AWS Route 53
-1. aliyun.com(阿里云) API
-1. ISPConfig 3.1 API
-1. Alwaysdata.com API
-1. Linode.com API
-1. FreeDNS (https://freedns.afraid.org/)
-1. cyon.ch
-1. Domain-Offensive/Resellerinterface/Domainrobot API
-1. Gandi LiveDNS API
-1. Knot DNS API
-1. DigitalOcean API (native)
-1. ClouDNS.net API
-1. Infoblox NIOS API (https://www.infoblox.com/)
-1. VSCALE (https://vscale.io/)
-1. Dynu API (https://www.dynu.com)
-1. DNSimple API
-1. NS1.com API
-1. DuckDNS.org API
-1. Name.com API
-1. Dyn Managed DNS API
-1. Yandex PDD API (https://pdd.yandex.ru)
-1. Hurricane Electric DNS service (https://dns.he.net)
-1. UnoEuro API (https://www.unoeuro.com/)
-1. INWX (https://www.inwx.de/)
-1. Servercow (https://servercow.de)
-1. Namesilo (https://www.namesilo.com)
-1. InternetX autoDNS API (https://internetx.com)
-1. Azure DNS
-1. selectel.com(selectel.ru) DNS API
-1. zonomi.com DNS API
-1. DreamHost.com API
-1. DirectAdmin API
-1. KingHost (https://www.kinghost.com.br/)
-1. Zilore (https://zilore.com)
-1. Loopia.se API
-1. acme-dns (https://github.com/joohoi/acme-dns)
-1. TELE3 (https://www.tele3.cz)
-1. EUSERV.EU (https://www.euserv.eu)
-1. DNSPod.com API (https://www.dnspod.com)
-1. Google Cloud DNS API
-1. ConoHa (https://www.conoha.jp)
-1. netcup DNS API (https://www.netcup.de)
-1. GratisDNS.dk (https://gratisdns.dk)
-1. Namecheap API (https://www.namecheap.com/)
-1. MyDNS.JP API (https://www.mydns.jp/)
-1. hosting.de (https://www.hosting.de)
-1. Neodigit.net API (https://www.neodigit.net)
-1. Exoscale.com API (https://www.exoscale.com/)
-1. PointDNS API (https://pointhq.com/)
-1. Active24.cz API (https://www.active24.cz/)
-1. do.de API (https://www.do.de/)
-1. Nexcess API (https://www.nexcess.net)
-1. Thermo.io API (https://www.thermo.io)
-1. Futurehosting API (https://www.futurehosting.com)
-1. Rackspace Cloud DNS (https://www.rackspace.com)
-1. Online.net API (https://online.net/)
-1. MyDevil.net (https://www.mydevil.net/)
-1. Core-Networks.de (https://core-networks.de)
-1. NederHost API (https://www.nederhost.nl/)
-1. Zone.ee (zone.eu) API (https://api.zone.eu/v2)
-1. UltraDNS API (https://portal.ultradns.com)
-
-And:
-
-**lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
-   (DigitalOcean, DNSimple, DNSMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)**
-
-
-**More APIs coming soon...**
-
-If your DNS provider is not on the supported list above, you can write your own DNS API script easily. If you do, please consider submitting a [Pull Request](https://github.com/Neilpang/acme.sh/pulls) and contribute it to the project.
-
-For more details: [How to use DNS API](dnsapi)
+https://github.com/Neilpang/acme.sh/wiki/dnsapi
 
 # 9. Use DNS manual mode:
 
