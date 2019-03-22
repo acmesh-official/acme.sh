@@ -61,7 +61,8 @@ gcore_cdn_deploy() {
   _info "Get authorization token"
   _request="{ \"username\": \"$Le_Deploy_gcore_cdn_username\", \"password\": \"$Le_Deploy_gcore_cdn_password\" }"
   _debug _request "$_request"
-  _response=$(_H1="Content-Type:application/json" && _post "$_request" "https://api.gcdn.co/auth/signin")
+  export _H1="Content-Type:application/json"
+  _response=$(_post "$_request" "https://api.gcdn.co/auth/signin")
   _debug _response "$_response"
   _regex="\"token\":\"([^\"]+)\""
   _debug _regex "$_regex"
@@ -74,7 +75,8 @@ gcore_cdn_deploy() {
   fi
 
   _info "Find CDN resource with cname $_cdomain"
-  _response=$(_H1="Content-Type:application/json" && _H2="Authorization:Token $_token" && _get "https://api.gcdn.co/resources")
+  export _H2="Authorization:Token $_token"
+  _response=$(_get "https://api.gcdn.co/resources")
   _debug _response "$_response"
   _regex=".*(\"id\".*?\"cname\":\"$_cdomain\".*?})"
   _debug _regex "$_regex"
@@ -102,7 +104,7 @@ gcore_cdn_deploy() {
   _date=$(date "+%d.%m.%Y %H:%M:%S")
   _request="{ \"name\": \"$_cdomain ($_date)\", \"sslCertificate\": \"$_fullchain\", \"sslPrivateKey\": \"$_key\" }"
   _debug _request "$_request"
-  _response=$(_H1="Content-Type:application/json" && _H2="Authorization:Token $_token" && _post "$_request" "https://api.gcdn.co/sslData")
+  _response=$(_post "$_request" "https://api.gcdn.co/sslData")
   _debug _response "$_response"
   _regex="\"id\":([0-9]+)"
   _debug _regex "$_regex"
@@ -117,7 +119,7 @@ gcore_cdn_deploy() {
   _info "Update CDN resource"
   _request="{ \"originGroup\": $_originGroup, \"sslData\": $_sslDataAdd }"
   _debug _request "$_request"
-  _response=$(_H1="Content-Type:application/json" && _H2="Authorization:Token $_token" && _post "$_request" "https://api.gcdn.co/resources/$_resourceId" '' "PUT")
+  _response=$(_post "$_request" "https://api.gcdn.co/resources/$_resourceId" '' "PUT")
   _debug _response "$_response"
   _regex="\"sslData\":([0-9]+)"
   _debug _regex "$_regex"
@@ -133,7 +135,7 @@ gcore_cdn_deploy() {
     _info "Not found old SSL certificate"
   else
     _info "Delete old SSL certificate"
-    _response=$(_H1="Content-Type:application/json" && _H2="Authorization:Token $_token" && _post '' "https://api.gcdn.co/sslData/$_sslDataOld" '' "DELETE")
+    _response=$(_post '' "https://api.gcdn.co/sslData/$_sslDataOld" '' "DELETE")
     _debug _response "$_response"
   fi
 
