@@ -27,8 +27,8 @@ gcore_cdn_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  _fullchain=$(while read line; do printf "%s" "$line\n"; done < "$_cfullchain")
-  _key=$(while read line; do printf "%s" "$line\n"; done < "$_ckey")
+  _fullchain=$(while read -r line; do printf "%s" "$line\n"; done <"$_cfullchain")
+  _key=$(while read -r line; do printf "%s" "$line\n"; done <"$_ckey")
 
   _debug _fullchain "$_fullchain"
   _debug _key "$_key"
@@ -66,7 +66,7 @@ gcore_cdn_deploy() {
   _debug _response "$_response"
   _regex="\"token\":\"([^\"]+)\""
   _debug _regex "$_regex"
-  _token=$(if [[ $_response =~ $_regex ]]; then printf "${BASH_REMATCH[1]}"; fi)
+  _token=$(if [[ $_response =~ $_regex ]]; then printf "%s" "${BASH_REMATCH[1]}"; fi)
   _debug _token "$_token"
 
   if [ -z "$_token" ]; then
@@ -80,19 +80,19 @@ gcore_cdn_deploy() {
   _debug _response "$_response"
   _regex=".*(\"id\".*?\"cname\":\"$_cdomain\".*?})"
   _debug _regex "$_regex"
-  _resource=$(if [[ $_response =~ $_regex ]]; then printf "${BASH_REMATCH[1]}"; fi)
+  _resource=$(if [[ $_response =~ $_regex ]]; then printf "%s" "${BASH_REMATCH[1]}"; fi)
   _debug _resource "$_resource"
   _regex="\"id\":([0-9]+)"
   _debug _regex "$_regex"
-  _resourceId=$(if [[ $_resource =~ $_regex ]]; then printf "${BASH_REMATCH[1]}"; fi)
+  _resourceId=$(if [[ $_resource =~ $_regex ]]; then printf "%s" "${BASH_REMATCH[1]}"; fi)
   _debug _resourceId "$_resourceId"
   _regex="\"sslData\":([0-9]+|null)"
   _debug _regex "$_regex"
-  _sslDataOld=$(if [[ $_resource =~ $_regex ]]; then printf "${BASH_REMATCH[1]}"; fi)
+  _sslDataOld=$(if [[ $_resource =~ $_regex ]]; then printf "%s" "${BASH_REMATCH[1]}"; fi)
   _debug _sslDataOld "$_sslDataOld"
   _regex="\"originGroup\":([0-9]+)"
   _debug _regex "$_regex"
-  _originGroup=$(if [[ $_resource =~ $_regex ]]; then printf "${BASH_REMATCH[1]}"; fi)
+  _originGroup=$(if [[ $_resource =~ $_regex ]]; then printf "%s" "${BASH_REMATCH[1]}"; fi)
   _debug _originGroup "$_originGroup"
 
   if [ -z "$_resourceId" ] || [ -z "$_originGroup" ]; then
@@ -108,7 +108,7 @@ gcore_cdn_deploy() {
   _debug _response "$_response"
   _regex="\"id\":([0-9]+)"
   _debug _regex "$_regex"
-  _sslDataAdd=$(if [[ $_response =~ $_regex ]]; then printf "${BASH_REMATCH[1]}"; fi)
+  _sslDataAdd=$(if [[ $_response =~ $_regex ]]; then printf "%s" "${BASH_REMATCH[1]}"; fi)
   _debug _sslDataAdd "$_sslDataAdd"
 
   if [ -z "$_sslDataAdd" ]; then
@@ -123,7 +123,7 @@ gcore_cdn_deploy() {
   _debug _response "$_response"
   _regex="\"sslData\":([0-9]+)"
   _debug _regex "$_regex"
-  _sslDataNew=$(if [[ $_response =~ $_regex ]]; then printf "${BASH_REMATCH[1]}"; fi)
+  _sslDataNew=$(if [[ $_response =~ $_regex ]]; then printf "%s" "${BASH_REMATCH[1]}"; fi)
   _debug _sslDataNew "$_sslDataNew"
 
   if [ "$_sslDataNew" != "$_sslDataAdd" ]; then
