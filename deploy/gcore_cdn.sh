@@ -53,11 +53,6 @@ gcore_cdn_deploy() {
     _savedomainconf Le_Deploy_gcore_cdn_password "$Le_Deploy_gcore_cdn_password"
   fi
 
-  if ! [ -x "$(command -v jq)" ]; then
-    _err "Please install the package jq: sudo apt-get install jq"
-    return 1
-  fi
-
   _info "Get authorization token"
   _request="{\"username\":\"$Le_Deploy_gcore_cdn_username\",\"password\":\"$Le_Deploy_gcore_cdn_password\"}"
   _debug _request "$_request"
