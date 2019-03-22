@@ -27,8 +27,8 @@ gcore_cdn_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  _fullchain=$(cat "$_cfullchain" | tr '\n\r' '@#' | sed 's/@/\\n/g;s/#/\\r/g')
-  _key=$(cat "$_ckey" | tr '\n\r' '@#' | sed 's/@/\\n/g;s/#/\\r/g')
+  _fullchain=$(tr '\n\r' '@#' <"$_cfullchain" | sed 's/@/\\n/g;s/#/\\r/g')
+  _key=$(tr '\n\r' '@#' <"$_ckey" | sed 's/@/\\n/g;s/#/\\r/g')
 
   _debug _fullchain "$_fullchain"
   _debug _key "$_key"
