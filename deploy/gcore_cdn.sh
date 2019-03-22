@@ -27,8 +27,8 @@ gcore_cdn_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  _fullchain=$(while read -r line; do printf "%s" "$line\n"; done <"$_cfullchain")
-  _key=$(while read -r line; do printf "%s" "$line\n"; done <"$_ckey")
+  _fullchain=$(cat "$_cfullchain" | tr '\n\r' '@#' | sed 's/@/\\n/g;s/#/\\r/g')
+  _key=$(cat "$_ckey" | tr '\n\r' '@#' | sed 's/@/\\n/g;s/#/\\r/g')
 
   _debug _fullchain "$_fullchain"
   _debug _key "$_key"
@@ -59,14 +59,14 @@ gcore_cdn_deploy() {
   fi
 
   _info "Get authorization token"
-  _request="{ \"username\": \"$Le_Deploy_gcore_cdn_username\", \"password\": \"$Le_Deploy_gcore_cdn_password\" }"
+  _request="{\"username\":\"$Le_Deploy_gcore_cdn_username\",\"password\":\"$Le_Deploy_gcore_cdn_password\"}"
   _debug _request "$_request"
   export _H1="Content-Type:application/json"
   _response=$(_post "$_request" "https://api.gcdn.co/auth/signin")
   _debug _response "$_response"
-  _regex="\"token\":\"([^\"]+)\""
+  _regex=".*\"token\":\"\([-._0-9A-Za-z]*\)\".*$"
   _debug _regex "$_regex"
-  _token=$(if [[ $_response =~ $_regex ]]; then printf "%s" "${BASH_REMATCH[1]}"; fi)
+  _token=$(echo "$_response" | sed -n "s/$_regex/\1/p")
   _debug _token "$_token"
 
   if [ -z "$_token" ]; then
@@ -79,20 +79,21 @@ gcore_cdn_deploy() {
   _response=$(_get "https://api.gcdn.co/resources")
   _debug _response "$_response"
   _regex=".*(\"id\".*?\"cname\":\"$_cdomain\".*?})"
+  _regex="\"cname\":\"$_cdomain\""
   _debug _regex "$_regex"
-  _resource=$(if [[ $_response =~ $_regex ]]; then printf "%s" "${BASH_REMATCH[1]}"; fi)
+  _resource=$(echo "$_response" | sed 's/},{/},\n{/g' | grep -E "$_regex")
   _debug _resource "$_resource"
-  _regex="\"id\":([0-9]+)"
+  _regex=".*\"id\":\([0-9]*\),.*$"
   _debug _regex "$_regex"
-  _resourceId=$(if [[ $_resource =~ $_regex ]]; then printf "%s" "${BASH_REMATCH[1]}"; fi)
+  _resourceId=$(echo "$_resource" | sed -n "s/$_regex/\1/p")
   _debug _resourceId "$_resourceId"
-  _regex="\"sslData\":([0-9]+|null)"
+  _regex=".*\"sslData\":\([0-9]*\)}.*$"
   _debug _regex "$_regex"
-  _sslDataOld=$(if [[ $_resource =~ $_regex ]]; then printf "%s" "${BASH_REMATCH[1]}"; fi)
+  _sslDataOld=$(echo "$_resource" | sed -n "s/$_regex/\1/p")
   _debug _sslDataOld "$_sslDataOld"
-  _regex="\"originGroup\":([0-9]+)"
+  _regex=".*\"originGroup\":\([0-9]*\),.*$"
   _debug _regex "$_regex"
-  _originGroup=$(if [[ $_resource =~ $_regex ]]; then printf "%s" "${BASH_REMATCH[1]}"; fi)
+  _originGroup=$(echo "$_resource" | sed -n "s/$_regex/\1/p")
   _debug _originGroup "$_originGroup"
 
   if [ -z "$_resourceId" ] || [ -z "$_originGroup" ]; then
@@ -102,13 +103,13 @@ gcore_cdn_deploy() {
 
   _info "Add new SSL certificate"
   _date=$(date "+%d.%m.%Y %H:%M:%S")
-  _request="{ \"name\": \"$_cdomain ($_date)\", \"sslCertificate\": \"$_fullchain\", \"sslPrivateKey\": \"$_key\" }"
+  _request="{\"name\":\"$_cdomain ($_date)\",\"sslCertificate\":\"$_fullchain\",\"sslPrivateKey\":\"$_key\"}"
   _debug _request "$_request"
   _response=$(_post "$_request" "https://api.gcdn.co/sslData")
   _debug _response "$_response"
-  _regex="\"id\":([0-9]+)"
+  _regex=".*\"id\":\([0-9]*\),.*$"
   _debug _regex "$_regex"
-  _sslDataAdd=$(if [[ $_response =~ $_regex ]]; then printf "%s" "${BASH_REMATCH[1]}"; fi)
+  _sslDataAdd=$(echo "$_response" | sed -n "s/$_regex/\1/p")
   _debug _sslDataAdd "$_sslDataAdd"
 
   if [ -z "$_sslDataAdd" ]; then
@@ -117,13 +118,13 @@ gcore_cdn_deploy() {
   fi
 
   _info "Update CDN resource"
-  _request="{ \"originGroup\": $_originGroup, \"sslData\": $_sslDataAdd }"
+  _request="{\"originGroup\":$_originGroup,\"sslData\":$_sslDataAdd}"
   _debug _request "$_request"
   _response=$(_post "$_request" "https://api.gcdn.co/resources/$_resourceId" '' "PUT")
   _debug _response "$_response"
-  _regex="\"sslData\":([0-9]+)"
+  _regex=".*\"sslData\":\([0-9]*\)}.*$"
   _debug _regex "$_regex"
-  _sslDataNew=$(if [[ $_response =~ $_regex ]]; then printf "%s" "${BASH_REMATCH[1]}"; fi)
+  _sslDataNew=$(echo "$_response" | sed -n "s/$_regex/\1/p")
   _debug _sslDataNew "$_sslDataNew"
 
   if [ "$_sslDataNew" != "$_sslDataAdd" ]; then
