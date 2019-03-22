@@ -27,8 +27,8 @@ gcore_cdn_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  _fullchain=$(awk 1 ORS='\\n' "$_cfullchain")
-  _key=$(awk 1 ORS='\\n' "$_ckey")
+  _fullchain=$(while read line; do printf "%s" "$line\n"; done < "$_cfullchain")
+  _key=$(while read line; do printf "%s" "$line\n"; done < "$_ckey")
 
   _debug _fullchain "$_fullchain"
   _debug _key "$_key"
@@ -61,43 +61,57 @@ gcore_cdn_deploy() {
   _info "Get authorization token"
   _request="{ \"username\": \"$Le_Deploy_gcore_cdn_username\", \"password\": \"$Le_Deploy_gcore_cdn_password\" }"
   _debug _request "$_request"
-  _response=$(curl -s -X POST https://api.gcdn.co/auth/signin -H "Content-Type:application/json" -d "$_request")
+  _H1="Content-Type:application/json"
+  _response=$(_post "$_request" "https://api.gcdn.co/auth/signin")
   _debug _response "$_response"
-  _token=$(echo "$_response" | jq -r '.token')
+  _regex="\"token\":\"([^\"]+)\""
+  _debug _regex "$_regex"
+  _token=$(if [[ $_response =~ $_regex ]]; then printf "${BASH_REMATCH[1]}"; fi)
   _debug _token "$_token"
 
-  if [ "$_token" = "null" ]; then
+  if [ -z "$_token" ]; then
     _err "Error G-Core Labs API authorization"
     return 1
   fi
 
   _info "Find CDN resource with cname $_cdomain"
-  _response=$(curl -s -X GET https://api.gcdn.co/resources -H "Authorization:Token $_token")
+  _H2="Authorization:Token $_token"
+  _response=$(_get "https://api.gcdn.co/resources")
   _debug _response "$_response"
-  _resource=$(echo "$_response" | jq -r ".[] | select(.cname == \"$_cdomain\")")
+  _regex=".*(\"id\".*?\"cname\":\"$_cdomain\".*?})"
+  _debug _regex "$_regex"
+  _resource=$(if [[ $_response =~ $_regex ]]; then printf "${BASH_REMATCH[1]}"; fi)
   _debug _resource "$_resource"
-  _resourceId=$(echo "$_resource" | jq -r '.id')
-  _sslDataOld=$(echo "$_resource" | jq -r '.sslData')
-  _originGroup=$(echo "$_resource" | jq -r '.originGroup')
+  _regex="\"id\":([0-9]+)"
+  _debug _regex "$_regex"
+  _resourceId=$(if [[ $_resource =~ $_regex ]]; then printf "${BASH_REMATCH[1]}"; fi)
   _debug _resourceId "$_resourceId"
+  _regex="\"sslData\":([0-9]+|null)"
+  _debug _regex "$_regex"
+  _sslDataOld=$(if [[ $_resource =~ $_regex ]]; then printf "${BASH_REMATCH[1]}"; fi)
   _debug _sslDataOld "$_sslDataOld"
+  _regex="\"originGroup\":([0-9]+)"
+  _debug _regex "$_regex"
+  _originGroup=$(if [[ $_resource =~ $_regex ]]; then printf "${BASH_REMATCH[1]}"; fi)
   _debug _originGroup "$_originGroup"
 
-  if [ -z "$_resourceId" ] || [ "$_resourceId" = "null" ] || [ -z "$_originGroup" ] || [ "$_originGroup" = "null" ]; then
+  if [ -z "$_resourceId" ] || [ -z "$_originGroup" ]; then
     _err "Not found CDN resource with cname $_cdomain"
     return 1
   fi
 
   _info "Add new SSL certificate"
   _date=$(date "+%d.%m.%Y %H:%M:%S")
-  _request="{ \"name\": \"$_cdomain ($_date)\", \"sslCertificate\": \"$_fullchain\n\", \"sslPrivateKey\": \"$_key\n\" }"
+  _request="{ \"name\": \"$_cdomain ($_date)\", \"sslCertificate\": \"$_fullchain\", \"sslPrivateKey\": \"$_key\" }"
   _debug _request "$_request"
-  _response=$(curl -s -X POST https://api.gcdn.co/sslData -H "Content-Type:application/json" -H "Authorization:Token $_token" -d "$_request")
+  _response=$(_post "$_request" "https://api.gcdn.co/sslData")
   _debug _response "$_response"
-  _sslDataAdd=$(echo "$_response" | jq -r '.id')
+  _regex="\"id\":([0-9]+)"
+  _debug _regex "$_regex"
+  _sslDataAdd=$(if [[ $_response =~ $_regex ]]; then printf "${BASH_REMATCH[1]}"; fi)
   _debug _sslDataAdd "$_sslDataAdd"
 
-  if [ "$_sslDataAdd" = "null" ]; then
+  if [ -z "$_sslDataAdd" ]; then
     _err "Error new SSL certificate add"
     return 1
   fi
@@ -105,9 +119,11 @@ gcore_cdn_deploy() {
   _info "Update CDN resource"
   _request="{ \"originGroup\": $_originGroup, \"sslData\": $_sslDataAdd }"
   _debug _request "$_request"
-  _response=$(curl -s -X PUT "https://api.gcdn.co/resources/$_resourceId" -H "Content-Type:application/json" -H "Authorization:Token $_token" -d "$_request")
+  _response=$(_post "$_request" "https://api.gcdn.co/resources/$_resourceId" '' "PUT")
   _debug _response "$_response"
-  _sslDataNew=$(echo "$_response" | jq -r '.sslData')
+  _regex="\"sslData\":([0-9]+)"
+  _debug _regex "$_regex"
+  _sslDataNew=$(if [[ $_response =~ $_regex ]]; then printf "${BASH_REMATCH[1]}"; fi)
   _debug _sslDataNew "$_sslDataNew"
 
   if [ "$_sslDataNew" != "$_sslDataAdd" ]; then
@@ -119,7 +135,7 @@ gcore_cdn_deploy() {
     _info "Not found old SSL certificate"
   else
     _info "Delete old SSL certificate"
-    _response=$(curl -s -X DELETE "https://api.gcdn.co/sslData/$_sslDataOld" -H "Authorization:Token $_token")
+    _response=$(_post '' "https://api.gcdn.co/sslData/$_sslDataOld" '' "DELETE")
     _debug _response "$_response"
   fi
 
