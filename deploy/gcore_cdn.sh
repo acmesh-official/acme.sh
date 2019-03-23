@@ -74,9 +74,9 @@ gcore_cdn_deploy() {
   _response=$(_get "https://api.gcdn.co/resources")
   _debug _response "$_response"
   _regex=".*(\"id\".*?\"cname\":\"$_cdomain\".*?})"
-  _regex="\"cname\":\"$_cdomain\""
+  _regex="^.*\"cname\":\"$_cdomain\".*$"
   _debug _regex "$_regex"
-  _resource=$(echo "$_response" | sed 's/},{/},\n{/g' | grep -E "$_regex")
+  _resource=$(echo "$_response" | sed 's/},{/},\n{/g' | _egrep_o "$_regex")
   _debug _resource "$_resource"
   _regex=".*\"id\":\([0-9]*\),.*$"
   _debug _regex "$_regex"
