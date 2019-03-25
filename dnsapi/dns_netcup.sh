@@ -8,6 +8,7 @@ end="https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON"
 client=""
 
 dns_netcup_add() {
+  _debug NC_Apikey "$NC_Apikey"
   login
   if [ "$NC_Apikey" = "" ] || [ "$NC_Apipw" = "" ] || [ "$NC_CID" = "" ]; then
     _err "No Credentials given"

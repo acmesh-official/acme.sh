@@ -2111,7 +2111,7 @@ _startserver() {
 echo 'HTTP/1.0 200 OK'; \
 echo 'Content-Length\: $_content_len'; \
 echo ''; \
-printf '$content';" &
+printf -- '$content';" &
   serverproc="$!"
 }
 
@@ -3750,8 +3750,9 @@ issue() {
         _on_issue_err "$_post_hook"
         return 1
       fi
-
-      Le_OrderFinalize="$(echo "$response" | tr -d '\r\n' | _egrep_o '"finalize" *: *"[^"]*"' | cut -d '"' -f 4)"
+      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
+      _debug Le_LinkOrder "$Le_LinkOrder"
+      Le_OrderFinalize="$(echo "$response" | _egrep_o '"finalize" *: *"[^"]*"' | cut -d '"' -f 4)"
       _debug Le_OrderFinalize "$Le_OrderFinalize"
       if [ -z "$Le_OrderFinalize" ]; then
         _err "Create new order error. Le_OrderFinalize not found. $response"
@@ -3763,7 +3764,7 @@ issue() {
       #for dns manual mode
       _savedomainconf "Le_OrderFinalize" "$Le_OrderFinalize"
 
-      _authorizations_seg="$(echo "$response" | tr -d '\r\n' | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
+      _authorizations_seg="$(echo "$response" | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
       _debug2 _authorizations_seg "$_authorizations_seg"
       if [ -z "$_authorizations_seg" ]; then
         _err "_authorizations_seg not found."
@@ -3849,7 +3850,7 @@ $_authorizations_map"
         thumbprint="$(__calc_account_thumbprint)"
       fi
 
-      entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
+      entry="$(echo "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
       if [ -z "$entry" ]; then
         _err "Error, can not get domain token entry $d"
@@ -3861,7 +3862,7 @@ $_authorizations_map"
         _on_issue_err "$_post_hook"
         return 1
       fi
-      token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
+      token="$(echo "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
       _debug token "$token"
 
       if [ -z "$token" ]; then
@@ -3871,9 +3872,9 @@ $_authorizations_map"
         return 1
       fi
       if [ "$ACME_VERSION" = "2" ]; then
-        uri="$(printf "%s\n" "$entry" | _egrep_o '"url":"[^"]*' | cut -d '"' -f 4 | _head_n 1)"
+        uri="$(echo "$entry" | _egrep_o '"url":"[^"]*' | cut -d '"' -f 4 | _head_n 1)"
       else
-        uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d '"' -f 4)"
+        uri="$(echo "$entry" | _egrep_o '"uri":"[^"]*' | cut -d '"' -f 4)"
       fi
       _debug uri "$uri"
 
@@ -3931,21 +3932,21 @@ $_authorizations_map"
           else
             txtdomain="_acme-challenge.$_d_alias"
           fi
-          dns_entries="${dns_entries}${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$txtdomain$dvsep$_currentRoot"
+          dns_entry="${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$txtdomain$dvsep$_currentRoot"
         else
           txtdomain="_acme-challenge.$_dns_root_d"
-          dns_entries="${dns_entries}${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$dvsep$_currentRoot"
+          dns_entry="${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$dvsep$_currentRoot"
         fi
+
         _debug txtdomain "$txtdomain"
         txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
         _debug txt "$txt"
 
         d_api="$(_findHook "$_dns_root_d" dnsapi "$_currentRoot")"
-
         _debug d_api "$d_api"
-        dns_entries="$dns_entries$dvsep$txt${dvsep}$d_api
-"
-        _debug2 "$dns_entries"
+
+        dns_entry="$dns_entry$dvsep$txt${dvsep}$d_api"
+        _debug2 dns_entry "$dns_entry"
         if [ "$d_api" ]; then
           _info "Found domain api file: $d_api"
         else
@@ -3984,6 +3985,9 @@ $_authorizations_map"
           _clearup
           return 1
         fi
+        dns_entries="$dns_entries$dns_entry
+"
+        _debug2 "$dns_entries"
         dnsadded='1'
       fi
     done
@@ -4194,7 +4198,7 @@ $_authorizations_map"
       fi
 
       if [ "$status" = "invalid" ]; then
-        error="$(echo "$response" | tr -d "\r\n" | _egrep_o '"error":\{[^\}]*')"
+        error="$(echo "$response" | _egrep_o '"error":\{[^\}]*')"
         _debug2 error "$error"
         errordetail="$(echo "$error" | _egrep_o '"detail": *"[^"]*' | cut -d '"' -f 4)"
         _debug2 errordetail "$errordetail"
@@ -4246,13 +4250,10 @@ $_authorizations_map"
       _on_issue_err "$_post_hook"
       return 1
     fi
-    Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
     if [ -z "$Le_LinkOrder" ]; then
-      _err "Sign error, can not get order link location header"
-      _err "responseHeaders" "$responseHeaders"
-      _on_issue_err "$_post_hook"
-      return 1
+      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
     fi
+
     _savedomainconf "Le_LinkOrder" "$Le_LinkOrder"
 
     _link_cert_retry=0
@@ -4260,7 +4261,7 @@ $_authorizations_map"
     while [ "$_link_cert_retry" -lt "$_MAX_CERT_RETRY" ]; do
       if _contains "$response" "\"status\":\"valid\""; then
         _debug "Order status is valid."
-        Le_LinkCert="$(echo "$response" | tr -d '\r\n' | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
+        Le_LinkCert="$(echo "$response" | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
         _debug Le_LinkCert "$Le_LinkCert"
         if [ -z "$Le_LinkCert" ]; then
           _err "Sign error, can not find Le_LinkCert"
@@ -4278,6 +4279,14 @@ $_authorizations_map"
         _on_issue_err "$_post_hook"
         return 1
       fi
+      #the order is processing, so we are going to poll order status
+      if [ -z "$Le_LinkOrder" ]; then
+        _err "Sign error, can not get order link location header"
+        _err "responseHeaders" "$responseHeaders"
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
+      _info "Polling order status: $Le_LinkOrder"
       if ! _send_signed_request "$Le_LinkOrder"; then
         _err "Sign failed, can not post to Le_LinkOrder cert:$Le_LinkOrder."
         _err "$response"
@@ -5195,7 +5204,7 @@ _deactivate() {
       _err "Can not get domain new order."
       return 1
     fi
-    _authorizations_seg="$(echo "$response" | tr -d '\r\n' | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
+    _authorizations_seg="$(echo "$response" | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
     _debug2 _authorizations_seg "$_authorizations_seg"
     if [ -z "$_authorizations_seg" ]; then
       _err "_authorizations_seg not found."
@@ -5241,16 +5250,16 @@ _deactivate() {
     fi
     _debug "Trigger validation."
     vtype="$VTYPE_DNS"
-    entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
+    entry="$(echo "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
     _debug entry "$entry"
     if [ -z "$entry" ]; then
       _err "Error, can not get domain token $d"
       return 1
     fi
-    token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
+    token="$(echo "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
     _debug token "$token"
 
-    uri="$(printf "%s\n" "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
+    uri="$(echo "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
     _debug uri "$uri"
 
     keyauthorization="$token.$thumbprint"
@@ -5272,11 +5281,11 @@ _deactivate() {
       break
     fi
 
-    _vtype="$(printf "%s\n" "$entry" | _egrep_o '"type": *"[^"]*"' | cut -d : -f 2 | tr -d '"')"
+    _vtype="$(echo "$entry" | _egrep_o '"type": *"[^"]*"' | cut -d : -f 2 | tr -d '"')"
     _debug _vtype "$_vtype"
     _info "Found $_vtype"
 
-    uri="$(printf "%s\n" "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
+    uri="$(echo "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
     _debug uri "$uri"
 
     if [ "$_d_type" ] && [ "$_d_type" != "$_vtype" ]; then

@@ -45,7 +45,7 @@ nuster_deploy() {
   chmod 600 "$_pem_full_path"
   _info "Certificate successfully deployed"
 
-  # restart HAProxy
+  # restart nuster
   _info "Run reload: $_reload"
   if eval "$_reload"; then
     _info "Reload success!"
