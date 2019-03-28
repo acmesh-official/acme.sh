@@ -70,7 +70,7 @@ dns_loopia_rm() {
         <value><string>%s</string></value>
       </param>
     </params>
-  </methodCall>' $LOOPIA_User $LOOPIA_Password "$_domain" "$_sub_domain")
+  </methodCall>' "$LOOPIA_User" "$LOOPIA_Password" "$_domain" "$_sub_domain")
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
 
