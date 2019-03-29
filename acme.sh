@@ -3974,9 +3974,16 @@ $_authorizations_map"
             return 1
           fi
 
-          if ! $addcommand "$txtdomain" "$txt"; then
-            _err "Error add txt for domain:$txtdomain"
-            return 1
+          if [ "$addcommand" = "dns_aws_add" -a -n "$_dnsslowrate" ] ; then
+            if ! $addcommand "$txtdomain" "$txt" "$_dnsslowrate"; then
+              _err "Error add txt for domain:$txtdomain"
+              return 1
+            fi
+          else
+            if ! $addcommand "$txtdomain" "$txt"; then
+              _err "Error add txt for domain:$txtdomain"
+              return 1
+            fi
           fi
         )
 
@@ -5919,6 +5926,7 @@ _process() {
   _httpport=""
   _tlsport=""
   _dnssleep=""
+  _dnsslowrate=""
   _listraw=""
   _stopRenewOnError=""
   #_insecure=""
@@ -6158,6 +6166,12 @@ _process() {
           _webroot="$_webroot,$wvalue"
         fi
         ;;
+
+      --dnsslowrate)
+        _dnsslowrate="$2"
+        shift
+        ;;
+
       --dnssleep)
         _dnssleep="$2"
         Le_DNSSleep="$_dnssleep"
