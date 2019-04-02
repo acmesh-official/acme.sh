@@ -97,7 +97,7 @@ _hostingde_getZoneConfig() {
       zoneConfigDnsServerGroupId=$(echo "${curResult}" | _hostingde_parse "dnsServerGroupId")
       zoneConfigEmailAddress=$(echo "${curResult}" | _hostingde_parse "emailAddress")
       zoneConfigDnsSecMode=$(echo "${curResult}" | _hostingde_parse "dnsSecMode")
-      zoneConfigTemplateValues=$(echo "${curResult}" | _hostingde_parse_object "templateValues")
+      zoneConfigTemplateValues=$(echo "${curResult}" | _hostingde_parse_no_strip_whitespace "templateValues")
 
       if [ "$zoneConfigTemplateValues" != "null" ]; then
         _debug "Zone is tied to a template."
@@ -174,7 +174,7 @@ _hostingde_removeRecord() {
     _hostingde_getZoneStatus
     _debug "Result of zoneStatus: '$zoneStatus'"
   done
-  curData="{\"authToken\":\"${HOSTINGDE_APIKEY}\",\"zoneConfig\":{\"id\":${zoneConfigId},\"name\":${zoneConfigName},\"type\":${zoneConfigType},\"dnsServerGroupId\":${zoneConfigDnsServerGroupId},\"dnsSecMode\":${zoneConfigDnsSecMode},\"emailAddress\":${zoneConfigEmailAddress},\"soaValues\":{\"expire\":${zoneConfigExpire},\"negativeTtl\":${zoneConfigNegativeTtl},\"refresh\":${zoneConfigRefresh},\"retry\":${zoneConfigRetry},\"ttl\":${zoneConfigTtl}}},\"recordsToDelete\":[{\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"content\":\"\\\"${txtvalue}\\\"\"}]}"
+  curData="{\"authToken\":\"${HOSTINGDE_APIKEY}\",\"zoneConfig\":{\"id\":${zoneConfigId},\"name\":${zoneConfigName},\"type\":${zoneConfigType},\"dnsServerGroupId\":${zoneConfigDnsServerGroupId},\"dnsSecMode\":${zoneConfigDnsSecMode},\"emailAddress\":${zoneConfigEmailAddress},\"soaValues\":{\"expire\":${zoneConfigExpire},\"negativeTtl\":${zoneConfigNegativeTtl},\"refresh\":${zoneConfigRefresh},\"retry\":${zoneConfigRetry},\"ttl\":${zoneConfigTtl}},\"templateValues\":${zoneConfigTemplateValues}},\"recordsToDelete\":[{\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"content\":\"\\\"${txtvalue}\\\"\"}]}"
   curResult="$(_post "${curData}" "${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate")"
   _debug "Calling zoneUpdate: '${curData}' '${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate'"
   _debug "Result of zoneUpdate: '$curResult'"
