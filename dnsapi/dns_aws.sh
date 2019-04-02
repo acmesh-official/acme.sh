@@ -75,7 +75,7 @@ dns_aws_add() {
     _info "TXT record updated successfully."
     if [ -n "$slowrateslepp" ]; then
       _info "Slow rate activated: sleeping for $slowrateslepp seconds"
-      sleep $slowrateslepp
+      sleep "$slowrateslepp"
     fi
     return 0
   fi
@@ -124,7 +124,7 @@ dns_aws_rm() {
     _info "TXT record deleted successfully."
     if [ -n "$slowrateslepp" ]; then
       _info "Slow rate activated: sleeping for $slowrateslepp seconds"
-      sleep $slowrateslepp
+      sleep "$slowrateslepp"
     fi
     return 0
   fi
