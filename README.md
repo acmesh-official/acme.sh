@@ -33,9 +33,9 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 - [webfaction](https://community.webfaction.com/questions/19988/using-letsencrypt)
 - [Loadbalancer.org](https://www.loadbalancer.org/blog/loadbalancer-org-with-lets-encrypt-quick-and-dirty)
 - [discourse.org](https://meta.discourse.org/t/setting-up-lets-encrypt/40709)
-- [Centminmod](http://centminmod.com/letsencrypt-acmetool-https.html)
+- [Centminmod](https://centminmod.com/letsencrypt-acmetool-https.html)
 - [splynx](https://forum.splynx.com/t/free-ssl-cert-for-splynx-lets-encrypt/297)
-- [archlinux](https://aur.archlinux.org/packages/acme.sh-git/)
+- [archlinux](https://www.archlinux.org/packages/community/any/acme.sh)
 - [opnsense.org](https://github.com/opnsense/plugins/tree/master/security/acme-client/src/opnsense/scripts/OPNsense/AcmeClient)
 - [CentOS Web Panel](http://centos-webpanel.com/)
 - [lnmp.org](https://lnmp.org/)
@@ -70,11 +70,17 @@ For all build statuses, check our [weekly build project](https://github.com/Neil
 
 https://github.com/Neilpang/acmetest
 
+# Supported CA
+
+- Letsencrypt.org CA(default)
+- [BuyPass.com CA](https://github.com/Neilpang/acme.sh/wiki/BuyPass.com-CA)
+- [Pebble strict Mode](https://github.com/letsencrypt/pebble)
 
 # Supported modes
 
 - Webroot mode
 - Standalone mode
+- Standalone tls-alpn mode
 - Apache mode
 - Nginx mode
 - DNS mode
@@ -221,8 +227,20 @@ acme.sh --issue --standalone -d example.com -d www.example.com -d cp.example.com
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
+# 5. Use Standalone ssl server to issue cert
 
-# 5. Use Apache mode
+**(requires you to be root/sudoer or have permission to listen on port 443 (TCP))**
+
+Port `443` (TCP) **MUST** be free to listen on, otherwise you will be prompted to free it and try again.
+
+```bash
+acme.sh --issue --alpn -d example.com -d www.example.com -d cp.example.com
+```
+
+More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
+
+
+# 6. Use Apache mode
 
 **(requires you to be root/sudoer, since it is required to interact with Apache server)**
 
@@ -236,13 +254,13 @@ Just set string "apache" as the second argument and it will force use of apache 
 acme.sh --issue --apache -d example.com -d www.example.com -d cp.example.com
 ```
 
-**This apache mode is only to issue the cert, it will not change your apache config files. 
+**This apache mode is only to issue the cert, it will not change your apache config files.
 You will need to configure your website config files to use the cert by yourself.
 We don't want to mess your apache server, don't worry.**
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
-# 6. Use Nginx mode
+# 7. Use Nginx mode
 
 **(requires you to be root/sudoer, since it is required to interact with Nginx server)**
 
@@ -260,80 +278,23 @@ So, the config is not changed.
 acme.sh --issue --nginx -d example.com -d www.example.com -d cp.example.com
 ```
 
-**This nginx mode is only to issue the cert, it will not change your nginx config files. 
+**This nginx mode is only to issue the cert, it will not change your nginx config files.
 You will need to configure your website config files to use the cert by yourself.
 We don't want to mess your nginx server, don't worry.**
 
 More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
-# 7. Automatic DNS API integration
+# 8. Automatic DNS API integration
 
 If your DNS provider supports API access, we can use that API to automatically issue the certs.
 
 You don't have to do anything manually!
 
-### Currently acme.sh supports:
+### Currently acme.sh supports most of the dns providers:
 
-1. CloudFlare.com API
-1. DNSPod.cn API
-1. CloudXNS.com API
-1. GoDaddy.com API
-1. PowerDNS.com API
-1. OVH, kimsufi, soyoustart and runabove API
-1. nsupdate API
-1. LuaDNS.com API
-1. DNSMadeEasy.com API
-1. AWS Route 53
-1. aliyun.com(阿里云) API
-1. ISPConfig 3.1 API
-1. Alwaysdata.com API
-1. Linode.com API
-1. FreeDNS (https://freedns.afraid.org/)
-1. cyon.ch
-1. Domain-Offensive/Resellerinterface/Domainrobot API
-1. Gandi LiveDNS API
-1. Knot DNS API
-1. DigitalOcean API (native)
-1. ClouDNS.net API
-1. Infoblox NIOS API (https://www.infoblox.com/)
-1. VSCALE (https://vscale.io/)
-1. Dynu API (https://www.dynu.com)
-1. DNSimple API
-1. NS1.com API
-1. DuckDNS.org API
-1. Name.com API
-1. Dyn Managed DNS API
-1. Yandex PDD API (https://pdd.yandex.ru)
-1. Hurricane Electric DNS service (https://dns.he.net)
-1. UnoEuro API (https://www.unoeuro.com/)
-1. INWX (https://www.inwx.de/)
-1. Servercow (https://servercow.de)
-1. Namesilo (https://www.namesilo.com)
-1. InternetX autoDNS API (https://internetx.com)
-1. Azure DNS
-1. selectel.com(selectel.ru) DNS API
-1. zonomi.com DNS API
-1. DreamHost.com API
-1. DirectAdmin API
-1. KingHost (https://www.kinghost.com.br/)
-1. Zilore (https://zilore.com)
-1. Loopia.se API
-1. acme-dns (https://github.com/joohoi/acme-dns)
-1. TELE3 (https://www.tele3.cz)
+https://github.com/Neilpang/acme.sh/wiki/dnsapi
 
-And: 
-
-**lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
-   (DigitalOcean, DNSimple, DNSMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)**
-
-
-**More APIs coming soon...**
-
-If your DNS provider is not on the supported list above, you can write your own DNS API script easily. If you do, please consider submitting a [Pull Request](https://github.com/Neilpang/acme.sh/pulls) and contribute it to the project.
-
-For more details: [How to use DNS API](dnsapi)
-
-# 8. Use DNS manual mode:
+# 9. Use DNS manual mode:
 
 See: https://github.com/Neilpang/acme.sh/wiki/dns-manual-mode first.
 
@@ -369,7 +330,7 @@ Ok, it's done.
 
 **Please use dns api mode instead.**
 
-# 9. Issue ECC certificates
+# 10. Issue ECC certificates
 
 `Let's Encrypt` can now issue **ECDSA** certificates.
 
@@ -401,7 +362,7 @@ Valid values are:
 
 
 
-# 10. Issue Wildcard certificates
+# 11. Issue Wildcard certificates
 
 It's simple, just give a wildcard domain as the `-d` parameter.
 
@@ -411,7 +372,7 @@ acme.sh  --issue -d example.com  -d '*.example.com'  --dns dns_cf
 
 
 
-# 11. How to renew the certs
+# 12. How to renew the certs
 
 No, you don't need to renew the certs manually. All the certs will be renewed automatically every **60** days.
 
@@ -428,7 +389,7 @@ acme.sh --renew -d example.com --force --ecc
 ```
 
 
-# 12. How to stop cert renewal
+# 13. How to stop cert renewal
 
 To stop renewal of a cert, you can execute the following to remove the cert from the renewal list:
 
@@ -441,7 +402,7 @@ The cert/key file is not removed from the disk.
 You can remove the respective directory (e.g. `~/.acme.sh/example.com`) by yourself.
 
 
-# 13. How to upgrade `acme.sh`
+# 14. How to upgrade `acme.sh`
 
 acme.sh is in constant development, so it's strongly recommended to use the latest code.
 
@@ -466,25 +427,25 @@ acme.sh --upgrade --auto-upgrade 0
 ```
 
 
-# 14. Issue a cert from an existing CSR
+# 15. Issue a cert from an existing CSR
 
 https://github.com/Neilpang/acme.sh/wiki/Issue-a-cert-from-existing-CSR
 
 
-# 15. Under the Hood
+# 16. Under the Hood
 
 Speak ACME language using shell, directly to "Let's Encrypt".
 
 TODO:
 
 
-# 16. Acknowledgments
+# 17. Acknowledgments
 
 1. Acme-tiny: https://github.com/diafygi/acme-tiny
 2. ACME protocol: https://github.com/ietf-wg-acme/acme
 
 
-# 17. License & Others
+# 18. License & Others
 
 License is GPLv3
 
@@ -493,9 +454,9 @@ Please Star and Fork me.
 [Issues](https://github.com/Neilpang/acme.sh/issues) and [pull requests](https://github.com/Neilpang/acme.sh/pulls) are welcome.
 
 
-# 18. Donate
+# 19. Donate
 Your donation makes **acme.sh** better:
 
 1. PayPal/Alipay(支付宝)/Wechat(微信): [https://donate.acme.sh/](https://donate.acme.sh/)
-  
+
 [Donate List](https://github.com/Neilpang/acme.sh/wiki/Donate-list)

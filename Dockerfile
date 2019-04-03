@@ -1,11 +1,13 @@
-FROM alpine:3.6
+FROM alpine:3.9
 
 RUN apk update -f \
   && apk --no-cache add -f \
   openssl \
   coreutils \
+  bind-tools \
   curl \
   socat \
+  tzdata \
   && rm -rf /var/cache/apk/*
 
 ENV LE_CONFIG_HOME /acme.sh

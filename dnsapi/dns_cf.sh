@@ -19,8 +19,8 @@ dns_cf_add() {
   if [ -z "$CF_Key" ] || [ -z "$CF_Email" ]; then
     CF_Key=""
     CF_Email=""
-    _err "You didn't specify a cloudflare api key and email yet."
-    _err "Please create the key and try again."
+    _err "You didn't specify a Cloudflare api key and email yet."
+    _err "You can get yours from here https://dash.cloudflare.com/profile."
     return 1
   fi
 
@@ -58,8 +58,11 @@ dns_cf_add() {
   #  if [ "$count" = "0" ]; then
   _info "Adding record"
   if _cf_rest POST "zones/$_domain_id/dns_records" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
-    if printf -- "%s" "$response" | grep "$fulldomain" >/dev/null; then
+    if _contains "$response" "$fulldomain"; then
       _info "Added, OK"
+      return 0
+    elif _contains "$response" "The record already exists"; then
+      _info "Already exists, OK"
       return 0
     else
       _err "Add txt record error."
@@ -94,8 +97,8 @@ dns_cf_rm() {
   if [ -z "$CF_Key" ] || [ -z "$CF_Email" ]; then
     CF_Key=""
     CF_Email=""
-    _err "You didn't specify a cloudflare api key and email yet."
-    _err "Please create the key and try again."
+    _err "You didn't specify a Cloudflare api key and email yet."
+    _err "You can get yours from here https://dash.cloudflare.com/profile."
     return 1
   fi
 
@@ -144,7 +147,7 @@ dns_cf_rm() {
 # _domain_id=sdjkglgdfewsdfg
 _get_root() {
   domain=$1
-  i=2
+  i=1
   p=1
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
@@ -159,7 +162,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
-      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\[.\"id\":\"[^\"]*\"" | head -n 1 | cut -d : -f 2 | tr -d \")
+      _domain_id=$(echo "$response" | _egrep_o "\[.\"id\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain=$h
