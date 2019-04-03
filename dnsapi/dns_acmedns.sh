@@ -50,7 +50,7 @@ dns_acmedns_add() {
     _info "# Create $fulldomain CNAME $ACMEDNS_FULLDOMAIN DNS entry #"
     _info "##########################################################"
     _info "Press any key to continue... "
-    read -r
+    read -r DUMMYVAR
   fi
 
   _saveaccountconf_mutable ACMEDNS_BASE_URL "$ACMEDNS_BASE_URL"
