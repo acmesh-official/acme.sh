@@ -34,7 +34,7 @@ dns_acmedns_add() {
     ACMEDNS_DOMAINS="$ACMEDNS_DOMAINS,"
     while true; do
       # get next domain name
-      DOMAIN=$(cut -d ',' -f 1 <<< $ACMEDNS_DOMAINS)
+      DOMAIN=$(cut -d ',' -f 1 <<< "$ACMEDNS_DOMAINS")
 
       # check if we reached the last entry
       if [ -z "$DOMAIN" ]; then
@@ -45,16 +45,16 @@ dns_acmedns_add() {
       # check if domain name matches our current domain
       if [[ "$fulldomain" = *"$DOMAIN" ]]; then
         # if so, extract the correct username, password and subdomain
-        USERNAME=$(cut -d ',' -f 1 <<< $ACMEDNS_USERNAME)
-        PASSWORD=$(cut -d ',' -f 1 <<< $ACMEDNS_PASSWORD)
-        SUBDOMAIN=$(cut -d ',' -f 1 <<< $ACMEDNS_SUBDOMAIN)
+        USERNAME=$(cut -d ',' -f 1 <<< "$ACMEDNS_USERNAME")
+        PASSWORD=$(cut -d ',' -f 1 <<< "$ACMEDNS_PASSWORD")
+        SUBDOMAIN=$(cut -d ',' -f 1 <<< "$ACMEDNS_SUBDOMAIN")
         break
       fi
       # take next record
-      ACMEDNS_DOMAINS=$(cut -d ',' -f 2- <<< $ACMEDNS_DOMAINS)
-      ACMEDNS_USERNAME=$(cut -d ',' -f 2- <<< $ACMEDNS_USERNAME)
-      ACMEDNS_PASSWORD=$(cut -d ',' -f 2- <<< $ACMEDNS_PASSWORD)
-      ACMEDNS_SUBDOMAIN=$(cut -d ',' -f 2- <<< $ACMEDNS_SUBDOMAIN)
+      ACMEDNS_DOMAINS=$(cut -d ',' -f 2- <<< "$ACMEDNS_DOMAINS")
+      ACMEDNS_USERNAME=$(cut -d ',' -f 2- <<< "$ACMEDNS_USERNAME")
+      ACMEDNS_PASSWORD=$(cut -d ',' -f 2- <<< "$ACMEDNS_PASSWORD")
+      ACMEDNS_SUBDOMAIN=$(cut -d ',' -f 2- <<< "$ACMEDNS_SUBDOMAIN")
     done
   else
     _info "Using acme-dns"
