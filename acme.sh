@@ -2004,7 +2004,10 @@ _read_conf() {
   _r_c_f="$1"
   _sdkey="$2"
   if [ -f "$_r_c_f" ]; then
-    _sdv="$(eval "$(grep "^$_sdkey *=" "$_r_c_f")" ; eval "printf \"%s\" \"\$$_sdkey\"")"
+    _sdv="$( 
+      eval "$(grep "^$_sdkey *=" "$_r_c_f")" 
+      eval "printf \"%s\" \"\$$_sdkey\"" 
+    )"
     if _startswith "$_sdv" "${B64CONF_START}" && _endswith "$_sdv" "${B64CONF_END}"; then
       _sdv="$(echo "$_sdv" | sed "s/${B64CONF_START}//" | sed "s/${B64CONF_END}//" | _dbase64)"
     fi
