@@ -141,7 +141,7 @@ _dns_gcloud_find_zone() {
     | while read -r dnsName name; do
       printf "%s\t%s\t%s\n" "$(echo "$name" | awk -F"." '{print NF-1}')" "$dnsName" "$name"
     done \
-    | sort -n -r | _head_n 1 | cut -f2,3 | grep '^.*'); then
+      | sort -n -r | _head_n 1 | cut -f2,3 | grep '^.*'); then
     _err "_dns_gcloud_find_zone: Can't find a matching managed zone! Perhaps wrong project or gcloud credentials?"
     return 1
   fi
