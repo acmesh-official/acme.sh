@@ -36,25 +36,25 @@ eset_deploy() {
 
   PARSED_ESET_KEYSTORE=$(echo 'cat //Service[@name="Catalina"]/Connector/@keystoreFile' | xmllint --nowrap --shell "$_eset_tomcat" | awk -F'[="]' '!/>/{print $(NF-1)}')
   if [ -z "$PARSED_ESET_KEYSTORE" ]; then
-        DEFAULT_ESET_KEYSTORE="/etc/tomcat/.keystore"
+    DEFAULT_ESET_KEYSTORE="/etc/tomcat/.keystore"
   else
-        DEFAULT_ESET_KEYSTORE=$PARSED_ESET_KEYSTORE
+    DEFAULT_ESET_KEYSTORE=$PARSED_ESET_KEYSTORE
   fi
   _eset_keystore="${DEPLOY_ESET_KEYSTORE:-$DEFAULT_ESET_KEYSTORE}"
 
   PARSED_ESET_KEYPASS=$(echo 'cat //Service[@name="Catalina"]/Connector/@keystorePass' | xmllint --nowrap --shell "$_eset_tomcat" | awk -F'[="]' '!/>/{print $(NF-1)}')
   if [ -z "$PARSED_ESET_KEYPASS" ]; then
-        DEFAULT_ESET_KEYPASS="password"
+    DEFAULT_ESET_KEYPASS="password"
   else
-        DEFAULT_ESET_KEYPASS=$PARSED_ESET_KEYPASS
+    DEFAULT_ESET_KEYPASS=$PARSED_ESET_KEYPASS
   fi
   _eset_keypass="${DEPLOY_ESET_KEYPASS:-$DEFAULT_ESET_KEYPASS}"
 
   PARSED_ESET_KEYALIAS=$(echo 'cat //Service[@name="Catalina"]/Connector/@keyAlias' | xmllint --nowrap --shell "$_eset_tomcat" | awk -F'[="]' '!/>/{print $(NF-1)}')
   if [ -z "$PARSED_ESET_KEYALIAS" ]; then
-        DEFAULT_ESET_KEYALIAS="tomcat"
+    DEFAULT_ESET_KEYALIAS="tomcat"
   else
-        DEFAULT_ESET_KEYALIAS="$PARSED_ESET_KEYALIAS"
+    DEFAULT_ESET_KEYALIAS="$PARSED_ESET_KEYALIAS"
   fi
   _eset_keyalias="${DEPLOY_ESET_KEYALIAS:-$DEFAULT_ESET_KEYALIAS}"
 
