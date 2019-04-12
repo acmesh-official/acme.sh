@@ -34,7 +34,7 @@ eset_deploy() {
   DEFAULT_ESET_TOMCAT=/etc/tomcat/server.xml
   _eset_tomcat="${DEPLOY_ESET_TOMCAT:-$DEFAULT_ESET_TOMCAT}"
 
-  PARSED_ESET_KEYSTORE=$(echo 'cat //Service[@name="Catalina"]/Connector/@keystoreFile' | xmllint --nowrap --shell $_eset_tomcat | awk -F'[="]' '!/>/{print $(NF-1)}')
+  PARSED_ESET_KEYSTORE=$(echo 'cat //Service[@name="Catalina"]/Connector/@keystoreFile' | xmllint --nowrap --shell "$_eset_tomcat" | awk -F'[="]' '!/>/{print $(NF-1)}')
   if [ -z "$PARSED_ESET_KEYSTORE" ]; then
         DEFAULT_ESET_KEYSTORE="/etc/tomcat/.keystore"
   else
@@ -42,7 +42,7 @@ eset_deploy() {
   fi
   _eset_keystore="${DEPLOY_ESET_KEYSTORE:-$DEFAULT_ESET_KEYSTORE}"
 
-  PARSED_ESET_KEYPASS=$(echo 'cat //Service[@name="Catalina"]/Connector/@keystorePass' | xmllint --nowrap --shell $_eset_tomcat | awk -F'[="]' '!/>/{print $(NF-1)}')
+  PARSED_ESET_KEYPASS=$(echo 'cat //Service[@name="Catalina"]/Connector/@keystorePass' | xmllint --nowrap --shell "$_eset_tomcat" | awk -F'[="]' '!/>/{print $(NF-1)}')
   if [ -z "$PARSED_ESET_KEYPASS" ]; then
         DEFAULT_ESET_KEYPASS="password"
   else
@@ -50,11 +50,11 @@ eset_deploy() {
   fi
   _eset_keypass="${DEPLOY_ESET_KEYPASS:-$DEFAULT_ESET_KEYPASS}"
 
-  PARSED_ESET_KEYALIAS=$(echo 'cat //Service[@name="Catalina"]/Connector/@keyAlias' | xmllint --nowrap --shell $_eset_tomcat | awk -F'[="]' '!/>/{print $(NF-1)}')
+  PARSED_ESET_KEYALIAS=$(echo 'cat //Service[@name="Catalina"]/Connector/@keyAlias' | xmllint --nowrap --shell "$_eset_tomcat" | awk -F'[="]' '!/>/{print $(NF-1)}')
   if [ -z "$PARSED_ESET_KEYALIAS" ]; then
         DEFAULT_ESET_KEYALIAS="tomcat"
   else
-        DEFAULT_ESET_KEYALIAS=$PARSED_ESET_KEYALIAS
+        DEFAULT_ESET_KEYALIAS="$PARSED_ESET_KEYALIAS"
   fi
   _eset_keyalias="${DEPLOY_ESET_KEYALIAS:-$DEFAULT_ESET_KEYALIAS}"
 
@@ -83,7 +83,7 @@ eset_deploy() {
 
   _import_pkcs12="$(_mktemp)"
   _info "Generate import pkcs12 $_import_pkcs12"
-  _toPkcs "$_import_pkcs12" "$_ckey" "$_ccert" "$_cca" "$_eset_keypass" $_eset_keyalias root
+  _toPkcs "$_import_pkcs12" "$_ckey" "$_ccert" "$_cca" "$_eset_keypass" "$_eset_keyalias" root
   if [ "$?" != "0" ]; then
     _err "Oops, error creating import pkcs12, please report bug to us."
     return 1
@@ -92,7 +92,7 @@ eset_deploy() {
   _info "Delete old eset cert in keystore: $_eset_keystore"
   if keytool \
     -storepass "$_eset_keypass" -keystore "$_eset_keystore" \
-    -delete -alias $_eset_keyalias -noprompt; then
+    -delete -alias "$_eset_keyalias" -noprompt; then
     _info "Delete old cert success!"
   else
     _err "Error deleting old eset cert from keystore error, please report bug to us."
@@ -103,7 +103,7 @@ eset_deploy() {
   if keytool -importkeystore \
     -deststorepass "$_eset_keypass" -destkeypass "$_eset_keypass" -destkeystore "$_eset_keystore" \
     -srckeystore "$_import_pkcs12" -srcstoretype PKCS12 -srcstorepass "$_eset_keypass" \
-    -alias $_eset_keyalias -noprompt; then
+    -alias "$_eset_keyalias" -noprompt; then
     _info "Import keystore success!"
     rm "$_import_pkcs12"
   else
