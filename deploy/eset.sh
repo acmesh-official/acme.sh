@@ -58,10 +58,8 @@ eset_deploy() {
   fi
   _eset_keyalias="${DEPLOY_ESET_KEYALIAS:-$DEFAULT_ESET_KEYALIAS}"
 
-
   DEFAULT_ESET_RELOAD="systemctl restart tomcat"
   _reload="${DEPLOY_ESET_RELOAD:-$DEFAULT_ESET_RELOAD}"
-
 
   _debug _eset_tomcat "$_eset_tomcat"
   _debug _eset_keystore "$_eset_keystore"
