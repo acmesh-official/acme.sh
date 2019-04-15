@@ -9,6 +9,9 @@ PROJECT_ENTRY="acme.sh"
 PROJECT="https://github.com/Neilpang/$PROJECT_NAME"
 
 DEFAULT_INSTALL_HOME="$HOME/.$PROJECT_NAME"
+
+_WINDOWS_SCHEDULER_NAME="$PROJECT_NAME.cron"
+
 _SCRIPT_="$0"
 
 _SUB_FOLDERS="dnsapi deploy"
@@ -19,8 +22,8 @@ LETSENCRYPT_STAGING_CA_V1="https://acme-staging.api.letsencrypt.org/directory"
 LETSENCRYPT_CA_V2="https://acme-v02.api.letsencrypt.org/directory"
 LETSENCRYPT_STAGING_CA_V2="https://acme-staging-v02.api.letsencrypt.org/directory"
 
-DEFAULT_CA=$LETSENCRYPT_CA_V1
-DEFAULT_STAGING_CA=$LETSENCRYPT_STAGING_CA_V1
+DEFAULT_CA=$LETSENCRYPT_CA_V2
+DEFAULT_STAGING_CA=$LETSENCRYPT_STAGING_CA_V2
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 DEFAULT_ACCOUNT_EMAIL=""
@@ -1974,7 +1977,7 @@ _save_conf() {
   _sdkey="$2"
   _sdvalue="$3"
   _b64encode="$4"
-  if [ "$_b64encode" ]; then
+  if [ "$_sdvalue" ] && [ "$_b64encode" ]; then
     _sdvalue="${B64CONF_START}$(printf "%s" "${_sdvalue}" | _base64)${B64CONF_END}"
   fi
   if [ "$_s_c_f" ]; then
@@ -2001,7 +2004,10 @@ _read_conf() {
   _r_c_f="$1"
   _sdkey="$2"
   if [ -f "$_r_c_f" ]; then
-    _sdv="$(grep "^$_sdkey *=" "$_r_c_f" | cut -d = -f 2-1000 | tr -d "'")"
+    _sdv="$(
+      eval "$(grep "^$_sdkey *=" "$_r_c_f")"
+      eval "printf \"%s\" \"\$$_sdkey\""
+    )"
     if _startswith "$_sdv" "${B64CONF_START}" && _endswith "$_sdv" "${B64CONF_END}"; then
       _sdv="$(echo "$_sdv" | sed "s/${B64CONF_START}//" | sed "s/${B64CONF_END}//" | _dbase64)"
     fi
@@ -2108,7 +2114,7 @@ _startserver() {
 echo 'HTTP/1.0 200 OK'; \
 echo 'Content-Length\: $_content_len'; \
 echo ''; \
-printf '$content';" &
+printf -- '$content';" &
   serverproc="$!"
 }
 
@@ -3665,8 +3671,12 @@ issue() {
     _cleardomainconf "Le_ChallengeAlias"
   fi
 
-  Le_API="$ACME_DIRECTORY"
-  _savedomainconf "Le_API" "$Le_API"
+  if [ "$ACME_DIRECTORY" != "$DEFAULT_CA" ]; then
+    Le_API="$ACME_DIRECTORY"
+    _savedomainconf "Le_API" "$Le_API"
+  else
+    _cleardomainconf Le_API
+  fi
 
   if [ "$_alt_domains" = "$NO_VALUE" ]; then
     _alt_domains=""
@@ -3743,8 +3753,9 @@ issue() {
         _on_issue_err "$_post_hook"
         return 1
       fi
-
-      Le_OrderFinalize="$(echo "$response" | tr -d '\r\n' | _egrep_o '"finalize" *: *"[^"]*"' | cut -d '"' -f 4)"
+      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
+      _debug Le_LinkOrder "$Le_LinkOrder"
+      Le_OrderFinalize="$(echo "$response" | _egrep_o '"finalize" *: *"[^"]*"' | cut -d '"' -f 4)"
       _debug Le_OrderFinalize "$Le_OrderFinalize"
       if [ -z "$Le_OrderFinalize" ]; then
         _err "Create new order error. Le_OrderFinalize not found. $response"
@@ -3756,7 +3767,7 @@ issue() {
       #for dns manual mode
       _savedomainconf "Le_OrderFinalize" "$Le_OrderFinalize"
 
-      _authorizations_seg="$(echo "$response" | tr -d '\r\n' | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
+      _authorizations_seg="$(echo "$response" | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
       _debug2 _authorizations_seg "$_authorizations_seg"
       if [ -z "$_authorizations_seg" ]; then
         _err "_authorizations_seg not found."
@@ -3842,7 +3853,7 @@ $_authorizations_map"
         thumbprint="$(__calc_account_thumbprint)"
       fi
 
-      entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
+      entry="$(echo "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
       if [ -z "$entry" ]; then
         _err "Error, can not get domain token entry $d"
@@ -3854,7 +3865,7 @@ $_authorizations_map"
         _on_issue_err "$_post_hook"
         return 1
       fi
-      token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
+      token="$(echo "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
       _debug token "$token"
 
       if [ -z "$token" ]; then
@@ -3864,9 +3875,9 @@ $_authorizations_map"
         return 1
       fi
       if [ "$ACME_VERSION" = "2" ]; then
-        uri="$(printf "%s\n" "$entry" | _egrep_o '"url":"[^"]*' | cut -d '"' -f 4 | _head_n 1)"
+        uri="$(echo "$entry" | _egrep_o '"url":"[^"]*' | cut -d '"' -f 4 | _head_n 1)"
       else
-        uri="$(printf "%s\n" "$entry" | _egrep_o '"uri":"[^"]*' | cut -d '"' -f 4)"
+        uri="$(echo "$entry" | _egrep_o '"uri":"[^"]*' | cut -d '"' -f 4)"
       fi
       _debug uri "$uri"
 
@@ -3924,21 +3935,21 @@ $_authorizations_map"
           else
             txtdomain="_acme-challenge.$_d_alias"
           fi
-          dns_entries="${dns_entries}${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$txtdomain$dvsep$_currentRoot"
+          dns_entry="${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$txtdomain$dvsep$_currentRoot"
         else
           txtdomain="_acme-challenge.$_dns_root_d"
-          dns_entries="${dns_entries}${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$dvsep$_currentRoot"
+          dns_entry="${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$dvsep$_currentRoot"
         fi
+
         _debug txtdomain "$txtdomain"
         txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
         _debug txt "$txt"
 
         d_api="$(_findHook "$_dns_root_d" dnsapi "$_currentRoot")"
-
         _debug d_api "$d_api"
-        dns_entries="$dns_entries$dvsep$txt${dvsep}$d_api
-"
-        _debug2 "$dns_entries"
+
+        dns_entry="$dns_entry$dvsep$txt${dvsep}$d_api"
+        _debug2 dns_entry "$dns_entry"
         if [ "$d_api" ]; then
           _info "Found domain api file: $d_api"
         else
@@ -3977,6 +3988,9 @@ $_authorizations_map"
           _clearup
           return 1
         fi
+        dns_entries="$dns_entries$dns_entry
+"
+        _debug2 "$dns_entries"
         dnsadded='1'
       fi
     done
@@ -4187,7 +4201,7 @@ $_authorizations_map"
       fi
 
       if [ "$status" = "invalid" ]; then
-        error="$(echo "$response" | tr -d "\r\n" | _egrep_o '"error":\{[^\}]*')"
+        error="$(echo "$response" | _egrep_o '"error":\{[^\}]*')"
         _debug2 error "$error"
         errordetail="$(echo "$error" | _egrep_o '"detail": *"[^"]*' | cut -d '"' -f 4)"
         _debug2 errordetail "$errordetail"
@@ -4239,13 +4253,10 @@ $_authorizations_map"
       _on_issue_err "$_post_hook"
       return 1
     fi
-    Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
     if [ -z "$Le_LinkOrder" ]; then
-      _err "Sign error, can not get order link location header"
-      _err "responseHeaders" "$responseHeaders"
-      _on_issue_err "$_post_hook"
-      return 1
+      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
     fi
+
     _savedomainconf "Le_LinkOrder" "$Le_LinkOrder"
 
     _link_cert_retry=0
@@ -4253,7 +4264,7 @@ $_authorizations_map"
     while [ "$_link_cert_retry" -lt "$_MAX_CERT_RETRY" ]; do
       if _contains "$response" "\"status\":\"valid\""; then
         _debug "Order status is valid."
-        Le_LinkCert="$(echo "$response" | tr -d '\r\n' | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
+        Le_LinkCert="$(echo "$response" | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
         _debug Le_LinkCert "$Le_LinkCert"
         if [ -z "$Le_LinkCert" ]; then
           _err "Sign error, can not find Le_LinkCert"
@@ -4271,6 +4282,14 @@ $_authorizations_map"
         _on_issue_err "$_post_hook"
         return 1
       fi
+      #the order is processing, so we are going to poll order status
+      if [ -z "$Le_LinkOrder" ]; then
+        _err "Sign error, can not get order link location header"
+        _err "responseHeaders" "$responseHeaders"
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
+      _info "Polling order status: $Le_LinkOrder"
       if ! _send_signed_request "$Le_LinkOrder"; then
         _err "Sign failed, can not post to Le_LinkOrder cert:$Le_LinkOrder."
         _err "$response"
@@ -4500,6 +4519,16 @@ renew() {
 
   . "$DOMAIN_CONF"
   _debug Le_API "$Le_API"
+
+  if [ "$Le_API" = "$LETSENCRYPT_CA_V1" ]; then
+    _cleardomainconf Le_API
+    Le_API="$DEFAULT_CA"
+  fi
+  if [ "$Le_API" = "$LETSENCRYPT_STAGING_CA_V1" ]; then
+    _cleardomainconf Le_API
+    Le_API="$DEFAULT_STAGING_CA"
+  fi
+
   if [ "$Le_API" ]; then
     if [ "$_OLD_CA_HOST" = "$Le_API" ]; then
       export Le_API="$DEFAULT_CA"
@@ -4909,35 +4938,107 @@ _installcert() {
 
 }
 
+__read_password() {
+  unset _pp
+  prompt="Enter Password:"
+  while IFS= read -p "$prompt" -r -s -n 1 char; do
+    if [ "$char" = $'\0' ]; then
+      break
+    fi
+    prompt='*'
+    _pp="$_pp$char"
+  done
+  echo "$_pp"
+}
+
+_install_win_taskscheduler() {
+  _lesh="$1"
+  _centry="$2"
+  _randomminute="$3"
+  if ! _exists cygpath; then
+    _err "cygpath not found"
+    return 1
+  fi
+  if ! _exists schtasks; then
+    _err "schtasks.exe is not found, are you on Windows?"
+    return 1
+  fi
+  _winbash="$(cygpath -w $(which bash))"
+  _debug _winbash "$_winbash"
+  if [ -z "$_winbash" ]; then
+    _err "can not find bash path"
+    return 1
+  fi
+  _myname="$(whoami)"
+  _debug "_myname" "$_myname"
+  if [ -z "$_myname" ]; then
+    _err "can not find my user name"
+    return 1
+  fi
+  _debug "_lesh" "$_lesh"
+
+  _info "To install scheduler task in your Windows account, you must input your windows password."
+  _info "$PROJECT_NAME doesn't save your password."
+  _info "Please input your Windows password for: $(__green "$_myname")"
+  _password="$(__read_password)"
+  #SCHTASKS.exe '/create' '/SC' 'DAILY' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "00:$_randomminute" '/RU' "$_myname" '/RP' "$_password" '/TR' "$_winbash -l -c '$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry'" >/dev/null
+  echo SCHTASKS.exe '/create' '/SC' 'DAILY' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "00:$_randomminute" '/RU' "$_myname" '/RP' "$_password" '/TR' "\"$_winbash -l -c '$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry'\"" | cmd.exe >/dev/null
+  echo
+
+}
+
+_uninstall_win_taskscheduler() {
+  if ! _exists schtasks; then
+    _err "schtasks.exe is not found, are you on Windows?"
+    return 1
+  fi
+  if ! echo SCHTASKS /query /tn "$_WINDOWS_SCHEDULER_NAME" | cmd.exe >/dev/null; then
+    _debug "scheduler $_WINDOWS_SCHEDULER_NAME is not found."
+  else
+    _info "Removing $_WINDOWS_SCHEDULER_NAME"
+    echo SCHTASKS /delete /f /tn "$_WINDOWS_SCHEDULER_NAME" | cmd.exe >/dev/null
+  fi
+}
+
 #confighome
 installcronjob() {
   _c_home="$1"
   _initpath
   _CRONTAB="crontab"
+  if [ -f "$LE_WORKING_DIR/$PROJECT_ENTRY" ]; then
+    lesh="\"$LE_WORKING_DIR\"/$PROJECT_ENTRY"
+  else
+    _err "Can not install cronjob, $PROJECT_ENTRY not found."
+    return 1
+  fi
+  if [ "$_c_home" ]; then
+    _c_entry="--config-home \"$_c_home\" "
+  fi
+  _t=$(_time)
+  random_minute=$(_math $_t % 60)
+
   if ! _exists "$_CRONTAB" && _exists "fcrontab"; then
     _CRONTAB="fcrontab"
   fi
+
   if ! _exists "$_CRONTAB"; then
+    if _exists cygpath && _exists schtasks.exe; then
+      _info "It seems you are on Windows,  let's install Windows scheduler task."
+      if _install_win_taskscheduler "$lesh" "$_c_entry" "$random_minute"; then
+        _info "Install Windows scheduler task success."
+        return 0
+      else
+        _err "Install Windows scheduler task failed."
+        return 1
+      fi
+    fi
     _err "crontab/fcrontab doesn't exist, so, we can not install cron jobs."
     _err "All your certs will not be renewed automatically."
     _err "You must add your own cron job to call '$PROJECT_ENTRY --cron' everyday."
     return 1
   fi
-
   _info "Installing cron job"
   if ! $_CRONTAB -l | grep "$PROJECT_ENTRY --cron"; then
-    if [ -f "$LE_WORKING_DIR/$PROJECT_ENTRY" ]; then
-      lesh="\"$LE_WORKING_DIR\"/$PROJECT_ENTRY"
-    else
-      _err "Can not install cronjob, $PROJECT_ENTRY not found."
-      return 1
-    fi
-
-    if [ "$_c_home" ]; then
-      _c_entry="--config-home \"$_c_home\" "
-    fi
-    _t=$(_time)
-    random_minute=$(_math $_t % 60)
     if _exists uname && uname -a | grep SunOS >/dev/null; then
       $_CRONTAB -l | {
         cat
@@ -4965,6 +5066,16 @@ uninstallcronjob() {
   fi
 
   if ! _exists "$_CRONTAB"; then
+    if _exists cygpath && _exists schtasks.exe; then
+      _info "It seems you are on Windows,  let's uninstall Windows scheduler task."
+      if _uninstall_win_taskscheduler; then
+        _info "Uninstall Windows scheduler task success."
+        return 0
+      else
+        _err "Uninstall Windows scheduler task failed."
+        return 1
+      fi
+    fi
     return
   fi
   _info "Removing cron job"
@@ -5096,7 +5207,7 @@ _deactivate() {
       _err "Can not get domain new order."
       return 1
     fi
-    _authorizations_seg="$(echo "$response" | tr -d '\r\n' | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
+    _authorizations_seg="$(echo "$response" | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
     _debug2 _authorizations_seg "$_authorizations_seg"
     if [ -z "$_authorizations_seg" ]; then
       _err "_authorizations_seg not found."
@@ -5142,16 +5253,16 @@ _deactivate() {
     fi
     _debug "Trigger validation."
     vtype="$VTYPE_DNS"
-    entry="$(printf "%s\n" "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
+    entry="$(echo "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
     _debug entry "$entry"
     if [ -z "$entry" ]; then
       _err "Error, can not get domain token $d"
       return 1
     fi
-    token="$(printf "%s\n" "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
+    token="$(echo "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
     _debug token "$token"
 
-    uri="$(printf "%s\n" "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
+    uri="$(echo "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
     _debug uri "$uri"
 
     keyauthorization="$token.$thumbprint"
@@ -5173,11 +5284,11 @@ _deactivate() {
       break
     fi
 
-    _vtype="$(printf "%s\n" "$entry" | _egrep_o '"type": *"[^"]*"' | cut -d : -f 2 | tr -d '"')"
+    _vtype="$(echo "$entry" | _egrep_o '"type": *"[^"]*"' | cut -d : -f 2 | tr -d '"')"
     _debug _vtype "$_vtype"
     _info "Found $_vtype"
 
-    uri="$(printf "%s\n" "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
+    uri="$(echo "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
     _debug uri "$uri"
 
     if [ "$_d_type" ] && [ "$_d_type" != "$_vtype" ]; then
@@ -5292,13 +5403,17 @@ _precheck() {
 
   if [ -z "$_nocron" ]; then
     if ! _exists "crontab" && ! _exists "fcrontab"; then
-      _err "It is recommended to install crontab first. try to install 'cron, crontab, crontabs or vixie-cron'."
-      _err "We need to set cron job to renew the certs automatically."
-      _err "Otherwise, your certs will not be able to be renewed automatically."
-      if [ -z "$FORCE" ]; then
-        _err "Please add '--force' and try install again to go without crontab."
-        _err "./$PROJECT_ENTRY --install --force"
-        return 1
+      if _exists cygpath && _exists schtasks.exe; then
+        _info "It seems you are on Windows,  we will install Windows scheduler task."
+      else
+        _err "It is recommended to install crontab first. try to install 'cron, crontab, crontabs or vixie-cron'."
+        _err "We need to set cron job to renew the certs automatically."
+        _err "Otherwise, your certs will not be able to be renewed automatically."
+        if [ -z "$FORCE" ]; then
+          _err "Please add '--force' and try install again to go without crontab."
+          _err "./$PROJECT_ENTRY --install --force"
+          return 1
+        fi
       fi
     fi
   fi
