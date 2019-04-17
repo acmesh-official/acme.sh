@@ -3218,11 +3218,6 @@ _on_issue_success() {
 
 }
 
-updateaccount() {
-  _initpath
-  _regAccount
-}
-
 registeraccount() {
   _reg_length="$1"
   _initpath
@@ -3318,6 +3313,61 @@ _regAccount() {
 
   ACCOUNT_THUMBPRINT="$(__calc_account_thumbprint)"
   _info "ACCOUNT_THUMBPRINT" "$ACCOUNT_THUMBPRINT"
+}
+
+#implement updateaccount
+updateaccount() {
+  _initpath
+
+  if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
+    _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
+    mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
+  fi
+
+  if [ ! -f "$ACCOUNT_JSON_PATH" ] && [ -f "$_OLD_ACCOUNT_JSON" ]; then
+    _info "mv $_OLD_ACCOUNT_JSON to $ACCOUNT_JSON_PATH"
+    mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
+  fi
+
+  if [ ! -f "$ACCOUNT_KEY_PATH" ]; then
+    _err "Account key is not found at: $ACCOUNT_KEY_PATH"
+    return 1
+  fi
+
+  _accUri=$(_readcaconf "ACCOUNT_URL")
+  _debug _accUri "$_accUri"
+
+  if [ -z "$_accUri" ]; then
+    _err "The account url is empty, please run '--update-account' first to update the account info first,"
+    _err "Then try again."
+    return 1
+  fi
+
+  if ! _calcjwk "$ACCOUNT_KEY_PATH"; then
+    return 1
+  fi
+  _initAPI
+
+  if [ "$ACME_VERSION" = "2" ]; then
+    if [ "$ACCOUNT_EMAIL" ]; then
+      updjson='{"contact": ["mailto: '$ACCOUNT_EMAIL'"]}'
+    fi
+  else
+    # ACMEv1: Updates happen the same way a registration is done.
+    # https://tools.ietf.org/html/draft-ietf-acme-acme-01#section-6.3
+    _regAccount
+    return
+  fi
+
+  # this part handles ACMEv2 account updates.
+  _send_signed_request "$_accUri" "$updjson"
+
+  if [ "$code" = '200' ]; then
+    _info "account update success for $_accUri."
+  else
+    _info "Error. The account was not updated."
+    return 1
+  fi
 }
 
 #Implement deactivate account
