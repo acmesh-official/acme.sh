@@ -1006,10 +1006,20 @@ _createkey() {
 
   if _isEccKey "$length"; then
     _debug "Using ec name: $eccname"
-    ${ACME_OPENSSL_BIN:-openssl} ecparam -name "$eccname" -genkey 2>/dev/null >"$f"
+    if _opkey="$(${ACME_OPENSSL_BIN:-openssl} ecparam -name "$eccname" -genkey 2>/dev/null)"; then
+      echo "$_opkey" >"$f"
+    else
+      _err "error ecc key name: $eccname"
+      return 1
+    fi
   else
     _debug "Using RSA: $length"
-    ${ACME_OPENSSL_BIN:-openssl} genrsa "$length" 2>/dev/null >"$f"
+    if _opkey="$(${ACME_OPENSSL_BIN:-openssl} genrsa "$length" 2>/dev/null)"; then
+      echo "$_opkey" >"$f"
+    else
+      _err "error rsa key: $length"
+      return 1
+    fi
   fi
 
   if [ "$?" != "0" ]; then
@@ -1312,13 +1322,19 @@ _create_account_key() {
   _initpath
 
   mkdir -p "$CA_DIR"
-  if [ -f "$ACCOUNT_KEY_PATH" ]; then
+  if [ -s "$ACCOUNT_KEY_PATH" ]; then
     _info "Account key exists, skip"
-    return
+    return 0
   else
     #generate account key
-    _createkey "$length" "$ACCOUNT_KEY_PATH"
-    chmod 600 "$ACCOUNT_KEY_PATH"
+    if _createkey "$length" "$ACCOUNT_KEY_PATH"; then
+      chmod 600 "$ACCOUNT_KEY_PATH"
+      _info "Create account key ok."
+      return 0
+    else
+      _err "Create account key error."
+      return 1
+    fi
   fi
 
 }
@@ -1341,11 +1357,14 @@ createDomainKey() {
 
   _initpath "$domain" "$_cdl"
 
-  if [ ! -f "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$IS_RENEW" ]) || [ "$Le_ForceNewDomainKey" = "1" ]; then
+  if [ ! -f "$CERT_KEY_PATH" ] || [ ! -s "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$IS_RENEW" ]) || [ "$Le_ForceNewDomainKey" = "1" ]; then
     if _createkey "$_cdl" "$CERT_KEY_PATH"; then
       _savedomainconf Le_Keylength "$_cdl"
       _info "The domain key is here: $(__green $CERT_KEY_PATH)"
       return 0
+    else
+      _err "Can not domain key"
+      return 1
     fi
   else
     if [ "$IS_RENEW" ]; then
@@ -5795,6 +5814,7 @@ Parameters:
   --ca-bundle                       Specifies the path to the CA certificate bundle to verify api server's certificate.
   --ca-path                         Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
+  --noprofile                       Only valid for '--install' command, which means: do not install aliases to user profile.
   --no-color                        Do not output color text.
   --force-color                     Force output of color text. Useful for non-interactive use with the aha tool for HTML E-Mails.
   --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
@@ -5928,6 +5948,7 @@ _process() {
   _ca_bundle=""
   _ca_path=""
   _nocron=""
+  _noprofile=""
   _ecc=""
   _csr=""
   _pre_hook=""
@@ -6272,6 +6293,9 @@ _process() {
       --nocron)
         _nocron="1"
         ;;
+      --noprofile)
+        _noprofile="1"
+        ;;
       --no-color)
         export ACME_NO_COLOR=1
         ;;
@@ -6430,7 +6454,7 @@ _process() {
   fi
 
   case "${_CMD}" in
-    install) install "$_nocron" "$_confighome" ;;
+    install) install "$_nocron" "$_confighome" "$_noprofile" ;;
     uninstall) uninstall "$_nocron" ;;
     upgrade) upgrade ;;
     issue)
