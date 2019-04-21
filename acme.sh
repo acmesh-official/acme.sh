@@ -1006,10 +1006,20 @@ _createkey() {
 
   if _isEccKey "$length"; then
     _debug "Using ec name: $eccname"
-    ${ACME_OPENSSL_BIN:-openssl} ecparam -name "$eccname" -genkey 2>/dev/null >"$f"
+    if _opkey="$(${ACME_OPENSSL_BIN:-openssl} ecparam -name "$eccname" -genkey 2>/dev/null)"; then
+      echo "$_opkey" >"$f"
+    else
+      _err "error ecc key name: $eccname"
+      return 1
+    fi
   else
     _debug "Using RSA: $length"
-    ${ACME_OPENSSL_BIN:-openssl} genrsa "$length" 2>/dev/null >"$f"
+    if _opkey="$(${ACME_OPENSSL_BIN:-openssl} genrsa "$length" 2>/dev/null)"; then
+      echo "$_opkey" >"$f"
+    else
+      _err "error rsa key: $length"
+      return 1
+    fi
   fi
 
   if [ "$?" != "0" ]; then
