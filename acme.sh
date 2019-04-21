@@ -1312,13 +1312,19 @@ _create_account_key() {
   _initpath
 
   mkdir -p "$CA_DIR"
-  if [ -f "$ACCOUNT_KEY_PATH" ]; then
+  if [ -s "$ACCOUNT_KEY_PATH" ]; then
     _info "Account key exists, skip"
-    return
+    return 0
   else
     #generate account key
-    _createkey "$length" "$ACCOUNT_KEY_PATH"
-    chmod 600 "$ACCOUNT_KEY_PATH"
+    if _createkey "$length" "$ACCOUNT_KEY_PATH"; then
+      chmod 600 "$ACCOUNT_KEY_PATH"
+      _info "Create account key ok."
+      return 0
+    else
+      _err "Create account key error."
+      return 1
+    fi
   fi
 
 }
@@ -1341,11 +1347,14 @@ createDomainKey() {
 
   _initpath "$domain" "$_cdl"
 
-  if [ ! -f "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$IS_RENEW" ]) || [ "$Le_ForceNewDomainKey" = "1" ]; then
+  if [ ! -f "$CERT_KEY_PATH" ] || [ ! -s "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$IS_RENEW" ]) || [ "$Le_ForceNewDomainKey" = "1" ]; then
     if _createkey "$_cdl" "$CERT_KEY_PATH"; then
       _savedomainconf Le_Keylength "$_cdl"
       _info "The domain key is here: $(__green $CERT_KEY_PATH)"
       return 0
+    else
+      _err "Can not domain key"
+      return 1
     fi
   else
     if [ "$IS_RENEW" ]; then
