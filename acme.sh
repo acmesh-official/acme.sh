@@ -5804,6 +5804,7 @@ Parameters:
   --ca-bundle                       Specifies the path to the CA certificate bundle to verify api server's certificate.
   --ca-path                         Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
+  --noprofile                       Only valid for '--install' command, which means: do not install aliases to user profile.
   --no-color                        Do not output color text.
   --force-color                     Force output of color text. Useful for non-interactive use with the aha tool for HTML E-Mails.
   --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
@@ -5937,6 +5938,7 @@ _process() {
   _ca_bundle=""
   _ca_path=""
   _nocron=""
+  _noprofile=""
   _ecc=""
   _csr=""
   _pre_hook=""
@@ -6281,6 +6283,9 @@ _process() {
       --nocron)
         _nocron="1"
         ;;
+      --noprofile)
+        _noprofile="1"
+        ;;
       --no-color)
         export ACME_NO_COLOR=1
         ;;
@@ -6439,7 +6444,7 @@ _process() {
   fi
 
   case "${_CMD}" in
-    install) install "$_nocron" "$_confighome" ;;
+    install) install "$_nocron" "$_confighome" "$_noprofile" ;;
     uninstall) uninstall "$_nocron" ;;
     upgrade) upgrade ;;
     issue)
