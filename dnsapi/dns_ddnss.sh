@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 
 #Created by RaidenII, to use DuckDNS's API to add/remove text records
-#06/27/201
 #modified by helbgd @ 03/13/2018 to support ddnss.de
 #modified by mod242 @ 04/24/2018 to support different ddnss domains
 #Please note: the Wildcard Feature must be turned on for the Host record
