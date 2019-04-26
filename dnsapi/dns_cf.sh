@@ -58,7 +58,7 @@ dns_cf_add() {
   #  if [ "$count" = "0" ]; then
   _info "Adding record"
   if _cf_rest POST "zones/$_domain_id/dns_records" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
-    if _contains "$response" "$fulldomain"; then
+    if _contains "$response" "$txtvalue"; then
       _info "Added, OK"
       return 0
     elif _contains "$response" "The record already exists"; then
