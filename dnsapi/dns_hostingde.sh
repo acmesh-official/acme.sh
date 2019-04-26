@@ -53,6 +53,18 @@ _hostingde_parse() {
   fi
 }
 
+_hostingde_parse_no_strip_whitespace() {
+  find="${1}"
+  if [ "${2}" ]; then
+    notfind="${2}"
+  fi
+  if [ "${notfind}" ]; then
+    _egrep_o \""${find}\":.*" | grep -v "${notfind}" | cut -d ':' -f 2 | cut -d ',' -f 1
+  else
+    _egrep_o \""${find}\":.*" | cut -d ':' -f 2 | cut -d ',' -f 1
+  fi
+}
+
 _hostingde_getZoneConfig() {
   _info "Getting ZoneConfig"
   curZone="${fulldomain#*.}"
@@ -85,6 +97,22 @@ _hostingde_getZoneConfig() {
       zoneConfigDnsServerGroupId=$(echo "${curResult}" | _hostingde_parse "dnsServerGroupId")
       zoneConfigEmailAddress=$(echo "${curResult}" | _hostingde_parse "emailAddress")
       zoneConfigDnsSecMode=$(echo "${curResult}" | _hostingde_parse "dnsSecMode")
+      zoneConfigTemplateValues=$(echo "${curResult}" | _hostingde_parse_no_strip_whitespace "templateValues")
+
+      if [ "$zoneConfigTemplateValues" != "null" ]; then
+        _debug "Zone is tied to a template."
+        zoneConfigTemplateValuesTemplateId=$(echo "${curResult}" | _hostingde_parse "templateId")
+        zoneConfigTemplateValuesTemplateName=$(echo "${curResult}" | _hostingde_parse_no_strip_whitespace "templateName")
+        zoneConfigTemplateValuesTemplateReplacementsIPv4=$(echo "${curResult}" | _hostingde_parse "ipv4Replacement")
+        zoneConfigTemplateValuesTemplateReplacementsIPv6=$(echo "${curResult}" | _hostingde_parse "ipv6Replacement")
+        zoneConfigTemplateValuesTemplateReplacementsMailIPv4=$(echo "${curResult}" | _hostingde_parse "mailIpv4Replacement")
+        zoneConfigTemplateValuesTemplateReplacementsMailIPv6=$(echo "${curResult}" | _hostingde_parse "mailIpv6Replacement")
+        zoneConfigTemplateValuesTemplateTieToTemplate=$(echo "${curResult}" | _hostingde_parse "tieToTemplate")
+
+        zoneConfigTemplateValues="{\"templateId\":${zoneConfigTemplateValuesTemplateId},\"templateName\":${zoneConfigTemplateValuesTemplateName},\"templateReplacements\":{\"ipv4Replacement\":${zoneConfigTemplateValuesTemplateReplacementsIPv4},\"ipv6Replacement\":${zoneConfigTemplateValuesTemplateReplacementsIPv6},\"mailIpv4Replacement\":${zoneConfigTemplateValuesTemplateReplacementsMailIPv4},\"mailIpv6Replacement\":${zoneConfigTemplateValuesTemplateReplacementsMailIPv6}},\"tieToTemplate\":${zoneConfigTemplateValuesTemplateTieToTemplate}}"
+        _debug "Template values: '{$zoneConfigTemplateValues}'"
+      fi
+
       if [ "${zoneConfigType}" != "\"NATIVE\"" ]; then
         _err "Zone is not native"
         returnCode=1
@@ -122,7 +150,7 @@ _hostingde_addRecord() {
     _hostingde_getZoneStatus
     _debug "Result of zoneStatus: '${zoneStatus}'"
   done
-  curData="{\"authToken\":\"${HOSTINGDE_APIKEY}\",\"zoneConfig\":{\"id\":${zoneConfigId},\"name\":${zoneConfigName},\"type\":${zoneConfigType},\"dnsServerGroupId\":${zoneConfigDnsServerGroupId},\"dnsSecMode\":${zoneConfigDnsSecMode},\"emailAddress\":${zoneConfigEmailAddress},\"soaValues\":{\"expire\":${zoneConfigExpire},\"negativeTtl\":${zoneConfigNegativeTtl},\"refresh\":${zoneConfigRefresh},\"retry\":${zoneConfigRetry},\"ttl\":${zoneConfigTtl}}},\"recordsToAdd\":[{\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"content\":\"\\\"${txtvalue}\\\"\",\"ttl\":3600}]}"
+  curData="{\"authToken\":\"${HOSTINGDE_APIKEY}\",\"zoneConfig\":{\"id\":${zoneConfigId},\"name\":${zoneConfigName},\"type\":${zoneConfigType},\"dnsServerGroupId\":${zoneConfigDnsServerGroupId},\"dnsSecMode\":${zoneConfigDnsSecMode},\"emailAddress\":${zoneConfigEmailAddress},\"soaValues\":{\"expire\":${zoneConfigExpire},\"negativeTtl\":${zoneConfigNegativeTtl},\"refresh\":${zoneConfigRefresh},\"retry\":${zoneConfigRetry},\"ttl\":${zoneConfigTtl}},\"templateValues\":${zoneConfigTemplateValues}},\"recordsToAdd\":[{\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"content\":\"\\\"${txtvalue}\\\"\",\"ttl\":3600}]}"
   curResult="$(_post "${curData}" "${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate")"
   _debug "Calling zoneUpdate: '${curData}' '${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate'"
   _debug "Result of zoneUpdate: '$curResult'"
@@ -146,7 +174,7 @@ _hostingde_removeRecord() {
     _hostingde_getZoneStatus
     _debug "Result of zoneStatus: '$zoneStatus'"
   done
-  curData="{\"authToken\":\"${HOSTINGDE_APIKEY}\",\"zoneConfig\":{\"id\":${zoneConfigId},\"name\":${zoneConfigName},\"type\":${zoneConfigType},\"dnsServerGroupId\":${zoneConfigDnsServerGroupId},\"dnsSecMode\":${zoneConfigDnsSecMode},\"emailAddress\":${zoneConfigEmailAddress},\"soaValues\":{\"expire\":${zoneConfigExpire},\"negativeTtl\":${zoneConfigNegativeTtl},\"refresh\":${zoneConfigRefresh},\"retry\":${zoneConfigRetry},\"ttl\":${zoneConfigTtl}}},\"recordsToDelete\":[{\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"content\":\"\\\"${txtvalue}\\\"\"}]}"
+  curData="{\"authToken\":\"${HOSTINGDE_APIKEY}\",\"zoneConfig\":{\"id\":${zoneConfigId},\"name\":${zoneConfigName},\"type\":${zoneConfigType},\"dnsServerGroupId\":${zoneConfigDnsServerGroupId},\"dnsSecMode\":${zoneConfigDnsSecMode},\"emailAddress\":${zoneConfigEmailAddress},\"soaValues\":{\"expire\":${zoneConfigExpire},\"negativeTtl\":${zoneConfigNegativeTtl},\"refresh\":${zoneConfigRefresh},\"retry\":${zoneConfigRetry},\"ttl\":${zoneConfigTtl}},\"templateValues\":${zoneConfigTemplateValues}},\"recordsToDelete\":[{\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"content\":\"\\\"${txtvalue}\\\"\"}]}"
   curResult="$(_post "${curData}" "${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate")"
   _debug "Calling zoneUpdate: '${curData}' '${HOSTINGDE_ENDPOINT}/api/dns/v1/json/zoneUpdate'"
   _debug "Result of zoneUpdate: '$curResult'"

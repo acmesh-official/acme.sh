@@ -1006,10 +1006,20 @@ _createkey() {
 
   if _isEccKey "$length"; then
     _debug "Using ec name: $eccname"
-    ${ACME_OPENSSL_BIN:-openssl} ecparam -name "$eccname" -genkey 2>/dev/null >"$f"
+    if _opkey="$(${ACME_OPENSSL_BIN:-openssl} ecparam -name "$eccname" -genkey 2>/dev/null)"; then
+      echo "$_opkey" >"$f"
+    else
+      _err "error ecc key name: $eccname"
+      return 1
+    fi
   else
     _debug "Using RSA: $length"
-    ${ACME_OPENSSL_BIN:-openssl} genrsa "$length" 2>/dev/null >"$f"
+    if _opkey="$(${ACME_OPENSSL_BIN:-openssl} genrsa "$length" 2>/dev/null)"; then
+      echo "$_opkey" >"$f"
+    else
+      _err "error rsa key: $length"
+      return 1
+    fi
   fi
 
   if [ "$?" != "0" ]; then
@@ -1074,11 +1084,12 @@ _createcsr() {
   printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\n\nkeyUsage = nonRepudiation, digitalSignature, keyEncipherment" >"$csrconf"
 
   if [ "$acmeValidationv1" ]; then
+    domainlist="$(_idn "$domainlist")"
     printf -- "\nsubjectAltName=DNS:$domainlist" >>"$csrconf"
   elif [ -z "$domainlist" ] || [ "$domainlist" = "$NO_VALUE" ]; then
     #single domain
     _info "Single domain" "$domain"
-    printf -- "\nsubjectAltName=DNS:$domain" >>"$csrconf"
+    printf -- "\nsubjectAltName=DNS:$(_idn $domain)" >>"$csrconf"
   else
     domainlist="$(_idn "$domainlist")"
     _debug2 domainlist "$domainlist"
@@ -1312,13 +1323,19 @@ _create_account_key() {
   _initpath
 
   mkdir -p "$CA_DIR"
-  if [ -f "$ACCOUNT_KEY_PATH" ]; then
+  if [ -s "$ACCOUNT_KEY_PATH" ]; then
     _info "Account key exists, skip"
-    return
+    return 0
   else
     #generate account key
-    _createkey "$length" "$ACCOUNT_KEY_PATH"
-    chmod 600 "$ACCOUNT_KEY_PATH"
+    if _createkey "$length" "$ACCOUNT_KEY_PATH"; then
+      chmod 600 "$ACCOUNT_KEY_PATH"
+      _info "Create account key ok."
+      return 0
+    else
+      _err "Create account key error."
+      return 1
+    fi
   fi
 
 }
@@ -1341,11 +1358,14 @@ createDomainKey() {
 
   _initpath "$domain" "$_cdl"
 
-  if [ ! -f "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$IS_RENEW" ]) || [ "$Le_ForceNewDomainKey" = "1" ]; then
+  if [ ! -f "$CERT_KEY_PATH" ] || [ ! -s "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$IS_RENEW" ]) || [ "$Le_ForceNewDomainKey" = "1" ]; then
     if _createkey "$_cdl" "$CERT_KEY_PATH"; then
       _savedomainconf Le_Keylength "$_cdl"
       _info "The domain key is here: $(__green $CERT_KEY_PATH)"
       return 0
+    else
+      _err "Can not domain key"
+      return 1
     fi
   else
     if [ "$IS_RENEW" ]; then
@@ -3218,11 +3238,6 @@ _on_issue_success() {
 
 }
 
-updateaccount() {
-  _initpath
-  _regAccount
-}
-
 registeraccount() {
   _reg_length="$1"
   _initpath
@@ -3318,6 +3333,61 @@ _regAccount() {
 
   ACCOUNT_THUMBPRINT="$(__calc_account_thumbprint)"
   _info "ACCOUNT_THUMBPRINT" "$ACCOUNT_THUMBPRINT"
+}
+
+#implement updateaccount
+updateaccount() {
+  _initpath
+
+  if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
+    _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
+    mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
+  fi
+
+  if [ ! -f "$ACCOUNT_JSON_PATH" ] && [ -f "$_OLD_ACCOUNT_JSON" ]; then
+    _info "mv $_OLD_ACCOUNT_JSON to $ACCOUNT_JSON_PATH"
+    mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
+  fi
+
+  if [ ! -f "$ACCOUNT_KEY_PATH" ]; then
+    _err "Account key is not found at: $ACCOUNT_KEY_PATH"
+    return 1
+  fi
+
+  _accUri=$(_readcaconf "ACCOUNT_URL")
+  _debug _accUri "$_accUri"
+
+  if [ -z "$_accUri" ]; then
+    _err "The account url is empty, please run '--update-account' first to update the account info first,"
+    _err "Then try again."
+    return 1
+  fi
+
+  if ! _calcjwk "$ACCOUNT_KEY_PATH"; then
+    return 1
+  fi
+  _initAPI
+
+  if [ "$ACME_VERSION" = "2" ]; then
+    if [ "$ACCOUNT_EMAIL" ]; then
+      updjson='{"contact": ["mailto: '$ACCOUNT_EMAIL'"]}'
+    fi
+  else
+    # ACMEv1: Updates happen the same way a registration is done.
+    # https://tools.ietf.org/html/draft-ietf-acme-acme-01#section-6.3
+    _regAccount
+    return
+  fi
+
+  # this part handles ACMEv2 account updates.
+  _send_signed_request "$_accUri" "$updjson"
+
+  if [ "$code" = '200' ]; then
+    _info "account update success for $_accUri."
+  else
+    _info "Error. The account was not updated."
+    return 1
+  fi
 }
 
 #Implement deactivate account
@@ -3538,7 +3608,9 @@ _check_dns_entries() {
     for entry in $dns_entries; do
       d=$(_getfield "$entry" 1)
       txtdomain=$(_getfield "$entry" 2)
+      txtdomain=$(_idn $txtdomain)
       aliasDomain=$(_getfield "$entry" 3)
+      aliasDomain=$(_idn $aliasDomain)
       txt=$(_getfield "$entry" 5)
       d_api=$(_getfield "$entry" 6)
       _debug "d" "$d"
@@ -3735,7 +3807,7 @@ issue() {
   if [ -z "$vlist" ]; then
     if [ "$ACME_VERSION" = "2" ]; then
       #make new order request
-      _identifiers="{\"type\":\"dns\",\"value\":\"$_main_domain\"}"
+      _identifiers="{\"type\":\"dns\",\"value\":\"$(_idn $_main_domain)\"}"
       _w_index=1
       while true; do
         d="$(echo "$_alt_domains," | cut -d , -f "$_w_index")"
@@ -3832,7 +3904,7 @@ $_authorizations_map"
       fi
 
       if [ "$ACME_VERSION" = "2" ]; then
-        response="$(echo "$_authorizations_map" | grep "^$d," | sed "s/$d,//")"
+        response="$(echo "$_authorizations_map" | grep "^$(_idn $d)," | sed "s/$d,//")"
         _debug2 "response" "$response"
         if [ -z "$response" ]; then
           _err "get to authz error."
@@ -5795,6 +5867,7 @@ Parameters:
   --ca-bundle                       Specifies the path to the CA certificate bundle to verify api server's certificate.
   --ca-path                         Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
+  --noprofile                       Only valid for '--install' command, which means: do not install aliases to user profile.
   --no-color                        Do not output color text.
   --force-color                     Force output of color text. Useful for non-interactive use with the aha tool for HTML E-Mails.
   --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
@@ -5928,6 +6001,7 @@ _process() {
   _ca_bundle=""
   _ca_path=""
   _nocron=""
+  _noprofile=""
   _ecc=""
   _csr=""
   _pre_hook=""
@@ -6272,6 +6346,9 @@ _process() {
       --nocron)
         _nocron="1"
         ;;
+      --noprofile)
+        _noprofile="1"
+        ;;
       --no-color)
         export ACME_NO_COLOR=1
         ;;
@@ -6430,7 +6507,7 @@ _process() {
   fi
 
   case "${_CMD}" in
-    install) install "$_nocron" "$_confighome" ;;
+    install) install "$_nocron" "$_confighome" "$_noprofile" ;;
     uninstall) uninstall "$_nocron" ;;
     upgrade) upgrade ;;
     issue)
