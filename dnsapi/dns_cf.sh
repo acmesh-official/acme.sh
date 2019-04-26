@@ -182,8 +182,11 @@ _cf_rest() {
   data="$3"
   _debug "$ep"
 
-  export _H1="X-Auth-Email: $CF_Email"
-  export _H2="X-Auth-Key: $CF_Key"
+  email_trimmed=$(echo $CF_Email | tr -d '"')
+  key_trimmed=$(echo $CF_Key | tr -d '"')
+
+  export _H1="X-Auth-Email: $email_trimmed"
+  export _H2="X-Auth-Key: $key_trimmed"
   export _H3="Content-Type: application/json"
 
   if [ "$m" != "GET" ]; then
