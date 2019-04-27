@@ -1364,7 +1364,7 @@ createDomainKey() {
       _info "The domain key is here: $(__green $CERT_KEY_PATH)"
       return 0
     else
-      _err "Can not domain key"
+      _err "Can not create domain key"
       return 1
     fi
   else
