@@ -10,6 +10,7 @@ sendgrid_send() {
   _subject="$1"
   _content="$2"
   _statusCode="$3" #0: success, 1: error 2($RENEW_SKIP): skipped
+  _debug "_statusCode" "$_statusCode"
 
   SENDGRID_API_KEY="${SENDGRID_API_KEY:-$(_readaccountconf_mutable SENDGRID_API_KEY)}"
   if [ -z "$SENDGRID_API_KEY" ]; then
@@ -41,7 +42,7 @@ sendgrid_send() {
 
   _content="$(echo "$_content" | _json_encode)"
   _data="{\"personalizations\": [{\"to\": [{\"email\": \"$SENDGRID_TO\"}]}],\"from\": {\"email\": \"$SENDGRID_FROM\"},\"subject\": \"$_subject\",\"content\": [{\"type\": \"text/plain\", \"value\": \"$_content\"}]}"
-
+  response="" #just make shellcheck happy
   if _post "$_data" "https://api.sendgrid.com/v3/mail/send"; then
     if [ -z "$response" ]; then
       _info "sendgrid send sccess."
@@ -50,6 +51,6 @@ sendgrid_send() {
   fi
   _err "sendgrid send error."
   _err "$response"
-  return 1;
+  return 1
 
 }

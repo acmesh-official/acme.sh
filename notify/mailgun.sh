@@ -16,6 +16,7 @@ mailgun_send() {
   _subject="$1"
   _content="$2"
   _statusCode="$3" #0: success, 1: error 2($RENEW_SKIP): skipped
+  _debug "_statusCode" "$_statusCode"
 
   MAILGUN_API_KEY="${MAILGUN_API_KEY:-$(_readaccountconf_mutable MAILGUN_API_KEY)}"
   if [ -z "$MAILGUN_API_KEY" ]; then
@@ -112,7 +113,7 @@ _mailgun_rest() {
     response="$(_post "$_mgdata" "$_mgurl" "" "$_method")"
   fi
   if [ "$?" != "0" ]; then
-    _err "Error: $ep"
+    _err "Error: $_mguri"
     _err "$response"
     return 1
   fi
