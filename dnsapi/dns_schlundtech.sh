@@ -21,8 +21,8 @@ dns_schlundtech_add() {
   fulldomain="$1"
   txtvalue="$2"
 
-  SCHLUNDTECH_USER="${SCHLUNDTECH_USER:-$(_readaccountconf_mutable AUTODNS_USER)}"
-  SCHLUNDTECH_PASSWORD="${SCHLUNDTECH_PASSWORD:-$(_readaccountconf_mutable AUTODNS_PASSWORD)}"
+  SCHLUNDTECH_USER="${SCHLUNDTECH_USER:-$(_readaccountconf_mutable SCHLUNDTECH_USER)}"
+  SCHLUNDTECH_PASSWORD="${SCHLUNDTECH_PASSWORD:-$(_readaccountconf_mutable SCHLUNDTECH_PASSWORD)}"
   
   if [ -z "$SCHLUNDTECH_USER" ] || [ -z "$SCHLUNDTECH_PASSWORD" ]; then
     _err "You didn't specify schlundtech user and password."
