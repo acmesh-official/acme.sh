@@ -14,7 +14,11 @@ _WINDOWS_SCHEDULER_NAME="$PROJECT_NAME.cron"
 
 _SCRIPT_="$0"
 
-_SUB_FOLDERS="dnsapi deploy"
+_SUB_FOLDER_NOTIFY="notify"
+_SUB_FOLDER_DNSAPI="dnsapi"
+_SUB_FOLDER_DEPLOY="deploy"
+
+_SUB_FOLDERS="$_SUB_FOLDER_DNSAPI $_SUB_FOLDER_DEPLOY $_SUB_FOLDER_NOTIFY"
 
 LETSENCRYPT_CA_V1="https://acme-v01.api.letsencrypt.org/directory"
 LETSENCRYPT_STAGING_CA_V1="https://acme-staging.api.letsencrypt.org/directory"
@@ -107,6 +111,18 @@ SYSLOG_LEVEL_DEFAULT=$SYSLOG_LEVEL_ERROR
 #none
 SYSLOG_LEVEL_NONE=0
 
+NOTIFY_LEVEL_DISABLE=0
+NOTIFY_LEVEL_ERROR=1
+NOTIFY_LEVEL_RENEW=2
+NOTIFY_LEVEL_SKIP=3
+
+NOTIFY_LEVEL_DEFAULT=$NOTIFY_LEVEL_RENEW
+
+NOTIFY_MODE_BULK=0
+NOTIFY_MODE_CERT=1
+
+NOTIFY_MODE_DEFAULT=$NOTIFY_MODE_BULK
+
 _DEBUG_WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-debug-acme.sh"
 
 _PREPARE_LINK="https://github.com/Neilpang/acme.sh/wiki/Install-preparations"
@@ -116,6 +132,8 @@ _STATELESS_WIKI="https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode"
 _DNS_ALIAS_WIKI="https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode"
 
 _DNS_MANUAL_WIKI="https://github.com/Neilpang/acme.sh/wiki/dns-manual-mode"
+
+_NOTIFY_WIKI="https://github.com/Neilpang/acme.sh/wiki/notify"
 
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
@@ -782,6 +800,13 @@ _url_encode() {
         ;;
     esac
   done
+}
+
+_json_encode() {
+  _j_str="$(sed 's/"/\\"/g' | sed "s/\r/\\r/g")"
+  _debug3 "_json_encode"
+  _debug3 "_j_str" "$_j_str"
+  echo "$_j_str" | _hex_dump | _lower_case | sed 's/0a/5c 6e/g' | tr -d ' ' | _h2b | tr -d "\r\n"
 }
 
 #options file
@@ -3168,6 +3193,14 @@ _on_issue_err() {
     _err "See: $_DEBUG_WIKI"
   fi
 
+  if [ "$IN_CRON" ]; then
+    if [ "$NOTIFY_LEVEL" ] && [ $NOTIFY_LEVEL -ge $NOTIFY_LEVEL_ERROR ]; then
+      if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
+        _send_notify "Renew $_main_domain error" "There is an error." "$NOTIFY_HOOK" 1
+      fi
+    fi
+  fi
+
   #run the post hook
   if [ "$_chk_post_hook" ]; then
     _info "Run post hook:'$_chk_post_hook'"
@@ -3210,6 +3243,13 @@ _on_issue_success() {
   _chk_post_hook="$1"
   _chk_renew_hook="$2"
   _debug _on_issue_success
+  if [ "$IN_CRON" ]; then
+    if [ "$NOTIFY_LEVEL" ] && [ $NOTIFY_LEVEL -ge $NOTIFY_LEVEL_RENEW ]; then
+      if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
+        _send_notify "Renew $_main_domain success" "Good, the cert is renewed." "$NOTIFY_HOOK" 0
+      fi
+    fi
+  fi
   #run the post hook
   if [ "$_chk_post_hook" ]; then
     _info "Run post hook:'$_chk_post_hook'"
@@ -3467,9 +3507,9 @@ _findHook() {
     d_api="$_SCRIPT_HOME/$_hookcat/$_hookname"
   elif [ -f "$_SCRIPT_HOME/$_hookcat/$_hookname.sh" ]; then
     d_api="$_SCRIPT_HOME/$_hookcat/$_hookname.sh"
-  elif [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname" ]; then
+  elif [ "$_hookdomain" ] && [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname" ]; then
     d_api="$LE_WORKING_DIR/$_hookdomain/$_hookname"
-  elif [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname.sh" ]; then
+  elif [ "$_hookdomain" ] && [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname.sh" ]; then
     d_api="$LE_WORKING_DIR/$_hookdomain/$_hookname.sh"
   elif [ -f "$LE_WORKING_DIR/$_hookname" ]; then
     d_api="$LE_WORKING_DIR/$_hookname"
@@ -4017,7 +4057,7 @@ $_authorizations_map"
         txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
         _debug txt "$txt"
 
-        d_api="$(_findHook "$_dns_root_d" dnsapi "$_currentRoot")"
+        d_api="$(_findHook "$_dns_root_d" $_SUB_FOLDER_DNSAPI "$_currentRoot")"
         _debug d_api "$d_api"
 
         dns_entry="$dns_entry$dvsep$txt${dvsep}$d_api"
@@ -4622,6 +4662,15 @@ renew() {
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
     _info "Skip, Next renewal time is: $(__green "$Le_NextRenewTimeStr")"
     _info "Add '$(__red '--force')' to force to renew."
+
+    if [ "$IN_CRON" = "1" ]; then
+      if [ "$NOTIFY_LEVEL" ] && [ $NOTIFY_LEVEL -ge $NOTIFY_LEVEL_SKIP ]; then
+        if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
+          _send_notify "Renew $Le_Domain skipped" "Good, the cert next renewal time is $Le_NextRenewTimeStr." "$NOTIFY_HOOK" "$RENEW_SKIP"
+        fi
+      fi
+    fi
+
     return "$RENEW_SKIP"
   fi
 
@@ -4657,7 +4706,9 @@ renewAll() {
   _stopRenewOnError="$1"
   _debug "_stopRenewOnError" "$_stopRenewOnError"
   _ret="0"
-
+  _success_msg=""
+  _error_msg=""
+  _skipped_msg=""
   for di in "${CERT_HOME}"/*.*/; do
     _debug di "$di"
     if ! [ -d "$di" ]; then
@@ -4678,15 +4729,49 @@ renewAll() {
     if [ "$rc" != "0" ]; then
       if [ "$rc" = "$RENEW_SKIP" ]; then
         _info "Skipped $d"
-      elif [ "$_stopRenewOnError" ]; then
-        _err "Error renew $d,  stop now."
-        return "$rc"
+        _skipped_msg="${_skipped_msg}    $d
+"
       else
-        _ret="$rc"
-        _err "Error renew $d."
+        _error_msg="${_error_msg}    $d
+"
+        if [ "$_stopRenewOnError" ]; then
+          _err "Error renew $d,  stop now."
+          _ret="$rc"
+          break
+        else
+          _ret="$rc"
+          _err "Error renew $d."
+        fi
       fi
+    else
+      _success_msg="${_success_msg}    $d
+"
     fi
   done
+
+  if [ "$IN_CRON" = "1" ]; then
+    if [ -z "$NOTIFY_MODE" ] || [ "$NOTIFY_MODE" = "$NOTIFY_MODE_BULK" ]; then
+      _msg_subject="Renew"
+      if [ "$_error_msg" ]; then
+        _msg_subject="${_msg_subject} Error"
+      fi
+      if [ "$_success_msg" ]; then
+        _msg_subject="${_msg_subject} Success"
+      fi
+      if [ "$_skipped_msg" ]; then
+        _msg_subject="${_msg_subject} Skipped"
+      fi
+      _msg_data="Error certs:
+${_error_msg}
+Success certs:
+${_success_msg}
+Skipped certs:
+$_skipped_msg
+"
+      _send_notify "$_msg_subject" "$_msg_data" "$NOTIFY_HOOK" 0
+    fi
+  fi
+
   return "$_ret"
 }
 
@@ -4835,7 +4920,7 @@ _deploy() {
   _hooks="$2"
 
   for _d_api in $(echo "$_hooks" | tr ',' " "); do
-    _deployApi="$(_findHook "$_d" deploy "$_d_api")"
+    _deployApi="$(_findHook "$_d" $_SUB_FOLDER_DEPLOY "$_d_api")"
     if [ -z "$_deployApi" ]; then
       _err "The deploy hook $_d_api is not found."
       return 1
@@ -5785,6 +5870,113 @@ version() {
   echo "v$VER"
 }
 
+# subject content hooks code
+_send_notify() {
+  _nsubject="$1"
+  _ncontent="$2"
+  _nhooks="$3"
+  _nerror="$4"
+
+  if [ "$NOTIFY_LEVEL" = "$NOTIFY_LEVEL_DISABLE" ]; then
+    _debug "The NOTIFY_LEVEL is $NOTIFY_LEVEL, disabled, just return."
+    return 0
+  fi
+
+  if [ -z "$_nhooks" ]; then
+    _debug "The NOTIFY_HOOK is empty, just return."
+    return 0
+  fi
+
+  _send_err=0
+  for _n_hook in $(echo "$_nhooks" | tr ',' " "); do
+    _n_hook_file="$(_findHook "" $_SUB_FOLDER_NOTIFY "$_n_hook")"
+    _info "Found $_n_hook_file"
+
+    if ! (
+      if ! . "$_n_hook_file"; then
+        _err "Load file $_n_hook_file error. Please check your api file and try again."
+        return 1
+      fi
+
+      d_command="${_n_hook}_send"
+      if ! _exists "$d_command"; then
+        _err "It seems that your api file is not correct, it must have a function named: $d_command"
+        return 1
+      fi
+
+      if ! $d_command "$_nsubject" "$_ncontent" "$_nerror"; then
+        _err "Error send message by $d_command"
+        return 1
+      fi
+
+      return 0
+    ); then
+      _err "Set $_n_hook_file error."
+      _send_err=1
+    else
+      _info "$_n_hook $(__green Success)"
+    fi
+  done
+  return $_send_err
+
+}
+
+# hook
+_set_notify_hook() {
+  _nhooks="$1"
+
+  _test_subject="Hello, this is notification from $PROJECT_NAME"
+  _test_content="If you receive this email, your notification works."
+
+  _send_notify "$_test_subject" "$_test_content" "$_nhooks" 0
+
+}
+
+#[hook] [level] [mode]
+setnotify() {
+  _nhook="$1"
+  _nlevel="$2"
+  _nmode="$3"
+
+  _initpath
+
+  if [ -z "$_nhook$_nlevel$_nmode" ]; then
+    _usage "Usage: $PROJECT_ENTRY --set-notify [--notify-hook mailgun] [--notify-level $NOTIFY_LEVEL_DEFAULT] [--notify-mode $NOTIFY_MODE_DEFAULT]"
+    _usage "$_NOTIFY_WIKI"
+    return 1
+  fi
+
+  if [ "$_nlevel" ]; then
+    _info "Set notify level to: $_nlevel"
+    export "NOTIFY_LEVEL=$_nlevel"
+    _saveaccountconf "NOTIFY_LEVEL" "$NOTIFY_LEVEL"
+  fi
+
+  if [ "$_nmode" ]; then
+    _info "Set notify mode to: $_nmode"
+    export "NOTIFY_MODE=$_nmode"
+    _saveaccountconf "NOTIFY_MODE" "$NOTIFY_MODE"
+  fi
+
+  if [ "$_nhook" ]; then
+    _info "Set notify hook to: $_nhook"
+    if [ "$_nhook" = "$NO_VALUE" ]; then
+      _info "Clear notify hook"
+      _clearaccountconf "NOTIFY_HOOK"
+    else
+      if _set_notify_hook "$_nhook"; then
+        export NOTIFY_HOOK="$_nhook"
+        _saveaccountconf "NOTIFY_HOOK" "$NOTIFY_HOOK"
+        return 0
+      else
+        _err "Can not set notify hook to: $_nhook"
+        return 1
+      fi
+    fi
+  fi
+
+}
+
 showhelp() {
   _initpath
   version
@@ -5817,6 +6009,8 @@ Commands:
   --create-domain-key      Create an domain private key, professional use.
   --createCSR, -ccsr       Create CSR , professional use.
   --deactivate             Deactivate the domain authz, professional use.
+  --set-notify             Set the cron notification hook, level or mode.
+
 
 Parameters:
   --domain, -d   domain.tld         Specifies a domain, used to issue, renew or revoke etc.
@@ -5885,7 +6079,18 @@ Parameters:
   --use-wget                        Force to use wget, if you have both curl and wget installed.
   --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force to use dns manual mode: $_DNS_MANUAL_WIKI
   --branch, -b                      Only valid for '--upgrade' command, specifies the branch name to upgrade to.
-  "
+
+  --notify-level  0|1|2|3           Set the notification level:  Default value is $NOTIFY_LEVEL_DEFAULT.
+                                     0: disabled, no notification will be sent. 
+                                     1: send notification only when there is an error. No news is good news.
+                                     2: send notification when a cert is successfully renewed, or there is an error
+                                     3: send notification when a cert is skipped, renewdd, or error
+  --notify-mode   0|1               Set notification mode. Default value is $NOTIFY_MODE_DEFAULT.
+                                     0: Bulk mode. Send all the domain's notifications in one message(mail)
+                                     1: Cert mode. Send a message for every single cert.
+  --notify-hook   [hookname]        Set the notify hook
+
+"
 }
 
 # nocron noprofile
@@ -6019,6 +6224,9 @@ _process() {
   _syslog=""
   _use_wget=""
   _server=""
+  _notify_hook=""
+  _notify_level=""
+  _notify_mode=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -6104,6 +6312,9 @@ _process() {
         ;;
       --deactivate-account)
         _CMD="deactivateaccount"
+        ;;
+      --set-notify)
+        _CMD="setnotify"
         ;;
       --domain | -d)
         _dvalue="$2"
@@ -6453,6 +6664,37 @@ _process() {
         export BRANCH="$2"
         shift
         ;;
+      --notify-hook)
+        _nhook="$2"
+        if _startswith "$_nhook" "-"; then
+          _err "'$_nhook' is not a hook name for '$1'"
+          return 1
+        fi
+        if [ "$_notify_hook" ]; then
+          _notify_hook="$_notify_hook,$_nhook"
+        else
+          _notify_hook="$_nhook"
+        fi
+        shift
+        ;;
+      --notify-level)
+        _nlevel="$2"
+        if _startswith "$_nlevel" "-"; then
+          _err "'$_nlevel' is not a integer for '$1'"
+          return 1
+        fi
+        _notify_level="$_nlevel"
+        shift
+        ;;
+      --notify-mode)
+        _nmode="$2"
+        if _startswith "$_nmode" "-"; then
+          _err "'$_nmode' is not a integer for '$1'"
+          return 1
+        fi
+        _notify_mode="$_nmode"
+        shift
+        ;;
       *)
         _err "Unknown parameter : $1"
         return 1
@@ -6570,7 +6812,9 @@ _process() {
     createCSR)
       createCSR "$_domain" "$_altdomains" "$_ecc"
       ;;
-
+    setnotify)
+      setnotify "$_notify_hook" "$_notify_level" "$_notify_mode"
+      ;;
     *)
       if [ "$_CMD" ]; then
         _err "Invalid command: $_CMD"
