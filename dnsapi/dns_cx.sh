@@ -16,6 +16,8 @@ dns_cx_add() {
   fulldomain=$1
   txtvalue=$2
 
+  CX_Key="${CX_Key:-$(_readaccountconf_mutable CX_Key)}"
+  CX_Secret="${CX_Secret:-$(_readaccountconf_mutable CX_Secret)}"
   if [ -z "$CX_Key" ] || [ -z "$CX_Secret" ]; then
     CX_Key=""
     CX_Secret=""
@@ -27,8 +29,8 @@ dns_cx_add() {
   REST_API="$CX_Api"
 
   #save the api key and email to the account conf file.
-  _saveaccountconf CX_Key "$CX_Key"
-  _saveaccountconf CX_Secret "$CX_Secret"
+  _saveaccountconf_mutable CX_Key "$CX_Key"
+  _saveaccountconf_mutable CX_Secret "$CX_Secret"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -43,6 +45,8 @@ dns_cx_add() {
 dns_cx_rm() {
   fulldomain=$1
   txtvalue=$2
+  CX_Key="${CX_Key:-$(_readaccountconf_mutable CX_Key)}"
+  CX_Secret="${CX_Secret:-$(_readaccountconf_mutable CX_Secret)}"
   REST_API="$CX_Api"
   if _get_root "$fulldomain"; then
     record_id=""
