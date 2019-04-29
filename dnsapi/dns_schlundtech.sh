@@ -10,9 +10,9 @@
 #     export SCHLUNDTECH_PASSWORD="password"
 #
 # Usage:
-#     acme.sh --issue --dns dns_autodns -d example.com
+#     acme.sh --issue --dns dns_schlundtech -d example.com
 
-AUTODNS_API="https://gateway.schlundtech.de"
+SCHLUNDTECH_API="https://gateway.schlundtech.de"
 
 # Arguments:
 #   txtdomain
@@ -241,7 +241,7 @@ _autodns_api_call() {
 
   _debug request_data "$request_data"
 
-  autodns_response="$(_post "$request_data" "$AUTODNS_API")"
+  autodns_response="$(_post "$request_data" "$SCHLUNDTECH_API")"
   ret="$?"
 
   _debug autodns_response "$autodns_response"
