@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.8.1
+VER=2.8.2
 
 PROJECT_NAME="acme.sh"
 
