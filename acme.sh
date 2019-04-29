@@ -1032,7 +1032,7 @@ _createkey() {
 _is_idn() {
   _is_idn_d="$1"
   _debug2 _is_idn_d "$_is_idn_d"
-  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '0-9' | tr -d 'a-z' | tr -d 'A-Z' | tr -d '*.,-')
+  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '0-9' | tr -d 'a-z' | tr -d 'A-Z' | tr -d '*.,-_')
   _debug2 _idn_temp "$_idn_temp"
   [ "$_idn_temp" ]
 }
@@ -1364,7 +1364,7 @@ createDomainKey() {
       _info "The domain key is here: $(__green $CERT_KEY_PATH)"
       return 0
     else
-      _err "Can not domain key"
+      _err "Can not create domain key"
       return 1
     fi
   else
