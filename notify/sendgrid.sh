@@ -1,12 +1,10 @@
 #!/usr/bin/env sh
 
-
 #Support SENDGRID.com api
 
 #SENDGRID_API_KEY=""
 #SENDGRID_TO="xxxx@xxx.com"
 #SENDGRID_FROM="xxxx@cccc.com"
-
 
 sendgrid_send() {
   _subject="$1"

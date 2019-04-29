@@ -7,9 +7,7 @@
 
 #MAILGUN_REGION="us|eu"          #optional, use "us" as default
 #MAILGUN_API_DOMAIN="xxxxxx.com"  #optional, use the default sandbox domain
-
 #MAILGUN_FROM="xxx@xxxxx.com"    #optional, use the default sendbox account
-
 
 _MAILGUN_BASE="https://api.mailgun.net/v3"
 
@@ -53,7 +51,7 @@ mailgun_send() {
       _err "Can not get sandbox domain."
       return 1
     fi
-    _sendboxDomain="$(echo "$response" | _egrep_o '"name": *"sandbox.*.mailgun.org"' | cut -d : -f 2 | tr -d '" ')";
+    _sendboxDomain="$(echo "$response" | _egrep_o '"name": *"sandbox.*.mailgun.org"' | cut -d : -f 2 | tr -d '" ')"
     _debug _sendboxDomain "$_sendboxDomain"
     MAILGUN_API_DOMAIN="$_sendboxDomain"
     if [ -z "$MAILGUN_API_DOMAIN" ]; then
@@ -122,5 +120,3 @@ _mailgun_rest() {
   return 0
 
 }
-
-
