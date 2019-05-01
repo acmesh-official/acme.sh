@@ -62,4 +62,3 @@ dns_nsd_rm() {
     return 1
   fi
 }
-
