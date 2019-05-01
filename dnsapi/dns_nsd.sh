@@ -4,8 +4,7 @@
 #Nsd_Command="sudo nsd-control reload"
 
 # args: fulldomain txtvalue
-dns_nsd_add() 
-{
+dns_nsd_add() {
   fulldomain=$1
   txtvalue=$2
   ttlvalue=300
@@ -31,7 +30,7 @@ dns_nsd_add()
   _savedomainconf Nsd_ZoneFile "$Nsd_ZoneFile"
   _savedomainconf Nsd_Command "$Nsd_Command"
 
-  echo "$fulldomain. $ttlvalue IN TXT \"$txtvalue\"" >> "$Nsd_ZoneFile"
+  echo "$fulldomain. $ttlvalue IN TXT \"$txtvalue\"" >>"$Nsd_ZoneFile"
   _info "Added TXT record for $fulldomain"
   _debug "Running $Nsd_Command"
   if eval "$Nsd_Command"; then
@@ -44,8 +43,7 @@ dns_nsd_add()
 }
 
 # args: fulldomain txtvalue
-dns_nsd_rm() 
-{
+dns_nsd_rm() {
   fulldomain=$1
   txtvalue=$2
   ttlvalue=300
