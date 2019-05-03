@@ -5,8 +5,8 @@
 # Author: github: @diseq
 # Created: 2019-02-17
 #
-#     export ONECOM_USER="username"
-#     export ONECOM_PASSWORD="password"
+#     export ONECOM_User="username"
+#     export ONECOM_Password="password"
 #
 # Usage:
 #     acme.sh --issue --dns dns_one -d example.com
@@ -19,26 +19,26 @@ dns_one_add() {
   txtvalue=$2
 
   # get credentials
-  ONECOM_USER="${ONECOM_USER:-$(_readaccountconf_mutable ONECOM_USER)}"
-  ONECOM_PASSWORD="${ONECOM_PASSWORD:-$(_readaccountconf_mutable ONECOM_PASSWORD)}"
-  if [ -z "$ONECOM_USER" ] || [ -z "$ONECOM_PASSWORD" ]; then
-    ONECOM_USER=""
-    ONECOM_PASSWORD=""
+  ONECOM_User="${ONECOM_User:-$(_readaccountconf_mutable ONECOM_User)}"
+  ONECOM_Password="${ONECOM_Password:-$(_readaccountconf_mutable ONECOM_Password)}"
+  if [ -z "$ONECOM_User" ] || [ -z "$ONECOM_Password" ]; then
+    ONECOM_User=""
+    ONECOM_Password=""
     _err "You didn't specify a one.com username and password yet."
     _err "Please create the key and try again."
     return 1
   fi
 
   #save the api key and email to the account conf file.
-  _saveaccountconf_mutable ONECOM_USER "$ONECOM_USER"
-  _saveaccountconf_mutable ONECOM_PASSWORD "$ONECOM_PASSWORD"
+  _saveaccountconf_mutable ONECOM_User "$ONECOM_User"
+  _saveaccountconf_mutable ONECOM_Password "$ONECOM_Password"
 
   # Login with user and password
   postdata="loginDomain=true"
-  postdata="$postdata&displayUsername=$ONECOM_USER"
-  postdata="$postdata&username=$ONECOM_USER"
+  postdata="$postdata&displayUsername=$ONECOM_User"
+  postdata="$postdata&username=$ONECOM_User"
   postdata="$postdata&targetDomain=$mydomain"
-  postdata="$postdata&password1=$ONECOM_PASSWORD"
+  postdata="$postdata&password1=$ONECOM_Password"
   postdata="$postdata&loginTarget="
   #_debug postdata "$postdata"
 
@@ -64,7 +64,7 @@ dns_one_add() {
   response="$(echo "$response" | _normalizeJson)"
   _debug response "$response"
 
-  id=$(printf -- "%s" "$response" | sed -n "s/{\"result\":{\"data\":{\"type\":\"dns_custom_records\",\"id\":\"\([^\"]*\)\",\"attributes\":{\"prefix\":\"$mysubdomain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"priority\":0,\"ttl\":600}}},\"metadata\":null}/\1/p")
+  id=$(echo "$response" | sed -n "s/{\"result\":{\"data\":{\"type\":\"dns_custom_records\",\"id\":\"\([^\"]*\)\",\"attributes\":{\"prefix\":\"$mysubdomain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"priority\":0,\"ttl\":600}}},\"metadata\":null}/\1/p")
 
   if [ -z "$id" ]; then
     _err "Add txt record error."
@@ -82,11 +82,11 @@ dns_one_rm() {
   txtvalue=$2
 
   # get credentials
-  ONECOM_USER="${ONECOM_USER:-$(_readaccountconf_mutable ONECOM_USER)}"
-  ONECOM_PASSWORD="${ONECOM_PASSWORD:-$(_readaccountconf_mutable ONECOM_PASSWORD)}"
-  if [ -z "$ONECOM_USER" ] || [ -z "$ONECOM_PASSWORD" ]; then
-    ONECOM_USER=""
-    ONECOM_PASSWORD=""
+  ONECOM_User="${ONECOM_User:-$(_readaccountconf_mutable ONECOM_User)}"
+  ONECOM_Password="${ONECOM_Password:-$(_readaccountconf_mutable ONECOM_Password)}"
+  if [ -z "$ONECOM_User" ] || [ -z "$ONECOM_Password" ]; then
+    ONECOM_User=""
+    ONECOM_Password=""
     _err "You didn't specify a one.com username and password yet."
     _err "Please create the key and try again."
     return 1
@@ -94,10 +94,10 @@ dns_one_rm() {
 
   # Login with user and password
   postdata="loginDomain=true"
-  postdata="$postdata&displayUsername=$ONECOM_USER"
-  postdata="$postdata&username=$ONECOM_USER"
+  postdata="$postdata&displayUsername=$ONECOM_User"
+  postdata="$postdata&username=$ONECOM_User"
   postdata="$postdata&targetDomain=$mydomain"
-  postdata="$postdata&password1=$ONECOM_PASSWORD"
+  postdata="$postdata&password1=$ONECOM_Password"
   postdata="$postdata&loginTarget="
 
   response="$(_post "$postdata" "https://www.one.com/admin/login.do" "" "POST" "application/x-www-form-urlencoded")"
