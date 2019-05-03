@@ -4,8 +4,10 @@
 #LOOPIA_User="username"
 #
 #LOOPIA_Password="password"
+#
+#LOOPIA_Api="https://api.loopia.<TLD>/RPCSERV"
 
-LOOPIA_Api="https://api.loopia.se/RPCSERV"
+LOOPIA_Api_Default="https://api.loopia.se/RPCSERV"
 
 ########  Public functions #####################
 
@@ -14,19 +16,11 @@ dns_loopia_add() {
   fulldomain=$1
   txtvalue=$2
 
-  LOOPIA_User="${LOOPIA_User:-$(_readaccountconf_mutable LOOPIA_User)}"
-  LOOPIA_Password="${LOOPIA_Password:-$(_readaccountconf_mutable LOOPIA_Password)}"
-  if [ -z "$LOOPIA_User" ] || [ -z "$LOOPIA_Password" ]; then
-    LOOPIA_User=""
-    LOOPIA_Password=""
-    _err "You don't specify loopia user and password yet."
-    _err "Please create you key and try again."
+  if ! _loopia_load_config; then
     return 1
   fi
 
-  #save the api key and email to the account conf file.
-  _saveaccountconf_mutable LOOPIA_User "$LOOPIA_User"
-  _saveaccountconf_mutable LOOPIA_Password "$LOOPIA_Password"
+  _loopia_save_config
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -47,19 +41,11 @@ dns_loopia_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  LOOPIA_User="${LOOPIA_User:-$(_readaccountconf_mutable LOOPIA_User)}"
-  LOOPIA_Password="${LOOPIA_Password:-$(_readaccountconf_mutable LOOPIA_Password)}"
-  if [ -z "$LOOPIA_User" ] || [ -z "$LOOPIA_Password" ]; then
-    LOOPIA_User=""
-    LOOPIA_Password=""
-    _err "You don't specify LOOPIA user and password yet."
-    _err "Please create you key and try again."
+  if ! _loopia_load_config; then
     return 1
   fi
 
-  #save the api key and email to the account conf file.
-  _saveaccountconf_mutable LOOPIA_User "$LOOPIA_User"
-  _saveaccountconf_mutable LOOPIA_Password "$LOOPIA_Password"
+  _loopia_save_config
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -84,7 +70,7 @@ dns_loopia_rm() {
         <value><string>%s</string></value>
       </param>
     </params>
-  </methodCall>' $LOOPIA_User $LOOPIA_Password "$_domain" "$_sub_domain")
+  </methodCall>' "$LOOPIA_User" "$LOOPIA_Password" "$_domain" "$_sub_domain")
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
 
@@ -95,6 +81,36 @@ dns_loopia_rm() {
 }
 
 ####################  Private functions below ##################################
+
+_loopia_load_config() {
+  LOOPIA_Api="${LOOPIA_Api:-$(_readaccountconf_mutable LOOPIA_Api)}"
+  LOOPIA_User="${LOOPIA_User:-$(_readaccountconf_mutable LOOPIA_User)}"
+  LOOPIA_Password="${LOOPIA_Password:-$(_readaccountconf_mutable LOOPIA_Password)}"
+
+  if [ -z "$LOOPIA_Api" ]; then
+    LOOPIA_Api="$LOOPIA_Api_Default"
+  fi
+
+  if [ -z "$LOOPIA_User" ] || [ -z "$LOOPIA_Password" ]; then
+    LOOPIA_User=""
+    LOOPIA_Password=""
+
+    _err "A valid Loopia API user and password not provided."
+    _err "Please provide a valid API user and try again."
+
+    return 1
+  fi
+
+  return 0
+}
+
+_loopia_save_config() {
+  if [ "$LOOPIA_Api" != "$LOOPIA_Api_Default" ]; then
+    _saveaccountconf_mutable LOOPIA_Api "$LOOPIA_Api"
+  fi
+  _saveaccountconf_mutable LOOPIA_User "$LOOPIA_User"
+  _saveaccountconf_mutable LOOPIA_Password "$LOOPIA_Password"
+}
 
 _loopia_get_records() {
   domain=$1

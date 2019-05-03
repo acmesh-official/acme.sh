@@ -178,7 +178,7 @@ dns_dgon_rm() {
 ## _domain="domain.com"
 _get_base_domain() {
   # args
-  fulldomain="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
+  fulldomain="$(echo "$1" | _lower_case)"
   _debug fulldomain "$fulldomain"
 
   # domain max legal length = 253

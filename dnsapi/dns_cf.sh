@@ -58,7 +58,7 @@ dns_cf_add() {
   #  if [ "$count" = "0" ]; then
   _info "Adding record"
   if _cf_rest POST "zones/$_domain_id/dns_records" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
-    if _contains "$response" "$fulldomain"; then
+    if _contains "$response" "$txtvalue"; then
       _info "Added, OK"
       return 0
     elif _contains "$response" "The record already exists"; then
@@ -147,7 +147,7 @@ dns_cf_rm() {
 # _domain_id=sdjkglgdfewsdfg
 _get_root() {
   domain=$1
-  i=2
+  i=1
   p=1
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
@@ -182,8 +182,11 @@ _cf_rest() {
   data="$3"
   _debug "$ep"
 
-  export _H1="X-Auth-Email: $CF_Email"
-  export _H2="X-Auth-Key: $CF_Key"
+  email_trimmed=$(echo $CF_Email | tr -d '"')
+  key_trimmed=$(echo $CF_Key | tr -d '"')
+
+  export _H1="X-Auth-Email: $email_trimmed"
+  export _H2="X-Auth-Key: $key_trimmed"
   export _H3="Content-Type: application/json"
 
   if [ "$m" != "GET" ]; then
