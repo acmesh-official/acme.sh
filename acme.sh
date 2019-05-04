@@ -3856,7 +3856,7 @@ issue() {
         if [ -z "$d" ]; then
           break
         fi
-        _identifiers="$_identifiers,{\"type\":\"dns\",\"value\":\"$$(_idn $d)\"}"
+        _identifiers="$_identifiers,{\"type\":\"dns\",\"value\":\"$(_idn $d)\"}"
       done
       _debug2 _identifiers "$_identifiers"
       if ! _send_signed_request "$ACME_NEW_ORDER" "{\"identifiers\": [$_identifiers]}"; then
