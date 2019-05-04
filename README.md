@@ -13,6 +13,7 @@
 - DOES NOT require `root/sudoer` access.
 - Docker friendly
 - IPv6 support
+- Cron job notifications for renewal or error etc.
 
 It's probably the `easiest & smartest` shell script to automatically issue & renew the free certificates from Let's Encrypt.
 
@@ -432,20 +433,25 @@ acme.sh --upgrade --auto-upgrade 0
 https://github.com/Neilpang/acme.sh/wiki/Issue-a-cert-from-existing-CSR
 
 
-# 16. Under the Hood
+# 16. Send notifications in cronjob
+
+https://github.com/Neilpang/acme.sh/wiki/notify
+
+
+# 17. Under the Hood
 
 Speak ACME language using shell, directly to "Let's Encrypt".
 
 TODO:
 
 
-# 17. Acknowledgments
+# 18. Acknowledgments
 
 1. Acme-tiny: https://github.com/diafygi/acme-tiny
 2. ACME protocol: https://github.com/ietf-wg-acme/acme
 
 
-# 18. License & Others
+# 19. License & Others
 
 License is GPLv3
 
@@ -454,7 +460,7 @@ Please Star and Fork me.
 [Issues](https://github.com/Neilpang/acme.sh/issues) and [pull requests](https://github.com/Neilpang/acme.sh/pulls) are welcome.
 
 
-# 19. Donate
+# 20. Donate
 Your donation makes **acme.sh** better:
 
 1. PayPal/Alipay(支付宝)/Wechat(微信): [https://donate.acme.sh/](https://donate.acme.sh/)
