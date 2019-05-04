@@ -1119,9 +1119,9 @@ _createcsr() {
     domainlist="$(_idn "$domainlist")"
     _debug2 domainlist "$domainlist"
     if _contains "$domainlist" ","; then
-      alt="DNS:$domain,DNS:$(echo "$domainlist" | sed "s/,,/,/g" | sed "s/,/,DNS:/g")"
+      alt="DNS:$(_idn $domain),DNS:$(echo "$domainlist" | sed "s/,,/,/g" | sed "s/,/,DNS:/g")"
     else
-      alt="DNS:$domain,DNS:$domainlist"
+      alt="DNS:$(_idn $domain),DNS:$domainlist"
     fi
     #multi
     _info "Multi domain" "$alt"
