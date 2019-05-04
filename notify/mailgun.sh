@@ -30,7 +30,7 @@ mailgun_send() {
   MAILGUN_REGION="${MAILGUN_REGION:-$(_readaccountconf_mutable MAILGUN_REGION)}"
   if [ -z "$MAILGUN_REGION" ]; then
     MAILGUN_REGION=""
-    _info "The MAILGUN_REGION is not set, so use the default us region."
+    _debug "The MAILGUN_REGION is not set, so use the default us region."
     _MAILGUN_BASE="https://api.mailgun.net/v3"
   else
     _saveaccountconf_mutable MAILGUN_REGION "$MAILGUN_REGION"
@@ -83,7 +83,7 @@ mailgun_send() {
   _debug "_msg" "$_msg"
   _mailgun_rest POST "$_msg"
   if _contains "$response" "Queued. Thank you."; then
-    _info "mailgun send success."
+    _debug "mailgun send success."
     return 0
   else
     _err "mailgun send error"
