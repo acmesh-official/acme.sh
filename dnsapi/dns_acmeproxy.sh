@@ -1,8 +1,9 @@
 #!/usr/bin/env sh
 
-## API integration by Jason Keller and Elijah Tenai
+## Acmeproxy DNS provider to be used with acmeproxy (http://github.com/mdbraber/acmeproxy)
+## API integration by Maarten den Braber
 ##
-## Report any bugs via https://github.com/jasonkeller/acme.sh
+## Report any bugs via https://github.com/mdbraber/acme.sh
 
 dns_acmeproxy_add() {
   fulldomain="${1}"
