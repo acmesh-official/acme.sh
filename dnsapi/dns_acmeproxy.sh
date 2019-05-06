@@ -73,7 +73,7 @@ _acmeproxy_request() {
 
   ## Let's see if we get something intelligible back from the unit
   if echo "$response" | grep "\"$txtvalue\"" > /dev/null; then
-    _info "Successfully created the txt record"
+    _info "Successfully updated the txt record"
     return 0
   else
     _err "Error encountered during record addition"
