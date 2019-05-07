@@ -11,7 +11,7 @@ dns_acmeproxy_add() {
   action="present"
 
   _debug "Calling: _acmeproxy_request() '${fulldomain}' '${txtvalue}' '${action}'"
-  _acmeproxy_request $fulldomain $txtvalue $action
+  _acmeproxy_request "$fulldomain" "$txtvalue" "$action"
 }
 
 dns_acmeproxy_rm() {
@@ -20,7 +20,7 @@ dns_acmeproxy_rm() {
   action="cleanup"
 
   _debug "Calling: _acmeproxy_request() '${fulldomain}' '${txtvalue}' '${action}'"
-  _acmeproxy_request $fulldomain $txtvalue $action
+  _acmeproxy_request "$fulldomain" "$txtvalue" "$action"
 }
 
 _acmeproxy_request() {
@@ -39,7 +39,7 @@ _acmeproxy_request() {
   ACMEPROXY_PASSWORD="${ACMEPROXY_PASSWORD:-$(_readaccountconf_mutable ACMEPROXY_PASSWORD)}"
 
   ## Check for the endpoint
-  if [ -z "ACMEPROXY_ENDPOINT" ]; then
+  if [ -z "$ACMEPROXY_ENDPOINT" ]; then
     ACMEPROXY_ENDPOINT=""
     _err "You didn't specify the endpoint"
     _err "Please set them via 'export ACMEPROXY_ENDPOINT=https://ip:port' and try again."
@@ -72,7 +72,7 @@ _acmeproxy_request() {
   response="$(_post "{\"fqdn\": \"$fulldomain.\", \"value\": \"$txtvalue\"}" "$ACMEPROXY_ENDPOINT/$action" "" "POST")"
 
   ## Let's see if we get something intelligible back from the unit
-  if echo "$response" | grep "\"$txtvalue\"" > /dev/null; then
+  if echo "$response" | grep "\"$txtvalue\"" >/dev/null; then
     _info "Successfully updated the txt record"
     return 0
   else
