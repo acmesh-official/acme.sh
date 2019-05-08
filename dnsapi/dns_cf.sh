@@ -161,7 +161,7 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
+    if _contains "$response" "\"name\":\"$h\"" || _contains "$response" '"total_count":1'; then
       _domain_id=$(echo "$response" | _egrep_o "\[.\"id\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
