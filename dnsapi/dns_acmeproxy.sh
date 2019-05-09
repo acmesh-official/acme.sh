@@ -46,15 +46,6 @@ _acmeproxy_request() {
     return 1
   fi
 
-  ## Check for the credentials
-  if [ -z "$ACMEPROXY_USERNAME" ] || [ -z "$ACMEPROXY_PASSWORD" ]; then
-    ACMEPROXY_USERNAME=""
-    ACMEPROXY_PASSWORD=""
-    _err "You didn't set username and password"
-    _err "Please set them via 'export ACMEPROXY_USERNAME=...' and 'export ACMEPROXY_PASSWORD=...' and try again."
-    return 1
-  fi
-
   ## Save the credentials to the account file
   _saveaccountconf_mutable ACMEPROXY_ENDPOINT "$ACMEPROXY_ENDPOINT"
   _saveaccountconf_mutable ACMEPROXY_USERNAME "$ACMEPROXY_USERNAME"
