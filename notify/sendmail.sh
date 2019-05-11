@@ -40,13 +40,13 @@ sendmail_send() {
   _saveaccountconf_mutable SENDMAIL_TO "$SENDMAIL_TO"
 
   subject="=?UTF-8?B?$(echo "$_subject" | _base64)?="
-  error=$( { echo "From: $SENDMAIL_FROM
+  error=$({ echo "From: $SENDMAIL_FROM
 To: $SENDMAIL_TO
 Subject: $subject
 Content-Type: text/plain; charset=utf-8
 
 $_content
-" | "$SENDMAIL_BIN" -f "$SENDMAIL_FROM" "$SENDMAIL_TO"; } 2>&1 )
+" | "$SENDMAIL_BIN" -f "$SENDMAIL_FROM" "$SENDMAIL_TO"; } 2>&1)
 
   if [ $? -ne 0 ]; then
     _debug "sendmail send error."
