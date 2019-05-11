@@ -27,7 +27,7 @@ sendmail_send() {
 
   SENDMAIL_FROM="${SENDMAIL_FROM:-$(_readaccountconf_mutable SENDMAIL_FROM)}"
   if [ -z "$SENDMAIL_FROM" ]; then
-    SENDMAIL_FROM="$USER@$HOSTNAME"
+    SENDMAIL_FROM="$USER@$(hostname -f)"
     _info "The SENDMAIL_FROM is not set, so use the default value: $SENDMAIL_FROM"
   fi
   _saveaccountconf_mutable SENDMAIL_FROM "$SENDMAIL_FROM"
