@@ -16,7 +16,7 @@ dns_yandex_add() {
   _PDD_credentials || return 1
   export _H1="PddToken: $PDD_Token"
 
-  _PDD_get_domain "$fulldomain"
+  _PDD_get_domain "$fulldomain" || return 1
   _debug "Found suitable domain in pdd: $curDomain"
   curData="domain=${curDomain}&type=TXT&subdomain=${curSubdomain}&ttl=360&content=${txtvalue}"
   curUri="https://pddimp.yandex.ru/api2/admin/dns/add"
@@ -30,16 +30,19 @@ dns_yandex_rm() {
   _debug "Calling: dns_yandex_rm() '${fulldomain}'"
   _PDD_credentials || return 1
   export _H1="PddToken: $PDD_Token"
+
+  _PDD_get_domain "$fulldomain" || return 1
+  _debug "Found suitable domain in pdd: $curDomain"
+
   record_id=$(pdd_get_record_id "${fulldomain}")
   _debug "Result: $record_id"
 
-  _PDD_get_domain "$fulldomain"
-  _debug "Found suitable domain in pdd: $curDomain"
-
-  curUri="https://pddimp.yandex.ru/api2/admin/dns/del"
-  curData="domain=${curDomain}&record_id=${record_id}"
-  curResult="$(_post "${curData}" "${curUri}")"
-  _debug "Result: $curResult"
+  for rec_i in $record_id; do
+    curUri="https://pddimp.yandex.ru/api2/admin/dns/del"
+    curData="domain=${curDomain}&record_id=${rec_i}"
+    curResult="$(_post "${curData}" "${curUri}")"
+    _debug "Result: $curResult"
+  done
 }
 
 ####################  Private functions below ##################################
@@ -54,7 +57,7 @@ _PDD_get_domain() {
     _debug2 "res1" "$res1"
     __found="$(echo "$res1" | sed -n -e 's#.* "found": \([^,]*\),.*#\1#p')"
     _debug "found: $__found results on page"
-    if [ "$__found" -lt 20 ]; then
+    if [ "0$__found" -lt 20 ]; then
       _debug "last page: $__page"
       __last=1
     fi
