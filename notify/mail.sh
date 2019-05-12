@@ -15,12 +15,14 @@ mail_send() {
 
   if _exists "sendmail"; then
     _MAIL_BIN="sendmail"
+  elif _exists "ssmtp"; then
+    _MAIL_BIN="ssmtp"
   elif _exists "mutt"; then
     _MAIL_BIN="mutt"
   elif _exists "mail"; then
     _MAIL_BIN="mail"
   else
-    _err "Please install sendmail or mail first."
+    _err "Please install sendmail, ssmtp, mutt or mail first."
     return 1
   fi
 
@@ -57,6 +59,9 @@ _mail_send() {
     sendmail)
       "$_MAIL_BIN" -f "$MAIL_FROM" "$MAIL_TO"
       ;;
+    ssmtp)
+      "$_MAIL_BIN" "$MAIL_TO"
+      ;;
     mutt|mail)
       "$_MAIL_BIN" -s "$_subject" "$MAIL_TO"
       ;;
@@ -64,7 +69,7 @@ _mail_send() {
 }
 
 _mail_body() {
-  if [ "$_MAIL_BIN" = "sendmail" ]; then
+  if [ "$_MAIL_BIN" = "sendmail" ] || [ "$_MAIL_BIN" = "ssmtp" ]; then
     echo "From: $MAIL_FROM"
     echo "To: $MAIL_TO"
     echo "Subject: $subject"
