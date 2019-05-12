@@ -15,6 +15,8 @@ mail_send() {
 
   if _exists "sendmail"; then
     _MAIL_BIN="sendmail"
+  elif _exists "mutt"; then
+    _MAIL_BIN="mutt"
   elif _exists "mail"; then
     _MAIL_BIN="mail"
   else
@@ -54,6 +56,9 @@ _mail_send() {
   case "$_MAIL_BIN" in
     sendmail)
       "$_MAIL_BIN" -f "$MAIL_FROM" "$MAIL_TO"
+      ;;
+    mutt)
+      "$_MAIL_BIN" -s "$subject" -e "my_hdr From:$MAIL_FROM" -e "my_hdr Content-Type:$contenttype" "$MAIL_TO"
       ;;
     mail)
       "$_MAIL_BIN" -s "$subject" -a "From:$MAIL_FROM" -a "Content-Type:$contenttype" "$MAIL_TO"
