@@ -9,7 +9,10 @@
 #MAILGUN_API_DOMAIN="xxxxxx.com"  #optional, use the default sandbox domain
 #MAILGUN_FROM="xxx@xxxxx.com"    #optional, use the default sendbox account
 
-_MAILGUN_BASE="https://api.mailgun.net/v3"
+_MAILGUN_BASE_US="https://api.mailgun.net/v3"
+_MAILGUN_BASE_EU="https://api.eu.mailgun.net/v3"
+
+_MAILGUN_BASE="$_MAILGUN_BASE_US"
 
 # subject  content statusCode
 mailgun_send() {
@@ -31,12 +34,17 @@ mailgun_send() {
   if [ -z "$MAILGUN_REGION" ]; then
     MAILGUN_REGION=""
     _debug "The MAILGUN_REGION is not set, so use the default us region."
-    _MAILGUN_BASE="https://api.mailgun.net/v3"
+    _MAILGUN_BASE="$_MAILGUN_BASE_US"
   else
+    MAILGUN_REGION="$(echo "$MAILGUN_REGION" | _lower_case)"
     _saveaccountconf_mutable MAILGUN_REGION "$MAILGUN_REGION"
-    _MAILGUN_BASE="https://api.eu.mailgun.net/v3"
+    if [ "$MAILGUN_REGION" = "us" ]; then
+      _MAILGUN_BASE="$_MAILGUN_BASE_US"
+    else
+      _MAILGUN_BASE="$_MAILGUN_BASE_EU"
+    fi
   fi
-
+  _debug _MAILGUN_BASE "$_MAILGUN_BASE"
   MAILGUN_TO="${MAILGUN_TO:-$(_readaccountconf_mutable MAILGUN_TO)}"
   if [ -z "$MAILGUN_TO" ]; then
     MAILGUN_TO=""
