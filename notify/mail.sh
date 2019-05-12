@@ -57,11 +57,8 @@ _mail_send() {
     sendmail)
       "$_MAIL_BIN" -f "$MAIL_FROM" "$MAIL_TO"
       ;;
-    mutt)
-      "$_MAIL_BIN" -s "$subject" -e "my_hdr From:$MAIL_FROM" -e "my_hdr Content-Type:$contenttype" "$MAIL_TO"
-      ;;
-    mail)
-      "$_MAIL_BIN" -s "$subject" -a "From:$MAIL_FROM" -a "Content-Type:$contenttype" "$MAIL_TO"
+    mutt|mail)
+      "$_MAIL_BIN" -s "$_subject" "$MAIL_TO"
       ;;
   esac
 }
