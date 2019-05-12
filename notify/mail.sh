@@ -18,7 +18,7 @@ mail_send() {
   elif _exists "mail"; then
     _MAIL_BIN="mail"
   else
-    _err "Please install mail or sendmail first."
+    _err "Please install sendmail or mail first."
     return 1
   fi
 
@@ -36,6 +36,7 @@ mail_send() {
   fi
   _saveaccountconf_mutable MAIL_TO "$MAIL_TO"
 
+  contenttype="text/plain; charset=utf-8"
   subject="=?UTF-8?B?$(echo "$_subject" | _base64)?="
   result=$({ _mail_body | _mail_send; } 2>&1)
 
@@ -52,10 +53,10 @@ mail_send() {
 _mail_send() {
   case "$_MAIL_BIN" in
     sendmail)
-      sendmail -f "$MAIL_FROM" "$MAIL_TO"
+      "$_MAIL_BIN" -f "$MAIL_FROM" "$MAIL_TO"
       ;;
     mail)
-      mail -s "$subject" -a "From:$MAIL_FROM" -a "Content-Type:text/plain; charset=utf-8" "$MAIL_TO"
+      "$_MAIL_BIN" -s "$subject" -a "From:$MAIL_FROM" -a "Content-Type:$contenttype" "$MAIL_TO"
       ;;
   esac
 }
@@ -64,8 +65,8 @@ _mail_body() {
   if [ "$_MAIL_BIN" = "sendmail" ]; then
     echo "From: $MAIL_FROM"
     echo "To: $MAIL_TO"
-    echo "Subject: =?UTF-8?B?$(echo "$_subject" | _base64)?="
-    echo "Content-Type: text/plain; charset=utf-8"
+    echo "Subject: $subject"
+    echo "Content-Type: $contenttype"
     echo
   fi
 
