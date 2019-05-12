@@ -62,7 +62,7 @@ _mail_send() {
     ssmtp)
       "$_MAIL_BIN" "$MAIL_TO"
       ;;
-    mutt|mail)
+    mutt | mail)
       "$_MAIL_BIN" -s "$_subject" "$MAIL_TO"
       ;;
   esac
