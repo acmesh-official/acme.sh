@@ -72,7 +72,7 @@ mail_send() {
 
 _mail_cmnd() {
   if [ -n "$MAIL_BIN" ]; then
-    _MAIL_BIN=$(basename "$MAIL_BIN")
+    _MAIL_BIN="$MAIL_BIN"
   elif _exists "sendmail"; then
     _MAIL_BIN="sendmail"
   elif _exists "ssmtp"; then
@@ -86,7 +86,7 @@ _mail_cmnd() {
     return 1
   fi
 
-  case "$_MAIL_BIN" in
+  case $(basename "$_MAIL_BIN") in
     sendmail)
       if [ -n "$MAIL_FROM" ]; then
         echo "'$_MAIL_BIN' -f '$MAIL_FROM' '$MAIL_TO'"
