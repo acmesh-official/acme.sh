@@ -2,6 +2,7 @@
 
 #Support local mail app
 
+#MAIL_BIN="sendmail"
 #MAIL_FROM="yyyy@gmail.com"
 #MAIL_TO="yyyy@gmail.com"
 
@@ -13,18 +14,18 @@ mail_send() {
   _debug "_content" "$_content"
   _debug "_statusCode" "$_statusCode"
 
-  if _exists "sendmail"; then
-    _MAIL_BIN="sendmail"
-  elif _exists "ssmtp"; then
-    _MAIL_BIN="ssmtp"
-  elif _exists "mutt"; then
-    _MAIL_BIN="mutt"
-  elif _exists "mail"; then
-    _MAIL_BIN="mail"
-  else
-    _err "Please install sendmail, ssmtp, mutt or mail first."
+  unset -f _MAIL_BIN _MAIL_BODY _MAIL_CMD
+
+  MAIL_BIN="${MAIL_BIN:-$(_readaccountconf_mutable MAIL_BIN)}"
+  if [ -n "$MAIL_BIN" ] && ! _exists "$MAIL_BIN"; then
+    _err "It seems that the command $MAIL_BIN is not in path."
     return 1
   fi
+  _MAIL_CMD=$(_mail_cmnd)
+  if [ -n "$MAIL_BIN" ]; then
+    _saveaccountconf_mutable MAIL_BIN "$MAIL_BIN"
+  fi
+  _MAIL_BODY=$(_mail_body)
 
   MAIL_FROM="${MAIL_FROM:-$(_readaccountconf_mutable MAIL_FROM)}"
   if [ -n "$MAIL_FROM" ]; then
@@ -47,6 +48,8 @@ mail_send() {
   else
     MAIL_TO="$(_readaccountconf ACCOUNT_EMAIL)"
 
+    echo "MAIL_TO: $MAIL_TO"
+
     if [ -z "$MAIL_TO" ]; then
       _err "It seems that account email is empty."
       return 1
@@ -55,7 +58,7 @@ mail_send() {
 
   contenttype="text/plain; charset=utf-8"
   subject="=?UTF-8?B?$(echo "$_subject" | _base64)?="
-  result=$({ _mail_body | _mail_send; } 2>&1)
+  result=$({ echo "$_MAIL_BODY" | eval "$_MAIL_CMD"; } 2>&1)
 
   if [ $? -ne 0 ]; then
     _debug "mail send error."
@@ -67,20 +70,39 @@ mail_send() {
   return 0
 }
 
-_mail_send() {
+_mail_cmnd() {
+  if [ -n "$MAIL_BIN" ]; then
+    _MAIL_BIN=$(basename "$MAIL_BIN")
+  elif _exists "sendmail"; then
+    _MAIL_BIN="sendmail"
+  elif _exists "ssmtp"; then
+    _MAIL_BIN="ssmtp"
+  elif _exists "mutt"; then
+    _MAIL_BIN="mutt"
+  elif _exists "mail"; then
+    _MAIL_BIN="mail"
+  else
+    _err "Please install sendmail, ssmtp, mutt or mail first."
+    return 1
+  fi
+
   case "$_MAIL_BIN" in
     sendmail)
       if [ -n "$MAIL_FROM" ]; then
-        "$_MAIL_BIN" -f "$MAIL_FROM" "$MAIL_TO"
+        echo "'$_MAIL_BIN' -f '$MAIL_FROM' '$MAIL_TO'"
       else
-        "$_MAIL_BIN" "$MAIL_TO"
+        echo "'$_MAIL_BIN' '$MAIL_TO'"
       fi
       ;;
     ssmtp)
-      "$_MAIL_BIN" "$MAIL_TO"
+      echo "'$_MAIL_BIN' '$MAIL_TO'"
       ;;
     mutt | mail)
-      "$_MAIL_BIN" -s "$_subject" "$MAIL_TO"
+      echo "'$_MAIL_BIN' -s '$_subject' '$MAIL_TO'"
+      ;;
+    *)
+      _err "Command $MAIL_BIN is not supported, use sendmail, ssmtp, mutt or mail."
+      return 1
       ;;
   esac
 }
