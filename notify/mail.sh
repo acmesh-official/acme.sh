@@ -37,11 +37,21 @@ mail_send() {
   fi
 
   MAIL_TO="${MAIL_TO:-$(_readaccountconf_mutable MAIL_TO)}"
-  if [ -z "$MAIL_TO" ]; then
+  if [ -n "$MAIL_TO" ]; then
+    if ! _contains "$MAIL_TO" "@"; then
+      _err "It seems that the MAIL_TO=$MAIL_TO is not a valid email address."
+      return 1
+    fi
+
+    _saveaccountconf_mutable MAIL_TO "$MAIL_TO"
+  else
     MAIL_TO="$(_readaccountconf ACCOUNT_EMAIL)"
-    _info "The MAIL_TO is not set, so use the account email: $MAIL_TO"
+
+    if [ -z "$MAIL_TO" ]; then
+      _err "It seems that account email is empty."
+      return 1
+    fi
   fi
-  _saveaccountconf_mutable MAIL_TO "$MAIL_TO"
 
   contenttype="text/plain; charset=utf-8"
   subject="=?UTF-8?B?$(echo "$_subject" | _base64)?="
