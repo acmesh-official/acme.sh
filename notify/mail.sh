@@ -27,11 +27,14 @@ mail_send() {
   fi
 
   MAIL_FROM="${MAIL_FROM:-$(_readaccountconf_mutable MAIL_FROM)}"
-  if [ -z "$MAIL_FROM" ]; then
-    MAIL_FROM="$USER@$(hostname -f)"
-    _info "The MAIL_FROM is not set, so use the default value: $MAIL_FROM"
+  if [ -n "$MAIL_FROM" ]; then
+    if ! _contains "$MAIL_FROM" "@"; then
+      _err "It seems that the MAIL_FROM=$MAIL_FROM is not a valid email address."
+      return 1
+    fi
+
+    _saveaccountconf_mutable MAIL_FROM "$MAIL_FROM"
   fi
-  _saveaccountconf_mutable MAIL_FROM "$MAIL_FROM"
 
   MAIL_TO="${MAIL_TO:-$(_readaccountconf_mutable MAIL_TO)}"
   if [ -z "$MAIL_TO" ]; then
@@ -57,7 +60,11 @@ mail_send() {
 _mail_send() {
   case "$_MAIL_BIN" in
     sendmail)
-      "$_MAIL_BIN" -f "$MAIL_FROM" "$MAIL_TO"
+      if [ -n "$MAIL_FROM" ]; then
+        "$_MAIL_BIN" -f "$MAIL_FROM" "$MAIL_TO"
+      else
+        "$_MAIL_BIN" "$MAIL_TO"
+      fi
       ;;
     ssmtp)
       "$_MAIL_BIN" "$MAIL_TO"
@@ -70,7 +77,10 @@ _mail_send() {
 
 _mail_body() {
   if [ "$_MAIL_BIN" = "sendmail" ] || [ "$_MAIL_BIN" = "ssmtp" ]; then
-    echo "From: $MAIL_FROM"
+    if [ -n "$MAIL_FROM" ]; then
+      echo "From: $MAIL_FROM"
+    fi
+
     echo "To: $MAIL_TO"
     echo "Subject: $subject"
     echo "Content-Type: $contenttype"
