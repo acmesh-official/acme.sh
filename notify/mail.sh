@@ -47,9 +47,6 @@ mail_send() {
     _saveaccountconf_mutable MAIL_TO "$MAIL_TO"
   else
     MAIL_TO="$(_readaccountconf ACCOUNT_EMAIL)"
-
-    echo "MAIL_TO: $MAIL_TO"
-
     if [ -z "$MAIL_TO" ]; then
       _err "It seems that account email is empty."
       return 1
