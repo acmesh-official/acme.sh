@@ -51,13 +51,19 @@ _acmeproxy_request() {
   _saveaccountconf_mutable ACMEPROXY_USERNAME "$ACMEPROXY_USERNAME"
   _saveaccountconf_mutable ACMEPROXY_PASSWORD "$ACMEPROXY_PASSWORD"
 
-  ## Base64 encode the credentials
-  credentials=$(printf "%b" "$ACMEPROXY_USERNAME:$ACMEPROXY_PASSWORD" | _base64)
+  if [ -z "$ACMEPROXY_USERNAME" ] || [ -z "$ACMEPROXY_PASSWORD" ]; then
+    _info "ACMEPROXY_USERNAME and/or ACMEPROXY_PASSWORD not set - using without client authentication! Make sure you're using server authentication (e.g. IP-based)"
+    export _H1="Accept: application/json"
+    export _H2="Content-Type: application/json"
+  else
+    ## Base64 encode the credentials
+    credentials=$(printf "%b" "$ACMEPROXY_USERNAME:$ACMEPROXY_PASSWORD" | _base64)
 
-  ## Construct the HTTP Authorization header
-  export _H1="Authorization: Basic $credentials"
-  export _H2="Accept: application/json"
-  export _H3="Content-Type: application/json"
+    ## Construct the HTTP Authorization header
+    export _H1="Authorization: Basic $credentials"
+    export _H2="Accept: application/json"
+    export _H3="Content-Type: application/json"
+  fi
 
   ## Add the challenge record to the acmeproxy grid member
   response="$(_post "{\"fqdn\": \"$fulldomain.\", \"value\": \"$txtvalue\"}" "$ACMEPROXY_ENDPOINT/$action" "" "POST")"
