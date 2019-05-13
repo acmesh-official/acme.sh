@@ -28,14 +28,23 @@ mailgun_send() {
   _saveaccountconf_mutable MAILGUN_API_KEY "$MAILGUN_API_KEY"
 
   MAILGUN_REGION="${MAILGUN_REGION:-$(_readaccountconf_mutable MAILGUN_REGION)}"
-  if [ -z "$MAILGUN_REGION" ]; then
-    MAILGUN_REGION=""
-    _debug "The MAILGUN_REGION is not set, so use the default us region."
-    _MAILGUN_BASE="https://api.mailgun.net/v3"
-  else
-    _saveaccountconf_mutable MAILGUN_REGION "$MAILGUN_REGION"
-    _MAILGUN_BASE="https://api.eu.mailgun.net/v3"
-  fi
+  case "$MAILGUN_REGION" in
+    [Uu][Ss] | "")
+      if [ -z "$MAILGUN_REGION" ]; then
+        _debug "The MAILGUN_REGION is not set, so use the default us region."
+      fi
+      MAILGUN_REGION=""
+      _MAILGUN_BASE="https://api.mailgun.net/v3"
+      ;;
+    [Ee][Uu])
+      _saveaccountconf_mutable MAILGUN_REGION "$MAILGUN_REGION"
+      _MAILGUN_BASE="https://api.$MAILGUN_REGION.mailgun.net/v3"
+      ;;
+    *)
+      _err "$MAILGUN_REGION is not a valid region."
+      return 1
+      ;;
+  esac
 
   MAILGUN_TO="${MAILGUN_TO:-$(_readaccountconf_mutable MAILGUN_TO)}"
   if [ -z "$MAILGUN_TO" ]; then
