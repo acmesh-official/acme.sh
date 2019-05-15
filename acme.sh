@@ -1238,7 +1238,7 @@ _substitute_compatibility_chain() {
   fi
 
   # We only want to replace the issuer if the leaf is expiring after the cross-signed issuer
-  _expiry="$(printf "%s" "$_leaf" | ${ACME_OPENSSL_BIN:-openssl} x509 -noout -enddate | grep "notAfter" | cut -d '=' -f 2 | date +"%s" -f - )"
+  _expiry="$(printf "%s" "$_leaf" | ${ACME_OPENSSL_BIN:-openssl} x509 -noout -enddate | grep "notAfter" | cut -d '=' -f 2 | date +"%s" -f -)"
   if [ "$_expiry" -gt "1615999246" ]; then
     _debug "Leaf is expiring after cross-signed X3, using default chain"
     printf "%s" "$_issuer"
@@ -3817,7 +3817,7 @@ issue() {
   if [ "$Le_UseCompatibilityChain" = "1" ]; then
     _savedomainconf "Le_UseCompatibilityChain" "$Le_UseCompatibilityChain"
   else
-     _cleardomainconf "Le_UseCompatibilityChain"
+    _cleardomainconf "Le_UseCompatibilityChain"
   fi
 
   if [ "$ACME_DIRECTORY" != "$DEFAULT_CA" ]; then
@@ -4475,12 +4475,11 @@ $_authorizations_map"
       if [ "$Le_UseCompatibilityChain" = "1" ]; then
         _issuer="$(_substitute_compatibility_chain "$_leaf" "$_issuer")"
       fi
-      echo "$_leaf" > "$CERT_PATH"
-      echo "$_issuer" > "$CA_CERT_PATH"
-      printf "%s\n%s" "$_leaf" "$_issuer" > "$CERT_FULLCHAIN_PATH"
+      echo "$_leaf" >"$CERT_PATH"
+      echo "$_issuer" >"$CA_CERT_PATH"
+      printf "%s\n%s" "$_leaf" "$_issuer" >"$CERT_FULLCHAIN_PATH"
     fi
 
-  # ACME_VERSION != "2"
   else
     if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"$ACME_NEW_ORDER_RES\", \"csr\": \"$der\"}" "needbase64"; then
       _err "Sign failed. $response"
@@ -4564,8 +4563,8 @@ $_authorizations_map"
           if [ "$Le_UseCompatibilityChain" = "1" ]; then
             _leaf="$(cat "$CERT_PATH")"
             _issuer="$(_substitute_compatibility_chain "$_leaf" "$(cat "$CA_CERT_PATH")")"
-            echo "$_issuer" > "$CA_CERT_PATH"
-            printf "%s\n%s" "$_leaf" "$_issuer" > "$CERT_FULLCHAIN_PATH"
+            echo "$_issuer" >"$CA_CERT_PATH"
+            printf "%s\n%s" "$_leaf" "$_issuer" >"$CERT_FULLCHAIN_PATH"
           fi
           break
         fi
