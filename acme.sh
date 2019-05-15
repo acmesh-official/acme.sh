@@ -1224,6 +1224,37 @@ _readKeyLengthFromCSR() {
   fi
 }
 
+# _substitute_compatibility_chain  _leaf  _issuer
+_substitute_compatibility_chain() {
+  _leaf="$1"
+  _issuer="$2"
+
+  # We only want to replace the issuer if it's the Let's Encrypt Authority X3 key
+  _aki="$(printf "%s" "$_leaf" | ${ACME_OPENSSL_BIN:-openssl} x509 -noout -ext authorityKeyIdentifier | grep 'keyid:' | cut -d ':' -f 2-)"
+  if [ "$_aki" != "A8:4A:6A:63:04:7D:DD:BA:E6:D1:39:B7:A6:45:65:EF:F3:A8:EC:A1" ]; then
+    _debug "Issuer is not X3, using default chain"
+    printf "%s" "$_issuer"
+    return
+  fi
+
+  # We only want to replace the issuer if the leaf is expiring after the cross-signed issuer
+  _expiry="$(printf "%s" "$_leaf" | ${ACME_OPENSSL_BIN:-openssl} x509 -noout -enddate | grep "notAfter" | cut -d '=' -f 2 | date +"%s" -f - )"
+  if [ "$_expiry" -gt "1615999246" ]; then
+    _debug "Leaf is expiring after cross-signed X3, using default chain"
+    printf "%s" "$_issuer"
+    return
+  fi
+
+  _debug "Using legacy cross-signed X3 issuer"
+  _newissuer="$(_get "https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem.txt")"
+  if [ "$?" != "0" ]; then
+    _debug "Failed to download legacy chain, using default chain"
+    printf "%s" "$_issuer"
+  else
+    printf "%s" "$_newissuer"
+  fi
+}
+
 _ss() {
   _port="$1"
 
@@ -3783,6 +3814,12 @@ issue() {
     _cleardomainconf "Le_ChallengeAlias"
   fi
 
+  if [ "$Le_UseCompatibilityChain" = "1" ]; then
+    _savedomainconf "Le_UseCompatibilityChain" "$Le_UseCompatibilityChain"
+  else
+     _cleardomainconf "Le_UseCompatibilityChain"
+  fi
+
   if [ "$ACME_DIRECTORY" != "$DEFAULT_CA" ]; then
     Le_API="$ACME_DIRECTORY"
     _savedomainconf "Le_API" "$Le_API"
@@ -4432,11 +4469,18 @@ $_authorizations_map"
       cat "$CERT_PATH" >"$CERT_FULLCHAIN_PATH"
       _end_n="$(grep -n -- "$END_CERT" "$CERT_FULLCHAIN_PATH" | _head_n 1 | cut -d : -f 1)"
       _debug _end_n "$_end_n"
-      sed -n "1,${_end_n}p" "$CERT_FULLCHAIN_PATH" >"$CERT_PATH"
+      _leaf="$(sed -n "1,${_end_n}p" "$CERT_FULLCHAIN_PATH")"
       _end_n="$(_math $_end_n + 1)"
-      sed -n "${_end_n},9999p" "$CERT_FULLCHAIN_PATH" >"$CA_CERT_PATH"
+      _issuer="$(sed -n "${_end_n},9999p" "$CERT_FULLCHAIN_PATH")"
+      if [ "$Le_UseCompatibilityChain" = "1" ]; then
+        _issuer="$(_substitute_compatibility_chain "$_leaf" "$_issuer")"
+      fi
+      echo "$_leaf" > "$CERT_PATH"
+      echo "$_issuer" > "$CA_CERT_PATH"
+      printf "%s\n%s" "$_leaf" "$_issuer" > "$CERT_FULLCHAIN_PATH"
     fi
 
+  # ACME_VERSION != "2"
   else
     if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"$ACME_NEW_ORDER_RES\", \"csr\": \"$der\"}" "needbase64"; then
       _err "Sign failed. $response"
@@ -4506,24 +4550,24 @@ $_authorizations_map"
       _MAX_ISSUER_RETRY=5
       while [ "$_link_issuer_retry" -lt "$_MAX_ISSUER_RETRY" ]; do
         _debug _link_issuer_retry "$_link_issuer_retry"
-        if [ "$ACME_VERSION" = "2" ]; then
-          if _send_signed_request "$Le_LinkIssuer"; then
-            echo "$response" >"$CA_CERT_PATH"
+        if _get "$Le_LinkIssuer" >"$CA_CERT_PATH.der"; then
+          echo "$BEGIN_CERT" >"$CA_CERT_PATH"
+          _base64 "multiline" <"$CA_CERT_PATH.der" >>"$CA_CERT_PATH"
+          echo "$END_CERT" >>"$CA_CERT_PATH"
+          if ! _checkcert "$CA_CERT_PATH"; then
+            _err "Can not get the ca cert."
             break
           fi
-        else
-          if _get "$Le_LinkIssuer" >"$CA_CERT_PATH.der"; then
-            echo "$BEGIN_CERT" >"$CA_CERT_PATH"
-            _base64 "multiline" <"$CA_CERT_PATH.der" >>"$CA_CERT_PATH"
-            echo "$END_CERT" >>"$CA_CERT_PATH"
-            if ! _checkcert "$CA_CERT_PATH"; then
-              _err "Can not get the ca cert."
-              break
-            fi
-            cat "$CA_CERT_PATH" >>"$CERT_FULLCHAIN_PATH"
-            rm -f "$CA_CERT_PATH.der"
-            break
+          cat "$CA_CERT_PATH" >>"$CERT_FULLCHAIN_PATH"
+          rm -f "$CA_CERT_PATH.der"
+
+          if [ "$Le_UseCompatibilityChain" = "1" ]; then
+            _leaf="$(cat "$CERT_PATH")"
+            _issuer="$(_substitute_compatibility_chain "$_leaf" "$(cat "$CA_CERT_PATH")")"
+            echo "$_issuer" > "$CA_CERT_PATH"
+            printf "%s\n%s" "$_leaf" "$_issuer" > "$CERT_FULLCHAIN_PATH"
           fi
+          break
         fi
         _link_issuer_retry=$(_math $_link_issuer_retry + 1)
         _sleep "$_link_issuer_retry"
@@ -6078,6 +6122,7 @@ Parameters:
   --openssl-bin                     Specifies a custom openssl bin location.
   --use-wget                        Force to use wget, if you have both curl and wget installed.
   --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force to use dns manual mode: $_DNS_MANUAL_WIKI
+  --compatibility-chain             If possible, use the older and more compatible cross-signed issuer certificate (Let's Encrypt only).
   --branch, -b                      Only valid for '--upgrade' command, specifies the branch name to upgrade to.
 
   --notify-level  0|1|2|3           Set the notification level:  Default value is $NOTIFY_LEVEL_DEFAULT.
@@ -6606,6 +6651,9 @@ _process() {
         ;;
       --yes-I-know-dns-manual-mode-enough-go-ahead-please)
         export FORCE_DNS_MANUAL=1
+        ;;
+      --compatibility-chain)
+        Le_UseCompatibilityChain="1"
         ;;
       --log | --logfile)
         _log="1"
