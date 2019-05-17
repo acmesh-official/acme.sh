@@ -4289,7 +4289,7 @@ $_authorizations_map"
       sleep 2
       _debug "checking"
       if [ "$ACME_VERSION" = "2" ]; then
-        _send_signed_request "$uri"
+        _send_signed_request "$uri" "{}"
       else
         response="$(_get "$uri")"
       fi
