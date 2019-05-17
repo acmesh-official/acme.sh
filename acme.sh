@@ -3044,11 +3044,12 @@ _clearupdns() {
         _err "It seems that your api file doesn't define $rmcommand"
         return 1
       fi
-
+      _info "Removing txt: $txt for domain: $txtdomain"
       if ! $rmcommand "$txtdomain" "$txt"; then
         _err "Error removing txt for domain:$txtdomain"
         return 1
       fi
+      _info "Removed: Success"
     )
 
   done
@@ -4063,7 +4064,7 @@ $_authorizations_map"
         dns_entry="$dns_entry$dvsep$txt${dvsep}$d_api"
         _debug2 dns_entry "$dns_entry"
         if [ "$d_api" ]; then
-          _info "Found domain api file: $d_api"
+          _debug "Found domain api file: $d_api"
         else
           if [ "$_currentRoot" != "$W_DNS" ]; then
             _err "Can not find dns api hook for: $_currentRoot"
@@ -4088,11 +4089,12 @@ $_authorizations_map"
             _err "It seems that your api file is not correct, it must have a function named: $addcommand"
             return 1
           fi
-
+          _info "Adding txt value: $txt for domain:  $txtdomain"
           if ! $addcommand "$txtdomain" "$txt"; then
             _err "Error add txt for domain:$txtdomain"
             return 1
           fi
+          _info "The txt record is added: Success."
         )
 
         if [ "$?" != "0" ]; then
