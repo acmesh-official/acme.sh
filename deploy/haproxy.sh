@@ -179,7 +179,7 @@ haproxy_deploy() {
       return ${_ret}
     fi
   else
-    [ -f "${_issuer}" ] _err "Issuer file update not requested but .issuer file exists"
+    [ -f "${_issuer}" ] && _err "Issuer file update not requested but .issuer file exists"
   fi
 
   # Update .ocsp file if certificate was requested with --ocsp/--ocsp-must-staple option
