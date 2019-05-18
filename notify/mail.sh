@@ -14,8 +14,6 @@ mail_send() {
   _debug "_content" "$_content"
   _debug "_statusCode" "$_statusCode"
 
-  unset -f _MAIL_BIN _MAIL_BODY _MAIL_CMD
-
   MAIL_BIN="${MAIL_BIN:-$(_readaccountconf_mutable MAIL_BIN)}"
   if [ -n "$MAIL_BIN" ] && ! _exists "$MAIL_BIN"; then
     _err "It seems that the command $MAIL_BIN is not in path."
