@@ -22,6 +22,8 @@ mail_send() {
   _MAIL_CMD=$(_mail_cmnd)
   if [ -n "$MAIL_BIN" ]; then
     _saveaccountconf_mutable MAIL_BIN "$MAIL_BIN"
+  else
+    _clearaccountconf "MAIL_BIN"
   fi
   _MAIL_BODY=$(_mail_body)
 
