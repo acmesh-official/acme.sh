@@ -3604,7 +3604,11 @@ _ns_lookup() {
 _ns_lookup_cf() {
   _cf_ld="$1"
   _cf_ld_type="$2"
-  _cf_ep="https://cloudflare-dns.com/dns-query"
+  if [ "$CLOUDFLARE_DNSQUERY_URL" != "" ]; then
+    _cf_ep="$CLOUDFLARE_DNS_URL"
+  else
+    _cf_ep="https://cloudflare-dns.com/dns-query"
+  fi
   _ns_lookup "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
 }
 
@@ -3613,7 +3617,11 @@ _ns_purge_cf() {
   _cf_d="$1"
   _cf_d_type="$2"
   _debug "Cloudflare purge $_cf_d_type record for domain $_cf_d"
-  _cf_purl="https://1.1.1.1/api/v1/purge?domain=$_cf_d&type=$_cf_d_type"
+  if [ "$CLOUDFLARE_DOHJSON_URL" != "" ]; then
+    _cf_purl="$ONE_ONE_ONE_ONE_URL?domain=$_cf_d&type=$_cf_d_type"
+  else
+    _cf_purl="https://1.1.1.1/api/v1/purge?domain=$_cf_d&type=$_cf_d_type"
+  fi
   response="$(_post "" "$_cf_purl")"
   _debug2 response "$response"
 }
