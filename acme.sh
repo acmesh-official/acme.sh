@@ -3620,7 +3620,7 @@ _ns_purge_cf() {
   if [ "$CLOUDFLARE_DOHJSON_URL" != "" ]; then
     _cf_purl="$ONE_ONE_ONE_ONE_URL?domain=$_cf_d&type=$_cf_d_type"
   else
-    _cf_purl="https://1.1.1.1/api/v1/purge?domain=$_cf_d&type=$_cf_d_type"
+    _cf_purl="https://one.one.one.one/api/v1/purge?domain=$_cf_d&type=$_cf_d_type"
   fi
   response="$(_post "" "$_cf_purl")"
   _debug2 response "$response"
