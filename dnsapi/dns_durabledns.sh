@@ -1,6 +1,5 @@
 #!/usr/bin/env sh
 
-
 #DD_API_User="xxxxx"
 #DD_API_Key="xxxxxx"
 
@@ -39,7 +38,6 @@ dns_durabledns_add() {
   _dd_soap createRecord string zonename "$_domain." string name "$_sub_domain" string type "TXT" string data "$txtvalue" int aux 0 int ttl 10 string ddns_enabled N
   _contains "$response" "createRecordResponse"
 }
-
 
 dns_durabledns_rm() {
   fulldomain=$1
@@ -125,7 +123,6 @@ _get_root() {
 
 }
 
-
 #method
 _dd_soap() {
   _method="$1"
@@ -177,6 +174,3 @@ xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   _debug2 "response" "$response"
   return 0
 }
-
-
-
