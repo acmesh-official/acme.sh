@@ -58,7 +58,7 @@ dns_cf_add() {
   #  if [ "$count" = "0" ]; then
   _info "Adding record"
   if _cf_rest POST "zones/$_domain_id/dns_records" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
-    if _contains "$response" "$fulldomain"; then
+    if _contains "$response" "$txtvalue"; then
       _info "Added, OK"
       return 0
     elif _contains "$response" "The record already exists"; then
@@ -161,7 +161,7 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
+    if _contains "$response" "\"name\":\"$h\"" || _contains "$response" '"total_count":1'; then
       _domain_id=$(echo "$response" | _egrep_o "\[.\"id\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
@@ -182,8 +182,11 @@ _cf_rest() {
   data="$3"
   _debug "$ep"
 
-  export _H1="X-Auth-Email: $CF_Email"
-  export _H2="X-Auth-Key: $CF_Key"
+  email_trimmed=$(echo $CF_Email | tr -d '"')
+  key_trimmed=$(echo $CF_Key | tr -d '"')
+
+  export _H1="X-Auth-Email: $email_trimmed"
+  export _H2="X-Auth-Key: $key_trimmed"
   export _H3="Content-Type: application/json"
 
   if [ "$m" != "GET" ]; then
