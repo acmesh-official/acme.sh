@@ -6098,8 +6098,23 @@ Parameters:
 # nocron noprofile
 _installOnline() {
   _info "Installing from online archive."
-  _nocron="$1"
-  _noprofile="$2"
+
+  if ! _startswith "$1" "-"; then
+    if [ -n "$1" ]; then
+      set "$@" "--nocron"
+    fi
+
+    shift
+
+    if ! _startswith "$1" "-"; then
+      if [ -n "$1" ]; then
+        set "$@" "--noprofile"
+      fi
+
+      shift
+    fi
+  fi
+
   if [ ! "$BRANCH" ]; then
     BRANCH="master"
   fi
@@ -6120,7 +6135,7 @@ _installOnline() {
 
     cd "$PROJECT_NAME-$BRANCH"
     chmod +x $PROJECT_ENTRY
-    if ./$PROJECT_ENTRY install "$_nocron" "" "$_noprofile"; then
+    if ./$PROJECT_ENTRY --install "$@"; then
       _info "Install success!"
     fi
 
@@ -6863,7 +6878,7 @@ _process() {
 
 if [ "$INSTALLONLINE" ]; then
   INSTALLONLINE=""
-  _installOnline
+  _installOnline "$@"
   exit
 fi
 
