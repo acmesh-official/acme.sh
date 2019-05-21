@@ -8,7 +8,7 @@ RUN apk update -f \
   curl \
   socat \
   tzdata \
-  && apk add --no-cache -X http://dl-cdn.alpinelinux.org/alpine/edge/testing oath-toolkit-oathtool \
+  && apk add --no-cache -X http://dl-cdn.alpinelinux.org/alpine/edge/community oath-toolkit-oathtool \
   && rm -rf /var/cache/apk/*
 
 ENV LE_CONFIG_HOME /acme.sh
@@ -22,7 +22,7 @@ RUN cd /install_acme.sh && ([ -f /install_acme.sh/acme.sh ] && /install_acme.sh/
 
 RUN ln -s  /root/.acme.sh/acme.sh  /usr/local/bin/acme.sh && crontab -l | grep acme.sh | sed 's#> /dev/null##' | crontab -
 
-RUN for verb in help \ 
+RUN for verb in help \
   version \
   install \
   uninstall \
