@@ -58,8 +58,8 @@ ses_send() {
   _saveaccountconf_mutable AWS_SES_FROM "$AWS_SES_FROM"
 
   _date="$(date -R)"
-  _signature="$(echo -n "$_date" | _openssl_bin dgst -sha256 -hmac "$AWS_SECRET_KEY" -binary | _base64 -w 0)"
-  _endpoint="https://email.$AWS_REGION.amazonaws.com/"
+  _signature="$(echo -n "$_date" | ${ACME_OPENSSL_BIN:-openssl} dgst -sha256 -hmac "$AWS_SECRET_KEY" -binary | base64 -w 0)"
+  _endpoint="https://email.$AWS_REGION.amazonaws.com"
 
   export _H1="X-Amzn-Authorization: AWS3-HTTPS AWSAccessKeyId=$AWS_ACCESS_KEY, Algorithm=HmacSHA256, Signature=$_signature"
   export _H2="Content-Type: application/x-www-form-urlencoded"
