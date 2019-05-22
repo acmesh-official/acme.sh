@@ -2,8 +2,8 @@
 
 #Support Amazon SES api
 
-#AWS_ACCESS_KEY=""
-#AWS_SECRET_KEY=""
+#AWS_ACCESS_KEY_ID_ID=""
+#AWS_SECRET_ACCESS_KEY=""
 #AWS_REGION=""
 #AWS_SES_TO="xxxx@xxx.com"
 #AWS_SES_FROM="xxxx@cccc.com"
@@ -14,23 +14,23 @@ ses_send() {
   _statusCode="$3" #0: success, 1: error 2($RENEW_SKIP): skipped
   _debug "_statusCode" "$_statusCode"
 
-  AWS_ACCESS_KEY="${AWS_ACCESS_KEY:-$(_readaccountconf_mutable AWS_ACCESS_KEY)}"
-  if [ -z "$AWS_ACCESS_KEY" ]; then
-    AWS_ACCESS_KEY=""
-    _err "You didn't specify a amazon access key AWS_ACCESS_KEY yet."
+  AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-$(_readaccountconf_mutable AWS_ACCESS_KEY_ID)}"
+  if [ -z "$AWS_ACCESS_KEY_ID" ]; then
+    AWS_ACCESS_KEY_ID=""
+    _err "You didn't specify a amazon access key AWS_ACCESS_KEY_ID yet."
     _err "See https://docs.aws.amazon.com/en_us/general/latest/gr/aws-sec-cred-types.html"
     return 1
   fi
-  _saveaccountconf_mutable AWS_ACCESS_KEY "$AWS_ACCESS_KEY"
+  _saveaccountconf_mutable AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
 
-  AWS_SECRET_KEY="${AWS_SECRET_KEY:-$(_readaccountconf_mutable AWS_SECRET_KEY)}"
-  if [ -z "$AWS_SECRET_KEY" ]; then
-    AWS_SECRET_KEY=""
-    _err "You didn't specify a amazon secret key AWS_SECRET_KEY yet."
+  AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
+  if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+    AWS_SECRET_ACCESS_KEY=""
+    _err "You didn't specify a amazon secret key AWS_SECRET_ACCESS_KEY yet."
     _err "See https://docs.aws.amazon.com/en_us/general/latest/gr/aws-sec-cred-types.html"
     return 1
   fi
-  _saveaccountconf_mutable AWS_SECRET_KEY "$AWS_SECRET_KEY"
+  _saveaccountconf_mutable AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
 
   AWS_REGION="${AWS_REGION:-$(_readaccountconf_mutable AWS_REGION)}"
   if [ -z "$AWS_REGION" ]; then
@@ -58,10 +58,10 @@ ses_send() {
   _saveaccountconf_mutable AWS_SES_FROM "$AWS_SES_FROM"
 
   _date="$(date -R)"
-  _signature="$(printf "%s" "$_date" | _hmac sha256 $AWS_SECRET_KEY | _base64)"
+  _signature="$(printf "%s" "$_date" | _hmac sha256 $AWS_SECRET_ACCESS_KEY | _base64)"
   _endpoint="https://email.$AWS_REGION.amazonaws.com"
 
-  export _H1="X-Amzn-Authorization: AWS3-HTTPS AWSAccessKeyId=$AWS_ACCESS_KEY, Algorithm=HmacSHA256, Signature=$_signature"
+  export _H1="X-Amzn-Authorization: AWS3-HTTPS AWSAccessKeyId=$AWS_ACCESS_KEY_ID, Algorithm=HmacSHA256, Signature=$_signature"
   export _H2="Content-Type: application/x-www-form-urlencoded"
   export _H3="Date: $_date"
 
@@ -76,5 +76,4 @@ ses_send() {
     _err "$response"
     return 1
   fi
-
 }
