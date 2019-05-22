@@ -53,18 +53,6 @@ _hostingde_parse() {
   fi
 }
 
-_hostingde_parse_no_strip_whitespace() {
-  find="${1}"
-  if [ "${2}" ]; then
-    notfind="${2}"
-  fi
-  if [ "${notfind}" ]; then
-    _egrep_o \""${find}\":.*" | grep -v "${notfind}" | cut -d ':' -f 2 | cut -d ',' -f 1
-  else
-    _egrep_o \""${find}\":.*" | cut -d ':' -f 2 | cut -d ',' -f 1
-  fi
-}
-
 _hostingde_getZoneConfig() {
   _info "Getting ZoneConfig"
   curZone="${fulldomain#*.}"
@@ -97,12 +85,12 @@ _hostingde_getZoneConfig() {
       zoneConfigDnsServerGroupId=$(echo "${curResult}" | _hostingde_parse "dnsServerGroupId")
       zoneConfigEmailAddress=$(echo "${curResult}" | _hostingde_parse "emailAddress")
       zoneConfigDnsSecMode=$(echo "${curResult}" | _hostingde_parse "dnsSecMode")
-      zoneConfigTemplateValues=$(echo "${curResult}" | _hostingde_parse_no_strip_whitespace "templateValues")
+      zoneConfigTemplateValues=$(echo "${curResult}" | _hostingde_parse "templateValues")
 
       if [ "$zoneConfigTemplateValues" != "null" ]; then
         _debug "Zone is tied to a template."
         zoneConfigTemplateValuesTemplateId=$(echo "${curResult}" | _hostingde_parse "templateId")
-        zoneConfigTemplateValuesTemplateName=$(echo "${curResult}" | _hostingde_parse_no_strip_whitespace "templateName")
+        zoneConfigTemplateValuesTemplateName=$(echo "${curResult}" | _hostingde_parse "templateName")
         zoneConfigTemplateValuesTemplateReplacementsIPv4=$(echo "${curResult}" | _hostingde_parse "ipv4Replacement")
         zoneConfigTemplateValuesTemplateReplacementsIPv6=$(echo "${curResult}" | _hostingde_parse "ipv6Replacement")
         zoneConfigTemplateValuesTemplateReplacementsMailIPv4=$(echo "${curResult}" | _hostingde_parse "mailIpv4Replacement")
