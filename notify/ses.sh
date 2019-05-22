@@ -2,7 +2,7 @@
 
 #Support Amazon SES api
 
-#AWS_ACCESS_KEY_ID_ID=""
+#AWS_ACCESS_KEY_ID=""
 #AWS_SECRET_ACCESS_KEY=""
 #AWS_REGION=""
 #AWS_SES_TO="xxxx@xxx.com"
