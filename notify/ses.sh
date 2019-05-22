@@ -57,15 +57,63 @@ ses_send() {
   fi
   _saveaccountconf_mutable AWS_SES_FROM "$AWS_SES_FROM"
 
-  _date="$(date -R)"
-  _signature="$(printf "%s" "$_date" | _hmac sha256 $AWS_SECRET_ACCESS_KEY | _base64)"
-  _endpoint="https://email.$AWS_REGION.amazonaws.com"
-
-  export _H1="X-Amzn-Authorization: AWS3-HTTPS AWSAccessKeyId=$AWS_ACCESS_KEY_ID, Algorithm=HmacSHA256, Signature=$_signature"
-  export _H2="Content-Type: application/x-www-form-urlencoded"
-  export _H3="Date: $_date"
-
+  _host="email.$AWS_REGION.amazonaws.com"
+  _endpoint="https://$_host"
   _data="Action=SendEmail&Source=$(printf "%s" "$AWS_SES_FROM" | _url_encode)&Destination.ToAddresses.member.1=$(printf "%s" "$AWS_SES_TO" | _url_encode)&Message.Subject.Data=$(printf "%s" "$_subject" | _url_encode)&Message.Body.Text.Data=$(printf "%s" "$_content" | _url_encode)"
+
+  Service="ses"
+  Hash="sha256"
+
+  Algorithm="AWS4-HMAC-SHA256"
+  _debug2 Algorithm "$Algorithm"
+
+  RequestDate="$(date -u +"%Y%m%dT%H%M%SZ")"
+  RequestDateOnly="$(echo "$RequestDate" | cut -c 1-8)"
+  _debug2 RequestDateOnly "$RequestDateOnly"
+
+  CredentialScope="$RequestDateOnly/$AWS_REGION/$Service/aws4_request"
+  _debug2 StringToSign "$StringToSign"
+
+  CanonicalHeaders="host:$_host\nx-amz-date:$RequestDate\n"
+  _debug2 CanonicalHeaders "$CanonicalHeaders"
+
+  SignedHeaders="host;x-amz-date"
+  _debug2 SignedHeaders "$SignedHeaders"
+
+  CanonicalRequest="POST\n/\n\n$CanonicalHeaders\n$SignedHeaders\n$(printf "%s" "$_data" | _digest "$Hash" hex)"
+  _debug2 CanonicalRequest "$CanonicalRequest"
+
+  HashedCanonicalRequest="$(printf "$CanonicalRequest%s" | _digest "$Hash" hex)"
+  _debug2 HashedCanonicalRequest "$HashedCanonicalRequest"
+
+  StringToSign="$Algorithm\n$RequestDate\n$CredentialScope\n$HashedCanonicalRequest"
+  _debug2 StringToSign "$StringToSign"
+
+  kSecret="AWS4$AWS_SECRET_ACCESS_KEY"
+
+  kSecretH="$(printf "%s" "$kSecret" | _hex_dump | tr -d " ")"
+  _secure_debug2 kSecretH "$kSecretH"
+
+  kDateH="$(printf "$RequestDateOnly%s" | _hmac "$Hash" "$kSecretH" hex)"
+  _debug2 kDateH "$kDateH"
+
+  kRegionH="$(printf "$AWS_REGION%s" | _hmac "$Hash" "$kDateH" hex)"
+  _debug2 kRegionH "$kRegionH"
+
+  kServiceH="$(printf "$Service%s" | _hmac "$Hash" "$kRegionH" hex)"
+  _debug2 kServiceH "$kServiceH"
+
+  kSigningH="$(printf "%s" "aws4_request" | _hmac "$Hash" "$kServiceH" hex)"
+  _debug2 kSigningH "$kSigningH"
+
+  signature="$(printf "$StringToSign%s" | _hmac "$Hash" "$kSigningH" hex)"
+  _debug2 signature "$signature"
+
+  Authorization="$Algorithm Credential=$AWS_ACCESS_KEY_ID/$CredentialScope, SignedHeaders=$SignedHeaders, Signature=$signature"
+  _debug2 Authorization "$Authorization"
+
+  export _H1="x-amz-date: $RequestDate"
+  export _H2="Authorization: $Authorization"
 
   response=$(_post "$_data" "$_endpoint")
   if _contains "$response" "MessageId"; then
