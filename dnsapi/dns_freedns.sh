@@ -306,7 +306,7 @@ _freedns_domain_id() {
     domain_id="$(echo "$htmlpage" | tr -d "[:space:]" | sed 's/<tr>/@<tr>/g' | tr '@' '\n' \
       | grep "<td>$search_domain</td>\|<td>$search_domain(.*)</td>" \
       | _egrep_o "edit\.php\?edit_domain_id=[0-9a-zA-Z]+" \
-      | cut -d = -f 2 )"
+      | cut -d = -f 2)"
     # The above beauty extracts domain ID from the html page...
     # strip out all blank space and new lines. Then insert newlines
     # before each table row <tr>
