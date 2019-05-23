@@ -348,7 +348,7 @@ _freedns_data_id() {
       fi
       return 1
     fi
-    
+
     data_id="$(echo "$htmlpage" | tr -d "[:space:]" | sed 's/<tr>/@<tr>/g' | tr '@' '\n' \
       | grep "<td[a-zA-Z=#]*>$record_type</td>" \
       | grep "<ahref.*>$search_domain</a>" \
