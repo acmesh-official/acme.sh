@@ -16,16 +16,17 @@
 #     only single domain supported atm
 
 dns_one_add() {
-  #rev command not found on OpenWrt
-  #mysubdomain=$(printf -- "%s" "$1" | rev | cut -d"." -f3- | rev)
-  #mydomain=$(printf -- "%s" "$1" | rev | cut -d"." -f1-2 | rev)
-  
   fulldomain=$1
   txtvalue=$2
   
-  _debug "First detect the root zone"
+  if ! _dns_one_login; then
+    _err "login failed"
+    return 1
+  fi
+
+  _debug "detect the root domain"
   if ! _get_root "$fulldomain"; then
-    _err "invalid domain"
+    _err "root domain not found"
     return 1
   fi
   
@@ -33,49 +34,10 @@ dns_one_add() {
   mydomain=$_domain
   _debug mysubdomain "$mysubdomain"
   _debug mydomain "$mydomain"
-
-  # get credentials
-  ONECOM_User="${ONECOM_User:-$(_readaccountconf_mutable ONECOM_User)}"
-  ONECOM_Password="${ONECOM_Password:-$(_readaccountconf_mutable ONECOM_Password)}"
-  if [ -z "$ONECOM_User" ] || [ -z "$ONECOM_Password" ]; then
-    ONECOM_User=""
-    ONECOM_Password=""
-    _err "You didn't specify a one.com username and password yet."
-    _err "Please create the key and try again."
-    return 1
-  fi
-
-  #save the api key and email to the account conf file.
-  _saveaccountconf_mutable ONECOM_User "$ONECOM_User"
-  _saveaccountconf_mutable ONECOM_Password "$ONECOM_Password"
-
-  # Login with user and password
-  postdata="loginDomain=true"
-  postdata="$postdata&displayUsername=$ONECOM_User"
-  postdata="$postdata&username=$ONECOM_User"
-  postdata="$postdata&targetDomain=$mydomain"
-  postdata="$postdata&password1=$ONECOM_Password"
-  postdata="$postdata&loginTarget="
-  #_debug postdata "$postdata"
   
-  #CURL does not work
-  local tmp_USE_WGET=$ACME_USE_WGET
-  ACME_USE_WGET=1
-  
-  response="$(_post "$postdata" "https://www.one.com/admin/login.do" "" "POST" "application/x-www-form-urlencoded")"
-  #_debug response "$response"
-
-  JSESSIONID="$(grep "OneSIDCrmAdmin" "$HTTP_HEADER" | grep "^[Ss]et-[Cc]ookie:" | _tail_n 1 | _egrep_o 'OneSIDCrmAdmin=[^;]*;' | tr -d ';')"
-  _debug jsessionid "$JSESSIONID"
-
-  export _H1="Cookie: ${JSESSIONID}"
-
   # get entries
   response="$(_get "https://www.one.com/admin/api/domains/$mydomain/dns/custom_records")"
   _debug response "$response"
-
-  #CSRF_G_TOKEN="$(grep "CSRF_G_TOKEN=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'CSRF_G_TOKEN=[^;]*;' | tr -d ';')"
-  #export _H2="Cookie: ${CSRF_G_TOKEN}"
 
   # Update the IP address for domain entry
   postdata="{\"type\":\"dns_custom_records\",\"attributes\":{\"priority\":0,\"ttl\":600,\"type\":\"TXT\",\"prefix\":\"$mysubdomain\",\"content\":\"$txtvalue\"}}"
@@ -85,8 +47,6 @@ dns_one_add() {
   _debug response "$response"
 
   id=$(echo "$response" | sed -n "s/{\"result\":{\"data\":{\"type\":\"dns_custom_records\",\"id\":\"\([^\"]*\)\",\"attributes\":{\"prefix\":\"$mysubdomain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"priority\":0,\"ttl\":600}}},\"metadata\":null}/\1/p")
-  
-  ACME_USE_WGET=$tmp_USE_WGET
   
   if [ -z "$id" ]; then
     _err "Add txt record error."
@@ -99,16 +59,17 @@ dns_one_add() {
 }
 
 dns_one_rm() {
-  #rev command not found on OpenWrt
-  #mysubdomain=$(printf -- "%s" "$1" | rev | cut -d"." -f3- | rev)
-  #mydomain=$(printf -- "%s" "$1" | rev | cut -d"." -f1-2 | rev)
-  
   fulldomain=$1
   txtvalue=$2
   
-  _debug "First detect the root zone"
+  if ! _dns_one_login; then
+    _err "login failed"
+    return 1
+  fi
+
+  _debug "detect the root domain"
   if ! _get_root "$fulldomain"; then
-    _err "invalid domain"
+    _err "root domain not found"
     return 1
   fi
   
@@ -116,51 +77,16 @@ dns_one_rm() {
   mydomain=$_domain
   _debug mysubdomain "$mysubdomain"
   _debug mydomain "$mydomain"
-
-  # get credentials
-  ONECOM_User="${ONECOM_User:-$(_readaccountconf_mutable ONECOM_User)}"
-  ONECOM_Password="${ONECOM_Password:-$(_readaccountconf_mutable ONECOM_Password)}"
-  if [ -z "$ONECOM_User" ] || [ -z "$ONECOM_Password" ]; then
-    ONECOM_User=""
-    ONECOM_Password=""
-    _err "You didn't specify a one.com username and password yet."
-    _err "Please create the key and try again."
-    return 1
-  fi
-
-  # Login with user and password
-  postdata="loginDomain=true"
-  postdata="$postdata&displayUsername=$ONECOM_User"
-  postdata="$postdata&username=$ONECOM_User"
-  postdata="$postdata&targetDomain=$mydomain"
-  postdata="$postdata&password1=$ONECOM_Password"
-  postdata="$postdata&loginTarget="
   
-  #CURL does not work
-  local tmp_USE_WGET=$ACME_USE_WGET
-  ACME_USE_WGET=1
-  
-  response="$(_post "$postdata" "https://www.one.com/admin/login.do" "" "POST" "application/x-www-form-urlencoded")"
-  #_debug response "$response"
-
-  JSESSIONID="$(grep "OneSIDCrmAdmin" "$HTTP_HEADER" | grep "^[Ss]et-[Cc]ookie:" | _tail_n 1 | _egrep_o 'OneSIDCrmAdmin=[^;]*;' | tr -d ';')"
-  _debug jsessionid "$JSESSIONID"
-
-  export _H1="Cookie: ${JSESSIONID}"
-
   # get entries
   response="$(_get "https://www.one.com/admin/api/domains/$mydomain/dns/custom_records")"
   response="$(echo "$response" | _normalizeJson)"
   _debug response "$response"
 
-  #CSRF_G_TOKEN="$(grep "CSRF_G_TOKEN=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'CSRF_G_TOKEN=[^;]*;' | tr -d ';')"
-  #export _H2="Cookie: ${CSRF_G_TOKEN}"
-
   id=$(printf -- "%s" "$response" | sed -n "s/.*{\"type\":\"dns_custom_records\",\"id\":\"\([^\"]*\)\",\"attributes\":{\"prefix\":\"$mysubdomain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"priority\":0,\"ttl\":600}.*/\1/p")
 
   if [ -z "$id" ]; then
     _err "Txt record not found."
-	ACME_USE_WGET=$tmp_USE_WGET
     return 1
   fi
 
@@ -168,8 +94,6 @@ dns_one_rm() {
   response="$(_post "$postdata" "https://www.one.com/admin/api/domains/$mydomain/dns/custom_records/$id" "" "DELETE" "application/json")"
   response="$(echo "$response" | _normalizeJson)"
   _debug response "$response"
-  
-  ACME_USE_WGET=$tmp_USE_WGET
   
   if [ "$response" = '{"result":null,"metadata":null}' ]; then
     _info "Removed, OK"
@@ -196,8 +120,10 @@ _get_root() {
       #not valid
       return 1
     fi
-	
-    if [ "$(printf "%s" "$h" | tr '.' ' ' | wc -w)" = "2" ]; then
+    
+    response="$(_get "https://www.one.com/admin/api/domains/$h/dns/custom_records")"
+    
+    if ! _contains "$response" "CRMRST_000302" ; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain="$h"
       return 0
@@ -208,3 +134,46 @@ _get_root() {
   _err "Unable to parse this domain"
   return 1
 }
+
+_dns_one_login() {
+
+  # get credentials
+  ONECOM_User="${ONECOM_User:-$(_readaccountconf_mutable ONECOM_User)}"
+  ONECOM_Password="${ONECOM_Password:-$(_readaccountconf_mutable ONECOM_Password)}"
+  if [ -z "$ONECOM_User" ] || [ -z "$ONECOM_Password" ]; then
+    ONECOM_User=""
+    ONECOM_Password=""
+    _err "You didn't specify a one.com username and password yet."
+    _err "Please create the key and try again."
+    return 1
+  fi
+
+  #save the api key and email to the account conf file.
+  _saveaccountconf_mutable ONECOM_User "$ONECOM_User"
+  _saveaccountconf_mutable ONECOM_Password "$ONECOM_Password"
+
+  # Login with user and password
+  postdata="loginDomain=true"
+  postdata="$postdata&displayUsername=$ONECOM_User"
+  postdata="$postdata&username=$ONECOM_User"
+  postdata="$postdata&targetDomain="
+  postdata="$postdata&password1=$ONECOM_Password"
+  postdata="$postdata&loginTarget="
+  #_debug postdata "$postdata"
+  
+  response="$(_post "$postdata" "https://www.one.com/admin/login.do" "" "POST" "application/x-www-form-urlencoded")"
+  #_debug response "$response"
+  
+  # Get SessionID
+  JSESSIONID="$(grep "OneSIDCrmAdmin" "$HTTP_HEADER" | grep "^[Ss]et-[Cc]ookie:" | _head_n 1 | _egrep_o 'OneSIDCrmAdmin=[^;]*;' | tr -d ';')"
+  _debug jsessionid "$JSESSIONID"
+  
+  if [ -z "$JSESSIONID" ]; then
+    _err "error sessionid cookie not found"
+    return 1
+  fi
+  
+  export _H1="Cookie: ${JSESSIONID}"
+  
+  return 0
+  }
