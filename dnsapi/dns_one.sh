@@ -123,7 +123,7 @@ _get_root() {
     
     response="$(_get "https://www.one.com/admin/api/domains/$h/dns/custom_records")"
     
-    if ! _contains "$response" "CRMRST_000302" ; then
+    if ! _contains "$response" "CRMRST_000302"; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain="$h"
       return 0
