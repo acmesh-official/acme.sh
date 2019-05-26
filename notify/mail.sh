@@ -27,7 +27,8 @@ mail_send() {
     _err "It seems that the command $MAIL_BIN is not in path."
     return 1
   fi
-  _MAIL_CMD=$(_mail_cmnd)
+  _MAIL_BIN=$(_mail_bin)
+  _MAIL_CMND=$(_mail_cmnd)
   if [ -n "$MAIL_BIN" ]; then
     _saveaccountconf_mutable MAIL_BIN "$MAIL_BIN"
   else
@@ -63,8 +64,9 @@ mail_send() {
 
   contenttype="text/plain; charset=utf-8"
   subject="=?UTF-8?B?$(echo "$_subject" | _base64)?="
-  result=$({ echo "$_MAIL_BODY" | eval "$_MAIL_CMD"; } 2>&1)
+  result=$({ echo "$_MAIL_BODY" | eval "$_MAIL_CMND"; } 2>&1)
 
+  # shellcheck disable=SC2181
   if [ $? -ne 0 ]; then
     _debug "mail send error."
     _err "$result"
@@ -75,7 +77,7 @@ mail_send() {
   return 0
 }
 
-_mail_cmnd() {
+_mail_bin() {
   if [ -n "$MAIL_BIN" ]; then
     _MAIL_BIN="$MAIL_BIN"
   elif _exists "sendmail"; then
@@ -91,6 +93,10 @@ _mail_cmnd() {
     return 1
   fi
 
+  echo "$_MAIL_BIN"
+}
+
+_mail_cmnd() {
   case $(basename "$_MAIL_BIN") in
     sendmail)
       if [ -n "$MAIL_FROM" ]; then
@@ -113,16 +119,18 @@ _mail_cmnd() {
 }
 
 _mail_body() {
-  if [ "$_MAIL_BIN" = "sendmail" ] || [ "$_MAIL_BIN" = "ssmtp" ]; then
-    if [ -n "$MAIL_FROM" ]; then
-      echo "From: $MAIL_FROM"
-    fi
+  case $(basename "$_MAIL_BIN") in
+    sendmail | ssmtp)
+      if [ -n "$MAIL_FROM" ]; then
+        echo "From: $MAIL_FROM"
+      fi
 
-    echo "To: $MAIL_TO"
-    echo "Subject: $subject"
-    echo "Content-Type: $contenttype"
-    echo
-  fi
+      echo "To: $MAIL_TO"
+      echo "Subject: $subject"
+      echo "Content-Type: $contenttype"
+      echo
+      ;;
+  esac
 
   echo "$_content"
 }
