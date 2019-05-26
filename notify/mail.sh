@@ -28,13 +28,11 @@ mail_send() {
     return 1
   fi
   _MAIL_BIN=$(_mail_bin)
-  _MAIL_CMND=$(_mail_cmnd)
   if [ -n "$MAIL_BIN" ]; then
     _saveaccountconf_mutable MAIL_BIN "$MAIL_BIN"
   else
     _clearaccountconf "MAIL_BIN"
   fi
-  _MAIL_BODY=$(_mail_body)
 
   MAIL_FROM="${MAIL_FROM:-$(_readaccountconf_mutable MAIL_FROM)}"
   if [ -n "$MAIL_FROM" ]; then
@@ -64,7 +62,7 @@ mail_send() {
 
   contenttype="text/plain; charset=utf-8"
   subject="=?UTF-8?B?$(echo "$_subject" | _base64)?="
-  result=$({ echo "$_MAIL_BODY" | eval "$_MAIL_CMND"; } 2>&1)
+  result=$({ _mail_body | _mail_cmnd; } 2>&1)
 
   # shellcheck disable=SC2181
   if [ $? -ne 0 ]; then
