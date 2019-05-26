@@ -5,6 +5,7 @@
 #MAIL_BIN="sendmail"
 #MAIL_FROM="yyyy@gmail.com"
 #MAIL_TO="yyyy@gmail.com"
+#MAIL_NOVALIDATE=""
 
 mail_send() {
   _subject="$1"
@@ -13,6 +14,13 @@ mail_send() {
   _debug "_subject" "$_subject"
   _debug "_content" "$_content"
   _debug "_statusCode" "$_statusCode"
+
+  MAIL_NOVALIDATE="${MAIL_NOVALIDATE:-$(_readaccountconf_mutable MAIL_NOVALIDATE)}"
+  if [ -n "$MAIL_NOVALIDATE" ]; then
+    _saveaccountconf_mutable MAIL_NOVALIDATE 1
+  else
+    _clearaccountconf "MAIL_NOVALIDATE"
+  fi
 
   MAIL_BIN="${MAIL_BIN:-$(_readaccountconf_mutable MAIL_BIN)}"
   if [ -n "$MAIL_BIN" ] && ! _exists "$MAIL_BIN"; then
@@ -29,7 +37,7 @@ mail_send() {
 
   MAIL_FROM="${MAIL_FROM:-$(_readaccountconf_mutable MAIL_FROM)}"
   if [ -n "$MAIL_FROM" ]; then
-    if ! _contains "$MAIL_FROM" "@"; then
+    if ! _mail_valid "$MAIL_FROM"; then
       _err "It seems that the MAIL_FROM=$MAIL_FROM is not a valid email address."
       return 1
     fi
@@ -39,7 +47,7 @@ mail_send() {
 
   MAIL_TO="${MAIL_TO:-$(_readaccountconf_mutable MAIL_TO)}"
   if [ -n "$MAIL_TO" ]; then
-    if ! _contains "$MAIL_TO" "@"; then
+    if ! _mail_valid "$MAIL_TO"; then
       _err "It seems that the MAIL_TO=$MAIL_TO is not a valid email address."
       return 1
     fi
@@ -117,4 +125,8 @@ _mail_body() {
   fi
 
   echo "$_content"
+}
+
+_mail_valid() {
+  [ -n "$MAIL_NOVALIDATE" ] || _contains "$1" "@"
 }
