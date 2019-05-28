@@ -1,11 +1,13 @@
-FROM alpine:3.6
+FROM alpine:3.9
 
 RUN apk update -f \
   && apk --no-cache add -f \
   openssl \
   coreutils \
+  bind-tools \
   curl \
   socat \
+  tzdata \
   && rm -rf /var/cache/apk/*
 
 ENV LE_CONFIG_HOME /acme.sh
@@ -46,6 +48,7 @@ RUN for verb in help \
   createCSR \
   deactivate \
   deactivate-account \
+  set-notify \
   ; do \
     printf -- "%b" "#!/usr/bin/env sh\n/root/.acme.sh/acme.sh --${verb} --config-home /acme.sh \"\$@\"" >/usr/local/bin/--${verb} && chmod +x /usr/local/bin/--${verb} \
   ; done

@@ -168,5 +168,9 @@ _gd_rest() {
     return 1
   fi
   _debug2 response "$response"
+  if _contains "$response" "UNABLE_TO_AUTHENTICATE"; then
+    _err "It seems that your api key or secret is not correct."
+    return 1
+  fi
   return 0
 }
