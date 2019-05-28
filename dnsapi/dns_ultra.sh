@@ -117,7 +117,7 @@ _get_root() {
       #not valid
       return 1
     fi
-    if ! _ultra_rest GET "zones"; then
+    if ! _ultra_rest GET "zones?limit=1000&Offset=1000"; then
       return 1
     fi
     if _contains "${response}" "${h}." >/dev/null; then
