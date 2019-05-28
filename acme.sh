@@ -4338,6 +4338,8 @@ $_authorizations_map"
 
       if [ "$status" = "pending" ]; then
         _info "Pending"
+      elif [ "$status" = "processing" ]; then
+        _info "Processing"
       else
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
