@@ -53,7 +53,7 @@ sophosxg_do_req() {
     </Certificate>
   </Set>
 </Request>
-"> "$_do_req_xml"
+" >"$_do_req_xml"
 
   # dont verify certificate if HTTPS_INSECURE was set
   if [ "$Le_Deploy_sophosxg_https_insecure" = "1" ] || [ "$HTTPS_INSECURE" ]; then
