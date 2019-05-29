@@ -101,7 +101,9 @@ routeros_deploy() {
     \n$ROUTER_OS_ADDITIONAL_SERVICES\\r\
     \n\"
     "
+  # shellcheck disable=SC2029
   ssh "$ROUTER_OS_USERNAME@$ROUTER_OS_HOST" "/system script run \"LE Cert Deploy - $_cdomain\""
+  # shellcheck disable=SC2029
   ssh "$ROUTER_OS_USERNAME@$ROUTER_OS_HOST" "/system script remove \"LE Cert Deploy - $_cdomain\""
 
   return 0
