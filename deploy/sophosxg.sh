@@ -53,7 +53,7 @@ sophosxg_do_req() {
     </Certificate>
   </Set>
 </Request>
-" > "$_do_req_xml"
+"> "$_do_req_xml"
 
   # dont verify certificate if HTTPS_INSECURE was set
   if [ "$Le_Deploy_sophosxg_https_insecure" = "1" ] || [ "$HTTPS_INSECURE" ]; then
@@ -176,7 +176,6 @@ sophosxg_deploy() {
   _req_action_success="no"
   for _req_action in update add; do
     _info "Uploading certificate: $_req_action"
-    
     if sophosxg_do_req "$_req_action" "$_import_pkcs12" "$Le_Deploy_sophosxg_user" "$Le_Deploy_sophosxg_password" "$Le_Deploy_sophosxg_name" "$Le_Deploy_sophosxg_pfx_password" "$Le_Deploy_sophosxg_host"; then
       _req_action_success="yes"
       break
@@ -193,6 +192,6 @@ sophosxg_deploy() {
     return 1
   fi
 
-  return 0 
+  return 0
 
 }
