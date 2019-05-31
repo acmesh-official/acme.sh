@@ -110,19 +110,19 @@ dns_one_rm() {
 # _sub_domain=_acme-challenge.www
 # _domain=domain.com
 _get_root() {
-  domain=$1
+  domain="$1"
   i=2
   p=1
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
-	
+
     if [ -z "$h" ]; then
       #not valid
       return 1
     fi
-    
+
     response="$(_get "https://www.one.com/admin/api/domains/$h/dns/custom_records")"
-    
+
     if ! _contains "$response" "CRMRST_000302"; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain="$h"
@@ -160,20 +160,20 @@ _dns_one_login() {
   postdata="$postdata&password1=$ONECOM_Password"
   postdata="$postdata&loginTarget="
   #_debug postdata "$postdata"
-  
+
   response="$(_post "$postdata" "https://www.one.com/admin/login.do" "" "POST" "application/x-www-form-urlencoded")"
   #_debug response "$response"
-  
+
   # Get SessionID
   JSESSIONID="$(grep "OneSIDCrmAdmin" "$HTTP_HEADER" | grep "^[Ss]et-[Cc]ookie:" | _head_n 1 | _egrep_o 'OneSIDCrmAdmin=[^;]*;' | tr -d ';')"
   _debug jsessionid "$JSESSIONID"
-  
+
   if [ -z "$JSESSIONID" ]; then
     _err "error sessionid cookie not found"
     return 1
   fi
-  
+
   export _H1="Cookie: ${JSESSIONID}"
-  
+
   return 0
 }
