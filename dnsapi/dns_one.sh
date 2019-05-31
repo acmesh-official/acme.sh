@@ -5,7 +5,7 @@
 # Author: github: @diseq
 # Created: 2019-02-17
 # Fixed by: @der-berni
-# Modified: 2019-05-20
+# Modified: 2019-05-31
 #
 #     export ONECOM_User="username"
 #     export ONECOM_Password="password"
@@ -18,7 +18,7 @@
 dns_one_add() {
   fulldomain=$1
   txtvalue=$2
-  
+
   if ! _dns_one_login; then
     _err "login failed"
     return 1
@@ -29,12 +29,12 @@ dns_one_add() {
     _err "root domain not found"
     return 1
   fi
-  
+
   mysubdomain=$_sub_domain
   mydomain=$_domain
   _debug mysubdomain "$mysubdomain"
   _debug mydomain "$mydomain"
-  
+
   # get entries
   response="$(_get "https://www.one.com/admin/api/domains/$mydomain/dns/custom_records")"
   _debug response "$response"
@@ -47,7 +47,7 @@ dns_one_add() {
   _debug response "$response"
 
   id=$(echo "$response" | sed -n "s/{\"result\":{\"data\":{\"type\":\"dns_custom_records\",\"id\":\"\([^\"]*\)\",\"attributes\":{\"prefix\":\"$mysubdomain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"priority\":0,\"ttl\":600}}},\"metadata\":null}/\1/p")
-  
+
   if [ -z "$id" ]; then
     _err "Add txt record error."
     return 1
@@ -61,7 +61,7 @@ dns_one_add() {
 dns_one_rm() {
   fulldomain=$1
   txtvalue=$2
-  
+
   if ! _dns_one_login; then
     _err "login failed"
     return 1
@@ -72,12 +72,12 @@ dns_one_rm() {
     _err "root domain not found"
     return 1
   fi
-  
+
   mysubdomain=$_sub_domain
   mydomain=$_domain
   _debug mysubdomain "$mysubdomain"
   _debug mydomain "$mydomain"
-  
+
   # get entries
   response="$(_get "https://www.one.com/admin/api/domains/$mydomain/dns/custom_records")"
   response="$(echo "$response" | _normalizeJson)"
@@ -94,7 +94,7 @@ dns_one_rm() {
   response="$(_post "$postdata" "https://www.one.com/admin/api/domains/$mydomain/dns/custom_records/$id" "" "DELETE" "application/json")"
   response="$(echo "$response" | _normalizeJson)"
   _debug response "$response"
-  
+
   if [ "$response" = '{"result":null,"metadata":null}' ]; then
     _info "Removed, OK"
     return 0
@@ -176,4 +176,4 @@ _dns_one_login() {
   export _H1="Cookie: ${JSESSIONID}"
   
   return 0
-  }
+}
