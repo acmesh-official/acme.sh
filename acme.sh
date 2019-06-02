@@ -2078,6 +2078,23 @@ _readdomainconf() {
   _read_conf "$DOMAIN_CONF" "$1"
 }
 
+#key  value  base64encode
+_savedeployconf() {
+  _savedomainconf "SAVED_$1" "$2" "$3"
+  #remove later
+  _clearaccountconf "$1"
+}
+
+#key
+_getdeployconf() {
+  _rac_key="$1"
+  if [ "$(eval echo \$"$_rac_key")" ]; then
+    return 0 # do nothing
+  fi
+  _saved=$(_readdomainconf "SAVED_$_rac_key")
+  eval "export $_rac_key=$_saved"
+}
+
 #_saveaccountconf  key  value  base64encode
 _saveaccountconf() {
   _save_conf "$ACCOUNT_CONF_PATH" "$@"
