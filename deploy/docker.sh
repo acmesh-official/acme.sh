@@ -1,8 +1,6 @@
 #!/usr/bin/env sh
 
 #DEPLOY_DOCKER_CONTAINER_LABEL="xxxxxxx"
-#DOCKER_HOST=/var/run/docker.sock | tcp://localhost:8888
-
 
 #DEPLOY_DOCKER_CONTAINER_KEY_FILE="/path/to/key.pem"
 #DEPLOY_DOCKER_CONTAINER_CERT_FILE="/path/to/cert.pem"
@@ -10,7 +8,7 @@
 #DEPLOY_DOCKER_CONTAINER_FULLCHAIN_FILE="/path/to/fullchain.pem"
 #DEPLOY_DOCKER_CONTAINER_RELOAD_CMD="service nginx force-reload"
 
-_DEPLOY_DOCKER_WIKI="http://xxxxxx"
+_DEPLOY_DOCKER_WIKI="https://github.com/Neilpang/acme.sh/wiki/deploy-to-docker-containers"
 
 _DOCKER_HOST_DEFAULT="/var/run/docker.sock"
 
@@ -20,7 +18,7 @@ docker_deploy() {
   _ccert="$3"
   _cca="$4"
   _cfullchain="$5"
-
+  _debug _cdomain "$_cdomain"
   if [ -z "$DEPLOY_DOCKER_CONTAINER_LABEL" ]; then
     _err "The DEPLOY_DOCKER_CONTAINER_LABEL variable is not defined, we use this label to find the container."
     _err "See: $_DEPLOY_DOCKER_WIKI"
@@ -136,7 +134,7 @@ _get_id() {
     _debug2 _req "$_req"
     _req="$(printf "%s" "$_req" | _url_encode)"
     _debug2 _req "$_req"
-    listjson="$(_curl_unix_sock "${_DOCKER_SOCK:-$_DOCKER_HOST_DEFAULT}" GET "/containers/json?filters=$_req")" 
+    listjson="$(_curl_unix_sock "${_DOCKER_SOCK:-$_DOCKER_HOST_DEFAULT}" GET "/containers/json?filters=$_req")"
     _debug2 "listjson" "$listjson"
     echo "$listjson" | tr '{,' '\n' | grep -i '"id":' | _head_n 1 | cut -d '"' -f 4
   else
@@ -147,25 +145,25 @@ _get_id() {
 
 #id  cmd
 _docker_exec() {
-  _eargs="$@"
+  _eargs="$*"
   _debug2 "_docker_exec $_eargs"
   _dcid="$1"
   shift
   if [ "$_USE_DOCKER_COMMAND" ]; then
-    docker exec -i "$_dcid" $@
+    docker exec -i "$_dcid" "$@"
   elif [ "$_USE_REST" ]; then
     _err "Not implemented yet."
     return 1
   elif [ "$_USE_UNIX_SOCKET" ]; then
-    _cmd="$@"
-    _cmd="$(printf "$_cmd" | sed 's/ /","/g')"
+    _cmd="$*"
+    _cmd="$(printf "%s" "$_cmd" | sed 's/ /","/g')"
     _debug2 _cmd "$_cmd"
     #create exec instance:
-    cjson="$(_curl_unix_sock "$_DOCKER_SOCK" POST "/containers/$_dcid/exec" "{\"Cmd\": [\"$_cmd\"]}")";
+    cjson="$(_curl_unix_sock "$_DOCKER_SOCK" POST "/containers/$_dcid/exec" "{\"Cmd\": [\"$_cmd\"]}")"
     _debug2 cjson "$cjson"
     execid="$(echo "$cjson" | cut -d '"' -f 4)"
     _debug execid "$execid"
-    ejson="$(_curl_unix_sock "$_DOCKER_SOCK" POST "/exec/$execid/start" "{\"Detach\": false,\"Tty\": false}")";
+    ejson="$(_curl_unix_sock "$_DOCKER_SOCK" POST "/exec/$execid/start" "{\"Detach\": false,\"Tty\": false}")"
     _debug2 ejson "$ejson"
   else
     _err "Not implemented yet."
@@ -182,7 +180,11 @@ _docker_cp() {
   _dir="$(dirname "$_to")"
   _docker_exec "$_dcid" mkdir -p "$_dir"
   if [ "$_USE_DOCKER_COMMAND" ]; then
-    cat "$_from" | _docker_exec "$_dcid" tee "$_to" >/dev/null
+    if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
+      _docker_exec "$_dcid" tee "$_to" <"$_from"
+    else
+      _docker_exec "$_dcid" tee "$_to" <"$_from" >/dev/null
+    fi
     if [ "$?" = "0" ]; then
       _info "Success"
       return 0
@@ -196,7 +198,7 @@ _docker_cp() {
   elif [ "$_USE_UNIX_SOCKET" ]; then
     _frompath="$_from"
     if _startswith "$_frompath" '/'; then
-      _frompath="$(echo "$_from" | cut -b 2- )" #remove the first '/' char
+      _frompath="$(echo "$_from" | cut -b 2-)" #remove the first '/' char
     fi
     _debug2 "_frompath" "$_frompath"
     _toname="$(basename "$_to")"
@@ -232,9 +234,9 @@ _curl_unix_sock() {
   fi
 
   if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
-    curl -vvv --silent --unix-socket "$_socket" -X $_method --data-binary "$_data" --header "$_ctype" "$_cux_url"
+    curl -vvv --silent --unix-socket "$_socket" -X "$_method" --data-binary "$_data" --header "$_ctype" "$_cux_url"
   else
-    curl      --silent --unix-socket "$_socket" -X $_method --data-binary "$_data" --header "$_ctype" "$_cux_url"
+    curl --silent --unix-socket "$_socket" -X "$_method" --data-binary "$_data" --header "$_ctype" "$_cux_url"
   fi
 
 }
@@ -261,4 +263,3 @@ _check_curl_version() {
   fi
   return 0
 }
-
