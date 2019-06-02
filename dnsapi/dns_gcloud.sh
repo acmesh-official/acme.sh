@@ -93,7 +93,7 @@ _dns_gcloud_execute_tr() {
 }
 
 _dns_gcloud_remove_rrs() {
-  if ! xargs --no-run-if-empty gcloud dns record-sets transaction remove \
+  if ! xargs -r gcloud dns record-sets transaction remove \
     --name="$fulldomain." \
     --ttl="$ttl" \
     --type=TXT \
@@ -108,7 +108,7 @@ _dns_gcloud_remove_rrs() {
 
 _dns_gcloud_add_rrs() {
   ttl=60
-  if ! xargs --no-run-if-empty gcloud dns record-sets transaction add \
+  if ! xargs -r gcloud dns record-sets transaction add \
     --name="$fulldomain." \
     --ttl="$ttl" \
     --type=TXT \
