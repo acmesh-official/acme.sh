@@ -156,21 +156,25 @@ _docker_exec() {
   _dcid="$1"
   shift
   if [ "$_USE_DOCKER_COMMAND" ]; then
-    docker exec -i "$_dcid" "$@"
+    docker exec -i "$_dcid" sh -c "$*"
   elif [ "$_USE_REST" ]; then
     _err "Not implemented yet."
     return 1
   elif [ "$_USE_UNIX_SOCKET" ]; then
     _cmd="$*"
-    _cmd="$(printf "%s" "$_cmd" | sed 's/ /","/g')"
+    #_cmd="$(printf "%s" "$_cmd" | sed 's/ /","/g')"
     _debug2 _cmd "$_cmd"
     #create exec instance:
-    cjson="$(_curl_unix_sock "$_DOCKER_SOCK" POST "/containers/$_dcid/exec" "{\"Cmd\": [\"$_cmd\"]}")"
+    cjson="$(_curl_unix_sock "$_DOCKER_SOCK" POST "/containers/$_dcid/exec" "{\"Cmd\": [\"sh\", \"-c\", \"$_cmd\"]}")"
     _debug2 cjson "$cjson"
     execid="$(echo "$cjson" | cut -d '"' -f 4)"
     _debug execid "$execid"
     ejson="$(_curl_unix_sock "$_DOCKER_SOCK" POST "/exec/$execid/start" "{\"Detach\": false,\"Tty\": false}")"
     _debug2 ejson "$ejson"
+    if [ "$ejson" ]; then
+      _err "$ejson"
+      return 1
+    fi
   else
     _err "Not implemented yet."
     return 1
