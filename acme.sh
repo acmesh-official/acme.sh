@@ -3604,8 +3604,8 @@ _ns_lookup() {
 _ns_lookup_cf() {
   _cf_ld="$1"
   _cf_ld_type="$2"
-  if [ "$CLOUDFLARE_DNSQUERY_URL" != "" ]; then
-    _cf_ep="$CLOUDFLARE_DNS_URL"
+  if [ "$CLOUDFLARE_DNSQUERY_URL" ]; then
+    _cf_ep="$CLOUDFLARE_DNSQUERY_URL"
   else
     _cf_ep="https://cloudflare-dns.com/dns-query"
   fi
@@ -3617,8 +3617,8 @@ _ns_purge_cf() {
   _cf_d="$1"
   _cf_d_type="$2"
   _debug "Cloudflare purge $_cf_d_type record for domain $_cf_d"
-  if [ "$CLOUDFLARE_DOHJSON_URL" != "" ]; then
-    _cf_purl="$ONE_ONE_ONE_ONE_URL?domain=$_cf_d&type=$_cf_d_type"
+  if [ "$CLOUDFLARE_DNSPURGE_URL" ]; then
+    _cf_purl="$CLOUDFLARE_DNSPURGE_URL?domain=$_cf_d&type=$_cf_d_type"
   else
     _cf_purl="https://one.one.one.one/api/v1/purge?domain=$_cf_d&type=$_cf_d_type"
   fi
