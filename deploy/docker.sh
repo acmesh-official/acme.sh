@@ -195,7 +195,10 @@ _docker_cp() {
   _info "Copying file from $_from to $_to"
   _dir="$(dirname "$_to")"
   _debug2 _dir "$_dir"
-  _docker_exec "$_dcid" mkdir -p "$_dir"
+  if ! _docker_exec "$_dcid" mkdir -p "$_dir"; then
+    _err "Can not create dir: $_dir"
+    return 1
+  fi
   if [ "$_USE_DOCKER_COMMAND" ]; then
     if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
       _docker_exec "$_dcid" tee "$_to" <"$_from"
