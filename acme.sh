@@ -2088,7 +2088,12 @@ _savedeployconf() {
 #key
 _getdeployconf() {
   _rac_key="$1"
-  if [ "$(eval echo \$"$_rac_key")" ]; then
+  _rac_value="$(eval echo \$"$_rac_key")"
+  if [ "$_rac_value" ]; then
+    if _startswith "$_rac_value" '"' && _endswith "$_rac_value" '"'; then
+      _debug2 "trim quotation marks"
+      eval "export $_rac_key=$_rac_value" 
+    fi
     return 0 # do nothing
   fi
   _saved=$(_readdomainconf "SAVED_$_rac_key")
