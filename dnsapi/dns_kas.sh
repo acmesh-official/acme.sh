@@ -69,27 +69,33 @@ dns_kas_rm() {
   _get_record_name "$_fulldomain"
   _get_record_id
 
-  # If there is a record_id, delete the entry
+  # If there is a record_id, delete the entry   
   if [ -n "$_record_id" ]; then
     params="?kas_login=$KAS_Login"
     params="$params&kas_auth_type=$KAS_Authtype"
     params="$params&kas_auth_data=$KAS_Authdata"
     params="$params&kas_action=delete_dns_settings"
-    params="$params&var1=record_id"
-    params="$params&wert1=$_record_id"
-    _debug2 "Wait for 10 seconds by default before calling KAS API."
-    sleep 10
-    response="$(_get "$KAS_Api$params")"
-    _debug2 "response" "$response"
-    if ! _contains "$response" "TRUE"; then
-      _err "Either the txt record is not found or another error occurred, please check manually."
-      return 1
-    fi
+    
+    # split it into a seperated list, if there where multiples entries made
+    records=($_record_id)
+    for i in "${records[@]}"
+    do
+      params2="$params&var1=record_id"
+      params2="$params2&wert1=$i"
+      _debug2 "Wait for 10 seconds by default before calling KAS API."
+      sleep 10
+      response="$(_get "$KAS_Api$params2")"
+      _debug2 "response" "$response"
+      if ! _contains "$response" "TRUE"; then
+        _err "Either the txt record is not found or another error occurred, please check manually."
+        return 1
+      fi
+    done
   else # Cannot delete or unkown error
     _err "No record_id found that can be deleted. Please check manually."
     return 1
   fi
- return 0
+return 0
 }
 
 ########################## PRIVATE FUNCTIONS ###########################
