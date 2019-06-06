@@ -12,9 +12,6 @@
 
 #action pfx user password name pfxpass host
 sophosxg_do_req() {
-
-  # does curl request to upload certificate to sophos appliance
-
   # check number of args
   [ $# -eq 7 ] || return 1
 
@@ -27,46 +24,48 @@ sophosxg_do_req() {
   _do_req_pfxpass="$6"
   _do_req_host="$7"
 
-  # create temp file for xml
-  _info "Creating request XML"
-  _do_req_xml="$(_mktemp)"
-  if [ ! -f "$_do_req_xml" ]; then
-    _err "Error creating temp file for XML"
-    return 1
+  # static values - as variables in case these need to change
+  _do_req_boundary="SOPHOSXGPOST"
+  _do_req_certfile="certificate.p12"
+
+  # dont verify certs if config set
+  _do_req_old_HTTPS_INSECURE="${HTTPS_INSECURE}"
+  if [ "${Le_Deploy_sophosxg_https_insecure}" = "1" ]; then
+    HTTPS_INSECURE="1"
   fi
 
-  # create xml request
-  echo "
-<Request>
-  <Login>
-    <Username>${_do_req_user}</Username>
-    <Password>${_do_req_password}</Password>
-  </Login>
-  <Set operation=\"${_do_req_action}\">
-    <Certificate>
-      <Action>UploadCertificate</Action>
-      <Name>${_do_req_name}</Name>
-      <Password>${_do_req_pfxpass}</Password>
-      <CertificateFormat>pkcs12</CertificateFormat>
-      <CertificateFile>certificate.p12</CertificateFile>
-      <PrivateKeyFile></PrivateKeyFile>
-    </Certificate>
-  </Set>
-</Request>
-" >"$_do_req_xml"
+  # build POST body
+  _do_req_post="$(printf '--%s\r\n' "${_do_req_post}" "${_do_req_boundary}")"
+  _do_req_post="$(printf '%sContent-Type: application/xml; charset=utf-8\r\n' "${_do_req_post}")"
+  _do_req_post="$(printf '%sContent-Disposition: form-data; name="reqxml"\r\n' "${_do_req_post}")"
+  _do_req_post="$(printf '%s<Request>\r\n' "${_do_req_post}")"
+  _do_req_post="$(printf '%s<Login>\r\n' "${_do_req_post}")"
+  _do_req_post="$(printf '%s<Username>%s</Username><Password>%s</Password>\r\n' "${_do_req_post}" "${_do_req_user}" "${_do_req_password}")"
+  _do_req_post="$(printf '%s</Login>\r\n' "${_do_req_post}")"
+  _do_req_post="$(printf '%s<Set operation="%s">\r\n' "${_do_req_post}" "${_do_req_action}")"
+  _do_req_post="$(printf '%s<Certificate>\r\n' "${_do_req_post}")"
+  _do_req_post="$(printf '%s<Name>%s</Name>\r\n' "${_do_req_post}" "${_do_req_name}")"
+  _do_req_post="$(printf '%s<Action>UploadCertificate</Action>\r\n' "${_do_req_post}")"
+  _do_req_post="$(printf '%s<CertificateFormat>pkcs12</CertificateFormat>\r\n' "${_do_req_post}")"
+  _do_req_post="$(printf '%s<Password>%s</Password>\r\n' "${_do_req_post}" "${_do_req_pfxpass}")"
+  _do_req_post="$(printf '%s<CertificateFile>%s</CertificateFile>\r\n' "${_do_req_post}" "${_do_req_certfile}")"
+  _do_req_post="$(printf '%s</Certificate>\r\n' "${_do_req_post}")"
+  _do_req_post="$(printf '%s</Set>\r\n' "${_do_req_post}")"
+  _do_req_post="$(printf '%s</Request>\r\n' "${_do_req_post}")"
+  _do_req_post="$(printf '%s--%s\r\n' "${_do_req_post}" "${_do_req_boundary}")"
+  _do_req_post="$(printf '%sContent-Type: application/octet-stream\r\n' "${_do_req_post}")"
+  _do_req_post="$(printf '%sContent-Disposition: form-data; filename="%s"; name="file"\r\n' "${_do_req_post}" "${_do_req_certfile}")"
+  _do_req_post="$(printf '%s%s\r\n' "${_do_req_post}" "$(_base64 < "${_do_req_pfx}")")"
+  _do_req_post="$(printf '%s--%s--\r\n' "${_do_req_post}" "${_do_req_boundary}")"
 
-  # dont verify certificate if HTTPS_INSECURE was set
-  if [ "$Le_Deploy_sophosxg_https_insecure" = "1" ] || [ "$HTTPS_INSECURE" ]; then
-    _sophosxg_curl="$_sophosxg_curl --insecure"
-  fi
-
-  # do request with curl
-  $_sophosxg_curl --silent -F "reqxml=<$_do_req_xml" -F "file=@$_do_req_pfx;filename=certificate.p12" "https://$_do_req_host/webconsole/APIController?" | grep -q '<Status code="200">'
+  # do POST
+  _post "${_do_req_post}" "https://${_do_req_host}/webconsole/APIController?" "" "POST" "multipart/form-data; boundary=${_do_req_boundary}"
   ret=$?
 
-  # remove xml file
-  rm -f "$_do_req_xml"
+  # reset HTTP_INSECURE
+  HTTPS_INSECURE="${_do_req_old_HTTPS_INSECURE}"
 
+  # return result of POST
   return $ret
 }
 
@@ -77,14 +76,6 @@ sophosxg_deploy() {
   _ccert="$3"
   _cca="$4"
   _cfullchain="$5"
-
-  # check for curl first
-  if _exists "curl"; then
-    _sophosxg_curl="curl --silent"
-  else
-    _err "curl is required"
-    return 1
-  fi
 
   # Some defaults
   DEFAULT_SOPHOSXG_PFX_PASSWORD="s0ph0sXG"
@@ -171,6 +162,36 @@ sophosxg_deploy() {
     [ -f "$_import_pkcs12" ] && rm -f "$_import_pkcs12"
     return 1
   fi
+  
+  # create post request
+  _deploy_post_body="$(_mktemp)"
+  if [ ! -f "$_deploy_post_body" ]; then
+    _err "Error creating temp file for HTTP POST"
+    return 1
+  fi
+  
+  printf '--SOPHOSXGPOST\r\n' >> "$_deploy_post_body"
+  printf 'Content-Type: application/xml; charset=utf-8\r\n' >> "$_deploy_post_body"
+  printf 'Content-Disposition: form-data; name="reqxml"\r\n' >> "$_deploy_post_body"
+  printf '<Request>\r\n' >> "$_deploy_post_body"
+  printf '<Login>\r\n' >> "$_deploy_post_body"
+  printf '<Username>%s</Username>\r\n<Password>%s</Password>\r\n' "$Le_Deploy_sophosxg_user" "$Le_Deploy_sophosxg_password" >> "$_deploy_post_body"
+  printf '</Login>' >> "$_deploy_post_body"
+    <Set operation="%s">
+        <Certificate>
+            <Name>%s</Name>
+            <Action>UploadCertificate</Action>
+            <CertificateFormat>pkcs12</CertificateFormat>
+            <Password>%s</Password>
+            <CertificateFile>certificate.p12</CertificateFile>
+        </Certificate>
+    </Set>
+</Request>
+--SOPHOSXGPOST
+Content-Type: application/octet-stream
+Content-Disposition: form-data; filename="certificate.p12"; name="file"
+%s
+--SOPHOSXGPOST--
 
   # do upload of cert - attempt to "update" and on failure try "add"
   _req_action_success="no"
