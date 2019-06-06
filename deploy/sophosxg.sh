@@ -35,7 +35,7 @@ sophosxg_do_req() {
   fi
 
   # build POST body
-  _do_req_post="$(printf '--%s\r\n' "${_do_req_post}" "${_do_req_boundary}")"
+  _do_req_post="$(printf '%s--%s\r\n' "" "${_do_req_boundary}")"
   _do_req_post="$(printf '%sContent-Type: application/xml; charset=utf-8\r\n' "${_do_req_post}")"
   _do_req_post="$(printf '%sContent-Disposition: form-data; name="reqxml"\r\n' "${_do_req_post}")"
   _do_req_post="$(printf '%s<Request>\r\n' "${_do_req_post}")"
