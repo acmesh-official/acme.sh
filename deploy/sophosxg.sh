@@ -162,38 +162,8 @@ sophosxg_deploy() {
     [ -f "$_import_pkcs12" ] && rm -f "$_import_pkcs12"
     return 1
   fi
-  
-  # create post request
-  _deploy_post_body="$(_mktemp)"
-  if [ ! -f "$_deploy_post_body" ]; then
-    _err "Error creating temp file for HTTP POST"
-    return 1
-  fi
-  
-  printf '--SOPHOSXGPOST\r\n' >> "$_deploy_post_body"
-  printf 'Content-Type: application/xml; charset=utf-8\r\n' >> "$_deploy_post_body"
-  printf 'Content-Disposition: form-data; name="reqxml"\r\n' >> "$_deploy_post_body"
-  printf '<Request>\r\n' >> "$_deploy_post_body"
-  printf '<Login>\r\n' >> "$_deploy_post_body"
-  printf '<Username>%s</Username>\r\n<Password>%s</Password>\r\n' "$Le_Deploy_sophosxg_user" "$Le_Deploy_sophosxg_password" >> "$_deploy_post_body"
-  printf '</Login>' >> "$_deploy_post_body"
-    <Set operation="%s">
-        <Certificate>
-            <Name>%s</Name>
-            <Action>UploadCertificate</Action>
-            <CertificateFormat>pkcs12</CertificateFormat>
-            <Password>%s</Password>
-            <CertificateFile>certificate.p12</CertificateFile>
-        </Certificate>
-    </Set>
-</Request>
---SOPHOSXGPOST
-Content-Type: application/octet-stream
-Content-Disposition: form-data; filename="certificate.p12"; name="file"
-%s
---SOPHOSXGPOST--
 
-  # do upload of cert - attempt to "update" and on failure try "add"
+  # do upload of cert via HTTP POST - attempt to "update" and on failure try "add"
   _req_action_success="no"
   for _req_action in update add; do
     _info "Uploading certificate: $_req_action"
