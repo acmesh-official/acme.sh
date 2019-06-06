@@ -55,7 +55,7 @@ sophosxg_do_req() {
   _do_req_post="$(printf '%s--%s\r\n' "${_do_req_post}" "${_do_req_boundary}")"
   _do_req_post="$(printf '%sContent-Type: application/octet-stream\r\n' "${_do_req_post}")"
   _do_req_post="$(printf '%sContent-Disposition: form-data; filename="%s"; name="file"\r\n' "${_do_req_post}" "${_do_req_certfile}")"
-  _do_req_post="$(printf '%s%s\r\n' "${_do_req_post}" "$(_base64 < "${_do_req_pfx}")")"
+  _do_req_post="$(printf '%s%s\r\n' "${_do_req_post}" "$(_base64 <"${_do_req_pfx}")")"
   _do_req_post="$(printf '%s--%s--\r\n' "${_do_req_post}" "${_do_req_boundary}")"
 
   # do POST
