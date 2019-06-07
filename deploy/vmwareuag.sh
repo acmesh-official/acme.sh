@@ -2,12 +2,12 @@
 
 # Script for acme.sh to deploy certificates to a VMware UAG appliance
 #
-# The following variables can be exported:
+# The following variables can be used:
 #
-# export DEPLOY_VMWAREUAG_USERNAME="admin"
+# export DEPLOY_VMWAREUAG_USERNAME="admin"   - optional
 # export DEPLOY_VMWAREUAG_PASSWORD=""        - required
-# export DEPLOY_VMWAREUAG_HOST=""            - required (space seperated list) host:port
-# export DEPLOY_VMWAREUAG_HTTPS_INSECURE="1" - defaults to insecure
+# export DEPLOY_VMWAREUAG_HOST=""            - required - host:port - comma seperated list 
+# export DEPLOY_VMWAREUAG_HTTPS_INSECURE="1" - optional - defaults to insecure
 #
 #
 
@@ -24,11 +24,6 @@ vmwareuag_deploy() {
   # Some defaults
   DEPLOY_VMWAREUAG_USERNAME_DEFAULT="admin"
   DEPLOY_VMWAREUAG_HTTPS_INSECURE="1"
-
-  if [ -f "${DOMAIN_CONF}" ]; then
-    # shellcheck disable=SC1090
-    . "${DOMAIN_CONF}"
-  fi
 
   _debug _cdomain "${_cdomain}"
   _debug _ckey "${_ckey}"
@@ -72,8 +67,10 @@ vmwareuag_deploy() {
 
   # Set variables for later use
   _user="${Le_Deploy_vmwareuag_username}:${Le_Deploy_vmwareuag_password}"
-  _privatekeypem="$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' <"${_ckey}")"
-  _certchainpem="$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' <"${_cfullchain}")"
+  # convert key and fullchain into "single line pem" for JSON request
+  _privatekeypem="$(tr '\n' '\000' <"${_ckey}" | sed 's/\x0/\\n/g')"
+  _certchainpem="$(tr '\n' '\000' <"${_cfullchain}" | sed 's/\x0/\\n/g')"
+  # api path
   _path="/rest/v1/config/certs/ssl/end_user"
 
   _debug _user "${_user}"
@@ -83,23 +80,20 @@ vmwareuag_deploy() {
 
   # Create JSON request
   _jsonreq="$(printf '{ "privateKeyPem": "%s", "certChainPem": "%s" }' "${_privatekeypem}" "${_certchainpem}")"
-  _debug JSON "${_jsonreq}"
+  _debug _jsonreq "${_jsonreq}"
 
   # dont verify certs if config set
-  _old_HTTPS_INSECURE="${HTTPS_INSECURE}"
   if [ "${Le_Deploy_vmwareuag_https_insecure}" = "1" ]; then
+    # shellcheck disable=SC2034
     HTTPS_INSECURE="1"
   fi
 
   # do post against UAG host(s)
-  for _host in ${Le_Deploy_vmwareuag_host}; do
+  for _host in $(echo "${Le_Deploy_vmwareuag_host}" | tr ',' ' '); do
     _url="https://${_host}${_path}"
     _debug _url "${_url}"
     _post "${_jsonreq}" "${_url}" "" "PUT" "application/json"
   done
-
-  # reset HTTP_INSECURE
-  HTTPS_INSECURE="${_old_HTTPS_INSECURE}"
 
   return 0
 }
