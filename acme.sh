@@ -2078,6 +2078,28 @@ _readdomainconf() {
   _read_conf "$DOMAIN_CONF" "$1"
 }
 
+#key  value  base64encode
+_savedeployconf() {
+  _savedomainconf "SAVED_$1" "$2" "$3"
+  #remove later
+  _cleardomainconf "$1"
+}
+
+#key
+_getdeployconf() {
+  _rac_key="$1"
+  _rac_value="$(eval echo \$"$_rac_key")"
+  if [ "$_rac_value" ]; then
+    if _startswith "$_rac_value" '"' && _endswith "$_rac_value" '"'; then
+      _debug2 "trim quotation marks"
+      eval "export $_rac_key=$_rac_value" 
+    fi
+    return 0 # do nothing
+  fi
+  _saved=$(_readdomainconf "SAVED_$_rac_key")
+  eval "export $_rac_key=$_saved"
+}
+
 #_saveaccountconf  key  value  base64encode
 _saveaccountconf() {
   _save_conf "$ACCOUNT_CONF_PATH" "$@"
