@@ -5,10 +5,9 @@
 # The following variables can be exported:
 #
 # export DEPLOY_VMWAREUAG_USERNAME="admin"
-# export DEPLOY_VMWAREUAG_PASSWORD=""       # required
-# export DEPLOY_VMWAREUAG_HOST=""           # required (comma seperated list)
-# export DEPLOY_VMWAREUAG_PORT="9443"
-# export DEPLOY_VMWAREUAG_SSL_VERIFY="yes"
+# export DEPLOY_VMWAREUAG_PASSWORD=""        - required
+# export DEPLOY_VMWAREUAG_HOST=""            - required (space seperated list) host:port
+# export DEPLOY_VMWAREUAG_HTTPS_INSECURE="1" - defaults to insecure
 #
 #
 
@@ -24,8 +23,7 @@ vmwareuag_deploy() {
 
   # Some defaults
   DEPLOY_VMWAREUAG_USERNAME_DEFAULT="admin"
-  DEPLOY_VMWAREUAG_SSL_VERIFY_DEFAULT="yes"
-  DEPLOY_VMWAREUAG_PORT_DEFAULT="9443"
+  DEPLOY_VMWAREUAG_HTTPS_INSECURE="1"
 
   if [ -f "${DOMAIN_CONF}" ]; then
     # shellcheck disable=SC1090
@@ -64,68 +62,44 @@ vmwareuag_deploy() {
     return 1
   fi
 
-  # SSL_VERIFY is optional. If not provided then assume "${DEPLOY_VMWAREUAG_SSL_VERIFY_DEFAULT}"
-  if [ -n "${DEPLOY_VMWAREUAG_SSL_VERIFY}" ]; then
-    Le_Deploy_vmwareuag_ssl_verify="${DEPLOY_VMWAREUAG_SSL_VERIFY}"
-    _savedomainconf Le_Deploy_vmwareuag_ssl_verify "${Le_Deploy_vmwareuag_ssl_verify}"
-  elif [ -z "${Le_Deploy_vmwareuag_ssl_verify}" ]; then
-    Le_Deploy_vmwareuag_ssl_verify="${DEPLOY_VMWAREUAG_SSL_VERIFY_DEFAULT}"
-  fi
-
-  # PORT is optional. If not provided then assume "${DEPLOY_VMWAREUAG_PORT_DEFAULT}"
-  if [ -n "${DEPLOY_VMWAREUAG_PORT}" ]; then
-    Le_Deploy_vmwareuag_port="${DEPLOY_VMWAREUAG_PORT}"
-    _savedomainconf Le_Deploy_vmwareuag_port "${Le_Deploy_vmwareuag_port}"
-  elif [ -z "${Le_Deploy_vmwareuag_port}" ]; then
-    Le_Deploy_vmwareuag_port="${DEPLOY_VMWAREUAG_PORT_DEFAULT}"
+  # HTTPS_INSECURE is optional. If not provided then assume "${DEPLOY_VMWAREUAG_HTTPS_INSECURE_DEFAULT}"
+  if [ -n "${DEPLOY_VMWAREUAG_HTTPS_INSECURE}" ]; then
+    Le_Deploy_vmwareuag_https_insecure="${DEPLOY_VMWAREUAG_HTTPS_INSECURE}"
+    _savedomainconf Le_Deploy_vmwareuag_https_insecure "${Le_Deploy_vmwareuag_https_insecure}"
+  elif [ -z "${Le_Deploy_vmwareuag_https_insecure}" ]; then
+    Le_Deploy_vmwareuag_https_insecure="${DEPLOY_VMWAREUAG_HTTPS_INSECURE}"
   fi
 
   # Set variables for later use
   _user="${Le_Deploy_vmwareuag_username}:${Le_Deploy_vmwareuag_password}"
-  _contenttype="Content-Type: application/json"
   _privatekeypem="$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' <"${_ckey}")"
   _certchainpem="$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' <"${_cfullchain}")"
-  _port="${Le_Deploy_vmwareuag_port}"
   _path="/rest/v1/config/certs/ssl/end_user"
 
   _debug _user "${_user}"
-  _debug _contenttype "${_contenttype}"
   _debug _privatekeypem "${_privatekeypem}"
   _debug _certchainpem "${_certchainpem}"
-  _debug _port "${_port}"
   _debug _path "${_path}"
 
   # Create JSON request
-  _jsonreq=$(_mktemp)
-  _debug _jsonreq "${_jsonreq}"
+  _jsonreq="$(printf '{ "privateKeyPem": "%s", "certChainPem": "%s" }' "${_privatekeypem}" "${_certchainpem}")"
+  _debug JSON "${_jsonreq}"
 
-  printf '{ "privateKeyPem": "%s", "certChainPem": "%s" }' "${_privatekeypem}" "${_certchainpem}" >"${_jsonreq}"
-  _debug JSON "$(cat "${_jsonreq}")"
-
-  # Send request via curl
-  if command -v curl; then
-    _info "Using curl"
-    if [ "${Le_Deploy_vmwareuag_ssl_verify}" = "yes" ]; then
-      _opts=""
-    else
-      _opts="-k"
-    fi
-    _oldifs=${IFS}
-    IFS=,
-    for _host in ${Le_Deploy_vmwareuag_host}; do
-      _url="https://${_host}:${_port}${_path}"
-      _debug _url "${_url}"
-      curl ${_opts} -X PUT -H "${_contenttype}" -d "@${_jsonreq}" -u "${_user}" "${_url}"
-    done
-    IFS=${_oldifs}
-    # Remove JSON request file
-    [ -f "${_jsonreq}" ] && rm -f "${_jsonreq}"
-  elif command -v wget; then
-    _info "Using wget"
-    _err "Not implemented"
-    # Remove JSON request file
-    [ -f "${_jsonreq}" ] && rm -f "${_jsonreq}"
-    return 1
+  # dont verify certs if config set
+  _old_HTTPS_INSECURE="${HTTPS_INSECURE}"
+  if [ "${Le_Deploy_vmwareuag_https_insecure}" = "1" ]; then
+    HTTPS_INSECURE="1"
   fi
+
+  # do post against UAG host(s)
+  for _host in ${Le_Deploy_vmwareuag_host}; do
+    _url="https://${_host}${_path}"
+    _debug _url "${_url}"
+    _post "${_jsonreq}" "${_url}" "" "PUT" "application/json"
+  done
+
+  # reset HTTP_INSECURE
+  HTTPS_INSECURE="${_old_HTTPS_INSECURE}"
+
   return 0
 }
