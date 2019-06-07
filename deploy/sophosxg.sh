@@ -29,7 +29,6 @@ sophosxg_do_req() {
   _do_req_certfile="certificate.p12"
 
   # dont verify certs if config set
-  _do_req_old_HTTPS_INSECURE="${HTTPS_INSECURE}"
   if [ "${Le_Deploy_sophosxg_https_insecure}" = "1" ]; then
     HTTPS_INSECURE="1"
   fi
@@ -60,13 +59,6 @@ sophosxg_do_req() {
 
   # do POST
   _post "${_do_req_post}" "https://${_do_req_host}/webconsole/APIController?" "" "POST" "multipart/form-data; boundary=${_do_req_boundary}"
-  ret=$?
-
-  # reset HTTP_INSECURE
-  HTTPS_INSECURE="${_do_req_old_HTTPS_INSECURE}"
-
-  # return result of POST
-  return $ret
 }
 
 #domain keyfile certfile cafile fullchain
@@ -81,11 +73,6 @@ sophosxg_deploy() {
   DEFAULT_SOPHOSXG_PFX_PASSWORD="s0ph0sXG"
   DEFAULT_SOPHOSXG_NAME="$_cdomain"
   DEFAULT_SOPHOSXG_HTTPS_INSECURE="1"
-
-  if [ -f "$DOMAIN_CONF" ]; then
-    # shellcheck disable=SC1090
-    . "$DOMAIN_CONF"
-  fi
 
   _debug _cdomain "$_cdomain"
   _debug _ckey "$_ckey"
