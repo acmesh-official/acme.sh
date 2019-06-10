@@ -4,10 +4,10 @@
 #
 # The following variables can be used:
 #
-# export DEPLOY_VMWAREUAG_USERNAME="admin"   - optional
-# export DEPLOY_VMWAREUAG_PASSWORD=""        - required
-# export DEPLOY_VMWAREUAG_HOST=""            - required - host:port - comma seperated list 
-# export DEPLOY_VMWAREUAG_HTTPS_INSECURE="1" - optional - defaults to insecure
+# DEPLOY_VMWAREUAG_USERNAME="admin"   - optional
+# DEPLOY_VMWAREUAG_PASSWORD=""        - required
+# DEPLOY_VMWAREUAG_HOST=""            - required - host:port - comma seperated
+# DEPLOY_VMWAREUAG_HTTPS_INSECURE="1" - optional - defaults to insecure
 #
 #
 
@@ -23,7 +23,7 @@ vmwareuag_deploy() {
 
   # Some defaults
   DEPLOY_VMWAREUAG_USERNAME_DEFAULT="admin"
-  DEPLOY_VMWAREUAG_HTTPS_INSECURE="1"
+  DEPLOY_VMWAREUAG_HTTPS_INSECURE_DEFAULT="1"
 
   _debug _cdomain "${_cdomain}"
   _debug _ckey "${_ckey}"
@@ -32,41 +32,41 @@ vmwareuag_deploy() {
   _debug _cfullchain "${_cfullchain}"
 
   # USERNAME is optional. If not provided then assume "${DEPLOY_VMWAREUAG_USERNAME_DEFAULT}"
-  if [ -n "${DEPLOY_VMWAREUAG_USERNAME}" ]; then
-    Le_Deploy_vmwareuag_username="${DEPLOY_VMWAREUAG_USERNAME}"
-    _savedomainconf Le_Deploy_vmwareuag_username "${Le_Deploy_vmwareuag_username}"
-  elif [ -z "${Le_Deploy_vmwareuag_username}" ]; then
-    Le_Deploy_vmwareuag_username="${DEPLOY_VMWAREUAG_USERNAME_DEFAULT}"
+  _getdeployconf DEPLOY_VMWAREUAG_USERNAME
+  _debug2 DEPLOY_VMWAREUAG_USERNAME "${DEPLOY_VMWAREUAG_USERNAME}"
+  if [ -z "${DEPLOY_VMWAREUAG_USERNAME}" ]; then
+    DEPLOY_VMWAREUAG_USERNAME="${DEPLOY_VMWAREUAG_USERNAME_DEFAULT}"
   fi
+  _savedeployconf DEPLOY_VMWAREUAG_USERNAME
 
   # PASSWORD is required.
-  if [ -n "${DEPLOY_VMWAREUAG_PASSWORD}" ]; then
-    Le_Deploy_vmwareuag_password="${DEPLOY_VMWAREUAG_PASSWORD}"
-    _savedomainconf Le_Deploy_vmwareuag_password "${Le_Deploy_vmwareuag_password}"
-  elif [ -z "${Le_Deploy_vmwareuag_password}" ]; then
+  _getdeployconf DEPLOY_VMWAREUAG_PASSWORD
+  _debug2 DEPLOY_VMWAREUAG_PASSWORD "${DEPLOY_VMWAREUAG_PASSWORD}"
+  if [ -z "${DEPLOY_VMWAREUAG_PASSWORD}" ]; then
     _err "DEPLOY_VMWAREUAG_PASSWORD is required"
     return 1
   fi
+  _savedeployconf DEPLOY_VMWAREUAG_PASSWORD
 
   # HOST is required.
-  if [ -n "${DEPLOY_VMWAREUAG_HOST}" ]; then
-    Le_Deploy_vmwareuag_host="${DEPLOY_VMWAREUAG_HOST}"
-    _savedomainconf Le_Deploy_vmwareuag_host "${Le_Deploy_vmwareuag_host}"
-  elif [ -z "${Le_Deploy_vmwareuag_host}" ]; then
+  _getdeployconf DEPLOY_VMWAREUAG_HOST
+  _debug2 DEPLOY_VMWAREUAG_HOST "${DEPLOY_VMWAREUAG_HOST}"
+  if [ -z "${DEPLOY_VMWAREUAG_HOST}" ]; then
     _err "DEPLOY_VMWAREUAG_HOST is required"
     return 1
   fi
+  _savedeployconf DEPLOY_VMWAREUAG_HOST
 
   # HTTPS_INSECURE is optional. If not provided then assume "${DEPLOY_VMWAREUAG_HTTPS_INSECURE_DEFAULT}"
-  if [ -n "${DEPLOY_VMWAREUAG_HTTPS_INSECURE}" ]; then
-    Le_Deploy_vmwareuag_https_insecure="${DEPLOY_VMWAREUAG_HTTPS_INSECURE}"
-    _savedomainconf Le_Deploy_vmwareuag_https_insecure "${Le_Deploy_vmwareuag_https_insecure}"
-  elif [ -z "${Le_Deploy_vmwareuag_https_insecure}" ]; then
-    Le_Deploy_vmwareuag_https_insecure="${DEPLOY_VMWAREUAG_HTTPS_INSECURE}"
+  _getdeployconf DEPLOY_VMWAREUAG_HTTPS_INSECURE
+  _debug2 DEPLOY_VMWAREUAG_HTTPS_INSECURE "${DEPLOY_VMWAREUAG_HTTPS_INSECURE}"
+  if [ -z "${DEPLOY_VMWAREUAG_HTTPS_INSECURE}" ]; then
+    DEPLOY_VMWAREUAG_HTTPS_INSECURE="${DEPLOY_VMWAREUAG_HTTPS_INSECURE_DEFAULT}"
   fi
+  _savedeployconf DEPLOY_VMWAREUAG_HTTPS_INSECURE
 
   # Set variables for later use
-  _user="${Le_Deploy_vmwareuag_username}:${Le_Deploy_vmwareuag_password}"
+  _user="${DEPLOY_VMWAREUAG_USERNAME}:${DEPLOY_VMWAREUAG_PASSWORD}"
   # convert key and fullchain into "single line pem" for JSON request
   _privatekeypem="$(tr '\n' '\000' <"${_ckey}" | sed 's/\x0/\\n/g')"
   _certchainpem="$(tr '\n' '\000' <"${_cfullchain}" | sed 's/\x0/\\n/g')"
@@ -83,13 +83,13 @@ vmwareuag_deploy() {
   _debug _jsonreq "${_jsonreq}"
 
   # dont verify certs if config set
-  if [ "${Le_Deploy_vmwareuag_https_insecure}" = "1" ]; then
+  if [ "${DEPLOY_VMWAREUAG_HTTPS_INSECURE}" = "1" ]; then
     # shellcheck disable=SC2034
     HTTPS_INSECURE="1"
   fi
 
   # do post against UAG host(s)
-  for _host in $(echo "${Le_Deploy_vmwareuag_host}" | tr ',' ' '); do
+  for _host in $(echo "${DEPLOY_VMWAREUAG_HOST}" | tr ',' ' '); do
     _url="https://${_host}${_path}"
     _debug _url "${_url}"
     _post "${_jsonreq}" "${_url}" "" "PUT" "application/json"
