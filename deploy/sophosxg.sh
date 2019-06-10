@@ -10,10 +10,10 @@
 
 ########  Public functions #####################
 
-#action pfx user password name pfxpass host
+#action pfx user password name pfxpass host [insecure]
 sophosxg_do_req() {
   # check number of args
-  [ $# -eq 7 ] || return 1
+  [ $# -eq 8 ] || return 1
 
   # set vars
   _do_req_action="$1"
@@ -23,13 +23,15 @@ sophosxg_do_req() {
   _do_req_name="$5"
   _do_req_pfxpass="$6"
   _do_req_host="$7"
+  _do_req_insecure="$8"
 
   # static values - as variables in case these need to change
   _do_req_boundary="SOPHOSXGPOST"
   _do_req_certfile="certificate.p12"
 
   # dont verify certs if config set
-  if [ "${Le_Deploy_sophosxg_https_insecure}" = "1" ]; then
+  if [ "${_do_req_insecure}" = "1" ]; then
+    # shellcheck disable=SC2034
     HTTPS_INSECURE="1"
   fi
 
@@ -81,61 +83,55 @@ sophosxg_deploy() {
   _debug _cfullchain "$_cfullchain"
 
   # HOST is required
-  if [ -z "$DEPLOY_SOPHOSXG_HOST" ]; then
-    if [ -z "$Le_Deploy_sophosxg_host" ]; then
-      _err "DEPLOY_SOPHOSXG_HOST not defined."
-      return 1
-    fi
-  else
-    Le_Deploy_sophosxg_host="$DEPLOY_SOPHOSXG_HOST"
-    _savedomainconf Le_Deploy_sophosxg_host "$Le_Deploy_sophosxg_host"
+  _getdeployconf DEPLOY_SOPHOSXG_HOST
+  _devug2 DEPLOY_SOPHOSXG_HOST "${DEPLOY_SOPHOSXG_HOST}"
+  if [ -z "${DEPLOY_SOPHOSXG_HOST}" ]; then
+    _err "DEPLOY_SOPHOSXG_HOST not defined."
+    return 1
   fi
+  _savedeployconf DEPLOY_SOPHOSXG_HOST "${DEPLOY_SOPHOSXG_HOST}"
 
   # USER is required
-  if [ -z "$DEPLOY_SOPHOSXG_USER" ]; then
-    if [ -z "$Le_Deploy_sophosxg_user" ]; then
-      _err "DEPLOY_SOPHOSXG_USER not defined."
-      return 1
-    fi
-  else
-    Le_Deploy_sophosxg_user="$DEPLOY_SOPHOSXG_USER"
-    _savedomainconf Le_Deploy_sophosxg_user "$Le_Deploy_sophosxg_user"
+  _getdeployconf DEPLOY_SOPHOSXG_USER
+  _devug2 DEPLOY_SOPHOSXG_USER "${DEPLOY_SOPHOSXG_USER}"
+  if [ -z "${DEPLOY_SOPHOSXG_USER}" ]; then
+    _err "DEPLOY_SOPHOSXG_USER not defined."
+    return 1
   fi
+  _savedeployconf DEPLOY_SOPHOSXG_USER "${DEPLOY_SOPHOSXG_USER}"
 
   # PASSWORD is required
-  if [ -z "$DEPLOY_SOPHOSXG_PASSWORD" ]; then
-    if [ -z "$Le_Deploy_sophosxg_password" ]; then
-      _err "DEPLOY_SOPHOSXG_PASSWORD not defined."
-      return 1
-    fi
-  else
-    Le_Deploy_sophosxg_password="$DEPLOY_SOPHOSXG_PASSWORD"
-    _savedomainconf Le_Deploy_sophosxg_password "$Le_Deploy_sophosxg_password"
+  _getdeployconf DEPLOY_SOPHOSXG_PASSWORD
+  _devug2 DEPLOY_SOPHOSXG_PASSWORD "${DEPLOY_SOPHOSXG_PASSWORD}"
+  if [ -z "${DEPLOY_SOPHOSXG_PASSWORD}" ]; then
+    _err "DEPLOY_SOPHOSXG_PASSWORD not defined."
+    return 1
   fi
+  _savedeployconf DEPLOY_SOPHOSXG_PASSWORD "${DEPLOY_SOPHOSXG_PASSWORD}"
 
   # PFX_PASSWORD is optional. If not provided then use default
-  if [ -n "$DEPLOY_SOPHOSXG_PFX_PASSWORD" ]; then
-    Le_Deploy_sophosxg_pfx_password="$DEPLOY_SOPHOSXG_PFX_PASSWORD"
-    _savedomainconf Le_Deploy_sophosxg_pfx_password "$Le_Deploy_sophosxg_pfx_password"
-  elif [ -z "$Le_Deploy_sophosxg_pfx_password" ]; then
-    Le_Deploy_sophosxg_pfx_password="$DEFAULT_SOPHOSXG_PFX_PASSWORD"
+  _getdeployconf DEPLOY_SOPHOSXG_PFX_PASSWORD
+  _devug2 DEPLOY_SOPHOSXG_PFX_PASSWORD "${DEPLOY_SOPHOSXG_PFX_PASSWORD}"
+  if [ -z "${DEPLOY_SOPHOSXG_PFX_PASSWORD}" ]; then
+    DEPLOY_SOPHOSXG_PFX_PASSWORD="${DEFAULT_SOPHOSXG_PFX_PASSWORD}"
   fi
+  _savedeployconf DEPLOY_SOPHOSXG_PFX_PASSWORD "${DEPLOY_SOPHOSXG_PFX_PASSWORD}"
 
   # NAME is optional. If not provided then use $_cdomain
-  if [ -n "$DEPLOY_SOPHOSXG_NAME" ]; then
-    Le_Deploy_sophosxg_name="$DEPLOY_SOPHOSXG_NAME"
-    _savedomainconf Le_Deploy_sophosxg_name "$Le_Deploy_sophosxg_name"
-  elif [ -z "$Le_Deploy_sophosxg_name" ]; then
-    Le_Deploy_sophosxg_name="$DEFAULT_SOPHOSXG_NAME"
+  _getdeployconf DEPLOY_SOPHOSXG_NAME
+  _devug2 DEPLOY_SOPHOSXG_NAME "${DEPLOY_SOPHOSXG_NAME}"
+  if [ -z "${DEPLOY_SOPHOSXG_NAME}" ]; then
+    DEPLOY_SOPHOSXG_NAME="${DEFAULT_SOPHOSXG_NAME}"
   fi
+  _savedeployconf DEPLOY_SOPHOSXG_NAME "${DEPLOY_SOPHOSXG_NAME}"
 
   # HTTPS_INSECURE is optional. Defaults to 1 (true)
-  if [ -n "$DEPLOY_SOPHOSXG_HTTPS_INSECURE" ]; then
-    Le_Deploy_sophosxg_https_insecure="$DEPLOY_SOPHOSXG_HTTPS_INSECURE"
-    _savedomainconf Le_Deploy_sophosxg_https_insecure "$Le_Deploy_sophosxg_https_insecure"
-  elif [ -z "$Le_Deploy_sophosxg_https_insecure" ]; then
-    Le_Deploy_sophosxg_https_insecure="$DEFAULT_SOPHOSXG_HTTPS_INSECURE"
+  _getdeployconf DEPLOY_SOPHOSXG_HTTPS_INSECURE
+  _devug2 DEPLOY_SOPHOSXG_HTTPS_INSECURE "${DEPLOY_SOPHOSXG_HTTPS_INSECURE}"
+  if [ -z "${DEPLOY_SOPHOSXG_HTTPS_INSECURE}" ]; then
+    DEPLOY_SOPHOSXG_HTTPS_INSECURE="${DEFAULT_SOPHOSXG_HTTPS_INSECURE}"
   fi
+  _savedeployconf DEPLOY_SOPHOSXG_HTTPS_INSECURE "${DEPLOY_SOPHOSXG_HTTPS_INSECURE}"
 
   # create temp pkcs12 file
   _info "Generating pkcs12 file"
@@ -144,7 +140,7 @@ sophosxg_deploy() {
     _err "Error creating temp file for pkcs12"
     return 1
   fi
-  if ! _toPkcs "$_import_pkcs12" "$_ckey" "$_ccert" "$_cca" "$Le_Deploy_sophosxg_pfx_password"; then
+  if ! _toPkcs "$_import_pkcs12" "$_ckey" "$_ccert" "$_cca" "$DEPLOY_SOPHOSXG_PFX_PASSWORD"; then
     _err "Error exporting to pkcs12"
     [ -f "$_import_pkcs12" ] && rm -f "$_import_pkcs12"
     return 1
@@ -154,7 +150,7 @@ sophosxg_deploy() {
   _req_action_success="no"
   for _req_action in update add; do
     _info "Uploading certificate: $_req_action"
-    if sophosxg_do_req "$_req_action" "$_import_pkcs12" "$Le_Deploy_sophosxg_user" "$Le_Deploy_sophosxg_password" "$Le_Deploy_sophosxg_name" "$Le_Deploy_sophosxg_pfx_password" "$Le_Deploy_sophosxg_host"; then
+    if sophosxg_do_req "$_req_action" "$_import_pkcs12" "$DEPLOY_SOPHOSXG_USER" "$DEPLOY_SOPHOSXG_PASSWORD" "$DEPLOY_SOPHOSXG_NAME" "$DEPLOY_SOPHOSXG_PFX_PASSWORD" "$DEPLOY_SOPHOSXG_HOST" "$DEPLOY_SOPHOSXG_HTTPS_INSECURE"; then
       _req_action_success="yes"
       break
     fi
