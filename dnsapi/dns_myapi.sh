@@ -11,6 +11,8 @@
 #
 ########  Public functions #####################
 
+# Please Read this guide first: https://github.com/Neilpang/acme.sh/wiki/DNS-API-Dev-Guide
+
 #Usage: dns_myapi_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_myapi_add() {
   fulldomain=$1
