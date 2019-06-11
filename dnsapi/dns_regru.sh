@@ -2,9 +2,9 @@
 
 # Regru domain api
 
-REGRU_API_Username="test"
-REGRU_API_Password="test"
-_domain='test.ru'
+REGRU_API_Username="av_deflorator1980"
+REGRU_API_Password="pelotka9"
+_domain='webdefl.ru'
 #
 REGRU_API_URL="https://api.reg.ru/api/regru2"
 
@@ -29,7 +29,10 @@ dns_regru_add() {
   _saveaccountconf_mutable REGRU_API_Username  "$REGRU_API_Username"
   _saveaccountconf_mutable REGRU_API_Password  "$REGRU_API_Password"
 
-  _info "Adding TXT record to ${fulldomain}"
+  _info "Adding TXT record to ${fulldomain}  I want to see that"
+
+  cat /etc/*-release
+
   response="$(_get "$REGRU_API_URL/zone/add_txt?input_data={%22username%22:%22${REGRU_API_Username}%22,%22password%22:%22${REGRU_API_Password}%22,%22domains%22:[{%22dname%22:%22${_domain}%22}],%22subdomain%22:%22_acme-challenge%22,%22text%22:%22${txtvalue}%22,%22output_content_type%22:%22plain%22}&input_format=json")"
 
   if _contains "${response}" 'success'; then
