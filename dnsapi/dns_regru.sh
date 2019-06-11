@@ -24,7 +24,6 @@ dns_regru_add() {
     return 1
   fi
 
-
   _saveaccountconf_mutable REGRU_API_Username "$REGRU_API_Username"
   _saveaccountconf_mutable REGRU_API_Password "$REGRU_API_Password"
 
