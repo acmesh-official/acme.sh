@@ -1,13 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
-#Here is a sample custom api script.
-#This file name is "dns_myapi.sh"
-#So, here must be a method   dns_myapi_add()
-#Which will be called by acme.sh to add the txt record to your api system.
-#returns 0 means success, otherwise error.
-#
-#Author: Neilpang
-#Report Bugs here: https://github.com/Neilpang/acme.sh
+# Regru domain api
+
+REGRU_API_Username="test"
+REGRU_API_Password="test"
+_domain='test.ru'
 #
 REGRU_API_URL="https://api.reg.ru/api/regru2"
 
@@ -46,8 +43,8 @@ dns_regru_add() {
 dns_regru_rm() {
   fulldomain=$1
   txtvalue=$2
-  echo 'RM-ONE '$1
-  echo 'RM-TWO '$2
+  echo 'RM-ONE '"$1"
+  echo 'RM-TWO '"$2"
 
   REGRU_API_Username="${REGRU_API_Username:-$(_readaccountconf_mutable REGRU_API_Username)}"
   REGRU_API_Password="${REGRU_API_Password:-$(_readaccountconf_mutable REGRU_API_Password)}"
