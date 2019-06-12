@@ -1,11 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
 #Support PUSHOVER.com api
 
-#PUSHOVER_TOKEN="" 					# Your Pushover Application Token
-#PUSHOVER_USER="" 					# Your Pushover UserKey
 PUSHOVER_URI="https://api.pushover.net/1/messages.json"
-PUSHOVER_SOUND="intermission" 	# https://pushover.net/api#sounds
 
 pushover_send() {
   _subject="$1"
@@ -37,7 +34,7 @@ pushover_send() {
 
   _H1="Content-Type: application/json"
 
-  _data="{\"token\": \"$PUSHOVER_TOKEN\",\"user\": \"$PUSHOVER_USER\",\"message\": \"$_content\",\"sound\": \"$PUSHOVER_SOUND\"}"
+  _data="{\"token\": \"$PUSHOVER_TOKEN\",\"user\": \"$PUSHOVER_USER\",\"title\": \"$_subject\",\"message\": \"$_content\",\"sound\": \"$PUSHOVER_SOUND\"}"
 
   response="" #just make shellcheck happy
   if _post "$_data" "$PUSHOVER_URI"; then
@@ -51,4 +48,3 @@ pushover_send() {
   return 1
 
 }
-
