@@ -32,8 +32,6 @@ pushover_send() {
   fi
   _saveaccountconf_mutable PUSHOVER_SOUND "$PUSHOVER_SOUND"
 
-  _H1="Content-Type: application/json"
-
   _data="{\"token\": \"$PUSHOVER_TOKEN\",\"user\": \"$PUSHOVER_USER\",\"title\": \"$_subject\",\"message\": \"$_content\",\"sound\": \"$PUSHOVER_SOUND\"}"
 
   response="" #just make shellcheck happy
@@ -46,5 +44,4 @@ pushover_send() {
   _err "PUSHOVER send error."
   _err "$response"
   return 1
-
 }
