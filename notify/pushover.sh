@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-#Support PUSHOVER.com api
+#Support for pushover.net's api. Push notification platform for multiple platforms
 
 PUSHOVER_URI="https://api.pushover.net/1/messages.json"
 
@@ -32,6 +32,9 @@ pushover_send() {
   fi
   _saveaccountconf_mutable PUSHOVER_SOUND "$PUSHOVER_SOUND"
 
+  export _H1="Content-Type: application/json"
+  _content="$(printf "*%s*\n" "$_content" | _json_encode)"
+  _subject="$(printf "*%s*\n" "$_subject" | _json_encode)"
   _data="{\"token\": \"$PUSHOVER_TOKEN\",\"user\": \"$PUSHOVER_USER\",\"title\": \"$_subject\",\"message\": \"$_content\",\"sound\": \"$PUSHOVER_SOUND\"}"
 
   response="" #just make shellcheck happy
