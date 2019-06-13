@@ -6108,7 +6108,7 @@ Parameters:
 
   --notify-level  0|1|2|3           Set the notification level:  Default value is $NOTIFY_LEVEL_DEFAULT.
                                      0: disabled, no notification will be sent. 
-                                     1: send notification only when there is an error. No news is good news.
+                                     1: send notification only when there is an error.
                                      2: send notification when a cert is successfully renewed, or there is an error
                                      3: send notification when a cert is skipped, renewdd, or error
   --notify-mode   0|1               Set notification mode. Default value is $NOTIFY_MODE_DEFAULT.
