@@ -41,8 +41,6 @@ dns_regru_add() {
 dns_regru_rm() {
   fulldomain=$1
   txtvalue=$2
-  _info 'RM-ONE '"$1"
-  _info 'RM-TWO '"$2"
 
   REGRU_API_Username="${REGRU_API_Username:-$(_readaccountconf_mutable REGRU_API_Username)}"
   REGRU_API_Password="${REGRU_API_Password:-$(_readaccountconf_mutable REGRU_API_Password)}"
