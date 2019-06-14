@@ -3863,7 +3863,7 @@ issue() {
   _savedomainconf "Le_Keylength" "$_key_length"
 
   vlist="$Le_Vlist"
-
+  _cleardomainconf "Le_Vlist"
   _info "Getting domain auth token for each domain"
   sep='#'
   dvsep=','
@@ -4511,8 +4511,6 @@ $_authorizations_map"
       _saveaccountconf "USER_PATH" "$USER_PATH"
     fi
   fi
-
-  _cleardomainconf "Le_Vlist"
 
   if [ "$ACME_VERSION" = "2" ]; then
     _debug "v2 chain."
