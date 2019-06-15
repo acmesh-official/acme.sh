@@ -4712,6 +4712,8 @@ renewAll() {
   _skipped_msg=""
   _error_level=$NOTIFY_LEVEL_SKIP
   _notify_code=$RENEW_SKIP
+  _set_level=${NOTIFY_LEVEL:-$NOTIFY_LEVEL_DEFAULT}
+  _debug "_set_level" "$_set_level"
   for di in "${CERT_HOME}"/*.*/; do
     _debug di "$di"
     if ! [ -d "$di" ]; then
@@ -4735,7 +4737,7 @@ renewAll() {
         _notify_code=0
       fi
       if [ "$ACME_IN_CRON" ]; then
-        if [ "$NOTIFY_LEVEL" ] && [ $NOTIFY_LEVEL -ge $NOTIFY_LEVEL_RENEW ]; then
+        if [ $_set_level -ge $NOTIFY_LEVEL_RENEW ]; then
           if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
             _send_notify "Renew $d success" "Good, the cert is renewed." "$NOTIFY_HOOK" 0
           fi
@@ -4749,7 +4751,7 @@ renewAll() {
         _notify_code=$RENEW_SKIP
       fi
       if [ "$ACME_IN_CRON" ]; then
-        if [ "$NOTIFY_LEVEL" ] && [ $NOTIFY_LEVEL -ge $NOTIFY_LEVEL_SKIP ]; then
+        if [ $_set_level -ge $NOTIFY_LEVEL_SKIP ]; then
           if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
             _send_notify "Renew $d skipped" "Good, the cert is skipped." "$NOTIFY_HOOK" "$RENEW_SKIP"
           fi
@@ -4764,7 +4766,7 @@ renewAll() {
         _notify_code=1
       fi
       if [ "$ACME_IN_CRON" ]; then
-        if [ "$NOTIFY_LEVEL" ] && [ $NOTIFY_LEVEL -ge $NOTIFY_LEVEL_ERROR ]; then
+        if [ $_set_level -ge $NOTIFY_LEVEL_ERROR ]; then
           if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
             _send_notify "Renew $d error" "There is an error." "$NOTIFY_HOOK" 1
           fi
@@ -4783,7 +4785,7 @@ renewAll() {
     fi
   done
   _debug _error_level "$_error_level"
-  if [ "$ACME_IN_CRON" ] && [ $_error_level -le $NOTIFY_LEVEL ]; then
+  if [ "$ACME_IN_CRON" ] && [ $_error_level -le $_set_level ]; then
     if [ -z "$NOTIFY_MODE" ] || [ "$NOTIFY_MODE" = "$NOTIFY_MODE_BULK" ]; then
       _msg_subject="Renew"
       if [ "$_error_msg" ]; then
