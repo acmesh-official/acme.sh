@@ -26,6 +26,19 @@ pushover_send() {
   fi
   _saveaccountconf_mutable PUSHOVER_USER "$PUSHOVER_USER"
 
+  PUSHOVER_DEVICE="${PUSHOVER_DEVICE:-$(_readaccountconf_mutable PUSHOVER_DEVICE)}"
+  if [ -z "$PUSHOVER_DEVICE" ]; then
+    PUSHOVER_DEVICE=""
+  fi
+  _saveaccountconf_mutable PUSHOVER_DEVICE "$PUSHOVER_DEVICE"
+
+  PUSHOVER_PRIORITY="${PUSHOVER_PRIORITY:-$(_readaccountconf_mutable PUSHOVER_PRIORITY)}"
+  if [ -z "$PUSHOVER_PRIORITY" ]; then
+    PUSHOVER_PRIORITY="0"
+  fi
+  _saveaccountconf_mutable PUSHOVER_PRIORITY "$PUSHOVER_PRIORITY"
+
+
   PUSHOVER_SOUND="${PUSHOVER_SOUND:-$(_readaccountconf_mutable PUSHOVER_SOUND)}"
   if [ -z "$PUSHOVER_SOUND" ]; then
     PUSHOVER_SOUND="" # Play default if not specified.
@@ -35,7 +48,7 @@ pushover_send() {
   export _H1="Content-Type: application/json"
   _content="$(printf "*%s*\n" "$_content" | _json_encode)"
   _subject="$(printf "*%s*\n" "$_subject" | _json_encode)"
-  _data="{\"token\": \"$PUSHOVER_TOKEN\",\"user\": \"$PUSHOVER_USER\",\"title\": \"$_subject\",\"message\": \"$_content\",\"sound\": \"$PUSHOVER_SOUND\"}"
+  _data="{\"token\": \"$PUSHOVER_TOKEN\",\"user\": \"$PUSHOVER_USER\",\"title\": \"$_subject\",\"message\": \"$_content\",\"sound\": \"$PUSHOVER_SOUND\", \"$
 
   response="" #just make shellcheck happy
   if _post "$_data" "$PUSHOVER_URI"; then
@@ -48,3 +61,4 @@ pushover_send() {
   _err "$response"
   return 1
 }
+
