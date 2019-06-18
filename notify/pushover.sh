@@ -1,6 +1,10 @@
 #!/usr/bin/env sh
 
 #Support for pushover.net's api. Push notification platform for multiple platforms
+#PUSHOVER_TOKEN="" Required, pushover application token
+#PUSHOVER_USER="" Required, pushover userkey
+#PUSHOVER_DEVICE="" Optional, Specific device or devices by hostnames, joining multiples with a comma (such as device=iphone,nexus5)
+#PUSHOVER_PRIORITY="" Optional, Lowest Priority (-2), Low Priority (-1), Normal Priority (0), High Priority (1)
 
 PUSHOVER_URI="https://api.pushover.net/1/messages.json"
 
@@ -26,14 +30,12 @@ pushover_send() {
   fi
   _saveaccountconf_mutable PUSHOVER_USER "$PUSHOVER_USER"
 
-  # Specific device or devices by hostnames, joining multiples with a comma (such as device=iphone,nexus5)
   PUSHOVER_DEVICE="${PUSHOVER_DEVICE:-$(_readaccountconf_mutable PUSHOVER_DEVICE)}"
   if [ -z "$PUSHOVER_DEVICE" ]; then
     PUSHOVER_DEVICE=""
   fi
   _saveaccountconf_mutable PUSHOVER_DEVICE "$PUSHOVER_DEVICE"
 
-  # Lowest Priority (-2), Low Priority (-1), Normal Priority (0), High Priority (1)
   PUSHOVER_PRIORITY="${PUSHOVER_PRIORITY:-$(_readaccountconf_mutable PUSHOVER_PRIORITY)}"
   if [ -z "$PUSHOVER_PRIORITY" ]; then
     PUSHOVER_PRIORITY="0"
