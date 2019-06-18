@@ -63,4 +63,3 @@ pushover_send() {
   _err "$response"
   return 1
 }
-
