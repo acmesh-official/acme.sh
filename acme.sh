@@ -4785,6 +4785,7 @@ renewAll() {
     fi
   done
   _debug _error_level "$_error_level"
+  _debug _set_level "$_set_level"
   if [ "$ACME_IN_CRON" ] && [ $_error_level -le $_set_level ]; then
     if [ -z "$NOTIFY_MODE" ] || [ "$NOTIFY_MODE" = "$NOTIFY_MODE_BULK" ]; then
       _msg_subject="Renew"
