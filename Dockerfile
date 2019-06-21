@@ -1,4 +1,4 @@
-FROM alpine:3.9
+FROM alpine:3.10
 
 RUN apk update -f \
   && apk --no-cache add -f \
@@ -8,7 +8,7 @@ RUN apk update -f \
   curl \
   socat \
   tzdata \
-  && apk add --no-cache -X http://dl-cdn.alpinelinux.org/alpine/edge/community oath-toolkit-oathtool \
+  oath-toolkit-oathtool \
   && rm -rf /var/cache/apk/*
 
 ENV LE_CONFIG_HOME /acme.sh
