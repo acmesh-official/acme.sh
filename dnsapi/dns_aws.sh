@@ -49,7 +49,7 @@ dns_aws_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  _info "Geting existing records for $fulldomain"
+  _info "Getting existing records for $fulldomain"
   if ! aws_rest GET "2013-04-01$_domain_id/rrset" "name=$fulldomain&type=TXT"; then
     return 1
   fi

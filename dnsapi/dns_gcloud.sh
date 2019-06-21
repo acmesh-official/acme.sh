@@ -93,7 +93,7 @@ _dns_gcloud_execute_tr() {
 }
 
 _dns_gcloud_remove_rrs() {
-  if ! xargs --no-run-if-empty gcloud dns record-sets transaction remove \
+  if ! xargs -r gcloud dns record-sets transaction remove \
     --name="$fulldomain." \
     --ttl="$ttl" \
     --type=TXT \
@@ -108,7 +108,7 @@ _dns_gcloud_remove_rrs() {
 
 _dns_gcloud_add_rrs() {
   ttl=60
-  if ! xargs --no-run-if-empty gcloud dns record-sets transaction add \
+  if ! xargs -r gcloud dns record-sets transaction add \
     --name="$fulldomain." \
     --ttl="$ttl" \
     --type=TXT \
@@ -134,14 +134,14 @@ _dns_gcloud_find_zone() {
   filter="$filter)"
   _debug filter "$filter"
 
-  # List domains and find the longest match (in case of some levels of delegation)
+  # List domains and find the zone with the deepest sub-domain (in case of some levels of delegation)
   if ! match=$(gcloud dns managed-zones list \
     --format="value(name, dnsName)" \
     --filter="$filter" \
     | while read -r dnsName name; do
-      printf "%s\t%s\t%s\n" "${#dnsName}" "$dnsName" "$name"
+      printf "%s\t%s\t%s\n" "$(echo "$name" | awk -F"." '{print NF-1}')" "$dnsName" "$name"
     done \
-    | sort -n -r | _head_n 1 | cut -f2,3 | grep '^.*'); then
+      | sort -n -r | _head_n 1 | cut -f2,3 | grep '^.*'); then
     _err "_dns_gcloud_find_zone: Can't find a matching managed zone! Perhaps wrong project or gcloud credentials?"
     return 1
   fi

@@ -6,14 +6,22 @@
 dns_nsupdate_add() {
   fulldomain=$1
   txtvalue=$2
+  NSUPDATE_SERVER="${NSUPDATE_SERVER:-$(_readaccountconf_mutable NSUPDATE_SERVER)}"
+  NSUPDATE_SERVER_PORT="${NSUPDATE_SERVER_PORT:-$(_readaccountconf_mutable NSUPDATE_SERVER_PORT)}"
+  NSUPDATE_KEY="${NSUPDATE_KEY:-$(_readaccountconf_mutable NSUPDATE_KEY)}"
+  NSUPDATE_ZONE="${NSUPDATE_ZONE:-$(_readaccountconf_mutable NSUPDATE_ZONE)}"
+
   _checkKeyFile || return 1
+
+  # save the dns server and key to the account conf file.
+  _saveaccountconf_mutable NSUPDATE_SERVER "${NSUPDATE_SERVER}"
+  _saveaccountconf_mutable NSUPDATE_SERVER_PORT "${NSUPDATE_SERVER_PORT}"
+  _saveaccountconf_mutable NSUPDATE_KEY "${NSUPDATE_KEY}"
+  _saveaccountconf_mutable NSUPDATE_ZONE "${NSUPDATE_ZONE}"
+
   [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
   [ -n "${NSUPDATE_SERVER_PORT}" ] || NSUPDATE_SERVER_PORT=53
-  # save the dns server and key to the account conf file.
-  _saveaccountconf NSUPDATE_SERVER "${NSUPDATE_SERVER}"
-  _saveaccountconf NSUPDATE_SERVER_PORT "${NSUPDATE_SERVER_PORT}"
-  _saveaccountconf NSUPDATE_KEY "${NSUPDATE_KEY}"
-  _saveaccountconf NSUPDATE_ZONE "${NSUPDATE_ZONE}"
+
   _info "adding ${fulldomain}. 60 in txt \"${txtvalue}\""
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_1" ] && nsdebug="-d"
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_2" ] && nsdebug="-D"
@@ -42,6 +50,12 @@ EOF
 #Usage: dns_nsupdate_rm   _acme-challenge.www.domain.com
 dns_nsupdate_rm() {
   fulldomain=$1
+
+  NSUPDATE_SERVER="${NSUPDATE_SERVER:-$(_readaccountconf_mutable NSUPDATE_SERVER)}"
+  NSUPDATE_SERVER_PORT="${NSUPDATE_SERVER_PORT:-$(_readaccountconf_mutable NSUPDATE_SERVER_PORT)}"
+  NSUPDATE_KEY="${NSUPDATE_KEY:-$(_readaccountconf_mutable NSUPDATE_KEY)}"
+  NSUPDATE_ZONE="${NSUPDATE_ZONE:-$(_readaccountconf_mutable NSUPDATE_ZONE)}"
+
   _checkKeyFile || return 1
   [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
   [ -n "${NSUPDATE_SERVER_PORT}" ] || NSUPDATE_SERVER_PORT=53

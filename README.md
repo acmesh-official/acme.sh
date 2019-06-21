@@ -13,6 +13,7 @@
 - DOES NOT require `root/sudoer` access.
 - Docker friendly
 - IPv6 support
+- Cron job notifications for renewal or error etc.
 
 It's probably the `easiest & smartest` shell script to automatically issue & renew the free certificates from Let's Encrypt.
 
@@ -45,25 +46,25 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
 | NO | Status| Platform|
 |----|-------|---------|
-|1|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/ubuntu-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)| Ubuntu
-|2|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/debian-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)| Debian
-|3|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/centos-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|CentOS
-|4|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/windows-cygwin.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Windows (cygwin with curl, openssl and crontab included)
-|5|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/freebsd.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|FreeBSD
-|6|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/pfsense.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|pfsense
-|7|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/opensuse-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|openSUSE
-|8|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/alpine-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Alpine Linux (with curl)
-|9|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/base-archlinux.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Archlinux
-|10|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/fedora-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|fedora
-|11|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/kalilinux-kali-linux-docker.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Kali Linux
-|12|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/oraclelinux-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Oracle Linux
-|13|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/proxmox.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)| Proxmox https://pve.proxmox.com/wiki/HTTPSCertificateConfiguration#Let.27s_Encrypt_using_acme.sh
+|1|[![](https://neilpang.github.io/acmetest/status/ubuntu-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)| Ubuntu
+|2|[![](https://neilpang.github.io/acmetest/status/debian-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)| Debian
+|3|[![](https://neilpang.github.io/acmetest/status/centos-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|CentOS
+|4|[![](https://neilpang.github.io/acmetest/status/windows-cygwin.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Windows (cygwin with curl, openssl and crontab included)
+|5|[![](https://neilpang.github.io/acmetest/status/freebsd.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|FreeBSD
+|6|[![](https://neilpang.github.io/acmetest/status/pfsense.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|pfsense
+|7|[![](https://neilpang.github.io/acmetest/status/opensuse-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|openSUSE
+|8|[![](https://neilpang.github.io/acmetest/status/alpine-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Alpine Linux (with curl)
+|9|[![](https://neilpang.github.io/acmetest/status/base-archlinux.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Archlinux
+|10|[![](https://neilpang.github.io/acmetest/status/fedora-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|fedora
+|11|[![](https://neilpang.github.io/acmetest/status/kalilinux-kali-linux-docker.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Kali Linux
+|12|[![](https://neilpang.github.io/acmetest/status/oraclelinux-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Oracle Linux
+|13|[![](https://neilpang.github.io/acmetest/status/proxmox.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)| Proxmox https://pve.proxmox.com/wiki/HTTPSCertificateConfiguration#Let.27s_Encrypt_using_acme.sh
 |14|-----| Cloud Linux  https://github.com/Neilpang/le/issues/111
-|15|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/openbsd.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|OpenBSD
-|16|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/mageia.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Mageia
+|15|[![](https://neilpang.github.io/acmetest/status/openbsd.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|OpenBSD
+|16|[![](https://neilpang.github.io/acmetest/status/mageia.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Mageia
 |17|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/Neilpang/acme.sh/wiki/How-to-run-on-OpenWRT)
-|18|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/solaris.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|SunOS/Solaris
-|19|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/gentoo-stage3-amd64.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Gentoo Linux
+|18|[![](https://neilpang.github.io/acmetest/status/solaris.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|SunOS/Solaris
+|19|[![](https://neilpang.github.io/acmetest/status/gentoo-stage3-amd64.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Gentoo Linux
 |20|[![Build Status](https://travis-ci.org/Neilpang/acme.sh.svg?branch=master)](https://travis-ci.org/Neilpang/acme.sh)|Mac OSX
 
 For all build statuses, check our [weekly build project](https://github.com/Neilpang/acmetest):
@@ -290,90 +291,9 @@ If your DNS provider supports API access, we can use that API to automatically i
 
 You don't have to do anything manually!
 
-### Currently acme.sh supports:
+### Currently acme.sh supports most of the dns providers:
 
-1. CloudFlare.com API
-1. DNSPod.cn API
-1. CloudXNS.com API
-1. GoDaddy.com API
-1. PowerDNS.com API
-1. OVH, kimsufi, soyoustart and runabove API
-1. nsupdate API
-1. LuaDNS.com API
-1. DNSMadeEasy.com API
-1. AWS Route 53
-1. aliyun.com(阿里云) API
-1. ISPConfig 3.1 API
-1. Alwaysdata.com API
-1. Linode.com API
-1. FreeDNS (https://freedns.afraid.org/)
-1. cyon.ch
-1. Domain-Offensive/Resellerinterface/Domainrobot API
-1. Gandi LiveDNS API
-1. Knot DNS API
-1. DigitalOcean API (native)
-1. ClouDNS.net API
-1. Infoblox NIOS API (https://www.infoblox.com/)
-1. VSCALE (https://vscale.io/)
-1. Dynu API (https://www.dynu.com)
-1. DNSimple API
-1. NS1.com API
-1. DuckDNS.org API
-1. Name.com API
-1. Dyn Managed DNS API
-1. Yandex PDD API (https://pdd.yandex.ru)
-1. Hurricane Electric DNS service (https://dns.he.net)
-1. UnoEuro API (https://www.unoeuro.com/)
-1. INWX (https://www.inwx.de/)
-1. Servercow (https://servercow.de)
-1. Namesilo (https://www.namesilo.com)
-1. InternetX autoDNS API (https://internetx.com)
-1. Azure DNS
-1. selectel.com(selectel.ru) DNS API
-1. zonomi.com DNS API
-1. DreamHost.com API
-1. DirectAdmin API
-1. KingHost (https://www.kinghost.com.br/)
-1. Zilore (https://zilore.com)
-1. Loopia.se API
-1. acme-dns (https://github.com/joohoi/acme-dns)
-1. TELE3 (https://www.tele3.cz)
-1. EUSERV.EU (https://www.euserv.eu)
-1. DNSPod.com API (https://www.dnspod.com)
-1. Google Cloud DNS API
-1. ConoHa (https://www.conoha.jp)
-1. netcup DNS API (https://www.netcup.de)
-1. GratisDNS.dk (https://gratisdns.dk)
-1. Namecheap API (https://www.namecheap.com/)
-1. MyDNS.JP API (https://www.mydns.jp/)
-1. hosting.de (https://www.hosting.de)
-1. Neodigit.net API (https://www.neodigit.net)
-1. Exoscale.com API (https://www.exoscale.com/)
-1. PointDNS API (https://pointhq.com/)
-1. Active24.cz API (https://www.active24.cz/)
-1. do.de API (https://www.do.de/)
-1. Nexcess API (https://www.nexcess.net)
-1. Thermo.io API (https://www.thermo.io)
-1. Futurehosting API (https://www.futurehosting.com)
-1. Rackspace Cloud DNS (https://www.rackspace.com)
-1. Online.net API (https://online.net/)
-1. MyDevil.net (https://www.mydevil.net/)
-1. Core-Networks.de (https://core-networks.de)
-1. NederHost API (https://www.nederhost.nl/)
-1. Zone.ee (zone.eu) API (https://api.zone.eu/v2)
-1. UltraDNS API (https://portal.ultradns.com)
-
-And:
-
-**lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
-   (DigitalOcean, DNSimple, DNSMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)**
-
-
-**More APIs coming soon...**
-
-If your DNS provider is not on the supported list above, you can write your own DNS API script easily. If you do, please consider submitting a [Pull Request](https://github.com/Neilpang/acme.sh/pulls) and contribute it to the project.
-
-For more details: [How to use DNS API](dnsapi)
+https://github.com/Neilpang/acme.sh/wiki/dnsapi
 
 # 9. Use DNS manual mode:
 
@@ -513,20 +433,25 @@ acme.sh --upgrade --auto-upgrade 0
 https://github.com/Neilpang/acme.sh/wiki/Issue-a-cert-from-existing-CSR
 
 
-# 16. Under the Hood
+# 16. Send notifications in cronjob
+
+https://github.com/Neilpang/acme.sh/wiki/notify
+
+
+# 17. Under the Hood
 
 Speak ACME language using shell, directly to "Let's Encrypt".
 
 TODO:
 
 
-# 17. Acknowledgments
+# 18. Acknowledgments
 
 1. Acme-tiny: https://github.com/diafygi/acme-tiny
 2. ACME protocol: https://github.com/ietf-wg-acme/acme
 
 
-# 18. License & Others
+# 19. License & Others
 
 License is GPLv3
 
@@ -535,7 +460,7 @@ Please Star and Fork me.
 [Issues](https://github.com/Neilpang/acme.sh/issues) and [pull requests](https://github.com/Neilpang/acme.sh/pulls) are welcome.
 
 
-# 19. Donate
+# 20. Donate
 Your donation makes **acme.sh** better:
 
 1. PayPal/Alipay(支付宝)/Wechat(微信): [https://donate.acme.sh/](https://donate.acme.sh/)
