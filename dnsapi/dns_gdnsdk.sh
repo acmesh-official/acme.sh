@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+set -x
 #Author: Herman Sletteng
 #Report Bugs here: https://github.com/loial/acme.sh
 #
@@ -159,7 +160,7 @@ _successful_update() {
 _findentry() {
   #returns id of dns entry, if it exists
   _myget "action=dns_primary_changeDNSsetup&user_domain=$_domain"
-  _id=$(echo "$_result" | _egrep_o "<td>$1</td>\s*<td>$2</td>[^?]*[^&]*&id=[^&]*" | sed 's/^.*=//')
+  _id=$(echo "$_result" | tr '\\n' ' ' | _egrep_o "<td>$1</td>\s*<td>$2</td>[^?]*[^&]*&id=[^&]*" | sed 's/^.*=//')
   if [ -n "$_id" ]; then
     _debug "Entry found with _id=$_id"
     return 0
