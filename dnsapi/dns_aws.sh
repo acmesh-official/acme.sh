@@ -31,9 +31,9 @@ dns_aws_add() {
   # it does not honour [sections] in the ini formatted credentials file.
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     CREDFILE="${HOME}/.aws/credentials"
-    if [ -e ${CREDFILE} ]; then
-      AWS_ACCESS_KEY_ID=$(grep -m 1 -i AWS_ACCESS_KEY_ID ${CREDFILE} | cut -f 2 -d"=" | tr -d ' ')
-      AWS_SECRET_ACCESS_KEY=$(grep -m 1 -i AWS_SECRET_ACCESS_KEY ${CREDFILE} | cut -f 2 -d"=" | tr -d ' ')
+    if [ -e "$CREDFILE" ]; then
+      AWS_ACCESS_KEY_ID=$(grep -m 1 -i AWS_ACCESS_KEY_ID "$CREDFILE" | cut -f 2 -d"=" | tr -d ' ')
+      AWS_SECRET_ACCESS_KEY=$(grep -m 1 -i AWS_SECRET_ACCESS_KEY "$CREDFILE" | cut -f 2 -d"=" | tr -d ' ')
     fi
     # todo: if the key is found in the creds file, then if we can assume it'll be there in the future,
     # then there's likely no point saving it in the account config, so we should do what needs to be done
