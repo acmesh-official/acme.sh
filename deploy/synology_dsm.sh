@@ -63,6 +63,7 @@ synology_dsm_deploy() {
 
   # Get the certificate description, but don't save it until we verfiy it's real
   _getdeployconf SYNO_Certificate
+  # shellcheck disable=SC2154
   if [ -z "${SYNO_Certificate}" ]; then
     _err "SYNO_Certificate needs to be defined (with the Certificate description name)"
     return 1
@@ -88,8 +89,8 @@ synology_dsm_deploy() {
 
   # Login, get the token from JSON and session id from cookie
   _debug "Logging into $SYNO_Hostname:$SYNO_Port"
-  token=$(curl -sk -c $_cookie_jar "$_base_url/webman/login.cgi?username=$SYNO_Username&passwd=$SYNO_Password&enable_syno_token=yes" | jq -r .SynoToken)
-  if [ $token = "null" ]; then
+  token=$(curl -sk -c "$_cookie_jar" "$_base_url/webman/login.cgi?username=$SYNO_Username&passwd=$SYNO_Password&enable_syno_token=yes" | jq -r .SynoToken)
+  if [ "$token" = "null" ]; then
     _err "Unable to authenticate to $SYNO_Hostname:$SYNO_Port using $SYNO_Scheme."
     _err "Check your username and password."
     rm "$_cookie_jar"
@@ -102,7 +103,7 @@ synology_dsm_deploy() {
   _secure_debug2 token "$token"
 
   # Use token and session id to get the list of certificates
-  response=$(curl -sk -b $_cookie_jar $_base_url/webapi/entry.cgi -H "X-SYNO-TOKEN: $token" -d api=SYNO.Core.Certificate.CRT -d method=list -d version=1)
+  response=$(curl -sk -b "$_cookie_jar" "$_base_url/webapi/entry.cgi" -H "X-SYNO-TOKEN: $token" -d api=SYNO.Core.Certificate.CRT -d method=list -d version=1)
   _debug3 response "$response"
   # select the first certificate matching our description
   cert=$(echo "$response" | jq -r ".data.certificates | map(select(.desc == \"$SYNO_Certificate\"))[0]")
@@ -117,13 +118,13 @@ synology_dsm_deploy() {
   # we've verified this certificate description is a thing, so save it
   _savedeployconf SYNO_Certificate "$SYNO_Certificate"
 
-  id=$(echo $cert | jq -r ".id")
+  id=$(echo "$cert" | jq -r ".id")
   default=$(echo "$cert" | jq -r ".is_default")
   _debug2 id "$id"
   _debug2 default "$default"
 
   # This is the heavy lifting, make the API call to update a certificate in place
-  response=$(curl -sk -b $_cookie_jar "$_base_url/webapi/entry.cgi?api=SYNO.Core.Certificate&method=import&version=1&SynoToken=$token" -F key=@$_ckey -F cert=@$_ccert -F inter_cert=@$_cca -F id=$id -F desc=$SYNO_Certificate -F as_default=$default)
+  response=$(curl -sk -b "$_cookie_jar" "$_base_url/webapi/entry.cgi?api=SYNO.Core.Certificate&method=import&version=1&SynoToken=$token" -F "key=@$_ckey" -F "cert=@$_ccert" -F "inter_cert=@$_cca" -F "id=$id" -F "desc=$SYNO_Certificate" -F "as_default=$default")
   _debug3 response "$response"
   success=$(echo "$response" | jq -r ".success")
   _debug2 success "$success"
