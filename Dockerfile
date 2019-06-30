@@ -1,4 +1,4 @@
-FROM alpine:3.9
+FROM alpine:3.10
 
 RUN apk update -f \
   && apk --no-cache add -f \
@@ -8,6 +8,7 @@ RUN apk update -f \
   curl \
   socat \
   tzdata \
+  oath-toolkit-oathtool \
   tar \
   && rm -rf /var/cache/apk/*
 
@@ -22,7 +23,7 @@ RUN cd /install_acme.sh && ([ -f /install_acme.sh/acme.sh ] && /install_acme.sh/
 
 RUN ln -s  /root/.acme.sh/acme.sh  /usr/local/bin/acme.sh && crontab -l | grep acme.sh | sed 's#> /dev/null##' | crontab -
 
-RUN for verb in help \ 
+RUN for verb in help \
   version \
   install \
   uninstall \
