@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 
-# Here is a script to deploy cert to Synology DSM vault
-# (https://www.vaultproject.io/)
+# Here is a script to deploy cert to Synology DSM
 #
 # it requires the jq and curl are in the $PATH and the following
 # environment variables must be set:
