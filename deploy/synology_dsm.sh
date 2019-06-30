@@ -74,11 +74,11 @@ synology_dsm_deploy() {
   # use jq because I'm too lazy to figure out what is required to parse json
   # by hand.  Also it seems to be in place for Synology DSM (6.2.1 at least)
   for x in curl jq; do
-      if ! _exists "$x"; then
-        _err "Please install $x first."
-        _err "We need $x to work."
-        return 1
-      fi
+    if ! _exists "$x"; then
+      _err "Please install $x first."
+      _err "We need $x to work."
+      return 1
+    fi
   done
 
   _base_url="$SYNO_Scheme://$SYNO_Hostname:$SYNO_Port"
@@ -133,11 +133,11 @@ synology_dsm_deploy() {
   if [ "$success" = "true" ]; then
     restarted=$(echo "$response" | jq -r ".data.restart_httpd")
     if [ "$restarted" = "true" ]; then
-        _info "http services were restarted"
+      _info "http services were restarted"
     else
-        _info "http services were NOT restarted"
+      _info "http services were NOT restarted"
     fi
-    return 0;
+    return 0
   else
     code=$(echo "$response" | jq -r ".error.code")
     _err "Unable to update certificate, error code $code"
