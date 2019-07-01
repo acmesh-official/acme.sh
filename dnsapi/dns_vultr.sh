@@ -105,7 +105,6 @@ dns_vultr_rm() {
 _get_root() {
   domain=$1
   i=1
-  p=1
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     _debug h "$h"
@@ -130,7 +129,6 @@ _get_root() {
       _err "$response"
       return 1
     fi
-    p=$i
     i=$(_math "$i" + 1)
   done
 
