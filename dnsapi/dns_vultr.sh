@@ -43,7 +43,7 @@ dns_vultr_add() {
     return 1
   fi
 
-  _debug2 _response "$_response"
+  _debug2 _response "$response"
   return 0
 }
 
@@ -92,7 +92,7 @@ dns_vultr_rm() {
     return 1
   fi
 
-  _debug2 _response "$_response"
+  _debug2 _response "$response"
   return 0
 }
 
@@ -120,6 +120,7 @@ _get_root() {
     if printf "%s\n" "$response" | grep '^\[.*\]' >/dev/null; then
       if _contains "$response" "\"domain\":\"$_domain\""; then
         _sub_domain="$(echo "$fulldomain" | sed "s/\\.$_domain\$//")"
+        _domain=$_domain
         return 0
       else
         _err 'Invalid domain'
