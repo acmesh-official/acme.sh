@@ -145,8 +145,8 @@ _vultr_rest() {
 
   api_key_trimmed=$(echo $VULTR_API_KEY | tr -d '"')
 
-  export _H1="Api-Key: $VULTR_API_KEY"
-  export _H2="Content-Type: application/x-www-form-urlencoded"
+  export _H1="Api-Key: $api_key_trimmed"
+  export _H2='Content-Type: application/x-www-form-urlencoded'
 
   if [ "$m" != "GET" ]; then
     _debug data "$data"
