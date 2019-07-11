@@ -3182,10 +3182,7 @@ _on_before_issue() {
       _netprc="$(_ss "$_checkport" | grep "$_checkport")"
       netprc="$(echo "$_netprc" | grep "$_checkaddr")"
       if [ -z "$netprc" ]; then
-        # Only check for local bindings when you aren't looking for a specific IP
-        if [ -z "$_checkaddr" ]; then
-          netprc="$(echo "$_netprc" | grep "$LOCAL_ANY_ADDRESS")"
-        fi
+        netprc="$(echo "$_netprc" | grep "$LOCAL_ANY_ADDRESS")"
       fi
       if [ "$netprc" ]; then
         _err "$netprc"
@@ -4250,7 +4247,6 @@ $_authorizations_map"
 
       fi
     elif [ "$vtype" = "$VTYPE_ALPN" ]; then
-      _ncaddr="$(_getfield "$_local_addr" "$_ncIndex")"
       acmevalidationv1="$(printf "%s" "$keyauthorization" | _digest "sha256" "hex")"
       _debug acmevalidationv1 "$acmevalidationv1"
       if ! _starttlsserver "$d" "" "$Le_TLSPort" "$keyauthorization" "$_ncaddr" "$acmevalidationv1"; then
