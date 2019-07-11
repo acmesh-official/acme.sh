@@ -305,7 +305,7 @@ _freedns_domain_id() {
 
     domain_id="$(echo "$htmlpage" | tr -d "[:space:]" | sed 's/<tr>/@<tr>/g' | tr '@' '\n' \
       | grep "<td>$search_domain</td>\|<td>$search_domain(.*)</td>" \
-      | _egrep_o "edit\.php\?edit_domain_id=[0-9a-zA-Z]+" \
+      | _egrep_o "edit\.php?edit_domain_id=[0-9a-zA-Z]*" \
       | cut -d = -f 2)"
     # The above beauty extracts domain ID from the html page...
     # strip out all blank space and new lines. Then insert newlines
@@ -352,7 +352,7 @@ _freedns_data_id() {
     data_id="$(echo "$htmlpage" | tr -d "[:space:]" | sed 's/<tr>/@<tr>/g' | tr '@' '\n' \
       | grep "<td[a-zA-Z=#]*>$record_type</td>" \
       | grep "<ahref.*>$search_domain</a>" \
-      | _egrep_o "edit\.php\?data_id=[0-9a-zA-Z]+" \
+      | _egrep_o "edit\.php?data_id=[0-9a-zA-Z]*" \
       | cut -d = -f 2)"
     # The above beauty extracts data ID from the html page...
     # strip out all blank space and new lines. Then insert newlines
