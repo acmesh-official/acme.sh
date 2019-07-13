@@ -6,7 +6,6 @@
 #JD_REGION="cn-north-1"
 #JD_PACK_ID=0
 
-
 _JD_ACCOUNT="https://uc.jdcloud.com/account/accesskey"
 
 _JD_PROD="clouddnsservice"
@@ -20,7 +19,6 @@ _JD_HOST="$_JD_PROD.$_JD_API"
 _JD_PACK_FREE=0
 _JD_PACK_ENTERPRISE=1
 _JD_PACK_PREMIUM=2
-
 
 ########  Public functions #####################
 
@@ -92,7 +90,6 @@ dns_jd_add() {
   return 1
 }
 
-
 dns_jd_rm() {
   fulldomain=$1
   txtvalue=$2
@@ -138,7 +135,6 @@ dns_jd_rm() {
 
 }
 
-
 ####################  Private functions below ##################################
 
 _get_root() {
@@ -179,7 +175,6 @@ _get_root() {
 
   return 1
 }
-
 
 #method uri qstr data
 jd_rest() {
@@ -302,4 +297,3 @@ jd_rest() {
 
   return "$_ret"
 }
-
