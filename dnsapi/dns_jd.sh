@@ -4,7 +4,6 @@
 #JD_ACCESS_KEY_ID="sdfsdfsdfljlbjkljlkjsdfoiwje"
 #JD_ACCESS_KEY_SECRET="xxxxxxx"
 #JD_REGION="cn-north-1"
-#JD_PACK_ID=0
 
 _JD_ACCOUNT="https://uc.jdcloud.com/account/accesskey"
 
@@ -16,10 +15,6 @@ _JD_DEFAULT_REGION="cn-north-1"
 
 _JD_HOST="$_JD_PROD.$_JD_API"
 
-_JD_PACK_FREE=0
-_JD_PACK_ENTERPRISE=1
-_JD_PACK_PREMIUM=2
-
 ########  Public functions #####################
 
 #Usage: dns_myapi_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
@@ -30,7 +25,6 @@ dns_jd_add() {
   JD_ACCESS_KEY_ID="${JD_ACCESS_KEY_ID:-$(_readaccountconf_mutable JD_ACCESS_KEY_ID)}"
   JD_ACCESS_KEY_SECRET="${JD_ACCESS_KEY_SECRET:-$(_readaccountconf_mutable JD_ACCESS_KEY_SECRET)}"
   JD_REGION="${JD_REGION:-$(_readaccountconf_mutable JD_REGION)}"
-  JD_PACK_ID="${JD_PACK_ID:-$(_readaccountconf_mutable JD_PACK_ID)}"
 
   if [ -z "$JD_ACCESS_KEY_ID" ] || [ -z "$JD_ACCESS_KEY_SECRET" ]; then
     JD_ACCESS_KEY_ID=""
@@ -50,13 +44,6 @@ dns_jd_add() {
   fi
   _JD_BASE_URI="$_JD_API_VERSION/regions/$JD_REGION"
 
-  if [ -z "$JD_PACK_ID" ]; then
-    _debug "Using default free pack: $_JD_PACK_FREE"
-    JD_PACK_ID=$_JD_PACK_FREE
-  else
-    _saveaccountconf_mutable JD_PACK_ID "$JD_PACK_ID"
-  fi
-
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
@@ -70,7 +57,7 @@ dns_jd_add() {
 
   _debug "Adding records"
 
-  _addrr="{\"req\":{\"hostRecord\":\"$_sub_domain\",\"hostValue\":\"$txtvalue\",\"ttl\":120,\"type\":\"TXT\",\"viewValue\":-1},\"regionId\":\"$JD_REGION\",\"domainId\":\"$_domain_id\"}"
+  _addrr="{\"req\":{\"hostRecord\":\"$_sub_domain\",\"hostValue\":\"$txtvalue\",\"ttl\":300,\"type\":\"TXT\",\"viewValue\":-1},\"regionId\":\"$JD_REGION\",\"domainId\":\"$_domain_id\"}"
   #_addrr='{"req":{"hostRecord":"xx","hostValue":"\"value4\"","jcloudRes":false,"mxPriority":null,"port":null,"ttl":300,"type":"TXT","weight":null,"viewValue":-1},"regionId":"cn-north-1","domainId":"8824"}'
   if jd_rest POST "domain/$_domain_id/RRAdd" "" "$_addrr"; then
     _rid="$(echo "$response" | tr '{},' '\n' | grep '"id":' | cut -d : -f 2)"
@@ -97,7 +84,7 @@ dns_jd_rm() {
   JD_ACCESS_KEY_ID="${JD_ACCESS_KEY_ID:-$(_readaccountconf_mutable JD_ACCESS_KEY_ID)}"
   JD_ACCESS_KEY_SECRET="${JD_ACCESS_KEY_SECRET:-$(_readaccountconf_mutable JD_ACCESS_KEY_SECRET)}"
   JD_REGION="${JD_REGION:-$(_readaccountconf_mutable JD_REGION)}"
-  JD_PACK_ID="${JD_PACK_ID:-$(_readaccountconf_mutable JD_PACK_ID)}"
+
   if [ -z "$JD_REGION" ]; then
     _debug "Using default region: $_JD_DEFAULT_REGION"
     JD_REGION="$_JD_DEFAULT_REGION"
