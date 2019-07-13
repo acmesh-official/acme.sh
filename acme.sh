@@ -3621,7 +3621,7 @@ _ns_purge_cf() {
   _cf_d="$1"
   _cf_d_type="$2"
   _debug "Cloudflare purge $_cf_d_type record for domain $_cf_d"
-  _cf_purl="https://1.1.1.1/api/v1/purge?domain=$_cf_d&type=$_cf_d_type"
+  _cf_purl="https://1.0.0.1/api/v1/purge?domain=$_cf_d&type=$_cf_d_type"
   response="$(_post "" "$_cf_purl")"
   _debug2 response "$response"
 }
