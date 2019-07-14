@@ -7,6 +7,7 @@
 #
 #Author: David Kerr
 #Report Bugs here: https://github.com/dkerr64/acme.sh
+#or here... https://github.com/Neilpang/acme.sh/issues/2305
 #
 ########  Public functions #####################
 
@@ -46,75 +47,33 @@ dns_freedns_add() {
 
   _saveaccountconf FREEDNS_COOKIE "$FREEDNS_COOKIE"
 
-  # split our full domain name into two parts...
-  i="$(echo "$fulldomain" | tr '.' ' ' | wc -w)"
-  i="$(_math "$i" - 1)"
-  top_domain="$(echo "$fulldomain" | cut -d. -f "$i"-100)"
-  i="$(_math "$i" - 1)"
-  sub_domain="$(echo "$fulldomain" | cut -d. -f -"$i")"
+  # We may have to cycle through the domain name to find the
+  # TLD that we own...
+  i=1
+  wmax="$(echo "$fulldomain" | tr '.' ' ' | wc -w)"
+  while [ "$i" -lt "$wmax" ]; do
+    # split our full domain name into two parts...
+    sub_domain="$(echo "$fulldomain" | cut -d. -f -"$i")"
+    i="$(_math "$i" + 1)"
+    top_domain="$(echo "$fulldomain" | cut -d. -f "$i"-100)"
+    _debug "sub_domain: $sub_domain"
+    _debug "top_domain: $top_domain"
 
-  _debug "top_domain: $top_domain"
-  _debug "sub_domain: $sub_domain"
-
-  # Sometimes FreeDNS does not return the subdomain page but rather
-  # returns a page regarding becoming a premium member.  This usually
-  # happens after a period of inactivity.  Immediately trying again
-  # returns the correct subdomain page.  So, we will try twice to
-  # load the page and obtain our domain ID
-  attempts=2
-  while [ "$attempts" -gt "0" ]; do
-    attempts="$(_math "$attempts" - 1)"
-
-    htmlpage="$(_freedns_retrieve_subdomain_page "$FREEDNS_COOKIE")"
-    if [ "$?" != "0" ]; then
-      if [ "$using_cached_cookies" = "true" ]; then
-        _err "Has your FreeDNS username and password changed?  If so..."
-        _err "Please export as FREEDNS_User / FREEDNS_Password and try again."
-      fi
-      return 1
-    fi
-
-    subdomain_csv="$(echo "$htmlpage" | tr -d "\n\r" | _egrep_o '<form .*</form>' | sed 's/<tr>/@<tr>/g' | tr '@' '\n' | grep edit.php | grep "$top_domain")"
-    _debug3 "subdomain_csv: $subdomain_csv"
-
-    # The above beauty ends with striping out rows that do not have an
-    # href to edit.php and do not have the top domain we are looking for.
-    # So all we should be left with is CSV of table of subdomains we are
-    # interested in.
-
-    # Now we have to read through this table and extract the data we need
-    lines="$(echo "$subdomain_csv" | wc -l)"
-    i=0
-    found=0
-    DNSdomainid=""
-    while [ "$i" -lt "$lines" ]; do
-      i="$(_math "$i" + 1)"
-      line="$(echo "$subdomain_csv" | sed -n "${i}p")"
-      _debug2 "line: $line"
-      if [ $found = 0 ] && _contains "$line" "<td>$top_domain</td>"; then
-        # this line will contain DNSdomainid for the top_domain
-        DNSdomainid="$(echo "$line" | _egrep_o "edit_domain_id *= *.*>" | cut -d = -f 2 | cut -d '>' -f 1)"
-        _debug2 "DNSdomainid: $DNSdomainid"
-        found=1
-        break
-      fi
-    done
-
-    if [ -z "$DNSdomainid" ]; then
-      # If domain ID is empty then something went wrong (top level
-      # domain not found at FreeDNS).
-      if [ "$attempts" = "0" ]; then
-        # exhausted maximum retry attempts
-        _err "Domain $top_domain not found at FreeDNS"
-        return 1
-      fi
-    else
-      # break out of the 'retry' loop... we have found our domain ID
+    DNSdomainid="$(_freedns_domain_id "$top_domain")"
+    if [ "$?" = "0" ]; then
+      _info "Domain $top_domain found at FreeDNS, domain_id $DNSdomainid"
       break
+    else
+      _info "Domain $top_domain not found at FreeDNS, try with next level of TLD"
     fi
-    _info "Domain $top_domain not found at FreeDNS"
-    _info "Retry loading subdomain page ($attempts attempts remaining)"
   done
+
+  if [ -z "$DNSdomainid" ]; then
+    # If domain ID is empty then something went wrong (top level
+    # domain not found at FreeDNS).
+    _err "Domain $top_domain not found at FreeDNS"
+    return 1
+  fi
 
   # Add in new TXT record with the value provided
   _debug "Adding TXT record for $fulldomain, $txtvalue"
@@ -134,80 +93,47 @@ dns_freedns_rm() {
 
   # Need to read cookie from conf file again in case new value set
   # during login to FreeDNS when TXT record was created.
-  # acme.sh does not have a _readaccountconf() function
-  FREEDNS_COOKIE="$(_read_conf "$ACCOUNT_CONF_PATH" "FREEDNS_COOKIE")"
+  FREEDNS_COOKIE="$(_readaccountconf "FREEDNS_COOKIE")"
   _debug "FreeDNS login cookies: $FREEDNS_COOKIE"
 
-  # Sometimes FreeDNS does not return the subdomain page but rather
-  # returns a page regarding becoming a premium member.  This usually
-  # happens after a period of inactivity.  Immediately trying again
-  # returns the correct subdomain page.  So, we will try twice to
-  # load the page and obtain our TXT record.
-  attempts=2
-  while [ "$attempts" -gt "0" ]; do
-    attempts="$(_math "$attempts" - 1)"
+  TXTdataid="$(_freedns_data_id "$fulldomain" "TXT")"
+  if [ "$?" != "0" ]; then
+    _info "Cannot delete TXT record for $fulldomain, record does not exist at FreeDNS"
+    return 1
+  fi
+  _debug "Data ID's found, $TXTdataid"
 
-    htmlpage="$(_freedns_retrieve_subdomain_page "$FREEDNS_COOKIE")"
+  # now we have one (or more) TXT record data ID's. Load the page
+  # for that record and search for the record txt value.  If match
+  # then we can delete it.
+  lines="$(echo "$TXTdataid" | wc -l)"
+  _debug "Found $lines TXT data records for $fulldomain"
+  i=0
+  while [ "$i" -lt "$lines" ]; do
+    i="$(_math "$i" + 1)"
+    dataid="$(echo "$TXTdataid" | sed -n "${i}p")"
+    _debug "$dataid"
+
+    htmlpage="$(_freedns_retrieve_data_page "$FREEDNS_COOKIE" "$dataid")"
     if [ "$?" != "0" ]; then
+      if [ "$using_cached_cookies" = "true" ]; then
+        _err "Has your FreeDNS username and password changed?  If so..."
+        _err "Please export as FREEDNS_User / FREEDNS_Password and try again."
+      fi
       return 1
     fi
 
-    subdomain_csv="$(echo "$htmlpage" | tr -d "\n\r" | _egrep_o '<form .*</form>' | sed 's/<tr>/@<tr>/g' | tr '@' '\n' | grep edit.php | grep "$fulldomain")"
-    _debug3 "subdomain_csv: $subdomain_csv"
-
-    # The above beauty ends with striping out rows that do not have an
-    # href to edit.php and do not have the domain name we are looking for.
-    # So all we should be left with is CSV of table of subdomains we are
-    # interested in.
-
-    # Now we have to read through this table and extract the data we need
-    lines="$(echo "$subdomain_csv" | wc -l)"
-    i=0
-    found=0
-    DNSdataid=""
-    while [ "$i" -lt "$lines" ]; do
-      i="$(_math "$i" + 1)"
-      line="$(echo "$subdomain_csv" | sed -n "${i}p")"
-      _debug3 "line: $line"
-      DNSname="$(echo "$line" | _egrep_o 'edit.php.*</a>' | cut -d '>' -f 2 | cut -d '<' -f 1)"
-      _debug2 "DNSname: $DNSname"
-      if [ "$DNSname" = "$fulldomain" ]; then
-        DNStype="$(echo "$line" | sed 's/<td/@<td/g' | tr '@' '\n' | sed -n '4p' | cut -d '>' -f 2 | cut -d '<' -f 1)"
-        _debug2 "DNStype: $DNStype"
-        if [ "$DNStype" = "TXT" ]; then
-          DNSdataid="$(echo "$line" | _egrep_o 'data_id=.*' | cut -d = -f 2 | cut -d '>' -f 1)"
-          _debug2 "DNSdataid: $DNSdataid"
-          DNSvalue="$(echo "$line" | sed 's/<td/@<td/g' | tr '@' '\n' | sed -n '5p' | cut -d '>' -f 2 | cut -d '<' -f 1)"
-          if _startswith "$DNSvalue" "&quot;"; then
-            # remove the quotation from the start
-            DNSvalue="$(echo "$DNSvalue" | cut -c 7-)"
-          fi
-          if _endswith "$DNSvalue" "..."; then
-            # value was truncated, remove the dot dot dot from the end
-            DNSvalue="$(echo "$DNSvalue" | sed 's/...$//')"
-          elif _endswith "$DNSvalue" "&quot;"; then
-            # else remove the closing quotation from the end
-            DNSvalue="$(echo "$DNSvalue" | sed 's/......$//')"
-          fi
-          _debug2 "DNSvalue: $DNSvalue"
-
-          if [ -n "$DNSdataid" ] && _startswith "$txtvalue" "$DNSvalue"; then
-            # Found a match. But note... Website is truncating the
-            # value field so we are only testing that part that is not 
-            # truncated.  This should be accurate enough.
-            _debug "Deleting TXT record for $fulldomain, $txtvalue"
-            _freedns_delete_txt_record "$FREEDNS_COOKIE" "$DNSdataid"
-            return $?
-          fi
-
-        fi
-      fi
-    done
+    echo "$htmlpage" | grep "value=\"&quot;$txtvalue&quot;\"" >/dev/null
+    if [ "$?" = "0" ]; then
+      # Found a match... delete the record and return
+      _info "Deleting TXT record for $fulldomain, $txtvalue"
+      _freedns_delete_txt_record "$FREEDNS_COOKIE" "$dataid"
+      return $?
+    fi
   done
 
-  # If we get this far we did not find a match (after two attempts)
+  # If we get this far we did not find a match
   # Not necessarily an error, but log anyway.
-  _debug3 "$subdomain_csv"
   _info "Cannot delete TXT record for $fulldomain, $txtvalue. Does not exist at FreeDNS"
   return 0
 }
@@ -271,6 +197,33 @@ _freedns_retrieve_subdomain_page() {
   return 0
 }
 
+# usage _freedns_retrieve_data_page login_cookies data_id
+# echo page retrieved (html)
+# returns 0 success
+_freedns_retrieve_data_page() {
+  export _H1="Cookie:$1"
+  export _H2="Accept-Language:en-US"
+  data_id="$2"
+  url="https://freedns.afraid.org/subdomain/edit.php?data_id=$2"
+
+  _debug "Retrieve data page for ID $data_id from FreeDNS"
+
+  htmlpage="$(_get "$url")"
+
+  if [ "$?" != "0" ]; then
+    _err "FreeDNS retrieve data page failed bad RC from _get"
+    return 1
+  elif [ -z "$htmlpage" ]; then
+    _err "FreeDNS returned empty data page"
+    return 1
+  fi
+
+  _debug3 "htmlpage: $htmlpage"
+
+  printf "%s" "$htmlpage"
+  return 0
+}
+
 # usage _freedns_add_txt_record login_cookies domain_id subdomain value
 # returns 0 success
 _freedns_add_txt_record() {
@@ -323,4 +276,96 @@ _freedns_delete_txt_record() {
 
   _info "Deleted acme challenge TXT record for $fulldomain at FreeDNS"
   return 0
+}
+
+# usage _freedns_domain_id domain_name
+# echo the domain_id if found
+# return 0 success
+_freedns_domain_id() {
+  # Start by escaping the dots in the domain name
+  search_domain="$(echo "$1" | sed 's/\./\\./g')"
+
+  # Sometimes FreeDNS does not return the subdomain page but rather
+  # returns a page regarding becoming a premium member.  This usually
+  # happens after a period of inactivity.  Immediately trying again
+  # returns the correct subdomain page.  So, we will try twice to
+  # load the page and obtain our domain ID
+  attempts=2
+  while [ "$attempts" -gt "0" ]; do
+    attempts="$(_math "$attempts" - 1)"
+
+    htmlpage="$(_freedns_retrieve_subdomain_page "$FREEDNS_COOKIE")"
+    if [ "$?" != "0" ]; then
+      if [ "$using_cached_cookies" = "true" ]; then
+        _err "Has your FreeDNS username and password changed?  If so..."
+        _err "Please export as FREEDNS_User / FREEDNS_Password and try again."
+      fi
+      return 1
+    fi
+
+    domain_id="$(echo "$htmlpage" | tr -d "[:space:]" | sed 's/<tr>/@<tr>/g' | tr '@' '\n' \
+      | grep "<td>$search_domain</td>\|<td>$search_domain(.*)</td>" \
+      | _egrep_o "edit\.php\?edit_domain_id=[0-9a-zA-Z]+" \
+      | cut -d = -f 2)"
+    # The above beauty extracts domain ID from the html page...
+    # strip out all blank space and new lines. Then insert newlines
+    # before each table row <tr>
+    # search for the domain within each row (which may or may not have
+    # a text string in brackets (.*) after it.
+    # And finally extract the domain ID.
+    if [ -n "$domain_id" ]; then
+      printf "%s" "$domain_id"
+      return 0
+    fi
+    _debug "Domain $search_domain not found. Retry loading subdomain page ($attempts attempts remaining)"
+  done
+  _debug "Domain $search_domain not found after retry"
+  return 1
+}
+
+# usage _freedns_data_id domain_name record_type
+# echo the data_id(s) if found
+# return 0 success
+_freedns_data_id() {
+  # Start by escaping the dots in the domain name
+  search_domain="$(echo "$1" | sed 's/\./\\./g')"
+  record_type="$2"
+
+  # Sometimes FreeDNS does not return the subdomain page but rather
+  # returns a page regarding becoming a premium member.  This usually
+  # happens after a period of inactivity.  Immediately trying again
+  # returns the correct subdomain page.  So, we will try twice to
+  # load the page and obtain our domain ID
+  attempts=2
+  while [ "$attempts" -gt "0" ]; do
+    attempts="$(_math "$attempts" - 1)"
+
+    htmlpage="$(_freedns_retrieve_subdomain_page "$FREEDNS_COOKIE")"
+    if [ "$?" != "0" ]; then
+      if [ "$using_cached_cookies" = "true" ]; then
+        _err "Has your FreeDNS username and password changed?  If so..."
+        _err "Please export as FREEDNS_User / FREEDNS_Password and try again."
+      fi
+      return 1
+    fi
+
+    data_id="$(echo "$htmlpage" | tr -d "[:space:]" | sed 's/<tr>/@<tr>/g' | tr '@' '\n' \
+      | grep "<td[a-zA-Z=#]*>$record_type</td>" \
+      | grep "<ahref.*>$search_domain</a>" \
+      | _egrep_o "edit\.php\?data_id=[0-9a-zA-Z]+" \
+      | cut -d = -f 2)"
+    # The above beauty extracts data ID from the html page...
+    # strip out all blank space and new lines. Then insert newlines
+    # before each table row <tr>
+    # search for the record type withing each row (e.g. TXT)
+    # search for the domain within each row (which is within a <a..>
+    # </a> anchor. And finally extract the domain ID.         
+    if [ -n "$data_id" ]; then
+      printf "%s" "$data_id"
+      return 0
+    fi
+    _debug "Domain $search_domain not found. Retry loading subdomain page ($attempts attempts remaining)"
+  done
+  _debug "Domain $search_domain not found after retry"
+  return 1
 }
