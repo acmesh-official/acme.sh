@@ -33,7 +33,7 @@ dns_vultr_add() {
   _debug 'Getting txt records'
   _vultr_rest GET "dns/records?domain=$_domain"
 
-  if printf "%s\n" "$response" | grep "{\"type\":\"TXT\",\"name\":\"$fulldomain\"" >/dev/null; then
+  if printf "%s\n" "$response" | grep "\"type\":\"TXT\",\"name\":\"$fulldomain\"" >/dev/null; then
     _err 'Error'
     return 1
   fi
@@ -49,9 +49,6 @@ dns_vultr_add() {
 
 #fulldomain txtvalue
 dns_vultr_rm() {
-  fulldomain=$1
-  txtvalue=$2
-
   fulldomain=$1
   txtvalue=$2
   _debug fulldomain "$fulldomain"
@@ -76,16 +73,13 @@ dns_vultr_rm() {
   _debug 'Getting txt records'
   _vultr_rest GET "dns/records?domain=$_domain"
 
-  if printf "%s\n" "$response" | grep "{\"type\":\"TXT\",\"name\":\"$fulldomain\"" >/dev/null; then
+  if printf "%s\n" "$response" | grep "\"type\":\"TXT\",\"name\":\"$fulldomain\"" >/dev/null; then
     _err 'Error'
     return 1
   fi
 
-  _record="$(echo "$response" | _egrep_o "{[^}]*\"type\"\\s*:\\s*\"TXT\"[^}]*}")"
-  _record="$(echo "$_record" | grep "\"name\"\\s*:\\s*\"_acme-challenge")"
-  _record="$(echo "$_record" | grep "\"data\"\\s*:\\W*$txtvalue")"
-  _record_id="$(echo "$_record" | _egrep_o "\"RECORDID\"\\s*:\\s*[^,]+")"
-  _record_id="$(_getfield "$_record_id" 2 ':')"
+  _record="$(echo "$response" | _egrep_o "\"type\":\"TXT\",\"name\":\"_acme-challenge\",\"data\":\\W*$txtvalue\\W*\",\"priority\":0,\"RECORDID\":\\d*")"
+  _record_id="$(_getfield "$_record" 6 ':')"
 
   if ! _vultr_rest POST 'dns/delete_record' "domain=$_domain&RECORDID=$_record_id"; then
     _err "$response"
@@ -109,7 +103,6 @@ _get_root() {
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     _debug h "$h"
     if [ -z "$h" ]; then
-      #not valid
       return 1
     fi
 
