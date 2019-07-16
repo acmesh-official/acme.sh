@@ -2100,6 +2100,26 @@ _getdeployconf() {
   eval "export $_rac_key=$_saved"
 }
 
+#key
+_getdnsapiconf() {
+  _rac_key="$1"
+  _rac_value="$(eval echo \$"$_rac_key")"
+  if [ "$_rac_value" ]; then
+    if _startswith "$_rac_value" '"' && _endswith "$_rac_value" '"'; then
+      _debug2 "trim quotation marks"
+      eval "export $_rac_key=$_rac_value"
+    fi
+    return 0 # do nothing
+  fi
+  _saved=$(_readaccountconf_mutable "$_rac_key")
+  eval "export $_rac_key=$_saved"
+}
+
+#key  value base64encode
+_savednsapiconf() {
+  _saveaccountconf_mutable "$@"
+}
+
 #_saveaccountconf  key  value  base64encode
 _saveaccountconf() {
   _save_conf "$ACCOUNT_CONF_PATH" "$@"

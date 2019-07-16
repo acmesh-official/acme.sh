@@ -14,8 +14,9 @@ dns_cf_add() {
   fulldomain=$1
   txtvalue=$2
 
-  CF_Key="${CF_Key:-$(_readaccountconf_mutable CF_Key)}"
-  CF_Email="${CF_Email:-$(_readaccountconf_mutable CF_Email)}"
+  _getdnsapiconf CF_Key
+  _getdnsapiconf CF_Email
+
   if [ -z "$CF_Key" ] || [ -z "$CF_Email" ]; then
     CF_Key=""
     CF_Email=""
@@ -31,8 +32,8 @@ dns_cf_add() {
   fi
 
   #save the api key and email to the account conf file.
-  _saveaccountconf_mutable CF_Key "$CF_Key"
-  _saveaccountconf_mutable CF_Email "$CF_Email"
+  _savednsapiconf CF_Key "$CF_Key"
+  _savednsapiconf CF_Email "$CF_Email"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -92,8 +93,8 @@ dns_cf_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  CF_Key="${CF_Key:-$(_readaccountconf_mutable CF_Key)}"
-  CF_Email="${CF_Email:-$(_readaccountconf_mutable CF_Email)}"
+  _getdnsapiconf CF_Key
+  _getdnsapiconf CF_Email
   if [ -z "$CF_Key" ] || [ -z "$CF_Email" ]; then
     CF_Key=""
     CF_Email=""
