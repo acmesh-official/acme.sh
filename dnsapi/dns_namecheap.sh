@@ -164,7 +164,7 @@ _namecheap_set_publicip() {
     _debug sourceip "$NAMECHEAP_SOURCEIP"
 
     ip=$(echo "$NAMECHEAP_SOURCEIP" | _egrep_o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
-    addr=$(echo "$NAMECHEAP_SOURCEIP" | _egrep_o '(http|https)://.*')
+    addr=$(echo "$NAMECHEAP_SOURCEIP" | _egrep_o '(http|https):\/\/.*')
 
     _debug2 ip "$ip"
     _debug2 addr "$addr"
