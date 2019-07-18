@@ -78,8 +78,7 @@ dns_vultr_rm() {
     return 1
   fi
 
-  _record="$(echo "$response" | _egrep_o "\"type\":\"TXT\",\"name\":\"_acme-challenge\",\"data\":\\W*$txtvalue\\W*\",\"priority\":0,\"RECORDID\":\\d*")"
-  _record_id="$(_getfield "$_record" 6 ':')"
+  _record_id="$( echo "$response" | tr '{}' '\n' | grep '"TXT"'| grep "$txtvalue" | tr ',' '\n' | grep -i 'RECORDID' | cut -d : -f 2)"
 
   if ! _vultr_rest POST 'dns/delete_record' "domain=$_domain&RECORDID=$_record_id"; then
     _err "$response"
