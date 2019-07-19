@@ -79,6 +79,13 @@ dns_vultr_rm() {
   fi
 
   _record_id="$(echo "$response" | tr '{}' '\n' | grep '"TXT"' | grep "$txtvalue" | tr ',' '\n' | grep -i 'RECORDID' | cut -d : -f 2)"
+  _debug _record_id "$_record_id"
+  if [ "$_record_id" ]; then
+    _info "Successfully retrieved the record id for ACME challenge."
+  else
+    _info "Empty record id, it seems no such record."
+    return 0
+  fi
 
   if ! _vultr_rest POST 'dns/delete_record' "domain=$_domain&RECORDID=$_record_id"; then
     _err "$response"
