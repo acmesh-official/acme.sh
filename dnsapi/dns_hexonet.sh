@@ -1,9 +1,9 @@
 #!/usr/bin/env sh
 
 #
-# Hexonet_Username="username"
+# Hexonet_Login="username!roleId"
 #
-# Hexonet_Password="password"
+# Hexonet_Password="rolePassword"
 
 Hexonet_Api="https://coreapi.1api.net/api/call.cgi"
 
@@ -14,23 +14,23 @@ dns_hexonet_add() {
   fulldomain=$1
   txtvalue=$2
 
-  Hexonet_Username="${Hexonet_Username:-$(_readaccountconf_mutable Hexonet_Username)}"
+  Hexonet_Login="${Hexonet_Login:-$(_readaccountconf_mutable Hexonet_Login)}"
   Hexonet_Password="${Hexonet_Password:-$(_readaccountconf_mutable Hexonet_Password)}"
-  if [ -z "$Hexonet_Username" ] || [ -z "$Hexonet_Password" ]; then
-    Hexonet_Username=""
+  if [ -z "$Hexonet_Login" ] || [ -z "$Hexonet_Password" ]; then
+    Hexonet_Login=""
     Hexonet_Password=""
-    _err "You must export variables: Hexonet_Username and Hexonet_Password"
+    _err "You must export variables: Hexonet_Login and Hexonet_Password"
     return 1
   fi
 
-  if ! _contains "$Hexonet_Username" "!"; then
-    _err "It seems that the Hexonet_Username=$Hexonet_Username is not a restrivteed user."
+  if ! _contains "$Hexonet_Login" "!"; then
+    _err "It seems that the Hexonet_Login=$Hexonet_Login is not a restrivteed user."
     _err "Please check and retry."
     return 1
   fi
 
   #save the username and password to the account conf file.
-  _saveaccountconf_mutable Hexonet_Username "$Hexonet_Username"
+  _saveaccountconf_mutable Hexonet_Login "$Hexonet_Login"
   _saveaccountconf_mutable Hexonet_Password "$Hexonet_Password"
 
   _debug "First detect the root zone"
@@ -69,12 +69,12 @@ dns_hexonet_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  Hexonet_Username="${Hexonet_Username:-$(_readaccountconf_mutable Hexonet_Username)}"
+  Hexonet_Login="${Hexonet_Login:-$(_readaccountconf_mutable Hexonet_Login)}"
   Hexonet_Password="${Hexonet_Password:-$(_readaccountconf_mutable Hexonet_Password)}"
-  if [ -z "$Hexonet_Username" ] || [ -z "$Hexonet_Password" ]; then
-    Hexonet_Username=""
+  if [ -z "$Hexonet_Login" ] || [ -z "$Hexonet_Password" ]; then
+    Hexonet_Login=""
     Hexonet_Password=""
-    _err "You must export variables: Hexonet_Username and Hexonet_Password"
+    _err "You must export variables: Hexonet_Login and Hexonet_Password"
     return 1
   fi
 
@@ -145,7 +145,7 @@ _hexonet_rest() {
   query_params="$1"
   _debug "$query_params"
 
-  response="$(_get "${Hexonet_Api}?s_login=${Hexonet_Username}&s_pw=${Hexonet_Password}&${query_params}")"
+  response="$(_get "${Hexonet_Api}?s_login=${Hexonet_Login}&s_pw=${Hexonet_Password}&${query_params}")"
 
   if [ "$?" != "0" ]; then
     _err "error $query_params"
