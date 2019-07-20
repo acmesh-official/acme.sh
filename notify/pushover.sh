@@ -31,23 +31,20 @@ pushover_send() {
   _saveaccountconf_mutable PUSHOVER_USER "$PUSHOVER_USER"
 
   PUSHOVER_DEVICE="${PUSHOVER_DEVICE:-$(_readaccountconf_mutable PUSHOVER_DEVICE)}"
-  if [ -z "$PUSHOVER_DEVICE" ]; then
-    PUSHOVER_DEVICE=""
+  if [ "$PUSHOVER_DEVICE" ]; then
+    _saveaccountconf_mutable PUSHOVER_DEVICE "$PUSHOVER_DEVICE"
   fi
-  _saveaccountconf_mutable PUSHOVER_DEVICE "$PUSHOVER_DEVICE"
 
   PUSHOVER_PRIORITY="${PUSHOVER_PRIORITY:-$(_readaccountconf_mutable PUSHOVER_PRIORITY)}"
-  if [ -z "$PUSHOVER_PRIORITY" ]; then
-    PUSHOVER_PRIORITY="0"
+  if [ "$PUSHOVER_PRIORITY" ]; then
+    _saveaccountconf_mutable PUSHOVER_PRIORITY "$PUSHOVER_PRIORITY"
   fi
-  _saveaccountconf_mutable PUSHOVER_PRIORITY "$PUSHOVER_PRIORITY"
-
 
   PUSHOVER_SOUND="${PUSHOVER_SOUND:-$(_readaccountconf_mutable PUSHOVER_SOUND)}"
-  if [ -z "$PUSHOVER_SOUND" ]; then
+  if [ "$PUSHOVER_SOUND" ]; then
     PUSHOVER_SOUND="" # Play default if not specified.
+    _saveaccountconf_mutable PUSHOVER_SOUND "$PUSHOVER_SOUND"
   fi
-  _saveaccountconf_mutable PUSHOVER_SOUND "$PUSHOVER_SOUND"
 
   export _H1="Content-Type: application/json"
   _content="$(printf "*%s*\n" "$_content" | _json_encode)"
