@@ -42,7 +42,6 @@ pushover_send() {
 
   PUSHOVER_SOUND="${PUSHOVER_SOUND:-$(_readaccountconf_mutable PUSHOVER_SOUND)}"
   if [ "$PUSHOVER_SOUND" ]; then
-    PUSHOVER_SOUND="" # Play default if not specified.
     _saveaccountconf_mutable PUSHOVER_SOUND "$PUSHOVER_SOUND"
   fi
 
@@ -54,7 +53,7 @@ pushover_send() {
   response="" #just make shellcheck happy
   if _post "$_data" "$PUSHOVER_URI"; then
     if _contains "$response" "{\"status\":1"; then
-      _info "PUSHOVER send sccess."
+      _info "PUSHOVER send success."
       return 0
     fi
   fi
