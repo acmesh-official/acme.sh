@@ -223,7 +223,8 @@ _docker_cp() {
     _debug2 "_frompath" "$_frompath"
     _toname="$(basename "$_to")"
     _debug2 "_toname" "$_toname"
-    if ! tar --transform="s,$_frompath,$_toname," -cz "$_from" 2>/dev/null | _curl_unix_sock "$_DOCKER_SOCK" PUT "/containers/$_dcid/archive?noOverwriteDirNonDir=1&path=$(printf "%s" "$_dir" | _url_encode)" '@-' "Content-Type: application/octet-stream"; then
+    _debug2 "_from" "$_from"
+    if ! tar --transform="s,$(printf "%s" "$_frompath" | tr '*' .),$_toname," -cz "$_from" 2>/dev/null | _curl_unix_sock "$_DOCKER_SOCK" PUT "/containers/$_dcid/archive?noOverwriteDirNonDir=1&path=$(printf "%s" "$_dir" | _url_encode)" '@-' "Content-Type: application/octet-stream"; then
       _err "copy error"
       return 1
     fi
