@@ -126,6 +126,7 @@ docker_deploy() {
   fi
 
   if [ "$DEPLOY_DOCKER_CONTAINER_RELOAD_CMD" ]; then
+    _info "Reloading: $DEPLOY_DOCKER_CONTAINER_RELOAD_CMD"
     if ! _docker_exec "$_cid" "$DEPLOY_DOCKER_CONTAINER_RELOAD_CMD"; then
       return 1
     fi
