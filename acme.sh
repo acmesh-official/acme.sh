@@ -3035,11 +3035,13 @@ _clearupdns() {
     d=$(_getfield "$entry" 1)
     txtdomain=$(_getfield "$entry" 2)
     aliasDomain=$(_getfield "$entry" 3)
+    _currentRoot=$(_getfield "$entry" 4)
     txt=$(_getfield "$entry" 5)
     d_api=$(_getfield "$entry" 6)
     _debug "d" "$d"
     _debug "txtdomain" "$txtdomain"
     _debug "aliasDomain" "$aliasDomain"
+    _debug "_currentRoot" "$_currentRoot"
     _debug "txt" "$txt"
     _debug "d_api" "$d_api"
     if [ "$d_api" = "$txt" ]; then
@@ -6787,7 +6789,7 @@ _process() {
       _debug "Using server: $_server"
     fi
   fi
-
+  _debug "Running cmd: ${_CMD}"
   case "${_CMD}" in
     install) install "$_nocron" "$_confighome" "$_noprofile" ;;
     uninstall) uninstall "$_nocron" ;;
