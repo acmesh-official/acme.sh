@@ -26,7 +26,7 @@ xmpp_send() {
   else
     _clearaccountconf "XMPP_BIN"
   fi
-  
+
   XMPP_BIN_ARGS="${XMPP_BIN_ARGS:-$(_readaccountconf_mutable XMPP_BIN_ARGS)}"
   if [ -n "$XMPP_BIN_ARGS" ]; then
     _saveaccountconf_mutable XMPP_BIN_ARGS "$XMPP_BIN_ARGS"
@@ -73,7 +73,6 @@ _xmpp_bin() {
 _xmpp_cmnd() {
   case $(basename "$_XMPP_BIN") in
     sendxmpp)
-      _debug "'$_XMPP_BIN' '$XMPP_TO' $XMPP_BIN_ARGS"
       echo "'$_XMPP_BIN' '$XMPP_TO' $XMPP_BIN_ARGS"
       ;;
     *)
