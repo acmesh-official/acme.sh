@@ -21,7 +21,7 @@ dns_cf_add() {
   CF_Account_ID="${CF_Account_ID:-$(_readaccountconf_mutable CF_Account_ID)}"
   CF_Key="${CF_Key:-$(_readaccountconf_mutable CF_Key)}"
   CF_Email="${CF_Email:-$(_readaccountconf_mutable CF_Email)}"
-  
+
   if [ "$CF_Token" ]; then
     _saveaccountconf_mutable CF_Token "$CF_Token"
     _saveaccountconf_mutable CF_Account_ID "$CF_Account_ID"
