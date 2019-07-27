@@ -180,9 +180,9 @@ _cf_rest() {
   data="$3"
   _debug "$ep"
 
-  email_trimmed=$(echo $CF_Email | tr -d '"')
-  key_trimmed=$(echo $CF_Key | tr -d '"')
-  token_trimmed=$(echo $CF_Token | tr -d '"')
+  email_trimmed=$(echo "$CF_Email" | tr -d '"')
+  key_trimmed=$(echo "$CF_Key" | tr -d '"')
+  token_trimmed=$(echo "$CF_Token" | tr -d '"')
 
   export _H1="Content-Type: application/json"
   if [ "$token_trimmed" ]; then
