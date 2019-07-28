@@ -5,7 +5,6 @@
 #XMPP_BIN="/usr/bin/sendxmpp"
 #XMPP_BIN_ARGS="-n -t --tls-ca-path=/etc/ssl/certs"
 #XMPP_TO="zzzz@example.com"
-#XMPP_NOVALIDATE=""
 
 xmpp_send() {
   _subject="$1"
