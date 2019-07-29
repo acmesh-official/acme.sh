@@ -2078,6 +2078,28 @@ _readdomainconf() {
   _read_conf "$DOMAIN_CONF" "$1"
 }
 
+#key  value  base64encode
+_savedeployconf() {
+  _savedomainconf "SAVED_$1" "$2" "$3"
+  #remove later
+  _cleardomainconf "$1"
+}
+
+#key
+_getdeployconf() {
+  _rac_key="$1"
+  _rac_value="$(eval echo \$"$_rac_key")"
+  if [ "$_rac_value" ]; then
+    if _startswith "$_rac_value" '"' && _endswith "$_rac_value" '"'; then
+      _debug2 "trim quotation marks"
+      eval "export $_rac_key=$_rac_value"
+    fi
+    return 0 # do nothing
+  fi
+  _saved=$(_readdomainconf "SAVED_$_rac_key")
+  eval "export $_rac_key=$_saved"
+}
+
 #_saveaccountconf  key  value  base64encode
 _saveaccountconf() {
   _save_conf "$ACCOUNT_CONF_PATH" "$@"
@@ -2428,7 +2450,7 @@ _initpath() {
     . "$ACCOUNT_CONF_PATH"
   fi
 
-  if [ "$IN_CRON" ]; then
+  if [ "$ACME_IN_CRON" ]; then
     if [ ! "$_USER_PATH_EXPORTED" ]; then
       _USER_PATH_EXPORTED=1
       export PATH="$USER_PATH:$PATH"
@@ -3013,11 +3035,13 @@ _clearupdns() {
     d=$(_getfield "$entry" 1)
     txtdomain=$(_getfield "$entry" 2)
     aliasDomain=$(_getfield "$entry" 3)
+    _currentRoot=$(_getfield "$entry" 4)
     txt=$(_getfield "$entry" 5)
     d_api=$(_getfield "$entry" 6)
     _debug "d" "$d"
     _debug "txtdomain" "$txtdomain"
     _debug "aliasDomain" "$aliasDomain"
+    _debug "_currentRoot" "$_currentRoot"
     _debug "txt" "$txt"
     _debug "d_api" "$d_api"
     if [ "$d_api" = "$txt" ]; then
@@ -3194,14 +3218,6 @@ _on_issue_err() {
     _err "See: $_DEBUG_WIKI"
   fi
 
-  if [ "$IN_CRON" ]; then
-    if [ "$NOTIFY_LEVEL" ] && [ $NOTIFY_LEVEL -ge $NOTIFY_LEVEL_ERROR ]; then
-      if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
-        _send_notify "Renew $_main_domain error" "There is an error." "$NOTIFY_HOOK" 1
-      fi
-    fi
-  fi
-
   #run the post hook
   if [ "$_chk_post_hook" ]; then
     _info "Run post hook:'$_chk_post_hook'"
@@ -3244,13 +3260,7 @@ _on_issue_success() {
   _chk_post_hook="$1"
   _chk_renew_hook="$2"
   _debug _on_issue_success
-  if [ "$IN_CRON" ]; then
-    if [ "$NOTIFY_LEVEL" ] && [ $NOTIFY_LEVEL -ge $NOTIFY_LEVEL_RENEW ]; then
-      if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
-        _send_notify "Renew $_main_domain success" "Good, the cert is renewed." "$NOTIFY_HOOK" 0
-      fi
-    fi
-  fi
+
   #run the post hook
   if [ "$_chk_post_hook" ]; then
     _info "Run post hook:'$_chk_post_hook'"
@@ -3620,7 +3630,7 @@ _ns_purge_cf() {
   if [ "$CLOUDFLARE_DNSPURGE_URL" ]; then
     _cf_purl="$CLOUDFLARE_DNSPURGE_URL?domain=$_cf_d&type=$_cf_d_type"
   else
-    _cf_purl="https://one.one.one.one/api/v1/purge?domain=$_cf_d&type=$_cf_d_type"
+    _cf_purl="https://1.0.0.1/api/v1/purge?domain=$_cf_d&type=$_cf_d_type"
   fi
   response="$(_post "" "$_cf_purl")"
   _debug2 response "$response"
@@ -3849,7 +3859,7 @@ issue() {
   _savedomainconf "Le_Keylength" "$_key_length"
 
   vlist="$Le_Vlist"
-
+  _cleardomainconf "Le_Vlist"
   _info "Getting domain auth token for each domain"
   sep='#'
   dvsep=','
@@ -4492,13 +4502,11 @@ $_authorizations_map"
       _info "Your cert key is in $(__green " $CERT_KEY_PATH ")"
     fi
 
-    if [ ! "$USER_PATH" ] || [ ! "$IN_CRON" ]; then
+    if [ ! "$USER_PATH" ] || [ ! "$ACME_IN_CRON" ]; then
       USER_PATH="$PATH"
       _saveaccountconf "USER_PATH" "$USER_PATH"
     fi
   fi
-
-  _cleardomainconf "Le_Vlist"
 
   if [ "$ACME_VERSION" = "2" ]; then
     _debug "v2 chain."
@@ -4674,19 +4682,10 @@ renew() {
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
     _info "Skip, Next renewal time is: $(__green "$Le_NextRenewTimeStr")"
     _info "Add '$(__red '--force')' to force to renew."
-
-    if [ "$IN_CRON" = "1" ]; then
-      if [ "$NOTIFY_LEVEL" ] && [ $NOTIFY_LEVEL -ge $NOTIFY_LEVEL_SKIP ]; then
-        if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
-          _send_notify "Renew $Le_Domain skipped" "Good, the cert next renewal time is $Le_NextRenewTimeStr." "$NOTIFY_HOOK" "$RENEW_SKIP"
-        fi
-      fi
-    fi
-
     return "$RENEW_SKIP"
   fi
 
-  if [ "$IN_CRON" = "1" ] && [ -z "$Le_CertCreateTime" ]; then
+  if [ "$ACME_IN_CRON" = "1" ] && [ -z "$Le_CertCreateTime" ]; then
     _info "Skip invalid cert for: $Le_Domain"
     return $RENEW_SKIP
   fi
@@ -4721,6 +4720,10 @@ renewAll() {
   _success_msg=""
   _error_msg=""
   _skipped_msg=""
+  _error_level=$NOTIFY_LEVEL_SKIP
+  _notify_code=$RENEW_SKIP
+  _set_level=${NOTIFY_LEVEL:-$NOTIFY_LEVEL_DEFAULT}
+  _debug "_set_level" "$_set_level"
   for di in "${CERT_HOME}"/*.*/; do
     _debug di "$di"
     if ! [ -d "$di" ]; then
@@ -4738,49 +4741,84 @@ renewAll() {
     )
     rc="$?"
     _debug "Return code: $rc"
-    if [ "$rc" != "0" ]; then
-      if [ "$rc" = "$RENEW_SKIP" ]; then
-        _info "Skipped $d"
-        _skipped_msg="${_skipped_msg}    $d
-"
-      else
-        _error_msg="${_error_msg}    $d
-"
-        if [ "$_stopRenewOnError" ]; then
-          _err "Error renew $d,  stop now."
-          _ret="$rc"
-          break
-        else
-          _ret="$rc"
-          _err "Error renew $d."
+    if [ "$rc" = "0" ]; then
+      if [ $_error_level -gt $NOTIFY_LEVEL_RENEW ]; then
+        _error_level="$NOTIFY_LEVEL_RENEW"
+        _notify_code=0
+      fi
+      if [ "$ACME_IN_CRON" ]; then
+        if [ $_set_level -ge $NOTIFY_LEVEL_RENEW ]; then
+          if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
+            _send_notify "Renew $d success" "Good, the cert is renewed." "$NOTIFY_HOOK" 0
+          fi
         fi
       fi
-    else
       _success_msg="${_success_msg}    $d
 "
+    elif [ "$rc" = "$RENEW_SKIP" ]; then
+      if [ $_error_level -gt $NOTIFY_LEVEL_SKIP ]; then
+        _error_level="$NOTIFY_LEVEL_SKIP"
+        _notify_code=$RENEW_SKIP
+      fi
+      if [ "$ACME_IN_CRON" ]; then
+        if [ $_set_level -ge $NOTIFY_LEVEL_SKIP ]; then
+          if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
+            _send_notify "Renew $d skipped" "Good, the cert is skipped." "$NOTIFY_HOOK" "$RENEW_SKIP"
+          fi
+        fi
+      fi
+      _info "Skipped $d"
+      _skipped_msg="${_skipped_msg}    $d
+"
+    else
+      if [ $_error_level -gt $NOTIFY_LEVEL_ERROR ]; then
+        _error_level="$NOTIFY_LEVEL_ERROR"
+        _notify_code=1
+      fi
+      if [ "$ACME_IN_CRON" ]; then
+        if [ $_set_level -ge $NOTIFY_LEVEL_ERROR ]; then
+          if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
+            _send_notify "Renew $d error" "There is an error." "$NOTIFY_HOOK" 1
+          fi
+        fi
+      fi
+      _error_msg="${_error_msg}    $d
+"
+      if [ "$_stopRenewOnError" ]; then
+        _err "Error renew $d,  stop now."
+        _ret="$rc"
+        break
+      else
+        _ret="$rc"
+        _err "Error renew $d."
+      fi
     fi
   done
-
-  if [ "$IN_CRON" = "1" ]; then
+  _debug _error_level "$_error_level"
+  _debug _set_level "$_set_level"
+  if [ "$ACME_IN_CRON" ] && [ $_error_level -le $_set_level ]; then
     if [ -z "$NOTIFY_MODE" ] || [ "$NOTIFY_MODE" = "$NOTIFY_MODE_BULK" ]; then
       _msg_subject="Renew"
       if [ "$_error_msg" ]; then
         _msg_subject="${_msg_subject} Error"
+        _msg_data="Error certs:
+${_error_msg}
+"
       fi
       if [ "$_success_msg" ]; then
         _msg_subject="${_msg_subject} Success"
+        _msg_data="${_msg_data}Success certs:
+${_success_msg}
+"
       fi
       if [ "$_skipped_msg" ]; then
         _msg_subject="${_msg_subject} Skipped"
-      fi
-      _msg_data="Error certs:
-${_error_msg}
-Success certs:
-${_success_msg}
-Skipped certs:
-$_skipped_msg
+        _msg_data="${_msg_data}Skipped certs:
+${_skipped_msg}
 "
-      _send_notify "$_msg_subject" "$_msg_data" "$NOTIFY_HOOK" 0
+      fi
+
+      _send_notify "$_msg_subject" "$_msg_data" "$NOTIFY_HOOK" "$_notify_code"
     fi
   fi
 
@@ -5696,7 +5734,7 @@ install() {
     _debug "Skip install cron job"
   fi
 
-  if [ "$IN_CRON" != "1" ]; then
+  if [ "$ACME_IN_CRON" != "1" ]; then
     if ! _precheck "$_nocron"; then
       _err "Pre-check failed, can not install."
       return 1
@@ -5753,7 +5791,7 @@ install() {
 
   _info "Installed to $LE_WORKING_DIR/$PROJECT_ENTRY"
 
-  if [ "$IN_CRON" != "1" ] && [ -z "$_noprofile" ]; then
+  if [ "$ACME_IN_CRON" != "1" ] && [ -z "$_noprofile" ]; then
     _installalias "$_c_home"
   fi
 
@@ -5851,7 +5889,7 @@ _uninstallalias() {
 }
 
 cron() {
-  export IN_CRON=1
+  export ACME_IN_CRON=1
   _initpath
   _info "$(__green "===Starting cron===")"
   if [ "$AUTO_UPGRADE" = "1" ]; then
@@ -5872,7 +5910,7 @@ cron() {
   fi
   renewAll
   _ret="$?"
-  IN_CRON=""
+  ACME_IN_CRON=""
   _info "$(__green "===End cron===")"
   exit $_ret
 }
@@ -6094,11 +6132,11 @@ Parameters:
 
   --notify-level  0|1|2|3           Set the notification level:  Default value is $NOTIFY_LEVEL_DEFAULT.
                                      0: disabled, no notification will be sent. 
-                                     1: send notification only when there is an error. No news is good news.
-                                     2: send notification when a cert is successfully renewed, or there is an error
-                                     3: send notification when a cert is skipped, renewdd, or error
+                                     1: send notifications only when there is an error.
+                                     2: send notifications when a cert is successfully renewed, or there is an error.
+                                     3: send notifications when a cert is skipped, renewed, or error.
   --notify-mode   0|1               Set notification mode. Default value is $NOTIFY_MODE_DEFAULT.
-                                     0: Bulk mode. Send all the domain's notifications in one message(mail)
+                                     0: Bulk mode. Send all the domain's notifications in one message(mail).
                                      1: Cert mode. Send a message for every single cert.
   --notify-hook   [hookname]        Set the notify hook
 
@@ -6759,7 +6797,7 @@ _process() {
       _debug "Using server: $_server"
     fi
   fi
-
+  _debug "Running cmd: ${_CMD}"
   case "${_CMD}" in
     install) install "$_nocron" "$_confighome" "$_noprofile" ;;
     uninstall) uninstall "$_nocron" ;;
