@@ -5932,8 +5932,11 @@ _send_notify() {
   _send_err=0
   for _n_hook in $(echo "$_nhooks" | tr ',' " "); do
     _n_hook_file="$(_findHook "" $_SUB_FOLDER_NOTIFY "$_n_hook")"
-    _info "Found $_n_hook_file"
-
+    _info "Found $_n_hook_file for $_n_hook"
+    if [ -z "$_n_hook_file" ]; then
+      _err "Can not find the hook file for $_n_hook"
+      continue
+    fi
     if ! (
       if ! . "$_n_hook_file"; then
         _err "Load file $_n_hook_file error. Please check your api file and try again."
