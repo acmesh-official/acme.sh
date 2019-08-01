@@ -5713,15 +5713,18 @@ install() {
     LE_WORKING_DIR="$DEFAULT_INSTALL_HOME"
   fi
 
-  _nocron="$1"
+  _nocron="${NOCRON:-$1}"
   _c_home="$2"
-  _noprofile="$3"
+  _noprofile="${NOPROFILE:-$3}"
   if ! _initpath; then
     _err "Install failed."
     return 1
   fi
   if [ "$_nocron" ]; then
     _debug "Skip install cron job"
+  fi
+  if [ "$_noprofile" ]; then
+    _debug "Skip install aliases"
   fi
 
   if [ "$ACME_IN_CRON" != "1" ]; then
