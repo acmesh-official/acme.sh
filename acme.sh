@@ -6189,7 +6189,7 @@ upgrade() {
     _initpath
     export LE_WORKING_DIR
     cd "$LE_WORKING_DIR"
-    _installOnline "nocron" "noprofile"
+    _installOnline "nocron" "" "noprofile"
   ); then
     _info "Upgrade success!"
     exit 0
