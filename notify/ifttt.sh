@@ -44,6 +44,8 @@ ifttt_send() {
     _err "The IFTTT_SUBJECT_KEY \"$IFTTT_SUBJECT_KEY\" is not available, should be one of $_IFTTT_AVAIL_MSG_KEYS"
     IFTTT_SUBJECT_KEY=""
     return 1
+  else
+    _saveaccountconf_mutable IFTTT_SUBJECT_KEY "$IFTTT_SUBJECT_KEY"
   fi
 
   IFTTT_CONTENT_KEY="${IFTTT_CONTENT_KEY:-$(_readaccountconf_mutable IFTTT_CONTENT_KEY)}"
@@ -54,6 +56,8 @@ ifttt_send() {
     _err "The IFTTT_CONTENT_KEY \"$IFTTT_CONTENT_KEY\" is not available, should be one of $_IFTTT_AVAIL_MSG_KEYS"
     IFTTT_CONTENT_KEY=""
     return 1
+  else
+    _saveaccountconf_mutable IFTTT_CONTENT_KEY "$IFTTT_CONTENT_KEY"
   fi
 
   if [ "$IFTTT_SUBJECT_KEY" = "$IFTTT_CONTENT_KEY" ]; then
@@ -62,8 +66,6 @@ ifttt_send() {
     _err "The IFTTT_SUBJECT_KEY must not be same as IFTTT_CONTENT_KEY."
     return 1
   fi
-  _saveaccountconf_mutable IFTTT_SUBJECT_KEY "$IFTTT_SUBJECT_KEY"
-  _saveaccountconf_mutable IFTTT_CONTENT_KEY "$IFTTT_CONTENT_KEY"
 
   IFTTT_API_URL="https://maker.ifttt.com/trigger/$IFTTT_EVENT_NAME/with/key/$IFTTT_API_KEY"
 
