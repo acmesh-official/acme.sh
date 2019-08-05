@@ -50,13 +50,13 @@ pushover_send() {
   _subject="$(printf "*%s*\n" "$_subject" | _json_encode)"
   _data="{\"token\": \"$PUSHOVER_TOKEN\",\"user\": \"$PUSHOVER_USER\",\"title\": \"$_subject\",\"message\": \"$_content\",\"sound\": \"$PUSHOVER_SOUND\", \"device\": \"$PUSHOVER_DEVICE\", \"priority\": \"$PUSHOVER_PRIORITY\"}"
 
-  response="" #just make shellcheck happy
-  if _post "$_data" "$PUSHOVER_URI"; then
-    if _contains "$response" "{\"status\":1"; then
-      _info "PUSHOVER send success."
-      return 0
-    fi
+  response="$(_post "$_data" "$PUSHOVER_URI")"
+
+  if [ "$?" = "0" ] && _contains "$response" "{\"status\":1"; then
+    _info "PUSHOVER send success."
+    return 0
   fi
+
   _err "PUSHOVER send error."
   _err "$response"
   return 1
