@@ -3265,6 +3265,11 @@ _on_issue_success() {
   if [ "$_chk_post_hook" ]; then
     _info "Run post hook:'$_chk_post_hook'"
     if ! (
+      export CERT_PATH
+      export CERT_KEY_PATH
+      export CA_CERT_PATH
+      export CERT_FULLCHAIN_PATH
+      export Le_Domain="$_main_domain"
       cd "$DOMAIN_PATH" && eval "$_chk_post_hook"
     ); then
       _err "Error when run post hook."
@@ -3276,6 +3281,11 @@ _on_issue_success() {
   if [ "$IS_RENEW" ] && [ "$_chk_renew_hook" ]; then
     _info "Run renew hook:'$_chk_renew_hook'"
     if ! (
+      export CERT_PATH
+      export CERT_KEY_PATH
+      export CA_CERT_PATH
+      export CERT_FULLCHAIN_PATH
+      export Le_Domain="$_main_domain"
       cd "$DOMAIN_PATH" && eval "$_chk_renew_hook"
     ); then
       _err "Error when run renew hook."
