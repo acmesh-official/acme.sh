@@ -73,13 +73,13 @@ ifttt_send() {
   _subject=$(echo "$_subject" | _json_encode)
   _data="{\"$IFTTT_SUBJECT_KEY\": \"$_subject\", \"$IFTTT_CONTENT_KEY\": \"$_content\"}"
 
-  response="" #just make shellcheck happy
-  if _post "$_data" "$IFTTT_API_URL" "" "POST" "application/json"; then
-    if _contains "$response" "Congratulations"; then
-      _info "IFTTT webhooks event fired success."
-      return 0
-    fi
+  response="$(_post "$_data" "$IFTTT_API_URL" "" "POST" "application/json")"
+
+  if [ "$?" = "0" ] && _contains "$response" "Congratulations"; then
+    _info "IFTTT webhooks event fired success."
+    return 0
   fi
+
   _err "IFTTT webhooks event fired error."
   _err "$response"
   return 1

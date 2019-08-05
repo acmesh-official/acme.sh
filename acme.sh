@@ -5932,7 +5932,8 @@ _send_notify() {
   _send_err=0
   for _n_hook in $(echo "$_nhooks" | tr ',' " "); do
     _n_hook_file="$(_findHook "" $_SUB_FOLDER_NOTIFY "$_n_hook")"
-    _info "Found $_n_hook_file for $_n_hook"
+    _info "Sending via: $_n_hook"
+    _debug "Found $_n_hook_file for $_n_hook"
     if [ -z "$_n_hook_file" ]; then
       _err "Can not find the hook file for $_n_hook"
       continue
@@ -5971,7 +5972,7 @@ _set_notify_hook() {
   _nhooks="$1"
 
   _test_subject="Hello, this is notification from $PROJECT_NAME"
-  _test_content="If you receive this email, your notification works."
+  _test_content="If you receive this message, your notification works."
 
   _send_notify "$_test_subject" "$_test_content" "$_nhooks" 0
 

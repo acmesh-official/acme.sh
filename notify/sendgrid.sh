@@ -42,13 +42,13 @@ sendgrid_send() {
 
   _content="$(echo "$_content" | _json_encode)"
   _data="{\"personalizations\": [{\"to\": [{\"email\": \"$SENDGRID_TO\"}]}],\"from\": {\"email\": \"$SENDGRID_FROM\"},\"subject\": \"$_subject\",\"content\": [{\"type\": \"text/plain\", \"value\": \"$_content\"}]}"
-  response="" #just make shellcheck happy
-  if _post "$_data" "https://api.sendgrid.com/v3/mail/send"; then
-    if [ -z "$response" ]; then
-      _info "sendgrid send sccess."
-      return 0
-    fi
+  response="$(_post "$_data" "https://api.sendgrid.com/v3/mail/send")"
+
+  if [ "$?" = "0" ] && [ -z "$response" ]; then
+    _info "sendgrid send sccess."
+    return 0
   fi
+
   _err "sendgrid send error."
   _err "$response"
   return 1
