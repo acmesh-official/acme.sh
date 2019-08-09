@@ -72,19 +72,17 @@ EOF
 # _domain=domain.com
 _get_root() {
   domain=$1
-  i="$(echo "$fulldomain" | tr '.' ' ' | wc -w)"
-  i=$(_math "$i" - 1)
 
-  while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
-    if [ -z "$h" ]; then
-      return 1
-    fi
-    _domain="$h"
-    return 0
-  done
-  _debug "$domain not found"
-  return 1
+  d=$(dig soa "$domain" | grep -v ^\; | grep SOA | awk '{print $1}')
+  if [ -z "${d}" ]; then
+    _debug "$domain not found"
+    return 1
+  fi
+
+  d=${d%?} # remove last '.'
+
+  _domain="$d"
+  return 0
 }
 
 _checkKey() {
