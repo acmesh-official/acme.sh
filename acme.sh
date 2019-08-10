@@ -3035,11 +3035,13 @@ _clearupdns() {
     d=$(_getfield "$entry" 1)
     txtdomain=$(_getfield "$entry" 2)
     aliasDomain=$(_getfield "$entry" 3)
+    _currentRoot=$(_getfield "$entry" 4)
     txt=$(_getfield "$entry" 5)
     d_api=$(_getfield "$entry" 6)
     _debug "d" "$d"
     _debug "txtdomain" "$txtdomain"
     _debug "aliasDomain" "$aliasDomain"
+    _debug "_currentRoot" "$_currentRoot"
     _debug "txt" "$txt"
     _debug "d_api" "$d_api"
     if [ "$d_api" = "$txt" ]; then
@@ -3263,6 +3265,11 @@ _on_issue_success() {
   if [ "$_chk_post_hook" ]; then
     _info "Run post hook:'$_chk_post_hook'"
     if ! (
+      export CERT_PATH
+      export CERT_KEY_PATH
+      export CA_CERT_PATH
+      export CERT_FULLCHAIN_PATH
+      export Le_Domain="$_main_domain"
       cd "$DOMAIN_PATH" && eval "$_chk_post_hook"
     ); then
       _err "Error when run post hook."
@@ -3274,6 +3281,11 @@ _on_issue_success() {
   if [ "$IS_RENEW" ] && [ "$_chk_renew_hook" ]; then
     _info "Run renew hook:'$_chk_renew_hook'"
     if ! (
+      export CERT_PATH
+      export CERT_KEY_PATH
+      export CA_CERT_PATH
+      export CERT_FULLCHAIN_PATH
+      export Le_Domain="$_main_domain"
       cd "$DOMAIN_PATH" && eval "$_chk_renew_hook"
     ); then
       _err "Error when run renew hook."
@@ -3621,7 +3633,7 @@ _ns_purge_cf() {
   _cf_d="$1"
   _cf_d_type="$2"
   _debug "Cloudflare purge $_cf_d_type record for domain $_cf_d"
-  _cf_purl="https://1.1.1.1/api/v1/purge?domain=$_cf_d&type=$_cf_d_type"
+  _cf_purl="https://cloudflare-dns.com/api/v1/purge?domain=$_cf_d&type=$_cf_d_type"
   response="$(_post "" "$_cf_purl")"
   _debug2 response "$response"
 }
@@ -3680,11 +3692,11 @@ _check_dns_entries() {
       fi
       _left=1
       _info "Not valid yet, let's wait 10 seconds and check next one."
-      _sleep 10
       __purge_txt "$txtdomain"
       if [ "$txtdomain" != "$aliasDomain" ]; then
         __purge_txt "$aliasDomain"
       fi
+      _sleep 10
     done
     if [ "$_left" ]; then
       _info "Let's wait 10 seconds and check again".
@@ -5930,8 +5942,12 @@ _send_notify() {
   _send_err=0
   for _n_hook in $(echo "$_nhooks" | tr ',' " "); do
     _n_hook_file="$(_findHook "" $_SUB_FOLDER_NOTIFY "$_n_hook")"
-    _info "Found $_n_hook_file"
-
+    _info "Sending via: $_n_hook"
+    _debug "Found $_n_hook_file for $_n_hook"
+    if [ -z "$_n_hook_file" ]; then
+      _err "Can not find the hook file for $_n_hook"
+      continue
+    fi
     if ! (
       if ! . "$_n_hook_file"; then
         _err "Load file $_n_hook_file error. Please check your api file and try again."
@@ -5966,7 +5982,7 @@ _set_notify_hook() {
   _nhooks="$1"
 
   _test_subject="Hello, this is notification from $PROJECT_NAME"
-  _test_content="If you receive this email, your notification works."
+  _test_content="If you receive this message, your notification works."
 
   _send_notify "$_test_subject" "$_test_content" "$_nhooks" 0
 
@@ -6787,7 +6803,7 @@ _process() {
       _debug "Using server: $_server"
     fi
   fi
-
+  _debug "Running cmd: ${_CMD}"
   case "${_CMD}" in
     install) install "$_nocron" "$_confighome" "$_noprofile" ;;
     uninstall) uninstall "$_nocron" ;;
