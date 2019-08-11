@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 
 # Here is the script to deploy the cert to G-Core CDN service (https://gcorelabs.com/ru/) using the G-Core Labs API (https://docs.gcorelabs.com/cdn/).
-# Uses command line curl for send requests and jq for parse responses.
 # Returns 0 when success.
 #
 # Written by temoffey <temofffey@gmail.com>
@@ -117,7 +116,7 @@ gcore_cdn_deploy() {
   _debug _request "$_request"
   _response=$(_post "$_request" "https://api.gcdn.co/resources/$_resourceId" '' "PUT")
   _debug _response "$_response"
-  _regex=".*\"sslData\":\([0-9]*\)}.*$"
+  _regex=".*\"sslData\":\([0-9]*\).*$"
   _debug _regex "$_regex"
   _sslDataNew=$(echo "$_response" | sed -n "s/$_regex/\1/p")
   _debug _sslDataNew "$_sslDataNew"
