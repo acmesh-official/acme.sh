@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.8.2
+VER=2.8.3
 
 PROJECT_NAME="acme.sh"
 
@@ -134,6 +134,8 @@ _DNS_ALIAS_WIKI="https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode"
 _DNS_MANUAL_WIKI="https://github.com/Neilpang/acme.sh/wiki/dns-manual-mode"
 
 _NOTIFY_WIKI="https://github.com/Neilpang/acme.sh/wiki/notify"
+
+_SUDO_WIKI="https://github.com/Neilpang/acme.sh/wiki/sudo"
 
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
@@ -6233,6 +6235,23 @@ _processAccountConf() {
 
 }
 
+_checkSudo() {
+  if [ "$SUDO_GID" ] && [ "$SUDO_COMMAND" ] && [ "$SUDO_USER" ] && [ "$SUDO_UID" ]; then
+    if [ "$SUDO_USER" = "root" ] && [ "$SUDO_UID" = "0" ]; then
+      #it's root using sudo, no matter it's using sudo or not, just fine
+      return 0
+    fi
+    if [ "$SUDO_COMMAND" = "/bin/su" ]; then
+      #it's a normal user doing "sudo su"
+      #fine
+      return 0
+    fi
+    #otherwise
+    return 1
+  fi
+  return 0
+}
+
 _process() {
   _CMD=""
   _domain=""
@@ -6761,6 +6780,14 @@ _process() {
   done
 
   if [ "${_CMD}" != "install" ]; then
+    if [ "$__INTERACTIVE" ] && ! _checkSudo; then
+      if [ -z "$FORCE" ]; then
+        #Use "echo" here, instead of _info. it's too early
+        echo "It seems that you are using sudo, please read this link first:"
+        echo "$_SUDO_WIKI"
+        return 1
+      fi
+    fi
     __initHome
     if [ "$_log" ]; then
       if [ -z "$_logfile" ]; then
