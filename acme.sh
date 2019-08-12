@@ -1093,6 +1093,27 @@ _idn() {
   fi
 }
 
+_dns2ip() {
+  ripv4='\([0-9]\{1,3\}\.\)\{1,3\}[0-9]\{1,3\}'
+  # some domain has ip prefix such as 127.0.0.1.16clouds.com
+  ip_detect="s/DNS:\\($ripv4,\\)/IP:\\1/g;s/DNS:\\($ripv4\\)\$/IP:\\1/g"
+
+  IPV6SEG='[0-9a-fA-F]\{1,4\}'
+  r0="\\($IPV6SEG:\\)\\{7,7\\}$IPV6SEG"
+  r1="\\($IPV6SEG:\\)\\{1,7\\}:"
+  r2="\\($IPV6SEG:\\)\\{1,6\\}:$IPV6SEG"
+  r3="\\($IPV6SEG:\\)\\{1,5\\}\\(:$IPV6SEG\\)\\{1,2\\}"
+  r4="\\($IPV6SEG:\\)\\{1,4\\}\\(:$IPV6SEG\\)\\{1,3\\}"
+  r5="\\($IPV6SEG:\\)\\{1,3\\}\\(:$IPV6SEG\\)\\{1,4\\}"
+  r6="\\($IPV6SEG:\\)\\{1,2\\}\\(:$IPV6SEG\\)\\{1,5\\}"
+  r7="$IPV6SEG:\\(:$IPV6SEG\\)\\{1,6\\}"
+  r8=":\\(:$IPV6SEG\\)\\{1,7\\}"
+  r9="::"
+  ip_detect="$ip_detect;s/DNS:\\($r0,\\)/IP:\\1/g;s/DNS:\\($r1,\\)/IP:\\1/g;s/DNS:\\($r2,\\)/IP:\\1/g;s/DNS:\\($r3,\\)/IP:\\1/g;s/DNS:\\($r4,\\)/IP:\\1/g;s/DNS:\\($r5,\\)/IP:\\1/g;s/DNS:\\($r6,\\)/IP:\\1/g;s/DNS:\\($r7,\\)/IP:\\1/g;s/DNS:\\($r8,\\)/IP:\\1/g;s/DNS:\\($r9,\\)/IP:\\1/g"
+  ip_detect="$ip_detect;s/DNS:\\($r0\\)\$/IP:\\1/g;s/DNS:\\($r1\\)\$/IP:\\1/g;s/DNS:\\($r2\\)\$/IP:\\1/g;s/DNS:\\($r3\\)\$/IP:\\1/g;s/DNS:\\($r4\\)\$/IP:\\1/g;s/DNS:\\($r5\\)\$/IP:\\1/g;s/DNS:\\($r6\\)\$/IP:\\1/g;s/DNS:\\($r7\\)\$/IP:\\1/g;s/DNS:\\($r8\\)\$/IP:\\1/g;s/DNS:\\($r9\\)\$/IP:\\1/g"
+  sed "$ip_detect"
+}
+
 #_createcsr  cn  san_list  keyfile csrfile conf acmeValidationv1
 _createcsr() {
   _debug _createcsr
@@ -1112,11 +1133,11 @@ _createcsr() {
 
   if [ "$acmeValidationv1" ]; then
     domainlist="$(_idn "$domainlist")"
-    printf -- "\nsubjectAltName=DNS:$domainlist" >>"$csrconf"
+    printf -- "\nsubjectAltName=DNS:$domainlist" | _dns2ip >>"$csrconf"
   elif [ -z "$domainlist" ] || [ "$domainlist" = "$NO_VALUE" ]; then
     #single domain
     _info "Single domain" "$domain"
-    printf -- "\nsubjectAltName=DNS:$(_idn "$domain")" >>"$csrconf"
+    printf -- "\nsubjectAltName=DNS:$(_idn "$domain")" | _dns2ip >>"$csrconf"
   else
     domainlist="$(_idn "$domainlist")"
     _debug2 domainlist "$domainlist"
@@ -1125,6 +1146,7 @@ _createcsr() {
     else
       alt="DNS:$(_idn "$domain"),DNS:$domainlist"
     fi
+    alt="$(echo "$alt" | _dns2ip)"
     #multi
     _info "Multi domain" "$alt"
     printf -- "\nsubjectAltName=$alt" >>"$csrconf"
@@ -1185,6 +1207,9 @@ _readSubjectAltNamesFromCSR() {
   _debug _csrsubj "$_csrsubj"
 
   _dnsAltnames="$(${ACME_OPENSSL_BIN:-openssl} req -noout -text -in "$_csrfile" | grep "^ *DNS:.*" | tr -d ' \n')"
+  if [ -z "$_dnsAltnames" ]; then
+    _dnsAltnames="$(${ACME_OPENSSL_BIN:-openssl} req -noout -text -in "$_csrfile" | grep "^ *IP Address:.*" | tr -d ' \n')"
+  fi
   _debug _dnsAltnames "$_dnsAltnames"
 
   if _contains "$_dnsAltnames," "DNS:$_csrsubj,"; then
@@ -1199,7 +1224,7 @@ _readSubjectAltNamesFromCSR() {
     _debug "AltNames doesn't contain subject"
   fi
 
-  echo "$_dnsAltnames" | sed "s/DNS://g"
+  echo "$_dnsAltnames" | sed "s/DNS://g;s/IP \{0,\}Address://g"
 }
 
 #_csrfile
