@@ -111,7 +111,7 @@ _lsw_api() {
 
   if [ "$cmd" = "POST" ]; then
     data="{\"name\": \"$fulldomain.\",\"type\": \"TXT\",\"content\": [\"$txtvalue\"],\"ttl\": 60}"
-    response="$(_post "$data" "$LSW_API/$domain/resourceRecordSets" "$data" "POST")"   
+    response="$(_post "$data" "$LSW_API/$domain/resourceRecordSets" "$data" "POST")"
     _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
     _debug "http response code $_code"
     _debug response "$response"
