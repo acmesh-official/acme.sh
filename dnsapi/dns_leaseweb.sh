@@ -3,6 +3,7 @@
 #Author: Rolph Haspers <r.haspers@global.leaseweb.com>
 #Utilize leaseweb.com API to finish dns-01 verifications.
 #Requires a Leaseweb API Key (export LSW_Key="Your Key")
+#See http://developer.leaseweb.com for more information.
 ########  Public functions #####################
 
 LSW_API="https://api.leaseweb.com/hosting/v2/domains/"
