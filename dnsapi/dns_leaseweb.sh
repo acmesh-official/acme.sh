@@ -59,7 +59,7 @@ dns_leaseweb_rm() {
     _err "invalid domain"
     return 1
   fi
-  
+
   _debug _root_domain "$_domain"
   _debug _domain "$fulldomain"
 
