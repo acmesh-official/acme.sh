@@ -77,7 +77,6 @@ dns_leaseweb_rm() {
   return 1
 }
 
-
 ####################  Private functions below ##################################
 # _acme-challenge.www.domain.com
 # returns
