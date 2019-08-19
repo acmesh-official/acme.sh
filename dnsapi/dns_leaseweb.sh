@@ -32,7 +32,7 @@ dns_leaseweb_add() {
   _debug _root_domain "$_domain"
   _debug _domain "$fulldomain"
 
-  if _lsw_api "POST"  "$_domain" "$fulldomain" "$txtvalue"; then
+  if _lsw_api "POST" "$_domain" "$fulldomain" "$txtvalue"; then
     if [ "$_code" = "201" ]; then
       _info "Added, OK"
       return 0
@@ -63,7 +63,7 @@ dns_leaseweb_rm() {
   _debug _root_domain "$_domain"
   _debug _domain "$fulldomain"
 
-  if _lsw_api "DELETE"  "$_domain" "$fulldomain" "$txtvalue"; then
+  if _lsw_api "DELETE" "$_domain" "$fulldomain" "$txtvalue"; then
     if [ "$_code" = "204" ]; then
       _info "Deleted, OK"
       return 0
@@ -109,16 +109,16 @@ _lsw_api() {
   export _H2="Content-Type: application/json"
   export _H1="X-Lsw-Auth: ${LSW_Key}"
 
-  if [ "$cmd" == "POST" ]; then
+  if [ "$cmd" = "POST" ]; then
     data="{\"name\": \"$fulldomain.\",\"type\": \"TXT\",\"content\": [\"$txtvalue\"],\"ttl\": 60}"
-	  response="$(_post "$data" "$LSW_API/$domain/resourceRecordSets" "$data" "POST")"   
+    response="$(_post "$data" "$LSW_API/$domain/resourceRecordSets" "$data" "POST")"   
     _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
-	  _debug "http response code $_code"
-	  _debug response "$response"
+    _debug "http response code $_code"
+    _debug response "$response"
     return 0
   fi
 
-  if [ "$cmd" == "DELETE" ]; then
+  if [ "$cmd" = "DELETE" ]; then
     response="$(_post "" "$LSW_API/$domain/resourceRecordSets/$fulldomain/TXT" "" "DELETE")"
     _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
     _debug "http response code $_code"
