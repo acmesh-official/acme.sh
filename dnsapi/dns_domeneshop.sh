@@ -26,7 +26,7 @@ dns_domeneshop_add() {
   _saveaccountconf_mutable DOMENESHOP_Secret "$DOMENESHOP_Secret"
 
   # Get the domain name id
-  if ! _get_domainid $fulldomain; then
+  if ! _get_domainid "$fulldomain"; then
     _err "Did not find domainname"
     return 1
   fi
@@ -53,13 +53,13 @@ dns_domeneshop_rm() {
   fi
 
   # Get the domain name id
-  if ! _get_domainid $fulldomain; then
+  if ! _get_domainid "$fulldomain"; then
     _err "Did not find domainname"
     return 1
   fi
 
   # Find record
-  if ! _get_recordid $_domainid $_sub_domain $txtvalue; then
+  if ! _get_recordid "$_domainid" "$_sub_domain" "$txtvalue"; then
     _err "Did not find dns record"
     return 1
   fi
@@ -141,9 +141,9 @@ _domeneshop_rest() {
   export _H2="Content-Type: application/json"
 
   if [ "$method" != "GET" ]; then
-    response="$(_post "$data" "$DOMENESHOP_Api_Endpoint/$endpoint" "" "$method")";
+    response="$(_post "$data" "$DOMENESHOP_Api_Endpoint/$endpoint" "" "$method")"
   else
-    response="$(_get "$DOMENESHOP_Api_Endpoint/$endpoint")";
+    response="$(_get "$DOMENESHOP_Api_Endpoint/$endpoint")"
   fi
 
   if [ "$?" != "0" ]; then
