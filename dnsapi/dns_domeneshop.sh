@@ -18,7 +18,7 @@ dns_domeneshop_add() {
     DOMENESHOP_Token=""
     DOMENESHOP_Secret=""
     _err "You need to spesify a Domeneshop/Domainnameshop API Token and Secret."
-    return 1 
+    return 1
   fi
 
   # Save the api token and secret.
@@ -123,7 +123,7 @@ _get_recordid() {
   fi
 
   # Get the id of the record in question
-  _recordid=$(printf "%s" "$response" | _egrep_o "[^{]*\"host\":\"$subdomain\"[^}]*" | _egrep_o "[^{]*\"data\":\"$txtvalue\"[^}]*"| _egrep_o "\"id\":[0-9]+" | cut -d : -f 2)
+  _recordid=$(printf "%s" "$response" | _egrep_o "[^{]*\"host\":\"$subdomain\"[^}]*" | _egrep_o "[^{]*\"data\":\"$txtvalue\"[^}]*" | _egrep_o "\"id\":[0-9]+" | cut -d : -f 2)
   if [ -z "$_recordid" ]; then
     return 1
   fi
