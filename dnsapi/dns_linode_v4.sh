@@ -31,7 +31,8 @@ dns_linode_v4_add() {
   _payload="{
               \"type\": \"TXT\",
               \"name\": \"$_sub_domain\",
-              \"target\": \"$txtvalue\"
+              \"target\": \"$txtvalue\",
+              \"ttl_sec\": 300
             }"
 
   if _rest POST "/$_domain_id/records" "$_payload" && [ -n "$response" ]; then
