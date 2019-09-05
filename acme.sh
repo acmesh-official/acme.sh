@@ -2799,6 +2799,11 @@ _setNginx() {
       _debug NGINX_CONF "$NGINX_CONF"
       NGINX_CONF="$(echo "$NGINX_CONF" | cut -d = -f 2)"
       _debug NGINX_CONF "$NGINX_CONF"
+      if [ -z "$NGINX_CONF" ]; then
+        _err "Can not find nginx conf."
+        NGINX_CONF=""
+        return 1
+      fi
       if [ ! -f "$NGINX_CONF" ]; then
         _err "'$NGINX_CONF' doesn't exist."
         NGINX_CONF=""
@@ -6503,6 +6508,10 @@ _process() {
         ;;
       --nginx)
         wvalue="$NGINX"
+        if [ "$2" ] && ! _startswith "$2" "-"; then
+          wvalue="$NGINX$2"
+          shift
+        fi
         if [ -z "$_webroot" ]; then
           _webroot="$wvalue"
         else
