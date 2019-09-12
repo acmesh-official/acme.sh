@@ -199,7 +199,7 @@ _existingchallenge() {
     return 1
   fi
   _uuid=""
-  _uuid=$( echo "$_record_response" | _egrep_o "\"uuid\":\"[^\"]*\",\"enabled\":\"[01]\",\"domain\":\"$1\",\"name\":\"$2\",\"type\":\"TXT\",\"value\":\"$3\"" | cut -d ':' -f 2 | cut -d '"' -f 2)
+  _uuid=$(echo "$_record_response" | _egrep_o "\"uuid\":\"[^\"]*\",\"enabled\":\"[01]\",\"domain\":\"$1\",\"name\":\"$2\",\"type\":\"TXT\",\"value\":\"$3\"" | cut -d ':' -f 2 | cut -d '"' -f 2)
 
   if [ -n "$_uuid" ]; then
     _debug uuid "$_uuid"
