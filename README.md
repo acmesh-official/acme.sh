@@ -10,7 +10,6 @@
 - Simplest shell script for Let's Encrypt free certificate client.
 - Purely written in Shell with no dependencies on python or the official Let's Encrypt client.
 - Just one script to issue, renew and install your certificates automatically.
-- DOES NOT require `root/sudoer` access.
 - Docker friendly
 - IPv6 support
 - Cron job notifications for renewal or error etc.
@@ -184,6 +183,8 @@ More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
 
 
 # 3. Install the cert to Apache/Nginx etc.
+
+**(requires you to be root/sudoer, since it is required to interact with your HTTP server or service manager)**
 
 After the cert is generated, you probably want to install/copy the cert to your Apache/Nginx or other servers.
 You **MUST** use this command to copy the certs to the target files, **DO NOT** use the certs files in **~/.acme.sh/** folder, they are for internal use only, the folder structure may change in the future.
