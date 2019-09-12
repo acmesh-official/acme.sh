@@ -74,7 +74,7 @@ set_record() {
     fi
   fi
 
-  if echo "$_return_str" | _egrep_o  "\"result\":\"saved\"" >/dev/null; then
+  if echo "$_return_str" | _egrep_o "\"result\":\"saved\"" >/dev/null; then
     _opns_rest "POST" "/service/reconfigure" "{}"
     _debug "Record created"
   else
@@ -143,7 +143,7 @@ _get_root() {
       return 1
     fi
     _debug h "$h"
-    id=$(echo "$_domain_response" | _egrep_o "\"[^\"]*\":{\"enabled\":\"1\",\"type\":{\"master\":{\"value\":\"master\",\"selected\":1},\"slave\":{\"value\":\"slave\",\"selected\":0}},\"masterip\":\"[^\"]*\",\"domainname\":\"${h}\"" | cut -d ':'  -f 1 | cut -d '"' -f 2)
+    id=$(echo "$_domain_response" | _egrep_o "\"[^\"]*\":{\"enabled\":\"1\",\"type\":{\"master\":{\"value\":\"master\",\"selected\":1},\"slave\":{\"value\":\"slave\",\"selected\":0}},\"masterip\":\"[^\"]*\",\"domainname\":\"${h}\"" | cut -d ':' -f 1 | cut -d '"' -f 2)
 
     if [ -n "$id" ]; then
       _debug id "$id"
@@ -199,7 +199,7 @@ _existingchallenge() {
     return 1
   fi
   _uuid=""
-  _uuid=$( echo "$_record_response" | _egrep_o "\"uuid\":\"[^\"]*\",\"enabled\":\"[01]\",\"domain\":\"$1\",\"name\":\"$2\",\"type\":\"TXT\",\"value\":\"$3\"" | cut -d ':'  -f 2 | cut -d '"' -f 2)
+  _uuid=$( echo "$_record_response" | _egrep_o "\"uuid\":\"[^\"]*\",\"enabled\":\"[01]\",\"domain\":\"$1\",\"name\":\"$2\",\"type\":\"TXT\",\"value\":\"$3\"" | cut -d ':' -f 2 | cut -d '"' -f 2)
 
   if [ -n "$_uuid" ]; then
     _debug uuid "$_uuid"
