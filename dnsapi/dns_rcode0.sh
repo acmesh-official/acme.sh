@@ -22,9 +22,9 @@ dns_rcode0_add() {
   txtvalue=$2
 
 
-  RCODE0_API_TOKEN"${RCODE0_API_TOKEN:-$(_readaccountconf_mutable RCODE0_API_TOKEN)}"
-  RCODE0_URL"${RCODE0_URL:-$(_readaccountconf_mutable RCODE0_URL)}"
-  RCODE0_TTL"${RCODE0_TTL:-$(_readaccountconf_mutable RCODE0_TTL)}"
+  RCODE0_API_TOKEN="${RCODE0_API_TOKEN:-$(_readaccountconf_mutable RCODE0_API_TOKEN)}"
+  RCODE0_URL="${RCODE0_URL:-$(_readaccountconf_mutable RCODE0_URL)}"
+  RCODE0_TTL="${RCODE0_TTL:-$(_readaccountconf_mutable RCODE0_TTL)}"
 
   if [ -z "$RCODE0_URL" ]; then
     RCODE0_URL="$DEFAULT_RCODE0_URL"
@@ -69,9 +69,9 @@ dns_rcode0_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  RCODE0_API_TOKEN"${RCODE0_API_TOKEN:-$(_readaccountconf_mutable RCODE0_API_TOKEN)}"
-  RCODE0_URL"${RCODE0_URL:-$(_readaccountconf_mutable RCODE0_URL)}"
-  RCODE0_TTL"${RCODE0_TTL:-$(_readaccountconf_mutable RCODE0_TTL)}"
+  RCODE0_API_TOKEN="${RCODE0_API_TOKEN:-$(_readaccountconf_mutable RCODE0_API_TOKEN)}"
+  RCODE0_URL="${RCODE0_URL:-$(_readaccountconf_mutable RCODE0_URL)}"
+  RCODE0_TTL="${RCODE0_TTL:-$(_readaccountconf_mutable RCODE0_TTL)}"
 
   if [ -z "$RCODE0_URL" ]; then
     RCODE0_URL="$DEFAULT_RCODE0_URL"
