@@ -113,7 +113,7 @@ dns_rcode0_rm() {
 }
 
 set_record() {
-  _info "Adding record"
+  _debug "Adding record"
   root=$1
   full=$2
   new_challenge=$3
@@ -143,7 +143,7 @@ set_record() {
 }
 
 rm_record() {
-  _info "Remove record"
+  _debug "Remove record"
   root=$1
   full=$2
   txtvalue=$3
