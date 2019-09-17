@@ -38,11 +38,11 @@ dns_rcode0_add() {
   fi
 
   #save the api addr and key to the account conf file.
-  _saveaccountconf RCODE0_URL "$RCODE0_URL"
-  _saveaccountconf RCODE0_API_TOKEN "$RCODE0_API_TOKEN"
+  _saveaccountconf_mutable RCODE0_URL "$RCODE0_URL"
+  _saveaccountconf_mutable RCODE0_API_TOKEN "$RCODE0_API_TOKEN"
 
-  if [ "$RCDOE0_TTL" != "$DEFAULT_RCODE0_TTL" ]; then
-    _saveaccountconf RCODE0_TTL "$RCODE0_TTL"
+  if [ "$RCODE0_TTL" != "$DEFAULT_RCODE0_TTL" ]; then
+    _saveaccountconf_mutable RCODE0_TTL "$RCODE0_TTL"
   fi
 
   _debug "Detect root zone"
@@ -100,7 +100,7 @@ set_record() {
     _err "Set txt record error."
     return 1
   fi
- # try update in case an old records exists
+  # try update in case a records exists (need for wildcard certs)
   if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "[{\"changetype\": \"update\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]"; then
     _err "Set txt record error."
     return 1
@@ -124,7 +124,7 @@ rm_record() {
 
   if _contains "$_existing_challenges" "$txtvalue"; then
     #Delete all challenges (PowerDNS API does not allow to delete content)
-    if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "{\"rrsets\": [{\"changetype\": \"delete\", \"name\": \"$full.\", \"type\": \"TXT\"}]}"; then
+    if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "[{\"changetype\": \"delete\", \"name\": \"$full.\", \"type\": \"TXT\"}]"; then
       _err "Delete txt record error."
       return 1
     fi
@@ -138,7 +138,7 @@ rm_record() {
         fi
       done
       #Recreate the existing challenges
-      if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "{\"rrsets\": [{\"changetype\": \"update\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]}"; then
+      if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "[{\"changetype\": \"update\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]"; then
         _err "Set txt record error."
         return 1
       fi
@@ -168,7 +168,7 @@ _get_root() {
     _zones_response="$response"
   fi
 
- _debug "$response"
+  _debug2 "$response"
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
 
@@ -221,4 +221,5 @@ _build_record_string() {
 _list_existingchallenges() {
   _rcode0_rest "GET" "/api/v1/acme/zones/$root/rrsets"
   _existing_challenges=$(echo "$response" | _normalizeJson | _egrep_o "\"name\":\"${fulldomain}[^]]*}" | _egrep_o 'content\":\"\\"[^\\]*' | sed -n 's/^content":"\\"//p')
+  _debug2 "$_existing_challenges"
 }
