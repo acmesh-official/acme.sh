@@ -125,14 +125,19 @@ set_record() {
     _build_record_string "$oldchallenge"
   done
 
-  if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "[{\"changetype\": \"add\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]"; then
-    _err "Set txt record error."
-    return 1
-  fi
-  # try update in case a records exists (need for wildcard certs)
-  if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "[{\"changetype\": \"update\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]"; then
-    _err "Set txt record error."
-    return 1
+  _debug "Challenges: $_existing_challenges"
+
+  if [ -z "$_existing_challenges" ]; then
+    if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "[{\"changetype\": \"add\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]"; then
+      _err "Set txt record error."
+     return 1
+    fi
+  else
+    # try update in case a records exists (need for wildcard certs)
+    if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "[{\"changetype\": \"update\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]"; then
+      _err "Set txt record error."
+      return 1
+   fi
   fi
 
   if ! notify_slaves "$root"; then
