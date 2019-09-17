@@ -3,7 +3,8 @@
 #Rcode0 API Integration
 #https://my.rcodezero.at/api-doc
 #
-#
+# log into https://my.rcodezero.at/enableapi and  get your ACME API Token (the ACME API token has limited 
+# access to the REST calls needed for acme.sh only)
 #
 #RCODE0_URL="https://my.rcodezero.at"
 #RCODE0_API_TOKEN="0123456789ABCDEF"
@@ -95,7 +96,12 @@ set_record() {
     _build_record_string "$oldchallenge"
   done
 
-  if ! _rcode0_rest "PATCH" "/api/v1/zones/$root/rrsets" "[{\"changetype\": \"add\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]"; then
+  if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "[{\"changetype\": \"add\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]"; then
+    _err "Set txt record error."
+    return 1
+  fi
+ # try update in case an old records exists
+  if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "[{\"changetype\": \"update\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]"; then
     _err "Set txt record error."
     return 1
   fi
@@ -118,7 +124,7 @@ rm_record() {
 
   if _contains "$_existing_challenges" "$txtvalue"; then
     #Delete all challenges (PowerDNS API does not allow to delete content)
-    if ! _rcode0_rest "PATCH" "/api/v1/zones/$root/rrsets" "{\"rrsets\": [{\"changetype\": \"delete\", \"name\": \"$full.\", \"type\": \"TXT\"}]}"; then
+    if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "{\"rrsets\": [{\"changetype\": \"delete\", \"name\": \"$full.\", \"type\": \"TXT\"}]}"; then
       _err "Delete txt record error."
       return 1
     fi
@@ -132,7 +138,7 @@ rm_record() {
         fi
       done
       #Recreate the existing challenges
-      if ! _rcode0_rest "PATCH" "/api/v1/zones/$root/rrsets" "{\"rrsets\": [{\"changetype\": \"update\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]}"; then
+      if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "{\"rrsets\": [{\"changetype\": \"update\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]}"; then
         _err "Set txt record error."
         return 1
       fi
@@ -158,7 +164,7 @@ _get_root() {
   domain=$1
   i=1
 
-  if _rcode0_rest "GET" "/api/v1/zones"; then
+  if _rcode0_rest "GET" "/api/v1/acme/zones"; then
     _zones_response="$response"
   fi
 
@@ -213,6 +219,6 @@ _build_record_string() {
 }
 
 _list_existingchallenges() {
-  _rcode0_rest "GET" "/api/v1/zones/$root/rrsets"
+  _rcode0_rest "GET" "/api/v1/acme/zones/$root/rrsets"
   _existing_challenges=$(echo "$response" | _normalizeJson | _egrep_o "\"name\":\"${fulldomain}[^]]*}" | _egrep_o 'content\":\"\\"[^\\]*' | sed -n 's/^content":"\\"//p')
 }
