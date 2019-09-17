@@ -6650,6 +6650,9 @@ _process() {
       --force-color)
         export ACME_FORCE_COLOR=1
         ;;
+      --allow-sudo)
+        export ALLOW_SUDO=1
+        ;;
       --ecc)
         _ecc="isEcc"
         ;;
@@ -6790,7 +6793,7 @@ _process() {
 
   if [ "${_CMD}" != "install" ]; then
     if [ "$__INTERACTIVE" ] && ! _checkSudo; then
-      if [ -z "$FORCE" ]; then
+      if [ -z "$FORCE" -a -z "$ALLOW_SUDO" ]; then
         #Use "echo" here, instead of _info. it's too early
         echo "It seems that you are using sudo, please read this link first:"
         echo "$_SUDO_WIKI"
