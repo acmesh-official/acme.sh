@@ -21,6 +21,11 @@ dns_rcode0_add() {
   fulldomain=$1
   txtvalue=$2
 
+
+  RCODE0_API_TOKEN"${RCODE0_API_TOKEN:-$(_readaccountconf_mutable RCODE0_API_TOKEN)}"
+  RCODE0_URL"${RCODE0_URL:-$(_readaccountconf_mutable RCODE0_URL)}"
+  RCODE0_TTL"${RCODE0_TTL:-$(_readaccountconf_mutable RCODE0_TTL)}"
+
   if [ -z "$RCODE0_URL" ]; then
     RCODE0_URL="$DEFAULT_RCODE0_URL"
   fi
@@ -63,6 +68,30 @@ dns_rcode0_add() {
 dns_rcode0_rm() {
   fulldomain=$1
   txtvalue=$2
+
+  RCODE0_API_TOKEN"${RCODE0_API_TOKEN:-$(_readaccountconf_mutable RCODE0_API_TOKEN)}"
+  RCODE0_URL"${RCODE0_URL:-$(_readaccountconf_mutable RCODE0_URL)}"
+  RCODE0_TTL"${RCODE0_TTL:-$(_readaccountconf_mutable RCODE0_TTL)}"
+
+  if [ -z "$RCODE0_URL" ]; then
+    RCODE0_URL="$DEFAULT_RCODE0_URL"
+  fi
+
+
+  if [ -z "$RCODE0_API_TOKEN" ]; then
+    RCODE0_API_TOKEN=""
+    _err "Missing Rcode0 API Token."
+    _err "Please login and create your token at httsp://my.rcodezero.at/enableapi and try again."
+    return 1
+  fi
+
+  #save the api addr and key to the account conf file.
+  _saveaccountconf_mutable RCODE0_URL "$RCODE0_URL"
+  _saveaccountconf_mutable RCODE0_API_TOKEN "$RCODE0_API_TOKEN"
+
+  if [ "$RCODE0_TTL" != "$DEFAULT_RCODE0_TTL" ]; then
+    _saveaccountconf_mutable RCODE0_TTL "$RCODE0_TTL"
+  fi
 
   if [ -z "$RCODE0_TTL" ]; then
     RCODE0_TTL="$DEFAULT_RCODE0_TTL"
