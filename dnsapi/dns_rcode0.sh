@@ -33,7 +33,7 @@ dns_rcode0_add() {
 
   if [ -z "$RCODE0_API_TOKEN" ]; then
     RCODE0_API_TOKEN=""
-    _err "Missing Rcode0 API Token."
+    _err "Missing Rcode0 ACME API Token."
     _err "Please login and create your token at httsp://my.rcodezero.at/enableapi and try again."
     return 1
   fi
@@ -52,7 +52,7 @@ dns_rcode0_add() {
 
   _debug "Detect root zone"
   if ! _get_root "$fulldomain"; then
-    _err "invalid domain"
+    _err "No 'MASTER' zone for $fulldomain found at RcodeZero Anycast."
     return 1
   fi
   _debug _domain "$_domain"
@@ -198,21 +198,25 @@ _get_root() {
   domain=$1
   i=1
 
-  if _rcode0_rest "GET" "/api/v1/acme/zones"; then
-    _zones_response="$response"
-  fi
-
-  _debug2 "$response"
+#  if _rcode0_rest "GET" "/api/v1/acme/zones"; then
+#    _zones_response="$response"
+#  fi
+#
+#  _debug2 "$response"
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
 
-    _debug "H: $h"
-    if _contains "$_zones_response" "\"domain\":\"$h\""; then
-      _domain="$h"
-      if [ -z "$h" ]; then
-        _domain="=2E"
+    _debug "try to find: $h"
+    if _rcode0_rest "GET" "/api/v1/acme/zones/$h"; then
+      if [ "$response" = "[\"found\"]" ]; then
+        _domain="$h"
+        if [ -z "$h" ]; then
+         _domain="=2E"
+        fi
+        return 0
+      elif [ "$response" = "[\"not a master domain\"]" ]; then
+        return 1
       fi
-      return 0
     fi
 
     if [ -z "$h" ]; then
@@ -220,7 +224,7 @@ _get_root() {
     fi
     i=$(_math $i + 1)
   done
-  _debug "$domain not found"
+  _debug "no matching domain for $domain found"
 
   return 1
 }
