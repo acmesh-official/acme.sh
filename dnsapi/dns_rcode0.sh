@@ -21,7 +21,6 @@ dns_rcode0_add() {
   fulldomain=$1
   txtvalue=$2
 
-
   RCODE0_API_TOKEN="${RCODE0_API_TOKEN:-$(_readaccountconf_mutable RCODE0_API_TOKEN)}"
   RCODE0_URL="${RCODE0_URL:-$(_readaccountconf_mutable RCODE0_URL)}"
   RCODE0_TTL="${RCODE0_TTL:-$(_readaccountconf_mutable RCODE0_TTL)}"
@@ -29,7 +28,6 @@ dns_rcode0_add() {
   if [ -z "$RCODE0_URL" ]; then
     RCODE0_URL="$DEFAULT_RCODE0_URL"
   fi
-
 
   if [ -z "$RCODE0_API_TOKEN" ]; then
     RCODE0_API_TOKEN=""
@@ -76,7 +74,6 @@ dns_rcode0_rm() {
   if [ -z "$RCODE0_URL" ]; then
     RCODE0_URL="$DEFAULT_RCODE0_URL"
   fi
-
 
   if [ -z "$RCODE0_API_TOKEN" ]; then
     RCODE0_API_TOKEN=""
@@ -130,14 +127,14 @@ set_record() {
   if [ -z "$_existing_challenges" ]; then
     if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "[{\"changetype\": \"add\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]"; then
       _err "Set txt record error."
-     return 1
+      return 1
     fi
   else
     # try update in case a records exists (need for wildcard certs)
     if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "[{\"changetype\": \"update\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]"; then
       _err "Set txt record error."
       return 1
-   fi
+    fi
   fi
 
   if ! notify_slaves "$root"; then
@@ -198,11 +195,6 @@ _get_root() {
   domain=$1
   i=1
 
-#  if _rcode0_rest "GET" "/api/v1/acme/zones"; then
-#    _zones_response="$response"
-#  fi
-#
-#  _debug2 "$response"
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
 
@@ -211,7 +203,7 @@ _get_root() {
       if [ "$response" = "[\"found\"]" ]; then
         _domain="$h"
         if [ -z "$h" ]; then
-         _domain="=2E"
+          _domain="=2E"
         fi
         return 0
       elif [ "$response" = "[\"not a master domain\"]" ]; then
