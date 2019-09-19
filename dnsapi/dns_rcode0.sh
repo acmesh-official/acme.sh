@@ -55,14 +55,36 @@ dns_rcode0_add() {
   fi
   _debug _domain "$_domain"
 
-  if ! set_record "$_domain" "$fulldomain" "$txtvalue"; then
-    return 1
+  
+
+  _debug "Adding record"
+
+  _record_string=""
+  _build_record_string "$txtvalue"
+  _list_existingchallenges
+  for oldchallenge in $_existing_challenges; do
+    _build_record_string "$oldchallenge"
+  done
+
+  _debug "Challenges: $_existing_challenges"
+
+  if [ -z "$_existing_challenges" ]; then
+    if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$_domain/rrsets" "[{\"changetype\": \"add\", \"name\": \"$fulldomain.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]"; then
+      _err "Add txt record error."
+      return 1
+    fi
+  else
+    # try update in case a records exists (need for wildcard certs)
+    if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$_domain/rrsets" "[{\"changetype\": \"update\", \"name\": \"$fulldomain.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]"; then
+      _err "Set txt record error."
+      return 1
+    fi
   fi
 
   return 0
 }
 
-#fulldomain
+#fulldomain txtvalue
 dns_rcode0_rm() {
   fulldomain=$1
   txtvalue=$2
@@ -100,62 +122,14 @@ dns_rcode0_rm() {
     return 1
   fi
 
-  _debug _domain "$_domain"
-
-  if ! rm_record "$_domain" "$fulldomain" "$txtvalue"; then
-    return 1
-  fi
-
-  return 0
-}
-
-set_record() {
-  _debug "Adding record"
-  root=$1
-  full=$2
-  new_challenge=$3
-
-  _record_string=""
-  _build_record_string "$new_challenge"
-  _list_existingchallenges
-  for oldchallenge in $_existing_challenges; do
-    _build_record_string "$oldchallenge"
-  done
-
-  _debug "Challenges: $_existing_challenges"
-
-  if [ -z "$_existing_challenges" ]; then
-    if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "[{\"changetype\": \"add\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]"; then
-      _err "Set txt record error."
-      return 1
-    fi
-  else
-    # try update in case a records exists (need for wildcard certs)
-    if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "[{\"changetype\": \"update\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]"; then
-      _err "Set txt record error."
-      return 1
-    fi
-  fi
-
-  if ! notify_slaves "$root"; then
-    return 1
-  fi
-
-  return 0
-}
-
-rm_record() {
   _debug "Remove record"
-  root=$1
-  full=$2
-  txtvalue=$3
 
   #Enumerate existing acme challenges
   _list_existingchallenges
 
   if _contains "$_existing_challenges" "$txtvalue"; then
     #Delete all challenges (PowerDNS API does not allow to delete content)
-    if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "[{\"changetype\": \"delete\", \"name\": \"$full.\", \"type\": \"TXT\"}]"; then
+    if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$_domain/rrsets" "[{\"changetype\": \"delete\", \"name\": \"$fulldomain.\", \"type\": \"TXT\"}]"; then
       _err "Delete txt record error."
       return 1
     fi
@@ -169,7 +143,7 @@ rm_record() {
         fi
       done
       #Recreate the existing challenges
-      if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$root/rrsets" "[{\"changetype\": \"update\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]"; then
+      if ! _rcode0_rest "PATCH" "/api/v1/acme/zones/$_domain/rrsets" "[{\"changetype\": \"update\", \"name\": \"$fulldomain.\", \"type\": \"TXT\", \"ttl\": $RCODE0_TTL, \"records\": [$_record_string]}]"; then
         _err "Set txt record error."
         return 1
       fi
@@ -177,12 +151,6 @@ rm_record() {
   else
     _info "Record not found, nothing to remove"
   fi
-
-  return 0
-}
-
-notify_slaves() {
-  root=$1
 
   return 0
 }
@@ -249,7 +217,7 @@ _build_record_string() {
 }
 
 _list_existingchallenges() {
-  _rcode0_rest "GET" "/api/v1/acme/zones/$root/rrsets"
+  _rcode0_rest "GET" "/api/v1/acme/zones/$_domain/rrsets"
   _existing_challenges=$(echo "$response" | _normalizeJson | _egrep_o "\"name\":\"${fulldomain}[^]]*}" | _egrep_o 'content\":\"\\"[^\\]*' | sed -n 's/^content":"\\"//p')
   _debug2 "$_existing_challenges"
 }
