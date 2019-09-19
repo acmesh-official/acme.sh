@@ -55,8 +55,6 @@ dns_rcode0_add() {
   fi
   _debug _domain "$_domain"
 
-  
-
   _debug "Adding record"
 
   _record_string=""
