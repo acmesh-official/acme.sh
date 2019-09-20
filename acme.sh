@@ -1878,7 +1878,7 @@ _send_signed_request() {
       if [ "$ACME_NEW_NONCE" ]; then
         _debug2 "Get nonce with HEAD. ACME_NEW_NONCE" "$ACME_NEW_NONCE"
         nonceurl="$ACME_NEW_NONCE"
-        if _post "" "$nonceurl" "" "HEAD" "$__request_conent_type"; then
+        if _post "" "$nonceurl" "" "HEAD --head" "$__request_conent_type"; then
           _headers="$(cat "$HTTP_HEADER")"
           _debug2 _headers "$_headers"
           _CACHED_NONCE="$(echo "$_headers" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
