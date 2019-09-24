@@ -1697,6 +1697,9 @@ _post() {
     if [ "$HTTPS_INSECURE" ]; then
       _CURL="$_CURL --insecure  "
     fi
+    if [ "$httpmethod" = "HEAD" ]; then
+      _CURL="$_CURL -I  "
+    fi
     _debug "_CURL" "$_CURL"
     if [ "$needbase64" ]; then
       if [ "$_postContentType" ]; then
