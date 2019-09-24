@@ -1727,6 +1727,9 @@ _post() {
     if [ "$HTTPS_INSECURE" ]; then
       _WGET="$_WGET --no-check-certificate "
     fi
+    if [ "$httpmethod" = "HEAD" ]; then
+      _WGET="$_WGET --read-timeout=3.0  --tries=2  "
+    fi
     _debug "_WGET" "$_WGET"
     if [ "$needbase64" ]; then
       if [ "$httpmethod" = "POST" ]; then
@@ -1748,6 +1751,12 @@ _post() {
           response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
         else
           response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+        fi
+      elif [ "$httpmethod" = "HEAD" ]; then
+        if [ "$_postContentType" ]; then
+          response="$($_WGET --spider -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+        else
+          response="$($_WGET --spider -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
         fi
       else
         if [ "$_postContentType" ]; then
