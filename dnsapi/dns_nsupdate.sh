@@ -25,10 +25,10 @@ dns_nsupdate_add() {
   [ -n "${NSUPDATE_SERVER_PORT}" ] || NSUPDATE_SERVER_PORT=53
 
   if [ -n "${NSUPDATE_CNAME_ZONE}" ]; then
-      _info "adding _acme-challenge.${NSUPDATE_CNAME_ZONE}. 60 in txt \"${txtvalue}\""
-      _info "the record ${fulldomain}. must be a CNAME to this record for validation to succeed"
+    _info "adding _acme-challenge.${NSUPDATE_CNAME_ZONE}. 60 in txt \"${txtvalue}\""
+    _info "the record ${fulldomain}. must be a CNAME to this record for validation to succeed"
   else
-      _info "adding ${fulldomain}. 60 in txt \"${txtvalue}\""
+    _info "adding ${fulldomain}. 60 in txt \"${txtvalue}\""
   fi
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_1" ] && nsdebug="-d"
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_2" ] && nsdebug="-D"
@@ -74,9 +74,9 @@ dns_nsupdate_rm() {
   [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
   [ -n "${NSUPDATE_SERVER_PORT}" ] || NSUPDATE_SERVER_PORT=53
   if [ -n "${NSUPDATE_CNAME_ZONE}" ]; then
-      _info "removing _acme-challenge.${NSUPDATE_CNAME_ZONE}. txt"
+    _info "removing _acme-challenge.${NSUPDATE_CNAME_ZONE}. txt"
   else
-      _info "removing ${fulldomain}. txt"
+    _info "removing ${fulldomain}. txt"
   fi
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_1" ] && nsdebug="-d"
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_2" ] && nsdebug="-D"
