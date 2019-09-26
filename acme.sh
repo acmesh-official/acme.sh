@@ -1704,9 +1704,17 @@ _post() {
     if [ "$needbase64" ]; then
       if [ "$body" ]; then
         if [ "$_postContentType" ]; then
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+          if [ "$httpmethod" = 'HEAD' ]; then
+            response="$($_CURL -I --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5"                "$_post_url" | _base64)"
+          else
+            response="$($_CURL    --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+          fi
         else
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+          if [ "$httpmethod" = 'HEAD' ]; then
+            response="$($_CURL -I --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5"                "$_post_url" | _base64)"
+          else
+            response="$($_CURL    --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+          fi
         fi
       else
         if [ "$_postContentType" ]; then
@@ -1718,9 +1726,17 @@ _post() {
     else
       if [ "$body" ]; then
         if [ "$_postContentType" ]; then
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+          if [ "$httpmethod" = 'HEAD' ]; then
+            response="$($_CURL -I --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5"                "$_post_url")"
+          else
+            response="$($_CURL    --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+          fi
         else
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+          if [ "$httpmethod" = 'HEAD' ]; then
+            response="$($_CURL -I --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5"                "$_post_url")"
+          else
+            response="$($_CURL    --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+          fi
         fi
       else
         if [ "$_postContentType" ]; then
