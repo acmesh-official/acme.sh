@@ -8,6 +8,7 @@ end="https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON"
 client=""
 
 dns_netcup_add() {
+  _debug NC_Apikey "$NC_Apikey"
   login
   if [ "$NC_Apikey" = "" ] || [ "$NC_Apipw" = "" ] || [ "$NC_CID" = "" ]; then
     _err "No Credentials given"
@@ -116,7 +117,7 @@ dns_netcup_rm() {
 
 login() {
   tmp=$(_post "{\"action\": \"login\", \"param\": {\"apikey\": \"$NC_Apikey\", \"apipassword\": \"$NC_Apipw\", \"customernumber\": \"$NC_CID\"}}" "$end" "" "POST")
-  sid=$(_getfield "$tmp" "8" | sed s/\"responsedata\":\{\"apisessionid\":\"//g | sed 's/\"\}\}//g')
+  sid=$(echo "$tmp" | tr '{}' '\n' | grep apisessionid | cut -d '"' -f 4)
   _debug "$tmp"
   if [ "$(_getfield "$msg" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
     _err "$msg"
