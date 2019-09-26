@@ -98,7 +98,9 @@ _mail_cmnd() {
   case $(basename "$_MAIL_BIN") in
     sendmail)
       if [ -n "$MAIL_FROM" ]; then
-        echo "'$_MAIL_BIN' -f '$MAIL_FROM' '$MAIL_TO'"
+        _MAIL_ENV="$(echo "$MAIL_FROM" | sed 's/^.*<\(.*\)>$/\1/')"
+
+        echo "'$_MAIL_BIN' -f '${_MAIL_ENV:-$MAIL_FROM}' '$MAIL_TO'"
       else
         echo "'$_MAIL_BIN' '$MAIL_TO'"
       fi
