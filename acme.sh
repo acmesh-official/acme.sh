@@ -4974,18 +4974,14 @@ list() {
   if [ "$_raw" ]; then
     printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Created${_sep}Renew"
     for di in "${CERT_HOME}"/*.*/; do
-      if ! [ -d "$di" ]; then
-        _debug "Not directory, skip: $di"
-        continue
-      fi
       d=$(basename "$di")
       _debug d "$d"
       (
         if _endswith "$d" "$ECC_SUFFIX"; then
-          _isEcc=$(echo "$d" | cut -d "$ECC_SEP" -f 2)
+          _isEcc="ecc"
           d=$(echo "$d" | cut -d "$ECC_SEP" -f 1)
         fi
-        _initpath "$d" "$_isEcc"
+        DOMAIN_CONF="$di/$d.conf"
         if [ -f "$DOMAIN_CONF" ]; then
           . "$DOMAIN_CONF"
           printf "%s\n" "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
