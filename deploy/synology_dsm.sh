@@ -31,8 +31,8 @@ synology_dsm_deploy() {
   _debug _cdomain "$_cdomain"
 
   # Get Username and Password, but don't save until we successfully authenticate
-  SYNO_Username="${SYNO_Username:-$(_readaccountconf_mutable SYNO_Username)}"
-  SYNO_Password="${SYNO_Password:-$(_readaccountconf_mutable SYNO_Password)}"
+  SYNO_Username="${SYNO_Username:-$(_readdomainconf SYNO_Username)}"
+  SYNO_Password="${SYNO_Password:-$(_readdomainconf SYNO_Password)}"
   if [ -z "$SYNO_Username" ] || [ -z "$SYNO_Password" ]; then
     SYNO_Username=""
     SYNO_Password=""
@@ -43,12 +43,12 @@ synology_dsm_deploy() {
   _secure_debug2 SYNO_Password "$SYNO_Password"
 
   # Optional scheme, hostname, and port for Synology DSM
-  SYNO_Scheme="${SYNO_Scheme:-$(_readaccountconf_mutable SYNO_Scheme)}"
-  SYNO_Hostname="${SYNO_Hostname:-$(_readaccountconf_mutable SYNO_Hostname)}"
-  SYNO_Port="${SYNO_Port:-$(_readaccountconf_mutable SYNO_Port)}"
-  _saveaccountconf_mutable SYNO_Scheme "$SYNO_Scheme"
-  _saveaccountconf_mutable SYNO_Hostname "$SYNO_Hostname"
-  _saveaccountconf_mutable SYNO_Port "$SYNO_Port"
+  SYNO_Scheme="${SYNO_Scheme:-$(_readdomainconf SYNO_Scheme)}"
+  SYNO_Hostname="${SYNO_Hostname:-$(_readdomainconf SYNO_Hostname)}"
+  SYNO_Port="${SYNO_Port:-$(_readdomainconf SYNO_Port)}"
+  _savedomainconf SYNO_Scheme "$SYNO_Scheme"
+  _savedomainconf SYNO_Hostname "$SYNO_Hostname"
+  _savedomainconf SYNO_Port "$SYNO_Port"
 
   # default vaules for scheme, hostname, and port
   # defaulting to localhost and http because it's localhost...
@@ -97,8 +97,8 @@ synology_dsm_deploy() {
   fi
 
   # Now that we know the username and password are good, save them
-  _saveaccountconf_mutable SYNO_Username "$SYNO_Username"
-  _saveaccountconf_mutable SYNO_Password "$SYNO_Password"
+  _savedomainconf SYNO_Username "$SYNO_Username"
+  _savedomainconf SYNO_Password "$SYNO_Password"
   _secure_debug2 token "$token"
 
   # Use token and session id to get the list of certificates
