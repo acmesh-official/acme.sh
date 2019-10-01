@@ -40,9 +40,12 @@ dns_rcode0_add() {
     RCODE0_TTL="$DEFAULT_RCODE0_TTL"
   fi
 
-  #save the api addr and key to the account conf file.
-  _saveaccountconf_mutable RCODE0_URL "$RCODE0_URL"
+  #save the token to the account conf file.
   _saveaccountconf_mutable RCODE0_API_TOKEN "$RCODE0_API_TOKEN"
+
+  if [ "$RCODE0_URL" != "$DEFAULT_RCODE0_URL" ]; then
+    _saveaccountconf_mutable RCODE0_URL "$RCODE0_URL"
+  fi
 
   if [ "$RCODE0_TTL" != "$DEFAULT_RCODE0_TTL" ]; then
     _saveaccountconf_mutable RCODE0_TTL "$RCODE0_TTL"
