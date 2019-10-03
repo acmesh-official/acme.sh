@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.8.3
+VER=2.8.4
 
 PROJECT_NAME="acme.sh"
 
@@ -89,6 +89,9 @@ DEBUG_LEVEL_2=2
 DEBUG_LEVEL_3=3
 DEBUG_LEVEL_DEFAULT=$DEBUG_LEVEL_1
 DEBUG_LEVEL_NONE=0
+
+DOH_CLOUDFLARE=1
+DOH_GOOGLE=2
 
 HIDDEN_VALUE="[hidden](please add '--output-insecure' to see this value)"
 
@@ -3636,7 +3639,7 @@ __trigger_validation() {
 }
 
 #endpoint  domain type
-_ns_lookup() {
+_ns_lookup_impl() {
   _ns_ep="$1"
   _ns_domain="$2"
   _ns_type="$3"
@@ -3660,7 +3663,7 @@ _ns_lookup_cf() {
   _cf_ld="$1"
   _cf_ld_type="$2"
   _cf_ep="https://cloudflare-dns.com/dns-query"
-  _ns_lookup "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
+  _ns_lookup_impl "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
 }
 
 #domain, type
@@ -3673,6 +3676,44 @@ _ns_purge_cf() {
   _debug2 response "$response"
 }
 
+#checks if cf server is available
+_ns_is_available_cf() {
+  if _get "https://cloudflare-dns.com"; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+#domain, type
+_ns_lookup_google() {
+  _cf_ld="$1"
+  _cf_ld_type="$2"
+  _cf_ep="https://dns.google/resolve"
+  _ns_lookup_impl "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
+}
+
+#domain, type
+_ns_lookup() {
+  if [ -z "$DOH_USE" ]; then
+    _debug "Detect dns server first."
+    if _ns_is_available_cf; then
+      _debug "Use cloudflare doh server"
+      export DOH_USE=$DOH_CLOUDFLARE
+    else
+      _debug "Use google doh server"
+      export DOH_USE=$DOH_GOOGLE
+    fi
+  fi
+
+  if [ "$DOH_USE" = "$DOH_CLOUDFLARE" ] || [ -z "$DOH_USE" ]; then
+    _ns_lookup_cf "$@"
+  else
+    _ns_lookup_google "$@"
+  fi
+
+}
+
 #txtdomain, alias, txt
 __check_txt() {
   _c_txtdomain="$1"
@@ -3681,7 +3722,7 @@ __check_txt() {
   _debug "_c_txtdomain" "$_c_txtdomain"
   _debug "_c_aliasdomain" "$_c_aliasdomain"
   _debug "_c_txt" "$_c_txt"
-  _answers="$(_ns_lookup_cf "$_c_aliasdomain" TXT)"
+  _answers="$(_ns_lookup "$_c_aliasdomain" TXT)"
   _contains "$_answers" "$_c_txt"
 
 }
@@ -3690,7 +3731,13 @@ __check_txt() {
 __purge_txt() {
   _p_txtdomain="$1"
   _debug _p_txtdomain "$_p_txtdomain"
-  _ns_purge_cf "$_p_txtdomain" "TXT"
+  if [ "$DOH_USE" = "$DOH_CLOUDFLARE" ] || [ -z "$DOH_USE" ]; then
+    _ns_purge_cf "$_p_txtdomain" "TXT"
+  else
+    _debug "no purge api for google dns api, just sleep 5 secs"
+    _sleep 5
+  fi
+
 }
 
 #wait and check each dns entries
