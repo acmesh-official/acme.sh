@@ -814,6 +814,11 @@ _json_encode() {
   echo "$_j_str" | _hex_dump | _lower_case | sed 's/0a/5c 6e/g' | tr -d ' ' | _h2b | tr -d "\r\n"
 }
 
+#convert '\/' to '\'
+_json_decode() {
+  sed 's#\\/#/#g'
+}
+
 #options file
 _sed_i() {
   options="$1"
@@ -2395,7 +2400,7 @@ _initAPI() {
   _debug "_init api for server: $_api_server"
 
   if [ -z "$ACME_NEW_ACCOUNT" ]; then
-    response=$(_get "$_api_server")
+    response=$(_get "$_api_server" | _json_decode)
     if [ "$?" != "0" ]; then
       _debug2 "response" "$response"
       _err "Can not init api."
