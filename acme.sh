@@ -3678,7 +3678,7 @@ _ns_purge_cf() {
 
 #checks if cf server is available
 _ns_is_available_cf() {
-  if _get "https://cloudflare-dns.com"; then
+  if _get "https://cloudflare-dns.com" >/dev/null 2>&1; then
     return 0
   else
     return 1
