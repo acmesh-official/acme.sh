@@ -1,7 +1,6 @@
 FROM alpine:3.12
 
-RUN apk update -f \
-  && apk --no-cache add -f \
+RUN apk --no-cache add -f \
   openssl \
   openssh-client \
   coreutils \
@@ -12,8 +11,7 @@ RUN apk update -f \
   tzdata \
   oath-toolkit-oathtool \
   tar \
-  libidn \
-  && rm -rf /var/cache/apk/*
+  libidn
 
 ENV LE_CONFIG_HOME /acme.sh
 
