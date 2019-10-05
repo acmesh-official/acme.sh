@@ -359,7 +359,7 @@ _freedns_data_id() {
     # before each table row <tr>
     # search for the record type withing each row (e.g. TXT)
     # search for the domain within each row (which is within a <a..>
-    # </a> anchor. And finally extract the domain ID.         
+    # </a> anchor. And finally extract the domain ID.
     if [ -n "$data_id" ]; then
       printf "%s" "$data_id"
       return 0

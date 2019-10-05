@@ -3,7 +3,7 @@
 #Rcode0 API Integration
 #https://my.rcodezero.at/api-doc
 #
-# log into https://my.rcodezero.at/enableapi and  get your ACME API Token (the ACME API token has limited 
+# log into https://my.rcodezero.at/enableapi and  get your ACME API Token (the ACME API token has limited
 # access to the REST calls needed for acme.sh only)
 #
 #RCODE0_URL="https://my.rcodezero.at"
