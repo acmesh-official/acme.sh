@@ -178,7 +178,7 @@ _printargs() {
     printf -- "%s" "$1='$2'"
   fi
   printf "\n"
-  # return the saved exit status 
+  # return the saved exit status
   return "$_exitstatus"
 }
 
@@ -6215,7 +6215,7 @@ Parameters:
   --branch, -b                      Only valid for '--upgrade' command, specifies the branch name to upgrade to.
 
   --notify-level  0|1|2|3           Set the notification level:  Default value is $NOTIFY_LEVEL_DEFAULT.
-                                     0: disabled, no notification will be sent. 
+                                     0: disabled, no notification will be sent.
                                      1: send notifications only when there is an error.
                                      2: send notifications when a cert is successfully renewed, or there is an error.
                                      3: send notifications when a cert is skipped, renewed, or error.

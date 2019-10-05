@@ -1,11 +1,11 @@
 #!/usr/bin/env sh
 
 # Official Let's Encrypt API for do.de / Domain-Offensive
-# 
+#
 # This is different from the dns_do adapter, because dns_do is only usable for enterprise customers
 # This API is also available to private customers/individuals
-# 
-# Provide the required LetsEncrypt token like this: 
+#
+# Provide the required LetsEncrypt token like this:
 # DO_LETOKEN="FmD408PdqT1E269gUK57"
 
 DO_API="https://www.do.de/api/letsencrypt"
