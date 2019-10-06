@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-# Script to create certificate to qiniu.com 
+# Script to create certificate to qiniu.com
 #
 # This deployment required following variables
 # export QINIU_AK="QINIUACCESSKEY"
