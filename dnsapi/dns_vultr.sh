@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
 #
 #VULTR_API_KEY=000011112222333344445555666677778888
