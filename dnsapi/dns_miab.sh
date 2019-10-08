@@ -144,7 +144,7 @@ _miab_post() {
     fi
 
     _debug "_CURL" "$_CURL"
- 
+
     if [ "$needbase64" ]; then
       if [ "$_postContentType" ]; then
         response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod --user "$username:$password" -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
