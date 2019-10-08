@@ -180,7 +180,7 @@ _miab_post() {
 
     if [ "$needbase64" ]; then
 
-      	    if [ "$httpmethod" = "POST" ]; then
+      if [ "$httpmethod" = "POST" ]; then
         if [ "$_postContentType" ]; then
           response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
         else
