@@ -130,7 +130,7 @@ _miab_post() {
   _debug $httpmethod
   _debug "_post_url" "$_post_url"
   _debug2 "body" "$body"
-  
+
   _inithttp
 
   if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
