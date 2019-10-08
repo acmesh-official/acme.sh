@@ -91,9 +91,9 @@ dns_miab_rm() {
   fi
 
   #save the credentials to the account conf file.
-  _saveaccountconf_mutable MIAB_Username  "$MIAB_Username"
-  _saveaccountconf_mutable MIAB_Password  "$MIAB_Password"
-  _saveaccountconf_mutable MIAB_Server  "$MIAB_Server"
+  _saveaccountconf_mutable MIAB_Username "$MIAB_Username"
+  _saveaccountconf_mutable MIAB_Password "$MIAB_Password"
+  _saveaccountconf_mutable MIAB_Server "$MIAB_Server"
 
   baseurl="https://$MIAB_Server/admin/dns/custom/$fulldomain/txt"
 
@@ -130,8 +130,7 @@ _miab_post() {
   _debug $httpmethod
   _debug "_post_url" "$_post_url"
   _debug2 "body" "$body"
-  _debug2 "_postContentType" "$_postContentType"
-
+  
   _inithttp
 
   if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
@@ -167,7 +166,7 @@ _miab_post() {
     else
       response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --method $httpmethod --body-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
     fi
-    
+
     _ret="$?"
 
     if [ "$_ret" = "8" ]; then
