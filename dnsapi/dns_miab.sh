@@ -1,16 +1,16 @@
 #!/usr/bin/env sh
 
-#Name: dns_miab.sh
+# Name: dns_miab.sh
 #
-#Authors:
-# Darven Dissek 2018
-# William Gertz 2019
+# Authors:
+#    Darven Dissek 2018
+#    William Gertz 2019
 #
-# Thanks to Neil Pang for the code reused from acme.sh from HTTP-01 validation
-# used to communicate with the MailintheBox Custom DNS API
-#Report Bugs here:
-# https://github.com/billgertz/MIAB_dns_api (for dns_miab.sh)
-# https://github.com/Neilpang/acme.sh       (for acme.sh)
+#     Thanks to Neil Pang for the code reused from acme.sh from HTTP-01 validation
+#     used to communicate with the MailintheBox Custom DNS API
+# Report Bugs here:
+#    https://github.com/billgertz/MIAB_dns_api (for dns_miab.sh)
+#    https://github.com/Neilpang/acme.sh       (for acme.sh)
 #
 ########  Public functions #####################
 
@@ -41,9 +41,9 @@ dns_miab_add() {
   fi
 
   #save the credentials to the account conf file.
-  _saveaccountconf_mutable MIAB_Username  "$MIAB_Username"
-  _saveaccountconf_mutable MIAB_Password  "$MIAB_Password"
-  _saveaccountconf_mutable MIAB_Server  "$MIAB_Server"
+  _saveaccountconf_mutable MIAB_Username "$MIAB_Username"
+  _saveaccountconf_mutable MIAB_Password "$MIAB_Password"
+  _saveaccountconf_mutable MIAB_Server "$MIAB_Server"
 
   baseurl="https://$MIAB_Server/admin/dns/custom/$fulldomain/txt"
 
@@ -61,7 +61,6 @@ dns_miab_add() {
     _err "$result"
     return 1
   fi
-
 }
 
 #Usage: fulldomain txtvalue
@@ -92,16 +91,16 @@ dns_miab_rm() {
   fi
 
   #save the credentials to the account conf file.
-  _saveaccountconf_mutable MIAB_Username  "$MIAB_Username"
-  _saveaccountconf_mutable MIAB_Password  "$MIAB_Password"
-  _saveaccountconf_mutable MIAB_Server  "$MIAB_Server"
+  _saveaccountconf_mutable MIAB_Username "$MIAB_Username"
+  _saveaccountconf_mutable MIAB_Password "$MIAB_Password"
+  _saveaccountconf_mutable MIAB_Server "$MIAB_Server"
 
   baseurl="https://$MIAB_Server/admin/dns/custom/$fulldomain/txt"
 
   #Remove the challenge record
   result="$(_miab_post "$txtvalue" "$baseurl" "" "DELETE" "" "$MIAB_Username" "$MIAB_Password")"
 
-  _debug result $result
+  _debug result "$result"
 
   #check if result was good
   if _contains "$result" "updated DNS"; then
@@ -115,43 +114,7 @@ dns_miab_rm() {
 }
 
 ####################  Private functions below ##################################
-#_acme-challenge.www.domain.com
-#returns
-# _sub_domain=_acme-challenge.www
-# _domain=domain.com
-# _domain_id=sdjkglgdfewsdfg
-_get_root() {
-  domain=$1
-  i=2
-  p=1
- 
-  while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
-    _debug h "$h"
-    if [ -z "$h" ]; then
-      #not valid
-      return 1
-    fi
-
-    if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
-      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\[.\"id\":\"[^\"]*\"" | head -n 1 | cut -d : -f 2 | tr -d \")
-
-      if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
-        _domain=$h
-        return 0
-      fi
-
-      return 1
-    fi
-
-    p=$i
-    i=$(_math "$i" + 1)
-  done
-
-  return 1
-}
-
+#
 # post changes to MIAB dns (taken from acme.sh)
 _miab_post() {
   body="$1"
