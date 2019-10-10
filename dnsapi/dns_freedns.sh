@@ -303,7 +303,7 @@ _freedns_domain_id() {
       return 1
     fi
 
-    domain_id="$(echo "$htmlpage" | tr -d "[:space:]" | sed 's/<tr>/@<tr>/g' | tr '@' '\n' \
+    domain_id="$(echo "$htmlpage" | tr -d "\r\n" | sed 's/<tr>/@<tr>/g' | tr '@' '\n' \
       | grep "<td>$search_domain</td>\|<td>$search_domain(.*)</td>" \
       | sed -n 's/.*\(edit\.php?edit_domain_id=[0-9a-zA-Z]*\).*/\1/p' \
       | cut -d = -f 2)"
@@ -349,7 +349,7 @@ _freedns_data_id() {
       return 1
     fi
 
-    data_id="$(echo "$htmlpage" | tr -d "[:space:]" | sed 's/<tr>/@<tr>/g' | tr '@' '\n' \
+    data_id="$(echo "$htmlpage" | tr -d "\r\n" | sed 's/<tr>/@<tr>/g' | tr '@' '\n' \
       | grep "<td[a-zA-Z=#]*>$record_type</td>" \
       | grep "<ahref.*>$search_domain</a>" \
       | sed -n 's/.*\(edit\.php?data_id=[0-9a-zA-Z]*\).*/\1/p' \
