@@ -26,7 +26,7 @@ dns_miab_add() {
   if ! _retrieve_miab_env; then
     return 1
   fi
- 
+
   #check domain and seperate into doamin and host
   if ! _get_root "$fulldomain"; then
     _err "Cannot find any part of ${fulldomain} is hosted on ${MIAB_Server}"
