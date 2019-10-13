@@ -23,10 +23,10 @@ dns_miab_add() {
   _debug txtvalue "$txtvalue"
 
   #retrieve MIAB environemt vars
-   if ! _retrieve_miab_env; then
-     return 1
-   fi
-  
+  if ! _retrieve_miab_env; then
+    return 1
+  fi
+
   #check domain and seperate into doamin and host
   if ! _get_root "$fulldomain"; then
     _err "Cannot find any part of ${fulldomain} is hosted on ${MIAB_Server}"
@@ -61,9 +61,9 @@ dns_miab_rm() {
   _debug txtvalue "$txtvalue"
 
   #retrieve MIAB environemt vars
-   if ! _retrieve_miab_env; then
-     return 1
-   fi
+  if ! _retrieve_miab_env; then
+    return 1
+  fi
 
   #check domain and seperate into doamin and host
   if ! _get_root "$fulldomain"; then
@@ -76,7 +76,7 @@ dns_miab_rm() {
 
   #Remove the challenge record
   _api_path="custom/${fulldomain}/txt"
-	  _miab_rest "$txtvalue" "$_api_path" "DELETE"
+  _miab_rest "$txtvalue" "$_api_path" "DELETE"
 
   #check if result was good
   if _contains "$response" "updated DNS"; then
