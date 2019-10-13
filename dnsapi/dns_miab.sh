@@ -26,7 +26,7 @@ dns_miab_add() {
   if ! _retrieve_miab_env; then
     return 1
   fi
-
+ 
   #check domain and seperate into doamin and host
   if ! _get_root "$fulldomain"; then
     _err "Cannot find any part of ${fulldomain} is hosted on ${MIAB_Server}"
@@ -104,9 +104,6 @@ _get_root() {
   #get the zones hosed on MIAB server, must be a json stream
   _miab_rest "" "zones" "GET"
 
-  _info "_startswith test:$(_startswith "test" "t")"
-  _info "_endstest test:$(_endswith "test" "t")"
-
   if ! _is_json "$response"; then
     _err "ERROR fetching domain list"
     _err "$response"
@@ -176,14 +173,15 @@ _miab_rest() {
   _api_path="$2"
   _httpmethod="$3"
 
-  #encode username and password for url
-  _username="$(printf "%s" "$MIAB_Username" | _url_encode)"
-  _password="$(printf "%s" "$MIAB_Password" | _url_encode)"
-  _url="https://${_username}:${_password}@${MIAB_Server}/admin/dns/${_api_path}"
+  #encode username and password for basic authentication
+  _credentials="$(printf "%s" "$MIAB_Username:$MIAB_Password" | _base64)"
+  export _H1="Authorization: Basic $_credentials"
+  _url="https://${MIAB_Server}/admin/dns/${_api_path}"
 
   _debug2 _data "$_data"
   _debug _api_path "$_api_path"
   _debug2 _url "$_url"
+  _debug2 _credentails "$_credentials"
   _debug _httpmethod "$_httpmethod"
 
   if [ "$_httpmethod" = "GET" ]; then
@@ -195,7 +193,7 @@ _miab_rest() {
   _retcode="$?"
 
   if [ "$_retcode" != "0" ]; then
-    _err "MAAB REST authentication failed on $_httpmethod"
+    _err "MIAB REST authentication failed on $_httpmethod"
     return 1
   fi
 
