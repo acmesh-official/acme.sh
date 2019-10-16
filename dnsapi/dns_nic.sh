@@ -113,7 +113,7 @@ _nic_get_authtoken() {
   export _H1="Authorization: Basic $token"
   export _H2="Content-Type: application/x-www-form-urlencoded"
 
-  res="$(_post "grant_type=password&username=$username&password=$password&scope=%28GET%7CPUT%7CPOST%7CDELETE%29%3A%2Fdns-master%2F.%2B" "$NIC_Api/oauth/token" "" "POST")"
+  res=$(_post "grant_type=password&username=$username&password=$password&scope=%28GET%7CPUT%7CPOST%7CDELETE%29%3A%2Fdns-master%2F.%2B" "$NIC_Api/oauth/token" "" "POST")
   if _contains "$res" "access_token"; then
     _auth_token=$(printf "%s" "$res" | cut -d , -f2 | tr -d "\"" | sed "s/access_token://")
     _info "Token received"
