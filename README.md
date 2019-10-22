@@ -200,8 +200,9 @@ acme.sh --install-cert -d example.com \
 **Nginx** example:
 ```bash
 acme.sh --install-cert -d example.com \
---key-file       /path/to/keyfile/in/nginx/key.pem  \
---fullchain-file /path/to/fullchain/nginx/cert.pem \
+--cert-file       /path/to/keyfile/in/nginx/cert.pem  \
+--key-file       /path/to/keyfile/in/nginx/key.pem
+--fullchain-file /path/to/fullchain/nginx/fullchain.pem \
 --reloadcmd     "service nginx force-reload"
 ```
 
