@@ -88,14 +88,24 @@ _get_root() {
   i=$(_math "$i" - 1)
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
+    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     if [ -z "$h" ]; then
-      return 1
+      return 1 #not valid domain
     fi
-    _domain="$h"
-    return 0
+
+    #Check API if domain exists
+    if _lsw_api "GET" "$h"; then
+      if [ "$_code" = "200"]; then
+        _domain="$h"
+        return 0
+      fi
+    fi
+    i=$(_math "$i" - 1)
+    if (( $i < 1)); then
+      return 1 #not found
+    fi
   done
-  _debug "$domain not found"
+
   return 1
 }
 
@@ -108,6 +118,14 @@ _lsw_api() {
   # Construct the HTTP Authorization header
   export _H2="Content-Type: application/json"
   export _H1="X-Lsw-Auth: ${LSW_Key}"
+
+  if [ "$cmd" = "GET" ]; then
+    response="$(_get "$LSW_API/$domain")"
+    _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
+    _debug "http response code $_code"
+    _debug response "$response"
+    return 0
+  fi
 
   if [ "$cmd" = "POST" ]; then
     data="{\"name\": \"$fulldomain.\",\"type\": \"TXT\",\"content\": [\"$txtvalue\"],\"ttl\": 60}"
