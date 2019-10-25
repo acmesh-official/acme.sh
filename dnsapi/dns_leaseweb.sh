@@ -102,7 +102,7 @@ _get_root() {
       fi
     fi
     i=$(_math "$i" - 1)
-    if $(( i < 2 )); then
+    if [ "$i" -lt 2 ]; then
       return 1 #not found, no need to check _acme-challenge.sub.domain in leaseweb api.
     fi
   done
