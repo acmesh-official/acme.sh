@@ -88,7 +88,7 @@ _get_root() {
   i=$(_math "$i" - 1)
 
   while true; do
-    h=$(printf "%s" "$rdomain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$rdomain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       return 1 #not valid domain
@@ -102,7 +102,7 @@ _get_root() {
       fi
     fi
     i=$(_math "$i" - 1)
-    if (( i < 2 )); then
+    if $(( i < 2 )); then
       return 1 #not found, no need to check _acme-challenge.sub.domain in leaseweb api.
     fi
   done
