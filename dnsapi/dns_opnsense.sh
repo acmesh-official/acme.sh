@@ -220,22 +220,32 @@ _opns_check_auth() {
   if [ -z "$OPNs_Host" ]; then
     OPNs_Host="localhost"
     _err "You don't specify OPNsense address."
+    return 1
+  else
+    _saveaccountconf_mutable OPNs_Host "$OPNs_Host"
   fi
 
   if [ -z "$OPNs_Port" ]; then
     OPNs_Port="443"
-    _err "You don't specify OPNsense Port."
+  else
+    _saveaccountconf_mutable OPNs_Port "$OPNs_Port"
   fi
 
   if [ -z "$OPNs_Api_Insecure" ]; then
     OPNs_Api_Insecure="0"
+  else
+  #save the api addr and key to the account conf file.
+    _saveaccountconf_mutable OPNs_Api_Insecure "$OPNs_Api_Insecure"
   fi
+  export HTTPS_INSECURE="${OPNs_Api_Insecure}"
 
   if [ -z "$OPNs_Key" ]; then
     OPNs_Key=""
     _err "You don't specify OPNsense api key id."
     _err "Please set you OPNs_Key and try again."
     return 1
+  else
+    _saveaccountconf_mutable OPNs_Key "$OPNs_Key"
   fi
 
   if [ -z "$OPNs_Token" ]; then
@@ -243,15 +253,10 @@ _opns_check_auth() {
     _err "You don't specify OPNsense token."
     _err "Please create you OPNs_Token and try again."
     return 1
+  else
+    _saveaccountconf_mutable OPNs_Token "$OPNs_Token"
   fi
 
-  #save the api addr and key to the account conf file.
-  _saveaccountconf_mutable OPNs_Host "$OPNs_Host"
-  _saveaccountconf_mutable OPNs_Port "$OPNs_Port"
-  _saveaccountconf_mutable OPNs_Key "$OPNs_Key"
-  _saveaccountconf_mutable OPNs_Token "$OPNs_Token"
-  _saveaccountconf_mutable OPNs_Api_Insecure "$OPNs_Api_Insecure"
-  export HTTPS_INSECURE="${OPNs_Api_Insecure}"
 
   if ! _opns_rest "GET" "/general/get"; then
     _err "Can't Access OPNsense"
