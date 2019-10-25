@@ -1948,7 +1948,7 @@ _send_signed_request() {
       if [ "$url" = "$ACME_NEW_ACCOUNT" ] || [ "$url" = "$ACME_REVOKE_CERT" ]; then
         protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"jwk\": $jwk"'}'
       else
-        protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"kid\": \"${ACCOUNT_URL}\""'}'
+        protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"kid\": \""$(echo "${ACCOUNT_URL}" | sed -e "s/location\\://")"\""'}'
       fi
     else
       protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"jwk\": $jwk"'}'
@@ -3982,7 +3982,7 @@ issue() {
       #for dns manual mode
       _savedomainconf "Le_OrderFinalize" "$Le_OrderFinalize"
 
-      _authorizations_seg="$(echo "$response" | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
+      _authorizations_seg="$(echo "$response" | tr '\n' ' ' | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
       _debug2 _authorizations_seg "$_authorizations_seg"
       if [ -z "$_authorizations_seg" ]; then
         _err "_authorizations_seg not found."
@@ -4480,7 +4480,7 @@ $_authorizations_map"
     _link_cert_retry=0
     _MAX_CERT_RETRY=5
     while [ "$_link_cert_retry" -lt "$_MAX_CERT_RETRY" ]; do
-      if _contains "$response" "\"status\":\"valid\""; then
+      if _contains "$response" "\"status\":\"valid\"" || _contains "$response" "\"status\": \"valid\""; then
         _debug "Order status is valid."
         Le_LinkCert="$(echo "$response" | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
         _debug Le_LinkCert "$Le_LinkCert"
