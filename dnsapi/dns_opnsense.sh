@@ -234,7 +234,7 @@ _opns_check_auth() {
   if [ -z "$OPNs_Api_Insecure" ]; then
     OPNs_Api_Insecure="0"
   else
-  #save the api addr and key to the account conf file.
+    #save the api addr and key to the account conf file.
     _saveaccountconf_mutable OPNs_Api_Insecure "$OPNs_Api_Insecure"
   fi
   export HTTPS_INSECURE="${OPNs_Api_Insecure}"
