@@ -257,7 +257,6 @@ _opns_check_auth() {
     _saveaccountconf_mutable OPNs_Token "$OPNs_Token"
   fi
 
-
   if ! _opns_rest "GET" "/general/get"; then
     _err "Can't Access OPNsense"
     return 1
