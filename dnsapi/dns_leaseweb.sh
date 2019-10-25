@@ -83,19 +83,20 @@ dns_leaseweb_rm() {
 # returns
 # _domain=domain.com
 _get_root() {
-  domain=$1
-  i="$(echo "$fulldomain" | tr '.' ' ' | wc -w)"
+  rdomain=$1
+  i="$(echo "$rdomain" | tr '.' ' ' | wc -w)"
   i=$(_math "$i" - 1)
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$rdomain" | cut -d . -f $i-100)
+    _debug h "$h"
     if [ -z "$h" ]; then
       return 1 #not valid domain
     fi
 
     #Check API if domain exists
     if _lsw_api "GET" "$h"; then
-      if [ "$_code" = "200"]; then
+      if [ "$_code" = "200" ]; then
         _domain="$h"
         return 0
       fi
@@ -111,16 +112,16 @@ _get_root() {
 
 _lsw_api() {
   cmd=$1
-  domain=$2
-  fulldomain=$3
-  txtvalue=$4
+  data=$2
+  fd=$3
+  tvalue=$4
 
   # Construct the HTTP Authorization header
   export _H2="Content-Type: application/json"
   export _H1="X-Lsw-Auth: ${LSW_Key}"
 
   if [ "$cmd" = "GET" ]; then
-    response="$(_get "$LSW_API/$domain")"
+    response="$(_get "$LSW_API/$d")"
     _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
     _debug "http response code $_code"
     _debug response "$response"
@@ -128,8 +129,8 @@ _lsw_api() {
   fi
 
   if [ "$cmd" = "POST" ]; then
-    data="{\"name\": \"$fulldomain.\",\"type\": \"TXT\",\"content\": [\"$txtvalue\"],\"ttl\": 60}"
-    response="$(_post "$data" "$LSW_API/$domain/resourceRecordSets" "$data" "POST")"
+    data="{\"name\": \"$fd.\",\"type\": \"TXT\",\"content\": [\"$tvalue\"],\"ttl\": 60}"
+    response="$(_post "$data" "$LSW_API/$d/resourceRecordSets" "$data" "POST")"
     _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
     _debug "http response code $_code"
     _debug response "$response"
@@ -137,7 +138,7 @@ _lsw_api() {
   fi
 
   if [ "$cmd" = "DELETE" ]; then
-    response="$(_post "" "$LSW_API/$domain/resourceRecordSets/$fulldomain/TXT" "" "DELETE")"
+    response="$(_post "" "$LSW_API/$d/resourceRecordSets/$fd/TXT" "" "DELETE")"
     _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
     _debug "http response code $_code"
     _debug response "$response"
