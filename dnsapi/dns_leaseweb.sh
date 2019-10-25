@@ -112,7 +112,7 @@ _get_root() {
 
 _lsw_api() {
   cmd=$1
-  data=$2
+  d=$2
   fd=$3
   tvalue=$4
 
