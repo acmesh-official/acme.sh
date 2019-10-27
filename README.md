@@ -28,11 +28,9 @@ acme.sh/
 
 1
 
-# An ACME Shell script: acme.sh [![Build Status](https://travis-ci.org/Neilpang/acme.sh.svg?branch=master)](https://travis-ci.org/Neilpang/acme.sh)
 
 2
 
-​
 
 3
 
@@ -48,33 +46,13 @@ acme.sh/
 
 6
 
-- Support ACME v1 and ACME v2
 
 7
 
-- Support ACME v2 wildcard certs
 
 8
 
 - Simple, powerful and very easy to use. You only need 3 minutes to learn it.
-
-9
-
-- Bash, dash and sh compatible.
-
-10
-
-- Simplest shell script for Let's Encrypt free certificate client.
-
-11
-
-- Purely written in Shell with no dependencies on python or the official Let's Encrypt client.
-
-12
-
-- Just one script to issue, renew and install your certificates automatically.
-
-13
 
 - DOES NOT require `root/sudoer` access.
 
@@ -100,7 +78,6 @@ It's probably the `easiest & smartest` shell script to automatically issue & ren
 
 19
 
-​
 
 20
 
@@ -128,7 +105,6 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
 26
 
-​
 
 27
 
@@ -138,7 +114,6 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
 ​
 
-29
 
 # Who:
 
@@ -152,7 +127,6 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
 32
 
-- [Proxmox](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x_and_newer))
 
 33
 
@@ -164,7 +138,6 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
 35
 
-- [Loadbalancer.org](https://www.loadbalancer.org/blog/loadbalancer-org-with-lets-encrypt-quick-and-dirty)
 
 36
 
@@ -184,13 +157,11 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
 40
 
-- [opnsense.org](https://github.com/opnsense/plugins/tree/master/security/acme-client/src/opnsense/scripts/OPNsense/AcmeClient)
 
 41
 
 - [CentOS Web Panel](http://centos-webpanel.com/)
 
-42
 
 - [lnmp.org](https://lnmp.org/)
 
@@ -198,13 +169,11 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
 - [more...](https://github.com/Neilpang/acme.sh/wiki/Blogs-and-tutorials)
 
-44
 
 ​
 
 45
 
-# Tested OS
 
 46
 
@@ -213,23 +182,4 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 47
 
 | NO | Status| Platform|
-
-@stilez
-Propose file change
-Commit summary
-Optional extended description
-
-    © 2019 GitHub, Inc.
-    Terms
-    Privacy
-    Security
-    Status
-    Help
-
-    Contact GitHub
-    Pricing
-    API
-    Training
-    Blog
-    About
 

@@ -46,7 +46,7 @@ dns_nsone_add() {
   if [ "$count" = "0" ]; then
     _info "Adding record"
 
-    if _nsone_rest PUT "zones/$_domain/$fulldomain/TXT" "{\"answers\":[{\"answer\":[\"$txtvalue\"]}],\"type\":\"TXT\",\"domain\":\"$fulldomain\",\"zone\":\"$_domain\"}"; then
+    if _nsone_rest PUT "zones/$_domain/$fulldomain/TXT" "{\"answers\":[{\"answer\":[\"$txtvalue\"]}],\"type\":\"TXT\",\"domain\":\"$fulldomain\",\"zone\":\"$_domain\",\"ttl\":0}"; then
       if _contains "$response" "$fulldomain"; then
         _info "Added"
         #todo: check if the record takes effect
@@ -62,7 +62,7 @@ dns_nsone_add() {
     prev_txt=$(printf "%s\n" "$response" | _egrep_o "\"domain\":\"$fulldomain\",\"short_answers\":\[\"[^,]*\]" | _head_n 1 | cut -d: -f3 | cut -d, -f1)
     _debug "prev_txt" "$prev_txt"
 
-    _nsone_rest POST "zones/$_domain/$fulldomain/TXT" "{\"answers\": [{\"answer\": [\"$txtvalue\"]},{\"answer\": $prev_txt}],\"type\": \"TXT\",\"domain\":\"$fulldomain\",\"zone\": \"$_domain\"}"
+    _nsone_rest POST "zones/$_domain/$fulldomain/TXT" "{\"answers\": [{\"answer\": [\"$txtvalue\"]},{\"answer\": $prev_txt}],\"type\": \"TXT\",\"domain\":\"$fulldomain\",\"zone\": \"$_domain\",\"ttl\":0}"
     if [ "$?" = "0" ] && _contains "$response" "$fulldomain"; then
       _info "Updated!"
       #todo: check if the record takes effect

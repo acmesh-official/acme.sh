@@ -29,7 +29,7 @@ dns_aws_add() {
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     AWS_ACCESS_KEY_ID=""
     AWS_SECRET_ACCESS_KEY=""
-    _err "You don't specify aws route53 api key id and and api key secret yet."
+    _err "You haven't specifed the aws route53 api key id and and api key secret yet."
     _err "Please create your key and try again. see $(__green $AWS_WIKI)"
     return 1
   fi
@@ -49,7 +49,7 @@ dns_aws_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  _info "Geting existing records for $fulldomain"
+  _info "Getting existing records for $fulldomain"
   if ! aws_rest GET "2013-04-01$_domain_id/rrset" "name=$fulldomain&type=TXT"; then
     return 1
   fi
@@ -62,7 +62,7 @@ dns_aws_add() {
   fi
 
   if [ "$_resource_record" ] && _contains "$response" "$txtvalue"; then
-    _info "The txt record already exists, skip"
+    _info "The TXT record already exists. Skipping."
     return 0
   fi
 
@@ -71,7 +71,7 @@ dns_aws_add() {
   _aws_tmpl_xml="<ChangeResourceRecordSetsRequest xmlns=\"https://route53.amazonaws.com/doc/2013-04-01/\"><ChangeBatch><Changes><Change><Action>UPSERT</Action><ResourceRecordSet><Name>$fulldomain</Name><Type>TXT</Type><TTL>300</TTL><ResourceRecords>$_resource_record<ResourceRecord><Value>\"$txtvalue\"</Value></ResourceRecord></ResourceRecords></ResourceRecordSet></Change></Changes></ChangeBatch></ChangeResourceRecordSetsRequest>"
 
   if aws_rest POST "2013-04-01$_domain_id/rrset/" "" "$_aws_tmpl_xml" && _contains "$response" "ChangeResourceRecordSetsResponse"; then
-    _info "txt record updated success."
+    _info "TXT record updated successfully."
     return 0
   fi
 
@@ -99,7 +99,7 @@ dns_aws_rm() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  _info "Geting existing records for $fulldomain"
+  _info "Getting existing records for $fulldomain"
   if ! aws_rest GET "2013-04-01$_domain_id/rrset" "name=$fulldomain&type=TXT"; then
     return 1
   fi
@@ -108,14 +108,14 @@ dns_aws_rm() {
     _resource_record="$(echo "$response" | sed 's/<ResourceRecordSet>/"/g' | tr '"' "\n" | grep "<Name>$fulldomain.</Name>" | _egrep_o "<ResourceRecords.*</ResourceRecords>" | sed "s/<ResourceRecords>//" | sed "s#</ResourceRecords>##")"
     _debug "_resource_record" "$_resource_record"
   else
-    _debug "no records exists, skip"
+    _debug "no records exist, skip"
     return 0
   fi
 
   _aws_tmpl_xml="<ChangeResourceRecordSetsRequest xmlns=\"https://route53.amazonaws.com/doc/2013-04-01/\"><ChangeBatch><Changes><Change><Action>DELETE</Action><ResourceRecordSet><ResourceRecords>$_resource_record</ResourceRecords><Name>$fulldomain.</Name><Type>TXT</Type><TTL>300</TTL></ResourceRecordSet></Change></Changes></ChangeBatch></ChangeResourceRecordSetsRequest>"
 
   if aws_rest POST "2013-04-01$_domain_id/rrset/" "" "$_aws_tmpl_xml" && _contains "$response" "ChangeResourceRecordSetsResponse"; then
-    _info "txt record deleted success."
+    _info "TXT record deleted successfully."
     return 0
   fi
 
@@ -163,7 +163,7 @@ _get_root() {
             _domain=$h
             return 0
           fi
-          _err "Can not find domain id: $h"
+          _err "Can't find domain with id: $h"
           return 1
         fi
       fi
