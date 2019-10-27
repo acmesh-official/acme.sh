@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-##  Name: dns_pleskxml.sh
+##  Name: dns_pleskxml
 ##  Created by Stilez.
 ##  Also uses some code from PR#1832 by @romanlum (https://github.com/Neilpang/acme.sh/pull/1832/files)
 
@@ -13,14 +13,16 @@
 ##  For example, to add a TXT record to DNS alias domain "acme-alias.com" would be a valid Plesk action.
 ##  So this API module can handle such a request, if needed.
 
+##  For ACME v2 purposes, new TXT records are appended when added, and removing one TXT record will not affect any other TXT records.
+
 ##  The plesk plugin uses the xml api to add and remvoe the dns records. Therefore the url, username
 ##  and password have to be configured by the user before this module is called.
 ##
 ##  ```
-##  export pleskxml_uri="https://YOUR_PLESK_URI_HERE:8443/enterprise/control/agent.php"
+##  export pleskxml_uri="https://address-of-my-plesk-server.net:8443/enterprise/control/agent.php"
 ##          (or probably something similar)
-##  export pleskxml_user="plesk username"
-##  export pleskxml_pass="plesk password"
+##  export pleskxml_user="my plesk username"
+##  export pleskxml_pass="my plesk password"
 ##  ```
 
 ##  Ok, let's issue a cert now:
@@ -42,19 +44,19 @@ NEWLINE='\
 pleskxml_tplt_get_domains="<packet><customer><get-domain-list><filter/></get-domain-list></customer></packet>"
 # Get a list of domains that PLESK can manage, so we can check root domain + host for acme.sh
 # Also used to test credentials and URI.
-# No args.
+# No params.
 
 pleskxml_tplt_get_dns_records="<packet><dns><get_rec><filter><site-id>%s</site-id></filter></get_rec></dns></packet>"
 # Get all DNS records for a Plesk domain ID.
-# ARG = Plesk domain id to query
+# PARAM = Plesk domain id to query
 
 pleskxml_tplt_add_txt_record="<packet><dns><add_rec><site-id>%s</site-id><type>TXT</type><host>%s</host><value>%s</value></add_rec></dns></packet>"
 # Add a TXT record to a domain.
-# ARGS = (1) Plesk internal domain ID, (2) "hostname" for the new record, eg '_acme_challenge', (3) TXT record value
+# PARAMS = (1) Plesk internal domain ID, (2) "hostname" for the new record, eg '_acme_challenge', (3) TXT record value
 
 pleskxml_tplt_rmv_dns_record="<packet><dns><del_rec><filter><id>%s</id></filter></del_rec></dns></packet>"
-# Add a TXT record to a domain.
-# ARG = the Plesk internal ID for the dns record to be deleted
+# Delete a specific TXT record from a domain.
+# PARAM = the Plesk internal ID for the DNS record to be deleted
 
 ####################  Public functions ##################################
 
@@ -63,7 +65,7 @@ dns_pleskxml_add() {
   fulldomain=$1
   txtvalue=$2
 
-  _info "Entering dns_pleskxml_add() to add TXT record '$2' to domain '$1'..."
+  _info "Entering dns_pleskxml_add() to add TXT record '$txtvalue' to domain '$fulldomain'..."
 
   # Get credentials if not already checked, and confirm we can log in to Plesk XML API
   if ! _credential_check; then
@@ -110,7 +112,7 @@ dns_pleskxml_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  _info "Entering dns_pleskxml_rm() to remove TXT record '$2' from domain '$1'..."
+  _info "Entering dns_pleskxml_rm() to remove TXT record '$txtvalue' from domain '$fulldomain'..."
 
   # Get credentials if not already checked, and confirm we can log in to Plesk XML API
   if ! _credential_check; then
@@ -189,19 +191,19 @@ dns_pleskxml_rm() {
 
 ####################  Private functions below ##################################
 
-# Outputs value of a variable
+# Outputs value of a variable without additional newlines etc
 _value() {
   printf '%s' "$1"
 }
 
-# Outputs value of a variable (FQDN) and cuts it at 2 delimiters
+# Outputs value of a variable (FQDN) and cuts it at 2 specified '.' delimiters, returning the text in between
 # $1, $2 = where to cut
 # $3 = FQDN
 _valuecut() {
   printf '%s' "$3" | cut -d . -f "${1}-${2}"
 }
 
-# Cleans up an API response, splits it "per item" and greps for a string to validate useful lines
+# Cleans up an API response, splits it "one line per item in the response" and greps for a string that in the context, identifies "useful" lines
 # $1 - result string from API
 # $2 - tag to resplit on (usually "result" or "domain")
 # $3 - regex to recognise useful return lines
@@ -227,8 +229,6 @@ _call_api() {
   pleskxml_prettyprint_result="$(_post "${request}" "$pleskxml_uri" "" "POST")"
   pleskxml_retcode="$?"
   _debug "acme _post() returned retcode=$pleskxml_retcode. Literal response:" '\n' "'${pleskxml_prettyprint_result}'"
-
-  # Error handling
 
   # Detect any <status> that isn't "ok". None of the used calls should fail if the API is working correctly.
   # Also detect if there simply aren't any status lines (null result?) and report that, as well.
@@ -320,7 +320,7 @@ _credential_check() {
 _pleskxml_get_root_domain() {
   _debug "Identifying DNS root domain for '$1' that is managed by the Plesk account."
 
-  # test if the domain is valid for splitting.
+  # test if the domain as provided is valid for splitting.
 
   if _value "$root_domain_name" | grep -qvE '^[^.]+\.[^.]+\.[^.]'; then
     _err "Invalid domain. The ACME domain must contain at least two parts (aa.bb) to identify a domain and tld for the TXT record."
@@ -334,10 +334,10 @@ _pleskxml_get_root_domain() {
     return 1
   fi
 
-  # Generate a hacked list of domains known to this Plesk account.
+  # Generate a crude list of domains known to this Plesk account.
   # We convert <ascii-name> tags to <name> so it'll flag on a hit with either <name> or <ascii-name> fields,
   # for non-Western character sets.
-  # Output will be one line per known domain, containing 1 or 2 <name> tages and an <id> tag
+  # Output will be one line per known domain, containing 2 <name> tages and a single <id> tag
   # We don't actually need to check for type, name, *and* id, but it guarantees only usable lines are returned.
 
   output="$(_api_response_split "$pleskxml_prettyprint_result" 'domain' '<type>domain</type>' | sed -E 's/<(\/?)ascii-name>/<\1name>/g' | grep '<name>' | grep '<id>')"
@@ -345,7 +345,7 @@ _pleskxml_get_root_domain() {
   _debug 'Domains managed by Plesk server are (ignore the hacked output):\n' "$output"
 
   # loop and test if domain, or any parent domain, is managed by Plesk
-  # Loop until we don't have any '.' in the sring we're testing as a root domain
+  # Loop until we don't have any '.' in the string we're testing as a candidate Plesk-managed domain
 
   root_domain_name="$1"
   doneloop=0
@@ -378,7 +378,7 @@ _pleskxml_get_root_domain() {
   done
 
   # if we get here, we failed to find a root domain match in the list of domains managed by Plesk.
-  # if we never ran the loop a first time, $1 wasn't at least a 2 level domain (domain.tld) and wasn't valid anyway
+  # if we never ran the loop even once, $1 wasn't a 2nd level (or deeper) domain (e.g. domain.tld) and wasn't valid anyway
 
   if [ -z $doneloop ]; then
     _err "'$1' isn't a valid domain for ACME DNS. Exiting."
