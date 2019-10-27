@@ -30,14 +30,6 @@ dns_variomedia_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-# _debug 'Getting txt records'
-# _variomedia_rest GET "/dns-records?filter[domain]=$_domain"
-
-# if printf "%s\n" "$response" | grep "\"record_type\": \"A\", \"fqdn\": \"$fulldomain\"" >/dev/null; then
-#   _err 'Error'
-#   return 1
-# fi
-
   if ! _variomedia_rest POST "dns-records" "{\"data\": {\"type\": \"dns-record\", \"attributes\": {\"record_type\": \"TXT\", \"name\": \"$_sub_domain\", \"domain\": \"$_domain\", \"data\": \"$txtvalue\", \"ttl\":300}}}"; then
     _err "$response"
     return 1
@@ -119,13 +111,7 @@ _get_root() {
         _sub_domain="$(echo "$fulldomain" | sed "s/\\.$h\$//")"
         _domain=$h
         return 0
-#     else
-#       _err 'Invalid domain'
-#       return 1
       fi
-#   else
-#     _err "$response"
-#     return 1
     fi
     i=$(_math "$i" + 1)
   done
@@ -140,10 +126,6 @@ _variomedia_rest() {
   ep="$2"
   data="$3"
   _debug "$ep"
-
-# api_key_trimmed=$(echo $VARIOMEDIA_API_TOKEN | tr -d '"')
-
-# export _H1="Api-Key: $api_key_trimmed"
 
   export _H1="Authorization: token $VARIOMEDIA_API_TOKEN"
   export _H2="Content-Type: application/vnd.api+json"
