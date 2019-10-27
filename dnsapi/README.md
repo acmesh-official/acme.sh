@@ -897,6 +897,26 @@ acme.sh --issue --dns dns_euserv -d example.com -d *.example.com --insecure
 The `EUSERV_Username` and `EUSERV_Password` will be saved in `~/.acme.sh/account.conf` and will be reused when needed.
 
 Please report any issues to https://github.com/initit/acme.sh or to <github@initit.de>
+
+## 47. Use Plesk XML API to automatically issue cert
+
+The plesk plugin uses an XML API to add and remove dns records. 
+The Plesk API URI (URL), and the user name and password for logging in, must be configured.
+
+```
+export pleskxml_uri="https://YOUR_PLESK_URI_HERE:8443/enterprise/control/agent.php"
+           (or probably something similar)
+export pleskxml_user="plesk username"
+export pleskxml_pass="plesk password"
+```
+
+Ok, let's issue a cert now:
+```
+acme.sh --issue --dns dns_pleskxml -d example.com -d www.example.com
+```
+
+The `pleskxml_user`, `pleskxml_pass` and `pleskxml_uri` will be saved in `~/.acme.sh/account.conf` and are reused when needed.
+
 # Use custom API
 
 If your API is not supported yet, you can write your own DNS API.
