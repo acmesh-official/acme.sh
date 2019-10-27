@@ -153,7 +153,7 @@ fi
 
 __green() {
   if [ "${__INTERACTIVE}${ACME_NO_COLOR:-0}" = "10" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[1;31;32m%b\033[0m' "$1"
+    printf '\33[1;32m%b\33[0m' "$1"
     return
   fi
   printf -- "%b" "$1"
@@ -161,7 +161,7 @@ __green() {
 
 __red() {
   if [ "${__INTERACTIVE}${ACME_NO_COLOR:-0}" = "10" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[1;31;40m%b\033[0m' "$1"
+    printf '\33[1;31m%b\33[0m' "$1"
     return
   fi
   printf -- "%b" "$1"
