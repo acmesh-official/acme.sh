@@ -77,7 +77,6 @@ dns_pleskxml_add() {
 
   _debug 'Credentials OK, and domain identified. Calling Plesk XML API to add TXT record'
 
-
   # printf using template in a variable - not a style issue
   # shellcheck disable=SC2059
   request="$(printf "$pleskxml_tplt_add_txt_record" "$root_domain_id" "$sub_domain_name" "$txtvalue")"
