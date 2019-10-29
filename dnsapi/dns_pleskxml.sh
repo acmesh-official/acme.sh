@@ -189,7 +189,7 @@ dns_pleskxml_rm() {
   return 0
 }
 
-####################  Private functions below ##################################
+####################  Private functions below (utility functions) ##################################
 
 # Outputs value of a variable without additional newlines etc
 _value() {
@@ -201,6 +201,12 @@ _value() {
 # $3 = FQDN
 _valuecut() {
   printf '%s' "$3" | cut -d . -f "${1}-${2}"
+}
+
+# Counts '.' present in a domain name
+# $1 = domain name
+_countdots() {
+  _value "$1" | tr -dc '.' | wc -c
 }
 
 # Cleans up an API response, splits it "one line per item in the response" and greps for a string that in the context, identifies "useful" lines
@@ -215,6 +221,8 @@ _api_response_split() {
     | grep -E "$3"
 }
 
+####################  Private functions below (DNS functions) ##################################
+
 # Calls Plesk XML API, and checks results for obvious issues
 _call_api() {
   request="$1"
@@ -228,7 +236,7 @@ _call_api() {
   export _H4="HTTP_PRETTY_PRINT: true"
   pleskxml_prettyprint_result="$(_post "${request}" "$pleskxml_uri" "" "POST")"
   pleskxml_retcode="$?"
-  _debug "acme _post() returned retcode=$pleskxml_retcode. Literal response:" '\n' "'${pleskxml_prettyprint_result}'"
+  _debug 'The responses from the Plesk XML server were:\n' "retcode=$pleskxml_retcode. Literal response:"'\n' "'$pleskxml_prettyprint_result'"
 
   # Detect any <status> that isn't "ok". None of the used calls should fail if the API is working correctly.
   # Also detect if there simply aren't any status lines (null result?) and report that, as well.
@@ -239,9 +247,9 @@ _call_api() {
 
     # We have some status lines that aren't "ok". Get the details
     errtext="$(_value "$pleskxml_prettyprint_result" \
-      | grep -iE "(<status>|<errcode>|<errtext>)" \
-      | sed -E 's/(^[[:space:]]+|<\/[a-z]+$)//g' \
-      | sed -E 's/^<([a-z]+)>/\1: /'
+      | grep -E "(<status>|<errcode>|<errtext>)" \
+      | sed -E 's/^<(status|errcode|errtext)>/\1: /' \
+      | sed -E 's/(^[[:space:]]+|<\/(status|errcode|errtext)>$)//g' \
     )"
 
   elif ! _value "$statuslines" | grep -q '<status>ok</status>'; then
@@ -252,14 +260,23 @@ _call_api() {
   fi
 
   if [ "$pleskxml_retcode" -ne 0 ] || [ "$errtext" != "" ]; then
-    _err "The Plesk XML API call failed."
-    _err "The return code for the POST request was $pleskxml_retcode (0=success)."
+    # Call failed, for reasons either in the retcode or the response text...
+
+    if [ "$pleskxml_retcode" -eq 0 ]; then
+      _err "The POST request was successfully sent to the Plesk server."
+    else
+      _err "The return code for the POST request was $pleskxml_retcode (non-zero = could not submit request to server)."
+    fi
+
     if [ "$errtext" != "" ]; then
-      _err 'Status and error messages received from the Plesk server:\n' "$errtext"
+      _err 'The error responses received from the Plesk server were:\n' "$errtext"
     else
       _err "No additional error messages were received back from the Plesk server"
     fi
+
+    _err "The Plesk XML API call failed."
     return 1
+
   fi
 
   _debug "Leaving _call_api(). Successful call."
@@ -319,10 +336,12 @@ _credential_check() {
 
 _pleskxml_get_root_domain() {
   _debug "Identifying DNS root domain for '$1' that is managed by the Plesk account."
+  original_full_domain_name="$1"
+  root_domain_name="$1"
 
   # test if the domain as provided is valid for splitting.
 
-  if _value "$root_domain_name" | grep -qvE '^[^.]+\.[^.]+\.[^.]'; then
+  if ! _countdots "$root_domain_name"; then
     _err "Invalid domain. The ACME domain must contain at least two parts (aa.bb) to identify a domain and tld for the TXT record."
     return 1
   fi
@@ -347,10 +366,7 @@ _pleskxml_get_root_domain() {
   # loop and test if domain, or any parent domain, is managed by Plesk
   # Loop until we don't have any '.' in the string we're testing as a candidate Plesk-managed domain
 
-  root_domain_name="$1"
-  doneloop=0
-
-  while _contains "$root_domain_name" '\.'; do
+  while true; do
 
     _debug "Checking if '$root_domain_name' is managed by the Plesk server..."
 
@@ -360,32 +376,23 @@ _pleskxml_get_root_domain() {
       # Found a match
       # SEE IMPORTANT NOTE ABOVE - THIS FUNCTION CAN RETURN HOST='', AND THAT'S OK FOR PLESK XML API WHICH ALLOWS IT.
       # SO WE HANDLE IT AND DON'T PREVENT IT
-      sub_domain_name="$(_value "$1" | sed -E "s/\.?${root_domain_name}"'$//')"
-      _info "Matched host '$1' to: DOMAIN '${root_domain_name}' (Plesk ID '${root_domain_id}'), HOST '${sub_domain_name}'. Returning."
+      sub_domain_name="$(_value "$original_full_domain_name" | sed -E "s/\.?${root_domain_name}"'$//')"
+      _info "Success. Matched host '$original_full_domain_name' to: DOMAIN '${root_domain_name}' (Plesk ID '${root_domain_id}'), HOST '${sub_domain_name}'. Returning."
       return 0
     fi
 
     # No match, try next parent up (if any)...
 
-    if _contains "$root_domain_name" '\.[^.]+\.'; then
-      _debug "No match, trying next parent up..."
-    else
-      _debug "No match,and next parent would be a TLD..."
-    fi
     root_domain_name="$(_valuecut 2 1000 "$root_domain_name")"
-    doneloop=1
+
+    if ! _countdots "$root_domain_name"; then
+      _debug "No match, and next parent would be a TLD..."
+      _err "Cannot find '$original_full_domain_name' or any parent domain of it, in Plesk."
+      _err "Are you sure that this domain is managed by this Plesk server?"
+      return 1
+    fi
+
+    _debug "No match, trying next parent up..."
 
   done
-
-  # if we get here, we failed to find a root domain match in the list of domains managed by Plesk.
-  # if we never ran the loop even once, $1 wasn't a 2nd level (or deeper) domain (e.g. domain.tld) and wasn't valid anyway
-
-  if [ -z $doneloop ]; then
-    _err "'$1' isn't a valid domain for ACME DNS. Exiting."
-  else
-    _err "Cannot find '$1' or any parent domain of it, in Plesk."
-    _err "Are you sure that this domain is managed by this Plesk server?"
-  fi
-
-  return 1
 }
