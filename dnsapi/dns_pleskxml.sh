@@ -1,5 +1,9 @@
 #!/usr/bin/env sh
 
+# Globally disable this shellcheck error. 
+# Shellcheck errors on egrep ("deprecated"), but acme.sh uses egrep for compatibility.
+# shellcheck disable=SC2196
+
 ##  Name: dns_pleskxml.sh
 ##  Created by Stilez.
 ##  Also uses some code from PR#1832 by @romanlum (https://github.com/Neilpang/acme.sh/pull/1832/files)
