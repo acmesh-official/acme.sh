@@ -5,9 +5,9 @@
 
 VARIOMEDIA_API="https://api.variomedia.de"
 
-########  Public functions #####################
+######## Public functions #####################
 
-#Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+#Usage: add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_variomedia_add() {
   fulldomain=$1
   txtvalue=$2
@@ -69,7 +69,7 @@ dns_variomedia_rm() {
     return 1
   fi
 
-  _record_id="$(echo $response | cut -d '[' -f2 | cut -d']' -f1  | sed 's/},[ \t]*{/\},§\{/g' | tr § '\n' | grep $_sub_domain | grep $txtvalue | sed 's/^{//;s/}[,]?$//' | tr , '\n' | tr -d '\"' | grep ^id | cut -d : -f2 | tr -d ' ')"
+  _record_id="$(echo $response | cut -d '[' -f2 | cut -d']' -f1 | sed 's/},[ \t]*{/\},§\{/g' | tr § '\n' | grep "$_sub_domain" | grep "$txtvalue" | sed 's/^{//;s/}[,]?$//' | tr , '\n' | tr -d '\"' | grep ^id | cut -d : -f2 | tr -d ' ')"
   _debug _record_id "$_record_id"
   if [ "$_record_id" ]; then
     _info "Successfully retrieved the record id for ACME challenge."
@@ -87,7 +87,7 @@ dns_variomedia_rm() {
   return 0
 }
 
-####################  Private functions below ##################################
+#################### Private functions below ##################################
 #_acme-challenge.www.domain.com
 #returns
 # _sub_domain=_acme-challenge.www
@@ -117,7 +117,6 @@ _get_root() {
   done
 
   _debug "root domain not found"
-  
   return 1
 }
 
