@@ -91,7 +91,7 @@ dns_pleskxml_add() {
 
   results="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>')"
 
-  if ! _value "$results" | grep '<status>ok</status>' | grep -qE '<id>[0-9]+</id>'; then
+  if ! _value "$results" | grep '<status>ok</status>' | egrep -q '<id>[0-9]+</id>'; then
     # Error - doesn't contain expected string. Something's wrong.
     _err 'Error when calling Plesk XML API.'
     _err 'The result did not contain the expected <id>XXXXX</id> section, or contained other values as well.'
@@ -100,7 +100,7 @@ dns_pleskxml_add() {
     return 1
   fi
 
-  recid="$(_value "$results" | grep -E '<id>[0-9]+</id>' | sed -E 's/^.*<id>([0-9]+)<\/id>.*$/\1/')"
+  recid="$(_value "$results" | egrep '<id>[0-9]+</id>' | sed -r 's/^.*<id>([0-9]+)<\/id>.*$/\1/')"
 
   _info "Success. TXT record appears to be correctly added (Plesk record ID=$recid). Exiting dns_pleskxml_add()."
 
@@ -136,7 +136,7 @@ dns_pleskxml_rm() {
   # Reduce output to one line per DNS record, filtered for TXT records with a record ID only (which they should all have)
   reclist="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>ok</status>' \
     | grep "<site-id>${root_domain_id}</site-id>" \
-    | grep -E '<id>[0-9]+</id>' \
+    | egrep '<id>[0-9]+</id>' \
     | grep '<type>TXT</type>'
   )"
 
@@ -150,12 +150,12 @@ dns_pleskxml_rm() {
   recid="$(_value "$reclist" \
     | grep "<host>$1.</host>" \
     | grep "<value>$txtvalue</value>" \
-    | sed -E 's/(^.*<id>|<\/id>.*$)//g'
+    | sed -r 's/(^.*<id>|<\/id>.*$)//g'
   )"
 
   _debug "List of DNS TXT records for host:"'\n'"$(_value "$reclist" | grep "<host>$1.</host>")"
 
-  if ! _value "$recid" | grep -Eq '^[0-9]+$'; then
+  if ! _value "$recid" | egrep -q '^[0-9]+$'; then
     _err "DNS records for root domain '${root_domain_name}' (Plesk ID ${root_domain_id}) + host '${sub_domain_name}' do not contain the TXT record '${txtvalue}'"
     _err "Cannot delete TXT record. Exiting."
     return 1
@@ -176,7 +176,7 @@ dns_pleskxml_rm() {
 
   results="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>')"
 
-  if ! _value "$results" | grep '<status>ok</status>' | grep -qE '<id>[0-9]+</id>'; then
+  if ! _value "$results" | grep '<status>ok</status>' | egrep -q '<id>[0-9]+</id>'; then
     # Error - doesn't contain expected string. Something's wrong.
     _err 'Error when calling Plesk XML API.'
     _err 'The result did not contain the expected <id>XXXXX</id> section, or contained other values as well.'
@@ -215,10 +215,10 @@ _countdots() {
 # $3 - regex to recognise useful return lines
 _api_response_split() {
   printf '%s' "$1" \
-    | sed -E 's/(^[[:space:]]+|[[:space:]]+$)//g' \
+    | sed -r 's/(^[[:space:]]+|[[:space:]]+$)//g' \
     | tr -d '\n\r' \
-    | sed -E "s/<\/?$2>/${NEWLINE}/g" \
-    | grep -E "$3"
+    | sed -r "s/<\/?$2>/${NEWLINE}/g" \
+    | egrep "$3"
 }
 
 ####################  Private functions below (DNS functions) ##################################
@@ -241,15 +241,15 @@ _call_api() {
   # Detect any <status> that isn't "ok". None of the used calls should fail if the API is working correctly.
   # Also detect if there simply aren't any status lines (null result?) and report that, as well.
 
-  statuslines="$(echo "$pleskxml_prettyprint_result" | grep -E '^[[:space:]]*<status>[^<]*</status>[[:space:]]*$')"
+  statuslines="$(echo "$pleskxml_prettyprint_result" | egrep '^[[:space:]]*<status>[^<]*</status>[[:space:]]*$')"
 
   if _value "$statuslines" | grep -qv '<status>ok</status>'; then
 
     # We have some status lines that aren't "ok". Get the details
     errtext="$(_value "$pleskxml_prettyprint_result" \
-      | grep -E "(<status>|<errcode>|<errtext>)" \
-      | sed -E 's/^<(status|errcode|errtext)>/\1: /' \
-      | sed -E 's/(^[[:space:]]+|<\/(status|errcode|errtext)>$)//g'
+      | egrep "(<status>|<errcode>|<errtext>)" \
+      | sed -r 's/^<(status|errcode|errtext)>/\1: /' \
+      | sed -r 's/(^[[:space:]]+|<\/(status|errcode|errtext)>$)//g'
     )"
 
   elif ! _value "$statuslines" | grep -q '<status>ok</status>'; then
@@ -357,7 +357,7 @@ _pleskxml_get_root_domain() {
   # Output will be one line per known domain, containing 2 <name> tages and a single <id> tag
   # We don't actually need to check for type, name, *and* id, but it guarantees only usable lines are returned.
 
-  output="$(_api_response_split "$pleskxml_prettyprint_result" 'domain' '<type>domain</type>' | sed -E 's/<(\/?)ascii-name>/<\1name>/g' | grep '<name>' | grep '<id>')"
+  output="$(_api_response_split "$pleskxml_prettyprint_result" 'domain' '<type>domain</type>' | sed -r 's/<(\/?)ascii-name>/<\1name>/g' | grep '<name>' | grep '<id>')"
 
   _debug 'Domains managed by Plesk server are (ignore the hacked output):\n' "$output"
 
@@ -368,13 +368,13 @@ _pleskxml_get_root_domain() {
 
     _debug "Checking if '$root_domain_name' is managed by the Plesk server..."
 
-    root_domain_id="$(_value "$output" | grep "<name>$root_domain_name</name>" | _head_n 1 | sed -E 's/^.*<id>([0-9]+)<\/id>.*$/\1/')"
+    root_domain_id="$(_value "$output" | grep "<name>$root_domain_name</name>" | _head_n 1 | sed -r 's/^.*<id>([0-9]+)<\/id>.*$/\1/')"
 
     if [ -n "$root_domain_id" ]; then
       # Found a match
       # SEE IMPORTANT NOTE ABOVE - THIS FUNCTION CAN RETURN HOST='', AND THAT'S OK FOR PLESK XML API WHICH ALLOWS IT.
       # SO WE HANDLE IT AND DON'T PREVENT IT
-      sub_domain_name="$(_value "$original_full_domain_name" | sed -E "s/\.?${root_domain_name}"'$//')"
+      sub_domain_name="$(_value "$original_full_domain_name" | sed -r "s/\.?${root_domain_name}"'$//')"
       _info "Success. Matched host '$original_full_domain_name' to: DOMAIN '${root_domain_name}' (Plesk ID '${root_domain_id}'), HOST '${sub_domain_name}'. Returning."
       return 0
     fi
