@@ -297,15 +297,13 @@ _credential_check() {
   pleskxml_pass="${pleskxml_pass:-$(_readaccountconf_mutable pleskxml_pass)}"
   pleskxml_uri="${pleskxml_uri:-$(_readaccountconf_mutable pleskxml_uri)}"
 
-  _debug "Credentials - User: '${pleskxml_user}'  Passwd: ******  URI: '${pleskxml_uri}'"
-
   if [ -z "$pleskxml_user" ] || [ -z "$pleskxml_pass" ] || [ -z "$pleskxml_uri" ]; then
     pleskxml_user=""
     pleskxml_pass=""
     pleskxml_uri=""
     _err "You didn't specify one or more of the Plesk XML API username, password, or URI."
     _err "Please create these and try again."
-    _err "Instructions are in the module source code."
+    _err "Instructions are in the 'dns_pleskxml' plugin source code or in the acme.sh documentation."
     return 1
   fi
 
