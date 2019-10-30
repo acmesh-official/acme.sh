@@ -77,15 +77,15 @@ gcore_cdn_deploy() {
   _debug _regex "$_regex"
   _resource=$(echo "$_response" | sed 's/},{/},\n{/g' | _egrep_o "$_regex")
   _debug _resource "$_resource"
-  _regex=".*\"id\":\([0-9]*\),.*$"
+  _regex=".*\"id\":\([0-9]*\).*\"rules\".*$"
   _debug _regex "$_regex"
   _resourceId=$(echo "$_resource" | sed -n "s/$_regex/\1/p")
   _debug _resourceId "$_resourceId"
-  _regex=".*\"sslData\":\([0-9]*\)}.*$"
+  _regex=".*\"sslData\":\([0-9]*\).*$"
   _debug _regex "$_regex"
   _sslDataOld=$(echo "$_resource" | sed -n "s/$_regex/\1/p")
   _debug _sslDataOld "$_sslDataOld"
-  _regex=".*\"originGroup\":\([0-9]*\),.*$"
+  _regex=".*\"originGroup\":\([0-9]*\).*$"
   _debug _regex "$_regex"
   _originGroup=$(echo "$_resource" | sed -n "s/$_regex/\1/p")
   _debug _originGroup "$_originGroup"
@@ -101,7 +101,7 @@ gcore_cdn_deploy() {
   _debug _request "$_request"
   _response=$(_post "$_request" "https://api.gcdn.co/sslData")
   _debug _response "$_response"
-  _regex=".*\"id\":\([0-9]*\),.*$"
+  _regex=".*\"id\":\([0-9]*\).*$"
   _debug _regex "$_regex"
   _sslDataAdd=$(echo "$_response" | sed -n "s/$_regex/\1/p")
   _debug _sslDataAdd "$_sslDataAdd"

@@ -6,6 +6,8 @@
 #AWS_SECRET_ACCESS_KEY="xxxxxxx"
 
 #This is the Amazon Route53 api wrapper for acme.sh
+#All `_sleep` commands are included to avoid Route53 throttling, see
+#https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html#limits-api-requests
 
 AWS_HOST="route53.amazonaws.com"
 AWS_URL="https://$AWS_HOST"
@@ -43,6 +45,7 @@ dns_aws_add() {
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
+    _sleep 1
     return 1
   fi
   _debug _domain_id "$_domain_id"
@@ -51,6 +54,7 @@ dns_aws_add() {
 
   _info "Getting existing records for $fulldomain"
   if ! aws_rest GET "2013-04-01$_domain_id/rrset" "name=$fulldomain&type=TXT"; then
+    _sleep 1
     return 1
   fi
 
@@ -63,6 +67,7 @@ dns_aws_add() {
 
   if [ "$_resource_record" ] && _contains "$response" "$txtvalue"; then
     _info "The TXT record already exists. Skipping."
+    _sleep 1
     return 0
   fi
 
@@ -72,9 +77,10 @@ dns_aws_add() {
 
   if aws_rest POST "2013-04-01$_domain_id/rrset/" "" "$_aws_tmpl_xml" && _contains "$response" "ChangeResourceRecordSetsResponse"; then
     _info "TXT record updated successfully."
+    _sleep 1
     return 0
   fi
-
+  _sleep 1
   return 1
 }
 
@@ -93,6 +99,7 @@ dns_aws_rm() {
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
+    _sleep 1
     return 1
   fi
   _debug _domain_id "$_domain_id"
@@ -101,6 +108,7 @@ dns_aws_rm() {
 
   _info "Getting existing records for $fulldomain"
   if ! aws_rest GET "2013-04-01$_domain_id/rrset" "name=$fulldomain&type=TXT"; then
+    _sleep 1
     return 1
   fi
 
@@ -109,6 +117,7 @@ dns_aws_rm() {
     _debug "_resource_record" "$_resource_record"
   else
     _debug "no records exist, skip"
+    _sleep 1
     return 0
   fi
 
@@ -116,9 +125,10 @@ dns_aws_rm() {
 
   if aws_rest POST "2013-04-01$_domain_id/rrset/" "" "$_aws_tmpl_xml" && _contains "$response" "ChangeResourceRecordSetsResponse"; then
     _info "TXT record deleted successfully."
+    _sleep 1
     return 0
   fi
-
+  _sleep 1
   return 1
 
 }

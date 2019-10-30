@@ -41,7 +41,7 @@ send
 EOF
   elif [ -n "${NSUPDATE_ZONE}" ]; then
     nsupdate -k "${NSUPDATE_KEY}" $nsdebug <<EOF
-server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT} 
+server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
 zone ${NSUPDATE_ZONE}.
 update add ${fulldomain}. 60 in txt "${txtvalue}"
 send
@@ -89,7 +89,7 @@ send
 EOF
   elif [ -n "${NSUPDATE_ZONE}" ]; then
     nsupdate -k "${NSUPDATE_KEY}" $nsdebug <<EOF
-server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT} 
+server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
 update delete ${fulldomain}. txt
 zone ${NSUPDATE_ZONE}.
 send
