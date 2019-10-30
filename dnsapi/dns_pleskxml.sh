@@ -249,7 +249,7 @@ _call_api() {
     errtext="$(_value "$pleskxml_prettyprint_result" \
       | grep -E "(<status>|<errcode>|<errtext>)" \
       | sed -E 's/^<(status|errcode|errtext)>/\1: /' \
-      | sed -E 's/(^[[:space:]]+|<\/(status|errcode|errtext)>$)//g' \
+      | sed -E 's/(^[[:space:]]+|<\/(status|errcode|errtext)>$)//g'
     )"
 
   elif ! _value "$statuslines" | grep -q '<status>ok</status>'; then
