@@ -4,7 +4,7 @@
 ##  Created by Stilez.
 ##  Also uses some code from PR#1832 by @romanlum (https://github.com/Neilpang/acme.sh/pull/1832/files)
 
-##  This DNS01 method uses the Plesk XML API described at:
+##  This DNS-01 method uses the Plesk XML API described at:
 ##  https://docs.plesk.com/en-US/12.5/api-rpc/about-xml-api.28709
 ##  and more specifically: https://docs.plesk.com/en-US/12.5/api-rpc/reference.28784
 
@@ -15,8 +15,8 @@
 
 ##  For ACME v2 purposes, new TXT records are appended when added, and removing one TXT record will not affect any other TXT records.
 
-##  The plesk plugin uses the xml api to add and remvoe the dns records. Therefore the url, username
-##  and password have to be configured by the user before this module is called.
+##  The user credentials (username+password) and URL/URI for the Plesk XML API must be set by the user
+##  before this module is called (case sensitive):
 ##
 ##  ```
 ##  export pleskxml_uri="https://address-of-my-plesk-server.net:8443/enterprise/control/agent.php"
