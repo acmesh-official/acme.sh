@@ -215,7 +215,7 @@ _countdots() {
 # $3 - regex to recognise useful return lines
 _api_response_split() {
   printf '%s' "$1" \
-    | sed -r 's/(^[[:space:]]+|[[:space:]]+$)//g' \
+    | sed -r 's/(^ +| +$)//g' \
     | tr -d '\n\r' \
     | sed -r "s/<\/?$2>/${NEWLINE}/g" \
     | egrep "$3"
@@ -241,15 +241,15 @@ _call_api() {
   # Detect any <status> that isn't "ok". None of the used calls should fail if the API is working correctly.
   # Also detect if there simply aren't any status lines (null result?) and report that, as well.
 
-  statuslines="$(echo "$pleskxml_prettyprint_result" | egrep '^[[:space:]]*<status>[^<]*</status>[[:space:]]*$')"
+  statuslines="$(echo "$pleskxml_prettyprint_result" | egrep '^ *<status>[^<]*</status> *$')"
 
   if _value "$statuslines" | grep -qv '<status>ok</status>'; then
 
     # We have some status lines that aren't "ok". Get the details
     errtext="$(_value "$pleskxml_prettyprint_result" \
       | egrep "(<status>|<errcode>|<errtext>)" \
-      | sed -r 's/^<(status|errcode|errtext)>/\1: /' \
-      | sed -r 's/(^[[:space:]]+|<\/(status|errcode|errtext)>$)//g'
+      | sed -r 's/^ *<(status|errcode|errtext)>/\1: /' \
+      | sed -r 's/<\/(status|errcode|errtext)>$//g'
     )"
 
   elif ! _value "$statuslines" | grep -q '<status>ok</status>'; then
