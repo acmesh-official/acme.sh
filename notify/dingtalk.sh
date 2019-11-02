@@ -32,24 +32,24 @@ dingtalk_send() {
     _saveaccountconf_mutable DINGTALK_KEYWORD "$DINGTALK_KEYWORD"
   fi
 
-#  DINGTALK_SIGNING_KEY="${DINGTALK_SIGNING_KEY:-$(_readaccountconf_mutable DINGTALK_SIGNING_KEY)}"
-#  if [ -z "$DINGTALK_SIGNING_KEY" ]; then
-#    DINGTALK_SIGNING_KEY="value1"
-#    _info "The DINGTALK_SIGNING_KEY is not set, so use the default value1 as key."
-#  elif ! _hasfield "$_IFTTT_AVAIL_MSG_KEYS" "$DINGTALK_SIGNING_KEY"; then
-#    _err "The DINGTALK_SIGNING_KEY \"$DINGTALK_SIGNING_KEY\" is not available, should be one of $_IFTTT_AVAIL_MSG_KEYS"
-#    DINGTALK_SIGNING_KEY=""
-#    return 1
-#  else
-#    _saveaccountconf_mutable DINGTALK_SIGNING_KEY "$DINGTALK_SIGNING_KEY"
-#  fi
+  #  DINGTALK_SIGNING_KEY="${DINGTALK_SIGNING_KEY:-$(_readaccountconf_mutable DINGTALK_SIGNING_KEY)}"
+  #  if [ -z "$DINGTALK_SIGNING_KEY" ]; then
+  #    DINGTALK_SIGNING_KEY="value1"
+  #    _info "The DINGTALK_SIGNING_KEY is not set, so use the default value1 as key."
+  #  elif ! _hasfield "$_IFTTT_AVAIL_MSG_KEYS" "$DINGTALK_SIGNING_KEY"; then
+  #    _err "The DINGTALK_SIGNING_KEY \"$DINGTALK_SIGNING_KEY\" is not available, should be one of $_IFTTT_AVAIL_MSG_KEYS"
+  #    DINGTALK_SIGNING_KEY=""
+  #    return 1
+  #  else
+  #    _saveaccountconf_mutable DINGTALK_SIGNING_KEY "$DINGTALK_SIGNING_KEY"
+  #  fi
 
-#  if [ "$DINGTALK_SIGNING_KEY" = "$IFTTT_CONTENT_KEY" ]; then
-#    DINGTALK_SIGNING_KEY=""
-#    IFTTT_CONTENT_KEY=""
-#    _err "The DINGTALK_SIGNING_KEY must not be same as IFTTT_CONTENT_KEY."
-#    return 1
-#  fi
+  #  if [ "$DINGTALK_SIGNING_KEY" = "$IFTTT_CONTENT_KEY" ]; then
+  #    DINGTALK_SIGNING_KEY=""
+  #    IFTTT_CONTENT_KEY=""
+  #    _err "The DINGTALK_SIGNING_KEY must not be same as IFTTT_CONTENT_KEY."
+  #    return 1
+  #  fi
 
   _content=$(echo "$_content" | _json_encode)
   _subject=$(echo "$_subject" | _json_encode)
@@ -66,4 +66,3 @@ dingtalk_send() {
   _err "$response"
   return 1
 }
-
