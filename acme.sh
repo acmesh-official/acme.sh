@@ -6070,7 +6070,7 @@ _send_notify() {
 _set_notify_hook() {
   _nhooks="$1"
 
-  _test_subject="Hello, this is notification from $PROJECT_NAME"
+  _test_subject="Hello, this is a notification from $PROJECT_NAME"
   _test_content="If you receive this message, your notification works."
 
   _send_notify "$_test_subject" "$_test_content" "$_nhooks" 0
