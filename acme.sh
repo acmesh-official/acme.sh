@@ -153,7 +153,7 @@ fi
 
 __green() {
   if [ "${__INTERACTIVE}${ACME_NO_COLOR:-0}" = "10" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[1;31;32m%b\033[0m' "$1"
+    printf '\33[1;32m%b\33[0m' "$1"
     return
   fi
   printf -- "%b" "$1"
@@ -161,7 +161,7 @@ __green() {
 
 __red() {
   if [ "${__INTERACTIVE}${ACME_NO_COLOR:-0}" = "10" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[1;31;40m%b\033[0m' "$1"
+    printf '\33[1;31m%b\33[0m' "$1"
     return
   fi
   printf -- "%b" "$1"
@@ -178,7 +178,7 @@ _printargs() {
     printf -- "%s" "$1='$2'"
   fi
   printf "\n"
-  # return the saved exit status 
+  # return the saved exit status
   return "$_exitstatus"
 }
 
@@ -265,6 +265,37 @@ _usage() {
   printf "\n" >&2
 }
 
+__debug_bash_helper() {
+  # At this point only do for --debug 3
+  if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -lt "$DEBUG_LEVEL_3" ]; then
+    echo ""
+    return
+  fi
+  # Return extra debug info when running with bash, otherwise return empty
+  # string.
+  if [ -z "${BASH_VERSION}" ]; then
+    echo ""
+    return
+  fi
+  # We are a bash shell at this point, return the filename, function name, and
+  # line number as a string
+  _dbh_saveIFS=$IFS
+  IFS=" "
+  # Must use eval or syntax error happens under dash
+  # Use 'caller 1' as we want one level up the stack as we should be called
+  # by one of the _debug* functions
+  eval "_dbh_called=($(caller 1))"
+  IFS=$_dbh_saveIFS
+  _dbh_file=${_dbh_called[2]}
+  if [ -n "${_script_home}" ]; then
+    # Trim off the _script_home directory name
+    _dbh_file=${_dbh_file#$_script_home/}
+  fi
+  _dbh_function=${_dbh_called[1]}
+  _dbh_lineno=${_dbh_called[0]}
+  printf "%-40s " "$_dbh_file:${_dbh_function}:${_dbh_lineno}"
+}
+
 _debug() {
   if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_1" ]; then
     _log "$@"
@@ -273,7 +304,8 @@ _debug() {
     _syslog "$SYSLOG_DEBUG" "$@"
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_1" ]; then
-    _printargs "$@" >&2
+    _bash_debug=$(__debug_bash_helper)
+    _printargs "${_bash_debug}$@" >&2
   fi
 }
 
@@ -306,7 +338,8 @@ _debug2() {
     _syslog "$SYSLOG_DEBUG" "$@"
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_2" ]; then
-    _printargs "$@" >&2
+    _bash_debug=$(__debug_bash_helper)
+    _printargs "${_bash_debug}$@" >&2
   fi
 }
 
@@ -338,7 +371,8 @@ _debug3() {
     _syslog "$SYSLOG_DEBUG" "$@"
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_3" ]; then
-    _printargs "$@" >&2
+    _bash_debug=$(__debug_bash_helper)
+    _printargs "${_bash_debug}$@" >&2
   fi
 }
 
@@ -3678,7 +3712,7 @@ _ns_purge_cf() {
 
 #checks if cf server is available
 _ns_is_available_cf() {
-  if _get "https://cloudflare-dns.com"; then
+  if _get "https://cloudflare-dns.com" >/dev/null 2>&1; then
     return 0
   else
     return 1
@@ -4047,7 +4081,18 @@ $_authorizations_map"
       fi
 
       if [ "$ACME_VERSION" = "2" ]; then
-        response="$(echo "$_authorizations_map" | grep "^$(_idn "$d")," | sed "s/$d,//")"
+        _idn_d="$(_idn "$d")"
+        _candindates="$(echo "$_authorizations_map" | grep "^$_idn_d,")"
+        _debug2 _candindates "$_candindates"
+        if [ "$(echo "$_candindates" | wc -l)" -gt 1 ]; then
+          for _can in $_candindates; do
+            if _startswith "$(echo "$_can" | tr '.' '|')" "$(echo "$_idn_d" | tr '.' '|'),"; then
+              _candindates="$_can"
+              break
+            fi
+          done
+        fi
+        response="$(echo "$_candindates" | sed "s/$_idn_d,//")"
         _debug2 "response" "$response"
         if [ -z "$response" ]; then
           _err "get to authz error."
@@ -6059,7 +6104,7 @@ _send_notify() {
 _set_notify_hook() {
   _nhooks="$1"
 
-  _test_subject="Hello, this is notification from $PROJECT_NAME"
+  _test_subject="Hello, this is a notification from $PROJECT_NAME"
   _test_content="If you receive this message, your notification works."
 
   _send_notify "$_test_subject" "$_test_content" "$_nhooks" 0
@@ -6215,7 +6260,7 @@ Parameters:
   --branch, -b                      Only valid for '--upgrade' command, specifies the branch name to upgrade to.
 
   --notify-level  0|1|2|3           Set the notification level:  Default value is $NOTIFY_LEVEL_DEFAULT.
-                                     0: disabled, no notification will be sent. 
+                                     0: disabled, no notification will be sent.
                                      1: send notifications only when there is an error.
                                      2: send notifications when a cert is successfully renewed, or there is an error.
                                      3: send notifications when a cert is skipped, renewed, or error.
