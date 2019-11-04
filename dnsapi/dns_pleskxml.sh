@@ -250,7 +250,7 @@ _call_api() {
 
     # We have some status lines that aren't "ok". Get the details
     errtext="$(_value "$pleskxml_prettyprint_result" \
-      | sed -rn 's/^ *<(status|errcode|errtext)>([^<]+)<\/(status|errcode|errtext)> *$/\1: \2/p' \
+      | sed -rn 's/^ *<(status|errcode|errtext)>([^<]+)<\/(status|errcode|errtext)> *$/\1: \2/p'
     )"
 
   elif ! _value "$statuslines" | grep -q '<status>ok</status>'; then
