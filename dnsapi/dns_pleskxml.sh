@@ -1,9 +1,5 @@
 #!/usr/bin/env sh
 
-# Globally disable this shellcheck error. 
-# Shellcheck errors on egrep ("deprecated"), but acme.sh uses egrep for compatibility.
-# shellcheck disable=SC2196
-
 ##  Name: dns_pleskxml.sh
 ##  Created by Stilez.
 ##  Also uses some code from PR#1832 by @romanlum (https://github.com/Neilpang/acme.sh/pull/1832/files)
@@ -95,7 +91,7 @@ dns_pleskxml_add() {
 
   results="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>')"
 
-  if ! _value "$results" | grep '<status>ok</status>' | egrep -q '<id>[0-9]+</id>'; then
+  if ! _value "$results" | grep '<status>ok</status>' | grep -q '<id>[0-9][0-9]*</id>'; then
     # Error - doesn't contain expected string. Something's wrong.
     _err 'Error when calling Plesk XML API.'
     _err 'The result did not contain the expected <id>XXXXX</id> section, or contained other values as well.'
@@ -104,7 +100,7 @@ dns_pleskxml_add() {
     return 1
   fi
 
-  recid="$(_value "$results" | egrep '<id>[0-9]+</id>' | sed -r 's/^.*<id>([0-9]+)<\/id>.*$/\1/')"
+  recid="$(_value "$results" | grep '<id>[0-9][0-9]*</id>' | sed -r 's/^.*<id>([0-9]+)<\/id>.*$/\1/')"
 
   _info "Success. TXT record appears to be correctly added (Plesk record ID=$recid). Exiting dns_pleskxml_add()."
 
@@ -140,7 +136,7 @@ dns_pleskxml_rm() {
   # Reduce output to one line per DNS record, filtered for TXT records with a record ID only (which they should all have)
   reclist="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>ok</status>' \
     | grep "<site-id>${root_domain_id}</site-id>" \
-    | egrep '<id>[0-9]+</id>' \
+    | grep '<id>[0-9][0-9]*</id>' \
     | grep '<type>TXT</type>'
   )"
 
@@ -159,7 +155,7 @@ dns_pleskxml_rm() {
 
   _debug "List of DNS TXT records for host:"'\n'"$(_value "$reclist" | grep "<host>$1.</host>")"
 
-  if ! _value "$recid" | egrep -q '^[0-9]+$'; then
+  if ! _value "$recid" | grep -q '^[0-9][0-9]*$'; then
     _err "DNS records for root domain '${root_domain_name}' (Plesk ID ${root_domain_id}) + host '${sub_domain_name}' do not contain the TXT record '${txtvalue}'"
     _err "Cannot delete TXT record. Exiting."
     return 1
@@ -180,7 +176,7 @@ dns_pleskxml_rm() {
 
   results="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>')"
 
-  if ! _value "$results" | grep '<status>ok</status>' | egrep -q '<id>[0-9]+</id>'; then
+  if ! _value "$results" | grep '<status>ok</status>' | grep -q '<id>[0-9][0-9]*</id>'; then
     # Error - doesn't contain expected string. Something's wrong.
     _err 'Error when calling Plesk XML API.'
     _err 'The result did not contain the expected <id>XXXXX</id> section, or contained other values as well.'
@@ -216,13 +212,16 @@ _countdots() {
 # Cleans up an API response, splits it "one line per item in the response" and greps for a string that in the context, identifies "useful" lines
 # $1 - result string from API
 # $2 - tag to resplit on (usually "result" or "domain")
-# $3 - regex to recognise useful return lines
+# $3 - basic regex to recognise useful return lines
+# note: $3 matches via basic NOT extended regex (BRE), as extended regex capabilities not needed at the moment.
+#       Last line could change to <sed -rn '/.../p'> instead, with suitablew ewscaping of ['"/$],
+#       if future Plesk XML API changes ever require extended regex
 _api_response_split() {
   printf '%s' "$1" \
     | sed -r 's/(^ +| +$)//g' \
     | tr -d '\n\r' \
     | sed -r "s/<\/?$2>/${NEWLINE}/g" \
-    | egrep "$3"
+    | grep "$3"
 }
 
 ####################  Private functions below (DNS functions) ##################################
@@ -245,15 +244,13 @@ _call_api() {
   # Detect any <status> that isn't "ok". None of the used calls should fail if the API is working correctly.
   # Also detect if there simply aren't any status lines (null result?) and report that, as well.
 
-  statuslines="$(echo "$pleskxml_prettyprint_result" | egrep '^ *<status>[^<]*</status> *$')"
+  statuslines="$(echo "$pleskxml_prettyprint_result" | grep '^ *<status>[^<]*</status> *$')"
 
   if _value "$statuslines" | grep -qv '<status>ok</status>'; then
 
     # We have some status lines that aren't "ok". Get the details
     errtext="$(_value "$pleskxml_prettyprint_result" \
-      | egrep "(<status>|<errcode>|<errtext>)" \
-      | sed -r 's/^ *<(status|errcode|errtext)>/\1: /' \
-      | sed -r 's/<\/(status|errcode|errtext)>$//g'
+      | sed -rn 's/^ *<(status|errcode|errtext)>([^<]+)<\/(status|errcode|errtext)> *$/\1: \2/p' \
     )"
 
   elif ! _value "$statuslines" | grep -q '<status>ok</status>'; then
