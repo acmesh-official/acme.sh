@@ -91,7 +91,7 @@ dns_pleskxml_add() {
 
   results="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>')"
 
-  if ! _value "$results" | grep '<status>ok</status>' | grep -q '<id>[0-9][0-9]*</id>'; then
+  if ! _value "$results" | grep '<status>ok</status>' | grep -q '<id>[0-9]\+</id>'; then
     # Error - doesn't contain expected string. Something's wrong.
     _err 'Error when calling Plesk XML API.'
     _err 'The result did not contain the expected <id>XXXXX</id> section, or contained other values as well.'
@@ -100,7 +100,7 @@ dns_pleskxml_add() {
     return 1
   fi
 
-  recid="$(_value "$results" | grep '<id>[0-9][0-9]*</id>' | sed -r 's/^.*<id>([0-9]+)<\/id>.*$/\1/')"
+  recid="$(_value "$results" | grep '<id>[0-9]\+</id>' | sed -r 's/^.*<id>([0-9]+)<\/id>.*$/\1/')"
 
   _info "Success. TXT record appears to be correctly added (Plesk record ID=$recid). Exiting dns_pleskxml_add()."
 
@@ -136,7 +136,7 @@ dns_pleskxml_rm() {
   # Reduce output to one line per DNS record, filtered for TXT records with a record ID only (which they should all have)
   reclist="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>ok</status>' \
     | grep "<site-id>${root_domain_id}</site-id>" \
-    | grep '<id>[0-9][0-9]*</id>' \
+    | grep '<id>[0-9]\+</id>' \
     | grep '<type>TXT</type>'
   )"
 
@@ -155,7 +155,7 @@ dns_pleskxml_rm() {
 
   _debug "List of DNS TXT records for host:"'\n'"$(_value "$reclist" | grep "<host>$1.</host>")"
 
-  if ! _value "$recid" | grep -q '^[0-9][0-9]*$'; then
+  if ! _value "$recid" | grep -q '^[0-9]\+$'; then
     _err "DNS records for root domain '${root_domain_name}' (Plesk ID ${root_domain_id}) + host '${sub_domain_name}' do not contain the TXT record '${txtvalue}'"
     _err "Cannot delete TXT record. Exiting."
     return 1
@@ -176,7 +176,7 @@ dns_pleskxml_rm() {
 
   results="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>')"
 
-  if ! _value "$results" | grep '<status>ok</status>' | grep -q '<id>[0-9][0-9]*</id>'; then
+  if ! _value "$results" | grep '<status>ok</status>' | grep -q '<id>[0-9]\+</id>'; then
     # Error - doesn't contain expected string. Something's wrong.
     _err 'Error when calling Plesk XML API.'
     _err 'The result did not contain the expected <id>XXXXX</id> section, or contained other values as well.'
