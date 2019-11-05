@@ -211,16 +211,16 @@ _countdots() {
 
 # Cleans up an API response, splits it "one line per item in the response" and greps for a string that in the context, identifies "useful" lines
 # $1 - result string from API
-# $2 - tag to resplit on (usually "result" or "domain")
+# $2 - plain text tag to resplit on (usually "result" or "domain"). NOT REGEX
 # $3 - basic regex to recognise useful return lines
 # note: $3 matches via basic NOT extended regex (BRE), as extended regex capabilities not needed at the moment.
-#       Last line could change to <sed -rn '/.../p'> instead, with suitablew ewscaping of ['"/$],
+#       Last line could change to <sed -n '/.../p'> instead, with suitable escaping of ['"/$],
 #       if future Plesk XML API changes ever require extended regex
 _api_response_split() {
   printf '%s' "$1" \
-    | sed -r 's/(^ +| +$)//g' \
+    | sed 's/^ +//;s/ +$//' \
     | tr -d '\n\r' \
-    | sed -r "s/<\/?$2>/${NEWLINE}/g" \
+    | sed "s/<\/\{0,1\}$2>/${NEWLINE}/g" \
     | grep "$3"
 }
 
@@ -365,7 +365,7 @@ _pleskxml_get_root_domain() {
   # Output will be one line per known domain, containing 2 <name> tages and a single <id> tag
   # We don't actually need to check for type, name, *and* id, but it guarantees only usable lines are returned.
 
-  output="$(_api_response_split "$pleskxml_prettyprint_result" 'domain' '<type>domain</type>' | sed -r 's/<(\/?)ascii-name>/<\1name>/g' | grep '<name>' | grep '<id>')"
+  output="$(_api_response_split "$pleskxml_prettyprint_result" 'domain' '<type>domain</type>' | sed 's/<ascii-name>/<name>/g;s/<\/ascii-name>/<\/name>/g' | grep '<name>' | grep '<id>')"
 
   _debug 'Domains managed by Plesk server are (ignore the hacked output):\n' "$output"
 
@@ -378,13 +378,13 @@ _pleskxml_get_root_domain() {
 
     _debug "Checking if '$root_domain_name' is managed by the Plesk server..."
 
-    root_domain_id="$(_value "$output" | grep "<name>$root_domain_name</name>" | _head_n 1 | sed -r 's/^.*<id>([0-9]+)<\/id>.*$/\1/')"
+    root_domain_id="$(_value "$output" | grep "<name>$root_domain_name</name>" | _head_n 1 | sed 's/^.*<id>\([0-9]\{1,\}\)<\/id>.*$/\1/')"
 
     if [ -n "$root_domain_id" ]; then
       # Found a match
       # SEE IMPORTANT NOTE ABOVE - THIS FUNCTION CAN RETURN HOST='', AND THAT'S OK FOR PLESK XML API WHICH ALLOWS IT.
       # SO WE HANDLE IT AND DON'T PREVENT IT
-      sub_domain_name="$(_value "$original_full_domain_name" | sed -r "s/\.?${root_domain_name}"'$//')"
+      sub_domain_name="$(_value "$original_full_domain_name" | sed "s/\.\{0,1\}${root_domain_name}"'$//')"
       _info "Success. Matched host '$original_full_domain_name' to: DOMAIN '${root_domain_name}' (Plesk ID '${root_domain_id}'), HOST '${sub_domain_name}'. Returning."
       return 0
     fi
