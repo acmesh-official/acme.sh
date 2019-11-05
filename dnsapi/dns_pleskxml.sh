@@ -91,7 +91,7 @@ dns_pleskxml_add() {
 
   results="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>')"
 
-  if ! _value "$results" | grep '<status>ok</status>' | grep -q '<id>[0-9]\+</id>'; then
+  if ! _value "$results" | grep '<status>ok</status>' | grep '<id>[0-9]\{1,\}</id>' >/dev/null; then
     # Error - doesn't contain expected string. Something's wrong.
     _err 'Error when calling Plesk XML API.'
     _err 'The result did not contain the expected <id>XXXXX</id> section, or contained other values as well.'
@@ -100,7 +100,7 @@ dns_pleskxml_add() {
     return 1
   fi
 
-  recid="$(_value "$results" | grep '<id>[0-9]\+</id>' | sed -r 's/^.*<id>([0-9]+)<\/id>.*$/\1/')"
+  recid="$(_value "$results" | grep '<id>[0-9]\{1,\}</id>' | sed -r 's/^.*<id>([0-9]+)<\/id>.*$/\1/')"
 
   _info "Success. TXT record appears to be correctly added (Plesk record ID=$recid). Exiting dns_pleskxml_add()."
 
@@ -136,7 +136,7 @@ dns_pleskxml_rm() {
   # Reduce output to one line per DNS record, filtered for TXT records with a record ID only (which they should all have)
   reclist="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>ok</status>' \
     | grep "<site-id>${root_domain_id}</site-id>" \
-    | grep '<id>[0-9]\+</id>' \
+    | grep '<id>[0-9]\{1,\}</id>' \
     | grep '<type>TXT</type>'
   )"
 
@@ -155,7 +155,7 @@ dns_pleskxml_rm() {
 
   _debug "List of DNS TXT records for host:"'\n'"$(_value "$reclist" | grep "<host>$1.</host>")"
 
-  if ! _value "$recid" | grep -q '^[0-9]\+$'; then
+  if ! _value "$recid" | grep '^[0-9]\{1,\}$' >/dev/null; then
     _err "DNS records for root domain '${root_domain_name}' (Plesk ID ${root_domain_id}) + host '${sub_domain_name}' do not contain the TXT record '${txtvalue}'"
     _err "Cannot delete TXT record. Exiting."
     return 1
@@ -176,7 +176,7 @@ dns_pleskxml_rm() {
 
   results="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>')"
 
-  if ! _value "$results" | grep '<status>ok</status>' | grep -q '<id>[0-9]\+</id>'; then
+  if ! _value "$results" | grep '<status>ok</status>' | grep '<id>[0-9]\{1,\}</id>' >/dev/null; then
     # Error - doesn't contain expected string. Something's wrong.
     _err 'Error when calling Plesk XML API.'
     _err 'The result did not contain the expected <id>XXXXX</id> section, or contained other values as well.'
@@ -244,19 +244,26 @@ _call_api() {
   # Detect any <status> that isn't "ok". None of the used calls should fail if the API is working correctly.
   # Also detect if there simply aren't any status lines (null result?) and report that, as well.
 
-  statuslines="$(echo "$pleskxml_prettyprint_result" | grep '^ *<status>[^<]*</status> *$')"
+  statuslines_count_total="$(echo "$pleskxml_prettyprint_result" | grep -c '^ *<status>[^<]*</status> *$')"
+  statuslines_count_okay="$(echo "$pleskxml_prettyprint_result" | grep -c '^ *<status>ok</status> *$')"
 
-  if _value "$statuslines" | grep -qv '<status>ok</status>'; then
-
-    # We have some status lines that aren't "ok". Get the details
-    errtext="$(_value "$pleskxml_prettyprint_result" \
-      | sed -rn 's/^ *<(status|errcode|errtext)>([^<]+)<\/(status|errcode|errtext)> *$/\1: \2/p'
-    )"
-
-  elif ! _value "$statuslines" | grep -q '<status>ok</status>'; then
+  if [ -z "$statuslines_count_total" ]; then
 
     # We have no status lines at all. Results are empty
     errtext='The Plesk XML API unexpectedly returned an empty set of results for this call.'
+
+  elif [ "$statuslines_count_okay" -ne "$statuslines_count_total" ]; then
+
+    # We have some status lines that aren't "ok". Any available details are in API response fields "status" "errcode" and "errtext"
+    # Workaround for basic regex: 
+    #   - filter output to keep only lines like this: "SPACES<TAG>text</TAG>SPACES" (shouldn't be necessary with prettyprint but guarantees subsequent code is ok)
+    #   - then edit the 3 "useful" error tokens individually and remove closing tags on all lines
+    #   - then filter again to remove all lines not edited (which will be the lines not starting A-Z)
+    errtext="$(_value "$pleskxml_prettyprint_result" \
+      | grep '^ *<[a-z]\{1,\}>[^<]*<\/[a-z]\{1,\}> *$' \
+      | sed 's/^ *<status>/Status:     /;s/^ *<errcode>/Error code: /;s/^ *<errtext>/Error text: /;s/<\/.*$//' \
+      | grep '^[A-Z]'
+    )"
 
   fi
 
@@ -266,7 +273,7 @@ _call_api() {
     if [ "$pleskxml_retcode" -eq 0 ]; then
       _err "The POST request was successfully sent to the Plesk server."
     else
-      _err "The return code for the POST request was $pleskxml_retcode (non-zero = could not submit request to server)."
+      _err "The return code for the POST request was $pleskxml_retcode (non-zero = failure in submitting request to server)."
     fi
 
     if [ "$errtext" != "" ]; then
