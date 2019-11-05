@@ -146,7 +146,7 @@ dns_pleskxml_rm() {
   fi
 
   _debug "Got list of DNS TXT records for root domain '$root_domain_name'. Full list is:"'\n'"$reclist"
-  
+
   _debug "DNS TXT records for host '$fulldomain':"'\n'"$(_value "$reclist" | grep "<host>${fulldomain}.</host>")"
 
   recid="$(_value "$reclist" \
