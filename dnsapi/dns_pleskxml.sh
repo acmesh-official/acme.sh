@@ -347,7 +347,7 @@ _pleskxml_get_root_domain() {
 
   # test if the domain as provided is valid for splitting.
 
-  if ! _countdots "$original_full_domain_name"; then
+  if [ "$(_countdots "$original_full_domain_name")" -eq 0 ]; then
     _err "Invalid domain. The ACME domain must contain at least two parts (aa.bb) to identify a domain and tld for the TXT record."
     return 1
   fi
