@@ -100,7 +100,7 @@ dns_pleskxml_add() {
     return 1
   fi
 
-  recid="$(_value "$results" | grep '<id>[0-9]\{1,\}</id>' | sed -r 's/^.*<id>([0-9]+)<\/id>.*$/\1/')"
+  recid="$(_value "$results" | grep '<id>[0-9]\{1,\}</id>' | sed 's/^.*<id>\([0-9]\{1,\}\)<\/id>.*$/\1/')"
 
   _info "Success. TXT record appears to be correctly added (Plesk record ID=$recid). Exiting dns_pleskxml_add()."
 
@@ -145,15 +145,15 @@ dns_pleskxml_rm() {
     return 1
   fi
 
-  _debug "Got list of DNS TXT records for root domain '$root_domain_name'"':\n'"$reclist"
+  _debug "Got list of DNS TXT records for root domain '$root_domain_name'. Full list is:"'\n'"$reclist"
+  
+  _debug "DNS TXT records for host '$fulldomain':"'\n'"$(_value "$reclist" | grep "<host>${fulldomain}.</host>")"
 
   recid="$(_value "$reclist" \
-    | grep "<host>$1.</host>" \
-    | grep "<value>$txtvalue</value>" \
-    | sed -r 's/(^.*<id>|<\/id>.*$)//g'
+    | grep "<host>${fulldomain}.</host>" \
+    | grep "<value>${txtvalue}</value>" \
+    | sed 's/^.*<id>\([0-9]\{1,\}\)<\/id>.*$/\1/'
   )"
-
-  _debug "List of DNS TXT records for host:"'\n'"$(_value "$reclist" | grep "<host>$1.</host>")"
 
   if ! _value "$recid" | grep '^[0-9]\{1,\}$' >/dev/null; then
     _err "DNS records for root domain '${root_domain_name}' (Plesk ID ${root_domain_id}) + host '${sub_domain_name}' do not contain the TXT record '${txtvalue}'"
@@ -341,13 +341,13 @@ _credential_check() {
 # See notes at top of this file
 
 _pleskxml_get_root_domain() {
-  _debug "Identifying DNS root domain for '$1' that is managed by the Plesk account."
   original_full_domain_name="$1"
-  root_domain_name="$1"
+
+  _debug "Identifying DNS root domain for '$original_full_domain_name' that is managed by the Plesk account."
 
   # test if the domain as provided is valid for splitting.
 
-  if ! _countdots "$root_domain_name"; then
+  if ! _countdots "$original_full_domain_name"; then
     _err "Invalid domain. The ACME domain must contain at least two parts (aa.bb) to identify a domain and tld for the TXT record."
     return 1
   fi
@@ -371,6 +371,8 @@ _pleskxml_get_root_domain() {
 
   # loop and test if domain, or any parent domain, is managed by Plesk
   # Loop until we don't have any '.' in the string we're testing as a candidate Plesk-managed domain
+
+  root_domain_name="$original_full_domain_name"
 
   while true; do
 
