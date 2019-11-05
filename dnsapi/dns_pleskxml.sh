@@ -203,10 +203,10 @@ _valuecut() {
   printf '%s' "$3" | cut -d . -f "${1}-${2}"
 }
 
-# Counts '.' present in a domain name
+# Counts '.' present in a domain name or other string
 # $1 = domain name
 _countdots() {
-  _value "$1" | tr -dc '.' | wc -c
+  _value "$1" | tr -dc '.' | wc -c | sed 's/ //g'
 }
 
 # Cleans up an API response, splits it "one line per item in the response" and greps for a string that in the context, identifies "useful" lines
