@@ -393,7 +393,7 @@ _pleskxml_get_root_domain() {
 
     root_domain_name="$(_valuecut 2 1000 "$root_domain_name")"
 
-    if [ _countdots "$root_domain_name" -eq 0 ]; then
+    if [ "$(_countdots "$root_domain_name")" -eq 0 ]; then
       _debug "No match, and next parent would be a TLD..."
       _err "Cannot find '$original_full_domain_name' or any parent domain of it, in Plesk."
       _err "Are you sure that this domain is managed by this Plesk server?"
