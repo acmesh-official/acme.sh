@@ -96,7 +96,8 @@ dns_pleskxml_add() {
     _err 'Error when calling Plesk XML API.'
     _err 'The result did not contain the expected <id>XXXXX</id> section, or contained other values as well.'
     _err 'This is unexpected: something has gone wrong.'
-    _err 'The full response was:\n' "$pleskxml_prettyprint_result"
+    _err 'The full response was:' 
+    _err "$pleskxml_prettyprint_result"
     return 1
   fi
 
@@ -134,7 +135,9 @@ dns_pleskxml_rm() {
   fi
 
   # Reduce output to one line per DNS record, filtered for TXT records with a record ID only (which they should all have)
+  # Also strip out spaces between tags, redundant <data> and </data> group tags and any <self-closing/> tags
   reclist="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>ok</status>' \
+    | sed 's# \{1,\}<\([a-zA-Z]\)#<\1#g;s#</\{0,1\}data>##g;s#<[a-z][^/<>]*/>##g' \
     | grep "<site-id>${root_domain_id}</site-id>" \
     | grep '<id>[0-9]\{1,\}</id>' \
     | grep '<type>TXT</type>'
@@ -145,9 +148,8 @@ dns_pleskxml_rm() {
     return 1
   fi
 
-  _debug "Got list of DNS TXT records for root domain '$root_domain_name'. Full list is:"'\n'"$reclist"
-
-  _debug "DNS TXT records for host '$fulldomain':"'\n'"$(_value "$reclist" | grep "<host>${fulldomain}.</host>")"
+  _debug "Got list of DNS TXT records for root domain '$root_domain_name':"
+  _debug "$reclist"
 
   recid="$(_value "$reclist" \
     | grep "<host>${fulldomain}.</host>" \
@@ -181,7 +183,8 @@ dns_pleskxml_rm() {
     _err 'Error when calling Plesk XML API.'
     _err 'The result did not contain the expected <id>XXXXX</id> section, or contained other values as well.'
     _err 'This is unexpected: something has gone wrong.'
-    _err 'The full response was:\n' "$pleskxml_prettyprint_result"
+    _err 'The full response was:'
+    _err "$pleskxml_prettyprint_result"
     return 1
   fi
 
@@ -231,7 +234,8 @@ _call_api() {
   request="$1"
   errtext=''
 
-  _debug 'Entered _call_api(). Calling Plesk XML API with request:\n' "'${request}'"
+  _debug 'Entered _call_api(). Calling Plesk XML API with request:'
+  _debug "'$request'"
 
   export _H1="HTTP_AUTH_LOGIN: $pleskxml_user"
   export _H2="HTTP_AUTH_PASSWD: $pleskxml_pass"
@@ -239,7 +243,9 @@ _call_api() {
   export _H4="HTTP_PRETTY_PRINT: true"
   pleskxml_prettyprint_result="$(_post "${request}" "$pleskxml_uri" "" "POST")"
   pleskxml_retcode="$?"
-  _debug 'The responses from the Plesk XML server were:\n' "retcode=$pleskxml_retcode. Literal response:"'\n' "'$pleskxml_prettyprint_result'"
+  _debug 'The responses from the Plesk XML server were:'
+  _debug "retcode=$pleskxml_retcode. Literal response:"
+  _debug "'$pleskxml_prettyprint_result'"
 
   # Detect any <status> that isn't "ok". None of the used calls should fail if the API is working correctly.
   # Also detect if there simply aren't any status lines (null result?) and report that, as well.
@@ -277,7 +283,8 @@ _call_api() {
     fi
 
     if [ "$errtext" != "" ]; then
-      _err 'The error responses received from the Plesk server were:\n' "$errtext"
+      _err 'The error responses received from the Plesk server were:'
+      _err "$errtext"
     else
       _err "No additional error messages were received back from the Plesk server"
     fi
@@ -318,7 +325,7 @@ _credential_check() {
   # Test the API is usable, by trying to read the list of managed domains...
   _call_api "$pleskxml_tplt_get_domains"
   if [ "$pleskxml_retcode" -ne 0 ]; then
-    _err '\nFailed to access Plesk XML API.'
+    _err 'Failed to access Plesk XML API.'
     _err "Please check your login credentials and Plesk URI, and that the URI is reachable, and try again."
     return 1
   fi
@@ -367,7 +374,8 @@ _pleskxml_get_root_domain() {
 
   output="$(_api_response_split "$pleskxml_prettyprint_result" 'domain' '<type>domain</type>' | sed 's/<ascii-name>/<name>/g;s/<\/ascii-name>/<\/name>/g' | grep '<name>' | grep '<id>')"
 
-  _debug 'Domains managed by Plesk server are (ignore the hacked output):\n' "$output"
+  _debug 'Domains managed by Plesk server are (ignore the hacked output):'
+  _debug "$output"
 
   # loop and test if domain, or any parent domain, is managed by Plesk
   # Loop until we don't have any '.' in the string we're testing as a candidate Plesk-managed domain
