@@ -96,7 +96,7 @@ dns_pleskxml_add() {
     _err 'Error when calling Plesk XML API.'
     _err 'The result did not contain the expected <id>XXXXX</id> section, or contained other values as well.'
     _err 'This is unexpected: something has gone wrong.'
-    _err 'The full response was:' 
+    _err 'The full response was:'
     _err "$pleskxml_prettyprint_result"
     return 1
   fi
