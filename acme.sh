@@ -6363,11 +6363,12 @@ _checkSudo() {
       return 0
     fi
     case "$SUDO_COMMAND" in
-      */su )
+      */su)
         #it's a normal user doing `sudo su`, no problem
-        return 0 ;;
+        return 0
+        ;;
     esac
-    for i in `cat /etc/shells`; do
+    for i in $(cat /etc/shells); do
       if [ "$SUDO_COMMAND" = "$i" ]; then
         #it's a normal user running `sudo -i` or `sudo -s`, fine
         return 0
