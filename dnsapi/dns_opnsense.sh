@@ -236,7 +236,7 @@ _opns_check_auth() {
   else
     _saveaccountconf_mutable OPNs_Port "$OPNs_Port"
   fi
-  
+
   if ! printf '%s' "$OPNs_Api_Insecure" | grep -q '^[01]$'; then
     _err 'OPNs_Api_Insecure specified but not 0/1 value'
     return 1
