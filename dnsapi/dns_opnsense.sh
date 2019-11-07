@@ -16,7 +16,6 @@
 OPNs_DefaultPort=443
 OPNs_DefaultApi_Insecure=0
 
-
 dns_opnsense_add() {
   fulldomain=$1
   txtvalue=$2
