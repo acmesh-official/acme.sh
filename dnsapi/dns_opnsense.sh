@@ -125,7 +125,7 @@ rm_record() {
     _info "Record not found, nothing to remove"
   fi
 
-  return 0  
+  return 0
 }
 
 ####################  Private functions below ##################################
@@ -232,7 +232,7 @@ _opns_check_auth() {
     _saveaccountconf_mutable OPNs_Host "$OPNs_Host"
   fi
 
-  if ! printf '%s' "$OPNs_Port" | grep '^[0-9]*$' >/dev/null ; then
+  if ! printf '%s' "$OPNs_Port" | grep '^[0-9]*$' >/dev/null; then
     _err 'OPNs_Port specified but not numeric value'
     return 1
   elif [ -z "$OPNs_Port" ]; then
@@ -241,7 +241,7 @@ _opns_check_auth() {
     _saveaccountconf_mutable OPNs_Port "$OPNs_Port"
   fi
 
-  if ! printf '%s' "$OPNs_Api_Insecure" | grep '^[01]$' >/dev/null ; then
+  if ! printf '%s' "$OPNs_Api_Insecure" | grep '^[01]$' >/dev/null; then
     _err 'OPNs_Api_Insecure specified but not 0/1 value'
     return 1
   elif [ -n "$OPNs_Api_Insecure" ]; then
