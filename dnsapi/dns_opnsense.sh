@@ -114,11 +114,11 @@ rm_record() {
         _opns_rest "POST" "/service/reconfigure" "{}"
         _debug "Record deleted"
       else
-        _err "Error deleting record $host from domain $fulldomain"
+        _err "Error deleting record $_host from domain $fulldomain"
         return 1
       fi
     else
-      _err "Error deleting record $host from domain $fulldomain"
+      _err "Error deleting record $_host from domain $fulldomain"
       return 1
     fi
   else
