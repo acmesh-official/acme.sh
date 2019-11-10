@@ -59,9 +59,14 @@ dns_namesilo_rm() {
   if _namesilo_rest GET "dnsListRecords?version=1&type=xml&key=$Namesilo_Key&domain=$_domain"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "<code>300")
     if [ "$retcode" ]; then
-      _record_id=$(printf "%s\n" "$response" | _egrep_o "<record_id>([^<]*)</record_id><type>TXT</type><host>$fulldomain</host>" | _egrep_o "<record_id>([^<]*)</record_id>" | sed -r "s/<record_id>([^<]*)<\/record_id>/\1/" | tail -n 1)
-      _debug record_id "$_record_id"
-      _info "Successfully retrieved the record id for ACME challenge."
+      _record_id=$(echo "$response" | _egrep_o "<record_id>([^<]*)</record_id><type>TXT</type><host>$fulldomain</host>" | _egrep_o "<record_id>([^<]*)</record_id>" | sed -r "s/<record_id>([^<]*)<\/record_id>/\1/" | tail -n 1)
+      _debug _record_id "$_record_id"
+      if [ "$_record_id" ]; then
+        _info "Successfully retrieved the record id for ACME challenge."
+      else
+        _info "Empty record id, it seems no such record."
+        return 0
+      fi
     else
       _err "Unable to retrieve the record id."
       return 1
@@ -105,7 +110,7 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$response" "$host"; then
+    if _contains "$response" "<domain>$host"; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain="$host"
       return 0

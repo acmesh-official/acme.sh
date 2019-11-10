@@ -28,8 +28,10 @@ fritzbox_deploy() {
   _debug _cfullchain "$_cfullchain"
 
   if ! _exists iconv; then
-    _err "iconv not found"
-    return 1
+    if ! _exists perl; then
+      _err "iconv or perl not found"
+      return 1
+    fi
   fi
 
   _fritzbox_username="${DEPLOY_FRITZBOX_USERNAME}"
@@ -61,7 +63,11 @@ fritzbox_deploy() {
 
   _info "Log in to the FRITZ!Box"
   _fritzbox_challenge="$(_get "${_fritzbox_url}/login_sid.lua" | sed -e 's/^.*<Challenge>//' -e 's/<\/Challenge>.*$//')"
-  _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${_fritzbox_password}" | iconv -f ASCII -t UTF16LE | md5sum | awk '{print $1}')"
+  if _exists iconv; then
+    _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${_fritzbox_password}" | iconv -f ASCII -t UTF16LE | md5sum | awk '{print $1}')"
+  else
+    _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${_fritzbox_password}" | perl -p -e 'use Encode qw/encode/; print encode("UTF-16LE","$_"); $_="";' | md5sum | awk '{print $1}')"
+  fi
   _fritzbox_sid="$(_get "${_fritzbox_url}/login_sid.lua?sid=0000000000000000&username=${_fritzbox_username}&response=${_fritzbox_challenge}-${_fritzbox_hash}" | sed -e 's/^.*<SID>//' -e 's/<\/SID>.*$//')"
 
   if [ -z "${_fritzbox_sid}" ] || [ "${_fritzbox_sid}" = "0000000000000000" ]; then

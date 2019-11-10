@@ -104,47 +104,59 @@ dns_dgon_rm() {
   ## may get: "links":{"pages":{"last":".../v2/domains/DOM/records?page=2","next":".../v2/domains/DOM/records?page=2"}}
   GURL="https://api.digitalocean.com/v2/domains/$_domain/records"
 
-  ## while we dont have a record ID we keep going
-  while [ -z "$record" ]; do
+  ## Get all the matching records
+  while true; do
     ## 1) get the URL
     ## the create request - get
     ## args: URL, [onlyheader, timeout]
     domain_list="$(_get "$GURL")"
-    ## 2) find record
-    ## check for what we are looing for: "type":"A","name":"$_sub_domain"
-    record="$(echo "$domain_list" | _egrep_o "\"id\"\s*\:\s*\"*[0-9]+\"*[^}]*\"name\"\s*\:\s*\"$_sub_domain\"[^}]*\"data\"\s*\:\s*\"$txtvalue\"")"
-    ## 3) check record and get next page
-    if [ -z "$record" ]; then
-      ## find the next page if we dont have a match
-      nextpage="$(echo "$domain_list" | _egrep_o "\"links\".*" | _egrep_o "\"next\".*" | _egrep_o "http.*page\=[0-9]+")"
-      if [ -z "$nextpage" ]; then
-        _err "no record and no nextpage in digital ocean DNS removal"
-        return 1
-      fi
-      _debug2 nextpage "$nextpage"
-      GURL="$nextpage"
+
+    ## check response
+    if [ "$?" != "0" ]; then
+      _err "error in domain_list response: $domain_list"
+      return 1
     fi
-    ## we break out of the loop when we have a record
+    _debug2 domain_list "$domain_list"
+
+    ## 2) find records
+    ## check for what we are looking for: "type":"A","name":"$_sub_domain"
+    record="$(echo "$domain_list" | _egrep_o "\"id\"\s*\:\s*\"*[0-9]+\"*[^}]*\"name\"\s*\:\s*\"$_sub_domain\"[^}]*\"data\"\s*\:\s*\"$txtvalue\"")"
+
+    if [ ! -z "$record" ]; then
+
+      ## we found records
+      rec_ids="$(echo "$record" | _egrep_o "id\"\s*\:\s*\"*[0-9]+" | _egrep_o "[0-9]+")"
+      _debug rec_ids "$rec_ids"
+      if [ ! -z "$rec_ids" ]; then
+        echo "$rec_ids" | while IFS= read -r rec_id; do
+          ## delete the record
+          ## delete URL for removing the one we dont want
+          DURL="https://api.digitalocean.com/v2/domains/$_domain/records/$rec_id"
+
+          ## the create request - delete
+          ## args: BODY, URL, [need64, httpmethod]
+          response="$(_post "" "$DURL" "" "DELETE")"
+
+          ## check response (sort of)
+          if [ "$?" != "0" ]; then
+            _err "error in remove response: $response"
+            return 1
+          fi
+          _debug2 response "$response"
+
+        done
+      fi
+    fi
+
+    ## 3) find the next page
+    nextpage="$(echo "$domain_list" | _egrep_o "\"links\".*" | _egrep_o "\"next\".*" | _egrep_o "http.*page\=[0-9]+")"
+    if [ -z "$nextpage" ]; then
+      break
+    fi
+    _debug2 nextpage "$nextpage"
+    GURL="$nextpage"
+
   done
-
-  ## we found the record
-  rec_id="$(echo "$record" | _egrep_o "id\"\s*\:\s*\"*[0-9]+" | _egrep_o "[0-9]+")"
-  _debug rec_id "$rec_id"
-
-  ## delete the record
-  ## delete URL for removing the one we dont want
-  DURL="https://api.digitalocean.com/v2/domains/$_domain/records/$rec_id"
-
-  ## the create request - delete
-  ## args: BODY, URL, [need64, httpmethod]
-  response="$(_post "" "$DURL" "" "DELETE")"
-
-  ## check response (sort of)
-  if [ "$?" != "0" ]; then
-    _err "error in remove response: $response"
-    return 1
-  fi
-  _debug2 response "$response"
 
   ## finished correctly
   return 0
@@ -166,7 +178,7 @@ dns_dgon_rm() {
 ## _domain="domain.com"
 _get_base_domain() {
   # args
-  fulldomain="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
+  fulldomain="$(echo "$1" | _lower_case)"
   _debug fulldomain "$fulldomain"
 
   # domain max legal length = 253
@@ -178,44 +190,57 @@ _get_base_domain() {
   export _H2="Authorization: Bearer $DO_API_KEY"
   _debug DO_API_KEY "$DO_API_KEY"
   ## get URL for the list of domains
-  ## havent seen this request paginated, tested with 18 domains (more requires manual requests with DO)
+  ## may get: "links":{"pages":{"last":".../v2/domains/DOM/records?page=2","next":".../v2/domains/DOM/records?page=2"}}
   DOMURL="https://api.digitalocean.com/v2/domains"
 
-  ## get the domain list (DO gives basically a full XFER!)
-  domain_list="$(_get "$DOMURL")"
+  ## while we dont have a matching domain we keep going
+  while [ -z "$found" ]; do
+    ## get the domain list (current page)
+    domain_list="$(_get "$DOMURL")"
 
-  ## check response
-  if [ "$?" != "0" ]; then
-    _err "error in domain_list response: $domain_list"
-    return 1
-  fi
-  _debug2 domain_list "$domain_list"
-
-  ## for each shortening of our $fulldomain, check if it exists in the $domain_list
-  ## can never start on 1 (aka whole $fulldomain) as $fulldomain starts with "_acme-challenge"
-  i=2
-  while [ $i -gt 0 ]; do
-    ## get next longest domain
-    _domain=$(printf "%s" "$fulldomain" | cut -d . -f "$i"-"$MAX_DOM")
-    ## check we got something back from our cut (or are we at the end)
-    if [ -z "$_domain" ]; then
-      ## we got to the end of the domain - invalid domain
-      _err "domain not found in DigitalOcean account"
+    ## check response
+    if [ "$?" != "0" ]; then
+      _err "error in domain_list response: $domain_list"
       return 1
     fi
-    ## we got part of a domain back - grep it out
-    found="$(echo "$domain_list" | _egrep_o "\"name\"\s*\:\s*\"$_domain\"")"
-    ## check if it exists
-    if [ ! -z "$found" ]; then
-      ## exists - exit loop returning the parts
-      sub_point=$(_math $i - 1)
-      _sub_domain=$(printf "%s" "$fulldomain" | cut -d . -f 1-"$sub_point")
-      _debug _domain "$_domain"
-      _debug _sub_domain "$_sub_domain"
-      return 0
+    _debug2 domain_list "$domain_list"
+
+    ## for each shortening of our $fulldomain, check if it exists in the $domain_list
+    ## can never start on 1 (aka whole $fulldomain) as $fulldomain starts with "_acme-challenge"
+    i=2
+    while [ $i -gt 0 ]; do
+      ## get next longest domain
+      _domain=$(printf "%s" "$fulldomain" | cut -d . -f "$i"-"$MAX_DOM")
+      ## check we got something back from our cut (or are we at the end)
+      if [ -z "$_domain" ]; then
+        break
+      fi
+      ## we got part of a domain back - grep it out
+      found="$(echo "$domain_list" | _egrep_o "\"name\"\s*\:\s*\"$_domain\"")"
+      ## check if it exists
+      if [ ! -z "$found" ]; then
+        ## exists - exit loop returning the parts
+        sub_point=$(_math $i - 1)
+        _sub_domain=$(printf "%s" "$fulldomain" | cut -d . -f 1-"$sub_point")
+        _debug _domain "$_domain"
+        _debug _sub_domain "$_sub_domain"
+        return 0
+      fi
+      ## increment cut point $i
+      i=$(_math $i + 1)
+    done
+
+    if [ -z "$found" ]; then
+      ## find the next page if we dont have a match
+      nextpage="$(echo "$domain_list" | _egrep_o "\"links\".*" | _egrep_o "\"next\".*" | _egrep_o "http.*page\=[0-9]+")"
+      if [ -z "$nextpage" ]; then
+        _err "no record and no nextpage in digital ocean DNS removal"
+        return 1
+      fi
+      _debug2 nextpage "$nextpage"
+      DOMURL="$nextpage"
     fi
-    ## increment cut point $i
-    i=$(_math $i + 1)
+
   done
 
   ## we went through the entire domain zone list and dint find one that matched

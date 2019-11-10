@@ -2,10 +2,10 @@
 
 # Here is a script to deploy cert to hashicorp vault
 # (https://www.vaultproject.io/)
-# 
+#
 # it requires the vault binary to be available in PATH, and the following
 # environment variables:
-# 
+#
 # VAULT_PREFIX - this contains the prefix path in vault
 # VAULT_ADDR - vault requires this to find your vault server
 #
@@ -49,9 +49,13 @@ vault_cli_deploy() {
     return 1
   fi
 
-  $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/cert.pem" value=@"$_ccert" || return 1
-  $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/cert.key" value=@"$_ckey" || return 1
-  $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/chain.pem" value=@"$_cca" || return 1
-  $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/fullchain.pem" value=@"$_cfullchain" || return 1
+  if [ -n "$FABIO" ]; then
+    $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}" cert=@"$_cfullchain" key=@"$_ckey" || return 1
+  else
+    $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/cert.pem" value=@"$_ccert" || return 1
+    $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/cert.key" value=@"$_ckey" || return 1
+    $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/chain.pem" value=@"$_cca" || return 1
+    $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/fullchain.pem" value=@"$_cfullchain" || return 1
+  fi
 
 }
