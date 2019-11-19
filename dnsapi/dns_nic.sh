@@ -89,7 +89,7 @@ dns_nic_rm() {
     return 1
   fi
 
-  _domain_id=$(printf "%s" "$response" | grep "$_sub_domain" | grep "$txtvalue" | sed -r "s/.*<rr id=\"(.*)\".*/\1/g")
+  _domain_id=$(printf "%s" "$response" | grep "$_sub_domain" | grep -- "$txtvalue" | sed -r "s/.*<rr id=\"(.*)\".*/\1/g")
 
   if ! _nic_rest DELETE "services/$_service/zones/$_domain/records/$_domain_id"; then
     _err "Delete record error"
