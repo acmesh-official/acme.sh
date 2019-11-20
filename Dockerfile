@@ -3,6 +3,7 @@ FROM alpine:3.10
 RUN apk update -f \
   && apk --no-cache add -f \
   openssl \
+  openssh-client \
   coreutils \
   bind-tools \
   curl \
