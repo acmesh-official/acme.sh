@@ -27,6 +27,144 @@ _getconfigvar() {
     esac
 }
 
+_deploynewcert() {
+    _info "Adding new cert to rancher"
+    response=$(
+        curl -u "$_curlAuth" \
+        -X POST \
+        $_curlUrl \
+        $_curlOpts \
+        -H 'Accept: application/json' \
+        -H 'Content-Type: application/json' \
+        -d "{ \
+                \"type\":\"certificate\", \
+                \"name\":\"$_cdomain\", \
+                \"description\":\"acme.sh cert for $_cdomain\", \
+                \"key\":\"$_ckey\", \
+                \"cert\":\"$_ccert\", \
+                \"certChain\":\"$_cca\" \
+        }" \
+        "$_curlUrl/"
+    )
+    _info "Update status code: $response"
+    if [ "$response" -lt 199 ] || [ "$response" -gt 300 ]; then
+        _err "Curl failed to create new cert"
+        return 1
+    fi
+}
+
+_deployexistingcert() {
+    # Update existing certificate
+    _info "Updating..."
+    response=$(
+        curl -u "$_curlAuth" \
+        -X PUT \
+        --write-out "%{http_code}" \
+        $_curlOpts \
+        -H 'Accept: application/json' \
+        -H 'Content-Type: application/json' \
+        -d "{ \
+                \"id\":\"$cert_id\", \
+                \"type\":\"certificate\", \
+                \"baseType\":\"certificate\", \
+                \"name\":\"$_cdomain\", \
+                \"state\":\"active\", \
+                \"accountId\":\"$Le_rancher_environment\", \
+                \"algorithm\":\"SHA256WITHRSA\", \
+                \"cert\":\"$_ccert\", \
+                \"certChain\":\"$_cfullchain\", \
+                \"key\":\"$_ckey\" \
+        }" \
+        "$_curlUrl/$cert_id"
+    )
+    _info "Update status code: $response"
+    if [ "$response" -lt 199 ] || [ "$response" -gt 300 ]; then
+        _err "Curl failed to update cert with id=$cert_id"
+        return 1
+    fi
+}
+_checkcert() {
+    # Check if certificate already exist in rancher
+    id_raw_json=$(
+        curl -s \
+        -u "$_curlAuth" \
+        -X GET \
+        -H 'Accept: application/json' \
+        -H 'Content-Type: application/json' \
+        "$_curlUrl?name=$_cdomain"
+    )
+    cert_state=$(
+        echo "$id_raw_json" |
+        awk -F='\:' -v RS='\,' "\$id_raw_json~/\"state\"/ {print}" |
+        tr -d "\n\t" |
+        sed -e 's/^"//' -e 's/"$//' |
+        grep -o "active"
+    )
+    _info "Cert state is: $cert_state"
+}
+_getcertid() {
+    # Get certificate ID
+    id_raw_json=$(
+        curl -s -u "$_curlAuth" \
+        -X GET \
+        -H 'Accept: application/json' \
+        -H 'Content-Type: application/json' \
+        "$_curlUrl?name=$_cdomain"
+    )
+    cert_id=$(
+        echo "$id_raw_json" |
+        awk -F='\:' -v RS='\,' "\$id_raw_json~/\"data\"/ {print}" |
+        tr -d "\n\t" |
+        sed -e 's/^"//' -e 's/"$//' |
+        sed -e 's/data.*"//'
+    )
+}
+_checkapiconnection() {
+    # Check api connection
+    _curlUrl="$Le_rancher_server/v2-beta/"
+    _curlOpts="--silent --output /dev/null"
+    response=$(
+        curl \
+        $_curlUrl \
+        --write-out "%{http_code}" \
+        $_curlOpts
+    )
+    if [ "$response" -ge 200 ] && [ "$response" -le 299 ]; then
+        _err "Curl failed to connect to $Le_rancher_server v2-beta API"
+        return 1
+    else
+        _info "API connected! $_curlUrl"
+    fi
+}
+
+_checkenvvars() {
+    # Check environment variables and config variables
+    for ENV_VAR in $REQ_ENV_VARS
+    do
+        _getconfigvar $ENV_VAR
+        eval _var='$'$ENV_VAR
+        eval _result='$'$get_result
+        if [ -z "$_var" ]; then
+            if [ -z "$_result" ]; then
+                _err "$ENV_VAR variable not defined."
+                return 1
+            fi
+        else
+            $get_result="$_var"
+            _savedomainconf $get_result "_result"
+        fi
+    done
+}
+_checksoft() {
+    # Check software needed
+    for PROGRAMM in $REQ_SOFT
+    do
+        if ! _exists $PROGRAMM; then
+            _err "The command $PROGRAMM is not found."
+            return 1
+        fi
+    done
+}
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
@@ -46,102 +184,25 @@ rancher_deploy() {
     _debug _cca "$_cca"
     _debug _cfullchain "$_cfullchain"
     
-    # Check software needed
-    for PROGRAMM in $REQ_SOFT
-    do
-        if ! _exists $PROGRAMM; then
-            _err "The command $PROGRAMM is not found."
-            return 1
-        fi
-    done
+    _checksoft
     
-    # Check environment variables and config variables
-    for ENV_VAR in $REQ_ENV_VARS
-    do
-        _getconfigvar $ENV_VAR
-        eval _var='$'$ENV_VAR
-        eval _result='$'$get_result
-        if [ -z "$_var" ]; then
-            if [ -z "$_result" ]; then
-                _err "$ENV_VAR variable not defined."
-                return 1
-            fi
-        else
-            $get_result="$_var"
-            _savedomainconf $get_result "_result"
-        fi
-    done
+    _checkenvvars
     
-    # Check api connection
-    response=$(
-        curl "$Le_rancher_server/v2-beta/" \
-        --write-out "%{http_code}" \
-        --silent \
-        --output /dev/null
-    )
-    if [ "$response" -ge 200 ] && [ "$response" -le 299 ]; then
-        _err "Curl failed to connect to $Le_rancher_server v2-beta API"
-        return 1
-    else
-        _info "API connected!"
-    fi
+    _checkapiconnection
     
-    # Check if certificate already exist in rancher
+    _curlAuth="$Le_rancher_access_key:$Le_rancher_secret_key"
+    _curlUrl="$Le_rancher_server/v2-beta/projects/$Le_rancher_environment/certificates"
+    _curlOpts="--silent --output /dev/null"
     
-    id_raw_json=$(curl -s -u "$Le_rancher_access_key:$Le_rancher_secret_key" \
-        -X GET \
-        -H 'Accept: application/json' \
-        -H 'Content-Type: application/json' \
-    "$Le_rancher_server/v2-beta/projects/$Le_rancher_environment/certificates?name=$_cdomain")
-    cert_state=$(echo "$id_raw_json" | awk -F='\:' -v RS='\,' "\$id_raw_json~/\"state\"/ {print}" | tr -d "\n\t" | sed -e 's/^"//' -e 's/"$//' | grep -o "active")
-    _info "Cert state is $cert_state"
+    _checkcert
+    
     if [ -z "$cert_state" ]; then
-        # Add new certificate
-        _info "Adding new cert to rancher"
-        response=$(
-            curl -u "$Le_rancher_access_key:$Le_rancher_secret_key" \
-            -X POST \
-            --write-out "%{http_code}" \
-            --silent \
-            --output /dev/null \
-            -H 'Accept: application/json' \
-            -H 'Content-Type: application/json' \
-            -d "{\"type\":\"certificate\",\"name\":\"$_cdomain\",\"description\":\"acme.sh cert for $_cdomain\",\"key\":\"$_ckey\",\"cert\":\"$_ccert\",\"certChain\":\"$_cca\"}" \
-            "$Le_rancher_server/v2-beta/projects/$Le_rancher_environment/certificates/"
-        )
-        _info "Update status code: $response"
-        if [ "$response" -lt 199 ] || [ "$response" -gt 300 ]; then
-            _err "Curl failed to create new cert"
-            return 1
-        fi
+        _deploynewcert
     else
-        # Get certificate ID
-        id_raw_json=$(curl -s -u "$Le_rancher_access_key:$Le_rancher_secret_key" \
-            -X GET \
-            -H 'Accept: application/json' \
-            -H 'Content-Type: application/json' \
-        "$Le_rancher_server/v2-beta/projects/$Le_rancher_environment/certificates?name=$_cdomain")
-        cert_id=$(echo "$id_raw_json" | awk -F='\:' -v RS='\,' "\$id_raw_json~/\"data\"/ {print}" | tr -d "\n\t" | sed -e 's/^"//' -e 's/"$//' | sed -e 's/data.*"//')
-        _info "Cert already exist ID is: $cert_id"
-        # Update existing certificate
-        _info "Updating..."
-        response=$(
-            curl -u "$Le_rancher_access_key:$Le_rancher_secret_key" \
-            -X PUT \
-            --write-out "%{http_code}" \
-            --silent \
-            --output /dev/null \
-            -H 'Accept: application/json' \
-            -H 'Content-Type: application/json' \
-            -d "{\"id\":\"$cert_id\",\"type\":\"certificate\",\"baseType\":\"certificate\",\"name\":\"$_cdomain\",\"state\":\"active\",\"accountId\":\"$Le_rancher_environment\",\"algorithm\":\"SHA256WITHRSA\",\"cert\":\"$_ccert\",\"certChain\":\"$_cfullchain\",\"key\":\"$_ckey\"}" \
-            "$Le_rancher_server/v2-beta/projects/$Le_rancher_environment/certificates/$cert_id"
-        )
-        _info "Update status code: $response"
-        if [ "$response" -lt 199 ] || [ "$response" -gt 300 ]; then
-            _err "Curl failed to update cert with id=$cert_id"
-            return 1
-        fi
+        _getcertid
+        _info "Cert already exist, ID is: $cert_id"
+        _deployexistingcert
     fi
-    _info "Certificate successfully deployed"
+    _info "Certificate $cert_id successfully deployed"
     return 0
 }
