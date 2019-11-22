@@ -121,7 +121,7 @@ _initAuth() {
 
   _info "Checking authentication"
 
-  if ! _ovh_rest GET "domain" || _contains "$response" "INVALID_CREDENTIAL"; then
+  if ! _ovh_rest GET "domain" || _contains "$response" "INVALID_CREDENTIAL" || _contains "$response" "NOT_CREDENTIAL"; then
     _err "The consumer key is invalid: $OVH_CK"
     _err "Please retry to create a new one."
     _clearaccountconf OVH_CK

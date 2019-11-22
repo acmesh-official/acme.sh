@@ -25,8 +25,8 @@ dns_desec_add() {
   if [ -z "$DEDYN_TOKEN" ] || [ -z "$DEDYN_NAME" ]; then
     DEDYN_TOKEN=""
     DEDYN_NAME=""
-    _err "You don't specify DEDYN_TOKEN and DEDYN_NAME yet."
-    _err "Please create you key and try again."
+    _err "You did not specify DEDYN_TOKEN and DEDYN_NAME yet."
+    _err "Please create your key and try again."
     _err "e.g."
     _err "export DEDYN_TOKEN=d41d8cd98f00b204e9800998ecf8427e"
     _err "export DEDYN_NAME=foobar.dedyn.io"
@@ -92,8 +92,8 @@ dns_desec_rm() {
   if [ -z "$DEDYN_TOKEN" ] || [ -z "$DEDYN_NAME" ]; then
     DEDYN_TOKEN=""
     DEDYN_NAME=""
-    _err "You don't specify DEDYN_TOKEN and DEDYN_NAME yet."
-    _err "Please create you key and try again."
+    _err "You did not specify DEDYN_TOKEN and DEDYN_NAME yet."
+    _err "Please create your key and try again."
     _err "e.g."
     _err "export DEDYN_TOKEN=d41d8cd98f00b204e9800998ecf8427e"
     _err "export DEDYN_NAME=foobar.dedyn.io"

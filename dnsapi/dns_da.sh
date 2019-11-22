@@ -9,7 +9,7 @@
 #
 # User must provide login data and URL to DirectAdmin incl. port.
 # You can create login key, by using the Login Keys function
-# ( https://da.example.com:8443/CMD_LOGIN_KEYS ), which only has access to 
+# ( https://da.example.com:8443/CMD_LOGIN_KEYS ), which only has access to
 # - CMD_API_DNS_CONTROL
 # - CMD_API_SHOW_DOMAINS
 #

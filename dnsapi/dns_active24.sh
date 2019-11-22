@@ -129,7 +129,7 @@ _active24_init() {
     return 1
   fi
 
-  _saveaccountconf_mutable ACTIVE24_Token "ACTIVE24_Token"
+  _saveaccountconf_mutable ACTIVE24_Token "$ACTIVE24_Token"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then

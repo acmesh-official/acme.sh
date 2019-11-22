@@ -1,6 +1,6 @@
 # An ACME Shell script: acme.sh [![Build Status](https://travis-ci.org/Neilpang/acme.sh.svg?branch=master)](https://travis-ci.org/Neilpang/acme.sh)
 
-[![Join the chat at https://gitter.im/acme-sh/Lobby](https://badges.gitter.im/acme-sh/Lobby.svg)](https://gitter.im/acme-sh/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+<a href="https://opencollective.com/acmesh" alt="Financial Contributors on Open Collective"><img src="https://opencollective.com/acmesh/all/badge.svg?label=financial+contributors" /></a> [![Join the chat at https://gitter.im/acme-sh/Lobby](https://badges.gitter.im/acme-sh/Lobby.svg)](https://gitter.im/acme-sh/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 - An ACME protocol client written purely in Shell (Unix shell) language.
 - Full ACME protocol implementation.
 - Support ACME v1 and ACME v2
@@ -13,6 +13,7 @@
 - DOES NOT require `root/sudoer` access.
 - Docker friendly
 - IPv6 support
+- Cron job notifications for renewal or error etc.
 
 It's probably the `easiest & smartest` shell script to automatically issue & renew the free certificates from Let's Encrypt.
 
@@ -45,25 +46,25 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
 | NO | Status| Platform|
 |----|-------|---------|
-|1|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/ubuntu-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)| Ubuntu
-|2|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/debian-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)| Debian
-|3|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/centos-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|CentOS
-|4|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/windows-cygwin.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Windows (cygwin with curl, openssl and crontab included)
-|5|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/freebsd.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|FreeBSD
-|6|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/pfsense.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|pfsense
-|7|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/opensuse-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|openSUSE
-|8|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/alpine-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Alpine Linux (with curl)
-|9|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/base-archlinux.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Archlinux
-|10|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/fedora-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|fedora
-|11|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/kalilinux-kali-linux-docker.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Kali Linux
-|12|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/oraclelinux-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Oracle Linux
-|13|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/proxmox.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)| Proxmox https://pve.proxmox.com/wiki/HTTPSCertificateConfiguration#Let.27s_Encrypt_using_acme.sh
+|1|[![](https://neilpang.github.io/acmetest/status/ubuntu-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)| Ubuntu
+|2|[![](https://neilpang.github.io/acmetest/status/debian-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)| Debian
+|3|[![](https://neilpang.github.io/acmetest/status/centos-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|CentOS
+|4|[![](https://neilpang.github.io/acmetest/status/windows-cygwin.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Windows (cygwin with curl, openssl and crontab included)
+|5|[![](https://neilpang.github.io/acmetest/status/freebsd.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|FreeBSD
+|6|[![](https://neilpang.github.io/acmetest/status/pfsense.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|pfsense
+|7|[![](https://neilpang.github.io/acmetest/status/opensuse-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|openSUSE
+|8|[![](https://neilpang.github.io/acmetest/status/alpine-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Alpine Linux (with curl)
+|9|[![](https://neilpang.github.io/acmetest/status/base-archlinux.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Archlinux
+|10|[![](https://neilpang.github.io/acmetest/status/fedora-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|fedora
+|11|[![](https://neilpang.github.io/acmetest/status/kalilinux-kali-linux-docker.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Kali Linux
+|12|[![](https://neilpang.github.io/acmetest/status/oraclelinux-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Oracle Linux
+|13|[![](https://neilpang.github.io/acmetest/status/proxmox.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)| Proxmox https://pve.proxmox.com/wiki/HTTPSCertificateConfiguration#Let.27s_Encrypt_using_acme.sh
 |14|-----| Cloud Linux  https://github.com/Neilpang/le/issues/111
-|15|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/openbsd.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|OpenBSD
-|16|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/mageia.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Mageia
+|15|[![](https://neilpang.github.io/acmetest/status/openbsd.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|OpenBSD
+|16|[![](https://neilpang.github.io/acmetest/status/mageia.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Mageia
 |17|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/Neilpang/acme.sh/wiki/How-to-run-on-OpenWRT)
-|18|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/solaris.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|SunOS/Solaris
-|19|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/gentoo-stage3-amd64.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Gentoo Linux
+|18|[![](https://neilpang.github.io/acmetest/status/solaris.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|SunOS/Solaris
+|19|[![](https://neilpang.github.io/acmetest/status/gentoo-stage3-amd64.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Gentoo Linux
 |20|[![Build Status](https://travis-ci.org/Neilpang/acme.sh.svg?branch=master)](https://travis-ci.org/Neilpang/acme.sh)|Mac OSX
 
 For all build statuses, check our [weekly build project](https://github.com/Neilpang/acmetest):
@@ -432,20 +433,55 @@ acme.sh --upgrade --auto-upgrade 0
 https://github.com/Neilpang/acme.sh/wiki/Issue-a-cert-from-existing-CSR
 
 
-# 16. Under the Hood
+# 16. Send notifications in cronjob
+
+https://github.com/Neilpang/acme.sh/wiki/notify
+
+
+# 17. Under the Hood
 
 Speak ACME language using shell, directly to "Let's Encrypt".
 
 TODO:
 
 
-# 17. Acknowledgments
+# 18. Acknowledgments
 
 1. Acme-tiny: https://github.com/diafygi/acme-tiny
 2. ACME protocol: https://github.com/ietf-wg-acme/acme
 
 
-# 18. License & Others
+## Contributors
+
+### Code Contributors
+
+This project exists thanks to all the people who contribute. [[Contribute](CONTRIBUTING.md)].
+<a href="https://github.com/Neilpang/acme.sh/graphs/contributors"><img src="https://opencollective.com/acmesh/contributors.svg?width=890&button=false" /></a>
+
+### Financial Contributors
+
+Become a financial contributor and help us sustain our community. [[Contribute](https://opencollective.com/acmesh/contribute)]
+
+#### Individuals
+
+<a href="https://opencollective.com/acmesh"><img src="https://opencollective.com/acmesh/individuals.svg?width=890"></a>
+
+#### Organizations
+
+Support this project with your organization. Your logo will show up here with a link to your website. [[Contribute](https://opencollective.com/acmesh/contribute)]
+
+<a href="https://opencollective.com/acmesh/organization/0/website"><img src="https://opencollective.com/acmesh/organization/0/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/1/website"><img src="https://opencollective.com/acmesh/organization/1/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/2/website"><img src="https://opencollective.com/acmesh/organization/2/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/3/website"><img src="https://opencollective.com/acmesh/organization/3/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/4/website"><img src="https://opencollective.com/acmesh/organization/4/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/5/website"><img src="https://opencollective.com/acmesh/organization/5/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/6/website"><img src="https://opencollective.com/acmesh/organization/6/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/7/website"><img src="https://opencollective.com/acmesh/organization/7/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/8/website"><img src="https://opencollective.com/acmesh/organization/8/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/9/website"><img src="https://opencollective.com/acmesh/organization/9/avatar.svg"></a>
+
+# 19. License & Others
 
 License is GPLv3
 
@@ -454,7 +490,7 @@ Please Star and Fork me.
 [Issues](https://github.com/Neilpang/acme.sh/issues) and [pull requests](https://github.com/Neilpang/acme.sh/pulls) are welcome.
 
 
-# 19. Donate
+# 20. Donate
 Your donation makes **acme.sh** better:
 
 1. PayPal/Alipay(支付宝)/Wechat(微信): [https://donate.acme.sh/](https://donate.acme.sh/)

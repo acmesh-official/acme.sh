@@ -3,10 +3,10 @@
 # Namecheap API
 # https://www.namecheap.com/support/api/intro.aspx
 #
-# Requires Namecheap API key set in 
-#NAMECHEAP_API_KEY, 
+# Requires Namecheap API key set in
+#NAMECHEAP_API_KEY,
 #NAMECHEAP_USERNAME,
-#NAMECHEAP_SOURCEIP 
+#NAMECHEAP_SOURCEIP
 # Due to Namecheap's API limitation all the records of your domain will be read and re applied, make sure to have a backup of your records you could apply if any issue would arise.
 
 ########  Public functions #####################
@@ -164,7 +164,7 @@ _namecheap_set_publicip() {
     _debug sourceip "$NAMECHEAP_SOURCEIP"
 
     ip=$(echo "$NAMECHEAP_SOURCEIP" | _egrep_o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
-    addr=$(echo "$NAMECHEAP_SOURCEIP" | _egrep_o '(http|https)://.*')
+    addr=$(echo "$NAMECHEAP_SOURCEIP" | _egrep_o '(http|https):\/\/.*')
 
     _debug2 ip "$ip"
     _debug2 addr "$addr"

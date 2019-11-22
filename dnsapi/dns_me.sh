@@ -2,7 +2,7 @@
 
 # bug reports to dev@1e.ca
 
-# ME_Key=qmlkdjflmkqdjf	
+# ME_Key=qmlkdjflmkqdjf
 # ME_Secret=qmsdlkqmlksdvnnpae
 
 ME_Api=https://api.dnsmadeeasy.com/V2.0/dns/managed
