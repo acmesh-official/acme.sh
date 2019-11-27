@@ -5,7 +5,7 @@
 如何调试 https://github.com/Neilpang/acme.sh/wiki/How-to-debug-acme.sh
 
 If it is a bug report:
-- make sure you are able to repro it on the latest released version. 
+- make sure you are able to repro it on the latest released version.
 You can install the latest version by: `acme.sh --upgrade`
 
 - Search the existing issues.
