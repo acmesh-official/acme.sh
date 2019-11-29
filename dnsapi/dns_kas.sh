@@ -78,8 +78,7 @@ dns_kas_rm() {
 
     # split it into a seperated list, if there where multiples entries made
     records=($_record_id)
-    for i in "${records[@]}"
-    do
+    for i in "${records[@]}"; do
       params2="$params&var1=record_id"
       params2="$params2&wert1=$i"
       _debug2 "Wait for 10 seconds by default before calling KAS API."
@@ -95,7 +94,7 @@ dns_kas_rm() {
     _err "No record_id found that can be deleted. Please check manually."
     return 1
   fi
-return 0
+  return 0
 }
 
 ########################## PRIVATE FUNCTIONS ###########################
