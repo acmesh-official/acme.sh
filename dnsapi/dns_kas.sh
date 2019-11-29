@@ -149,7 +149,7 @@ _get_record_id() {
   response="$(_get "$KAS_Api$params")"
   _debug2 "response" "$response"
 
-  _record_id="$(echo "$response"  | tr -d "\n\r" | sed "s/=> Array/\n=> Array/g" | tr -d " " | tr '[]' '<>' | grep "=>$_record_name<" | grep '>TXT<' | tr '<' '\n' | grep record_id | cut -d '>' -f 3)"
+  _record_id="$(echo "$response" | tr -d "\n\r" | sed "s/=> Array/\n=> Array/g" | tr -d " " | tr '[]' '<>' | grep "=>$_record_name<" | grep '>TXT<' | tr '<' '\n' | grep record_id | cut -d '>' -f 3)"
   _debug2 _record_id "$_record_id"
   return 0
 }
