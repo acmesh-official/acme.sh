@@ -69,13 +69,13 @@ dns_kas_rm() {
   _get_record_name "$_fulldomain"
   _get_record_id
 
-  # If there is a record_id, delete the entry   
+  # If there is a record_id, delete the entry
   if [ -n "$_record_id" ]; then
     params="?kas_login=$KAS_Login"
     params="$params&kas_auth_type=$KAS_Authtype"
     params="$params&kas_auth_data=$KAS_Authdata"
     params="$params&kas_action=delete_dns_settings"
-    
+
     # split it into a seperated list, if there where multiples entries made
     records=($_record_id)
     for i in "${records[@]}"
@@ -150,7 +150,7 @@ _get_record_id() {
   response="$(_get "$KAS_Api$params")"
   _debug2 "response" "$response"
 
-  _record_id="$(echo "$response" | grep -A 4  "$_record_name" | grep "record_id" | cut -f2 -d">" | xargs)"
+  _record_id="$(echo "$response"  | tr -d "\n\r" | sed "s/=> Array/\n=> Array/g" | tr -d " " | tr '[]' '<>' | grep "=>$_record_name<" | grep '>TXT<' | tr '<' '\n' | grep record_id | cut -d '>' -f 3)"
   _debug2 _record_id "$_record_id"
   return 0
 }
