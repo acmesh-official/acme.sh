@@ -4082,7 +4082,7 @@ $_authorizations_map"
 
       if [ "$ACME_VERSION" = "2" ]; then
         _idn_d="$(_idn "$d")"
-        _candindates="$(echo "$_authorizations_map" | grep "^$_idn_d,")"
+        _candindates="$(echo "$_authorizations_map" | grep -i "^$_idn_d,")"
         _debug2 _candindates "$_candindates"
         if [ "$(echo "$_candindates" | wc -l)" -gt 1 ]; then
           for _can in $_candindates; do
