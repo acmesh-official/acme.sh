@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-# Author: Wout Decre <wout@rambla.be>
+# Author: Wout Decre <wout@canodus.be>
 
 CONSTELLIX_API="https://api.dns.constellix.com/v1"
 #CONSTELLIX_KEY="XXX"
