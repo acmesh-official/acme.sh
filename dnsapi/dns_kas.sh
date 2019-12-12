@@ -76,9 +76,7 @@ dns_kas_rm() {
     params="$params&kas_auth_data=$KAS_Authdata"
     params="$params&kas_action=delete_dns_settings"
 
-    # split it into a seperated list, if there where multiples entries made
-    records=($_record_id)
-    for i in "${records[@]}"; do
+    for i in $_record_id; do
       params2="$params&var1=record_id"
       params2="$params2&wert1=$i"
       _debug2 "Wait for 10 seconds by default before calling KAS API."
