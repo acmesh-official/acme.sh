@@ -61,8 +61,7 @@ dns_misaka_add() {
   else
     _info "Updating record"
 
-    # todo: add existing challenges
-    _misaka_rest POST "zones/${_domain}/recordsets/${_sub_domain}/TXT" "{\"records\": [{\"value\": \"\\\"$txtvalue\\\"\"}],\"ttl\":1}"
+    _misaka_rest POST "zones/${_domain}/recordsets/${_sub_domain}/TXT?append=true" "{\"records\": [{\"value\": \"\\\"$txtvalue\\\"\"}],\"ttl\":1}"
     if [ "$?" = "0" ] && _contains "$response" "$_sub_domain"; then
       _info "Updated!"
       #todo: check if the record takes effect
