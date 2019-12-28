@@ -5154,7 +5154,7 @@ deploy() {
 installcert() {
   _main_domain="$1"
   if [ -z "$_main_domain" ]; then
-    _usage "Usage: $PROJECT_ENTRY --installcert -d domain.com  [--ecc] [--cert-file cert-file-path]  [--key-file key-file-path]  [--ca-file ca-cert-file-path]   [ --reloadCmd reloadCmd] [--fullchain-file fullchain-path]"
+    _usage "Usage: $PROJECT_ENTRY --install-cert -d domain.com  [--ecc] [--cert-file cert-file-path]  [--key-file key-file-path]  [--ca-file ca-cert-file-path]   [ --reloadCmd reloadCmd] [--fullchain-file fullchain-path]"
     return 1
   fi
 
