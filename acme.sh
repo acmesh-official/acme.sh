@@ -2040,8 +2040,10 @@ _send_signed_request() {
         continue
       fi
     fi
-    break
+    return 0
   done
+  _info "Giving up sending to CA server after $MAX_REQUEST_RETRY_TIMES retries."
+  return 1
 
 }
 
@@ -3819,9 +3821,11 @@ _check_dns_entries() {
       _sleep 10
     else
       _info "All success, let's return"
-      break
+      return 0
     fi
   done
+  _info "Timed out waiting for DNS."
+  return 1
 
 }
 
