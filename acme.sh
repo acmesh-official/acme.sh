@@ -3887,6 +3887,17 @@ issue() {
   _initAPI
 
   if [ -f "$DOMAIN_CONF" ]; then
+    _saved_acme_directory=$(_readdomainconf ACME_DIRECTORY)
+    _debug _saved_acme_directory "$_saved_acme_directory"
+    if [ "$VERIFY_ACME_DIRECTORY" ]; then
+      if [ "$_saved_acme_directory" ] && [ "$_saved_acme_directory" != "$ACME_DIRECTORY" ]; then
+        FORCE="1"
+        _info "ACME_DIRECTORY has changed."
+      else
+        _info "ACME_DIRECTORY not changed."
+      fi
+    fi
+
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
     _debug Le_NextRenewTime "$Le_NextRenewTime"
     if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
@@ -4734,6 +4745,8 @@ $_authorizations_map"
   else
     _cleardomainconf Le_ForceNewDomainKey
   fi
+
+  _savedomainconf "ACME_DIRECTORY" "$ACME_DIRECTORY"
 
   Le_NextRenewTime=$(_math "$Le_CertCreateTime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
 
@@ -6227,6 +6240,7 @@ Parameters:
   --reloadcmd \"service nginx reload\" After issue/renew, it's used to reload the server.
 
   --server SERVER                   ACME Directory Resource URI. (default: https://acme-v01.api.letsencrypt.org/directory)
+  --verify-server                   Used to force to renew a cert when ACME Directory Resource URI changes.
   --accountconf                     Specifies a customized account config file.
   --home                            Specifies the home dir for $PROJECT_NAME.
   --cert-home                       Specifies the home dir to save all the certs, only valid for '--install' command.
@@ -6559,6 +6573,8 @@ _process() {
         export ACME_DIRECTORY
         shift
         ;;
+      --verify-server)
+        VERIFY_ACME_DIRECTORY="1"
       --debug)
         if [ -z "$2" ] || _startswith "$2" "-"; then
           DEBUG="$DEBUG_LEVEL_DEFAULT"
