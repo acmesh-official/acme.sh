@@ -3889,8 +3889,8 @@ issue() {
   if [ -f "$DOMAIN_CONF" ]; then
     _saved_acme_directory=$(_readdomainconf ACME_DIRECTORY)
     _debug _saved_acme_directory "$_saved_acme_directory"
-    if [ -z "$FORCE" ] && [ "$VERIFY_ACME_DIRECTORY" ]; then
-      if [ "$_saved_acme_directory" ] && [ "$_saved_acme_directory" != "$ACME_DIRECTORY" ]; then
+    if [ -z "$FORCE" ] && [ "$VERIFY_ACME_DIRECTORY" ] && [ "$_saved_acme_directory" ]; then
+      if [ "$_saved_acme_directory" != "$ACME_DIRECTORY" ]; then
         FORCE="1"
         _info "ACME_DIRECTORY has changed."
       else
