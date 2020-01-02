@@ -3889,7 +3889,7 @@ issue() {
   if [ -f "$DOMAIN_CONF" ]; then
     _saved_acme_directory=$(_readdomainconf ACME_DIRECTORY)
     _debug _saved_acme_directory "$_saved_acme_directory"
-    if [ "$VERIFY_ACME_DIRECTORY" ]; then
+    if [ -z "$FORCE" ] && [ "$VERIFY_ACME_DIRECTORY" ]; then
       if [ "$_saved_acme_directory" ] && [ "$_saved_acme_directory" != "$ACME_DIRECTORY" ]; then
         FORCE="1"
         _info "ACME_DIRECTORY has changed."
@@ -6575,6 +6575,7 @@ _process() {
         ;;
       --verify-server)
         VERIFY_ACME_DIRECTORY="1"
+        ;;
       --debug)
         if [ -z "$2" ] || _startswith "$2" "-"; then
           DEBUG="$DEBUG_LEVEL_DEFAULT"
