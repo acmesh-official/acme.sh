@@ -3887,7 +3887,7 @@ issue() {
   _initAPI
 
   if [ -f "$DOMAIN_CONF" ]; then
-    _saved_acme_directory=$(_readdomainconf ACME_DIRECTORY)
+    _saved_acme_directory=$(_readdomainconf Le_AcmeDirectory)
     _debug _saved_acme_directory "$_saved_acme_directory"
     if [ -z "$FORCE" ] && [ "$VERIFY_ACME_DIRECTORY" ] && [ "$_saved_acme_directory" ]; then
       if [ "$_saved_acme_directory" != "$ACME_DIRECTORY" ]; then
@@ -4746,7 +4746,7 @@ $_authorizations_map"
     _cleardomainconf Le_ForceNewDomainKey
   fi
 
-  _savedomainconf "ACME_DIRECTORY" "$ACME_DIRECTORY"
+  _savedomainconf "Le_AcmeDirectory" "$ACME_DIRECTORY"
 
   Le_NextRenewTime=$(_math "$Le_CertCreateTime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
 
