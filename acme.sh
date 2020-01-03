@@ -6303,6 +6303,7 @@ _installOnline() {
     chmod +x $PROJECT_ENTRY
     if ./$PROJECT_ENTRY install "$_nocron" "" "$_noprofile"; then
       _info "Install success!"
+      _saveaccountconf "UPGRADE_HASH" "$(_getMasterHash)"
     fi
 
     cd ..
@@ -6312,9 +6313,15 @@ _installOnline() {
   )
 }
 
+_getMasterHash() {
+  _hash_url="https://api.github.com/repos/Neilpang/acme.sh/git/refs/heads/master"
+  _get $_hash_url | tr -d "\r\n" | tr '{},' '\n' | grep '"sha":' | cut -d '"' -f 4
+}
+
 upgrade() {
   if (
     _initpath
+    [ -z "$FORCE" ] && [ "$(_getMasterHash)" = "$(_readaccountconf "UPGRADE_HASH")" ] && _info "Already uptodate!" && exit 0
     export LE_WORKING_DIR
     cd "$LE_WORKING_DIR"
     _installOnline "nocron" "noprofile"
