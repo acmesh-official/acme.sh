@@ -455,7 +455,7 @@ TODO:
 
 ### Code Contributors
 
-This project exists thanks to all the people who contribute. [[Contribute](CONTRIBUTING.md)].
+This project exists thanks to all the people who contribute. [[Contribute](https://opencollective.com/acmesh/contribute)].
 <a href="https://github.com/Neilpang/acme.sh/graphs/contributors"><img src="https://opencollective.com/acmesh/contributors.svg?width=890&button=false" /></a>
 
 ### Financial Contributors
