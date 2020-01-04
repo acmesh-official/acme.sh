@@ -74,7 +74,7 @@ dns_linode_v4_rm() {
   if _rest GET "/$_domain_id/records" && [ -n "$response" ]; then
     response="$(echo "$response" | tr -d "\n" | tr '{' "|" | sed 's/|/&{/g' | tr "|" "\n")"
 
-    resource="$(echo "$response" | _egrep_o "{.*\"name\": *\"$_sub_domain\".*}")"
+    resource="$(echo "$response" | _egrep_o "\{.*\"name\": *\"$_sub_domain\".*}")"
     if [ "$resource" ]; then
       _resource_id=$(printf "%s\n" "$resource" | _egrep_o "\"id\": *[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
       if [ "$_resource_id" ]; then
@@ -139,7 +139,7 @@ _get_root() {
         return 1
       fi
 
-      hostedzone="$(echo "$response" | _egrep_o "{.*\"domain\": *\"$h\".*}")"
+      hostedzone="$(echo "$response" | _egrep_o "\{.*\"domain\": *\"$h\".*}")"
       if [ "$hostedzone" ]; then
         _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "\"id\": *[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
         if [ "$_domain_id" ]; then
