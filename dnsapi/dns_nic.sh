@@ -1,10 +1,9 @@
 #!/usr/bin/env sh
 
 #
-#NIC_Token="sdfsdfsdfljlbjkljlkjsdfoiwjedfglgkdlfgkfgldfkg"
-#
+#NIC_ClientID='0dc0xxxxxxxxxxxxxxxxxxxxxxxxce88'
+#NIC_ClientSecret='3LTtxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxnuW8'
 #NIC_Username="000000/NIC-D"
-
 #NIC_Password="xxxxxxx"
 
 NIC_Api="https://api.nic.ru"
