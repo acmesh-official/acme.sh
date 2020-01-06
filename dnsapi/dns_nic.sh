@@ -12,7 +12,6 @@ dns_nic_add() {
   fulldomain="${1}"
   txtvalue="${2}"
 
-
   if ! _nic_get_authtoken save; then
     _err "get NIC auth token failed"
     return 1
@@ -93,7 +92,7 @@ _nic_get_auth_elements() {
     if [ -n "$NIC_Token" ]; then
       _two_values="$(echo "${NIC_Token}" | _dbase64)"
       _debug _two_values "$_two_values"
-      IFS=":" read -r NIC_ClientID NIC_ClientSecret <<< $_two_values
+      IFS=":" read -r NIC_ClientID NIC_ClientSecret <<<"$_two_values"
       _debug restored_NIC_ClientID "$NIC_ClientID"
       _debug restored_NIC_ClientSecret "$NIC_ClientSecret"
     fi
@@ -117,7 +116,7 @@ _nic_get_auth_elements() {
   fi
 
   NIC_BasicAuth=$(printf "%s:%s" "${NIC_ClientID}" "${NIC_ClientSecret}" | _base64)
- _debug NIC_BasicAuth "$NIC_BasicAuth"
+  _debug NIC_BasicAuth "$NIC_BasicAuth"
 
 }
 
@@ -125,7 +124,7 @@ _nic_get_auth_elements() {
 _nic_get_authtoken() {
   _need2save=$1
 
-  if ! _nic_get_auth_elements $_need2save; then
+  if ! _nic_get_auth_elements "$_need2save"; then
     return 1
   fi
 
