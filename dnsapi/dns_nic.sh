@@ -24,7 +24,7 @@ dns_nic_add() {
     return 1
   fi
 
-  _saveaccountconf_mutable NIC_Customer "$NIC_Token"
+  _saveaccountconf_mutable NIC_Token "$NIC_Token"
   _saveaccountconf_mutable NIC_Username "$NIC_Username"
   _saveaccountconf_mutable NIC_Password "$NIC_Password"
 
