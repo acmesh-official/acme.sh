@@ -99,7 +99,6 @@ _nic_get_auth_elements() {
     fi
   fi
 
-
   if [ -z "$NIC_ClientID" ] || [ -z "$NIC_ClientSecret" ] || [ -z "$NIC_Username" ] || [ -z "$NIC_Password" ]; then
     NIC_ClientID=""
     NIC_ClientSecret=""
