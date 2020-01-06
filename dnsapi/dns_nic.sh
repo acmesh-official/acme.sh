@@ -92,7 +92,7 @@ _nic_get_auth_elements() {
     if [ -n "$NIC_Token" ]; then
       _two_values="$(echo "${NIC_Token}" | _dbase64)"
       _debug _two_values "$_two_values"
-      IFS=":" read -r NIC_ClientID NIC_ClientSecret <<<"$_two_values"
+      IFS=":" read -r NIC_ClientID NIC_ClientSecret < <(echo "$_two_values")
       _debug restored_NIC_ClientID "$NIC_ClientID"
       _debug restored_NIC_ClientSecret "$NIC_ClientSecret"
     fi
