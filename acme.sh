@@ -4071,7 +4071,6 @@ $_authorizations_map"
       _debug "_currentRoot" "$_currentRoot"
 
       vtype="$VTYPE_HTTP"
-      #todo, v2 wildcard force to use dns
       if _startswith "$_currentRoot" "$W_DNS"; then
         vtype="$VTYPE_DNS"
       fi
@@ -4081,6 +4080,10 @@ $_authorizations_map"
       fi
 
       if [ "$ACME_VERSION" = "2" ]; then
+        if _startswith "$_is_idn_d" "\*"; then
+          vtype="$VTYPE_DNS"
+        fi
+
         _idn_d="$(_idn "$d")"
         _candindates="$(echo "$_authorizations_map" | grep "^$_idn_d,")"
         _debug2 _candindates "$_candindates"
