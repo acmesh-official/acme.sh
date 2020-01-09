@@ -5,10 +5,11 @@
 # API endpoint. 
 HostingUkraine_Api="https://adm.tools/api.php"
 # Author: Qvinti <qvinti.com@gmail.com>
+# Report Bugs here: https://github.com/Neilpang/acme.sh/issues/2647
 # Hosting Ukraine API documentation: https://api.adm.tools/osnovnie-polozheniya/dostup-k-api/
-# Your login,
+# Your login:
 HostingUkraine_Login=""
-# Your api token. 
+# Your api token:
 HostingUkraine_Token=""
 
 ########  Public functions #####################
@@ -16,12 +17,12 @@ HostingUkraine_Token=""
 dns_hostingUkraine_add() {
   fulldomain=$1
   txtvalue=$2
-  subdomain=$(echo "$fulldomain" | sed -e "s/\.$_domain//")
+  subdomain=$(echo "$fulldomain" | sed -e "s/\.$domain//")
 
   _hostingUkraine_init
 
   _info "Adding txt record. ($fulldomain)"
-  _hostingUkraine_rest POST "dns_record" "create" "\"domain\":\"$_domain\",\"subdomain\":\"$subdomain\",\"type\":\"TXT\",\"data\":\"$txtvalue\""
+  _hostingUkraine_rest POST "dns_record" "create" "\"domain\":\"$domain\",\"subdomain\":\"$subdomain\",\"type\":\"TXT\",\"data\":\"$txtvalue\""
   if _contains "$response" "\"status\":\"error\""; then
     _err "Add txt record, Failure! ($fulldomain)"
     return 1
@@ -38,19 +39,24 @@ dns_hostingUkraine_rm() {
   _hostingUkraine_init
 
   _debug "Getting txt records"
-  _hostingUkraine_rest POST "dns_record" "info" "\"domain\":\"$_domain\""
+  _hostingUkraine_rest POST "dns_record" "info" "\"domain\":\"$domain\""
   if _contains "$response" "\"status\":\"error\""; then
-    _err "Get domain records, Failure! ($_domain)"
+    _err "Get domain records, Failure! ($domain)"
     return 1
   fi
 
-  id=$(echo "$response" | _egrep_o "[^{]+${txtvalue}[^}]+" | _egrep_o "id\":[^\,]+" | cut -c5-)
-  if [ -z "$id" ]; then
+  ids=$(echo "$response" | _egrep_o "[^{]+${txtvalue}[^}]+" |  _egrep_o "id\":[^\,]+" | cut -c5-)
+  if [ -z "$ids" ]; then
     _err "Empty TXT records! ($fulldomain: $txtvalue)"
     return 1
   fi
 
-  _hostingUkraine_rest POST "dns_record" "delete" "\"domain\":\"$_domain\",\"stack\":[$id]"
+  for id in $ids
+    do
+    stack="${stack:+${stack},}${id}"
+  done
+
+  _hostingUkraine_rest POST "dns_record" "delete" "\"domain\":\"$domain\",\"stack\":[$stack]"
   if _contains "$response" "\"status\":\"error\""; then
     _err "Remove txt record, Failure! ($fulldomain: $id)"
     return 1
@@ -60,22 +66,6 @@ dns_hostingUkraine_rm() {
 }
 
 ####################  Private functions below ##################################
-# Send request to API endpoint
-_hostingUkraine_rest() {
-  m="$1"
-  class="$2"
-  method="$3"
-  data="$4"
-  _debug "$ep"
-  response="$(_post "{\"auth_login\":\"$HostingUkraine_Login\",\"auth_token\":\"$HostingUkraine_Token\",\"class\":\"$class\",\"method\":\"$method\",$data}" "$HostingUkraine_Api" "" "$m" "application/json")"
-  if [ "$?" != "0" ]; then
-    _err "error $ep"
-    return 1
-  fi
-  _debug2 response "$response"
-  return 0
-}
-
 # Check root zone
 _get_root() {
   domain=$1
@@ -106,11 +96,26 @@ _hostingUkraine_init() {
   _saveaccountconf_mutable HostingUkraine_Token "$HostingUkraine_Token"
 
   _debug "First detect the root zone"
-  if ! _get_root "$_domain"; then
-    _err "invalid domain"
+  if ! _get_root "$domain"; then
+    _err "Invalid domain! ($domain)"
     return 1
   fi
-
-  _debug _sub_domain "$_sub_domain"
-  _debug _domain "$_domain"
 }
+
+# Send request to API endpoint
+_hostingUkraine_rest() {
+  request_method=$1
+  class=$2
+  method=$3
+  data=$4
+
+  response="$(_post "{\"auth_login\":\"$HostingUkraine_Login\",\"auth_token\":\"$HostingUkraine_Token\",\"class\":\"$class\",\"method\":\"$method\",$data}" "$HostingUkraine_Api" "" "$request_method" "application/json")"
+
+  if [ "$?" != "0" ]; then
+    _err "error $response"
+    return 1
+  fi
+  _debug2 response "$response"
+  return 0
+}
+
