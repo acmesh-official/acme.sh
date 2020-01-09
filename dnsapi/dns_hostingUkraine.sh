@@ -45,14 +45,13 @@ dns_hostingUkraine_rm() {
     return 1
   fi
 
-  ids=$(echo "$response" | _egrep_o "[^{]+${txtvalue}[^}]+" |  _egrep_o "id\":[^\,]+" | cut -c5-)
+  ids=$(echo "$response" | _egrep_o "[^{]+${txtvalue}[^}]+" | _egrep_o "id\":[^\,]+" | cut -c5-)
   if [ -z "$ids" ]; then
     _err "Empty TXT records! ($fulldomain: $txtvalue)"
     return 1
   fi
 
-  for id in $ids
-    do
+  for id in $ids; do
     stack="${stack:+${stack},}${id}"
   done
 
