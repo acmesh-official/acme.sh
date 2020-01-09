@@ -5,7 +5,7 @@
 # API endpoint. 
 HostingUkraine_Api="https://adm.tools/api.php"
 # Author: Qvinti <qvinti.com@gmail.com>
-# Report Bugs here: https://github.com/Neilpang/acme.sh/issues/2647
+# Report Bugs here: https://github.com/Neilpang/acme.sh/issues/2683
 # Hosting Ukraine API documentation: https://api.adm.tools/osnovnie-polozheniya/dostup-k-api/
 # Your login:
 HostingUkraine_Login=""
