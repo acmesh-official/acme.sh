@@ -117,4 +117,3 @@ _hostingUkraine_rest() {
   _debug2 response "$response"
   return 0
 }
-
