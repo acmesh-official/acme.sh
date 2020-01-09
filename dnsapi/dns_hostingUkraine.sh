@@ -15,8 +15,8 @@ HostingUkraine_Token=""
 # Used to add txt record
 dns_hostingUkraine_add() {
   fulldomain=$1
-  subdomain=$(echo $fulldomain | sed -e "s/\.$_domain//")
   txtvalue=$2
+  subdomain=$(echo "$fulldomain" | sed -e "s/\.$_domain//")
 
   _hostingUkraine_init
 
