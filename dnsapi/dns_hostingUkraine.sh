@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
 # Will be called by acme.sh to add the txt record to https://www.ukraine.com.ua/ api.
+# Usage: ./acme.sh --issue -d yourdomain.com [-d '*.yourdomain.com'] --dns dns_hostingUkraine
 # API endpoint. 
 HostingUkraine_Api="https://adm.tools/api.php"
 # Author: Qvinti <qvinti.com@gmail.com>
@@ -16,9 +17,9 @@ dns_hostingUkraine_add() {
   fulldomain=$1
   subdomain=$(echo $fulldomain | sed -e "s/\.$_domain//")
   txtvalue=$2
-  
+
   _hostingUkraine_init
-  
+
   _info "Adding txt record. ($fulldomain)"
   _hostingUkraine_rest POST "dns_record" "create" "\"domain\":\"$_domain\",\"subdomain\":\"$subdomain\",\"type\":\"TXT\",\"data\":\"$txtvalue\""
   if _contains "$response" "\"status\":\"error\""; then
@@ -33,22 +34,22 @@ dns_hostingUkraine_add() {
 dns_hostingUkraine_rm() {
   fulldomain=$1
   txtvalue=$2
-  
+
   _hostingUkraine_init
-  
+
   _debug "Getting txt records"
   _hostingUkraine_rest POST "dns_record" "info" "\"domain\":\"$_domain\""
   if _contains "$response" "\"status\":\"error\""; then
     _err "Get domain records, Failure! ($_domain)"
     return 1
   fi
-  
+
   id=$(echo "$response" | _egrep_o "[^{]+${txtvalue}[^}]+" | _egrep_o "id\":[^\,]+" | cut -c5-)
   if [ -z "$id" ]; then
     _err "Empty TXT records! ($fulldomain: $txtvalue)"
     return 1
   fi
-  
+
   _hostingUkraine_rest POST "dns_record" "delete" "\"domain\":\"$_domain\",\"stack\":[$id]"
   if _contains "$response" "\"status\":\"error\""; then
     _err "Remove txt record, Failure! ($fulldomain: $id)"
@@ -92,9 +93,10 @@ _get_root() {
 _hostingUkraine_init() {
   HostingUkraine_Login="${HostingUkraine_Login:-$(_readaccountconf_mutable HostingUkraine_Login)}"
   HostingUkraine_Token="${HostingUkraine_Token:-$(_readaccountconf_mutable HostingUkraine_Token)}"
-  
+
   if [ -z "$HostingUkraine_Login" ] || [ -z "$HostingUkraine_Token" ]; then
     HostingUkraine_Login=""
+    HostingUkraine_Token=""
     _err "You didn't specify a Hosting Ukraine account or token yet."
     _err "Please create the account and token and try again. Info: https://api.adm.tools/osnovnie-polozheniya/dostup-k-api/"
     return 1
@@ -102,12 +104,12 @@ _hostingUkraine_init() {
 
   _saveaccountconf_mutable HostingUkraine_Login "$HostingUkraine_Login"
   _saveaccountconf_mutable HostingUkraine_Token "$HostingUkraine_Token"
-  
+
   _debug "First detect the root zone"
   if ! _get_root "$_domain"; then
     return 1
   fi
-  
+
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 }
