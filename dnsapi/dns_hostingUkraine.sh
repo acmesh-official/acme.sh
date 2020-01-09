@@ -107,6 +107,7 @@ _hostingUkraine_init() {
 
   _debug "First detect the root zone"
   if ! _get_root "$_domain"; then
+    _err "invalid domain"
     return 1
   fi
 
