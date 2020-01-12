@@ -6,15 +6,15 @@
 # Values to export:
 # export PDD_Token="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
-# Sometimes cloudflare / google doesn't pick new dns recods fast enough.
+# Sometimes cloudflare / google doesn't pick new dns records fast enough.
 # You can add --dnssleep XX to params as workaround.
 
 ########  Public functions #####################
 
 #Usage: dns_myapi_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_yandex_add() {
-  local fulldomain="${1}"
-  local txtvalue="${2}"
+  fulldomain="${1}"
+  txtvalue="${2}"
   _debug "Calling: dns_yandex_add() '${fulldomain}' '$txtvalue'"
 
   _PDD_credentials || return 1
@@ -30,9 +30,9 @@ dns_yandex_add() {
       return 1
   fi
 
-  local data="domain=${domain}&type=TXT&subdomain=${subdomain}&ttl=300&content=${txtvalue}"
-  local uri="https://pddimp.yandex.ru/api2/admin/dns/add"
-  local result="$(_post "${data}" "${uri}" | _normalizeJson)"
+  data="domain=${domain}&type=TXT&subdomain=${subdomain}&ttl=300&content=${txtvalue}"
+  uri="https://pddimp.yandex.ru/api2/admin/dns/add"
+  result="$(_post "${data}" "${uri}" | _normalizeJson)"
   _debug "Result: $result"
 
   if ! _contains "$result" '"success":"ok"'; then
@@ -43,7 +43,7 @@ dns_yandex_add() {
 
 #Usage: dns_myapi_rm   _acme-challenge.www.domain.com
 dns_yandex_rm() {
-  local fulldomain="${1}"
+  fulldomain="${1}"
   _debug "Calling: dns_yandex_rm() '${fulldomain}'"
 
   _PDD_credentials || return 1
@@ -55,9 +55,9 @@ dns_yandex_rm() {
   _debug "Record_ids: $record_ids"
 
   for record_id in $record_ids; do
-    local data="domain=${domain}&record_id=${record_id}"
-    local uri="https://pddimp.yandex.ru/api2/admin/dns/del"
-    local result="$(_post "${data}" "${uri}" | _normalizeJson)"
+    data="domain=${domain}&record_id=${record_id}"
+    uri="https://pddimp.yandex.ru/api2/admin/dns/del"
+    result="$(_post "${data}" "${uri}" | _normalizeJson)"
     _debug "Result: $result"
 
     if ! _contains "$result" '"success":"ok"'; then
@@ -69,21 +69,21 @@ dns_yandex_rm() {
 ####################  Private functions below ##################################
 
 _PDD_get_domain() {
-  local fulldomain=${1}
+  fulldomain=${1}
 
-  local subdomain_start=1
+  subdomain_start=1
   while true; do
-    local domain_start=$(_math $subdomain_start + 1)
-    domain=$(echo "$fulldomain" | cut -d . -f $domain_start-)
-    subdomain=$(echo "$fulldomain" | cut -d . -f -$subdomain_start)
+    domain_start=$(_math $subdomain_start + 1)
+    domain=$(echo "$fulldomain" | cut -d . -f "$domain_start"-)
+    subdomain=$(echo "$fulldomain" | cut -d . -f -"$subdomain_start")
 
     _debug "Checking domain $domain"
     if [ -z "$domain" ]; then
       return 1
     fi
 
-    local uri="https://pddimp.yandex.ru/api2/admin/dns/list?domain=$domain"
-    local result="$(_get "${uri}" | _normalizeJson)"
+    uri="https://pddimp.yandex.ru/api2/admin/dns/list?domain=$domain"
+    result="$(_get "${uri}" | _normalizeJson)"
     _debug "Result: $result"
 
     if _contains "$result" '"success":"ok"'; then
@@ -106,13 +106,13 @@ _PDD_credentials() {
 }
 
 _PDD_get_record_ids() {
-  local domain="${1}"
-  local subdomain="${2}"
+  domain="${1}"
+  subdomain="${2}"
 
   _debug "Check existing records for $subdomain"
 
-  local uri="https://pddimp.yandex.ru/api2/admin/dns/list?domain=${domain}"
-  local result="$(_get "${uri}" | _normalizeJson)"
+  uri="https://pddimp.yandex.ru/api2/admin/dns/list?domain=${domain}"
+  result="$(_get "${uri}" | _normalizeJson)"
   _debug "Result: $result"
 
   if ! _contains "$result" '"success":"ok"'; then
