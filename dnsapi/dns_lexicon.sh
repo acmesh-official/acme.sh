@@ -63,6 +63,16 @@ _lexicon_init() {
     _saveaccountconf_mutable "$Lx_domaintoken" "$Lx_domaintoken_v"
     eval export "$Lx_domaintoken"
   fi
+
+  # shellcheck disable=SC2018,SC2019
+  Lx_api_key=$(echo LEXICON_"${PROVIDER}"_API_KEY | tr 'a-z' 'A-Z')
+  eval "$Lx_api_key=\${$Lx_api_key:-$(_readaccountconf_mutable "$Lx_api_key")}"
+  Lx_api_key_v=$(eval echo \$"$Lx_api_key")
+  _secure_debug "$Lx_api_key" "$Lx_api_key_v"
+  if [ "$Lx_api_key_v" ]; then
+    _saveaccountconf_mutable "$Lx_api_key" "$Lx_api_key_v"
+    eval export "$Lx_api_key"
+  fi
 }
 
 ########  Public functions #####################
