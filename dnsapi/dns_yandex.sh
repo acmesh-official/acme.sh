@@ -26,8 +26,8 @@ dns_yandex_add() {
   _debug "Record_ids: $record_ids"
 
   if [ ! -z "$record_ids" ]; then
-      _err "Remove all existing $subdomain records from $domain"
-      return 1
+    _err "Remove all existing $subdomain records from $domain"
+    return 1
   fi
 
   data="domain=${domain}&type=TXT&subdomain=${subdomain}&ttl=300&content=${txtvalue}"
@@ -36,8 +36,8 @@ dns_yandex_add() {
   _debug "Result: $result"
 
   if ! _contains "$result" '"success":"ok"'; then
-      _err "Can't add $subdomain to $domain"
-      return 1
+    _err "Can't add $subdomain to $domain"
+    return 1
   fi
 }
 
@@ -87,7 +87,7 @@ _PDD_get_domain() {
     _debug "Result: $result"
 
     if _contains "$result" '"success":"ok"'; then
-        return 0
+      return 0
     fi
     subdomain_start=$(_math $subdomain_start + 1)
   done
@@ -116,7 +116,7 @@ _PDD_get_record_ids() {
   _debug "Result: $result"
 
   if ! _contains "$result" '"success":"ok"'; then
-      return 1
+    return 1
   fi
 
   record_ids=$(echo "$result" | _egrep_o "{[^{]*\"subdomain\":\"${subdomain}\"[^}]*}" | sed -n -e 's#.*"record_id": \([0-9]*\).*#\1#p')
