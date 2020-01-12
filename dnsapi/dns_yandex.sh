@@ -15,19 +15,18 @@
 dns_yandex_add() {
   fulldomain="${1}"
   txtvalue="${2}"
-  _debug "Calling: dns_yandex_add() '${fulldomain}' '$txtvalue'"
+  _debug "Calling: dns_yandex_add() '${fulldomain}' '${txtvalue}'"
 
   _PDD_credentials || return 1
 
-  _PDD_get_domain "$fulldomain" || return 1
+  _PDD_get_domain || return 1
   _debug "Found suitable domain: $domain"
 
-  _PDD_get_record_ids "${domain}" "${subdomain}" || return 1
+  _PDD_get_record_ids || return 1
   _debug "Record_ids: $record_ids"
 
   if [ ! -z "$record_ids" ]; then
-    _err "Remove all existing $subdomain records from $domain"
-    return 1
+    _info "All existing $subdomain records from $domain will be removed at the very end."
   fi
 
   data="domain=${domain}&type=TXT&subdomain=${subdomain}&ttl=300&content=${txtvalue}"
@@ -36,8 +35,12 @@ dns_yandex_add() {
   _debug "Result: $result"
 
   if ! _contains "$result" '"success":"ok"'; then
-    _err "Can't add $subdomain to $domain"
-    return 1
+    if _contains "$result" '"success":"error"' && _contains "$result" '"error":"record_exists"'; then
+      _info "Record already exists."
+    else
+      _err "Can't add $subdomain to $domain."
+      return 1
+    fi
   fi
 }
 
@@ -61,7 +64,7 @@ dns_yandex_rm() {
     _debug "Result: $result"
 
     if ! _contains "$result" '"success":"ok"'; then
-      _info "Can't remove $subdomain from $domain"
+      _info "Can't remove $subdomain from $domain."
     fi
   done
 }
@@ -69,8 +72,6 @@ dns_yandex_rm() {
 ####################  Private functions below ##################################
 
 _PDD_get_domain() {
-  fulldomain=${1}
-
   subdomain_start=1
   while true; do
     domain_start=$(_math $subdomain_start + 1)
@@ -96,8 +97,8 @@ _PDD_get_domain() {
 _PDD_credentials() {
   if [ -z "${PDD_Token}" ]; then
     PDD_Token=""
-    _err "You need to export PDD_Token=xxxxxxxxxxxxxxxxx"
-    _err "You can get it at https://pddimp.yandex.ru/api2/admin/get_token"
+    _err "You need to export PDD_Token=xxxxxxxxxxxxxxxxx."
+    _err "You can get it at https://pddimp.yandex.ru/api2/admin/get_token."
     return 1
   else
     _saveaccountconf PDD_Token "${PDD_Token}"
@@ -106,9 +107,6 @@ _PDD_credentials() {
 }
 
 _PDD_get_record_ids() {
-  domain="${1}"
-  subdomain="${2}"
-
   _debug "Check existing records for $subdomain"
 
   uri="https://pddimp.yandex.ru/api2/admin/dns/list?domain=${domain}"
