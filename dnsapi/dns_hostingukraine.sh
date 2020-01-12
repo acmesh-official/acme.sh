@@ -14,18 +14,22 @@ HostingUkraine_Token=""
 
 ########  Public functions #####################
 # Used to add txt record
+#fulldomain=_acme-challenge.yourDomain.com
+#txtvalue=txt_data_value
 dns_hostingukraine_add() {
   fulldomain=$1
   txtvalue=$2
-  subdomain=$(echo "$fulldomain" | sed -e "s/\.$domain//")
 
   _hostingukraine_init
 
-  _debug fulldomain "$fulldomain"
-  _debug domain "$domain"
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "Invalid root domain for: ($fulldomain)"
+    return 1
+  fi
 
   _info "Adding txt record. ($fulldomain)"
-  _hostingukraine_api_request POST "dns_record" "create" "\"domain\":\"$domain\",\"subdomain\":\"$subdomain\",\"type\":\"TXT\",\"data\":\"$txtvalue\""
+  _hostingukraine_api_request POST "dns_record" "create" "\"domain\":\"$_domain\",\"subdomain\":\"$_sub_domain\",\"type\":\"TXT\",\"data\":\"$txtvalue\""
   if _contains "$response" "\"status\":\"error\""; then
     _err "Add txt record, Failure! ($fulldomain)"
     return 1
@@ -35,20 +39,29 @@ dns_hostingukraine_add() {
 }
 
 # Used to remove the txt record after validation
+#fulldomain=_acme-challenge.yourDomain.com
+#txtvalue=txt_data_value
 dns_hostingukraine_rm() {
   fulldomain=$1
   txtvalue=$2
 
   _hostingukraine_init
 
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "Invalid root domain for: ($fulldomain)"
+    return 1
+  fi
+
   _debug "Getting txt records"
-  _hostingukraine_api_request POST "dns_record" "info" "\"domain\":\"$domain\""
+  _hostingukraine_api_request POST "dns_record" "info" "\"domain\":\"$_domain\""
   if _contains "$response" "\"status\":\"error\""; then
-    _err "Get domain records, Failure! ($domain)"
+    _err "Get domain records, Failure! ($_domain)"
     return 1
   fi
 
   ids=$(echo "$response" | _egrep_o "[^{]+${txtvalue}[^}]+" | _egrep_o "id\":[^\,]+" | cut -c5-)
+  debug ids "$ids"
   if [ -z "$ids" ]; then
     _err "Empty TXT records! ($fulldomain: $txtvalue)"
     return 1
@@ -58,7 +71,7 @@ dns_hostingukraine_rm() {
     stack="${stack:+${stack},}${id}"
   done
 
-  _hostingukraine_api_request POST "dns_record" "delete" "\"domain\":\"$domain\",\"stack\":[$stack]"
+  _hostingukraine_api_request POST "dns_record" "delete" "\"domain\":\"$_domain\",\"stack\":[$stack]"
   if _contains "$response" "\"status\":\"error\""; then
     _err "Remove txt record, Failure! ($fulldomain: $id)"
     return 1
@@ -69,25 +82,35 @@ dns_hostingukraine_rm() {
 
 ####################  Private functions below ##################################
 # Check root zone
+#domain=_acme-challenge.yourDomain.com
+#returns
+# _sub_domain=_acme-challenge
+# _domain=yourDomain.com
 _get_root() {
   domain=$1
   i=1
+  p=1
 
   _hostingukraine_api_request POST "dns_domain" "info" "\"search\":\"\""
 
   while true; do
     host=$(printf "%s" "$domain" | cut -d . -f $i-100)
     _debug host "$host"
-
     if [ -z "$host" ]; then
       _err "Get root, Failure! ($domain)"
       return 1
     fi
 
     if _contains "$response" "\"name\":\"$host\""; then
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _domain=$host
+      _debug fulldomain "$domain"
+      _debug _sub_domain "$_sub_domain"
+      _debug _domain "$_domain"
       _info "Get root, OK! ($host)"
       return 0
     fi
+    p=$i
     i=$(_math "$i" + 1)
   done
   _err "Get root, Error! ($domain)"
@@ -108,15 +131,13 @@ _hostingukraine_init() {
 
   _saveaccountconf_mutable HostingUkraine_Login "$HostingUkraine_Login"
   _saveaccountconf_mutable HostingUkraine_Token "$HostingUkraine_Token"
-
-  _debug "First detect the root zone"
-  if ! _get_root "$domain"; then
-    _err "Invalid domain! ($domain)"
-    return 1
-  fi
 }
 
 # Send request to API endpoint
+#request_method=POST
+#class=dns_domain|dns_record
+#method=info|create|delete
+#data=part_of_json_data
 _hostingukraine_api_request() {
   request_method=$1
   class=$2
