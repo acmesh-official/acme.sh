@@ -12,22 +12,19 @@
 # Credits: Inspired by dns_he.sh. Thanks a lot man!
 # Git repo: https://github.com/phlegx/acme.sh
 # TODO: Better Error handling
-# TODO: Does not work with Domains that have double endings like i.e. 'co.uk'
-#       => Get all root zones and compare once the provider offers that.
-
+########################################################################
 KAS_Api="https://kasapi.kasserver.com/dokumentation/formular.php"
-
 ########  Public functions #####################
-
-dns_kas_add() {
+dns_kas_add(){
   _fulldomain=$1
   _txtvalue=$2
   _info "Using DNS-01 All-inkl/Kasserver hook"
   _info "Adding or Updating $_fulldomain DNS TXT entry on All-inkl/Kasserver"
-
+  _info "Check and Save Props"
   _check_and_save
-  _get_zone "$_fulldomain"
-  _get_record_name "$_fulldomain"
+  _info "Checking Zone and Record_Name"
+  _get_zone_and_record_name "$_fulldomain"
+  _info "Getting Record ID"
   _get_record_id
 
   _info "Creating TXT DNS record"
@@ -63,12 +60,14 @@ dns_kas_rm() {
   _info "Using DNS-01 All-inkl/Kasserver hook"
   _info "Cleaning up after All-inkl/Kasserver hook"
   _info "Removing $_fulldomain DNS TXT entry on All-inkl/Kasserver"
-
+   
+  _info "Check and Save Props"
   _check_and_save
-  _get_zone "$_fulldomain"
-  _get_record_name "$_fulldomain"
+  _info "Checking Zone and Record_Name"
+  _get_zone_and_record_name "$_fulldomain"
+  _info "Getting Record ID"
   _get_record_id
-
+  
   # If there is a record_id, delete the entry
   if [ -n "$_record_id" ]; then
     params="?kas_login=$KAS_Login"
@@ -116,20 +115,36 @@ _check_and_save() {
   return 0
 }
 
-# Gets back the base domain/zone.
-# TODO Get a list of all possible root zones and compare (Currently not possible via provider)
+# Gets back the base domain/zone and record name.
 # See: https://github.com/Neilpang/acme.sh/wiki/DNS-API-Dev-Guide
-_get_zone() {
-  _zone=$(echo "$1" | rev | cut -d . -f1-2 | rev).
-  return 0
-}
+_get_zone_and_record_name() {
+ 
+  params="?kas_login=$KAS_Login"
+  params="$params&kas_auth_type=$KAS_Authtype"
+  params="$params&kas_auth_data=$KAS_Authdata"
+  params="$params&kas_action=get_domains"
 
-# Removes the domain/subdomain from the entry since kasserver
-# cannot handle _fulldomain
-# TODO Get a list of all possible root zones and compare (Currently not possible via provider)
-# See: https://github.com/Neilpang/acme.sh/wiki/DNS-API-Dev-Guide
-_get_record_name() {
-  _record_name=$(echo "$1" | rev | cut -d"." -f3- | rev)
+  _debug2 "Wait for 10 seconds by default before calling KAS API."
+  sleep 10
+  response="$(_get "$KAS_Api$params")"
+  _debug2 "response" "$response"
+  _zonen="$( echo "$response"  | tr -d "\n\r" | tr -d " " | tr '[]' '<>' | sed "s/=>Array/\n=> Array/g" | tr ' ' '\n' | grep "domain_name" | tr '<' '\n' | grep "domain_name" | sed "s/domain_name>=>//g")"
+  _domain="$1"
+  _temp_domain="$(echo "$1" |  sed 's/\.$//')"
+  _rootzone="$_domain"
+  for i in $_zonen; do
+    l1=${#_rootzone}
+    l2=${#i}
+    if _endswith "$_domain" "$i" && [ "$l1" -ge "$l2" ]; then
+      _rootzone="$i"
+    fi
+  done
+  _zone="${_rootzone}."
+  _temp_record_name="$(echo "$_temp_domain" | sed "s/"$_rootzone"//g")"
+  _record_name="$(echo "$_temp_record_name" |  sed 's/\.$//')"
+  _debug2 "Zone:" "$_zone"
+  _debug2 "Domain:" "$_domain"
+  _debug2 "Record_Name:" "$_record_name"
   return 0
 }
 
@@ -146,8 +161,7 @@ _get_record_id() {
   sleep 10
   response="$(_get "$KAS_Api$params")"
   _debug2 "response" "$response"
-
-  _record_id="$(echo "$response" | tr -d "\n\r" | sed "s/=> Array/\n=> Array/g" | tr -d " " | tr '[]' '<>' | grep "=>$_record_name<" | grep '>TXT<' | tr '<' '\n' | grep record_id | cut -d '>' -f 3)"
+  _record_id="$(echo "$response" | tr -d "\n\r" | tr -d " " | tr '[]' '<>' | sed "s/=>Array/\n=> Array/g" | tr ' ' '\n' | grep "=>$_record_name<" | grep '>TXT<' | tr '<' '\n' | grep record_id | sed "s/record_id>=>//g")"
   _debug2 _record_id "$_record_id"
   return 0
 }
