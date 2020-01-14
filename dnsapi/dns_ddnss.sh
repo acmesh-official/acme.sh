@@ -12,7 +12,7 @@
 # --
 #
 
-DDNSS_DNS_API="https://www.ddnss.de/upd.php"
+DDNSS_DNS_API="https://ip4.ddnss.de/upd.php"
 
 ########  Public functions #####################
 
