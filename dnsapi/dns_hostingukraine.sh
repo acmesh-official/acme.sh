@@ -61,7 +61,7 @@ dns_hostingukraine_rm() {
   fi
 
   ids=$(echo "$response" | _egrep_o "[^{]+${txtvalue}[^}]+" | _egrep_o "id\":[^\,]+" | cut -c5-)
-  debug ids "$ids"
+  _debug ids "$ids"
   if [ -z "$ids" ]; then
     _err "Empty TXT records! ($fulldomain: $txtvalue)"
     return 1
