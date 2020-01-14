@@ -131,7 +131,7 @@ _dns_gcloud_find_zone() {
     filter="$filter$part. "
     part="$(echo "$part" | sed 's/[^.]*\.*//')"
   done
-  filter="$filter)"
+  filter="$filter) AND visibility=public"
   _debug filter "$filter"
 
   # List domains and find the zone with the deepest sub-domain (in case of some levels of delegation)
