@@ -6303,6 +6303,7 @@ _installOnline() {
     chmod +x $PROJECT_ENTRY
     if ./$PROJECT_ENTRY install "$_nocron" "" "$_noprofile"; then
       _info "Install success!"
+      _initpath
       _saveaccountconf "UPGRADE_HASH" "$(_getMasterHash)"
     fi
 
