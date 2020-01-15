@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.8.4
+VER=2.8.5
 
 PROJECT_NAME="acme.sh"
 
@@ -2415,7 +2415,7 @@ __initHome() {
   if [ -z "$ACCOUNT_CONF_PATH" ]; then
     ACCOUNT_CONF_PATH="$_DEFAULT_ACCOUNT_CONF_PATH"
   fi
-
+  _debug3 ACCOUNT_CONF_PATH "$ACCOUNT_CONF_PATH"
   DEFAULT_LOG_FILE="$LE_CONFIG_HOME/$PROJECT_NAME.log"
 
   DEFAULT_CA_HOME="$LE_CONFIG_HOME/ca"
@@ -6303,6 +6303,7 @@ _installOnline() {
     chmod +x $PROJECT_ENTRY
     if ./$PROJECT_ENTRY install "$_nocron" "" "$_noprofile"; then
       _info "Install success!"
+      _initpath
       _saveaccountconf "UPGRADE_HASH" "$(_getMasterHash)"
     fi
 
