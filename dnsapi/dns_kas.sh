@@ -61,14 +61,14 @@ dns_kas_rm() {
   _info "Using DNS-01 All-inkl/Kasserver hook"
   _info "Cleaning up after All-inkl/Kasserver hook"
   _info "Removing $_fulldomain DNS TXT entry on All-inkl/Kasserver"
-   
+
   _info "Check and Save Props"
   _check_and_save
   _info "Checking Zone and Record_Name"
   _get_zone_and_record_name "$_fulldomain"
   _info "Getting Record ID"
   _get_record_id
-  
+
   # If there is a record_id, delete the entry
   if [ -n "$_record_id" ]; then
     params="?kas_login=$KAS_Login"
@@ -119,7 +119,7 @@ _check_and_save() {
 # Gets back the base domain/zone and record name.
 # See: https://github.com/Neilpang/acme.sh/wiki/DNS-API-Dev-Guide
 _get_zone_and_record_name() {
- 
+  params="?kas_login=$KAS_Login"
   params="?kas_login=$KAS_Login"
   params="$params&kas_auth_type=$KAS_Authtype"
   params="$params&kas_auth_data=$KAS_Authdata"
