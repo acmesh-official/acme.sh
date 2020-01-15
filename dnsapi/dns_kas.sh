@@ -9,17 +9,18 @@
 #  - $KAS_Authdata (Kasserver API auth data.)
 #
 # Author: Martin Kammerlander, Phlegx Systems OG <martin.kammerlander@phlegx.com>
+# Updated by: Marc-Oliver Lange <git@die-lang.es>
 # Credits: Inspired by dns_he.sh. Thanks a lot man!
 # Git repo: https://github.com/phlegx/acme.sh
 # TODO: Better Error handling
 ########################################################################
 KAS_Api="https://kasapi.kasserver.com/dokumentation/formular.php"
-########  Public functions #####################
-dns_kas_add(){
+########  Public functions  #####################
+dns_kas_add() {
   _fulldomain=$1
   _txtvalue=$2
   _info "Using DNS-01 All-inkl/Kasserver hook"
-  _info "Adding or Updating $_fulldomain DNS TXT entry on All-inkl/Kasserver"
+  _info "Adding $_fulldomain DNS TXT entry on All-inkl/Kasserver"
   _info "Check and Save Props"
   _check_and_save
   _info "Checking Zone and Record_Name"
@@ -128,9 +129,9 @@ _get_zone_and_record_name() {
   sleep 10
   response="$(_get "$KAS_Api$params")"
   _debug2 "response" "$response"
-  _zonen="$( echo "$response"  | tr -d "\n\r" | tr -d " " | tr '[]' '<>' | sed "s/=>Array/\n=> Array/g" | tr ' ' '\n' | grep "domain_name" | tr '<' '\n' | grep "domain_name" | sed "s/domain_name>=>//g")"
+  _zonen="$(echo "$response" | tr -d "\n\r" | tr -d " " | tr '[]' '<>' | sed "s/=>Array/\n=> Array/g" | tr ' ' '\n' | grep "domain_name" | tr '<' '\n' | grep "domain_name" | sed "s/domain_name>=>//g")"
   _domain="$1"
-  _temp_domain="$(echo "$1" |  sed 's/\.$//')"
+  _temp_domain="$(echo "$1" | sed 's/\.$//')"
   _rootzone="$_domain"
   for i in $_zonen; do
     l1=${#_rootzone}
@@ -140,8 +141,8 @@ _get_zone_and_record_name() {
     fi
   done
   _zone="${_rootzone}."
-  _temp_record_name="$(echo "$_temp_domain" | sed "s/"$_rootzone"//g")"
-  _record_name="$(echo "$_temp_record_name" |  sed 's/\.$//')"
+  _temp_record_name="$(echo "$_temp_domain" | sed "s/$_rootzone//g")"
+  _record_name="$(echo "$_temp_record_name" | sed 's/\.$//')"
   _debug2 "Zone:" "$_zone"
   _debug2 "Domain:" "$_domain"
   _debug2 "Record_Name:" "$_record_name"
