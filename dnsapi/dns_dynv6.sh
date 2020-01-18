@@ -12,7 +12,6 @@ dns_dynv6_add() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
   _get_keyfile
-  
   _info "using keyfile $dynv6_keyfile"
   _get_domain "$fulldomain"
   _your_hosts="$(ssh -i "$dynv6_keyfile" api@dynv6.com hosts)"
@@ -72,7 +71,6 @@ _generate_new_key() {
     _err "There is already a file in $dynv6_keyfile or $dynv6_keyfile.pub"
     return 1
   fi
-
 }
 #Usage: _acme-challenge.www.example.dynv6.net
 #returns
@@ -103,7 +101,7 @@ _get_domain() {
 #returns
 #dynv6_keyfile path to the key that will be used
 _get_keyfile() {
-	_debug "get keyfile method called"
+  _debug "get keyfile method called"
   dynv6_keyfile="${dynv6_keyfile:-$(_readaccountconf_mutable dynv6_keyfile)}"
   _debug Your key is "$dynv6_keyfile"
   if [ -z "$dynv6_keyfile" ]; then
@@ -113,13 +111,11 @@ _get_keyfile() {
       _generate_new_key
       _info "Please add this key to dynv6.com $(cat "$dynv6_keyfile.pub")"
       _info "Hit Enter to contiue"
-      read _
+      read -r _
       #save the credentials to the account conf file.
     else
       dynv6_keyfile="$KEY"
     fi
     _saveaccountconf_mutable dynv6_keyfile "$dynv6_keyfile"
   fi
-
-
 }
