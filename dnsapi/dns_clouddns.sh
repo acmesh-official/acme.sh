@@ -47,8 +47,9 @@ dns_clouddns_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  _info "Adding record"
-  if _clouddns_api POST "record-txt" "{\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"value\":\"$txtvalue\",\"domainId\":\"$_domain_id\"}"; then
+  # Add TXT record
+  data="{\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"value\":\"$txtvalue\",\"domainId\":\"$_domain_id\"}"
+  if _clouddns_api POST "record-txt" "$data"; then
     if _contains "$response" "$txtvalue"; then
       _info "Added, OK"
     elif _contains "$response" '"code":4136'; then
@@ -82,8 +83,7 @@ dns_clouddns_rm() {
   _debug _domain "$_domain"
 
   # Get record ID
-  response="$(_clouddns_api GET "domain/$_domain_id" | tr -d '\t\r\n ')"
-  _debug2 response "$response"
+  _clouddns_api GET "domain/$_domain_id"
   if _contains "$response" "lastDomainRecordList"; then
     re="\"lastDomainRecordList\".*\"id\":\"([^\"}]*)\"[^}]*\"name\":\"$fulldomain.\"," 
     _last_domains=$(echo "$response" | _egrep_o "$re")
@@ -119,8 +119,7 @@ _get_root() {
 
   # Get domain root
   data="{\"search\": [{\"name\": \"clientId\", \"operator\": \"eq\", \"value\": \"$CLOUDDNS_CLIENT_ID\"}]}"
-  response="$(_clouddns_api "POST" "domain/search" "$data" | tr -d '\t\r\n ')"
-  _debug2 response "$response"
+  _clouddns_api "POST" "domain/search" "$data" 
   domain_slice="$domain"
   while [ -z "$domain_root" ]; do
     if _contains "$response" "\"domainName\":\"$domain_slice\.\""; then
@@ -133,7 +132,7 @@ _get_root() {
   # Get domain id
   data="{\"search\": [{\"name\": \"clientId\", \"operator\": \"eq\", \"value\": \"$CLOUDDNS_CLIENT_ID\"}, \
       {\"name\": \"domainName\", \"operator\": \"eq\", \"value\": \"$domain_root.\"}]}"
-  response="$(_clouddns_api "POST" "domain/search" "$data" | tr -d '\t\r\n ')"
+  _clouddns_api "POST" "domain/search" "$data"
   if _contains "$response" "\"id\":\""; then
     re='domainType\":\"[^\"]*\",\"id\":\"([^\"]*)\",' # Match domain id
     _domain_id=$(echo "$response" | _egrep_o "$re" | _head_n 1 | cut -d : -f 3 | tr -d "\",")
@@ -167,9 +166,9 @@ _clouddns_api() {
 
   if [ "$method" != "GET" ]; then
     _debug data "$data"
-    response="$(_post "$data" "$CLOUDDNS_API/$endpoint" "" "$method")"
+    response="$(_post "$data" "$CLOUDDNS_API/$endpoint" "" "$method" | tr -d '\t\r\n ')"
   else
-    response="$(_get "$CLOUDDNS_API/$endpoint")"
+    response="$(_get "$CLOUDDNS_API/$endpoint" | tr -d '\t\r\n ')"
   fi
 
   # shellcheck disable=SC2181
@@ -177,7 +176,7 @@ _clouddns_api() {
     _err "Error $endpoint"
     return 1
   fi
-  printf "%s" "$response"
+  _debug2 response "$response"
   return 0
 }
 
@@ -186,7 +185,6 @@ _clouddns_api() {
 _clouddns_login() {
   login_data="{\"email\": \"$CLOUDDNS_EMAIL\", \"password\": \"$CLOUDDNS_PASSWORD\"}"
   response="$(_post "$login_data" "$CLOUDDNS_LOGIN_API" "" "POST" "Content-Type: application/json")"
-  _debug2 response "$response"
 
   if _contains "$response" "\"accessToken\":\""; then
     CLOUDDNS_TOKEN=$(echo "$response" | _egrep_o "\"accessToken\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
