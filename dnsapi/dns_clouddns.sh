@@ -11,10 +11,11 @@ CLOUDDNS_LOGIN_API='https://admin.vshosting.cloud/api/public/auth/login'
 
 ########  Public functions #####################
 
-#Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+# Usage: add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_clouddns_add() {
   fulldomain=$1
   txtvalue=$2
+  _debug "fulldomain" "$fulldomain"
 
   CLOUDDNS_CLIENT_ID="${CLOUDDNS_CLIENT_ID:-$(_readaccountconf_mutable CLOUDDNS_CLIENT_ID)}"
   CLOUDDNS_EMAIL="${CLOUDDNS_EMAIL:-$(_readaccountconf_mutable CLOUDDNS_EMAIL)}"
@@ -24,7 +25,7 @@ dns_clouddns_add() {
     CLOUDDNS_CLIENT_ID=""
     CLOUDDNS_EMAIL=""
     CLOUDDNS_PASSWORD=""
-    _err "You didn't specify a CloudDNS password, email and client id yet."
+    _err "You didn't specify a CloudDNS password, email and client ID yet."
     return 1
   fi
   if ! _contains "$CLOUDDNS_EMAIL" "@"; then
@@ -46,8 +47,6 @@ dns_clouddns_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  # For wildcard cert, the main root domain and the wildcard domain have the same txt subdomain name, so
-  # we can not use updating anymore.
   _info "Adding record"
   if _clouddns_api POST "record-txt" "{\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"value\":\"$txtvalue\",\"domainId\":\"$_domain_id\"}"; then
     if _contains "$response" "$txtvalue"; then
@@ -55,20 +54,19 @@ dns_clouddns_add() {
     elif _contains "$response" '"code":4136'; then
       _info "Already exists, OK"
     else
-      _err "Add txt record error."
+      _err "Add TXT record error."
       return 1
     fi
   fi
 
-  # Publish challenge record
   _debug "Publishing record changes"
   _clouddns_api PUT "domain/$_domain_id/publish" "{\"soaTtl\":300}"
 }
 
-#fulldomain txtvalue
+# Usage: rm _acme-challenge.www.domain.com
 dns_clouddns_rm() {
   fulldomain=$1
-  txtvalue=$2
+  _debug "fulldomain" "$fulldomain"
 
   CLOUDDNS_CLIENT_ID="${CLOUDDNS_CLIENT_ID:-$(_readaccountconf_mutable CLOUDDNS_CLIENT_ID)}"
   CLOUDDNS_EMAIL="${CLOUDDNS_EMAIL:-$(_readaccountconf_mutable CLOUDDNS_EMAIL)}"
@@ -76,16 +74,16 @@ dns_clouddns_rm() {
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
-    _err "invalid domain"
+    _err "Invalid domain"
     return 1
   fi
   _debug _domain_id "$_domain_id"
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  # Get record Id
+  # Get record ID
   response="$(_clouddns_api GET "domain/$_domain_id" | tr -d '\t\r\n ')"
-  _debug response "$response"
+  _debug2 response "$response"
   if _contains "$response" "lastDomainRecordList"; then
     re="\"lastDomainRecordList\".*\"id\":\"([^\"}]*)\"[^}]*\"name\":\"$fulldomain.\"," 
     _last_domains=$(echo "$response" | _egrep_o "$re")
@@ -93,7 +91,7 @@ dns_clouddns_rm() {
     _record_id=$(echo "$_last_domains" | _egrep_o "$re2" | _head_n 1 | cut -d : -f 2 | cut -d , -f 1 | tr -d "\"")
     _debug _record_id "$_record_id"
   else
-    _err "Could not retrieve record id"
+    _err "Could not retrieve record ID"
     return 1
   fi
   
@@ -105,14 +103,14 @@ dns_clouddns_rm() {
     fi
   fi
 
-  # Publish challenge record
   _debug "Publishing record changes"
   _clouddns_api PUT "domain/$_domain_id/publish" "{\"soaTtl\":300}"
 }
 
 ####################  Private functions below ##################################
-#_acme-challenge.www.domain.com
-#returns
+
+# Usage: _get_root _acme-challenge.www.domain.com
+# Returns:
 # _sub_domain=_acme-challenge.www
 # _domain=domain.com
 # _domain_id=sdjkglgdfewsdfg
@@ -122,7 +120,7 @@ _get_root() {
   # Get domain root
   data="{\"search\": [{\"name\": \"clientId\", \"operator\": \"eq\", \"value\": \"$CLOUDDNS_CLIENT_ID\"}]}"
   response="$(_clouddns_api "POST" "domain/search" "$data" | tr -d '\t\r\n ')"
-  _debug2 "response" "$response"
+  _debug2 response "$response"
   domain_slice="$domain"
   while [ -z "$domain_root" ]; do
     if _contains "$response" "\"domainName\":\"$domain_slice\.\""; then
@@ -134,7 +132,7 @@ _get_root() {
 
   # Get domain id
   data="{\"search\": [{\"name\": \"clientId\", \"operator\": \"eq\", \"value\": \"$CLOUDDNS_CLIENT_ID\"}, \
-    {\"name\": \"domainName\", \"operator\": \"eq\", \"value\": \"$domain_root.\"}]}"
+      {\"name\": \"domainName\", \"operator\": \"eq\", \"value\": \"$domain_root.\"}]}"
   response="$(_clouddns_api "POST" "domain/search" "$data" | tr -d '\t\r\n ')"
   if _contains "$response" "\"id\":\""; then
     re='domainType\":\"[^\"]*\",\"id\":\"([^\"]*)\",' # Match domain id
@@ -150,6 +148,9 @@ _get_root() {
   return 1
 }
 
+# Usage: _clouddns_api GET domain/search '{"data": "value"}'
+# Returns:
+#  response='{"message": "api response"}'
 _clouddns_api() {
   method=$1
   endpoint="$2"
@@ -172,13 +173,15 @@ _clouddns_api() {
   fi
 
   if [ "$?" != "0" ]; then
-    _err "error $endpoint"
+    _err "Error $endpoint"
     return 1
   fi
   printf "%s" "$response"
   return 0
 }
 
+# Returns:
+#  CLOUDDNS_TOKEN=dslfje2rj23l
 _clouddns_login() {
   login_data="{\"email\": \"$CLOUDDNS_EMAIL\", \"password\": \"$CLOUDDNS_PASSWORD\"}"
   response="$(_post "$login_data" "$CLOUDDNS_LOGIN_API" "" "POST" "Content-Type: application/json")"
