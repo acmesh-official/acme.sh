@@ -172,6 +172,7 @@ _clouddns_api() {
     response="$(_get "$CLOUDDNS_API/$endpoint")"
   fi
 
+  # shellcheck disable=SC2181
   if [ "$?" != "0" ]; then
     _err "Error $endpoint"
     return 1
