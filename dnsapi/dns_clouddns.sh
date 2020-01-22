@@ -118,15 +118,24 @@ dns_clouddns_rm() {
 # _domain_id=sdjkglgdfewsdfg
 _get_root() {
   domain=$1
-  domain_root=$(echo "$fulldomain" | _egrep_o '\.([^\.]*\.[^\.]*)$' | cut -c 2-)
-  _debug domain_root "$domain_root"
+
+  # Get domain root
+  data="{\"search\": [{\"name\": \"clientId\", \"operator\": \"eq\", \"value\": \"$CLOUDDNS_CLIENT_ID\"}]}"
+  response="$(_clouddns_api "POST" "domain/search" "$data" | tr -d '\t\r\n ')"
+  _debug2 "response" "$response"
+  domain_slice="$domain"
+  while [ -z "$domain_root" ]; do
+    if _contains "$response" "\"domainName\":\"$domain_slice\.\""; then
+      domain_root="$domain_slice"
+      _debug domain_root "$domain_root"
+    fi
+    domain_slice="$(echo "$domain_slice" | cut -d . -f 2-)"
+  done
 
   # Get domain id
   data="{\"search\": [{\"name\": \"clientId\", \"operator\": \"eq\", \"value\": \"$CLOUDDNS_CLIENT_ID\"}, \
-      {\"name\": \"domainName\", \"operator\": \"eq\", \"value\": \"$domain_root.\"}]}"
+    {\"name\": \"domainName\", \"operator\": \"eq\", \"value\": \"$domain_root.\"}]}"
   response="$(_clouddns_api "POST" "domain/search" "$data" | tr -d '\t\r\n ')"
-  _debug "Domain id $response"
-
   if _contains "$response" "\"id\":\""; then
     re='domainType\":\"[^\"]*\",\"id\":\"([^\"]*)\",' # Match domain id
     _domain_id=$(echo "$response" | _egrep_o "$re" | _head_n 1 | cut -d : -f 3 | tr -d "\",")
