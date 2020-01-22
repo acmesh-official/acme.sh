@@ -85,7 +85,7 @@ dns_clouddns_rm() {
   # Get record ID
   _clouddns_api GET "domain/$_domain_id"
   if _contains "$response" "lastDomainRecordList"; then
-    re="\"lastDomainRecordList\".*\"id\":\"([^\"}]*)\"[^}]*\"name\":\"$fulldomain.\"," 
+    re="\"lastDomainRecordList\".*\"id\":\"([^\"}]*)\"[^}]*\"name\":\"$fulldomain.\","
     _last_domains=$(echo "$response" | _egrep_o "$re")
     re2="\"id\":\"([^\"}]*)\"[^}]*\"name\":\"$fulldomain.\","
     _record_id=$(echo "$_last_domains" | _egrep_o "$re2" | _head_n 1 | cut -d : -f 2 | cut -d , -f 1 | tr -d "\"")
@@ -94,7 +94,7 @@ dns_clouddns_rm() {
     _err "Could not retrieve record ID"
     return 1
   fi
-  
+
   _info "Removing record"
   if _clouddns_api DELETE "record/$_record_id"; then
     if _contains "$response" "\"error\":"; then
@@ -119,7 +119,7 @@ _get_root() {
 
   # Get domain root
   data="{\"search\": [{\"name\": \"clientId\", \"operator\": \"eq\", \"value\": \"$CLOUDDNS_CLIENT_ID\"}]}"
-  _clouddns_api "POST" "domain/search" "$data" 
+  _clouddns_api "POST" "domain/search" "$data"
   domain_slice="$domain"
   while [ -z "$domain_root" ]; do
     if _contains "$response" "\"domainName\":\"$domain_slice\.\""; then
