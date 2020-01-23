@@ -44,7 +44,7 @@ dns_kas_add() {
   params="$params&var5=zone_host"
   params="$params&wert5=$_zone"
   _debug2 "Wait for 10 seconds by default before calling KAS API."
-  sleep 10
+  _sleep 10
   response="$(_get "$KAS_Api$params")"
   _debug2 "response" "$response"
 
@@ -80,7 +80,7 @@ dns_kas_rm() {
       params2="$params&var1=record_id"
       params2="$params2&wert1=$i"
       _debug2 "Wait for 10 seconds by default before calling KAS API."
-      sleep 10
+      _sleep 10
       response="$(_get "$KAS_Api$params2")"
       _debug2 "response" "$response"
       if ! _contains "$response" "TRUE"; then
@@ -126,7 +126,7 @@ _get_zone_and_record_name() {
   params="$params&kas_action=get_domains"
 
   _debug2 "Wait for 10 seconds by default before calling KAS API."
-  sleep 10
+  _sleep 10
   response="$(_get "$KAS_Api$params")"
   _debug2 "response" "$response"
   _zonen="$(echo "$response" | tr -d "\n\r" | tr -d " " | tr '[]' '<>' | sed "s/=>Array/\n=> Array/g" | tr ' ' '\n' | grep "domain_name" | tr '<' '\n' | grep "domain_name" | sed "s/domain_name>=>//g")"
@@ -159,7 +159,7 @@ _get_record_id() {
   params="$params&wert1=$_zone"
 
   _debug2 "Wait for 10 seconds by default before calling KAS API."
-  sleep 10
+  _sleep 10
   response="$(_get "$KAS_Api$params")"
   _debug2 "response" "$response"
   _record_id="$(echo "$response" | tr -d "\n\r" | tr -d " " | tr '[]' '<>' | sed "s/=>Array/\n=> Array/g" | tr ' ' '\n' | grep "=>$_record_name<" | grep '>TXT<' | tr '<' '\n' | grep record_id | sed "s/record_id>=>//g")"
