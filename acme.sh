@@ -4006,7 +4006,7 @@ issue() {
         _on_issue_err "$_post_hook"
         return 1
       fi
-      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n" | cut -d ":" -f 2-)"
+      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n " | cut -d ":" -f 2-)"
       _debug Le_LinkOrder "$Le_LinkOrder"
       Le_OrderFinalize="$(echo "$response" | _egrep_o '"finalize" *: *"[^"]*"' | cut -d '"' -f 4)"
       _debug Le_OrderFinalize "$Le_OrderFinalize"
@@ -6315,7 +6315,11 @@ _installOnline() {
 }
 
 _getMasterHash() {
-  _hash_url="https://api.github.com/repos/Neilpang/acme.sh/git/refs/heads/master"
+  _b="$BRANCH"
+  if [ -z "$_b" ]; then
+    _b="master"
+  fi
+  _hash_url="https://api.github.com/repos/Neilpang/acme.sh/git/refs/heads/$_b"
   _get $_hash_url | tr -d "\r\n" | tr '{},' '\n' | grep '"sha":' | cut -d '"' -f 4
 }
 
