@@ -4121,7 +4121,6 @@ $_authorizations_map"
       _debug entry "$entry"
       keyauthorization=""
       if [ -z "$entry" ]; then
-        _err "Error, can not get domain token entry $d for $vtype"
         if ! _startswith "$d" '*.'; then
           _debug "Not a wildcard domain, lets check whether the validation is already valid."
           if echo "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
@@ -4131,6 +4130,7 @@ $_authorizations_map"
           fi
         fi
         if [ -z "$keyauthorization" ]; then
+          _err "Error, can not get domain token entry $d for $vtype"
           _supported_vtypes="$(echo "$response" | _egrep_o "\"challenges\":\[[^]]*]" | tr '{' "\n" | grep type | cut -d '"' -f 4 | tr "\n" ' ')"
           if [ "$_supported_vtypes" ]; then
             _err "The supported validation types are: $_supported_vtypes, but you specified: $vtype"
