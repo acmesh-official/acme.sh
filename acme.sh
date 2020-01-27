@@ -6315,7 +6315,11 @@ _installOnline() {
 }
 
 _getMasterHash() {
-  _hash_url="https://api.github.com/repos/Neilpang/acme.sh/git/refs/heads/master"
+  _b="$BRANCH"
+  if [ -z "$_b" ]; then
+    _b="master"
+  fi
+  _hash_url="https://api.github.com/repos/Neilpang/acme.sh/git/refs/heads/$_b"
   _get $_hash_url | tr -d "\r\n" | tr '{},' '\n' | grep '"sha":' | cut -d '"' -f 4
 }
 
