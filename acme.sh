@@ -4140,7 +4140,7 @@ $_authorizations_map"
           return 1
         fi
       fi
-      
+
       if [ -z "$keyauthorization" ]; then
         token="$(echo "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
         _debug token "$token"
