@@ -495,6 +495,19 @@ _exists() {
   return $ret
 }
 
+_findcommand() {
+  _fcmd="$1"
+  if command >/dev/null 2>&1; then
+    command -v "$_fcmd"
+  elif _exists which; then
+    which "$_fcmd"
+  elif eval type type >/dev/null 2>&1; then
+    eval type $_fcmd | cut -d " " -f 3
+  else
+    return 1
+  fi
+}
+
 #a + b
 _math() {
   _m_opts="$@"
@@ -5966,15 +5979,27 @@ install() {
   fi
 
   if [ -z "$NO_DETECT_SH" ]; then
+    _bash_path=""
     #Modify shebang
     if _exists bash; then
       _bash_path="$(bash -c "command -v bash 2>/dev/null")"
       if [ -z "$_bash_path" ]; then
         _bash_path="$(bash -c 'echo $SHELL')"
       fi
+      if [ "$_bash_path" ]; then
+        _info "Good, bash is found, so change the shebang to use bash as preferred."
+      fi
+    else
+      _env="$(_findcommand env)"
+      _envret="$?"
+      _debug "_env" "$_env"
+      if [ "$_envret" = "0" ] && [ "$_env" ] && [ "$_env" != "/usr/bin/env" ]; then
+        _info "It seems env $_env is not in the default location."
+        _info "Let's change env shebang."
+        _bash_path="$_env sh"
+      fi
     fi
     if [ "$_bash_path" ]; then
-      _info "Good, bash is found, so change the shebang to use bash as preferred."
       _shebang='#!'"$_bash_path"
       _setShebang "$LE_WORKING_DIR/$PROJECT_ENTRY" "$_shebang"
       for subf in $_SUB_FOLDERS; do
