@@ -1,4 +1,4 @@
-# An ACME Shell script: acme.sh [![Build Status](https://travis-ci.org/Neilpang/acme.sh.svg?branch=master)](https://travis-ci.org/Neilpang/acme.sh)
+# An ACME Shell script: acme.sh [![Build Status](https://travis-ci.org/acmesh-official/acme.sh.svg?branch=master)](https://travis-ci.org/acmesh-official/acme.sh)
 
 <a href="https://opencollective.com/acmesh" alt="Financial Contributors on Open Collective"><img src="https://opencollective.com/acmesh/all/badge.svg?label=financial+contributors" /></a> [![Join the chat at https://gitter.im/acme-sh/Lobby](https://badges.gitter.im/acme-sh/Lobby.svg)](https://gitter.im/acme-sh/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 - An ACME protocol client written purely in Shell (Unix shell) language.
@@ -65,7 +65,7 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 |17|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/acmesh-official/acme.sh/wiki/How-to-run-on-OpenWRT)
 |18|[![](https://acmesh-official.github.io/acmetest/status/solaris.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)|SunOS/Solaris
 |19|[![](https://acmesh-official.github.io/acmetest/status/gentoo-stage3-amd64.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)|Gentoo Linux
-|20|[![Build Status](https://travis-ci.org/Neilpang/acme.sh.svg?branch=master)](https://travis-ci.org/Neilpang/acme.sh)|Mac OSX
+|20|[![Build Status](https://travis-ci.org/acmesh-official/acme.sh.svg?branch=master)](https://travis-ci.org/acmesh-official/acme.sh)|Mac OSX
 
 For all build statuses, check our [weekly build project](https://github.com/acmesh-official/acmetest):
 
