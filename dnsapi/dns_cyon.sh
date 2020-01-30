@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 ########
-# Custom cyon.ch DNS API for use with [acme.sh](https://github.com/Neilpang/acme.sh)
+# Custom cyon.ch DNS API for use with [acme.sh](https://github.com/acmesh-official/acme.sh)
 #
 # Usage: acme.sh --issue --dns dns_cyon -d www.domain.com
 #
