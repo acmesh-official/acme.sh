@@ -8,7 +8,7 @@
 # http://sandbox.rest.easydns.net:3000/
 #
 # Author: wurzelpanzer [wurzelpanzer@maximolider.net]
-# Report Bugs here: https://github.com/Neilpang/acme.sh/issues/2647
+# Report Bugs here: https://github.com/acmesh-official/acme.sh/issues/2647
 #
 ####################  Public functions #################
 

@@ -5,7 +5,7 @@
 # https://github.com/AnalogJ/lexicon
 lexicon_cmd="lexicon"
 
-wiki="https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api"
+wiki="https://github.com/acmesh-official/acme.sh/wiki/How-to-use-lexicon-dns-api"
 
 _lexicon_init() {
   if ! _exists "$lexicon_cmd"; then

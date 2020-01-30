@@ -10,7 +10,7 @@
 #     used to communicate with the MailinaBox Custom DNS API
 # Report Bugs here:
 #    https://github.com/billgertz/MIAB_dns_api (for dns_miab.sh)
-#    https://github.com/Neilpang/acme.sh       (for acme.sh)
+#    https://github.com/acmesh-official/acme.sh       (for acme.sh)
 #
 ########  Public functions #####################
 

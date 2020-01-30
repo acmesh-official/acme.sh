@@ -32,9 +32,9 @@ SYS_CA='https://ca.api.soyoustart.com/1.0'
 #'runabove-ca'
 RAV_CA='https://api.runabove.com/1.0'
 
-wiki="https://github.com/Neilpang/acme.sh/wiki/How-to-use-OVH-domain-api"
+wiki="https://github.com/acmesh-official/acme.sh/wiki/How-to-use-OVH-domain-api"
 
-ovh_success="https://github.com/Neilpang/acme.sh/wiki/OVH-Success"
+ovh_success="https://github.com/acmesh-official/acme.sh/wiki/OVH-Success"
 
 _ovh_get_api() {
   _ogaep="$1"
