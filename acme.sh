@@ -1,12 +1,12 @@
 #!/usr/bin/env sh
 
-VER=2.8.5
+VER=2.8.6
 
 PROJECT_NAME="acme.sh"
 
 PROJECT_ENTRY="acme.sh"
 
-PROJECT="https://github.com/Neilpang/$PROJECT_NAME"
+PROJECT="https://github.com/acmesh-official/$PROJECT_NAME"
 
 DEFAULT_INSTALL_HOME="$HOME/.$PROJECT_NAME"
 
@@ -126,19 +126,19 @@ NOTIFY_MODE_CERT=1
 
 NOTIFY_MODE_DEFAULT=$NOTIFY_MODE_BULK
 
-_DEBUG_WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-debug-acme.sh"
+_DEBUG_WIKI="https://github.com/acmesh-official/acme.sh/wiki/How-to-debug-acme.sh"
 
-_PREPARE_LINK="https://github.com/Neilpang/acme.sh/wiki/Install-preparations"
+_PREPARE_LINK="https://github.com/acmesh-official/acme.sh/wiki/Install-preparations"
 
-_STATELESS_WIKI="https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode"
+_STATELESS_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Stateless-Mode"
 
-_DNS_ALIAS_WIKI="https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode"
+_DNS_ALIAS_WIKI="https://github.com/acmesh-official/acme.sh/wiki/DNS-alias-mode"
 
-_DNS_MANUAL_WIKI="https://github.com/Neilpang/acme.sh/wiki/dns-manual-mode"
+_DNS_MANUAL_WIKI="https://github.com/acmesh-official/acme.sh/wiki/dns-manual-mode"
 
-_NOTIFY_WIKI="https://github.com/Neilpang/acme.sh/wiki/notify"
+_NOTIFY_WIKI="https://github.com/acmesh-official/acme.sh/wiki/notify"
 
-_SUDO_WIKI="https://github.com/Neilpang/acme.sh/wiki/sudo"
+_SUDO_WIKI="https://github.com/acmesh-official/acme.sh/wiki/sudo"
 
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
@@ -6333,7 +6333,7 @@ _getMasterHash() {
   if [ -z "$_b" ]; then
     _b="master"
   fi
-  _hash_url="https://api.github.com/repos/Neilpang/acme.sh/git/refs/heads/$_b"
+  _hash_url="https://api.github.com/repos/acmesh-official/$PROJECT_NAME/git/refs/heads/$_b"
   _get $_hash_url | tr -d "\r\n" | tr '{},' '\n' | grep '"sha":' | cut -d '"' -f 4
 }
 
