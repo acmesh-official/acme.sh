@@ -26,14 +26,12 @@ dns_octodns_add() {
 
   #save the providers list to the account conf file.
   _saveaccountconf OCTODNS_PROVIDERS "$OCTODNS_PROVIDERS"
-  return 1
 
-  IFS='_' read -r -a used_providers <<< "$OCTODNS_PROVIDERS"
-  for element in "${used_providers[@]}"
-  do
+  for element in $(echo "$OCTODNS_PROVIDERS" | tr "_" ' '); do
     _debug element "$element"
     sourcecommand="$_SUB_FOLDER_DNSAPI/dns_${element}.sh"
 
+    # shellcheck disable=SC1090
     if ! . "$sourcecommand"; then
       _err "Load file $sourcecommand error. Please check your api file and try again."
       return 1
@@ -44,7 +42,7 @@ dns_octodns_add() {
     $addcommand "$fulldomain" "$txtvalue"
   done
 
-  _info "Finished adding records via octoDNS"
+  _info "Finished adding records via octoDNS API"
   
   return 0
 }
@@ -64,12 +62,11 @@ dns_octodns_rm() {
     return 1
   fi
 
-  IFS='_' read -r -a used_providers <<< "$OCTODNS_PROVIDERS"
-  for element in "${used_providers[@]}"
-  do
+  for element in $(echo "$OCTODNS_PROVIDERS" | tr "_" ' '); do
     _debug element "$element"
     sourcecommand="$_SUB_FOLDER_DNSAPI/dns_${element}.sh"
 
+    # shellcheck disable=SC1090
     if ! . "$sourcecommand"; then
       _err "Load file $sourcecommand error. Please check your api file and try again."
       return 1
@@ -80,7 +77,7 @@ dns_octodns_rm() {
     $rmcommand "$fulldomain" "$txtvalue"
   done
 
-  _info "Finished deleting records via octoDNS"
+  _info "Finished deleting records via octoDNS API"
   
   return 0
 }
