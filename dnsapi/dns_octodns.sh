@@ -43,7 +43,7 @@ dns_octodns_add() {
   done
 
   _info "Finished adding records via octoDNS API"
-  
+
   return 0
 }
 
@@ -78,6 +78,6 @@ dns_octodns_rm() {
   done
 
   _info "Finished deleting records via octoDNS API"
-  
+
   return 0
 }
