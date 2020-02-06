@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
 #Support for CQHTTP api. Push notification on CoolQ
 #CQHTTP_TOKEN="" Required, QQ application token
-#CQHTTP_USER="" Required, QQ reciever ID
+#CQHTTP_USER="" Required, QQ receiver ID
 #CQHTTP_APIROOT="" Required, CQHTTP Server URL (without slash suffix)
 #CQHTTP_CUSTOM_MSGHEAD="" Optional, custom message header
 
