@@ -39,7 +39,11 @@ dns_octodns_add() {
 
     addcommand="dns_${element}_add"
     _debug addcommand "$addcommand"
-    $addcommand "$fulldomain" "$txtvalue"
+    if ! $addcommand "$fulldomain" "$txtvalue"; then
+      _err "Adding record via $element API was not successful!"
+      _err "Please check if this API works."
+      return 1
+    fi
   done
 
   _info "Finished adding records via octoDNS API"
@@ -74,7 +78,12 @@ dns_octodns_rm() {
 
     rmcommand="dns_${element}_rm"
     _debug rmcommand "$rmcommand"
-    $rmcommand "$fulldomain" "$txtvalue"
+    if ! $rmcommand "$fulldomain" "$txtvalue"; then
+      _err "Removing record via $element API was not successful!"
+      _err "You might have to remove the key manually."
+      _err "Please check if this API works."
+      return 1
+    fi
   done
 
   _info "Finished deleting records via octoDNS API"
