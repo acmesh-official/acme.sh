@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 #Support for CQHTTP api. Push notification on CoolQ
-#CQHTTP_TOKEN="" Required, QQ application token
+#CQHTTP_TOKEN="" Recommended to be not empty, QQ application token
 #CQHTTP_USER="" Required, QQ receiver ID
 #CQHTTP_APIROOT="" Required, CQHTTP Server URL (without slash suffix)
 #CQHTTP_CUSTOM_MSGHEAD="" Optional, custom message header
@@ -17,12 +17,9 @@ cqhttp_send() {
   CQHTTP_TOKEN="${CQHTTP_TOKEN:-$(_readaccountconf_mutable CQHTTP_TOKEN)}"
   if [ -z "$CQHTTP_TOKEN" ]; then
     CQHTTP_TOKEN=""
-    _err "You didn't specify a CQHTTP application token yet. If it's empty please pass \"__ACME_SH_TOKEN_EMPTY__\" (without quote)."
-    return 1
-  fi
-  _saveaccountconf_mutable CQHTTP_TOKEN "$CQHTTP_TOKEN"
-  if [ "$CQHTTP_TOKEN" = "__ACME_SH_TOKEN_EMPTY__" ]; then
-    CQHTTP_TOKEN=""
+    _info "You didn't specify a CQHTTP application token yet, which is unsafe. Assuming it to be empty."
+  else
+    _saveaccountconf_mutable CQHTTP_TOKEN "$CQHTTP_TOKEN"
   fi
 
   CQHTTP_USER="${CQHTTP_USER:-$(_readaccountconf_mutable CQHTTP_USER)}"
@@ -36,15 +33,7 @@ cqhttp_send() {
   CQHTTP_APIROOT="${CQHTTP_APIROOT:-$(_readaccountconf_mutable CQHTTP_APIROOT)}"
   if [ -z "$CQHTTP_APIROOT" ]; then
     CQHTTP_APIROOT=""
-    _err "You didn't specify a QQ user yet."
-    return 1
-  fi
-  _saveaccountconf_mutable CQHTTP_APIROOT "$CQHTTP_APIROOT"
-
-  CQHTTP_APIROOT="${CQHTTP_APIROOT:-$(_readaccountconf_mutable CQHTTP_APIROOT)}"
-  if [ -z "$CQHTTP_APIROOT" ]; then
-    CQHTTP_APIROOT=""
-    _err "You didn't specify a QQ user yet."
+    _err "You didn't specify the API root yet."
     return 1
   fi
   _saveaccountconf_mutable CQHTTP_APIROOT "$CQHTTP_APIROOT"
@@ -69,7 +58,7 @@ cqhttp_send() {
   fi
 
   _err "QQ send error."
-  _err "URL: $_finalUrl"
-  _err "Response: $response"
+  _debug "URL" "$_finalUrl"
+  _debug "Response" "$response"
   return 1
 }
