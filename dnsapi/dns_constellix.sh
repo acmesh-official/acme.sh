@@ -2,26 +2,28 @@
 
 # Author: Wout Decre <wout@canodus.be>
 
-CONSTELLIX_API="https://api.dns.constellix.com/v1"
-#CONSTELLIX_KEY="XXX"
-#CONSTELLIX_SECRET="XXX"
+CONSTELLIX_Api="https://api.dns.constellix.com/v1"
+#CONSTELLIX_Key="XXX"
+#CONSTELLIX_Secret="XXX"
 
 ########  Public functions #####################
 
+# Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+# Used to add txt record
 dns_constellix_add() {
   fulldomain=$1
   txtvalue=$2
 
-  CONSTELLIX_KEY="${CONSTELLIX_KEY:-$(_readaccountconf_mutable CONSTELLIX_KEY)}"
-  CONSTELLIX_SECRET="${CONSTELLIX_SECRET:-$(_readaccountconf_mutable CONSTELLIX_SECRET)}"
+  CONSTELLIX_Key="${CONSTELLIX_Key:-$(_readaccountconf_mutable CONSTELLIX_Key)}"
+  CONSTELLIX_Secret="${CONSTELLIX_Secret:-$(_readaccountconf_mutable CONSTELLIX_Secret)}"
 
-  if [ -z "$CONSTELLIX_KEY" ] || [ -z "$CONSTELLIX_SECRET" ]; then
+  if [ -z "$CONSTELLIX_Key" ] || [ -z "$CONSTELLIX_Secret" ]; then
     _err "You did not specify the Contellix API key and secret yet."
     return 1
   fi
 
-  _saveaccountconf_mutable CONSTELLIX_KEY "$CONSTELLIX_KEY"
-  _saveaccountconf_mutable CONSTELLIX_SECRET "$CONSTELLIX_SECRET"
+  _saveaccountconf_mutable CONSTELLIX_Key "$CONSTELLIX_Key"
+  _saveaccountconf_mutable CONSTELLIX_Secret "$CONSTELLIX_Secret"
 
   if ! _get_root "$fulldomain"; then
     _err "Invalid domain"
@@ -40,14 +42,16 @@ dns_constellix_add() {
   fi
 }
 
+# Usage: fulldomain txtvalue
+# Used to remove the txt record after validation
 dns_constellix_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  CONSTELLIX_KEY="${CONSTELLIX_KEY:-$(_readaccountconf_mutable CONSTELLIX_KEY)}"
-  CONSTELLIX_SECRET="${CONSTELLIX_SECRET:-$(_readaccountconf_mutable CONSTELLIX_SECRET)}"
+  CONSTELLIX_Key="${CONSTELLIX_Key:-$(_readaccountconf_mutable CONSTELLIX_Key)}"
+  CONSTELLIX_Secret="${CONSTELLIX_Secret:-$(_readaccountconf_mutable CONSTELLIX_Secret)}"
 
-  if [ -z "$CONSTELLIX_KEY" ] || [ -z "$CONSTELLIX_SECRET" ]; then
+  if [ -z "$CONSTELLIX_Key" ] || [ -z "$CONSTELLIX_Secret" ]; then
     _err "You did not specify the Contellix API key and secret yet."
     return 1
   fi
@@ -112,9 +116,9 @@ _constellix_rest() {
   _debug "$ep"
 
   rdate=$(date +"%s")"000"
-  hmac=$(printf "%s" "$rdate" | _hmac sha1 "$(printf "%s" "$CONSTELLIX_SECRET" | _hex_dump | tr -d ' ')" | _base64)
+  hmac=$(printf "%s" "$rdate" | _hmac sha1 "$(printf "%s" "$CONSTELLIX_Secret" | _hex_dump | tr -d ' ')" | _base64)
 
-  export _H1="x-cnsdns-apiKey: $CONSTELLIX_KEY"
+  export _H1="x-cnsdns-apiKey: $CONSTELLIX_Key"
   export _H2="x-cnsdns-requestDate: $rdate"
   export _H3="x-cnsdns-hmac: $hmac"
   export _H4="Accept: application/json"
@@ -122,9 +126,9 @@ _constellix_rest() {
 
   if [ "$m" != "GET" ]; then
     _debug data "$data"
-    response="$(_post "$data" "$CONSTELLIX_API/$ep" "" "$m")"
+    response="$(_post "$data" "$CONSTELLIX_Api/$ep" "" "$m")"
   else
-    response="$(_get "$CONSTELLIX_API/$ep")"
+    response="$(_get "$CONSTELLIX_Api/$ep")"
   fi
 
   if [ "$?" != "0" ]; then
