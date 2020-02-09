@@ -21,8 +21,6 @@
 ########  Public functions #####################
 
 _syno_get_cookie_data() {
-  _debug2 Cookie "$1"
-  _debug3 grep "$(grep "\W$1=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o "$1=[^;]*;" | tr -d ';')"
   grep "\W$1=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o "$1=[^;]*;" | tr -d ';'
 }
 
@@ -95,13 +93,13 @@ synology_dsm_deploy() {
   _H2="X-SYNO-TOKEN: $token"
   export _H1
   export _H2
-  _debug3 H1 "${_H1}"
-  _debug3 H2 "${_H2}"
+  _debug2 H1 "${_H1}"
+  _debug2 H2 "${_H2}"
 
   # Now that we know the username and password are good, save them
   _savedeployconf SYNO_Username "$SYNO_Username"
   _savedeployconf SYNO_Password "$SYNO_Password"
-  _secure_debug2 token "$token"
+  _debug token "$token"
 
   _info "Getting certificates in Synology DSM"
   response=$(_post "api=SYNO.Core.Certificate.CRT&method=list&version=1" "$_base_url/webapi/entry.cgi")
