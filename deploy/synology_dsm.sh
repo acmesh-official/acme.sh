@@ -125,7 +125,7 @@ synology_dsm_deploy() {
 
   _info "Generate form POST request"
   nl="\015\012"
-  delim="--------------------------$(date +%Y%m%d%H%M%S)"
+  delim="--------------------------$(_utc_date | tr -d -- '-: ')"
   content="--$delim${nl}Content-Disposition: form-data; name=\"key\"; filename=\"$(basename "$_ckey")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ckey")\012"
   content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"cert\"; filename=\"$(basename "$_ccert")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ccert")\012"
   content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"inter_cert\"; filename=\"$(basename "$_cca")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_cca")\012"
