@@ -20,6 +20,12 @@
 
 ########  Public functions #####################
 
+_syno_get_cookie_data() {
+  _debug2 Cookie "$1"
+  _debug3 grep "$(grep "\W$1=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o "$1=[^;]*;" | tr -d ';' )"
+  grep "\W$1=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o "$1=[^;]*;" | tr -d ';'
+}
+
 #domain keyfile certfile cafile fullchain
 synology_dsm_deploy() {
 
@@ -31,8 +37,8 @@ synology_dsm_deploy() {
   _debug _cdomain "$_cdomain"
 
   # Get Username and Password, but don't save until we successfully authenticate
-  SYNO_Username="${SYNO_Username:-$(_readdomainconf SYNO_Username)}"
-  SYNO_Password="${SYNO_Password:-$(_readdomainconf SYNO_Password)}"
+  SYNO_Username="${SYNO_Username:-$(_getdeployconf SYNO_Username)}"
+  SYNO_Password="${SYNO_Password:-$(_getdeployconf SYNO_Password)}"
   if [ -z "$SYNO_Username" ] || [ -z "$SYNO_Password" ]; then
     SYNO_Username=""
     SYNO_Password=""
@@ -43,12 +49,12 @@ synology_dsm_deploy() {
   _secure_debug2 SYNO_Password "$SYNO_Password"
 
   # Optional scheme, hostname, and port for Synology DSM
-  SYNO_Scheme="${SYNO_Scheme:-$(_readdomainconf SYNO_Scheme)}"
-  SYNO_Hostname="${SYNO_Hostname:-$(_readdomainconf SYNO_Hostname)}"
-  SYNO_Port="${SYNO_Port:-$(_readdomainconf SYNO_Port)}"
-  _savedomainconf SYNO_Scheme "$SYNO_Scheme"
-  _savedomainconf SYNO_Hostname "$SYNO_Hostname"
-  _savedomainconf SYNO_Port "$SYNO_Port"
+  SYNO_Scheme="${SYNO_Scheme:-$(_getdeployconf SYNO_Scheme)}"
+  SYNO_Hostname="${SYNO_Hostname:-$(_getdeployconf SYNO_Hostname)}"
+  SYNO_Port="${SYNO_Port:-$(_getdeployconf SYNO_Port)}"
+  _savedeployconf SYNO_Scheme "$SYNO_Scheme"
+  _savedeployconf SYNO_Hostname "$SYNO_Hostname"
+  _savedeployconf SYNO_Port "$SYNO_Port"
 
   # default vaules for scheme, hostname, and port
   # defaulting to localhost and http because it's localhost...
@@ -69,77 +75,78 @@ synology_dsm_deploy() {
   fi
   _debug SYNO_Certificate "$SYNO_Certificate"
 
-  # We can't use _get or _post because they lack support for cookies
-  # use jq because I'm too lazy to figure out what is required to parse json
-  # by hand.  Also it seems to be in place for Synology DSM (6.2.1 at least)
-  for x in curl jq; do
-    if ! _exists "$x"; then
-      _err "Please install $x first."
-      _err "We need $x to work."
-      return 1
-    fi
-  done
-
   _base_url="$SYNO_Scheme://$SYNO_Hostname:$SYNO_Port"
   _debug _base_url "$_base_url"
 
-  _cookie_jar="$(_mktemp)"
-  _debug _cookie_jar "$_cookie_jar"
-
   # Login, get the token from JSON and session id from cookie
-  _debug "Logging into $SYNO_Hostname:$SYNO_Port"
-  token=$(curl -sk -c "$_cookie_jar" "$_base_url/webman/login.cgi?username=$SYNO_Username&passwd=$SYNO_Password&enable_syno_token=yes" | jq -r .SynoToken)
-  if [ "$token" = "null" ]; then
+  _info "Logging into $SYNO_Hostname:$SYNO_Port"
+  response=$(_get "$_base_url/webman/login.cgi?username=$SYNO_Username&passwd=$SYNO_Password&enable_syno_token=yes")
+  token=$(echo "$response" | grep "SynoToken" | sed -n 's/.*"SynoToken" *: *"\([^"]*\).*/\1/p')
+  _debug3 response "$response"
+
+  if [ -z "$token" ]; then
     _err "Unable to authenticate to $SYNO_Hostname:$SYNO_Port using $SYNO_Scheme."
     _err "Check your username and password."
-    rm "$_cookie_jar"
     return 1
   fi
 
+  _H1="Cookie: $(_syno_get_cookie_data "id"); $(_syno_get_cookie_data "smid")"
+  _H2="X-SYNO-TOKEN: $token"
+  export _H1
+  export _H2
+  _debug3 H1 "${_H1}"
+  _debug3 H2 "${_H2}"
+
   # Now that we know the username and password are good, save them
-  _savedomainconf SYNO_Username "$SYNO_Username"
-  _savedomainconf SYNO_Password "$SYNO_Password"
+  _savedeployconf SYNO_Username "$SYNO_Username"
+  _savedeployconf SYNO_Password "$SYNO_Password"
   _secure_debug2 token "$token"
 
-  # Use token and session id to get the list of certificates
-  response=$(curl -sk -b "$_cookie_jar" "$_base_url/webapi/entry.cgi" -H "X-SYNO-TOKEN: $token" -d api=SYNO.Core.Certificate.CRT -d method=list -d version=1)
+  _info "Getting certificates in Synology DSM"
+  response=$(_post "api=SYNO.Core.Certificate.CRT&method=list&version=1" "$_base_url/webapi/entry.cgi")
   _debug3 response "$response"
-  # select the first certificate matching our description
-  cert=$(echo "$response" | jq -r ".data.certificates | map(select(.desc == \"$SYNO_Certificate\"))[0]")
-  _debug3 cert "$cert"
+  id=$(printf "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\"id\":\"\([^\"]*\).*/\1/p")
+  _debug2 id "$id"
 
-  if [ "$cert" = "null" ]; then
+  if [ -z "$id" ]; then
     _err "Unable to find certificate: $SYNO_Certificate"
-    rm "$_cookie_jar"
     return 1
   fi
 
   # we've verified this certificate description is a thing, so save it
   _savedeployconf SYNO_Certificate "$SYNO_Certificate"
 
-  id=$(echo "$cert" | jq -r ".id")
-  default=$(echo "$cert" | jq -r ".is_default")
-  _debug2 id "$id"
+  default=false
+  if printf "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\([^{]*\).*/\1/p" | grep -q -- 'is_default":true'; then
+      default=true
+  fi
   _debug2 default "$default"
 
-  # This is the heavy lifting, make the API call to update a certificate in place
-  response=$(curl -sk -b "$_cookie_jar" "$_base_url/webapi/entry.cgi?api=SYNO.Core.Certificate&method=import&version=1&SynoToken=$token" -F "key=@$_ckey" -F "cert=@$_ccert" -F "inter_cert=@$_cca" -F "id=$id" -F "desc=$SYNO_Certificate" -F "as_default=$default")
-  _debug3 response "$response"
-  success=$(echo "$response" | jq -r ".success")
-  _debug2 success "$success"
-  rm "$_cookie_jar"
+  _info "Generate form POST request"
+  nl="\015\012"
+  delim="--------------------------$(date +%Y%m%d%H%M%S)"
+  content="--$delim${nl}Content-Disposition: form-data; name=\"key\"; filename=\"$(basename "$_ckey")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ckey")\012"
+  content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"cert\"; filename=\"$(basename "$_ccert")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ccert")\012"
+  content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"inter_cert\"; filename=\"$(basename "$_cca")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_cca")\012"
+  content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"id\"${nl}${nl}$id"
+  content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"desc\"${nl}${nl}${SYNO_Certificate}"
+  content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"as_default\"${nl}${nl}${default}"
+  content="$content${nl}--$delim--${nl}"
+  content="$(printf "%b_" "$content")";content="${content%_}" # protect trailing \n
 
-  if [ "$success" = "true" ]; then
-    restarted=$(echo "$response" | jq -r ".data.restart_httpd")
-    if [ "$restarted" = "true" ]; then
+  _info "Upload certificate to the Synology DSM"
+  response=$(_post "$content" "$_base_url/webapi/entry.cgi?api=SYNO.Core.Certificate&method=import&version=1&SynoToken=$token" "" "POST" "multipart/form-data; boundary=${delim}")
+  _debug3 response "$response"
+
+  if ! printf "$response" | grep -q '"error":'; then
+    if printf "$response" | grep -q '"restart_httpd":true'; then
       _info "http services were restarted"
     else
       _info "http services were NOT restarted"
     fi
     return 0
   else
-    code=$(echo "$response" | jq -r ".error.code")
-    _err "Unable to update certificate, error code $code"
+    _err "Unable to update certificate, error code $response"
     return 1
   fi
 }
