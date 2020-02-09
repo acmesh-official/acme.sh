@@ -7,7 +7,7 @@
 #
 #Author: David Kerr
 #Report Bugs here: https://github.com/dkerr64/acme.sh
-#or here... https://github.com/Neilpang/acme.sh/issues/2305
+#or here... https://github.com/acmesh-official/acme.sh/issues/2305
 #
 ########  Public functions #####################
 

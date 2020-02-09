@@ -1,12 +1,12 @@
 #!/usr/bin/env sh
 
-VER=2.8.4
+VER=2.8.6
 
 PROJECT_NAME="acme.sh"
 
 PROJECT_ENTRY="acme.sh"
 
-PROJECT="https://github.com/Neilpang/$PROJECT_NAME"
+PROJECT="https://github.com/acmesh-official/$PROJECT_NAME"
 
 DEFAULT_INSTALL_HOME="$HOME/.$PROJECT_NAME"
 
@@ -126,19 +126,19 @@ NOTIFY_MODE_CERT=1
 
 NOTIFY_MODE_DEFAULT=$NOTIFY_MODE_BULK
 
-_DEBUG_WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-debug-acme.sh"
+_DEBUG_WIKI="https://github.com/acmesh-official/acme.sh/wiki/How-to-debug-acme.sh"
 
-_PREPARE_LINK="https://github.com/Neilpang/acme.sh/wiki/Install-preparations"
+_PREPARE_LINK="https://github.com/acmesh-official/acme.sh/wiki/Install-preparations"
 
-_STATELESS_WIKI="https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode"
+_STATELESS_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Stateless-Mode"
 
-_DNS_ALIAS_WIKI="https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode"
+_DNS_ALIAS_WIKI="https://github.com/acmesh-official/acme.sh/wiki/DNS-alias-mode"
 
-_DNS_MANUAL_WIKI="https://github.com/Neilpang/acme.sh/wiki/dns-manual-mode"
+_DNS_MANUAL_WIKI="https://github.com/acmesh-official/acme.sh/wiki/dns-manual-mode"
 
-_NOTIFY_WIKI="https://github.com/Neilpang/acme.sh/wiki/notify"
+_NOTIFY_WIKI="https://github.com/acmesh-official/acme.sh/wiki/notify"
 
-_SUDO_WIKI="https://github.com/Neilpang/acme.sh/wiki/sudo"
+_SUDO_WIKI="https://github.com/acmesh-official/acme.sh/wiki/sudo"
 
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
@@ -2019,7 +2019,7 @@ _send_signed_request() {
     _debug code "$code"
 
     _debug2 original "$response"
-    if echo "$responseHeaders" | grep -i "Content-Type: application/json" >/dev/null 2>&1; then
+    if echo "$responseHeaders" | grep -i "Content-Type: *application/json" >/dev/null 2>&1; then
       response="$(echo "$response" | _normalizeJson)"
     fi
     _debug2 response "$response"
@@ -2040,8 +2040,10 @@ _send_signed_request() {
         continue
       fi
     fi
-    break
+    return 0
   done
+  _info "Giving up sending to CA server after $MAX_REQUEST_RETRY_TIMES retries."
+  return 1
 
 }
 
@@ -2413,7 +2415,7 @@ __initHome() {
   if [ -z "$ACCOUNT_CONF_PATH" ]; then
     ACCOUNT_CONF_PATH="$_DEFAULT_ACCOUNT_CONF_PATH"
   fi
-
+  _debug3 ACCOUNT_CONF_PATH "$ACCOUNT_CONF_PATH"
   DEFAULT_LOG_FILE="$LE_CONFIG_HOME/$PROJECT_NAME.log"
 
   DEFAULT_CA_HOME="$LE_CONFIG_HOME/ca"
@@ -3445,7 +3447,7 @@ _regAccount() {
   fi
 
   _debug2 responseHeaders "$responseHeaders"
-  _accUri="$(echo "$responseHeaders" | grep -i "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
+  _accUri="$(echo "$responseHeaders" | grep -i "^Location:" | _head_n 1 | cut -d ':' -f 2- | tr -d "\r\n ")"
   _debug "_accUri" "$_accUri"
   if [ -z "$_accUri" ]; then
     _err "Can not find account id url."
@@ -3819,9 +3821,11 @@ _check_dns_entries() {
       _sleep 10
     else
       _info "All success, let's return"
-      break
+      return 0
     fi
   done
+  _info "Timed out waiting for DNS."
+  return 1
 
 }
 
@@ -4002,7 +4006,7 @@ issue() {
         _on_issue_err "$_post_hook"
         return 1
       fi
-      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
+      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n " | cut -d ":" -f 2-)"
       _debug Le_LinkOrder "$Le_LinkOrder"
       Le_OrderFinalize="$(echo "$response" | _egrep_o '"finalize" *: *"[^"]*"' | cut -d '"' -f 4)"
       _debug Le_OrderFinalize "$Le_OrderFinalize"
@@ -4082,7 +4086,7 @@ $_authorizations_map"
 
       if [ "$ACME_VERSION" = "2" ]; then
         _idn_d="$(_idn "$d")"
-        _candindates="$(echo "$_authorizations_map" | grep "^$_idn_d,")"
+        _candindates="$(echo "$_authorizations_map" | grep -i "^$_idn_d,")"
         _debug2 _candindates "$_candindates"
         if [ "$(echo "$_candindates" | wc -l)" -gt 1 ]; then
           for _can in $_candindates; do
@@ -4115,45 +4119,59 @@ $_authorizations_map"
 
       entry="$(echo "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
+      keyauthorization=""
       if [ -z "$entry" ]; then
-        _err "Error, can not get domain token entry $d"
-        _supported_vtypes="$(echo "$response" | _egrep_o "\"challenges\":\[[^]]*]" | tr '{' "\n" | grep type | cut -d '"' -f 4 | tr "\n" ' ')"
-        if [ "$_supported_vtypes" ]; then
-          _err "The supported validation types are: $_supported_vtypes, but you specified: $vtype"
+        if ! _startswith "$d" '*.'; then
+          _debug "Not a wildcard domain, lets check whether the validation is already valid."
+          if echo "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
+            _debug "$d is already valid."
+            keyauthorization="$STATE_VERIFIED"
+            _debug keyauthorization "$keyauthorization"
+          fi
         fi
-        _clearup
-        _on_issue_err "$_post_hook"
-        return 1
+        if [ -z "$keyauthorization" ]; then
+          _err "Error, can not get domain token entry $d for $vtype"
+          _supported_vtypes="$(echo "$response" | _egrep_o "\"challenges\":\[[^]]*]" | tr '{' "\n" | grep type | cut -d '"' -f 4 | tr "\n" ' ')"
+          if [ "$_supported_vtypes" ]; then
+            _err "The supported validation types are: $_supported_vtypes, but you specified: $vtype"
+          fi
+          _clearup
+          _on_issue_err "$_post_hook"
+          return 1
+        fi
       fi
-      token="$(echo "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
-      _debug token "$token"
 
-      if [ -z "$token" ]; then
-        _err "Error, can not get domain token $entry"
-        _clearup
-        _on_issue_err "$_post_hook"
-        return 1
-      fi
-      if [ "$ACME_VERSION" = "2" ]; then
-        uri="$(echo "$entry" | _egrep_o '"url":"[^"]*' | cut -d '"' -f 4 | _head_n 1)"
-      else
-        uri="$(echo "$entry" | _egrep_o '"uri":"[^"]*' | cut -d '"' -f 4)"
-      fi
-      _debug uri "$uri"
+      if [ -z "$keyauthorization" ]; then
+        token="$(echo "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
+        _debug token "$token"
 
-      if [ -z "$uri" ]; then
-        _err "Error, can not get domain uri. $entry"
-        _clearup
-        _on_issue_err "$_post_hook"
-        return 1
-      fi
-      keyauthorization="$token.$thumbprint"
-      _debug keyauthorization "$keyauthorization"
+        if [ -z "$token" ]; then
+          _err "Error, can not get domain token $entry"
+          _clearup
+          _on_issue_err "$_post_hook"
+          return 1
+        fi
+        if [ "$ACME_VERSION" = "2" ]; then
+          uri="$(echo "$entry" | _egrep_o '"url":"[^"]*' | cut -d '"' -f 4 | _head_n 1)"
+        else
+          uri="$(echo "$entry" | _egrep_o '"uri":"[^"]*' | cut -d '"' -f 4)"
+        fi
+        _debug uri "$uri"
 
-      if printf "%s" "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
-        _debug "$d is already verified."
-        keyauthorization="$STATE_VERIFIED"
+        if [ -z "$uri" ]; then
+          _err "Error, can not get domain uri. $entry"
+          _clearup
+          _on_issue_err "$_post_hook"
+          return 1
+        fi
+        keyauthorization="$token.$thumbprint"
         _debug keyauthorization "$keyauthorization"
+
+        if printf "%s" "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
+          _debug "$d is already verified."
+          keyauthorization="$STATE_VERIFIED"
+          _debug keyauthorization "$keyauthorization"
+        fi
       fi
 
       dvlist="$d$sep$keyauthorization$sep$uri$sep$vtype$sep$_currentRoot"
@@ -4517,7 +4535,7 @@ $_authorizations_map"
       return 1
     fi
     if [ -z "$Le_LinkOrder" ]; then
-      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
+      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n" | cut -d ":" -f 2-)"
     fi
 
     _savedomainconf "Le_LinkOrder" "$Le_LinkOrder"
@@ -5568,7 +5586,7 @@ _deactivate() {
       return 1
     fi
 
-    authzUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
+    authzUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ':' -f 2- | tr -d "\r\n")"
     _debug "authzUri" "$authzUri"
     if [ "$code" ] && [ ! "$code" = '201' ]; then
       _err "new-authz error: $response"
@@ -6299,6 +6317,8 @@ _installOnline() {
     chmod +x $PROJECT_ENTRY
     if ./$PROJECT_ENTRY install "$_nocron" "" "$_noprofile"; then
       _info "Install success!"
+      _initpath
+      _saveaccountconf "UPGRADE_HASH" "$(_getMasterHash)"
     fi
 
     cd ..
@@ -6308,9 +6328,19 @@ _installOnline() {
   )
 }
 
+_getMasterHash() {
+  _b="$BRANCH"
+  if [ -z "$_b" ]; then
+    _b="master"
+  fi
+  _hash_url="https://api.github.com/repos/acmesh-official/$PROJECT_NAME/git/refs/heads/$_b"
+  _get $_hash_url | tr -d "\r\n" | tr '{},' '\n' | grep '"sha":' | cut -d '"' -f 4
+}
+
 upgrade() {
   if (
     _initpath
+    [ -z "$FORCE" ] && [ "$(_getMasterHash)" = "$(_readaccountconf "UPGRADE_HASH")" ] && _info "Already uptodate!" && exit 0
     export LE_WORKING_DIR
     cd "$LE_WORKING_DIR"
     _installOnline "nocron" "noprofile"

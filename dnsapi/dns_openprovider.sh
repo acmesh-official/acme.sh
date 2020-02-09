@@ -3,7 +3,7 @@
 # This is the OpenProvider API wrapper for acme.sh
 #
 # Author: Sylvia van Os
-# Report Bugs here: https://github.com/Neilpang/acme.sh/issues/2104
+# Report Bugs here: https://github.com/acmesh-official/acme.sh/issues/2104
 #
 #     export OPENPROVIDER_USER="username"
 #     export OPENPROVIDER_PASSWORDHASH="hashed_password"
