@@ -39,6 +39,7 @@ synology_dsm_deploy() {
   # Get Username and Password, but don't save until we successfully authenticate
   SYNO_Username="${SYNO_Username:-$(_getdeployconf SYNO_Username)}"
   SYNO_Password="${SYNO_Password:-$(_getdeployconf SYNO_Password)}"
+  SYNO_Create="${SYNO_Create:-$(_getdeployconf SYNO_Create)}"
   if [ -z "$SYNO_Username" ] || [ -z "$SYNO_Password" ]; then
     SYNO_Username=""
     SYNO_Password=""
@@ -108,8 +109,8 @@ synology_dsm_deploy() {
   id=$(echo "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\"id\":\"\([^\"]*\).*/\1/p")
   _debug2 id "$id"
 
-  if [ -z "$id" ]; then
-    _err "Unable to find certificate: $SYNO_Certificate"
+  if [ -z "$id" ] && [ -z "$SYNO_Create" ]; then
+    _err "Unable to find certificate: $SYNO_Certificate and \$SYNO_Create is not set"
     return 1
   fi
 
