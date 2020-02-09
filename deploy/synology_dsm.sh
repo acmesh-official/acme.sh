@@ -22,7 +22,7 @@
 
 _syno_get_cookie_data() {
   _debug2 Cookie "$1"
-  _debug3 grep "$(grep "\W$1=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o "$1=[^;]*;" | tr -d ';' )"
+  _debug3 grep "$(grep "\W$1=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o "$1=[^;]*;" | tr -d ';')"
   grep "\W$1=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o "$1=[^;]*;" | tr -d ';'
 }
 
@@ -105,7 +105,7 @@ synology_dsm_deploy() {
   _info "Getting certificates in Synology DSM"
   response=$(_post "api=SYNO.Core.Certificate.CRT&method=list&version=1" "$_base_url/webapi/entry.cgi")
   _debug3 response "$response"
-  id=$(printf "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\"id\":\"\([^\"]*\).*/\1/p")
+  id=$(echo "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\"id\":\"\([^\"]*\).*/\1/p")
   _debug2 id "$id"
 
   if [ -z "$id" ]; then
@@ -117,8 +117,8 @@ synology_dsm_deploy() {
   _savedeployconf SYNO_Certificate "$SYNO_Certificate"
 
   default=false
-  if printf "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\([^{]*\).*/\1/p" | grep -q -- 'is_default":true'; then
-      default=true
+  if echo "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\([^{]*\).*/\1/p" | grep -q -- 'is_default":true'; then
+    default=true
   fi
   _debug2 default "$default"
 
@@ -132,14 +132,15 @@ synology_dsm_deploy() {
   content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"desc\"${nl}${nl}${SYNO_Certificate}"
   content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"as_default\"${nl}${nl}${default}"
   content="$content${nl}--$delim--${nl}"
-  content="$(printf "%b_" "$content")";content="${content%_}" # protect trailing \n
+  content="$(printf "%b_" "$content")"
+  content="${content%_}" # protect trailing \n
 
   _info "Upload certificate to the Synology DSM"
   response=$(_post "$content" "$_base_url/webapi/entry.cgi?api=SYNO.Core.Certificate&method=import&version=1&SynoToken=$token" "" "POST" "multipart/form-data; boundary=${delim}")
   _debug3 response "$response"
 
-  if ! printf "$response" | grep -q '"error":'; then
-    if printf "$response" | grep -q '"restart_httpd":true'; then
+  if ! echo "$response" | grep -q '"error":'; then
+    if echo "$response" | grep -q '"restart_httpd":true'; then
       _info "http services were restarted"
     else
       _info "http services were NOT restarted"
