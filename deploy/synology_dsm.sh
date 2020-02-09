@@ -35,9 +35,9 @@ synology_dsm_deploy() {
   _debug _cdomain "$_cdomain"
 
   # Get Username and Password, but don't save until we successfully authenticate
-  SYNO_Username="${SYNO_Username:-$(_getdeployconf SYNO_Username)}"
-  SYNO_Password="${SYNO_Password:-$(_getdeployconf SYNO_Password)}"
-  SYNO_Create="${SYNO_Create:-$(_getdeployconf SYNO_Create)}"
+  _getdeployconf SYNO_Username
+  _getdeployconf SYNO_Password
+  _getdeployconf SYNO_Create
   if [ -z "$SYNO_Username" ] || [ -z "$SYNO_Password" ]; then
     SYNO_Username=""
     SYNO_Password=""
@@ -48,18 +48,19 @@ synology_dsm_deploy() {
   _secure_debug2 SYNO_Password "$SYNO_Password"
 
   # Optional scheme, hostname, and port for Synology DSM
-  SYNO_Scheme="${SYNO_Scheme:-$(_getdeployconf SYNO_Scheme)}"
-  SYNO_Hostname="${SYNO_Hostname:-$(_getdeployconf SYNO_Hostname)}"
-  SYNO_Port="${SYNO_Port:-$(_getdeployconf SYNO_Port)}"
-  _savedeployconf SYNO_Scheme "$SYNO_Scheme"
-  _savedeployconf SYNO_Hostname "$SYNO_Hostname"
-  _savedeployconf SYNO_Port "$SYNO_Port"
+  _getdeployconf SYNO_Scheme
+  _getdeployconf SYNO_Hostname
+  _getdeployconf SYNO_Port
 
   # default vaules for scheme, hostname, and port
   # defaulting to localhost and http because it's localhost...
   [ -n "${SYNO_Scheme}" ] || SYNO_Scheme="http"
   [ -n "${SYNO_Hostname}" ] || SYNO_Hostname="localhost"
   [ -n "${SYNO_Port}" ] || SYNO_Port="5000"
+
+  _savedeployconf SYNO_Scheme "$SYNO_Scheme"
+  _savedeployconf SYNO_Hostname "$SYNO_Hostname"
+  _savedeployconf SYNO_Port "$SYNO_Port"
 
   _debug2 SYNO_Scheme "$SYNO_Scheme"
   _debug2 SYNO_Hostname "$SYNO_Hostname"
@@ -107,6 +108,7 @@ synology_dsm_deploy() {
   id=$(echo "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\"id\":\"\([^\"]*\).*/\1/p")
   _debug2 id "$id"
 
+  # shellcheck disable=SC2154
   if [ -z "$id" ] && [ -z "$SYNO_Create" ]; then
     _err "Unable to find certificate: $SYNO_Certificate and \$SYNO_Create is not set"
     return 1
