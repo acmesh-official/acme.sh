@@ -25,7 +25,7 @@ dns_octodns_add() {
   fi
 
   #save the providers list to the account conf file.
-  _saveaccountconf OCTODNS_PROVIDERS "$OCTODNS_PROVIDERS"
+  _saveaccountconf_mutable OCTODNS_PROVIDERS "$OCTODNS_PROVIDERS"
 
   for element in $(echo "$OCTODNS_PROVIDERS" | tr "_" ' '); do
     _debug element "$element"
