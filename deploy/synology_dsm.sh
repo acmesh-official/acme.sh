@@ -116,7 +116,7 @@ synology_dsm_deploy() {
   _savedeployconf SYNO_Certificate "$SYNO_Certificate"
 
   default=false
-  if echo "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\([^{]*\).*/\1/p" | grep -q -- 'is_default":true'; then
+  if echo "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\([^{]*\).*/\1/p" | grep -- 'is_default":true' >/dev/null; then
     default=true
   fi
   _debug2 default "$default"
@@ -138,8 +138,8 @@ synology_dsm_deploy() {
   response=$(_post "$content" "$_base_url/webapi/entry.cgi?api=SYNO.Core.Certificate&method=import&version=1&SynoToken=$token" "" "POST" "multipart/form-data; boundary=${delim}")
   _debug3 response "$response"
 
-  if ! echo "$response" | grep -q '"error":'; then
-    if echo "$response" | grep -q '"restart_httpd":true'; then
+  if ! echo "$response" | grep '"error":' >/dev/null; then
+    if echo "$response" | grep '"restart_httpd":true' >/dev/null; then
       _info "http services were restarted"
     else
       _info "http services were NOT restarted"
