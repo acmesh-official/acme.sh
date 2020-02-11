@@ -153,8 +153,8 @@ _get_root() {
       if _contains "$response" '"success":true'; then
         _domain=$(printf "%s\n" "$response" | _egrep_o "\"name\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | head -n 1)
         if [ "$_domain" ]; then
-          _cutlength=$(expr ${#domain} - ${#_domain} - 1)
-          _sub_domain=$(printf "%s" "$domain" | cut -c 1-$_cutlength)
+          _cutlength=$((${#domain} - ${#_domain} - 1))
+          _sub_domain=$(printf "%s" "$domain" | cut -c "1-$_cutlength")
           _domain_id=$CF_Zone_ID
           return 0
         else
