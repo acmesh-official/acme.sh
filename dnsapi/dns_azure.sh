@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-use-Azure-DNS"
+WIKI="https://github.com/acmesh-official/acme.sh/wiki/How-to-use-Azure-DNS"
 
 ########  Public functions #####################
 
