@@ -19,7 +19,6 @@ parse_response() {
     if [ "$status" = "success" ]; then
       panos_key=$(echo "$1" | sed 's/^.*\(<key>\)\(.*\)<\/key>.*/\2/g')
       _panos_key=$panos_key
-      message='PAN-OS key is set.' 
     else
       message="PAN-OS Key could not be set."
     fi
