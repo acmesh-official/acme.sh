@@ -14,7 +14,7 @@
 # This function is to parse the XML
 parse_response() {
   type=$2
-  if [ $type = "keygen" ]; then
+  if [ "$type" = 'keygen' ]; then
     status=$(echo "$1" | sed 's/^.*\(['\'']\)\([a-z]*\)'\''.*/\2/g')
     if [ "$status" = "success" ]; then
       panos_key=$(echo "$1" | sed 's/^.*\(<key>\)\(.*\)<\/key>.*/\2/g')
@@ -35,20 +35,20 @@ deployer() {
   _debug "**** Deploying $type *****"
   panos_url="https://$_panos_host/api/"
   
-  if [ $type = "keygen" ]; then
+  if [ "$type" = 'keygen' ]; then
     _H1="Content-Type: application/x-www-form-urlencoded"
     content="type=keygen&user=$_panos_user&password=$_panos_pass"
     # content="$content${nl}--$delim${nl}Content-Disposition: form-data; type=\"keygen\"; user=\"$_panos_user\"; password=\"$_panos_pass\"${nl}Content-Type: application/octet-stream${nl}${nl}"
   fi
 
-  if [ $type = "cert" ] || [ $type = "key" ]; then
+  if [ "$type" = 'cert' ] || [ "$type" = 'key' ]; then
       #Generate DEIM
       delim="-----MultipartDelimiter$(date "+%s%N")"
       nl="\015\012"
         #Set Header
       export _H1="Content-Type: multipart/form-data; boundary=$delim"
       
-    if [ $type = "cert" ]; then
+    if [ "$type" = 'cert' ]; then
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"type\"\r\n\r\n\r\nimport"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"category\"\r\n\r\n\r\ncertificate"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n\r\n$_cdomain"
@@ -56,7 +56,7 @@ deployer() {
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"format\"\r\n\r\n\r\npem"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_cfullchain")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_cfullchain")"
     fi
-    if [ $type = "key" ]; then
+    if [ "$type" = 'key' ]; then
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"type\"\r\n\r\n\r\nimport"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"category\"\r\n\r\n\r\nprivate-key"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n\r\n$_cdomain"
@@ -71,7 +71,7 @@ deployer() {
     content=$(printf %b "$content")
   fi
 
-  if [ $type = "commit" ]; then
+  if [ "$type" = 'commit' ]; then
     export _H1="Content-Type: application/x-www-form-urlencoded"
     cmd=$(printf "%s" "<commit><partial><$_panos_user></$_panos_user></partial></commit>" | _url_encode)
     content="type=commit&key=$_panos_key&cmd=$cmd"
