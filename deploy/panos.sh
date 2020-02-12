@@ -34,7 +34,6 @@ deployer() {
   type=$1 # Types are keygen, cert, key, commit
   _debug "**** Deploying $type *****"
   panos_url="https://$_panos_host/api/"
-  
   if [ "$type" = 'keygen' ]; then
     _H1="Content-Type: application/x-www-form-urlencoded"
     content="type=keygen&user=$_panos_user&password=$_panos_pass"
@@ -47,7 +46,6 @@ deployer() {
     nl="\015\012"
     #Set Header
     export _H1="Content-Type: multipart/form-data; boundary=$delim"
-      
     if [ "$type" = 'cert' ]; then
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"type\"\r\n\r\n\r\nimport"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"category\"\r\n\r\n\r\ncertificate"
