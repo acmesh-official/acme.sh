@@ -94,36 +94,31 @@ panos_deploy() {
   _cdomain="$1"
   _ckey="$2"
   _cfullchain="$5"
-  # PANOS HOST is required to make API calls to the PANOS/Panorama
-  if [ -z "$PANOS_HOST" ]; then
-    if [ -z "$_panos_host" ]; then
-      _err "PANOS_HOST not defined."
-      return 1
-    fi
-  else
-    _debug "PANOS HOST is set. Save to domain conf."
-    _panos_host="$PANOS_HOST"
-    _savedomainconf _panos_host "$_panos_host"
-  fi
-  # Retrieve stored variables
-  _panos_user="$(_readaccountconf_mutable PANOS_USER)"
-  _panos_pass="$(_readaccountconf_mutable PANOS_PASS)"
-  # PANOS Credentials check
-  if [ -z "$PANOS_USER" ] || [ -z "$PANOS_PASS" ]; then
-    _debug "PANOS_USER, PANOS_PASS is not defined"
-    if [ -z "$_panos_user" ] && [ -z "$_panos_pass" ]; then
-      _err "No user and pass found in storage. If this is the first time deploying please set PANOS_USER and PANOS_PASS in environment variables."
+  
+  # PANOS ENV VAR check
+  if [ -z "$PANOS_USER" ] || [ -z "$PANOS_PASS" ] || [ -z "$PANOS_HOST" ]; then
+    _debug "No ENV variables found lets check for saved variables"
+    _getdeployconf PANOS_USER
+    _getdeployconf PANOS_PASS
+    _getdeployconf PANOS_HOST
+    _panos_user=$PANOS_USER
+    _panos_pass=$PANOS_PASS
+    _panos_host=$PANOS_HOST
+    if [ -z "$_panos_user" ] && [ -z "$_panos_pass" ] && [ -z "$_panos_host" ]; then
+      _err "No host, user and pass found.. If this is the first time deploying please set PANOS_HOST, PANOS_USER and PANOS_PASS in environment variables. Delete them after you have succesfully deployed certs."
       return 1
     else
-      _debug "ok"
+      _debug "Using saved env variables."
     fi
   else
-    _debug "Saving environment variables"
+    _debug "Detected ENV variables to be saved to the deploy conf."
     # Encrypt and save user
-    _saveaccountconf_mutable PANOS_USER "$PANOS_USER"
-    _saveaccountconf_mutable PANOS_PASS "$PANOS_PASS"
+    _savedeployconf PANOS_USER "$PANOS_USER" 1
+    _savedeployconf PANOS_PASS "$PANOS_PASS" 1
+    _savedeployconf PANOS_HOST "$PANOS_HOST" 1
     _panos_user="$PANOS_USER"
     _panos_pass="$PANOS_PASS"
+    _panos_host="$PANOS_HOST"
   fi
   _debug "Let's use username and pass to generate token."
   if [ -z "$_panos_user" ] || [ -z "$_panos_pass" ] || [ -z "$_panos_host" ]; then
@@ -133,7 +128,7 @@ panos_deploy() {
     _debug "Getting PANOS KEY"
     deployer keygen
     if [ -z "$_panos_key" ]; then
-      _err "Missing host, apikey, user."
+      _err "Missing apikey."
       return 1
     else
       deployer cert
