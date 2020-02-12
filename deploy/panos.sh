@@ -42,11 +42,11 @@ deployer() {
   fi
 
   if [ "$type" = 'cert' ] || [ "$type" = 'key' ]; then
-      #Generate DEIM
-      delim="-----MultipartDelimiter$(date "+%s%N")"
-      nl="\015\012"
-        #Set Header
-      export _H1="Content-Type: multipart/form-data; boundary=$delim"
+    #Generate DEIM
+    delim="-----MultipartDelimiter$(date "+%s%N")"
+    nl="\015\012"
+    #Set Header
+    export _H1="Content-Type: multipart/form-data; boundary=$delim"
       
     if [ "$type" = 'cert' ]; then
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"type\"\r\n\r\n\r\nimport"
@@ -76,7 +76,6 @@ deployer() {
     cmd=$(printf "%s" "<commit><partial><$_panos_user></$_panos_user></partial></commit>" | _url_encode)
     content="type=commit&key=$_panos_key&cmd=$cmd"
   fi
-  
   response=$(_post "$content" "$panos_url" "" "POST")
   parse_response "$response" "$type"
   # Saving response to variables
