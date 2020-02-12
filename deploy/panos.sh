@@ -94,7 +94,6 @@ panos_deploy() {
   _cdomain="$1"
   _ckey="$2"
   _cfullchain="$5"
-  
   # PANOS ENV VAR check
   if [ -z "$PANOS_USER" ] || [ -z "$PANOS_PASS" ] || [ -z "$PANOS_HOST" ]; then
     _debug "No ENV variables found lets check for saved variables"
