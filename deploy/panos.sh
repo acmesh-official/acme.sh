@@ -13,61 +13,75 @@
 
 # This function is to parse the XML
 parse_response() {
-  status=$(echo "$1" | sed 's/^.*"\([a-z]*\)".*/\1/g')
-  message=$(echo "$1" | sed 's/^.*<result>\(.*\)<\/result.*/\1/g')
+  type=$2
+  if [ $type = 'keygen' ]; then
+    status=$(echo "$1" | sed 's/^.*\(['\'']\)\([a-z]*\)'\''.*/\2/g')
+    if [ "$status" = "success" ]; then
+      panos_key=$(echo "$1" | sed 's/^.*\(<key>\)\(.*\)<\/key>.*/\2/g')
+      _panos_key=$panos_key
+      message='PAN-OS key is set.' 
+    else
+      message="PAN-OS Key could not be set."
+    fi
+  else
+    status=$(echo "$1" | sed 's/^.*"\([a-z]*\)".*/\1/g')
+    message=$(echo "$1" | sed 's/^.*<result>\(.*\)<\/result.*/\1/g')
+  fi
   return 0
 }
 
 deployer() {
-  type=$1 # Types are cert, key, commit
+  type=$1 # Types are keygen, cert, key, commit
   _debug "**** Deploying $type *****"
-
-  #Generate DEIM
-  delim="-----MultipartDelimiter$(date "+%s%N")"
-  nl="\015\012"
-  #Set Header
-  _H1="Content-Type: multipart/form-data; boundary=$delim"
-  if [ $type = 'cert' ]; then
-    content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_cfullchain")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_cfullchain")"
+  panos_url="https://$_panos_host/api/"
+  
+  if [ $type = 'keygen' ]; then
+    _H1="Content-Type: application/x-www-form-urlencoded"
+    content="type=keygen&user=$_panos_user&password=$_panos_pass"
+    # content="$content${nl}--$delim${nl}Content-Disposition: form-data; type=\"keygen\"; user=\"$_panos_user\"; password=\"$_panos_pass\"${nl}Content-Type: application/octet-stream${nl}${nl}"
   fi
-  if [ $type = 'key' ]; then
-    #Add key
-    content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_ckey")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ckey")"
-  fi
-  #Close multipart
-  content="$content${nl}--$delim--${nl}"
-  #Convert CRLF
-  content=$(printf %b "$content")
 
-  if [ $type = 'cert' ]; then
-    panos_url="https://$_panos_host/api/?type=import&category=certificate&certificate-name=$_cdomain&format=pem&key=$_panos_key"
+  if [ $type = 'cert' ] || [ $type = 'key' ]; then
+      #Generate DEIM
+      delim="-----MultipartDelimiter$(date "+%s%N")"
+      nl="\015\012"
+        #Set Header
+      _H1="Content-Type: multipart/form-data; boundary=$delim"
+      
+    if [ $type = 'cert' ]; then
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"type\"\r\n\r\n\r\nimport"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"category\"\r\n\r\n\r\ncertificate"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n\r\n$_cdomain"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"key\"\r\n\r\n\r\n$_panos_key"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"format\"\r\n\r\n\r\npem"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_cfullchain")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_cfullchain")"
+    fi
+    if [ $type = 'key' ]; then
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"type\"\r\n\r\n\r\nimport"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"category\"\r\n\r\n\r\nprivate-key"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n\r\n$_cdomain"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"key\"\r\n\r\n\r\n$_panos_key"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"format\"\r\n\r\n\r\npem"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"passphrase\"\r\n\r\n\r\nnone"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_ckey")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ckey")"
+    fi
+    #Close multipart
+    content="$content${nl}--$delim--${nl}"
+    #Convert CRLF
+    content=$(printf %b "$content")
+  fi
+
+  if [ $type = 'commit' ]; then
+   _H1="Content-Type: application/x-www-form-urlencoded"
+    cmd=$(printf "%s" "<commit><partial><$_panos_user></$_panos_user></partial></commit>" | _url_encode)
+    content="type=commit&key=$_panos_key&cmd=$cmd"
   fi
   
-  if [ $type = 'key' ]; then
-    panos_url="https://$_panos_host/api/?type=import&category=private-key&certificate-name=$_cdomain&format=pem&passphrase=none&key=$_panos_key"
-  fi
-  if [ $type = 'commit' ]; then
-    cmd=$(_url_encode "<commit><partial><$_panos_user></$_panos_user></partial></commit>")
-    panos_url="https://$_panos_host/api/?type=commit&cmd=$cmd&key=$_panos_key"
-  fi
-
-  if [ $type = 'key' ] || [ $type = 'cert' ]; then
-    response=$(_post "$content" "$panos_url" "" "POST")
-  else
-    response=$(_get $panos_url)
-  fi
-  _debug panos_url $panos_url 
-  _debug "RESPONSE $response"
-  parse_response "$response"
-  _debug "STATUS IS $status"
-  _debug "MESSAGE IS $message"
+  response=$(_post "$content" "$panos_url" "" "POST")
+  parse_response "$response" $type
   # Saving response to variables
   response_status=$status
-  # Check for cert upload error and handle gracefully.
-
   #DEBUG
-  _debug header "$_H1"
-  # _debug content "$content"
   _debug response_status "$response_status"
   if [ "$response_status" = "success" ]; then
     _debug "Successfully deployed $type"
@@ -121,18 +135,8 @@ panos_deploy() {
     return 1
   else
     _debug "Getting PANOS KEY"
-    panos_key_response=$(_get "https://$_panos_host/api/?type=keygen&user=$_panos_user&password=$_panos_pass")
-    _debug "PANOS KEY FULL RESPONSE $panos_key_response"
-    status=$(echo "$panos_key_response" | sed 's/^.*\(['\'']\)\([a-z]*\)'\''.*/\2/g')
-    _debug "STATUS IS $status"
-    if [ "$status" = "success" ]; then
-      panos_key=$(echo "$panos_key_response" | sed 's/^.*\(<key>\)\(.*\)<\/key>.*/\2/g')
-      _panos_key=$panos_key
-    else
-      _err "PANOS Key could not be set. Deploy with --debug to troubleshoot"
-      return 1
-    fi
-    if [ -z "$_panos_host" ] && [ -z "$_panos_key" ] && [ -z "$_panos_user" ]; then
+    deployer keygen
+    if [ -z "$_panos_key" ]; then
       _err "Missing host, apikey, user."
       return 1
     else
