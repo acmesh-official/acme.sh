@@ -30,6 +30,7 @@ parse_response() {
 }
 
 deployer() {
+  content=""
   type=$1 # Types are keygen, cert, key, commit
   _debug "**** Deploying $type *****"
   panos_url="https://$_panos_host/api/"
@@ -59,7 +60,7 @@ deployer() {
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n\r\n$_cdomain"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"key\"\r\n\r\n\r\n$_panos_key"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"format\"\r\n\r\n\r\npem"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"passphrase\"\r\n\r\n\r\nnone"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"passphrase\"\r\n\r\n\r\n123456"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_ckey")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ckey")"
     fi
     #Close multipart
