@@ -118,7 +118,7 @@ cd ./acme.sh
 
 You `don't have to be root` then, although `it is recommended`.
 
-Advanced Installation: https://github.com/acmesh-official/acme.sh/wiki/How-to-install
+Advanced Installation: https://github.com/acmesh-official/acme.sh/wiki/How-to-install#4-advanced-installation
 
 The installer will perform 3 actions:
 
