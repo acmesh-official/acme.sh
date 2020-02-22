@@ -257,7 +257,7 @@ acme.sh --issue --apache -d example.com -d www.example.com -d cp.example.com
 
 **This apache mode is only to issue the cert, it will not change your apache config files.
 You will need to configure your website config files to use the cert by yourself.
-We don't want to mess your apache server, don't worry.**
+We don't want to mess with your apache server, don't worry.**
 
 More examples: https://github.com/acmesh-official/acme.sh/wiki/How-to-issue-a-cert
 
@@ -281,7 +281,7 @@ acme.sh --issue --nginx -d example.com -d www.example.com -d cp.example.com
 
 **This nginx mode is only to issue the cert, it will not change your nginx config files.
 You will need to configure your website config files to use the cert by yourself.
-We don't want to mess your nginx server, don't worry.**
+We don't want to mess with your nginx server, don't worry.**
 
 More examples: https://github.com/acmesh-official/acme.sh/wiki/How-to-issue-a-cert
 
