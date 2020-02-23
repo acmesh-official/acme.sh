@@ -31,6 +31,7 @@ ssh_deploy() {
   _ccert="$3"
   _cca="$4"
   _cfullchain="$5"
+  _err_code=0
   _cmdstr=""
   _homedir='~'
   _backupprefix="$_homedir/.acme_ssh_deploy/$_cdomain-backup"
@@ -190,16 +191,26 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
     _info "Backup directories erased after 180 days."
   fi
 
-  _secure_debug "Remote commands to execute: " "$_cmdstr"
-  _info "Submitting sequence of commands to remote server by ssh"
-  # quotations in bash cmd below intended.  Squash travis spellcheck error
-  # shellcheck disable=SC2029
-  $Le_Deploy_ssh_cmd "$Le_Deploy_ssh_user@$Le_Deploy_ssh_server" sh -c "'$_cmdstr'"
-  _ret="$?"
-
-  if [ "$_ret" != "0" ]; then
-    _err "Error code $_ret returned from $Le_Deploy_ssh_cmd"
+  if ! _ssh_remote_cmd "$_cmdstr"; then
+    return $_err_code
   fi
 
-  return $_ret
+  return 0
+}
+
+#cmd
+_ssh_remote_cmd() {
+  _cmd="$1"
+  _secure_debug "Remote commands to execute: $_cmd"
+  _info "Submitting sequence of commands to remote server by $Le_Deploy_ssh_cmd"
+  # quotations in bash cmd below intended.  Squash travis spellcheck error
+  # shellcheck disable=SC2029
+  $Le_Deploy_ssh_cmd "$Le_Deploy_ssh_user@$Le_Deploy_ssh_server" sh -c "'$_cmd'"
+  _err_code="$?"
+
+  if [ "$_err_code" != "0" ]; then
+    _err "Error code $_err_code returned from $Le_Deploy_ssh_cmd"
+  fi
+
+  return $_err_code
 }
