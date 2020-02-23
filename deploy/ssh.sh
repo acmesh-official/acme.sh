@@ -12,7 +12,7 @@
 # Only a username is required.  All others are optional.
 #
 # The following examples are for QNAP NAS running QTS 4.2
-# export DEPLOY_SSH_CMD=""  # defaults to ssh
+# export DEPLOY_SSH_CMD=""  # defaults to "ssh -T"
 # export DEPLOY_SSH_USER="admin"  # required
 # export DEPLOY_SSH_SERVER="qnap"  # defaults to domain name
 # export DEPLOY_SSH_KEYFILE="/etc/stunnel/stunnel.pem"
@@ -71,7 +71,7 @@ ssh_deploy() {
     Le_Deploy_ssh_cmd="$DEPLOY_SSH_CMD"
     _savedomainconf Le_Deploy_ssh_cmd "$Le_Deploy_ssh_cmd"
   elif [ -z "$Le_Deploy_ssh_cmd" ]; then
-    Le_Deploy_ssh_cmd="ssh"
+    Le_Deploy_ssh_cmd="ssh -T"
   fi
 
   # BACKUP is optional. If not provided then default to yes
@@ -194,7 +194,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
   _info "Submitting sequence of commands to remote server by ssh"
   # quotations in bash cmd below intended.  Squash travis spellcheck error
   # shellcheck disable=SC2029
-  $Le_Deploy_ssh_cmd -T "$Le_Deploy_ssh_user@$Le_Deploy_ssh_server" sh -c "'$_cmdstr'"
+  $Le_Deploy_ssh_cmd "$Le_Deploy_ssh_user@$Le_Deploy_ssh_server" sh -c "'$_cmdstr'"
   _ret="$?"
 
   if [ "$_ret" != "0" ]; then
