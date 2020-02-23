@@ -85,6 +85,19 @@ ssh_deploy() {
 
   _info "Deploy certificates to remote server $Le_Deploy_ssh_user@$Le_Deploy_ssh_server"
 
+  if [ "$Le_Deploy_ssh_backup" = "yes" ]; then
+    # run cleanup on the backup directory, erase all older
+    # than 180 days (15552000 seconds).
+    _cmdstr="{ now=\"\$(date -u +%s)\"; for fn in $_backupprefix*; \
+do if [ -d \"\$fn\" ] && [ \"\$(expr \$now - \$(date -ur \$fn +%s) )\" -ge \"15552000\" ]; \
+then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; done; }; $_cmdstr"
+    # Alternate version of above... _cmdstr="find $_backupprefix* -type d -mtime +180 2>/dev/null | xargs rm -rf; $_cmdstr"
+    # Create our backup directory for overwritten cert files.
+    _cmdstr="mkdir -p $_backupdir; $_cmdstr"
+    _info "Backup of old certificate files will be placed in remote directory $_backupdir"
+    _info "Backup directories erased after 180 days."
+  fi
+
   # KEYFILE is optional.
   # If provided then private key will be copied to provided filename.
   if [ -n "$DEPLOY_SSH_KEYFILE" ]; then
@@ -178,17 +191,6 @@ ssh_deploy() {
   if [ -z "$_cmdstr" ]; then
     _err "No remote commands to excute. Failed to deploy certificates to remote server"
     return 1
-  elif [ "$Le_Deploy_ssh_backup" = "yes" ]; then
-    # run cleanup on the backup directory, erase all older
-    # than 180 days (15552000 seconds).
-    _cmdstr="{ now=\"\$(date -u +%s)\"; for fn in $_backupprefix*; \
-do if [ -d \"\$fn\" ] && [ \"\$(expr \$now - \$(date -ur \$fn +%s) )\" -ge \"15552000\" ]; \
-then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; done; }; $_cmdstr"
-    # Alternate version of above... _cmdstr="find $_backupprefix* -type d -mtime +180 2>/dev/null | xargs rm -rf; $_cmdstr"
-    # Create our backup directory for overwritten cert files.
-    _cmdstr="mkdir -p $_backupdir; $_cmdstr"
-    _info "Backup of old certificate files will be placed in remote directory $_backupdir"
-    _info "Backup directories erased after 180 days."
   fi
 
   if ! _ssh_remote_cmd "$_cmdstr"; then
