@@ -251,14 +251,14 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
 _ssh_remote_cmd() {
   _cmd="$1"
   _secure_debug "Remote commands to execute: $_cmd"
-  _info "Submitting sequence of commands to remote server by $Le_Deploy_ssh_cmd"
+  _info "Submitting sequence of commands to remote server by ssh"
   # quotations in bash cmd below intended.  Squash travis spellcheck error
   # shellcheck disable=SC2029
   $Le_Deploy_ssh_cmd "$Le_Deploy_ssh_user@$Le_Deploy_ssh_server" sh -c "'$_cmd'"
   _err_code="$?"
 
   if [ "$_err_code" != "0" ]; then
-    _err "Error code $_err_code returned from $Le_Deploy_ssh_cmd"
+    _err "Error code $_err_code returned from ssh"
   fi
 
   return $_err_code
