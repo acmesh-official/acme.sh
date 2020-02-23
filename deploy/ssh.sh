@@ -91,7 +91,7 @@ ssh_deploy() {
     Le_Deploy_ssh_batch_mode="yes"
   fi
   _savedomainconf Le_Deploy_ssh_batch_mode "$Le_Deploy_ssh_batch_mode"
-  
+
   _info "Deploy certificates to remote server $Le_Deploy_ssh_user@$Le_Deploy_ssh_server"
   if [ "$Le_Deploy_ssh_batch_mode" = "yes" ]; then
     _info "Using BATCH MODE... Multiple commands sent in single call to remote host"
