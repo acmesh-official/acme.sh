@@ -79,7 +79,7 @@ ssh_deploy() {
   # BACKUP is optional. If not provided then default to yes
   if [ "$DEPLOY_SSH_BACKUP" = "no" ]; then
     Le_Deploy_ssh_backup="no"
-  elif [ -z "$Le_Deploy_ssh_backup" ]; then
+  elif [ -z "$Le_Deploy_ssh_backup" ] || [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
     Le_Deploy_ssh_backup="yes"
   fi
   _savedomainconf Le_Deploy_ssh_backup "$Le_Deploy_ssh_backup"
@@ -87,7 +87,7 @@ ssh_deploy() {
   # BATCH_MODE is optional. If not provided then default to yes
   if [ "$DEPLOY_SSH_BATCH_MODE" = "no" ]; then
     Le_Deploy_ssh_batch_mode="no"
-  elif [ -z "$Le_Deploy_ssh_batch_mode" ]; then
+  elif [ -z "$Le_Deploy_ssh_batch_mode" ] || [ "$DEPLOY_SSH_BATCH_MODE" = "yes" ]; then
     Le_Deploy_ssh_batch_mode="yes"
   fi
   _savedomainconf Le_Deploy_ssh_batch_mode "$Le_Deploy_ssh_batch_mode"
