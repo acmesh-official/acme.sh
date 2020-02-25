@@ -2166,7 +2166,7 @@ _getdeployconf() {
     return 0 # do nothing
   fi
   _saved=$(_readdomainconf "SAVED_$_rac_key")
-  eval "export $_rac_key=$_saved"
+  eval "export $_rac_key=\"$_saved\""
 }
 
 #_saveaccountconf  key  value  base64encode
