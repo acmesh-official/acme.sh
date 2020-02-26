@@ -7,6 +7,7 @@
 
 #CF_Token="xxxx"
 #CF_Account_ID="xxxx"
+#CF_Zone_ID="xxxx"
 
 CF_Api="https://api.cloudflare.com/client/v4"
 
@@ -19,12 +20,14 @@ dns_cf_add() {
 
   CF_Token="${CF_Token:-$(_readaccountconf_mutable CF_Token)}"
   CF_Account_ID="${CF_Account_ID:-$(_readaccountconf_mutable CF_Account_ID)}"
+  CF_Zone_ID="${CF_Zone_ID:-$(_readaccountconf_mutable CF_Zone_ID)}"
   CF_Key="${CF_Key:-$(_readaccountconf_mutable CF_Key)}"
   CF_Email="${CF_Email:-$(_readaccountconf_mutable CF_Email)}"
 
   if [ "$CF_Token" ]; then
     _saveaccountconf_mutable CF_Token "$CF_Token"
     _saveaccountconf_mutable CF_Account_ID "$CF_Account_ID"
+    _saveaccountconf_mutable CF_Zone_ID "$CF_Zone_ID"
   else
     if [ -z "$CF_Key" ] || [ -z "$CF_Email" ]; then
       CF_Key=""
@@ -141,6 +144,28 @@ _get_root() {
   domain=$1
   i=1
   p=1
+
+  # Use Zone ID directly if provided
+  if [ "$CF_Zone_ID" ]; then
+    if ! _cf_rest GET "zones/$CF_Zone_ID"; then
+      return 1
+    else
+      if _contains "$response" '"success":true'; then
+        _domain=$(printf "%s\n" "$response" | _egrep_o "\"name\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | head -n 1)
+        if [ "$_domain" ]; then
+          _cutlength=$((${#domain} - ${#_domain} - 1))
+          _sub_domain=$(printf "%s" "$domain" | cut -c "1-$_cutlength")
+          _domain_id=$CF_Zone_ID
+          return 0
+        else
+          return 1
+        fi
+      else
+        return 1
+      fi
+    fi
+  fi
+
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     _debug h "$h"

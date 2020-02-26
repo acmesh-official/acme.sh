@@ -1,12 +1,12 @@
 #!/usr/bin/env sh
 
-VER=2.8.2
+VER=2.8.6
 
 PROJECT_NAME="acme.sh"
 
 PROJECT_ENTRY="acme.sh"
 
-PROJECT="https://github.com/Neilpang/$PROJECT_NAME"
+PROJECT="https://github.com/acmesh-official/$PROJECT_NAME"
 
 DEFAULT_INSTALL_HOME="$HOME/.$PROJECT_NAME"
 
@@ -90,6 +90,9 @@ DEBUG_LEVEL_3=3
 DEBUG_LEVEL_DEFAULT=$DEBUG_LEVEL_1
 DEBUG_LEVEL_NONE=0
 
+DOH_CLOUDFLARE=1
+DOH_GOOGLE=2
+
 HIDDEN_VALUE="[hidden](please add '--output-insecure' to see this value)"
 
 SYSLOG_ERROR="user.error"
@@ -123,17 +126,19 @@ NOTIFY_MODE_CERT=1
 
 NOTIFY_MODE_DEFAULT=$NOTIFY_MODE_BULK
 
-_DEBUG_WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-debug-acme.sh"
+_DEBUG_WIKI="https://github.com/acmesh-official/acme.sh/wiki/How-to-debug-acme.sh"
 
-_PREPARE_LINK="https://github.com/Neilpang/acme.sh/wiki/Install-preparations"
+_PREPARE_LINK="https://github.com/acmesh-official/acme.sh/wiki/Install-preparations"
 
-_STATELESS_WIKI="https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode"
+_STATELESS_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Stateless-Mode"
 
-_DNS_ALIAS_WIKI="https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode"
+_DNS_ALIAS_WIKI="https://github.com/acmesh-official/acme.sh/wiki/DNS-alias-mode"
 
-_DNS_MANUAL_WIKI="https://github.com/Neilpang/acme.sh/wiki/dns-manual-mode"
+_DNS_MANUAL_WIKI="https://github.com/acmesh-official/acme.sh/wiki/dns-manual-mode"
 
-_NOTIFY_WIKI="https://github.com/Neilpang/acme.sh/wiki/notify"
+_NOTIFY_WIKI="https://github.com/acmesh-official/acme.sh/wiki/notify"
+
+_SUDO_WIKI="https://github.com/acmesh-official/acme.sh/wiki/sudo"
 
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
@@ -148,7 +153,7 @@ fi
 
 __green() {
   if [ "${__INTERACTIVE}${ACME_NO_COLOR:-0}" = "10" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[1;31;32m%b\033[0m' "$1"
+    printf '\33[1;32m%b\33[0m' "$1"
     return
   fi
   printf -- "%b" "$1"
@@ -156,7 +161,7 @@ __green() {
 
 __red() {
   if [ "${__INTERACTIVE}${ACME_NO_COLOR:-0}" = "10" -o "${ACME_FORCE_COLOR}" = "1" ]; then
-    printf '\033[1;31;40m%b\033[0m' "$1"
+    printf '\33[1;31m%b\33[0m' "$1"
     return
   fi
   printf -- "%b" "$1"
@@ -173,7 +178,7 @@ _printargs() {
     printf -- "%s" "$1='$2'"
   fi
   printf "\n"
-  # return the saved exit status 
+  # return the saved exit status
   return "$_exitstatus"
 }
 
@@ -202,7 +207,7 @@ _dlg_versions() {
 
   echo "socat:"
   if _exists "socat"; then
-    socat -h 2>&1
+    socat -V 2>&1
   else
     _debug "socat doesn't exists."
   fi
@@ -260,6 +265,37 @@ _usage() {
   printf "\n" >&2
 }
 
+__debug_bash_helper() {
+  # At this point only do for --debug 3
+  if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -lt "$DEBUG_LEVEL_3" ]; then
+    return
+  fi
+  # Return extra debug info when running with bash, otherwise return empty
+  # string.
+  if [ -z "${BASH_VERSION}" ]; then
+    return
+  fi
+  # We are a bash shell at this point, return the filename, function name, and
+  # line number as a string
+  _dbh_saveIFS=$IFS
+  IFS=" "
+  # Must use eval or syntax error happens under dash. The eval should use
+  # single quotes as older versions of busybox had a bug with double quotes and
+  # eval.
+  # Use 'caller 1' as we want one level up the stack as we should be called
+  # by one of the _debug* functions
+  eval '_dbh_called=($(caller 1))'
+  IFS=$_dbh_saveIFS
+  eval '_dbh_file=${_dbh_called[2]}'
+  if [ -n "${_script_home}" ]; then
+    # Trim off the _script_home directory name
+    eval '_dbh_file=${_dbh_file#$_script_home/}'
+  fi
+  eval '_dbh_function=${_dbh_called[1]}'
+  eval '_dbh_lineno=${_dbh_called[0]}'
+  printf "%-40s " "$_dbh_file:${_dbh_function}:${_dbh_lineno}"
+}
+
 _debug() {
   if [ "${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}" -ge "$LOG_LEVEL_1" ]; then
     _log "$@"
@@ -268,7 +304,8 @@ _debug() {
     _syslog "$SYSLOG_DEBUG" "$@"
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_1" ]; then
-    _printargs "$@" >&2
+    _bash_debug=$(__debug_bash_helper)
+    _printargs "${_bash_debug}$@" >&2
   fi
 }
 
@@ -301,7 +338,8 @@ _debug2() {
     _syslog "$SYSLOG_DEBUG" "$@"
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_2" ]; then
-    _printargs "$@" >&2
+    _bash_debug=$(__debug_bash_helper)
+    _printargs "${_bash_debug}$@" >&2
   fi
 }
 
@@ -333,7 +371,8 @@ _debug3() {
     _syslog "$SYSLOG_DEBUG" "$@"
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_3" ]; then
-    _printargs "$@" >&2
+    _bash_debug=$(__debug_bash_helper)
+    _printargs "${_bash_debug}$@" >&2
   fi
 }
 
@@ -1695,18 +1734,37 @@ _post() {
     if [ "$HTTPS_INSECURE" ]; then
       _CURL="$_CURL --insecure  "
     fi
+    if [ "$httpmethod" = "HEAD" ]; then
+      _CURL="$_CURL -I  "
+    fi
     _debug "_CURL" "$_CURL"
     if [ "$needbase64" ]; then
-      if [ "$_postContentType" ]; then
-        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+      if [ "$body" ]; then
+        if [ "$_postContentType" ]; then
+          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+        else
+          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+        fi
       else
-        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+        if [ "$_postContentType" ]; then
+          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url" | _base64)"
+        else
+          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url" | _base64)"
+        fi
       fi
     else
-      if [ "$_postContentType" ]; then
-        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+      if [ "$body" ]; then
+        if [ "$_postContentType" ]; then
+          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+        else
+          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+        fi
       else
-        response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+        if [ "$_postContentType" ]; then
+          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url")"
+        else
+          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url")"
+        fi
       fi
     fi
     _ret="$?"
@@ -1721,6 +1779,9 @@ _post() {
     _WGET="$_ACME_WGET"
     if [ "$HTTPS_INSECURE" ]; then
       _WGET="$_WGET --no-check-certificate "
+    fi
+    if [ "$httpmethod" = "HEAD" ]; then
+      _WGET="$_WGET --read-timeout=3.0  --tries=2  "
     fi
     _debug "_WGET" "$_WGET"
     if [ "$needbase64" ]; then
@@ -1743,6 +1804,12 @@ _post() {
           response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
         else
           response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+        fi
+      elif [ "$httpmethod" = "HEAD" ]; then
+        if [ "$_postContentType" ]; then
+          response="$($_WGET --spider -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
+        else
+          response="$($_WGET --spider -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
         fi
       else
         if [ "$_postContentType" ]; then
@@ -1876,7 +1943,7 @@ _send_signed_request() {
       if [ "$ACME_NEW_NONCE" ]; then
         _debug2 "Get nonce with HEAD. ACME_NEW_NONCE" "$ACME_NEW_NONCE"
         nonceurl="$ACME_NEW_NONCE"
-        if _post "" "$nonceurl" "" "HEAD" "$__request_conent_type"; then
+        if _post "" "$nonceurl" "" "HEAD" "$__request_conent_type" >/dev/null; then
           _headers="$(cat "$HTTP_HEADER")"
           _debug2 _headers "$_headers"
           _CACHED_NONCE="$(echo "$_headers" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
@@ -1952,7 +2019,7 @@ _send_signed_request() {
     _debug code "$code"
 
     _debug2 original "$response"
-    if echo "$responseHeaders" | grep -i "Content-Type: application/json" >/dev/null 2>&1; then
+    if echo "$responseHeaders" | grep -i "Content-Type: *application/json" >/dev/null 2>&1; then
       response="$(echo "$response" | _normalizeJson)"
     fi
     _debug2 response "$response"
@@ -1973,8 +2040,10 @@ _send_signed_request() {
         continue
       fi
     fi
-    break
+    return 0
   done
+  _info "Giving up sending to CA server after $MAX_REQUEST_RETRY_TIMES retries."
+  return 1
 
 }
 
@@ -2097,7 +2166,7 @@ _getdeployconf() {
     return 0 # do nothing
   fi
   _saved=$(_readdomainconf "SAVED_$_rac_key")
-  eval "export $_rac_key=$_saved"
+  eval "export $_rac_key=\"$_saved\""
 }
 
 #_saveaccountconf  key  value  base64encode
@@ -2346,7 +2415,7 @@ __initHome() {
   if [ -z "$ACCOUNT_CONF_PATH" ]; then
     ACCOUNT_CONF_PATH="$_DEFAULT_ACCOUNT_CONF_PATH"
   fi
-
+  _debug3 ACCOUNT_CONF_PATH "$ACCOUNT_CONF_PATH"
   DEFAULT_LOG_FILE="$LE_CONFIG_HOME/$PROJECT_NAME.log"
 
   DEFAULT_CA_HOME="$LE_CONFIG_HOME/ca"
@@ -2797,6 +2866,11 @@ _setNginx() {
       _debug NGINX_CONF "$NGINX_CONF"
       NGINX_CONF="$(echo "$NGINX_CONF" | cut -d = -f 2)"
       _debug NGINX_CONF "$NGINX_CONF"
+      if [ -z "$NGINX_CONF" ]; then
+        _err "Can not find nginx conf."
+        NGINX_CONF=""
+        return 1
+      fi
       if [ ! -f "$NGINX_CONF" ]; then
         _err "'$NGINX_CONF' doesn't exist."
         NGINX_CONF=""
@@ -3265,6 +3339,11 @@ _on_issue_success() {
   if [ "$_chk_post_hook" ]; then
     _info "Run post hook:'$_chk_post_hook'"
     if ! (
+      export CERT_PATH
+      export CERT_KEY_PATH
+      export CA_CERT_PATH
+      export CERT_FULLCHAIN_PATH
+      export Le_Domain="$_main_domain"
       cd "$DOMAIN_PATH" && eval "$_chk_post_hook"
     ); then
       _err "Error when run post hook."
@@ -3276,6 +3355,11 @@ _on_issue_success() {
   if [ "$IS_RENEW" ] && [ "$_chk_renew_hook" ]; then
     _info "Run renew hook:'$_chk_renew_hook'"
     if ! (
+      export CERT_PATH
+      export CERT_KEY_PATH
+      export CA_CERT_PATH
+      export CERT_FULLCHAIN_PATH
+      export Le_Domain="$_main_domain"
       cd "$DOMAIN_PATH" && eval "$_chk_renew_hook"
     ); then
       _err "Error when run renew hook."
@@ -3283,7 +3367,7 @@ _on_issue_success() {
     fi
   fi
 
-  if _hasfield "$Le_Webroot" "$W_DNS"; then
+  if _hasfield "$Le_Webroot" "$W_DNS" && [ -z "$FORCE_DNS_MANUAL" ]; then
     _err "$_DNS_MANUAL_WARN"
   fi
 
@@ -3363,7 +3447,7 @@ _regAccount() {
   fi
 
   _debug2 responseHeaders "$responseHeaders"
-  _accUri="$(echo "$responseHeaders" | grep -i "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
+  _accUri="$(echo "$responseHeaders" | grep -i "^Location:" | _head_n 1 | cut -d ':' -f 2- | tr -d "\r\n ")"
   _debug "_accUri" "$_accUri"
   if [ -z "$_accUri" ]; then
     _err "Can not find account id url."
@@ -3591,7 +3675,7 @@ __trigger_validation() {
 }
 
 #endpoint  domain type
-_ns_lookup() {
+_ns_lookup_impl() {
   _ns_ep="$1"
   _ns_domain="$2"
   _ns_type="$3"
@@ -3615,7 +3699,7 @@ _ns_lookup_cf() {
   _cf_ld="$1"
   _cf_ld_type="$2"
   _cf_ep="https://cloudflare-dns.com/dns-query"
-  _ns_lookup "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
+  _ns_lookup_impl "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
 }
 
 #domain, type
@@ -3623,9 +3707,47 @@ _ns_purge_cf() {
   _cf_d="$1"
   _cf_d_type="$2"
   _debug "Cloudflare purge $_cf_d_type record for domain $_cf_d"
-  _cf_purl="https://1.0.0.1/api/v1/purge?domain=$_cf_d&type=$_cf_d_type"
+  _cf_purl="https://cloudflare-dns.com/api/v1/purge?domain=$_cf_d&type=$_cf_d_type"
   response="$(_post "" "$_cf_purl")"
   _debug2 response "$response"
+}
+
+#checks if cf server is available
+_ns_is_available_cf() {
+  if _get "https://cloudflare-dns.com" >/dev/null 2>&1; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+#domain, type
+_ns_lookup_google() {
+  _cf_ld="$1"
+  _cf_ld_type="$2"
+  _cf_ep="https://dns.google/resolve"
+  _ns_lookup_impl "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
+}
+
+#domain, type
+_ns_lookup() {
+  if [ -z "$DOH_USE" ]; then
+    _debug "Detect dns server first."
+    if _ns_is_available_cf; then
+      _debug "Use cloudflare doh server"
+      export DOH_USE=$DOH_CLOUDFLARE
+    else
+      _debug "Use google doh server"
+      export DOH_USE=$DOH_GOOGLE
+    fi
+  fi
+
+  if [ "$DOH_USE" = "$DOH_CLOUDFLARE" ] || [ -z "$DOH_USE" ]; then
+    _ns_lookup_cf "$@"
+  else
+    _ns_lookup_google "$@"
+  fi
+
 }
 
 #txtdomain, alias, txt
@@ -3636,7 +3758,7 @@ __check_txt() {
   _debug "_c_txtdomain" "$_c_txtdomain"
   _debug "_c_aliasdomain" "$_c_aliasdomain"
   _debug "_c_txt" "$_c_txt"
-  _answers="$(_ns_lookup_cf "$_c_aliasdomain" TXT)"
+  _answers="$(_ns_lookup "$_c_aliasdomain" TXT)"
   _contains "$_answers" "$_c_txt"
 
 }
@@ -3645,7 +3767,13 @@ __check_txt() {
 __purge_txt() {
   _p_txtdomain="$1"
   _debug _p_txtdomain "$_p_txtdomain"
-  _ns_purge_cf "$_p_txtdomain" "TXT"
+  if [ "$DOH_USE" = "$DOH_CLOUDFLARE" ] || [ -z "$DOH_USE" ]; then
+    _ns_purge_cf "$_p_txtdomain" "TXT"
+  else
+    _debug "no purge api for google dns api, just sleep 5 secs"
+    _sleep 5
+  fi
+
 }
 
 #wait and check each dns entries
@@ -3682,20 +3810,22 @@ _check_dns_entries() {
       fi
       _left=1
       _info "Not valid yet, let's wait 10 seconds and check next one."
-      _sleep 10
       __purge_txt "$txtdomain"
       if [ "$txtdomain" != "$aliasDomain" ]; then
         __purge_txt "$aliasDomain"
       fi
+      _sleep 10
     done
     if [ "$_left" ]; then
       _info "Let's wait 10 seconds and check again".
       _sleep 10
     else
       _info "All success, let's return"
-      break
+      return 0
     fi
   done
+  _info "Timed out waiting for DNS."
+  return 1
 
 }
 
@@ -3876,7 +4006,7 @@ issue() {
         _on_issue_err "$_post_hook"
         return 1
       fi
-      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
+      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n " | cut -d ":" -f 2-)"
       _debug Le_LinkOrder "$Le_LinkOrder"
       Le_OrderFinalize="$(echo "$response" | _egrep_o '"finalize" *: *"[^"]*"' | cut -d '"' -f 4)"
       _debug Le_OrderFinalize "$Le_OrderFinalize"
@@ -3955,7 +4085,18 @@ $_authorizations_map"
       fi
 
       if [ "$ACME_VERSION" = "2" ]; then
-        response="$(echo "$_authorizations_map" | grep "^$(_idn "$d")," | sed "s/$d,//")"
+        _idn_d="$(_idn "$d")"
+        _candindates="$(echo "$_authorizations_map" | grep -i "^$_idn_d,")"
+        _debug2 _candindates "$_candindates"
+        if [ "$(echo "$_candindates" | wc -l)" -gt 1 ]; then
+          for _can in $_candindates; do
+            if _startswith "$(echo "$_can" | tr '.' '|')" "$(echo "$_idn_d" | tr '.' '|'),"; then
+              _candindates="$_can"
+              break
+            fi
+          done
+        fi
+        response="$(echo "$_candindates" | sed "s/$_idn_d,//")"
         _debug2 "response" "$response"
         if [ -z "$response" ]; then
           _err "get to authz error."
@@ -3978,45 +4119,59 @@ $_authorizations_map"
 
       entry="$(echo "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
+      keyauthorization=""
       if [ -z "$entry" ]; then
-        _err "Error, can not get domain token entry $d"
-        _supported_vtypes="$(echo "$response" | _egrep_o "\"challenges\":\[[^]]*]" | tr '{' "\n" | grep type | cut -d '"' -f 4 | tr "\n" ' ')"
-        if [ "$_supported_vtypes" ]; then
-          _err "The supported validation types are: $_supported_vtypes, but you specified: $vtype"
+        if ! _startswith "$d" '*.'; then
+          _debug "Not a wildcard domain, lets check whether the validation is already valid."
+          if echo "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
+            _debug "$d is already valid."
+            keyauthorization="$STATE_VERIFIED"
+            _debug keyauthorization "$keyauthorization"
+          fi
         fi
-        _clearup
-        _on_issue_err "$_post_hook"
-        return 1
+        if [ -z "$keyauthorization" ]; then
+          _err "Error, can not get domain token entry $d for $vtype"
+          _supported_vtypes="$(echo "$response" | _egrep_o "\"challenges\":\[[^]]*]" | tr '{' "\n" | grep type | cut -d '"' -f 4 | tr "\n" ' ')"
+          if [ "$_supported_vtypes" ]; then
+            _err "The supported validation types are: $_supported_vtypes, but you specified: $vtype"
+          fi
+          _clearup
+          _on_issue_err "$_post_hook"
+          return 1
+        fi
       fi
-      token="$(echo "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
-      _debug token "$token"
 
-      if [ -z "$token" ]; then
-        _err "Error, can not get domain token $entry"
-        _clearup
-        _on_issue_err "$_post_hook"
-        return 1
-      fi
-      if [ "$ACME_VERSION" = "2" ]; then
-        uri="$(echo "$entry" | _egrep_o '"url":"[^"]*' | cut -d '"' -f 4 | _head_n 1)"
-      else
-        uri="$(echo "$entry" | _egrep_o '"uri":"[^"]*' | cut -d '"' -f 4)"
-      fi
-      _debug uri "$uri"
+      if [ -z "$keyauthorization" ]; then
+        token="$(echo "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
+        _debug token "$token"
 
-      if [ -z "$uri" ]; then
-        _err "Error, can not get domain uri. $entry"
-        _clearup
-        _on_issue_err "$_post_hook"
-        return 1
-      fi
-      keyauthorization="$token.$thumbprint"
-      _debug keyauthorization "$keyauthorization"
+        if [ -z "$token" ]; then
+          _err "Error, can not get domain token $entry"
+          _clearup
+          _on_issue_err "$_post_hook"
+          return 1
+        fi
+        if [ "$ACME_VERSION" = "2" ]; then
+          uri="$(echo "$entry" | _egrep_o '"url":"[^"]*' | cut -d '"' -f 4 | _head_n 1)"
+        else
+          uri="$(echo "$entry" | _egrep_o '"uri":"[^"]*' | cut -d '"' -f 4)"
+        fi
+        _debug uri "$uri"
 
-      if printf "%s" "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
-        _debug "$d is already verified."
-        keyauthorization="$STATE_VERIFIED"
+        if [ -z "$uri" ]; then
+          _err "Error, can not get domain uri. $entry"
+          _clearup
+          _on_issue_err "$_post_hook"
+          return 1
+        fi
+        keyauthorization="$token.$thumbprint"
         _debug keyauthorization "$keyauthorization"
+
+        if printf "%s" "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
+          _debug "$d is already verified."
+          keyauthorization="$STATE_VERIFIED"
+          _debug keyauthorization "$keyauthorization"
+        fi
       fi
 
       dvlist="$d$sep$keyauthorization$sep$uri$sep$vtype$sep$_currentRoot"
@@ -4380,7 +4535,7 @@ $_authorizations_map"
       return 1
     fi
     if [ -z "$Le_LinkOrder" ]; then
-      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n" | cut -d " " -f 2)"
+      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n" | cut -d ":" -f 2-)"
     fi
 
     _savedomainconf "Le_LinkOrder" "$Le_LinkOrder"
@@ -4929,18 +5084,14 @@ list() {
   if [ "$_raw" ]; then
     printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Created${_sep}Renew"
     for di in "${CERT_HOME}"/*.*/; do
-      if ! [ -d "$di" ]; then
-        _debug "Not directory, skip: $di"
-        continue
-      fi
       d=$(basename "$di")
       _debug d "$d"
       (
         if _endswith "$d" "$ECC_SUFFIX"; then
-          _isEcc=$(echo "$d" | cut -d "$ECC_SEP" -f 2)
+          _isEcc="ecc"
           d=$(echo "$d" | cut -d "$ECC_SEP" -f 1)
         fi
-        _initpath "$d" "$_isEcc"
+        DOMAIN_CONF="$di/$d.conf"
         if [ -f "$DOMAIN_CONF" ]; then
           . "$DOMAIN_CONF"
           printf "%s\n" "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
@@ -5435,7 +5586,7 @@ _deactivate() {
       return 1
     fi
 
-    authzUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ' ' -f 2 | tr -d "\r\n")"
+    authzUri="$(echo "$responseHeaders" | grep "^Location:" | _head_n 1 | cut -d ':' -f 2- | tr -d "\r\n")"
     _debug "authzUri" "$authzUri"
     if [ "$code" ] && [ ! "$code" = '201' ]; then
       _err "new-authz error: $response"
@@ -5932,8 +6083,12 @@ _send_notify() {
   _send_err=0
   for _n_hook in $(echo "$_nhooks" | tr ',' " "); do
     _n_hook_file="$(_findHook "" $_SUB_FOLDER_NOTIFY "$_n_hook")"
-    _info "Found $_n_hook_file"
-
+    _info "Sending via: $_n_hook"
+    _debug "Found $_n_hook_file for $_n_hook"
+    if [ -z "$_n_hook_file" ]; then
+      _err "Can not find the hook file for $_n_hook"
+      continue
+    fi
     if ! (
       if ! . "$_n_hook_file"; then
         _err "Load file $_n_hook_file error. Please check your api file and try again."
@@ -5967,8 +6122,8 @@ _send_notify() {
 _set_notify_hook() {
   _nhooks="$1"
 
-  _test_subject="Hello, this is notification from $PROJECT_NAME"
-  _test_content="If you receive this email, your notification works."
+  _test_subject="Hello, this is a notification from $PROJECT_NAME"
+  _test_content="If you receive this message, your notification works."
 
   _send_notify "$_test_subject" "$_test_content" "$_nhooks" 0
 
@@ -6061,7 +6216,7 @@ Parameters:
   --force, -f                       Used to force to install or force to renew a cert immediately.
   --staging, --test                 Use staging server, just for test.
   --debug                           Output debug info.
-  --output-insecure                 Output all the sensitive messages. By default all the credentials/sensitive messages are hidden from the output/debug/log for secure.
+  --output-insecure                 Output all the sensitive messages. By default all the credentials/sensitive messages are hidden from the output/debug/log for security.
   --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
   --alpn                            Use standalone alpn mode.
@@ -6070,8 +6225,8 @@ Parameters:
   --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
   --dnssleep  [$DEFAULT_DNS_SLEEP]                  The time in seconds to wait for all the txt records to take effect in dns api mode. Default $DEFAULT_DNS_SLEEP seconds.
 
-  --keylength, -k [2048]            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384.
-  --accountkeylength, -ak [2048]    Specifies the account key length.
+  --keylength, -k [2048]            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521.
+  --accountkeylength, -ak [2048]    Specifies the account key length: 2048, 3072, 4096
   --log    [/path/to/logfile]       Specifies the log file. The default is: \"$DEFAULT_LOG_FILE\" if you don't give a file path here.
   --log-level 1|2                   Specifies the log level, default is 1.
   --syslog [0|3|6|7]                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
@@ -6085,7 +6240,7 @@ Parameters:
 
   --reloadcmd \"service nginx reload\" After issue/renew, it's used to reload the server.
 
-  --server SERVER                   ACME Directory Resource URI. (default: https://acme-v01.api.letsencrypt.org/directory)
+  --server SERVER                   ACME Directory Resource URI. (default: $DEFAULT_CA)
   --accountconf                     Specifies a customized account config file.
   --home                            Specifies the home dir for $PROJECT_NAME.
   --cert-home                       Specifies the home dir to save all the certs, only valid for '--install' command.
@@ -6123,7 +6278,7 @@ Parameters:
   --branch, -b                      Only valid for '--upgrade' command, specifies the branch name to upgrade to.
 
   --notify-level  0|1|2|3           Set the notification level:  Default value is $NOTIFY_LEVEL_DEFAULT.
-                                     0: disabled, no notification will be sent. 
+                                     0: disabled, no notification will be sent.
                                      1: send notifications only when there is an error.
                                      2: send notifications when a cert is successfully renewed, or there is an error.
                                      3: send notifications when a cert is skipped, renewed, or error.
@@ -6162,6 +6317,8 @@ _installOnline() {
     chmod +x $PROJECT_ENTRY
     if ./$PROJECT_ENTRY install "$_nocron" "" "$_noprofile"; then
       _info "Install success!"
+      _initpath
+      _saveaccountconf "UPGRADE_HASH" "$(_getMasterHash)"
     fi
 
     cd ..
@@ -6171,9 +6328,19 @@ _installOnline() {
   )
 }
 
+_getMasterHash() {
+  _b="$BRANCH"
+  if [ -z "$_b" ]; then
+    _b="master"
+  fi
+  _hash_url="https://api.github.com/repos/acmesh-official/$PROJECT_NAME/git/refs/heads/$_b"
+  _get $_hash_url | tr -d "\r\n" | tr '{},' '\n' | grep '"sha":' | cut -d '"' -f 4
+}
+
 upgrade() {
   if (
     _initpath
+    [ -z "$FORCE" ] && [ "$(_getMasterHash)" = "$(_readaccountconf "UPGRADE_HASH")" ] && _info "Already uptodate!" && exit 0
     export LE_WORKING_DIR
     cd "$LE_WORKING_DIR"
     _installOnline "nocron" "noprofile"
@@ -6217,6 +6384,23 @@ _processAccountConf() {
     _saveaccountconf "ACME_USE_WGET" "$ACME_USE_WGET"
   fi
 
+}
+
+_checkSudo() {
+  if [ "$SUDO_GID" ] && [ "$SUDO_COMMAND" ] && [ "$SUDO_USER" ] && [ "$SUDO_UID" ]; then
+    if [ "$SUDO_USER" = "root" ] && [ "$SUDO_UID" = "0" ]; then
+      #it's root using sudo, no matter it's using sudo or not, just fine
+      return 0
+    fi
+    if [ "$SUDO_COMMAND" = "/bin/su" ] || [ "$SUDO_COMMAND" = "/bin/bash" ]; then
+      #it's a normal user doing "sudo su", or `sudo -i` or `sudo -s`
+      #fine
+      return 0
+    fi
+    #otherwise
+    return 1
+  fi
+  return 0
 }
 
 _process() {
@@ -6470,6 +6654,10 @@ _process() {
         ;;
       --nginx)
         wvalue="$NGINX"
+        if [ "$2" ] && ! _startswith "$2" "-"; then
+          wvalue="$NGINX$2"
+          shift
+        fi
         if [ -z "$_webroot" ]; then
           _webroot="$wvalue"
         else
@@ -6747,6 +6935,14 @@ _process() {
   done
 
   if [ "${_CMD}" != "install" ]; then
+    if [ "$__INTERACTIVE" ] && ! _checkSudo; then
+      if [ -z "$FORCE" ]; then
+        #Use "echo" here, instead of _info. it's too early
+        echo "It seems that you are using sudo, please read this link first:"
+        echo "$_SUDO_WIKI"
+        return 1
+      fi
+    fi
     __initHome
     if [ "$_log" ]; then
       if [ -z "$_logfile" ]; then
