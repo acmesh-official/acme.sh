@@ -2,5 +2,5 @@
 DNS api usage:
 
 
-https://github.com/Neilpang/acme.sh/wiki/dnsapi
+https://github.com/acmesh-official/acme.sh/wiki/dnsapi
 

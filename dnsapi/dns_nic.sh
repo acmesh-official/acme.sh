@@ -1,10 +1,9 @@
 #!/usr/bin/env sh
 
 #
-#NIC_Token="sdfsdfsdfljlbjkljlkjsdfoiwjedfglgkdlfgkfgldfkg"
-#
+#NIC_ClientID='0dc0xxxxxxxxxxxxxxxxxxxxxxxxce88'
+#NIC_ClientSecret='3LTtxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxnuW8'
 #NIC_Username="000000/NIC-D"
-
 #NIC_Password="xxxxxxx"
 
 NIC_Api="https://api.nic.ru"
@@ -13,22 +12,7 @@ dns_nic_add() {
   fulldomain="${1}"
   txtvalue="${2}"
 
-  NIC_Token="${NIC_Token:-$(_readaccountconf_mutable NIC_Token)}"
-  NIC_Username="${NIC_Username:-$(_readaccountconf_mutable NIC_Username)}"
-  NIC_Password="${NIC_Password:-$(_readaccountconf_mutable NIC_Password)}"
-  if [ -z "$NIC_Token" ] || [ -z "$NIC_Username" ] || [ -z "$NIC_Password" ]; then
-    NIC_Token=""
-    NIC_Username=""
-    NIC_Password=""
-    _err "You must export variables: NIC_Token, NIC_Username and NIC_Password"
-    return 1
-  fi
-
-  _saveaccountconf_mutable NIC_Customer "$NIC_Token"
-  _saveaccountconf_mutable NIC_Username "$NIC_Username"
-  _saveaccountconf_mutable NIC_Password "$NIC_Password"
-
-  if ! _nic_get_authtoken "$NIC_Username" "$NIC_Password" "$NIC_Token"; then
+  if ! _nic_get_authtoken save; then
     _err "get NIC auth token failed"
     return 1
   fi
@@ -59,18 +43,7 @@ dns_nic_rm() {
   fulldomain="${1}"
   txtvalue="${2}"
 
-  NIC_Token="${NIC_Token:-$(_readaccountconf_mutable NIC_Token)}"
-  NIC_Username="${NIC_Username:-$(_readaccountconf_mutable NIC_Username)}"
-  NIC_Password="${NIC_Password:-$(_readaccountconf_mutable NIC_Password)}"
-  if [ -z "$NIC_Token" ] || [ -z "$NIC_Username" ] || [ -z "$NIC_Password" ]; then
-    NIC_Token=""
-    NIC_Username=""
-    NIC_Password=""
-    _err "You must export variables: NIC_Token, NIC_Username and NIC_Password"
-    return 1
-  fi
-
-  if ! _nic_get_authtoken "$NIC_Username" "$NIC_Password" "$NIC_Token"; then
+  if ! _nic_get_authtoken; then
     _err "get NIC auth token failed"
     return 1
   fi
@@ -103,17 +76,64 @@ dns_nic_rm() {
 
 ####################  Private functions below ##################################
 
+#_nic_get_auth_elements [need2save]
+_nic_get_auth_elements() {
+  _need2save=$1
+
+  NIC_ClientID="${NIC_ClientID:-$(_readaccountconf_mutable NIC_ClientID)}"
+  NIC_ClientSecret="${NIC_ClientSecret:-$(_readaccountconf_mutable NIC_ClientSecret)}"
+  NIC_Username="${NIC_Username:-$(_readaccountconf_mutable NIC_Username)}"
+  NIC_Password="${NIC_Password:-$(_readaccountconf_mutable NIC_Password)}"
+
+  ## for backward compatibility
+  if [ -z "$NIC_ClientID" ] || [ -z "$NIC_ClientSecret" ]; then
+    NIC_Token="${NIC_Token:-$(_readaccountconf_mutable NIC_Token)}"
+    _debug NIC_Token "$NIC_Token"
+    if [ -n "$NIC_Token" ]; then
+      _two_values="$(echo "${NIC_Token}" | _dbase64)"
+      _debug _two_values "$_two_values"
+      NIC_ClientID=$(echo "$_two_values" | cut -d':' -f1)
+      NIC_ClientSecret=$(echo "$_two_values" | cut -d':' -f2-)
+      _debug restored_NIC_ClientID "$NIC_ClientID"
+      _debug restored_NIC_ClientSecret "$NIC_ClientSecret"
+    fi
+  fi
+
+  if [ -z "$NIC_ClientID" ] || [ -z "$NIC_ClientSecret" ] || [ -z "$NIC_Username" ] || [ -z "$NIC_Password" ]; then
+    NIC_ClientID=""
+    NIC_ClientSecret=""
+    NIC_Username=""
+    NIC_Password=""
+    _err "You must export variables: NIC_ClientID, NIC_ClientSecret, NIC_Username and NIC_Password"
+    return 1
+  fi
+
+  if [ "$_need2save" ]; then
+    _saveaccountconf_mutable NIC_ClientID "$NIC_ClientID"
+    _saveaccountconf_mutable NIC_ClientSecret "$NIC_ClientSecret"
+    _saveaccountconf_mutable NIC_Username "$NIC_Username"
+    _saveaccountconf_mutable NIC_Password "$NIC_Password"
+  fi
+
+  NIC_BasicAuth=$(printf "%s:%s" "${NIC_ClientID}" "${NIC_ClientSecret}" | _base64)
+  _debug NIC_BasicAuth "$NIC_BasicAuth"
+
+}
+
+#_nic_get_authtoken [need2save]
 _nic_get_authtoken() {
-  username="$1"
-  password="$2"
-  token="$3"
+  _need2save=$1
+
+  if ! _nic_get_auth_elements "$_need2save"; then
+    return 1
+  fi
 
   _info "Getting NIC auth token"
 
-  export _H1="Authorization: Basic $token"
+  export _H1="Authorization: Basic ${NIC_BasicAuth}"
   export _H2="Content-Type: application/x-www-form-urlencoded"
 
-  res=$(_post "grant_type=password&username=$username&password=$password&scope=%28GET%7CPUT%7CPOST%7CDELETE%29%3A%2Fdns-master%2F.%2B" "$NIC_Api/oauth/token" "" "POST")
+  res=$(_post "grant_type=password&username=${NIC_Username}&password=${NIC_Password}&scope=%28GET%7CPUT%7CPOST%7CDELETE%29%3A%2Fdns-master%2F.%2B" "$NIC_Api/oauth/token" "" "POST")
   if _contains "$res" "access_token"; then
     _auth_token=$(printf "%s" "$res" | cut -d , -f2 | tr -d "\"" | sed "s/access_token://")
     _info "Token received"
@@ -146,7 +166,7 @@ _get_root() {
     if _contains "$_all_domains" "^$h$"; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain=$h
-      _service=$(printf "%s" "$response" | grep "$_domain" | sed -r "s/.*service=\"(.*)\".*$/\1/")
+      _service=$(printf "%s" "$response" | grep "idn-name=\"$_domain\"" | sed -r "s/.*service=\"(.*)\".*$/\1/")
       return 0
     fi
     p="$i"

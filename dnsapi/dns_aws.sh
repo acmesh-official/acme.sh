@@ -12,7 +12,7 @@
 AWS_HOST="route53.amazonaws.com"
 AWS_URL="https://$AWS_HOST"
 
-AWS_WIKI="https://github.com/Neilpang/acme.sh/wiki/How-to-use-Amazon-Route53-API"
+AWS_WIKI="https://github.com/acmesh-official/acme.sh/wiki/How-to-use-Amazon-Route53-API"
 
 ########  Public functions #####################
 
