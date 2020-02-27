@@ -56,13 +56,7 @@ RUN for verb in help \
     printf -- "%b" "#!/usr/bin/env sh\n/root/.acme.sh/acme.sh --${verb} --config-home /acme.sh \"\$@\"" >/usr/local/bin/--${verb} && chmod +x /usr/local/bin/--${verb} \
   ; done
 
-RUN printf "%b" '#!'"/usr/bin/env sh\n \
-if [ \"\$1\" = \"daemon\" ];  then \n \
- trap \"echo stop && killall crond && exit 0\" SIGTERM SIGINT \n \
- crond && while true; do sleep 1; done;\n \
-else \n \
- exec -- \"\$@\"\n \
-fi" >/entry.sh && chmod +x /entry.sh
+RUN printf '#!/usr/bin/env sh\n\nif [ "$1" = "daemon" ]; then\n  exec crond -f\nfi\n\nexec -- "$@"\n' >/entry.sh && chmod +x /entry.sh
 
 VOLUME /acme.sh
 
