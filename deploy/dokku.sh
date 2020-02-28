@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 # This script used to automatically deploy dokku
 # global wildcard domain's certificate.
