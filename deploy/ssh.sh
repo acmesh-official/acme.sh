@@ -21,7 +21,7 @@
 # export DEPLOY_SSH_FULLCHAIN=""
 # export DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart"
 # export DEPLOY_SSH_BACKUP=""  # yes or no, default to yes
-# export DEPLOY_SSH_BATCH_MODE="yes"  # yes or no, default to yes
+# export DEPLOY_SSH_MULTI_CALL=""  # yes or no, default to no
 #
 ########  Public functions #####################
 
@@ -84,19 +84,19 @@ ssh_deploy() {
   fi
   _savedomainconf Le_Deploy_ssh_backup "$Le_Deploy_ssh_backup"
 
-  # BATCH_MODE is optional. If not provided then default to yes
-  if [ "$DEPLOY_SSH_BATCH_MODE" = "no" ]; then
-    Le_Deploy_ssh_batch_mode="no"
-  elif [ -z "$Le_Deploy_ssh_batch_mode" ] || [ "$DEPLOY_SSH_BATCH_MODE" = "yes" ]; then
-    Le_Deploy_ssh_batch_mode="yes"
+  # MULTI_CALL is optional. If not provided then default to no
+  if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
+    Le_Deploy_ssh_multi_call="yes"
+  elif [ -z "$Le_Deploy_ssh_multi_call" ] || [ "$DEPLOY_SSH_MULTI_CALL" = "no" ]; then
+    Le_Deploy_ssh_multi_call="no"
   fi
-  _savedomainconf Le_Deploy_ssh_batch_mode "$Le_Deploy_ssh_batch_mode"
+  _savedomainconf Le_Deploy_ssh_multi_call "$Le_Deploy_ssh_multi_call"
 
   _info "Deploy certificates to remote server $Le_Deploy_ssh_user@$Le_Deploy_ssh_server"
-  if [ "$Le_Deploy_ssh_batch_mode" = "yes" ]; then
-    _info "Using BATCH MODE... Multiple commands sent in single call to remote host"
+  if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+    _info "Using MULTI_CALL mode... Required commands sent in multiple calls to remote host"
   else
-    _info "Commands sent individually in multiple calls to remote host"
+    _info "Required commands batched and sent in single call to remote host"
   fi
 
   if [ "$Le_Deploy_ssh_backup" = "yes" ]; then
@@ -110,7 +110,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
     _cmdstr="mkdir -p $_backupdir; $_cmdstr"
     _info "Backup of old certificate files will be placed in remote directory $_backupdir"
     _info "Backup directories erased after 180 days."
-    if [ "$Le_Deploy_ssh_batch_mode" = "no" ]; then
+    if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
       if ! _ssh_remote_cmd "$_cmdstr"; then
         return $_err_code
       fi
@@ -132,7 +132,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
     # copy new certificate into file.
     _cmdstr="$_cmdstr echo \"$(cat "$_ckey")\" > $Le_Deploy_ssh_keyfile;"
     _info "will copy private key to remote file $Le_Deploy_ssh_keyfile"
-    if [ "$Le_Deploy_ssh_batch_mode" = "no" ]; then
+    if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
       if ! _ssh_remote_cmd "$_cmdstr"; then
         return $_err_code
       fi
@@ -158,7 +158,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
     # copy new certificate into file.
     _cmdstr="$_cmdstr echo \"$(cat "$_ccert")\" $_pipe $Le_Deploy_ssh_certfile;"
     _info "will copy certificate to remote file $Le_Deploy_ssh_certfile"
-    if [ "$Le_Deploy_ssh_batch_mode" = "no" ]; then
+    if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
       if ! _ssh_remote_cmd "$_cmdstr"; then
         return $_err_code
       fi
@@ -185,7 +185,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
     # copy new certificate into file.
     _cmdstr="$_cmdstr echo \"$(cat "$_cca")\" $_pipe $Le_Deploy_ssh_cafile;"
     _info "will copy CA file to remote file $Le_Deploy_ssh_cafile"
-    if [ "$Le_Deploy_ssh_batch_mode" = "no" ]; then
+    if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
       if ! _ssh_remote_cmd "$_cmdstr"; then
         return $_err_code
       fi
@@ -213,7 +213,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
     # copy new certificate into file.
     _cmdstr="$_cmdstr echo \"$(cat "$_cfullchain")\" $_pipe $Le_Deploy_ssh_fullchain;"
     _info "will copy fullchain to remote file $Le_Deploy_ssh_fullchain"
-    if [ "$Le_Deploy_ssh_batch_mode" = "no" ]; then
+    if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
       if ! _ssh_remote_cmd "$_cmdstr"; then
         return $_err_code
       fi
@@ -230,7 +230,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
   if [ -n "$Le_Deploy_ssh_remote_cmd" ]; then
     _cmdstr="$_cmdstr $Le_Deploy_ssh_remote_cmd;"
     _info "Will execute remote command $Le_Deploy_ssh_remote_cmd"
-    if [ "$Le_Deploy_ssh_batch_mode" = "no" ]; then
+    if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
       if ! _ssh_remote_cmd "$_cmdstr"; then
         return $_err_code
       fi
@@ -238,7 +238,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
     fi
   fi
 
-  # if running as batch mode then all commands sent in a single SSH call now...
+  # if commands not all sent in multiple calls then all commands sent in a single SSH call now...
   if [ -n "$_cmdstr" ]; then
     if ! _ssh_remote_cmd "$_cmdstr"; then
       return $_err_code
