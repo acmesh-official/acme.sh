@@ -3518,6 +3518,7 @@ updateaccount() {
   _send_signed_request "$_accUri" "$updjson"
 
   if [ "$code" = '200' ]; then
+    echo "$response" >"$ACCOUNT_JSON_PATH"
     _info "account update success for $_accUri."
   else
     _info "Error. The account was not updated."
