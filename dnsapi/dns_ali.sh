@@ -310,7 +310,7 @@ _ali_url_encode(){
         ;;
       #other hex
       *)
-        printf '%%%s' "$_hex_code" | tr '[a-z]' '[A-Z]'
+        printf '%%%s' "$_hex_code" | tr 'a-z' 'A-Z'
         ;;
     esac
   done
@@ -348,7 +348,7 @@ _add_record_query() {
   query=''
   query=$query'AccessKeyId='$Ali_Key
   query=$query'&Action=AddDomainRecord'
-  query=$query'&DomainName='$(_ali_urlencode $1)
+  query=$query'&DomainName='$(_ali_urlencode "$1")
   query=$query'&Format=json'
   query=$query'&RR='$2
   query=$query'&SignatureMethod=HMAC-SHA1'
@@ -377,7 +377,7 @@ _describe_records_query() {
   query=''
   query=$query'AccessKeyId='$Ali_Key
   query=$query'&Action=DescribeDomainRecords'
-  query=$query'&DomainName='$(_ali_urlencode $1)
+  query=$query'&DomainName='$(_ali_urlencode "$1")
   query=$query'&Format=json'
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query"&SignatureNonce=$(_ali_nonce)"
