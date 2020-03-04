@@ -100,7 +100,7 @@ _ali_rest() {
   fi
 }
 
-_ali_url_encode(){
+_ali_url_encode() {
   _hex_str=$(_hex_dump)
   _debug3 "_url_encode"
   _debug3 "_hex_str" "$_hex_str"
