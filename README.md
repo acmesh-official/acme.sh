@@ -52,11 +52,11 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 |4|[![](https://acmesh-official.github.io/acmetest/status/windows-cygwin.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)|Windows (cygwin with curl, openssl and crontab included)
 |5|[![](https://acmesh-official.github.io/acmetest/status/freebsd.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)|FreeBSD
 |6|[![](https://acmesh-official.github.io/acmetest/status/pfsense.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)|pfsense
-|7|[![](https://acmesh-official.github.io/acmetest/status/opensuse-latest.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)|openSUSE
+|7|[![](https://acmesh-official.github.io/acmetest/status/opensuse-leap.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)|openSUSE
 |8|[![](https://acmesh-official.github.io/acmetest/status/alpine-latest.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)|Alpine Linux (with curl)
-|9|[![](https://acmesh-official.github.io/acmetest/status/base-archlinux.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)|Archlinux
+|9|[![](https://acmesh-official.github.io/acmetest/status/archlinux-latest.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)|Archlinux
 |10|[![](https://acmesh-official.github.io/acmetest/status/fedora-latest.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)|fedora
-|11|[![](https://acmesh-official.github.io/acmetest/status/kalilinux-kali-linux-docker.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)|Kali Linux
+|11|[![](https://acmesh-official.github.io/acmetest/status/kalilinux-kali.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)|Kali Linux
 |12|[![](https://acmesh-official.github.io/acmetest/status/oraclelinux-latest.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)|Oracle Linux
 |13|[![](https://acmesh-official.github.io/acmetest/status/proxmox.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)| Proxmox https://pve.proxmox.com/wiki/HTTPSCertificateConfiguration#Let.27s_Encrypt_using_acme.sh
 |14|-----| Cloud Linux  https://github.com/acmesh-official/acme.sh/issues/111
@@ -66,6 +66,7 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 |18|[![](https://acmesh-official.github.io/acmetest/status/solaris.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)|SunOS/Solaris
 |19|[![](https://acmesh-official.github.io/acmetest/status/gentoo-stage3-amd64.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)|Gentoo Linux
 |20|[![Build Status](https://travis-ci.org/acmesh-official/acme.sh.svg?branch=master)](https://travis-ci.org/acmesh-official/acme.sh)|Mac OSX
+|21|[![](https://acmesh-official.github.io/acmetest/status/clearlinux-latest.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)|ClearLinux
 
 For all build statuses, check our [weekly build project](https://github.com/acmesh-official/acmetest):
 
