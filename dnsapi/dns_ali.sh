@@ -310,7 +310,7 @@ _ali_url_encode(){
         ;;
       #other hex
       *)
-        printf '%%%s' "$_hex_code" | tr 'a-z' 'A-Z'
+        printf '%%%s' "$_hex_code" | tr '[:lower:]' '[:upper:]'
         ;;
     esac
   done
