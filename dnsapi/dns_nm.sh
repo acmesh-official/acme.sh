@@ -70,7 +70,6 @@ fulldomain="${1}"
     return 1
   fi
 
-
   zone="$(echo $fulldomain | _egrep_o "[^.]+.[^.]+$")"
   get="https://namemaster.de/api/api.php?User=$NM_user&Password=$NM_md5&Antwort=csv&Int=0&Typ=TXT&Zone=$zone&hostname=$fulldomain&TXT=$txt&Action=Delete_IN&TTL=0"
   erg="$(_get "$get")"
@@ -78,7 +77,6 @@ fulldomain="${1}"
     _err "error $action $zone TXT: $txt"
     return 1
   fi
-
 
 
 if _contains "$erg" "Success"; then
@@ -90,12 +88,6 @@ else
 
 fi
 
-
   _debug "ok Auto $zone TXT: $txt erg: $erg"
   return 0
-
-
-
-   # nothing to do
-   _debug "delete $1 $2 happens automatically through next time of issuing $1"
 }
