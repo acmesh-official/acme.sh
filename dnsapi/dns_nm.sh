@@ -75,7 +75,7 @@ dns_nm_rm() {
   exit_code="$?"
   if [ "$exit_code" != "0" ]; then
     _err "error Deleting $zone TXT: $txt_value"
-    _err "Error $exit_code?"
+    _err "Error $exit_code"
     return 1
   fi
 
