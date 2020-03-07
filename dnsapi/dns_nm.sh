@@ -32,7 +32,7 @@ dns_nm_add() {
   _saveaccountconf_mutable NM_user "$NM_user"
   _saveaccountconf_mutable NM_md5 "$NM_md5"
 
-  zone="$(echo $fulldomain | _egrep_o "[^.]+.[^.]+$")"
+  zone="$(echo "$fulldomain" | _egrep_o "[^.]+.[^.]+$")"
   get="https://namemaster.de/api/api.php?User=$NM_user&Password=$NM_md5&Antwort=csv&Int=0&Typ=ACME&Zone=$zone&hostname=$fulldomain&TXT=$txt_value&Action=Auto&Lifetime=3600"
 
   if ! erg="$(_get "$get")"; then
@@ -66,7 +66,7 @@ dns_nm_rm() {
     return 1
   fi
 
-  zone="$(echo $fulldomain | _egrep_o "[^.]+.[^.]+$")"
+  zone="$(echo "$fulldomain" | _egrep_o "[^.]+.[^.]+$")"
   get="https://namemaster.de/api/api.php?User=$NM_user&Password=$NM_md5&Antwort=csv&Int=0&Typ=TXT&Zone=$zone&hostname=$fulldomain&TXT=$txt_value&Action=Delete_IN&TTL=0"
 
   if ! erg="$(_get "$get")"; then
