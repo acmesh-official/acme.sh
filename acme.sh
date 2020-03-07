@@ -48,7 +48,6 @@ LOCAL_ANY_ADDRESS="0.0.0.0"
 
 DEFAULT_RENEW=60
 
-
 NO_VALUE="no"
 
 W_DNS="dns"

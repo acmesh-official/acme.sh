@@ -37,7 +37,7 @@ dns_nm_add() {
   erg="$(_get "$get")"
 
   if [ "$?" != "0" ]; then
-    _err "error Auto $zone TXT: $txt_value"
+    _err "error Ading $zone TXT: $txt_value"
     _err "Error $?"
     return 1
   fi
@@ -45,7 +45,7 @@ dns_nm_add() {
   if _contains "$erg" "Success"; then
     _info "Success, TXT Added, OK"
   else
-    _err "error Auto $zone TXT: $txt_value erg: $erg"
+    _err "error Adding $zone TXT: $txt_value erg: $erg"
     return 1
   fi
 
@@ -71,7 +71,7 @@ dns_nm_rm() {
   get="https://namemaster.de/api/api.php?User=$NM_user&Password=$NM_md5&Antwort=csv&Int=0&Typ=TXT&Zone=$zone&hostname=$fulldomain&TXT=$txt_value&Action=Delete_IN&TTL=0"
   erg="$(_get "$get")"
   if [ "$?" != "0" ]; then
-    _err "error $action $zone TXT: $txt_value"
+    _err "error Deleting $zone TXT: $txt_value"
     _err "Error $?"
     return 1
   fi
