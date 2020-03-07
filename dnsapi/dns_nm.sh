@@ -37,7 +37,6 @@ dns_nm_add() {
 
   if ! erg="$(_get "$get")"; then
     _err "error Deleting $zone TXT: $txt_value"
-    _err "Error $exit_code"
     return 1
   fi
 
@@ -50,6 +49,7 @@ dns_nm_add() {
 
   _debug "ok Auto $zone TXT: $txt_value erg: $erg"
   return 0
+
 }
 
 dns_nm_rm() {
@@ -71,7 +71,6 @@ dns_nm_rm() {
 
   if ! erg="$(_get "$get")"; then
     _err "error Deleting $zone TXT: $txt_value"
-    _err "Error $exit_code"
     return 1
   fi
 
