@@ -35,8 +35,7 @@ dns_nm_add() {
   zone="$(echo $fulldomain | _egrep_o "[^.]+.[^.]+$")"
   get="https://namemaster.de/api/api.php?User=$NM_user&Password=$NM_md5&Antwort=csv&Int=0&Typ=ACME&Zone=$zone&hostname=$fulldomain&TXT=$txt_value&Action=Auto&Lifetime=3600"
 
-  if !   erg="$(_get "$get")"
-  then
+  if ! erg="$(_get "$get")"; then
     _err "error Deleting $zone TXT: $txt_value"
     _err "Error $exit_code"
     return 1
@@ -70,8 +69,7 @@ dns_nm_rm() {
   zone="$(echo $fulldomain | _egrep_o "[^.]+.[^.]+$")"
   get="https://namemaster.de/api/api.php?User=$NM_user&Password=$NM_md5&Antwort=csv&Int=0&Typ=TXT&Zone=$zone&hostname=$fulldomain&TXT=$txt_value&Action=Delete_IN&TTL=0"
 
-  if !   erg="$(_get "$get")"
-  then
+  if ! erg="$(_get "$get")"; then
     _err "error Deleting $zone TXT: $txt_value"
     _err "Error $exit_code"
     return 1
