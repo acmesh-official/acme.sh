@@ -39,6 +39,7 @@ synology_dsm_deploy() {
   _getdeployconf SYNO_Username
   _getdeployconf SYNO_Password
   _getdeployconf SYNO_Create
+  _getdeployconf SYNO_DID
   if [ -z "$SYNO_Username" ] || [ -z "$SYNO_Password" ]; then
     SYNO_Username=""
     SYNO_Password=""
@@ -100,6 +101,7 @@ synology_dsm_deploy() {
   # Now that we know the username and password are good, save them
   _savedeployconf SYNO_Username "$SYNO_Username"
   _savedeployconf SYNO_Password "$SYNO_Password"
+  _savedeployconf SYNO_DID "$SYNO_DID"
   _debug token "$token"
 
   _info "Getting certificates in Synology DSM"
