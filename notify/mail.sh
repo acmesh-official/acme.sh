@@ -76,17 +76,16 @@ mail_send() {
 }
 
 _mail_bin() {
-  if [ -n "$MAIL_BIN" ]; then
-    _MAIL_BIN="$MAIL_BIN"
-  elif _exists "sendmail"; then
-    _MAIL_BIN="sendmail"
-  elif _exists "ssmtp"; then
-    _MAIL_BIN="ssmtp"
-  elif _exists "mutt"; then
-    _MAIL_BIN="mutt"
-  elif _exists "mail"; then
-    _MAIL_BIN="mail"
-  else
+  _MAIL_BIN=""
+
+  for b in "$MAIL_BIN" sendmail ssmtp mutt mail; do
+    if _exists "$b"; then
+      _MAIL_BIN="$b"
+      break
+    fi
+  done
+
+  if [ -z "$_MAIL_BIN" ]; then
     _err "Please install sendmail, ssmtp, mutt or mail first."
     return 1
   fi
@@ -95,25 +94,22 @@ _mail_bin() {
 }
 
 _mail_cmnd() {
+  _MAIL_ARGS=""
+
   case $(basename "$_MAIL_BIN") in
     sendmail)
       if [ -n "$MAIL_FROM" ]; then
-        echo "'$_MAIL_BIN' -f '$MAIL_FROM' '$MAIL_TO'"
-      else
-        echo "'$_MAIL_BIN' '$MAIL_TO'"
+        _MAIL_ARGS="-f '$MAIL_FROM'"
       fi
       ;;
-    ssmtp)
-      echo "'$_MAIL_BIN' '$MAIL_TO'"
-      ;;
     mutt | mail)
-      echo "'$_MAIL_BIN' -s '$_subject' '$MAIL_TO'"
+      _MAIL_ARGS="-s '$_subject'"
       ;;
     *)
-      _err "Command $MAIL_BIN is not supported, use sendmail, ssmtp, mutt or mail."
-      return 1
       ;;
   esac
+
+  echo "'$_MAIL_BIN' $_MAIL_ARGS '$MAIL_TO'"
 }
 
 _mail_body() {
