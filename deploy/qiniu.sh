@@ -47,7 +47,7 @@ qiniu_deploy() {
   string_key=$(sed 's/$/\\n/' "$_ckey" | tr -d '\n')
 
   sslcert_path="/sslcert"
-  sslcerl_body="{\"name\":\"$_cdomain\",\"common_name\":\"$QINIU_CDN_DOMAIN\",\"ca\":\"$string_fullchain\",\"pri\":\"$string_key\"}"
+  sslcerl_body="{\"name\":\"$_cdomain\",\"ca\":\"$string_fullchain\",\"pri\":\"$string_key\"}"
   sslcert_access_token="$(_make_access_token "$sslcert_path")"
   _debug sslcert_access_token "$sslcert_access_token"
   export _H1="Authorization: QBox $sslcert_access_token"
@@ -60,14 +60,31 @@ qiniu_deploy() {
   fi
 
   _debug sslcert_response "$sslcert_response"
-  _info "Certificate successfully uploaded, updating domain $_cdomain"
+  _info "Certificate successfully uploaded"
 
   ## extract certId
   _certId="$(printf "%s" "$sslcert_response" | _normalizeJson | _egrep_o "certID\": *\"[^\"]*\"" | cut -d : -f 2)"
   _debug certId "$_certId"
 
+  IFS=', ' read -r -a targets <<<"$QINIU_CDN_DOMAIN"
+  for target in ${targets[@]}; do
+    _deploy_domain "$_certId" "$target"
+  done
+}
+
+_make_access_token() {
+  _token="$(printf "%s\n" "$1" | _hmac "sha1" "$(printf "%s" "$QINIU_SK" | _hex_dump | tr -d " ")" | _base64 | tr -- '+/' '-_')"
+  echo "$QINIU_AK:$_token"
+}
+
+_deploy_domain() {
+  _certId=$1
+  target_domain=$2
+
+  _info "Updating domain $target_domain"
+
   ## update domain ssl config
-  update_path="/domain/$QINIU_CDN_DOMAIN/httpsconf"
+  update_path="/domain/$target_domain/httpsconf"
   update_body="{\"certid\":$_certId,\"forceHttps\":false}"
   update_access_token="$(_make_access_token "$update_path")"
   _debug update_access_token "$update_access_token"
@@ -84,9 +101,4 @@ qiniu_deploy() {
   _info "Certificate successfully deployed"
 
   return 0
-}
-
-_make_access_token() {
-  _token="$(printf "%s\n" "$1" | _hmac "sha1" "$(printf "%s" "$QINIU_SK" | _hex_dump | tr -d " ")" | _base64 | tr -- '+/' '-_')"
-  echo "$QINIU_AK:$_token"
 }
