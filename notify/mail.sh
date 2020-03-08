@@ -6,6 +6,7 @@
 #MAIL_FROM="yyyy@gmail.com"
 #MAIL_TO="yyyy@gmail.com"
 #MAIL_NOVALIDATE=""
+#MAIL_MSMTP_ACCOUNT=""
 
 mail_send() {
   _subject="$1"
@@ -78,7 +79,7 @@ mail_send() {
 _mail_bin() {
   _MAIL_BIN=""
 
-  for b in "$MAIL_BIN" sendmail ssmtp mutt mail; do
+  for b in "$MAIL_BIN" sendmail ssmtp mutt mail msmtp; do
     if _exists "$b"; then
       _MAIL_BIN="$b"
       break
@@ -86,7 +87,7 @@ _mail_bin() {
   done
 
   if [ -z "$_MAIL_BIN" ]; then
-    _err "Please install sendmail, ssmtp, mutt or mail first."
+    _err "Please install sendmail, ssmtp, mutt, mail or msmtp first."
     return 1
   fi
 
@@ -105,8 +106,16 @@ _mail_cmnd() {
     mutt | mail)
       _MAIL_ARGS="-s '$_subject'"
       ;;
-    *)
+    msmtp)
+      if [ -n "$MAIL_FROM" ]; then
+        _MAIL_ARGS="-f '$MAIL_FROM'"
+      fi
+
+      if [ -n "$MAIL_MSMTP_ACCOUNT" ]; then
+        _MAIL_ARGS="$_MAIL_ARGS -a '$MAIL_MSMTP_ACCOUNT'"
+      fi
       ;;
+    *) ;;
   esac
 
   echo "'$_MAIL_BIN' $_MAIL_ARGS '$MAIL_TO'"
@@ -114,7 +123,7 @@ _mail_cmnd() {
 
 _mail_body() {
   case $(basename "$_MAIL_BIN") in
-    sendmail | ssmtp)
+    sendmail | ssmtp | msmtp)
       if [ -n "$MAIL_FROM" ]; then
         echo "From: $MAIL_FROM"
       fi
