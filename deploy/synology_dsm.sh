@@ -15,6 +15,7 @@
 # SYNO_Scheme - defaults to http
 # SYNO_Hostname - defaults to localhost
 # SYNO_Port - defaults to 5000
+# SYNO_DID - device ID to skip OTP - defaults to empty
 #
 #returns 0 means success, otherwise error.
 
@@ -79,7 +80,7 @@ synology_dsm_deploy() {
 
   # Login, get the token from JSON and session id from cookie
   _info "Logging into $SYNO_Hostname:$SYNO_Port"
-  response=$(_get "$_base_url/webman/login.cgi?username=$SYNO_Username&passwd=$SYNO_Password&enable_syno_token=yes")
+  response=$(_get "$_base_url/webman/login.cgi?username=$SYNO_Username&passwd=$SYNO_Password&enable_syno_token=yes&device_id=$SYNO_DID")
   token=$(echo "$response" | grep "SynoToken" | sed -n 's/.*"SynoToken" *: *"\([^"]*\).*/\1/p')
   _debug3 response "$response"
 
