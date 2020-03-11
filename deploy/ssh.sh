@@ -20,8 +20,8 @@
 # export DEPLOY_SSH_CAFILE="/etc/stunnel/uca.pem"
 # export DEPLOY_SSH_FULLCHAIN=""
 # export DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart"
-# export DEPLOY_SSH_BACKUP=""  # yes or no, default to yes
-# export DEPLOY_SSH_MULTI_CALL=""  # yes or no, default to no
+# export DEPLOY_SSH_BACKUP=""  # yes or no, default to yes or previously saved value
+# export DEPLOY_SSH_MULTI_CALL=""  # yes or no, default to no or previously saved value
 #
 ########  Public functions #####################
 
@@ -76,7 +76,7 @@ ssh_deploy() {
     Le_Deploy_ssh_cmd="ssh -T"
   fi
 
-  # BACKUP is optional. If not provided then default to yes
+  # BACKUP is optional. If not provided then default to previously saved value or yes.
   if [ "$DEPLOY_SSH_BACKUP" = "no" ]; then
     Le_Deploy_ssh_backup="no"
   elif [ -z "$Le_Deploy_ssh_backup" ] || [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
@@ -84,13 +84,15 @@ ssh_deploy() {
   fi
   _savedomainconf Le_Deploy_ssh_backup "$Le_Deploy_ssh_backup"
 
-  # MULTI_CALL is optional. If not provided then default to no
+  # MULTI_CALL is optional. If not provided then default to previously saved
+  # value (which may be undefined... equivalent to "no").
   if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
     Le_Deploy_ssh_multi_call="yes"
-  elif [ -z "$Le_Deploy_ssh_multi_call" ] || [ "$DEPLOY_SSH_MULTI_CALL" = "no" ]; then
-    Le_Deploy_ssh_multi_call="no"
+    _savedomainconf Le_Deploy_ssh_multi_call "$Le_Deploy_ssh_multi_call"
+  elif [ "$DEPLOY_SSH_MULTI_CALL" = "no" ]; then
+    Le_Deploy_ssh_multi_call=""
+    _cleardomainconf Le_Deploy_ssh_multi_call
   fi
-  _savedomainconf Le_Deploy_ssh_multi_call "$Le_Deploy_ssh_multi_call"
 
   _info "Deploy certificates to remote server $Le_Deploy_ssh_user@$Le_Deploy_ssh_server"
   if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
