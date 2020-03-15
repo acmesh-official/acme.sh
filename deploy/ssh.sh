@@ -21,6 +21,7 @@
 # export DEPLOY_SSH_FULLCHAIN=""
 # export DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart"
 # export DEPLOY_SSH_BACKUP=""  # yes or no, default to yes or previously saved value
+# export DEPLOY_SSH_BACKUP_PATH=".acme_ssh_deploy"  # path on remote system. Defaults to .acme_ssh_deploy
 # export DEPLOY_SSH_MULTI_CALL=""  # yes or no, default to no or previously saved value
 #
 ########  Public functions #####################
@@ -34,9 +35,8 @@ ssh_deploy() {
   _cfullchain="$5"
   _err_code=0
   _cmdstr=""
-  _homedir='~'
-  _backupprefix="$_homedir/.acme_ssh_deploy/$_cdomain-backup"
-  _backupdir="$_backupprefix-$(_utc_date | tr ' ' '-')"
+  _backupprefix=""
+  _backupdir=""
 
   if [ -f "$DOMAIN_CONF" ]; then
     # shellcheck disable=SC1090
@@ -84,6 +84,14 @@ ssh_deploy() {
   fi
   _savedomainconf Le_Deploy_ssh_backup "$Le_Deploy_ssh_backup"
 
+  # BACKUP_PATH is optional. If not provided then default to previously saved value or .acme_ssh_deploy
+  if [ -n "$DEPLOY_SSH_BACKUP_PATH" ]; then
+    Le_Deploy_ssh_backup_path="$DEPLOY_SSH_BACKUP_PATH"
+  elif [ -z "$Le_Deploy_ssh_backup_path" ]; then
+    Le_Deploy_ssh_backup_path=".acme_ssh_deploy"
+  fi
+  _savedomainconf Le_Deploy_ssh_backup_path "$Le_Deploy_ssh_backup_path"
+
   # MULTI_CALL is optional. If not provided then default to previously saved
   # value (which may be undefined... equivalent to "no").
   if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
@@ -102,6 +110,8 @@ ssh_deploy() {
   fi
 
   if [ "$Le_Deploy_ssh_backup" = "yes" ]; then
+    _backupprefix="$Le_Deploy_ssh_backup_path/$_cdomain-backup"
+    _backupdir="$_backupprefix-$(_utc_date | tr ' ' '-')"
     # run cleanup on the backup directory, erase all older
     # than 180 days (15552000 seconds).
     _cmdstr="{ now=\"\$(date -u +%s)\"; for fn in $_backupprefix*; \
