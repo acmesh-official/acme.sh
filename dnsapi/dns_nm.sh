@@ -63,34 +63,10 @@ dns_nm_add() {
 dns_nm_rm() {
 
   fulldomain=$1
-  txt_value=$2
-
-  NM_user="${NM_user:-$(_readaccountconf_mutable NM_user)}"
-  NM_sha256="${NM_sha256:-$(_readaccountconf_mutable NM_sha256)}"
-  if [ -z "$NM_user" ] || [ -z "$NM_sha256" ]; then
-    NM_user=""
-    NM_sha256=""
-    _err "No auth details provided. Please set user credentials using the \$NM_user and \$NM_sha256 environment variables."
-    return 1
-  fi
-
-  zone="$(echo "$fulldomain" | _egrep_o "[^.]+.[^.]+$")"
-  get="$namemaster_api?User=$NM_user&Password=$NM_sha256&Antwort=csv&Typ=TXT&Zone=$zone&hostname=$fulldomain&TXT=$txt_value&Action=Delete_IN"
-
-  if ! erg="$(_get "$get")"; then
-    _err "error Deleting $fulldomain TXT: $txt_value"
-    return 1
-  fi
-
-  if _contains "$erg" "Success"; then
-    _info "Success, TXT removed, OK"
-  else
-    _err "error Auto $fulldomain TXT: $txt_value erg: $erg"
-    return 1
-  fi
-
-  _debug "ok Auto $fulldomain TXT: $txt_value erg: $erg"
-  return 0
+  txtvalue=$2
+  _info "TXT enrty in $fulldomain is deleted automatically"
+  _debug fulldomain "$fulldomain"
+  _debug txtvalue "$txtvalue"
 
 }
 
