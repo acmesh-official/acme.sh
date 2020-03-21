@@ -44,7 +44,6 @@ dns_nm_add() {
 
   get="$namemaster_api?User=$NM_user&Password=$NM_sha256&Antwort=csv&Typ=ACME&zone=$zone&hostname=$fulldomain&TXT=$txt_value&Action=Auto&Lifetime=3600"
 
-
   if ! erg="$(_get "$get")"; then
     _err "error Adding $fulldomain TXT: $txt_value"
     return 1
@@ -105,8 +104,7 @@ _get_root() {
     _err "error getting Zone"
     return 1
   else
-    if _contains "$zone" "hostname not found"
-    then
+    if _contains "$zone" "hostname not found"; then
       return 1
     fi
   fi
