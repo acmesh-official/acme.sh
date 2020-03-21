@@ -16,7 +16,6 @@
 
 namemaster_api="https://namemaster.de/api/api.php"
 
-
 dns_nm_add() {
   fulldomain=$1
   txt_value=$2
@@ -35,7 +34,6 @@ dns_nm_add() {
   _saveaccountconf_mutable NM_user "$NM_user"
   _saveaccountconf_mutable NM_sha256 "$NM_sha256"
 
-
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain" "$fulldomain"
@@ -46,8 +44,8 @@ dns_nm_add() {
 
   get="$namemaster_api?User=$NM_user&Password=$NM_sha256&Antwort=csv&Typ=ACME&zone=$zone&hostname=$fulldomain&TXT=$txt_value&Action=Auto&Lifetime=3600"
 
-  if !   erg="$(_get "$get")"
-  then
+
+  if ! erg="$(_get "$get")"; then
     _err "error Adding $fulldomain TXT: $txt_value"
     return 1
   fi
@@ -77,12 +75,10 @@ dns_nm_rm() {
     return 1
   fi
 
-
   zone="$(echo "$fulldomain" | _egrep_o "[^.]+.[^.]+$")"
   get="$namemaster_api?User=$NM_user&Password=$NM_sha256&Antwort=csv&Typ=TXT&Zone=$zone&hostname=$fulldomain&TXT=$txt_value&Action=Delete_IN"
 
-  if !   erg="$(_get "$get")"
-  then
+  if ! erg="$(_get "$get")"; then
     _err "error Deleting $fulldomain TXT: $txt_value"
     return 1
   fi
@@ -99,15 +95,13 @@ dns_nm_rm() {
 
 }
 
-
 _get_root() {
 
   domain=$1
 
   get="$namemaster_api?User=$NM_user&Password=$NM_sha256&Typ=acme&hostname=$domain&Action=getzone&antwort=csv"
 
-  if ! zone="$(_get "$get")"
-  then
+  if ! zone="$(_get "$get")"; then
     _err "error getting Zone"
     return 1
   else
