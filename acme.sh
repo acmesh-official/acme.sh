@@ -3828,6 +3828,34 @@ _check_dns_entries() {
 
 }
 
+# cert path, ca cert path
+# returns 0 if certificate is affirmatively revoked
+_checkRevocation() {
+  _debug "Checking revocation via OCSP"
+
+  # Extract the OCSP URL from the leaf certificate AIA extension
+  ocspurl=$(${ACME_OPENSSL_BIN:-openssl} x509 -in "$1" -noout -ext authorityInfoAccess \
+    | _egrep_o "OCSP - URI:(.+)$" | cut -d':' -f 2- | tr -d "\r\n ")
+  if [ -z "$ocspurl" ]; then
+    _debug "No OCSP URL found in certificate, skipping revocation check"
+    return 1
+  fi
+
+  # Perform the OCSP query
+  ocspresult=$(${ACME_OPENSSL_BIN:-openssl} ocsp -no_nonce -url "$ocspurl" -issuer "$2" -cert "$1" \
+    -timeout 10 -text 2>/dev/null)
+  _debug "OCSP Response: $ocspresult"
+
+  # The certificate is affirmatively revoked if we see "Cert Status: revoked". We can't act on anything else.
+  # https://github.com/openssl/openssl/blob/e7fb44e7c3f7a37ff83a6b69ba51a738e549bf5c/crypto/ocsp/ocsp_prn.c
+  ocsprevoked=$(echo "$ocspresult" | _egrep_o "\bCert Status: revoked$")
+  if [ -n "$ocsprevoked" ]; then
+    return 0
+  fi
+
+  return 1
+}
+
 #webroot, domain domainlist  keylength
 issue() {
   if [ -z "$2" ]; then
@@ -3886,9 +3914,12 @@ issue() {
   _initAPI
 
   if [ -f "$DOMAIN_CONF" ]; then
+    _checkRevocation "$CERT_PATH" "$CA_CERT_PATH"
+    isRevoked=$?
+
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
     _debug Le_NextRenewTime "$Le_NextRenewTime"
-    if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
+    if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ] && [ "$isRevoked" != "0" ]; then
       _saved_domain=$(_readdomainconf Le_Domain)
       _debug _saved_domain "$_saved_domain"
       _saved_alt=$(_readdomainconf Le_Alt)
