@@ -3059,7 +3059,7 @@ _setNginx() {
     _start_f="$NGINX_CONF"
   fi
   _debug "Start detect nginx conf for $_d from:$_start_f"
-  if ! pushd $(dirname $_start_f) > /dev/null; then
+  if ! pushd $(dirname $_start_f) >/dev/null; then
     _err "Can not chdir to nginx conf folder $(dirname $_start_f)"
     return 1
   fi
@@ -3067,7 +3067,7 @@ _setNginx() {
     _err "Can not find conf file for domain $d"
     return 1
   fi
-  popd > /dev/null
+  popd >/dev/null
   _info "Found conf file: $FOUND_REAL_NGINX_CONF"
 
   _ln=$FOUND_REAL_NGINX_CONF_LN
