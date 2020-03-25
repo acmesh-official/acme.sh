@@ -53,7 +53,7 @@ dns_dp_rm() {
     return 1
   fi
 
-  if ! _rest POST "Record.List" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain"; then
+  if ! _rest POST "Record.List" "login_token=$DP_Id,$DP_Key&format=json&lang=en&domain_id=$_domain_id&sub_domain=$_sub_domain"; then
     _err "Record.Lis error."
     return 1
   fi
@@ -70,7 +70,7 @@ dns_dp_rm() {
     return 1
   fi
 
-  if ! _rest POST "Record.Remove" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&record_id=$record_id"; then
+  if ! _rest POST "Record.Remove" "login_token=$DP_Id,$DP_Key&format=json&lang=en&domain_id=$_domain_id&record_id=$record_id"; then
     _err "Record.Remove error."
     return 1
   fi
@@ -89,7 +89,7 @@ add_record() {
 
   _info "Adding record"
 
-  if ! _rest POST "Record.Create" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain&record_type=TXT&value=$txtvalue&record_line=默认"; then
+  if ! _rest POST "Record.Create" "login_token=$DP_Id,$DP_Key&format=json&lang=en&domain_id=$_domain_id&sub_domain=$_sub_domain&record_type=TXT&value=$txtvalue&record_line=默认"; then
     return 1
   fi
 
@@ -113,7 +113,7 @@ _get_root() {
       return 1
     fi
 
-    if ! _rest POST "Domain.Info" "login_token=$DP_Id,$DP_Key&format=json&domain=$h"; then
+    if ! _rest POST "Domain.Info" "login_token=$DP_Id,$DP_Key&format=json&lang=en&domain=$h"; then
       return 1
     fi
 
