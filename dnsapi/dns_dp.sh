@@ -75,7 +75,7 @@ dns_dp_rm() {
     return 1
   fi
 
-  _contains "$response" "Action completed successful"
+  _contains "$response" "\"code\":\"1\""
 
 }
 
@@ -93,7 +93,7 @@ add_record() {
     return 1
   fi
 
-  _contains "$response" "Action completed successful" || _contains "$response" "Domain record already exists"
+  _contains "$response" "\"code\":\"1\"" || _contains "$response" "Domain record already exists"
 }
 
 ####################  Private functions below ##################################
@@ -117,7 +117,7 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$response" "Action completed successful"; then
+    if _contains "$response" "\"code\":\"1\""; then
       _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
       _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ]; then
