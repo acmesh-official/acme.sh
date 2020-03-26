@@ -6069,6 +6069,11 @@ _send_notify() {
   _nhooks="$3"
   _nerror="$4"
 
+  if [ ! -z "$MAIL_SUBJECT_SUFFIX" ]; then
+    _nsubject="$_nsubject $MAIL_SUBJECT_SUFFIX"
+    _debug "The MAIL_SUBJECT_SUFFIX is $MAIL_SUBJECT_SUFFIX."
+  fi
+
   if [ "$NOTIFY_LEVEL" = "$NOTIFY_LEVEL_DISABLE" ]; then
     _debug "The NOTIFY_LEVEL is $NOTIFY_LEVEL, disabled, just return."
     return 0
