@@ -53,7 +53,7 @@ dns_dp_rm() {
     return 1
   fi
 
-  if ! _rest POST "Record.List" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain"; then
+  if ! _rest POST "Record.List" "login_token=$DP_Id,$DP_Key&format=json&lang=en&domain_id=$_domain_id&sub_domain=$_sub_domain"; then
     _err "Record.Lis error."
     return 1
   fi
@@ -70,12 +70,12 @@ dns_dp_rm() {
     return 1
   fi
 
-  if ! _rest POST "Record.Remove" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&record_id=$record_id"; then
+  if ! _rest POST "Record.Remove" "login_token=$DP_Id,$DP_Key&format=json&lang=en&domain_id=$_domain_id&record_id=$record_id"; then
     _err "Record.Remove error."
     return 1
   fi
 
-  _contains "$response" "Action completed successful"
+  _contains "$response" "successful"
 
 }
 
@@ -89,11 +89,11 @@ add_record() {
 
   _info "Adding record"
 
-  if ! _rest POST "Record.Create" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain&record_type=TXT&value=$txtvalue&record_line=默认"; then
+  if ! _rest POST "Record.Create" "login_token=$DP_Id,$DP_Key&format=json&lang=en&domain_id=$_domain_id&sub_domain=$_sub_domain&record_type=TXT&value=$txtvalue&record_line=默认"; then
     return 1
   fi
 
-  _contains "$response" "Action completed successful" || _contains "$response" "Domain record already exists"
+  _contains "$response" "successful" || _contains "$response" "Domain record already exists"
 }
 
 ####################  Private functions below ##################################
@@ -113,11 +113,11 @@ _get_root() {
       return 1
     fi
 
-    if ! _rest POST "Domain.Info" "login_token=$DP_Id,$DP_Key&format=json&domain=$h"; then
+    if ! _rest POST "Domain.Info" "login_token=$DP_Id,$DP_Key&format=json&lang=en&domain=$h"; then
       return 1
     fi
 
-    if _contains "$response" "Action completed successful"; then
+    if _contains "$response" "successful"; then
       _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
       _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ]; then
