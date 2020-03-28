@@ -78,7 +78,7 @@ dns_arvan_rm() {
 
   if ! printf "%s" "$response" | grep \"current_page\":1 >/dev/null; then
     _err "Error on Arvan Api"
-    -err "Please create a github issue with debbug log"
+    _err "Please create a github issue with debbug log"
     return 1
   fi
 
@@ -149,11 +149,11 @@ _arvan_rest() {
 
   export _H1="Authorization: $token_trimmed"
 
-  if [ "$mtd" == "DELETE" ]; then
+  if [ "$mtd" = "DELETE" ]; then
   # DELETE Request shouldn't have Content-Type
     _debug data "$data"
     response="$(_post "$data" "$ARVAN_API_URL/$ep" "" "$mtd")"
-  elif [ "$mtd" == "POST" ]; then
+  elif [ "$mtd" = "POST" ]; then
     export _H2="Content-Type: application/json"
     _debug data "$data"
     response="$(_post "$data" "$ARVAN_API_URL/$ep" "" "$mtd")"
