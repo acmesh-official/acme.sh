@@ -5198,6 +5198,16 @@ installcert() {
   _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"
 }
 
+_checkSkip() {
+  _src="$1"
+  _dst="$2"
+
+  if [ ! "$_dst" ]; then return 0; fi
+  if [ ! -f "$_dst" ] || [ "$_dst" -ot "$_src" ]; then return 1; fi
+
+  return 0
+}
+
 #domain  cert  key  ca  fullchain reloadcmd backup-prefix
 _installcert() {
   _main_domain="$1"
@@ -5222,6 +5232,17 @@ _installcert() {
   fi
   if [ "$_real_fullchain" = "$NO_VALUE" ]; then
     _real_fullchain=""
+  fi
+
+  if [ -z "$FORCE" ] && \
+    _checkSkip "$CERT_PATH" "$_real_cert" && \
+    _checkSkip "$CA_CERT_PATH" "$_real_ca" && \
+    _checkSkip "$CERT_KEY_PATH" "$_real_key" && \
+    _checkSkip "$CERT_FULLCHAIN_PATH" "$_real_fullchain" ; then
+
+    _info "Skip, no destination file needs an update."
+    _info "Add '$(__red '--force')' to force the installation."
+    return $RENEW_SKIP
   fi
 
   _backup_path="$DOMAIN_BACKUP_PATH/$_backup_prefix"
