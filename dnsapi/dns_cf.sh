@@ -94,6 +94,7 @@ dns_cf_rm() {
 
   CF_Token="${CF_Token:-$(_readaccountconf_mutable CF_Token)}"
   CF_Account_ID="${CF_Account_ID:-$(_readaccountconf_mutable CF_Account_ID)}"
+  CF_Zone_ID="${CF_Zone_ID:-$(_readaccountconf_mutable CF_Zone_ID)}"
   CF_Key="${CF_Key:-$(_readaccountconf_mutable CF_Key)}"
   CF_Email="${CF_Email:-$(_readaccountconf_mutable CF_Email)}"
 
