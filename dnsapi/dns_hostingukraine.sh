@@ -7,10 +7,10 @@
 # Usage: ./acme.sh --issue -d yourdomain.com [-d '*.yourdomain.com'] --dns dns_hostingukraine
 # API endpoint:
 HostingUkraine_Api="https://adm.tools/api.php"
-# Your login:
-HostingUkraine_Login=""
-# Your api token:
-HostingUkraine_Token=""
+# Your login (uncomment the line below and change xxxx to your login):
+#HostingUkraine_Login="xxxx"
+# Your api token (uncomment the line below and change xxxx to your token):
+#HostingUkraine_Token="xxxx"
 
 ########  Public functions #####################
 # Used to add txt record
