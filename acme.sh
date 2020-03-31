@@ -4540,7 +4540,7 @@ $_authorizations_map"
     _savedomainconf "Le_LinkOrder" "$Le_LinkOrder"
 
     _link_cert_retry=0
-    _MAX_CERT_RETRY=5
+    _MAX_CERT_RETRY=30
     while [ "$_link_cert_retry" -lt "$_MAX_CERT_RETRY" ]; do
       if _contains "$response" "\"status\":\"valid\""; then
         _debug "Order status is valid."
