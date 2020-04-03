@@ -50,8 +50,8 @@ dns_aws_add() {
 
 
   if [ -n "$AWS_ZONE_ID" ] ; then
-    _debug "Using provided zone ID: $AWS_ZONE_ID"
-    _domain_id="$AWS_ZONE_ID"
+    _debug "Using hardcoded zone ID"
+    _domain_id="/hostedzone/$AWS_ZONE_ID"
   else
     _debug "First detect the root zone"
     if ! _get_root "$fulldomain"; then
@@ -59,8 +59,8 @@ dns_aws_add() {
       _sleep 1
       return 1
     fi
-    _debug _domain_id "$_domain_id"
   fi
+  _debug _domain_id "$_domain_id"
 
   _info "Getting existing records for $fulldomain"
   if ! aws_rest GET "2013-04-01$_domain_id/rrset" "name=$fulldomain&type=TXT"; then
@@ -114,11 +114,16 @@ dns_aws_rm() {
     _use_container_role || _use_instance_role
   fi
 
-  _debug "First detect the root zone"
-  if ! _get_root "$fulldomain"; then
-    _err "invalid domain"
-    _sleep 1
-    return 1
+  if [ -n "$AWS_ZONE_ID" ] ; then
+    _debug "Using hardcoded zone ID"
+    _domain_id="/hostedzone/${AWS_ZONE_ID}"
+  else
+    _debug "First detect the root zone"
+    if ! _get_root "$fulldomain"; then
+      _err "invalid domain"
+      _sleep 1
+      return 1
+    fi
   fi
   _debug _domain_id "$_domain_id"
 
