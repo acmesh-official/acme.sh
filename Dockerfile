@@ -58,6 +58,8 @@ RUN for verb in help \
 
 RUN printf "%b" '#!'"/usr/bin/env sh\n \
 if [ \"\$1\" = \"daemon\" ];  then \n \
+ acme.sh --uninstall-cronjob \n \
+ acme.sh --install-cronjob --config-home \"\$LE_CONFIG_HOME\" \n \
  trap \"echo stop && killall crond && exit 0\" SIGTERM SIGINT \n \
  crond && while true; do sleep 1; done;\n \
 else \n \
