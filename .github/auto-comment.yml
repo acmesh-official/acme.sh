@@ -1,0 +1,18 @@
+# Comment to a new issue.
+issuesOpened: >
+  If this is a bug report, please upgrade to the latest code and try again:
+  请先更新到最新版再试:
+  ```sh
+  acme.sh --upgrade
+  ```
+
+
+pullRequestOpened: >
+  If this is a PR to support new DNS API or new notification API, please read this guide first:
+  https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
+  
+  Please check the guide items one by one.
+  
+  Then add your usage here:
+  https://github.com/acmesh-official/acme.sh/wiki/dnsapi
+
