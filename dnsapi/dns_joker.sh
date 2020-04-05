@@ -18,6 +18,8 @@
 #
 # Author: aattww (https://github.com/aattww/)
 #
+# Report bugs to https://github.com/acmesh-official/acme.sh/issues/2840
+#
 # JOKER_USERNAME="xxxx"
 # JOKER_PASSWORD="xxxx"
 
