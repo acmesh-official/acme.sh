@@ -120,9 +120,7 @@ _joker_rest() {
   data="$1"
   _debug data "$data"
 
-  response="$(_post "$data" "$JOKER_API" "" "POST")"
-
-  if [ "$?" != "0" ]; then
+  if ! response="$(_post "$data" "$JOKER_API" "" "POST")"; then
     _err "Error POSTing"
     return 1
   fi
