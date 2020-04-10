@@ -83,9 +83,7 @@ dns_kappernet_rm() {
     fi
   fi
   _err "Problem creating TXT DNS record"
-
 }
-
 
 ####################  Private functions below ##################################
 # called with hostname
@@ -117,6 +115,7 @@ _get_root() {
   done
   return 1
 }
+
 ################################################################################
 # calls the kapper.net DNS Panel API
 # with 
@@ -125,7 +124,7 @@ _get_root() {
 _kappernet_api() {
   method=$1
   param="$2"
-  
+
   _debug param "PARAMETER=$param"
   url="$KAPPERNETDNS_Api&$param"
   _debug url "URL=$url"
