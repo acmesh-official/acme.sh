@@ -20,16 +20,16 @@ dns_kappernet_add() {
     KAPPERNETDNS_Key=""
     KAPPERNETDNS_Secret=""
     _err "You haven't defined kapper.net api key and secret yet."
-    _err "Please send us mail to support@kapper.net get your and secret."
-  return 1
+    _err "Please send us mail to support@kapper.net get your key and secret."
+    return 1
   fi
 
   #store the api key and email to the account conf file.
   _saveaccountconf KAPPERNETDNS_Key "$KAPPERNETDNS_Key"
   _saveaccountconf KAPPERNETDNS_Secret "$KAPPERNETDNS_Secret"
   _debug "Checking Domain ..."
-    if ! _get_root "$fullhostname"; then
-      _err "invalid domain"
+  if ! _get_root "$fullhostname"; then
+    _err "invalid domain"
     return 1
   fi
   _debug _sub_domain "SUBDOMAIN: $_sub_domain"
@@ -39,7 +39,7 @@ dns_kappernet_add() {
   data="%7B%22name%22%3A%22$fullhostname%22%2C%22type%22%3A%22TXT%22%2C%22content%22%3A%22$txtvalue%22%2C%22ttl%22%3A%223600%22%2C%22prio%22%3A%22%22%7D"
   if _kappernet_api GET "action=new&subject=$_domain&data=$data"; then
 
-    if _contains "$response" "{\"OK\":true" ; then
+    if _contains "$response" "{\"OK\":true"; then
       _info "Waiting 120 seconds for DNS to spread the new record"
       _sleep 120
       return 0
@@ -63,7 +63,7 @@ dns_kappernet_rm() {
     KAPPERNETDNS_Key=""
     KAPPERNETDNS_Secret=""
     _err "You haven't defined kapper.net api key and secret yet."
-    _err "Please send us mail to get your and secret."
+    _err "Please send us mail to get your key and secret."
     return 1
   fi
 
@@ -74,7 +74,7 @@ dns_kappernet_rm() {
   _info "Trying to remove the TXT Record: $fullhostname"
 
   if _kappernet_api GET "action=del&subject=$fullhostname"; then
-    if _contains "$response"  "{\"OK\":true"; then
+    if _contains "$response" "{\"OK\":true"; then
       return 0
     else
       _err "Error deleting DNS Record: $fullhostname"
@@ -134,7 +134,7 @@ _kappernet_api() {
     response="$(_get "$url")"
   else
     _err "Unsupported method"
-  return 1
+    return 1
   fi
 
   _debug2 response "$response"
