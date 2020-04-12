@@ -86,7 +86,7 @@ _get_root() {
       return 1
     fi
 
-    if ! _constellix_rest GET "domains/search?name=$h"; then
+    if ! _constellix_rest GET "domains/search?exact=$h"; then
       return 1
     fi
 
