@@ -12,7 +12,7 @@
 # Only a username is required.  All others are optional.
 #
 # The following examples are for QNAP NAS running QTS 4.2
-# export DEPLOY_SSH_CMD=""  # defaults to ssh
+# export DEPLOY_SSH_CMD=""  # defaults to "ssh -T"
 # export DEPLOY_SSH_USER="admin"  # required
 # export DEPLOY_SSH_SERVER="qnap"  # defaults to domain name
 # export DEPLOY_SSH_KEYFILE="/etc/stunnel/stunnel.pem"
@@ -20,7 +20,9 @@
 # export DEPLOY_SSH_CAFILE="/etc/stunnel/uca.pem"
 # export DEPLOY_SSH_FULLCHAIN=""
 # export DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart"
-# export DEPLOY_SSH_BACKUP=""  # yes or no, default to yes
+# export DEPLOY_SSH_BACKUP=""  # yes or no, default to yes or previously saved value
+# export DEPLOY_SSH_BACKUP_PATH=".acme_ssh_deploy"  # path on remote system. Defaults to .acme_ssh_deploy
+# export DEPLOY_SSH_MULTI_CALL=""  # yes or no, default to no or previously saved value
 #
 ########  Public functions #####################
 
@@ -31,10 +33,10 @@ ssh_deploy() {
   _ccert="$3"
   _cca="$4"
   _cfullchain="$5"
+  _err_code=0
   _cmdstr=""
-  _homedir='~'
-  _backupprefix="$_homedir/.acme_ssh_deploy/$_cdomain-backup"
-  _backupdir="$_backupprefix-$(_utc_date | tr ' ' '-')"
+  _backupprefix=""
+  _backupdir=""
 
   if [ -f "$DOMAIN_CONF" ]; then
     # shellcheck disable=SC1090
@@ -71,18 +73,62 @@ ssh_deploy() {
     Le_Deploy_ssh_cmd="$DEPLOY_SSH_CMD"
     _savedomainconf Le_Deploy_ssh_cmd "$Le_Deploy_ssh_cmd"
   elif [ -z "$Le_Deploy_ssh_cmd" ]; then
-    Le_Deploy_ssh_cmd="ssh"
+    Le_Deploy_ssh_cmd="ssh -T"
   fi
 
-  # BACKUP is optional. If not provided then default to yes
+  # BACKUP is optional. If not provided then default to previously saved value or yes.
   if [ "$DEPLOY_SSH_BACKUP" = "no" ]; then
     Le_Deploy_ssh_backup="no"
-  elif [ -z "$Le_Deploy_ssh_backup" ]; then
+  elif [ -z "$Le_Deploy_ssh_backup" ] || [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
     Le_Deploy_ssh_backup="yes"
   fi
   _savedomainconf Le_Deploy_ssh_backup "$Le_Deploy_ssh_backup"
 
+  # BACKUP_PATH is optional. If not provided then default to previously saved value or .acme_ssh_deploy
+  if [ -n "$DEPLOY_SSH_BACKUP_PATH" ]; then
+    Le_Deploy_ssh_backup_path="$DEPLOY_SSH_BACKUP_PATH"
+  elif [ -z "$Le_Deploy_ssh_backup_path" ]; then
+    Le_Deploy_ssh_backup_path=".acme_ssh_deploy"
+  fi
+  _savedomainconf Le_Deploy_ssh_backup_path "$Le_Deploy_ssh_backup_path"
+
+  # MULTI_CALL is optional. If not provided then default to previously saved
+  # value (which may be undefined... equivalent to "no").
+  if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
+    Le_Deploy_ssh_multi_call="yes"
+    _savedomainconf Le_Deploy_ssh_multi_call "$Le_Deploy_ssh_multi_call"
+  elif [ "$DEPLOY_SSH_MULTI_CALL" = "no" ]; then
+    Le_Deploy_ssh_multi_call=""
+    _cleardomainconf Le_Deploy_ssh_multi_call
+  fi
+
   _info "Deploy certificates to remote server $Le_Deploy_ssh_user@$Le_Deploy_ssh_server"
+  if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+    _info "Using MULTI_CALL mode... Required commands sent in multiple calls to remote host"
+  else
+    _info "Required commands batched and sent in single call to remote host"
+  fi
+
+  if [ "$Le_Deploy_ssh_backup" = "yes" ]; then
+    _backupprefix="$Le_Deploy_ssh_backup_path/$_cdomain-backup"
+    _backupdir="$_backupprefix-$(_utc_date | tr ' ' '-')"
+    # run cleanup on the backup directory, erase all older
+    # than 180 days (15552000 seconds).
+    _cmdstr="{ now=\"\$(date -u +%s)\"; for fn in $_backupprefix*; \
+do if [ -d \"\$fn\" ] && [ \"\$(expr \$now - \$(date -ur \$fn +%s) )\" -ge \"15552000\" ]; \
+then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; done; }; $_cmdstr"
+    # Alternate version of above... _cmdstr="find $_backupprefix* -type d -mtime +180 2>/dev/null | xargs rm -rf; $_cmdstr"
+    # Create our backup directory for overwritten cert files.
+    _cmdstr="mkdir -p $_backupdir; $_cmdstr"
+    _info "Backup of old certificate files will be placed in remote directory $_backupdir"
+    _info "Backup directories erased after 180 days."
+    if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+      if ! _ssh_remote_cmd "$_cmdstr"; then
+        return $_err_code
+      fi
+      _cmdstr=""
+    fi
+  fi
 
   # KEYFILE is optional.
   # If provided then private key will be copied to provided filename.
@@ -98,6 +144,12 @@ ssh_deploy() {
     # copy new certificate into file.
     _cmdstr="$_cmdstr echo \"$(cat "$_ckey")\" > $Le_Deploy_ssh_keyfile;"
     _info "will copy private key to remote file $Le_Deploy_ssh_keyfile"
+    if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+      if ! _ssh_remote_cmd "$_cmdstr"; then
+        return $_err_code
+      fi
+      _cmdstr=""
+    fi
   fi
 
   # CERTFILE is optional.
@@ -118,6 +170,12 @@ ssh_deploy() {
     # copy new certificate into file.
     _cmdstr="$_cmdstr echo \"$(cat "$_ccert")\" $_pipe $Le_Deploy_ssh_certfile;"
     _info "will copy certificate to remote file $Le_Deploy_ssh_certfile"
+    if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+      if ! _ssh_remote_cmd "$_cmdstr"; then
+        return $_err_code
+      fi
+      _cmdstr=""
+    fi
   fi
 
   # CAFILE is optional.
@@ -139,6 +197,12 @@ ssh_deploy() {
     # copy new certificate into file.
     _cmdstr="$_cmdstr echo \"$(cat "$_cca")\" $_pipe $Le_Deploy_ssh_cafile;"
     _info "will copy CA file to remote file $Le_Deploy_ssh_cafile"
+    if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+      if ! _ssh_remote_cmd "$_cmdstr"; then
+        return $_err_code
+      fi
+      _cmdstr=""
+    fi
   fi
 
   # FULLCHAIN is optional.
@@ -161,6 +225,12 @@ ssh_deploy() {
     # copy new certificate into file.
     _cmdstr="$_cmdstr echo \"$(cat "$_cfullchain")\" $_pipe $Le_Deploy_ssh_fullchain;"
     _info "will copy fullchain to remote file $Le_Deploy_ssh_fullchain"
+    if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+      if ! _ssh_remote_cmd "$_cmdstr"; then
+        return $_err_code
+      fi
+      _cmdstr=""
+    fi
   fi
 
   # REMOTE_CMD is optional.
@@ -172,34 +242,36 @@ ssh_deploy() {
   if [ -n "$Le_Deploy_ssh_remote_cmd" ]; then
     _cmdstr="$_cmdstr $Le_Deploy_ssh_remote_cmd;"
     _info "Will execute remote command $Le_Deploy_ssh_remote_cmd"
+    if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+      if ! _ssh_remote_cmd "$_cmdstr"; then
+        return $_err_code
+      fi
+      _cmdstr=""
+    fi
   fi
 
-  if [ -z "$_cmdstr" ]; then
-    _err "No remote commands to excute. Failed to deploy certificates to remote server"
-    return 1
-  elif [ "$Le_Deploy_ssh_backup" = "yes" ]; then
-    # run cleanup on the backup directory, erase all older
-    # than 180 days (15552000 seconds).
-    _cmdstr="{ now=\"\$(date -u +%s)\"; for fn in $_backupprefix*; \
-do if [ -d \"\$fn\" ] && [ \"\$(expr \$now - \$(date -ur \$fn +%s) )\" -ge \"15552000\" ]; \
-then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; done; }; $_cmdstr"
-    # Alternate version of above... _cmdstr="find $_backupprefix* -type d -mtime +180 2>/dev/null | xargs rm -rf; $_cmdstr"
-    # Create our backup directory for overwritten cert files.
-    _cmdstr="mkdir -p $_backupdir; $_cmdstr"
-    _info "Backup of old certificate files will be placed in remote directory $_backupdir"
-    _info "Backup directories erased after 180 days."
+  # if commands not all sent in multiple calls then all commands sent in a single SSH call now...
+  if [ -n "$_cmdstr" ]; then
+    if ! _ssh_remote_cmd "$_cmdstr"; then
+      return $_err_code
+    fi
   fi
+  return 0
+}
 
-  _secure_debug "Remote commands to execute: " "$_cmdstr"
+#cmd
+_ssh_remote_cmd() {
+  _cmd="$1"
+  _secure_debug "Remote commands to execute: $_cmd"
   _info "Submitting sequence of commands to remote server by ssh"
   # quotations in bash cmd below intended.  Squash travis spellcheck error
   # shellcheck disable=SC2029
-  $Le_Deploy_ssh_cmd -T "$Le_Deploy_ssh_user@$Le_Deploy_ssh_server" sh -c "'$_cmdstr'"
-  _ret="$?"
+  $Le_Deploy_ssh_cmd "$Le_Deploy_ssh_user@$Le_Deploy_ssh_server" sh -c "'$_cmd'"
+  _err_code="$?"
 
-  if [ "$_ret" != "0" ]; then
-    _err "Error code $_ret returned from $Le_Deploy_ssh_cmd"
+  if [ "$_err_code" != "0" ]; then
+    _err "Error code $_err_code returned from ssh"
   fi
 
-  return $_ret
+  return $_err_code
 }
