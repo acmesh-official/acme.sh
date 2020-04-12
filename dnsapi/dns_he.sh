@@ -24,7 +24,7 @@ dns_he_add() {
   if [ -z "$HE_Username" ] || [ -z "$HE_Password" ]; then
     HE_Username=
     HE_Password=
-    _err "No auth details provided. Please set user credentials using the \$HE_Username and \$HE_Password envoronment variables."
+    _err "No auth details provided. Please set user credentials using the \$HE_Username and \$HE_Password environment variables."
     return 1
   fi
   _saveaccountconf_mutable HE_Username "$HE_Username"
