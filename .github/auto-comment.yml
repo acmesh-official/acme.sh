@@ -7,6 +7,10 @@ issuesOpened: >
   ```sh
   acme.sh --upgrade
   ```
+  
+  please also provide the log with `--debug 2`.
+  
+  see: https://github.com/acmesh-official/acme.sh/wiki/How-to-debug-acme.sh
 
 
 pullRequestOpened: >
