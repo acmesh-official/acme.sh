@@ -8,7 +8,7 @@ ARVAN_API_URL="https://napi.arvancloud.com/cdn/4.0/domains"
 #Report Bugs here: https://github.com/Neilpang/acme.sh 
 #
 ########  Public functions #####################
- 
+
 #Usage: dns_arvan_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_arvan_add() {
   fulldomain=$1
@@ -22,7 +22,7 @@ dns_arvan_add() {
     _err "You can get yours from here https://npanel.arvancloud.com/profile/api-keys"
     return 1
   fi
-    #save the api token to the account conf file.
+  #save the api token to the account conf file.
   _saveaccountconf_mutable Arvan_Token "$Arvan_Token"
 
   _debug "First detect the root zone"
@@ -150,7 +150,7 @@ _arvan_rest() {
   export _H1="Authorization: $token_trimmed"
 
   if [ "$mtd" = "DELETE" ]; then
-  # DELETE Request shouldn't have Content-Type
+    #DELETE Request shouldn't have Content-Type
     _debug data "$data"
     response="$(_post "$data" "$ARVAN_API_URL/$ep" "" "$mtd")"
   elif [ "$mtd" = "POST" ]; then
