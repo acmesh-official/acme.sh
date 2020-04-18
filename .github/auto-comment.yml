@@ -10,8 +10,14 @@ issuesOpened: >
   
   please also provide the log with `--debug 2`.
   
+  同时请提供调试输出 `--debug 2`
+  
   see: https://github.com/acmesh-official/acme.sh/wiki/How-to-debug-acme.sh
-
+  
+  Without `--debug 2` log, your issue will NEVER get replied.
+  
+  没有调试输出, 你的 issue 不会得到任何解答.
+  
 
 pullRequestOpened: >
   First, never send a PR to `master` branch, it will never be accepted. Please send to the `dev` branch instead.
