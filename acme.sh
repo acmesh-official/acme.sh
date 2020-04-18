@@ -138,6 +138,8 @@ _NOTIFY_WIKI="https://github.com/acmesh-official/acme.sh/wiki/notify"
 
 _SUDO_WIKI="https://github.com/acmesh-official/acme.sh/wiki/sudo"
 
+_REVOKE_WIKI="https://github.com/acmesh-official/acme.sh/wiki/revokecert"
+
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
 _DNS_MANUAL_WARN="It seems that you are using dns manual mode. please take care: $_DNS_MANUAL_ERR"
@@ -5456,6 +5458,7 @@ uninstallcronjob() {
 
 }
 
+#domain  isECC  revokeReason
 revoke() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ]; then
@@ -5464,7 +5467,10 @@ revoke() {
   fi
 
   _isEcc="$2"
-
+  _reason="$3"
+  if [ -z "$_reason" ]; then
+    _reason="0"
+  fi
   _initpath "$Le_Domain" "$_isEcc"
   if [ ! -f "$DOMAIN_CONF" ]; then
     _err "$Le_Domain is not a issued domain, skip."
@@ -5486,7 +5492,7 @@ revoke() {
   _initAPI
 
   if [ "$ACME_VERSION" = "2" ]; then
-    data="{\"certificate\": \"$cert\"}"
+    data="{\"certificate\": \"$cert\",\"reason\":$_reason}"
   else
     data="{\"resource\": \"revoke-cert\", \"certificate\": \"$cert\"}"
   fi
@@ -6295,6 +6301,7 @@ Parameters:
                                      0: Bulk mode. Send all the domain's notifications in one message(mail).
                                      1: Cert mode. Send a message for every single cert.
   --notify-hook   [hookname]        Set the notify hook
+  --revoke-reason [0-10]            The reason for '--revoke' command. See: $_REVOKE_WIKI
 
 "
 }
@@ -6470,6 +6477,7 @@ _process() {
   _notify_hook=""
   _notify_level=""
   _notify_mode=""
+  _revoke_reason=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -6942,6 +6950,14 @@ _process() {
         _notify_mode="$_nmode"
         shift
         ;;
+	  --revoke-reason)
+        _revoke_reason="$2"
+        if _startswith "$_revoke_reason" "-"; then
+          _err "'$_revoke_reason' is not a integer for '$1'"
+          return 1
+        fi
+        shift
+        ;;
       *)
         _err "Unknown parameter : $1"
         return 1
@@ -7029,7 +7045,7 @@ _process() {
       renewAll "$_stopRenewOnError"
       ;;
     revoke)
-      revoke "$_domain" "$_ecc"
+      revoke "$_domain" "$_ecc" "$_revoke_reason"
       ;;
     remove)
       remove "$_domain" "$_ecc"
