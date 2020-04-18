@@ -3512,6 +3512,8 @@ updateaccount() {
   if [ "$ACME_VERSION" = "2" ]; then
     if [ "$ACCOUNT_EMAIL" ]; then
       updjson='{"contact": ["mailto:'$ACCOUNT_EMAIL'"]}'
+    else
+      updjson='{"contact": []}'
     fi
   else
     # ACMEv1: Updates happen the same way a registration is done.
