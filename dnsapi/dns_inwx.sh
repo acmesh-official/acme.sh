@@ -148,17 +148,21 @@ _inwx_login() {
     </value>
    </param>
   </params>
-  </methodCall>' $INWX_User $INWX_Password)
+  </methodCall>' "$INWX_User" "$INWX_Password")
 
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
   _H1=$(printf "Cookie: %s" "$(grep "domrobot=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'domrobot=[^;]*;' | tr -d ';')")
   export _H1
 
+  if ! _contains "$response" "<member><name>code</name><value><int>1000</int></value></member>"; then
+    _err "INWX API: Authentication error (username/password correct?)"
+    return 1
+  fi
+
   #https://github.com/inwx/php-client/blob/master/INWX/Domrobot.php#L71
-  if _contains "$response" "<member><name>code</name><value><int>1000</int></value></member>" \
-    && _contains "$response" "<member><name>tfa</name><value><string>GOOGLE-AUTH</string></value></member>"; then
+  if _contains "$response" "<member><name>tfa</name><value><string>GOOGLE-AUTH</string></value></member>"; then
     if [ -z "$INWX_Shared_Secret" ]; then
-      _err "Mobile TAN detected."
+      _err "INWX API: Mobile TAN detected."
       _err "Please define a shared secret."
       return 1
     fi
@@ -191,6 +195,11 @@ _inwx_login() {
     </methodCall>' "$tan")
 
     response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
+
+    if ! _contains "$response" "<member><name>code</name><value><int>1000</int></value></member>"; then
+      _err "INWX API: Mobile TAN not correct."
+      return 1
+    fi
   fi
 
 }
