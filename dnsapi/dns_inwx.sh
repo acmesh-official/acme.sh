@@ -34,6 +34,10 @@ dns_inwx_add() {
   _saveaccountconf_mutable INWX_Password "$INWX_Password"
   _saveaccountconf_mutable INWX_Shared_Secret "$INWX_Shared_Secret"
 
+  if ! _inwx_login; then
+    return 1
+  fi
+
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
@@ -61,6 +65,10 @@ dns_inwx_rm() {
     INWX_Password=""
     _err "You don't specify inwx user and password yet."
     _err "Please create you key and try again."
+    return 1
+  fi
+
+  if ! _inwx_login; then
     return 1
   fi
 
@@ -123,7 +131,41 @@ dns_inwx_rm() {
 
 ####################  Private functions below ##################################
 
+_inwx_check_cookie() {
+  INWX_Cookie="${INWX_Cookie:-$(_readaccountconf_mutable INWX_Cookie)}"
+  if [ -z "$INWX_Cookie" ]; then
+    _debug "No cached cookie found"
+    return 1
+  fi
+  _H1="$INWX_Cookie"
+  export _H1
+
+  xml_content=$(printf '<?xml version="1.0" encoding="UTF-8"?>
+  <methodCall>
+  <methodName>account.info</methodName>
+  </methodCall>')
+
+  response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
+
+  if _contains "$response" "<member><name>code</name><value><int>1000</int></value></member>"; then
+    _debug "Cached cookie still valid"
+    return 0
+  fi
+
+  _debug "Cached cookie no longer valid"
+  _H1=""
+  export _H1
+  INWX_Cookie=""
+  _saveaccountconf_mutable INWX_Cookie "$INWX_Cookie"
+  return 1
+}
+
 _inwx_login() {
+
+  if _inwx_check_cookie; then
+    _debug "Already logged in"
+    return 0
+  fi
 
   xml_content=$(printf '<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
@@ -151,8 +193,12 @@ _inwx_login() {
   </methodCall>' "$INWX_User" "$INWX_Password")
 
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
-  _H1=$(printf "Cookie: %s" "$(grep "domrobot=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'domrobot=[^;]*;' | tr -d ';')")
+
+  INWX_Cookie=$(printf "Cookie: %s" "$(grep "domrobot=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'domrobot=[^;]*;' | tr -d ';')")
+  _H1=$INWX_Cookie
   export _H1
+  export INWX_Cookie
+  _saveaccountconf_mutable INWX_Cookie "$INWX_Cookie"
 
   if ! _contains "$response" "<member><name>code</name><value><int>1000</int></value></member>"; then
     _err "INWX API: Authentication error (username/password correct?)"
@@ -211,8 +257,6 @@ _get_root() {
   domain=$1
   i=2
   p=1
-
-  _inwx_login
 
   xml_content='<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
