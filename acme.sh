@@ -6950,7 +6950,7 @@ _process() {
         _notify_mode="$_nmode"
         shift
         ;;
-	  --revoke-reason)
+      --revoke-reason)
         _revoke_reason="$2"
         if _startswith "$_revoke_reason" "-"; then
           _err "'$_revoke_reason' is not a integer for '$1'"
