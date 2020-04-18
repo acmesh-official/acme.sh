@@ -4,7 +4,7 @@ issuesOpened: >
   
   如果有 bug, 请先更新到最新版试试:
   
-  ```sh
+  ```
   acme.sh --upgrade
   ```
   
@@ -17,10 +17,10 @@ issuesOpened: >
   Without `--debug 2` log, your issue will NEVER get replied.
   
   没有调试输出, 你的 issue 不会得到任何解答.
-  
+
 
 pullRequestOpened: >
-  First, never send a PR to `master` branch, it will never be accepted. Please send to the `dev` branch instead.
+  First, NEVER send a PR to `master` branch, it will NEVER be accepted. Please send to the `dev` branch instead.
   
   If this is a PR to support new DNS API or new notification API, please read this guide first:
   https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
@@ -29,6 +29,12 @@ pullRequestOpened: >
   
   Then add your usage here:
   https://github.com/acmesh-official/acme.sh/wiki/dnsapi
-
+   
+  Or some other wiki pages:
+  
+  https://github.com/acmesh-official/acme.sh/wiki/deployhooks
+  
+  https://github.com/acmesh-official/acme.sh/wiki/notify
+  
 
 
