@@ -176,7 +176,7 @@ _extract_record_id() {
       _info "Found txt record id: $_arrayId"
     fi
     j=$(_math "$j" + 1)
-  done  
+  done
   n=0
   for i in $ARRAY_IDS; do
     if [ "$n" = "$_arrayId" ]; then
