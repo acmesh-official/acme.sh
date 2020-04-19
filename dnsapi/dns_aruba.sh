@@ -91,7 +91,7 @@ _initAuth() {
     return 1
   fi
   
-  domainData=$(echo "$response" | tr -d '\r')  
+  domainData=$(echo "$response" | tr -d '\r')
   # get all Ids and peek only values
   temp="$(echo "$domainData" | _egrep_o "Id\": [^,]*" | cut -d : -f 2 | head -1)" # first element is zone Id
   domain_id=$temp
@@ -185,7 +185,7 @@ _extract_record_id() {
       _debug printf "%s\t%s\n" "$i"
       #_arrayname=$i
       _arrayId=$j
-      _info "Found txt record id: $_arrayId"	  
+      _info "Found txt record id: $_arrayId"
     fi
     j=$(_math "$j" + 1)
   done
@@ -198,7 +198,7 @@ _extract_record_id() {
       return 0
     fi
     n=$(_math "$n" + 1)
-  done  
+  done
   
   return 1
 }
