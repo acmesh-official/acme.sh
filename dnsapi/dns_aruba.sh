@@ -3,13 +3,13 @@
 #Original Author: Gerardo Trotta <gerardo.trotta@euronet.aero>
 
 #Application username
-#ARUBA_AK="xxxxx"
+ARUBA_AK="xxxxx"
 #
 #Application password
-#ARUBA_AS="xxxxxx"
+ARUBA_AS="xxxxxx"
 #
 #API key
-#ARUBA_TK="xxxxxxxx"
+ARUBA_TK="xxxxxxxx"
 #
 #Consumer Key
 #ARUBA_CK="sdfsdfsdfsdfsdfdsf"
