@@ -8,7 +8,7 @@
 #DEPLOY_DOCKER_CONTAINER_FULLCHAIN_FILE="/path/to/fullchain.pem"
 #DEPLOY_DOCKER_CONTAINER_RELOAD_CMD="service nginx force-reload"
 
-_DEPLOY_DOCKER_WIKI="https://github.com/acmesh-official/acme.sh/wiki/deploy-to-docker-containers"
+_DEPLOY_DOCKER_WIKI="https://github.com/Neilpang/acme.sh/wiki/deploy-to-docker-containers"
 
 _DOCKER_HOST_DEFAULT="/var/run/docker.sock"
 

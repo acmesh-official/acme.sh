@@ -2,7 +2,7 @@
 
 ##  Name: dns_pleskxml.sh
 ##  Created by Stilez.
-##  Also uses some code from PR#1832 by @romanlum (https://github.com/acmesh-official/acme.sh/pull/1832/files)
+##  Also uses some code from PR#1832 by @romanlum (https://github.com/Neilpang/acme.sh/pull/1832/files)
 
 ##  This DNS-01 method uses the Plesk XML API described at:
 ##  https://docs.plesk.com/en-US/12.5/api-rpc/about-xml-api.28709
