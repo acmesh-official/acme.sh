@@ -110,7 +110,7 @@ dns_aruba_add() {
     return 1
   fi
   _debug _domain "$_domain"
-  _sub_domain="_acme-challenge"  
+  _sub_domain="_acme-challenge"
   _debug "Check if _acme-challenge record exists in " "$_domain"
   if ! _extract_record_id "$_sub_domain.$_domain."; then
     _method="POST"
@@ -176,8 +176,7 @@ _extract_record_id() {
       _info "Found txt record id: $_arrayId"
     fi
     j=$(_math "$j" + 1)
-  done
-  
+  done  
   n=0
   for i in $ARRAY_IDS; do
     if [ "$n" = "$_arrayId" ]; then
