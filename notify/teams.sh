@@ -58,7 +58,7 @@ teams_send() {
       _color="$TEAMS_SKIP_COLOR"
       ;;
   esac
-  _color="$(echo "${_color:-$TEAMS_THEME_COLOR}" | tr -cd '[:xdigit:]')"
+  _color="$(echo "${_color:-$TEAMS_THEME_COLOR}" | tr -cd 'a-fA-F0-9')"
 
   _data="{\"title\": \"$_subject\","
   if [ -n "$_color" ]; then
