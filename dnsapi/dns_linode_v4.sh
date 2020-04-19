@@ -36,7 +36,7 @@ dns_linode_v4_add() {
             }"
 
   if _rest POST "/$_domain_id/records" "$_payload" && [ -n "$response" ]; then
-    _resource_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\s*[0-9]+" | cut -d : -f 2 | tr -d " " | _head_n 1)
+    _resource_id=$(printf "%s\n" "$response" | _egrep_o "\"id\": *[0-9]+" | cut -d : -f 2 | tr -d " " | _head_n 1)
     _debug _resource_id "$_resource_id"
 
     if [ -z "$_resource_id" ]; then
@@ -74,9 +74,9 @@ dns_linode_v4_rm() {
   if _rest GET "/$_domain_id/records" && [ -n "$response" ]; then
     response="$(echo "$response" | tr -d "\n" | tr '{' "|" | sed 's/|/&{/g' | tr "|" "\n")"
 
-    resource="$(echo "$response" | _egrep_o "{.*\"name\":\s*\"$_sub_domain\".*}")"
+    resource="$(echo "$response" | _egrep_o "\{.*\"name\": *\"$_sub_domain\".*}")"
     if [ "$resource" ]; then
-      _resource_id=$(printf "%s\n" "$resource" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
+      _resource_id=$(printf "%s\n" "$resource" | _egrep_o "\"id\": *[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
       if [ "$_resource_id" ]; then
         _debug _resource_id "$_resource_id"
 
@@ -139,9 +139,9 @@ _get_root() {
         return 1
       fi
 
-      hostedzone="$(echo "$response" | _egrep_o "{.*\"domain\":\s*\"$h\".*}")"
+      hostedzone="$(echo "$response" | _egrep_o "\{.*\"domain\": *\"$h\".*}")"
       if [ "$hostedzone" ]; then
-        _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
+        _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "\"id\": *[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
         if [ "$_domain_id" ]; then
           _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
           _domain=$h

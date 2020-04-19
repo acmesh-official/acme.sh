@@ -52,7 +52,7 @@ dns_unoeuro_add() {
   fi
   _info "Adding record"
 
-  if _uno_rest POST "my/products/$h/dns/records" "{\"name\":\"$fulldomain\",\"type\":\"TXT\",\"data\":\"$txtvalue\",\"ttl\":120}"; then
+  if _uno_rest POST "my/products/$h/dns/records" "{\"name\":\"$fulldomain\",\"type\":\"TXT\",\"data\":\"$txtvalue\",\"ttl\":120,\"priority\":0}"; then
     if _contains "$response" "\"status\": 200" >/dev/null; then
       _info "Added, OK"
       return 0
