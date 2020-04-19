@@ -105,12 +105,14 @@ _initAuth() {
 dns_aruba_add() {
   fulldomain=$1
   txtvalue=$2
-
+  
+  _debug _domain "$_domain"
+  _sub_domain="_acme-challenge"
+  
   if ! _initAuth; then
     return 1
   fi
-  _debug _domain "$_domain"
-  _sub_domain="_acme-challenge"
+
   _debug "Check if _acme-challenge record exists in " "$_domain"
   if ! _extract_record_id "$_sub_domain.$_domain."; then
     _method="POST"
@@ -136,7 +138,7 @@ dns_aruba_add() {
 
 #fulldomain
 dns_aruba_rm() {
-  fulldomain=$1
+  #fulldomain=$1
   txtvalue=$2
 
   if ! _initAuth; then
