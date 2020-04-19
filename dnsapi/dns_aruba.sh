@@ -111,7 +111,7 @@ dns_aruba_add() {
   if ! _initAuth; then
     return 1
   fi
- 
+  
   _debug _domain "$_domain"
   _sub_domain="_acme-challenge"
   
@@ -121,7 +121,6 @@ dns_aruba_add() {
   else
     _method="PUT"
   fi
-
 
   _payload="{ \"IdDomain\": $domain_id, \"Type\": \"TXT\", \"Name\": \"$_sub_domain\", \"Content\": \"\\\"$txtvalue\\\"\" }"
 
@@ -149,7 +148,6 @@ dns_aruba_rm() {
   fi
   
   _sub_domain="_acme-challenge"
-
   _debug "Getting TXT record to delete: $_sub_domain.$_domain."
   
   if ! _extract_record_id "$_sub_domain.$_domain"; then
@@ -178,7 +176,7 @@ _extract_record_id() {
   _debug $names
   ARRAY_IDS=$(echo "$_ids" | tr ", " "\n")
   ARRAY_NAMES=$_names
-    
+  
   j=0
   for i in $ARRAY_NAMES; do
     if [ "$i" = "$subdomain" ]; then
@@ -189,7 +187,7 @@ _extract_record_id() {
     fi
     j=$(_math "$j" + 1)
   done
-
+  
   n=0
   for i in $ARRAY_IDS; do
     if [ "$n" = "$_arrayId" ]; then
@@ -199,10 +197,8 @@ _extract_record_id() {
     fi
     n=$(_math "$n" + 1)
   done
-  
   return 1
 }
-
 
 _aruba_authentication() {
   export _H1="Content-Type: application/x-www-form-urlencoded"
@@ -225,10 +221,8 @@ _aruba_authentication() {
 
   ARUBA_CK="$access_token"
   _saveaccountconf ARUBA_CK "$ARUBA_CK"
-  
   return 0
 }
-
 
 _aruba_rest() {
   m=$1
@@ -244,7 +238,6 @@ _aruba_rest() {
   export _H3="Authorization: Bearer $ARUBA_CK"
   export _H4="Authorization-Key: $ARUBA_TK"
   export _H5="Accept: application/json"
-  
   _debug2 _H3 "$_H3"
   _debug2 _H4 "$_H4"
   if [ "$data" ] || [ "$m" = "POST" ] || [ "$m" = "PUT" ] || [ "$m" = "DELETE" ]; then
