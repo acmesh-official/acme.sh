@@ -89,13 +89,11 @@ _initAuth() {
     _err "Please retry to create a new one."
     _clearaccountconf ARUBA_CK
     return 1
-  fi
-  
+  fi  
   domainData=$(echo "$response" | tr -d '\r')
   # get all Ids and peek only values
   temp="$(echo "$domainData" | _egrep_o "Id\": [^,]*" | cut -d : -f 2 | head -1)" # first element is zone Id
-  domain_id=$temp
-  
+  domain_id=$temp  
   _info "DomainId is: $domain_id"
   _info "Consumer key is ok."
   return 0
@@ -111,7 +109,6 @@ dns_aruba_add() {
   if ! _initAuth; then
     return 1
   fi
-  
   _debug _domain "$_domain"
   _sub_domain="_acme-challenge"
   
@@ -146,19 +143,15 @@ dns_aruba_rm() {
   if ! _initAuth; then
     return 1
   fi
-  
   _sub_domain="_acme-challenge"
   _debug "Getting TXT record to delete: $_sub_domain.$_domain."
-  
   if ! _extract_record_id "$_sub_domain.$_domain"; then
     return 1
   fi
-  
   _debug "Deleting TXT record: $_sub_domain.$_domain"
   if ! _aruba_rest DELETE "api/domains/dns/record/$_recordId"; then
     return 1
   fi
-  
   return 0
 }
 
@@ -176,7 +169,6 @@ _extract_record_id() {
   _debug $names
   ARRAY_IDS=$(echo "$_ids" | tr ", " "\n")
   ARRAY_NAMES=$_names
-  
   j=0
   for i in $ARRAY_NAMES; do
     if [ "$i" = "$subdomain" ]; then
