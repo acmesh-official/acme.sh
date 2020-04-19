@@ -45,7 +45,7 @@ _initAuth() {
   if [ -z "$ARUBA_AK" ] || [ -z "$ARUBA_AS" ] || [ -z "$ARUBA_TK" ]; then
     ARUBA_AK=""
     ARUBA_AS=""
-	ARUBA_TK=""
+	  ARUBA_TK=""
     _err "You don't specify ARUBA application key and application secret yet."
     _err "Please create you key and try again."
     return 1
@@ -53,7 +53,7 @@ _initAuth() {
 
   if [ "$ARUBA_TK" != "$(_readaccountconf ARUBA_TK)" ]; then
     _info "It seems that your aruba key is changed, let's clear consumer key first."
-	_clearaccountconf ARUBA_TK
+	  _clearaccountconf ARUBA_TK
     _clearaccountconf ARUBA_CK
   fi
   _saveaccountconf_mutable ARUBA_AK "$ARUBA_AK"
@@ -91,12 +91,10 @@ _initAuth() {
     return 1
   fi
   
-  domainData=$(echo "$response" | tr -d '\r' )
-  
+  domainData=$(echo "$response" | tr -d '\r')  
   # get all Ids and peek only values
-  temp="$(echo "$domainData" | _egrep_o "Id\": [^,]*"  | cut -d : -f 2 | head -1)" 
-  #read -ra ADDR <<< "$temp" #put Ids into array
-  domain_id=$temp    # first element is zone Id
+  temp="$(echo "$domainData" | _egrep_o "Id\": [^,]*" | cut -d : -f 2 | head -1)" # first element is zone Id
+  domain_id=$temp
   
   _info "DomainId is: $domain_id"
   _info "Consumer key is ok."
@@ -114,7 +112,7 @@ dns_aruba_add() {
     return 1
   fi
  
-   _debug _domain "$_domain"
+  _debug _domain "$_domain"
   _sub_domain="_acme-challenge"
   
   _debug "Check if _acme-challenge record exists in " "$_domain"
@@ -155,12 +153,12 @@ dns_aruba_rm() {
   _debug "Getting TXT record to delete: $_sub_domain.$_domain."
   
   if ! _extract_record_id "$_sub_domain.$_domain"; then
-	return 1
+	  return 1
   fi
   
   _debug "Deleting TXT record: $_sub_domain.$_domain"
   if ! _aruba_rest DELETE "api/domains/dns/record/$_recordId"; then
-        return 1
+    return 1
   fi
   
   return 0
@@ -171,31 +169,29 @@ dns_aruba_rm() {
 # returns TXT record and put it in_record_id, if esists
 _extract_record_id() {
   subdomain="$1"
-  _arrayid=0 
-  _ids="$(echo $domainData | _egrep_o '"Id": [^,]+' | cut -d : -f 2)"
+  _arrayid=0
+  _ids="$(echo "$domainData" | _egrep_o '"Id": [^,]+' | cut -d : -f 2)"
   _debug $ids
   #_temp="$(echo $domainData | grep -oP "\"DomainId\":\s\d{1,}," | tr -d ' ')"
   #_domainids="$(echo $_temp | tr -d ' ')"
-  _names="$(echo $domainData | _egrep_o '"Name": [^,]*' | cut -d : -f 2)"
+  _names="$(echo "$domainData" | _egrep_o '"Name": [^,]*' | cut -d : -f 2)"
   _debug $names
-  ARRAY_IDS=$(echo $_ids | tr ", " "\n")
+  ARRAY_IDS=$(echo "$_ids" | tr ", " "\n")
   ARRAY_NAMES=$_names
-  
+    
   j=0
-  for i in $ARRAY_NAMES;  
-  do
+  for i in $ARRAY_NAMES; do  
     if [ "$i" = "$subdomain" ]; then 
       _debug printf "%s\t%s\n" "$i" 
-      _arrayname=$i
+      #_arrayname=$i
       _arrayId=$j
-	  _info "Found txt record id: $_arrayId"	  
+	    _info "Found txt record id: $_arrayId"	  
     fi
     j=$(_math "$j" + 1)  
   done
 
   n=0
-  for i in $ARRAY_IDS;
-  do
+  for i in $ARRAY_IDS; do  
     if [ "$n" = "$_arrayId" ]; then       
       _recordId=$i
       _info "recordid found: $_recordId"
@@ -216,8 +212,8 @@ _aruba_authentication() {
 
   _arubadata="grant_type=password&username=$ARUBA_AK&password=$ARUBA_AS"
 
-  response="$(_post "$_arubadata" "$ARUBA_API/auth/token")" 
-  _debug "$(_post "$_arubadata" "$ARUBA_API/auth/token")" 
+  response="$(_post "$_arubadata" "$ARUBA_API/auth/token")"
+  _debug "$(_post "$_arubadata" "$ARUBA_API/auth/token")"
   _debug3 response "$response"
 
   access_token="$(echo "$response" | _egrep_o "access_token\":\"[^\"]*\"" | cut -d : -f 2 | tr -d '"')"
