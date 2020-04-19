@@ -3,29 +3,29 @@
 #Original Author: Gerardo Trotta <gerardo.trotta@euronet.aero>
 
 #Application username
-ARUBA_AK="xxxxx"
+#ARUBA_AK="xxxxx"
 #
 #Application password
-ARUBA_AS="xxxxxx"
+#ARUBA_AS="xxxxxx"
 #
 #API key
-ARUBA_TK="xxxxxxxx"
+#ARUBA_TK="xxxxxxxx"
 #
 #Consumer Key
 #ARUBA_CK="sdfsdfsdfsdfsdfdsf"
 
 #ARUBA_END_POINT=aruba-it
 
-#'aruba-it'
-ARUBA_IT='https://api.arubabusiness.it'
+#'aruba-business-it'
+ARUBA_BUSINESS_IT='https://api.arubabusiness.it'
 
 _aruba_get_api() {
   _ogaep="$1"
 
   case "${_ogaep}" in
 
-    aruba-it | arubait)
-      printf "%s" $ARUBA_IT
+    aruba-b-it | arubabit)
+      printf "%s" $ARUBA_BUSINESS_IT
       return
       ;;
 
@@ -94,7 +94,7 @@ _initAuth() {
   domainData=$(echo "$response" | tr -d '\r' )
   
   # get all Ids and peek only values
-  temp="$(echo "$domainData" | grep -oP "Id\": \d{1,}" | cut -d : -f 2 | head -1)" 
+  temp="$(echo "$domainData" | _egrep_o "Id\": [^,]*"  | cut -d : -f 2 | head -1)" 
   #read -ra ADDR <<< "$temp" #put Ids into array
   domain_id=$temp    # first element is zone Id
   
@@ -118,17 +118,17 @@ dns_aruba_add() {
   _sub_domain="_acme-challenge"
   
   _debug "Check if _acme-challenge record exists in " "$_domain"
-  if ! _extract_record_id "$_sub_domain$_domain"; then
-    _err "invalid domain"
-    return 1
+  if ! _extract_record_id "$_sub_domain.$_domain."; then
+    _method="POST"
+  else
+    _method="PUT"
   fi
-
 
 
   _payload="{ \"IdDomain\": $domain_id, \"Type\": \"TXT\", \"Name\": \"$_sub_domain\", \"Content\": \"\\\"$txtvalue\\\"\" }"
 
   _info "Adding record"
-  if _aruba_rest POST "api/domains/dns/record" "$_payload"; then
+  if _aruba_rest "$_method" "api/domains/dns/record" "$_payload"; then
     if _contains "$response" "$txtvalue"; then
       _aruba_rest GET "api/domains/dns/$_domain/details"
       _debug "Refresh:$response"
@@ -149,15 +149,16 @@ dns_aruba_rm() {
   if ! _initAuth; then
     return 1
   fi
-
-  _sub_domain="_acme-challenge.${_domain}"
-  _debug _sub_domain "$_sub_domain"
-  _debug "Getting TXT record to delete"
   
-  if ! _extract_record_id $_sub_domain; then
+  _sub_domain="_acme-challenge"
+
+  _debug "Getting TXT record to delete: $_sub_domain.$_domain."
+  
+  if ! _extract_record_id "$_sub_domain.$_domain"; then
 	return 1
   fi
   
+  _debug "Deleting TXT record: $_sub_domain.$_domain"
   if ! _aruba_rest DELETE "api/domains/dns/record/$_recordId"; then
         return 1
   fi
@@ -169,12 +170,14 @@ dns_aruba_rm() {
 
 # returns TXT record and put it in_record_id, if esists
 _extract_record_id() {
-  subdomain=$1
+  subdomain="$1"
   _arrayid=0 
-  _ids="$(echo $domainData | grep -oP '(?<="Id": )[^,]+')"
-  _temp="$(echo $domainData | grep -oP "\"DomainId\":\s\d{1,}," | tr -d ' ')"
-  _domainids="$(echo $_temp | tr -d ' ')"
-  _names="$(echo $domainData | grep -oP '(?<="Name": ")[^"]+')"
+  _ids="$(echo $domainData | _egrep_o '"Id": [^,]+' | cut -d : -f 2)"
+  _debug $ids
+  #_temp="$(echo $domainData | grep -oP "\"DomainId\":\s\d{1,}," | tr -d ' ')"
+  #_domainids="$(echo $_temp | tr -d ' ')"
+  _names="$(echo $domainData | _egrep_o '"Name": [^,]*' | cut -d : -f 2)"
+  _debug $names
   ARRAY_IDS=$(echo $_ids | tr ", " "\n")
   ARRAY_NAMES=$_names
   
@@ -185,7 +188,7 @@ _extract_record_id() {
       _debug printf "%s\t%s\n" "$i" 
       _arrayname=$i
       _arrayId=$j
-	  _debug "Found txt record id: $_arrayId"	  
+	  _info "Found txt record id: $_arrayId"	  
     fi
     j=$(_math "$j" + 1)  
   done
@@ -195,6 +198,7 @@ _extract_record_id() {
   do
     if [ "$n" = "$_arrayId" ]; then       
       _recordId=$i
+      _info "recordid found: $_recordId"
       return 0
     fi
     n=$(_math "$n" + 1) 
