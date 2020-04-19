@@ -45,7 +45,7 @@ _initAuth() {
   if [ -z "$ARUBA_AK" ] || [ -z "$ARUBA_AS" ] || [ -z "$ARUBA_TK" ]; then
     ARUBA_AK=""
     ARUBA_AS=""
-	  ARUBA_TK=""
+    ARUBA_TK=""
     _err "You don't specify ARUBA application key and application secret yet."
     _err "Please create you key and try again."
     return 1
@@ -53,7 +53,7 @@ _initAuth() {
 
   if [ "$ARUBA_TK" != "$(_readaccountconf ARUBA_TK)" ]; then
     _info "It seems that your aruba key is changed, let's clear consumer key first."
-	  _clearaccountconf ARUBA_TK
+    _clearaccountconf ARUBA_TK
     _clearaccountconf ARUBA_CK
   fi
   _saveaccountconf_mutable ARUBA_AK "$ARUBA_AK"
@@ -153,7 +153,7 @@ dns_aruba_rm() {
   _debug "Getting TXT record to delete: $_sub_domain.$_domain."
   
   if ! _extract_record_id "$_sub_domain.$_domain"; then
-	  return 1
+    return 1
   fi
   
   _debug "Deleting TXT record: $_sub_domain.$_domain"
@@ -180,24 +180,24 @@ _extract_record_id() {
   ARRAY_NAMES=$_names
     
   j=0
-  for i in $ARRAY_NAMES; do  
-    if [ "$i" = "$subdomain" ]; then 
-      _debug printf "%s\t%s\n" "$i" 
+  for i in $ARRAY_NAMES; do
+    if [ "$i" = "$subdomain" ]; then
+      _debug printf "%s\t%s\n" "$i"
       #_arrayname=$i
       _arrayId=$j
-	    _info "Found txt record id: $_arrayId"	  
+      _info "Found txt record id: $_arrayId"	  
     fi
-    j=$(_math "$j" + 1)  
+    j=$(_math "$j" + 1)
   done
 
   n=0
-  for i in $ARRAY_IDS; do  
-    if [ "$n" = "$_arrayId" ]; then       
+  for i in $ARRAY_IDS; do
+    if [ "$n" = "$_arrayId" ]; then
       _recordId=$i
       _info "recordid found: $_recordId"
       return 0
     fi
-    n=$(_math "$n" + 1) 
+    n=$(_math "$n" + 1)
   done  
   
   return 1
