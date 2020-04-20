@@ -103,12 +103,10 @@ _initAuth() {
 
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_aruba_add() {
-  fulldomain=$1
+  #fulldomain=$1
   txtvalue=$2
-  
   _debug _domain "$_domain"
   _sub_domain="_acme-challenge"
-  
   if ! _initAuth; then
     return 1
   fi
