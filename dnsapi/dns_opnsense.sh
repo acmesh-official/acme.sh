@@ -150,7 +150,11 @@ _get_root() {
       return 1
     fi
     _debug h "$h"
+<<<<<<< HEAD
     id=$(echo "$_domain_response" | _egrep_o "\"[^\"]*\":{\"enabled\":\"1\",\"type\":{\"master\":{\"value\":\"master\",\"selected\":1},\"slave\":{\"value\":\"slave\",\"selected\":0}},\"masterip\":\"[^\"]*\",\"domainname\":\"${h}\"" | cut -d ':' -f 1 | cut -d '"' -f 2)
+=======
+    id=$(echo "$_domain_response" | _egrep_o "\"[^\"]*\":{\"enabled\":\"1\",\"type\":{\"master\":{\"value\":\"master\",\"selected\":1},\"slave\":{\"value\":\"slave\",\"selected\":0}},\"masterip\":\"[^\"]*\"(,\"allownotifyslave\":{\"\":{[^}]*}},|,)\"domainname\":\"${h}\"" | cut -d ':' -f 1 | cut -d '"' -f 2)
+>>>>>>> Allow old and new API response
 
     if [ -n "$id" ]; then
       _debug id "$id"
