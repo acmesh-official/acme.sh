@@ -8,6 +8,7 @@ RUN apk update -f \
   bind-tools \
   curl \
   socat \
+  sed \
   tzdata \
   oath-toolkit-oathtool \
   tar \

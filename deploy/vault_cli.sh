@@ -43,19 +43,22 @@ vault_cli_deploy() {
     return 1
   fi
 
-  VAULT_CMD=$(which vault)
-  if [ ! $? ]; then
-    _err "cannot find vault binary!"
-    return 1
-  fi
+  # JSON does not allow multiline strings.
+  # So replacing new-lines with "\n" here
+  _ckey=$(cat "$2" | sed -z 's/\n/\\n/g')
+  _ccert=$(cat "$3" | sed -z 's/\n/\\n/g')
+  _cca=$(cat "$4" | sed -z 's/\n/\\n/g')
+  _cfullchain=$(cat "$5" | sed -z 's/\n/\\n/g')
+
+  URL="$VAULT_ADDR/v1/$VAULT_PREFIX/$_cdomain"
 
   if [ -n "$FABIO" ]; then
-    $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}" cert=@"$_cfullchain" key=@"$_ckey" || return 1
+    curl --silent -H "X-Vault-Token: $VAULT_TOKEN" --request POST --data "{\"cert\": \"$_cfullchain\", \"key\": \"$_ckey\"}" $URL || return 1
   else
-    $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/cert.pem" value=@"$_ccert" || return 1
-    $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/cert.key" value=@"$_ckey" || return 1
-    $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/chain.pem" value=@"$_cca" || return 1
-    $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/fullchain.pem" value=@"$_cfullchain" || return 1
+    curl --silent -H "X-Vault-Token: $VAULT_TOKEN" --request POST --data "{\"value\": \"$_ccert\"}"      "$URL/cert.pem" || return 1
+    curl --silent -H "X-Vault-Token: $VAULT_TOKEN" --request POST --data "{\"value\": \"$_ckey\"}"       "$URL/cert.key" || return 1
+    curl --silent -H "X-Vault-Token: $VAULT_TOKEN" --request POST --data "{\"value\": \"$_cca\"}"        "$URL/chain.pem" || return 1
+    curl --silent -H "X-Vault-Token: $VAULT_TOKEN" --request POST --data "{\"value\": \"$_cfullchain\"}" "$URL/fullchain.pem" || return 1
   fi
 
 }
