@@ -9,12 +9,12 @@
 #ARUBA_AS="xxxxxx"
 #
 #API key
-#ARUBA_TK="xxxxxxxx"
+#ARUBA_TK="xxxxxxxxxxxxxxxx"
 #
 #Consumer Key
 #ARUBA_CK="sdfsdfsdfsdfsdfdsf"
 
-#ARUBA_END_POINT=aruba-it
+#ARUBA_END_POINT=aruba-b-it
 
 #'aruba-business-it'
 ARUBA_BUSINESS_IT='https://api.arubabusiness.it'
@@ -62,10 +62,10 @@ _initAuth() {
 
   ARUBA_END_POINT="${ARUBA_END_POINT:-$(_readaccountconf_mutable ARUBA_END_POINT)}"
   if [ -z "$ARUBA_END_POINT" ]; then
-    ARUBA_END_POINT="aruba-it"
+    ARUBA_END_POINT="aruba-b-it"
   fi
   _info "Using ARUBA endpoint: $ARUBA_END_POINT"
-  if [ "$ARUBA_END_POINT" != "aruba-it" ]; then
+  if [ "$ARUBA_END_POINT" != "aruba-b-it" ]; then
     _saveaccountconf_mutable ARUBA_END_POINT "$ARUBA_END_POINT"
   fi
 
@@ -82,19 +82,20 @@ _initAuth() {
     fi
   fi
 
-  _info "Checking authentication and get domain details"
+  #_info "Checking authentication and get domain details"
 
-  if ! _aruba_rest GET "api/domains/dns/$_domain/details" || _contains "$response" "error" || _contains "$response" "denied"; then
-    _err "The consumer key is invalid: $ARUBA_CK"
-    _err "Please retry to create a new one."
-    _clearaccountconf ARUBA_CK
-    return 1
-  fi
-  domainData=$(echo "$response" | tr -d '\r')
-  # get all Ids and peek only values
-  temp="$(echo "$domainData" | _egrep_o "Id\": [^,]*" | cut -d : -f 2 | head -1)" # first element is zone Id
-  domain_id=$temp
-  _info "DomainId is: $domain_id"
+  #if ! _aruba_rest GET "api/domains/dns/$_domain/details" || _contains "$response" "error" || _contains "$response" "denied"; then
+  #  _err "The consumer key is invalid: $ARUBA_CK"
+  #  _err "Please retry to create a new one."
+  #  _clearaccountconf ARUBA_CK
+  #  return 1
+  #fi
+  
+  #domainData=$(echo "$response" | tr -d '\r')
+  ## get all Ids and peek only values
+  #temp="$(echo "$domainData" | _egrep_o "Id\": [^,]*" | cut -d : -f 2 | head -1)" # first element is zone Id
+  #domain_id=$temp
+  #_info "DomainId is: $domain_id"
   _info "Consumer key is ok."
   return 0
 }
@@ -103,16 +104,36 @@ _initAuth() {
 
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_aruba_add() {
-  #fulldomain=$1
+  fulldomain=$1
   txtvalue=$2
-  _debug _domain "$_domain"
-  _sub_domain="_acme-challenge"
+  
+  #_debug _domain "$_domain"
+  #_sub_domain="_acme-challenge"
+  
   if ! _initAuth; then
     return 1
   fi
 
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+  
+  _info "Get domain details"
+
+  if ! _aruba_rest GET "api/domains/dns/$_domain/details" || _contains "$response" "error" || _contains "$response" "denied"; then
+    _err "Error reading domn details for : $_domain"    
+    return 1
+  fi
+  domainData=$(echo "$response" | tr -d '\r')
+  # get all Ids and peek only values
+  temp="$(echo "$domainData" | _egrep_o "Id\": [^,]*" | cut -d : -f 2 | head -1)" # first element is zone Id
+  domain_id=$temp
+  _info "DomainId is: $domain_id"  
+
   _debug "Check if _acme-challenge record exists in " "$_domain"
-  if ! _extract_record_id "$_sub_domain.$_domain."; then
+  if ! _extract_record_id "$fulldomain."; then # notice dot at the end, aruba TXT is like this: _acme-challenge.www.domain.com.
     _method="POST"
   else
     _method="PUT"
@@ -136,18 +157,20 @@ dns_aruba_add() {
 
 #fulldomain
 dns_aruba_rm() {
-  #fulldomain=$1
+  fulldomain=$1
   txtvalue=$2
 
   if ! _initAuth; then
     return 1
   fi
+  
   _sub_domain="_acme-challenge"
-  _debug "Getting TXT record to delete: $_sub_domain.$_domain."
-  if ! _extract_record_id "$_sub_domain.$_domain"; then
+  _debug "Getting TXT record to delete: $fulldomain."
+  if ! _extract_record_id "$fulldomain."; then
     return 1
   fi
-  _debug "Deleting TXT record: $_sub_domain.$_domain"
+  
+  _debug "Deleting TXT record: $fulldomain. Id: $_recordId"
   if ! _aruba_rest DELETE "api/domains/dns/record/$_recordId"; then
     return 1
   fi
@@ -156,11 +179,41 @@ dns_aruba_rm() {
 
 ####################  Private functions below ##################################
 
+#_acme-challenge.www.domain.com
+#returns
+# _sub_domain=_acme-challenge.www
+# _domain=domain.com
+_get_root() {
+  domain=$1
+  i=2
+  p=1
+  while true; do
+    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    if [ -z "$h" ]; then
+      #not valid
+      return 1
+    fi
+    _debug "doamin to check: $h"
+    if ! _aruba_rest GET "api/domains/dns/$h/details";  then
+      return 1
+    fi
+
+    if ! _contains "$response" "error" >/dev/null && ! _contains "$response" "denied" >/dev/null; then
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _domain="$h"
+      return 0
+    fi
+    p=$i
+    i=$(_math "$i" + 1)
+  done
+  return 1
+}
+
 # returns TXT record and put it in_record_id, if esists
 _extract_record_id() {
   subdomain="$1"
   _ids="$(echo "$domainData" | _egrep_o '"Id": [^,]+' | cut -d : -f 2)"
-  _debug "$_ids"
+  #_debug "$_ids"
   #_temp="$(echo $domainData | grep -oP "\"DomainId\":\s\d{1,}," | tr -d ' ')"
   #_domainids="$(echo $_temp | tr -d ' ')"
   _names="$(echo "$domainData" | _egrep_o '"Name": [^,]*' | cut -d : -f 2)"
