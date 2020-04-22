@@ -116,7 +116,7 @@ dns_aruba_add() {
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
-  fi  
+  fi
   _info "Get domain details"
 
   if ! _aruba_rest GET "api/domains/dns/$_domain/details" || _contains "$response" "error" || _contains "$response" "denied"; then
@@ -127,7 +127,7 @@ dns_aruba_add() {
   # get all Ids and peek only values
   temp="$(echo "$domainData" | _egrep_o "Id\": [^,]*" | cut -d : -f 2 | head -1)" # first element is zone Id
   domain_id=$temp
-  _info "DomainId is: $domain_id"  
+  _info "DomainId is: $domain_id"
 
   _debug "Check if _acme-challenge record exists in " "$_domain"
   if ! _extract_record_id "$fulldomain."; then # notice dot at the end, aruba TXT is like this: _acme-challenge.www.domain.com.
