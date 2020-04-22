@@ -106,10 +106,8 @@ _initAuth() {
 dns_aruba_add() {
   fulldomain=$1
   txtvalue=$2
-  
   #_debug _domain "$_domain"
   #_sub_domain="_acme-challenge"
-  
   if ! _initAuth; then
     return 1
   fi
@@ -118,12 +116,11 @@ dns_aruba_add() {
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
-  fi
-  
+  fi  
   _info "Get domain details"
 
   if ! _aruba_rest GET "api/domains/dns/$_domain/details" || _contains "$response" "error" || _contains "$response" "denied"; then
-    _err "Error reading domn details for : $_domain"    
+    _err "Error reading domn details for : $_domain"
     return 1
   fi
   domainData=$(echo "$response" | tr -d '\r')
@@ -163,13 +160,13 @@ dns_aruba_rm() {
   if ! _initAuth; then
     return 1
   fi
-  
+
   _sub_domain="_acme-challenge"
   _debug "Getting TXT record to delete: $fulldomain."
   if ! _extract_record_id "$fulldomain."; then
     return 1
   fi
-  
+
   _debug "Deleting TXT record: $fulldomain. Id: $_recordId"
   if ! _aruba_rest DELETE "api/domains/dns/record/$_recordId"; then
     return 1
@@ -194,7 +191,7 @@ _get_root() {
       return 1
     fi
     _debug "doamin to check: $h"
-    if ! _aruba_rest GET "api/domains/dns/$h/details";  then
+    if ! _aruba_rest GET "api/domains/dns/$h/details"; then
       return 1
     fi
 
