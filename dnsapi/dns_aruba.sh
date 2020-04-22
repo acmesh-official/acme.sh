@@ -90,7 +90,6 @@ _initAuth() {
   #  _clearaccountconf ARUBA_CK
   #  return 1
   #fi
-  
   #domainData=$(echo "$response" | tr -d '\r')
   ## get all Ids and peek only values
   #temp="$(echo "$domainData" | _egrep_o "Id\": [^,]*" | cut -d : -f 2 | head -1)" # first element is zone Id
