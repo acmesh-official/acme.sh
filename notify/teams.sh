@@ -14,6 +14,10 @@ teams_send() {
   _statusCode="$3" #0: success, 1: error 2($RENEW_SKIP): skipped
   _debug "_statusCode" "$_statusCode"
 
+  _color_success="2cbe4e" # green
+  _color_danger="cb2431"  # red
+  _color_muted="586069"   # gray
+
   TEAMS_WEBHOOK_URL="${TEAMS_WEBHOOK_URL:-$(_readaccountconf_mutable TEAMS_WEBHOOK_URL)}"
   if [ -z "$TEAMS_WEBHOOK_URL" ]; then
     TEAMS_WEBHOOK_URL=""
@@ -49,16 +53,20 @@ teams_send() {
 
   case "$_statusCode" in
     0)
-      _color="$TEAMS_SUCCESS_COLOR"
+      _color="${TEAMS_SUCCESS_COLOR:-$_color_success}"
       ;;
     1)
-      _color="$TEAMS_ERROR_COLOR"
+      _color="${TEAMS_ERROR_COLOR:-$_color_danger}"
       ;;
     2)
-      _color="$TEAMS_SKIP_COLOR"
+      _color="${TEAMS_SKIP_COLOR:-$_color_muted}"
       ;;
   esac
-  _color="$(echo "${_color:-$TEAMS_THEME_COLOR}" | tr -cd 'a-fA-F0-9')"
+
+  _color=$(echo "$_color" | tr -cd 'a-fA-F0-9')
+  if [ -z "$_color" ]; then
+    _color=$(echo "${TEAMS_THEME_COLOR:-$_color_muted}" | tr -cd 'a-fA-F0-9')
+  fi
 
   _data="{\"title\": \"$_subject\","
   if [ -n "$_color" ]; then
