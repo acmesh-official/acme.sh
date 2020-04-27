@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
 # This is the OpenProvider API wrapper for acme.sh
 #
