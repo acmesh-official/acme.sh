@@ -47,24 +47,24 @@ deployer() {
     #Set Header
     export _H1="Content-Type: multipart/form-data; boundary=$delim"
     if [ "$type" = 'cert' ]; then
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"type\"\r\n\r\n\r\nimport"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"category\"\r\n\r\n\r\ncertificate"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n\r\n$_cdomain"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"key\"\r\n\r\n\r\n$_panos_key"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"format\"\r\n\r\n\r\npem"
+      panos_url="${panos_url}?type=import"
+      content="--$delim${nl}Content-Disposition: form-data; name=\"category\"\r\n\r\ncertificate"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n$_cdomain"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"key\"\r\n\r\n$_panos_key"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"format\"\r\n\r\npem"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_cfullchain")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_cfullchain")"
     fi
     if [ "$type" = 'key' ]; then
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"type\"\r\n\r\n\r\nimport"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"category\"\r\n\r\n\r\nprivate-key"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n\r\n$_cdomain"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"key\"\r\n\r\n\r\n$_panos_key"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"format\"\r\n\r\n\r\npem"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"passphrase\"\r\n\r\n\r\n123456"
+      panos_url="${panos_url}?type=import"
+      content="--$delim${nl}Content-Disposition: form-data; name=\"category\"\r\n\r\nprivate-key"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n$_cdomain"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"key\"\r\n\r\n$_panos_key"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"format\"\r\n\r\npem"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"passphrase\"\r\n\r\n123456"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_ckey")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ckey")"
     fi
     #Close multipart
-    content="$content${nl}--$delim--${nl}"
+    content="$content${nl}--$delim--${nl}${nl}"
     #Convert CRLF
     content=$(printf %b "$content")
   fi

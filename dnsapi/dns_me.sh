@@ -114,7 +114,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\""; then
-      _domain_id=$(printf "%s\n" "$response" | cut -c 2- | head -c -2 | sed 's/{.*}//' | sed -r 's/^.*"id":([0-9]+).*$/\1/')
+      _domain_id=$(printf "%s\n" "$response" | sed 's/^{//; s/}$//; s/{.*}//' | sed -r 's/^.*"id":([0-9]+).*$/\1/')
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain="$h"

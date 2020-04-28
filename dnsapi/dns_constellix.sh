@@ -86,12 +86,12 @@ _get_root() {
       return 1
     fi
 
-    if ! _constellix_rest GET "domains"; then
+    if ! _constellix_rest GET "domains/search?exact=$h"; then
       return 1
     fi
 
     if _contains "$response" "\"name\":\"$h\""; then
-      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*" | head -n 1 | cut -d ':' -f 2 | tr -d '}')
+      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[0-9]+" | cut -d ':' -f 2)
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d '.' -f 1-$p)
         _domain="$h"

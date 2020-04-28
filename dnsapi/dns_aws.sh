@@ -23,6 +23,7 @@ dns_aws_add() {
 
   AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-$(_readaccountconf_mutable AWS_ACCESS_KEY_ID)}"
   AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
+  AWS_DNS_SLOWRATE="${AWS_DNS_SLOWRATE:-$(_readaccountconf_mutable AWS_DNS_SLOWRATE)}"
 
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     _use_container_role || _use_instance_role
@@ -40,6 +41,7 @@ dns_aws_add() {
   if [ -z "$_using_role" ]; then
     _saveaccountconf_mutable AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
     _saveaccountconf_mutable AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
+    _saveaccountconf_mutable AWS_DNS_SLOWRATE "$AWS_DNS_SLOWRATE"
   fi
 
   _debug "First detect the root zone"
@@ -77,7 +79,13 @@ dns_aws_add() {
 
   if aws_rest POST "2013-04-01$_domain_id/rrset/" "" "$_aws_tmpl_xml" && _contains "$response" "ChangeResourceRecordSetsResponse"; then
     _info "TXT record updated successfully."
-    _sleep 1
+    if [ -n "$AWS_DNS_SLOWRATE" ]; then
+      _info "Slow rate activated: sleeping for $AWS_DNS_SLOWRATE seconds"
+      _sleep "$AWS_DNS_SLOWRATE"
+    else
+      _sleep 1
+    fi
+
     return 0
   fi
   _sleep 1
@@ -91,6 +99,7 @@ dns_aws_rm() {
 
   AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-$(_readaccountconf_mutable AWS_ACCESS_KEY_ID)}"
   AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
+  AWS_DNS_SLOWRATE="${AWS_DNS_SLOWRATE:-$(_readaccountconf_mutable AWS_DNS_SLOWRATE)}"
 
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     _use_container_role || _use_instance_role
@@ -125,7 +134,13 @@ dns_aws_rm() {
 
   if aws_rest POST "2013-04-01$_domain_id/rrset/" "" "$_aws_tmpl_xml" && _contains "$response" "ChangeResourceRecordSetsResponse"; then
     _info "TXT record deleted successfully."
-    _sleep 1
+    if [ -n "$AWS_DNS_SLOWRATE" ]; then
+      _info "Slow rate activated: sleeping for $AWS_DNS_SLOWRATE seconds"
+      _sleep "$AWS_DNS_SLOWRATE"
+    else
+      _sleep 1
+    fi
+
     return 0
   fi
   _sleep 1
