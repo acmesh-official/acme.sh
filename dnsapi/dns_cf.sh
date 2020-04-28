@@ -225,6 +225,8 @@ _cf_rest() {
     response="$(_get "$CF_Api/$ep")"
   fi
 
+  response=$(echo $response | tr -d [:space:])
+
   if [ "$?" != "0" ]; then
     _err "error $ep"
     return 1
