@@ -120,7 +120,7 @@ dns_cf_rm() {
   if [ "$count" = "0" ]; then
     _info "Don't need to remove."
   else
-    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | head -n 1)
+    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\ \"[^\"]*\"" | cut -d : -f 2 | tr -d \" | head -n 1)
     _debug "record_id" "$record_id"
     if [ -z "$record_id" ]; then
       _err "Can not get record id to remove."
