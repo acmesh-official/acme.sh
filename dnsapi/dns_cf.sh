@@ -59,7 +59,7 @@ dns_cf_add() {
   _debug "Getting txt records"
   _cf_rest GET "zones/${_domain_id}/dns_records?type=TXT&name=$fulldomain"
 
-  if ! printf "%s" "$response" | grep \"success\":true >/dev/null; then
+  if ! printf "%s" "$response" | grep \"success\":\ true >/dev/null; then
     _err "Error"
     return 1
   fi
