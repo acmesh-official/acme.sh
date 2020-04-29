@@ -115,12 +115,12 @@ dns_cf_rm() {
     return 1
   fi
 
-  count=$(printf "%s\n" "$response" | _egrep_o "\"count\":[^,]*" | cut -d : -f 2)
+  count=$(echo "$response" | _egrep_o "\"count\": *[^,]*" | cut -d : -f 2 | tr -d " ")
   _debug count "$count"
   if [ "$count" = "0" ]; then
     _info "Don't need to remove."
   else
-    record_id=$(echo "$response" | _egrep_o "\"id\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | _head_n 1)
+    record_id=$(echo "$response" | _egrep_o "\"id\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | _head_n 1 | tr -d " ")
     _debug "record_id" "$record_id"
     if [ -z "$record_id" ]; then
       _err "Can not get record id to remove."
@@ -152,7 +152,7 @@ _get_root() {
       return 1
     else
       if _contains "$response" '"success":true'; then
-        _domain=$(printf "%s\n" "$response" | _egrep_o "\"name\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | head -n 1)
+        _domain=$(echo "$response" | _egrep_o "\"name\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | _head_n 1 | tr -d " ")
         if [ "$_domain" ]; then
           _cutlength=$((${#domain} - ${#_domain} - 1))
           _sub_domain=$(printf "%s" "$domain" | cut -c "1-$_cutlength")
@@ -186,7 +186,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\"" || _contains "$response" '"total_count":1'; then
-      _domain_id=$(echo "$response" | _egrep_o "\[.\"id\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
+      _domain_id=$(echo "$response" | _egrep_o "\[.\"id\": *\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \" | tr -d " ")
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain=$h
