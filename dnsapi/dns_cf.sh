@@ -130,7 +130,7 @@ dns_cf_rm() {
       _err "Delete record error."
       return 1
     fi
-    _contains "$response" '"success":true'
+    echo "$response" | tr -d " " | grep \"success\":true >/dev/null
   fi
 
 }
@@ -151,7 +151,7 @@ _get_root() {
     if ! _cf_rest GET "zones/$CF_Zone_ID"; then
       return 1
     else
-      if _contains "$response" '"success":true'; then
+      if echo "$response" | tr -d " " | grep \"success\":true >/dev/null; then
         _domain=$(echo "$response" | _egrep_o "\"name\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | _head_n 1 | tr -d " ")
         if [ "$_domain" ]; then
           _cutlength=$((${#domain} - ${#_domain} - 1))
