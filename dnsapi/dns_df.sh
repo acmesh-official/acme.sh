@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 ########################################################################
-# https://dyndnsdree.de hook script for acme.sh
+# https://dyndnsfree.de hook script for acme.sh
 #
 # Environment variables:
 #
