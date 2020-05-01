@@ -1,0 +1,16 @@
+
+name: Build DockerHub
+on:
+  push:
+    branches: [ master, dev ]
+    
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: trigger
+      run: curl -X POST https://hub.docker.com/api/build/v1/source/1813a660-2ee5-4583-a238-dd54e9a6ebac/trigger/c8cd9f1f-f269-45bc-9750-a08327257f62/call/
+    
+    
+
+
