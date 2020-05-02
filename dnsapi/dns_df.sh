@@ -5,8 +5,8 @@
 #
 # Environment variables:
 #
-#  - $DF_user      (your dyndnsfree.de API username)
-#  - $DF_password  (your dyndnsfree.de API password)
+#  - $DF_user      (your dyndnsfree.de username)
+#  - $DF_password  (your dyndnsfree.de password)
 #
 # Author: Thilo Gass <thilo.gass@gmail.com>
 # Git repo: https://github.com/ThiloGa/acme.sh
@@ -30,7 +30,7 @@ dns_df_add() {
     return 1
   fi
   #save the api user and sha256 password to the account conf file.
-  _debug "Save user and hash"
+  _debug "Save user and password"
   _saveaccountconf_mutable DF_user "$DF_user"
   _saveaccountconf_mutable DF_password "$DF_password"
 
