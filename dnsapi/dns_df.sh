@@ -29,7 +29,7 @@ dns_df_add() {
     _err "No auth details provided. Please set user credentials using the \$DF_user and \$DF_password environment variables."
     return 1
   fi
-  #save the api user and sha256 password to the account conf file.
+  #save the api user and password to the account conf file.
   _debug "Save user and password"
   _saveaccountconf_mutable DF_user "$DF_user"
   _saveaccountconf_mutable DF_password "$DF_password"
