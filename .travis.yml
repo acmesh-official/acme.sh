@@ -1,5 +1,4 @@
 language: shell
-sudo: required
 dist: trusty
 
 os:
