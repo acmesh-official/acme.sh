@@ -160,7 +160,7 @@ _njalla_rest() {
   response="$(_post "$data" "$NJALLA_Api" "" "POST")"
 
   if [ "$?" != "0" ]; then
-    _err "error $ep"
+    _err "error $data"
     return 1
   fi
   _debug2 response "$response"
