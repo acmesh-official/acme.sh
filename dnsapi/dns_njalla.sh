@@ -128,7 +128,6 @@ _get_root() {
       return 1
     fi
 
-
     if ! _njalla_rest "{\"method\":\"get-domain\",\"params\":{\"domain\":\"${h}\"}}"; then
       return 1
     fi
