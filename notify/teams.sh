@@ -74,8 +74,7 @@ teams_send() {
   fi
   _data="$_data\"text\": \"$_content\"}"
 
-  if _post "$_data" "$TEAMS_WEBHOOK_URL"; then
-    # shellcheck disable=SC2154
+  if response=$(_post "$_data" "$TEAMS_WEBHOOK_URL"); then
     if ! _contains "$response" error; then
       _info "teams send success."
       return 0
