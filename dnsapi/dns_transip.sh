@@ -58,7 +58,7 @@ _get_root() {
     _domain="$h"
 
     if _transip_rest GET "domains/$h/dns" && _contains "$response" "dnsEntries"; then
-    	return 0
+      return 0
     fi
 
     p=$i
@@ -140,10 +140,10 @@ _transip_setup() {
   _saveaccountconf_mutable TRANSIP_Key_File "$TRANSIP_Key_File"
 
   if [ -f "$TRANSIP_Key_File" ]; then
-     if ! grep "BEGIN PRIVATE KEY" "$TRANSIP_Key_File" >/dev/null 2>&1; then
-        _err "Key file doesn't seem to be a valid key: ${TRANSIP_Key_File}"
-        return 1
-     fi
+    if ! grep "BEGIN PRIVATE KEY" "$TRANSIP_Key_File" >/dev/null 2>&1; then
+      _err "Key file doesn't seem to be a valid key: ${TRANSIP_Key_File}"
+      return 1
+    fi
   else
       _err "Can't read private key file: ${TRANSIP_Key_File}"
       return 1
