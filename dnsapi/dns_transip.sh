@@ -149,7 +149,6 @@ _transip_setup() {
       return 1
   fi
 
-
   if [ -z "$_token" ]; then
     if ! _transip_get_token; then
       _err "Can not get token."
