@@ -145,8 +145,8 @@ _transip_setup() {
       return 1
     fi
   else
-      _err "Can't read private key file: ${TRANSIP_Key_File}"
-      return 1
+    _err "Can't read private key file: ${TRANSIP_Key_File}"
+    return 1
   fi
 
   if [ -z "$_token" ]; then
