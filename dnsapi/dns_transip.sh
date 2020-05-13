@@ -139,7 +139,7 @@ _transip_setup() {
   _saveaccountconf_mutable TRANSIP_Username "$TRANSIP_Username"
   _saveaccountconf_mutable TRANSIP_Key_File "$TRANSIP_Key_File"
 
-  if [ -f "$TRANSIP_Key_File"]; then
+  if [ -f "$TRANSIP_Key_File" ]; then
      if ! grep "BEGIN PRIVATE KEY" "$TRANSIP_Key_File" >/dev/null 2>&1; then
         _err "Key file doesn't seem to be a valid key: ${TRANSIP_Key_File}"
         return 1
