@@ -61,7 +61,7 @@ dns_desec_add() {
   fi
   _debug txtvalues "$txtvalues"
   _info "Adding record"
-  body="[{\"subname\":\"$_sub_domain\", \"type\":\"TXT\", \"records\":[$txtvalues], \"ttl\":60}]"
+  body="[{\"subname\":\"$_sub_domain\", \"type\":\"TXT\", \"records\":[$txtvalues], \"ttl\":${DESEC_TTL:-60}}]"
 
   if _desec_rest PUT "$REST_API/$DEDYN_NAME/rrsets/" "$body"; then
     if _contains "$response" "$txtvalue"; then
@@ -130,7 +130,7 @@ dns_desec_rm() {
   _debug txtvalues "$txtvalues"
 
   _info "Deleting record"
-  body="[{\"subname\":\"$_sub_domain\", \"type\":\"TXT\", \"records\":[$txtvalues], \"ttl\":60}]"
+  body="[{\"subname\":\"$_sub_domain\", \"type\":\"TXT\", \"records\":[$txtvalues], \"ttl\":${DESEC_TTL:-60}}]"
   _desec_rest PUT "$REST_API/$DEDYN_NAME/rrsets/" "$body"
   if [ "$_code" = "200" ]; then
     _info "Deleted, OK"
