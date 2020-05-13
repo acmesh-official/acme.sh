@@ -14,7 +14,7 @@ dns_transip_add() {
   _debug fulldomain="$fulldomain"
   txtvalue="$2"
   _debug txtvalue="$txtvalue"
-  _transip_setup $fulldomain || return 1
+  _transip_setup "$fulldomain" || return 1
   _info "Creating TXT record."
   if ! _transip_rest POST "domains/$_domain/dns" "{\"dnsEntry\":{\"name\":\"$_sub_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"expire\":300}}"; then
     _err "Could not add TXT record."
@@ -28,7 +28,7 @@ dns_transip_rm() {
   _debug fulldomain="$fulldomain"
   txtvalue=$2
   _debug txtvalue="$txtvalue"
-  _transip_setup $fulldomain || return 1
+  _transip_setup "$fulldomain" || return 1
   _info "Removing TXT record."
   if ! _transip_rest DELETE "domains/$_domain/dns" "{\"dnsEntry\":{\"name\":\"$_sub_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"expire\":300}}"; then
     _err "Could not remove TXT record $_sub_domain for $domain"
@@ -57,7 +57,7 @@ _get_root() {
     _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
     _domain="$h"
 
-    if _transip_rest GET "domains/$h/dns" && _contains $response "dnsEntries"; then
+    if _transip_rest GET "domains/$h/dns" && _contains "$response" "dnsEntries"; then
     	return 0
     fi
 
@@ -157,7 +157,7 @@ _transip_setup() {
     fi
   fi
 
-  _get_root $fulldomain || return 1
+  _get_root "$fulldomain" || return 1
 
   return 0
 }
