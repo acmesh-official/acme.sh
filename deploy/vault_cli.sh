@@ -45,15 +45,15 @@ vault_cli_deploy() {
 
   # JSON does not allow multiline strings.
   # So replacing new-lines with "\n" here
-  _ckey=$(cat "$2" | sed -z 's/\n/\\n/g')
-  _ccert=$(cat "$3" | sed -z 's/\n/\\n/g')
-  _cca=$(cat "$4" | sed -z 's/\n/\\n/g')
-  _cfullchain=$(cat "$5" | sed -z 's/\n/\\n/g')
+  _ckey=$(sed -z 's/\n/\\n/g' < "$2")
+  _ccert=$(sed -z 's/\n/\\n/g' < "$3")
+  _cca=$(sed -z 's/\n/\\n/g' < "$4")
+  _cfullchain=$(sed -z 's/\n/\\n/g' < "$5")
 
   URL="$VAULT_ADDR/v1/$VAULT_PREFIX/$_cdomain"
 
   if [ -n "$FABIO" ]; then
-    curl --silent -H "X-Vault-Token: $VAULT_TOKEN" --request POST --data "{\"cert\": \"$_cfullchain\", \"key\": \"$_ckey\"}" $URL || return 1
+    curl --silent -H "X-Vault-Token: $VAULT_TOKEN" --request POST --data "{\"cert\": \"$_cfullchain\", \"key\": \"$_ckey\"}" "$URL" || return 1
   else
     curl --silent -H "X-Vault-Token: $VAULT_TOKEN" --request POST --data "{\"value\": \"$_ccert\"}"      "$URL/cert.pem" || return 1
     curl --silent -H "X-Vault-Token: $VAULT_TOKEN" --request POST --data "{\"value\": \"$_ckey\"}"       "$URL/cert.key" || return 1
