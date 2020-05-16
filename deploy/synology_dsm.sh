@@ -40,9 +40,7 @@ synology_dsm_deploy() {
   _getdeployconf SYNO_Password
   _getdeployconf SYNO_Create
   _getdeployconf SYNO_DID
-  if [ -z "$SYNO_Username" ] || [ -z "$SYNO_Password" ]; then
-    SYNO_Username=""
-    SYNO_Password=""
+  if [ -z "${SYNO_Username:-}" ] || [ -z "${SYNO_Password:-}" ]; then
     _err "SYNO_Username & SYNO_Password must be set"
     return 1
   fi
@@ -70,7 +68,7 @@ synology_dsm_deploy() {
 
   # Get the certificate description, but don't save it until we verfiy it's real
   _getdeployconf SYNO_Certificate
-  if [ -z "${SYNO_Certificate:?}" ]; then
+  if [ -z "${SYNO_Certificate:-}" ]; then
     _err "SYNO_Certificate needs to be defined (with the Certificate description name)"
     return 1
   fi
@@ -113,7 +111,7 @@ synology_dsm_deploy() {
   id=$(echo "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\"id\":\"\([^\"]*\).*/\1/p")
   _debug2 id "$id"
 
-  if [ -z "$id" ] && [ -z "$SYNO_Create" ]; then
+  if [ -z "$id" ] && [ -z "${SYNO_Create:-}" ]; then
     _err "Unable to find certificate: $SYNO_Certificate and \$SYNO_Create is not set"
     return 1
   fi
