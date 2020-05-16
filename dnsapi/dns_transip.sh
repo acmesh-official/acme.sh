@@ -1,6 +1,5 @@
 #!/usr/bin/env sh
 TRANSIP_Api_Url="https://api.transip.nl/v6"
-TRANSIP_Key_File="transip2.key"
 TRANSIP_Token_Read_Only="false"
 TRANSIP_Token_Global_Key="false"
 TRANSIP_Token_Expiration="30 minutes"
