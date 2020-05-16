@@ -22,7 +22,7 @@
 ########  Public functions #####################
 
 _syno_get_cookie_data() {
-  grep "\W$1=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o "$1=[^;]*;" | tr -d ';'
+  grep "\W$1=" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o "$1=[^;]*;" | tr -d ';'
 }
 
 #domain keyfile certfile cafile fullchain
@@ -40,9 +40,7 @@ synology_dsm_deploy() {
   _getdeployconf SYNO_Password
   _getdeployconf SYNO_Create
   _getdeployconf SYNO_DID
-  if [ -z "$SYNO_Username" ] || [ -z "$SYNO_Password" ]; then
-    SYNO_Username=""
-    SYNO_Password=""
+  if [ -z "${SYNO_Username:-}" ] || [ -z "${SYNO_Password:-}" ]; then
     _err "SYNO_Username & SYNO_Password must be set"
     return 1
   fi
@@ -70,20 +68,20 @@ synology_dsm_deploy() {
 
   # Get the certificate description, but don't save it until we verfiy it's real
   _getdeployconf SYNO_Certificate
-  if [ -z "${SYNO_Certificate:?}" ]; then
-    _err "SYNO_Certificate needs to be defined (with the Certificate description name)"
-    return 1
-  fi
-  _debug SYNO_Certificate "$SYNO_Certificate"
+  _debug SYNO_Certificate "${SYNO_Certificate:-}"
 
   _base_url="$SYNO_Scheme://$SYNO_Hostname:$SYNO_Port"
   _debug _base_url "$_base_url"
 
   # Login, get the token from JSON and session id from cookie
   _info "Logging into $SYNO_Hostname:$SYNO_Port"
-  response=$(_get "$_base_url/webman/login.cgi?username=$SYNO_Username&passwd=$SYNO_Password&enable_syno_token=yes&device_id=$SYNO_DID")
-  token=$(echo "$response" | grep "SynoToken" | sed -n 's/.*"SynoToken" *: *"\([^"]*\).*/\1/p')
+  encoded_username="$(printf "%s" "$SYNO_Username" | _url_encode)"
+  encoded_password="$(printf "%s" "$SYNO_Password" | _url_encode)"
+  encoded_did="$(printf "%s" "$SYNO_DID" | _url_encode)"
+  response=$(_get "$_base_url/webman/login.cgi?username=$encoded_username&passwd=$encoded_password&enable_syno_token=yes&device_id=$encoded_did" 1)
+  token=$(echo "$response" | grep "X-SYNO-TOKEN:" | sed -n 's/^X-SYNO-TOKEN: \(.*\)$/\1/p' | tr -d "\r\n")
   _debug3 response "$response"
+  _debug token "$token"
 
   if [ -z "$token" ]; then
     _err "Unable to authenticate to $SYNO_Hostname:$SYNO_Port using $SYNO_Scheme."
@@ -91,7 +89,7 @@ synology_dsm_deploy() {
     return 1
   fi
 
-  _H1="Cookie: $(_syno_get_cookie_data "id"); $(_syno_get_cookie_data "smid")"
+  _H1="Cookie: $(echo "$response" | _syno_get_cookie_data "id"); $(echo "$response" | _syno_get_cookie_data "smid")"
   _H2="X-SYNO-TOKEN: $token"
   export _H1
   export _H2
@@ -102,7 +100,6 @@ synology_dsm_deploy() {
   _savedeployconf SYNO_Username "$SYNO_Username"
   _savedeployconf SYNO_Password "$SYNO_Password"
   _savedeployconf SYNO_DID "$SYNO_DID"
-  _debug token "$token"
 
   _info "Getting certificates in Synology DSM"
   response=$(_post "api=SYNO.Core.Certificate.CRT&method=list&version=1" "$_base_url/webapi/entry.cgi")
@@ -110,7 +107,7 @@ synology_dsm_deploy() {
   id=$(echo "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\"id\":\"\([^\"]*\).*/\1/p")
   _debug2 id "$id"
 
-  if [ -z "$id" ] && [ -z "${SYNO_Create:?}" ]; then
+  if [ -z "$id" ] && [ -z "${SYNO_Create:-}" ]; then
     _err "Unable to find certificate: $SYNO_Certificate and \$SYNO_Create is not set"
     return 1
   fi
