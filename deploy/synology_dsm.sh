@@ -83,6 +83,9 @@ synology_dsm_deploy() {
   _info "Logging into $SYNO_Hostname:$SYNO_Port"
   response=$(_get "$_base_url/webman/login.cgi?username=$SYNO_Username&passwd=$SYNO_Password&enable_syno_token=yes&device_id=$SYNO_DID")
   token=$(echo "$response" | grep "SynoToken" | sed -n 's/.*"SynoToken" *: *"\([^"]*\).*/\1/p')
+  encoded_username="$(printf "%s" "$SYNO_Username" | _url_encode)"
+  encoded_password="$(printf "%s" "$SYNO_Password" | _url_encode)"
+  encoded_did="$(printf "%s" "$SYNO_DID" | _url_encode)"
   _debug3 response "$response"
 
   if [ -z "$token" ]; then
