@@ -68,10 +68,6 @@ synology_dsm_deploy() {
 
   # Get the certificate description, but don't save it until we verfiy it's real
   _getdeployconf SYNO_Certificate
-  if [ -z "${SYNO_Certificate:-}" ]; then
-    _err "SYNO_Certificate needs to be defined (with the Certificate description name)"
-    return 1
-  fi
   _debug SYNO_Certificate "$SYNO_Certificate"
 
   _base_url="$SYNO_Scheme://$SYNO_Hostname:$SYNO_Port"
