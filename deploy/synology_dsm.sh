@@ -113,7 +113,7 @@ synology_dsm_deploy() {
   id=$(echo "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\"id\":\"\([^\"]*\).*/\1/p")
   _debug2 id "$id"
 
-  if [ -z "$id" ] && [ -z "${SYNO_Create:?}" ]; then
+  if [ -z "$id" ] && [ -z "$SYNO_Create" ]; then
     _err "Unable to find certificate: $SYNO_Certificate and \$SYNO_Create is not set"
     return 1
   fi
