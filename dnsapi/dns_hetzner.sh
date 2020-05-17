@@ -56,16 +56,16 @@ dns_hetzner_add() {
   else
     _info "Found record id: $_record_id."
     _info "Record found, do nothing."
-    return 0;
-#    # we could modify a record, if the names for txt records for *.example.com and example.com would be not the same
-#    if _hetzner_rest PUT "records/${_record_id}" "{\"zone_id\":\"${HETZNER_Zone_ID}\",\"type\":\"TXT\",\"name\":\"$full_domain\",\"value\":\"$txt_value\",\"ttl\":120}"; then
-#      if _contains "$response" "$txt_value"; then
-#        _info "Modified, OK"
-#        return 0
-#      fi
-#    fi
-#    _err "Add txt record error (modify)."
-#    return 1
+    return 0
+    # we could modify a record, if the names for txt records for *.example.com and example.com would be not the same
+    #if _hetzner_rest PUT "records/${_record_id}" "{\"zone_id\":\"${HETZNER_Zone_ID}\",\"type\":\"TXT\",\"name\":\"$full_domain\",\"value\":\"$txt_value\",\"ttl\":120}"; then
+    #  if _contains "$response" "$txt_value"; then
+    #    _info "Modified, OK"
+    #    return 0
+    #  fi
+    #fi
+    #_err "Add txt record error (modify)."
+    #return 1
   fi
 }
 
@@ -107,12 +107,12 @@ dns_hetzner_rm() {
 #returns
 # _record_id=a8d58f22d6931bf830eaa0ec6464bf81  if found; or 1 if error
 _find_record() {
-  unset _record_id;
+  unset _record_id
   _record_name=$1
   _record_value=$2
 
   if [ -z "$_record_value" ]; then
-    _record_value="[^\"]*"
+    _record_value='[^"]*'
   fi
 
   _debug "Getting all records"
@@ -129,11 +129,11 @@ _find_record() {
         | while read -r record; do
           # test for type and
           if [ -n "$(echo "$record" | _egrep_o '"type":"TXT"')" ]; then
-            echo "$record" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \"
+            echo "$record" | _egrep_o '"id":"[^"]*"' | cut -d : -f 2 | tr -d \"
             break
           fi
         done
-      )
+    )
   fi
 }
 
@@ -160,7 +160,7 @@ _get_root() {
       unset HETZNER_Zone_ID
     else
       if _contains "$response" "\"id\":\"$HETZNER_Zone_ID\""; then
-        _domain=$(printf "%s\n" "$response" | _egrep_o "\"name\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | head -n 1)
+        _domain=$(printf "%s\n" "$response" | _egrep_o '"name":"[^"]*"' | cut -d : -f 2 | tr -d \" | head -n 1)
         if [ "$_domain" ]; then
           _cut_length=$((${#domain} - ${#_domain} - 1))
           _sub_domain=$(printf "%s" "$domain" | cut -c "1-$_cut_length")
@@ -206,21 +206,21 @@ _get_root() {
 #returns
 # _response_error
 _response_has_error() {
-   unset _response_error
+  unset _response_error
 
-   err_part="$(echo "$response" | _egrep_o '"error":{[^}]*}')"
+  err_part="$(echo "$response" | _egrep_o '"error":{[^}]*}')"
 
-   if [ -n "$err_part" ]; then
-     err_code=$(echo "$err_part" | _egrep_o '"code":[0-9]+' | cut -d : -f 2)
-     err_message=$(echo "$err_part" | _egrep_o '"message":"[^"]+"' | cut -d : -f 2 | tr -d \")
+  if [ -n "$err_part" ]; then
+    err_code=$(echo "$err_part" | _egrep_o '"code":[0-9]+' | cut -d : -f 2)
+    err_message=$(echo "$err_part" | _egrep_o '"message":"[^"]+"' | cut -d : -f 2 | tr -d \")
 
-     if [ -n "$err_code" ] && [ -n "$err_message" ]; then
-       _response_error=" - message: ${err_message}, code: ${err_code}"
-       return 0
-     fi
-   fi
+    if [ -n "$err_code" ] && [ -n "$err_message" ]; then
+      _response_error=" - message: ${err_message}, code: ${err_code}"
+      return 0
+    fi
+  fi
 
-   return 1
+  return 1
 }
 
 #returns
