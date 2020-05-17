@@ -14,8 +14,8 @@ dns_cpanel_add() {
     fulldomain="$1"
     txtvalue="$2"
     _info "Using cPanel add"
-    _debug fulldomain: "$fulldomain"
-    _debug txtvalue: "$txtvalue"
+    _debug "fulldomain: ${fulldomain}"
+    _debug "txtvalue: ${txtvalue}"
     if ! _check_configuration; then
         return 1
     fi
@@ -34,8 +34,8 @@ dns_cpanel_rm() {
     fulldomain=$1
     txtvalue=$2
     _info "Using cpanel rm"
-    _debug fulldomain "$fulldomain"
-    _debug txtvalue "$txtvalue"
+    _debug "fulldomain ${fulldomain}"
+    _debug "txtvalue ${txtvalue}"
     _get_root
 
     _cpanel_get "ZoneEdit" "fetchzone_records" "domain=${_domain}&name=${fulldomain}.&txtdata=${txtvalue}&ttl=300&type=TXT"
@@ -72,8 +72,8 @@ _get_root() {
             if [ ${cpanel_domain} == ${_domain_test} ]; then
                     _domain=${cpanel_domain}
                     _sub_domain=$(printf ${domain} | cut -d "." -f 1-$((idx - 1)))
-                    _debug domain "$_domain"
-                    _debug subdomain "$_sub_domain"
+                    _debug "domain ${_domain}"
+                    _debug "subdomain ${_sub_domain}"
                     return 0
             fi
             idx=$((idx + 1))
@@ -103,7 +103,7 @@ _cpanel_get() {
   fi
   _debug2 "_cpanel_get MODULE=${MODULE} FUNC=${FUNC} ARGS=${ARGS}"
   response="$(_get "${baseURL}")"
-  _debug2 response "$response"
+  _debug2 "response ${response}"
   return 0
 }
 
@@ -114,7 +114,7 @@ _check_result(){
     else
         _mesg=$(echo ${response} | grep -Eo 'statusmsg"\:"[^"]*' | cut -d '"' -f 3)
         _err "${_mesg}"
-        _debug ${response}
+        _debug "${response}"
         return 1
     fi
     result
