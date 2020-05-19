@@ -73,7 +73,7 @@ _get_root_zone() {
       #not valid
       return 1
     fi
-    if ! _rackspace_rest GET "$RACKSPACE_Tenant/domains"; then
+    if ! _rackspace_rest GET "$RACKSPACE_Tenant/domains/search?name=$h"; then
       return 1
     fi
     _debug2 response "$response"
