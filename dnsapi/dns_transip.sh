@@ -93,8 +93,7 @@ _transip_rest() {
 }
 
 _transip_get_token() {
-  nonce=$(echo "TRANSIP$(_time)" | _digest sha1 hex)
-  nonce=${nonce:0:32}
+  nonce=$(echo "TRANSIP$(_time)" | _digest sha1 hex | cut -c 1-32)
   _debug nonce "$nonce"
 
   data="{\"login\":\"${TRANSIP_Username}\",\"nonce\":\"${nonce}\",\"read_only\":\"${TRANSIP_Token_Read_Only}\",\"expiration_time\":\"${TRANSIP_Token_Expiration}\",\"label\":\"${TRANSIP_Token_Label}\",\"global_key\":\"${TRANSIP_Token_Global_Key}\"}"
