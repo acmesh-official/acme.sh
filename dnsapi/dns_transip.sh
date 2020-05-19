@@ -94,6 +94,10 @@ _transip_rest() {
 
 _transip_get_token() {
   nonce=$(echo "TRANSIP$(_time)" | _digest sha1 hex)
+  nonce_old=$(openssl rand -hex 12)
+  nonce=${nonce:0:32}
+  _debug nonce "$nonce"
+  _debug nonce_old "$nonce_old"
 
   data="{\"login\":\"${TRANSIP_Username}\",\"nonce\":\"${nonce}\",\"read_only\":\"${TRANSIP_Token_Read_Only}\",\"expiration_time\":\"${TRANSIP_Token_Expiration}\",\"label\":\"${TRANSIP_Token_Label}\",\"global_key\":\"${TRANSIP_Token_Global_Key}\"}"
   _debug data "$data"
