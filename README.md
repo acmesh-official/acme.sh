@@ -292,7 +292,7 @@ If your DNS provider supports API access, we can use that API to automatically i
 
 You don't have to do anything manually!
 
-### Currently acme.sh supports most of the dns providers:
+### Currently acme.sh supports most DNS providers:
 
 https://github.com/acmesh-official/acme.sh/wiki/dnsapi
 
@@ -366,7 +366,7 @@ Valid values are:
 
 # 11. Issue Wildcard certificates
 
-It's simple, just give a wildcard domain as the `-d` parameter.
+Pass both the apex domain and the wildcard domain as `-d` arguments, and pass the DNS API identifier (e.g. `dns_cf` for Cloudflare, `dns_dgon` for DigitalOcean - find more [in the wiki](https://github.com/acmesh-official/acme.sh/wiki/dnsapi)) after the `--dns` argument.
 
 ```sh
 acme.sh  --issue -d example.com  -d '*.example.com'  --dns dns_cf
