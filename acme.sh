@@ -4299,7 +4299,7 @@ $_authorizations_map"
 
   if [ "$dns_entries" ]; then
     if [ -z "$Le_DNSSleep" ]; then
-      _info "Let's check each dns records now. Sleep 20 seconds first."
+      _info "Let's check each DNS record now. Sleep 20 seconds first."
       _sleep 20
       if ! _check_dns_entries; then
         _err "check dns error."
