@@ -246,7 +246,7 @@ More examples: https://github.com/acmesh-official/acme.sh/wiki/How-to-issue-a-ce
 
 **(requires you to be root/sudoer, since it is required to interact with Apache server)**
 
-If you are running a web server, Apache or Nginx, it is recommended to use the `Webroot mode`.
+If you are running a web server, it is recommended to use the `Webroot mode`.
 
 Particularly, if you are running an Apache server, you can use Apache mode instead. This mode doesn't write any files to your web root folder.
 
@@ -266,7 +266,7 @@ More examples: https://github.com/acmesh-official/acme.sh/wiki/How-to-issue-a-ce
 
 **(requires you to be root/sudoer, since it is required to interact with Nginx server)**
 
-If you are running a web server, Apache or Nginx, it is recommended to use the `Webroot mode`.
+If you are running a web server, it is recommended to use the `Webroot mode`.
 
 Particularly, if you are running an nginx server, you can use nginx mode instead. This mode doesn't write any files to your web root folder.
 
