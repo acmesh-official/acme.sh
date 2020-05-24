@@ -77,6 +77,11 @@ qiniu_deploy() {
     export _H1="Authorization: QBox $update_access_token"
     update_response=$(_post "$update_body" "$QINIU_API_BASE$update_path" 0 "PUT" "application/json" | _dbase64 "multiline")
 
+    if _contains "$update_response" "400030"; then
+      _err "updating domain $domain code: 400030 "
+      continue
+    fi
+
     if _contains "$update_response" "error"; then
       _err "Error in updating domain $domain httpsconf:"
       _err "$update_response"
