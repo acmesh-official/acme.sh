@@ -4517,7 +4517,7 @@ $_authorizations_map"
         _info "Pending"
       elif [ "$status" = "processing" ]; then
         _info "Processing"
-        _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ')
+        _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
         _debug "_retryafter" "$_retryafter"
         if [ "$_retryafter" ]; then
           _info "Retry after: $_retryafter"
