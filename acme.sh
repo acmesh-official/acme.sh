@@ -4517,12 +4517,6 @@ $_authorizations_map"
         _info "Pending"
       elif [ "$status" = "processing" ]; then
         _info "Processing"
-        _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
-        _debug "_retryafter" "$_retryafter"
-        if [ "$_retryafter" ]; then
-          _info "Retry after: $_retryafter"
-          _sleep $_retryafter
-        fi
       else
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
@@ -4574,7 +4568,14 @@ $_authorizations_map"
         break
       elif _contains "$response" "\"processing\""; then
         _info "Order status is processing, lets sleep and retry."
-        _sleep 2
+        _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+        _debug "_retryafter" "$_retryafter"
+        if [ "$_retryafter" ]; then
+          _info "Retry after: $_retryafter"
+          _sleep $_retryafter
+        else
+          _sleep 2
+        fi
       else
         _err "Sign error, wrong status"
         _err "$response"
