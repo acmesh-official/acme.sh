@@ -168,7 +168,7 @@ _1984hosting_login() {
   _debug2 response "$response"
 
   if [ "$response" = '{"loggedin": true, "ok": true}' ]; then
-    One984HOSTING_COOKIE="$(grep '^Set-Cookie:' "$HTTP_HEADER" | _tail_n 1 | _egrep_o 'sessionid=[^;]*;' | tr -d ';')"
+    One984HOSTING_COOKIE="$(grep '^set-cookie:' "$HTTP_HEADER" | _tail_n 1 | _egrep_o 'sessionid=[^;]*;' | tr -d ';')"
     export One984HOSTING_COOKIE
     _saveaccountconf_mutable One984HOSTING_COOKIE "$One984HOSTING_COOKIE"
     return 0
