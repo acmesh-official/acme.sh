@@ -69,15 +69,21 @@ dns_pdns_add() {
 #fulldomain
 dns_pdns_rm() {
   fulldomain=$1
+  txtvalue=$2
+
+  if [ -z "$PDNS_Ttl" ]; then
+    PDNS_Ttl="$DEFAULT_PDNS_TTL"
+  fi
 
   _debug "Detect root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
+
   _debug _domain "$_domain"
 
-  if ! rm_record "$_domain" "$fulldomain"; then
+  if ! rm_record "$_domain" "$fulldomain" "$txtvalue"; then
     return 1
   fi
 
@@ -88,9 +94,16 @@ set_record() {
   _info "Adding record"
   root=$1
   full=$2
-  txtvalue=$3
+  new_challenge=$3
 
-  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root." "{\"rrsets\": [{\"changetype\": \"REPLACE\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [{\"name\": \"$full.\", \"type\": \"TXT\", \"content\": \"\\\"$txtvalue\\\"\", \"disabled\": false, \"ttl\": $PDNS_Ttl}]}]}"; then
+  _record_string=""
+  _build_record_string "$new_challenge"
+  _list_existingchallenges
+  for oldchallenge in $_existing_challenges; do
+    _build_record_string "$oldchallenge"
+  done
+
+  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"REPLACE\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [$_record_string]}]}"; then
     _err "Set txt record error."
     return 1
   fi
@@ -106,14 +119,37 @@ rm_record() {
   _info "Remove record"
   root=$1
   full=$2
+  txtvalue=$3
 
-  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root." "{\"rrsets\": [{\"changetype\": \"DELETE\", \"name\": \"$full.\", \"type\": \"TXT\"}]}"; then
-    _err "Delete txt record error."
-    return 1
-  fi
+  #Enumerate existing acme challenges
+  _list_existingchallenges
 
-  if ! notify_slaves "$root"; then
-    return 1
+  if _contains "$_existing_challenges" "$txtvalue"; then
+    #Delete all challenges (PowerDNS API does not allow to delete content)
+    if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"DELETE\", \"name\": \"$full.\", \"type\": \"TXT\"}]}"; then
+      _err "Delete txt record error."
+      return 1
+    fi
+    _record_string=""
+    #If the only existing challenge was the challenge to delete: nothing to do
+    if ! [ "$_existing_challenges" = "$txtvalue" ]; then
+      for oldchallenge in $_existing_challenges; do
+        #Build up the challenges to re-add, ommitting the one what should be deleted
+        if ! [ "$oldchallenge" = "$txtvalue" ]; then
+          _build_record_string "$oldchallenge"
+        fi
+      done
+      #Recreate the existing challenges
+      if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"REPLACE\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [$_record_string]}]}"; then
+        _err "Set txt record error."
+        return 1
+      fi
+    fi
+    if ! notify_slaves "$root"; then
+      return 1
+    fi
+  else
+    _info "Record not found, nothing to remove"
   fi
 
   return 0
@@ -122,7 +158,7 @@ rm_record() {
 notify_slaves() {
   root=$1
 
-  if ! _pdns_rest "PUT" "/api/v1/servers/$PDNS_ServerId/zones/$root./notify"; then
+  if ! _pdns_rest "PUT" "/api/v1/servers/$PDNS_ServerId/zones/$root/notify"; then
     _err "Notify slaves error."
     return 1
   fi
@@ -144,15 +180,18 @@ _get_root() {
 
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
-    if [ -z "$h" ]; then
-      return 1
-    fi
 
     if _contains "$_zones_response" "\"name\": \"$h.\""; then
-      _domain="$h"
+      _domain="$h."
+      if [ -z "$h" ]; then
+        _domain="=2E"
+      fi
       return 0
     fi
 
+    if [ -z "$h" ]; then
+      return 1
+    fi
     i=$(_math $i + 1)
   done
   _debug "$domain not found"
@@ -181,4 +220,13 @@ _pdns_rest() {
   _debug2 response "$response"
 
   return 0
+}
+
+_build_record_string() {
+  _record_string="${_record_string:+${_record_string}, }{\"content\": \"\\\"${1}\\\"\", \"disabled\": false}"
+}
+
+_list_existingchallenges() {
+  _pdns_rest "GET" "/api/v1/servers/$PDNS_ServerId/zones/$root"
+  _existing_challenges=$(echo "$response" | _normalizeJson | _egrep_o "\"name\":\"${fulldomain}[^]]*}" | _egrep_o 'content\":\"\\"[^\\]*' | sed -n 's/^content":"\\"//p')
 }

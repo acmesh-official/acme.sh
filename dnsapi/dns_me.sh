@@ -2,7 +2,7 @@
 
 # bug reports to dev@1e.ca
 
-# ME_Key=qmlkdjflmkqdjf	
+# ME_Key=qmlkdjflmkqdjf
 # ME_Secret=qmsdlkqmlksdvnnpae
 
 ME_Api=https://api.dnsmadeeasy.com/V2.0/dns/managed
@@ -43,34 +43,16 @@ dns_me_add() {
     return 1
   fi
 
-  count=$(printf "%s\n" "$response" | _egrep_o "\"totalRecords\":[^,]*" | cut -d : -f 2)
-  _debug count "$count"
-  if [ "$count" = "0" ]; then
-    _info "Adding record"
-    if _me_rest POST "$_domain_id/records/" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"value\":\"$txtvalue\",\"gtdLocation\":\"DEFAULT\",\"ttl\":120}"; then
-      if printf -- "%s" "$response" | grep \"id\": >/dev/null; then
-        _info "Added"
-        #todo: check if the record takes effect
-        return 0
-      else
-        _err "Add txt record error."
-        return 1
-      fi
-    fi
-    _err "Add txt record error."
-  else
-    _info "Updating record"
-    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*" | cut -d : -f 2 | head -n 1)
-    _debug "record_id" "$record_id"
-
-    _me_rest PUT "$_domain_id/records/$record_id/" "{\"id\":\"$record_id\",\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"value\":\"$txtvalue\",\"gtdLocation\":\"DEFAULT\",\"ttl\":120}"
-    if [ "$?" = "0" ]; then
-      _info "Updated"
+  _info "Adding record"
+  if _me_rest POST "$_domain_id/records/" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"value\":\"$txtvalue\",\"gtdLocation\":\"DEFAULT\",\"ttl\":120}"; then
+    if printf -- "%s" "$response" | grep \"id\": >/dev/null; then
+      _info "Added"
       #todo: check if the record takes effect
       return 0
+    else
+      _err "Add txt record error."
+      return 1
     fi
-    _err "Update error"
-    return 1
   fi
 
 }
@@ -96,7 +78,7 @@ dns_me_rm() {
   if [ "$count" = "0" ]; then
     _info "Don't need to remove."
   else
-    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*" | cut -d : -f 2 | head -n 1)
+    record_id=$(printf "%s\n" "$response" | _egrep_o ",\"value\":\"..$txtvalue..\",\"id\":[^,]*" | cut -d : -f 3 | head -n 1)
     _debug "record_id" "$record_id"
     if [ -z "$record_id" ]; then
       _err "Can not get record id to remove."
@@ -132,7 +114,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\""; then
-      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*" | head -n 1 | cut -d : -f 2 | tr -d '}')
+      _domain_id=$(printf "%s\n" "$response" | sed 's/^{//; s/}$//; s/{.*}//' | sed -r 's/^.*"id":([0-9]+).*$/\1/')
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain="$h"
@@ -152,7 +134,7 @@ _me_rest() {
   data="$3"
   _debug "$ep"
 
-  cdate=$(date -u +"%a, %d %b %Y %T %Z")
+  cdate=$(LANG=C date -u +"%a, %d %b %Y %T %Z")
   hmac=$(printf "%s" "$cdate" | _hmac sha1 "$(printf "%s" "$ME_Secret" | _hex_dump | tr -d " ")" hex)
 
   export _H1="x-dnsme-apiKey: $ME_Key"

@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-# Cloudxns.com Domain api
+# CloudXNS Domain api
 #
 #CX_Key="1234"
 #
@@ -16,10 +16,12 @@ dns_cx_add() {
   fulldomain=$1
   txtvalue=$2
 
+  CX_Key="${CX_Key:-$(_readaccountconf_mutable CX_Key)}"
+  CX_Secret="${CX_Secret:-$(_readaccountconf_mutable CX_Secret)}"
   if [ -z "$CX_Key" ] || [ -z "$CX_Secret" ]; then
     CX_Key=""
     CX_Secret=""
-    _err "You don't specify cloudxns.com  api key or secret yet."
+    _err "You don't specify cloudxns.net  api key or secret yet."
     _err "Please create you key and try again."
     return 1
   fi
@@ -27,8 +29,8 @@ dns_cx_add() {
   REST_API="$CX_Api"
 
   #save the api key and email to the account conf file.
-  _saveaccountconf CX_Key "$CX_Key"
-  _saveaccountconf CX_Secret "$CX_Secret"
+  _saveaccountconf_mutable CX_Key "$CX_Key"
+  _saveaccountconf_mutable CX_Secret "$CX_Secret"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -36,33 +38,20 @@ dns_cx_add() {
     return 1
   fi
 
-  existing_records "$_domain" "$_sub_domain"
-  _debug count "$count"
-  if [ "$?" != "0" ]; then
-    _err "Error get existing records."
-    return 1
-  fi
-
-  if [ "$count" = "0" ]; then
-    add_record "$_domain" "$_sub_domain" "$txtvalue"
-  else
-    update_record "$_domain" "$_sub_domain" "$txtvalue"
-  fi
-
-  if [ "$?" = "0" ]; then
-    return 0
-  fi
-  return 1
+  add_record "$_domain" "$_sub_domain" "$txtvalue"
 }
 
-#fulldomain
+#fulldomain txtvalue
 dns_cx_rm() {
   fulldomain=$1
+  txtvalue=$2
+  CX_Key="${CX_Key:-$(_readaccountconf_mutable CX_Key)}"
+  CX_Secret="${CX_Secret:-$(_readaccountconf_mutable CX_Secret)}"
   REST_API="$CX_Api"
   if _get_root "$fulldomain"; then
     record_id=""
-    existing_records "$_domain" "$_sub_domain"
-    if ! [ "$record_id" = "" ]; then
+    existing_records "$_domain" "$_sub_domain" "$txtvalue"
+    if [ "$record_id" ]; then
       _rest DELETE "record/$record_id/$_domain_id" "{}"
       _info "Deleted record ${fulldomain}"
     fi
@@ -77,7 +66,6 @@ existing_records() {
   _debug "Getting txt records"
   root=$1
   sub=$2
-  count=0
   if ! _rest GET "record/$_domain_id?:domain_id?host_id=0&offset=0&row_num=100"; then
     return 1
   fi
@@ -89,7 +77,6 @@ existing_records() {
   fi
 
   if printf "%s" "$response" | grep '"type":"TXT"' >/dev/null; then
-    count=1
     record_id=$(printf "%s\n" "$seg" | _egrep_o '"record_id":"[^"]*"' | cut -d : -f 2 | tr -d \" | _head_n 1)
     _debug record_id "$record_id"
     return 0
@@ -112,23 +99,6 @@ add_record() {
   fi
 
   return 0
-}
-
-#update the txt record
-#Usage: root sub txtvalue
-update_record() {
-  root=$1
-  sub=$2
-  txtvalue=$3
-  fulldomain="$sub.$root"
-
-  _info "Updating record"
-
-  if _rest PUT "record/$record_id" "{\"domain_id\": $_domain_id, \"host\":\"$_sub_domain\", \"value\":\"$txtvalue\", \"type\":\"TXT\",\"ttl\":600, \"line_id\":1}"; then
-    return 0
-  fi
-
-  return 1
 }
 
 ####################  Private functions below ##################################

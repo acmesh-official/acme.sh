@@ -6,6 +6,9 @@
 # Values to export:
 # export PDD_Token="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
+# Sometimes cloudflare / google doesn't pick new dns records fast enough.
+# You can add --dnssleep XX to params as workaround.
+
 ########  Public functions #####################
 
 #Usage: dns_myapi_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
@@ -13,95 +16,106 @@ dns_yandex_add() {
   fulldomain="${1}"
   txtvalue="${2}"
   _debug "Calling: dns_yandex_add() '${fulldomain}' '${txtvalue}'"
-  _PDD_credentials || return 1
-  export _H1="PddToken: $PDD_Token"
 
-  curDomain=$(_PDD_get_domain "$fulldomain")
-  _debug "Found suitable domain in pdd: $curDomain"
-  curSubdomain="$(echo "${fulldomain}" | sed -e "s@.${curDomain}\$@@")"
-  curData="domain=${curDomain}&type=TXT&subdomain=${curSubdomain}&ttl=360&content=${txtvalue}"
-  curUri="https://pddimp.yandex.ru/api2/admin/dns/add"
-  curResult="$(_post "${curData}" "${curUri}")"
-  _debug "Result: $curResult"
+  _PDD_credentials || return 1
+
+  _PDD_get_domain || return 1
+  _debug "Found suitable domain: $domain"
+
+  _PDD_get_record_ids || return 1
+  _debug "Record_ids: $record_ids"
+
+  if [ ! -z "$record_ids" ]; then
+    _info "All existing $subdomain records from $domain will be removed at the very end."
+  fi
+
+  data="domain=${domain}&type=TXT&subdomain=${subdomain}&ttl=300&content=${txtvalue}"
+  uri="https://pddimp.yandex.ru/api2/admin/dns/add"
+  result="$(_post "${data}" "${uri}" | _normalizeJson)"
+  _debug "Result: $result"
+
+  if ! _contains "$result" '"success":"ok"'; then
+    if _contains "$result" '"success":"error"' && _contains "$result" '"error":"record_exists"'; then
+      _info "Record already exists."
+    else
+      _err "Can't add $subdomain to $domain."
+      return 1
+    fi
+  fi
 }
 
 #Usage: dns_myapi_rm   _acme-challenge.www.domain.com
 dns_yandex_rm() {
   fulldomain="${1}"
   _debug "Calling: dns_yandex_rm() '${fulldomain}'"
+
   _PDD_credentials || return 1
-  export _H1="PddToken: $PDD_Token"
-  record_id=$(pdd_get_record_id "${fulldomain}")
-  _debug "Result: $record_id"
 
-  curDomain=$(_PDD_get_domain "$fulldomain")
-  _debug "Found suitable domain in pdd: $curDomain"
-  curSubdomain="$(echo "${fulldomain}" | sed -e "s@.${curDomain}\$@@")"
+  _PDD_get_domain "$fulldomain" || return 1
+  _debug "Found suitable domain: $domain"
 
-  curUri="https://pddimp.yandex.ru/api2/admin/dns/del"
-  curData="domain=${curDomain}&record_id=${record_id}"
-  curResult="$(_post "${curData}" "${curUri}")"
-  _debug "Result: $curResult"
+  _PDD_get_record_ids "${domain}" "${subdomain}" || return 1
+  _debug "Record_ids: $record_ids"
+
+  for record_id in $record_ids; do
+    data="domain=${domain}&record_id=${record_id}"
+    uri="https://pddimp.yandex.ru/api2/admin/dns/del"
+    result="$(_post "${data}" "${uri}" | _normalizeJson)"
+    _debug "Result: $result"
+
+    if ! _contains "$result" '"success":"ok"'; then
+      _info "Can't remove $subdomain from $domain."
+    fi
+  done
 }
 
 ####################  Private functions below ##################################
 
 _PDD_get_domain() {
-  fulldomain="${1}"
-  __page=1
-  __last=0
-  while [ $__last -eq 0 ]; do
-    uri1="https://pddimp.yandex.ru/api2/admin/domain/domains?page=${__page}&on_page=20"
-    res1=$(_get "$uri1" | _normalizeJson)
-    #_debug "$res1"
-    __found=$(echo "$res1" | sed -n -e 's#.* "found": \([^,]*\),.*#\1#p')
-    _debug "found: $__found results on page"
-    if [ "$__found" -lt 20 ]; then
-      _debug "last page: $__page"
-      __last=1
+  subdomain_start=1
+  while true; do
+    domain_start=$(_math $subdomain_start + 1)
+    domain=$(echo "$fulldomain" | cut -d . -f "$domain_start"-)
+    subdomain=$(echo "$fulldomain" | cut -d . -f -"$subdomain_start")
+
+    _debug "Checking domain $domain"
+    if [ -z "$domain" ]; then
+      return 1
     fi
 
-    __all_domains="$__all_domains $(echo "$res1" | sed -e "s@,@\n@g" | grep '"name"' | cut -d: -f2 | sed -e 's@"@@g')"
+    uri="https://pddimp.yandex.ru/api2/admin/dns/list?domain=$domain"
+    result="$(_get "${uri}" | _normalizeJson)"
+    _debug "Result: $result"
 
-    __page=$(_math $__page + 1)
+    if _contains "$result" '"success":"ok"'; then
+      return 0
+    fi
+    subdomain_start=$(_math $subdomain_start + 1)
   done
-
-  k=2
-  while [ $k -lt 10 ]; do
-    __t=$(echo "$fulldomain" | cut -d . -f $k-100)
-    _debug "finding zone for domain $__t"
-    for d in $__all_domains; do
-      if [ "$d" = "$__t" ]; then
-        echo "$__t"
-        return
-      fi
-    done
-    k=$(_math $k + 1)
-  done
-  _err "No suitable domain found in your account"
-  return 1
 }
 
 _PDD_credentials() {
   if [ -z "${PDD_Token}" ]; then
     PDD_Token=""
-    _err "You need to export PDD_Token=xxxxxxxxxxxxxxxxx"
-    _err "You can get it at https://pddimp.yandex.ru/api2/admin/get_token"
+    _err "You need to export PDD_Token=xxxxxxxxxxxxxxxxx."
+    _err "You can get it at https://pddimp.yandex.ru/api2/admin/get_token."
     return 1
   else
     _saveaccountconf PDD_Token "${PDD_Token}"
   fi
+  export _H1="PddToken: $PDD_Token"
 }
 
-pdd_get_record_id() {
-  fulldomain="${1}"
+_PDD_get_record_ids() {
+  _debug "Check existing records for $subdomain"
 
-  curDomain=$(_PDD_get_domain "$fulldomain")
-  _debug "Found suitable domain in pdd: $curDomain"
-  curSubdomain="$(echo "${fulldomain}" | sed -e "s@.${curDomain}\$@@")"
+  uri="https://pddimp.yandex.ru/api2/admin/dns/list?domain=${domain}"
+  result="$(_get "${uri}" | _normalizeJson)"
+  _debug "Result: $result"
 
-  curUri="https://pddimp.yandex.ru/api2/admin/dns/list?domain=${curDomain}"
-  curResult="$(_get "${curUri}" | _normalizeJson)"
-  _debug "Result: $curResult"
-  echo "$curResult" | _egrep_o "{[^{]*\"content\":[^{]*\"subdomain\":\"${curSubdomain}\"" | sed -n -e 's#.* "record_id": \(.*\),[^,]*#\1#p'
+  if ! _contains "$result" '"success":"ok"'; then
+    return 1
+  fi
+
+  record_ids=$(echo "$result" | _egrep_o "{[^{]*\"subdomain\":\"${subdomain}\"[^}]*}" | sed -n -e 's#.*"record_id": \([0-9]*\).*#\1#p')
 }

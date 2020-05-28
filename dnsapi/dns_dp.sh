@@ -15,6 +15,8 @@ dns_dp_add() {
   fulldomain=$1
   txtvalue=$2
 
+  DP_Id="${DP_Id:-$(_readaccountconf_mutable DP_Id)}"
+  DP_Key="${DP_Key:-$(_readaccountconf_mutable DP_Key)}"
   if [ -z "$DP_Id" ] || [ -z "$DP_Key" ]; then
     DP_Id=""
     DP_Key=""
@@ -24,8 +26,8 @@ dns_dp_add() {
   fi
 
   #save the api key and email to the account conf file.
-  _saveaccountconf DP_Id "$DP_Id"
-  _saveaccountconf DP_Key "$DP_Key"
+  _saveaccountconf_mutable DP_Id "$DP_Id"
+  _saveaccountconf_mutable DP_Key "$DP_Key"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -33,31 +35,25 @@ dns_dp_add() {
     return 1
   fi
 
-  existing_records "$_domain" "$_sub_domain"
-  _debug count "$count"
-  if [ "$?" != "0" ]; then
-    _err "Error get existing records."
-    return 1
-  fi
+  add_record "$_domain" "$_sub_domain" "$txtvalue"
 
-  if [ "$count" = "0" ]; then
-    add_record "$_domain" "$_sub_domain" "$txtvalue"
-  else
-    update_record "$_domain" "$_sub_domain" "$txtvalue"
-  fi
 }
 
 #fulldomain txtvalue
 dns_dp_rm() {
   fulldomain=$1
   txtvalue=$2
+
+  DP_Id="${DP_Id:-$(_readaccountconf_mutable DP_Id)}"
+  DP_Key="${DP_Key:-$(_readaccountconf_mutable DP_Key)}"
+
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
 
-  if ! _rest POST "Record.List" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain"; then
+  if ! _rest POST "Record.List" "login_token=$DP_Id,$DP_Key&format=json&lang=en&domain_id=$_domain_id&sub_domain=$_sub_domain"; then
     _err "Record.Lis error."
     return 1
   fi
@@ -67,51 +63,20 @@ dns_dp_rm() {
     return 0
   fi
 
-  record_id=$(echo "$response" | _egrep_o '{[^{]*"value":"'"$txtvalue"'"' | cut -d , -f 1 | cut -d : -f 2 | tr -d \")
+  record_id=$(echo "$response" | tr "{" "\n" | grep -- "$txtvalue" | grep '^"id"' | cut -d : -f 2 | cut -d '"' -f 2)
   _debug record_id "$record_id"
   if [ -z "$record_id" ]; then
     _err "Can not get record id."
     return 1
   fi
 
-  if ! _rest POST "Record.Remove" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&record_id=$record_id"; then
+  if ! _rest POST "Record.Remove" "login_token=$DP_Id,$DP_Key&format=json&lang=en&domain_id=$_domain_id&record_id=$record_id"; then
     _err "Record.Remove error."
     return 1
   fi
 
-  _contains "$response" "Action completed successful"
+  _contains "$response" "successful"
 
-}
-
-#usage:  root  sub
-#return if the sub record already exists.
-#echos the existing records count.
-# '0' means doesn't exist
-existing_records() {
-  _debug "Getting txt records"
-  root=$1
-  sub=$2
-
-  if ! _rest POST "Record.List" "login_token=$DP_Id,$DP_Key&domain_id=$_domain_id&sub_domain=$_sub_domain"; then
-    return 1
-  fi
-
-  if _contains "$response" 'No records'; then
-    count=0
-    return 0
-  fi
-
-  if _contains "$response" "Action completed successful"; then
-    count=$(printf "%s" "$response" | grep -c '<type>TXT</type>' | tr -d ' ')
-    record_id=$(printf "%s" "$response" | grep '^<id>' | tail -1 | cut -d '>' -f 2 | cut -d '<' -f 1)
-    _debug record_id "$record_id"
-    return 0
-  else
-    _err "get existing records error."
-    return 1
-  fi
-
-  count=0
 }
 
 #add the txt record.
@@ -124,38 +89,11 @@ add_record() {
 
   _info "Adding record"
 
-  if ! _rest POST "Record.Create" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain&record_type=TXT&value=$txtvalue&record_line=默认"; then
+  if ! _rest POST "Record.Create" "login_token=$DP_Id,$DP_Key&format=json&lang=en&domain_id=$_domain_id&sub_domain=$_sub_domain&record_type=TXT&value=$txtvalue&record_line=默认"; then
     return 1
   fi
 
-  if _contains "$response" "Action completed successful"; then
-
-    return 0
-  fi
-
-  return 1 #error
-}
-
-#update the txt record
-#Usage: root sub txtvalue
-update_record() {
-  root=$1
-  sub=$2
-  txtvalue=$3
-  fulldomain="$sub.$root"
-
-  _info "Updating record"
-
-  if ! _rest POST "Record.Modify" "login_token=$DP_Id,$DP_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain&record_type=TXT&value=$txtvalue&record_line=默认&record_id=$record_id"; then
-    return 1
-  fi
-
-  if _contains "$response" "Action completed successful"; then
-
-    return 0
-  fi
-
-  return 1 #error
+  _contains "$response" "successful" || _contains "$response" "Domain record already exists"
 }
 
 ####################  Private functions below ##################################
@@ -175,11 +113,11 @@ _get_root() {
       return 1
     fi
 
-    if ! _rest POST "Domain.Info" "login_token=$DP_Id,$DP_Key&format=json&domain=$h"; then
+    if ! _rest POST "Domain.Info" "login_token=$DP_Id,$DP_Key&format=json&lang=en&domain=$h"; then
       return 1
     fi
 
-    if _contains "$response" "Action completed successful"; then
+    if _contains "$response" "successful"; then
       _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
       _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ]; then

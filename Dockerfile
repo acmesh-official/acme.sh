@@ -1,10 +1,16 @@
-FROM alpine:3.6
+FROM alpine:3.10
 
 RUN apk update -f \
   && apk --no-cache add -f \
   openssl \
+  openssh-client \
+  coreutils \
+  bind-tools \
   curl \
   socat \
+  tzdata \
+  oath-toolkit-oathtool \
+  tar \
   && rm -rf /var/cache/apk/*
 
 ENV LE_CONFIG_HOME /acme.sh
@@ -18,7 +24,7 @@ RUN cd /install_acme.sh && ([ -f /install_acme.sh/acme.sh ] && /install_acme.sh/
 
 RUN ln -s  /root/.acme.sh/acme.sh  /usr/local/bin/acme.sh && crontab -l | grep acme.sh | sed 's#> /dev/null##' | crontab -
 
-RUN for verb in help \ 
+RUN for verb in help \
   version \
   install \
   uninstall \
@@ -45,6 +51,7 @@ RUN for verb in help \
   createCSR \
   deactivate \
   deactivate-account \
+  set-notify \
   ; do \
     printf -- "%b" "#!/usr/bin/env sh\n/root/.acme.sh/acme.sh --${verb} --config-home /acme.sh \"\$@\"" >/usr/local/bin/--${verb} && chmod +x /usr/local/bin/--${verb} \
   ; done

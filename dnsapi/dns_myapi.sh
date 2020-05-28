@@ -7,9 +7,11 @@
 #returns 0 means success, otherwise error.
 #
 #Author: Neilpang
-#Report Bugs here: https://github.com/Neilpang/acme.sh
+#Report Bugs here: https://github.com/acmesh-official/acme.sh
 #
 ########  Public functions #####################
+
+# Please Read this guide first: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
 
 #Usage: dns_myapi_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_myapi_add() {
