@@ -3464,6 +3464,7 @@ _regAccount() {
     return 1
   fi
   _savecaconf "ACCOUNT_URL" "$_accUri"
+  _savecaconf "ACME_DIRECTORY" "$ACME_DIRECTORY"
   export ACCOUNT_URL="$_accUri"
 
   CA_KEY_HASH="$(__calcAccountKeyHash)"
