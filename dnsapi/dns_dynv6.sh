@@ -11,11 +11,28 @@ dns_dynv6_add() {
   _info "Using dynv6 api"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
+<<<<<<< HEAD
 
   _get_authentication
   if [ "$dynv6_token" ]; then
     _dns_dynv6_add_http
     return $?
+=======
+  _get_keyfile
+  _info "using keyfile $dynv6_keyfile"
+  _your_hosts="$(ssh -i "$dynv6_keyfile" api@dynv6.com hosts)"
+  if ! _get_domain "$fulldomain" "$_your_hosts"; then
+    _err "Host not found on your account"
+    return 1
+  fi
+  _debug "found host on your account"
+  returnval="$(ssh -i "$dynv6_keyfile" api@dynv6.com hosts \""$_host"\" records set \""$_record"\" txt data \""$txtvalue"\")"
+  _debug "Dynv6 returend this after record was added: $returnval"
+  if _contains "$returnval" "created"; then
+    return 0
+  elif _contains "$returnval" "updated"; then
+    return 0
+>>>>>>> first attempt to make travis happy
   else
     _info "using key file $dynv6_keyfile"
     _your_hosts="$(ssh -i "$dynv6_keyfile" api@dynv6.com hosts)"
@@ -46,6 +63,7 @@ dns_dynv6_rm() {
   _info "Using dynv6 API"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
+<<<<<<< HEAD
   _get_authentication
   if [ "$dynv6_token" ]; then
     _dns_dynv6_rm_http
@@ -61,6 +79,18 @@ dns_dynv6_rm() {
     _info "$(ssh -i "$dynv6_keyfile" api@dynv6.com hosts "\"$_host\"" records del "\"$_record\"" txt)"
     return 0
   fi
+=======
+  _get_keyfile
+  _info "using keyfile $dynv6_keyfile"
+  _your_hosts="$(ssh -i "$dynv6_keyfile" api@dynv6.com hosts)"
+  if ! _get_domain "$fulldomain" "$_your_hosts"; then
+    _err "Host not found on your account"
+    return 1
+  fi
+  _debug "found host on your account"
+  _info "$(ssh -i "$dynv6_keyfile" api@dynv6.com hosts "\"$_host\"" records del "\"$_record\"" txt)"
+  return 0
+>>>>>>> first attempt to make travis happy
 }
 #################### Private functions below ##################################
 #Usage: No Input required
@@ -91,13 +121,13 @@ _get_domain() {
 
   _your_hosts="$(echo "$_your_hosts" | awk '/\./ {print $1}')"
   for l in $_your_hosts; do
-  	#echo "host: $l"
-  	if test "${_full_domain#*$l}" != "$_full_domain"; then
-  	  _record="${_full_domain%.$l}"
-  	  _host=$l
-  	  _debug "The host is $_host and the record $_record"
-  	  return 0
-  	fi
+    #echo "host: $l"
+    if test "${_full_domain#*$l}" != "$_full_domain"; then
+      _record="${_full_domain%.$l}"
+      _host=$l
+      _debug "The host is $_host and the record $_record"
+      return 0
+    fi
   done
   _err "Either their is no such host on your dnyv6 account or it cannot be accessed with this key"
   return 1
