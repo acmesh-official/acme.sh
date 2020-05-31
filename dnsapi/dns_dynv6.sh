@@ -11,24 +11,7 @@ dns_dynv6_add() {
   _info "Using dynv6 api"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
-<<<<<<< HEAD
-  _get_keyfile
-  _info "using keyfile $dynv6_keyfile"
-  _your_hosts="$(ssh -i "$dynv6_keyfile" api@dynv6.com hosts)"
-  if ! _get_domain "$fulldomain" "$_your_hosts"; then
-    _err "Host not found on your account"
-    return 1
-  fi
-  _debug "found host on your account"
-  returnval="$(ssh -i "$dynv6_keyfile" api@dynv6.com hosts \""$_host"\" records set \""$_record"\" txt data \""$txtvalue"\")"
-  _debug "Dynv6 returend this after record was added: $returnval"
-  if _contains "$returnval" "created"; then
-    return 0
-  elif _contains "$returnval" "updated"; then
-    return 0
-  else
-    _err "Something went wrong! it does not seem like the record was added succesfully"
-=======
+
   _get_authentication
   if [ "$dynv6_token" ]; then
     _dns_dynv6_add_http
@@ -51,7 +34,6 @@ dns_dynv6_add() {
       _err "Something went wrong! it does not seem like the record was added successfully"
       return 1
     fi
->>>>>>> formatting
     return 1
   fi
   return 1
@@ -61,17 +43,9 @@ dns_dynv6_add() {
 dns_dynv6_rm() {
   fulldomain=$1
   txtvalue=$2
-  _info "Using dynv6 api"
+  _info "Using dynv6 API"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
-<<<<<<< HEAD
-  _get_keyfile
-  _info "using keyfile $dynv6_keyfile"
-  _your_hosts="$(ssh -i "$dynv6_keyfile" api@dynv6.com hosts)"
-  if ! _get_domain "$fulldomain" "$_your_hosts"; then
-    _err "Host not found on your account"
-    return 1
-=======
   _get_authentication
   if [ "$dynv6_token" ]; then
     _dns_dynv6_rm_http
@@ -86,11 +60,7 @@ dns_dynv6_rm() {
     _debug "found host on your account"
     _info "$(ssh -i "$dynv6_keyfile" api@dynv6.com hosts "\"$_host\"" records del "\"$_record\"" txt)"
     return 0
->>>>>>> formatting
   fi
-  _debug "found host on your account"
-  _info "$(ssh -i "$dynv6_keyfile" api@dynv6.com hosts "\"$_host\"" records del "\"$_record\"" txt)"
-  return 0
 }
 #################### Private functions below ##################################
 #Usage: No Input required
@@ -121,13 +91,13 @@ _get_domain() {
 
   _your_hosts="$(echo "$_your_hosts" | awk '/\./ {print $1}')"
   for l in $_your_hosts; do
-    #echo "host: $l"
-    if test "${_full_domain#*$l}" != "$_full_domain"; then
-      _record="${_full_domain%.$l}"
-      _host=$l
-      _debug "The host is $_host and the record $_record"
-      return 0
-    fi
+  	#echo "host: $l"
+  	if test "${_full_domain#*$l}" != "$_full_domain"; then
+  	  _record="${_full_domain%.$l}"
+  	  _host=$l
+  	  _debug "The host is $_host and the record $_record"
+  	  return 0
+  	fi
   done
   _err "Either their is no such host on your dnyv6 account or it cannot be accessed with this key"
   return 1
@@ -136,25 +106,6 @@ _get_domain() {
 # Usage: No input required
 #returns
 #dynv6_keyfile path to the key that will be used
-<<<<<<< HEAD
-_get_keyfile() {
-  _debug "get keyfile method called"
-  dynv6_keyfile="${dynv6_keyfile:-$(_readaccountconf_mutable dynv6_keyfile)}"
-  _debug "Your key is $dynv6_keyfile"
-  if [ -z "$dynv6_keyfile" ]; then
-    if [ -z "$KEY" ]; then
-      _err "You did not specify a key to use with dynv6"
-      _info "Creating new dynv6 api key to add to dynv6.com"
-      _generate_new_key
-      _info "Please add this key to dynv6.com $(cat "$dynv6_keyfile.pub")"
-      _info "Hit Enter to contiue"
-      read -r _
-      #save the credentials to the account conf file.
-    else
-      dynv6_keyfile="$KEY"
-    fi
-    _saveaccountconf_mutable dynv6_keyfile "$dynv6_keyfile"
-=======
 _get_authentication() {
   dynv6_token="${DYNV6_TOKEN:-$(_readaccountconf_mutable dynv6_token)}"
   if [ "$dynv6_token" ]; then
@@ -307,7 +258,7 @@ _del_record() {
 
 _dynv6_rest() {
   m=$1    #method GET,POST,DELETE or PUT
-  ep="$2" #the endpoint 
+  ep="$2" #the endpoint
   data="$3"
   _debug "$ep"
 
@@ -321,6 +272,5 @@ _dynv6_rest() {
     response="$(_post "$data" "$dynv6_api/$ep" "" "$m")"
   else
     response="$(_get "$dynv6_api/$ep")"
->>>>>>> formatting
   fi
 }
