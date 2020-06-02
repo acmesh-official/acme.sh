@@ -188,28 +188,28 @@ _dlg_versions() {
   if _exists "${ACME_OPENSSL_BIN:-openssl}"; then
     ${ACME_OPENSSL_BIN:-openssl} version 2>&1
   else
-    echo "$ACME_OPENSSL_BIN doesn't exists."
+    echo "$ACME_OPENSSL_BIN doesn't exist."
   fi
 
   echo "apache:"
   if [ "$_APACHECTL" ] && _exists "$_APACHECTL"; then
     $_APACHECTL -V 2>&1
   else
-    echo "apache doesn't exists."
+    echo "apache doesn't exist."
   fi
 
   echo "nginx:"
   if _exists "nginx"; then
     nginx -V 2>&1
   else
-    echo "nginx doesn't exists."
+    echo "nginx doesn't exist."
   fi
 
   echo "socat:"
   if _exists "socat"; then
     socat -V 2>&1
   else
-    _debug "socat doesn't exists."
+    _debug "socat doesn't exist."
   fi
 }
 
@@ -595,7 +595,7 @@ _ascii_hex() {
   done
 }
 
-#stdin  output hexstr splited by one space
+#stdin  output hexstr split by one space
 #input:"abc"
 #output: " 61 62 63"
 _hex_dump() {
@@ -1829,7 +1829,7 @@ _post() {
     _ret="$?"
     if [ "$_ret" = "8" ]; then
       _ret=0
-      _debug "wget returns 8, the server returns a 'Bad request' response, lets process the response later."
+      _debug "wget returns 8, the server returns a 'Bad request' response, let's process the response later."
     fi
     if [ "$_ret" != "0" ]; then
       _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret"
@@ -1894,7 +1894,7 @@ _get() {
     ret=$?
     if [ "$ret" = "8" ]; then
       ret=0
-      _debug "wget returns 8, the server returns a 'Bad request' response, lets process the response later."
+      _debug "wget returns 8, the server returns a 'Bad request' response, let's process the response later."
     fi
     if [ "$ret" != "0" ]; then
       _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $ret"
@@ -2378,7 +2378,7 @@ _conapath() {
 __initHome() {
   if [ -z "$_SCRIPT_HOME" ]; then
     if _exists readlink && _exists dirname; then
-      _debug "Lets find script dir."
+      _debug "Let's find script dir."
       _debug "_SCRIPT_" "$_SCRIPT_"
       _script="$(_readlink "$_SCRIPT_")"
       _debug "_script" "$_script"
@@ -2736,7 +2736,7 @@ _apachePath() {
   _debug httpdconf "$httpdconf"
   _debug httpdconfname "$httpdconfname"
   if [ ! -f "$httpdconf" ]; then
-    _err "Apache Config file not found" "$httpdconf"
+    _err "Apache config file not found" "$httpdconf"
     return 1
   fi
   return 0
@@ -2779,8 +2779,8 @@ _setApache() {
 
   if ! _exec "$_APACHECTL" -t >/dev/null; then
     _exec_err
-    _err "The apache config file has error, please fix it first, then try again."
-    _err "Don't worry, there is nothing changed to your system."
+    _err "The apache config file has an error, please fix it first, then try again."
+    _err "Don't worry, there are no changes to your system."
     return 1
   else
     _info "OK"
@@ -2789,7 +2789,7 @@ _setApache() {
   #backup the conf
   _debug "Backup apache config file" "$httpdconf"
   if ! cp "$httpdconf" "$APACHE_CONF_BACKUP_DIR/"; then
-    _err "Can not backup apache config file, so abort. Don't worry, the apache config is not changed."
+    _err "Can not backup apache config file, so aborting. Don't worry, the apache config is not changed."
     _err "This might be a bug of $PROJECT_NAME , please report issue: $PROJECT"
     return 1
   fi
@@ -3208,7 +3208,7 @@ _on_before_issue() {
     if ! (
       cd "$DOMAIN_PATH" && eval "$_chk_pre_hook"
     ); then
-      _err "Error when run pre hook."
+      _err "Error when running pre hook."
       return 1
     fi
   fi
@@ -3307,7 +3307,7 @@ _on_issue_err() {
     if ! (
       cd "$DOMAIN_PATH" && eval "$_chk_post_hook"
     ); then
-      _err "Error when run post hook."
+      _err "Error when running post hook."
       return 1
     fi
   fi
@@ -3355,7 +3355,7 @@ _on_issue_success() {
       export Le_Domain="$_main_domain"
       cd "$DOMAIN_PATH" && eval "$_chk_post_hook"
     ); then
-      _err "Error when run post hook."
+      _err "Error when runing post hook."
       return 1
     fi
   fi
@@ -3371,7 +3371,7 @@ _on_issue_success() {
       export Le_Domain="$_main_domain"
       cd "$DOMAIN_PATH" && eval "$_chk_renew_hook"
     ); then
-      _err "Error when run renew hook."
+      _err "Error when running renew hook."
       return 1
     fi
   fi
@@ -4134,7 +4134,7 @@ $_authorizations_map"
       keyauthorization=""
       if [ -z "$entry" ]; then
         if ! _startswith "$d" '*.'; then
-          _debug "Not a wildcard domain, lets check whether the validation is already valid."
+          _debug "Not a wildcard domain, let's check whether the validation is already valid."
           if echo "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
             _debug "$d is already valid."
             keyauthorization="$STATE_VERIFIED"
@@ -4534,7 +4534,7 @@ $_authorizations_map"
   der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _url_replace)"
 
   if [ "$ACME_VERSION" = "2" ]; then
-    _info "Lets finalize the order, Le_OrderFinalize: $Le_OrderFinalize"
+    _info "Let's finalize the order, Le_OrderFinalize: $Le_OrderFinalize"
     if ! _send_signed_request "${Le_OrderFinalize}" "{\"csr\": \"$der\"}"; then
       _err "Sign failed."
       _on_issue_err "$_post_hook"
@@ -4567,7 +4567,7 @@ $_authorizations_map"
         fi
         break
       elif _contains "$response" "\"processing\""; then
-        _info "Order status is processing, lets sleep and retry."
+        _info "Order status is processing, let's sleep and retry."
         _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
         _debug "_retryafter" "$_retryafter"
         if [ "$_retryafter" ]; then
@@ -5779,7 +5779,7 @@ _precheck() {
       if _exists cygpath && _exists schtasks.exe; then
         _info "It seems you are on Windows,  we will install Windows scheduler task."
       else
-        _err "It is recommended to install crontab first. try to install 'cron, crontab, crontabs or vixie-cron'."
+        _err "It is recommended to install crontab first. Try to install 'cron, crontab, crontabs or vixie-cron'."
         _err "We need to set cron job to renew the certs automatically."
         _err "Otherwise, your certs will not be able to be renewed automatically."
         if [ -z "$FORCE" ]; then
