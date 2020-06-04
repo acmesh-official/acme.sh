@@ -1076,6 +1076,8 @@ _createkey() {
     fi
   fi
 
+  chmod 600 "$f"
+
   if _isEccKey "$length"; then
     _debug "Using ec name: $eccname"
     if _opkey="$(${ACME_OPENSSL_BIN:-openssl} ecparam -name "$eccname" -genkey 2>/dev/null)"; then
@@ -5265,10 +5267,12 @@ _installcert() {
       cp "$_real_key" "$_backup_path/key.bak"
     fi
     if [ -f "$_real_key" ]; then
+      chmod 600 "$_real_key"
       cat "$CERT_KEY_PATH" >"$_real_key" || return 1
     else
-      cat "$CERT_KEY_PATH" >"$_real_key" || return 1
+      touch "$_real_key"
       chmod 600 "$_real_key"
+      cat "$CERT_KEY_PATH" >"$_real_key" || return 1
     fi
   fi
 
