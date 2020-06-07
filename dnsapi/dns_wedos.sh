@@ -129,7 +129,7 @@ _wedos_init() {
   WEDOS_Hash="${WEDOS_Hash:-$(_readaccountconf_mutable WEDOS_Hash)}"
   WEDOS_User="${WEDOS_User:-$(_readaccountconf_mutable WEDOS_User)}"
 
-  if [ ! -z "$WEDOS_Pass" && -z "$WEDOS_Hash" ]; then
+  if [ -n "$WEDOS_Pass" ] && [ -z "$WEDOS_Hash" ]; then
     WEDOS_Hash=$(printf "%s" "$WEDOS_Pass" | _digest sha1 1)  
   fi
 
