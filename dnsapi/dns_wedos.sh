@@ -129,15 +129,14 @@ _wedos_init() {
   WEDOS_Hash="${WEDOS_Hash:-$(_readaccountconf_mutable WEDOS_Hash)}"
   WEDOS_User="${WEDOS_User:-$(_readaccountconf_mutable WEDOS_User)}"
 
-  if [ -z "$WEDOS_Pass" ]; then
-    WEDOS_Pass=""
-    _err "You didn't specify a wedos password yet."
-    _err "Please create password and try again."
-    return 1
+  if [ ! -z "$WEDOS_Pass" && -z "$WEDOS_Hash" ]; then
+    WEDOS_Hash=$(printf "%s" "$WEDOS_Pass" | _digest sha1 1)  
   fi
 
   if [ -z "$WEDOS_Hash" ]; then
-    WEDOS_Hash=$(printf "%s" "$WEDOS_Pass" | _digest sha1 1)  
+    _err "You didn't specify a wedos hash or password yet."
+    _err "Please create hash or password and try again."
+    return 1
   fi
   
   _saveaccountconf_mutable WEDOS_Hash "$WEDOS_Hash"
