@@ -24,6 +24,14 @@ dns_cf_add() {
   CF_Key="${CF_Key:-$(_readaccountconf_mutable CF_Key)}"
   CF_Email="${CF_Email:-$(_readaccountconf_mutable CF_Email)}"
 
+  _check_banned_tlds "$fulldomain"
+  if [ "$?" = "1" ]; then
+    _err "Your domain TLD is banned by Cloudflare to use the API."
+    _err "Please use DNS manual mode."
+    _err "See https://github.com/acmesh-official/acme.sh/issues/2901."
+    return 1
+  fi
+
   if [ "$CF_Token" ]; then
     _saveaccountconf_mutable CF_Token "$CF_Token"
     _saveaccountconf_mutable CF_Account_ID "$CF_Account_ID"
@@ -230,5 +238,17 @@ _cf_rest() {
     return 1
   fi
   _debug2 response "$response"
+  return 0
+}
+
+_check_banned_tlds() {
+  banned_tlds="cf,ga,gq,ml,tk"
+  domain_parts="$(echo "$1" | tr '.' ' ' | wc -w)"
+  tld="$(echo "$1" | cut -d . -f "$domain_parts")"
+  for i in $(echo "$banned_tlds" | tr ',' ' '); do
+    if [ "$tld" = "$i" ]; then
+      return 1
+    fi
+  done
   return 0
 }
