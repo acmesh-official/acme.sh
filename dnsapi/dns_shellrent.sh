@@ -3,7 +3,7 @@
 #SH_Token="xxxx"
 #SH_Username="xxxx"
 #SH_Domain_ID="xxxx"
-#SH_DNS_Record_ID="xxxx"
+#SH_DNS_Record_ID="xxxx"  only for internal use
 
 SH_Api="https://manager.shellrent.com/api2"
 
