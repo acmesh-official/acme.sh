@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.8.6
+VER=2.8.7
 
 PROJECT_NAME="acme.sh"
 
@@ -1003,7 +1003,7 @@ _sign() {
 
   _sign_openssl="${ACME_OPENSSL_BIN:-openssl} dgst -sign $keyfile "
 
-  if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
+  if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || grep "BEGIN PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     $_sign_openssl -$alg | _base64
   elif grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
     if ! _signedECText="$($_sign_openssl -sha$__ECC_KEY_LEN | ${ACME_OPENSSL_BIN:-openssl} asn1parse -inform DER)"; then
@@ -1986,7 +1986,9 @@ _send_signed_request() {
       continue
     fi
     if [ "$ACME_VERSION" = "2" ]; then
-      if [ "$url" = "$ACME_NEW_ACCOUNT" ] || [ "$url" = "$ACME_REVOKE_CERT" ]; then
+      if [ "$url" = "$ACME_NEW_ACCOUNT" ]; then
+        protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"jwk\": $jwk"'}'
+      elif [ "$url" = "$ACME_REVOKE_CERT" ] && [ "$keyfile" != "$ACCOUNT_KEY_PATH" ]; then
         protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"jwk\": $jwk"'}'
       else
         protected="$JWK_HEADERPLACE_PART1$nonce\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"kid\": \"${ACCOUNT_URL}\""'}'
@@ -4297,7 +4299,7 @@ $_authorizations_map"
 
   if [ "$dns_entries" ]; then
     if [ -z "$Le_DNSSleep" ]; then
-      _info "Let's check each dns records now. Sleep 20 seconds first."
+      _info "Let's check each DNS record now. Sleep 20 seconds first."
       _sleep 20
       if ! _check_dns_entries; then
         _err "check dns error."
@@ -4566,7 +4568,14 @@ $_authorizations_map"
         break
       elif _contains "$response" "\"processing\""; then
         _info "Order status is processing, lets sleep and retry."
-        _sleep 2
+        _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+        _debug "_retryafter" "$_retryafter"
+        if [ "$_retryafter" ]; then
+          _info "Retry after: $_retryafter"
+          _sleep $_retryafter
+        else
+          _sleep 2
+        fi
       else
         _err "Sign error, wrong status"
         _err "$response"

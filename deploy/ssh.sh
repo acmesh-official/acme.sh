@@ -33,10 +33,7 @@ ssh_deploy() {
   _ccert="$3"
   _cca="$4"
   _cfullchain="$5"
-  _err_code=0
-  _cmdstr=""
-  _backupprefix=""
-  _backupdir=""
+  _deploy_ssh_servers=""
 
   if [ -f "$DOMAIN_CONF" ]; then
     # shellcheck disable=SC1090
@@ -101,6 +98,18 @@ ssh_deploy() {
     Le_Deploy_ssh_multi_call=""
     _cleardomainconf Le_Deploy_ssh_multi_call
   fi
+
+  _deploy_ssh_servers=$Le_Deploy_ssh_server
+  for Le_Deploy_ssh_server in $_deploy_ssh_servers; do
+    _ssh_deploy
+  done
+}
+
+_ssh_deploy() {
+  _err_code=0
+  _cmdstr=""
+  _backupprefix=""
+  _backupdir=""
 
   _info "Deploy certificates to remote server $Le_Deploy_ssh_user@$Le_Deploy_ssh_server"
   if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then

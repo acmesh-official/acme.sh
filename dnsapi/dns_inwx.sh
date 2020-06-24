@@ -261,6 +261,20 @@ _get_root() {
   xml_content='<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
   <methodName>nameserver.list</methodName>
+  <params>
+   <param>
+    <value>
+     <struct>
+      <member>
+       <name>pagelimit</name>
+       <value>
+        <int>9999</int>
+       </value>
+      </member>
+     </struct>
+    </value>
+   </param>
+  </params>
   </methodCall>'
 
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
