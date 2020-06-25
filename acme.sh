@@ -90,6 +90,7 @@ DEBUG_LEVEL_NONE=0
 
 DOH_CLOUDFLARE=1
 DOH_GOOGLE=2
+DISABLE_DNS_CHECK=0
 
 HIDDEN_VALUE="[hidden](please add '--output-insecure' to see this value)"
 
@@ -3790,6 +3791,9 @@ __purge_txt() {
 
 #wait and check each dns entries
 _check_dns_entries() {
+  if [ "$DISABLE_DNS_CHECK" -eq 1 ]; then
+    return 0
+  fi
   _success_txt=","
   _end_time="$(_time)"
   _end_time="$(_math "$_end_time" + 1200)" #let's check no more than 20 minutes.
@@ -6247,6 +6251,7 @@ Parameters:
   --apache                          Use apache mode.
   --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
   --dnssleep   300                  The time in seconds to wait for all the txt records to take effect in dns api mode. It's not necessary to use this by default, $PROJECT_NAME polls dns status automatically.
+  --disable-dns-check               Disables the DNS check by acme.sh in dns validation mode. Pay attention that the ACME server will still perform that check.
 
   --keylength, -k [2048]            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521.
   --accountkeylength, -ak [2048]    Specifies the account key length: 2048, 3072, 4096
@@ -6714,6 +6719,10 @@ _process() {
         Le_DNSSleep="$_dnssleep"
         shift
         ;;
+      --disable-dns-check)
+	DISABLE_DNS_CHECK=1
+	shift
+	;;
 
       --keylength | -k)
         _keylength="$2"
