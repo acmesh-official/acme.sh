@@ -42,7 +42,7 @@ dns_hexonet_add() {
   _debug _domain "$_domain"
 
   _debug "Getting txt records"
-  _hexonet_rest "&command=QueryDNSZoneRRList&dnszone=${h}.&RRTYPE=TXT"
+  _hexonet_rest "command=QueryDNSZoneRRList&dnszone=${h}.&RRTYPE=TXT"
 
   if ! _contains "$response" "CODE=200"; then
     _err "Error"
@@ -88,7 +88,7 @@ dns_hexonet_rm() {
   _debug _domain "$_domain"
 
   _debug "Getting txt records"
-  _hexonet_rest "&command=QueryDNSZoneRRList&dnszone=${h}.&RRTYPE=TXT&RR=${txtvalue}"
+  _hexonet_rest "command=QueryDNSZoneRRList&dnszone=${h}.&RRTYPE=TXT&RR=${_sub_domain}%20IN%20TXT%20\"${txtvalue}\""
 
   if ! _contains "$response" "CODE=200"; then
     _err "Error"
@@ -100,7 +100,7 @@ dns_hexonet_rm() {
   if [ "$count" = "0" ]; then
     _info "Don't need to remove."
   else
-    if ! _hexonet_rest "&command=UpdateDNSZone&dnszone=${_domain}.&delrr0='${_sub_domain}%20IN%20TXT%20\"${txtvalue}\""; then
+    if ! _hexonet_rest "command=UpdateDNSZone&dnszone=${_domain}.&delrr0=${_sub_domain}%20IN%20TXT%20\"${txtvalue}\""; then
       _err "Delete record error."
       return 1
     fi
@@ -126,7 +126,7 @@ _get_root() {
       return 1
     fi
 
-    if ! _hexonet_rest "&command=QueryDNSZoneRRList&dnszone=${h}."; then
+    if ! _hexonet_rest "command=QueryDNSZoneRRList&dnszone=${h}."; then
       return 1
     fi
 
