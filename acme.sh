@@ -4782,7 +4782,7 @@ $_authorizations_map"
     _savedomainconf "Le_RealKeyPath" "$_real_key"
     _savedomainconf "Le_ReloadCmd" "$_reload_cmd" "base64"
     _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
-    if ! _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"; then
+    if ! _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_real_fullchain_key" "$_reload_cmd"; then
       return 1
     fi
   fi
@@ -5191,7 +5191,7 @@ deploy() {
 installcert() {
   _main_domain="$1"
   if [ -z "$_main_domain" ]; then
-    _usage "Usage: $PROJECT_ENTRY --installcert -d domain.com  [--ecc] [--cert-file cert-file-path]  [--key-file key-file-path]  [--ca-file ca-cert-file-path]   [ --reloadCmd reloadCmd] [--fullchain-file fullchain-path]"
+    _usage "Usage: $PROJECT_ENTRY --installcert -d domain.com [--ecc][--cert-file cert-file-path] [--key-file key-file-path] [--ca-file ca-cert-file-path] [--reloadCmd reloadCmd] [--fullchain-file fullchain-path] [--fullchain-key-file fullchain-key-path]"
     return 1
   fi
 
@@ -5200,7 +5200,8 @@ installcert() {
   _real_ca="$4"
   _reload_cmd="$5"
   _real_fullchain="$6"
-  _isEcc="$7"
+  _real_fullchain_key="$7"
+  _isEcc="$8"
 
   _initpath "$_main_domain" "$_isEcc"
   if [ ! -d "$DOMAIN_PATH" ]; then
@@ -5214,8 +5215,9 @@ installcert() {
   _savedomainconf "Le_RealKeyPath" "$_real_key"
   _savedomainconf "Le_ReloadCmd" "$_reload_cmd" "base64"
   _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
+  _savedomainconf "Le_RealFullChainKeyPath" "$_real_fullchain_key"
 
-  _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"
+  _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_real_fullchain_key" "$_reload_cmd"
 }
 
 #domain  cert  key  ca  fullchain reloadcmd backup-prefix
@@ -5225,8 +5227,9 @@ _installcert() {
   _real_key="$3"
   _real_ca="$4"
   _real_fullchain="$5"
-  _reload_cmd="$6"
-  _backup_prefix="$7"
+  _real_fullchain_key="$6"
+  _reload_cmd="$7"
+  _backup_prefix="$8"
 
   if [ "$_real_cert" = "$NO_VALUE" ]; then
     _real_cert=""
@@ -5242,6 +5245,9 @@ _installcert() {
   fi
   if [ "$_real_fullchain" = "$NO_VALUE" ]; then
     _real_fullchain=""
+  fi
+  if [ "$_real_fullchain_key" = "$NO_VALUE" ]; then
+    _real_fullchain_key=""
   fi
 
   _backup_path="$DOMAIN_BACKUP_PATH/$_backup_prefix"
@@ -5287,6 +5293,17 @@ _installcert() {
       cp "$_real_fullchain" "$_backup_path/fullchain.bak"
     fi
     cat "$CERT_FULLCHAIN_PATH" >"$_real_fullchain" || return 1
+  fi
+
+  if [ "$_real_fullchain_key" ]; then
+    _info "Installing full chain with key to:$_real_fullchain_key"
+    if [ -f "$_real_fullchain_key" ] && [ ! "$IS_RENEW" ]; then
+      cp "$_real_fullchain_key" "$_backup_path/fullchainkey.bak"
+    fi
+    if [ ! -f "$_real_fullchain_key" ]; then
+      install -c -m600 /dev/null "$_real_fullchain_key"
+    fi
+    cat "$CERT_FULLCHAIN_PATH" "$CERT_KEY_PATH" >"$_real_fullchain_key" || return 1
   fi
 
   if [ "$_reload_cmd" ]; then
@@ -6260,6 +6277,7 @@ Parameters:
   --key-file                        After issue/renew, the key will be copied to this path.
   --ca-file                         After issue/renew, the intermediate cert will be copied to this path.
   --fullchain-file                  After issue/renew, the fullchain cert will be copied to this path.
+  --fullchain-key-file              After issue/renew, the fullchain cert with key will be copied to this path.
 
   --reloadcmd \"service nginx reload\" After issue/renew, it's used to reload the server.
 
@@ -6447,6 +6465,7 @@ _process() {
   _key_file=""
   _ca_file=""
   _fullchain_file=""
+  _fullchain_key_file=""
   _reloadcmd=""
   _password=""
   _accountconf=""
@@ -6738,6 +6757,10 @@ _process() {
         ;;
       --fullchain-file | --fullchainpath)
         _fullchain_file="$2"
+        shift
+        ;;
+      --fullchain-key-file)
+        _fullchain_key_file="$2"
         shift
         ;;
       --reloadcmd | --reloadCmd)
@@ -7044,7 +7067,7 @@ _process() {
       showcsr "$_csr" "$_domain"
       ;;
     installcert)
-      installcert "$_domain" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_ecc"
+      installcert "$_domain" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_fullchain_key_file" "$_ecc"
       ;;
     renew)
       renew "$_domain" "$_ecc"
