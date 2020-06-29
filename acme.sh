@@ -2801,10 +2801,10 @@ _setApache() {
 
   apacheVer="$($_APACHECTL -V | grep "Server version:" | cut -d : -f 2 | cut -d " " -f 2 | cut -d '/' -f 2)"
   _debug "apacheVer" "$apacheVer"
-  apacheMajer="$(echo "$apacheVer" | cut -d . -f 1)"
+  apacheMajor="$(echo "$apacheVer" | cut -d . -f 1)"
   apacheMinor="$(echo "$apacheVer" | cut -d . -f 2)"
 
-  if [ "$apacheVer" ] && [ "$apacheMajer$apacheMinor" -ge "24" ]; then
+  if [ "$apacheVer" ] && [ "$apacheMajor$apacheMinor" -ge "24" ]; then
     echo "
 Alias /.well-known/acme-challenge  $ACME_DIR
 
