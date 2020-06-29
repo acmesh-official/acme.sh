@@ -155,7 +155,7 @@ _get_root() {
   if [ "$HETZNER_Zone_ID" ]; then
     _debug "Found, using: $HETZNER_Zone_ID"
     if ! _hetzner_rest GET "zones/${HETZNER_Zone_ID}"; then
-      _debug "Zone with id '$HETZNER_Zone_ID' not exists."
+      _debug "Zone with id '$HETZNER_Zone_ID' does not exist."
       _cleardomainconf "$domain_param_name"
       unset HETZNER_Zone_ID
     else

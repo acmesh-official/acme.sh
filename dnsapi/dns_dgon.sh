@@ -22,7 +22,7 @@ dns_dgon_add() {
   txtvalue=$2
 
   DO_API_KEY="${DO_API_KEY:-$(_readaccountconf_mutable DO_API_KEY)}"
-  # Check if API Key Exist
+  # Check if API Key Exists
   if [ -z "$DO_API_KEY" ]; then
     DO_API_KEY=""
     _err "You did not specify DigitalOcean API key."
@@ -77,7 +77,7 @@ dns_dgon_rm() {
   txtvalue=$2
 
   DO_API_KEY="${DO_API_KEY:-$(_readaccountconf_mutable DO_API_KEY)}"
-  # Check if API Key Exist
+  # Check if API Key Exists
   if [ -z "$DO_API_KEY" ]; then
     DO_API_KEY=""
     _err "You did not specify DigitalOcean API key."
