@@ -90,6 +90,7 @@ _get_root() {
     case "${domain}" in
       *${ITEM}*)
       _domain=${ITEM}
+      _debug _domain "${_domain}"
       return 0
       ;;
     esac
@@ -112,9 +113,9 @@ _regru_rest() {
     _debug data "$data"
     response="$(_post "$data" "$REGRU_API_URL/$ep" "" "$m")"
   else
-    response="$(_get "$REGRU_API_URL/$ep")"
+    response="$(_get "$REGRU_API_URL/$ep?$data")"
   fi
 
-  _debug2 response "${response}"
+  _debug response "${response}"
   return 0
 }
