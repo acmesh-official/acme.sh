@@ -24,12 +24,6 @@ dns_unoeuro_add() {
     return 1
   fi
 
-  if ! _contains "$UNO_User" "UE"; then
-    _err "It seems that the UNO_User=$UNO_User is not a valid username."
-    _err "Please check and retry."
-    return 1
-  fi
-
   #save the api key and email to the account conf file.
   _saveaccountconf_mutable UNO_Key "$UNO_Key"
   _saveaccountconf_mutable UNO_User "$UNO_User"
