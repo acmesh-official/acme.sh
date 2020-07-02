@@ -5,7 +5,7 @@
 #
 #UNO_User="UExxxxxx"
 
-Uno_Api="https://api.unoeuro.com/1"
+Uno_Api="https://api.simply.com/1"
 
 ########  Public functions #####################
 
