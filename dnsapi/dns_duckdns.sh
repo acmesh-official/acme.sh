@@ -96,7 +96,7 @@ dns_duckdns_rm() {
 _duckdns_get_domain() {
 
   # We'll extract the domain/username from full domain
-  _duckdns_domain="$(printf "%s" "$fulldomain" | _lower_case | _egrep_o '^(_acme-challenge\.)?[a-z0-9-]*\.duckdns\.org' | sed -E 's/^(_acme-challenge\.)?([a-z0-9-]*)\.duckdns\.org/\2/')"
+  _duckdns_domain="$(printf "%s" "$fulldomain" | _lower_case | _egrep_o '^(_acme-challenge\.)?[a-z0-9-]*\.duckdns\.org' | sed 's/^\(_acme-challenge\.\)\?\([a-z0-9-]*\)\.duckdns\.org/\2/')"
 
   if [ -z "$_duckdns_domain" ]; then
     _err "Error extracting the domain."
