@@ -12,7 +12,7 @@
 # --
 #
 
-DDNSS_DNS_API="https://ddnss.de/upd.php"
+DDNSS_DNS_API="https://ip4.ddnss.de/upd.php"
 
 ########  Public functions #####################
 
@@ -119,7 +119,7 @@ _ddnss_rest() {
 
   # DDNSS uses GET to update domain info
   if [ "$method" = "GET" ]; then
-    response="$(_get "$url" | sed 's/<[a-zA-Z\/][^>]*>//g' | _tail_n 1)"
+    response="$(_get "$url" | sed 's/<[a-zA-Z\/][^>]*>//g' | tr -s "\n" | _tail_n 1)"
   else
     _err "Unsupported method"
     return 1

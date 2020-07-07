@@ -208,33 +208,36 @@ haproxy_deploy() {
         _issuerdn=$(openssl x509 -in "${_issuer}" -issuer -noout | cut -d'/' -f2,3,4,5,6,7,8,9,10)
         _debug _issuerdn "${_issuerdn}"
         _info "Requesting OCSP response"
-        # Request the OCSP response from the issuer and store it
+        # If the issuer is a CA cert then our command line has "-CAfile" added
         if [ "${_subjectdn}" = "${_issuerdn}" ]; then
-          # If the issuer is a CA cert then our command line has "-CAfile" added
-          openssl ocsp \
-            -issuer "${_issuer}" \
-            -cert "${_pem}" \
-            -url "${_ocsp_url}" \
-            -header Host "${_ocsp_host}" \
-            -respout "${_ocsp}" \
-            -verify_other "${_issuer}" \
-            -no_nonce \
-            -CAfile "${_issuer}" \
-            | grep -q "${_pem}: good"
-          _ret=$?
+          _cafile_argument="-CAfile \"${_issuer}\""
         else
-          # Issuer is not a root CA so no "-CAfile" option
-          openssl ocsp \
-            -issuer "${_issuer}" \
-            -cert "${_pem}" \
-            -url "${_ocsp_url}" \
-            -header Host "${_ocsp_host}" \
-            -respout "${_ocsp}" \
-            -verify_other "${_issuer}" \
-            -no_nonce \
-            | grep -q "${_pem}: good"
-          _ret=$?
+          _cafile_argument=""
         fi
+        _debug _cafile_argument "${_cafile_argument}"
+        # if OpenSSL/LibreSSL is v1.1 or above, the format for the -header option has changed
+        _openssl_version=$(openssl version | cut -d' ' -f2)
+        _debug _openssl_version "${_openssl_version}"
+        _openssl_major=$(echo "${_openssl_version}" | cut -d '.' -f1)
+        _openssl_minor=$(echo "${_openssl_version}" | cut -d '.' -f2)
+        if [ "${_openssl_major}" -eq "1" ] && [ "${_openssl_minor}" -ge "1" ] || [ "${_openssl_major}" -ge "2" ]; then
+          _header_sep="="
+        else
+          _header_sep=" "
+        fi
+        # Request the OCSP response from the issuer and store it
+        _openssl_ocsp_cmd="openssl ocsp \
+          -issuer \"${_issuer}\" \
+          -cert \"${_pem}\" \
+          -url \"${_ocsp_url}\" \
+          -header Host${_header_sep}\"${_ocsp_host}\" \
+          -respout \"${_ocsp}\" \
+          -verify_other \"${_issuer}\" \
+          ${_cafile_argument} \
+          | grep -q \"${_pem}: good\""
+        _debug _openssl_ocsp_cmd "${_openssl_ocsp_cmd}"
+        eval "${_openssl_ocsp_cmd}"
+        _ret=$?
       else
         # Non fatal: No issuer file was present so no OCSP stapling file created
         _err "OCSP stapling in use but no .issuer file was present"

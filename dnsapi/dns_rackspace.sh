@@ -9,7 +9,7 @@ RACKSPACE_Endpoint="https://dns.api.rackspacecloud.com/v1.0"
 
 # 20190213 - The name & id fields swapped in the API response; fix sed
 # 20190101 - Duplicating file for new pull request to dev branch
-# Original - tcocca:rackspace_dnsapi https://github.com/Neilpang/acme.sh/pull/1297
+# Original - tcocca:rackspace_dnsapi https://github.com/acmesh-official/acme.sh/pull/1297
 
 ########  Public functions #####################
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
@@ -73,7 +73,7 @@ _get_root_zone() {
       #not valid
       return 1
     fi
-    if ! _rackspace_rest GET "$RACKSPACE_Tenant/domains"; then
+    if ! _rackspace_rest GET "$RACKSPACE_Tenant/domains/search?name=$h"; then
       return 1
     fi
     _debug2 response "$response"

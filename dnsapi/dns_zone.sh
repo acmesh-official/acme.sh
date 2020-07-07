@@ -136,10 +136,10 @@ _get_root() {
     if [ -z "$h" ]; then
       return 1
     fi
-    if ! _zone_rest GET "dns/$h/a"; then
+    if ! _zone_rest GET "dns/$h"; then
       return 1
     fi
-    if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
+    if _contains "$response" "\"identificator\":\"$h\"" >/dev/null; then
       _domain=$h
       return 0
     fi

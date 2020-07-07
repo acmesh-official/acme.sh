@@ -102,7 +102,7 @@ _get_root() {
         return 1
       fi
 
-      hostedzone="$(echo "$response" | _egrep_o "{.*\"name\":\s*\"$h\".*}")"
+      hostedzone="$(echo "$response" | tr "{" "\n" | _egrep_o "\"name\":\s*\"$h\".*}")"
       if [ "$hostedzone" ]; then
         _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
         if [ "$_domain_id" ]; then
