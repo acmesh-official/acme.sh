@@ -85,8 +85,7 @@ _get_root() {
   _regru_rest POST "service/get_list" "username=${REGRU_API_Username}&password=${REGRU_API_Password}&output_format=xml&servtype=domain"
   domains_list=$(echo "${response}" | grep dname | sed -r "s/.*dname=\"([^\"]+)\".*/\\1/g")
 
-  for ITEM in ${domains_list}
-  do
+  for ITEM in ${domains_list}; do
     case "${domain}" in
       *${ITEM}*)
         _domain=${ITEM}
