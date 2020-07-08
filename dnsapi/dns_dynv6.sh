@@ -18,7 +18,7 @@ dns_dynv6_add() {
   if ! _contains "$_your_hosts" "$_host"; then
     _debug "The host is $_host and the record $_record"
     _debug "Dynv6 returned $_your_hosts"
-    _err "The host $_host does not exists on your dynv6 account"
+    _err "The host $_host does not exist on your dynv6 account"
     return 1
   fi
   _debug "found host on your account"
@@ -49,7 +49,7 @@ dns_dynv6_rm() {
   if ! _contains "$_your_hosts" "$_host"; then
     _debug "The host is $_host and the record $_record"
     _debug "Dynv6 returned $_your_hosts"
-    _err "The host $_host does not exists on your dynv6 account"
+    _err "The host $_host does not exist on your dynv6 account"
     return 1
   fi
   _debug "found host on your account"

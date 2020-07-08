@@ -188,28 +188,28 @@ _dlg_versions() {
   if _exists "${ACME_OPENSSL_BIN:-openssl}"; then
     ${ACME_OPENSSL_BIN:-openssl} version 2>&1
   else
-    echo "$ACME_OPENSSL_BIN doesn't exists."
+    echo "$ACME_OPENSSL_BIN doesn't exist."
   fi
 
   echo "apache:"
   if [ "$_APACHECTL" ] && _exists "$_APACHECTL"; then
     $_APACHECTL -V 2>&1
   else
-    echo "apache doesn't exists."
+    echo "apache doesn't exist."
   fi
 
   echo "nginx:"
   if _exists "nginx"; then
     nginx -V 2>&1
   else
-    echo "nginx doesn't exists."
+    echo "nginx doesn't exist."
   fi
 
   echo "socat:"
   if _exists "socat"; then
     socat -V 2>&1
   else
-    _debug "socat doesn't exists."
+    _debug "socat doesn't exist."
   fi
 }
 
@@ -2801,10 +2801,10 @@ _setApache() {
 
   apacheVer="$($_APACHECTL -V | grep "Server version:" | cut -d : -f 2 | cut -d " " -f 2 | cut -d '/' -f 2)"
   _debug "apacheVer" "$apacheVer"
-  apacheMajer="$(echo "$apacheVer" | cut -d . -f 1)"
+  apacheMajor="$(echo "$apacheVer" | cut -d . -f 1)"
   apacheMinor="$(echo "$apacheVer" | cut -d . -f 2)"
 
-  if [ "$apacheVer" ] && [ "$apacheMajer$apacheMinor" -ge "24" ]; then
+  if [ "$apacheVer" ] && [ "$apacheMajor$apacheMinor" -ge "24" ]; then
     echo "
 Alias /.well-known/acme-challenge  $ACME_DIR
 
@@ -5519,7 +5519,7 @@ revoke() {
       fi
     fi
   else
-    _info "Domain key file doesn't exists."
+    _info "Domain key file doesn't exist."
   fi
 
   _info "Try account key."

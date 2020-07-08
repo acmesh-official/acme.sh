@@ -91,13 +91,12 @@ dns_duckdns_rm() {
 
 ####################  Private functions below ##################################
 
-#fulldomain=_acme-challenge.domain.duckdns.org
-#returns
-# _duckdns_domain=domain
+# fulldomain may be 'domain.duckdns.org' (if using --domain-alias) or '_acme-challenge.domain.duckdns.org'
+# either way, return 'domain'. (duckdns does not allow further subdomains and restricts domains to [a-z0-9-].)
 _duckdns_get_domain() {
 
   # We'll extract the domain/username from full domain
-  _duckdns_domain="$(printf "%s" "$fulldomain" | _lower_case | _egrep_o '[.][^.][^.]*[.]duckdns.org' | cut -d . -f 2)"
+  _duckdns_domain="$(printf "%s" "$fulldomain" | _lower_case | _egrep_o '^(_acme-challenge\.)?[a-z0-9-]*\.duckdns\.org' | sed 's/^\(_acme-challenge\.\)\?\([a-z0-9-]*\)\.duckdns\.org/\2/')"
 
   if [ -z "$_duckdns_domain" ]; then
     _err "Error extracting the domain."
