@@ -4122,17 +4122,17 @@ $_authorizations_map"
 
       if [ "$ACME_VERSION" = "2" ]; then
         _idn_d="$(_idn "$d")"
-        _candindates="$(echo "$_authorizations_map" | grep -i "^$_idn_d,")"
-        _debug2 _candindates "$_candindates"
-        if [ "$(echo "$_candindates" | wc -l)" -gt 1 ]; then
-          for _can in $_candindates; do
+        _candidates="$(echo "$_authorizations_map" | grep -i "^$_idn_d,")"
+        _debug2 _candidates "$_candidates"
+        if [ "$(echo "$_candidates" | wc -l)" -gt 1 ]; then
+          for _can in $_candidates; do
             if _startswith "$(echo "$_can" | tr '.' '|')" "$(echo "$_idn_d" | tr '.' '|'),"; then
-              _candindates="$_can"
+              _candidates="$_can"
               break
             fi
           done
         fi
-        response="$(echo "$_candindates" | sed "s/$_idn_d,//")"
+        response="$(echo "$_candidates" | sed "s/$_idn_d,//")"
         _debug2 "response" "$response"
         if [ -z "$response" ]; then
           _err "get to authz error."
