@@ -1014,8 +1014,32 @@ _sign() {
     fi
     _debug3 "_signedECText" "$_signedECText"
     _ec_r="$(echo "$_signedECText" | _head_n 2 | _tail_n 1 | cut -d : -f 4 | tr -d "\r\n")"
-    _debug3 "_ec_r" "$_ec_r"
     _ec_s="$(echo "$_signedECText" | _head_n 3 | _tail_n 1 | cut -d : -f 4 | tr -d "\r\n")"
+    if [ "$__ECC_KEY_LEN" -eq "256" ]; then
+      while [ "${#_ec_r}" -lt "64" ]; do
+         _ec_r="0${_ec_r}"
+      done    
+      while [ "${#_ec_s}" -lt "64" ]; do
+         _ec_s="0${_ec_s}"
+      done
+    fi
+    if [ "$__ECC_KEY_LEN" -eq "384" ]; then
+      while [ "${#_ec_r}" -lt "96" ]; do
+         _ec_r="0${_ec_r}"
+      done    
+      while [ "${#_ec_s}" -lt "96" ]; do
+         _ec_s="0${_ec_s}"
+      done
+    fi
+    if [ "$__ECC_KEY_LEN" -eq "512" ]; then
+      while [ "${#_ec_r}" -lt "132" ]; do
+         _ec_r="0${_ec_r}"
+      done    
+      while [ "${#_ec_s}" -lt "132" ]; do
+         _ec_s="0${_ec_s}"
+      done
+    fi
+    _debug3 "_ec_r" "$_ec_r"    
     _debug3 "_ec_s" "$_ec_s"
     printf "%s" "$_ec_r$_ec_s" | _h2b | _base64
   else
@@ -4098,17 +4122,17 @@ $_authorizations_map"
 
       if [ "$ACME_VERSION" = "2" ]; then
         _idn_d="$(_idn "$d")"
-        _candindates="$(echo "$_authorizations_map" | grep -i "^$_idn_d,")"
-        _debug2 _candindates "$_candindates"
-        if [ "$(echo "$_candindates" | wc -l)" -gt 1 ]; then
-          for _can in $_candindates; do
+        _candidates="$(echo "$_authorizations_map" | grep -i "^$_idn_d,")"
+        _debug2 _candidates "$_candidates"
+        if [ "$(echo "$_candidates" | wc -l)" -gt 1 ]; then
+          for _can in $_candidates; do
             if _startswith "$(echo "$_can" | tr '.' '|')" "$(echo "$_idn_d" | tr '.' '|'),"; then
-              _candindates="$_can"
+              _candidates="$_can"
               break
             fi
           done
         fi
-        response="$(echo "$_candindates" | sed "s/$_idn_d,//")"
+        response="$(echo "$_candidates" | sed "s/$_idn_d,//")"
         _debug2 "response" "$response"
         if [ -z "$response" ]; then
           _err "get to authz error."
