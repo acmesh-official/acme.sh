@@ -1018,7 +1018,7 @@ _sign() {
     if [ "$__ECC_KEY_LEN" -eq "256" ]; then
       while [ "${#_ec_r}" -lt "64" ]; do
          _ec_r="0${_ec_r}"
-      done    
+      done
       while [ "${#_ec_s}" -lt "64" ]; do
          _ec_s="0${_ec_s}"
       done
@@ -1026,7 +1026,7 @@ _sign() {
     if [ "$__ECC_KEY_LEN" -eq "384" ]; then
       while [ "${#_ec_r}" -lt "96" ]; do
          _ec_r="0${_ec_r}"
-      done    
+      done
       while [ "${#_ec_s}" -lt "96" ]; do
          _ec_s="0${_ec_s}"
       done
@@ -1034,7 +1034,7 @@ _sign() {
     if [ "$__ECC_KEY_LEN" -eq "512" ]; then
       while [ "${#_ec_r}" -lt "132" ]; do
          _ec_r="0${_ec_r}"
-      done    
+      done
       while [ "${#_ec_s}" -lt "132" ]; do
          _ec_s="0${_ec_s}"
       done
