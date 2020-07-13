@@ -14,10 +14,6 @@ dns_dynv6_add() {
   _get_keyfile
   _info "using keyfile $dynv6_keyfile"
   _your_hosts="$(ssh -i "$dynv6_keyfile" api@dynv6.com hosts)"
-<<<<<<< HEAD
-
-=======
->>>>>>> first attempt to make travis happy
   if ! _get_domain "$fulldomain" "$_your_hosts"; then
     _err "Host not found on your account"
     return 1
