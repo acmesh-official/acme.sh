@@ -109,13 +109,12 @@ _get_domain() {
 #returns
 #dynv6_keyfile path to the key that will be used
 _get_authentication() {
-  if [ "$DYNV6_TOKEN" ]; then
-    _debug "Going to use the HTTP Token you specifed and saving it for futur use"
-    _saveaccountconf_mutable dynv6_token "$DYNV6_TOKEN"
-    dynv6_token="$DYNV6_TOKEN"
-  elif [ "$(_readaccountconf_mutable dynv6_token)" ]; then
-    _debug "Found a previously used HTTP token going to use that"
-    dynv6_token="$(_readaccountconf_mutable dynv6_token)"
+  dynv6_token="${DYNV6_TOKEN:-$(_readaccountconf_mutable dynv6_token)}"
+  if [ "$dynv6_token" ]; then
+    _debug "Found HTTP Token. Going to use the HTTP API and not the SSH API"
+    if [ "$DYNV6_TOKEN" ]; then
+      _saveaccountconf_mutable dynv6_token "$dynv6_token"
+    fi
   else
     _debug "no HTTP token found. Looking for an SSH key"
     dynv6_keyfile="${dynv6_keyfile:-$(_readaccountconf_mutable dynv6_keyfile)}"
