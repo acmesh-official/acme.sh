@@ -1039,7 +1039,7 @@ _sign() {
         _ec_s="0${_ec_s}"
       done
     fi
-    _debug3 "_ec_r" "$_ec_r"    
+    _debug3 "_ec_r" "$_ec_r"
     _debug3 "_ec_s" "$_ec_s"
     printf "%s" "$_ec_r$_ec_s" | _h2b | _base64
   else
