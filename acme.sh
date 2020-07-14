@@ -1017,29 +1017,29 @@ _sign() {
     _ec_s="$(echo "$_signedECText" | _head_n 3 | _tail_n 1 | cut -d : -f 4 | tr -d "\r\n")"
     if [ "$__ECC_KEY_LEN" -eq "256" ]; then
       while [ "${#_ec_r}" -lt "64" ]; do
-         _ec_r="0${_ec_r}"
-      done    
+        _ec_r="0${_ec_r}"
+      done
       while [ "${#_ec_s}" -lt "64" ]; do
-         _ec_s="0${_ec_s}"
+        _ec_s="0${_ec_s}"
       done
     fi
     if [ "$__ECC_KEY_LEN" -eq "384" ]; then
       while [ "${#_ec_r}" -lt "96" ]; do
-         _ec_r="0${_ec_r}"
-      done    
+        _ec_r="0${_ec_r}"
+      done
       while [ "${#_ec_s}" -lt "96" ]; do
-         _ec_s="0${_ec_s}"
+        _ec_s="0${_ec_s}"
       done
     fi
     if [ "$__ECC_KEY_LEN" -eq "512" ]; then
       while [ "${#_ec_r}" -lt "132" ]; do
-         _ec_r="0${_ec_r}"
-      done    
+        _ec_r="0${_ec_r}"
+      done
       while [ "${#_ec_s}" -lt "132" ]; do
-         _ec_s="0${_ec_s}"
+        _ec_s="0${_ec_s}"
       done
     fi
-    _debug3 "_ec_r" "$_ec_r"    
+    _debug3 "_ec_r" "$_ec_r"
     _debug3 "_ec_s" "$_ec_s"
     printf "%s" "$_ec_r$_ec_s" | _h2b | _base64
   else

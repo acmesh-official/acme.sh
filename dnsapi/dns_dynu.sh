@@ -216,6 +216,10 @@ _dynu_authentication() {
     _err "Authentication failed."
     return 1
   fi
+  if _contains "$response" "Authentication Exception"; then
+    _err "Authentication failed."
+    return 1
+  fi
   if _contains "$response" "access_token"; then
     Dynu_Token=$(printf "%s" "$response" | tr -d "{}" | cut -d , -f 1 | cut -d : -f 2 | cut -d '"' -f 2)
   fi
