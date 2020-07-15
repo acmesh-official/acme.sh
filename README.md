@@ -1,6 +1,13 @@
 # An ACME Shell script: acme.sh [![Build Status](https://travis-ci.org/acmesh-official/acme.sh.svg?branch=master)](https://travis-ci.org/acmesh-official/acme.sh)
 
 <a href="https://opencollective.com/acmesh" alt="Financial Contributors on Open Collective"><img src="https://opencollective.com/acmesh/all/badge.svg?label=financial+contributors" /></a> [![Join the chat at https://gitter.im/acme-sh/Lobby](https://badges.gitter.im/acme-sh/Lobby.svg)](https://gitter.im/acme-sh/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+
+acme.sh is being sponsored by the following tool; please help to support us by taking a look and signing up to a free trial
+<a href="https://tracking.gitads.io/?repo=acme.sh"> <img src="https://images.gitads.io/acme.sh" alt="GitAds"/> </a>
+
+
+
 - An ACME protocol client written purely in Shell (Unix shell) language.
 - Full ACME protocol implementation.
 - Support ACME v1 and ACME v2
