@@ -4559,6 +4559,7 @@ $_authorizations_map"
           fi
         fi
         dns_entries=""
+        _sleep 10 # sometimes even if _chk_one_dns passes let's encrypt still reports wrong txt field
         _debug "ok, let's start to verify one domain"
         _ncIndex=1
         _verify_one_domain
