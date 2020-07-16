@@ -122,12 +122,12 @@ dns_dgon_rm() {
     ## check for what we are looking for: "type":"A","name":"$_sub_domain"
     record="$(echo "$domain_list" | _egrep_o "\"id\"\s*\:\s*\"*[0-9]+\"*[^}]*\"name\"\s*\:\s*\"$_sub_domain\"[^}]*\"data\"\s*\:\s*\"$txtvalue\"")"
 
-    if [ ! -z "$record" ]; then
+    if [ -n "$record" ]; then
 
       ## we found records
       rec_ids="$(echo "$record" | _egrep_o "id\"\s*\:\s*\"*[0-9]+" | _egrep_o "[0-9]+")"
       _debug rec_ids "$rec_ids"
-      if [ ! -z "$rec_ids" ]; then
+      if [ -n "$rec_ids" ]; then
         echo "$rec_ids" | while IFS= read -r rec_id; do
           ## delete the record
           ## delete URL for removing the one we dont want
@@ -218,7 +218,7 @@ _get_base_domain() {
       ## we got part of a domain back - grep it out
       found="$(echo "$domain_list" | _egrep_o "\"name\"\s*\:\s*\"$_domain\"")"
       ## check if it exists
-      if [ ! -z "$found" ]; then
+      if [ -n "$found" ]; then
         ## exists - exit loop returning the parts
         sub_point=$(_math $i - 1)
         _sub_domain=$(printf "%s" "$fulldomain" | cut -d . -f 1-"$sub_point")
