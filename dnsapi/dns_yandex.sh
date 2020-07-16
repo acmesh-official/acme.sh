@@ -25,7 +25,7 @@ dns_yandex_add() {
   _PDD_get_record_ids || return 1
   _debug "Record_ids: $record_ids"
 
-  if [ ! -z "$record_ids" ]; then
+  if [ -n "$record_ids" ]; then
     _info "All existing $subdomain records from $domain will be removed at the very end."
   fi
 
