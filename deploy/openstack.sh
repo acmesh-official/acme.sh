@@ -37,7 +37,7 @@ openstack_deploy() {
     return 1
   fi
   _debug _import_pkcs12 "$_import_pkcs12"
-  _base64_pkcs12=$(_base64 "multiline" < "$_import_pkcs12")
+  _base64_pkcs12=$(_base64 "multiline" <"$_import_pkcs12")
 
   secretHrefs=$(_openstack_get_secrets)
   _debug secretHrefs "$secretHrefs"
