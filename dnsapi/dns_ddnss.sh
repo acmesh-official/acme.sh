@@ -45,7 +45,7 @@ dns_ddnss_add() {
   if _ddnss_rest GET "key=$DDNSS_Token&host=$_ddnss_domain&txtm=1&txt=$txtvalue"; then
     if [ "$response" = "Updated 1 hostname." ]; then
       _info "TXT record has been successfully added to your DDNSS domain."
-      _info "Note that all subdomains under this domain uses the same TXT record."
+      _info "Note that all subdomains under this domain uses the same TXT record, so use -s swich if you have multiple subdomains."
       return 0
     else
       _err "Errors happened during adding the TXT record, response=$response"

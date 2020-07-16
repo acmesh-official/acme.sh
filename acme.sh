@@ -3817,6 +3817,9 @@ _check_dns_entries() {
   _success_txt=","
   _end_time="$(_time)"
   _end_time="$(_math "$_end_time" + 1200)" #let's check no more than 20 minutes.
+  if [ -n "$SEQUENTIAL" ]; then
+    _end_time="$(_math "$_end_time" - 600)" # if sequential give 10 min per sequence
+  fi
 
   while [ "$(_time)" -le "$_end_time" ]; do
     _left=""
@@ -3863,6 +3866,322 @@ _check_dns_entries() {
   _info "Timed out waiting for DNS."
   return 1
 
+}
+
+_set_one_dns() {
+  d=$(echo "$ventry" | cut -d "$sep" -f 1)
+  keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
+  vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
+  _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
+  _debug d "$d"
+  if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
+    _debug "$d is already verified, skip $vtype."
+    _alias_index="$(_math "$_alias_index" + 1)"
+    return 0
+  fi
+
+  if [ "$vtype" = "$VTYPE_DNS" ]; then
+    dnsadded='0'
+    _dns_root_d="$d"
+    if _startswith "$_dns_root_d" "*."; then
+      _dns_root_d="$(echo "$_dns_root_d" | sed 's/*.//')"
+    fi
+    _d_alias="$(_getfield "$_challenge_alias" "$_alias_index")"
+    _alias_index="$(_math "$_alias_index" + 1)"
+    _debug "_d_alias" "$_d_alias"
+    if [ "$_d_alias" ]; then
+      if _startswith "$_d_alias" "$DNS_ALIAS_PREFIX"; then
+        txtdomain="$(echo "$_d_alias" | sed "s/$DNS_ALIAS_PREFIX//")"
+      else
+        txtdomain="_acme-challenge.$_d_alias"
+      fi
+      dns_entry="${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$txtdomain$dvsep$_currentRoot"
+    else
+      txtdomain="_acme-challenge.$_dns_root_d"
+      dns_entry="${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$dvsep$_currentRoot"
+    fi
+
+    _debug txtdomain "$txtdomain"
+    txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
+    _debug txt "$txt"
+
+    d_api="$(_findHook "$_dns_root_d" $_SUB_FOLDER_DNSAPI "$_currentRoot")"
+    _debug d_api "$d_api"
+
+    dns_entry="$dns_entry$dvsep$txt${dvsep}$d_api"
+    _debug2 dns_entry "$dns_entry"
+    if [ "$d_api" ]; then
+      _debug "Found domain api file: $d_api"
+    else
+      if [ "$_currentRoot" != "$W_DNS" ]; then
+        _err "Can not find dns api hook for: $_currentRoot"
+        _info "You need to add the txt record manually."
+      fi
+      _info "$(__red "Add the following TXT record:")"
+      _info "$(__red "Domain: '$(__green "$txtdomain")'")"
+      _info "$(__red "TXT value: '$(__green "$txt")'")"
+      _info "$(__red "Please be aware that you prepend _acme-challenge. before your domain")"
+      _info "$(__red "so the resulting subdomain will be: $txtdomain")"
+      return 0
+    fi
+
+    (
+      if ! . "$d_api"; then
+        _err "Load file $d_api error. Please check your api file and try again."
+        return 1
+      fi
+
+      addcommand="${_currentRoot}_add"
+      if ! _exists "$addcommand"; then
+        _err "It seems that your api file is not correct, it must have a function named: $addcommand"
+        return 1
+      fi
+      _info "Adding txt value: $txt for domain:  $txtdomain"
+      if ! $addcommand "$txtdomain" "$txt"; then
+        _err "Error add txt for domain:$txtdomain"
+        return 1
+      fi
+      _info "The txt record is added: Success."
+    )
+
+    if [ "$?" != "0" ]; then
+      _on_issue_err "$_post_hook" "$vlist"
+      _clearup
+      return 1
+    fi
+    dns_entries="$dns_entries$dns_entry
+"
+    _debug2 "$dns_entries"
+    dnsadded='1'
+  fi
+  return 2
+}
+
+_chk_one_dns() {
+  if [ -z "$Le_DNSSleep" ]; then
+    _info "Let's check each DNS record now. Sleep 20 seconds first."
+    _sleep 20
+    if ! _check_dns_entries; then
+      _err "check dns error."
+      _on_issue_err "$_post_hook"
+      _clearup
+      return 1
+    fi
+  else
+    _savedomainconf "Le_DNSSleep" "$Le_DNSSleep"
+    _info "Sleep $(__green $Le_DNSSleep) seconds for the txt records to take effect"
+    _sleep "$Le_DNSSleep"
+  fi
+}
+
+_verify_one_domain() {
+  d=$(echo "$ventry" | cut -d "$sep" -f 1)
+  keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
+  uri=$(echo "$ventry" | cut -d "$sep" -f 3)
+  vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
+  _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
+
+  if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
+    _info "$d is already verified, skip $vtype."
+    return 0
+  fi
+
+  _info "Verifying: $d"
+  _debug "d" "$d"
+  _debug "keyauthorization" "$keyauthorization"
+  _debug "uri" "$uri"
+  removelevel=""
+  token="$(printf "%s" "$keyauthorization" | cut -d '.' -f 1)"
+
+  _debug "_currentRoot" "$_currentRoot"
+
+  if [ "$vtype" = "$VTYPE_HTTP" ]; then
+    if [ "$_currentRoot" = "$NO_VALUE" ]; then
+      _info "Standalone mode server"
+      _ncaddr="$(_getfield "$_local_addr" "$_ncIndex")"
+      _ncIndex="$(_math $_ncIndex + 1)"
+      _startserver "$keyauthorization" "$_ncaddr"
+      if [ "$?" != "0" ]; then
+        _clearup
+        _on_issue_err "$_post_hook" "$vlist"
+        return 1
+      fi
+      sleep 1
+      _debug serverproc "$serverproc"
+    elif [ "$_currentRoot" = "$MODE_STATELESS" ]; then
+      _info "Stateless mode for domain:$d"
+      _sleep 1
+    elif _startswith "$_currentRoot" "$NGINX"; then
+      _info "Nginx mode for domain:$d"
+      #set up nginx server
+      FOUND_REAL_NGINX_CONF=""
+      BACKUP_NGINX_CONF=""
+      if ! _setNginx "$d" "$_currentRoot" "$thumbprint"; then
+        _clearup
+        _on_issue_err "$_post_hook" "$vlist"
+        return 1
+      fi
+
+      if [ "$FOUND_REAL_NGINX_CONF" ]; then
+        _realConf="$FOUND_REAL_NGINX_CONF"
+        _backup="$BACKUP_NGINX_CONF"
+        _debug _realConf "$_realConf"
+        NGINX_RESTORE_VLIST="$d$sep$_realConf$sep$_backup$dvsep$NGINX_RESTORE_VLIST"
+      fi
+      _sleep 1
+    else
+      if [ "$_currentRoot" = "apache" ]; then
+        wellknown_path="$ACME_DIR"
+      else
+        wellknown_path="$_currentRoot/.well-known/acme-challenge"
+        if [ ! -d "$_currentRoot/.well-known" ]; then
+          removelevel='1'
+        elif [ ! -d "$_currentRoot/.well-known/acme-challenge" ]; then
+          removelevel='2'
+        else
+          removelevel='3'
+        fi
+      fi
+
+      _debug wellknown_path "$wellknown_path"
+
+      _debug "writing token:$token to $wellknown_path/$token"
+
+      mkdir -p "$wellknown_path"
+
+      if ! printf "%s" "$keyauthorization" >"$wellknown_path/$token"; then
+        _err "$d:Can not write token to file : $wellknown_path/$token"
+        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearup
+        _on_issue_err "$_post_hook" "$vlist"
+        return 1
+      fi
+
+      if [ ! "$usingApache" ]; then
+        if webroot_owner=$(_stat "$_currentRoot"); then
+          _debug "Changing owner/group of .well-known to $webroot_owner"
+          if ! _exec "chown -R \"$webroot_owner\" \"$_currentRoot/.well-known\""; then
+            _debug "$(cat "$_EXEC_TEMP_ERR")"
+            _exec_err >/dev/null 2>&1
+          fi
+        else
+          _debug "not changing owner/group of webroot"
+        fi
+      fi
+
+    fi
+  elif [ "$vtype" = "$VTYPE_ALPN" ]; then
+    acmevalidationv1="$(printf "%s" "$keyauthorization" | _digest "sha256" "hex")"
+    _debug acmevalidationv1 "$acmevalidationv1"
+    if ! _starttlsserver "$d" "" "$Le_TLSPort" "$keyauthorization" "$_ncaddr" "$acmevalidationv1"; then
+      _err "Start tls server error."
+      _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+      _clearup
+      _on_issue_err "$_post_hook" "$vlist"
+      return 1
+    fi
+  fi
+
+  if ! __trigger_validation "$uri" "$keyauthorization" "$vtype"; then
+    _err "$d:Can not get challenge: $response"
+    _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+    _clearup
+    _on_issue_err "$_post_hook" "$vlist"
+    return 1
+  fi
+
+  if [ "$code" ] && [ "$code" != '202' ]; then
+    if [ "$code" = '200' ]; then
+      _debug "trigger validation code: $code"
+    else
+      _err "$d:Challenge error: $response"
+      _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+      _clearup
+      _on_issue_err "$_post_hook" "$vlist"
+      return 1
+    fi
+  fi
+
+  waittimes=0
+  if [ -z "$MAX_RETRY_TIMES" ]; then
+    MAX_RETRY_TIMES=30
+  fi
+
+  while true; do
+    waittimes=$(_math "$waittimes" + 1)
+    if [ "$waittimes" -ge "$MAX_RETRY_TIMES" ]; then
+      _err "$d:Timeout"
+      _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+      _clearup
+      _on_issue_err "$_post_hook" "$vlist"
+      return 1
+    fi
+
+    _debug "sleep 2 secs to verify"
+    sleep 2
+    _debug "checking"
+    if [ "$ACME_VERSION" = "2" ]; then
+      _send_signed_request "$uri"
+    else
+      response="$(_get "$uri")"
+    fi
+    if [ "$?" != "0" ]; then
+      _err "$d:Verify error:$response"
+      _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+      _clearup
+      _on_issue_err "$_post_hook" "$vlist"
+      return 1
+    fi
+    _debug2 original "$response"
+
+    response="$(echo "$response" | _normalizeJson)"
+    _debug2 response "$response"
+
+    status=$(echo "$response" | _egrep_o '"status":"[^"]*' | cut -d : -f 2 | tr -d '"')
+    if [ "$status" = "valid" ]; then
+      _info "$(__green Success)"
+      _stopserver "$serverproc"
+      serverproc=""
+      _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+      break
+    fi
+
+    if [ "$status" = "invalid" ]; then
+      error="$(echo "$response" | _egrep_o '"error":\{[^\}]*')"
+      _debug2 error "$error"
+      errordetail="$(echo "$error" | _egrep_o '"detail": *"[^"]*' | cut -d '"' -f 4)"
+      _debug2 errordetail "$errordetail"
+      if [ "$errordetail" ]; then
+        _err "$d:Verify error:$errordetail"
+      else
+        _err "$d:Verify error:$error"
+      fi
+      if [ "$DEBUG" ]; then
+        if [ "$vtype" = "$VTYPE_HTTP" ]; then
+          _debug "Debug: get token url."
+          _get "http://$d/.well-known/acme-challenge/$token" "" 1
+        fi
+      fi
+      _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+      _clearup
+      _on_issue_err "$_post_hook" "$vlist"
+      return 1
+    fi
+
+    if [ "$status" = "pending" ]; then
+      _info "Pending"
+    elif [ "$status" = "processing" ]; then
+      _info "Processing"
+    else
+      _err "$d:Verify error:$response"
+      _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+      _clearup
+      _on_issue_err "$_post_hook" "$vlist"
+      return 1
+    fi
+
+  done
+  return 2
 }
 
 #webroot, domain domainlist  keylength
@@ -4223,90 +4542,35 @@ $_authorizations_map"
     ventries=$(echo "$vlist" | tr "$dvsep" ' ')
     _alias_index=1
     for ventry in $ventries; do
-      d=$(echo "$ventry" | cut -d "$sep" -f 1)
-      keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
-      vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
-      _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
-      _debug d "$d"
-      if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
-        _debug "$d is already verified, skip $vtype."
-        _alias_index="$(_math "$_alias_index" + 1)"
-        continue
-      fi
-
-      if [ "$vtype" = "$VTYPE_DNS" ]; then
-        dnsadded='0'
-        _dns_root_d="$d"
-        if _startswith "$_dns_root_d" "*."; then
-          _dns_root_d="$(echo "$_dns_root_d" | sed 's/*.//')"
-        fi
-        _d_alias="$(_getfield "$_challenge_alias" "$_alias_index")"
-        _alias_index="$(_math "$_alias_index" + 1)"
-        _debug "_d_alias" "$_d_alias"
-        if [ "$_d_alias" ]; then
-          if _startswith "$_d_alias" "$DNS_ALIAS_PREFIX"; then
-            txtdomain="$(echo "$_d_alias" | sed "s/$DNS_ALIAS_PREFIX//")"
-          else
-            txtdomain="_acme-challenge.$_d_alias"
-          fi
-          dns_entry="${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$txtdomain$dvsep$_currentRoot"
-        else
-          txtdomain="_acme-challenge.$_dns_root_d"
-          dns_entry="${_dns_root_d}${dvsep}_acme-challenge.$_dns_root_d$dvsep$dvsep$_currentRoot"
-        fi
-
-        _debug txtdomain "$txtdomain"
-        txt="$(printf "%s" "$keyauthorization" | _digest "sha256" | _url_replace)"
-        _debug txt "$txt"
-
-        d_api="$(_findHook "$_dns_root_d" $_SUB_FOLDER_DNSAPI "$_currentRoot")"
-        _debug d_api "$d_api"
-
-        dns_entry="$dns_entry$dvsep$txt${dvsep}$d_api"
-        _debug2 dns_entry "$dns_entry"
-        if [ "$d_api" ]; then
-          _debug "Found domain api file: $d_api"
-        else
-          if [ "$_currentRoot" != "$W_DNS" ]; then
-            _err "Can not find dns api hook for: $_currentRoot"
-            _info "You need to add the txt record manually."
-          fi
-          _info "$(__red "Add the following TXT record:")"
-          _info "$(__red "Domain: '$(__green "$txtdomain")'")"
-          _info "$(__red "TXT value: '$(__green "$txt")'")"
-          _info "$(__red "Please be aware that you prepend _acme-challenge. before your domain")"
-          _info "$(__red "so the resulting subdomain will be: $txtdomain")"
+      _set_one_dns
+      case "$?" in
+        0)
           continue
-        fi
-
-        (
-          if ! . "$d_api"; then
-            _err "Load file $d_api error. Please check your api file and try again."
-            return 1
-          fi
-
-          addcommand="${_currentRoot}_add"
-          if ! _exists "$addcommand"; then
-            _err "It seems that your api file is not correct, it must have a function named: $addcommand"
-            return 1
-          fi
-          _info "Adding txt value: $txt for domain:  $txtdomain"
-          if ! $addcommand "$txtdomain" "$txt"; then
-            _err "Error add txt for domain:$txtdomain"
-            return 1
-          fi
-          _info "The txt record is added: Success."
-        )
-
-        if [ "$?" != "0" ]; then
-          _on_issue_err "$_post_hook" "$vlist"
-          _clearup
+          ;;
+        1)
           return 1
+          ;;
+        3) ;; # continue running
+      esac
+      if [ -n "$SEQUENTIAL" ]; then
+        if [ "$dns_entries" ]; then
+          if ! _chk_one_dns; then
+            return 1
+          fi
         fi
-        dns_entries="$dns_entries$dns_entry
-"
-        _debug2 "$dns_entries"
-        dnsadded='1'
+        dns_entries=""
+        _debug "ok, let's start to verify one domain"
+        _ncIndex=1
+        _verify_one_domain
+        case "$?" in
+          0)
+            continue
+            ;;
+          1)
+            return 1
+            ;;
+          3) ;; # continue running
+        esac
       fi
     done
 
@@ -4322,237 +4586,30 @@ $_authorizations_map"
   fi
 
   if [ "$dns_entries" ]; then
-    if [ -z "$Le_DNSSleep" ]; then
-      _info "Let's check each DNS record now. Sleep 20 seconds first."
-      _sleep 20
-      if ! _check_dns_entries; then
-        _err "check dns error."
-        _on_issue_err "$_post_hook"
-        _clearup
-        return 1
-      fi
-    else
-      _savedomainconf "Le_DNSSleep" "$Le_DNSSleep"
-      _info "Sleep $(__green $Le_DNSSleep) seconds for the txt records to take effect"
-      _sleep "$Le_DNSSleep"
+    if ! _chk_one_dns; then
+      return 1
     fi
   fi
 
   NGINX_RESTORE_VLIST=""
-  _debug "ok, let's start to verify"
+  if [ -z "$SEQUENTIAL" ]; then
+    _debug "ok, let's start to verify"
 
-  _ncIndex=1
-  ventries=$(echo "$vlist" | tr "$dvsep" ' ')
-  for ventry in $ventries; do
-    d=$(echo "$ventry" | cut -d "$sep" -f 1)
-    keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
-    uri=$(echo "$ventry" | cut -d "$sep" -f 3)
-    vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
-    _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
-
-    if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
-      _info "$d is already verified, skip $vtype."
-      continue
-    fi
-
-    _info "Verifying: $d"
-    _debug "d" "$d"
-    _debug "keyauthorization" "$keyauthorization"
-    _debug "uri" "$uri"
-    removelevel=""
-    token="$(printf "%s" "$keyauthorization" | cut -d '.' -f 1)"
-
-    _debug "_currentRoot" "$_currentRoot"
-
-    if [ "$vtype" = "$VTYPE_HTTP" ]; then
-      if [ "$_currentRoot" = "$NO_VALUE" ]; then
-        _info "Standalone mode server"
-        _ncaddr="$(_getfield "$_local_addr" "$_ncIndex")"
-        _ncIndex="$(_math $_ncIndex + 1)"
-        _startserver "$keyauthorization" "$_ncaddr"
-        if [ "$?" != "0" ]; then
-          _clearup
-          _on_issue_err "$_post_hook" "$vlist"
+    _ncIndex=1
+    ventries=$(echo "$vlist" | tr "$dvsep" ' ')
+    for ventry in $ventries; do
+      _verify_one_domain
+      case "$?" in
+        0)
+          continue
+          ;;
+        1)
           return 1
-        fi
-        sleep 1
-        _debug serverproc "$serverproc"
-      elif [ "$_currentRoot" = "$MODE_STATELESS" ]; then
-        _info "Stateless mode for domain:$d"
-        _sleep 1
-      elif _startswith "$_currentRoot" "$NGINX"; then
-        _info "Nginx mode for domain:$d"
-        #set up nginx server
-        FOUND_REAL_NGINX_CONF=""
-        BACKUP_NGINX_CONF=""
-        if ! _setNginx "$d" "$_currentRoot" "$thumbprint"; then
-          _clearup
-          _on_issue_err "$_post_hook" "$vlist"
-          return 1
-        fi
-
-        if [ "$FOUND_REAL_NGINX_CONF" ]; then
-          _realConf="$FOUND_REAL_NGINX_CONF"
-          _backup="$BACKUP_NGINX_CONF"
-          _debug _realConf "$_realConf"
-          NGINX_RESTORE_VLIST="$d$sep$_realConf$sep$_backup$dvsep$NGINX_RESTORE_VLIST"
-        fi
-        _sleep 1
-      else
-        if [ "$_currentRoot" = "apache" ]; then
-          wellknown_path="$ACME_DIR"
-        else
-          wellknown_path="$_currentRoot/.well-known/acme-challenge"
-          if [ ! -d "$_currentRoot/.well-known" ]; then
-            removelevel='1'
-          elif [ ! -d "$_currentRoot/.well-known/acme-challenge" ]; then
-            removelevel='2'
-          else
-            removelevel='3'
-          fi
-        fi
-
-        _debug wellknown_path "$wellknown_path"
-
-        _debug "writing token:$token to $wellknown_path/$token"
-
-        mkdir -p "$wellknown_path"
-
-        if ! printf "%s" "$keyauthorization" >"$wellknown_path/$token"; then
-          _err "$d:Can not write token to file : $wellknown_path/$token"
-          _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
-          _clearup
-          _on_issue_err "$_post_hook" "$vlist"
-          return 1
-        fi
-
-        if [ ! "$usingApache" ]; then
-          if webroot_owner=$(_stat "$_currentRoot"); then
-            _debug "Changing owner/group of .well-known to $webroot_owner"
-            if ! _exec "chown -R \"$webroot_owner\" \"$_currentRoot/.well-known\""; then
-              _debug "$(cat "$_EXEC_TEMP_ERR")"
-              _exec_err >/dev/null 2>&1
-            fi
-          else
-            _debug "not changing owner/group of webroot"
-          fi
-        fi
-
-      fi
-    elif [ "$vtype" = "$VTYPE_ALPN" ]; then
-      acmevalidationv1="$(printf "%s" "$keyauthorization" | _digest "sha256" "hex")"
-      _debug acmevalidationv1 "$acmevalidationv1"
-      if ! _starttlsserver "$d" "" "$Le_TLSPort" "$keyauthorization" "$_ncaddr" "$acmevalidationv1"; then
-        _err "Start tls server error."
-        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
-        _clearup
-        _on_issue_err "$_post_hook" "$vlist"
-        return 1
-      fi
-    fi
-
-    if ! __trigger_validation "$uri" "$keyauthorization" "$vtype"; then
-      _err "$d:Can not get challenge: $response"
-      _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
-      _clearup
-      _on_issue_err "$_post_hook" "$vlist"
-      return 1
-    fi
-
-    if [ "$code" ] && [ "$code" != '202' ]; then
-      if [ "$code" = '200' ]; then
-        _debug "trigger validation code: $code"
-      else
-        _err "$d:Challenge error: $response"
-        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
-        _clearup
-        _on_issue_err "$_post_hook" "$vlist"
-        return 1
-      fi
-    fi
-
-    waittimes=0
-    if [ -z "$MAX_RETRY_TIMES" ]; then
-      MAX_RETRY_TIMES=30
-    fi
-
-    while true; do
-      waittimes=$(_math "$waittimes" + 1)
-      if [ "$waittimes" -ge "$MAX_RETRY_TIMES" ]; then
-        _err "$d:Timeout"
-        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
-        _clearup
-        _on_issue_err "$_post_hook" "$vlist"
-        return 1
-      fi
-
-      _debug "sleep 2 secs to verify"
-      sleep 2
-      _debug "checking"
-      if [ "$ACME_VERSION" = "2" ]; then
-        _send_signed_request "$uri"
-      else
-        response="$(_get "$uri")"
-      fi
-      if [ "$?" != "0" ]; then
-        _err "$d:Verify error:$response"
-        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
-        _clearup
-        _on_issue_err "$_post_hook" "$vlist"
-        return 1
-      fi
-      _debug2 original "$response"
-
-      response="$(echo "$response" | _normalizeJson)"
-      _debug2 response "$response"
-
-      status=$(echo "$response" | _egrep_o '"status":"[^"]*' | cut -d : -f 2 | tr -d '"')
-      if [ "$status" = "valid" ]; then
-        _info "$(__green Success)"
-        _stopserver "$serverproc"
-        serverproc=""
-        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
-        break
-      fi
-
-      if [ "$status" = "invalid" ]; then
-        error="$(echo "$response" | _egrep_o '"error":\{[^\}]*')"
-        _debug2 error "$error"
-        errordetail="$(echo "$error" | _egrep_o '"detail": *"[^"]*' | cut -d '"' -f 4)"
-        _debug2 errordetail "$errordetail"
-        if [ "$errordetail" ]; then
-          _err "$d:Verify error:$errordetail"
-        else
-          _err "$d:Verify error:$error"
-        fi
-        if [ "$DEBUG" ]; then
-          if [ "$vtype" = "$VTYPE_HTTP" ]; then
-            _debug "Debug: get token url."
-            _get "http://$d/.well-known/acme-challenge/$token" "" 1
-          fi
-        fi
-        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
-        _clearup
-        _on_issue_err "$_post_hook" "$vlist"
-        return 1
-      fi
-
-      if [ "$status" = "pending" ]; then
-        _info "Pending"
-      elif [ "$status" = "processing" ]; then
-        _info "Processing"
-      else
-        _err "$d:Verify error:$response"
-        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
-        _clearup
-        _on_issue_err "$_post_hook" "$vlist"
-        return 1
-      fi
-
+          ;;
+        3) ;; # continue running
+      esac
     done
-
-  done
-
+  fi
   _clearup
   _info "Verify finished, start to sign."
   der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _url_replace)"
@@ -6261,6 +6318,7 @@ Parameters:
   --challenge-alias domain.tld      The challenge domain alias for DNS alias mode: $_DNS_ALIAS_WIKI
   --domain-alias domain.tld         The domain alias for DNS alias mode: $_DNS_ALIAS_WIKI
   --force, -f                       Used to force to install or force to renew a cert immediately.
+  --sequential, -s                  Used to set txt records and verify them in sequence.
   --staging, --test                 Use staging server, just for test.
   --debug                           Output debug info.
   --output-insecure                 Output all the sensitive messages. By default all the credentials/sensitive messages are hidden from the output/debug/log for security.
@@ -6632,6 +6690,9 @@ _process() {
 
       --force | -f)
         FORCE="1"
+        ;;
+      --sequential | -s)
+        SEQUENTIAL="1"
         ;;
       --staging | --test)
         STAGE="1"

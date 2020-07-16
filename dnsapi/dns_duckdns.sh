@@ -43,7 +43,7 @@ dns_duckdns_add() {
   if _duckdns_rest GET "domains=$_duckdns_domain&token=$DuckDNS_Token&txt=$txtvalue"; then
     if [ "$response" = "OK" ]; then
       _info "TXT record has been successfully added to your DuckDNS domain."
-      _info "Note that all subdomains under this domain uses the same TXT record."
+      _info "Note that all subdomains under this domain uses the same TXT record, so use -s swich if you have multiple subdomains."
       return 0
     else
       _err "Errors happened during adding the TXT record, response=$response"
