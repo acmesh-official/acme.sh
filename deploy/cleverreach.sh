@@ -5,7 +5,7 @@
 # It requires that jq are in the $PATH.
 #
 # Written by Jan-Philipp Benecke <github@bnck.me>
-# Public domain, 2017-2018
+# Public domain, 2020
 #
 # Following environment variables must be set:
 #
