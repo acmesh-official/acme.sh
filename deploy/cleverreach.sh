@@ -54,7 +54,7 @@ cleverreach_deploy() {
 
   _certData="{\"cert\":\"$(cat $_cfullchain | _json_encode)\", \"key\":\"$(cat $_ckey | _json_encode)\"}"
   export _H1="Authorization: Bearer ${_access_token}"
-  _add_cert_result="$(_post "$_certData" "https://rest.cleverreach.dev/v3/ssl/${_cdomain}" "" "POST" "application/json")"
+  _add_cert_result="$(_post "$_certData" "https://rest.cleverreach.com/v3/ssl/${_cdomain}" "" "POST" "application/json")"
 
   if ! echo "$_add_cert_result" | grep '"error":' >/dev/null; then
     _info "Uploaded certificate successfully"
