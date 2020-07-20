@@ -43,7 +43,7 @@ cleverreach_deploy() {
   _info "Obtaining a CleverReach access token"
 
   _data="{\"grant_type\": \"client_credentials\", \"client_id\": \"${_cleverreach_client_id}\", \"client_secret\": \"${_cleverreach_client_secret}\"}"
-  _auth_result="$(_post "$_data" "https://rest.cleverreach.dev/oauth/token.php" "" "POST" "application/json")"
+  _auth_result="$(_post "$_data" "https://rest.cleverreach.com/oauth/token.php" "" "POST" "application/json")"
 
   _debug _data "$_data"
   _debug _auth_result "$_auth_result"
