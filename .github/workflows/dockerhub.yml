@@ -8,9 +8,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: trigger
-      run: curl -X POST https://hub.docker.com/api/build/v1/source/1813a660-2ee5-4583-a238-dd54e9a6ebac/trigger/c8cd9f1f-f269-45bc-9750-a08327257f62/call/
-    
-    
-
-
+      - name: checkout code
+        uses: actions/checkout@v2
+      - name: install buildx
+        id: buildx
+        uses: crazy-max/ghaction-docker-buildx@v1
+        with:
+          version: latest
+      - name: login to docker hub
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      - name: build the image
+        run: |
+          docker buildx build \
+            --push \
+            --tag neilpang/acme.sh:latest \
+            --platform linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7,linux/386 .
