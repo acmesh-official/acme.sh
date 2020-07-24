@@ -18,9 +18,17 @@ jobs:
       - name: login to docker hub
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-      - name: build the image
+      - name: build and push the image (master branch)
         run: |
           docker buildx build \
             --push \
             --tag neilpang/acme.sh:latest \
             --platform linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7,linux/386 .
+        if: ${{ github.ref == 'refs/heads/master' }}
+      - name: build and push the image (dev branch)
+        run: |
+          docker buildx build \
+            --push \
+            --tag neilpang/acme.sh:dev \
+            --platform linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7,linux/386 .
+        if: ${{ github.ref == 'refs/heads/dev' }}
