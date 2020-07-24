@@ -3,7 +3,7 @@
 #So, here must be a method dns_1984hosting_add()
 #Which will be called by acme.sh to add the txt record to your api system.
 #returns 0 means success, otherwise error.
-#
+
 #Author: Adrian Fedoreanu
 #Report Bugs here: https://github.com/acmesh-official/acme.sh
 # or here... https://github.com/acmesh-official/acme.sh/issues/2851
@@ -100,7 +100,7 @@ _1984hosting_add_txt_record() {
   elif _contains "$response" "<html>"; then
     _err "1984Hosting failed to add TXT record for $subdomain. Check $HTTP_HEADER file"
     return 1
-  elif [ "$response" = '{"auth": false, "ok": false}' ]; then
+  elif _contains "$response" '"auth": false'; then
     _err "1984Hosting failed to add TXT record for $subdomain. Invalid or expired cookie"
     return 1
   fi
@@ -167,7 +167,7 @@ _1984hosting_login() {
   response="$(echo "$response" | _normalizeJson)"
   _debug2 response "$response"
 
-  if [ "$response" = '{"loggedin": true, "ok": true}' ]; then
+  if _contains "$response" '"loggedin": true'; then
     One984HOSTING_COOKIE="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _tail_n 1 | _egrep_o 'sessionid=[^;]*;' | tr -d ';')"
     export One984HOSTING_COOKIE
     _saveaccountconf_mutable One984HOSTING_COOKIE "$One984HOSTING_COOKIE"
@@ -196,7 +196,7 @@ _check_cookie() {
 
   _authget "https://management.1984hosting.com/accounts/loginstatus/"
   response="$(echo "$_response" | _normalizeJson)"
-  if [ "$_response" = '{"ok": true}' ]; then
+  if _contains "$response" '"ok": true'; then
     _debug "Cached cookie still valid"
     return 0
   fi
