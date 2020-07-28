@@ -311,7 +311,7 @@ https://github.com/acmesh-official/acme.sh/wiki/dnsapi
 
 See: https://github.com/acmesh-official/acme.sh/wiki/dns-manual-mode first.
 
-If your dns provider doesn't support any api access, you can add the txt record by your hand.
+If your dns provider doesn't support any api access, you can add the txt record by hand.
 
 ```bash
 acme.sh --issue --dns -d example.com -d www.example.com -d cp.example.com
