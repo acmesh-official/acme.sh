@@ -2,6 +2,7 @@
 
 # kapper.net domain api
 # for further questions please contact: support@kapper.net
+# please report issues here: https://github.com/acmesh-official/acme.sh/issues/2977
 
 #KAPPERNETDNS_Key="yourKAPPERNETapikey"
 #KAPPERNETDNS_Secret="yourKAPPERNETapisecret" 
