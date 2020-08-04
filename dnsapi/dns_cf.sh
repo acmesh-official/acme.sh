@@ -18,16 +18,16 @@ dns_cf_add() {
   fulldomain=$1
   txtvalue=$2
 
-  CF_Token="${CF_Token:-$(_readaccountconf_mutable CF_Token)}"
-  CF_Account_ID="${CF_Account_ID:-$(_readaccountconf_mutable CF_Account_ID)}"
-  CF_Zone_ID="${CF_Zone_ID:-$(_readaccountconf_mutable CF_Zone_ID)}"
-  CF_Key="${CF_Key:-$(_readaccountconf_mutable CF_Key)}"
-  CF_Email="${CF_Email:-$(_readaccountconf_mutable CF_Email)}"
+  CF_Token="${CF_Token:-$(_readdnsapiconf CF_Token)}"
+  CF_Account_ID="${CF_Account_ID:-$(_readdnsapiconf CF_Account_ID)}"
+  CF_Zone_ID="${CF_Zone_ID:-$(_readdnsapiconf CF_Zone_ID)}"
+  CF_Key="${CF_Key:-$(_readdnsapiconf CF_Key)}"
+  CF_Email="${CF_Email:-$(_readdnsapiconf CF_Email)}"
 
   if [ "$CF_Token" ]; then
-    _saveaccountconf_mutable CF_Token "$CF_Token"
-    _saveaccountconf_mutable CF_Account_ID "$CF_Account_ID"
-    _saveaccountconf_mutable CF_Zone_ID "$CF_Zone_ID"
+    _savednsapiconf CF_Token "$CF_Token"
+    _savednsapiconf CF_Account_ID "$CF_Account_ID"
+    _savednsapiconf CF_Zone_ID "$CF_Zone_ID"
   else
     if [ -z "$CF_Key" ] || [ -z "$CF_Email" ]; then
       CF_Key=""
@@ -43,8 +43,8 @@ dns_cf_add() {
       return 1
     fi
     #save the api key and email to the account conf file.
-    _saveaccountconf_mutable CF_Key "$CF_Key"
-    _saveaccountconf_mutable CF_Email "$CF_Email"
+    _savednsapiconf CF_Key "$CF_Key"
+    _savednsapiconf CF_Email "$CF_Email"
   fi
 
   _debug "First detect the root zone"
@@ -92,11 +92,11 @@ dns_cf_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  CF_Token="${CF_Token:-$(_readaccountconf_mutable CF_Token)}"
-  CF_Account_ID="${CF_Account_ID:-$(_readaccountconf_mutable CF_Account_ID)}"
-  CF_Zone_ID="${CF_Zone_ID:-$(_readaccountconf_mutable CF_Zone_ID)}"
-  CF_Key="${CF_Key:-$(_readaccountconf_mutable CF_Key)}"
-  CF_Email="${CF_Email:-$(_readaccountconf_mutable CF_Email)}"
+  CF_Token="${CF_Token:-$(_readdnsapiconf CF_Token)}"
+  CF_Account_ID="${CF_Account_ID:-$(_readdnsapiconf CF_Account_ID)}"
+  CF_Zone_ID="${CF_Zone_ID:-$(_readdnsapiconf CF_Zone_ID)}"
+  CF_Key="${CF_Key:-$(_readdnsapiconf CF_Key)}"
+  CF_Email="${CF_Email:-$(_readdnsapiconf CF_Email)}"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then

@@ -2229,7 +2229,41 @@ _readaccountconf_mutable() {
 _clearaccountconf() {
   _clear_conf "$ACCOUNT_CONF_PATH" "$1"
 }
-
+#_readdnsapiconf key
+_readdnsapiconf() {
+  local acctmutcnf=$(_readaccountconf_mutable $1)
+  local acctcnf=$(_readaccountconf $1)
+  local domcnf=$(_readdomainconf "SAVED_$1")
+  if [ -n "$domcnf" ]; then
+    dnsapi_auth_conf_loc=domainconf
+    echo -ne "$domcnf"
+  elif [ -n "$acctmutcnf" ]; then
+    dnsapi_auth_conf_loc=accountconf_mutable
+    echo -ne "$acctmutcnf"
+  elif [ -n "$acctcnf" ]; then
+    dnsapi_auth_conf_loc=accountconf
+    echo -ne "$acctcnf"
+  else 
+    return 1
+  fi
+  _debug "Read dnsapi conf <$1> from ${dnsapi_auth_conf_loc}"
+}
+#_savednsapiconf key value base64encode
+_savednsapiconf() {
+  _readdnsapiconf $1 >/dev/null
+  #update the original save location if existed for backward compat
+  case "${dnsapi_auth_conf_loc}" in 
+  accountconf_mutable)
+    _saveaccountconf_mutable $1 "$2" $3
+  ;;
+  accountconf)
+    _saveaccountconf $1 "$2" $3
+  ;;
+  esac
+  #we'll use this value on automation
+  _savedomainconf "SAVED_$1" "$2" $3
+  unset dnsapi_auth_conf_loc
+}
 #_savecaconf  key  value
 _savecaconf() {
   _save_conf "$CA_CONF" "$1" "$2"
