@@ -2,11 +2,11 @@
 #
 #
 #RACKSPACE_Username=""
-#
 #RACKSPACE_Apikey=""
 
 RACKSPACE_Endpoint="https://dns.api.rackspacecloud.com/v1.0"
 
+# 20200723 - changed saving read/save account conf to read/save domain conf for api creds
 # 20190213 - The name & id fields swapped in the API response; fix sed
 # 20190101 - Duplicating file for new pull request to dev branch
 # Original - tcocca:rackspace_dnsapi https://github.com/acmesh-official/acme.sh/pull/1297
@@ -14,6 +14,7 @@ RACKSPACE_Endpoint="https://dns.api.rackspacecloud.com/v1.0"
 ########  Public functions #####################
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_rackspace_add() {
+  _debug $DOMAIN_CONF
   fulldomain="$1"
   _debug fulldomain="$fulldomain"
   txtvalue="$2"
@@ -152,6 +153,29 @@ _rackspace_rest() {
   return 0
 }
 
+_rackspace_check_auth() {
+  # retrieve the rackspace creds
+  RACKSPACE_Username="${RACKSPACE_Username:-$(_readdomainconf RACKSPACE_Username)}"
+  RACKSPACE_Apikey="${RACKSPACE_Apikey:-$(_readdomainconf RACKSPACE_Apikey)}"
+  # check their vals for null
+  if [ -z "$RACKSPACE_Username" ] || [ -z "$RACKSPACE_Apikey" ]; then
+    RACKSPACE_Username=""
+    RACKSPACE_Apikey=""
+    _err "You didn't specify a Rackspace username and api key."
+    _err "Please set those values and try again."
+    return 1
+  fi
+  # save the username and api key to the domain conf file.
+  _savedomainconf RACKSPACE_Username "$RACKSPACE_Username"
+  _savedomainconf RACKSPACE_Apikey "$RACKSPACE_Apikey"
+  if [ -z "$RACKSPACE_Token" ]; then
+    _info "Getting authorization token."
+    if ! _rackspace_authorization; then
+      _err "Can not get token."
+    fi
+  fi
+}
+
 _rackspace_authorization() {
   export _H1="Content-Type: application/json"
   data="{\"auth\":{\"RAX-KSKEY:apiKeyCredentials\":{\"username\":\"$RACKSPACE_Username\",\"apiKey\":\"$RACKSPACE_Apikey\"}}}"
@@ -170,29 +194,6 @@ _rackspace_authorization() {
     _debug RACKSPACE_Tenant "$RACKSPACE_Tenant"
   fi
   return 0
-}
-
-_rackspace_check_auth() {
-  # retrieve the rackspace creds
-  RACKSPACE_Username="${RACKSPACE_Username:-$(_readaccountconf_mutable RACKSPACE_Username)}"
-  RACKSPACE_Apikey="${RACKSPACE_Apikey:-$(_readaccountconf_mutable RACKSPACE_Apikey)}"
-  # check their vals for null
-  if [ -z "$RACKSPACE_Username" ] || [ -z "$RACKSPACE_Apikey" ]; then
-    RACKSPACE_Username=""
-    RACKSPACE_Apikey=""
-    _err "You didn't specify a Rackspace username and api key."
-    _err "Please set those values and try again."
-    return 1
-  fi
-  # save the username and api key to the account conf file.
-  _saveaccountconf_mutable RACKSPACE_Username "$RACKSPACE_Username"
-  _saveaccountconf_mutable RACKSPACE_Apikey "$RACKSPACE_Apikey"
-  if [ -z "$RACKSPACE_Token" ]; then
-    _info "Getting authorization token."
-    if ! _rackspace_authorization; then
-      _err "Can not get token."
-    fi
-  fi
 }
 
 _rackspace_check_rootzone() {
