@@ -22,7 +22,7 @@
 ########  Public functions #####################
 
 _syno_get_cookie_data() {
-  grep "\W$1=" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o "$1=[^;]*;" | tr -d ';'
+  grep -i "\W$1=" | grep -i "^Set-Cookie:" | _tail_n 1 | _egrep_o "$1=[^;]*;" | tr -d ';'
 }
 
 #domain keyfile certfile cafile fullchain
@@ -79,7 +79,7 @@ synology_dsm_deploy() {
   encoded_password="$(printf "%s" "$SYNO_Password" | _url_encode)"
   encoded_did="$(printf "%s" "$SYNO_DID" | _url_encode)"
   response=$(_get "$_base_url/webman/login.cgi?username=$encoded_username&passwd=$encoded_password&enable_syno_token=yes&device_id=$encoded_did" 1)
-  token=$(echo "$response" | grep "X-SYNO-TOKEN:" | sed -n 's/^X-SYNO-TOKEN: \(.*\)$/\1/p' | tr -d "\r\n")
+  token=$(echo "$response" | grep -i "X-SYNO-TOKEN:" | sed -n 's/^X-SYNO-TOKEN: \(.*\)$/\1/pI' | tr -d "\r\n")
   _debug3 response "$response"
   _debug token "$token"
 

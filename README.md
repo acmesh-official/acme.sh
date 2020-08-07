@@ -1,6 +1,8 @@
 # An ACME Shell script: acme.sh [![Build Status](https://travis-ci.org/acmesh-official/acme.sh.svg?branch=master)](https://travis-ci.org/acmesh-official/acme.sh)
 
 <a href="https://opencollective.com/acmesh" alt="Financial Contributors on Open Collective"><img src="https://opencollective.com/acmesh/all/badge.svg?label=financial+contributors" /></a> [![Join the chat at https://gitter.im/acme-sh/Lobby](https://badges.gitter.im/acme-sh/Lobby.svg)](https://gitter.im/acme-sh/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Docker stars](https://img.shields.io/docker/stars/neilpang/acme.sh.svg)](https://hub.docker.com/r/neilpang/acme.sh "Click to view the image on Docker Hub")
+[![Docker pulls](https://img.shields.io/docker/pulls/neilpang/acme.sh.svg)](https://hub.docker.com/r/neilpang/acme.sh "Click to view the image on Docker Hub")
 
 
 acme.sh is being sponsored by the following tool; please help to support us by taking a look and signing up to a free trial
@@ -309,7 +311,7 @@ https://github.com/acmesh-official/acme.sh/wiki/dnsapi
 
 See: https://github.com/acmesh-official/acme.sh/wiki/dns-manual-mode first.
 
-If your dns provider doesn't support any api access, you can add the txt record by your hand.
+If your dns provider doesn't support any api access, you can add the txt record by hand.
 
 ```bash
 acme.sh --issue --dns -d example.com -d www.example.com -d cp.example.com

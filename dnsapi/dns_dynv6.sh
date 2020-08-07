@@ -80,7 +80,7 @@ _generate_new_key() {
 _get_domain() {
   _full_domain="$1"
   _debug "getting domain for $_full_domain"
-  if ! _contains "$_full_domain" 'dynv6.net' && ! _contains "$_full_domain" 'dns.army' && ! _contains "$_full_domain" 'dns.navy'; then
+  if ! _contains "$_full_domain" 'dynv6.net' && ! _contains "$_full_domain" 'dns.army' && ! _contains "$_full_domain" 'dns.navy' && ! _contains "$_full_domain" 'v6.rocks' ; then
     _err "The hosts does not seem to be a dynv6 host"
     return 1
   fi
