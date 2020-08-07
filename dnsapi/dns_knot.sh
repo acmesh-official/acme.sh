@@ -8,9 +8,12 @@ dns_knot_add() {
   txtvalue=$2
   _checkKey || return 1
   [ -n "${KNOT_SERVER}" ] || KNOT_SERVER="localhost"
+  KNOT_ZONE="${KNOT_ZONE:-$(_readaccountconf_mutable KNOT_ZONE)}"
+
   # save the dns server and key to the account.conf file.
   _saveaccountconf KNOT_SERVER "${KNOT_SERVER}"
   _saveaccountconf KNOT_KEY "${KNOT_KEY}"
+  _saveaccountconf KNOT_ZONE "${KNOT_ZONE}"
 
   if ! _get_root "$fulldomain"; then
     _err "Domain does not exist."
@@ -18,14 +21,23 @@ dns_knot_add() {
   fi
 
   _info "Adding ${fulldomain}. 60 TXT \"${txtvalue}\""
-
-  knsupdate -y "${KNOT_KEY}" <<EOF
+  if [ -z "${KNOT_ZONE}" ]; then
+    knsupdate -y "${KNOT_KEY}" <<EOF
 server ${KNOT_SERVER}
 zone ${_domain}.
 update add ${fulldomain}. 60 TXT "${txtvalue}"
 send
 quit
 EOF
+  else
+    knsupdate -y "${KNOT_KEY}" <<EOF
+server ${KNOT_SERVER}
+zone ${KNOT_ZONE}.
+update add ${fulldomain}. 60 TXT "${txtvalue}"
+send
+quit
+EOF
+  fi
 
   if [ $? -ne 0 ]; then
     _err "Error updating domain."
@@ -49,13 +61,23 @@ dns_knot_rm() {
 
   _info "Removing ${fulldomain}. TXT"
 
-  knsupdate -y "${KNOT_KEY}" <<EOF
+  if [ -z "${KNOT_ZONE}" ]; then
+    knsupdate -y "${KNOT_KEY}" <<EOF
 server ${KNOT_SERVER}
 zone ${_domain}.
 update del ${fulldomain}. TXT
 send
 quit
 EOF
+  else
+    knsupdate -y "${KNOT_KEY}" <<EOF
+server ${KNOT_SERVER}
+zone ${KNOT_ZONE}.
+update del ${fulldomain}. TXT
+send
+quit
+EOF
+  fi
 
   if [ $? -ne 0 ]; then
     _err "error updating domain"
