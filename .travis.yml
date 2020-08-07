@@ -1,5 +1,5 @@
 language: shell
-dist: trusty
+dist: bionic
 
 os:
   - linux
