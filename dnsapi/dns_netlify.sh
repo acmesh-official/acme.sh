@@ -57,6 +57,8 @@ dns_netlify_add() {
 #Remove the txt record after validation.
 dns_netlify_rm() {
   _info "Using Netlify"
+  txtdomain="$1"
+  txt="$2"
   _debug txtdomain "$txtdomain"
   _debug txt "$txt"
 
@@ -70,12 +72,12 @@ dns_netlify_rm() {
   _debug _domain_id "$_domain_id"
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
-  
+
   dnsRecordURI="dns_zones/$_domain_id/dns_records"
 
   _netlify_rest GET "$dnsRecordURI" "" "$NETLIFY_ACCESS_TOKEN"
 
-  _record_id=$(echo "$response" | _egrep_o "\"type\":\"TXT\",[^\}]*\"value\":\"$txt\"" | head -n 1 | _egrep_o "\"id\":\"[^\"\}]*\"" | cut -d : -f 2 | tr -d \" )
+  _record_id=$(echo "$response" | _egrep_o "\"type\":\"TXT\",[^\}]*\"value\":\"$txt\"" | head -n 1 | _egrep_o "\"id\":\"[^\"\}]*\"" | cut -d : -f 2 | tr -d \")
   _debug _record_id "$_record_id"
   if [ "$_record_id" ]; then
     _netlify_rest DELETE "$dnsRecordURI/$_record_id" "" "$NETLIFY_ACCESS_TOKEN"
@@ -101,7 +103,7 @@ _get_root() {
   p=1
 
   _netlify_rest GET "dns_zones" "" "$accesstoken"
-  
+
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     _debug2 "Checking domain: $h"
@@ -112,7 +114,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
-      _domain_id=$(echo "$response" | _egrep_o "\"[^\"]*\",\"name\":\"$h" | cut -d , -f 1 | tr -d \" )
+      _domain_id=$(echo "$response" | _egrep_o "\"[^\"]*\",\"name\":\"$h" | cut -d , -f 1 | tr -d \")
       if [ "$_domain_id" ]; then
         if [ "$i" = 1 ]; then
           #create the record at the domain apex (@) if only the domain name was provided as --domain-alias
