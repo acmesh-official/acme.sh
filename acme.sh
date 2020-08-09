@@ -1507,6 +1507,19 @@ _url_replace() {
   tr '/+' '_-' | tr -d '= '
 }
 
+#base64 string
+_durl_replace_base64() {
+  _l=$((${#1} % 4))
+  if [ $_l -eq 2 ]; then
+    _s="$1"'=='
+  elif [ $_l -eq 3 ]; then
+    _s="$1"'='
+  else
+    _s="$1"
+  fi
+  echo "$_s" | tr '_-' '/+'
+}
+
 _time2str() {
   #BSD
   if date -u -r "$1" 2>/dev/null; then
@@ -3406,10 +3419,13 @@ _on_issue_success() {
 
 }
 
+#account_key_length   eab-kid  eab-hmac-key
 registeraccount() {
-  _reg_length="$1"
+  _account_key_length="$1"
+  _eab_id="$2"
+  _eab_hmac_key="$3"
   _initpath
-  _regAccount "$_reg_length"
+  _regAccount "$_account_key_length" "$_eab_id" "$_eab_hmac_key"
 }
 
 __calcAccountKeyHash() {
@@ -3424,6 +3440,8 @@ __calc_account_thumbprint() {
 _regAccount() {
   _initpath
   _reg_length="$1"
+  _eab_id="$2"
+  _eab_hmac_key="$3"
   _debug3 _regAccount "$_regAccount"
   _initAPI
 
@@ -3448,12 +3466,41 @@ _regAccount() {
   if ! _calcjwk "$ACCOUNT_KEY_PATH"; then
     return 1
   fi
-
+  if [ "$_eab_id" ] && [ "$_eab_hmac_key" ]; then
+    _savecaconf CA_EAB_KEY_ID "$_eab_id"
+    _savecaconf CA_EAB_HMAC_KEY "$_eab_hmac_key"
+  fi
+  _eab_id=$(_readcaconf "CA_EAB_KEY_ID")
+  _eab_hmac_key=$(_readcaconf "CA_EAB_HMAC_KEY")
+  _secure_debug3 _eab_id "$_eab_id"
+  _secure_debug3 _eab_hmac_key "$_eab_hmac_key"
   if [ "$ACME_VERSION" = "2" ]; then
-    regjson='{"termsOfServiceAgreed": true}'
-    if [ "$ACCOUNT_EMAIL" ]; then
-      regjson='{"contact": ["mailto:'$ACCOUNT_EMAIL'"], "termsOfServiceAgreed": true}'
+    if [ "$_eab_id" ] && [ "$_eab_hmac_key" ]; then
+      eab_protected="{\"alg\":\"HS256\",\"kid\":\"$_eab_id\",\"url\":\"${ACME_NEW_ACCOUNT}\"}"
+      _debug3 eab_protected "$eab_protected"
+
+      eab_protected64=$(printf "%s" "$eab_protected" | _base64 | _url_replace)
+      _debug3 eab_protected64 "$eab_protected64"
+
+      eab_payload64=$(printf "%s" "$jwk" | _base64 | _url_replace)
+      _debug3 eab_payload64 "$eab_payload64"
+
+      eab_sign_t="$eab_protected64.$eab_payload64"
+      _debug3 eab_sign_t "$eab_sign_t"
+
+      key_hex="$(_durl_replace_base64 "$_eab_hmac_key" | _dbase64 | _hex_dump  | tr -d ' ')"
+      _debug3 key_hex "$key_hex"
+
+      eab_signature=$(printf "%s" "$eab_sign_t" | _hmac sha256  $key_hex  | _base64 | _url_replace)
+      _debug3 eab_signature "$eab_signature"
+
+      externalBinding=",\"externalAccountBinding\":{\"protected\":\"$eab_protected64\", \"payload\":\"$eab_payload64\", \"signature\":\"$eab_signature\"}"
+      _debug3 externalBinding "$externalBinding"
     fi
+    if [ "$ACCOUNT_EMAIL" ]; then
+      email_sg="\"contact\": [\"mailto:$ACCOUNT_EMAIL\"], "
+    fi
+    regjson="{$email_sg\"termsOfServiceAgreed\": true$externalBinding}"
   else
     _reg_res="$ACME_NEW_ACCOUNT_RES"
     regjson='{"resource": "'$_reg_res'", "terms-of-service-agreed": true, "agreement": "'$ACME_AGREEMENT'"}'
@@ -6278,6 +6325,10 @@ Parameters:
   --log-level 1|2                   Specifies the log level, default is 1.
   --syslog [0|3|6|7]                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
 
+  --eab-kid EAB_KID                 Key Identifier for External Account Binding.
+  --eab-hmac-key EAB_HMAC_KEY       HMAC key for External Account Binding.
+            
+            
   These parameters are to install the cert to nginx/apache or any other server after issue/renew a cert:
 
   --cert-file                       After issue/renew, the cert will be copied to this path.
@@ -6510,6 +6561,8 @@ _process() {
   _notify_level=""
   _notify_mode=""
   _revoke_reason=""
+  _eab_kid=""
+  _eab_hmac_key=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -6990,6 +7043,14 @@ _process() {
         fi
         shift
         ;;
+      --eab-kid)
+        _eab_kid="$2"
+        shift
+        ;;
+      --eab-hmac-key)
+        _eab_hmac_key="$2"
+        shift
+        ;;    
       *)
         _err "Unknown parameter : $1"
         return 1
@@ -7086,7 +7147,7 @@ _process() {
       deactivate "$_domain,$_altdomains"
       ;;
     registeraccount)
-      registeraccount "$_accountkeylength"
+      registeraccount "$_accountkeylength" "$_eab_kid" "$_eab_hmac_key"
       ;;
     updateaccount)
       updateaccount
