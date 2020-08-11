@@ -23,11 +23,27 @@ _SUB_FOLDERS="$_SUB_FOLDER_DNSAPI $_SUB_FOLDER_DEPLOY $_SUB_FOLDER_NOTIFY"
 LETSENCRYPT_CA_V1="https://acme-v01.api.letsencrypt.org/directory"
 LETSENCRYPT_STAGING_CA_V1="https://acme-staging.api.letsencrypt.org/directory"
 
-LETSENCRYPT_CA_V2="https://acme-v02.api.letsencrypt.org/directory"
-LETSENCRYPT_STAGING_CA_V2="https://acme-staging-v02.api.letsencrypt.org/directory"
+CA_LETSENCRYPT_V2="https://acme-v02.api.letsencrypt.org/directory"
+CA_LETSENCRYPT_V2_TEST="https://acme-staging-v02.api.letsencrypt.org/directory"
 
-DEFAULT_CA=$LETSENCRYPT_CA_V2
-DEFAULT_STAGING_CA=$LETSENCRYPT_STAGING_CA_V2
+CA_BUYPASS="https://api.buypass.com/acme/directory"
+CA_BUYPASS_TEST="https://api.test4.buypass.no/acme/directory"
+
+CA_ZEROSSL="https://acme.zerossl.com/v2/DV90"
+
+
+DEFAULT_CA=$CA_LETSENCRYPT_V2
+DEFAULT_STAGING_CA=$CA_LETSENCRYPT_V2_TEST
+
+CA_NAMES="
+letsencrypt
+letsencrypt_test,letsencrypttest
+buypass
+buypass_test,buypasstest
+zerossl
+"
+
+CA_SERVERS="$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_BUYPASS,$CA_BUYPASS_TEST,$CA_ZEROSSL"
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 DEFAULT_ACCOUNT_EMAIL=""
@@ -139,6 +155,8 @@ _NOTIFY_WIKI="https://github.com/acmesh-official/acme.sh/wiki/notify"
 _SUDO_WIKI="https://github.com/acmesh-official/acme.sh/wiki/sudo"
 
 _REVOKE_WIKI="https://github.com/acmesh-official/acme.sh/wiki/revokecert"
+
+_ZEROSSL_WIKI="https://github.com/acmesh-official/acme.sh/wiki/ZeroSSL.com-CA"
 
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
@@ -2577,16 +2595,22 @@ _initpath() {
   fi
 
   if [ "$ACME_VERSION" = "2" ]; then
-    DEFAULT_CA="$LETSENCRYPT_CA_V2"
-    DEFAULT_STAGING_CA="$LETSENCRYPT_STAGING_CA_V2"
+    DEFAULT_CA="$CA_LETSENCRYPT_V2"
+    DEFAULT_STAGING_CA="$CA_LETSENCRYPT_V2_TEST"
   fi
 
   if [ -z "$ACME_DIRECTORY" ]; then
-    if [ -z "$STAGE" ]; then
-      ACME_DIRECTORY="$DEFAULT_CA"
+    default_acme_server=$(_readaccountconf "DEFAULT_ACME_SERVER")
+    _debug default_acme_server "$default_acme_server"
+    if [ "$default_acme_server" ]; then
+      ACME_DIRECTORY="$default_acme_server"
     else
-      ACME_DIRECTORY="$DEFAULT_STAGING_CA"
-      _info "Using stage ACME_DIRECTORY: $ACME_DIRECTORY"
+      if [ -z "$STAGE" ]; then
+        ACME_DIRECTORY="$DEFAULT_CA"
+      else
+        ACME_DIRECTORY="$DEFAULT_STAGING_CA"
+        _info "Using stage ACME_DIRECTORY: $ACME_DIRECTORY"
+      fi
     fi
   fi
 
@@ -6301,6 +6325,7 @@ Commands:
   --createCSR, -ccsr       Create CSR , professional use.
   --deactivate             Deactivate the domain authz, professional use.
   --set-notify             Set the cron notification hook, level or mode.
+  --set-default-ca         Used with '--server' , to set the default CA to use to use. 
 
 
 Parameters:
@@ -6344,7 +6369,7 @@ Parameters:
   --cert-home                       Specifies the home dir to save all the certs, only valid for '--install' command.
   --config-home                     Specifies the home dir to save all the configurations.
   --useragent                       Specifies the user agent string. it will be saved for future use too.
-  --accountemail                    Specifies the account email, only valid for the '--install' and '--update-account' command.
+  --accountemail, -m                Specifies the account email, only valid for the '--install' and '--update-account' command.
   --accountkey                      Specifies the account key path, only valid for the '--install' command.
   --days                            Specifies the days to renew the cert when using '--issue' command. The default value is $DEFAULT_RENEW days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
@@ -6510,6 +6535,39 @@ _checkSudo() {
   return 0
 }
 
+#server
+_selectServer() {
+  _server="$1"
+  _server_lower="$(echo "$_server" | _lower_case)"
+  _sindex=0
+  for snames in $CA_NAMES; do
+    snames="$(echo "$snames" | _lower_case)"
+    _sindex="$(_math $_sindex + 1)"
+    _debug2 "_selectServer try snames" "$snames"
+    for sname in $(echo "$snames" | tr ',' ' '); do
+      if [ "$_server_lower" = "$sname" ]; then
+        _debug2 "_selectServer match $sname"
+        _serverdir="$(_getfield "$CA_SERVERS" $_sindex)"
+        _debug "Selected server: $_serverdir"
+        ACME_DIRECTORY="$_serverdir"
+        export ACME_DIRECTORY
+        return
+      fi
+    done
+  done
+  ACME_DIRECTORY="$_server"
+  export ACME_DIRECTORY
+}
+
+#set default ca to $ACME_DIRECTORY
+setdefaultca() {
+  if [ -z "$ACME_DIRECTORY" ]; then
+    _err "Please give a --server parameter."
+    return 1
+  fi
+  _saveaccountconf "DEFAULT_ACME_SERVER" "$ACME_DIRECTORY"
+}
+
 _process() {
   _CMD=""
   _domain=""
@@ -6652,6 +6710,9 @@ _process() {
       --set-notify)
         _CMD="setnotify"
         ;;
+      --set-default-ca)
+        _CMD="setdefaultca"
+        ;;
       --domain | -d)
         _dvalue="$2"
 
@@ -6690,9 +6751,8 @@ _process() {
         STAGE="1"
         ;;
       --server)
-        ACME_DIRECTORY="$2"
-        _server="$ACME_DIRECTORY"
-        export ACME_DIRECTORY
+        _server="$2"
+        _selectServer "$_server"
         shift
         ;;
       --debug)
@@ -6849,7 +6909,7 @@ _process() {
         USER_AGENT="$_useragent"
         shift
         ;;
-      --accountemail)
+      --accountemail | -m)
         _accountemail="$2"
         ACCOUNT_EMAIL="$_accountemail"
         shift
@@ -7178,6 +7238,9 @@ _process() {
       ;;
     setnotify)
       setnotify "$_notify_hook" "$_notify_level" "$_notify_mode"
+      ;;
+    setdefaultca)
+      setdefaultca
       ;;
     *)
       if [ "$_CMD" ]; then
