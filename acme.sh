@@ -31,7 +31,6 @@ CA_BUYPASS_TEST="https://api.test4.buypass.no/acme/directory"
 
 CA_ZEROSSL="https://acme.zerossl.com/v2/DV90"
 
-
 DEFAULT_CA=$CA_LETSENCRYPT_V2
 DEFAULT_STAGING_CA=$CA_LETSENCRYPT_V2_TEST
 
@@ -3512,10 +3511,10 @@ _regAccount() {
       eab_sign_t="$eab_protected64.$eab_payload64"
       _debug3 eab_sign_t "$eab_sign_t"
 
-      key_hex="$(_durl_replace_base64 "$_eab_hmac_key" | _dbase64 | _hex_dump  | tr -d ' ')"
+      key_hex="$(_durl_replace_base64 "$_eab_hmac_key" | _dbase64 | _hex_dump | tr -d ' ')"
       _debug3 key_hex "$key_hex"
 
-      eab_signature=$(printf "%s" "$eab_sign_t" | _hmac sha256  $key_hex  | _base64 | _url_replace)
+      eab_signature=$(printf "%s" "$eab_sign_t" | _hmac sha256 $key_hex | _base64 | _url_replace)
       _debug3 eab_signature "$eab_signature"
 
       externalBinding=",\"externalAccountBinding\":{\"protected\":\"$eab_protected64\", \"payload\":\"$eab_payload64\", \"signature\":\"$eab_signature\"}"
@@ -7110,7 +7109,7 @@ _process() {
       --eab-hmac-key)
         _eab_hmac_key="$2"
         shift
-        ;;    
+        ;;
       *)
         _err "Unknown parameter : $1"
         return 1
