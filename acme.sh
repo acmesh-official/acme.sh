@@ -30,6 +30,8 @@ CA_BUYPASS="https://api.buypass.com/acme/directory"
 CA_BUYPASS_TEST="https://api.test4.buypass.no/acme/directory"
 
 CA_ZEROSSL="https://acme.zerossl.com/v2/DV90"
+_ZERO_EAB_ENDPOINT="http://api.zerossl.com/acme/eab-credentials-email"
+
 
 DEFAULT_CA=$CA_LETSENCRYPT_V2
 DEFAULT_STAGING_CA=$CA_LETSENCRYPT_V2_TEST
@@ -45,7 +47,6 @@ zerossl
 CA_SERVERS="$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_BUYPASS,$CA_BUYPASS_TEST,$CA_ZEROSSL"
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
-DEFAULT_ACCOUNT_EMAIL=""
 
 DEFAULT_ACCOUNT_KEY_LENGTH=2048
 DEFAULT_DOMAIN_KEY_LENGTH=2048
@@ -3459,6 +3460,21 @@ __calc_account_thumbprint() {
   printf "%s" "$jwk" | tr -d ' ' | _digest "sha256" | _url_replace
 }
 
+_getAccountEmail() {
+  if [ "$ACCOUNT_EMAIL" ]; then
+    echo "$ACCOUNT_EMAIL"
+    return 0
+  fi
+  if [ -z "$CA_EMAIL" ]; then
+    CA_EMAIL="$(_readcaconf CA_EMAIL)"
+  fi
+  if [ "$CA_EMAIL" ]; then
+    echo "$CA_EMAIL"
+    return 0
+  fi
+  _readaccountconf "ACCOUNT_EMAIL"
+}
+
 #keylength
 _regAccount() {
   _initpath
@@ -3497,7 +3513,38 @@ _regAccount() {
   _eab_hmac_key=$(_readcaconf "CA_EAB_HMAC_KEY")
   _secure_debug3 _eab_id "$_eab_id"
   _secure_debug3 _eab_hmac_key "$_eab_hmac_key"
+  _email="$(_getAccountEmail)"
+  if [ "$_email" ]; then
+    _savecaconf "CA_EMAIL" "$_email"
+  fi
   if [ "$ACME_VERSION" = "2" ]; then
+    if [ "$ACME_DIRECTORY" = "$CA_ZEROSSL" ]; then
+      if [ -z "$_eab_id" ] || [ -z "$_eab_hmac_key" ]; then
+        _info "No EAB credentials found for ZeroSSL, let's get one"
+        if [ -z "$_email" ]; then
+          _err "Please provide a email address for zerossl account."
+          return 1
+        fi
+        _eabresp=$(_post "email=$_email" $_ZERO_EAB_ENDPOINT)
+        if [ "$?" != "0" ]; then
+          _debug2 "$_eabresp"
+          _err "Can not get EAB credentials from zerossl."
+          return 1
+        fi
+        _eab_id="$(echo "$_eabresp" | tr ',}' '\n' | grep '"eab_kid"' | cut -d : -f 2 | tr -d '"')"
+        if [ -z "$_eab_id" ]; then
+          _err "Can not resolve _eab_id";
+          return 1
+        fi
+        _eab_hmac_key="$(echo "$_eabresp" | tr ',}' '\n' | grep '"eab_hmac_key"' | cut -d : -f 2 | tr -d '"')"
+        if [ -z "$_eab_hmac_key" ]; then
+          _err "Can not resolve _eab_hmac_key";
+          return 1
+        fi
+        _savecaconf CA_EAB_KEY_ID "$_eab_id"
+        _savecaconf CA_EAB_HMAC_KEY "$_eab_hmac_key"
+      fi
+    fi
     if [ "$_eab_id" ] && [ "$_eab_hmac_key" ]; then
       eab_protected="{\"alg\":\"HS256\",\"kid\":\"$_eab_id\",\"url\":\"${ACME_NEW_ACCOUNT}\"}"
       _debug3 eab_protected "$eab_protected"
@@ -3520,44 +3567,52 @@ _regAccount() {
       externalBinding=",\"externalAccountBinding\":{\"protected\":\"$eab_protected64\", \"payload\":\"$eab_payload64\", \"signature\":\"$eab_signature\"}"
       _debug3 externalBinding "$externalBinding"
     fi
-    if [ "$ACCOUNT_EMAIL" ]; then
-      email_sg="\"contact\": [\"mailto:$ACCOUNT_EMAIL\"], "
+    if [ "$_email" ]; then
+      email_sg="\"contact\": [\"mailto:$_email\"], "
     fi
     regjson="{$email_sg\"termsOfServiceAgreed\": true$externalBinding}"
   else
     _reg_res="$ACME_NEW_ACCOUNT_RES"
     regjson='{"resource": "'$_reg_res'", "terms-of-service-agreed": true, "agreement": "'$ACME_AGREEMENT'"}'
-    if [ "$ACCOUNT_EMAIL" ]; then
-      regjson='{"resource": "'$_reg_res'", "contact": ["mailto:'$ACCOUNT_EMAIL'"], "terms-of-service-agreed": true, "agreement": "'$ACME_AGREEMENT'"}'
+    if [ "$_email" ]; then
+      regjson='{"resource": "'$_reg_res'", "contact": ["mailto:'$_email'"], "terms-of-service-agreed": true, "agreement": "'$ACME_AGREEMENT'"}'
     fi
   fi
 
-  _info "Registering account"
+  _info "Registering account: $ACME_DIRECTORY"
 
   if ! _send_signed_request "${ACME_NEW_ACCOUNT}" "$regjson"; then
     _err "Register account Error: $response"
     return 1
   fi
 
+  _eabAlreadyBound=""
   if [ "$code" = "" ] || [ "$code" = '201' ]; then
     echo "$response" >"$ACCOUNT_JSON_PATH"
     _info "Registered"
   elif [ "$code" = '409' ] || [ "$code" = '200' ]; then
     _info "Already registered"
+  elif [ "$code" = '400' ] && _contains "$response" 'The account is not awaiting external account binding'; then
+    _info "Already register EAB."
+    _eabAlreadyBound=1
   else
     _err "Register account Error: $response"
     return 1
   fi
 
-  _debug2 responseHeaders "$responseHeaders"
-  _accUri="$(echo "$responseHeaders" | grep -i "^Location:" | _head_n 1 | cut -d ':' -f 2- | tr -d "\r\n ")"
-  _debug "_accUri" "$_accUri"
-  if [ -z "$_accUri" ]; then
-    _err "Can not find account id url."
-    _err "$responseHeaders"
-    return 1
+  if [ -z "$_eabAlreadyBound" ]; then
+    _debug2 responseHeaders "$responseHeaders"
+    _accUri="$(echo "$responseHeaders" | grep -i "^Location:" | _head_n 1 | cut -d ':' -f 2- | tr -d "\r\n ")"
+    _debug "_accUri" "$_accUri"
+    if [ -z "$_accUri" ]; then
+      _err "Can not find account id url."
+      _err "$responseHeaders"
+      return 1
+    fi
+    _savecaconf "ACCOUNT_URL" "$_accUri"
+  else
+    ACCOUNT_URL="$(_readcaconf ACCOUNT_URL)"
   fi
-  _savecaconf "ACCOUNT_URL" "$_accUri"
   export ACCOUNT_URL="$_accUri"
 
   CA_KEY_HASH="$(__calcAccountKeyHash)"
@@ -3606,9 +3661,10 @@ updateaccount() {
   fi
   _initAPI
 
+  _email="$(_getAccountEmail)"
   if [ "$ACME_VERSION" = "2" ]; then
     if [ "$ACCOUNT_EMAIL" ]; then
-      updjson='{"contact": ["mailto:'$ACCOUNT_EMAIL'"]}'
+      updjson='{"contact": ["mailto:'$_email'"]}'
     else
       updjson='{"contact": []}'
     fi
@@ -4036,7 +4092,7 @@ issue() {
   else
     _cleardomainconf Le_API
   fi
-
+  _info "Using CA: $ACME_DIRECTORY"
   if [ "$_alt_domains" = "$NO_VALUE" ]; then
     _alt_domains=""
   fi
@@ -6489,12 +6545,6 @@ _processAccountConf() {
     _saveaccountconf "USER_AGENT" "$_useragent"
   elif [ "$USER_AGENT" ] && [ "$USER_AGENT" != "$DEFAULT_USER_AGENT" ]; then
     _saveaccountconf "USER_AGENT" "$USER_AGENT"
-  fi
-
-  if [ "$_accountemail" ]; then
-    _saveaccountconf "ACCOUNT_EMAIL" "$_accountemail"
-  elif [ "$ACCOUNT_EMAIL" ] && [ "$ACCOUNT_EMAIL" != "$DEFAULT_ACCOUNT_EMAIL" ]; then
-    _saveaccountconf "ACCOUNT_EMAIL" "$ACCOUNT_EMAIL"
   fi
 
   if [ "$_openssl_bin" ]; then
