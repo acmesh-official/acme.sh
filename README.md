@@ -86,6 +86,7 @@ https://github.com/acmesh-official/acmetest
 # Supported CA
 
 - Letsencrypt.org CA(default)
+- [ZeroSSL.com CA](https://github.com/acmesh-official/acme.sh/wiki/ZeroSSL.com-CA)
 - [BuyPass.com CA](https://github.com/acmesh-official/acme.sh/wiki/BuyPass.com-CA)
 - [Pebble strict Mode](https://github.com/letsencrypt/pebble)
 
