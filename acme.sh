@@ -3534,12 +3534,12 @@ _regAccount() {
         fi
         _eab_id="$(echo "$_eabresp" | tr ',}' '\n' | grep '"eab_kid"' | cut -d : -f 2 | tr -d '"')"
         if [ -z "$_eab_id" ]; then
-          _err "Can not resolve _eab_id";
+          _err "Can not resolve _eab_id"
           return 1
         fi
         _eab_hmac_key="$(echo "$_eabresp" | tr ',}' '\n' | grep '"eab_hmac_key"' | cut -d : -f 2 | tr -d '"')"
         if [ -z "$_eab_hmac_key" ]; then
-          _err "Can not resolve _eab_hmac_key";
+          _err "Can not resolve _eab_hmac_key"
           return 1
         fi
         _savecaconf CA_EAB_KEY_ID "$_eab_id"
