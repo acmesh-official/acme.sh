@@ -37,11 +37,11 @@ DEFAULT_CA=$CA_LETSENCRYPT_V2
 DEFAULT_STAGING_CA=$CA_LETSENCRYPT_V2_TEST
 
 CA_NAMES="
-letsencrypt
-letsencrypt_test,letsencrypttest
-buypass
-buypass_test,buypasstest
-zerossl
+Letsencrypt.org,letsencrypt
+Letsencrypt.org_test,letsencrypt_test,letsencrypttest
+BuyPass.com,buypass
+BuyPass.com_test,buypass_test,buypasstest
+ZeroSSL.com,zerossl
 "
 
 CA_SERVERS="$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_BUYPASS,$CA_BUYPASS_TEST,$CA_ZEROSSL"
@@ -5254,7 +5254,7 @@ list() {
 
   _sep="|"
   if [ "$_raw" ]; then
-    printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Created${_sep}Renew"
+    printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}CA${_sep}Created${_sep}Renew"
     for di in "${CERT_HOME}"/*.*/; do
       d=$(basename "$di")
       _debug d "$d"
@@ -5266,7 +5266,8 @@ list() {
         DOMAIN_CONF="$di/$d.conf"
         if [ -f "$DOMAIN_CONF" ]; then
           . "$DOMAIN_CONF"
-          printf "%s\n" "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
+          _ca="$(_getCAShortName "$Le_API")"
+          printf "%s\n" "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$_ca${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
         fi
       )
     done
@@ -6609,6 +6610,27 @@ _selectServer() {
   done
   ACME_DIRECTORY="$_server"
   export ACME_DIRECTORY
+}
+
+#url
+_getCAShortName() {
+  caurl="$1"
+  caurl_lower="$(echo $caurl | _lower_case)"
+  _sindex=0
+  for surl in $(echo "$CA_SERVERS" | _lower_case | tr , ' '); do
+    _sindex="$(_math $_sindex + 1)"
+    if [ "$caurl_lower" = "$surl" ]; then
+      _nindex=0
+      for snames in $CA_NAMES; do
+        _nindex="$(_math $_nindex + 1)"
+        if [ $_nindex -ge $_sindex ]; then
+          _getfield "$snames" 1
+          return
+        fi
+      done
+    fi
+  done
+  echo "$caurl"
 }
 
 #set default ca to $ACME_DIRECTORY
