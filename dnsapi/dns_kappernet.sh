@@ -17,11 +17,15 @@ dns_kappernet_add() {
   fullhostname=$1
   txtvalue=$2
 
+  KAPPERNETDNS_Key="${KAPPERNETDNS_Key:-$(_readaccountconf_mutable KAPPERNETDNS_Key)}"
+  KAPPERNETDNS_Secret="${KAPPERNETDNS_Secret:-$(_readaccountconf_mutable KAPPERNETDNS_Secret)}"
+
   if [ -z "$KAPPERNETDNS_Key" ] || [ -z "$KAPPERNETDNS_Secret" ]; then
     KAPPERNETDNS_Key=""
     KAPPERNETDNS_Secret=""
-    _err "You haven't defined kapper.net api key and secret yet."
-    _err "Please send us mail to support@kapper.net get your key and secret."
+    _err "Please specify your kapper.net api key and secret."
+    _err "If you have not received yours - send your mail to"
+	_err "support@kapper.net to get  your key and secret."
     return 1
   fi
 
@@ -60,11 +64,15 @@ dns_kappernet_rm() {
   fullhostname=$1
   txtvalue=$2
 
+  KAPPERNETDNS_Key="${KAPPERNETDNS_Key:-$(_readaccountconf_mutable KAPPERNETDNS_Key)}"
+  KAPPERNETDNS_Secret="${KAPPERNETDNS_Secret:-$(_readaccountconf_mutable KAPPERNETDNS_Secret)}"
+
   if [ -z "$KAPPERNETDNS_Key" ] || [ -z "$KAPPERNETDNS_Secret" ]; then
     KAPPERNETDNS_Key=""
     KAPPERNETDNS_Secret=""
-    _err "You haven't defined kapper.net api key and secret yet."
-    _err "Please send us mail to get your key and secret."
+    _err "Please specify your kapper.net api key and secret."
+    _err "If you have not received yours - send your mail to"
+	_err "support@kapper.net to get  your key and secret."
     return 1
   fi
 
@@ -72,18 +80,18 @@ dns_kappernet_rm() {
   _saveaccountconf_mutable KAPPERNETDNS_Key "$KAPPERNETDNS_Key"
   _saveaccountconf_mutable KAPPERNETDNS_Secret "$KAPPERNETDNS_Secret"
 
-  _info "Trying to remove the TXT Record: $fullhostname"
+  _info "Trying to remove the TXT Record: $fullhostname containing $txtvalue"
   data="%7B%22name%22%3A%22$fullhostname%22%2C%22type%22%3A%22TXT%22%2C%22content%22%3A%22$txtvalue%22%2C%22ttl%22%3A%223600%22%2C%22prio%22%3A%22%22%7D"
   if _kappernet_api GET "action=del&subject=$fullhostname&data=$data"; then
     if _contains "$response" "{\"OK\":true"; then
       return 0
     else
-      _err "Error deleting DNS Record: $fullhostname"
+      _err "Error deleting DNS Record: $fullhostname containing $txtvalue"
       _err "Problem: $response"
       return 1
     fi
   fi
-  _err "Problem creating TXT DNS record"
+  _err "Problem deleting TXT DNS record"
 }
 
 ####################  Private functions below ##################################
