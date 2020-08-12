@@ -158,6 +158,8 @@ _REVOKE_WIKI="https://github.com/acmesh-official/acme.sh/wiki/revokecert"
 
 _ZEROSSL_WIKI="https://github.com/acmesh-official/acme.sh/wiki/ZeroSSL.com-CA"
 
+_SERVER_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Server"
+
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
 _DNS_MANUAL_WARN="It seems that you are using dns manual mode. please take care: $_DNS_MANUAL_ERR"
@@ -6419,7 +6421,7 @@ Parameters:
 
   --reloadcmd \"service nginx reload\" After issue/renew, it's used to reload the server.
 
-  --server SERVER                   ACME Directory Resource URI. (default: $DEFAULT_CA)
+  --server SERVER                   ACME Directory Resource URI. See: $_SERVER_WIKI (default: $DEFAULT_CA) 
   --accountconf                     Specifies a customized account config file.
   --home                            Specifies the home dir for $PROJECT_NAME.
   --cert-home                       Specifies the home dir to save all the certs, only valid for '--install' command.
