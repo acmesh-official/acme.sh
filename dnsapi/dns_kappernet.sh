@@ -26,8 +26,8 @@ dns_kappernet_add() {
   fi
 
   #store the api key and email to the account conf file.
-  _saveaccountconf KAPPERNETDNS_Key "$KAPPERNETDNS_Key"
-  _saveaccountconf KAPPERNETDNS_Secret "$KAPPERNETDNS_Secret"
+  _saveaccountconf_mutable KAPPERNETDNS_Key "$KAPPERNETDNS_Key"
+  _saveaccountconf_mutable KAPPERNETDNS_Secret "$KAPPERNETDNS_Secret"
   _debug "Checking Domain ..."
   if ! _get_root "$fullhostname"; then
     _err "invalid domain"
@@ -69,8 +69,8 @@ dns_kappernet_rm() {
   fi
 
   #store the api key and email to the account conf file.
-  _saveaccountconf KAPPERNETDNS_Key "$KAPPERNETDNS_Key"
-  _saveaccountconf KAPPERNETDNS_Secret "$KAPPERNETDNS_Secret"
+  _saveaccountconf_mutable KAPPERNETDNS_Key "$KAPPERNETDNS_Key"
+  _saveaccountconf_mutable KAPPERNETDNS_Secret "$KAPPERNETDNS_Secret"
 
   _info "Trying to remove the TXT Record: $fullhostname"
   data="%7B%22name%22%3A%22$fullhostname%22%2C%22type%22%3A%22TXT%22%2C%22content%22%3A%22$txtvalue%22%2C%22ttl%22%3A%223600%22%2C%22prio%22%3A%22%22%7D"
