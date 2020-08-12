@@ -23,14 +23,29 @@ _SUB_FOLDERS="$_SUB_FOLDER_DNSAPI $_SUB_FOLDER_DEPLOY $_SUB_FOLDER_NOTIFY"
 LETSENCRYPT_CA_V1="https://acme-v01.api.letsencrypt.org/directory"
 LETSENCRYPT_STAGING_CA_V1="https://acme-staging.api.letsencrypt.org/directory"
 
-LETSENCRYPT_CA_V2="https://acme-v02.api.letsencrypt.org/directory"
-LETSENCRYPT_STAGING_CA_V2="https://acme-staging-v02.api.letsencrypt.org/directory"
+CA_LETSENCRYPT_V2="https://acme-v02.api.letsencrypt.org/directory"
+CA_LETSENCRYPT_V2_TEST="https://acme-staging-v02.api.letsencrypt.org/directory"
 
-DEFAULT_CA=$LETSENCRYPT_CA_V2
-DEFAULT_STAGING_CA=$LETSENCRYPT_STAGING_CA_V2
+CA_BUYPASS="https://api.buypass.com/acme/directory"
+CA_BUYPASS_TEST="https://api.test4.buypass.no/acme/directory"
+
+CA_ZEROSSL="https://acme.zerossl.com/v2/DV90"
+_ZERO_EAB_ENDPOINT="http://api.zerossl.com/acme/eab-credentials-email"
+
+DEFAULT_CA=$CA_LETSENCRYPT_V2
+DEFAULT_STAGING_CA=$CA_LETSENCRYPT_V2_TEST
+
+CA_NAMES="
+Letsencrypt.org,letsencrypt
+Letsencrypt.org_test,letsencrypt_test,letsencrypttest
+BuyPass.com,buypass
+BuyPass.com_test,buypass_test,buypasstest
+ZeroSSL.com,zerossl
+"
+
+CA_SERVERS="$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_BUYPASS,$CA_BUYPASS_TEST,$CA_ZEROSSL"
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
-DEFAULT_ACCOUNT_EMAIL=""
 
 DEFAULT_ACCOUNT_KEY_LENGTH=2048
 DEFAULT_DOMAIN_KEY_LENGTH=2048
@@ -139,6 +154,10 @@ _NOTIFY_WIKI="https://github.com/acmesh-official/acme.sh/wiki/notify"
 _SUDO_WIKI="https://github.com/acmesh-official/acme.sh/wiki/sudo"
 
 _REVOKE_WIKI="https://github.com/acmesh-official/acme.sh/wiki/revokecert"
+
+_ZEROSSL_WIKI="https://github.com/acmesh-official/acme.sh/wiki/ZeroSSL.com-CA"
+
+_SERVER_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Server"
 
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
@@ -1507,6 +1526,19 @@ _url_replace() {
   tr '/+' '_-' | tr -d '= '
 }
 
+#base64 string
+_durl_replace_base64() {
+  _l=$((${#1} % 4))
+  if [ $_l -eq 2 ]; then
+    _s="$1"'=='
+  elif [ $_l -eq 3 ]; then
+    _s="$1"'='
+  else
+    _s="$1"
+  fi
+  echo "$_s" | tr '_-' '/+'
+}
+
 _time2str() {
   #BSD
   if date -u -r "$1" 2>/dev/null; then
@@ -2564,16 +2596,22 @@ _initpath() {
   fi
 
   if [ "$ACME_VERSION" = "2" ]; then
-    DEFAULT_CA="$LETSENCRYPT_CA_V2"
-    DEFAULT_STAGING_CA="$LETSENCRYPT_STAGING_CA_V2"
+    DEFAULT_CA="$CA_LETSENCRYPT_V2"
+    DEFAULT_STAGING_CA="$CA_LETSENCRYPT_V2_TEST"
   fi
 
   if [ -z "$ACME_DIRECTORY" ]; then
-    if [ -z "$STAGE" ]; then
-      ACME_DIRECTORY="$DEFAULT_CA"
+    default_acme_server=$(_readaccountconf "DEFAULT_ACME_SERVER")
+    _debug default_acme_server "$default_acme_server"
+    if [ "$default_acme_server" ]; then
+      ACME_DIRECTORY="$default_acme_server"
     else
-      ACME_DIRECTORY="$DEFAULT_STAGING_CA"
-      _info "Using stage ACME_DIRECTORY: $ACME_DIRECTORY"
+      if [ -z "$STAGE" ]; then
+        ACME_DIRECTORY="$DEFAULT_CA"
+      else
+        ACME_DIRECTORY="$DEFAULT_STAGING_CA"
+        _info "Using stage ACME_DIRECTORY: $ACME_DIRECTORY"
+      fi
     fi
   fi
 
@@ -3406,10 +3444,13 @@ _on_issue_success() {
 
 }
 
+#account_key_length   eab-kid  eab-hmac-key
 registeraccount() {
-  _reg_length="$1"
+  _account_key_length="$1"
+  _eab_id="$2"
+  _eab_hmac_key="$3"
   _initpath
-  _regAccount "$_reg_length"
+  _regAccount "$_account_key_length" "$_eab_id" "$_eab_hmac_key"
 }
 
 __calcAccountKeyHash() {
@@ -3420,10 +3461,27 @@ __calc_account_thumbprint() {
   printf "%s" "$jwk" | tr -d ' ' | _digest "sha256" | _url_replace
 }
 
+_getAccountEmail() {
+  if [ "$ACCOUNT_EMAIL" ]; then
+    echo "$ACCOUNT_EMAIL"
+    return 0
+  fi
+  if [ -z "$CA_EMAIL" ]; then
+    CA_EMAIL="$(_readcaconf CA_EMAIL)"
+  fi
+  if [ "$CA_EMAIL" ]; then
+    echo "$CA_EMAIL"
+    return 0
+  fi
+  _readaccountconf "ACCOUNT_EMAIL"
+}
+
 #keylength
 _regAccount() {
   _initpath
   _reg_length="$1"
+  _eab_id="$2"
+  _eab_hmac_key="$3"
   _debug3 _regAccount "$_regAccount"
   _initAPI
 
@@ -3448,46 +3506,115 @@ _regAccount() {
   if ! _calcjwk "$ACCOUNT_KEY_PATH"; then
     return 1
   fi
-
+  if [ "$_eab_id" ] && [ "$_eab_hmac_key" ]; then
+    _savecaconf CA_EAB_KEY_ID "$_eab_id"
+    _savecaconf CA_EAB_HMAC_KEY "$_eab_hmac_key"
+  fi
+  _eab_id=$(_readcaconf "CA_EAB_KEY_ID")
+  _eab_hmac_key=$(_readcaconf "CA_EAB_HMAC_KEY")
+  _secure_debug3 _eab_id "$_eab_id"
+  _secure_debug3 _eab_hmac_key "$_eab_hmac_key"
+  _email="$(_getAccountEmail)"
+  if [ "$_email" ]; then
+    _savecaconf "CA_EMAIL" "$_email"
+  fi
   if [ "$ACME_VERSION" = "2" ]; then
-    regjson='{"termsOfServiceAgreed": true}'
-    if [ "$ACCOUNT_EMAIL" ]; then
-      regjson='{"contact": ["mailto:'$ACCOUNT_EMAIL'"], "termsOfServiceAgreed": true}'
+    if [ "$ACME_DIRECTORY" = "$CA_ZEROSSL" ]; then
+      if [ -z "$_eab_id" ] || [ -z "$_eab_hmac_key" ]; then
+        _info "No EAB credentials found for ZeroSSL, let's get one"
+        if [ -z "$_email" ]; then
+          _err "Please provide a email address for ZeroSSL account."
+          _err "See ZeroSSL usage: $_ZEROSSL_WIKI"
+          return 1
+        fi
+        _eabresp=$(_post "email=$_email" $_ZERO_EAB_ENDPOINT)
+        if [ "$?" != "0" ]; then
+          _debug2 "$_eabresp"
+          _err "Can not get EAB credentials from ZeroSSL."
+          return 1
+        fi
+        _eab_id="$(echo "$_eabresp" | tr ',}' '\n' | grep '"eab_kid"' | cut -d : -f 2 | tr -d '"')"
+        if [ -z "$_eab_id" ]; then
+          _err "Can not resolve _eab_id"
+          return 1
+        fi
+        _eab_hmac_key="$(echo "$_eabresp" | tr ',}' '\n' | grep '"eab_hmac_key"' | cut -d : -f 2 | tr -d '"')"
+        if [ -z "$_eab_hmac_key" ]; then
+          _err "Can not resolve _eab_hmac_key"
+          return 1
+        fi
+        _savecaconf CA_EAB_KEY_ID "$_eab_id"
+        _savecaconf CA_EAB_HMAC_KEY "$_eab_hmac_key"
+      fi
     fi
+    if [ "$_eab_id" ] && [ "$_eab_hmac_key" ]; then
+      eab_protected="{\"alg\":\"HS256\",\"kid\":\"$_eab_id\",\"url\":\"${ACME_NEW_ACCOUNT}\"}"
+      _debug3 eab_protected "$eab_protected"
+
+      eab_protected64=$(printf "%s" "$eab_protected" | _base64 | _url_replace)
+      _debug3 eab_protected64 "$eab_protected64"
+
+      eab_payload64=$(printf "%s" "$jwk" | _base64 | _url_replace)
+      _debug3 eab_payload64 "$eab_payload64"
+
+      eab_sign_t="$eab_protected64.$eab_payload64"
+      _debug3 eab_sign_t "$eab_sign_t"
+
+      key_hex="$(_durl_replace_base64 "$_eab_hmac_key" | _dbase64 | _hex_dump | tr -d ' ')"
+      _debug3 key_hex "$key_hex"
+
+      eab_signature=$(printf "%s" "$eab_sign_t" | _hmac sha256 $key_hex | _base64 | _url_replace)
+      _debug3 eab_signature "$eab_signature"
+
+      externalBinding=",\"externalAccountBinding\":{\"protected\":\"$eab_protected64\", \"payload\":\"$eab_payload64\", \"signature\":\"$eab_signature\"}"
+      _debug3 externalBinding "$externalBinding"
+    fi
+    if [ "$_email" ]; then
+      email_sg="\"contact\": [\"mailto:$_email\"], "
+    fi
+    regjson="{$email_sg\"termsOfServiceAgreed\": true$externalBinding}"
   else
     _reg_res="$ACME_NEW_ACCOUNT_RES"
     regjson='{"resource": "'$_reg_res'", "terms-of-service-agreed": true, "agreement": "'$ACME_AGREEMENT'"}'
-    if [ "$ACCOUNT_EMAIL" ]; then
-      regjson='{"resource": "'$_reg_res'", "contact": ["mailto:'$ACCOUNT_EMAIL'"], "terms-of-service-agreed": true, "agreement": "'$ACME_AGREEMENT'"}'
+    if [ "$_email" ]; then
+      regjson='{"resource": "'$_reg_res'", "contact": ["mailto:'$_email'"], "terms-of-service-agreed": true, "agreement": "'$ACME_AGREEMENT'"}'
     fi
   fi
 
-  _info "Registering account"
+  _info "Registering account: $ACME_DIRECTORY"
 
   if ! _send_signed_request "${ACME_NEW_ACCOUNT}" "$regjson"; then
     _err "Register account Error: $response"
     return 1
   fi
 
+  _eabAlreadyBound=""
   if [ "$code" = "" ] || [ "$code" = '201' ]; then
     echo "$response" >"$ACCOUNT_JSON_PATH"
     _info "Registered"
   elif [ "$code" = '409' ] || [ "$code" = '200' ]; then
     _info "Already registered"
+  elif [ "$code" = '400' ] && _contains "$response" 'The account is not awaiting external account binding'; then
+    _info "Already register EAB."
+    _eabAlreadyBound=1
   else
     _err "Register account Error: $response"
     return 1
   fi
 
-  _debug2 responseHeaders "$responseHeaders"
-  _accUri="$(echo "$responseHeaders" | grep -i "^Location:" | _head_n 1 | cut -d ':' -f 2- | tr -d "\r\n ")"
-  _debug "_accUri" "$_accUri"
-  if [ -z "$_accUri" ]; then
-    _err "Can not find account id url."
-    _err "$responseHeaders"
-    return 1
+  if [ -z "$_eabAlreadyBound" ]; then
+    _debug2 responseHeaders "$responseHeaders"
+    _accUri="$(echo "$responseHeaders" | grep -i "^Location:" | _head_n 1 | cut -d ':' -f 2- | tr -d "\r\n ")"
+    _debug "_accUri" "$_accUri"
+    if [ -z "$_accUri" ]; then
+      _err "Can not find account id url."
+      _err "$responseHeaders"
+      return 1
+    fi
+    _savecaconf "ACCOUNT_URL" "$_accUri"
+  else
+    ACCOUNT_URL="$(_readcaconf ACCOUNT_URL)"
   fi
-  _savecaconf "ACCOUNT_URL" "$_accUri"
   export ACCOUNT_URL="$_accUri"
 
   CA_KEY_HASH="$(__calcAccountKeyHash)"
@@ -3536,9 +3663,10 @@ updateaccount() {
   fi
   _initAPI
 
+  _email="$(_getAccountEmail)"
   if [ "$ACME_VERSION" = "2" ]; then
     if [ "$ACCOUNT_EMAIL" ]; then
-      updjson='{"contact": ["mailto:'$ACCOUNT_EMAIL'"]}'
+      updjson='{"contact": ["mailto:'$_email'"]}'
     else
       updjson='{"contact": []}'
     fi
@@ -3966,7 +4094,7 @@ issue() {
   else
     _cleardomainconf Le_API
   fi
-
+  _info "Using CA: $ACME_DIRECTORY"
   if [ "$_alt_domains" = "$NO_VALUE" ]; then
     _alt_domains=""
   fi
@@ -5125,7 +5253,7 @@ list() {
 
   _sep="|"
   if [ "$_raw" ]; then
-    printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Created${_sep}Renew"
+    printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}CA${_sep}Created${_sep}Renew"
     for di in "${CERT_HOME}"/*.*/; do
       d=$(basename "$di")
       _debug d "$d"
@@ -5137,7 +5265,8 @@ list() {
         DOMAIN_CONF="$di/$d.conf"
         if [ -f "$DOMAIN_CONF" ]; then
           . "$DOMAIN_CONF"
-          printf "%s\n" "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
+          _ca="$(_getCAShortName "$Le_API")"
+          printf "%s\n" "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$_ca${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
         fi
       )
     done
@@ -6254,6 +6383,7 @@ Commands:
   --createCSR, -ccsr       Create CSR , professional use.
   --deactivate             Deactivate the domain authz, professional use.
   --set-notify             Set the cron notification hook, level or mode.
+  --set-default-ca         Used with '--server' , to set the default CA to use to use. 
 
 
 Parameters:
@@ -6278,6 +6408,10 @@ Parameters:
   --log-level 1|2                   Specifies the log level, default is 1.
   --syslog [0|3|6|7]                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
 
+  --eab-kid EAB_KID                 Key Identifier for External Account Binding.
+  --eab-hmac-key EAB_HMAC_KEY       HMAC key for External Account Binding.
+            
+            
   These parameters are to install the cert to nginx/apache or any other server after issue/renew a cert:
 
   --cert-file                       After issue/renew, the cert will be copied to this path.
@@ -6287,13 +6421,13 @@ Parameters:
 
   --reloadcmd \"service nginx reload\" After issue/renew, it's used to reload the server.
 
-  --server SERVER                   ACME Directory Resource URI. (default: $DEFAULT_CA)
+  --server SERVER                   ACME Directory Resource URI. See: $_SERVER_WIKI (default: $DEFAULT_CA) 
   --accountconf                     Specifies a customized account config file.
   --home                            Specifies the home dir for $PROJECT_NAME.
   --cert-home                       Specifies the home dir to save all the certs, only valid for '--install' command.
   --config-home                     Specifies the home dir to save all the configurations.
   --useragent                       Specifies the user agent string. it will be saved for future use too.
-  --accountemail                    Specifies the account email, only valid for the '--install' and '--update-account' command.
+  --accountemail, -m                Specifies the account email, only valid for the '--install' and '--update-account' command.
   --accountkey                      Specifies the account key path, only valid for the '--install' command.
   --days                            Specifies the days to renew the cert when using '--issue' command. The default value is $DEFAULT_RENEW days.
   --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
@@ -6416,12 +6550,6 @@ _processAccountConf() {
     _saveaccountconf "USER_AGENT" "$USER_AGENT"
   fi
 
-  if [ "$_accountemail" ]; then
-    _saveaccountconf "ACCOUNT_EMAIL" "$_accountemail"
-  elif [ "$ACCOUNT_EMAIL" ] && [ "$ACCOUNT_EMAIL" != "$DEFAULT_ACCOUNT_EMAIL" ]; then
-    _saveaccountconf "ACCOUNT_EMAIL" "$ACCOUNT_EMAIL"
-  fi
-
   if [ "$_openssl_bin" ]; then
     _saveaccountconf "ACME_OPENSSL_BIN" "$_openssl_bin"
   elif [ "$ACME_OPENSSL_BIN" ] && [ "$ACME_OPENSSL_BIN" != "$DEFAULT_OPENSSL_BIN" ]; then
@@ -6457,6 +6585,61 @@ _checkSudo() {
     return 1
   fi
   return 0
+}
+
+#server
+_selectServer() {
+  _server="$1"
+  _server_lower="$(echo "$_server" | _lower_case)"
+  _sindex=0
+  for snames in $CA_NAMES; do
+    snames="$(echo "$snames" | _lower_case)"
+    _sindex="$(_math $_sindex + 1)"
+    _debug2 "_selectServer try snames" "$snames"
+    for sname in $(echo "$snames" | tr ',' ' '); do
+      if [ "$_server_lower" = "$sname" ]; then
+        _debug2 "_selectServer match $sname"
+        _serverdir="$(_getfield "$CA_SERVERS" $_sindex)"
+        _debug "Selected server: $_serverdir"
+        ACME_DIRECTORY="$_serverdir"
+        export ACME_DIRECTORY
+        return
+      fi
+    done
+  done
+  ACME_DIRECTORY="$_server"
+  export ACME_DIRECTORY
+}
+
+#url
+_getCAShortName() {
+  caurl="$1"
+  caurl_lower="$(echo $caurl | _lower_case)"
+  _sindex=0
+  for surl in $(echo "$CA_SERVERS" | _lower_case | tr , ' '); do
+    _sindex="$(_math $_sindex + 1)"
+    if [ "$caurl_lower" = "$surl" ]; then
+      _nindex=0
+      for snames in $CA_NAMES; do
+        _nindex="$(_math $_nindex + 1)"
+        if [ $_nindex -ge $_sindex ]; then
+          _getfield "$snames" 1
+          return
+        fi
+      done
+    fi
+  done
+  echo "$caurl"
+}
+
+#set default ca to $ACME_DIRECTORY
+setdefaultca() {
+  if [ -z "$ACME_DIRECTORY" ]; then
+    _err "Please give a --server parameter."
+    return 1
+  fi
+  _saveaccountconf "DEFAULT_ACME_SERVER" "$ACME_DIRECTORY"
+  _info "Changed default CA to: $(__green "$ACME_DIRECTORY")"
 }
 
 _process() {
@@ -6510,6 +6693,8 @@ _process() {
   _notify_level=""
   _notify_mode=""
   _revoke_reason=""
+  _eab_kid=""
+  _eab_hmac_key=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -6599,6 +6784,9 @@ _process() {
       --set-notify)
         _CMD="setnotify"
         ;;
+      --set-default-ca)
+        _CMD="setdefaultca"
+        ;;
       --domain | -d)
         _dvalue="$2"
 
@@ -6637,9 +6825,8 @@ _process() {
         STAGE="1"
         ;;
       --server)
-        ACME_DIRECTORY="$2"
-        _server="$ACME_DIRECTORY"
-        export ACME_DIRECTORY
+        _server="$2"
+        _selectServer "$_server"
         shift
         ;;
       --debug)
@@ -6796,7 +6983,7 @@ _process() {
         USER_AGENT="$_useragent"
         shift
         ;;
-      --accountemail)
+      --accountemail | -m)
         _accountemail="$2"
         ACCOUNT_EMAIL="$_accountemail"
         shift
@@ -6990,6 +7177,14 @@ _process() {
         fi
         shift
         ;;
+      --eab-kid)
+        _eab_kid="$2"
+        shift
+        ;;
+      --eab-hmac-key)
+        _eab_hmac_key="$2"
+        shift
+        ;;
       *)
         _err "Unknown parameter : $1"
         return 1
@@ -7086,7 +7281,7 @@ _process() {
       deactivate "$_domain,$_altdomains"
       ;;
     registeraccount)
-      registeraccount "$_accountkeylength"
+      registeraccount "$_accountkeylength" "$_eab_kid" "$_eab_hmac_key"
       ;;
     updateaccount)
       updateaccount
@@ -7117,6 +7312,9 @@ _process() {
       ;;
     setnotify)
       setnotify "$_notify_hook" "$_notify_level" "$_notify_mode"
+      ;;
+    setdefaultca)
+      setdefaultca
       ;;
     *)
       if [ "$_CMD" ]; then
