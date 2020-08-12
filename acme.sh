@@ -3522,13 +3522,14 @@ _regAccount() {
       if [ -z "$_eab_id" ] || [ -z "$_eab_hmac_key" ]; then
         _info "No EAB credentials found for ZeroSSL, let's get one"
         if [ -z "$_email" ]; then
-          _err "Please provide a email address for zerossl account."
+          _err "Please provide a email address for ZeroSSL account."
+          _err "See ZeroSSL usage: $_ZEROSSL_WIKI"
           return 1
         fi
         _eabresp=$(_post "email=$_email" $_ZERO_EAB_ENDPOINT)
         if [ "$?" != "0" ]; then
           _debug2 "$_eabresp"
-          _err "Can not get EAB credentials from zerossl."
+          _err "Can not get EAB credentials from ZeroSSL."
           return 1
         fi
         _eab_id="$(echo "$_eabresp" | tr ',}' '\n' | grep '"eab_kid"' | cut -d : -f 2 | tr -d '"')"
