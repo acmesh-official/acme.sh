@@ -6618,6 +6618,7 @@ setdefaultca() {
     return 1
   fi
   _saveaccountconf "DEFAULT_ACME_SERVER" "$ACME_DIRECTORY"
+  _info "Changed default CA to: $(__green "$ACME_DIRECTORY")"
 }
 
 _process() {
