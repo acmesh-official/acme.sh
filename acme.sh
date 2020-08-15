@@ -52,9 +52,6 @@ DEFAULT_DOMAIN_KEY_LENGTH=2048
 
 DEFAULT_OPENSSL_BIN="openssl"
 
-_OLD_CA_HOST="https://acme-v01.api.letsencrypt.org"
-_OLD_STAGE_CA_HOST="https://acme-staging.api.letsencrypt.org"
-
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
 VTYPE_ALPN="tls-alpn-01"
@@ -2595,22 +2592,17 @@ _initpath() {
     CA_HOME="$DEFAULT_CA_HOME"
   fi
 
-  if [ "$ACME_VERSION" = "2" ]; then
-    DEFAULT_CA="$CA_LETSENCRYPT_V2"
-    DEFAULT_STAGING_CA="$CA_LETSENCRYPT_V2_TEST"
-  fi
-
   if [ -z "$ACME_DIRECTORY" ]; then
-    default_acme_server=$(_readaccountconf "DEFAULT_ACME_SERVER")
-    _debug default_acme_server "$default_acme_server"
-    if [ "$default_acme_server" ]; then
-      ACME_DIRECTORY="$default_acme_server"
+    if [ "$STAGE" ]; then
+      ACME_DIRECTORY="$DEFAULT_STAGING_CA"
+      _info "Using stage ACME_DIRECTORY: $ACME_DIRECTORY"
     else
-      if [ -z "$STAGE" ]; then
-        ACME_DIRECTORY="$DEFAULT_CA"
+      default_acme_server=$(_readaccountconf "DEFAULT_ACME_SERVER")
+      _debug default_acme_server "$default_acme_server"
+      if [ "$default_acme_server" ]; then
+        ACME_DIRECTORY="$default_acme_server"
       else
-        ACME_DIRECTORY="$DEFAULT_STAGING_CA"
-        _info "Using stage ACME_DIRECTORY: $ACME_DIRECTORY"
+        ACME_DIRECTORY="$DEFAULT_CA"
       fi
     fi
   fi
@@ -4088,12 +4080,9 @@ issue() {
     _cleardomainconf "Le_ChallengeAlias"
   fi
 
-  if [ "$ACME_DIRECTORY" != "$DEFAULT_CA" ]; then
-    Le_API="$ACME_DIRECTORY"
-    _savedomainconf "Le_API" "$Le_API"
-  else
-    _cleardomainconf Le_API
-  fi
+  Le_API="$ACME_DIRECTORY"
+  _savedomainconf "Le_API" "$Le_API"
+
   _info "Using CA: $ACME_DIRECTORY"
   if [ "$_alt_domains" = "$NO_VALUE" ]; then
     _alt_domains=""
@@ -4980,14 +4969,6 @@ renew() {
   fi
 
   if [ "$Le_API" ]; then
-    if [ "$_OLD_CA_HOST" = "$Le_API" ]; then
-      export Le_API="$DEFAULT_CA"
-      _savedomainconf Le_API "$Le_API"
-    fi
-    if [ "$_OLD_STAGE_CA_HOST" = "$Le_API" ]; then
-      export Le_API="$DEFAULT_STAGING_CA"
-      _savedomainconf Le_API "$Le_API"
-    fi
     export ACME_DIRECTORY="$Le_API"
     #reload ca configs
     ACCOUNT_KEY_PATH=""
