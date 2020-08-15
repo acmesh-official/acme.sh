@@ -5228,13 +5228,17 @@ showcsr() {
   _info "KeyLength=$_csrkeylength"
 }
 
+#listraw  domain
 list() {
   _raw="$1"
+  _domain="$2"
   _initpath
 
   _sep="|"
   if [ "$_raw" ]; then
-    printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}CA${_sep}Created${_sep}Renew"
+    if [ -z "$_domain" ]; then
+      printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}CA${_sep}Created${_sep}Renew"
+    fi
     for di in "${CERT_HOME}"/*.*/; do
       d=$(basename "$di")
       _debug d "$d"
@@ -5247,15 +5251,21 @@ list() {
         if [ -f "$DOMAIN_CONF" ]; then
           . "$DOMAIN_CONF"
           _ca="$(_getCAShortName "$Le_API")"
-          printf "%s\n" "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$_ca${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
+          if [ -z "$_domain" ]; then
+            printf "%s\n" "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$_ca${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
+          else
+            if [ "$_domain" = "$d" ]; then
+              cat "$DOMAIN_CONF"
+            fi
+          fi
         fi
       )
     done
   else
     if _exists column; then
-      list "raw" | column -t -s "$_sep"
+      list "raw" "$_domain" | column -t -s "$_sep"
     else
-      list "raw" | tr "$_sep" '\t'
+      list "raw" "$_domain" | tr "$_sep" '\t'
     fi
   fi
 
@@ -6595,6 +6605,9 @@ _selectServer() {
 #url
 _getCAShortName() {
   caurl="$1"
+  if [ -z "$caurl" ]; then
+    caurl="$DEFAULT_CA"
+  fi
   caurl_lower="$(echo $caurl | _lower_case)"
   _sindex=0
   for surl in $(echo "$CA_SERVERS" | _lower_case | tr , ' '); do
@@ -7271,7 +7284,7 @@ _process() {
       deactivateaccount
       ;;
     list)
-      list "$_listraw"
+      list "$_listraw" "$_domain"
       ;;
     installcronjob) installcronjob "$_confighome" ;;
     uninstallcronjob) uninstallcronjob ;;
