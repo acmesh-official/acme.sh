@@ -2593,16 +2593,16 @@ _initpath() {
   fi
 
   if [ -z "$ACME_DIRECTORY" ]; then
-    default_acme_server=$(_readaccountconf "DEFAULT_ACME_SERVER")
-    _debug default_acme_server "$default_acme_server"
-    if [ "$default_acme_server" ]; then
-      ACME_DIRECTORY="$default_acme_server"
+    if [ "$STAGE" ]; then
+      ACME_DIRECTORY="$DEFAULT_STAGING_CA"
+      _info "Using stage ACME_DIRECTORY: $ACME_DIRECTORY"
     else
-      if [ -z "$STAGE" ]; then
-        ACME_DIRECTORY="$DEFAULT_CA"
+      default_acme_server=$(_readaccountconf "DEFAULT_ACME_SERVER")
+      _debug default_acme_server "$default_acme_server"
+      if [ "$default_acme_server" ]; then
+        ACME_DIRECTORY="$default_acme_server"
       else
-        ACME_DIRECTORY="$DEFAULT_STAGING_CA"
-        _info "Using stage ACME_DIRECTORY: $ACME_DIRECTORY"
+        ACME_DIRECTORY="$DEFAULT_CA"
       fi
     fi
   fi
