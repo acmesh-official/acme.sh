@@ -69,7 +69,7 @@ dns_cloudns_rm() {
   for i in $(echo "$response" | tr '{' "\n" | grep "$record"); do
     record_id=$(echo "$i" | tr ',' "\n" | grep -E '^"id"' | sed -re 's/^\"id\"\:\"([0-9]+)\"$/\1/g')
 
-    if [ ! -z "$record_id" ]; then
+    if [ -n "$record_id" ]; then
       _debug zone "$zone"
       _debug host "$host"
       _debug record "$record"
@@ -91,7 +91,7 @@ dns_cloudns_rm() {
 
 ####################  Private functions below ##################################
 _dns_cloudns_init_check() {
-  if [ ! -z "$CLOUDNS_INIT_CHECK_COMPLETED" ]; then
+  if [ -n "$CLOUDNS_INIT_CHECK_COMPLETED" ]; then
     return 0
   fi
 
@@ -164,7 +164,7 @@ _dns_cloudns_http_api_call() {
   _debug CLOUDNS_SUB_AUTH_ID "$CLOUDNS_SUB_AUTH_ID"
   _debug CLOUDNS_AUTH_PASSWORD "$CLOUDNS_AUTH_PASSWORD"
 
-  if [ ! -z "$CLOUDNS_SUB_AUTH_ID" ]; then
+  if [ -n "$CLOUDNS_SUB_AUTH_ID" ]; then
     auth_user="sub-auth-id=$CLOUDNS_SUB_AUTH_ID"
   else
     auth_user="auth-id=$CLOUDNS_AUTH_ID"

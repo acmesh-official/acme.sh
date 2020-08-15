@@ -157,9 +157,18 @@ _successful_update() {
 }
 
 _findentry() {
+  #args    $1: fulldomain, $2: txtvalue
   #returns id of dns entry, if it exists
   _myget "action=dns_primary_changeDNSsetup&user_domain=$_domain"
-  _id=$(echo "$_result" | _egrep_o "<td>$1</td>\s*<td>$2</td>[^?]*[^&]*&id=[^&]*" | sed 's/^.*=//')
+  _debug3 "_result: $_result"
+
+  _tmp_result=$(echo "$_result" | tr -d '\n\r' | _egrep_o "<td>$1</td>\s*<td>$2</td>[^?]*[^&]*&id=[^&]*")
+  _debug _tmp_result "$_tmp_result"
+  if [ -z "${_tmp_result:-}" ]; then
+    _debug "The variable is _tmp_result is not supposed to be empty, there may be something wrong with the script"
+  fi
+
+  _id=$(echo "$_tmp_result" | sed 's/^.*=//')
   if [ -n "$_id" ]; then
     _debug "Entry found with _id=$_id"
     return 0

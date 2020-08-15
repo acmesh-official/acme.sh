@@ -5,7 +5,7 @@
 #
 #UNO_User="UExxxxxx"
 
-Uno_Api="https://api.unoeuro.com/1"
+Uno_Api="https://api.simply.com/1"
 
 ########  Public functions #####################
 
@@ -21,12 +21,6 @@ dns_unoeuro_add() {
     UNO_User=""
     _err "You haven't specified a UnoEuro api key and account yet."
     _err "Please create your key and try again."
-    return 1
-  fi
-
-  if ! _contains "$UNO_User" "UE"; then
-    _err "It seems that the UNO_User=$UNO_User is not a valid username."
-    _err "Please check and retry."
     return 1
   fi
 

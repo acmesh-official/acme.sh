@@ -4,8 +4,7 @@
 #
 # easyDNS REST API for acme.sh by Neilpang based on dns_cf.sh
 # 
-# Please note: # API is currently beta and subject to constant change
-# http://sandbox.rest.easydns.net:3000/
+# API Documentation: https://sandbox.rest.easydns.net:3001/
 #
 # Author: wurzelpanzer [wurzelpanzer@maximolider.net]
 # Report Bugs here: https://github.com/acmesh-official/acme.sh/issues/2647
@@ -25,7 +24,7 @@ dns_easydns_add() {
   EASYDNS_Key="${EASYDNS_Key:-$(_readaccountconf_mutable EASYDNS_Key)}"
 
   if [ -z "$EASYDNS_Token" ] || [ -z "$EASYDNS_Key" ]; then
-    _err "You didn't specify an easydns.net token or api key. Please sign up at http://docs.sandbox.rest.easydns.net/beta_signup.php"
+    _err "You didn't specify an easydns.net token or api key. Signup at https://cp.easydns.com/manage/security/api/signup.php"
     return 1
   else
     _saveaccountconf_mutable EASYDNS_Token "$EASYDNS_Token"

@@ -1,6 +1,5 @@
 language: shell
-sudo: required
-dist: trusty
+dist: bionic
 
 os:
   - linux

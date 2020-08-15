@@ -59,7 +59,7 @@ dns_cf_add() {
   _debug "Getting txt records"
   _cf_rest GET "zones/${_domain_id}/dns_records?type=TXT&name=$fulldomain"
 
-  if ! printf "%s" "$response" | grep \"success\":true >/dev/null; then
+  if ! echo "$response" | tr -d " " | grep \"success\":true >/dev/null; then
     _err "Error"
     return 1
   fi
@@ -110,17 +110,17 @@ dns_cf_rm() {
   _debug "Getting txt records"
   _cf_rest GET "zones/${_domain_id}/dns_records?type=TXT&name=$fulldomain&content=$txtvalue"
 
-  if ! printf "%s" "$response" | grep \"success\":true >/dev/null; then
+  if ! echo "$response" | tr -d " " | grep \"success\":true >/dev/null; then
     _err "Error: $response"
     return 1
   fi
 
-  count=$(printf "%s\n" "$response" | _egrep_o "\"count\":[^,]*" | cut -d : -f 2)
+  count=$(echo "$response" | _egrep_o "\"count\": *[^,]*" | cut -d : -f 2 | tr -d " ")
   _debug count "$count"
   if [ "$count" = "0" ]; then
     _info "Don't need to remove."
   else
-    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | head -n 1)
+    record_id=$(echo "$response" | _egrep_o "\"id\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | _head_n 1 | tr -d " ")
     _debug "record_id" "$record_id"
     if [ -z "$record_id" ]; then
       _err "Can not get record id to remove."
@@ -130,7 +130,7 @@ dns_cf_rm() {
       _err "Delete record error."
       return 1
     fi
-    _contains "$response" '"success":true'
+    echo "$response" | tr -d " " | grep \"success\":true >/dev/null
   fi
 
 }
@@ -151,8 +151,8 @@ _get_root() {
     if ! _cf_rest GET "zones/$CF_Zone_ID"; then
       return 1
     else
-      if _contains "$response" '"success":true'; then
-        _domain=$(printf "%s\n" "$response" | _egrep_o "\"name\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | head -n 1)
+      if echo "$response" | tr -d " " | grep \"success\":true >/dev/null; then
+        _domain=$(echo "$response" | _egrep_o "\"name\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | _head_n 1 | tr -d " ")
         if [ "$_domain" ]; then
           _cutlength=$((${#domain} - ${#_domain} - 1))
           _sub_domain=$(printf "%s" "$domain" | cut -c "1-$_cutlength")
@@ -186,7 +186,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\"" || _contains "$response" '"total_count":1'; then
-      _domain_id=$(echo "$response" | _egrep_o "\[.\"id\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
+      _domain_id=$(echo "$response" | _egrep_o "\[.\"id\": *\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \" | tr -d " ")
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain=$h
