@@ -25,7 +25,7 @@ dns_kappernet_add() {
     KAPPERNETDNS_Secret=""
     _err "Please specify your kapper.net api key and secret."
     _err "If you have not received yours - send your mail to"
-	_err "support@kapper.net to get  your key and secret."
+    _err "support@kapper.net to get  your key and secret."
     return 1
   fi
 
@@ -72,7 +72,7 @@ dns_kappernet_rm() {
     KAPPERNETDNS_Secret=""
     _err "Please specify your kapper.net api key and secret."
     _err "If you have not received yours - send your mail to"
-	_err "support@kapper.net to get  your key and secret."
+    _err "support@kapper.net to get  your key and secret."
     return 1
   fi
 
