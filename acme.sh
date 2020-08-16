@@ -4152,20 +4152,32 @@ issue() {
     _debug "_saved_account_key_hash is not changed, skip register account."
   fi
 
+  export Le_Pre_Generated_Key="$CERT_KEY_PATH.prekey"
   if [ -f "$CSR_PATH" ] && [ ! -f "$CERT_KEY_PATH" ]; then
     _info "Signing from existing CSR."
   else
     _key=$(_readdomainconf Le_Keylength)
     _debug "Read key length:$_key"
     if [ ! -f "$CERT_KEY_PATH" ] || [ "$_key_length" != "$_key" ] || [ "$Le_ForceNewDomainKey" = "1" ]; then
-      if ! createDomainKey "$_main_domain" "$_key_length"; then
-        _err "Create domain key error."
-        _clearup
-        _on_issue_err "$_post_hook"
+      if [ "$Le_ForceNewDomainKey" = "1" ] && [ -f "$Le_Pre_Generated_Key" ]; then
+        _info "Using pre generated key: $Le_Pre_Generated_Key"
+        cat "$Le_Pre_Generated_Key" >"$CERT_KEY_PATH" && rm -f "$Le_Pre_Generated_Key"
+      else
+        if ! createDomainKey "$_main_domain" "$_key_length"; then
+          _err "Create domain key error."
+          _clearup
+          _on_issue_err "$_post_hook"
+          return 1
+        fi
+      fi
+    fi
+    if [ "$Le_ForceNewDomainKey" ]; then
+      _info "Generate next pre-generate key."
+      if ! _createkey "$_key_length" "$Le_Pre_Generated_Key"; then
+        _err "Can not pre generate domain key"
         return 1
       fi
     fi
-
     if ! _createcsr "$_main_domain" "$_alt_domains" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"; then
       _err "Create CSR error."
       _clearup
@@ -5437,7 +5449,8 @@ installcert() {
   _savedomainconf "Le_RealKeyPath" "$_real_key"
   _savedomainconf "Le_ReloadCmd" "$_reload_cmd" "base64"
   _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
-
+  export Le_ForceNewDomainKey="$(_readdomainconf Le_ForceNewDomainKey)"
+  export Le_Pre_Generated_Key="$CERT_KEY_PATH.prekey"
   _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"
 }
 
@@ -5520,6 +5533,8 @@ _installcert() {
       export CA_CERT_PATH
       export CERT_FULLCHAIN_PATH
       export Le_Domain="$_main_domain"
+      export Le_ForceNewDomainKey
+      export Le_Pre_Generated_Key
       cd "$DOMAIN_PATH" && eval "$_reload_cmd"
     ); then
       _info "$(__green "Reload success")"
