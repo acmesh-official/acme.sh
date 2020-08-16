@@ -146,6 +146,8 @@ _DNS_ALIAS_WIKI="https://github.com/acmesh-official/acme.sh/wiki/DNS-alias-mode"
 
 _DNS_MANUAL_WIKI="https://github.com/acmesh-official/acme.sh/wiki/dns-manual-mode"
 
+_DNS_API_WIKI="https://github.com/acmesh-official/acme.sh/wiki/dnsapi"
+
 _NOTIFY_WIKI="https://github.com/acmesh-official/acme.sh/wiki/notify"
 
 _SUDO_WIKI="https://github.com/acmesh-official/acme.sh/wiki/sudo"
@@ -155,6 +157,8 @@ _REVOKE_WIKI="https://github.com/acmesh-official/acme.sh/wiki/revokecert"
 _ZEROSSL_WIKI="https://github.com/acmesh-official/acme.sh/wiki/ZeroSSL.com-CA"
 
 _SERVER_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Server"
+
+_PREFERRED_CHAIN_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Preferred-Chain"
 
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
@@ -3985,6 +3989,20 @@ _check_dns_entries() {
 
 }
 
+#file
+_get_cert_issuer() {
+  _cfile="$1"
+  echo $(openssl x509 -in $_cfile -text -noout | grep 'Issuer:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2)
+}
+
+#cert  issuer
+_match_issuer() {
+  _cfile="$1"
+  _missuer="$2"
+  _fissuer=$(_get_cert_issuer $_cfile)
+  [ "$_missuer" = "$_fissuer" ]
+}
+
 #webroot, domain domainlist  keylength
 issue() {
   if [ -z "$2" ]; then
@@ -4017,16 +4035,7 @@ issue() {
   _renew_hook="${12}"
   _local_addr="${13}"
   _challenge_alias="${14}"
-  #remove these later.
-  if [ "$_web_roots" = "dns-cf" ]; then
-    _web_roots="dns_cf"
-  fi
-  if [ "$_web_roots" = "dns-dp" ]; then
-    _web_roots="dns_dp"
-  fi
-  if [ "$_web_roots" = "dns-cx" ]; then
-    _web_roots="dns_cx"
-  fi
+  _preferred_chain="${15}"
 
   if [ ! "$IS_RENEW" ]; then
     _initpath "$_main_domain" "$_key_length"
@@ -4078,6 +4087,11 @@ issue() {
     _savedomainconf "Le_ChallengeAlias" "$_challenge_alias"
   else
     _cleardomainconf "Le_ChallengeAlias"
+  fi
+  if [ "$_preferred_chain" ]; then
+    _savedomainconf "Le_Preferred_Chain" "$_preferred_chain" "base64"
+  else
+    _cleardomainconf "Le_Preferred_Chain"
   fi
 
   Le_API="$ACME_DIRECTORY"
@@ -4746,7 +4760,7 @@ $_authorizations_map"
       _on_issue_err "$_post_hook"
       return 1
     fi
-    _info "Download cert, Le_LinkCert: $Le_LinkCert"
+    _info "Downloading cert, Le_LinkCert: $Le_LinkCert"
     if ! _send_signed_request "$Le_LinkCert"; then
       _err "Sign failed, can not download cert:$Le_LinkCert."
       _err "$response"
@@ -4755,17 +4769,36 @@ $_authorizations_map"
     fi
 
     echo "$response" >"$CERT_PATH"
+    _split_cert_chain "$CERT_PATH" "$CERT_FULLCHAIN_PATH" "$CA_CERT_PATH"
 
-    if [ "$(grep -- "$BEGIN_CERT" "$CERT_PATH" | wc -l)" -gt "1" ]; then
-      _debug "Found cert chain"
-      cat "$CERT_PATH" >"$CERT_FULLCHAIN_PATH"
-      _end_n="$(grep -n -- "$END_CERT" "$CERT_FULLCHAIN_PATH" | _head_n 1 | cut -d : -f 1)"
-      _debug _end_n "$_end_n"
-      sed -n "1,${_end_n}p" "$CERT_FULLCHAIN_PATH" >"$CERT_PATH"
-      _end_n="$(_math $_end_n + 1)"
-      sed -n "${_end_n},9999p" "$CERT_FULLCHAIN_PATH" >"$CA_CERT_PATH"
+    if [ "$_preferred_chain" ]; then
+      _cert_issuer=$(_get_cert_issuer "$CA_CERT_PATH")
+      _debug _cert_issuer "$_cert_issuer"
+      if ! _match_issuer "$CA_CERT_PATH" "$_preferred_chain"; then
+        rels="$(echo "$responseHeaders" | tr -d ' <>' | grep -i "^link:" | grep -i 'rel="alternate"' | cut -d : -f 2- | cut -d ';' -f 1)"
+        _debug2 "rels" "$rels"
+        for rel in $rels; do
+          _info "Try rel: $rel"
+          if ! _send_signed_request "$rel"; then
+            _err "Sign failed, can not download cert:$rel"
+            _err "$response"
+            continue
+          fi
+          _relcert="$CERT_PATH.alt"
+          _relfullchain="$CERT_FULLCHAIN_PATH.alt"
+          _relca="$CA_CERT_PATH.alt"
+          echo "$response" >"$_relcert"
+          _split_cert_chain "$_relcert" "$_relfullchain" "$_relca"
+          if _match_issuer "$_relca" "$_preferred_chain"; then
+            _info "Matched issuer in: $rel"
+            cat $_relcert >"$CERT_PATH"
+            cat $_relfullchain >"$CERT_FULLCHAIN_PATH"
+            cat $_relca >"$CA_CERT_PATH"
+            break
+          fi
+        done
+      fi
     fi
-
   else
     if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"$ACME_NEW_ORDER_RES\", \"csr\": \"$der\"}" "needbase64"; then
       _err "Sign failed. $response"
@@ -4934,6 +4967,22 @@ $_authorizations_map"
   fi
 }
 
+#in_out_cert   out_fullchain out out_ca
+_split_cert_chain() {
+  _certf="$1"
+  _fullchainf="$2"
+  _caf="$3"
+  if [ "$(grep -- "$BEGIN_CERT" "$_certf" | wc -l)" -gt "1" ]; then
+    _debug "Found cert chain"
+    cat "$_certf" >"$_fullchainf"
+    _end_n="$(grep -n -- "$END_CERT" "$_fullchainf" | _head_n 1 | cut -d : -f 1)"
+    _debug _end_n "$_end_n"
+    sed -n "1,${_end_n}p" "$_fullchainf" >"$_certf"
+    _end_n="$(_math $_end_n + 1)"
+    sed -n "${_end_n},9999p" "$_fullchainf" >"$_caf"
+  fi
+}
+
 #domain  [isEcc]
 renew() {
   Le_Domain="$1"
@@ -4994,7 +5043,7 @@ renew() {
   Le_PreHook="$(_readdomainconf Le_PreHook)"
   Le_PostHook="$(_readdomainconf Le_PostHook)"
   Le_RenewHook="$(_readdomainconf Le_RenewHook)"
-  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias"
+  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain"
   res="$?"
   if [ "$res" != "0" ]; then
     return "$res"
@@ -6379,19 +6428,34 @@ Commands:
 
 Parameters:
   --domain, -d   domain.tld         Specifies a domain, used to issue, renew or revoke etc.
-  --challenge-alias domain.tld      The challenge domain alias for DNS alias mode: $_DNS_ALIAS_WIKI
-  --domain-alias domain.tld         The domain alias for DNS alias mode: $_DNS_ALIAS_WIKI
+  --challenge-alias domain.tld      The challenge domain alias for DNS alias mode.
+                                    See: $_DNS_ALIAS_WIKI
+
+  --domain-alias domain.tld         The domain alias for DNS alias mode.
+                                    See: $_DNS_ALIAS_WIKI
+
+  --preferred-chain  CHAIN          If the CA offers multiple certificate chains, prefer the chain with an issuer matching this Subject Common Name.
+                                    If no match, the default offered chain will be used. (default: empty)
+                                    See: $_PREFERRED_CHAIN_WIKI
+
   --force, -f                       Used to force to install or force to renew a cert immediately.
   --staging, --test                 Use staging server, just for test.
   --debug                           Output debug info.
-  --output-insecure                 Output all the sensitive messages. By default all the credentials/sensitive messages are hidden from the output/debug/log for security.
+  --output-insecure                 Output all the sensitive messages.
+                                    By default all the credentials/sensitive messages are hidden from the output/debug/log for security.
+
   --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
   --alpn                            Use standalone alpn mode.
-  --stateless                       Use stateless mode, see: $_STATELESS_WIKI
+  --stateless                       Use stateless mode.
+                                    See: $_STATELESS_WIKI
+
   --apache                          Use apache mode.
-  --dns [dns_cf|dns_dp|dns_cx|/path/to/api/file]   Use dns mode or dns api.
-  --dnssleep   300                  The time in seconds to wait for all the txt records to take effect in dns api mode. It's not necessary to use this by default, $PROJECT_NAME polls dns status automatically.
+  --dns [dns_hook]                  Use dns mode or dns api.
+                                    See: $_DNS_API_WIKI
+
+  --dnssleep   300                  The time in seconds to wait for all the txt records to propagate in dns api mode.
+                                    It's not necessary to use this by default, $PROJECT_NAME polls dns status by DOH automatically.
 
   --keylength, -k [2048]            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521.
   --accountkeylength, -ak [2048]    Specifies the account key length: 2048, 3072, 4096
@@ -6412,7 +6476,9 @@ Parameters:
 
   --reloadcmd \"service nginx reload\" After issue/renew, it's used to reload the server.
 
-  --server SERVER                   ACME Directory Resource URI. See: $_SERVER_WIKI (default: $DEFAULT_CA) 
+  --server SERVER                   ACME Directory Resource URI. (default: $DEFAULT_CA)
+                                    See: $_SERVER_WIKI
+
   --accountconf                     Specifies a customized account config file.
   --home                            Specifies the home dir for $PROJECT_NAME.
   --cert-home                       Specifies the home dir to save all the certs, only valid for '--install' command.
@@ -6429,7 +6495,9 @@ Parameters:
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
   --ca-bundle                       Specifies the path to the CA certificate bundle to verify api server's certificate.
   --ca-path                         Specifies directory containing CA certificates in PEM format, used by wget or curl.
-  --nocron                          Only valid for '--install' command, which means: do not install the default cron job. In this case, the certs will not be renewed automatically.
+  --nocron                          Only valid for '--install' command, which means: do not install the default cron job.
+                                    In this case, the certs will not be renewed automatically.
+  
   --noprofile                       Only valid for '--install' command, which means: do not install aliases to user profile.
   --no-color                        Do not output color text.
   --force-color                     Force output of color text. Useful for non-interactive use with the aha tool for HTML E-Mails.
@@ -6446,7 +6514,9 @@ Parameters:
   --listen-v6                       Force standalone/tls server to listen at ipv6.
   --openssl-bin                     Specifies a custom openssl bin location.
   --use-wget                        Force to use wget, if you have both curl and wget installed.
-  --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force to use dns manual mode: $_DNS_MANUAL_WIKI
+  --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force to use dns manual mode.
+                                    See:  $_DNS_MANUAL_WIKI
+
   --branch, -b                      Only valid for '--upgrade' command, specifies the branch name to upgrade to.
 
   --notify-level  0|1|2|3           Set the notification level:  Default value is $NOTIFY_LEVEL_DEFAULT.
@@ -6454,11 +6524,15 @@ Parameters:
                                      1: send notifications only when there is an error.
                                      2: send notifications when a cert is successfully renewed, or there is an error.
                                      3: send notifications when a cert is skipped, renewed, or error.
+
   --notify-mode   0|1               Set notification mode. Default value is $NOTIFY_MODE_DEFAULT.
                                      0: Bulk mode. Send all the domain's notifications in one message(mail).
                                      1: Cert mode. Send a message for every single cert.
+
   --notify-hook   [hookname]        Set the notify hook
-  --revoke-reason [0-10]            The reason for '--revoke' command. See: $_REVOKE_WIKI
+  --revoke-reason [0-10]            The reason for '--revoke' command.
+                                    See: $_REVOKE_WIKI
+
 
 "
 }
@@ -6689,6 +6763,7 @@ _process() {
   _revoke_reason=""
   _eab_kid=""
   _eab_hmac_key=""
+  _preferred_chain=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -7179,6 +7254,10 @@ _process() {
         _eab_hmac_key="$2"
         shift
         ;;
+      --preferred-chain)
+        _preferred_chain="$2"
+        shift
+        ;;
       *)
         _err "Unknown parameter : $1"
         return 1
@@ -7245,7 +7324,7 @@ _process() {
     uninstall) uninstall "$_nocron" ;;
     upgrade) upgrade ;;
     issue)
-      issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias"
+      issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain"
       ;;
     deploy)
       deploy "$_domain" "$_deploy_hook" "$_ecc"
