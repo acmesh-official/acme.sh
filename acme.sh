@@ -1473,7 +1473,7 @@ createDomainKey() {
 
   _initpath "$domain" "$_cdl"
 
-  if [ ! -f "$CERT_KEY_PATH" ] || [ ! -s "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$IS_RENEW" ]) || [ "$Le_ForceNewDomainKey" = "1" ]; then
+  if [ ! -f "$CERT_KEY_PATH" ] || [ ! -s "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$_ACME_IS_RENEW" ]) || [ "$Le_ForceNewDomainKey" = "1" ]; then
     if _createkey "$_cdl" "$CERT_KEY_PATH"; then
       _savedomainconf Le_Keylength "$_cdl"
       _info "The domain key is here: $(__green $CERT_KEY_PATH)"
@@ -1483,7 +1483,7 @@ createDomainKey() {
       return 1
     fi
   else
-    if [ "$IS_RENEW" ]; then
+    if [ "$_ACME_IS_RENEW" ]; then
       _info "Domain key exists, skip"
       return 0
     else
@@ -1509,7 +1509,7 @@ createCSR() {
 
   _initpath "$domain" "$_isEcc"
 
-  if [ -f "$CSR_PATH" ] && [ "$IS_RENEW" ] && [ -z "$FORCE" ]; then
+  if [ -f "$CSR_PATH" ] && [ "$_ACME_IS_RENEW" ] && [ -z "$FORCE" ]; then
     _info "CSR exists, skip"
     return
   fi
@@ -2585,7 +2585,7 @@ _initpath() {
     . "$ACCOUNT_CONF_PATH"
   fi
 
-  if [ "$ACME_IN_CRON" ]; then
+  if [ "$_ACME_IN_CRON" ]; then
     if [ ! "$_USER_PATH_EXPORTED" ]; then
       _USER_PATH_EXPORTED=1
       export PATH="$USER_PATH:$PATH"
@@ -2599,7 +2599,7 @@ _initpath() {
   if [ -z "$ACME_DIRECTORY" ]; then
     if [ "$STAGE" ]; then
       ACME_DIRECTORY="$DEFAULT_STAGING_CA"
-      _info "Using stage ACME_DIRECTORY: $ACME_DIRECTORY"
+      _info "Using ACME_DIRECTORY: $ACME_DIRECTORY"
     else
       default_acme_server=$(_readaccountconf "DEFAULT_ACME_SERVER")
       _debug default_acme_server "$default_acme_server"
@@ -3387,7 +3387,7 @@ _on_issue_err() {
     )
   fi
 
-  if [ "$IS_RENEW" = "1" ] && _hasfield "$Le_Webroot" "$W_DNS"; then
+  if [ "$_ACME_IS_RENEW" = "1" ] && _hasfield "$Le_Webroot" "$W_DNS"; then
     _err "$_DNS_MANUAL_ERR"
   fi
 
@@ -3419,7 +3419,7 @@ _on_issue_success() {
   fi
 
   #run renew hook
-  if [ "$IS_RENEW" ] && [ "$_chk_renew_hook" ]; then
+  if [ "$_ACME_IS_RENEW" ] && [ "$_chk_renew_hook" ]; then
     _info "Run renew hook:'$_chk_renew_hook'"
     if ! (
       export CERT_PATH
@@ -4037,7 +4037,7 @@ issue() {
   _challenge_alias="${14}"
   _preferred_chain="${15}"
 
-  if [ ! "$IS_RENEW" ]; then
+  if [ -z "$_ACME_IS_RENEW" ]; then
     _initpath "$_main_domain" "$_key_length"
     mkdir -p "$DOMAIN_PATH"
   fi
@@ -4689,7 +4689,8 @@ $_authorizations_map"
   der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _url_replace)"
 
   if [ "$ACME_VERSION" = "2" ]; then
-    _info "Lets finalize the order, Le_OrderFinalize: $Le_OrderFinalize"
+    _info "Lets finalize the order."
+    _info "Le_OrderFinalize" "$Le_OrderFinalize"
     if ! _send_signed_request "${Le_OrderFinalize}" "{\"csr\": \"$der\"}"; then
       _err "Sign failed."
       _on_issue_err "$_post_hook"
@@ -4760,7 +4761,8 @@ $_authorizations_map"
       _on_issue_err "$_post_hook"
       return 1
     fi
-    _info "Downloading cert, Le_LinkCert: $Le_LinkCert"
+    _info "Downloading cert."
+    _info "Le_LinkCert" "$Le_LinkCert"
     if ! _send_signed_request "$Le_LinkCert"; then
       _err "Sign failed, can not download cert:$Le_LinkCert."
       _err "$response"
@@ -4842,7 +4844,7 @@ $_authorizations_map"
       _info "Your cert key is in $(__green " $CERT_KEY_PATH ")"
     fi
 
-    if [ ! "$USER_PATH" ] || [ ! "$ACME_IN_CRON" ]; then
+    if [ ! "$USER_PATH" ] || [ ! "$_ACME_IN_CRON" ]; then
       USER_PATH="$PATH"
       _saveaccountconf "USER_PATH" "$USER_PATH"
     fi
@@ -5033,12 +5035,12 @@ renew() {
     return "$RENEW_SKIP"
   fi
 
-  if [ "$ACME_IN_CRON" = "1" ] && [ -z "$Le_CertCreateTime" ]; then
+  if [ "$_ACME_IN_CRON" = "1" ] && [ -z "$Le_CertCreateTime" ]; then
     _info "Skip invalid cert for: $Le_Domain"
     return $RENEW_SKIP
   fi
 
-  IS_RENEW="1"
+  _ACME_IS_RENEW="1"
   Le_ReloadCmd="$(_readdomainconf Le_ReloadCmd)"
   Le_PreHook="$(_readdomainconf Le_PreHook)"
   Le_PostHook="$(_readdomainconf Le_PostHook)"
@@ -5054,7 +5056,7 @@ renew() {
     res="$?"
   fi
 
-  IS_RENEW=""
+  _ACME_IS_RENEW=""
 
   return "$res"
 }
@@ -5094,7 +5096,7 @@ renewAll() {
         _error_level="$NOTIFY_LEVEL_RENEW"
         _notify_code=0
       fi
-      if [ "$ACME_IN_CRON" ]; then
+      if [ "$_ACME_IN_CRON" ]; then
         if [ $_set_level -ge $NOTIFY_LEVEL_RENEW ]; then
           if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
             _send_notify "Renew $d success" "Good, the cert is renewed." "$NOTIFY_HOOK" 0
@@ -5108,7 +5110,7 @@ renewAll() {
         _error_level="$NOTIFY_LEVEL_SKIP"
         _notify_code=$RENEW_SKIP
       fi
-      if [ "$ACME_IN_CRON" ]; then
+      if [ "$_ACME_IN_CRON" ]; then
         if [ $_set_level -ge $NOTIFY_LEVEL_SKIP ]; then
           if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
             _send_notify "Renew $d skipped" "Good, the cert is skipped." "$NOTIFY_HOOK" "$RENEW_SKIP"
@@ -5123,7 +5125,7 @@ renewAll() {
         _error_level="$NOTIFY_LEVEL_ERROR"
         _notify_code=1
       fi
-      if [ "$ACME_IN_CRON" ]; then
+      if [ "$_ACME_IN_CRON" ]; then
         if [ $_set_level -ge $NOTIFY_LEVEL_ERROR ]; then
           if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
             _send_notify "Renew $d error" "There is an error." "$NOTIFY_HOOK" 1
@@ -5144,7 +5146,7 @@ renewAll() {
   done
   _debug _error_level "$_error_level"
   _debug _set_level "$_set_level"
-  if [ "$ACME_IN_CRON" ] && [ $_error_level -le $_set_level ]; then
+  if [ "$_ACME_IN_CRON" ] && [ $_error_level -le $_set_level ]; then
     if [ -z "$NOTIFY_MODE" ] || [ "$NOTIFY_MODE" = "$NOTIFY_MODE_BULK" ]; then
       _msg_subject="Renew"
       if [ "$_error_msg" ]; then
@@ -5442,7 +5444,7 @@ _installcert() {
 
   if [ "$_real_cert" ]; then
     _info "Installing cert to:$_real_cert"
-    if [ -f "$_real_cert" ] && [ ! "$IS_RENEW" ]; then
+    if [ -f "$_real_cert" ] && [ ! "$_ACME_IS_RENEW" ]; then
       cp "$_real_cert" "$_backup_path/cert.bak"
     fi
     cat "$CERT_PATH" >"$_real_cert" || return 1
@@ -5454,7 +5456,7 @@ _installcert() {
       echo "" >>"$_real_ca"
       cat "$CA_CERT_PATH" >>"$_real_ca" || return 1
     else
-      if [ -f "$_real_ca" ] && [ ! "$IS_RENEW" ]; then
+      if [ -f "$_real_ca" ] && [ ! "$_ACME_IS_RENEW" ]; then
         cp "$_real_ca" "$_backup_path/ca.bak"
       fi
       cat "$CA_CERT_PATH" >"$_real_ca" || return 1
@@ -5463,7 +5465,7 @@ _installcert() {
 
   if [ "$_real_key" ]; then
     _info "Installing key to:$_real_key"
-    if [ -f "$_real_key" ] && [ ! "$IS_RENEW" ]; then
+    if [ -f "$_real_key" ] && [ ! "$_ACME_IS_RENEW" ]; then
       cp "$_real_key" "$_backup_path/key.bak"
     fi
     if [ -f "$_real_key" ]; then
@@ -5476,7 +5478,7 @@ _installcert() {
 
   if [ "$_real_fullchain" ]; then
     _info "Installing full chain to:$_real_fullchain"
-    if [ -f "$_real_fullchain" ] && [ ! "$IS_RENEW" ]; then
+    if [ -f "$_real_fullchain" ] && [ ! "$_ACME_IS_RENEW" ]; then
       cp "$_real_fullchain" "$_backup_path/fullchain.bak"
     fi
     cat "$CERT_FULLCHAIN_PATH" >"$_real_fullchain" || return 1
@@ -6093,7 +6095,7 @@ install() {
     _debug "Skip install cron job"
   fi
 
-  if [ "$ACME_IN_CRON" != "1" ]; then
+  if [ "$_ACME_IN_CRON" != "1" ]; then
     if ! _precheck "$_nocron"; then
       _err "Pre-check failed, can not install."
       return 1
@@ -6150,7 +6152,7 @@ install() {
 
   _info "Installed to $LE_WORKING_DIR/$PROJECT_ENTRY"
 
-  if [ "$ACME_IN_CRON" != "1" ] && [ -z "$_noprofile" ]; then
+  if [ "$_ACME_IN_CRON" != "1" ] && [ -z "$_noprofile" ]; then
     _installalias "$_c_home"
   fi
 
@@ -6248,7 +6250,7 @@ _uninstallalias() {
 }
 
 cron() {
-  export ACME_IN_CRON=1
+  export _ACME_IN_CRON=1
   _initpath
   _info "$(__green "===Starting cron===")"
   if [ "$AUTO_UPGRADE" = "1" ]; then
@@ -6269,7 +6271,7 @@ cron() {
   fi
   renewAll
   _ret="$?"
-  ACME_IN_CRON=""
+  _ACME_IN_CRON=""
   _info "$(__green "===End cron===")"
   exit $_ret
 }
