@@ -1,4 +1,4 @@
-name: CI
+name: shellcheck
 on: [push, pull_request]
 
 jobs:
