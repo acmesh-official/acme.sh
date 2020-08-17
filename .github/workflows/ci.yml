@@ -1,0 +1,20 @@
+
+
+name: CI
+on:[push, pull_request]
+
+jobs:
+  formatCheck:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Shellcheck
+      run: sudo apt-get install -y shellcheck
+    - name: DoShellcheck
+      run: shellcheck -V  && shellcheck -e SC2181 **/*.sh && echo "shellcheck OK"
+    - name: Install shfmt
+      with:
+        SHFMT_URL=https://github.com/mvdan/sh/releases/download/v3.1.2/shfmt_v3.1.2_linux_amd64
+      run: curl -sSL ${{ SHFMT_URL }} -o ~/shfmt && chmod +x ~/shfmt
+    - name: shfmt
+      run: ~/shfmt -l -w -i 2 . ; git diff --exit-code && echo "shfmt OK"
