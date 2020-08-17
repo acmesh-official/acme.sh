@@ -87,11 +87,11 @@ _get_root() {
 
   for ITEM in ${domains_list}; do
     case "${domain}" in
-      *${ITEM}*)
-        _domain=${ITEM}
-        _debug _domain "${_domain}"
-        return 0
-        ;;
+    *${ITEM}*)
+      _domain=${ITEM}
+      _debug _domain "${_domain}"
+      return 0
+      ;;
     esac
   done
 

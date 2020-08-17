@@ -18,23 +18,23 @@
 ########
 
 dns_cyon_add() {
-  _cyon_load_credentials \
-    && _cyon_load_parameters "$@" \
-    && _cyon_print_header "add" \
-    && _cyon_login \
-    && _cyon_change_domain_env \
-    && _cyon_add_txt \
-    && _cyon_logout
+  _cyon_load_credentials &&
+    _cyon_load_parameters "$@" &&
+    _cyon_print_header "add" &&
+    _cyon_login &&
+    _cyon_change_domain_env &&
+    _cyon_add_txt &&
+    _cyon_logout
 }
 
 dns_cyon_rm() {
-  _cyon_load_credentials \
-    && _cyon_load_parameters "$@" \
-    && _cyon_print_header "delete" \
-    && _cyon_login \
-    && _cyon_change_domain_env \
-    && _cyon_delete_txt \
-    && _cyon_logout
+  _cyon_load_credentials &&
+    _cyon_load_parameters "$@" &&
+    _cyon_print_header "delete" &&
+    _cyon_login &&
+    _cyon_change_domain_env &&
+    _cyon_delete_txt &&
+    _cyon_logout
 }
 
 #########################
