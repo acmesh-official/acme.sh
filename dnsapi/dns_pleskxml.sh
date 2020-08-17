@@ -136,11 +136,12 @@ dns_pleskxml_rm() {
 
   # Reduce output to one line per DNS record, filtered for TXT records with a record ID only (which they should all have)
   # Also strip out spaces between tags, redundant <data> and </data> group tags and any <self-closing/> tags
-  reclist="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>ok</status>' \
-    | sed 's# \{1,\}<\([a-zA-Z]\)#<\1#g;s#</\{0,1\}data>##g;s#<[a-z][^/<>]*/>##g' \
-    | grep "<site-id>${root_domain_id}</site-id>" \
-    | grep '<id>[0-9]\{1,\}</id>' \
-    | grep '<type>TXT</type>'
+  reclist="$(
+    _api_response_split "$pleskxml_prettyprint_result" 'result' '<status>ok</status>' |
+      sed 's# \{1,\}<\([a-zA-Z]\)#<\1#g;s#</\{0,1\}data>##g;s#<[a-z][^/<>]*/>##g' |
+      grep "<site-id>${root_domain_id}</site-id>" |
+      grep '<id>[0-9]\{1,\}</id>' |
+      grep '<type>TXT</type>'
   )"
 
   if [ -z "$reclist" ]; then
@@ -151,10 +152,11 @@ dns_pleskxml_rm() {
   _debug "Got list of DNS TXT records for root domain '$root_domain_name':"
   _debug "$reclist"
 
-  recid="$(_value "$reclist" \
-    | grep "<host>${fulldomain}.</host>" \
-    | grep "<value>${txtvalue}</value>" \
-    | sed 's/^.*<id>\([0-9]\{1,\}\)<\/id>.*$/\1/'
+  recid="$(
+    _value "$reclist" |
+      grep "<host>${fulldomain}.</host>" |
+      grep "<value>${txtvalue}</value>" |
+      sed 's/^.*<id>\([0-9]\{1,\}\)<\/id>.*$/\1/'
   )"
 
   if ! _value "$recid" | grep '^[0-9]\{1,\}$' >/dev/null; then
@@ -220,11 +222,11 @@ _countdots() {
 #       Last line could change to <sed -n '/.../p'> instead, with suitable escaping of ['"/$],
 #       if future Plesk XML API changes ever require extended regex
 _api_response_split() {
-  printf '%s' "$1" \
-    | sed 's/^ +//;s/ +$//' \
-    | tr -d '\n\r' \
-    | sed "s/<\/\{0,1\}$2>/${NEWLINE}/g" \
-    | grep "$3"
+  printf '%s' "$1" |
+    sed 's/^ +//;s/ +$//' |
+    tr -d '\n\r' |
+    sed "s/<\/\{0,1\}$2>/${NEWLINE}/g" |
+    grep "$3"
 }
 
 ####################  Private functions below (DNS functions) ##################################
@@ -261,14 +263,15 @@ _call_api() {
   elif [ "$statuslines_count_okay" -ne "$statuslines_count_total" ]; then
 
     # We have some status lines that aren't "ok". Any available details are in API response fields "status" "errcode" and "errtext"
-    # Workaround for basic regex: 
+    # Workaround for basic regex:
     #   - filter output to keep only lines like this: "SPACES<TAG>text</TAG>SPACES" (shouldn't be necessary with prettyprint but guarantees subsequent code is ok)
     #   - then edit the 3 "useful" error tokens individually and remove closing tags on all lines
     #   - then filter again to remove all lines not edited (which will be the lines not starting A-Z)
-    errtext="$(_value "$pleskxml_prettyprint_result" \
-      | grep '^ *<[a-z]\{1,\}>[^<]*<\/[a-z]\{1,\}> *$' \
-      | sed 's/^ *<status>/Status:     /;s/^ *<errcode>/Error code: /;s/^ *<errtext>/Error text: /;s/<\/.*$//' \
-      | grep '^[A-Z]'
+    errtext="$(
+      _value "$pleskxml_prettyprint_result" |
+        grep '^ *<[a-z]\{1,\}>[^<]*<\/[a-z]\{1,\}> *$' |
+        sed 's/^ *<status>/Status:     /;s/^ *<errcode>/Error code: /;s/^ *<errtext>/Error text: /;s/<\/.*$//' |
+        grep '^[A-Z]'
     )"
 
   fi

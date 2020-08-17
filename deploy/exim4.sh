@@ -69,8 +69,8 @@ exim4_deploy() {
     cp "$_exim4_conf" "$_backup_conf"
 
     _info "Modify exim4 conf: $_exim4_conf"
-    if _setopt "$_exim4_conf" "tls_certificate" "=" "$_real_fullchain" \
-      && _setopt "$_exim4_conf" "tls_privatekey" "=" "$_real_key"; then
+    if _setopt "$_exim4_conf" "tls_certificate" "=" "$_real_fullchain" &&
+      _setopt "$_exim4_conf" "tls_privatekey" "=" "$_real_key"; then
       _info "Set config success!"
     else
       _err "Config exim4 server error, please report bug to us."

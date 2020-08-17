@@ -115,9 +115,9 @@ dns_conoha_rm() {
     return 1
   fi
 
-  record_id=$(printf "%s" "$response" | _egrep_o '{[^}]*}' \
-    | grep '"type":"TXT"' | grep "\"data\":\"$txtvalue\"" | _egrep_o "\"id\":\"[^\"]*\"" \
-    | _head_n 1 | cut -d : -f 2 | tr -d \")
+  record_id=$(printf "%s" "$response" | _egrep_o '{[^}]*}' |
+    grep '"type":"TXT"' | grep "\"data\":\"$txtvalue\"" | _egrep_o "\"id\":\"[^\"]*\"" |
+    _head_n 1 | cut -d : -f 2 | tr -d \")
   if [ -z "$record_id" ]; then
     _err "Can not get record id to remove."
     return 1

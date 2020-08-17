@@ -144,7 +144,7 @@ _netlify_rest() {
   export _H1="Content-Type: application/json"
   export _H2="Authorization: Bearer $token_trimmed"
 
-  :>"$HTTP_HEADER"
+  : >"$HTTP_HEADER"
 
   if [ "$m" != "GET" ]; then
     _debug data "$data"

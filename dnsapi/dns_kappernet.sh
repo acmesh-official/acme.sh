@@ -5,12 +5,12 @@
 # please report issues here: https://github.com/acmesh-official/acme.sh/issues/2977
 
 #KAPPERNETDNS_Key="yourKAPPERNETapikey"
-#KAPPERNETDNS_Secret="yourKAPPERNETapisecret" 
+#KAPPERNETDNS_Secret="yourKAPPERNETapisecret"
 
 KAPPERNETDNS_Api="https://dnspanel.kapper.net/API/1.2?APIKey=$KAPPERNETDNS_Key&APISecret=$KAPPERNETDNS_Secret"
 
 ###############################################################################
-# called with 
+# called with
 # fullhostname: something.example.com
 # txtvalue:     someacmegenerated string
 dns_kappernet_add() {
@@ -97,7 +97,7 @@ dns_kappernet_rm() {
 ####################  Private functions below ##################################
 # called with hostname
 # e.g._acme-challenge.www.domain.com returns
-# _sub_domain=_acme-challenge.www 
+# _sub_domain=_acme-challenge.www
 # _domain=domain.com
 _get_root() {
   domain=$1
@@ -127,7 +127,7 @@ _get_root() {
 
 ################################################################################
 # calls the kapper.net DNS Panel API
-# with 
+# with
 # method
 # param
 _kappernet_api() {
