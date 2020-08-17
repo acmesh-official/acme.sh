@@ -524,27 +524,27 @@ _math() {
 _h_char_2_dec() {
   _ch=$1
   case "${_ch}" in
-    a | A)
-      printf "10"
-      ;;
-    b | B)
-      printf "11"
-      ;;
-    c | C)
-      printf "12"
-      ;;
-    d | D)
-      printf "13"
-      ;;
-    e | E)
-      printf "14"
-      ;;
-    f | F)
-      printf "15"
-      ;;
-    *)
-      printf "%s" "$_ch"
-      ;;
+  a | A)
+    printf "10"
+    ;;
+  b | B)
+    printf "11"
+    ;;
+  c | C)
+    printf "12"
+    ;;
+  d | D)
+    printf "13"
+    ;;
+  e | E)
+    printf "14"
+    ;;
+  f | F)
+    printf "15"
+    ;;
+  *)
+    printf "%s" "$_ch"
+    ;;
   esac
 
 }
@@ -652,211 +652,211 @@ _url_encode() {
   for _hex_code in $_hex_str; do
     #upper case
     case "${_hex_code}" in
-      "41")
-        printf "%s" "A"
-        ;;
-      "42")
-        printf "%s" "B"
-        ;;
-      "43")
-        printf "%s" "C"
-        ;;
-      "44")
-        printf "%s" "D"
-        ;;
-      "45")
-        printf "%s" "E"
-        ;;
-      "46")
-        printf "%s" "F"
-        ;;
-      "47")
-        printf "%s" "G"
-        ;;
-      "48")
-        printf "%s" "H"
-        ;;
-      "49")
-        printf "%s" "I"
-        ;;
-      "4a")
-        printf "%s" "J"
-        ;;
-      "4b")
-        printf "%s" "K"
-        ;;
-      "4c")
-        printf "%s" "L"
-        ;;
-      "4d")
-        printf "%s" "M"
-        ;;
-      "4e")
-        printf "%s" "N"
-        ;;
-      "4f")
-        printf "%s" "O"
-        ;;
-      "50")
-        printf "%s" "P"
-        ;;
-      "51")
-        printf "%s" "Q"
-        ;;
-      "52")
-        printf "%s" "R"
-        ;;
-      "53")
-        printf "%s" "S"
-        ;;
-      "54")
-        printf "%s" "T"
-        ;;
-      "55")
-        printf "%s" "U"
-        ;;
-      "56")
-        printf "%s" "V"
-        ;;
-      "57")
-        printf "%s" "W"
-        ;;
-      "58")
-        printf "%s" "X"
-        ;;
-      "59")
-        printf "%s" "Y"
-        ;;
-      "5a")
-        printf "%s" "Z"
-        ;;
+    "41")
+      printf "%s" "A"
+      ;;
+    "42")
+      printf "%s" "B"
+      ;;
+    "43")
+      printf "%s" "C"
+      ;;
+    "44")
+      printf "%s" "D"
+      ;;
+    "45")
+      printf "%s" "E"
+      ;;
+    "46")
+      printf "%s" "F"
+      ;;
+    "47")
+      printf "%s" "G"
+      ;;
+    "48")
+      printf "%s" "H"
+      ;;
+    "49")
+      printf "%s" "I"
+      ;;
+    "4a")
+      printf "%s" "J"
+      ;;
+    "4b")
+      printf "%s" "K"
+      ;;
+    "4c")
+      printf "%s" "L"
+      ;;
+    "4d")
+      printf "%s" "M"
+      ;;
+    "4e")
+      printf "%s" "N"
+      ;;
+    "4f")
+      printf "%s" "O"
+      ;;
+    "50")
+      printf "%s" "P"
+      ;;
+    "51")
+      printf "%s" "Q"
+      ;;
+    "52")
+      printf "%s" "R"
+      ;;
+    "53")
+      printf "%s" "S"
+      ;;
+    "54")
+      printf "%s" "T"
+      ;;
+    "55")
+      printf "%s" "U"
+      ;;
+    "56")
+      printf "%s" "V"
+      ;;
+    "57")
+      printf "%s" "W"
+      ;;
+    "58")
+      printf "%s" "X"
+      ;;
+    "59")
+      printf "%s" "Y"
+      ;;
+    "5a")
+      printf "%s" "Z"
+      ;;
 
       #lower case
-      "61")
-        printf "%s" "a"
-        ;;
-      "62")
-        printf "%s" "b"
-        ;;
-      "63")
-        printf "%s" "c"
-        ;;
-      "64")
-        printf "%s" "d"
-        ;;
-      "65")
-        printf "%s" "e"
-        ;;
-      "66")
-        printf "%s" "f"
-        ;;
-      "67")
-        printf "%s" "g"
-        ;;
-      "68")
-        printf "%s" "h"
-        ;;
-      "69")
-        printf "%s" "i"
-        ;;
-      "6a")
-        printf "%s" "j"
-        ;;
-      "6b")
-        printf "%s" "k"
-        ;;
-      "6c")
-        printf "%s" "l"
-        ;;
-      "6d")
-        printf "%s" "m"
-        ;;
-      "6e")
-        printf "%s" "n"
-        ;;
-      "6f")
-        printf "%s" "o"
-        ;;
-      "70")
-        printf "%s" "p"
-        ;;
-      "71")
-        printf "%s" "q"
-        ;;
-      "72")
-        printf "%s" "r"
-        ;;
-      "73")
-        printf "%s" "s"
-        ;;
-      "74")
-        printf "%s" "t"
-        ;;
-      "75")
-        printf "%s" "u"
-        ;;
-      "76")
-        printf "%s" "v"
-        ;;
-      "77")
-        printf "%s" "w"
-        ;;
-      "78")
-        printf "%s" "x"
-        ;;
-      "79")
-        printf "%s" "y"
-        ;;
-      "7a")
-        printf "%s" "z"
-        ;;
+    "61")
+      printf "%s" "a"
+      ;;
+    "62")
+      printf "%s" "b"
+      ;;
+    "63")
+      printf "%s" "c"
+      ;;
+    "64")
+      printf "%s" "d"
+      ;;
+    "65")
+      printf "%s" "e"
+      ;;
+    "66")
+      printf "%s" "f"
+      ;;
+    "67")
+      printf "%s" "g"
+      ;;
+    "68")
+      printf "%s" "h"
+      ;;
+    "69")
+      printf "%s" "i"
+      ;;
+    "6a")
+      printf "%s" "j"
+      ;;
+    "6b")
+      printf "%s" "k"
+      ;;
+    "6c")
+      printf "%s" "l"
+      ;;
+    "6d")
+      printf "%s" "m"
+      ;;
+    "6e")
+      printf "%s" "n"
+      ;;
+    "6f")
+      printf "%s" "o"
+      ;;
+    "70")
+      printf "%s" "p"
+      ;;
+    "71")
+      printf "%s" "q"
+      ;;
+    "72")
+      printf "%s" "r"
+      ;;
+    "73")
+      printf "%s" "s"
+      ;;
+    "74")
+      printf "%s" "t"
+      ;;
+    "75")
+      printf "%s" "u"
+      ;;
+    "76")
+      printf "%s" "v"
+      ;;
+    "77")
+      printf "%s" "w"
+      ;;
+    "78")
+      printf "%s" "x"
+      ;;
+    "79")
+      printf "%s" "y"
+      ;;
+    "7a")
+      printf "%s" "z"
+      ;;
       #numbers
-      "30")
-        printf "%s" "0"
-        ;;
-      "31")
-        printf "%s" "1"
-        ;;
-      "32")
-        printf "%s" "2"
-        ;;
-      "33")
-        printf "%s" "3"
-        ;;
-      "34")
-        printf "%s" "4"
-        ;;
-      "35")
-        printf "%s" "5"
-        ;;
-      "36")
-        printf "%s" "6"
-        ;;
-      "37")
-        printf "%s" "7"
-        ;;
-      "38")
-        printf "%s" "8"
-        ;;
-      "39")
-        printf "%s" "9"
-        ;;
-      "2d")
-        printf "%s" "-"
-        ;;
-      "5f")
-        printf "%s" "_"
-        ;;
-      "2e")
-        printf "%s" "."
-        ;;
-      "7e")
-        printf "%s" "~"
-        ;;
-      #other hex
-      *)
-        printf '%%%s' "$_hex_code"
-        ;;
+    "30")
+      printf "%s" "0"
+      ;;
+    "31")
+      printf "%s" "1"
+      ;;
+    "32")
+      printf "%s" "2"
+      ;;
+    "33")
+      printf "%s" "3"
+      ;;
+    "34")
+      printf "%s" "4"
+      ;;
+    "35")
+      printf "%s" "5"
+      ;;
+    "36")
+      printf "%s" "6"
+      ;;
+    "37")
+      printf "%s" "7"
+      ;;
+    "38")
+      printf "%s" "8"
+      ;;
+    "39")
+      printf "%s" "9"
+      ;;
+    "2d")
+      printf "%s" "-"
+      ;;
+    "5f")
+      printf "%s" "_"
+      ;;
+    "2e")
+      printf "%s" "."
+      ;;
+    "7e")
+      printf "%s" "~"
+      ;;
+    #other hex
+    *)
+      printf '%%%s' "$_hex_code"
+      ;;
     esac
   done
 }
@@ -1077,11 +1077,11 @@ _isEccKey() {
     return 1
   fi
 
-  [ "$_length" != "1024" ] \
-    && [ "$_length" != "2048" ] \
-    && [ "$_length" != "3072" ] \
-    && [ "$_length" != "4096" ] \
-    && [ "$_length" != "8192" ]
+  [ "$_length" != "1024" ] &&
+    [ "$_length" != "2048" ] &&
+    [ "$_length" != "3072" ] &&
+    [ "$_length" != "4096" ] &&
+    [ "$_length" != "8192" ]
 }
 
 # _createkey  2048|ec-256   file
@@ -1630,22 +1630,22 @@ _calcjwk() {
       crv_oid="$(${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^ASN1 OID:" | cut -d ":" -f 2 | tr -d " \r\n")"
       _debug3 crv_oid "$crv_oid"
       case "${crv_oid}" in
-        "prime256v1")
-          crv="P-256"
-          __ECC_KEY_LEN=256
-          ;;
-        "secp384r1")
-          crv="P-384"
-          __ECC_KEY_LEN=384
-          ;;
-        "secp521r1")
-          crv="P-521"
-          __ECC_KEY_LEN=512
-          ;;
-        *)
-          _err "ECC oid : $crv_oid"
-          return 1
-          ;;
+      "prime256v1")
+        crv="P-256"
+        __ECC_KEY_LEN=256
+        ;;
+      "secp384r1")
+        crv="P-384"
+        __ECC_KEY_LEN=384
+        ;;
+      "secp521r1")
+        crv="P-521"
+        __ECC_KEY_LEN=512
+        ;;
+      *)
+        _err "ECC oid : $crv_oid"
+        return 1
+        ;;
       esac
       _debug3 crv "$crv"
     fi
@@ -6772,501 +6772,501 @@ _process() {
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
-      --help | -h)
-        showhelp
-        return
-        ;;
-      --version | -v)
-        version
-        return
-        ;;
-      --install)
-        _CMD="install"
-        ;;
-      --uninstall)
-        _CMD="uninstall"
-        ;;
-      --upgrade)
-        _CMD="upgrade"
-        ;;
-      --issue)
-        _CMD="issue"
-        ;;
-      --deploy)
-        _CMD="deploy"
-        ;;
-      --signcsr)
-        _CMD="signcsr"
-        ;;
-      --showcsr)
-        _CMD="showcsr"
-        ;;
-      --installcert | -i | --install-cert)
-        _CMD="installcert"
-        ;;
-      --renew | -r)
-        _CMD="renew"
-        ;;
-      --renewAll | --renewall | --renew-all)
-        _CMD="renewAll"
-        ;;
-      --revoke)
-        _CMD="revoke"
-        ;;
-      --remove)
-        _CMD="remove"
-        ;;
-      --list)
-        _CMD="list"
-        ;;
-      --installcronjob | --install-cronjob)
-        _CMD="installcronjob"
-        ;;
-      --uninstallcronjob | --uninstall-cronjob)
-        _CMD="uninstallcronjob"
-        ;;
-      --cron)
-        _CMD="cron"
-        ;;
-      --toPkcs)
-        _CMD="toPkcs"
-        ;;
-      --toPkcs8)
-        _CMD="toPkcs8"
-        ;;
-      --createAccountKey | --createaccountkey | -cak | --create-account-key)
-        _CMD="createAccountKey"
-        ;;
-      --createDomainKey | --createdomainkey | -cdk | --create-domain-key)
-        _CMD="createDomainKey"
-        ;;
-      --createCSR | --createcsr | -ccr)
-        _CMD="createCSR"
-        ;;
-      --deactivate)
-        _CMD="deactivate"
-        ;;
-      --updateaccount | --update-account)
-        _CMD="updateaccount"
-        ;;
-      --registeraccount | --register-account)
-        _CMD="registeraccount"
-        ;;
-      --deactivate-account)
-        _CMD="deactivateaccount"
-        ;;
-      --set-notify)
-        _CMD="setnotify"
-        ;;
-      --set-default-ca)
-        _CMD="setdefaultca"
-        ;;
-      --domain | -d)
-        _dvalue="$2"
+    --help | -h)
+      showhelp
+      return
+      ;;
+    --version | -v)
+      version
+      return
+      ;;
+    --install)
+      _CMD="install"
+      ;;
+    --uninstall)
+      _CMD="uninstall"
+      ;;
+    --upgrade)
+      _CMD="upgrade"
+      ;;
+    --issue)
+      _CMD="issue"
+      ;;
+    --deploy)
+      _CMD="deploy"
+      ;;
+    --signcsr)
+      _CMD="signcsr"
+      ;;
+    --showcsr)
+      _CMD="showcsr"
+      ;;
+    --installcert | -i | --install-cert)
+      _CMD="installcert"
+      ;;
+    --renew | -r)
+      _CMD="renew"
+      ;;
+    --renewAll | --renewall | --renew-all)
+      _CMD="renewAll"
+      ;;
+    --revoke)
+      _CMD="revoke"
+      ;;
+    --remove)
+      _CMD="remove"
+      ;;
+    --list)
+      _CMD="list"
+      ;;
+    --installcronjob | --install-cronjob)
+      _CMD="installcronjob"
+      ;;
+    --uninstallcronjob | --uninstall-cronjob)
+      _CMD="uninstallcronjob"
+      ;;
+    --cron)
+      _CMD="cron"
+      ;;
+    --toPkcs)
+      _CMD="toPkcs"
+      ;;
+    --toPkcs8)
+      _CMD="toPkcs8"
+      ;;
+    --createAccountKey | --createaccountkey | -cak | --create-account-key)
+      _CMD="createAccountKey"
+      ;;
+    --createDomainKey | --createdomainkey | -cdk | --create-domain-key)
+      _CMD="createDomainKey"
+      ;;
+    --createCSR | --createcsr | -ccr)
+      _CMD="createCSR"
+      ;;
+    --deactivate)
+      _CMD="deactivate"
+      ;;
+    --updateaccount | --update-account)
+      _CMD="updateaccount"
+      ;;
+    --registeraccount | --register-account)
+      _CMD="registeraccount"
+      ;;
+    --deactivate-account)
+      _CMD="deactivateaccount"
+      ;;
+    --set-notify)
+      _CMD="setnotify"
+      ;;
+    --set-default-ca)
+      _CMD="setdefaultca"
+      ;;
+    --domain | -d)
+      _dvalue="$2"
 
-        if [ "$_dvalue" ]; then
-          if _startswith "$_dvalue" "-"; then
-            _err "'$_dvalue' is not a valid domain for parameter '$1'"
-            return 1
-          fi
-          if _is_idn "$_dvalue" && ! _exists idn; then
-            _err "It seems that $_dvalue is an IDN( Internationalized Domain Names), please install 'idn' command first."
-            return 1
-          fi
+      if [ "$_dvalue" ]; then
+        if _startswith "$_dvalue" "-"; then
+          _err "'$_dvalue' is not a valid domain for parameter '$1'"
+          return 1
+        fi
+        if _is_idn "$_dvalue" && ! _exists idn; then
+          _err "It seems that $_dvalue is an IDN( Internationalized Domain Names), please install 'idn' command first."
+          return 1
+        fi
 
-          if _startswith "$_dvalue" "*."; then
-            _debug "Wildcard domain"
-            export ACME_VERSION=2
-          fi
-          if [ -z "$_domain" ]; then
-            _domain="$_dvalue"
+        if _startswith "$_dvalue" "*."; then
+          _debug "Wildcard domain"
+          export ACME_VERSION=2
+        fi
+        if [ -z "$_domain" ]; then
+          _domain="$_dvalue"
+        else
+          if [ "$_altdomains" = "$NO_VALUE" ]; then
+            _altdomains="$_dvalue"
           else
-            if [ "$_altdomains" = "$NO_VALUE" ]; then
-              _altdomains="$_dvalue"
-            else
-              _altdomains="$_altdomains,$_dvalue"
-            fi
+            _altdomains="$_altdomains,$_dvalue"
           fi
         fi
+      fi
 
-        shift
-        ;;
+      shift
+      ;;
 
-      --force | -f)
-        FORCE="1"
-        ;;
-      --staging | --test)
-        STAGE="1"
-        ;;
-      --server)
-        _server="$2"
-        _selectServer "$_server"
+    --force | -f)
+      FORCE="1"
+      ;;
+    --staging | --test)
+      STAGE="1"
+      ;;
+    --server)
+      _server="$2"
+      _selectServer "$_server"
+      shift
+      ;;
+    --debug)
+      if [ -z "$2" ] || _startswith "$2" "-"; then
+        DEBUG="$DEBUG_LEVEL_DEFAULT"
+      else
+        DEBUG="$2"
         shift
-        ;;
-      --debug)
-        if [ -z "$2" ] || _startswith "$2" "-"; then
-          DEBUG="$DEBUG_LEVEL_DEFAULT"
-        else
-          DEBUG="$2"
-          shift
-        fi
-        ;;
-      --output-insecure)
-        export OUTPUT_INSECURE=1
-        ;;
-      --webroot | -w)
+      fi
+      ;;
+    --output-insecure)
+      export OUTPUT_INSECURE=1
+      ;;
+    --webroot | -w)
+      wvalue="$2"
+      if [ -z "$_webroot" ]; then
+        _webroot="$wvalue"
+      else
+        _webroot="$_webroot,$wvalue"
+      fi
+      shift
+      ;;
+    --challenge-alias)
+      cvalue="$2"
+      _challenge_alias="$_challenge_alias$cvalue,"
+      shift
+      ;;
+    --domain-alias)
+      cvalue="$DNS_ALIAS_PREFIX$2"
+      _challenge_alias="$_challenge_alias$cvalue,"
+      shift
+      ;;
+    --standalone)
+      wvalue="$NO_VALUE"
+      if [ -z "$_webroot" ]; then
+        _webroot="$wvalue"
+      else
+        _webroot="$_webroot,$wvalue"
+      fi
+      ;;
+    --alpn)
+      wvalue="$W_ALPN"
+      if [ -z "$_webroot" ]; then
+        _webroot="$wvalue"
+      else
+        _webroot="$_webroot,$wvalue"
+      fi
+      ;;
+    --stateless)
+      wvalue="$MODE_STATELESS"
+      if [ -z "$_webroot" ]; then
+        _webroot="$wvalue"
+      else
+        _webroot="$_webroot,$wvalue"
+      fi
+      ;;
+    --local-address)
+      lvalue="$2"
+      _local_address="$_local_address$lvalue,"
+      shift
+      ;;
+    --apache)
+      wvalue="apache"
+      if [ -z "$_webroot" ]; then
+        _webroot="$wvalue"
+      else
+        _webroot="$_webroot,$wvalue"
+      fi
+      ;;
+    --nginx)
+      wvalue="$NGINX"
+      if [ "$2" ] && ! _startswith "$2" "-"; then
+        wvalue="$NGINX$2"
+        shift
+      fi
+      if [ -z "$_webroot" ]; then
+        _webroot="$wvalue"
+      else
+        _webroot="$_webroot,$wvalue"
+      fi
+      ;;
+    --dns)
+      wvalue="$W_DNS"
+      if [ "$2" ] && ! _startswith "$2" "-"; then
         wvalue="$2"
-        if [ -z "$_webroot" ]; then
-          _webroot="$wvalue"
-        else
-          _webroot="$_webroot,$wvalue"
-        fi
         shift
-        ;;
-      --challenge-alias)
-        cvalue="$2"
-        _challenge_alias="$_challenge_alias$cvalue,"
-        shift
-        ;;
-      --domain-alias)
-        cvalue="$DNS_ALIAS_PREFIX$2"
-        _challenge_alias="$_challenge_alias$cvalue,"
-        shift
-        ;;
-      --standalone)
-        wvalue="$NO_VALUE"
-        if [ -z "$_webroot" ]; then
-          _webroot="$wvalue"
-        else
-          _webroot="$_webroot,$wvalue"
-        fi
-        ;;
-      --alpn)
-        wvalue="$W_ALPN"
-        if [ -z "$_webroot" ]; then
-          _webroot="$wvalue"
-        else
-          _webroot="$_webroot,$wvalue"
-        fi
-        ;;
-      --stateless)
-        wvalue="$MODE_STATELESS"
-        if [ -z "$_webroot" ]; then
-          _webroot="$wvalue"
-        else
-          _webroot="$_webroot,$wvalue"
-        fi
-        ;;
-      --local-address)
-        lvalue="$2"
-        _local_address="$_local_address$lvalue,"
-        shift
-        ;;
-      --apache)
-        wvalue="apache"
-        if [ -z "$_webroot" ]; then
-          _webroot="$wvalue"
-        else
-          _webroot="$_webroot,$wvalue"
-        fi
-        ;;
-      --nginx)
-        wvalue="$NGINX"
-        if [ "$2" ] && ! _startswith "$2" "-"; then
-          wvalue="$NGINX$2"
-          shift
-        fi
-        if [ -z "$_webroot" ]; then
-          _webroot="$wvalue"
-        else
-          _webroot="$_webroot,$wvalue"
-        fi
-        ;;
-      --dns)
-        wvalue="$W_DNS"
-        if [ "$2" ] && ! _startswith "$2" "-"; then
-          wvalue="$2"
-          shift
-        fi
-        if [ -z "$_webroot" ]; then
-          _webroot="$wvalue"
-        else
-          _webroot="$_webroot,$wvalue"
-        fi
-        ;;
-      --dnssleep)
-        _dnssleep="$2"
-        Le_DNSSleep="$_dnssleep"
-        shift
-        ;;
+      fi
+      if [ -z "$_webroot" ]; then
+        _webroot="$wvalue"
+      else
+        _webroot="$_webroot,$wvalue"
+      fi
+      ;;
+    --dnssleep)
+      _dnssleep="$2"
+      Le_DNSSleep="$_dnssleep"
+      shift
+      ;;
 
-      --keylength | -k)
-        _keylength="$2"
-        shift
-        ;;
-      --accountkeylength | -ak)
-        _accountkeylength="$2"
-        shift
-        ;;
+    --keylength | -k)
+      _keylength="$2"
+      shift
+      ;;
+    --accountkeylength | -ak)
+      _accountkeylength="$2"
+      shift
+      ;;
 
-      --cert-file | --certpath)
-        _cert_file="$2"
-        shift
-        ;;
-      --key-file | --keypath)
-        _key_file="$2"
-        shift
-        ;;
-      --ca-file | --capath)
-        _ca_file="$2"
-        shift
-        ;;
-      --fullchain-file | --fullchainpath)
-        _fullchain_file="$2"
-        shift
-        ;;
-      --reloadcmd | --reloadCmd)
-        _reloadcmd="$2"
-        shift
-        ;;
-      --password)
-        _password="$2"
-        shift
-        ;;
-      --accountconf)
-        _accountconf="$2"
-        ACCOUNT_CONF_PATH="$_accountconf"
-        shift
-        ;;
-      --home)
-        LE_WORKING_DIR="$2"
-        shift
-        ;;
-      --certhome | --cert-home)
-        _certhome="$2"
-        CERT_HOME="$_certhome"
-        shift
-        ;;
-      --config-home)
-        _confighome="$2"
-        LE_CONFIG_HOME="$_confighome"
-        shift
-        ;;
-      --useragent)
-        _useragent="$2"
-        USER_AGENT="$_useragent"
-        shift
-        ;;
-      --accountemail | -m)
-        _accountemail="$2"
-        ACCOUNT_EMAIL="$_accountemail"
-        shift
-        ;;
-      --accountkey)
-        _accountkey="$2"
-        ACCOUNT_KEY_PATH="$_accountkey"
-        shift
-        ;;
-      --days)
-        _days="$2"
-        Le_RenewalDays="$_days"
-        shift
-        ;;
-      --httpport)
-        _httpport="$2"
-        Le_HTTPPort="$_httpport"
-        shift
-        ;;
-      --tlsport)
-        _tlsport="$2"
-        Le_TLSPort="$_tlsport"
-        shift
-        ;;
-      --listraw)
-        _listraw="raw"
-        ;;
-      --stopRenewOnError | --stoprenewonerror | -se)
-        _stopRenewOnError="1"
-        ;;
-      --insecure)
-        #_insecure="1"
-        HTTPS_INSECURE="1"
-        ;;
-      --ca-bundle)
-        _ca_bundle="$(_readlink "$2")"
-        CA_BUNDLE="$_ca_bundle"
-        shift
-        ;;
-      --ca-path)
-        _ca_path="$2"
-        CA_PATH="$_ca_path"
-        shift
-        ;;
-      --nocron)
-        _nocron="1"
-        ;;
-      --noprofile)
-        _noprofile="1"
-        ;;
-      --no-color)
-        export ACME_NO_COLOR=1
-        ;;
-      --force-color)
-        export ACME_FORCE_COLOR=1
-        ;;
-      --ecc)
-        _ecc="isEcc"
-        ;;
-      --csr)
-        _csr="$2"
-        shift
-        ;;
-      --pre-hook)
-        _pre_hook="$2"
-        shift
-        ;;
-      --post-hook)
-        _post_hook="$2"
-        shift
-        ;;
-      --renew-hook)
-        _renew_hook="$2"
-        shift
-        ;;
-      --deploy-hook)
-        if [ -z "$2" ] || _startswith "$2" "-"; then
-          _usage "Please specify a value for '--deploy-hook'"
-          return 1
-        fi
-        _deploy_hook="$_deploy_hook$2,"
-        shift
-        ;;
-      --ocsp-must-staple | --ocsp)
-        Le_OCSP_Staple="1"
-        ;;
-      --always-force-new-domain-key)
-        if [ -z "$2" ] || _startswith "$2" "-"; then
-          Le_ForceNewDomainKey=1
-        else
-          Le_ForceNewDomainKey="$2"
-          shift
-        fi
-        ;;
-      --yes-I-know-dns-manual-mode-enough-go-ahead-please)
-        export FORCE_DNS_MANUAL=1
-        ;;
-      --log | --logfile)
-        _log="1"
-        _logfile="$2"
-        if _startswith "$_logfile" '-'; then
-          _logfile=""
-        else
-          shift
-        fi
-        LOG_FILE="$_logfile"
-        if [ -z "$LOG_LEVEL" ]; then
-          LOG_LEVEL="$DEFAULT_LOG_LEVEL"
-        fi
-        ;;
-      --log-level)
-        _log_level="$2"
-        LOG_LEVEL="$_log_level"
-        shift
-        ;;
-      --syslog)
-        if ! _startswith "$2" '-'; then
-          _syslog="$2"
-          shift
-        fi
-        if [ -z "$_syslog" ]; then
-          _syslog="$SYSLOG_LEVEL_DEFAULT"
-        fi
-        ;;
-      --auto-upgrade)
-        _auto_upgrade="$2"
-        if [ -z "$_auto_upgrade" ] || _startswith "$_auto_upgrade" '-'; then
-          _auto_upgrade="1"
-        else
-          shift
-        fi
-        AUTO_UPGRADE="$_auto_upgrade"
-        ;;
-      --listen-v4)
-        _listen_v4="1"
-        Le_Listen_V4="$_listen_v4"
-        ;;
-      --listen-v6)
-        _listen_v6="1"
-        Le_Listen_V6="$_listen_v6"
-        ;;
-      --openssl-bin)
-        _openssl_bin="$2"
-        ACME_OPENSSL_BIN="$_openssl_bin"
-        shift
-        ;;
-      --use-wget)
-        _use_wget="1"
-        ACME_USE_WGET="1"
-        ;;
-      --branch | -b)
-        export BRANCH="$2"
-        shift
-        ;;
-      --notify-hook)
-        _nhook="$2"
-        if _startswith "$_nhook" "-"; then
-          _err "'$_nhook' is not a hook name for '$1'"
-          return 1
-        fi
-        if [ "$_notify_hook" ]; then
-          _notify_hook="$_notify_hook,$_nhook"
-        else
-          _notify_hook="$_nhook"
-        fi
-        shift
-        ;;
-      --notify-level)
-        _nlevel="$2"
-        if _startswith "$_nlevel" "-"; then
-          _err "'$_nlevel' is not a integer for '$1'"
-          return 1
-        fi
-        _notify_level="$_nlevel"
-        shift
-        ;;
-      --notify-mode)
-        _nmode="$2"
-        if _startswith "$_nmode" "-"; then
-          _err "'$_nmode' is not a integer for '$1'"
-          return 1
-        fi
-        _notify_mode="$_nmode"
-        shift
-        ;;
-      --revoke-reason)
-        _revoke_reason="$2"
-        if _startswith "$_revoke_reason" "-"; then
-          _err "'$_revoke_reason' is not a integer for '$1'"
-          return 1
-        fi
-        shift
-        ;;
-      --eab-kid)
-        _eab_kid="$2"
-        shift
-        ;;
-      --eab-hmac-key)
-        _eab_hmac_key="$2"
-        shift
-        ;;
-      --preferred-chain)
-        _preferred_chain="$2"
-        shift
-        ;;
-      *)
-        _err "Unknown parameter : $1"
+    --cert-file | --certpath)
+      _cert_file="$2"
+      shift
+      ;;
+    --key-file | --keypath)
+      _key_file="$2"
+      shift
+      ;;
+    --ca-file | --capath)
+      _ca_file="$2"
+      shift
+      ;;
+    --fullchain-file | --fullchainpath)
+      _fullchain_file="$2"
+      shift
+      ;;
+    --reloadcmd | --reloadCmd)
+      _reloadcmd="$2"
+      shift
+      ;;
+    --password)
+      _password="$2"
+      shift
+      ;;
+    --accountconf)
+      _accountconf="$2"
+      ACCOUNT_CONF_PATH="$_accountconf"
+      shift
+      ;;
+    --home)
+      LE_WORKING_DIR="$2"
+      shift
+      ;;
+    --certhome | --cert-home)
+      _certhome="$2"
+      CERT_HOME="$_certhome"
+      shift
+      ;;
+    --config-home)
+      _confighome="$2"
+      LE_CONFIG_HOME="$_confighome"
+      shift
+      ;;
+    --useragent)
+      _useragent="$2"
+      USER_AGENT="$_useragent"
+      shift
+      ;;
+    --accountemail | -m)
+      _accountemail="$2"
+      ACCOUNT_EMAIL="$_accountemail"
+      shift
+      ;;
+    --accountkey)
+      _accountkey="$2"
+      ACCOUNT_KEY_PATH="$_accountkey"
+      shift
+      ;;
+    --days)
+      _days="$2"
+      Le_RenewalDays="$_days"
+      shift
+      ;;
+    --httpport)
+      _httpport="$2"
+      Le_HTTPPort="$_httpport"
+      shift
+      ;;
+    --tlsport)
+      _tlsport="$2"
+      Le_TLSPort="$_tlsport"
+      shift
+      ;;
+    --listraw)
+      _listraw="raw"
+      ;;
+    --stopRenewOnError | --stoprenewonerror | -se)
+      _stopRenewOnError="1"
+      ;;
+    --insecure)
+      #_insecure="1"
+      HTTPS_INSECURE="1"
+      ;;
+    --ca-bundle)
+      _ca_bundle="$(_readlink "$2")"
+      CA_BUNDLE="$_ca_bundle"
+      shift
+      ;;
+    --ca-path)
+      _ca_path="$2"
+      CA_PATH="$_ca_path"
+      shift
+      ;;
+    --nocron)
+      _nocron="1"
+      ;;
+    --noprofile)
+      _noprofile="1"
+      ;;
+    --no-color)
+      export ACME_NO_COLOR=1
+      ;;
+    --force-color)
+      export ACME_FORCE_COLOR=1
+      ;;
+    --ecc)
+      _ecc="isEcc"
+      ;;
+    --csr)
+      _csr="$2"
+      shift
+      ;;
+    --pre-hook)
+      _pre_hook="$2"
+      shift
+      ;;
+    --post-hook)
+      _post_hook="$2"
+      shift
+      ;;
+    --renew-hook)
+      _renew_hook="$2"
+      shift
+      ;;
+    --deploy-hook)
+      if [ -z "$2" ] || _startswith "$2" "-"; then
+        _usage "Please specify a value for '--deploy-hook'"
         return 1
-        ;;
+      fi
+      _deploy_hook="$_deploy_hook$2,"
+      shift
+      ;;
+    --ocsp-must-staple | --ocsp)
+      Le_OCSP_Staple="1"
+      ;;
+    --always-force-new-domain-key)
+      if [ -z "$2" ] || _startswith "$2" "-"; then
+        Le_ForceNewDomainKey=1
+      else
+        Le_ForceNewDomainKey="$2"
+        shift
+      fi
+      ;;
+    --yes-I-know-dns-manual-mode-enough-go-ahead-please)
+      export FORCE_DNS_MANUAL=1
+      ;;
+    --log | --logfile)
+      _log="1"
+      _logfile="$2"
+      if _startswith "$_logfile" '-'; then
+        _logfile=""
+      else
+        shift
+      fi
+      LOG_FILE="$_logfile"
+      if [ -z "$LOG_LEVEL" ]; then
+        LOG_LEVEL="$DEFAULT_LOG_LEVEL"
+      fi
+      ;;
+    --log-level)
+      _log_level="$2"
+      LOG_LEVEL="$_log_level"
+      shift
+      ;;
+    --syslog)
+      if ! _startswith "$2" '-'; then
+        _syslog="$2"
+        shift
+      fi
+      if [ -z "$_syslog" ]; then
+        _syslog="$SYSLOG_LEVEL_DEFAULT"
+      fi
+      ;;
+    --auto-upgrade)
+      _auto_upgrade="$2"
+      if [ -z "$_auto_upgrade" ] || _startswith "$_auto_upgrade" '-'; then
+        _auto_upgrade="1"
+      else
+        shift
+      fi
+      AUTO_UPGRADE="$_auto_upgrade"
+      ;;
+    --listen-v4)
+      _listen_v4="1"
+      Le_Listen_V4="$_listen_v4"
+      ;;
+    --listen-v6)
+      _listen_v6="1"
+      Le_Listen_V6="$_listen_v6"
+      ;;
+    --openssl-bin)
+      _openssl_bin="$2"
+      ACME_OPENSSL_BIN="$_openssl_bin"
+      shift
+      ;;
+    --use-wget)
+      _use_wget="1"
+      ACME_USE_WGET="1"
+      ;;
+    --branch | -b)
+      export BRANCH="$2"
+      shift
+      ;;
+    --notify-hook)
+      _nhook="$2"
+      if _startswith "$_nhook" "-"; then
+        _err "'$_nhook' is not a hook name for '$1'"
+        return 1
+      fi
+      if [ "$_notify_hook" ]; then
+        _notify_hook="$_notify_hook,$_nhook"
+      else
+        _notify_hook="$_nhook"
+      fi
+      shift
+      ;;
+    --notify-level)
+      _nlevel="$2"
+      if _startswith "$_nlevel" "-"; then
+        _err "'$_nlevel' is not a integer for '$1'"
+        return 1
+      fi
+      _notify_level="$_nlevel"
+      shift
+      ;;
+    --notify-mode)
+      _nmode="$2"
+      if _startswith "$_nmode" "-"; then
+        _err "'$_nmode' is not a integer for '$1'"
+        return 1
+      fi
+      _notify_mode="$_nmode"
+      shift
+      ;;
+    --revoke-reason)
+      _revoke_reason="$2"
+      if _startswith "$_revoke_reason" "-"; then
+        _err "'$_revoke_reason' is not a integer for '$1'"
+        return 1
+      fi
+      shift
+      ;;
+    --eab-kid)
+      _eab_kid="$2"
+      shift
+      ;;
+    --eab-hmac-key)
+      _eab_hmac_key="$2"
+      shift
+      ;;
+    --preferred-chain)
+      _preferred_chain="$2"
+      shift
+      ;;
+    *)
+      _err "Unknown parameter : $1"
+      return 1
+      ;;
     esac
 
     shift 1
@@ -7325,82 +7325,82 @@ _process() {
   fi
   _debug "Running cmd: ${_CMD}"
   case "${_CMD}" in
-    install) install "$_nocron" "$_confighome" "$_noprofile" ;;
-    uninstall) uninstall "$_nocron" ;;
-    upgrade) upgrade ;;
-    issue)
-      issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain"
-      ;;
-    deploy)
-      deploy "$_domain" "$_deploy_hook" "$_ecc"
-      ;;
-    signcsr)
-      signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias"
-      ;;
-    showcsr)
-      showcsr "$_csr" "$_domain"
-      ;;
-    installcert)
-      installcert "$_domain" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_ecc"
-      ;;
-    renew)
-      renew "$_domain" "$_ecc"
-      ;;
-    renewAll)
-      renewAll "$_stopRenewOnError"
-      ;;
-    revoke)
-      revoke "$_domain" "$_ecc" "$_revoke_reason"
-      ;;
-    remove)
-      remove "$_domain" "$_ecc"
-      ;;
-    deactivate)
-      deactivate "$_domain,$_altdomains"
-      ;;
-    registeraccount)
-      registeraccount "$_accountkeylength" "$_eab_kid" "$_eab_hmac_key"
-      ;;
-    updateaccount)
-      updateaccount
-      ;;
-    deactivateaccount)
-      deactivateaccount
-      ;;
-    list)
-      list "$_listraw" "$_domain"
-      ;;
-    installcronjob) installcronjob "$_confighome" ;;
-    uninstallcronjob) uninstallcronjob ;;
-    cron) cron ;;
-    toPkcs)
-      toPkcs "$_domain" "$_password" "$_ecc"
-      ;;
-    toPkcs8)
-      toPkcs8 "$_domain" "$_ecc"
-      ;;
-    createAccountKey)
-      createAccountKey "$_accountkeylength"
-      ;;
-    createDomainKey)
-      createDomainKey "$_domain" "$_keylength"
-      ;;
-    createCSR)
-      createCSR "$_domain" "$_altdomains" "$_ecc"
-      ;;
-    setnotify)
-      setnotify "$_notify_hook" "$_notify_level" "$_notify_mode"
-      ;;
-    setdefaultca)
-      setdefaultca
-      ;;
-    *)
-      if [ "$_CMD" ]; then
-        _err "Invalid command: $_CMD"
-      fi
-      showhelp
-      return 1
-      ;;
+  install) install "$_nocron" "$_confighome" "$_noprofile" ;;
+  uninstall) uninstall "$_nocron" ;;
+  upgrade) upgrade ;;
+  issue)
+    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain"
+    ;;
+  deploy)
+    deploy "$_domain" "$_deploy_hook" "$_ecc"
+    ;;
+  signcsr)
+    signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias"
+    ;;
+  showcsr)
+    showcsr "$_csr" "$_domain"
+    ;;
+  installcert)
+    installcert "$_domain" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_ecc"
+    ;;
+  renew)
+    renew "$_domain" "$_ecc"
+    ;;
+  renewAll)
+    renewAll "$_stopRenewOnError"
+    ;;
+  revoke)
+    revoke "$_domain" "$_ecc" "$_revoke_reason"
+    ;;
+  remove)
+    remove "$_domain" "$_ecc"
+    ;;
+  deactivate)
+    deactivate "$_domain,$_altdomains"
+    ;;
+  registeraccount)
+    registeraccount "$_accountkeylength" "$_eab_kid" "$_eab_hmac_key"
+    ;;
+  updateaccount)
+    updateaccount
+    ;;
+  deactivateaccount)
+    deactivateaccount
+    ;;
+  list)
+    list "$_listraw" "$_domain"
+    ;;
+  installcronjob) installcronjob "$_confighome" ;;
+  uninstallcronjob) uninstallcronjob ;;
+  cron) cron ;;
+  toPkcs)
+    toPkcs "$_domain" "$_password" "$_ecc"
+    ;;
+  toPkcs8)
+    toPkcs8 "$_domain" "$_ecc"
+    ;;
+  createAccountKey)
+    createAccountKey "$_accountkeylength"
+    ;;
+  createDomainKey)
+    createDomainKey "$_domain" "$_keylength"
+    ;;
+  createCSR)
+    createCSR "$_domain" "$_altdomains" "$_ecc"
+    ;;
+  setnotify)
+    setnotify "$_notify_hook" "$_notify_level" "$_notify_mode"
+    ;;
+  setdefaultca)
+    setdefaultca
+    ;;
+  *)
+    if [ "$_CMD" ]; then
+      _err "Invalid command: $_CMD"
+    fi
+    showhelp
+    return 1
+    ;;
   esac
   _ret="$?"
   if [ "$_ret" != "0" ]; then

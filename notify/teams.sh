@@ -52,15 +52,15 @@ teams_send() {
   _content=$(echo "$_content" | _json_encode)
 
   case "$_statusCode" in
-    0)
-      _color="${TEAMS_SUCCESS_COLOR:-$_color_success}"
-      ;;
-    1)
-      _color="${TEAMS_ERROR_COLOR:-$_color_danger}"
-      ;;
-    2)
-      _color="${TEAMS_SKIP_COLOR:-$_color_muted}"
-      ;;
+  0)
+    _color="${TEAMS_SUCCESS_COLOR:-$_color_success}"
+    ;;
+  1)
+    _color="${TEAMS_ERROR_COLOR:-$_color_danger}"
+    ;;
+  2)
+    _color="${TEAMS_SKIP_COLOR:-$_color_muted}"
+    ;;
   esac
 
   _color=$(echo "$_color" | tr -cd 'a-fA-F0-9')

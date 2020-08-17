@@ -6,10 +6,10 @@
 # Created: 2019-02-17
 # Fixed by: @der-berni
 # Modified: 2020-04-07
-#     
+#
 #     Use ONECOM_KeepCnameProxy to keep the CNAME DNS record
 #     export ONECOM_KeepCnameProxy="1"
-#     
+#
 #     export ONECOM_User="username"
 #     export ONECOM_Password="password"
 #

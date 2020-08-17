@@ -123,10 +123,10 @@ _find_record() {
     return 1
   else
     _record_id=$(
-      echo "$response" \
-        | grep -o "{[^\{\}]*\"name\":\"$_record_name\"[^\}]*}" \
-        | grep "\"value\":\"$_record_value\"" \
-        | while read -r record; do
+      echo "$response" |
+        grep -o "{[^\{\}]*\"name\":\"$_record_name\"[^\}]*}" |
+        grep "\"value\":\"$_record_value\"" |
+        while read -r record; do
           # test for type and
           if [ -n "$(echo "$record" | _egrep_o '"type":"TXT"')" ]; then
             echo "$record" | _egrep_o '"id":"[^"]*"' | cut -d : -f 2 | tr -d \"
