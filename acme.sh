@@ -3990,17 +3990,22 @@ _check_dns_entries() {
 }
 
 #file
-_get_cert_issuer() {
+_get_cert_issuers() {
   _cfile="$1"
-  echo $(openssl x509 -in $_cfile -text -noout | grep 'Issuer:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2)
+  if _contains "$(${ACME_OPENSSL_BIN:-openssl} help crl2pkcs7 2>&1)" "Usage: crl2pkcs7"; then
+    ${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 -nocrl -certfile $_cfile | openssl pkcs7 -print_certs -text -noout | grep 'Issuer:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2
+  else
+    ${ACME_OPENSSL_BIN:-openssl} x509 -in $_cfile -text -noout | grep 'Issuer:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2
+  fi
 }
 
 #cert  issuer
 _match_issuer() {
   _cfile="$1"
   _missuer="$2"
-  _fissuer=$(_get_cert_issuer $_cfile)
-  [ "$_missuer" = "$_fissuer" ]
+  _fissuers="$(_get_cert_issuers $_cfile)"
+  _debug2 _fissuers "$_fissuers"
+  _contains "$_fissuers" "$_missuer"
 }
 
 #webroot, domain domainlist  keylength
@@ -4773,10 +4778,8 @@ $_authorizations_map"
     echo "$response" >"$CERT_PATH"
     _split_cert_chain "$CERT_PATH" "$CERT_FULLCHAIN_PATH" "$CA_CERT_PATH"
 
-    if [ "$_preferred_chain" ]; then
-      _cert_issuer=$(_get_cert_issuer "$CA_CERT_PATH")
-      _debug _cert_issuer "$_cert_issuer"
-      if ! _match_issuer "$CA_CERT_PATH" "$_preferred_chain"; then
+    if [ "$_preferred_chain" ] && [ -f "$CERT_FULLCHAIN_PATH" ]; then
+      if ! _match_issuer "$CERT_FULLCHAIN_PATH" "$_preferred_chain"; then
         rels="$(echo "$responseHeaders" | tr -d ' <>' | grep -i "^link:" | grep -i 'rel="alternate"' | cut -d : -f 2- | cut -d ';' -f 1)"
         _debug2 "rels" "$rels"
         for rel in $rels; do
@@ -4791,7 +4794,7 @@ $_authorizations_map"
           _relca="$CA_CERT_PATH.alt"
           echo "$response" >"$_relcert"
           _split_cert_chain "$_relcert" "$_relfullchain" "$_relca"
-          if _match_issuer "$_relca" "$_preferred_chain"; then
+          if _match_issuer "$_relfullchain" "$_preferred_chain"; then
             _info "Matched issuer in: $rel"
             cat $_relcert >"$CERT_PATH"
             cat $_relfullchain >"$CERT_FULLCHAIN_PATH"
