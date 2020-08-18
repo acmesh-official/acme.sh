@@ -36,8 +36,8 @@ DEFAULT_CA=$CA_LETSENCRYPT_V2
 DEFAULT_STAGING_CA=$CA_LETSENCRYPT_V2_TEST
 
 CA_NAMES="
-Letsencrypt.org,letsencrypt
-Letsencrypt.org_test,letsencrypt_test,letsencrypttest
+LetsEncrypt.org,letsencrypt
+LetsEncrypt.org_test,letsencrypt_test,letsencrypttest
 BuyPass.com,buypass
 BuyPass.com_test,buypass_test,buypasstest
 ZeroSSL.com,zerossl
