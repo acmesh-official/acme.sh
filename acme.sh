@@ -6429,7 +6429,6 @@ Commands:
   --createCSR, -ccsr       Create CSR , professional use.
   --deactivate             Deactivate the domain authz, professional use.
   --set-notify             Set the cron notification hook, level or mode.
-  --set-default-ca         Used with '--server' , to set the default CA to use to use.
 
 
 Parameters:
@@ -6471,8 +6470,6 @@ Parameters:
 
   --eab-kid EAB_KID                 Key Identifier for External Account Binding.
   --eab-hmac-key EAB_HMAC_KEY       HMAC key for External Account Binding.
-
-
   These parameters are to install the cert to nginx/apache or any other server after issue/renew a cert:
 
   --cert-file                       After issue/renew, the cert will be copied to this path.
@@ -6503,7 +6500,6 @@ Parameters:
   --ca-path                         Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job.
                                     In this case, the certs will not be renewed automatically.
-
   --noprofile                       Only valid for '--install' command, which means: do not install aliases to user profile.
   --no-color                        Do not output color text.
   --force-color                     Force output of color text. Useful for non-interactive use with the aha tool for HTML E-Mails.
