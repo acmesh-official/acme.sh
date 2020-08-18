@@ -15,7 +15,6 @@ acme.sh is being sponsored by the following tool; please help to support us by t
 - Support ACME v2 wildcard certs
 - Simple, powerful and very easy to use. You only need 3 minutes to learn it.
 - Bash, dash and sh compatible.
-- Simplest shell script for Let's Encrypt free certificate client.
 - Purely written in Shell with no dependencies on python or the official Let's Encrypt client.
 - Just one script to issue, renew and install your certificates automatically.
 - DOES NOT require `root/sudoer` access.
