@@ -6410,27 +6410,27 @@ Commands:
   --issue                  Issue a cert.
   --signcsr                Issue a cert from an existing csr.
   --deploy                 Deploy the cert to your server.
-  --install-cert           Install the issued cert to apache/nginx or any other server.
+  -i, --install-cert       Install the issued cert to apache/nginx or any other server.
   -r, --renew              Renew a cert.
   --renew-all              Renew all the certs.
   --revoke                 Revoke a cert.
   --remove                 Remove the cert from list of certs known to $PROJECT_NAME.
   --list                   List all the certs.
-  --showcsr                Show the content of a csr.
+  --show-csr               Show the content of a csr.
   --install-cronjob        Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
   --uninstall-cronjob      Uninstall the cron job. The 'uninstall' command can do this automatically.
   --cron                   Run cron job to renew all the certs.
-  --toPkcs                 Export the certificate and key to a pfx file.
-  --toPkcs8                Convert to pkcs8 format.
+  --to-pkcs                Export the certificate and key to a pfx file.
+  --to-pkcs8               Convert to pkcs8 format.
   --update-account         Update account info.
   --register-account       Register account key.
   --deactivate-account     Deactivate the account.
   --create-account-key     Create an account private key, professional use.
   --create-domain-key      Create an domain private key, professional use.
-  -ccsr, --createCSR       Create CSR, professional use.
+  -ccr, --create-csr       Create CSR, professional use.
   --deactivate             Deactivate the domain authz, professional use.
   --set-notify             Set the cron notification hook, level or mode.
-  --set-default-ca         Used with '--server' , to set the default CA to use to use.
+  --set-default-ca         Used with '--server', to set the default CA to use to use.
 
 
 Parameters:
@@ -6490,14 +6490,14 @@ Parameters:
   --tlsport <port>                  Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --local-address <ip>              Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
   --listraw                         Only used for '--list' command, list the certs in raw format.
-  -se, --stopRenewOnError           Only valid for '--renew-all' command. Stop if one cert has error in renewal.
+  -se, --stop-renew-on-error        Only valid for '--renew-all' command. Stop if one cert has error in renewal.
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
   --ca-bundle <file>                Specifies the path to the CA certificate bundle to verify api server's certificate.
   --ca-path <directory>             Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job.
                                     In this case, the certs will not be renewed automatically.
   --noprofile                       Only valid for '--install' command, which means: do not install aliases to user profile.
-  --no-color                        Do not output color text.
+  --nocolor                         Do not output color text.
   --force-color                     Force output of color text. Useful for non-interactive use with the aha tool for HTML E-Mails.
   --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
   --csr <file>                      Specifies the input csr.
@@ -6817,10 +6817,10 @@ _process() {
     --cron)
       _CMD="cron"
       ;;
-    --toPkcs)
+    --toPkcs | --to-pkcs)
       _CMD="toPkcs"
       ;;
-    --toPkcs8)
+    --toPkcs8 | --to-pkcs8)
       _CMD="toPkcs8"
       ;;
     --createAccountKey | --createaccountkey | -cak | --create-account-key)
@@ -6829,7 +6829,7 @@ _process() {
     --createDomainKey | --createdomainkey | -cdk | --create-domain-key)
       _CMD="createDomainKey"
       ;;
-    --createCSR | --createcsr | -ccr)
+    --createCSR | --createcsr | -ccr | --create-csr)
       _CMD="createCSR"
       ;;
     --deactivate)
@@ -7074,7 +7074,7 @@ _process() {
     --listraw)
       _listraw="raw"
       ;;
-    --stopRenewOnError | --stoprenewonerror | -se)
+    --stopRenewOnError | --stoprenewonerror | -se | --stop-renew-on-error)
       _stopRenewOnError="1"
       ;;
     --insecure)
