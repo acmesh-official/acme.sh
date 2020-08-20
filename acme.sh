@@ -7045,7 +7045,7 @@ _process() {
       USER_AGENT="$_useragent"
       shift
       ;;
-     -m | --accountemail)
+    -m | --accountemail)
       _accountemail="$2"
       ACCOUNT_EMAIL="$_accountemail"
       shift
