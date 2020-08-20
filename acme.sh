@@ -6408,7 +6408,6 @@ Commands:
   --uninstall              Uninstall $PROJECT_NAME, and uninstall the cron job.
   --upgrade                Upgrade $PROJECT_NAME to the latest code from $PROJECT.
   --issue                  Issue a cert.
-  --signcsr                Issue a cert from an existing csr.
   --deploy                 Deploy the cert to your server.
   -i, --install-cert       Install the issued cert to apache/nginx or any other server.
   -r, --renew              Renew a cert.
@@ -6416,20 +6415,21 @@ Commands:
   --revoke                 Revoke a cert.
   --remove                 Remove the cert from list of certs known to $PROJECT_NAME.
   --list                   List all the certs.
-  --show-csr               Show the content of a csr.
-  --install-cronjob        Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
-  --uninstall-cronjob      Uninstall the cron job. The 'uninstall' command can do this automatically.
-  --cron                   Run cron job to renew all the certs.
   --to-pkcs                Export the certificate and key to a pfx file.
   --to-pkcs8               Convert to pkcs8 format.
+  --sign-csr               Issue a cert from an existing csr.
+  --show-csr               Show the content of a csr.
+  -ccr, --create-csr       Create CSR, professional use.
+  --create-domain-key      Create an domain private key, professional use.
   --update-account         Update account info.
   --register-account       Register account key.
   --deactivate-account     Deactivate the account.
   --create-account-key     Create an account private key, professional use.
-  --create-domain-key      Create an domain private key, professional use.
-  -ccr, --create-csr       Create CSR, professional use.
-  --deactivate             Deactivate the domain authz, professional use.
+  --install-cronjob        Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
+  --uninstall-cronjob      Uninstall the cron job. The 'uninstall' command can do this automatically.
+  --cron                   Run cron job to renew all the certs.
   --set-notify             Set the cron notification hook, level or mode.
+  --deactivate             Deactivate the domain authz, professional use.
   --set-default-ca         Used with '--server', to set the default CA to use to use.
 
 
@@ -6784,19 +6784,19 @@ _process() {
     --deploy)
       _CMD="deploy"
       ;;
-    --signcsr)
+    --sign-csr | --signcsr)
       _CMD="signcsr"
       ;;
-    --showcsr)
+    --show-csr | --showcsr)
       _CMD="showcsr"
       ;;
-    --installcert | -i | --install-cert)
+    -i | --install-cert | --installcert)
       _CMD="installcert"
       ;;
     --renew | -r)
       _CMD="renew"
       ;;
-    --renewAll | --renewall | --renew-all)
+    --renew-all | --renewAll | --renewall)
       _CMD="renewAll"
       ;;
     --revoke)
@@ -6808,37 +6808,37 @@ _process() {
     --list)
       _CMD="list"
       ;;
-    --installcronjob | --install-cronjob)
+    --install-cronjob | --installcronjob)
       _CMD="installcronjob"
       ;;
-    --uninstallcronjob | --uninstall-cronjob)
+    --uninstall-cronjob | --uninstallcronjob)
       _CMD="uninstallcronjob"
       ;;
     --cron)
       _CMD="cron"
       ;;
-    --toPkcs | --to-pkcs)
+    --to-pkcs | --toPkcs)
       _CMD="toPkcs"
       ;;
-    --toPkcs8 | --to-pkcs8)
+    --to-pkcs8 | --toPkcs8)
       _CMD="toPkcs8"
       ;;
-    --createAccountKey | --createaccountkey | -cak | --create-account-key)
+    --create-account-key | --createAccountKey | --createaccountkey | -cak)
       _CMD="createAccountKey"
       ;;
-    --createDomainKey | --createdomainkey | -cdk | --create-domain-key)
+    --create-domain-key | --createDomainKey | --createdomainkey | -cdk)
       _CMD="createDomainKey"
       ;;
-    --createCSR | --createcsr | -ccr | --create-csr)
+    -ccr | --create-csr | --createCSR | --createcsr)
       _CMD="createCSR"
       ;;
     --deactivate)
       _CMD="deactivate"
       ;;
-    --updateaccount | --update-account)
+    --update-account | --updateaccount)
       _CMD="updateaccount"
       ;;
-    --registeraccount | --register-account)
+    --register-account | --registeraccount)
       _CMD="registeraccount"
       ;;
     --deactivate-account)
@@ -6850,7 +6850,7 @@ _process() {
     --set-default-ca)
       _CMD="setdefaultca"
       ;;
-    --domain | -d)
+    -d | --domain)
       _dvalue="$2"
 
       if [ "$_dvalue" ]; then
@@ -6881,7 +6881,7 @@ _process() {
       shift
       ;;
 
-    --force | -f)
+    -f | --force)
       FORCE="1"
       ;;
     --staging | --test)
@@ -6903,7 +6903,7 @@ _process() {
     --output-insecure)
       export OUTPUT_INSECURE=1
       ;;
-    --webroot | -w)
+    -w | --webroot)
       wvalue="$2"
       if [ -z "$_webroot" ]; then
         _webroot="$wvalue"
@@ -6993,7 +6993,7 @@ _process() {
       _keylength="$2"
       shift
       ;;
-    --accountkeylength | -ak)
+    -ak | --accountkeylength)
       _accountkeylength="$2"
       shift
       ;;
@@ -7031,7 +7031,7 @@ _process() {
       LE_WORKING_DIR="$2"
       shift
       ;;
-    --certhome | --cert-home)
+    --cert-home | --certhome)
       _certhome="$2"
       CERT_HOME="$_certhome"
       shift
@@ -7046,7 +7046,7 @@ _process() {
       USER_AGENT="$_useragent"
       shift
       ;;
-    --accountemail | -m)
+     -m | --accountemail)
       _accountemail="$2"
       ACCOUNT_EMAIL="$_accountemail"
       shift
@@ -7074,7 +7074,7 @@ _process() {
     --listraw)
       _listraw="raw"
       ;;
-    --stopRenewOnError | --stoprenewonerror | -se | --stop-renew-on-error)
+    -se | --stop-renew-on-error | --stopRenewOnError | --stoprenewonerror)
       _stopRenewOnError="1"
       ;;
     --insecure)
@@ -7097,7 +7097,7 @@ _process() {
     --noprofile)
       _noprofile="1"
       ;;
-    --no-color)
+    --nocolor | --no-color)
       export ACME_NO_COLOR=1
       ;;
     --force-color)
