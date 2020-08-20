@@ -16,10 +16,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Run Pebble
-      run: cd "$GITHUB_WORKSPACE" && curl https://raw.githubusercontent.com/letsencrypt/pebble/master/docker-compose.yml >docker-compose.yml && docker-compose up -d
+      run: cd .. && curl https://raw.githubusercontent.com/letsencrypt/pebble/master/docker-compose.yml >docker-compose.yml && docker-compose up -d
     - name: Set up Pebble
       run: curl --request POST --data '{"ip":"10.30.50.1"}' http://localhost:8055/set-default-ipv4
     - name: Clone acmetest
-      run: cd "$GITHUB_WORKSPACE" && git clone https://github.com/acmesh-official/acmetest.git  && mv acme.sh acmetest/
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
-      run: cd acmetest && ./letest.sh
+      run: cd ../acmetest && ./letest.sh
