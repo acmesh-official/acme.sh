@@ -36,8 +36,8 @@ DEFAULT_CA=$CA_LETSENCRYPT_V2
 DEFAULT_STAGING_CA=$CA_LETSENCRYPT_V2_TEST
 
 CA_NAMES="
-Letsencrypt.org,letsencrypt
-Letsencrypt.org_test,letsencrypt_test,letsencrypttest
+LetsEncrypt.org,letsencrypt
+LetsEncrypt.org_test,letsencrypt_test,letsencrypttest
 BuyPass.com,buypass
 BuyPass.com_test,buypass_test,buypasstest
 ZeroSSL.com,zerossl
@@ -5049,6 +5049,7 @@ renew() {
   Le_PreHook="$(_readdomainconf Le_PreHook)"
   Le_PostHook="$(_readdomainconf Le_PostHook)"
   Le_RenewHook="$(_readdomainconf Le_RenewHook)"
+  Le_Preferred_Chain="$(_readdomainconf Le_Preferred_Chain)"
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain"
   res="$?"
   if [ "$res" != "0" ]; then
