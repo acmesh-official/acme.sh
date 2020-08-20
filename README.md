@@ -5,6 +5,7 @@
 [![Docker stars](https://img.shields.io/docker/stars/neilpang/acme.sh.svg)](https://hub.docker.com/r/neilpang/acme.sh "Click to view the image on Docker Hub")
 [![Docker pulls](https://img.shields.io/docker/pulls/neilpang/acme.sh.svg)](https://hub.docker.com/r/neilpang/acme.sh "Click to view the image on Docker Hub")
 ![shellcheck](https://github.com/acmesh-official/acme.sh/workflows/shellcheck/badge.svg)
+![shellcheck](https://github.com/acmesh-official/acme.sh/workflows/PebbleStrict/badge.svg)
 
 acme.sh is being sponsored by the following tool; please help to support us by taking a look and signing up to a free trial
 
