@@ -2,7 +2,7 @@ name: PebbleStrict
 on: [push, pull_request]
 
 jobs:
-  formatCheck:
+  PebbleStrict:
     runs-on: ubuntu-latest
     env:
       TestingDomain: example.com
