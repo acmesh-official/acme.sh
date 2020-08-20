@@ -6511,7 +6511,7 @@ Parameters:
   --listen-v6                       Force standalone/tls server to listen at ipv6.
   --openssl-bin <file>              Specifies a custom openssl bin location.
   --use-wget                        Force to use wget, if you have both curl and wget installed.
-  --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force use ofdns manual mode.
+  --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force use of dns manual mode.
                                     See:  $_DNS_MANUAL_WIKI
   -b, --branch <branch>             Only valid for '--upgrade' command, specifies the branch name to upgrade to.
   --notify-level <0|1|2|3>          Set the notification level:  Default value is $NOTIFY_LEVEL_DEFAULT.
