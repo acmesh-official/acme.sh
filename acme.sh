@@ -6447,7 +6447,7 @@ Parameters:
   --debug [0|1|2|3]                 Output debug info. Defaults to 1 if argument is omitted.
   --output-insecure                 Output all the sensitive messages.
                                     By default all the credentials/sensitive messages are hidden from the output/debug/log for security.
-  -w, --webroot </path/to/webroot>  Specifies the web root folder for web root mode.
+  -w, --webroot <directory>         Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
   --alpn                            Use standalone alpn mode.
   --stateless                       Use stateless mode.
@@ -6459,7 +6459,7 @@ Parameters:
                                     It's not necessary to use this by default, $PROJECT_NAME polls dns status by DOH automatically.
   -k, --keylength <bits>            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521.
   -ak, --accountkeylength <bits>    Specifies the account key length: 2048, 3072, 4096
-  --log [/path/to/logfile]          Specifies the log file. Defaults to \"$DEFAULT_LOG_FILE\" if argument is omitted.
+  --log [file]                      Specifies the log file. Defaults to \"$DEFAULT_LOG_FILE\" if argument is omitted.
   --log-level <1|2>                 Specifies the log level, default is 1.
   --syslog <0|3|6|7>                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
   --eab-kid <eab_key_id>            Key Identifier for External Account Binding.
@@ -6468,11 +6468,10 @@ Parameters:
 
   These parameters are to install the cert to nginx/apache or any other server after issue/renew a cert:
 
-  --cert-file                       Path to copy the cert file to after issue/renew..
-  --key-file                        Path to copy the key file to after issue/renew.
-  --ca-file                         Path to copy the intermediate cert file to after issue/renew.
-  --fullchain-file                  Path to copy the fullchain cert file to after issue/renew.
-
+  --cert-file <file>                Path to copy the cert file to after issue/renew..
+  --key-file <file>                 Path to copy the key file to after issue/renew.
+  --ca-file <file>                  Path to copy the intermediate cert file to after issue/renew.
+  --fullchain-file <file>           Path to copy the fullchain cert file to after issue/renew.
   --reloadcmd <command>             Command to execute after issue/renew to reload the server.
 
   --server <server_uri>             ACME Directory Resource URI. (default: $DEFAULT_CA)
