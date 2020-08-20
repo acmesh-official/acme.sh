@@ -6415,7 +6415,7 @@ Commands:
   --revoke                 Revoke a cert.
   --remove                 Remove the cert from list of certs known to $PROJECT_NAME.
   --list                   List all the certs.
-  --to-pkcs                Export the certificate and key to a pfx file.
+  --to-pkcs12              Export the certificate and key to a pfx file.
   --to-pkcs8               Convert to pkcs8 format.
   --sign-csr               Issue a cert from an existing csr.
   --show-csr               Show the content of a csr.
@@ -6816,7 +6816,7 @@ _process() {
     --cron)
       _CMD="cron"
       ;;
-    --to-pkcs | --toPkcs)
+    --to-pkcs12 | --toPkcs)
       _CMD="toPkcs"
       ;;
     --to-pkcs8 | --toPkcs8)
