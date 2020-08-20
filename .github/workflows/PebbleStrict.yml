@@ -11,7 +11,7 @@ jobs:
       HTTPS_INSECURE: 1
       Le_HTTPPort: 5002
       TEST_LOCAL: 1
-      TEST_CA: todo
+      TEST_CA: "Pebble Intermediate CA"
 
     steps:
     - uses: actions/checkout@v2
