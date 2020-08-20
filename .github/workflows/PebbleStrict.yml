@@ -1,0 +1,25 @@
+name: PebbleStrict
+on: [push, pull_request]
+
+jobs:
+  formatCheck:
+    runs-on: ubuntu-latest
+    env:
+      TestingDomain: example.com
+      TestingAltDomains: www.example.com
+      ACME_DIRECTORY: https://localhost:14000/dir
+      HTTPS_INSECURE: 1
+      Le_HTTPPort: 5002
+      TEST_LOCAL: 1
+      TEST_CA: todo
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run Pebble
+      run: cd .. && curl https://raw.githubusercontent.com/letsencrypt/pebble/master/docker-compose.yml >docker-compose.yml && docker-compose up -d
+    - name: Set up Pebble
+      run: curl --request POST --data '{"ip":"10.30.50.1"}' http://localhost:8055/set-default-ipv4
+    - name: Clone acmetest
+      run: git clone https://github.com/acmesh-official/acmetest.git  && mv acme.sh acmetest/
+    - name: Run acmetest
+      run: cd acmetest && ./letest.sh
