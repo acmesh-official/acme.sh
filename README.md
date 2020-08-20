@@ -1,4 +1,7 @@
-# An ACME Shell script: acme.sh [![Build Status](https://travis-ci.org/acmesh-official/acme.sh.svg?branch=master)](https://travis-ci.org/acmesh-official/acme.sh) ![shellcheck](https://github.com/acmesh-official/acme.sh/workflows/shellcheck/badge.svg) ![shellcheck](https://github.com/acmesh-official/acme.sh/workflows/PebbleStrict/badge.svg)
+# An ACME Shell script: acme.sh 
+[![Build Status](https://travis-ci.org/acmesh-official/acme.sh.svg?branch=master)](https://travis-ci.org/acmesh-official/acme.sh)
+![shellcheck](https://github.com/acmesh-official/acme.sh/workflows/shellcheck/badge.svg)
+![shellcheck](https://github.com/acmesh-official/acme.sh/workflows/PebbleStrict/badge.svg)
 
 
 <a href="https://opencollective.com/acmesh" alt="Financial Contributors on Open Collective"><img src="https://opencollective.com/acmesh/all/badge.svg?label=financial+contributors" /></a> 
