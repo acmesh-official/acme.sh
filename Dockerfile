@@ -15,7 +15,7 @@ RUN apk update -f \
 
 ENV LE_CONFIG_HOME /acme.sh
 
-ENV AUTO_UPGRADE 1
+ARG AUTO_UPGRADE=1
 
 #Install
 ADD ./ /install_acme.sh/

@@ -3,8 +3,7 @@ name: Build DockerHub
 on:
   push:
     branches:
-      - master
-      - dev
+      - '*'
     tags:
       - '*'
     
@@ -28,22 +27,20 @@ jobs:
           DOCKER_IMAGE=neilpang/acme.sh
 
           if [[ $GITHUB_REF == refs/tags/* ]]; then
-            BRANCH_TAG=${GITHUB_REF#refs/tags/}
-            AUTO_UPGRADE=1
+            DOCKER_IMAGE_TAG=${GITHUB_REF#refs/tags/}
           fi
 
           if [[ $GITHUB_REF == refs/heads/* ]]; then
-            BRANCH_TAG=${GITHUB_REF#refs/heads/}
+            DOCKER_IMAGE_TAG=${GITHUB_REF#refs/heads/}
 
-            if [[ $BRANCH_TAG == master ]]; then
-              BRANCH_TAG=latest
+            if [[ $DOCKER_IMAGE_TAG == master ]]; then
+              DOCKER_IMAGE_TAG=latest
               AUTO_UPGRADE=1
             fi
           fi
 
           docker buildx build \
-            --tag ${DOCKER_IMAGE}:${BRANCH_TAG} \
-            --tag ${DOCKER_IMAGE}:${GITHUB_SHA} \
+            --tag ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG} \
             --output "type=image,push=true" \
             --build-arg AUTO_UPGRADE=${AUTO_UPGRADE} \
             --platform linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7,linux/386 .
