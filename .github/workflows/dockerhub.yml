@@ -2,7 +2,12 @@
 name: Build DockerHub
 on:
   push:
-    branches: [ master, dev ]
+    branches:
+      - master
+      - dev
+      - temp
+    tags:
+      - '*'
     
 jobs:
   build:
@@ -12,23 +17,21 @@ jobs:
         uses: actions/checkout@v2
       - name: install buildx
         id: buildx
-        uses: crazy-max/ghaction-docker-buildx@v1
+        uses: crazy-max/ghaction-docker-buildx@v3
         with:
-          version: latest
+          buildx-version: latest
+          qemu-version: latest
       - name: login to docker hub
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-      - name: build and push the image (master branch)
+      - name: build and push the image
         run: |
+          DOCKER_IMAGE_TAG=$(echo ${GITHUB_REF#refs/heads/} | sed 's/^master$/latest/')
+          [ "$DOCKER_IMAGE" == "latest" ] && AUTO_UPGRADE="1" || AUTO_UPGRADE=""
+
           docker buildx build \
-            --push \
-            --tag neilpang/acme.sh:latest \
+            --output "type=image,push=true" \
+            --tag ei99070/acme.sh:${DOCKER_IMAGE_TAG} \
+            --tag ei99070/acme.sh:${GITHUB_SHA} \
+            --build-arg AUTO_UPGRADE=${AUTO_UPGRADE} \
             --platform linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7,linux/386 .
-        if: ${{ github.ref == 'refs/heads/master' }}
-      - name: build and push the image (dev branch)
-        run: |
-          docker buildx build \
-            --push \
-            --tag neilpang/acme.sh:dev \
-            --platform linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7,linux/386 .
-        if: ${{ github.ref == 'refs/heads/dev' }}
