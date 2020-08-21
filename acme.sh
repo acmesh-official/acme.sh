@@ -6816,7 +6816,7 @@ _process() {
     --cron)
       _CMD="cron"
       ;;
-    --to-pkcs12 | --toPkcs)
+    --to-pkcs12 | --to-pkcs | --toPkcs)
       _CMD="toPkcs"
       ;;
     --to-pkcs8 | --toPkcs8)
