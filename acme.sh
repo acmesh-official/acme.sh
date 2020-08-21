@@ -1375,7 +1375,7 @@ toPkcs() {
   domain="$1"
   pfxPassword="$2"
   if [ -z "$domain" ]; then
-    _usage "Usage: $PROJECT_ENTRY --toPkcs -d domain [--password pfx-password]"
+    _usage "Usage: $PROJECT_ENTRY --to-pkcs12 --domain <domain.tld> [--password <password>] [--ecc]"
     return 1
   fi
 
@@ -1396,7 +1396,7 @@ toPkcs8() {
   domain="$1"
 
   if [ -z "$domain" ]; then
-    _usage "Usage: $PROJECT_ENTRY --toPkcs8 -d domain [--ecc]"
+    _usage "Usage: $PROJECT_ENTRY --to-pkcs8 --domain <domain.tld> [--ecc]"
     return 1
   fi
 
@@ -1416,7 +1416,7 @@ toPkcs8() {
 createAccountKey() {
   _info "Creating account key"
   if [ -z "$1" ]; then
-    _usage "Usage: $PROJECT_ENTRY --createAccountKey --accountkeylength 2048"
+    _usage "Usage: $PROJECT_ENTRY --create-account-key [--accountkeylength <bits>]"
     return
   fi
 
@@ -1459,7 +1459,7 @@ _create_account_key() {
 createDomainKey() {
   _info "Creating domain key"
   if [ -z "$1" ]; then
-    _usage "Usage: $PROJECT_ENTRY --createDomainKey -d domain.com  [ --keylength 2048 ]"
+    _usage "Usage: $PROJECT_ENTRY --create-domain-key --domain <domain.tld> [--keylength <bits>]"
     return
   fi
 
@@ -1499,7 +1499,7 @@ createDomainKey() {
 createCSR() {
   _info "Creating csr"
   if [ -z "$1" ]; then
-    _usage "Usage: $PROJECT_ENTRY --createCSR -d domain1.com [-d domain2.com  -d domain3.com ... ]"
+    _usage "Usage: $PROJECT_ENTRY --create-csr --domain <domain.tld> [--domain <domain2.tld> ...]"
     return
   fi
 
@@ -2888,7 +2888,7 @@ Allow from all
     if _restoreApache; then
       _err "The apache config file is restored."
     else
-      _err "Sorry, The apache config file can not be restored, please report bug."
+      _err "Sorry, the apache config file can not be restored, please report bug."
     fi
     return 1
   fi
@@ -4012,7 +4012,7 @@ _match_issuer() {
 #webroot, domain domainlist  keylength
 issue() {
   if [ -z "$2" ]; then
-    _usage "Usage: $PROJECT_ENTRY --issue  -d  a.com  -w /path/to/webroot/a.com/ "
+    _usage "Usage: $PROJECT_ENTRY --issue --domain <domain.tld> --webroot <directory>"
     return 1
   fi
   if [ -z "$1" ]; then
@@ -4993,7 +4993,7 @@ _split_cert_chain() {
 renew() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ]; then
-    _usage "Usage: $PROJECT_ENTRY --renew  -d domain.com [--ecc]"
+    _usage "Usage: $PROJECT_ENTRY --renew --domain <domain.tld> [--ecc]"
     return 1
   fi
 
@@ -5003,7 +5003,7 @@ renew() {
 
   _info "$(__green "Renew: '$Le_Domain'")"
   if [ ! -f "$DOMAIN_CONF" ]; then
-    _info "'$Le_Domain' is not a issued domain, skip."
+    _info "'$Le_Domain' is not an issued domain, skip."
     return $RENEW_SKIP
   fi
 
@@ -5082,7 +5082,7 @@ renewAll() {
   for di in "${CERT_HOME}"/*.*/; do
     _debug di "$di"
     if ! [ -d "$di" ]; then
-      _debug "Not directory, skip: $di"
+      _debug "Not a directory, skip: $di"
       continue
     fi
     d=$(basename "$di")
@@ -5185,7 +5185,7 @@ signcsr() {
   _csrfile="$1"
   _csrW="$2"
   if [ -z "$_csrfile" ] || [ -z "$_csrW" ]; then
-    _usage "Usage: $PROJECT_ENTRY --signcsr  --csr mycsr.csr  -w /path/to/webroot/a.com/ "
+    _usage "Usage: $PROJECT_ENTRY --sign-csr --csr <csr-file> --webroot <directory>"
     return 1
   fi
 
@@ -5253,7 +5253,7 @@ showcsr() {
   _csrfile="$1"
   _csrd="$2"
   if [ -z "$_csrfile" ] && [ -z "$_csrd" ]; then
-    _usage "Usage: $PROJECT_ENTRY --showcsr  --csr mycsr.csr"
+    _usage "Usage: $PROJECT_ENTRY --show-csr --csr <csr-file>"
     return 1
   fi
 
@@ -5370,7 +5370,7 @@ deploy() {
   _hooks="$2"
   _isEcc="$3"
   if [ -z "$_hooks" ]; then
-    _usage "Usage: $PROJECT_ENTRY --deploy -d domain.com --deploy-hook cpanel [--ecc] "
+    _usage "Usage: $PROJECT_ENTRY --deploy --domain <domain.tld> --deploy-hook <hookname> [--ecc] "
     return 1
   fi
 
@@ -5391,7 +5391,7 @@ deploy() {
 installcert() {
   _main_domain="$1"
   if [ -z "$_main_domain" ]; then
-    _usage "Usage: $PROJECT_ENTRY --installcert -d domain.com  [--ecc] [--cert-file cert-file-path]  [--key-file key-file-path]  [--ca-file ca-cert-file-path]   [ --reloadCmd reloadCmd] [--fullchain-file fullchain-path]"
+    _usage "Usage: $PROJECT_ENTRY --install-cert --domain <domain.tld> [--ecc] [--cert-file <file>] [--key-file <file>] [--ca-file <file>] [ --reloadcmd <command>] [--fullchain-file <file>]"
     return 1
   fi
 
@@ -5670,7 +5670,7 @@ uninstallcronjob() {
 revoke() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ]; then
-    _usage "Usage: $PROJECT_ENTRY --revoke -d domain.com  [--ecc]"
+    _usage "Usage: $PROJECT_ENTRY --revoke --domain <domain.tld> [--ecc]"
     return 1
   fi
 
@@ -5741,7 +5741,7 @@ revoke() {
 remove() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ]; then
-    _usage "Usage: $PROJECT_ENTRY --remove -d domain.com [--ecc]"
+    _usage "Usage: $PROJECT_ENTRY --remove --domain <domain.tld> [--ecc]"
     return 1
   fi
 
@@ -5901,7 +5901,7 @@ deactivate() {
   _initAPI
   _debug _d_domain_list "$_d_domain_list"
   if [ -z "$(echo $_d_domain_list | cut -d , -f 1)" ]; then
-    _usage "Usage: $PROJECT_ENTRY --deactivate -d domain.com [-d domain.com]"
+    _usage "Usage: $PROJECT_ENTRY --deactivate --domain <domain.tld> [--domain <domain2.tld> ...]"
     return 1
   fi
   for _d_dm in $(echo "$_d_domain_list" | tr ',' ' '); do
@@ -6361,7 +6361,7 @@ setnotify() {
   _initpath
 
   if [ -z "$_nhook$_nlevel$_nmode" ]; then
-    _usage "Usage: $PROJECT_ENTRY --set-notify [--notify-hook mailgun] [--notify-level $NOTIFY_LEVEL_DEFAULT] [--notify-mode $NOTIFY_MODE_DEFAULT]"
+    _usage "Usage: $PROJECT_ENTRY --set-notify [--notify-hook <hookname>] [--notify-level <0|1|2|3>] [--notify-mode <0|1>]"
     _usage "$_NOTIFY_WIKI"
     return 1
   fi
@@ -6400,7 +6400,7 @@ setnotify() {
 showhelp() {
   _initpath
   version
-  echo "Usage: $PROJECT_ENTRY  command ...[parameters]....
+  echo "Usage: $PROJECT_ENTRY <command> ... [parameters ...]
 Commands:
   -h, --help               Show this help message.
   -v, --version            Show version info.
