@@ -6437,11 +6437,14 @@ Parameters:
   -d, --domain <domain.tld>         Specifies a domain, used to issue, renew or revoke etc.
   --challenge-alias <domain.tld>    The challenge domain alias for DNS alias mode.
                                     See: $_DNS_ALIAS_WIKI
+
   --domain-alias <domain.tld>       The domain alias for DNS alias mode.
                                     See: $_DNS_ALIAS_WIKI
+
   --preferred-chain <chain>         If the CA offers multiple certificate chains, prefer the chain with an issuer matching this Subject Common Name.
                                     If no match, the default offered chain will be used. (default: empty)
                                     See: $_PREFERRED_CHAIN_WIKI
+
   -f, --force                       Force install, force cert renewal or override sudo restrictions.
   --staging, --test                 Use staging server, for testing.
   --debug [0|1|2|3]                 Output debug info. Defaults to 1 if argument is omitted.
@@ -6452,9 +6455,11 @@ Parameters:
   --alpn                            Use standalone alpn mode.
   --stateless                       Use stateless mode.
                                     See: $_STATELESS_WIKI
+
   --apache                          Use apache mode.
   --dns [dns_hook]                  Use dns manual mode or dns api. Defaults to manual mode when argument is omitted.
                                     See: $_DNS_API_WIKI
+
   --dnssleep <seconds>              The time in seconds to wait for all the txt records to propagate in dns api mode.
                                     It's not necessary to use this by default, $PROJECT_NAME polls dns status by DOH automatically.
   -k, --keylength <bits>            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521.
@@ -6513,6 +6518,7 @@ Parameters:
   --use-wget                        Force to use wget, if you have both curl and wget installed.
   --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force use of dns manual mode.
                                     See:  $_DNS_MANUAL_WIKI
+
   -b, --branch <branch>             Only valid for '--upgrade' command, specifies the branch name to upgrade to.
   --notify-level <0|1|2|3>          Set the notification level:  Default value is $NOTIFY_LEVEL_DEFAULT.
                                     0: disabled, no notification will be sent.
