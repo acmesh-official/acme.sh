@@ -26,12 +26,25 @@ jobs:
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
       - name: build and push the image
         run: |
-          DOCKER_IMAGE_TAG=$(echo ${GITHUB_REF#refs/heads/} | sed 's/^master$/latest/')
-          [ "$DOCKER_IMAGE" == "latest" ] && AUTO_UPGRADE="1" || AUTO_UPGRADE=""
+          DOCKER_IMAGE=ei99070/acme.sh
+
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            BRANCH_TAG=${GITHUB_REF#refs/tags/}
+            AUTO_UPGRADE=1
+          fi
+
+          if [[ $GITHUB_REF == refs/heads/* ]]; then
+            BRANCH_TAG=${GITHUB_REF#refs/heads/}
+
+            if [[ $BRANCH_TAG == master ]]; then
+              BRANCH_TAG=latest
+              AUTO_UPGRADE=1
+            fi
+          fi
 
           docker buildx build \
+            --tag ${DOCKER_IMAGE}:${BRANCH_TAG} \
+            --tag ${DOCKER_IMAGE}:${GITHUB_SHA} \
             --output "type=image,push=true" \
-            --tag ei99070/acme.sh:${DOCKER_IMAGE_TAG} \
-            --tag ei99070/acme.sh:${GITHUB_SHA} \
             --build-arg AUTO_UPGRADE=${AUTO_UPGRADE} \
             --platform linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7,linux/386 .
