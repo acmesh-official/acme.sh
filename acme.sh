@@ -6532,6 +6532,8 @@ Parameters:
   --revoke-reason <0-10>            The reason for revocation, can be used in conjunction with the '--revoke' command.
                                     See: $_REVOKE_WIKI
 
+  --password <password>             Add a password to exported pfx file. Use with --to-pkcs12.
+
 
 "
 }
