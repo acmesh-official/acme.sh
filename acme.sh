@@ -6402,142 +6402,134 @@ showhelp() {
   version
   echo "Usage: $PROJECT_ENTRY  command ...[parameters]....
 Commands:
-  --help, -h               Show this help message.
-  --version, -v            Show version info.
+  -h, --help               Show this help message.
+  -v, --version            Show version info.
   --install                Install $PROJECT_NAME to your system.
   --uninstall              Uninstall $PROJECT_NAME, and uninstall the cron job.
   --upgrade                Upgrade $PROJECT_NAME to the latest code from $PROJECT.
   --issue                  Issue a cert.
-  --signcsr                Issue a cert from an existing csr.
   --deploy                 Deploy the cert to your server.
-  --install-cert           Install the issued cert to apache/nginx or any other server.
-  --renew, -r              Renew a cert.
+  -i, --install-cert       Install the issued cert to apache/nginx or any other server.
+  -r, --renew              Renew a cert.
   --renew-all              Renew all the certs.
   --revoke                 Revoke a cert.
   --remove                 Remove the cert from list of certs known to $PROJECT_NAME.
   --list                   List all the certs.
-  --showcsr                Show the content of a csr.
-  --install-cronjob        Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
-  --uninstall-cronjob      Uninstall the cron job. The 'uninstall' command can do this automatically.
-  --cron                   Run cron job to renew all the certs.
-  --toPkcs                 Export the certificate and key to a pfx file.
-  --toPkcs8                Convert to pkcs8 format.
+  --to-pkcs12              Export the certificate and key to a pfx file.
+  --to-pkcs8               Convert to pkcs8 format.
+  --sign-csr               Issue a cert from an existing csr.
+  --show-csr               Show the content of a csr.
+  -ccr, --create-csr       Create CSR, professional use.
+  --create-domain-key      Create an domain private key, professional use.
   --update-account         Update account info.
   --register-account       Register account key.
   --deactivate-account     Deactivate the account.
   --create-account-key     Create an account private key, professional use.
-  --create-domain-key      Create an domain private key, professional use.
-  --createCSR, -ccsr       Create CSR , professional use.
-  --deactivate             Deactivate the domain authz, professional use.
+  --install-cronjob        Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
+  --uninstall-cronjob      Uninstall the cron job. The 'uninstall' command can do this automatically.
+  --cron                   Run cron job to renew all the certs.
   --set-notify             Set the cron notification hook, level or mode.
-  --set-default-ca         Used with '--server' , to set the default CA to use to use.
+  --deactivate             Deactivate the domain authz, professional use.
+  --set-default-ca         Used with '--server', to set the default CA to use to use.
 
 
 Parameters:
-  --domain, -d   domain.tld         Specifies a domain, used to issue, renew or revoke etc.
-  --challenge-alias domain.tld      The challenge domain alias for DNS alias mode.
+  -d, --domain <domain.tld>         Specifies a domain, used to issue, renew or revoke etc.
+  --challenge-alias <domain.tld>    The challenge domain alias for DNS alias mode.
                                     See: $_DNS_ALIAS_WIKI
 
-  --domain-alias domain.tld         The domain alias for DNS alias mode.
+  --domain-alias <domain.tld>       The domain alias for DNS alias mode.
                                     See: $_DNS_ALIAS_WIKI
 
-  --preferred-chain  CHAIN          If the CA offers multiple certificate chains, prefer the chain with an issuer matching this Subject Common Name.
+  --preferred-chain <chain>         If the CA offers multiple certificate chains, prefer the chain with an issuer matching this Subject Common Name.
                                     If no match, the default offered chain will be used. (default: empty)
                                     See: $_PREFERRED_CHAIN_WIKI
 
-  --force, -f                       Used to force to install or force to renew a cert immediately.
-  --staging, --test                 Use staging server, just for test.
-  --debug                           Output debug info.
+  -f, --force                       Force install, force cert renewal or override sudo restrictions.
+  --staging, --test                 Use staging server, for testing.
+  --debug [0|1|2|3]                 Output debug info. Defaults to 1 if argument is omitted.
   --output-insecure                 Output all the sensitive messages.
                                     By default all the credentials/sensitive messages are hidden from the output/debug/log for security.
-
-  --webroot, -w  /path/to/webroot   Specifies the web root folder for web root mode.
+  -w, --webroot <directory>         Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
   --alpn                            Use standalone alpn mode.
   --stateless                       Use stateless mode.
                                     See: $_STATELESS_WIKI
 
   --apache                          Use apache mode.
-  --dns [dns_hook]                  Use dns mode or dns api.
+  --dns [dns_hook]                  Use dns manual mode or dns api. Defaults to manual mode when argument is omitted.
                                     See: $_DNS_API_WIKI
 
-  --dnssleep   300                  The time in seconds to wait for all the txt records to propagate in dns api mode.
+  --dnssleep <seconds>              The time in seconds to wait for all the txt records to propagate in dns api mode.
                                     It's not necessary to use this by default, $PROJECT_NAME polls dns status by DOH automatically.
-
-  --keylength, -k [2048]            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521.
-  --accountkeylength, -ak [2048]    Specifies the account key length: 2048, 3072, 4096
-  --log    [/path/to/logfile]       Specifies the log file. The default is: \"$DEFAULT_LOG_FILE\" if you don't give a file path here.
-  --log-level 1|2                   Specifies the log level, default is 1.
-  --syslog [0|3|6|7]                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
-
-  --eab-kid EAB_KID                 Key Identifier for External Account Binding.
-  --eab-hmac-key EAB_HMAC_KEY       HMAC key for External Account Binding.
+  -k, --keylength <bits>            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521.
+  -ak, --accountkeylength <bits>    Specifies the account key length: 2048, 3072, 4096
+  --log [file]                      Specifies the log file. Defaults to \"$DEFAULT_LOG_FILE\" if argument is omitted.
+  --log-level <1|2>                 Specifies the log level, default is 1.
+  --syslog <0|3|6|7>                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
+  --eab-kid <eab_key_id>            Key Identifier for External Account Binding.
+  --eab-hmac-key <eab_hmac_key>     HMAC key for External Account Binding.
 
 
   These parameters are to install the cert to nginx/apache or any other server after issue/renew a cert:
 
-  --cert-file                       After issue/renew, the cert will be copied to this path.
-  --key-file                        After issue/renew, the key will be copied to this path.
-  --ca-file                         After issue/renew, the intermediate cert will be copied to this path.
-  --fullchain-file                  After issue/renew, the fullchain cert will be copied to this path.
+  --cert-file <file>                Path to copy the cert file to after issue/renew..
+  --key-file <file>                 Path to copy the key file to after issue/renew.
+  --ca-file <file>                  Path to copy the intermediate cert file to after issue/renew.
+  --fullchain-file <file>           Path to copy the fullchain cert file to after issue/renew.
+  --reloadcmd <command>             Command to execute after issue/renew to reload the server.
 
-  --reloadcmd \"service nginx reload\" After issue/renew, it's used to reload the server.
-
-  --server SERVER                   ACME Directory Resource URI. (default: $DEFAULT_CA)
+  --server <server_uri>             ACME Directory Resource URI. (default: $DEFAULT_CA)
                                     See: $_SERVER_WIKI
 
-  --accountconf                     Specifies a customized account config file.
-  --home                            Specifies the home dir for $PROJECT_NAME.
-  --cert-home                       Specifies the home dir to save all the certs, only valid for '--install' command.
-  --config-home                     Specifies the home dir to save all the configurations.
-  --useragent                       Specifies the user agent string. it will be saved for future use too.
-  --accountemail, -m                Specifies the account email, only valid for the '--install' and '--update-account' command.
-  --accountkey                      Specifies the account key path, only valid for the '--install' command.
-  --days                            Specifies the days to renew the cert when using '--issue' command. The default value is $DEFAULT_RENEW days.
-  --httpport                        Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
-  --tlsport                         Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
-  --local-address                   Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
+  --accountconf <file>              Specifies a customized account config file.
+  --home <directory>                Specifies the home dir for $PROJECT_NAME.
+  --cert-home <directory>           Specifies the home dir to save all the certs, only valid for '--install' command.
+  --config-home <directory>         Specifies the home dir to save all the configurations.
+  --useragent <string>              Specifies the user agent string. it will be saved for future use too.
+  -m, --accountemail <email>        Specifies the account email, only valid for the '--install' and '--update-account' command.
+  --accountkey <file>               Specifies the account key path, only valid for the '--install' command.
+  --days <ndays>                    Specifies the days to renew the cert when using '--issue' command. The default value is $DEFAULT_RENEW days.
+  --httpport <port>                 Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
+  --tlsport <port>                  Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
+  --local-address <ip>              Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
   --listraw                         Only used for '--list' command, list the certs in raw format.
-  --stopRenewOnError, -se           Only valid for '--renew-all' command. Stop if one cert has error in renewal.
+  -se, --stop-renew-on-error        Only valid for '--renew-all' command. Stop if one cert has error in renewal.
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
-  --ca-bundle                       Specifies the path to the CA certificate bundle to verify api server's certificate.
-  --ca-path                         Specifies directory containing CA certificates in PEM format, used by wget or curl.
+  --ca-bundle <file>                Specifies the path to the CA certificate bundle to verify api server's certificate.
+  --ca-path <directory>             Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job.
                                     In this case, the certs will not be renewed automatically.
-
   --noprofile                       Only valid for '--install' command, which means: do not install aliases to user profile.
   --no-color                        Do not output color text.
   --force-color                     Force output of color text. Useful for non-interactive use with the aha tool for HTML E-Mails.
   --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
-  --csr                             Specifies the input csr.
-  --pre-hook                        Command to be run before obtaining any certificates.
-  --post-hook                       Command to be run after attempting to obtain/renew certificates. No matter the obtain/renew is success or failed.
-  --renew-hook                      Command to be run once for each successfully renewed certificate.
-  --deploy-hook                     The hook file to deploy cert
-  --ocsp-must-staple, --ocsp        Generate ocsp must Staple extension.
-  --always-force-new-domain-key     Generate new domain key when renewal. Otherwise, the domain key is not changed by default.
-  --auto-upgrade   [0|1]            Valid for '--upgrade' command, indicating whether to upgrade automatically in future.
+  --csr <file>                      Specifies the input csr.
+  --pre-hook <command>              Command to be run before obtaining any certificates.
+  --post-hook <command>             Command to be run after attempting to obtain/renew certificates. Runs regardless of whether obtain/renew succeeded or failed.
+  --renew-hook <command>            Command to be run after each successfully renewed certificate.
+  --deploy-hook <hookname>          The hook file to deploy cert
+  --ocsp, --ocsp-must-staple        Generate OCSP-Must-Staple extension.
+  --always-force-new-domain-key     Generate new domain key on renewal. Otherwise, the domain key is not changed by default.
+  --auto-upgrade [0|1]              Valid for '--upgrade' command, indicating whether to upgrade automatically in future. Defaults to 1 if argument is omitted.
   --listen-v4                       Force standalone/tls server to listen at ipv4.
   --listen-v6                       Force standalone/tls server to listen at ipv6.
-  --openssl-bin                     Specifies a custom openssl bin location.
+  --openssl-bin <file>              Specifies a custom openssl bin location.
   --use-wget                        Force to use wget, if you have both curl and wget installed.
-  --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force to use dns manual mode.
+  --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force use of dns manual mode.
                                     See:  $_DNS_MANUAL_WIKI
 
-  --branch, -b                      Only valid for '--upgrade' command, specifies the branch name to upgrade to.
-
-  --notify-level  0|1|2|3           Set the notification level:  Default value is $NOTIFY_LEVEL_DEFAULT.
-                                     0: disabled, no notification will be sent.
-                                     1: send notifications only when there is an error.
-                                     2: send notifications when a cert is successfully renewed, or there is an error.
-                                     3: send notifications when a cert is skipped, renewed, or error.
-
-  --notify-mode   0|1               Set notification mode. Default value is $NOTIFY_MODE_DEFAULT.
-                                     0: Bulk mode. Send all the domain's notifications in one message(mail).
-                                     1: Cert mode. Send a message for every single cert.
-
-  --notify-hook   [hookname]        Set the notify hook
-  --revoke-reason [0-10]            The reason for '--revoke' command.
+  -b, --branch <branch>             Only valid for '--upgrade' command, specifies the branch name to upgrade to.
+  --notify-level <0|1|2|3>          Set the notification level:  Default value is $NOTIFY_LEVEL_DEFAULT.
+                                    0: disabled, no notification will be sent.
+                                    1: send notifications only when there is an error.
+                                    2: send notifications when a cert is successfully renewed, or there is an error.
+                                    3: send notifications when a cert is skipped, renewed, or error.
+  --notify-mode <0|1>               Set notification mode. Default value is $NOTIFY_MODE_DEFAULT.
+                                    0: Bulk mode. Send all the domain's notifications in one message(mail).
+                                    1: Cert mode. Send a message for every single cert.
+  --notify-hook <hookname>          Set the notify hook
+  --revoke-reason <0-10>            The reason for revocation, can be used in conjunction with the '--revoke' command.
                                     See: $_REVOKE_WIKI
 
 
@@ -6797,19 +6789,19 @@ _process() {
     --deploy)
       _CMD="deploy"
       ;;
-    --signcsr)
+    --sign-csr | --signcsr)
       _CMD="signcsr"
       ;;
-    --showcsr)
+    --show-csr | --showcsr)
       _CMD="showcsr"
       ;;
-    --installcert | -i | --install-cert)
+    -i | --install-cert | --installcert)
       _CMD="installcert"
       ;;
     --renew | -r)
       _CMD="renew"
       ;;
-    --renewAll | --renewall | --renew-all)
+    --renew-all | --renewAll | --renewall)
       _CMD="renewAll"
       ;;
     --revoke)
@@ -6821,37 +6813,37 @@ _process() {
     --list)
       _CMD="list"
       ;;
-    --installcronjob | --install-cronjob)
+    --install-cronjob | --installcronjob)
       _CMD="installcronjob"
       ;;
-    --uninstallcronjob | --uninstall-cronjob)
+    --uninstall-cronjob | --uninstallcronjob)
       _CMD="uninstallcronjob"
       ;;
     --cron)
       _CMD="cron"
       ;;
-    --toPkcs)
+    --to-pkcs12 | --to-pkcs | --toPkcs)
       _CMD="toPkcs"
       ;;
-    --toPkcs8)
+    --to-pkcs8 | --toPkcs8)
       _CMD="toPkcs8"
       ;;
-    --createAccountKey | --createaccountkey | -cak | --create-account-key)
+    --create-account-key | --createAccountKey | --createaccountkey | -cak)
       _CMD="createAccountKey"
       ;;
-    --createDomainKey | --createdomainkey | -cdk | --create-domain-key)
+    --create-domain-key | --createDomainKey | --createdomainkey | -cdk)
       _CMD="createDomainKey"
       ;;
-    --createCSR | --createcsr | -ccr)
+    -ccr | --create-csr | --createCSR | --createcsr)
       _CMD="createCSR"
       ;;
     --deactivate)
       _CMD="deactivate"
       ;;
-    --updateaccount | --update-account)
+    --update-account | --updateaccount)
       _CMD="updateaccount"
       ;;
-    --registeraccount | --register-account)
+    --register-account | --registeraccount)
       _CMD="registeraccount"
       ;;
     --deactivate-account)
@@ -6863,7 +6855,7 @@ _process() {
     --set-default-ca)
       _CMD="setdefaultca"
       ;;
-    --domain | -d)
+    -d | --domain)
       _dvalue="$2"
 
       if [ "$_dvalue" ]; then
@@ -6894,7 +6886,7 @@ _process() {
       shift
       ;;
 
-    --force | -f)
+    -f | --force)
       FORCE="1"
       ;;
     --staging | --test)
@@ -6916,7 +6908,7 @@ _process() {
     --output-insecure)
       export OUTPUT_INSECURE=1
       ;;
-    --webroot | -w)
+    -w | --webroot)
       wvalue="$2"
       if [ -z "$_webroot" ]; then
         _webroot="$wvalue"
@@ -7006,7 +6998,7 @@ _process() {
       _keylength="$2"
       shift
       ;;
-    --accountkeylength | -ak)
+    -ak | --accountkeylength)
       _accountkeylength="$2"
       shift
       ;;
@@ -7044,7 +7036,7 @@ _process() {
       LE_WORKING_DIR="$2"
       shift
       ;;
-    --certhome | --cert-home)
+    --cert-home | --certhome)
       _certhome="$2"
       CERT_HOME="$_certhome"
       shift
@@ -7059,7 +7051,7 @@ _process() {
       USER_AGENT="$_useragent"
       shift
       ;;
-    --accountemail | -m)
+    -m | --accountemail)
       _accountemail="$2"
       ACCOUNT_EMAIL="$_accountemail"
       shift
@@ -7087,7 +7079,7 @@ _process() {
     --listraw)
       _listraw="raw"
       ;;
-    --stopRenewOnError | --stoprenewonerror | -se)
+    -se | --stop-renew-on-error | --stopRenewOnError | --stoprenewonerror)
       _stopRenewOnError="1"
       ;;
     --insecure)
