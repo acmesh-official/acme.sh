@@ -6496,7 +6496,7 @@ Parameters:
   --nocron                          Only valid for '--install' command, which means: do not install the default cron job.
                                     In this case, the certs will not be renewed automatically.
   --noprofile                       Only valid for '--install' command, which means: do not install aliases to user profile.
-  --nocolor                         Do not output color text.
+  --no-color                        Do not output color text.
   --force-color                     Force output of color text. Useful for non-interactive use with the aha tool for HTML E-Mails.
   --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--toPkcs' and '--createCSR'
   --csr <file>                      Specifies the input csr.
@@ -7096,7 +7096,7 @@ _process() {
     --noprofile)
       _noprofile="1"
       ;;
-    --nocolor | --no-color)
+    --no-color)
       export ACME_NO_COLOR=1
       ;;
     --force-color)
