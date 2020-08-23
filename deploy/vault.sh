@@ -49,14 +49,15 @@ vault_deploy() {
   _cfullchain=$(sed -z 's/\n/\\n/g' <"$5")
 
   URL="$VAULT_ADDR/v1/$VAULT_PREFIX/$_cdomain"
+  export _H1="X-Vault-Token: $VAULT_TOKEN"
 
   if [ -n "$FABIO" ]; then
-    curl --silent -H "X-Vault-Token: $VAULT_TOKEN" --request POST --data "{\"cert\": \"$_cfullchain\", \"key\": \"$_ckey\"}" "$URL" || return 1
+    _post "{\"cert\": \"$_cfullchain\", \"key\": \"$_ckey\"}" "$URL"
   else
-    curl --silent -H "X-Vault-Token: $VAULT_TOKEN" --request POST --data "{\"value\": \"$_ccert\"}" "$URL/cert.pem" || return 1
-    curl --silent -H "X-Vault-Token: $VAULT_TOKEN" --request POST --data "{\"value\": \"$_ckey\"}" "$URL/cert.key" || return 1
-    curl --silent -H "X-Vault-Token: $VAULT_TOKEN" --request POST --data "{\"value\": \"$_cca\"}" "$URL/chain.pem" || return 1
-    curl --silent -H "X-Vault-Token: $VAULT_TOKEN" --request POST --data "{\"value\": \"$_cfullchain\"}" "$URL/fullchain.pem" || return 1
+    _post "{\"value\": \"$_ccert\"}" "$URL/cert.pem"
+    _post "{\"value\": \"$_ckey\"}" "$URL/cert.key"
+    _post "{\"value\": \"$_cca\"}" "$URL/chain.pem"
+    _post "{\"value\": \"$_cfullchain\"}" "$URL/fullchain.pem"
   fi
 
 }
