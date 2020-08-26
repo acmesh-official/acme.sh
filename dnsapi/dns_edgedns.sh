@@ -7,15 +7,15 @@
 # Report bugs to https://control.akamai.com/apps/support-ui/#/contact-support
 
 # Values to export:
-# --EITHER--  
+# --EITHER--
 # *** NOT IMPLEMENTED YET ***
 # specify Edgegrid credentials file and section
-# AKAMAI_EDGERC=<full file path> 
+# AKAMAI_EDGERC=<full file path>
 # AKAMAI_EDGERC_SECTION="default"
 ## --OR--
 # specify indiviual credentials
 # export AKAMAI_HOST = <host>
-# export AKAMAI_ACCESS_TOKEN = <access token> 
+# export AKAMAI_ACCESS_TOKEN = <access token>
 # export AKAMAI_CLIENT_TOKEN = <client token>
 # export AKAMAI_CLIENT_SECRET = <client secret>
 
@@ -32,7 +32,7 @@ dns_edgedns_add() {
   _debug "ENTERING DNS_EDGEDNS_ADD"
   _debug2 "fulldomain" "$fulldomain"
   _debug2 "txtvalue" "$txtvalue"
- 
+
   if ! _EDGEDNS_credentials; then
     _err "$@"
     return 1
@@ -42,7 +42,7 @@ dns_edgedns_add() {
     return 1
   fi
   _debug2 "Add: zone" "$zone"
-  acmeRecordURI=$(printf "%s/%s/names/%s/types/TXT" "$edge_endpoint" "$zone" "$fulldomain") 
+  acmeRecordURI=$(printf "%s/%s/names/%s/types/TXT" "$edge_endpoint" "$zone" "$fulldomain")
   _debug3 "Add URL" "$acmeRecordURI"
   # Get existing TXT record
   _edge_result=$(_edgedns_rest GET "$acmeRecordURI")
@@ -68,13 +68,14 @@ dns_edgedns_add() {
     _debug3 "existing TXT found"
     _debug3 "record data" "$rdlist"
     # value already there?
-    if _contains "$rdlist" "$txtvalue" ; then
+    if _contains "$rdlist" "$txtvalue"; then
       return 0
     fi
     _txt_val=""
     while [ "$_txt_val" != "$rdlist" ] && [ "${rdlist}" ]; do
-        _txt_val="${rdlist%%,*}"; rdlist="${rdlist#*,}"
-        rdata="${rdata},\"${_txt_val}\""
+      _txt_val="${rdlist%%,*}"
+      rdlist="${rdlist#*,}"
+      rdata="${rdata},\"${_txt_val}\""
     done
   fi
   # Add the txtvalue TXT Record
@@ -139,10 +140,11 @@ dns_edgedns_rm() {
       rdata=""
       _txt_val=""
       while [ "$_txt_val" != "$rdlist" ] && [ "$rdlist" ]; do
-        _txt_val="${rdlist%%,*}"; rdlist="${rdlist#*,}"
+        _txt_val="${rdlist%%,*}"
+        rdlist="${rdlist#*,}"
         _debug3 "_txt_val" "$_txt_val"
         _debug3 "txtvalue" "$txtvalue"
-        if ! _contains "$_txt_val" "$txtvalue" ; then
+        if ! _contains "$_txt_val" "$txtvalue"; then
           rdata="${rdata}${comma}\"${_txt_val}\""
           comma=","
         fi
@@ -170,7 +172,7 @@ dns_edgedns_rm() {
 ####################  Private functions below ##################################
 
 _EDGEDNS_credentials() {
-  _debug "GettingEdge DNS credentials" 
+  _debug "GettingEdge DNS credentials"
   _log "$(printf "ACME DNSAPI Edge DNS version %s" ${ACME_EDGEDNS_VERSION})"
   args_missing=0
   if [ -z "$AKAMAI_ACCESS_TOKEN" ]; then
@@ -216,7 +218,7 @@ _EDGEDNS_credentials() {
     _saveaccountconf_mutable AKAMAI_CLIENT_SECRET "$AKAMAI_CLIENT_SECRET"
     # Set whether curl should use secure or insecure mode
   fi
-  export HTTPS_INSECURE=0     # All Edgegrid API calls are secure
+  export HTTPS_INSECURE=0 # All Edgegrid API calls are secure
   edge_endpoint=$(printf "https://%s/config-dns/v2/zones" "$AKAMAI_HOST")
   _debug3 "Edge API Endpoint:" "$edge_endpoint"
 
@@ -244,7 +246,7 @@ _EDGEDNS_getZoneInfo() {
         return 1
       fi
     fi
-    if _contains "$curResult" "\"zone\":" ; then
+    if _contains "$curResult" "\"zone\":"; then
       _debug2 "Zone data" "${curResult}"
       zone=$(echo "${curResult}" | _egrep_o "\"zone\"\\s*:\\s*\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d "\"")
       _debug3 "Zone" "${zone}"
@@ -283,7 +285,7 @@ _edgedns_rest() {
   # Set in acme.sh _post/_get
   #_edgedns_headers="${_edgedns_headers}${tab}User-Agent:ACME DNSAPI Edge DNS version ${ACME_EDGEDNS_VERSION}"
   _edgedns_headers="${_edgedns_headers}${tab}Accept: application/json,*/*"
-  if [ "$m" != "GET" ] && [ "$m" != "DELETE" ] ; then
+  if [ "$m" != "GET" ] && [ "$m" != "DELETE" ]; then
     _edgedns_content_type="application/json"
     _debug3 "_request_body" "$_request_body"
     _body_len=$(echo "$_request_body" | tr -d "\n\r" | awk '{print length}')
@@ -295,13 +297,14 @@ _edgedns_rest() {
   hdr_indx=1
   work_header="${_edgedns_headers}${tab}"
   _debug3 "work_header" "$work_header"
-  while [ "$work_header" ]; do  
-    entry="${work_header%%\\t*}"; work_header="${work_header#*\\t}"
+  while [ "$work_header" ]; do
+    entry="${work_header%%\\t*}"
+    work_header="${work_header#*\\t}"
     export "$(printf "_H%s=%s" "$hdr_indx" "$entry")"
     _debug2 "Request Header " "$entry"
-    hdr_indx=$(( hdr_indx + 1 ))
+    hdr_indx=$((hdr_indx + 1))
   done
- 
+
   # clear headers from previous request to avoid getting wrong http code on timeouts
   : >"$HTTP_HEADER"
   _debug2 "$ep"
@@ -360,15 +363,15 @@ _edgedns_new_nonce() {
 
 _edgedns_make_auth_header() {
   _debug "Constructing Auth Header"
-  _edgedns_eg_timestamp 
-  _edgedns_new_nonce 
+  _edgedns_eg_timestamp
+  _edgedns_new_nonce
   # "Unsigned authorization header: 'EG1-HMAC-SHA256 client_token=block;access_token=block;timestamp=20200806T14:16:33+0000;nonce=72cde72c-82d9-4721-9854-2ba057929d67;'"
-  _auth_header="$(printf "EG1-HMAC-SHA256 client_token=%s;access_token=%s;timestamp=%s;nonce=%s;" "$AKAMAI_CLIENT_TOKEN" "$AKAMAI_ACCESS_TOKEN" "$_eg_timestamp" "$_nonce")" 
+  _auth_header="$(printf "EG1-HMAC-SHA256 client_token=%s;access_token=%s;timestamp=%s;nonce=%s;" "$AKAMAI_CLIENT_TOKEN" "$AKAMAI_ACCESS_TOKEN" "$_eg_timestamp" "$_nonce")"
   _secure_debug2 "Unsigned Auth Header: " "$_auth_header"
 
   _edgedns_sign_request
   _signed_auth_header="$(printf "%ssignature=%s" "$_auth_header" "$_signed_req")"
-  _secure_debug2 "Signed Auth Header: " "${_signed_auth_header}" 
+  _secure_debug2 "Signed Auth Header: " "${_signed_auth_header}"
 }
 
 _edgedns_sign_request() {
@@ -444,5 +447,3 @@ _edgedns_base64_sha256() {
 #  filepath=$1
 #  section=$2
 #}
-
-
