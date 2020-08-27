@@ -4006,6 +4006,11 @@ _match_issuer() {
   _missuer="$2"
   _fissuers="$(_get_cert_issuers $_cfile)"
   _debug2 _fissuers "$_fissuers"
+  if _contains "$_fissuers" "$_missuer"; then
+    return 0
+  fi
+  _fissuers="$(echo "$_fissuers" | _lower_case)"
+  _missuer="$(echo "$_missuer" | _lower_case)"
   _contains "$_fissuers" "$_missuer"
 }
 
