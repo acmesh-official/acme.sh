@@ -6430,7 +6430,8 @@ Commands:
   --cron                   Run cron job to renew all the certs.
   --set-notify             Set the cron notification hook, level or mode.
   --deactivate             Deactivate the domain authz, professional use.
-  --set-default-ca         Used with '--server', to set the default CA to use to use.
+  --set-default-ca         Used with '--server', Set the default CA to use.
+                           See: $_SERVER_WIKI
 
 
 Parameters:
