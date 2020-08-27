@@ -1,8 +1,8 @@
-name: PebbleStrict
+name: Ubuntu
 on: [push, pull_request]
 
 jobs:
-  PebbleStrict:
+  Ubuntu:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
