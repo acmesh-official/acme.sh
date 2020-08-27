@@ -1,5 +1,6 @@
 # An ACME Shell script: acme.sh 
-[![Build Status](https://travis-ci.org/acmesh-official/acme.sh.svg?branch=master)](https://travis-ci.org/acmesh-official/acme.sh)
+
+![shellcheck](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)
 ![shellcheck](https://github.com/acmesh-official/acme.sh/workflows/Shellcheck/badge.svg)
 ![shellcheck](https://github.com/acmesh-official/acme.sh/workflows/PebbleStrict/badge.svg)
 ![shellcheck](https://github.com/acmesh-official/acme.sh/workflows/Build%20DockerHub/badge.svg)
@@ -10,8 +11,6 @@
 [![Docker stars](https://img.shields.io/docker/stars/neilpang/acme.sh.svg)](https://hub.docker.com/r/neilpang/acme.sh "Click to view the image on Docker Hub")
 [![Docker pulls](https://img.shields.io/docker/pulls/neilpang/acme.sh.svg)](https://hub.docker.com/r/neilpang/acme.sh "Click to view the image on Docker Hub")
 
-
-acme.sh is being sponsored by the following tool; please help to support us by taking a look and signing up to a free trial
 
 
 - An ACME protocol client written purely in Shell (Unix shell) language.
@@ -77,7 +76,7 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 |17|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/acmesh-official/acme.sh/wiki/How-to-run-on-OpenWRT)
 |18|[![](https://acmesh-official.github.io/acmetest/status/solaris.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|SunOS/Solaris
 |19|[![](https://acmesh-official.github.io/acmetest/status/gentoo-stage3-amd64.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Gentoo Linux
-|20|[![Build Status](https://travis-ci.org/acmesh-official/acme.sh.svg?branch=master)](https://travis-ci.org/acmesh-official/acme.sh)|Mac OSX
+|20|[![Build Status](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)|Mac OSX
 |21|[![](https://acmesh-official.github.io/acmetest/status/clearlinux-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|ClearLinux
 
 For all build statuses, check our [weekly build project](https://github.com/acmesh-official/acmetest):
