@@ -4,6 +4,8 @@ on: [push, pull_request]
 jobs:
   Ubuntu:
     runs-on: ubuntu-latest
+    env:
+      NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
     steps:
     - uses: actions/checkout@v2
     - name: Install tools
