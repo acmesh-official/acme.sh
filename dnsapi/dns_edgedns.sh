@@ -64,7 +64,7 @@ dns_edgedns_add() {
     record_op="PUT"
     rdlist="${_edge_result#*\"rdata\":[}"
     rdlist="${rdlist%%]*}"
-    rdlist=$(echo "$rdlist" | tr -d '"' | tr -d "\\")
+    rdlist=$(echo "$rdlist" | tr -d '"' | tr -d "\\\\")
     _debug3 "existing TXT found"
     _debug3 "record data" "$rdlist"
     # value already there?
@@ -132,7 +132,7 @@ dns_edgedns_rm() {
     # record already exists. Get existing record data and update
     rdlist="${_edge_result#*\"rdata\":[}"
     rdlist="${rdlist%%]*}"
-    rdlist=$(echo "$rdlist" | tr -d '"' | tr -d "\\")
+    rdlist=$(echo "$rdlist" | tr -d '"' | tr -d "\\\\")
     _debug3 "rdlist" "$rdlist"
     if [ -n "$rdlist" ]; then
       record_op="PUT"
@@ -355,10 +355,16 @@ _edgedns_rest() {
 
 _edgedns_eg_timestamp() {
   _eg_timestamp=$(date -u "+%Y%m%dT%H:%M:%S+0000")
+  _debug3 "_eg_timestamp" "$_eg_timestamp"
 }
 
 _edgedns_new_nonce() {
   _nonce=$(uuidgen -r)
+  _ret="$?"
+  if [ "$_ret" -ne 0 ]; then                            
+    _nonce=$(echo "EDGEDNS$(_time)" | _digest sha1 hex | cut -c 1-32)
+  fi                                                                                                    
+  _debug3 "_nonce" "$_nonce"
 }
 
 _edgedns_make_auth_header() {
