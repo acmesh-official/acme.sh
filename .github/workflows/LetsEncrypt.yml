@@ -54,7 +54,7 @@ jobs:
           echo '::set-env name=PATH::C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin'
     - name: Clone acmetest
       shell: cmd
-      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/ && sed -i 's/\r//g' acmetest/acme.sh/acme.sh
     - name: Run acmetest
       shell: cmd
       run: cd ../acmetest && bash.exe -c ./letest.sh
