@@ -37,6 +37,7 @@ jobs:
     env:
       NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
       TEST_LOCAL: 1
+      Le_HTTPPort: 8888
     steps:
     - uses: actions/checkout@v2
     - name: Install cygwin base packages with chocolatey
