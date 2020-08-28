@@ -260,7 +260,7 @@ _del_record() {
 
 _dynv6_rest() {
   m=$1    #method GET,POST,DELETE or PUT
-  ep="$2" #the endpoint 
+  ep="$2" #the endpoint
   data="$3"
   _debug "$ep"
 
