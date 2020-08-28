@@ -1,4 +1,4 @@
-name: shellcheck
+name: Shellcheck
 on: [push, pull_request]
 
 jobs:
