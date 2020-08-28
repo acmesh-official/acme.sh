@@ -1,5 +1,11 @@
 name: LetsEncrypt
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - dev
 
 jobs:
   Ubuntu:
