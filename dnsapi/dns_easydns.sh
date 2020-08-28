@@ -3,7 +3,7 @@
 #######################################################
 #
 # easyDNS REST API for acme.sh by Neilpang based on dns_cf.sh
-# 
+#
 # API Documentation: https://sandbox.rest.easydns.net:3001/
 #
 # Author: wurzelpanzer [wurzelpanzer@maximolider.net]

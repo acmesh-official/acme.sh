@@ -1,15 +1,16 @@
-# An ACME Shell script: acme.sh [![Build Status](https://travis-ci.org/acmesh-official/acme.sh.svg?branch=master)](https://travis-ci.org/acmesh-official/acme.sh)
+# An ACME Shell script: acme.sh 
+[![Build Status](https://travis-ci.org/acmesh-official/acme.sh.svg?branch=master)](https://travis-ci.org/acmesh-official/acme.sh)
+![shellcheck](https://github.com/acmesh-official/acme.sh/workflows/shellcheck/badge.svg)
+![shellcheck](https://github.com/acmesh-official/acme.sh/workflows/PebbleStrict/badge.svg)
 
-<a href="https://opencollective.com/acmesh" alt="Financial Contributors on Open Collective"><img src="https://opencollective.com/acmesh/all/badge.svg?label=financial+contributors" /></a> [![Join the chat at https://gitter.im/acme-sh/Lobby](https://badges.gitter.im/acme-sh/Lobby.svg)](https://gitter.im/acme-sh/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+<a href="https://opencollective.com/acmesh" alt="Financial Contributors on Open Collective"><img src="https://opencollective.com/acmesh/all/badge.svg?label=financial+contributors" /></a> 
+[![Join the chat at https://gitter.im/acme-sh/Lobby](https://badges.gitter.im/acme-sh/Lobby.svg)](https://gitter.im/acme-sh/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Docker stars](https://img.shields.io/docker/stars/neilpang/acme.sh.svg)](https://hub.docker.com/r/neilpang/acme.sh "Click to view the image on Docker Hub")
 [![Docker pulls](https://img.shields.io/docker/pulls/neilpang/acme.sh.svg)](https://hub.docker.com/r/neilpang/acme.sh "Click to view the image on Docker Hub")
 
 
 acme.sh is being sponsored by the following tool; please help to support us by taking a look and signing up to a free trial
-
-
-<a href="https://tracking.gitads.io/?repo=acme.sh"> <img src="https://images.gitads.io/acme.sh" alt="GitAds"/> </a>
-
 
 
 - An ACME protocol client written purely in Shell (Unix shell) language.
@@ -18,7 +19,6 @@ acme.sh is being sponsored by the following tool; please help to support us by t
 - Support ACME v2 wildcard certs
 - Simple, powerful and very easy to use. You only need 3 minutes to learn it.
 - Bash, dash and sh compatible.
-- Simplest shell script for Let's Encrypt free certificate client.
 - Purely written in Shell with no dependencies on python or the official Let's Encrypt client.
 - Just one script to issue, renew and install your certificates automatically.
 - DOES NOT require `root/sudoer` access.
@@ -86,6 +86,7 @@ https://github.com/acmesh-official/acmetest
 # Supported CA
 
 - Letsencrypt.org CA(default)
+- [ZeroSSL.com CA](https://github.com/acmesh-official/acme.sh/wiki/ZeroSSL.com-CA)
 - [BuyPass.com CA](https://github.com/acmesh-official/acme.sh/wiki/BuyPass.com-CA)
 - [Pebble strict Mode](https://github.com/letsencrypt/pebble)
 

@@ -220,7 +220,7 @@ _azure_rest() {
     export _H2="accept: application/json"
     export _H3="Content-Type: application/json"
     # clear headers from previous request to avoid getting wrong http code on timeouts
-    :>"$HTTP_HEADER"
+    : >"$HTTP_HEADER"
     _debug "$ep"
     if [ "$m" != "GET" ]; then
       _secure_debug2 "data $data"

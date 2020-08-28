@@ -33,8 +33,11 @@ dns_regru_add() {
   fi
   _debug _domain "$_domain"
 
+  _subdomain=$(echo "$fulldomain" | sed -r "s/.$_domain//")
+  _debug _subdomain "$_subdomain"
+
   _info "Adding TXT record to ${fulldomain}"
-  _regru_rest POST "zone/add_txt" "input_data={%22username%22:%22${REGRU_API_Username}%22,%22password%22:%22${REGRU_API_Password}%22,%22domains%22:[{%22dname%22:%22${_domain}%22}],%22subdomain%22:%22_acme-challenge%22,%22text%22:%22${txtvalue}%22,%22output_content_type%22:%22plain%22}&input_format=json"
+  _regru_rest POST "zone/add_txt" "input_data={%22username%22:%22${REGRU_API_Username}%22,%22password%22:%22${REGRU_API_Password}%22,%22domains%22:[{%22dname%22:%22${_domain}%22}],%22subdomain%22:%22${_subdomain}%22,%22text%22:%22${txtvalue}%22,%22output_content_type%22:%22plain%22}&input_format=json"
 
   if ! _contains "${response}" 'error'; then
     return 0
@@ -64,8 +67,11 @@ dns_regru_rm() {
   fi
   _debug _domain "$_domain"
 
+  _subdomain=$(echo "$fulldomain" | sed -r "s/.$_domain//")
+  _debug _subdomain "$_subdomain"
+
   _info "Deleting resource record $fulldomain"
-  _regru_rest POST "zone/remove_record" "input_data={%22username%22:%22${REGRU_API_Username}%22,%22password%22:%22${REGRU_API_Password}%22,%22domains%22:[{%22dname%22:%22${_domain}%22}],%22subdomain%22:%22_acme-challenge%22,%22content%22:%22${txtvalue}%22,%22record_type%22:%22TXT%22,%22output_content_type%22:%22plain%22}&input_format=json"
+  _regru_rest POST "zone/remove_record" "input_data={%22username%22:%22${REGRU_API_Username}%22,%22password%22:%22${REGRU_API_Password}%22,%22domains%22:[{%22dname%22:%22${_domain}%22}],%22subdomain%22:%22${_subdomain}%22,%22content%22:%22${txtvalue}%22,%22record_type%22:%22TXT%22,%22output_content_type%22:%22plain%22}&input_format=json"
 
   if ! _contains "${response}" 'error'; then
     return 0
@@ -87,11 +93,11 @@ _get_root() {
 
   for ITEM in ${domains_list}; do
     case "${domain}" in
-      *${ITEM}*)
-        _domain=${ITEM}
-        _debug _domain "${_domain}"
-        return 0
-        ;;
+    *${ITEM}*)
+      _domain=${ITEM}
+      _debug _domain "${_domain}"
+      return 0
+      ;;
     esac
   done
 
