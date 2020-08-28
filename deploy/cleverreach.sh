@@ -52,7 +52,7 @@ cleverreach_deploy() {
 
   _info "Uploading certificate and key to CleverReach"
 
-  _certData="{\"cert\":\"$(_json_encode < "$_cfullchain")\", \"key\":\"$(_json_encode < "$_ckey")\"}"
+  _certData="{\"cert\":\"$(_json_encode <"$_cfullchain")\", \"key\":\"$(_json_encode <"$_ckey")\"}"
   export _H1="Authorization: Bearer ${_access_token}"
   _add_cert_result="$(_post "$_certData" "https://rest.cleverreach.com/v3/ssl/${_cdomain}" "" "POST" "application/json")"
 
