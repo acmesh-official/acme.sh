@@ -6,6 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
+      TEST_LOCAL: 1
     steps:
     - uses: actions/checkout@v2
     - name: Install tools
@@ -13,13 +14,14 @@ jobs:
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
-      run: cd ../acmetest && ./letest.sh
+      run: cd ../acmetest && sudo TEST_LOCAL="$TEST_LOCAL" NGROK_TOKEN="$NGROK_TOKEN" ./letest.sh
 
   MacOS:
     needs: Ubuntu
     runs-on: macos-latest
     env:
       NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
+      TEST_LOCAL: 1
     steps:
     - uses: actions/checkout@v2
     - name: Install tools
@@ -27,4 +29,4 @@ jobs:
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
-      run: cd ../acmetest && ./letest.sh
+      run: cd ../acmetest && sudo TEST_LOCAL="$TEST_LOCAL" NGROK_TOKEN="$NGROK_TOKEN" ./letest.sh
