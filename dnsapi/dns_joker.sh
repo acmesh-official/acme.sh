@@ -100,7 +100,7 @@ _get_root() {
     fi
 
     # Try to remove a test record. With correct root domain, username and password this will return "OK: ..." regardless
-    # of record in question existing or not. 
+    # of record in question existing or not.
     if _joker_rest "username=$JOKER_USERNAME&password=$JOKER_PASSWORD&zone=$h&label=jokerTXTUpdateTest&type=TXT&value="; then
       if _startswith "$response" "OK"; then
         _sub_domain="$(echo "$fulldomain" | sed "s/\\.$h\$//")"

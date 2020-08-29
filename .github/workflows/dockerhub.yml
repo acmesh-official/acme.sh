@@ -2,15 +2,45 @@
 name: Build DockerHub
 on:
   push:
-    branches: [ master, dev ]
+    branches:
+      - '*'
+    tags:
+      - '*'
     
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: trigger
-      run: curl -X POST https://hub.docker.com/api/build/v1/source/1813a660-2ee5-4583-a238-dd54e9a6ebac/trigger/c8cd9f1f-f269-45bc-9750-a08327257f62/call/
-    
-    
+      - name: checkout code
+        uses: actions/checkout@v2
+      - name: install buildx
+        id: buildx
+        uses: crazy-max/ghaction-docker-buildx@v3
+        with:
+          buildx-version: latest
+          qemu-version: latest
+      - name: login to docker hub
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      - name: build and push the image
+        run: |
+          DOCKER_IMAGE=neilpang/acme.sh
 
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            DOCKER_IMAGE_TAG=${GITHUB_REF#refs/tags/}
+          fi
 
+          if [[ $GITHUB_REF == refs/heads/* ]]; then
+            DOCKER_IMAGE_TAG=${GITHUB_REF#refs/heads/}
+
+            if [[ $DOCKER_IMAGE_TAG == master ]]; then
+              DOCKER_IMAGE_TAG=latest
+              AUTO_UPGRADE=1
+            fi
+          fi
+
+          docker buildx build \
+            --tag ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG} \
+            --output "type=image,push=true" \
+            --build-arg AUTO_UPGRADE=${AUTO_UPGRADE} \
+            --platform linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7,linux/386 .

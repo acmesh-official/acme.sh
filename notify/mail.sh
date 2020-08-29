@@ -98,24 +98,24 @@ _mail_cmnd() {
   _MAIL_ARGS=""
 
   case $(basename "$_MAIL_BIN") in
-    sendmail)
-      if [ -n "$MAIL_FROM" ]; then
-        _MAIL_ARGS="-f '$MAIL_FROM'"
-      fi
-      ;;
-    mutt | mail)
-      _MAIL_ARGS="-s '$_subject'"
-      ;;
-    msmtp)
-      if [ -n "$MAIL_FROM" ]; then
-        _MAIL_ARGS="-f '$MAIL_FROM'"
-      fi
+  sendmail)
+    if [ -n "$MAIL_FROM" ]; then
+      _MAIL_ARGS="-f '$MAIL_FROM'"
+    fi
+    ;;
+  mutt | mail)
+    _MAIL_ARGS="-s '$_subject'"
+    ;;
+  msmtp)
+    if [ -n "$MAIL_FROM" ]; then
+      _MAIL_ARGS="-f '$MAIL_FROM'"
+    fi
 
-      if [ -n "$MAIL_MSMTP_ACCOUNT" ]; then
-        _MAIL_ARGS="$_MAIL_ARGS -a '$MAIL_MSMTP_ACCOUNT'"
-      fi
-      ;;
-    *) ;;
+    if [ -n "$MAIL_MSMTP_ACCOUNT" ]; then
+      _MAIL_ARGS="$_MAIL_ARGS -a '$MAIL_MSMTP_ACCOUNT'"
+    fi
+    ;;
+  *) ;;
   esac
 
   echo "'$_MAIL_BIN' $_MAIL_ARGS '$MAIL_TO'"
@@ -123,16 +123,16 @@ _mail_cmnd() {
 
 _mail_body() {
   case $(basename "$_MAIL_BIN") in
-    sendmail | ssmtp | msmtp)
-      if [ -n "$MAIL_FROM" ]; then
-        echo "From: $MAIL_FROM"
-      fi
+  sendmail | ssmtp | msmtp)
+    if [ -n "$MAIL_FROM" ]; then
+      echo "From: $MAIL_FROM"
+    fi
 
-      echo "To: $MAIL_TO"
-      echo "Subject: $subject"
-      echo "Content-Type: $contenttype"
-      echo
-      ;;
+    echo "To: $MAIL_TO"
+    echo "Subject: $subject"
+    echo "Content-Type: $contenttype"
+    echo
+    ;;
   esac
 
   echo "$_content"
