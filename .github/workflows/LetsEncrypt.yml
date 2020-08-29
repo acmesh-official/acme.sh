@@ -15,6 +15,7 @@ on:
 jobs:
   Ubuntu:
     runs-on: ubuntu-latest
+    if: "${{ secrets.NGROK_TOKEN }}"
     env:
       NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
       TEST_LOCAL: 1
@@ -29,6 +30,7 @@ jobs:
 
   MacOS:
     runs-on: macos-latest
+    if: "${{ secrets.NGROK_TOKEN }}"
     needs: Ubuntu
     env:
       NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
@@ -44,6 +46,7 @@ jobs:
 
   Windows:
     runs-on: windows-latest
+    if: "${{ secrets.NGROK_TOKEN }}"
     needs: MacOS
     env:
       NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
