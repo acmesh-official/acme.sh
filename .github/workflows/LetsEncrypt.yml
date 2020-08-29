@@ -22,7 +22,12 @@ jobs:
     steps:
       - name: Set the value
         id: step_one
-        run: [ "$NGROK_TOKEN" ] && echo "::set-output name=hasToken::true" || echo "::set-output name=hasToken::false"
+        run: |
+          if [ "$NGROK_TOKEN" ] ; then
+            echo "::set-output name=hasToken::true"
+          else
+            echo "::set-output name=hasToken::false"
+          fi
       - name: Check the value
         run: echo ${{ steps.step_one.outputs.hasToken }}
 
