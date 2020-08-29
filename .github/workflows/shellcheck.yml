@@ -1,5 +1,15 @@
 name: Shellcheck
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - '*'
+    paths:
+      - '**.sh'
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - '**.sh'
 
 jobs:
   formatCheck:
