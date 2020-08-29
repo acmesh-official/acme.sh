@@ -4686,13 +4686,13 @@ $_authorizations_map"
     for ventry in $ventries; do
       _set_one_dns
       case "$?" in
-        0)
-          continue
-          ;;
-        1)
-          return 1
-          ;;
-        3) ;; # continue running
+      0)
+        continue
+        ;;
+      1)
+        return 1
+        ;;
+      3) ;; # continue running
       esac
       if [ -n "$SEQUENTIAL" ]; then
         if [ "$dns_entries" ]; then
@@ -4706,13 +4706,13 @@ $_authorizations_map"
         _ncIndex=1
         _verify_one_domain
         case "$?" in
-          0)
-            continue
-            ;;
-          1)
-            return 1
-            ;;
-          3) ;; # continue running
+        0)
+          continue
+          ;;
+        1)
+          return 1
+          ;;
+        3) ;; # continue running
         esac
       fi
     done
@@ -4743,13 +4743,13 @@ $_authorizations_map"
     for ventry in $ventries; do
       _verify_one_domain
       case "$?" in
-        0)
-          continue
-          ;;
-        1)
-          return 1
-          ;;
-        3) ;; # continue running
+      0)
+        continue
+        ;;
+      1)
+        return 1
+        ;;
+      3) ;; # continue running
       esac
     done
   fi
