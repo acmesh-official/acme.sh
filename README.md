@@ -1,9 +1,9 @@
 # An ACME Shell script: acme.sh 
 
-![shellcheck](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)
-![shellcheck](https://github.com/acmesh-official/acme.sh/workflows/Shellcheck/badge.svg)
-![shellcheck](https://github.com/acmesh-official/acme.sh/workflows/PebbleStrict/badge.svg)
-![shellcheck](https://github.com/acmesh-official/acme.sh/workflows/Build%20DockerHub/badge.svg)
+![LetsEncrypt](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)
+![Shellcheck](https://github.com/acmesh-official/acme.sh/workflows/Shellcheck/badge.svg)
+![PebbleStrict](https://github.com/acmesh-official/acme.sh/workflows/PebbleStrict/badge.svg)
+![DockerHub](https://github.com/acmesh-official/acme.sh/workflows/Build%20DockerHub/badge.svg)
 
 
 <a href="https://opencollective.com/acmesh" alt="Financial Contributors on Open Collective"><img src="https://opencollective.com/acmesh/all/badge.svg?label=financial+contributors" /></a> 
