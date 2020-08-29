@@ -3,9 +3,14 @@ on:
   push:
     branches:
       - '*'
+    paths:
+      - '**.sh'
   pull_request:
     branches:
       - dev
+    paths:
+      - '**.sh'
+
 
 jobs:
   Ubuntu:
