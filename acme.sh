@@ -4307,6 +4307,7 @@ _verify_one_domain() {
 
   done
   return 2
+}
 
 #file
 _get_cert_issuers() {
