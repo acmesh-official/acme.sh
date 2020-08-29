@@ -43,6 +43,7 @@ jobs:
     env:
       NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
       TEST_LOCAL: 1
+      #The 80 port is used by Windows server, we have to use a custom port, ngrok will also use this port.
       Le_HTTPPort: 8888
     steps:
     - uses: actions/checkout@v2
