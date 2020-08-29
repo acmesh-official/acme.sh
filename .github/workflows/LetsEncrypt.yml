@@ -13,9 +13,23 @@ on:
 
 
 jobs:
+  CheckToken:
+    runs-on: ubuntu-latest
+    outputs:
+      hasToken: ${{ steps.step_one.outputs.hasToken }}
+    env: 
+      NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
+    steps:
+      - name: Set the value
+        id: step_one
+        run: [ "$NGROK_TOKEN" ] && echo "::set-output name=hasToken::true" || echo "::set-output name=hasToken::false"
+      - name: Check the value
+        run: echo ${{ steps.step_one.outputs.hasToken }}
+
   Ubuntu:
     runs-on: ubuntu-latest
-    if: "contains(secrets.NGROK_TOKEN, '-')"
+    needs: CheckToken
+    if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
     env:
       NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
       TEST_LOCAL: 1
@@ -30,7 +44,6 @@ jobs:
 
   MacOS:
     runs-on: macos-latest
-    if: "contains(secrets.NGROK_TOKEN, '-')"
     needs: Ubuntu
     env:
       NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
@@ -46,7 +59,6 @@ jobs:
 
   Windows:
     runs-on: windows-latest
-    if: "contains(secrets.NGROK_TOKEN, '-')"
     needs: MacOS
     env:
       NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
