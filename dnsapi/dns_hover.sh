@@ -57,7 +57,7 @@ dns_hover_add() {
     _info "Adding record"
 
     if _cf_rest POST "domains/$_domain_id/dns" "{\"name\":\"$_sub_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"ttl\":5,\"is_default\":false,\"can_revert\":false}"; then
-  
+
       if ! _contains "$response" "\"succeeded\":true"; then
         _err "Add txt record error."
         return 1
@@ -127,7 +127,8 @@ dns_hover_rm() {
       _err "Can not get record id to remove."
       return 1
     fi
-  # Delete the record
+
+    # Delete the record
     if ! _cf_rest DELETE "domains/$_domain_id/dns/$record_id"; then
       _err "Delete record error in call."
       return 1
@@ -136,7 +137,7 @@ dns_hover_rm() {
     # verify response
     if ! _contains "$response" "\"succeeded\":true"; then
       _err "Delete record error in response."
-        return 1
+      return 1
     fi
   fi
 
@@ -230,7 +231,7 @@ _get_root() {
     fi
     p=$i
     i=$(_math "$i" + 1)
-  
+
   done
   return 1
 }
