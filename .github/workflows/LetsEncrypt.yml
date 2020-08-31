@@ -46,7 +46,7 @@ jobs:
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
-      run: cd ../acmetest && sudo TEST_LOCAL="$TEST_LOCAL" NGROK_TOKEN="$NGROK_TOKEN" ./letest.sh
+      run: cd ../acmetest && sudo --preserve-env ./letest.sh
 
   MacOS:
     runs-on: macos-latest
@@ -61,7 +61,7 @@ jobs:
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
-      run: cd ../acmetest && sudo TEST_LOCAL="$TEST_LOCAL" NGROK_TOKEN="$NGROK_TOKEN" ./letest.sh
+      run: cd ../acmetest && sudo --preserve-env ./letest.sh
 
   Windows:
     runs-on: windows-latest
