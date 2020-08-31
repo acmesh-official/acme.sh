@@ -18,19 +18,19 @@ HOVER_Api="https://www.hover.com/api"
 
 #Usage: dns_hover_add   _acme-challenge.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_hover_add() {
-  fulldomain=$1
-  txtvalue=$2
-  
+  fulldomain="$1"
+  txtvalue="$2"
+
   _info "Using HOVER"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
   ########### Login first ###########
-   if ! _HOVER_login; then
+  if ! _HOVER_login; then
     _err "Cannot Login"
     return 1
   fi
-  
+
   ########### Now detect current config ###########
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -41,7 +41,7 @@ dns_hover_add() {
   _debug _domain_id "$_domain_id"
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
-  
+
   _debug "Getting txt records"
   _cf_rest GET "domains/$_domain_id/dns"
 
@@ -49,9 +49,9 @@ dns_hover_add() {
     _err "Error"
     return 1
   fi
-  
+
   ########### ADD or UPDATE ###########
-  count=$(printf "%s\n" "$response" | _egrep_o ",\"name\":\"$_sub_domain\",\"type\":\"TXT\"[^,]*" | cut -d : -f 2| wc -l )
+  count=$(printf "%s\n" "$response" | _egrep_o ",\"name\":\"$_sub_domain\",\"type\":\"TXT\"[^,]*" | cut -d : -f 2 | wc -l)
   _debug count "$count"
   if [ "$count" -eq "0" ]; then
     _info "Adding record"
@@ -69,19 +69,6 @@ dns_hover_add() {
     _err "Add txt record error."
   fi
 
-#  else
-#    _info "Updating record"	
-#    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\",\"name\":\"$_sub_domain\",\"type\":\"TXT\"" | tr -d \" | tr "," ":" | cut -d : -f 2  | head -n 1)
-#    _debug "record_id" "$record_id"
-#
-#    _cf_rest PUT "domains/$_domain_id/dns/$record_id" "{\"id\":\"$record_id\",\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"content\":\"$txtvalue\",\"zone_id\":\"$_domain_id\",\"zone_name\":\"$_domain\"}"
-#    if [ "$?" = "0" ]; then
-#      _info "Updated, OK"
-#      return 0
-#    fi
-#    _err "Update error"
-#    return 1
-
   # verify response
   if ! _contains "$response" "\"succeeded\":true"; then
     _err "Error"
@@ -94,19 +81,19 @@ dns_hover_add() {
 #Usage: fulldomain txtvalue
 #Remove the txt record after validation.
 dns_hover_rm() {
-  fulldomain=$1
-  txtvalue=$2
-  
+  fulldomain="$1"
+  txtvalue="$2"
+
   _info "Using hover"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
-  
+
   ########### Login first ###########
   if ! _HOVER_login; then
     _err "Cannot Login"
     return 1
   fi
-  
+
   ########### Now detect current config ###########
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -116,7 +103,7 @@ dns_hover_rm() {
   _debug _domain_id "$_domain_id"
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
-  
+
   _debug "Getting txt records"
   _cf_rest GET "domains/$_domain_id/dns"
 
@@ -126,10 +113,10 @@ dns_hover_rm() {
     return 1
   fi
 
-  ########### DELETE ########### 
+  ########### DELETE ###########
   count=$(printf "%s\n" "$response" | _egrep_o ",\"name\":\"$_sub_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\"" | cut -d : -f 2| wc -l )
   _debug count "$count"
-  
+
   if [ "$count" -eq "0" ]; then
     _info "Don't need to remove."
   else
@@ -159,7 +146,7 @@ dns_hover_rm() {
 ####################  Private functions below ##################################
 ################################################################################
 
-# usage: _HOVER_login 
+# usage: _HOVER_login
 # returns 0 success
 _HOVER_login() {
 
@@ -168,7 +155,7 @@ _HOVER_login() {
 # _saveaccountconf_mutable HOVER_Password  "$HOVER_Password"
 
   if [ -z "$HOVER_COOKIE" ]; then
-  
+
     HOVER_Username="${HOVER_Username:-$(_readaccountconf_mutable HOVER_Username)}"
     HOVER_Password="${HOVER_Password:-$(_readaccountconf_mutable HOVER_Password)}"
 	
@@ -258,7 +245,7 @@ _cf_rest() {
   if [ "$ep" != "login" ]; then
 	export _H1="Cookie:$HOVER_COOKIE"
 	export _H3="Content-Type: application/json"
-  fi 
+  fi
 
 	export _H2="Accept-Language:en-US"
 
