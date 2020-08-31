@@ -114,13 +114,13 @@ dns_hover_rm() {
   fi
 
   ########### DELETE ###########
-  count=$(printf "%s\n" "$response" | _egrep_o ",\"name\":\"$_sub_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\"" | cut -d : -f 2| wc -l )
+  count=$(printf "%s\n" "$response" | _egrep_o ",\"name\":\"$_sub_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\"" | cut -d : -f 2 | wc -l)
   _debug count "$count"
 
   if [ "$count" -eq "0" ]; then
     _info "Don't need to remove."
   else
-  # Get the record id to delete
+    # Get the record id to delete
     record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\",\"name\":\"$_sub_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\"" | tr -d \" | tr "," ":" | cut -d : -f 2 | head -n 1)
     _debug "record_id" "$record_id"
     if [ -z "$record_id" ]; then
@@ -132,12 +132,12 @@ dns_hover_rm() {
       _err "Delete record error in call."
       return 1
     fi
-  # verify response
-  if ! _contains "$response" "\"succeeded\":true"; then
-    _err "Delete record error in response."
-      return 1
-  fi
 
+    # verify response
+    if ! _contains "$response" "\"succeeded\":true"; then
+      _err "Delete record error in response."
+        return 1
+    fi
   fi
 
 }
@@ -158,9 +158,9 @@ _HOVER_login() {
 
     HOVER_Username="${HOVER_Username:-$(_readaccountconf_mutable HOVER_Username)}"
     HOVER_Password="${HOVER_Password:-$(_readaccountconf_mutable HOVER_Password)}"
-  
+
     if [ -z "$HOVER_Username" ] || [ -z "$HOVER_Password" ]; then
-    
+
       _err "You did not specify the HOVER username and password yet."
       _err "Please export as HOVER_Username / HOVER_Password and try again."
       HOVER_Username=""
@@ -187,10 +187,10 @@ _HOVER_login() {
         return 0
       fi
     fi
-    else
-      # use Cookie
-      return 0
-    fi
+  else
+    # use Cookie
+    return 0
+  fi
 
   _debug "HOVER login cookies: $HOVER_COOKIE (cached = $using_cached_cookies)"
   return 1
@@ -242,8 +242,8 @@ _cf_rest() {
   _debug "$ep"
 
   if [ "$ep" != "login" ]; then
-  export _H1="Cookie:$HOVER_COOKIE"
-  export _H3="Content-Type: application/json"
+    export _H1="Cookie:$HOVER_COOKIE"
+    export _H3="Content-Type: application/json"
   fi
 
   export _H2="Accept-Language:en-US"
