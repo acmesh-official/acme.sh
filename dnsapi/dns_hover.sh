@@ -198,7 +198,6 @@ _HOVER_login() {
 
 }
 
-
 #_acme-challenge.www.domain.com
 #returns
 # _sub_domain=_acme-challenge.www
