@@ -57,7 +57,7 @@ dns_hover_add() {
     _info "Adding record"
 
     if _cf_rest POST "domains/$_domain_id/dns" "{\"name\":\"$_sub_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"ttl\":5,\"is_default\":false,\"can_revert\":false}"; then
-	
+  
       if ! _contains "$response" "\"succeeded\":true"; then
         _err "Add txt record error."
         return 1
@@ -120,23 +120,23 @@ dns_hover_rm() {
   if [ "$count" -eq "0" ]; then
     _info "Don't need to remove."
   else
-	# Get the record id to delete
-    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\",\"name\":\"$_sub_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\"" | tr -d \" | tr "," ":" | cut -d : -f 2  | head -n 1)
+  # Get the record id to delete
+    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\",\"name\":\"$_sub_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\"" | tr -d \" | tr "," ":" | cut -d : -f 2 | head -n 1)
     _debug "record_id" "$record_id"
     if [ -z "$record_id" ]; then
       _err "Can not get record id to remove."
       return 1
     fi
-	# Delete the record
+  # Delete the record
     if ! _cf_rest DELETE "domains/$_domain_id/dns/$record_id"; then
       _err "Delete record error in call."
       return 1
     fi
-	# verify response
-	if ! _contains "$response" "\"succeeded\":true"; then
-	  _err "Delete record error in response."
+  # verify response
+  if ! _contains "$response" "\"succeeded\":true"; then
+    _err "Delete record error in response."
       return 1
-	fi
+  fi
 
   fi
 
@@ -150,51 +150,50 @@ dns_hover_rm() {
 # returns 0 success
 _HOVER_login() {
 
-#save the credentials to the account conf file required for testing
-# _saveaccountconf_mutable HOVER_Username  "$HOVER_Username"
-# _saveaccountconf_mutable HOVER_Password  "$HOVER_Password"
+  #save the credentials to the account conf file required for testing
+  # _saveaccountconf_mutable HOVER_Username  "$HOVER_Username"
+  # _saveaccountconf_mutable HOVER_Password  "$HOVER_Password"
 
   if [ -z "$HOVER_COOKIE" ]; then
 
     HOVER_Username="${HOVER_Username:-$(_readaccountconf_mutable HOVER_Username)}"
     HOVER_Password="${HOVER_Password:-$(_readaccountconf_mutable HOVER_Password)}"
-	
-	if [ -z "$HOVER_Username" ] || [ -z "$HOVER_Password" ]; then
-		
-	  _err "You did not specify the HOVER username and password yet."
-	  _err "Please export as HOVER_Username / HOVER_Password and try again."
+  
+    if [ -z "$HOVER_Username" ] || [ -z "$HOVER_Password" ]; then
+    
+      _err "You did not specify the HOVER username and password yet."
+      _err "Please export as HOVER_Username / HOVER_Password and try again."
       HOVER_Username=""
       HOVER_Password=""
-	  return 1
-	else
-	
-	  _debug "Login to HOVER as user $HOVER_Username"
+      return 1
+    else
+      _debug "Login to HOVER as user $HOVER_Username"
       _cf_rest POST "login" "username=$(printf '%s' "$HOVER_Username")&password=$(printf '%s' "$HOVER_Password")"
-	  if [ "$?" != "0" ]; then
-		_err "HOVER login failed for user $HOVER_Username bad RC from _post"
-		return 1
-	  fi
+      if [ "$?" != "0" ]; then
+        _err "HOVER login failed for user $HOVER_Username bad RC from _post"
+        return 1
+      fi
 
-	  HOVER_COOKIE="$(grep -i '^.*Cookie:.*hoverauth=.*$' "$HTTP_HEADER" | _head_n 1 | tr -d "\r\n" | cut -d ":" -f 2)"
-	  export HOVER_COOKIE
+      HOVER_COOKIE="$(grep -i '^.*Cookie:.*hoverauth=.*$' "$HTTP_HEADER" | _head_n 1 | tr -d "\r\n" | cut -d ":" -f 2)"
+      export HOVER_COOKIE
 
-  	  if [ -z "$HOVER_COOKIE" ]; then
-	  	_debug3 response "$response"
-		_err "HOVER login failed for user $HOVER_Username. Check $HTTP_HEADER file"
-		using_cached_cookies="true"
-	    return 1
-	  else
-	  	using_cached_cookies="true"
-		return 0
-	  fi
-	fi
-  else
-    # use Cookie
-  	return 0
-  fi
+      if [ -z "$HOVER_COOKIE" ]; then
+        _debug3 response "$response"
+        _err "HOVER login failed for user $HOVER_Username. Check $HTTP_HEADER file"
+        using_cached_cookies="true"
+        return 1
+      else
+        using_cached_cookies="true"
+        return 0
+      fi
+    fi
+    else
+      # use Cookie
+      return 0
+    fi
 
-_debug "HOVER login cookies: $HOVER_COOKIE (cached = $using_cached_cookies)"
-return 1
+  _debug "HOVER login cookies: $HOVER_COOKIE (cached = $using_cached_cookies)"
+  return 1
 
 }
 
@@ -231,7 +230,7 @@ _get_root() {
     fi
     p=$i
     i=$(_math "$i" + 1)
-	
+  
   done
   return 1
 }
@@ -243,11 +242,11 @@ _cf_rest() {
   _debug "$ep"
 
   if [ "$ep" != "login" ]; then
-	export _H1="Cookie:$HOVER_COOKIE"
-	export _H3="Content-Type: application/json"
+  export _H1="Cookie:$HOVER_COOKIE"
+  export _H3="Content-Type: application/json"
   fi
 
-	export _H2="Accept-Language:en-US"
+  export _H2="Accept-Language:en-US"
 
   if [ "$m" != "GET" ]; then
     _debug data "$data"
