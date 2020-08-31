@@ -184,7 +184,7 @@ _HOVER_login() {
 	  _debug "Login to HOVER as user $HOVER_Username"
       _cf_rest POST "login" "username=$(printf '%s' "$HOVER_Username")&password=$(printf '%s' "$HOVER_Password")"
 	  if [ "$?" != "0" ]; then
-		_err "HOVER login failed for user $username bad RC from _post"
+		_err "HOVER login failed for user $HOVER_Username bad RC from _post"
 		return 1
 	  fi
 
@@ -192,10 +192,11 @@ _HOVER_login() {
 
   	  if [ -z "$HOVER_COOKIE" ]; then
 	  	_debug3 response "$response"
-		_err "HOVER login failed for user $username. Check $HTTP_HEADER file"
+		_err "HOVER login failed for user $HOVER_Username. Check $HTTP_HEADER file"
+		using_cached_cookies="true"
 	    return 1
 	  else
-	    _debug "HOVER login cookies: $HOVER_COOKIE (cached = $using_cached_cookies)"
+	  	using_cached_cookies="true"
 		return 0
 	  fi
 	fi
@@ -203,7 +204,8 @@ _HOVER_login() {
     # use Cookie
   	return 0
   fi
-  
+
+_debug "HOVER login cookies: $HOVER_COOKIE (cached = $using_cached_cookies)"
 return 1
 
 }
@@ -253,11 +255,11 @@ _cf_rest() {
   _debug "$ep"
 
   if [ "$ep" != "login" ]; then
-	_H1="Cookie:$HOVER_COOKIE"
-	_H3="Content-Type: application/json"
+	export _H1="Cookie:$HOVER_COOKIE"
+	export _H3="Content-Type: application/json"
   fi 
 
-	_H2="Accept-Language:en-US"
+	export _H2="Accept-Language:en-US"
 
   if [ "$m" != "GET" ]; then
     _debug data "$data"
