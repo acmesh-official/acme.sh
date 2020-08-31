@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.8.7
+VER=2.8.8
 
 PROJECT_NAME="acme.sh"
 
@@ -4006,6 +4006,11 @@ _match_issuer() {
   _missuer="$2"
   _fissuers="$(_get_cert_issuers $_cfile)"
   _debug2 _fissuers "$_fissuers"
+  if _contains "$_fissuers" "$_missuer"; then
+    return 0
+  fi
+  _fissuers="$(echo "$_fissuers" | _lower_case)"
+  _missuer="$(echo "$_missuer" | _lower_case)"
   _contains "$_fissuers" "$_missuer"
 }
 
@@ -6430,7 +6435,8 @@ Commands:
   --cron                   Run cron job to renew all the certs.
   --set-notify             Set the cron notification hook, level or mode.
   --deactivate             Deactivate the domain authz, professional use.
-  --set-default-ca         Used with '--server', to set the default CA to use to use.
+  --set-default-ca         Used with '--server', Set the default CA to use.
+                           See: $_SERVER_WIKI
 
 
 Parameters:
