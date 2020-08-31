@@ -188,7 +188,8 @@ _HOVER_login() {
 		return 1
 	  fi
 
-	  export HOVER_COOKIE="$(grep -i '^.*Cookie:.*hoverauth=.*$' "$HTTP_HEADER" | _head_n 1 | tr -d "\r\n" | cut -d ":" -f 2)"
+	  HOVER_COOKIE="$(grep -i '^.*Cookie:.*hoverauth=.*$' "$HTTP_HEADER" | _head_n 1 | tr -d "\r\n" | cut -d ":" -f 2)"
+	  export HOVER_COOKIE
 
   	  if [ -z "$HOVER_COOKIE" ]; then
 	  	_debug3 response "$response"
