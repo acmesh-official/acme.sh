@@ -36,9 +36,9 @@ dns_dnsever_add() {
       _err "You didn't specify a DNSEVER ID and PW yet."
       return 1
     fi  
-      dnsever_domain_txt "add" "$DNSEVER_ID" "$DNSEVER_PW" "$fulldomain" "$txtvalue"
+      
   fi
-
+  dnsever_domain_txt "add" "$DNSEVER_ID" "$DNSEVER_PW" "$fulldomain" "$txtvalue"
 
   #save the api key and email to the account conf file.
 
