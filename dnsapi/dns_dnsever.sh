@@ -58,7 +58,7 @@ dns_dnsever_rm() {
   fi
 
   dnsever_domain_txt "del" "$DNSEVER_ID" "$DNSEVER_PW" "$fulldomain" "$txtvalue"
-  _err "remove"
+
   return $?
 }
 
@@ -68,7 +68,7 @@ dns_dnsever_rm() {
 #returns
 # _sub_domain=_acme-challenge.www
 # _domain=domain.com
-splitkey="_acme-challenge"
+
 
 _get_root() {
   domain=$1
@@ -108,11 +108,12 @@ dnsever_domain_txt() {
   action="$1"
   login_id="$2"
   login_password="$3"
-  domainname="$4"
+  domain_name="$4"
   domain_txt="$5"
 
   response=$(_post "login_id=$login_id&login_password=$login_password" "https://kr.dnsever.com/index.html")
-  if [ $? != 0 ] || [ -z "$response" ]; then
+  result=$?
+  if [ $result != 0 ] || [ -z "$response" ]; then
     _err "dnsever_txt:$action ERROR login failed. Please check https://kr.dnsever.com/index.html with login_id=$login_id login_password=$login_password"
     return 1
   fi
@@ -121,7 +122,9 @@ dnsever_domain_txt() {
   export _H1
 
   response=$(_post "" "https://kr.dnsever.com/start.html")
-  if [ $? != 0 ] || [ -z "$response" ]; then
+  result=$?
+  if [ $result != 0 ] || [ -z "$response" ]; then
+
     _err "dnsever_txt:$action ERROR login failed. Please check https://kr.dnsever.com/start.html after login"
     return 1
   fi
@@ -131,7 +134,8 @@ dnsever_domain_txt() {
  
  
   response=$(_post "" "$newhref")
-  if [ $? != 0 ] || [ -z "$response" ]; then
+  result=$?
+  if [ $result != 0 ] || [ -z "$response" ]; then
     _err "dnsever_txt:$action ERROR login failed. Please check https://kr.dnsever.com/start.html after login"
     return 1
   fi
@@ -139,14 +143,16 @@ dnsever_domain_txt() {
 #  newhref=$(echo "$response" | sed -E "s/.*action=\"(.*)\" .*/\1/")
   newhref=$(printf "%s\n" "$response" | _egrep_o "https.+\" "|cut -d\" -f1)
   response=$(_post "" "$newhref")
-  if [ $? != 0 ] || [ -z "$response" ]; then
+  result=$?
+  if [ $result != 0 ] || [ -z "$response" ]; then
     _err "dnsever_txt:$action ERROR login failed. Please check https://kr.dnsever.com/start.html after login"
     return 1
   fi
 
 
   response=$(_post "" "https://kr.dnsever.com/start.html")
-  if [ $? != 0 ] || [ -z "$response" ]; then
+  result=$?
+  if [ $result != 0 ] || [ -z "$response" ]; then
     _err "dnsever_txt:$action ERROR login failed. Please check https://kr.dnsever.com/start.html after login"
     return 1
   fi
@@ -160,32 +166,45 @@ dnsever_domain_txt() {
     response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
     return 1
   fi
-  _get_root $fulldomain
+  _get_root "$domain_name"
 
+  _debug2 "fulldomain" "$domain_name"
   _debug2 "domain" "$_domain"
   _debug2 "subdomain" "$_sub_domain"
+  _debug2 "txt" "$domain_txt"
 
+
+  
   if [ "$action" = "add" ]; then
 ##https://kr.dnsever.com/start.html?user_domain=flywithu.com&selected_menu=edittxt&skey=flywithu:f80f523d2254f1e2c56462ace327f256
-#   subname=$(echo "$fulldomain" | sed "s/\.$user_domain\$//")
+#   subname=$(echo "$domain_name" | sed "s/\.$user_domain\$//")
 
    
 
 
 
-    response=$(_post "skey=$skey&user_domain=$_domain&selected_menu=edittxt&command=add_txt&subname=$_sub_domain&new_txt=$txt" "https://kr.dnsever.com/start.html")
+    response=$(_post "skey=$skey&user_domain=$_domain&selected_menu=edittxt&command=add_txt&subname=$_sub_domain&new_txt=$domain_txt" "https://kr.dnsever.com/start.html")
     
-    if [ $? != 0 ] || [ -z "$response" ]; then
-      _err "dnsever_txt:$action ERROR failed to add_text $fulldomain=$txt"
+    result=$?
+    if [ $result != 0 ] || [ -z "$response" ]; then
+      _err "dnsever_txt:$action ERROR failed to add_text $domain_name=$domain_txt"
       response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
       
     fi
   elif [ "$action" = "del" ]; then
+  #https://kr.dnsever.com/start.html?user_domain=flywithu.com&selected_menu=edittxt&skey=flywithu:41e3390a9b7aee2cce36c0012bb042b6
+    response=$(_post "skey=$skey&user_domain=$_domain&selected_menu=edittxt" "https://kr.dnsever.com/start.html")
+#    _debug2 "response" "$response" |cut -d\" -f1
+    seq_1=$(printf "%s\n" "$response" | _egrep_o "name=\"seq_1\" value=\".+\"" | cut -f3 -d= | tr -d \" )
 
-    response=$(_post "skey=$skey&user_domain=$_domain&selected_menu=edittxt&command=delete_txt&$check" "https://kr.dnsever.com/start.html")
-    if [ $? != 0 ] || [ -z "$response" ]; then
-      _err "dnsever_txt:$action ERROR failed to delete $fulldomain=$txt from DNSEver"
+ 
+    response=$(_post "skey=$skey&user_domain=$_domain&selected_menu=edittxt&command=delete_txt&domain_for_txt_1=$domain_name&old_txt_1=$domain_txt&txt_1=$domain_txt&check[]=1&seq_1=$seq_1&subname=&new_txt=" "https://kr.dnsever.com/start.html")
+    result=$?
+    if [ $result != 0 ] || [ -z "$response" ]; then
+
+      _err "dnsever_txt:$action ERROR failed to delete $domain_name=$domain_txt from DNSEver"
       response=$(_post "skey=$skey" "https://kr.dnsever.com/logout.php")
+
       return 1
     fi
 
