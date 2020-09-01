@@ -24,10 +24,6 @@ dns_dnsever_add() {
   if [ -z "$DNSEVER_ID" ] || [ -z "$DNSEVER_PW" ]; then
     DNSEVER_ID=""
     DNSEVER_PW=""
-    _err "You don't specify dnsever.com ID or PW yet."
-    _err "Please create you key and try again."
-    _err "export DNSEVER_ID=YOURID && export DNSEVER_PW=YOURPW  "
-    _err " ./acme.sh --issue --force --dns dns_dnsever -d "*.flywithu.com"  "
     return 1
   fi
 
@@ -50,10 +46,6 @@ dns_dnsever_rm() {
   if [ -z "$DNSEVER_ID" ] || [ -z "$DNSEVER_PW" ]; then
     DNSEVER_ID=""
     DNSEVER_PW=""
-    _err "You don't specify dnsever.com ID or PW yet."
-    _err "Please create you key and try again."
-    _err "export DNSEVER_ID=YOURID && export DNSEVER_PW=YOURPW  "
-    _err " ./acme.sh --issue --force --dns dns_dnsever -d "*.flywithu.com"  "
     return 1
   fi
 
