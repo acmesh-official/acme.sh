@@ -73,7 +73,7 @@ jobs:
       Le_HTTPPort: 8888
     steps:
     - name: Set git to use LF
-        run: |
+      run: |
           git config --global core.autocrlf false
     - uses: actions/checkout@v2
     - name: Install cygwin base packages with chocolatey
