@@ -21,17 +21,29 @@ dns_dnsever_add() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
-  if [ -z "$DNSEVER_ID" ] || [ -z "$DNSEVER_PW" ]; then
-    DNSEVER_ID=""
-    DNSEVER_PW=""
-    return 1
+
+  DNSEVER_ID="${DNSEVER_ID:-$(_readaccountconf_mutable DNSEVER_ID)}"
+  DNSEVER_PW="${DNSEVER_PW:-$(_readaccountconf_mutable DNSEVER_PW)}"
+  
+  if [ "$DNSEVER_ID" ]; then
+    _saveaccountconf_mutable  DNSEVER_ID "$DNSEVER_ID"
+    _saveaccountconf_mutable  DNSEVER_PW "$DNSEVER_PW"
+  
+  else
+    if [ -z "$DNSEVER_ID" ] || [ -z "$DNSEVER_PW" ]; then
+      DNSEVER_ID=""
+      DNSEVER_PW=""
+      _err "You didn't specify a DNSEVER ID and PW yet."
+      return 1
+    fi  
+      dnsever_domain_txt "add" "$DNSEVER_ID" "$DNSEVER_PW" "$fulldomain" "$txtvalue"
   fi
 
-  #save the api key and email to the account conf file.
-  _saveaccountconf DNSEVER_ID "$DNSEVER_ID"
-  _saveaccountconf DNSEVER_PW "$DNSEVER_PW"
 
-  dnsever_domain_txt "add" "$DNSEVER_ID" "$DNSEVER_PW" "$fulldomain" "$txtvalue"
+  #save the api key and email to the account conf file.
+
+
+
   return $?
 }
 
@@ -43,6 +55,11 @@ dns_dnsever_rm() {
   _info "Using dnsever remove"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
+  
+  
+  DNSEVER_ID="${DNSEVER_ID:-$(_readaccountconf_mutable DNSEVER_ID)}"
+  DNSEVER_PW="${DNSEVER_PW:-$(_readaccountconf_mutable DNSEVER_PW)}"
+  
   if [ -z "$DNSEVER_ID" ] || [ -z "$DNSEVER_PW" ]; then
     DNSEVER_ID=""
     DNSEVER_PW=""
