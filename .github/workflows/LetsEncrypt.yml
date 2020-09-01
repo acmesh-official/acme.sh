@@ -11,6 +11,7 @@ on:
       - dev
     paths:
       - '**.sh'
+      - '**.yml'
 
 
 jobs:
