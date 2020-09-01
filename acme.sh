@@ -4978,7 +4978,7 @@ $_authorizations_map"
   fi
 }
 
-#in_out_cert   out_fullchain out out_ca
+#in_out_cert   out_fullchain   out_ca
 _split_cert_chain() {
   _certf="$1"
   _fullchainf="$2"

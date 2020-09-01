@@ -11,6 +11,7 @@ on:
       - dev
     paths:
       - '**.sh'
+      - '**.yml'
 
 
 jobs:
@@ -46,7 +47,7 @@ jobs:
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
-      run: cd ../acmetest && sudo TEST_LOCAL="$TEST_LOCAL" NGROK_TOKEN="$NGROK_TOKEN" ./letest.sh
+      run: cd ../acmetest && sudo --preserve-env ./letest.sh
 
   MacOS:
     runs-on: macos-latest
@@ -61,7 +62,7 @@ jobs:
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
-      run: cd ../acmetest && sudo TEST_LOCAL="$TEST_LOCAL" NGROK_TOKEN="$NGROK_TOKEN" ./letest.sh
+      run: cd ../acmetest && sudo --preserve-env ./letest.sh
 
   Windows:
     runs-on: windows-latest
@@ -72,6 +73,9 @@ jobs:
       #The 80 port is used by Windows server, we have to use a custom port, ngrok will also use this port.
       Le_HTTPPort: 8888
     steps:
+    - name: Set git to use LF
+      run: |
+          git config --global core.autocrlf false
     - uses: actions/checkout@v2
     - name: Install cygwin base packages with chocolatey
       run: |
@@ -87,7 +91,7 @@ jobs:
           echo '::set-env name=PATH::C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin'
     - name: Clone acmetest
       shell: cmd
-      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/ && sed -i 's/\r//g' acmetest/acme.sh/acme.sh
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
       shell: cmd
       run: cd ../acmetest && bash.exe -c ./letest.sh
