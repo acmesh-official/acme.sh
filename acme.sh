@@ -4714,7 +4714,7 @@ $_authorizations_map"
       return 1
     fi
     if [ -z "$Le_LinkOrder" ]; then
-      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n" | cut -d ":" -f 2-)"
+      Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n \t" | cut -d ":" -f 2-)"
     fi
 
     _savedomainconf "Le_LinkOrder" "$Le_LinkOrder"
