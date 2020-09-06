@@ -36,6 +36,7 @@ jobs:
       TEST_LOCAL: 1
       TEST_CA: "ZeroSSL"
       NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
+      ACCOUNT_EMAIL: githubCI@acme.sh
 
     steps:
     - uses: actions/checkout@v2
