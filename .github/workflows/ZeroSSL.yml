@@ -45,4 +45,4 @@ jobs:
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
-      run: cd ../acmetest && ./letest.sh
+      run: cd ../acmetest && sudo --preserve-env ./letest.sh
