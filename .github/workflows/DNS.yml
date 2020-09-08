@@ -1,0 +1,92 @@
+name: DNS
+on:
+  push:
+    branches:
+      - '*'
+    paths:
+      - '**.sh'
+      - '**.yml'
+  pull_request:
+    branches:
+      - '*'
+    paths:
+      - '**.sh'
+      - '**.yml'
+
+jobs:
+  CheckToken:
+    runs-on: ubuntu-latest
+    outputs:
+      hasToken: ${{ steps.step_one.outputs.hasToken }}
+    env: 
+      CF_Key : ${{ secrets.CF_Key }}
+      CF_Email : ${{ secrets.CF_Email }}
+    steps:
+      - name: Set the value
+        id: step_one
+        run: |
+          if [ "$CF_Key" ] ; then
+            echo "::set-output name=hasToken::true"
+          else
+            echo "::set-output name=hasToken::false"
+          fi
+      - name: Check the value
+        run: echo ${{ steps.step_one.outputs.hasToken }}
+
+  Docker:
+    runs-on: ubuntu-latest
+    needs: CheckToken
+    if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
+    env:
+      CF_Key : ${{ secrets.CF_Key }}
+      CF_Email : ${{ secrets.CF_Email }}
+      CASE: le_test_dnsapi
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run acmetest
+      run: ./rundocker.sh  _cron
+
+  MacOS:
+    runs-on: macos-latest
+    needs: Docker
+    env:
+      CF_Key : ${{ secrets.CF_Key }}
+      CF_Email : ${{ secrets.CF_Email }}
+      CASE: le_test_dnsapi
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install tools
+      run:  brew update && brew install socat;
+    - name: Run acmetest
+      run: ./letest.sh
+
+  Windows:
+    runs-on: windows-latest
+    needs: MacOS
+    env:
+      CF_Key : ${{ secrets.CF_Key }}
+      CF_Email : ${{ secrets.CF_Email }}
+      CASE: le_test_dnsapi
+    steps:
+    - name: Set git to use LF
+      run: |
+          git config --global core.autocrlf false
+    - uses: actions/checkout@v2
+    - name: Install cygwin base packages with chocolatey
+      run: |
+          choco config get cacheLocation
+          choco install --no-progress cygwin
+      shell: cmd
+    - name: Install cygwin additional packages
+      run: |
+          C:\tools\cygwin\cygwinsetup.exe -qgnNdO -R C:/tools/cygwin -s http://mirrors.kernel.org/sourceware/cygwin/ -P socat,curl,cron,unzip,git
+      shell: cmd
+    - name: Set ENV
+      run: |
+          echo '::set-env name=PATH::C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin'
+
+    - name: Run acmetest
+      shell: cmd
+      run: bash.exe -c ./letest.sh
+
+
