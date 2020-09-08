@@ -52,6 +52,8 @@ jobs:
     - uses: actions/checkout@v2
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - name: Set env file
+      run: cd ../acmetest && echo "CF_Key" >> env.list && echo "CF_Email" >> env.list
     - name: Run acmetest
       run: cd ../acmetest && ./rundocker.sh  _cron
 
