@@ -40,6 +40,7 @@ jobs:
     env:
       CF_Key : ${{ secrets.CF_Key }}
       CF_Email : ${{ secrets.CF_Email }}
+      TEST_DNS : ${{ secrets.TEST_DNS }}
       TestingDomain: ${{ secrets.TestingDomain }}
       
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
@@ -60,6 +61,7 @@ jobs:
     env:
       CF_Key : ${{ secrets.CF_Key }}
       CF_Email : ${{ secrets.CF_Email }}
+      TEST_DNS : ${{ secrets.TEST_DNS }}
       TestingDomain: ${{ secrets.TestingDomain }}
       
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
@@ -82,6 +84,7 @@ jobs:
     env:
       CF_Key : ${{ secrets.CF_Key }}
       CF_Email : ${{ secrets.CF_Email }}
+      TEST_DNS : ${{ secrets.TEST_DNS }}
       TestingDomain: ${{ secrets.TestingDomain }}
 
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
