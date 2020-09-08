@@ -41,8 +41,11 @@ jobs:
       CF_Key : ${{ secrets.CF_Key }}
       CF_Email : ${{ secrets.CF_Email }}
       CASE: le_test_dnsapi
+      TEST_LOCAL: 1
     steps:
     - uses: actions/checkout@v2
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
       run: ./rundocker.sh  _cron
 
@@ -53,10 +56,13 @@ jobs:
       CF_Key : ${{ secrets.CF_Key }}
       CF_Email : ${{ secrets.CF_Email }}
       CASE: le_test_dnsapi
+      TEST_LOCAL: 1
     steps:
     - uses: actions/checkout@v2
     - name: Install tools
       run:  brew update && brew install socat;
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
       run: ./letest.sh
 
@@ -67,6 +73,7 @@ jobs:
       CF_Key : ${{ secrets.CF_Key }}
       CF_Email : ${{ secrets.CF_Email }}
       CASE: le_test_dnsapi
+      TEST_LOCAL: 1
     steps:
     - name: Set git to use LF
       run: |
@@ -84,7 +91,8 @@ jobs:
     - name: Set ENV
       run: |
           echo '::set-env name=PATH::C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin'
-
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
       shell: cmd
       run: bash.exe -c ./letest.sh
