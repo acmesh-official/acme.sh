@@ -40,8 +40,13 @@ jobs:
     env:
       CF_Key : ${{ secrets.CF_Key }}
       CF_Email : ${{ secrets.CF_Email }}
+      TestingDomain: ${{ secrets.TestingDomain }}
+      
+      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
+      DEBUG: 1
     steps:
     - uses: actions/checkout@v2
     - name: Clone acmetest
@@ -55,8 +60,13 @@ jobs:
     env:
       CF_Key : ${{ secrets.CF_Key }}
       CF_Email : ${{ secrets.CF_Email }}
+      TestingDomain: ${{ secrets.TestingDomain }}
+      
+      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
+      DEBUG: 1
     steps:
     - uses: actions/checkout@v2
     - name: Install tools
@@ -72,8 +82,13 @@ jobs:
     env:
       CF_Key : ${{ secrets.CF_Key }}
       CF_Email : ${{ secrets.CF_Email }}
+      TestingDomain: ${{ secrets.TestingDomain }}
+
+      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
+      DEBUG: 1
     steps:
     - name: Set git to use LF
       run: |
