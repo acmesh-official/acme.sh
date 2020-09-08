@@ -8,8 +8,28 @@ on:
       - '*'
     
 jobs:
+  CheckToken:
+    runs-on: ubuntu-latest
+    outputs:
+      hasToken: ${{ steps.step_one.outputs.hasToken }}
+    env: 
+      DOCKER_PASSWORD : ${{ secrets.DOCKER_PASSWORD }}
+    steps:
+      - name: Set the value
+        id: step_one
+        run: |
+          if [ "$DOCKER_PASSWORD" ] ; then
+            echo "::set-output name=hasToken::true"
+          else
+            echo "::set-output name=hasToken::false"
+          fi
+      - name: Check the value
+        run: echo ${{ steps.step_one.outputs.hasToken }}
+        
   build:
     runs-on: ubuntu-latest
+    needs: CheckToken
+    if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
     steps:
       - name: checkout code
         uses: actions/checkout@v2
