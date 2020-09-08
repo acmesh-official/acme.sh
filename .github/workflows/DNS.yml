@@ -53,7 +53,7 @@ jobs:
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Set env file
-      run: cd ../acmetest && echo "CF_Key" >> env.list && echo "CF_Email" >> env.list
+      run: cd ../acmetest && echo "CF_Key" >> env.list && echo "CF_Email" >> env.list && echo "TEST_DNS_NO_WILDCARD" >> env.list && echo "TEST_DNS_SLEEP" >> env.list
     - name: Run acmetest
       run: cd ../acmetest && ./rundocker.sh  _cron
 
