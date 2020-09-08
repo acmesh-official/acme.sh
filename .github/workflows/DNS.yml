@@ -47,7 +47,7 @@ jobs:
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
-      run: ./rundocker.sh  _cron
+      run: cd ../acmetest && ./rundocker.sh  _cron
 
   MacOS:
     runs-on: macos-latest
@@ -64,7 +64,7 @@ jobs:
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
-      run: ./letest.sh
+      run: cd ../acmetest && ./letest.sh
 
   Windows:
     runs-on: windows-latest
@@ -95,6 +95,6 @@ jobs:
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
       shell: cmd
-      run: bash.exe -c ./letest.sh
+      run: cd ../acmetest && bash.exe -c ./letest.sh
 
 
