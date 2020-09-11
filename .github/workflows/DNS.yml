@@ -21,6 +21,7 @@ jobs:
       hasToken: ${{ steps.step_one.outputs.hasToken }}
     env: 
       ${{ secrets.TokenName1 }} : ${{ secrets.TokenValue1 }}
+      "${{ secrets.TokenName3 }}" : ${{ secrets.TokenValue1 }}
     steps:
       - name: Set the value
         id: step_one
