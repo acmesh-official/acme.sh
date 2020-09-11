@@ -2,16 +2,17 @@ name: DNS
 on:
   push:
     branches:
-      - '*'
+      - 'dev'
     paths:
-      - '**.sh'
-      - '**.yml'
+      - 'dnsapi/*.sh'
+      - '.github/workflows/DNS.yml'
   pull_request:
     branches:
-      - '*'
+      - 'dev'
     paths:
-      - '**.sh'
-      - '**.yml'
+      - 'dnsapi/*.sh'
+      - '.github/workflows/DNS.yml'
+
 
 jobs:
   CheckToken:
@@ -31,6 +32,18 @@ jobs:
           fi
       - name: Check the value
         run: echo ${{ steps.step_one.outputs.hasToken }}
+
+  Fail:
+    runs-on: ubuntu-latest
+    needs: CheckToken
+    if: "${{needs.CheckToken.outputs.hasToken}} == 'false'"
+    steps:
+    - name: Show help page
+      run: |
+        echo "Plese see this page to fix the error: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test"
+    - name: Fail
+      if: "github.actor != 'Neilpang'"
+      run: false
 
   Docker:
     runs-on: ubuntu-latest
