@@ -21,7 +21,6 @@ jobs:
       hasToken: ${{ steps.step_one.outputs.hasToken }}
     env: 
       _${{ secrets.TokenName1 }} : ${{ secrets.TokenValue1 }}
-      _${{ secrets.TokenName3 }} : ${{ secrets.TokenValue1 }}
     steps:
       - name: Set the value
         id: step_one
@@ -39,7 +38,7 @@ jobs:
     needs: CheckToken
     if: "${{needs.CheckToken.outputs.hasToken}} == 'false'"
     steps:
-    - name: Show help page
+    - name: Read this: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test
       run: |
         echo "Plese see this page to fix the error: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test"
     - name: Fail
