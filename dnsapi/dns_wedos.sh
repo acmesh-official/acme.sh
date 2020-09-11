@@ -42,7 +42,7 @@ dns_wedos_add() {
     _debug "WEDOS_Authtoken step 2, username concat with token without hours: '${WEDOS_Authtoken}'"
 
     #save details
-    
+
     _saveaccountconf_mutable WEDOS_Username "${WEDOS_Username}"
     _saveaccountconf_mutable WEDOS_Wapipass "${WEDOS_Wapipass}"
     _saveaccountconf_mutable WEDOS_Authtoken "${WEDOS_Authtoken}"
@@ -62,7 +62,7 @@ dns_wedos_add() {
   else
     _err "FAILED TO ADD DNS RECORD OR COMMIT DNS CHANGES"
     return 1
-  fi  
+  fi
 }
 
 #fulldomain txtvalue
@@ -102,7 +102,6 @@ dns_wedos_rm() {
     _saveaccountconf_mutable WEDOS_Authtoken "${WEDOS_Authtoken}"
   fi
 
-
   if ! _get_root "${fulldomain}"; then
     _err "WEDOS Account do not contain primary domain to fullfill add of ${fulldomain}!"
     return 1
@@ -113,13 +112,12 @@ dns_wedos_rm() {
 
   if _wapi_find_row "${_domain}" "${_sub_domain}" "${txtvalue}"; then
     _info "WEDOS WAPI: dns record found with id '${_row_id}'"
-    
+
     if _wapi_delete_row "${_domain}" "${_row_id}"; then
       _info "WEDOS WAPI: dns row were deleted and changes commited!"
       return 0
-    fi 
+    fi
   fi
-
 
   _err "Requested dns row were not found or was imposible to delete it, do it manually"
   _err "Delete: ${fulldomain}"
@@ -174,8 +172,8 @@ _wapi_post() {
   request="${request}\
 </request>"
 
-  _debug "Request to WAPI is: ${request}" 
-  
+  _debug "Request to WAPI is: ${request}"
+
   if ! response="$(_post "${request}" "$WEDOS_WAPI_ENDPOINT")"; then
     _err "Error contacting WEDOS WAPI with command ${command}"
     return 1
@@ -187,22 +185,21 @@ _wapi_post() {
   return "$?"
 }
 
-
 # _get_root() function, for provided full domain, like _acme_challenge.www.example.com verify if WEDOS contains a primary active domain and found what is subdomain
 # $1 - full domain to verify, ie _acme_challenge.www.example.com
-# build ${_domain} found at WEDOS, like example.com and ${_sub_domain} from provided full domain, like _acme_challenge.www 
+# build ${_domain} found at WEDOS, like example.com and ${_sub_domain} from provided full domain, like _acme_challenge.www
 _get_root() {
   domain=$1
 
   if [ -z "${domain}" ]; then
     _err "Function _get_root was called without argument, implementation error!"
-    return 1;
+    return 1
   fi
 
   _debug "Get root for domain: ${domain}"
 
   _debug "Getting list of domains using WAPI ..."
-  
+
   if ! _wapi_post "dns-domains-list"; then
     _err "Error on WAPI request for list of domains, response : ${response}"
     return 1
@@ -210,25 +207,24 @@ _get_root() {
     _debug "DNS list were successfully retrieved, response : ${response}"
   fi
 
-  for xml_domain in $(echo "${response}" | tr -d '\012\015' | grep -o -E "<domain>( )*<name>.*</name>( )*<type>primary</type>( )*<status>active</status>" | grep -o -E "<name>.*</name>")
-  do
+  for xml_domain in $(echo "${response}" | tr -d '\012\015' | grep -o -E "<domain>( )*<name>.*</name>( )*<type>primary</type>( )*<status>active</status>" | grep -o -E "<name>.*</name>"); do
     _debug "Active and primary XML DOMAIN found: ${xml_domain}"
     end_of_name=$((${#xml_domain} - 7))
     xml_domain_name=$(echo "${xml_domain}" | cut -c 7-${end_of_name})
-    _debug "Found primary active domain: ${xml_domain_name}" 
+    _debug "Found primary active domain: ${xml_domain_name}"
     regex=".*\\."$(echo "${xml_domain_name}" | sed 's/\./\\./g')
     _debug "Regex for matching domain: '${regex}'"
-    
+
     if ! echo "${domain}" | grep -E "${regex}" 1>/dev/null 2>/dev/null; then
       _debug "found domain do not match required"
-    else 
+    else
       end_of_name=$((${#domain} - ${#xml_domain_name} - 1))
       _domain=${xml_domain_name}
       _sub_domain=$(echo "${domain}" | cut -c -${end_of_name})
       _info "Domain '${_domain}' was found at WEDOS account as primary, and subdomain is '${_sub_domain}'!"
       return 0
     fi
-  done 
+  done
 
   return 1
 }
@@ -239,7 +235,7 @@ _wapi_dns_commit() {
 
   if [ -z "${domain}" ]; then
     _err "Invalid request to commit dns changes, domain is empty, implementation error!"
-    return 1;
+    return 1
   fi
 
   data="  <data>\
@@ -256,7 +252,7 @@ _wapi_dns_commit() {
   fi
 
   return 0
-   
+
 }
 
 # add one TXT dns row to a specified fomain
@@ -268,7 +264,7 @@ _wapi_row_add() {
 
   if [ -z "${domain}" ] || [ -z "${sub_domain}" ] || [ -z "${value}" ] || [ -z "${ttl}" ]; then
     _err "Invalid request to add record, domain: '${domain}', sub_domain: '${sub_domain}', value: '${value}' and ttl: '${ttl}', on of required input were not provided, implementation error!"
-    return 1;
+    return 1
   fi
 
   # Prepare data for request to WAPI
@@ -280,7 +276,7 @@ _wapi_row_add() {
     <rdata>${value}</rdata>\
     <auth_comment>Created using WAPI from acme.sh</auth_comment>\
   </data>"
-  
+
   _debug "Adding row using WAPI ..."
 
   if ! _wapi_post "dns-row-add" "${data}"; then
@@ -324,19 +320,18 @@ _wapi_find_row() {
   sub_domain_regex=$(echo "${sub_domain}" | sed "s/\./\\\\./g")
 
   _debug "Subdomain regex '${sub_domain_regex}'"
-  
-  for xml_row in $(echo "${response}" | tr -d '\012\015' | grep -o -E "<row>( )*<ID>[0-9]*</ID>( )*<name>${sub_domain_regex}</name>( )*<ttl>[0-9]*</ttl>( )*<rdtype>TXT</rdtype>( )*<rdata>${value}</rdata>" | grep -o -e "<ID>[0-9]*</ID>") 
-  do
+
+  for xml_row in $(echo "${response}" | tr -d '\012\015' | grep -o -E "<row>( )*<ID>[0-9]*</ID>( )*<name>${sub_domain_regex}</name>( )*<ttl>[0-9]*</ttl>( )*<rdtype>TXT</rdtype>( )*<rdata>${value}</rdata>" | grep -o -e "<ID>[0-9]*</ID>"); do
     _debug "Found row in DNS with ID : ${xml_row}"
     _row_id=$(echo "${xml_row}" | grep -o -E "[0-9]*")
     _info "WEDOS API: Found DNS row id ${_row_id} for domain ${domain}"
     return 0
   done
 
-  _info "WEDOS API: No TXT row found for domain '${domain}' with name '${sub_domain}' and value '${value}'" 
+  _info "WEDOS API: No TXT row found for domain '${domain}' with name '${sub_domain}' and value '${value}'"
 
   return 1
-} 
+}
 
 _wapi_delete_row() {
   domain=$1
