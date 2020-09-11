@@ -38,7 +38,7 @@ jobs:
     needs: CheckToken
     if: "${{needs.CheckToken.outputs.hasToken}} == 'false'"
     steps:
-    - name: Read this: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test
+    - name: "Read this: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test"
       run: |
         echo "Plese see this page to fix the error: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test"
     - name: Fail
