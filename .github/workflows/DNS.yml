@@ -1,0 +1,132 @@
+name: DNS
+on:
+  push:
+    branches:
+      - 'dev'
+    paths:
+      - 'dnsapi/*.sh'
+      - '.github/workflows/DNS.yml'
+  pull_request:
+    branches:
+      - 'dev'
+    paths:
+      - 'dnsapi/*.sh'
+      - '.github/workflows/DNS.yml'
+
+
+jobs:
+  CheckToken:
+    runs-on: ubuntu-latest
+    outputs:
+      hasToken: ${{ steps.step_one.outputs.hasToken }}
+    env: 
+      ${{ secrets.TokenName1 }} : ${{ secrets.TokenValue1 }}
+    steps:
+      - name: Set the value
+        id: step_one
+        run: |
+          if [ "$${{ secrets.TokenName1 }}" ] ; then
+            echo "::set-output name=hasToken::true"
+          else
+            echo "::set-output name=hasToken::false"
+          fi
+      - name: Check the value
+        run: echo ${{ steps.step_one.outputs.hasToken }}
+
+  Fail:
+    runs-on: ubuntu-latest
+    needs: CheckToken
+    if: "${{needs.CheckToken.outputs.hasToken}} == 'false'"
+    steps:
+    - name: Show help page
+      run: |
+        echo "Plese see this page to fix the error: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test"
+    - name: Fail
+      if: "github.actor != 'Neilpang'"
+      run: false
+
+  Docker:
+    runs-on: ubuntu-latest
+    needs: CheckToken
+    if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
+    env:
+      ${{ secrets.TokenName1 }} : ${{ secrets.TokenValue1 }}
+      ${{ secrets.TokenName2 }} : ${{ secrets.TokenValue2 }}
+      TEST_DNS : ${{ secrets.TEST_DNS }}
+      TestingDomain: ${{ secrets.TestingDomain }}
+      
+      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      CASE: le_test_dnsapi
+      TEST_LOCAL: 1
+      DEBUG: 1
+    steps:
+    - uses: actions/checkout@v2
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - name: Set env file
+      run: cd ../acmetest && echo "${{ secrets.TokenName1 }}" >> env.list && echo "${{ secrets.TokenName2 }}" >> env.list && echo "TEST_DNS_NO_WILDCARD" >> env.list && echo "TEST_DNS_SLEEP" >> env.list
+    - name: Run acmetest
+      run: cd ../acmetest && ./rundocker.sh  _cron
+
+  MacOS:
+    runs-on: macos-latest
+    needs: Docker
+    env:
+      ${{ secrets.TokenName1 }} : ${{ secrets.TokenValue1 }}
+      ${{ secrets.TokenName2 }} : ${{ secrets.TokenValue2 }}
+      TEST_DNS : ${{ secrets.TEST_DNS }}
+      TestingDomain: ${{ secrets.TestingDomain }}
+      
+      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      CASE: le_test_dnsapi
+      TEST_LOCAL: 1
+      DEBUG: 1
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install tools
+      run:  brew update && brew install socat;
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - name: Run acmetest
+      run: cd ../acmetest && ./letest.sh
+
+  Windows:
+    runs-on: windows-latest
+    needs: MacOS
+    env:
+      ${{ secrets.TokenName1 }} : ${{ secrets.TokenValue1 }}
+      ${{ secrets.TokenName2 }} : ${{ secrets.TokenValue2 }}
+      TEST_DNS : ${{ secrets.TEST_DNS }}
+      TestingDomain: ${{ secrets.TestingDomain }}
+
+      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      CASE: le_test_dnsapi
+      TEST_LOCAL: 1
+      DEBUG: 1
+    steps:
+    - name: Set git to use LF
+      run: |
+          git config --global core.autocrlf false
+    - uses: actions/checkout@v2
+    - name: Install cygwin base packages with chocolatey
+      run: |
+          choco config get cacheLocation
+          choco install --no-progress cygwin
+      shell: cmd
+    - name: Install cygwin additional packages
+      run: |
+          C:\tools\cygwin\cygwinsetup.exe -qgnNdO -R C:/tools/cygwin -s http://mirrors.kernel.org/sourceware/cygwin/ -P socat,curl,cron,unzip,git
+      shell: cmd
+    - name: Set ENV
+      run: |
+          echo '::set-env name=PATH::C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin'
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - name: Run acmetest
+      shell: cmd
+      run: cd ../acmetest && bash.exe -c ./letest.sh
+
+
