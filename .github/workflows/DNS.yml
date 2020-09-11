@@ -20,12 +20,12 @@ jobs:
     outputs:
       hasToken: ${{ steps.step_one.outputs.hasToken }}
     env: 
-      ${{ secrets.TokenName1 }} : ${{ secrets.TokenValue1 }}
+      _ACME_CHECK_TOKEN_${{ secrets.TokenName1 }} : ${{ secrets.TokenValue1 }}
     steps:
       - name: Set the value
         id: step_one
         run: |
-          if [ "$${{ secrets.TokenName1 }}" ] ; then
+          if [ "$_ACME_CHECK_TOKEN_${{ secrets.TokenName1}}" ] ; then
             echo "::set-output name=hasToken::true"
           else
             echo "::set-output name=hasToken::false"
@@ -36,9 +36,9 @@ jobs:
   Fail:
     runs-on: ubuntu-latest
     needs: CheckToken
-    if: "${{needs.CheckToken.outputs.hasToken}} == 'false'"
+    if: "contains(needs.CheckToken.outputs.hasToken, 'false')"
     steps:
-    - name: Show help page
+    - name: "Read this:   https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test"
       run: |
         echo "Plese see this page to fix the error: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test"
     - name: Fail
