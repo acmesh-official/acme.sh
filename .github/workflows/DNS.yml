@@ -20,12 +20,12 @@ jobs:
     outputs:
       hasToken: ${{ steps.step_one.outputs.hasToken }}
     env: 
-      _${{ secrets.TokenName1 }} : ${{ secrets.TokenValue1 }}
+      _ACME_CHECK_TOKEN_${{ secrets.TokenName1 }} : ${{ secrets.TokenValue1 }}
     steps:
       - name: Set the value
         id: step_one
         run: |
-          if [ "$_${{ secrets.TokenName1}}" != "_" ] ; then
+          if [ "$_ACME_CHECK_TOKEN_${{ secrets.TokenName1}}" ] ; then
             echo "::set-output name=hasToken::true"
           else
             echo "::set-output name=hasToken::false"
