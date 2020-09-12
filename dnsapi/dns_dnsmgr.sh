@@ -14,7 +14,7 @@
 ISP_DNS_URL="${ISP_DNS_URL:-$(_readaccountconf_mutable ISP_DNS_URL)}"
 ############################ Public Functions ##############################
 #Usage: dns_dnsmgr_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
-dns_dnsmgr_add(){
+dns_dnsmgr_add() {
   fulldomain=$1
   txtvalue=$2
   _info "Using ispsystem dnsmanager api"
@@ -86,7 +86,7 @@ dns_dnsmgr_rm() {
 }
 
 ############################ Private Functions ##############################
-_zone_find(){
+_zone_find() {
   _isp_domain="$1"
   _isp_body="authinfo=${ISP_DNS_USER}:${ISP_DNS_PASS}&func=domain&filter=on&out=bjson&name=${_isp_domain}"
   response="$(_post "${_isp_body}" "${ISP_DNS_URL}")"
@@ -98,7 +98,7 @@ _zone_find(){
   return 0
 }
 #
-_zone_add_record(){
+_zone_add_record() {
   _isp_domain="$1"
   _isp_record_name="$2"
   _isp_record_value="$3"
@@ -113,7 +113,7 @@ _zone_add_record(){
   return 0
 }
 #
-_zone_rm_record(){
+_zone_rm_record() {
   _isp_domain="$1"
   _isp_record_name="$2"
   _isp_record_value="$3"
