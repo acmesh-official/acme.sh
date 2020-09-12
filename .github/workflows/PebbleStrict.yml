@@ -1,5 +1,17 @@
 name: PebbleStrict
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - '*'
+    paths:
+      - '**.sh'
+      - '**.yml'
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - '**.sh'
+      - '**.yml'
 
 jobs:
   PebbleStrict:
