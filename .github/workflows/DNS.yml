@@ -67,7 +67,7 @@ jobs:
     - name: Set env file
       run: cd ../acmetest && echo "${{ secrets.TokenName1 }}" >> env.list && echo "${{ secrets.TokenName2 }}" >> env.list && echo "TEST_DNS_NO_WILDCARD" >> env.list && echo "TEST_DNS_SLEEP" >> env.list
     - name: Run acmetest
-      run: cd ../acmetest && ./rundocker.sh  _cron
+      run: cd ../acmetest && ./rundocker.sh  testall
 
   MacOS:
     runs-on: macos-latest
