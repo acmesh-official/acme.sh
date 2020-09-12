@@ -19,13 +19,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       hasToken: ${{ steps.step_one.outputs.hasToken }}
-    env: 
-      _ACME_CHECK_TOKEN_${{ secrets.TokenName1 }} : ${{ secrets.TokenValue1 }}
     steps:
       - name: Set the value
         id: step_one
         run: |
-          if [ "$_ACME_CHECK_TOKEN_${{ secrets.TokenName1}}" ] ; then
+          if [ "${{secrets.TokenName1}}" ] ; then
             echo "::set-output name=hasToken::true"
           else
             echo "::set-output name=hasToken::false"
@@ -50,11 +48,8 @@ jobs:
     needs: CheckToken
     if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
     env:
-      ${{ secrets.TokenName1 }} : ${{ secrets.TokenValue1 }}
-      ${{ secrets.TokenName2 }} : ${{ secrets.TokenValue2 }}
       TEST_DNS : ${{ secrets.TEST_DNS }}
       TestingDomain: ${{ secrets.TestingDomain }}
-      
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
@@ -65,7 +60,25 @@ jobs:
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Set env file
-      run: cd ../acmetest && echo "${{ secrets.TokenName1 }}" >> env.list && echo "${{ secrets.TokenName2 }}" >> env.list && echo "TEST_DNS_NO_WILDCARD" >> env.list && echo "TEST_DNS_SLEEP" >> env.list
+      run: |
+        cd ../acmetest 
+        if [ "${{ secrets.TokenName1}}" ] ; then
+          echo "${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}" >> env.list
+        fi
+        if [ "${{ secrets.TokenName2}}" ] ; then
+          echo "${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}" >> env.list
+        fi
+        if [ "${{ secrets.TokenName3}}" ] ; then
+          echo "${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}" >> env.list
+        fi
+        if [ "${{ secrets.TokenName4}}" ] ; then
+          echo "${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}" >> env.list
+        fi
+        if [ "${{ secrets.TokenName5}}" ] ; then
+          echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> env.list
+        fi
+        echo "TEST_DNS_NO_WILDCARD" >> env.list 
+        echo "TEST_DNS_SLEEP" >> env.list
     - name: Run acmetest
       run: cd ../acmetest && ./rundocker.sh  testall
 
@@ -73,11 +86,8 @@ jobs:
     runs-on: macos-latest
     needs: Docker
     env:
-      ${{ secrets.TokenName1 }} : ${{ secrets.TokenValue1 }}
-      ${{ secrets.TokenName2 }} : ${{ secrets.TokenValue2 }}
       TEST_DNS : ${{ secrets.TEST_DNS }}
       TestingDomain: ${{ secrets.TestingDomain }}
-      
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
@@ -90,17 +100,31 @@ jobs:
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
-      run: cd ../acmetest && ./letest.sh
+      run: |
+        if [ "${{ secrets.TokenName1}}" ] ; then
+          export ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
+        fi
+        if [ "${{ secrets.TokenName2}}" ] ; then
+          export ${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}
+        fi
+        if [ "${{ secrets.TokenName3}}" ] ; then
+          export ${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}
+        fi
+        if [ "${{ secrets.TokenName4}}" ] ; then
+          export ${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}
+        fi
+        if [ "${{ secrets.TokenName5}}" ] ; then
+          export ${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}
+        fi
+        cd ../acmetest
+        ./letest.sh
 
   Windows:
     runs-on: windows-latest
     needs: MacOS
     env:
-      ${{ secrets.TokenName1 }} : ${{ secrets.TokenValue1 }}
-      ${{ secrets.TokenName2 }} : ${{ secrets.TokenValue2 }}
       TEST_DNS : ${{ secrets.TEST_DNS }}
       TestingDomain: ${{ secrets.TestingDomain }}
-
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
@@ -127,6 +151,23 @@ jobs:
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
       shell: cmd
-      run: cd ../acmetest && bash.exe -c ./letest.sh
+      run: |
+        if [ "${{ secrets.TokenName1}}" ] ; then
+          set ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
+        fi
+        if [ "${{ secrets.TokenName2}}" ] ; then
+          set ${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}
+        fi
+        if [ "${{ secrets.TokenName3}}" ] ; then
+          set ${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}
+        fi
+        if [ "${{ secrets.TokenName4}}" ] ; then
+          set ${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}
+        fi
+        if [ "${{ secrets.TokenName5}}" ] ; then
+          set ${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}
+        fi
+        cd ../acmetest
+        bash.exe -c ./letest.sh
 
 
