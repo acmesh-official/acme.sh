@@ -112,6 +112,9 @@ _duckdns_rest() {
   param="$2"
   _debug param "$param"
   url="$DuckDNS_API?$param"
+  if [ "$DEBUG" -gt 0 ]; then
+    url="$url&verbose=true"
+  fi
   _debug url "$url"
 
   # DuckDNS uses GET to update domain info
