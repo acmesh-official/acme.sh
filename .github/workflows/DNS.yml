@@ -150,7 +150,7 @@ jobs:
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
-      shell: cmd
+      shell: bash
       run: |
         if [ "${{ secrets.TokenName1}}" ] ; then
           set ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
@@ -168,6 +168,6 @@ jobs:
           set ${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}
         fi
         cd ../acmetest
-        bash.exe -c ./letest.sh
+        ./letest.sh
 
 
