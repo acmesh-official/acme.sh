@@ -150,24 +150,24 @@ jobs:
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
-      shell: cmd
+      shell: bash
       run: |
         if [ "${{ secrets.TokenName1}}" ] ; then
-          set ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
+          export ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
         fi
         if [ "${{ secrets.TokenName2}}" ] ; then
-          set ${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}
+          export ${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}
         fi
         if [ "${{ secrets.TokenName3}}" ] ; then
-          set ${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}
+          export ${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}
         fi
         if [ "${{ secrets.TokenName4}}" ] ; then
-          set ${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}
+          export ${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}
         fi
         if [ "${{ secrets.TokenName5}}" ] ; then
-          set ${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}
+          export ${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}
         fi
         cd ../acmetest
-        bash.exe -c ./letest.sh
+        ./letest.sh
 
 
