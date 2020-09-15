@@ -44,7 +44,7 @@ dns_websupport_add() {
   #  count=$(printf "%s\n" "$response" | _egrep_o "\"count\":[^,]*" | cut -d : -f 2)
   #  _debug count "$count"
   #  if [ "$count" = "0" ]; then
-  _info "Adding record"
+  _info "Adding record..."
   if _ws_rest POST "/v1/user/self/zone/$_domain/record" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
     if _contains "$response" "$txtvalue"; then
       _info "Added, OK"
