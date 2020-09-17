@@ -54,12 +54,13 @@ vault_cli_deploy() {
   fi
 
   if [ -n "$VAULT_ROLE_ID" ]; then
-    export VAULT_TOKEN=$(vault write -field=token auth/approle/login \
+    VAULT_TOKEN=$(vault write -field=token auth/approle/login \
       role_id="$VAULT_ROLE_ID" secret_id="$VAULT_ROLE_SECRET")
     if [ ! $? ]; then
       _err "cannot login to vault approle ${VAULT_ROLE_ID}!"
       return 1
     fi
+    export VAULT_TOKEN
   fi
 
   if [ -n "$FABIO" ]; then
