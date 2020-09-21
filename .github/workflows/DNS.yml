@@ -1,8 +1,6 @@
 name: DNS
 on:
   push:
-    branches:
-      - 'dev'
     paths:
       - 'dnsapi/*.sh'
       - '.github/workflows/DNS.yml'
