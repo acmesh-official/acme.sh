@@ -77,8 +77,8 @@ dns_infomaniak_add() {
   fi
   tmpfile=$(mktemp -u)
   mkfifo "$tmpfile"
-  echo "$zone_and_id" > "$tmpfile" &
-  read -r zone domain_id < "$tmpfile"
+  echo "$zone_and_id" >"$tmpfile" &
+  read -r zone domain_id <"$tmpfile"
   rm "$tmpfile"
 
   # extract first part of domain
@@ -151,16 +151,16 @@ dns_infomaniak_rm() {
   fi
   tmpfile=$(mktemp -u)
   mkfifo "$tmpfile"
-  echo "$zone_and_id" > "$tmpfile" &
-  read -r zone domain_id < "$tmpfile"
+  echo "$zone_and_id" >"$tmpfile" &
+  read -r zone domain_id <"$tmpfile"
   rm "$tmpfile"
 
   # extract first part of domain
   key=${fulldomain%.$zone}
 
   # find previous record
-  record_id=$(_get "${INFOMANIAK_API_URL}/1/domain/$domain_id/dns/record" \
-    | jq -r ".data[] | select(.source_idn == \"$fulldomain\") | .id")
+  record_id=$(_get "${INFOMANIAK_API_URL}/1/domain/$domain_id/dns/record" |
+    jq -r ".data[] | select(.source_idn == \"$fulldomain\") | .id")
   if [ -z "$record_id" ]; then
     _err "could not find record to delete"
     return 1
@@ -168,7 +168,7 @@ dns_infomaniak_rm() {
   _debug "record_id: $record_id"
 
   # API call
-  response=$(_post "" "${INFOMANIAK_API_URL}/1/domain/$domain_id/dns/record/$record_id" "" DELETE) 
+  response=$(_post "" "${INFOMANIAK_API_URL}/1/domain/$domain_id/dns/record/$record_id" "" DELETE)
   if [ -n "$response" ] && echo "$response" | grep -qF '"result":"success"'; then
     _info "Record deleted"
     return 0
@@ -182,8 +182,8 @@ dns_infomaniak_rm() {
 _get_domain_id() {
   domain="$1"
 
-  _get "${INFOMANIAK_API_URL}/1/product?service_name=domain&customer_name=$domain" \
-  | jq -r '.data[].id'
+  _get "${INFOMANIAK_API_URL}/1/product?service_name=domain&customer_name=$domain" |
+    jq -r '.data[].id'
 }
 
 _find_zone() {
