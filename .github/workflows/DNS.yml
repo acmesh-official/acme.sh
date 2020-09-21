@@ -23,7 +23,7 @@ jobs:
       - name: Set the value
         id: step_one
         run: |
-          if [ "${{secrets.TokenName1}}" ] ; then
+          if [ "${{secrets.TOKENNAME1}}" ] ; then
             echo "::set-output name=hasToken::true"
           else
             echo "::set-output name=hasToken::false"
@@ -49,7 +49,7 @@ jobs:
     if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
     env:
       TEST_DNS : ${{ secrets.TEST_DNS }}
-      TestingDomain: ${{ secrets.TestingDomain }}
+      TestingDomain: ${{ secrets.TESTINGDOMAIN }}
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
@@ -62,20 +62,20 @@ jobs:
     - name: Set env file
       run: |
         cd ../acmetest 
-        if [ "${{ secrets.TokenName1}}" ] ; then
-          echo "${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}" >> env.list
+        if [ "${{ secrets.TOKENNAME1}}" ] ; then
+          echo "${{ secrets.TOKENNAME1}}=${{ secrets.TOKENVALUE1}}" >> env.list
         fi
-        if [ "${{ secrets.TokenName2}}" ] ; then
-          echo "${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}" >> env.list
+        if [ "${{ secrets.TOKENNAME2}}" ] ; then
+          echo "${{ secrets.TOKENNAME2}}=${{ secrets.TOKENVALUE2}}" >> env.list
         fi
-        if [ "${{ secrets.TokenName3}}" ] ; then
-          echo "${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}" >> env.list
+        if [ "${{ secrets.TOKENNAME3}}" ] ; then
+          echo "${{ secrets.TOKENNAME3}}=${{ secrets.TOKENVALUE3}}" >> env.list
         fi
-        if [ "${{ secrets.TokenName4}}" ] ; then
-          echo "${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}" >> env.list
+        if [ "${{ secrets.TOKENNAME4}}" ] ; then
+          echo "${{ secrets.TOKENNAME4}}=${{ secrets.TOKENVALUE4}}" >> env.list
         fi
-        if [ "${{ secrets.TokenName5}}" ] ; then
-          echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> env.list
+        if [ "${{ secrets.TOKENNAME5}}" ] ; then
+          echo "${{ secrets.TOKENNAME5}}=${{ secrets.TOKENVALUE5}}" >> env.list
         fi
         echo "TEST_DNS_NO_WILDCARD" >> env.list 
         echo "TEST_DNS_SLEEP" >> env.list
@@ -87,7 +87,7 @@ jobs:
     needs: Docker
     env:
       TEST_DNS : ${{ secrets.TEST_DNS }}
-      TestingDomain: ${{ secrets.TestingDomain }}
+      TestingDomain: ${{ secrets.TESTINGDOMAIN }}
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
@@ -101,20 +101,20 @@ jobs:
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
       run: |
-        if [ "${{ secrets.TokenName1}}" ] ; then
-          export ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
+        if [ "${{ secrets.TOKENNAME1}}" ] ; then
+          export ${{ secrets.TOKENNAME1}}=${{ secrets.TOKENVALUE1}}
         fi
-        if [ "${{ secrets.TokenName2}}" ] ; then
-          export ${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}
+        if [ "${{ secrets.TOKENNAME2}}" ] ; then
+          export ${{ secrets.TOKENNAME2}}=${{ secrets.TOKENVALUE2}}
         fi
-        if [ "${{ secrets.TokenName3}}" ] ; then
-          export ${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}
+        if [ "${{ secrets.TOKENNAME3}}" ] ; then
+          export ${{ secrets.TOKENNAME3}}=${{ secrets.TOKENVALUE3}}
         fi
-        if [ "${{ secrets.TokenName4}}" ] ; then
-          export ${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}
+        if [ "${{ secrets.TOKENNAME4}}" ] ; then
+          export ${{ secrets.TOKENNAME4}}=${{ secrets.TOKENVALUE4}}
         fi
-        if [ "${{ secrets.TokenName5}}" ] ; then
-          export ${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}
+        if [ "${{ secrets.TOKENNAME5}}" ] ; then
+          export ${{ secrets.TOKENNAME5}}=${{ secrets.TOKENVALUE5}}
         fi
         cd ../acmetest
         ./letest.sh
@@ -124,7 +124,7 @@ jobs:
     needs: MacOS
     env:
       TEST_DNS : ${{ secrets.TEST_DNS }}
-      TestingDomain: ${{ secrets.TestingDomain }}
+      TestingDomain: ${{ secrets.TESTINGDOMAIN }}
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
@@ -152,20 +152,20 @@ jobs:
     - name: Run acmetest
       shell: bash
       run: |
-        if [ "${{ secrets.TokenName1}}" ] ; then
-          export ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
+        if [ "${{ secrets.TOKENNAME1}}" ] ; then
+          export ${{ secrets.TOKENNAME1}}=${{ secrets.TOKENVALUE1}}
         fi
-        if [ "${{ secrets.TokenName2}}" ] ; then
-          export ${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}
+        if [ "${{ secrets.TOKENNAME2}}" ] ; then
+          export ${{ secrets.TOKENNAME2}}=${{ secrets.TOKENVALUE2}}
         fi
-        if [ "${{ secrets.TokenName3}}" ] ; then
-          export ${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}
+        if [ "${{ secrets.TOKENNAME3}}" ] ; then
+          export ${{ secrets.TOKENNAME3}}=${{ secrets.TOKENVALUE3}}
         fi
-        if [ "${{ secrets.TokenName4}}" ] ; then
-          export ${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}
+        if [ "${{ secrets.TOKENNAME4}}" ] ; then
+          export ${{ secrets.TOKENNAME4}}=${{ secrets.TOKENVALUE4}}
         fi
-        if [ "${{ secrets.TokenName5}}" ] ; then
-          export ${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}
+        if [ "${{ secrets.TOKENNAME5}}" ] ; then
+          export ${{ secrets.TOKENNAME5}}=${{ secrets.TOKENVALUE5}}
         fi
         cd ../acmetest
         ./letest.sh
