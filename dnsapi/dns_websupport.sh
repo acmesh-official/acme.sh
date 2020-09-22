@@ -157,10 +157,10 @@ _ws_rest() {
   _debug2 api_secret "$WS_ApiSecret"
 
   timestamp="$(date +%s)"
-  datez="$(_time2str_iso "$timestamp")"
+  datez=$(date -u -r "$timestamp" +%Y-%m-%dT%H:%M:%S%z 2>/dev/null || date -u -d@"$timestamp" +%Y-%m-%dT%H:%M:%S%z)
   canonical_request="${me} ${pa} ${timestamp}"
-  hash="sha1"
-  signature_hash="$(printf "%s" "$canonical_request" | _hmac_value "$hash" "$WS_ApiSecret" hex)"
+  alg="sha1"
+  signature_hash=$( (printf "%s" "$canonical_request" | ${ACME_OPENSSL_BIN:-openssl} dgst -"$alg" -mac HMAC -macopt "key:$WS_ApiSecret" 2>/dev/null || printf "%s" "$canonical_request" | ${ACME_OPENSSL_BIN:-openssl} dgst -"$alg" -hmac "$(printf "%s" "$WS_ApiSecret" | _h2b)") | cut -d = -f 2 | tr -d ' ')
   basicauth="$(printf "%s:%s" "$WS_ApiKey" "$signature_hash" | _base64)"
 
   _debug2 method "$me"
@@ -169,7 +169,7 @@ _ws_rest() {
   _debug2 timestamp "$timestamp"
   _debug2 datez "$datez"
   _debug2 canonical_request "$canonical_request"
-  _debug2 Hash "$hash"
+  _debug2 alg "$alg"
   _debug2 signature_hash "$signature_hash"
   _debug2 basicauth "$basicauth"
 
@@ -196,30 +196,6 @@ _ws_rest() {
   return "$?"
 }
 
-_hmac_value() {
-  alg="$1"
-  value=$(cat)
-  secret_hex="$2"
-  outputhex="$3"
-
-  if [ -z "$secret_hex" ] || [ -z "$value" ]; then
-    _usage "Usage: _hmac_value hashalg secret [outputhex]"
-    return 1
-  fi
-
-  if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ]; then
-    if [ "$outputhex" ]; then
-      (printf "%s" "$value" | ${ACME_OPENSSL_BIN:-openssl} dgst -"$alg" -mac HMAC -macopt "key:$secret_hex" 2>/dev/null || printf "%s" "$value" | ${ACME_OPENSSL_BIN:-openssl} dgst -"$alg" -hmac "$(printf "%s" "$secret_hex" | _h2b)") | cut -d = -f 2 | tr -d ' '
-    else
-      ${ACME_OPENSSL_BIN:-openssl} dgst -"$alg" -mac HMAC -macopt "hexkey:$secret_hex" -binary 2>/dev/null || ${ACME_OPENSSL_BIN:-openssl} dgst -"$alg" -hmac "$(printf "%s" "$secret_hex" | _h2b)" -binary
-    fi
-  else
-    _err "$alg is not supported yet"
-    return 1
-  fi
-
-}
-
 _get_from_array() {
   va="$1"
   fi="$2"
@@ -229,27 +205,4 @@ _get_from_array() {
       break
     fi
   done
-}
-
-_time2str_iso() {
-  #BSD
-  if date -u -r "$1" +%Y-%m-%dT%H:%M:%S%z 2>/dev/null; then
-    return
-  fi
-
-  #Linux
-  if date -u -d@"$1" +%Y-%m-%dT%H:%M:%S%z 2>/dev/null; then
-    return
-  fi
-
-  #Solaris
-  if _exists adb; then
-    _t_s_a=$(echo "0t${1}=Y" | adb)
-    echo "$_t_s_a"
-  fi
-
-  #Busybox
-  if echo "$1" | awk '{ print strftime("%c", $0); }' 2>/dev/null; then
-    return
-  fi
 }
