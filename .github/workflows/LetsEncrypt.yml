@@ -109,7 +109,7 @@ jobs:
     - uses: vmactions/freebsd@main
       with:
         envs: 'NGROK_TOKEN TEST_LOCAL'
-        prepare: pkg install -y socat
+        prepare: pkg install -y socat curl
         run: |
           cd ../acmetest && ./letest.sh
 
