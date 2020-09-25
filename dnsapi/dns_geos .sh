@@ -76,7 +76,7 @@ _count() {
 _get_domain() {
 	i=2
 	c=$(_count "$1" ".")
-	while [ $i -le $c ]; do
+	while [ $i -le "$c" ]; do
 		h=$(echo "$1" | cut -d . -f $i-)
 		if [ -z "$h" ]; then
 			return 1
@@ -113,21 +113,19 @@ _login() {
 	return 0
 }
 
-#$1:full domain name
+#$1:full domain name,_acme-challenge.www.domain.com
 #ret:
 # _sub_domain=_acme-challenge.www
-# _domain=domain.com
 # _zone_id=xxxxxx
 _get_zone(){
 	response=$(_get "https://www.geoscaling.com/dns2/index.php?module=domains")
 	table=$(echo "$response" | tr -d "\n" | grep -oP "(?<=<table border='0' align='center' cellpadding='10' cellspacing='10' class=\"threecolumns\">).*?(?=</table>)")
 	items=$(echo "$table" | grep -oP "(?<=<a).*?(?=</a>)")
 	domains=$(_get_domain "$1")
-	for d in ${domains[@]};do
+	for d in "${domains[@]}";do
 		id=$(echo "$items" | grep -oP "id=[0-9]*.*$d" | cut -d "'" -f 1)
 		if [ -n "$id" ]; then
-			_domain=$d
-			_sub_domain=$(echo "$1" | sed "s/.$d//")
+			_sub_domain=${1//.$d/}
 			_zone_id=${id##*=}
 		  #echo "$_zone_id"
 		  return 0
