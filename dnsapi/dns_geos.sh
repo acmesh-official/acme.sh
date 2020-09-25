@@ -52,7 +52,7 @@ dns_geos_rm() {
   _debug "zone id \"$_zone_id\" will be used."
 
   # Find the record id to clean
-  record_id=$(_get_record_id "$_zone_id" "$_full_domain") || return 1;
+  record_id=$(_get_record_id "$_zone_id" "$_full_domain") || return 1
   body="id=${_zone_id}&record_id=${record_id}"
   response=$(_post "$body" "https://www.geoscaling.com/dns2/ajax/delete_record.php")
   _debug "rm:$response"
@@ -117,12 +117,12 @@ _login() {
 #ret:
 # _sub_domain=_acme-challenge.www
 # _zone_id=xxxxxx
-_get_zone(){
+_get_zone() {
   response=$(_get "https://www.geoscaling.com/dns2/index.php?module=domains")
   table=$(echo "$response" | tr -d "\n" | grep -oP "(?<=<table border='0' align='center' cellpadding='10' cellspacing='10' class=\"threecolumns\">).*?(?=</table>)")
   items=$(echo "$table" | grep -oP "(?<=<a).*?(?=</a>)")
   domains=$(_get_domain "$1")
-  for d in "${domains[@]}";do
+  for d in "${domains[@]}"; do
     id=$(echo "$items" | grep -oP "id=[0-9]*.*$d" | cut -d "'" -f 1)
     if [ -n "$id" ]; then
       _sub_domain=${1//.$d/}
@@ -135,9 +135,9 @@ _get_zone(){
 }
 
 #$1:domain id,$2:dns fullname
-_get_record_id(){
+_get_record_id() {
   response=$(_get "https://www.geoscaling.com/dns2/index.php?module=domain&id=$1")
-  id=$(echo "$response" | tr -d "\n" | grep -oP "(?<=<table id='records_table').*?(?=</table>)" | grep -oP "id=\"[0-9]*.name\">$2"|cut -d '"' -f 2)
+  id=$(echo "$response" | tr -d "\n" | grep -oP "(?<=<table id='records_table').*?(?=</table>)" | grep -oP "id=\"[0-9]*.name\">$2" | cut -d '"' -f 2)
   if [ -z "$id" ]; then
     _err "DNS record $2 not found."
     return 1
