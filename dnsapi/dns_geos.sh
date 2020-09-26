@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env sh
 ########################################################################
 # GeoScaling hook script for acme.sh
 #
@@ -70,23 +70,6 @@ dns_geos_rm() {
 _count() {
   echo "$1" | awk -F"$2" '{print NF-1}'
 }
-#Usage: local -a domains=(); _get_domain "_acme-challenge.us.domain.com" domains
-#$1:fullname
-#$2:return root domain array,us.domain.com domain.com
-_get_domain() {
-  local -n arr=$2 #use nameref for indirection
-  i=2
-  c=$(_count "$1" ".")
-  while [ $i -le "$c" ]; do
-    h=$(echo "$1" | cut -d . -f $i-)
-    if [ -z "$h" ]; then
-      return 1
-    fi
-    arr+=("$h")
-    i=$(_math "$i" + 1)
-  done
-  return 0
-}
 
 _login() {
   GEOS_Username="${GEOS_Username:-$(_readaccountconf_mutable GEOS_Username)}"
@@ -99,8 +82,8 @@ _login() {
   fi
   _saveaccountconf_mutable GEOS_Username "$GEOS_Username"
   _saveaccountconf_mutable GEOS_Password "$GEOS_Password"
-  username_encoded=$(echo -n "${GEOS_Username}" | _url_encode)
-  password_encoded=$(echo -n "${GEOS_Password}" | _url_encode)
+  username_encoded=$(printf "%s" "${GEOS_Username}" | _url_encode)
+  password_encoded=$(printf "%s" "${GEOS_Password}" | _url_encode)
   body="username=${username_encoded}&password=${password_encoded}"
   if ! _post "$body" "https://www.geoscaling.com/dns2/index.php?module=auth"; then
     _err "geoscaling login failed for user $GEOS_Username bad RC from _post"
@@ -123,16 +106,21 @@ _get_zone() {
   table=$(echo "$response" | tr -d "\n" | grep -oP "(?<=<table border='0' align='center' cellpadding='10' cellspacing='10' class=\"threecolumns\">).*?(?=</table>)")
   items=$(echo "$table" | grep -oP "(?<=<a).*?(?=</a>)")
   #_debug "items=$items"
-  domains=()
-  _get_domain "$1" domains || return 1
-  for d in "${domains[@]}"; do
+  i=2
+  c=$(_count "$1" ".")
+  while [ $i -le "$c" ]; do
+    d=$(echo "$1" | cut -d . -f $i-)
+    if [ -z "$d" ]; then
+      return 1
+    fi
     id=$(echo "$items" | grep -oP "id=[0-9]*.*$d" | cut -d "'" -f 1)
     if [ -n "$id" ]; then
-      _sub_domain=${1//.$d/}
+      _sub_domain=$(echo "$1" | sed "s/.$d//")
       _zone_id=${id##*=}
       _debug "zone_id=$_zone_id"
       return 0
     fi
+    i=$(_math "$i" + 1)
   done
   return 1
 }
