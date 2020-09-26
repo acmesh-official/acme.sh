@@ -4047,6 +4047,7 @@ issue() {
   _local_addr="${13}"
   _challenge_alias="${14}"
   _preferred_chain="${15}"
+  _verify_cert="${16}"
 
   if [ -z "$_ACME_IS_RENEW" ]; then
     _initpath "$_main_domain" "$_key_length"
@@ -4908,6 +4909,51 @@ $_authorizations_map"
   fi
   [ -f "$CA_CERT_PATH" ] && _info "The intermediate CA cert is in $(__green " $CA_CERT_PATH ")"
   [ -f "$CERT_FULLCHAIN_PATH" ] && _info "And the full chain certs is there: $(__green " $CERT_FULLCHAIN_PATH ")"
+  # Check if the certificate we received is what we expect
+  if [ ! -z "$_verify_cert" ]; then
+    _info "Verifying cert chain and purpose"
+    if [ "$_verify_cert" = "store" ]; then
+      $ACME_OPENSSL_BIN verify -purpose sslserver -untrusted $CA_CERT_PATH $CERT_FULLCHAIN_PATH >/dev/null
+    else
+      $ACME_OPENSSL_BIN verify -CAfile "$_verify_cert" -purpose sslserver -untrusted $CA_CERT_PATH $CERT_FULLCHAIN_PATH >/dev/null
+    fi
+    if [ "$?" != "0" ]; then
+      _err "Couldn't verify the issued certificate"
+      return 1
+    fi
+    _info "Verifying certificate common name"
+    _subj=$($ACME_OPENSSL_BIN x509 -in "$CERT_PATH" -noout -subject | sed 's/subject=.*CN = \([^/, ]\+\)/\1/')
+    _debug "Certificate subject CN is $(__green " $_subj ")"
+    if [ "$_subj" != "$_main_domain" ]; then
+      _err "Cert name $_subj does not match main requested domain $_main_domain"
+    fi
+    _info "Verifying certificate alternate names"
+    _domainlist=$(echo -n "$_main_domain,$_alt_domains" | tr ',' '\n' | sort)
+    _san=$($ACME_OPENSSL_BIN x509 -in "$CERT_PATH" -certopt no_subject,no_header,no_version,no_serial,no_signame,no_validity,no_issuer,no_pubkey,no_sigdump,no_aux -noout -text | grep -A1 " X509v3 Subject Alternative Name:" | tail -n1 | sed 's/ *[^ ]\+:\([^,]\+\)\(, \)\?/\1\n/g' | sed '/^$/d' | sort)
+    if [ "$_domainlist" != "$_san" ]; then
+      _err "Certificate SAN does not match requested domains. Check for missing, malformed, or additional SAN entries"
+      _err "Domains: $_domainlist"
+      _err "Cert SANs: $_san"
+      return 1
+    fi
+    _info "Verifying OCSP"
+    _ocsp=$($ACME_OPENSSL_BIN x509 -in "$CERT_PATH" -certopt no_subject,no_header,no_version,no_serial,no_signame,no_validity,no_issuer,no_pubkey,no_sigdump,no_aux -noout -text | grep " OCSP - URI:" | sed 's/ *OCSP - URI:\(.*\)/\1/')
+    _ocsp_result=$($ACME_OPENSSL_BIN ocsp -url "$_ocsp" -issuer "$CA_CERT_PATH" -cert "$CERT_PATH" 2>&1)
+    if [ "$?" != "0" ]; then
+      _err "OCSP check failed, result:"
+      _err "$_ocsp_result"
+      return 1
+    fi
+    if [ "$Le_OCSP_Staple" = "1" ]; then
+      _info "Verifying that certificate includes OCSP must-staple (TLS feature: status_request)"
+      # The check may be fragile if the TLS Feature list happens to be multi-line
+      if ! $ACME_OPENSSL_BIN x509 -in "$CERT_PATH" -certopt no_subject,no_header,no_version,no_serial,no_signame,no_validity,no_issuer,no_pubkey,no_sigdump,no_aux -noout -text | grep -A1 " TLS Feature:" | grep "status_request" > /dev/null; then
+        _err "OCSP must-staple was not found in the issued certificate"
+        return 1
+      fi
+    fi
+    _info "$(__green "Checks on issued certificate and chain were successful")"
+  fi
 
   Le_CertCreateTime=$(_time)
   _savedomainconf "Le_CertCreateTime" "$Le_CertCreateTime"
@@ -6539,7 +6585,9 @@ Parameters:
                                     See: $_REVOKE_WIKI
 
   --password <password>             Add a password to exported pfx file. Use with --to-pkcs12.
-
+  --verify-cert <root>              Verify the issued certificate against
+                                    <root>. Use 'store' to use yourenvironment's trust store. For staging
+                                    environments you may need to download the root cert and specify it here.
 
 "
 }
@@ -7265,6 +7313,10 @@ _process() {
       _preferred_chain="$2"
       shift
       ;;
+    --verify-cert)
+      _verify_cert="$2"
+     shift
+     ;;
     *)
       _err "Unknown parameter : $1"
       return 1
@@ -7331,7 +7383,7 @@ _process() {
   uninstall) uninstall "$_nocron" ;;
   upgrade) upgrade ;;
   issue)
-    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain"
+    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_verify_cert"
     ;;
   deploy)
     deploy "$_domain" "$_deploy_hook" "$_ecc"
