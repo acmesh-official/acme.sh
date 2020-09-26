@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/bash
 ########################################################################
 # GeoScaling hook script for acme.sh
 #
