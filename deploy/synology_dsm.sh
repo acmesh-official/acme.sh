@@ -22,7 +22,7 @@
 ########  Public functions #####################
 
 _syno_get_cookie_data() {
-  grep -i "\W$1=" | grep -i "^Set-Cookie:" | _tail_n 1 | _egrep_o "$1=[^;]*;" | tr -d ';'
+  grep -i "\W$1=" "$HTTP_HEADER" | grep -i "^Set-Cookie:" | _tail_n 1 | _egrep_o "$1=[^;]*;" | tr -d ';'
 }
 
 #domain keyfile certfile cafile fullchain
@@ -78,8 +78,8 @@ synology_dsm_deploy() {
   encoded_username="$(printf "%s" "$SYNO_Username" | _url_encode)"
   encoded_password="$(printf "%s" "$SYNO_Password" | _url_encode)"
   encoded_did="$(printf "%s" "$SYNO_DID" | _url_encode)"
-  response=$(_get "$_base_url/webman/login.cgi?username=$encoded_username&passwd=$encoded_password&enable_syno_token=yes&device_id=$encoded_did" 1)
-  token=$(echo "$response" | grep -i "X-SYNO-TOKEN:" | sed -n 's/^X-SYNO-TOKEN: \(.*\)$/\1/pI' | tr -d "\r\n")
+  response=$(_post "username=$encoded_username&passwd=$encoded_password&device_id=$encoded_did" "$_base_url/webman/login.cgi?enable_syno_token=yes")
+  token=$(echo "$response" | grep "SynoToken" | sed -n 's/.*"SynoToken" *: *"\([^"]*\).*/\1/p')
   _debug3 response "$response"
   _debug token "$token"
 
@@ -89,7 +89,7 @@ synology_dsm_deploy() {
     return 1
   fi
 
-  _H1="Cookie: $(echo "$response" | _syno_get_cookie_data "id"); $(echo "$response" | _syno_get_cookie_data "smid")"
+  _H1="Cookie: $(_syno_get_cookie_data "id"); $(_syno_get_cookie_data "smid")"
   _H2="X-SYNO-TOKEN: $token"
   export _H1
   export _H2
