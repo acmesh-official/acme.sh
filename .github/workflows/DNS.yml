@@ -1,8 +1,6 @@
 name: DNS
 on:
   push:
-    branches:
-      - 'dev'
     paths:
       - 'dnsapi/*.sh'
       - '.github/workflows/DNS.yml'
@@ -38,10 +36,10 @@ jobs:
     steps:
     - name: "Read this:   https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test"
       run: |
-        echo "Plese see this page to fix the error: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test"
-    - name: Fail
-      if: "github.actor != 'Neilpang'"
-      run: false
+        echo "Read this:   https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test"
+        if [ "${{github.actor}}" != "Neilpang" ]; then
+          false
+        fi
 
   Docker:
     runs-on: ubuntu-latest
@@ -170,4 +168,42 @@ jobs:
         cd ../acmetest
         ./letest.sh
 
+  FreeBSD:
+    runs-on: macos-latest
+    needs: Windows
+    env:
+      TEST_DNS : ${{ secrets.TEST_DNS }}
+      TestingDomain: ${{ secrets.TestingDomain }}
+      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      CASE: le_test_dnsapi
+      TEST_LOCAL: 1
+      DEBUG: 1
+    steps:
+    - uses: actions/checkout@v2
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - uses: vmactions/freebsd@main
+      with:
+        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        prepare: pkg install -y socat curl
+        run: |
+          if [ "${{ secrets.TokenName1}}" ] ; then
+            export ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
+          fi
+          if [ "${{ secrets.TokenName2}}" ] ; then
+            export ${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}
+          fi
+          if [ "${{ secrets.TokenName3}}" ] ; then
+            export ${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}
+          fi
+          if [ "${{ secrets.TokenName4}}" ] ; then
+            export ${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}
+          fi
+          if [ "${{ secrets.TokenName5}}" ] ; then
+            export ${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}
+          fi
+          cd ../acmetest
+          ./letest.sh
 
+        
