@@ -56,8 +56,18 @@ _get_root() {
     _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
     _domain="$h"
 
-    if _transip_rest GET "domains/$h/dns" && _contains "$response" "dnsEntries"; then
-      return 0
+    if _transip_rest GET "domains/$h/dns"; then
+      if _contains "$response" "dnsEntries"; then
+        return 0
+      fi
+
+      if _contains "$response" '"error"' && ! _contains "$response" "Domain with name '$h' not found"; then
+        transiperror=$(echo "$response" | _normalizeJson | sed -n 's/^{"error":"\(.*\)"}/\1/p')
+
+        _err "Error received: $transiperror"
+
+        return 1
+      fi
     fi
 
     p=$i
