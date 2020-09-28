@@ -36,10 +36,10 @@ jobs:
     steps:
     - name: "Read this:   https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test"
       run: |
-        echo "Plese see this page to fix the error: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test"
-    - name: Fail
-      if: "github.actor != 'Neilpang'"
-      run: false
+        echo "Read this:   https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test"
+        if [ "${{github.actor}}" != "Neilpang" ]; then
+          false
+        fi
 
   Docker:
     runs-on: ubuntu-latest
