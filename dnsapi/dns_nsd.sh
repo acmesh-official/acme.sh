@@ -78,7 +78,7 @@ _increment_serial() {
     } else
       $6++
   }
-  { print }' "$Nsd_ZoneFile" > "$tmpfile" || return 1
-  awk '{print}' "$tmpfile" > "$Nsd_ZoneFile"
+  { print }' "$Nsd_ZoneFile" >"$tmpfile" || return 1
+  awk '{print}' "$tmpfile" >"$Nsd_ZoneFile"
   rm -f "$tmpfile"
 }
