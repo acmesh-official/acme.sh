@@ -54,7 +54,7 @@ cleverreach_deploy() {
 
   _certData="{\"cert\":\"$(_json_encode <"$_cfullchain")\", \"key\":\"$(_json_encode <"$_ckey")\"}"
   export _H1="Authorization: Bearer ${_access_token}"
-  _add_cert_result="$(_post "$_certData" "https://rest.cleverreach.com/v3/ssl/${_cdomain}" "" "POST" "application/json")"
+  _add_cert_result="$(_post "$_certData" "https://rest.cleverreach.com/v3/ssl" "" "POST" "application/json")"
 
   _debug "Destroying token at CleverReach"
   _post "" "https://rest.cleverreach.com/v3/oauth/token.json" "" "DELETE" "application/json"
