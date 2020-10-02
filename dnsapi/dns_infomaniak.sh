@@ -85,7 +85,7 @@ dns_infomaniak_add() {
 
   # API call
   response=$(_post "$data" "${INFOMANIAK_API_URL}/1/domain/$domain_id/dns/record")
-  if [ -n "$response" ] && echo "$response" | grep -qF '"result":"success"'; then
+  if [ -n "$response" ] && echo "$response" | _contains '"result":"success"'; then
     _info "Record added"
     _debug "Response: $response"
     return 0
@@ -165,7 +165,7 @@ dns_infomaniak_rm() {
 
   # API call
   response=$(_post "" "${INFOMANIAK_API_URL}/1/domain/$domain_id/dns/record/$record_id" "" DELETE)
-  if [ -n "$response" ] && echo "$response" | grep -qF '"result":"success"'; then
+  if [ -n "$response" ] && echo "$response" | _contains '"result":"success"'; then
     _info "Record deleted"
     return 0
   fi
@@ -187,7 +187,7 @@ _find_zone() {
   zone="$1"
 
   # find domain in list, removing . parts sequentialy
-  while echo "$zone" | grep -q '\.'; do
+  while _contains "$zone" '\.'; do
     _debug "testing $zone"
     id=$(_get_domain_id "$zone")
     if [ -n "$id" ]; then
