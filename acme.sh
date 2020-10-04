@@ -4947,7 +4947,7 @@ $_authorizations_map"
     if [ "$Le_OCSP_Staple" = "1" ]; then
       _info "Verifying that certificate includes OCSP must-staple (TLS feature: status_request)"
       # The check may be fragile if the TLS Feature list happens to be multi-line
-      if ! $ACME_OPENSSL_BIN x509 -in "$CERT_PATH" -certopt no_subject,no_header,no_version,no_serial,no_signame,no_validity,no_issuer,no_pubkey,no_sigdump,no_aux -noout -text | grep -A1 " TLS Feature:" | grep "status_request" > /dev/null; then
+      if ! $ACME_OPENSSL_BIN x509 -in "$CERT_PATH" -certopt no_subject,no_header,no_version,no_serial,no_signame,no_validity,no_issuer,no_pubkey,no_sigdump,no_aux -noout -text | grep -A1 " TLS Feature:" | grep "status_request" >/dev/null; then
         _err "OCSP must-staple was not found in the issued certificate"
         return 1
       fi
@@ -7315,8 +7315,8 @@ _process() {
       ;;
     --verify-cert)
       _verify_cert="$2"
-     shift
-     ;;
+      shift
+      ;;
     *)
       _err "Unknown parameter : $1"
       return 1
