@@ -13,7 +13,6 @@
 
 # Please Read this guide first: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
 
-
 # BMN urls:
 # https://BMN_USER:BMN_PASSWORD@www.bookmyname.com/dyndns/?hostname=_acme-challenge.domain.tld&type=txt&ttl=300&do=add&value="XXXXXXXX"'
 # https://BMN_USER:BMN_PASSWORD@www.bookmyname.com/dyndns/?hostname=_acme-challenge.domain.tld&type=txt&ttl=300&do=remove&value="XXXXXXXX"'
@@ -28,7 +27,6 @@
 # export BOOKMYNAME_USERNAME="ABCDE-FREE"
 # export BOOKMYNAME_PASSWORD="MyPassword"
 # /usr/local/ssl/acme.sh/acme.sh --dns dns_bookmyname --dnssleep 600 --issue -d domain.tld
-
 
 #Usage: dns_bookmyname_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_bookmyname_add() {
@@ -53,7 +51,6 @@ dns_bookmyname_add() {
   _saveaccountconf_mutable BOOKMYNAME_USERNAME "$BOOKMYNAME_USERNAME"
   _saveaccountconf_mutable BOOKMYNAME_PASSWORD "$BOOKMYNAME_PASSWORD"
 
-
   uri="https://${BOOKMYNAME_USERNAME}:${BOOKMYNAME_PASSWORD}@www.bookmyname.com/dyndns/"
   data="?hostname=${fulldomain}&type=TXT&ttl=300&do=add&value=${txtvalue}"
   result="$(_get "${uri}${data}")"
@@ -77,7 +74,6 @@ dns_bookmyname_rm() {
 
   BOOKMYNAME_USERNAME="${BOOKMYNAME_USERNAME:-$(_readaccountconf_mutable BOOKMYNAME_USERNAME)}"
   BOOKMYNAME_PASSWORD="${BOOKMYNAME_PASSWORD:-$(_readaccountconf_mutable BOOKMYNAME_PASSWORD)}"
-
 
   uri="https://${BOOKMYNAME_USERNAME}:${BOOKMYNAME_PASSWORD}@www.bookmyname.com/dyndns/"
   data="?hostname=${fulldomain}&type=TXT&ttl=300&do=remove&value=${txtvalue}"
