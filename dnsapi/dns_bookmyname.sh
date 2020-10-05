@@ -21,7 +21,7 @@
 #good: update done, cid 123456, domain id 456789, type txt, ip XXXXXXXX
 #good: remove done 1, cid 123456, domain id 456789, ttl 300, type txt, ip XXXXXXXX
 
-# Be careful, BMN DNS servers can be slow to pick up changes; using dnssleep is thus advised.
+# Be careful, BookMyName DNS servers can be slow to pick up changes; using dnssleep is thus advised.
 
 # Usage:
 # export BOOKMYNAME_USERNAME="ABCDE-FREE"
