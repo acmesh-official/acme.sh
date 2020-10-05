@@ -60,7 +60,7 @@ dns_bookmyname_add() {
   _debug "Result: $result"
 
   if ! _startswith "$result" 'good: update done, cid '; then
-	  _err "Can't add $subdomain to $domain."
+	  _err "Can't add $fulldomain"
 	  return 1
   fi
 
@@ -85,7 +85,7 @@ dns_bookmyname_rm() {
   _debug "Result: $result"
 
   if ! _startswith "$result" 'good: remove done 1, cid '; then
-    _info "Can't remove $subdomain from $domain."
+    _info "Can't remove $fulldomain"
   fi
 
 }
