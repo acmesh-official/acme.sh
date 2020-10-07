@@ -106,9 +106,9 @@ _get_root() {
   domain=$1
   i=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
-    _debug h "$h"
-    if [ -z "$h" ]; then
+    _domain=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _debug h "$_domain"
+    if [ -z "$_domain" ]; then
       return 1
     fi
 
@@ -119,11 +119,9 @@ _get_root() {
     if printf "%s\n" "$response" | grep '^\[.*\]' >/dev/null; then
       if _contains "$response" "\"domain\":\"$_domain\""; then
         _sub_domain="$(echo "$fulldomain" | sed "s/\\.$_domain\$//")"
-        _domain=$_domain
         return 0
       else
-        _err 'Invalid domain'
-        return 1
+        _debug "Go to next level of $_domain"
       fi
     else
       _err "$response"

@@ -5,7 +5,7 @@
 # https://github.com/AnalogJ/lexicon
 lexicon_cmd="lexicon"
 
-wiki="https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api"
+wiki="https://github.com/acmesh-official/acme.sh/wiki/How-to-use-lexicon-dns-api"
 
 _lexicon_init() {
   if ! _exists "$lexicon_cmd"; then
@@ -63,6 +63,16 @@ _lexicon_init() {
     _saveaccountconf_mutable "$Lx_domaintoken" "$Lx_domaintoken_v"
     eval export "$Lx_domaintoken"
   fi
+
+  # shellcheck disable=SC2018,SC2019
+  Lx_api_key=$(echo LEXICON_"${PROVIDER}"_API_KEY | tr 'a-z' 'A-Z')
+  eval "$Lx_api_key=\${$Lx_api_key:-$(_readaccountconf_mutable "$Lx_api_key")}"
+  Lx_api_key_v=$(eval echo \$"$Lx_api_key")
+  _secure_debug "$Lx_api_key" "$Lx_api_key_v"
+  if [ "$Lx_api_key_v" ]; then
+    _saveaccountconf_mutable "$Lx_api_key" "$Lx_api_key_v"
+    eval export "$Lx_api_key"
+  fi
 }
 
 ########  Public functions #####################
@@ -82,7 +92,7 @@ dns_lexicon_add() {
   _savedomainconf LEXICON_OPTS "$LEXICON_OPTS"
 
   # shellcheck disable=SC2086
-  $lexicon_cmd "$PROVIDER" $LEXICON_OPTS create "${domain}" TXT --name="_acme-challenge.${domain}." --content="${txtvalue}"
+  $lexicon_cmd "$PROVIDER" $LEXICON_OPTS create "${domain}" TXT --name="_acme-challenge.${domain}." --content="${txtvalue}" --output QUIET
 
 }
 
@@ -98,6 +108,6 @@ dns_lexicon_rm() {
   domain=$(printf "%s" "$fulldomain" | cut -d . -f 2-999)
 
   # shellcheck disable=SC2086
-  $lexicon_cmd "$PROVIDER" $LEXICON_OPTS delete "${domain}" TXT --name="_acme-challenge.${domain}." --content="${txtvalue}"
+  $lexicon_cmd "$PROVIDER" $LEXICON_OPTS delete "${domain}" TXT --name="_acme-challenge.${domain}." --content="${txtvalue}" --output QUIET
 
 }

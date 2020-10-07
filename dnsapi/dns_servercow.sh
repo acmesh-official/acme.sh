@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 ##########
-# Custom servercow.de DNS API v1 for use with [acme.sh](https://github.com/Neilpang/acme.sh)
+# Custom servercow.de DNS API v1 for use with [acme.sh](https://github.com/acmesh-official/acme.sh)
 #
 # Usage:
 # export SERVERCOW_API_Username=username

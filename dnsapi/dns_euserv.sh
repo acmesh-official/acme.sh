@@ -127,7 +127,7 @@ dns_euserv_rm() {
   else
     # find XML block where txtvalue is in. The record_id is allways prior this line!
     _endLine=$(echo "$response" | grep -n '>dns_record_content<.*>'"$txtvalue"'<' | cut -d ':' -f 1)
-    # record_id is the last <name> Tag with a number before the row _endLine, identified by </name><value><struct> 
+    # record_id is the last <name> Tag with a number before the row _endLine, identified by </name><value><struct>
     _record_id=$(echo "$response" | sed -n '1,'"$_endLine"'p' | grep '</name><value><struct>' | _tail_n 1 | sed 's/.*<name>\([0-9]*\)<\/name>.*/\1/')
     _info "Deleting record"
     _euserv_delete_record "$_record_id"

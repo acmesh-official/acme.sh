@@ -32,49 +32,49 @@ SYS_CA='https://ca.api.soyoustart.com/1.0'
 #'runabove-ca'
 RAV_CA='https://api.runabove.com/1.0'
 
-wiki="https://github.com/Neilpang/acme.sh/wiki/How-to-use-OVH-domain-api"
+wiki="https://github.com/acmesh-official/acme.sh/wiki/How-to-use-OVH-domain-api"
 
-ovh_success="https://github.com/Neilpang/acme.sh/wiki/OVH-Success"
+ovh_success="https://github.com/acmesh-official/acme.sh/wiki/OVH-Success"
 
 _ovh_get_api() {
   _ogaep="$1"
 
   case "${_ogaep}" in
 
-    ovh-eu | ovheu)
-      printf "%s" $OVH_EU
-      return
-      ;;
-    ovh-ca | ovhca)
-      printf "%s" $OVH_CA
-      return
-      ;;
-    kimsufi-eu | kimsufieu)
-      printf "%s" $KSF_EU
-      return
-      ;;
-    kimsufi-ca | kimsufica)
-      printf "%s" $KSF_CA
-      return
-      ;;
-    soyoustart-eu | soyoustarteu)
-      printf "%s" $SYS_EU
-      return
-      ;;
-    soyoustart-ca | soyoustartca)
-      printf "%s" $SYS_CA
-      return
-      ;;
-    runabove-ca | runaboveca)
-      printf "%s" $RAV_CA
-      return
-      ;;
+  ovh-eu | ovheu)
+    printf "%s" $OVH_EU
+    return
+    ;;
+  ovh-ca | ovhca)
+    printf "%s" $OVH_CA
+    return
+    ;;
+  kimsufi-eu | kimsufieu)
+    printf "%s" $KSF_EU
+    return
+    ;;
+  kimsufi-ca | kimsufica)
+    printf "%s" $KSF_CA
+    return
+    ;;
+  soyoustart-eu | soyoustarteu)
+    printf "%s" $SYS_EU
+    return
+    ;;
+  soyoustart-ca | soyoustartca)
+    printf "%s" $SYS_CA
+    return
+    ;;
+  runabove-ca | runaboveca)
+    printf "%s" $RAV_CA
+    return
+    ;;
 
-    *)
+  *)
 
-      _err "Unknown parameter : $1"
-      return 1
-      ;;
+    _err "Unknown parameter : $1"
+    return 1
+    ;;
   esac
 }
 

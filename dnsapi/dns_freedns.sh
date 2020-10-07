@@ -7,7 +7,7 @@
 #
 #Author: David Kerr
 #Report Bugs here: https://github.com/dkerr64/acme.sh
-#or here... https://github.com/Neilpang/acme.sh/issues/2305
+#or here... https://github.com/acmesh-official/acme.sh/issues/2305
 #
 ########  Public functions #####################
 
@@ -303,10 +303,10 @@ _freedns_domain_id() {
       return 1
     fi
 
-    domain_id="$(echo "$htmlpage" | tr -d "[:space:]" | sed 's/<tr>/@<tr>/g' | tr '@' '\n' \
-      | grep "<td>$search_domain</td>\|<td>$search_domain(.*)</td>" \
-      | _egrep_o "edit\.php\?edit_domain_id=[0-9a-zA-Z]+" \
-      | cut -d = -f 2)"
+    domain_id="$(echo "$htmlpage" | tr -d " \t\r\n\v\f" | sed 's/<tr>/@<tr>/g' | tr '@' '\n' |
+      grep "<td>$search_domain</td>\|<td>$search_domain(.*)</td>" |
+      sed -n 's/.*\(edit\.php?edit_domain_id=[0-9a-zA-Z]*\).*/\1/p' |
+      cut -d = -f 2)"
     # The above beauty extracts domain ID from the html page...
     # strip out all blank space and new lines. Then insert newlines
     # before each table row <tr>
@@ -349,17 +349,17 @@ _freedns_data_id() {
       return 1
     fi
 
-    data_id="$(echo "$htmlpage" | tr -d "[:space:]" | sed 's/<tr>/@<tr>/g' | tr '@' '\n' \
-      | grep "<td[a-zA-Z=#]*>$record_type</td>" \
-      | grep "<ahref.*>$search_domain</a>" \
-      | _egrep_o "edit\.php\?data_id=[0-9a-zA-Z]+" \
-      | cut -d = -f 2)"
+    data_id="$(echo "$htmlpage" | tr -d " \t\r\n\v\f" | sed 's/<tr>/@<tr>/g' | tr '@' '\n' |
+      grep "<td[a-zA-Z=#]*>$record_type</td>" |
+      grep "<ahref.*>$search_domain</a>" |
+      sed -n 's/.*\(edit\.php?data_id=[0-9a-zA-Z]*\).*/\1/p' |
+      cut -d = -f 2)"
     # The above beauty extracts data ID from the html page...
     # strip out all blank space and new lines. Then insert newlines
     # before each table row <tr>
     # search for the record type withing each row (e.g. TXT)
     # search for the domain within each row (which is within a <a..>
-    # </a> anchor. And finally extract the domain ID.         
+    # </a> anchor. And finally extract the domain ID.
     if [ -n "$data_id" ]; then
       printf "%s" "$data_id"
       return 0

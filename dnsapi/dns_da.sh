@@ -9,7 +9,7 @@
 #
 # User must provide login data and URL to DirectAdmin incl. port.
 # You can create login key, by using the Login Keys function
-# ( https://da.example.com:8443/CMD_LOGIN_KEYS ), which only has access to 
+# ( https://da.example.com:8443/CMD_LOGIN_KEYS ), which only has access to
 # - CMD_API_DNS_CONTROL
 # - CMD_API_SHOW_DOMAINS
 #
@@ -115,23 +115,23 @@ _da_api() {
   _debug response "$response"
 
   case "${cmd}" in
-    CMD_API_DNS_CONTROL)
-      # Parse the result in general
-      # error=0&text=Records Deleted&details=
-      # error=1&text=Cannot View Dns Record&details=No domain provided
-      err_field="$(_getfield "$response" 1 '&')"
-      txt_field="$(_getfield "$response" 2 '&')"
-      details_field="$(_getfield "$response" 3 '&')"
-      error="$(_getfield "$err_field" 2 '=')"
-      text="$(_getfield "$txt_field" 2 '=')"
-      details="$(_getfield "$details_field" 2 '=')"
-      _debug "error: ${error}, text: ${text}, details: ${details}"
-      if [ "$error" != "0" ]; then
-        _err "error $response"
-        return 1
-      fi
-      ;;
-    CMD_API_SHOW_DOMAINS) ;;
+  CMD_API_DNS_CONTROL)
+    # Parse the result in general
+    # error=0&text=Records Deleted&details=
+    # error=1&text=Cannot View Dns Record&details=No domain provided
+    err_field="$(_getfield "$response" 1 '&')"
+    txt_field="$(_getfield "$response" 2 '&')"
+    details_field="$(_getfield "$response" 3 '&')"
+    error="$(_getfield "$err_field" 2 '=')"
+    text="$(_getfield "$txt_field" 2 '=')"
+    details="$(_getfield "$details_field" 2 '=')"
+    _debug "error: ${error}, text: ${text}, details: ${details}"
+    if [ "$error" != "0" ]; then
+      _err "error $response"
+      return 1
+    fi
+    ;;
+  CMD_API_SHOW_DOMAINS) ;;
   esac
   return 0
 }

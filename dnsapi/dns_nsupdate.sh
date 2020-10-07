@@ -27,7 +27,7 @@ dns_nsupdate_add() {
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_2" ] && nsdebug="-D"
   if [ -z "${NSUPDATE_ZONE}" ]; then
     nsupdate -k "${NSUPDATE_KEY}" $nsdebug <<EOF
-server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT} 
+server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
 update add ${fulldomain}. 60 in txt "${txtvalue}"
 send
 EOF
@@ -64,7 +64,7 @@ dns_nsupdate_rm() {
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_2" ] && nsdebug="-D"
   if [ -z "${NSUPDATE_ZONE}" ]; then
     nsupdate -k "${NSUPDATE_KEY}" $nsdebug <<EOF
-server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT} 
+server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
 update delete ${fulldomain}. txt
 send
 EOF

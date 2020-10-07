@@ -7,7 +7,7 @@
 
 #MAILGUN_REGION="us|eu"          #optional, use "us" as default
 #MAILGUN_API_DOMAIN="xxxxxx.com"  #optional, use the default sandbox domain
-#MAILGUN_FROM="xxx@xxxxx.com"    #optional, use the default sendbox account
+#MAILGUN_FROM="xxx@xxxxx.com"    #optional, use the default sandbox account
 
 _MAILGUN_BASE_US="https://api.mailgun.net/v3"
 _MAILGUN_BASE_EU="https://api.eu.mailgun.net/v3"
