@@ -75,8 +75,8 @@ jobs:
         if [ "${{ secrets.TokenName5}}" ] ; then
           echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> env.list
         fi
-        echo "TEST_DNS_NO_WILDCARD=$TEST_DNS_NO_WILDCARD" >> env.list 
-        echo "TEST_DNS_SLEEP=$TEST_DNS_SLEEP" >> env.list
+        echo "TEST_DNS_NO_WILDCARD" >> env.list 
+        echo "TEST_DNS_SLEEP" >> env.list
     - name: Run acmetest
       run: cd ../acmetest && ./rundocker.sh  testall
 
