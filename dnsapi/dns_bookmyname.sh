@@ -85,5 +85,3 @@ dns_bookmyname_rm() {
   fi
 
 }
-
-####################  Private functions below ##################################
