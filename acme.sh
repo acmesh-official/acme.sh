@@ -5590,6 +5590,7 @@ installcronjob() {
   fi
   _t=$(_time)
   random_minute=$(_math $_t % 60)
+  random_hour=$(_math $_t / 60 % 24)
 
   if ! _exists "$_CRONTAB" && _exists "fcrontab"; then
     _CRONTAB="fcrontab"
@@ -5616,12 +5617,12 @@ installcronjob() {
     if _exists uname && uname -a | grep SunOS >/dev/null; then
       $_CRONTAB -l | {
         cat
-        echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
+        echo "$random_minute $random_hour * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
       } | $_CRONTAB --
     else
       $_CRONTAB -l | {
         cat
-        echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
+        echo "$random_minute $random_hour * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
       } | $_CRONTAB -
     fi
   fi
