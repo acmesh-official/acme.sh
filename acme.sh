@@ -5615,16 +5615,14 @@ installcronjob() {
   _info "Installing cron job"
   if ! $_CRONTAB -l | grep "$PROJECT_ENTRY --cron"; then
     if _exists uname && uname -a | grep SunOS >/dev/null; then
-      $_CRONTAB -l | {
-        cat
-        echo "$random_minute $random_hour * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
-      } | $_CRONTAB --
+      _CRONTAB_STDIN="$_CRONTAB --"
     else
-      $_CRONTAB -l | {
-        cat
-        echo "$random_minute $random_hour * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
-      } | $_CRONTAB -
+      _CRONTAB_STDIN="$_CRONTAB -"
     fi
+    $_CRONTAB -l | {
+      cat
+      echo "$random_minute $random_hour * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
+    } | $_CRONTAB_STDIN
   fi
   if [ "$?" != "0" ]; then
     _err "Install cron job failed. You need to manually renew your certs."
