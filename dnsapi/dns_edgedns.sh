@@ -359,11 +359,7 @@ _edgedns_eg_timestamp() {
 }
 
 _edgedns_new_nonce() {
-  _nonce=$(uuidgen -r)
-  _ret="$?"
-  if [ "$_ret" -ne 0 ]; then
-    _nonce=$(echo "EDGEDNS$(_time)" | _digest sha1 hex | cut -c 1-32)
-  fi
+  _nonce=$(echo "EDGEDNS$(_time)" | _digest sha1 hex | cut -c 1-32)
   _debug3 "_nonce" "$_nonce"
 }
 
