@@ -440,7 +440,7 @@ _edgedns_base64_sha256() {
   _debug2 "Creating sha256 digest"
   trg=$1
   _secure_debug2 "digest data" "$trg"
-  digest="$(echo "$trg" | tr -d "\n\r" | _digest "sha256")" 
+  digest="$(echo "$trg" | tr -d "\n\r" | _digest "sha256")"
   _sha256_out="$(echo "$digest" | tr -d "\n\r" | iconv -f utf-8)"
   _secure_debug2 "digest decode" "$_sha256_out"
 }
