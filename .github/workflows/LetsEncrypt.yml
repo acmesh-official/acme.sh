@@ -96,4 +96,21 @@ jobs:
       shell: cmd
       run: cd ../acmetest && bash.exe -c ./letest.sh
 
+  FreeBSD:
+    runs-on: macos-latest
+    needs: Windows
+    env:
+      NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
+      TEST_LOCAL: 1
+    steps:
+    - uses: actions/checkout@v2
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - uses: vmactions/freebsd-vm@v0.0.7
+      with:
+        envs: 'NGROK_TOKEN TEST_LOCAL'
+        prepare: pkg install -y socat curl
+        usesh: true
+        run: |
+          cd ../acmetest && ./letest.sh
 
