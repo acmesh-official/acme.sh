@@ -24,7 +24,7 @@ dns_acmedns_add() {
   _debug "fulldomain $fulldomain"
   _debug "txtvalue $txtvalue"
 
-  ACMEDNS_BASE_URL="${ACMEDNS_BASE_URL:-$(_readaccountconf_mutable ACMEDNS_BASE_URL)}"
+  ACMEDNS_BASE_URL="${ACMEDNS_BASE_URL:-$(_readdomainconf ACMEDNS_BASE_URL)}"
   ACMEDNS_USERNAME="${ACMEDNS_USERNAME:-$(_readdomainconf ACMEDNS_USERNAME)}"
   ACMEDNS_PASSWORD="${ACMEDNS_PASSWORD:-$(_readdomainconf ACMEDNS_PASSWORD)}"
   ACMEDNS_SUBDOMAIN="${ACMEDNS_SUBDOMAIN:-$(_readdomainconf ACMEDNS_SUBDOMAIN)}"
@@ -53,7 +53,7 @@ dns_acmedns_add() {
     read -r DUMMYVAR
   fi
 
-  _saveaccountconf_mutable ACMEDNS_BASE_URL "$ACMEDNS_BASE_URL"
+  _savedomainconf ACMEDNS_BASE_URL "$ACMEDNS_BASE_URL"
   _savedomainconf ACMEDNS_USERNAME "$ACMEDNS_USERNAME"
   _savedomainconf ACMEDNS_PASSWORD "$ACMEDNS_PASSWORD"
   _savedomainconf ACMEDNS_SUBDOMAIN "$ACMEDNS_SUBDOMAIN"
