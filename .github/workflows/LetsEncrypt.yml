@@ -58,7 +58,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install tools
-      run:  brew update && brew install socat;
+      run:  brew install socat
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
@@ -106,7 +106,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/freebsd-vm@v0.0.5
+    - uses: vmactions/freebsd-vm@v0.0.7
       with:
         envs: 'NGROK_TOKEN TEST_LOCAL'
         prepare: pkg install -y socat curl
