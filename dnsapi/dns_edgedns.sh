@@ -8,7 +8,7 @@
 
 # Values to export:
 # --EITHER--
-# *** NOT IMPLEMENTED YET ***
+# *** TBD. NOT IMPLEMENTED YET ***
 # specify Edgegrid credentials file and section
 # AKAMAI_EDGERC=<full file path>
 # AKAMAI_EDGERC_SECTION="default"
