@@ -2,8 +2,6 @@
 # Here is the script to deploy the cert to your CleverReach Account using the CleverReach REST API.
 # Your OAuth needs the right scope, please contact CleverReach support for that.
 #
-# It requires that jq are in the $PATH.
-#
 # Written by Jan-Philipp Benecke <github@bnck.me>
 # Public domain, 2020
 #
@@ -25,30 +23,32 @@ cleverreach_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  _cleverreach_client_id="${DEPLOY_CLEVERREACH_CLIENT_ID}"
-  _cleverreach_client_secret="${DEPLOY_CLEVERREACH_CLIENT_SECRET}"
+  _getdeployconf DEPLOY_CLEVERREACH_CLIENT_ID
+  _getdeployconf DEPLOY_CLEVERREACH_CLIENT_SECRET
 
-  if [ -z "$_cleverreach_client_id" ]; then
+  if [ -z "${DEPLOY_CLEVERREACH_CLIENT_ID}" ]; then
     _err "CleverReach Client ID is not found, please define DEPLOY_CLEVERREACH_CLIENT_ID."
     return 1
   fi
-  if [ -z "$_cleverreach_client_secret" ]; then
+  if [ -z "${DEPLOY_CLEVERREACH_CLIENT_SECRET}" ]; then
     _err "CleverReach client secret is not found, please define DEPLOY_CLEVERREACH_CLIENT_SECRET."
     return 1
   fi
 
-  _saveaccountconf DEPLOY_CLEVERREACH_CLIENT_ID "${_cleverreach_client_id}"
-  _saveaccountconf DEPLOY_CLEVERREACH_CLIENT_SECRET "${_cleverreach_client_secret}"
+  _savedeployconf DEPLOY_CLEVERREACH_CLIENT_ID "${DEPLOY_CLEVERREACH_CLIENT_ID}"
+  _savedeployconf DEPLOY_CLEVERREACH_CLIENT_SECRET "${DEPLOY_CLEVERREACH_CLIENT_SECRET}"
 
   _info "Obtaining a CleverReach access token"
 
-  _data="{\"grant_type\": \"client_credentials\", \"client_id\": \"${_cleverreach_client_id}\", \"client_secret\": \"${_cleverreach_client_secret}\"}"
+  _data="{\"grant_type\": \"client_credentials\", \"client_id\": \"${DEPLOY_CLEVERREACH_CLIENT_ID}\", \"client_secret\": \"${DEPLOY_CLEVERREACH_CLIENT_SECRET}\"}"
   _auth_result="$(_post "$_data" "https://rest.cleverreach.com/oauth/token.php" "" "POST" "application/json")"
 
   _debug _data "$_data"
   _debug _auth_result "$_auth_result"
 
-  _access_token=$(echo "$_auth_result" | _json_decode | jq -r .access_token)
+  _regex=".*\"access_token\":\"\([-._0-9A-Za-z]*\)\".*$"
+  _debug _regex "$_regex"
+  _access_token=$(echo "$_auth_result" | _json_decode | sed -n "s/$_regex/\1/p")
 
   _info "Uploading certificate and key to CleverReach"
 
