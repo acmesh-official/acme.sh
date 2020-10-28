@@ -242,7 +242,7 @@ _EDGEDNS_getZoneInfo() {
         _err "$(printf "Fatal error: acme API function call : %s" "$retVal")"
       fi
       if [ "$curResult" != "404" ]; then
-        err "$(printf "Managed zone validation failed. Error response: %s" "$retVal")"
+        _err "$(printf "Managed zone validation failed. Error response: %s" "$retVal")"
         return 1
       fi
     fi
