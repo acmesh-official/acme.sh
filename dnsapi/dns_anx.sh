@@ -19,8 +19,8 @@ dns_anx_add() {
   if [ "$ANX_Token" ]; then
     _saveaccountconf_mutable ANX_Token "$ANX_Token"
   else
-   _err "You didn't specify a ANEXIA Engine API token."
-   return 1
+    _err "You didn't specify a ANEXIA Engine API token."
+    return 1
   fi
 
   _debug "First detect the root zone"
