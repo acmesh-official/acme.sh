@@ -119,7 +119,6 @@ _anx_rest() {
   return 0
 }
 
-
 #_acme-challenge.www.domain.com
 #returns
 # _sub_domain=_acme-challenge.www
