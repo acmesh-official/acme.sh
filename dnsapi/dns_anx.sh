@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
 
-### Anexia CloudDNS acme.sh hook
+# Anexia CloudDNS acme.sh hook
+# Author: MA
+
 #ANX_Token="xxxx"
 
 ANX_API='https://engine.anexia-it.com/api/clouddns/v1'
