@@ -41,6 +41,7 @@ dns_edgedns_add() {
     _err "Invalid domain"
     return 1
   fi
+
   _debug2 "Add: zone" "$zone"
   acmeRecordURI=$(printf "%s/%s/names/%s/types/TXT" "$edge_endpoint" "$zone" "$fulldomain")
   _debug3 "Add URL" "$acmeRecordURI"
@@ -354,19 +355,31 @@ _edgedns_rest() {
 }
 
 _edgedns_eg_timestamp() {
-  _eg_timestamp=$(date -u "+%Y%m%dT%H:%M:%S+0000")
-  _debug3 "_eg_timestamp" "$_eg_timestamp"
+  _debug "Generating signature Timestamp"
+  _debug3 "Retriving ntp time"
+  _timeheaders="$(_get "https://www.ntp.org" "onlyheader")"
+  _debug3 "_timeheaders" "$_timeheaders"
+  _ntpdate="$(echo "$_timeheaders" | grep -i "Date:" | _head_n 1 | cut -d ':' -f 2- | tr -d "\r\n")"
+  _debug3 "_ntpdate" "$_ntpdate"
+  _ntpdate="$(echo "${_ntpdate}" | sed -e 's/^[[:space:]]*//')"
+  _debug3 "_NTPDATE" "$_ntpdate"
+  _ntptime="$(echo "${_ntpdate}" | _head_n 1 | cut -d " " -f 5 | tr -d "\r\n")"
+  _debug3 "_ntptime" "$_ntptime"
+  _eg_timestamp=$(date -u "+%Y%m%dT")
+  _eg_timestamp="$(printf "%s%s+0000" "$_eg_timestamp" "$_ntptime")"
+  _debug "_eg_timestamp" "$_eg_timestamp"
 }
 
 _edgedns_new_nonce() {
+  _debug "Generating Nonce"
   _nonce=$(echo "EDGEDNS$(_time)" | _digest sha1 hex | cut -c 1-32)
   _debug3 "_nonce" "$_nonce"
 }
 
 _edgedns_make_auth_header() {
   _debug "Constructing Auth Header"
-  _edgedns_eg_timestamp
   _edgedns_new_nonce
+  _edgedns_eg_timestamp
   # "Unsigned authorization header: 'EG1-HMAC-SHA256 client_token=block;access_token=block;timestamp=20200806T14:16:33+0000;nonce=72cde72c-82d9-4721-9854-2ba057929d67;'"
   _auth_header="$(printf "EG1-HMAC-SHA256 client_token=%s;access_token=%s;timestamp=%s;nonce=%s;" "$AKAMAI_CLIENT_TOKEN" "$AKAMAI_ACCESS_TOKEN" "$_eg_timestamp" "$_nonce")"
   _secure_debug2 "Unsigned Auth Header: " "$_auth_header"
