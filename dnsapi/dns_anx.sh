@@ -122,14 +122,12 @@ _anx_rest() {
   return 0
 }
 
-#_acme-challenge.www.domain.com
-#returns
-# _sub_domain=_acme-challenge.www
-# _domain=domain.com
 _get_root() {
   domain=$1
   i=1
   p=1
+
+  _anx_rest GET "zone.json"
 
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
@@ -137,13 +135,6 @@ _get_root() {
     if [ -z "$h" ]; then
       #not valid
       return 1
-    fi
-
-    # Does a zone with that name exist?
-    _anx_rest GET "zone.json/$h"
-    # shellcheck disable=SC2154
-    if [ "$code" -ne 200 ]; then
-      continue
     fi
 
     if _contains "$response" "\"name\":\"$h\""; then
