@@ -222,21 +222,21 @@ _use_instance_role() {
 
 _use_metadata() {
   _aws_creds="$(
-    _get "$1" "" 1 \
-      | _normalizeJson \
-      | tr '{,}' '\n' \
-      | while read -r _line; do
+    _get "$1" "" 1 |
+      _normalizeJson |
+      tr '{,}' '\n' |
+      while read -r _line; do
         _key="$(echo "${_line%%:*}" | tr -d '"')"
         _value="${_line#*:}"
         _debug3 "_key" "$_key"
         _secure_debug3 "_value" "$_value"
         case "$_key" in
-          AccessKeyId) echo "AWS_ACCESS_KEY_ID=$_value" ;;
-          SecretAccessKey) echo "AWS_SECRET_ACCESS_KEY=$_value" ;;
-          Token) echo "AWS_SESSION_TOKEN=$_value" ;;
+        AccessKeyId) echo "AWS_ACCESS_KEY_ID=$_value" ;;
+        SecretAccessKey) echo "AWS_SECRET_ACCESS_KEY=$_value" ;;
+        Token) echo "AWS_SESSION_TOKEN=$_value" ;;
         esac
-      done \
-        | paste -sd' ' -
+      done |
+      paste -sd' ' -
   )"
   _secure_debug "_aws_creds" "$_aws_creds"
 

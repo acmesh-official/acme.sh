@@ -67,14 +67,14 @@ _dns_do_list_rrs() {
     _err "getRRList origin ${_domain} failed"
     return 1
   fi
-  _rr_list="$(echo "${response}" \
-    | tr -d "\n\r\t" \
-    | sed -e 's/<item xsi:type="ns2:Map">/\n/g' \
-    | grep ">$(_regexcape "$fulldomain")</value>" \
-    | sed -e 's/<\/item>/\n/g' \
-    | grep '>id</key><value' \
-    | _egrep_o '>[0-9]{1,16}<' \
-    | tr -d '><')"
+  _rr_list="$(echo "${response}" |
+    tr -d "\n\r\t" |
+    sed -e 's/<item xsi:type="ns2:Map">/\n/g' |
+    grep ">$(_regexcape "$fulldomain")</value>" |
+    sed -e 's/<\/item>/\n/g' |
+    grep '>id</key><value' |
+    _egrep_o '>[0-9]{1,16}<' |
+    tr -d '><')"
   [ "${_rr_list}" ]
 }
 
@@ -120,10 +120,10 @@ _get_root() {
   i=1
 
   _dns_do_soap getDomainList
-  _all_domains="$(echo "${response}" \
-    | tr -d "\n\r\t " \
-    | _egrep_o 'domain</key><value[^>]+>[^<]+' \
-    | sed -e 's/^domain<\/key><value[^>]*>//g')"
+  _all_domains="$(echo "${response}" |
+    tr -d "\n\r\t " |
+    _egrep_o 'domain</key><value[^>]+>[^<]+' |
+    sed -e 's/^domain<\/key><value[^>]*>//g')"
 
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)

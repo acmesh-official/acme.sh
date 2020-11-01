@@ -195,8 +195,8 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
   fi
   if [ -n "$Le_Deploy_ssh_cafile" ]; then
     _pipe=">"
-    if [ "$Le_Deploy_ssh_cafile" = "$Le_Deploy_ssh_keyfile" ] \
-      || [ "$Le_Deploy_ssh_cafile" = "$Le_Deploy_ssh_certfile" ]; then
+    if [ "$Le_Deploy_ssh_cafile" = "$Le_Deploy_ssh_keyfile" ] ||
+      [ "$Le_Deploy_ssh_cafile" = "$Le_Deploy_ssh_certfile" ]; then
       # if filename is same as previous file then append.
       _pipe=">>"
     elif [ "$Le_Deploy_ssh_backup" = "yes" ]; then
@@ -222,9 +222,9 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
   fi
   if [ -n "$Le_Deploy_ssh_fullchain" ]; then
     _pipe=">"
-    if [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_keyfile" ] \
-      || [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_certfile" ] \
-      || [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_cafile" ]; then
+    if [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_keyfile" ] ||
+      [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_certfile" ] ||
+      [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_cafile" ]; then
       # if filename is same as previous file then append.
       _pipe=">>"
     elif [ "$Le_Deploy_ssh_backup" = "yes" ]; then

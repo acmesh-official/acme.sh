@@ -65,9 +65,9 @@ vsftpd_deploy() {
     cp "$_vsftpd_conf" "$_backup_conf"
 
     _info "Modify vsftpd conf: $_vsftpd_conf"
-    if _setopt "$_vsftpd_conf" "rsa_cert_file" "=" "$_real_fullchain" \
-      && _setopt "$_vsftpd_conf" "rsa_private_key_file" "=" "$_real_key" \
-      && _setopt "$_vsftpd_conf" "ssl_enable" "=" "YES"; then
+    if _setopt "$_vsftpd_conf" "rsa_cert_file" "=" "$_real_fullchain" &&
+      _setopt "$_vsftpd_conf" "rsa_private_key_file" "=" "$_real_key" &&
+      _setopt "$_vsftpd_conf" "ssl_enable" "=" "YES"; then
       _info "Set config success!"
     else
       _err "Config vsftpd server error, please report bug to us."

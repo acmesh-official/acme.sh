@@ -41,40 +41,40 @@ _ovh_get_api() {
 
   case "${_ogaep}" in
 
-    ovh-eu | ovheu)
-      printf "%s" $OVH_EU
-      return
-      ;;
-    ovh-ca | ovhca)
-      printf "%s" $OVH_CA
-      return
-      ;;
-    kimsufi-eu | kimsufieu)
-      printf "%s" $KSF_EU
-      return
-      ;;
-    kimsufi-ca | kimsufica)
-      printf "%s" $KSF_CA
-      return
-      ;;
-    soyoustart-eu | soyoustarteu)
-      printf "%s" $SYS_EU
-      return
-      ;;
-    soyoustart-ca | soyoustartca)
-      printf "%s" $SYS_CA
-      return
-      ;;
-    runabove-ca | runaboveca)
-      printf "%s" $RAV_CA
-      return
-      ;;
+  ovh-eu | ovheu)
+    printf "%s" $OVH_EU
+    return
+    ;;
+  ovh-ca | ovhca)
+    printf "%s" $OVH_CA
+    return
+    ;;
+  kimsufi-eu | kimsufieu)
+    printf "%s" $KSF_EU
+    return
+    ;;
+  kimsufi-ca | kimsufica)
+    printf "%s" $KSF_CA
+    return
+    ;;
+  soyoustart-eu | soyoustarteu)
+    printf "%s" $SYS_EU
+    return
+    ;;
+  soyoustart-ca | soyoustartca)
+    printf "%s" $SYS_CA
+    return
+    ;;
+  runabove-ca | runaboveca)
+    printf "%s" $RAV_CA
+    return
+    ;;
 
-    *)
+  *)
 
-      _err "Unknown parameter : $1"
-      return 1
-      ;;
+    _err "Unknown parameter : $1"
+    return 1
+    ;;
   esac
 }
 
@@ -248,7 +248,7 @@ _ovh_authentication() {
 # _domain=domain.com
 _get_root() {
   domain=$1
-  i=2
+  i=1
   p=1
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)

@@ -92,7 +92,7 @@ dns_lexicon_add() {
   _savedomainconf LEXICON_OPTS "$LEXICON_OPTS"
 
   # shellcheck disable=SC2086
-  $lexicon_cmd "$PROVIDER" $LEXICON_OPTS create "${domain}" TXT --name="_acme-challenge.${domain}." --content="${txtvalue}" --output QUIET 
+  $lexicon_cmd "$PROVIDER" $LEXICON_OPTS create "${domain}" TXT --name="_acme-challenge.${domain}." --content="${txtvalue}" --output QUIET
 
 }
 
