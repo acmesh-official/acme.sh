@@ -31,11 +31,13 @@ vault_deploy() {
   _debug _cfullchain "$_cfullchain"
 
   # validate required env vars
+  _getdeployconf VAULT_PREFIX
   if [ -z "$VAULT_PREFIX" ]; then
     _err "VAULT_PREFIX needs to be defined (contains prefix path in vault)"
     return 1
   fi
 
+  _getdeployconf VAULT_ADDR
   if [ -z "$VAULT_ADDR" ]; then
     _err "VAULT_ADDR needs to be defined (contains vault connection address)"
     return 1
