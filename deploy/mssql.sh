@@ -67,8 +67,8 @@ mssql_deploy() {
     cp "$_mssql_conf" "$_backup_conf"
 
     _info "Modify mssql conf: $_mssql_conf"
-    if  /opt/mssql/bin/mssql-conf  set network.tlscert "$_real_fullchain" &&
-      /opt/mssql/bin/mssql-conf  set network.tlskey "$_real_key"; then
+    if /opt/mssql/bin/mssql-conf set network.tlscert "$_real_fullchain" &&
+      /opt/mssql/bin/mssql-conf set network.tlskey "$_real_key"; then
       _info "Set config success!"
     else
       _err "Config mssql server error, please report bug to us."
