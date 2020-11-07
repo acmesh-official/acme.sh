@@ -112,16 +112,21 @@ _duckdns_rest() {
   param="$2"
   _debug param "$param"
   url="$DuckDNS_API?$param"
+  if [ "$DEBUG" -gt 0 ]; then
+    url="$url&verbose=true"
+  fi
   _debug url "$url"
 
   # DuckDNS uses GET to update domain info
   if [ "$method" = "GET" ]; then
     response="$(_get "$url")"
+    _debug2 response "$response"
+    if [ "$DEBUG" -gt 0 ] && _contains "$response" "UPDATED" && _contains "$response" "OK"; then
+      response="OK"
+    fi
   else
     _err "Unsupported method"
     return 1
   fi
-
-  _debug2 response "$response"
   return 0
 }

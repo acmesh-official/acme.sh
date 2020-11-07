@@ -101,8 +101,8 @@ dns_he_rm() {
   body="$body&hosted_dns_editzone=1"
   body="$body&hosted_dns_delrecord=1"
   body="$body&hosted_dns_delconfirm=delete"
-  _post "$body" "https://dns.he.net/" \
-    | grep '<div id="dns_status" onClick="hideThis(this);">Successfully removed record.</div>' \
+  _post "$body" "https://dns.he.net/" |
+    grep '<div id="dns_status" onClick="hideThis(this);">Successfully removed record.</div>' \
       >/dev/null
   exit_code="$?"
   if [ "$exit_code" -eq 0 ]; then

@@ -172,7 +172,7 @@ dns_azure_rm() {
   _azure_rest GET "$acmeRecordURI" "" "$accesstoken"
   timestamp="$(_time)"
   if [ "$_code" = "200" ]; then
-    vlist="$(echo "$response" | _egrep_o "\"value\"\\s*:\\s*\\[\\s*\"[^\"]*\"\\s*]" | cut -d : -f 2 | tr -d "[]\"" | grep -v "$txtvalue")"
+    vlist="$(echo "$response" | _egrep_o "\"value\"\\s*:\\s*\\[\\s*\"[^\"]*\"\\s*]" | cut -d : -f 2 | tr -d "[]\"" | grep -v -- "$txtvalue")"
     values=""
     comma=""
     for v in $vlist; do
@@ -220,7 +220,7 @@ _azure_rest() {
     export _H2="accept: application/json"
     export _H3="Content-Type: application/json"
     # clear headers from previous request to avoid getting wrong http code on timeouts
-    :>"$HTTP_HEADER"
+    : >"$HTTP_HEADER"
     _debug "$ep"
     if [ "$m" != "GET" ]; then
       _secure_debug2 "data $data"

@@ -18,23 +18,23 @@
 ########
 
 dns_cyon_add() {
-  _cyon_load_credentials \
-    && _cyon_load_parameters "$@" \
-    && _cyon_print_header "add" \
-    && _cyon_login \
-    && _cyon_change_domain_env \
-    && _cyon_add_txt \
-    && _cyon_logout
+  _cyon_load_credentials &&
+    _cyon_load_parameters "$@" &&
+    _cyon_print_header "add" &&
+    _cyon_login &&
+    _cyon_change_domain_env &&
+    _cyon_add_txt &&
+    _cyon_logout
 }
 
 dns_cyon_rm() {
-  _cyon_load_credentials \
-    && _cyon_load_parameters "$@" \
-    && _cyon_print_header "delete" \
-    && _cyon_login \
-    && _cyon_change_domain_env \
-    && _cyon_delete_txt \
-    && _cyon_logout
+  _cyon_load_credentials &&
+    _cyon_load_parameters "$@" &&
+    _cyon_print_header "delete" &&
+    _cyon_login &&
+    _cyon_change_domain_env &&
+    _cyon_delete_txt &&
+    _cyon_logout
 }
 
 #########################
@@ -66,7 +66,7 @@ _cyon_load_credentials() {
   _debug "Save credentials to account.conf"
   _saveaccountconf CY_Username "${CY_Username}"
   _saveaccountconf CY_Password_B64 "$CY_Password_B64"
-  if [ ! -z "${CY_OTP_Secret}" ]; then
+  if [ -n "${CY_OTP_Secret}" ]; then
     _saveaccountconf CY_OTP_Secret "$CY_OTP_Secret"
   else
     _clearaccountconf CY_OTP_Secret
@@ -164,7 +164,7 @@ _cyon_login() {
   # todo: instead of just checking if the env variable is defined, check if we actually need to do a 2FA auth request.
 
   # 2FA authentication with OTP?
-  if [ ! -z "${CY_OTP_Secret}" ]; then
+  if [ -n "${CY_OTP_Secret}" ]; then
     _info "  - Authorising with OTP code..."
 
     if ! _exists oathtool; then
