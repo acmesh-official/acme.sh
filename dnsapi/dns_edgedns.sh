@@ -443,7 +443,9 @@ _edgedns_base64_hmac_sha256() {
   _secure_debug2 "encoded data" "$encoded_data"
   _secure_debug2 "encoded key" "$encoded_key"
 
-  data_sig="$(echo "$encoded_data" | tr -d "\n\r" | ${ACME_OPENSSL_BIN:-openssl} dgst -sha256 -hmac "$encoded_key" -binary | _base64)"
+  encoded_key_hex=$(printf "%s" "$encoded_key" | _hex_dump | tr -d ' ')
+  data_sig="$(echo "$encoded_data" | tr -d "\n\r" | _hmac sha256 $encoded_key_hex | _base64)"
+
   _secure_debug2 "data_sig:" "$data_sig"
   _hmac_out="$(echo "$data_sig" | tr -d "\n\r" | iconv -f utf-8)"
   _secure_debug2 "hmac" "$_hmac_out"
