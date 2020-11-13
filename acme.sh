@@ -6649,8 +6649,8 @@ _checkSudo() {
       return 0
     fi
     if [ -n "$SUDO_COMMAND" ]; then
-      #it's a normal user doing "sudo su", or `sudo -i` or `sudo -s`
-      _endswith "$SUDO_COMMAND" /bin/su || grep "^$SUDO_COMMAND\$" /etc/shells >/dev/null 2>&1
+      #it's a normal user doing "sudo su", or `sudo -i` or `sudo -s`, or `sudo su acmeuser1`
+      _endswith "$SUDO_COMMAND" /bin/su || _contains "$SUDO_COMMAND" "/bin/su " || grep "^$SUDO_COMMAND\$" /etc/shells >/dev/null 2>&1
       return $?
     fi
     #otherwise
