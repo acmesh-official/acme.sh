@@ -61,7 +61,7 @@ dns_simply_rm() {
   _debug _domain "$_domain"
   _debug txtvalue "$txtvalue"
 
-  _debug "Getting existing records"
+  _info "Getting all existing records"
   
   if ! _simply_get_all_records "$_domain"; then
     _err "invalid domain"
@@ -71,31 +71,34 @@ dns_simply_rm() {
   records=$(echo "$response" | tr '{' "\n" | grep 'record_id\|type\|data\|\name' | sed 's/\"record_id/;\"record_id/')
   record_array=(`echo $records |tr -d ' ' | tr ';' ' '`)
   nr_of_deleted_records=0
+  
+  _info "Fetching txt record.."
 
   for (( i=0; i<=${#record_array[@]}; i++ )); do
   
-  record="${record_array[$i]}"
+    record="${record_array[$i]}"
+    _debug record "$record"
   
-  if [[ "$record" == *"$txtvalue"* && "$record" == *"TXT"* ]]; then
+    if [[ "$record" == *"$txtvalue"* && "$record" == *"TXT"* ]]; then
   
-    record_id=`echo $record | cut -d "," -f 1 | grep "record_id" | cut -d ":" -f 2`
+      record_id=`echo $record | cut -d "," -f 1 | grep "record_id" | cut -d ":" -f 2`
 	
-	_info "Deleting record $record"
+	  _info "Deleting record $record"
     
-    if [[ $record_id -gt 0 ]]; then
+      if [[ $record_id -gt 0 ]]; then
       
-      if ! _simply_delete_record "$_domain" "$_sub_domain" "$record_id"; then
-        _err "Record with id $record_id could not be deleted"
-        return 1
+        if ! _simply_delete_record "$_domain" "$_sub_domain" "$record_id"; then
+          _err "Record with id $record_id could not be deleted"
+          return 1
+        fi
+      
+        nr_of_deleted_records=1
+        break
+      else  
+        _err "Fetching record_id could not be done, this should not happen, exiting function. Failing record is $record"
+        break
       fi
-      
-      nr_of_deleted_records=1
-      break
-    else  
-      _err "Fetching record_id could not be done, this should not happen, exiting function. Failing record is $record"
-      break
     fi
-  fi
   
   done
 
