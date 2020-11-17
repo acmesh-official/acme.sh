@@ -59,7 +59,7 @@ dns_simply_rm() {
 
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
-  _debug "$txtvalue"
+  _debug txtvalue "$txtvalue"
 
   _debug "Getting existing records"
   
@@ -78,9 +78,9 @@ dns_simply_rm() {
   
   if [[ "$record" == *"$txtvalue"* && "$record" == *"TXT"* ]]; then
   
-    _info "Deleting record: $record"
-    
     record_id=`echo $record | cut -d "," -f 1 | grep "record_id" | cut -d ":" -f 2`
+	
+	_info "Deleting record $record"
     
     if [[ $record_id -gt 0 ]]; then
       
@@ -198,7 +198,7 @@ _simply_delete_record() {
   sub_domain=$2
   record_id=$3
   
-  _debug "Delete record with id $record_id"
+  _debug record_id "Delete record with id $record_id"
   
   if ! _simply_rest DELETE "my/products/$domain/dns/records/$record_id"; then
     _err "Deleting record not successfull!"
@@ -213,9 +213,9 @@ _simply_rest() {
   ep="$2"
   data="$3"
     
-  _debug "Data: $data"
-  _debug "Methodcall: $ep"
-  _debug "Call type: $m"
+  _debug2 data "$data"
+  _debug2 ep "$ep"
+  _debug2 m "$m"
 
   export _H1="Content-Type: application/json"
 
