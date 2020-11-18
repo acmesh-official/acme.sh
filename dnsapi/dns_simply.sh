@@ -21,28 +21,29 @@ dns_simply_add() {
 
   _simply_save_config
 
-  _debug "First detect the root zone"  
+  _debug "First detect the root zone"
+
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
-  
+
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
   _info "Adding record"
 
-  if ! _simply_add_record "$_domain" "$_sub_domain" "$txtvalue"; then  
+  if ! _simply_add_record "$_domain" "$_sub_domain" "$txtvalue"; then
     _err "Could not add DNS record"
     return 1
-  fi  
+  fi
   return 0
 }
 
 dns_simply_rm() {
   fulldomain=$1
   txtvalue=$2
-  
+
   if ! _simply_load_config; then
     return 1
   fi
@@ -61,12 +62,12 @@ dns_simply_rm() {
   _debug txtvalue "$txtvalue"
 
   _info "Getting all existing records"
-  
+
   if ! _simply_get_all_records "$_domain"; then
     _err "invalid domain"
     return 1
   fi
-  
+
   records=$(echo "$response" | tr '{' "\n" | grep 'record_id\|type\|data\|\name' | sed 's/\"record_id/;\"record_id/' | tr "\n" ' '| tr -d ' ' | tr ';' ' ')
 
   nr_of_deleted_records=0
@@ -74,27 +75,27 @@ dns_simply_rm() {
 
   for record in $records; do 
     _debug record "$record"
-	
-	record_data=$(echo "$record" | cut -d "," -f 3 | sed 's/"//g' | grep "data" | cut -d ":" -f 2)
-	record_type=$(echo "$record" | cut -d "," -f 4 | sed 's/"//g' | grep "type" | cut -d ":" -f 2)
-    
-	_debug2 record_data "$record_data"
-	_debug2 record_type "$record_type"
-	
-    if [ "$record_data" = "$txtvalue" ] && [ "$record_type" = "TXT" ]; then
   
+  record_data=$(echo "$record" | cut -d "," -f 3 | sed 's/"//g' | grep "data" | cut -d ":" -f 2)
+  record_type=$(echo "$record" | cut -d "," -f 4 | sed 's/"//g' | grep "type" | cut -d ":" -f 2)
+
+  _debug2 record_data "$record_data"
+  _debug2 record_type "$record_type"
+  
+    if [ "$record_data" = "$txtvalue" ] && [ "$record_type" = "TXT" ]; then
+
       record_id=$(echo "$record" | cut -d "," -f 1 | grep "record_id" | cut -d ":" -f 2)
-	
+
       _info "Deleting record $record"
       _debug2 record_id "$record_id"
-	  
+
       if [ "$record_id" -gt 0 ]; then
-      
+
         if ! _simply_delete_record "$_domain" "$_sub_domain" "$record_id"; then
           _err "Record with id $record_id could not be deleted"
           return 1
         fi
-      
+
         nr_of_deleted_records=1
         break
       else  
@@ -102,7 +103,7 @@ dns_simply_rm() {
         break
       fi
     fi
-  
+
   done
 
   if [ "$nr_of_deleted_records" -eq 0 ]; then
@@ -110,7 +111,7 @@ dns_simply_rm() {
   else
     _info "Deleted $nr_of_deleted_records record"
   fi
-  
+
   return 0
 }
 
@@ -242,6 +243,6 @@ _simply_rest() {
     _err "It seems that your api key or accountnumber is not correct."
     return 1
   fi
-  
+
   return 0
 }
