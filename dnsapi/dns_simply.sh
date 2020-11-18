@@ -22,7 +22,6 @@ dns_simply_add() {
   _simply_save_config
 
   _debug "First detect the root zone"
-
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
@@ -68,19 +67,19 @@ dns_simply_rm() {
     return 1
   fi
 
-  records=$(echo "$response" | tr '{' "\n" | grep 'record_id\|type\|data\|\name' | sed 's/\"record_id/;\"record_id/' | tr "\n" ' '| tr -d ' ' | tr ';' ' ')
+  records=$(echo "$response" | tr '{' "\n" | grep 'record_id\|type\|data\|\name' | sed 's/\"record_id/;\"record_id/' | tr "\n" ' ' | tr -d ' ' | tr ';' ' ')
 
   nr_of_deleted_records=0
   _info "Fetching txt record"
 
-  for record in $records; do 
+  for record in $records; do
     _debug record "$record"
-  
-  record_data=$(echo "$record" | cut -d "," -f 3 | sed 's/"//g' | grep "data" | cut -d ":" -f 2)
-  record_type=$(echo "$record" | cut -d "," -f 4 | sed 's/"//g' | grep "type" | cut -d ":" -f 2)
 
-  _debug2 record_data "$record_data"
-  _debug2 record_type "$record_type"
+    record_data=$(echo "$record" | cut -d "," -f 3 | sed 's/"//g' | grep "data" | cut -d ":" -f 2)
+    record_type=$(echo "$record" | cut -d "," -f 4 | sed 's/"//g' | grep "type" | cut -d ":" -f 2)
+
+    _debug2 record_data "$record_data"
+    _debug2 record_type "$record_type"
   
     if [ "$record_data" = "$txtvalue" ] && [ "$record_type" = "TXT" ]; then
 
@@ -98,7 +97,7 @@ dns_simply_rm() {
 
         nr_of_deleted_records=1
         break
-      else  
+      else
         _err "Fetching record_id could not be done, this should not happen, exiting function. Failing record is $record"
         break
       fi
@@ -107,7 +106,7 @@ dns_simply_rm() {
   done
 
   if [ "$nr_of_deleted_records" -eq 0 ]; then
-    _err "No record deleted, the DNS record needs to be removed manually." 
+    _err "No record deleted, the DNS record needs to be removed manually."
   else
     _info "Deleted $nr_of_deleted_records record"
   fi
