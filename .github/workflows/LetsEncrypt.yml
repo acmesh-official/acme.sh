@@ -89,6 +89,9 @@ jobs:
     - name: Set ENV
       run: |
           echo "PATH=C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin" >> $GITHUB_ENV
+    - name: Check ENV
+      run: |
+          echo "PATH=$PATH"
     - name: Clone acmetest
       shell: cmd
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
