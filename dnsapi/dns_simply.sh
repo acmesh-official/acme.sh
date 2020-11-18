@@ -7,7 +7,7 @@
 #
 #SIMPLY_Api="https://api.simply.com/1/[ACCOUNTNAME]/[APIKEY]"
 
-SIMPLY_Api="https://api.simply.com/1"
+SIMPLY_Api_Default="https://api.simply.com/1"
 ########  Public functions #####################
 
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
@@ -22,6 +22,7 @@ dns_simply_add() {
   _simply_save_config
 
   _debug "First detect the root zone"
+  
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
@@ -69,23 +70,28 @@ dns_simply_rm() {
   fi
   
   records=$(echo "$response" | tr '{' "\n" | grep 'record_id\|type\|data\|\name' | sed 's/\"record_id/;\"record_id/')
-  record_array=(`echo $records |tr -d ' ' | tr ';' ' '`)
-  nr_of_deleted_records=0
-  
-  _info "Fetching txt record.."
+  record_array=$(echo $records |tr -d ' ' | tr ';' ' ')
 
-  for (( i=0; i<=${#record_array[@]}; i++ )); do
-  
-    record="${record_array[$i]}"
+  nr_of_deleted_records=0
+  _info "Fetching txt record"
+
+  for record in $record_array; do 
     _debug record "$record"
+	
+	record_data=$(echo $record | cut -d "," -f 3 | sed 's/"//g' | grep "data" | cut -d ":" -f 2)
+	record_type=$(echo $record | cut -d "," -f 4 | sed 's/"//g' | grep "type" | cut -d ":" -f 2)
+    
+	_debug2 record_data "$record_data"
+	_debug2 record_type "$record_type"
+	
+    if [ "$record_data" = "$txtvalue" ] && [ "$record_type" = "TXT" ]; then
   
-    if [[ "$record" == *"$txtvalue"* && "$record" == *"TXT"* ]]; then
-  
-      record_id=`echo $record | cut -d "," -f 1 | grep "record_id" | cut -d ":" -f 2`
+      record_id=$(echo $record | cut -d "," -f 1 | grep "record_id" | cut -d ":" -f 2)
 	
 	  _info "Deleting record $record"
-    
-      if [[ $record_id -gt 0 ]]; then
+      _debug2 record_id "$record_id"
+	  
+      if [ "$record_id" -gt 0 ]; then
       
         if ! _simply_delete_record "$_domain" "$_sub_domain" "$record_id"; then
           _err "Record with id $record_id could not be deleted"
@@ -102,7 +108,7 @@ dns_simply_rm() {
   
   done
 
-  if [[ $nr_of_deleted_records -eq 0 ]]; then
+  if [ "$nr_of_deleted_records" -eq 0 ]; then
     _err "No record deleted, the DNS record needs to be removed manually." 
   else
     _info "Deleted $nr_of_deleted_records record"
