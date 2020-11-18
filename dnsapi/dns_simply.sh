@@ -69,26 +69,25 @@ dns_simply_rm() {
     return 1
   fi
   
-  records=$(echo "$response" | tr '{' "\n" | grep 'record_id\|type\|data\|\name' | sed 's/\"record_id/;\"record_id/')
-  record_array=$(echo $records |tr -d ' ' | tr ';' ' ')
+  records=$(echo "$response" | tr '{' "\n" | grep 'record_id\|type\|data\|\name' | sed 's/\"record_id/;\"record_id/' | tr "\n" ' '| tr -d ' ' | tr ';' ' ')
 
   nr_of_deleted_records=0
   _info "Fetching txt record"
 
-  for record in $record_array; do 
+  for record in $records; do 
     _debug record "$record"
 	
-	record_data=$(echo $record | cut -d "," -f 3 | sed 's/"//g' | grep "data" | cut -d ":" -f 2)
-	record_type=$(echo $record | cut -d "," -f 4 | sed 's/"//g' | grep "type" | cut -d ":" -f 2)
+	record_data=$(echo "$record" | cut -d "," -f 3 | sed 's/"//g' | grep "data" | cut -d ":" -f 2)
+	record_type=$(echo "$record" | cut -d "," -f 4 | sed 's/"//g' | grep "type" | cut -d ":" -f 2)
     
 	_debug2 record_data "$record_data"
 	_debug2 record_type "$record_type"
 	
     if [ "$record_data" = "$txtvalue" ] && [ "$record_type" = "TXT" ]; then
   
-      record_id=$(echo $record | cut -d "," -f 1 | grep "record_id" | cut -d ":" -f 2)
+      record_id=$(echo "$record" | cut -d "," -f 1 | grep "record_id" | cut -d ":" -f 2)
 	
-	  _info "Deleting record $record"
+      _info "Deleting record $record"
       _debug2 record_id "$record_id"
 	  
       if [ "$record_id" -gt 0 ]; then
