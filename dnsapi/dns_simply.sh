@@ -50,7 +50,7 @@ dns_simply_rm() {
   _simply_save_config
 
   _debug "First detect the root zone"
-  
+
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
@@ -80,7 +80,7 @@ dns_simply_rm() {
 
     _debug2 record_data "$record_data"
     _debug2 record_type "$record_type"
-  
+
     if [ "$record_data" = "$txtvalue" ] && [ "$record_type" = "TXT" ]; then
 
       record_id=$(echo "$record" | cut -d "," -f 1 | grep "record_id" | cut -d ":" -f 2)
