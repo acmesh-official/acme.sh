@@ -87,11 +87,13 @@ jobs:
           C:\tools\cygwin\cygwinsetup.exe -qgnNdO -R C:/tools/cygwin -s http://mirrors.kernel.org/sourceware/cygwin/ -P socat,curl,cron,unzip,git
       shell: cmd
     - name: Set ENV
+      shell: cmd
       run: |
-          echo "PATH=C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin" >> $GITHUB_ENV
+          echo PATH=C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin >> %GITHUB_ENV%
     - name: Check ENV
+      shell: cmd
       run: |
-          echo "PATH=$PATH"
+          echo "PATH=%PATH%"
     - name: Clone acmetest
       shell: cmd
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
