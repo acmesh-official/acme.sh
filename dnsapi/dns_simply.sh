@@ -21,8 +21,7 @@ dns_simply_add() {
 
   _simply_save_config
 
-  _debug "First detect the root zone"
-  
+  _debug "First detect the root zone"  
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
@@ -36,8 +35,7 @@ dns_simply_add() {
   if ! _simply_add_record "$_domain" "$_sub_domain" "$txtvalue"; then  
     _err "Could not add DNS record"
     return 1
-  fi
-  
+  fi  
   return 0
 }
 
@@ -126,7 +124,7 @@ _simply_load_config() {
   if [ -z "$SIMPLY_Api" ]; then
     SIMPLY_Api="$SIMPLY_Api_Default"
   fi
-  
+
   if [ -z "$SIMPLY_AccountName" ] || [ -z "$SIMPLY_ApiKey" ]; then
     SIMPLY_AccountName=""
     SIMPLY_ApiKey=""
@@ -149,8 +147,8 @@ _simply_save_config() {
 }
 
 _simply_get_all_records() {
-  domain=$1  
-      
+  domain=$1
+
   if ! _simply_rest GET "my/products/$domain/dns/records"; then
     return 1
   fi
@@ -190,14 +188,14 @@ _simply_add_record() {
   domain=$1
   sub_domain=$2
   txtval=$3
-  
+
   data="{\"name\": \"$sub_domain\", \"type\":\"TXT\", \"data\": \"$txtval\", \"priority\":0, \"ttl\": 3600}"
 
   if ! _simply_rest POST "my/products/$domain/dns/records" "$data"; then
     _err "Adding record not successfull!"
     return 1
   fi
-  
+
   return 0
 }
 
@@ -205,14 +203,14 @@ _simply_delete_record() {
   domain=$1
   sub_domain=$2
   record_id=$3
-  
+
   _debug record_id "Delete record with id $record_id"
-  
+
   if ! _simply_rest DELETE "my/products/$domain/dns/records/$record_id"; then
     _err "Deleting record not successfull!"
     return 1
   fi
-  
+
   return 0
 }
 
@@ -220,7 +218,7 @@ _simply_rest() {
   m=$1
   ep="$2"
   data="$3"
-    
+
   _debug2 data "$data"
   _debug2 ep "$ep"
   _debug2 m "$m"
@@ -237,12 +235,13 @@ _simply_rest() {
     _err "error $ep"
     return 1
   fi
-  
+
   _debug2 response "$response"
-  
+
   if _contains "$response" "Invalid account authorization"; then
     _err "It seems that your api key or accountnumber is not correct."
     return 1
   fi
+  
   return 0
 }
