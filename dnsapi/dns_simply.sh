@@ -8,8 +8,8 @@
 #SIMPLY_Api="https://api.simply.com/1/[ACCOUNTNAME]/[APIKEY]"
 
 SIMPLY_Api_Default="https://api.simply.com/1"
-########  Public functions #####################
 
+########  Public functions #####################
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_simply_add() {
   fulldomain=$1
