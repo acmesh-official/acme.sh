@@ -5823,7 +5823,7 @@ _deactivate() {
     _URL_NAME="uri"
   fi
 
-  entries="$(echo "$response" | _egrep_o "[^{]*\"type\":\"[^\"]*\", *\"status\": *\"valid\", *\"$_URL_NAME\"[^}]*")"
+  entries="$(echo "$response" | tr '][' '=' | _egrep_o "challenges\": *=[^=]*=" | tr '}{' '\n' | grep "\"status\": *\"valid\"")"
   if [ -z "$entries" ]; then
     _info "No valid entries found."
     if [ -z "$thumbprint" ]; then
@@ -5866,7 +5866,7 @@ _deactivate() {
     _debug _vtype "$_vtype"
     _info "Found $_vtype"
 
-    uri="$(echo "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
+    uri="$(echo "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*\"" | tr -d '" ' | cut -d : -f 2-)"
     _debug uri "$uri"
 
     if [ "$_d_type" ] && [ "$_d_type" != "$_vtype" ]; then
