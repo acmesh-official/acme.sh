@@ -63,4 +63,4 @@ jobs:
             --tag ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG} \
             --output "type=image,push=true" \
             --build-arg AUTO_UPGRADE=${AUTO_UPGRADE} \
-            --platform linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7,linux/386 .
+            --platform linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7,linux/386,linux/ppc64le,linux/s390x .
