@@ -3,15 +3,25 @@
 # This script has been created at June 2020, based on knowledge base of wedos.com provider.
 # It is intended to allow DNS-01 challenges for acme.sh using wedos's WAPI using XML.
 
-# Author Michal Tuma <mxtuma@gmail.com>
-# For issues send me an email
+# See WIKI page how to use it https://github.com/acmesh-official/acme.sh/wiki/dnsapi#117-use-wedos-dns-api
 
+# Author Michal Tuma <mxtuma@gmail.com>
+# For issues, please perform the action with --debug switch and report to https://github.com/acmesh-official/acme.sh/issues/3166
+
+# MAIN WAPI ENDPOINT
 WEDOS_WAPI_ENDPOINT="https://api.wedos.com/wapi/xml"
+# WHEN SET TO ANYTHINK, THEN GENERATED XML WAPI REQUEST ADD TESTING SWITCH
 TESTING_STAGE=
 
 ########  Public functions #####################
 
-#Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+# Main implemented function for acme.sh.
+# Function manages provided user informations, parse requested domain and subdomain name and create new TXT row with provided value.
+# WEDOS WAPI Requests usage:
+# - dns-domains-list : to retrieve a list of valid managed domains and check input $fulldomain
+# - dns-row-add : to add new TXT row to a $fulldomain with $txtvalue set
+# - dns-domain-commit : to commit added dns row
+# Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_wedos_add() {
   fulldomain=$1
   txtvalue=$2
@@ -65,7 +75,14 @@ dns_wedos_add() {
   fi
 }
 
-#fulldomain txtvalue
+# Main implemented function for acme.sh
+# This function verify provided domain if is managed by stored account, try to find TXT row for the domain and removes it if it is found.
+# WEDOS WAPI Requests used:
+# - dns-domains-list : to verify requested $fulldomain is managed and to parse what is subdomain from it
+# - dns-rows-list : to verify if provided $txtvalue exists as TXT entry
+# - dns-row-delete : to request deletion of TXT value
+# - dns-domain-commit : to commit deletion
+# Usage: rm _acme_challenge.www.domain.org  "e89fhwie73869yhe993e27d4hi"
 dns_wedos_rm() {
   fulldomain=$1
   txtvalue=$2
@@ -187,7 +204,7 @@ _wapi_post() {
 
 # _get_root() function, for provided full domain, like _acme_challenge.www.example.com verify if WEDOS contains a primary active domain and found what is subdomain
 # $1 - full domain to verify, ie _acme_challenge.www.example.com
-# build ${_domain} found at WEDOS, like example.com and ${_sub_domain} from provided full domain, like _acme_challenge.www
+# builds ${_domain} found at WEDOS, like example.com and ${_sub_domain} from provided full domain, like _acme_challenge.www
 _get_root() {
   domain=$1
 
