@@ -127,7 +127,7 @@ _login() {
 
   username="$WORLD4YOU_USERNAME"
   password="$WORLD4YOU_PASSWORD"
-  csrf_token=$(_get "$WORLD4YOU_API/login" | grep "_csrf_token" | sed 's/^.*<input[^>]\+value=\"\([^"]*\)\".*$/\1/')
+  csrf_token=$(_get "$WORLD4YOU_API/login" | grep "_csrf_token" | sed 's/^.*<input[^>]*value=\"\([^"]*\)\".*$/\1/')
   sessid=$(grep "W4YSESSID" <"$HTTP_HEADER" | sed 's/^.*W4YSESSID=\([^;]*\);.*$/\1/')
 
   export _H1="Cookie: W4YSESSID=$sessid"
