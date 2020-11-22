@@ -63,6 +63,8 @@ dns_huaweicloud_rm() {
   _debug "${zoneid}"
   record_id="$(_get_recordset_id "${token}" "${fulldomain}" "${zoneid}")"
   _debug "Record Set ID is: ${record_id}"
+
+  # Remove all records
   while [ "${record_id}" != "0" ]; do
     _debug "Adding Record"
     _rm_record "${token}" "${zoneid}" "${record_id}"
