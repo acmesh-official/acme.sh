@@ -66,7 +66,7 @@ dns_huaweicloud_rm() {
 
   # Remove all records
   while [ "${record_id}" != "0" ]; do
-    _debug "Adding Record"
+    _debug "Removing Record"
     _rm_record "${token}" "${zoneid}" "${record_id}"
     record_id="$(_get_recordset_id "${token}" "${fulldomain}" "${zoneid}")"
   done
@@ -158,7 +158,7 @@ _rm_record() {
   export _H2="Content-Type: application/json"
   export _H1="X-Auth-Token: ${_token}"
 
-  _post "${body}" "${dns_api}/v2/zones/${_zone_id}/recordsets/${_record_id}" false "DELETE"
+  _post "${body}" "${dns_api}/v2/zones/${_zone_id}/recordsets/${_record_id}" false "DELETE" >/dev/null
   return 0
 }
 
