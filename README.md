@@ -60,10 +60,10 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 |1|[![MacOS](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)|Mac OSX
 |2|[![Windows](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)|Windows (cygwin with curl, openssl and crontab included)
 |3|[![FreeBSD](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)|FreeBSD
-|4|[![Ubuntu](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)| Ubuntu
-|5|[![](https://acmesh-official.github.io/acmetest/status/pfsense.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|pfsense
-|6|[![](https://acmesh-official.github.io/acmetest/status/openbsd.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|OpenBSD
-|7|[![](https://acmesh-official.github.io/acmetest/status/solaris.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|SunOS/Solaris
+|4|[![Solaris](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)|Solaris
+|5|[![Ubuntu](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)| Ubuntu
+|6|[![](https://acmesh-official.github.io/acmetest/status/pfsense.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|pfsense
+|7|[![](https://acmesh-official.github.io/acmetest/status/openbsd.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|OpenBSD
 |8|[![](https://acmesh-official.github.io/acmetest/status/debian-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)| Debian
 |9|[![](https://acmesh-official.github.io/acmetest/status/centos-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|CentOS
 |10|[![](https://acmesh-official.github.io/acmetest/status/opensuse-leap-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|openSUSE
