@@ -57,6 +57,11 @@ dns_huaweicloud_rm() {
   HUAWEICLOUD_Password="${HUAWEICLOUD_Password:-$(_readaccountconf_mutable HUAWEICLOUD_Password)}"
   HUAWEICLOUD_ProjectID="${HUAWEICLOUD_ProjectID:-$(_readaccountconf_mutable HUAWEICLOUD_ProjectID)}"
 
+  if [ -z "${HUAWEICLOUD_Username}" ] || [ -z "${HUAWEICLOUD_Username}" ] || [ -z "${HUAWEICLOUD_Username}" ]; then
+    _err "Please provide enough information"
+    return 1
+  fi
+
   token="$(_get_token "${HUAWEICLOUD_Username}" "${HUAWEICLOUD_Password}" "${HUAWEICLOUD_ProjectID}")"
   _debug2 "${token}"
   zoneid="$(_get_zoneid "${token}" "${fulldomain}")"
