@@ -2086,7 +2086,7 @@ _send_signed_request() {
 
     _debug2 original "$response"
     if echo "$responseHeaders" | grep -i "Content-Type: *application/json" >/dev/null 2>&1; then
-      response="$(echo "$response" | _normalizeJson | _json_decode)"
+      response="$(echo "$response" | _json_decode | _normalizeJson)"
     fi
     _debug2 response "$response"
 
@@ -5823,7 +5823,7 @@ _deactivate() {
     _URL_NAME="uri"
   fi
 
-  entries="$(echo "$response" | tr '][' '=' | _egrep_o "challenges\": *=[^=]*=" | tr '}{' '\n' | grep "\"status\": *\"valid\"")"
+  entries="$(echo "$response" | tr '][' '==' | _egrep_o "challenges\": *=[^=]*=" | tr '}{' '\n' | grep "\"status\": *\"valid\"")"
   if [ -z "$entries" ]; then
     _info "No valid entries found."
     if [ -z "$thumbprint" ]; then
