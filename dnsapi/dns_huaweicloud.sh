@@ -141,13 +141,15 @@ _add_record() {
 
   # Get Existing Records
   export _H1="X-Auth-Token: ${_token}"
-  response=$(_get "${dns_api}/v2/zones/${_zoneid}/recordsets?name=${_domain}")
-  _exist_record=$(echo "${response}" | sed ':a;N;$!ba;s/\n/ /g' | grep -o '"records":[^]]*' | sed 's/\"records\"\: \[//g')
+  response=$(_get "${dns_api}/v2/zones/${zoneid}/recordsets?name=${_domain}")
+
+  _debug "${response}"
+  _exist_record=$(echo "${response}" | sed ':a;N;$!ba;s/\n/ /g' | grep -o '"records":[^]]*' | sed 's/\"records\"\:\[//g')
   _debug "${_exist_record}"
 
   # Check if record exist
   # Generate body data
-  body="{
+  _post_body="{
     \"name\": \"${_domain}.\",
     \"description\": \"ACME Challenge\",
     \"type\": \"TXT\",
@@ -158,7 +160,7 @@ _add_record() {
     ]
   }"
   if [ -z "${_exist_record}" ]; then
-    body="{
+    _post_body="{
       \"name\": \"${_domain}.\",
       \"description\": \"ACME Challenge\",
       \"type\": \"TXT\",
@@ -168,19 +170,38 @@ _add_record() {
       ]
     }"
   fi
-  _debug2 "${body}"
+
+  _record_id="$(_get_recordset_id "${_token}" "${_domain}" "${zoneid}")"
+  _debug "Record Set ID is: ${_record_id}"
+
+  # Remove all records
+  while [ "${_record_id}" != "0" ]; do
+    _debug "Removing Record"
+    _rm_record "${_token}" "${zoneid}" "${_record_id}"
+    _record_id="$(_get_recordset_id "${_token}" "${_domain}" "${zoneid}")"
+    _debug "${_record_id}"
+  done
+
+  # Add brand new records with all old and new records
   export _H2="Content-Type: application/json"
   export _H1="X-Auth-Token: ${_token}"
 
-  _post "${body}" "${dns_api}/v2/zones/${zoneid}/recordsets" >/dev/null
+  _debug "${_post_body}"
+  sleep 2
+  _post "${_post_body}" "${dns_api}/v2/zones/${zoneid}/recordsets" >/dev/null
   _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
   if [ "$_code" != "202" ]; then
     _err "dns_huaweicloud: http code ${_code}"
+    sleep 60
     return 1
   fi
   return 0
 }
 
+# _rm_record $token $zoneid $recordid
+# assume ${dns_api} exist
+# no output
+# return 0
 _rm_record() {
   _token=$1
   _zone_id=$2
@@ -189,8 +210,8 @@ _rm_record() {
   export _H2="Content-Type: application/json"
   export _H1="X-Auth-Token: ${_token}"
 
-  _post "${body}" "${dns_api}/v2/zones/${_zone_id}/recordsets/${_record_id}" false "DELETE" >/dev/null
-  return 0
+  _post "" "${dns_api}/v2/zones/${_zone_id}/recordsets/${_record_id}" false "DELETE" >/dev/null
+  return $?
 }
 
 _get_token() {
