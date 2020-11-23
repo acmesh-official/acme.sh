@@ -23,6 +23,11 @@ dns_huaweicloud_add() {
   HUAWEICLOUD_Password="${HUAWEICLOUD_Password:-$(_readaccountconf_mutable HUAWEICLOUD_Password)}"
   HUAWEICLOUD_ProjectID="${HUAWEICLOUD_ProjectID:-$(_readaccountconf_mutable HUAWEICLOUD_ProjectID)}"
 
+  if [ -z "${HUAWEICLOUD_Username}" ] || [ -z "${HUAWEICLOUD_Username}" ] || [ -z "${HUAWEICLOUD_Username}" ]; then
+    _err "Not enough info provided to dns_huaweicloud!"
+    return 1
+  fi
+
   token="$(_get_token "${HUAWEICLOUD_Username}" "${HUAWEICLOUD_Password}" "${HUAWEICLOUD_ProjectID}")"
   _debug2 "${token}"
   zoneid="$(_get_zoneid "${token}" "${fulldomain}")"
@@ -133,15 +138,36 @@ _add_record() {
   _token=$1
   _domain=$2
   _txtvalue=$3
+
+  # Get Existing Records
+  export _H1="X-Auth-Token: ${_token}"
+  response=$(_get "${dns_api}/v2/zones/${_zoneid}/recordsets?name=${_domain}")
+  _exist_record=$(echo "${response}" | sed ':a;N;$!ba;s/\n/ /g' | grep -o '"records":[^]]*' | sed 's/\"records\"\: \[//g')
+  _debug "${_exist_record}"
+
+  # Check if record exist
+  # Generate body data
   body="{
     \"name\": \"${_domain}.\",
     \"description\": \"ACME Challenge\",
     \"type\": \"TXT\",
     \"ttl\": 1,
     \"records\": [
+        ${_exist_record},
         \"\\\"${_txtvalue}\\\"\"
     ]
   }"
+  if [ -z "${_exist_record}" ]; then
+    body="{
+      \"name\": \"${_domain}.\",
+      \"description\": \"ACME Challenge\",
+      \"type\": \"TXT\",
+      \"ttl\": 1,
+      \"records\": [
+        \"\\\"${_txtvalue}\\\"\"
+      ]
+    }"
+  fi
   _debug2 "${body}"
   export _H2="Content-Type: application/json"
   export _H1="X-Auth-Token: ${_token}"
