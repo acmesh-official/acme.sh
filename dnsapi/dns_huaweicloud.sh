@@ -148,7 +148,7 @@ _add_record() {
   response=$(_get "${dns_api}/v2/zones/${zoneid}/recordsets?name=${_domain}")
 
   _debug2 "${response}"
-  _exist_record=$(echo "${response}" | tr -d "\\r\\n" | _egrep_o '"records":[^]]*' | sed 's/\"records\"\:\[//g')
+  _exist_record=$(echo "${response}" | _egrep_o '"records":[^]]*' | sed 's/\"records\"\:\[//g')
   _debug "${_exist_record}"
 
   # Check if record exist
