@@ -23,8 +23,9 @@ dns_huaweicloud_add() {
   HUAWEICLOUD_Password="${HUAWEICLOUD_Password:-$(_readaccountconf_mutable HUAWEICLOUD_Password)}"
   HUAWEICLOUD_ProjectID="${HUAWEICLOUD_ProjectID:-$(_readaccountconf_mutable HUAWEICLOUD_ProjectID)}"
 
-  if [ -z "${HUAWEICLOUD_Username}" ] || [ -z "${HUAWEICLOUD_Username}" ] || [ -z "${HUAWEICLOUD_Username}" ]; then
-    _err "Not enough info provided to dns_huaweicloud!"
+  # Check information
+  if [ -z "${HUAWEICLOUD_Username}" ] || [ -z "${HUAWEICLOUD_Password}" ] || [ -z "${HUAWEICLOUD_ProjectID}" ]; then
+    _err "Not enough information provided to dns_huaweicloud!"
     return 1
   fi
 
@@ -62,8 +63,9 @@ dns_huaweicloud_rm() {
   HUAWEICLOUD_Password="${HUAWEICLOUD_Password:-$(_readaccountconf_mutable HUAWEICLOUD_Password)}"
   HUAWEICLOUD_ProjectID="${HUAWEICLOUD_ProjectID:-$(_readaccountconf_mutable HUAWEICLOUD_ProjectID)}"
 
-  if [ -z "${HUAWEICLOUD_Username}" ] || [ -z "${HUAWEICLOUD_Username}" ] || [ -z "${HUAWEICLOUD_Username}" ]; then
-    _err "Please provide enough information"
+  # Check information
+  if [ -z "${HUAWEICLOUD_Username}" ] || [ -z "${HUAWEICLOUD_Password}" ] || [ -z "${HUAWEICLOUD_ProjectID}" ]; then
+    _err "Not enough information provided to dns_huaweicloud!"
     return 1
   fi
 
@@ -75,6 +77,8 @@ dns_huaweicloud_rm() {
   _debug "Record Set ID is: ${record_id}"
 
   # Remove all records
+  # Therotically HuaweiCloud does not allow more than one record set
+  # But remove them recurringly to increase robusty
   while [ "${record_id}" != "0" ]; do
     _debug "Removing Record"
     _rm_record "${token}" "${zoneid}" "${record_id}"
@@ -143,22 +147,12 @@ _add_record() {
   export _H1="X-Auth-Token: ${_token}"
   response=$(_get "${dns_api}/v2/zones/${zoneid}/recordsets?name=${_domain}")
 
-  _debug "${response}"
-  _exist_record=$(echo "${response}" | _egrep_o '"records":[^]]*' | sed 's/\"records\"\:\[//g')
+  _debug2 "${response}"
+  _exist_record=$(echo "${response}" | tr -d "\\r\\n" | _egrep_o '"records":[^]]*' | sed 's/\"records\"\:\[//g')
   _debug "${_exist_record}"
 
   # Check if record exist
   # Generate body data
-  _post_body="{
-    \"name\": \"${_domain}.\",
-    \"description\": \"ACME Challenge\",
-    \"type\": \"TXT\",
-    \"ttl\": 1,
-    \"records\": [
-        ${_exist_record},
-        \"\\\"${_txtvalue}\\\"\"
-    ]
-  }"
   if [ -z "${_exist_record}" ]; then
     _post_body="{
       \"name\": \"${_domain}.\",
@@ -166,6 +160,17 @@ _add_record() {
       \"type\": \"TXT\",
       \"ttl\": 1,
       \"records\": [
+        \"\\\"${_txtvalue}\\\"\"
+      ]
+    }"
+  else
+    _post_body="{
+      \"name\": \"${_domain}.\",
+      \"description\": \"ACME Challenge\",
+      \"type\": \"TXT\",
+      \"ttl\": 1,
+      \"records\": [
+        ${_exist_record},
         \"\\\"${_txtvalue}\\\"\"
       ]
     }"
@@ -179,20 +184,17 @@ _add_record() {
     _debug "Removing Record"
     _rm_record "${_token}" "${zoneid}" "${_record_id}"
     _record_id="$(_get_recordset_id "${_token}" "${_domain}" "${zoneid}")"
-    _debug "${_record_id}"
   done
 
   # Add brand new records with all old and new records
   export _H2="Content-Type: application/json"
   export _H1="X-Auth-Token: ${_token}"
 
-  _debug "${_post_body}"
-  sleep 2
+  _debug2 "${_post_body}"
   _post "${_post_body}" "${dns_api}/v2/zones/${zoneid}/recordsets" >/dev/null
   _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
   if [ "$_code" != "202" ]; then
     _err "dns_huaweicloud: http code ${_code}"
-    sleep 60
     return 1
   fi
   return 0
