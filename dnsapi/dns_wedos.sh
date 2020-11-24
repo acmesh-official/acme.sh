@@ -225,6 +225,7 @@ _get_root() {
   fi
 
   # In for each cycle, try parse the response to find primary active domains
+  # - in order to success with MacOSX, always take care if all sed works with --posix when testing the all sed commmands
   # For cycle description:
   # 1st	tr -d '\011\012\015' = remove all newlines and tab characters - whole XML became single line
   # 2nd sed "s/^.*<data>[ ]*//g" = remove all the xml data from the beggining of the XML - XML now start with the content of <data> element
@@ -233,10 +234,10 @@ _get_root() {
   # 5th sed "s/<domain>//g" = remove all domain xml start tags - XML now contains only <name>...</name><type>...</type><status>...</status>  </domain>(next xml domain)
   # 6th sed "s/[ ]*<\/domain>/\t/g" = replace all "spaces</domain>" by tab - now we are preparing to create multiple lines
   # 7th th '\011' '\n' = replace all tabs from previous sed (Mac OS change) - now we create multiple lines each should contain only <name>...</name><type>...</type><status>...</status>
-  # 8th sed  -n "/<name>\([a-zA-Z0-9_\-\.]\+\)<\/name><type>primary<\/type><status>active<\/status>/p" = remove all non primary or non active domains lines
-  # 9th sed "s/<name>\([a-zA-Z0-9_\-\.]\+\)<\/name><type>primary<\/type><status>active<\/status>/\1/g" = substitute for domain names only
+  # 8th sed  -n "/<name>\([a-zA-Z0-9_.-][a-zA-Z0-9_.-]*\)<\/name><type>primary<\/type><status>active<\/status>/p" = remove all non primary or non active domains lines
+  # 9th sed "s/<name>\([a-zA-Z0-9_.-][a-zA-Z0-9_.-]*\)<\/name><type>primary<\/type><status>active<\/status>/\1/g" = substitute for domain names only
 
-  for xml_domain in $(echo "${response}" | tr -d '\011\012\015' | sed "s/^.*<data>[ ]*//g" | sed "s/<\/data>.*$//g" | sed "s/>[ ]*<\([^\/]\)/><\1/g" | sed "s/<domain>//g" | sed "s/[ ]*<\/domain>/\t/g" | tr '\011' '\n' | sed -n "/<name>\([a-zA-Z0-9_\-\.]\+\)<\/name><type>primary<\/type><status>active<\/status>/p" | sed "s/<name>\([a-zA-Z0-9_\-\.]\+\)<\/name><type>primary<\/type><status>active<\/status>/\1/g"); do
+  for xml_domain in $(echo "${response}" | tr -d '\011\012\015' | sed "s/^.*<data>[ ]*//g" | sed "s/<\/data>.*$//g" | sed "s/>[ ]*<\([^\/]\)/><\1/g" | sed "s/<domain>//g" | sed "s/[ ]*<\/domain>/\t/g" | tr '\011' '\n' | sed -n "/<name>\([a-zA-Z0-9_.-][a-zA-Z0-9_.-]*\)<\/name><type>primary<\/type><status>active<\/status>/p" | sed "s/<name>\([a-zA-Z0-9_.-][a-zA-Z0-9_.-]*\)<\/name><type>primary<\/type><status>active<\/status>/\1/g"); do
     _debug "Found primary active domain: ${xml_domain}"
     if _endswith "${domain}" "${xml_domain}"; then
       length_difference=$(_math "${#domain} - ${#xml_domain}")
@@ -353,6 +354,7 @@ _wapi_find_row() {
   _debug "Subdomain regex '${sub_domain_regex}'"
 
   # In for each cycle loops over the domains rows, description:
+  # - when testing use sed --posix to test if compatible with MacOSX = avoid replacement to \n and using + as repeater one or more (instead use the same patern without repeater and then the same with *)
   # 1st tr -d '\011\012\015' = delete all newlines and tab characters - XML became a single line
   # 2nd sed "s/^.*<data>[ ]*//g" = remove all from the beggining to the start of the content of the data xml element - XML is without unusefull beginning
   # 3rd sed "s/[ ]*<\/data>.*$//g" = remove the end of the xml starting with xml end tag data - XML contains only the content of data xml element and is trimmed
@@ -361,12 +363,12 @@ _wapi_find_row() {
   # 6th sed "s/[ ]*<\/row>/\t/g" = replace all "spaces</row>" by tab - now we are preparing to create multiple lines
   # 7th tr '\011' '\n' = replace all tabs with new lines (Mac OS X hint) - we create multiple lines each should contain only single row xml content
   # 8th sed  -n "/<name>${sub_domain_regex}<\/name>.*<rdtype>TXT<\/rdtype>/p" = remove all non TXT and non name matching row lines - now we have only xml lines with TXT rows matching requested values
-  # 9th sed "s/^<ID>\([0-9]\+\)<\/ID>.*<rdata>\(.*\)<\/rdata>.*$/\1-\2/" = replace the whole lines to ID-value pairs
+  # 9th sed "s/^<ID>\([0-9][0-9]*\)<\/ID>.*<rdata>\(.*\)<\/rdata>.*$/\1-\2/" = replace the whole lines to ID-value pairs
   # -- now there are only lines with ID-value but value might contain spaces (BAD FOR FOREACH LOOP) or special characters (BAD FOR REGEX MATCHING)
   # 10th grep "${value}" = match only a line containg searched value
-  # 11th sed "s/^\([0-9]\+\).*$/\1/" = get only ID from the row
+  # 11th sed "s/^\([0-9][0-9]*\).*$/\1/" = get only ID from the row
 
-  for xml_row in $(echo "${response}" | tr -d '\011\012\015' | sed "s/^.*<data>[ ]*//g" | sed "s/[ ]*<\/data>.*$//g" | sed "s/>[ ]*<\([^\/]\)/><\1/g" | sed "s/<row>//g" | sed "s/[ ]*<\/row>/\t/g" | tr '\011' '\n' | sed -n "/<name>${sub_domain_regex}<\/name>.*<rdtype>TXT<\/rdtype>/p" | sed "s/^<ID>\([0-9]\+\)<\/ID>.*<rdata>\(.*\)<\/rdata>.*$/\1-\2/" | grep "${value}" | sed "s/^\([0-9]\+\).*$/\1/"); do
+  for xml_row in $(echo "${response}" | tr -d '\011\012\015' | sed "s/^.*<data>[ ]*//g" | sed "s/[ ]*<\/data>.*$//g" | sed "s/>[ ]*<\([^\/]\)/><\1/g" | sed "s/<row>//g" | sed "s/[ ]*<\/row>/\t/g" | tr '\011' '\n' | sed -n "/<name>${sub_domain_regex}<\/name>.*<rdtype>TXT<\/rdtype>/p" | sed "s/^<ID>\([0-9][0-9]*\)<\/ID>.*<rdata>\(.*\)<\/rdata>.*$/\1-\2/" | grep "${value}" | sed "s/^\([0-9][0-9]*\).*$/\1/"); do
     _row_id="${xml_row}"
     _info "WEDOS API: Found DNS row id ${_row_id} for domain ${domain}"
     return 0
