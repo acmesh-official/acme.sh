@@ -50,7 +50,8 @@ dns_wedos_add() {
 
     #build WEDOS_Authtoken
     _debug "WEDOS Authtoken were not saved yet, building"
-    WEDOS_Authtoken=$(printf '%s' "${WEDOS_Wapipass}" | _digest "sha1" "true" | head -c 40)
+    WEDOS_Authtoken=$(printf '%s' "${WEDOS_Wapipass}" | _digest "sha1" "true")
+    WEDOS_Authtoken=$(printf '%.40s' "${WEDOS_Authtoken}")
     _debug "WEDOS_Authtoken step 1, WAPI PASS sha1 sum: '${WEDOS_Authtoken}'"
     WEDOS_Authtoken="${WEDOS_Username}${WEDOS_Authtoken}"
     _debug "WEDOS_Authtoken step 2, username concat with token without hours: '${WEDOS_Authtoken}'"
@@ -111,7 +112,8 @@ dns_wedos_rm() {
 
     #build WEDOS_Authtoken
     _debug "WEDOS Authtoken were not saved yet, building"
-    WEDOS_Authtoken=$(printf '%s' "${WEDOS_Wapipass}" | sha1sum | head -c 40)
+    WEDOS_Authtoken=$(printf '%s' "${WEDOS_Wapipass}" | _digest "sha1" "true")
+    WEDOS_Authtoken=$(printf '%.40s' "${WEDOS_Authtoken}")
     _debug "WEDOS_Authtoken step 1, WAPI PASS sha1 sum: '${WEDOS_Authtoken}'"
     WEDOS_Authtoken="${WEDOS_Username}${WEDOS_Authtoken}"
     _debug "WEDOS_Authtoken step 2, username concat with token without hours: '${WEDOS_Authtoken}'"
@@ -166,7 +168,8 @@ _wapi_post() {
 
   # Prepare authentification token
   hour=$(TZ='Europe/Prague' date +%H)
-  token=$(printf '%s' "${WEDOS_Authtoken}${hour}" | _digest "sha1" "true" | head -c 40)
+  token=$(printf '%s' "${WEDOS_Authtoken}${hour}" | _digest "sha1" "true")
+  token=$(printf '%.40s' "${token}")
   _debug "Authentification token is '${token}'"
 
   # Build xml request
