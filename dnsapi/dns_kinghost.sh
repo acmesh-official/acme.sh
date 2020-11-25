@@ -37,7 +37,7 @@ dns_kinghost_add() {
   _debug "Getting txt records"
   _kinghost_rest GET "dns" "name=$fulldomain&content=$txtvalue"
 
-  #This API call returns "status":"ok" if dns record does not exists
+  #This API call returns "status":"ok" if dns record does not exist
   #We are creating a new txt record here, so we expect the "ok" status
   if ! echo "$response" | grep '"status":"ok"' >/dev/null; then
     _err "Error"

@@ -91,7 +91,7 @@ dns_gd_rm() {
   fi
 
   if ! _contains "$response" "$txtvalue"; then
-    _info "The record is not existing, skip"
+    _info "The record does not exist, skip"
     return 0
   fi
 

@@ -233,7 +233,6 @@ haproxy_deploy() {
           -header Host${_header_sep}\"${_ocsp_host}\" \
           -respout \"${_ocsp}\" \
           -verify_other \"${_issuer}\" \
-          -no_nonce \
           ${_cafile_argument} \
           | grep -q \"${_pem}: good\""
         _debug _openssl_ocsp_cmd "${_openssl_ocsp_cmd}"

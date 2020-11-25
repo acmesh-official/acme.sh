@@ -217,7 +217,7 @@ _loopia_add_record() {
           </member>
           <member>
             <name>ttl</name>
-            <value><int>60</int></value>
+            <value><int>300</int></value>
           </member>
           <member>
             <name>rdata</name>

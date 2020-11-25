@@ -181,6 +181,7 @@ _describe_records_query() {
 
 _clean() {
   _check_exist_query "$_domain" "$_sub_domain"
+  # do not correct grammar here
   if ! _ali_rest "Check exist records" "ignore"; then
     return 1
   fi

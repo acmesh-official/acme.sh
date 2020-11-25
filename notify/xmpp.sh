@@ -71,13 +71,13 @@ _xmpp_bin() {
 
 _xmpp_cmnd() {
   case $(basename "$_XMPP_BIN") in
-    sendxmpp)
-      echo "'$_XMPP_BIN' '$XMPP_TO' $XMPP_BIN_ARGS"
-      ;;
-    *)
-      _err "Command $XMPP_BIN is not supported, use sendxmpp."
-      return 1
-      ;;
+  sendxmpp)
+    echo "'$_XMPP_BIN' '$XMPP_TO' $XMPP_BIN_ARGS"
+    ;;
+  *)
+    _err "Command $XMPP_BIN is not supported, use sendxmpp."
+    return 1
+    ;;
   esac
 }
 

@@ -107,7 +107,7 @@ _get_root() {
     fi
 
     if _startswith "$response" "\{\"data\":"; then
-      if _contains "$response" "\"id\": \"$h\""; then
+      if _contains "$response" "\"id\":\"$h\""; then
         _sub_domain="$(echo "$fulldomain" | sed "s/\\.$h\$//")"
         _domain=$h
         return 0
