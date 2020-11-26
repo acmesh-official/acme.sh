@@ -15,7 +15,7 @@ dns_world4you_add() {
   _debug fulldomain "$fqdn"
   _debug txtvalue "$value"
 
-  tld=$(echo "$fqdn" | grep -o '[^.]*\.[^.]*$')
+  tld=$(echo "$fqdn" | _egrep_o '[^.]*\.[^.]*$')
   record=$(echo "$fqdn" | cut -c"1-$((${#fqdn} - ${#tld} - 1))")
 
   _login
@@ -69,7 +69,7 @@ dns_world4you_rm() {
   _debug fulldomain "$fqdn"
   _debug txtvalue "$value"
 
-  tld=$(echo "$fqdn" | grep -o '[^.]*\.[^.]*$')
+  tld=$(echo "$fqdn" | _egrep_o '[^.]*\.[^.]*$')
   record=$(echo "$fqdn" | cut -c"1-$((${#fqdn} - ${#tld} - 1))")
 
   _login
