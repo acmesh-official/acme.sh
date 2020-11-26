@@ -67,7 +67,7 @@ mailcow_deploy() {
     return 1
   fi
 
-  DEPLOY_MAILCOW_RELOAD="docker restart $(docker ps -qaf name=postfix-mailcow); docker restart $(docker ps -qaf name=nginx-mailcow); docker restart $(docker ps -qaf name=dovecot-mailcow)"
+  DEFAULT_MAILCOW_RELOAD="docker restart $(docker ps -qaf name=postfix-mailcow); docker restart $(docker ps -qaf name=nginx-mailcow); docker restart $(docker ps -qaf name=dovecot-mailcow)"
   _reload="${DEPLOY_MAILCOW_RELOAD:-$DEFAULT_MAILCOW_RELOAD}"
 
   _info "Run reload: $_reload"
