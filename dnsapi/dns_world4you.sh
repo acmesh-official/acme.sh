@@ -24,7 +24,7 @@ dns_world4you_add() {
   fi
 
   export _H1="Cookie: W4YSESSID=$sessid"
-  paketnr=$(_get "$WORLD4YOU_API/dashboard/paketuebersicht" | grep -B 3 "^\\s*$tld\$" | head -n 1 | sed 's/^.*>\([0-9][0-9]*\)<.*$/\1/')
+  paketnr=$(_get "$WORLD4YOU_API/dashboard/paketuebersicht" | _ggrep -B 3 "^\\s*$tld\$" | head -n 1 | sed 's/^.*>\([0-9][0-9]*\)<.*$/\1/')
   if [ -z "$paketnr" ]; then
     _err "Unable to parse paketnr"
     return 3
@@ -78,7 +78,7 @@ dns_world4you_rm() {
   fi
 
   export _H1="Cookie: W4YSESSID=$sessid"
-  paketnr=$(_get "$WORLD4YOU_API/dashboard/paketuebersicht" | grep -B 3 "^\\s*$tld\$" | head -n 1 | sed 's/^.*>\([0-9][0-9]*\).*$/\1/')
+  paketnr=$(_get "$WORLD4YOU_API/dashboard/paketuebersicht" | _ggrep -B 3 "^\\s*$tld\$" | head -n 1 | sed 's/^.*>\([0-9][0-9]*\).*$/\1/')
   if [ -z "$paketnr" ]; then
     _err "Unable to parse paketnr"
     return 3
@@ -155,5 +155,15 @@ _login() {
   else
     _err "Unable to log in: $(echo "$ret" | sed 's/^.*"message":"\([^\"]*\)".*$/\1/')"
     return 1
+  fi
+}
+
+_ggrep() {
+  if _exists "ggrep"; then
+    ggrep $@
+    return $?
+  else
+    grep $@
+    return $?
   fi
 }
