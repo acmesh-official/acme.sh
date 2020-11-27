@@ -168,18 +168,19 @@ _get_paketnr() {
   tld="$1"
   form="$2"
 
-  domains=($(echo "$form" | _ggrep -E '^\s*([A-Za-z0-9_-]+\.)+[A-Za-z0-9_-]*$' | sed 's/^\s*\(\S*\)$/\1/'))
-  paketnrs=($(echo "$form" | _ggrep -B 3 -E '^\s*([A-Za-z0-9_-]+\.)+[A-Za-z0-9_-]*$' | sed -n '1~5p' | sed 's/^.*>\([0-9][0-9]*\).*$/\1/'))
-
-  total="${#domains[*]}"
-  for (( i=0; i<=$(( $total - 1 )); i++ )); do
-    domain="${domains[$i]}"
+  domains=$(echo "$form" | _ggrep -E '^\s*([A-Za-z0-9_-]+\.)+[A-Za-z0-9_-]*$' | sed 's/^\s*\(\S*\)$/\1/')
+  domain=''
+  for domain in $domains; do
     if [ $(echo "$domain" | grep "$tld\$") ]; then
-      PAKETNR="${paketnrs[$i]}"
-      return 0
+      break
     fi
   done
-  return 1
+  if [ -z "$domain" ]; then
+    return 1
+  fi
+
+  PAKETNR=$(echo "$form" | _ggrep -B 3 "^\\s*$domain\$" | head -n 1 | sed 's/^.*>\([0-9][0-9]*\).*$/\1/')
+  return 0
 }
 
 _ggrep() {
