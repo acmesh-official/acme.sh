@@ -4,6 +4,7 @@
 # Lorenz Stechauner, 2020 - https://www.github.com/NerLOR
 
 WORLD4YOU_API="https://my.world4you.com/en"
+PAKETNR=''
 
 ################ Public functions ################
 
@@ -24,7 +25,9 @@ dns_world4you_add() {
   fi
 
   export _H1="Cookie: W4YSESSID=$sessid"
-  paketnr=$(_get "$WORLD4YOU_API/dashboard/paketuebersicht" | _ggrep -B 3 "^\\s*$tld\$" | head -n 1 | sed 's/^.*>\([0-9][0-9]*\)<.*$/\1/')
+  form=$(_get "$WORLD4YOU_API/dashboard/paketuebersicht")
+  _get_paketnr "$tld" "$form"
+  paketnr="$PAKETNR"
   if [ -z "$paketnr" ]; then
     _err "Unable to parse paketnr"
     return 3
@@ -78,7 +81,9 @@ dns_world4you_rm() {
   fi
 
   export _H1="Cookie: W4YSESSID=$sessid"
-  paketnr=$(_get "$WORLD4YOU_API/dashboard/paketuebersicht" | _ggrep -B 3 "^\\s*$tld\$" | head -n 1 | sed 's/^.*>\([0-9][0-9]*\).*$/\1/')
+  form=$(_get "$WORLD4YOU_API/dashboard/paketuebersicht")
+  _get_paketnr "$tld" "$form"
+  paketnr="$PAKETNR"
   if [ -z "$paketnr" ]; then
     _err "Unable to parse paketnr"
     return 3
@@ -156,6 +161,25 @@ _login() {
     _err "Unable to log in: $(echo "$ret" | sed 's/^.*"message":"\([^\"]*\)".*$/\1/')"
     return 1
   fi
+}
+
+# Usage _get_paketnr <tld> <form>
+_get_paketnr() {
+  tld="$1"
+  form="$2"
+
+  domains=($(echo "$form" | _ggrep -E '^\s*([A-Za-z0-9_-]+\.)+[A-Za-z0-9_-]*$' | sed 's/^\s*\(\S*\)$/\1/'))
+  paketnrs=($(echo "$form" | _ggrep -B 3 -E '^\s*([A-Za-z0-9_-]+\.)+[A-Za-z0-9_-]*$' | sed -n '1~5p' | sed 's/^.*>\([0-9][0-9]*\).*$/\1/'))
+
+  total="${#domains[*]}"
+  for (( i=0; i<=$(( $total - 1 )); i++ )); do
+    domain="${domains[$i]}"
+    if [ $(echo "$domain" | grep "$tld\$") ]; then
+      PAKETNR="${paketnrs[$i]}"
+      return 0
+    fi
+  done
+  return 1
 }
 
 _ggrep() {
