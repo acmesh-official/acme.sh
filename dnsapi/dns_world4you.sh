@@ -160,10 +160,10 @@ _login() {
 
 _ggrep() {
   if _exists "ggrep"; then
-    ggrep $@
+    ggrep "$@"
     return $?
   else
-    grep $@
+    grep "$@"
     return $?
   fi
 }
