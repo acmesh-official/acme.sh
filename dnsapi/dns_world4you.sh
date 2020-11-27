@@ -171,7 +171,7 @@ _get_paketnr() {
   domains=$(echo "$form" | _ggrep -E '^\s*([A-Za-z0-9_-]+\.)+[A-Za-z0-9_-]*$' | sed 's/^\s*\(\S*\)$/\1/')
   domain=''
   for domain in $domains; do
-    if $(echo "$domain" | grep -q "$tld\$"); then
+    if echo "$domain" | grep -q "$tld\$"; then
       break
     fi
   done
