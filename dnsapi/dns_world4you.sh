@@ -56,8 +56,7 @@ AddDnsRecordForm[uniqueFormIdTTL]=$formidttl&AddDnsRecordForm[_token]=$form_toke
 
   _ACME_CURL="$_ORIG_ACME_CURL"
 
-  success=$(grep '302\|200' <"$HTTP_HEADER")
-  if [ "$success" ]; then
+  if _ggrep -q '302\|200' <"$HTTP_HEADER"; then
     return 0
   else
     _err "$(head -n 1 <"$HTTP_HEADER")"
@@ -116,8 +115,7 @@ DeleteDnsRecordForm[_token]=$form_token"
 
   _ACME_CURL="$_ORIG_ACME_CURL"
 
-  success=$(grep '302\|200' <"$HTTP_HEADER")
-  if [ "$success" ]; then
+  if _ggrep -q '302\|200' <"$HTTP_HEADER"; then
     return 0
   else
     _err "$(head -n 1 <"$HTTP_HEADER")"
