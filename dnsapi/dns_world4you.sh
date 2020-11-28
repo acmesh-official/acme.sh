@@ -5,6 +5,8 @@
 
 WORLD4YOU_API="https://my.world4you.com/en"
 PAKETNR=''
+TLD=''
+RECORD=''
 
 ################ Public functions ################
 
@@ -16,9 +18,6 @@ dns_world4you_add() {
   _debug fulldomain "$fqdn"
   _debug txtvalue "$value"
 
-  tld=$(echo "$fqdn" | _egrep_o '[^.]*\.[^.]*$')
-  record=$(echo "$fqdn" | cut -c"1-$((${#fqdn} - ${#tld} - 1))")
-
   _login
   if [ "$?" != 0 ]; then
     return 1
@@ -26,8 +25,10 @@ dns_world4you_add() {
 
   export _H1="Cookie: W4YSESSID=$sessid"
   form=$(_get "$WORLD4YOU_API/dashboard/paketuebersicht")
-  _get_paketnr "$tld" "$form"
+  _get_paketnr "$fqdn" "$form"
   paketnr="$PAKETNR"
+  tld="$TLD"
+  record="$RECORD"
   if [ -z "$paketnr" ]; then
     _err "Unable to parse paketnr"
     return 3
@@ -82,8 +83,10 @@ dns_world4you_rm() {
 
   export _H1="Cookie: W4YSESSID=$sessid"
   form=$(_get "$WORLD4YOU_API/dashboard/paketuebersicht")
-  _get_paketnr "$tld" "$form"
+  _get_paketnr "$fqdn" "$form"
   paketnr="$PAKETNR"
+  tld="$TLD"
+  record="$RECORD"
   if [ -z "$paketnr" ]; then
     _err "Unable to parse paketnr"
     return 3
@@ -163,22 +166,25 @@ _login() {
   fi
 }
 
-# Usage _get_paketnr <tld> <form>
+# Usage _get_paketnr <fqdn> <form>
 _get_paketnr() {
-  tld="$1"
+  fqdn="$1"
   form="$2"
 
   domains=$(echo "$form" | _ggrep -E '^\s*([A-Za-z0-9_-]+\.)+[A-Za-z0-9_-]*$' | sed 's/^\s*\(\S*\)$/\1/')
   domain=''
   for domain in $domains; do
-    if echo "$domain" | grep -q "$tld\$"; then
+    if echo "$fqdn" | grep -q "$domain\$"; then
       break
     fi
+    domain=''
   done
   if [ -z "$domain" ]; then
     return 1
   fi
 
+  TLD="$domain"
+  RECORD=$(echo "$fqdn" | cut -c"1-$((${#fqdn} - ${#TLD} - 1))")
   PAKETNR=$(echo "$form" | _ggrep -B 3 "^\\s*$domain\$" | head -n 1 | sed 's/^.*>\([0-9][0-9]*\).*$/\1/')
   return 0
 }
