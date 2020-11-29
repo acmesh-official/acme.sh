@@ -1722,6 +1722,14 @@ _mktemp() {
   _err "Can not create temp file."
 }
 
+#clear all the https envs to cause _inithttp() to run next time.
+_resethttp() {
+  __HTTP_INITIALIZED=""
+  _ACME_CURL=""
+  _ACME_WGET=""
+  ACME_HTTP_NO_REDIRECTS=""
+}
+
 _inithttp() {
 
   if [ -z "$HTTP_HEADER" ] || ! touch "$HTTP_HEADER"; then
@@ -1737,7 +1745,10 @@ _inithttp() {
   fi
 
   if [ -z "$_ACME_CURL" ] && _exists "curl"; then
-    _ACME_CURL="curl -L --silent --dump-header $HTTP_HEADER "
+    _ACME_CURL="curl --silent --dump-header $HTTP_HEADER "
+    if [ -z "$ACME_HTTP_NO_REDIRECTS" ]; then
+      _ACME_CURL="$_ACME_CURL -L "
+    fi
     if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
       _CURL_DUMP="$(_mktemp)"
       _ACME_CURL="$_ACME_CURL --trace-ascii $_CURL_DUMP "
@@ -1756,6 +1767,9 @@ _inithttp() {
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
     _ACME_WGET="wget -q"
+    if [ "$ACME_HTTP_NO_REDIRECTS" ]; then
+      _ACME_WGET="$_ACME_WGET --max-redirect 0 "
+    fi
     if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
       _ACME_WGET="$_ACME_WGET -d "
     fi
