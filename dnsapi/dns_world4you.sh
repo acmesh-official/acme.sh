@@ -183,16 +183,6 @@ _get_paketnr() {
 
   TLD="$domain"
   RECORD=$(echo "$fqdn" | cut -c"1-$((${#fqdn} - ${#TLD} - 1))")
-  PAKETNR=$(echo "$form" | _ggrep -B 3 "^\\s*$domain\$" | head -n 1 | sed 's/^.*>\([0-9][0-9]*\).*$/\1/')
+  PAKETNR=$(echo "$form" | _egrep_o "data-textfilter=\" $domain .* [0-9]*" | head -n 1 | _egrep_o "[0-9]*")
   return 0
-}
-
-_ggrep() {
-  if _exists "ggrep"; then
-    ggrep "$@"
-    return $?
-  else
-    grep "$@"
-    return $?
-  fi
 }
