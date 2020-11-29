@@ -47,13 +47,11 @@ dns_world4you_add() {
 
   _resethttp
   export ACME_HTTP_NO_REDIRECTS=1
-
   body="AddDnsRecordForm[name]=$record&AddDnsRecordForm[dnsType][type]=TXT&\
 AddDnsRecordForm[value]=$value&AddDnsRecordForm[aktivPaket]=$paketnr&AddDnsRecordForm[uniqueFormIdDP]=$formiddp&\
 AddDnsRecordForm[uniqueFormIdTTL]=$formidttl&AddDnsRecordForm[_token]=$form_token"
   _info "Adding record..."
   ret=$(_post "$body" "$WORLD4YOU_API/$paketnr/dns" '' POST 'application/x-www-form-urlencoded')
-
   _resethttp
 
   if grep '302' >/dev/null <"$HTTP_HEADER"; then
@@ -71,9 +69,6 @@ dns_world4you_rm() {
   _info "Using world4you"
   _debug fulldomain "$fqdn"
   _debug txtvalue "$value"
-
-  tld=$(echo "$fqdn" | _egrep_o '[^.]*\.[^.]*$')
-  record=$(echo "$fqdn" | cut -c"1-$((${#fqdn} - ${#tld} - 1))")
 
   _login
   if [ "$?" != 0 ]; then
@@ -106,13 +101,11 @@ dns_world4you_rm() {
 
   _resethttp
   export ACME_HTTP_NO_REDIRECTS=1
-
   body="DeleteDnsRecordForm[recordId]=$recordid&DeleteDnsRecordForm[aktivPaket]=$paketnr&\
 DeleteDnsRecordForm[uniqueFormIdDP]=$formiddp&DeleteDnsRecordForm[uniqueFormIdTTL]=$formidttl&\
 DeleteDnsRecordForm[_token]=$form_token"
   _info "Removing record..."
   ret=$(_post "$body" "$WORLD4YOU_API/$paketnr/deleteRecord" '' POST 'application/x-www-form-urlencoded')
-
   _resethttp
 
   if grep '302' >/dev/null <"$HTTP_HEADER"; then
