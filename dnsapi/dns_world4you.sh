@@ -56,7 +56,7 @@ AddDnsRecordForm[uniqueFormIdTTL]=$formidttl&AddDnsRecordForm[_token]=$form_toke
 
   _ACME_CURL="$_ORIG_ACME_CURL"
 
-  if _ggrep -q '302\|200' <"$HTTP_HEADER"; then
+  if _ggrep '302\|200' >/dev/null <"$HTTP_HEADER"; then
     return 0
   else
     _err "$(head -n 1 <"$HTTP_HEADER")"
@@ -115,7 +115,7 @@ DeleteDnsRecordForm[_token]=$form_token"
 
   _ACME_CURL="$_ORIG_ACME_CURL"
 
-  if _ggrep -q '302\|200' <"$HTTP_HEADER"; then
+  if _ggrep '302\|200' >/dev/null <"$HTTP_HEADER"; then
     return 0
   else
     _err "$(head -n 1 <"$HTTP_HEADER")"
@@ -172,7 +172,7 @@ _get_paketnr() {
   domains=$(echo "$form" | _egrep_o '^\s*([A-Za-z0-9_-]+\.)+[A-Za-z0-9_-]*$' | sed 's/^\s*\(\S*\)$/\1/')
   domain=''
   for domain in $domains; do
-    if echo "$fqdn" | grep -q "$domain\$"; then
+    if echo "$fqdn" | grep "$domain\$" >/dev/null; then
       break
     fi
     domain=''
