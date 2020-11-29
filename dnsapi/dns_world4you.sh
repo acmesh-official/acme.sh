@@ -133,7 +133,7 @@ _login() {
   if [ -z "$WORLD4YOU_USERNAME" ] || [ -z "$WORLD4YOU_PASSWORD" ]; then
     WORLD4YOU_USERNAME=""
     WORLD4YOU_PASSWORD=""
-    _err "You don't specified world4you username and password yet."
+    _err "You didn't specify world4you username and password yet."
     _err "Usage: export WORLD4YOU_USERNAME=<name>"
     _err "Usage: export WORLD4YOU_PASSWORD=<password>"
     return 2
