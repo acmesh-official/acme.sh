@@ -162,7 +162,7 @@ _get_paketnr() {
   fqdn="$1"
   form="$2"
 
-  domains=$(echo "$form" | _egrep_o '^\s*([A-Za-z0-9_-]+\.)+[A-Za-z0-9_-]*$' | sed 's/^\s*\(\S*\)$/\1/')
+  domains=$(echo "$form" | grep '^ *[A-Za-z0-9_\.-]*\.[A-Za-z0-9_-]*$' | sed 's/^\s*\(\S*\)$/\1/')
   domain=''
   for domain in $domains; do
     if echo "$fqdn" | grep "$domain\$" >/dev/null; then
@@ -176,6 +176,6 @@ _get_paketnr() {
 
   TLD="$domain"
   RECORD=$(echo "$fqdn" | cut -c"1-$((${#fqdn} - ${#TLD} - 1))")
-  PAKETNR=$(echo "$form" | _egrep_o "data-textfilter=\" $domain .* [0-9]*" | _head_n 1 | _egrep_o "[0-9]*")
+  PAKETNR=$(echo "$form" | grep "data-textfilter=\" $domain " | _head_n 1 | sed 's/^.* \([0-9]*\) .*$/\1/')
   return 0
 }
