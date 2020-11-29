@@ -14,7 +14,7 @@ RECORD=''
 dns_world4you_add() {
   fqdn="$1"
   value="$2"
-  _info "Using world4you"
+  _info "Using world4you to add record"
   _debug fulldomain "$fqdn"
   _debug txtvalue "$value"
 
@@ -64,7 +64,7 @@ AddDnsRecordForm[uniqueFormIdTTL]=$formidttl&AddDnsRecordForm[_token]=$form_toke
 dns_world4you_rm() {
   fqdn="$1"
   value="$2"
-  _info "Using world4you"
+  _info "Using world4you to remove record"
   _debug fulldomain "$fqdn"
   _debug txtvalue "$value"
 
