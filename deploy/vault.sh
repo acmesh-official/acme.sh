@@ -52,11 +52,27 @@ vault_deploy() {
   _cca=$(sed -z 's/\n/\\n/g' <"$4")
   _cfullchain=$(sed -z 's/\n/\\n/g' <"$5")
 
+  # Fix vault prefix for KV-V2
+  if [ -n "$VAULT_KV_V2" ]; then
+    VAULT_PREFIX=$(echo "${VAULT_PREFIX}" | sed 's|/$||')
+    if test "${VAULT_PREFIX#*'/'}" == "${VAULT_PREFIX}"; then
+      VAULT_PREFIX="${VAULT_PREFIX}/data"
+    else
+      VAULT_PREFIX=$(echo "${VAULT_PREFIX}" | sed 's|/|/data/|')
+    fi
+  fi
+
   URL="$VAULT_ADDR/v1/$VAULT_PREFIX/$_cdomain"
   export _H1="X-Vault-Token: $VAULT_TOKEN"
 
   if [ -n "$FABIO" ]; then
     _post "{\"cert\": \"$_cfullchain\", \"key\": \"$_ckey\"}" "$URL"
+  elif [ -n "$VAULT_KV_V2" ]; then
+    _post "{\"data\": {\"value\": \"$_ccert\"}}" "$URL/cert.pem"
+    _post "{\"data\": {\"value\": \"$_ckey\"}}" "$URL/cert.key"
+    _post "{\"data\": {\"value\": \"$_cca\"}}" "$URL/chain.pem"
+    _post "{\"data\": {\"value\": \"$_cfullchain\"}}" "$URL/fullchain.pem"
+
   else
     _post "{\"value\": \"$_ccert\"}" "$URL/cert.pem"
     _post "{\"value\": \"$_ckey\"}" "$URL/cert.key"
