@@ -27,8 +27,6 @@ dns_world4you_add() {
   form=$(_get "$WORLD4YOU_API/dashboard/paketuebersicht")
   _get_paketnr "$fqdn" "$form"
   paketnr="$PAKETNR"
-  tld="$TLD"
-  record="$RECORD"
   if [ -z "$paketnr" ]; then
     _err "Unable to parse paketnr"
     return 3
@@ -47,7 +45,7 @@ dns_world4you_add() {
 
   _resethttp
   export ACME_HTTP_NO_REDIRECTS=1
-  body="AddDnsRecordForm[name]=$record&AddDnsRecordForm[dnsType][type]=TXT&\
+  body="AddDnsRecordForm[name]=$RECORD&AddDnsRecordForm[dnsType][type]=TXT&\
 AddDnsRecordForm[value]=$value&AddDnsRecordForm[aktivPaket]=$paketnr&AddDnsRecordForm[uniqueFormIdDP]=$formiddp&\
 AddDnsRecordForm[uniqueFormIdTTL]=$formidttl&AddDnsRecordForm[_token]=$form_token"
   _info "Adding record..."
@@ -79,8 +77,6 @@ dns_world4you_rm() {
   form=$(_get "$WORLD4YOU_API/dashboard/paketuebersicht")
   _get_paketnr "$fqdn" "$form"
   paketnr="$PAKETNR"
-  tld="$TLD"
-  record="$RECORD"
   if [ -z "$paketnr" ]; then
     _err "Unable to parse paketnr"
     return 3
