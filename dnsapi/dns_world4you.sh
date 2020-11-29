@@ -56,7 +56,7 @@ AddDnsRecordForm[uniqueFormIdTTL]=$formidttl&AddDnsRecordForm[_token]=$form_toke
     return 0
   else
     _err "$(_head_n 1 <"$HTTP_HEADER")"
-    return 2
+    return 1
   fi
 }
 
@@ -108,7 +108,7 @@ DeleteDnsRecordForm[_token]=$form_token"
     return 0
   else
     _err "$(_head_n 1 <"$HTTP_HEADER")"
-    return 2
+    return 1
   fi
 }
 
@@ -125,7 +125,7 @@ _login() {
     _err "You didn't specify world4you username and password yet."
     _err "Usage: export WORLD4YOU_USERNAME=<name>"
     _err "Usage: export WORLD4YOU_PASSWORD=<password>"
-    return 2
+    return 1
   fi
 
   _saveaccountconf_mutable WORLD4YOU_USERNAME "$WORLD4YOU_USERNAME"
