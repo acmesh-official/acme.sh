@@ -60,7 +60,7 @@ AddDnsRecordForm[uniqueFormIdTTL]=$formidttl&AddDnsRecordForm[_token]=$form_toke
   if grep '302' >/dev/null <"$HTTP_HEADER"; then
     return 0
   else
-    _err "$(head_n 1 <"$HTTP_HEADER")"
+    _err "$(_head_n 1 <"$HTTP_HEADER")"
     return 2
   fi
 }
@@ -120,7 +120,7 @@ DeleteDnsRecordForm[_token]=$form_token"
   if grep '302' >/dev/null <"$HTTP_HEADER"; then
     return 0
   else
-    _err "$(head_n 1 <"$HTTP_HEADER")"
+    _err "$(_head_n 1 <"$HTTP_HEADER")"
     return 2
   fi
 }
@@ -185,6 +185,6 @@ _get_paketnr() {
 
   TLD="$domain"
   RECORD=$(echo "$fqdn" | cut -c"1-$((${#fqdn} - ${#TLD} - 1))")
-  PAKETNR=$(echo "$form" | _egrep_o "data-textfilter=\" $domain .* [0-9]*" | head_n 1 | _egrep_o "[0-9]*")
+  PAKETNR=$(echo "$form" | _egrep_o "data-textfilter=\" $domain .* [0-9]*" | _head_n 1 | _egrep_o "[0-9]*")
   return 0
 }
