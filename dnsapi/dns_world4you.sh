@@ -46,7 +46,7 @@ dns_world4you_add() {
   fi
 
   _resethttp
-  ACME_HTTP_NO_REDIRECTS=1
+  export ACME_HTTP_NO_REDIRECTS=1
 
   body="AddDnsRecordForm[name]=$record&AddDnsRecordForm[dnsType][type]=TXT&\
 AddDnsRecordForm[value]=$value&AddDnsRecordForm[aktivPaket]=$paketnr&AddDnsRecordForm[uniqueFormIdDP]=$formiddp&\
@@ -105,7 +105,7 @@ dns_world4you_rm() {
   _debug recordid "$recordid"
 
   _resethttp
-  ACME_HTTP_NO_REDIRECTS=1
+  export ACME_HTTP_NO_REDIRECTS=1
 
   body="DeleteDnsRecordForm[recordId]=$recordid&DeleteDnsRecordForm[aktivPaket]=$paketnr&\
 DeleteDnsRecordForm[uniqueFormIdDP]=$formiddp&DeleteDnsRecordForm[uniqueFormIdTTL]=$formidttl&\
