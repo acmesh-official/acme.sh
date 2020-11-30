@@ -53,7 +53,7 @@ AddDnsRecordForm[uniqueFormIdTTL]=$formidttl&AddDnsRecordForm[_token]=$form_toke
   _resethttp
 
   if grep '302' >/dev/null <"$HTTP_HEADER"; then
-    msg=$(_get "$WORLD4YOU_API/$paketnr/dns" | tr '\n' '\t' | sed 's/^.*<h3 class="mb-5">[^\t]*\t *\([^\t]*\)\t.*/\1\n/')
+    msg=$(_get "$WORLD4YOU_API/$paketnr/dns" | tr '\n' '\t' | sed 's/.*<h3 class="mb-5">[^\t]*\t *\([^\t]*\)\t.*/\1/')
     if _contains "$msg" "successfully"; then
       return 0
     else
@@ -111,7 +111,7 @@ DeleteDnsRecordForm[_token]=$form_token"
   _resethttp
 
   if grep '302' >/dev/null <"$HTTP_HEADER"; then
-    msg=$(_get "$WORLD4YOU_API/$paketnr/dns" | tr '\n' '\t' | sed 's/^.*<h3 class="mb-5">[^\t]*\t *\([^\t]*\)\t.*/\1\n/')
+    msg=$(_get "$WORLD4YOU_API/$paketnr/dns" | tr '\n' '\t' | sed 's/.*<h3 class="mb-5">[^\t]*\t *\([^\t]*\)\t.*/\1/')
     if _contains "$msg" "successfully"; then
       return 0
     else
