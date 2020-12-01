@@ -28,9 +28,11 @@ fritzbox_deploy() {
   _debug _cfullchain "$_cfullchain"
 
   if ! _exists iconv; then
-    if ! _exists perl; then
-      _err "iconv or perl not found"
-      return 1
+    if ! _exists uconv; then
+      if ! _exists perl; then
+        _err "iconv or uconv or perl not found"
+        return 1
+      fi
     fi
   fi
 
@@ -65,6 +67,8 @@ fritzbox_deploy() {
   _fritzbox_challenge="$(_get "${_fritzbox_url}/login_sid.lua" | sed -e 's/^.*<Challenge>//' -e 's/<\/Challenge>.*$//')"
   if _exists iconv; then
     _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${_fritzbox_password}" | iconv -f ASCII -t UTF16LE | _digest md5 hex)"
+  elif _exists uconv; then
+    _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${_fritzbox_password}" | uconv -f ASCII -t UTF16LE | _digest md5 hex)"
   else
     _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${_fritzbox_password}" | perl -p -e 'use Encode qw/encode/; print encode("UTF-16LE","$_"); $_="";' | _digest md5 hex)"
   fi
