@@ -28,9 +28,7 @@ _aruba_get_api() {
       printf "%s" $ARUBA_BUSINESS_IT
       return
       ;;
-
     *)
-
       _err "Unknown parameter : $1"
       return 1
       ;;
