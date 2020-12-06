@@ -114,7 +114,7 @@ _scaleway_create_TXT_record() {
 
   _scaleway_rest PATCH "dns-zones/$txt_zone/records" "{\"return_all_records\":false,\"changes\":[{\"add\":{\"records\":[{\"name\":\"$txt_name\",\"data\":\"$txt_value\",\"type\":\"TXT\",\"ttl\":60}]}}]}"
 
-  if [ _contains "$response" "records"; then
+  if _contains "$response" "records"; then
     return 0
   else
     _err "error1 $response"
@@ -130,7 +130,7 @@ _scaleway_delete_TXT_record() {
 
   _scaleway_rest PATCH "dns-zones/$txt_zone/records" "{\"return_all_records\":false,\"changes\":[{\"delete\":{\"id_fields\":{\"name\":\"$txt_name\",\"data\":\"$txt_value\",\"type\":\"TXT\"}}}]}"
 
-  if [ _contains "$response" "records"; then
+  if _contains "$response" "records"; then
     return 0
   else
     _err "error2 $response"
