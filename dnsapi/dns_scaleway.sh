@@ -106,6 +106,7 @@ _get_root() {
   return 1
 }
 
+# this function add a TXT record
 _scaleway_create_TXT_record() {
   txt_zone=$1
   txt_name=$2
@@ -121,6 +122,7 @@ _scaleway_create_TXT_record() {
   fi
 }
 
+# this function delete a TXT record based on name and content
 _scaleway_delete_TXT_record() {
   txt_zone=$1
   txt_name=$2
