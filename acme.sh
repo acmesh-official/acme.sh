@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.8.8
+VER=2.8.9
 
 PROJECT_NAME="acme.sh"
 
@@ -1722,6 +1722,14 @@ _mktemp() {
   _err "Can not create temp file."
 }
 
+#clear all the https envs to cause _inithttp() to run next time.
+_resethttp() {
+  __HTTP_INITIALIZED=""
+  _ACME_CURL=""
+  _ACME_WGET=""
+  ACME_HTTP_NO_REDIRECTS=""
+}
+
 _inithttp() {
 
   if [ -z "$HTTP_HEADER" ] || ! touch "$HTTP_HEADER"; then
@@ -1737,7 +1745,10 @@ _inithttp() {
   fi
 
   if [ -z "$_ACME_CURL" ] && _exists "curl"; then
-    _ACME_CURL="curl -L --silent --dump-header $HTTP_HEADER "
+    _ACME_CURL="curl --silent --dump-header $HTTP_HEADER "
+    if [ -z "$ACME_HTTP_NO_REDIRECTS" ]; then
+      _ACME_CURL="$_ACME_CURL -L "
+    fi
     if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
       _CURL_DUMP="$(_mktemp)"
       _ACME_CURL="$_ACME_CURL --trace-ascii $_CURL_DUMP "
@@ -1756,6 +1767,9 @@ _inithttp() {
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
     _ACME_WGET="wget -q"
+    if [ "$ACME_HTTP_NO_REDIRECTS" ]; then
+      _ACME_WGET="$_ACME_WGET --max-redirect 0 "
+    fi
     if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
       _ACME_WGET="$_ACME_WGET -d "
     fi
@@ -2086,7 +2100,7 @@ _send_signed_request() {
 
     _debug2 original "$response"
     if echo "$responseHeaders" | grep -i "Content-Type: *application/json" >/dev/null 2>&1; then
-      response="$(echo "$response" | _normalizeJson | _json_decode)"
+      response="$(echo "$response" | _json_decode | _normalizeJson)"
     fi
     _debug2 response "$response"
 
@@ -3993,7 +4007,7 @@ _check_dns_entries() {
 #file
 _get_cert_issuers() {
   _cfile="$1"
-  if _contains "$(${ACME_OPENSSL_BIN:-openssl} help crl2pkcs7 2>&1)" "Usage: crl2pkcs7"; then
+  if _contains "$(${ACME_OPENSSL_BIN:-openssl} help crl2pkcs7 2>&1)" "Usage: crl2pkcs7" || _contains "$(${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 help 2>&1)" "unknown option help"; then
     ${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 -nocrl -certfile $_cfile | ${ACME_OPENSSL_BIN:-openssl} pkcs7 -print_certs -text -noout | grep 'Issuer:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2
   else
     ${ACME_OPENSSL_BIN:-openssl} x509 -in $_cfile -text -noout | grep 'Issuer:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2
@@ -5823,7 +5837,7 @@ _deactivate() {
     _URL_NAME="uri"
   fi
 
-  entries="$(echo "$response" | _egrep_o "[^{]*\"type\":\"[^\"]*\", *\"status\": *\"valid\", *\"$_URL_NAME\"[^}]*")"
+  entries="$(echo "$response" | tr '][' '==' | _egrep_o "challenges\": *=[^=]*=" | tr '}{' '\n' | grep "\"status\": *\"valid\"")"
   if [ -z "$entries" ]; then
     _info "No valid entries found."
     if [ -z "$thumbprint" ]; then
@@ -5866,7 +5880,7 @@ _deactivate() {
     _debug _vtype "$_vtype"
     _info "Found $_vtype"
 
-    uri="$(echo "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*" | cut -d : -f 2,3 | tr -d '"')"
+    uri="$(echo "$entry" | _egrep_o "\"$_URL_NAME\":\"[^\"]*\"" | tr -d '" ' | cut -d : -f 2-)"
     _debug uri "$uri"
 
     if [ "$_d_type" ] && [ "$_d_type" != "$_vtype" ]; then
@@ -6649,8 +6663,8 @@ _checkSudo() {
       return 0
     fi
     if [ -n "$SUDO_COMMAND" ]; then
-      #it's a normal user doing "sudo su", or `sudo -i` or `sudo -s`
-      _endswith "$SUDO_COMMAND" /bin/su || grep "^$SUDO_COMMAND\$" /etc/shells >/dev/null 2>&1
+      #it's a normal user doing "sudo su", or `sudo -i` or `sudo -s`, or `sudo su acmeuser1`
+      _endswith "$SUDO_COMMAND" /bin/su || _contains "$SUDO_COMMAND" "/bin/su " || grep "^$SUDO_COMMAND\$" /etc/shells >/dev/null 2>&1
       return $?
     fi
     #otherwise
