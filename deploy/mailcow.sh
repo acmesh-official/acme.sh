@@ -45,7 +45,6 @@ mailcow_deploy() {
   fi
   if _isEccKey "${Le_Keylength}"; then
     _info "ECC key type detected"
-    _cert_type="ecdsa"
     _cert_name_prefix="ecdsa-"
   else
     _info "RSA key type detected"
