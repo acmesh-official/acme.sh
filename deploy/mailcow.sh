@@ -49,7 +49,6 @@ mailcow_deploy() {
     _cert_name_prefix="ecdsa-"
   else
     _info "RSA key type detected"
-    _cert_type="rsa"
     _cert_name_prefix=""
   fi
   _info "Copying key and cert"
