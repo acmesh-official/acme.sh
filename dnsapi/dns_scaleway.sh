@@ -29,6 +29,12 @@ dns_scaleway_add() {
 
   _info "Adding record"
   _scaleway_create_TXT_record "$_domain" "$_sub_domain" "$txtvalue"
+  if _contains "$response" "records"; then
+    return 0
+  else
+    _err error "$response"
+    return 1
+  fi
   _info "Record added."
 
   return 0
@@ -52,7 +58,13 @@ dns_scaleway_rm() {
   _debug _domain "$_domain"
 
   _info "Deleting record"
-  _scaleway_create_TXT_record "$_domain" "$_sub_domain" "$txtvalue"
+  _scaleway_delete_TXT_record "$_domain" "$_sub_domain" "$txtvalue"
+  if _contains "$response" "records"; then
+    return 0
+  else
+    _err error "$response"
+    return 1
+  fi
   _info "Record deleted."
 
   return 0
@@ -83,7 +95,7 @@ _scaleway_check_config() {
 # _domain=domain.com
 _get_root() {
   domain=$1
-  i=2
+  i=1
   p=1
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
