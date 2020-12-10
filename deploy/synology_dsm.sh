@@ -21,10 +21,6 @@
 
 ########  Public functions #####################
 
-_syno_get_cookie_data() {
-  grep -i "\W$1=" "$HTTP_HEADER" | grep -i "^Set-Cookie:" | _tail_n 1 | _egrep_o "$1=[^;]*;" | tr -d ';'
-}
-
 #domain keyfile certfile cafile fullchain
 synology_dsm_deploy() {
 
@@ -84,7 +80,7 @@ synology_dsm_deploy() {
   encoded_username="$(printf "%s" "$SYNO_Username" | _url_encode)"
   encoded_password="$(printf "%s" "$SYNO_Password" | _url_encode)"
 
-  if [ ! -z "$SYNO_DID" ]; then
+  if [ -n "$SYNO_DID" ]; then
     _H1="Cookie: did=$SYNO_DID"
     export _H1
     _debug3 H1 "${_H1}"
