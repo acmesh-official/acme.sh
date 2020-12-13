@@ -5978,7 +5978,7 @@ _deactivate() {
       thumbprint="$(__calc_account_thumbprint)"
     fi
     _debug "Trigger validation."
-    vtype="$VTYPE_DNS"
+    vtype="$(_getIdType "$_d_domain")"
     entry="$(echo "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
     _debug entry "$entry"
     if [ -z "$entry" ]; then
