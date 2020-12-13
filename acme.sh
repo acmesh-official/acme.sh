@@ -1226,6 +1226,7 @@ _createcsr() {
   if [ "$acmeValidationv1" ]; then
     domainlist="$(_idn "$domainlist")"
     _debug2 domainlist "$domainlist"
+    alt=""
     for dl in $(echo "$domainlist" | tr "," ' '); do
       if [ "$alt" ]; then
         alt="$alt,$(_getIdType "$dl" | _upper_case):$dl"
