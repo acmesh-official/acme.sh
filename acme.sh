@@ -429,13 +429,11 @@ _secure_debug3() {
 }
 
 _upper_case() {
-  # shellcheck disable=SC2018,SC2019
-  tr 'a-z' 'A-Z'
+  tr '[:lower:]' '[:upper:]'
 }
 
 _lower_case() {
-  # shellcheck disable=SC2018,SC2019
-  tr 'A-Z' 'a-z'
+  tr '[:upper:]' '[:lower:]'
 }
 
 _startswith() {
