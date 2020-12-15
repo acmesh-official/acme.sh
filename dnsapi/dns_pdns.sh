@@ -207,7 +207,7 @@ _pdns_rest() {
   export _H1="X-API-Key: $PDNS_Token"
 
   if [ ! "$method" = "GET" ]; then
-    if [ "$method" == "PATCH" ]; then
+    if [ "$method" = "PATCH" ]; then
         export _H2="Content-Type: application/json"
     fi
     _debug data "$data"
