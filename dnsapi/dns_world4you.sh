@@ -185,7 +185,8 @@ _get_paketnr() {
   fi
 
   TLD="$domain"
+  _debug domain "$domain"
   RECORD=$(echo "$fqdn" | cut -c"1-$((${#fqdn} - ${#TLD} - 1))")
-  PAKETNR=$(echo "$form" | grep "data-textfilter=\" $domain " | _head_n 1 | sed 's/^.* \([0-9]*\) .*$/\1/')
+  PAKETNR=$(echo "$form" | grep "data-textfilter=\".* $domain " | _head_n 1 | sed 's/^.* \([0-9]*\) .*$/\1/')
   return 0
 }
