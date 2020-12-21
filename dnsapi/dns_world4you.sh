@@ -63,8 +63,8 @@ AddDnsRecordForm[uniqueFormIdTTL]=$formidttl&AddDnsRecordForm[_token]=$form_toke
       fi
       _err "Unable to add record: $msg"
       if _contains "$msg" '^<\!DOCTYPE html>'; then
-        echo "$ret" > 'error-01.html'
-        echo "$res" > 'error-02.html'
+        echo "$ret" >'error-01.html'
+        echo "$res" >'error-02.html'
         _err "View error-01.html and error-02.html for debugging"
       fi
       return 1
@@ -131,8 +131,8 @@ DeleteDnsRecordForm[_token]=$form_token"
       fi
       _err "Unable to remove record: $msg"
       if _contains "$msg" '^<\!DOCTYPE html>'; then
-        echo "$ret" > 'error-01.html'
-        echo "$res" > 'error-02.html'
+        echo "$ret" >'error-01.html'
+        echo "$res" >'error-02.html'
         _err "View error-01.html and error-02.html for debugging"
       fi
       return 1
