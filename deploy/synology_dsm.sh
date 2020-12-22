@@ -21,10 +21,6 @@
 
 ########  Public functions #####################
 
-_syno_get_cookie_data() {
-  grep -i "\W$1=" | grep -i "^Set-Cookie:" | _tail_n 1 | _egrep_o "$1=[^;]*;" | tr -d ';'
-}
-
 #domain keyfile certfile cafile fullchain
 synology_dsm_deploy() {
 
@@ -73,13 +69,25 @@ synology_dsm_deploy() {
   _base_url="$SYNO_Scheme://$SYNO_Hostname:$SYNO_Port"
   _debug _base_url "$_base_url"
 
+  _debug "Getting API version"
+  response=$(_get "$_base_url/webapi/query.cgi?api=SYNO.API.Info&version=1&method=query&query=SYNO.API.Auth")
+  api_version=$(echo "$response" | grep "SYNO.API.Auth" | sed -n 's/.*"maxVersion" *: *\([0-9]*\).*/\1/p')
+  _debug3 response "$response"
+  _debug3 api_version "$api_version"
+
   # Login, get the token from JSON and session id from cookie
   _info "Logging into $SYNO_Hostname:$SYNO_Port"
   encoded_username="$(printf "%s" "$SYNO_Username" | _url_encode)"
   encoded_password="$(printf "%s" "$SYNO_Password" | _url_encode)"
-  encoded_did="$(printf "%s" "$SYNO_DID" | _url_encode)"
-  response=$(_get "$_base_url/webman/login.cgi?username=$encoded_username&passwd=$encoded_password&enable_syno_token=yes&device_id=$encoded_did" 1)
-  token=$(echo "$response" | grep -i "X-SYNO-TOKEN:" | sed -n 's/^X-SYNO-TOKEN: \(.*\)$/\1/pI' | tr -d "\r\n")
+
+  if [ -n "$SYNO_DID" ]; then
+    _H1="Cookie: did=$SYNO_DID"
+    export _H1
+    _debug3 H1 "${_H1}"
+  fi
+
+  response=$(_post "method=login&account=$encoded_username&passwd=$encoded_password&api=SYNO.API.Auth&version=$api_version&enable_syno_token=yes" "$_base_url/webapi/auth.cgi?enable_syno_token=yes")
+  token=$(echo "$response" | grep "synotoken" | sed -n 's/.*"synotoken" *: *"\([^"]*\).*/\1/p')
   _debug3 response "$response"
   _debug token "$token"
 
@@ -88,13 +96,11 @@ synology_dsm_deploy() {
     _err "Check your username and password."
     return 1
   fi
+  sid=$(echo "$response" | grep "sid" | sed -n 's/.*"sid" *: *"\([^"]*\).*/\1/p')
 
-  _H1="Cookie: $(echo "$response" | _syno_get_cookie_data "id"); $(echo "$response" | _syno_get_cookie_data "smid")"
-  _H2="X-SYNO-TOKEN: $token"
+  _H1="X-SYNO-TOKEN: $token"
   export _H1
-  export _H2
   _debug2 H1 "${_H1}"
-  _debug2 H2 "${_H2}"
 
   # Now that we know the username and password are good, save them
   _savedeployconf SYNO_Username "$SYNO_Username"
@@ -102,7 +108,7 @@ synology_dsm_deploy() {
   _savedeployconf SYNO_DID "$SYNO_DID"
 
   _info "Getting certificates in Synology DSM"
-  response=$(_post "api=SYNO.Core.Certificate.CRT&method=list&version=1" "$_base_url/webapi/entry.cgi")
+  response=$(_post "api=SYNO.Core.Certificate.CRT&method=list&version=1&_sid=$sid" "$_base_url/webapi/entry.cgi")
   _debug3 response "$response"
   id=$(echo "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\"id\":\"\([^\"]*\).*/\1/p")
   _debug2 id "$id"
@@ -135,7 +141,7 @@ synology_dsm_deploy() {
   content="${content%_}" # protect trailing \n
 
   _info "Upload certificate to the Synology DSM"
-  response=$(_post "$content" "$_base_url/webapi/entry.cgi?api=SYNO.Core.Certificate&method=import&version=1&SynoToken=$token" "" "POST" "multipart/form-data; boundary=${delim}")
+  response=$(_post "$content" "$_base_url/webapi/entry.cgi?api=SYNO.Core.Certificate&method=import&version=1&SynoToken=$token&_sid=$sid" "" "POST" "multipart/form-data; boundary=${delim}")
   _debug3 response "$response"
 
   if ! echo "$response" | grep '"error":' >/dev/null; then
