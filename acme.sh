@@ -4098,10 +4098,9 @@ issue() {
   _savedomainconf "Le_Domain" "$_main_domain"
   _savedomainconf "Le_Alt" "$_alt_domains"
   _savedomainconf "Le_Webroot" "$_web_roots"
-
-  _savedomainconf "Le_PreHook" "$_pre_hook" "base64"
-  _savedomainconf "Le_PostHook" "$_post_hook" "base64"
-  _savedomainconf "Le_RenewHook" "$_renew_hook" "base64"
+  _savedomainconf "Le_PreHook" "$ACMESH_PRE_HOOK" "base64"
+  _savedomainconf "Le_PostHook" "$ACMESH_POST_HOOK" "base64"
+  _savedomainconf "Le_RenewHook" "$ACMESH_RENEW_HOOK" "base64"
 
   if [ "$_local_addr" ]; then
     _savedomainconf "Le_LocalAddress" "$_local_addr"
@@ -4131,7 +4130,7 @@ issue() {
     _key_length=""
   fi
 
-  if ! _on_before_issue "$_web_roots" "$_main_domain" "$_alt_domains" "$_pre_hook" "$_local_addr"; then
+  if ! _on_before_issue "$_web_roots" "$_main_domain" "$_alt_domains" "$ACMESH_PRE_HOOK" "$_local_addr"; then
     _err "_on_before_issue."
     return 1
   fi
@@ -4141,7 +4140,7 @@ issue() {
 
   if [ -z "$ACCOUNT_URL" ] || [ -z "$_saved_account_key_hash" ] || [ "$_saved_account_key_hash" != "$(__calcAccountKeyHash)" ]; then
     if ! _regAccount "$_accountkeylength"; then
-      _on_issue_err "$_post_hook"
+      _on_issue_err "$ACMESH_POST_HOOK"
       return 1
     fi
   else
@@ -4157,7 +4156,7 @@ issue() {
       if ! createDomainKey "$_main_domain" "$_key_length"; then
         _err "Create domain key error."
         _clearup
-        _on_issue_err "$_post_hook"
+        _on_issue_err "$ACMESH_POST_HOOK"
         return 1
       fi
     fi
@@ -4165,7 +4164,7 @@ issue() {
     if ! _createcsr "$_main_domain" "$_alt_domains" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"; then
       _err "Create CSR error."
       _clearup
-      _on_issue_err "$_post_hook"
+      _on_issue_err "$ACMESH_POST_HOOK"
       return 1
     fi
   fi
@@ -4195,7 +4194,7 @@ issue() {
       if ! _send_signed_request "$ACME_NEW_ORDER" "{\"identifiers\": [$_identifiers]}"; then
         _err "Create new order error."
         _clearup
-        _on_issue_err "$_post_hook"
+        _on_issue_err "$ACMESH_POST_HOOK"
         return 1
       fi
       Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n " | cut -d ":" -f 2-)"
@@ -4205,7 +4204,7 @@ issue() {
       if [ -z "$Le_OrderFinalize" ]; then
         _err "Create new order error. Le_OrderFinalize not found. $response"
         _clearup
-        _on_issue_err "$_post_hook"
+        _on_issue_err "$ACMESH_POST_HOOK"
         return 1
       fi
 
@@ -4217,7 +4216,7 @@ issue() {
       if [ -z "$_authorizations_seg" ]; then
         _err "_authorizations_seg not found."
         _clearup
-        _on_issue_err "$_post_hook"
+        _on_issue_err "$ACMESH_POST_HOOK"
         return 1
       fi
 
@@ -4230,7 +4229,7 @@ issue() {
           _err "_authorizations_seg" "$_authorizations_seg"
           _err "_authz_url" "$_authz_url"
           _clearup
-          _on_issue_err "$_post_hook"
+          _on_issue_err "$ACMESH_POST_HOOK"
           return 1
         fi
 
@@ -4294,13 +4293,13 @@ $_authorizations_map"
           _err "get to authz error."
           _err "_authorizations_map" "$_authorizations_map"
           _clearup
-          _on_issue_err "$_post_hook"
+          _on_issue_err "$ACMESH_POST_HOOK"
           return 1
         fi
       else
         if ! __get_domain_new_authz "$d"; then
           _clearup
-          _on_issue_err "$_post_hook"
+          _on_issue_err "$ACMESH_POST_HOOK"
           return 1
         fi
       fi
@@ -4328,7 +4327,7 @@ $_authorizations_map"
             _err "The supported validation types are: $_supported_vtypes, but you specified: $vtype"
           fi
           _clearup
-          _on_issue_err "$_post_hook"
+          _on_issue_err "$ACMESH_POST_HOOK"
           return 1
         fi
       fi
@@ -4340,7 +4339,7 @@ $_authorizations_map"
         if [ -z "$token" ]; then
           _err "Error, can not get domain token $entry"
           _clearup
-          _on_issue_err "$_post_hook"
+          _on_issue_err "$ACMESH_POST_HOOK"
           return 1
         fi
         if [ "$ACME_VERSION" = "2" ]; then
@@ -4353,7 +4352,7 @@ $_authorizations_map"
         if [ -z "$uri" ]; then
           _err "Error, can not get domain uri. $entry"
           _clearup
-          _on_issue_err "$_post_hook"
+          _on_issue_err "$ACMESH_POST_HOOK"
           return 1
         fi
         keyauthorization="$token.$thumbprint"
@@ -4455,7 +4454,7 @@ $_authorizations_map"
         )
 
         if [ "$?" != "0" ]; then
-          _on_issue_err "$_post_hook" "$vlist"
+          _on_issue_err "$ACMESH_POST_HOOK" "$vlist"
           _clearup
           return 1
         fi
@@ -4470,7 +4469,7 @@ $_authorizations_map"
       _savedomainconf "Le_Vlist" "$vlist"
       _debug "Dns record not added yet, so, save to $DOMAIN_CONF and exit."
       _err "Please add the TXT records to the domains, and re-run with --renew."
-      _on_issue_err "$_post_hook"
+      _on_issue_err "$ACMESH_POST_HOOK"
       _clearup
       return 1
     fi
@@ -4483,7 +4482,7 @@ $_authorizations_map"
       _sleep 20
       if ! _check_dns_entries; then
         _err "check dns error."
-        _on_issue_err "$_post_hook"
+        _on_issue_err "$ACMESH_POST_HOOK"
         _clearup
         return 1
       fi
@@ -4528,7 +4527,7 @@ $_authorizations_map"
         _startserver "$keyauthorization" "$_ncaddr"
         if [ "$?" != "0" ]; then
           _clearup
-          _on_issue_err "$_post_hook" "$vlist"
+          _on_issue_err "$ACMESH_POST_HOOK" "$vlist"
           return 1
         fi
         sleep 1
@@ -4543,7 +4542,7 @@ $_authorizations_map"
         BACKUP_NGINX_CONF=""
         if ! _setNginx "$d" "$_currentRoot" "$thumbprint"; then
           _clearup
-          _on_issue_err "$_post_hook" "$vlist"
+          _on_issue_err "$ACMESH_POST_HOOK" "$vlist"
           return 1
         fi
 
@@ -4578,7 +4577,7 @@ $_authorizations_map"
           _err "$d:Can not write token to file : $wellknown_path/$token"
           _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
           _clearup
-          _on_issue_err "$_post_hook" "$vlist"
+          _on_issue_err "$ACMESH_POST_HOOK" "$vlist"
           return 1
         fi
 
@@ -4602,7 +4601,7 @@ $_authorizations_map"
         _err "Start tls server error."
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err "$_post_hook" "$vlist"
+        _on_issue_err "$ACMESH_POST_HOOK" "$vlist"
         return 1
       fi
     fi
@@ -4611,7 +4610,7 @@ $_authorizations_map"
       _err "$d:Can not get challenge: $response"
       _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
       _clearup
-      _on_issue_err "$_post_hook" "$vlist"
+      _on_issue_err "$ACMESH_POST_HOOK" "$vlist"
       return 1
     fi
 
@@ -4622,7 +4621,7 @@ $_authorizations_map"
         _err "$d:Challenge error: $response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err "$_post_hook" "$vlist"
+        _on_issue_err "$ACMESH_POST_HOOK" "$vlist"
         return 1
       fi
     fi
@@ -4638,7 +4637,7 @@ $_authorizations_map"
         _err "$d:Timeout"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err "$_post_hook" "$vlist"
+        _on_issue_err "$ACMESH_POST_HOOK" "$vlist"
         return 1
       fi
 
@@ -4654,7 +4653,7 @@ $_authorizations_map"
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err "$_post_hook" "$vlist"
+        _on_issue_err "$ACMESH_POST_HOOK" "$vlist"
         return 1
       fi
       _debug2 original "$response"
@@ -4689,7 +4688,7 @@ $_authorizations_map"
         fi
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err "$_post_hook" "$vlist"
+        _on_issue_err "$ACMESH_POST_HOOK" "$vlist"
         return 1
       fi
 
@@ -4701,7 +4700,7 @@ $_authorizations_map"
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
-        _on_issue_err "$_post_hook" "$vlist"
+        _on_issue_err "$ACMESH_POST_HOOK" "$vlist"
         return 1
       fi
 
@@ -4718,13 +4717,13 @@ $_authorizations_map"
     _info "Le_OrderFinalize" "$Le_OrderFinalize"
     if ! _send_signed_request "${Le_OrderFinalize}" "{\"csr\": \"$der\"}"; then
       _err "Sign failed."
-      _on_issue_err "$_post_hook"
+      _on_issue_err "$ACMESH_POST_HOOK"
       return 1
     fi
     if [ "$code" != "200" ]; then
       _err "Sign failed, finalize code is not 200."
       _err "$response"
-      _on_issue_err "$_post_hook"
+      _on_issue_err "$ACMESH_POST_HOOK"
       return 1
     fi
     if [ -z "$Le_LinkOrder" ]; then
@@ -4743,7 +4742,7 @@ $_authorizations_map"
         if [ -z "$Le_LinkCert" ]; then
           _err "Sign error, can not find Le_LinkCert"
           _err "$response"
-          _on_issue_err "$_post_hook"
+          _on_issue_err "$ACMESH_POST_HOOK"
           return 1
         fi
         break
@@ -4760,21 +4759,21 @@ $_authorizations_map"
       else
         _err "Sign error, wrong status"
         _err "$response"
-        _on_issue_err "$_post_hook"
+        _on_issue_err "$ACMESH_POST_HOOK"
         return 1
       fi
       #the order is processing, so we are going to poll order status
       if [ -z "$Le_LinkOrder" ]; then
         _err "Sign error, can not get order link location header"
         _err "responseHeaders" "$responseHeaders"
-        _on_issue_err "$_post_hook"
+        _on_issue_err "$ACMESH_POST_HOOK"
         return 1
       fi
       _info "Polling order status: $Le_LinkOrder"
       if ! _send_signed_request "$Le_LinkOrder"; then
         _err "Sign failed, can not post to Le_LinkOrder cert:$Le_LinkOrder."
         _err "$response"
-        _on_issue_err "$_post_hook"
+        _on_issue_err "$ACMESH_POST_HOOK"
         return 1
       fi
       _link_cert_retry="$(_math $_link_cert_retry + 1)"
@@ -4783,7 +4782,7 @@ $_authorizations_map"
     if [ -z "$Le_LinkCert" ]; then
       _err "Sign failed, can not get Le_LinkCert, retry time limit."
       _err "$response"
-      _on_issue_err "$_post_hook"
+      _on_issue_err "$ACMESH_POST_HOOK"
       return 1
     fi
     _info "Downloading cert."
@@ -4791,7 +4790,7 @@ $_authorizations_map"
     if ! _send_signed_request "$Le_LinkCert"; then
       _err "Sign failed, can not download cert:$Le_LinkCert."
       _err "$response"
-      _on_issue_err "$_post_hook"
+      _on_issue_err "$ACMESH_POST_HOOK"
       return 1
     fi
 
@@ -4827,7 +4826,7 @@ $_authorizations_map"
   else
     if ! _send_signed_request "${ACME_NEW_ORDER}" "{\"resource\": \"$ACME_NEW_ORDER_RES\", \"csr\": \"$der\"}" "needbase64"; then
       _err "Sign failed. $response"
-      _on_issue_err "$_post_hook"
+      _on_issue_err "$ACMESH_POST_HOOK"
       return 1
     fi
     _rcert="$response"
@@ -4853,7 +4852,7 @@ $_authorizations_map"
   if [ -z "$Le_LinkCert" ] || ! _checkcert "$CERT_PATH"; then
     response="$(echo "$response" | _dbase64 "multiline" | tr -d '\0' | _normalizeJson)"
     _err "Sign failed: $(echo "$response" | _egrep_o '"detail":"[^"]*"')"
-    _on_issue_err "$_post_hook"
+    _on_issue_err "$ACMESH_POST_HOOK"
     return 1
   fi
 
@@ -4986,7 +4985,7 @@ $_authorizations_map"
     fi
   fi
 
-  if ! _on_issue_success "$_post_hook" "$_renew_hook"; then
+  if ! _on_issue_success "$ACMESH_POST_HOOK" "$ACMESH_RENEW_HOOK"; then
     _err "Call hook error."
     return 1
   fi
@@ -5264,7 +5263,7 @@ signcsr() {
   _info "Copy csr to: $CSR_PATH"
   cp "$_csrfile" "$CSR_PATH"
 
-  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_addr" "$_challenge_alias"
+  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain" "$ACMESH_PRE_HOOK" "$ACMESH_POST_HOOK" "$ACMESH_RENEW_HOOK" "$_local_addr" "$_challenge_alias"
 
 }
 
@@ -5804,7 +5803,7 @@ _deactivate() {
     if [ -z "$_authorizations_seg" ]; then
       _err "_authorizations_seg not found."
       _clearup
-      _on_issue_err "$_post_hook"
+      _on_issue_err "$ACMESH_POST_HOOK"
       return 1
     fi
 
@@ -5815,7 +5814,7 @@ _deactivate() {
       _err "_authorizations_seg" "$_authorizations_seg"
       _err "authzUri" "$authzUri"
       _clearup
-      _on_issue_err "$_post_hook"
+      _on_issue_err "$ACMESH_POST_HOOK"
       return 1
     fi
 
@@ -7139,14 +7138,17 @@ _process() {
       ;;
     --pre-hook)
       _pre_hook="$2"
+      ACMESH_PRE_HOOK="$_pre_hook"
       shift
       ;;
     --post-hook)
       _post_hook="$2"
+      ACMESH_POST_HOOK="$_post_hook"
       shift
       ;;
     --renew-hook)
       _renew_hook="$2"
+      ACMESH_RENEW_HOOK="$_renew_hook"
       shift
       ;;
     --deploy-hook)
@@ -7155,6 +7157,7 @@ _process() {
         return 1
       fi
       _deploy_hook="$_deploy_hook$2,"
+      ACMESH_DEPLOY_HOOK="$_deploy_hook$2"
       shift
       ;;
     --ocsp-must-staple | --ocsp)
@@ -7345,13 +7348,13 @@ _process() {
   uninstall) uninstall "$_nocron" ;;
   upgrade) upgrade ;;
   issue)
-    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain"
+    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$ACMESH_PRE_HOOK" "$ACMESH_POST_HOOK" "$ACMESH_RENEW_HOOK" "$_local_address" "$_challenge_alias" "$_preferred_chain"
     ;;
   deploy)
-    deploy "$_domain" "$_deploy_hook" "$_ecc"
+    deploy "$_domain" "$ACMESH_DEPLOY_HOOK" "$_ecc"
     ;;
   signcsr)
-    signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias"
+    signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$ACMESH_PRE_HOOK" "$ACMESH_POST_HOOK" "$ACMESH_RENEW_HOOK" "$_local_address" "$_challenge_alias"
     ;;
   showcsr)
     showcsr "$_csr" "$_domain"
