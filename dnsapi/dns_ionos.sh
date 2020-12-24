@@ -13,7 +13,7 @@
 IONOS_API="https://api.hosting.ionos.com/dns"
 IONOS_ROUTE_ZONES="/v1/zones"
 
-IONOS_TXT_TTL=60 # minumum accepted by API
+IONOS_TXT_TTL=60 # minimum accepted by API
 IONOS_TXT_PRIO=10
 
 dns_ionos_add() {
@@ -25,7 +25,7 @@ dns_ionos_add() {
   _body="{\"name\":\"$_sub_domain.$_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"ttl\":$IONOS_TXT_TTL,\"prio\":$IONOS_TXT_PRIO,\"disabled\":false}"
 
   if _ionos_rest PATCH "$IONOS_ROUTE_ZONES/$_zone_id" "$_body" && [ -z "$response" ]; then
-    _info "TXT record for _sub_domain.$_domain has been created successfully."
+    _info "TXT record has been created successfully."
     return 0
   fi
 
@@ -44,7 +44,7 @@ dns_ionos_rm() {
   fi
 
   if _ionos_rest DELETE "$IONOS_ROUTE_ZONES/$_zone_id/records/$_record_id" && [ -z "$response" ]; then
-    _info "TXT record for _sub_domain.$_domain has been deleted successfully."
+    _info "TXT record has been deleted successfully."
     return 0
   fi
 
@@ -54,7 +54,7 @@ dns_ionos_rm() {
 _ionos_init() {
   IONOS_PREFIX="${IONOS_PREFIX:-$(_readaccountconf_mutable IONOS_PREFIX)}"
   IONOS_SECRET="${IONOS_SECRET:-$(_readaccountconf_mutable IONOS_SECRET)}"
-  
+
   if [ -z "$IONOS_PREFIX" ] || [ -z "$IONOS_SECRET" ]; then
     _err "You didn't specify an IONOS api prefix and secret yet."
     _err "Read https://beta.developer.hosting.ionos.de/docs/getstarted to learn how to get a prefix and secret."
@@ -91,7 +91,7 @@ _get_root() {
 
       _zone="$(echo "$response" | _egrep_o "{.*\"name\":\s*\"$h\".*}")"
       if [ "$_zone" ]; then
-        _zone_id=$(printf "%s\n" "$_zone" | _egrep_o "\"id\":\s*\"[a-fA-F0-9-]+\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"' )
+        _zone_id=$(printf "%s\n" "$_zone" | _egrep_o "\"id\":\s*\"[a-fA-F0-9-]+\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
         if [ "$_zone_id" ]; then
           _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
           _domain=$h
@@ -115,13 +115,13 @@ _ionos_get_record() {
   zone_id=$2
 
   if _ionos_rest GET "$IONOS_ROUTE_ZONES/$zone_id?recordName=$fulldomain&recordType=TXT"; then
-    response="$(echo "$response" | tr -d "\n" )"
+    response="$(echo "$response" | tr -d "\n")"
 
     _record="$(echo "$response" | _egrep_o "{\"name\":\s*\"$fulldomain\".*}")"
     if [ "$_record" ]; then
-        _record_id=$(printf "%s\n" "$_record" | _egrep_o "\"id\":\s*\"[a-fA-F0-9-]+\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"' )
-        
-        return 0
+      _record_id=$(printf "%s\n" "$_record" | _egrep_o "\"id\":\s*\"[a-fA-F0-9-]+\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
+
+      return 0
     fi
   fi
 
