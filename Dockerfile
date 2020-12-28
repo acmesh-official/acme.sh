@@ -12,6 +12,7 @@ RUN apk update -f \
   tzdata \
   oath-toolkit-oathtool \
   tar \
+  libidn \
   && rm -rf /var/cache/apk/*
 
 ENV LE_CONFIG_HOME /acme.sh
