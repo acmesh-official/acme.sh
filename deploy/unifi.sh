@@ -4,9 +4,15 @@
 
 #returns 0 means success, otherwise error.
 
+# Settings for Unifi Controller:
 #DEPLOY_UNIFI_KEYSTORE="/usr/lib/unifi/data/keystore"
 #DEPLOY_UNIFI_KEYPASS="aircontrolenterprise"
 #DEPLOY_UNIFI_RELOAD="service unifi restart"
+
+# Additional settings for Unifi Cloud Key:
+#DEPLOY_UNIFI_CLOUDKEY=yes
+#DEPLOY_UNIFI_CLOUDKEY_CERTDIR="/etc/ssl/private"
+#DEPLOY_UNIFI_RELOAD="service unifi restart && service nginx restart"
 
 ########  Public functions #####################
 
@@ -29,11 +35,22 @@ unifi_deploy() {
     return 1
   fi
 
+  DEFAULT_DEPLOY_UNIFI_CLOUDKEY_CERTDIR="/etc/ssl/private"
+  _cloudkey_certdir="${DEPLOY_UNIFI_CLOUDKEY_CERTDIR:-$DEFAULT_DEPLOY_UNIFI_CLOUDKEY_CERTDIR}"
+  DEFAULT_DEPLOY_UNIFI_CLOUDKEY="no"
+  if [ -f "${_cloudkey_certdir}/cloudkey.key" ]; then
+    DEFAULT_DEPLOY_UNIFI_CLOUDKEY="yes"
+  fi
+  _cloudkey_deploy="${DEPLOY_UNIFI_CLOUDKEY:-$DEFAULT_DEPLOY_UNIFI_CLOUDKEY}"
+
   DEFAULT_UNIFI_KEYSTORE="/usr/lib/unifi/data/keystore"
   _unifi_keystore="${DEPLOY_UNIFI_KEYSTORE:-$DEFAULT_UNIFI_KEYSTORE}"
   DEFAULT_UNIFI_KEYPASS="aircontrolenterprise"
   _unifi_keypass="${DEPLOY_UNIFI_KEYPASS:-$DEFAULT_UNIFI_KEYPASS}"
   DEFAULT_UNIFI_RELOAD="service unifi restart"
+  if [ "$_cloudkey_deploy" = "yes" ]; then
+    DEFAULT_UNIFI_RELOAD="service nginx restart && ${DEFAULT_UNIFI_RELOAD}"
+  fi
   _reload="${DEPLOY_UNIFI_RELOAD:-$DEFAULT_UNIFI_RELOAD}"
 
   _debug _unifi_keystore "$_unifi_keystore"
@@ -49,6 +66,19 @@ unifi_deploy() {
   if [ ! -w "$_unifi_keystore" ]; then
     _err "The file $_unifi_keystore is not writable, please change the permission."
     return 1
+  fi
+
+  _debug _cloudkey_deploy "$_cloudkey_deploy"
+  _debug _cloudkey_certdir "$_cloudkey_certdir"
+  if [ "$_cloudkey_deploy" = "yes" ]; then
+    if [ ! -d "$_cloudkey_certdir" ]; then
+      _err "The directory $_cloudkey_certdir is missing or invalid; please define DEPLOY_UNIFI_CLOUDKEY_CERTDIR"
+      return 1
+    fi
+    if [ ! -w "$_cloudkey_certdir" ]; then
+      _err "The directory $_cloudkey_certdir is not writable; please check permissions"
+      return 1
+    fi
   fi
 
   _info "Generate import pkcs12"
@@ -72,29 +102,47 @@ unifi_deploy() {
     return 1
   fi
 
+  if [ "$_cloudkey_deploy" = "yes" ]; then
+    _info "Install Cloud Key certificate: $_cloudkey_certdir"
+    cp "$_cfullchain" "${_cloudkey_certdir}/cloudkey.crt"
+    cp "$_ckey" "${_cloudkey_certdir}/cloudkey.key"
+    (cd "$_cloudkey_certdir" && tar -cf cert.tar cloudkey.crt cloudkey.key unifi.keystore.jks)
+    _info "Install Cloud Key certificate success!"
+  fi
+
   _info "Run reload: $_reload"
   if eval "$_reload"; then
     _info "Reload success!"
-    if [ "$DEPLOY_UNIFI_KEYSTORE" ]; then
-      _savedomainconf DEPLOY_UNIFI_KEYSTORE "$DEPLOY_UNIFI_KEYSTORE"
-    else
-      _cleardomainconf DEPLOY_UNIFI_KEYSTORE
-    fi
-    if [ "$DEPLOY_UNIFI_KEYPASS" ]; then
-      _savedomainconf DEPLOY_UNIFI_KEYPASS "$DEPLOY_UNIFI_KEYPASS"
-    else
-      _cleardomainconf DEPLOY_UNIFI_KEYPASS
-    fi
-    if [ "$DEPLOY_UNIFI_RELOAD" ]; then
-      _savedomainconf DEPLOY_UNIFI_RELOAD "$DEPLOY_UNIFI_RELOAD"
-    else
-      _cleardomainconf DEPLOY_UNIFI_RELOAD
-    fi
-    return 0
   else
     _err "Reload error"
     return 1
   fi
-  return 0
 
+  if [ "$DEPLOY_UNIFI_KEYSTORE" ]; then
+    _savedomainconf DEPLOY_UNIFI_KEYSTORE "$DEPLOY_UNIFI_KEYSTORE"
+  else
+    _cleardomainconf DEPLOY_UNIFI_KEYSTORE
+  fi
+  if [ "$DEPLOY_UNIFI_KEYPASS" ]; then
+    _savedomainconf DEPLOY_UNIFI_KEYPASS "$DEPLOY_UNIFI_KEYPASS"
+  else
+    _cleardomainconf DEPLOY_UNIFI_KEYPASS
+  fi
+  if [ "$DEPLOY_UNIFI_RELOAD" ]; then
+    _savedomainconf DEPLOY_UNIFI_RELOAD "$DEPLOY_UNIFI_RELOAD"
+  else
+    _cleardomainconf DEPLOY_UNIFI_RELOAD
+  fi
+  if [ "$DEPLOY_UNIFI_CLOUDKEY" ]; then
+    _savedomainconf DEPLOY_UNIFI_CLOUDKEY "$DEPLOY_UNIFI_CLOUDKEY"
+  else
+    _cleardomainconf DEPLOY_UNIFI_CLOUDKEY
+  fi
+  if [ "$DEPLOY_UNIFI_CLOUDKEY_CERTDIR" ]; then
+    _savedomainconf DEPLOY_UNIFI_CLOUDKEY_CERTDIR "$DEPLOY_UNIFI_CLOUDKEY_CERTDIR"
+  else
+    _cleardomainconf DEPLOY_UNIFI_CLOUDKEY_CERTDIR
+  fi
+
+  return 0
 }
