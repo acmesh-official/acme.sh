@@ -86,7 +86,7 @@ unifi_deploy() {
   _debug _cloudkey_certdir "$_cloudkey_certdir"
   if [ "$_cloudkey_deploy" = "yes" ]; then
     if [ ! -d "$_cloudkey_certdir" ]; then
-      if [ -z "$DEPLOY_UNIFI_CLOUDKEY_CERTDIR"]; then
+      if [ -z "$DEPLOY_UNIFI_CLOUDKEY_CERTDIR" ]; then
         _err "Attempting to deploy on a Cloud Key, but cert dir not found in usual location."
         _err "Either set DEPLOY_UNIFI_CLOUDKEY=no or define DEPLOY_UNIFI_CLOUDKEY_CERTDIR."
         return 1
