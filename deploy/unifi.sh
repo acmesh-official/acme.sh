@@ -4,15 +4,27 @@
 
 #returns 0 means success, otherwise error.
 
+# If you have a custom Unifi Controller installation, you may need to set some of these
+# variables before running the deploy hook the first time. (Most users should not need
+# to override the defaults shown below.)
+#
 # Settings for Unifi Controller:
+# Location of keystore or unifi.keystore.jks file:
 #DEPLOY_UNIFI_KEYSTORE="/usr/lib/unifi/data/keystore"
+# Keystore password (built into Unifi Controller, not a user-set password):
 #DEPLOY_UNIFI_KEYPASS="aircontrolenterprise"
+# Command to restart the Controller:
 #DEPLOY_UNIFI_RELOAD="service unifi restart"
-
+#
 # Additional settings for Unifi Cloud Key:
-#DEPLOY_UNIFI_CLOUDKEY=yes
+# Whether to also deploy certs for Cloud Key maintenance pages
+# (default is "yes" when running on Cloud Key, "no" otherwise):
+#DEPLOY_UNIFI_CLOUDKEY="yes"
+# Directory where cloudkey.crt and cloudkey.key live:
 #DEPLOY_UNIFI_CLOUDKEY_CERTDIR="/etc/ssl/private"
-#DEPLOY_UNIFI_RELOAD="service unifi restart && service nginx restart"
+# Command to restart maintenance pages and Controller
+# (same setting as above, default is updated when running on Cloud Key):
+#DEPLOY_UNIFI_RELOAD="service nginx restart && service unifi restart"
 
 ########  Public functions #####################
 
@@ -39,6 +51,8 @@ unifi_deploy() {
   _cloudkey_certdir="${DEPLOY_UNIFI_CLOUDKEY_CERTDIR:-$DEFAULT_DEPLOY_UNIFI_CLOUDKEY_CERTDIR}"
   DEFAULT_DEPLOY_UNIFI_CLOUDKEY="no"
   if [ -f "${_cloudkey_certdir}/cloudkey.key" ]; then
+    # If /etc/ssl/private/cloudkey.key exists, we are probably running on a Cloud Key
+    # (or something close enough that we should do additional Cloud Key deployment).
     DEFAULT_DEPLOY_UNIFI_CLOUDKEY="yes"
   fi
   _cloudkey_deploy="${DEPLOY_UNIFI_CLOUDKEY:-$DEFAULT_DEPLOY_UNIFI_CLOUDKEY}"
