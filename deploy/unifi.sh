@@ -86,11 +86,17 @@ unifi_deploy() {
   _debug _cloudkey_certdir "$_cloudkey_certdir"
   if [ "$_cloudkey_deploy" = "yes" ]; then
     if [ ! -d "$_cloudkey_certdir" ]; then
-      _err "The directory $_cloudkey_certdir is missing or invalid; please define DEPLOY_UNIFI_CLOUDKEY_CERTDIR"
-      return 1
+      if [ -z "$DEPLOY_UNIFI_CLOUDKEY_CERTDIR"]; then
+        _err "Attempting to deploy on a Cloud Key, but cert dir not found in usual location."
+        _err "Either set DEPLOY_UNIFI_CLOUDKEY=no or define DEPLOY_UNIFI_CLOUDKEY_CERTDIR."
+        return 1
+      else
+        _err "The Cloud Key cert dir $_cloudkey_certdir is not valid, please check."
+        return 1
+      fi
     fi
     if [ ! -w "$_cloudkey_certdir" ]; then
-      _err "The directory $_cloudkey_certdir is not writable; please check permissions"
+      _err "The directory $_cloudkey_certdir is not writable; please check permissions."
       return 1
     fi
   fi
