@@ -63,13 +63,13 @@ smtp_send() {
   SMTP_SECURE="${SMTP_SECURE:-$(_readaccountconf_mutable SMTP_SECURE)}"
   SMTP_SECURE="${SMTP_SECURE:-none}"
   case "$SMTP_SECURE" in
-    "none") SMTP_DEFAULT_PORT="25";;
-    "ssl")  SMTP_DEFAULT_PORT="465";;
-    "tls")  SMTP_DEFAULT_PORT="587";;
-    *)
-      _err "Invalid SMTP_SECURE='$SMTP_SECURE'. It must be 'ssl', 'tls' or 'none'."
-      return 1
-      ;;
+  "none") SMTP_DEFAULT_PORT="25" ;;
+  "ssl") SMTP_DEFAULT_PORT="465" ;;
+  "tls") SMTP_DEFAULT_PORT="587" ;;
+  *)
+    _err "Invalid SMTP_SECURE='$SMTP_SECURE'. It must be 'ssl', 'tls' or 'none'."
+    return 1
+    ;;
   esac
 
   SMTP_USERNAME="${SMTP_USERNAME:-$(_readaccountconf_mutable SMTP_USERNAME)}"
@@ -125,7 +125,8 @@ _smtp_send() {
   fi
 
   # language=Python
-  smtp_send_output="$($SMTP_PYTHON <<EOF
+  smtp_send_output="$(
+    $SMTP_PYTHON <<EOF
 # This code is meant to work with either Python 2.7.x or Python 3.4+.
 try:
     try:
@@ -189,7 +190,7 @@ finally:
     if smtp is not None:
         smtp.quit()
 EOF
-)"
+  )"
   _ret=$?
   _debug "smtp_send_output" "$smtp_send_output"
   return "$_ret"
