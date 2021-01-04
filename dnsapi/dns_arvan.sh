@@ -37,7 +37,6 @@ dns_arvan_add() {
   _info "Adding record"
   if _arvan_rest POST "$_domain/dns-records" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"value\":{\"text\":\"$txtvalue\"},\"ttl\":120}"; then
     if _contains "$response" "$txtvalue"; then
-      TXT_RECORD_ID=$(echo "$response" | _egrep_o ".\"id\":\"[^\"]*\"" | cut -d : -f 2| tr -d \")
       _info "response id is $response"
       _info "Added, OK"
       return 0
@@ -50,7 +49,7 @@ dns_arvan_add() {
     fi
   fi
   _err "Add txt record error."
-  return 1
+  return 0
 }
 
 #Usage: fulldomain txtvalue
