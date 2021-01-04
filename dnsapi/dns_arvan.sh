@@ -146,5 +146,5 @@ _arvan_rest() {
 	else
 		response="$(_get "$ARVAN_API_URL/$ep$data")"
 	fi
-    return 1
+    return 0
 }
