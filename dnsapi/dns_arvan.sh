@@ -73,7 +73,6 @@ dns_arvan_rm() {
   _debug _domain "$_domain"
 
   _debug "Getting txt records"
-  shorted_txtvalue=$(printf "%s" "$txtvalue" | cut -d "-" -d "_" -f1)
   _arvan_rest GET "${_domain}/dns-records"
   if ! printf "%s" "$response" | grep \"current_page\":1 >/dev/null; then
     _err "Error on Arvan Api"
