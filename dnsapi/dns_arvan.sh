@@ -114,7 +114,7 @@ _get_root() {
       return 1
     fi
     if _contains "$response" "\"domain\":\"$h\""; then
-      _domain_id=$(echo "$response" | cut -d : -f 3 |cut -d , -f 1 | tr -d \")
+      _domain_id=$(echo "$response" | cut -d : -f 3 | cut -d , -f 1 | tr -d \")
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain=$h
