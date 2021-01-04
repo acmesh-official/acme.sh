@@ -66,7 +66,7 @@ dns_arvan_rm() {
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
-    return 0
+    return 1
   fi
   _debug _domain_id "$_domain_id"
   _debug _sub_domain "$_sub_domain"
@@ -77,13 +77,13 @@ dns_arvan_rm() {
   if ! printf "%s" "$response" | grep \"current_page\":1 >/dev/null; then
     _err "Error on Arvan Api"
     _err "Please create a github issue with debbug log"
-    return 0
+    return 1
   fi
 
   _record_id=$(echo "$response" | _egrep_o ".\"id\":\"[^\"]*\",\"type\":\"txt\",\"name\":\"_acme-challenge\",\"value\":{\"text\":\"$txtvalue\"}" | cut -d : -f 2 | cut -d , -f 1 |tr -d \")
   if ! _arvan_rest "DELETE" "${_domain}/dns-records/${_record_id}"; then
-    _contains "$response" 'dns record deleted'
-    return 0
+    _err "Error on Arvan Api"
+    return 1
   fi
   _debug "$response"
   _contains "$response" 'dns record deleted'
