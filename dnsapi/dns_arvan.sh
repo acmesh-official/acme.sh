@@ -83,7 +83,7 @@ dns_arvan_rm() {
     _record_id=$(echo "$response" | _egrep_o ".\"id\":\"[^\"]*\",\"type\":\"txt\",\"name\":\"_acme-challenge\",\"value\":{\"text\":\"$txtvalue\"}" | cut -d : -f 2 | cut -d , -f 1 |tr -d \")
     if ! _arvan_rest "DELETE" "${_domain}/dns-records/${_record_id}"; then
       _contains "$response" 'dns record deleted'
-      return 1
+      return 0
     fi
     _debug "$response"
     _contains "$response" 'dns record deleted'
