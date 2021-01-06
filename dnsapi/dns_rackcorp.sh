@@ -157,4 +157,3 @@ _rackcorp_api() {
   fi
   return 0
 }
-
