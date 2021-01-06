@@ -1,6 +1,5 @@
 #!/usr/bin/env sh
 
-#FOO
 # Provider: RackCorp (www.rackcorp.com)
 # Author: Stephen Dendtler (sdendtler@rackcorp.com)
 # Report Bugs here: https://github.com/senjoo/acme.sh
