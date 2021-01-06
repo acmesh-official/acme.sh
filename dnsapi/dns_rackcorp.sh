@@ -158,4 +158,3 @@ _rackcorp_api() {
   return 0
 }
 
-
