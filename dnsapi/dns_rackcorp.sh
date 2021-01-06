@@ -114,7 +114,6 @@ _get_root() {
 
 _rackcorp_validate() {
   RACKCORP_APIUUID="${RACKCORP_APIUUID:-$(_readaccountconf_mutable RACKCORP_APIUUID)}"
-
   if [ -z "$RACKCORP_APIUUID" ]; then
     RACKCORP_APIUUID=""
     _err "You require a RackCorp API UUID (export RACKCORP_APIUUID=\"<api uuid>\")"
@@ -124,10 +123,7 @@ _rackcorp_validate() {
 
   _saveaccountconf_mutable RACKCORP_APIUUID "$RACKCORP_APIUUID"
 
-
-
   RACKCORP_APISECRET="${RACKCORP_APISECRET:-$(_readaccountconf_mutable RACKCORP_APISECRET)}"
-
   if [ -z "$RACKCORP_APISECRET" ]; then
     RACKCORP_APISECRET=""
     _err "You require a RackCorp API secret (export RACKCORP_APISECRET=\"<api secret>\")"
@@ -135,9 +131,9 @@ _rackcorp_validate() {
     return 1
   fi
 
-  #save the api key to the account conf file.
   _saveaccountconf_mutable RACKCORP_APISECRET "$RACKCORP_APISECRET"
 
+  return 0
 }
 _rackcorp_api() {
   _rackcorpcmd=$1
