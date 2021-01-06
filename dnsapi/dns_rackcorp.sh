@@ -142,13 +142,13 @@ _rackcorp_validate() {
 _rackcorp_api() {
   _rackcorpcmd=$1
   _rackcorpinputdata=$2
-  _debug "$cmd" "$2"
+  _debug cmd "$_rackcorpcmd $_rackcorpinputdata"
 
   export _H1="Accept: application/json"
   response="$(_post "{\"APIUUID\":\"$RACKCORP_APIUUID\",\"APISECRET\":\"$RACKCORP_APISECRET\",\"cmd\":\"$_rackcorpcmd\",$_rackcorpinputdata}" "$RACKCORP_API_ENDPOINT" "" "POST")"
 
   if [ "$?" != "0" ]; then
-    _err "error $ep"
+    _err "error $response"
     return 1
   fi
   _debug2 response "$response"
