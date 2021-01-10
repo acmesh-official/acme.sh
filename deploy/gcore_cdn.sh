@@ -74,7 +74,7 @@ gcore_cdn_deploy() {
   _debug _response "$_response"
   _regex="\"primary_resource\":null},"
   _debug _regex "$_regex"
-  _response=$(echo "$_response" | sed 's/$_regex/$_regex\n/g')
+  _response=$(echo "$_response" | sed "s/$_regex/$_regex\n/g")
   _debug _response "$_response"
   _regex="^.*\"cname\":\"$_cdomain\".*$"
   _debug _regex "$_regex"
