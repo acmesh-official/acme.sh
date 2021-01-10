@@ -106,6 +106,7 @@ dns_linode_v4_rm() {
 ####################  Private functions below ##################################
 
 _Linode_API() {
+  LINODE_V4_API_KEY="${LINODE_V4_API_KEY:-$(_readaccountconf_mutable LINODE_V4_API_KEY)}"
   if [ -z "$LINODE_V4_API_KEY" ]; then
     LINODE_V4_API_KEY=""
 
@@ -115,7 +116,7 @@ _Linode_API() {
     return 1
   fi
 
-  _saveaccountconf LINODE_V4_API_KEY "$LINODE_V4_API_KEY"
+  _saveaccountconf_mutable LINODE_V4_API_KEY "$LINODE_V4_API_KEY"
 }
 
 ####################  Private functions below ##################################
