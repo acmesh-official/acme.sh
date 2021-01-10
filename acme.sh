@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.8.8
+VER=2.8.9
 
 PROJECT_NAME="acme.sh"
 
@@ -159,6 +159,8 @@ _ZEROSSL_WIKI="https://github.com/acmesh-official/acme.sh/wiki/ZeroSSL.com-CA"
 _SERVER_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Server"
 
 _PREFERRED_CHAIN_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Preferred-Chain"
+
+_DNSCHECK_WIKI="https://github.com/acmesh-official/acme.sh/wiki/dnscheck"
 
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
@@ -3958,6 +3960,8 @@ _check_dns_entries() {
   _end_time="$(_math "$_end_time" + 1200)" #let's check no more than 20 minutes.
 
   while [ "$(_time)" -le "$_end_time" ]; do
+    _info "You can use '--dnssleep' to disable public dns checks."
+    _info "See: $_DNSCHECK_WIKI"
     _left=""
     for entry in $dns_entries; do
       d=$(_getfield "$entry" 1)

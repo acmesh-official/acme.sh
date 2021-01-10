@@ -275,6 +275,7 @@ _check_curl_version() {
 
   if [ "$_major$_minor" -lt "740" ]; then
     _err "curl v$_cversion doesn't support unit socket"
+    _err "Please upgrade to curl 7.40 or later."
     return 1
   fi
   if [ "$_major$_minor" -lt "750" ]; then
