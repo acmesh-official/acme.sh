@@ -37,7 +37,7 @@ telegram_send() {
   _telegram_bot_url="https://api.telegram.org/bot${TELEGRAM_BOT_APITOKEN}/sendMessage"
   if _post "$_data" "$_telegram_bot_url"; then
     # shellcheck disable=SC2154
-    _message=$(printf "%s\n" "$response" | sed -ne 's/.*"ok":\([^,]*\).*/\1/p')
+    _message=$(printf "%s\n" "$response" | sed -n 's/.*"ok":\([^,]*\).*/\1/p')
     if [ "$_message" = "true" ]; then
       _info "telegram send success."
       return 0
