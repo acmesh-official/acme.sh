@@ -56,9 +56,9 @@ gcore_cdn_deploy() {
   _request="{\"username\":\"$Le_Deploy_gcore_cdn_username\",\"password\":\"$Le_Deploy_gcore_cdn_password\"}"
   _debug _request "$_request"
   export _H1="Content-Type:application/json"
-  _response=$(_post "$_request" "https://api.gcdn.co/auth/signin")
+  _response=$(_post "$_request" "https://api.gcdn.co/auth/jwt/login")
   _debug _response "$_response"
-  _regex=".*\"token\":\"\([-._0-9A-Za-z]*\)\".*$"
+  _regex=".*\"access\":\"\([-._0-9A-Za-z]*\)\".*$"
   _debug _regex "$_regex"
   _token=$(echo "$_response" | sed -n "s/$_regex/\1/p")
   _debug _token "$_token"
