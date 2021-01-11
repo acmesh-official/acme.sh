@@ -79,7 +79,7 @@ dns_rackcorp_rm() {
 # _domain=domain.com
 _get_root() {
   domain=$1
-  i=2
+  i=1
   p=1
   if ! _rackcorp_api dns.domain.getall "\"name\":\"$domain\""; then
     return 1
