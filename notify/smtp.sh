@@ -78,6 +78,13 @@ smtp_send() {
   SMTP_TIMEOUT="${SMTP_TIMEOUT:-$(_readaccountconf_mutable SMTP_TIMEOUT)}"
   SMTP_DEFAULT_TIMEOUT="15"
 
+  # Send the message:
+  if ! _smtp_send "$@"; then
+    _err "$smtp_send_output"
+    return 1
+  fi
+
+  # Save remaining config if successful. (SMTP_PYTHON is saved earlier.)
   _saveaccountconf_mutable SMTP_FROM "$SMTP_FROM"
   _saveaccountconf_mutable SMTP_TO "$SMTP_TO"
   _saveaccountconf_mutable SMTP_HOST "$SMTP_HOST"
@@ -86,12 +93,6 @@ smtp_send() {
   _saveaccountconf_mutable SMTP_USERNAME "$SMTP_USERNAME"
   _saveaccountconf_mutable SMTP_PASSWORD "$SMTP_PASSWORD"
   _saveaccountconf_mutable SMTP_TIMEOUT "$SMTP_TIMEOUT"
-
-  # Send the message:
-  if ! _smtp_send "$@"; then
-    _err "$smtp_send_output"
-    return 1
-  fi
 
   return 0
 }
