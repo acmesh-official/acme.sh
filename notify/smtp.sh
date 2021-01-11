@@ -2,6 +2,8 @@
 
 # support smtp
 
+# Please report bugs to https://github.com/acmesh-official/acme.sh/issues/3358
+
 # This implementation uses Python (2 or 3), which is available in many environments.
 # If you don't have Python, try "mail" notification instead of "smtp".
 
