@@ -55,11 +55,14 @@ unifi_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
+  # Space-separated list of environments detected and installed:
+  _services_updated=""
+
   # Default reload commands are accumulated in an &&-separated string
   # as we auto-detect environments:
   DEFAULT_UNIFI_RELOAD=""
 
-  # Unifi Controller (self-hosted or Cloud Key Gen1) environment --
+  # Unifi Controller environment (self hosted or any Cloud Key) --
   # auto-detect by file /usr/lib/unifi/data/keystore:
   DEFAULT_UNIFI_KEYSTORE="/usr/lib/unifi/data/keystore"
   _unifi_keystore="${DEPLOY_UNIFI_KEYSTORE:-$DEFAULT_UNIFI_KEYSTORE}"
@@ -101,7 +104,10 @@ unifi_deploy() {
       return 1
     fi
 
-    DEFAULT_UNIFI_RELOAD="${DEFAULT_UNIFI_RELOAD} ${DEFAULT_UNIFI_RELOAD:+&&} service unifi restart"
+    if systemctl -q is-active unifi; then
+      DEFAULT_UNIFI_RELOAD="${DEFAULT_UNIFI_RELOAD}${DEFAULT_UNIFI_RELOAD:+ && }service unifi restart"
+    fi
+    _services_updated="${_services_updated} unifi"
     _info "Install Unifi Controller certificate success!"
   elif [ "$DEPLOY_UNIFI_KEYSTORE" ]; then
     _err "The specified DEPLOY_UNIFI_KEYSTORE='$DEPLOY_UNIFI_KEYSTORE' is not valid, please check."
@@ -130,9 +136,12 @@ unifi_deploy() {
     cp "$_cfullchain" "${_cloudkey_certdir}/cloudkey.crt"
     cp "$_ckey" "${_cloudkey_certdir}/cloudkey.key"
     (cd "$_cloudkey_certdir" && tar -cf cert.tar cloudkey.crt cloudkey.key unifi.keystore.jks)
-    _info "Install Cloud Key Gen1 certificate success!"
 
-    DEFAULT_UNIFI_RELOAD="${DEFAULT_UNIFI_RELOAD} ${DEFAULT_UNIFI_RELOAD:+&&} service nginx restart"
+    if systemctl -q is-active nginx; then
+      DEFAULT_UNIFI_RELOAD="${DEFAULT_UNIFI_RELOAD}${DEFAULT_UNIFI_RELOAD:+ && }service nginx restart"
+    fi
+    _info "Install Cloud Key Gen1 certificate success!"
+    _services_updated="${_services_updated} nginx"
   elif [ "$DEPLOY_UNIFI_CLOUDKEY_CERTDIR" ]; then
     _err "The specified DEPLOY_UNIFI_CLOUDKEY_CERTDIR='$DEPLOY_UNIFI_CLOUDKEY_CERTDIR' is not valid, please check."
     return 1
@@ -151,15 +160,18 @@ unifi_deploy() {
 
     cp "$_cfullchain" "${_unifi_core_config}/unifi-core.crt"
     cp "$_ckey" "${_unifi_core_config}/unifi-core.key"
-    _info "Install UnifiOS certificate success!"
 
-    DEFAULT_UNIFI_RELOAD="${DEFAULT_UNIFI_RELOAD} ${DEFAULT_UNIFI_RELOAD:+&&} systemctl restart unifi-core"
+    if systemctl -q is-active unifi-core; then
+      DEFAULT_UNIFI_RELOAD="${DEFAULT_UNIFI_RELOAD}${DEFAULT_UNIFI_RELOAD:+ && }systemctl restart unifi-core"
+    fi
+    _info "Install UnifiOS certificate success!"
+    _services_updated="${_services_updated} unifi-core"
   elif [ "$DEPLOY_UNIFI_CORE_CONFIG" ]; then
     _err "The specified DEPLOY_UNIFI_CORE_CONFIG='$DEPLOY_UNIFI_CORE_CONFIG' is not valid, please check."
     return 1
   fi
 
-  if [ -z "$DEFAULT_UNIFI_RELOAD" ]; then
+  if [ -z "$_services_updated" ]; then
     # None of the Unifi environments were auto-detected, so no deployment has occurred
     # (and none of DEPLOY_UNIFI_{KEYSTORE,CLOUDKEY_CERTDIR,CORE_CONFIG} were set).
     _err "Unable to detect Unifi environment in standard location."
@@ -170,6 +182,12 @@ unifi_deploy() {
   fi
 
   _reload="${DEPLOY_UNIFI_RELOAD:-$DEFAULT_UNIFI_RELOAD}"
+  if [ -z "$_reload" ]; then
+    _err "Certificates were installed for services:${_services_updated},"
+    _err "but none appear to be active. Please set DEPLOY_UNIFI_RELOAD"
+    _err "to a command that will restart the necessary services."
+    return 1
+  fi
   _info "Reload services (this may take some time): $_reload"
   if eval "$_reload"; then
     _info "Reload success!"
