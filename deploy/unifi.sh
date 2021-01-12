@@ -119,6 +119,13 @@ unifi_deploy() {
       _err "The directory $_cloudkey_certdir is not writable; please check permissions."
       return 1
     fi
+    # Cloud Key expects to load the keystore from /etc/ssl/private/unifi.keystore.jks.
+    # Normally /usr/lib/unifi/data/keystore is a symlink there (so the keystore was
+    # updated above), but if not, we don't know how to handle this installation:
+    if ! cmp -s "$_unifi_keystore" "${_cloudkey_certdir}/unifi.keystore.jks"; then
+      _err "Unsupported Cloud Key configuration: keystore not found at '${_cloudkey_certdir}/unifi.keystore.jks'"
+      return 1
+    fi
 
     cp "$_cfullchain" "${_cloudkey_certdir}/cloudkey.crt"
     cp "$_ckey" "${_cloudkey_certdir}/cloudkey.key"
