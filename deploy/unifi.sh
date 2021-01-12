@@ -3,8 +3,8 @@
 # Here is a script to deploy cert on a Unifi Controller or Cloud Key device.
 # It supports:
 #   - self-hosted Unifi Controller
-#   - Unifi Cloud Key Gen1
-#   - UnifiOS (Cloud Key Gen2)
+#   - Unifi Cloud Key (Gen1/2/2+)
+#   - Unifi Cloud Key running UnifiOS (v2.0.0+, Gen2/2+ only)
 # Please report bugs to https://github.com/acmesh-official/acme.sh/issues/3359
 
 #returns 0 means success, otherwise error.
@@ -108,7 +108,7 @@ unifi_deploy() {
     return 1
   fi
 
-  # Cloud Key Gen1 environment (nginx admin pages) --
+  # Cloud Key environment (non-UnifiOS -- nginx serves admin pages) --
   # auto-detect by file /etc/ssl/private/cloudkey.key:
   DEFAULT_DEPLOY_UNIFI_CLOUDKEY_CERTDIR="/etc/ssl/private"
   _cloudkey_certdir="${DEPLOY_UNIFI_CLOUDKEY_CERTDIR:-$DEFAULT_DEPLOY_UNIFI_CLOUDKEY_CERTDIR}"
@@ -132,7 +132,7 @@ unifi_deploy() {
   fi
 
   # UnifiOS environment -- auto-detect by /data/unifi-core/config/unifi-core.key:
-  DEFAULT_DEPLOY_UNIFI_CORE_CONFIG="/etc/ssl/private"
+  DEFAULT_DEPLOY_UNIFI_CORE_CONFIG="/data/unifi-core/config"
   _unifi_core_config="${DEPLOY_UNIFI_CORE_CONFIG:-$DEFAULT_DEPLOY_UNIFI_CORE_CONFIG}"
   if [ -f "${_unifi_core_config}/unifi-core.key" ]; then
     _info "Installing certificate for UnifiOS"
