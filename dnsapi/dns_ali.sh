@@ -89,7 +89,7 @@ _ali_rest() {
 
   _debug2 response "$response"
   if [ -z "$2" ]; then
-    message="$(echo "$response" | _egrep_o "\"Message\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
+    message="$(echo "$response" | _egrep_o "\"Message\":\"[^\"]*\"" | cut -d : -f 2- | tr -d \")"
     if [ "$message" ]; then
       _err "$message"
       return 1
