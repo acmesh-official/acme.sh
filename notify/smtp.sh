@@ -75,7 +75,7 @@ _smtp_send() {
 
   _debug "smtp_send_output" "$smtp_send_output"
 
-  if [ $smtp_send_output =~ "message not sent" ]; then
+  if [[ $smtp_send_output =~ "message not sent" ]]; then
     return 1
   else
     return 0
