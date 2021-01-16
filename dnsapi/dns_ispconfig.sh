@@ -130,11 +130,11 @@ _ISPC_getZoneInfo() {
   client_id=$(echo "${curResult}" | _egrep_o "response.*" | cut -d ':' -f 2 | cut -d '"' -f 2 | tr -d '{}')
   _debug "Client ID: '${client_id}'"
   case "${client_id}" in
-    '' | *[!0-9]*)
+  '' | *[!0-9]*)
     _err "Client ID is not numeric."
     return 1
     ;;
-    *) _info "Retrieved Client ID." ;;
+  *) _info "Retrieved Client ID." ;;
   esac
 }
 
