@@ -20,9 +20,22 @@ dns_ionos_add() {
   fulldomain=$1
   txtvalue=$2
 
-  _ionos_init
+  if ! _ionos_init; then
+    return 1
+  fi
 
-  _body="{\"name\":\"$_sub_domain.$_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"ttl\":$IONOS_TXT_TTL,\"prio\":$IONOS_TXT_PRIO,\"disabled\":false}"
+  _new_record="{\"name\":\"$_sub_domain.$_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"ttl\":$IONOS_TXT_TTL,\"prio\":$IONOS_TXT_PRIO,\"disabled\":false}"
+
+  # As no POST route is supported by the API, check for existing records and include them in the PATCH request in order not delete them.
+  # This is required to support ACME v2 wildcard certificate creation, where two TXT records for the same domain name are created.
+
+  _ionos_get_existing_records "$fulldomain" "$_zone_id"
+
+  if [ "$_existing_records" ]; then
+    _body="[$_new_record,$_existing_records]"
+  else
+    _body="[$_new_record]"
+  fi
 
   if _ionos_rest PATCH "$IONOS_ROUTE_ZONES/$_zone_id" "$_body" && [ -z "$response" ]; then
     _info "TXT record has been created successfully."
@@ -36,9 +49,11 @@ dns_ionos_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  _ionos_init
+  if ! _ionos_init; then
+    return 1
+  fi
 
-  if ! _ionos_get_record "$fulldomain" "$_zone_id"; then
+  if ! _ionos_get_record "$fulldomain" "$_zone_id" "$txtvalue"; then
     _err "Could not find _acme-challenge TXT record."
     return 1
   fi
@@ -81,7 +96,7 @@ _get_root() {
   p=1
 
   if _ionos_rest GET "$IONOS_ROUTE_ZONES"; then
-    response="$(echo "$response" | tr -d "\n" | sed 's/{/\n&/g')"
+    response="$(echo "$response" | tr -d "\n")"
 
     while true; do
       h=$(printf "%s" "$domain" | cut -d . -f $i-100)
@@ -89,9 +104,9 @@ _get_root() {
         return 1
       fi
 
-      _zone="$(echo "$response" | _egrep_o "{.*\"name\":\s*\"$h\".*}")"
+      _zone="$(echo "$response" | _egrep_o "\"name\":\"$h\".*?}")"
       if [ "$_zone" ]; then
-        _zone_id=$(printf "%s\n" "$_zone" | _egrep_o "\"id\":\s*\"[a-fA-F0-9-]+\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
+        _zone_id=$(printf "%s\n" "$_zone" | _egrep_o "\"id\":\"[a-fA-F0-9-]+\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
         if [ "$_zone_id" ]; then
           _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
           _domain=$h
@@ -110,16 +125,28 @@ _get_root() {
   return 1
 }
 
-_ionos_get_record() {
+_ionos_get_existing_records() {
   fulldomain=$1
   zone_id=$2
 
   if _ionos_rest GET "$IONOS_ROUTE_ZONES/$zone_id?recordName=$fulldomain&recordType=TXT"; then
     response="$(echo "$response" | tr -d "\n")"
 
-    _record="$(echo "$response" | _egrep_o "{\"name\":\s*\"$fulldomain\".*}")"
+    _existing_records="$(printf "%s\n" "$response" | _egrep_o "\"records\":\[.*?\]" | _head_n 1 | cut -d '[' -f 2 | sed 's/]//')"
+  fi
+}
+
+_ionos_get_record() {
+  fulldomain=$1
+  zone_id=$2
+  txtrecord=$3
+
+  if _ionos_rest GET "$IONOS_ROUTE_ZONES/$zone_id?recordName=$fulldomain&recordType=TXT"; then
+    response="$(echo "$response" | tr -d "\n")"
+
+    _record="$(echo "$response" | _egrep_o "\{\"name\":\"$fulldomain\"[^\}]*?\"type\":\"TXT\"[^\}]*?\"content\":\"\\\\\"$txtrecord\\\\\"\".*?\}")"
     if [ "$_record" ]; then
-      _record_id=$(printf "%s\n" "$_record" | _egrep_o "\"id\":\s*\"[a-fA-F0-9-]+\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
+      _record_id=$(printf "%s\n" "$_record" | _egrep_o "\"id\":\"[a-fA-F0-9-]+\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
 
       return 0
     fi
