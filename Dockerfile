@@ -85,7 +85,7 @@ RUN printf "%b" "$((1 + $RANDOM % 60))  0 * * * /bin/sh /home/acmesh/.acme.sh/ac
 RUN printf "%b" '#!'"/usr/bin/env sh\n \
 if [ \"\$1\" = \"daemon\" ];  then \n \
  trap \"pkill supercronic\" SIGTERM SIGINT \n \
- exec supercronic /acme_cron.tab \n \
+ exec supercronic /acme_crontab \n \
 else \n \
  exec -- \"\$@\"\n \
 fi" >/entry.sh && chmod a+x /entry.sh
