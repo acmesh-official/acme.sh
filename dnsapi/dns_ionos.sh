@@ -104,9 +104,9 @@ _get_root() {
         return 1
       fi
 
-      _zone="$(echo "$response" | _egrep_o "\"name\":\"$h\".*?}")"
+      _zone="$(echo "$response" | _egrep_o "\"name\":\"$h\".*\}")"
       if [ "$_zone" ]; then
-        _zone_id=$(printf "%s\n" "$_zone" | _egrep_o "\"id\":\"[a-fA-F0-9-]+\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
+        _zone_id=$(printf "%s\n" "$_zone" | _egrep_o "\"id\":\"[a-fA-F0-9\-]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
         if [ "$_zone_id" ]; then
           _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
           _domain=$h
@@ -132,7 +132,7 @@ _ionos_get_existing_records() {
   if _ionos_rest GET "$IONOS_ROUTE_ZONES/$zone_id?recordName=$fulldomain&recordType=TXT"; then
     response="$(echo "$response" | tr -d "\n")"
 
-    _existing_records="$(printf "%s\n" "$response" | _egrep_o "\"records\":\[.*?\]" | _head_n 1 | cut -d '[' -f 2 | sed 's/]//')"
+    _existing_records="$(printf "%s\n" "$response" | _egrep_o "\"records\":\[.*\]" | _head_n 1 | cut -d '[' -f 2 | sed 's/]//')"
   fi
 }
 
@@ -144,9 +144,9 @@ _ionos_get_record() {
   if _ionos_rest GET "$IONOS_ROUTE_ZONES/$zone_id?recordName=$fulldomain&recordType=TXT"; then
     response="$(echo "$response" | tr -d "\n")"
 
-    _record="$(echo "$response" | _egrep_o "\{\"name\":\"$fulldomain\"[^\}]*?\"type\":\"TXT\"[^\}]*?\"content\":\"\\\\\"$txtrecord\\\\\"\".*?\}")"
+    _record="$(echo "$response" | _egrep_o "\"name\":\"$fulldomain\"[^\}]*\"type\":\"TXT\"[^\}]*\"content\":\"\\\\\"$txtrecord\\\\\"\".*\}")"
     if [ "$_record" ]; then
-      _record_id=$(printf "%s\n" "$_record" | _egrep_o "\"id\":\"[a-fA-F0-9-]+\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
+      _record_id=$(printf "%s\n" "$_record" | _egrep_o "\"id\":\"[a-fA-F0-9\-]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
 
       return 0
     fi
