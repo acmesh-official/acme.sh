@@ -92,7 +92,7 @@ _ionos_init() {
 
 _get_root() {
   domain=$1
-  i=2
+  i=1
   p=1
 
   if _ionos_rest GET "$IONOS_ROUTE_ZONES"; then
