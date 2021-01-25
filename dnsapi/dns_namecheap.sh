@@ -157,7 +157,7 @@ _namecheap_set_publicip() {
 
   if [ -z "$NAMECHEAP_SOURCEIP" ]; then
     _err "No Source IP specified for Namecheap API."
-    _err "Use your public ip address or an url to retrieve it (e.g. https://ipconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
+    _err "Use your public ip address or an url to retrieve it (e.g. https://ifconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
     return 1
   else
     _saveaccountconf NAMECHEAP_SOURCEIP "$NAMECHEAP_SOURCEIP"
@@ -175,7 +175,7 @@ _namecheap_set_publicip() {
       _publicip=$(_get "$addr")
     else
       _err "No Source IP specified for Namecheap API."
-      _err "Use your public ip address or an url to retrieve it (e.g. https://ipconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
+      _err "Use your public ip address or an url to retrieve it (e.g. https://ifconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
       return 1
     fi
   fi
