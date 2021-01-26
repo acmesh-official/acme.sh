@@ -6562,18 +6562,29 @@ Parameters:
 "
 }
 
-# nocron noprofile
-_installOnline() {
+# nocron noprofile branch
+installOnline() {
   _info "Installing from online archive."
   _nocron="$1"
-  _noprofile="$2"
-  if [ ! "$BRANCH" ]; then
-    BRANCH="master"
+  if [ "$_nocron" ]; then
+    _nocron="--no-cron"
   fi
+  shift
+  _noprofile="$1"
+  if [ "$_noprofile" ]; then
+    _noprofile="--no-profile"
+  fi
+  shift
 
-  target="$PROJECT/archive/$BRANCH.tar.gz"
+  _branch="$3"
+  if [ ! "$_branch" ]; then
+    _branch="master"
+  fi
+  shift
+
+  target="$PROJECT/archive/$_branch.tar.gz"
   _info "Downloading $target"
-  localname="$BRANCH.tar.gz"
+  localname="$_branch.tar.gz"
   if ! _get "$target" >$localname; then
     _err "Download error."
     return 1
@@ -6585,9 +6596,9 @@ _installOnline() {
       exit 1
     fi
 
-    cd "$PROJECT_NAME-$BRANCH"
+    cd "$PROJECT_NAME-$_branch"
     chmod +x $PROJECT_ENTRY
-    if ./$PROJECT_ENTRY install "$_nocron" "" "$_noprofile"; then
+    if ./$PROJECT_ENTRY --install $_nocron $_noprofile $@; then
       _info "Install success!"
       _initpath
       _saveaccountconf "UPGRADE_HASH" "$(_getUpgradeHash)"
@@ -6595,7 +6606,7 @@ _installOnline() {
 
     cd ..
 
-    rm -rf "$PROJECT_NAME-$BRANCH"
+    rm -rf "$PROJECT_NAME-$_branch"
     rm -f "$localname"
   )
 }
@@ -6623,7 +6634,7 @@ upgrade() {
     [ -z "$FORCE" ] && [ "$(_getUpgradeHash)" = "$(_readaccountconf "UPGRADE_HASH")" ] && _info "Already uptodate!" && exit 0
     export LE_WORKING_DIR
     cd "$LE_WORKING_DIR"
-    _installOnline "nocron" "noprofile"
+    installOnline "nocron" "noprofile"
   ); then
     _info "Upgrade success!"
     exit 0
@@ -7458,11 +7469,6 @@ _process() {
 
 }
 
-if [ "$INSTALLONLINE" ]; then
-  INSTALLONLINE=""
-  _installOnline
-  exit
-fi
 
 main() {
   [ -z "$1" ] && showhelp && return
