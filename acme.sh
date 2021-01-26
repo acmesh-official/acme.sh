@@ -6583,7 +6583,7 @@ installOnline() {
     shift
   fi
 
-  _branch="$3"
+  _branch="$1"
   if [ ! "$_branch" ]; then
     _branch="master"
   else
@@ -6821,6 +6821,9 @@ _process() {
       ;;
     --install)
       _CMD="install"
+      ;;
+    --install-online)
+      _CMD="installonline"
       ;;
     --uninstall)
       _CMD="uninstall"
@@ -7365,6 +7368,7 @@ _process() {
   _debug "Running cmd: ${_CMD}"
   case "${_CMD}" in
   install) install "$_nocron" "$_confighome" "$_noprofile" "$_accountemail";;
+  installonline) installOnline "$_nocron" "$_noprofile" $BRANCH;;
   uninstall) uninstall "$_nocron" ;;
   upgrade) upgrade ;;
   issue)
