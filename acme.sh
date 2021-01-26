@@ -6105,7 +6105,7 @@ _installalias() {
 
 }
 
-# nocron confighome noprofile
+# nocron confighome noprofile accountemail
 install() {
 
   if [ -z "$LE_WORKING_DIR" ]; then
@@ -6115,6 +6115,8 @@ install() {
   _nocron="$1"
   _c_home="$2"
   _noprofile="$3"
+  _accountemail="$4"
+
   if ! _initpath; then
     _err "Install failed."
     return 1
@@ -6231,6 +6233,10 @@ install() {
         fi
       done
     fi
+  fi
+
+  if [ "$_accountemail" ]; then
+    _saveaccountconf "ACCOUNT_EMAIL" "$_accountemail"
   fi
 
   _info OK
@@ -7090,7 +7096,7 @@ _process() {
       ;;
     -m | --accountemail)
       _accountemail="$2"
-      ACCOUNT_EMAIL="$_accountemail"
+      export ACCOUNT_EMAIL="$_accountemail"
       shift
       ;;
     --accountkey)
@@ -7356,7 +7362,7 @@ _process() {
   fi
   _debug "Running cmd: ${_CMD}"
   case "${_CMD}" in
-  install) install "$_nocron" "$_confighome" "$_noprofile" ;;
+  install) install "$_nocron" "$_confighome" "$_noprofile" "$_accountemail";;
   uninstall) uninstall "$_nocron" ;;
   upgrade) upgrade ;;
   issue)
@@ -7468,7 +7474,6 @@ _process() {
   fi
 
 }
-
 
 main() {
   [ -z "$1" ] && showhelp && return
