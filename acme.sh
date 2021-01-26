@@ -6574,19 +6574,21 @@ installOnline() {
   _nocron="$1"
   if [ "$_nocron" ]; then
     _nocron="--no-cron"
+    shift
   fi
-  shift
+
   _noprofile="$1"
   if [ "$_noprofile" ]; then
     _noprofile="--no-profile"
+    shift
   fi
-  shift
 
   _branch="$3"
   if [ ! "$_branch" ]; then
     _branch="master"
+  else
+    shift
   fi
-  shift
 
   target="$PROJECT/archive/$_branch.tar.gz"
   _info "Downloading $target"
