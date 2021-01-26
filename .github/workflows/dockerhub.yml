@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@v2
       - name: install buildx
         id: buildx
-        uses: crazy-max/ghaction-docker-buildx@v3
+        uses: docker/setup-buildx-action@v1
         with:
           buildx-version: latest
           qemu-version: latest
