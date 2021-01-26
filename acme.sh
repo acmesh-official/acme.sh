@@ -7139,10 +7139,10 @@ _process() {
       CA_PATH="$_ca_path"
       shift
       ;;
-    --nocron)
+    --nocron | --no-cron)
       _nocron="1"
       ;;
-    --noprofile)
+    --noprofile | --no-profile)
       _noprofile="1"
       ;;
     --no-color)
