@@ -6107,7 +6107,7 @@ _installalias() {
 
 }
 
-# nocron confighome noprofile
+# nocron confighome noprofile accountemail
 install() {
 
   if [ -z "$LE_WORKING_DIR" ]; then
@@ -6117,6 +6117,8 @@ install() {
   _nocron="$1"
   _c_home="$2"
   _noprofile="$3"
+  _accountemail="$4"
+
   if ! _initpath; then
     _err "Install failed."
     return 1
@@ -6233,6 +6235,10 @@ install() {
         fi
       done
     fi
+  fi
+
+  if [ "$_accountemail" ]; then
+    _saveaccountconf "ACCOUNT_EMAIL" "$_accountemail"
   fi
 
   _info OK
@@ -6513,7 +6519,7 @@ Parameters:
   --cert-home <directory>           Specifies the home dir to save all the certs, only valid for '--install' command.
   --config-home <directory>         Specifies the home dir to save all the configurations.
   --useragent <string>              Specifies the user agent string. it will be saved for future use too.
-  -m, --accountemail <email>        Specifies the account email, only valid for the '--install' and '--update-account' command.
+  -m, --email <email>               Specifies the account email, only valid for the '--install' and '--update-account' command.
   --accountkey <file>               Specifies the account key path, only valid for the '--install' command.
   --days <ndays>                    Specifies the days to renew the cert when using '--issue' command. The default value is $DEFAULT_RENEW days.
   --httpport <port>                 Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
@@ -6524,9 +6530,9 @@ Parameters:
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
   --ca-bundle <file>                Specifies the path to the CA certificate bundle to verify api server's certificate.
   --ca-path <directory>             Specifies directory containing CA certificates in PEM format, used by wget or curl.
-  --nocron                          Only valid for '--install' command, which means: do not install the default cron job.
+  --no-cron                         Only valid for '--install' command, which means: do not install the default cron job.
                                     In this case, the certs will not be renewed automatically.
-  --noprofile                       Only valid for '--install' command, which means: do not install aliases to user profile.
+  --no-profile                      Only valid for '--install' command, which means: do not install aliases to user profile.
   --no-color                        Do not output color text.
   --force-color                     Force output of color text. Useful for non-interactive use with the aha tool for HTML E-Mails.
   --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--to-pkcs12' and '--create-csr'
@@ -6564,18 +6570,18 @@ Parameters:
 "
 }
 
-# nocron noprofile
-_installOnline() {
+
+installOnline() {
   _info "Installing from online archive."
-  _nocron="$1"
-  _noprofile="$2"
-  if [ ! "$BRANCH" ]; then
-    BRANCH="master"
+
+  _branch="$BRANCH"
+  if [ -z "$_branch" ]; then
+    _branch="master"
   fi
 
-  target="$PROJECT/archive/$BRANCH.tar.gz"
+  target="$PROJECT/archive/$_branch.tar.gz"
   _info "Downloading $target"
-  localname="$BRANCH.tar.gz"
+  localname="$_branch.tar.gz"
   if ! _get "$target" >$localname; then
     _err "Download error."
     return 1
@@ -6587,9 +6593,9 @@ _installOnline() {
       exit 1
     fi
 
-    cd "$PROJECT_NAME-$BRANCH"
+    cd "$PROJECT_NAME-$_branch"
     chmod +x $PROJECT_ENTRY
-    if ./$PROJECT_ENTRY install "$_nocron" "" "$_noprofile"; then
+    if ./$PROJECT_ENTRY --install "$@"; then
       _info "Install success!"
       _initpath
       _saveaccountconf "UPGRADE_HASH" "$(_getUpgradeHash)"
@@ -6597,7 +6603,7 @@ _installOnline() {
 
     cd ..
 
-    rm -rf "$PROJECT_NAME-$BRANCH"
+    rm -rf "$PROJECT_NAME-$_branch"
     rm -f "$localname"
   )
 }
@@ -6625,7 +6631,7 @@ upgrade() {
     [ -z "$FORCE" ] && [ "$(_getUpgradeHash)" = "$(_readaccountconf "UPGRADE_HASH")" ] && _info "Already uptodate!" && exit 0
     export LE_WORKING_DIR
     cd "$LE_WORKING_DIR"
-    _installOnline "nocron" "noprofile"
+    installOnline "--nocron" "--noprofile"
   ); then
     _info "Upgrade success!"
     exit 0
@@ -6804,6 +6810,11 @@ _process() {
       ;;
     --install)
       _CMD="install"
+      ;;
+    --install-online)
+      shift
+      installOnline "$@"
+      return
       ;;
     --uninstall)
       _CMD="uninstall"
@@ -7079,9 +7090,9 @@ _process() {
       USER_AGENT="$_useragent"
       shift
       ;;
-    -m | --accountemail)
+    -m | --email | --accountemail)
       _accountemail="$2"
-      ACCOUNT_EMAIL="$_accountemail"
+      export ACCOUNT_EMAIL="$_accountemail"
       shift
       ;;
     --accountkey)
@@ -7124,10 +7135,10 @@ _process() {
       CA_PATH="$_ca_path"
       shift
       ;;
-    --nocron)
+    --no-cron | --nocron)
       _nocron="1"
       ;;
-    --noprofile)
+    --no-profile | --noprofile)
       _noprofile="1"
       ;;
     --no-color)
@@ -7347,7 +7358,7 @@ _process() {
   fi
   _debug "Running cmd: ${_CMD}"
   case "${_CMD}" in
-  install) install "$_nocron" "$_confighome" "$_noprofile" ;;
+  install) install "$_nocron" "$_confighome" "$_noprofile" "$_accountemail" ;;
   uninstall) uninstall "$_nocron" ;;
   upgrade) upgrade ;;
   issue)
@@ -7459,12 +7470,6 @@ _process() {
   fi
 
 }
-
-if [ "$INSTALLONLINE" ]; then
-  INSTALLONLINE=""
-  _installOnline
-  exit
-fi
 
 main() {
   [ -z "$1" ] && showhelp && return
