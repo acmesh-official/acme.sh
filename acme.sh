@@ -6573,18 +6573,18 @@ installOnline() {
   _info "Installing from online archive."
   _nocron="$1"
   if [ "$_nocron" ]; then
-    _nocron="--no-cron"
+    _nocron="--nocron"
     shift
   fi
 
   _noprofile="$1"
   if [ "$_noprofile" ]; then
-    _noprofile="--no-profile"
+    _noprofile="--noprofile"
     shift
   fi
 
   _branch="$1"
-  if [ ! "$_branch" ]; then
+  if [ -z "$_branch" ]; then
     _branch="master"
   else
     shift
