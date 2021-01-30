@@ -6571,23 +6571,10 @@ Parameters:
 # nocron noprofile branch
 installOnline() {
   _info "Installing from online archive."
-  _nocron="$1"
-  if [ "$_nocron" ]; then
-    _nocron="--nocron"
-    shift
-  fi
 
-  _noprofile="$1"
-  if [ "$_noprofile" ]; then
-    _noprofile="--noprofile"
-    shift
-  fi
-
-  _branch="$1"
+  _branch="$BRANCH"
   if [ -z "$_branch" ]; then
     _branch="master"
-  else
-    shift
   fi
 
   target="$PROJECT/archive/$_branch.tar.gz"
@@ -6606,7 +6593,7 @@ installOnline() {
 
     cd "$PROJECT_NAME-$_branch"
     chmod +x $PROJECT_ENTRY
-    if ./$PROJECT_ENTRY --install $_nocron $_noprofile $@; then
+    if ./$PROJECT_ENTRY --install "$@"; then
       _info "Install success!"
       _initpath
       _saveaccountconf "UPGRADE_HASH" "$(_getUpgradeHash)"
@@ -6642,7 +6629,7 @@ upgrade() {
     [ -z "$FORCE" ] && [ "$(_getUpgradeHash)" = "$(_readaccountconf "UPGRADE_HASH")" ] && _info "Already uptodate!" && exit 0
     export LE_WORKING_DIR
     cd "$LE_WORKING_DIR"
-    installOnline "nocron" "noprofile"
+    installOnline "--nocron" "--noprofile"
   ); then
     _info "Upgrade success!"
     exit 0
@@ -6823,7 +6810,8 @@ _process() {
       _CMD="install"
       ;;
     --install-online)
-      _CMD="installonline"
+      installOnline "$@"
+      return
       ;;
     --uninstall)
       _CMD="uninstall"
@@ -7368,7 +7356,6 @@ _process() {
   _debug "Running cmd: ${_CMD}"
   case "${_CMD}" in
   install) install "$_nocron" "$_confighome" "$_noprofile" "$_accountemail" ;;
-  installonline) installOnline "$_nocron" "$_noprofile" "$BRANCH" ;;
   uninstall) uninstall "$_nocron" ;;
   upgrade) upgrade ;;
   issue)
