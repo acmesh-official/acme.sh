@@ -6528,9 +6528,9 @@ Parameters:
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
   --ca-bundle <file>                Specifies the path to the CA certificate bundle to verify api server's certificate.
   --ca-path <directory>             Specifies directory containing CA certificates in PEM format, used by wget or curl.
-  --nocron                          Only valid for '--install' command, which means: do not install the default cron job.
+  --no-cron                         Only valid for '--install' command, which means: do not install the default cron job.
                                     In this case, the certs will not be renewed automatically.
-  --noprofile                       Only valid for '--install' command, which means: do not install aliases to user profile.
+  --no-profile                      Only valid for '--install' command, which means: do not install aliases to user profile.
   --no-color                        Do not output color text.
   --force-color                     Force output of color text. Useful for non-interactive use with the aha tool for HTML E-Mails.
   --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--to-pkcs12' and '--create-csr'
@@ -6568,7 +6568,7 @@ Parameters:
 "
 }
 
-# nocron noprofile branch
+
 installOnline() {
   _info "Installing from online archive."
 
@@ -7133,10 +7133,10 @@ _process() {
       CA_PATH="$_ca_path"
       shift
       ;;
-    --nocron | --no-cron)
+    --no-cron | --nocron)
       _nocron="1"
       ;;
-    --noprofile | --no-profile)
+    --no-profile | --noprofile)
       _noprofile="1"
       ;;
     --no-color)
