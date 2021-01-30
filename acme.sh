@@ -6810,6 +6810,7 @@ _process() {
       _CMD="install"
       ;;
     --install-online)
+      shift
       installOnline "$@"
       return
       ;;
