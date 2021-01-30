@@ -110,13 +110,13 @@ https://github.com/acmesh-official/acmetest
 Check this project: https://github.com/acmesh-official/get.acme.sh
 
 ```bash
-curl https://get.acme.sh | sh
+curl https://get.acme.sh | sh -s email=my@example.com
 ```
 
 Or:
 
 ```bash
-wget -O -  https://get.acme.sh | sh
+wget -O -  https://get.acme.sh | sh -s email=my@example.com
 ```
 
 
@@ -127,7 +127,7 @@ Clone this project and launch installation:
 ```bash
 git clone https://github.com/acmesh-official/acme.sh.git
 cd ./acme.sh
-./acme.sh --install
+./acme.sh --install -m my@example.com
 ```
 
 You `don't have to be root` then, although `it is recommended`.
