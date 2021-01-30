@@ -5059,11 +5059,17 @@ renew() {
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
     _info "Skip, Next renewal time is: $(__green "$Le_NextRenewTimeStr")"
     _info "Add '$(__red '--force')' to force to renew."
+    if [ -n "$Le_ReDeployHook" ]; then
+      _deploy "$Le_Domain" "$Le_ReDeployHook"
+    fi
     return "$RENEW_SKIP"
   fi
 
   if [ "$_ACME_IN_CRON" = "1" ] && [ -z "$Le_CertCreateTime" ]; then
     _info "Skip invalid cert for: $Le_Domain"
+    if [ -n "$Le_ReDeployHook" ]; then
+      _deploy "$Le_Domain" "$Le_ReDeployHook"
+    fi
     return $RENEW_SKIP
   fi
 
@@ -5354,37 +5360,46 @@ _deploy() {
   _d="$1"
   _hooks="$2"
 
+  local _rc=0
+  local _failed_hooks=""
+
   for _d_api in $(echo "$_hooks" | tr ',' " "); do
     _deployApi="$(_findHook "$_d" $_SUB_FOLDER_DEPLOY "$_d_api")"
     if [ -z "$_deployApi" ]; then
       _err "The deploy hook $_d_api is not found."
-      return 1
+      _rc=1
+      continue
     fi
     _debug _deployApi "$_deployApi"
 
-    if ! (
-      if ! . "$_deployApi"; then
-        _err "Load file $_deployApi error. Please check your api file and try again."
-        return 1
-      fi
+    if ! . "$_deployApi"; then
+      _err "Load file $_deployApi error. Please check your api file and try again."
+      _rc=1
+      continue
+    fi
 
-      d_command="${_d_api}_deploy"
-      if ! _exists "$d_command"; then
-        _err "It seems that your api file is not correct, it must have a function named: $d_command"
-        return 1
-      fi
+    d_command="${_d_api}_deploy"
+    if ! _exists "$d_command"; then
+      _err "It seems that your api file is not correct, it must have a function named: $d_command"
+      _rc=1
+      continue
+    fi
 
-      if ! $d_command "$_d" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH"; then
-        _err "Error deploy for domain:$_d"
-        return 1
-      fi
-    ); then
-      _err "Deploy error."
-      return 1
-    else
-      _info "$(__green Success)"
+    if ! $d_command "$_d" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH"; then
+      _err "Error deploy for domain:$_d"
+      _rc=1
+      _failed_hooks="$_failed_hooks,$d_api"
+      continue
     fi
   done
+
+  _savedomainconf "Le_ReDeployHook" "${_failed_hooks#,}"
+  if [ $_rc -ne 0 ]; then
+    _err "Deploy error."
+    return 1
+  else
+    _info "$(__green Success)"
+  fi
 }
 
 #domain hooks
