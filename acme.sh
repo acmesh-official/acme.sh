@@ -6570,7 +6570,6 @@ Parameters:
 "
 }
 
-
 installOnline() {
   _info "Installing from online archive."
 
