@@ -1,18 +1,24 @@
 #!/usr/bin/env sh
 
-#This is the websupport.sk api wrapper for acme.sh
+# This is the websupport.sk api wrapper for acme.sh
 #
-#Author: trgo.sk
-#Report Bugs here: https://github.com/trgosk/acme.sh
-
-#WS_ApiKey="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-#WS_ApiSecret="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+# Original author: trgo.sk (https://github.com/trgosk)
+# Tweaks by: akulumbeg (https://github.com/akulumbeg)
+# 
+# Report Bugs here: https://github.com/akulumbeg/acme.sh
+#
+# Requirements: API Key and Secret from https://admin.websupport.sk/en/auth/apiKey
+#
+# WS_ApiKey="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# (called "Identifier" in the WS Admin)
+#
+# WS_ApiSecret="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+# (called "Secret key" in the WS Admin)
 
 WS_Api="https://rest.websupport.sk"
 
 ########  Public functions #####################
 
-#Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_websupport_add() {
   fulldomain=$1
   txtvalue=$2
@@ -26,7 +32,7 @@ dns_websupport_add() {
   else
     WS_ApiKey=""
     WS_ApiSecret=""
-    _err "You didn't specify a api key and/or api secret yet."
+    _err "You did not specify the API Key and/or API Secret"
     _err "You can get yours from here https://admin.websupport.sk/en/auth/apiKey"
     return 1
   fi
@@ -62,7 +68,6 @@ dns_websupport_add() {
 
 }
 
-#fulldomain txtvalue
 dns_websupport_rm() {
   fulldomain=$1
   txtvalue=$2
@@ -111,11 +116,8 @@ dns_websupport_rm() {
 
 }
 
-####################  Private functions below ##################################
-#_acme-challenge.www.domain.com
-#returns
-# _sub_domain=_acme-challenge.www
-# _domain=domain.com
+####################  Private Functions ##################################
+
 _get_root() {
   domain=$1
   i=1
@@ -157,9 +159,8 @@ _ws_rest() {
   _debug2 api_secret "$WS_ApiSecret"
 
   timestamp=$(_time)
-  datez=$(date -u -r "$timestamp" +%Y-%m-%dT%H:%M:%S%z 2>/dev/null || date -u -d@"$timestamp" +%Y-%m-%dT%H:%M:%S%z)
+  datez=$(printf "%s" "$(date -u -r "$timestamp" +%Y-%m-%dT%H:%M:%S%z 2>/dev/null || date -u -d@"$timestamp" +%Y-%m-%dT%H:%M:%S%z)")
   canonical_request="${me} ${pa} ${timestamp}"
-  alg="sha1"
   signature_hash=$(printf "%s" "$canonical_request" | _hmac sha1 "$(printf "%s" "$WS_ApiSecret" | _hex_dump | tr -d " ")" hex)
   basicauth="$(printf "%s:%s" "$WS_ApiKey" "$signature_hash" | _base64)"
 
@@ -169,7 +170,6 @@ _ws_rest() {
   _debug2 timestamp "$timestamp"
   _debug2 datez "$datez"
   _debug2 canonical_request "$canonical_request"
-  _debug2 alg "$alg"
   _debug2 signature_hash "$signature_hash"
   _debug2 basicauth "$basicauth"
 
