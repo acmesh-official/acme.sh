@@ -156,11 +156,11 @@ _ws_rest() {
   _debug2 api_key "$WS_ApiKey"
   _debug2 api_secret "$WS_ApiSecret"
 
-  timestamp="$(date +%s)"
+  timestamp=$(_time)
   datez=$(date -u -r "$timestamp" +%Y-%m-%dT%H:%M:%S%z 2>/dev/null || date -u -d@"$timestamp" +%Y-%m-%dT%H:%M:%S%z)
   canonical_request="${me} ${pa} ${timestamp}"
   alg="sha1"
-  signature_hash=$( (printf "%s" "$canonical_request" | ${ACME_OPENSSL_BIN:-openssl} dgst -"$alg" -mac HMAC -macopt "key:$WS_ApiSecret" 2>/dev/null || printf "%s" "$canonical_request" | ${ACME_OPENSSL_BIN:-openssl} dgst -"$alg" -hmac "$(printf "%s" "$WS_ApiSecret" | _h2b)") | cut -d = -f 2 | tr -d ' ')
+  signature_hash=$( (printf "%s" "$canonical_request" | _hmac "$alg" "$WS_ApiSecret" 2>/dev/null || printf "%s" "$canonical_request" | _hmac "$alg" "$WS_ApiSecret")
   basicauth="$(printf "%s:%s" "$WS_ApiKey" "$signature_hash" | _base64)"
 
   _debug2 method "$me"
