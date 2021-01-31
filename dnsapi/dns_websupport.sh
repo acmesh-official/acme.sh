@@ -160,7 +160,7 @@ _ws_rest() {
   datez=$(date -u -r "$timestamp" +%Y-%m-%dT%H:%M:%S%z 2>/dev/null || date -u -d@"$timestamp" +%Y-%m-%dT%H:%M:%S%z)
   canonical_request="${me} ${pa} ${timestamp}"
   alg="sha1"
-  signature_hash=$(printf "%s" "$canonical_request" | _hmac "$alg" "$WS_ApiSecret")
+  signature_hash=$(printf "%s" "$canonical_request" | _hmac sha1 "$(printf "%s" "$WS_ApiSecret" | _hex_dump | tr -d " ")" hex)
   basicauth="$(printf "%s:%s" "$WS_ApiKey" "$signature_hash" | _base64)"
 
   _debug2 method "$me"
