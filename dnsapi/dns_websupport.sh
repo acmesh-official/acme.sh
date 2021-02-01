@@ -1,12 +1,11 @@
 #!/usr/bin/env sh
 
-# This is the websupport.sk api wrapper for acme.sh
+# Acme.sh DNS API wrapper for websupport.sk
 #
 # Original author: trgo.sk (https://github.com/trgosk)
 # Tweaks by: akulumbeg (https://github.com/akulumbeg)
-# 
 # Report Bugs here: https://github.com/akulumbeg/acme.sh
-#
+
 # Requirements: API Key and Secret from https://admin.websupport.sk/en/auth/apiKey
 #
 # WS_ApiKey="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
@@ -33,7 +32,7 @@ dns_websupport_add() {
     WS_ApiKey=""
     WS_ApiSecret=""
     _err "You did not specify the API Key and/or API Secret"
-    _err "You can get yours from here https://admin.websupport.sk/en/auth/apiKey"
+    _err "You can get the credentials from here https://admin.websupport.sk/en/auth/apiKey"
     return 1
   fi
 
@@ -159,7 +158,7 @@ _ws_rest() {
   _debug2 api_secret "$WS_ApiSecret"
 
   timestamp=$(_time)
-  datez=$(printf "%s" "$(date -u -r "$timestamp" +%Y-%m-%dT%H:%M:%S%z 2>/dev/null || date -u -d@"$timestamp" +%Y-%m-%dT%H:%M:%S%z)")
+  datez=$(printf "%s" "$(date -u -r "$timestamp" "+%Y-%m-%dT%H:%M:%S%z" 2>/dev/null || date -u -d@"$timestamp" "+%Y-%m-%dT%H:%M:%S%z")")
   canonical_request="${me} ${pa} ${timestamp}"
   signature_hash=$(printf "%s" "$canonical_request" | _hmac sha1 "$(printf "%s" "$WS_ApiSecret" | _hex_dump | tr -d " ")" hex)
   basicauth="$(printf "%s:%s" "$WS_ApiKey" "$signature_hash" | _base64)"
