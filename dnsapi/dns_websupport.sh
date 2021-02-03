@@ -1,4 +1,3 @@
-  
 #!/usr/bin/env sh
 
 # Acme.sh DNS API wrapper for websupport.sk
