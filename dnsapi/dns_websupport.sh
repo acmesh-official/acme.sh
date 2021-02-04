@@ -158,9 +158,9 @@ _ws_rest() {
   _debug2 api_secret "$WS_ApiSecret"
 
   timestamp=$(_time)
-  datez="$(date -u -d @"$timestamp" +%Y-%m-%dT%H:%M:%S%z 2>/dev/null || date -u -r "$timestamp" +%Y-%m-%dT%H:%M:%S%z 2>/dev/null || _utc_date | sed "s/ /T/" | sed "s/$/+0000/")"
+  datez="$(_utc_date | sed "s/ /T/" | sed "s/$/+0000/")
   canonical_request="${me} ${pa} ${timestamp}"
-  signature_hash=$(printf "%s" "$canonical_request" | _hmac sha1 "$(printf "%s" "$WS_ApiSecret" | _hex_dump | tr -d " ")" hex)
+  signature_hash=$(printf "%s" "$canonical_request" | _hmac sha1 "$WS_ApiSecret")
   basicauth="$(printf "%s:%s" "$WS_ApiKey" "$signature_hash" | _base64)"
 
   _debug2 method "$me"
