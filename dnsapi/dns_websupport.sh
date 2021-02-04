@@ -160,7 +160,7 @@ _ws_rest() {
   timestamp=$(_time)
   datez="$(_utc_date | sed "s/ /T/" | sed "s/$/+0000/")"
   canonical_request="${me} ${pa} ${timestamp}"
-  signature_hash=$(printf "%s" "$canonical_request" | _hmac sha1 "$WS_ApiSecret" | _hex_dump | tr -d " ")
+  signature_hash=$(printf "%s" "$canonical_request" | _hmac sha1 "$("$WS_ApiSecret" | _hex_dump | tr -d " ")")
   basicauth="$(printf "%s:%s" "$WS_ApiKey" "$signature_hash" | _base64)"
 
   _debug2 method "$me"
