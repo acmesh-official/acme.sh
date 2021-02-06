@@ -1,10 +1,11 @@
 #!/usr/local/bin/bash
 
-#Here is a scipt to deploy the cert to your TrueNAS using the REST API.
+# Here is a scipt to deploy the cert to your TrueNAS using the REST API.
 # https://www.truenas.com/docs/hub/additional-topics/api/rest_api.html
 #
 # Written by Frank Plass github@f-plass.de
-#
+# https://github.com/danb35/deploy-freenas/blob/master/deploy_freenas.py
+# Thanks to danb35 for your template!
 #
 # Following environment variables must be set:
 #
