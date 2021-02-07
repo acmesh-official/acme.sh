@@ -179,14 +179,9 @@ truenas_deploy() {
 
 
   _info "Reload WebUI from TrueNAS"
-  curl --silent -L --no-keepalive --user-agent "$USER_AGENT" "$_api_url/system/general/ui_restart"
-  ret=$?
+  _restart_UI=$(_get "$_api_url/system/general/ui_restart")
 
-  _debug CURL_RETURN "$ret"
-  if [ "$ret" != "0" ]; then
-    _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $ret"
-    return 1
-  fi
+  _debug3 _restart_UI "$_restart_UI"
 
-  return 0
+   return 0
 }
