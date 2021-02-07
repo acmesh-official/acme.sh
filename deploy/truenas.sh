@@ -184,13 +184,13 @@ truenas_deploy() {
   # throws the Error 52
   # for this command direct curl command
   curl --silent -L --no-keepalive --user-agent "$USER_AGENT" -H "$_H1" "$_api_url/system/general/ui_restart"
-  ret=$?
-  _debug2 CURL_RETURN "$ret"
+  _ret=$?
+  _debug2 CURL_RETURN "$_ret"
 
-  if [ -z "$_add_cert_result" ] && [ -z "$_activate_result" ] && [ "$ret" != "52" ]; then
-    _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $ret"
-    return 1
-  else
+  if [ -n "$_add_cert_result" ] && [ -n "$_activate_result" ] && [ "$ret" == "52" ]; then
     return 0
+  else
+    _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $_ret"
+    return 1
   fi
 }
