@@ -12,7 +12,7 @@
 
 DuckDNS_API="https://www.duckdns.org/update"
 
-########  Public functions #####################
+########  Public functions ######################
 
 #Usage: dns_duckdns_add _acme-challenge.domain.duckdns.org "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_duckdns_add() {
