@@ -179,9 +179,18 @@ truenas_deploy() {
 
 
   _info "Reload WebUI from TrueNAS"
-  _restart_UI=$(_get "$_api_url/system/general/ui_restart")
+  # the command
+  # _restart_UI=$(_get "$_api_url/system/general/ui_restart")
+  # throws the Error 52
+  # for this command direct curl command
+  curl --silent -L --no-keepalive --user-agent "$USER_AGENT" -H "$_H1" "$_api_url/system/general/ui_restart"
+  ret=$?
+  _debug2 CURL_RETURN "$ret"
 
-  _debug3 _restart_UI "$_restart_UI"
-
-  return 0
+  if [ -n "$_add_cert_result" ] && [ -n "$_activate_result" ] && [ "$ret" == "52" ]; then
+    return 0
+  else
+    _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $ret"
+    return 1
+  fi
 }
