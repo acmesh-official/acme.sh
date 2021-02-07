@@ -43,11 +43,11 @@ truenas_deploy() {
   fi
   _secure_debug2 DEPLOY_TRUENAS_APIKEY "$DEPLOY_TRUENAS_APIKEY"
 
-# Optional hostname, scheme for TrueNAS
+  # Optional hostname, scheme for TrueNAS
   _getdeployconf DEPLOY_TRUENAS_HOSTNAME
   _getdeployconf DEPLOY_TRUENAS_SCHEME
 
-# default values for hostname and scheme
+  # default values for hostname and scheme
   [ -n "${DEPLOY_TRUENAS_HOSTNAME}" ] || DEPLOY_TRUENAS_HOSTNAME="localhost"
   [ -n "${DEPLOY_TRUENAS_SCHEME}" ] || DEPLOY_TRUENAS_SCHEME="http"
 
@@ -63,6 +63,7 @@ truenas_deploy() {
   _info "Testing Connection TrueNAS"
   _response=$(_get "$_api_url/system/state")
   _info "TrueNAS System State: $_response."
+  _debug _response "$_response"
 
   if [ -z "$_response" ]; then
     _err "Unable to authenticate to $_api_url."
@@ -78,7 +79,6 @@ truenas_deploy() {
   _saveaccountconf DEPLOY_TRUENAS_HOSTNAME "$DEPLOY_TRUENAS_HOSTNAME"
   _saveaccountconf DEPLOY_TRUENAS_SCHEME "$DEPLOY_TRUENAS_SCHEME"
 
-
   _info "Getting active certificate from TrueNAS"
   _response=$(_get "$_api_url/system/general")
   _active_cert_id=$(echo "$_response" | grep -B2 '"name":' | grep 'id' | tr -d -- '"id: ,')
@@ -88,7 +88,7 @@ truenas_deploy() {
   _debug Active_UI_Certificate_Name "$_active_cert_name"
   _debug Active_UI_http_redirect "$_param_httpsredirect"
 
-  if [ "$DEPLOY_TRUENAS_SCHEME" = "http" ] && [ "$_param_httpsredirect" = "true" ] ; then
+  if [ "$DEPLOY_TRUENAS_SCHEME" = "http" ] && [ "$_param_httpsredirect" = "true" ]; then
     _info "http Redirect active"
     _info "Setting DEPLOY_TRUENAS_SCHEME to 'https'"
     DEPLOY_TRUENAS_SCHEME="https"
@@ -96,19 +96,16 @@ truenas_deploy() {
     _saveaccountconf DEPLOY_TRUENAS_SCHEME "$DEPLOY_TRUENAS_SCHEME"
   fi
 
-
   _info "Upload new certifikate to TrueNAS"
-  _date_now() {
-          date -u "+%Y-%m-%d_%H%M%S"
-  }
-  _certname="Letsencrypt_$(_date_now)"
+  _certname="Letsencrypt_$(_utc_date | tr ' ' '_' | tr -d -- ':')"
   _debug3 _certname "$_certname"
+
+  return 0
 
   _certData="{\"create_type\": \"CERTIFICATE_CREATE_IMPORTED\", \"name\": \"${_certname}\", \"certificate\": \"$(_json_encode <"$_cfullchain")\", \"privatekey\": \"$(_json_encode <"$_ckey")\"}"
   _add_cert_result="$(_post "$_certData" "$_api_url/certificate" "" "POST" "application/json")"
 
   _debug3 _add_cert_result "$_add_cert_result"
-
 
   _info "Getting Certificate list to get new Cert ID"
   _cert_list=$(_get "$_api_url/system/general/ui_certificate_choices")
@@ -116,13 +113,11 @@ truenas_deploy() {
 
   _debug3 _cert_id "$_cert_id"
 
-
   _info "Activate Certificate ID: $_cert_id"
   _activateData="{\"ui_certificate\": \"${_cert_id}\"}"
   _activate_result="$(_post "$_activateData" "$_api_url/system/general" "" "PUT" "application/json")"
 
   _debug3 _activate_result "$_activate_result"
-
 
   _info "Check if WebDAV certificate is the same as the WEB UI"
   _webdav_list=$(_get "$_api_url/webdav")
@@ -147,7 +142,6 @@ truenas_deploy() {
     _info "WebDAV certificate not set or not the same as Web UI"
   fi
 
-
   _info "Check if FTP certificate is the same as the WEB UI"
   _ftp_list=$(_get "$_api_url/ftp")
   _ftp_cert_id=$(echo "$_ftp_list" | grep '"ssltls_certificate":' | tr -d -- '"certislfa:_ ,')
@@ -171,18 +165,16 @@ truenas_deploy() {
     _info "FTP certificate not set or not the same as Web UI"
   fi
 
-
   _info "Delete old Certificate"
   _delete_result="$(_post "" "$_api_url/certificate/id/$_active_cert_id" "" "DELETE" "application/json")"
 
   _debug3 _delete_result "$_delete_result"
 
-
-  _info "Reload WebUI from TrueNAS"
   # the command
   # _restart_UI=$(_get "$_api_url/system/general/ui_restart")
   # throws the Error 52
   # for this command direct curl command
+  _info "Reload WebUI from TrueNAS"
   curl --silent -L --no-keepalive --user-agent "$USER_AGENT" -H "$_H1" "$_api_url/system/general/ui_restart"
   _ret=$?
   _debug2 CURL_RETURN "$_ret"
