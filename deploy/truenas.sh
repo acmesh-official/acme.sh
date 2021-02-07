@@ -183,5 +183,5 @@ truenas_deploy() {
 
   _debug3 _restart_UI "$_restart_UI"
 
-   return 0
+  return 0
 }
