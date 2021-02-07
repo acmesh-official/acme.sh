@@ -187,7 +187,7 @@ truenas_deploy() {
   _ret=$?
   _debug2 CURL_RETURN "$_ret"
 
-  if [ -n "$_add_cert_result" ] && [ -n "$_activate_result" ] && [ "$_ret" == "52" ]; then
+  if [ -n "$_add_cert_result" ] && [ -n "$_activate_result" ] && [ "$_ret" = "52" ]; then
     return 0
   else
     _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $_ret"
