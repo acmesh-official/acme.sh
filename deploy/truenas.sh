@@ -100,8 +100,6 @@ truenas_deploy() {
   _certname="Letsencrypt_$(_utc_date | tr ' ' '_' | tr -d -- ':')"
   _debug3 _certname "$_certname"
 
-  return 0
-
   _certData="{\"create_type\": \"CERTIFICATE_CREATE_IMPORTED\", \"name\": \"${_certname}\", \"certificate\": \"$(_json_encode <"$_cfullchain")\", \"privatekey\": \"$(_json_encode <"$_ckey")\"}"
   _add_cert_result="$(_post "$_certData" "$_api_url/certificate" "" "POST" "application/json")"
 
