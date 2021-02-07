@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/usr/bin/env sh
 
 # Here is a scipt to deploy the cert to your TrueNAS using the REST API.
 # https://www.truenas.com/docs/hub/additional-topics/api/rest_api.html
@@ -187,7 +187,7 @@ truenas_deploy() {
   _ret=$?
   _debug2 CURL_RETURN "$_ret"
 
-  if [ -n "$_add_cert_result" ] && [ -n "$_activate_result" ] && [ "$ret" == "52" ]; then
+  if [ -n "$_add_cert_result" ] && [ -n "$_activate_result" ] && [ "$_ret" == "52" ]; then
     return 0
   else
     _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $_ret"
