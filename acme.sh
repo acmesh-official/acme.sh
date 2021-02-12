@@ -4015,8 +4015,8 @@ _get_chain_issuers() {
     ${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 -nocrl -certfile $_cfile | ${ACME_OPENSSL_BIN:-openssl} pkcs7 -print_certs -text -noout | grep -i 'Issuer:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2
   else
     _cindex=1
-    for _startn in $(grep -n  -- "$BEGIN_CERT" "$_cfile" | cut -d : -f 1); do
-      _endn="$(grep -n  -- "$END_CERT" "$_cfile" | cut -d : -f 1 | _head_n $_cindex | _tail_n 1)"
+    for _startn in $(grep -n -- "$BEGIN_CERT" "$_cfile" | cut -d : -f 1); do
+      _endn="$(grep -n -- "$END_CERT" "$_cfile" | cut -d : -f 1 | _head_n $_cindex | _tail_n 1)"
       _debug2 "_startn" "$_startn"
       _debug2 "_endn" "$_endn"
       if [ "$DEBUG" ]; then
@@ -4035,8 +4035,8 @@ _get_chain_subjects() {
     ${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 -nocrl -certfile $_cfile | ${ACME_OPENSSL_BIN:-openssl} pkcs7 -print_certs -text -noout | grep -i 'Subject:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2
   else
     _cindex=1
-    for _startn in $(grep -n  -- "$BEGIN_CERT" "$_cfile" | cut -d : -f 1); do
-      _endn="$(grep -n  -- "$END_CERT" "$_cfile" | cut -d : -f 1 | _head_n $_cindex | _tail_n 1)"
+    for _startn in $(grep -n -- "$BEGIN_CERT" "$_cfile" | cut -d : -f 1); do
+      _endn="$(grep -n -- "$END_CERT" "$_cfile" | cut -d : -f 1 | _head_n $_cindex | _tail_n 1)"
       _debug2 "_startn" "$_startn"
       _debug2 "_endn" "$_endn"
       if [ "$DEBUG" ]; then
