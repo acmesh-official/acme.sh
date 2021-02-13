@@ -4857,8 +4857,14 @@ $_authorizations_map"
             cat $_relcert >"$CERT_PATH"
             cat $_relfullchain >"$CERT_FULLCHAIN_PATH"
             cat $_relca >"$CA_CERT_PATH"
+            rm -f "$_relcert"
+            rm -f "$_relfullchain"
+            rm -f "$_relca"
             break
           fi
+          rm -f "$_relcert"
+          rm -f "$_relfullchain"
+          rm -f "$_relca"
         done
       fi
     fi
