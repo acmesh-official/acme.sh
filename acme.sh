@@ -4052,7 +4052,7 @@ _get_chain_subjects() {
 _match_issuer() {
   _cfile="$1"
   _missuer="$2"
-  _fissuers="$(_get_chain_subjects $_cfile)"
+  _fissuers="$(_get_chain_issuers $_cfile)"
   _debug2 _fissuers "$_fissuers"
   _rootissuer="$(echo "$_fissuers" | _lower_case | _tail_n 1)"
   _debug2 _rootissuer "$_rootissuer"
