@@ -75,9 +75,9 @@ truenas_deploy() {
     return 1
   fi
 
-  _saveaccountconf DEPLOY_TRUENAS_APIKEY "$DEPLOY_TRUENAS_APIKEY"
-  _saveaccountconf DEPLOY_TRUENAS_HOSTNAME "$DEPLOY_TRUENAS_HOSTNAME"
-  _saveaccountconf DEPLOY_TRUENAS_SCHEME "$DEPLOY_TRUENAS_SCHEME"
+  _savedeployconf DEPLOY_TRUENAS_APIKEY "$DEPLOY_TRUENAS_APIKEY"
+  _savedeployconf DEPLOY_TRUENAS_HOSTNAME "$DEPLOY_TRUENAS_HOSTNAME"
+  _savedeployconf DEPLOY_TRUENAS_SCHEME "$DEPLOY_TRUENAS_SCHEME"
 
   _info "Getting active certificate from TrueNAS"
   _response=$(_get "$_api_url/system/general")
@@ -93,7 +93,7 @@ truenas_deploy() {
     _info "Setting DEPLOY_TRUENAS_SCHEME to 'https'"
     DEPLOY_TRUENAS_SCHEME="https"
     _api_url="$DEPLOY_TRUENAS_SCHEME://$DEPLOY_TRUENAS_HOSTNAME/api/v2.0"
-    _saveaccountconf DEPLOY_TRUENAS_SCHEME "$DEPLOY_TRUENAS_SCHEME"
+    _savedeployconf DEPLOY_TRUENAS_SCHEME "$DEPLOY_TRUENAS_SCHEME"
   fi
 
   _info "Upload new certifikate to TrueNAS"
