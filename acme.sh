@@ -4009,12 +4009,42 @@ _check_dns_entries() {
 }
 
 #file
-_get_cert_issuers() {
+_get_chain_issuers() {
   _cfile="$1"
   if _contains "$(${ACME_OPENSSL_BIN:-openssl} help crl2pkcs7 2>&1)" "Usage: crl2pkcs7" || _contains "$(${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 -help 2>&1)" "Usage: crl2pkcs7" || _contains "$(${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 help 2>&1)" "unknown option help"; then
-    ${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 -nocrl -certfile $_cfile | ${ACME_OPENSSL_BIN:-openssl} pkcs7 -print_certs -text -noout | grep 'Issuer:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2
+    ${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 -nocrl -certfile $_cfile | ${ACME_OPENSSL_BIN:-openssl} pkcs7 -print_certs -text -noout | grep -i 'Issuer:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2
   else
-    ${ACME_OPENSSL_BIN:-openssl} x509 -in $_cfile -text -noout | grep 'Issuer:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2
+    _cindex=1
+    for _startn in $(grep -n -- "$BEGIN_CERT" "$_cfile" | cut -d : -f 1); do
+      _endn="$(grep -n -- "$END_CERT" "$_cfile" | cut -d : -f 1 | _head_n $_cindex | _tail_n 1)"
+      _debug2 "_startn" "$_startn"
+      _debug2 "_endn" "$_endn"
+      if [ "$DEBUG" ]; then
+        _debug2 "cert$_cindex" "$(sed -n "$_startn,${_endn}p" "$_cfile")"
+      fi
+      sed -n "$_startn,${_endn}p" "$_cfile" | ${ACME_OPENSSL_BIN:-openssl} x509 -text -noout | grep 'Issuer:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2 | sed "s/ *\(.*\)/\1/"
+      _cindex=$(_math $_cindex + 1)
+    done
+  fi
+}
+
+#
+_get_chain_subjects() {
+  _cfile="$1"
+  if _contains "$(${ACME_OPENSSL_BIN:-openssl} help crl2pkcs7 2>&1)" "Usage: crl2pkcs7" || _contains "$(${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 -help 2>&1)" "Usage: crl2pkcs7" || _contains "$(${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 help 2>&1)" "unknown option help"; then
+    ${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 -nocrl -certfile $_cfile | ${ACME_OPENSSL_BIN:-openssl} pkcs7 -print_certs -text -noout | grep -i 'Subject:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2
+  else
+    _cindex=1
+    for _startn in $(grep -n -- "$BEGIN_CERT" "$_cfile" | cut -d : -f 1); do
+      _endn="$(grep -n -- "$END_CERT" "$_cfile" | cut -d : -f 1 | _head_n $_cindex | _tail_n 1)"
+      _debug2 "_startn" "$_startn"
+      _debug2 "_endn" "$_endn"
+      if [ "$DEBUG" ]; then
+        _debug2 "cert$_cindex" "$(sed -n "$_startn,${_endn}p" "$_cfile")"
+      fi
+      sed -n "$_startn,${_endn}p" "$_cfile" | ${ACME_OPENSSL_BIN:-openssl} x509 -text -noout | grep -i 'Subject:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2 | sed "s/ *\(.*\)/\1/"
+      _cindex=$(_math $_cindex + 1)
+    done
   fi
 }
 
@@ -4022,14 +4052,12 @@ _get_cert_issuers() {
 _match_issuer() {
   _cfile="$1"
   _missuer="$2"
-  _fissuers="$(_get_cert_issuers $_cfile)"
+  _fissuers="$(_get_chain_issuers $_cfile)"
   _debug2 _fissuers "$_fissuers"
-  if _contains "$_fissuers" "$_missuer"; then
-    return 0
-  fi
-  _fissuers="$(echo "$_fissuers" | _lower_case)"
+  _rootissuer="$(echo "$_fissuers" | _lower_case | _tail_n 1)"
+  _debug2 _rootissuer "$_rootissuer"
   _missuer="$(echo "$_missuer" | _lower_case)"
-  _contains "$_fissuers" "$_missuer"
+  _contains "$_rootissuer" "$_missuer"
 }
 
 #webroot, domain domainlist  keylength
@@ -4803,6 +4831,9 @@ $_authorizations_map"
     _split_cert_chain "$CERT_PATH" "$CERT_FULLCHAIN_PATH" "$CA_CERT_PATH"
 
     if [ "$_preferred_chain" ] && [ -f "$CERT_FULLCHAIN_PATH" ]; then
+      if [ "$DEBUG" ]; then
+        _debug "default chain issuers: " "$(_get_chain_issuers "$CERT_FULLCHAIN_PATH")"
+      fi
       if ! _match_issuer "$CERT_FULLCHAIN_PATH" "$_preferred_chain"; then
         rels="$(echo "$responseHeaders" | tr -d ' <>' | grep -i "^link:" | grep -i 'rel="alternate"' | cut -d : -f 2- | cut -d ';' -f 1)"
         _debug2 "rels" "$rels"
@@ -4818,13 +4849,22 @@ $_authorizations_map"
           _relca="$CA_CERT_PATH.alt"
           echo "$response" >"$_relcert"
           _split_cert_chain "$_relcert" "$_relfullchain" "$_relca"
+          if [ "$DEBUG" ]; then
+            _debug "rel chain issuers: " "$(_get_chain_issuers "$_relfullchain")"
+          fi
           if _match_issuer "$_relfullchain" "$_preferred_chain"; then
             _info "Matched issuer in: $rel"
             cat $_relcert >"$CERT_PATH"
             cat $_relfullchain >"$CERT_FULLCHAIN_PATH"
             cat $_relca >"$CA_CERT_PATH"
+            rm -f "$_relcert"
+            rm -f "$_relfullchain"
+            rm -f "$_relca"
             break
           fi
+          rm -f "$_relcert"
+          rm -f "$_relfullchain"
+          rm -f "$_relca"
         done
       fi
     fi
