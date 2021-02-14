@@ -55,6 +55,18 @@ unifi_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
+  _getdeployconf DEPLOY_UNIFI_KEYSTORE
+  _getdeployconf DEPLOY_UNIFI_KEYPASS
+  _getdeployconf DEPLOY_UNIFI_CLOUDKEY_CERTDIR
+  _getdeployconf DEPLOY_UNIFI_CORE_CONFIG
+  _getdeployconf DEPLOY_UNIFI_RELOAD
+
+  _debug2 DEPLOY_UNIFI_KEYSTORE "$DEPLOY_UNIFI_KEYSTORE"
+  _debug2 DEPLOY_UNIFI_KEYPASS "$DEPLOY_UNIFI_KEYPASS"
+  _debug2 DEPLOY_UNIFI_CLOUDKEY_CERTDIR "$DEPLOY_UNIFI_CLOUDKEY_CERTDIR"
+  _debug2 DEPLOY_UNIFI_CORE_CONFIG "$DEPLOY_UNIFI_CORE_CONFIG"
+  _debug2 DEPLOY_UNIFI_RELOAD "$DEPLOY_UNIFI_RELOAD"
+
   # Space-separated list of environments detected and installed:
   _services_updated=""
 
@@ -191,32 +203,12 @@ unifi_deploy() {
     return 1
   fi
 
-  # Successful, so save all config:
-  if [ "$DEPLOY_UNIFI_KEYSTORE" ]; then
-    _savedomainconf DEPLOY_UNIFI_KEYSTORE "$DEPLOY_UNIFI_KEYSTORE"
-  else
-    _cleardomainconf DEPLOY_UNIFI_KEYSTORE
-  fi
-  if [ "$DEPLOY_UNIFI_KEYPASS" ]; then
-    _savedomainconf DEPLOY_UNIFI_KEYPASS "$DEPLOY_UNIFI_KEYPASS"
-  else
-    _cleardomainconf DEPLOY_UNIFI_KEYPASS
-  fi
-  if [ "$DEPLOY_UNIFI_CLOUDKEY_CERTDIR" ]; then
-    _savedomainconf DEPLOY_UNIFI_CLOUDKEY_CERTDIR "$DEPLOY_UNIFI_CLOUDKEY_CERTDIR"
-  else
-    _cleardomainconf DEPLOY_UNIFI_CLOUDKEY_CERTDIR
-  fi
-  if [ "$DEPLOY_UNIFI_CORE_CONFIG" ]; then
-    _savedomainconf DEPLOY_UNIFI_CORE_CONFIG "$DEPLOY_UNIFI_CORE_CONFIG"
-  else
-    _cleardomainconf DEPLOY_UNIFI_CORE_CONFIG
-  fi
-  if [ "$DEPLOY_UNIFI_RELOAD" ]; then
-    _savedomainconf DEPLOY_UNIFI_RELOAD "$DEPLOY_UNIFI_RELOAD"
-  else
-    _cleardomainconf DEPLOY_UNIFI_RELOAD
-  fi
+  # Successful, so save all (non-default) config:
+  _savedeployconf DEPLOY_UNIFI_KEYSTORE "$DEPLOY_UNIFI_KEYSTORE"
+  _savedeployconf DEPLOY_UNIFI_KEYPASS "$DEPLOY_UNIFI_KEYPASS"
+  _savedeployconf DEPLOY_UNIFI_CLOUDKEY_CERTDIR "$DEPLOY_UNIFI_CLOUDKEY_CERTDIR"
+  _savedeployconf DEPLOY_UNIFI_CORE_CONFIG "$DEPLOY_UNIFI_CORE_CONFIG"
+  _savedeployconf DEPLOY_UNIFI_RELOAD "$DEPLOY_UNIFI_RELOAD"
 
   return 0
 }
