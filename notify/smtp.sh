@@ -4,8 +4,8 @@
 
 # Please report bugs to https://github.com/acmesh-official/acme.sh/issues/3358
 
-# This implementation uses Python (2 or 3), which is available in many environments.
-# If you don't have Python, try "mail" notification instead of "smtp".
+# This implementation uses either curl or Python (3 or 2.7).
+# (See also the "mail" notify hook, which supports other ways to send mail.)
 
 # SMTP_FROM="from@example.com"  # required
 # SMTP_TO="to@example.com"  # required
@@ -14,79 +14,132 @@
 # SMTP_SECURE="none"  # one of "none", "ssl" (implicit TLS, TLS Wrapper), "tls" (explicit TLS, STARTTLS)
 # SMTP_USERNAME=""  # set if SMTP server requires login
 # SMTP_PASSWORD=""  # set if SMTP server requires login
-# SMTP_TIMEOUT="15"  # seconds for SMTP operations to timeout
-# SMTP_PYTHON="/path/to/python"  # defaults to system python3 or python
+# SMTP_TIMEOUT="30"  # seconds for SMTP operations to timeout
+# SMTP_BIN="/path/to/curl_or_python"  # default finds first of curl, python3, or python on PATH
 
+# subject content statuscode
 smtp_send() {
-  # Find a Python interpreter:
-  SMTP_PYTHON="${SMTP_PYTHON:-$(_readaccountconf_mutable SMTP_PYTHON)}"
-  if [ "$SMTP_PYTHON" ]; then
-    if _exists "$SMTP_PYTHON"; then
-      _saveaccountconf_mutable SMTP_PYTHON "$SMTP_PYTHON"
-    else
-      _err "SMTP_PYTHON '$SMTP_PYTHON' does not exist."
-      return 1
-    fi
-  else
-    # No SMTP_PYTHON setting; try to run default Python.
-    # (This is not saved with the conf.)
-    if _exists python3; then
-      SMTP_PYTHON="python3"
-    elif _exists python; then
-      SMTP_PYTHON="python"
-    else
-      _err "Can't locate Python interpreter; please define SMTP_PYTHON."
-      return 1
-    fi
-  fi
-  _debug "SMTP_PYTHON" "$SMTP_PYTHON"
-  _debug "Python version" "$($SMTP_PYTHON --version 2>&1)"
+  _SMTP_SUBJECT="$1"
+  _SMTP_CONTENT="$2"
+  # UNUSED: _statusCode="$3" # 0: success, 1: error 2($RENEW_SKIP): skipped
 
-  # Validate other settings:
+  # Load config:
   SMTP_FROM="${SMTP_FROM:-$(_readaccountconf_mutable SMTP_FROM)}"
+  SMTP_TO="${SMTP_TO:-$(_readaccountconf_mutable SMTP_TO)}"
+  SMTP_HOST="${SMTP_HOST:-$(_readaccountconf_mutable SMTP_HOST)}"
+  SMTP_PORT="${SMTP_PORT:-$(_readaccountconf_mutable SMTP_PORT)}"
+  SMTP_SECURE="${SMTP_SECURE:-$(_readaccountconf_mutable SMTP_SECURE)}"
+  SMTP_USERNAME="${SMTP_USERNAME:-$(_readaccountconf_mutable SMTP_USERNAME)}"
+  SMTP_PASSWORD="${SMTP_PASSWORD:-$(_readaccountconf_mutable SMTP_PASSWORD)}"
+  SMTP_TIMEOUT="${SMTP_TIMEOUT:-$(_readaccountconf_mutable SMTP_TIMEOUT)}"
+  SMTP_BIN="${SMTP_BIN:-$(_readaccountconf_mutable SMTP_BIN)}"
+
+  _debug "SMTP_FROM" "$SMTP_FROM"
+  _debug "SMTP_TO" "$SMTP_TO"
+  _debug "SMTP_HOST" "$SMTP_HOST"
+  _debug "SMTP_PORT" "$SMTP_PORT"
+  _debug "SMTP_SECURE" "$SMTP_SECURE"
+  _debug "SMTP_USERNAME" "$SMTP_USERNAME"
+  _secure_debug "SMTP_PASSWORD" "$SMTP_PASSWORD"
+  _debug "SMTP_TIMEOUT" "$SMTP_TIMEOUT"
+  _debug "SMTP_BIN" "$SMTP_BIN"
+
+  _debug "_SMTP_SUBJECT" "$_SMTP_SUBJECT"
+  _debug "_SMTP_CONTENT" "$_SMTP_CONTENT"
+
+  # Validate config and apply defaults:
+  # _SMTP_* variables are the resolved (with defaults) versions of SMTP_*.
+  # (The _SMTP_* versions will not be stored in account conf.)
+
+  if [ -n "$SMTP_BIN" ] && ! _exists "$SMTP_BIN"; then
+    _err "SMTP_BIN '$SMTP_BIN' does not exist."
+    return 1
+  fi
+  _SMTP_BIN="$SMTP_BIN"
+  if [ -z "$_SMTP_BIN" ]; then
+    # Look for a command that can communicate with an SMTP server.
+    # (Please don't add sendmail, ssmtp, mutt, mail, or msmtp here.
+    # Those are already handled by the "mail" notify hook.)
+    for cmd in curl python3 python2.7 python pypy3 pypy; do
+      if _exists "$cmd"; then
+        _SMTP_BIN="$cmd"
+        break
+      fi
+    done
+    if [ -z "$_SMTP_BIN" ]; then
+      _err "The smtp notify-hook requires curl or Python, but can't find any."
+      _err 'If you have one of them, define SMTP_BIN="/path/to/curl_or_python".'
+      _err 'Otherwise, see if you can use the "mail" notify-hook instead.'
+      return 1
+    fi
+    _debug "_SMTP_BIN" "$_SMTP_BIN"
+  fi
+
   if [ -z "$SMTP_FROM" ]; then
     _err "You must define SMTP_FROM as the sender email address."
     return 1
   fi
+  _SMTP_FROM="$SMTP_FROM"
 
-  SMTP_TO="${SMTP_TO:-$(_readaccountconf_mutable SMTP_TO)}"
   if [ -z "$SMTP_TO" ]; then
     _err "You must define SMTP_TO as the recipient email address."
     return 1
   fi
+  _SMTP_TO="$SMTP_TO"
 
-  SMTP_HOST="${SMTP_HOST:-$(_readaccountconf_mutable SMTP_HOST)}"
   if [ -z "$SMTP_HOST" ]; then
     _err "You must define SMTP_HOST as the SMTP server hostname."
     return 1
   fi
-  SMTP_PORT="${SMTP_PORT:-$(_readaccountconf_mutable SMTP_PORT)}"
+  _SMTP_HOST="$SMTP_HOST"
 
-  SMTP_SECURE="${SMTP_SECURE:-$(_readaccountconf_mutable SMTP_SECURE)}"
-  SMTP_SECURE="${SMTP_SECURE:-none}"
-  case "$SMTP_SECURE" in
-  "none") SMTP_DEFAULT_PORT="25" ;;
-  "ssl") SMTP_DEFAULT_PORT="465" ;;
-  "tls") SMTP_DEFAULT_PORT="587" ;;
+  _SMTP_SECURE="${SMTP_SECURE:-none}"
+  case "$_SMTP_SECURE" in
+  "none") smtp_default_port="25" ;;
+  "ssl") smtp_default_port="465" ;;
+  "tls") smtp_default_port="587" ;;
   *)
     _err "Invalid SMTP_SECURE='$SMTP_SECURE'. It must be 'ssl', 'tls' or 'none'."
     return 1
     ;;
   esac
 
-  SMTP_USERNAME="${SMTP_USERNAME:-$(_readaccountconf_mutable SMTP_USERNAME)}"
-  SMTP_PASSWORD="${SMTP_PASSWORD:-$(_readaccountconf_mutable SMTP_PASSWORD)}"
+  _SMTP_PORT="${SMTP_PORT:-$smtp_default_port}"
+  if [ -z "$SMTP_PORT" ]; then
+    _debug "_SMTP_PORT" "$_SMTP_PORT"
+  fi
 
-  SMTP_TIMEOUT="${SMTP_TIMEOUT:-$(_readaccountconf_mutable SMTP_TIMEOUT)}"
-  SMTP_DEFAULT_TIMEOUT="15"
+  _SMTP_USERNAME="$SMTP_USERNAME"
+  _SMTP_PASSWORD="$SMTP_PASSWORD"
+  _SMTP_TIMEOUT="${SMTP_TIMEOUT:-30}"
+
+  # Run with --debug 2 (or above) to echo the transcript of the SMTP session.
+  # Careful: this may include SMTP_PASSWORD in plaintext!
+  if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_2" ]; then
+    _SMTP_SHOW_TRANSCRIPT="True"
+  else
+    _SMTP_SHOW_TRANSCRIPT=""
+  fi
 
   # Send the message:
-  if ! _smtp_send "$@"; then
-    _err "$smtp_send_output"
+  case "$(basename "$_SMTP_BIN")" in
+  curl) _smtp_send=_smtp_send_curl ;;
+  py*) _smtp_send=_smtp_send_python ;;
+  *)
+    _err "Can't figure out how to invoke $_SMTP_BIN."
+    _err "Please re-run with --debug and report a bug."
+    return 1
+    ;;
+  esac
+
+  if ! smtp_output="$($_smtp_send)"; then
+    _err "Error sending message with $_SMTP_BIN."
+    _err "${smtp_output:-(No additional details; try --debug or --debug 2)}"
     return 1
   fi
 
-  # Save remaining config if successful. (SMTP_PYTHON is saved earlier.)
+  # Save config only if send was successful:
+  _saveaccountconf_mutable SMTP_BIN "$SMTP_BIN"
   _saveaccountconf_mutable SMTP_FROM "$SMTP_FROM"
   _saveaccountconf_mutable SMTP_TO "$SMTP_TO"
   _saveaccountconf_mutable SMTP_HOST "$SMTP_HOST"
@@ -99,37 +152,21 @@ smtp_send() {
   return 0
 }
 
-# _send subject content statuscode
-# Send the message via Python using SMTP_* settings
-_smtp_send() {
-  _subject="$1"
-  _content="$2"
-  _statusCode="$3" #0: success, 1: error 2($RENEW_SKIP): skipped
-  _debug "_subject" "$_subject"
-  _debug "_content" "$_content"
-  _debug "_statusCode" "$_statusCode"
 
-  _debug "SMTP_FROM" "$SMTP_FROM"
-  _debug "SMTP_TO" "$SMTP_TO"
-  _debug "SMTP_HOST" "$SMTP_HOST"
-  _debug "SMTP_PORT" "$SMTP_PORT"
-  _debug "SMTP_DEFAULT_PORT" "$SMTP_DEFAULT_PORT"
-  _debug "SMTP_SECURE" "$SMTP_SECURE"
-  _debug "SMTP_USERNAME" "$SMTP_USERNAME"
-  _secure_debug "SMTP_PASSWORD" "$SMTP_PASSWORD"
-  _debug "SMTP_TIMEOUT" "$SMTP_TIMEOUT"
-  _debug "SMTP_DEFAULT_TIMEOUT" "$SMTP_DEFAULT_TIMEOUT"
+# Send the message via curl using _SMTP_* variables
+_smtp_send_curl() {
+  # TODO: implement
+  echo "_smtp_send_curl not implemented"
+  return 1
+}
 
-  if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_2" ]; then
-    # Output the SMTP server dialogue. (Note this will include SMTP_PASSWORD!)
-    smtp_debug="True"
-  else
-    smtp_debug=""
-  fi
+
+# Send the message via Python using _SMTP_* variables
+_smtp_send_python() {
+  _debug "Python version" "$("$_SMTP_BIN" --version 2>&1)"
 
   # language=Python
-  smtp_send_output="$(
-    $SMTP_PYTHON <<EOF
+  "$_SMTP_BIN" <<EOF
 # This code is meant to work with either Python 2.7.x or Python 3.4+.
 try:
     try:
@@ -143,19 +180,19 @@ except ImportError as err:
           " a reduced version of Python unsuitable for sending mail: %s" % err)
     exit(1)
 
-smtp_debug = """$smtp_debug""" == "True"
+show_transcript = """$_SMTP_SHOW_TRANSCRIPT""" == "True"
 
-smtp_host = """$SMTP_HOST"""
-smtp_port = int("""${SMTP_PORT:-$SMTP_DEFAULT_PORT}""")
-smtp_secure = """$SMTP_SECURE"""
-username = """$SMTP_USERNAME"""
-password = """$SMTP_PASSWORD"""
-timeout=int("""${SMTP_TIMEOUT:-$SMTP_DEFAULT_TIMEOUT}""")  # seconds
+smtp_host = """$_SMTP_HOST"""
+smtp_port = int("""$_SMTP_PORT""")
+smtp_secure = """$_SMTP_SECURE"""
+username = """$_SMTP_USERNAME"""
+password = """$_SMTP_PASSWORD"""
+timeout=int("""$_SMTP_TIMEOUT""")  # seconds
 
-from_email="""$SMTP_FROM"""
-to_emails="""$SMTP_TO"""  # can be comma-separated
-subject="""$_subject"""
-content="""$_content"""
+from_email="""$_SMTP_FROM"""
+to_emails="""$_SMTP_TO"""  # can be comma-separated
+subject="""$_SMTP_SUBJECT"""
+content="""$_SMTP_CONTENT"""
 
 try:
     msg = EmailMessage()
@@ -173,7 +210,7 @@ try:
         smtp = SMTP_SSL(smtp_host, smtp_port, timeout=timeout)
     else:
         smtp = SMTP(smtp_host, smtp_port, timeout=timeout)
-    smtp.set_debuglevel(smtp_debug)
+    smtp.set_debuglevel(show_transcript)
     if smtp_secure == "tls":
         smtp.starttls()
     if username or password:
@@ -193,8 +230,4 @@ finally:
     if smtp is not None:
         smtp.quit()
 EOF
-  )"
-  _ret=$?
-  _debug "smtp_send_output" "$smtp_send_output"
-  return "$_ret"
 }
