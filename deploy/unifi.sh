@@ -58,14 +58,12 @@ unifi_deploy() {
   # Space-separated list of environments detected and installed:
   _services_updated=""
 
-  # Default reload commands are accumulated in an &&-separated string
-  # as we auto-detect environments:
-  DEFAULT_UNIFI_RELOAD=""
+  # Default reload commands accumulated as we auto-detect environments:
+  _reload_cmd=""
 
   # Unifi Controller environment (self hosted or any Cloud Key) --
   # auto-detect by file /usr/lib/unifi/data/keystore:
-  DEFAULT_UNIFI_KEYSTORE="/usr/lib/unifi/data/keystore"
-  _unifi_keystore="${DEPLOY_UNIFI_KEYSTORE:-$DEFAULT_UNIFI_KEYSTORE}"
+  _unifi_keystore="${DEPLOY_UNIFI_KEYSTORE:-/usr/lib/unifi/data/keystore}"
   if [ -f "$_unifi_keystore" ]; then
     _info "Installing certificate for Unifi Controller (Java keystore)"
     _debug _unifi_keystore "$_unifi_keystore"
@@ -78,15 +76,14 @@ unifi_deploy() {
       return 1
     fi
 
-    DEFAULT_UNIFI_KEYPASS="aircontrolenterprise"
-    _unifi_keypass="${DEPLOY_UNIFI_KEYPASS:-$DEFAULT_UNIFI_KEYPASS}"
+    _unifi_keypass="${DEPLOY_UNIFI_KEYPASS:-aircontrolenterprise}"
 
     _debug "Generate import pkcs12"
     _import_pkcs12="$(_mktemp)"
     _toPkcs "$_import_pkcs12" "$_ckey" "$_ccert" "$_cca" "$_unifi_keypass" unifi root
     # shellcheck disable=SC2181
     if [ "$?" != "0" ]; then
-      _err "Oops, error creating import pkcs12, please report bug to us."
+      _err "Error generating pkcs12. Please re-run with --debug and report a bug."
       return 1
     fi
 
@@ -105,7 +102,7 @@ unifi_deploy() {
     fi
 
     if systemctl -q is-active unifi; then
-      DEFAULT_UNIFI_RELOAD="${DEFAULT_UNIFI_RELOAD}${DEFAULT_UNIFI_RELOAD:+ && }service unifi restart"
+      _reload_cmd="${_reload_cmd:+$_reload_cmd && }service unifi restart"
     fi
     _services_updated="${_services_updated} unifi"
     _info "Install Unifi Controller certificate success!"
@@ -116,8 +113,7 @@ unifi_deploy() {
 
   # Cloud Key environment (non-UnifiOS -- nginx serves admin pages) --
   # auto-detect by file /etc/ssl/private/cloudkey.key:
-  DEFAULT_DEPLOY_UNIFI_CLOUDKEY_CERTDIR="/etc/ssl/private"
-  _cloudkey_certdir="${DEPLOY_UNIFI_CLOUDKEY_CERTDIR:-$DEFAULT_DEPLOY_UNIFI_CLOUDKEY_CERTDIR}"
+  _cloudkey_certdir="${DEPLOY_UNIFI_CLOUDKEY_CERTDIR:-/etc/ssl/private}"
   if [ -f "${_cloudkey_certdir}/cloudkey.key" ]; then
     _info "Installing certificate for Cloud Key Gen1 (nginx admin pages)"
     _debug _cloudkey_certdir "$_cloudkey_certdir"
@@ -138,7 +134,7 @@ unifi_deploy() {
     (cd "$_cloudkey_certdir" && tar -cf cert.tar cloudkey.crt cloudkey.key unifi.keystore.jks)
 
     if systemctl -q is-active nginx; then
-      DEFAULT_UNIFI_RELOAD="${DEFAULT_UNIFI_RELOAD}${DEFAULT_UNIFI_RELOAD:+ && }service nginx restart"
+      _reload_cmd="${_reload_cmd:+$_reload_cmd && }service nginx restart"
     fi
     _info "Install Cloud Key Gen1 certificate success!"
     _services_updated="${_services_updated} nginx"
@@ -148,8 +144,7 @@ unifi_deploy() {
   fi
 
   # UnifiOS environment -- auto-detect by /data/unifi-core/config/unifi-core.key:
-  DEFAULT_DEPLOY_UNIFI_CORE_CONFIG="/data/unifi-core/config"
-  _unifi_core_config="${DEPLOY_UNIFI_CORE_CONFIG:-$DEFAULT_DEPLOY_UNIFI_CORE_CONFIG}"
+  _unifi_core_config="${DEPLOY_UNIFI_CORE_CONFIG:-/data/unifi-core/config}"
   if [ -f "${_unifi_core_config}/unifi-core.key" ]; then
     _info "Installing certificate for UnifiOS"
     _debug _unifi_core_config "$_unifi_core_config"
@@ -162,7 +157,7 @@ unifi_deploy() {
     cp "$_ckey" "${_unifi_core_config}/unifi-core.key"
 
     if systemctl -q is-active unifi-core; then
-      DEFAULT_UNIFI_RELOAD="${DEFAULT_UNIFI_RELOAD}${DEFAULT_UNIFI_RELOAD:+ && }systemctl restart unifi-core"
+      _reload_cmd="${_reload_cmd:+$_reload_cmd && }systemctl restart unifi-core"
     fi
     _info "Install UnifiOS certificate success!"
     _services_updated="${_services_updated} unifi-core"
@@ -181,15 +176,15 @@ unifi_deploy() {
     return 1
   fi
 
-  _reload="${DEPLOY_UNIFI_RELOAD:-$DEFAULT_UNIFI_RELOAD}"
-  if [ -z "$_reload" ]; then
+  _reload_cmd="${DEPLOY_UNIFI_RELOAD:-$_reload_cmd}"
+  if [ -z "$_reload_cmd" ]; then
     _err "Certificates were installed for services:${_services_updated},"
     _err "but none appear to be active. Please set DEPLOY_UNIFI_RELOAD"
     _err "to a command that will restart the necessary services."
     return 1
   fi
-  _info "Reload services (this may take some time): $_reload"
-  if eval "$_reload"; then
+  _info "Reload services (this may take some time): $_reload_cmd"
+  if eval "$_reload_cmd"; then
     _info "Reload success!"
   else
     _err "Reload error"
