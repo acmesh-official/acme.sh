@@ -141,8 +141,8 @@ unifi_deploy() {
       return 1
     fi
 
-    cp "$_cfullchain" "${_cloudkey_certdir}/cloudkey.crt"
-    cp "$_ckey" "${_cloudkey_certdir}/cloudkey.key"
+    cat "$_cfullchain" >"${_cloudkey_certdir}/cloudkey.crt"
+    cat "$_ckey" >"${_cloudkey_certdir}/cloudkey.key"
     (cd "$_cloudkey_certdir" && tar -cf cert.tar cloudkey.crt cloudkey.key unifi.keystore.jks)
 
     if systemctl -q is-active nginx; then
@@ -165,8 +165,8 @@ unifi_deploy() {
       return 1
     fi
 
-    cp "$_cfullchain" "${_unifi_core_config}/unifi-core.crt"
-    cp "$_ckey" "${_unifi_core_config}/unifi-core.key"
+    cat "$_cfullchain" >"${_unifi_core_config}/unifi-core.crt"
+    cat "$_ckey" >"${_unifi_core_config}/unifi-core.key"
 
     if systemctl -q is-active unifi-core; then
       _reload_cmd="${_reload_cmd:+$_reload_cmd && }systemctl restart unifi-core"
