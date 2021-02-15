@@ -5,7 +5,7 @@
 # HUAWEICLOUD_ProjectID
 
 iam_api="https://iam.myhuaweicloud.com"
-dns_api="https://dns.ap-southeast-1.myhuaweicloud.com"
+dns_api="https://dns.ap-southeast-1.myhuaweicloud.com" # Should work
 
 ########  Public functions #####################
 
@@ -29,16 +29,27 @@ dns_huaweicloud_add() {
     return 1
   fi
 
+  unset token # Clear token
   token="$(_get_token "${HUAWEICLOUD_Username}" "${HUAWEICLOUD_Password}" "${HUAWEICLOUD_ProjectID}")"
-  _debug2 "${token}"
+  if [ -z "${token}" ]; then # Check token
+    _err "dns_api(dns_huaweicloud): Error getting token."
+    return 1
+  fi
+  _debug "Access token is: ${token}"
+
+  unset zoneid
   zoneid="$(_get_zoneid "${token}" "${fulldomain}")"
-  _debug "${zoneid}"
+  if [ -z "${zoneid}" ]; then
+    _err "dns_api(dns_huaweicloud): Error getting zone id."
+    return 1
+  fi
+  _debug "Zone ID is: ${zoneid}"
 
   _debug "Adding Record"
   _add_record "${token}" "${fulldomain}" "${txtvalue}"
   ret="$?"
   if [ "${ret}" != "0" ]; then
-    _err "dns_huaweicloud: Error adding record."
+    _err "dns_api(dns_huaweicloud): Error adding record."
     return 1
   fi
 
@@ -69,12 +80,21 @@ dns_huaweicloud_rm() {
     return 1
   fi
 
+  unset token # Clear token
   token="$(_get_token "${HUAWEICLOUD_Username}" "${HUAWEICLOUD_Password}" "${HUAWEICLOUD_ProjectID}")"
-  _debug2 "${token}"
+  if [ -z "${token}" ]; then # Check token
+    _err "dns_api(dns_huaweicloud): Error getting token."
+    return 1
+  fi
+  _debug "Access token is: ${token}"
+
+  unset zoneid
   zoneid="$(_get_zoneid "${token}" "${fulldomain}")"
-  _debug "${zoneid}"
-  record_id="$(_get_recordset_id "${token}" "${fulldomain}" "${zoneid}")"
-  _debug "Record Set ID is: ${record_id}"
+  if [ -z "${zoneid}" ]; then
+    _err "dns_api(dns_huaweicloud): Error getting zone id."
+    return 1
+  fi
+  _debug "Zone ID is: ${zoneid}"
 
   # Remove all records
   # Therotically HuaweiCloud does not allow more than one record set
