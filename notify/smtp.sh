@@ -127,14 +127,16 @@ smtp_send() {
   py*) _smtp_send=_smtp_send_python ;;
   *)
     _err "Can't figure out how to invoke $_SMTP_BIN."
-    _err "Please re-run with --debug and report a bug."
+    _err "Check your SMTP_BIN setting."
     return 1
     ;;
   esac
 
   if ! smtp_output="$($_smtp_send)"; then
     _err "Error sending message with $_SMTP_BIN."
-    _err "${smtp_output:-(No additional details; try --debug or --debug 2)}"
+    if [ -n "$smtp_output" ]; then
+      _err "$smtp_output"
+    fi
     return 1
   fi
 
@@ -152,12 +154,109 @@ smtp_send() {
   return 0
 }
 
-
 # Send the message via curl using _SMTP_* variables
 _smtp_send_curl() {
-  # TODO: implement
-  echo "_smtp_send_curl not implemented"
-  return 1
+  # curl passes --mail-from and --mail-rcpt directly to the SMTP protocol without
+  # additional parsing, and SMTP requires addr-spec only (no display names).
+  # In the future, maybe try to parse the addr-spec out for curl args (non-trivial).
+  if _email_has_display_name "$_SMTP_FROM"; then
+    _err "curl smtp only allows a simple email address in SMTP_FROM."
+    _err "Change your SMTP_FROM='$SMTP_FROM' to remove the display name."
+    return 1
+  fi
+  if _email_has_display_name "$_SMTP_TO"; then
+    _err "curl smtp only allows simple email addresses in SMTP_TO."
+    _err "Change your SMTP_TO='$SMTP_TO' to remove the display name(s)."
+    return 1
+  fi
+
+  # Build curl args in $@
+
+  case "$_SMTP_SECURE" in
+  none)
+    set -- --url "smtp://${_SMTP_HOST}:${_SMTP_PORT}"
+    ;;
+  ssl)
+    set -- --url "smtps://${_SMTP_HOST}:${_SMTP_PORT}"
+    ;;
+  tls)
+    set -- --url "smtp://${_SMTP_HOST}:${_SMTP_PORT}" --ssl-reqd
+    ;;
+  *)
+    # This will only occur if someone adds a new SMTP_SECURE option above
+    # without updating this code for it.
+    _err "Unhandled _SMTP_SECURE='$_SMTP_SECURE' in _smtp_send_curl"
+    _err "Please re-run with --debug and report a bug."
+    return 1
+    ;;
+  esac
+
+  set -- "$@" \
+    --upload-file - \
+    --mail-from "$_SMTP_FROM" \
+    --max-time "$_SMTP_TIMEOUT"
+
+  # Burst comma-separated $_SMTP_TO into individual --mail-rcpt args.
+  _to="${_SMTP_TO},"
+  while [ -n "$_to" ]; do
+    _rcpt="${_to%%,*}"
+    _to="${_to#*,}"
+    set -- "$@" --mail-rcpt "$_rcpt"
+  done
+
+  _smtp_login="${_SMTP_USERNAME}:${_SMTP_PASSWORD}"
+  if [ "$_smtp_login" != ":" ]; then
+    set -- "$@" --user "$_smtp_login"
+  fi
+
+  if [ "$_SMTP_SHOW_TRANSCRIPT" = "True" ]; then
+    set -- "$@" --verbose
+  else
+    set -- "$@" --silent --show-error
+  fi
+
+  raw_message="$(_smtp_raw_message)"
+
+  _debug2 "curl command:" "$_SMTP_BIN" "$*"
+  _debug2 "raw_message:\n$raw_message"
+
+  echo "$raw_message" | "$_SMTP_BIN" "$@"
+}
+
+# Output an RFC-822 / RFC-5322 email message using _SMTP_* variables
+_smtp_raw_message() {
+  echo "From: $_SMTP_FROM"
+  echo "To: $_SMTP_TO"
+  echo "Subject: $(_mime_encoded_word "$_SMTP_SUBJECT")"
+  if _exists date; then
+    echo "Date: $(date +'%a, %-d %b %Y %H:%M:%S %z')"
+  fi
+  echo "Content-Type: text/plain; charset=utf-8"
+  echo "X-Mailer: acme.sh --notify-hook smtp"
+  echo
+  echo "$_SMTP_CONTENT"
+}
+
+# Convert text to RFC-2047 MIME "encoded word" format if it contains non-ASCII chars
+# text
+_mime_encoded_word() {
+  _text="$1"
+  # (regex character ranges like [a-z] can be locale-dependent; enumerate ASCII chars to avoid that)
+  _ascii='] $`"'"[!#%&'()*+,./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ~^_abcdefghijklmnopqrstuvwxyz{|}~-"
+  if expr "$_text" : "^.*[^$_ascii]" >/dev/null; then
+    # At least one non-ASCII char; convert entire thing to encoded word
+    printf "%s" "=?UTF-8?B?$(printf "%s" "$_text" | _base64)?="
+  else
+    # Just printable ASCII, no conversion needed
+    printf "%s" "$_text"
+  fi
+}
+
+# Simple check for display name in an email address (< > or ")
+# email
+_email_has_display_name() {
+  _email="$1"
+  expr "$_email" : '^.*[<>"]' > /dev/null
 }
 
 
