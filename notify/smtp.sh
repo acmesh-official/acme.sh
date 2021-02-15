@@ -256,9 +256,8 @@ _mime_encoded_word() {
 # email
 _email_has_display_name() {
   _email="$1"
-  expr "$_email" : '^.*[<>"]' > /dev/null
+  expr "$_email" : '^.*[<>"]' >/dev/null
 }
-
 
 # Send the message via Python using _SMTP_* variables
 _smtp_send_python() {
