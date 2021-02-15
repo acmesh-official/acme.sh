@@ -112,6 +112,7 @@ smtp_send() {
   _SMTP_USERNAME="$SMTP_USERNAME"
   _SMTP_PASSWORD="$SMTP_PASSWORD"
   _SMTP_TIMEOUT="${SMTP_TIMEOUT:-30}"
+  _SMTP_X_MAILER="${PROJECT_NAME} ${VER} --notify-hook smtp"
 
   # Run with --debug 2 (or above) to echo the transcript of the SMTP session.
   # Careful: this may include SMTP_PASSWORD in plaintext!
@@ -232,7 +233,7 @@ _smtp_raw_message() {
     echo "Date: $(date +'%a, %-d %b %Y %H:%M:%S %z')"
   fi
   echo "Content-Type: text/plain; charset=utf-8"
-  echo "X-Mailer: acme.sh --notify-hook smtp"
+  echo "X-Mailer: $_SMTP_X_MAILER"
   echo
   echo "$_SMTP_CONTENT"
 }
@@ -286,6 +287,7 @@ smtp_secure = """$_SMTP_SECURE"""
 username = """$_SMTP_USERNAME"""
 password = """$_SMTP_PASSWORD"""
 timeout=int("""$_SMTP_TIMEOUT""")  # seconds
+x_mailer="""$_SMTP_X_MAILER"""
 
 from_email="""$_SMTP_FROM"""
 to_emails="""$_SMTP_TO"""  # can be comma-separated
@@ -301,6 +303,7 @@ except (AttributeError, TypeError):
 msg["Subject"] = subject
 msg["From"] = from_email
 msg["To"] = to_emails
+msg["X-Mailer"] = x_mailer
 
 smtp = None
 try:
