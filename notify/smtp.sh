@@ -224,9 +224,7 @@ _smtp_raw_message() {
   echo "From: $SMTP_FROM"
   echo "To: $SMTP_TO"
   echo "Subject: $(_mime_encoded_word "$SMTP_SUBJECT")"
-  if _exists date; then
-    echo "Date: $(date +'%a, %-d %b %Y %H:%M:%S %z')"
-  fi
+  echo "Date: $(_rfc2822_date)"
   echo "Content-Type: text/plain; charset=utf-8"
   echo "X-Mailer: $SMTP_X_MAILER"
   echo
@@ -246,6 +244,19 @@ _mime_encoded_word() {
     # Just printable ASCII, no conversion needed
     printf "%s" "$_text"
   fi
+}
+
+# Output current date in RFC-2822 Section 3.3 format as required in email headers
+# (e.g., "Mon, 15 Feb 2021 14:22:01 -0800")
+_rfc2822_date() {
+  # Notes:
+  #   - this is deliberately not UTC, because it "SHOULD express local time" per spec
+  #   - the spec requires weekday and month in the C locale (English), not localized
+  #   - this date format specifier has been tested on Linux, Mac, Solaris and FreeBSD
+  _old_lc_time="$LC_TIME"
+  LC_TIME=C
+  date +'%a, %-d %b %Y %H:%M:%S %z'
+  LC_TIME="$_old_lc_time"
 }
 
 # Simple check for display name in an email address (< > or ")
