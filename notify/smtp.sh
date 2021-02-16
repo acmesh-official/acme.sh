@@ -358,7 +358,7 @@ PYTHON
 #   - if MY_CONF is set _empty_, output $default_value
 #     (lets user `export MY_CONF=` to clear previous saved value
 #     and return to default, without user having to know default)
-#   - otherwise if _readaccountconf_mutable $name is non-empty, return that
+#   - otherwise if _readaccountconf_mutable MY_CONF is non-empty, return that
 #     (value of SAVED_MY_CONF from account.conf)
 #   - otherwise output $default_value
 _readaccountconf_mutable_default() {
@@ -366,8 +366,9 @@ _readaccountconf_mutable_default() {
   _default_value="$2"
 
   eval "_value=\"\$$_name\""
-  eval "_explicit_empty_value=\"\${${_name}+empty}\""
-  if [ -z "${_value}" ] && [ "${_explicit_empty_value:-}" != "empty" ]; then
+  eval "_name_is_set=\"\${${_name}+true}\""
+  # ($_name_is_set is "true" if $$_name is set to anything, including empty)
+  if [ -z "${_value}" ] && [ "${_name_is_set:-}" != "true" ]; then
     _value="$(_readaccountconf_mutable "$_name")"
   fi
   if [ -z "${_value}" ]; then
