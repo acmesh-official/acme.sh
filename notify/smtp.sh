@@ -53,16 +53,28 @@ smtp_send() {
   _saveaccountconf_mutable_default SMTP_BIN "$SMTP_BIN"
 
   SMTP_FROM="$(_readaccountconf_mutable_default SMTP_FROM)"
+  SMTP_FROM="$(_clean_email_header "$SMTP_FROM")"
   if [ -z "$SMTP_FROM" ]; then
     _err "You must define SMTP_FROM as the sender email address."
+    return 1
+  fi
+  if _email_has_display_name "$SMTP_FROM"; then
+    _err "SMTP_FROM must be only a simple email address (sender@example.com)."
+    _err "Change your SMTP_FROM='$SMTP_FROM' to remove the display name."
     return 1
   fi
   _debug SMTP_FROM "$SMTP_FROM"
   _saveaccountconf_mutable_default SMTP_FROM "$SMTP_FROM"
 
   SMTP_TO="$(_readaccountconf_mutable_default SMTP_TO)"
+  SMTP_TO="$(_clean_email_header "$SMTP_TO")"
   if [ -z "$SMTP_TO" ]; then
-    _err "You must define SMTP_TO as the recipient email address."
+    _err "You must define SMTP_TO as the recipient email address(es)."
+    return 1
+  fi
+  if _email_has_display_name "$SMTP_TO"; then
+    _err "SMTP_TO must be only simple email addresses (to@example.com,to2@example.com)."
+    _err "Change your SMTP_TO='$SMTP_TO' to remove the display name(s)."
     return 1
   fi
   _debug SMTP_TO "$SMTP_TO"
@@ -111,7 +123,7 @@ smtp_send() {
   _debug SMTP_TIMEOUT "$SMTP_TIMEOUT"
   _saveaccountconf_mutable_default SMTP_TIMEOUT "$SMTP_TIMEOUT" "$SMTP_TIMEOUT_DEFAULT"
 
-  SMTP_X_MAILER="${PROJECT_NAME} ${VER} --notify-hook smtp"
+  SMTP_X_MAILER="$(_clean_email_header "$PROJECT_NAME $VER --notify-hook smtp")"
 
   # Run with --debug 2 (or above) to echo the transcript of the SMTP session.
   # Careful: this may include SMTP_PASSWORD in plaintext!
@@ -121,6 +133,7 @@ smtp_send() {
     SMTP_SHOW_TRANSCRIPT=""
   fi
 
+  SMTP_SUBJECT=$(_clean_email_header "$SMTP_SUBJECT")
   _debug SMTP_SUBJECT "$SMTP_SUBJECT"
   _debug SMTP_CONTENT "$SMTP_CONTENT"
 
@@ -146,28 +159,26 @@ smtp_send() {
   return 0
 }
 
+# Strip CR and NL from text to prevent MIME header injection
+# text
+_clean_email_header() {
+  printf "%s" "$(echo "$1" | tr -d "\r\n")"
+}
+
+# Simple check for display name in an email address (< > or ")
+# email
+_email_has_display_name() {
+  _email="$1"
+  expr "$_email" : '^.*[<>"]' >/dev/null
+}
+
 ##
 ## curl smtp sending
 ##
 
 # Send the message via curl using SMTP_* variables
 _smtp_send_curl() {
-  # curl passes --mail-from and --mail-rcpt directly to the SMTP protocol without
-  # additional parsing, and SMTP requires addr-spec only (no display names).
-  # In the future, maybe try to parse the addr-spec out for curl args (non-trivial).
-  if _email_has_display_name "$SMTP_FROM"; then
-    _err "curl smtp only allows a simple email address in SMTP_FROM."
-    _err "Change your SMTP_FROM='$SMTP_FROM' to remove the display name."
-    return 1
-  fi
-  if _email_has_display_name "$SMTP_TO"; then
-    _err "curl smtp only allows simple email addresses in SMTP_TO."
-    _err "Change your SMTP_TO='$SMTP_TO' to remove the display name(s)."
-    return 1
-  fi
-
   # Build curl args in $@
-
   case "$SMTP_SECURE" in
   none)
     set -- --url "smtp://${SMTP_HOST}:${SMTP_PORT}"
@@ -219,7 +230,8 @@ _smtp_send_curl() {
   echo "$raw_message" | "$SMTP_BIN" "$@"
 }
 
-# Output an RFC-822 / RFC-5322 email message using SMTP_* variables
+# Output an RFC-822 / RFC-5322 email message using SMTP_* variables.
+# (This assumes variables have already been cleaned for use in email headers.)
 _smtp_raw_message() {
   echo "From: $SMTP_FROM"
   echo "To: $SMTP_TO"
@@ -257,13 +269,6 @@ _rfc2822_date() {
   LC_TIME=C
   date +'%a, %-d %b %Y %H:%M:%S %z'
   LC_TIME="$_old_lc_time"
-}
-
-# Simple check for display name in an email address (< > or ")
-# email
-_email_has_display_name() {
-  _email="$1"
-  expr "$_email" : '^.*[<>"]' >/dev/null
 }
 
 ##
