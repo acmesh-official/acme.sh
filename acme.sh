@@ -2283,6 +2283,13 @@ _clearaccountconf() {
   _clear_conf "$ACCOUNT_CONF_PATH" "$1"
 }
 
+#key
+_clearaccountconf_mutable() {
+  _clearaccountconf "SAVED_$1"
+  #remove later
+  _clearaccountconf "$1"
+}
+
 #_savecaconf  key  value
 _savecaconf() {
   _save_conf "$CA_CONF" "$1" "$2"
