@@ -15,7 +15,7 @@
 # SMTP_USERNAME=""  # set if SMTP server requires login
 # SMTP_PASSWORD=""  # set if SMTP server requires login
 # SMTP_TIMEOUT="30"  # seconds for SMTP operations to timeout
-# SMTP_BIN="/path/to/curl_or_python"  # default finds first of curl, python3, or python on PATH
+# SMTP_BIN="/path/to/python_or_curl"  # default finds first of python3, python2.7, python, pypy3, pypy, curl on PATH
 
 SMTP_SECURE_DEFAULT="none"
 SMTP_TIMEOUT_DEFAULT="30"
@@ -36,7 +36,7 @@ smtp_send() {
     # Look for a command that can communicate with an SMTP server.
     # (Please don't add sendmail, ssmtp, mutt, mail, or msmtp here.
     # Those are already handled by the "mail" notify hook.)
-    for cmd in curl python3 python2.7 python pypy3 pypy; do
+    for cmd in python3 python2.7 python pypy3 pypy curl; do
       if _exists "$cmd"; then
         SMTP_BIN="$cmd"
         break
