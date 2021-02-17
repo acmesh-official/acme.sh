@@ -287,6 +287,7 @@ try:
         from email.message import EmailMessage
     except ImportError:
         from email.mime.text import MIMEText as EmailMessage  # Python 2
+    from email.utils import formatdate as rfc2822_date
     from smtplib import SMTP, SMTP_SSL, SMTPException
     from socket import error as SocketError
 except ImportError as err:
@@ -318,6 +319,7 @@ except (AttributeError, TypeError):
 msg["Subject"] = subject
 msg["From"] = from_email
 msg["To"] = to_emails
+msg["Date"] = rfc2822_date(localtime=True)
 msg["X-Mailer"] = x_mailer
 
 smtp = None
