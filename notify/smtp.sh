@@ -285,8 +285,11 @@ _smtp_send_python() {
 try:
     try:
         from email.message import EmailMessage
+        from email.policy import default as email_policy_default
     except ImportError:
-        from email.mime.text import MIMEText as EmailMessage  # Python 2
+        # Python 2 (or < 3.3)
+        from email.mime.text import MIMEText as EmailMessage
+        email_policy_default = None
     from email.utils import formatdate as rfc2822_date
     from smtplib import SMTP, SMTP_SSL, SMTPException
     from socket import error as SocketError
@@ -311,7 +314,7 @@ subject="""$SMTP_SUBJECT"""
 content="""$SMTP_CONTENT"""
 
 try:
-    msg = EmailMessage()
+    msg = EmailMessage(policy=email_policy_default)
     msg.set_content(content)
 except (AttributeError, TypeError):
     # Python 2 MIMEText
