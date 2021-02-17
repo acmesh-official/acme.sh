@@ -11,13 +11,13 @@
 # SMTP_TO="to@example.com"  # required
 # SMTP_HOST="smtp.example.com"  # required
 # SMTP_PORT="25"  # defaults to 25, 465 or 587 depending on SMTP_SECURE
-# SMTP_SECURE="none"  # one of "none", "ssl" (implicit TLS, TLS Wrapper), "tls" (explicit TLS, STARTTLS)
+# SMTP_SECURE="tls"  # one of "none", "ssl" (implicit TLS, TLS Wrapper), "tls" (explicit TLS, STARTTLS)
 # SMTP_USERNAME=""  # set if SMTP server requires login
 # SMTP_PASSWORD=""  # set if SMTP server requires login
 # SMTP_TIMEOUT="30"  # seconds for SMTP operations to timeout
 # SMTP_BIN="/path/to/python_or_curl"  # default finds first of python3, python2.7, python, pypy3, pypy, curl on PATH
 
-SMTP_SECURE_DEFAULT="none"
+SMTP_SECURE_DEFAULT="tls"
 SMTP_TIMEOUT_DEFAULT="30"
 
 # subject content statuscode
