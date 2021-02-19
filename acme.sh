@@ -1132,7 +1132,11 @@ _createkey() {
     fi
   else
     _debug "Using RSA: $length"
-    if _opkey="$(${ACME_OPENSSL_BIN:-openssl} genrsa "$length" 2>/dev/null)"; then
+    __traditional=""
+    if _contains "$(${ACME_OPENSSL_BIN:-openssl} help genrsa 2>&1)" "-traditional"; then
+      __traditional="-traditional"
+    fi
+    if _opkey="$(${ACME_OPENSSL_BIN:-openssl} genrsa $__traditional "$length" 2>/dev/null)"; then
       echo "$_opkey" >"$f"
     else
       _err "error rsa key: $length"
@@ -2277,6 +2281,13 @@ _readaccountconf_mutable() {
 #_clearaccountconf   key
 _clearaccountconf() {
   _clear_conf "$ACCOUNT_CONF_PATH" "$1"
+}
+
+#key
+_clearaccountconf_mutable() {
+  _clearaccountconf "SAVED_$1"
+  #remove later
+  _clearaccountconf "$1"
 }
 
 #_savecaconf  key  value
