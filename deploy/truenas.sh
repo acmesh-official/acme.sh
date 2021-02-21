@@ -187,10 +187,10 @@ truenas_deploy() {
   _info "See Bugreport: https://jira.ixsystems.com/browse/NAS-109435"
   _debug2 _restart_UI "$_restart_UI"
 
-  if [ -n "$_add_cert_result" ] && [ -n "$_activate_result" ] && [ "$_ret" = "52" ]; then
+  if [ -n "$_add_cert_result" ] && [ -n "$_activate_result" ]; then
     return 0
   else
-    _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $_ret"
+    _err "Certupdate was not succesfull, please use --debug"
     return 1
   fi
 }
