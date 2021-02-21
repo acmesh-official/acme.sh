@@ -35,6 +35,19 @@ truenas_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
+  if _exists "curl"; then
+    _debug "curl found, no Message to restartUI error"
+  else
+    if _exists "wget"; then
+      _err "Until Version of TrueNAS is older than TrueNAS-12.0-U2 there are problems with using wget"
+      _err "There is a bug when using the API Call restartUI with wget"
+      _err "The API call does not give any response, whit wget the api call restartUI would be called about 20 times"
+      _err "Please use curl!"
+      _err "Bug Report at https://jira.ixsystems.com/browse/NAS-109435"
+      return 1
+    fi
+  fi
+
   _getdeployconf DEPLOY_TRUENAS_APIKEY
 
   if [ -z "$DEPLOY_TRUENAS_APIKEY" ]; then
@@ -63,7 +76,6 @@ truenas_deploy() {
   _info "Testing Connection TrueNAS"
   _response=$(_get "$_api_url/system/state")
   _info "TrueNAS System State: $_response."
-  _debug _response "$_response"
 
   if [ -z "$_response" ]; then
     _err "Unable to authenticate to $_api_url."
@@ -168,14 +180,12 @@ truenas_deploy() {
 
   _debug3 _delete_result "$_delete_result"
 
-  # the command
-  # _restart_UI=$(_get "$_api_url/system/general/ui_restart")
-  # throws the Error 52
-  # for this command direct curl command
   _info "Reload WebUI from TrueNAS"
-  curl --silent -L --no-keepalive --user-agent "$USER_AGENT" -H "$_H1" "$_api_url/system/general/ui_restart"
-  _ret=$?
-  _debug2 CURL_RETURN "$_ret"
+  _restart_UI=$(_get "$_api_url/system/general/ui_restart")
+  _info "Until Version of TrueNAS is older than TrueNAS-12.0-U3 curl returns error 52"
+  _info "This is not a problem for tis scipt"
+  _info "See Bugreport: https://jira.ixsystems.com/browse/NAS-109435"
+  _debug2 _restart_UI "$_restart_UI"
 
   if [ -n "$_add_cert_result" ] && [ -n "$_activate_result" ] && [ "$_ret" = "52" ]; then
     return 0
