@@ -6,8 +6,10 @@
 #SIMPLY_ApiKey="apikey"
 #
 #SIMPLY_Api="https://api.simply.com/1/[ACCOUNTNAME]/[APIKEY]"
-SIMPLY_SUCCESS_CODE='"status": 200'
 SIMPLY_Api_Default="https://api.simply.com/1"
+
+#This is used for determining success of REST call
+SIMPLY_SUCCESS_CODE='"status": 200'
 
 ########  Public functions #####################
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
