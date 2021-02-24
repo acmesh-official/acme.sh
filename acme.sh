@@ -562,8 +562,16 @@ if _exists xargs && [ "$(printf %s '\\x41' | xargs printf)" = 'A' ]; then
 fi
 
 _h2b() {
-  if _exists xxd && xxd -r -p 2>/dev/null; then
-    return
+  if _exists xxd; then
+    if _contains "$(xxd --help 2>&1)" "assumes -c30"; then
+      if xxd -r -p -c 9999 2>/dev/null; then
+        return
+      fi
+    else
+      if xxd -r -p 2>/dev/null; then
+        return
+      fi
+    fi
   fi
 
   hex=$(cat)
