@@ -6,7 +6,7 @@
 #SIMPLY_ApiKey="apikey"
 #
 #SIMPLY_Api="https://api.simply.com/1/[ACCOUNTNAME]/[APIKEY]"
-
+SIMPLY_SUCCESS_CODE='"status": 200'
 SIMPLY_Api_Default="https://api.simply.com/1"
 
 ########  Public functions #####################
@@ -171,7 +171,7 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$response" '"code":"NOT_FOUND"'; then
+    if ! _contains "$response" "$SIMPLY_SUCCESS_CODE"; then
       _debug "$h not found"
     else
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
@@ -196,6 +196,12 @@ _simply_add_record() {
     return 1
   fi
 
+  if ! _contains "$response" "$SIMPLY_SUCCESS_CODE"; then
+    _err "Call to API not sucessfull, see below message for more details"
+    _err "$response"
+    return 1
+  fi
+
   return 0
 }
 
@@ -208,6 +214,12 @@ _simply_delete_record() {
 
   if ! _simply_rest DELETE "my/products/$domain/dns/records/$record_id"; then
     _err "Deleting record not successfull!"
+    return 1
+  fi
+
+  if ! _contains "$response" "$SIMPLY_SUCCESS_CODE"; then
+    _err "Call to API not sucessfull, see below message for more details"
+    _err "$response"
     return 1
   fi
 
