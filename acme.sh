@@ -4705,6 +4705,15 @@ $_authorizations_map"
       response="$(echo "$response" | _normalizeJson)"
       _debug2 response "$response"
 
+      status=$(echo "$response" | _egrep_o 'Challenge is already valid' | cut -d ' ' -f 4 | head -1)
+      if [ "$status" = "valid" ]; then
+        _info "$(__green Success)"
+        _stopserver "$serverproc"
+        serverproc=""
+        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        break
+      fi
+
       status=$(echo "$response" | _egrep_o '"status":"[^"]*' | cut -d : -f 2 | tr -d '"')
       if [ "$status" = "valid" ]; then
         _info "$(__green Success)"
