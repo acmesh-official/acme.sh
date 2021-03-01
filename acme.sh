@@ -2133,6 +2133,12 @@ _send_signed_request() {
         _sleep $_sleep_retry_sec
         continue
       fi
+      if _contains "$_body" "The Replay Nonce is not recognized"; then
+        _info "The replay Nonce is not valid, let's get a new one, Sleeping $_sleep_retry_sec seconds."
+        _CACHED_NONCE=""
+        _sleep $_sleep_retry_sec
+        continue
+      fi
     fi
     return 0
   done
