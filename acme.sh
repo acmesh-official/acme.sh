@@ -1480,7 +1480,7 @@ createDomainKey() {
   _initpath "$domain" "$_cdl"
 
   if [ ! -f "$CERT_KEY_PATH" ] || [ ! -s "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$_ACME_IS_RENEW" ]) || [ "$Le_ForceNewDomainKey" = "1" ]; then
-    if [ "$Le_ForceReuseDomainKey" = "1" ] ; then
+    if [ "$Le_ForceReuseDomainKey" = "1" ]; then
       _err "Cannot create new domain key because --always-force-reuse-domain-key is set"
       return 1
     elif _createkey "$_cdl" "$CERT_KEY_PATH"; then
