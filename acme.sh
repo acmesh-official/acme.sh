@@ -1480,7 +1480,10 @@ createDomainKey() {
   _initpath "$domain" "$_cdl"
 
   if [ ! -f "$CERT_KEY_PATH" ] || [ ! -s "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$_ACME_IS_RENEW" ]) || [ "$Le_ForceNewDomainKey" = "1" ]; then
-    if _createkey "$_cdl" "$CERT_KEY_PATH"; then
+    if [ "$Le_ForceReuseDomainKey" = "1" ] ; then
+      _err "Cannot create new domain key because --always-force-reuse-domain-key is set"
+      return 1
+    elif _createkey "$_cdl" "$CERT_KEY_PATH"; then
       _savedomainconf Le_Keylength "$_cdl"
       _info "The domain key is here: $(__green $CERT_KEY_PATH)"
       return 0
@@ -6551,7 +6554,6 @@ Parameters:
   --eab-kid <eab_key_id>            Key Identifier for External Account Binding.
   --eab-hmac-key <eab_hmac_key>     HMAC key for External Account Binding.
 
-
   These parameters are to install the cert to nginx/apache or any other server after issue/renew a cert:
 
   --cert-file <file>                Path to copy the cert file to after issue/renew..
@@ -6591,7 +6593,10 @@ Parameters:
   --renew-hook <command>            Command to be run after each successfully renewed certificate.
   --deploy-hook <hookname>          The hook file to deploy cert
   --ocsp, --ocsp-must-staple        Generate OCSP-Must-Staple extension.
+
   --always-force-new-domain-key     Generate new domain key on renewal. Otherwise, the domain key is not changed by default.
+  --always-force-reuse-domain-key   When renewing, always reuse the existing private key, and fail if it doesn't exist.
+
   --auto-upgrade [0|1]              Valid for '--upgrade' command, indicating whether to upgrade automatically in future. Defaults to 1 if argument is omitted.
   --listen-v4                       Force standalone/tls server to listen at ipv4.
   --listen-v6                       Force standalone/tls server to listen at ipv6.
@@ -7232,6 +7237,9 @@ _process() {
         Le_ForceNewDomainKey="$2"
         shift
       fi
+      ;;
+    --always-force-reuse-domain-key)
+      Le_ForceReuseDomainKey=1
       ;;
     --yes-I-know-dns-manual-mode-enough-go-ahead-please)
       export FORCE_DNS_MANUAL=1
