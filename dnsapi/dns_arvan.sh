@@ -40,7 +40,7 @@ dns_arvan_add() {
       _info "response id is $response"
       _info "Added, OK"
       return 0
-    elif _contains "$response" "Record Data is Duplicated"; then
+    elif _contains "$response" "DNS Record Data is duplicate."; then
       _info "Already exists, OK"
       return 0
     else
