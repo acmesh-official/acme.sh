@@ -410,6 +410,3 @@ _xml_decode() {
   sed 's/&quot;/"/g'
 }
 
-
-
-
