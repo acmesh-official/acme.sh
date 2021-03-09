@@ -1,33 +1,33 @@
-#!/usr/local/bin/bash
+#!/usr/bin/env sh
 
 Ali_API="https://alidns.aliyuncs.com/"
 
-#ALICLOUD_ACCESS_KEY="LTqIA87hOKdjevsf5"
-#ALICLOUD_SECRET_KEY="0p5EYueFNq501xnCPzKNbx6K51qPH2"
+#Ali_Key="LTqIA87hOKdjevsf5"
+#Ali_Secret="0p5EYueFNq501xnCPzKNbx6K51qPH2"
 
 #Usage: dns_ali_add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_ali_add() {
   fulldomain=$1
   txtvalue=$2
 
-  ALICLOUD_ACCESS_KEY="${ALICLOUD_ACCESS_KEY:-$(_readaccountconf_mutable ALICLOUD_ACCESS_KEY)}"
-  ALICLOUD_SECRET_KEY="${ALICLOUD_SECRET_KEY:-$(_readaccountconf_mutable ALICLOUD_SECRET_KEY)}"
+  Ali_Key="${Ali_Key:-$(_readaccountconf_mutable Ali_Key)}"
+  Ali_Secret="${Ali_Secret:-$(_readaccountconf_mutable Ali_Secret)}"
 
-  if [ -z "$ALICLOUD_ACCESS_KEY" ] || [ -z "$ALICLOUD_SECRET_KEY" ]; then
+  if [ -z "$Ali_Key" ] || [ -z "$Ali_Secret" ]; then
     _use_instance_role
   fi
 
-  if [ -z "$ALICLOUD_ACCESS_KEY" ] || [ -z "$ALICLOUD_SECRET_KEY" ]; then
-    ALICLOUD_ACCESS_KEY=""
-    ALICLOUD_SECRET_KEY=""
+  if [ -z "$Ali_Key" ] || [ -z "$Ali_Secret" ]; then
+    Ali_Key=""
+    Ali_Secret=""
     _err "You don't specify aliyun api key and secret yet."
     return 1
   fi
 
   #save the api key and secret to the account conf file.
   if [ -z "$_using_role" ]; then
-    _saveaccountconf_mutable ALICLOUD_ACCESS_KEY "$ALICLOUD_ACCESS_KEY"
-    _saveaccountconf_mutable ALICLOUD_SECRET_KEY "$ALICLOUD_SECRET_KEY"
+    _saveaccountconf_mutable Ali_Key "$Ali_Key"
+    _saveaccountconf_mutable Ali_Secret "$Ali_Secret"
   fi
 
   _debug "First detect the root zone"
@@ -42,8 +42,8 @@ dns_ali_add() {
 dns_ali_rm() {
   fulldomain=$1
   txtvalue=$2
-  ALICLOUD_ACCESS_KEY="${ALICLOUD_ACCESS_KEY:-$(_readaccountconf_mutable ALICLOUD_ACCESS_KEY)}"
-  ALICLOUD_SECRET_KEY="${ALICLOUD_SECRET_KEY:-$(_readaccountconf_mutable ALICLOUD_SECRET_KEY)}"
+  Ali_Key="${Ali_Key:-$(_readaccountconf_mutable Ali_Key)}"
+  Ali_Secret="${Ali_Secret:-$(_readaccountconf_mutable Ali_Secret)}"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -104,8 +104,8 @@ _use_instance_role() {
         _debug3 "_key" "$_key"
         _secure_debug3 "_value" "$_value"
         case "$_key" in
-        AccessKeyId) echo "ALICLOUD_ACCESS_KEY=$_value" ;;
-        AccessKeySecret) echo "ALICLOUD_SECRET_KEY=$_value" ;;
+        AccessKeyId) echo "Ali_Key=$_value" ;;
+        AccessKeySecret) echo "Ali_Secret=$_value" ;;
         SecurityToken) echo "ALICLOUD_SECURITY_TOKEN=$_value" ;;
         esac
       done |
@@ -122,7 +122,7 @@ _use_instance_role() {
 }
 
 _ali_rest() {
-  signature=$(printf "%s" "GET&%2F&$(_ali_urlencode "$query")" | _hmac "sha1" "$(printf "%s" "$ALICLOUD_SECRET_KEY&" | _hex_dump | tr -d " ")" | _base64)
+  signature=$(printf "%s" "GET&%2F&$(_ali_urlencode "$query")" | _hmac "sha1" "$(printf "%s" "$Ali_Secret&" | _hex_dump | tr -d " ")" | _base64)
   signature=$(_ali_urlencode "$signature")
   url="$Ali_API?$query&Signature=$signature"
 
@@ -168,7 +168,7 @@ _check_exist_query() {
   _qdomain="$1"
   _qsubdomain="$2"
   query=''
-  query=$query'AccessKeyId='$ALICLOUD_ACCESS_KEY
+  query=$query'AccessKeyId='$Ali_Key
   query=$query'&Action=DescribeDomainRecords'
   query=$query'&DomainName='$_qdomain
   query=$query'&Format=json'
@@ -186,7 +186,7 @@ _check_exist_query() {
 
 _add_record_query() {
   query=''
-  query=$query'AccessKeyId='$ALICLOUD_ACCESS_KEY
+  query=$query'AccessKeyId='$Ali_Key
   query=$query'&Action=AddDomainRecord'
   query=$query'&DomainName='$1
   query=$query'&Format=json'
@@ -205,7 +205,7 @@ _add_record_query() {
 
 _delete_record_query() {
   query=''
-  query=$query'AccessKeyId='$ALICLOUD_ACCESS_KEY
+  query=$query'AccessKeyId='$Ali_Key
   query=$query'&Action=DeleteDomainRecord'
   query=$query'&Format=json'
   query=$query'&RecordId='$1
@@ -221,7 +221,7 @@ _delete_record_query() {
 
 _describe_records_query() {
   query=''
-  query=$query'AccessKeyId='$ALICLOUD_ACCESS_KEY
+  query=$query'AccessKeyId='$Ali_Key
   query=$query'&Action=DescribeDomainRecords'
   query=$query'&DomainName='$1
   query=$query'&Format=json'
