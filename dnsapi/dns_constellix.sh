@@ -30,8 +30,8 @@ dns_constellix_add() {
     return 1
   fi
 
-  # To support wildcard certificates, try to find existig TXT record and update it.
-  _info "Search existing TXT record"
+  # The TXT record might already exist when working with wilcard certificates. In that case, update the record by adding the new value.
+  _debug "Search TXT record"
   if _constellix_rest GET "domains/${_domain_id}/records/TXT/search?exact=${_sub_domain}"; then
     if printf -- "%s" "$response" | grep "{\"errors\":\[\"Requested record was not found\"\]}" >/dev/null; then
       _info "Adding TXT record"
@@ -83,13 +83,22 @@ dns_constellix_rm() {
     return 1
   fi
 
-  _info "Removing TXT record"
-  if _constellix_rest POST "domains/${_domain_id}/records" "[{\"type\":\"txt\",\"delete\":true,\"filter\":{\"field\":\"name\",\"op\":\"eq\",\"value\":\"${_sub_domain}\"}}]"; then
-    if printf -- "%s" "$response" | grep "{\"success\":\"0 record(s) added, 0 record(s) updated, 1 record(s) deleted\"}" >/dev/null; then
+  # The TXT record might have been removed already when working with some wildcard certificates.
+  _debug "Search TXT record"
+  if _constellix_rest GET "domains/${_domain_id}/records/TXT/search?exact=${_sub_domain}"; then
+    if printf -- "%s" "$response" | grep "{\"errors\":\[\"Requested record was not found\"\]}" >/dev/null; then
       _info "Removed"
       return 0
     else
-      _err "Error removing TXT record"
+      _info "Removing TXT record"
+      if _constellix_rest POST "domains/${_domain_id}/records" "[{\"type\":\"txt\",\"delete\":true,\"filter\":{\"field\":\"name\",\"op\":\"eq\",\"value\":\"${_sub_domain}\"}}]"; then
+        if printf -- "%s" "$response" | grep "{\"success\":\"0 record(s) added, 0 record(s) updated, 1 record(s) deleted\"}" >/dev/null; then
+          _info "Removed"
+          return 0
+        else
+          _err "Error removing TXT record"
+        fi
+      fi
     fi
   fi
 
