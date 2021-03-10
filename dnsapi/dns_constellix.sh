@@ -30,7 +30,7 @@ dns_constellix_add() {
     return 1
   fi
 
-  # The TXT record might already exist when working with wilcard certificates. In that case, update the record by adding the new value.
+  # The TXT record might already exist when working with wildcard certificates. In that case, update the record by adding the new value.
   _debug "Search TXT record"
   if _constellix_rest GET "domains/${_domain_id}/records/TXT/search?exact=${_sub_domain}"; then
     if printf -- "%s" "$response" | grep "{\"errors\":\[\"Requested record was not found\"\]}" >/dev/null; then
