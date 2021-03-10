@@ -30,16 +30,38 @@ dns_constellix_add() {
     return 1
   fi
 
-  _info "Adding TXT record"
-  if _constellix_rest POST "domains/${_domain_id}/records" "[{\"type\":\"txt\",\"add\":true,\"set\":{\"name\":\"${_sub_domain}\",\"ttl\":120,\"roundRobin\":[{\"value\":\"${txtvalue}\"}]}}]"; then
-    if printf -- "%s" "$response" | grep "{\"success\":\"1 record(s) added, 0 record(s) updated, 0 record(s) deleted\"}" >/dev/null; then
-      _info "Added"
-      return 0
+  # To support wildcard certificates, try to find existig TXT record and update it.
+  _info "Search existing TXT record"
+  if _constellix_rest GET "domains/${_domain_id}/records/TXT/search?exact=${_sub_domain}"; then
+    if printf -- "%s" "$response" | grep "{\"errors\":\[\"Requested record was not found\"\]}" >/dev/null; then
+      _info "Adding TXT record"
+      if _constellix_rest POST "domains/${_domain_id}/records" "[{\"type\":\"txt\",\"add\":true,\"set\":{\"name\":\"${_sub_domain}\",\"ttl\":60,\"roundRobin\":[{\"value\":\"${txtvalue}\"}]}}]"; then
+        if printf -- "%s" "$response" | grep "{\"success\":\"1 record(s) added, 0 record(s) updated, 0 record(s) deleted\"}" >/dev/null; then
+          _info "Added"
+           return 0
+        else
+          _err "Error adding TXT record"
+        fi
+      fi
     else
-      _err "Error adding TXT record"
-      return 1
+      _record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[0-9]+" | cut -d ':' -f 2)
+      if _constellix_rest GET "domains/${_domain_id}/records/TXT/${_record_id}"; then
+        _new_rr_values=$(printf "%s\n" "$response" | _egrep_o "\"roundRobin\":\[.*?\]" | sed "s/\]$/,{\"value\":\"${txtvalue}\"}]/")
+        _debug _new_rr_values $_new_rr_values
+        _info "Updating TXT record"
+        if _constellix_rest PUT "domains/${_domain_id}/records/TXT/${_record_id}" "{\"name\":\"${_sub_domain}\",\"ttl\":60,${_new_rr_values}}"; then
+          if printf -- "%s" "$response" | grep "{\"success\":\"Record.*updated successfully\"}" >/dev/null; then
+            _info "Updated"
+            return 0
+          else
+            _err "Error updating TXT record"
+          fi
+        fi
+      fi
     fi
   fi
+
+  return 1
 }
 
 # Usage: fulldomain txtvalue
@@ -68,9 +90,10 @@ dns_constellix_rm() {
       return 0
     else
       _err "Error removing TXT record"
-      return 1
     fi
   fi
+
+  return 1
 }
 
 ####################  Private functions below ##################################
