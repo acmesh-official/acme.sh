@@ -87,8 +87,12 @@ _get_root() {
 _use_instance_role() {
   _url="http://100.100.100.200/latest/meta-data/ram/security-credentials/"
   _debug "_url" "$_url"
-  if ! _get "$_url" true 1 | _head_n 1 | grep -Fq 200; then
-    _debug "Unable to fetch IAM role from instance metadata"
+
+  # **Do Not** set the parameter `onlyheadr` for _get, it will
+  # send a HEAD request instead of GET. And alicloud
+  # mata url not allow HEAD request.
+  if _get "$_url" "" 1 | grep '404 - Not Found' > /dev/null; then
+    _debug "Unable to fetch RAM role from instance metadata"
     return 1
   fi
   _ali_instance_role=$(_get "$_url" "" 1)
