@@ -35,14 +35,6 @@ dns_porkbun_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  _debug "Getting txt records"
-  _porkbun_rest POST "dns/retrieve/$_domain"
-
-  if ! echo "$response" | tr -d " " | grep '\"status\":"SUCCESS"' >/dev/null; then
-    _err "Error $response"
-    return 1
-  fi
-
   # For wildcard cert, the main root domain and the wildcard domain have the same txt subdomain name, so
   # we can not use updating anymore.
   #  count=$(printf "%s\n" "$response" | _egrep_o "\"count\":[^,]*" | cut -d : -f 2)
@@ -80,14 +72,6 @@ dns_porkbun_rm() {
   fi
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
-
-  _debug "Getting txt records"
-  _porkbun_rest POST "dns/retrieve/$_domain"
-
-  if ! echo "$response" | tr -d " " | grep '\"status\":"SUCCESS"' >/dev/null; then
-    _err "Error: $response"
-    return 1
-  fi
 
   count=$(echo "$response" | _egrep_o "\"count\": *[^,]*" | cut -d : -f 2 | tr -d " ")
   _debug count "$count"
@@ -161,6 +145,8 @@ _porkbun_rest() {
   else
     response="$(_get "$PORKBUN_Api/$ep")"
   fi
+
+  _sleep 3 # prevent rate limit
 
   if [ "$?" != "0" ]; then
     _err "error $ep"
