@@ -409,4 +409,3 @@ _namecheap_set_tld_sld() {
 _xml_decode() {
   sed 's/&quot;/"/g'
 }
-
