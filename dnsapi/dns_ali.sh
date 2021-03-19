@@ -91,7 +91,7 @@ _use_instance_role() {
   # **Do Not** set the parameter `onlyheadr` for _get, it will
   # send a HEAD request instead of GET. And alicloud
   # mata url not allow HEAD request.
-  if _get "$_url" "" 1 | grep '404 - Not Found' > /dev/null; then
+  if _get "$_url" "" 1 | grep '404 - Not Found' >/dev/null; then
     _debug "Unable to fetch RAM role from instance metadata"
     return 1
   fi
