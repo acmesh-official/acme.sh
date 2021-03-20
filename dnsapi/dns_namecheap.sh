@@ -208,7 +208,7 @@ _namecheap_parse_host() {
   _hostid=$(echo "$_host" | _egrep_o ' HostId="[^"]*' | cut -d '"' -f 2)
   _hostname=$(echo "$_host" | _egrep_o ' Name="[^"]*' | cut -d '"' -f 2)
   _hosttype=$(echo "$_host" | _egrep_o ' Type="[^"]*' | cut -d '"' -f 2)
-  _hostaddress=$(echo "$_host" | _egrep_o ' Address="[^"]*' | cut -d '"' -f 2)
+  _hostaddress=$(echo "$_host" | _egrep_o ' Address="[^"]*' | cut -d '"' -f 2 | _xml_decode)
   _hostmxpref=$(echo "$_host" | _egrep_o ' MXPref="[^"]*' | cut -d '"' -f 2)
   _hostttl=$(echo "$_host" | _egrep_o ' TTL="[^"]*' | cut -d '"' -f 2)
 
@@ -404,4 +404,8 @@ _namecheap_set_tld_sld() {
 
   done
 
+}
+
+_xml_decode() {
+  sed 's/&quot;/"/g'
 }
