@@ -562,16 +562,8 @@ if _exists xargs && [ "$(printf %s '\\x41' | xargs printf)" = 'A' ]; then
 fi
 
 _h2b() {
-  if _exists xxd; then
-    if _contains "$(xxd --help 2>&1)" "assumes -c30"; then
-      if xxd -r -p -c 9999 2>/dev/null; then
-        return
-      fi
-    else
-      if xxd -r -p 2>/dev/null; then
-        return
-      fi
-    fi
+  if _exists xxd && xxd -r -p 2>/dev/null; then
+    return
   fi
 
   hex=$(cat)
@@ -1132,7 +1124,7 @@ _createkey() {
 
   if _isEccKey "$length"; then
     _debug "Using ec name: $eccname"
-    if _opkey="$(${ACME_OPENSSL_BIN:-openssl} ecparam -name "$eccname" -noout -genkey 2>/dev/null)"; then
+    if _opkey="$(${ACME_OPENSSL_BIN:-openssl} ecparam -name "$eccname" -genkey 2>/dev/null)"; then
       echo "$_opkey" >"$f"
     else
       _err "error ecc key name: $eccname"
@@ -1140,11 +1132,7 @@ _createkey() {
     fi
   else
     _debug "Using RSA: $length"
-    __traditional=""
-    if _contains "$(${ACME_OPENSSL_BIN:-openssl} help genrsa 2>&1)" "-traditional"; then
-      __traditional="-traditional"
-    fi
-    if _opkey="$(${ACME_OPENSSL_BIN:-openssl} genrsa $__traditional "$length" 2>/dev/null)"; then
+    if _opkey="$(${ACME_OPENSSL_BIN:-openssl} genrsa "$length" 2>/dev/null)"; then
       echo "$_opkey" >"$f"
     else
       _err "error rsa key: $length"
@@ -2133,12 +2121,6 @@ _send_signed_request() {
         _sleep $_sleep_retry_sec
         continue
       fi
-      if _contains "$_body" "The Replay Nonce is not recognized"; then
-        _info "The replay Nonce is not valid, let's get a new one, Sleeping $_sleep_retry_sec seconds."
-        _CACHED_NONCE=""
-        _sleep $_sleep_retry_sec
-        continue
-      fi
     fi
     return 0
   done
@@ -2295,13 +2277,6 @@ _readaccountconf_mutable() {
 #_clearaccountconf   key
 _clearaccountconf() {
   _clear_conf "$ACCOUNT_CONF_PATH" "$1"
-}
-
-#key
-_clearaccountconf_mutable() {
-  _clearaccountconf "SAVED_$1"
-  #remove later
-  _clearaccountconf "$1"
 }
 
 #_savecaconf  key  value
@@ -4034,42 +4009,12 @@ _check_dns_entries() {
 }
 
 #file
-_get_chain_issuers() {
+_get_cert_issuers() {
   _cfile="$1"
-  if _contains "$(${ACME_OPENSSL_BIN:-openssl} help crl2pkcs7 2>&1)" "Usage: crl2pkcs7" || _contains "$(${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 -help 2>&1)" "Usage: crl2pkcs7" || _contains "$(${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 help 2>&1)" "unknown option help"; then
-    ${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 -nocrl -certfile $_cfile | ${ACME_OPENSSL_BIN:-openssl} pkcs7 -print_certs -text -noout | grep -i 'Issuer:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2
+  if _contains "$(${ACME_OPENSSL_BIN:-openssl} help crl2pkcs7 2>&1)" "Usage: crl2pkcs7" || _contains "$(${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 help 2>&1)" "unknown option help"; then
+    ${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 -nocrl -certfile $_cfile | ${ACME_OPENSSL_BIN:-openssl} pkcs7 -print_certs -text -noout | grep 'Issuer:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2
   else
-    _cindex=1
-    for _startn in $(grep -n -- "$BEGIN_CERT" "$_cfile" | cut -d : -f 1); do
-      _endn="$(grep -n -- "$END_CERT" "$_cfile" | cut -d : -f 1 | _head_n $_cindex | _tail_n 1)"
-      _debug2 "_startn" "$_startn"
-      _debug2 "_endn" "$_endn"
-      if [ "$DEBUG" ]; then
-        _debug2 "cert$_cindex" "$(sed -n "$_startn,${_endn}p" "$_cfile")"
-      fi
-      sed -n "$_startn,${_endn}p" "$_cfile" | ${ACME_OPENSSL_BIN:-openssl} x509 -text -noout | grep 'Issuer:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2 | sed "s/ *\(.*\)/\1/"
-      _cindex=$(_math $_cindex + 1)
-    done
-  fi
-}
-
-#
-_get_chain_subjects() {
-  _cfile="$1"
-  if _contains "$(${ACME_OPENSSL_BIN:-openssl} help crl2pkcs7 2>&1)" "Usage: crl2pkcs7" || _contains "$(${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 -help 2>&1)" "Usage: crl2pkcs7" || _contains "$(${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 help 2>&1)" "unknown option help"; then
-    ${ACME_OPENSSL_BIN:-openssl} crl2pkcs7 -nocrl -certfile $_cfile | ${ACME_OPENSSL_BIN:-openssl} pkcs7 -print_certs -text -noout | grep -i 'Subject:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2
-  else
-    _cindex=1
-    for _startn in $(grep -n -- "$BEGIN_CERT" "$_cfile" | cut -d : -f 1); do
-      _endn="$(grep -n -- "$END_CERT" "$_cfile" | cut -d : -f 1 | _head_n $_cindex | _tail_n 1)"
-      _debug2 "_startn" "$_startn"
-      _debug2 "_endn" "$_endn"
-      if [ "$DEBUG" ]; then
-        _debug2 "cert$_cindex" "$(sed -n "$_startn,${_endn}p" "$_cfile")"
-      fi
-      sed -n "$_startn,${_endn}p" "$_cfile" | ${ACME_OPENSSL_BIN:-openssl} x509 -text -noout | grep -i 'Subject:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2 | sed "s/ *\(.*\)/\1/"
-      _cindex=$(_math $_cindex + 1)
-    done
+    ${ACME_OPENSSL_BIN:-openssl} x509 -in $_cfile -text -noout | grep 'Issuer:' | _egrep_o "CN *=[^,]*" | cut -d = -f 2
   fi
 }
 
@@ -4077,12 +4022,14 @@ _get_chain_subjects() {
 _match_issuer() {
   _cfile="$1"
   _missuer="$2"
-  _fissuers="$(_get_chain_issuers $_cfile)"
+  _fissuers="$(_get_cert_issuers $_cfile)"
   _debug2 _fissuers "$_fissuers"
-  _rootissuer="$(echo "$_fissuers" | _lower_case | _tail_n 1)"
-  _debug2 _rootissuer "$_rootissuer"
+  if _contains "$_fissuers" "$_missuer"; then
+    return 0
+  fi
+  _fissuers="$(echo "$_fissuers" | _lower_case)"
   _missuer="$(echo "$_missuer" | _lower_case)"
-  _contains "$_rootissuer" "$_missuer"
+  _contains "$_fissuers" "$_missuer"
 }
 
 #webroot, domain domainlist  keylength
@@ -4856,9 +4803,6 @@ $_authorizations_map"
     _split_cert_chain "$CERT_PATH" "$CERT_FULLCHAIN_PATH" "$CA_CERT_PATH"
 
     if [ "$_preferred_chain" ] && [ -f "$CERT_FULLCHAIN_PATH" ]; then
-      if [ "$DEBUG" ]; then
-        _debug "default chain issuers: " "$(_get_chain_issuers "$CERT_FULLCHAIN_PATH")"
-      fi
       if ! _match_issuer "$CERT_FULLCHAIN_PATH" "$_preferred_chain"; then
         rels="$(echo "$responseHeaders" | tr -d ' <>' | grep -i "^link:" | grep -i 'rel="alternate"' | cut -d : -f 2- | cut -d ';' -f 1)"
         _debug2 "rels" "$rels"
@@ -4874,22 +4818,13 @@ $_authorizations_map"
           _relca="$CA_CERT_PATH.alt"
           echo "$response" >"$_relcert"
           _split_cert_chain "$_relcert" "$_relfullchain" "$_relca"
-          if [ "$DEBUG" ]; then
-            _debug "rel chain issuers: " "$(_get_chain_issuers "$_relfullchain")"
-          fi
           if _match_issuer "$_relfullchain" "$_preferred_chain"; then
             _info "Matched issuer in: $rel"
             cat $_relcert >"$CERT_PATH"
             cat $_relfullchain >"$CERT_FULLCHAIN_PATH"
             cat $_relca >"$CA_CERT_PATH"
-            rm -f "$_relcert"
-            rm -f "$_relfullchain"
-            rm -f "$_relca"
             break
           fi
-          rm -f "$_relcert"
-          rm -f "$_relfullchain"
-          rm -f "$_relca"
         done
       fi
     fi
@@ -5287,7 +5222,6 @@ signcsr() {
   _renew_hook="${10}"
   _local_addr="${11}"
   _challenge_alias="${12}"
-  _preferred_chain="${13}"
 
   _csrsubj=$(_readSubjectFromCSR "$_csrfile")
   if [ "$?" != "0" ]; then
@@ -5334,7 +5268,7 @@ signcsr() {
   _info "Copy csr to: $CSR_PATH"
   cp "$_csrfile" "$CSR_PATH"
 
-  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_addr" "$_challenge_alias" "$_preferred_chain"
+  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_addr" "$_challenge_alias"
 
 }
 
@@ -7431,7 +7365,7 @@ _process() {
     deploy "$_domain" "$_deploy_hook" "$_ecc"
     ;;
   signcsr)
-    signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain"
+    signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias"
     ;;
   showcsr)
     showcsr "$_csr" "$_domain"
