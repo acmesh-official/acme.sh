@@ -32,7 +32,7 @@ dns_websupport_add() {
     WS_ApiKey=""
     WS_ApiSecret=""
     _err "You did not specify the API Key and/or API Secret"
-    _err "You can get the API credentials from here https://admin.websupport.sk/en/auth/apiKey"
+    _err "You can get the API login credentials from https://admin.websupport.sk/en/auth/apiKey"
     return 1
   fi
 
