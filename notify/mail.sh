@@ -78,8 +78,13 @@ mail_send() {
 
 _mail_bin() {
   _MAIL_BIN=""
+	_MAIL_BINS="sendmail ssmtp mutt mail msmtp"
 
-  for b in "$MAIL_BIN" sendmail ssmtp mutt mail msmtp; do
+  if [ -n "$MAIL_BIN" ]; then
+    _MAIL_BINS="$MAIL_BIN $_MAIL_BINS"
+  fi
+
+  for b in $_MAIL_BINS; do
     if _exists "$b"; then
       _MAIL_BIN="$b"
       break
