@@ -78,7 +78,7 @@ mail_send() {
 
 _mail_bin() {
   _MAIL_BIN=""
-	_MAIL_BINS="sendmail ssmtp mutt mail msmtp"
+  _MAIL_BINS="sendmail ssmtp mutt mail msmtp"
 
   if [ -n "$MAIL_BIN" ]; then
     _MAIL_BINS="$MAIL_BIN $_MAIL_BINS"
