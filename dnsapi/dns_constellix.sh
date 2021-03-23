@@ -44,7 +44,7 @@ dns_constellix_add() {
         fi
       fi
     else
-      _record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[0-9]+" | cut -d ':' -f 2)
+      _record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[0-9]*" | cut -d ':' -f 2)
       if _constellix_rest GET "domains/${_domain_id}/records/TXT/${_record_id}"; then
         _new_rr_values=$(printf "%s\n" "$response" | _egrep_o "\"roundRobin\":\[.*?\]" | sed "s/\]$/,{\"value\":\"${txtvalue}\"}]/")
         _debug _new_rr_values "$_new_rr_values"
@@ -123,7 +123,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\""; then
-      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[0-9]+" | cut -d ':' -f 2)
+      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[0-9]*" | cut -d ':' -f 2)
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d '.' -f 1-$p)
         _domain="$h"
