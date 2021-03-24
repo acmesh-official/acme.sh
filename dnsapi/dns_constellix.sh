@@ -53,6 +53,9 @@ dns_constellix_add() {
           if printf -- "%s" "$response" | grep "{\"success\":\"Record.*updated successfully\"}" >/dev/null; then
             _info "Updated"
             return 0
+          elif printf -- "%s" "$response" | grep "{\"errors\":\[\"Contents are identical\"\]}" >/dev/null; then
+            _info "Already exists, no need to update"
+            return 0
           else
             _err "Error updating TXT record"
           fi
