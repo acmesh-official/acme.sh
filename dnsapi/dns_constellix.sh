@@ -46,7 +46,7 @@ dns_constellix_add() {
     else
       _record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[0-9]*" | cut -d ':' -f 2)
       if _constellix_rest GET "domains/${_domain_id}/records/TXT/${_record_id}"; then
-        _new_rr_values=$(printf "%s\n" "$response" | _egrep_o "\"roundRobin\":\[.*?\]" | sed "s/\]$/,{\"value\":\"${txtvalue}\"}]/")
+        _new_rr_values=$(printf "%s\n" "$response" | _egrep_o '"roundRobin":\[[^]]*\]' | sed "s/\]$/,{\"value\":\"${txtvalue}\"}]/")
         _debug _new_rr_values "$_new_rr_values"
         _info "Updating TXT record"
         if _constellix_rest PUT "domains/${_domain_id}/records/TXT/${_record_id}" "{\"name\":\"${_sub_domain}\",\"ttl\":60,${_new_rr_values}}"; then
