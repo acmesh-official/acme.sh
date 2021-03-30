@@ -56,7 +56,7 @@ cleverreach_deploy() {
 
   _debug _subclient "${DEPLOY_CLEVERREACH_SUBCLIENT_ID}"
 
-  if ! [ -z "${DEPLOY_CLEVERREACH_SUBCLIENT_ID}" ]; then
+  if [ -n "${DEPLOY_CLEVERREACH_SUBCLIENT_ID}" ]; then
     _info "Obtaining token for sub-client ${DEPLOY_CLEVERREACH_SUBCLIENT_ID}"
     export _H1="Authorization: Bearer ${_access_token}"
     _subclient_token_result="$(_get "$_rest_endpoint/v3/clients/$DEPLOY_CLEVERREACH_SUBCLIENT_ID/token")"
