@@ -562,8 +562,16 @@ if _exists xargs && [ "$(printf %s '\\x41' | xargs printf)" = 'A' ]; then
 fi
 
 _h2b() {
-  if _exists xxd && xxd -r -p 2>/dev/null; then
-    return
+  if _exists xxd; then
+    if _contains "$(xxd --help 2>&1)" "assumes -c30"; then
+      if xxd -r -p -c 9999 2>/dev/null; then
+        return
+      fi
+    else
+      if xxd -r -p 2>/dev/null; then
+        return
+      fi
+    fi
   fi
 
   hex=$(cat)
@@ -1124,7 +1132,7 @@ _createkey() {
 
   if _isEccKey "$length"; then
     _debug "Using ec name: $eccname"
-    if _opkey="$(${ACME_OPENSSL_BIN:-openssl} ecparam -name "$eccname" -genkey 2>/dev/null)"; then
+    if _opkey="$(${ACME_OPENSSL_BIN:-openssl} ecparam -name "$eccname" -noout -genkey 2>/dev/null)"; then
       echo "$_opkey" >"$f"
     else
       _err "error ecc key name: $eccname"
@@ -2121,6 +2129,12 @@ _send_signed_request() {
 
       if _contains "$_body" "JWS has invalid anti-replay nonce" || _contains "$_body" "JWS has an invalid anti-replay nonce"; then
         _info "It seems the CA server is busy now, let's wait and retry. Sleeping $_sleep_retry_sec seconds."
+        _CACHED_NONCE=""
+        _sleep $_sleep_retry_sec
+        continue
+      fi
+      if _contains "$_body" "The Replay Nonce is not recognized"; then
+        _info "The replay Nonce is not valid, let's get a new one, Sleeping $_sleep_retry_sec seconds."
         _CACHED_NONCE=""
         _sleep $_sleep_retry_sec
         continue
@@ -5273,6 +5287,7 @@ signcsr() {
   _renew_hook="${10}"
   _local_addr="${11}"
   _challenge_alias="${12}"
+  _preferred_chain="${13}"
 
   _csrsubj=$(_readSubjectFromCSR "$_csrfile")
   if [ "$?" != "0" ]; then
@@ -5319,7 +5334,7 @@ signcsr() {
   _info "Copy csr to: $CSR_PATH"
   cp "$_csrfile" "$CSR_PATH"
 
-  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_addr" "$_challenge_alias"
+  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_addr" "$_challenge_alias" "$_preferred_chain"
 
 }
 
@@ -7416,7 +7431,7 @@ _process() {
     deploy "$_domain" "$_deploy_hook" "$_ecc"
     ;;
   signcsr)
-    signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias"
+    signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain"
     ;;
   showcsr)
     showcsr "$_csr" "$_domain"

@@ -49,16 +49,42 @@ dns_servercow_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  if _servercow_api POST "$_domain" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":20}"; then
-    if printf -- "%s" "$response" | grep "ok" >/dev/null; then
-      _info "Added, OK"
-      return 0
-    else
-      _err "add txt record error."
-      return 1
+  # check whether a txt record already exists for the subdomain
+  if printf -- "%s" "$response" | grep "{\"name\":\"$_sub_domain\",\"ttl\":20,\"type\":\"TXT\"" >/dev/null; then
+    _info "A txt record with the same name already exists."
+    # trim the string on the left
+    txtvalue_old=${response#*{\"name\":\"$_sub_domain\",\"ttl\":20,\"type\":\"TXT\",\"content\":\"}
+    # trim the string on the right
+    txtvalue_old=${txtvalue_old%%\"*}
+
+    _debug txtvalue_old "$txtvalue_old"
+
+    _info "Add the new txtvalue to the existing txt record."
+    if _servercow_api POST "$_domain" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":[\"$txtvalue\",\"$txtvalue_old\"],\"ttl\":20}"; then
+      if printf -- "%s" "$response" | grep "ok" >/dev/null; then
+        _info "Added additional txtvalue, OK"
+        return 0
+      else
+        _err "add txt record error."
+        return 1
+      fi
     fi
+    _err "add txt record error."
+    return 1
+  else
+    _info "There is no txt record with the name yet."
+    if _servercow_api POST "$_domain" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":20}"; then
+      if printf -- "%s" "$response" | grep "ok" >/dev/null; then
+        _info "Added, OK"
+        return 0
+      else
+        _err "add txt record error."
+        return 1
+      fi
+    fi
+    _err "add txt record error."
+    return 1
   fi
-  _err "add txt record error."
 
   return 1
 }
