@@ -38,7 +38,7 @@ telegram_send() {
 
   export _H1="Content-Type: application/json"
   _telegram_bot_url="https://api.telegram.org/bot${TELEGRAM_BOT_APITOKEN}/sendMessage"
-  if _post "$_data" "$_telegram_bot_url"; then
+  if _post "$_data" "$_telegram_bot_url" > /dev/null; then
     # shellcheck disable=SC2154
     _message=$(printf "%s\n" "$response" | sed -n 's/.*"ok":\([^,]*\).*/\1/p')
     if [ "$_message" = "true" ]; then
