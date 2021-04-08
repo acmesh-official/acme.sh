@@ -34,6 +34,8 @@ telegram_send() {
   _data="$_data\"parse_mode\": \"markdown\", "
   _data="$_data\"disable_web_page_preview\": \"1\"}"
 
+  _debug "$_data"
+
   export _H1="Content-Type: application/json"
   _telegram_bot_url="https://api.telegram.org/bot${TELEGRAM_BOT_APITOKEN}/sendMessage"
   if _post "$_data" "$_telegram_bot_url"; then
