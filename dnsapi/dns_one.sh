@@ -5,7 +5,6 @@
 #     export ONECOM_User="username"
 #     export ONECOM_Password="password"
 
-
 dns_one_add() {
   fulldomain=$1
   txtvalue=$2
@@ -24,10 +23,8 @@ dns_one_add() {
   subdomain="${_sub_domain}"
   maindomain=${_domain}
 
-
   _debug subdomain "$subdomain"
   _debug maindomain "$maindomain"
-
 
   #Check if the TXT exists
   _dns_one_getrecord "TXT" "$subdomain" "$txtvalue"
