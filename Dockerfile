@@ -69,7 +69,5 @@ else \n \
  exec -- \"\$@\"\n \
 fi" >/entry.sh && chmod +x /entry.sh
 
-VOLUME /acme.sh
-
 ENTRYPOINT ["/entry.sh"]
 CMD ["--help"]
