@@ -3927,7 +3927,11 @@ _ns_is_available_cf() {
 _ns_lookup_google() {
   _cf_ld="$1"
   _cf_ld_type="$2"
-  _cf_ep="https://dns.google/resolve"
+  if [ "$ALIDNS" ]; then
+    _cf_ep="https://dns.alidns.com/resolve"
+  else
+    _cf_ep="https://dns.google/resolve"
+  fi
   _ns_lookup_impl "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
 }
 
@@ -6544,6 +6548,7 @@ Parameters:
   -f, --force                       Force install, force cert renewal or override sudo restrictions.
   --staging, --test                 Use staging server, for testing.
   --debug [0|1|2|3]                 Output debug info. Defaults to 1 if argument is omitted.
+  --alidns                          use alidns resolve instead of google
   --output-insecure                 Output all the sensitive messages.
                                     By default all the credentials/sensitive messages are hidden from the output/debug/log for security.
   -w, --webroot <directory>         Specifies the web root folder for web root mode.
@@ -7006,6 +7011,9 @@ _process() {
         DEBUG="$2"
         shift
       fi
+      ;;
+    --alidns)
+      ALIDNS="1"
       ;;
     --output-insecure)
       export OUTPUT_INSECURE=1
