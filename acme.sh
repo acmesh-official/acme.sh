@@ -2038,7 +2038,7 @@ _send_signed_request() {
         if _post "" "$nonceurl" "" "HEAD" "$__request_conent_type" >/dev/null; then
           _headers="$(cat "$HTTP_HEADER")"
           _debug2 _headers "$_headers"
-          _CACHED_NONCE="$(echo "$_headers" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
+          _CACHED_NONCE="$(echo "$_headers" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2 | cut -d , -f 1)"
         fi
       fi
       if [ -z "$_CACHED_NONCE" ]; then
@@ -2118,7 +2118,7 @@ _send_signed_request() {
     fi
     _debug2 response "$response"
 
-    _CACHED_NONCE="$(echo "$responseHeaders" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
+    _CACHED_NONCE="$(echo "$responseHeaders" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2 | cut -d , -f 1)"
 
     if ! _startswith "$code" "2"; then
       _body="$response"
@@ -2357,7 +2357,7 @@ _startserver() {
 echo 'HTTP/1.0 200 OK'; \
 echo 'Content-Length\: $_content_len'; \
 echo ''; \
-printf -- '$content';" &
+printf '%s' '$content';" &
   serverproc="$!"
 }
 
@@ -4720,7 +4720,7 @@ $_authorizations_map"
       _debug2 response "$response"
 
       status=$(echo "$response" | _egrep_o '"status":"[^"]*' | cut -d : -f 2 | tr -d '"')
-      if [ "$status" = "valid" ]; then
+      if _contains "$status" "valid"; then
         _info "$(__green Success)"
         _stopserver "$serverproc"
         serverproc=""
