@@ -121,7 +121,7 @@ synology_dsm_deploy() {
   # we've verified this certificate description is a thing, so save it
   _savedeployconf SYNO_Certificate "$SYNO_Certificate"
 
-  default=false
+  default=""
   if echo "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\([^{]*\).*/\1/p" | grep -- 'is_default":true' >/dev/null; then
     default=true
   fi
