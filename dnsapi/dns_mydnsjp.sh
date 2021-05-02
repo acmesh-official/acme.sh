@@ -1,23 +1,19 @@
 #!/usr/bin/env sh
 
-#Here is a api script for MyDNS.JP.
-#This file name is "dns_mydnsjp.sh"
-#So, here must be a method   dns_mydnsjp_add()
-#Which will be called by acme.sh to add the txt record to your api system.
-#returns 0 means success, otherwise error.
+# DNS API for MyDNS.JP.
 #
-#Author: epgdatacapbon
-#Report Bugs here: https://github.com/epgdatacapbon/acme.sh
-#
-########  Public functions #####################
+# Author: epgdatacapbon
+# Report Bugs here: https://github.com/epgdatacapbon/acme.sh
 
 # Export MyDNS.JP MasterID and Password in following variables...
 #  MYDNSJP_MasterID=MasterID
 #  MYDNSJP_Password=Password
 
-MYDNSJP_API="https://www.mydns.jp"
+MYDNSJP_Api="https://www.mydns.jp"
 
-#Usage: dns_mydnsjp_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+########  Public functions #####################
+
+# Usage: dns_mydnsjp_add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_mydnsjp_add() {
   fulldomain=$1
   txtvalue=$2
@@ -32,7 +28,7 @@ dns_mydnsjp_add() {
   if [ -z "$MYDNSJP_MasterID" ] || [ -z "$MYDNSJP_Password" ]; then
     MYDNSJP_MasterID=""
     MYDNSJP_Password=""
-    _err "You don't specify mydnsjp api MasterID and Password yet."
+    _err "You didn't specify mydnsjp api MasterID and Password yet."
     _err "Please export as MYDNSJP_MasterID / MYDNSJP_Password and try again."
     return 1
   fi
@@ -41,7 +37,7 @@ dns_mydnsjp_add() {
   _saveaccountconf_mutable MYDNSJP_MasterID "$MYDNSJP_MasterID"
   _saveaccountconf_mutable MYDNSJP_Password "$MYDNSJP_Password"
 
-  _debug "First detect the root zone."
+  _debug "First detect the root domain"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
@@ -54,9 +50,6 @@ dns_mydnsjp_add() {
     if printf -- "%s" "$response" | grep "OK." >/dev/null; then
       _info "Added, OK"
       return 0
-    else
-      _err "Add txt record error."
-      return 1
     fi
   fi
   _err "Add txt record error."
@@ -64,8 +57,8 @@ dns_mydnsjp_add() {
   return 1
 }
 
-#Usage: fulldomain txtvalue
-#Remove the txt record after validation.
+# Usage: fulldomain txtvalue
+# Remove the txt record after validation
 dns_mydnsjp_rm() {
   fulldomain=$1
   txtvalue=$2
@@ -80,12 +73,12 @@ dns_mydnsjp_rm() {
   if [ -z "$MYDNSJP_MasterID" ] || [ -z "$MYDNSJP_Password" ]; then
     MYDNSJP_MasterID=""
     MYDNSJP_Password=""
-    _err "You don't specify mydnsjp api MasterID and Password yet."
+    _err "You didn't specify mydnsjp api MasterID and Password yet."
     _err "Please export as MYDNSJP_MasterID / MYDNSJP_Password and try again."
     return 1
   fi
 
-  _debug "First detect the root zone"
+  _debug "First detect the root domain"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
@@ -98,9 +91,6 @@ dns_mydnsjp_rm() {
     if printf -- "%s" "$response" | grep "OK." >/dev/null; then
       _info "Deleted, OK"
       return 0
-    else
-      _err "Delete txt record error."
-      return 1
     fi
   fi
   _err "Delete txt record error."
@@ -118,7 +108,6 @@ _get_root() {
   i=2
   p=1
 
-  # Get the root domain
   _mydnsjp_retrieve_domain
   if [ "$?" != "0" ]; then
     # not valid
@@ -145,42 +134,31 @@ _get_root() {
   return 1
 }
 
-# Retrieve the root domain
-# returns 0 success
+# Retrieve the domain
 _mydnsjp_retrieve_domain() {
-  _debug "Login to MyDNS.JP"
-
-  response="$(_post "masterid=$MYDNSJP_MasterID&masterpwd=$MYDNSJP_Password" "$MYDNSJP_API/?MENU=100")"
+  _debug "Log in to MyDNS.JP"
+  data="MENU=100&masterid=$MYDNSJP_MasterID&masterpwd=$MYDNSJP_Password&submit=%0D%0ALog%20In%0D%0A"
+  response="$(_post "$data" "$MYDNSJP_Api/members/")"
   cookie="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2)"
 
-  # If cookies is not empty then logon successful
+  # If cookies is not empty then login successful
   if [ -z "$cookie" ]; then
     _err "Fail to get a cookie."
     return 1
   fi
 
-  _debug "Retrieve DOMAIN INFO page"
-
-  export _H1="Cookie:${cookie}"
-
-  response="$(_get "$MYDNSJP_API/?MENU=300")"
-
-  if [ "$?" != "0" ]; then
-    _err "Fail to retrieve DOMAIN INFO."
-    return 1
-  fi
-
   _root_domain=$(echo "$response" | grep "DNSINFO\[domainname\]" | sed 's/^.*value="\([^"]*\)".*/\1/')
-
-  # Logout
-  response="$(_get "$MYDNSJP_API/?MENU=090")"
-
   _debug _root_domain "$_root_domain"
 
   if [ -z "$_root_domain" ]; then
     _err "Fail to get the root domain."
     return 1
   fi
+
+  _debug "Log out"
+  export _H1="Cookie:${cookie}"
+  data="MENU=090&submit=%0D%0ALog%20Out%0D%0A"
+  response="$(_post "$data" "$MYDNSJP_Api/members/")"
 
   return 0
 }
@@ -197,7 +175,8 @@ _mydnsjp_api() {
   export _H1="Content-Type: application/x-www-form-urlencoded"
   export _H2="Authorization: Basic ${credentials}"
 
-  response="$(_post "CERTBOT_DOMAIN=$domain&CERTBOT_VALIDATION=$txtvalue&EDIT_CMD=$cmd" "$MYDNSJP_API/directedit.html")"
+  data="CERTBOT_DOMAIN=$domain&CERTBOT_VALIDATION=$txtvalue&EDIT_CMD=$cmd"
+  response="$(_post "$data" "$MYDNSJP_Api/directedit.html")"
 
   if [ "$?" != "0" ]; then
     _err "error $domain"
