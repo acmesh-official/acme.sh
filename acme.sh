@@ -102,6 +102,8 @@ DEBUG_LEVEL_NONE=0
 
 DOH_CLOUDFLARE=1
 DOH_GOOGLE=2
+DOH_ALI=3
+DOH_DP=4
 
 HIDDEN_VALUE="[hidden](please add '--output-insecure' to see this value)"
 
@@ -3916,7 +3918,15 @@ _ns_purge_cf() {
 
 #checks if cf server is available
 _ns_is_available_cf() {
-  if _get "https://cloudflare-dns.com" >/dev/null 2>&1; then
+  if _get "https://cloudflare-dns.com" "" 1 >/dev/null 2>&1; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+_ns_is_available_google() {
+  if _get "https://dns.google" "" 1 >/dev/null 2>&1; then
     return 0
   else
     return 1
@@ -3931,6 +3941,38 @@ _ns_lookup_google() {
   _ns_lookup_impl "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
 }
 
+_ns_is_available_ali() {
+  if _get "https://dns.alidns.com" "" 1 >/dev/null 2>&1; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+#domain, type
+_ns_lookup_ali() {
+  _cf_ld="$1"
+  _cf_ld_type="$2"
+  _cf_ep="https://dns.alidns.com/resolve"
+  _ns_lookup_impl "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
+}
+
+_ns_is_available_dp() {
+  if _get "https://dns.alidns.com" "" 1 >/dev/null 2>&1; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+#dnspod
+_ns_lookup_dp() {
+  _cf_ld="$1"
+  _cf_ld_type="$2"
+  _cf_ep="https://doh.pub/dns-query"
+  _ns_lookup_impl "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
+}
+
 #domain, type
 _ns_lookup() {
   if [ -z "$DOH_USE" ]; then
@@ -3938,16 +3980,28 @@ _ns_lookup() {
     if _ns_is_available_cf; then
       _debug "Use cloudflare doh server"
       export DOH_USE=$DOH_CLOUDFLARE
-    else
+    elif _ns_is_available_google; then
       _debug "Use google doh server"
       export DOH_USE=$DOH_GOOGLE
+    elif _ns_is_available_ali; then
+      _debug "Use aliyun doh server"
+      export DOH_USE=$DOH_ALI
+    else _ns_is_available_dp;
+      _debug "Use dns pod doh server"
+      export DOH_USE=$DOH_DP
     fi
   fi
 
   if [ "$DOH_USE" = "$DOH_CLOUDFLARE" ] || [ -z "$DOH_USE" ]; then
     _ns_lookup_cf "$@"
-  else
+  elif [ "$DOH_USE" = "$DOH_GOOGLE" ]; then
     _ns_lookup_google "$@"
+  elif [ "$DOH_USE" = "$DOH_ALI" ]; then
+    _ns_lookup_ali "$@"
+  elif [ "$DOH_USE" = "$DOH_DP" ]; then
+    _ns_lookup_dp "$@"
+  else
+    _err "Unknown doh provider: DOH_USE=$DOH_USE"
   fi
 
 }
@@ -3972,7 +4026,7 @@ __purge_txt() {
   if [ "$DOH_USE" = "$DOH_CLOUDFLARE" ] || [ -z "$DOH_USE" ]; then
     _ns_purge_cf "$_p_txtdomain" "TXT"
   else
-    _debug "no purge api for google dns api, just sleep 5 secs"
+    _debug "no purge api for this doh api, just sleep 5 secs"
     _sleep 5
   fi
 
