@@ -3986,9 +3986,11 @@ _ns_lookup() {
     elif _ns_is_available_ali; then
       _debug "Use aliyun doh server"
       export DOH_USE=$DOH_ALI
-    else _ns_is_available_dp;
+    elif _ns_is_available_dp;
       _debug "Use dns pod doh server"
       export DOH_USE=$DOH_DP
+    else
+      _err "No doh"
     fi
   fi
 
