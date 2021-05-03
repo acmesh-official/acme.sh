@@ -102,6 +102,8 @@ DEBUG_LEVEL_NONE=0
 
 DOH_CLOUDFLARE=1
 DOH_GOOGLE=2
+DOH_ALI=3
+DOH_DP=4
 
 HIDDEN_VALUE="[hidden](please add '--output-insecure' to see this value)"
 
@@ -2038,7 +2040,7 @@ _send_signed_request() {
         if _post "" "$nonceurl" "" "HEAD" "$__request_conent_type" >/dev/null; then
           _headers="$(cat "$HTTP_HEADER")"
           _debug2 _headers "$_headers"
-          _CACHED_NONCE="$(echo "$_headers" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
+          _CACHED_NONCE="$(echo "$_headers" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2 | cut -d , -f 1)"
         fi
       fi
       if [ -z "$_CACHED_NONCE" ]; then
@@ -2118,7 +2120,7 @@ _send_signed_request() {
     fi
     _debug2 response "$response"
 
-    _CACHED_NONCE="$(echo "$responseHeaders" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
+    _CACHED_NONCE="$(echo "$responseHeaders" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2 | cut -d , -f 1)"
 
     if ! _startswith "$code" "2"; then
       _body="$response"
@@ -2266,7 +2268,7 @@ _getdeployconf() {
     return 0 # do nothing
   fi
   _saved=$(_readdomainconf "SAVED_$_rac_key")
-  eval "export $_rac_key=\"$_saved\""
+  eval "export $_rac_key=\"\$_saved\""
 }
 
 #_saveaccountconf  key  value  base64encode
@@ -2357,7 +2359,7 @@ _startserver() {
 echo 'HTTP/1.0 200 OK'; \
 echo 'Content-Length\: $_content_len'; \
 echo ''; \
-printf -- '$content';" &
+printf '%s' '$content';" &
   serverproc="$!"
 }
 
@@ -3096,6 +3098,11 @@ _checkConf() {
       _debug "Try include files"
       for included in $(cat "$2" | tr "\t" " " | grep "^ *include *.*;" | sed "s/include //" | tr -d " ;"); do
         _debug "check included $included"
+        if !_startswith "$included" "/" && _exists dirname; then
+          _relpath="$(dirname "$_c_file")"
+          _debug "_relpath" "$_relpath"
+          included="$_relpath/included"
+        fi
         if _checkConf "$1" "$included"; then
           return 0
         fi
@@ -3916,7 +3923,15 @@ _ns_purge_cf() {
 
 #checks if cf server is available
 _ns_is_available_cf() {
-  if _get "https://cloudflare-dns.com" >/dev/null 2>&1; then
+  if _get "https://cloudflare-dns.com" "" 1 >/dev/null 2>&1; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+_ns_is_available_google() {
+  if _get "https://dns.google" "" 1 >/dev/null 2>&1; then
     return 0
   else
     return 1
@@ -3931,6 +3946,38 @@ _ns_lookup_google() {
   _ns_lookup_impl "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
 }
 
+_ns_is_available_ali() {
+  if _get "https://dns.alidns.com" "" 1 >/dev/null 2>&1; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+#domain, type
+_ns_lookup_ali() {
+  _cf_ld="$1"
+  _cf_ld_type="$2"
+  _cf_ep="https://dns.alidns.com/resolve"
+  _ns_lookup_impl "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
+}
+
+_ns_is_available_dp() {
+  if _get "https://dns.alidns.com" "" 1 >/dev/null 2>&1; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+#dnspod
+_ns_lookup_dp() {
+  _cf_ld="$1"
+  _cf_ld_type="$2"
+  _cf_ep="https://doh.pub/dns-query"
+  _ns_lookup_impl "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
+}
+
 #domain, type
 _ns_lookup() {
   if [ -z "$DOH_USE" ]; then
@@ -3938,16 +3985,30 @@ _ns_lookup() {
     if _ns_is_available_cf; then
       _debug "Use cloudflare doh server"
       export DOH_USE=$DOH_CLOUDFLARE
-    else
+    elif _ns_is_available_google; then
       _debug "Use google doh server"
       export DOH_USE=$DOH_GOOGLE
+    elif _ns_is_available_ali; then
+      _debug "Use aliyun doh server"
+      export DOH_USE=$DOH_ALI
+    elif _ns_is_available_dp; then
+      _debug "Use dns pod doh server"
+      export DOH_USE=$DOH_DP
+    else
+      _err "No doh"
     fi
   fi
 
   if [ "$DOH_USE" = "$DOH_CLOUDFLARE" ] || [ -z "$DOH_USE" ]; then
     _ns_lookup_cf "$@"
-  else
+  elif [ "$DOH_USE" = "$DOH_GOOGLE" ]; then
     _ns_lookup_google "$@"
+  elif [ "$DOH_USE" = "$DOH_ALI" ]; then
+    _ns_lookup_ali "$@"
+  elif [ "$DOH_USE" = "$DOH_DP" ]; then
+    _ns_lookup_dp "$@"
+  else
+    _err "Unknown doh provider: DOH_USE=$DOH_USE"
   fi
 
 }
@@ -3972,7 +4033,7 @@ __purge_txt() {
   if [ "$DOH_USE" = "$DOH_CLOUDFLARE" ] || [ -z "$DOH_USE" ]; then
     _ns_purge_cf "$_p_txtdomain" "TXT"
   else
-    _debug "no purge api for google dns api, just sleep 5 secs"
+    _debug "no purge api for this doh api, just sleep 5 secs"
     _sleep 5
   fi
 
@@ -4720,7 +4781,7 @@ $_authorizations_map"
       _debug2 response "$response"
 
       status=$(echo "$response" | _egrep_o '"status":"[^"]*' | cut -d : -f 2 | tr -d '"')
-      if [ "$status" = "valid" ]; then
+      if _contains "$status" "valid"; then
         _info "$(__green Success)"
         _stopserver "$serverproc"
         serverproc=""
