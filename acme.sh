@@ -3098,6 +3098,11 @@ _checkConf() {
       _debug "Try include files"
       for included in $(cat "$2" | tr "\t" " " | grep "^ *include *.*;" | sed "s/include //" | tr -d " ;"); do
         _debug "check included $included"
+        if !_startswith "$included" "/" && _exists dirname; then
+          _relpath="$(dirname "$_c_file")"
+          _debug "_relpath" "$_relpath"
+          included="$_relpath/included"
+        fi
         if _checkConf "$1" "$included"; then
           return 0
         fi
