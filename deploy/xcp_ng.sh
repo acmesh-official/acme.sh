@@ -5,8 +5,8 @@
 XAPI_SSL_PATH="/etc/xensource/xapi-ssl.pem"
 XCP_NG_BACKUP_DIR="/tmp/$(uuidgen)"
 
-# xcp-ng_deploy deploys the new certificate to XCP-ng.
-xcp-ng_deploy() {
+# xcp_ng_deploy deploys the new certificate to XCP-ng.
+xcp_ng_deploy() {
   _cdomain="$1"
   _ckey="$2"
   _ccert="$3"
@@ -19,25 +19,25 @@ xcp-ng_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  if [[ $(_xcp-ng_backup_certificate) -ne 0 ]]; then
+  if [[ $(_xcp_ng_backup_certificate) -ne 0 ]]; then
     return 1
   fi
   _debug "Deploying certificate with 'xe host-server-certificate-install'"
 
   if [[ $(sudo xe host-server-certificate-install certificate="${_ccert}" private-key="${_ckey}" certificate-chain="${_cca}") -ne 0 ]]; then
-    if [[ $(_xcp-ng_backup_restore) -eq 0 ]]; then
-      xcp-ng_backup_delete 2>&1
+    if [[ $(_xcp_ng_backup_restore) -eq 0 ]]; then
+      xcp_ng_backup_delete 2>&1
     fi
     return 1
   fi
   _info "Certificate was deployed successfully."
-  _xcp-ng_backup_delete 2>&1
+  _xcp_ng_backup_delete 2>&1
   return 0
 }
 
-# _xcp-ng_backup_certificate saves the current certificate to a temporary folder.
+# _xcp_ng_backup_certificate saves the current certificate to a temporary folder.
 # The folder can be read/ written by the current user only (chmod 600).
-_xcp-ng_backup_certificate() {
+_xcp_ng_backup_certificate() {
   if [[ $(whoami) != "root" ]]; then
     _debug "Running as non-root user. Certificate backup not supported."
     exit 0
@@ -55,20 +55,20 @@ _xcp-ng_backup_certificate() {
   return 0
 }
 
-# _xcp-ng_backup_restore restores the backup made by _xcp-ng_backup_certificate.
+# _xcp_ng_backup_restore restores the backup made by _xcp_ng_backup_certificate.
 # It is called when something went wrong deploying the certificate.
-_xcp-ng_backup_restore() {
+_xcp_ng_backup_restore() {
   if [[ $(mv "${XCP_NG_BACKUP_DIR}/xapi-ssl.pem" "${XAPI_SSL_PATH}") -eq 0 ]]; then
     _info "Certificate restoration successful."
     return 0
   else
-    _err "Certificate restoration from '${XCP-NG_BACKUP_DIR}' not possible."
+    _err "Certificate restoration from '${XCP_NG_BACKUP_DIR}' not possible."
     return 1
   fi
 }
 
-# _xcp-ng_backup_delete deletes the backup folder.
-_xcp-ng_backup_delete() {
+# _xcp_ng_backup_delete deletes the backup folder.
+_xcp_ng_backup_delete() {
   if [[ $(rm -rf "${XCP_NG_BACKUP_DIR}") -eq 0 ]]; then
     _debug "Certificate backup deleted."
   else
@@ -76,12 +76,12 @@ _xcp-ng_backup_delete() {
   fi
 }
 
-# _xcp-ng_xapi_restart restarts the XAPI service the certificate was deployed to.
+# _xcp_ng_xapi_restart restarts the XAPI service the certificate was deployed to.
 # This is only neeeded when the old certificate had to be restored.
-_xcp-ng_xapi_restart() {
+_xcp_ng_xapi_restart() {
   if [[ $(systemctl restart xapi) -ne 0 ]]; then
     _err "XAPI did not restart properly after deployment. Restoring old certificate for now."
-    if [[ $(_xcp-ng_backup_restore) -ne 0 ]]; then
+    if [[ $(_xcp_ng_backup_restore) -ne 0 ]]; then
       _err "Could not restore the old certificate!!!"
     fi
     if [[ $(systemctl restart xapi) -ne 0 ]]; then
