@@ -3580,6 +3580,7 @@ _regAccount() {
           _err "Can not get EAB credentials from ZeroSSL."
           return 1
         fi
+        _debug2 "$_eabresp"
         _eab_id="$(echo "$_eabresp" | tr ',}' '\n' | grep '"eab_kid"' | cut -d : -f 2 | tr -d '"')"
         if [ -z "$_eab_id" ]; then
           _err "Can not resolve _eab_id"
@@ -4783,7 +4784,7 @@ $_authorizations_map"
       _debug2 response "$response"
 
       status=$(echo "$response" | _egrep_o '"status":"[^"]*' | cut -d : -f 2 | tr -d '"')
-      if _contains "$status" "valid"; then
+      if _contains "$status" '"valid"'; then
         _info "$(__green Success)"
         _stopserver "$serverproc"
         serverproc=""
