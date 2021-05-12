@@ -149,10 +149,9 @@ _dns_cloudns_get_zone_info() {
   zone=$1
   _dns_cloudns_http_api_call "dns/get-zone-info.json" "domain-name=$zone"
   if ! _contains "$response" "\"status\":\"Failed\""; then
-    DOMAIN_TYPE=$(echo "$response" | tr ',' "\n" | grep -E '^"type"' | sed -re 's/^\"type\"\:\"([a-z]+)\"$/\1/g')
+    DOMAIN_TYPE=$(echo "$response" | _egrep_o '"type":"[^"]*"' | cut -d : -f 2 | tr -d '"')
     if _contains "$DOMAIN_TYPE" "cloud"; then
-      DOMAIN_MASTER=$(echo "$response" | tr ',' "\n" | grep -E '^"cloud-master"' | sed -re 's/^\"cloud-master\"\:\"([a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}+)\"}$/\1/g'
-)
+      DOMAIN_MASTER=$(echo "$response" | _egrep_o '"cloud-master":"[^"]*"' | cut -d : -f 2 | tr -d '"')
     fi
   fi
   return 0
