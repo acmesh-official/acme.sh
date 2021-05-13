@@ -33,12 +33,10 @@ jobs:
     steps:
       - name: checkout code
         uses: actions/checkout@v2
-      - name: install buildx
-        id: buildx
-        uses: crazy-max/ghaction-docker-buildx@v3
-        with:
-          buildx-version: latest
-          qemu-version: latest
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
       - name: login to docker hub
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
@@ -63,4 +61,4 @@ jobs:
             --tag ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG} \
             --output "type=image,push=true" \
             --build-arg AUTO_UPGRADE=${AUTO_UPGRADE} \
-            --platform linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7,linux/386 .
+            --platform linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7,linux/386,linux/ppc64le,linux/s390x .

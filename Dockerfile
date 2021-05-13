@@ -7,10 +7,12 @@ RUN apk update -f \
   coreutils \
   bind-tools \
   curl \
+  sed \
   socat \
   tzdata \
   oath-toolkit-oathtool \
   tar \
+  libidn \
   && rm -rf /var/cache/apk/*
 
 ENV LE_CONFIG_HOME /acme.sh

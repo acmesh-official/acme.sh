@@ -57,26 +57,26 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
 | NO | Status| Platform|
 |----|-------|---------|
-|1|[![](https://acmesh-official.github.io/acmetest/status/ubuntu-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)| Ubuntu
-|2|[![](https://acmesh-official.github.io/acmetest/status/debian-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)| Debian
-|3|[![](https://acmesh-official.github.io/acmetest/status/centos-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|CentOS
-|4|[![](https://acmesh-official.github.io/acmetest/status/windows-cygwin.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Windows (cygwin with curl, openssl and crontab included)
-|5|[![](https://acmesh-official.github.io/acmetest/status/freebsd.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|FreeBSD
+|1|[![MacOS](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)|Mac OSX
+|2|[![Windows](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)|Windows (cygwin with curl, openssl and crontab included)
+|3|[![FreeBSD](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)|FreeBSD
+|4|[![Solaris](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)|Solaris
+|5|[![Ubuntu](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)| Ubuntu
 |6|[![](https://acmesh-official.github.io/acmetest/status/pfsense.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|pfsense
-|7|[![](https://acmesh-official.github.io/acmetest/status/opensuse-leap-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|openSUSE
-|8|[![](https://acmesh-official.github.io/acmetest/status/alpine-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Alpine Linux (with curl)
-|9|[![](https://acmesh-official.github.io/acmetest/status/archlinux-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Archlinux
-|10|[![](https://acmesh-official.github.io/acmetest/status/fedora-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|fedora
-|11|[![](https://acmesh-official.github.io/acmetest/status/kalilinux-kali.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Kali Linux
-|12|[![](https://acmesh-official.github.io/acmetest/status/oraclelinux-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Oracle Linux
-|13|[![](https://acmesh-official.github.io/acmetest/status/proxmox.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)| Proxmox: See Proxmox VE Wiki. Version [4.x, 5.0, 5.1](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x,_5.0_and_5.1)#Let.27s_Encrypt_using_acme.sh), version [5.2 and up](https://pve.proxmox.com/wiki/Certificate_Management)
-|14|-----| Cloud Linux  https://github.com/acmesh-official/acme.sh/issues/111
-|15|[![](https://acmesh-official.github.io/acmetest/status/openbsd.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|OpenBSD
-|16|[![](https://acmesh-official.github.io/acmetest/status/mageia.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Mageia
-|17|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/acmesh-official/acme.sh/wiki/How-to-run-on-OpenWRT)
-|18|[![](https://acmesh-official.github.io/acmetest/status/solaris.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|SunOS/Solaris
-|19|[![](https://acmesh-official.github.io/acmetest/status/gentoo-stage3-amd64.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Gentoo Linux
-|20|[![Build Status](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)|Mac OSX
+|7|[![](https://acmesh-official.github.io/acmetest/status/openbsd.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|OpenBSD
+|8|[![](https://acmesh-official.github.io/acmetest/status/debian-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)| Debian
+|9|[![](https://acmesh-official.github.io/acmetest/status/centos-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|CentOS
+|10|[![](https://acmesh-official.github.io/acmetest/status/opensuse-leap-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|openSUSE
+|11|[![](https://acmesh-official.github.io/acmetest/status/alpine-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Alpine Linux (with curl)
+|12|[![](https://acmesh-official.github.io/acmetest/status/archlinux-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Archlinux
+|13|[![](https://acmesh-official.github.io/acmetest/status/fedora-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|fedora
+|14|[![](https://acmesh-official.github.io/acmetest/status/kalilinux-kali.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Kali Linux
+|15|[![](https://acmesh-official.github.io/acmetest/status/oraclelinux-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Oracle Linux
+|16|[![](https://acmesh-official.github.io/acmetest/status/proxmox.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)| Proxmox: See Proxmox VE Wiki. Version [4.x, 5.0, 5.1](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x,_5.0_and_5.1)#Let.27s_Encrypt_using_acme.sh), version [5.2 and up](https://pve.proxmox.com/wiki/Certificate_Management)
+|17|-----| Cloud Linux  https://github.com/acmesh-official/acme.sh/issues/111
+|18|[![](https://acmesh-official.github.io/acmetest/status/mageia.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Mageia
+|19|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/acmesh-official/acme.sh/wiki/How-to-run-on-OpenWRT)
+|20|[![](https://acmesh-official.github.io/acmetest/status/gentoo-stage3-amd64.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Gentoo Linux
 |21|[![](https://acmesh-official.github.io/acmetest/status/clearlinux-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|ClearLinux
 
 For all build statuses, check our [weekly build project](https://github.com/acmesh-official/acmetest):
@@ -89,6 +89,7 @@ https://github.com/acmesh-official/acmetest
 - [ZeroSSL.com CA](https://github.com/acmesh-official/acme.sh/wiki/ZeroSSL.com-CA)
 - [BuyPass.com CA](https://github.com/acmesh-official/acme.sh/wiki/BuyPass.com-CA)
 - [Pebble strict Mode](https://github.com/letsencrypt/pebble)
+- Any other [RFC8555](https://tools.ietf.org/html/rfc8555)-compliant CA
 
 # Supported modes
 
@@ -109,13 +110,13 @@ https://github.com/acmesh-official/acmetest
 Check this project: https://github.com/acmesh-official/get.acme.sh
 
 ```bash
-curl https://get.acme.sh | sh
+curl https://get.acme.sh | sh -s email=my@example.com
 ```
 
 Or:
 
 ```bash
-wget -O -  https://get.acme.sh | sh
+wget -O -  https://get.acme.sh | sh -s email=my@example.com
 ```
 
 
@@ -126,7 +127,7 @@ Clone this project and launch installation:
 ```bash
 git clone https://github.com/acmesh-official/acme.sh.git
 cd ./acme.sh
-./acme.sh --install
+./acme.sh --install -m my@example.com
 ```
 
 You `don't have to be root` then, although `it is recommended`.

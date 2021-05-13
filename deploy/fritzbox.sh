@@ -28,9 +28,11 @@ fritzbox_deploy() {
   _debug _cfullchain "$_cfullchain"
 
   if ! _exists iconv; then
-    if ! _exists perl; then
-      _err "iconv or perl not found"
-      return 1
+    if ! _exists uconv; then
+      if ! _exists perl; then
+        _err "iconv or uconv or perl not found"
+        return 1
+      fi
     fi
   fi
 
@@ -64,9 +66,11 @@ fritzbox_deploy() {
   _info "Log in to the FRITZ!Box"
   _fritzbox_challenge="$(_get "${_fritzbox_url}/login_sid.lua" | sed -e 's/^.*<Challenge>//' -e 's/<\/Challenge>.*$//')"
   if _exists iconv; then
-    _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${_fritzbox_password}" | iconv -f ASCII -t UTF16LE | md5sum | awk '{print $1}')"
+    _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${_fritzbox_password}" | iconv -f ASCII -t UTF16LE | _digest md5 hex)"
+  elif _exists uconv; then
+    _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${_fritzbox_password}" | uconv -f ASCII -t UTF16LE | _digest md5 hex)"
   else
-    _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${_fritzbox_password}" | perl -p -e 'use Encode qw/encode/; print encode("UTF-16LE","$_"); $_="";' | md5sum | awk '{print $1}')"
+    _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${_fritzbox_password}" | perl -p -e 'use Encode qw/encode/; print encode("UTF-16LE","$_"); $_="";' | _digest md5 hex)"
   fi
   _fritzbox_sid="$(_get "${_fritzbox_url}/login_sid.lua?sid=0000000000000000&username=${_fritzbox_username}&response=${_fritzbox_challenge}-${_fritzbox_hash}" | sed -e 's/^.*<SID>//' -e 's/<\/SID>.*$//')"
 

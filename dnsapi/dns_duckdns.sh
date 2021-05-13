@@ -12,7 +12,7 @@
 
 DuckDNS_API="https://www.duckdns.org/update"
 
-########  Public functions #####################
+########  Public functions ######################
 
 #Usage: dns_duckdns_add _acme-challenge.domain.duckdns.org "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_duckdns_add() {
@@ -96,7 +96,7 @@ dns_duckdns_rm() {
 _duckdns_get_domain() {
 
   # We'll extract the domain/username from full domain
-  _duckdns_domain="$(printf "%s" "$fulldomain" | _lower_case | _egrep_o '^(_acme-challenge\.)?[a-z0-9-]*\.duckdns\.org' | sed 's/^\(_acme-challenge\.\)\?\([a-z0-9-]*\)\.duckdns\.org/\2/')"
+  _duckdns_domain="$(printf "%s" "$fulldomain" | _lower_case | _egrep_o '^(_acme-challenge\.)?([a-z0-9-]+\.)+duckdns\.org' | sed -n 's/^\([^.]\{1,\}\.\)*\([a-z0-9-]\{1,\}\)\.duckdns\.org$/\2/p;')"
 
   if [ -z "$_duckdns_domain" ]; then
     _err "Error extracting the domain."
@@ -112,16 +112,21 @@ _duckdns_rest() {
   param="$2"
   _debug param "$param"
   url="$DuckDNS_API?$param"
+  if [ -n "$DEBUG" ] && [ "$DEBUG" -gt 0 ]; then
+    url="$url&verbose=true"
+  fi
   _debug url "$url"
 
   # DuckDNS uses GET to update domain info
   if [ "$method" = "GET" ]; then
     response="$(_get "$url")"
+    _debug2 response "$response"
+    if [ -n "$DEBUG" ] && [ "$DEBUG" -gt 0 ] && _contains "$response" "UPDATED" && _contains "$response" "OK"; then
+      response="OK"
+    fi
   else
     _err "Unsupported method"
     return 1
   fi
-
-  _debug2 response "$response"
   return 0
 }

@@ -1,0 +1,249 @@
+name: DNS
+on:
+  push:
+    paths:
+      - 'dnsapi/*.sh'
+      - '.github/workflows/DNS.yml'
+  pull_request:
+    branches:
+      - 'dev'
+    paths:
+      - 'dnsapi/*.sh'
+      - '.github/workflows/DNS.yml'
+
+
+jobs:
+  CheckToken:
+    runs-on: ubuntu-latest
+    outputs:
+      hasToken: ${{ steps.step_one.outputs.hasToken }}
+    steps:
+      - name: Set the value
+        id: step_one
+        run: |
+          if [ "${{secrets.TokenName1}}" ] ; then
+            echo "::set-output name=hasToken::true"
+          else
+            echo "::set-output name=hasToken::false"
+          fi
+      - name: Check the value
+        run: echo ${{ steps.step_one.outputs.hasToken }}
+
+  Fail:
+    runs-on: ubuntu-latest
+    needs: CheckToken
+    if: "contains(needs.CheckToken.outputs.hasToken, 'false')"
+    steps:
+    - name: "Read this:   https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test"
+      run: |
+        echo "Read this:   https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test"
+        if [ "${{github.actor}}" != "Neilpang" ]; then
+          false
+        fi
+
+  Docker:
+    runs-on: ubuntu-latest
+    needs: CheckToken
+    if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
+    env:
+      TEST_DNS : ${{ secrets.TEST_DNS }}
+      TestingDomain: ${{ secrets.TestingDomain }}
+      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      CASE: le_test_dnsapi
+      TEST_LOCAL: 1
+      DEBUG: 1
+    steps:
+    - uses: actions/checkout@v2
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - name: Set env file
+      run: |
+        cd ../acmetest 
+        if [ "${{ secrets.TokenName1}}" ] ; then
+          echo "${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}" >> env.list
+        fi
+        if [ "${{ secrets.TokenName2}}" ] ; then
+          echo "${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}" >> env.list
+        fi
+        if [ "${{ secrets.TokenName3}}" ] ; then
+          echo "${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}" >> env.list
+        fi
+        if [ "${{ secrets.TokenName4}}" ] ; then
+          echo "${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}" >> env.list
+        fi
+        if [ "${{ secrets.TokenName5}}" ] ; then
+          echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> env.list
+        fi
+        echo "TEST_DNS_NO_WILDCARD" >> env.list 
+        echo "TEST_DNS_SLEEP" >> env.list
+    - name: Run acmetest
+      run: cd ../acmetest && ./rundocker.sh  testall
+
+  MacOS:
+    runs-on: macos-latest
+    needs: Docker
+    env:
+      TEST_DNS : ${{ secrets.TEST_DNS }}
+      TestingDomain: ${{ secrets.TestingDomain }}
+      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      CASE: le_test_dnsapi
+      TEST_LOCAL: 1
+      DEBUG: 1
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install tools
+      run:  brew install socat
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - name: Run acmetest
+      run: |
+        if [ "${{ secrets.TokenName1}}" ] ; then
+          export ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
+        fi
+        if [ "${{ secrets.TokenName2}}" ] ; then
+          export ${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}
+        fi
+        if [ "${{ secrets.TokenName3}}" ] ; then
+          export ${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}
+        fi
+        if [ "${{ secrets.TokenName4}}" ] ; then
+          export ${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}
+        fi
+        if [ "${{ secrets.TokenName5}}" ] ; then
+          export ${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}
+        fi
+        cd ../acmetest
+        ./letest.sh
+
+  Windows:
+    runs-on: windows-latest
+    needs: MacOS
+    env:
+      TEST_DNS : ${{ secrets.TEST_DNS }}
+      TestingDomain: ${{ secrets.TestingDomain }}
+      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      CASE: le_test_dnsapi
+      TEST_LOCAL: 1
+      DEBUG: 1
+    steps:
+    - name: Set git to use LF
+      run: |
+          git config --global core.autocrlf false
+    - uses: actions/checkout@v2
+    - name: Install cygwin base packages with chocolatey
+      run: |
+          choco config get cacheLocation
+          choco install --no-progress cygwin
+      shell: cmd
+    - name: Install cygwin additional packages
+      run: |
+          C:\tools\cygwin\cygwinsetup.exe -qgnNdO -R C:/tools/cygwin -s http://mirrors.kernel.org/sourceware/cygwin/ -P socat,curl,cron,unzip,git
+      shell: cmd
+    - name: Set ENV
+      shell: cmd
+      run: |
+          echo PATH=C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin >> %GITHUB_ENV%
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - name: Run acmetest
+      shell: bash
+      run: |
+        if [ "${{ secrets.TokenName1}}" ] ; then
+          export ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
+        fi
+        if [ "${{ secrets.TokenName2}}" ] ; then
+          export ${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}
+        fi
+        if [ "${{ secrets.TokenName3}}" ] ; then
+          export ${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}
+        fi
+        if [ "${{ secrets.TokenName4}}" ] ; then
+          export ${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}
+        fi
+        if [ "${{ secrets.TokenName5}}" ] ; then
+          export ${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}
+        fi
+        cd ../acmetest
+        ./letest.sh
+
+  FreeBSD:
+    runs-on: macos-latest
+    needs: Windows
+    env:
+      TEST_DNS : ${{ secrets.TEST_DNS }}
+      TestingDomain: ${{ secrets.TestingDomain }}
+      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      CASE: le_test_dnsapi
+      TEST_LOCAL: 1
+      DEBUG: 1
+    steps:
+    - uses: actions/checkout@v2
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - uses: vmactions/freebsd-vm@v0.1.4
+      with:
+        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        prepare: pkg install -y socat curl
+        usesh: true
+        run: |
+          if [ "${{ secrets.TokenName1}}" ] ; then
+            export ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
+          fi
+          if [ "${{ secrets.TokenName2}}" ] ; then
+            export ${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}
+          fi
+          if [ "${{ secrets.TokenName3}}" ] ; then
+            export ${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}
+          fi
+          if [ "${{ secrets.TokenName4}}" ] ; then
+            export ${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}
+          fi
+          if [ "${{ secrets.TokenName5}}" ] ; then
+            export ${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}
+          fi
+          cd ../acmetest
+          ./letest.sh
+
+  Solaris:
+    runs-on: macos-latest
+    needs: FreeBSD
+    env:
+      TEST_DNS : ${{ secrets.TEST_DNS }}
+      TestingDomain: ${{ secrets.TestingDomain }}
+      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      CASE: le_test_dnsapi
+      TEST_LOCAL: 1
+      DEBUG: 1
+    steps:
+    - uses: actions/checkout@v2
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - uses: vmactions/solaris-vm@v0.0.3
+      with:
+        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        prepare: pkgutil -y -i socat curl
+        run: |
+          if [ "${{ secrets.TokenName1}}" ] ; then
+            export ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
+          fi
+          if [ "${{ secrets.TokenName2}}" ] ; then
+            export ${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}
+          fi
+          if [ "${{ secrets.TokenName3}}" ] ; then
+            export ${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}
+          fi
+          if [ "${{ secrets.TokenName4}}" ] ; then
+            export ${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}
+          fi
+          if [ "${{ secrets.TokenName5}}" ] ; then
+            export ${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}
+          fi
+          cd ../acmetest
+          ./letest.sh
+
+        

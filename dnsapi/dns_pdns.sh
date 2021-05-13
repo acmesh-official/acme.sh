@@ -175,13 +175,13 @@ _get_root() {
   i=1
 
   if _pdns_rest "GET" "/api/v1/servers/$PDNS_ServerId/zones"; then
-    _zones_response="$response"
+    _zones_response=$(echo "$response" | _normalizeJson)
   fi
 
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
 
-    if _contains "$_zones_response" "\"name\": \"$h.\""; then
+    if _contains "$_zones_response" "\"name\":\"$h.\""; then
       _domain="$h."
       if [ -z "$h" ]; then
         _domain="=2E"

@@ -58,7 +58,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install tools
-      run:  brew update && brew install socat;
+      run:  brew install socat
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
@@ -87,8 +87,13 @@ jobs:
           C:\tools\cygwin\cygwinsetup.exe -qgnNdO -R C:/tools/cygwin -s http://mirrors.kernel.org/sourceware/cygwin/ -P socat,curl,cron,unzip,git
       shell: cmd
     - name: Set ENV
+      shell: cmd
       run: |
-          echo '::set-env name=PATH::C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin'
+          echo PATH=C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin >> %GITHUB_ENV%
+    - name: Check ENV
+      shell: cmd
+      run: |
+          echo "PATH=%PATH%"
     - name: Clone acmetest
       shell: cmd
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
@@ -96,4 +101,47 @@ jobs:
       shell: cmd
       run: cd ../acmetest && bash.exe -c ./letest.sh
 
+  FreeBSD:
+    runs-on: macos-latest
+    needs: Windows
+    env:
+      NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
+      TEST_LOCAL: 1
+    steps:
+    - uses: actions/checkout@v2
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - uses: vmactions/freebsd-vm@v0.1.4
+      with:
+        envs: 'NGROK_TOKEN TEST_LOCAL'
+        prepare: pkg install -y socat curl
+        usesh: true
+        run: |
+          cd ../acmetest && ./letest.sh
+
+  Solaris:
+    runs-on: macos-latest
+    needs: FreeBSD
+    env:
+      NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
+      TEST_LOCAL: 1
+    steps:
+    - uses: actions/checkout@v2
+    - uses: vmactions/ngrok-tunnel@v0.0.1
+      id: ngrok
+      with:
+        protocol: http
+        port: 8080
+    - name: Set envs
+      run: echo "TestingDomain=${{steps.ngrok.outputs.server}}" >> $GITHUB_ENV
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - uses: vmactions/solaris-vm@v0.0.3
+      with:
+        envs: 'TEST_LOCAL TestingDomain'
+        nat: |
+          "8080": "80"
+        prepare: pkgutil -y -i socat curl
+        run: |
+          cd ../acmetest && ./letest.sh
 
