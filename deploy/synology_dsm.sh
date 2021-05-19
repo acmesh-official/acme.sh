@@ -121,12 +121,6 @@ synology_dsm_deploy() {
   # we've verified this certificate description is a thing, so save it
   _savedeployconf SYNO_Certificate "$SYNO_Certificate"
 
-  default=""
-  if echo "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\([^{]*\).*/\1/p" | grep -- 'is_default":true' >/dev/null; then
-    default=true
-  fi
-  _debug2 default "$default"
-
   _info "Generate form POST request"
   nl="\0015\0012"
   delim="--------------------------$(_utc_date | tr -d -- '-: ')"
@@ -135,7 +129,12 @@ synology_dsm_deploy() {
   content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"inter_cert\"; filename=\"$(basename "$_cca")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_cca")\0012"
   content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"id\"${nl}${nl}$id"
   content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"desc\"${nl}${nl}${SYNO_Certificate}"
-  content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"as_default\"${nl}${nl}${default}"
+  if echo "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\([^{]*\).*/\1/p" | grep -- 'is_default":true' >/dev/null; then
+    _debug2 default "this is the default certificate"
+    content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"as_default\"${nl}${nl}true"
+  else
+    _debug2 default "this is NOT the default certificate"
+  fi
   content="$content${nl}--$delim--${nl}"
   content="$(printf "%b_" "$content")"
   content="${content%_}" # protect trailing \n
