@@ -4758,7 +4758,6 @@ $_authorizations_map"
   _info "Verify finished, start to sign."
   der="$(_getfile "${CSR_PATH}" "${BEGIN_CSR}" "${END_CSR}" | tr -d "\r\n" | _url_replace)"
 
-
   _info "Lets finalize the order."
   _info "Le_OrderFinalize" "$Le_OrderFinalize"
   if ! _send_signed_request "${Le_OrderFinalize}" "{\"csr\": \"$der\"}"; then
