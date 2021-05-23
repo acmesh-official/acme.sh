@@ -15,30 +15,9 @@ on:
 
 
 jobs:
-  CheckToken:
-    runs-on: ubuntu-latest
-    outputs:
-      hasToken: ${{ steps.step_one.outputs.hasToken }}
-    env: 
-      NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
-    steps:
-      - name: Set the value
-        id: step_one
-        run: |
-          if [ "$NGROK_TOKEN" ] ; then
-            echo "::set-output name=hasToken::true"
-          else
-            echo "::set-output name=hasToken::false"
-          fi
-      - name: Check the value
-        run: echo ${{ steps.step_one.outputs.hasToken }}
-
   Ubuntu:
     runs-on: ubuntu-latest
-    needs: CheckToken
-    if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
     env:
-      NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
       TEST_LOCAL: 1
     steps:
     - uses: actions/checkout@v2
@@ -51,9 +30,7 @@ jobs:
 
   MacOS:
     runs-on: macos-latest
-    needs: Ubuntu
     env:
-      NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
       TEST_LOCAL: 1
     steps:
     - uses: actions/checkout@v2
@@ -66,11 +43,9 @@ jobs:
 
   Windows:
     runs-on: windows-latest
-    needs: MacOS
     env:
-      NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
       TEST_LOCAL: 1
-      #The 80 port is used by Windows server, we have to use a custom port, ngrok will also use this port.
+      #The 80 port is used by Windows server, we have to use a custom port, tunnel will also use this port.
       Le_HTTPPort: 8888
     steps:
     - name: Set git to use LF
@@ -103,9 +78,7 @@ jobs:
 
   FreeBSD:
     runs-on: macos-latest
-    needs: Windows
     env:
-      NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
       TEST_LOCAL: 1
     steps:
     - uses: actions/checkout@v2
@@ -120,7 +93,7 @@ jobs:
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/freebsd-vm@v0.1.4
       with:
-        envs: 'NGROK_TOKEN TEST_LOCAL TestingDomain'
+        envs: 'TEST_LOCAL TestingDomain'
         nat: |
           "8080": "80"
         prepare: pkg install -y socat curl
@@ -130,9 +103,7 @@ jobs:
 
   Solaris:
     runs-on: macos-latest
-    needs: FreeBSD
     env:
-      NGROK_TOKEN : ${{ secrets.NGROK_TOKEN }}
       TEST_LOCAL: 1
     steps:
     - uses: actions/checkout@v2
