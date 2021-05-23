@@ -78,7 +78,7 @@ dns_porkbun_rm() {
   if [ "$count" = "0" ]; then
     _info "Don't need to remove."
   else
-    record_id=$(echo "$response" | tr '{' '\n' | grep "$txtvalue" | cut -d, -f1 | cut -d: -f2 | tr -d \")
+    record_id=$(echo "$response" | tr '{' '\n' | grep -- "$txtvalue" | cut -d, -f1 | cut -d: -f2 | tr -d \")
     _debug "record_id" "$record_id"
     if [ -z "$record_id" ]; then
       _err "Can not get record id to remove."
