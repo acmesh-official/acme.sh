@@ -109,11 +109,20 @@ jobs:
       TEST_LOCAL: 1
     steps:
     - uses: actions/checkout@v2
+    - uses: vmactions/cf-tunnel@v0.0.1
+      id: tunnel
+      with:
+        protocol: http
+        port: 8080
+    - name: Set envs
+      run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/freebsd-vm@v0.1.4
       with:
-        envs: 'NGROK_TOKEN TEST_LOCAL'
+        envs: 'NGROK_TOKEN TEST_LOCAL TestingDomain'
+        nat: |
+          "8080": "80"
         prepare: pkg install -y socat curl
         usesh: true
         run: |
@@ -127,13 +136,13 @@ jobs:
       TEST_LOCAL: 1
     steps:
     - uses: actions/checkout@v2
-    - uses: vmactions/ngrok-tunnel@v0.0.1
-      id: ngrok
+    - uses: vmactions/cf-tunnel@v0.0.1
+      id: tunnel
       with:
         protocol: http
         port: 8080
     - name: Set envs
-      run: echo "TestingDomain=${{steps.ngrok.outputs.server}}" >> $GITHUB_ENV
+      run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/solaris-vm@v0.0.3
