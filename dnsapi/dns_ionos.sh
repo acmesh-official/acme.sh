@@ -149,14 +149,15 @@ _ionos_rest() {
     response="$(_post "$data" "$IONOS_API$route" "" "$method" "application/json")"
   else
     export _H2="Accept: */*"
-
+    export _H3=
     response="$(_get "$IONOS_API$route")"
   fi
 
   if [ "$?" != "0" ]; then
-    _err "Error $route"
+    _err "Error $route: $response"
     return 1
   fi
+  _debug2 "response" "$response"
 
   return 0
 }
