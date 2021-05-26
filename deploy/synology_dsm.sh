@@ -66,6 +66,7 @@ synology_dsm_deploy() {
   _getdeployconf SYNO_Certificate
   _debug SYNO_Certificate "${SYNO_Certificate:-}"
 
+  # shellcheck disable=SC1003 # We are not trying to escape a single quote
   if printf "%s" "$SYNO_Certificate" | grep '\\'; then
     _err "Do not use a backslash (\) in your certificate description"
     return 1
