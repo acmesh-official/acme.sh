@@ -82,7 +82,7 @@ jobs:
       TEST_LOCAL: 1
     steps:
     - uses: actions/checkout@v2
-    - uses: vmactions/cf-tunnel@v0.0.1
+    - uses: vmactions/cf-tunnel@v0.0.2
       id: tunnel
       with:
         protocol: http
@@ -107,7 +107,7 @@ jobs:
       TEST_LOCAL: 1
     steps:
     - uses: actions/checkout@v2
-    - uses: vmactions/cf-tunnel@v0.0.1
+    - uses: vmactions/cf-tunnel@v0.0.2
       id: tunnel
       with:
         protocol: http
