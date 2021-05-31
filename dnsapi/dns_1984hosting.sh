@@ -145,7 +145,7 @@ _1984hosting_login() {
   password=$(printf '%s' "$One984HOSTING_Password" | _url_encode)
   url="https://management.1984hosting.com/accounts/checkuserauth/"
 
-  response="$(_post "username=$username&password=$password&otpkey=" "$url")"
+  response="$(_post "username=$username&password=$password&otpkey=" $url)"
   response="$(echo "$response" | _normalizeJson)"
   _debug2 response "$response"
 
