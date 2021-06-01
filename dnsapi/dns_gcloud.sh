@@ -95,6 +95,9 @@ _dns_gcloud_authenticate() {
   gcloud config set project "$GCLOUD_Project_ID"
 
   _info "_dns_gcloud_authenticate: configured gcloud project"
+
+  _saveaccountconf_mutable CF_Token "$CF_Token"
+  _saveaccountconf_mutable CF_Account_ID "$CF_Account_ID"
 }
 
 _dns_gcloud_authenticate() {
