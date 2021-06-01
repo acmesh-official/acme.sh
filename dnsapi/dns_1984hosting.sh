@@ -177,7 +177,6 @@ _check_cookie() {
   fi
 
   _authget "https://management.1984hosting.com/accounts/loginstatus/"
-  response="$(echo "$_response" | _normalizeJson)"
   if _contains "$response" '"ok": true'; then
     _debug "Cached cookie still valid"
     return 0
@@ -205,7 +204,7 @@ _get_root() {
     fi
 
     _authget "https://management.1984hosting.com/domains/soacheck/?zone=$h&nameserver=ns0.1984.is."
-    if _contains "$_response" "serial"; then
+    if _contains "$_response" "serial" && ! _contains "$_response" 'null}'; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain="$h"
       return 0
@@ -219,7 +218,7 @@ _get_root() {
 # add extra headers to request
 _authget() {
   export _H1="Cookie: $One984HOSTING_COOKIE"
-  _response=$(_get "$1")
+  _response=$(_get "$1" | _normalizeJson)
   _debug2 _response "$_response"
 }
 
