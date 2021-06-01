@@ -110,8 +110,8 @@ _get_root() {
 
     if _porkbun_rest POST "dns/retrieve/$h"; then
       if _contains "$response" "\"status\":\"SUCCESS\""; then
-        _sub_domain="$(echo "$fulldomain" | sed "s/\\.$_domain\$//")"
         _domain=$h
+        _sub_domain="$(echo "$fulldomain" | sed "s/\\.$_domain\$//")"
         return 0
       else
         _debug "Go to next level of $_domain"
