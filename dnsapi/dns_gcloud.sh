@@ -12,6 +12,8 @@ dns_gcloud_add() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
+  _dns_gcloud_authenticate || return $?
+
   _dns_gcloud_find_zone || return $?
 
   # Add an extra RR
@@ -33,6 +35,8 @@ dns_gcloud_rm() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
+  _dns_gcloud_authenticate || return $?
+
   _dns_gcloud_find_zone || return $?
 
   # Remove one RR
@@ -46,6 +50,56 @@ dns_gcloud_rm() {
 }
 
 ####################  Private functions below ##################################
+
+_dns_gcloud_authenticate() {
+  _info "_dns_gcloud_authenticate: authenticating gcloud"
+  _debug "_dns_gcloud_authenticate: checking authenticated status"
+
+  account=$(gcloud auth list \
+    --filter "status:ACTIVE" \
+    --format "value(account)" \
+    --verbosity error
+    )
+
+  if [ "$account" ]; then
+    _info "_dns_gcloud_authenticate: already authenticated"
+    return 0
+  fi
+
+  _debug "_dns_gcloud_authenticate: attempting to authenticate using service account key"
+
+  GCLOUD_Service_Account_Key="${CF_Token:-$(_readaccountconf_mutable GCLOUD_Service_Account_Key)}"
+  GCLOUD_Project_ID="${CF_Account_ID:-$(_readaccountconf_mutable GCLOUD_Project_ID)}"
+
+  if [ -z "$GCLOUD_Service_Account_Key" ]; then
+    GCLOUD_Service_Account_Key=""
+    GCLOUD_Project_ID=""
+    _err "_dns_gcloud_authenticate: missing Google Cloud service account key"
+    return 1
+  fi
+
+  if [ -z "$GCLOUD_Project_ID" ]; then
+    GCLOUD_Service_Account_Key=""
+    GCLOUD_Project_ID=""
+    _err "_dns_gcloud_authenticate: missing Google Cloud project ID"
+    return 1
+  fi
+
+  if ! echo "$GCLOUD_Service_Account_Key" | gcloud auth activate-service-account --key-file -; then
+    _err "_dns_gcloud_authenticate: failed to authenticate with service account key"
+    return 1
+  fi
+
+  _info "_dns_gcloud_authenticate: successfully authenticated using service account key"
+
+  gcloud config set project "$GCLOUD_Project_ID"
+
+  _info "_dns_gcloud_authenticate: configured gcloud project"
+}
+
+_dns_gcloud_authenticate() {
+  account=$(gcloud auth list --filter "status:ACTIVE" --format "value(account)")
+}
 
 _dns_gcloud_start_tr() {
   if ! trd=$(mktemp -d); then
