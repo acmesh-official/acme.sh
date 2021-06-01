@@ -4132,7 +4132,9 @@ issue() {
 
   _debug "Using ACME_DIRECTORY: $ACME_DIRECTORY"
 
-  _initAPI
+  if ! _initAPI; then
+    return 1
+  fi
 
   if [ -f "$DOMAIN_CONF" ]; then
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
