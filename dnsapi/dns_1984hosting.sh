@@ -194,7 +194,7 @@ _check_cookie() {
 # _domain=domain.com
 _get_root() {
   domain="$1"
-  i=2
+  i=1
   p=1
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
@@ -220,6 +220,7 @@ _get_root() {
 _authget() {
   export _H1="Cookie: $One984HOSTING_COOKIE"
   _response=$(_get "$1")
+  _debug2 _response "$_response"
 }
 
 # truncate huge HTML response
