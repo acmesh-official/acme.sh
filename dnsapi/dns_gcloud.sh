@@ -101,10 +101,6 @@ _dns_gcloud_authenticate() {
   _saveaccountconf_mutable CF_Account_ID "$CF_Account_ID"
 }
 
-_dns_gcloud_authenticate() {
-  account=$(gcloud auth list --filter "status:ACTIVE" --format "value(account)")
-}
-
 _dns_gcloud_start_tr() {
   if ! trd=$(mktemp -d); then
     _err "_dns_gcloud_start_tr: failed to create temporary directory"
