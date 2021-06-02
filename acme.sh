@@ -2538,7 +2538,7 @@ _initAPI() {
     response=$(_get "$_api_server")
     if [ "$?" != "0" ]; then
       _debug2 "response" "$response"
-      _err "Can not init api."
+      _err "Can not init api for: $_api_server."
       return 1
     fi
     response=$(echo "$response" | _json_decode)
@@ -4132,7 +4132,9 @@ issue() {
 
   _debug "Using ACME_DIRECTORY: $ACME_DIRECTORY"
 
-  _initAPI
+  if ! _initAPI; then
+    return 1
+  fi
 
   if [ -f "$DOMAIN_CONF" ]; then
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
