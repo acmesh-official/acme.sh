@@ -67,24 +67,22 @@ _dns_gcloud_authenticate() {
     return 0
   fi
 
-  _debug "_dns_gcloud_authenticate: attempting to authenticate using service account key"
+  _debug "_dns_gcloud_authenticate: unauthenticated"
+  _debug "_dns_gcloud_authenticate: authenticating using service account key"
 
   GCLOUD_Service_Account_Key="${GCLOUD_Service_Account_Key:-$(_readaccountconf_mutable GCLOUD_Service_Account_Key)}"
   GCLOUD_Project_ID="${GCLOUD_Project_ID:-$(_readaccountconf_mutable GCLOUD_Project_ID)}"
 
-  if [ -z "$GCLOUD_Service_Account_Key" ]; then
+  if [ -z "$GCLOUD_Service_Account_Key" ] || [ -z "$GCLOUD_Project_ID" ]; then
     GCLOUD_Service_Account_Key=""
     GCLOUD_Project_ID=""
-    _err "_dns_gcloud_authenticate: missing Google Cloud service account key"
+    _err "_dns_gcloud_authenticate: missing Google Cloud service account key and or project ID"
     return 1
   fi
 
-  if [ -z "$GCLOUD_Project_ID" ]; then
-    GCLOUD_Service_Account_Key=""
-    GCLOUD_Project_ID=""
-    _err "_dns_gcloud_authenticate: missing Google Cloud project ID"
-    return 1
-  fi
+  #save the service account api key and project ID to the account conf file.
+  _saveaccountconf_mutable GCLOUD_Service_Account_Key "$GCLOUD_Service_Account_Key"
+  _saveaccountconf_mutable GCLOUD_Project_ID "$GCLOUD_Project_ID"
 
   if ! echo "$GCLOUD_Service_Account_Key" | gcloud auth activate-service-account --key-file -; then
     _err "_dns_gcloud_authenticate: failed to authenticate with service account key"
@@ -96,10 +94,6 @@ _dns_gcloud_authenticate() {
   gcloud config set project "$GCLOUD_Project_ID"
 
   _info "_dns_gcloud_authenticate: configured gcloud project"
-
-  #save the service account api key and project ID to the account conf file.
-  _saveaccountconf_mutable GCLOUD_Service_Account_Key "$GCLOUD_Service_Account_Key"
-  _saveaccountconf_mutable GCLOUD_Project_ID "$GCLOUD_Project_ID"
 }
 
 _dns_gcloud_start_tr() {
