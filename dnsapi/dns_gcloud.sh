@@ -55,11 +55,12 @@ _dns_gcloud_authenticate() {
   _info "_dns_gcloud_authenticate: authenticating gcloud"
   _debug "_dns_gcloud_authenticate: checking authenticated status"
 
-  account=$(gcloud auth list \
-    --filter "status:ACTIVE" \
-    --format "value(account)" \
-    --verbosity error
-    )
+  account=$(
+    gcloud auth list \
+      --filter "status:ACTIVE" \
+      --format "value(account)" \
+      --verbosity error
+  )
 
   if [ "$account" ]; then
     _info "_dns_gcloud_authenticate: already authenticated"
