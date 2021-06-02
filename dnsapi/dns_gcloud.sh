@@ -69,8 +69,8 @@ _dns_gcloud_authenticate() {
 
   _debug "_dns_gcloud_authenticate: attempting to authenticate using service account key"
 
-  GCLOUD_Service_Account_Key="${CF_Token:-$(_readaccountconf_mutable GCLOUD_Service_Account_Key)}"
-  GCLOUD_Project_ID="${CF_Account_ID:-$(_readaccountconf_mutable GCLOUD_Project_ID)}"
+  GCLOUD_Service_Account_Key="${GCLOUD_Service_Account_Key:-$(_readaccountconf_mutable GCLOUD_Service_Account_Key)}"
+  GCLOUD_Project_ID="${GCLOUD_Project_ID:-$(_readaccountconf_mutable GCLOUD_Project_ID)}"
 
   if [ -z "$GCLOUD_Service_Account_Key" ]; then
     GCLOUD_Service_Account_Key=""
@@ -97,6 +97,7 @@ _dns_gcloud_authenticate() {
 
   _info "_dns_gcloud_authenticate: configured gcloud project"
 
+  #save the service account api key and project ID to the account conf file.
   _saveaccountconf_mutable GCLOUD_Service_Account_Key "$GCLOUD_Service_Account_Key"
   _saveaccountconf_mutable GCLOUD_Project_ID "$GCLOUD_Project_ID"
 }
