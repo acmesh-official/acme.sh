@@ -59,7 +59,7 @@ jobs:
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Set env file
       run: |
-        cd ../acmetest 
+        cd ../acmetest
         if [ "${{ secrets.TokenName1}}" ] ; then
           echo "${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}" >> env.list
         fi
@@ -75,7 +75,7 @@ jobs:
         if [ "${{ secrets.TokenName5}}" ] ; then
           echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> env.list
         fi
-        echo "TEST_DNS_NO_WILDCARD" >> env.list 
+        echo "TEST_DNS_NO_WILDCARD" >> env.list
         echo "TEST_DNS_SLEEP" >> env.list
     - name: Run acmetest
       run: cd ../acmetest && ./rundocker.sh  testall
@@ -226,8 +226,10 @@ jobs:
     - uses: vmactions/solaris-vm@v0.0.3
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
-        prepare: pkgutil -y -i socat curl
+        prepare: pkgutil -y -i socat
         run: |
+          pkg set-mediator -v -I default@1.1 openssl
+          export PATH=/usr/gnu/bin:$PATH
           if [ "${{ secrets.TokenName1}}" ] ; then
             export ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
           fi
@@ -245,5 +247,3 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-
-        
