@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=2.9.0
+VER=3.0.0
 
 PROJECT_NAME="acme.sh"
 
@@ -2538,7 +2538,7 @@ _initAPI() {
     response=$(_get "$_api_server")
     if [ "$?" != "0" ]; then
       _debug2 "response" "$response"
-      _err "Can not init api."
+      _err "Can not init api for: $_api_server."
       return 1
     fi
     response=$(echo "$response" | _json_decode)
@@ -3056,7 +3056,7 @@ _checkConf() {
       _debug "Try include files"
       for included in $(cat "$2" | tr "\t" " " | grep "^ *include *.*;" | sed "s/include //" | tr -d " ;"); do
         _debug "check included $included"
-        if !_startswith "$included" "/" && _exists dirname; then
+        if ! _startswith "$included" "/" && _exists dirname; then
           _relpath="$(dirname "$_c_file")"
           _debug "_relpath" "$_relpath"
           included="$_relpath/included"
@@ -4132,7 +4132,9 @@ issue() {
 
   _debug "Using ACME_DIRECTORY: $ACME_DIRECTORY"
 
-  _initAPI
+  if ! _initAPI; then
+    return 1
+  fi
 
   if [ -f "$DOMAIN_CONF" ]; then
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
