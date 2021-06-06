@@ -59,7 +59,7 @@ dns_1984hosting_add() {
   if _contains "$response" '"haserrors": true'; then
     _err "1984Hosting failed to add TXT record for $_sub_domain bad RC from _post"
     return 1
-  elif _contains "$response" "<html>"; then
+  elif _contains "$response" "html>"; then
     _err "1984Hosting failed to add TXT record for $_sub_domain. Check $HTTP_HEADER file"
     return 1
   elif _contains "$response" '"auth": false'; then
