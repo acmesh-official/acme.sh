@@ -204,7 +204,7 @@ _get_root() {
     fi
 
     _authget "https://management.1984hosting.com/domains/soacheck/?zone=$h&nameserver=ns0.1984.is."
-    if _contains "$_response" "serial" && ! _contains "$_response" 'null}'; then
+    if _contains "$_response" "serial" && ! _contains "$_response" "null"; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain="$h"
       return 0
