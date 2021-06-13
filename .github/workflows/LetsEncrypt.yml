@@ -97,7 +97,7 @@ jobs:
       shell: cmd
       run: |
           cd ../acmetest \
-          set ACME_DIRECTORY=${{ matrix.TEST_ACME_Server }} \
+          && set ACME_DIRECTORY=${{ matrix.TEST_ACME_Server }} \
           && bash.exe -c ./letest.sh
 
   FreeBSD:
