@@ -3538,14 +3538,14 @@ _regAccount() {
         _err "Can not get EAB credentials from ZeroSSL."
         return 1
       fi
-      _debug2 "$_eabresp"
+      _secure_debug2 _eabresp "$_eabresp"
       _eab_id="$(echo "$_eabresp" | tr ',}' '\n' | grep '"eab_kid"' | cut -d : -f 2 | tr -d '"')"
       _secure_debug2 _eab_id "$_eab_id"
       if [ -z "$_eab_id" ]; then
         _err "Can not resolve _eab_id"
         return 1
       fi
-      _eab_hmac_key="$(echo "$_eabresp" | tr ',}' '\n' | grep '"eab_hmac_key"' | cut -d : -f 2 | tr -d '"')"
+      _eab_hmac_key="$(echo "$_eabresp" | tr ',}' '\n\n' | grep '"eab_hmac_key"' | cut -d : -f 2 | tr -d '"')"
       _secure_debug2 _eab_hmac_key "$_eab_hmac_key"
       if [ -z "$_eab_hmac_key" ]; then
         _err "Can not resolve _eab_hmac_key"
