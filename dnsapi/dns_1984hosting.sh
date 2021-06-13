@@ -59,7 +59,7 @@ dns_1984hosting_add() {
   if _contains "$response" '"haserrors": true'; then
     _err "1984Hosting failed to add TXT record for $_sub_domain bad RC from _post"
     return 1
-  elif _contains "$response" "<html>"; then
+  elif _contains "$response" "html>"; then
     _err "1984Hosting failed to add TXT record for $_sub_domain. Check $HTTP_HEADER file"
     return 1
   elif _contains "$response" '"auth": false'; then
@@ -204,7 +204,7 @@ _get_root() {
     fi
 
     _authget "https://management.1984hosting.com/domains/soacheck/?zone=$h&nameserver=ns0.1984.is."
-    if _contains "$_response" "serial" && ! _contains "$_response" 'null}'; then
+    if _contains "$_response" "serial" && ! _contains "$_response" "null"; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain="$h"
       return 0
