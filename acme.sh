@@ -29,7 +29,7 @@ CA_BUYPASS_TEST="https://api.test4.buypass.no/acme/directory"
 CA_ZEROSSL="https://acme.zerossl.com/v2/DV90"
 _ZERO_EAB_ENDPOINT="http://api.zerossl.com/acme/eab-credentials-email"
 
-DEFAULT_CA=$CA_LETSENCRYPT_V2
+DEFAULT_CA=$CA_ZEROSSL
 DEFAULT_STAGING_CA=$CA_LETSENCRYPT_V2_TEST
 
 CA_NAMES="
@@ -3526,8 +3526,10 @@ _regAccount() {
     if [ -z "$_eab_id" ] || [ -z "$_eab_hmac_key" ]; then
       _info "No EAB credentials found for ZeroSSL, let's get one"
       if [ -z "$_email" ]; then
-        _err "Please provide a email address for ZeroSSL account."
-        _err "See ZeroSSL usage: $_ZEROSSL_WIKI"
+        _info "$(__green "$PROJECT_NAME is using ZeroSSL as default CA now.")"
+        _info "$(__green "Please update your account with an email address first.")"
+        _info "$(__green "$PROJECT_ENTRY --register-account -m my@example.com")"
+        _info "See: $(__green "$_ZEROSSL_WIKI")"
         return 1
       fi
       _eabresp=$(_post "email=$_email" $_ZERO_EAB_ENDPOINT)
@@ -3538,11 +3540,13 @@ _regAccount() {
       fi
       _debug2 "$_eabresp"
       _eab_id="$(echo "$_eabresp" | tr ',}' '\n' | grep '"eab_kid"' | cut -d : -f 2 | tr -d '"')"
+      _secure_debug2 _eab_id "$_eab_id"
       if [ -z "$_eab_id" ]; then
         _err "Can not resolve _eab_id"
         return 1
       fi
       _eab_hmac_key="$(echo "$_eabresp" | tr ',}' '\n' | grep '"eab_hmac_key"' | cut -d : -f 2 | tr -d '"')"
+      _secure_debug2 _eab_hmac_key "$_eab_hmac_key"
       if [ -z "$_eab_hmac_key" ]; then
         _err "Can not resolve _eab_hmac_key"
         return 1
@@ -3564,7 +3568,7 @@ _regAccount() {
     eab_sign_t="$eab_protected64.$eab_payload64"
     _debug3 eab_sign_t "$eab_sign_t"
 
-    key_hex="$(_durl_replace_base64 "$_eab_hmac_key" | _dbase64 | _hex_dump | tr -d ' ')"
+    key_hex="$(_durl_replace_base64 "$_eab_hmac_key" | _dbase64 multi | _hex_dump | tr -d ' ')"
     _debug3 key_hex "$key_hex"
 
     eab_signature=$(printf "%s" "$eab_sign_t" | _hmac sha256 $key_hex | _base64 | _url_replace)
