@@ -23,9 +23,9 @@ dns_burp_add() {
   _saveaccountconf_mutable BURP_COLLABORATOR_RESTART "$BURP_COLLABORATOR_RESTART"
 
   json=$(cat $BURP_COLLABORATOR_CONFIG)
-  json=$(echo $json|jq ".customDnsRecords += [{\"label\": \"_acme-challenge\", \"record\": \"$txtvalue\", \"type\": \"TXT\", \"ttl\": 60}]")
+  json=$(echo "$json" | jq ".customDnsRecords += [{\"label\": \"_acme-challenge\", \"record\": \"$txtvalue\", \"type\": \"TXT\", \"ttl\": 60}]")
 
-  echo "$json" > $BURP_COLLABORATOR_CONFIG
+  echo "$json" >$BURP_COLLABORATOR_CONFIG
 
   eval $BURP_COLLABORATOR_RESTART
 
@@ -35,14 +35,13 @@ dns_burp_add() {
 #Usage: fulldomain txtvalue
 #Remove the txt record after validation.
 dns_burp_rm() {
-  fulldomain=$1
   txtvalue=$2
   _info "Using burp"
 
   json=$(cat $BURP_COLLABORATOR_CONFIG)
-  json=$(echo $json|jq "del(.customDnsRecords[] | select(.label == \"_acme-challenge\"))")
+  json=$(echo "$json" | jq "del(.customDnsRecords[] | select(.label == \"_acme-challenge\"))")
 
-  echo "$json" > $BURP_COLLABORATOR_CONFIG
+  echo "$json" >$BURP_COLLABORATOR_CONFIG
 
   eval $BURP_COLLABORATOR_RESTART
 }
