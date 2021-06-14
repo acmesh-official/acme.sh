@@ -32,7 +32,7 @@ jobs:
     - name: Run acmetest
       run: |
           cd ../acmetest \
-          && ./rundocker.sh  testplat {{ matrix.os }}
+          && ./rundocker.sh  testplat ${{ matrix.os }}
 
 
 
