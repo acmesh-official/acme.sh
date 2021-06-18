@@ -50,7 +50,7 @@ dns_hexonet_add() {
   fi
 
   _info "Adding record"
-  if _hexonet_rest "command=UpdateDNSZone&dnszone=${_domain}.&addrr0=${_sub_domain}%20IN%20TXT%20${txtvalue}"; then
+  if _hexonet_rest "command=UpdateDNSZone&dnszone=${_domain}.&addrr0=${_sub_domain}%20300%20IN%20TXT%20${txtvalue}"; then
     if _contains "$response" "CODE=200"; then
       _info "Added, OK"
       return 0
