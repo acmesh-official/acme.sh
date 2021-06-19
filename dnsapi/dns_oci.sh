@@ -30,6 +30,8 @@ dns_oci_add() {
         _err "Error: failed to add TXT record for ${_sub_domain}.${_domain}."
         return 1
       fi
+    else
+      return 1
     fi
 
   else
@@ -53,6 +55,8 @@ dns_oci_rm() {
         _err "Error: failed to remove TXT record for ${_sub_domain}.${_domain}."
         return 1
       fi
+    else
+      return 1
     fi
 
   else
