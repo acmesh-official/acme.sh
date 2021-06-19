@@ -51,7 +51,7 @@ dns_nsd_rm() {
   Nsd_ZoneFile="${Nsd_ZoneFile:-$(_readdomainconf Nsd_ZoneFile)}"
   Nsd_Command="${Nsd_Command:-$(_readdomainconf Nsd_Command)}"
 
-  sed -i "/$fulldomain. $ttlvalue IN TXT \"$txtvalue\"/d" "$Nsd_ZoneFile"
+  _sed_i "/$fulldomain. $ttlvalue IN TXT \"$txtvalue\"/d" "$Nsd_ZoneFile"
   _info "Removed TXT record for $fulldomain"
   _debug "Running $Nsd_Command"
   if eval "$Nsd_Command"; then
