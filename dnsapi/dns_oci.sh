@@ -3,7 +3,10 @@
 # Acme.sh DNS API plugin for Oracle Cloud Infrastructure
 # Copyright (c) 2021, Oracle and/or its affiliates
 #
-# Required OCI CLI environment variables:
+# The plugin will automatically use the default profile from an OCI SDK and CLI
+# configuration file, if it exists.
+#
+# Alternatively, set the following environment variables:
 # - OCI_CLI_TENANCY : OCID of tenancy that contains the target DNS zone
 # - OCI_CLI_USER    : OCID of user with permission to add/remove records from zones
 # - OCI_CLI_REGION  : Should point to the tenancy home region
@@ -19,18 +22,15 @@ dns_oci_add() {
   _fqdn="$1"
   _rdata="$2"
 
-  if _oci_config; then
+  if _get_oci_zone; then
 
-    if [ "$_sub_domain" ] && [ "$_domain" ]; then
-      _add_record_body="{\"items\":[{\"domain\":\"${_sub_domain}.${_domain}\",\"rdata\":\"$_rdata\",\"rtype\":\"TXT\",\"ttl\": 30,\"operation\":\"ADD\"}]}"
-      response=$(_signed_request "PATCH" "/20180115/zones/${_domain}/records" "$_add_record_body")
-      if [ "$response" ]; then
-        _info "Success: added TXT record for ${_sub_domain}.${_domain}."
-      else
-        _err "Error: failed to add TXT record for ${_sub_domain}.${_domain}."
-        return 1
-      fi
+    _add_record_body="{\"items\":[{\"domain\":\"${_sub_domain}.${_domain}\",\"rdata\":\"$_rdata\",\"rtype\":\"TXT\",\"ttl\": 30,\"operation\":\"ADD\"}]}"
+    response=$(_signed_request "PATCH" "/20180115/zones/${_domain}/records" "$_add_record_body")
+    if [ "$response" ]; then
+      _info "Success: added TXT record for ${_sub_domain}.${_domain}."
     else
+      _err "Error: failed to add TXT record for ${_sub_domain}.${_domain}."
+      _err "Check that the user has permission to add records to this zone."
       return 1
     fi
 
@@ -44,18 +44,15 @@ dns_oci_rm() {
   _fqdn="$1"
   _rdata="$2"
 
-  if _oci_config; then
+  if _get_oci_zone; then
 
-    if [ "$_sub_domain" ] && [ "$_domain" ]; then
-      _remove_record_body="{\"items\":[{\"domain\":\"${_sub_domain}.${_domain}\",\"rdata\":\"$_rdata\",\"rtype\":\"TXT\",\"operation\":\"REMOVE\"}]}"
-      response=$(_signed_request "PATCH" "/20180115/zones/${_domain}/records" "$_remove_record_body")
-      if [ "$response" ]; then
-        _info "Success: removed TXT record for ${_sub_domain}.${_domain}."
-      else
-        _err "Error: failed to remove TXT record for ${_sub_domain}.${_domain}."
-        return 1
-      fi
+    _remove_record_body="{\"items\":[{\"domain\":\"${_sub_domain}.${_domain}\",\"rdata\":\"$_rdata\",\"rtype\":\"TXT\",\"operation\":\"REMOVE\"}]}"
+    response=$(_signed_request "PATCH" "/20180115/zones/${_domain}/records" "$_remove_record_body")
+    if [ "$response" ]; then
+      _info "Success: removed TXT record for ${_sub_domain}.${_domain}."
     else
+      _err "Error: failed to remove TXT record for ${_sub_domain}.${_domain}."
+      _err "Check that the user has permission to remove records from this zone."
       return 1
     fi
 
@@ -66,12 +63,41 @@ dns_oci_rm() {
 }
 
 ####################  Private functions below ##################################
+_get_oci_zone() {
+
+  if ! _oci_config; then
+    return 1
+  fi
+
+  if ! _get_zone "$_fqdn"; then
+    _err "Error: DNS Zone not found for $_fqdn in $OCI_CLI_TENANCY"
+    return 1
+  fi
+
+  return 0
+
+}
+
 _oci_config() {
 
-  OCI_CLI_TENANCY="${OCI_CLI_TENANCY:-$(_readaccountconf_mutable OCI_CLI_TENANCY)}"
-  OCI_CLI_USER="${OCI_CLI_USER:-$(_readaccountconf_mutable OCI_CLI_USER)}"
-  OCI_CLI_KEY="${OCI_CLI_KEY:-$(_readaccountconf_mutable OCI_CLI_KEY)}"
-  OCI_CLI_REGION="${OCI_CLI_REGION:-$(_readaccountconf_mutable OCI_CLI_REGION)}"
+  OCI_CLI_CONFIG_FILE="${OCI_CLI_CONFIG_FILE:-$HOME/.oci/config}"
+  OCI_CLI_PROFILE="${OCI_CLI_PROFILE:-DEFAULT}"
+
+  # Let's try and find the values automagically first
+  # But still let any environment variables take precendence
+  if [ -f "$OCI_CLI_CONFIG_FILE" ]; then
+    _info "Reading OCI configuration file: $(_green "$OCI_CLI_CONFIG_FILE")"
+    OCI_CLI_TENANCY="${OCI_CLI_TENANCY:-$(_read_oci_config tenancy)}"
+    OCI_CLI_USER="${OCI_CLI_USER:-$(_read_oci_config user)}"
+    OCI_CLI_KEY_FILE="${OCI_CLI_KEY_FILE:-$(_read_oci_config key_file)}"
+    OCI_CLI_REGION="${OCI_CLI_REGION:-$(_read_oci_config region)}"
+  else
+    OCI_CLI_TENANCY="${OCI_CLI_TENANCY:-$(_readaccountconf_mutable OCI_CLI_TENANCY)}"
+    OCI_CLI_USER="${OCI_CLI_USER:-$(_readaccountconf_mutable OCI_CLI_USER)}"
+    OCI_CLI_KEY="${OCI_CLI_KEY:-$(_readaccountconf_mutable OCI_CLI_KEY)}"
+    OCI_CLI_REGION="${OCI_CLI_REGION:-$(_readaccountconf_mutable OCI_CLI_REGION)}"
+    _save_config="true"
+  fi
 
   _not_set=""
   _ret=0
@@ -85,7 +111,7 @@ _oci_config() {
     if [ -f "$OCI_CLI_KEY_FILE" ]; then
       OCI_CLI_KEY=$(_base64 <"$OCI_CLI_KEY_FILE")
     else
-      _err "Fatal: unable to read $OCI_CLI_KEY_FILE."
+      _err "Fatal: unable to read key file: $OCI_CLI_KEY_FILE"
       return 1
     fi
   fi
@@ -106,19 +132,18 @@ _oci_config() {
     _err "Fatal: required environment variable(s): ${_not_set} not set."
     _ret=1
   else
-    _saveaccountconf_mutable OCI_CLI_TENANCY "$OCI_CLI_TENANCY"
-    _saveaccountconf_mutable OCI_CLI_USER "$OCI_CLI_USER"
-    _saveaccountconf_mutable OCI_CLI_KEY "$OCI_CLI_KEY"
-    _saveaccountconf_mutable OCI_CLI_REGION "$OCI_CLI_REGION"
+    if [ "$_save_config" ]; then
+      _saveaccountconf_mutable OCI_CLI_TENANCY "$OCI_CLI_TENANCY"
+      _saveaccountconf_mutable OCI_CLI_USER "$OCI_CLI_USER"
+      _saveaccountconf_mutable OCI_CLI_KEY "$OCI_CLI_KEY"
+      _saveaccountconf_mutable OCI_CLI_REGION "$OCI_CLI_REGION"
+    else
+      _info "Success: OCI configuration retrieved from $OCI_CLI_CONFIG_FILE."
+    fi
   fi
 
   if ! _contains "PRIVATE KEY" "$OCI_CLI_KEY"; then
     OCI_CLI_KEY=$(printf "%s" "$OCI_CLI_KEY" | _dbase64 multiline)
-  fi
-
-  if ! _get_zone "$_fqdn"; then
-    _err "Error: DNS Zone not found for $_fqdn."
-    _ret=1
   fi
 
   return $_ret
@@ -242,5 +267,39 @@ _signed_request() {
 
   printf "%s" "$_return"
   return $_ret
+
+}
+
+# file  key  [section]
+_read_oci_config() {
+  _key="$1"
+
+  _start_n=$(grep -n '\['"$OCI_CLI_PROFILE"']' "$OCI_CLI_CONFIG_FILE" | cut -d : -f 1)
+  _debug2 _start_n "$_start_n"
+  if [ -z "$_start_n" ]; then
+    _err "Can not find section: $OCI_CLI_PROFILE"
+    return 1
+  fi
+
+  _start_nn=$(_math "$_start_n" + 1)
+  _debug2 "_start_nn" "$_start_nn"
+
+  _left="$(sed -n "${_start_nn},99999p" "$OCI_CLI_CONFIG_FILE")"
+  _debug2 _left "$_left"
+  _end="$(echo "$_left" | grep -n "^\[" | _head_n 1)"
+  _debug2 "_end" "$_end"
+  if [ "$_end" ]; then
+    _end_n=$(echo "$_end" | cut -d : -f 1)
+    _debug "_end_n" "$_end_n"
+    _seg_n=$(echo "$_left" | sed -n "1,${_end_n}p")
+  else
+    _seg_n="$_left"
+  fi
+
+  _debug2 "_seg_n" "$_seg_n"
+  _lineini="$(echo "$_seg_n" | grep "^ *$_key *= *")"
+
+  _debug2 "_lineini" "$_lineini"
+  printf "%b" "$(eval "echo $_lineini | sed -e \"s/${_key}[[:space:]]*=[[:space:]]*//g\"")"
 
 }
