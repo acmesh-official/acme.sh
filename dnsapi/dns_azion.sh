@@ -3,8 +3,6 @@
 #
 #AZION_Username=""
 #AZION_Password=""
-#AZION_Token=""
-#AZION_ZoneID=""
 #
 
 AZION_Api="https://api.azionapi.net"
@@ -17,30 +15,6 @@ dns_azion_add() {
   fulldomain=$1
   txtvalue=$2
 
-  AZION_Username="${AZION_Username:-$(_readaccountconf_mutable AZION_Username)}"
-  AZION_Password="${AZION_Password:-$(_readaccountconf_mutable AZION_Password)}"
-  AZION_Token="${AZION_Token:-$(_readaccountconf_mutable AZION_Token)}"
-  AZION_ZoneID="${AZION_ZoneID:-$(_readaccountconf_mutable AZION_ZoneID)}"
-
-  if ! _contains "$AZION_Username" "@"; then
-    _err "It seems that the AZION_Username is not a valid email address. Revalidate your environments."
-    return 1
-  fi
-
-  if [ -z "$AZION_Token" ]; then
-    if [ -z "$AZION_Username" ] || [ -z "$AZION_Password" ]; then
-      _err "You didn't specified a AZION_Username/AZION_Password to generate Azion token."
-      return 1
-    fi
-    _get_token
-    AZION_Token="${AZION_Token:-$(_readaccountconf_mutable AZION_Token)}"
-  fi
-
-  _saveaccountconf_mutable AZION_Username "$AZION_Username"
-  _saveaccountconf_mutable AZION_Password "$AZION_Password"
-  _saveaccountconf_mutable AZION_Token "$AZION_Token"
-  _saveaccountconf_mutable AZION_ZoneID "$AZION_ZoneID"
-
   _debug "Detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "Domain not found"
@@ -52,7 +26,7 @@ dns_azion_add() {
   _debug _domain_id "$_domain_id"
 
   _info "Add or update record"
-  _get_record "$_sub_domain"
+  _get_record "$_domain_id" "$_sub_domain"
   if [ "$record_id" ]; then
     _payload="{\"record_type\": \"TXT\", \"entry\": \"$_sub_domain\", \"answers_list\": [$answers_list, \"$txtvalue\"], \"ttl\": 20}"
     if _azion_rest PUT "intelligent_dns/$_domain_id/records/$record_id" "$_payload"; then
@@ -80,25 +54,6 @@ dns_azion_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  AZION_Username="${AZION_Username:-$(_readaccountconf_mutable AZION_Username)}"
-  AZION_Password="${AZION_Password:-$(_readaccountconf_mutable AZION_Password)}"
-  AZION_Token="${AZION_Token:-$(_readaccountconf_mutable AZION_Token)}"
-  AZION_ZoneID="${AZION_ZoneID:-$(_readaccountconf_mutable AZION_ZoneID)}"
-
-  if ! _contains "$AZION_Username" "@"; then
-    _err "It seems that the AZION_Username is not a valid email address. Revalidate your environments."
-    return 1
-  fi
-
-  if [ -z "$AZION_Token" ]; then
-    if [ -z "$AZION_Username" ] || [ -z "$AZION_Password" ]; then
-      _err "You didn't specified a AZION_Username/AZION_Password to generate Azion token."
-      return 1
-    fi
-    _get_token
-    AZION_Token="${AZION_Token:-$(_readaccountconf_mutable AZION_Token)}"
-  fi
-
   _debug "Detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "Domain not found"
@@ -110,7 +65,7 @@ dns_azion_rm() {
   _debug _domain_id "$_domain_id"
 
   _info "Removing record"
-  _get_record "$_sub_domain"
+  _get_record "$_domain_id" "$_sub_domain"
   if [ "$record_id" ]; then
     if _azion_rest DELETE "intelligent_dns/$_domain_id/records/$record_id"; then
       _info "Record removed."
@@ -136,27 +91,6 @@ _get_root() {
   i=1
   p=1
 
-  # Use Zone ID directly if provided
-  if [ "$AZION_ZoneID" ]; then
-    if ! _azion_rest GET "intelligent_dns/$AZION_ZoneID"; then
-      return 1
-    else
-      if _contains "$response" "\"domain\":\"" >/dev/null; then
-        _domain=$(echo "$response" | _egrep_o "\"domain\":\"[^\"]*\"" | cut -d : -f 2 | _head_n 1 | tr -d \")
-        if [ "$_domain" ]; then
-          _cutlength=$((${#domain} - ${#_domain} - 1))
-          _sub_domain=$(printf "%s" "$domain" | cut -c "1-$_cutlength")
-          _domain_id=$AZION_ZoneID
-          return 0
-        else
-          return 1
-        fi
-      else
-        return 1
-      fi
-    fi
-  fi
-
   if ! _azion_rest GET "intelligent_dns"; then
     return 1
   fi
@@ -175,7 +109,6 @@ _get_root() {
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain=$h
-        _saveaccountconf_mutable AZION_ZoneID "$_domain_id"
         return 0
       fi
       return 1
@@ -187,11 +120,10 @@ _get_root() {
 }
 
 _get_record() {
-  _record=$1
+  _domain_id=$1
+  _record=$2
 
-  AZION_ZoneID="${AZION_ZoneID:-$(_readaccountconf_mutable AZION_ZoneID)}"
-
-  if ! _azion_rest GET "intelligent_dns/$AZION_ZoneID/records"; then
+  if ! _azion_rest GET "intelligent_dns/$_domain_id/records"; then
     return 1
   fi
 
@@ -211,6 +143,19 @@ _get_token() {
   AZION_Username="${AZION_Username:-$(_readaccountconf_mutable AZION_Username)}"
   AZION_Password="${AZION_Password:-$(_readaccountconf_mutable AZION_Password)}"
 
+  if ! _contains "$AZION_Username" "@"; then
+    _err "It seems that the AZION_Username is not a valid email address. Revalidate your environments."
+    return 1
+  fi
+
+  if [ -z "$AZION_Username" ] || [ -z "$AZION_Password" ]; then
+    _err "You didn't specified a AZION_Username/AZION_Password to generate Azion token."
+    return 1
+  fi
+
+  _saveaccountconf_mutable AZION_Username "$AZION_Username"
+  _saveaccountconf_mutable AZION_Password "$AZION_Password"
+
   _basic_auth=$(printf "%s:%s" "$AZION_Username" "$AZION_Password" | _base64)
   _debug _basic_auth "$_basic_auth"
 
@@ -219,11 +164,9 @@ _get_token() {
   export _H3="Authorization: Basic $_basic_auth"
 
   response="$(_post "" "$AZION_Api/tokens" "" "POST")"
-  _debug2 response "$response"
   if _contains "$response" "\"token\":\"" >/dev/null; then
     _azion_token=$(echo "$response" | _egrep_o "\"token\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
-    _debug _azion_token "$_azion_token"
-    _saveaccountconf_mutable AZION_Token "$_azion_token"
+    export AZION_Token="$_azion_token"
   else
     _err "Failed to generate Azion token"
     return 1
@@ -235,7 +178,10 @@ _azion_rest() {
   _uri="$2"
   _data="$3"
 
-  AZION_Token="${AZION_Token:-$(_readaccountconf_mutable AZION_Token)}"
+  if [ -z "$AZION_Token" ]; then
+    _get_token
+  fi
+  _debug2 token "$AZION_Token"
 
   export _H1="Accept: application/json; version=3"
   export _H2="Content-Type: application/json"
