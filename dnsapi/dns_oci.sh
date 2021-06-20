@@ -166,7 +166,6 @@ _oci_config() {
 
 }
 
-
 # _get_zone(): retrieves the Zone name and OCID
 #
 # _sub_domain=_acme-challenge.www
@@ -321,6 +320,5 @@ _readini() {
   _inivalue="$(printf "%b" "$(eval "echo $_lineini | sed \"s/^ *${_key} *= *//g\"")")"
   _debug2 _inivalue "$_inivalue"
   echo "$_inivalue"
-
 
 }
