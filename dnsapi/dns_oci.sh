@@ -80,75 +80,92 @@ _get_oci_zone() {
 
 _oci_config() {
 
-  OCI_CLI_CONFIG_FILE="${OCI_CLI_CONFIG_FILE:-$HOME/.oci/config}"
-  OCI_CLI_PROFILE="${OCI_CLI_PROFILE:-DEFAULT}"
+  _DEFAULT_OCI_CLI_CONFIG_FILE="$HOME/.oci/config"
+  OCI_CLI_CONFIG_FILE="${OCI_CLI_CONFIG_FILE:-$(_readaccountconf_mutable OCI_CLI_CONFIG_FILE)}"
 
-  # Read the configuration from either the default or specified config file
-  # Override the config file value with the environment variable value (if set)
-  if [ -f "$OCI_CLI_CONFIG_FILE" ]; then
-    _info "Reading OCI configuration file: $OCI_CLI_CONFIG_FILE"
-    OCI_CLI_TENANCY="${OCI_CLI_TENANCY:-$(_readini tenancy "$OCI_CLI_CONFIG_FILE" "$OCI_CLI_PROFILE")}"
-    OCI_CLI_USER="${OCI_CLI_USER:-$(_readini user "$OCI_CLI_CONFIG_FILE" "$OCI_CLI_PROFILE")}"
-    OCI_CLI_KEY_FILE="${OCI_CLI_KEY_FILE:-$(_readini key_file "$OCI_CLI_CONFIG_FILE" "$OCI_CLI_PROFILE")}"
-    OCI_CLI_REGION="${OCI_CLI_REGION:-$(_readini region "$OCI_CLI_CONFIG_FILE" "$OCI_CLI_PROFILE")}"
+  if [ -z "$OCI_CLI_CONFIG_FILE" ]; then
+    OCI_CLI_CONFIG_FILE="$_DEFAULT_OCI_CLI_CONFIG_FILE"
+  fi
+
+  if [ "$_DEFAULT_OCI_CLI_CONFIG_FILE" != "$OCI_CLI_CONFIG_FILE" ]; then
+    _saveaccountconf_mutable OCI_CLI_CONFIG_FILE "$OCI_CLI_CONFIG_FILE"
   else
-    OCI_CLI_TENANCY="${OCI_CLI_TENANCY:-$(_readaccountconf_mutable OCI_CLI_TENANCY)}"
-    OCI_CLI_USER="${OCI_CLI_USER:-$(_readaccountconf_mutable OCI_CLI_USER)}"
-    OCI_CLI_KEY="${OCI_CLI_KEY:-$(_readaccountconf_mutable OCI_CLI_KEY)}"
-    OCI_CLI_REGION="${OCI_CLI_REGION:-$(_readaccountconf_mutable OCI_CLI_REGION)}"
-    _save_config="true"
+    _clearaccountconf_mutable OCI_CLI_CONFIG_FILE
   fi
 
-  _not_set=""
-  _ret=0
-
-  if [ -z "$OCI_CLI_KEY_FILE" ] && [ -z "$OCI_CLI_KEY" ]; then
-    _err "Fatal: you must provide a value for either OCI_CLI_KEY_FILE or OCI_CLI_KEY."
-    return 1
+  _DEFAULT_OCI_CLI_PROFILE="DEFAULT"
+  OCI_CLI_PROFILE="${OCI_CLI_PROFILE:-$(_readaccountconf_mutable OCI_CLI_PROFILE)}"
+  if [ "$_DEFAULT_OCI_CLI_PROFILE" != "$OCI_CLI_PROFILE" ]; then
+    _saveaccountconf_mutable OCI_CLI_PROFILE "$OCI_CLI_PROFILE"
+  else
+    OCI_CLI_PROFILE="$_DEFAULT_OCI_CLI_PROFILE"
+    _clearaccountconf_mutable OCI_CLI_PROFILE
   fi
 
-  if [ "$OCI_CLI_KEY_FILE" ] && [ -z "$OCI_CLI_KEY" ]; then
-    if [ -f "$OCI_CLI_KEY_FILE" ]; then
-      OCI_CLI_KEY=$(_base64 <"$OCI_CLI_KEY_FILE")
-    else
-      _err "Fatal: unable to read key file: $OCI_CLI_KEY_FILE"
-      return 1
-    fi
+  OCI_CLI_TENANCY="${OCI_CLI_TENANCY:-$(_readaccountconf_mutable OCI_CLI_TENANCY)}"
+  if [ "$OCI_CLI_TENANCY" ]; then
+    _saveaccountconf_mutable OCI_CLI_TENANCY "$OCI_CLI_TENANCY"
+  elif [ -f "$OCI_CLI_CONFIG_FILE" ]; then
+    _debug "Reading OCI_CLI_TENANCY value from: $OCI_CLI_CONFIG_FILE"
+    OCI_CLI_TENANCY="${OCI_CLI_TENANCY:-$(_readini "$OCI_CLI_CONFIG_FILE" tenancy "$OCI_CLI_PROFILE")}"
   fi
 
   if [ -z "$OCI_CLI_TENANCY" ]; then
-    _not_set="${_not_set}OCI_CLI_TENANCY "
+    _err "Error: unable to read OCI_CLI_TENANCY from config file or environment variable."
+    return 1
   fi
 
+  OCI_CLI_USER="${OCI_CLI_USER:-$(_readaccountconf_mutable OCI_CLI_USER)}"
+  if [ "$OCI_CLI_USER" ]; then
+    _saveaccountconf_mutable OCI_CLI_USER "$OCI_CLI_USER"
+  elif [ -f "$OCI_CLI_CONFIG_FILE" ]; then
+    _debug "Reading OCI_CLI_USER value from: $OCI_CLI_CONFIG_FILE"
+    OCI_CLI_USER="${OCI_CLI_USER:-$(_readini "$OCI_CLI_CONFIG_FILE" user "$OCI_CLI_PROFILE")}"
+  fi
   if [ -z "$OCI_CLI_USER" ]; then
-    _not_set="${_not_set}OCI_CLI_USER "
+    _err "Error: unable to read OCI_CLI_USER from config file or environment variable."
+    return 1
   fi
 
+  OCI_CLI_REGION="${OCI_CLI_REGION:-$(_readaccountconf_mutable OCI_CLI_REGION)}"
+  if [ "$OCI_CLI_REGION" ]; then
+    _saveaccountconf_mutable OCI_CLI_REGION "$OCI_CLI_REGION"
+  elif [ -f "$OCI_CLI_CONFIG_FILE" ]; then
+    _debug "Reading OCI_CLI_REGION value from: $OCI_CLI_CONFIG_FILE"
+    OCI_CLI_REGION="${OCI_CLI_REGION:-$(_readini "$OCI_CLI_CONFIG_FILE" region "$OCI_CLI_PROFILE")}"
+  fi
   if [ -z "$OCI_CLI_REGION" ]; then
-    _not_set="${_not_set}OCI_CLI_REGION "
+    _err "Error: unable to read OCI_CLI_REGION from config file or environment variable."
+    return 1
   fi
 
-  if [ "$_not_set" ]; then
-    _err "Fatal: required environment variable(s): ${_not_set} not set."
-    _ret=1
-  else
-    if [ "$_save_config" ]; then
-      _saveaccountconf_mutable OCI_CLI_TENANCY "$OCI_CLI_TENANCY"
-      _saveaccountconf_mutable OCI_CLI_USER "$OCI_CLI_USER"
+  OCI_CLI_KEY="${OCI_CLI_KEY:-$(_readaccountconf_mutable OCI_CLI_KEY)}"
+  if [ -z "$OCI_CLI_KEY" ]; then
+    _clearaccountconf_mutable OCI_CLI_KEY
+    OCI_CLI_KEY_FILE="${OCI_CLI_KEY_FILE:-$(_readini "$OCI_CLI_CONFIG_FILE" key_file "$OCI_CLI_PROFILE")}"
+    if [ "$OCI_CLI_KEY_FILE" ] && [ -f "$OCI_CLI_KEY_FILE" ]; then
+      _debug "Reading OCI_CLI_KEY value from: $OCI_CLI_KEY_FILE"
+      OCI_CLI_KEY=$(_base64 <"$OCI_CLI_KEY_FILE")
       _saveaccountconf_mutable OCI_CLI_KEY "$OCI_CLI_KEY"
-      _saveaccountconf_mutable OCI_CLI_REGION "$OCI_CLI_REGION"
-    else
-      _info "Success: OCI configuration retrieved from $OCI_CLI_CONFIG_FILE."
     fi
+  else
+    _saveaccountconf_mutable OCI_CLI_KEY "$OCI_CLI_KEY"
   fi
 
-  if ! _contains "PRIVATE KEY" "$OCI_CLI_KEY"; then
+  if [ -z "$OCI_CLI_KEY_FILE" ] && [ -z "$OCI_CLI_KEY" ]; then
+    _err "Error: unable to find key file path in OCI config file or OCI_CLI_KEY_FILE."
+    _err "Error: unable to load private API signing key from OCI_CLI_KEY."
+    return 1
+  fi
+
+  if [ "$(printf "%s\n" "$OCI_CLI_KEY" | wc -l)" -eq 1 ]; then
     OCI_CLI_KEY=$(printf "%s" "$OCI_CLI_KEY" | _dbase64 multiline)
   fi
 
-  return $_ret
+  return 0
 
 }
+
 
 # _get_zone(): retrieves the Zone name and OCID
 #
@@ -189,6 +206,7 @@ _get_zone() {
 #Usage: privatekey
 #Output MD5 fingerprint
 _fingerprint() {
+
   pkey="$1"
   if [ -z "$pkey" ]; then
     _usage "Usage: _fingerprint privkey"
@@ -272,36 +290,37 @@ _signed_request() {
 
 # file  key  [section]
 _readini() {
-  _key="$1"
-  _file="$2"
+  _file="$1"
+  _key="$2"
   _section="${3:-DEFAULT}"
 
   _start_n=$(grep -n '\['"$_section"']' "$_file" | cut -d : -f 1)
-  _debug2 _start_n "$_start_n"
+  _debug3 _start_n "$_start_n"
   if [ -z "$_start_n" ]; then
     _err "Can not find section: $_section"
     return 1
   fi
 
   _start_nn=$(_math "$_start_n" + 1)
-  _debug2 "_start_nn" "$_start_nn"
+  _debug3 "_start_nn" "$_start_nn"
 
   _left="$(sed -n "${_start_nn},99999p" "$_file")"
-  _debug2 _left "$_left"
+  _debug3 _left "$_left"
   _end="$(echo "$_left" | grep -n "^\[" | _head_n 1)"
-  _debug2 "_end" "$_end"
+  _debug3 "_end" "$_end"
   if [ "$_end" ]; then
     _end_n=$(echo "$_end" | cut -d : -f 1)
-    _debug "_end_n" "$_end_n"
+    _debug3 "_end_n" "$_end_n"
     _seg_n=$(echo "$_left" | sed -n "1,${_end_n}p")
   else
     _seg_n="$_left"
   fi
 
-  _debug2 "_seg_n" "$_seg_n"
+  _debug3 "_seg_n" "$_seg_n"
   _lineini="$(echo "$_seg_n" | grep "^ *$_key *= *")"
+  _inivalue="$(printf "%b" "$(eval "echo $_lineini | sed \"s/^ *${_key} *= *//g\"")")"
+  _debug2 _inivalue "$_inivalue"
+  echo "$_inivalue"
 
-  _debug2 "_lineini" "$_lineini"
-  printf "%b" "$(eval "echo $_lineini | sed -e \"s/^ *${_key} *= *//g\"")"
 
 }
