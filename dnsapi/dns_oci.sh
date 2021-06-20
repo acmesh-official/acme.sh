@@ -83,14 +83,14 @@ _oci_config() {
   OCI_CLI_CONFIG_FILE="${OCI_CLI_CONFIG_FILE:-$HOME/.oci/config}"
   OCI_CLI_PROFILE="${OCI_CLI_PROFILE:-DEFAULT}"
 
-  # Let's try and find the values automagically first
-  # But still let any environment variables take precendence
+  # Read the configuration from either the default or specified config file
+  # Override the config file value with the environment variable value (if set)
   if [ -f "$OCI_CLI_CONFIG_FILE" ]; then
-    _info "Reading OCI configuration file: $(_green "$OCI_CLI_CONFIG_FILE")"
-    OCI_CLI_TENANCY="${OCI_CLI_TENANCY:-$(_read_oci_config tenancy)}"
-    OCI_CLI_USER="${OCI_CLI_USER:-$(_read_oci_config user)}"
-    OCI_CLI_KEY_FILE="${OCI_CLI_KEY_FILE:-$(_read_oci_config key_file)}"
-    OCI_CLI_REGION="${OCI_CLI_REGION:-$(_read_oci_config region)}"
+    _info "Reading OCI configuration file: $OCI_CLI_CONFIG_FILE"
+    OCI_CLI_TENANCY="${OCI_CLI_TENANCY:-$(_readini tenancy "$OCI_CLI_CONFIG_FILE" "$OCI_CLI_PROFILE")}"
+    OCI_CLI_USER="${OCI_CLI_USER:-$(_readini user "$OCI_CLI_CONFIG_FILE" "$OCI_CLI_PROFILE")}"
+    OCI_CLI_KEY_FILE="${OCI_CLI_KEY_FILE:-$(_readini key_file "$OCI_CLI_CONFIG_FILE" "$OCI_CLI_PROFILE")}"
+    OCI_CLI_REGION="${OCI_CLI_REGION:-$(_readini region "$OCI_CLI_CONFIG_FILE" "$OCI_CLI_PROFILE")}"
   else
     OCI_CLI_TENANCY="${OCI_CLI_TENANCY:-$(_readaccountconf_mutable OCI_CLI_TENANCY)}"
     OCI_CLI_USER="${OCI_CLI_USER:-$(_readaccountconf_mutable OCI_CLI_USER)}"
@@ -271,20 +271,22 @@ _signed_request() {
 }
 
 # file  key  [section]
-_read_oci_config() {
+_readini() {
   _key="$1"
+  _file="$2"
+  _section="${3:-DEFAULT}"
 
-  _start_n=$(grep -n '\['"$OCI_CLI_PROFILE"']' "$OCI_CLI_CONFIG_FILE" | cut -d : -f 1)
+  _start_n=$(grep -n '\['"$_section"']' "$_file" | cut -d : -f 1)
   _debug2 _start_n "$_start_n"
   if [ -z "$_start_n" ]; then
-    _err "Can not find section: $OCI_CLI_PROFILE"
+    _err "Can not find section: $_section"
     return 1
   fi
 
   _start_nn=$(_math "$_start_n" + 1)
   _debug2 "_start_nn" "$_start_nn"
 
-  _left="$(sed -n "${_start_nn},99999p" "$OCI_CLI_CONFIG_FILE")"
+  _left="$(sed -n "${_start_nn},99999p" "$_file")"
   _debug2 _left "$_left"
   _end="$(echo "$_left" | grep -n "^\[" | _head_n 1)"
   _debug2 "_end" "$_end"
@@ -300,6 +302,6 @@ _read_oci_config() {
   _lineini="$(echo "$_seg_n" | grep "^ *$_key *= *")"
 
   _debug2 "_lineini" "$_lineini"
-  printf "%b" "$(eval "echo $_lineini | sed -e \"s/${_key}[[:space:]]*=[[:space:]]*//g\"")"
+  printf "%b" "$(eval "echo $_lineini | sed -e \"s/^ *${_key} *= *//g\"")"
 
 }
