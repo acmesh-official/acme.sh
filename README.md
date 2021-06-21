@@ -1,6 +1,10 @@
 # An ACME Shell script: acme.sh 
 
-![LetsEncrypt](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)
+[![FreeBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml)
+[![MacOS](https://github.com/acmesh-official/acme.sh/actions/workflows/MacOS.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/MacOS.yml)
+[![Ubuntu](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml)
+[![Windows](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml)
+[![Solaris](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml)
 ![Shellcheck](https://github.com/acmesh-official/acme.sh/workflows/Shellcheck/badge.svg)
 ![PebbleStrict](https://github.com/acmesh-official/acme.sh/workflows/PebbleStrict/badge.svg)
 ![DockerHub](https://github.com/acmesh-official/acme.sh/workflows/Build%20DockerHub/badge.svg)
@@ -57,11 +61,11 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
 | NO | Status| Platform|
 |----|-------|---------|
-|1|[![MacOS](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)|Mac OSX
-|2|[![Windows](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)|Windows (cygwin with curl, openssl and crontab included)
-|3|[![FreeBSD](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)|FreeBSD
-|4|[![Solaris](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)|Solaris
-|5|[![Ubuntu](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)| Ubuntu
+|1|[![MacOS](https://github.com/acmesh-official/acme.sh/actions/workflows/MacOS.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/MacOS.yml)|Mac OSX
+|2|[![Windows](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml)|Windows (cygwin with curl, openssl and crontab included)
+|3|[![FreeBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml)FreeBSD
+|4|[![Solaris](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml)Solaris
+|5|[![Ubuntu](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml)| Ubuntu
 |6|NA|pfsense
 |7|NA|OpenBSD
 |8|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)| Debian
@@ -73,11 +77,12 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 |14|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Kali Linux
 |15|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Oracle Linux
 |16|[![](https://acmesh-official.github.io/acmetest/status/proxmox.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)| Proxmox: See Proxmox VE Wiki. Version [4.x, 5.0, 5.1](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x,_5.0_and_5.1)#Let.27s_Encrypt_using_acme.sh), version [5.2 and up](https://pve.proxmox.com/wiki/Certificate_Management)
-|17|-----| Cloud Linux  https://github.com/acmesh-official/acme.sh/issues/111
-|18|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Mageia
-|19|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/acmesh-official/acme.sh/wiki/How-to-run-on-OpenWRT)
-|20|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Gentoo Linux
-|21|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|ClearLinux
+|17|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Mageia
+|18|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Gentoo Linux
+|19|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|ClearLinux
+|20|-----| Cloud Linux  https://github.com/acmesh-official/acme.sh/issues/111
+|21|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/acmesh-official/acme.sh/wiki/How-to-run-on-OpenWRT)
+
 
 Check our [testing project](https://github.com/acmesh-official/acmetest):
 
