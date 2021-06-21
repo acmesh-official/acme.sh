@@ -2638,7 +2638,6 @@ _initpath() {
   _OLD_ACCOUNT_JSON="$_OLD_CADIR/account.json"
   _OLD_CA_CONF="$_OLD_CADIR/ca.conf"
 
-
   _DEFAULT_ACCOUNT_KEY_PATH="$CA_DIR/account.key"
   _DEFAULT_ACCOUNT_JSON_PATH="$CA_DIR/account.json"
   if [ -z "$ACCOUNT_KEY_PATH" ]; then
@@ -2661,7 +2660,6 @@ _initpath() {
     mkdir -p "$CA_DIR"
     mv "$_OLD_CA_CONF" "$CA_CONF"
   fi
-
 
   if [ -f "$CA_CONF" ]; then
     . "$CA_CONF"
