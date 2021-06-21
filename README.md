@@ -88,6 +88,7 @@ https://github.com/acmesh-official/acmetest
 - [ZeroSSL.com CA](https://github.com/acmesh-official/acme.sh/wiki/ZeroSSL.com-CA)(default)
 - Letsencrypt.org CA
 - [BuyPass.com CA](https://github.com/acmesh-official/acme.sh/wiki/BuyPass.com-CA)
+- [SSL.com CA](https://github.com/acmesh-official/acme.sh/wiki/SSL.com-CA)
 - [Pebble strict Mode](https://github.com/letsencrypt/pebble)
 - Any other [RFC8555](https://tools.ietf.org/html/rfc8555)-compliant CA
 

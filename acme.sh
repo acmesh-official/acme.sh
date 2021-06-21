@@ -29,18 +29,24 @@ CA_BUYPASS_TEST="https://api.test4.buypass.no/acme/directory"
 CA_ZEROSSL="https://acme.zerossl.com/v2/DV90"
 _ZERO_EAB_ENDPOINT="http://api.zerossl.com/acme/eab-credentials-email"
 
+
+CA_SSLCOM_RSA="https://acme.ssl.com/sslcom-dv-rsa"
+CA_SSLCOM_ECC="https://acme.ssl.com/sslcom-dv-ecc"
+
+
 DEFAULT_CA=$CA_ZEROSSL
 DEFAULT_STAGING_CA=$CA_LETSENCRYPT_V2_TEST
 
 CA_NAMES="
+ZeroSSL.com,zerossl
 LetsEncrypt.org,letsencrypt
 LetsEncrypt.org_test,letsencrypt_test,letsencrypttest
 BuyPass.com,buypass
 BuyPass.com_test,buypass_test,buypasstest
-ZeroSSL.com,zerossl
+SSL.com,sslcom
 "
 
-CA_SERVERS="$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_BUYPASS,$CA_BUYPASS_TEST,$CA_ZEROSSL"
+CA_SERVERS="$CA_ZEROSSL,$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_BUYPASS,$CA_BUYPASS_TEST,$CA_SSLCOM_RSA"
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 
@@ -154,6 +160,8 @@ _SUDO_WIKI="https://github.com/acmesh-official/acme.sh/wiki/sudo"
 _REVOKE_WIKI="https://github.com/acmesh-official/acme.sh/wiki/revokecert"
 
 _ZEROSSL_WIKI="https://github.com/acmesh-official/acme.sh/wiki/ZeroSSL.com-CA"
+
+_SSLCOM_WIKI="https://github.com/acmesh-official/acme.sh/wiki/SSL.com-CA"
 
 _SERVER_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Server"
 
@@ -2617,7 +2625,13 @@ _initpath() {
   _ACME_SERVER_HOST="$(echo "$ACME_DIRECTORY" | cut -d : -f 2 | tr -s / | cut -d / -f 2)"
   _debug2 "_ACME_SERVER_HOST" "$_ACME_SERVER_HOST"
 
-  CA_DIR="$CA_HOME/$_ACME_SERVER_HOST"
+  _ACME_SERVER_PATH="$(echo "$ACME_DIRECTORY" | cut -d : -f 2- | tr -s / | cut -d / -f 3-)"
+  _debug2 "_ACME_SERVER_PATH" "$_ACME_SERVER_PATH"
+  if [ -z "$_ACME_SERVER_PATH" ] || [ "$_ACME_SERVER_PATH" = "directory" ]; then
+    CA_DIR="$CA_HOME/$_ACME_SERVER_HOST"
+  else
+    CA_DIR="$CA_HOME/$_ACME_SERVER_HOST/$_ACME_SERVER_PATH"
+  fi
 
   _DEFAULT_CA_CONF="$CA_DIR/ca.conf"
 
@@ -6638,9 +6652,10 @@ _checkSudo() {
   return 0
 }
 
-#server
+#server  #keylength
 _selectServer() {
   _server="$1"
+  _skeylength="$2"
   _server_lower="$(echo "$_server" | _lower_case)"
   _sindex=0
   for snames in $CA_NAMES; do
@@ -6651,6 +6666,9 @@ _selectServer() {
       if [ "$_server_lower" = "$sname" ]; then
         _debug2 "_selectServer match $sname"
         _serverdir="$(_getfield "$CA_SERVERS" $_sindex)"
+        if [ "$_serverdir" = "$CA_SSLCOM_RSA" ] && _isEccKey "$_skeylength"; then
+          _serverdir="$CA_SSLCOM_ECC"
+        fi
         _debug "Selected server: $_serverdir"
         ACME_DIRECTORY="$_serverdir"
         export ACME_DIRECTORY
@@ -6882,7 +6900,6 @@ _process() {
       ;;
     --server)
       _server="$2"
-      _selectServer "$_server"
       shift
       ;;
     --debug)
@@ -6981,7 +6998,6 @@ _process() {
       Le_DNSSleep="$_dnssleep"
       shift
       ;;
-
     --keylength | -k)
       _keylength="$2"
       shift
@@ -6990,7 +7006,6 @@ _process() {
       _accountkeylength="$2"
       shift
       ;;
-
     --cert-file | --certpath)
       _cert_file="$2"
       shift
@@ -7253,6 +7268,10 @@ _process() {
 
     shift 1
   done
+
+  if [ "$_server" ]; then
+    _selectServer "$_server" "${_ecc-:$_keylength}"
+  fi
 
   if [ "${_CMD}" != "install" ]; then
     if [ "$__INTERACTIVE" ] && ! _checkSudo; then
