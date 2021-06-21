@@ -2625,18 +2625,43 @@ _initpath() {
 
   _ACME_SERVER_PATH="$(echo "$ACME_DIRECTORY" | cut -d : -f 2- | tr -s / | cut -d / -f 3-)"
   _debug2 "_ACME_SERVER_PATH" "$_ACME_SERVER_PATH"
-  if [ -z "$_ACME_SERVER_PATH" ] || [ "$_ACME_SERVER_PATH" = "directory" ]; then
-    CA_DIR="$CA_HOME/$_ACME_SERVER_HOST"
-  else
-    CA_DIR="$CA_HOME/$_ACME_SERVER_HOST/$_ACME_SERVER_PATH"
-  fi
 
+  CA_DIR="$CA_HOME/$_ACME_SERVER_HOST/$_ACME_SERVER_PATH"
   _DEFAULT_CA_CONF="$CA_DIR/ca.conf"
-
   if [ -z "$CA_CONF" ]; then
     CA_CONF="$_DEFAULT_CA_CONF"
   fi
   _debug3 CA_CONF "$CA_CONF"
+
+  _OLD_CADIR="$CA_HOME/$_ACME_SERVER_HOST"
+  _OLD_ACCOUNT_KEY="$_OLD_CADIR/account.key"
+  _OLD_ACCOUNT_JSON="$_OLD_CADIR/account.json"
+  _OLD_CA_CONF="$_OLD_CADIR/ca.conf"
+
+
+  _DEFAULT_ACCOUNT_KEY_PATH="$CA_DIR/account.key"
+  _DEFAULT_ACCOUNT_JSON_PATH="$CA_DIR/account.json"
+  if [ -z "$ACCOUNT_KEY_PATH" ]; then
+    ACCOUNT_KEY_PATH="$_DEFAULT_ACCOUNT_KEY_PATH"
+    if [ -f "$_OLD_ACCOUNT_KEY" ] && ! [ -f "$ACCOUNT_KEY_PATH" ]; then
+      mkdir -p "$CA_DIR"
+      mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
+    fi
+  fi
+
+  if [ -z "$ACCOUNT_JSON_PATH" ]; then
+    ACCOUNT_JSON_PATH="$_DEFAULT_ACCOUNT_JSON_PATH"
+    if [ -f "$_OLD_ACCOUNT_JSON" ] && ! [ -f "$ACCOUNT_JSON_PATH" ]; then
+      mkdir -p "$CA_DIR"
+      mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
+    fi
+  fi
+
+  if [ -f "$_OLD_CA_CONF" ] && ! [ -f "$CA_CONF" ]; then
+    mkdir -p "$CA_DIR"
+    mv "$_OLD_CA_CONF" "$CA_CONF"
+  fi
+
 
   if [ -f "$CA_CONF" ]; then
     . "$CA_CONF"
@@ -2656,19 +2681,6 @@ _initpath() {
 
   if [ -z "$HTTP_HEADER" ]; then
     HTTP_HEADER="$LE_CONFIG_HOME/http.header"
-  fi
-
-  _OLD_ACCOUNT_KEY="$LE_WORKING_DIR/account.key"
-  _OLD_ACCOUNT_JSON="$LE_WORKING_DIR/account.json"
-
-  _DEFAULT_ACCOUNT_KEY_PATH="$CA_DIR/account.key"
-  _DEFAULT_ACCOUNT_JSON_PATH="$CA_DIR/account.json"
-  if [ -z "$ACCOUNT_KEY_PATH" ]; then
-    ACCOUNT_KEY_PATH="$_DEFAULT_ACCOUNT_KEY_PATH"
-  fi
-
-  if [ -z "$ACCOUNT_JSON_PATH" ]; then
-    ACCOUNT_JSON_PATH="$_DEFAULT_ACCOUNT_JSON_PATH"
   fi
 
   _DEFAULT_CERT_HOME="$LE_CONFIG_HOME"
@@ -3501,15 +3513,6 @@ _regAccount() {
   _initAPI
 
   mkdir -p "$CA_DIR"
-  if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
-    _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
-    mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
-  fi
-
-  if [ ! -f "$ACCOUNT_JSON_PATH" ] && [ -f "$_OLD_ACCOUNT_JSON" ]; then
-    _info "mv $_OLD_ACCOUNT_JSON to $ACCOUNT_JSON_PATH"
-    mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
-  fi
 
   if [ ! -f "$ACCOUNT_KEY_PATH" ]; then
     if ! _create_account_key "$_reg_length"; then
@@ -3647,16 +3650,6 @@ _regAccount() {
 updateaccount() {
   _initpath
 
-  if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
-    _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
-    mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
-  fi
-
-  if [ ! -f "$ACCOUNT_JSON_PATH" ] && [ -f "$_OLD_ACCOUNT_JSON" ]; then
-    _info "mv $_OLD_ACCOUNT_JSON to $ACCOUNT_JSON_PATH"
-    mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
-  fi
-
   if [ ! -f "$ACCOUNT_KEY_PATH" ]; then
     _err "Account key is not found at: $ACCOUNT_KEY_PATH"
     return 1
@@ -3698,16 +3691,6 @@ updateaccount() {
 #Implement deactivate account
 deactivateaccount() {
   _initpath
-
-  if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
-    _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
-    mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
-  fi
-
-  if [ ! -f "$ACCOUNT_JSON_PATH" ] && [ -f "$_OLD_ACCOUNT_JSON" ]; then
-    _info "mv $_OLD_ACCOUNT_JSON to $ACCOUNT_JSON_PATH"
-    mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
-  fi
 
   if [ ! -f "$ACCOUNT_KEY_PATH" ]; then
     _err "Account key is not found at: $ACCOUNT_KEY_PATH"
