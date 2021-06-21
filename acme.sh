@@ -29,10 +29,8 @@ CA_BUYPASS_TEST="https://api.test4.buypass.no/acme/directory"
 CA_ZEROSSL="https://acme.zerossl.com/v2/DV90"
 _ZERO_EAB_ENDPOINT="http://api.zerossl.com/acme/eab-credentials-email"
 
-
 CA_SSLCOM_RSA="https://acme.ssl.com/sslcom-dv-rsa"
 CA_SSLCOM_ECC="https://acme.ssl.com/sslcom-dv-ecc"
-
 
 DEFAULT_CA=$CA_ZEROSSL
 DEFAULT_STAGING_CA=$CA_LETSENCRYPT_V2_TEST
