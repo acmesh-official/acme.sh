@@ -7272,7 +7272,7 @@ _process() {
   done
 
   if [ "$_server" ]; then
-    _selectServer "$_server" "${_ecc-:$_keylength}"
+    _selectServer "$_server" "${_ecc:-$_keylength}"
   fi
 
   if [ "${_CMD}" != "install" ]; then
