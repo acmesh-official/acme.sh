@@ -4,13 +4,13 @@ on:
     branches:
       - '*'
     paths:
-      - '**.sh'
+      - '*.sh'
       - '**.yml'
   pull_request:
     branches:
       - dev
     paths:
-      - '**.sh'
+      - '*.sh'
       - '**.yml'
 
 jobs:

@@ -29,18 +29,22 @@ CA_BUYPASS_TEST="https://api.test4.buypass.no/acme/directory"
 CA_ZEROSSL="https://acme.zerossl.com/v2/DV90"
 _ZERO_EAB_ENDPOINT="http://api.zerossl.com/acme/eab-credentials-email"
 
+CA_SSLCOM_RSA="https://acme.ssl.com/sslcom-dv-rsa"
+CA_SSLCOM_ECC="https://acme.ssl.com/sslcom-dv-ecc"
+
 DEFAULT_CA=$CA_ZEROSSL
 DEFAULT_STAGING_CA=$CA_LETSENCRYPT_V2_TEST
 
 CA_NAMES="
+ZeroSSL.com,zerossl
 LetsEncrypt.org,letsencrypt
 LetsEncrypt.org_test,letsencrypt_test,letsencrypttest
 BuyPass.com,buypass
 BuyPass.com_test,buypass_test,buypasstest
-ZeroSSL.com,zerossl
+SSL.com,sslcom
 "
 
-CA_SERVERS="$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_BUYPASS,$CA_BUYPASS_TEST,$CA_ZEROSSL"
+CA_SERVERS="$CA_ZEROSSL,$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_BUYPASS,$CA_BUYPASS_TEST,$CA_SSLCOM_RSA"
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 
@@ -154,6 +158,8 @@ _SUDO_WIKI="https://github.com/acmesh-official/acme.sh/wiki/sudo"
 _REVOKE_WIKI="https://github.com/acmesh-official/acme.sh/wiki/revokecert"
 
 _ZEROSSL_WIKI="https://github.com/acmesh-official/acme.sh/wiki/ZeroSSL.com-CA"
+
+_SSLCOM_WIKI="https://github.com/acmesh-official/acme.sh/wiki/SSL.com-CA"
 
 _SERVER_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Server"
 
@@ -1210,7 +1216,7 @@ _createcsr() {
   _debug2 csr "$csr"
   _debug2 csrconf "$csrconf"
 
-  printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\n\nkeyUsage = nonRepudiation, digitalSignature, keyEncipherment" >"$csrconf"
+  printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\n\n" >"$csrconf"
 
   if [ "$acmeValidationv1" ]; then
     domainlist="$(_idn "$domainlist")"
@@ -2617,14 +2623,43 @@ _initpath() {
   _ACME_SERVER_HOST="$(echo "$ACME_DIRECTORY" | cut -d : -f 2 | tr -s / | cut -d / -f 2)"
   _debug2 "_ACME_SERVER_HOST" "$_ACME_SERVER_HOST"
 
-  CA_DIR="$CA_HOME/$_ACME_SERVER_HOST"
+  _ACME_SERVER_PATH="$(echo "$ACME_DIRECTORY" | cut -d : -f 2- | tr -s / | cut -d / -f 3-)"
+  _debug2 "_ACME_SERVER_PATH" "$_ACME_SERVER_PATH"
 
+  CA_DIR="$CA_HOME/$_ACME_SERVER_HOST/$_ACME_SERVER_PATH"
   _DEFAULT_CA_CONF="$CA_DIR/ca.conf"
-
   if [ -z "$CA_CONF" ]; then
     CA_CONF="$_DEFAULT_CA_CONF"
   fi
   _debug3 CA_CONF "$CA_CONF"
+
+  _OLD_CADIR="$CA_HOME/$_ACME_SERVER_HOST"
+  _OLD_ACCOUNT_KEY="$_OLD_CADIR/account.key"
+  _OLD_ACCOUNT_JSON="$_OLD_CADIR/account.json"
+  _OLD_CA_CONF="$_OLD_CADIR/ca.conf"
+
+  _DEFAULT_ACCOUNT_KEY_PATH="$CA_DIR/account.key"
+  _DEFAULT_ACCOUNT_JSON_PATH="$CA_DIR/account.json"
+  if [ -z "$ACCOUNT_KEY_PATH" ]; then
+    ACCOUNT_KEY_PATH="$_DEFAULT_ACCOUNT_KEY_PATH"
+    if [ -f "$_OLD_ACCOUNT_KEY" ] && ! [ -f "$ACCOUNT_KEY_PATH" ]; then
+      mkdir -p "$CA_DIR"
+      mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
+    fi
+  fi
+
+  if [ -z "$ACCOUNT_JSON_PATH" ]; then
+    ACCOUNT_JSON_PATH="$_DEFAULT_ACCOUNT_JSON_PATH"
+    if [ -f "$_OLD_ACCOUNT_JSON" ] && ! [ -f "$ACCOUNT_JSON_PATH" ]; then
+      mkdir -p "$CA_DIR"
+      mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
+    fi
+  fi
+
+  if [ -f "$_OLD_CA_CONF" ] && ! [ -f "$CA_CONF" ]; then
+    mkdir -p "$CA_DIR"
+    mv "$_OLD_CA_CONF" "$CA_CONF"
+  fi
 
   if [ -f "$CA_CONF" ]; then
     . "$CA_CONF"
@@ -2644,19 +2679,6 @@ _initpath() {
 
   if [ -z "$HTTP_HEADER" ]; then
     HTTP_HEADER="$LE_CONFIG_HOME/http.header"
-  fi
-
-  _OLD_ACCOUNT_KEY="$LE_WORKING_DIR/account.key"
-  _OLD_ACCOUNT_JSON="$LE_WORKING_DIR/account.json"
-
-  _DEFAULT_ACCOUNT_KEY_PATH="$CA_DIR/account.key"
-  _DEFAULT_ACCOUNT_JSON_PATH="$CA_DIR/account.json"
-  if [ -z "$ACCOUNT_KEY_PATH" ]; then
-    ACCOUNT_KEY_PATH="$_DEFAULT_ACCOUNT_KEY_PATH"
-  fi
-
-  if [ -z "$ACCOUNT_JSON_PATH" ]; then
-    ACCOUNT_JSON_PATH="$_DEFAULT_ACCOUNT_JSON_PATH"
   fi
 
   _DEFAULT_CERT_HOME="$LE_CONFIG_HOME"
@@ -3489,15 +3511,6 @@ _regAccount() {
   _initAPI
 
   mkdir -p "$CA_DIR"
-  if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
-    _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
-    mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
-  fi
-
-  if [ ! -f "$ACCOUNT_JSON_PATH" ] && [ -f "$_OLD_ACCOUNT_JSON" ]; then
-    _info "mv $_OLD_ACCOUNT_JSON to $ACCOUNT_JSON_PATH"
-    mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
-  fi
 
   if [ ! -f "$ACCOUNT_KEY_PATH" ]; then
     if ! _create_account_key "$_reg_length"; then
@@ -3635,16 +3648,6 @@ _regAccount() {
 updateaccount() {
   _initpath
 
-  if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
-    _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
-    mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
-  fi
-
-  if [ ! -f "$ACCOUNT_JSON_PATH" ] && [ -f "$_OLD_ACCOUNT_JSON" ]; then
-    _info "mv $_OLD_ACCOUNT_JSON to $ACCOUNT_JSON_PATH"
-    mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
-  fi
-
   if [ ! -f "$ACCOUNT_KEY_PATH" ]; then
     _err "Account key is not found at: $ACCOUNT_KEY_PATH"
     return 1
@@ -3686,16 +3689,6 @@ updateaccount() {
 #Implement deactivate account
 deactivateaccount() {
   _initpath
-
-  if [ ! -f "$ACCOUNT_KEY_PATH" ] && [ -f "$_OLD_ACCOUNT_KEY" ]; then
-    _info "mv $_OLD_ACCOUNT_KEY to $ACCOUNT_KEY_PATH"
-    mv "$_OLD_ACCOUNT_KEY" "$ACCOUNT_KEY_PATH"
-  fi
-
-  if [ ! -f "$ACCOUNT_JSON_PATH" ] && [ -f "$_OLD_ACCOUNT_JSON" ]; then
-    _info "mv $_OLD_ACCOUNT_JSON to $ACCOUNT_JSON_PATH"
-    mv "$_OLD_ACCOUNT_JSON" "$ACCOUNT_JSON_PATH"
-  fi
 
   if [ ! -f "$ACCOUNT_KEY_PATH" ]; then
     _err "Account key is not found at: $ACCOUNT_KEY_PATH"
@@ -6638,9 +6631,10 @@ _checkSudo() {
   return 0
 }
 
-#server
+#server  #keylength
 _selectServer() {
   _server="$1"
+  _skeylength="$2"
   _server_lower="$(echo "$_server" | _lower_case)"
   _sindex=0
   for snames in $CA_NAMES; do
@@ -6651,6 +6645,9 @@ _selectServer() {
       if [ "$_server_lower" = "$sname" ]; then
         _debug2 "_selectServer match $sname"
         _serverdir="$(_getfield "$CA_SERVERS" $_sindex)"
+        if [ "$_serverdir" = "$CA_SSLCOM_RSA" ] && _isEccKey "$_skeylength"; then
+          _serverdir="$CA_SSLCOM_ECC"
+        fi
         _debug "Selected server: $_serverdir"
         ACME_DIRECTORY="$_serverdir"
         export ACME_DIRECTORY
@@ -6882,7 +6879,6 @@ _process() {
       ;;
     --server)
       _server="$2"
-      _selectServer "$_server"
       shift
       ;;
     --debug)
@@ -6981,7 +6977,6 @@ _process() {
       Le_DNSSleep="$_dnssleep"
       shift
       ;;
-
     --keylength | -k)
       _keylength="$2"
       shift
@@ -6990,7 +6985,6 @@ _process() {
       _accountkeylength="$2"
       shift
       ;;
-
     --cert-file | --certpath)
       _cert_file="$2"
       shift
@@ -7253,6 +7247,10 @@ _process() {
 
     shift 1
   done
+
+  if [ "$_server" ]; then
+    _selectServer "$_server" "${_ecc:-$_keylength}"
+  fi
 
   if [ "${_CMD}" != "install" ]; then
     if [ "$__INTERACTIVE" ] && ! _checkSudo; then
