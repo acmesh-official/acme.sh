@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 #
-#AZION_Username=""
+#AZION_Email=""
 #AZION_Password=""
 #
 
@@ -140,23 +140,23 @@ _get_record() {
 }
 
 _get_token() {
-  AZION_Username="${AZION_Username:-$(_readaccountconf_mutable AZION_Username)}"
+  AZION_Email="${AZION_Email:-$(_readaccountconf_mutable AZION_Email)}"
   AZION_Password="${AZION_Password:-$(_readaccountconf_mutable AZION_Password)}"
 
-  if ! _contains "$AZION_Username" "@"; then
-    _err "It seems that the AZION_Username is not a valid email address. Revalidate your environments."
+  if ! _contains "$AZION_Email" "@"; then
+    _err "It seems that the AZION_Email is not a valid email address. Revalidate your environments."
     return 1
   fi
 
-  if [ -z "$AZION_Username" ] || [ -z "$AZION_Password" ]; then
-    _err "You didn't specified a AZION_Username/AZION_Password to generate Azion token."
+  if [ -z "$AZION_Email" ] || [ -z "$AZION_Password" ]; then
+    _err "You didn't specified a AZION_Email/AZION_Password to generate Azion token."
     return 1
   fi
 
-  _saveaccountconf_mutable AZION_Username "$AZION_Username"
+  _saveaccountconf_mutable AZION_Email "$AZION_Email"
   _saveaccountconf_mutable AZION_Password "$AZION_Password"
 
-  _basic_auth=$(printf "%s:%s" "$AZION_Username" "$AZION_Password" | _base64)
+  _basic_auth=$(printf "%s:%s" "$AZION_Email" "$AZION_Password" | _base64)
   _debug _basic_auth "$_basic_auth"
 
   export _H1="Accept: application/json; version=3"
