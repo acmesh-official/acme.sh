@@ -6665,6 +6665,9 @@ _getCAShortName() {
   if [ -z "$caurl" ]; then
     caurl="$DEFAULT_CA"
   fi
+  if [ "$CA_SSLCOM_ECC" = "$caurl" ]; then
+    caurl="$CA_SSLCOM_RSA" #just hack to get the short name
+  fi
   caurl_lower="$(echo $caurl | _lower_case)"
   _sindex=0
   for surl in $(echo "$CA_SERVERS" | _lower_case | tr , ' '); do

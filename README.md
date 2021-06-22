@@ -5,6 +5,7 @@
 [![Ubuntu](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml)
 [![Windows](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml)
 [![Solaris](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml)
+
 ![Shellcheck](https://github.com/acmesh-official/acme.sh/workflows/Shellcheck/badge.svg)
 ![PebbleStrict](https://github.com/acmesh-official/acme.sh/workflows/PebbleStrict/badge.svg)
 ![DockerHub](https://github.com/acmesh-official/acme.sh/workflows/Build%20DockerHub/badge.svg)
