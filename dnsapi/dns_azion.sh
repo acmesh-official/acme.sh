@@ -128,7 +128,7 @@ _get_record() {
   fi
 
   if _contains "$response" "\"entry\":\"$_record\""; then
-    _json_record=$(echo "$response" | tr '{}' "\n" | grep "\"entry\":\"$_record\"")
+    _json_record=$(echo "$response" | tr '{' "\n" | grep "\"entry\":\"$_record\"")
     if [ "$_json_record" ]; then
       record_id=$(echo "$_json_record" | _egrep_o "\"record_id\":[0-9]*" | _head_n 1 | cut -d : -f 2 | tr -d \")
       answers_list=$(echo "$_json_record" | _egrep_o "\"answers_list\":\[.*\]" | _head_n 1 | cut -d : -f 2 | tr -d \[\])
