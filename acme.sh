@@ -2584,7 +2584,7 @@ _initAPI() {
     _debug "ACME_REVOKE_CERT" "$ACME_REVOKE_CERT"
     _debug "ACME_AGREEMENT" "$ACME_AGREEMENT"
     _debug "ACME_NEW_NONCE" "$ACME_NEW_NONCE"
-    if [ "$ACME_KEY_CHANGE" ] && [ "$ACME_NEW_AUTHZ" ] && [ "$ACME_NEW_ORDEW_ACCOUNT" ] && [ "$ACME_REVOR" ] && [ "$ACME_NEKE_CERT" ]; then
+    if [ "$ACME_NEW_ACCOUNT" ] && [ "$ACME_NEW_ORDER" ]; then
       return 0
     fi
   done
