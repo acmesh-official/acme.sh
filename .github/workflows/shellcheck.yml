@@ -11,7 +11,7 @@ on:
       - dev
     paths:
       - '**.sh'
-      - '**.yml'
+      - '.github/workflows/shellcheck.yml'
 
 jobs:
   ShellCheck:

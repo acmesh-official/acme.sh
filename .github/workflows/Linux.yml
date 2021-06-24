@@ -12,7 +12,7 @@ on:
       - dev
     paths:
       - '*.sh'
-      - '**.yml'
+      - '.github/workflows/Linux.yml'
 
 
 
