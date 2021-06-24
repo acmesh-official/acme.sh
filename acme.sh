@@ -2540,12 +2540,18 @@ _initAPI() {
   _api_server="${1:-$ACME_DIRECTORY}"
   _debug "_init api for server: $_api_server"
 
-  if [ -z "$ACME_NEW_ACCOUNT" ]; then
+  MAX_API_RETRY_TIMES=10
+  _sleep_retry_sec=10
+  _request_retry_times=0
+  while [ -z "$ACME_NEW_ACCOUNT" ] && [ "${_request_retry_times}" -lt "$MAX_API_RETRY_TIMES" ]; do
+    _request_retry_times=$(_math "$_request_retry_times" + 1)
     response=$(_get "$_api_server")
     if [ "$?" != "0" ]; then
       _debug2 "response" "$response"
-      _err "Can not init api for: $_api_server."
-      return 1
+      _info "Can not init api for: $_api_server."
+      _info "Sleep $_sleep_retry_sec and retry."
+      _sleep "$_sleep_retry_sec"
+      continue
     fi
     response=$(echo "$response" | _json_decode)
     _debug2 "response" "$response"
@@ -2578,8 +2584,12 @@ _initAPI() {
     _debug "ACME_REVOKE_CERT" "$ACME_REVOKE_CERT"
     _debug "ACME_AGREEMENT" "$ACME_AGREEMENT"
     _debug "ACME_NEW_NONCE" "$ACME_NEW_NONCE"
-
-  fi
+    if [ "$ACME_KEY_CHANGE" ] && [ "$ACME_NEW_AUTHZ" ] && [ "$ACME_NEW_ORDEW_ACCOUNT" ] && [ "$ACME_REVOR" ] && [ "$ACME_NEKE_CERT" ]; then
+      return 0
+    fi
+  done
+  _err "Can not init api, for $_api_server"
+  return 1
 }
 
 #[domain]  [keylength or isEcc flag]
