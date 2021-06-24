@@ -28,7 +28,7 @@ jobs:
            CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
            CA: "ZeroSSL RSA Domain Secure Site CA"
            CA_EMAIL: "githubtest@acme.sh"
-        - TEST_ACME_Server: "https://api.test4.buypass.no/acme/directory"
+        -  TEST_ACME_Server: "https://api.test4.buypass.no/acme/directory"
            CA_ECDSA: "Buypass Class 2 Test4 CA 5"
            CA: "Buypass Class 2 Test4 CA 5"
            CA_EMAIL: "githubtest@acme.sh"
