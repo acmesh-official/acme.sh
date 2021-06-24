@@ -2587,6 +2587,8 @@ _initAPI() {
     if [ "$ACME_NEW_ACCOUNT" ] && [ "$ACME_NEW_ORDER" ]; then
       return 0
     fi
+    _info "Sleep $_sleep_retry_sec and retry."
+    _sleep "$_sleep_retry_sec"
   done
   _err "Can not init api, for $_api_server"
   return 1
