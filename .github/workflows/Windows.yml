@@ -5,7 +5,7 @@ on:
       - '*'
     paths:
       - '*.sh'
-      - '**.yml'
+      - '.github/workflows/Windows.yml'
 
   pull_request:
     branches:
