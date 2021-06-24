@@ -32,6 +32,7 @@ jobs:
            CA_ECDSA: "Buypass Class 2 Test4 CA 5"
            CA: "Buypass Class 2 Test4 CA 5"
            CA_EMAIL: "githubtest@acme.sh"
+           NO_ECC_384: "1"
     runs-on: ubuntu-latest
     env:
       TEST_LOCAL: 1
@@ -39,6 +40,7 @@ jobs:
       CA_ECDSA: ${{ matrix.CA_ECDSA }}
       CA: ${{ matrix.CA }}
       CA_EMAIL: ${{ matrix.CA_EMAIL }}
+      NO_ECC_384: ${{ matrix.NO_ECC_384 }}
     steps:
     - uses: actions/checkout@v2
     - name: Install tools
