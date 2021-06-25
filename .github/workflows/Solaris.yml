@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         include:
-         - TEST_ACME_Server: "LetsEncrypt.org"
+         - TEST_ACME_Server: "LetsEncrypt.org_test"
            CA_ECDSA: ""
            CA: ""
            CA_EMAIL: ""
