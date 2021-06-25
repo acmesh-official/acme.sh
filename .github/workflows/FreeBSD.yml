@@ -48,7 +48,7 @@ jobs:
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/freebsd-vm@v0.1.4
       with:
-        envs: 'TEST_LOCAL TestingDomain ACME_DIRECTORY CA_ECDSA CA CA_EMAIL'
+        envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL'
         nat: |
           "8080": "80"
         prepare: pkg install -y socat curl
