@@ -5713,7 +5713,7 @@ revoke() {
     return 1
   fi
 
-    . "$DOMAIN_CONF"
+  . "$DOMAIN_CONF"
   _debug Le_API "$Le_API"
 
   if [ "$Le_API" ]; then
