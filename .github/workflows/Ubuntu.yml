@@ -5,14 +5,14 @@ on:
       - '*'
     paths:
       - '*.sh'
-      - '**.yml'
+      - '.github/workflows/Ubuntu.yml'
 
   pull_request:
     branches:
       - dev
     paths:
       - '*.sh'
-      - '**.yml'
+      - '.github/workflows/Ubuntu.yml'
 
 
 jobs:
@@ -28,6 +28,7 @@ jobs:
            CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
            CA: "ZeroSSL RSA Domain Secure Site CA"
            CA_EMAIL: "githubtest@acme.sh"
+
     runs-on: ubuntu-latest
     env:
       TEST_LOCAL: 1
@@ -35,6 +36,7 @@ jobs:
       CA_ECDSA: ${{ matrix.CA_ECDSA }}
       CA: ${{ matrix.CA }}
       CA_EMAIL: ${{ matrix.CA_EMAIL }}
+      NO_ECC_384: ${{ matrix.NO_ECC_384 }}
     steps:
     - uses: actions/checkout@v2
     - name: Install tools
