@@ -2535,6 +2535,16 @@ __initHome() {
   fi
 }
 
+_clearAPI() {
+  ACME_NEW_ACCOUNT=""
+  ACME_KEY_CHANGE=""
+  ACME_NEW_AUTHZ=""
+  ACME_NEW_ORDER=""
+  ACME_REVOKE_CERT=""
+  ACME_NEW_NONCE=""
+  ACME_AGREEMENT=""
+}
+
 #server
 _initAPI() {
   _api_server="${1:-$ACME_DIRECTORY}"
@@ -2590,6 +2600,9 @@ _initAPI() {
     _info "Sleep $_sleep_retry_sec and retry."
     _sleep "$_sleep_retry_sec"
   done
+  if [ "$ACME_NEW_ACCOUNT" ] && [ "$ACME_NEW_ORDER" ]; then
+    return 0
+  fi
   _err "Can not init api, for $_api_server"
   return 1
 }
@@ -5032,6 +5045,9 @@ renew() {
   _debug Le_API "$Le_API"
 
   if [ "$Le_API" ]; then
+    if [ "$Le_API" != "$ACME_DIRECTORY" ]; then
+      _clearAPI
+    fi
     export ACME_DIRECTORY="$Le_API"
     #reload ca configs
     ACCOUNT_KEY_PATH=""
@@ -5039,6 +5055,7 @@ renew() {
     CA_CONF=""
     _debug3 "initpath again."
     _initpath "$Le_Domain" "$_isEcc"
+    _initAPI
   fi
 
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
@@ -5696,6 +5713,23 @@ revoke() {
     return 1
   fi
 
+  . "$DOMAIN_CONF"
+  _debug Le_API "$Le_API"
+
+  if [ "$Le_API" ]; then
+    if [ "$Le_API" != "$ACME_DIRECTORY" ]; then
+      _clearAPI
+    fi
+    export ACME_DIRECTORY="$Le_API"
+    #reload ca configs
+    ACCOUNT_KEY_PATH=""
+    ACCOUNT_JSON_PATH=""
+    CA_CONF=""
+    _debug3 "initpath again."
+    _initpath "$Le_Domain" "$_isEcc"
+    _initAPI
+  fi
+
   cert="$(_getfile "${CERT_PATH}" "${BEGIN_CERT}" "${END_CERT}" | tr -d "\r\n" | _url_replace)"
 
   if [ -z "$cert" ]; then
@@ -5775,7 +5809,24 @@ remove() {
 _deactivate() {
   _d_domain="$1"
   _d_type="$2"
-  _initpath
+  _initpath "$_d_domain" "$_d_type"
+
+  . "$DOMAIN_CONF"
+  _debug Le_API "$Le_API"
+
+  if [ "$Le_API" ]; then
+    if [ "$Le_API" != "$ACME_DIRECTORY" ]; then
+      _clearAPI
+    fi
+    export ACME_DIRECTORY="$Le_API"
+    #reload ca configs
+    ACCOUNT_KEY_PATH=""
+    ACCOUNT_JSON_PATH=""
+    CA_CONF=""
+    _debug3 "initpath again."
+    _initpath "$Le_Domain" "$_d_type"
+    _initAPI
+  fi
 
   _identifiers="{\"type\":\"dns\",\"value\":\"$_d_domain\"}"
   if ! _send_signed_request "$ACME_NEW_ORDER" "{\"identifiers\": [$_identifiers]}"; then
