@@ -2535,6 +2535,16 @@ __initHome() {
   fi
 }
 
+_clearAPI() {
+  ACME_NEW_ACCOUNT=""
+  ACME_KEY_CHANGE=""
+  ACME_NEW_AUTHZ=""
+  ACME_NEW_ORDER=""
+  ACME_REVOKE_CERT=""
+  ACME_NEW_NONCE=""
+  ACME_AGREEMENT=""
+}
+
 #server
 _initAPI() {
   _api_server="${1:-$ACME_DIRECTORY}"
@@ -5034,6 +5044,9 @@ renew() {
   _debug Le_API "$Le_API"
 
   if [ "$Le_API" ]; then
+    if [ "$Le_API" != "$ACME_DIRECTORY" ]; then
+      _clearAPI
+    fi
     export ACME_DIRECTORY="$Le_API"
     #reload ca configs
     ACCOUNT_KEY_PATH=""
@@ -5041,6 +5054,7 @@ renew() {
     CA_CONF=""
     _debug3 "initpath again."
     _initpath "$Le_Domain" "$_isEcc"
+    _initAPI
   fi
 
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
@@ -5783,6 +5797,9 @@ _deactivate() {
   _debug Le_API "$Le_API"
 
   if [ "$Le_API" ]; then
+    if [ "$Le_API" != "$ACME_DIRECTORY" ]; then
+      _clearAPI
+    fi
     export ACME_DIRECTORY="$Le_API"
     #reload ca configs
     ACCOUNT_KEY_PATH=""
@@ -5790,6 +5807,7 @@ _deactivate() {
     CA_CONF=""
     _debug3 "initpath again."
     _initpath "$Le_Domain" "$_d_type"
+    _initAPI
   fi
 
   _identifiers="{\"type\":\"dns\",\"value\":\"$_d_domain\"}"
