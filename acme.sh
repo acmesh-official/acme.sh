@@ -2600,6 +2600,9 @@ _initAPI() {
     _info "Sleep $_sleep_retry_sec and retry."
     _sleep "$_sleep_retry_sec"
   done
+  if [ "$ACME_NEW_ACCOUNT" ] && [ "$ACME_NEW_ORDER" ]; then
+    return 0
+  fi
   _err "Can not init api, for $_api_server"
   return 1
 }
