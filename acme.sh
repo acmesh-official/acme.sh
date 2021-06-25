@@ -5713,6 +5713,23 @@ revoke() {
     return 1
   fi
 
+    . "$DOMAIN_CONF"
+  _debug Le_API "$Le_API"
+
+  if [ "$Le_API" ]; then
+    if [ "$Le_API" != "$ACME_DIRECTORY" ]; then
+      _clearAPI
+    fi
+    export ACME_DIRECTORY="$Le_API"
+    #reload ca configs
+    ACCOUNT_KEY_PATH=""
+    ACCOUNT_JSON_PATH=""
+    CA_CONF=""
+    _debug3 "initpath again."
+    _initpath "$Le_Domain" "$_isEcc"
+    _initAPI
+  fi
+
   cert="$(_getfile "${CERT_PATH}" "${BEGIN_CERT}" "${END_CERT}" | tr -d "\r\n" | _url_replace)"
 
   if [ -z "$cert" ]; then
