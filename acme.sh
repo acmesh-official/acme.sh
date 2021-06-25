@@ -5775,7 +5775,20 @@ remove() {
 _deactivate() {
   _d_domain="$1"
   _d_type="$2"
-  _initpath
+  _initpath "$_d_domain" "$_d_type"
+
+  . "$DOMAIN_CONF"
+  _debug Le_API "$Le_API"
+
+  if [ "$Le_API" ]; then
+    export ACME_DIRECTORY="$Le_API"
+    #reload ca configs
+    ACCOUNT_KEY_PATH=""
+    ACCOUNT_JSON_PATH=""
+    CA_CONF=""
+    _debug3 "initpath again."
+    _initpath "$Le_Domain" "$_d_type"
+  fi
 
   _identifiers="{\"type\":\"dns\",\"value\":\"$_d_domain\"}"
   if ! _send_signed_request "$ACME_NEW_ORDER" "{\"identifiers\": [$_identifiers]}"; then
