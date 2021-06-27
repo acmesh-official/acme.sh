@@ -3577,7 +3577,7 @@ _regAccount() {
         return 1
       fi
       _secure_debug2 _eabresp "$_eabresp"
-      _eab_id="$(echo "$_eabresp" | tr ',}' '\n' | grep '"eab_kid"' | cut -d : -f 2 | tr -d '"')"
+      _eab_id="$(echo "$_eabresp" | tr ',}' '\n\n' | grep '"eab_kid"' | cut -d : -f 2 | tr -d '"')"
       _secure_debug2 _eab_id "$_eab_id"
       if [ -z "$_eab_id" ]; then
         _err "Can not resolve _eab_id"
@@ -5857,7 +5857,7 @@ _deactivate() {
   _debug2 response "$response"
   _URL_NAME="url"
 
-  entries="$(echo "$response" | tr '][' '==' | _egrep_o "challenges\": *=[^=]*=" | tr '}{' '\n' | grep "\"status\": *\"valid\"")"
+  entries="$(echo "$response" | tr '][' '==' | _egrep_o "challenges\": *=[^=]*=" | tr '}{' '\n\n' | grep "\"status\": *\"valid\"")"
   if [ -z "$entries" ]; then
     _info "No valid entries found."
     if [ -z "$thumbprint" ]; then
@@ -6621,7 +6621,7 @@ _getRepoHash() {
   _hash_path=$1
   shift
   _hash_url="https://api.github.com/repos/acmesh-official/$PROJECT_NAME/git/refs/$_hash_path"
-  _get $_hash_url | tr -d "\r\n" | tr '{},' '\n' | grep '"sha":' | cut -d '"' -f 4
+  _get $_hash_url | tr -d "\r\n" | tr '{},' '\n\n\n' | grep '"sha":' | cut -d '"' -f 4
 }
 
 _getUpgradeHash() {
