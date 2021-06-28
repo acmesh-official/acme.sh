@@ -257,7 +257,7 @@ _get_token() {
   _auth=$4
 
   _debug "Getting Token"
-  if [ "$_auth" != "main" ]; then
+  if [ "$_auth" == "main" ]; then
     body="{
       \"auth\": {
         \"identity\": {
