@@ -123,21 +123,26 @@ _get_root() {
 # returns _account_id
 _get_account_id() {
   _debug "retrive account id"
-  if ! _dnsimple_rest GET "whoami"; then
-    return 1
+
+  if [ -n "$DNSimple_ACCOUNT_ID" ]; then
+    _account_id="$DNSimple_ACCOUNT_ID"
+  else
+    if ! _dnsimple_rest GET "whoami"; then
+      return 1
+    fi
+
+    if _contains "$response" "\"account\":null"; then
+      _err "no account associated with this token"
+      return 1
+    fi
+
+    if _contains "$response" "timeout"; then
+      _err "timeout retrieving account id"
+      return 1
+    fi
+    _account_id=$(printf "%s" "$response" | _egrep_o "\"id\":[^,]*,\"email\":" | cut -d: -f2 | cut -d, -f1)
   fi
 
-  if _contains "$response" "\"account\":null"; then
-    _err "no account associated with this token"
-    return 1
-  fi
-
-  if _contains "$response" "timeout"; then
-    _err "timeout retrieving account id"
-    return 1
-  fi
-
-  _account_id=$(printf "%s" "$response" | _egrep_o "\"id\":[^,]*,\"email\":" | cut -d: -f2 | cut -d, -f1)
   _debug _account_id "$_account_id"
 
   return 0
