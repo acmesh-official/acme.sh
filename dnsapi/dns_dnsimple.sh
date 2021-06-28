@@ -124,6 +124,7 @@ _get_root() {
 _get_account_id() {
   _debug "retrive account id"
 
+  # shellcheck disable=SC2154
   if [ -n "$DNSimple_ACCOUNT_ID" ]; then
     _account_id="$DNSimple_ACCOUNT_ID"
   else
