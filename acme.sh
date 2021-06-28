@@ -5043,6 +5043,11 @@ renew() {
 
   . "$DOMAIN_CONF"
   _debug Le_API "$Le_API"
+  if [ -z "$Le_API" ]; then
+    #if this is from an old version, Le_API is empty,
+    #so, we force to use letsencrypt server
+    Le_API="$CA_LETSENCRYPT_V2"
+  fi
 
   if [ "$Le_API" ]; then
     if [ "$Le_API" != "$ACME_DIRECTORY" ]; then
