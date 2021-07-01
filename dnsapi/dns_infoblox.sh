@@ -27,7 +27,7 @@ dns_infoblox_add() {
     _info "No Infoblox_View set, using fallback value 'default'"
     Infoblox_View="default"
   fi
-  
+
   ## Save the credentials to the account file
   _saveaccountconf Infoblox_Creds "$Infoblox_Creds"
   _saveaccountconf Infoblox_Server "$Infoblox_Server"
@@ -45,7 +45,7 @@ dns_infoblox_add() {
   
   ## Construct the request URL
   baseurlnObject="https://$Infoblox_Server/wapi/v2.2.2/record:txt?name=$fulldomain&text=$txtvalue&view=${Infoblox_ViewEncoded}"
-
+  
   ## Add the challenge record to the Infoblox grid member
   result="$(_post "" "$baseurlnObject" "" "POST")"
 
