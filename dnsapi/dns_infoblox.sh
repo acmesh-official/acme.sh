@@ -42,10 +42,10 @@ dns_infoblox_add() {
   ## Construct the HTTP Authorization header
   export _H1="Accept-Language:en-US"
   export _H2="Authorization: Basic $Infoblox_CredsEncoded"
-  
+
   ## Construct the request URL
   baseurlnObject="https://$Infoblox_Server/wapi/v2.2.2/record:txt?name=$fulldomain&text=$txtvalue&view=${Infoblox_ViewEncoded}"
-  
+
   ## Add the challenge record to the Infoblox grid member
   result="$(_post "" "$baseurlnObject" "" "POST")"
 
