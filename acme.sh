@@ -105,6 +105,7 @@ DOH_CLOUDFLARE=1
 DOH_GOOGLE=2
 DOH_ALI=3
 DOH_DP=4
+DOH_NEXTDNS=5
 
 HIDDEN_VALUE="[hidden](please add '--output-insecure' to see this value)"
 
@@ -3940,6 +3941,22 @@ _ns_lookup_dp() {
   _ns_lookup_impl "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
 }
 
+_ns_is_available_nextdns() {
+  if _get "https://dns.nextdns.io" "" 1 >/dev/null 2>&1; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+#domain, type
+_ns_lookup_nextdns() {
+  _cf_ld="$1"
+  _cf_ld_type="$2"
+  _cf_ep="https://dns.nextdns.io"
+  _ns_lookup_impl "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
+}
+
 #domain, type
 _ns_lookup() {
   if [ -z "$DOH_USE" ]; then
@@ -3956,6 +3973,9 @@ _ns_lookup() {
     elif _ns_is_available_dp; then
       _debug "Use dns pod doh server"
       export DOH_USE=$DOH_DP
+    elif _ns_is_available_nextdns; then
+      _debug "Use nextdns doh server"
+      export DOH_USE=$DOH_NEXTDNS
     else
       _err "No doh"
     fi
@@ -3969,6 +3989,8 @@ _ns_lookup() {
     _ns_lookup_ali "$@"
   elif [ "$DOH_USE" = "$DOH_DP" ]; then
     _ns_lookup_dp "$@"
+  elif [ "$DOH_USE" = "$DOH_NEXTDNS" ]; then
+    _ns_lookup_nextdns "$@"
   else
     _err "Unknown doh provider: DOH_USE=$DOH_USE"
   fi
