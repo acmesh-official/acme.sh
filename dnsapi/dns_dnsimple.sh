@@ -124,8 +124,9 @@ _get_root() {
 _get_account_id() {
   _debug "retrive account id"
 
-  # shellcheck disable=SC2154
+  DNSimple_ACCOUNT_ID="${DNSimple_ACCOUNT_ID:-$(_readaccountconf_mutable DNSimple_ACCOUNT_ID)}"
   if [ -n "$DNSimple_ACCOUNT_ID" ]; then
+    _saveaccountconf_mutable DNSimple_ACCOUNT_ID "$DNSimple_ACCOUNT_ID"
     _account_id="$DNSimple_ACCOUNT_ID"
   else
     if ! _dnsimple_rest GET "whoami"; then
