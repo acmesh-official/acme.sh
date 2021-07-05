@@ -3925,7 +3925,7 @@ _ns_lookup_ali() {
 }
 
 _ns_is_available_dp() {
-  if _get "https://dns.alidns.com" "" 1 >/dev/null 2>&1; then
+  if _get "https://doh.pub" "" 1 >/dev/null 2>&1; then
     return 0
   else
     return 1
