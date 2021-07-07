@@ -44,7 +44,7 @@ sendgrid_send() {
   export _H2="Content-Type: application/json"
 
   _content="$(echo "$_content" | _json_encode)"
-  
+
   if [ -z "$SENDGRID_FROM_NAME" ]; then
     _data="{\"personalizations\": [{\"to\": [{\"email\": \"$SENDGRID_TO\"}]}],\"from\": {\"email\": \"$SENDGRID_FROM\"},\"subject\": \"$_subject\",\"content\": [{\"type\": \"text/plain\", \"value\": \"$_content\"}]}"
   else
