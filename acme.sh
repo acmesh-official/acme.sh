@@ -4712,26 +4712,13 @@ $_authorizations_map"
         return 1
       fi
 
-      _debug "sleep 2 secs to verify"
-      sleep 2
-      _debug "checking"
-
-      _send_signed_request "$uri"
-
-      if [ "$?" != "0" ]; then
-        _err "$d:Verify error:$response"
-        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
-        _clearup
-        _on_issue_err "$_post_hook" "$vlist"
-        return 1
-      fi
       _debug2 original "$response"
 
       response="$(echo "$response" | _normalizeJson)"
       _debug2 response "$response"
 
       status=$(echo "$response" | _egrep_o '"status":"[^"]*' | cut -d : -f 2 | tr -d '"')
-
+      _debug2 status "$status"
       if _contains "$status" "invalid"; then
         error="$(echo "$response" | _egrep_o '"error":\{[^\}]*')"
         _debug2 error "$error"
@@ -4773,7 +4760,19 @@ $_authorizations_map"
         _on_issue_err "$_post_hook" "$vlist"
         return 1
       fi
+      _debug "sleep 2 secs to verify again"
+      sleep 2
+      _debug "checking"
 
+      _send_signed_request "$uri"
+
+      if [ "$?" != "0" ]; then
+        _err "$d:Verify error:$response"
+        _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+        _clearup
+        _on_issue_err "$_post_hook" "$vlist"
+        return 1
+      fi
     done
 
   done
