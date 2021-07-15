@@ -1824,11 +1824,11 @@ _post() {
     [ "$_http_retry_times" = "$_HTTP_MAX_RETRY" ]
     _lastHCode="$?"
     _debug "Retrying post"
-    _post_impl "$body" "$_post_url" "$needbase64" "$httpmethod" "$_postContentType" "$_lastHCode";
+    _post_impl "$body" "$_post_url" "$needbase64" "$httpmethod" "$_postContentType" "$_lastHCode"
     _hcode="$?"
     _debug _hcode "$_hcode"
     if [ "$_hcode" = "0" ]; then
-      break;
+      break
     fi
     _http_retry_times=$(_math $_http_retry_times + 1)
     _sleep $_sleep_retry_sec
@@ -1979,11 +1979,11 @@ _get() {
     [ "$_http_retry_times" = "$_HTTP_MAX_RETRY" ]
     _lastHCode="$?"
     _debug "Retrying GET"
-    _get_impl "$url" "$onlyheader" "$t" "$_lastHCode";
+    _get_impl "$url" "$onlyheader" "$t" "$_lastHCode"
     _hcode="$?"
     _debug _hcode "$_hcode"
     if [ "$_hcode" = "0" ]; then
-      break;
+      break
     fi
     _http_retry_times=$(_math $_http_retry_times + 1)
     _sleep $_sleep_retry_sec
