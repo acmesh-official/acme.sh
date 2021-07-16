@@ -37,11 +37,19 @@ sendgrid_send() {
   fi
   _saveaccountconf_mutable SENDGRID_FROM "$SENDGRID_FROM"
 
+  SENDGRID_FROM_NAME="${SENDGRID_FROM_NAME:-$(_readaccountconf_mutable SENDGRID_FROM_NAME)}"
+  _saveaccountconf_mutable SENDGRID_FROM_NAME "$SENDGRID_FROM_NAME"
+
   export _H1="Authorization: Bearer $SENDGRID_API_KEY"
   export _H2="Content-Type: application/json"
 
   _content="$(echo "$_content" | _json_encode)"
-  _data="{\"personalizations\": [{\"to\": [{\"email\": \"$SENDGRID_TO\"}]}],\"from\": {\"email\": \"$SENDGRID_FROM\"},\"subject\": \"$_subject\",\"content\": [{\"type\": \"text/plain\", \"value\": \"$_content\"}]}"
+
+  if [ -z "$SENDGRID_FROM_NAME" ]; then
+    _data="{\"personalizations\": [{\"to\": [{\"email\": \"$SENDGRID_TO\"}]}],\"from\": {\"email\": \"$SENDGRID_FROM\"},\"subject\": \"$_subject\",\"content\": [{\"type\": \"text/plain\", \"value\": \"$_content\"}]}"
+  else
+    _data="{\"personalizations\": [{\"to\": [{\"email\": \"$SENDGRID_TO\"}]}],\"from\": {\"email\": \"$SENDGRID_FROM\", \"name\": \"$SENDGRID_FROM_NAME\"},\"subject\": \"$_subject\",\"content\": [{\"type\": \"text/plain\", \"value\": \"$_content\"}]}"
+  fi
   response="$(_post "$_data" "https://api.sendgrid.com/v3/mail/send")"
 
   if [ "$?" = "0" ] && [ -z "$response" ]; then
