@@ -4542,7 +4542,13 @@ $_authorizations_map"
       _err "Please add the TXT records to the domains, and re-run with --renew."
       _on_issue_err "$_post_hook"
       _clearup
-      return 1
+      if [ -n "$FORCE_DNS_MANUAL" ]; then
+        # If asked to be in manual DNS mode, don't flag lack of DNS
+        # entries as a failure.
+        return 0
+      else
+        return 1
+      fi
     fi
 
   fi
