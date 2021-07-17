@@ -1393,6 +1393,7 @@ _toPkcs() {
 toPkcs() {
   domain="$1"
   pfxPassword="$2"
+  pfxName="$1" # use domain as frindlyName
   if [ -z "$domain" ]; then
     _usage "Usage: $PROJECT_ENTRY --to-pkcs12 --domain <domain.tld> [--password <password>] [--ecc]"
     return 1
@@ -1402,7 +1403,7 @@ toPkcs() {
 
   _initpath "$domain" "$_isEcc"
 
-  _toPkcs "$CERT_PFX_PATH" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$pfxPassword"
+  _toPkcs "$CERT_PFX_PATH" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$pfxPassword" "$pfxName"
 
   if [ "$?" = "0" ]; then
     _info "Success, Pfx is exported to: $CERT_PFX_PATH"
