@@ -56,12 +56,23 @@ vault_deploy() {
   export _H1="X-Vault-Token: $VAULT_TOKEN"
 
   if [ -n "$FABIO" ]; then
-    _post "{\"cert\": \"$_cfullchain\", \"key\": \"$_ckey\"}" "$URL"
+    if [ -n "$VAULT_KV_V2" ]; then
+      _post "{ \"data\": {\"cert\": \"$_cfullchain\", \"key\": \"$_ckey\"} }" "$URL"
+    else
+      _post "{\"cert\": \"$_cfullchain\", \"key\": \"$_ckey\"}" "$URL"
+    fi
   else
-    _post "{\"value\": \"$_ccert\"}" "$URL/cert.pem"
-    _post "{\"value\": \"$_ckey\"}" "$URL/cert.key"
-    _post "{\"value\": \"$_cca\"}" "$URL/chain.pem"
-    _post "{\"value\": \"$_cfullchain\"}" "$URL/fullchain.pem"
+    if [ -n "$VAULT_KV_V2" ]; then
+      _post "{\"data\": {\"value\": \"$_ccert\"}}" "$URL/cert.pem"
+      _post "{\"data\": {\"value\": \"$_ckey\"}}" "$URL/cert.key"
+      _post "{\"data\": {\"value\": \"$_cca\"}}" "$URL/chain.pem"
+      _post "{\"data\": {\"value\": \"$_cfullchain\"}}" "$URL/fullchain.pem"
+    else
+      _post "{\"value\": \"$_ccert\"}" "$URL/cert.pem"
+      _post "{\"value\": \"$_ckey\"}" "$URL/cert.key"
+      _post "{\"value\": \"$_cca\"}" "$URL/chain.pem"
+      _post "{\"value\": \"$_cfullchain\"}" "$URL/fullchain.pem"
+    fi
   fi
 
 }
