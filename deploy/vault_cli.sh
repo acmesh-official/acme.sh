@@ -12,6 +12,10 @@
 # additionally, you need to ensure that VAULT_TOKEN is avialable or
 # `vault auth` has applied the appropriate authorization for the vault binary
 # to access the vault server
+#
+# If VAULT_ROLE_ID and VAULT_ROLE_SECRET are available, get a valid token using the
+# vault approle authentication method.
+# https://www.vaultproject.io/docs/auth/approle
 
 #returns 0 means success, otherwise error.
 
@@ -47,6 +51,16 @@ vault_cli_deploy() {
   if [ ! $? ]; then
     _err "cannot find vault binary!"
     return 1
+  fi
+
+  if [ -n "$VAULT_ROLE_ID" ]; then
+    VAULT_TOKEN=$(vault write -field=token auth/approle/login \
+      role_id="$VAULT_ROLE_ID" secret_id="$VAULT_ROLE_SECRET")
+    if [ ! $? ]; then
+      _err "cannot login to vault approle ${VAULT_ROLE_ID}!"
+      return 1
+    fi
+    export VAULT_TOKEN
   fi
 
   if [ -n "$FABIO" ]; then
