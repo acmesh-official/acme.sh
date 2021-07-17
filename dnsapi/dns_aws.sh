@@ -6,8 +6,6 @@
 #AWS_SECRET_ACCESS_KEY="xxxxxxx"
 
 #This is the Amazon Route53 api wrapper for acme.sh
-#All `_sleep` commands are included to avoid Route53 throttling, see
-#https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html#limits-api-requests
 
 AWS_HOST="route53.amazonaws.com"
 AWS_URL="https://$AWS_HOST"
@@ -56,7 +54,6 @@ dns_aws_add() {
 
   _info "Getting existing records for $fulldomain"
   if ! aws_rest GET "2013-04-01$_domain_id/rrset" "name=$fulldomain&type=TXT"; then
-    _sleep 1
     return 1
   fi
 
@@ -69,7 +66,6 @@ dns_aws_add() {
 
   if [ "$_resource_record" ] && _contains "$response" "$txtvalue"; then
     _info "The TXT record already exists. Skipping."
-    _sleep 1
     return 0
   fi
 
@@ -82,13 +78,10 @@ dns_aws_add() {
     if [ -n "$AWS_DNS_SLOWRATE" ]; then
       _info "Slow rate activated: sleeping for $AWS_DNS_SLOWRATE seconds"
       _sleep "$AWS_DNS_SLOWRATE"
-    else
-      _sleep 1
     fi
 
     return 0
   fi
-  _sleep 1
   return 1
 }
 
@@ -108,7 +101,6 @@ dns_aws_rm() {
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
-    _sleep 1
     return 1
   fi
   _debug _domain_id "$_domain_id"
@@ -117,7 +109,6 @@ dns_aws_rm() {
 
   _info "Getting existing records for $fulldomain"
   if ! aws_rest GET "2013-04-01$_domain_id/rrset" "name=$fulldomain&type=TXT"; then
-    _sleep 1
     return 1
   fi
 
@@ -126,7 +117,6 @@ dns_aws_rm() {
     _debug "_resource_record" "$_resource_record"
   else
     _debug "no records exist, skip"
-    _sleep 1
     return 0
   fi
 
@@ -137,13 +127,10 @@ dns_aws_rm() {
     if [ -n "$AWS_DNS_SLOWRATE" ]; then
       _info "Slow rate activated: sleeping for $AWS_DNS_SLOWRATE seconds"
       _sleep "$AWS_DNS_SLOWRATE"
-    else
-      _sleep 1
     fi
 
     return 0
   fi
-  _sleep 1
   return 1
 
 }
@@ -346,20 +333,41 @@ aws_rest() {
     url="$AWS_URL/$ep?$qsr"
   fi
 
-  if [ "$mtd" = "GET" ]; then
-    response="$(_get "$url")"
-  else
-    response="$(_post "$data" "$url")"
-  fi
+  max_attempts=100
+  timeout=1
+  attempt=0
 
-  _ret="$?"
-  _debug2 response "$response"
-  if [ "$_ret" = "0" ]; then
-    if _contains "$response" "<ErrorResponse"; then
-      _err "Response error:$response"
-      return 1
+  while [ "${attempt}" -lt "${max_attempts}" ]; do
+    if [ "$mtd" = "GET" ]; then
+      response="$(_get "$url")"
+    else
+      response="$(_post "$data" "$url")"
     fi
-  fi
 
+    _ret="$?"
+    _debug2 response "$response"
+    if [ "$_ret" = "0" ]; then
+      if _contains "$response" "<ErrorResponse"; then
+        if _contains "$response" "Rate exceeded" || _contains "$response" "Throttling"; then
+          _info "Rate exceeded, sleeping for ${timeout} seconds."
+
+          sleep $timeout
+          attempt=$((attempt + 1))
+          timeout=$((timeout * 2))
+          continue
+        else
+          _err "Response error:$response"
+          return 1
+        fi
+      else
+        return "$_ret"
+      fi
+    fi
+  done
+  if _contains "$response" "<ErrorResponse"; then
+    _err "Throttling Error, last attempt reached."
+    _err "Response error:$response"
+    return 1
+  fi
   return "$_ret"
 }
