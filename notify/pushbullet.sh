@@ -21,7 +21,7 @@ pushbullet_send() {
 
   PUSHBULLET_DEVICE="${PUSHBULLET_DEVICE:-$(_readaccountconf_mutable PUSHBULLET_DEVICE)}"
   if [ -z "$PUSHBULLET_DEVICE" ]; then
-    _saveaccountconf_mutable PUSHBULLET_TOKEN "$PUSHBULLET_TOKEN"
+    _saveaccountconf_mutable PUSHBULLET_DEVICE "$PUSHBULLET_DEVICE"
   fi
 
   export _H1="Content-Type: application/json"
