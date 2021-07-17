@@ -27,8 +27,6 @@ dns_variomedia_add() {
   if ! _get_root "$fulldomain"; then
     return 1
   fi
-  _debug _sub_domain "$_sub_domain"
-  _debug _domain "$_domain"
 
   if ! _variomedia_rest POST "dns-records" "{\"data\": {\"type\": \"dns-record\", \"attributes\": {\"record_type\": \"TXT\", \"name\": \"$_sub_domain\", \"domain\": \"$_domain\", \"data\": \"$txtvalue\", \"ttl\":300}}}"; then
     _err "$response"
@@ -59,8 +57,6 @@ dns_variomedia_rm() {
   if ! _get_root "$fulldomain"; then
     return 1
   fi
-  _debug _sub_domain "$_sub_domain"
-  _debug _domain "$_domain"
 
   _debug 'Getting txt records'
 
@@ -93,11 +89,12 @@ dns_variomedia_rm() {
 # _sub_domain=_acme-challenge.www
 # _domain=domain.com
 _get_root() {
-  fulldomain=$1
-  i=1
+  domain=$1
+  i=2
+  p=1
+
   while true; do
-    h=$(printf "%s" "$fulldomain" | cut -d . -f $i-100)
-    _debug h "$h"
+    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     if [ -z "$h" ]; then
       return 1
     fi
@@ -106,13 +103,15 @@ _get_root() {
       return 1
     fi
 
-    if _startswith "$response" "\{\"data\":"; then
-      if _contains "$response" "\"id\":\"$h\""; then
-        _sub_domain="$(echo "$fulldomain" | sed "s/\\.$h\$//")"
-        _domain=$h
-        return 0
-      fi
+    if _contains "$response" "\"id\":\"$h\""; then
+      _sub_domain=$(printf "%s" "$domain" | cut -d '.' -f 1-$p)
+      _domain="$h"
+
+      _debug _sub_domain "$_sub_domain"
+      _debug _domain "$_domain"
+      return 0
     fi
+    p=$i
     i=$(_math "$i" + 1)
   done
 
