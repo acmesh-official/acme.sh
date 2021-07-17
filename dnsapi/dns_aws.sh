@@ -24,6 +24,7 @@ dns_aws_add() {
   AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-$(_readaccountconf_mutable AWS_ACCESS_KEY_ID)}"
   AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
   AWS_DNS_SLOWRATE="${AWS_DNS_SLOWRATE:-$(_readaccountconf_mutable AWS_DNS_SLOWRATE)}"
+  AWS_ZONE_ID="${AWS_ZONE_ID:-$(_readaccountconf_mutable AWS_ZONE_ID)}"
 
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     _use_container_role || _use_instance_role
@@ -41,18 +42,25 @@ dns_aws_add() {
   if [ -z "$_using_role" ]; then
     _saveaccountconf_mutable AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
     _saveaccountconf_mutable AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
-    _saveaccountconf_mutable AWS_DNS_SLOWRATE "$AWS_DNS_SLOWRATE"
   fi
 
-  _debug "First detect the root zone"
-  if ! _get_root "$fulldomain"; then
-    _err "invalid domain"
-    _sleep 1
-    return 1
+
+  _saveaccountconf_mutable AWS_DNS_SLOWRATE "$AWS_DNS_SLOWRATE"
+  _saveaccountconf_mutable AWS_ZONE_ID "$AWS_ZONE_ID"
+
+
+  if [ -n "$AWS_ZONE_ID" ] ; then
+    _debug "Using hardcoded zone ID"
+    _domain_id="/hostedzone/$AWS_ZONE_ID"
+  else
+    _debug "First detect the root zone"
+    if ! _get_root "$fulldomain"; then
+      _err "invalid domain"
+      _sleep 1
+      return 1
+    fi
   fi
   _debug _domain_id "$_domain_id"
-  _debug _sub_domain "$_sub_domain"
-  _debug _domain "$_domain"
 
   _info "Getting existing records for $fulldomain"
   if ! aws_rest GET "2013-04-01$_domain_id/rrset" "name=$fulldomain&type=TXT"; then
@@ -100,20 +108,24 @@ dns_aws_rm() {
   AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-$(_readaccountconf_mutable AWS_ACCESS_KEY_ID)}"
   AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
   AWS_DNS_SLOWRATE="${AWS_DNS_SLOWRATE:-$(_readaccountconf_mutable AWS_DNS_SLOWRATE)}"
+  AWS_ZONE_ID="${AWS_ZONE_ID:-$(_readaccountconf_mutable AWS_ZONE_ID)}"
 
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     _use_container_role || _use_instance_role
   fi
 
-  _debug "First detect the root zone"
-  if ! _get_root "$fulldomain"; then
-    _err "invalid domain"
-    _sleep 1
-    return 1
+  if [ -n "$AWS_ZONE_ID" ] ; then
+    _debug "Using hardcoded zone ID"
+    _domain_id="/hostedzone/${AWS_ZONE_ID}"
+  else
+    _debug "First detect the root zone"
+    if ! _get_root "$fulldomain"; then
+      _err "invalid domain"
+      _sleep 1
+      return 1
+    fi
   fi
   _debug _domain_id "$_domain_id"
-  _debug _sub_domain "$_sub_domain"
-  _debug _domain "$_domain"
 
   _info "Getting existing records for $fulldomain"
   if ! aws_rest GET "2013-04-01$_domain_id/rrset" "name=$fulldomain&type=TXT"; then
@@ -184,8 +196,6 @@ _get_root() {
         if [ "$hostedzone" ]; then
           _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "<Id>.*<.Id>" | head -n 1 | _egrep_o ">.*<" | tr -d "<>")
           if [ "$_domain_id" ]; then
-            _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
-            _domain=$h
             return 0
           fi
           _err "Can't find domain with id: $h"
