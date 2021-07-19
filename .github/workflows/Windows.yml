@@ -1,0 +1,70 @@
+name: Windows
+on:
+  push:
+    branches:
+      - '*'
+    paths:
+      - '*.sh'
+      - '.github/workflows/Windows.yml'
+
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - '*.sh'
+      - '.github/workflows/Windows.yml'
+
+
+jobs:
+  Windows:
+    strategy:
+      matrix:
+        include:
+         - TEST_ACME_Server: "LetsEncrypt.org_test"
+           CA_ECDSA: ""
+           CA: ""
+           CA_EMAIL: ""
+         - TEST_ACME_Server: "ZeroSSL.com"
+           CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
+           CA: "ZeroSSL RSA Domain Secure Site CA"
+           CA_EMAIL: "githubtest@acme.sh"
+    runs-on: windows-latest
+    env:
+      TEST_ACME_Server: ${{ matrix.TEST_ACME_Server }}
+      CA_ECDSA: ${{ matrix.CA_ECDSA }}
+      CA: ${{ matrix.CA }}
+      CA_EMAIL: ${{ matrix.CA_EMAIL }}
+      TEST_LOCAL: 1
+      #The 80 port is used by Windows server, we have to use a custom port, tunnel will also use this port.
+      Le_HTTPPort: 8888
+    steps:
+    - name: Set git to use LF
+      run: |
+          git config --global core.autocrlf false
+    - uses: actions/checkout@v2
+    - name: Install cygwin base packages with chocolatey
+      run: |
+          choco config get cacheLocation
+          choco install --no-progress cygwin
+      shell: cmd
+    - name: Install cygwin additional packages
+      run: |
+          C:\tools\cygwin\cygwinsetup.exe -qgnNdO -R C:/tools/cygwin -s http://mirrors.kernel.org/sourceware/cygwin/ -P socat,curl,cron,unzip,git
+      shell: cmd
+    - name: Set ENV
+      shell: cmd
+      run: |
+          echo PATH=C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin >> %GITHUB_ENV%
+    - name: Check ENV
+      shell: cmd
+      run: |
+          echo "PATH=%PATH%"
+    - name: Clone acmetest
+      shell: cmd
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - name: Run acmetest
+      shell: cmd
+      run: cd ../acmetest && bash.exe -c ./letest.sh
+
+
+

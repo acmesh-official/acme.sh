@@ -66,6 +66,12 @@ synology_dsm_deploy() {
   _getdeployconf SYNO_Certificate
   _debug SYNO_Certificate "${SYNO_Certificate:-}"
 
+  # shellcheck disable=SC1003 # We are not trying to escape a single quote
+  if printf "%s" "$SYNO_Certificate" | grep '\\'; then
+    _err "Do not use a backslash (\) in your certificate description"
+    return 1
+  fi
+
   _base_url="$SYNO_Scheme://$SYNO_Hostname:$SYNO_Port"
   _debug _base_url "$_base_url"
 
@@ -110,7 +116,9 @@ synology_dsm_deploy() {
   _info "Getting certificates in Synology DSM"
   response=$(_post "api=SYNO.Core.Certificate.CRT&method=list&version=1&_sid=$sid" "$_base_url/webapi/entry.cgi")
   _debug3 response "$response"
-  id=$(echo "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\"id\":\"\([^\"]*\).*/\1/p")
+  escaped_certificate="$(printf "%s" "$SYNO_Certificate" | sed 's/\([].*^$[]\)/\\\1/g;s/"/\\\\"/g')"
+  _debug escaped_certificate "$escaped_certificate"
+  id=$(echo "$response" | sed -n "s/.*\"desc\":\"$escaped_certificate\",\"id\":\"\([^\"]*\).*/\1/p")
   _debug2 id "$id"
 
   if [ -z "$id" ] && [ -z "${SYNO_Create:-}" ]; then
@@ -119,13 +127,7 @@ synology_dsm_deploy() {
   fi
 
   # we've verified this certificate description is a thing, so save it
-  _savedeployconf SYNO_Certificate "$SYNO_Certificate"
-
-  default=false
-  if echo "$response" | sed -n "s/.*\"desc\":\"$SYNO_Certificate\",\([^{]*\).*/\1/p" | grep -- 'is_default":true' >/dev/null; then
-    default=true
-  fi
-  _debug2 default "$default"
+  _savedeployconf SYNO_Certificate "$SYNO_Certificate" "base64"
 
   _info "Generate form POST request"
   nl="\0015\0012"
@@ -135,7 +137,12 @@ synology_dsm_deploy() {
   content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"inter_cert\"; filename=\"$(basename "$_cca")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_cca")\0012"
   content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"id\"${nl}${nl}$id"
   content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"desc\"${nl}${nl}${SYNO_Certificate}"
-  content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"as_default\"${nl}${nl}${default}"
+  if echo "$response" | sed -n "s/.*\"desc\":\"$escaped_certificate\",\([^{]*\).*/\1/p" | grep -- 'is_default":true' >/dev/null; then
+    _debug2 default "this is the default certificate"
+    content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"as_default\"${nl}${nl}true"
+  else
+    _debug2 default "this is NOT the default certificate"
+  fi
   content="$content${nl}--$delim--${nl}"
   content="$(printf "%b_" "$content")"
   content="${content%_}" # protect trailing \n

@@ -89,7 +89,7 @@ add_record() {
 
   _info "Adding record"
 
-  if ! _rest POST "Record.Create" "login_token=$DP_Id,$DP_Key&format=json&lang=en&domain_id=$_domain_id&sub_domain=$_sub_domain&record_type=TXT&value=$txtvalue&record_line=默认"; then
+  if ! _rest POST "Record.Create" "login_token=$DP_Id,$DP_Key&format=json&lang=en&domain_id=$_domain_id&sub_domain=$_sub_domain&record_type=TXT&value=$txtvalue&record_line=%E9%BB%98%E8%AE%A4"; then
     return 1
   fi
 

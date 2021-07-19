@@ -24,20 +24,9 @@ dns_ionos_add() {
     return 1
   fi
 
-  _new_record="{\"name\":\"$_sub_domain.$_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"ttl\":$IONOS_TXT_TTL,\"prio\":$IONOS_TXT_PRIO,\"disabled\":false}"
+  _body="[{\"name\":\"$_sub_domain.$_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"ttl\":$IONOS_TXT_TTL,\"prio\":$IONOS_TXT_PRIO,\"disabled\":false}]"
 
-  # As no POST route is supported by the API, check for existing records and include them in the PATCH request in order not delete them.
-  # This is required to support ACME v2 wildcard certificate creation, where two TXT records for the same domain name are created.
-
-  _ionos_get_existing_records "$fulldomain" "$_zone_id"
-
-  if [ "$_existing_records" ]; then
-    _body="[$_new_record,$_existing_records]"
-  else
-    _body="[$_new_record]"
-  fi
-
-  if _ionos_rest PATCH "$IONOS_ROUTE_ZONES/$_zone_id" "$_body" && [ -z "$response" ]; then
+  if _ionos_rest POST "$IONOS_ROUTE_ZONES/$_zone_id/records" "$_body" && [ -z "$response" ]; then
     _info "TXT record has been created successfully."
     return 0
   fi
@@ -125,17 +114,6 @@ _get_root() {
   return 1
 }
 
-_ionos_get_existing_records() {
-  fulldomain=$1
-  zone_id=$2
-
-  if _ionos_rest GET "$IONOS_ROUTE_ZONES/$zone_id?recordName=$fulldomain&recordType=TXT"; then
-    response="$(echo "$response" | tr -d "\n")"
-
-    _existing_records="$(printf "%s\n" "$response" | _egrep_o "\"records\":\[.*\]" | _head_n 1 | cut -d '[' -f 2 | sed 's/]//')"
-  fi
-}
-
 _ionos_get_record() {
   fulldomain=$1
   zone_id=$2
@@ -168,17 +146,18 @@ _ionos_rest() {
     export _H2="Accept: application/json"
     export _H3="Content-Type: application/json"
 
-    response="$(_post "$data" "$IONOS_API$route" "" "$method")"
+    response="$(_post "$data" "$IONOS_API$route" "" "$method" "application/json")"
   else
     export _H2="Accept: */*"
-
+    export _H3=
     response="$(_get "$IONOS_API$route")"
   fi
 
   if [ "$?" != "0" ]; then
-    _err "Error $route"
+    _err "Error $route: $response"
     return 1
   fi
+  _debug2 "response" "$response"
 
   return 0
 }

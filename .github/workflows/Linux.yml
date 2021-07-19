@@ -1,0 +1,40 @@
+name: Linux
+on:
+  push:
+    branches:
+      - '*'
+    paths:
+      - '*.sh'
+      - '.github/workflows/Linux.yml'
+
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - '*.sh'
+      - '.github/workflows/Linux.yml'
+
+
+
+jobs:
+  Linux:
+    strategy:
+      matrix:
+        os: ["ubuntu:latest", "debian:latest", "almalinux:latest", "fedora:latest", "centos:latest", "opensuse/leap:latest", "alpine:latest", "oraclelinux:8", "kalilinux/kali", "archlinux:latest", "mageia", "gentoo/stage3-amd64", "clearlinux:latest"]
+    runs-on: ubuntu-latest
+    env:
+      TEST_LOCAL: 1
+    steps:
+    - uses: actions/checkout@v2
+    - name: Clone acmetest
+      run: |
+          cd .. \
+          && git clone https://github.com/acmesh-official/acmetest.git \
+          && cp -r acme.sh acmetest/
+    - name: Run acmetest
+      run: |
+          cd ../acmetest \
+          && ./rundocker.sh  testplat ${{ matrix.os }}
+
+
+

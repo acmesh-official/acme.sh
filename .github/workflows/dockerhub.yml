@@ -6,6 +6,11 @@ on:
       - '*'
     tags:
       - '*'
+    paths:
+      - '**.sh'
+      - "Dockerfile"
+      - '.github/workflows/dockerhub.yml'
+
     
 jobs:
   CheckToken:
