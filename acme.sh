@@ -4812,9 +4812,9 @@ $_authorizations_map"
       fi
 
       if [ "$status" = "pending" ]; then
-        _info "Pending"
+        _info "Pending, The CA is processing your order, please just wait. ($waittimes/$MAX_RETRY_TIMES)"
       elif [ "$status" = "processing" ]; then
-        _info "Processing"
+        _info "Processing, The CA is processing your order, please just wait. ($waittimes/$MAX_RETRY_TIMES)"
       else
         _err "$d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
