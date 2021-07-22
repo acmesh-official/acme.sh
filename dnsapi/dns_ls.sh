@@ -62,9 +62,5 @@ dns_ls_rm() {
   fi
   _err "Could not del resource record, check logs"
   _err "${response}"
-  return 1
-
-
-
 }
 ####################  Private functions below ##################################
