@@ -4207,6 +4207,10 @@ issue() {
   if [ -z "$_ACME_IS_RENEW" ]; then
     _initpath "$_main_domain" "$_key_length"
     mkdir -p "$DOMAIN_PATH"
+  else
+    Le_OrderFinalize=""
+    Le_LinkOrder=""
+    Le_LinkCert=""
   fi
 
   if _hasfield "$_web_roots" "$W_DNS" && [ -z "$FORCE_DNS_MANUAL" ]; then
