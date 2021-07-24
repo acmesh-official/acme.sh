@@ -20,18 +20,18 @@
 
 - An ACME protocol client written purely in Shell (Unix shell) language.
 - Full ACME protocol implementation.
-- Support ACME v1 and ACME v2
-- Support ACME v2 wildcard certs
+- Support ECDSA certs
+- Support SAN and wildcard certs
 - Simple, powerful and very easy to use. You only need 3 minutes to learn it.
 - Bash, dash and sh compatible.
-- Purely written in Shell with no dependencies on python or the official Let's Encrypt client.
+- Purely written in Shell with no dependencies on python.
 - Just one script to issue, renew and install your certificates automatically.
 - DOES NOT require `root/sudoer` access.
-- Docker friendly
-- IPv6 support
+- Docker ready
+- IPv6 ready
 - Cron job notifications for renewal or error etc.
 
-It's probably the `easiest & smartest` shell script to automatically issue & renew the free certificates from Let's Encrypt.
+It's probably the `easiest & smartest` shell script to automatically issue & renew the free certificates.
 
 Wiki: https://github.com/acmesh-official/acme.sh/wiki
 
