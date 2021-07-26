@@ -33,10 +33,12 @@ dns_ls_add() {
   response="$(_post "secretkey=${LS_Key}&domain=${fulldomain}&rval=${txtvalue}" "$LS_API")"
   if _contains "${response}" 'success'; then
     return 0
+  else
+      _err "Could not create resource record, check logs"
+      _err "${response}"
+      return 1
   fi
-  _err "Could not create resource record, check logs"
-  _err "${response}"
-  return 1
+
 
 }
 
@@ -59,8 +61,11 @@ dns_ls_rm() {
   response="$(_post "secretkey=${LS_Key}&domain=${fulldomain}&rval=${txtvalue}&option=del" "$LS_API")"
   if _contains "${response}" 'success'; then
     return 0
+  else
+    _err "Could not del resource record, check logs"
+    _err "${response}"
+    return 1
   fi
-  _err "Could not del resource record, check logs"
-  _err "${response}"
+
 }
 ####################  Private functions below ##################################
