@@ -3441,7 +3441,7 @@ _on_before_issue() {
       _netprc="$(_ss "$_checkport" | grep "$_checkport")"
       netprc="$(echo "$_netprc" | grep "$_checkaddr")"
       if [ -z "$netprc" ]; then
-        netprc="$(echo "$_netprc" | grep "$LOCAL_ANY_ADDRESS")"
+        netprc="$(echo "$_netprc" | grep "$LOCAL_ANY_ADDRESS:$_checkport")"
       fi
       if [ "$netprc" ]; then
         _err "$netprc"
