@@ -1181,7 +1181,7 @@ _idn() {
     return 0
   fi
 
-  if _exists idn; then
+  if _exists idn2; then
     if _contains "$__idn_d" ','; then
       _i_first="1"
       for f in $(echo "$__idn_d" | tr ',' ' '); do
@@ -1191,13 +1191,13 @@ _idn() {
         else
           _i_first=""
         fi
-        idn --quiet "$f" | tr -d "\r\n"
+        idn2 --quiet "$f" | tr -d "\r\n"
       done
     else
-      idn "$__idn_d" | tr -d "\r\n"
+      idn2 "$__idn_d" | tr -d "\r\n"
     fi
   else
-    _err "Please install idn to process IDN names."
+    _err "Please install (lib)idn2 to process IDN names."
   fi
 }
 
@@ -6988,8 +6988,8 @@ _process() {
           _err "'$_dvalue' is not a valid domain for parameter '$1'"
           return 1
         fi
-        if _is_idn "$_dvalue" && ! _exists idn; then
-          _err "It seems that $_dvalue is an IDN( Internationalized Domain Names), please install 'idn' command first."
+        if _is_idn "$_dvalue" && ! _exists idn2; then
+          _err "It seems that $_dvalue is an IDN( Internationalized Domain Names), please install 'idn2' command first."
           return 1
         fi
 
