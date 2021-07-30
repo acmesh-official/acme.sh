@@ -21,12 +21,12 @@ dns_burp_add() {
   _saveaccountconf_mutable BURP_COLLABORATOR_CONFIG "$BURP_COLLABORATOR_CONFIG"
   _saveaccountconf_mutable BURP_COLLABORATOR_RESTART "$BURP_COLLABORATOR_RESTART"
 
-  json=$(cat $BURP_COLLABORATOR_CONFIG)
+  json=$(cat "$BURP_COLLABORATOR_CONFIG")
   json=$(echo "$json" | jq ".customDnsRecords += [{\"label\": \"_acme-challenge\", \"record\": \"$txtvalue\", \"type\": \"TXT\", \"ttl\": 60}]")
 
-  echo "$json" >$BURP_COLLABORATOR_CONFIG
+  echo "$json" >"$BURP_COLLABORATOR_CONFIG"
 
-  eval $BURP_COLLABORATOR_RESTART
+  eval "$BURP_COLLABORATOR_RESTART"
 
   return 0
 }
@@ -37,13 +37,12 @@ dns_burp_rm() {
   txtvalue=$2
   _info "Using burp"
 
-  json=$(cat $BURP_COLLABORATOR_CONFIG)
+  json=$(cat "$BURP_COLLABORATOR_CONFIG")
   json=$(echo "$json" | jq "del(.customDnsRecords[] | select(.label == \"_acme-challenge\"))")
 
-  echo "$json" >$BURP_COLLABORATOR_CONFIG
+  echo "$json" >"$BURP_COLLABORATOR_CONFIG"
 
-  eval $BURP_COLLABORATOR_RESTART
+  eval "$BURP_COLLABORATOR_RESTART"
 }
 
 ####################  Private functions below ##################################
-
