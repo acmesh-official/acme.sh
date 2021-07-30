@@ -8,7 +8,6 @@
 ########  Public functions #####################
 
 dns_burp_add() {
-  fulldomain=$1
   txtvalue=$2
   _info "Using burp"
   BURP_COLLABORATOR_CONFIG="${BURP_COLLABORATOR_CONFIG:-$(_readaccountconf_mutable BURP_COLLABORATOR_CONFIG)}"
