@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.0.0
+VER=3.0.1
 
 PROJECT_NAME="acme.sh"
 
@@ -4207,7 +4207,7 @@ issue() {
   if [ -z "$_ACME_IS_RENEW" ]; then
     _initpath "$_main_domain" "$_key_length"
     mkdir -p "$DOMAIN_PATH"
-  else
+  elif ! _hasfield "$_web_roots" "$W_DNS"; then
     Le_OrderFinalize=""
     Le_LinkOrder=""
     Le_LinkCert=""
