@@ -32,7 +32,7 @@ dns_aws_add() {
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     AWS_ACCESS_KEY_ID=""
     AWS_SECRET_ACCESS_KEY=""
-    _err "You haven't specifed the aws route53 api key id and and api key secret yet."
+    _err "You haven't specified the aws route53 api key id and and api key secret yet."
     _err "Please create your key and try again. see $(__green $AWS_WIKI)"
     return 1
   fi
