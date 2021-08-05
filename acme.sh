@@ -3161,9 +3161,9 @@ _checkConf() {
       FOUND_REAL_NGINX_CONF="$2"
       return 0
     fi
-    if cat "$2" | tr "\t" " " | grep "^ *include *;" >/dev/null; then
+    if cat "$2" | tr "\t" " " | grep "^ *include +.*;" >/dev/null; then
       _debug "Try include files"
-      for included in $(cat "$2" | tr "\t" " " | grep "^ *include *;" | sed "s/include //" | tr -d " ;"); do
+      for included in $(cat "$2" | tr "\t" " " | grep "^ *include +.*;" | sed "s/include //" | tr -d " ;"); do
         _debug "check included $included"
         if ! _startswith "$included" "/" && _exists dirname; then
           _relpath="$(dirname "$_c_file")"
@@ -4984,10 +4984,10 @@ $_authorizations_map"
     _info "$(__green "Cert success.")"
     cat "$CERT_PATH"
 
-    _info "Your cert is in $(__green " $CERT_PATH ")"
+    _info "Your cert is in: $(__green "$CERT_PATH")"
 
     if [ -f "$CERT_KEY_PATH" ]; then
-      _info "Your cert key is in $(__green " $CERT_KEY_PATH ")"
+      _info "Your cert key is in: $(__green "$CERT_KEY_PATH")"
     fi
 
     if [ ! "$USER_PATH" ] || [ ! "$_ACME_IN_CRON" ]; then
@@ -4996,8 +4996,8 @@ $_authorizations_map"
     fi
   fi
 
-  [ -f "$CA_CERT_PATH" ] && _info "The intermediate CA cert is in $(__green " $CA_CERT_PATH ")"
-  [ -f "$CERT_FULLCHAIN_PATH" ] && _info "And the full chain certs is there: $(__green " $CERT_FULLCHAIN_PATH ")"
+  [ -f "$CA_CERT_PATH" ] && _info "The intermediate CA cert is in: $(__green "$CA_CERT_PATH")"
+  [ -f "$CERT_FULLCHAIN_PATH" ] && _info "And the full chain certs is there: $(__green "$CERT_FULLCHAIN_PATH")"
 
   Le_CertCreateTime=$(_time)
   _savedomainconf "Le_CertCreateTime" "$Le_CertCreateTime"
@@ -5541,7 +5541,7 @@ _installcert() {
   mkdir -p "$_backup_path"
 
   if [ "$_real_cert" ]; then
-    _info "Installing cert to:$_real_cert"
+    _info "Installing cert to: $_real_cert"
     if [ -f "$_real_cert" ] && [ ! "$_ACME_IS_RENEW" ]; then
       cp "$_real_cert" "$_backup_path/cert.bak"
     fi
@@ -5549,7 +5549,7 @@ _installcert() {
   fi
 
   if [ "$_real_ca" ]; then
-    _info "Installing CA to:$_real_ca"
+    _info "Installing CA to: $_real_ca"
     if [ "$_real_ca" = "$_real_cert" ]; then
       echo "" >>"$_real_ca"
       cat "$CA_CERT_PATH" >>"$_real_ca" || return 1
@@ -5562,7 +5562,7 @@ _installcert() {
   fi
 
   if [ "$_real_key" ]; then
-    _info "Installing key to:$_real_key"
+    _info "Installing key to: $_real_key"
     if [ -f "$_real_key" ] && [ ! "$_ACME_IS_RENEW" ]; then
       cp "$_real_key" "$_backup_path/key.bak"
     fi
@@ -5575,7 +5575,7 @@ _installcert() {
   fi
 
   if [ "$_real_fullchain" ]; then
-    _info "Installing full chain to:$_real_fullchain"
+    _info "Installing full chain to: $_real_fullchain"
     if [ -f "$_real_fullchain" ] && [ ! "$_ACME_IS_RENEW" ]; then
       cp "$_real_fullchain" "$_backup_path/fullchain.bak"
     fi
