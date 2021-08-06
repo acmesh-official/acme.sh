@@ -3,6 +3,7 @@
 # ISPConfig 3.1 API
 # User must provide login data and URL to the ISPConfig installation incl. port. The remote user in ISPConfig must have access to:
 # - DNS txt Functions
+# - Client functions (otherwise no result is given and "Client ID is not numeric." error occurs).
 
 # Report bugs to https://github.com/sjau/acme.sh
 
