@@ -20,6 +20,8 @@ _SUB_FOLDER_DEPLOY="deploy"
 
 _SUB_FOLDERS="$_SUB_FOLDER_DNSAPI $_SUB_FOLDER_DEPLOY $_SUB_FOLDER_NOTIFY"
 
+CA_LETSENCRYPT_V1="https://acme-v01.api.letsencrypt.org/directory"
+
 CA_LETSENCRYPT_V2="https://acme-v02.api.letsencrypt.org/directory"
 CA_LETSENCRYPT_V2_TEST="https://acme-staging-v02.api.letsencrypt.org/directory"
 
@@ -5108,7 +5110,7 @@ renew() {
 
   . "$DOMAIN_CONF"
   _debug Le_API "$Le_API"
-  if [ -z "$Le_API" ]; then
+  if [ -z "$Le_API" ] || [ "$CA_LETSENCRYPT_V1" = "$Le_API" ]; then
     #if this is from an old version, Le_API is empty,
     #so, we force to use letsencrypt server
     Le_API="$CA_LETSENCRYPT_V2"
