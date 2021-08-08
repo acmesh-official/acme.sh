@@ -13,53 +13,13 @@ dns_azure_add() {
   fulldomain=$1
   txtvalue=$2
 
-  AZUREDNS_SUBSCRIPTIONID="${AZUREDNS_SUBSCRIPTIONID:-$(_readaccountconf_mutable AZUREDNS_SUBSCRIPTIONID)}"
-  AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
-  AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
-  AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
-
-  if [ -z "$AZUREDNS_SUBSCRIPTIONID" ]; then
-    AZUREDNS_SUBSCRIPTIONID=""
-    AZUREDNS_TENANTID=""
-    AZUREDNS_APPID=""
-    AZUREDNS_CLIENTSECRET=""
-    _err "You didn't specify the Azure Subscription ID "
+  _azure_env_get_and_validate
+  if [ $? -ne 0 ]; then
+    _debug "The service principle environment is not properly set, please check the error details"
     return 1
   fi
 
-  if [ -z "$AZUREDNS_TENANTID" ]; then
-    AZUREDNS_SUBSCRIPTIONID=""
-    AZUREDNS_TENANTID=""
-    AZUREDNS_APPID=""
-    AZUREDNS_CLIENTSECRET=""
-    _err "You didn't specify the Azure Tenant ID "
-    return 1
-  fi
-
-  if [ -z "$AZUREDNS_APPID" ]; then
-    AZUREDNS_SUBSCRIPTIONID=""
-    AZUREDNS_TENANTID=""
-    AZUREDNS_APPID=""
-    AZUREDNS_CLIENTSECRET=""
-    _err "You didn't specify the Azure App ID"
-    return 1
-  fi
-
-  if [ -z "$AZUREDNS_CLIENTSECRET" ]; then
-    AZUREDNS_SUBSCRIPTIONID=""
-    AZUREDNS_TENANTID=""
-    AZUREDNS_APPID=""
-    AZUREDNS_CLIENTSECRET=""
-    _err "You didn't specify the Azure Client Secret"
-    return 1
-  fi
-  #save account details to account conf file.
-  _saveaccountconf_mutable AZUREDNS_SUBSCRIPTIONID "$AZUREDNS_SUBSCRIPTIONID"
-  _saveaccountconf_mutable AZUREDNS_TENANTID "$AZUREDNS_TENANTID"
-  _saveaccountconf_mutable AZUREDNS_APPID "$AZUREDNS_APPID"
-  _saveaccountconf_mutable AZUREDNS_CLIENTSECRET "$AZUREDNS_CLIENTSECRET"
-
-  accesstoken=$(_azure_getaccess_token "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
+  accesstoken=$(_azure_get_access_token)
 
   if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
     _err "invalid domain"
@@ -115,48 +75,14 @@ dns_azure_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  AZUREDNS_SUBSCRIPTIONID="${AZUREDNS_SUBSCRIPTIONID:-$(_readaccountconf_mutable AZUREDNS_SUBSCRIPTIONID)}"
-  AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
-  AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
-  AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
-
-  if [ -z "$AZUREDNS_SUBSCRIPTIONID" ]; then
-    AZUREDNS_SUBSCRIPTIONID=""
-    AZUREDNS_TENANTID=""
-    AZUREDNS_APPID=""
-    AZUREDNS_CLIENTSECRET=""
-    _err "You didn't specify the Azure Subscription ID "
-    return 1
+  _azure_service_principle_env_get_and_validate
+  ret = $?
+  if [ $ret -ne 0 ]; then
+    _debug "The service principle environment is not properly set, please check the error details"
+    return ret
   fi
 
-  if [ -z "$AZUREDNS_TENANTID" ]; then
-    AZUREDNS_SUBSCRIPTIONID=""
-    AZUREDNS_TENANTID=""
-    AZUREDNS_APPID=""
-    AZUREDNS_CLIENTSECRET=""
-    _err "You didn't specify the Azure Tenant ID "
-    return 1
-  fi
-
-  if [ -z "$AZUREDNS_APPID" ]; then
-    AZUREDNS_SUBSCRIPTIONID=""
-    AZUREDNS_TENANTID=""
-    AZUREDNS_APPID=""
-    AZUREDNS_CLIENTSECRET=""
-    _err "You didn't specify the Azure App ID"
-    return 1
-  fi
-
-  if [ -z "$AZUREDNS_CLIENTSECRET" ]; then
-    AZUREDNS_SUBSCRIPTIONID=""
-    AZUREDNS_TENANTID=""
-    AZUREDNS_APPID=""
-    AZUREDNS_CLIENTSECRET=""
-    _err "You didn't specify the Azure Client Secret"
-    return 1
-  fi
-
-  accesstoken=$(_azure_getaccess_token "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
+  accesstoken=$(_azure_service_principle_token "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
 
   if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
     _err "invalid domain"
@@ -205,6 +131,88 @@ dns_azure_rm() {
 }
 
 ###################  Private functions below ##################################
+
+_azure_env_get_and_validate() {
+  AZUREDNS_USEMSI="${AZUREDNS_USEMSI:-$(_readaccountconf_mutable AZUREDNS_USEMSI)}"
+  # Azure resources which has managed identity could detect and acquire client id automatically by default.
+  # We skip check the environment variables for this case
+  if [ "$AZUREDNS_USEMSI" == "true" ]; then
+    _azure_msi_env_get_and_validate
+    return 0
+  fi
+  _azure_service_principle_env_get_and_validate
+}
+
+_azure_msi_env_get_and_validate() {
+  AZUREDNS_SUBSCRIPTIONID="${AZUREDNS_SUBSCRIPTIONID:-$(_readaccountconf_mutable AZUREDNS_SUBSCRIPTIONID)}"
+  AZUREDNS_MSIOBJECTID="${AZUREDNS_MSIOBJECTID:-$(_readaccountconf_mutable AZUREDNS_MSIOBJECTID)}"
+
+  if [ -z "$AZUREDNS_SUBSCRIPTIONID" ]; then
+    AZUREDNS_SUBSCRIPTIONID=""
+    AZUREDNS_MSIOBJECTID=""
+    _err "You didn't specify the Azure Subscription ID "
+    return 1
+  fi
+
+  if [ -z "$AZUREDNS_MSIOBJECTID" ]; then
+    AZUREDNS_MSIOBJECTID=""
+    _info "You didn't specify the Azure MSI Client ID, Use the default one "
+  fi
+
+  _saveaccountconf_mutable AZUREDNS_SUBSCRIPTIONID "$AZUREDNS_SUBSCRIPTIONID"
+  _saveaccountconf_mutable AZUREDNS_MSIOBJECTID "$AZUREDNS_MSIOBJECTID"
+  _saveaccountconf_mutable AZUREDNS_USEMSI "$AZUREDNS_USEMSI"
+}
+
+_azure_service_principle_env_get_and_validate() {
+  AZUREDNS_SUBSCRIPTIONID="${AZUREDNS_SUBSCRIPTIONID:-$(_readaccountconf_mutable AZUREDNS_SUBSCRIPTIONID)}"
+  AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
+  AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
+  AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
+
+  if [ -z "$AZUREDNS_SUBSCRIPTIONID" ]; then
+    AZUREDNS_SUBSCRIPTIONID=""
+    AZUREDNS_TENANTID=""
+    AZUREDNS_APPID=""
+    AZUREDNS_CLIENTSECRET=""
+    _err "You didn't specify the Azure Subscription ID "
+    return 1
+  fi
+
+  if [ -z "$AZUREDNS_TENANTID" ]; then
+    AZUREDNS_SUBSCRIPTIONID=""
+    AZUREDNS_TENANTID=""
+    AZUREDNS_APPID=""
+    AZUREDNS_CLIENTSECRET=""
+    _err "You didn't specify the Azure Tenant ID "
+    return 1
+  fi
+
+  if [ -z "$AZUREDNS_APPID" ]; then
+    AZUREDNS_SUBSCRIPTIONID=""
+    AZUREDNS_TENANTID=""
+    AZUREDNS_APPID=""
+    AZUREDNS_CLIENTSECRET=""
+    _err "You didn't specify the Azure App ID"
+    return 1
+  fi
+
+  if [ -z "$AZUREDNS_CLIENTSECRET" ]; then
+    AZUREDNS_SUBSCRIPTIONID=""
+    AZUREDNS_TENANTID=""
+    AZUREDNS_APPID=""
+    AZUREDNS_CLIENTSECRET=""
+    _err "You didn't specify the Azure Client Secret"
+    return 1
+  fi
+
+  _saveaccountconf_mutable AZUREDNS_SUBSCRIPTIONID "$AZUREDNS_SUBSCRIPTIONID"
+  _saveaccountconf_mutable AZUREDNS_TENANTID "$AZUREDNS_TENANTID"
+  _saveaccountconf_mutable AZUREDNS_APPID "$AZUREDNS_APPID"
+  _saveaccountconf_mutable AZUREDNS_CLIENTSECRET "$AZUREDNS_CLIENTSECRET"
+
+  return 0
+}
 
 _azure_rest() {
   m=$1
@@ -256,8 +264,43 @@ _azure_rest() {
   return 0
 }
 
+_azure_get_access_token() {
+  if [ $AZUREDNS_USEMSI == "true" ]; then   
+    _azure_msi_token $AZUREDNS_MSIOBJECTID
+    return 0
+  fi
+  
+  _azure_service_principle_token "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET"
+}
+
+_azure_msi_token() {
+  objectId=$1
+  local url=""
+  if [ -z $objectId ]; then
+    url="http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fmanagement.azure.com%2F"
+  else
+    url="http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fmanagement.azure.com%2F&object_id=$objectId"
+  fi
+
+  response=$(curl "$url" -H Metadata:true -s)
+  response="$(echo "$response" | _normalizeJson)"
+  accesstoken=$(echo "$response" | _egrep_o "\"access_token\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
+  expires_on=$(echo "$response" | _egrep_o "\"expires_on\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
+
+  if [ -z "$accesstoken" ]; then
+    _err "no acccess token received. Check your Azure settings see $WIKI"
+    return 1
+  fi
+
+  _saveaccountconf_mutable AZUREDNS_BEARERTOKEN "$accesstoken"
+  _saveaccountconf_mutable AZUREDNS_TOKENVALIDTO "$expires_on"
+
+  printf "%s" "$accesstoken"
+  return 0
+}
+
 ## Ref: https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-protocols-oauth-service-to-service#request-an-access-token
-_azure_getaccess_token() {
+_azure_service_principle_token() {
   tenantID=$1
   clientID=$2
   clientSecret=$3
@@ -316,6 +359,7 @@ _get_root() {
   ## (ZoneListResult with  continuation token for the next page of results)
   ## Per https://docs.microsoft.com/en-us/azure/azure-subscription-service-limits#dns-limits you are limited to 100 Zone/subscriptions anyways
   ##
+
   _azure_rest GET "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Network/dnszones?\$top=500&api-version=2017-09-01" "" "$accesstoken"
   # Find matching domain name in Json response
   while true; do
