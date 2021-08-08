@@ -13,8 +13,7 @@ dns_azure_add() {
   fulldomain=$1
   txtvalue=$2
 
-  _azure_env_get_and_validate
-  if [ $? -ne 0 ]; then
+  if ! _azure_env_get_and_validate; then
     _debug "The service principle environment is not properly set, please check the error details"
     return 1
   fi
@@ -75,14 +74,12 @@ dns_azure_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  _azure_service_principle_env_get_and_validate
-  ret = $?
-  if [ $ret -ne 0 ]; then
+  if ! _azure_env_get_and_validate; then
     _debug "The service principle environment is not properly set, please check the error details"
-    return ret
+    return 1
   fi
 
-  accesstoken=$(_azure_service_principle_token "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
+  accesstoken=$(_azure_get_access_token)
 
   if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
     _err "invalid domain"
@@ -136,7 +133,7 @@ _azure_env_get_and_validate() {
   AZUREDNS_USEMSI="${AZUREDNS_USEMSI:-$(_readaccountconf_mutable AZUREDNS_USEMSI)}"
   # Azure resources which has managed identity could detect and acquire client id automatically by default.
   # We skip check the environment variables for this case
-  if [ "$AZUREDNS_USEMSI" == "true" ]; then
+  if [ "$AZUREDNS_USEMSI" = "true" ]; then
     _azure_msi_env_get_and_validate
     return 0
   fi
@@ -265,8 +262,8 @@ _azure_rest() {
 }
 
 _azure_get_access_token() {
-  if [ $AZUREDNS_USEMSI == "true" ]; then   
-    _azure_msi_token $AZUREDNS_MSIOBJECTID
+  if [ "$AZUREDNS_USEMSI" = "true" ]; then   
+    _azure_msi_token "$AZUREDNS_MSIOBJECTID"
     return 0
   fi
   
@@ -275,8 +272,8 @@ _azure_get_access_token() {
 
 _azure_msi_token() {
   objectId=$1
-  local url=""
-  if [ -z $objectId ]; then
+  url=""
+  if [ -z "$objectId" ]; then
     url="http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fmanagement.azure.com%2F"
   else
     url="http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fmanagement.azure.com%2F&object_id=$objectId"
