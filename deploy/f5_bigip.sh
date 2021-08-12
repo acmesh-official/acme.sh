@@ -1,7 +1,10 @@
 #!/usr/bin/env sh
 # Deployment script for F5 BIGIP
 #
-# Written by melky <https://github.com/melkypie>
+# IDNs are currently not supported (Only domain names that follow the [A-Za-z][0-9]()*+,-:;<=>?@[]^_|~. regex are supported)
+#
+# As ClientSSL profiles do not support * in their names, domain names with wildcards are replaced with a _ character, which can result in a conflict if a domain name similar to _.example.com is used
+# however you can set a custom ClientSSL profile name to workaround this issue or use a regular subdomain as CN with wildcard or _ as alternative name
 #
 # All of the environment variables are optional
 # DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE_DISABLE = yes/no - Whether to create ClientSSL profile or just install the cert/key/chain into certificate store (defaults to: no)
@@ -21,6 +24,8 @@ f5_bigip_deploy() {
   _debug _ccert "$_ccert"
   _debug _cfullchain "$_cfullchain"
 
+  _domain="$(echo "${_cdomain}" | sed 's/\*/_/g')"
+
   _getdeployconf DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE_DISABLE
 
   if [ -z "${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE_DISABLE}" ]; then
@@ -37,7 +42,7 @@ f5_bigip_deploy() {
     _getdeployconf DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE_SETTINGS
 
     if [ -z "${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE}" ]; then
-      DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE="SSL-ACME-${_cdomain}"
+      DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE="SSL-ACME-${_domain}"
     fi
 
     # Since the path length limit is 255 and we are using the /Common/ partition, the length of SSL profile can only be 247 (including) (255 - 8)
@@ -71,9 +76,9 @@ f5_bigip_deploy() {
 
 f5_bigip_tmsh() {
   _now=$(date +%Y-%m-%d)
-  _next_cert="${_cdomain}-cert-${_now}"
-  _next_key="${_cdomain}-key-${_now}"
-  _next_chain="${_cdomain}-chain-${_now}"
+  _next_cert="${_domain}-cert-${_now}"
+  _next_key="${_domain}-key-${_now}"
+  _next_chain="${_domain}-chain-${_now}"
 
   if [ "${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE_DISABLE}" = "no" ]; then
     _current_cert=$(tmsh list ltm profile client-ssl ${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE} cert 2>/dev/null | grep cert | awk '{print $2}')
@@ -82,15 +87,15 @@ f5_bigip_tmsh() {
   fi
 
   _info "Installing new cert/key/chain into store"
-  ${TMSH_CMD} install sys crypto cert ${_next_cert} from-local-file ${_ccert}
-  ${TMSH_CMD} install sys crypto key ${_next_key} from-local-file ${_ckey}
-  ${TMSH_CMD} install sys crypto cert ${_next_chain} from-local-file ${_cfullchain}
+  ${TMSH_CMD} install sys crypto cert ${_next_cert} from-local-file "${_ccert}"
+  ${TMSH_CMD} install sys crypto key ${_next_key} from-local-file "${_ckey}"
+  ${TMSH_CMD} install sys crypto cert ${_next_chain} from-local-file "${_cfullchain}"
 
   if [ "${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE_DISABLE}" = "no" ]; then
     _info "Cleaning up old cert/key/chain from the store"
-    f5_bigip_cleanup "cert" "cert" ${_cdomain} ${_current_cert}
-    f5_bigip_cleanup "key" "key" ${_cdomain} ${_current_key}
-    f5_bigip_cleanup "cert" "chain" ${_cdomain} ${_current_chain}
+    f5_bigip_cleanup "cert" "cert" ${_current_cert}
+    f5_bigip_cleanup "key" "key" ${_current_key}
+    f5_bigip_cleanup "cert" "chain" ${_current_chain}
 
     if [ -z "$(${TMSH_CMD} list ltm profile client-ssl ${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE} 2>/dev/null)" ]; then
       _info "Creating new ${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE} ClientSSL profile"
@@ -108,8 +113,7 @@ f5_bigip_tmsh() {
 f5_bigip_cleanup() {
   _cert_mgmt_type=$1
   _cert_type=$2
-  _domain=$3
-  _current=$4
+  _current=$3
 
   if [ -n "$_current" ]; then
     if [ "$DEPLOY_F5_BIGIP_BACKUP" = "yes" ]; then
