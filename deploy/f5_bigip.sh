@@ -108,6 +108,7 @@ f5_bigip_tmsh() {
         cert-key-chain replace-all-with { ACME { cert ${_next_cert} key ${_next_key} chain ${_next_chain} } }
     fi
   fi
+  ${TMSH_CMD} save sys config
 }
 
 f5_bigip_cleanup() {
