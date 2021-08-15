@@ -5745,7 +5745,7 @@ uninstallcronjob() {
   _info "Removing cron job"
   cr="$($_CRONTAB -l | grep "$PROJECT_ENTRY --cron")"
   if [ "$cr" ]; then
-    if _exists uname && uname -a | grep solaris >/dev/null; then
+    if _exists uname && uname -a | grep SunOS >/dev/null; then
       $_CRONTAB -l | sed "/$PROJECT_ENTRY --cron/d" | $_CRONTAB --
     else
       $_CRONTAB -l | sed "/$PROJECT_ENTRY --cron/d" | $_CRONTAB -
