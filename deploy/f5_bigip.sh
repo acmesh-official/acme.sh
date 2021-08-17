@@ -75,7 +75,7 @@ f5_bigip_deploy() {
 }
 
 f5_bigip_tmsh() {
-  _now=$(date +%Y-%m-%d)
+  _now=$(date -u +%Y-%m-%d)
   _next_cert="${_domain}-cert-${_now}"
   _next_key="${_domain}-key-${_now}"
   _next_chain="${_domain}-chain-${_now}"
