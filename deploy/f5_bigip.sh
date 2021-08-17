@@ -81,31 +81,32 @@ f5_bigip_tmsh() {
   _next_chain="${_domain}-chain-${_now}"
 
   if [ "${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE_DISABLE}" = "no" ]; then
-    _current_cert=$(tmsh list ltm profile client-ssl ${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE} cert 2>/dev/null | grep cert | awk '{print $2}')
-    _current_key=$(tmsh list ltm profile client-ssl ${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE} key 2>/dev/null | grep key | awk '{print $2}')
-    _current_chain=$(tmsh list ltm profile client-ssl ${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE} chain 2>/dev/null | grep chain | awk '{print $2}')
+    _current_cert=$(tmsh list ltm profile client-ssl "${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE}" cert 2>/dev/null | grep cert | awk '{print $2}')
+    _current_key=$(tmsh list ltm profile client-ssl "${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE}" key 2>/dev/null | grep key | awk '{print $2}')
+    _current_chain=$(tmsh list ltm profile client-ssl "${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE}" chain 2>/dev/null | grep chain | awk '{print $2}')
   fi
 
   _info "Installing new cert/key/chain into store"
-  ${TMSH_CMD} install sys crypto cert ${_next_cert} from-local-file "${_ccert}"
-  ${TMSH_CMD} install sys crypto key ${_next_key} from-local-file "${_ckey}"
-  ${TMSH_CMD} install sys crypto cert ${_next_chain} from-local-file "${_cfullchain}"
+  ${TMSH_CMD} install sys crypto cert "${_next_cert}" from-local-file "${_ccert}"
+  ${TMSH_CMD} install sys crypto key "${_next_key}" from-local-file "${_ckey}"
+  ${TMSH_CMD} install sys crypto cert "${_next_chain}" from-local-file "${_cfullchain}"
 
   if [ "${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE_DISABLE}" = "no" ]; then
     _info "Cleaning up old cert/key/chain from the store"
-    f5_bigip_cleanup "cert" "cert" ${_current_cert}
-    f5_bigip_cleanup "key" "key" ${_current_key}
-    f5_bigip_cleanup "cert" "chain" ${_current_chain}
+    f5_bigip_cleanup "cert" "cert" "${_current_cert}"
+    f5_bigip_cleanup "key" "key" "${_current_key}"
+    f5_bigip_cleanup "cert" "chain" "${_current_chain}"
 
-    if [ -z "$(${TMSH_CMD} list ltm profile client-ssl ${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE} 2>/dev/null)" ]; then
+    if [ -z "$(${TMSH_CMD} list ltm profile client-ssl "${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE}" 2>/dev/null)" ]; then
       _info "Creating new ${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE} ClientSSL profile"
-      ${TMSH_CMD} create ltm profile client-ssl ${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE} \
-        cert-key-chain add { ACME { cert ${_next_cert} key ${_next_key} chain ${_next_chain} } } \
+      # shellcheck disable=SC2029 - this has to be disabled because of ${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE_SETTINGS}, otherwise it will throw an unknown property error
+      ${TMSH_CMD} create ltm profile client-ssl "${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE}" \
+        cert-key-chain add "{" ACME "{" cert "${_next_cert}" key "${_next_key}" chain "${_next_chain}" "}" "}" \
         ${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE_SETTINGS}
     else
       _info "Updating ${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE} ClientSSL profile with new cert/key/chain"
-      ${TMSH_CMD} modify ltm profile client-ssl ${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE} \
-        cert-key-chain replace-all-with { ACME { cert ${_next_cert} key ${_next_key} chain ${_next_chain} } }
+      ${TMSH_CMD} modify ltm profile client-ssl "${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE}" \
+        cert-key-chain replace-all-with "{" ACME "{" cert "${_next_cert}" key "${_next_key}" chain "${_next_chain}" "}" "}"
     fi
   fi
   ${TMSH_CMD} save sys config
@@ -119,18 +120,18 @@ f5_bigip_cleanup() {
   if [ -n "$_current" ]; then
     if [ "$DEPLOY_F5_BIGIP_BACKUP" = "yes" ]; then
       # Backup enabled leave 1 previous type as backup and delete everything older than it
-      _old_date_list=$(${TMSH_CMD} list sys crypto ${_cert_mgmt_type} | grep ${_domain}-${_cert_type} | awk '{print $4}' | awk -F'-' '{print $(NF-2) "-" $(NF-1) "-" $NF}' | sort -r | tail -n +3)
+      _old_date_list=$(${TMSH_CMD} list sys crypto "${_cert_mgmt_type}" | grep "${_domain}"-"${_cert_type}" | awk '{print $4}' | awk -F'-' '{print $(NF-2) "-" $(NF-1) "-" $NF}' | sort -r | tail -n +3)
       if [ -n "${_old_date_list}" ]; then
-        while IFS= read -r _old_date; do
+        echo "${_old_date_list}" | while IFS= read -r _old_date; do
           _old_name="${_domain}-${_cert_type}-${_old_date}"
           _debug "Deleting ${_cert_mgmt_type} ${_old_name}"
-          ${TMSH_CMD} delete sys crypto ${_cert_mgmt_type} ${_old_name}
-        done <<< "${_old_date_list}"
+          ${TMSH_CMD} delete sys crypto "${_cert_mgmt_type}" "${_old_name}"
+        done
       fi
     else
       # Backup disabled, remove current type
       _debug "Deleting ${_cert_mgmt_type} ${_current}"
-      ${TMSH_CMD} delete sys crypto ${_cert_mgmt_type} ${_current}
+      ${TMSH_CMD} delete sys crypto "${_cert_mgmt_type}" "${_current}"
     fi
   fi
 }
