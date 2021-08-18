@@ -11,7 +11,7 @@
 # (this also means that everytime a new cert/key/chain is generated you will have to add it manually to a clientssl profile)
 # DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE - Changes the name of the ClientSSL profile. The limit is 255 chars (imposed by bigip itself) (defaults to: SSL-ACME-${domain})
 # DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE_SETTINGS - allows you to change the ClientSSL profile settings (defaults to: cipher-group f5-secure ciphers none options {no-tlsv1 no-tlsv1.1 dont-insert-empty-fragments})
-# DEPLOY_F5_BIGIP_BACKUP = yes/no - Whether to keep 2 cert/key/chain combos (the installed one and a backup) at all times or delete the previously installed ones straight away (defaults to: yes) 
+# DEPLOY_F5_BIGIP_BACKUP = yes/no - Whether to keep 2 cert/key/chain combos (the installed one and a backup) at all times or delete the previously installed ones straight away (defaults to: yes)
 
 f5_bigip_deploy() {
   _cdomain="$1"
@@ -99,7 +99,8 @@ f5_bigip_tmsh() {
 
     if [ -z "$(${TMSH_CMD} list ltm profile client-ssl "${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE}" 2>/dev/null)" ]; then
       _info "Creating new ${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE} ClientSSL profile"
-      # shellcheck disable=SC2029 - this has to be disabled because of ${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE_SETTINGS}, otherwise it will throw an unknown property error
+      # This has to be disabled because of ${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE_SETTINGS}, otherwise it will throw an unknown property error
+      # shellcheck disable=SC2086
       ${TMSH_CMD} create ltm profile client-ssl "${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE}" \
         cert-key-chain add "{" ACME "{" cert "${_next_cert}" key "${_next_key}" chain "${_next_chain}" "}" "}" \
         ${DEPLOY_F5_BIGIP_CLIENT_SSL_PROFILE_SETTINGS}
