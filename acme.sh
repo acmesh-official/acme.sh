@@ -32,7 +32,7 @@ _ZERO_EAB_ENDPOINT="http://api.zerossl.com/acme/eab-credentials-email"
 CA_SSLCOM_RSA="https://acme.ssl.com/sslcom-dv-rsa"
 CA_SSLCOM_ECC="https://acme.ssl.com/sslcom-dv-ecc"
 
-DEFAULT_CA=$CA_ZEROSSL
+DEFAULT_CA=$CA_LETSENCRYPT_V2
 DEFAULT_STAGING_CA=$CA_LETSENCRYPT_V2_TEST
 
 CA_NAMES="
@@ -3166,15 +3166,10 @@ _checkConf() {
       FOUND_REAL_NGINX_CONF="$2"
       return 0
     fi
-    if cat "$2" | tr "\t" " " | grep "^ *include +.*;" >/dev/null; then
+    if cat "$2" | tr "\t" " " | grep "^ *include .*;" >/dev/null; then
       _debug "Try include files"
-      for included in $(cat "$2" | tr "\t" " " | grep "^ *include +.*;" | sed "s/include //" | tr -d " ;"); do
+      for included in $(cat "$2" | tr "\t" " " | grep "^ *include .*;" | sed "s/include //" | tr -d " ;"); do
         _debug "check included $included"
-        if ! _startswith "$included" "/" && _exists dirname; then
-          _relpath="$(dirname "$_c_file")"
-          _debug "_relpath" "$_relpath"
-          included="$_relpath/$included"
-        fi
         if _checkConf "$1" "$included"; then
           return 0
         fi
