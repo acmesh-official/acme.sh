@@ -3067,7 +3067,6 @@ _setNginx() {
     _err "Can not find conf file for domain $d"
     return 1
   fi
-  popd >/dev/null
   _info "Found conf file: $FOUND_REAL_NGINX_CONF"
 
   _ln=$FOUND_REAL_NGINX_CONF_LN
@@ -3141,6 +3140,8 @@ location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
     cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
     return 1
   fi
+  
+  popd >/dev/null
 
   return 0
 }
