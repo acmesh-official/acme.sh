@@ -3382,6 +3382,8 @@ _on_before_issue() {
   if [ "$_chk_pre_hook" ]; then
     _info "Run pre hook:'$_chk_pre_hook'"
     if ! (
+      export Le_Domain="$_chk_main_domain"
+      export Le_Alt="$_chk_alt_domains"
       cd "$DOMAIN_PATH" && eval "$_chk_pre_hook"
     ); then
       _err "Error when run pre hook."
