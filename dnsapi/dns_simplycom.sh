@@ -244,13 +244,13 @@ _simply_rest() {
   else
     response="$(_get "$SIMPLY_Api/$SIMPLY_AccountName/$SIMPLY_ApiKey/$ep")"
   fi
-  
-  response="$(echo "$response" | _normalizeJson)"
 
   if [ "$?" != "0" ]; then
     _err "error $ep"
     return 1
   fi
+  
+  response="$(echo "$response" | _normalizeJson)"
 
   _debug2 response "$response"
 
