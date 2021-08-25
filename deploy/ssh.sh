@@ -23,6 +23,8 @@
 # export DEPLOY_SSH_BACKUP=""  # yes or no, default to yes or previously saved value
 # export DEPLOY_SSH_BACKUP_PATH=".acme_ssh_deploy"  # path on remote system. Defaults to .acme_ssh_deploy
 # export DEPLOY_SSH_MULTI_CALL=""  # yes or no, default to no or previously saved value
+# export DEPLOY_SSH_USE_SCP="" yes or no , default to no
+# export DEPLOY_SSH_SCP_CMD="" defaults to "scp -T -q "
 #
 ########  Public functions #####################
 
@@ -73,6 +75,25 @@ ssh_deploy() {
     Le_Deploy_ssh_cmd="ssh -T"
   fi
 
+  # USE_SCP is optional. If not provided then default to previously saved
+  # value (which may be undefined... equivalent to "no").
+  if [ "$DEPLOY_SSH_USE_SCP" = "yes" ]; then
+    Le_Deploy_ssh_use_scp="yes"
+    _savedomainconf Le_Deploy_ssh_use_scp "$Le_Deploy_ssh_use_scp"
+  elif [ "$DEPLOY_SSH_USE_SCP" = "no" ]; then
+    Le_Deploy_ssh_use_scp=""
+    _cleardomainconf Le_Deploy_ssh_use_scp
+  fi
+
+  # SCP_CMD is optional. If not provided then use scp
+  if [ -n "$DEPLOY_SSH_SCP_CMD" ]; then
+    Le_Deploy_ssh_scp_cmd="$DEPLOY_SSH_SCP_CMD"
+    _savedomainconf Le_Deploy_ssh_scp_cmd "$Le_Deploy_ssh_scp_cmd"
+  elif [ -z "$Le_Deploy_ssh_scp_cmd" ]; then
+    Le_Deploy_ssh_scp_cmd="scp -T"
+  fi
+
+
   # BACKUP is optional. If not provided then default to previously saved value or yes.
   if [ "$DEPLOY_SSH_BACKUP" = "no" ]; then
     Le_Deploy_ssh_backup="no"
@@ -99,6 +120,26 @@ ssh_deploy() {
     _cleardomainconf Le_Deploy_ssh_multi_call
   fi
 
+  # USE_SCP is optional. If not provided then default to previously saved
+  # value (which may be undefined... equivalent to "no").
+  if [ "$DEPLOY_SSH_USE_SCP" = "yes" ]; then
+    Le_Deploy_ssh_use_scp="yes"
+    _savedomainconf Le_Deploy_ssh_use_scp "$Le_Deploy_ssh_use_scp"
+    Le_Deploy_ssh_multi_call="yes"
+    _savedomainconf Le_Deploy_ssh_multi_call "$Le_Deploy_ssh_multi_call"
+  elif [ "$DEPLOY_SSH_USE_SCP" = "no" ]; then
+    Le_Deploy_ssh_use_scp=""
+    _cleardomainconf Le_Deploy_ssh_use_scp
+  fi
+
+  # SCP_CMD is optional. If not provided then use scp
+  if [ -n "$DEPLOY_SSH_SCP_CMD" ]; then
+    Le_Deploy_ssh_scp_cmd="$DEPLOY_SSH_SCP_CMD"
+    _savedomainconf Le_Deploy_ssh_scp_cmd "$Le_Deploy_ssh_scp_cmd"
+  elif [ -z "$Le_Deploy_ssh_scp_cmd" ]; then
+    Le_Deploy_ssh_scp_cmd="scp -T -q "
+  fi
+
   _deploy_ssh_servers=$Le_Deploy_ssh_server
   for Le_Deploy_ssh_server in $_deploy_ssh_servers; do
     _ssh_deploy
@@ -110,8 +151,16 @@ _ssh_deploy() {
   _cmdstr=""
   _backupprefix=""
   _backupdir=""
+  _local_cert_file=""
+  _local_ca_file=""
+  _local_full_file=""
 
   _info "Deploy certificates to remote server $Le_Deploy_ssh_user@$Le_Deploy_ssh_server"
+  if [ "$Le_Deploy_ssh_use_scp" = "yes" ]; then
+    _info "Using scp as alternate method for copying files. Multicall Mode is implicit"
+    Le_Deploy_ssh_multi_call="yes"
+    _savedomainconf Le_Deploy_ssh_multi_call "$Le_Deploy_ssh_multi_call"
+  fi
   if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
     _info "Using MULTI_CALL mode... Required commands sent in multiple calls to remote host"
   else
@@ -149,15 +198,30 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
     if [ "$Le_Deploy_ssh_backup" = "yes" ]; then
       # backup file we are about to overwrite.
       _cmdstr="$_cmdstr cp $Le_Deploy_ssh_keyfile $_backupdir >/dev/null;"
-    fi
-    # copy new certificate into file.
-    _cmdstr="$_cmdstr echo \"$(cat "$_ckey")\" > $Le_Deploy_ssh_keyfile;"
-    _info "will copy private key to remote file $Le_Deploy_ssh_keyfile"
-    if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
-      if ! _ssh_remote_cmd "$_cmdstr"; then
-        return $_err_code
+      if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+        if ! _ssh_remote_cmd "$_cmdstr"; then
+          return $_err_code
+        fi
+        _cmdstr=""
       fi
-      _cmdstr=""
+    fi
+
+
+    # copy new key into file.
+    if [ "$Le_Deploy_ssh_use_scp" = "yes" ]; then
+      # scp the file
+      if ! _scp_remote_cmd "$_ckey" "$Le_Deploy_ssh_keyfile"; then
+          return $_err_code
+      fi
+    else
+      _cmdstr="$_cmdstr echo \"$(cat "$_ckey")\" > $Le_Deploy_ssh_keyfile;"
+      _info "will copy private key to remote file $Le_Deploy_ssh_keyfile"
+      if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+        if ! _ssh_remote_cmd "$_cmdstr"; then
+          return $_err_code
+        fi
+        _cmdstr=""
+      fi
     fi
   fi
 
@@ -172,18 +236,40 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
     if [ "$Le_Deploy_ssh_certfile" = "$Le_Deploy_ssh_keyfile" ]; then
       # if filename is same as previous file then append.
       _pipe=">>"
+      _local_cert_file=$(_mktemp)
+      cat $_ckey > $_local_cert_file
+      cat $_ccert >> $_local_cert_file
     elif [ "$Le_Deploy_ssh_backup" = "yes" ]; then
       # backup file we are about to overwrite.
       _cmdstr="$_cmdstr cp $Le_Deploy_ssh_certfile $_backupdir >/dev/null;"
-    fi
-    # copy new certificate into file.
-    _cmdstr="$_cmdstr echo \"$(cat "$_ccert")\" $_pipe $Le_Deploy_ssh_certfile;"
-    _info "will copy certificate to remote file $Le_Deploy_ssh_certfile"
-    if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
-      if ! _ssh_remote_cmd "$_cmdstr"; then
-        return $_err_code
+      if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+        if ! _ssh_remote_cmd "$_cmdstr"; then
+          return $_err_code
+        fi
+        _cmdstr=""
       fi
-      _cmdstr=""
+    fi
+
+    if [ "$Le_Deploy_ssh_use_scp" = "yes" ]; then
+      if -n $_local_cert_file ; then
+        if ! _scp_remote_cmd "$_local_cert_file" "$Le_Deploy_ssh_certfile"; then
+            return $_err_code
+        fi
+      else
+        if ! _scp_remote_cmd "$_ccert" "$Le_Deploy_ssh_certfile"; then
+            return $_err_code
+        fi
+      fi
+    else
+      # copy new certificate into file.
+      _cmdstr="$_cmdstr echo \"$(cat "$_ccert")\" $_pipe $Le_Deploy_ssh_certfile;"
+      _info "will copy certificate to remote file $Le_Deploy_ssh_certfile"
+      if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+        if ! _ssh_remote_cmd "$_cmdstr"; then
+          return $_err_code
+        fi
+        _cmdstr=""
+      fi
     fi
   fi
 
@@ -199,18 +285,47 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       [ "$Le_Deploy_ssh_cafile" = "$Le_Deploy_ssh_certfile" ]; then
       # if filename is same as previous file then append.
       _pipe=">>"
+      _local_ca_file=$(_mktemp)
+      if [ "$Le_Deploy_ssh_cafile" = "$Le_Deploy_ssh_keyfile" ] ; then
+        cat $_ckey >> $_local_ca_file
+      fi
+      if [ "$Le_Deploy_ssh_cafile" = "$Le_Deploy_ssh_certfile" ]; then
+        cat $_ccert >> $_local_ca_file
+      fi
+
+      cat $_cca >> $_local_ca_file
+
     elif [ "$Le_Deploy_ssh_backup" = "yes" ]; then
       # backup file we are about to overwrite.
       _cmdstr="$_cmdstr cp $Le_Deploy_ssh_cafile $_backupdir >/dev/null;"
-    fi
-    # copy new certificate into file.
-    _cmdstr="$_cmdstr echo \"$(cat "$_cca")\" $_pipe $Le_Deploy_ssh_cafile;"
-    _info "will copy CA file to remote file $Le_Deploy_ssh_cafile"
-    if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
-      if ! _ssh_remote_cmd "$_cmdstr"; then
-        return $_err_code
+      if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+        if ! _ssh_remote_cmd "$_cmdstr"; then
+          return $_err_code
+        fi
+        _cmdstr=""
       fi
-      _cmdstr=""
+    fi
+
+    if [ "$Le_Deploy_ssh_use_scp" = "yes" ]; then
+      if -n $_local_ca_file ; then
+        if ! _scp_remote_cmd "$_local_ca_file" "$Le_Deploy_ssh_cafile"; then
+            return $_err_code
+        fi
+      else
+        if ! _scp_remote_cmd "$_cca" "$Le_Deploy_ssh_cafile"; then
+            return $_err_code
+        fi
+      fi
+    else
+      # copy new certificate into file.
+      _cmdstr="$_cmdstr echo \"$(cat "$_cca")\" $_pipe $Le_Deploy_ssh_cafile;"
+      _info "will copy CA file to remote file $Le_Deploy_ssh_cafile"
+      if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+        if ! _ssh_remote_cmd "$_cmdstr"; then
+          return $_err_code
+        fi
+        _cmdstr=""
+      fi
     fi
   fi
 
@@ -227,20 +342,63 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_cafile" ]; then
       # if filename is same as previous file then append.
       _pipe=">>"
+      _local_full_file=$(_mktemp)
+      if [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_keyfile" ] ; then
+        cat $_ckey >> $_local_full_file
+      fi
+      if [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_certfile" ]; then
+        cat $_ccert >> $_local_full_file
+      fi
+      if [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_cafile" ]; then
+        cat $_cca >> $_local_full_file
+      fi
+      cat $_cfullchain >> $_local_full_file
+
     elif [ "$Le_Deploy_ssh_backup" = "yes" ]; then
       # backup file we are about to overwrite.
       _cmdstr="$_cmdstr cp $Le_Deploy_ssh_fullchain $_backupdir >/dev/null;"
-    fi
-    # copy new certificate into file.
-    _cmdstr="$_cmdstr echo \"$(cat "$_cfullchain")\" $_pipe $Le_Deploy_ssh_fullchain;"
-    _info "will copy fullchain to remote file $Le_Deploy_ssh_fullchain"
-    if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
-      if ! _ssh_remote_cmd "$_cmdstr"; then
-        return $_err_code
+      if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+        if ! _ssh_remote_cmd "$_cmdstr"; then
+          return $_err_code
+        fi
+        _cmdstr=""
       fi
-      _cmdstr=""
+    fi
+
+    if [ "$Le_Deploy_ssh_use_scp" = "yes" ]; then
+      if -n $_local_full_file ; then
+        if ! _scp_remote_cmd "$_local_full_file" "$Le_Deploy_ssh_fullchain"; then
+            return $_err_code
+        fi
+      else
+        if ! _scp_remote_cmd "$_cfullchain" "$Le_Deploy_ssh_fullchain"; then
+            return $_err_code
+        fi
+      fi
+    else
+      # copy new certificate into file.
+      _cmdstr="$_cmdstr echo \"$(cat "$_cfullchain")\" $_pipe $Le_Deploy_ssh_fullchain;"
+      _info "will copy fullchain to remote file $Le_Deploy_ssh_fullchain"
+      if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+        if ! _ssh_remote_cmd "$_cmdstr"; then
+          return $_err_code
+        fi
+        _cmdstr=""
+      fi
     fi
   fi
+  # cleanup local files if any
+
+  if [ -n "$_local_cert_file" ]; then
+    rm $_local_cert_file > /dev/null 1>&2
+  fi
+  if [ -n "$_local_ca_file" ]; then
+    rm $_local_ca_file > /dev/null 1>&2
+  fi
+  if [ -n "$_local_full_file" ]; then
+    rm $_local_full_file > /dev/null 1>&2
+  fi
+
 
   # REMOTE_CMD is optional.
   # If provided then this command will be executed on remote host.
@@ -265,6 +423,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       return $_err_code
     fi
   fi
+  # cleanup in case all is ok
   return 0
 }
 
@@ -280,6 +439,20 @@ _ssh_remote_cmd() {
 
   if [ "$_err_code" != "0" ]; then
     _err "Error code $_err_code returned from ssh"
+  fi
+
+  return $_err_code
+}
+
+# cmd scp
+_scp_remote_cmd() {
+  _secure_debug "Remote scp source $1 and destination $2 using : $Le_Deploy_ssh_scp_cmd"
+  _info "Submitting secure copy command : $Le_Deploy_ssh_scp_cmd"
+  $Le_Deploy_ssh_scp_cmd "$1" "$Le_Deploy_ssh_user"@"$Le_Deploy_ssh_server":"$2"
+  _err_code="$?"
+
+  if [ "$_err_code" != "0" ]; then
+    _err "Error code $_err_code returned from scp"
   fi
 
   return $_err_code
