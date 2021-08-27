@@ -3165,7 +3165,7 @@ _checkConf() {
     fi
     if cat "$2" | tr "\t" " " | grep -E "^ *include +.*;" >/dev/null; then
       _debug "Try include files"
-      for included in $(cat "$2" | tr "\t" " " | grep "^ *include +.*;" | sed "s/include //" | tr -d " ;"); do
+      for included in $(cat "$2" | tr "\t" " " | grep -E "^ *include +.*;" | sed "s/include //" | tr -d " ;"); do
         _debug "check included $included"
         if ! _startswith "$included" "/" && _exists dirname; then
           _relpath="$(dirname "$_c_file")"
