@@ -20,6 +20,8 @@ _SUB_FOLDER_DEPLOY="deploy"
 
 _SUB_FOLDERS="$_SUB_FOLDER_DNSAPI $_SUB_FOLDER_DEPLOY $_SUB_FOLDER_NOTIFY"
 
+CA_LETSENCRYPT_V1="https://acme-v01.api.letsencrypt.org/directory"
+
 CA_LETSENCRYPT_V2="https://acme-v02.api.letsencrypt.org/directory"
 CA_LETSENCRYPT_V2_TEST="https://acme-staging-v02.api.letsencrypt.org/directory"
 
@@ -3161,9 +3163,9 @@ _checkConf() {
       FOUND_REAL_NGINX_CONF="$2"
       return 0
     fi
-    if cat "$2" | tr "\t" " " | grep "^ *include +.*;" >/dev/null; then
+    if cat "$2" | tr "\t" " " | grep "^ *include *.*;" >/dev/null; then
       _debug "Try include files"
-      for included in $(cat "$2" | tr "\t" " " | grep "^ *include +.*;" | sed "s/include //" | tr -d " ;"); do
+      for included in $(cat "$2" | tr "\t" " " | grep "^ *include *.*;" | sed "s/include //" | tr -d " ;"); do
         _debug "check included $included"
         if ! _startswith "$included" "/" && _exists dirname; then
           _relpath="$(dirname "$_c_file")"
@@ -3380,6 +3382,8 @@ _on_before_issue() {
   if [ "$_chk_pre_hook" ]; then
     _info "Run pre hook:'$_chk_pre_hook'"
     if ! (
+      export Le_Domain="$_chk_main_domain"
+      export Le_Alt="$_chk_alt_domains"
       cd "$DOMAIN_PATH" && eval "$_chk_pre_hook"
     ); then
       _err "Error when run pre hook."
@@ -5108,7 +5112,7 @@ renew() {
 
   . "$DOMAIN_CONF"
   _debug Le_API "$Le_API"
-  if [ -z "$Le_API" ]; then
+  if [ -z "$Le_API" ] || [ "$CA_LETSENCRYPT_V1" = "$Le_API" ]; then
     #if this is from an old version, Le_API is empty,
     #so, we force to use letsencrypt server
     Le_API="$CA_LETSENCRYPT_V2"
@@ -5743,7 +5747,7 @@ uninstallcronjob() {
   _info "Removing cron job"
   cr="$($_CRONTAB -l | grep "$PROJECT_ENTRY --cron")"
   if [ "$cr" ]; then
-    if _exists uname && uname -a | grep solaris >/dev/null; then
+    if _exists uname && uname -a | grep SunOS >/dev/null; then
       $_CRONTAB -l | sed "/$PROJECT_ENTRY --cron/d" | $_CRONTAB --
     else
       $_CRONTAB -l | sed "/$PROJECT_ENTRY --cron/d" | $_CRONTAB -

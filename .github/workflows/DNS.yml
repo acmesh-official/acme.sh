@@ -61,22 +61,22 @@ jobs:
       run: |
         cd ../acmetest
         if [ "${{ secrets.TokenName1}}" ] ; then
-          echo "${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}" >> env.list
+          echo "${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}" >> docker.env
         fi
         if [ "${{ secrets.TokenName2}}" ] ; then
-          echo "${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}" >> env.list
+          echo "${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}" >> docker.env
         fi
         if [ "${{ secrets.TokenName3}}" ] ; then
-          echo "${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}" >> env.list
+          echo "${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}" >> docker.env
         fi
         if [ "${{ secrets.TokenName4}}" ] ; then
-          echo "${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}" >> env.list
+          echo "${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}" >> docker.env
         fi
         if [ "${{ secrets.TokenName5}}" ] ; then
-          echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> env.list
+          echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> docker.env
         fi
-        echo "TEST_DNS_NO_WILDCARD" >> env.list
-        echo "TEST_DNS_SLEEP" >> env.list
+        echo "TEST_DNS_NO_WILDCARD" >> docker.env
+        echo "TEST_DNS_SLEEP" >> docker.env
     - name: Run acmetest
       run: cd ../acmetest && ./rundocker.sh  testall
 
