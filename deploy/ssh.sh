@@ -93,7 +93,6 @@ ssh_deploy() {
     Le_Deploy_ssh_scp_cmd="scp -T"
   fi
 
-
   # BACKUP is optional. If not provided then default to previously saved value or yes.
   if [ "$DEPLOY_SSH_BACKUP" = "no" ]; then
     Le_Deploy_ssh_backup="no"
@@ -206,12 +205,11 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       fi
     fi
 
-
     # copy new key into file.
     if [ "$Le_Deploy_ssh_use_scp" = "yes" ]; then
       # scp the file
       if ! _scp_remote_cmd "$_ckey" "$Le_Deploy_ssh_keyfile"; then
-          return $_err_code
+        return $_err_code
       fi
     else
       _cmdstr="$_cmdstr echo \"$(cat "$_ckey")\" > $Le_Deploy_ssh_keyfile;"
@@ -237,8 +235,8 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       # if filename is same as previous file then append.
       _pipe=">>"
       _local_cert_file=$(_mktemp)
-      cat "$_ckey" > "$_local_cert_file"
-      cat "$_ccert" >> "$_local_cert_file"
+      cat "$_ckey" >"$_local_cert_file"
+      cat "$_ccert" >>"$_local_cert_file"
     elif [ "$Le_Deploy_ssh_backup" = "yes" ]; then
       # backup file we are about to overwrite.
       _cmdstr="$_cmdstr cp $Le_Deploy_ssh_certfile $_backupdir >/dev/null;"
@@ -253,11 +251,11 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
     if [ "$Le_Deploy_ssh_use_scp" = "yes" ]; then
       if [ -n "$_local_cert_file" ]; then
         if ! _scp_remote_cmd "$_local_cert_file" "$Le_Deploy_ssh_certfile"; then
-            return $_err_code
+          return $_err_code
         fi
       else
         if ! _scp_remote_cmd "$_ccert" "$Le_Deploy_ssh_certfile"; then
-            return $_err_code
+          return $_err_code
         fi
       fi
     else
@@ -286,14 +284,14 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       # if filename is same as previous file then append.
       _pipe=">>"
       _local_ca_file=$(_mktemp)
-      if [ "$Le_Deploy_ssh_cafile" = "$Le_Deploy_ssh_keyfile" ] ; then
-        cat "$_ckey" >> "$_local_ca_file"
+      if [ "$Le_Deploy_ssh_cafile" = "$Le_Deploy_ssh_keyfile" ]; then
+        cat "$_ckey" >>"$_local_ca_file"
       fi
       if [ "$Le_Deploy_ssh_cafile" = "$Le_Deploy_ssh_certfile" ]; then
-        cat "$_ccert" >> "$_local_ca_file"
+        cat "$_ccert" >>"$_local_ca_file"
       fi
 
-      cat "$_cca" >> "$_local_ca_file"
+      cat "$_cca" >>"$_local_ca_file"
 
     elif [ "$Le_Deploy_ssh_backup" = "yes" ]; then
       # backup file we are about to overwrite.
@@ -309,11 +307,11 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
     if [ "$Le_Deploy_ssh_use_scp" = "yes" ]; then
       if [ -n "$_local_ca_file" ]; then
         if ! _scp_remote_cmd "$_local_ca_file" "$Le_Deploy_ssh_cafile"; then
-            return $_err_code
+          return $_err_code
         fi
       else
         if ! _scp_remote_cmd "$_cca" "$Le_Deploy_ssh_cafile"; then
-            return $_err_code
+          return $_err_code
         fi
       fi
     else
@@ -343,16 +341,16 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       # if filename is same as previous file then append.
       _pipe=">>"
       _local_full_file=$(_mktemp)
-      if [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_keyfile" ] ; then
-        cat "$_ckey" >> "$_local_full_file"
+      if [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_keyfile" ]; then
+        cat "$_ckey" >>"$_local_full_file"
       fi
       if [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_certfile" ]; then
-        cat "$_ccert" >> "$_local_full_file"
+        cat "$_ccert" >>"$_local_full_file"
       fi
       if [ "$Le_Deploy_ssh_fullchain" = "$Le_Deploy_ssh_cafile" ]; then
-        cat "$_cca" >> "$_local_full_file"
+        cat "$_cca" >>"$_local_full_file"
       fi
-      cat "$_cfullchain" >> "$_local_full_file"
+      cat "$_cfullchain" >>"$_local_full_file"
 
     elif [ "$Le_Deploy_ssh_backup" = "yes" ]; then
       # backup file we are about to overwrite.
@@ -366,13 +364,13 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
     fi
 
     if [ "$Le_Deploy_ssh_use_scp" = "yes" ]; then
-      if [ -n "$_local_full_file" ] ; then
+      if [ -n "$_local_full_file" ]; then
         if ! _scp_remote_cmd "$_local_full_file" "$Le_Deploy_ssh_fullchain"; then
-            return $_err_code
+          return $_err_code
         fi
       else
         if ! _scp_remote_cmd "$_cfullchain" "$Le_Deploy_ssh_fullchain"; then
-            return $_err_code
+          return $_err_code
         fi
       fi
     else
@@ -390,15 +388,14 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
   # cleanup local files if any
 
   if [ -n "$_local_cert_file" ]; then
-    rm "$_local_cert_file" > /dev/null 1>&2
+    rm "$_local_cert_file" >/dev/null 1>&2
   fi
   if [ -n "$_local_ca_file" ]; then
-    rm "$_local_ca_file" > /dev/null 1>&2
+    rm "$_local_ca_file" >/dev/null 1>&2
   fi
   if [ -n "$_local_full_file" ]; then
-    rm "$_local_full_file" > /dev/null 1>&2
+    rm "$_local_full_file" >/dev/null 1>&2
   fi
-
 
   # REMOTE_CMD is optional.
   # If provided then this command will be executed on remote host.
