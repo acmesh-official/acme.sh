@@ -54,11 +54,6 @@ lighttpd_deploy() {
   DEPLOY_LIGHTTPD_ISSUER_DEFAULT="yes"
   DEPLOY_LIGHTTPD_RELOAD_DEFAULT="true"
 
-  if [ -f "${DOMAIN_CONF}" ]; then
-    # shellcheck disable=SC1090
-    . "${DOMAIN_CONF}"
-  fi
-
   _debug _cdomain "${_cdomain}"
   _debug _ckey "${_ckey}"
   _debug _ccert "${_ccert}"
@@ -66,6 +61,8 @@ lighttpd_deploy() {
   _debug _cfullchain "${_cfullchain}"
 
   # PEM_PATH is optional. If not provided then assume "${DEPLOY_LIGHTTPD_PEM_PATH_DEFAULT}"
+  _getdeployconf DEPLOY_LIGHTTPD_PEM_PATH
+  _debug2 DEPLOY_LIGHTTPD_PEM_PATH "${DEPLOY_LIGHTTPD_PEM_PATH}"
   if [ -n "${DEPLOY_LIGHTTPD_PEM_PATH}" ]; then
     Le_Deploy_lighttpd_pem_path="${DEPLOY_LIGHTTPD_PEM_PATH}"
     _savedomainconf Le_Deploy_lighttpd_pem_path "${Le_Deploy_lighttpd_pem_path}"
@@ -82,6 +79,8 @@ lighttpd_deploy() {
   fi
 
   # PEM_NAME is optional. If not provided then assume "${DEPLOY_LIGHTTPD_PEM_NAME_DEFAULT}"
+  _getdeployconf DEPLOY_LIGHTTPD_PEM_NAME
+  _debug2 DEPLOY_LIGHTTPD_PEM_NAME "${DEPLOY_LIGHTTPD_PEM_NAME}"
   if [ -n "${DEPLOY_LIGHTTPD_PEM_NAME}" ]; then
     Le_Deploy_lighttpd_pem_name="${DEPLOY_LIGHTTPD_PEM_NAME}"
     _savedomainconf Le_Deploy_lighttpd_pem_name "${Le_Deploy_lighttpd_pem_name}"
@@ -90,6 +89,8 @@ lighttpd_deploy() {
   fi
 
   # BUNDLE is optional. If not provided then assume "${DEPLOY_LIGHTTPD_BUNDLE_DEFAULT}"
+  _getdeployconf DEPLOY_LIGHTTPD_BUNDLE
+  _debug2 DEPLOY_LIGHTTPD_BUNDLE "${DEPLOY_LIGHTTPD_BUNDLE}"
   if [ -n "${DEPLOY_LIGHTTPD_BUNDLE}" ]; then
     Le_Deploy_lighttpd_bundle="${DEPLOY_LIGHTTPD_BUNDLE}"
     _savedomainconf Le_Deploy_lighttpd_bundle "${Le_Deploy_lighttpd_bundle}"
@@ -98,6 +99,8 @@ lighttpd_deploy() {
   fi
 
   # ISSUER is optional. If not provided then assume "${DEPLOY_LIGHTTPD_ISSUER_DEFAULT}"
+  _getdeployconf DEPLOY_LIGHTTPD_ISSUER
+  _debug2 DEPLOY_LIGHTTPD_ISSUER "${DEPLOY_LIGHTTPD_ISSUER}"
   if [ -n "${DEPLOY_LIGHTTPD_ISSUER}" ]; then
     Le_Deploy_lighttpd_issuer="${DEPLOY_LIGHTTPD_ISSUER}"
     _savedomainconf Le_Deploy_lighttpd_issuer "${Le_Deploy_lighttpd_issuer}"
@@ -106,6 +109,8 @@ lighttpd_deploy() {
   fi
 
   # RELOAD is optional. If not provided then assume "${DEPLOY_LIGHTTPD_RELOAD_DEFAULT}"
+  _getdeployconf DEPLOY_LIGHTTPD_RELOAD
+  _debug2 DEPLOY_LIGHTTPD_RELOAD "${DEPLOY_LIGHTTPD_RELOAD}"
   if [ -n "${DEPLOY_LIGHTTPD_RELOAD}" ]; then
     Le_Deploy_lighttpd_reload="${DEPLOY_LIGHTTPD_RELOAD}"
     _savedomainconf Le_Deploy_lighttpd_reload "${Le_Deploy_lighttpd_reload}"

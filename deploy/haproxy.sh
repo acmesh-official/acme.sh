@@ -54,11 +54,6 @@ haproxy_deploy() {
   DEPLOY_HAPROXY_ISSUER_DEFAULT="no"
   DEPLOY_HAPROXY_RELOAD_DEFAULT="true"
 
-  if [ -f "${DOMAIN_CONF}" ]; then
-    # shellcheck disable=SC1090
-    . "${DOMAIN_CONF}"
-  fi
-
   _debug _cdomain "${_cdomain}"
   _debug _ckey "${_ckey}"
   _debug _ccert "${_ccert}"
@@ -66,6 +61,8 @@ haproxy_deploy() {
   _debug _cfullchain "${_cfullchain}"
 
   # PEM_PATH is optional. If not provided then assume "${DEPLOY_HAPROXY_PEM_PATH_DEFAULT}"
+  _getdeployconf DEPLOY_HAPROXY_PEM_PATH
+  _debug2 DEPLOY_HAPROXY_PEM_PATH "${DEPLOY_HAPROXY_PEM_PATH}"
   if [ -n "${DEPLOY_HAPROXY_PEM_PATH}" ]; then
     Le_Deploy_haproxy_pem_path="${DEPLOY_HAPROXY_PEM_PATH}"
     _savedomainconf Le_Deploy_haproxy_pem_path "${Le_Deploy_haproxy_pem_path}"
@@ -82,6 +79,8 @@ haproxy_deploy() {
   fi
 
   # PEM_NAME is optional. If not provided then assume "${DEPLOY_HAPROXY_PEM_NAME_DEFAULT}"
+  _getdeployconf DEPLOY_HAPROXY_PEM_NAME
+  _debug2 DEPLOY_HAPROXY_PEM_NAME "${DEPLOY_HAPROXY_PEM_NAME}"
   if [ -n "${DEPLOY_HAPROXY_PEM_NAME}" ]; then
     Le_Deploy_haproxy_pem_name="${DEPLOY_HAPROXY_PEM_NAME}"
     _savedomainconf Le_Deploy_haproxy_pem_name "${Le_Deploy_haproxy_pem_name}"
@@ -90,6 +89,8 @@ haproxy_deploy() {
   fi
 
   # BUNDLE is optional. If not provided then assume "${DEPLOY_HAPROXY_BUNDLE_DEFAULT}"
+  _getdeployconf DEPLOY_HAPROXY_BUNDLE
+  _debug2 DEPLOY_HAPROXY_BUNDLE "${DEPLOY_HAPROXY_BUNDLE}"
   if [ -n "${DEPLOY_HAPROXY_BUNDLE}" ]; then
     Le_Deploy_haproxy_bundle="${DEPLOY_HAPROXY_BUNDLE}"
     _savedomainconf Le_Deploy_haproxy_bundle "${Le_Deploy_haproxy_bundle}"
@@ -98,6 +99,8 @@ haproxy_deploy() {
   fi
 
   # ISSUER is optional. If not provided then assume "${DEPLOY_HAPROXY_ISSUER_DEFAULT}"
+  _getdeployconf DEPLOY_HAPROXY_ISSUER
+  _debug2 DEPLOY_HAPROXY_ISSUER "${DEPLOY_HAPROXY_ISSUER}"
   if [ -n "${DEPLOY_HAPROXY_ISSUER}" ]; then
     Le_Deploy_haproxy_issuer="${DEPLOY_HAPROXY_ISSUER}"
     _savedomainconf Le_Deploy_haproxy_issuer "${Le_Deploy_haproxy_issuer}"
@@ -106,6 +109,8 @@ haproxy_deploy() {
   fi
 
   # RELOAD is optional. If not provided then assume "${DEPLOY_HAPROXY_RELOAD_DEFAULT}"
+  _getdeployconf DEPLOY_HAPROXY_RELOAD
+  _debug2 DEPLOY_HAPROXY_RELOAD "${DEPLOY_HAPROXY_RELOAD}"
   if [ -n "${DEPLOY_HAPROXY_RELOAD}" ]; then
     Le_Deploy_haproxy_reload="${DEPLOY_HAPROXY_RELOAD}"
     _savedomainconf Le_Deploy_haproxy_reload "${Le_Deploy_haproxy_reload}"
