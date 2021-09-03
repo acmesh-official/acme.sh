@@ -89,7 +89,7 @@ _login() {
     _err "geoscaling login failed for user $GEOS_Username bad RC from _post"
     return 1
   fi
-  resp_header=$(grep 'HTTP/2 302' "$HTTP_HEADER")
+  resp_header=$(grep '302' "$HTTP_HEADER")
   if [ -z "$resp_header" ]; then
     _err "geoscaling login failed for user $GEOS_Username. Check $HTTP_HEADER file"
     return 1
