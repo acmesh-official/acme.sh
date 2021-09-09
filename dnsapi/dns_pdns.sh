@@ -103,7 +103,7 @@ set_record() {
     _build_record_string "$oldchallenge"
   done
 
-  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"REPLACE\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [$_record_string]}]}"; then
+  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"REPLACE\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [$_record_string]}]}" "application/json"; then
     _err "Set txt record error."
     return 1
   fi
@@ -126,7 +126,7 @@ rm_record() {
 
   if _contains "$_existing_challenges" "$txtvalue"; then
     #Delete all challenges (PowerDNS API does not allow to delete content)
-    if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"DELETE\", \"name\": \"$full.\", \"type\": \"TXT\"}]}"; then
+    if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"DELETE\", \"name\": \"$full.\", \"type\": \"TXT\"}]}" "application/json"; then
       _err "Delete txt record error."
       return 1
     fi
@@ -140,7 +140,7 @@ rm_record() {
         fi
       done
       #Recreate the existing challenges
-      if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"REPLACE\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [$_record_string]}]}"; then
+      if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"REPLACE\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [$_record_string]}]}" "application/json"; then
         _err "Set txt record error."
         return 1
       fi
@@ -203,12 +203,13 @@ _pdns_rest() {
   method=$1
   ep=$2
   data=$3
+  ct=$4
 
   export _H1="X-API-Key: $PDNS_Token"
 
   if [ ! "$method" = "GET" ]; then
     _debug data "$data"
-    response="$(_post "$data" "$PDNS_Url$ep" "" "$method")"
+    response="$(_post "$data" "$PDNS_Url$ep" "" "$method" "$ct")"
   else
     response="$(_get "$PDNS_Url$ep")"
   fi
