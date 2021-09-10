@@ -150,8 +150,8 @@ _1984hosting_login() {
   _debug2 response "$response"
 
   if _contains "$response" '"loggedin": true'; then
-    One984HOSTING_SESSIONID_COOKIE="$(grep -io 'sessionid=[^;]*;' "$HTTP_HEADER"  | tr -d ';')"
-    One984HOSTING_CSRFTOKEN_COOKIE="$(grep -io 'csrftoken=[^;]*;' "$HTTP_HEADER"  | tr -d ';')"
+    One984HOSTING_SESSIONID_COOKIE="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'sessionid=[^;]*;' | tr -d ';')"
+    One984HOSTING_CSRFTOKEN_COOKIE="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'csrftoken=[^;]*;' | tr -d ';')"
     export One984HOSTING_SESSIONID_COOKIE
     export One984HOSTING_CSRFTOKEN_COOKIE
     _saveaccountconf_mutable One984HOSTING_SESSIONID_COOKIE "$One984HOSTING_SESSIONID_COOKIE"
