@@ -135,7 +135,7 @@ dns_1984hosting_rm() {
 _1984hosting_login() {
   if ! _check_credentials; then return 1; fi
 
-  if _check_cookie; then
+  if _check_cookies; then
     _debug "Already logged in"
     return 0
   fi
@@ -150,9 +150,12 @@ _1984hosting_login() {
   _debug2 response "$response"
 
   if _contains "$response" '"loggedin": true'; then
-    One984HOSTING_COOKIE="$(grep -io 'sessionid=[^;]*;' "$HTTP_HEADER"  | tr -d ';')"
-    export One984HOSTING_COOKIE
-    _saveaccountconf_mutable One984HOSTING_COOKIE "$One984HOSTING_COOKIE"
+    One984HOSTING_SESSIONID_COOKIE="$(grep -io 'sessionid=[^;]*;' "$HTTP_HEADER"  | tr -d ';')"
+    One984HOSTING_CSRFTOKEN_COOKIE="$(grep -io 'csrftoken=[^;]*;' "$HTTP_HEADER"  | tr -d ';')"
+    export One984HOSTING_SESSIONID_COOKIE
+    export One984HOSTING_CSRFTOKEN_COOKIE
+    _saveaccountconf_mutable One984HOSTING_SESSIONID_COOKIE "$One984HOSTING_SESSIONID_COOKIE"
+    _saveaccountconf_mutable One984HOSTING_CSRFTOKEN_COOKIE "$One984HOSTING_CSRFTOKEN_COOKIE"
     return 0
   fi
   return 1
@@ -169,21 +172,24 @@ _check_credentials() {
   return 0
 }
 
-_check_cookie() {
-  One984HOSTING_COOKIE="${One984HOSTING_COOKIE:-$(_readaccountconf_mutable One984HOSTING_COOKIE)}"
-  if [ -z "$One984HOSTING_COOKIE" ]; then
-    _debug "No cached cookie found"
+_check_cookies() {
+  One984HOSTING_SESSIONID_COOKIE="${One984HOSTING_SESSIONID_COOKIE:-$(_readaccountconf_mutable One984HOSTING_SESSIONID_COOKIE)}"
+  One984HOSTING_CSRFTOKEN_COOKIE="${One984HOSTING_CSRFTOKEN_COOKIE:-$(_readaccountconf_mutable One984HOSTING_CSRFTOKEN_COOKIE)}"
+  if [ -z "$One984HOSTING_SESSIONID_COOKIE" ] || [ -z "$One984HOSTING_CSRFTOKEN_COOKIE" ]; then
+    _debug "No cached cookie(s) found"
     return 1
   fi
 
   _authget "https://management.1984hosting.com/accounts/loginstatus/"
   if _contains "$response" '"ok": true'; then
-    _debug "Cached cookie still valid"
+    _debug "Cached cookies still valid"
     return 0
   fi
-  _debug "Cached cookie no longer valid"
-  One984HOSTING_COOKIE=""
-  _saveaccountconf_mutable One984HOSTING_COOKIE "$One984HOSTING_COOKIE"
+  _debug "Cached cookies no longer valid"
+  One984HOSTING_SESSIONID_COOKIE=""
+  One984HOSTING_CSRFTOKEN_COOKIE=""
+  _saveaccountconf_mutable One984HOSTING_SESSIONID_COOKIE "$One984HOSTING_SESSIONID_COOKIE"
+  _saveaccountconf_mutable One984HOSTING_CSRFTOKEN_COOKIE "$One984HOSTING_CSRFTOKEN_COOKIE"
   return 1
 }
 
@@ -217,7 +223,8 @@ _get_root() {
 
 # add extra headers to request
 _authget() {
-  export _H1="Cookie: $One984HOSTING_COOKIE"
+  export _H1="Cookie: $One984HOSTING_SESSIONID_COOKIE"
+  export _H2="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE"
   _response=$(_get "$1" | _normalizeJson)
   _debug2 _response "$_response"
 }
@@ -225,12 +232,14 @@ _authget() {
 # truncate huge HTML response
 # echo: Argument list too long
 _htmlget() {
-  export _H1="Cookie: $One984HOSTING_COOKIE"
+  export _H1="Cookie: $One984HOSTING_SESSIONID_COOKIE"
+  export _H2="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE"
   _response=$(_get "$1" | grep "$2" | _head_n 1)
 }
 
 # add extra headers to request
 _authpost() {
-  export _H1="Cookie: $One984HOSTING_COOKIE"
+  export _H1="Cookie: $One984HOSTING_SESSIONID_COOKIE"
+  export _H2="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE"
   _response=$(_post "$1" "$2")
 }
