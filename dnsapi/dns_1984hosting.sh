@@ -96,7 +96,9 @@ dns_1984hosting_rm() {
 
   _debug "Delete $fulldomain TXT record"
   
-  _htmlget "$url/$zone_id" "$_sub_domain"
+  _get_zone_id
+
+  _htmlget "$url/$_zone_id" "$_sub_domain"
   _debug2 _response "$_response"
   entry_id="$(echo "$_response" | _egrep_o 'entry_[0-9]+' | sed 's/entry_//')"
   _debug2 entry_id "$entry_id"
