@@ -95,17 +95,7 @@ dns_1984hosting_rm() {
   _debug _domain "$_domain"
 
   _debug "Delete $fulldomain TXT record"
-  url="https://management.1984hosting.com/domains"
-
-  _htmlget "$url" "$_domain"
-  _debug2 _response "$_response"
-  zone_id="$(echo "$_response" | _egrep_o 'zone\/[0-9]+')"
-  _debug2 zone_id "$zone_id"
-  if [ -z "$zone_id" ]; then
-    _err "Error getting zone_id for $1"
-    return 1
-  fi
-
+  
   _htmlget "$url/$zone_id" "$_sub_domain"
   _debug2 _response "$_response"
   entry_id="$(echo "$_response" | _egrep_o 'entry_[0-9]+' | sed 's/entry_//')"
@@ -219,6 +209,22 @@ _get_root() {
     i=$(_math "$i" + 1)
   done
   return 1
+}
+
+#domain.com
+#returns zone id for domain.com
+_get_zone_id() {
+  url="https://management.1984hosting.com/domains"
+
+  _htmlget "$url" "$_domain"
+  _debug2 _response "$_response"
+  _zone_id="$(echo "$_response" | _egrep_o 'zone\/[0-9]+')"
+  _debug2 _zone_id "$_zone_id"
+  if [ -z "$zone_id" ]; then
+    _err "Error getting _zone_id for $1"
+    return 1
+  fi
+  return 0
 }
 
 # add extra headers to request
