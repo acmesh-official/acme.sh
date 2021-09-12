@@ -226,7 +226,7 @@ _get_zone_id() {
   _zone_id="$(echo "$_response" | _egrep_o 'zone\/[0-9]+')"
   _debug2 _zone_id "$_zone_id"
   if [ -z "$_zone_id" ]; then
-    _err "Error getting _zone_id for $1"
+    _err "Error getting _zone_id for $2"
     return 1
   fi
   return 0
