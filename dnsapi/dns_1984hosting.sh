@@ -251,7 +251,8 @@ _htmlget() {
 
 # add extra headers to request
 _authpost() {
-  _get_zone_id "$_domain"
+  url="https://management.1984hosting.com/domains"
+  _get_zone_id "$url" "$_domain"
   csrf_header="$(echo "$One984HOSTING_CSRFTOKEN_COOKIE" | _egrep_o "=[^=][0-9a-zA-Z]*" | tr -d "=")"
   export _H1="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE;$One984HOSTING_SESSIONID_COOKIE"
   export _H2="Referer: https://management.1984hosting.com/domains/$_zone_id"
