@@ -223,7 +223,7 @@ _get_zone_id() {
   domain=$2
   _htmlget "$url" "$domain"
   _debug2 _response "$_response"
-  _zone_id="$(echo "$_response" | _egrep_o 'zone\/[0-9]+')"
+  _zone_id="$(echo "$_response" | _egrep_o 'zone\/[0-9]+' | _head_n 1)"
   _debug2 _zone_id "$_zone_id"
   if [ -z "$_zone_id" ]; then
     _err "Error getting _zone_id for $2"
@@ -243,7 +243,7 @@ _authget() {
 # echo: Argument list too long
 _htmlget() {
   export _H1="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE;$One984HOSTING_SESSIONID_COOKIE"
-  _response=$(_get "$1" | grep "$2" | _head_n 1)
+  _response=$(_get "$1" | grep "$2")
   if _contains "$_response" "@$2"; then
     _response=$(echo "$_response" | grep -v "[@]" | _head_n 1)
   fi
