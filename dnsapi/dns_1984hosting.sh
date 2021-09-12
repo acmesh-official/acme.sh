@@ -96,7 +96,7 @@ dns_1984hosting_rm() {
 
   _debug "Delete $fulldomain TXT record"
   
-  _get_zone_id
+  _get_zone_id "$@"
 
   _htmlget "$url/$_zone_id" "$_sub_domain"
   _debug2 _response "$_response"
