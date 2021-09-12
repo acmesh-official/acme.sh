@@ -97,7 +97,11 @@ dns_1984hosting_rm() {
   _debug "Delete $fulldomain TXT record"
   
   url="https://management.1984hosting.com/domains" 
-  _get_zone_id "$@"
+
+  if ! _get_zone_id "$_domain"; then
+	_err "invalid zone" "$_domain"
+	return 1
+  fi
 
   _htmlget "$url/$_zone_id" "$_sub_domain"
   _debug2 _response "$_response"
@@ -214,10 +218,12 @@ _get_root() {
   return 1
 }
 
-#domain.com
+#usage: _get_zone_id domain.com
 #returns zone id for domain.com
 _get_zone_id() {
-  _htmlget "$url" "$_domain"
+  url="https://management.1984hosting.com/domains"
+  domain=$1
+  _htmlget "$url" "$domain"
   _debug2 _response "$_response"
   _zone_id="$(echo "$_response" | _egrep_o 'zone\/[0-9]+')"
   _debug2 _zone_id "$_zone_id"
