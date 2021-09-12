@@ -96,10 +96,10 @@ dns_1984hosting_rm() {
 
   _debug "Delete $fulldomain TXT record"
   
-  _url="https://management.1984hosting.com/domains" 
+  url="https://management.1984hosting.com/domains" 
   _get_zone_id "$@"
 
-  _htmlget "$_url/$_zone_id" "$_sub_domain"
+  _htmlget "$url/$_zone_id" "$_sub_domain"
   _debug2 _response "$_response"
   entry_id="$(echo "$_response" | _egrep_o 'entry_[0-9]+' | sed 's/entry_//')"
   _debug2 entry_id "$entry_id"
@@ -217,7 +217,7 @@ _get_root() {
 #domain.com
 #returns zone id for domain.com
 _get_zone_id() {
-  _htmlget "$_url" "$_domain"
+  _htmlget "$url" "$_domain"
   _debug2 _response "$_response"
   _zone_id="$(echo "$_response" | _egrep_o 'zone\/[0-9]+')"
   _debug2 _zone_id "$_zone_id"
