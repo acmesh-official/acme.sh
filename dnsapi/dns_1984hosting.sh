@@ -245,7 +245,7 @@ _htmlget() {
   export _H1="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE;$One984HOSTING_SESSIONID_COOKIE"
   _response=$(_get "$1" | grep "$2" | _head_n 1)
   if _contains "$_response" "@$2"; then
-	_response=$(echo "$_response" | grep -v "[@]" | _head_n 1)
+    _response=$(echo "$_response" | grep -v "[@]" | _head_n 1)
   fi
 }
 
