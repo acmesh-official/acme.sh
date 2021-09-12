@@ -101,9 +101,9 @@ dns_1984hosting_rm() {
     return 1
   fi
 
-  _htmlget "$url/$_zone_id" "$_sub_domain"
+  _htmlget "$url/$_zone_id" "$txtvalue"
   _debug2 _response "$_response"
-  entry_id="$(echo "$_response" | grep "$txtvalue" | _egrep_o 'entry_[0-9]+' | sed 's/entry_//')"
+  entry_id="$(echo "$_response" | _egrep_o 'entry_[0-9]+' | sed 's/entry_//')"
   _debug2 entry_id "$entry_id"
   if [ -z "$entry_id" ]; then
     _err "Error getting TXT entry_id for $1"
