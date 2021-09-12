@@ -229,8 +229,7 @@ _get_zone_id() {
 
 # add extra headers to request
 _authget() {
-  export _H1="Cookie: $One984HOSTING_SESSIONID_COOKIE"
-  export _H2="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE"
+  export _H1="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE;$One984HOSTING_SESSIONID_COOKIE"
   _response=$(_get "$1" | _normalizeJson)
   _debug2 _response "$_response"
 }
@@ -238,14 +237,12 @@ _authget() {
 # truncate huge HTML response
 # echo: Argument list too long
 _htmlget() {
-  export _H1="Cookie: $One984HOSTING_SESSIONID_COOKIE"
-  export _H2="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE"
+  export _H1="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE;$One984HOSTING_SESSIONID_COOKIE"
   _response=$(_get "$1" | grep "$2" | _head_n 1)
 }
 
 # add extra headers to request
 _authpost() {
-  export _H1="Cookie: $One984HOSTING_SESSIONID_COOKIE"
-  export _H2="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE"
+  export _H1="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE;$One984HOSTING_SESSIONID_COOKIE"
   _response=$(_post "$1" "$2")
 }
