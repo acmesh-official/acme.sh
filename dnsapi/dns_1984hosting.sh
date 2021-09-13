@@ -46,7 +46,7 @@ dns_1984hosting_add() {
 
   postdata="entry=new"
   postdata="$postdata&type=TXT"
-  postdata="$postdata&ttl=3600"
+  postdata="$postdata&ttl=900"
   postdata="$postdata&zone=$_domain"
   postdata="$postdata&host=$_sub_domain"
   postdata="$postdata&rdata=%22$value%22"
