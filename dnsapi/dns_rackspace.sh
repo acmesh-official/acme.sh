@@ -80,7 +80,7 @@ _get_root_zone() {
     _debug2 response "$response"
     if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
       # Response looks like:
-      #   {"id": "12345","accountId": "1111111","name": "example.com","ttl": 3600,"emailAddress": ...<and so on>
+      #   {"id": "12345","accountId": "1111111","name": "example.com","ttl": 3600,"emailAddress": ... <and so on>
       _domain_id=$(echo "$response" | sed -n "s/^.*\"id\":\"\([^,]*\)\",\"accountId\":\"[0-9]*\",\"name\":\"$h\",.*/\1/p")
       _debug2 domain_id "$_domain_id"
       if [ -n "$_domain_id" ]; then
