@@ -77,8 +77,8 @@ dns_simply_rm() {
   for record in $records; do
     _debug record "$record"
 
-    record_data=$(echo "$record" | cut -d "," -f 3 | sed 's/"//g' | grep "data" | cut -d ":" -f 2)
-    record_type=$(echo "$record" | cut -d "," -f 4 | sed 's/"//g' | grep "type" | cut -d ":" -f 2)
+    record_data=$(echo "$record" | sed -n "s/.*\"data\":\"\([^\"]*\)\".*/\1/p")
+    record_type=$(echo "$record" | sed -n "s/.*\"type\":\"\([^\"]*\)\".*/\1/p")
 
     _debug2 record_data "$record_data"
     _debug2 record_type "$record_type"
