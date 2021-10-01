@@ -45,7 +45,7 @@ kong_deploy() {
   #Generate data for request (Multipart/form-data with mixed content)
   if [ -z "$ssl_uuid" ]; then
     #set sni to domain
-    content="--$delim${nl}Content-Disposition: form-data; name=\"snis\"${nl}${nl}$_cdomain"
+    content="--$delim${nl}Content-Disposition: form-data; name=\"snis[]\"${nl}${nl}$_cdomain"
   fi
   #add key
   content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"key\"; filename=\"$(basename "$_ckey")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ckey")"
