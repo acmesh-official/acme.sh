@@ -54,7 +54,7 @@ jobs:
     - name: Set ENV
       shell: cmd
       run: |
-          echo PATH=C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin >> %GITHUB_ENV%
+          echo PATH=C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin;%PATH% >> %GITHUB_ENV%
     - name: Check ENV
       shell: cmd
       run: |
