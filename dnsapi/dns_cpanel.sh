@@ -145,9 +145,10 @@ _findentry() {
   _debug "In _findentry"
   #returns id of dns entry, if it exists
   _myget "json-api/cpanel?cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=ZoneEdit&cpanel_jsonapi_func=fetchzone_records&domain=$_domain"
-  _id=$(echo "$_result" | sed "s/.*\(line.*$fulldomain\).*/\1/" | cut -d ':' -f 2 | cut -d ',' -f 1)
+  _id=$(echo "$_result" | sed "s/.*\(line.*$fulldomain.*$txtvalue\).*/\1/" | cut -d ':' -f 2 | cut -d ',' -f 1)
   _debug "_result is: $_result"
   _debug "fulldomain. is $fulldomain."
+  _debug "txtvalue is $txtvalue"
   _debug "_id is: $_id"
   if [ -n "$_id" ]; then
     _debug "Entry found with _id=$_id"
