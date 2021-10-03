@@ -119,16 +119,16 @@ login() {
   tmp=$(_post "{\"action\": \"login\", \"param\": {\"apikey\": \"$NC_Apikey\", \"apipassword\": \"$NC_Apipw\", \"customernumber\": \"$NC_CID\"}}" "$end" "" "POST")
   sid=$(echo "$tmp" | tr '{}' '\n' | grep apisessionid | cut -d '"' -f 4)
   _debug "$tmp"
-  if [ "$(_getfield "$msg" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
-    _err "$msg"
+  if [ "$(_getfield "$tmp" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
+    _err "$tmp"
     return 1
   fi
 }
 logout() {
   tmp=$(_post "{\"action\": \"logout\", \"param\": {\"apikey\": \"$NC_Apikey\", \"apisessionid\": \"$sid\", \"customernumber\": \"$NC_CID\"}}" "$end" "" "POST")
   _debug "$tmp"
-  if [ "$(_getfield "$msg" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
-    _err "$msg"
+  if [ "$(_getfield "$tmp" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
+    _err "$tmp"
     return 1
   fi
 }

@@ -4,14 +4,14 @@ on:
     branches:
       - '*'
     paths:
-      - '**.sh'
-      - '**.yml'
+      - '*.sh'
+      - '.github/workflows/PebbleStrict.yml'
   pull_request:
     branches:
       - dev
     paths:
-      - '**.sh'
-      - '**.yml'
+      - '*.sh'
+      - '.github/workflows/PebbleStrict.yml'
 
 jobs:
   PebbleStrict:
@@ -19,7 +19,7 @@ jobs:
     env:
       TestingDomain: example.com
       TestingAltDomains: www.example.com
-      ACME_DIRECTORY: https://localhost:14000/dir
+      TEST_ACME_Server: https://localhost:14000/dir
       HTTPS_INSECURE: 1
       Le_HTTPPort: 5002
       TEST_LOCAL: 1

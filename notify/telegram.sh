@@ -27,7 +27,7 @@ telegram_send() {
   fi
   _saveaccountconf_mutable TELEGRAM_BOT_CHATID "$TELEGRAM_BOT_CHATID"
 
-  _content="$(printf "%s" "$_content" | sed -e 's/*/\\\\*/')"
+  _content="$(printf "%s" "$_content" | sed -e 's/\([_*`\[]\)/\\\\\1/g')"
   _content="$(printf "*%s*\n%s" "$_subject" "$_content" | _json_encode)"
   _data="{\"text\": \"$_content\", "
   _data="$_data\"chat_id\": \"$TELEGRAM_BOT_CHATID\", "

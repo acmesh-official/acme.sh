@@ -1,0 +1,60 @@
+name: FreeBSD
+on:
+  push:
+    branches:
+      - '*'
+    paths:
+      - '*.sh'
+      - '.github/workflows/FreeBSD.yml'
+
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - '*.sh'
+      - '.github/workflows/FreeBSD.yml'
+
+
+jobs:
+  FreeBSD:
+    strategy:
+      matrix:
+        include:
+         - TEST_ACME_Server: "LetsEncrypt.org_test"
+           CA_ECDSA: ""
+           CA: ""
+           CA_EMAIL: ""
+         - TEST_ACME_Server: "ZeroSSL.com"
+           CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
+           CA: "ZeroSSL RSA Domain Secure Site CA"
+           CA_EMAIL: "githubtest@acme.sh"
+    runs-on: macos-latest
+    env:
+      TEST_LOCAL: 1
+      TEST_ACME_Server: ${{ matrix.TEST_ACME_Server }}
+      CA_ECDSA: ${{ matrix.CA_ECDSA }}
+      CA: ${{ matrix.CA }}
+      CA_EMAIL: ${{ matrix.CA_EMAIL }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: vmactions/cf-tunnel@v0.0.2
+      id: tunnel
+      with:
+        protocol: http
+        port: 8080
+    - name: Set envs
+      run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - uses: vmactions/freebsd-vm@v0.1.4
+      with:
+        envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL'
+        nat: |
+          "8080": "80"
+        prepare: pkg install -y socat curl
+        usesh: true
+        run: |
+          cd ../acmetest \
+          && ./letest.sh
+
+

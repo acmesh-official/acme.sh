@@ -1,0 +1,52 @@
+name: MacOS
+on:
+  push:
+    branches:
+      - '*'
+    paths:
+      - '*.sh'
+      - '.github/workflows/MacOS.yml'
+
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - '*.sh'
+      - '.github/workflows/MacOS.yml'
+
+
+jobs:
+  MacOS:
+    strategy:
+      matrix:
+        include:
+         - TEST_ACME_Server: "LetsEncrypt.org_test"
+           CA_ECDSA: ""
+           CA: ""
+           CA_EMAIL: ""
+         - TEST_ACME_Server: "ZeroSSL.com"
+           CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
+           CA: "ZeroSSL RSA Domain Secure Site CA"
+           CA_EMAIL: "githubtest@acme.sh"
+    runs-on: macos-latest
+    env:
+      TEST_LOCAL: 1
+      TEST_ACME_Server: ${{ matrix.TEST_ACME_Server }}
+      CA_ECDSA: ${{ matrix.CA_ECDSA }}
+      CA: ${{ matrix.CA }}
+      CA_EMAIL: ${{ matrix.CA_EMAIL }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install tools
+      run:  brew install socat
+    - name: Clone acmetest
+      run: |
+          cd .. \
+          && git clone https://github.com/acmesh-official/acmetest.git \
+          && cp -r acme.sh acmetest/
+    - name: Run acmetest
+      run: |
+          cd ../acmetest \
+          && sudo --preserve-env ./letest.sh
+
+
