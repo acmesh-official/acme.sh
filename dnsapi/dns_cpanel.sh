@@ -3,7 +3,6 @@
 #Author: Bjarne Saltbaek
 #Report Bugs here: https://github.com/acmesh-official/acme.sh/issues/3732
 #
-#
 ########  Public functions #####################
 
 # Export CPANEL username,api token and hostname in the following variables
