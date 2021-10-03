@@ -20,7 +20,7 @@ pushbullet_send() {
   _saveaccountconf_mutable PUSHBULLET_TOKEN "$PUSHBULLET_TOKEN"
 
   PUSHBULLET_DEVICE="${PUSHBULLET_DEVICE:-$(_readaccountconf_mutable PUSHBULLET_DEVICE)}"
-  if [ -z "$PUSHBULLET_DEVICE" ]; then 
+  if [ -z "$PUSHBULLET_DEVICE" ]; then
     _clearaccountconf_mutable PUSHBULLET_DEVICE
   else
     _saveaccountconf_mutable PUSHBULLET_DEVICE "$PUSHBULLET_DEVICE"
