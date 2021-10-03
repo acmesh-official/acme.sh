@@ -6547,6 +6547,8 @@ Commands:
   --deactivate             Deactivate the domain authz, professional use.
   --set-default-ca         Used with '--server', Set the default CA to use.
                            See: $_SERVER_WIKI
+  --set-default-chain      Set the default preferred chain for a CA.
+                           See: $_PREFERRED_CHAIN_WIKI
 
 
 Parameters:
@@ -6833,6 +6835,18 @@ setdefaultca() {
   _info "Changed default CA to: $(__green "$ACME_DIRECTORY")"
 }
 
+#preferred-chain
+setdefaultchain() {
+  _initpath
+  _preferred_chain="$1"
+  if [ -z "$_preferred_chain" ]; then
+    _err "Please give a '--preferred-chain value' value."
+    return 1
+  fi
+  mkdir -p "$CA_DIR"
+  _savecaconf "DEFAULT_PREFERRED_CHAIN" "$_preferred_chain"
+}
+
 _process() {
   _CMD=""
   _domain=""
@@ -6983,6 +6997,9 @@ _process() {
       ;;
     --set-default-ca)
       _CMD="setdefaultca"
+      ;;
+    --set-default-chain)
+      _CMD="setdefaultchain"
       ;;
     -d | --domain)
       _dvalue="$2"
@@ -7513,6 +7530,9 @@ _process() {
     ;;
   setdefaultca)
     setdefaultca
+    ;;
+  setdefaultchain)
+    setdefaultchain "$_preferred_chain"
     ;;
   *)
     if [ "$_CMD" ]; then
