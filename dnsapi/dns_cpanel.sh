@@ -72,6 +72,7 @@ dns_cpanel_rm() {
   _debug "Deleting record..."
   _myget "json-api/cpanel?cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=ZoneEdit&cpanel_jsonapi_func=remove_zone_record&domain=$_domain&line=$_id"
   # removing entry
+  _debug "_result is: $_result"
 
   if _successful_update; then return 0; fi
   _err "Couldn't delete entry!"
