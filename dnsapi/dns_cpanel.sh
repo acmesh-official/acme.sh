@@ -24,6 +24,7 @@ dns_cpanel_add() {
   _debug cPanel_Apitoken "$cPanel_Apitoken"
   _debug cPanel_Hostname "$cPanel_Hostname"
 
+
   if ! _cpanel_login; then
     _err "cPanel Login failed for user $cPanel_Username. Check $HTTP_HEADER file"
     return 1
