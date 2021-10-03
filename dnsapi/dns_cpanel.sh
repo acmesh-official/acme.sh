@@ -144,8 +144,8 @@ _findentry() {
   _debug "In _findentry"
   #returns id of dns entry, if it exists
   _myget "json-api/cpanel?cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=ZoneEdit&cpanel_jsonapi_func=fetchzone_records&domain=$_domain"
-  jqquery=".cpanelresult.data[] | select(.name == \"$fulldomain.\")| {Line} | .Line"
-  _id=$(echo "$_result" | jq "$jqquery")
+  _jqquery=".cpanelresult.data[] | select(.name == \"$fulldomain.\")| {Line} | .Line"
+  _id=""
   _debug "_result is: $_result"
   _debug "fulldomain. is $fulldomain."
   _debug "_id is: $_id"
