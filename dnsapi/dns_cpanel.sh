@@ -11,8 +11,6 @@
 # cPanel_Apitoken=apitoken
 # cPanel_Hostname=hostname
 #
-# Note: the program 'jq' must be availble on your system
-
 # Usage: add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 # Used to add txt record
 dns_cpanel_add() {
@@ -117,7 +115,7 @@ _myget() {
 
 _get_root() {
   _myget 'json-api/cpanel?cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=ZoneEdit&cpanel_jsonapi_func=fetchzones'
-  _domains=$(echo "$_result" | jq '.cpanelresult.data[]| {zones}| .zones| keys' | sed -e 's/"//g' -e 's/,//g' -e 's/\[//g' -e 's/\]//g' -e '/^$/d' -e 's/[[:space:]]//g')
+  _domains=$(echo "$_result" | cut -d ':' -f9 | sed -e 's/"//g' -e 's/{//g' )
   _debug "_result is: $_result"
   _debug "_domains is: $_domains"
   if [ -z "$_domains" ]; then
