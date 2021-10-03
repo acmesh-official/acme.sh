@@ -118,7 +118,7 @@ _myget() {
 
 _get_root() {
   _myget 'json-api/cpanel?cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=ZoneEdit&cpanel_jsonapi_func=fetchzones'
-  _domains=$(echo "$_result" | cut -d ':' -f11 | sed 's/"//g' | sed 's/{//g')
+  _domains=$(echo "$_result" | cut -d ':' -f10 | sed 's/"//g' | sed 's/{//g')
   _debug "_result is: $_result"
   _debug "_domains is: $_domains"
   if [ -z "$_domains" ]; then
