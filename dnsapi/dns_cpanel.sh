@@ -1,6 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env sh
+#
 #Author: Bjarne Saltbaek
-#Report Bugs here: https://github.com/acmesh-official/acme.sh
+#Report Bugs here: https://github.com/acmesh-official/acme.sh/issues/3732
 #
 #
 ########  Public functions #####################
@@ -10,8 +11,11 @@
 # cPanel_Username=username
 # cPanel_Apitoken=apitoken
 # cPanel_Hostname=hostname
+#
+# Note: the program 'jq' must be availble on your system
 
-#Usage: dns_cpanel_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+# Usage: add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+# Used to add txt record
 dns_cpanel_add() {
   fulldomain=$1
   txtvalue=$2
@@ -26,7 +30,7 @@ dns_cpanel_add() {
   fi
 
   _debug "First detect the root zone"
-  if ! _get_domain "$fulldomain"; then
+  if ! _get_root "$fulldomain"; then
     _err "No matching root domain for $fulldomain found"
     return 1
   fi
@@ -40,8 +44,8 @@ dns_cpanel_add() {
   return 1
 }
 
-#Usage: fulldomain txtvalue
-#Remove the txt record after validation.
+# Usage: fulldomain txtvalue
+# Used to remove the txt record after validation
 dns_cpanel_rm() {
   fulldomain=$1
   txtvalue=$2
@@ -55,7 +59,7 @@ dns_cpanel_rm() {
     return 1
   fi
 
-  if ! _get_domain; then
+  if ! _get_root; then
     _err "No matching root domain for $fulldomain found"
     return 1
   fi
@@ -79,17 +83,20 @@ dns_cpanel_rm() {
 _checkcredentials() {
   cPanel_Username="${cPanel_Username:-$(_readaccountconf_mutable cPanel_Username)}"
   cPanel_Apitoken="${cPanel_Apitoken:-$(_readaccountconf_mutable cPanel_Apitoken)}"
+  cPanel_Hostname="${cPanel_Hostname:-$(_readaccountconf_mutable cPanel_Hostname)}"
 
-  if [ -z "$cPanel_Username" ] || [ -z "$cPanel_Apitoken" ]; then
+  if [ -z "$cPanel_Username" ] || [ -z "$cPanel_Apitoken" ] || [ -z "$cPanel_Hostname" ]; then
     cPanel_Username=""
     cPanel_Apitoken=""
-    _err "You haven't specified cPanel username and apitoken yet."
+    cPanel_Hostname=""
+    _err "You haven't specified cPanel username, apitoken and hostname yet."
     _err "Please add credentials and try again."
     return 1
   fi
   #save the credentials to the account conf file.
   _saveaccountconf_mutable cPanel_Username "$cPanel_Username"
   _saveaccountconf_mutable cPanel_Apitoken "$cPanel_Apitoken"
+  _saveaccountconf_mutable cPanel_Hostname "$cPanel_Hostname"
   return 0
 }
 
@@ -109,7 +116,7 @@ _myget() {
   _result=$(_get "$cPanel_Hostname/$1")
 }
 
-_get_domain() {
+_get_root() {
   _myget 'json-api/cpanel?cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=ZoneEdit&cpanel_jsonapi_func=fetchzones'
   _domains=$(echo "$_result" | jq '.cpanelresult.data[]| {zones}| .zones| keys' | sed -e 's/"//g' -e 's/,//g' -e 's/\[//g' -e 's/\]//g' -e '/^$/d' -e 's/[[:space:]]//g')
   _debug "_result is: $_result"
