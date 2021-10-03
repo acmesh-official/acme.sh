@@ -4934,7 +4934,9 @@ $_authorizations_map"
 
   echo "$response" >"$CERT_PATH"
   _split_cert_chain "$CERT_PATH" "$CERT_FULLCHAIN_PATH" "$CA_CERT_PATH"
-
+  if [ -z "$_preferred_chain" ]; then
+    _preferred_chain=$(_readcaconf DEFAULT_PREFERRED_CHAIN)
+  fi
   if [ "$_preferred_chain" ] && [ -f "$CERT_FULLCHAIN_PATH" ]; then
     if [ "$DEBUG" ]; then
       _debug "default chain issuers: " "$(_get_chain_issuers "$CERT_FULLCHAIN_PATH")"
