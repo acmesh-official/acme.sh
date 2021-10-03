@@ -20,6 +20,9 @@ dns_cpanel_add() {
   _info "Adding TXT record to cPanel based system"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
+  _debug cPanel_Username "$cPanel_Username"
+  _debug cPanel_Apitoken "$cPanel_Apitoken"
+  _debug cPanel_Hostname "$cPanel_Hostname"
 
   if ! _cpanel_login; then
     _err "cPanel Login failed for user $cPanel_Username. Check $HTTP_HEADER file"
