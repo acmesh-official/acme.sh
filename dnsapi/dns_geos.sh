@@ -12,7 +12,9 @@
 # Git repo: https://github.com/jinhill/acme.sh
 #######################################################
 COOKIE_FILE="/tmp/.geos.cookie"
-_CURL="curl -c ${COOKIE_FILE} -b ${COOKIE_FILE} -A 'Mozilla/5.0;Chrome/92.0.4515.107;Safari/537.36'"
+USER_AGENT='Mozilla/5.0(Linux;U);Opera80.0'
+#Add cookie to request
+_CURL="curl -s -c ${COOKIE_FILE} -b ${COOKIE_FILE} -A \"${USER_AGENT}\""
 SESSION_TIMEOUT=300
 log(){
 	echo "$@" 1>&2
@@ -62,11 +64,13 @@ login() {
     _err "No auth details provided. Please set user credentials using the \$GEOS_Username and \$GEOS_Password environment variables."
     return 1
   fi
+  _saveaccountconf_mutable GEOS_Username "${GEOS_Username}"
+  _saveaccountconf_mutable GEOS_Password "${GEOS_Password}"
   enc_username=$(url_encode "${GEOS_Username}")
   enc_password=$(url_encode "${GEOS_Password}")
   body="username=${enc_username}&password=${enc_password}"
   http_code=$($_CURL -X POST -d "$body" -o /dev/null -w "%{http_code}" "https://www.geoscaling.com/dns2/index.php?module=auth")
-  log "$body,$http_code"
+
   if [ "${http_code}" = "302" ]; then
     return 0
   fi
