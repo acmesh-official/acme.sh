@@ -3147,7 +3147,7 @@ _checkConf() {
   _d="$1"
   _c_file="$2"
   _debug "Start _checkConf from:$_c_file"
-  if [ ! -f "$2" ] && ! echo "$2" | grep '*$' >/dev/null && echo "$2" | grep '*' >/dev/null; then
+  if [ ! -f "$2" ] && echo "$2" | grep '*' >/dev/null; then
     _debug "wildcard"
     for _w_f in $2; do
       if [ -f "$_w_f" ] && _checkConf "$1" "$_w_f"; then
