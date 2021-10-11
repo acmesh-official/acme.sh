@@ -12,9 +12,8 @@
 # Git repo: https://github.com/jinhill/acme.sh
 #######################################################
 COOKIE_FILE="/tmp/.geos.cookie"
-USER_AGENT='Mozilla/5.0(Linux;U);Opera80.0'
 #Add cookie to request
-_CURL="curl -s -c ${COOKIE_FILE} -b ${COOKIE_FILE} -A \"${USER_AGENT}\""
+export _CURL="curl -s -c ${COOKIE_FILE} -b ${COOKIE_FILE}"
 SESSION_TIMEOUT=300
 log(){
 	echo "$@" 1>&2
@@ -39,10 +38,6 @@ count() {
 	else
 		echo "$1" | wc -w
 	fi
-}
-
-contains() {
-  echo "$1" | grep -- "$2" >/dev/null 2>&1
 }
 
 #$1:seesion mode,$2:username,$3:password
@@ -124,12 +119,12 @@ dns_geos_add() {
   type=$3
   [ -n "${type}" ] || type="TXT"
   _info "Using GeoScaling DNS2 hook"
-  login || return 1
+  login 1 || return 1
   get_zone "${full_domain}" || return 1
 
   body="id=${zone_id}&name=${sub_domain}&type=${type}&content=${value}&ttl=300&prio=0"
   resp=$($_CURL -X POST -d "$body" "https://www.geoscaling.com/dns2/ajax/add_record.php")
-  if contains "${resp}" '"code":"OK"'; then
+  if _contains "${resp}" '"code":"OK"'; then
     _info "${type} record added successfully."
   else
     _err "Couldn't add the ${type} record."
@@ -143,7 +138,7 @@ dns_geos_rm() {
   full_domain=$1
   value=$2
   _info "Cleaning up after GeoScaling DNS2 hook"
-  login || return 1
+  login 1 || return 1
   get_zone "${full_domain}" || return 1
   log "zone id \"${zone_id}\" will be used."
 
@@ -151,7 +146,7 @@ dns_geos_rm() {
   subdomain_id=$(get_record_id "${zone_id}" "${full_domain}") || return 1
   body="id=${zone_id}&record_id=${subdomain_id}"
   resp=$($_CURL -X POST -d "$body" "https://www.geoscaling.com/dns2/ajax/delete_record.php")
-  if contains "${resp}" '"code":"OK"'; then
+  if _contains "${resp}" '"code":"OK"'; then
     _info "Record removed successfully."
   else
     _err "Could not clean (remove) up the record. Please go to https://www.geoscaling.com and clean it by hand."
