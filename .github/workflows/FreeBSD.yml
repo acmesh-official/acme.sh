@@ -24,10 +24,12 @@ jobs:
            CA_ECDSA: ""
            CA: ""
            CA_EMAIL: ""
+           TEST_PREFERRED_CHAIN: Fake LE Root X2
          - TEST_ACME_Server: "ZeroSSL.com"
            CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
            CA: "ZeroSSL RSA Domain Secure Site CA"
            CA_EMAIL: "githubtest@acme.sh"
+           TEST_PREFERRED_CHAIN: ""
     runs-on: macos-10.15
     env:
       TEST_LOCAL: 1
@@ -35,6 +37,7 @@ jobs:
       CA_ECDSA: ${{ matrix.CA_ECDSA }}
       CA: ${{ matrix.CA }}
       CA_EMAIL: ${{ matrix.CA_EMAIL }}
+      TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
     steps:
     - uses: actions/checkout@v2
     - uses: vmactions/cf-tunnel@v0.0.3
@@ -48,7 +51,7 @@ jobs:
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/freebsd-vm@v0.1.5
       with:
-        envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL'
+        envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN'
         nat: |
           "8080": "80"
         prepare: pkg install -y socat curl
