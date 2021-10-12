@@ -4222,12 +4222,6 @@ issue() {
     return 1
   fi
 
-  _debug "Using ACME_DIRECTORY: $ACME_DIRECTORY"
-
-  if ! _initAPI; then
-    return 1
-  fi
-
   if [ -f "$DOMAIN_CONF" ]; then
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
     _debug Le_NextRenewTime "$Le_NextRenewTime"
@@ -4245,6 +4239,11 @@ issue() {
         _info "Domains have changed."
       fi
     fi
+  fi
+
+  _debug "Using ACME_DIRECTORY: $ACME_DIRECTORY"
+  if ! _initAPI; then
+    return 1
   fi
 
   _savedomainconf "Le_Domain" "$_main_domain"
@@ -5131,7 +5130,6 @@ renew() {
     CA_CONF=""
     _debug3 "initpath again."
     _initpath "$Le_Domain" "$_isEcc"
-    _initAPI
   fi
 
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
