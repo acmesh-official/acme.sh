@@ -28,7 +28,7 @@ jobs:
            CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
            CA: "ZeroSSL RSA Domain Secure Site CA"
            CA_EMAIL: "githubtest@acme.sh"
-    runs-on: macos-latest
+    runs-on: macos-10.15
     env:
       TEST_LOCAL: 1
       TEST_ACME_Server: ${{ matrix.TEST_ACME_Server }}
@@ -37,7 +37,7 @@ jobs:
       CA_EMAIL: ${{ matrix.CA_EMAIL }}
     steps:
     - uses: actions/checkout@v2
-    - uses: vmactions/cf-tunnel@v0.0.2
+    - uses: vmactions/cf-tunnel@v0.0.3
       id: tunnel
       with:
         protocol: http
@@ -46,7 +46,7 @@ jobs:
       run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/freebsd-vm@v0.1.4
+    - uses: vmactions/freebsd-vm@v0.1.5
       with:
         envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL'
         nat: |
