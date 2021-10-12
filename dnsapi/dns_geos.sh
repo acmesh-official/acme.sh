@@ -1,4 +1,4 @@
-#! /usr/bin/env sh
+#!/usr/bin/env sh
 #######################################################
 # GeoScaling DNS2 hook script for acme.sh
 #
@@ -15,39 +15,38 @@ COOKIE_FILE="/tmp/.geos.cookie"
 #Add cookie to request
 export _CURL="curl -s -c ${COOKIE_FILE} -b ${COOKIE_FILE}"
 SESSION_TIMEOUT=300
-log(){
-	echo "$@" 1>&2
+log() {
+  echo "$@" 1>&2
 }
 
 #$1:url
 url_encode() {
-	echo "$1" | awk -v ORS="" '{ gsub(/./,"&\n") ; print }' | while read -r l;
-	do
-		case "$l" in
-	    [-_.~a-zA-Z0-9] ) printf '%s' "$l" ;;
-	    "" ) printf '%%20' ;;
-	    * )  printf '%%%02X' "'$l"
-	  esac
-	done
+  echo "$1" | awk -v ORS="" '{ gsub(/./,"&\n") ; print }' | while read -r l; do
+    case "$l" in
+    [-_.~a-zA-Z0-9]) printf '%s' "$l" ;;
+    "") printf '%%20' ;;
+    *) printf '%%%02X' "'$l" ;;
+    esac
+  done
 }
 
 #$1:string,$2:char, if $2 not set return array len,$ret:count
 count() {
-	if [ -n "$2" ];then
-		echo "$1" | awk -F"$2" '{print NF-1}'
-	else
-		echo "$1" | wc -w
-	fi
+  if [ -n "$2" ]; then
+    echo "$1" | awk -F"$2" '{print NF-1}'
+  else
+    echo "$1" | wc -w
+  fi
 }
 
 #$1:seesion mode,$2:username,$3:password
 login() {
-  if [ -n "$1" ] && [ "$1" = "1" ] && [ -f "${COOKIE_FILE}" ];then
-    c_t=$(date -r "${COOKIE_FILE}"  "+%s")
+  if [ -n "$1" ] && [ "$1" = "1" ] && [ -f "${COOKIE_FILE}" ]; then
+    c_t=$(date -r "${COOKIE_FILE}" "+%s")
     now=$(date "+%s")
-    s_t=$(( now - c_t ))
-    if [ ${s_t} -lt ${SESSION_TIMEOUT} ];then
-    	return 0
+    s_t=$((now - c_t))
+    if [ ${s_t} -lt ${SESSION_TIMEOUT} ]; then
+      return 0
     fi
   fi
 
@@ -69,6 +68,7 @@ login() {
   if [ "${http_code}" = "302" ]; then
     return 0
   fi
+  rm -rf "${COOKIE_FILE}"
   _err "geoscaling login failed for user ${GEOS_Username} bad RC from post"
   return 1
 }
@@ -79,11 +79,11 @@ login() {
 # zone_id=xxxxxx
 get_zone() {
   resp=$($_CURL "https://www.geoscaling.com/dns2/index.php?module=domains")
-	table=$(echo "${resp}" | grep -oE "<table[^>]+ class=\"threecolumns\">.*</table>")
+  table=$(echo "${resp}" | grep -oE "<table[^>]+ class=\"threecolumns\">.*</table>")
   items=$(echo "${table}" | grep -oE '<a [^>]+><b>[^>]+>')
   i=1
   c=$(count "$1" ".")
-  while [ $i -le $c ]; do
+  while [ $i -le "$c" ]; do
     d=$(echo "$1" | cut -d . -f $i-)
     if [ -z "$d" ]; then
       return 1
@@ -93,7 +93,7 @@ get_zone() {
       sub_domain=$(echo "$1" | sed "s/.$d//")
       return 0
     fi
-    i=$(( i + 1 ))
+    i=$((i + 1))
   done
   return 1
 }
@@ -101,7 +101,7 @@ get_zone() {
 #$1:domain id,$2:dns fullname
 get_record_id() {
   resp=$($_CURL "https://www.geoscaling.com/dns2/index.php?module=domain&id=$1")
-	ids=$(echo "${resp}" | tr -d "\n" | grep -oE "<table id='records_table'.*</a></td></tr></table>" | grep -oE "id=\"[0-9]*.name\">$2" | cut -d '"' -f 2 | cut -d '.' -f 1)
+  ids=$(echo "${resp}" | tr -d "\n" | grep -oE "<table id='records_table'.*</a></td></tr></table>" | grep -oE "id=\"[0-9]*.name\">$2" | cut -d '"' -f 2 | cut -d '.' -f 1)
   if [ -z "${ids}" ]; then
     _err "DNS record $2 not found."
     return 1
