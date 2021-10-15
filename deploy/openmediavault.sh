@@ -37,7 +37,7 @@ openmediavault_deploy() {
   _key=$(jq <"$_ckey" -aRs .)
 
   _debug _fullchain "$_fullchain"
-  _debug _key  "$_key"
+  _debug _key "$_key"
 
   _info "[OMV deploy-hook] Updating key and certificate in Openmediavault"
   _command="omv-rpc -u $DEPLOY_OMV_USER 'CertificateMgmt' 'set' '{\"uuid\":\"$_uuid\", \"certificate\":$_fullchain, \"privatekey\":$_key, \"comment\":\"acme.sh deployed $(date)\"}'"
