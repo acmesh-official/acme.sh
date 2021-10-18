@@ -24,10 +24,12 @@ jobs:
            CA_ECDSA: ""
            CA: ""
            CA_EMAIL: ""
+           TEST_PREFERRED_CHAIN: (STAGING) Pretend Pear X1
          - TEST_ACME_Server: "ZeroSSL.com"
            CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
            CA: "ZeroSSL RSA Domain Secure Site CA"
            CA_EMAIL: "githubtest@acme.sh"
+           TEST_PREFERRED_CHAIN: ""
 
     runs-on: ubuntu-latest
     env:
@@ -37,6 +39,7 @@ jobs:
       CA: ${{ matrix.CA }}
       CA_EMAIL: ${{ matrix.CA_EMAIL }}
       NO_ECC_384: ${{ matrix.NO_ECC_384 }}
+      TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
     steps:
     - uses: actions/checkout@v2
     - name: Install tools
