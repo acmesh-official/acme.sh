@@ -184,7 +184,7 @@ _get_paketnr() {
   fqdn="$1"
   form="$2"
 
-  domains=$(echo "$form" | grep '^ *[A-Za-z0-9_\.-]*\.[A-Za-z0-9_-]*$' | sed 's/^\s*\(\S*\)$/\1/')
+  domains=$(echo "$form" | grep '^ *[A-Za-z0-9_\.-]*\.[A-Za-z0-9_-]*$' | sed 's/^ *\(.*\)$/\1/')
   domain=''
   for domain in $domains; do
     if _contains "$fqdn" "$domain\$"; then
