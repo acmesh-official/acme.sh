@@ -1,46 +1,46 @@
 #!/usr/bin/env sh
 
-# Script for acme.sh to deploy certificates to haproxy
+# Script for acme.sh to deploy certificates to lighttpd
 #
 # The following variables can be exported:
 #
-# export DEPLOY_HAPROXY_PEM_NAME="${domain}.pem"
+# export DEPLOY_LIGHTTPD_PEM_NAME="${domain}.pem"
 #
 # Defines the name of the PEM file.
 # Defaults to "<domain>.pem"
 #
-# export DEPLOY_HAPROXY_PEM_PATH="/etc/haproxy"
+# export DEPLOY_LIGHTTPD_PEM_PATH="/etc/lighttpd"
 #
-# Defines location of PEM file for HAProxy.
-# Defaults to /etc/haproxy
+# Defines location of PEM file for Lighttpd.
+# Defaults to /etc/lighttpd
 #
-# export DEPLOY_HAPROXY_RELOAD="systemctl reload haproxy"
+# export DEPLOY_LIGHTTPD_RELOAD="systemctl reload lighttpd"
 #
 # OPTIONAL: Reload command used post deploy
 # This defaults to be a no-op (ie "true").
 # It is strongly recommended to set this something that makes sense
 # for your distro.
 #
-# export DEPLOY_HAPROXY_ISSUER="no"
+# export DEPLOY_LIGHTTPD_ISSUER="yes"
 #
-# OPTIONAL: Places CA file as "${DEPLOY_HAPROXY_PEM}.issuer"
+# OPTIONAL: Places CA file as "${DEPLOY_LIGHTTPD_PEM}.issuer"
 # Note: Required for OCSP stapling to work
 #
-# export DEPLOY_HAPROXY_BUNDLE="no"
+# export DEPLOY_LIGHTTPD_BUNDLE="no"
 #
 # OPTIONAL: Deploy this certificate as part of a multi-cert bundle
 # This adds a suffix to the certificate based on the certificate type
 # eg RSA certificates will have .rsa as a suffix to the file name
-# HAProxy will load all certificates and provide one or the other
+# Lighttpd will load all certificates and provide one or the other
 # depending on client capabilities
-# Note: This functionality requires HAProxy was compiled against
+# Note: This functionality requires Lighttpd was compiled against
 # a version of OpenSSL that supports this.
 #
 
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
-haproxy_deploy() {
+lighttpd_deploy() {
   _cdomain="$1"
   _ckey="$2"
   _ccert="$3"
@@ -48,11 +48,11 @@ haproxy_deploy() {
   _cfullchain="$5"
 
   # Some defaults
-  DEPLOY_HAPROXY_PEM_PATH_DEFAULT="/etc/haproxy"
-  DEPLOY_HAPROXY_PEM_NAME_DEFAULT="${_cdomain}.pem"
-  DEPLOY_HAPROXY_BUNDLE_DEFAULT="no"
-  DEPLOY_HAPROXY_ISSUER_DEFAULT="no"
-  DEPLOY_HAPROXY_RELOAD_DEFAULT="true"
+  DEPLOY_LIGHTTPD_PEM_PATH_DEFAULT="/etc/lighttpd"
+  DEPLOY_LIGHTTPD_PEM_NAME_DEFAULT="${_cdomain}.pem"
+  DEPLOY_LIGHTTPD_BUNDLE_DEFAULT="no"
+  DEPLOY_LIGHTTPD_ISSUER_DEFAULT="yes"
+  DEPLOY_LIGHTTPD_RELOAD_DEFAULT="true"
 
   _debug _cdomain "${_cdomain}"
   _debug _ckey "${_ckey}"
@@ -60,66 +60,66 @@ haproxy_deploy() {
   _debug _cca "${_cca}"
   _debug _cfullchain "${_cfullchain}"
 
-  # PEM_PATH is optional. If not provided then assume "${DEPLOY_HAPROXY_PEM_PATH_DEFAULT}"
-  _getdeployconf DEPLOY_HAPROXY_PEM_PATH
-  _debug2 DEPLOY_HAPROXY_PEM_PATH "${DEPLOY_HAPROXY_PEM_PATH}"
-  if [ -n "${DEPLOY_HAPROXY_PEM_PATH}" ]; then
-    Le_Deploy_haproxy_pem_path="${DEPLOY_HAPROXY_PEM_PATH}"
-    _savedomainconf Le_Deploy_haproxy_pem_path "${Le_Deploy_haproxy_pem_path}"
-  elif [ -z "${Le_Deploy_haproxy_pem_path}" ]; then
-    Le_Deploy_haproxy_pem_path="${DEPLOY_HAPROXY_PEM_PATH_DEFAULT}"
+  # PEM_PATH is optional. If not provided then assume "${DEPLOY_LIGHTTPD_PEM_PATH_DEFAULT}"
+  _getdeployconf DEPLOY_LIGHTTPD_PEM_PATH
+  _debug2 DEPLOY_LIGHTTPD_PEM_PATH "${DEPLOY_LIGHTTPD_PEM_PATH}"
+  if [ -n "${DEPLOY_LIGHTTPD_PEM_PATH}" ]; then
+    Le_Deploy_lighttpd_pem_path="${DEPLOY_LIGHTTPD_PEM_PATH}"
+    _savedomainconf Le_Deploy_lighttpd_pem_path "${Le_Deploy_lighttpd_pem_path}"
+  elif [ -z "${Le_Deploy_lighttpd_pem_path}" ]; then
+    Le_Deploy_lighttpd_pem_path="${DEPLOY_LIGHTTPD_PEM_PATH_DEFAULT}"
   fi
 
   # Ensure PEM_PATH exists
-  if [ -d "${Le_Deploy_haproxy_pem_path}" ]; then
-    _debug "PEM_PATH ${Le_Deploy_haproxy_pem_path} exists"
+  if [ -d "${Le_Deploy_lighttpd_pem_path}" ]; then
+    _debug "PEM_PATH ${Le_Deploy_lighttpd_pem_path} exists"
   else
-    _err "PEM_PATH ${Le_Deploy_haproxy_pem_path} does not exist"
+    _err "PEM_PATH ${Le_Deploy_lighttpd_pem_path} does not exist"
     return 1
   fi
 
-  # PEM_NAME is optional. If not provided then assume "${DEPLOY_HAPROXY_PEM_NAME_DEFAULT}"
-  _getdeployconf DEPLOY_HAPROXY_PEM_NAME
-  _debug2 DEPLOY_HAPROXY_PEM_NAME "${DEPLOY_HAPROXY_PEM_NAME}"
-  if [ -n "${DEPLOY_HAPROXY_PEM_NAME}" ]; then
-    Le_Deploy_haproxy_pem_name="${DEPLOY_HAPROXY_PEM_NAME}"
-    _savedomainconf Le_Deploy_haproxy_pem_name "${Le_Deploy_haproxy_pem_name}"
-  elif [ -z "${Le_Deploy_haproxy_pem_name}" ]; then
-    Le_Deploy_haproxy_pem_name="${DEPLOY_HAPROXY_PEM_NAME_DEFAULT}"
+  # PEM_NAME is optional. If not provided then assume "${DEPLOY_LIGHTTPD_PEM_NAME_DEFAULT}"
+  _getdeployconf DEPLOY_LIGHTTPD_PEM_NAME
+  _debug2 DEPLOY_LIGHTTPD_PEM_NAME "${DEPLOY_LIGHTTPD_PEM_NAME}"
+  if [ -n "${DEPLOY_LIGHTTPD_PEM_NAME}" ]; then
+    Le_Deploy_lighttpd_pem_name="${DEPLOY_LIGHTTPD_PEM_NAME}"
+    _savedomainconf Le_Deploy_lighttpd_pem_name "${Le_Deploy_lighttpd_pem_name}"
+  elif [ -z "${Le_Deploy_lighttpd_pem_name}" ]; then
+    Le_Deploy_lighttpd_pem_name="${DEPLOY_LIGHTTPD_PEM_NAME_DEFAULT}"
   fi
 
-  # BUNDLE is optional. If not provided then assume "${DEPLOY_HAPROXY_BUNDLE_DEFAULT}"
-  _getdeployconf DEPLOY_HAPROXY_BUNDLE
-  _debug2 DEPLOY_HAPROXY_BUNDLE "${DEPLOY_HAPROXY_BUNDLE}"
-  if [ -n "${DEPLOY_HAPROXY_BUNDLE}" ]; then
-    Le_Deploy_haproxy_bundle="${DEPLOY_HAPROXY_BUNDLE}"
-    _savedomainconf Le_Deploy_haproxy_bundle "${Le_Deploy_haproxy_bundle}"
-  elif [ -z "${Le_Deploy_haproxy_bundle}" ]; then
-    Le_Deploy_haproxy_bundle="${DEPLOY_HAPROXY_BUNDLE_DEFAULT}"
+  # BUNDLE is optional. If not provided then assume "${DEPLOY_LIGHTTPD_BUNDLE_DEFAULT}"
+  _getdeployconf DEPLOY_LIGHTTPD_BUNDLE
+  _debug2 DEPLOY_LIGHTTPD_BUNDLE "${DEPLOY_LIGHTTPD_BUNDLE}"
+  if [ -n "${DEPLOY_LIGHTTPD_BUNDLE}" ]; then
+    Le_Deploy_lighttpd_bundle="${DEPLOY_LIGHTTPD_BUNDLE}"
+    _savedomainconf Le_Deploy_lighttpd_bundle "${Le_Deploy_lighttpd_bundle}"
+  elif [ -z "${Le_Deploy_lighttpd_bundle}" ]; then
+    Le_Deploy_lighttpd_bundle="${DEPLOY_LIGHTTPD_BUNDLE_DEFAULT}"
   fi
 
-  # ISSUER is optional. If not provided then assume "${DEPLOY_HAPROXY_ISSUER_DEFAULT}"
-  _getdeployconf DEPLOY_HAPROXY_ISSUER
-  _debug2 DEPLOY_HAPROXY_ISSUER "${DEPLOY_HAPROXY_ISSUER}"
-  if [ -n "${DEPLOY_HAPROXY_ISSUER}" ]; then
-    Le_Deploy_haproxy_issuer="${DEPLOY_HAPROXY_ISSUER}"
-    _savedomainconf Le_Deploy_haproxy_issuer "${Le_Deploy_haproxy_issuer}"
-  elif [ -z "${Le_Deploy_haproxy_issuer}" ]; then
-    Le_Deploy_haproxy_issuer="${DEPLOY_HAPROXY_ISSUER_DEFAULT}"
+  # ISSUER is optional. If not provided then assume "${DEPLOY_LIGHTTPD_ISSUER_DEFAULT}"
+  _getdeployconf DEPLOY_LIGHTTPD_ISSUER
+  _debug2 DEPLOY_LIGHTTPD_ISSUER "${DEPLOY_LIGHTTPD_ISSUER}"
+  if [ -n "${DEPLOY_LIGHTTPD_ISSUER}" ]; then
+    Le_Deploy_lighttpd_issuer="${DEPLOY_LIGHTTPD_ISSUER}"
+    _savedomainconf Le_Deploy_lighttpd_issuer "${Le_Deploy_lighttpd_issuer}"
+  elif [ -z "${Le_Deploy_lighttpd_issuer}" ]; then
+    Le_Deploy_lighttpd_issuer="${DEPLOY_LIGHTTPD_ISSUER_DEFAULT}"
   fi
 
-  # RELOAD is optional. If not provided then assume "${DEPLOY_HAPROXY_RELOAD_DEFAULT}"
-  _getdeployconf DEPLOY_HAPROXY_RELOAD
-  _debug2 DEPLOY_HAPROXY_RELOAD "${DEPLOY_HAPROXY_RELOAD}"
-  if [ -n "${DEPLOY_HAPROXY_RELOAD}" ]; then
-    Le_Deploy_haproxy_reload="${DEPLOY_HAPROXY_RELOAD}"
-    _savedomainconf Le_Deploy_haproxy_reload "${Le_Deploy_haproxy_reload}"
-  elif [ -z "${Le_Deploy_haproxy_reload}" ]; then
-    Le_Deploy_haproxy_reload="${DEPLOY_HAPROXY_RELOAD_DEFAULT}"
+  # RELOAD is optional. If not provided then assume "${DEPLOY_LIGHTTPD_RELOAD_DEFAULT}"
+  _getdeployconf DEPLOY_LIGHTTPD_RELOAD
+  _debug2 DEPLOY_LIGHTTPD_RELOAD "${DEPLOY_LIGHTTPD_RELOAD}"
+  if [ -n "${DEPLOY_LIGHTTPD_RELOAD}" ]; then
+    Le_Deploy_lighttpd_reload="${DEPLOY_LIGHTTPD_RELOAD}"
+    _savedomainconf Le_Deploy_lighttpd_reload "${Le_Deploy_lighttpd_reload}"
+  elif [ -z "${Le_Deploy_lighttpd_reload}" ]; then
+    Le_Deploy_lighttpd_reload="${DEPLOY_LIGHTTPD_RELOAD_DEFAULT}"
   fi
 
   # Set the suffix depending if we are creating a bundle or not
-  if [ "${Le_Deploy_haproxy_bundle}" = "yes" ]; then
+  if [ "${Le_Deploy_lighttpd_bundle}" = "yes" ]; then
     _info "Bundle creation requested"
     # Initialise $Le_Keylength if its not already set
     if [ -z "${Le_Keylength}" ]; then
@@ -138,10 +138,10 @@ haproxy_deploy() {
   _debug _suffix "${_suffix}"
 
   # Set variables for later
-  _pem="${Le_Deploy_haproxy_pem_path}/${Le_Deploy_haproxy_pem_name}${_suffix}"
+  _pem="${Le_Deploy_lighttpd_pem_path}/${Le_Deploy_lighttpd_pem_name}${_suffix}"
   _issuer="${_pem}.issuer"
   _ocsp="${_pem}.ocsp"
-  _reload="${Le_Deploy_haproxy_reload}"
+  _reload="${Le_Deploy_lighttpd_reload}"
 
   _info "Deploying PEM file"
   # Create a temporary PEM file
@@ -173,7 +173,7 @@ haproxy_deploy() {
   fi
 
   # Update .issuer file if requested
-  if [ "${Le_Deploy_haproxy_issuer}" = "yes" ]; then
+  if [ "${Le_Deploy_lighttpd_issuer}" = "yes" ]; then
     _info "Updating .issuer file"
     _debug _issuer "${_issuer}"
     cat "${_cca}" >"${_issuer}"
@@ -260,12 +260,12 @@ haproxy_deploy() {
     # An OCSP file was already present but certificate did not have OCSP extension
     if [ -f "${_ocsp}" ]; then
       _err "OCSP was not requested but .ocsp file exists."
-      # Could remove the file at this step, although HAProxy just ignores it in this case
+      # Could remove the file at this step, although Lighttpd just ignores it in this case
       # rm -f "${_ocsp}" || _err "Problem removing stale .ocsp file"
     fi
   fi
 
-  # Reload HAProxy
+  # Reload Lighttpd
   _debug _reload "${_reload}"
   eval "${_reload}"
   _ret=$?

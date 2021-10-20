@@ -35,11 +35,6 @@ ssh_deploy() {
   _cfullchain="$5"
   _deploy_ssh_servers=""
 
-  if [ -f "$DOMAIN_CONF" ]; then
-    # shellcheck disable=SC1090
-    . "$DOMAIN_CONF"
-  fi
-
   _debug _cdomain "$_cdomain"
   _debug _ckey "$_ckey"
   _debug _ccert "$_ccert"
@@ -47,6 +42,8 @@ ssh_deploy() {
   _debug _cfullchain "$_cfullchain"
 
   # USER is required to login by SSH to remote host.
+  _getdeployconf DEPLOY_SSH_USER
+  _debug2 DEPLOY_SSH_USER "$DEPLOY_SSH_USER"
   if [ -z "$DEPLOY_SSH_USER" ]; then
     if [ -z "$Le_Deploy_ssh_user" ]; then
       _err "DEPLOY_SSH_USER not defined."
@@ -58,6 +55,8 @@ ssh_deploy() {
   fi
 
   # SERVER is optional. If not provided then use _cdomain
+  _getdeployconf DEPLOY_SSH_SERVER
+  _debug2 DEPLOY_SSH_SERVER "$DEPLOY_SSH_SERVER"
   if [ -n "$DEPLOY_SSH_SERVER" ]; then
     Le_Deploy_ssh_server="$DEPLOY_SSH_SERVER"
     _savedomainconf Le_Deploy_ssh_server "$Le_Deploy_ssh_server"
@@ -66,6 +65,8 @@ ssh_deploy() {
   fi
 
   # CMD is optional. If not provided then use ssh
+  _getdeployconf DEPLOY_SSH_CMD
+  _debug2 DEPLOY_SSH_CMD "$DEPLOY_SSH_CMD"
   if [ -n "$DEPLOY_SSH_CMD" ]; then
     Le_Deploy_ssh_cmd="$DEPLOY_SSH_CMD"
     _savedomainconf Le_Deploy_ssh_cmd "$Le_Deploy_ssh_cmd"
@@ -74,6 +75,8 @@ ssh_deploy() {
   fi
 
   # BACKUP is optional. If not provided then default to previously saved value or yes.
+  _getdeployconf DEPLOY_SSH_BACKUP
+  _debug2 DEPLOY_SSH_BACKUP "$DEPLOY_SSH_BACKUP"
   if [ "$DEPLOY_SSH_BACKUP" = "no" ]; then
     Le_Deploy_ssh_backup="no"
   elif [ -z "$Le_Deploy_ssh_backup" ] || [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
@@ -82,6 +85,8 @@ ssh_deploy() {
   _savedomainconf Le_Deploy_ssh_backup "$Le_Deploy_ssh_backup"
 
   # BACKUP_PATH is optional. If not provided then default to previously saved value or .acme_ssh_deploy
+  _getdeployconf DEPLOY_SSH_BACKUP_PATH
+  _debug2 DEPLOY_SSH_BACKUP_PATH "$DEPLOY_SSH_BACKUP_PATH"
   if [ -n "$DEPLOY_SSH_BACKUP_PATH" ]; then
     Le_Deploy_ssh_backup_path="$DEPLOY_SSH_BACKUP_PATH"
   elif [ -z "$Le_Deploy_ssh_backup_path" ]; then
@@ -91,6 +96,8 @@ ssh_deploy() {
 
   # MULTI_CALL is optional. If not provided then default to previously saved
   # value (which may be undefined... equivalent to "no").
+  _getdeployconf DEPLOY_SSH_MULTI_CALL
+  _debug2 DEPLOY_SSH_MULTI_CALL "$DEPLOY_SSH_MULTI_CALL"
   if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
     Le_Deploy_ssh_multi_call="yes"
     _savedomainconf Le_Deploy_ssh_multi_call "$Le_Deploy_ssh_multi_call"
@@ -141,6 +148,8 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
 
   # KEYFILE is optional.
   # If provided then private key will be copied to provided filename.
+  _getdeployconf DEPLOY_SSH_KEYFILE
+  _debug2 DEPLOY_SSH_KEYFILE "$DEPLOY_SSH_KEYFILE"
   if [ -n "$DEPLOY_SSH_KEYFILE" ]; then
     Le_Deploy_ssh_keyfile="$DEPLOY_SSH_KEYFILE"
     _savedomainconf Le_Deploy_ssh_keyfile "$Le_Deploy_ssh_keyfile"
@@ -163,6 +172,8 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
 
   # CERTFILE is optional.
   # If provided then certificate will be copied or appended to provided filename.
+  _getdeployconf DEPLOY_SSH_CERTFILE
+  _debug2 DEPLOY_SSH_CERTFILE "$DEPLOY_SSH_CERTFILE"
   if [ -n "$DEPLOY_SSH_CERTFILE" ]; then
     Le_Deploy_ssh_certfile="$DEPLOY_SSH_CERTFILE"
     _savedomainconf Le_Deploy_ssh_certfile "$Le_Deploy_ssh_certfile"
@@ -189,6 +200,8 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
 
   # CAFILE is optional.
   # If provided then CA intermediate certificate will be copied or appended to provided filename.
+  _getdeployconf DEPLOY_SSH_CAFILE
+  _debug2 DEPLOY_SSH_CAFILE "$DEPLOY_SSH_CAFILE"
   if [ -n "$DEPLOY_SSH_CAFILE" ]; then
     Le_Deploy_ssh_cafile="$DEPLOY_SSH_CAFILE"
     _savedomainconf Le_Deploy_ssh_cafile "$Le_Deploy_ssh_cafile"
@@ -216,6 +229,8 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
 
   # FULLCHAIN is optional.
   # If provided then fullchain certificate will be copied or appended to provided filename.
+  _getdeployconf DEPLOY_SSH_FULLCHAIN
+  _debug2 DEPLOY_SSH_FULLCHAIN "$DEPLOY_SSH_FULLCHAIN"
   if [ -n "$DEPLOY_SSH_FULLCHAIN" ]; then
     Le_Deploy_ssh_fullchain="$DEPLOY_SSH_FULLCHAIN"
     _savedomainconf Le_Deploy_ssh_fullchain "$Le_Deploy_ssh_fullchain"
@@ -244,6 +259,8 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
 
   # REMOTE_CMD is optional.
   # If provided then this command will be executed on remote host.
+  _getdeployconf DEPLOY_SSH_REMOTE_CMD
+  _debug2 DEPLOY_SSH_REMOTE_CMD "$DEPLOY_SSH_REMOTE_CMD"
   if [ -n "$DEPLOY_SSH_REMOTE_CMD" ]; then
     Le_Deploy_ssh_remote_cmd="$DEPLOY_SSH_REMOTE_CMD"
     _savedomainconf Le_Deploy_ssh_remote_cmd "$Le_Deploy_ssh_remote_cmd"

@@ -46,7 +46,7 @@ dns_1984hosting_add() {
 
   postdata="entry=new"
   postdata="$postdata&type=TXT"
-  postdata="$postdata&ttl=3600"
+  postdata="$postdata&ttl=900"
   postdata="$postdata&zone=$_domain"
   postdata="$postdata&host=$_sub_domain"
   postdata="$postdata&rdata=%22$value%22"
@@ -93,20 +93,15 @@ dns_1984hosting_rm() {
   fi
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
-
   _debug "Delete $fulldomain TXT record"
-  url="https://management.1984hosting.com/domains"
 
-  _htmlget "$url" "$_domain"
-  _debug2 _response "$_response"
-  zone_id="$(echo "$_response" | _egrep_o 'zone\/[0-9]+')"
-  _debug2 zone_id "$zone_id"
-  if [ -z "$zone_id" ]; then
-    _err "Error getting zone_id for $1"
+  url="https://management.1984hosting.com/domains"
+  if ! _get_zone_id "$url" "$_domain"; then
+    _err "invalid zone" "$_domain"
     return 1
   fi
 
-  _htmlget "$url/$zone_id" "$_sub_domain"
+  _htmlget "$url/$_zone_id" "$txtvalue"
   _debug2 _response "$_response"
   entry_id="$(echo "$_response" | _egrep_o 'entry_[0-9]+' | sed 's/entry_//')"
   _debug2 entry_id "$entry_id"
@@ -135,7 +130,7 @@ dns_1984hosting_rm() {
 _1984hosting_login() {
   if ! _check_credentials; then return 1; fi
 
-  if _check_cookie; then
+  if _check_cookies; then
     _debug "Already logged in"
     return 0
   fi
@@ -150,9 +145,12 @@ _1984hosting_login() {
   _debug2 response "$response"
 
   if _contains "$response" '"loggedin": true'; then
-    One984HOSTING_COOKIE="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _tail_n 1 | _egrep_o 'sessionid=[^;]*;' | tr -d ';')"
-    export One984HOSTING_COOKIE
-    _saveaccountconf_mutable One984HOSTING_COOKIE "$One984HOSTING_COOKIE"
+    One984HOSTING_SESSIONID_COOKIE="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'sessionid=[^;]*;' | tr -d ';')"
+    One984HOSTING_CSRFTOKEN_COOKIE="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'csrftoken=[^;]*;' | tr -d ';')"
+    export One984HOSTING_SESSIONID_COOKIE
+    export One984HOSTING_CSRFTOKEN_COOKIE
+    _saveaccountconf_mutable One984HOSTING_SESSIONID_COOKIE "$One984HOSTING_SESSIONID_COOKIE"
+    _saveaccountconf_mutable One984HOSTING_CSRFTOKEN_COOKIE "$One984HOSTING_CSRFTOKEN_COOKIE"
     return 0
   fi
   return 1
@@ -169,21 +167,24 @@ _check_credentials() {
   return 0
 }
 
-_check_cookie() {
-  One984HOSTING_COOKIE="${One984HOSTING_COOKIE:-$(_readaccountconf_mutable One984HOSTING_COOKIE)}"
-  if [ -z "$One984HOSTING_COOKIE" ]; then
-    _debug "No cached cookie found"
+_check_cookies() {
+  One984HOSTING_SESSIONID_COOKIE="${One984HOSTING_SESSIONID_COOKIE:-$(_readaccountconf_mutable One984HOSTING_SESSIONID_COOKIE)}"
+  One984HOSTING_CSRFTOKEN_COOKIE="${One984HOSTING_CSRFTOKEN_COOKIE:-$(_readaccountconf_mutable One984HOSTING_CSRFTOKEN_COOKIE)}"
+  if [ -z "$One984HOSTING_SESSIONID_COOKIE" ] || [ -z "$One984HOSTING_CSRFTOKEN_COOKIE" ]; then
+    _debug "No cached cookie(s) found"
     return 1
   fi
 
   _authget "https://management.1984hosting.com/accounts/loginstatus/"
   if _contains "$response" '"ok": true'; then
-    _debug "Cached cookie still valid"
+    _debug "Cached cookies still valid"
     return 0
   fi
-  _debug "Cached cookie no longer valid"
-  One984HOSTING_COOKIE=""
-  _saveaccountconf_mutable One984HOSTING_COOKIE "$One984HOSTING_COOKIE"
+  _debug "Cached cookies no longer valid"
+  One984HOSTING_SESSIONID_COOKIE=""
+  One984HOSTING_CSRFTOKEN_COOKIE=""
+  _saveaccountconf_mutable One984HOSTING_SESSIONID_COOKIE "$One984HOSTING_SESSIONID_COOKIE"
+  _saveaccountconf_mutable One984HOSTING_CSRFTOKEN_COOKIE "$One984HOSTING_CSRFTOKEN_COOKIE"
   return 1
 }
 
@@ -215,9 +216,25 @@ _get_root() {
   return 1
 }
 
+#usage: _get_zone_id url domain.com
+#returns zone id for domain.com
+_get_zone_id() {
+  url=$1
+  domain=$2
+  _htmlget "$url" "$domain"
+  _debug2 _response "$_response"
+  _zone_id="$(echo "$_response" | _egrep_o 'zone\/[0-9]+' | _head_n 1)"
+  _debug2 _zone_id "$_zone_id"
+  if [ -z "$_zone_id" ]; then
+    _err "Error getting _zone_id for $2"
+    return 1
+  fi
+  return 0
+}
+
 # add extra headers to request
 _authget() {
-  export _H1="Cookie: $One984HOSTING_COOKIE"
+  export _H1="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE;$One984HOSTING_SESSIONID_COOKIE"
   _response=$(_get "$1" | _normalizeJson)
   _debug2 _response "$_response"
 }
@@ -225,12 +242,20 @@ _authget() {
 # truncate huge HTML response
 # echo: Argument list too long
 _htmlget() {
-  export _H1="Cookie: $One984HOSTING_COOKIE"
-  _response=$(_get "$1" | grep "$2" | _head_n 1)
+  export _H1="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE;$One984HOSTING_SESSIONID_COOKIE"
+  _response=$(_get "$1" | grep "$2")
+  if _contains "$_response" "@$2"; then
+    _response=$(echo "$_response" | grep -v "[@]" | _head_n 1)
+  fi
 }
 
 # add extra headers to request
 _authpost() {
-  export _H1="Cookie: $One984HOSTING_COOKIE"
+  url="https://management.1984hosting.com/domains"
+  _get_zone_id "$url" "$_domain"
+  csrf_header="$(echo "$One984HOSTING_CSRFTOKEN_COOKIE" | _egrep_o "=[^=][0-9a-zA-Z]*" | tr -d "=")"
+  export _H1="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE;$One984HOSTING_SESSIONID_COOKIE"
+  export _H2="Referer: https://management.1984hosting.com/domains/$_zone_id"
+  export _H3="X-CSRFToken: $csrf_header"
   _response=$(_post "$1" "$2")
 }

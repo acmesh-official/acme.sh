@@ -3168,7 +3168,7 @@ _checkConf() {
       for included in $(cat "$2" | tr "\t" " " | grep "^ *include *.*;" | sed "s/include //" | tr -d " ;"); do
         _debug "check included $included"
         if ! _startswith "$included" "/" && _exists dirname; then
-          _relpath="$(dirname "$_c_file")"
+          _relpath="$(dirname "$2")"
           _debug "_relpath" "$_relpath"
           included="$_relpath/$included"
         fi
@@ -4222,12 +4222,6 @@ issue() {
     return 1
   fi
 
-  _debug "Using ACME_DIRECTORY: $ACME_DIRECTORY"
-
-  if ! _initAPI; then
-    return 1
-  fi
-
   if [ -f "$DOMAIN_CONF" ]; then
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
     _debug Le_NextRenewTime "$Le_NextRenewTime"
@@ -4245,6 +4239,11 @@ issue() {
         _info "Domains have changed."
       fi
     fi
+  fi
+
+  _debug "Using ACME_DIRECTORY: $ACME_DIRECTORY"
+  if ! _initAPI; then
+    return 1
   fi
 
   _savedomainconf "Le_Domain" "$_main_domain"
@@ -4934,7 +4933,9 @@ $_authorizations_map"
 
   echo "$response" >"$CERT_PATH"
   _split_cert_chain "$CERT_PATH" "$CERT_FULLCHAIN_PATH" "$CA_CERT_PATH"
-
+  if [ -z "$_preferred_chain" ]; then
+    _preferred_chain=$(_readcaconf DEFAULT_PREFERRED_CHAIN)
+  fi
   if [ "$_preferred_chain" ] && [ -f "$CERT_FULLCHAIN_PATH" ]; then
     if [ "$DEBUG" ]; then
       _debug "default chain issuers: " "$(_get_chain_issuers "$CERT_FULLCHAIN_PATH")"
@@ -5129,7 +5130,6 @@ renew() {
     CA_CONF=""
     _debug3 "initpath again."
     _initpath "$Le_Domain" "$_isEcc"
-    _initAPI
   fi
 
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
@@ -6547,6 +6547,8 @@ Commands:
   --deactivate             Deactivate the domain authz, professional use.
   --set-default-ca         Used with '--server', Set the default CA to use.
                            See: $_SERVER_WIKI
+  --set-default-chain      Set the default preferred chain for a CA.
+                           See: $_PREFERRED_CHAIN_WIKI
 
 
 Parameters:
@@ -6833,6 +6835,18 @@ setdefaultca() {
   _info "Changed default CA to: $(__green "$ACME_DIRECTORY")"
 }
 
+#preferred-chain
+setdefaultchain() {
+  _initpath
+  _preferred_chain="$1"
+  if [ -z "$_preferred_chain" ]; then
+    _err "Please give a '--preferred-chain value' value."
+    return 1
+  fi
+  mkdir -p "$CA_DIR"
+  _savecaconf "DEFAULT_PREFERRED_CHAIN" "$_preferred_chain"
+}
+
 _process() {
   _CMD=""
   _domain=""
@@ -6983,6 +6997,9 @@ _process() {
       ;;
     --set-default-ca)
       _CMD="setdefaultca"
+      ;;
+    --set-default-chain)
+      _CMD="setdefaultchain"
       ;;
     -d | --domain)
       _dvalue="$2"
@@ -7513,6 +7530,9 @@ _process() {
     ;;
   setdefaultca)
     setdefaultca
+    ;;
+  setdefaultchain)
+    setdefaultchain "$_preferred_chain"
     ;;
   *)
     if [ "$_CMD" ]; then
