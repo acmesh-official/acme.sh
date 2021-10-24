@@ -10,7 +10,6 @@
 # --
 # export DDNSS_Token="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 # --
-#
 
 DDNSS_DNS_API="https://ddnss.de/upd.php"
 
