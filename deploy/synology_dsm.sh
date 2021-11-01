@@ -100,6 +100,7 @@ synology_dsm_deploy() {
   if [ -z "$token" ]; then
     _err "Unable to authenticate to $SYNO_Hostname:$SYNO_Port using $SYNO_Scheme."
     _err "Check your username and password."
+    _err "If two-factor authentication is enabled for the user, you have to choose another user."
     return 1
   fi
   sid=$(echo "$response" | grep "sid" | sed -n 's/.*"sid" *: *"\([^"]*\).*/\1/p')
