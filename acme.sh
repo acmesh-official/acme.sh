@@ -4207,9 +4207,9 @@ _isIP() {
 #identifier
 _getIdType() {
   if _isIP "$1"; then
-    echo "$ID_TYPE_IP";
+    echo "$ID_TYPE_IP"
   else
-    echo "$ID_TYPE_DNS";
+    echo "$ID_TYPE_DNS"
   fi
 }
 
