@@ -5941,7 +5941,7 @@ _deactivate() {
     _initAPI
   fi
 
-  _identifiers="{\"type\":\"dns\",\"value\":\"$_d_domain\"}"
+  _identifiers="{\"type\":\"$(_getIdType "$_d_domain")\",\"value\":\"$_d_domain\"}"
   if ! _send_signed_request "$ACME_NEW_ORDER" "{\"identifiers\": [$_identifiers]}"; then
     _err "Can not get domain new order."
     return 1
