@@ -5713,8 +5713,16 @@ installcronjob() {
   if [ -f "$LE_WORKING_DIR/$PROJECT_ENTRY" ]; then
     lesh="\"$LE_WORKING_DIR\"/$PROJECT_ENTRY"
   else
-    _err "Can not install cronjob, $PROJECT_ENTRY not found."
-    return 1
+    _debug "_SCRIPT_" "$_SCRIPT_"
+    _script="$(_readlink "$_SCRIPT_")"
+    _debug _script "$_script"
+    if [ -f "$_script" ]; then
+      _info "Using the current script from: $_script"
+      lesh="$_script"
+    else
+      _err "Can not install cronjob, $PROJECT_ENTRY not found."
+      return 1
+    fi
   fi
   if [ "$_c_home" ]; then
     _c_entry="--config-home \"$_c_home\" "
