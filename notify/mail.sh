@@ -62,7 +62,7 @@ mail_send() {
   fi
 
   contenttype="text/plain; charset=utf-8"
-  subject="=?UTF-8?B?$(printf "$_subject" "%b" | _base64)?="
+  subject="=?UTF-8?B?$(printf "%b" -- "$_subject" | _base64)?="
   result=$({ _mail_body | eval "$(_mail_cmnd)"; } 2>&1)
 
   # shellcheck disable=SC2181
