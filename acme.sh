@@ -6403,7 +6403,7 @@ version() {
 
 # subject content hooks code
 _send_notify() {
-  _nsubject="$1"
+  _nsubject="$1 on $(hostname -f)"
   _ncontent="$2"
   _nhooks="$3"
   _nerror="$4"
