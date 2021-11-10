@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.0.1
+VER=3.0.2
 
 PROJECT_NAME="acme.sh"
 
@@ -58,6 +58,9 @@ DEFAULT_OPENSSL_BIN="openssl"
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
 VTYPE_ALPN="tls-alpn-01"
+
+ID_TYPE_DNS="dns"
+ID_TYPE_IP="ip"
 
 LOCAL_ANY_ADDRESS="0.0.0.0"
 
@@ -426,13 +429,11 @@ _secure_debug3() {
 }
 
 _upper_case() {
-  # shellcheck disable=SC2018,SC2019
-  tr 'a-z' 'A-Z'
+  tr '[:lower:]' '[:upper:]'
 }
 
 _lower_case() {
-  # shellcheck disable=SC2018,SC2019
-  tr 'A-Z' 'a-z'
+  tr '[:upper:]' '[:lower:]'
 }
 
 _startswith() {
@@ -1222,19 +1223,27 @@ _createcsr() {
 
   if [ "$acmeValidationv1" ]; then
     domainlist="$(_idn "$domainlist")"
-    printf -- "\nsubjectAltName=DNS:$domainlist" >>"$csrconf"
+    _debug2 domainlist "$domainlist"
+    alt=""
+    for dl in $(echo "$domainlist" | tr "," ' '); do
+      if [ "$alt" ]; then
+        alt="$alt,$(_getIdType "$dl" | _upper_case):$dl"
+      else
+        alt="$(_getIdType "$dl" | _upper_case):$dl"
+      fi
+    done
+    printf -- "\nsubjectAltName=$alt" >>"$csrconf"
   elif [ -z "$domainlist" ] || [ "$domainlist" = "$NO_VALUE" ]; then
     #single domain
     _info "Single domain" "$domain"
-    printf -- "\nsubjectAltName=DNS:$(_idn "$domain")" >>"$csrconf"
+    printf -- "\nsubjectAltName=$(_getIdType "$domain" | _upper_case):$(_idn "$domain")" >>"$csrconf"
   else
     domainlist="$(_idn "$domainlist")"
     _debug2 domainlist "$domainlist"
-    if _contains "$domainlist" ","; then
-      alt="DNS:$(_idn "$domain"),DNS:$(echo "$domainlist" | sed "s/,,/,/g" | sed "s/,/,DNS:/g")"
-    else
-      alt="DNS:$(_idn "$domain"),DNS:$domainlist"
-    fi
+    alt="$(_getIdType "$domain" | _upper_case):$domain"
+    for dl in $(echo "$domainlist" | tr "," ' '); do
+      alt="$alt,$(_getIdType "$dl" | _upper_case):$dl"
+    done
     #multi
     _info "Multi domain" "$alt"
     printf -- "\nsubjectAltName=$alt" >>"$csrconf"
@@ -4174,6 +4183,36 @@ _match_issuer() {
   _contains "$_rootissuer" "$_missuer"
 }
 
+#ip
+_isIPv4() {
+  for seg in $(echo "$1" | tr '.' ' '); do
+    if [ $seg -ge 0 ] 2>/dev/null && [ $seg -le 255 ] 2>/dev/null; then
+      continue
+    fi
+    return 1
+  done
+  return 0
+}
+
+#ip6
+_isIPv6() {
+  _contains "$1" ":"
+}
+
+#ip
+_isIP() {
+  _isIPv4 "$1" || _isIPv6 "$1"
+}
+
+#identifier
+_getIdType() {
+  if _isIP "$1"; then
+    echo "$ID_TYPE_IP"
+  else
+    echo "$ID_TYPE_DNS"
+  fi
+}
+
 #webroot, domain domainlist  keylength
 issue() {
   if [ -z "$2" ]; then
@@ -4330,7 +4369,7 @@ issue() {
   dvsep=','
   if [ -z "$vlist" ]; then
     #make new order request
-    _identifiers="{\"type\":\"dns\",\"value\":\"$(_idn "$_main_domain")\"}"
+    _identifiers="{\"type\":\"$(_getIdType "$_main_domain")\",\"value\":\"$(_idn "$_main_domain")\"}"
     _w_index=1
     while true; do
       d="$(echo "$_alt_domains," | cut -d , -f "$_w_index")"
@@ -4339,7 +4378,7 @@ issue() {
       if [ -z "$d" ]; then
         break
       fi
-      _identifiers="$_identifiers,{\"type\":\"dns\",\"value\":\"$(_idn "$d")\"}"
+      _identifiers="$_identifiers,{\"type\":\"$(_getIdType "$d")\",\"value\":\"$(_idn "$d")\"}"
     done
     _debug2 _identifiers "$_identifiers"
     if ! _send_signed_request "$ACME_NEW_ORDER" "{\"identifiers\": [$_identifiers]}"; then
@@ -5674,8 +5713,16 @@ installcronjob() {
   if [ -f "$LE_WORKING_DIR/$PROJECT_ENTRY" ]; then
     lesh="\"$LE_WORKING_DIR\"/$PROJECT_ENTRY"
   else
-    _err "Can not install cronjob, $PROJECT_ENTRY not found."
-    return 1
+    _debug "_SCRIPT_" "$_SCRIPT_"
+    _script="$(_readlink "$_SCRIPT_")"
+    _debug _script "$_script"
+    if [ -f "$_script" ]; then
+      _info "Using the current script from: $_script"
+      lesh="$_script"
+    else
+      _err "Can not install cronjob, $PROJECT_ENTRY not found."
+      return 1
+    fi
   fi
   if [ "$_c_home" ]; then
     _c_entry="--config-home \"$_c_home\" "
@@ -5902,7 +5949,7 @@ _deactivate() {
     _initAPI
   fi
 
-  _identifiers="{\"type\":\"dns\",\"value\":\"$_d_domain\"}"
+  _identifiers="{\"type\":\"$(_getIdType "$_d_domain")\",\"value\":\"$_d_domain\"}"
   if ! _send_signed_request "$ACME_NEW_ORDER" "{\"identifiers\": [$_identifiers]}"; then
     _err "Can not get domain new order."
     return 1
@@ -5938,7 +5985,7 @@ _deactivate() {
       thumbprint="$(__calc_account_thumbprint)"
     fi
     _debug "Trigger validation."
-    vtype="$VTYPE_DNS"
+    vtype="$(_getIdType "$_d_domain")"
     entry="$(echo "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
     _debug entry "$entry"
     if [ -z "$entry" ]; then
