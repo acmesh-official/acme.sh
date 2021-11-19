@@ -429,17 +429,27 @@ _secure_debug3() {
 }
 
 _upper_case() {
-  tr '[:lower:]' '[:upper:]'
+  if _is_solaris; then
+    tr '[:lower:]' '[:upper:]'
+  else
+    # shellcheck disable=SC2018,SC2019
+    tr 'a-z' 'A-Z'
+  fi
 }
 
 _lower_case() {
-  tr '[:upper:]' '[:lower:]'
+  if _is_solaris; then
+    tr '[:upper:]' '[:lower:]'
+  else
+    # shellcheck disable=SC2018,SC2019
+    tr 'A-Z' 'a-z'
+  fi
 }
 
 _startswith() {
   _str="$1"
   _sub="$2"
-  echo "$_str" | grep "^$_sub" >/dev/null 2>&1
+  echo "$_str" | grep -- "^$_sub" >/dev/null 2>&1
 }
 
 _endswith() {
