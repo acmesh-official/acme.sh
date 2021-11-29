@@ -1,13 +1,17 @@
 #!/usr/bin/env sh
 
-# acme.sh JamoTech helper script
-# This is to be used on client systems and used by Ansible
-# to deploy SSL certificates on the jamo.tech domain to
-# customer servers for web panels and the likes to their
-# customer jamo.tech subdomain.
-
-
+#Here is a sample custom api script.
+#This file name is "dns_myapi.sh"
+#So, here must be a method   dns_myapi_add()
+#Which will be called by acme.sh to add the txt record to your api system.
+#returns 0 means success, otherwise error.
+#
+#Author: Neilpang
+#Report Bugs here: https://github.com/acmesh-official/acme.sh
+#
 ########  Public functions #####################
+
+# Please Read this guide first: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
 
 # API Calls to be made
 # _get("https://api.corp-jamo.tech/dns/v1/records/exists.php?access=accesskey&hostname=subdomain&target=10.8.0.1&type=A")
@@ -80,10 +84,11 @@ dns_jamotech_rm() {
 
 
 ####################  Private functions below ##################################
-# _acme-challenge.client.jamo.tech
+# _acme-challenge.www.domain.com
 # returns
-# _txthost="_acme-challenge.client"
-# _subhost="client"
+# _domain=domain.com
+# _txtdomain=_acme-challenge.www
+# _adomain=www
 
 
 _get_root() {
@@ -105,7 +110,7 @@ _get_root() {
 
 
 _check_record() {
-    server_record="https://api.corp-jamo.tech/dns/v1/records/exists.php?access=$JTECH_KEY&hostname=$subdomain&target=$JTECH_ENDIP&type=A"
+    server_record="https://api.corp-jamo.tech/dns/v1/records/exists.php?access=$JTECH_KEY&hostname=$_subhost&target=$JTECH_ENDIP&type=A"
     txt_record="https://api.corp-jamo.tech/dns/v1/records/exists.php?access=$JTECH_KEY&hostname=$txtdomain&target=$txtvalue&type=TXT"
     _debug "API ENDPOINTS $server_record $txt_record"
 
@@ -135,7 +140,7 @@ _check_record() {
 
 _create_record() {
     _check_record
-    server_record="https://api.corp-jamo.tech/dns/v1/records/add.php?access=$JTECH_KEY&hostname=$subdomain&target=$JTECH_ENDIP&type=A"
+    server_record="https://api.corp-jamo.tech/dns/v1/records/add.php?access=$JTECH_KEY&hostname=$_subhost&target=$JTECH_ENDIP&type=A"
     txt_record="https://api.corp-jamo.tech/dns/v1/records/add.php?access=$JTECH_KEY&hostname=$txtdomain&target=$txtvalue&type=TXT"
     _debug "API ENDPOINTS $server_record $txt_record"
 
@@ -157,7 +162,7 @@ _create_record() {
 
 
 _remove_record() {
-    server_record="https://api.corp-jamo.tech/dns/v1/records/remove.php?access=$JTECH_KEY&hostname=$subdomain&target=$JTECH_ENDIP&type=A"
+    server_record="https://api.corp-jamo.tech/dns/v1/records/remove.php?access=$JTECH_KEY&hostname=$_subhost&target=$JTECH_ENDIP&type=A"
     txt_record="https://api.corp-jamo.tech/dns/v1/records/remove.php?access=$JTECH_KEY&hostname=$txtdomain&target=$txtvalue&type=TXT"
     _debug "API ENDPOINTS $server_record $txt_record"
 
