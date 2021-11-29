@@ -49,7 +49,6 @@ dns_jamotech_add() {
 
 }
 
-
 #Usage: fulldomain txtvalue
 #Remove the txt record after validation.
 dns_jamotech_rm() {
@@ -73,7 +72,6 @@ dns_jamotech_rm() {
     return 1
   fi
 
-
   _info "Using jamotech-clean to remove the TXT record"
   _get_root
   _remove_record
@@ -82,14 +80,12 @@ dns_jamotech_rm() {
 
 }
 
-
 ####################  Private functions below ##################################
 # _acme-challenge.www.domain.com
 # returns
 # _domain=domain.com
 # _txtdomain=_acme-challenge.www
 # _adomain=www
-
 
 _get_root() {
   domain=$fulldomain
@@ -98,7 +94,7 @@ _get_root() {
   _debug "txtdomain = $txtdomain"
   _debug "subdomain = $subdomain"
   _debug "Domain: $domain       TXTDomain: $txtdomain     Subdomain: $subdomain"
-  if [ -z "$domain" ] || [ -z "$txtdomain" ] || [ -z "$subdomain" ] ; then
+  if [ -z "$domain" ] || [ -z "$txtdomain" ] || [ -z "$subdomain" ]; then
     _err "We weren't able to determine the records which need to be created."
     return 1
   fi
@@ -108,75 +104,71 @@ _get_root() {
   return 1
 }
 
-
 _check_record() {
-    server_record="https://api.corp-jamo.tech/dns/v1/records/exists.php?access=$JTECH_KEY&hostname=$_subhost&target=$JTECH_ENDIP&type=A"
-    txt_record="https://api.corp-jamo.tech/dns/v1/records/exists.php?access=$JTECH_KEY&hostname=$_txthost&target=$txtvalue&type=TXT"
-    _debug "API ENDPOINTS $server_record $txt_record"
+  server_record="https://api.corp-jamo.tech/dns/v1/records/exists.php?access=$JTECH_KEY&hostname=$_subhost&target=$JTECH_ENDIP&type=A"
+  txt_record="https://api.corp-jamo.tech/dns/v1/records/exists.php?access=$JTECH_KEY&hostname=$_txthost&target=$txtvalue&type=TXT"
+  _debug "API ENDPOINTS $server_record $txt_record"
 
-    response="$(_get "$server_record")"
-    if [ "$?" != "0" ]; then
-      _err "error"
-      return 1
-    fi
+  response="$(_get "$server_record")"
+  if [ "$?" != "0" ]; then
+    _err "error"
+    return 1
+  fi
 
-    if _contains "$response" '"exists":"true"}'; then
-      _err "Record already exists."
-      return 1
-    fi
+  if _contains "$response" '"exists":"true"}'; then
+    _err "Record already exists."
+    return 1
+  fi
 
-    response="$(_get "$txt_record")"
-        if [ "$?" != "0" ]; then
-      _err "error"
-      return 1
-    fi
+  response="$(_get "$txt_record")"
+  if [ "$?" != "0" ]; then
+    _err "error"
+    return 1
+  fi
 
-    if _contains "$response" '"exists":"true"}'; then
-      _err "Record already exists."
-      return 1
-    fi
+  if _contains "$response" '"exists":"true"}'; then
+    _err "Record already exists."
+    return 1
+  fi
 }
-
 
 _create_record() {
-    _check_record
-    server_record="https://api.corp-jamo.tech/dns/v1/records/add.php?access=$JTECH_KEY&hostname=$_subhost&target=$JTECH_ENDIP&type=A"
-    txt_record="https://api.corp-jamo.tech/dns/v1/records/add.php?access=$JTECH_KEY&hostname=$_txthost&target=$txtvalue&type=TXT"
-    _debug "API ENDPOINTS $server_record $txt_record"
+  _check_record
+  server_record="https://api.corp-jamo.tech/dns/v1/records/add.php?access=$JTECH_KEY&hostname=$_subhost&target=$JTECH_ENDIP&type=A"
+  txt_record="https://api.corp-jamo.tech/dns/v1/records/add.php?access=$JTECH_KEY&hostname=$_txthost&target=$txtvalue&type=TXT"
+  _debug "API ENDPOINTS $server_record $txt_record"
 
-    response="$(_get "$server_record")"
-    if [ "$?" != "0" ]; then
-      _err "error"
-      return 1
-    fi
+  response="$(_get "$server_record")"
+  if [ "$?" != "0" ]; then
+    _err "error"
+    return 1
+  fi
 
-    response="$(_get "$txt_record")"
-        if [ "$?" != "0" ]; then
-      _err "error"
-      return 1
-    fi
+  response="$(_get "$txt_record")"
+  if [ "$?" != "0" ]; then
+    _err "error"
+    return 1
+  fi
 
-    return 0
+  return 0
 }
 
-
-
 _remove_record() {
-    server_record="https://api.corp-jamo.tech/dns/v1/records/remove.php?access=$JTECH_KEY&hostname=$_subhost&target=$JTECH_ENDIP&type=A"
-    txt_record="https://api.corp-jamo.tech/dns/v1/records/remove.php?access=$JTECH_KEY&hostname=$_txthost&target=$txtvalue&type=TXT"
-    _debug "API ENDPOINTS $server_record $txt_record"
+  server_record="https://api.corp-jamo.tech/dns/v1/records/remove.php?access=$JTECH_KEY&hostname=$_subhost&target=$JTECH_ENDIP&type=A"
+  txt_record="https://api.corp-jamo.tech/dns/v1/records/remove.php?access=$JTECH_KEY&hostname=$_txthost&target=$txtvalue&type=TXT"
+  _debug "API ENDPOINTS $server_record $txt_record"
 
-    response="$(_get "$server_record")"
-    if [ "$?" != "0" ]; then
-      _err "error"
-      return 1
-    fi
+  response="$(_get "$server_record")"
+  if [ "$?" != "0" ]; then
+    _err "error"
+    return 1
+  fi
 
-    response="$(_get "$txt_record")"
-        if [ "$?" != "0" ]; then
-      _err "error"
-      return 1
-    fi
+  response="$(_get "$txt_record")"
+  if [ "$?" != "0" ]; then
+    _err "error"
+    return 1
+  fi
 
-    return 0
+  return 0
 }
