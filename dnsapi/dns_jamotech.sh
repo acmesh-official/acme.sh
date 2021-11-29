@@ -1,17 +1,14 @@
 #!/usr/bin/env sh
 
-#Here is a sample custom api script.
-#This file name is "dns_myapi.sh"
-#So, here must be a method   dns_myapi_add()
-#Which will be called by acme.sh to add the txt record to your api system.
-#returns 0 means success, otherwise error.
-#
-#Author: Neilpang
-#Report Bugs here: https://github.com/acmesh-official/acme.sh
-#
-########  Public functions #####################
+# JamoTech Customer Domain amce Helper
+# This script is intended to be run via
+# acme.sh on managed customer systems
+# to allow customers to create and renew
+# SSL certificates on their client
+# subdomain e.g (client.jamo.tech)
+# without the need for support staff
+# to create TXT records.
 
-# Please Read this guide first: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
 
 # API Calls to be made
 # _get("https://api.corp-jamo.tech/dns/v1/records/exists.php?access=accesskey&hostname=subdomain&target=10.8.0.1&type=A")
@@ -21,7 +18,6 @@
 # _get("https://api.corp-jamo.tech/dns/v1/records/remove.php?access=accesskey&hostname=subdomain&target=10.8.0.1&type=A")
 # _get("https://api.corp-jamo.tech/dns/v1/records/remove.php?access=accesskey&hostname=_acme-challenge.subdomain&target=ACMEKEY&type=TXT")
 
-#Usage: dns_myapi_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_jamotech_add() {
   fulldomain=$1
   txtvalue=$2
@@ -49,8 +45,6 @@ dns_jamotech_add() {
 
 }
 
-#Usage: fulldomain txtvalue
-#Remove the txt record after validation.
 dns_jamotech_rm() {
   fulldomain=$1
   txtvalue=$2
@@ -81,11 +75,6 @@ dns_jamotech_rm() {
 }
 
 ####################  Private functions below ##################################
-# _acme-challenge.www.domain.com
-# returns
-# _domain=domain.com
-# _txtdomain=_acme-challenge.www
-# _adomain=www
 
 _get_root() {
   domain=$fulldomain
