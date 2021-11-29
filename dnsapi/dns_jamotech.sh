@@ -1,17 +1,12 @@
 #!/usr/bin/env sh
 
-#Here is a sample custom api script.
-#This file name is "dns_myapi.sh"
-#So, here must be a method   dns_myapi_add()
-#Which will be called by acme.sh to add the txt record to your api system.
-#returns 0 means success, otherwise error.
-#
-#Author: Neilpang
-#Report Bugs here: https://github.com/acmesh-official/acme.sh
-#
-########  Public functions #####################
+# acme.sh JamoTech helper script
+# This is to be used on client systems and used by Ansible
+# to deploy SSL certificates on the jamo.tech domain to
+# customer servers for web panels and the likes to their
+# customer jamo.tech subdomain.
 
-# Please Read this guide first: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
+########  Public functions #####################
 
 # API Calls to be made
 # _get("https://api.corp-jamo.tech/dns/v1/records/exists.php?access=accesskey&hostname=subdomain&target=10.8.0.1&type=A")
@@ -84,11 +79,10 @@ dns_jamotech_rm() {
 
 
 ####################  Private functions below ##################################
-# _acme-challenge.www.domain.com
+# _acme-challenge.client.jamo.tech
 # returns
-# _domain=domain.com
-# _txtdomain=_acme-challenge.www
-# _adomain=www
+# _txthost="_acme-challenge.client"
+# _subhost="client"
 
 
 _get_root() {
