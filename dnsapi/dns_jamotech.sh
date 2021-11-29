@@ -5,7 +5,7 @@
 # to deploy SSL certificates on the jamo.tech domain to
 # customer servers for web panels and the likes to their
 # customer jamo.tech subdomain.
-#
+
 
 ########  Public functions #####################
 
