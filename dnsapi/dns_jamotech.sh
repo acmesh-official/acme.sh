@@ -111,7 +111,7 @@ _get_root() {
 
 _check_record() {
     server_record="https://api.corp-jamo.tech/dns/v1/records/exists.php?access=$JTECH_KEY&hostname=$_subhost&target=$JTECH_ENDIP&type=A"
-    txt_record="https://api.corp-jamo.tech/dns/v1/records/exists.php?access=$JTECH_KEY&hostname=$txtdomain&target=$txtvalue&type=TXT"
+    txt_record="https://api.corp-jamo.tech/dns/v1/records/exists.php?access=$JTECH_KEY&hostname=$_txthost&target=$txtvalue&type=TXT"
     _debug "API ENDPOINTS $server_record $txt_record"
 
     response="$(_get "$server_record")"
@@ -141,7 +141,7 @@ _check_record() {
 _create_record() {
     _check_record
     server_record="https://api.corp-jamo.tech/dns/v1/records/add.php?access=$JTECH_KEY&hostname=$_subhost&target=$JTECH_ENDIP&type=A"
-    txt_record="https://api.corp-jamo.tech/dns/v1/records/add.php?access=$JTECH_KEY&hostname=$txtdomain&target=$txtvalue&type=TXT"
+    txt_record="https://api.corp-jamo.tech/dns/v1/records/add.php?access=$JTECH_KEY&hostname=$_txthost&target=$txtvalue&type=TXT"
     _debug "API ENDPOINTS $server_record $txt_record"
 
     response="$(_get "$server_record")"
@@ -163,7 +163,7 @@ _create_record() {
 
 _remove_record() {
     server_record="https://api.corp-jamo.tech/dns/v1/records/remove.php?access=$JTECH_KEY&hostname=$_subhost&target=$JTECH_ENDIP&type=A"
-    txt_record="https://api.corp-jamo.tech/dns/v1/records/remove.php?access=$JTECH_KEY&hostname=$txtdomain&target=$txtvalue&type=TXT"
+    txt_record="https://api.corp-jamo.tech/dns/v1/records/remove.php?access=$JTECH_KEY&hostname=$_txthost&target=$txtvalue&type=TXT"
     _debug "API ENDPOINTS $server_record $txt_record"
 
     response="$(_get "$server_record")"
