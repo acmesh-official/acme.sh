@@ -8,7 +8,7 @@
 # subdomain e.g (client.jamo.tech)
 # without the need for support staff
 # to create TXT records.
-
+#
 
 # API Calls to be made
 # _get("https://api.corp-jamo.tech/dns/v1/records/exists.php?access=accesskey&hostname=subdomain&target=10.8.0.1&type=A")
