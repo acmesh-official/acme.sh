@@ -85,7 +85,7 @@ dns_he_rm() {
     _debug "The txt record is not found, just skip"
     return 0
   fi
-  _record_id="$(echo "$response" | tr -d "#" | sed "s/<tr/#<tr/g" | tr -d "\n" | tr "#" "\n" | grep "$_full_domain" | grep '"dns_tr"' | grep "$_txt_value" | cut -d '"' -f 4)"
+  _record_id="$(echo "$response" | tr -d "#" | sed "s/<tr/#<tr/g" | tr -d "\n" | tr "#" "\n" | grep "$_full_domain" | grep '"dns_tr"' | grep -- "$_txt_value" | cut -d '"' -f 4)"
   _debug2 _record_id "$_record_id"
   if [ -z "$_record_id" ]; then
     _err "Can not find record id"

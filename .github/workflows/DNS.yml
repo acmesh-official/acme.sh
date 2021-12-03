@@ -59,24 +59,24 @@ jobs:
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Set env file
       run: |
-        cd ../acmetest 
+        cd ../acmetest
         if [ "${{ secrets.TokenName1}}" ] ; then
-          echo "${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}" >> env.list
+          echo "${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}" >> docker.env
         fi
         if [ "${{ secrets.TokenName2}}" ] ; then
-          echo "${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}" >> env.list
+          echo "${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}" >> docker.env
         fi
         if [ "${{ secrets.TokenName3}}" ] ; then
-          echo "${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}" >> env.list
+          echo "${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}" >> docker.env
         fi
         if [ "${{ secrets.TokenName4}}" ] ; then
-          echo "${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}" >> env.list
+          echo "${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}" >> docker.env
         fi
         if [ "${{ secrets.TokenName5}}" ] ; then
-          echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> env.list
+          echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> docker.env
         fi
-        echo "TEST_DNS_NO_WILDCARD" >> env.list 
-        echo "TEST_DNS_SLEEP" >> env.list
+        echo "TEST_DNS_NO_WILDCARD" >> docker.env
+        echo "TEST_DNS_SLEEP" >> docker.env
     - name: Run acmetest
       run: cd ../acmetest && ./rundocker.sh  testall
 
@@ -170,7 +170,7 @@ jobs:
         ./letest.sh
 
   FreeBSD:
-    runs-on: macos-latest
+    runs-on: macos-10.15
     needs: Windows
     env:
       TEST_DNS : ${{ secrets.TEST_DNS }}
@@ -184,7 +184,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/freebsd-vm@v0.0.7
+    - uses: vmactions/freebsd-vm@v0.1.4
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: pkg install -y socat curl
@@ -209,7 +209,7 @@ jobs:
           ./letest.sh
 
   Solaris:
-    runs-on: macos-latest
+    runs-on: macos-10.15
     needs: FreeBSD
     env:
       TEST_DNS : ${{ secrets.TEST_DNS }}
@@ -223,11 +223,13 @@ jobs:
     - uses: actions/checkout@v2
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/solaris-vm@v0.0.1
+    - uses: vmactions/solaris-vm@v0.0.3
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
-        prepare: pkgutil -y -i socat curl
+        prepare: pkgutil -y -i socat
         run: |
+          pkg set-mediator -v -I default@1.1 openssl
+          export PATH=/usr/gnu/bin:$PATH
           if [ "${{ secrets.TokenName1}}" ] ; then
             export ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
           fi
@@ -245,5 +247,3 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-
-        

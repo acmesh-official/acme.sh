@@ -12,7 +12,7 @@
 
 DuckDNS_API="https://www.duckdns.org/update"
 
-########  Public functions #####################
+########  Public functions ######################
 
 #Usage: dns_duckdns_add _acme-challenge.domain.duckdns.org "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_duckdns_add() {
@@ -112,7 +112,7 @@ _duckdns_rest() {
   param="$2"
   _debug param "$param"
   url="$DuckDNS_API?$param"
-  if [ "$DEBUG" -gt 0 ]; then
+  if [ -n "$DEBUG" ] && [ "$DEBUG" -gt 0 ]; then
     url="$url&verbose=true"
   fi
   _debug url "$url"
@@ -121,7 +121,7 @@ _duckdns_rest() {
   if [ "$method" = "GET" ]; then
     response="$(_get "$url")"
     _debug2 response "$response"
-    if [ "$DEBUG" -gt 0 ] && _contains "$response" "UPDATED" && _contains "$response" "OK"; then
+    if [ -n "$DEBUG" ] && [ "$DEBUG" -gt 0 ] && _contains "$response" "UPDATED" && _contains "$response" "OK"; then
       response="OK"
     fi
   else

@@ -27,15 +27,18 @@ telegram_send() {
   fi
   _saveaccountconf_mutable TELEGRAM_BOT_CHATID "$TELEGRAM_BOT_CHATID"
 
+  _content="$(printf "%s" "$_content" | sed -e 's/\([_*`\[]\)/\\\\\1/g')"
   _content="$(printf "*%s*\n%s" "$_subject" "$_content" | _json_encode)"
   _data="{\"text\": \"$_content\", "
   _data="$_data\"chat_id\": \"$TELEGRAM_BOT_CHATID\", "
   _data="$_data\"parse_mode\": \"markdown\", "
   _data="$_data\"disable_web_page_preview\": \"1\"}"
 
+  _debug "$_data"
+
   export _H1="Content-Type: application/json"
   _telegram_bot_url="https://api.telegram.org/bot${TELEGRAM_BOT_APITOKEN}/sendMessage"
-  if _post "$_data" "$_telegram_bot_url"; then
+  if _post "$_data" "$_telegram_bot_url" >/dev/null; then
     # shellcheck disable=SC2154
     _message=$(printf "%s\n" "$response" | sed -n 's/.*"ok":\([^,]*\).*/\1/p')
     if [ "$_message" = "true" ]; then
