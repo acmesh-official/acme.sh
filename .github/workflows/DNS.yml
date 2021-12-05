@@ -49,6 +49,7 @@ jobs:
       TEST_DNS : ${{ secrets.TEST_DNS }}
       TestingDomain: ${{ secrets.TestingDomain }}
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
