@@ -4196,7 +4196,12 @@ _match_issuer() {
 #ip
 _isIPv4() {
   for seg in $(echo "$1" | tr '.' ' '); do
-    if [ $seg -ge 0 ] 2>/dev/null && [ $seg -le 255 ] 2>/dev/null; then
+    _debug2 seg "$seg"
+    if [ "$(echo "$seg" | tr -d [0-9])" ]; then
+      #not all number
+      return 1
+    fi
+    if [ $seg -ge 0 ] && [ $seg -lt 256 ]; then
       continue
     fi
     return 1
