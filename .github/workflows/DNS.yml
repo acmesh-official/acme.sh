@@ -88,6 +88,7 @@ jobs:
       TEST_DNS : ${{ secrets.TEST_DNS }}
       TestingDomain: ${{ secrets.TestingDomain }}
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
@@ -125,6 +126,7 @@ jobs:
       TEST_DNS : ${{ secrets.TEST_DNS }}
       TestingDomain: ${{ secrets.TestingDomain }}
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
@@ -177,6 +179,7 @@ jobs:
       TEST_DNS : ${{ secrets.TEST_DNS }}
       TestingDomain: ${{ secrets.TestingDomain }}
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
@@ -187,7 +190,7 @@ jobs:
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/freebsd-vm@v0.1.4
       with:
-        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: pkg install -y socat curl
         usesh: true
         run: |
@@ -216,6 +219,7 @@ jobs:
       TEST_DNS : ${{ secrets.TEST_DNS }}
       TestingDomain: ${{ secrets.TestingDomain }}
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
@@ -226,7 +230,7 @@ jobs:
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/solaris-vm@v0.0.4
       with:
-        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: pkgutil -y -i socat
         run: |
           pkg set-mediator -v -I default@1.1 openssl
