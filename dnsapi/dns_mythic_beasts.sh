@@ -168,10 +168,11 @@ _initAuth() {
 _oauth2() {
   printenv
   if [ -z "$TEST_DNS_SLEEP" ]; then
-    return _oauth2_std
+    _oauth2_std
   else
-    return _oauth2_github
+    _oauth2_github
   fi
+  return $?
 }
 
 _oauth2_std() {
