@@ -166,7 +166,7 @@ _initAuth() {
 # authentication. This works arounds this by using an undocumented MB API to obtain a token not tied to an
 # IP just for the github tests.
 _oauth2() {
-  printenv
+  _info "$(printenv)"
   if [ -z "$TEST_DNS_SLEEP" ]; then
     _oauth2_std
   else
@@ -211,7 +211,7 @@ _oauth2_github() {
   response="$(_post "$body" "$MB_AUTH" "" "POST" "application/json")"
   MB_TK="$(echo "$response" | _egrep_o "\"token\":\"[^\"]*\"" | cut -d : -f 2 | tr -d '"')"
   if [ -z "$MB_TK" ]; then
-    _err "Unable to get access_token"
+    _err "Unable to get token"
     _err "\n$response"
     return 1
   fi
