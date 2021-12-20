@@ -161,7 +161,20 @@ _initAuth() {
   return 0
 }
 
+# Github appears to use an outbound proxy for requests which means subsequent requests may not have the same
+# source IP. The standard Mythic Beasts OAuth2 tokens are tied to an IP, meaning github test requests fail
+# authentication. This works arounds this by using an undocumented MB API to obtain a token not tied to an
+# IP just for the github tests.
 _oauth2() {
+  printenv
+  if [ -z "$TEST_DNS_SLEEP" ]; then
+    return _oauth2_std
+  else
+    return _oauth2_github
+  fi
+}
+
+_oauth2_std() {
   # HTTP Basic Authentication
   _H1="Authorization: Basic $(echo "$MB_AK:$MB_AS" | _base64)"
   _H2="Accepts: application/json"
@@ -180,6 +193,24 @@ _oauth2() {
     fi
   else
     _err "OAuth2 token_type not Bearer"
+    _err "\n$response"
+    return 1
+  fi
+  _debug2 response "$response"
+  return 0
+}
+
+_oauth2_github() {
+  _H1="Accepts: application/json"
+  export _H1
+  body="{\"login\":{\"handle\":$MB_AK,\"pass\":$MB_AS,\"floating\":1}}"
+
+  _info "Getting Floating token..."
+  # body  url [needbase64] [POST|PUT|DELETE] [ContentType]
+  response="$(_post "$body" "$MB_AUTH" "" "POST" "application/json")"
+  MB_TK="$(echo "$response" | _egrep_o "\"token\":\"[^\"]*\"" | cut -d : -f 2 | tr -d '"')"
+  if [ -z "$MB_TK" ]; then
+    _err "Unable to get access_token"
     _err "\n$response"
     return 1
   fi
