@@ -166,8 +166,8 @@ _initAuth() {
 # authentication. This works arounds this by using an undocumented MB API to obtain a token not tied to an
 # IP just for the github tests.
 _oauth2() {
-  _info "$(printenv)"
-  if [ -z "$TEST_DNS_SLEEP" ]; then
+  _info "DOMAIN: $TEST_DNS"
+  if [ "$TEST_DNS" != "dns_mythic_beasts" ]; then
     _oauth2_std
   else
     _oauth2_github
