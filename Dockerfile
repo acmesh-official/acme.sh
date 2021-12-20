@@ -55,6 +55,7 @@ RUN for verb in help \
   deactivate-account \
   set-notify \
   set-default-ca \
+  set-default-chain \
   ; do \
     printf -- "%b" "#!/usr/bin/env sh\n/root/.acme.sh/acme.sh --${verb} --config-home /acme.sh \"\$@\"" >/usr/local/bin/--${verb} && chmod +x /usr/local/bin/--${verb} \
   ; done

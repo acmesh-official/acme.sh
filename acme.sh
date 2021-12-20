@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.0.1
+VER=3.0.2
 
 PROJECT_NAME="acme.sh"
 
@@ -19,6 +19,8 @@ _SUB_FOLDER_DNSAPI="dnsapi"
 _SUB_FOLDER_DEPLOY="deploy"
 
 _SUB_FOLDERS="$_SUB_FOLDER_DNSAPI $_SUB_FOLDER_DEPLOY $_SUB_FOLDER_NOTIFY"
+
+CA_LETSENCRYPT_V1="https://acme-v01.api.letsencrypt.org/directory"
 
 CA_LETSENCRYPT_V2="https://acme-v02.api.letsencrypt.org/directory"
 CA_LETSENCRYPT_V2_TEST="https://acme-staging-v02.api.letsencrypt.org/directory"
@@ -56,6 +58,9 @@ DEFAULT_OPENSSL_BIN="openssl"
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
 VTYPE_ALPN="tls-alpn-01"
+
+ID_TYPE_DNS="dns"
+ID_TYPE_IP="ip"
 
 LOCAL_ANY_ADDRESS="0.0.0.0"
 
@@ -424,19 +429,27 @@ _secure_debug3() {
 }
 
 _upper_case() {
-  # shellcheck disable=SC2018,SC2019
-  tr 'a-z' 'A-Z'
+  if _is_solaris; then
+    tr '[:lower:]' '[:upper:]'
+  else
+    # shellcheck disable=SC2018,SC2019
+    tr 'a-z' 'A-Z'
+  fi
 }
 
 _lower_case() {
-  # shellcheck disable=SC2018,SC2019
-  tr 'A-Z' 'a-z'
+  if _is_solaris; then
+    tr '[:upper:]' '[:lower:]'
+  else
+    # shellcheck disable=SC2018,SC2019
+    tr 'A-Z' 'a-z'
+  fi
 }
 
 _startswith() {
   _str="$1"
   _sub="$2"
-  echo "$_str" | grep "^$_sub" >/dev/null 2>&1
+  echo "$_str" | grep -- "^$_sub" >/dev/null 2>&1
 }
 
 _endswith() {
@@ -1220,19 +1233,27 @@ _createcsr() {
 
   if [ "$acmeValidationv1" ]; then
     domainlist="$(_idn "$domainlist")"
-    printf -- "\nsubjectAltName=DNS:$domainlist" >>"$csrconf"
+    _debug2 domainlist "$domainlist"
+    alt=""
+    for dl in $(echo "$domainlist" | tr "," ' '); do
+      if [ "$alt" ]; then
+        alt="$alt,$(_getIdType "$dl" | _upper_case):$dl"
+      else
+        alt="$(_getIdType "$dl" | _upper_case):$dl"
+      fi
+    done
+    printf -- "\nsubjectAltName=$alt" >>"$csrconf"
   elif [ -z "$domainlist" ] || [ "$domainlist" = "$NO_VALUE" ]; then
     #single domain
     _info "Single domain" "$domain"
-    printf -- "\nsubjectAltName=DNS:$(_idn "$domain")" >>"$csrconf"
+    printf -- "\nsubjectAltName=$(_getIdType "$domain" | _upper_case):$(_idn "$domain")" >>"$csrconf"
   else
     domainlist="$(_idn "$domainlist")"
     _debug2 domainlist "$domainlist"
-    if _contains "$domainlist" ","; then
-      alt="DNS:$(_idn "$domain"),DNS:$(echo "$domainlist" | sed "s/,,/,/g" | sed "s/,/,DNS:/g")"
-    else
-      alt="DNS:$(_idn "$domain"),DNS:$domainlist"
-    fi
+    alt="$(_getIdType "$domain" | _upper_case):$domain"
+    for dl in $(echo "$domainlist" | tr "," ' '); do
+      alt="$alt,$(_getIdType "$dl" | _upper_case):$dl"
+    done
     #multi
     _info "Multi domain" "$alt"
     printf -- "\nsubjectAltName=$alt" >>"$csrconf"
@@ -3161,12 +3182,12 @@ _checkConf() {
       FOUND_REAL_NGINX_CONF="$2"
       return 0
     fi
-    if cat "$2" | tr "\t" " " | grep "^ *include +.*;" >/dev/null; then
+    if cat "$2" | tr "\t" " " | grep "^ *include *.*;" >/dev/null; then
       _debug "Try include files"
-      for included in $(cat "$2" | tr "\t" " " | grep "^ *include +.*;" | sed "s/include //" | tr -d " ;"); do
+      for included in $(cat "$2" | tr "\t" " " | grep "^ *include *.*;" | sed "s/include //" | tr -d " ;"); do
         _debug "check included $included"
         if ! _startswith "$included" "/" && _exists dirname; then
-          _relpath="$(dirname "$_c_file")"
+          _relpath="$(dirname "$2")"
           _debug "_relpath" "$_relpath"
           included="$_relpath/$included"
         fi
@@ -3380,6 +3401,8 @@ _on_before_issue() {
   if [ "$_chk_pre_hook" ]; then
     _info "Run pre hook:'$_chk_pre_hook'"
     if ! (
+      export Le_Domain="$_chk_main_domain"
+      export Le_Alt="$_chk_alt_domains"
       cd "$DOMAIN_PATH" && eval "$_chk_pre_hook"
     ); then
       _err "Error when run pre hook."
@@ -4170,6 +4193,36 @@ _match_issuer() {
   _contains "$_rootissuer" "$_missuer"
 }
 
+#ip
+_isIPv4() {
+  for seg in $(echo "$1" | tr '.' ' '); do
+    if [ $seg -ge 0 ] 2>/dev/null && [ $seg -le 255 ] 2>/dev/null; then
+      continue
+    fi
+    return 1
+  done
+  return 0
+}
+
+#ip6
+_isIPv6() {
+  _contains "$1" ":"
+}
+
+#ip
+_isIP() {
+  _isIPv4 "$1" || _isIPv6 "$1"
+}
+
+#identifier
+_getIdType() {
+  if _isIP "$1"; then
+    echo "$ID_TYPE_IP"
+  else
+    echo "$ID_TYPE_DNS"
+  fi
+}
+
 #webroot, domain domainlist  keylength
 issue() {
   if [ -z "$2" ]; then
@@ -4218,12 +4271,6 @@ issue() {
     return 1
   fi
 
-  _debug "Using ACME_DIRECTORY: $ACME_DIRECTORY"
-
-  if ! _initAPI; then
-    return 1
-  fi
-
   if [ -f "$DOMAIN_CONF" ]; then
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
     _debug Le_NextRenewTime "$Le_NextRenewTime"
@@ -4241,6 +4288,11 @@ issue() {
         _info "Domains have changed."
       fi
     fi
+  fi
+
+  _debug "Using ACME_DIRECTORY: $ACME_DIRECTORY"
+  if ! _initAPI; then
+    return 1
   fi
 
   _savedomainconf "Le_Domain" "$_main_domain"
@@ -4327,7 +4379,7 @@ issue() {
   dvsep=','
   if [ -z "$vlist" ]; then
     #make new order request
-    _identifiers="{\"type\":\"dns\",\"value\":\"$(_idn "$_main_domain")\"}"
+    _identifiers="{\"type\":\"$(_getIdType "$_main_domain")\",\"value\":\"$(_idn "$_main_domain")\"}"
     _w_index=1
     while true; do
       d="$(echo "$_alt_domains," | cut -d , -f "$_w_index")"
@@ -4336,7 +4388,7 @@ issue() {
       if [ -z "$d" ]; then
         break
       fi
-      _identifiers="$_identifiers,{\"type\":\"dns\",\"value\":\"$(_idn "$d")\"}"
+      _identifiers="$_identifiers,{\"type\":\"$(_getIdType "$d")\",\"value\":\"$(_idn "$d")\"}"
     done
     _debug2 _identifiers "$_identifiers"
     if ! _send_signed_request "$ACME_NEW_ORDER" "{\"identifiers\": [$_identifiers]}"; then
@@ -4930,7 +4982,9 @@ $_authorizations_map"
 
   echo "$response" >"$CERT_PATH"
   _split_cert_chain "$CERT_PATH" "$CERT_FULLCHAIN_PATH" "$CA_CERT_PATH"
-
+  if [ -z "$_preferred_chain" ]; then
+    _preferred_chain=$(_readcaconf DEFAULT_PREFERRED_CHAIN)
+  fi
   if [ "$_preferred_chain" ] && [ -f "$CERT_FULLCHAIN_PATH" ]; then
     if [ "$DEBUG" ]; then
       _debug "default chain issuers: " "$(_get_chain_issuers "$CERT_FULLCHAIN_PATH")"
@@ -5108,7 +5162,7 @@ renew() {
 
   . "$DOMAIN_CONF"
   _debug Le_API "$Le_API"
-  if [ -z "$Le_API" ]; then
+  if [ -z "$Le_API" ] || [ "$CA_LETSENCRYPT_V1" = "$Le_API" ]; then
     #if this is from an old version, Le_API is empty,
     #so, we force to use letsencrypt server
     Le_API="$CA_LETSENCRYPT_V2"
@@ -5125,7 +5179,6 @@ renew() {
     CA_CONF=""
     _debug3 "initpath again."
     _initpath "$Le_Domain" "$_isEcc"
-    _initAPI
   fi
 
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
@@ -5670,8 +5723,16 @@ installcronjob() {
   if [ -f "$LE_WORKING_DIR/$PROJECT_ENTRY" ]; then
     lesh="\"$LE_WORKING_DIR\"/$PROJECT_ENTRY"
   else
-    _err "Can not install cronjob, $PROJECT_ENTRY not found."
-    return 1
+    _debug "_SCRIPT_" "$_SCRIPT_"
+    _script="$(_readlink "$_SCRIPT_")"
+    _debug _script "$_script"
+    if [ -f "$_script" ]; then
+      _info "Using the current script from: $_script"
+      lesh="$_script"
+    else
+      _err "Can not install cronjob, $PROJECT_ENTRY not found."
+      return 1
+    fi
   fi
   if [ "$_c_home" ]; then
     _c_entry="--config-home \"$_c_home\" "
@@ -5743,7 +5804,7 @@ uninstallcronjob() {
   _info "Removing cron job"
   cr="$($_CRONTAB -l | grep "$PROJECT_ENTRY --cron")"
   if [ "$cr" ]; then
-    if _exists uname && uname -a | grep solaris >/dev/null; then
+    if _exists uname && uname -a | grep SunOS >/dev/null; then
       $_CRONTAB -l | sed "/$PROJECT_ENTRY --cron/d" | $_CRONTAB --
     else
       $_CRONTAB -l | sed "/$PROJECT_ENTRY --cron/d" | $_CRONTAB -
@@ -5898,7 +5959,7 @@ _deactivate() {
     _initAPI
   fi
 
-  _identifiers="{\"type\":\"dns\",\"value\":\"$_d_domain\"}"
+  _identifiers="{\"type\":\"$(_getIdType "$_d_domain")\",\"value\":\"$_d_domain\"}"
   if ! _send_signed_request "$ACME_NEW_ORDER" "{\"identifiers\": [$_identifiers]}"; then
     _err "Can not get domain new order."
     return 1
@@ -5934,7 +5995,7 @@ _deactivate() {
       thumbprint="$(__calc_account_thumbprint)"
     fi
     _debug "Trigger validation."
-    vtype="$VTYPE_DNS"
+    vtype="$(_getIdType "$_d_domain")"
     entry="$(echo "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
     _debug entry "$entry"
     if [ -z "$entry" ]; then
@@ -6543,6 +6604,8 @@ Commands:
   --deactivate             Deactivate the domain authz, professional use.
   --set-default-ca         Used with '--server', Set the default CA to use.
                            See: $_SERVER_WIKI
+  --set-default-chain      Set the default preferred chain for a CA.
+                           See: $_PREFERRED_CHAIN_WIKI
 
 
 Parameters:
@@ -6829,6 +6892,18 @@ setdefaultca() {
   _info "Changed default CA to: $(__green "$ACME_DIRECTORY")"
 }
 
+#preferred-chain
+setdefaultchain() {
+  _initpath
+  _preferred_chain="$1"
+  if [ -z "$_preferred_chain" ]; then
+    _err "Please give a '--preferred-chain value' value."
+    return 1
+  fi
+  mkdir -p "$CA_DIR"
+  _savecaconf "DEFAULT_PREFERRED_CHAIN" "$_preferred_chain"
+}
+
 _process() {
   _CMD=""
   _domain=""
@@ -6979,6 +7054,9 @@ _process() {
       ;;
     --set-default-ca)
       _CMD="setdefaultca"
+      ;;
+    --set-default-chain)
+      _CMD="setdefaultchain"
       ;;
     -d | --domain)
       _dvalue="$2"
@@ -7509,6 +7587,9 @@ _process() {
     ;;
   setdefaultca)
     setdefaultca
+    ;;
+  setdefaultchain)
+    setdefaultchain "$_preferred_chain"
     ;;
   *)
     if [ "$_CMD" ]; then
