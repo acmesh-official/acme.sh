@@ -166,7 +166,6 @@ _initAuth() {
 # authentication. This works arounds this by using an undocumented MB API to obtain a token not tied to an
 # IP just for the github tests.
 _oauth2() {
-  _info "DOMAIN: $TEST_DNS"
   if [ "$TEST_DNS" != "dns_mythic_beasts" ]; then
     _oauth2_std
   else
@@ -204,7 +203,7 @@ _oauth2_std() {
 _oauth2_github() {
   _H1="Accepts: application/json"
   export _H1
-  body="{\"login\":{\"handle\":$MB_AK,\"pass\":$MB_AS,\"floating\":1}}"
+  body="{\"login\":{\"handle\":\"$MB_AK\",\"pass\":\"$MB_AS\",\"floating\":1}}"
 
   _info "Getting Floating token..."
   # body  url [needbase64] [POST|PUT|DELETE] [ContentType]
