@@ -188,7 +188,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       _cmdstr="$_cmdstr echo \"$(cat "$_ckey")\" > $Le_Deploy_ssh_keyfile;"
     fi
     _info "will copy private key to remote file $Le_Deploy_ssh_keyfile"
-    if [ "$Le_Deploy_ssh_use_scp" = "yes" -o "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+    if [ "$Le_Deploy_ssh_use_scp" = "yes" ] || [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
       if ! _ssh_remote_cmd "$_cmdstr"; then
         return $_err_code
       fi
@@ -223,7 +223,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       _cmdstr="$_cmdstr echo \"$(cat "$_ccert")\" $_pipe $Le_Deploy_ssh_certfile;"
     fi
     _info "will copy certificate to remote file $Le_Deploy_ssh_certfile"
-    if [ "$Le_Deploy_ssh_use_scp" = "yes" -o "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+    if [ "$Le_Deploy_ssh_use_scp" = "yes" ] || [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
       if ! _ssh_remote_cmd "$_cmdstr"; then
         return $_err_code
       fi
@@ -259,7 +259,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       _cmdstr="$_cmdstr echo \"$(cat "$_cca")\" $_pipe $Le_Deploy_ssh_cafile;"
     fi
     _info "will copy CA file to remote file $Le_Deploy_ssh_cafile"
-    if [ "$Le_Deploy_ssh_use_scp" = "yes" -o "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+    if [ "$Le_Deploy_ssh_use_scp" = "yes" ] || [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
       if ! _ssh_remote_cmd "$_cmdstr"; then
         return $_err_code
       fi
@@ -296,7 +296,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       _cmdstr="$_cmdstr echo \"$(cat "$_cfullchain")\" $_pipe $Le_Deploy_ssh_fullchain;"
     fi
     _info "will copy fullchain to remote file $Le_Deploy_ssh_fullchain"
-    if [ "$Le_Deploy_ssh_use_scp" = "yes" -o "$Le_Deploy_ssh_multi_call" = "yes" ]; then
+    if [ "$Le_Deploy_ssh_use_scp" = "yes" ] || [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
       if ! _ssh_remote_cmd "$_cmdstr"; then
         return $_err_code
       fi
