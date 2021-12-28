@@ -163,13 +163,13 @@ _initAuth() {
 
 # Github appears to use an outbound proxy for requests which means subsequent requests may not have the same
 # source IP. The standard Mythic Beasts OAuth2 tokens are tied to an IP, meaning github test requests fail
-# authentication. This works arounds this by using an undocumented MB API to obtain a token not tied to an
+# authentication. This is a work around using an undocumented MB API to obtain a token not tied to an
 # IP just for the github tests.
 _oauth2() {
-  if [ "$TEST_DNS" != "dns_mythic_beasts" ]; then
-    _oauth2_std
-  else
+  if [ "$GITHUB_ACTIONS" = "true" ]; then
     _oauth2_github
+  else
+    _oauth2_std
   fi
   return $?
 }
