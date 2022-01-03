@@ -5254,13 +5254,13 @@ renewAll() {
         _error_level="$NOTIFY_LEVEL_RENEW"
         _notify_code=0
       fi
-      if [ "$_ACME_IN_CRON" ]; then
-        if [ $_set_level -ge $NOTIFY_LEVEL_RENEW ]; then
-          if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
-            _send_notify "Renew $d success" "Good, the cert is renewed." "$NOTIFY_HOOK" 0
-          fi
+
+      if [ $_set_level -ge $NOTIFY_LEVEL_RENEW ]; then
+        if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
+          _send_notify "Renew $d success" "Good, the cert is renewed." "$NOTIFY_HOOK" 0
         fi
       fi
+
       _success_msg="${_success_msg}    $d
 "
     elif [ "$rc" = "$RENEW_SKIP" ]; then
@@ -5268,13 +5268,13 @@ renewAll() {
         _error_level="$NOTIFY_LEVEL_SKIP"
         _notify_code=$RENEW_SKIP
       fi
-      if [ "$_ACME_IN_CRON" ]; then
-        if [ $_set_level -ge $NOTIFY_LEVEL_SKIP ]; then
-          if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
-            _send_notify "Renew $d skipped" "Good, the cert is skipped." "$NOTIFY_HOOK" "$RENEW_SKIP"
-          fi
+
+      if [ $_set_level -ge $NOTIFY_LEVEL_SKIP ]; then
+        if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
+          _send_notify "Renew $d skipped" "Good, the cert is skipped." "$NOTIFY_HOOK" "$RENEW_SKIP"
         fi
       fi
+
       _info "Skipped $d"
       _skipped_msg="${_skipped_msg}    $d
 "
@@ -5283,13 +5283,13 @@ renewAll() {
         _error_level="$NOTIFY_LEVEL_ERROR"
         _notify_code=1
       fi
-      if [ "$_ACME_IN_CRON" ]; then
-        if [ $_set_level -ge $NOTIFY_LEVEL_ERROR ]; then
-          if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
-            _send_notify "Renew $d error" "There is an error." "$NOTIFY_HOOK" 1
-          fi
+
+      if [ $_set_level -ge $NOTIFY_LEVEL_ERROR ]; then
+        if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
+          _send_notify "Renew $d error" "There is an error." "$NOTIFY_HOOK" 1
         fi
       fi
+
       _error_msg="${_error_msg}    $d
 "
       if [ "$_stopRenewOnError" ]; then
@@ -5304,7 +5304,7 @@ renewAll() {
   done
   _debug _error_level "$_error_level"
   _debug _set_level "$_set_level"
-  if [ "$_ACME_IN_CRON" ] && [ $_error_level -le $_set_level ]; then
+  if [ $_error_level -le $_set_level ]; then
     if [ -z "$NOTIFY_MODE" ] || [ "$NOTIFY_MODE" = "$NOTIFY_MODE_BULK" ]; then
       _msg_subject="Renew"
       if [ "$_error_msg" ]; then
