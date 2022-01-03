@@ -5154,7 +5154,7 @@ renew() {
   _isEcc="$2"
 
   _initpath "$Le_Domain" "$_isEcc"
-
+  _set_level=${NOTIFY_LEVEL:-$NOTIFY_LEVEL_DEFAULT}
   _info "$(__green "Renew: '$Le_Domain'")"
   if [ ! -f "$DOMAIN_CONF" ]; then
     _info "'$Le_Domain' is not an issued domain, skip."
@@ -5189,6 +5189,11 @@ renew() {
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
     _info "Skip, Next renewal time is: $(__green "$Le_NextRenewTimeStr")"
     _info "Add '$(__red '--force')' to force to renew."
+    if [ -z "$_ACME_IN_RENEWALL" ]; then
+      if [ $_set_level -ge $NOTIFY_LEVEL_SKIP ]; then
+        _send_notify "Renew $Le_Domain skipped" "Good, the cert is skipped." "$NOTIFY_HOOK" "$RENEW_SKIP"
+      fi
+    fi
     return "$RENEW_SKIP"
   fi
 
@@ -5215,6 +5220,17 @@ renew() {
   fi
 
   _ACME_IS_RENEW=""
+  if [ -z "$_ACME_IN_RENEWALL" ]; then
+    if [ "$res" = "0" ]; then
+      if [ $_set_level -ge $NOTIFY_LEVEL_RENEW ]; then
+        _send_notify "Renew $d success" "Good, the cert is renewed." "$NOTIFY_HOOK" 0
+      fi
+    else
+      if [ $_set_level -ge $NOTIFY_LEVEL_ERROR ]; then
+        _send_notify "Renew $d error" "There is an error." "$NOTIFY_HOOK" 1
+      fi
+    fi
+  fi
 
   return "$res"
 }
@@ -5232,6 +5248,7 @@ renewAll() {
   _notify_code=$RENEW_SKIP
   _set_level=${NOTIFY_LEVEL:-$NOTIFY_LEVEL_DEFAULT}
   _debug "_set_level" "$_set_level"
+  export _ACME_IN_RENEWALL=1
   for di in "${CERT_HOME}"/*.*/; do
     _debug di "$di"
     if ! [ -d "$di" ]; then
