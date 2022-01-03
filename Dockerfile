@@ -40,6 +40,7 @@ RUN for verb in help \
   revoke \
   remove \
   list \
+  info \
   showcsr \
   install-cronjob \
   uninstall-cronjob \

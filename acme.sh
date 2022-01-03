@@ -144,6 +144,8 @@ NOTIFY_MODE_CERT=1
 
 NOTIFY_MODE_DEFAULT=$NOTIFY_MODE_BULK
 
+_BASE64_ENCODED_CFGS="Le_PreHook Le_PostHook Le_RenewHook Le_Preferred_Chain Le_ReloadCmd"
+
 _DEBUG_WIKI="https://github.com/acmesh-official/acme.sh/wiki/How-to-debug-acme.sh"
 
 _PREPARE_LINK="https://github.com/acmesh-official/acme.sh/wiki/Install-preparations"
@@ -6609,6 +6611,7 @@ Commands:
   --revoke                 Revoke a cert.
   --remove                 Remove the cert from list of certs known to $PROJECT_NAME.
   --list                   List all the certs.
+  --info                   Show the $PROJECT_NAME configs, or the configs for a domain with [-d domain] parameter.
   --to-pkcs12              Export the certificate and key to a pfx file.
   --to-pkcs8               Convert to pkcs8 format.
   --sign-csr               Issue a cert from an existing csr.
@@ -6926,6 +6929,28 @@ setdefaultchain() {
   _savecaconf "DEFAULT_PREFERRED_CHAIN" "$_preferred_chain"
 }
 
+#domain ecc
+info() {
+  _domain="$1"
+  _ecc="$2"
+  _initpath
+  if [ -z "$_domain" ]; then
+    _debug "Show global configs"
+    echo "LE_WORKING_DIR=$LE_WORKING_DIR"
+    echo "LE_CONFIG_HOME=$LE_CONFIG_HOME"
+    cat "$ACCOUNT_CONF_PATH"
+  else
+    _debug "Show domain configs"
+    (
+      _initpath "$_domain" "$_ecc"
+      echo "DOMAIN_CONF=$DOMAIN_CONF"
+      for seg in $(cat $DOMAIN_CONF | cut -d = -f 1); do
+        echo "$seg=$(_readdomainconf "$seg")"
+      done
+    )
+  fi
+}
+
 _process() {
   _CMD=""
   _domain=""
@@ -7034,6 +7059,9 @@ _process() {
       ;;
     --list)
       _CMD="list"
+      ;;
+    --info)
+      _CMD="info"
       ;;
     --install-cronjob | --installcronjob)
       _CMD="installcronjob"
@@ -7585,6 +7613,9 @@ _process() {
     ;;
   list)
     list "$_listraw" "$_domain"
+    ;;
+  info)
+    info "$_domain" "$_ecc"
     ;;
   installcronjob) installcronjob "$_confighome" ;;
   uninstallcronjob) uninstallcronjob ;;
