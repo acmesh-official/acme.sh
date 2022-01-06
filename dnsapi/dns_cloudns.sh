@@ -18,7 +18,14 @@ dns_cloudns_add() {
     return 1
   fi
 
-  zone="$(_dns_cloudns_get_zone_name "$1")"
+  res="$(_dns_cloudns_get_zone_name "$1")"
+  zone="$( echo $res | cut -d ' ' -f 1 )"
+  master="$( echo $res | cut -d ' ' -f 2 )"
+
+
+  _debug master "$master"
+
+
   if [ -z "$zone" ]; then
     _err "Missing DNS zone at ClouDNS. Please log into your control panel and create the required DNS zone for the initial setup."
     return 1
@@ -28,11 +35,12 @@ dns_cloudns_add() {
   record=$2
 
   _debug zone "$zone"
+  
   _debug host "$host"
   _debug record "$record"
 
   _info "Adding the TXT record for $1"
-  _dns_cloudns_http_api_call "dns/add-record.json" "domain-name=$zone&record-type=TXT&host=$host&record=$record&ttl=60"
+  _dns_cloudns_http_api_call "dns/add-record.json" "domain-name=$master&record-type=TXT&host=$host&record=$record&ttl=60"
   if ! _contains "$response" "\"status\":\"Success\""; then
     _err "Record cannot be added."
     return 1
@@ -51,7 +59,13 @@ dns_cloudns_rm() {
   fi
 
   if [ -z "$zone" ]; then
-    zone="$(_dns_cloudns_get_zone_name "$1")"
+    #zone="$(_dns_cloudns_get_zone_name "$1")"
+    res="$(_dns_cloudns_get_zone_name "$1")"
+    zone=$( echo $res | cut -d ' ' -f 1 )
+    master=$( echo $res | cut -d ' ' -f 2 )
+
+    _debug master "$master"
+
     if [ -z "$zone" ]; then
       _err "Missing DNS zone at ClouDNS. Please log into your control panel and create the required DNS zone for the initial setup."
       return 1
@@ -61,7 +75,8 @@ dns_cloudns_rm() {
   host="$(echo "$1" | sed "s/\.$zone\$//")"
   record=$2
 
-  _dns_cloudns_http_api_call "dns/records.json" "domain-name=$zone&host=$host&type=TXT"
+
+  _dns_cloudns_http_api_call "dns/records.json" "domain-name=$master&host=$host&type=TXT"
   if ! _contains "$response" "\"id\":"; then
     return 1
   fi
@@ -71,12 +86,13 @@ dns_cloudns_rm() {
 
     if [ -n "$record_id" ]; then
       _debug zone "$zone"
+      _debug master "$master"
       _debug host "$host"
       _debug record "$record"
       _debug record_id "$record_id"
 
       _info "Deleting the TXT record for $1"
-      _dns_cloudns_http_api_call "dns/delete-record.json" "domain-name=$zone&record-id=$record_id"
+      _dns_cloudns_http_api_call "dns/delete-record.json" "domain-name=$master&record-id=$record_id"
 
       if ! _contains "$response" "\"status\":\"Success\""; then
         _err "The TXT record for $1 cannot be deleted."
@@ -147,8 +163,19 @@ _dns_cloudns_get_zone_name() {
 
     _dns_cloudns_http_api_call "dns/get-zone-info.json" "domain-name=$zoneForCheck"
 
+    #{"name":"effectivein.com","type":"cloud","zone":"domain","status":"1","cloud-master":"keyindices.net"}%                                                                                                                                                                       ➜  acme.sh git:(master) curl https://api.cloudns.net/dns/get-zone-info.json\?auth-id\=5164\&auth-password\=JwB3xzNRgMS6rsDEG\&domain-name\=kaicdn.com
+    #{"name":"kaicdn.com","type":"master","zone":"domain","status":"1"}%
+
+
     if ! _contains "$response" "\"status\":\"Failed\""; then
-      echo "$zoneForCheck"
+      if _contains "$response" "\"type\":\"cloud\""; then
+        master=$( echo "$response" | grep -o '"cloud-master":"[^"]*' | grep -o '[^"]*$' )
+      else
+        master="$zoneForCheck"
+      fi
+
+      echo "$zoneForCheck" "$master" 
+
       return 0
     fi
 
