@@ -203,7 +203,7 @@ _simply_add_record() {
     _err "$response"
     return 1
   fi
-  
+
   _info "Waiting 60 seconds for DNS changes to be written"
   _sleep 60
 
@@ -252,7 +252,7 @@ _simply_rest() {
     _err "error $ep"
     return 1
   fi
-  
+
   response="$(echo "$response" | _normalizeJson)"
 
   _debug2 response "$response"
