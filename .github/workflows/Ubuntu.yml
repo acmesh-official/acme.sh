@@ -52,13 +52,13 @@ jobs:
     - name: Start StepCA
       if: ${{ matrix.TEST_ACME_Server=='https://localhost:9000/acme/acme/directory' }}
       run: |
-           docker run -d \
+           docker run --rm -d \
             -p 9000:9000 \
             -e "DOCKER_STEPCA_INIT_NAME=Smallstep" \
             -e "DOCKER_STEPCA_INIT_DNS_NAMES=localhost,$(hostname -f)" \
             --name stepca \
             smallstep/step-ca \
-            && docker exec  stepca step ca provisioner add acme --type ACME \
+            && sleep 5 && docker exec  stepca step ca provisioner add acme --type ACME \
             && docker exec  stepca kill -1 1 \
             && docker exec  stepca cat /home/step/certs/root_ca.crt >>/etc/ssl/certs/ca-certificates.crt
     - name: Clone acmetest
