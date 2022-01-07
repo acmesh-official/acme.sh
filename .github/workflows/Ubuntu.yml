@@ -36,6 +36,14 @@ jobs:
            CA_EMAIL: ""
            TEST_PREFERRED_CHAIN: ""
            NO_REVOKE: 1
+         - TEST_ACME_Server: "https://localhost:9000/acme/acme/directory"
+           CA_ECDSA: ""
+           CA: "Smallstep Intermediate CA"
+           CA_EMAIL: ""
+           TEST_PREFERRED_CHAIN: ""
+           NO_REVOKE: 1
+           TEST_IPCERT: 1
+           TestingDomain: "172.17.0.1"
 
     runs-on: ubuntu-latest
     env:
@@ -47,6 +55,8 @@ jobs:
       NO_ECC_384: ${{ matrix.NO_ECC_384 }}
       TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
       NO_REVOKE: ${{ matrix.NO_REVOKE }}
+      TEST_IPCERT: ${{ matrix.TEST_IPCERT }}
+      TestingDomain: ${{ matrix.TestingDomain }}
     steps:
     - uses: actions/checkout@v2
     - name: Install tools
