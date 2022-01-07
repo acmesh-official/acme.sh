@@ -35,6 +35,7 @@ jobs:
            CA: "Smallstep Intermediate CA"
            CA_EMAIL: ""
            TEST_PREFERRED_CHAIN: ""
+           NO_REVOKE: 1
 
     runs-on: ubuntu-latest
     env:
@@ -45,6 +46,7 @@ jobs:
       CA_EMAIL: ${{ matrix.CA_EMAIL }}
       NO_ECC_384: ${{ matrix.NO_ECC_384 }}
       TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
+      NO_REVOKE: ${{ matrix.NO_REVOKE }}
     steps:
     - uses: actions/checkout@v2
     - name: Install tools
