@@ -204,9 +204,6 @@ _simply_add_record() {
     return 1
   fi
 
-  _info "Waiting 60 seconds for DNS changes to be written"
-  _sleep 60
-
   return 0
 }
 
