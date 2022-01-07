@@ -60,7 +60,7 @@ jobs:
             smallstep/step-ca \
             && sleep 5 && docker exec  stepca step ca provisioner add acme --type ACME \
             && docker exec  stepca kill -1 1 \
-            && docker exec  stepca cat /home/step/certs/root_ca.crt | sudo cat - >>/etc/ssl/certs/ca-certificates.crt
+            && docker exec  stepca cat /home/step/certs/root_ca.crt | sudo bash -c "cat - >>/etc/ssl/certs/ca-certificates.crt"
     - name: Clone acmetest
       run: |
           cd .. \
