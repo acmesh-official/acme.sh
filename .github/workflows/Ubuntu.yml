@@ -30,6 +30,11 @@ jobs:
            CA: "ZeroSSL RSA Domain Secure Site CA"
            CA_EMAIL: "githubtest@acme.sh"
            TEST_PREFERRED_CHAIN: ""
+         - TEST_ACME_Server: "https://localhost:9000/acme/acme/directory"
+           CA_ECDSA: ""
+           CA: "Smallstep Intermediate CA"
+           CA_EMAIL: ""
+           TEST_PREFERRED_CHAIN: ""
 
     runs-on: ubuntu-latest
     env:
@@ -44,6 +49,18 @@ jobs:
     - uses: actions/checkout@v2
     - name: Install tools
       run: sudo apt-get install -y socat
+    - name: Start StepCA
+      if: ${{ matrix.TEST_ACME_Server=='https://localhost:9000/acme/acme/directory' }}
+      run: |
+           docker run -d \
+            -p 9000:9000 \
+            -e "DOCKER_STEPCA_INIT_NAME=Smallstep" \
+            -e "DOCKER_STEPCA_INIT_DNS_NAMES=localhost,$(hostname -f)" \
+            --name stepca \
+            smallstep/step-ca \
+            && docker exec -it stepca step ca provisioner add acme --type ACME \
+            && docker exec -it stepca kill -1 1 \
+            && docker exec -it stepca cat /home/step/certs/root_ca.crt >>/etc/ssl/certs/ca-certificates.crt
     - name: Clone acmetest
       run: |
           cd .. \
