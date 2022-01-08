@@ -1252,7 +1252,7 @@ _createcsr() {
   else
     domainlist="$(_idn "$domainlist")"
     _debug2 domainlist "$domainlist"
-    alt="$(_getIdType "$domain" | _upper_case):$domain"
+    alt="$(_getIdType "$domain" | _upper_case):$(_idn "$domain")"
     for dl in $(echo "$domainlist" | tr "," ' '); do
       alt="$alt,$(_getIdType "$dl" | _upper_case):$dl"
     done
@@ -1831,8 +1831,6 @@ _inithttp() {
 
 }
 
-_HTTP_MAX_RETRY=8
-
 # body  url [needbase64] [POST|PUT|DELETE] [ContentType]
 _post() {
   body="$1"
@@ -1840,33 +1838,6 @@ _post() {
   needbase64="$3"
   httpmethod="$4"
   _postContentType="$5"
-  _sleep_retry_sec=1
-  _http_retry_times=0
-  _hcode=0
-  while [ "${_http_retry_times}" -le "$_HTTP_MAX_RETRY" ]; do
-    [ "$_http_retry_times" = "$_HTTP_MAX_RETRY" ]
-    _lastHCode="$?"
-    _debug "Retrying post"
-    _post_impl "$body" "$_post_url" "$needbase64" "$httpmethod" "$_postContentType" "$_lastHCode"
-    _hcode="$?"
-    _debug _hcode "$_hcode"
-    if [ "$_hcode" = "0" ]; then
-      break
-    fi
-    _http_retry_times=$(_math $_http_retry_times + 1)
-    _sleep $_sleep_retry_sec
-  done
-  return $_hcode
-}
-
-# body  url [needbase64] [POST|PUT|DELETE] [ContentType] [displayError]
-_post_impl() {
-  body="$1"
-  _post_url="$2"
-  needbase64="$3"
-  httpmethod="$4"
-  _postContentType="$5"
-  displayError="$6"
 
   if [ -z "$httpmethod" ]; then
     httpmethod="POST"
@@ -1918,9 +1889,7 @@ _post_impl() {
     fi
     _ret="$?"
     if [ "$_ret" != "0" ]; then
-      if [ -z "$displayError" ] || [ "$displayError" = "0" ]; then
-        _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $_ret"
-      fi
+      _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $_ret"
       if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
         _err "Here is the curl dump log:"
         _err "$(cat "$_CURL_DUMP")"
@@ -1976,9 +1945,7 @@ _post_impl() {
       _debug "wget returns 8, the server returns a 'Bad request' response, lets process the response later."
     fi
     if [ "$_ret" != "0" ]; then
-      if [ -z "$displayError" ] || [ "$displayError" = "0" ]; then
-        _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret"
-      fi
+      _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret"
     fi
     _sed_i "s/^ *//g" "$HTTP_HEADER"
   else
@@ -1992,38 +1959,13 @@ _post_impl() {
 
 # url getheader timeout
 _get() {
-  url="$1"
-  onlyheader="$2"
-  t="$3"
-  _sleep_retry_sec=1
-  _http_retry_times=0
-  _hcode=0
-  while [ "${_http_retry_times}" -le "$_HTTP_MAX_RETRY" ]; do
-    [ "$_http_retry_times" = "$_HTTP_MAX_RETRY" ]
-    _lastHCode="$?"
-    _debug "Retrying GET"
-    _get_impl "$url" "$onlyheader" "$t" "$_lastHCode"
-    _hcode="$?"
-    _debug _hcode "$_hcode"
-    if [ "$_hcode" = "0" ]; then
-      break
-    fi
-    _http_retry_times=$(_math $_http_retry_times + 1)
-    _sleep $_sleep_retry_sec
-  done
-  return $_hcode
-}
-
-# url getheader timeout displayError
-_get_impl() {
   _debug GET
   url="$1"
   onlyheader="$2"
   t="$3"
-  displayError="$4"
   _debug url "$url"
   _debug "timeout=$t"
-  _debug "displayError" "$displayError"
+
   _inithttp
 
   if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
@@ -2042,9 +1984,7 @@ _get_impl() {
     fi
     ret=$?
     if [ "$ret" != "0" ]; then
-      if [ -z "$displayError" ] || [ "$displayError" = "0" ]; then
-        _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $ret"
-      fi
+      _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $ret"
       if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
         _err "Here is the curl dump log:"
         _err "$(cat "$_CURL_DUMP")"
@@ -2070,9 +2010,7 @@ _get_impl() {
       _debug "wget returns 8, the server returns a 'Bad request' response, lets process the response later."
     fi
     if [ "$ret" != "0" ]; then
-      if [ -z "$displayError" ] || [ "$displayError" = "0" ]; then
-        _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $ret"
-      fi
+      _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $ret"
     fi
   else
     ret=$?
