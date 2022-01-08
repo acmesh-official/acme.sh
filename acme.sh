@@ -1252,7 +1252,7 @@ _createcsr() {
   else
     domainlist="$(_idn "$domainlist")"
     _debug2 domainlist "$domainlist"
-    alt="$(_getIdType "$domain" | _upper_case):$domain"
+    alt="$(_getIdType "$domain" | _upper_case):$(_idn "$domain")"
     for dl in $(echo "$domainlist" | tr "," ' '); do
       alt="$alt,$(_getIdType "$dl" | _upper_case):$dl"
     done
