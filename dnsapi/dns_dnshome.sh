@@ -16,8 +16,8 @@
 dns_dnshome_add() {
   txtvalue=$2
 
-  DNSHOME_Subdomain="${DNSHOME_Subdomain:-$(_readaccountconf_mutable DNSHOME_Subdomain)}"
-  DNSHOME_SubdomainPassword="${DNSHOME_SubdomainPassword:-$(_readaccountconf_mutable DNSHOME_SubdomainPassword)}"
+  DNSHOME_Subdomain="${DNSHOME_Subdomain:-$(_readdomainconf DNSHOME_Subdomain)}"
+  DNSHOME_SubdomainPassword="${DNSHOME_SubdomainPassword:-$(_readdomainconf DNSHOME_SubdomainPassword)}"
 
   if [ -z "$DNSHOME_Subdomain" ] || [ -z "$DNSHOME_SubdomainPassword" ]; then
     DNSHOME_Subdomain=""
@@ -27,8 +27,8 @@ dns_dnshome_add() {
   fi
 
   #save the credentials to the account conf file.
-  _saveaccountconf_mutable DNSHOME_Subdomain "$DNSHOME_Subdomain"
-  _saveaccountconf_mutable DNSHOME_SubdomainPassword "$DNSHOME_SubdomainPassword"
+  _savedomainconf DNSHOME_Subdomain "$DNSHOME_Subdomain"
+  _savedomainconf DNSHOME_SubdomainPassword "$DNSHOME_SubdomainPassword"
 
   DNSHOME_Api="https://$DNSHOME_Subdomain:$DNSHOME_SubdomainPassword@www.dnshome.de/dyndns.php"
 
@@ -47,8 +47,8 @@ dns_dnshome_add() {
 dns_dnshome_rm() {
   txtvalue=$2
 
-  DNSHOME_Subdomain="${DNSHOME_Subdomain:-$(_readaccountconf_mutable DNSHOME_Subdomain)}"
-  DNSHOME_SubdomainPassword="${DNSHOME_SubdomainPassword:-$(_readaccountconf_mutable DNSHOME_SubdomainPassword)}"
+  DNSHOME_Subdomain="${DNSHOME_Subdomain:-$(_readdomainconf DNSHOME_Subdomain)}"
+  DNSHOME_SubdomainPassword="${DNSHOME_SubdomainPassword:-$(_readdomainconf DNSHOME_SubdomainPassword)}"
 
   DNSHOME_Api="https://$DNSHOME_Subdomain:$DNSHOME_SubdomainPassword@www.dnshome.de/dyndns.php"
 
