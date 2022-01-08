@@ -37,7 +37,7 @@ jobs:
     - name: "Read this:   https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test"
       run: |
         echo "Read this:   https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Test"
-        if [ "${{github.actor}}" != "Neilpang" ]; then
+        if [ "${{github.repository_owner}}" != "acmesh-official" ]; then
           false
         fi
 
