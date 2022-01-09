@@ -36,6 +36,8 @@ gotify_send() {
   GOTIFY_PRIORITY="${GOTIFY_PRIORITY:-$(_readaccountconf_mutable GOTIFY_PRIORITY)}"
   if [ -z "$GOTIFY_PRIORITY" ]; then
     GOTIFY_PRIORITY=0
+  else
+    _saveaccountconf_mutable GOTIFY_PRIORITY "$GOTIFY_PRIORITY"
   fi
 
   export _H1="X-Gotify-Key: ${GOTIFY_TOKEN}"
