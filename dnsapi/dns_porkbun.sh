@@ -78,7 +78,7 @@ dns_porkbun_rm() {
   if [ "$count" = "0" ]; then
     _info "Don't need to remove."
   else
-    record_id=$(echo "$response" | tr '{' '\n' | grep "$txtvalue" | cut -d, -f1 | cut -d: -f2 | tr -d \")
+    record_id=$(echo "$response" | tr '{' '\n' | grep -- "$txtvalue" | cut -d, -f1 | cut -d: -f2 | tr -d \")
     _debug "record_id" "$record_id"
     if [ -z "$record_id" ]; then
       _err "Can not get record id to remove."
@@ -110,8 +110,8 @@ _get_root() {
 
     if _porkbun_rest POST "dns/retrieve/$h"; then
       if _contains "$response" "\"status\":\"SUCCESS\""; then
-        _sub_domain="$(echo "$fulldomain" | sed "s/\\.$_domain\$//")"
         _domain=$h
+        _sub_domain="$(echo "$fulldomain" | sed "s/\\.$_domain\$//")"
         return 0
       else
         _debug "Go to next level of $_domain"

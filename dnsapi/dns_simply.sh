@@ -1,15 +1,15 @@
 #!/usr/bin/env sh
 
-#
+# API-integration for Simply.com (https://www.simply.com)
+
 #SIMPLY_AccountName="accountname"
-#
 #SIMPLY_ApiKey="apikey"
 #
 #SIMPLY_Api="https://api.simply.com/1/[ACCOUNTNAME]/[APIKEY]"
 SIMPLY_Api_Default="https://api.simply.com/1"
 
 #This is used for determining success of REST call
-SIMPLY_SUCCESS_CODE='"status": 200'
+SIMPLY_SUCCESS_CODE='"status":200'
 
 ########  Public functions #####################
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
@@ -51,7 +51,7 @@ dns_simply_rm() {
 
   _simply_save_config
 
-  _debug "First detect the root zone"
+  _debug "Find the DNS zone"
 
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
@@ -77,8 +77,8 @@ dns_simply_rm() {
   for record in $records; do
     _debug record "$record"
 
-    record_data=$(echo "$record" | cut -d "," -f 3 | sed 's/"//g' | grep "data" | cut -d ":" -f 2)
-    record_type=$(echo "$record" | cut -d "," -f 4 | sed 's/"//g' | grep "type" | cut -d ":" -f 2)
+    record_data=$(echo "$record" | sed -n "s/.*\"data\":\"\([^\"]*\)\".*/\1/p")
+    record_type=$(echo "$record" | sed -n "s/.*\"type\":\"\([^\"]*\)\".*/\1/p")
 
     _debug2 record_data "$record_data"
     _debug2 record_type "$record_type"
@@ -151,7 +151,7 @@ _simply_save_config() {
 _simply_get_all_records() {
   domain=$1
 
-  if ! _simply_rest GET "my/products/$domain/dns/records"; then
+  if ! _simply_rest GET "my/products/$domain/dns/records/"; then
     return 1
   fi
 
@@ -169,7 +169,7 @@ _get_root() {
       return 1
     fi
 
-    if ! _simply_rest GET "my/products/$h/dns"; then
+    if ! _simply_rest GET "my/products/$h/dns/"; then
       return 1
     fi
 
@@ -193,7 +193,7 @@ _simply_add_record() {
 
   data="{\"name\": \"$sub_domain\", \"type\":\"TXT\", \"data\": \"$txtval\", \"priority\":0, \"ttl\": 3600}"
 
-  if ! _simply_rest POST "my/products/$domain/dns/records" "$data"; then
+  if ! _simply_rest POST "my/products/$domain/dns/records/" "$data"; then
     _err "Adding record not successfull!"
     return 1
   fi
@@ -214,7 +214,7 @@ _simply_delete_record() {
 
   _debug record_id "Delete record with id $record_id"
 
-  if ! _simply_rest DELETE "my/products/$domain/dns/records/$record_id"; then
+  if ! _simply_rest DELETE "my/products/$domain/dns/records/$record_id/"; then
     _err "Deleting record not successfull!"
     return 1
   fi
@@ -249,6 +249,8 @@ _simply_rest() {
     _err "error $ep"
     return 1
   fi
+
+  response="$(echo "$response" | _normalizeJson)"
 
   _debug2 response "$response"
 

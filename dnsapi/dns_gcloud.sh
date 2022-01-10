@@ -163,5 +163,8 @@ _dns_gcloud_get_rrdatas() {
     return 1
   fi
   ttl=$(echo "$rrdatas" | cut -f1)
-  rrdatas=$(echo "$rrdatas" | cut -f2 | sed 's/","/"\n"/g')
+  # starting with version 353.0.0 gcloud seems to
+  # separate records with a semicolon instead of commas
+  # see also https://cloud.google.com/sdk/docs/release-notes#35300_2021-08-17
+  rrdatas=$(echo "$rrdatas" | cut -f2 | sed 's/"[,;]"/"\n"/g')
 }

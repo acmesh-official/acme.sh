@@ -36,7 +36,6 @@ dns_world4you_add() {
   export _H1="Cookie: W4YSESSID=$sessid"
   form=$(_get "$WORLD4YOU_API/$paketnr/dns")
   formiddp=$(echo "$form" | grep 'AddDnsRecordForm\[uniqueFormIdDP\]' | sed 's/^.*name="AddDnsRecordForm\[uniqueFormIdDP\]" value="\([^"]*\)".*$/\1/')
-  formidttl=$(echo "$form" | grep 'AddDnsRecordForm\[uniqueFormIdTTL\]' | sed 's/^.*name="AddDnsRecordForm\[uniqueFormIdTTL\]" value="\([^"]*\)".*$/\1/')
   form_token=$(echo "$form" | grep 'AddDnsRecordForm\[_token\]' | sed 's/^.*name="AddDnsRecordForm\[_token\]" value="\([^"]*\)".*$/\1/')
   if [ -z "$formiddp" ]; then
     _err "Unable to parse form"
@@ -45,9 +44,7 @@ dns_world4you_add() {
 
   _resethttp
   export ACME_HTTP_NO_REDIRECTS=1
-  body="AddDnsRecordForm[name]=$RECORD&AddDnsRecordForm[dnsType][type]=TXT&\
-AddDnsRecordForm[value]=$value&AddDnsRecordForm[aktivPaket]=$paketnr&AddDnsRecordForm[uniqueFormIdDP]=$formiddp&\
-AddDnsRecordForm[uniqueFormIdTTL]=$formidttl&AddDnsRecordForm[_token]=$form_token"
+  body="AddDnsRecordForm[name]=$RECORD&AddDnsRecordForm[dnsType][type]=TXT&AddDnsRecordForm[value]=$value&AddDnsRecordForm[uniqueFormIdDP]=$formiddp&AddDnsRecordForm[_token]=$form_token"
   _info "Adding record..."
   ret=$(_post "$body" "$WORLD4YOU_API/$paketnr/dns" '' POST 'application/x-www-form-urlencoded')
   _resethttp
@@ -101,7 +98,6 @@ dns_world4you_rm() {
 
   form=$(_get "$WORLD4YOU_API/$paketnr/dns")
   formiddp=$(echo "$form" | grep 'DeleteDnsRecordForm\[uniqueFormIdDP\]' | sed 's/^.*name="DeleteDnsRecordForm\[uniqueFormIdDP\]" value="\([^"]*\)".*$/\1/')
-  formidttl=$(echo "$form" | grep 'DeleteDnsRecordForm\[uniqueFormIdTTL\]' | sed 's/^.*name="DeleteDnsRecordForm\[uniqueFormIdTTL\]" value="\([^"]*\)".*$/\1/')
   form_token=$(echo "$form" | grep 'DeleteDnsRecordForm\[_token\]' | sed 's/^.*name="DeleteDnsRecordForm\[_token\]" value="\([^"]*\)".*$/\1/')
   if [ -z "$formiddp" ]; then
     _err "Unable to parse form"
@@ -113,11 +109,9 @@ dns_world4you_rm() {
 
   _resethttp
   export ACME_HTTP_NO_REDIRECTS=1
-  body="DeleteDnsRecordForm[recordId]=$recordid&DeleteDnsRecordForm[aktivPaket]=$paketnr&\
-DeleteDnsRecordForm[uniqueFormIdDP]=$formiddp&DeleteDnsRecordForm[uniqueFormIdTTL]=$formidttl&\
-DeleteDnsRecordForm[_token]=$form_token"
+  body="DeleteDnsRecordForm[recordId]=$recordid&DeleteDnsRecordForm[uniqueFormIdDP]=$formiddp&DeleteDnsRecordForm[_token]=$form_token"
   _info "Removing record..."
-  ret=$(_post "$body" "$WORLD4YOU_API/$paketnr/deleteRecord" '' POST 'application/x-www-form-urlencoded')
+  ret=$(_post "$body" "$WORLD4YOU_API/$paketnr/dns/record/delete" '' POST 'application/x-www-form-urlencoded')
   _resethttp
 
   if _contains "$(_head_n 3 <"$HTTP_HEADER")" '302'; then
@@ -190,7 +184,7 @@ _get_paketnr() {
   fqdn="$1"
   form="$2"
 
-  domains=$(echo "$form" | grep '^ *[A-Za-z0-9_\.-]*\.[A-Za-z0-9_-]*$' | sed 's/^\s*\(\S*\)$/\1/')
+  domains=$(echo "$form" | grep '^ *[A-Za-z0-9_\.-]*\.[A-Za-z0-9_-]*$' | sed 's/^ *\(.*\)$/\1/')
   domain=''
   for domain in $domains; do
     if _contains "$fqdn" "$domain\$"; then
