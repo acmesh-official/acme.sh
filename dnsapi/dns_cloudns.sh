@@ -2,6 +2,7 @@
 
 # Author: Boyan Peychev <boyan at cloudns dot net>
 # Repository: https://github.com/ClouDNS/acme.sh/
+# Editor: I Komang Suryadana
 
 #CLOUDNS_AUTH_ID=XXXXX
 #CLOUDNS_SUB_AUTH_ID=XXXXX
