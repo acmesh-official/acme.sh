@@ -2,11 +2,14 @@
 
 # Author: Boyan Peychev <boyan at cloudns dot net>
 # Repository: https://github.com/ClouDNS/acme.sh/
+# Editor: I Komang Suryadana
 
 #CLOUDNS_AUTH_ID=XXXXX
 #CLOUDNS_SUB_AUTH_ID=XXXXX
 #CLOUDNS_AUTH_PASSWORD="YYYYYYYYY"
 CLOUDNS_API="https://api.cloudns.net"
+DOMAIN_TYPE=
+DOMAIN_MASTER=
 
 ########  Public functions #####################
 
@@ -60,6 +63,15 @@ dns_cloudns_rm() {
 
   host="$(echo "$1" | sed "s/\.$zone\$//")"
   record=$2
+
+  _dns_cloudns_get_zone_info "$zone"
+
+  _debug "Type" "$DOMAIN_TYPE"
+  _debug "Cloud Master" "$DOMAIN_MASTER"
+  if _contains "$DOMAIN_TYPE" "cloud"; then
+    zone=$DOMAIN_MASTER
+  fi
+  _debug "ZONE" "$zone"
 
   _dns_cloudns_http_api_call "dns/records.json" "domain-name=$zone&host=$host&type=TXT"
   if ! _contains "$response" "\"id\":"; then
@@ -131,6 +143,18 @@ _dns_cloudns_init_check() {
 
   CLOUDNS_INIT_CHECK_COMPLETED=1
 
+  return 0
+}
+
+_dns_cloudns_get_zone_info() {
+  zone=$1
+  _dns_cloudns_http_api_call "dns/get-zone-info.json" "domain-name=$zone"
+  if ! _contains "$response" "\"status\":\"Failed\""; then
+    DOMAIN_TYPE=$(echo "$response" | _egrep_o '"type":"[^"]*"' | cut -d : -f 2 | tr -d '"')
+    if _contains "$DOMAIN_TYPE" "cloud"; then
+      DOMAIN_MASTER=$(echo "$response" | _egrep_o '"cloud-master":"[^"]*"' | cut -d : -f 2 | tr -d '"')
+    fi
+  fi
   return 0
 }
 
