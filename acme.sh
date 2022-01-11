@@ -1272,9 +1272,17 @@ _createcsr() {
   _csr_cn="$(_idn "$domain")"
   _debug2 _csr_cn "$_csr_cn"
   if _contains "$(uname -a)" "MINGW"; then
-    ${ACME_OPENSSL_BIN:-openssl} req -new -sha256 -key "$csrkey" -subj "//CN=$_csr_cn" -config "$csrconf" -out "$csr"
+    if _isIP "$_csr_cn"; then
+      ${ACME_OPENSSL_BIN:-openssl} req -new -sha256 -key "$csrkey" -subj "//O=$PROJECT_NAME" -config "$csrconf" -out "$csr"
+    else
+      ${ACME_OPENSSL_BIN:-openssl} req -new -sha256 -key "$csrkey" -subj "//CN=$_csr_cn" -config "$csrconf" -out "$csr"
+    fi
   else
-    ${ACME_OPENSSL_BIN:-openssl} req -new -sha256 -key "$csrkey" -subj "/CN=$_csr_cn" -config "$csrconf" -out "$csr"
+    if _isIP "$_csr_cn"; then
+      ${ACME_OPENSSL_BIN:-openssl} req -new -sha256 -key "$csrkey" -subj "/O=$PROJECT_NAME" -config "$csrconf" -out "$csr"
+    else
+      ${ACME_OPENSSL_BIN:-openssl} req -new -sha256 -key "$csrkey" -subj "/CN=$_csr_cn" -config "$csrconf" -out "$csr"
+    fi
   fi
 }
 
@@ -1624,6 +1632,24 @@ _stat() {
 }
 
 #keyfile
+_isRSA() {
+  keyfile=$1
+  if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} rsa -in "$keyfile" -noout -text | grep "^publicExponent:" >/dev/null 2>&1; then
+    return 0
+  fi
+  return 1
+}
+
+#keyfile
+_isEcc() {
+  keyfile=$1
+  if grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" >/dev/null 2>&1; then
+    return 0
+  fi
+  return 1
+}
+
+#keyfile
 _calcjwk() {
   keyfile="$1"
   if [ -z "$keyfile" ]; then
@@ -1636,7 +1662,7 @@ _calcjwk() {
     return 0
   fi
 
-  if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
+  if _isRSA "$keyfile"; then
     _debug "RSA key"
     pub_exp=$(${ACME_OPENSSL_BIN:-openssl} rsa -in "$keyfile" -noout -text | grep "^publicExponent:" | cut -d '(' -f 2 | cut -d 'x' -f 2 | cut -d ')' -f 1)
     if [ "${#pub_exp}" = "5" ]; then
@@ -1658,7 +1684,7 @@ _calcjwk() {
     JWK_HEADER='{"alg": "RS256", "jwk": '$jwk'}'
     JWK_HEADERPLACE_PART1='{"nonce": "'
     JWK_HEADERPLACE_PART2='", "alg": "RS256"'
-  elif grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
+  elif _isEcc "$keyfile"; then
     _debug "EC key"
     crv="$(${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
     _debug3 crv "$crv"
