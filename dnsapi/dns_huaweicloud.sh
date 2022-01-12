@@ -129,14 +129,27 @@ _get_zoneid() {
     fi
     _debug "$h"
     response=$(_get "${dns_api}/v2/zones?name=${h}")
-
+    _debug "$response"
     if _contains "${response}" "id"; then
-      _debug "Get Zone ID Success."
-      _zoneid=$(echo "${response}" | _egrep_o "\"id\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | tr -d " ")
-      printf "%s" "${_zoneid}"
-      return 0
+      zoneidlist=$(echo "${response}" | _egrep_o "\"id\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | tr -d " ")
+      zonenamelist=$(echo "${response}" | _egrep_o "\"name\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | tr -d " ")
+      _debug "Return Zone ID(s):"
+      _debug "${zoneidlist}"
+      _debug "Return Zone Name(s):"
+      _debug "${zonenamelist}"
+      zoneidnum=0
+      while read -r zonename; do
+          let zoneidnum++
+          _debug "Check Zone Name $zonename"
+          if [ $zonename = $h"." ]; then
+              _debug "Get Zone ID Success."
+              _zoneid=$(echo "${zoneidlist}" | sed -n $zoneidnum"p")
+              _debug "ZoneID:"$_zoneid
+              printf "%s" "${_zoneid}"
+              return 0
+          fi
+      done <<< "$zonenamelist"
     fi
-
     i=$(_math "$i" + 1)
   done
   return 1
