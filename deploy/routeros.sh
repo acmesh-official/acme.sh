@@ -66,20 +66,30 @@ routeros_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
+  _getdeployconf ROUTER_OS_HOST
+
   if [ -z "$ROUTER_OS_HOST" ]; then
     _debug "Using _cdomain as ROUTER_OS_HOST, please set if not correct."
     ROUTER_OS_HOST="$_cdomain"
   fi
+
+  _getdeployconf ROUTER_OS_USERNAME
 
   if [ -z "$ROUTER_OS_USERNAME" ]; then
     _err "Need to set the env variable ROUTER_OS_USERNAME"
     return 1
   fi
 
+  _getdeployconf ROUTER_OS_ADDITIONAL_SERVICES
+
   if [ -z "$ROUTER_OS_ADDITIONAL_SERVICES" ]; then
     _debug "Not enabling additional services"
     ROUTER_OS_ADDITIONAL_SERVICES=""
   fi
+
+  _savedeployconf ROUTER_OS_HOST "$ROUTER_OS_HOST"
+  _savedeployconf ROUTER_OS_USERNAME "$ROUTER_OS_USERNAME"
+  _savedeployconf ROUTER_OS_ADDITIONAL_SERVICES "$ROUTER_OS_ADDITIONAL_SERVICES"
 
   _info "Trying to push key '$_ckey' to router"
   scp "$_ckey" "$ROUTER_OS_USERNAME@$ROUTER_OS_HOST:$_cdomain.key"
