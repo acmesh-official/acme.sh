@@ -40,14 +40,14 @@ openmediavault_deploy() {
   _savedeployconf DEPLOY_OMV_SSH_USER "$DEPLOY_OMV_SSH_USER"
 
   _command="omv-rpc -u $DEPLOY_OMV_WEBUI_ADMIN 'CertificateMgmt' 'getList' '{\"start\": 0, \"limit\": -1}' | jq -r '.data[] | select(.name==\"/CN='$_cdomain'\") | .uuid'"
-  # shellcheck disable=SC2086
+  # shellcheck disable=SC2029
   _uuid=$(ssh "$DEPLOY_OMV_SSH_USER@$DEPLOY_OMV_HOST" "$_command")
   _debug _command "$_command"
 
   if [ -z "$_uuid" ]; then
     _info "[OMV deploy-hook] Domain $_cdomain has no certificate in openmediavault, creating it!"
     _command="omv-rpc -u $DEPLOY_OMV_WEBUI_ADMIN 'CertificateMgmt' 'create' '{\"cn\": \"test.example.com\", \"size\": 4096, \"days\": 3650, \"c\": \"\", \"st\": \"\", \"l\": \"\", \"o\": \"\", \"ou\": \"\", \"email\": \"\"}' | jq -r '.uuid'"
-    # shellcheck disable=SC2086
+    # shellcheck disable=SC2029
     _uuid=$(ssh "$DEPLOY_OMV_SSH_USER@$DEPLOY_OMV_HOST" "$_command")
     _debug _command "$_command"
 
