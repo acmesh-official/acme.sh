@@ -1,5 +1,13 @@
 #!/usr/bin/env sh
 
+# This deploy hook is tested on OpenMediaVault 5.x. It supports both local and remote deployment.
+# The way it works is that if a cert with the matching domain name is not found, it will firstly create a dummy cert to get its uuid, and then replace it with your cert.
+#
+# DEPLOY_OMV_WEBUI_ADMIN - This is OMV web gui admin account. Default value is admin. It's required as the user parameter (-u) for the omv-rpc command.
+# DEPLOY_OMV_HOST and DEPLOY_OMV_SSH_USER are optional. They are used for remote deployment through ssh (support public key authentication only). Per design, OMV web gui admin doesn't have ssh permission, so another account is needed for ssh.
+#
+# returns 0 means success, otherwise error.
+
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
