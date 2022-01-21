@@ -136,13 +136,16 @@ _get_zoneid() {
       _debug2 "Return Zone ID(s):" "${zoneidlist}"
       _debug2 "Return Zone Name(s):" "${zonenamelist}"
       zoneidnum=0
-      echo "${zonenamelist}" | while read -r zonename; do
+      zoneidcount=$(echo "${zoneidlist}" | grep -c '^')
+      _debug "Retund Zone ID(s) Count:" "${zoneidcount}"
+      while [ "${zoneidnum}" -lt "${zoneidcount}" ]; do
         zoneidnum=$(_math "$zoneidnum" + 1)
+        _zoneid=$(echo "${zoneidlist}" | sed -n "${zoneidnum}p")
+        zonename=$(echo "${zonenamelist}" | sed -n "${zoneidnum}p")
         _debug "Check Zone Name" "${zonename}"
         if [ "${zonename}" = "${h}." ]; then
           _debug "Get Zone ID Success."
-          _zoneid=$(echo "${zoneidlist}" | sed -n "${zoneidnum}p")
-          _debug2 "ZoneID:" "${_zoneid}"
+          _debug "ZoneID:" "${_zoneid}"
           printf "%s" "${_zoneid}"
           return 0
         fi
