@@ -261,10 +261,13 @@ rancher_deploy() {
     fi
 
     _debug IS_RENEW "$IS_RENEW"
-    if [ "$IS_RENEW" == "1" ] ; then
+#    if [ -n "$IS_RENEW" ] ; then
         _rancher_renew
-    else
-        _rancher_deploy
-    fi
+#    else
+#        _rancher_deploy
+#    fi
+
+    _rancher_renew || _rancher_deploy
+
     return $?
 }
