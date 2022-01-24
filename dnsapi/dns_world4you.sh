@@ -24,7 +24,7 @@ dns_world4you_add() {
   fi
 
   export _H1="Cookie: W4YSESSID=$sessid"
-  form=$(_get "$WORLD4YOU_API/dashboard/paketuebersicht")
+  form=$(_get "$WORLD4YOU_API/")
   _get_paketnr "$fqdn" "$form"
   paketnr="$PAKETNR"
   if [ -z "$paketnr" ]; then
@@ -87,7 +87,7 @@ dns_world4you_rm() {
   fi
 
   export _H1="Cookie: W4YSESSID=$sessid"
-  form=$(_get "$WORLD4YOU_API/dashboard/paketuebersicht")
+  form=$(_get "$WORLD4YOU_API/")
   _get_paketnr "$fqdn" "$form"
   paketnr="$PAKETNR"
   if [ -z "$paketnr" ]; then
@@ -184,7 +184,7 @@ _get_paketnr() {
   fqdn="$1"
   form="$2"
 
-  domains=$(echo "$form" | grep '^ *[A-Za-z0-9_\.-]*\.[A-Za-z0-9_-]*$' | sed 's/^ *\(.*\)$/\1/')
+  domains=$(echo "$form" | grep 'header-paket-domain' | sed 's/<[^>]*>//g' | sed 's/^.*>\([^>]*\)$/\1/')
   domain=''
   for domain in $domains; do
     if _contains "$fqdn" "$domain\$"; then
