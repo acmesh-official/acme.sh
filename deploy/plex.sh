@@ -62,8 +62,8 @@ plex_deploy() {
   _reload_cmd=""
   
   _debug "Generate import pkcs12"
-  _toPkcs "$PLEX_PKCS12_file" "$_ckey" "$_ccert" "$_cca" "$PLEX_PKCS12_password"
-  if [ "$?" != "0" ]; then
+  
+  if ! _toPkcs "$PLEX_PKCS12_file" "$_ckey" "$_ccert" "$_cca" "$PLEX_PKCS12_password"; then
     _err "Error generating pkcs12. Please re-run with --debug and report a bug."
     return 1
   fi
