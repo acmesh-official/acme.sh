@@ -35,11 +35,6 @@ plex_deploy() {
   _getdeployconf PLEX_PKCS12_file
   _getdeployconf PLEX_sudo_required
   
-
-  _debug2 PLEX_PKCS12_password "$PLEX_PKCS12_password"
-  _debug2 PLEX_PKCS12_file "$PLEX_PKCS12_file"
-  _debug2 PLEX_sudo_required "$PLEX_sudo_required"
-  
   
   #_DEPLOY_PLEX_WIKI="https://github.com/acmesh-official/acme.sh/wiki/deploy-to-plex"
   
@@ -49,10 +44,20 @@ plex_deploy() {
     #_err "See: $_DEPLOY_PLEX_WIKI"
 	return 1
   fi
+  _debug2 PLEX_PKCS12_password "$PLEX_PKCS12_password"
   
   if [ -z "$PLEX_PKCS12_file" ]; then
     PLEX_PKCS12_file="$DOMAIN_PATH/$_cdomain.pfx"
+    _debug2 "Setting PLEX_PKCS12_file to default"
   fi
+  _debug2 PLEX_PKCS12_file "$PLEX_PKCS12_file"
+  
+  if [ -z "$PLEX_sudo_required" ]; then
+    PLEX_sudo_required=0
+    _debug2 "Setting PLEX_PKCS12_file to default (0/False)"
+  fi
+  
+  _debug2 PLEX_sudo_required "$PLEX_sudo_required"
   
   _reload_cmd=""
   
