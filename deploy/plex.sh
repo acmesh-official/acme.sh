@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2154
 
 # Here is a script to deploy cert to local Plex Media Server on Debian.
 
