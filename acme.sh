@@ -1253,7 +1253,8 @@ _createcsr() {
     domainlist="$(_idn "$domainlist")"
     _debug2 domainlist "$domainlist"
     alt="$(_getIdType "$domain" | _upper_case):$(_idn "$domain")"
-    for dl in $(echo "$domainlist" | tr "," ' '); do
+    for dl in $(echo "'$domainlist'" | sed "s/,/' '/g"); do
+      dl=$(echo "$dl" | tr -d "'")
       alt="$alt,$(_getIdType "$dl" | _upper_case):$dl"
     done
     #multi
