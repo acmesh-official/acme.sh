@@ -23,7 +23,6 @@ dns_japi_add() {
   fullchallengedomain="${JAPI_domain:-$(_readaccountconf_mutable JAPI_domain)}"
   _debug "Full Challenge Domain is: $fullchallengedomain"
   JAPI_apikey="${JAPI_apikey:-$(_readaccountconf_mutable JAPI_apikey)}"
-  "$_domain"
 
   #Set H1,H2 headers with DNS Exit API key
   export _H1="Content-Type: application/json"
