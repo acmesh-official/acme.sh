@@ -11,7 +11,8 @@ RUN apk --no-cache add -f \
   tzdata \
   oath-toolkit-oathtool \
   tar \
-  libidn
+  libidn \
+  jq
 
 ENV LE_CONFIG_HOME /acme.sh
 
