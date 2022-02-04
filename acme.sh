@@ -29,7 +29,7 @@ CA_BUYPASS="https://api.buypass.com/acme/directory"
 CA_BUYPASS_TEST="https://api.test4.buypass.no/acme/directory"
 
 CA_ZEROSSL="https://acme.zerossl.com/v2/DV90"
-_ZERO_EAB_ENDPOINT="http://api.zerossl.com/acme/eab-credentials-email"
+_ZERO_EAB_ENDPOINT="https://api.zerossl.com/acme/eab-credentials-email"
 
 CA_SSLCOM_RSA="https://acme.ssl.com/sslcom-dv-rsa"
 CA_SSLCOM_ECC="https://acme.ssl.com/sslcom-dv-ecc"
