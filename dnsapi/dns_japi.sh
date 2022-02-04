@@ -23,8 +23,9 @@ dns_japi_add() {
   fullchallengedomain="${JAPI_domain:-$(_readaccountconf_mutable JAPI_domain)}"
   _debug "Full Challenge Domain is: $fullchallengedomain"
   JAPI_apikey="${JAPI_apikey:-$(_readaccountconf_mutable JAPI_apikey)}"
+  "$_domain"
+
   #Set H1,H2 headers with DNS Exit API key
-  domainUpdate=$domain
   export _H1="Content-Type: application/json"
   export _H2="apikey: $JAPI_apikey"
 
@@ -50,7 +51,7 @@ dns_japi_add() {
   _debug txtvalue "$txtvalue"
   #_err "Not implemented!"
 
- response="$(_post "{\"domain\":\"$domainUpdate\",\"update\": {\"type\":\"TXT\",\"name\":\"$fullchallengedomain\",\"content\":\"$txtvalue\",\"ttl\":0}}" $JAPIendpoint "" POST "application/json")"  
+ response="$(_post "{\"domain\":\"$_domain\",\"update\": {\"type\":\"TXT\",\"name\":\"$fullchallengedomain\",\"content\":\"$txtvalue\",\"ttl\":0}}" $JAPIendpoint "" POST "application/json")"  
    if ! printf "%s" "$response" | grep \"code\":0>/dev/null; then
     _err "There was an error updating the TXT record..."
     _err "DNS Exit API response: $response"
@@ -72,7 +73,7 @@ dns_japi_rm() {
   #Set H1,H2 headers with DNS Exit API key
   export _H1="Content-Type: application/json"
   export _H2="apikey: $JAPI_apikey"
-  domainUpdate=$domain
+  #domainUpdate=$domain
   _debug "Defined apikey $JAPI_apikey"
   if [ -z "$JAPI_apikey" ] || [ -z "$fullchallengedomain" ]; then
     JAPI_apikey=""
@@ -90,7 +91,7 @@ dns_japi_rm() {
   _debug txtvalue "$txtvalue"
   #_err "Not implemented!"
 
- response="$(_post "{\"domain\":\"$domainUpdate\",\"delete\": {\"type\":\"TXT\",\"name\":\"$fullchallengedomain\",\"content\":\"$txtvalue\",\"ttl\":0}}" $JAPIendpoint "" POST "application/json")"  
+ response="$(_post "{\"domain\":\"$_domain\",\"delete\": {\"type\":\"TXT\",\"name\":\"$fullchallengedomain\",\"content\":\"$txtvalue\",\"ttl\":0}}" $JAPIendpoint "" POST "application/json")"  
    if ! printf "%s" "$response" | grep \"code\":0>/dev/null; then
     _err "There was an error deleting the TXT record..."
     _err "DNS Exit API response: $response"
