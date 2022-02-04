@@ -3,7 +3,7 @@
 #This is a working API script to add a TXT record to the DNS Exit-managed DNS service.
 # dns_myapi_add()
 #Which will be called by acme.sh to add the txt record to th DNS Exit DNS service as part
-of the SSL certificate provisioning request.
+#of the SSL certificate provisioning request.
 #returns 0 means success, otherwise error.
 #
 #Author: John Berlet
@@ -24,6 +24,7 @@ dns_japi_add() {
   _debug "Full Challenge Domain is: $fullchallengedomain"
   JAPI_apikey="${JAPI_apikey:-$(_readaccountconf_mutable JAPI_apikey)}"
   #Set H1,H2 headers with DNS Exit API key
+  domainUpdate=$domain
   export _H1="Content-Type: application/json"
   export _H2="apikey: $JAPI_apikey"
 
@@ -49,7 +50,7 @@ dns_japi_add() {
   _debug txtvalue "$txtvalue"
   #_err "Not implemented!"
 
- response="$(_post "{\"domain\":\"$domain\",\"update\": {\"type\":\"TXT\",\"name\":\"$fullchallengedomain\",\"content\":\"$txtvalue\",\"ttl\":0}}" $JAPIendpoint "" POST "application/json")"  
+ response="$(_post "{\"domain\":\"$domainUpdate\",\"update\": {\"type\":\"TXT\",\"name\":\"$fullchallengedomain\",\"content\":\"$txtvalue\",\"ttl\":0}}" $JAPIendpoint "" POST "application/json")"  
    if ! printf "%s" "$response" | grep \"code\":0>/dev/null; then
     _err "There was an error updating the TXT record..."
     _err "DNS Exit API response: $response"
@@ -71,7 +72,7 @@ dns_japi_rm() {
   #Set H1,H2 headers with DNS Exit API key
   export _H1="Content-Type: application/json"
   export _H2="apikey: $JAPI_apikey"
-
+  domainUpdate=$domain
   _debug "Defined apikey $JAPI_apikey"
   if [ -z "$JAPI_apikey" ] || [ -z "$fullchallengedomain" ]; then
     JAPI_apikey=""
@@ -89,7 +90,7 @@ dns_japi_rm() {
   _debug txtvalue "$txtvalue"
   #_err "Not implemented!"
 
- response="$(_post "{\"domain\":\"$domain\",\"delete\": {\"type\":\"TXT\",\"name\":\"$fullchallengedomain\",\"content\":\"$txtvalue\",\"ttl\":0}}" $JAPIendpoint "" POST "application/json")"  
+ response="$(_post "{\"domain\":\"$domainUpdate\",\"delete\": {\"type\":\"TXT\",\"name\":\"$fullchallengedomain\",\"content\":\"$txtvalue\",\"ttl\":0}}" $JAPIendpoint "" POST "application/json")"  
    if ! printf "%s" "$response" | grep \"code\":0>/dev/null; then
     _err "There was an error deleting the TXT record..."
     _err "DNS Exit API response: $response"
