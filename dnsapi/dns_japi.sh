@@ -19,6 +19,7 @@ dns_japi_add() {
   fulldomain=$1
   txtvalue=$2
   JAPIendpoint="https://api.dnsexit.com/dns/"
+  JAPIdomain="${_domain}"
   #_debug "Domain being used with custom script is: $domain"
   fullchallengedomain="${JAPI_domain:-$(_readaccountconf_mutable JAPI_domain)}"
   _debug "Full Challenge Domain is: $fullchallengedomain"
@@ -54,7 +55,7 @@ dns_japi_add() {
   #_debug _domain "$_domain"
   #_err "Not implemented!"
 
- response="$(_post "{\"domain\":\"${_domain}\",\"update\": {\"type\":\"TXT\",\"name\":\"$fullchallengedomain\",\"content\":\"$txtvalue\",\"ttl\":0}}" $JAPIendpoint "" POST "application/json")"  
+ response="$(_post "{\"domain\":\"$JAPIdomain\",\"update\": {\"type\":\"TXT\",\"name\":\"$fullchallengedomain\",\"content\":\"$txtvalue\",\"ttl\":0}}" $JAPIendpoint "" POST "application/json")"  
    if ! printf "%s" "$response" | grep \"code\":0>/dev/null; then
     _err "There was an error updating the TXT record..."
     _err "DNS Exit API response: $response"
@@ -69,6 +70,7 @@ dns_japi_rm() {
   fulldomain=$1
   txtvalue=$2
   JAPIendpoint="https://api.dnsexit.com/dns/"
+  JAPIdomain="${_domain}"
   #_debug "Domain being used with custom script is: $domain"
   fullchallengedomain="${JAPI_domain:-$(_readaccountconf_mutable JAPI_domain)}"
   _debug "Full Challenge Domain is: $fullchallengedomain"
@@ -97,7 +99,7 @@ dns_japi_rm() {
   #_debug _domain "$_domain"
   #_err "Not implemented!"
 
- response="$(_post "{\"domain\":\"${_domain}\",\"delete\": {\"type\":\"TXT\",\"name\":\"$fullchallengedomain\",\"content\":\"$txtvalue\",\"ttl\":0}}" $JAPIendpoint "" POST "application/json")"  
+ response="$(_post "{\"domain\":\"$JAPIdomain\",\"delete\": {\"type\":\"TXT\",\"name\":\"$fullchallengedomain\",\"content\":\"$txtvalue\",\"ttl\":0}}" $JAPIendpoint "" POST "application/json")"  
    if ! printf "%s" "$response" | grep \"code\":0>/dev/null; then
     _err "There was an error deleting the TXT record..."
     _err "DNS Exit API response: $response"
