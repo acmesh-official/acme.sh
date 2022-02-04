@@ -23,7 +23,7 @@ dns_japi_add() {
   fullchallengedomain="${JAPI_domain:-$(_readaccountconf_mutable JAPI_domain)}"
   _debug "Full Challenge Domain is: $fullchallengedomain"
   JAPI_apikey="${JAPI_apikey:-$(_readaccountconf_mutable JAPI_apikey)}"
-  "$_domain"
+  #$passedDomain=$_domain
 
   #Set H1,H2 headers with DNS Exit API key
   export _H1="Content-Type: application/json"
@@ -49,9 +49,12 @@ dns_japi_add() {
   _debug "Passed domain to function: $fulldomain"
   _debug "Full Challenge domain: $fullchallengedomain"
   _debug txtvalue "$txtvalue"
+  _debug _domain_id "$_domain_id"
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain "$_domain"
   #_err "Not implemented!"
 
- response="$(_post "{\"domain\":\"$_domain\",\"update\": {\"type\":\"TXT\",\"name\":\"$fullchallengedomain\",\"content\":\"$txtvalue\",\"ttl\":0}}" $JAPIendpoint "" POST "application/json")"  
+ response="$(_post "{\"domain\":\"${_domain}\",\"update\": {\"type\":\"TXT\",\"name\":\"$fullchallengedomain\",\"content\":\"$txtvalue\",\"ttl\":0}}" $JAPIendpoint "" POST "application/json")"  
    if ! printf "%s" "$response" | grep \"code\":0>/dev/null; then
     _err "There was an error updating the TXT record..."
     _err "DNS Exit API response: $response"
@@ -71,6 +74,7 @@ dns_japi_rm() {
   _debug "Full Challenge Domain is: $fullchallengedomain"
   JAPI_apikey="${JAPI_apikey:-$(_readaccountconf_mutable JAPI_apikey)}"
   #Set H1,H2 headers with DNS Exit API key
+  $passedDomain=$_domain
   export _H1="Content-Type: application/json"
   export _H2="apikey: $JAPI_apikey"
   #domainUpdate=$domain
@@ -89,9 +93,12 @@ dns_japi_rm() {
   _debug "Passed domain to function: $fulldomain"
   _debug "Full Challenge domain: $fullchallengedomain"
   _debug txtvalue "$txtvalue"
+  _debug _domain_id "$_domain_id"
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain "$_domain"
   #_err "Not implemented!"
 
- response="$(_post "{\"domain\":\"$_domain\",\"delete\": {\"type\":\"TXT\",\"name\":\"$fullchallengedomain\",\"content\":\"$txtvalue\",\"ttl\":0}}" $JAPIendpoint "" POST "application/json")"  
+ response="$(_post "{\"domain\":\"${_domain}\",\"delete\": {\"type\":\"TXT\",\"name\":\"$fullchallengedomain\",\"content\":\"$txtvalue\",\"ttl\":0}}" $JAPIendpoint "" POST "application/json")"  
    if ! printf "%s" "$response" | grep \"code\":0>/dev/null; then
     _err "There was an error deleting the TXT record..."
     _err "DNS Exit API response: $response"
