@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 
 #Script to use with curanet.dk, scannet.dk, wannafind.dk, dandomain.dk DNS management.
-#
 #Author: Peter L. Hansen <peter@r12.dk>
 
 CURANET_REST_URL="https://api.curanet.dk/dns/v1/Domains"
