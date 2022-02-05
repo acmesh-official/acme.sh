@@ -100,7 +100,16 @@ dns_curanet_rm() {
 ####################  Private functions below ##################################
 
 gettoken() {
-	CURANET_ACCESS_TOKEN=$(curl -s $CURANET_AUTH_URL -d "grant_type=client_credentials&client_id=$CURANET_AUTHCLIENTID&client_secret=$CURANET_AUTHSECRET&scope=dns" | jq -r '.access_token')
+  
+  response="$(_post "grant_type=client_credentials&client_id=$CURANET_AUTHCLIENTID&client_secret=$CURANET_AUTHSECRET&scope=dns" "$CURANET_AUTH_URL" "" "")"
+
+  if ! _contains "$response" "access_token"; then
+    _err "Unable get access token"
+    return 1
+  fi
+
+  CURANET_ACCESS_TOKEN=$(echo "$response" | _egrep_o "\"access_token\":\"[^\"]+\"" | cut -c 17-)
+  CURANET_ACCESS_TOKEN=${CURANET_ACCESS_TOKEN::-1}
 
 }
 
