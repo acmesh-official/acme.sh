@@ -94,12 +94,12 @@ synology_dsm_deploy() {
 
   otp_code=""
   if [ -n "$SYNO_TOTP_SECRET" ]; then
-    if ! command -v oathtool &> /dev/null
-    then
+    if _exists oathtool; then
+      otp_code="$(oathtool --base32 --totp "${SYNO_TOTP_SECRET}" 2>/dev/null)"
+    else
       _err "oathtool could not be found, install oathtool to use SYNO_TOTP_SECRET"
       exit 1
     fi
-    otp_code="$(oathtool --base32 --totp "${SYNO_TOTP_SECRET}" 2>/dev/null)"
   fi
 
   if [ -n "$SYNO_DID" ]; then
