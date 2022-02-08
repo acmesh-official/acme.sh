@@ -11,7 +11,7 @@
 #
 
 UDR_API="https://api.domainreselling.de/api/call.cgi"
-UDR_TTL="300"
+UDR_TTL="30"
 
 ########  Public functions #####################
 
@@ -19,7 +19,7 @@ UDR_TTL="300"
 dns_udr_add() {
   fulldomain=$1
   txtvalue=$2
-  export txtvalue
+
   UDR_USER="${UDR_USER:-$(_readaccountconf_mutable UDR_USER)}"
   UDR_PASS="${UDR_PASS:-$(_readaccountconf_mutable UDR_PASS)}"
   if [ -z "$UDR_USER" ] || [ -z "$UDR_PASS" ]; then
@@ -64,7 +64,7 @@ dns_udr_add() {
 dns_udr_rm() {
   fulldomain=$1
   txtvalue=$2
-  export txtvalue
+
   UDR_USER="${UDR_USER:-$(_readaccountconf_mutable UDR_USER)}"
   UDR_PASS="${UDR_PASS:-$(_readaccountconf_mutable UDR_PASS)}"
   if [ -z "$UDR_USER" ] || [ -z "$UDR_PASS" ]; then
@@ -145,8 +145,8 @@ _udr_rest() {
   _debug data "${data}"
   response="$(_post "${data}" "${UDR_API}?s_login=${UDR_USER}&s_pw=${UDR_PASS}" "" "POST")"
 
-  _code=$(echo "$response" | _egrep_o "code = ([0-9]+)" | _head_n 1 | cut -d = -f 2 | xargs)
-  _description=$(echo "$response" | _egrep_o "description = .*" | _head_n 1 | cut -d = -f 2 | xargs)
+  _code=$(echo "$response" | _egrep_o "code = ([0-9]+)" | _head_n 1 | cut -d = -f 2 | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+  _description=$(echo "$response" | _egrep_o "description = .*" | _head_n 1 | cut -d = -f 2 | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
 
   _debug response_code "$_code"
   _debug response_description "$_description"
