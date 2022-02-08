@@ -109,7 +109,6 @@ gettoken() {
 
 #_acme-challenge.www.domain.com
 #returns
-# _sub_domain=_acme-challenge.www
 # _domain=domain.com
 # _domain_id=sdjkglgdfewsdfg
 _get_root() {
@@ -131,7 +130,6 @@ _get_root() {
     response="$(_get "$CURANET_REST_URL/$h/Records" "" "")"
 
     if [ ! "$(echo "$response" | _egrep_o "Entity not found")" ]; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain=$h
       return 0
     fi
