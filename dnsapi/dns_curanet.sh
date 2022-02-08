@@ -82,11 +82,8 @@ dns_curanet_rm() {
   fi
 
   recordid=$(echo "$response" | _egrep_o "{\"id\":[0-9]+,\"name\":\"$fulldomain\"" | _egrep_o "id\":[0-9]+" | cut -c 5-)
-
   _debug "Deleting recordID $recordid"
-  
   response="$(_post "" "$CURANET_REST_URL/${_domain}/Records/$recordid" "" "DELETE")"
-
   return 0;
 }
 
