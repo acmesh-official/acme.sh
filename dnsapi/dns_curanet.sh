@@ -83,12 +83,6 @@ dns_curanet_rm() {
 
   recordid=$(echo "$response" | _egrep_o "{\"id\":[0-9]+,\"name\":\"$fulldomain\"" | _egrep_o "id\":[0-9]+" | cut -c 5-)
 
-  re='^[0-9]+$'
-  if ! [[ $recordid =~ $re ]] ; then
-    err "Unable to delete record (did not find recordID to delete)"
-    return 1
-  fi
-
   _debug "Deleting recordID $recordid"
   
   response="$(_post "" "$CURANET_REST_URL/${_domain}/Records/$recordid" "" "DELETE")"
@@ -108,8 +102,7 @@ gettoken() {
     return 1
   fi
 
-  CURANET_ACCESS_TOKEN=$(echo "$response" | _egrep_o "\"access_token\":\"[^\"]+\"" | cut -c 17-)
-  CURANET_ACCESS_TOKEN=${CURANET_ACCESS_TOKEN::-1}
+  CURANET_ACCESS_TOKEN=$(echo "$response" | _egrep_o "\"access_token\":\"[^\"]+" | cut -c 17-)
 
 }
 
