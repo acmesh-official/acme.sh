@@ -35,7 +35,7 @@ dns_curanet_add() {
   gettoken
 
   _get_root "$fulldomain"
-  
+
   export _H1="Content-Type: application/json-patch+json"
   export _H2="Accept: application/json"
   export _H3="Authorization: Bearer $CURANET_ACCESS_TOKEN"
@@ -43,7 +43,7 @@ dns_curanet_add() {
   response="$(_post "$data" "$CURANET_REST_URL/${_domain}/Records" "" "")"
 
   if _contains "$response" "$txtvalue"; then
-      _debug "TXT record added OK"
+    _debug "TXT record added OK"
   else
     _err "Unable to add TXT record"
     return 1
@@ -60,14 +60,14 @@ dns_curanet_rm() {
   _info "Using curanet"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
-  
+
   CURANET_AUTHCLIENTID="${CURANET_AUTHCLIENTID:-$(_readaccountconf_mutable CURANET_AUTHCLIENTID)}"
   CURANET_AUTHSECRET="${CURANET_AUTHSECRET:-$(_readaccountconf_mutable CURANET_AUTHSECRET)}"
 
   gettoken
 
   _get_root "$fulldomain"
-  
+
   _debug "Getting current record list to identify TXT to delete"
 
   export _H1="Content-Type: application/json"
@@ -88,24 +88,18 @@ dns_curanet_rm() {
   response="$(_post "" "$CURANET_REST_URL/${_domain}/Records/$recordid" "" "DELETE")"
 
   return 0;
-  
 }
 
 ####################  Private functions below ##################################
 
 gettoken() {
-  
   response="$(_post "grant_type=client_credentials&client_id=$CURANET_AUTHCLIENTID&client_secret=$CURANET_AUTHSECRET&scope=dns" "$CURANET_AUTH_URL" "" "")"
-
   if ! _contains "$response" "access_token"; then
     _err "Unable get access token"
     return 1
   fi
-
   CURANET_ACCESS_TOKEN=$(echo "$response" | _egrep_o "\"access_token\":\"[^\"]+" | cut -c 17-)
-
 }
-
 
 #_acme-challenge.www.domain.com
 #returns
@@ -132,9 +126,8 @@ _get_root() {
       _domain=$h
       return 0
     fi
-    
+
     i=$(_math "$i" + 1)
   done
   return 1
 }
-
