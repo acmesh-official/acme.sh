@@ -108,7 +108,7 @@ dns_udr_rm() {
 # _domain=domain.com
 _get_root() {
   domain=$1
-  i=2
+  i=1
 
   if ! _udr_rest "QueryDNSZoneList" ""; then
     return 1
