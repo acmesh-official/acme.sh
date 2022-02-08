@@ -114,7 +114,6 @@ gettoken() {
 _get_root() {
   domain=$1
   i=1
-  p=1
 
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
@@ -134,7 +133,6 @@ _get_root() {
       return 0
     fi
     
-    p=$i
     i=$(_math "$i" + 1)
   done
   return 1
