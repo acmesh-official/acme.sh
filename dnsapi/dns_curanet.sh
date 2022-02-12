@@ -33,9 +33,15 @@ dns_curanet_add() {
   _saveaccountconf_mutable CURANET_AUTHCLIENTID "$CURANET_AUTHCLIENTID"
   _saveaccountconf_mutable CURANET_AUTHSECRET "$CURANET_AUTHSECRET"
 
-  gettoken
+  if ! _get_token; then
+    _err "Unable to get token"
+    return 1
+  fi
 
-  _get_root "$fulldomain"
+  if ! _get_root "$fulldomain"; then
+    _err "Invalid domain"
+    return 1
+  fi
 
   export _H1="Content-Type: application/json-patch+json"
   export _H2="Accept: application/json"
@@ -65,9 +71,15 @@ dns_curanet_rm() {
   CURANET_AUTHCLIENTID="${CURANET_AUTHCLIENTID:-$(_readaccountconf_mutable CURANET_AUTHCLIENTID)}"
   CURANET_AUTHSECRET="${CURANET_AUTHSECRET:-$(_readaccountconf_mutable CURANET_AUTHSECRET)}"
 
-  gettoken
+  if ! _get_token; then
+    _err "Unable to get token"
+    return 1
+  fi
 
-  _get_root "$fulldomain"
+  if ! _get_root "$fulldomain"; then
+    _err "Invalid domain"
+    return 1
+  fi
 
   _debug "Getting current record list to identify TXT to delete"
 
@@ -90,13 +102,19 @@ dns_curanet_rm() {
 
 ####################  Private functions below ##################################
 
-gettoken() {
+_get_token() {
   response="$(_post "grant_type=client_credentials&client_id=$CURANET_AUTHCLIENTID&client_secret=$CURANET_AUTHSECRET&scope=dns" "$CURANET_AUTH_URL" "" "")"
   if ! _contains "$response" "access_token"; then
     _err "Unable get access token"
     return 1
   fi
   CURANET_ACCESS_TOKEN=$(echo "$response" | _egrep_o "\"access_token\":\"[^\"]+" | cut -c 17-)
+
+  if [ -z "$CURANET_ACCESS_TOKEN" ]; then
+    _err "Unable to get token"
+    return 1
+  fi
+
 }
 
 #_acme-challenge.www.domain.com
