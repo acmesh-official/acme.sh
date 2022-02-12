@@ -115,7 +115,7 @@ _get_token() {
     return 1
   fi
 
-  return 0;
+  return 0
 
 }
 
