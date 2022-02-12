@@ -115,6 +115,8 @@ _get_token() {
     return 1
   fi
 
+  return 0;
+
 }
 
 #_acme-challenge.www.domain.com
