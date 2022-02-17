@@ -29,7 +29,7 @@ dns_selfhost_add() {
   _saveaccountconf_mutable SELFHOSTDNS_RID "$SELFHOSTDNS_RID"
   _saveaccountconf_mutable SELFHOSTDNS_RID2 "$SELFHOSTDNS_RID2"
 
-  rid=$(echo $SELFHOSTDNS_MAP | grep -Eoi "$domain:(\d+)" | tr -d "$domain:") 
+  rid=$(echo "$SELFHOSTDNS_MAP" | grep -Eoi "$domain:(\d+)" | tr -d "$domain:") 
   if test -z "$rid"; then
     if [ $SELFHOSTDNS_LAST_SLOT = "2" ]; then
       rid=$SELFHOSTDNS_RID
