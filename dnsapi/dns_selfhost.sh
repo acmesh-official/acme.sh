@@ -2,7 +2,7 @@
 #
 #       Author: Marvin Edeler
 #       Report Bugs here: https://github.com/Marvo2011/acme.sh/issues/1
-#	Last Edit: 09.01.2022
+#	Last Edit: 17.02.2022
 
 dns_selfhost_add() {
   domain=$1
@@ -14,6 +14,7 @@ dns_selfhost_add() {
   SELFHOSTDNS_UPDATE_URL="https://selfhost.de/cgi-bin/api.pl"
   SELFHOSTDNS_USERNAME="${SELFHOSTDNS_USERNAME:-$(_readaccountconf_mutable SELFHOSTDNS_USERNAME)}"
   SELFHOSTDNS_PASSWORD="${SELFHOSTDNS_PASSWORD:-$(_readaccountconf_mutable SELFHOSTDNS_PASSWORD)}"
+  SELFHOSTDNS_MAP="${SELFHOSTDNS_MAP:-$(_readaccountconf_mutable SELFHOSTDNS_MAP)}"
   SELFHOSTDNS_RID="${SELFHOSTDNS_RID:-$(_readaccountconf_mutable SELFHOSTDNS_RID)}"
   SELFHOSTDNS_RID2="${SELFHOSTDNS_RID2:-$(_readaccountconf_mutable SELFHOSTDNS_RID2)}"
   SELFHOSTDNS_LAST_SLOT="$(_readaccountconf_mutable SELFHOSTDNS_LAST_SLOT)"
@@ -24,15 +25,19 @@ dns_selfhost_add() {
 
   _saveaccountconf_mutable SELFHOSTDNS_USERNAME "$SELFHOSTDNS_USERNAME"
   _saveaccountconf_mutable SELFHOSTDNS_PASSWORD "$SELFHOSTDNS_PASSWORD"
+  _saveaccountconf_mutable SELFHOSTDNS_MAP "$SELFHOSTDNS_MAP"
   _saveaccountconf_mutable SELFHOSTDNS_RID "$SELFHOSTDNS_RID"
   _saveaccountconf_mutable SELFHOSTDNS_RID2 "$SELFHOSTDNS_RID2"
 
-  if [ $SELFHOSTDNS_LAST_SLOT = "2" ]; then
-    rid=$SELFHOSTDNS_RID
-    SELFHOSTDNS_LAST_SLOT=1
-  else
-    rid=$SELFHOSTDNS_RID2
-    SELFHOSTDNS_LAST_SLOT=2
+  rid=$(echo $SELFHOSTDNS_MAP | grep -Eoi "$domain:(\d+)" | tr -d "$domain:") 
+  if test -z "$rid"; then
+    if [ $SELFHOSTDNS_LAST_SLOT = "2" ]; then
+      rid=$SELFHOSTDNS_RID
+      SELFHOSTDNS_LAST_SLOT=1
+    else
+      rid=$SELFHOSTDNS_RID2
+      SELFHOSTDNS_LAST_SLOT=2
+    fi
   fi
 
   _saveaccountconf_mutable SELFHOSTDNS_LAST_SLOT "$SELFHOSTDNS_LAST_SLOT"
