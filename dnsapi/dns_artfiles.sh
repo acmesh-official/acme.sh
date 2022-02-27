@@ -95,8 +95,7 @@ dns_artfiles_rm() {
 
 # Cleans awful TXT records response of ArtFiles's API & pretty prints it.
 # Usage: _clean_records
-_clean_records()
-{
+_clean_records() {
   # Extract TXT part, strip trailing quote sign (ACME.sh API guidelines forbid
   # usage of SED's GNU extensions, hence couldn't omit it via regex), strip '\'
   # from '\"' & turn '\n' into real LF characters.
@@ -110,8 +109,7 @@ _clean_records()
 # Executes an HTTP GET or POST request for getting or setting DNS records,
 # containing given payload upon POST.
 # Usage: _dns [GET | SET] [payload]
-_dns()
-{
+_dns() {
   action="$1"
   payload="$(printf -- '%s' "$2" | _url_encode)"
   url="$(printf -- '%s%s' "$AF_URL_DNS" "$domain"
@@ -137,8 +135,7 @@ _dns()
 
 # Gets the root domain zone for given domain.
 # Usage: _get_zone _acme-challenge.www.example.com
-_get_zone()
-{
+_get_zone() {
   _info 'Getting domain zone...'
   _debug2 'Initial FQDN' "$1"
   fqdn="$1"
@@ -168,8 +165,7 @@ _get_zone()
 
 # Adds the HTTP Authorization & Content-Type headers to a follow-up request.
 # Usage: _set_headers
-_set_headers()
-{
+_set_headers() {
   encoded="$(printf -- '%s:%s' "$AF_API_USERNAME" "$AF_API_PASSWORD" | _base64)"
   export _H1="Authorization: Basic $encoded"
   export _H2='Content-Type: application/json'
