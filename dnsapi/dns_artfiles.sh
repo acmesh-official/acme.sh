@@ -5,7 +5,7 @@
 ################################################################################
 # Author:   Martin Arndt, https://troublezone.net/
 # Released: 2022-02-27
-# Issues:   https://github.com/acmesh-official/acme.sh/issues/XXXX
+# Issues:   https://github.com/Eagle3386/acme.sh/issues
 ################################################################################
 # Usage:
 # 1. export AF_API_Username="api12345678"
