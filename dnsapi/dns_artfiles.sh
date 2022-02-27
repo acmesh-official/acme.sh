@@ -103,7 +103,8 @@ _clean_records() {
   _debug2 'Raw  ' "$response"
   response="$(
     printf -- '%s' "$response"
-    \  | sed 's/^\(.*TXT":"\)\([^,}]*\)\(.*\)$/\2/;s/.$//;s/\\"/"/g;s/\\n/\n/g')"
+    \  | sed 's/^\(.*TXT":"\)\([^,}]*\)\(.*\)$/\2/;s/.$//;s/\\"/"/g;s/\\n/\n/g'
+  )"
   _debug2 'Clean' "$response"
 }
 
@@ -115,7 +116,8 @@ _dns() {
   payload="$(printf -- '%s' "$2" | _url_encode)"
   url="$(
     printf -- '%s%s' "$AF_URL_DNS" "$domain"
-    \  | sed 's/{\*}/'"$(printf -- '%s' "$action" | _lower_case)"'/')"
+    \  | sed 's/{\*}/'"$(printf -- '%s' "$action" | _lower_case)"'/'
+  )"
 
   if [ "$action" = 'SET' ]; then
     _debug2 'Payload' "$payload"
