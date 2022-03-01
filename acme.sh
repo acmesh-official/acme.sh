@@ -29,7 +29,7 @@ CA_BUYPASS="https://api.buypass.com/acme/directory"
 CA_BUYPASS_TEST="https://api.test4.buypass.no/acme/directory"
 
 CA_ZEROSSL="https://acme.zerossl.com/v2/DV90"
-_ZERO_EAB_ENDPOINT="http://api.zerossl.com/acme/eab-credentials-email"
+_ZERO_EAB_ENDPOINT="https://api.zerossl.com/acme/eab-credentials-email"
 
 CA_SSLCOM_RSA="https://acme.ssl.com/sslcom-dv-rsa"
 CA_SSLCOM_ECC="https://acme.ssl.com/sslcom-dv-ecc"
@@ -80,8 +80,8 @@ NGINX="nginx:"
 NGINX_START="#ACME_NGINX_START"
 NGINX_END="#ACME_NGINX_END"
 
-BEGIN_CSR="-----BEGIN CERTIFICATE REQUEST-----"
-END_CSR="-----END CERTIFICATE REQUEST-----"
+BEGIN_CSR="-----BEGIN [NEW ]\{0,4\}CERTIFICATE REQUEST-----"
+END_CSR="-----END [NEW ]\{0,4\}CERTIFICATE REQUEST-----"
 
 BEGIN_CERT="-----BEGIN CERTIFICATE-----"
 END_CERT="-----END CERTIFICATE-----"
@@ -143,6 +143,8 @@ NOTIFY_MODE_BULK=0
 NOTIFY_MODE_CERT=1
 
 NOTIFY_MODE_DEFAULT=$NOTIFY_MODE_BULK
+
+_BASE64_ENCODED_CFGS="Le_PreHook Le_PostHook Le_RenewHook Le_Preferred_Chain Le_ReloadCmd"
 
 _DEBUG_WIKI="https://github.com/acmesh-official/acme.sh/wiki/How-to-debug-acme.sh"
 
@@ -1051,9 +1053,9 @@ _sign() {
 
   _sign_openssl="${ACME_OPENSSL_BIN:-openssl} dgst -sign $keyfile "
 
-  if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || grep "BEGIN PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
+  if _isRSA "$keyfile" >/dev/null 2>&1; then
     $_sign_openssl -$alg | _base64
-  elif grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
+  elif _isEcc "$keyfile" >/dev/null 2>&1; then
     if ! _signedECText="$($_sign_openssl -sha$__ECC_KEY_LEN | ${ACME_OPENSSL_BIN:-openssl} asn1parse -inform DER)"; then
       _err "Sign failed: $_sign_openssl"
       _err "Key file: $keyfile"
@@ -1250,8 +1252,9 @@ _createcsr() {
   else
     domainlist="$(_idn "$domainlist")"
     _debug2 domainlist "$domainlist"
-    alt="$(_getIdType "$domain" | _upper_case):$domain"
-    for dl in $(echo "$domainlist" | tr "," ' '); do
+    alt="$(_getIdType "$domain" | _upper_case):$(_idn "$domain")"
+    for dl in $(echo "'$domainlist'" | sed "s/,/' '/g"); do
+      dl=$(echo "$dl" | tr -d "'")
       alt="$alt,$(_getIdType "$dl" | _upper_case):$dl"
     done
     #multi
@@ -1270,9 +1273,17 @@ _createcsr() {
   _csr_cn="$(_idn "$domain")"
   _debug2 _csr_cn "$_csr_cn"
   if _contains "$(uname -a)" "MINGW"; then
-    ${ACME_OPENSSL_BIN:-openssl} req -new -sha256 -key "$csrkey" -subj "//CN=$_csr_cn" -config "$csrconf" -out "$csr"
+    if _isIP "$_csr_cn"; then
+      ${ACME_OPENSSL_BIN:-openssl} req -new -sha256 -key "$csrkey" -subj "//O=$PROJECT_NAME" -config "$csrconf" -out "$csr"
+    else
+      ${ACME_OPENSSL_BIN:-openssl} req -new -sha256 -key "$csrkey" -subj "//CN=$_csr_cn" -config "$csrconf" -out "$csr"
+    fi
   else
-    ${ACME_OPENSSL_BIN:-openssl} req -new -sha256 -key "$csrkey" -subj "/CN=$_csr_cn" -config "$csrconf" -out "$csr"
+    if _isIP "$_csr_cn"; then
+      ${ACME_OPENSSL_BIN:-openssl} req -new -sha256 -key "$csrkey" -subj "/O=$PROJECT_NAME" -config "$csrconf" -out "$csr"
+    else
+      ${ACME_OPENSSL_BIN:-openssl} req -new -sha256 -key "$csrkey" -subj "/CN=$_csr_cn" -config "$csrconf" -out "$csr"
+    fi
   fi
 }
 
@@ -1622,6 +1633,24 @@ _stat() {
 }
 
 #keyfile
+_isRSA() {
+  keyfile=$1
+  if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} rsa -in "$keyfile" -noout -text | grep "^publicExponent:" >/dev/null 2>&1; then
+    return 0
+  fi
+  return 1
+}
+
+#keyfile
+_isEcc() {
+  keyfile=$1
+  if grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" >/dev/null 2>&1; then
+    return 0
+  fi
+  return 1
+}
+
+#keyfile
 _calcjwk() {
   keyfile="$1"
   if [ -z "$keyfile" ]; then
@@ -1634,7 +1663,7 @@ _calcjwk() {
     return 0
   fi
 
-  if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
+  if _isRSA "$keyfile"; then
     _debug "RSA key"
     pub_exp=$(${ACME_OPENSSL_BIN:-openssl} rsa -in "$keyfile" -noout -text | grep "^publicExponent:" | cut -d '(' -f 2 | cut -d 'x' -f 2 | cut -d ')' -f 1)
     if [ "${#pub_exp}" = "5" ]; then
@@ -1656,7 +1685,7 @@ _calcjwk() {
     JWK_HEADER='{"alg": "RS256", "jwk": '$jwk'}'
     JWK_HEADERPLACE_PART1='{"nonce": "'
     JWK_HEADERPLACE_PART2='", "alg": "RS256"'
-  elif grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1; then
+  elif _isEcc "$keyfile"; then
     _debug "EC key"
     crv="$(${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" | cut -d ":" -f 2 | tr -d " \r\n")"
     _debug3 crv "$crv"
@@ -1829,8 +1858,6 @@ _inithttp() {
 
 }
 
-_HTTP_MAX_RETRY=8
-
 # body  url [needbase64] [POST|PUT|DELETE] [ContentType]
 _post() {
   body="$1"
@@ -1838,33 +1865,6 @@ _post() {
   needbase64="$3"
   httpmethod="$4"
   _postContentType="$5"
-  _sleep_retry_sec=1
-  _http_retry_times=0
-  _hcode=0
-  while [ "${_http_retry_times}" -le "$_HTTP_MAX_RETRY" ]; do
-    [ "$_http_retry_times" = "$_HTTP_MAX_RETRY" ]
-    _lastHCode="$?"
-    _debug "Retrying post"
-    _post_impl "$body" "$_post_url" "$needbase64" "$httpmethod" "$_postContentType" "$_lastHCode"
-    _hcode="$?"
-    _debug _hcode "$_hcode"
-    if [ "$_hcode" = "0" ]; then
-      break
-    fi
-    _http_retry_times=$(_math $_http_retry_times + 1)
-    _sleep $_sleep_retry_sec
-  done
-  return $_hcode
-}
-
-# body  url [needbase64] [POST|PUT|DELETE] [ContentType] [displayError]
-_post_impl() {
-  body="$1"
-  _post_url="$2"
-  needbase64="$3"
-  httpmethod="$4"
-  _postContentType="$5"
-  displayError="$6"
 
   if [ -z "$httpmethod" ]; then
     httpmethod="POST"
@@ -1916,9 +1916,7 @@ _post_impl() {
     fi
     _ret="$?"
     if [ "$_ret" != "0" ]; then
-      if [ -z "$displayError" ] || [ "$displayError" = "0" ]; then
-        _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $_ret"
-      fi
+      _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $_ret"
       if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
         _err "Here is the curl dump log:"
         _err "$(cat "$_CURL_DUMP")"
@@ -1974,9 +1972,7 @@ _post_impl() {
       _debug "wget returns 8, the server returns a 'Bad request' response, lets process the response later."
     fi
     if [ "$_ret" != "0" ]; then
-      if [ -z "$displayError" ] || [ "$displayError" = "0" ]; then
-        _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret"
-      fi
+      _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret"
     fi
     _sed_i "s/^ *//g" "$HTTP_HEADER"
   else
@@ -1990,38 +1986,13 @@ _post_impl() {
 
 # url getheader timeout
 _get() {
-  url="$1"
-  onlyheader="$2"
-  t="$3"
-  _sleep_retry_sec=1
-  _http_retry_times=0
-  _hcode=0
-  while [ "${_http_retry_times}" -le "$_HTTP_MAX_RETRY" ]; do
-    [ "$_http_retry_times" = "$_HTTP_MAX_RETRY" ]
-    _lastHCode="$?"
-    _debug "Retrying GET"
-    _get_impl "$url" "$onlyheader" "$t" "$_lastHCode"
-    _hcode="$?"
-    _debug _hcode "$_hcode"
-    if [ "$_hcode" = "0" ]; then
-      break
-    fi
-    _http_retry_times=$(_math $_http_retry_times + 1)
-    _sleep $_sleep_retry_sec
-  done
-  return $_hcode
-}
-
-# url getheader timeout displayError
-_get_impl() {
   _debug GET
   url="$1"
   onlyheader="$2"
   t="$3"
-  displayError="$4"
   _debug url "$url"
   _debug "timeout=$t"
-  _debug "displayError" "$displayError"
+
   _inithttp
 
   if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
@@ -2040,9 +2011,7 @@ _get_impl() {
     fi
     ret=$?
     if [ "$ret" != "0" ]; then
-      if [ -z "$displayError" ] || [ "$displayError" = "0" ]; then
-        _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $ret"
-      fi
+      _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $ret"
       if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
         _err "Here is the curl dump log:"
         _err "$(cat "$_CURL_DUMP")"
@@ -2068,9 +2037,7 @@ _get_impl() {
       _debug "wget returns 8, the server returns a 'Bad request' response, lets process the response later."
     fi
     if [ "$ret" != "0" ]; then
-      if [ -z "$displayError" ] || [ "$displayError" = "0" ]; then
-        _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $ret"
-      fi
+      _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $ret"
     fi
   else
     ret=$?
@@ -4196,7 +4163,12 @@ _match_issuer() {
 #ip
 _isIPv4() {
   for seg in $(echo "$1" | tr '.' ' '); do
-    if [ $seg -ge 0 ] 2>/dev/null && [ $seg -le 255 ] 2>/dev/null; then
+    _debug2 seg "$seg"
+    if [ "$(echo "$seg" | tr -d [0-9])" ]; then
+      #not all number
+      return 1
+    fi
+    if [ $seg -ge 0 ] && [ $seg -lt 256 ]; then
       continue
     fi
     return 1
@@ -5149,7 +5121,7 @@ renew() {
   _isEcc="$2"
 
   _initpath "$Le_Domain" "$_isEcc"
-
+  _set_level=${NOTIFY_LEVEL:-$NOTIFY_LEVEL_DEFAULT}
   _info "$(__green "Renew: '$Le_Domain'")"
   if [ ! -f "$DOMAIN_CONF" ]; then
     _info "'$Le_Domain' is not an issued domain, skip."
@@ -5184,6 +5156,11 @@ renew() {
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
     _info "Skip, Next renewal time is: $(__green "$Le_NextRenewTimeStr")"
     _info "Add '$(__red '--force')' to force to renew."
+    if [ -z "$_ACME_IN_RENEWALL" ]; then
+      if [ $_set_level -ge $NOTIFY_LEVEL_SKIP ]; then
+        _send_notify "Renew $Le_Domain skipped" "Good, the cert is skipped." "$NOTIFY_HOOK" "$RENEW_SKIP"
+      fi
+    fi
     return "$RENEW_SKIP"
   fi
 
@@ -5210,6 +5187,17 @@ renew() {
   fi
 
   _ACME_IS_RENEW=""
+  if [ -z "$_ACME_IN_RENEWALL" ]; then
+    if [ "$res" = "0" ]; then
+      if [ $_set_level -ge $NOTIFY_LEVEL_RENEW ]; then
+        _send_notify "Renew $d success" "Good, the cert is renewed." "$NOTIFY_HOOK" 0
+      fi
+    else
+      if [ $_set_level -ge $NOTIFY_LEVEL_ERROR ]; then
+        _send_notify "Renew $d error" "There is an error." "$NOTIFY_HOOK" 1
+      fi
+    fi
+  fi
 
   return "$res"
 }
@@ -5227,6 +5215,7 @@ renewAll() {
   _notify_code=$RENEW_SKIP
   _set_level=${NOTIFY_LEVEL:-$NOTIFY_LEVEL_DEFAULT}
   _debug "_set_level" "$_set_level"
+  export _ACME_IN_RENEWALL=1
   for di in "${CERT_HOME}"/*.*/; do
     _debug di "$di"
     if ! [ -d "$di" ]; then
@@ -5249,13 +5238,13 @@ renewAll() {
         _error_level="$NOTIFY_LEVEL_RENEW"
         _notify_code=0
       fi
-      if [ "$_ACME_IN_CRON" ]; then
-        if [ $_set_level -ge $NOTIFY_LEVEL_RENEW ]; then
-          if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
-            _send_notify "Renew $d success" "Good, the cert is renewed." "$NOTIFY_HOOK" 0
-          fi
+
+      if [ $_set_level -ge $NOTIFY_LEVEL_RENEW ]; then
+        if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
+          _send_notify "Renew $d success" "Good, the cert is renewed." "$NOTIFY_HOOK" 0
         fi
       fi
+
       _success_msg="${_success_msg}    $d
 "
     elif [ "$rc" = "$RENEW_SKIP" ]; then
@@ -5263,13 +5252,13 @@ renewAll() {
         _error_level="$NOTIFY_LEVEL_SKIP"
         _notify_code=$RENEW_SKIP
       fi
-      if [ "$_ACME_IN_CRON" ]; then
-        if [ $_set_level -ge $NOTIFY_LEVEL_SKIP ]; then
-          if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
-            _send_notify "Renew $d skipped" "Good, the cert is skipped." "$NOTIFY_HOOK" "$RENEW_SKIP"
-          fi
+
+      if [ $_set_level -ge $NOTIFY_LEVEL_SKIP ]; then
+        if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
+          _send_notify "Renew $d skipped" "Good, the cert is skipped." "$NOTIFY_HOOK" "$RENEW_SKIP"
         fi
       fi
+
       _info "Skipped $d"
       _skipped_msg="${_skipped_msg}    $d
 "
@@ -5278,13 +5267,13 @@ renewAll() {
         _error_level="$NOTIFY_LEVEL_ERROR"
         _notify_code=1
       fi
-      if [ "$_ACME_IN_CRON" ]; then
-        if [ $_set_level -ge $NOTIFY_LEVEL_ERROR ]; then
-          if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
-            _send_notify "Renew $d error" "There is an error." "$NOTIFY_HOOK" 1
-          fi
+
+      if [ $_set_level -ge $NOTIFY_LEVEL_ERROR ]; then
+        if [ "$NOTIFY_MODE" = "$NOTIFY_MODE_CERT" ]; then
+          _send_notify "Renew $d error" "There is an error." "$NOTIFY_HOOK" 1
         fi
       fi
+
       _error_msg="${_error_msg}    $d
 "
       if [ "$_stopRenewOnError" ]; then
@@ -5299,7 +5288,7 @@ renewAll() {
   done
   _debug _error_level "$_error_level"
   _debug _set_level "$_set_level"
-  if [ "$_ACME_IN_CRON" ] && [ $_error_level -le $_set_level ]; then
+  if [ $_error_level -le $_set_level ]; then
     if [ -z "$NOTIFY_MODE" ] || [ "$NOTIFY_MODE" = "$NOTIFY_MODE_BULK" ]; then
       _msg_subject="Renew"
       if [ "$_error_msg" ]; then
@@ -6587,6 +6576,7 @@ Commands:
   --revoke                 Revoke a cert.
   --remove                 Remove the cert from list of certs known to $PROJECT_NAME.
   --list                   List all the certs.
+  --info                   Show the $PROJECT_NAME configs, or the configs for a domain with [-d domain] parameter.
   --to-pkcs12              Export the certificate and key to a pfx file.
   --to-pkcs8               Convert to pkcs8 format.
   --sign-csr               Issue a cert from an existing csr.
@@ -6904,6 +6894,28 @@ setdefaultchain() {
   _savecaconf "DEFAULT_PREFERRED_CHAIN" "$_preferred_chain"
 }
 
+#domain ecc
+info() {
+  _domain="$1"
+  _ecc="$2"
+  _initpath
+  if [ -z "$_domain" ]; then
+    _debug "Show global configs"
+    echo "LE_WORKING_DIR=$LE_WORKING_DIR"
+    echo "LE_CONFIG_HOME=$LE_CONFIG_HOME"
+    cat "$ACCOUNT_CONF_PATH"
+  else
+    _debug "Show domain configs"
+    (
+      _initpath "$_domain" "$_ecc"
+      echo "DOMAIN_CONF=$DOMAIN_CONF"
+      for seg in $(cat $DOMAIN_CONF | cut -d = -f 1); do
+        echo "$seg=$(_readdomainconf "$seg")"
+      done
+    )
+  fi
+}
+
 _process() {
   _CMD=""
   _domain=""
@@ -7012,6 +7024,9 @@ _process() {
       ;;
     --list)
       _CMD="list"
+      ;;
+    --info)
+      _CMD="info"
       ;;
     --install-cronjob | --installcronjob)
       _CMD="installcronjob"
@@ -7563,6 +7578,9 @@ _process() {
     ;;
   list)
     list "$_listraw" "$_domain"
+    ;;
+  info)
+    info "$_domain" "$_ecc"
     ;;
   installcronjob) installcronjob "$_confighome" ;;
   uninstallcronjob) uninstallcronjob ;;
