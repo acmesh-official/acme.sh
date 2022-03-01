@@ -24,7 +24,7 @@
 # export DEPLOY_SSH_BACKUP_PATH=".acme_ssh_deploy"  # path on remote system. Defaults to .acme_ssh_deploy
 # export DEPLOY_SSH_MULTI_CALL=""  # yes or no, default to no or previously saved value
 # export DEPLOY_SSH_USE_SCP="" yes or no , default to no
-# export DEPLOY_SSH_SCP_CMD="" defaults to "scp -T -q "
+# export DEPLOY_SSH_SCP_CMD="" defaults to "scp -q "
 #
 ########  Public functions #####################
 
@@ -53,7 +53,7 @@ ssh_deploy() {
     fi
   else
     Le_Deploy_ssh_user="$DEPLOY_SSH_USER"
-    _savedomainconf Le_Deploy_ssh_user "$Le_Deploy_ssh_user"
+    _savedeployconf Le_Deploy_ssh_user "$Le_Deploy_ssh_user"
   fi
 
   # SERVER is optional. If not provided then use _cdomain
@@ -61,7 +61,7 @@ ssh_deploy() {
   _debug2 DEPLOY_SSH_SERVER "$DEPLOY_SSH_SERVER"
   if [ -n "$DEPLOY_SSH_SERVER" ]; then
     Le_Deploy_ssh_server="$DEPLOY_SSH_SERVER"
-    _savedomainconf Le_Deploy_ssh_server "$Le_Deploy_ssh_server"
+    _savedeployconf Le_Deploy_ssh_server "$Le_Deploy_ssh_server"
   elif [ -z "$Le_Deploy_ssh_server" ]; then
     Le_Deploy_ssh_server="$_cdomain"
   fi
@@ -71,7 +71,7 @@ ssh_deploy() {
   _debug2 DEPLOY_SSH_CMD "$DEPLOY_SSH_CMD"
   if [ -n "$DEPLOY_SSH_CMD" ]; then
     Le_Deploy_ssh_cmd="$DEPLOY_SSH_CMD"
-    _savedomainconf Le_Deploy_ssh_cmd "$Le_Deploy_ssh_cmd"
+    _savedeployconf Le_Deploy_ssh_cmd "$Le_Deploy_ssh_cmd"
   elif [ -z "$Le_Deploy_ssh_cmd" ]; then
     Le_Deploy_ssh_cmd="ssh -T"
   fi
@@ -80,7 +80,7 @@ ssh_deploy() {
   # value (which may be undefined... equivalent to "no").
   if [ "$DEPLOY_SSH_USE_SCP" = "yes" ]; then
     Le_Deploy_ssh_use_scp="yes"
-    _savedomainconf Le_Deploy_ssh_use_scp "$Le_Deploy_ssh_use_scp"
+    _savedeployconf Le_Deploy_ssh_use_scp "$Le_Deploy_ssh_use_scp"
   elif [ "$DEPLOY_SSH_USE_SCP" = "no" ]; then
     Le_Deploy_ssh_use_scp=""
     _cleardomainconf Le_Deploy_ssh_use_scp
@@ -89,9 +89,9 @@ ssh_deploy() {
   # SCP_CMD is optional. If not provided then use scp
   if [ -n "$DEPLOY_SSH_SCP_CMD" ]; then
     Le_Deploy_ssh_scp_cmd="$DEPLOY_SSH_SCP_CMD"
-    _savedomainconf Le_Deploy_ssh_scp_cmd "$Le_Deploy_ssh_scp_cmd"
+    _savedeployconf Le_Deploy_ssh_scp_cmd "$Le_Deploy_ssh_scp_cmd"
   elif [ -z "$Le_Deploy_ssh_scp_cmd" ]; then
-    Le_Deploy_ssh_scp_cmd="scp -T"
+    Le_Deploy_ssh_scp_cmd="scp -q"
   fi
 
   # BACKUP is optional. If not provided then default to previously saved value or yes.
@@ -102,7 +102,7 @@ ssh_deploy() {
   elif [ -z "$Le_Deploy_ssh_backup" ] || [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
     Le_Deploy_ssh_backup="yes"
   fi
-  _savedomainconf Le_Deploy_ssh_backup "$Le_Deploy_ssh_backup"
+  _savedeployconf Le_Deploy_ssh_backup "$Le_Deploy_ssh_backup"
 
   # BACKUP_PATH is optional. If not provided then default to previously saved value or .acme_ssh_deploy
   _getdeployconf DEPLOY_SSH_BACKUP_PATH
@@ -112,7 +112,7 @@ ssh_deploy() {
   elif [ -z "$Le_Deploy_ssh_backup_path" ]; then
     Le_Deploy_ssh_backup_path=".acme_ssh_deploy"
   fi
-  _savedomainconf Le_Deploy_ssh_backup_path "$Le_Deploy_ssh_backup_path"
+  _savedeployconf Le_Deploy_ssh_backup_path "$Le_Deploy_ssh_backup_path"
 
   # MULTI_CALL is optional. If not provided then default to previously saved
   # value (which may be undefined... equivalent to "no").
@@ -120,7 +120,7 @@ ssh_deploy() {
   _debug2 DEPLOY_SSH_MULTI_CALL "$DEPLOY_SSH_MULTI_CALL"
   if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
     Le_Deploy_ssh_multi_call="yes"
-    _savedomainconf Le_Deploy_ssh_multi_call "$Le_Deploy_ssh_multi_call"
+    _savedeployconf Le_Deploy_ssh_multi_call "$Le_Deploy_ssh_multi_call"
   elif [ "$DEPLOY_SSH_MULTI_CALL" = "no" ]; then
     Le_Deploy_ssh_multi_call=""
     _cleardomainconf Le_Deploy_ssh_multi_call
@@ -130,9 +130,9 @@ ssh_deploy() {
   # value (which may be undefined... equivalent to "no").
   if [ "$DEPLOY_SSH_USE_SCP" = "yes" ]; then
     Le_Deploy_ssh_use_scp="yes"
-    _savedomainconf Le_Deploy_ssh_use_scp "$Le_Deploy_ssh_use_scp"
+    _savedeployconf Le_Deploy_ssh_use_scp "$Le_Deploy_ssh_use_scp"
     Le_Deploy_ssh_multi_call="yes"
-    _savedomainconf Le_Deploy_ssh_multi_call "$Le_Deploy_ssh_multi_call"
+    _savedeployconf Le_Deploy_ssh_multi_call "$Le_Deploy_ssh_multi_call"
   elif [ "$DEPLOY_SSH_USE_SCP" = "no" ]; then
     Le_Deploy_ssh_use_scp=""
     _cleardomainconf Le_Deploy_ssh_use_scp
@@ -141,7 +141,7 @@ ssh_deploy() {
   # SCP_CMD is optional. If not provided then use scp
   if [ -n "$DEPLOY_SSH_SCP_CMD" ]; then
     Le_Deploy_ssh_scp_cmd="$DEPLOY_SSH_SCP_CMD"
-    _savedomainconf Le_Deploy_ssh_scp_cmd "$Le_Deploy_ssh_scp_cmd"
+    _savedeployconf Le_Deploy_ssh_scp_cmd "$Le_Deploy_ssh_scp_cmd"
   elif [ -z "$Le_Deploy_ssh_scp_cmd" ]; then
     Le_Deploy_ssh_scp_cmd="scp -T -q "
   fi
@@ -165,7 +165,7 @@ _ssh_deploy() {
   if [ "$Le_Deploy_ssh_use_scp" = "yes" ]; then
     _info "Using scp as alternate method for copying files. Multicall Mode is implicit"
     Le_Deploy_ssh_multi_call="yes"
-    _savedomainconf Le_Deploy_ssh_multi_call "$Le_Deploy_ssh_multi_call"
+    _savedeployconf Le_Deploy_ssh_multi_call "$Le_Deploy_ssh_multi_call"
   fi
   if [ "$Le_Deploy_ssh_multi_call" = "yes" ]; then
     _info "Using MULTI_CALL mode... Required commands sent in multiple calls to remote host"
@@ -200,7 +200,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
   _debug2 DEPLOY_SSH_KEYFILE "$DEPLOY_SSH_KEYFILE"
   if [ -n "$DEPLOY_SSH_KEYFILE" ]; then
     Le_Deploy_ssh_keyfile="$DEPLOY_SSH_KEYFILE"
-    _savedomainconf Le_Deploy_ssh_keyfile "$Le_Deploy_ssh_keyfile"
+    _savedeployconf Le_Deploy_ssh_keyfile "$Le_Deploy_ssh_keyfile"
   fi
   if [ -n "$Le_Deploy_ssh_keyfile" ]; then
     if [ "$Le_Deploy_ssh_backup" = "yes" ]; then
@@ -238,7 +238,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
   _debug2 DEPLOY_SSH_CERTFILE "$DEPLOY_SSH_CERTFILE"
   if [ -n "$DEPLOY_SSH_CERTFILE" ]; then
     Le_Deploy_ssh_certfile="$DEPLOY_SSH_CERTFILE"
-    _savedomainconf Le_Deploy_ssh_certfile "$Le_Deploy_ssh_certfile"
+    _savedeployconf Le_Deploy_ssh_certfile "$Le_Deploy_ssh_certfile"
   fi
   if [ -n "$Le_Deploy_ssh_certfile" ]; then
     _pipe=">"
@@ -288,7 +288,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
   _debug2 DEPLOY_SSH_CAFILE "$DEPLOY_SSH_CAFILE"
   if [ -n "$DEPLOY_SSH_CAFILE" ]; then
     Le_Deploy_ssh_cafile="$DEPLOY_SSH_CAFILE"
-    _savedomainconf Le_Deploy_ssh_cafile "$Le_Deploy_ssh_cafile"
+    _savedeployconf Le_Deploy_ssh_cafile "$Le_Deploy_ssh_cafile"
   fi
   if [ -n "$Le_Deploy_ssh_cafile" ]; then
     _pipe=">"
@@ -346,7 +346,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
   _debug2 DEPLOY_SSH_FULLCHAIN "$DEPLOY_SSH_FULLCHAIN"
   if [ -n "$DEPLOY_SSH_FULLCHAIN" ]; then
     Le_Deploy_ssh_fullchain="$DEPLOY_SSH_FULLCHAIN"
-    _savedomainconf Le_Deploy_ssh_fullchain "$Le_Deploy_ssh_fullchain"
+    _savedeployconf Le_Deploy_ssh_fullchain "$Le_Deploy_ssh_fullchain"
   fi
   if [ -n "$Le_Deploy_ssh_fullchain" ]; then
     _pipe=">"
@@ -418,7 +418,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
   _debug2 DEPLOY_SSH_REMOTE_CMD "$DEPLOY_SSH_REMOTE_CMD"
   if [ -n "$DEPLOY_SSH_REMOTE_CMD" ]; then
     Le_Deploy_ssh_remote_cmd="$DEPLOY_SSH_REMOTE_CMD"
-    _savedomainconf Le_Deploy_ssh_remote_cmd "$Le_Deploy_ssh_remote_cmd"
+    _savedeployconf Le_Deploy_ssh_remote_cmd "$Le_Deploy_ssh_remote_cmd"
   fi
   if [ -n "$Le_Deploy_ssh_remote_cmd" ]; then
     _cmdstr="$_cmdstr $Le_Deploy_ssh_remote_cmd;"
