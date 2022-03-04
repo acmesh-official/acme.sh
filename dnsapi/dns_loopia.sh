@@ -206,24 +206,26 @@ _loopia_add_record() {
         <value><string>%s</string></value>
       </param>
       <param>
-        <struct>
-          <member>
-            <name>type</name>
-            <value><string>TXT</string></value>
-          </member>
-          <member>
-            <name>priority</name>
-            <value><int>0</int></value>
-          </member>
-          <member>
-            <name>ttl</name>
-            <value><int>300</int></value>
-          </member>
-          <member>
-            <name>rdata</name>
-            <value><string>%s</string></value>
-          </member>
-        </struct>
+        <value>
+          <struct>
+            <member>
+              <name>type</name>
+              <value><string>TXT</string></value>
+            </member>
+            <member>
+              <name>priority</name>
+              <value><int>0</int></value>
+            </member>
+            <member>
+              <name>ttl</name>
+              <value><int>300</int></value>
+            </member>
+            <member>
+              <name>rdata</name>
+              <value><string>%s</string></value>
+            </member>
+          </struct>
+        </value>
       </param>
     </params>
   </methodCall>' $LOOPIA_User $LOOPIA_Password "$domain" "$sub_domain" "$txtval")
