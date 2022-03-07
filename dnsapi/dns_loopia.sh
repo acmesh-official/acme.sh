@@ -133,7 +133,7 @@ _loopia_get_records() {
         <value><string>%s</string></value>
       </param>
     </params>
-  </methodCall>' $LOOPIA_User $LOOPIA_Password "$domain" "$sub_domain")
+  </methodCall>' "$LOOPIA_User" "$LOOPIA_Password" "$domain" "$sub_domain")
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
   if ! _contains "$response" "<array>"; then
@@ -162,7 +162,7 @@ _get_root() {
     <value><string>%s</string></value>
    </param>
   </params>
-  </methodCall>' $LOOPIA_User $LOOPIA_Password)
+  </methodCall>' "$LOOPIA_User" "$LOOPIA_Password")
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
   while true; do
@@ -206,27 +206,29 @@ _loopia_add_record() {
         <value><string>%s</string></value>
       </param>
       <param>
-        <struct>
-          <member>
-            <name>type</name>
-            <value><string>TXT</string></value>
-          </member>
-          <member>
-            <name>priority</name>
-            <value><int>0</int></value>
-          </member>
-          <member>
-            <name>ttl</name>
-            <value><int>300</int></value>
-          </member>
-          <member>
-            <name>rdata</name>
-            <value><string>%s</string></value>
-          </member>
-        </struct>
+        <value>
+          <struct>
+            <member>
+              <name>type</name>
+              <value><string>TXT</string></value>
+            </member>
+            <member>
+              <name>priority</name>
+              <value><int>0</int></value>
+            </member>
+            <member>
+              <name>ttl</name>
+              <value><int>300</int></value>
+            </member>
+            <member>
+              <name>rdata</name>
+              <value><string>%s</string></value>
+            </member>
+          </struct>
+        </value>
       </param>
     </params>
-  </methodCall>' $LOOPIA_User $LOOPIA_Password "$domain" "$sub_domain" "$txtval")
+  </methodCall>' "$LOOPIA_User" "$LOOPIA_Password" "$domain" "$sub_domain" "$txtval")
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
 
@@ -255,7 +257,7 @@ _sub_domain_exists() {
         <value><string>%s</string></value>
       </param>
     </params>
-  </methodCall>' $LOOPIA_User $LOOPIA_Password "$domain")
+  </methodCall>' "$LOOPIA_User" "$LOOPIA_Password" "$domain")
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
 
@@ -290,7 +292,7 @@ _loopia_add_sub_domain() {
         <value><string>%s</string></value>
       </param>
     </params>
-  </methodCall>' $LOOPIA_User $LOOPIA_Password "$domain" "$sub_domain")
+  </methodCall>' "$LOOPIA_User" "$LOOPIA_Password" "$domain" "$sub_domain")
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
 
