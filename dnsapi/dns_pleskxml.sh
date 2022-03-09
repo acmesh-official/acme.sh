@@ -41,7 +41,7 @@ pleskxml_init_checks_done=0
 NEWLINE='\
 '
 
-pleskxml_tplt_get_domains="<packet><customer><get-domain-list><filter/></get-domain-list></customer></packet>"
+pleskxml_tplt_get_domains="<packet><webspace><get><filter/><dataset><gen_info/></dataset></get></webspace></packet>"
 # Get a list of domains that PLESK can manage, so we can check root domain + host for acme.sh
 # Also used to test credentials and URI.
 # No params.
@@ -375,7 +375,7 @@ _pleskxml_get_root_domain() {
   # Output will be one line per known domain, containing 2 <name> tages and a single <id> tag
   # We don't actually need to check for type, name, *and* id, but it guarantees only usable lines are returned.
 
-  output="$(_api_response_split "$pleskxml_prettyprint_result" 'domain' '<type>domain</type>' | sed 's/<ascii-name>/<name>/g;s/<\/ascii-name>/<\/name>/g' | grep '<name>' | grep '<id>')"
+  output="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>ok</status>' | sed 's/<ascii-name>/<name>/g;s/<\/ascii-name>/<\/name>/g' | grep '<name>' | grep '<id>')"
 
   _debug 'Domains managed by Plesk server are (ignore the hacked output):'
   _debug "$output"
