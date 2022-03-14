@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.0.2
+VER=3.0.3
 
 PROJECT_NAME="acme.sh"
 
@@ -1141,13 +1141,19 @@ _createkey() {
 
   _debug "Use length $length"
 
-  if ! touch "$f" >/dev/null 2>&1; then
-    _f_path="$(dirname "$f")"
-    _debug _f_path "$_f_path"
-    if ! mkdir -p "$_f_path"; then
-      _err "Can not create path: $_f_path"
+  if ! [ -e "$f" ]; then
+    if ! touch "$f" >/dev/null 2>&1; then
+      _f_path="$(dirname "$f")"
+      _debug _f_path "$_f_path"
+      if ! mkdir -p "$_f_path"; then
+        _err "Can not create path: $_f_path"
+        return 1
+      fi
+    fi
+    if ! touch "$f" >/dev/null 2>&1; then
       return 1
     fi
+    chmod 600 "$f"
   fi
 
   if _isEccKey "$length"; then
@@ -1495,7 +1501,6 @@ _create_account_key() {
   else
     #generate account key
     if _createkey "$length" "$ACCOUNT_KEY_PATH"; then
-      chmod 600 "$ACCOUNT_KEY_PATH"
       _info "Create account key ok."
       return 0
     else
@@ -5611,8 +5616,9 @@ _installcert() {
     if [ -f "$_real_key" ]; then
       cat "$CERT_KEY_PATH" >"$_real_key" || return 1
     else
-      cat "$CERT_KEY_PATH" >"$_real_key" || return 1
+      touch "$_real_key" || return 1
       chmod 600 "$_real_key"
+      cat "$CERT_KEY_PATH" >"$_real_key" || return 1
     fi
   fi
 

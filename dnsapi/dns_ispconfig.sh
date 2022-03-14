@@ -32,7 +32,7 @@ dns_ispconfig_rm() {
 ####################  Private functions below ##################################
 
 _ISPC_credentials() {
-  if [ -z "${ISPC_User}" ] || [ -z "$ISPC_Password" ] || [ -z "${ISPC_Api}" ] || [ -n "${ISPC_Api_Insecure}" ]; then
+  if [ -z "${ISPC_User}" ] || [ -z "$ISPC_Password" ] || [ -z "${ISPC_Api}" ] || [ -z "${ISPC_Api_Insecure}" ]; then
     ISPC_User=""
     ISPC_Password=""
     ISPC_Api=""
