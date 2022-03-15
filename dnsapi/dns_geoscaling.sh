@@ -58,6 +58,17 @@ dns_geoscaling_rm() {
   txt_value=$2
   _info "Cleaning up after DNS-01 Geoscaling DNS2 hook"
 
+  GEOSCALING_Username="${GEOSCALING_Username:-$(_readaccountconf_mutable GEOSCALING_Username)}"
+  GEOSCALING_Password="${GEOSCALING_Password:-$(_readaccountconf_mutable GEOSCALING_Password)}"
+  if [ -z "$GEOSCALING_Username" ] || [ -z "$GEOSCALING_Password" ]; then
+    GEOSCALING_Username=
+    GEOSCALING_Password=
+    _err "No auth details provided. Please set user credentials using the \$GEOSCALING_Username and \$GEOSCALING_Password environment variables."
+    return 1
+  fi
+  _saveaccountconf_mutable GEOSCALING_Username "${GEOSCALING_Username}"
+  _saveaccountconf_mutable GEOSCALING_Password "${GEOSCALING_Password}"
+
   # fills in the $zone_id
   find_zone "${full_domain}" || return 1
   _debug "Zone id '${zone_id}' will be used."
