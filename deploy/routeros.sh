@@ -70,6 +70,7 @@ routeros_deploy() {
   _ccert="$3"
   _cca="$4"
   _cfullchain="$5"
+  _err_code=0
 
   _debug _cdomain "$_cdomain"
   _debug _ckey "$_ckey"
@@ -146,14 +147,35 @@ source=\"/certificate remove [ find name=$_cdomain.cer_0 ];\
 \n$ROUTER_OS_ADDITIONAL_SERVICES;\
 \n\"
 "
-  _debug DEPLOY_SCRIPT_CMD "${DEPLOY_SCRIPT_CMD}"
 
-  # shellcheck disable=SC2029
-  $ROUTER_OS_SSH_CMD "$ROUTER_OS_USERNAME@$ROUTER_OS_HOST" "$DEPLOY_SCRIPT_CMD"
-  # shellcheck disable=SC2029
-  $ROUTER_OS_SSH_CMD "$ROUTER_OS_USERNAME@$ROUTER_OS_HOST" "/system script run \"LE Cert Deploy - $_cdomain\""
-  # shellcheck disable=SC2029
-  $ROUTER_OS_SSH_CMD "$ROUTER_OS_USERNAME@$ROUTER_OS_HOST" "/system script remove \"LE Cert Deploy - $_cdomain\""
+  if ! _ssh_remote_cmd "$DEPLOY_SCRIPT_CMD"; then
+    return $_err_code
+  fi
+
+  if ! _ssh_remote_cmd "/system script run \"LE Cert Deploy - $_cdomain\""; then
+    return $_err_code
+  fi
+
+  if ! _ssh_remote_cmd "/system script remove \"LE Cert Deploy - $_cdomain\""; then
+    return $_err_code
+  fi
 
   return 0
+}
+
+# inspired by deploy/ssh.sh
+_ssh_remote_cmd() {
+  _cmd="$1"
+  _secure_debug "Remote commands to execute: $_cmd"
+  _info "Submitting sequence of commands to routeros"
+  # quotations in bash cmd below intended.  Squash travis spellcheck error
+  # shellcheck disable=SC2029
+  $ROUTER_OS_SSH_CMD "$ROUTER_OS_USERNAME@$ROUTER_OS_HOST" "$_cmd"
+  _err_code="$?"
+
+  if [ "$_err_code" != "0" ]; then
+    _err "Error code $_err_code returned from routeros"
+  fi
+
+  return $_err_code
 }
