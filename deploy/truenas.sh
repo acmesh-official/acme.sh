@@ -125,7 +125,7 @@ truenas_deploy() {
     _debug _webdav_cert_id "$_webdav_cert_id"
     _webdav_data="{\"certssl\": \"${_cert_id}\"}"
     _activate_webdav_cert="$(_post "$_webdav_data" "$_api_url/webdav" "" "PUT" "application/json")"
-    _webdav_new_cert_id=$(echo "$_activate_webdav_cert" | _json_decode | sed -n 's/.*: \([0-9]\{1,\}\) }$/\1/p')
+    _webdav_new_cert_id=$(echo "$_activate_webdav_cert" | _json_decode | grep '"certssl":' | sed -n 's/.*: \([0-9]\{1,\}\),\{0,1\}$/\1/p')
     if [ "$_webdav_new_cert_id" -eq "$_cert_id" ]; then
       _info "WebDAV Certificate update successfully"
     else
@@ -148,7 +148,7 @@ truenas_deploy() {
     _debug _ftp_cert_id "$_ftp_cert_id"
     _ftp_data="{\"ssltls_certificate\": \"${_cert_id}\"}"
     _activate_ftp_cert="$(_post "$_ftp_data" "$_api_url/ftp" "" "PUT" "application/json")"
-    _ftp_new_cert_id=$(echo "$_activate_ftp_cert" | _json_decode | sed -n 's/.*: \([0-9]\{1,\}\) }$/\1/p')
+    _ftp_new_cert_id=$(echo "$_activate_ftp_cert" | _json_decode | grep '"ssltls_certificate":' | sed -n 's/.*: \([0-9]\{1,\}\),\{0,1\}$/\1/p')
     if [ "$_ftp_new_cert_id" -eq "$_cert_id" ]; then
       _info "FTP Certificate update successfully"
     else
