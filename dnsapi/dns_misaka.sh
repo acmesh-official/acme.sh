@@ -47,7 +47,7 @@ dns_misaka_add() {
   if [ "$count" = "0" ]; then
     _info "Adding record"
 
-    if _misaka_rest PUT "zones/${_domain}/recordsets/${_sub_domain}/TXT" "{\"records\":[{\"value\":\"\\\"$txtvalue\\\"\"}],\"filters\":[],\"ttl\":1}"; then
+    if _misaka_rest POST "zones/${_domain}/recordsets/${_sub_domain}/TXT" "{\"records\":[{\"value\":\"\\\"$txtvalue\\\"\"}],\"filters\":[],\"ttl\":1}"; then
       _debug response "$response"
       if _contains "$response" "$_sub_domain"; then
         _info "Added"
@@ -61,7 +61,7 @@ dns_misaka_add() {
   else
     _info "Updating record"
 
-    _misaka_rest POST "zones/${_domain}/recordsets/${_sub_domain}/TXT?append=true" "{\"records\": [{\"value\": \"\\\"$txtvalue\\\"\"}],\"ttl\":1}"
+    _misaka_rest PUT "zones/${_domain}/recordsets/${_sub_domain}/TXT?append=true" "{\"records\": [{\"value\": \"\\\"$txtvalue\\\"\"}],\"ttl\":1}"
     if [ "$?" = "0" ] && _contains "$response" "$_sub_domain"; then
       _info "Updated!"
       #todo: check if the record takes effect

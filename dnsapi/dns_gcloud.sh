@@ -78,8 +78,8 @@ _dns_gcloud_execute_tr() {
   for i in $(seq 1 120); do
     if gcloud dns record-sets changes list \
       --zone="$managedZone" \
-      --filter='status != done' \
-      | grep -q '^.*'; then
+      --filter='status != done' |
+      grep -q '^.*'; then
       _info "_dns_gcloud_execute_tr: waiting for transaction to be comitted ($i/120)..."
       sleep 5
     else
@@ -137,11 +137,11 @@ _dns_gcloud_find_zone() {
   # List domains and find the zone with the deepest sub-domain (in case of some levels of delegation)
   if ! match=$(gcloud dns managed-zones list \
     --format="value(name, dnsName)" \
-    --filter="$filter" \
-    | while read -r dnsName name; do
+    --filter="$filter" |
+    while read -r dnsName name; do
       printf "%s\t%s\t%s\n" "$(echo "$name" | awk -F"." '{print NF-1}')" "$dnsName" "$name"
-    done \
-      | sort -n -r | _head_n 1 | cut -f2,3 | grep '^.*'); then
+    done |
+    sort -n -r | _head_n 1 | cut -f2,3 | grep '^.*'); then
     _err "_dns_gcloud_find_zone: Can't find a matching managed zone! Perhaps wrong project or gcloud credentials?"
     return 1
   fi
@@ -163,5 +163,8 @@ _dns_gcloud_get_rrdatas() {
     return 1
   fi
   ttl=$(echo "$rrdatas" | cut -f1)
-  rrdatas=$(echo "$rrdatas" | cut -f2 | sed 's/","/"\n"/g')
+  # starting with version 353.0.0 gcloud seems to
+  # separate records with a semicolon instead of commas
+  # see also https://cloud.google.com/sdk/docs/release-notes#35300_2021-08-17
+  rrdatas=$(echo "$rrdatas" | cut -f2 | sed 's/"[,;]"/"\n"/g')
 }

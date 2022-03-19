@@ -2,15 +2,68 @@
 name: Build DockerHub
 on:
   push:
-    branches: [ master, dev ]
+    branches:
+      - '*'
+    tags:
+      - '*'
+    paths:
+      - '**.sh'
+      - "Dockerfile"
+      - '.github/workflows/dockerhub.yml'
+
     
 jobs:
+  CheckToken:
+    runs-on: ubuntu-latest
+    outputs:
+      hasToken: ${{ steps.step_one.outputs.hasToken }}
+    env: 
+      DOCKER_PASSWORD : ${{ secrets.DOCKER_PASSWORD }}
+    steps:
+      - name: Set the value
+        id: step_one
+        run: |
+          if [ "$DOCKER_PASSWORD" ] ; then
+            echo "::set-output name=hasToken::true"
+          else
+            echo "::set-output name=hasToken::false"
+          fi
+      - name: Check the value
+        run: echo ${{ steps.step_one.outputs.hasToken }}
+        
   build:
     runs-on: ubuntu-latest
+    needs: CheckToken
+    if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
     steps:
-    - name: trigger
-      run: curl -X POST https://hub.docker.com/api/build/v1/source/1813a660-2ee5-4583-a238-dd54e9a6ebac/trigger/c8cd9f1f-f269-45bc-9750-a08327257f62/call/
-    
-    
+      - name: checkout code
+        uses: actions/checkout@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: login to docker hub
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      - name: build and push the image
+        run: |
+          DOCKER_IMAGE=neilpang/acme.sh
 
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            DOCKER_IMAGE_TAG=${GITHUB_REF#refs/tags/}
+          fi
 
+          if [[ $GITHUB_REF == refs/heads/* ]]; then
+            DOCKER_IMAGE_TAG=${GITHUB_REF#refs/heads/}
+
+            if [[ $DOCKER_IMAGE_TAG == master ]]; then
+              DOCKER_IMAGE_TAG=latest
+              AUTO_UPGRADE=1
+            fi
+          fi
+
+          docker buildx build \
+            --tag ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG} \
+            --output "type=image,push=true" \
+            --build-arg AUTO_UPGRADE=${AUTO_UPGRADE} \
+            --platform linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7,linux/386,linux/ppc64le,linux/s390x .

@@ -166,7 +166,7 @@ _get_root() {
     if _contains "$_all_domains" "^$h$"; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain=$h
-      _service=$(printf "%s" "$response" | grep "idn-name=\"$_domain\"" | sed -r "s/.*service=\"(.*)\".*$/\1/")
+      _service=$(printf "%s" "$response" | grep -m 1 "idn-name=\"$_domain\"" | sed -r "s/.*service=\"(.*)\".*$/\1/")
       return 0
     fi
     p="$i"

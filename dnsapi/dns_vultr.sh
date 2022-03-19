@@ -33,7 +33,7 @@ dns_vultr_add() {
   _debug 'Getting txt records'
   _vultr_rest GET "dns/records?domain=$_domain"
 
-  if printf "%s\n" "$response" | grep "\"type\":\"TXT\",\"name\":\"$fulldomain\"" >/dev/null; then
+  if printf "%s\n" "$response" | grep -- "\"type\":\"TXT\",\"name\":\"$fulldomain\"" >/dev/null; then
     _err 'Error'
     return 1
   fi
@@ -73,12 +73,12 @@ dns_vultr_rm() {
   _debug 'Getting txt records'
   _vultr_rest GET "dns/records?domain=$_domain"
 
-  if printf "%s\n" "$response" | grep "\"type\":\"TXT\",\"name\":\"$fulldomain\"" >/dev/null; then
+  if printf "%s\n" "$response" | grep -- "\"type\":\"TXT\",\"name\":\"$fulldomain\"" >/dev/null; then
     _err 'Error'
     return 1
   fi
 
-  _record_id="$(echo "$response" | tr '{}' '\n' | grep '"TXT"' | grep "$txtvalue" | tr ',' '\n' | grep -i 'RECORDID' | cut -d : -f 2)"
+  _record_id="$(echo "$response" | tr '{}' '\n' | grep '"TXT"' | grep -- "$txtvalue" | tr ',' '\n' | grep -i 'RECORDID' | cut -d : -f 2)"
   _debug _record_id "$_record_id"
   if [ "$_record_id" ]; then
     _info "Successfully retrieved the record id for ACME challenge."
