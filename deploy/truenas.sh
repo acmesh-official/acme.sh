@@ -159,7 +159,30 @@ truenas_deploy() {
     fi
     _debug3 _activate_ftp_cert "$_activate_ftp_cert"
   else
-    _info "FTP certificate not set or not the same as Web UI"
+    _info "FTP certificate is not configured or is not the same as TrueNAS web UI"
+  fi
+
+  _info "Checking if S3 certificate is the same as the TrueNAS web UI"
+  _s3_list=$(_get "$_api_url/s3")
+  _s3_cert_id=$(echo "$_s3_list" | grep '"certificate":' | tr -d -- '"certifa:_ ,')
+
+  if [ "$_s3_cert_id" = "$_active_cert_id" ]; then
+    _info "Updating the S3 certificate"
+    _debug _s3_cert_id "$_s3_cert_id"
+    _s3_data="{\"certificate\": \"${_cert_id}\"}"
+    _activate_s3_cert="$(_post "$_s3_data" "$_api_url/s3" "" "PUT" "application/json")"
+    _s3_new_cert_id=$(echo "$_activate_s3_cert" | _json_decode | grep '"certificate":' | sed -n 's/.*: \([0-9]\{1,\}\),\{0,1\}$/\1/p')
+    if [ "$_s3_new_cert_id" -eq "$_cert_id" ]; then
+      _info "S3 certificate updated successfully"
+    else
+      _err "Unable to set S3 certificate"
+      _debug3 _activate_s3_cert "$_activate_s3_cert"
+      _debug3 _s3_new_cert_id "$_s3_new_cert_id"
+      return 1
+    fi
+    _debug3 _activate_s3_cert "$_activate_s3_cert"
+  else
+    _info "S3 certificate is not configured or is not the same as TrueNAS web UI"
   fi
 
   _info "Delete old Certificate"
