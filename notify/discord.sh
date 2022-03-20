@@ -23,12 +23,12 @@ discord_send() {
   _saveaccountconf_mutable DISCORD_WEBHOOK_URL "$DISCORD_WEBHOOK_URL"
 
   DISCORD_USERNAME="${DISCORD_USERNAME:-$(_readaccountconf_mutable DISCORD_USERNAME)}"
-  if [ -n "$DISCORD_USERNAME" ]; then
+  if [ "$DISCORD_USERNAME" ]; then
     _saveaccountconf_mutable DISCORD_USERNAME "$DISCORD_USERNAME"
   fi
 
   DISCORD_AVATAR_URL="${DISCORD_AVATAR_URL:-$(_readaccountconf_mutable DISCORD_AVATAR_URL)}"
-  if [ -n "$DISCORD_AVATAR_URL" ]; then
+  if [ "$DISCORD_AVATAR_URL" ]; then
     _saveaccountconf_mutable DISCORD_AVATAR_URL "$DISCORD_AVATAR_URL"
   fi
 
@@ -36,10 +36,10 @@ discord_send() {
 
   _content="$(printf "**%s**\n%s" "$_subject" "$_content" | _json_encode)"
   _data="{\"content\": \"$_content\" "
-  if [ -n "$DISCORD_USERNAME" ]; then
+  if [ "$DISCORD_USERNAME" ]; then
     _data="$_data, \"username\": \"$DISCORD_USERNAME\" "
   fi
-  if [ -n "$DISCORD_AVATAR_URL" ]; then
+  if [ "$DISCORD_AVATAR_URL" ]; then
     _data="$_data, \"avatar_url\": \"$DISCORD_AVATAR_URL\" "
   fi
   _data="$_data}"
