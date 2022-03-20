@@ -67,7 +67,21 @@ hpilo_deploy() {
 
   _info "Attempting to deploy certificate '$_ccert' to '$Le_Deploy_ilo_host'"
 
-  curl -sS -k -X POST -H "Content-Type: application/json" -d "{ \"Action\": \"ImportCertificate\", \"Certificate\": \"$(cat "$_ccert")\" }" -u "${Le_Deploy_ilo_username}":"${Le_Deploy_ilo_password}" "https://${Le_Deploy_ilo_host}/redfish/v1/Managers/1/SecurityService/HttpsCert/"
+  ilo_credentials="${Le_Deploy_ilo_username}:${Le_Deploy_ilo_password}"
+  _secure_debug "HPILO_USERNAME:HPILO_PASSWORD" $ilo_credentials
+  ilo_credentials_encoded=$(printf "%s" "$ilo_credentials" | _base64)
+  export _H1="Authorization: Basic ${ilo_credentials_encoded}"
+  _debug3 _H1 "$_H1"
+
+  ilo_redfish_httpscert_uri="https://${Le_Deploy_ilo_host}/redfish/v1/Managers/1/SecurityService/HttpsCert/"
+  _debug2 ilo_redfish_httpscert_uri "$ilo_redfish_httpscert_uri"
+  
+  ilo_redfish_httpscert_body="{ \"Action\": \"ImportCertificate\", \"Certificate\": \"$(cat "$_ccert")\" }"
+
+  # Do not check for a valid SSL certificate, because initially the cert is not valid, so it could not install the LE generated certificate
+  export HTTPS_INSECURE=1
+  
+  _post "$ilo_redfish_httpscert_body" "$ilo_redfish_httpscert_uri" "" "POST" "application/json"
   _ret="$?"
 
   if [ "$_ret" != "0" ]; then
