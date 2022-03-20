@@ -46,7 +46,7 @@ discord_send() {
 
   if _post "$_data" "$DISCORD_WEBHOOK_URL?wait=true"; then
     # shellcheck disable=SC2154
-    if [ -n "$response" ]; then
+    if [ "$response" ]; then
       _info "discord send success."
       return 0
     fi
