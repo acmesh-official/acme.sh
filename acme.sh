@@ -1845,7 +1845,9 @@ _inithttp() {
       _ACME_WGET="$_ACME_WGET --max-redirect 0 "
     fi
     if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
-      _ACME_WGET="$_ACME_WGET -d "
+      if [ "$_ACME_WGET" ] && _contains "$($_ACME_WGET --help 2>&1)" "--debug"; then
+        _ACME_WGET="$_ACME_WGET -d "
+      fi
     fi
     if [ "$CA_PATH" ]; then
       _ACME_WGET="$_ACME_WGET --ca-directory=$CA_PATH "
