@@ -54,9 +54,10 @@ dns_selfhost_add() {
   fi
 }
 
-dns_acmedns_rm() {
+dns_selfhost_rm() {
   domain=$1
   txt=$2
   _debug fulldomain "$domain"
   _debug txtvalue "$txt"
+  _info "Creating and removing of records is not supported by selfhost API, will not delete anything."
 }
