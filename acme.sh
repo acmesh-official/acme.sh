@@ -4263,7 +4263,13 @@ issue() {
       _debug _saved_domain "$_saved_domain"
       _saved_alt=$(_readdomainconf Le_Alt)
       _debug _saved_alt "$_saved_alt"
-      if [ "$_saved_domain,$_saved_alt" = "$_main_domain,$_alt_domains" ]; then
+      _normized_saved_domains="$(echo "$_saved_domain,$_saved_alt" | tr "," "\n" | sort | tr '\n' ',')"
+      _debug _normized_saved_domains "$_normized_saved_domains"
+
+      _normized_domains="$(echo "$_main_domain,$_alt_domains" | tr "," "\n" | sort | tr '\n' ',')"
+      _debug _normized_domains "$_normized_domains"
+
+      if [ "$_normized_saved_domains" = "$_normized_domains" ]; then
         _info "Domains not changed."
         _info "Skip, Next renewal time is: $(__green "$(_readdomainconf Le_NextRenewTimeStr)")"
         _info "Add '$(__red '--force')' to force to renew."
