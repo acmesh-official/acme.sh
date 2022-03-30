@@ -34,6 +34,9 @@ _ZERO_EAB_ENDPOINT="https://api.zerossl.com/acme/eab-credentials-email"
 CA_SSLCOM_RSA="https://acme.ssl.com/sslcom-dv-rsa"
 CA_SSLCOM_ECC="https://acme.ssl.com/sslcom-dv-ecc"
 
+CA_GOOGLE="https://dv.acme-v02.api.pki.goog/directory"
+CA_GOOGLE_TEST="https://dv.acme-v02.test-api.pki.goog/directory"
+
 DEFAULT_CA=$CA_ZEROSSL
 DEFAULT_STAGING_CA=$CA_LETSENCRYPT_V2_TEST
 
@@ -44,9 +47,11 @@ LetsEncrypt.org_test,letsencrypt_test,letsencrypttest
 BuyPass.com,buypass
 BuyPass.com_test,buypass_test,buypasstest
 SSL.com,sslcom
+Google.com,google
+Google.com_test,googletest,google_test
 "
 
-CA_SERVERS="$CA_ZEROSSL,$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_BUYPASS,$CA_BUYPASS_TEST,$CA_SSLCOM_RSA"
+CA_SERVERS="$CA_ZEROSSL,$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_BUYPASS,$CA_BUYPASS_TEST,$CA_SSLCOM_RSA,$CA_GOOGLE,$CA_GOOGLE_TEST"
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 
@@ -1845,7 +1850,9 @@ _inithttp() {
       _ACME_WGET="$_ACME_WGET --max-redirect 0 "
     fi
     if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
-      _ACME_WGET="$_ACME_WGET -d "
+      if [ "$_ACME_WGET" ] && _contains "$($_ACME_WGET --help 2>&1)" "--debug"; then
+        _ACME_WGET="$_ACME_WGET -d "
+      fi
     fi
     if [ "$CA_PATH" ]; then
       _ACME_WGET="$_ACME_WGET --ca-directory=$CA_PATH "
