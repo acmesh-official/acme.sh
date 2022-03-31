@@ -3758,7 +3758,7 @@ updateaccount() {
 
   _email="$(_getAccountEmail)"
 
-  if [ "$ACCOUNT_EMAIL" ]; then
+  if [ "$_email" ]; then
     updjson='{"contact": ["mailto:'$_email'"]}'
   else
     updjson='{"contact": []}'
