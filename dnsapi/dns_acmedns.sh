@@ -16,20 +16,45 @@
 #
 ########  Public functions #####################
 
+_root_domain() {
+  d=$1
+  cache='/tmp/dns_suffix.cache'
+  expiry='yesterday'
+  suffix_url='https://publicsuffix.org/list/public_suffix_list.dat'
+  [[ -s "${cache}" ]] || echo -n '' > "${cache}" # (re-)create empty cache
+  [[ $(stat -c '%Y' "${cache}") -lt $(date +%s -d "${expiry}") ]] && echo -n '' > "${cache}" # purge old cache
+  {
+    [[ -s "${cache}" ]] && cat "${cache}" # load from cache
+    [[ -s "${cache}" ]] || {              # save to cache
+        curl -so- "${suffix_url}" | # fetch from $suffix_url
+        sed 's/[#\/].*$//'        | # strip comments
+        sed 's/[*][.]//'          | # strip wildcard suffixes, like '*.nom.br'
+        sed '/^[\t ]*$/d'         | # delete blank lines
+        tr 'A-Z' 'a-z'            | # everything lowercase
+        awk '{print length, $0}'  | # prepend length of each line to each line
+        sort -n -r                | # sort longest-line-first
+        sed 's/^[0-9\t ]*//'      | # strip line length
+        tee "${cache}"              # load into cache, and send to stdout
+    }
+  } |
+  grep -E "${d/*./}$" | # optimisation - only include matching TLDs
+  while read suffix
+  do
+    echo "${d}" | grep -qE '[.]'"${suffix}"'$' || continue # if $domain does not end in .$suffix, get next suffix
+    c=$(echo $d | awk -F'.' '{ print NF }')
+    s=$(echo $suffix | awk -F'.' '{ print NF }')
+    i=$((c-s))
+    echo $(echo $d | cut -d . -f $i-100)
+    break                                                       # stop processing
+  done
+}
+
 #Usage: dns_acmedns_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 # Used to add txt record
 dns_acmedns_add() {
   fulldomain=$1
-  i=1
-  while [ -z "$d" ]; do
-    _d=$(printf "%s" "$fulldomain" | cut -d . -f $i-100)
-    c=$(echo $_d | awk -F'.' '{ print NF }')
-    if [[ $c < 4 && ( $(echo $_d | cut -d . -f 2) = "com" || $(echo $_d | cut -d . -f 3) = "" ) ]]; then
-      d=$_d
-    fi
-    i=$(_math "$i" + 1)
-  done
-  h="${d/./_}"
+  d=$(_root_domain $fulldomain)
+  h="${d//./_}"
   txtvalue=$2
   _info "Using acme-dns"
   _debug "fulldomain $fulldomain"
