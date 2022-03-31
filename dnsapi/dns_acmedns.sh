@@ -20,8 +20,15 @@
 # Used to add txt record
 dns_acmedns_add() {
   fulldomain=$1
-  i=2
-  d=$(printf "%s" "$fulldomain" | cut -d . -f $i-100)
+  i=1
+  while [ -z "$d" ]; do
+    _d=$(printf "%s" "$fulldomain" | cut -d . -f $i-100)
+    c=$(echo $_d | awk -F'.' '{ print NF }')
+    if [[ $c < 4 && ( $(echo $_d | cut -d . -f 2) = "com" || $(echo $_d | cut -d . -f 3) = "" ) ]]; then
+      d=$_d
+    fi
+    i=$(_math "$i" + 1)
+  done
   h="${d/./_}"
   txtvalue=$2
   _info "Using acme-dns"
