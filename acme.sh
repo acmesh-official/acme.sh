@@ -1789,7 +1789,7 @@ _date2time() {
     return
   fi
   #Mac/BSD
-  if date -u -j -f  "%Y-%m-%d %H:%M:%S" "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
+  if date -u -j -f "%Y-%m-%d %H:%M:%S" "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
     return
   fi
   _err "Can not parse _date2time $1"
