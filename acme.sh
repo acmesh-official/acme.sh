@@ -177,6 +177,8 @@ _SERVER_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Server"
 
 _PREFERRED_CHAIN_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Preferred-Chain"
 
+_VALIDITY_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Validity"
+
 _DNSCHECK_WIKI="https://github.com/acmesh-official/acme.sh/wiki/dnscheck"
 
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
@@ -1603,23 +1605,22 @@ _durl_replace_base64() {
 
 _time2str() {
   #BSD
-  if date -u -r "$1" 2>/dev/null; then
+  if date -u -r "$1" -j "+%Y-%m-%dT%H:%M:%SZ" 2>/dev/null; then
     return
   fi
 
   #Linux
-  if date -u -d@"$1" 2>/dev/null; then
+  if date -u --date=@"$1" "+%Y-%m-%dT%H:%M:%SZ" 2>/dev/null; then
     return
   fi
 
   #Solaris
-  if _exists adb; then
-    _t_s_a=$(echo "0t${1}=Y" | adb)
-    echo "$_t_s_a"
+  if printf "%(%Y-%m-%dT%H:%M:%SZ)T\n" $1 2>/dev/null; then
+    return
   fi
 
   #Busybox
-  if echo "$1" | awk '{ print strftime("%c", $0); }' 2>/dev/null; then
+  if echo "$1" | awk '{ print strftime("%Y-%m-%dT%H:%M:%SZ", $0); }' 2>/dev/null; then
     return
   fi
 }
@@ -1776,6 +1777,27 @@ _calcjwk() {
 
 _time() {
   date -u "+%s"
+}
+
+#support 2 formats:
+#    2022-04-01 08:10:33   to   1648800633
+#or  2022-04-01T08:10:33Z  to   1648800633
+_date2time() {
+  #Linux
+  if date -u -d "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
+    return
+  fi
+
+  #Solaris
+  if gdate -u -d "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
+    return
+  fi
+  #Mac/BSD
+  if date -u -j -f "%Y-%m-%d %H:%M:%S" "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
+    return
+  fi
+  _err "Can not parse _date2time $1"
+  return 1
 }
 
 _utc_date() {
@@ -3758,7 +3780,7 @@ updateaccount() {
 
   _email="$(_getAccountEmail)"
 
-  if [ "$ACCOUNT_EMAIL" ]; then
+  if [ "$_email" ]; then
     updjson='{"contact": ["mailto:'$_email'"]}'
   else
     updjson='{"contact": []}'
@@ -3768,7 +3790,7 @@ updateaccount() {
 
   if [ "$code" = '200' ]; then
     echo "$response" >"$ACCOUNT_JSON_PATH"
-    _info "account update success for $_accUri."
+    _info "Account update success for $_accUri."
   else
     _info "Error. The account was not updated."
     return 1
@@ -4207,6 +4229,40 @@ _getIdType() {
   fi
 }
 
+# beginTime dateTo
+# beginTime is full string format("2022-04-01T08:10:33Z"), beginTime can be empty, to use current time
+# dateTo can be ether in full string format("2022-04-01T08:10:33Z") or in delta format(+5d or +20h)
+_convertValidaty() {
+  _beginTime="$1"
+  _dateTo="$2"
+  _debug2 "_beginTime" "$_beginTime"
+  _debug2 "_dateTo" "$_dateTo"
+
+  if _startswith "$_dateTo" "+"; then
+    _v_begin=$(_time)
+    if [ "$_beginTime" ]; then
+      _v_begin="$(_date2time "$_beginTime")"
+    fi
+    _debug2 "_v_begin" "$_v_begin"
+    if _endswith "$_dateTo" "h"; then
+      _v_end=$(_math "$_v_begin + 60 * 60 * $(echo "$_dateTo" | tr -d '+h')")
+    elif _endswith "$_dateTo" "d"; then
+      _v_end=$(_math "$_v_begin + 60 * 60 * 24 * $(echo "$_dateTo" | tr -d '+d')")
+    else
+      _err "Not recognized format for _dateTo: $_dateTo"
+      return 1
+    fi
+    _debug2 "_v_end" "$_v_end"
+    _time2str "$_v_end"
+  else
+    if [ "$(_time)" -gt "$(_date2time "$_dateTo")" ]; then
+      _err "The validaty to is in the past: _dateTo = $_dateTo"
+      return 1
+    fi
+    echo "$_dateTo"
+  fi
+}
+
 #webroot, domain domainlist  keylength
 issue() {
   if [ -z "$2" ]; then
@@ -4240,6 +4296,8 @@ issue() {
   _local_addr="${13}"
   _challenge_alias="${14}"
   _preferred_chain="${15}"
+  _valid_from="${16}"
+  _valid_to="${17}"
 
   if [ -z "$_ACME_IS_RENEW" ]; then
     _initpath "$_main_domain" "$_key_length"
@@ -4263,7 +4321,13 @@ issue() {
       _debug _saved_domain "$_saved_domain"
       _saved_alt=$(_readdomainconf Le_Alt)
       _debug _saved_alt "$_saved_alt"
-      if [ "$_saved_domain,$_saved_alt" = "$_main_domain,$_alt_domains" ]; then
+      _normized_saved_domains="$(echo "$_saved_domain,$_saved_alt" | tr "," "\n" | sort | tr '\n' ',')"
+      _debug _normized_saved_domains "$_normized_saved_domains"
+
+      _normized_domains="$(echo "$_main_domain,$_alt_domains" | tr "," "\n" | sort | tr '\n' ',')"
+      _debug _normized_domains "$_normized_domains"
+
+      if [ "$_normized_saved_domains" = "$_normized_domains" ]; then
         _info "Domains not changed."
         _info "Skip, Next renewal time is: $(__green "$(_readdomainconf Le_NextRenewTimeStr)")"
         _info "Add '$(__red '--force')' to force to renew."
@@ -4375,12 +4439,52 @@ issue() {
       _identifiers="$_identifiers,{\"type\":\"$(_getIdType "$d")\",\"value\":\"$(_idn "$d")\"}"
     done
     _debug2 _identifiers "$_identifiers"
-    if ! _send_signed_request "$ACME_NEW_ORDER" "{\"identifiers\": [$_identifiers]}"; then
+    _notBefore=""
+    _notAfter=""
+
+    if [ "$_valid_from" ]; then
+      _savedomainconf "Le_Valid_From" "$_valid_from"
+      _debug2 "_valid_from" "$_valid_from"
+      _notBefore="$(_convertValidaty "" "$_valid_from")"
+      if [ "$?" != "0" ]; then
+        _err "Can not parse _valid_from: $_valid_from"
+        return 1
+      fi
+      if [ "$(_time)" -gt "$(_date2time "$_notBefore")" ]; then
+        _notBefore=""
+      fi
+    else
+      _cleardomainconf "Le_Valid_From"
+    fi
+    _debug2 _notBefore "$_notBefore"
+
+    if [ "$_valid_to" ]; then
+      _debug2 "_valid_to" "$_valid_to"
+      _savedomainconf "Le_Valid_To" "$_valid_to"
+      _notAfter="$(_convertValidaty "$_notBefore" "$_valid_to")"
+      if [ "$?" != "0" ]; then
+        _err "Can not parse _valid_to: $_valid_to"
+        return 1
+      fi
+    else
+      _cleardomainconf "Le_Valid_To"
+    fi
+    _debug2 "_notAfter" "$_notAfter"
+
+    _newOrderObj="{\"identifiers\": [$_identifiers]"
+    if [ "$_notBefore" ]; then
+      _newOrderObj="$_newOrderObj,\"notBefore\": \"$_notBefore\""
+    fi
+    if [ "$_notAfter" ]; then
+      _newOrderObj="$_newOrderObj,\"notAfter\": \"$_notAfter\""
+    fi
+    if ! _send_signed_request "$ACME_NEW_ORDER" "$_newOrderObj}"; then
       _err "Create new order error."
       _clearup
       _on_issue_err "$_post_hook"
       return 1
     fi
+
     Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n " | cut -d ":" -f 2-)"
     _debug Le_LinkOrder "$Le_LinkOrder"
     Le_OrderFinalize="$(echo "$response" | _egrep_o '"finalize" *: *"[^"]*"' | cut -d '"' -f 4)"
@@ -5080,13 +5184,15 @@ $_authorizations_map"
   else
     _cleardomainconf Le_ForceNewDomainKey
   fi
-
-  Le_NextRenewTime=$(_math "$Le_CertCreateTime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
-
-  Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+  if [ "$_notAfter" ]; then
+    Le_NextRenewTime=$(_date2time "$_notAfter")
+    Le_NextRenewTimeStr="$_notAfter"
+  else
+    Le_NextRenewTime=$(_math "$Le_CertCreateTime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
+    Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+    Le_NextRenewTime=$(_math "$Le_NextRenewTime" - 86400)
+  fi
   _savedomainconf "Le_NextRenewTimeStr" "$Le_NextRenewTimeStr"
-
-  Le_NextRenewTime=$(_math "$Le_NextRenewTime" - 86400)
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
 
   if [ "$_real_cert$_real_key$_real_ca$_reload_cmd$_real_fullchain" ]; then
@@ -5187,7 +5293,7 @@ renew() {
   Le_PostHook="$(_readdomainconf Le_PostHook)"
   Le_RenewHook="$(_readdomainconf Le_RenewHook)"
   Le_Preferred_Chain="$(_readdomainconf Le_Preferred_Chain)"
-  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain"
+  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain" "$Le_Valid_From" "$Le_Valid_To"
   res="$?"
   if [ "$res" != "0" ]; then
     return "$res"
@@ -6623,6 +6729,11 @@ Parameters:
                                     If no match, the default offered chain will be used. (default: empty)
                                     See: $_PREFERRED_CHAIN_WIKI
 
+  --valid-to    <date-time>         Request the NotAfter field of the cert.
+                                    See: $_VALIDITY_WIKI
+  --valid-from  <date-time>         Request the NotBefore field of the cert.
+                                    See: $_VALIDITY_WIKI
+
   -f, --force                       Force install, force cert renewal or override sudo restrictions.
   --staging, --test                 Use staging server, for testing.
   --debug [0|1|2|3]                 Output debug info. Defaults to 1 if argument is omitted.
@@ -6983,6 +7094,8 @@ _process() {
   _eab_kid=""
   _eab_hmac_key=""
   _preferred_chain=""
+  _valid_from=""
+  _valid_to=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -7290,6 +7403,14 @@ _process() {
       Le_RenewalDays="$_days"
       shift
       ;;
+    --valid-from)
+      _valid_from="$2"
+      shift
+      ;;
+    --valid-to)
+      _valid_to="$2"
+      shift
+      ;;
     --httpport)
       _httpport="$2"
       Le_HTTPPort="$_httpport"
@@ -7551,7 +7672,7 @@ _process() {
   uninstall) uninstall "$_nocron" ;;
   upgrade) upgrade ;;
   issue)
-    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain"
+    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_valid_from" "$_valid_to"
     ;;
   deploy)
     deploy "$_domain" "$_deploy_hook" "$_ecc"
