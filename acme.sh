@@ -1615,9 +1615,8 @@ _time2str() {
   fi
 
   #Solaris
-  if _exists adb; then
-    _t_s_a=$(echo "0t${1}=Y" | adb)
-    echo "$_t_s_a"
+  if printf "%(%Y-%m-%dT%H:%M:%SZ)T\n" $1 2>/dev/null; then
+    return
   fi
 
   #Busybox
@@ -1786,6 +1785,11 @@ _time() {
 _date2time() {
   #Linux
   if date -u -d "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
+    return
+  fi
+
+  #Solaris
+  if gdate -u -d "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
     return
   fi
   #Mac/BSD
