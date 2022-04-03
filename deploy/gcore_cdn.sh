@@ -56,9 +56,9 @@ gcore_cdn_deploy() {
   _request="{\"username\":\"$Le_Deploy_gcore_cdn_username\",\"password\":\"$Le_Deploy_gcore_cdn_password\"}"
   _debug _request "$_request"
   export _H1="Content-Type:application/json"
-  _response=$(_post "$_request" "https://api.gcdn.co/auth/signin")
+  _response=$(_post "$_request" "https://api.gcdn.co/auth/jwt/login")
   _debug _response "$_response"
-  _regex=".*\"token\":\"\([-._0-9A-Za-z]*\)\".*$"
+  _regex=".*\"access\":\"\([-._0-9A-Za-z]*\)\".*$"
   _debug _regex "$_regex"
   _token=$(echo "$_response" | sed -n "s/$_regex/\1/p")
   _debug _token "$_token"
@@ -72,12 +72,15 @@ gcore_cdn_deploy() {
   export _H2="Authorization:Token $_token"
   _response=$(_get "https://api.gcdn.co/resources")
   _debug _response "$_response"
-  _regex=".*(\"id\".*?\"cname\":\"$_cdomain\".*?})"
+  _regex="\"primary_resource\":null},"
+  _debug _regex "$_regex"
+  _response=$(echo "$_response" | sed "s/$_regex/$_regex\n/g")
+  _debug _response "$_response"
   _regex="^.*\"cname\":\"$_cdomain\".*$"
   _debug _regex "$_regex"
-  _resource=$(echo "$_response" | sed 's/},{/},\n{/g' | _egrep_o "$_regex")
+  _resource=$(echo "$_response" | _egrep_o "$_regex")
   _debug _resource "$_resource"
-  _regex=".*\"id\":\([0-9]*\).*\"rules\".*$"
+  _regex=".*\"id\":\([0-9]*\).*$"
   _debug _regex "$_regex"
   _resourceId=$(echo "$_resource" | sed -n "s/$_regex/\1/p")
   _debug _resourceId "$_resourceId"

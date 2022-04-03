@@ -5,7 +5,7 @@
 # HUAWEICLOUD_ProjectID
 
 iam_api="https://iam.myhuaweicloud.com"
-dns_api="https://dns.ap-southeast-1.myhuaweicloud.com"
+dns_api="https://dns.ap-southeast-1.myhuaweicloud.com" # Should work
 
 ########  Public functions #####################
 
@@ -29,16 +29,27 @@ dns_huaweicloud_add() {
     return 1
   fi
 
+  unset token # Clear token
   token="$(_get_token "${HUAWEICLOUD_Username}" "${HUAWEICLOUD_Password}" "${HUAWEICLOUD_ProjectID}")"
-  _debug2 "${token}"
+  if [ -z "${token}" ]; then # Check token
+    _err "dns_api(dns_huaweicloud): Error getting token."
+    return 1
+  fi
+  _secure_debug "Access token is:" "${token}"
+
+  unset zoneid
   zoneid="$(_get_zoneid "${token}" "${fulldomain}")"
-  _debug "${zoneid}"
+  if [ -z "${zoneid}" ]; then
+    _err "dns_api(dns_huaweicloud): Error getting zone id."
+    return 1
+  fi
+  _debug "Zone ID is:" "${zoneid}"
 
   _debug "Adding Record"
   _add_record "${token}" "${fulldomain}" "${txtvalue}"
   ret="$?"
   if [ "${ret}" != "0" ]; then
-    _err "dns_huaweicloud: Error adding record."
+    _err "dns_api(dns_huaweicloud): Error adding record."
     return 1
   fi
 
@@ -69,12 +80,21 @@ dns_huaweicloud_rm() {
     return 1
   fi
 
+  unset token # Clear token
   token="$(_get_token "${HUAWEICLOUD_Username}" "${HUAWEICLOUD_Password}" "${HUAWEICLOUD_ProjectID}")"
-  _debug2 "${token}"
+  if [ -z "${token}" ]; then # Check token
+    _err "dns_api(dns_huaweicloud): Error getting token."
+    return 1
+  fi
+  _secure_debug "Access token is:" "${token}"
+
+  unset zoneid
   zoneid="$(_get_zoneid "${token}" "${fulldomain}")"
-  _debug "${zoneid}"
-  record_id="$(_get_recordset_id "${token}" "${fulldomain}" "${zoneid}")"
-  _debug "Record Set ID is: ${record_id}"
+  if [ -z "${zoneid}" ]; then
+    _err "dns_api(dns_huaweicloud): Error getting zone id."
+    return 1
+  fi
+  _debug "Zone ID is:" "${zoneid}"
 
   # Remove all records
   # Therotically HuaweiCloud does not allow more than one record set
@@ -109,14 +129,28 @@ _get_zoneid() {
     fi
     _debug "$h"
     response=$(_get "${dns_api}/v2/zones?name=${h}")
-
-    if _contains "${response}" "id"; then
-      _debug "Get Zone ID Success."
-      _zoneid=$(echo "${response}" | _egrep_o "\"id\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | tr -d " ")
-      printf "%s" "${_zoneid}"
-      return 0
+    _debug2 "$response"
+    if _contains "${response}" '"id"'; then
+      zoneidlist=$(echo "${response}" | _egrep_o "\"id\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | tr -d " ")
+      zonenamelist=$(echo "${response}" | _egrep_o "\"name\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | tr -d " ")
+      _debug2 "Return Zone ID(s):" "${zoneidlist}"
+      _debug2 "Return Zone Name(s):" "${zonenamelist}"
+      zoneidnum=0
+      zoneidcount=$(echo "${zoneidlist}" | grep -c '^')
+      _debug "Retund Zone ID(s) Count:" "${zoneidcount}"
+      while [ "${zoneidnum}" -lt "${zoneidcount}" ]; do
+        zoneidnum=$(_math "$zoneidnum" + 1)
+        _zoneid=$(echo "${zoneidlist}" | sed -n "${zoneidnum}p")
+        zonename=$(echo "${zonenamelist}" | sed -n "${zoneidnum}p")
+        _debug "Check Zone Name" "${zonename}"
+        if [ "${zonename}" = "${h}." ]; then
+          _debug "Get Zone ID Success."
+          _debug "ZoneID:" "${_zoneid}"
+          printf "%s" "${_zoneid}"
+          return 0
+        fi
+      done
     fi
-
     i=$(_math "$i" + 1)
   done
   return 1
@@ -129,7 +163,7 @@ _get_recordset_id() {
   export _H1="X-Auth-Token: ${_token}"
 
   response=$(_get "${dns_api}/v2/zones/${_zoneid}/recordsets?name=${_domain}")
-  if _contains "${response}" "id"; then
+  if _contains "${response}" '"id"'; then
     _id="$(echo "${response}" | _egrep_o "\"id\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | tr -d " ")"
     printf "%s" "${_id}"
     return 0
@@ -177,7 +211,7 @@ _add_record() {
   fi
 
   _record_id="$(_get_recordset_id "${_token}" "${_domain}" "${zoneid}")"
-  _debug "Record Set ID is: ${_record_id}"
+  _debug "Record Set ID is:" "${_record_id}"
 
   # Remove all records
   while [ "${_record_id}" != "0" ]; do
@@ -249,7 +283,7 @@ _get_token() {
   _post "${body}" "${iam_api}/v3/auth/tokens" >/dev/null
   _code=$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")
   _token=$(grep "^X-Subject-Token" "$HTTP_HEADER" | cut -d " " -f 2-)
-  _debug2 "${_code}"
+  _secure_debug "${_code}"
   printf "%s" "${_token}"
   return 0
 }

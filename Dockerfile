@@ -1,7 +1,6 @@
-FROM alpine:3.12
+FROM alpine:3.15
 
-RUN apk update -f \
-  && apk --no-cache add -f \
+RUN apk --no-cache add -f \
   openssl \
   openssh-client \
   coreutils \
@@ -12,7 +11,8 @@ RUN apk update -f \
   tzdata \
   oath-toolkit-oathtool \
   tar \
-  && rm -rf /var/cache/apk/*
+  libidn \
+  jq
 
 ENV LE_CONFIG_HOME /acme.sh
 
@@ -21,7 +21,7 @@ ARG AUTO_UPGRADE=1
 ENV AUTO_UPGRADE $AUTO_UPGRADE
 
 #Install
-ADD ./ /install_acme.sh/
+COPY ./ /install_acme.sh/
 RUN cd /install_acme.sh && ([ -f /install_acme.sh/acme.sh ] && /install_acme.sh/acme.sh --install || curl https://get.acme.sh | sh) && rm -rf /install_acme.sh/
 
 
@@ -41,6 +41,7 @@ RUN for verb in help \
   revoke \
   remove \
   list \
+  info \
   showcsr \
   install-cronjob \
   uninstall-cronjob \
@@ -56,6 +57,7 @@ RUN for verb in help \
   deactivate-account \
   set-notify \
   set-default-ca \
+  set-default-chain \
   ; do \
     printf -- "%b" "#!/usr/bin/env sh\n/root/.acme.sh/acme.sh --${verb} --config-home /acme.sh \"\$@\"" >/usr/local/bin/--${verb} && chmod +x /usr/local/bin/--${verb} \
   ; done
