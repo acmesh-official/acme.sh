@@ -5270,6 +5270,23 @@ renew() {
     Le_API="$CA_LETSENCRYPT_V2"
   fi
 
+  #revert from staging CAs back to production CAs
+  case "$Le_API" in
+
+  "$CA_LETSENCRYPT_V2_TEST")
+    _info "Switching back to $CA_LETSENCRYPT_V2"
+    Le_API="$CA_LETSENCRYPT_V2"
+    ;;
+  "$CA_BUYPASS_TEST")
+    _info "Switching back to $CA_BUYPASS"
+    Le_API="$CA_BUYPASS"
+    ;;
+  "$CA_GOOGLE_TEST")
+    _info "Switching back to $CA_GOOGLE"
+    Le_API="$CA_GOOGLE"
+    ;;
+  esac
+
   if [ "$Le_API" ]; then
     if [ "$Le_API" != "$ACME_DIRECTORY" ]; then
       _clearAPI
