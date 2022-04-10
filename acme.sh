@@ -4317,6 +4317,13 @@ issue() {
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
     _debug Le_NextRenewTime "$Le_NextRenewTime"
     if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
+      _valid_to_saved=$(_readdomainconf Le_Valid_to)
+      if [ "$_valid_to_saved" ] && ! _startswith "$_valid_to_saved" "+"; then
+        _info "The domain is set to be valid to: $_valid_to_saved"
+        _info "It can not be renewed automatically"
+        _info "See: $_VALIDITY_WIKI"
+        return $RENEW_SKIP
+      fi
       _saved_domain=$(_readdomainconf Le_Domain)
       _debug _saved_domain "$_saved_domain"
       _saved_alt=$(_readdomainconf Le_Alt)
@@ -5187,6 +5194,11 @@ $_authorizations_map"
   if [ "$_notAfter" ]; then
     Le_NextRenewTime=$(_date2time "$_notAfter")
     Le_NextRenewTimeStr="$_notAfter"
+    if [ "$_valid_to" ] && ! _startswith "$_valid_to" "+"; then
+      _info "The domain is set to be valid to: $_valid_to"
+      _info "It can not be renewed automatically"
+      _info "See: $_VALIDITY_WIKI"
+    fi
   else
     Le_NextRenewTime=$(_math "$Le_CertCreateTime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
     Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
@@ -5256,6 +5268,25 @@ renew() {
     #if this is from an old version, Le_API is empty,
     #so, we force to use letsencrypt server
     Le_API="$CA_LETSENCRYPT_V2"
+  fi
+
+  #revert from staging CAs back to production CAs
+  if [ -z "$ACME_DIRECTORY" ]; then
+    case "$Le_API" in
+
+    "$CA_LETSENCRYPT_V2_TEST")
+      _info "Switching back to $CA_LETSENCRYPT_V2"
+      Le_API="$CA_LETSENCRYPT_V2"
+      ;;
+    "$CA_BUYPASS_TEST")
+      _info "Switching back to $CA_BUYPASS"
+      Le_API="$CA_BUYPASS"
+      ;;
+    "$CA_GOOGLE_TEST")
+      _info "Switching back to $CA_GOOGLE"
+      Le_API="$CA_GOOGLE"
+      ;;
+    esac
   fi
 
   if [ "$Le_API" ]; then
