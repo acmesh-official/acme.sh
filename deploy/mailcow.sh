@@ -20,18 +20,26 @@ mailcow_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  _mailcow_path="${DEPLOY_MAILCOW_PATH}"
+  _getdeployconf DEPLOY_MAILCOW_PATH
+  _getdeployconf DEPLOY_MAILCOW_RELOAD
 
-  if [ -z "$_mailcow_path" ]; then
+  _debug DEPLOY_MAILCOW_PATH "$DEPLOY_MAILCOW_PATH"
+  _debug DEPLOY_MAILCOW_RELOAD "$DEPLOY_MAILCOW_RELOAD"
+
+  if [ -z "$DEPLOY_MAILCOW_PATH" ]; then
     _err "Mailcow path is not found, please define DEPLOY_MAILCOW_PATH."
     return 1
   fi
 
+  _savedeployconf DEPLOY_MAILCOW_PATH "$DEPLOY_MAILCOW_PATH"
+
+  [ -n "$DEPLOY_MAILCOW_RELOAD" ] && _savedeployconf DEPLOY_MAILCOW_RELOAD "$DEPLOY_MAILCOW_RELOAD"
+
   #Tests if _ssl_path is the mailcow root directory.
-  if [ -f "${_mailcow_path}/generate_config.sh" ]; then
-    _ssl_path="${_mailcow_path}/data/assets/ssl/"
+  if [ -f "$DEPLOY_MAILCOW_PATH/generate_config.sh" ]; then
+    _ssl_path="$DEPLOY_MAILCOW_PATH/data/assets/ssl/"
   else
-    _ssl_path="${_mailcow_path}"
+    _ssl_path="$DEPLOY_MAILCOW_PATH"
   fi
 
   if [ ! -d "$_ssl_path" ]; then
@@ -40,10 +48,7 @@ mailcow_deploy() {
   fi
 
   # ECC or RSA
-  if [ -z "${Le_Keylength}" ]; then
-    Le_Keylength=""
-  fi
-  if _isEccKey "${Le_Keylength}"; then
+  if _isEccKey "$Le_Keylength"; then
     _info "ECC key type detected"
     _cert_name_prefix="ecdsa-"
   else
@@ -63,7 +68,7 @@ mailcow_deploy() {
     return 1
   fi
 
-  DEFAULT_MAILCOW_RELOAD="docker restart $(docker ps -qaf name=postfix-mailcow); docker restart $(docker ps -qaf name=nginx-mailcow); docker restart $(docker ps -qaf name=dovecot-mailcow)"
+  DEFAULT_MAILCOW_RELOAD="docker restart \$(docker ps --quiet --filter name=nginx-mailcow --filter name=dovecot-mailcow)"
   _reload="${DEPLOY_MAILCOW_RELOAD:-$DEFAULT_MAILCOW_RELOAD}"
 
   _info "Run reload: $_reload"
