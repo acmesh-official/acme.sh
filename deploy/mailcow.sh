@@ -32,14 +32,11 @@ mailcow_deploy() {
   fi
 
   _savedeployconf DEPLOY_MAILCOW_PATH "$DEPLOY_MAILCOW_PATH"
-
   [ -n "$DEPLOY_MAILCOW_RELOAD" ] && _savedeployconf DEPLOY_MAILCOW_RELOAD "$DEPLOY_MAILCOW_RELOAD"
 
-  #Tests if _ssl_path is the mailcow root directory.
+  _ssl_path="$DEPLOY_MAILCOW_PATH"
   if [ -f "$DEPLOY_MAILCOW_PATH/generate_config.sh" ]; then
     _ssl_path="$DEPLOY_MAILCOW_PATH/data/assets/ssl/"
-  else
-    _ssl_path="$DEPLOY_MAILCOW_PATH"
   fi
 
   if [ ! -d "$_ssl_path" ]; then
@@ -48,13 +45,15 @@ mailcow_deploy() {
   fi
 
   # ECC or RSA
-  if _isEccKey "$Le_Keylength"; then
+  length=$(_readdomainconf Le_Keylength)
+  if _isEccKey "$length"; then
     _info "ECC key type detected"
     _cert_name_prefix="ecdsa-"
   else
     _info "RSA key type detected"
     _cert_name_prefix=""
   fi
+
   _info "Copying key and cert"
   _real_key="$_ssl_path/${_cert_name_prefix}key.pem"
   if ! cat "$_ckey" >"$_real_key"; then
