@@ -107,6 +107,7 @@ _get_root() {
 }
 
 _Fornex_API() {
+  FORNEX_API_KEY="${FORNEX_API_KEY:-$(_readaccountconf_mutable FORNEX_API_KEY)}"
   if [ -z "$FORNEX_API_KEY" ]; then
     FORNEX_API_KEY=""
 
@@ -116,7 +117,7 @@ _Fornex_API() {
     return 1
   fi
 
-  _saveaccountconf FORNEX_API_KEY "$FORNEX_API_KEY"
+  _saveaccountconf_mutable FORNEX_API_KEY "$FORNEX_API_KEY"
 }
 
 #method method action data
