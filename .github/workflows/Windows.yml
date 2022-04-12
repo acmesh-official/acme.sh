@@ -25,11 +25,11 @@ jobs:
            CA: ""
            CA_EMAIL: ""
            TEST_PREFERRED_CHAIN: (STAGING) Pretend Pear X1
-         - TEST_ACME_Server: "ZeroSSL.com"
-           CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
-           CA: "ZeroSSL RSA Domain Secure Site CA"
-           CA_EMAIL: "githubtest@acme.sh"
-           TEST_PREFERRED_CHAIN: ""
+         #- TEST_ACME_Server: "ZeroSSL.com"
+         #  CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
+         #  CA: "ZeroSSL RSA Domain Secure Site CA"
+         #  CA_EMAIL: "githubtest@acme.sh"
+         #  TEST_PREFERRED_CHAIN: ""
     runs-on: windows-latest
     env:
       TEST_ACME_Server: ${{ matrix.TEST_ACME_Server }}
