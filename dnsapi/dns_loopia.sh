@@ -79,7 +79,7 @@ dns_loopia_rm() {
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
 
   if ! _contains "$response" "OK"; then
-    err_response=$(echo "$response" | grep -oPm1 "(?<=<string>)[^<]+")
+    err_response=$(echo "$response" | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
     _err "Error could not get txt records: $err_response"
     return 1
   fi
@@ -148,7 +148,7 @@ _loopia_get_records() {
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
   if ! _contains "$response" "<array>"; then
-    err_response=$(echo "$response" | grep -oPm1 "(?<=<string>)[^<]+")
+    err_response=$(echo "$response" | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
     _err "Error: $err_response"
     return 1
   fi
@@ -245,7 +245,7 @@ _loopia_add_record() {
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
 
   if ! _contains "$response" "OK"; then
-    err_response=$(echo "$response" | grep -oPm1 "(?<=<string>)[^<]+")
+    err_response=$(echo "$response" | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
     _err "Error: $err_response"
     return 1
   fi
@@ -310,7 +310,7 @@ _loopia_add_sub_domain() {
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
 
   if ! _contains "$response" "OK"; then
-    err_response=$(echo "$response" | grep -oPm1 "(?<=<string>)[^<]+")
+    err_response=$(echo "$response" | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
     _err "Error: $err_response"
     return 1
   fi
