@@ -5151,7 +5151,7 @@ $_authorizations_map"
   Le_CertCreateTime=$(_time)
   _savedomainconf "Le_CertCreateTime" "$Le_CertCreateTime"
 
-  Le_CertCreateTimeStr=$(date -u)
+  Le_CertCreateTimeStr=$(_time2str "$Le_CertCreateTime")
   _savedomainconf "Le_CertCreateTimeStr" "$Le_CertCreateTimeStr"
 
   if [ -z "$Le_RenewalDays" ] || [ "$Le_RenewalDays" -lt "0" ]; then
@@ -5289,11 +5289,10 @@ renew() {
     esac
   fi
 
-  if [ "$Le_API" ]; then
+  if [ "$Le_API" ] && [ "$ACME_DIRECTORY" ]; then
     if [ "$Le_API" != "$ACME_DIRECTORY" ]; then
       _clearAPI
     fi
-    export ACME_DIRECTORY="$Le_API"
     #reload ca configs
     ACCOUNT_KEY_PATH=""
     ACCOUNT_JSON_PATH=""
