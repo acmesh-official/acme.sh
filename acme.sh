@@ -4530,7 +4530,7 @@ issue() {
 
       response="$(echo "$response" | _normalizeJson)"
       _debug2 response "$response"
-      _d="$(echo "$response" | _egrep_o '"value" *: *"[^"]*"' | cut -d : -f 2 | tr -d ' "')"
+      _d="$(echo "$response" | _egrep_o '"value" *: *"[^"]*"' | cut -d : -f 2- | tr -d ' "')"
       if _contains "$response" "\"wildcard\" *: *true"; then
         _d="*.$_d"
       fi
