@@ -4680,6 +4680,7 @@ $_authorizations_map"
           _dns_root_d="$(echo "$_dns_root_d" | sed 's/*.//')"
         fi
         _d_alias="$(_getfield "$_challenge_alias" "$_alias_index")"
+        test "$_d_alias" = "false" && _d_alias=""
         _alias_index="$(_math "$_alias_index" + 1)"
         _debug "_d_alias" "$_d_alias"
         if [ "$_d_alias" ]; then
