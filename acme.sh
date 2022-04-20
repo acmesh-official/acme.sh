@@ -5543,9 +5543,12 @@ showcsr() {
   _initpath
 
   _csrsubj=$(_readSubjectFromCSR "$_csrfile")
-  if [ "$?" != "0" ] || [ -z "$_csrsubj" ]; then
+  if [ "$?" != "0" ]; then
     _err "Can not read subject from csr: $_csrfile"
     return 1
+  fi
+  if [ -z "$_csrsubj" ]; then
+    _info "The Subject is empty"
   fi
 
   _info "Subject=$_csrsubj"
