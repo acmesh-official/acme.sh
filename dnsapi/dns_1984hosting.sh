@@ -42,7 +42,7 @@ dns_1984hosting_add() {
 
   _debug "Add TXT record $fulldomain with value '$txtvalue'"
   value="$(printf '%s' "$txtvalue" | _url_encode)"
-  url="https://management.1984hosting.com/domains/entry/"
+  url="https://1984.hosting/domains/entry/"
 
   postdata="entry=new"
   postdata="$postdata&type=TXT"
@@ -95,7 +95,7 @@ dns_1984hosting_rm() {
   _debug _domain "$_domain"
   _debug "Delete $fulldomain TXT record"
 
-  url="https://management.1984hosting.com/domains"
+  url="https://1984.hosting/domains"
   if ! _get_zone_id "$url" "$_domain"; then
     _err "invalid zone" "$_domain"
     return 1
@@ -138,7 +138,7 @@ _1984hosting_login() {
   _debug "Login to 1984Hosting as user $One984HOSTING_Username"
   username=$(printf '%s' "$One984HOSTING_Username" | _url_encode)
   password=$(printf '%s' "$One984HOSTING_Password" | _url_encode)
-  url="https://management.1984hosting.com/accounts/checkuserauth/"
+  url="https://1984.hosting/accounts/checkuserauth/"
 
   response="$(_post "username=$username&password=$password&otpkey=" $url)"
   response="$(echo "$response" | _normalizeJson)"
@@ -175,7 +175,7 @@ _check_cookies() {
     return 1
   fi
 
-  _authget "https://management.1984hosting.com/accounts/loginstatus/"
+  _authget "https://1984.hosting/accounts/loginstatus/"
   if _contains "$response" '"ok": true'; then
     _debug "Cached cookies still valid"
     return 0
@@ -204,7 +204,7 @@ _get_root() {
       return 1
     fi
 
-    _authget "https://management.1984hosting.com/domains/soacheck/?zone=$h&nameserver=ns0.1984.is."
+    _authget "https://1984.hosting/domains/soacheck/?zone=$h&nameserver=ns0.1984.is."
     if _contains "$_response" "serial" && ! _contains "$_response" "null"; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain="$h"
@@ -251,11 +251,11 @@ _htmlget() {
 
 # add extra headers to request
 _authpost() {
-  url="https://management.1984hosting.com/domains"
+  url="https://1984.hosting/domains"
   _get_zone_id "$url" "$_domain"
   csrf_header="$(echo "$One984HOSTING_CSRFTOKEN_COOKIE" | _egrep_o "=[^=][0-9a-zA-Z]*" | tr -d "=")"
   export _H1="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE;$One984HOSTING_SESSIONID_COOKIE"
-  export _H2="Referer: https://management.1984hosting.com/domains/$_zone_id"
+  export _H2="Referer: https://1984.hosting/domains/$_zone_id"
   export _H3="X-CSRFToken: $csrf_header"
   _response=$(_post "$1" "$2")
 }
