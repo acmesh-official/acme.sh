@@ -983,9 +983,9 @@ _base64() {
 #Usage: multiline
 _dbase64() {
   if [ "$1" ]; then
-    ${ACME_OPENSSL_BIN:-openssl} base64 -d -A
-  else
     ${ACME_OPENSSL_BIN:-openssl} base64 -d
+  else
+    ${ACME_OPENSSL_BIN:-openssl} base64 -d -A
   fi
 }
 
