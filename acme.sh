@@ -5293,7 +5293,6 @@ renew() {
     ;;
   esac
 
-
   if [ "$Le_API" ] && [ "$ACME_DIRECTORY" ]; then
     if [ "$Le_API" != "$ACME_DIRECTORY" ]; then
       _clearAPI
