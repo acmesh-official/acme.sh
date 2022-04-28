@@ -4975,7 +4975,7 @@ $_authorizations_map"
         return 1
       fi
       _debug "sleep 2 secs to verify again"
-      sleep 2
+      _sleep 2
       _debug "checking"
 
       _send_signed_request "$uri"
@@ -5250,7 +5250,8 @@ renew() {
   fi
 
   _isEcc="$2"
-
+  #the server specified from commandline
+  _acme_server_back="$ACME_DIRECTORY"
   _initpath "$Le_Domain" "$_isEcc"
   _set_level=${NOTIFY_LEVEL:-$NOTIFY_LEVEL_DEFAULT}
   _info "$(__green "Renew: '$Le_Domain'")"
@@ -5271,24 +5272,27 @@ renew() {
     Le_API="$CA_LETSENCRYPT_V2"
   fi
 
-  #revert from staging CAs back to production CAs
-  if [ -z "$ACME_DIRECTORY" ]; then
-    case "$Le_API" in
-
-    "$CA_LETSENCRYPT_V2_TEST")
-      _info "Switching back to $CA_LETSENCRYPT_V2"
-      Le_API="$CA_LETSENCRYPT_V2"
-      ;;
-    "$CA_BUYPASS_TEST")
-      _info "Switching back to $CA_BUYPASS"
-      Le_API="$CA_BUYPASS"
-      ;;
-    "$CA_GOOGLE_TEST")
-      _info "Switching back to $CA_GOOGLE"
-      Le_API="$CA_GOOGLE"
-      ;;
-    esac
+  if [ "$_acme_server_back" ]; then
+    export ACME_DIRECTORY="$_acme_server_back"
+  else
+    export ACME_DIRECTORY="$Le_API"
   fi
+
+  case "$Le_API" in
+  "$CA_LETSENCRYPT_V2_TEST")
+    _info "Switching back to $CA_LETSENCRYPT_V2"
+    Le_API="$CA_LETSENCRYPT_V2"
+    ;;
+  "$CA_BUYPASS_TEST")
+    _info "Switching back to $CA_BUYPASS"
+    Le_API="$CA_BUYPASS"
+    ;;
+  "$CA_GOOGLE_TEST")
+    _info "Switching back to $CA_GOOGLE"
+    Le_API="$CA_GOOGLE"
+    ;;
+  esac
+
 
   if [ "$Le_API" ] && [ "$ACME_DIRECTORY" ]; then
     if [ "$Le_API" != "$ACME_DIRECTORY" ]; then
@@ -5298,7 +5302,7 @@ renew() {
     ACCOUNT_KEY_PATH=""
     ACCOUNT_JSON_PATH=""
     CA_CONF=""
-    _debug3 "initpath again."
+    _debug2 "initpath again."
     _initpath "$Le_Domain" "$_isEcc"
   fi
 
@@ -6959,6 +6963,10 @@ _processAccountConf() {
 }
 
 _checkSudo() {
+  if [ -z "__INTERACTIVE" ]; then
+    #don't check if it's not in an interactive shell
+    return 0
+  fi
   if [ "$SUDO_GID" ] && [ "$SUDO_COMMAND" ] && [ "$SUDO_USER" ] && [ "$SUDO_UID" ]; then
     if [ "$SUDO_USER" = "root" ] && [ "$SUDO_UID" = "0" ]; then
       #it's root using sudo, no matter it's using sudo or not, just fine
