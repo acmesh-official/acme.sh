@@ -19,6 +19,11 @@ dns_selfhost_add() {
   SELFHOSTDNS_RID2="${SELFHOSTDNS_RID2:-$(_readaccountconf_mutable SELFHOSTDNS_RID2)}"
   SELFHOSTDNS_LAST_SLOT="$(_readaccountconf_mutable SELFHOSTDNS_LAST_SLOT)"
 
+  if [ -z "${SELFHOSTDNS_USERNAME:-}" ] || [ -z "${SELFHOSTDNS_PASSWORD:-}" ]; then
+    _err "SELFHOSTDNS_USERNAME and SELFHOSTDNS_PASSWORD must be set"
+    return 1
+  fi
+
   if test -z "$SELFHOSTDNS_LAST_SLOT"; then
     SELFHOSTDNS_LAST_SLOT=1
   fi
@@ -39,6 +44,11 @@ dns_selfhost_add() {
       rid=$SELFHOSTDNS_RID2
       SELFHOSTDNS_LAST_SLOT=2
     fi
+  fi
+
+  if test -z "$rid"; then
+    _err "SELFHOSTDNS_RID and SELFHOSTDNS_RID2, or SELFHOSTDNS_MAP must be set"
+    return 1
   fi
 
   _saveaccountconf_mutable SELFHOSTDNS_LAST_SLOT "$SELFHOSTDNS_LAST_SLOT"
