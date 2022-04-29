@@ -75,4 +75,3 @@ dns_selfhost_rm() {
   _debug txtvalue "$txt"
   _info "Creating and removing of records is not supported by selfhost API, will not delete anything."
 }
-
