@@ -12,12 +12,15 @@ dns_selfhost_add() {
   _debug txtvalue "$txt"
 
   SELFHOSTDNS_UPDATE_URL="https://selfhost.de/cgi-bin/api.pl"
+
+  # Get values, but don't save until we successfully validated
   SELFHOSTDNS_USERNAME="${SELFHOSTDNS_USERNAME:-$(_readaccountconf_mutable SELFHOSTDNS_USERNAME)}"
   SELFHOSTDNS_PASSWORD="${SELFHOSTDNS_PASSWORD:-$(_readaccountconf_mutable SELFHOSTDNS_PASSWORD)}"
-  SELFHOSTDNS_MAP="${SELFHOSTDNS_MAP:-$(_readaccountconf_mutable SELFHOSTDNS_MAP)}"
-  SELFHOSTDNS_RID="${SELFHOSTDNS_RID:-$(_readaccountconf_mutable SELFHOSTDNS_RID)}"
-  SELFHOSTDNS_RID2="${SELFHOSTDNS_RID2:-$(_readaccountconf_mutable SELFHOSTDNS_RID2)}"
-  SELFHOSTDNS_LAST_SLOT="$(_readaccountconf_mutable SELFHOSTDNS_LAST_SLOT)"
+  # These values are domain dependent, so read them from there
+  _getdeployconf SELFHOSTDNS_MAP
+  _getdeployconf SELFHOSTDNS_RID
+  _getdeployconf SELFHOSTDNS_RID2
+  _getdeployconf SELFHOSTDNS_LAST_SLOT
 
   if [ -z "${SELFHOSTDNS_USERNAME:-}" ] || [ -z "${SELFHOSTDNS_PASSWORD:-}" ]; then
     _err "SELFHOSTDNS_USERNAME and SELFHOSTDNS_PASSWORD must be set"
@@ -27,12 +30,6 @@ dns_selfhost_add() {
   if test -z "$SELFHOSTDNS_LAST_SLOT"; then
     SELFHOSTDNS_LAST_SLOT=1
   fi
-
-  _saveaccountconf_mutable SELFHOSTDNS_USERNAME "$SELFHOSTDNS_USERNAME"
-  _saveaccountconf_mutable SELFHOSTDNS_PASSWORD "$SELFHOSTDNS_PASSWORD"
-  _saveaccountconf_mutable SELFHOSTDNS_MAP "$SELFHOSTDNS_MAP"
-  _saveaccountconf_mutable SELFHOSTDNS_RID "$SELFHOSTDNS_RID"
-  _saveaccountconf_mutable SELFHOSTDNS_RID2 "$SELFHOSTDNS_RID2"
 
   rid=$(echo "$SELFHOSTDNS_MAP" | grep -Eoi "$domain:(\d+)" | tr -d "$domain:")
 
@@ -51,8 +48,6 @@ dns_selfhost_add() {
     return 1
   fi
 
-  _saveaccountconf_mutable SELFHOSTDNS_LAST_SLOT "$SELFHOSTDNS_LAST_SLOT"
-
   _info "Trying to add $txt on selfhost for rid: $rid"
 
   data="?username=$SELFHOSTDNS_USERNAME&password=$SELFHOSTDNS_PASSWORD&rid=$rid&content=$txt"
@@ -62,6 +57,15 @@ dns_selfhost_add() {
     _err "Invalid response of acme-dns for selfhost"
     return 1
   fi
+
+  # Now that we know the values are good, save them
+  _saveaccountconf_mutable SELFHOSTDNS_USERNAME "$SELFHOSTDNS_USERNAME"
+  _saveaccountconf_mutable SELFHOSTDNS_PASSWORD "$SELFHOSTDNS_PASSWORD"
+  # These values are domain dependent, so store them there
+  _savedeployconf SELFHOSTDNS_MAP "$SELFHOSTDNS_MAP"
+  _savedeployconf SELFHOSTDNS_RID "$SELFHOSTDNS_RID"
+  _savedeployconf SELFHOSTDNS_RID2 "$SELFHOSTDNS_RID2"
+  _savedeployconf SELFHOSTDNS_LAST_SLOT "$SELFHOSTDNS_LAST_SLOT"
 }
 
 dns_selfhost_rm() {
