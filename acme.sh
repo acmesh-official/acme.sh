@@ -983,9 +983,9 @@ _base64() {
 #Usage: multiline
 _dbase64() {
   if [ "$1" ]; then
-    ${ACME_OPENSSL_BIN:-openssl} base64 -d -A
-  else
     ${ACME_OPENSSL_BIN:-openssl} base64 -d
+  else
+    ${ACME_OPENSSL_BIN:-openssl} base64 -d -A
   fi
 }
 
@@ -4530,7 +4530,7 @@ issue() {
 
       response="$(echo "$response" | _normalizeJson)"
       _debug2 response "$response"
-      _d="$(echo "$response" | _egrep_o '"value" *: *"[^"]*"' | cut -d : -f 2 | tr -d ' "')"
+      _d="$(echo "$response" | _egrep_o '"value" *: *"[^"]*"' | cut -d : -f 2- | tr -d ' "')"
       if _contains "$response" "\"wildcard\" *: *true"; then
         _d="*.$_d"
       fi
@@ -4680,6 +4680,7 @@ $_authorizations_map"
           _dns_root_d="$(echo "$_dns_root_d" | sed 's/*.//')"
         fi
         _d_alias="$(_getfield "$_challenge_alias" "$_alias_index")"
+        test "$_d_alias" = "$NO_VALUE" && _d_alias=""
         _alias_index="$(_math "$_alias_index" + 1)"
         _debug "_d_alias" "$_d_alias"
         if [ "$_d_alias" ]; then
@@ -4974,7 +4975,7 @@ $_authorizations_map"
         return 1
       fi
       _debug "sleep 2 secs to verify again"
-      sleep 2
+      _sleep 2
       _debug "checking"
 
       _send_signed_request "$uri"
@@ -5151,7 +5152,7 @@ $_authorizations_map"
   Le_CertCreateTime=$(_time)
   _savedomainconf "Le_CertCreateTime" "$Le_CertCreateTime"
 
-  Le_CertCreateTimeStr=$(date -u)
+  Le_CertCreateTimeStr=$(_time2str "$Le_CertCreateTime")
   _savedomainconf "Le_CertCreateTimeStr" "$Le_CertCreateTimeStr"
 
   if [ -z "$Le_RenewalDays" ] || [ "$Le_RenewalDays" -lt "0" ]; then
@@ -5249,7 +5250,8 @@ renew() {
   fi
 
   _isEcc="$2"
-
+  #the server specified from commandline
+  _acme_server_back="$ACME_DIRECTORY"
   _initpath "$Le_Domain" "$_isEcc"
   _set_level=${NOTIFY_LEVEL:-$NOTIFY_LEVEL_DEFAULT}
   _info "$(__green "Renew: '$Le_Domain'")"
@@ -5270,35 +5272,36 @@ renew() {
     Le_API="$CA_LETSENCRYPT_V2"
   fi
 
-  #revert from staging CAs back to production CAs
-  if [ -z "$ACME_DIRECTORY" ]; then
-    case "$Le_API" in
-
-    "$CA_LETSENCRYPT_V2_TEST")
-      _info "Switching back to $CA_LETSENCRYPT_V2"
-      Le_API="$CA_LETSENCRYPT_V2"
-      ;;
-    "$CA_BUYPASS_TEST")
-      _info "Switching back to $CA_BUYPASS"
-      Le_API="$CA_BUYPASS"
-      ;;
-    "$CA_GOOGLE_TEST")
-      _info "Switching back to $CA_GOOGLE"
-      Le_API="$CA_GOOGLE"
-      ;;
-    esac
+  if [ "$_acme_server_back" ]; then
+    export ACME_DIRECTORY="$_acme_server_back"
+  else
+    export ACME_DIRECTORY="$Le_API"
   fi
 
-  if [ "$Le_API" ]; then
+  case "$Le_API" in
+  "$CA_LETSENCRYPT_V2_TEST")
+    _info "Switching back to $CA_LETSENCRYPT_V2"
+    Le_API="$CA_LETSENCRYPT_V2"
+    ;;
+  "$CA_BUYPASS_TEST")
+    _info "Switching back to $CA_BUYPASS"
+    Le_API="$CA_BUYPASS"
+    ;;
+  "$CA_GOOGLE_TEST")
+    _info "Switching back to $CA_GOOGLE"
+    Le_API="$CA_GOOGLE"
+    ;;
+  esac
+
+  if [ "$Le_API" ] && [ "$ACME_DIRECTORY" ]; then
     if [ "$Le_API" != "$ACME_DIRECTORY" ]; then
       _clearAPI
     fi
-    export ACME_DIRECTORY="$Le_API"
     #reload ca configs
     ACCOUNT_KEY_PATH=""
     ACCOUNT_JSON_PATH=""
     CA_CONF=""
-    _debug3 "initpath again."
+    _debug2 "initpath again."
     _initpath "$Le_Domain" "$_isEcc"
   fi
 
@@ -5544,9 +5547,12 @@ showcsr() {
   _initpath
 
   _csrsubj=$(_readSubjectFromCSR "$_csrfile")
-  if [ "$?" != "0" ] || [ -z "$_csrsubj" ]; then
+  if [ "$?" != "0" ]; then
     _err "Can not read subject from csr: $_csrfile"
     return 1
+  fi
+  if [ -z "$_csrsubj" ]; then
+    _info "The Subject is empty"
   fi
 
   _info "Subject=$_csrsubj"
@@ -6956,6 +6962,10 @@ _processAccountConf() {
 }
 
 _checkSudo() {
+  if [ -z "__INTERACTIVE" ]; then
+    #don't check if it's not in an interactive shell
+    return 0
+  fi
   if [ "$SUDO_GID" ] && [ "$SUDO_COMMAND" ] && [ "$SUDO_USER" ] && [ "$SUDO_UID" ]; then
     if [ "$SUDO_USER" = "root" ] && [ "$SUDO_UID" = "0" ]; then
       #it's root using sudo, no matter it's using sudo or not, just fine
