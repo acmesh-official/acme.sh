@@ -65,7 +65,8 @@ RUN for verb in help \
 RUN printf "%b" '#!'"/usr/bin/env sh\n \
 if [ \"\$1\" = \"daemon\" ];  then \n \
  trap \"echo stop && killall crond && exit 0\" SIGTERM SIGINT \n \
- crond && while true; do sleep 1; done;\n \
+ crond && sleep infinity &\n \
+ wait \n \
 else \n \
  exec -- \"\$@\"\n \
 fi" >/entry.sh && chmod +x /entry.sh
