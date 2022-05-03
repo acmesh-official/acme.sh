@@ -5323,7 +5323,7 @@ renew() {
   Le_PostHook="$(_readdomainconf Le_PostHook)"
   Le_RenewHook="$(_readdomainconf Le_RenewHook)"
   Le_Preferred_Chain="$(_readdomainconf Le_Preferred_Chain)"
-  #when renew from an old version, the empty Le_Keylength means 2048 
+  #when renew from an old version, the empty Le_Keylength means 2048
   if [ -z "$Le_Keylength" ]; then
     Le_Keylength=2048
   fi
