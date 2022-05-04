@@ -4382,10 +4382,6 @@ issue() {
     _alt_domains=""
   fi
 
-  if [ "$_key_length" = "$NO_VALUE" ]; then
-    _key_length=""
-  fi
-
   if ! _on_before_issue "$_web_roots" "$_main_domain" "$_alt_domains" "$_pre_hook" "$_local_addr"; then
     _err "_on_before_issue."
     return 1
@@ -5327,6 +5323,10 @@ renew() {
   Le_PostHook="$(_readdomainconf Le_PostHook)"
   Le_RenewHook="$(_readdomainconf Le_RenewHook)"
   Le_Preferred_Chain="$(_readdomainconf Le_Preferred_Chain)"
+  #when renew from an old version, the empty Le_Keylength means 2048
+  if [ -z "$Le_Keylength" ]; then
+    Le_Keylength=2048
+  fi
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain" "$Le_Valid_From" "$Le_Valid_To"
   res="$?"
   if [ "$res" != "0" ]; then
@@ -7087,8 +7087,8 @@ _process() {
   _altdomains="$NO_VALUE"
   _webroot=""
   _challenge_alias=""
-  _keylength=""
-  _accountkeylength=""
+  _keylength="$DEFAULT_DOMAIN_KEY_LENGTH"
+  _accountkeylength="$DEFAULT_ACCOUNT_KEY_LENGTH"
   _cert_file=""
   _key_file=""
   _ca_file=""
