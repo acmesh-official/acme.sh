@@ -1,59 +1,44 @@
-#!/usr/bin/env sh
+#!/usr/bin/bash
 
 #Support CallMeBot Whatsapp webhooks
 
 #CallMeBot_Phone_No=""
 #CallMeBot_apikey=""
-#SLACK_USERNAME=""
 
-#SLACK_WEBHOOK_URL=""
-#SLACK_CHANNEL=""
-#SLACK_USERNAME=""
-
-slack_send() {
+callmebotWhatsApp_send() {
   _subject="$1"
   _content="$2"
   _statusCode="$3" #0: success, 1: error 2($RENEW_SKIP): skipped
   _debug "_statusCode" "$_statusCode"
 
-  SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-$(_readaccountconf_mutable SLACK_WEBHOOK_URL)}"
-  if [ -z "$SLACK_WEBHOOK_URL" ]; then
-    SLACK_WEBHOOK_URL=""
-    _err "You didn't specify a Slack webhook url SLACK_WEBHOOK_URL yet."
+  CallMeBot_Phone_No="${CallMeBot_Phone_No:-$(_readaccountconf_mutable CallMeBot_Phone_No)}"
+  if [ -z "$CallMeBot_Phone_No" ]; then
+    CallMeBot_Phone_No=""
+    _err "You didn't specify a Slack webhook url CallMeBot_Phone_No yet."
     return 1
   fi
-  _saveaccountconf_mutable SLACK_WEBHOOK_URL "$SLACK_WEBHOOK_URL"
+  _saveaccountconf_mutable CallMeBot_Phone_No "$CallMeBot_Phone_No"
 
-  SLACK_CHANNEL="${SLACK_CHANNEL:-$(_readaccountconf_mutable SLACK_CHANNEL)}"
-  if [ -n "$SLACK_CHANNEL" ]; then
-    _saveaccountconf_mutable SLACK_CHANNEL "$SLACK_CHANNEL"
+  CallMeBot_apikey="${CallMeBot_apikey:-$(_readaccountconf_mutable CallMeBot_apikey)}"
+  if [ -n "$CallMeBot_apikey" ]; then
+    _saveaccountconf_mutable CallMeBot_apikey "$CallMeBot_apikey"
   fi
+  
+  _waUrl="https://api.callmebot.com/whatsapp.php"
+  
+  _Phone_No="$(printf "%s" "$CallMeBot_Phone_No" | _url_encode)"
+  _apikey="$(printf "%s" "$CallMeBot_apikey" | _url_encode)"
+  _message="$(printf "$CQHTTP_CUSTOM_MSGHEAD *%s*\\n%s" "$_subject" "$_content" | _url_encode)"
+  
+  _finalUrl="$_waUrl?phone=$_Phone_No&apikey=$_apikey&text=$_message"
+  response="$(_get "$_finalUrl")"
 
-  SLACK_USERNAME="${SLACK_USERNAME:-$(_readaccountconf_mutable SLACK_USERNAME)}"
-  if [ -n "$SLACK_USERNAME" ]; then
-    _saveaccountconf_mutable SLACK_USERNAME "$SLACK_USERNAME"
-  fi
-
-  export _H1="Content-Type: application/json"
-
-  _content="$(printf "*%s*\n%s" "$_subject" "$_content" | _json_encode)"
-  _data="{\"text\": \"$_content\", "
-  if [ -n "$SLACK_CHANNEL" ]; then
-    _data="$_data\"channel\": \"$SLACK_CHANNEL\", "
-  fi
-  if [ -n "$SLACK_USERNAME" ]; then
-    _data="$_data\"username\": \"$SLACK_USERNAME\", "
-  fi
-  _data="$_data\"mrkdwn\": \"true\"}"
-
-  if _post "$_data" "$SLACK_WEBHOOK_URL"; then
-    # shellcheck disable=SC2154
-    if [ "$response" = "ok" ]; then
-      _info "wa send success."
-      return 0
-    fi
+  if [ "$?" = "0" ] && _contains ".<p><b>Message queued.</b> You will receive it in a few seconds."; then
+    _info "wa send success."
+    return 0
   fi
   _err "wa send error."
-  _err "$response"
+  _debug "URL" "$_finalUrl"
+  _debug "Response" "$response"
   return 1
 }
