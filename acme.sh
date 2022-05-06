@@ -2691,6 +2691,13 @@ _initAPI() {
   return 1
 }
 
+_clearCA() {
+  export ACME_DIRECTORY=
+  export CA_CONF=
+  export ACCOUNT_KEY_PATH=
+  export ACCOUNT_JSON_PATH=
+}
+
 #[domain]  [keylength or isEcc flag]
 _initpath() {
   domain="$1"
@@ -5357,6 +5364,7 @@ renew() {
 #renewAll  [stopRenewOnError]
 renewAll() {
   _initpath
+  _clearCA
   _stopRenewOnError="$1"
   _debug "_stopRenewOnError" "$_stopRenewOnError"
   _ret="0"
