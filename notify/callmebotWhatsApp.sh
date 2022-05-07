@@ -23,13 +23,13 @@ callmebotWhatsApp_send() {
   if [ -n "$CallMeBot_apikey" ]; then
     _saveaccountconf_mutable CallMeBot_apikey "$CallMeBot_apikey"
   fi
-  
+
   _waUrl="https://api.callmebot.com/whatsapp.php"
-  
+
   _Phone_No="$(printf "%s" "$CallMeBot_Phone_No" | _url_encode)"
   _apikey="$(printf "%s" "$CallMeBot_apikey" | _url_encode)"
   _message="$(printf "$CQHTTP_CUSTOM_MSGHEAD *%s*\\n%s" "$_subject" "$_content" | _url_encode)"
-  
+
   _finalUrl="$_waUrl?phone=$_Phone_No&apikey=$_apikey&text=$_message"
   response="$(_get "$_finalUrl")"
 
