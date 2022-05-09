@@ -28,7 +28,7 @@ callmebotWhatsApp_send() {
 
   _Phone_No="$(printf "%s" "$CALLMEBOT_YOUR_PHONE_NO" | _url_encode)"
   _apikey="$(printf "%s" "$CALLMEBOT_API_KEY" | _url_encode)"
-  _message="$(printf "$CQHTTP_CUSTOM_MSGHEAD *%s*\\n%s" "$_subject" "$_content" | _url_encode)"
+  _message="$(printf "*%s*\\n%s" "$_subject" "$_content" | _url_encode)"
 
   _finalUrl="$_waUrl?phone=$_Phone_No&apikey=$_apikey&text=$_message"
   response="$(_get "$_finalUrl")"
