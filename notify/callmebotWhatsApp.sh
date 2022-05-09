@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env sh
 
 #Support CallMeBot Whatsapp webhooks
 
