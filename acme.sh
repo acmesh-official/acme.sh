@@ -20,8 +20,6 @@ _SUB_FOLDER_DEPLOY="deploy"
 
 _SUB_FOLDERS="$_SUB_FOLDER_DNSAPI $_SUB_FOLDER_DEPLOY $_SUB_FOLDER_NOTIFY"
 
-CA_LETSENCRYPT_V1="https://acme-v01.api.letsencrypt.org/directory"
-
 CA_LETSENCRYPT_V2="https://acme-v02.api.letsencrypt.org/directory"
 CA_LETSENCRYPT_V2_TEST="https://acme-staging-v02.api.letsencrypt.org/directory"
 
@@ -5257,6 +5255,7 @@ renew() {
   _debug "_renewServer" "$_renewServer"
 
   _initpath "$Le_Domain" "$_isEcc"
+
   _set_level=${NOTIFY_LEVEL:-$NOTIFY_LEVEL_DEFAULT}
   _info "$(__green "Renew: '$Le_Domain'")"
   if [ ! -f "$DOMAIN_CONF" ]; then
@@ -5270,12 +5269,6 @@ renew() {
 
   . "$DOMAIN_CONF"
   _debug Le_API "$Le_API"
-
-  if [ "$_renewServer" ]; then
-    export ACME_DIRECTORY="$_renewServer"
-  else
-    export ACME_DIRECTORY="$Le_API"
-  fi
 
   case "$Le_API" in
   "$CA_LETSENCRYPT_V2_TEST")
@@ -5292,18 +5285,21 @@ renew() {
     ;;
   esac
 
-  if [ "$Le_API" ] && [ "$ACME_DIRECTORY" ]; then
-    if [ "$Le_API" != "$ACME_DIRECTORY" ]; then
-      _clearAPI
-      _clearCA
-    fi
-    #reload ca configs
-    ACCOUNT_KEY_PATH=""
-    ACCOUNT_JSON_PATH=""
-    CA_CONF=""
-    _debug2 "initpath again."
-    _initpath "$Le_Domain" "$_isEcc"
+  if [ "$_server" ]; then
+    Le_API="$_server"
   fi
+  _info "Renew to Le_API=$Le_API"
+
+  export ACME_DIRECTORY="$Le_API"
+  _clearAPI
+  _clearCA
+
+  #reload ca configs
+  ACCOUNT_KEY_PATH=""
+  ACCOUNT_JSON_PATH=""
+  CA_CONF=""
+  _debug2 "initpath again."
+  _initpath "$Le_Domain" "$_isEcc"
 
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
     _info "Skip, Next renewal time is: $(__green "$Le_NextRenewTimeStr")"
