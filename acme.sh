@@ -5244,17 +5244,18 @@ _split_cert_chain() {
   fi
 }
 
-#domain  [isEcc]
+#domain  [isEcc] [server]
 renew() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ]; then
-    _usage "Usage: $PROJECT_ENTRY --renew --domain <domain.tld> [--ecc]"
+    _usage "Usage: $PROJECT_ENTRY --renew --domain <domain.tld> [--ecc] [--server server]"
     return 1
   fi
 
   _isEcc="$2"
-  #the server specified from commandline
-  _acme_server_back="$ACME_DIRECTORY"
+  _renewServer="$3"
+  _debug "_renewServer" "$_renewServer"
+
   _initpath "$Le_Domain" "$_isEcc"
   _set_level=${NOTIFY_LEVEL:-$NOTIFY_LEVEL_DEFAULT}
   _info "$(__green "Renew: '$Le_Domain'")"
@@ -5269,14 +5270,9 @@ renew() {
 
   . "$DOMAIN_CONF"
   _debug Le_API "$Le_API"
-  if [ -z "$Le_API" ] || [ "$CA_LETSENCRYPT_V1" = "$Le_API" ]; then
-    #if this is from an old version, Le_API is empty,
-    #so, we force to use letsencrypt server
-    Le_API="$CA_LETSENCRYPT_V2"
-  fi
 
-  if [ "$_acme_server_back" ]; then
-    export ACME_DIRECTORY="$_acme_server_back"
+  if [ "$_renewServer" ]; then
+    export ACME_DIRECTORY="$_renewServer"
   else
     export ACME_DIRECTORY="$Le_API"
   fi
@@ -5299,6 +5295,7 @@ renew() {
   if [ "$Le_API" ] && [ "$ACME_DIRECTORY" ]; then
     if [ "$Le_API" != "$ACME_DIRECTORY" ]; then
       _clearAPI
+      _clearCA
     fi
     #reload ca configs
     ACCOUNT_KEY_PATH=""
@@ -5361,12 +5358,16 @@ renew() {
   return "$res"
 }
 
-#renewAll  [stopRenewOnError]
+#renewAll  [stopRenewOnError] [server]
 renewAll() {
   _initpath
   _clearCA
   _stopRenewOnError="$1"
   _debug "_stopRenewOnError" "$_stopRenewOnError"
+
+  _server="$2"
+  _debug "_server" "$_server"
+
   _ret="0"
   _success_msg=""
   _error_msg=""
@@ -5389,7 +5390,7 @@ renewAll() {
         _isEcc=$(echo "$d" | cut -d "$ECC_SEP" -f 2)
         d=$(echo "$d" | cut -d "$ECC_SEP" -f 1)
       fi
-      renew "$d" "$_isEcc"
+      renew "$d" "$_isEcc" "$_server"
     )
     rc="$?"
     _debug "Return code: $rc"
@@ -7662,6 +7663,7 @@ _process() {
 
   if [ "$_server" ]; then
     _selectServer "$_server" "${_ecc:-$_keylength}"
+    _server="$ACME_DIRECTORY"
   fi
 
   if [ "${_CMD}" != "install" ]; then
@@ -7736,10 +7738,10 @@ _process() {
     installcert "$_domain" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_ecc"
     ;;
   renew)
-    renew "$_domain" "$_ecc"
+    renew "$_domain" "$_ecc" "$_server"
     ;;
   renewAll)
-    renewAll "$_stopRenewOnError"
+    renewAll "$_stopRenewOnError" "$_server"
     ;;
   revoke)
     revoke "$_domain" "$_ecc" "$_revoke_reason"
