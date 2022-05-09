@@ -2690,7 +2690,6 @@ _initAPI() {
 }
 
 _clearCA() {
-  export ACME_DIRECTORY=
   export CA_CONF=
   export ACCOUNT_KEY_PATH=
   export ACCOUNT_JSON_PATH=
@@ -5290,14 +5289,11 @@ renew() {
   fi
   _info "Renew to Le_API=$Le_API"
 
-  export ACME_DIRECTORY="$Le_API"
   _clearAPI
   _clearCA
+  export ACME_DIRECTORY="$Le_API"
 
   #reload ca configs
-  ACCOUNT_KEY_PATH=""
-  ACCOUNT_JSON_PATH=""
-  CA_CONF=""
   _debug2 "initpath again."
   _initpath "$Le_Domain" "$_isEcc"
 
