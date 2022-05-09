@@ -20,7 +20,7 @@ callmebotWhatsApp_send() {
   _saveaccountconf_mutable CALLMEBOT_YOUR_PHONE_NO "$CALLMEBOT_YOUR_PHONE_NO"
 
   CALLMEBOT_API_KEY="${CALLMEBOT_API_KEY:-$(_readaccountconf_mutable CALLMEBOT_API_KEY)}"
-  if [ -n "$CALLMEBOT_API_KEY" ]; then
+  if [ "$CALLMEBOT_API_KEY" ]; then
     _saveaccountconf_mutable CALLMEBOT_API_KEY "$CALLMEBOT_API_KEY"
   fi
 
