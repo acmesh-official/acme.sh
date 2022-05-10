@@ -4406,7 +4406,13 @@ issue() {
   if [ -f "$CSR_PATH" ] && [ ! -f "$CERT_KEY_PATH" ]; then
     _info "Signing from existing CSR."
   else
+    # When renewing from an old version, the empty Le_Keylength means 2048.
+    # Note, do not use DEFAULT_DOMAIN_KEY_LENGTH as that value may change over
+    # time but an empty value implies 2048 specifically.
     _key=$(_readdomainconf Le_Keylength)
+    if [ -z "$_key" ]; then
+      _key=2048
+    fi
     _debug "Read key length:$_key"
     if [ ! -f "$CERT_KEY_PATH" ] || [ "$_key_length" != "$_key" ] || [ "$Le_ForceNewDomainKey" = "1" ]; then
       if ! createDomainKey "$_main_domain" "$_key_length"; then
@@ -5319,7 +5325,10 @@ renew() {
   Le_PostHook="$(_readdomainconf Le_PostHook)"
   Le_RenewHook="$(_readdomainconf Le_RenewHook)"
   Le_Preferred_Chain="$(_readdomainconf Le_Preferred_Chain)"
-  #when renew from an old version, the empty Le_Keylength means 2048
+  # When renewing from an old version, the empty Le_Keylength means 2048.
+  # Note, do not use DEFAULT_DOMAIN_KEY_LENGTH as that value may change over
+  # time but an empty value implies 2048 specifically.
+  Le_Keylength="$(_readdomainconf Le_Keylength)"
   if [ -z "$Le_Keylength" ]; then
     Le_Keylength=2048
   fi
