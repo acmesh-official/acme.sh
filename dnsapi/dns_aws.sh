@@ -178,7 +178,20 @@ _get_root() {
         return 1
       fi
 
-      if _contains "$response" "<Name>$h.</Name>"; then
+      if _contains "$response" "<Name>_acme-challenge.$h.</Name>"; then
+        hostedzone="$(echo "$response" | sed 's/<HostedZone>/#&/g' | tr '#' '\n' | _egrep_o "<HostedZone><Id>[^<]*<.Id><Name>_acme-challenge.$h.<.Name>.*<PrivateZone>false<.PrivateZone>.*<.HostedZone>")"
+        _debug hostedzone "$hostedzone"
+        if [ "$hostedzone" ]; then
+          _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "<Id>.*<.Id>" | head -n 1 | _egrep_o ">.*<" | tr -d "<>")
+          if [ "$_domain_id" ]; then
+            _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+            _domain=_acme-challenge.$h
+            return 0
+          fi
+          _err "Can't find domain with id: _acme-challenge.$h"
+          return 1
+        fi
+      elif _contains "$response" "<Name>$h.</Name>"; then
         hostedzone="$(echo "$response" | sed 's/<HostedZone>/#&/g' | tr '#' '\n' | _egrep_o "<HostedZone><Id>[^<]*<.Id><Name>$h.<.Name>.*<PrivateZone>false<.PrivateZone>.*<.HostedZone>")"
         _debug hostedzone "$hostedzone"
         if [ "$hostedzone" ]; then
