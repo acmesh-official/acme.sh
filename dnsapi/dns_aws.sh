@@ -151,8 +151,8 @@ dns_aws_rm() {
 ####################  Private functions below ##################################
 
 _get_root() {
-  domain=$1
-  i=2
+  domain=_acme-challenge.$1
+  i=1
   p=1
 
   if aws_rest GET "2013-04-01/hostedzone"; then
