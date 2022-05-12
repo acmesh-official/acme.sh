@@ -179,7 +179,7 @@ _get_root() {
       fi
 
       if _contains "$response" "<Name>$h.</Name>"; then
-        hostedzone="$(echo "$response" | sed 's/<HostedZone>/#&/g' | tr '#' '\n' | _egrep_o "<HostedZone><Id>[^<]*<.Id><Name>$h.<.Name>.*<PrivateZone>false<.PrivateZone>.*<.HostedZone>")"
+        hostedzone="$(echo "$response" | tr -d '\n' | sed 's/<HostedZone>/#&/g' | tr '#' '\n' | _egrep_o "<HostedZone><Id>[^<]*<.Id><Name>$h.<.Name>.*<PrivateZone>false<.PrivateZone>.*<.HostedZone>")"
         _debug hostedzone "$hostedzone"
         if [ "$hostedzone" ]; then
           _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "<Id>.*<.Id>" | head -n 1 | _egrep_o ">.*<" | tr -d "<>")
