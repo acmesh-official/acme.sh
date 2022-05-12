@@ -151,7 +151,7 @@ dns_aws_rm() {
 ####################  Private functions below ##################################
 
 _get_root() {
-  domain=_acme-challenge.$1
+  domain=$1
   i=1
   p=1
 
