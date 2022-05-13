@@ -43,19 +43,19 @@ vault_cli_deploy() {
     return 1
   fi
 
-  VAULT_CMD=$(which vault)
+  VAULT_CMD=$(command -v vault)
   if [ ! $? ]; then
     _err "cannot find vault binary!"
     return 1
   fi
 
   if [ -n "$FABIO" ]; then
-    $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}" cert=@"$_cfullchain" key=@"$_ckey" || return 1
+    $VAULT_CMD kv put "${VAULT_PREFIX}/${_cdomain}" cert=@"$_cfullchain" key=@"$_ckey" || return 1
   else
-    $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/cert.pem" value=@"$_ccert" || return 1
-    $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/cert.key" value=@"$_ckey" || return 1
-    $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/chain.pem" value=@"$_cca" || return 1
-    $VAULT_CMD write "${VAULT_PREFIX}/${_cdomain}/fullchain.pem" value=@"$_cfullchain" || return 1
+    $VAULT_CMD kv put "${VAULT_PREFIX}/${_cdomain}/cert.pem" value=@"$_ccert" || return 1
+    $VAULT_CMD kv put "${VAULT_PREFIX}/${_cdomain}/cert.key" value=@"$_ckey" || return 1
+    $VAULT_CMD kv put "${VAULT_PREFIX}/${_cdomain}/chain.pem" value=@"$_cca" || return 1
+    $VAULT_CMD kv put "${VAULT_PREFIX}/${_cdomain}/fullchain.pem" value=@"$_cfullchain" || return 1
   fi
 
 }

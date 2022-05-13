@@ -69,9 +69,9 @@ dns_gandi_livedns_rm() {
 
   _gandi_livedns_rest PUT \
     "domains/$_domain/records/$_sub_domain/TXT" \
-    "{\"rrset_ttl\": 300, \"rrset_values\": $_new_rrset_values}" \
-    && _contains "$response" '{"message": "DNS Record Created"}' \
-    && _info "Removing record $(__green "success")"
+    "{\"rrset_ttl\": 300, \"rrset_values\": $_new_rrset_values}" &&
+    _contains "$response" '{"message": "DNS Record Created"}' &&
+    _info "Removing record $(__green "success")"
 }
 
 ####################  Private functions below ##################################
@@ -125,9 +125,9 @@ _dns_gandi_append_record() {
   fi
   _debug new_rrset_values "$_rrset_values"
   _gandi_livedns_rest PUT "domains/$_domain/records/$sub_domain/TXT" \
-    "{\"rrset_ttl\": 300, \"rrset_values\": $_rrset_values}" \
-    && _contains "$response" '{"message": "DNS Record Created"}' \
-    && _info "Adding record $(__green "success")"
+    "{\"rrset_ttl\": 300, \"rrset_values\": $_rrset_values}" &&
+    _contains "$response" '{"message": "DNS Record Created"}' &&
+    _info "Adding record $(__green "success")"
 }
 
 _dns_gandi_existing_rrset_values() {
@@ -145,8 +145,8 @@ _dns_gandi_existing_rrset_values() {
     return 1
   fi
   _debug "Already has TXT record."
-  _rrset_values=$(echo "$response" | _egrep_o 'rrset_values.*\[.*\]' \
-    | _egrep_o '\[".*\"]')
+  _rrset_values=$(echo "$response" | _egrep_o 'rrset_values.*\[.*\]' |
+    _egrep_o '\[".*\"]')
   return 0
 }
 

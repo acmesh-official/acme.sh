@@ -8,7 +8,7 @@
 #DEPLOY_DOCKER_CONTAINER_FULLCHAIN_FILE="/path/to/fullchain.pem"
 #DEPLOY_DOCKER_CONTAINER_RELOAD_CMD="service nginx force-reload"
 
-_DEPLOY_DOCKER_WIKI="https://github.com/Neilpang/acme.sh/wiki/deploy-to-docker-containers"
+_DEPLOY_DOCKER_WIKI="https://github.com/acmesh-official/acme.sh/wiki/deploy-to-docker-containers"
 
 _DOCKER_HOST_DEFAULT="/var/run/docker.sock"
 
@@ -91,7 +91,7 @@ docker_deploy() {
   _getdeployconf DEPLOY_DOCKER_CONTAINER_RELOAD_CMD
   _debug2 DEPLOY_DOCKER_CONTAINER_RELOAD_CMD "$DEPLOY_DOCKER_CONTAINER_RELOAD_CMD"
   if [ "$DEPLOY_DOCKER_CONTAINER_RELOAD_CMD" ]; then
-    _savedeployconf DEPLOY_DOCKER_CONTAINER_RELOAD_CMD "$DEPLOY_DOCKER_CONTAINER_RELOAD_CMD"
+    _savedeployconf DEPLOY_DOCKER_CONTAINER_RELOAD_CMD "$DEPLOY_DOCKER_CONTAINER_RELOAD_CMD" "base64"
   fi
 
   _cid="$(_get_id "$DEPLOY_DOCKER_CONTAINER_LABEL")"
@@ -275,6 +275,7 @@ _check_curl_version() {
 
   if [ "$_major$_minor" -lt "740" ]; then
     _err "curl v$_cversion doesn't support unit socket"
+    _err "Please upgrade to curl 7.40 or later."
     return 1
   fi
   if [ "$_major$_minor" -lt "750" ]; then

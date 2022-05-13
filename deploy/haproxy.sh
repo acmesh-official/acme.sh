@@ -54,11 +54,6 @@ haproxy_deploy() {
   DEPLOY_HAPROXY_ISSUER_DEFAULT="no"
   DEPLOY_HAPROXY_RELOAD_DEFAULT="true"
 
-  if [ -f "${DOMAIN_CONF}" ]; then
-    # shellcheck disable=SC1090
-    . "${DOMAIN_CONF}"
-  fi
-
   _debug _cdomain "${_cdomain}"
   _debug _ckey "${_ckey}"
   _debug _ccert "${_ccert}"
@@ -66,6 +61,8 @@ haproxy_deploy() {
   _debug _cfullchain "${_cfullchain}"
 
   # PEM_PATH is optional. If not provided then assume "${DEPLOY_HAPROXY_PEM_PATH_DEFAULT}"
+  _getdeployconf DEPLOY_HAPROXY_PEM_PATH
+  _debug2 DEPLOY_HAPROXY_PEM_PATH "${DEPLOY_HAPROXY_PEM_PATH}"
   if [ -n "${DEPLOY_HAPROXY_PEM_PATH}" ]; then
     Le_Deploy_haproxy_pem_path="${DEPLOY_HAPROXY_PEM_PATH}"
     _savedomainconf Le_Deploy_haproxy_pem_path "${Le_Deploy_haproxy_pem_path}"
@@ -82,6 +79,8 @@ haproxy_deploy() {
   fi
 
   # PEM_NAME is optional. If not provided then assume "${DEPLOY_HAPROXY_PEM_NAME_DEFAULT}"
+  _getdeployconf DEPLOY_HAPROXY_PEM_NAME
+  _debug2 DEPLOY_HAPROXY_PEM_NAME "${DEPLOY_HAPROXY_PEM_NAME}"
   if [ -n "${DEPLOY_HAPROXY_PEM_NAME}" ]; then
     Le_Deploy_haproxy_pem_name="${DEPLOY_HAPROXY_PEM_NAME}"
     _savedomainconf Le_Deploy_haproxy_pem_name "${Le_Deploy_haproxy_pem_name}"
@@ -90,6 +89,8 @@ haproxy_deploy() {
   fi
 
   # BUNDLE is optional. If not provided then assume "${DEPLOY_HAPROXY_BUNDLE_DEFAULT}"
+  _getdeployconf DEPLOY_HAPROXY_BUNDLE
+  _debug2 DEPLOY_HAPROXY_BUNDLE "${DEPLOY_HAPROXY_BUNDLE}"
   if [ -n "${DEPLOY_HAPROXY_BUNDLE}" ]; then
     Le_Deploy_haproxy_bundle="${DEPLOY_HAPROXY_BUNDLE}"
     _savedomainconf Le_Deploy_haproxy_bundle "${Le_Deploy_haproxy_bundle}"
@@ -98,6 +99,8 @@ haproxy_deploy() {
   fi
 
   # ISSUER is optional. If not provided then assume "${DEPLOY_HAPROXY_ISSUER_DEFAULT}"
+  _getdeployconf DEPLOY_HAPROXY_ISSUER
+  _debug2 DEPLOY_HAPROXY_ISSUER "${DEPLOY_HAPROXY_ISSUER}"
   if [ -n "${DEPLOY_HAPROXY_ISSUER}" ]; then
     Le_Deploy_haproxy_issuer="${DEPLOY_HAPROXY_ISSUER}"
     _savedomainconf Le_Deploy_haproxy_issuer "${Le_Deploy_haproxy_issuer}"
@@ -106,6 +109,8 @@ haproxy_deploy() {
   fi
 
   # RELOAD is optional. If not provided then assume "${DEPLOY_HAPROXY_RELOAD_DEFAULT}"
+  _getdeployconf DEPLOY_HAPROXY_RELOAD
+  _debug2 DEPLOY_HAPROXY_RELOAD "${DEPLOY_HAPROXY_RELOAD}"
   if [ -n "${DEPLOY_HAPROXY_RELOAD}" ]; then
     Le_Deploy_haproxy_reload="${DEPLOY_HAPROXY_RELOAD}"
     _savedomainconf Le_Deploy_haproxy_reload "${Le_Deploy_haproxy_reload}"
@@ -190,7 +195,7 @@ haproxy_deploy() {
     _info "Updating OCSP stapling info"
     _debug _ocsp "${_ocsp}"
     _info "Extracting OCSP URL"
-    _ocsp_url=$(openssl x509 -noout -ocsp_uri -in "${_pem}")
+    _ocsp_url=$(${ACME_OPENSSL_BIN:-openssl} x509 -noout -ocsp_uri -in "${_pem}")
     _debug _ocsp_url "${_ocsp_url}"
 
     # Only process OCSP if URL was present
@@ -203,38 +208,41 @@ haproxy_deploy() {
       # Only process the certificate if we have a .issuer file
       if [ -r "${_issuer}" ]; then
         # Check if issuer cert is also a root CA cert
-        _subjectdn=$(openssl x509 -in "${_issuer}" -subject -noout | cut -d'/' -f2,3,4,5,6,7,8,9,10)
+        _subjectdn=$(${ACME_OPENSSL_BIN:-openssl} x509 -in "${_issuer}" -subject -noout | cut -d'/' -f2,3,4,5,6,7,8,9,10)
         _debug _subjectdn "${_subjectdn}"
-        _issuerdn=$(openssl x509 -in "${_issuer}" -issuer -noout | cut -d'/' -f2,3,4,5,6,7,8,9,10)
+        _issuerdn=$(${ACME_OPENSSL_BIN:-openssl} x509 -in "${_issuer}" -issuer -noout | cut -d'/' -f2,3,4,5,6,7,8,9,10)
         _debug _issuerdn "${_issuerdn}"
         _info "Requesting OCSP response"
-        # Request the OCSP response from the issuer and store it
+        # If the issuer is a CA cert then our command line has "-CAfile" added
         if [ "${_subjectdn}" = "${_issuerdn}" ]; then
-          # If the issuer is a CA cert then our command line has "-CAfile" added
-          openssl ocsp \
-            -issuer "${_issuer}" \
-            -cert "${_pem}" \
-            -url "${_ocsp_url}" \
-            -header Host "${_ocsp_host}" \
-            -respout "${_ocsp}" \
-            -verify_other "${_issuer}" \
-            -no_nonce \
-            -CAfile "${_issuer}" \
-            | grep -q "${_pem}: good"
-          _ret=$?
+          _cafile_argument="-CAfile \"${_issuer}\""
         else
-          # Issuer is not a root CA so no "-CAfile" option
-          openssl ocsp \
-            -issuer "${_issuer}" \
-            -cert "${_pem}" \
-            -url "${_ocsp_url}" \
-            -header Host "${_ocsp_host}" \
-            -respout "${_ocsp}" \
-            -verify_other "${_issuer}" \
-            -no_nonce \
-            | grep -q "${_pem}: good"
-          _ret=$?
+          _cafile_argument=""
         fi
+        _debug _cafile_argument "${_cafile_argument}"
+        # if OpenSSL/LibreSSL is v1.1 or above, the format for the -header option has changed
+        _openssl_version=$(${ACME_OPENSSL_BIN:-openssl} version | cut -d' ' -f2)
+        _debug _openssl_version "${_openssl_version}"
+        _openssl_major=$(echo "${_openssl_version}" | cut -d '.' -f1)
+        _openssl_minor=$(echo "${_openssl_version}" | cut -d '.' -f2)
+        if [ "${_openssl_major}" -eq "1" ] && [ "${_openssl_minor}" -ge "1" ] || [ "${_openssl_major}" -ge "2" ]; then
+          _header_sep="="
+        else
+          _header_sep=" "
+        fi
+        # Request the OCSP response from the issuer and store it
+        _openssl_ocsp_cmd="${ACME_OPENSSL_BIN:-openssl} ocsp \
+          -issuer \"${_issuer}\" \
+          -cert \"${_pem}\" \
+          -url \"${_ocsp_url}\" \
+          -header Host${_header_sep}\"${_ocsp_host}\" \
+          -respout \"${_ocsp}\" \
+          -verify_other \"${_issuer}\" \
+          ${_cafile_argument} \
+          | grep -q \"${_pem}: good\""
+        _debug _openssl_ocsp_cmd "${_openssl_ocsp_cmd}"
+        eval "${_openssl_ocsp_cmd}"
+        _ret=$?
       else
         # Non fatal: No issuer file was present so no OCSP stapling file created
         _err "OCSP stapling in use but no .issuer file was present"

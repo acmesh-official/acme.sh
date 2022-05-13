@@ -6,6 +6,7 @@
 #MAIL_FROM="yyyy@gmail.com"
 #MAIL_TO="yyyy@gmail.com"
 #MAIL_NOVALIDATE=""
+#MAIL_MSMTP_ACCOUNT=""
 
 mail_send() {
   _subject="$1"
@@ -61,7 +62,7 @@ mail_send() {
   fi
 
   contenttype="text/plain; charset=utf-8"
-  subject="=?UTF-8?B?$(echo "$_subject" | _base64)?="
+  subject="=?UTF-8?B?$(printf -- "%b" "$_subject" | _base64)?="
   result=$({ _mail_body | eval "$(_mail_cmnd)"; } 2>&1)
 
   # shellcheck disable=SC2181
@@ -76,18 +77,17 @@ mail_send() {
 }
 
 _mail_bin() {
-  if [ -n "$MAIL_BIN" ]; then
-    _MAIL_BIN="$MAIL_BIN"
-  elif _exists "sendmail"; then
-    _MAIL_BIN="sendmail"
-  elif _exists "ssmtp"; then
-    _MAIL_BIN="ssmtp"
-  elif _exists "mutt"; then
-    _MAIL_BIN="mutt"
-  elif _exists "mail"; then
-    _MAIL_BIN="mail"
-  else
-    _err "Please install sendmail, ssmtp, mutt or mail first."
+  _MAIL_BIN=""
+
+  for b in $MAIL_BIN sendmail ssmtp mutt mail msmtp; do
+    if _exists "$b"; then
+      _MAIL_BIN="$b"
+      break
+    fi
+  done
+
+  if [ -z "$_MAIL_BIN" ]; then
+    _err "Please install sendmail, ssmtp, mutt, mail or msmtp first."
     return 1
   fi
 
@@ -95,39 +95,45 @@ _mail_bin() {
 }
 
 _mail_cmnd() {
+  _MAIL_ARGS=""
+
   case $(basename "$_MAIL_BIN") in
-    sendmail)
-      if [ -n "$MAIL_FROM" ]; then
-        echo "'$_MAIL_BIN' -f '$MAIL_FROM' '$MAIL_TO'"
-      else
-        echo "'$_MAIL_BIN' '$MAIL_TO'"
-      fi
-      ;;
-    ssmtp)
-      echo "'$_MAIL_BIN' '$MAIL_TO'"
-      ;;
-    mutt | mail)
-      echo "'$_MAIL_BIN' -s '$_subject' '$MAIL_TO'"
-      ;;
-    *)
-      _err "Command $MAIL_BIN is not supported, use sendmail, ssmtp, mutt or mail."
-      return 1
-      ;;
+  sendmail)
+    if [ -n "$MAIL_FROM" ]; then
+      _MAIL_ARGS="-f '$MAIL_FROM'"
+    fi
+    ;;
+  mutt | mail)
+    _MAIL_ARGS="-s '$_subject'"
+    ;;
+  msmtp)
+    if [ -n "$MAIL_FROM" ]; then
+      _MAIL_ARGS="-f '$MAIL_FROM'"
+    fi
+
+    if [ -n "$MAIL_MSMTP_ACCOUNT" ]; then
+      _MAIL_ARGS="$_MAIL_ARGS -a '$MAIL_MSMTP_ACCOUNT'"
+    fi
+    ;;
+  *) ;;
   esac
+
+  echo "'$_MAIL_BIN' $_MAIL_ARGS '$MAIL_TO'"
 }
 
 _mail_body() {
   case $(basename "$_MAIL_BIN") in
-    sendmail | ssmtp)
-      if [ -n "$MAIL_FROM" ]; then
-        echo "From: $MAIL_FROM"
-      fi
+  sendmail | ssmtp | msmtp)
+    if [ -n "$MAIL_FROM" ]; then
+      echo "From: $MAIL_FROM"
+    fi
 
-      echo "To: $MAIL_TO"
-      echo "Subject: $subject"
-      echo "Content-Type: $contenttype"
-      echo
-      ;;
+    echo "To: $MAIL_TO"
+    echo "Subject: $subject"
+    echo "Content-Type: $contenttype"
+    echo "MIME-Version: 1.0"
+    echo
+    ;;
   esac
 
   echo "$_content"

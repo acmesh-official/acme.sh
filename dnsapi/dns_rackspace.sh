@@ -7,9 +7,10 @@
 
 RACKSPACE_Endpoint="https://dns.api.rackspacecloud.com/v1.0"
 
+# 20210923 - RS changed the fields in the API response; fix sed
 # 20190213 - The name & id fields swapped in the API response; fix sed
 # 20190101 - Duplicating file for new pull request to dev branch
-# Original - tcocca:rackspace_dnsapi https://github.com/Neilpang/acme.sh/pull/1297
+# Original - tcocca:rackspace_dnsapi https://github.com/acmesh-official/acme.sh/pull/1297
 
 ########  Public functions #####################
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
@@ -73,14 +74,14 @@ _get_root_zone() {
       #not valid
       return 1
     fi
-    if ! _rackspace_rest GET "$RACKSPACE_Tenant/domains"; then
+    if ! _rackspace_rest GET "$RACKSPACE_Tenant/domains/search?name=$h"; then
       return 1
     fi
     _debug2 response "$response"
     if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
       # Response looks like:
-      #   {"ttl":300,"accountId":12345,"id":1111111,"name":"example.com","emailAddress": ...<and so on>
-      _domain_id=$(echo "$response" | sed -n "s/^.*\"id\":\([^,]*\),\"name\":\"$h\",.*/\1/p")
+      #   {"id":"12345","accountId":"1111111","name": "example.com","ttl":3600,"emailAddress": ... <and so on>
+      _domain_id=$(echo "$response" | sed -n "s/^.*\"id\":\"\([^,]*\)\",\"accountId\":\"[0-9]*\",\"name\":\"$h\",.*/\1/p")
       _debug2 domain_id "$_domain_id"
       if [ -n "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)

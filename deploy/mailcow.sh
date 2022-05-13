@@ -20,33 +20,54 @@ mailcow_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  _mailcow_path="${DEPLOY_MAILCOW_PATH}"
+  _getdeployconf DEPLOY_MAILCOW_PATH
+  _getdeployconf DEPLOY_MAILCOW_RELOAD
 
-  if [ -z "$_mailcow_path" ]; then
+  _debug DEPLOY_MAILCOW_PATH "$DEPLOY_MAILCOW_PATH"
+  _debug DEPLOY_MAILCOW_RELOAD "$DEPLOY_MAILCOW_RELOAD"
+
+  if [ -z "$DEPLOY_MAILCOW_PATH" ]; then
     _err "Mailcow path is not found, please define DEPLOY_MAILCOW_PATH."
     return 1
   fi
 
-  _ssl_path="${_mailcow_path}/data/assets/ssl/"
+  _savedeployconf DEPLOY_MAILCOW_PATH "$DEPLOY_MAILCOW_PATH"
+  [ -n "$DEPLOY_MAILCOW_RELOAD" ] && _savedeployconf DEPLOY_MAILCOW_RELOAD "$DEPLOY_MAILCOW_RELOAD"
+
+  _ssl_path="$DEPLOY_MAILCOW_PATH"
+  if [ -f "$DEPLOY_MAILCOW_PATH/generate_config.sh" ]; then
+    _ssl_path="$DEPLOY_MAILCOW_PATH/data/assets/ssl/"
+  fi
+
   if [ ! -d "$_ssl_path" ]; then
     _err "Cannot find mailcow ssl path: $_ssl_path"
     return 1
   fi
 
+  # ECC or RSA
+  length=$(_readdomainconf Le_Keylength)
+  if _isEccKey "$length"; then
+    _info "ECC key type detected"
+    _cert_name_prefix="ecdsa-"
+  else
+    _info "RSA key type detected"
+    _cert_name_prefix=""
+  fi
+
   _info "Copying key and cert"
-  _real_key="$_ssl_path/key.pem"
+  _real_key="$_ssl_path/${_cert_name_prefix}key.pem"
   if ! cat "$_ckey" >"$_real_key"; then
     _err "Error: write key file to: $_real_key"
     return 1
   fi
 
-  _real_fullchain="$_ssl_path/cert.pem"
+  _real_fullchain="$_ssl_path/${_cert_name_prefix}cert.pem"
   if ! cat "$_cfullchain" >"$_real_fullchain"; then
     _err "Error: write cert file to: $_real_fullchain"
     return 1
   fi
 
-  DEFAULT_MAILCOW_RELOAD="cd ${_mailcow_path} && docker-compose restart postfix-mailcow dovecot-mailcow nginx-mailcow"
+  DEFAULT_MAILCOW_RELOAD="docker restart \$(docker ps --quiet --filter name=nginx-mailcow --filter name=dovecot-mailcow)"
   _reload="${DEPLOY_MAILCOW_RELOAD:-$DEFAULT_MAILCOW_RELOAD}"
 
   _info "Run reload: $_reload"

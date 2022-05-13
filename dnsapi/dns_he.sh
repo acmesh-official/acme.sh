@@ -24,7 +24,7 @@ dns_he_add() {
   if [ -z "$HE_Username" ] || [ -z "$HE_Password" ]; then
     HE_Username=
     HE_Password=
-    _err "No auth details provided. Please set user credentials using the \$HE_Username and \$HE_Password envoronment variables."
+    _err "No auth details provided. Please set user credentials using the \$HE_Username and \$HE_Password environment variables."
     return 1
   fi
   _saveaccountconf_mutable HE_Username "$HE_Username"
@@ -85,7 +85,7 @@ dns_he_rm() {
     _debug "The txt record is not found, just skip"
     return 0
   fi
-  _record_id="$(echo "$response" | tr -d "#" | sed "s/<tr/#<tr/g" | tr -d "\n" | tr "#" "\n" | grep "$_full_domain" | grep '"dns_tr"' | grep "$_txt_value" | cut -d '"' -f 4)"
+  _record_id="$(echo "$response" | tr -d "#" | sed "s/<tr/#<tr/g" | tr -d "\n" | tr "#" "\n" | grep "$_full_domain" | grep '"dns_tr"' | grep -- "$_txt_value" | cut -d '"' -f 4)"
   _debug2 _record_id "$_record_id"
   if [ -z "$_record_id" ]; then
     _err "Can not find record id"
@@ -101,8 +101,8 @@ dns_he_rm() {
   body="$body&hosted_dns_editzone=1"
   body="$body&hosted_dns_delrecord=1"
   body="$body&hosted_dns_delconfirm=delete"
-  _post "$body" "https://dns.he.net/" \
-    | grep '<div id="dns_status" onClick="hideThis(this);">Successfully removed record.</div>' \
+  _post "$body" "https://dns.he.net/" |
+    grep '<div id="dns_status" onClick="hideThis(this);">Successfully removed record.</div>' \
       >/dev/null
   exit_code="$?"
   if [ "$exit_code" -eq 0 ]; then

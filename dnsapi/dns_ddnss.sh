@@ -77,7 +77,7 @@ dns_ddnss_rm() {
 
   # Now remove the TXT record from DDNS DNS
   _info "Trying to remove TXT record"
-  if _ddnss_rest GET "key=$DDNSS_Token&host=$_ddnss_domain&txtm=1&txt=."; then
+  if _ddnss_rest GET "key=$DDNSS_Token&host=$_ddnss_domain&txtm=2"; then
     if [ "$response" = "Updated 1 hostname." ]; then
       _info "TXT record has been successfully removed from your DDNSS domain."
       return 0
@@ -119,7 +119,7 @@ _ddnss_rest() {
 
   # DDNSS uses GET to update domain info
   if [ "$method" = "GET" ]; then
-    response="$(_get "$url" | sed 's/<[a-zA-Z\/][^>]*>//g' | _tail_n 1)"
+    response="$(_get "$url" | sed 's/<[a-zA-Z\/][^>]*>//g' | tr -s "\n" | _tail_n 1)"
   else
     _err "Unsupported method"
     return 1

@@ -1,0 +1,33 @@
+name: Shellcheck
+on:
+  push:
+    branches:
+      - '*'
+    paths:
+      - '**.sh'
+      - '.github/workflows/shellcheck.yml'
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - '**.sh'
+      - '.github/workflows/shellcheck.yml'
+
+jobs:
+  ShellCheck:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Shellcheck
+      run: sudo apt-get install -y shellcheck
+    - name: DoShellcheck
+      run: shellcheck -V  && shellcheck -e SC2181 **/*.sh && echo "shellcheck OK"
+
+  shfmt:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install shfmt
+      run: curl -sSL https://github.com/mvdan/sh/releases/download/v3.1.2/shfmt_v3.1.2_linux_amd64 -o ~/shfmt && chmod +x ~/shfmt
+    - name: shfmt
+      run: ~/shfmt -l -w -i 2 . ; git diff --exit-code && echo "shfmt OK"
