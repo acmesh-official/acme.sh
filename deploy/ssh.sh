@@ -14,7 +14,7 @@
 # The following examples are for QNAP NAS running QTS 4.2
 # export DEPLOY_SSH_CMD=""  # defaults to "ssh -T"
 # export DEPLOY_SSH_USER="admin"  # required
-# export DEPLOY_SSH_SERVER="qnap"  # defaults to domain name
+# export DEPLOY_SSH_SERVER="qnap"  # defaults to domain name, support multiple servers with optional port (eg. "host1 host2:8022")
 # export DEPLOY_SSH_KEYFILE="/etc/stunnel/stunnel.pem"
 # export DEPLOY_SSH_CERTFILE="/etc/stunnel/stunnel.pem"
 # export DEPLOY_SSH_CAFILE="/etc/stunnel/uca.pem"
@@ -185,7 +185,12 @@ _ssh_deploy() {
   _local_ca_file=""
   _local_full_file=""
 
-  _info "Deploy certificates to remote server $DEPLOY_SSH_USER@$DEPLOY_SSH_SERVER"
+  case $DEPLOY_SSH_SERVER in
+    (*:*) _host=${DEPLOY_SSH_SERVER%:*} _port=${DEPLOY_SSH_SERVER##*:};;
+    (*)   _host=$DEPLOY_SSH_SERVER      _port=;;
+  esac
+
+  _info "Deploy certificates to remote server $DEPLOY_SSH_USER@$_host:$_port"
 
   if [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
     _backupprefix="$DEPLOY_SSH_BACKUP_PATH/$_cdomain-backup"
@@ -406,12 +411,18 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
 #cmd
 _ssh_remote_cmd() {
   _cmd="$1"
+
+  _ssh_cmd="$DEPLOY_SSH_CMD"
+  if [ -n "$_port" ]; then
+    _ssh_cmd="$_ssh_cmd -p $_port"
+  fi
+
   _secure_debug "Remote commands to execute: $_cmd"
-  _info "Submitting sequence of commands to remote server by $DEPLOY_SSH_CMD"
+  _info "Submitting sequence of commands to remote server by $_ssh_cmd"
 
   # quotations in bash cmd below intended.  Squash travis spellcheck error
   # shellcheck disable=SC2029
-  $DEPLOY_SSH_CMD "$DEPLOY_SSH_USER@$DEPLOY_SSH_SERVER" sh -c "'$_cmd'"
+  $_ssh_cmd "$DEPLOY_SSH_USER@$_host" sh -c "'$_cmd'"
   _err_code="$?"
 
   if [ "$_err_code" != "0" ]; then
@@ -425,10 +436,16 @@ _ssh_remote_cmd() {
 _scp_remote_cmd() {
   _src=$1
   _dest=$2
-  _secure_debug "Remote copy source $_src to destination $_dest using: $DEPLOY_SSH_SCP_CMD"
-  _info "Submitting secure copy command: $DEPLOY_SSH_SCP_CMD"
 
-  $DEPLOY_SSH_SCP_CMD "$_src" "$DEPLOY_SSH_USER"@"$DEPLOY_SSH_SERVER":"$_dest"
+  _scp_cmd="$DEPLOY_SSH_SCP_CMD"
+  if [ -n "$_port" ]; then
+    _scp_cmd="$_scp_cmd -P $_port"
+  fi
+
+  _secure_debug "Remote copy source $_src to destination $_dest"
+  _info "Submitting secure copy by $_scp_cmd"
+
+  $_scp_cmd "$_src" "$DEPLOY_SSH_USER"@"$_host":"$_dest"
   _err_code="$?"
 
   if [ "$_err_code" != "0" ]; then
