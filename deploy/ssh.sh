@@ -14,7 +14,7 @@
 # The following examples are for QNAP NAS running QTS 4.2
 # export DEPLOY_SSH_CMD=""  # defaults to "ssh -T"
 # export DEPLOY_SSH_USER="admin"  # required
-# export DEPLOY_SSH_SERVER="qnap"  # defaults to domain name, support multiple servers with optional port (eg. "host1 host2:8022")
+# export DEPLOY_SSH_SERVER="host1 host2:8022 192.168.0.1:9022"  # defaults to domain name, support multiple servers with optional port
 # export DEPLOY_SSH_KEYFILE="/etc/stunnel/stunnel.pem"
 # export DEPLOY_SSH_CERTFILE="/etc/stunnel/stunnel.pem"
 # export DEPLOY_SSH_CAFILE="/etc/stunnel/uca.pem"
