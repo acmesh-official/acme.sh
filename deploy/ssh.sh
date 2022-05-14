@@ -186,8 +186,14 @@ _ssh_deploy() {
   _local_full_file=""
 
   case $DEPLOY_SSH_SERVER in
-  *:*) _host=${DEPLOY_SSH_SERVER%:*} _port=${DEPLOY_SSH_SERVER##*:};;
-  *)   _host=$DEPLOY_SSH_SERVER      _port=;;
+  *:*)
+    _host=${DEPLOY_SSH_SERVER%:*}
+    _port=${DEPLOY_SSH_SERVER##*:}
+    ;;
+  *)
+    _host=$DEPLOY_SSH_SERVER
+    _port=
+    ;;
   esac
 
   _info "Deploy certificates to remote server $DEPLOY_SSH_USER@$_host:$_port"
