@@ -24,7 +24,7 @@ dns_world4you_add() {
   fi
 
   export _H1="Cookie: W4YSESSID=$sessid"
-  form=$(_get "$WORLD4YOU_API/dashboard/paketuebersicht")
+  form=$(_get "$WORLD4YOU_API/")
   _get_paketnr "$fqdn" "$form"
   paketnr="$PAKETNR"
   if [ -z "$paketnr" ]; then
@@ -54,15 +54,14 @@ dns_world4you_add() {
     if _contains "$res" "successfully"; then
       return 0
     else
-      msg=$(echo "$res" | tr '\n' '\t' | sed 's/.*<h3 class="mb-5">[^\t]*\t *\([^\t]*\)\t.*/\1/')
-      if _contains "$msg" '^<\!DOCTYPE html>'; then
-        msg='Unknown error'
-      fi
-      _err "Unable to add record: $msg"
-      if _contains "$msg" '^<\!DOCTYPE html>'; then
+      msg=$(echo "$res" | grep -A 15 'data-type="danger"' | grep "<h3[^>]*>[^<]" | sed 's/<[^>]*>\|^\s*//g')
+      if [ "$msg" = '' ]; then
+        _err "Unable to add record: Unknown error"
         echo "$ret" >'error-01.html'
         echo "$res" >'error-02.html'
         _err "View error-01.html and error-02.html for debugging"
+      else
+        _err "Unable to add record: my.world4you.com: $msg"
       fi
       return 1
     fi
@@ -87,7 +86,7 @@ dns_world4you_rm() {
   fi
 
   export _H1="Cookie: W4YSESSID=$sessid"
-  form=$(_get "$WORLD4YOU_API/dashboard/paketuebersicht")
+  form=$(_get "$WORLD4YOU_API/")
   _get_paketnr "$fqdn" "$form"
   paketnr="$PAKETNR"
   if [ -z "$paketnr" ]; then
@@ -119,15 +118,14 @@ dns_world4you_rm() {
     if _contains "$res" "successfully"; then
       return 0
     else
-      msg=$(echo "$res" | tr '\n' '\t' | sed 's/.*<h3 class="mb-5">[^\t]*\t *\([^\t]*\)\t.*/\1/')
-      if _contains "$msg" '^<\!DOCTYPE html>'; then
-        msg='Unknown error'
-      fi
-      _err "Unable to remove record: $msg"
-      if _contains "$msg" '^<\!DOCTYPE html>'; then
+      msg=$(echo "$res" | grep -A 15 'data-type="danger"' | grep "<h3[^>]*>[^<]" | sed 's/<[^>]*>\|^\s*//g')
+      if [ "$msg" = '' ]; then
+        _err "Unable to remove record: Unknown error"
         echo "$ret" >'error-01.html'
         echo "$res" >'error-02.html'
         _err "View error-01.html and error-02.html for debugging"
+      else
+        _err "Unable to remove record: my.world4you.com: $msg"
       fi
       return 1
     fi
@@ -184,7 +182,7 @@ _get_paketnr() {
   fqdn="$1"
   form="$2"
 
-  domains=$(echo "$form" | grep '^ *[A-Za-z0-9_\.-]*\.[A-Za-z0-9_-]*$' | sed 's/^ *\(.*\)$/\1/')
+  domains=$(echo "$form" | grep 'header-paket-domain' | sed 's/<[^>]*>//g' | sed 's/^.*>\([^>]*\)$/\1/')
   domain=''
   for domain in $domains; do
     if _contains "$fqdn" "$domain\$"; then
@@ -199,6 +197,6 @@ _get_paketnr() {
   TLD="$domain"
   _debug domain "$domain"
   RECORD=$(echo "$fqdn" | cut -c"1-$((${#fqdn} - ${#TLD} - 1))")
-  PAKETNR=$(echo "$form" | grep "data-textfilter=\".* $domain " | _head_n 1 | sed 's/^.* \([0-9]*\) .*$/\1/')
+  PAKETNR=$(echo "$form" | grep "data-textfilter=\".* $domain " | _tail_n 1 | sed "s|.*$WORLD4YOU_API/\\([0-9]*\\)/.*|\\1|")
   return 0
 }

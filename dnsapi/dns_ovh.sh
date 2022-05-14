@@ -198,6 +198,8 @@ dns_ovh_rm() {
       if ! _ovh_rest DELETE "domain/zone/$_domain/record/$rid"; then
         return 1
       fi
+      _ovh_rest POST "domain/zone/$_domain/refresh"
+      _debug "Refresh:$response"
       return 0
     fi
   done
