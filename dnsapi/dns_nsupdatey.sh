@@ -25,8 +25,8 @@ dns_nsupdatey_add() {
   _saveaccountconf_mutable NSUPDATE_Y_KEY "${NSUPDATE_Y_KEY}"
   _saveaccountconf_mutable NSUPDATE_Y_ZONE "${NSUPDATE_Y_ZONE}"
 
-  [ -n "${NSUPDATE_Y_SERVER}" ] || NSUPDATE_SERVER="localhost"
-  [ -n "${NSUPDATE_Y_SERVER_PORT}" ] || NSUPDATE_SERVER_PORT=53
+  [ -n "${NSUPDATE_Y_SERVER}" ] || NSUPDATE_Y_SERVER="localhost"
+  [ -n "${NSUPDATE_Y_SERVER_PORT}" ] || NSUPDATE_Y_SERVER_PORT=53
 
   _info "adding ${fulldomain}. 60 in txt \"${txtvalue}\""
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_1" ] && nsdebug="-d"
