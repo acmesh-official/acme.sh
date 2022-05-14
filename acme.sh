@@ -2332,6 +2332,26 @@ _readdomainconf() {
   _read_conf "$DOMAIN_CONF" "$1"
 }
 
+#_migratedomainconf   oldkey  newkey  base64encode
+_migratedomainconf() {
+  _old_key="$1"
+  _new_key="$2"
+  _b64encode="$3"
+  _value=$(_readdomainconf "$_old_key")
+  if [ -z "$_value" ]; then
+    return 1 # oldkey is not found
+  fi
+  _savedomainconf "$_new_key" "$_value" "$_b64encode"
+  _cleardomainconf "$_old_key"
+  _debug "Domain config $_old_key has been migrated to $_new_key"
+}
+
+#_migratedeployconf   oldkey  newkey  base64encode
+_migratedeployconf() {
+  _migratedomainconf "$1" "SAVED_$2" "$3" ||
+  _migratedomainconf "SAVED_$1" "SAVED_$2" "$3" # try only when oldkey itself is not found
+}
+
 #key  value  base64encode
 _savedeployconf() {
   _savedomainconf "SAVED_$1" "$2" "$3"
