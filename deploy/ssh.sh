@@ -186,8 +186,8 @@ _ssh_deploy() {
   _local_full_file=""
 
   case $DEPLOY_SSH_SERVER in
-    (*:*) _host=${DEPLOY_SSH_SERVER%:*} _port=${DEPLOY_SSH_SERVER##*:};;
-    (*)   _host=$DEPLOY_SSH_SERVER      _port=;;
+  *:*) _host=${DEPLOY_SSH_SERVER%:*} _port=${DEPLOY_SSH_SERVER##*:};;
+  *)   _host=$DEPLOY_SSH_SERVER      _port=;;
   esac
 
   _info "Deploy certificates to remote server $DEPLOY_SSH_USER@$_host:$_port"
@@ -265,9 +265,9 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       # scp the file
       _local_cert_file=$(_mktemp)
       if [ "$DEPLOY_SSH_CERTFILE" = "$DEPLOY_SSH_KEYFILE" ]; then
-        cat "$_ckey" >> "$_local_cert_file"
+        cat "$_ckey" >>"$_local_cert_file"
       fi
-      cat "$_ccert" >> "$_local_cert_file"
+      cat "$_ccert" >>"$_local_cert_file"
       if ! _scp_remote_cmd "$_local_cert_file" "$DEPLOY_SSH_CERTFILE"; then
         return $_err_code
       fi
@@ -306,10 +306,10 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       # scp the file
       _local_ca_file=$(_mktemp)
       if [ "$DEPLOY_SSH_CAFILE" = "$DEPLOY_SSH_KEYFILE" ]; then
-        cat "$_ckey" >> "$_local_ca_file"
+        cat "$_ckey" >>"$_local_ca_file"
       fi
       if [ "$DEPLOY_SSH_CAFILE" = "$DEPLOY_SSH_CERTFILE" ]; then
-        cat "$_ccert" >> "$_local_ca_file"
+        cat "$_ccert" >>"$_local_ca_file"
       fi
       cat "$_cca" >>"$_local_ca_file"
       if ! _scp_remote_cmd "$_local_ca_file" "$DEPLOY_SSH_CAFILE"; then
@@ -351,15 +351,15 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       # scp the file
       _local_full_file=$(_mktemp)
       if [ "$DEPLOY_SSH_FULLCHAIN" = "$DEPLOY_SSH_KEYFILE" ]; then
-        cat "$_ckey" >> "$_local_full_file"
+        cat "$_ckey" >>"$_local_full_file"
       fi
       if [ "$DEPLOY_SSH_FULLCHAIN" = "$DEPLOY_SSH_CERTFILE" ]; then
-        cat "$_ccert" >> "$_local_full_file"
+        cat "$_ccert" >>"$_local_full_file"
       fi
       if [ "$DEPLOY_SSH_FULLCHAIN" = "$DEPLOY_SSH_CAFILE" ]; then
-        cat "$_cca" >> "$_local_full_file"
+        cat "$_cca" >>"$_local_full_file"
       fi
-      cat "$_cfullchain" >> "$_local_full_file"
+      cat "$_cfullchain" >>"$_local_full_file"
       if ! _scp_remote_cmd "$_local_full_file" "$DEPLOY_SSH_FULLCHAIN"; then
         return $_err_code
       fi

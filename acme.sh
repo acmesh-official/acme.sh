@@ -2349,7 +2349,7 @@ _migratedomainconf() {
 #_migratedeployconf   oldkey  newkey  base64encode
 _migratedeployconf() {
   _migratedomainconf "$1" "SAVED_$2" "$3" ||
-  _migratedomainconf "SAVED_$1" "SAVED_$2" "$3" # try only when oldkey itself is not found
+    _migratedomainconf "SAVED_$1" "SAVED_$2" "$3" # try only when oldkey itself is not found
 }
 
 #key  value  base64encode
