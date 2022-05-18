@@ -42,7 +42,7 @@ dns_selfhost_add() {
   # e.g. don't match mytest.example.com or sub.test.example.com for test.example.com
   # replace the whole string with the RID (matching group 3) for assignment
   # if the domain is defined multiple times only the last occurance will be matched
-  rid=$(echo "$SELFHOSTDNS_MAP" | sed -n "s/\(^\|^.*\s\)\($lookupdomain:\|$fulldomain:\)\([0-9][0-9]*\)\(.*\)/\3/Ip")
+  rid=$(echo "$SELFHOSTDNS_MAP" | sed -E "s/(^|^.*[[:space:]])($lookupdomain:|$fulldomain:)([0-9][0-9]*)(.*)/\3/")
 
   if test -z "$rid"; then
     if [ $SELFHOSTDNS_LAST_SLOT = "2" ]; then
