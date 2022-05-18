@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-#NederHost_Key="sdfgikogfdfghjklkjhgfcdcfghjk"
+#NederHost_Key="sdfgikogfdfghjklkjhgfcdcfghj"
 
 NederHost_Api="https://api.nederhost.nl/dns/v1"
 
