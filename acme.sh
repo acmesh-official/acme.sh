@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.0.3
+VER=3.0.5
 
 PROJECT_NAME="acme.sh"
 
@@ -19,8 +19,6 @@ _SUB_FOLDER_DNSAPI="dnsapi"
 _SUB_FOLDER_DEPLOY="deploy"
 
 _SUB_FOLDERS="$_SUB_FOLDER_DNSAPI $_SUB_FOLDER_DEPLOY $_SUB_FOLDER_NOTIFY"
-
-CA_LETSENCRYPT_V1="https://acme-v01.api.letsencrypt.org/directory"
 
 CA_LETSENCRYPT_V2="https://acme-v02.api.letsencrypt.org/directory"
 CA_LETSENCRYPT_V2_TEST="https://acme-staging-v02.api.letsencrypt.org/directory"
@@ -2691,6 +2689,12 @@ _initAPI() {
   return 1
 }
 
+_clearCA() {
+  export CA_CONF=
+  export ACCOUNT_KEY_PATH=
+  export ACCOUNT_JSON_PATH=
+}
+
 #[domain]  [keylength or isEcc flag]
 _initpath() {
   domain="$1"
@@ -4382,10 +4386,6 @@ issue() {
     _alt_domains=""
   fi
 
-  if [ "$_key_length" = "$NO_VALUE" ]; then
-    _key_length=""
-  fi
-
   if ! _on_before_issue "$_web_roots" "$_main_domain" "$_alt_domains" "$_pre_hook" "$_local_addr"; then
     _err "_on_before_issue."
     return 1
@@ -4406,7 +4406,13 @@ issue() {
   if [ -f "$CSR_PATH" ] && [ ! -f "$CERT_KEY_PATH" ]; then
     _info "Signing from existing CSR."
   else
+    # When renewing from an old version, the empty Le_Keylength means 2048.
+    # Note, do not use DEFAULT_DOMAIN_KEY_LENGTH as that value may change over
+    # time but an empty value implies 2048 specifically.
     _key=$(_readdomainconf Le_Keylength)
+    if [ -z "$_key" ]; then
+      _key=2048
+    fi
     _debug "Read key length:$_key"
     if [ ! -f "$CERT_KEY_PATH" ] || [ "$_key_length" != "$_key" ] || [ "$Le_ForceNewDomainKey" = "1" ]; then
       if ! createDomainKey "$_main_domain" "$_key_length"; then
@@ -5241,18 +5247,20 @@ _split_cert_chain() {
   fi
 }
 
-#domain  [isEcc]
+#domain  [isEcc] [server]
 renew() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ]; then
-    _usage "Usage: $PROJECT_ENTRY --renew --domain <domain.tld> [--ecc]"
+    _usage "Usage: $PROJECT_ENTRY --renew --domain <domain.tld> [--ecc] [--server server]"
     return 1
   fi
 
   _isEcc="$2"
-  #the server specified from commandline
-  _acme_server_back="$ACME_DIRECTORY"
+  _renewServer="$3"
+  _debug "_renewServer" "$_renewServer"
+
   _initpath "$Le_Domain" "$_isEcc"
+
   _set_level=${NOTIFY_LEVEL:-$NOTIFY_LEVEL_DEFAULT}
   _info "$(__green "Renew: '$Le_Domain'")"
   if [ ! -f "$DOMAIN_CONF" ]; then
@@ -5266,17 +5274,6 @@ renew() {
 
   . "$DOMAIN_CONF"
   _debug Le_API "$Le_API"
-  if [ -z "$Le_API" ] || [ "$CA_LETSENCRYPT_V1" = "$Le_API" ]; then
-    #if this is from an old version, Le_API is empty,
-    #so, we force to use letsencrypt server
-    Le_API="$CA_LETSENCRYPT_V2"
-  fi
-
-  if [ "$_acme_server_back" ]; then
-    export ACME_DIRECTORY="$_acme_server_back"
-  else
-    export ACME_DIRECTORY="$Le_API"
-  fi
 
   case "$Le_API" in
   "$CA_LETSENCRYPT_V2_TEST")
@@ -5293,17 +5290,18 @@ renew() {
     ;;
   esac
 
-  if [ "$Le_API" ] && [ "$ACME_DIRECTORY" ]; then
-    if [ "$Le_API" != "$ACME_DIRECTORY" ]; then
-      _clearAPI
-    fi
-    #reload ca configs
-    ACCOUNT_KEY_PATH=""
-    ACCOUNT_JSON_PATH=""
-    CA_CONF=""
-    _debug2 "initpath again."
-    _initpath "$Le_Domain" "$_isEcc"
+  if [ "$_server" ]; then
+    Le_API="$_server"
   fi
+  _info "Renew to Le_API=$Le_API"
+
+  _clearAPI
+  _clearCA
+  export ACME_DIRECTORY="$Le_API"
+
+  #reload ca configs
+  _debug2 "initpath again."
+  _initpath "$Le_Domain" "$_isEcc"
 
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
     _info "Skip, Next renewal time is: $(__green "$Le_NextRenewTimeStr")"
@@ -5327,6 +5325,13 @@ renew() {
   Le_PostHook="$(_readdomainconf Le_PostHook)"
   Le_RenewHook="$(_readdomainconf Le_RenewHook)"
   Le_Preferred_Chain="$(_readdomainconf Le_Preferred_Chain)"
+  # When renewing from an old version, the empty Le_Keylength means 2048.
+  # Note, do not use DEFAULT_DOMAIN_KEY_LENGTH as that value may change over
+  # time but an empty value implies 2048 specifically.
+  Le_Keylength="$(_readdomainconf Le_Keylength)"
+  if [ -z "$Le_Keylength" ]; then
+    Le_Keylength=2048
+  fi
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain" "$Le_Valid_From" "$Le_Valid_To"
   res="$?"
   if [ "$res" != "0" ]; then
@@ -5354,11 +5359,16 @@ renew() {
   return "$res"
 }
 
-#renewAll  [stopRenewOnError]
+#renewAll  [stopRenewOnError] [server]
 renewAll() {
   _initpath
+  _clearCA
   _stopRenewOnError="$1"
   _debug "_stopRenewOnError" "$_stopRenewOnError"
+
+  _server="$2"
+  _debug "_server" "$_server"
+
   _ret="0"
   _success_msg=""
   _error_msg=""
@@ -5381,7 +5391,7 @@ renewAll() {
         _isEcc=$(echo "$d" | cut -d "$ECC_SEP" -f 2)
         d=$(echo "$d" | cut -d "$ECC_SEP" -f 1)
       fi
-      renew "$d" "$_isEcc"
+      renew "$d" "$_isEcc" "$_server"
     )
     rc="$?"
     _debug "Return code: $rc"
@@ -7087,8 +7097,8 @@ _process() {
   _altdomains="$NO_VALUE"
   _webroot=""
   _challenge_alias=""
-  _keylength=""
-  _accountkeylength=""
+  _keylength="$DEFAULT_DOMAIN_KEY_LENGTH"
+  _accountkeylength="$DEFAULT_ACCOUNT_KEY_LENGTH"
   _cert_file=""
   _key_file=""
   _ca_file=""
@@ -7654,6 +7664,7 @@ _process() {
 
   if [ "$_server" ]; then
     _selectServer "$_server" "${_ecc:-$_keylength}"
+    _server="$ACME_DIRECTORY"
   fi
 
   if [ "${_CMD}" != "install" ]; then
@@ -7728,10 +7739,10 @@ _process() {
     installcert "$_domain" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_ecc"
     ;;
   renew)
-    renew "$_domain" "$_ecc"
+    renew "$_domain" "$_ecc" "$_server"
     ;;
   renewAll)
-    renewAll "$_stopRenewOnError"
+    renewAll "$_stopRenewOnError" "$_server"
     ;;
   revoke)
     revoke "$_domain" "$_ecc" "$_revoke_reason"
