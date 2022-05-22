@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-# Supports IONOS DNS API Beta v1.0.0
+# Supports IONOS DNS API v1.0.1
 #
 # Usage:
 #   Export IONOS_PREFIX and IONOS_SECRET before calling acme.sh:
@@ -26,7 +26,7 @@ dns_ionos_add() {
 
   _body="[{\"name\":\"$_sub_domain.$_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"ttl\":$IONOS_TXT_TTL,\"prio\":$IONOS_TXT_PRIO,\"disabled\":false}]"
 
-  if _ionos_rest POST "$IONOS_ROUTE_ZONES/$_zone_id/records" "$_body" && [ -z "$response" ]; then
+  if _ionos_rest POST "$IONOS_ROUTE_ZONES/$_zone_id/records" "$_body" && [ "$_code" = "201" ]; then
     _info "TXT record has been created successfully."
     return 0
   fi
@@ -47,7 +47,7 @@ dns_ionos_rm() {
     return 1
   fi
 
-  if _ionos_rest DELETE "$IONOS_ROUTE_ZONES/$_zone_id/records/$_record_id" && [ -z "$response" ]; then
+  if _ionos_rest DELETE "$IONOS_ROUTE_ZONES/$_zone_id/records/$_record_id" && [ "$_code" = "200" ]; then
     _info "TXT record has been deleted successfully."
     return 0
   fi
@@ -85,7 +85,7 @@ _get_root() {
   p=1
 
   if _ionos_rest GET "$IONOS_ROUTE_ZONES"; then
-    response="$(echo "$response" | tr -d "\n")"
+    _response="$(echo "$_response" | tr -d "\n")"
 
     while true; do
       h=$(printf "%s" "$domain" | cut -d . -f $i-100)
@@ -93,7 +93,7 @@ _get_root() {
         return 1
       fi
 
-      _zone="$(echo "$response" | _egrep_o "\"name\":\"$h\".*\}")"
+      _zone="$(echo "$_response" | _egrep_o "\"name\":\"$h\".*\}")"
       if [ "$_zone" ]; then
         _zone_id=$(printf "%s\n" "$_zone" | _egrep_o "\"id\":\"[a-fA-F0-9\-]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
         if [ "$_zone_id" ]; then
@@ -120,9 +120,9 @@ _ionos_get_record() {
   txtrecord=$3
 
   if _ionos_rest GET "$IONOS_ROUTE_ZONES/$zone_id?recordName=$fulldomain&recordType=TXT"; then
-    response="$(echo "$response" | tr -d "\n")"
+    _response="$(echo "$_response" | tr -d "\n")"
 
-    _record="$(echo "$response" | _egrep_o "\"name\":\"$fulldomain\"[^\}]*\"type\":\"TXT\"[^\}]*\"content\":\"\\\\\"$txtrecord\\\\\"\".*\}")"
+    _record="$(echo "$_response" | _egrep_o "\"name\":\"$fulldomain\"[^\}]*\"type\":\"TXT\"[^\}]*\"content\":\"\\\\\"$txtrecord\\\\\"\".*\}")"
     if [ "$_record" ]; then
       _record_id=$(printf "%s\n" "$_record" | _egrep_o "\"id\":\"[a-fA-F0-9\-]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
 
@@ -142,22 +142,30 @@ _ionos_rest() {
 
   export _H1="X-API-Key: $IONOS_API_KEY"
 
+  # clear headers
+  : >"$HTTP_HEADER"
+
   if [ "$method" != "GET" ]; then
     export _H2="Accept: application/json"
     export _H3="Content-Type: application/json"
 
-    response="$(_post "$data" "$IONOS_API$route" "" "$method" "application/json")"
+    _response="$(_post "$data" "$IONOS_API$route" "" "$method" "application/json")"
   else
     export _H2="Accept: */*"
     export _H3=
-    response="$(_get "$IONOS_API$route")"
+
+    _response="$(_get "$IONOS_API$route")"
   fi
 
+  _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
+
   if [ "$?" != "0" ]; then
-    _err "Error $route: $response"
+    _err "Error $route: $_response"
     return 1
   fi
-  _debug2 "response" "$response"
+
+  _debug2 "_response" "$_response"
+  _debug2 "_code" "$_code"
 
   return 0
 }
