@@ -170,7 +170,7 @@ ssh_deploy() {
     _info "Required commands batched and sent in single call to remote host"
   fi
 
-  _deploy_ssh_servers=$DEPLOY_SSH_SERVER
+  _deploy_ssh_servers="$DEPLOY_SSH_SERVER"
   for DEPLOY_SSH_SERVER in $_deploy_ssh_servers; do
     _ssh_deploy
   done
