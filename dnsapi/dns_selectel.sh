@@ -120,7 +120,7 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$response" "\"name\": \"$h\","; then
+    if _contains "$response" "\"name\": *\"$h\","; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain=$h
       _debug "Getting domain id for $h"
