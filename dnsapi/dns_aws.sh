@@ -154,25 +154,31 @@ _get_root() {
   domain=$1
   i=1
   p=1
+  response_prev=''
 
   if aws_rest GET "2013-04-01/hostedzone"; then
+    while true; do
+      if _contains "$response" "<IsTruncated>true</IsTruncated>" && _contains "$response" "<NextMarker>"; then
+        _debug "IsTruncated"
+        _nextMarker="$(echo "$response" | _egrep_o "<NextMarker>.*</NextMarker>" | cut -d '>' -f 2 | cut -d '<' -f 1)"
+        _debug "NextMarker" "$_nextMarker"
+        response_prev="$response$response_prev"
+        if aws_rest GET "2013-04-01/hostedzone" "marker=$_nextMarker"; then
+          _debug "Truncated request OK"
+          continue
+        else
+          _err "Truncated request error."
+          response="$response_prev"
+          break
+        fi
+      fi
+      response="$response$response_prev"
+      break
+    done
     while true; do
       h=$(printf "%s" "$domain" | cut -d . -f $i-100)
       _debug2 "Checking domain: $h"
       if [ -z "$h" ]; then
-        if _contains "$response" "<IsTruncated>true</IsTruncated>" && _contains "$response" "<NextMarker>"; then
-          _debug "IsTruncated"
-          _nextMarker="$(echo "$response" | _egrep_o "<NextMarker>.*</NextMarker>" | cut -d '>' -f 2 | cut -d '<' -f 1)"
-          _debug "NextMarker" "$_nextMarker"
-          if aws_rest GET "2013-04-01/hostedzone" "marker=$_nextMarker"; then
-            _debug "Truncated request OK"
-            i=2
-            p=1
-            continue
-          else
-            _err "Truncated request error."
-          fi
-        fi
         #not valid
         _err "Invalid domain"
         return 1
