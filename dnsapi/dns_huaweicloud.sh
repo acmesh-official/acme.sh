@@ -3,6 +3,7 @@
 # HUAWEICLOUD_Username
 # HUAWEICLOUD_Password
 # HUAWEICLOUD_ProjectID
+# HUAWEICOLUD_Domain
 
 iam_api="https://iam.myhuaweicloud.com"
 dns_api="https://dns.ap-southeast-1.myhuaweicloud.com" # Should work
@@ -22,6 +23,7 @@ dns_huaweicloud_add() {
   HUAWEICLOUD_Username="${HUAWEICLOUD_Username:-$(_readaccountconf_mutable HUAWEICLOUD_Username)}"
   HUAWEICLOUD_Password="${HUAWEICLOUD_Password:-$(_readaccountconf_mutable HUAWEICLOUD_Password)}"
   HUAWEICLOUD_ProjectID="${HUAWEICLOUD_ProjectID:-$(_readaccountconf_mutable HUAWEICLOUD_ProjectID)}"
+  HUAWEICLOUD_Domain="${HUAWEICLOUD_Domain:-$(_readaccountconf_mutable HUAWEICLOUD_Domain)}"
 
   # Check information
   if [ -z "${HUAWEICLOUD_Username}" ] || [ -z "${HUAWEICLOUD_Password}" ] || [ -z "${HUAWEICLOUD_ProjectID}" ]; then
@@ -29,8 +31,13 @@ dns_huaweicloud_add() {
     return 1
   fi
 
+  # Consider about IAM user
+  if [ -z "${HUAWEICLOUD_Domain}" ]; then
+    HUAWEICLOUD_Domain="${HUAWEICLOUD_Username}"
+  fi
+
   unset token # Clear token
-  token="$(_get_token "${HUAWEICLOUD_Username}" "${HUAWEICLOUD_Password}" "${HUAWEICLOUD_ProjectID}")"
+  token="$(_get_token "${HUAWEICLOUD_Username}" "${HUAWEICLOUD_Password}" "${HUAWEICLOUD_ProjectID}" "${HUAWEICLOUD_Domain}")" 
   if [ -z "${token}" ]; then # Check token
     _err "dns_api(dns_huaweicloud): Error getting token."
     return 1
@@ -57,6 +64,7 @@ dns_huaweicloud_add() {
   _saveaccountconf_mutable HUAWEICLOUD_Username "${HUAWEICLOUD_Username}"
   _saveaccountconf_mutable HUAWEICLOUD_Password "${HUAWEICLOUD_Password}"
   _saveaccountconf_mutable HUAWEICLOUD_ProjectID "${HUAWEICLOUD_ProjectID}"
+  _saveaccountconf_mutable HUAWEICOLUD_Domain "${HUAWEICOLUD_Domain}"
   return 0
 }
 
@@ -81,7 +89,7 @@ dns_huaweicloud_rm() {
   fi
 
   unset token # Clear token
-  token="$(_get_token "${HUAWEICLOUD_Username}" "${HUAWEICLOUD_Password}" "${HUAWEICLOUD_ProjectID}")"
+  token="$(_get_token "${HUAWEICLOUD_Username}" "${HUAWEICLOUD_Password}" "${HUAWEICLOUD_ProjectID} "${HUAWEICLOUD_Domain}")" 
   if [ -z "${token}" ]; then # Check token
     _err "dns_api(dns_huaweicloud): Error getting token."
     return 1
@@ -254,6 +262,7 @@ _get_token() {
   _username=$1
   _password=$2
   _project=$3
+  _domain=$4
 
   _debug "Getting Token"
   body="{
@@ -267,7 +276,7 @@ _get_token() {
             \"name\": \"${_username}\",
             \"password\": \"${_password}\",
             \"domain\": {
-              \"name\": \"${_username}\"
+              \"name\": \"${_domain}\"
             }
           }
         }
