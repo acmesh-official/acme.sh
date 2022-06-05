@@ -155,6 +155,7 @@ _get_root() {
   i=1
   p=1
 
+  # iterate over names (a.b.c.d -> b.c.d -> c.d -> d)
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     _debug "Checking domain: $h"
@@ -163,6 +164,7 @@ _get_root() {
       return 1
     fi
 
+    # iterate over paginated result for list_hosted_zones
     aws_rest GET "2013-04-01/hostedzone"
     while true; do
       if _contains "$response" "<Name>$h.</Name>"; then
