@@ -5,7 +5,8 @@
 #
 # ULTRA_PWD="some_password_goes_here"
 
-ULTRA_API="https://restapi.ultradns.com/v2/"
+ULTRA_API="https://api.ultradns.com/v3/"
+ULTRA_AUTH_API="https://api.ultradns.com/v2/"
 
 #Usage: add _acme-challenge.www.domain.com "some_long_string_of_characters_go_here_from_lets_encrypt"
 dns_ultra_add() {
@@ -121,7 +122,7 @@ _get_root() {
       return 1
     fi
     if _contains "${response}" "${h}." >/dev/null; then
-      _domain_id=$(echo "$response" | _egrep_o "${h}")
+      _domain_id=$(echo "$response" | _egrep_o "${h}" | head -1)
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain="${h}"
@@ -142,23 +143,25 @@ _ultra_rest() {
   ep="$2"
   data="$3"
   _debug "$ep"
+  if [ -z "$AUTH_TOKEN" ]; then
+    _ultra_login
+  fi
   _debug TOKEN "${AUTH_TOKEN}"
 
-  _ultra_login
   export _H1="Content-Type: application/json"
   export _H2="Authorization: Bearer ${AUTH_TOKEN}"
 
   if [ "$m" != "GET" ]; then
     _debug data "${data}"
-    response="$(_post "${data}" "${ULTRA_API}"/"${ep}" "" "${m}")"
+    response="$(_post "${data}" "${ULTRA_API}${ep}" "" "${m}")"
   else
-    response="$(_get "$ULTRA_API/$ep")"
+    response="$(_get "$ULTRA_API$ep")"
   fi
 }
 
 _ultra_login() {
   export _H1=""
   export _H2=""
-  AUTH_TOKEN=$(_post "grant_type=password&username=${ULTRA_USR}&password=${ULTRA_PWD}" "${ULTRA_API}authorization/token" | cut -d, -f3 | cut -d\" -f4)
+  AUTH_TOKEN=$(_post "grant_type=password&username=${ULTRA_USR}&password=${ULTRA_PWD}" "${ULTRA_AUTH_API}authorization/token" | cut -d, -f3 | cut -d\" -f4)
   export AUTH_TOKEN
 }
