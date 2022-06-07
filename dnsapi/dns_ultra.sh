@@ -146,14 +146,14 @@ _ultra_rest() {
   if [ -z "$AUTH_TOKEN" ]; then
     _ultra_login
   fi
-  _debug TOKEN "${AUTH_TOKEN}"
+  _debug TOKEN "$AUTH_TOKEN"
 
   export _H1="Content-Type: application/json"
-  export _H2="Authorization: Bearer ${AUTH_TOKEN}"
+  export _H2="Authorization: Bearer $AUTH_TOKEN"
 
   if [ "$m" != "GET" ]; then
-    _debug data "${data}"
-    response="$(_post "${data}" "${ULTRA_API}${ep}" "" "${m}")"
+    _debug data "$data"
+    response="$(_post "$data" "$ULTRA_API$ep" "" "$m")"
   else
     response="$(_get "$ULTRA_API$ep")"
   fi
