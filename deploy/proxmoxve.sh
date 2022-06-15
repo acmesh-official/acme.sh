@@ -93,8 +93,8 @@ proxmoxve_deploy(){
   # posted to the webserver.
   cat << HEREDOC > "$_proxmoxve_temp_data_file"
 {
-  "certificates": "$(cat "$_cfullchain"|tr '\n' ':'|sed 's/:/\\n/g')",
-  "key": "$(cat "$_ckey"|tr '\n' ':'|sed 's/:/\\n/g')",
+  "certificates": "$(tr '\n' ':' < "$_cfullchain" | sed 's/:/\\n/g')",
+  "key": "$(tr '\n' ':' < "$_ckey" |sed 's/:/\\n/g')",
   "node":"$_node_name",
   "restart":"1",
   "force":"1"
