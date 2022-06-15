@@ -32,16 +32,16 @@ proxmoxve_deploy(){
 
   # "Sane" defaults.
   _target_hostname="$_cdomain"
-  if [ ! -z "$DEPLOY_PROXMOXVE_SERVER" ];then
+  if [ -n "$DEPLOY_PROXMOXVE_SERVER" ];then
     _target_hostname="$DEPLOY_PROXMOXVE_SERVER"
   fi
 
   _target_port="8006"
-  if [ ! -z "$DEPLOY_PROXMOXVE_SERVER_PORT" ];then
+  if [ -n "$DEPLOY_PROXMOXVE_SERVER_PORT" ];then
     _target_port="$DEPLOY_PROXMOXVE_SERVER_PORT"
   fi
 
-  if [ ! -z "$DEPLOY_PROXMOXVE_NODE_NAME" ];then
+  if [ -n "$DEPLOY_PROXMOXVE_NODE_NAME" ];then
     _node_name="$DEPLOY_PROXMOXVE_NODE_NAME"
   else
     _node_name=$(echo "$_target_hostname"|cut -d. -f1)
@@ -52,17 +52,17 @@ proxmoxve_deploy(){
 
   # More "sane" defaults.
   _proxmoxve_user="root"
-  if [ ! -z "$_proxmoxve_user" ];then
+  if [ -n "$_proxmoxve_user" ];then
     _proxmoxve_user="$DEPLOY_PROXMOXVE_USER"
   fi
 
   _proxmoxve_user_realm="pam"
-  if [ ! -z "$DEPLOY_PROXMOXVE_USER_REALM" ];then
+  if [ -n "$DEPLOY_PROXMOXVE_USER_REALM" ];then
     _proxmoxve_user_realm="$DEPLOY_PROXMOXVE_USER_REALM"
   fi
 
   _proxmoxve_api_token_name="acme"
-  if [ ! -z "$DEPLOY_PROXMOXVE_API_TOKEN_NAME" ];then
+  if [ -n "$DEPLOY_PROXMOXVE_API_TOKEN_NAME" ];then
     _proxmoxve_api_token_name="$DEPLOY_PROXMOXVE_API_TOKEN_NAME"
   fi
 
