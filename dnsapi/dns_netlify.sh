@@ -114,7 +114,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
-      _domain_id=$(echo "$response" | _egrep_o "\"[^\"]*\",\"name\":\"$h" | cut -d , -f 1 | tr -d \")
+      _domain_id=$(echo "$response" | _egrep_o "\"[^\"]*\",\"name\":\"$h\"" | cut -d , -f 1 | tr -d \")
       if [ "$_domain_id" ]; then
         if [ "$i" = 1 ]; then
           #create the record at the domain apex (@) if only the domain name was provided as --domain-alias
