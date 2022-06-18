@@ -98,15 +98,6 @@ proxmoxve_deploy(){
   _proxmoxve_header_api_token="${_proxmoxve_user}@${_proxmoxve_user_realm}!${_proxmoxve_api_token_name}=${_proxmoxve_api_token_key}"
   _debug2 "Auth Header" _proxmoxve_header_api_token
 
-  # Generate the data file curl will pass as the data.
-  _proxmoxve_temp_data="/tmp/proxmoxve_api/$_cdomain"
-  _proxmoxve_temp_data_file="$_proxmoxve_temp_data/body.json"
-  # We delete this directory at the end of the script to avoid any conflicts.
-  if [ ! -d "$_proxmoxve_temp_data" ];then
-    mkdir -p "$_proxmoxve_temp_data"
-    # Set to 700 since this file will contain the private key contents.
-    chmod 700 "$_proxmoxve_temp_data"
-  fi
   # Ugly. I hate putting heredocs inside functions because heredocs don't
   # account for whitespace correctly but it _does_ work and is several times
   # cleaner than anything else I had here.
