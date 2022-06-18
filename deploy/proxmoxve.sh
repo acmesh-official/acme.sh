@@ -114,6 +114,8 @@ proxmoxve_deploy(){
 }
 HEREDOC
 )
+  _debug2 Payload "$_json_payload"
+  
   # Push certificates to server.
   export _HTTPS_INSECURE=1
   export _H1="Authorization: PVEAPIToken=${_proxmoxve_header_api_token}"
