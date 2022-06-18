@@ -107,7 +107,7 @@ proxmoxve_deploy(){
   _json_payload=$(cat << HEREDOC
 {
   "certificates": "$(tr '\n' ':' < "$_cfullchain" | sed 's/:/\\n/g')",
-  "key": "$(tr '\n' ':' < "$_ckey" |sed 's/:/\\\n/g')",
+  "key": "$(tr '\n' ':' < "$_ckey" |sed 's/:/\\n/g')",
   "node":"$_node_name",
   "restart":"1",
   "force":"1"
@@ -115,7 +115,7 @@ proxmoxve_deploy(){
 HEREDOC
 )
   _debug2 Payload "$_json_payload"
-
+  
   # Push certificates to server.
   export _HTTPS_INSECURE=1
   export _H1="Authorization: PVEAPIToken=${_proxmoxve_header_api_token}"
