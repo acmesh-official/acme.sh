@@ -8,8 +8,8 @@
 # Issues:   https://github.com/Eagle3386/acme.sh/issues
 ################################################################################
 # Usage:
-# 1. export AF_API_Username="api12345678"
-# 2. export AF_API_Password="apiPassword"
+# 1. export AF_API_USERNAME="api12345678"
+# 2. export AF_API_PASSWORD="apiPassword"
 # 3. acme.sh --issue -d example.com --dns dns_artfiles
 ################################################################################
 
