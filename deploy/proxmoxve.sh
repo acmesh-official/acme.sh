@@ -25,7 +25,7 @@ proxmoxve_deploy(){
   _cfullchain="$5"
 
   _debug _cdomain "$_cdomain"
-  _debug _ckey "$_ckey"
+  _debug2 _ckey "$_ckey"
   _debug _ccert "$_ccert"
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
