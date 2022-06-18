@@ -106,7 +106,7 @@ proxmoxve_deploy(){
   # _psot function.
   _json_payload=$(cat << HEREDOC
 {
-  "certificates": "$(tr '\n' ':' < "$_cfullchain" | sed 's/:/\\n/g' -e 's/+/\+/g')",
+  "certificates": "$(tr '\n' ':' < "$_cfullchain" | sed 's/:/\\n/g')",
   "key": "$(tr '\n' ':' < "$_ckey" |sed 's/:/\\n/g')",
   "node":"$_node_name",
   "restart":"1",
