@@ -31,50 +31,72 @@ proxmoxve_deploy(){
   _debug _cfullchain "$_cfullchain"
 
   # "Sane" defaults.
-  _target_hostname="$_cdomain"
-  if [ -n "$DEPLOY_PROXMOXVE_SERVER" ];then
+  _getdeployconf DEPLOY_PROXMOXVE_SERVER
+  if [ -z "$DEPLOY_PROXMOXVE_SERVER" ]; then
     _target_hostname="$DEPLOY_PROXMOXVE_SERVER"
+  else
+    _target_hostname="$_cdomain"
   fi
+  _debug2 DEPLOY_PROXMOXVE_SERVER "$_target_hostname"
 
-  _target_port="8006"
-  if [ -n "$DEPLOY_PROXMOXVE_SERVER_PORT" ];then
+  _getdeployconf DEPLOY_PROXMOXVE_SERVER_PORT
+  if [ -z "$DEPLOY_PROXMOXVE_SERVER_PORT" ]; then
+    _target_port="8006"
+  else
     _target_port="$DEPLOY_PROXMOXVE_SERVER_PORT"
   fi
+  _debug2 DEPLOY_PROXMOXVE_SERVER_PORT "$_target_port"
 
-  if [ -n "$DEPLOY_PROXMOXVE_NODE_NAME" ];then
-    _node_name="$DEPLOY_PROXMOXVE_NODE_NAME"
-  else
+  _getdeployconf DEPLOY_PROXMOXVE_NODE_NAME
+  if [ -z "$DEPLOY_PROXMOXVE_NODE_NAME" ]; then
     _node_name=$(echo "$_target_hostname"|cut -d. -f1)
+  else
+    _node_name="$DEPLOY_PROXMOXVE_NODE_NAME"
   fi
+  _debug2 DEPLOY_PROXMOXVE_NODE_NAME "$_node_name"
 
   # Complete URL.
   _target_url="https://${_target_hostname}:${_target_port}/api2/json/nodes/${_node_name}/certificates/custom"
+  _debug TARGET_URL "$_target_url"
 
   # More "sane" defaults.
-  _proxmoxve_user="root"
-  if [ -n "$_proxmoxve_user" ];then
+  _getdeployconf DEPLOY_PROXMOXVE_USER
+  if [ -z "$DEPLOY_PROXMOXVE_USER" ]; then
+    _proxmoxve_user="root"
+  else
     _proxmoxve_user="$DEPLOY_PROXMOXVE_USER"
   fi
+  _debug2 DEPLOY_PROXMOXVE_NODE_NAME "$_proxmoxve_user"
 
-  _proxmoxve_user_realm="pam"
-  if [ -n "$DEPLOY_PROXMOXVE_USER_REALM" ];then
+  _getdeployconf DEPLOY_PROXMOXVE_USER_REALM
+  if [ -z "$DEPLOY_PROXMOXVE_USER_REALM" ]; then
+    _proxmoxve_user_realm="pam"
+  else
     _proxmoxve_user_realm="$DEPLOY_PROXMOXVE_USER_REALM"
   fi
+  _debug2 DEPLOY_PROXMOXVE_USER_REALM "$_proxmoxve_user_realm"
 
-  _proxmoxve_api_token_name="acme"
-  if [ -n "$DEPLOY_PROXMOXVE_API_TOKEN_NAME" ];then
+  _getdeployconf DEPLOY_PROXMOXVE_API_TOKEN_NAME
+  if [ -z "$DEPLOY_PROXMOXVE_API_TOKEN_NAME" ]; then
+    _proxmoxve_api_token_name="acme"
+  else
     _proxmoxve_api_token_name="$DEPLOY_PROXMOXVE_API_TOKEN_NAME"
   fi
+  _debug2 DEPLOY_PROXMOXVE_API_TOKEN_NAME "$_proxmoxve_api_token_name"
 
   # This is required.
-  _proxmoxve_api_token_key="$DEPLOY_PROXMOXVE_API_TOKEN_KEY"
+  _getdeployconf DEPLOY_PROXMOXVE_API_TOKEN_KEY
   if [ -z "$_proxmoxve_api_token_key" ];then
     _err "API key not provided."
     return 1
+  else
+    _proxmoxve_api_token_key="$DEPLOY_PROXMOXVE_API_TOKEN_KEY"
   fi
+  _debug2 DEPLOY_PROXMOXVE_API_TOKEN_KEY _proxmoxve_api_token_key
 
   # PVE API Token header value. Used in "Authorization: PVEAPIToken".
   _proxmoxve_header_api_token="${_proxmoxve_user}@${_proxmoxve_user_realm}!${_proxmoxve_api_token_name}=${_proxmoxve_api_token_key}"
+  _debug2 "Auth Header" _proxmoxve_header_api_token
 
   # Generate the data file curl will pass as the data.
   _proxmoxve_temp_data="/tmp/proxmoxve_api/$_cdomain"
