@@ -86,7 +86,7 @@ proxmoxve_deploy(){
 
   # This is required.
   _getdeployconf DEPLOY_PROXMOXVE_API_TOKEN_KEY
-  if [ -z "$_proxmoxve_api_token_key" ];then
+  if [ -z "$DEPLOY_PROXMOXVE_API_TOKEN_KEY" ];then
     _err "API key not provided."
     return 1
   else
