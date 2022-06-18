@@ -85,13 +85,13 @@ proxmoxve_deploy(){
     # Set to 700 since this file will contain the private key contents.
     chmod 700 "$_proxmoxve_temp_data"
   fi
-  # Ugly. I hate putting heredocs inside functions because heredocs don't account
-  # for whitespace correctly but it _does_ work and is several times cleaner
-  # than anything else I had here.
+  # Ugly. I hate putting heredocs inside functions because heredocs don't
+  # account for whitespace correctly but it _does_ work and is several times
+  # cleaner than anything else I had here.
   #
-  # This creates a temporary data file that curl will use as the data being
-  # posted to the webserver.
-  cat << HEREDOC > "$_proxmoxve_temp_data_file"
+  # This dumps the json payload to a variable that should be passable to the
+  # _psot function.
+  _json_payload=$(cat << HEREDOC
 {
   "certificates": "$(tr '\n' ':' < "$_cfullchain" | sed 's/:/\\n/g')",
   "key": "$(tr '\n' ':' < "$_ckey" |sed 's/:/\\n/g')",
@@ -100,24 +100,10 @@ proxmoxve_deploy(){
   "force":"1"
 }
 HEREDOC
-
+)
   # Push certificates to server.
-  #
-  # --insecure is to ignore certificate errors.
-  # --fail is to fail the script if the http return code is not 200.
-  if curl -X "POST" --header "Content-Type: application/json"  \
-    --header "Authorization: PVEAPIToken=${_proxmoxve_header_api_token}" \
-    --data "@${_proxmoxve_temp_data_file}" \
-    --insecure --fail \
-    "${_target_url}"
-  then
-    _info "Successfully updated certificate for $_cdomain."
-    rm -r "$_proxmoxve_temp_data"
-    return 0
-  else
-    _err "Unable to update certificate for $_cdomain."
-    rm -r "$_proxmoxve_temp_data"
-    return 1
-  fi
+  export _HTTPS_INSECURE=1
+  export ="Authorization: PVEAPIToken=${_proxmoxve_header_api_token}"
+  _post "$_json_payload" "$_target_url"
 
 }
