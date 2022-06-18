@@ -33,9 +33,9 @@ proxmoxve_deploy(){
   # "Sane" defaults.
   _getdeployconf DEPLOY_PROXMOXVE_SERVER
   if [ -z "$DEPLOY_PROXMOXVE_SERVER" ]; then
-    _target_hostname="$DEPLOY_PROXMOXVE_SERVER"
-  else
     _target_hostname="$_cdomain"
+  else
+    _target_hostname="$DEPLOY_PROXMOXVE_SERVER"
   fi
   _debug2 DEPLOY_PROXMOXVE_SERVER "$_target_hostname"
 
