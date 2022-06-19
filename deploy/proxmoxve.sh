@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 # Deploy certificates to a proxmox virtual environment node using the API.
 #
