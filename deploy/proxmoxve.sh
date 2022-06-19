@@ -119,6 +119,6 @@ HEREDOC
   # Push certificates to server.
   export _HTTPS_INSECURE=1
   export _H1="Authorization: PVEAPIToken=${_proxmoxve_header_api_token}"
-  _post "$_json_payload" "$_target_url"
+  _post "$_json_payload" "$_target_url" "" POST "application/json"
 
 }
