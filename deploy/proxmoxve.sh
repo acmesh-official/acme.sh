@@ -36,6 +36,7 @@ proxmoxve_deploy(){
     _target_hostname="$_cdomain"
   else
     _target_hostname="$DEPLOY_PROXMOXVE_SERVER"
+    _savedeployconf DEPLOY_PROXMOXVE_SERVER "$DEPLOY_PROXMOXVE_SERVER"
   fi
   _debug2 DEPLOY_PROXMOXVE_SERVER "$_target_hostname"
 
@@ -44,6 +45,7 @@ proxmoxve_deploy(){
     _target_port="8006"
   else
     _target_port="$DEPLOY_PROXMOXVE_SERVER_PORT"
+    _savedeployconf DEPLOY_PROXMOXVE_SERVER_PORT "$DEPLOY_PROXMOXVE_SERVER_PORT"
   fi
   _debug2 DEPLOY_PROXMOXVE_SERVER_PORT "$_target_port"
 
@@ -52,6 +54,7 @@ proxmoxve_deploy(){
     _node_name=$(echo "$_target_hostname"|cut -d. -f1)
   else
     _node_name="$DEPLOY_PROXMOXVE_NODE_NAME"
+    _savedeployconf DEPLOY_PROXMOXVE_NODE_NAME "$DEPLOY_PROXMOXVE_NODE_NAME"
   fi
   _debug2 DEPLOY_PROXMOXVE_NODE_NAME "$_node_name"
 
@@ -65,14 +68,16 @@ proxmoxve_deploy(){
     _proxmoxve_user="root"
   else
     _proxmoxve_user="$DEPLOY_PROXMOXVE_USER"
+    _savedeployconf DEPLOY_PROXMOXVE_USER "$DEPLOY_PROXMOXVE_USER"
   fi
-  _debug2 DEPLOY_PROXMOXVE_NODE_NAME "$_proxmoxve_user"
+  _debug2 DEPLOY_PROXMOXVE_USER "$_proxmoxve_user"
 
   _getdeployconf DEPLOY_PROXMOXVE_USER_REALM
   if [ -z "$DEPLOY_PROXMOXVE_USER_REALM" ]; then
     _proxmoxve_user_realm="pam"
   else
     _proxmoxve_user_realm="$DEPLOY_PROXMOXVE_USER_REALM"
+    _savedeployconf DEPLOY_PROXMOXVE_USER_REALM "$DEPLOY_PROXMOXVE_USER_REALMz"
   fi
   _debug2 DEPLOY_PROXMOXVE_USER_REALM "$_proxmoxve_user_realm"
 
@@ -81,6 +86,7 @@ proxmoxve_deploy(){
     _proxmoxve_api_token_name="acme"
   else
     _proxmoxve_api_token_name="$DEPLOY_PROXMOXVE_API_TOKEN_NAME"
+    _savedeployconf DEPLOY_PROXMOXVE_API_TOKEN_NAME "$DEPLOY_PROXMOXVE_API_TOKEN_NAME"
   fi
   _debug2 DEPLOY_PROXMOXVE_API_TOKEN_NAME "$_proxmoxve_api_token_name"
 
@@ -91,6 +97,7 @@ proxmoxve_deploy(){
     return 1
   else
     _proxmoxve_api_token_key="$DEPLOY_PROXMOXVE_API_TOKEN_KEY"
+    _savedeployconf DEPLOY_PROXMOXVE_API_TOKEN_KEY "$DEPLOY_PROXMOXVE_API_TOKEN_KEY"
   fi
   _debug2 DEPLOY_PROXMOXVE_API_TOKEN_KEY _proxmoxve_api_token_key
 
