@@ -4600,28 +4600,26 @@ $_authorizations_map"
         thumbprint="$(__calc_account_thumbprint)"
       fi
 
+      keyauthorization=""
+
+      if echo "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
+        _debug "$d is already valid."
+        keyauthorization="$STATE_VERIFIED"
+        _debug keyauthorization "$keyauthorization"
+      fi
+
       entry="$(echo "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
-      keyauthorization=""
-      if [ -z "$entry" ]; then
-        if ! _startswith "$d" '*.'; then
-          _debug "Not a wildcard domain, lets check whether the validation is already valid."
-          if echo "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
-            _debug "$d is already valid."
-            keyauthorization="$STATE_VERIFIED"
-            _debug keyauthorization "$keyauthorization"
-          fi
+
+      if [ -z "$keyauthorization" -a -z "$entry" ]; then
+        _err "Error, can not get domain token entry $d for $vtype"
+        _supported_vtypes="$(echo "$response" | _egrep_o "\"challenges\":\[[^]]*]" | tr '{' "\n" | grep type | cut -d '"' -f 4 | tr "\n" ' ')"
+        if [ "$_supported_vtypes" ]; then
+          _err "The supported validation types are: $_supported_vtypes, but you specified: $vtype"
         fi
-        if [ -z "$keyauthorization" ]; then
-          _err "Error, can not get domain token entry $d for $vtype"
-          _supported_vtypes="$(echo "$response" | _egrep_o "\"challenges\":\[[^]]*]" | tr '{' "\n" | grep type | cut -d '"' -f 4 | tr "\n" ' ')"
-          if [ "$_supported_vtypes" ]; then
-            _err "The supported validation types are: $_supported_vtypes, but you specified: $vtype"
-          fi
-          _clearup
-          _on_issue_err "$_post_hook"
-          return 1
-        fi
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
       fi
 
       if [ -z "$keyauthorization" ]; then
@@ -4647,12 +4645,6 @@ $_authorizations_map"
         fi
         keyauthorization="$token.$thumbprint"
         _debug keyauthorization "$keyauthorization"
-
-        if printf "%s" "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
-          _debug "$d is already verified."
-          keyauthorization="$STATE_VERIFIED"
-          _debug keyauthorization "$keyauthorization"
-        fi
       fi
 
       dvlist="$d$sep$keyauthorization$sep$uri$sep$vtype$sep$_currentRoot"
