@@ -17,7 +17,7 @@
 #                                    user account. Defaults to acme.
 # `DEPLOY_PROXMOXVE_API_TOKEN_KEY`: The API token. Required.
 
-proxmoxve_deploy(){
+proxmoxve_deploy() {
   _cdomain="$1"
   _ckey="$2"
   _ccert="$3"
@@ -112,10 +112,10 @@ proxmoxve_deploy(){
   # This dumps the json payload to a variable that should be passable to the
   # _psot function.
   _json_payload=$(
-    cat << HEREDOC
+    cat <<HEREDOC
 {
-  "certificates": "$(tr '\n' ':' < "$_cfullchain" | sed 's/:/\\n/g')",
-  "key": "$(tr '\n' ':' < "$_ckey" |sed 's/:/\\n/g')",
+  "certificates": "$(tr '\n' ':' <"$_cfullchain" | sed 's/:/\\n/g')",
+  "key": "$(tr '\n' ':' <"$_ckey" |sed 's/:/\\n/g')",
   "node":"$_node_name",
   "restart":"1",
   "force":"1"
