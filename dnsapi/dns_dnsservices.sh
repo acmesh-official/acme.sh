@@ -137,9 +137,9 @@ _get_root() {
 
 	# Find/isolate the root zone to work with in createRecord() and deleteRecord()
 	rootZone=""
-	if [ "$checkMultiZones" == "true" ]; then
+	if [ "$checkMultiZones" = "true" ]; then
 		rootZone=$(for zone in $(echo "$result" | tr -d '\n' ' '); do
-			if [[ "$zone" =~ "$domain" ]]; then
+			if [ "$(echo "$domain" | grep "$zone")" != "" ]; then
 				_debug2 _get_root "- trying to figure out if $zone is in $domain"
 				echo "$zone"
 				break
@@ -178,7 +178,7 @@ createRecord() {
 
 	# Get root domain information - needed for DNS Services API communication
 	if [ -z "$rootZoneName" ] || [ -z "$rootZoneDomainID" ] || [ -z "$rootZoneServiceID" ]; then
-		_get_root $fulldomain
+		_get_root "$fulldomain"
 	fi
 
 	_debug2 createRecord "CNAME TXT value is: $txtvalue"
@@ -190,7 +190,7 @@ createRecord() {
 	result=$(_post "$data" "$DNSServices_API/service/$rootZoneServiceID/dns/$rootZoneDomainID/records" "" "POST")
 	_debug2 createRecord "result from API: $result"
 
-	if [ "$(echo "$result" | grep '"success":true')" == "" ]; then
+	if [ "$(echo "$result" | grep '"success":true')" = "" ]; then
 		_err "Failed to create TXT record $fulldomain with content $txtvalue in zone $rootZoneName"
 		_err "$result"
 		return 1
@@ -204,7 +204,7 @@ deleteRecord() {
 	fulldomain=$1
 	txtvalue=$2
 
-	if [[ ! "$fulldomain" =~ "_acme-challenge" ]]; then
+	if [ "$(echo "$fulldomain" | grep "_acme-challenge")" = "" ]; then
 		_err "The script tried to delete the record $fulldomain which is not the above created ACME challenge"
 		return 1
 	fi
@@ -212,13 +212,13 @@ deleteRecord() {
 	_debug2 deleteRecord "Deleting $fulldomain TXT $txtvalue record"
 
 	if [ -z "$rootZoneName" ] || [ -z "$rootZoneDomainID" ] || [ -z "$rootZoneServiceID" ]; then
-		_get_root $fulldomain
+		_get_root "$fulldomain"
 	fi
 
 	result="$(_H1="$_H1" _H2="$_H2" _get "$DNSServices_API/service/$rootZoneServiceID/dns/$rootZoneDomainID")"
 	recordInfo="$(echo "$result" | tr '}' '\n' | grep "\"name\":\"${fulldomain}" | grep "\"content\":\"" | grep "${txtvalue}")"
 	_debug2 deleteRecord "recordInfo=$recordInfo"
-	recordID="$(echo "$recordInfo" | tr ',' '\n' | egrep "\"id\":\"[0-9]+\"" | cut -d'"' -f4)"
+	recordID="$(echo "$recordInfo" | tr ',' '\n' | grep -E "\"id\":\"[0-9]+\"" | cut -d'"' -f4)"
 
 	if [ -z "$recordID" ]; then
 		_info "Record $fulldomain TXT $txtvalue not found or already deleted"
