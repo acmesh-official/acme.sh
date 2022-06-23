@@ -115,7 +115,7 @@ proxmoxve_deploy() {
     cat <<HEREDOC
 {
   "certificates": "$(tr '\n' ':' <"$_cfullchain" | sed 's/:/\\n/g')",
-  "key": "$(tr '\n' ':' <"$_ckey" |sed 's/:/\\n/g')",
+  "key": "$(tr '\n' ':' <"$_ckey" | sed 's/:/\\n/g')",
   "node":"$_node_name",
   "restart":"1",
   "force":"1"
