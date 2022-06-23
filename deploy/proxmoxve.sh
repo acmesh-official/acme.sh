@@ -51,7 +51,7 @@ proxmoxve_deploy(){
 
   _getdeployconf DEPLOY_PROXMOXVE_NODE_NAME
   if [ -z "$DEPLOY_PROXMOXVE_NODE_NAME" ]; then
-    _node_name=$(echo "$_target_hostname"|cut -d. -f1)
+    _node_name=$(echo "$_target_hostname" | cut -d. -f1)
   else
     _node_name="$DEPLOY_PROXMOXVE_NODE_NAME"
     _savedeployconf DEPLOY_PROXMOXVE_NODE_NAME "$DEPLOY_PROXMOXVE_NODE_NAME"
@@ -92,7 +92,7 @@ proxmoxve_deploy(){
 
   # This is required.
   _getdeployconf DEPLOY_PROXMOXVE_API_TOKEN_KEY
-  if [ -z "$DEPLOY_PROXMOXVE_API_TOKEN_KEY" ];then
+  if [ -z "$DEPLOY_PROXMOXVE_API_TOKEN_KEY" ]; then
     _err "API key not provided."
     return 1
   else
@@ -111,7 +111,8 @@ proxmoxve_deploy(){
   #
   # This dumps the json payload to a variable that should be passable to the
   # _psot function.
-  _json_payload=$(cat << HEREDOC
+  _json_payload=$(
+    cat << HEREDOC
 {
   "certificates": "$(tr '\n' ':' < "$_cfullchain" | sed 's/:/\\n/g')",
   "key": "$(tr '\n' ':' < "$_ckey" |sed 's/:/\\n/g')",
@@ -120,9 +121,9 @@ proxmoxve_deploy(){
   "force":"1"
 }
 HEREDOC
-)
+  )
   _debug2 Payload "$_json_payload"
-  
+
   # Push certificates to server.
   export _HTTPS_INSECURE=1
   export _H1="Authorization: PVEAPIToken=${_proxmoxve_header_api_token}"
