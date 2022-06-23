@@ -170,7 +170,6 @@ _get_root() {
 
   _debug _get_root "Found valid root domain $rootZone for $subDomainNameClean"
   return 0
-
 }
 
 createRecord() {
@@ -199,7 +198,6 @@ createRecord() {
 
   _info "Record \"$fulldomain TXT $txtvalue\" has been created"
   return 0
-  
 }
 
 deleteRecord() {
@@ -235,5 +233,4 @@ deleteRecord() {
 
   # Return OK regardless
   return 0
-
 }
