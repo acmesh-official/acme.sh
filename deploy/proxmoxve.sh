@@ -77,7 +77,7 @@ proxmoxve_deploy(){
     _proxmoxve_user_realm="pam"
   else
     _proxmoxve_user_realm="$DEPLOY_PROXMOXVE_USER_REALM"
-    _savedeployconf DEPLOY_PROXMOXVE_USER_REALM "$DEPLOY_PROXMOXVE_USER_REALMz"
+    _savedeployconf DEPLOY_PROXMOXVE_USER_REALM "$DEPLOY_PROXMOXVE_USER_REALM"
   fi
   _debug2 DEPLOY_PROXMOXVE_USER_REALM "$_proxmoxve_user_realm"
 
