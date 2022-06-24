@@ -4,7 +4,7 @@
 #Script for Danish DNS registra and DNS hosting provider https://dns.services
 #
 #Author: Bjarke Bruun <bbruun@gmail.com>
-#Report Bugs here: https://github.com/Neilpang/acme.sh/issues
+#Report Bugs here: https://github.com/acmesh-official/acme.sh/issues/4152
 
 # Global variable to connect to the DNS Services API
 DNSServices_API=https://dns.services/api
