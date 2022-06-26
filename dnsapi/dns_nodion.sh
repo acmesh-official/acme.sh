@@ -13,6 +13,8 @@ dns_nodion_add() {
   fulldomain=$1
   txtvalue=$2
 
+  NODION_API_KEY="${NODION_API_KEY:-$(_readaccountconf_mutable NODION_API_KEY)}"
+
   if [ -z "$NODION_API_KEY" ]; then
     NODION_API_KEY=""
     _err "You didn't specify a NODION_API_KEY."
