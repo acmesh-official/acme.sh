@@ -152,34 +152,23 @@ dns_aws_rm() {
 
 _get_root() {
   domain=$1
-  i=2
+  i=1
   p=1
 
-  if aws_rest GET "2013-04-01/hostedzone"; then
-    while true; do
-      h=$(printf "%s" "$domain" | cut -d . -f $i-100)
-      _debug2 "Checking domain: $h"
-      if [ -z "$h" ]; then
-        if _contains "$response" "<IsTruncated>true</IsTruncated>" && _contains "$response" "<NextMarker>"; then
-          _debug "IsTruncated"
-          _nextMarker="$(echo "$response" | _egrep_o "<NextMarker>.*</NextMarker>" | cut -d '>' -f 2 | cut -d '<' -f 1)"
-          _debug "NextMarker" "$_nextMarker"
-          if aws_rest GET "2013-04-01/hostedzone" "marker=$_nextMarker"; then
-            _debug "Truncated request OK"
-            i=2
-            p=1
-            continue
-          else
-            _err "Truncated request error."
-          fi
-        fi
-        #not valid
-        _err "Invalid domain"
-        return 1
-      fi
+  # iterate over names (a.b.c.d -> b.c.d -> c.d -> d)
+  while true; do
+    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _debug "Checking domain: $h"
+    if [ -z "$h" ]; then
+      _error "invalid domain"
+      return 1
+    fi
 
+    # iterate over paginated result for list_hosted_zones
+    aws_rest GET "2013-04-01/hostedzone"
+    while true; do
       if _contains "$response" "<Name>$h.</Name>"; then
-        hostedzone="$(echo "$response" | sed 's/<HostedZone>/#&/g' | tr '#' '\n' | _egrep_o "<HostedZone><Id>[^<]*<.Id><Name>$h.<.Name>.*<PrivateZone>false<.PrivateZone>.*<.HostedZone>")"
+        hostedzone="$(echo "$response" | tr -d '\n' | sed 's/<HostedZone>/#&/g' | tr '#' '\n' | _egrep_o "<HostedZone><Id>[^<]*<.Id><Name>$h.<.Name>.*<PrivateZone>false<.PrivateZone>.*<.HostedZone>")"
         _debug hostedzone "$hostedzone"
         if [ "$hostedzone" ]; then
           _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "<Id>.*<.Id>" | head -n 1 | _egrep_o ">.*<" | tr -d "<>")
@@ -192,10 +181,19 @@ _get_root() {
           return 1
         fi
       fi
-      p=$i
-      i=$(_math "$i" + 1)
+      if _contains "$response" "<IsTruncated>true</IsTruncated>" && _contains "$response" "<NextMarker>"; then
+        _debug "IsTruncated"
+        _nextMarker="$(echo "$response" | _egrep_o "<NextMarker>.*</NextMarker>" | cut -d '>' -f 2 | cut -d '<' -f 1)"
+        _debug "NextMarker" "$_nextMarker"
+      else
+        break
+      fi
+      _debug "Checking domain: $h - Next Page "
+      aws_rest GET "2013-04-01/hostedzone" "marker=$_nextMarker"
     done
-  fi
+    p=$i
+    i=$(_math "$i" + 1)
+  done
   return 1
 }
 

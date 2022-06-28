@@ -159,7 +159,7 @@ _oci_config() {
   fi
 
   if [ "$(printf "%s\n" "$OCI_CLI_KEY" | wc -l)" -eq 1 ]; then
-    OCI_CLI_KEY=$(printf "%s" "$OCI_CLI_KEY" | _dbase64 multiline)
+    OCI_CLI_KEY=$(printf "%s" "$OCI_CLI_KEY" | _dbase64)
   fi
 
   return 0
