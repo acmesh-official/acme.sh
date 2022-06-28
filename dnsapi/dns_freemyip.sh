@@ -2,12 +2,14 @@
 #
 # Author: Recolic Keghart <root@recolic.net>
 #
-########  Public functions #####################
 
+# acme.sh user: please set your token here!
 [ -z "$FREEMYIP_Token" ] && FREEMYIP_Token="05ddb54360621d37dea67259"
-freemyip_prevdomain_tmpfile=/tmp/.acme-sh-freemyip-prevdomain
 
-# Note: this script was executed in subshell. It means all env would be cleanup, and EXIT event would be called between different domain names.
+################ Do not modify after this line ##############
+
+# Note: this script was executed in subshell. It means all env would be cleanup, and EXIT event would be called between different domain names. The only way to persist state is a temporary file.
+freemyip_prevdomain_tmpfile=/tmp/.acme-sh-freemyip-prevdomain
 
 # There is random failure while calling freemyip API too fast. This function automatically retry until success.
 freemyip_get_until_ok() {
