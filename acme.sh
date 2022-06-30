@@ -435,8 +435,10 @@ _secure_debug3() {
   fi
 }
 
+__USE_TR_RAW="$([ "$(echo "abc" | tr a-z A-Z 2>/dev/null)" = "ABC" ] && echo 1 || echo 0)"
+
 _upper_case() {
-  if _is_solaris; then
+  if [ "$__USE_TR_RAW" = "0" ]; then
     tr '[:lower:]' '[:upper:]'
   else
     # shellcheck disable=SC2018,SC2019
@@ -445,7 +447,7 @@ _upper_case() {
 }
 
 _lower_case() {
-  if _is_solaris; then
+  if [ "$__USE_TR_RAW" = "0" ]; then
     tr '[:upper:]' '[:lower:]'
   else
     # shellcheck disable=SC2018,SC2019
