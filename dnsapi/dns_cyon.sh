@@ -44,7 +44,7 @@ dns_cyon_rm() {
 _cyon_load_credentials() {
   # Convert loaded password to/from base64 as needed.
   if [ "${CY_Password_B64}" ]; then
-    CY_Password="$(printf "%s" "${CY_Password_B64}" | _dbase64 "multiline")"
+    CY_Password="$(printf "%s" "${CY_Password_B64}" | _dbase64)"
   elif [ "${CY_Password}" ]; then
     CY_Password_B64="$(printf "%s" "${CY_Password}" | _base64)"
   fi
