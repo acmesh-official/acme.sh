@@ -4,7 +4,6 @@
 # HUAWEICLOUD_Password
 # HUAWEICLOUD_DomainName
 
-
 iam_api="https://iam.myhuaweicloud.com"
 dns_api="https://dns.ap-southeast-1.myhuaweicloud.com" # Should work
 
@@ -290,4 +289,3 @@ _get_token() {
   printf "%s" "${_token}"
   return 0
 }
-
