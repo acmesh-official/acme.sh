@@ -6,7 +6,7 @@
 #Author: Bjarke Bruun <bbruun@gmail.com>
 #Report Bugs here: https://github.com/acmesh-official/acme.sh/issues/4152
 
-# Global variable to connect to the DNS Services API
+# Global variable to connect to the DNS.Services API
 DNSServices_API=https://dns.services/api
 
 ########  Public functions #####################
@@ -155,7 +155,7 @@ _get_root() {
     return 1
   fi
 
-  # Setup variables used by other functions to communicate with DNS Services API
+  # Setup variables used by other functions to communicate with DNS.Services API
   zoneInfo=$(echo "$result" | sed "s,\"zones,\n&,g" | grep zones | cut -d'[' -f2 | cut -d']' -f1 | tr '}' '\n' | grep "\"$rootZone\"")
   rootZoneName="$rootZone"
   subDomainName="$(echo "$domain" | sed "s,\.$rootZone,,g")"
@@ -176,7 +176,7 @@ createRecord() {
   fulldomain=$1
   txtvalue="$2"
 
-  # Get root domain information - needed for DNS Services API communication
+  # Get root domain information - needed for DNS.Services API communication
   if [ -z "$rootZoneName" ] || [ -z "$rootZoneDomainID" ] || [ -z "$rootZoneServiceID" ]; then
     _get_root "$fulldomain"
   fi
