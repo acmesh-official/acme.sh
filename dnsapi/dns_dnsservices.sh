@@ -213,7 +213,7 @@ deleteRecord() {
   result="$(_H1="$_H1" _H2="$_H2" _get "$DNSServices_API/service/$rootZoneServiceID/dns/$rootZoneDomainID")"
   recordInfo="$(echo "$result" | tr '}' '\n' | grep "\"name\":\"${fulldomain}" | grep "\"content\":\"" | grep "${txtvalue}")"
   _debug2 deleteRecord "recordInfo=$recordInfo"
-  recordID="$(echo "$recordInfo" | tr ',' '\n' | _egrep_o() "\"id\":\"[0-9]+\"" | cut -d'"' -f4)"
+  recordID="$(echo "$recordInfo" | tr ',' '\n' | _egrep_o "\"id\":\"[0-9]+\"" | cut -d'"' -f4)"
 
   if [ -z "$recordID" ]; then
     _info "Record $fulldomain TXT $txtvalue not found or already deleted"
