@@ -1,6 +1,7 @@
 # An ACME Shell script: acme.sh 
 
 [![FreeBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml)
+[![OpenBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenBSD.yml)
 [![MacOS](https://github.com/acmesh-official/acme.sh/actions/workflows/MacOS.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/MacOS.yml)
 [![Ubuntu](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml)
 [![Windows](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml)
@@ -68,7 +69,7 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 |4|[![Solaris](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml)|Solaris
 |5|[![Ubuntu](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml)| Ubuntu
 |6|NA|pfsense
-|7|NA|OpenBSD
+|7|[![OpenBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenBSD.yml)|OpenBSD
 |8|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)| Debian
 |9|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|CentOS
 |10|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|openSUSE
