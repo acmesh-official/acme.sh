@@ -251,9 +251,12 @@ _call_api() {
 
   # Detect any <status> that isn't "ok". None of the used calls should fail if the API is working correctly.
   # Also detect if there simply aren't any status lines (null result?) and report that, as well.
+  # Remove <data></data> structure from result string, since it might contain <status> values that are related to the status of the domain and not to the API request
 
-  statuslines_count_total="$(echo "$pleskxml_prettyprint_result" | grep -c '^ *<status>[^<]*</status> *$')"
-  statuslines_count_okay="$(echo "$pleskxml_prettyprint_result" | grep -c '^ *<status>ok</status> *$')"
+  statuslines_count_total="$(echo "$pleskxml_prettyprint_result" | sed '/<data>/,/<\/data>/d' | grep -c '^ *<status>[^<]*</status> *$')"
+  statuslines_count_okay="$(echo "$pleskxml_prettyprint_result" | sed '/<data>/,/<\/data>/d' | grep -c '^ *<status>ok</status> *$')"
+  _debug "statuslines_count_total=$statuslines_count_total."
+  _debug "statuslines_count_okay=$statuslines_count_okay."
 
   if [ -z "$statuslines_count_total" ]; then
 
