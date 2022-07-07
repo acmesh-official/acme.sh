@@ -204,12 +204,6 @@ deleteRecord() {
   fulldomain=$1
   txtvalue=$2
 
-  # Fix for acmetest to limit acme.sh to only work on _acme-challenge and acmeTestXYzRandomName in GitHub actions
-  if [ "$(echo "$fulldomain" | grep "_acme-challenge\|acmetestXyzRandomName.github-test")" = "" ]; then
-    _err "The script tried to delete the record $fulldomain which is not the above created ACME challenge"
-    return 1
-  fi
-
   _debug2 deleteRecord "Deleting $fulldomain TXT $txtvalue record"
 
   if [ -z "$rootZoneName" ] || [ -z "$rootZoneDomainID" ] || [ -z "$rootZoneServiceID" ]; then
