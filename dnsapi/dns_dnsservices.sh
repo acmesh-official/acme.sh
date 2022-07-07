@@ -2,7 +2,7 @@
 
 #This file name is "dns_dnsservices.sh"
 #Script for Danish DNS registra and DNS hosting provider https://dns.services
-#
+
 #Author: Bjarke Bruun <bbruun@gmail.com>
 #Report Bugs here: https://github.com/acmesh-official/acme.sh/issues/4152
 
