@@ -44,24 +44,14 @@ mailcow_deploy() {
     return 1
   fi
 
-  # ECC or RSA
-  length=$(_readdomainconf Le_Keylength)
-  if _isEccKey "$length"; then
-    _info "ECC key type detected"
-    _cert_name_prefix="ecdsa-"
-  else
-    _info "RSA key type detected"
-    _cert_name_prefix=""
-  fi
-
   _info "Copying key and cert"
-  _real_key="$_ssl_path/${_cert_name_prefix}key.pem"
+  _real_key="$_ssl_path/key.pem"
   if ! cat "$_ckey" >"$_real_key"; then
     _err "Error: write key file to: $_real_key"
     return 1
   fi
 
-  _real_fullchain="$_ssl_path/${_cert_name_prefix}cert.pem"
+  _real_fullchain="$_ssl_path/cert.pem"
   if ! cat "$_cfullchain" >"$_real_fullchain"; then
     _err "Error: write cert file to: $_real_fullchain"
     return 1
