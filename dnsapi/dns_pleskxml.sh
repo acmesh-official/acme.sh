@@ -157,7 +157,7 @@ dns_pleskxml_rm() {
       grep "<host>${fulldomain}.</host>" |
       grep "<value>${txtvalue}</value>"
   )"
-  
+
   _debug "Got line for <host>${fulldomain}.</host> and <value>${txtvalue}</value>:" 
   _debug "$recline"
 
@@ -167,7 +167,7 @@ dns_pleskxml_rm() {
   )"
 
   _debug "Got id from line:" 
-  _debug $recid
+  _debug "$recid"
 
   if ! _value "$recid" | grep '^[0-9]\{1,\}$' >/dev/null; then
     _err "DNS records for root domain '${root_domain_name}' (Plesk ID ${root_domain_id}) + host '${sub_domain_name}' do not contain the TXT record '${txtvalue}'"
