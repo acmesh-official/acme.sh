@@ -160,24 +160,25 @@ _login() {
   username="$WORLD4YOU_USERNAME"
   password="$WORLD4YOU_PASSWORD"
   csrf_token=$(_get "$WORLD4YOU_API/login" | grep '_csrf_token' | sed 's/^.*<input[^>]*value=\"\([^"]*\)\".*$/\1/')
-  sessid=$(grep 'W4YSESSID' <"$HTTP_HEADER" | sed 's/^.*W4YSESSID=\([^;]*\);.*$/\1/')
+  _parse_sessid
 
   export _H1="Cookie: W4YSESSID=$sessid"
   export _H2="X-Requested-With: XMLHttpRequest"
   body="_username=$username&_password=$password&_csrf_token=$csrf_token"
   ret=$(_post "$body" "$WORLD4YOU_API/login" '' POST 'application/x-www-form-urlencoded')
   unset _H2
+
   _debug ret "$ret"
   if _contains "$ret" "\"success\":true"; then
     _info "Successfully logged in"
-    sessid=$(grep 'W4YSESSID' <"$HTTP_HEADER" | sed 's/^.*W4YSESSID=\([^;]*\);.*$/\1/')
+    _parse_sessid
   else
     _err "Unable to log in: $(echo "$ret" | sed 's/^.*"message":"\([^\"]*\)".*$/\1/')"
     return 1
   fi
 }
 
-# Usage _get_paketnr <fqdn> <form>
+# Usage: _get_paketnr <fqdn> <form>
 _get_paketnr() {
   fqdn="$1"
   form="$2"
@@ -199,4 +200,9 @@ _get_paketnr() {
   RECORD=$(echo "$fqdn" | cut -c"1-$((${#fqdn} - ${#TLD} - 1))")
   PAKETNR=$(echo "$form" | grep "data-textfilter=\".* $domain " | _tail_n 1 | sed "s|.*$WORLD4YOU_API/\\([0-9]*\\)/.*|\\1|")
   return 0
+}
+
+# Usage: _parse_sessid
+_parse_sessid() {
+  sessid=$(grep 'W4YSESSID' <"$HTTP_HEADER" | _tail_n 1 | sed 's/^.*W4YSESSID=\([^;]*\);.*$/\1/')
 }
