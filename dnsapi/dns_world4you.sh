@@ -54,7 +54,7 @@ dns_world4you_add() {
     if _contains "$res" "successfully"; then
       return 0
     else
-      msg=$(echo "$res" | grep -A 15 'data-type="danger"' | grep "<h3[^>]*>[^<]" | sed 's/<[^>]*>\|^\s*//g')
+      msg=$(echo "$res" | grep -A 15 'data-type="danger"' | grep "<h3[^>]*>[^<]" | sed 's/<[^>]*>//g' | sed 's/^\s*//g')
       if [ "$msg" = '' ]; then
         _err "Unable to add record: Unknown error"
         echo "$ret" >'error-01.html'
@@ -118,7 +118,7 @@ dns_world4you_rm() {
     if _contains "$res" "successfully"; then
       return 0
     else
-      msg=$(echo "$res" | grep -A 15 'data-type="danger"' | grep "<h3[^>]*>[^<]" | sed 's/<[^>]*>\|^\s*//g')
+      msg=$(echo "$res" | grep -A 15 'data-type="danger"' | grep "<h3[^>]*>[^<]" | sed 's/<[^>]*>//g' | sed 's/^\s*//g')
       if [ "$msg" = '' ]; then
         _err "Unable to remove record: Unknown error"
         echo "$ret" >'error-01.html'
