@@ -30,7 +30,7 @@ jobs:
          #  CA: "ZeroSSL RSA Domain Secure Site CA"
          #  CA_EMAIL: "githubtest@acme.sh"
          #  TEST_PREFERRED_CHAIN: ""
-    runs-on: macos-10.15
+    runs-on: macos-12
     env:
       TEST_LOCAL: 1
       TEST_ACME_Server: ${{ matrix.TEST_ACME_Server }}

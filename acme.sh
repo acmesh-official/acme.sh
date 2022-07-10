@@ -91,6 +91,7 @@ END_CERT="-----END CERTIFICATE-----"
 
 CONTENT_TYPE_JSON="application/jose+json"
 RENEW_SKIP=2
+CODE_DNS_MANUAL=3
 
 B64CONF_START="__ACME_BASE64__START_"
 B64CONF_END="__ACME_BASE64__END_"
@@ -4764,7 +4765,9 @@ $_authorizations_map"
       _err "Please add the TXT records to the domains, and re-run with --renew."
       _on_issue_err "$_post_hook"
       _clearup
-      return 1
+      # If asked to be in manual DNS mode, flag this exit with a separate
+      # error so it can be distinguished from other failures.
+      return $CODE_DNS_MANUAL
     fi
 
   fi
