@@ -49,7 +49,7 @@ dns_world4you_add() {
   ret=$(_post "$body" "$WORLD4YOU_API/$paketnr/dns" '' POST 'application/x-www-form-urlencoded')
   _resethttp
 
-  if _contains "$(_head_n 3 <"$HTTP_HEADER")" '302'; then
+  if _contains "$(_head_n 1 <"$HTTP_HEADER")" '302'; then
     res=$(_get "$WORLD4YOU_API/$paketnr/dns")
     if _contains "$res" "successfully"; then
       return 0
@@ -66,7 +66,7 @@ dns_world4you_add() {
       return 1
     fi
   else
-    _err "$(_head_n 3 <"$HTTP_HEADER")"
+    _err "$(_head_n 1 <"$HTTP_HEADER")"
     _err "View $HTTP_HEADER for debugging"
     return 1
   fi
@@ -113,7 +113,7 @@ dns_world4you_rm() {
   ret=$(_post "$body" "$WORLD4YOU_API/$paketnr/dns/record/delete" '' POST 'application/x-www-form-urlencoded')
   _resethttp
 
-  if _contains "$(_head_n 3 <"$HTTP_HEADER")" '302'; then
+  if _contains "$(_head_n 1 <"$HTTP_HEADER")" '302'; then
     res=$(_get "$WORLD4YOU_API/$paketnr/dns")
     if _contains "$res" "successfully"; then
       return 0
@@ -130,7 +130,7 @@ dns_world4you_rm() {
       return 1
     fi
   else
-    _err "$(_head_n 3 <"$HTTP_HEADER")"
+    _err "$(_head_n 1 <"$HTTP_HEADER")"
     _err "View $HTTP_HEADER for debugging"
     return 1
   fi
@@ -155,11 +155,22 @@ _login() {
   _saveaccountconf_mutable WORLD4YOU_USERNAME "$WORLD4YOU_USERNAME"
   _saveaccountconf_mutable WORLD4YOU_PASSWORD "$WORLD4YOU_PASSWORD"
 
+  _resethttp
+  export ACME_HTTP_NO_REDIRECTS=1
+  page=$(_get "$WORLD4YOU_API/login")
+  _resethttp
+
+  if _contains "$(_head_n 1 <"$HTTP_HEADER")" '302'; then
+    _info "Already logged in"
+    _parse_sessid
+    return 0
+  fi
+
   _info "Logging in..."
 
   username="$WORLD4YOU_USERNAME"
   password="$WORLD4YOU_PASSWORD"
-  csrf_token=$(_get "$WORLD4YOU_API/login" | grep '_csrf_token' | sed 's/^.*<input[^>]*value=\"\([^"]*\)\".*$/\1/')
+  csrf_token=$(echo "$page" | grep '_csrf_token' | sed 's/^.*<input[^>]*value=\"\([^"]*\)\".*$/\1/')
   _parse_sessid
 
   export _H1="Cookie: W4YSESSID=$sessid"
