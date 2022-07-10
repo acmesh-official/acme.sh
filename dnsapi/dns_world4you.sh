@@ -12,7 +12,7 @@ RECORD=''
 
 # Usage: dns_world4you_add <fqdn> <value>
 dns_world4you_add() {
-  fqdn="$1"
+  fqdn=$(echo "$1" | tr '[:upper:]' '[:lower:]')
   value="$2"
   _info "Using world4you to add record"
   _debug fulldomain "$fqdn"
@@ -74,7 +74,7 @@ dns_world4you_add() {
 
 # Usage: dns_world4you_rm <fqdn> <value>
 dns_world4you_rm() {
-  fqdn="$1"
+  fqdn=$(echo "$1" | tr '[:upper:]' '[:lower:]')
   value="$2"
   _info "Using world4you to remove record"
   _debug fulldomain "$fqdn"
