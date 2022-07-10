@@ -160,7 +160,7 @@ dns_pleskxml_rm() {
       sed 's/^.*<id>\([0-9]\{1,\}\)<\/id>.*$/\1/'
   )"
 
-  _debug "Got id from line: $recid" 
+  _debug "Got id from line: $recid"
 
   if ! _value "$recid" | grep '^[0-9]\{1,\}$' >/dev/null; then
     _err "DNS records for root domain '${fulldomain}.' (Plesk ID ${root_domain_id}) + host '${sub_domain_name}' do not contain the TXT record '${txtvalue}'"
