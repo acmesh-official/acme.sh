@@ -1,22 +1,22 @@
-name: FreeBSD
+name: OpenBSD
 on:
   push:
     branches:
       - '*'
     paths:
       - '*.sh'
-      - '.github/workflows/FreeBSD.yml'
+      - '.github/workflows/OpenBSD.yml'
 
   pull_request:
     branches:
       - dev
     paths:
       - '*.sh'
-      - '.github/workflows/FreeBSD.yml'
+      - '.github/workflows/OpenBSD.yml'
 
 
 jobs:
-  FreeBSD:
+  OpenBSD:
     strategy:
       matrix:
         include:
@@ -49,12 +49,12 @@ jobs:
       run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/freebsd-vm@v0.1.5
+    - uses: vmactions/openbsd-vm@v0.0.1
       with:
         envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN'
         nat: |
           "8080": "80"
-        prepare: pkg install -y socat curl
+        prepare: pkg_add socat curl
         usesh: true
         run: |
           cd ../acmetest \
