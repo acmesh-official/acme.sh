@@ -66,8 +66,8 @@ dns_world4you_add() {
       return 1
     fi
   else
-    _err "$(_head_n 1 <"$HTTP_HEADER")"
-    _err "View $HTTP_HEADER for debugging"
+    msg=$(echo "$ret" | grep '"form-error-message"' | sed 's/^.*<div class="form-error-message">\([^<]*\)<\/div>.*$/\1/')
+    _err "Unable to add record: my.world4you.com: $msg"
     return 1
   fi
 }
@@ -130,8 +130,8 @@ dns_world4you_rm() {
       return 1
     fi
   else
-    _err "$(_head_n 1 <"$HTTP_HEADER")"
-    _err "View $HTTP_HEADER for debugging"
+    msg=$(echo "$ret" | grep "form-error-message" | sed 's/^.*<div class="form-error-message">\([^<]*\)<\/div>.*$/\1/')
+    _err "Unable to remove record: my.world4you.com: $msg"
     return 1
   fi
 }
@@ -184,7 +184,8 @@ _login() {
     _info "Successfully logged in"
     _parse_sessid
   else
-    _err "Unable to log in: $(echo "$ret" | sed 's/^.*"message":"\([^\"]*\)".*$/\1/')"
+    msg=$(echo "$ret" | sed 's/^.*"message":"\([^\"]*\)".*$/\1/')
+    _err "Unable to log in: my.world4you.com: $msg"
     return 1
   fi
 }
