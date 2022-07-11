@@ -156,12 +156,13 @@ _get_root() {
   fi
 
   # Setup variables used by other functions to communicate with DNS.Services API
-  zoneInfo=$(echo "$result" | sed "s,\"zones,\n&,g" | grep zones | cut -d'[' -f2 | cut -d']' -f1 | tr '}' '\n' | grep "\"$rootZone\"")
+  #zoneInfo=$(echo "$result" | sed "s,\"zones,\n&,g" | grep zones | cut -d'[' -f2 | cut -d']' -f1 | tr '}' '\n' | grep "\"$rootZone\"")
+  zoneInfo=$(echo -e "$result" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"name":")([^"]*)"(.*)$,\2,g')
   rootZoneName="$rootZone"
   subDomainName="$(echo "$domain" | sed "s,\.$rootZone,,g")"
   subDomainNameClean="$(echo "$domain" | sed "s,_acme-challenge.,,g")"
-  rootZoneDomainID=$(echo "$zoneInfo" | tr ',' '\n' | grep domain_id | cut -d'"' -f4)
-  rootZoneServiceID=$(echo "$zoneInfo" | tr ',' '\n' | grep service_id | cut -d'"' -f4)
+  rootZoneDomainID=$(echo -e "$result" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"domain_id":")([^"]*)"(.*)$,\2,g')
+  rootZoneServiceID=$(echo -e "$result" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"service_id":")([^"]*)"(.*)$,\2,g')
 
   _debug2 _get_root "Root zone name      : $rootZoneName"
   _debug2 _get_root "Root zone domain ID : $rootZoneDomainID"
@@ -190,7 +191,7 @@ createRecord() {
   result=$(_post "$data" "$DNSServices_API/service/$rootZoneServiceID/dns/$rootZoneDomainID/records" "" "POST")
   _debug2 createRecord "result from API: $result"
 
-  if [ "$(echo "$result" | grep '"success":true')" = "" ]; then
+  if [ "$(echo "$result" | _egrep_o "\"success\":true")" = "" ]; then
     _err "Failed to create TXT record $fulldomain with content $txtvalue in zone $rootZoneName"
     _err "$result"
     return 1
@@ -211,7 +212,7 @@ deleteRecord() {
   fi
 
   result="$(_H1="$_H1" _H2="$_H2" _get "$DNSServices_API/service/$rootZoneServiceID/dns/$rootZoneDomainID")"
-  recordInfo="$(echo "$result" | tr '}' '\n' | grep "\"name\":\"${fulldomain}" | grep "\"content\":\"" | grep "${txtvalue}")"
+  recordInfo="$(echo "$result" | tr '}' '\n' | _egrep_o "\"name\":\"${fulldomain}" | _egrep_o "\"content\":\"" | grep "${txtvalue}")"
   _debug2 deleteRecord "recordInfo=$recordInfo"
   recordID="$(echo "$recordInfo" | tr ',' '\n' | _egrep_o "\"id\":\"[0-9]+\"" | cut -d'"' -f4)"
 
