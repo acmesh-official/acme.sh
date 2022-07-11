@@ -64,7 +64,7 @@ dns_dnsservices_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  _info "Using dns.services to delete challenge $fulldomain TXT $txtvalue"
+  _info "Using dns.services to remove DNS record $fulldomain TXT $txtvalue"
   _debug rm_fulldomain "$fulldomain"
   _debug rm_txtvalue "$txtvalue"
 
@@ -204,7 +204,7 @@ deleteRecord() {
   fulldomain=$1
   txtvalue=$2
 
-  _debug2 deleteRecord "Deleting $fulldomain TXT $txtvalue record"
+  _log deleteRecord "Deleting $fulldomain TXT $txtvalue record"
 
   if [ -z "$rootZoneName" ] || [ -z "$rootZoneDomainID" ] || [ -z "$rootZoneServiceID" ]; then
     _get_root "$fulldomain"
