@@ -157,13 +157,14 @@ _get_root() {
 
   # Setup variables used by other functions to communicate with DNS.Services API
   #zoneInfo=$(echo "$result" | sed "s,\"zones,\n&,g" | grep zones | cut -d'[' -f2 | cut -d']' -f1 | tr '}' '\n' | grep "\"$rootZone\"")
-  zoneInfo=$(echo -e "$result" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"name":")([^"]*)"(.*)$,\2,g')
+  zoneInfo=$(echo "$result" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"name":")([^"]*)"(.*)$,\2,g' | grep "\"$rootZone\"")
   rootZoneName="$rootZone"
   subDomainName="$(echo "$domain" | sed "s,\.$rootZone,,g")"
   subDomainNameClean="$(echo "$domain" | sed "s,_acme-challenge.,,g")"
-  rootZoneDomainID=$(echo -e "$result" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"domain_id":")([^"]*)"(.*)$,\2,g')
-  rootZoneServiceID=$(echo -e "$result" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"service_id":")([^"]*)"(.*)$,\2,g')
+  rootZoneDomainID=$(echo "$result" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"domain_id":")([^"]*)"(.*)$,\2,g')
+  rootZoneServiceID=$(echo "$result" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"service_id":")([^"]*)"(.*)$,\2,g')
 
+  _debug2 _zoneInfo "Zone info from API  : $zoneInfo"
   _debug2 _get_root "Root zone name      : $rootZoneName"
   _debug2 _get_root "Root zone domain ID : $rootZoneDomainID"
   _debug2 _get_root "Root zone service ID: $rootZoneServiceID"
