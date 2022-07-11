@@ -345,7 +345,7 @@ _debug() {
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_1" ]; then
     _bash_debug=$(__debug_bash_helper)
-    _printargs "${_bash_debug}$@" >&2
+    _printargs "${_bash_debug}$*" >&2
   fi
 }
 
@@ -379,7 +379,7 @@ _debug2() {
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_2" ]; then
     _bash_debug=$(__debug_bash_helper)
-    _printargs "${_bash_debug}$@" >&2
+    _printargs "${_bash_debug}$*" >&2
   fi
 }
 
@@ -412,7 +412,7 @@ _debug3() {
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_3" ]; then
     _bash_debug=$(__debug_bash_helper)
-    _printargs "${_bash_debug}$@" >&2
+    _printargs "${_bash_debug}$*" >&2
   fi
 }
 
@@ -547,7 +547,7 @@ _exists() {
 
 #a + b
 _math() {
-  _m_opts="$@"
+  _m_opts="$*"
   printf "%s" "$(($_m_opts))"
 }
 
@@ -1062,7 +1062,7 @@ _sign() {
   _sign_openssl="${ACME_OPENSSL_BIN:-openssl} dgst -sign $keyfile "
 
   if _isRSA "$keyfile" >/dev/null 2>&1; then
-    $_sign_openssl -$alg | _base64
+    $_sign_openssl -$alg | _base64 "$@"
   elif _isEcc "$keyfile" >/dev/null 2>&1; then
     if ! _signedECText="$($_sign_openssl -sha$__ECC_KEY_LEN | ${ACME_OPENSSL_BIN:-openssl} asn1parse -inform DER)"; then
       _err "Sign failed: $_sign_openssl"
@@ -6909,15 +6909,15 @@ installOnline() {
       exit 1
     fi
 
-    cd "$PROJECT_NAME-$_branch"
-    chmod +x $PROJECT_ENTRY
-    if ./$PROJECT_ENTRY --install "$@"; then
-      _info "Install success!"
-      _initpath
-      _saveaccountconf "UPGRADE_HASH" "$(_getUpgradeHash)"
-    fi
-
-    cd ..
+    (
+      cd "$PROJECT_NAME-$_branch" || return 1
+      chmod +x $PROJECT_ENTRY
+      if ./$PROJECT_ENTRY --install "$@"; then
+        _info "Install success!"
+        _initpath
+        _saveaccountconf "UPGRADE_HASH" "$(_getUpgradeHash)"
+      fi
+    )
 
     rm -rf "$PROJECT_NAME-$_branch"
     rm -f "$localname"
