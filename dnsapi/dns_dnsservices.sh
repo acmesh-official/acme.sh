@@ -229,4 +229,3 @@ deleteRecord() {
   # Return OK regardless
   return 0
 }
-
