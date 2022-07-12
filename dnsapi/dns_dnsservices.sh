@@ -213,9 +213,10 @@ deleteRecord() {
   fi
 
   result="$(_H1="$_H1" _H2="$_H2" _get "$DNSServices_API/service/$rootZoneServiceID/dns/$rootZoneDomainID")"
-  recordInfo="$(echo "$result" | tr '}' '\n' | _egrep_o "\"name\":\"${fulldomain}" | _egrep_o "\"content\":\"" | grep "${txtvalue}")"
-  _debug2 deleteRecord "recordInfo=$recordInfo"
-  recordID="$(echo "$recordInfo" | tr ',' '\n' | _egrep_o "\"id\":\"[0-9]+\"" | cut -d'"' -f4)"
+  recordInfo="$(echo "$result" | sed -e 's/:{/:{\n/g'  -e  's/},/\n},\n/g' | grep "${txtvalue}")"
+  recordID="$(echo "$recordInfo" | sed -e 's/:{/:{\n/g'  -e  's/},/\n},\n/g' | grep "${txtvalue}" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"id":")([^"]*)"(.*)$,\2,g')"
+  recordDomainID="$(echo "$recordInfo" | sed -e 's/:{/:{\n/g'  -e  's/},/\n},\n/g' | grep "${txtvalue}" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"domain_id":")([^"]*)"(.*)$,\2,g')"
+  recordName="$(echo "$recordInfo" | sed -e 's/:{/:{\n/g'  -e  's/},/\n},\n/g' | grep "${txtvalue}" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"name":")([^"]*)"(.*)$,\2,g')"
 
   if [ -z "$recordID" ]; then
     _info "Record $fulldomain TXT $txtvalue not found or already deleted"
@@ -225,8 +226,10 @@ deleteRecord() {
   fi
 
   _debug2 deleteRecord "DELETE request $DNSServices_API/service/$rootZoneServiceID/dns/$rootZoneDomainID/records/$recordID"
+  _log "curl DELETE request $DNSServices_API/service/$rootZoneServiceID/dns/$rootZoneDomainID/records/$recordID"
   result="$(_H1="$_H1" _H2="$_H2" _post "" "$DNSServices_API/service/$rootZoneServiceID/dns/$rootZoneDomainID/records/$recordID" "" "DELETE")"
   _debug2 deleteRecord "API Delete result \"$result\""
+  _log "curl API Delete result \"$result\""
 
   # Return OK regardless
   return 0
