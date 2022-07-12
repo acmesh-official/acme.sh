@@ -146,7 +146,7 @@ _get_root() {
       fi
     done)
   else
-    rootZone=$(echo "$result" | grep -o '"name":"[^"]*' | cut -d'"' -f4)
+    rootZone=$(echo "$result" | _egrep_o '"name":"[^"]*' | cut -d'"' -f4)
     _debug2 _get_root "- only found 1 domain in API: $rootZone"
   fi
 
