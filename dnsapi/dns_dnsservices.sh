@@ -213,7 +213,7 @@ deleteRecord() {
   fi
 
   result="$(_H1="$_H1" _H2="$_H2" _get "$DNSServices_API/service/$rootZoneServiceID/dns/$rootZoneDomainID")"
-  recordInfo="$(echo "$result"   | sed -e 's/:{/:{\n/g' -e 's/},/\n},\n/g' | grep "${txtvalue}")"
+  recordInfo="$(echo "$result" | sed -e 's/:{/:{\n/g' -e 's/},/\n},\n/g' | grep "${txtvalue}")"
   recordID="$(echo "$recordInfo" | sed -e 's/:{/:{\n/g' -e 's/},/\n},\n/g' | grep "${txtvalue}" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"id":")([^"]*)"(.*)$,\2,g')"
 
   if [ -z "$recordID" ]; then
