@@ -31,8 +31,10 @@ dns_arvancdn_add() {
     return 1
   fi
 
-  _record_name=$(echo "${_zone}" | sed "s/\.\..*//")
-  _zone=$(echo "${_zone}" | sed "s/.*\.\.//")
+  #_record_name=$(echo "${_zone}" | sed "s/\.\..*//")
+  _record_name=${_zone/\.\.*/}
+  #_zone=$(echo "${_zone}" | sed "s/.*\.\.//")
+  _zone=${_zone/*\.\./}
 
   _debug "dns_arvan_add(): fulldomain ${_fulldomain}"
   _debug "dns_arvan_add(): textvalue ${_challenge}"
@@ -63,8 +65,10 @@ dns_arvancdn_rm(){
     return 1
   fi
 
-  _record_name=$(echo "${_zone}" | sed "s/\.\..*//")
-  _zone=$(echo "${_zone}" | sed "s/.*\.\.//")
+  #_record_name=$(echo "${_zone}" | sed "s/\.\..*//")
+  _record_name=${_zone/\.\.*/}
+  #_zone=$(echo "${_zone}" | sed "s/.*\.\.//")
+  _zone=${_zone/*\.\./}
 
 
   _record_id=$(_record_get_id "${_zone}" "${_challenge}")
@@ -86,13 +90,14 @@ _get_root(){
   export _H2="Authorization: apikey ${ARVAN_API_KEY}"
 
   _response=$(_get "${ARVAN_CDN_API}/domains")
-  _domains_list=( $( echo "${_response}" | grep -Poe '"domain":"[^"]*"' | sed 's/"domain":"//' | sed 's/"//') )
+  #_domains_list=( $( echo "${_response}" | grep -Poe '"domain":"[^"]*"' | sed 's/"domain":"//' | sed 's/"//') )
+  read -a _domains_list < <( echo "${_response}" | grep -Poe '"domain":"[^"]*"' | sed 's/"domain":"//' | sed 's/"//')
 
   _debug2 "_get_root(): reponse ${_response}"
-  _debug2 "_get_root(): domains list ${_domains_list}"
+  _debug2 "_get_root(): domains list ${_domains_list[*]}"
 
   #Fibding a matching Zone
-  while [[ ! -z "${_zone}" ]]; do
+  while [[ -n "${_zone}" ]]; do
     for tmp in "${_domains_list[@]}"; do
       if [ "${tmp}" = "${_zone}" ]; then
         break 2
