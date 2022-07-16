@@ -118,6 +118,7 @@ _initAuth() {
     #return and wait for retry.
     return 1
   fi
+  _saveaccountconf OVH_CK "$OVH_CK"
 
   _info "Checking authentication"
 
@@ -235,7 +236,6 @@ _ovh_authentication() {
   _secure_debug consumerKey "$consumerKey"
 
   OVH_CK="$consumerKey"
-  _saveaccountconf OVH_CK "$OVH_CK"
 
   _info "Please open this link to do authentication: $(__green "$validationUrl")"
 
