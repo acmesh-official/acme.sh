@@ -25,8 +25,8 @@ dns_arvancdn_add() {
   _saveaccountconf_mutable ARVAN_API_KEY "${ARVAN_API_KEY}"
 
   _debug "dns_arvan_add(): Check domain root zone availability for ${_fulldomain}"
-  _zone=$(_get_root "${_fulldomain}")
-  if [ $? -ne 0 ]; then
+
+  if ! _zone=$(_get_root "${_fulldomain}"); then
     _err "dns_arvan_add(): Root zone for ${_fulldomain} not found!"
     return 1
   fi
@@ -59,8 +59,7 @@ dns_arvancdn_rm(){
     return 1
   fi
 
-  _zone=$(_get_root "${_fulldomain}")
-  if [ $? -ne 0 ]; then
+  if ! _zone=$(_get_root "${_fulldomain}"); then
     _err "dns_arvan_rm(): Root zone for ${_fulldomain} not found!"
     return 1
   fi
@@ -91,7 +90,7 @@ _get_root(){
 
   _response=$(_get "${ARVAN_CDN_API}/domains")
   #_domains_list=( $( echo "${_response}" | grep -Poe '"domain":"[^"]*"' | sed 's/"domain":"//' | sed 's/"//') )
-  read -a _domains_list < <( echo "${_response}" | grep -Poe '"domain":"[^"]*"' | sed 's/"domain":"//' | sed 's/"//')
+  read -r -a _domains_list < <( echo "${_response}" | grep -Poe '"domain":"[^"]*"' | sed 's/"domain":"//' | sed 's/"//')
 
   _debug2 "_get_root(): reponse ${_response}"
   _debug2 "_get_root(): domains list ${_domains_list[*]}"
