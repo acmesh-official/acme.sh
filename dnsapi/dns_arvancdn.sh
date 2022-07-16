@@ -102,14 +102,14 @@ _get_root(){
         break 2
       fi
     done
-    _zone=$(echo "${_zone}" | sed 's/^[^.]*\.\?//')
+    _zone=$(sed 's/^[^.]*\.\?//' <(echo "${_zone}"))
   done
   if [ -z "${_zone}" ]; then
     _debug2 "_get_root(): Zone not found on provider"
     exit 1
   fi
 
-  _marked_zone=$(echo "${_fulldomain}" | sed "s/^\(.*\)\.\(${_zone}\)$/\1..\2/")
+  _marked_zone=$(sed "s/^\(.*\)\.\(${_zone}\)$/\1..\2/" <(echo "${_fulldomain}"))
   echo "${_marked_zone}"
 
 }
