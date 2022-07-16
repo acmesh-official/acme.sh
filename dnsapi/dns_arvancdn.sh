@@ -46,7 +46,7 @@ dns_arvancdn_add() {
 }
 
 #Usage: dns_arvancdn_rm fulldomain txtvalue
-dns_arvancdn_rm(){
+dns_arvancdn_rm() {
 
   _fulldomain=$1
   _challenge=$2
@@ -81,7 +81,7 @@ dns_arvancdn_rm(){
 ####################
 
 #Usage: _get_root zone
-_get_root(){
+_get_root() {
   _fulldomain=$1
   _zone=$_fulldomain
 
@@ -115,7 +115,7 @@ _get_root(){
 }
 
 #Usage: _record_add record_name zone challenge
-_record_add(){
+_record_add() {
 
   _record_name=$1
   _zone=$2
@@ -132,7 +132,7 @@ _record_add(){
 }
 
 #Usage: _record_get_id zone challenge
-_record_get_id(){
+_record_get_id() {
 
   _zone=$1
   _challenge=$2
@@ -149,7 +149,7 @@ _record_get_id(){
 }
 
 #Usage: _record_remove zone record_id
-_record_remove(){
+_record_remove() {
 
   _zone=$1
   _record_id=$2
