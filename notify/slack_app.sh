@@ -32,6 +32,7 @@ slack_app_send() {
 
   SLACK_APP_API_URL="https://slack.com/api/chat.postMessage"
   if _post "$_data" "$SLACK_APP_API_URL" "" "POST" "application/json; charset=utf-8"; then
+    # shellcheck disable=SC2154
     SLACK_APP_RESULT_OK=$(echo "$response" | _egrep_o 'ok" *: *true')
     if [ "$?" = "0" ] && [ "$SLACK_APP_RESULT_OK" ]; then
       _info "slack send success."
