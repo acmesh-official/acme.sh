@@ -126,10 +126,10 @@ synology_dsm_deploy() {
   _debug2 H1 "${_H1}"
 
   # Now that we know the username and password are good, save them
-  _savedeployconf SYNO_Username "$SYNO_Username"
-  _savedeployconf SYNO_Password "$SYNO_Password"
-  _savedeployconf SYNO_DID "$SYNO_DID"
-  _savedeployconf SYNO_TOTP_SECRET "$SYNO_TOTP_SECRET"
+  _savedeployconf SYNO_Username "$SYNO_Username" "base64"
+  _savedeployconf SYNO_Password "$SYNO_Password" "base64"
+  _savedeployconf SYNO_DID "$SYNO_DID" "base64"
+  _savedeployconf SYNO_TOTP_SECRET "$SYNO_TOTP_SECRET" "base64"
 
   _info "Getting certificates in Synology DSM"
   response=$(_post "api=SYNO.Core.Certificate.CRT&method=list&version=1&_sid=$sid" "$_base_url/webapi/entry.cgi")
