@@ -71,7 +71,7 @@ deployer() {
 
   if [ "$type" = 'commit' ]; then
     export _H1="Content-Type: application/x-www-form-urlencoded"
-    cmd=$(printf "%s" "<commit><partial><admin><member>$_panos_user</member></admin></partial></commit>" | _url_encode)                
+    cmd=$(printf "%s" "<commit><partial><admin><member>$_panos_user</member></admin></partial></commit>" | _url_encode)
     content="type=commit&action=partial&key=$_panos_key&cmd=$cmd"
   fi
   response=$(_post "$content" "$panos_url" "" "POST")
