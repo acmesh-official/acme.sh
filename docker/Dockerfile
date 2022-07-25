@@ -63,6 +63,7 @@ RUN for verb in help \
   ; done
 
 COPY entry.sh /
+COPY restart-container.sh /usr/local/bin/
 
 VOLUME /acme.sh
 
