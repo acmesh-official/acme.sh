@@ -6,9 +6,6 @@
 #Which will be called by acme.sh to add the txt record to your api system.
 #returns 0 means success, otherwise error.
 #
-#Author: epgdatacapbon
-#Report Bugs here: https://github.com/epgdatacapbon/acme.sh
-#
 ########  Public functions #####################
 
 # Export MyDNS.JP MasterID and Password in following variables...
@@ -17,7 +14,7 @@
 
 MYDNSJP_API="https://www.mydns.jp"
 
-#Usage: dns_mydnsjp_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+#Usage: dns_mydnsjp_add   _acme-challenge.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_mydnsjp_add() {
   fulldomain=$1
   txtvalue=$2
@@ -43,7 +40,16 @@ dns_mydnsjp_add() {
 
   _debug "First detect the root zone."
   if ! _get_root "$fulldomain"; then
+    _err "Add txt record error."
     _err "invalid domain"
+    return 1
+  fi
+  
+  if [ "_acme-challenge" != $_sub_domain ]; then
+    _err "Add txt record error."
+    _err "invalid domain."
+    _err "MyDNS.JP does not add TXT records for subdomain."
+    _err "subdomain=$_sub_domain"
     return 1
   fi
 
@@ -87,7 +93,16 @@ dns_mydnsjp_rm() {
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
+    _err "Delete txt record error."
     _err "invalid domain"
+    return 1
+  fi
+  
+  if [ "_acme-challenge" != $_sub_domain ]; then
+    _err "Delete txt record error." 
+    _err "invalid domain"
+    _err "MyDNS.JP does not add TXT records for subdomain."
+    _err "subdomain=$_sub_domain"
     return 1
   fi
 
@@ -109,9 +124,9 @@ dns_mydnsjp_rm() {
 }
 
 ####################  Private functions below ##################################
-# _acme-challenge.www.domain.com
+# _acme-challenge.domain.com
 # returns
-#  _sub_domain=_acme-challenge.www
+#  _sub_domain=_acme-challenge
 #  _domain=domain.com
 _get_root() {
   fulldomain=$1
@@ -150,7 +165,8 @@ _get_root() {
 _mydnsjp_retrieve_domain() {
   _debug "Login to MyDNS.JP"
 
-  response="$(_post "masterid=$MYDNSJP_MasterID&masterpwd=$MYDNSJP_Password" "$MYDNSJP_API/?MENU=100")"
+  # Login
+  response="$(_post "MENU=100&masterid=$MYDNSJP_MasterID&masterpwd=$MYDNSJP_Password" "$MYDNSJP_API/members/")"
   cookie="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2)"
 
   # If cookies is not empty then logon successful
@@ -163,17 +179,10 @@ _mydnsjp_retrieve_domain() {
 
   export _H1="Cookie:${cookie}"
 
-  response="$(_get "$MYDNSJP_API/?MENU=300")"
-
-  if [ "$?" != "0" ]; then
-    _err "Fail to retrieve DOMAIN INFO."
-    return 1
-  fi
-
   _root_domain=$(echo "$response" | grep "DNSINFO\[domainname\]" | sed 's/^.*value="\([^"]*\)".*/\1/')
 
   # Logout
-  response="$(_get "$MYDNSJP_API/?MENU=090")"
+  response="$(_post "MENU=090" "$MYDNSJP_API/members/")"
 
   _debug _root_domain "$_root_domain"
 
