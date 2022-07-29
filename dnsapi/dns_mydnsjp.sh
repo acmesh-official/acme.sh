@@ -159,17 +159,6 @@ _mydnsjp_retrieve_domain() {
     return 1
   fi
 
-  _debug "Retrieve DOMAIN INFO page"
-
-  #export _H1="Cookie:${cookie}"
-
-  #response="$(_get "$MYDNSJP_API/?MENU=300")"
-
-  #if [ "$?" != "0" ]; then
-  #  _err "Fail to retrieve DOMAIN INFO."
-  #  return 1
-  #fi
-
   _root_domain=$(echo "$response" | grep "DNSINFO\[domainname\]" | sed 's/^.*value="\([^"]*\)".*/\1/')
 
   # Logout
