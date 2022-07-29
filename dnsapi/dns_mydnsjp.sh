@@ -161,9 +161,6 @@ _mydnsjp_retrieve_domain() {
 
   _root_domain=$(echo "$response" | grep "DNSINFO\[domainname\]" | sed 's/^.*value="\([^"]*\)".*/\1/')
 
-  # Logout
-  response="$(_get "$MYDNSJP_API/?MENU=090")"
-
   _debug _root_domain "$_root_domain"
 
   if [ -z "$_root_domain" ]; then
