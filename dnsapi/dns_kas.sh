@@ -9,12 +9,12 @@
 #  - $KAS_Authdata (Kasserver API auth data.)
 #
 # Author: Martin Kammerlander, Phlegx Systems OG <martin.kammerlander@phlegx.com>
-# Updated by: Marc-Oliver Lange <git@die-lang.es>
+# Updated by: squared GmbH <github@squaredgmbh.de>
 # Credits: Inspired by dns_he.sh. Thanks a lot man!
 # Git repo: https://github.com/phlegx/acme.sh
 # TODO: Better Error handling
 ########################################################################
-KAS_Api="https://kasapi.kasserver.com/dokumentation/formular.php"
+KAS_Api="https://test-account.com/formular.php"
 ########  Public functions  #####################
 dns_kas_add() {
   _fulldomain=$1
@@ -43,12 +43,14 @@ dns_kas_add() {
   params="$params&kas_action=add_dns_settings"
   params="$params&var5=zone_host"
   params="$params&wert5=$_zone"
+  params="$params&anz_var=5"
   _debug2 "Wait for 10 seconds by default before calling KAS API."
   _sleep 10
   response="$(_get "$KAS_Api$params")"
-  _debug2 "response" "$response"
+  response_result="$(echo "$response" | tr -d "\n\r" | tr -d "\t" | tr -d ' ' | sed "s/class=\"erfolg\"/\n=> erfolg/g" | tr ' ' '\n' | grep "erfolg>" | tr '<' '\n' | grep TRUE | sed "s/\/b>//g")"
+  _debug2 "response" "$response_result"
 
-  if ! _contains "$response" "TRUE"; then
+  if ! _contains "$response_result" "TRUE"; then
     _err "An unkown error occurred, please check manually."
     return 1
   fi
@@ -75,6 +77,7 @@ dns_kas_rm() {
     params="$params&kas_auth_type=$KAS_Authtype"
     params="$params&kas_auth_data=$KAS_Authdata"
     params="$params&kas_action=delete_dns_settings"
+    params="$params&anz_var=1"
 
     for i in $_record_id; do
       params2="$params&var1=record_id"
@@ -82,8 +85,9 @@ dns_kas_rm() {
       _debug2 "Wait for 10 seconds by default before calling KAS API."
       _sleep 10
       response="$(_get "$KAS_Api$params2")"
-      _debug2 "response" "$response"
-      if ! _contains "$response" "TRUE"; then
+      response_result="$(echo "$response" | tr -d "\n\r" | tr -d "\t" | tr -d ' ' | sed "s/class=\"erfolg\"/\n=> erfolg/g" | tr ' ' '\n' | grep "erfolg>" | tr '<' '\n' | grep TRUE | sed "s/\/b>//g")"
+      _debug2 "response" "$response_result"
+      if ! _contains "$response_result" "TRUE"; then
         _err "Either the txt record is not found or another error occurred, please check manually."
         return 1
       fi
@@ -124,6 +128,7 @@ _get_zone_and_record_name() {
   params="$params&kas_auth_type=$KAS_Authtype"
   params="$params&kas_auth_data=$KAS_Authdata"
   params="$params&kas_action=get_domains"
+  params="$params&anz_var=1"
 
   _debug2 "Wait for 10 seconds by default before calling KAS API."
   _sleep 10
@@ -157,6 +162,7 @@ _get_record_id() {
   params="$params&kas_action=get_dns_settings"
   params="$params&var1=zone_host"
   params="$params&wert1=$_zone"
+  params="$params&anz_var=2"
 
   _debug2 "Wait for 10 seconds by default before calling KAS API."
   _sleep 10
