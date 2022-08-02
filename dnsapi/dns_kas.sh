@@ -8,13 +8,15 @@
 #  - $KAS_Authtype (Kasserver API auth type. Default: sha1)
 #  - $KAS_Authdata (Kasserver API auth data.)
 #
-# Author: Martin Kammerlander, Phlegx Systems OG <martin.kammerlander@phlegx.com>
-# Updated by: Marc-Oliver Lange <git@die-lang.es>
-# Credits: Inspired by dns_he.sh. Thanks a lot man!
-# Git repo: https://github.com/phlegx/acme.sh
-# TODO: Better Error handling
+# Author: squared GmbH <github@squaredgmbh.de>
+# Credits:
+# Inspired by dns_he.sh. Thanks a lot man!
+# Previous version by Martin Kammerlander, Phlegx Systems OG <martin.kammerlander@phlegx.com>
+# Previous update by Marc-Oliver Lange <git@die-lang.es>
+# KASAPI SOAP guideline by https://github.com/o1oo11oo/kasapi.sh
 ########################################################################
-KAS_Api="https://kasapi.kasserver.com/dokumentation/formular.php"
+KAS_Api_GET="$(_get "https://kasapi.kasserver.com/soap/wsdl/KasApi.wsdl")"
+KAS_Api="$(echo "$KAS_Api_GET" | tr -d ' ' | grep -i "<soap:addresslocation=" | sed "s/='/\n/g" | grep -i "http" | sed "s/'\/>//g")"
 ########  Public functions  #####################
 dns_kas_add() {
   _fulldomain=$1
@@ -29,27 +31,34 @@ dns_kas_add() {
   _get_record_id
 
   _info "Creating TXT DNS record"
-  params="?kas_login=$KAS_Login"
-  params="$params&kas_auth_type=$KAS_Authtype"
-  params="$params&kas_auth_data=$KAS_Authdata"
-  params="$params&var1=record_name"
-  params="$params&wert1=$_record_name"
-  params="$params&var2=record_type"
-  params="$params&wert2=TXT"
-  params="$params&var3=record_data"
-  params="$params&wert3=$_txtvalue"
-  params="$params&var4=record_aux"
-  params="$params&wert4=0"
-  params="$params&kas_action=add_dns_settings"
-  params="$params&var5=zone_host"
-  params="$params&wert5=$_zone"
+
+  export _H1="SOAPAction: \"urn:xmethodsKasApi#KasApi\""
+
+  params_auth="\"kas_login\":\"$KAS_Login\""
+  params_auth="$params_auth,\"kas_auth_type\":\"$KAS_Authtype\""
+  params_auth="$params_auth,\"kas_auth_data\":\"$KAS_Authdata\""
+
+  params_request="\"record_name\":\"$_record_name\""
+  params_request="$params_request,\"record_type\":\"TXT\""
+  params_request="$params_request,\"record_data\":\"$_txtvalue\""
+  params_request="$params_request,\"record_aux\":\"0\""
+  params_request="$params_request,\"zone_host\":\"$_zone\""
+
+  params='<?xml version="1.0" encoding="UTF-8"?><SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:xmethodsKasApi" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><SOAP-ENV:Body><ns1:KasApi><Params xsi:type="xsd:string">{'
+  params="$params$params_auth,\"kas_action\":\"add_dns_settings\""
+  params="$params,\"KasRequestParams\":{$params_request}"
+  params="$params}</Params></ns1:KasApi></SOAP-ENV:Body></SOAP-ENV:Envelope>"
+
   _debug2 "Wait for 10 seconds by default before calling KAS API."
   _sleep 10
-  response="$(_get "$KAS_Api$params")"
+  response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
   _debug2 "response" "$response"
 
-  if ! _contains "$response" "TRUE"; then
-    _err "An unkown error occurred, please check manually."
+  if _contains "$response" "<SOAP-ENV:Fault>"; then
+    _err "An error occurred, please check manually."
+    return 1
+  elif ! _contains "$response" "<item><key xsi:type=\"xsd:string\">ReturnString</key><value xsi:type=\"xsd:string\">TRUE</value></item>"; then
+    _err "An unknown error occurred, please check manually."
     return 1
   fi
   return 0
@@ -71,20 +80,30 @@ dns_kas_rm() {
 
   # If there is a record_id, delete the entry
   if [ -n "$_record_id" ]; then
-    params="?kas_login=$KAS_Login"
-    params="$params&kas_auth_type=$KAS_Authtype"
-    params="$params&kas_auth_data=$KAS_Authdata"
-    params="$params&kas_action=delete_dns_settings"
+    export _H1="SOAPAction: \"urn:xmethodsKasApi#KasApi\""
+
+    params_auth="\"kas_login\":\"$KAS_Login\""
+    params_auth="$params_auth,\"kas_auth_type\":\"$KAS_Authtype\""
+    params_auth="$params_auth,\"kas_auth_data\":\"$KAS_Authdata\""
+
+    params_request="\"record_id\":\"RECORDID\""
+
+    params='<?xml version="1.0" encoding="UTF-8"?><SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:xmethodsKasApi" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><SOAP-ENV:Body><ns1:KasApi><Params xsi:type="xsd:string">{'
+    params="$params$params_auth,\"kas_action\":\"delete_dns_settings\""
+    params="$params,\"KasRequestParams\":{$params_request}"
+    params="$params}</Params></ns1:KasApi></SOAP-ENV:Body></SOAP-ENV:Envelope>"
 
     for i in $_record_id; do
-      params2="$params&var1=record_id"
-      params2="$params2&wert1=$i"
+      params2="$(echo $params | sed "s/RECORDID/$i/g")"
       _debug2 "Wait for 10 seconds by default before calling KAS API."
       _sleep 10
-      response="$(_get "$KAS_Api$params2")"
+      response="$(_post "$params2" "$KAS_Api" "" "POST" "text/xml")"
       _debug2 "response" "$response"
-      if ! _contains "$response" "TRUE"; then
-        _err "Either the txt record is not found or another error occurred, please check manually."
+      if _contains "$response" "<SOAP-ENV:Fault>"; then
+        _err "Either the txt record was not found or another error occurred, please check manually."
+        return 1
+      elif ! _contains "$response" "<item><key xsi:type=\"xsd:string\">ReturnString</key><value xsi:type=\"xsd:string\">TRUE</value></item>"; then
+        _err "Either the txt record was not found or another unknown error occurred, please check manually."
         return 1
       fi
     done
@@ -117,19 +136,27 @@ _check_and_save() {
 }
 
 # Gets back the base domain/zone and record name.
-# See: https://github.com/Neilpang/acme.sh/wiki/DNS-API-Dev-Guide
+# See: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
 _get_zone_and_record_name() {
-  params="?kas_login=$KAS_Login"
-  params="?kas_login=$KAS_Login"
-  params="$params&kas_auth_type=$KAS_Authtype"
-  params="$params&kas_auth_data=$KAS_Authdata"
-  params="$params&kas_action=get_domains"
+  export _H1="SOAPAction: \"urn:xmethodsKasApi#KasApi\""
+
+  params_auth="\"kas_login\":\"$KAS_Login\""
+  params_auth="$params_auth,\"kas_auth_type\":\"$KAS_Authtype\""
+  params_auth="$params_auth,\"kas_auth_data\":\"$KAS_Authdata\""
+
+  params='<?xml version="1.0" encoding="UTF-8"?><SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:xmethodsKasApi" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><SOAP-ENV:Body><ns1:KasApi><Params xsi:type="xsd:string">{'
+  params="$params$params_auth,\"kas_action\":\"get_domains\""
+  params="$params}</Params></ns1:KasApi></SOAP-ENV:Body></SOAP-ENV:Envelope>"
 
   _debug2 "Wait for 10 seconds by default before calling KAS API."
   _sleep 10
-  response="$(_get "$KAS_Api$params")"
+  response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
   _debug2 "response" "$response"
-  _zonen="$(echo "$response" | tr -d "\n\r" | tr -d " " | tr '[]' '<>' | sed "s/=>Array/\n=> Array/g" | tr ' ' '\n' | grep "domain_name" | tr '<' '\n' | grep "domain_name" | sed "s/domain_name>=>//g")"
+  if _contains "$response" "<SOAP-ENV:Fault>"; then
+    _err "Either no domains were found or another error occurred, please check manually."
+    return 1
+  fi
+  _zonen="$(echo "$response" | tr -d '\n\r' | sed "s/<item xsi:type=\"ns2:Map\">/\n/g" | sed "s/<item><key xsi:type=\"xsd:string\">domain_name<\/key><value xsi:type=\"xsd:string\">/=> /g" | sed "s/<\/value><\/item>/\n/g" | grep "=>"| sed "s/=> //g")"
   _domain="$1"
   _temp_domain="$(echo "$1" | sed 's/\.$//')"
   _rootzone="$_domain"
@@ -151,18 +178,28 @@ _get_zone_and_record_name() {
 
 # Retrieve the DNS record ID
 _get_record_id() {
-  params="?kas_login=$KAS_Login"
-  params="$params&kas_auth_type=$KAS_Authtype"
-  params="$params&kas_auth_data=$KAS_Authdata"
-  params="$params&kas_action=get_dns_settings"
-  params="$params&var1=zone_host"
-  params="$params&wert1=$_zone"
+  export _H1="SOAPAction: \"urn:xmethodsKasApi#KasApi\""
+
+  params_auth="\"kas_login\":\"$KAS_Login\""
+  params_auth="$params_auth,\"kas_auth_type\":\"$KAS_Authtype\""
+  params_auth="$params_auth,\"kas_auth_data\":\"$KAS_Authdata\""
+
+  params_request="\"zone_host\":\"$_zone\""
+
+  params='<?xml version="1.0" encoding="UTF-8"?><SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:xmethodsKasApi" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><SOAP-ENV:Body><ns1:KasApi><Params xsi:type="xsd:string">{'
+  params="$params$params_auth,\"kas_action\":\"get_dns_settings\""
+  params="$params,\"KasRequestParams\":{$params_request}"
+  params="$params}</Params></ns1:KasApi></SOAP-ENV:Body></SOAP-ENV:Envelope>"
 
   _debug2 "Wait for 10 seconds by default before calling KAS API."
   _sleep 10
-  response="$(_get "$KAS_Api$params")"
+  response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
   _debug2 "response" "$response"
-  _record_id="$(echo "$response" | tr -d "\n\r" | tr -d " " | tr '[]' '<>' | sed "s/=>Array/\n=> Array/g" | tr ' ' '\n' | grep "=>$_record_name<" | grep '>TXT<' | tr '<' '\n' | grep record_id | sed "s/record_id>=>//g")"
+  if _contains "$response" "<SOAP-ENV:Fault>"; then
+    _err "Either no zones were found or another error occurred, please check manually."
+    return 1
+  fi
+  _record_id="$(echo "$response" | tr -d '\n\r' | sed "s/<item xsi:type=\"ns2:Map\">/\n/g" | grep "$_record_name" | grep -i ">TXT<" | sed "s/<item><key xsi:type=\"xsd:string\">record_id<\/key><value xsi:type=\"xsd:string\">/=>/g" | sed "s/<\/value><\/item>/\n/g" | grep "=>" | sed "s/=>//g")"
   _debug2 _record_id "$_record_id"
   return 0
 }
