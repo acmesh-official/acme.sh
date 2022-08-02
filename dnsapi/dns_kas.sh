@@ -47,7 +47,7 @@ dns_kas_add() {
   _debug2 "Wait for 10 seconds by default before calling KAS API."
   _sleep 10
   response="$(_get "$KAS_Api$params")"
-  response_result="$(echo "$response" | tr -d "\n\r" | tr -d "\t" | tr -d ' ' | sed "s/class=\"erfolg\"/\n=> erfolg/g" | tr ' ' '\n' | grep "erfolg>" | tr '<' '\n' | grep TRUE | sed "s/\/b>//g")"
+  response_result="$(echo "$response" | tr -d "\n\r" | tr -d "\t" | tr -d ' ' | sed "s/class=\"erfolg\"/\n=> erfolg/g" | tr ' ' '\n' | grep "erfolg>" | tr '<' '\n' | grep "TRUE" | sed "s/\/b>//g")"
   _debug2 "response" "$response_result"
 
   if ! _contains "$response_result" "TRUE"; then
@@ -85,7 +85,7 @@ dns_kas_rm() {
       _debug2 "Wait for 10 seconds by default before calling KAS API."
       _sleep 10
       response="$(_get "$KAS_Api$params2")"
-      response_result="$(echo "$response" | tr -d "\n\r" | tr -d "\t" | tr -d ' ' | sed "s/class=\"erfolg\"/\n=> erfolg/g" | tr ' ' '\n' | grep "erfolg>" | tr '<' '\n' | grep TRUE | sed "s/\/b>//g")"
+      response_result="$(echo "$response" | tr -d "\n\r" | tr -d "\t" | tr -d ' ' | sed "s/class=\"erfolg\"/\n=> erfolg/g" | tr ' ' '\n' | grep "erfolg>" | tr '<' '\n' | grep "TRUE" | sed "s/\/b>//g")"
       _debug2 "response" "$response_result"
       if ! _contains "$response_result" "TRUE"; then
         _err "Either the txt record is not found or another error occurred, please check manually."
