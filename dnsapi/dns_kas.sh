@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 ########################################################################
-# All-inkl Kasserver hook script for acme.sh
+# all-inkl.com Kasserver hook script for acme.sh
 #
 # Environment variables:
 #
