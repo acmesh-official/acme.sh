@@ -53,7 +53,7 @@ jobs:
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
-      DEBUG: 1
+      DEBUG: ${{ secrets.DEBUG }}
     steps:
     - uses: actions/checkout@v2
     - name: Clone acmetest
@@ -92,7 +92,7 @@ jobs:
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
-      DEBUG: 1
+      DEBUG: ${{ secrets.DEBUG }}
     steps:
     - uses: actions/checkout@v2
     - name: Install tools
@@ -130,7 +130,7 @@ jobs:
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
-      DEBUG: 1
+      DEBUG: ${{ secrets.DEBUG }}
     steps:
     - name: Set git to use LF
       run: |
@@ -183,7 +183,7 @@ jobs:
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
-      DEBUG: 1
+      DEBUG: ${{ secrets.DEBUG }}
     steps:
     - uses: actions/checkout@v2
     - name: Clone acmetest
@@ -223,7 +223,7 @@ jobs:
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
-      DEBUG: 1
+      DEBUG: ${{ secrets.DEBUG }}
     steps:
     - uses: actions/checkout@v2
     - name: Clone acmetest
@@ -265,7 +265,7 @@ jobs:
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
-      DEBUG: 1
+      DEBUG: ${{ secrets.DEBUG }}
     steps:
     - uses: actions/checkout@v2
     - name: Clone acmetest
@@ -305,7 +305,7 @@ jobs:
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
-      DEBUG: 1
+      DEBUG: ${{ secrets.DEBUG }}
     steps:
     - uses: actions/checkout@v2
     - name: Clone acmetest
@@ -347,7 +347,7 @@ jobs:
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
-      DEBUG: 1
+      DEBUG: ${{ secrets.DEBUG }}
     steps:
     - uses: actions/checkout@v2
     - name: Clone acmetest
