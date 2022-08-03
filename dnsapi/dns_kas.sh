@@ -33,6 +33,7 @@ dns_kas_add() {
 
   _info "Creating TXT DNS record"
 
+  export HTTPS_INSECURE=1
   export _H1="SOAPAction: \"urn:xmethodsKasApi#KasApi\""
 
   params_auth="\"kas_login\":\"$KAS_Login\""
@@ -81,6 +82,7 @@ dns_kas_rm() {
 
   # If there is a record_id, delete the entry
   if [ -n "$_record_id" ]; then
+    export HTTPS_INSECURE=1
     export _H1="SOAPAction: \"urn:xmethodsKasApi#KasApi\""
 
     params_auth="\"kas_login\":\"$KAS_Login\""
@@ -139,6 +141,7 @@ _check_and_save() {
 # Gets back the base domain/zone and record name.
 # See: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
 _get_zone_and_record_name() {
+  export HTTPS_INSECURE=1
   export _H1="SOAPAction: \"urn:xmethodsKasApi#KasApi\""
 
   params_auth="\"kas_login\":\"$KAS_Login\""
@@ -179,6 +182,7 @@ _get_zone_and_record_name() {
 
 # Retrieve the DNS record ID
 _get_record_id() {
+  export HTTPS_INSECURE=1
   export _H1="SOAPAction: \"urn:xmethodsKasApi#KasApi\""
 
   params_auth="\"kas_login\":\"$KAS_Login\""
