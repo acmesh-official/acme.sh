@@ -17,6 +17,7 @@
 ########################################################################
 KAS_Api_GET="$(_get "https://kasapi.kasserver.com/soap/wsdl/KasApi.wsdl")"
 KAS_Api="$(echo "$KAS_Api_GET" | tr -d ' ' | grep -i "<soap:addresslocation=" | sed "s/='/\n/g" | grep -i "http" | sed "s/'\/>//g")"
+KAS_default_ratelimit=4
 ########  Public functions  #####################
 dns_kas_add() {
   _fulldomain=$1
@@ -50,7 +51,7 @@ dns_kas_add() {
   params="$params}</Params></ns1:KasApi></SOAP-ENV:Body></SOAP-ENV:Envelope>"
 
   _debug2 "Wait for 10 seconds by default before calling KAS API."
-  _sleep 10
+  _sleep $KAS_default_ratelimit
   response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
   _debug2 "response" "$response"
 
@@ -96,7 +97,7 @@ dns_kas_rm() {
     for i in $_record_id; do
       params2="$(echo $params | sed "s/RECORDID/$i/g")"
       _debug2 "Wait for 10 seconds by default before calling KAS API."
-      _sleep 10
+      _sleep $KAS_default_ratelimit
       response="$(_post "$params2" "$KAS_Api" "" "POST" "text/xml")"
       _debug2 "response" "$response"
       if _contains "$response" "<SOAP-ENV:Fault>"; then
@@ -149,7 +150,7 @@ _get_zone_and_record_name() {
   params="$params}</Params></ns1:KasApi></SOAP-ENV:Body></SOAP-ENV:Envelope>"
 
   _debug2 "Wait for 10 seconds by default before calling KAS API."
-  _sleep 10
+  _sleep $KAS_default_ratelimit
   response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
   _debug2 "response" "$response"
   if _contains "$response" "<SOAP-ENV:Fault>"; then
@@ -192,7 +193,7 @@ _get_record_id() {
   params="$params}</Params></ns1:KasApi></SOAP-ENV:Body></SOAP-ENV:Envelope>"
 
   _debug2 "Wait for 10 seconds by default before calling KAS API."
-  _sleep 10
+  _sleep $KAS_default_ratelimit
   response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
   _debug2 "response" "$response"
   if _contains "$response" "<SOAP-ENV:Fault>"; then
