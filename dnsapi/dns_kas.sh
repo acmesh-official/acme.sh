@@ -50,7 +50,7 @@ dns_kas_add() {
   params="$params,\"KasRequestParams\":{$params_request}"
   params="$params}</Params></ns1:KasApi></SOAP-ENV:Body></SOAP-ENV:Envelope>"
 
-  _debug2 "Wait for 10 seconds by default before calling KAS API."
+  _debug2 "Wait for $KAS_default_ratelimit seconds by default before calling KAS API."
   _sleep $KAS_default_ratelimit
   response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
   _debug2 "response" "$response"
@@ -96,7 +96,7 @@ dns_kas_rm() {
 
     for i in $_record_id; do
       params2="$(echo $params | sed "s/RECORDID/$i/g")"
-      _debug2 "Wait for 10 seconds by default before calling KAS API."
+      _debug2 "Wait for $KAS_default_ratelimit seconds by default before calling KAS API."
       _sleep $KAS_default_ratelimit
       response="$(_post "$params2" "$KAS_Api" "" "POST" "text/xml")"
       _debug2 "response" "$response"
@@ -149,7 +149,7 @@ _get_zone_and_record_name() {
   params="$params$params_auth,\"kas_action\":\"get_domains\""
   params="$params}</Params></ns1:KasApi></SOAP-ENV:Body></SOAP-ENV:Envelope>"
 
-  _debug2 "Wait for 10 seconds by default before calling KAS API."
+  _debug2 "Wait for $KAS_default_ratelimit seconds by default before calling KAS API."
   _sleep $KAS_default_ratelimit
   response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
   _debug2 "response" "$response"
@@ -192,7 +192,7 @@ _get_record_id() {
   params="$params,\"KasRequestParams\":{$params_request}"
   params="$params}</Params></ns1:KasApi></SOAP-ENV:Body></SOAP-ENV:Envelope>"
 
-  _debug2 "Wait for 10 seconds by default before calling KAS API."
+  _debug2 "Wait for $KAS_default_ratelimit seconds by default before calling KAS API."
   _sleep $KAS_default_ratelimit
   response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
   _debug2 "response" "$response"
