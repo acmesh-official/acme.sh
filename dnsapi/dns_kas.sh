@@ -29,7 +29,7 @@ dns_kas_add() {
   _info "##KAS## Checking Zone and Record_Name"
   _get_zone_and_record_name "$_fulldomain"
   _info "##KAS## Getting Record ID"
-  _get_record_id
+  # _get_record_id
 
   _info "##KAS## Creating TXT DNS record"
 
