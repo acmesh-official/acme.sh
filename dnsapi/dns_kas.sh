@@ -15,8 +15,10 @@
 # Previous update by Marc-Oliver Lange <git@die-lang.es>
 # KASAPI SOAP guideline by https://github.com/o1oo11oo/kasapi.sh
 ########################################################################
-KAS_Api_GET="$(_get "https://kasapi.kasserver.com/soap/wsdl/KasApi.wsdl")"
-KAS_Api="$(echo "$KAS_Api_GET" | tr -d ' ' | grep -i "<soap:addresslocation=" | sed "s/='/\n/g" | grep -i "http" | sed "s/'\/>//g")"
+# KAS_Api_GET="$(_get "https://kasapi.kasserver.com/soap/wsdl/KasApi.wsdl")"
+# KAS_Api="$(echo "$KAS_Api_GET" | tr -d ' ' | grep -i "<soap:addresslocation=" | sed "s/='/\n/g" | grep -i "http" | sed "s/'\/>//g")"
+KAS_Api='https://kasapi.kasserver.com/soap/KasApi.php'
+_info "##KAS## Using $KAS_Api"
 KAS_default_ratelimit=4
 ########  Public functions  #####################
 dns_kas_add() {
