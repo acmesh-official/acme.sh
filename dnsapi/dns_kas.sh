@@ -19,7 +19,7 @@
 # KAS_Api="$(echo "$KAS_Api_GET" | tr -d ' ' | grep -i "<soap:addresslocation=" | sed "s/='/\n/g" | grep -i "http" | sed "s/'\/>//g")"
 KAS_Api='https://kasapi.kasserver.com/soap/KasApi.php'
 _info "##KAS## Using $KAS_Api"
-KAS_default_ratelimit=4
+KAS_default_ratelimit=5
 ########  Public functions  #####################
 dns_kas_add() {
   _fulldomain=$1
@@ -56,6 +56,12 @@ dns_kas_add() {
   _sleep $KAS_default_ratelimit
   response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
   _debug2 "##KAS## response" "$response"
+  if [ -z "$response" ]; then
+    _info "##KAS## Response was empty, 2nd attempt"
+    _sleep $KAS_default_ratelimit
+    response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
+    _debug2 "##KAS## retry response" "$response"
+  fi
 
   if _contains "$response" "<SOAP-ENV:Fault>"; then
     if _contains "$response" "record_already_exists"; then
@@ -106,6 +112,12 @@ dns_kas_rm() {
       _sleep $KAS_default_ratelimit
       response="$(_post "$params2" "$KAS_Api" "" "POST" "text/xml")"
       _debug2 "##KAS## response" "$response"
+      if [ -z "$response" ]; then
+        _info "##KAS## Response was empty, 2nd attempt"
+        _sleep $KAS_default_ratelimit
+        response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
+        _debug2 "##KAS## retry response" "$response"
+      fi
       if _contains "$response" "<SOAP-ENV:Fault>"; then
         _err "##KAS## Either the txt record was not found or another error occurred, please check manually."
         return 1
@@ -159,6 +171,12 @@ _get_zone_and_record_name() {
   _sleep $KAS_default_ratelimit
   response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
   _debug2 "##KAS## response" "$response"
+  if [ -z "$response" ]; then
+    _info "##KAS## Response was empty, 2nd attempt"
+    _sleep $KAS_default_ratelimit
+    response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
+    _debug2 "##KAS## retry response" "$response"
+  fi
   if _contains "$response" "<SOAP-ENV:Fault>"; then
     _err "##KAS## Either no domains were found or another error occurred, please check manually."
     return 1
@@ -202,6 +220,12 @@ _get_record_id() {
   _sleep $KAS_default_ratelimit
   response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
   _debug2 "##KAS## response" "$response"
+  if [ -z "$response" ]; then
+    _info "##KAS## Response was empty, 2nd attempt"
+    _sleep $KAS_default_ratelimit
+    response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
+    _debug2 "##KAS## retry response" "$response"
+  fi
   if _contains "$response" "<SOAP-ENV:Fault>"; then
     _err "##KAS## Either no zones were found or another error occurred, please check manually."
     return 1
