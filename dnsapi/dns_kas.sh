@@ -22,16 +22,16 @@ KAS_default_ratelimit=4
 dns_kas_add() {
   _fulldomain=$1
   _txtvalue=$2
-  _info "Using DNS-01 All-inkl/Kasserver hook"
-  _info "Adding $_fulldomain DNS TXT entry on All-inkl/Kasserver"
-  _info "Check and Save Props"
+  _info "##KAS## ##KAS## Using DNS-01 All-inkl/Kasserver hook"
+  _info "##KAS## ##KAS## Adding $_fulldomain DNS TXT entry on All-inkl/Kasserver"
+  _info "##KAS## Check and Save Props"
   _check_and_save
-  _info "Checking Zone and Record_Name"
+  _info "##KAS## Checking Zone and Record_Name"
   _get_zone_and_record_name "$_fulldomain"
-  _info "Getting Record ID"
+  _info "##KAS## Getting Record ID"
   _get_record_id
 
-  _info "Creating TXT DNS record"
+  _info "##KAS## Creating TXT DNS record"
 
   export _H1="SOAPAction: \"urn:xmethodsKasApi#KasApi\""
 
@@ -50,16 +50,16 @@ dns_kas_add() {
   params="$params,\"KasRequestParams\":{$params_request}"
   params="$params}</Params></ns1:KasApi></SOAP-ENV:Body></SOAP-ENV:Envelope>"
 
-  _debug2 "Wait for $KAS_default_ratelimit seconds by default before calling KAS API."
+  _debug2 "##KAS## ##KAS## Wait for $KAS_default_ratelimit seconds by default before calling KAS API."
   _sleep $KAS_default_ratelimit
   response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
-  _debug2 "response" "$response"
+  _debug2 "##KAS## response" "$response"
 
   if _contains "$response" "<SOAP-ENV:Fault>"; then
-    _err "An error occurred, please check manually."
+    _err "##KAS## An error occurred, please check manually."
     return 1
   elif ! _contains "$response" "<item><key xsi:type=\"xsd:string\">ReturnString</key><value xsi:type=\"xsd:string\">TRUE</value></item>"; then
-    _err "An unknown error occurred, please check manually."
+    _err "##KAS## An unknown error occurred, please check manually."
     return 1
   fi
   return 0
@@ -68,15 +68,15 @@ dns_kas_add() {
 dns_kas_rm() {
   _fulldomain=$1
   _txtvalue=$2
-  _info "Using DNS-01 All-inkl/Kasserver hook"
-  _info "Cleaning up after All-inkl/Kasserver hook"
-  _info "Removing $_fulldomain DNS TXT entry on All-inkl/Kasserver"
+  _info "##KAS## Using DNS-01 All-inkl/Kasserver hook"
+  _info "##KAS## Cleaning up after All-inkl/Kasserver hook"
+  _info "##KAS## Removing $_fulldomain DNS TXT entry on All-inkl/Kasserver"
 
-  _info "Check and Save Props"
+  _info "##KAS## Check and Save Props"
   _check_and_save
-  _info "Checking Zone and Record_Name"
+  _info "##KAS## Checking Zone and Record_Name"
   _get_zone_and_record_name "$_fulldomain"
-  _info "Getting Record ID"
+  _info "##KAS## Getting Record ID"
   _get_record_id
 
   # If there is a record_id, delete the entry
@@ -96,21 +96,21 @@ dns_kas_rm() {
 
     for i in $_record_id; do
       params2="$(echo $params | sed "s/RECORDID/$i/g")"
-      _debug2 "Wait for $KAS_default_ratelimit seconds by default before calling KAS API."
+      _debug2 "##KAS## Wait for $KAS_default_ratelimit seconds by default before calling KAS API."
       _sleep $KAS_default_ratelimit
       response="$(_post "$params2" "$KAS_Api" "" "POST" "text/xml")"
-      _debug2 "response" "$response"
+      _debug2 "##KAS## response" "$response"
       if _contains "$response" "<SOAP-ENV:Fault>"; then
-        _err "Either the txt record was not found or another error occurred, please check manually."
+        _err "##KAS## Either the txt record was not found or another error occurred, please check manually."
         return 1
       elif ! _contains "$response" "<item><key xsi:type=\"xsd:string\">ReturnString</key><value xsi:type=\"xsd:string\">TRUE</value></item>"; then
-        _err "Either the txt record was not found or another unknown error occurred, please check manually."
+        _err "##KAS## Either the txt record was not found or another unknown error occurred, please check manually."
         return 1
       fi
     done
   else # Cannot delete or unkown error
-    _err "No record_id found that can be deleted. Please check manually."
-    return 1
+    _info "##KAS## No record_id found that can be automatically deleted. Please check or delete manually."
+    # return 1
   fi
   return 0
 }
@@ -127,7 +127,7 @@ _check_and_save() {
     KAS_Login=
     KAS_Authtype=
     KAS_Authdata=
-    _err "No auth details provided. Please set user credentials using the \$KAS_Login, \$KAS_Authtype, and \$KAS_Authdata environment variables."
+    _err "##KAS## No auth details provided. Please set user credentials using the \$KAS_Login, \$KAS_Authtype, and \$KAS_Authdata environment variables."
     return 1
   fi
   _saveaccountconf_mutable KAS_Login "$KAS_Login"
@@ -149,12 +149,12 @@ _get_zone_and_record_name() {
   params="$params$params_auth,\"kas_action\":\"get_domains\""
   params="$params}</Params></ns1:KasApi></SOAP-ENV:Body></SOAP-ENV:Envelope>"
 
-  _debug2 "Wait for $KAS_default_ratelimit seconds by default before calling KAS API."
+  _debug2 "##KAS## Wait for $KAS_default_ratelimit seconds by default before calling KAS API."
   _sleep $KAS_default_ratelimit
   response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
-  _debug2 "response" "$response"
+  _debug2 "##KAS## response" "$response"
   if _contains "$response" "<SOAP-ENV:Fault>"; then
-    _err "Either no domains were found or another error occurred, please check manually."
+    _err "##KAS## Either no domains were found or another error occurred, please check manually."
     return 1
   fi
   _zonen="$(echo "$response" | tr -d '\n\r' | sed "s/<item xsi:type=\"ns2:Map\">/\n/g" | sed "s/<item><key xsi:type=\"xsd:string\">domain_name<\/key><value xsi:type=\"xsd:string\">/=> /g" | sed "s/<\/value><\/item>/\n/g" | grep "=>"| sed "s/=> //g")"
@@ -171,9 +171,9 @@ _get_zone_and_record_name() {
   _zone="${_rootzone}."
   _temp_record_name="$(echo "$_temp_domain" | sed "s/$_rootzone//g")"
   _record_name="$(echo "$_temp_record_name" | sed 's/\.$//')"
-  _debug2 "Zone:" "$_zone"
-  _debug2 "Domain:" "$_domain"
-  _debug2 "Record_Name:" "$_record_name"
+  _debug2 "##KAS## Zone:" "$_zone"
+  _debug2 "##KAS## Domain:" "$_domain"
+  _debug2 "##KAS## Record_Name:" "$_record_name"
   return 0
 }
 
@@ -192,12 +192,12 @@ _get_record_id() {
   params="$params,\"KasRequestParams\":{$params_request}"
   params="$params}</Params></ns1:KasApi></SOAP-ENV:Body></SOAP-ENV:Envelope>"
 
-  _debug2 "Wait for $KAS_default_ratelimit seconds by default before calling KAS API."
+  _debug2 "##KAS## Wait for $KAS_default_ratelimit seconds by default before calling KAS API."
   _sleep $KAS_default_ratelimit
   response="$(_post "$params" "$KAS_Api" "" "POST" "text/xml")"
-  _debug2 "response" "$response"
+  _debug2 "##KAS## response" "$response"
   if _contains "$response" "<SOAP-ENV:Fault>"; then
-    _err "Either no zones were found or another error occurred, please check manually."
+    _err "##KAS## Either no zones were found or another error occurred, please check manually."
     return 1
   fi
   _record_id="$(echo "$response" | tr -d '\n\r' | sed "s/<item xsi:type=\"ns2:Map\">/\n/g" | grep -i "$_record_name" | grep -i ">TXT<" | sed "s/<item><key xsi:type=\"xsd:string\">record_id<\/key><value xsi:type=\"xsd:string\">/=>/g" | sed "s/<\/value><\/item>/\n/g" | grep "=>" | sed "s/=>//g")"
