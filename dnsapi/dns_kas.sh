@@ -56,8 +56,12 @@ dns_kas_add() {
   _debug2 "##KAS## response" "$response"
 
   if _contains "$response" "<SOAP-ENV:Fault>"; then
-    _err "##KAS## An error occurred, please check manually."
-    return 1
+    if _contains "$response" "record_already_exists"; then
+      _info "##KAS## The record already exists, which must not be a problem. Please check manually."
+    else
+      _err "##KAS## An error occurred, please check manually."
+      return 1
+    fi
   elif ! _contains "$response" "<item><key xsi:type=\"xsd:string\">ReturnString</key><value xsi:type=\"xsd:string\">TRUE</value></item>"; then
     _err "##KAS## An unknown error occurred, please check manually."
     return 1
