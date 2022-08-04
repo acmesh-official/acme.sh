@@ -1916,6 +1916,16 @@ _post() {
     if [ "$HTTPS_INSECURE" ]; then
       _CURL="$_CURL --insecure  "
     fi
+
+    if [ "$_CURL_RETRY" ]; then
+      _re='^[0-9]+$'
+      if [ "$_CURL_RETRY" =~ "$re" ]; then
+        if [ "$_CURL_RETRY" -lt 1 ] || [ "$_CURL_RETRY" -gt 3 ]; then
+          _CURL="$_CURL --retry $_CURL_RETRY "
+        fi
+      fi
+    fi
+
     if [ "$httpmethod" = "HEAD" ]; then
       _CURL="$_CURL -I  "
     fi
