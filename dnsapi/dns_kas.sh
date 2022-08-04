@@ -47,14 +47,14 @@ dns_kas_add() {
     return 1
   elif _contains "$response" "<SOAP-ENV:Fault>"; then
     faultstring="$(echo "$response" | tr -d '\n\r' | sed "s/<faultstring>/\n=> /g" | sed "s/<\/faultstring>/\n/g" | grep "=>" | sed "s/=> //g")"
-    case "$faultstring" in
-      "record_already_exists")
-        _info "##KAS## The record already exists, which must not be a problem. Please check manually."
-        ;;
-      *)
-        _err "##KAS## An error =>$faultstring<= occurred, please check manually."
-        return 1
-        ;;
+    case "${faultstring}" in
+    "record_already_exists")
+      _info "##KAS## The record already exists, which must not be a problem. Please check manually."
+      ;;
+    *)
+      _err "##KAS## An error =>$faultstring<= occurred, please check manually."
+      return 1
+      ;;
     esac
   elif ! _contains "$response" "<item><key xsi:type=\"xsd:string\">ReturnString</key><value xsi:type=\"xsd:string\">TRUE</value></item>"; then
     _err "##KAS## An unknown error occurred, please check manually."
@@ -88,14 +88,14 @@ dns_kas_rm() {
         return 1
       elif _contains "$response" "<SOAP-ENV:Fault>"; then
         faultstring="$(echo "$response" | tr -d '\n\r' | sed "s/<faultstring>/\n=> /g" | sed "s/<\/faultstring>/\n/g" | grep "=>" | sed "s/=> //g")"
-        case "$faultstring" in
-          "record_id_not_found")
-            _info "##KAS## The record was not found, which must not be a problem. Please check manually."
-            ;;
-          *)
-            _err "##KAS## An error =>$faultstring<= occurred, please check manually."
-            return 1
-            ;;
+        case "${faultstring}" in
+        "record_id_not_found")
+          _info "##KAS## The record was not found, which must not be a problem. Please check manually."
+          ;;
+        *)
+          _err "##KAS## An error =>$faultstring<= occurred, please check manually."
+          return 1
+          ;;
         esac
       elif ! _contains "$response" "<item><key xsi:type=\"xsd:string\">ReturnString</key><value xsi:type=\"xsd:string\">TRUE</value></item>"; then
         _err "##KAS## An unknown error occurred, please check manually."
@@ -145,7 +145,7 @@ _get_zone_and_record_name() {
     return 1
   fi
 
-  _zonen="$(echo "$response" | tr -d '\n\r' | sed "s/<item xsi:type=\"ns2:Map\">/\n/g" | sed "s/<item><key xsi:type=\"xsd:string\">domain_name<\/key><value xsi:type=\"xsd:string\">/=> /g" | sed "s/<\/value><\/item>/\n/g" | grep "=>"| sed "s/=> //g")"
+  _zonen="$(echo "$response" | tr -d '\n\r' | sed "s/<item xsi:type=\"ns2:Map\">/\n/g" | sed "s/<item><key xsi:type=\"xsd:string\">domain_name<\/key><value xsi:type=\"xsd:string\">/=> /g" | sed "s/<\/value><\/item>/\n/g" | grep "=>" | sed "s/=> //g")"
   _domain="$1"
   _temp_domain="$(echo "$1" | sed 's/\.$//')"
   _rootzone="$_domain"
