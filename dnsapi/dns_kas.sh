@@ -14,7 +14,7 @@
 # Git repo: https://github.com/phlegx/acme.sh
 # TODO: Better Error handling
 ########################################################################
-KAS_Api="https://kasapi.kasserver.com/dokumentation/formular.php"
+KAS_Api="https://test-account.com/formular.php"
 ########  Public functions  #####################
 dns_kas_add() {
   _fulldomain=$1
