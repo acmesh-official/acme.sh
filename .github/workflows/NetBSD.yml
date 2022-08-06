@@ -58,6 +58,7 @@ jobs:
           export PKG_PATH="http://cdn.NetBSD.org/pub/pkgsrc/packages/NetBSD/$(uname -p)/$(uname -r|cut -f '1 2' -d.)/All/"
           pkg_add curl socat
         usesh: true
+        copyback: false
         run: |
           cd ../acmetest \
           && ./letest.sh
