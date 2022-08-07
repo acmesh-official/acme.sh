@@ -22,6 +22,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `**Welcome**
-                Please make sure you're read our [DNS API Dev Guide](../wiki/DNS-API-Dev-Guide) and we look forward to reviewing your Pull request shortly ✨`
+                Please make sure you're read our [DNS API Dev Guide](../wiki/DNS-API-Dev-Guide) and [DNS-API-Test(../wiki/DNS-API-Test).
+                We look forward to reviewing your Pull request shortly ✨`
             })
 
