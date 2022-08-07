@@ -139,8 +139,8 @@ _nic_get_authtoken() {
     _res_arr=$(printf "%s" "$res" | tr -d "\"{}" | tr "," " ");
     
     for r in $_res_arr; do 
-      if [ $(echo $r | grep "access_token") ]; then 
-        _auth_token=$(echo $r | sed "s/access_token://")
+      if [ $(echo "$r" | grep "access_token") ]; then 
+        _auth_token=$(echo "$r" | sed "s/access_token://")
       fi
     done
 
