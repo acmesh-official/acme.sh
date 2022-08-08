@@ -2,7 +2,7 @@
 #
 #    Deploy cert to localhost similar to certbot behavior
 #
-#    export DEPLOY_LOCALHOST_PATH="/path/to/certs"
+#    export DEPLOY_LOCALHOST_ROOT_PATH="/path/to/certs"
 #
 #    Deploys as:
 #        /path/to/certs/domain.tld/privkey.pem
@@ -25,27 +25,27 @@ localhost_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  _getdeployconf DEPLOY_LOCALHOST_PATH
+  _getdeployconf DEPLOY_LOCALHOST_ROOT_PATH
 
-  _debug DEPLOY_LOCALHOST_PATH "$DEPLOY_LOCALHOST_PATH"
+  _debug DEPLOY_LOCALHOST_ROOT_PATH "$DEPLOY_LOCALHOST_ROOT_PATH"
 
   if [ -z "$_cdomain" ]; then
     _err "Domain not defined"
     return 1
   fi
 
-  if [ -z "$DEPLOY_LOCALHOST_PATH" ]; then
-    _err "DEPLOY_LOCALHOST_PATH not defined"
+  if [ -z "$DEPLOY_LOCALHOST_ROOT_PATH" ]; then
+    _err "DEPLOY_LOCALHOST_ROOT_PATH not defined"
     return 1
   fi
 
-  _ssl_path="$DEPLOY_LOCALHOST_PATH"
+  _ssl_path="$DEPLOY_LOCALHOST_ROOT_PATH"
   if [ ! -d "$_ssl_path" ]; then
     _err "Path not found: $_ssl_path"
     return 1
   fi
 
-  _savedeployconf DEPLOY_LOCALHOST_PATH "$DEPLOY_LOCALHOST_PATH"
+  _savedeployconf DEPLOY_LOCALHOST_ROOT_PATH "$DEPLOY_LOCALHOST_ROOT_PATH"
 
   _ssl_path="$_ssl_path/$_cdomain"
   mkdir -p "$_ssl_path"
