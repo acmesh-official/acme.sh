@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env sh
 #
 #    Deploy cert to localhost similar to certbot behavior
 #
