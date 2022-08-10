@@ -81,6 +81,13 @@ jobs:
     - name: Run acmetest
       run: cd ../acmetest && ./rundocker.sh  testall
 
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: Docker-logs
+        path: logs
+
+
   MacOS:
     runs-on: macos-latest
     needs: Docker
@@ -118,6 +125,14 @@ jobs:
         fi
         cd ../acmetest
         ./letest.sh
+
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: MacOS-logs
+        path: logs
+
+
 
   Windows:
     runs-on: windows-latest
@@ -172,6 +187,12 @@ jobs:
         cd ../acmetest
         ./letest.sh
 
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: Windows-logs
+        path: logs
+
   FreeBSD:
     runs-on: macos-12
     needs: Windows
@@ -212,6 +233,13 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
+
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: FreeBSD-logs
+        path: logs
+
 
   Solaris:
     runs-on: macos-12
@@ -255,6 +283,12 @@ jobs:
           cd ../acmetest
           ./letest.sh
 
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: Solaris-logs
+        path: logs
+
 
   OpenBSD:
     runs-on: macos-12
@@ -297,6 +331,13 @@ jobs:
           cd ../acmetest
           ./letest.sh
 
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: OpenBSD-logs
+        path: logs
+
+
   NetBSD:
     runs-on: macos-12
     needs: OpenBSD
@@ -338,7 +379,14 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-          
+
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: NetBSD-logs
+        path: logs
+
+
   DragonFlyBSD:
     runs-on: macos-12
     needs: NetBSD
@@ -380,4 +428,14 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
+
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: DragonFlyBSD-logs
+        path: logs
+
+
+
+
 
