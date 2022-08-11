@@ -135,7 +135,8 @@ jobs:
       if: failure()
       with:
         name: MacOS-logs
-        path: logs
+        path: |
+          *.log
 
 
 
@@ -198,7 +199,8 @@ jobs:
       if: failure()
       with:
         name: Windows-logs
-        path: logs
+        path: |
+          *.log
 
   FreeBSD:
     runs-on: macos-12
@@ -247,7 +249,8 @@ jobs:
       if: failure()
       with:
         name: FreeBSD-logs
-        path: logs
+        path: |
+          *.log
 
 
   Solaris:
@@ -298,7 +301,8 @@ jobs:
       if: failure()
       with:
         name: Solaris-logs
-        path: logs
+        path: |
+          *.log
 
 
   OpenBSD:
@@ -348,7 +352,8 @@ jobs:
       if: failure()
       with:
         name: OpenBSD-logs
-        path: logs
+        path: |
+          *.log
 
 
   NetBSD:
@@ -399,7 +404,8 @@ jobs:
       if: failure()
       with:
         name: NetBSD-logs
-        path: logs
+        path: |
+          *.log
 
 
   DragonFlyBSD:
@@ -450,7 +456,8 @@ jobs:
       if: failure()
       with:
         name: DragonFlyBSD-logs
-        path: logs
+        path: |
+          *.log
 
 
 
