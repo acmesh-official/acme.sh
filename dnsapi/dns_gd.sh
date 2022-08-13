@@ -1,10 +1,12 @@
 #!/usr/bin/env sh
 
 #Godaddy domain api
+# Get API key and secret from https://developer.godaddy.com/
 #
-#GD_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+# GD_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+# GD_Secret="asdfsdfsfsdfsdfdfsdf"
 #
-#GD_Secret="asdfsdfsfsdfsdfdfsdf"
+# Ex.: acme.sh --issue --staging --dns dns_gd -d "*.s.example.com" -d "s.example.com"
 
 GD_Api="https://api.godaddy.com/v1"
 
