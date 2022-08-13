@@ -89,8 +89,8 @@ jobs:
       with:
         name: Docker-logs
         path: |
-          *.log
-          logs
+          ../acmetest/*.log
+          ../acmetest/logs
 
 
   MacOS:
@@ -138,7 +138,7 @@ jobs:
       with:
         name: MacOS-logs
         path: |
-          *.log
+          ../acmetest/*.log
 
 
 
@@ -202,7 +202,7 @@ jobs:
       with:
         name: Windows-logs
         path: |
-          *.log
+          ../acmetest/*.log
 
   FreeBSD:
     runs-on: macos-12
@@ -252,7 +252,7 @@ jobs:
       with:
         name: FreeBSD-logs
         path: |
-          *.log
+          ../acmetest/*.log
 
 
   Solaris:
@@ -304,7 +304,7 @@ jobs:
       with:
         name: Solaris-logs
         path: |
-          *.log
+          ../acmetest/*.log
 
 
   OpenBSD:
@@ -355,7 +355,7 @@ jobs:
       with:
         name: OpenBSD-logs
         path: |
-          *.log
+          ../acmetest/*.log
 
 
   NetBSD:
@@ -407,7 +407,7 @@ jobs:
       with:
         name: NetBSD-logs
         path: |
-          *.log
+          ../acmetest/*.log
 
 
   DragonFlyBSD:
@@ -459,7 +459,7 @@ jobs:
       with:
         name: DragonFlyBSD-logs
         path: |
-          *.log
+          ../acmetest/*.log
 
 
 
