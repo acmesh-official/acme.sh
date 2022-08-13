@@ -88,7 +88,9 @@ jobs:
       if: failure()
       with:
         name: Docker-logs
-        path: logs
+        path: |
+          *.log
+          logs
 
 
   MacOS:
