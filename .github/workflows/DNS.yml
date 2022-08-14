@@ -84,13 +84,7 @@ jobs:
     - name: Run acmetest
       run: cd ../acmetest && ./rundocker.sh  testall
 
-    - uses: actions/upload-artifact@v1
-      if: failure()
-      with:
-        name: Docker-logs
-        path: |
-          ../acmetest/**.log
-          ../acmetest/logs
+
 
 
   MacOS:
@@ -133,12 +127,6 @@ jobs:
         cd ../acmetest
         ./letest.sh
 
-    - uses: actions/upload-artifact@v1
-      if: failure()
-      with:
-        name: MacOS-logs
-        path: |
-          ../acmetest/**.log
 
 
 
@@ -197,12 +185,7 @@ jobs:
         cd ../acmetest
         ./letest.sh
 
-    - uses: actions/upload-artifact@v1
-      if: failure()
-      with:
-        name: Windows-logs
-        path: |
-          ../acmetest/**.log
+
 
   FreeBSD:
     runs-on: macos-12
@@ -247,12 +230,7 @@ jobs:
           cd ../acmetest
           ./letest.sh
 
-    - uses: actions/upload-artifact@v1
-      if: failure()
-      with:
-        name: FreeBSD-logs
-        path: |
-          ../acmetest/**.log
+
 
 
   Solaris:
@@ -299,12 +277,7 @@ jobs:
           cd ../acmetest
           ./letest.sh
 
-    - uses: actions/upload-artifact@v1
-      if: failure()
-      with:
-        name: Solaris-logs
-        path: |
-          ../acmetest/**.log
+
 
 
   OpenBSD:
@@ -350,12 +323,7 @@ jobs:
           cd ../acmetest
           ./letest.sh
 
-    - uses: actions/upload-artifact@v1
-      if: failure()
-      with:
-        name: OpenBSD-logs
-        path: |
-          ../acmetest/**.log
+
 
 
   NetBSD:
@@ -402,12 +370,7 @@ jobs:
           cd ../acmetest
           ./letest.sh
 
-    - uses: actions/upload-artifact@v1
-      if: failure()
-      with:
-        name: NetBSD-logs
-        path: |
-          ../acmetest/**.log
+
 
 
   DragonFlyBSD:
@@ -453,13 +416,6 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-
-    - uses: actions/upload-artifact@v1
-      if: failure()
-      with:
-        name: DragonFlyBSD-logs
-        path: |
-          ../acmetest/**.log
 
 
 
