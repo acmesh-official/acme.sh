@@ -19,6 +19,6 @@ jobs:
               
               `acme.sh --upgrade`
               
-              If it's still not working, please provode the log with `--debug 2`, otherwise, nobody can help you.'
+              If it's still not working, please provide the log with `--debug 2`, otherwise, nobody can help you.'
               
             })
