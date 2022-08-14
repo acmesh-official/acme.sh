@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TestingDomain: 1.23.45.67
-      ACME_DIRECTORY: https://localhost:14000/dir
+      TEST_ACME_Server: https://localhost:14000/dir
       HTTPS_INSECURE: 1
       Le_HTTPPort: 5002
       Le_TLSPort: 5001
