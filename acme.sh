@@ -1186,7 +1186,7 @@ _createkey() {
 _is_idn() {
   _is_idn_d="$1"
   _debug2 _is_idn_d "$_is_idn_d"
-  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d [0-9] | tr -d [a-z] | tr -d [A-Z] | tr -d '*.,-_')
+  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '[0-9]' | tr -d '[a-z]' | tr -d '[A-Z]' | tr -d '*.,-_')
   _debug2 _idn_temp "$_idn_temp"
   [ "$_idn_temp" ]
 }
@@ -4195,7 +4195,7 @@ _match_issuer() {
 _isIPv4() {
   for seg in $(echo "$1" | tr '.' ' '); do
     _debug2 seg "$seg"
-    if [ "$(echo "$seg" | tr -d [0-9])" ]; then
+    if [ "$(echo "$seg" | tr -d '[0-9]')" ]; then
       #not all number
       return 1
     fi

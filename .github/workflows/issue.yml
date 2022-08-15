@@ -14,5 +14,11 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'Please provode the log with `--debug 2` if this is a bug report.'
+              body: '
+              Please upgrade to the latest code and try again first. Maybe it's already fixed.
+              
+              `acme.sh --upgrade`
+              
+              If it's still not working, please provode the log with `--debug 2`, otherwise, nobody can help you.'
+              
             })
