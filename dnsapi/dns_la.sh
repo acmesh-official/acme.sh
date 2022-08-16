@@ -39,12 +39,12 @@ dns_la_add() {
 dns_la_rm() {
   fulldomain=$1
   txtvalue=$2
-  _fullkey=$(printf "%s" ${fulldomain:16} | tr '.' '_' )
+  _fullkey=$(printf "%s" "$fulldomain" | awk '{ string=substr($0, 17); print string; }' | tr '.' '_' )
 
   LA_Id="${LA_Id:-$(_readaccountconf_mutable LA_Id)}"
   LA_Key="${LA_Key:-$(_readaccountconf_mutable LA_Key)}"
-  _debug fullkey $_fullkey
-  RM_recordid="$(_readaccountconf $_fullkey)"
+  _debug fullkey "$_fullkey"
+  RM_recordid="$(_readaccountconf "$_fullkey")"
   _debug rm_recordid "$RM_recordid"
   _debug "detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -67,7 +67,7 @@ dns_la_rm() {
     return 1
   fi
 
-  _clearaccountconf $_fullkey
+  _clearaccountconf "$_fullkey"
 
   _contains "$response" "\"code\":300"
 }
@@ -88,9 +88,9 @@ add_record() {
 
   if _contains "$response" "\"code\":300"; then
     _record_id=$(printf "%s" "$response" | grep '"resultid"' | cut -d : -f 2 | cut -d , -f 1 | tr -d '\r' | tr -d '\n' )
-    _fullkey=$(printf "%s" ${fulldomain:16} | tr '.' '_' )
-    _debug fullkey $_fullkey
-    _saveaccountconf $_fullkey "$_record_id"
+    _fullkey=$(printf "%s" "$fulldomain" | awk '{ string=substr($0, 17); print string; }' | tr '.' '_' )
+    _debug fullkey "$_fullkey"
+    _saveaccountconf "$_fullkey" "$_record_id"
     _debug _record_id "$_record_id"
   fi
   _contains "$response" "\"code\":300"
