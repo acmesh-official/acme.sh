@@ -31,7 +31,7 @@ dns_kas_add() {
   _txtvalue=$2
 
   _info "[KAS] -> Using DNS-01 All-inkl/Kasserver hook"
-  _info "[KAS] -> Adding $_fulldomain DNS TXT entry on All-inkl/Kasserver"
+  _info "[KAS] -> Adding $_fulldomain DNS TXT entry on all-inkl.com/Kasserver"
   _info "[KAS] -> Retriving Credential Token"
   _get_credential_token
 
