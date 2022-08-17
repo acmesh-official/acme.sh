@@ -4,7 +4,7 @@
 #LA_Id="test123"
 #
 #LA_Key="d1j2fdo4dee3948"
-DNSLA_API="https://www.dns.la/api/"
+DNSLA_API="https://api.dns.la/api/"
 ########  Public functions #####################
 #Usage: dns_la_add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_la_add() {
@@ -39,35 +39,33 @@ dns_la_add() {
 dns_la_rm() {
   fulldomain=$1
   txtvalue=$2
-  _fullkey=$(printf "%s" "$fulldomain" | awk '{ string=substr($0, 17); print string; }' | tr '.' '_')
 
   LA_Id="${LA_Id:-$(_readaccountconf_mutable LA_Id)}"
   LA_Key="${LA_Key:-$(_readaccountconf_mutable LA_Key)}"
-  _debug fullkey "$_fullkey"
-  RM_recordid="$(_readaccountconf "$_fullkey")"
-  _debug rm_recordid "$RM_recordid"
-  _debug "detect the root zone"
+
+  _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
 
-  if ! _rest GET "record.ashx?cmd=get&apiid=$LA_Id&apipass=$LA_Key&rtype=json&domainid=$_domain_id&domain=$_domain&recordid=$RM_recordid"; then
-    _err "get record lis error."
+  if ! _rest GET "record.ashx?cmd=listn&apiid=$LA_Id&apipass=$LA_Key&rtype=json&domainid=$_domain_id&domain=$_domain&host=$_sub_domain&recordtype=TXT&recorddata=$txtvalue"; then
+    _err "get record list error."
     return 1
   fi
 
-  if ! _contains "$response" "$RM_recordid"; then
+  if ! _contains "$response" "recordid"; then
     _info "no need to remove record."
     return 0
   fi
 
-  if ! _rest GET "record.ashx?cmd=remove&apiid=$LA_Id&apipass=$LA_Key&rtype=json&domainid=$_domain_id&domain=$_domain&recordid=$RM_recordid"; then
+  _record_id=$(printf "%s" "$response" | grep '"recordid":' | cut -d : -f 2 | cut -d , -f 1 | tr -d '\r' | tr -d '\n')
+
+  _debug delete_rid "$_record_id"
+  if ! _rest GET "record.ashx?cmd=remove&apiid=$LA_Id&apipass=$LA_Key&rtype=json&domainid=$_domain_id&domain=$_domain&recordid=$_record_id"; then
     _err "record remove error."
     return 1
   fi
-
-  _clearaccountconf "$_fullkey"
 
   _contains "$response" "\"code\":300"
 }
@@ -81,16 +79,12 @@ add_record() {
   fulldomain="$sub.$root"
 
   _info "adding txt record"
-
   if ! _rest GET "record.ashx?cmd=create&apiid=$LA_Id&apipass=$LA_Key&rtype=json&domainid=$_domain_id&host=$_sub_domain&recordtype=TXT&recorddata=$txtvalue&recordline="; then
     return 1
   fi
 
   if _contains "$response" "\"code\":300"; then
     _record_id=$(printf "%s" "$response" | grep '"resultid"' | cut -d : -f 2 | cut -d , -f 1 | tr -d '\r' | tr -d '\n')
-    _fullkey=$(printf "%s" "$fulldomain" | awk '{ string=substr($0, 17); print string; }' | tr '.' '_')
-    _debug fullkey "$_fullkey"
-    _saveaccountconf "$_fullkey" "$_record_id"
     _debug _record_id "$_record_id"
   fi
   _contains "$response" "\"code\":300"
