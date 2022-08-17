@@ -83,11 +83,10 @@ add_record() {
     return 1
   fi
 
-  if _contains "$response" "\"code\":300"; then
-    _record_id=$(printf "%s" "$response" | grep '"resultid"' | cut -d : -f 2 | cut -d , -f 1 | tr -d '\r' | tr -d '\n')
-    _debug _record_id "$_record_id"
+  if _contains "$response" "resultid" || _contains "$response" "\"code\":532"; then
+    return 0
   fi
-  _contains "$response" "\"code\":300"
+  return 1
 }
 
 ####################  Private functions below ##################################
