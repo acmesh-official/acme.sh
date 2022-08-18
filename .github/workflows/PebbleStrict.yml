@@ -13,6 +13,13 @@ on:
       - '*.sh'
       - '.github/workflows/PebbleStrict.yml'
 
+
+concurrency: 
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+
+
 jobs:
   PebbleStrict:
     runs-on: ubuntu-latest

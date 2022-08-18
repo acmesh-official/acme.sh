@@ -15,6 +15,11 @@ on:
       - '.github/workflows/Solaris.yml'
 
 
+
+concurrency: 
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
 jobs:
   Solaris:
     strategy:

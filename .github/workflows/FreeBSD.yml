@@ -14,6 +14,11 @@ on:
       - '*.sh'
       - '.github/workflows/FreeBSD.yml'
 
+concurrency: 
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+
 
 jobs:
   FreeBSD:

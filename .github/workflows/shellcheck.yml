@@ -13,6 +13,11 @@ on:
       - '**.sh'
       - '.github/workflows/shellcheck.yml'
 
+concurrency: 
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+
 jobs:
   ShellCheck:
     runs-on: ubuntu-latest

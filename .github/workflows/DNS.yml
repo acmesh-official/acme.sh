@@ -11,6 +11,9 @@ on:
       - 'dnsapi/*.sh'
       - '.github/workflows/DNS.yml'
 
+concurrency: 
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
 
 jobs:
   CheckToken:
