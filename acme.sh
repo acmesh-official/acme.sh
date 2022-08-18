@@ -6038,6 +6038,8 @@ revoke() {
       if [ -z "$response" ]; then
         _info "Revoke success."
         rm -f "$CERT_PATH"
+        cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
+        cat "$CSR_PATH" >"$CSR_PATH.revoked"
         return 0
       else
         _err "Revoke error by domain key."
@@ -6054,6 +6056,8 @@ revoke() {
     if [ -z "$response" ]; then
       _info "Revoke success."
       rm -f "$CERT_PATH"
+      cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
+      cat "$CSR_PATH" >"$CSR_PATH.revoked"
       return 0
     else
       _err "Revoke error."
