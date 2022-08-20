@@ -2002,10 +2002,10 @@ _post() {
     if echo $_WGET | grep -q " -d " 2> /dev/null; then
       # Demultiplex wget debug output
       cat "$HTTP_HEADER" >&2
-      _sed_i '/^[^[:space:]][^[:space:]]/d; /^[[:space:]]*$/d' "$HTTP_HEADER"
+      _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
     fi
     # remove leading whitespaces from header to match curl format
-    _sed_i 's/^[[:space:]][[:space:]]//g' "$HTTP_HEADER"
+    _sed_i 's/^  //g' "$HTTP_HEADER"
   else
     _ret="$?"
     _err "Neither curl nor wget is found, can not do $httpmethod."
@@ -2062,17 +2062,17 @@ _get() {
       if echo $_WGET | grep -q " -d " 2> /dev/null; then
         # Demultiplex wget debug output
         echo "$_wget_out" >&2
-        echo "$_wget_out" | sed '/^[^[:space:]][^[:space:]]/d; /^[[:space:]]*$/d; s/^[[:space:]][[:space:]]//g' -
+        echo "$_wget_out" | sed '/^[^ ][^ ]/d; /^ *$/d; s/^  //g' -
       fi
     else
       $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O - "$url" 2>"$HTTP_HEADER"
       if echo $_WGET | grep -q " -d " 2> /dev/null; then
         # Demultiplex wget debug output
         cat "$HTTP_HEADER" >&2
-        _sed_i '/^[^[:space:]][^[:space:]]/d; /^[[:space:]]*$/d' "$HTTP_HEADER"
+        _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
       fi
       # remove leading whitespaces from header to match curl format
-      _sed_i 's/^[[:space:]][[:space:]]//g' "$HTTP_HEADER"
+      _sed_i 's/^  //g' "$HTTP_HEADER"
     fi
     ret=$?
     if [ "$ret" = "8" ]; then
