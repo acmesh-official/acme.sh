@@ -6371,7 +6371,7 @@ _installalias() {
   if [ "$_profile" ]; then
     _debug "Found profile: $_profile"
     _info "Installing alias to '$_profile'"
-    _setopt "$_profile" ". \"$_envfile\""
+    _setopt "$_profile" "\n. \"$_envfile\""
     _info "OK, Close and reopen your terminal to start using $PROJECT_NAME"
   else
     _info "No profile is found, you will need to go into $LE_WORKING_DIR to use $PROJECT_NAME"
