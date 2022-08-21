@@ -2239,7 +2239,11 @@ _setopt() {
   if [ ! -f "$__conf" ]; then
     touch "$__conf"
   fi
-
+  if [ -n "$(tail -c 1 <"$__conf")" ]; then
+    _debug3 No New Line
+    echo >>"$__conf"
+  fi
+  
   if grep -n "^$__opt$__sep" "$__conf" >/dev/null; then
     _debug3 OK
     if _contains "$__val" "&"; then
@@ -6371,7 +6375,7 @@ _installalias() {
   if [ "$_profile" ]; then
     _debug "Found profile: $_profile"
     _info "Installing alias to '$_profile'"
-    _setopt "$_profile" "\n. \"$_envfile\""
+    _setopt "$_profile" ". \"$_envfile\""
     _info "OK, Close and reopen your terminal to start using $PROJECT_NAME"
   else
     _info "No profile is found, you will need to go into $LE_WORKING_DIR to use $PROJECT_NAME"
