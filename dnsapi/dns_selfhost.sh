@@ -4,8 +4,6 @@
 #       Report Bugs here: https://github.com/Marvo2011/acme.sh/issues/1
 #	Last Edit: 17.02.2022
 
-DNS_CHALLENGE_PREFIX_ESCAPED="_acme-challenge\."
-
 dns_selfhost_add() {
   fulldomain=$1
   txt=$2
@@ -33,16 +31,12 @@ dns_selfhost_add() {
     SELFHOSTDNS_LAST_SLOT=1
   fi
 
-  # cut DNS_CHALLENGE_PREFIX_ESCAPED from fulldomain if present at the beginning of the string
-  lookupdomain=$(echo "$fulldomain" | sed "s/^$DNS_CHALLENGE_PREFIX_ESCAPED//")
-  _debug lookupdomain "$lookupdomain"
-
-  # get the RID for lookupdomain or fulldomain from SELFHOSTDNS_MAP
+  # get the RID for fulldomain from SELFHOSTDNS_MAP
   # only match full domains (at the beginning of the string or with a leading whitespace),
   # e.g. don't match mytest.example.com or sub.test.example.com for test.example.com
   # replace the whole string with the RID (matching group 3) for assignment
   # if the domain is defined multiple times only the last occurance will be matched
-  rid=$(echo "$SELFHOSTDNS_MAP" | sed -E "s/(^|^.*[[:space:]])($lookupdomain:|$fulldomain:)([0-9][0-9]*)(.*)/\3/")
+  rid=$(echo "$SELFHOSTDNS_MAP" | sed -E "s/(^|^.*[[:space:]])($fulldomain:)([0-9][0-9]*)(.*)/\3/")
 
   if test -z "$rid"; then
     if [ $SELFHOSTDNS_LAST_SLOT = "2" ]; then
