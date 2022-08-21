@@ -2240,7 +2240,6 @@ _setopt() {
     touch "$__conf"
   fi
   if [ -n "$(tail -c 1 <"$__conf")" ]; then
-    _debug3 No New Line
     echo >>"$__conf"
   fi
   
