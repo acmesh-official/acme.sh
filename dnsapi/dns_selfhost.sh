@@ -10,6 +10,7 @@ dns_selfhost_add() {
   _info "Calling acme-dns on selfhost"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txt"
+  _debug domain "$d"
 
   SELFHOSTDNS_UPDATE_URL="https://selfhost.de/cgi-bin/api.pl"
 
@@ -18,39 +19,36 @@ dns_selfhost_add() {
   SELFHOSTDNS_PASSWORD="${SELFHOSTDNS_PASSWORD:-$(_readaccountconf_mutable SELFHOSTDNS_PASSWORD)}"
   # These values are domain dependent, so read them from there
   SELFHOSTDNS_MAP="${SELFHOSTDNS_MAP:-$(_readdomainconf SELFHOSTDNS_MAP)}"
-  SELFHOSTDNS_RID="${SELFHOSTDNS_RID:-$(_readdomainconf SELFHOSTDNS_RID)}"
-  SELFHOSTDNS_RID2="${SELFHOSTDNS_RID2:-$(_readdomainconf SELFHOSTDNS_RID2)}"
-  SELFHOSTDNS_LAST_SLOT="${SELFHOSTDNS_LAST_SLOT:-$(_readdomainconf SELFHOSTDNS_LAST_SLOT)}"
 
   if [ -z "${SELFHOSTDNS_USERNAME:-}" ] || [ -z "${SELFHOSTDNS_PASSWORD:-}" ]; then
     _err "SELFHOSTDNS_USERNAME and SELFHOSTDNS_PASSWORD must be set"
     return 1
   fi
 
-  if test -z "$SELFHOSTDNS_LAST_SLOT"; then
-    SELFHOSTDNS_LAST_SLOT=1
-  fi
-
-  # get the RID for fulldomain from SELFHOSTDNS_MAP
+  # get the domain entry from SELFHOSTDNS_MAP
   # only match full domains (at the beginning of the string or with a leading whitespace),
   # e.g. don't match mytest.example.com or sub.test.example.com for test.example.com
-  # replace the whole string with the RID (matching group 3) for assignment
   # if the domain is defined multiple times only the last occurance will be matched
-  rid=$(echo "$SELFHOSTDNS_MAP" | sed -E "s/(^|^.*[[:space:]])($fulldomain:)([0-9][0-9]*)(.*)/\3/")
-
-  if test -z "$rid"; then
-    if [ $SELFHOSTDNS_LAST_SLOT = "2" ]; then
-      rid=$SELFHOSTDNS_RID
-      SELFHOSTDNS_LAST_SLOT=1
-    else
-      rid=$SELFHOSTDNS_RID2
-      SELFHOSTDNS_LAST_SLOT=2
-    fi
+  mapEntry=$(echo "$SELFHOSTDNS_MAP" | sed -n -E "s/(^|^.*[[:space:]])($fulldomain)(:[[:digit:]]+)([:]?[[:digit:]]*)(.*)/\2\3\4/p")
+  _debug mapEntry $mapEntry
+  if test -z "$mapEntry"; then
+    _err "SELFHOSTDNS_MAP must contain the fulldomain incl. prefix and at least one RID"
+    return 1
   fi
 
-  if test -z "$rid"; then
-    _err "SELFHOSTDNS_RID and SELFHOSTDNS_RID2, or SELFHOSTDNS_MAP must be set"
-    return 1
+  # get the RIDs from the map entry
+  rid1=$(echo "$mapEntry" | cut -d: -f2)
+  _debug rid1 $rid1
+  rid2=$(echo "$mapEntry" | cut -d: -f3)
+  _debug rid2 $rid2
+
+  rid=$rid1
+  # check for wildcard domain and use rid2 if set
+  if _startswith "$d" '*.'; then
+    _debug2 "wildcard domain"
+    if ! test -z "$rid2"; then
+      rid=$rid2
+    fi
   fi
 
   _info "Trying to add $txt on selfhost for rid: $rid"
@@ -68,9 +66,6 @@ dns_selfhost_add() {
   _saveaccountconf_mutable SELFHOSTDNS_PASSWORD "$SELFHOSTDNS_PASSWORD"
   # These values are domain dependent, so store them there
   _savedomainconf SELFHOSTDNS_MAP "$SELFHOSTDNS_MAP"
-  _savedomainconf SELFHOSTDNS_RID "$SELFHOSTDNS_RID"
-  _savedomainconf SELFHOSTDNS_RID2 "$SELFHOSTDNS_RID2"
-  _savedomainconf SELFHOSTDNS_LAST_SLOT "$SELFHOSTDNS_LAST_SLOT"
 }
 
 dns_selfhost_rm() {
