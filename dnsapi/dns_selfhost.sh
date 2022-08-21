@@ -17,10 +17,10 @@ dns_selfhost_add() {
   SELFHOSTDNS_USERNAME="${SELFHOSTDNS_USERNAME:-$(_readaccountconf_mutable SELFHOSTDNS_USERNAME)}"
   SELFHOSTDNS_PASSWORD="${SELFHOSTDNS_PASSWORD:-$(_readaccountconf_mutable SELFHOSTDNS_PASSWORD)}"
   # These values are domain dependent, so read them from there
-  _getdeployconf SELFHOSTDNS_MAP
-  _getdeployconf SELFHOSTDNS_RID
-  _getdeployconf SELFHOSTDNS_RID2
-  _getdeployconf SELFHOSTDNS_LAST_SLOT
+  SELFHOSTDNS_MAP="${SELFHOSTDNS_MAP:-$(_readdomainconf SELFHOSTDNS_MAP)}"
+  SELFHOSTDNS_RID="${SELFHOSTDNS_RID:-$(_readdomainconf SELFHOSTDNS_RID)}"
+  SELFHOSTDNS_RID2="${SELFHOSTDNS_RID2:-$(_readdomainconf SELFHOSTDNS_RID2)}"
+  SELFHOSTDNS_LAST_SLOT="${SELFHOSTDNS_LAST_SLOT:-$(_readdomainconf SELFHOSTDNS_LAST_SLOT)}"
 
   if [ -z "${SELFHOSTDNS_USERNAME:-}" ] || [ -z "${SELFHOSTDNS_PASSWORD:-}" ]; then
     _err "SELFHOSTDNS_USERNAME and SELFHOSTDNS_PASSWORD must be set"
@@ -67,10 +67,10 @@ dns_selfhost_add() {
   _saveaccountconf_mutable SELFHOSTDNS_USERNAME "$SELFHOSTDNS_USERNAME"
   _saveaccountconf_mutable SELFHOSTDNS_PASSWORD "$SELFHOSTDNS_PASSWORD"
   # These values are domain dependent, so store them there
-  _savedeployconf SELFHOSTDNS_MAP "$SELFHOSTDNS_MAP"
-  _savedeployconf SELFHOSTDNS_RID "$SELFHOSTDNS_RID"
-  _savedeployconf SELFHOSTDNS_RID2 "$SELFHOSTDNS_RID2"
-  _savedeployconf SELFHOSTDNS_LAST_SLOT "$SELFHOSTDNS_LAST_SLOT"
+  _savedomainconf SELFHOSTDNS_MAP "$SELFHOSTDNS_MAP"
+  _savedomainconf SELFHOSTDNS_RID "$SELFHOSTDNS_RID"
+  _savedomainconf SELFHOSTDNS_RID2 "$SELFHOSTDNS_RID2"
+  _savedomainconf SELFHOSTDNS_LAST_SLOT "$SELFHOSTDNS_LAST_SLOT"
 }
 
 dns_selfhost_rm() {
