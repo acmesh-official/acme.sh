@@ -30,7 +30,7 @@ dns_selfhost_add() {
   # e.g. don't match mytest.example.com or sub.test.example.com for test.example.com
   # if the domain is defined multiple times only the last occurance will be matched
   mapEntry=$(echo "$SELFHOSTDNS_MAP" | sed -n -E "s/(^|^.*[[:space:]])($fulldomain)(:[[:digit:]]+)([:]?[[:digit:]]*)(.*)/\2\3\4/p")
-  _debug mapEntry $mapEntry
+  _debug mapEntry "$mapEntry"
   if test -z "$mapEntry"; then
     _err "SELFHOSTDNS_MAP must contain the fulldomain incl. prefix and at least one RID"
     return 1
@@ -38,16 +38,16 @@ dns_selfhost_add() {
 
   # get the RIDs from the map entry
   rid1=$(echo "$mapEntry" | cut -d: -f2)
-  _debug rid1 $rid1
+  _debug rid1 "$rid1"
   rid2=$(echo "$mapEntry" | cut -d: -f3)
-  _debug rid2 $rid2
+  _debug rid2 "$rid2"
 
   rid=$rid1
   # check for wildcard domain and use rid2 if set
   if _startswith "$d" '*.'; then
     _debug2 "wildcard domain"
     if ! test -z "$rid2"; then
-      rid=$rid2
+      rid="$rid2"
     fi
   fi
 
