@@ -11,7 +11,11 @@ on:
       - "Dockerfile"
       - '.github/workflows/dockerhub.yml'
 
-    
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+
 jobs:
   CheckToken:
     runs-on: ubuntu-latest

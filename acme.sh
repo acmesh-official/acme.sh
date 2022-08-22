@@ -5200,11 +5200,25 @@ $_authorizations_map"
       _info "The domain is set to be valid to: $_valid_to"
       _info "It can not be renewed automatically"
       _info "See: $_VALIDITY_WIKI"
+    else
+      _now=$(_time)
+      _debug2 "_now" "$_now"
+      _lifetime=$(_math $Le_NextRenewTime - $_now)
+      _debug2 "_lifetime" "$_lifetime"
+      if [ $_lifetime -gt 86400 ]; then
+        #if lifetime is logner than one day, it will renew one day before
+        Le_NextRenewTime=$(_math $Le_NextRenewTime - 86400)
+        Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+      else
+        #if lifetime is less than 24 hours, it will renew one hour before
+        Le_NextRenewTime=$(_math $Le_NextRenewTime - 3600)
+        Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+      fi
     fi
   else
     Le_NextRenewTime=$(_math "$Le_CertCreateTime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
-    Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
     Le_NextRenewTime=$(_math "$Le_NextRenewTime" - 86400)
+    Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
   fi
   _savedomainconf "Le_NextRenewTimeStr" "$Le_NextRenewTimeStr"
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
@@ -6038,6 +6052,8 @@ revoke() {
       if [ -z "$response" ]; then
         _info "Revoke success."
         rm -f "$CERT_PATH"
+        cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
+        cat "$CSR_PATH" >"$CSR_PATH.revoked"
         return 0
       else
         _err "Revoke error by domain key."
@@ -6054,6 +6070,8 @@ revoke() {
     if [ -z "$response" ]; then
       _info "Revoke success."
       rm -f "$CERT_PATH"
+      cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
+      cat "$CSR_PATH" >"$CSR_PATH.revoked"
       return 0
     else
       _err "Revoke error."
