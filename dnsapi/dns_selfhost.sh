@@ -18,7 +18,7 @@ dns_selfhost_add() {
   SELFHOSTDNS_PASSWORD="${SELFHOSTDNS_PASSWORD:-$(_readaccountconf_mutable SELFHOSTDNS_PASSWORD)}"
   # These values are domain dependent, so read them from there
   SELFHOSTDNS_MAP="${SELFHOSTDNS_MAP:-$(_readdomainconf SELFHOSTDNS_MAP)}"
-  # Selfhost api can't dynamically add TXT record, 
+  # Selfhost api can't dynamically add TXT record,
   # so we have to store the last used RID of the domain to support a second RID for wildcard domains
   # (format: ';fulldomainA:lastRid;;fulldomainB:lastRid;...')
   SELFHOSTDNS_MAP_LAST_USED_INTERNAL=$(_readdomainconf SELFHOSTDNS_MAP_LAST_USED_INTERNAL)
@@ -56,11 +56,10 @@ dns_selfhost_add() {
   if ! test -z "$lastUsedRidForDomainEntry"; then
     # replace last used rid entry for domain
     SELFHOSTDNS_MAP_LAST_USED_INTERNAL=$(echo "$SELFHOSTDNS_MAP_LAST_USED_INTERNAL" | sed -n -E "s/$lastUsedRidForDomainEntry/;$fulldomain:$rid;/p")
-  else 
+  else
     # add last used rid entry for domain
     SELFHOSTDNS_MAP_LAST_USED_INTERNAL="$SELFHOSTDNS_MAP_LAST_USED_INTERNAL"";$fulldomain:$rid;"
   fi
-
 
   _info "Trying to add $txt on selfhost for rid: $rid"
 
