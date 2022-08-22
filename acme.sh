@@ -2239,10 +2239,11 @@ _setopt() {
   if [ ! -f "$__conf" ]; then
     touch "$__conf"
   fi
+
   if [ -n "$(tail -c 1 <"$__conf")" ]; then
     echo >>"$__conf"
   fi
-  
+
   if grep -n "^$__opt$__sep" "$__conf" >/dev/null; then
     _debug3 OK
     if _contains "$__val" "&"; then
