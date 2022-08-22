@@ -37,11 +37,18 @@ dns_versio_add() {
   _add_dns_record "TXT" "$fulldomain." "\\\"$txtvalue\\\"" 0 300
   _debug "dnsrecords after add record" "{\"dns_records\":[$_dns_records]}"
 
-  if _versio_rest POST "domains/$_domain/update" "{\"dns_records\":[$_dns_records]}"; then
-    _debug "rest update response" "$response"
-    _debug "changed dnsrecords" "$_dns_records"
-    return 0
-  fi
+  while [ "$j" -le 3 ]; do
+    _versio_rest POST "domains/$_domain/update" "{\"dns_records\":[$_dns_records]}"
+    if [ "$?" = "0" ]; then
+      _debug "rest update response" "$response"
+      _debug "changed dnsrecords" "$_dns_records"
+      return 0
+    fi
+    if [ "$?" != "2" ]; then
+      break
+    fi
+    j=$((j + 1))
+  done
 
   _err "Error!"
   return 1
@@ -186,7 +193,7 @@ _versio_rest() {
     case $response in
     "<"*)
       _err "Invalid non-JSON response! $response"
-      return 1
+      return 2 # retryable
       ;;
     "{\"error\":"*)
       _err "Error response! $response"
