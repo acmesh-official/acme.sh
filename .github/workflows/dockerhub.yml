@@ -12,7 +12,7 @@ on:
       - '.github/workflows/dockerhub.yml'
 
 concurrency:
-  group: ${{ github.workflow }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 
