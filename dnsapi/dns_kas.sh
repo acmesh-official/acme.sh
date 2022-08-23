@@ -33,7 +33,7 @@ dns_kas_add() {
   _info "[KAS] -> Using DNS-01 All-inkl/Kasserver hook"
   _info "[KAS] -> Check and Save Props"
   _check_and_save
-  
+
   _info "[KAS] -> Adding $_fulldomain DNS TXT entry on all-inkl.com/Kasserver"
   _info "[KAS] -> Retriving Credential Token"
   _get_credential_token
