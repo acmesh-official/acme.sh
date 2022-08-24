@@ -5,7 +5,7 @@
 #YC_SA_ID="" # Service Account ID
 #YC_SA_Key_ID="" # Service Account IAM Key ID
 #YC_SA_Key_File_Path="/path/to/private.key" # Path to private.key use instead of PEM
-#YC_SA_Key_File_PEM="" # Content of private.key use instead of Path
+#YC_SA_Key_File_PEM_b64="" # Base64 content of private.key use instead of Path
 YC_Api="https://dns.api.cloud.yandex.net/dns/v1"
 
 ########  Public functions #####################
@@ -15,8 +15,8 @@ dns_yc_add() {
   fulldomain="$(echo "$1". | _lower_case)" # Add dot at end of domain name
   txtvalue=$2
 
-  if ["$YC_SA_Key_File_PEM"]; then
-    YC_SA_Key_File="<(echo '$YC_SA_Key_File_PEM')"
+  if ["$YC_SA_Key_File_PEM_b64"]; then
+    YC_SA_Key_File="<(echo '$YC_SA_Key_File_PEM_b64' | _dbase64 )"
   else
     YC_SA_Key_File=$YC_SA_Key_File_Path
   fi
