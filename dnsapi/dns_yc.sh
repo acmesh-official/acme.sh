@@ -4,8 +4,8 @@
 #YC_Folder_ID="" # YC Folder ID
 #YC_SA_ID="" # Service Account ID
 #YC_SA_Key_ID="" # Service Account IAM Key ID
-#YC_SA_Key_File_Path="/path/to/private.key" # Path to private.key use instead of PEM
-#YC_SA_Key_File_PEM_b64="" # Base64 content of private.key use instead of Path
+#YC_SA_Key_File_Path="/path/to/private.key" # Path to private.key use instead of YC_SA_Key_File_PEM_b64
+#YC_SA_Key_File_PEM_b64="" # Base64 content of private.key use instead of YC_SA_Key_File_Path
 YC_Api="https://dns.api.cloud.yandex.net/dns/v1"
 
 ########  Public functions #####################
@@ -15,18 +15,23 @@ dns_yc_add() {
   fulldomain="$(echo "$1". | _lower_case)" # Add dot at end of domain name
   txtvalue=$2
 
-  if ["$YC_SA_Key_File_PEM_b64"]; then
-    YC_SA_Key_File="<(echo '$YC_SA_Key_File_PEM_b64' | _dbase64 )"
+  YC_SA_Key_File_PEM_b64="${YC_SA_Key_File_PEM_b64:-$(_readaccountconf_mutable YC_SA_Key_File_PEM_b64)}"
+  YC_SA_Key_File_Path="${YC_SA_Key_File_Path:-$(_readaccountconf_mutable YC_SA_Key_File_Path)}"
+
+  if [ "$YC_SA_Key_File_PEM_b64" ]; then
+    echo "$YC_SA_Key_File_PEM_b64" | _dbase64 > private.key
+    YC_SA_Key_File="private.key"
+    _savedomainconf YC_SA_Key_File_PEM_b64 "$YC_SA_Key_File_PEM_b64"
   else
-    YC_SA_Key_File=$YC_SA_Key_File_Path
+    YC_SA_Key_File="$YC_SA_Key_File_Path"
+    _savedomainconf YC_SA_Key_File_Path "$YC_SA_Key_File_Path"
   fi
 
   YC_Zone_ID="${YC_Zone_ID:-$(_readaccountconf_mutable YC_Zone_ID)}"
   YC_Folder_ID="${YC_Folder_ID:-$(_readaccountconf_mutable YC_Folder_ID)}"
   YC_SA_ID="${YC_SA_ID:-$(_readaccountconf_mutable YC_SA_ID)}"
   YC_SA_Key_ID="${YC_SA_Key_ID:-$(_readaccountconf_mutable YC_SA_Key_ID)}"
-  YC_SA_Key_File="${YC_SA_Key_File:-$(_readaccountconf_mutable YC_SA_Key_File)}"
-  
+
   if [ "$YC_SA_ID" ] && [ "$YC_SA_Key_ID" ] && [ "$YC_SA_Key_File" ]; then
     if [ -f "$YC_SA_Key_File" ]; then
       if _isRSA "$YC_SA_Key_File" >/dev/null 2>&1; then
@@ -34,12 +39,10 @@ dns_yc_add() {
           _savedomainconf YC_Zone_ID "$YC_Zone_ID"
           _savedomainconf YC_SA_ID "$YC_SA_ID"
           _savedomainconf YC_SA_Key_ID "$YC_SA_Key_ID"
-          _savedomainconf YC_SA_Key_File "$YC_SA_Key_File"
         elif [ "$YC_Folder_ID" ]; then
           _savedomainconf YC_Folder_ID "$YC_Folder_ID"
           _saveaccountconf_mutable YC_SA_ID "$YC_SA_ID"
           _saveaccountconf_mutable YC_SA_Key_ID "$YC_SA_Key_ID"
-          _saveaccountconf_mutable YC_SA_Key_File "$YC_SA_Key_File"
           _clearaccountconf_mutable YC_Zone_ID
           _clearaccountconf YC_Zone_ID
         else
@@ -59,7 +62,8 @@ dns_yc_add() {
     _clearaccountconf YC_Folder_ID
     _clearaccountconf YC_SA_ID
     _clearaccountconf YC_SA_Key_ID
-    _clearaccountconf YC_SA_Key_File
+    _clearaccountconf YC_SA_Key_File_PEM_b64
+    _clearaccountconf YC_SA_Key_File_Path
     _err "You didn't specify a YC_SA_ID or YC_SA_Key_ID or YC_SA_Key_File."
     return 1
   fi
@@ -103,7 +107,6 @@ dns_yc_rm() {
   YC_Folder_ID="${YC_Folder_ID:-$(_readaccountconf_mutable YC_Folder_ID)}"
   YC_SA_ID="${YC_SA_ID:-$(_readaccountconf_mutable YC_SA_ID)}"
   YC_SA_Key_ID="${YC_SA_Key_ID:-$(_readaccountconf_mutable YC_SA_Key_ID)}"
-  YC_SA_Key_File="${YC_SA_Key_File:-$(_readaccountconf_mutable YC_SA_Key_File)}"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -244,6 +247,8 @@ _yc_login() {
   #signature=$(printf "%s.%s" "$header" "$payload" | ${ACME_OPENSSL_BIN:-openssl} dgst -sign "$YC_SA_Key_File -sha256 -sigopt rsa_padding_mode:pss -sigopt rsa_pss_saltlen:-1" | _base64 | _url_replace )
   _signature=$(printf "%s.%s" "$header" "$payload" | _sign "$YC_SA_Key_File" "sha256 -sigopt rsa_padding_mode:pss -sigopt rsa_pss_saltlen:-1" | _url_replace)
   _debug2 _signature "$_signature"
+  
+  rm -rf "$YC_SA_Key_File"
 
   _jwt=$(printf "{\"jwt\": \"%s.%s.%s\"}" "$header" "$payload" "$_signature")
   _debug2 _jwt "$_jwt"
