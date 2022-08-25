@@ -2,7 +2,7 @@
 
 # HUAWEICLOUD_Username
 # HUAWEICLOUD_Password
-# HUAWEICLOUD_ProjectID
+# HUAWEICLOUD_DomainName
 
 iam_api="https://iam.myhuaweicloud.com"
 dns_api="https://dns.ap-southeast-1.myhuaweicloud.com" # Should work
@@ -14,6 +14,8 @@ dns_api="https://dns.ap-southeast-1.myhuaweicloud.com" # Should work
 #
 # Ref: https://support.huaweicloud.com/intl/zh-cn/api-dns/zh-cn_topic_0132421999.html
 #
+# About "DomainName" parameters see: https://support.huaweicloud.com/api-iam/iam_01_0006.html
+#
 
 dns_huaweicloud_add() {
   fulldomain=$1
@@ -21,16 +23,16 @@ dns_huaweicloud_add() {
 
   HUAWEICLOUD_Username="${HUAWEICLOUD_Username:-$(_readaccountconf_mutable HUAWEICLOUD_Username)}"
   HUAWEICLOUD_Password="${HUAWEICLOUD_Password:-$(_readaccountconf_mutable HUAWEICLOUD_Password)}"
-  HUAWEICLOUD_ProjectID="${HUAWEICLOUD_ProjectID:-$(_readaccountconf_mutable HUAWEICLOUD_ProjectID)}"
+  HUAWEICLOUD_DomainName="${HUAWEICLOUD_DomainName:-$(_readaccountconf_mutable HUAWEICLOUD_Username)}"
 
   # Check information
-  if [ -z "${HUAWEICLOUD_Username}" ] || [ -z "${HUAWEICLOUD_Password}" ] || [ -z "${HUAWEICLOUD_ProjectID}" ]; then
+  if [ -z "${HUAWEICLOUD_Username}" ] || [ -z "${HUAWEICLOUD_Password}" ] || [ -z "${HUAWEICLOUD_DomainName}" ]; then
     _err "Not enough information provided to dns_huaweicloud!"
     return 1
   fi
 
   unset token # Clear token
-  token="$(_get_token "${HUAWEICLOUD_Username}" "${HUAWEICLOUD_Password}" "${HUAWEICLOUD_ProjectID}")"
+  token="$(_get_token "${HUAWEICLOUD_Username}" "${HUAWEICLOUD_Password}" "${HUAWEICLOUD_DomainName}")"
   if [ -z "${token}" ]; then # Check token
     _err "dns_api(dns_huaweicloud): Error getting token."
     return 1
@@ -56,7 +58,7 @@ dns_huaweicloud_add() {
   # Do saving work if all succeeded
   _saveaccountconf_mutable HUAWEICLOUD_Username "${HUAWEICLOUD_Username}"
   _saveaccountconf_mutable HUAWEICLOUD_Password "${HUAWEICLOUD_Password}"
-  _saveaccountconf_mutable HUAWEICLOUD_ProjectID "${HUAWEICLOUD_ProjectID}"
+  _saveaccountconf_mutable HUAWEICLOUD_DomainName "${HUAWEICLOUD_DomainName}"
   return 0
 }
 
@@ -72,16 +74,16 @@ dns_huaweicloud_rm() {
 
   HUAWEICLOUD_Username="${HUAWEICLOUD_Username:-$(_readaccountconf_mutable HUAWEICLOUD_Username)}"
   HUAWEICLOUD_Password="${HUAWEICLOUD_Password:-$(_readaccountconf_mutable HUAWEICLOUD_Password)}"
-  HUAWEICLOUD_ProjectID="${HUAWEICLOUD_ProjectID:-$(_readaccountconf_mutable HUAWEICLOUD_ProjectID)}"
+  HUAWEICLOUD_DomainName="${HUAWEICLOUD_DomainName:-$(_readaccountconf_mutable HUAWEICLOUD_Username)}"
 
   # Check information
-  if [ -z "${HUAWEICLOUD_Username}" ] || [ -z "${HUAWEICLOUD_Password}" ] || [ -z "${HUAWEICLOUD_ProjectID}" ]; then
+  if [ -z "${HUAWEICLOUD_Username}" ] || [ -z "${HUAWEICLOUD_Password}" ] || [ -z "${HUAWEICLOUD_DomainName}" ]; then
     _err "Not enough information provided to dns_huaweicloud!"
     return 1
   fi
 
   unset token # Clear token
-  token="$(_get_token "${HUAWEICLOUD_Username}" "${HUAWEICLOUD_Password}" "${HUAWEICLOUD_ProjectID}")"
+  token="$(_get_token "${HUAWEICLOUD_Username}" "${HUAWEICLOUD_Password}" "${HUAWEICLOUD_DomainName}")"
   if [ -z "${token}" ]; then # Check token
     _err "dns_api(dns_huaweicloud): Error getting token."
     return 1
@@ -253,7 +255,7 @@ _rm_record() {
 _get_token() {
   _username=$1
   _password=$2
-  _project=$3
+  _domain_name=$3
 
   _debug "Getting Token"
   body="{
@@ -267,14 +269,14 @@ _get_token() {
             \"name\": \"${_username}\",
             \"password\": \"${_password}\",
             \"domain\": {
-              \"name\": \"${_username}\"
+              \"name\": \"${_domain_name}\"
             }
           }
         }
       },
       \"scope\": {
         \"project\": {
-          \"id\": \"${_project}\"
+          \"name\": \"ap-southeast-1\"
         }
       }
     }

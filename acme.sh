@@ -91,6 +91,7 @@ END_CERT="-----END CERTIFICATE-----"
 
 CONTENT_TYPE_JSON="application/jose+json"
 RENEW_SKIP=2
+CODE_DNS_MANUAL=3
 
 B64CONF_START="__ACME_BASE64__START_"
 B64CONF_END="__ACME_BASE64__END_"
@@ -436,21 +437,13 @@ _secure_debug3() {
 }
 
 _upper_case() {
-  if _is_solaris; then
-    tr '[:lower:]' '[:upper:]'
-  else
-    # shellcheck disable=SC2018,SC2019
-    tr 'a-z' 'A-Z'
-  fi
+  # shellcheck disable=SC2018,SC2019
+  tr '[a-z]' '[A-Z]'
 }
 
 _lower_case() {
-  if _is_solaris; then
-    tr '[:upper:]' '[:lower:]'
-  else
-    # shellcheck disable=SC2018,SC2019
-    tr 'A-Z' 'a-z'
-  fi
+  # shellcheck disable=SC2018,SC2019
+  tr '[A-Z]' '[a-z]'
 }
 
 _startswith() {
@@ -1193,7 +1186,7 @@ _createkey() {
 _is_idn() {
   _is_idn_d="$1"
   _debug2 _is_idn_d "$_is_idn_d"
-  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '0-9' | tr -d 'a-z' | tr -d 'A-Z' | tr -d '*.,-_')
+  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '[0-9]' | tr -d '[a-z]' | tr -d '[A-Z]' | tr -d '*.,-_')
   _debug2 _idn_temp "$_idn_temp"
   [ "$_idn_temp" ]
 }
@@ -4202,7 +4195,7 @@ _match_issuer() {
 _isIPv4() {
   for seg in $(echo "$1" | tr '.' ' '); do
     _debug2 seg "$seg"
-    if [ "$(echo "$seg" | tr -d [0-9])" ]; then
+    if [ "$(echo "$seg" | tr -d '[0-9]')" ]; then
       #not all number
       return 1
     fi
@@ -4762,7 +4755,9 @@ $_authorizations_map"
       _err "Please add the TXT records to the domains, and re-run with --renew."
       _on_issue_err "$_post_hook"
       _clearup
-      return 1
+      # If asked to be in manual DNS mode, flag this exit with a separate
+      # error so it can be distinguished from other failures.
+      return $CODE_DNS_MANUAL
     fi
 
   fi
@@ -5205,11 +5200,25 @@ $_authorizations_map"
       _info "The domain is set to be valid to: $_valid_to"
       _info "It can not be renewed automatically"
       _info "See: $_VALIDITY_WIKI"
+    else
+      _now=$(_time)
+      _debug2 "_now" "$_now"
+      _lifetime=$(_math $Le_NextRenewTime - $_now)
+      _debug2 "_lifetime" "$_lifetime"
+      if [ $_lifetime -gt 86400 ]; then
+        #if lifetime is logner than one day, it will renew one day before
+        Le_NextRenewTime=$(_math $Le_NextRenewTime - 86400)
+        Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+      else
+        #if lifetime is less than 24 hours, it will renew one hour before
+        Le_NextRenewTime=$(_math $Le_NextRenewTime - 3600)
+        Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+      fi
     fi
   else
     Le_NextRenewTime=$(_math "$Le_CertCreateTime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
-    Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
     Le_NextRenewTime=$(_math "$Le_NextRenewTime" - 86400)
+    Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
   fi
   _savedomainconf "Le_NextRenewTimeStr" "$Le_NextRenewTimeStr"
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
@@ -5752,7 +5761,9 @@ _installcert() {
     if [ -f "$_real_cert" ] && [ ! "$_ACME_IS_RENEW" ]; then
       cp "$_real_cert" "$_backup_path/cert.bak"
     fi
-    cat "$CERT_PATH" >"$_real_cert" || return 1
+    if [ "$CERT_PATH" != "$_real_cert" ]; then
+      cat "$CERT_PATH" >"$_real_cert" || return 1
+    fi
   fi
 
   if [ "$_real_ca" ]; then
@@ -5764,7 +5775,9 @@ _installcert() {
       if [ -f "$_real_ca" ] && [ ! "$_ACME_IS_RENEW" ]; then
         cp "$_real_ca" "$_backup_path/ca.bak"
       fi
-      cat "$CA_CERT_PATH" >"$_real_ca" || return 1
+      if [ "$CA_CERT_PATH" != "$_real_ca" ]; then
+        cat "$CA_CERT_PATH" >"$_real_ca" || return 1
+      fi
     fi
   fi
 
@@ -5773,12 +5786,14 @@ _installcert() {
     if [ -f "$_real_key" ] && [ ! "$_ACME_IS_RENEW" ]; then
       cp "$_real_key" "$_backup_path/key.bak"
     fi
-    if [ -f "$_real_key" ]; then
-      cat "$CERT_KEY_PATH" >"$_real_key" || return 1
-    else
-      touch "$_real_key" || return 1
-      chmod 600 "$_real_key"
-      cat "$CERT_KEY_PATH" >"$_real_key" || return 1
+    if [ "$CERT_KEY_PATH" != "$_real_key" ]; then
+      if [ -f "$_real_key" ]; then
+        cat "$CERT_KEY_PATH" >"$_real_key" || return 1
+      else
+        touch "$_real_key" || return 1
+        chmod 600 "$_real_key"
+        cat "$CERT_KEY_PATH" >"$_real_key" || return 1
+      fi
     fi
   fi
 
@@ -5787,7 +5802,9 @@ _installcert() {
     if [ -f "$_real_fullchain" ] && [ ! "$_ACME_IS_RENEW" ]; then
       cp "$_real_fullchain" "$_backup_path/fullchain.bak"
     fi
-    cat "$CERT_FULLCHAIN_PATH" >"$_real_fullchain" || return 1
+    if [ "$_real_fullchain" != "$CERT_FULLCHAIN_PATH" ]; then
+      cat "$CERT_FULLCHAIN_PATH" >"$_real_fullchain" || return 1
+    fi
   fi
 
   if [ "$_reload_cmd" ]; then
@@ -6035,6 +6052,8 @@ revoke() {
       if [ -z "$response" ]; then
         _info "Revoke success."
         rm -f "$CERT_PATH"
+        cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
+        cat "$CSR_PATH" >"$CSR_PATH.revoked"
         return 0
       else
         _err "Revoke error by domain key."
@@ -6051,6 +6070,8 @@ revoke() {
     if [ -z "$response" ]; then
       _info "Revoke success."
       rm -f "$CERT_PATH"
+      cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
+      cat "$CSR_PATH" >"$CSR_PATH.revoked"
       return 0
     else
       _err "Revoke error."

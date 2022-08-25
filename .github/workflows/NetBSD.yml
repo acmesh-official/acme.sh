@@ -1,27 +1,28 @@
-name: Solaris
+name: NetBSD
 on:
   push:
     branches:
       - '*'
     paths:
       - '*.sh'
-      - '.github/workflows/Solaris.yml'
+      - '.github/workflows/NetBSD.yml'
 
   pull_request:
     branches:
       - dev
     paths:
       - '*.sh'
-      - '.github/workflows/Solaris.yml'
-
-
+      - '.github/workflows/NetBSD.yml'
 
 concurrency: 
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+
+
+
 jobs:
-  Solaris:
+  NetBSD:
     strategy:
       matrix:
         include:
@@ -30,12 +31,6 @@ jobs:
            CA: ""
            CA_EMAIL: ""
            TEST_PREFERRED_CHAIN: (STAGING) Pretend Pear X1
-         - TEST_ACME_Server: "LetsEncrypt.org_test"
-           CA_ECDSA: ""
-           CA: ""
-           CA_EMAIL: ""
-           TEST_PREFERRED_CHAIN: (STAGING) Pretend Pear X1
-           ACME_USE_WGET: 1
          #- TEST_ACME_Server: "ZeroSSL.com"
          #  CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
          #  CA: "ZeroSSL RSA Domain Secure Site CA"
@@ -49,7 +44,6 @@ jobs:
       CA: ${{ matrix.CA }}
       CA_EMAIL: ${{ matrix.CA_EMAIL }}
       TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
-      ACME_USE_WGET: ${{ matrix.ACME_USE_WGET }}
     steps:
     - uses: actions/checkout@v2
     - uses: vmactions/cf-tunnel@v0.0.3
@@ -61,14 +55,18 @@ jobs:
       run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/solaris-vm@v0
+    - uses: vmactions/netbsd-vm@v0
       with:
-        envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN ACME_USE_WGET'
-        copyback: "false"
+        envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN'
         nat: |
           "8080": "80"
-        prepare: pkgutil -y -i socat curl wget
+        prepare: |
+          export PKG_PATH="http://cdn.NetBSD.org/pub/pkgsrc/packages/NetBSD/$(uname -p)/$(uname -r|cut -f '1 2' -d.)/All/"
+          pkg_add curl socat
+        usesh: true
+        copyback: false
         run: |
           cd ../acmetest \
           && ./letest.sh
+
 

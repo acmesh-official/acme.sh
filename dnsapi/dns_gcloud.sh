@@ -98,7 +98,7 @@ _dns_gcloud_remove_rrs() {
     --ttl="$ttl" \
     --type=TXT \
     --zone="$managedZone" \
-    --transaction-file="$tr"; then
+    --transaction-file="$tr" --; then
     _debug tr "$(cat "$tr")"
     rm -r "$trd"
     _err "_dns_gcloud_remove_rrs: failed to remove RRs"
@@ -113,7 +113,7 @@ _dns_gcloud_add_rrs() {
     --ttl="$ttl" \
     --type=TXT \
     --zone="$managedZone" \
-    --transaction-file="$tr"; then
+    --transaction-file="$tr" --; then
     _debug tr "$(cat "$tr")"
     rm -r "$trd"
     _err "_dns_gcloud_add_rrs: failed to add RRs"
