@@ -4,8 +4,6 @@
 #       Report Bugs here: https://github.com/Marvo2011/acme.sh/issues/1
 #	Last Edit: 17.02.2022
 
-DNS_CHALLENGE_PREFIX_ESCAPED="_acme-challenge\."
-
 dns_selfhost_add() {
   fulldomain=$1
   txt=$2
@@ -19,44 +17,48 @@ dns_selfhost_add() {
   SELFHOSTDNS_USERNAME="${SELFHOSTDNS_USERNAME:-$(_readaccountconf_mutable SELFHOSTDNS_USERNAME)}"
   SELFHOSTDNS_PASSWORD="${SELFHOSTDNS_PASSWORD:-$(_readaccountconf_mutable SELFHOSTDNS_PASSWORD)}"
   # These values are domain dependent, so read them from there
-  _getdeployconf SELFHOSTDNS_MAP
-  _getdeployconf SELFHOSTDNS_RID
-  _getdeployconf SELFHOSTDNS_RID2
-  _getdeployconf SELFHOSTDNS_LAST_SLOT
+  SELFHOSTDNS_MAP="${SELFHOSTDNS_MAP:-$(_readdomainconf SELFHOSTDNS_MAP)}"
+  # Selfhost api can't dynamically add TXT record,
+  # so we have to store the last used RID of the domain to support a second RID for wildcard domains
+  # (format: ';fulldomainA:lastRid;;fulldomainB:lastRid;...')
+  SELFHOSTDNS_MAP_LAST_USED_INTERNAL=$(_readdomainconf SELFHOSTDNS_MAP_LAST_USED_INTERNAL)
 
   if [ -z "${SELFHOSTDNS_USERNAME:-}" ] || [ -z "${SELFHOSTDNS_PASSWORD:-}" ]; then
     _err "SELFHOSTDNS_USERNAME and SELFHOSTDNS_PASSWORD must be set"
     return 1
   fi
 
-  if test -z "$SELFHOSTDNS_LAST_SLOT"; then
-    SELFHOSTDNS_LAST_SLOT=1
-  fi
-
-  # cut DNS_CHALLENGE_PREFIX_ESCAPED from fulldomain if present at the beginning of the string
-  lookupdomain=$(echo "$fulldomain" | sed "s/^$DNS_CHALLENGE_PREFIX_ESCAPED//")
-  _debug lookupdomain "$lookupdomain"
-
-  # get the RID for lookupdomain or fulldomain from SELFHOSTDNS_MAP
+  # get the domain entry from SELFHOSTDNS_MAP
   # only match full domains (at the beginning of the string or with a leading whitespace),
   # e.g. don't match mytest.example.com or sub.test.example.com for test.example.com
-  # replace the whole string with the RID (matching group 3) for assignment
   # if the domain is defined multiple times only the last occurance will be matched
-  rid=$(echo "$SELFHOSTDNS_MAP" | sed -E "s/(^|^.*[[:space:]])($lookupdomain:|$fulldomain:)([0-9][0-9]*)(.*)/\3/")
-
-  if test -z "$rid"; then
-    if [ $SELFHOSTDNS_LAST_SLOT = "2" ]; then
-      rid=$SELFHOSTDNS_RID
-      SELFHOSTDNS_LAST_SLOT=1
-    else
-      rid=$SELFHOSTDNS_RID2
-      SELFHOSTDNS_LAST_SLOT=2
-    fi
+  mapEntry=$(echo "$SELFHOSTDNS_MAP" | sed -n -E "s/(^|^.*[[:space:]])($fulldomain)(:[[:digit:]]+)([:]?[[:digit:]]*)(.*)/\2\3\4/p")
+  _debug2 mapEntry "$mapEntry"
+  if test -z "$mapEntry"; then
+    _err "SELFHOSTDNS_MAP must contain the fulldomain incl. prefix and at least one RID"
+    return 1
   fi
 
-  if test -z "$rid"; then
-    _err "SELFHOSTDNS_RID and SELFHOSTDNS_RID2, or SELFHOSTDNS_MAP must be set"
-    return 1
+  # get the RIDs from the map entry
+  rid1=$(echo "$mapEntry" | cut -d: -f2)
+  rid2=$(echo "$mapEntry" | cut -d: -f3)
+
+  # read last used rid domain
+  lastUsedRidForDomainEntry=$(echo "$SELFHOSTDNS_MAP_LAST_USED_INTERNAL" | sed -n -E "s/.*(;$fulldomain:[[:digit:]]+;).*/\1/p")
+  _debug2 lastUsedRidForDomainEntry "$lastUsedRidForDomainEntry"
+  lastUsedRidForDomain=$(echo "$lastUsedRidForDomainEntry" | tr -d ";" | cut -d: -f2)
+
+  rid="$rid1"
+  if [ "$lastUsedRidForDomain" = "$rid" ] && ! test -z "$rid2"; then
+    rid="$rid2"
+  fi
+
+  if ! test -z "$lastUsedRidForDomainEntry"; then
+    # replace last used rid entry for domain
+    SELFHOSTDNS_MAP_LAST_USED_INTERNAL=$(echo "$SELFHOSTDNS_MAP_LAST_USED_INTERNAL" | sed -n -E "s/$lastUsedRidForDomainEntry/;$fulldomain:$rid;/p")
+  else
+    # add last used rid entry for domain
+    SELFHOSTDNS_MAP_LAST_USED_INTERNAL="$SELFHOSTDNS_MAP_LAST_USED_INTERNAL"";$fulldomain:$rid;"
   fi
 
   _info "Trying to add $txt on selfhost for rid: $rid"
@@ -73,10 +75,8 @@ dns_selfhost_add() {
   _saveaccountconf_mutable SELFHOSTDNS_USERNAME "$SELFHOSTDNS_USERNAME"
   _saveaccountconf_mutable SELFHOSTDNS_PASSWORD "$SELFHOSTDNS_PASSWORD"
   # These values are domain dependent, so store them there
-  _savedeployconf SELFHOSTDNS_MAP "$SELFHOSTDNS_MAP"
-  _savedeployconf SELFHOSTDNS_RID "$SELFHOSTDNS_RID"
-  _savedeployconf SELFHOSTDNS_RID2 "$SELFHOSTDNS_RID2"
-  _savedeployconf SELFHOSTDNS_LAST_SLOT "$SELFHOSTDNS_LAST_SLOT"
+  _savedomainconf SELFHOSTDNS_MAP "$SELFHOSTDNS_MAP"
+  _savedomainconf SELFHOSTDNS_MAP_LAST_USED_INTERNAL "$SELFHOSTDNS_MAP_LAST_USED_INTERNAL"
 }
 
 dns_selfhost_rm() {
