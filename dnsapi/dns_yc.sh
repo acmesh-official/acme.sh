@@ -19,7 +19,7 @@ dns_yc_add() {
   YC_SA_Key_File_Path="${YC_SA_Key_File_Path:-$(_readaccountconf_mutable YC_SA_Key_File_Path)}"
 
   if [ "$YC_SA_Key_File_PEM_b64" ]; then
-    echo "$YC_SA_Key_File_PEM_b64" | _dbase64 > private.key
+    echo "$YC_SA_Key_File_PEM_b64" | _dbase64 >private.key
     YC_SA_Key_File="private.key"
     _savedomainconf YC_SA_Key_File_PEM_b64 "$YC_SA_Key_File_PEM_b64"
   else
@@ -155,7 +155,7 @@ _get_root() {
     if ! _yc_rest GET "zones/$YC_Zone_ID"; then
       return 1
     else
-      if echo "$response" | tr -d " " | grep \"id\":\"$YC_Zone_ID\" >/dev/null; then
+      if echo "$response" | tr -d " " | _egrep_o "\"id\":\"$YC_Zone_ID\"" >/dev/null; then
         _domain=$(echo "$response" | _egrep_o "\"zone\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | _head_n 1 | tr -d " ")
         if [ "$_domain" ]; then
           _cutlength=$((${#domain} - ${#_domain}))
@@ -238,16 +238,16 @@ _yc_rest() {
 _yc_login() {
   header=$(echo "{\"typ\":\"JWT\",\"alg\":\"PS256\",\"kid\":\"$YC_SA_Key_ID\"}" | _normalizeJson | _base64 | _url_replace)
   _debug header "$header"
-  
+
   _current_timestamp=$(_time)
-  _expire_timestamp=$(_math $_current_timestamp + 1200) # 20 minutes
+  _expire_timestamp=$(_math "$_current_timestamp" + 1200) # 20 minutes
   payload=$(echo "{\"iss\":\"$YC_SA_ID\",\"aud\":\"https://iam.api.cloud.yandex.net/iam/v1/tokens\",\"iat\":$_current_timestamp,\"exp\":$_expire_timestamp}" | _normalizeJson | _base64 | _url_replace)
   _debug payload "$payload"
 
   #signature=$(printf "%s.%s" "$header" "$payload" | ${ACME_OPENSSL_BIN:-openssl} dgst -sign "$YC_SA_Key_File -sha256 -sigopt rsa_padding_mode:pss -sigopt rsa_pss_saltlen:-1" | _base64 | _url_replace )
   _signature=$(printf "%s.%s" "$header" "$payload" | _sign "$YC_SA_Key_File" "sha256 -sigopt rsa_padding_mode:pss -sigopt rsa_pss_saltlen:-1" | _url_replace)
   _debug2 _signature "$_signature"
-  
+
   rm -rf "$YC_SA_Key_File"
 
   _jwt=$(printf "{\"jwt\": \"%s.%s.%s\"}" "$header" "$payload" "$_signature")
