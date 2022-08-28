@@ -53,6 +53,17 @@ dns_selfhost_add() {
     rid="$rid2"
   fi
 
+  _info "Trying to add $txt on selfhost for rid: $rid"
+
+  data="?username=$SELFHOSTDNS_USERNAME&password=$SELFHOSTDNS_PASSWORD&rid=$rid&content=$txt"
+  response="$(_get "$SELFHOSTDNS_UPDATE_URL$data")"
+
+  if ! echo "$response" | grep "200 OK" >/dev/null; then
+    _err "Invalid response of acme-dns for selfhost"
+    return 1
+  fi
+
+  # write last used rid domain
   newLastUsedRidForDomainEntry="$fulldomain:$rid"
   if ! test -z "$lastUsedRidForDomainEntry"; then
     # replace last used rid entry for domain
@@ -64,16 +75,6 @@ dns_selfhost_add() {
     else
       SELFHOSTDNS_MAP_LAST_USED_INTERNAL="$SELFHOSTDNS_MAP_LAST_USED_INTERNAL $newLastUsedRidForDomainEntry"
     fi
-  fi
-
-  _info "Trying to add $txt on selfhost for rid: $rid"
-
-  data="?username=$SELFHOSTDNS_USERNAME&password=$SELFHOSTDNS_PASSWORD&rid=$rid&content=$txt"
-  response="$(_get "$SELFHOSTDNS_UPDATE_URL$data")"
-
-  if ! echo "$response" | grep "200 OK" >/dev/null; then
-    _err "Invalid response of acme-dns for selfhost"
-    return 1
   fi
 
   # Now that we know the values are good, save them
