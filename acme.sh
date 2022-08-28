@@ -4396,7 +4396,7 @@ issue() {
     _debug "_saved_account_key_hash is not changed, skip register account."
   fi
 
-  if [ -f "$CSR_PATH" ] && [ ! -f "$CERT_KEY_PATH" ]; then
+  if [ -f "$CSR_PATH" ] && [ -f "$CERT_KEY_PATH" ] && [ ! "$Le_ForceNewDomainKey" = "1" ]; then
     _info "Signing from existing CSR."
   else
     # When renewing from an old version, the empty Le_Keylength means 2048.
