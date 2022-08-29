@@ -23,11 +23,12 @@ dns_kas_add() {
 
   _info "### -> Using DNS-01 All-inkl/Kasserver hook"
   _info "### -> Adding $_fulldomain DNS TXT entry on All-inkl/Kasserver"
-  _info "### -> Retriving Credential Token"
-  _get_credential_token
 
   _info "### -> Check and Save Props"
   _check_and_save
+
+  _info "### -> Retriving Credential Token"
+  _get_credential_token
 
   _info "### -> Checking Zone and Record_Name"
   _get_zone_and_record_name "$_fulldomain"
@@ -66,11 +67,12 @@ dns_kas_rm() {
   _info "### -> Using DNS-01 All-inkl/Kasserver hook"
   _info "### -> Cleaning up after All-inkl/Kasserver hook"
   _info "### -> Removing $_fulldomain DNS TXT entry on All-inkl/Kasserver"
-  _info "### -> Retriving Credential Token"
-  _get_credential_token
 
   _info "### -> Check and Save Props"
   _check_and_save
+
+  _info "### -> Retriving Credential Token"
+  _get_credential_token
 
   _info "### -> Checking Zone and Record_Name"
   _get_zone_and_record_name "$_fulldomain"
