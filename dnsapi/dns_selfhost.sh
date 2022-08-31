@@ -20,7 +20,7 @@ dns_selfhost_add() {
   SELFHOSTDNS_MAP="${SELFHOSTDNS_MAP:-$(_readdomainconf SELFHOSTDNS_MAP)}"
   # Selfhost api can't dynamically add TXT record,
   # so we have to store the last used RID of the domain to support a second RID for wildcard domains
-  # (format: ';fulldomainA:lastRid;;fulldomainB:lastRid;...')
+  # (format: 'fulldomainA:lastRid fulldomainB:lastRid ...')
   SELFHOSTDNS_MAP_LAST_USED_INTERNAL=$(_readdomainconf SELFHOSTDNS_MAP_LAST_USED_INTERNAL)
 
   if [ -z "${SELFHOSTDNS_USERNAME:-}" ] || [ -z "${SELFHOSTDNS_PASSWORD:-}" ]; then
@@ -44,21 +44,13 @@ dns_selfhost_add() {
   rid2=$(echo "$mapEntry" | cut -d: -f3)
 
   # read last used rid domain
-  lastUsedRidForDomainEntry=$(echo "$SELFHOSTDNS_MAP_LAST_USED_INTERNAL" | sed -n -E "s/.*(;$fulldomain:[[:digit:]]+;).*/\1/p")
+  lastUsedRidForDomainEntry=$(echo "$SELFHOSTDNS_MAP_LAST_USED_INTERNAL" | sed -n -E "s/(^|^.*[[:space:]])($fulldomain:[[:digit:]]+)(.*)/\2/p")
   _debug2 lastUsedRidForDomainEntry "$lastUsedRidForDomainEntry"
-  lastUsedRidForDomain=$(echo "$lastUsedRidForDomainEntry" | tr -d ";" | cut -d: -f2)
+  lastUsedRidForDomain=$(echo "$lastUsedRidForDomainEntry" | cut -d: -f2)
 
   rid="$rid1"
   if [ "$lastUsedRidForDomain" = "$rid" ] && ! test -z "$rid2"; then
     rid="$rid2"
-  fi
-
-  if ! test -z "$lastUsedRidForDomainEntry"; then
-    # replace last used rid entry for domain
-    SELFHOSTDNS_MAP_LAST_USED_INTERNAL=$(echo "$SELFHOSTDNS_MAP_LAST_USED_INTERNAL" | sed -n -E "s/$lastUsedRidForDomainEntry/;$fulldomain:$rid;/p")
-  else
-    # add last used rid entry for domain
-    SELFHOSTDNS_MAP_LAST_USED_INTERNAL="$SELFHOSTDNS_MAP_LAST_USED_INTERNAL"";$fulldomain:$rid;"
   fi
 
   _info "Trying to add $txt on selfhost for rid: $rid"
@@ -69,6 +61,20 @@ dns_selfhost_add() {
   if ! echo "$response" | grep "200 OK" >/dev/null; then
     _err "Invalid response of acme-dns for selfhost"
     return 1
+  fi
+
+  # write last used rid domain
+  newLastUsedRidForDomainEntry="$fulldomain:$rid"
+  if ! test -z "$lastUsedRidForDomainEntry"; then
+    # replace last used rid entry for domain
+    SELFHOSTDNS_MAP_LAST_USED_INTERNAL=$(echo "$SELFHOSTDNS_MAP_LAST_USED_INTERNAL" | sed -n -E "s/$lastUsedRidForDomainEntry/$newLastUsedRidForDomainEntry/p")
+  else
+    # add last used rid entry for domain
+    if test -z "$SELFHOSTDNS_MAP_LAST_USED_INTERNAL"; then
+      SELFHOSTDNS_MAP_LAST_USED_INTERNAL="$newLastUsedRidForDomainEntry"
+    else
+      SELFHOSTDNS_MAP_LAST_USED_INTERNAL="$SELFHOSTDNS_MAP_LAST_USED_INTERNAL $newLastUsedRidForDomainEntry"
+    fi
   fi
 
   # Now that we know the values are good, save them
