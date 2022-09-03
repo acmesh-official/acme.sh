@@ -81,9 +81,7 @@ jobs:
         if [ "${{ secrets.TokenName5}}" ] ; then
           echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> docker.env
         fi
-        echo "TEST_DNS_NO_WILDCARD" >> docker.env
-        echo "http_proxy" >> docker.env
-        echo "https_proxy" >> docker.env
+
     - name: Run acmetest
       run: cd ../acmetest && ./rundocker.sh  testall
 
