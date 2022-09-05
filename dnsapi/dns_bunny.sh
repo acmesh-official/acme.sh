@@ -240,8 +240,8 @@ _get_base_domain() {
 
   done
 
-  ## we went through the entire domain zone list and didn't find one that matched
-  ## doesnt look like we can add in the record
+  ## We went through the entire domain zone list and didn't find one that matched!
+  ## That's not right, throw an error...
   _err "domain not found in Bunny.net account, but we should never get here"
   return 1
 }
