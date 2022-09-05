@@ -194,6 +194,7 @@ _get_base_domain() {
     ## check response
     if [ "$?" != "0" ]; then
       _err "error in domain_list response: $domain_list"
+      found=""
       return 1
     fi
     _debug2 domain_list "$domain_list"
@@ -219,6 +220,7 @@ _get_base_domain() {
         _debug _domain_id "$_domain_id"
         _debug _domain "$_domain"
         _debug _sub_domain "$_sub_domain"
+        found=""
         return 0
       fi
       ## increment cut point $i
@@ -232,6 +234,7 @@ _get_base_domain() {
       hasnextpage="$(echo "$domain_list" | _egrep_o "\"HasMoreItems\"\s*:\s*true")"
       if [ -z "$hasnextpage" ]; then
         _err "no record and no nextpage in Bunny.net domain search"
+        found=""
         return 1
       fi
       _debug2 nextpage "$nextpage"
@@ -243,5 +246,6 @@ _get_base_domain() {
   ## We went through the entire domain zone list and didn't find one that matched!
   ## That's not right, throw an error...
   _err "domain not found in Bunny.net account, but we should never get here"
+  found=""
   return 1
 }
