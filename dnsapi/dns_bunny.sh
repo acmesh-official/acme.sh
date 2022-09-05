@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-## Will be called by acme.sh to add the txt record to your api system.
+## This will be called by acme.sh to add the TXT record to the Bunny.net API.
 ## returns 0 means success, otherwise error.
 
 ## Author: nosilver4u <nosilver4u at ewww.io>
