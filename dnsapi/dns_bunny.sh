@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
-## Will be called by acme.sh to add the TXT record to via the Bunny DNS API.
+## Will be called by acme.sh to add the TXT record via the Bunny DNS API.
 ## returns 0 means success, otherwise error.
 
 ## Author: nosilver4u <nosilver4u at ewww.io>
