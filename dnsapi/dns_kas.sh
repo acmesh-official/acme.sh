@@ -8,12 +8,12 @@
 #  - $KAS_Authtype (Kasserver API auth type. Default: plain)
 #  - $KAS_Authdata (Kasserver API auth data.)
 #
-# Author: squared GmbH <github@squaredgmbh.de>
+# Last update: squared GmbH <github@squaredgmbh.de>
 # Credits:
-# Inspired by dns_he.sh. Thanks a lot man!
-# Previous version by Martin Kammerlander, Phlegx Systems OG <martin.kammerlander@phlegx.com>
-# Previous update by Marc-Oliver Lange <git@die-lang.es>
-# KASAPI SOAP guideline by https://github.com/o1oo11oo/kasapi.sh
+# - dns_he.sh. Thanks a lot man!
+# - Martin Kammerlander, Phlegx Systems OG <martin.kammerlander@phlegx.com>
+# - Marc-Oliver Lange <git@die-lang.es>
+# - https://github.com/o1oo11oo/kasapi.sh
 ########################################################################
 KAS_Api_GET="$(_get "https://kasapi.kasserver.com/soap/wsdl/KasApi.wsdl")"
 KAS_Api="$(echo "$KAS_Api_GET" | tr -d ' ' | grep -i "<soap:addresslocation=" | sed "s/='/\n/g" | grep -i "http" | sed "s/'\/>//g")"
@@ -31,12 +31,12 @@ dns_kas_add() {
   _txtvalue=$2
 
   _info "[KAS] -> Using DNS-01 All-inkl/Kasserver hook"
+  _info "[KAS] -> Check and Save Props"
+  _check_and_save
+
   _info "[KAS] -> Adding $_fulldomain DNS TXT entry on all-inkl.com/Kasserver"
   _info "[KAS] -> Retriving Credential Token"
   _get_credential_token
-
-  _info "[KAS] -> Check and Save Props"
-  _check_and_save
 
   _info "[KAS] -> Checking Zone and Record_Name"
   _get_zone_and_record_name "$_fulldomain"
@@ -90,13 +90,13 @@ dns_kas_rm() {
   _txtvalue=$2
 
   _info "[KAS] -> Using DNS-01 All-inkl/Kasserver hook"
+  _info "[KAS] -> Check and Save Props"
+  _check_and_save
+
   _info "[KAS] -> Cleaning up after All-inkl/Kasserver hook"
   _info "[KAS] -> Removing $_fulldomain DNS TXT entry on All-inkl/Kasserver"
   _info "[KAS] -> Retriving Credential Token"
   _get_credential_token
-
-  _info "[KAS] -> Check and Save Props"
-  _check_and_save
 
   _info "[KAS] -> Checking Zone and Record_Name"
   _get_zone_and_record_name "$_fulldomain"
@@ -238,6 +238,15 @@ _get_credential_token() {
   export _H1="SOAPAction: urn:xmethodsKasApiAuthentication#KasAuth"
   response="$(_post "$data" "$KAS_Auth" "" "POST" "$contentType")"
   _debug2 "[KAS] -> Response" "$response"
+
+  if [ -z "$response" ]; then
+    _info "[KAS] -> Response was empty, please check manually."
+    return 1
+  elif _contains "$response" "<SOAP-ENV:Fault>"; then
+    faultstring="$(echo "$response" | tr -d '\n\r' | sed "s/<faultstring>/\n=> /g" | sed "s/<\/faultstring>/\n/g" | grep "=>" | sed "s/=> //g")"
+    _err "[KAS] -> Could not retrieve login token or antoher error =>$faultstring<= occurred, please check manually."
+    return 1
+  fi
 
   _credential_token="$(echo "$response" | tr '\n' ' ' | sed 's/.*return xsi:type="xsd:string">\(.*\)<\/return>/\1/' | sed 's/<\/ns1:KasAuthResponse\(.*\)Envelope>.*//')"
   _debug "[KAS] -> Credential Token: " "$_credential_token"
