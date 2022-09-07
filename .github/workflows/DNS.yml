@@ -236,7 +236,7 @@ jobs:
 
   OpenBSD:
     runs-on: macos-12
-    needs: Solaris
+    needs: FreeBSD
     env:
       TEST_DNS : ${{ secrets.TEST_DNS }}
       TestingDomain: ${{ secrets.TestingDomain }}
@@ -379,7 +379,7 @@ jobs:
 
   Solaris:
     runs-on: macos-12
-    needs: FreeBSD
+    needs: DragonFlyBSD
     env:
       TEST_DNS : ${{ secrets.TEST_DNS }}
       TestingDomain: ${{ secrets.TestingDomain }}
@@ -391,7 +391,7 @@ jobs:
       DEBUG: ${{ secrets.DEBUG }}
       http_proxy: ${{ secrets.http_proxy }}
       https_proxy: ${{ secrets.https_proxy }}
-      HTTPS_INSECURE: ${{ secrets.HTTPS_INSECURE }}
+      HTTPS_INSECURE: 1 # always set to 1 to ignore https error, sincc Solaris doesn't accept the expired ISRG X1 root
     steps:
     - uses: actions/checkout@v2
     - name: Clone acmetest
