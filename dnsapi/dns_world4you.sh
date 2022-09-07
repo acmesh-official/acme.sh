@@ -195,7 +195,7 @@ _get_paketnr() {
   fqdn="$1"
   form="$2"
 
-  domains=$(echo "$form" | grep 'header-paket-domain' | sed 's/<[^>]*>//g' | sed 's/^.*>\([^>]*\)$/\1/')
+  domains=$(echo "$form" | grep '<ul class="nav header-paket-list">' | sed 's/<li/\n<li/g' | sed 's/<[^>]*>/ /g' | sed 's/^.*>\([^>]*\)$/\1/')
   domain=''
   for domain in $domains; do
     if _contains "$fqdn" "$domain\$"; then
@@ -210,7 +210,7 @@ _get_paketnr() {
   TLD="$domain"
   _debug domain "$domain"
   RECORD=$(echo "$fqdn" | cut -c"1-$((${#fqdn} - ${#TLD} - 1))")
-  PAKETNR=$(echo "$form" | grep "data-textfilter=\".* $domain " | _tail_n 1 | sed "s|.*$WORLD4YOU_API/\\([0-9]*\\)/.*|\\1|")
+  PAKETNR=$(echo "$domains" | grep "$domain" | sed 's/^[^,]*, *\([0-9]*\).*$/\1/')
   return 0
 }
 
