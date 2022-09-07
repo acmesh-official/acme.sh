@@ -13,8 +13,8 @@ DNSServices_API=https://dns.services/api
 
 #Usage: dns_dnsservices_add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_dnsservices_add() {
-  fulldomain=$1
-  txtvalue=$2
+  fulldomain="$1"
+  txtvalue="$2"
 
   _info "Using dns.services to create ACME DNS challenge"
   _debug2 add_fulldomain "$fulldomain"
@@ -61,8 +61,8 @@ dns_dnsservices_add() {
 #Usage: fulldomain txtvalue
 #Description: Remove the txt record after validation.
 dns_dnsservices_rm() {
-  fulldomain=$1
-  txtvalue=$2
+  fulldomain="$1"
+  txtvalue="$2"
 
   _info "Using dns.services to remove DNS record $fulldomain TXT $txtvalue"
   _debug rm_fulldomain "$fulldomain"
@@ -117,36 +117,40 @@ _setup_headers() {
 }
 
 _get_root() {
-  domain=$1
+  domain="$1"
   _debug2 _get_root "Get the root domain of ${domain} for DNS API"
 
   # Setup _get() and _post() headers
   #_setup_headers
 
   result=$(_H1="$_H1" _H2="$_H2" _get "$DNSServices_API/dns")
+  result2="$(printf "%s\n" "$result" | tr '[' '\n' | grep '"name"')"
+  result3="$(printf "%s\n" "$result2" | tr '}' '\n' | grep '"name"' | sed "s,^\,,,g" | sed "s,$,},g")"
+  useResult=""
   _debug2 _get_root "Got the following root domain(s) $result"
   _debug2 _get_root "- JSON: $result"
 
-  if [ "$(echo "$result" | grep -c '"name"')" -gt "1" ]; then
+  if [ "$(printf "%s\n" "$result" | tr '}' '\n' | grep -c '"name"')" -gt "1" ]; then
     checkMultiZones="true"
     _debug2 _get_root "- multiple zones found"
   else
     checkMultiZones="false"
-
+    _debug2 _get_root "- single zone found"
   fi
 
   # Find/isolate the root zone to work with in createRecord() and deleteRecord()
   rootZone=""
   if [ "$checkMultiZones" = "true" ]; then
-    rootZone=$(for zone in $(echo "$result" | tr -d '\n' ' '); do
-      if [ "$(echo "$domain" | grep "$zone")" != "" ]; then
-        _debug2 _get_root "- trying to figure out if $zone is in $domain"
-        echo "$zone"
-        break
-      fi
-    done)
+    #rootZone=$(for x in $(printf "%s" "${result3}" | tr ',' '\n' | sed -n 's/.*"name":"\(.*\)",.*/\1/p'); do if [ "$(echo "$domain" | grep "$x")" != "" ]; then echo "$x"; fi; done)
+    rootZone=$(for x in $(printf "%s\n" "${result3}" | tr ',' '\n' | grep name | cut -d'"' -f4); do if [ "$(echo "$domain" | grep "$x")" != "" ]; then echo "$x"; fi; done)
+    if [ "$rootZone" != "" ]; then
+      _debug2 _rootZone "- root zone for $domain is $rootZone"
+    else
+      _err "Could not find root zone for $domain, is it correctly typed?"
+      return 1
+    fi
   else
-    rootZone=$(echo "$result" | _egrep_o '"name":"[^"]*' | cut -d'"' -f4)
+    rootZone=$(echo "$result" | tr '}' '\n' | _egrep_o '"name":"[^"]*' | cut -d'"' -f4)
     _debug2 _get_root "- only found 1 domain in API: $rootZone"
   fi
 
@@ -155,14 +159,18 @@ _get_root() {
     return 1
   fi
 
+  # Make sure we use the correct API zone data
+  useResult="$(printf "%s\n" "${result3}" tr ',' '\n' | grep "$rootZone")"
+  _debug2 _useResult "useResult=$useResult"
+
   # Setup variables used by other functions to communicate with DNS.Services API
-  #zoneInfo=$(echo "$result" | sed "s,\"zones,\n&,g" | grep zones | cut -d'[' -f2 | cut -d']' -f1 | tr '}' '\n' | grep "\"$rootZone\"")
-  zoneInfo=$(echo "$result" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"name":")([^"]*)"(.*)$,\2,g' | grep "\"$rootZone\"")
+  #zoneInfo=$(printf "%s\n" "$useResult" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"name":")([^"]*)"(.*)$,\2,g')
+  zoneInfo=$(printf "%s\n" "$useResult" | tr ',' '\n' | grep '"name"' | cut -d'"' -f4)
   rootZoneName="$rootZone"
-  subDomainName="$(echo "$domain" | sed "s,\.$rootZone,,g")"
-  subDomainNameClean="$(echo "$domain" | sed "s,_acme-challenge.,,g")"
-  rootZoneDomainID=$(echo "$result" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"domain_id":")([^"]*)"(.*)$,\2,g')
-  rootZoneServiceID=$(echo "$result" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"service_id":")([^"]*)"(.*)$,\2,g')
+  subDomainName="$(printf "%s\n" "$domain" | sed "s,\.$rootZone,,g")"
+  subDomainNameClean="$(printf "%s\n" "$domain" | sed "s,_acme-challenge.,,g")"
+  rootZoneDomainID=$(printf "%s\n" "$useResult" | tr ',' '\n' | grep domain_id | cut -d'"' -f4)
+  rootZoneServiceID=$(printf "%s\n" "$useResult" | tr ',' '\n' | grep service_id | cut -d'"' -f4)
 
   _debug2 _zoneInfo "Zone info from API  : $zoneInfo"
   _debug2 _get_root "Root zone name      : $rootZoneName"
@@ -175,12 +183,16 @@ _get_root() {
 }
 
 createRecord() {
-  fulldomain=$1
+  fulldomain="$1"
   txtvalue="$2"
 
   # Get root domain information - needed for DNS.Services API communication
   if [ -z "$rootZoneName" ] || [ -z "$rootZoneDomainID" ] || [ -z "$rootZoneServiceID" ]; then
     _get_root "$fulldomain"
+  fi
+  if [ -z "$rootZoneName" ] || [ -z "$rootZoneDomainID" ] || [ -z "$rootZoneServiceID" ]; then
+    _err "Something happend - could not get the API zone information"
+    return 1
   fi
 
   _debug2 createRecord "CNAME TXT value is: $txtvalue"
@@ -203,8 +215,8 @@ createRecord() {
 }
 
 deleteRecord() {
-  fulldomain=$1
-  txtvalue=$2
+  fulldomain="$1"
+  txtvalue="$2"
 
   _log deleteRecord "Deleting $fulldomain TXT $txtvalue record"
 
@@ -213,8 +225,10 @@ deleteRecord() {
   fi
 
   result="$(_H1="$_H1" _H2="$_H2" _get "$DNSServices_API/service/$rootZoneServiceID/dns/$rootZoneDomainID")"
-  recordInfo="$(echo "$result" | sed -e 's/:{/:{\n/g' -e 's/},/\n},\n/g' | grep "${txtvalue}")"
-  recordID="$(echo "$recordInfo" | sed -e 's/:{/:{\n/g' -e 's/},/\n},\n/g' | grep "${txtvalue}" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"id":")([^"]*)"(.*)$,\2,g')"
+  #recordInfo="$(echo "$result" | sed -e 's/:{/:{\n/g' -e 's/},/\n},\n/g' | grep "${txtvalue}")"
+  #recordID="$(echo "$recordInfo" | sed -e 's/:{/:{\n/g' -e 's/},/\n},\n/g' | grep "${txtvalue}" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"id":")([^"]*)"(.*)$,\2,g')"
+  recordID="$(printf "%s\n" "$result" | tr '}' '\n' | grep -- "$txtvalue" | tr ',' '\n' | grep '"id"' | cut -d'"' -f4)"
+  _debug2 _recordID "recordID used for deletion of record: $recordID"
 
   if [ -z "$recordID" ]; then
     _info "Record $fulldomain TXT $txtvalue not found or already deleted"
