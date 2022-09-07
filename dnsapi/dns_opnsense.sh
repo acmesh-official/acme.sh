@@ -137,7 +137,7 @@ _get_root() {
   domain=$1
   i=2
   p=1
-  if _opns_rest "GET" "/domain/searchDomain"; then
+  if _opns_rest "GET" "/domain/searchMasterDomain"; then
     _domain_response="$response"
   else
     return 1
