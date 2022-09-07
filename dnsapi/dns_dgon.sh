@@ -192,6 +192,7 @@ _get_base_domain() {
   ## get URL for the list of domains
   ## may get: "links":{"pages":{"last":".../v2/domains/DOM/records?page=2","next":".../v2/domains/DOM/records?page=2"}}
   DOMURL="https://api.digitalocean.com/v2/domains"
+  found=""
 
   ## while we dont have a matching domain we keep going
   while [ -z "$found" ]; do
