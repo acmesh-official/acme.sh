@@ -7442,17 +7442,17 @@ _process() {
       shift
       ;;
     --home)
-      LE_WORKING_DIR="$2"
+      export LE_WORKING_DIR="$2"
       shift
       ;;
     --cert-home | --certhome)
       _certhome="$2"
-      CERT_HOME="$_certhome"
+      export CERT_HOME="$_certhome"
       shift
       ;;
     --config-home)
       _confighome="$2"
-      LE_CONFIG_HOME="$_confighome"
+      export LE_CONFIG_HOME="$_confighome"
       shift
       ;;
     --useragent)
