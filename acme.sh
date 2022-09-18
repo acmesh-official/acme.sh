@@ -2579,7 +2579,7 @@ __initHome() {
       _script_home="$(dirname "$_script")"
       _debug "_script_home" "$_script_home"
       if [ -d "$_script_home" ]; then
-        _SCRIPT_HOME="$_script_home"
+        export _SCRIPT_HOME="$_script_home"
       else
         _err "It seems the script home is not correct:$_script_home"
       fi
@@ -6575,7 +6575,7 @@ install() {
   if [ "$_accountemail" ]; then
     _saveaccountconf "ACCOUNT_EMAIL" "$_accountemail"
   fi
-
+  _saveaccountconf "UPGRADE_HASH" "$(_getUpgradeHash)"
   _info OK
 }
 
@@ -6939,8 +6939,6 @@ installOnline() {
     chmod +x $PROJECT_ENTRY
     if ./$PROJECT_ENTRY --install "$@"; then
       _info "Install success!"
-      _initpath
-      _saveaccountconf "UPGRADE_HASH" "$(_getUpgradeHash)"
     fi
 
     cd ..
@@ -7460,17 +7458,17 @@ _process() {
       shift
       ;;
     --home)
-      LE_WORKING_DIR="$2"
+      export LE_WORKING_DIR="$2"
       shift
       ;;
     --cert-home | --certhome)
       _certhome="$2"
-      CERT_HOME="$_certhome"
+      export CERT_HOME="$_certhome"
       shift
       ;;
     --config-home)
       _confighome="$2"
-      LE_CONFIG_HOME="$_confighome"
+      export LE_CONFIG_HOME="$_confighome"
       shift
       ;;
     --useragent)
