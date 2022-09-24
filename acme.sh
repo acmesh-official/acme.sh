@@ -6,7 +6,11 @@ PROJECT_NAME="acme.sh"
 
 PROJECT_ENTRY="acme.sh"
 
-PROJECT="https://github.com/acmesh-official/$PROJECT_NAME"
+if ! curl -I --connect-timeout 1 -m 3 -s https://t.co > /dev/null ;then
+GHPROXY=https://ghproxy.com/
+fi
+
+PROJECT="${GHPROXY}https://github.com/acmesh-official/$PROJECT_NAME"
 
 DEFAULT_INSTALL_HOME="$HOME/.$PROJECT_NAME"
 
