@@ -4866,7 +4866,9 @@ $_authorizations_map"
           _on_issue_err "$_post_hook" "$vlist"
           return 1
         fi
-
+        if ! chmod a+r "$wellknown_path/$token"; then
+          _debug "chmod failed, but we just continue."
+        fi
         if [ ! "$usingApache" ]; then
           if webroot_owner=$(_stat "$_currentRoot"); then
             _debug "Changing owner/group of .well-known to $webroot_owner"
