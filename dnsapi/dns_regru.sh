@@ -91,16 +91,37 @@ _get_root() {
   _regru_rest POST "service/get_list" "username=${REGRU_API_Username}&password=${REGRU_API_Password}&output_format=xml&servtype=domain"
   domains_list=$(echo "${response}" | grep dname | sed -r "s/.*dname=\"([^\"]+)\".*/\\1/g")
 
+  if [ "$(_idn "${domain}")" != "${domain}" ]; then
+
+  _debug "OK! UTF domain!"
   for ITEM in ${domains_list}; do
-    IDN_ITEM=${ITEM}
     case "${domain}" in
-    *${IDN_ITEM}*)
-      _domain="$(_idn "${ITEM}")"
+    *${ITEM}*)
+      _domain=${ITEM}
       _debug _domain "${_domain}"
       return 0
       ;;
     esac
   done
+
+  else
+
+  _debug "OK! Idn domain!"
+
+  for ITEM in ${domains_list}; do
+    IDN_ITEM="$(_idn "${ITEM}")"
+    case "${domain}" in
+    *${IDN_ITEM}*)
+      _domain=${IDN_ITEM}
+      _debug _domain "${_domain}"
+      return 0
+      ;;
+    esac
+  done
+
+
+  fi
+
 
   return 1
 }
