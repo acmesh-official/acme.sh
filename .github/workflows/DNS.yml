@@ -11,6 +11,9 @@ on:
       - 'dnsapi/*.sh'
       - '.github/workflows/DNS.yml'
 
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   CheckToken:
@@ -53,7 +56,14 @@ jobs:
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
-      DEBUG: 1
+      DEBUG: ${{ secrets.DEBUG }}
+      http_proxy: ${{ secrets.http_proxy }}
+      https_proxy: ${{ secrets.https_proxy }}
+      TokenName1: ${{ secrets.TokenName1}}
+      TokenName2: ${{ secrets.TokenName2}}
+      TokenName3: ${{ secrets.TokenName3}}
+      TokenName4: ${{ secrets.TokenName4}}
+      TokenName5: ${{ secrets.TokenName5}}
     steps:
     - uses: actions/checkout@v2
     - name: Clone acmetest
@@ -76,10 +86,12 @@ jobs:
         if [ "${{ secrets.TokenName5}}" ] ; then
           echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> docker.env
         fi
-        echo "TEST_DNS_NO_WILDCARD" >> docker.env
-        echo "TEST_DNS_SLEEP" >> docker.env
+
     - name: Run acmetest
       run: cd ../acmetest && ./rundocker.sh  testall
+
+
+
 
   MacOS:
     runs-on: macos-latest
@@ -92,7 +104,14 @@ jobs:
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
-      DEBUG: 1
+      DEBUG: ${{ secrets.DEBUG }}
+      http_proxy: ${{ secrets.http_proxy }}
+      https_proxy: ${{ secrets.https_proxy }}
+      TokenName1: ${{ secrets.TokenName1}}
+      TokenName2: ${{ secrets.TokenName2}}
+      TokenName3: ${{ secrets.TokenName3}}
+      TokenName4: ${{ secrets.TokenName4}}
+      TokenName5: ${{ secrets.TokenName5}}
     steps:
     - uses: actions/checkout@v2
     - name: Install tools
@@ -119,6 +138,9 @@ jobs:
         cd ../acmetest
         ./letest.sh
 
+
+
+
   Windows:
     runs-on: windows-latest
     needs: MacOS
@@ -130,7 +152,14 @@ jobs:
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
-      DEBUG: 1
+      DEBUG: ${{ secrets.DEBUG }}
+      http_proxy: ${{ secrets.http_proxy }}
+      https_proxy: ${{ secrets.https_proxy }}
+      TokenName1: ${{ secrets.TokenName1}}
+      TokenName2: ${{ secrets.TokenName2}}
+      TokenName3: ${{ secrets.TokenName3}}
+      TokenName4: ${{ secrets.TokenName4}}
+      TokenName5: ${{ secrets.TokenName5}}
     steps:
     - name: Set git to use LF
       run: |
@@ -172,8 +201,10 @@ jobs:
         cd ../acmetest
         ./letest.sh
 
+
+
   FreeBSD:
-    runs-on: macos-10.15
+    runs-on: macos-12
     needs: Windows
     env:
       TEST_DNS : ${{ secrets.TEST_DNS }}
@@ -183,16 +214,24 @@ jobs:
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
-      DEBUG: 1
+      DEBUG: ${{ secrets.DEBUG }}
+      http_proxy: ${{ secrets.http_proxy }}
+      https_proxy: ${{ secrets.https_proxy }}
+      TokenName1: ${{ secrets.TokenName1}}
+      TokenName2: ${{ secrets.TokenName2}}
+      TokenName3: ${{ secrets.TokenName3}}
+      TokenName4: ${{ secrets.TokenName4}}
+      TokenName5: ${{ secrets.TokenName5}}
     steps:
     - uses: actions/checkout@v2
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/freebsd-vm@v0.1.4
+    - uses: vmactions/freebsd-vm@v0
       with:
-        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: pkg install -y socat curl
         usesh: true
+        copyback: false
         run: |
           if [ "${{ secrets.TokenName1}}" ] ; then
             export ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
@@ -212,8 +251,11 @@ jobs:
           cd ../acmetest
           ./letest.sh
 
-  Solaris:
-    runs-on: macos-10.15
+
+
+
+  OpenBSD:
+    runs-on: macos-12
     needs: FreeBSD
     env:
       TEST_DNS : ${{ secrets.TEST_DNS }}
@@ -223,14 +265,181 @@ jobs:
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
-      DEBUG: 1
+      DEBUG: ${{ secrets.DEBUG }}
+      http_proxy: ${{ secrets.http_proxy }}
+      https_proxy: ${{ secrets.https_proxy }}
+      TokenName1: ${{ secrets.TokenName1}}
+      TokenName2: ${{ secrets.TokenName2}}
+      TokenName3: ${{ secrets.TokenName3}}
+      TokenName4: ${{ secrets.TokenName4}}
+      TokenName5: ${{ secrets.TokenName5}}
     steps:
     - uses: actions/checkout@v2
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/solaris-vm@v0.0.5
+    - uses: vmactions/openbsd-vm@v0
       with:
-        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        prepare: pkg_add socat curl
+        usesh: true
+        copyback: false
+        run: |
+          if [ "${{ secrets.TokenName1}}" ] ; then
+            export ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
+          fi
+          if [ "${{ secrets.TokenName2}}" ] ; then
+            export ${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}
+          fi
+          if [ "${{ secrets.TokenName3}}" ] ; then
+            export ${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}
+          fi
+          if [ "${{ secrets.TokenName4}}" ] ; then
+            export ${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}
+          fi
+          if [ "${{ secrets.TokenName5}}" ] ; then
+            export ${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}
+          fi
+          cd ../acmetest
+          ./letest.sh
+
+
+
+
+  NetBSD:
+    runs-on: macos-12
+    needs: OpenBSD
+    env:
+      TEST_DNS : ${{ secrets.TEST_DNS }}
+      TestingDomain: ${{ secrets.TestingDomain }}
+      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
+      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      CASE: le_test_dnsapi
+      TEST_LOCAL: 1
+      DEBUG: ${{ secrets.DEBUG }}
+      http_proxy: ${{ secrets.http_proxy }}
+      https_proxy: ${{ secrets.https_proxy }}
+      TokenName1: ${{ secrets.TokenName1}}
+      TokenName2: ${{ secrets.TokenName2}}
+      TokenName3: ${{ secrets.TokenName3}}
+      TokenName4: ${{ secrets.TokenName4}}
+      TokenName5: ${{ secrets.TokenName5}}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - uses: vmactions/netbsd-vm@v0
+      with:
+        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        prepare: |
+          pkg_add curl socat
+        usesh: true
+        copyback: false
+        run: |
+          if [ "${{ secrets.TokenName1}}" ] ; then
+            export ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
+          fi
+          if [ "${{ secrets.TokenName2}}" ] ; then
+            export ${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}
+          fi
+          if [ "${{ secrets.TokenName3}}" ] ; then
+            export ${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}
+          fi
+          if [ "${{ secrets.TokenName4}}" ] ; then
+            export ${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}
+          fi
+          if [ "${{ secrets.TokenName5}}" ] ; then
+            export ${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}
+          fi
+          cd ../acmetest
+          ./letest.sh
+
+
+
+
+  DragonFlyBSD:
+    runs-on: macos-12
+    needs: NetBSD
+    env:
+      TEST_DNS : ${{ secrets.TEST_DNS }}
+      TestingDomain: ${{ secrets.TestingDomain }}
+      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
+      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      CASE: le_test_dnsapi
+      TEST_LOCAL: 1
+      DEBUG: ${{ secrets.DEBUG }}
+      http_proxy: ${{ secrets.http_proxy }}
+      https_proxy: ${{ secrets.https_proxy }}
+      TokenName1: ${{ secrets.TokenName1}}
+      TokenName2: ${{ secrets.TokenName2}}
+      TokenName3: ${{ secrets.TokenName3}}
+      TokenName4: ${{ secrets.TokenName4}}
+      TokenName5: ${{ secrets.TokenName5}}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - uses: vmactions/dragonflybsd-vm@v0
+      with:
+        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        prepare: |
+          pkg install -y curl socat
+        usesh: true
+        copyback: false
+        run: |
+          if [ "${{ secrets.TokenName1}}" ] ; then
+            export ${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}
+          fi
+          if [ "${{ secrets.TokenName2}}" ] ; then
+            export ${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}
+          fi
+          if [ "${{ secrets.TokenName3}}" ] ; then
+            export ${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}
+          fi
+          if [ "${{ secrets.TokenName4}}" ] ; then
+            export ${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}
+          fi
+          if [ "${{ secrets.TokenName5}}" ] ; then
+            export ${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}
+          fi
+          cd ../acmetest
+          ./letest.sh
+
+
+
+
+
+
+
+  Solaris:
+    runs-on: macos-12
+    needs: DragonFlyBSD
+    env:
+      TEST_DNS : ${{ secrets.TEST_DNS }}
+      TestingDomain: ${{ secrets.TestingDomain }}
+      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
+      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      CASE: le_test_dnsapi
+      TEST_LOCAL: 1
+      DEBUG: ${{ secrets.DEBUG }}
+      http_proxy: ${{ secrets.http_proxy }}
+      https_proxy: ${{ secrets.https_proxy }}
+      HTTPS_INSECURE: 1 # always set to 1 to ignore https error, since Solaris doesn't accept the expired ISRG X1 root
+      TokenName1: ${{ secrets.TokenName1}}
+      TokenName2: ${{ secrets.TokenName2}}
+      TokenName3: ${{ secrets.TokenName3}}
+      TokenName4: ${{ secrets.TokenName4}}
+      TokenName5: ${{ secrets.TokenName5}}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Clone acmetest
+      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - uses: vmactions/solaris-vm@v0
+      with:
+        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy HTTPS_INSECURE TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        copyback: false
         prepare: pkgutil -y -i socat
         run: |
           pkg set-mediator -v -I default@1.1 openssl
@@ -252,3 +461,5 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
+
+

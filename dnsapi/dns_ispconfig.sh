@@ -32,7 +32,11 @@ dns_ispconfig_rm() {
 ####################  Private functions below ##################################
 
 _ISPC_credentials() {
-  if [ -z "${ISPC_User}" ] || [ -z "$ISPC_Password" ] || [ -z "${ISPC_Api}" ] || [ -z "${ISPC_Api_Insecure}" ]; then
+  ISPC_User="${ISPC_User:-$(_readaccountconf_mutable ISPC_User)}"
+  ISPC_Password="${ISPC_Password:-$(_readaccountconf_mutable ISPC_Password)}"
+  ISPC_Api="${ISPC_Api:-$(_readaccountconf_mutable ISPC_Api)}"
+  ISPC_Api_Insecure="${ISPC_Api_Insecure:-$(_readaccountconf_mutable ISPC_Api_Insecure)}"
+  if [ -z "${ISPC_User}" ] || [ -z "${ISPC_Password}" ] || [ -z "${ISPC_Api}" ] || [ -z "${ISPC_Api_Insecure}" ]; then
     ISPC_User=""
     ISPC_Password=""
     ISPC_Api=""
@@ -40,10 +44,10 @@ _ISPC_credentials() {
     _err "You haven't specified the ISPConfig Login data, URL and whether you want check the ISPC SSL cert. Please try again."
     return 1
   else
-    _saveaccountconf ISPC_User "${ISPC_User}"
-    _saveaccountconf ISPC_Password "${ISPC_Password}"
-    _saveaccountconf ISPC_Api "${ISPC_Api}"
-    _saveaccountconf ISPC_Api_Insecure "${ISPC_Api_Insecure}"
+    _saveaccountconf_mutable ISPC_User "${ISPC_User}"
+    _saveaccountconf_mutable ISPC_Password "${ISPC_Password}"
+    _saveaccountconf_mutable ISPC_Api "${ISPC_Api}"
+    _saveaccountconf_mutable ISPC_Api_Insecure "${ISPC_Api_Insecure}"
     # Set whether curl should use secure or insecure mode
     export HTTPS_INSECURE="${ISPC_Api_Insecure}"
   fi

@@ -259,7 +259,7 @@ _set_namecheap_TXT() {
   _debug hosts "$hosts"
 
   if [ -z "$hosts" ]; then
-    _error "Hosts not found"
+    _err "Hosts not found"
     return 1
   fi
 
@@ -313,7 +313,7 @@ _del_namecheap_TXT() {
   _debug hosts "$hosts"
 
   if [ -z "$hosts" ]; then
-    _error "Hosts not found"
+    _err "Hosts not found"
     return 1
   fi
 

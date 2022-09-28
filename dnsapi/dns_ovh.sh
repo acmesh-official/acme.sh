@@ -92,7 +92,7 @@ _initAuth() {
 
   if [ "$OVH_AK" != "$(_readaccountconf OVH_AK)" ]; then
     _info "It seems that your ovh key is changed, let's clear consumer key first."
-    _clearaccountconf OVH_CK
+    _clearaccountconf_mutable OVH_CK
   fi
   _saveaccountconf_mutable OVH_AK "$OVH_AK"
   _saveaccountconf_mutable OVH_AS "$OVH_AS"
@@ -118,13 +118,14 @@ _initAuth() {
     #return and wait for retry.
     return 1
   fi
+  _saveaccountconf_mutable OVH_CK "$OVH_CK"
 
   _info "Checking authentication"
 
   if ! _ovh_rest GET "domain" || _contains "$response" "INVALID_CREDENTIAL" || _contains "$response" "NOT_CREDENTIAL"; then
     _err "The consumer key is invalid: $OVH_CK"
     _err "Please retry to create a new one."
-    _clearaccountconf OVH_CK
+    _clearaccountconf_mutable OVH_CK
     return 1
   fi
   _info "Consumer key is ok."
@@ -198,6 +199,8 @@ dns_ovh_rm() {
       if ! _ovh_rest DELETE "domain/zone/$_domain/record/$rid"; then
         return 1
       fi
+      _ovh_rest POST "domain/zone/$_domain/refresh"
+      _debug "Refresh:$response"
       return 0
     fi
   done
@@ -233,8 +236,7 @@ _ovh_authentication() {
   _secure_debug consumerKey "$consumerKey"
 
   OVH_CK="$consumerKey"
-  _saveaccountconf OVH_CK "$OVH_CK"
-
+  _saveaccountconf_mutable OVH_CK "$OVH_CK"
   _info "Please open this link to do authentication: $(__green "$validationUrl")"
 
   _info "Here is a guide for you: $(__green "$wiki")"

@@ -15,6 +15,12 @@ on:
       - '.github/workflows/Linux.yml'
 
 
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
+
 
 jobs:
   Linux:
@@ -25,6 +31,7 @@ jobs:
     env:
       TEST_LOCAL: 1
       TEST_PREFERRED_CHAIN: (STAGING) Pretend Pear X1
+      TEST_ACME_Server: "LetsEncrypt.org_test"
     steps:
     - uses: actions/checkout@v2
     - name: Clone acmetest
