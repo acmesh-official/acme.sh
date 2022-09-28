@@ -194,7 +194,7 @@ __cpanel_parse_response() {
         printf("%s%s=%s\n", prefix, $2, $3);
       }
     }' |
-    sed -En -e 's/^result\/data\/(main_domain|sub_domains\/-)=(.*)$/\2/p'
+    sed -En -e 's/^result\/data\/(main_domain|sub_domains\/-|addon_domains\/-)=(.*)$/\2/p'
 }
 
 # Load parameter by prefix+name - fallback to default if not set, and save to config
