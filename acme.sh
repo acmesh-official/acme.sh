@@ -6790,37 +6790,37 @@ Commands:
 Parameters:
   -d, --domain <domain.tld>         Specifies a domain, used to issue, renew or revoke etc.
   --challenge-alias <domain.tld>    The challenge domain alias for DNS alias mode.
-                                    See: $_DNS_ALIAS_WIKI
+                                      See: $_DNS_ALIAS_WIKI
 
   --domain-alias <domain.tld>       The domain alias for DNS alias mode.
-                                    See: $_DNS_ALIAS_WIKI
+                                      See: $_DNS_ALIAS_WIKI
 
   --preferred-chain <chain>         If the CA offers multiple certificate chains, prefer the chain with an issuer matching this Subject Common Name.
-                                    If no match, the default offered chain will be used. (default: empty)
-                                    See: $_PREFERRED_CHAIN_WIKI
+                                      If no match, the default offered chain will be used. (default: empty)
+                                      See: $_PREFERRED_CHAIN_WIKI
 
   --valid-to    <date-time>         Request the NotAfter field of the cert.
-                                    See: $_VALIDITY_WIKI
+                                      See: $_VALIDITY_WIKI
   --valid-from  <date-time>         Request the NotBefore field of the cert.
-                                    See: $_VALIDITY_WIKI
+                                      See: $_VALIDITY_WIKI
 
   -f, --force                       Force install, force cert renewal or override sudo restrictions.
   --staging, --test                 Use staging server, for testing.
   --debug [0|1|2|3]                 Output debug info. Defaults to 1 if argument is omitted.
   --output-insecure                 Output all the sensitive messages.
-                                    By default all the credentials/sensitive messages are hidden from the output/debug/log for security.
+                                      By default all the credentials/sensitive messages are hidden from the output/debug/log for security.
   -w, --webroot <directory>         Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
   --alpn                            Use standalone alpn mode.
   --stateless                       Use stateless mode.
-                                    See: $_STATELESS_WIKI
+                                      See: $_STATELESS_WIKI
 
   --apache                          Use apache mode.
   --dns [dns_hook]                  Use dns manual mode or dns api. Defaults to manual mode when argument is omitted.
-                                    See: $_DNS_API_WIKI
+                                      See: $_DNS_API_WIKI
 
   --dnssleep <seconds>              The time in seconds to wait for all the txt records to propagate in dns api mode.
-                                    It's not necessary to use this by default, $PROJECT_NAME polls dns status by DOH automatically.
+                                      It's not necessary to use this by default, $PROJECT_NAME polls dns status by DOH automatically.
   -k, --keylength <bits>            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521.
   -ak, --accountkeylength <bits>    Specifies the account key length: 2048, 3072, 4096
   --log [file]                      Specifies the log file. Defaults to \"$DEFAULT_LOG_FILE\" if argument is omitted.
@@ -6839,7 +6839,7 @@ Parameters:
   --reloadcmd <command>             Command to execute after issue/renew to reload the server.
 
   --server <server_uri>             ACME Directory Resource URI. (default: $DEFAULT_CA)
-                                    See: $_SERVER_WIKI
+                                      See: $_SERVER_WIKI
 
   --accountconf <file>              Specifies a customized account config file.
   --home <directory>                Specifies the home dir for $PROJECT_NAME.
@@ -6858,7 +6858,7 @@ Parameters:
   --ca-bundle <file>                Specifies the path to the CA certificate bundle to verify api server's certificate.
   --ca-path <directory>             Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --no-cron                         Only valid for '--install' command, which means: do not install the default cron job.
-                                    In this case, the certs will not be renewed automatically.
+                                      In this case, the certs will not be renewed automatically.
   --no-profile                      Only valid for '--install' command, which means: do not install aliases to user profile.
   --no-color                        Do not output color text.
   --force-color                     Force output of color text. Useful for non-interactive use with the aha tool for HTML E-Mails.
@@ -6876,20 +6876,20 @@ Parameters:
   --openssl-bin <file>              Specifies a custom openssl bin location.
   --use-wget                        Force to use wget, if you have both curl and wget installed.
   --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force use of dns manual mode.
-                                    See:  $_DNS_MANUAL_WIKI
+                                      See:  $_DNS_MANUAL_WIKI
 
   -b, --branch <branch>             Only valid for '--upgrade' command, specifies the branch name to upgrade to.
   --notify-level <0|1|2|3>          Set the notification level:  Default value is $NOTIFY_LEVEL_DEFAULT.
-                                    0: disabled, no notification will be sent.
-                                    1: send notifications only when there is an error.
-                                    2: send notifications when a cert is successfully renewed, or there is an error.
-                                    3: send notifications when a cert is skipped, renewed, or error.
+                                      0: disabled, no notification will be sent.
+                                      1: send notifications only when there is an error.
+                                      2: send notifications when a cert is successfully renewed, or there is an error.
+                                      3: send notifications when a cert is skipped, renewed, or error.
   --notify-mode <0|1>               Set notification mode. Default value is $NOTIFY_MODE_DEFAULT.
-                                    0: Bulk mode. Send all the domain's notifications in one message(mail).
-                                    1: Cert mode. Send a message for every single cert.
+                                      0: Bulk mode. Send all the domain's notifications in one message(mail).
+                                      1: Cert mode. Send a message for every single cert.
   --notify-hook <hookname>          Set the notify hook
   --revoke-reason <0-10>            The reason for revocation, can be used in conjunction with the '--revoke' command.
-                                    See: $_REVOKE_WIKI
+                                      See: $_REVOKE_WIKI
 
   --password <password>             Add a password to exported pfx file. Use with --to-pkcs12.
 
