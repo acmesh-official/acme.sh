@@ -140,7 +140,7 @@ _get_root() {
 
 _successful_update() {
   if (echo "$_result" | _egrep_o 'data":\[[^]]*]' | grep -q '"newserial":null'); then return 1; fi
-  return 1
+  return 0
 }
 
 _findentry() {
