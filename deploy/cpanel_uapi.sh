@@ -173,7 +173,7 @@ cpanel_uapi_deploy() {
 
 ########  Private functions #####################
 
-# Internal utility to process YML from UAPI - only looks at main_domain and sub_domains
+# Internal utility to process YML from UAPI - only looks at main_domain, sub_domains and addon domains
 #[response]
 __cpanel_parse_response() {
   if [ $# -gt 0 ]; then resp="$*"; else resp="$(cat)"; fi
