@@ -173,7 +173,7 @@ cpanel_uapi_deploy() {
 
 ########  Private functions #####################
 
-# Internal utility to process YML from UAPI - only looks at main_domain and sub_domains
+# Internal utility to process YML from UAPI - looks at main_domain, sub_domains, addon domains and parked domains
 #[response]
 __cpanel_parse_response() {
   if [ $# -gt 0 ]; then resp="$*"; else resp="$(cat)"; fi
@@ -194,7 +194,7 @@ __cpanel_parse_response() {
         printf("%s%s=%s\n", prefix, $2, $3);
       }
     }' |
-    sed -En -e 's/^result\/data\/(main_domain|sub_domains\/-|addon_domains\/-)=(.*)$/\2/p'
+    sed -En -e 's/^result\/data\/(main_domain|sub_domains\/-|addon_domains\/-|parked_domains\/-)=(.*)$/\2/p'
 }
 
 # Load parameter by prefix+name - fallback to default if not set, and save to config
