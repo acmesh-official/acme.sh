@@ -1999,7 +1999,13 @@ _post() {
     if [ "$_ret" != "0" ]; then
       _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret"
     fi
-    _sed_i "s/^ *//g" "$HTTP_HEADER"
+    if _contains "$_WGET" " -d "; then
+      # Demultiplex wget debug output
+      cat "$HTTP_HEADER" >&2
+      _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
+    fi
+    # remove leading whitespaces from header to match curl format
+    _sed_i 's/^  //g' "$HTTP_HEADER"
   else
     _ret="$?"
     _err "Neither curl nor wget is found, can not do $httpmethod."
@@ -2052,9 +2058,21 @@ _get() {
     fi
     _debug "_WGET" "$_WGET"
     if [ "$onlyheader" ]; then
-      $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1 | sed 's/^[ ]*//g'
+      _wget_out = "$($_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1)"
+      if _contains "$_WGET" " -d "; then
+        # Demultiplex wget debug output
+        echo "$_wget_out" >&2
+        echo "$_wget_out" | sed '/^[^ ][^ ]/d; /^ *$/d; s/^  //g' -
+      fi
     else
-      $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -O - "$url"
+      $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O - "$url" 2>"$HTTP_HEADER"
+      if _contains "$_WGET" " -d "; then
+        # Demultiplex wget debug output
+        cat "$HTTP_HEADER" >&2
+        _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
+      fi
+      # remove leading whitespaces from header to match curl format
+      _sed_i 's/^  //g' "$HTTP_HEADER"
     fi
     ret=$?
     if [ "$ret" = "8" ]; then
