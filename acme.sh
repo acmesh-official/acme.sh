@@ -1235,7 +1235,7 @@ _createcsr() {
   _debug2 csr "$csr"
   _debug2 csrconf "$csrconf"
 
-  printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\n\n" >"$csrconf"
+  printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\nextendedKeyUsage=serverAuth,clientAuth\n" >"$csrconf"
 
   if [ "$acmeValidationv1" ]; then
     domainlist="$(_idn "$domainlist")"
