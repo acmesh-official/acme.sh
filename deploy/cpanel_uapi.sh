@@ -79,7 +79,13 @@ cpanel_uapi_deploy() {
   # Auto mode
   if [ "$DEPLOY_CPANEL_AUTO_ENABLED" = "true" ]; then
     # call API for site config
-    _response=$(uapi DomainInfo list_domains)
+    if [ -n "$_uapi_user" ]; then
+      _response=$(uapi --user="$_uapi_user" DomainInfo list_domains)
+    else
+       _response=$(uapi DomainInfo list_domains)
+    fi
+
+   
     # exit if error in response
     if [ -z "$_response" ] || [ "${_response#*"$uapi_error_response"}" != "$_response" ]; then
       _err "Error in deploying certificate - cannot retrieve sitelist:"
