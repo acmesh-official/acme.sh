@@ -13,6 +13,13 @@ on:
       - '*.sh'
       - '.github/workflows/PebbleStrict.yml'
 
+
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
+
 jobs:
   PebbleStrict:
     runs-on: ubuntu-latest
@@ -41,8 +48,8 @@ jobs:
   PebbleStrict_IPCert:
     runs-on: ubuntu-latest
     env:
-      TestingDomain: 10.30.50.1
-      ACME_DIRECTORY: https://localhost:14000/dir
+      TestingDomain: 1.23.45.67
+      TEST_ACME_Server: https://localhost:14000/dir
       HTTPS_INSECURE: 1
       Le_HTTPPort: 5002
       Le_TLSPort: 5001
@@ -55,7 +62,10 @@ jobs:
     - name: Install tools
       run: sudo apt-get install -y socat
     - name: Run Pebble
-      run: cd .. && curl https://raw.githubusercontent.com/letsencrypt/pebble/master/docker-compose.yml >docker-compose.yml && docker-compose up -d
+      run: |
+        docker run --rm -itd --name=pebble \
+        -e PEBBLE_VA_ALWAYS_VALID=1 \
+        -p 14000:14000 -p 15000:15000   letsencrypt/pebble:latest pebble -config /test/config/pebble-config.json -strict
     - name: Clone acmetest
       run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest

@@ -14,6 +14,11 @@ on:
       - '*.sh'
       - '.github/workflows/Ubuntu.yml'
 
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
 
 jobs:
   Ubuntu:
@@ -25,6 +30,12 @@ jobs:
            CA: ""
            CA_EMAIL: ""
            TEST_PREFERRED_CHAIN: (STAGING) Pretend Pear X1
+         - TEST_ACME_Server: "LetsEncrypt.org_test"
+           CA_ECDSA: ""
+           CA: ""
+           CA_EMAIL: ""
+           TEST_PREFERRED_CHAIN: (STAGING) Pretend Pear X1
+           ACME_USE_WGET: 1
          - TEST_ACME_Server: "ZeroSSL.com"
            CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
            CA: "ZeroSSL RSA Domain Secure Site CA"
@@ -57,10 +68,11 @@ jobs:
       NO_REVOKE: ${{ matrix.NO_REVOKE }}
       TEST_IPCERT: ${{ matrix.TEST_IPCERT }}
       TestingDomain: ${{ matrix.TestingDomain }}
+      ACME_USE_WGET: ${{ matrix.ACME_USE_WGET }}
     steps:
     - uses: actions/checkout@v2
     - name: Install tools
-      run: sudo apt-get install -y socat
+      run: sudo apt-get install -y socat wget
     - name: Start StepCA
       if: ${{ matrix.TEST_ACME_Server=='https://localhost:9000/acme/acme/directory' }}
       run: |

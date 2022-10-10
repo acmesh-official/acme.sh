@@ -91,6 +91,7 @@ END_CERT="-----END CERTIFICATE-----"
 
 CONTENT_TYPE_JSON="application/jose+json"
 RENEW_SKIP=2
+CODE_DNS_MANUAL=3
 
 B64CONF_START="__ACME_BASE64__START_"
 B64CONF_END="__ACME_BASE64__END_"
@@ -436,21 +437,13 @@ _secure_debug3() {
 }
 
 _upper_case() {
-  if _is_solaris; then
-    tr '[:lower:]' '[:upper:]'
-  else
-    # shellcheck disable=SC2018,SC2019
-    tr 'a-z' 'A-Z'
-  fi
+  # shellcheck disable=SC2018,SC2019
+  tr '[a-z]' '[A-Z]'
 }
 
 _lower_case() {
-  if _is_solaris; then
-    tr '[:upper:]' '[:lower:]'
-  else
-    # shellcheck disable=SC2018,SC2019
-    tr 'A-Z' 'a-z'
-  fi
+  # shellcheck disable=SC2018,SC2019
+  tr '[A-Z]' '[a-z]'
 }
 
 _startswith() {
@@ -1193,7 +1186,7 @@ _createkey() {
 _is_idn() {
   _is_idn_d="$1"
   _debug2 _is_idn_d "$_is_idn_d"
-  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '0-9' | tr -d 'a-z' | tr -d 'A-Z' | tr -d '*.,-_')
+  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '[0-9]' | tr -d '[a-z]' | tr -d '[A-Z]' | tr -d '*.,-_')
   _debug2 _idn_temp "$_idn_temp"
   [ "$_idn_temp" ]
 }
@@ -1242,7 +1235,7 @@ _createcsr() {
   _debug2 csr "$csr"
   _debug2 csrconf "$csrconf"
 
-  printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\n\n" >"$csrconf"
+  printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\nextendedKeyUsage=serverAuth,clientAuth\n" >"$csrconf"
 
   if [ "$acmeValidationv1" ]; then
     domainlist="$(_idn "$domainlist")"
@@ -2006,7 +1999,13 @@ _post() {
     if [ "$_ret" != "0" ]; then
       _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret"
     fi
-    _sed_i "s/^ *//g" "$HTTP_HEADER"
+    if _contains "$_WGET" " -d "; then
+      # Demultiplex wget debug output
+      cat "$HTTP_HEADER" >&2
+      _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
+    fi
+    # remove leading whitespaces from header to match curl format
+    _sed_i 's/^  //g' "$HTTP_HEADER"
   else
     _ret="$?"
     _err "Neither curl nor wget is found, can not do $httpmethod."
@@ -2059,9 +2058,21 @@ _get() {
     fi
     _debug "_WGET" "$_WGET"
     if [ "$onlyheader" ]; then
-      $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1 | sed 's/^[ ]*//g'
+      _wget_out = "$($_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1)"
+      if _contains "$_WGET" " -d "; then
+        # Demultiplex wget debug output
+        echo "$_wget_out" >&2
+        echo "$_wget_out" | sed '/^[^ ][^ ]/d; /^ *$/d; s/^  //g' -
+      fi
     else
-      $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -O - "$url"
+      $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O - "$url" 2>"$HTTP_HEADER"
+      if _contains "$_WGET" " -d "; then
+        # Demultiplex wget debug output
+        cat "$HTTP_HEADER" >&2
+        _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
+      fi
+      # remove leading whitespaces from header to match curl format
+      _sed_i 's/^  //g' "$HTTP_HEADER"
     fi
     ret=$?
     if [ "$ret" = "8" ]; then
@@ -2568,7 +2579,7 @@ __initHome() {
       _script_home="$(dirname "$_script")"
       _debug "_script_home" "$_script_home"
       if [ -d "$_script_home" ]; then
-        _SCRIPT_HOME="$_script_home"
+        export _SCRIPT_HOME="$_script_home"
       else
         _err "It seems the script home is not correct:$_script_home"
       fi
@@ -4202,7 +4213,7 @@ _match_issuer() {
 _isIPv4() {
   for seg in $(echo "$1" | tr '.' ' '); do
     _debug2 seg "$seg"
-    if [ "$(echo "$seg" | tr -d [0-9])" ]; then
+    if [ "$(echo "$seg" | tr -d '[0-9]')" ]; then
       #not all number
       return 1
     fi
@@ -4762,7 +4773,9 @@ $_authorizations_map"
       _err "Please add the TXT records to the domains, and re-run with --renew."
       _on_issue_err "$_post_hook"
       _clearup
-      return 1
+      # If asked to be in manual DNS mode, flag this exit with a separate
+      # error so it can be distinguished from other failures.
+      return $CODE_DNS_MANUAL
     fi
 
   fi
@@ -4871,7 +4884,9 @@ $_authorizations_map"
           _on_issue_err "$_post_hook" "$vlist"
           return 1
         fi
-
+        if ! chmod a+r "$wellknown_path/$token"; then
+          _debug "chmod failed, but we just continue."
+        fi
         if [ ! "$usingApache" ]; then
           if webroot_owner=$(_stat "$_currentRoot"); then
             _debug "Changing owner/group of .well-known to $webroot_owner"
@@ -5205,11 +5220,25 @@ $_authorizations_map"
       _info "The domain is set to be valid to: $_valid_to"
       _info "It can not be renewed automatically"
       _info "See: $_VALIDITY_WIKI"
+    else
+      _now=$(_time)
+      _debug2 "_now" "$_now"
+      _lifetime=$(_math $Le_NextRenewTime - $_now)
+      _debug2 "_lifetime" "$_lifetime"
+      if [ $_lifetime -gt 86400 ]; then
+        #if lifetime is logner than one day, it will renew one day before
+        Le_NextRenewTime=$(_math $Le_NextRenewTime - 86400)
+        Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+      else
+        #if lifetime is less than 24 hours, it will renew one hour before
+        Le_NextRenewTime=$(_math $Le_NextRenewTime - 3600)
+        Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+      fi
     fi
   else
     Le_NextRenewTime=$(_math "$Le_CertCreateTime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
-    Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
     Le_NextRenewTime=$(_math "$Le_NextRenewTime" - 86400)
+    Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
   fi
   _savedomainconf "Le_NextRenewTimeStr" "$Le_NextRenewTimeStr"
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
@@ -5752,7 +5781,9 @@ _installcert() {
     if [ -f "$_real_cert" ] && [ ! "$_ACME_IS_RENEW" ]; then
       cp "$_real_cert" "$_backup_path/cert.bak"
     fi
-    cat "$CERT_PATH" >"$_real_cert" || return 1
+    if [ "$CERT_PATH" != "$_real_cert" ]; then
+      cat "$CERT_PATH" >"$_real_cert" || return 1
+    fi
   fi
 
   if [ "$_real_ca" ]; then
@@ -5764,7 +5795,9 @@ _installcert() {
       if [ -f "$_real_ca" ] && [ ! "$_ACME_IS_RENEW" ]; then
         cp "$_real_ca" "$_backup_path/ca.bak"
       fi
-      cat "$CA_CERT_PATH" >"$_real_ca" || return 1
+      if [ "$CA_CERT_PATH" != "$_real_ca" ]; then
+        cat "$CA_CERT_PATH" >"$_real_ca" || return 1
+      fi
     fi
   fi
 
@@ -5773,12 +5806,14 @@ _installcert() {
     if [ -f "$_real_key" ] && [ ! "$_ACME_IS_RENEW" ]; then
       cp "$_real_key" "$_backup_path/key.bak"
     fi
-    if [ -f "$_real_key" ]; then
-      cat "$CERT_KEY_PATH" >"$_real_key" || return 1
-    else
-      touch "$_real_key" || return 1
-      chmod 600 "$_real_key"
-      cat "$CERT_KEY_PATH" >"$_real_key" || return 1
+    if [ "$CERT_KEY_PATH" != "$_real_key" ]; then
+      if [ -f "$_real_key" ]; then
+        cat "$CERT_KEY_PATH" >"$_real_key" || return 1
+      else
+        touch "$_real_key" || return 1
+        chmod 600 "$_real_key"
+        cat "$CERT_KEY_PATH" >"$_real_key" || return 1
+      fi
     fi
   fi
 
@@ -5787,7 +5822,9 @@ _installcert() {
     if [ -f "$_real_fullchain" ] && [ ! "$_ACME_IS_RENEW" ]; then
       cp "$_real_fullchain" "$_backup_path/fullchain.bak"
     fi
-    cat "$CERT_FULLCHAIN_PATH" >"$_real_fullchain" || return 1
+    if [ "$_real_fullchain" != "$CERT_FULLCHAIN_PATH" ]; then
+      cat "$CERT_FULLCHAIN_PATH" >"$_real_fullchain" || return 1
+    fi
   fi
 
   if [ "$_reload_cmd" ]; then
@@ -6035,6 +6072,8 @@ revoke() {
       if [ -z "$response" ]; then
         _info "Revoke success."
         rm -f "$CERT_PATH"
+        cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
+        cat "$CSR_PATH" >"$CSR_PATH.revoked"
         return 0
       else
         _err "Revoke error by domain key."
@@ -6051,6 +6090,8 @@ revoke() {
     if [ -z "$response" ]; then
       _info "Revoke success."
       rm -f "$CERT_PATH"
+      cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
+      cat "$CSR_PATH" >"$CSR_PATH.revoked"
       return 0
     else
       _err "Revoke error."
@@ -6536,7 +6577,7 @@ install() {
   if [ "$_accountemail" ]; then
     _saveaccountconf "ACCOUNT_EMAIL" "$_accountemail"
   fi
-
+  _saveaccountconf "UPGRADE_HASH" "$(_getUpgradeHash)"
   _info OK
 }
 
@@ -6767,37 +6808,37 @@ Commands:
 Parameters:
   -d, --domain <domain.tld>         Specifies a domain, used to issue, renew or revoke etc.
   --challenge-alias <domain.tld>    The challenge domain alias for DNS alias mode.
-                                    See: $_DNS_ALIAS_WIKI
+                                      See: $_DNS_ALIAS_WIKI
 
   --domain-alias <domain.tld>       The domain alias for DNS alias mode.
-                                    See: $_DNS_ALIAS_WIKI
+                                      See: $_DNS_ALIAS_WIKI
 
   --preferred-chain <chain>         If the CA offers multiple certificate chains, prefer the chain with an issuer matching this Subject Common Name.
-                                    If no match, the default offered chain will be used. (default: empty)
-                                    See: $_PREFERRED_CHAIN_WIKI
+                                      If no match, the default offered chain will be used. (default: empty)
+                                      See: $_PREFERRED_CHAIN_WIKI
 
   --valid-to    <date-time>         Request the NotAfter field of the cert.
-                                    See: $_VALIDITY_WIKI
+                                      See: $_VALIDITY_WIKI
   --valid-from  <date-time>         Request the NotBefore field of the cert.
-                                    See: $_VALIDITY_WIKI
+                                      See: $_VALIDITY_WIKI
 
   -f, --force                       Force install, force cert renewal or override sudo restrictions.
   --staging, --test                 Use staging server, for testing.
   --debug [0|1|2|3]                 Output debug info. Defaults to 1 if argument is omitted.
   --output-insecure                 Output all the sensitive messages.
-                                    By default all the credentials/sensitive messages are hidden from the output/debug/log for security.
+                                      By default all the credentials/sensitive messages are hidden from the output/debug/log for security.
   -w, --webroot <directory>         Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
   --alpn                            Use standalone alpn mode.
   --stateless                       Use stateless mode.
-                                    See: $_STATELESS_WIKI
+                                      See: $_STATELESS_WIKI
 
   --apache                          Use apache mode.
   --dns [dns_hook]                  Use dns manual mode or dns api. Defaults to manual mode when argument is omitted.
-                                    See: $_DNS_API_WIKI
+                                      See: $_DNS_API_WIKI
 
   --dnssleep <seconds>              The time in seconds to wait for all the txt records to propagate in dns api mode.
-                                    It's not necessary to use this by default, $PROJECT_NAME polls dns status by DOH automatically.
+                                      It's not necessary to use this by default, $PROJECT_NAME polls dns status by DOH automatically.
   -k, --keylength <bits>            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521.
   -ak, --accountkeylength <bits>    Specifies the account key length: 2048, 3072, 4096
   --log [file]                      Specifies the log file. Defaults to \"$DEFAULT_LOG_FILE\" if argument is omitted.
@@ -6816,7 +6857,7 @@ Parameters:
   --reloadcmd <command>             Command to execute after issue/renew to reload the server.
 
   --server <server_uri>             ACME Directory Resource URI. (default: $DEFAULT_CA)
-                                    See: $_SERVER_WIKI
+                                      See: $_SERVER_WIKI
 
   --accountconf <file>              Specifies a customized account config file.
   --home <directory>                Specifies the home dir for $PROJECT_NAME.
@@ -6835,7 +6876,7 @@ Parameters:
   --ca-bundle <file>                Specifies the path to the CA certificate bundle to verify api server's certificate.
   --ca-path <directory>             Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --no-cron                         Only valid for '--install' command, which means: do not install the default cron job.
-                                    In this case, the certs will not be renewed automatically.
+                                      In this case, the certs will not be renewed automatically.
   --no-profile                      Only valid for '--install' command, which means: do not install aliases to user profile.
   --no-color                        Do not output color text.
   --force-color                     Force output of color text. Useful for non-interactive use with the aha tool for HTML E-Mails.
@@ -6853,20 +6894,20 @@ Parameters:
   --openssl-bin <file>              Specifies a custom openssl bin location.
   --use-wget                        Force to use wget, if you have both curl and wget installed.
   --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force use of dns manual mode.
-                                    See:  $_DNS_MANUAL_WIKI
+                                      See:  $_DNS_MANUAL_WIKI
 
   -b, --branch <branch>             Only valid for '--upgrade' command, specifies the branch name to upgrade to.
   --notify-level <0|1|2|3>          Set the notification level:  Default value is $NOTIFY_LEVEL_DEFAULT.
-                                    0: disabled, no notification will be sent.
-                                    1: send notifications only when there is an error.
-                                    2: send notifications when a cert is successfully renewed, or there is an error.
-                                    3: send notifications when a cert is skipped, renewed, or error.
+                                      0: disabled, no notification will be sent.
+                                      1: send notifications only when there is an error.
+                                      2: send notifications when a cert is successfully renewed, or there is an error.
+                                      3: send notifications when a cert is skipped, renewed, or error.
   --notify-mode <0|1>               Set notification mode. Default value is $NOTIFY_MODE_DEFAULT.
-                                    0: Bulk mode. Send all the domain's notifications in one message(mail).
-                                    1: Cert mode. Send a message for every single cert.
+                                      0: Bulk mode. Send all the domain's notifications in one message(mail).
+                                      1: Cert mode. Send a message for every single cert.
   --notify-hook <hookname>          Set the notify hook
   --revoke-reason <0-10>            The reason for revocation, can be used in conjunction with the '--revoke' command.
-                                    See: $_REVOKE_WIKI
+                                      See: $_REVOKE_WIKI
 
   --password <password>             Add a password to exported pfx file. Use with --to-pkcs12.
 
@@ -6900,8 +6941,6 @@ installOnline() {
     chmod +x $PROJECT_ENTRY
     if ./$PROJECT_ENTRY --install "$@"; then
       _info "Install success!"
-      _initpath
-      _saveaccountconf "UPGRADE_HASH" "$(_getUpgradeHash)"
     fi
 
     cd ..
@@ -7421,17 +7460,17 @@ _process() {
       shift
       ;;
     --home)
-      LE_WORKING_DIR="$2"
+      export LE_WORKING_DIR="$2"
       shift
       ;;
     --cert-home | --certhome)
       _certhome="$2"
-      CERT_HOME="$_certhome"
+      export CERT_HOME="$_certhome"
       shift
       ;;
     --config-home)
       _confighome="$2"
-      LE_CONFIG_HOME="$_confighome"
+      export LE_CONFIG_HOME="$_confighome"
       shift
       ;;
     --useragent)
