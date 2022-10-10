@@ -17,6 +17,7 @@ dns_azure_add() {
   AZUREDNS_SUBSCRIPTIONID="${AZUREDNS_SUBSCRIPTIONID:-$(_readaccountconf_mutable AZUREDNS_SUBSCRIPTIONID)}"
   if [ -z "$AZUREDNS_SUBSCRIPTIONID" ]; then
     AZUREDNS_SUBSCRIPTIONID=""
+    AZUREDNS_ENVIRONMENT=""
     AZUREDNS_TENANTID=""
     AZUREDNS_APPID=""
     AZUREDNS_CLIENTSECRET=""
@@ -31,14 +32,29 @@ dns_azure_add() {
     _info "Using Azure managed identity"
     #save managed identity as preferred authentication method, clear service principal credentials from conf file.
     _saveaccountconf_mutable AZUREDNS_MANAGEDIDENTITY "$AZUREDNS_MANAGEDIDENTITY"
+    _saveaccountconf_mutable AZUREDNS_ENVIRONMENT ""
     _saveaccountconf_mutable AZUREDNS_TENANTID ""
     _saveaccountconf_mutable AZUREDNS_APPID ""
     _saveaccountconf_mutable AZUREDNS_CLIENTSECRET ""
   else
     _info "You didn't ask to use Azure managed identity, checking service principal credentials"
+    AZUREDNS_ENVIRONMENT="${AZUREDNS_ENVIRONMENT:-$(_readaccountconf_mutable AZUREDNS_ENVIRONMENT)}"
     AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
     AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
     AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
+
+    if [ -z "$AZUREDNS_ENVIRONMENT" ]; then
+      AZUREDNS_ENVIRONMENT="AzureCloud"
+      _info "You didn't specify the Azure Environment; assuming AzureCloud for backwards compatibility"
+    fi
+
+    if [ "$AZUREDNS_ENVIRONMENT" != "AzureCloud" -a "$AZUREDNS_ENVIRONMENT" != "AzureUSGovernment" ]; then
+      AZUREDNS_SUBSCRIPTIONID=""
+      AZUREDNS_TENANTID=""
+      AZUREDNS_APPID=""
+      AZUREDNS_CLIENTSECRET=""
+      _err "($AZUREDNS_ENVIRONMENT): Unsupported environment for Azure DNS.  Supported Environments: [AzureCloud, AzureUSGovernment]"
+    fi
 
     if [ -z "$AZUREDNS_TENANTID" ]; then
       AZUREDNS_SUBSCRIPTIONID=""
@@ -69,14 +85,15 @@ dns_azure_add() {
 
     #save account details to account conf file, don't opt in for azure manages identity check.
     _saveaccountconf_mutable AZUREDNS_MANAGEDIDENTITY "false"
+    _saveaccountconf_mutable AZUREDNS_ENVIRONMENT "$AZUREDNS_ENVIRONMENT"
     _saveaccountconf_mutable AZUREDNS_TENANTID "$AZUREDNS_TENANTID"
     _saveaccountconf_mutable AZUREDNS_APPID "$AZUREDNS_APPID"
     _saveaccountconf_mutable AZUREDNS_CLIENTSECRET "$AZUREDNS_CLIENTSECRET"
   fi
 
-  accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
+  accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_ENVIRONMENT" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
 
-  if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
+  if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$AZUREDNS_ENVIRONMENT" "$accesstoken"; then
     _err "invalid domain"
     return 1
   fi
@@ -84,7 +101,14 @@ dns_azure_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  acmeRecordURI="https://management.azure.com$(printf '%s' "$_domain_id" | sed 's/\\//g')/TXT/$_sub_domain?api-version=2017-09-01"
+  if [ "$azureEnvironment" = "AzureUSGovernment" ]; then
+    active_directory_service_endpoint_resource_id="management.usgovcloudapi.net"
+  else
+    #assuming AzureCloud endpoints for backwards compatibility
+    active_directory_service_endpoint_resource_id="management.azure.com"
+  fi
+
+  acmeRecordURI="https://${active_directory_service_endpoint_resource_id}$(printf '%s' "$_domain_id" | sed 's/\\//g')/TXT/$_sub_domain?api-version=2017-09-01"
   _debug "$acmeRecordURI"
   # Get existing TXT record
   _azure_rest GET "$acmeRecordURI" "" "$accesstoken"
@@ -133,6 +157,7 @@ dns_azure_rm() {
   AZUREDNS_SUBSCRIPTIONID="${AZUREDNS_SUBSCRIPTIONID:-$(_readaccountconf_mutable AZUREDNS_SUBSCRIPTIONID)}"
   if [ -z "$AZUREDNS_SUBSCRIPTIONID" ]; then
     AZUREDNS_SUBSCRIPTIONID=""
+    AZUREDNS_ENVIRONMENT=""
     AZUREDNS_TENANTID=""
     AZUREDNS_APPID=""
     AZUREDNS_CLIENTSECRET=""
@@ -145,9 +170,23 @@ dns_azure_rm() {
     _info "Using Azure managed identity"
   else
     _info "You didn't ask to use Azure managed identity, checking service principal credentials"
+    AZUREDNS_ENVIRONMENT="${AZUREDNS_ENVIRONMENT:-$(_readaccountconf_mutable AZUREDNS_ENVIRONMENT)}"
     AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
     AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
     AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
+
+    if [ -z "$AZUREDNS_ENVIRONMENT" ]; then
+      AZUREDNS_ENVIRONMENT="AzureCloud"
+      _info "You didn't specify the Azure Environment; assuming AzureCloud for backwards compatibility"
+    fi
+
+    if [ "$AZUREDNS_ENVIRONMENT" != "AzureCloud" -a "$AZUREDNS_ENVIRONMENT" != "AzureUSGovernment" ]; then
+      AZUREDNS_SUBSCRIPTIONID=""
+      AZUREDNS_TENANTID=""
+      AZUREDNS_APPID=""
+      AZUREDNS_CLIENTSECRET=""
+      _err "($AZUREDNS_ENVIRONMENT): Unsupported environment for Azure DNS.  Supported Environments: [AzureCloud, AzureUSGovernment]"
+    fi
 
     if [ -z "$AZUREDNS_TENANTID" ]; then
       AZUREDNS_SUBSCRIPTIONID=""
@@ -177,9 +216,9 @@ dns_azure_rm() {
     fi
   fi
 
-  accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
+  accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_ENVIRONMENT" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
 
-  if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
+  if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$AZUREDNS_ENVIRONMENT" "$accesstoken"; then
     _err "invalid domain"
     return 1
   fi
@@ -187,7 +226,14 @@ dns_azure_rm() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  acmeRecordURI="https://management.azure.com$(printf '%s' "$_domain_id" | sed 's/\\//g')/TXT/$_sub_domain?api-version=2017-09-01"
+  if [ "$azureEnvironment" = "AzureUSGovernment" ]; then
+    active_directory_service_endpoint_resource_id="management.usgovcloudapi.net"
+  else
+    #assuming AzureCloud endpoints for backwards compatibility
+    active_directory_service_endpoint_resource_id="management.azure.com"
+  fi
+
+  acmeRecordURI="https://${active_directory_service_endpoint_resource_id}$(printf '%s' "$_domain_id" | sed 's/\\//g')/TXT/$_sub_domain?api-version=2017-09-01"
   _debug "$acmeRecordURI"
   # Get existing TXT record
   _azure_rest GET "$acmeRecordURI" "" "$accesstoken"
@@ -280,9 +326,10 @@ _azure_rest() {
 ## Ref: https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-protocols-oauth-service-to-service#request-an-access-token
 _azure_getaccess_token() {
   managedIdentity=$1
-  tenantID=$2
-  clientID=$3
-  clientSecret=$4
+  azureEnvironment=$2
+  tenantID=$3
+  clientID=$4
+  clientSecret=$5
 
   accesstoken="${AZUREDNS_BEARERTOKEN:-$(_readaccountconf_mutable AZUREDNS_BEARERTOKEN)}"
   expires_on="${AZUREDNS_TOKENVALIDTO:-$(_readaccountconf_mutable AZUREDNS_TOKENVALIDTO)}"
@@ -300,19 +347,30 @@ _azure_getaccess_token() {
   fi
   _debug "getting new bearer token"
 
+  if [ "$azureEnvironment" = "AzureUSGovernment" ]; then
+    active_directory_service_endpoint_resource_id="management.usgovcloudapi.net"
+    service_management_url="management.core.usgovcloudapi.net"
+    active_directory_authority="login.microsoftonline.us"
+  else
+    #assuming AzureCloud endpoints for backwards compatibility
+    active_directory_service_endpoint_resource_id="management.azure.com"
+    service_management_url="management.core.windows.net"
+    active_directory_authority="login.microsoftonline.com"
+  fi
+
   if [ "$managedIdentity" = true ]; then
     # https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/how-to-use-vm-token#get-a-token-using-http
     export _H1="Metadata: true"
-    response="$(_get http://169.254.169.254/metadata/identity/oauth2/token\?api-version=2018-02-01\&resource=https://management.azure.com/)"
+    response="$(_get http://169.254.169.254/metadata/identity/oauth2/token\?api-version=2018-02-01\&resource=https://${active_directory_service_endpoint_resource_id}/)"
     response="$(echo "$response" | _normalizeJson)"
     accesstoken=$(echo "$response" | _egrep_o "\"access_token\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
     expires_on=$(echo "$response" | _egrep_o "\"expires_on\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
   else
     export _H1="accept: application/json"
     export _H2="Content-Type: application/x-www-form-urlencoded"
-    body="resource=$(printf "%s" 'https://management.core.windows.net/' | _url_encode)&client_id=$(printf "%s" "$clientID" | _url_encode)&client_secret=$(printf "%s" "$clientSecret" | _url_encode)&grant_type=client_credentials"
+    body="resource=$(printf "%s" "https://${service_management_url}/" | _url_encode)&client_id=$(printf "%s" "$clientID" | _url_encode)&client_secret=$(printf "%s" "$clientSecret" | _url_encode)&grant_type=client_credentials"
     _secure_debug2 "data $body"
-    response="$(_post "$body" "https://login.microsoftonline.com/$tenantID/oauth2/token" "" "POST")"
+    response="$(_post "$body" "https://${active_directory_authority}/$tenantID/oauth2/token" "" "POST")"
     _ret="$?"
     _secure_debug2 "response $response"
     response="$(echo "$response" | _normalizeJson)"
@@ -337,16 +395,24 @@ _azure_getaccess_token() {
 _get_root() {
   domain=$1
   subscriptionId=$2
-  accesstoken=$3
+  azureEnvironment=$3
+  accesstoken=$4
   i=1
   p=1
+
+  if [ "$azureEnvironment" = "AzureUSGovernment" ]; then
+    active_directory_service_endpoint_resource_id="management.usgovcloudapi.net"
+  else
+    #assuming AzureCloud endpoints for backwards compatibility
+    active_directory_service_endpoint_resource_id="management.azure.com"
+  fi
 
   ## Ref: https://docs.microsoft.com/en-us/rest/api/dns/zones/list
   ## returns up to 100 zones in one response therefore handling more results is not not implemented
   ## (ZoneListResult with  continuation token for the next page of results)
   ## Per https://docs.microsoft.com/en-us/azure/azure-subscription-service-limits#dns-limits you are limited to 100 Zone/subscriptions anyways
   ##
-  _azure_rest GET "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Network/dnszones?\$top=500&api-version=2017-09-01" "" "$accesstoken"
+  _azure_rest GET "https://${active_directory_service_endpoint_resource_id}/subscriptions/$subscriptionId/providers/Microsoft.Network/dnszones?\$top=500&api-version=2017-09-01" "" "$accesstoken"
   # Find matching domain name in Json response
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
