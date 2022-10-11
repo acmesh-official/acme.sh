@@ -48,7 +48,7 @@ dns_azure_add() {
       _info "You didn't specify the Azure Environment; assuming AzureCloud for backwards compatibility"
     fi
 
-    if [ "$AZUREDNS_ENVIRONMENT" != "AzureCloud" -a "$AZUREDNS_ENVIRONMENT" != "AzureUSGovernment" ]; then
+    if [ "$AZUREDNS_ENVIRONMENT" != "AzureCloud" ] && [ "$AZUREDNS_ENVIRONMENT" != "AzureUSGovernment" ]; then
       AZUREDNS_SUBSCRIPTIONID=""
       AZUREDNS_TENANTID=""
       AZUREDNS_APPID=""
@@ -180,7 +180,7 @@ dns_azure_rm() {
       _info "You didn't specify the Azure Environment; assuming AzureCloud for backwards compatibility"
     fi
 
-    if [ "$AZUREDNS_ENVIRONMENT" != "AzureCloud" -a "$AZUREDNS_ENVIRONMENT" != "AzureUSGovernment" ]; then
+    if [ "$AZUREDNS_ENVIRONMENT" != "AzureCloud" ] && [ "$AZUREDNS_ENVIRONMENT" != "AzureUSGovernment" ]; then
       AZUREDNS_SUBSCRIPTIONID=""
       AZUREDNS_TENANTID=""
       AZUREDNS_APPID=""
