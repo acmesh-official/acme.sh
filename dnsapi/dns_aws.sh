@@ -44,12 +44,10 @@ dns_aws_add() {
     _saveaccountconf_mutable AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
   fi
 
-
   _saveaccountconf_mutable AWS_DNS_SLOWRATE "$AWS_DNS_SLOWRATE"
   _saveaccountconf_mutable AWS_ZONE_ID "$AWS_ZONE_ID"
 
-
-  if [ -n "$AWS_ZONE_ID" ] ; then
+  if [ -n "$AWS_ZONE_ID" ]; then
     _debug "Using hardcoded zone ID"
     _domain_id="/hostedzone/$AWS_ZONE_ID"
   else
@@ -114,7 +112,7 @@ dns_aws_rm() {
     _use_container_role || _use_instance_role
   fi
 
-  if [ -n "$AWS_ZONE_ID" ] ; then
+  if [ -n "$AWS_ZONE_ID" ]; then
     _debug "Using hardcoded zone ID"
     _domain_id="/hostedzone/${AWS_ZONE_ID}"
   else
@@ -165,7 +163,6 @@ dns_aws_rm() {
 _get_root() {
   domain=$1
   i=1
-  p=1
 
   # iterate over names (a.b.c.d -> b.c.d -> c.d -> d)
   while true; do
@@ -201,7 +198,6 @@ _get_root() {
       _debug "Checking domain: $h - Next Page "
       aws_rest GET "2013-04-01/hostedzone" "marker=$_nextMarker"
     done
-    p=$i
     i=$(_math "$i" + 1)
   done
   return 1
