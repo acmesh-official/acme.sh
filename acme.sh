@@ -2266,12 +2266,18 @@ _setopt() {
     if _contains "$__val" "&"; then
       __val="$(echo "$__val" | sed 's/&/\\&/g')"
     fi
+    if _contains "$__val" "|"; then
+      __val="$(echo "$__val" | sed 's/|/\\|/g')"
+    fi
     text="$(cat "$__conf")"
     printf -- "%s\n" "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
 
   elif grep -n "^#$__opt$__sep" "$__conf" >/dev/null; then
     if _contains "$__val" "&"; then
       __val="$(echo "$__val" | sed 's/&/\\&/g')"
+    fi
+    if _contains "$__val" "|"; then
+      __val="$(echo "$__val" | sed 's/|/\\|/g')"
     fi
     text="$(cat "$__conf")"
     printf -- "%s\n" "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
