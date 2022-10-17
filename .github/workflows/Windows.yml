@@ -69,7 +69,7 @@ jobs:
           echo "PATH=%PATH%"
     - name: Clone acmetest
       shell: cmd
-      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
       shell: cmd
       run: cd ../acmetest && bash.exe -c ./letest.sh
