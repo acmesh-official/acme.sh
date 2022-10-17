@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 # Gandi LiveDNS v5 API
-# http://doc.livedns.gandi.net/
+# https://doc.livedns.gandi.net/
 # currently under beta
 #
 # Requires GANDI API KEY set in GANDI_LIVEDNS_KEY set as environment variable
