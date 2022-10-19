@@ -10,9 +10,10 @@
 #
 # It requires following environment variables:
 #
-# CLIENT_ID - Connected App Client ID
-# CLIENT_SECRET - Connected App Client Secret
-# PRIVATE_SPACE_ID - Private Space ID where the TLS Context will be created
+# CH2_CLIENT_ID - Connected App Client ID
+# CH2_CLIENT_SECRET - Connected App Client Secret
+# ORGANIZATION_ID - Anypoint Platform Organization ID
+# CH2_PRIVATE_SPACE_ID - Private Space ID where the TLS Context will be created
 #
 #
 
