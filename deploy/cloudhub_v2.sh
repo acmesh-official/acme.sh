@@ -49,13 +49,13 @@ cloudhub_v2_deploy() {
   _getdeployconf CH2_CLIENT_SECRET
   _getdeployconf ORGANIZATION_ID
   _getdeployconf CH2_PRIVATE_SPACE_ID
-  
-  # Validate required env vars  
+
+  # Validate required env vars
   if [ -z "$CH2_CLIENT_ID" ]; then
     _err "Connected App CH2_CLIENT_ID not defined."
     return 1
   fi
-  
+
   if [ -z "$CH2_CLIENT_SECRET" ]; then
     _err "Connected App CH2_CLIENT_SECRET not defined."
     return 1
@@ -65,13 +65,13 @@ cloudhub_v2_deploy() {
     _err "ORGANIZATION_ID not defined."
     return 1
   fi
-  
+
   if [ -z "$CH2_PRIVATE_SPACE_ID" ]; then
     _err "CH2_PRIVATE_SPACE_ID not defined."
     return 1
   fi
 
-   # Set Anypoint Platform URL
+  # Set Anypoint Platform URL
   if [ -z "$ANYPOINT_URL" ]; then
     _debug "ANYPOINT_URL Not set, using default https://anypoint.mulesoft.com"
     ANYPOINT_URL="https://anypoint.mulesoft.com"
@@ -125,7 +125,7 @@ cloudhub_v2_deploy() {
     _info "Updating TLS-Context with name: $tls_context_name and id: $tls_context_id"
     cert_response="$(_cloudhub_rest "PATCH" "/runtimefabric/api/organizations/$ORGANIZATION_ID/privatespaces/$CH2_PRIVATE_SPACE_ID/tlsContexts/$tls_context_id" "$cert_data")"
   fi
-  
+
   _debug cert_response "$cert_response"
 
   _ret="$?"
@@ -134,7 +134,7 @@ cloudhub_v2_deploy() {
     _err "Error while creating/updating TLS-Context"
     return 1
   fi
-  
+
   _info "Certificate deployed!"
 }
 
@@ -147,26 +147,26 @@ _get_tls_context_id() {
 
   # Get Tls-Context
   tls_context_response="$(_cloudhub_rest "GET" "/runtimefabric/api/organizations/$ORGANIZATION_ID/privatespaces/$CH2_PRIVATE_SPACE_ID/tlsContexts" | _normalizeJson)"
-   _ret="$?"
+  _ret="$?"
 
   if [ "$_ret" != 0 ]; then
     return 1
   fi
 
   if _contains "$tls_context_response" "\"name\":\"$_domain\"" >/dev/null; then
-      tlscontext_list=$(echo "$tls_context_response" | _egrep_o "\"id\":\".*\",\"name\":\"$_domain\"")
+    tlscontext_list=$(echo "$tls_context_response" | _egrep_o "\"id\":\".*\",\"name\":\"$_domain\"")
 
-      if [ "$tlscontext_list" ]; then
-          regex_id=".*\"id\":\"\([-._0-9A-Za-z]*\)\".*$"
-          tls_context_id=$(echo "$tlscontext_list" | sed -n "s/$regex_id/\1/p")
-          if [ "$tls_context_id" ]; then
-              _debug "TLS-Context id: $tls_context_id found! The script will update it."
-              printf "%s" "$tls_context_id"
-              return 0
-          fi
-          _err "Can't extract TLS-Context id from: $tlscontext_list"
-          return 1
+    if [ "$tlscontext_list" ]; then
+      regex_id=".*\"id\":\"\([-._0-9A-Za-z]*\)\".*$"
+      tls_context_id=$(echo "$tlscontext_list" | sed -n "s/$regex_id/\1/p")
+      if [ "$tls_context_id" ]; then
+        _debug "TLS-Context id: $tls_context_id found! The script will update it."
+        printf "%s" "$tls_context_id"
+        return 0
       fi
+      _err "Can't extract TLS-Context id from: $tlscontext_list"
+      return 1
+    fi
   fi
 
   return 0
@@ -179,7 +179,7 @@ _cloudhub_rest() {
 
   # clear headers from previous request to avoid getting wrong http code
   : >"$HTTP_HEADER"
-  
+
   _debug data "$_data"
   if [ "$_method" != "GET" ]; then
     response="$(_post "$_data" "$ANYPOINT_URL""$_path" "" "$_method" "application/json")"
@@ -193,13 +193,13 @@ _cloudhub_rest() {
   _debug response "$response"
   _debug _ret "$_ret"
 
-  if [ "$_ret" = "0" ] && { [ "$http_code" -ge 200 ] && [ "$http_code" -le 299 ];}; then
+  if [ "$_ret" = "0" ] && { [ "$http_code" -ge 200 ] && [ "$http_code" -le 299 ]; }; then
     printf "%s" "$response"
     return 0
   else
     _err "Error sending request to $_path"
     _err "HTTP Status $http_code"
-    _err "Response $response" 
+    _err "Response $response"
     return 1
   fi
 }
