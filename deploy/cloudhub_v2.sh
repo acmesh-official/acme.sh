@@ -126,9 +126,8 @@ cloudhub_v2_deploy() {
     cert_response="$(_cloudhub_rest "PATCH" "/runtimefabric/api/organizations/$ORGANIZATION_ID/privatespaces/$CH2_PRIVATE_SPACE_ID/tlsContexts/$tls_context_id" "$cert_data")"
   fi
 
-  _debug cert_response "$cert_response"
-
   _ret="$?"
+  _debug cert_response "$cert_response"  
 
   if [ "$_ret" != 0 ]; then
     _err "Error while creating/updating TLS-Context"
@@ -191,7 +190,6 @@ _cloudhub_rest() {
   http_code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
   _debug "HTTP status $http_code"
   _debug response "$response"
-  _debug _ret "$_ret"
 
   if [ "$_ret" = "0" ] && { [ "$http_code" -ge 200 ] && [ "$http_code" -le 299 ]; }; then
     printf "%s" "$response"
