@@ -2257,11 +2257,17 @@ _setopt() {
   if [ ! -f "$__conf" ]; then
     touch "$__conf"
   fi
+  if [ -n "$(tail -c 1 <"$__conf")" ]; then
+    echo >>"$__conf"
+  fi
 
   if grep -n "^$__opt$__sep" "$__conf" >/dev/null; then
     _debug3 OK
     if _contains "$__val" "&"; then
       __val="$(echo "$__val" | sed 's/&/\\&/g')"
+    fi
+    if _contains "$__val" "|"; then
+      __val="$(echo "$__val" | sed 's/|/\\|/g')"
     fi
     text="$(cat "$__conf")"
     printf -- "%s\n" "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
@@ -2269,6 +2275,9 @@ _setopt() {
   elif grep -n "^#$__opt$__sep" "$__conf" >/dev/null; then
     if _contains "$__val" "&"; then
       __val="$(echo "$__val" | sed 's/&/\\&/g')"
+    fi
+    if _contains "$__val" "|"; then
+      __val="$(echo "$__val" | sed 's/|/\\|/g')"
     fi
     text="$(cat "$__conf")"
     printf -- "%s\n" "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
@@ -4414,6 +4423,7 @@ issue() {
     _debug "_saved_account_key_hash is not changed, skip register account."
   fi
 
+  export Le_Next_Domain_Key="$CERT_KEY_PATH.next"
   if [ -f "$CSR_PATH" ] && [ ! -f "$CERT_KEY_PATH" ]; then
     _info "Signing from existing CSR."
   else
@@ -4426,14 +4436,30 @@ issue() {
     fi
     _debug "Read key length:$_key"
     if [ ! -f "$CERT_KEY_PATH" ] || [ "$_key_length" != "$_key" ] || [ "$Le_ForceNewDomainKey" = "1" ]; then
-      if ! createDomainKey "$_main_domain" "$_key_length"; then
-        _err "Create domain key error."
-        _clearup
-        _on_issue_err "$_post_hook"
+      if [ "$Le_ForceNewDomainKey" = "1" ] && [ -f "$Le_Next_Domain_Key" ]; then
+        _info "Using pre generated key: $Le_Next_Domain_Key"
+        cat "$Le_Next_Domain_Key" >"$CERT_KEY_PATH"
+        echo "" >"$Le_Next_Domain_Key"
+      else
+        if ! createDomainKey "$_main_domain" "$_key_length"; then
+          _err "Create domain key error."
+          _clearup
+          _on_issue_err "$_post_hook"
+          return 1
+        fi
+      fi
+    fi
+    if [ "$Le_ForceNewDomainKey" ]; then
+      _info "Generate next pre-generate key."
+      if [ ! -e "$Le_Next_Domain_Key" ]; then
+        touch "$Le_Next_Domain_Key"
+        chmod 600 "$Le_Next_Domain_Key"
+      fi
+      if ! _createkey "$_key_length" "$Le_Next_Domain_Key"; then
+        _err "Can not pre generate domain key"
         return 1
       fi
     fi
-
     if ! _createcsr "$_main_domain" "$_alt_domains" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"; then
       _err "Create CSR error."
       _clearup
@@ -5169,6 +5195,9 @@ $_authorizations_map"
 
   [ -f "$CA_CERT_PATH" ] && _info "The intermediate CA cert is in: $(__green "$CA_CERT_PATH")"
   [ -f "$CERT_FULLCHAIN_PATH" ] && _info "And the full chain certs is there: $(__green "$CERT_FULLCHAIN_PATH")"
+  if [ "$Le_ForceNewDomainKey" ] && [ -e "$Le_Next_Domain_Key" ]; then
+    _info "Your pre-generated next key for future cert key change is in: $(__green "$Le_Next_Domain_Key")"
+  fi
 
   Le_CertCreateTime=$(_time)
   _savedomainconf "Le_CertCreateTime" "$Le_CertCreateTime"
@@ -5743,7 +5772,8 @@ installcert() {
   _savedomainconf "Le_RealKeyPath" "$_real_key"
   _savedomainconf "Le_ReloadCmd" "$_reload_cmd" "base64"
   _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
-
+  export Le_ForceNewDomainKey="$(_readdomainconf Le_ForceNewDomainKey)"
+  export Le_Next_Domain_Key
   _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"
 }
 
@@ -5835,6 +5865,8 @@ _installcert() {
       export CA_CERT_PATH
       export CERT_FULLCHAIN_PATH
       export Le_Domain="$_main_domain"
+      export Le_ForceNewDomainKey
+      export Le_Next_Domain_Key
       cd "$DOMAIN_PATH" && eval "$_reload_cmd"
     ); then
       _info "$(__green "Reload success")"
