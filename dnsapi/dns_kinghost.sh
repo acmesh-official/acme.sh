@@ -2,7 +2,7 @@
 
 ############################################################
 # KingHost API support                                     #
-# http://api.kinghost.net/doc/                             #
+# https://api.kinghost.net/doc/                             #
 #                                                          #
 # Author: Felipe Keller Braz <felipebraz@kinghost.com.br>  #
 # Report Bugs here: https://github.com/kinghost/acme.sh    #
