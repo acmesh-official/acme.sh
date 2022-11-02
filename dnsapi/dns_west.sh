@@ -3,9 +3,9 @@
 
 # This is the west.cn api v2.0 wrapper for acme.sh
 # Author: riubin@qq.com
-# Version: 0.0.1
+# Version: 0.0.2
 # Created: 2022-10-30
-# Updated: 2022-10-30
+# Updated: 2022-11-02
 #
 #     export DWEST_USERNAME="your username"
 #     export DWEST_PASSWORD="your api password not acount password"
@@ -37,38 +37,36 @@ dns_west_add() {
   _saveaccountconf_mutable DWEST_USERNAME "$DWEST_USERNAME"
   _saveaccountconf_mutable DWEST_PASSWORD "$DWEST_PASSWORD"
 
-  _domain=$(expr match "$fulldomain" '.*\.\(.*\..*\)')
-  _host=$(expr match "$fulldomain" '\(.*\)\..*\..*')
+  _domain=$(expr "$fulldomain" : ".*\.\(.*\..*\)")
+  _host=$(expr "$fulldomain" : '\(.*\)\..*\..*')
   _debug _domain "$_domain"
   _debug _host "$_host"
 
-  _dns_west_records "$_domain" "$_host"
-  if [ "$?" != "0" ]; then
+  
+  if ! _dns_west_records "$_domain" "$_host"; then
     return 1
   fi
   _debug _host_records "$_host_records"
 
   # if record type is not TXT,delete it
-  _none_txt_record_id=$(echo "$_host_records"| grep -v $'\t'TXT |cut -f1)
-  if [ -n "$_none_txt_record_id" ];then
-    _dns_west_post "domain=${_domain}&id=${_none_txt_record_id}" "/domain/?act=deldnsrecord"
-    if [ "$?" != "0" ]; then
+  _none_txt_record_id=$(echo "$_host_records" | grep -v "$(printf '\tTXT')" |cut -f1)
+  if [ -n "$_none_txt_record_id" ]; then
+    if ! _dns_west_post "domain=${_domain}&id=${_none_txt_record_id}" "/domain/?act=deldnsrecord"; then
       _err "Delete record error."
       return 1
     fi
   fi
   # will return ok when the txtvalue exists
-  _host_id=$(echo "$_host_records"| grep $'\t'"$txtvalue | cut -f1")
+  _host_id=$(echo "$_host_records" | grep "$(printf '\t')$txtvalue" | cut -f1)
   _debug _host_id "$_host_id"
 
-  if [ -n "$_host_id" ];then
+  if [ -n "$_host_id" ]; then
     _info "Already exists, OK"
     return 0
   fi
 
-  # will add txt record
-  _dns_west_post "domain=${_domain}&host=${_host}&type=TXT&value=${txtvalue}&ttl=60&level=10" "/domain/?act=adddnsrecord"
-  if [ "$?" != "0" ]; then
+  # will add txt record  
+  if ! _dns_west_post "domain=${_domain}&host=${_host}&type=TXT&value=${txtvalue}&ttl=60&level=10" "/domain/?act=adddnsrecord"; then
     _err "Add txt record error."
     return 1
   fi
@@ -86,13 +84,13 @@ dns_west_rm() {
   DWEST_USERNAME="${DWEST_USERNAME:-$(_readaccountconf_mutable DWEST_USERNAME)}"
   DWEST_PASSWORD="${DWEST_PASSWORD:-$(_readaccountconf_mutable DWEST_PASSWORD)}"
 
-  _domain=$(expr match "$fulldomain" '.*\.\(.*\..*\)')
-  _host=$(expr match "$fulldomain" '\(.*\)\..*\..*')
+  _domain=$(expr "$fulldomain" : ".*\.\(.*\..*\)")
+  _host=$(expr "$fulldomain" : "\(.*\)\..*\..*")
   _debug _domain "$_domain"
   _debug _host "$_host"
   # get domain records if the host already exists will return the host's id and value
-  _dns_west_records "$_domain" "$_host"
-  if [ "$?" != "0" ]; then
+  
+  if ! _dns_west_records "$_domain" "$_host"; then
     return 1
   fi
   _debug _host_records "$_host_records"
@@ -102,7 +100,7 @@ dns_west_rm() {
     return 0
   fi
 
-  _host_id=$(echo "$_host_records"| grep $'\t'"$txtvalue" | cut -f1)
+  _host_id=$(echo "$_host_records" | grep "$(printf '\t')$txtvalue" | cut -f1)
   _debug _host_id "$_host_id"
 
   if [ -z "$_host_id" ]; then
@@ -110,8 +108,8 @@ dns_west_rm() {
     return 0
   fi
 
-  _dns_west_post "domain=${_domain}&id=${_host_id}" "/domain/?act=deldnsrecord"
-  if [ "$?" != "0" ]; then
+  
+  if ! _dns_west_post "domain=${_domain}&id=${_host_id}" "/domain/?act=deldnsrecord"; then
     _err " Delete record error."
     return 1
   fi
@@ -133,12 +131,11 @@ _dns_west_records() {
   _host=$2
   _value=$3
   _dns_west_post "limit=100&domain=${_domain}" "/domain/?act=getdnsrecord"
-  _error=$(_dns_west_msg $response)
-  if [ "$?" != "0" ]; then
-    _err "error: " $_error
+  if ! _dns_west_msg "$response"; then
+    _err "error: " "$_error"
     return 1
   fi
-  _host_records=$(printf "%s" $response | sed 's/{/&\n/g'|grep "$_host" | sed -n 's/.*\"id\"\:\([0-9]*\).*\"value\"\:\"\([^\"]*\)\",\"type\":\"\([^\"]*\)\".*/\1\t\2\t\3/p')
+  _host_records=$(printf "%s" "$response" | sed 's/{/&\n/g'|grep "$_host" | sed -n 's/.*\"id\"\:\([0-9]*\).*\"value\"\:\"\([^\"]*\)\",\"type\":\"\([^\"]*\)\".*/\1\t\2\t\3/p')
   return 0
 }
 
@@ -148,22 +145,21 @@ _dns_west_records() {
 _dns_west_post() {
   body=$1
   ep=$2
-  _time_in_millisecond=$[$(date +%s%N)/1000000]
+  _time_in_millisecond=$(($(date +%s%N)/1000000))
 
-  _token=`printf "%s" $DWEST_USERNAME$DWEST_PASSWORD$_time_in_millisecond |md5sum|cut -d ' ' -f1`
-  _debug "create token" $_token
+  _token=$(printf "%s" "$DWEST_USERNAME$DWEST_PASSWORD$_time_in_millisecond" | md5sum |cut -d ' ' -f1)
+  _debug "create token" "$_token"
 
   _common_params="username=$DWEST_USERNAME&time=$_time_in_millisecond&token=$_token"
-  _debug "common params" $_common_params
+  _debug "common params" "$_common_params"
 
   _debug body "$body"
   _debug path "$ep"
   # west.cn api use gbk encode,so response must convert gbk to utf-8
   # post body didn't convert to gbk because the data content is english at all,so it don't need to convert
   response="$(_post "$_common_params&$body" "$DWEST_API_URL$ep" "" POST "application/x-www-form-urlencoded" | iconv -f GBK -t UTF-8)"
-  _error=$(_dns_west_msg $response)
-  if [ "$?" != "0" ]; then
-    _err "error $ep:" $_error
+  if ! _dns_west_msg "$response"; then
+    _err "error $ep" "$_error"
     return 1
   fi
   _debug2 response "$response"
@@ -174,10 +170,9 @@ _dns_west_post() {
 # returns:
 #  msg
 _dns_west_msg(){
-  _result=$(expr match "$1" '.*result\"\:\([0-9]*\)')
+  _result=$(expr "$1" : '.*result\"\:\([0-9]*\)')
   if [ "$_result" != "200" ]; then
-    _msg=$(printf "%s" $1 sed -n 's/.*msg\"\:\"\(\[^\"\]*\)\".*/\1/p')
-    printf "%s" "$_msg"
+    _error=$(printf "%s" "$1" sed -n 's/.*msg\"\:\"\(\[^\"\]*\)\".*/\1/p')
     return 1
   fi
   return 0
