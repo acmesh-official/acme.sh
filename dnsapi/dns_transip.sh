@@ -136,11 +136,6 @@ _transip_get_token() {
 _transip_setup() {
   fulldomain=$1
 
-  # for debug:
-  #_clearaccountconf_mutable TRANSIP_Username
-  #_clearaccountconf_mutable TRANSIP_Key_File
-  #_clearaccountconf_mutable TRANSIP_Key
-
   # retrieve the transip creds
   TRANSIP_Username="${TRANSIP_Username:-$(_readaccountconf_mutable TRANSIP_Username)}"
   TRANSIP_Key_File="${TRANSIP_Key_File:-$(_readaccountconf_mutable TRANSIP_Key_File)}"
