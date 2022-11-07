@@ -65,7 +65,7 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Set env file
@@ -113,7 +113,7 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install tools
       run:  brew install socat
     - name: Clone acmetest
@@ -164,7 +164,7 @@ jobs:
     - name: Set git to use LF
       run: |
           git config --global core.autocrlf false
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install cygwin base packages with chocolatey
       run: |
           choco config get cacheLocation
@@ -223,7 +223,7 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/freebsd-vm@v0
@@ -274,7 +274,7 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/openbsd-vm@v0
@@ -325,7 +325,7 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/netbsd-vm@v0
@@ -377,7 +377,7 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/dragonflybsd-vm@v0
@@ -433,7 +433,7 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/solaris-vm@v0
