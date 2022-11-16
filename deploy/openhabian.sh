@@ -6,7 +6,7 @@
 
 openhabian_deploy() {
 
-    # Name parameters
+    # Name parameters, load configs
     _cdomain="$1"
     _ckey="$2"
     _ccert="$3"
@@ -19,14 +19,26 @@ openhabian_deploy() {
     _debug _cca "$_cca"
     _debug _cfullchain "$_cfullchain"
 
-    # TODO: Load from config using _getdeployconf and print with _debug2
-    # Unclear if this is needed in this case.
+    _getdeployconf DEPLOY_UNIFI_KEYSTORE
+    _getdeployconf DEPLOY_OPENHABIAN_KEYPASS
+    _getdeployconf DEPLOY_OPENHABIAN_RESTART
+
+    _debug2 DEPLOY_UNIFI_KEYSTORE "$DEPLOY_UNIFI_KEYSTORE"
+    _debug2 DEPLOY_OPENHABIAN_KEYPASS "$DEPLOY_OPENHABIAN_KEYPASS"
+    _debug2 DEPLOY_OPENHABIAN_RESTART "$DEPLOY_OPENHABIAN_RESTART"
 
     # Define configurable options
-    _openhab_keystore=${DEPLOY_OPENHABIAN_KEYSTORE:-${OPENHAB_USERDATA}/etc/keystore}
+    _openhab_keystore="${DEPLOY_OPENHABIAN_KEYSTORE:-${OPENHAB_USERDATA}/etc/keystore}"
     _openhab_keypass="${DEPLOY_OPENHABIAN_KEYPASS:-openhab}"
+    _default_restart="sudo service openhab resart"
+    _openhab_restart="${DEPLOY_OPENHABIAN_RESTART:-$_default_restart}"
+
+    _debug _openhab_keystore "$_openhab_keystore"
+    _debug _openhab_keypass "$_openhab_keypass"
+    _debug _openhab_restart "$_openhab_restart"
 
     # Take a backup of the old keystore
+    _debug "Storing a backup of the existing keystore at ${_openhab_keystore}.bak"
     cp "${_openhab_keystore}" "${_openhab_keystore}.bak"
 
     # Verify Dependencies/PreReqs
@@ -63,7 +75,7 @@ openhabian_deploy() {
         -alias mykey \
         -deststorepass "$_openhab_keypass" \
         -keystore "$_openhab_keystore"; then
-        _debug "Successfully deleted old key"
+        _info "Successfully deleted old key"
     else
         _err "Error deleting old key"
         _err "Please re-run with --debug and report a bug."
@@ -81,7 +93,7 @@ openhabian_deploy() {
         -deststoretype jks \
         -deststorepass "$_openhab_keypass" \
         -destalias mykey; then
-        _debug "Successfully imported key"
+        _info "Successfully imported new key"
     else
         _err "Failure when importing key"
         _err "Please re-run with --debug and report a bug."
@@ -89,9 +101,19 @@ openhabian_deploy() {
         return 1
     fi
 
-    # TODO: Reload/restart openhab to pick up new key
-    # Unifi script passes a reload cmd to handle reloading.
-    # Consider also stopping openhab before touching the keystore
+    # Reload openhab service
+    if eval "$_openhab_restart"; then
+        _info "Restarted opehnab"
+    else
+        _err "Failed to restart openhab, please restart openhab manually."
+        _err "The new key has been installed, but openhab may not use it until restarted"
+        _err "To prevent this error, override the restart command with DEPLOY_OPENHABIAN_RESTART \
+            and ensure it can be called by the acme.sh user"
+    fi
+
+    _savedeployconf DEPLOY_OPENHABIAN_KEYSTORE "$DEPLOY_OPENHABIAN_KEYSTORE"
+    _savedeployconf DEPLOY_OPENHABIAN_KEYPASS "$DEPLOY_OPENHABIAN_KEYPASS"
+    _savedeployconf DEPLOY_OPENHABIAN_RESTART "$DEPLOY_OPENHABIAN_RESTART"
 
     rm "$_new_pkcs12"
 }
