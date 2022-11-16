@@ -1,21 +1,21 @@
 #!/usr/bin/env sh
 
-# Deploy script to install keys to the openhab keystore
+# Deploy script to install keys to the openHAB keystore
 
-# This script attempts to restart the openhab service upon completion.
+# This script attempts to restart the openHAB service upon completion.
 # In order for this to work, the user running acme.sh needs to be able 
 # to execute the DEPLOY_OPENHABIAN_RESTART command 
 # (default: sudo service openhab restart) without needing a password prompt.
 # To ensure this deployment runs properly ensure permissions are configured
 # correctly, or change the command variable as needed.
 
-# Configutation options:
-# DEPLOY_OPENHABIAN_KEYPASS : The default should be appropriate here for most cases,
-#                             but change this to change the password used for the keystore.
-# DEPLOY_OPENHABIAN_KEYSTORE : The full path of the openhab keystore file. This will 
+# Configuration options:
+# DEPLOY_OPENHABIAN_KEYPASS :  The default should be appropriate here for most cases,
+#                              but change this to change the password used for the keystore.
+# DEPLOY_OPENHABIAN_KEYSTORE : The full path of the openHAB keystore file. This will 
 #                              default to a path based on the $OPENHAB_USERDATA directory. 
-#                              This should generate based on existing openhab env vars.
-# DEPLOY_OPENHABIAN_RESTART : The command used to restart openhab
+#                              This should generate based on existing openHAB env vars.
+# DEPLOY_OPENHABIAN_RESTART :  The command used to restart openHAB
 
 openhabian_deploy() {
 
@@ -32,11 +32,11 @@ openhabian_deploy() {
     _debug _cca "$_cca"
     _debug _cfullchain "$_cfullchain"
 
-    _getdeployconf DEPLOY_UNIFI_KEYSTORE
+    _getdeployconf DEPLOY_OPENHABIAN_KEYSTORE
     _getdeployconf DEPLOY_OPENHABIAN_KEYPASS
     _getdeployconf DEPLOY_OPENHABIAN_RESTART
 
-    _debug2 DEPLOY_UNIFI_KEYSTORE "$DEPLOY_UNIFI_KEYSTORE"
+    _debug2 DEPLOY_OPENHABIAN_KEYSTORE "$DEPLOY_OPENHABIAN_KEYSTORE"
     _debug2 DEPLOY_OPENHABIAN_KEYPASS "$DEPLOY_OPENHABIAN_KEYPASS"
     _debug2 DEPLOY_OPENHABIAN_RESTART "$DEPLOY_OPENHABIAN_RESTART"
 
@@ -50,11 +50,7 @@ openhabian_deploy() {
     _debug _openhab_keypass "$_openhab_keypass"
     _debug _openhab_restart "$_openhab_restart"
 
-    # Take a backup of the old keystore
-    _debug "Storing a backup of the existing keystore at ${_openhab_keystore}.bak"
-    cp "${_openhab_keystore}" "${_openhab_keystore}.bak"
-
-    # Verify Dependencies/PreReqs
+    # Verify Dependencies
     if ! _exists keytool; then
         _err "keytool not found, please install keytool"
         return 1
@@ -63,6 +59,10 @@ openhabian_deploy() {
         _err "The file $_openhab_keystore is not writable, please change the permission."
         return 1
     fi
+
+    # Take a backup of the old keystore
+    _debug "Storing a backup of the existing keystore at ${_openhab_keystore}.bak"
+    cp "${_openhab_keystore}" "${_openhab_keystore}.bak"
 
     # Generate PKCS12 keystore
     _new_pkcs12="$(_mktemp)"
@@ -83,7 +83,7 @@ openhabian_deploy() {
         return 1
     fi
 
-    # Remove old cert from existing keychain
+    # Remove old cert from existing store
     if keytool -delete \
         -alias mykey \
         -deststorepass "$_openhab_keypass" \
@@ -96,7 +96,7 @@ openhabian_deploy() {
         return 1
     fi
 
-    # Add new certificate to keychain
+    # Add new certificate to store
     if keytool -importkeystore \
         -srckeystore "$_new_pkcs12" \
         -srcstoretype PKCS12 \
@@ -114,12 +114,12 @@ openhabian_deploy() {
         return 1
     fi
 
-    # Reload openhab service
+    # Reload openHAB service
     if eval "$_openhab_restart"; then
-        _info "Restarted opehnab"
+        _info "Restarted openhab"
     else
-        _err "Failed to restart openhab, please restart openhab manually."
-        _err "The new key has been installed, but openhab may not use it until restarted"
+        _err "Failed to restart openHAB, please restart openHAB manually."
+        _err "The new key has been installed, but openHAB may not use it until restarted"
         _err "To prevent this error, override the restart command with DEPLOY_OPENHABIAN_RESTART \
             and ensure it can be called by the acme.sh user"
         return 1
@@ -131,3 +131,9 @@ openhabian_deploy() {
 
     rm "$_new_pkcs12"
 }
+
+# Credits:
+# This solution was heavily informed by a few existing scripts:
+# - https://gist.github.com/jpmens/8029383
+# - https://github.com/matsahm/openhab_change_ssl/blob/bd46986581631319606ae4c594d4ed774a67cd39/openhab_change_ssl
+# Thank you!
