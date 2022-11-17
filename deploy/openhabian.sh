@@ -3,8 +3,8 @@
 # Deploy script to install keys to the openHAB keystore
 
 # This script attempts to restart the openHAB service upon completion.
-# In order for this to work, the user running acme.sh needs to be able 
-# to execute the DEPLOY_OPENHABIAN_RESTART command 
+# In order for this to work, the user running acme.sh needs to be able
+# to execute the DEPLOY_OPENHABIAN_RESTART command
 # (default: sudo service openhab restart) without needing a password prompt.
 # To ensure this deployment runs properly ensure permissions are configured
 # correctly, or change the command variable as needed.
@@ -12,8 +12,8 @@
 # Configuration options:
 # DEPLOY_OPENHABIAN_KEYPASS :  The default should be appropriate here for most cases,
 #                              but change this to change the password used for the keystore.
-# DEPLOY_OPENHABIAN_KEYSTORE : The full path of the openHAB keystore file. This will 
-#                              default to a path based on the $OPENHAB_USERDATA directory. 
+# DEPLOY_OPENHABIAN_KEYSTORE : The full path of the openHAB keystore file. This will
+#                              default to a path based on the $OPENHAB_USERDATA directory.
 #                              This should generate based on existing openHAB env vars.
 # DEPLOY_OPENHABIAN_RESTART :  The command used to restart openHAB
 
