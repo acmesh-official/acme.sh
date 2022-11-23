@@ -4050,8 +4050,7 @@ _ns_lookup_dp() {
   _ns_lookup_impl "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
 }
 
-#domain, type
-_ns_lookup() {
+_ns_select_doh() {
   if [ -z "$DOH_USE" ]; then
     _debug "Detect dns server first."
     if _ns_is_available_cf; then
@@ -4070,7 +4069,11 @@ _ns_lookup() {
       _err "No doh"
     fi
   fi
+}
 
+#domain, type
+_ns_lookup() {
+  _ns_select_doh
   if [ "$DOH_USE" = "$DOH_CLOUDFLARE" ] || [ -z "$DOH_USE" ]; then
     _ns_lookup_cf "$@"
   elif [ "$DOH_USE" = "$DOH_GOOGLE" ]; then
@@ -4093,6 +4096,7 @@ __check_txt() {
   _debug "_c_txtdomain" "$_c_txtdomain"
   _debug "_c_aliasdomain" "$_c_aliasdomain"
   _debug "_c_txt" "$_c_txt"
+  _ns_select_doh
   _answers="$(_ns_lookup "$_c_aliasdomain" TXT)"
   _contains "$_answers" "$_c_txt"
 
