@@ -26,7 +26,7 @@ jobs:
     - name: Install Shellcheck
       run: sudo apt-get install -y shellcheck
     - name: DoShellcheck
-      run: shellcheck -V  && shellcheck -e SC2181 **/*.sh && echo "shellcheck OK"
+      run: shellcheck -V  && shellcheck -e SC2181 -e SC2089 **/*.sh && echo "shellcheck OK"
 
   shfmt:
     runs-on: ubuntu-latest

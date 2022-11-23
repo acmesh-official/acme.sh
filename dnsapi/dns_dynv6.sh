@@ -94,7 +94,7 @@ _get_domain() {
   _your_hosts="$(echo "$_your_hosts" | awk '/\./ {print $1}')"
   for l in $_your_hosts; do
     #echo "host: $l"
-    if test ${_full_domain#*"$l"} != "$_full_domain"; then
+    if test "${_full_domain#*"$l"}" != "$_full_domain"; then
       _record=${_full_domain%."$l"}
       _host=$l
       _debug "The host is $_host and the record $_record"
