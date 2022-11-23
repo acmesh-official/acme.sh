@@ -144,7 +144,7 @@ _transip_setup() {
   TRANSIP_Key_File="${TRANSIP_Key_File:-$(_readaccountconf_mutable TRANSIP_Key_File)}"
   TRANSIP_Key="${TRANSIP_Key:-$(_readaccountconf_mutable TRANSIP_Key)}"
   # check their vals for null
-  if [ -z "$TRANSIP_Username" ] || ( [ -z "$TRANSIP_Key_File" ] && [ -z "$TRANSIP_Key" ] ); then
+  if [ -z "$TRANSIP_Username" ] || { [ -z "$TRANSIP_Key_File" ] && [ -z "$TRANSIP_Key" ] ; }; then
     TRANSIP_Username=""
     TRANSIP_Key_File=""
     TRANSIP_Key=""
@@ -193,7 +193,8 @@ _transip_setup() {
   if [ "$(printf "%s\n" "$TRANSIP_Key" | wc -l)" -eq 1 ]; then
     TRANSIP_Key=$(printf "%s" "$TRANSIP_Key" | _dbase64)
   else
-     _saveaccountconf_mutable TRANSIP_Key $(printf "%s" "$TRANSIP_Key" | _base64)
+     TRANSIP_Key=$(printf "%s" "$TRANSIP_Key" | _base64)
+     _saveaccountconf_mutable TRANSIP_Key "$TRANSIP_Key"
   fi
 
   if [ -z "$_token" ]; then
