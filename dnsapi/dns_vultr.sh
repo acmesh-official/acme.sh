@@ -139,7 +139,7 @@ _vultr_rest() {
   data="$3"
   _debug "$ep"
 
-  api_key_trimmed=$(echo $VULTR_API_KEY | tr -d '"')
+  api_key_trimmed=$(echo "$VULTR_API_KEY" | tr -d '"')
 
   export _H1="Authorization: Bearer $api_key_trimmed"
   export _H2='Content-Type: application/json'

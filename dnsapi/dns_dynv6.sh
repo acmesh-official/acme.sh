@@ -94,8 +94,8 @@ _get_domain() {
   _your_hosts="$(echo "$_your_hosts" | awk '/\./ {print $1}')"
   for l in $_your_hosts; do
     #echo "host: $l"
-    if test "${_full_domain#*$l}" != "$_full_domain"; then
-      _record="${_full_domain%.$l}"
+    if test "${_full_domain#*"$l"}" != "$_full_domain"; then
+      _record=${_full_domain%."$l"}
       _host=$l
       _debug "The host is $_host and the record $_record"
       return 0
@@ -143,7 +143,7 @@ _dns_dynv6_add_http() {
     return 1
   fi
   _get_zone_name "$_zone_id"
-  record="${fulldomain%%.$_zone_name}"
+  record=${fulldomain%%."$_zone_name"}
   _set_record TXT "$record" "$txtvalue"
   if _contains "$response" "$txtvalue"; then
     _info "Successfully added record"
@@ -161,7 +161,7 @@ _dns_dynv6_rm_http() {
     return 1
   fi
   _get_zone_name "$_zone_id"
-  record="${fulldomain%%.$_zone_name}"
+  record=${fulldomain%%."$_zone_name"}
   _get_record_id "$_zone_id" "$record" "$txtvalue"
   _del_record "$_zone_id" "$_record_id"
   if [ -z "$response" ]; then
