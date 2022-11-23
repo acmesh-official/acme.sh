@@ -46,7 +46,7 @@ jobs:
       TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
     steps:
     - uses: actions/checkout@v3
-    - uses: vmactions/cf-tunnel@v0.0.3
+    - uses: vmactions/cf-tunnel@v0
       id: tunnel
       with:
         protocol: http
