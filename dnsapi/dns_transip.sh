@@ -5,7 +5,10 @@ TRANSIP_Token_Expiration="30 minutes"
 # You can't reuse a label token, so we leave this empty normally
 TRANSIP_Token_Label=""
 
-# One of the following two evironment variables is required:
+# The authentication to the TransIP API requires a usename and RSA private key.
+# Please set the transip username environment variable:
+# - TRANSIP_Username: The username of the transip API account
+# In addition to the username one of the following two environment variables is required:
 # - TRANSIP_Key_File: Path to a file containing the private key in PEM format; or
 # - TRANSIP_Key     : The private key in PEM format
 
