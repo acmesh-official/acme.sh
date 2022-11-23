@@ -44,13 +44,13 @@ jobs:
       CA_EMAIL: ${{ matrix.CA_EMAIL }}
       TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install tools
       run:  brew install socat
     - name: Clone acmetest
       run: |
           cd .. \
-          && git clone https://github.com/acmesh-official/acmetest.git \
+          && git clone --depth=1 https://github.com/acmesh-official/acmetest.git \
           && cp -r acme.sh acmetest/
     - name: Run acmetest
       run: |

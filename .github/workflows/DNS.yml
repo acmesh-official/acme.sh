@@ -65,9 +65,9 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Clone acmetest
-      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Set env file
       run: |
         cd ../acmetest
@@ -113,11 +113,11 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install tools
       run:  brew install socat
     - name: Clone acmetest
-      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
       run: |
         if [ "${{ secrets.TokenName1}}" ] ; then
@@ -164,7 +164,7 @@ jobs:
     - name: Set git to use LF
       run: |
           git config --global core.autocrlf false
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install cygwin base packages with chocolatey
       run: |
           choco config get cacheLocation
@@ -172,14 +172,14 @@ jobs:
       shell: cmd
     - name: Install cygwin additional packages
       run: |
-          C:\tools\cygwin\cygwinsetup.exe -qgnNdO -R C:/tools/cygwin -s http://mirrors.kernel.org/sourceware/cygwin/ -P socat,curl,cron,unzip,git
+          C:\tools\cygwin\cygwinsetup.exe -qgnNdO -R C:/tools/cygwin -s https://mirrors.kernel.org/sourceware/cygwin/ -P socat,curl,cron,unzip,git
       shell: cmd
     - name: Set ENV
       shell: cmd
       run: |
           echo PATH=C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin >> %GITHUB_ENV%
     - name: Clone acmetest
-      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
       shell: bash
       run: |
@@ -223,9 +223,9 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Clone acmetest
-      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/freebsd-vm@v0
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
@@ -274,9 +274,9 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Clone acmetest
-      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/openbsd-vm@v0
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
@@ -325,9 +325,9 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Clone acmetest
-      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/netbsd-vm@v0
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
@@ -377,9 +377,9 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Clone acmetest
-      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/dragonflybsd-vm@v0
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
@@ -433,9 +433,9 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Clone acmetest
-      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/solaris-vm@v0
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy HTTPS_INSECURE TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
