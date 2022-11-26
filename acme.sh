@@ -7496,7 +7496,7 @@ _process() {
       shift
       ;;
     --home)
-      export LE_WORKING_DIR="$2"
+      export LE_WORKING_DIR="${2%/}"
       shift
       ;;
     --cert-home | --certhome)
