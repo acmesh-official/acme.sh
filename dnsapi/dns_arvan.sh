@@ -1,10 +1,10 @@
 #!/usr/bin/env sh
 
-#Arvan_Token="Apikey xxxx"
+# Arvan_Token="Apikey xxxx"
 
 ARVAN_API_URL="https://napi.arvancloud.ir/cdn/4.0/domains"
-#Author: Vahid Fardi
-#Report Bugs here: https://github.com/Neilpang/acme.sh
+# Author: Vahid Fardi
+# Report Bugs here: https://github.com/Neilpang/acme.sh
 #
 ########  Public functions #####################
 
