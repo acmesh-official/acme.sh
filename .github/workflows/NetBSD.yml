@@ -14,6 +14,12 @@ on:
       - '*.sh'
       - '.github/workflows/NetBSD.yml'
 
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
+
 
 jobs:
   NetBSD:
@@ -39,8 +45,8 @@ jobs:
       CA_EMAIL: ${{ matrix.CA_EMAIL }}
       TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
     steps:
-    - uses: actions/checkout@v2
-    - uses: vmactions/cf-tunnel@v0.0.3
+    - uses: actions/checkout@v3
+    - uses: vmactions/cf-tunnel@v0
       id: tunnel
       with:
         protocol: http
@@ -48,16 +54,17 @@ jobs:
     - name: Set envs
       run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
     - name: Clone acmetest
-      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/netbsd-vm@v0.0.2
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - uses: vmactions/netbsd-vm@v0
       with:
         envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN'
         nat: |
           "8080": "80"
         prepare: |
-          export PKG_PATH="http://cdn.NetBSD.org/pub/pkgsrc/packages/NetBSD/$(uname -p)/$(uname -r|cut -f '1 2' -d.)/All/"
+          export PKG_PATH="https://cdn.NetBSD.org/pub/pkgsrc/packages/NetBSD/$(uname -p)/$(uname -r|cut -f '1 2' -d.)/All/"
           pkg_add curl socat
         usesh: true
+        copyback: false
         run: |
           cd ../acmetest \
           && ./letest.sh

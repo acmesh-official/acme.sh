@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.0.5
+VER=3.0.6
 
 PROJECT_NAME="acme.sh"
 
@@ -53,8 +53,8 @@ CA_SERVERS="$CA_ZEROSSL,$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_BUYPASS,$
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 
-DEFAULT_ACCOUNT_KEY_LENGTH=2048
-DEFAULT_DOMAIN_KEY_LENGTH=2048
+DEFAULT_ACCOUNT_KEY_LENGTH=ec-256
+DEFAULT_DOMAIN_KEY_LENGTH=ec-256
 
 DEFAULT_OPENSSL_BIN="openssl"
 
@@ -436,24 +436,14 @@ _secure_debug3() {
   fi
 }
 
-__USE_TR_RAW="$([ "$(echo "abc" | tr a-z A-Z 2>/dev/null)" = "ABC" ] && echo 1 || echo 0)"
-
 _upper_case() {
-  if [ "$__USE_TR_RAW" = "0" ]; then
-    tr '[:lower:]' '[:upper:]'
-  else
-    # shellcheck disable=SC2018,SC2019
-    tr 'a-z' 'A-Z'
-  fi
+  # shellcheck disable=SC2018,SC2019
+  tr '[a-z]' '[A-Z]'
 }
 
 _lower_case() {
-  if [ "$__USE_TR_RAW" = "0" ]; then
-    tr '[:upper:]' '[:lower:]'
-  else
-    # shellcheck disable=SC2018,SC2019
-    tr 'A-Z' 'a-z'
-  fi
+  # shellcheck disable=SC2018,SC2019
+  tr '[A-Z]' '[a-z]'
 }
 
 _startswith() {
@@ -1196,7 +1186,7 @@ _createkey() {
 _is_idn() {
   _is_idn_d="$1"
   _debug2 _is_idn_d "$_is_idn_d"
-  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '0-9' | tr -d 'a-z' | tr -d 'A-Z' | tr -d '*.,-_')
+  _idn_temp=$(printf "%s" "$_is_idn_d" | tr -d '[0-9]' | tr -d '[a-z]' | tr -d '[A-Z]' | tr -d '*.,-_')
   _debug2 _idn_temp "$_idn_temp"
   [ "$_idn_temp" ]
 }
@@ -1245,7 +1235,7 @@ _createcsr() {
   _debug2 csr "$csr"
   _debug2 csrconf "$csrconf"
 
-  printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\n\n" >"$csrconf"
+  printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\nextendedKeyUsage=serverAuth,clientAuth\n" >"$csrconf"
 
   if [ "$acmeValidationv1" ]; then
     domainlist="$(_idn "$domainlist")"
@@ -2009,7 +1999,13 @@ _post() {
     if [ "$_ret" != "0" ]; then
       _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret"
     fi
-    _sed_i "s/^ *//g" "$HTTP_HEADER"
+    if _contains "$_WGET" " -d "; then
+      # Demultiplex wget debug output
+      cat "$HTTP_HEADER" >&2
+      _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
+    fi
+    # remove leading whitespaces from header to match curl format
+    _sed_i 's/^  //g' "$HTTP_HEADER"
   else
     _ret="$?"
     _err "Neither curl nor wget is found, can not do $httpmethod."
@@ -2062,9 +2058,21 @@ _get() {
     fi
     _debug "_WGET" "$_WGET"
     if [ "$onlyheader" ]; then
-      $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1 | sed 's/^[ ]*//g'
+      _wget_out = "$($_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1)"
+      if _contains "$_WGET" " -d "; then
+        # Demultiplex wget debug output
+        echo "$_wget_out" >&2
+        echo "$_wget_out" | sed '/^[^ ][^ ]/d; /^ *$/d; s/^  //g' -
+      fi
     else
-      $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -O - "$url"
+      $_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O - "$url" 2>"$HTTP_HEADER"
+      if _contains "$_WGET" " -d "; then
+        # Demultiplex wget debug output
+        cat "$HTTP_HEADER" >&2
+        _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
+      fi
+      # remove leading whitespaces from header to match curl format
+      _sed_i 's/^  //g' "$HTTP_HEADER"
     fi
     ret=$?
     if [ "$ret" = "8" ]; then
@@ -2249,11 +2257,17 @@ _setopt() {
   if [ ! -f "$__conf" ]; then
     touch "$__conf"
   fi
+  if [ -n "$(tail -c 1 <"$__conf")" ]; then
+    echo >>"$__conf"
+  fi
 
   if grep -n "^$__opt$__sep" "$__conf" >/dev/null; then
     _debug3 OK
     if _contains "$__val" "&"; then
       __val="$(echo "$__val" | sed 's/&/\\&/g')"
+    fi
+    if _contains "$__val" "|"; then
+      __val="$(echo "$__val" | sed 's/|/\\|/g')"
     fi
     text="$(cat "$__conf")"
     printf -- "%s\n" "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
@@ -2261,6 +2275,9 @@ _setopt() {
   elif grep -n "^#$__opt$__sep" "$__conf" >/dev/null; then
     if _contains "$__val" "&"; then
       __val="$(echo "$__val" | sed 's/&/\\&/g')"
+    fi
+    if _contains "$__val" "|"; then
+      __val="$(echo "$__val" | sed 's/|/\\|/g')"
     fi
     text="$(cat "$__conf")"
     printf -- "%s\n" "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
@@ -2571,7 +2588,7 @@ __initHome() {
       _script_home="$(dirname "$_script")"
       _debug "_script_home" "$_script_home"
       if [ -d "$_script_home" ]; then
-        _SCRIPT_HOME="$_script_home"
+        export _SCRIPT_HOME="$_script_home"
       else
         _err "It seems the script home is not correct:$_script_home"
       fi
@@ -4033,8 +4050,7 @@ _ns_lookup_dp() {
   _ns_lookup_impl "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
 }
 
-#domain, type
-_ns_lookup() {
+_ns_select_doh() {
   if [ -z "$DOH_USE" ]; then
     _debug "Detect dns server first."
     if _ns_is_available_cf; then
@@ -4053,7 +4069,11 @@ _ns_lookup() {
       _err "No doh"
     fi
   fi
+}
 
+#domain, type
+_ns_lookup() {
+  _ns_select_doh
   if [ "$DOH_USE" = "$DOH_CLOUDFLARE" ] || [ -z "$DOH_USE" ]; then
     _ns_lookup_cf "$@"
   elif [ "$DOH_USE" = "$DOH_GOOGLE" ]; then
@@ -4076,6 +4096,7 @@ __check_txt() {
   _debug "_c_txtdomain" "$_c_txtdomain"
   _debug "_c_aliasdomain" "$_c_aliasdomain"
   _debug "_c_txt" "$_c_txt"
+  _ns_select_doh
   _answers="$(_ns_lookup "$_c_aliasdomain" TXT)"
   _contains "$_answers" "$_c_txt"
 
@@ -4205,7 +4226,7 @@ _match_issuer() {
 _isIPv4() {
   for seg in $(echo "$1" | tr '.' ' '); do
     _debug2 seg "$seg"
-    if [ "$(echo "$seg" | tr -d [0-9])" ]; then
+    if [ "$(echo "$seg" | tr -d '[0-9]')" ]; then
       #not all number
       return 1
     fi
@@ -4406,6 +4427,7 @@ issue() {
     _debug "_saved_account_key_hash is not changed, skip register account."
   fi
 
+  export Le_Next_Domain_Key="$CERT_KEY_PATH.next"
   if [ -f "$CSR_PATH" ] && [ ! -f "$CERT_KEY_PATH" ]; then
     _info "Signing from existing CSR."
   else
@@ -4418,14 +4440,30 @@ issue() {
     fi
     _debug "Read key length:$_key"
     if [ ! -f "$CERT_KEY_PATH" ] || [ "$_key_length" != "$_key" ] || [ "$Le_ForceNewDomainKey" = "1" ]; then
-      if ! createDomainKey "$_main_domain" "$_key_length"; then
-        _err "Create domain key error."
-        _clearup
-        _on_issue_err "$_post_hook"
+      if [ "$Le_ForceNewDomainKey" = "1" ] && [ -f "$Le_Next_Domain_Key" ]; then
+        _info "Using pre generated key: $Le_Next_Domain_Key"
+        cat "$Le_Next_Domain_Key" >"$CERT_KEY_PATH"
+        echo "" >"$Le_Next_Domain_Key"
+      else
+        if ! createDomainKey "$_main_domain" "$_key_length"; then
+          _err "Create domain key error."
+          _clearup
+          _on_issue_err "$_post_hook"
+          return 1
+        fi
+      fi
+    fi
+    if [ "$Le_ForceNewDomainKey" ]; then
+      _info "Generate next pre-generate key."
+      if [ ! -e "$Le_Next_Domain_Key" ]; then
+        touch "$Le_Next_Domain_Key"
+        chmod 600 "$Le_Next_Domain_Key"
+      fi
+      if ! _createkey "$_key_length" "$Le_Next_Domain_Key"; then
+        _err "Can not pre generate domain key"
         return 1
       fi
     fi
-
     if ! _createcsr "$_main_domain" "$_alt_domains" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"; then
       _err "Create CSR error."
       _clearup
@@ -4876,7 +4914,9 @@ $_authorizations_map"
           _on_issue_err "$_post_hook" "$vlist"
           return 1
         fi
-
+        if ! chmod a+r "$wellknown_path/$token"; then
+          _debug "chmod failed, but we just continue."
+        fi
         if [ ! "$usingApache" ]; then
           if webroot_owner=$(_stat "$_currentRoot"); then
             _debug "Changing owner/group of .well-known to $webroot_owner"
@@ -5159,6 +5199,9 @@ $_authorizations_map"
 
   [ -f "$CA_CERT_PATH" ] && _info "The intermediate CA cert is in: $(__green "$CA_CERT_PATH")"
   [ -f "$CERT_FULLCHAIN_PATH" ] && _info "And the full chain certs is there: $(__green "$CERT_FULLCHAIN_PATH")"
+  if [ "$Le_ForceNewDomainKey" ] && [ -e "$Le_Next_Domain_Key" ]; then
+    _info "Your pre-generated next key for future cert key change is in: $(__green "$Le_Next_Domain_Key")"
+  fi
 
   Le_CertCreateTime=$(_time)
   _savedomainconf "Le_CertCreateTime" "$Le_CertCreateTime"
@@ -5210,11 +5253,25 @@ $_authorizations_map"
       _info "The domain is set to be valid to: $_valid_to"
       _info "It can not be renewed automatically"
       _info "See: $_VALIDITY_WIKI"
+    else
+      _now=$(_time)
+      _debug2 "_now" "$_now"
+      _lifetime=$(_math $Le_NextRenewTime - $_now)
+      _debug2 "_lifetime" "$_lifetime"
+      if [ $_lifetime -gt 86400 ]; then
+        #if lifetime is logner than one day, it will renew one day before
+        Le_NextRenewTime=$(_math $Le_NextRenewTime - 86400)
+        Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+      else
+        #if lifetime is less than 24 hours, it will renew one hour before
+        Le_NextRenewTime=$(_math $Le_NextRenewTime - 3600)
+        Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+      fi
     fi
   else
     Le_NextRenewTime=$(_math "$Le_CertCreateTime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
-    Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
     Le_NextRenewTime=$(_math "$Le_NextRenewTime" - 86400)
+    Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
   fi
   _savedomainconf "Le_NextRenewTimeStr" "$Le_NextRenewTimeStr"
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
@@ -5719,7 +5776,8 @@ installcert() {
   _savedomainconf "Le_RealKeyPath" "$_real_key"
   _savedomainconf "Le_ReloadCmd" "$_reload_cmd" "base64"
   _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
-
+  export Le_ForceNewDomainKey="$(_readdomainconf Le_ForceNewDomainKey)"
+  export Le_Next_Domain_Key
   _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"
 }
 
@@ -5811,6 +5869,8 @@ _installcert() {
       export CA_CERT_PATH
       export CERT_FULLCHAIN_PATH
       export Le_Domain="$_main_domain"
+      export Le_ForceNewDomainKey
+      export Le_Next_Domain_Key
       cd "$DOMAIN_PATH" && eval "$_reload_cmd"
     ); then
       _info "$(__green "Reload success")"
@@ -6048,6 +6108,8 @@ revoke() {
       if [ -z "$response" ]; then
         _info "Revoke success."
         rm -f "$CERT_PATH"
+        cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
+        cat "$CSR_PATH" >"$CSR_PATH.revoked"
         return 0
       else
         _err "Revoke error by domain key."
@@ -6064,6 +6126,8 @@ revoke() {
     if [ -z "$response" ]; then
       _info "Revoke success."
       rm -f "$CERT_PATH"
+      cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
+      cat "$CSR_PATH" >"$CSR_PATH.revoked"
       return 0
     else
       _err "Revoke error."
@@ -6549,7 +6613,7 @@ install() {
   if [ "$_accountemail" ]; then
     _saveaccountconf "ACCOUNT_EMAIL" "$_accountemail"
   fi
-
+  _saveaccountconf "UPGRADE_HASH" "$(_getUpgradeHash)"
   _info OK
 }
 
@@ -6780,37 +6844,37 @@ Commands:
 Parameters:
   -d, --domain <domain.tld>         Specifies a domain, used to issue, renew or revoke etc.
   --challenge-alias <domain.tld>    The challenge domain alias for DNS alias mode.
-                                    See: $_DNS_ALIAS_WIKI
+                                      See: $_DNS_ALIAS_WIKI
 
   --domain-alias <domain.tld>       The domain alias for DNS alias mode.
-                                    See: $_DNS_ALIAS_WIKI
+                                      See: $_DNS_ALIAS_WIKI
 
   --preferred-chain <chain>         If the CA offers multiple certificate chains, prefer the chain with an issuer matching this Subject Common Name.
-                                    If no match, the default offered chain will be used. (default: empty)
-                                    See: $_PREFERRED_CHAIN_WIKI
+                                      If no match, the default offered chain will be used. (default: empty)
+                                      See: $_PREFERRED_CHAIN_WIKI
 
   --valid-to    <date-time>         Request the NotAfter field of the cert.
-                                    See: $_VALIDITY_WIKI
+                                      See: $_VALIDITY_WIKI
   --valid-from  <date-time>         Request the NotBefore field of the cert.
-                                    See: $_VALIDITY_WIKI
+                                      See: $_VALIDITY_WIKI
 
   -f, --force                       Force install, force cert renewal or override sudo restrictions.
   --staging, --test                 Use staging server, for testing.
   --debug [0|1|2|3]                 Output debug info. Defaults to 1 if argument is omitted.
   --output-insecure                 Output all the sensitive messages.
-                                    By default all the credentials/sensitive messages are hidden from the output/debug/log for security.
+                                      By default all the credentials/sensitive messages are hidden from the output/debug/log for security.
   -w, --webroot <directory>         Specifies the web root folder for web root mode.
   --standalone                      Use standalone mode.
   --alpn                            Use standalone alpn mode.
   --stateless                       Use stateless mode.
-                                    See: $_STATELESS_WIKI
+                                      See: $_STATELESS_WIKI
 
   --apache                          Use apache mode.
   --dns [dns_hook]                  Use dns manual mode or dns api. Defaults to manual mode when argument is omitted.
-                                    See: $_DNS_API_WIKI
+                                      See: $_DNS_API_WIKI
 
   --dnssleep <seconds>              The time in seconds to wait for all the txt records to propagate in dns api mode.
-                                    It's not necessary to use this by default, $PROJECT_NAME polls dns status by DOH automatically.
+                                      It's not necessary to use this by default, $PROJECT_NAME polls dns status by DOH automatically.
   -k, --keylength <bits>            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521.
   -ak, --accountkeylength <bits>    Specifies the account key length: 2048, 3072, 4096
   --log [file]                      Specifies the log file. Defaults to \"$DEFAULT_LOG_FILE\" if argument is omitted.
@@ -6829,7 +6893,7 @@ Parameters:
   --reloadcmd <command>             Command to execute after issue/renew to reload the server.
 
   --server <server_uri>             ACME Directory Resource URI. (default: $DEFAULT_CA)
-                                    See: $_SERVER_WIKI
+                                      See: $_SERVER_WIKI
 
   --accountconf <file>              Specifies a customized account config file.
   --home <directory>                Specifies the home dir for $PROJECT_NAME.
@@ -6848,7 +6912,7 @@ Parameters:
   --ca-bundle <file>                Specifies the path to the CA certificate bundle to verify api server's certificate.
   --ca-path <directory>             Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --no-cron                         Only valid for '--install' command, which means: do not install the default cron job.
-                                    In this case, the certs will not be renewed automatically.
+                                      In this case, the certs will not be renewed automatically.
   --no-profile                      Only valid for '--install' command, which means: do not install aliases to user profile.
   --no-color                        Do not output color text.
   --force-color                     Force output of color text. Useful for non-interactive use with the aha tool for HTML E-Mails.
@@ -6866,20 +6930,20 @@ Parameters:
   --openssl-bin <file>              Specifies a custom openssl bin location.
   --use-wget                        Force to use wget, if you have both curl and wget installed.
   --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force use of dns manual mode.
-                                    See:  $_DNS_MANUAL_WIKI
+                                      See:  $_DNS_MANUAL_WIKI
 
   -b, --branch <branch>             Only valid for '--upgrade' command, specifies the branch name to upgrade to.
   --notify-level <0|1|2|3>          Set the notification level:  Default value is $NOTIFY_LEVEL_DEFAULT.
-                                    0: disabled, no notification will be sent.
-                                    1: send notifications only when there is an error.
-                                    2: send notifications when a cert is successfully renewed, or there is an error.
-                                    3: send notifications when a cert is skipped, renewed, or error.
+                                      0: disabled, no notification will be sent.
+                                      1: send notifications only when there is an error.
+                                      2: send notifications when a cert is successfully renewed, or there is an error.
+                                      3: send notifications when a cert is skipped, renewed, or error.
   --notify-mode <0|1>               Set notification mode. Default value is $NOTIFY_MODE_DEFAULT.
-                                    0: Bulk mode. Send all the domain's notifications in one message(mail).
-                                    1: Cert mode. Send a message for every single cert.
+                                      0: Bulk mode. Send all the domain's notifications in one message(mail).
+                                      1: Cert mode. Send a message for every single cert.
   --notify-hook <hookname>          Set the notify hook
   --revoke-reason <0-10>            The reason for revocation, can be used in conjunction with the '--revoke' command.
-                                    See: $_REVOKE_WIKI
+                                      See: $_REVOKE_WIKI
 
   --password <password>             Add a password to exported pfx file. Use with --to-pkcs12.
 
@@ -6913,8 +6977,6 @@ installOnline() {
     chmod +x $PROJECT_ENTRY
     if ./$PROJECT_ENTRY --install "$@"; then
       _info "Install success!"
-      _initpath
-      _saveaccountconf "UPGRADE_HASH" "$(_getUpgradeHash)"
     fi
 
     cd ..
@@ -7434,17 +7496,17 @@ _process() {
       shift
       ;;
     --home)
-      LE_WORKING_DIR="$2"
+      export LE_WORKING_DIR="$2"
       shift
       ;;
     --cert-home | --certhome)
       _certhome="$2"
-      CERT_HOME="$_certhome"
+      export CERT_HOME="$_certhome"
       shift
       ;;
     --config-home)
       _confighome="$2"
-      LE_CONFIG_HOME="$_confighome"
+      export LE_CONFIG_HOME="$_confighome"
       shift
       ;;
     --useragent)

@@ -1,10 +1,12 @@
 #!/usr/bin/env sh
 
 #Godaddy domain api
+# Get API key and secret from https://developer.godaddy.com/
 #
-#GD_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+# GD_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
+# GD_Secret="asdfsdfsfsdfsdfdfsdf"
 #
-#GD_Secret="asdfsdfsfsdfsdfdfsdf"
+# Ex.: acme.sh --issue --staging --dns dns_gd -d "*.s.example.com" -d "s.example.com"
 
 GD_Api="https://api.godaddy.com/v1"
 
@@ -51,7 +53,8 @@ dns_gd_add() {
   _add_data="{\"data\":\"$txtvalue\"}"
   for t in $(echo "$response" | tr '{' "\n" | grep "\"name\":\"$_sub_domain\"" | tr ',' "\n" | grep '"data"' | cut -d : -f 2); do
     _debug2 t "$t"
-    if [ "$t" ]; then
+    # ignore empty (previously removed) records, to prevent useless _acme-challenge TXT entries
+    if [ "$t" ] && [ "$t" != '""' ]; then
       _add_data="$_add_data,{\"data\":$t}"
     fi
   done
@@ -59,13 +62,25 @@ dns_gd_add() {
 
   _info "Adding record"
   if _gd_rest PUT "domains/$_domain/records/TXT/$_sub_domain" "[$_add_data]"; then
-    _info "Added, sleeping 10 seconds"
-    _sleep 10
-    #todo: check if the record takes effect
-    return 0
+    _debug "Checking updated records of '${fulldomain}'"
+
+    if ! _gd_rest GET "domains/$_domain/records/TXT/$_sub_domain"; then
+      _err "Validating TXT record for '${fulldomain}' with rest error [$?]." "$response"
+      return 1
+    fi
+
+    if ! _contains "$response" "$txtvalue"; then
+      _err "TXT record '${txtvalue}' for '${fulldomain}', value wasn't set!"
+      return 1
+    fi
+  else
+    _err "Add txt record error, value '${txtvalue}' for '${fulldomain}' was not set."
+    return 1
   fi
-  _err "Add txt record error."
-  return 1
+
+  _sleep 10
+  _info "Added TXT record '${txtvalue}' for '${fulldomain}'."
+  return 0
 }
 
 #fulldomain
@@ -107,11 +122,20 @@ dns_gd_rm() {
     fi
   done
   if [ -z "$_add_data" ]; then
-    _add_data="{\"data\":\"\"}"
+    # delete empty record
+    _debug "Delete last record for '${fulldomain}'"
+    if ! _gd_rest DELETE "domains/$_domain/records/TXT/$_sub_domain"; then
+      _err "Cannot delete empty TXT record for '$fulldomain'"
+      return 1
+    fi
+  else
+    # remove specific TXT value, keeping other entries
+    _debug2 _add_data "$_add_data"
+    if ! _gd_rest PUT "domains/$_domain/records/TXT/$_sub_domain" "[$_add_data]"; then
+      _err "Cannot update TXT record for '$fulldomain'"
+      return 1
+    fi
   fi
-  _debug2 _add_data "$_add_data"
-
-  _gd_rest PUT "domains/$_domain/records/TXT/$_sub_domain" "[$_add_data]"
 }
 
 ####################  Private functions below ##################################
@@ -156,15 +180,15 @@ _gd_rest() {
   export _H1="Authorization: sso-key $GD_Key:$GD_Secret"
   export _H2="Content-Type: application/json"
 
-  if [ "$data" ]; then
-    _debug data "$data"
+  if [ "$data" ] || [ "$m" = "DELETE" ]; then
+    _debug "data ($m): " "$data"
     response="$(_post "$data" "$GD_Api/$ep" "" "$m")"
   else
     response="$(_get "$GD_Api/$ep")"
   fi
 
   if [ "$?" != "0" ]; then
-    _err "error $ep"
+    _err "error on rest call ($m): $ep"
     return 1
   fi
   _debug2 response "$response"

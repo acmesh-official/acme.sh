@@ -163,6 +163,7 @@ _retrieve_miab_env() {
   _saveaccountconf_mutable MIAB_Username "$MIAB_Username"
   _saveaccountconf_mutable MIAB_Password "$MIAB_Password"
   _saveaccountconf_mutable MIAB_Server "$MIAB_Server"
+  return 0
 }
 
 #Useage: _miab_rest  "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"  "custom/_acme-challenge.www.domain.com/txt  "POST"
