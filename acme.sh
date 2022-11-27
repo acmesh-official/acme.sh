@@ -7496,7 +7496,7 @@ _process() {
       shift
       ;;
     --home)
-      export LE_WORKING_DIR="${2%/}"
+      export LE_WORKING_DIR="$(echo "$2" | sed 's|/$||')"
       shift
       ;;
     --cert-home | --certhome)
