@@ -185,7 +185,7 @@ truenas_deploy() {
   fi
 
   
-_info "Checking if any chart release Apps is using the same certificate as TrueNAS web UI. Tool 'jq' is required"
+  _info "Checking if any chart release Apps is using the same certificate as TrueNAS web UI. Tool 'jq' is required"
   if _exists jq; then
     _info "Query all chart release"
     _release_list=$(_get "$_api_url/chart/release")
