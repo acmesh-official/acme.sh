@@ -141,6 +141,7 @@ _arvan_rest() {
     response="$(_post "$data" "$ARVAN_API_URL/$ep" "" "$mtd")"
   elif [ "$mtd" = "POST" ]; then
     export _H2="Content-Type: application/json"
+    export _H3="Accept: application/json"
     _debug data "$data"
     response="$(_post "$data" "$ARVAN_API_URL/$ep" "" "$mtd")"
   else
