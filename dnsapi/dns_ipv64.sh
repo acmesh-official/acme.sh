@@ -49,6 +49,7 @@ dns_ipv64_add() {
 }
 
 #Usage: fulldomain txtvalue
+#Usage: dns_ipv64_rm _acme-challenge.domain.ipv64.net "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 #Remove the txt record after validation.
 dns_ipv64_rm() {
   fulldomain=$1
