@@ -2857,7 +2857,8 @@ _initpath() {
       DOMAIN_PATH="$domainhomeecc"
     else
       if [ ! -d "$domainhome" ] && [ -d "$domainhomeecc" ]; then
-        _info "The domain '$domain' seems to have a ECC cert already, please add '$(__red "--ecc")' parameter if you want to use that cert."
+        _info "The domain '$domain' seems to have a ECC cert already, lets use ecc cert."
+        DOMAIN_PATH="$domainhomeecc"
       fi
     fi
     _debug DOMAIN_PATH "$DOMAIN_PATH"
