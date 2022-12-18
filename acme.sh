@@ -2058,7 +2058,7 @@ _get() {
     fi
     _debug "_WGET" "$_WGET"
     if [ "$onlyheader" ]; then
-      _wget_out = "$($_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1)"
+      _wget_out="$($_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1)"
       if _contains "$_WGET" " -d "; then
         # Demultiplex wget debug output
         echo "$_wget_out" >&2
