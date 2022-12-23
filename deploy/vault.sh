@@ -115,7 +115,7 @@ vault_deploy() {
     fi
 
     # To make it compatible with the wrong ca path `chain.pem` which was used in former versions
-    if _get "$URL/chain.pem" >/dev/null; then
+    if _contains "$(_get "$URL/chain.pem")" "-----BEGIN CERTIFICATE-----"; then
       _err "The CA certificate has moved from chain.pem to ca.pem, if you don't depend on chain.pem anymore, you can delete it to avoid this warning"
       _info "Updating CA certificate to $URL/chain.pem for backward compatibility"
       if [ -n "$VAULT_KV_V2" ]; then
