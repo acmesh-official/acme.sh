@@ -1877,11 +1877,11 @@ _inithttp() {
     elif [ "$CA_BUNDLE" ]; then
       _ACME_WGET="$_ACME_WGET --ca-certificate=$CA_BUNDLE "
     fi
-  fi
 
-  #from wget 1.14: do not skip body on 404 error
-  if [ "$_ACME_WGET" ] && _contains "$($_ACME_WGET --help 2>&1)" "--content-on-error"; then
-    _ACME_WGET="$_ACME_WGET --content-on-error "
+    #from wget 1.14: do not skip body on 404 error
+    if _contains "$(wget --help 2>&1)" "--content-on-error"; then
+      _ACME_WGET="$_ACME_WGET --content-on-error "
+    fi
   fi
 
   __HTTP_INITIALIZED=1
