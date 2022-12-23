@@ -1852,12 +1852,12 @@ _inithttp() {
       _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
     fi
 
-    if _contains "$(curl --help 2>&1)" "--globoff"; then
+    if _contains "$(curl --help curl 2>&1)" "--globoff"; then
       _ACME_CURL="$_ACME_CURL -g "
     fi
 
     #from curl 7.76: return fail on HTTP errors but keep the body
-    if [ "$_ACME_CURL" ] && _contains "$($_ACME_CURL --help http)" "--fail-with-body"; then
+    if _contains "$(curl --help http 2>&1)" "--fail-with-body"; then
       _ACME_CURL="$_ACME_CURL --fail-with-body "
     fi
   fi
