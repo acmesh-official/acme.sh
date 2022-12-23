@@ -1855,6 +1855,11 @@ _inithttp() {
     if _contains "$(curl --help 2>&1)" "--globoff"; then
       _ACME_CURL="$_ACME_CURL -g "
     fi
+
+    #from curl 7.76: return fail on HTTP errors but keep the body
+    if [ "$_ACME_CURL" ] && _contains "$($_ACME_CURL --help http)" "--fail-with-body"; then
+      _ACME_CURL="$_ACME_CURL --fail-with-body "
+    fi
   fi
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
