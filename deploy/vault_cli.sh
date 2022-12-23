@@ -64,6 +64,8 @@ vault_cli_deploy() {
     _savedeployconf VAULT_TOKEN "$VAULT_TOKEN"
   fi
 
+  _migratedeployconf FABIO VAULT_FABIO_MODE
+
   VAULT_CMD=$(command -v vault)
   if [ ! $? ]; then
     _err "cannot find vault binary!"
@@ -78,7 +80,7 @@ vault_cli_deploy() {
     fi
   fi
 
-  if [ -n "$FABIO" ]; then
+  if [ -n "$VAULT_FABIO_MODE" ]; then
     _info "Writing certificate and key to $URL in Fabio mode"
     $VAULT_CMD kv put "${VAULT_PREFIX}/${_cdomain}" cert=@"$_cfullchain" key=@"$_ckey" || return 1
   else

@@ -66,6 +66,8 @@ vault_deploy() {
     _savedeployconf VAULT_TOKEN "$VAULT_TOKEN"
   fi
 
+  _migratedeployconf FABIO VAULT_FABIO_MODE
+
   # JSON does not allow multiline strings.
   # So replacing new-lines with "\n" here
   _ckey=$(sed -z 's/\n/\\n/g' <"$2")
@@ -86,7 +88,7 @@ vault_deploy() {
 
   URL="$VAULT_ADDR/v1/$VAULT_PREFIX/$_cdomain"
 
-  if [ -n "$FABIO" ]; then
+  if [ -n "$VAULT_FABIO_MODE" ]; then
     _info "Writing certificate and key to $URL in Fabio mode"
     if [ -n "$VAULT_KV_V2" ]; then
       _post "{ \"data\": {\"cert\": \"$_cfullchain\", \"key\": \"$_ckey\"} }" "$URL" >/dev/null || return 1
