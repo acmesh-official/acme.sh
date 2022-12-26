@@ -1637,7 +1637,7 @@ _stat() {
 #keyfile
 _isRSA() {
   keyfile=$1
-  if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} rsa -in "$keyfile" -noout -text | grep "^publicExponent:" >/dev/null 2>&1; then
+  if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} rsa -in "$keyfile" -noout -text 2>&1 | grep "^publicExponent:" 2>&1 >/dev/null; then
     return 0
   fi
   return 1
@@ -1646,7 +1646,7 @@ _isRSA() {
 #keyfile
 _isEcc() {
   keyfile=$1
-  if grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" >/dev/null 2>&1; then
+  if grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" 2>&1 >/dev/null; then
     return 0
   fi
   return 1
@@ -1744,7 +1744,7 @@ _calcjwk() {
     _debug3 x64 "$x64"
 
     xend=$(_math "$xend" + 1)
-    y="$(printf "%s" "$pubtext" | cut -d : -f "$xend"-10000)"
+    y="$(printf "%s" "$pubtext" | cut -d : -f "$xend"-2048)"
     _debug3 y "$y"
 
     y64="$(printf "%s" "$y" | tr -d : | _h2b | _base64 | _url_replace)"
