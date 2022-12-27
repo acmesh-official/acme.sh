@@ -79,9 +79,9 @@ vault_deploy() {
 
   if [ -n "$VAULT_RENEW_TOKEN" ]; then
     URL="$VAULT_ADDR/v1/auth/token/renew-self"
-    _info "Renew the token to default TTL"
+    _info "Renew the Vault token to default TTL"
     if ! _post "" "$URL" >/dev/null; then
-      _err "Failed to renew the token"
+      _err "Failed to renew the Vault token"
       return 1
     fi
   fi

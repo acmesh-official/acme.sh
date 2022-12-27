@@ -73,30 +73,30 @@ vault_cli_deploy() {
   fi
 
   if [ -n "$VAULT_RENEW_TOKEN" ]; then
-    _info "Renew the token to default TTL"
+    _info "Renew the Vault token to default TTL"
     if ! $VAULT_CMD token renew; then
-      _err "Failed to renew the token"
+      _err "Failed to renew the Vault token"
       return 1
     fi
   fi
 
   if [ -n "$VAULT_FABIO_MODE" ]; then
-    _info "Writing certificate and key to $URL in Fabio mode"
+    _info "Writing certificate and key to ${VAULT_PREFIX}/${_cdomain} in Fabio mode"
     $VAULT_CMD kv put "${VAULT_PREFIX}/${_cdomain}" cert=@"$_cfullchain" key=@"$_ckey" || return 1
   else
-    _info "Writing certificate to $URL/cert.pem"
+    _info "Writing certificate to ${VAULT_PREFIX}/${_cdomain}/cert.pem"
     $VAULT_CMD kv put "${VAULT_PREFIX}/${_cdomain}/cert.pem" value=@"$_ccert" || return 1
-    _info "Writing key to $URL/cert.key"
+    _info "Writing key to ${VAULT_PREFIX}/${_cdomain}/cert.key"
     $VAULT_CMD kv put "${VAULT_PREFIX}/${_cdomain}/cert.key" value=@"$_ckey" || return 1
-    _info "Writing CA certificate to $URL/ca.pem"
+    _info "Writing CA certificate to ${VAULT_PREFIX}/${_cdomain}/ca.pem"
     $VAULT_CMD kv put "${VAULT_PREFIX}/${_cdomain}/ca.pem" value=@"$_cca" || return 1
-    _info "Writing full-chain certificate to $URL/fullchain.pem"
+    _info "Writing full-chain certificate to ${VAULT_PREFIX}/${_cdomain}/fullchain.pem"
     $VAULT_CMD kv put "${VAULT_PREFIX}/${_cdomain}/fullchain.pem" value=@"$_cfullchain" || return 1
 
     # To make it compatible with the wrong ca path `chain.pem` which was used in former versions
     if $VAULT_CMD kv get "${VAULT_PREFIX}/${_cdomain}/chain.pem" >/dev/null; then
       _err "The CA certificate has moved from chain.pem to ca.pem, if you don't depend on chain.pem anymore, you can delete it to avoid this warning"
-      _info "Updating CA certificate to $URL/chain.pem for backward compatibility"
+      _info "Updating CA certificate to ${VAULT_PREFIX}/${_cdomain}/chain.pem for backward compatibility"
       $VAULT_CMD kv put "${VAULT_PREFIX}/${_cdomain}/chain.pem" value=@"$_cca" || return 1
     fi
   fi
