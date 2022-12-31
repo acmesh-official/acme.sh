@@ -1530,7 +1530,7 @@ createDomainKey() {
   if [ ! -f "$CERT_KEY_PATH" ] || [ ! -s "$CERT_KEY_PATH" ] || ([ "$FORCE" ] && ! [ "$_ACME_IS_RENEW" ]) || [ "$Le_ForceNewDomainKey" = "1" ]; then
     if _createkey "$_cdl" "$CERT_KEY_PATH"; then
       _savedomainconf Le_Keylength "$_cdl"
-      _info "The domain key is here: $(__green $CERT_KEY_PATH)"
+      _info "The domain key is here: $(__green "$CERT_KEY_PATH")"
       return 0
     else
       _err "Can not create domain key"
@@ -5927,7 +5927,7 @@ _install_win_taskscheduler() {
     _err "schtasks.exe is not found, are you on Windows?"
     return 1
   fi
-  _winbash="$(cygpath -w $(which bash))"
+  _winbash="$(cygpath -w "$(which bash)")"
   _debug _winbash "$_winbash"
   if [ -z "$_winbash" ]; then
     _err "can not find bash path"
@@ -6180,7 +6180,7 @@ remove() {
   fi
 
   if mv "$DOMAIN_CONF" "$_removed_conf"; then
-    _info "$Le_Domain is removed, the key and cert files are in $(__green $DOMAIN_PATH)"
+    _info "$Le_Domain is removed, the key and cert files are in $(__green "$DOMAIN_PATH")"
     _info "You can remove them by yourself."
     return 0
   else
@@ -7180,7 +7180,7 @@ info() {
     (
       _initpath "$_domain" "$_ecc"
       echo "DOMAIN_CONF=$DOMAIN_CONF"
-      for seg in $(cat $DOMAIN_CONF | cut -d = -f 1); do
+      for seg in $(cat "$DOMAIN_CONF" | cut -d = -f 1); do
         echo "$seg=$(_readdomainconf "$seg")"
       done
     )
