@@ -192,7 +192,7 @@ if [ -t 1 ]; then
 fi
 
 __green() {
-  if [ "${__INTERACTIVE}${ACME_NO_COLOR:-0}" = "10" -o "${ACME_FORCE_COLOR}" = "1" ]; then
+  if [ "${__INTERACTIVE}${ACME_NO_COLOR:-0}" = "10" ] || [ "${ACME_FORCE_COLOR}" = "1" ]; then
     printf '\33[1;32m%b\33[0m' "$1"
     return
   fi
@@ -200,7 +200,7 @@ __green() {
 }
 
 __red() {
-  if [ "${__INTERACTIVE}${ACME_NO_COLOR:-0}" = "10" -o "${ACME_FORCE_COLOR}" = "1" ]; then
+  if [ "${__INTERACTIVE}${ACME_NO_COLOR:-0}" = "10" ] || [ "${ACME_FORCE_COLOR}" = "1" ]; then
     printf '\33[1;31m%b\33[0m' "$1"
     return
   fi
@@ -6335,7 +6335,7 @@ deactivate() {
 
 # Detect profile file if not specified as environment variable
 _detect_profile() {
-  if [ -n "$PROFILE" -a -f "$PROFILE" ]; then
+  if [ -n "$PROFILE" ] && [ -f "$PROFILE" ]; then
     echo "$PROFILE"
     return
   fi
