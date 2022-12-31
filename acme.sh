@@ -345,7 +345,7 @@ _debug() {
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_1" ]; then
     _bash_debug=$(__debug_bash_helper)
-    _printargs "${_bash_debug}$@" >&2
+    _printargs "${_bash_debug}$*" >&2
   fi
 }
 
@@ -379,7 +379,7 @@ _debug2() {
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_2" ]; then
     _bash_debug=$(__debug_bash_helper)
-    _printargs "${_bash_debug}$@" >&2
+    _printargs "${_bash_debug}$*" >&2
   fi
 }
 
@@ -412,7 +412,7 @@ _debug3() {
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_3" ]; then
     _bash_debug=$(__debug_bash_helper)
-    _printargs "${_bash_debug}$@" >&2
+    _printargs "${_bash_debug}$*" >&2
   fi
 }
 
@@ -537,7 +537,7 @@ _exists() {
 
 #a + b
 _math() {
-  _m_opts="$@"
+  _m_opts=$*
   printf "%s" "$(($_m_opts))"
 }
 
@@ -2919,9 +2919,9 @@ _exec() {
   fi
 
   if [ "$_EXEC_TEMP_ERR" ]; then
-    eval "$@ 2>>$_EXEC_TEMP_ERR"
+    eval "$* 2>>$_EXEC_TEMP_ERR"
   else
-    eval "$@"
+    eval "$*"
   fi
 }
 
