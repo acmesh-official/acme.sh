@@ -7068,7 +7068,7 @@ _processAccountConf() {
 }
 
 _checkSudo() {
-  if [ -z "__INTERACTIVE" ]; then
+  if [ -z "$__INTERACTIVE" ]; then
     #don't check if it's not in an interactive shell
     return 0
   fi
