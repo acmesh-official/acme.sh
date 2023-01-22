@@ -12,6 +12,8 @@ dns_gcloud_add() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
+  _dns_gcloud_authenticate || return $?
+
   _dns_gcloud_find_zone || return $?
 
   # Add an extra RR
@@ -33,6 +35,8 @@ dns_gcloud_rm() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
+  _dns_gcloud_authenticate || return $?
+
   _dns_gcloud_find_zone || return $?
 
   # Remove one RR
@@ -46,6 +50,51 @@ dns_gcloud_rm() {
 }
 
 ####################  Private functions below ##################################
+
+_dns_gcloud_authenticate() {
+  _info "_dns_gcloud_authenticate: authenticating gcloud"
+  _debug "_dns_gcloud_authenticate: checking authenticated status"
+
+  account=$(
+    gcloud auth list \
+      --filter "status:ACTIVE" \
+      --format "value(account)" \
+      --verbosity error
+  )
+
+  if [ "$account" ]; then
+    _info "_dns_gcloud_authenticate: already authenticated"
+    return 0
+  fi
+
+  _debug "_dns_gcloud_authenticate: unauthenticated"
+  _debug "_dns_gcloud_authenticate: authenticating using service account key"
+
+  GCLOUD_Service_Account_Key="${GCLOUD_Service_Account_Key:-$(_readaccountconf_mutable GCLOUD_Service_Account_Key)}"
+  GCLOUD_Project_ID="${GCLOUD_Project_ID:-$(_readaccountconf_mutable GCLOUD_Project_ID)}"
+
+  if [ -z "$GCLOUD_Service_Account_Key" ] || [ -z "$GCLOUD_Project_ID" ]; then
+    GCLOUD_Service_Account_Key=""
+    GCLOUD_Project_ID=""
+    _err "_dns_gcloud_authenticate: missing Google Cloud service account key and or project ID"
+    return 1
+  fi
+
+  #save the service account api key and project ID to the account conf file.
+  _saveaccountconf_mutable GCLOUD_Service_Account_Key "$GCLOUD_Service_Account_Key"
+  _saveaccountconf_mutable GCLOUD_Project_ID "$GCLOUD_Project_ID"
+
+  if ! echo "$GCLOUD_Service_Account_Key" | gcloud auth activate-service-account --key-file -; then
+    _err "_dns_gcloud_authenticate: failed to authenticate with service account key"
+    return 1
+  fi
+
+  _info "_dns_gcloud_authenticate: successfully authenticated using service account key"
+
+  gcloud config set project "$GCLOUD_Project_ID"
+
+  _info "_dns_gcloud_authenticate: configured gcloud project"
+}
 
 _dns_gcloud_start_tr() {
   if ! trd=$(mktemp -d); then
