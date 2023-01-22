@@ -1,0 +1,22 @@
+version: "3"
+
+x-uffizzi:
+  ingress:
+    service: acmesh
+    port: 7681
+
+services:
+
+  acmesh:
+    image: "${ACME_IMAGE}"
+    volumes: 
+      - ./acme.sh:/acme.sh
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["ttyd /bin/bash"]   
+    ports:
+    - "7700:7700"
+    - "7681:7681"
+    deploy:
+      resources:
+        limits:
+          memory: 4000M
