@@ -6730,6 +6730,13 @@ _send_notify() {
     return 0
   fi
 
+  _nsource="$NOTIFY_SOURCE"
+  if [ -z "$_nsource" ]; then
+    _nsource="$(hostname)"
+  fi
+
+  _nsubject="$_nsubject by $_nsource"
+
   _send_err=0
   for _n_hook in $(echo "$_nhooks" | tr ',' " "); do
     _n_hook_file="$(_findHook "" $_SUB_FOLDER_NOTIFY "$_n_hook")"
@@ -6784,11 +6791,12 @@ setnotify() {
   _nhook="$1"
   _nlevel="$2"
   _nmode="$3"
+  _nsource="$4"
 
   _initpath
 
   if [ -z "$_nhook$_nlevel$_nmode" ]; then
-    _usage "Usage: $PROJECT_ENTRY --set-notify [--notify-hook <hookname>] [--notify-level <0|1|2|3>] [--notify-mode <0|1>]"
+    _usage "Usage: $PROJECT_ENTRY --set-notify [--notify-hook <hookname>] [--notify-level <0|1|2|3>] [--notify-mode <0|1>] [--notify-source <hostname>]"
     _usage "$_NOTIFY_WIKI"
     return 1
   fi
@@ -6803,6 +6811,12 @@ setnotify() {
     _info "Set notify mode to: $_nmode"
     export "NOTIFY_MODE=$_nmode"
     _saveaccountconf "NOTIFY_MODE" "$NOTIFY_MODE"
+  fi
+
+  if [ "$_nsource" ]; then
+    _info "Set notify source to: $_nsource"
+    export "NOTIFY_SOURCE=$_nsource"
+    _saveaccountconf "NOTIFY_SOURCE" "$NOTIFY_SOURCE"
   fi
 
   if [ "$_nhook" ]; then
@@ -6965,6 +6979,7 @@ Parameters:
                                       0: Bulk mode. Send all the domain's notifications in one message(mail).
                                       1: Cert mode. Send a message for every single cert.
   --notify-hook <hookname>          Set the notify hook
+  --notify-source <server name>     Set the server name in the notification message
   --revoke-reason <0-10>            The reason for revocation, can be used in conjunction with the '--revoke' command.
                                       See: $_REVOKE_WIKI
 
@@ -7241,6 +7256,7 @@ _process() {
   _notify_hook=""
   _notify_level=""
   _notify_mode=""
+  _notify_source=""
   _revoke_reason=""
   _eab_kid=""
   _eab_hmac_key=""
@@ -7733,6 +7749,15 @@ _process() {
       _notify_mode="$_nmode"
       shift
       ;;
+    --notify-source)
+      _nsource="$2"
+      if _startswith "$_nsource" "-"; then
+        _err "'$_nsource' is not valid host name for '$1'"
+        return 1
+      fi
+      _notify_source="$_nsource"
+      shift
+      ;;
     --revoke-reason)
       _revoke_reason="$2"
       if _startswith "$_revoke_reason" "-"; then
@@ -7887,7 +7912,7 @@ _process() {
     createCSR "$_domain" "$_altdomains" "$_ecc"
     ;;
   setnotify)
-    setnotify "$_notify_hook" "$_notify_level" "$_notify_mode"
+    setnotify "$_notify_hook" "$_notify_level" "$_notify_mode" "$_notify_source"
     ;;
   setdefaultca)
     setdefaultca
