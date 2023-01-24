@@ -6795,7 +6795,7 @@ setnotify() {
 
   _initpath
 
-  if [ -z "$_nhook$_nlevel$_nmode" ]; then
+  if [ -z "$_nhook$_nlevel$_nmode$_nsource" ]; then
     _usage "Usage: $PROJECT_ENTRY --set-notify [--notify-hook <hookname>] [--notify-level <0|1|2|3>] [--notify-mode <0|1>] [--notify-source <hostname>]"
     _usage "$_NOTIFY_WIKI"
     return 1
