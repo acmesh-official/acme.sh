@@ -2386,12 +2386,14 @@ _getdeployconf() {
   if [ "$_rac_value" ]; then
     if _startswith "$_rac_value" '"' && _endswith "$_rac_value" '"'; then
       _debug2 "trim quotation marks"
-      eval "export $_rac_key=$_rac_value"
+      eval $_rac_key=$_rac_value
+      export $_rac_key
     fi
     return 0 # do nothing
   fi
-  _saved=$(_readdomainconf "SAVED_$_rac_key")
-  eval "export $_rac_key=\"\$_saved\""
+  _saved="$(_readdomainconf "SAVED_$_rac_key")"
+  eval $_rac_key="$_saved"
+  export $_rac_key
 }
 
 #_saveaccountconf  key  value  base64encode
