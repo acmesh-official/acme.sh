@@ -80,8 +80,9 @@ jobs:
             -p 9000:9000 \
             -e "DOCKER_STEPCA_INIT_NAME=Smallstep" \
             -e "DOCKER_STEPCA_INIT_DNS_NAMES=localhost,$(hostname -f)" \
+            -e "DOCKER_STEPCA_INIT_REMOTE_MANAGEMENT=true" \
             --name stepca \
-            smallstep/step-ca \
+            smallstep/step-ca:0.23.1 \
             && sleep 5 && docker exec  stepca step ca provisioner add acme --type ACME \
             && docker exec  stepca kill -1 1 \
             && docker exec  stepca cat /home/step/certs/root_ca.crt | sudo bash -c "cat - >>/etc/ssl/certs/ca-certificates.crt"
