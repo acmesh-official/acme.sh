@@ -7122,7 +7122,9 @@ _selectServer() {
 _getCAShortName() {
   caurl="$1"
   if [ -z "$caurl" ]; then
-    caurl="$DEFAULT_CA"
+    #use letsencrypt as default value if the Le_API is empty
+    #this case can only come from the old upgrading.
+    caurl="$CA_LETSENCRYPT_V2"
   fi
   if [ "$CA_SSLCOM_ECC" = "$caurl" ]; then
     caurl="$CA_SSLCOM_RSA" #just hack to get the short name
