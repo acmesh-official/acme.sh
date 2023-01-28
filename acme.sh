@@ -1852,7 +1852,7 @@ _inithttp() {
       _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
     fi
 
-    if _contains "$(curl --help curl 2>&1)" "--globoff"; then
+    if _contains "$(curl --help 2>&1)" "--globoff" || _contains "$(curl --help curl 2>&1)" "--globoff"; then
       _ACME_CURL="$_ACME_CURL -g "
     fi
 
