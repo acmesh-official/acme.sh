@@ -1852,8 +1852,13 @@ _inithttp() {
       _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
     fi
 
-    if _contains "$(curl --help 2>&1)" "--globoff"; then
+    if _contains "$(curl --help 2>&1)" "--globoff" || _contains "$(curl --help curl 2>&1)" "--globoff"; then
       _ACME_CURL="$_ACME_CURL -g "
+    fi
+
+    #from curl 7.76: return fail on HTTP errors but keep the body
+    if _contains "$(curl --help http 2>&1)" "--fail-with-body"; then
+      _ACME_CURL="$_ACME_CURL --fail-with-body "
     fi
   fi
 
@@ -1872,11 +1877,11 @@ _inithttp() {
     elif [ "$CA_BUNDLE" ]; then
       _ACME_WGET="$_ACME_WGET --ca-certificate=$CA_BUNDLE "
     fi
-  fi
 
-  #from wget 1.14: do not skip body on 404 error
-  if [ "$_ACME_WGET" ] && _contains "$($_ACME_WGET --help 2>&1)" "--content-on-error"; then
-    _ACME_WGET="$_ACME_WGET --content-on-error "
+    #from wget 1.14: do not skip body on 404 error
+    if _contains "$(wget --help 2>&1)" "--content-on-error"; then
+      _ACME_WGET="$_ACME_WGET --content-on-error "
+    fi
   fi
 
   __HTTP_INITIALIZED=1
