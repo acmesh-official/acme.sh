@@ -189,7 +189,7 @@ truenas_deploy() {
     _info "Query all chart release"
     _release_list=$(_get "$_api_url/chart/release")
     _related_name_list=$(printf "%s" "$_release_list" | jq -r "[.[] | {name,certId: .config.ingress?.main.tls[]?.scaleCert} | select(.certId==$_active_cert_id) | .name ] | unique")
-    _release_length=$(printf "%s" $_related_name_list | jq -r "length")
+    _release_length=$(printf "%s" "$_related_name_list" | jq -r "length")
     _info "Found $_release_length related chart release in list: $_related_name_list"
     for i in $(seq 0 $((_release_length - 1))); do
       _release_name=$(echo "$_related_name_list" | jq -r ".[$i]")
