@@ -20,7 +20,7 @@
 # Dependencies:
 # -------------
 # - jq and curl
-# - oathtool (When using 2 Factor Authentication and SYNO_TOTP_SECRET is set)
+# - docker (When using 2 Factor Authentication and SYNO_TOTP_SECRET is set)
 #
 #returns 0 means success, otherwise error.
 
@@ -94,10 +94,10 @@ synology_dsm_deploy() {
 
   otp_code=""
   if [ -n "$SYNO_TOTP_SECRET" ]; then
-    if _exists oathtool; then
-      otp_code="$(oathtool --base32 --totp "${SYNO_TOTP_SECRET}" 2>/dev/null)"
+    if _exists docker; then
+      otp_code="$(docker run --rm -it toolbelt/oathtool --base32 --totp "${SYNO_TOTP_SECRET}" 2>/dev/null | cut -b 1-6)"
     else
-      _err "oathtool could not be found, install oathtool to use SYNO_TOTP_SECRET"
+      _err "docker could not be found, install docker synology package to use SYNO_TOTP_SECRET"
       return 1
     fi
   fi
