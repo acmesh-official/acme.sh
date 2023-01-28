@@ -191,14 +191,13 @@ truenas_deploy() {
     _related_name_list=$(printf "%s" "$_release_list" | jq -r "[.[] | {name,certId: .config.ingress?.main.tls[]?.scaleCert} | select(.certId==$_active_cert_id) | .name ] | unique")
     _release_length=$(printf "%s" $_related_name_list | jq -r "length")
     _info "Found $_release_length related chart release in list: $_related_name_list"
-    for i in $(seq 0 $((_release_length-1)));
-    do
+    for i in $(seq 0 $((_release_length-1))); do
       _release_name=$(echo "$_related_name_list" | jq -r ".[$i]")
       _info "Updating certificate from $_active_cert_id to $_cert_id for chart release: $_release_name"
       #Read the chart release configuration
       _chart_config=$(printf "%s" "$_release_list" | jq -r ".[] | select(.name==\"$_release_name\")")
       #Replace the old certificate id with the new one in path .config.ingress.main.tls[].scaleCert. Then update .config.ingress
-      _updated_chart_config=$(printf "%s" "$_chart_config" | jq "(.config.ingress?.main.tls[]? | select(.scaleCert==$_active_cert_id) | .scaleCert  ) |= $_cert_id | .config.ingress " )
+      _updated_chart_config=$(printf "%s" "$_chart_config" | jq "(.config.ingress?.main.tls[]? | select(.scaleCert==$_active_cert_id) | .scaleCert  ) |= $_cert_id | .config.ingress ")
       _update_chart_result="$(_post "{\"values\" : { \"ingress\" : $_updated_chart_config } }" "$_api_url/chart/release/id/$_release_name" "" "PUT" "application/json")"
       _debug3 _update_chart_result "$_update_chart_result"
     done
