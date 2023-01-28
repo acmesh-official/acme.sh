@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.0.5
+VER=3.0.6
 
 PROJECT_NAME="acme.sh"
 
@@ -53,8 +53,8 @@ CA_SERVERS="$CA_ZEROSSL,$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_BUYPASS,$
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 
-DEFAULT_ACCOUNT_KEY_LENGTH=2048
-DEFAULT_DOMAIN_KEY_LENGTH=2048
+DEFAULT_ACCOUNT_KEY_LENGTH=ec-256
+DEFAULT_DOMAIN_KEY_LENGTH=ec-256
 
 DEFAULT_OPENSSL_BIN="openssl"
 
@@ -1637,7 +1637,7 @@ _stat() {
 #keyfile
 _isRSA() {
   keyfile=$1
-  if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} rsa -in "$keyfile" -noout -text | grep "^publicExponent:" >/dev/null 2>&1; then
+  if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} rsa -in "$keyfile" -noout -text 2>&1 | grep "^publicExponent:" 2>&1 >/dev/null; then
     return 0
   fi
   return 1
@@ -1646,7 +1646,7 @@ _isRSA() {
 #keyfile
 _isEcc() {
   keyfile=$1
-  if grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" >/dev/null 2>&1; then
+  if grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" 2>&1 >/dev/null; then
     return 0
   fi
   return 1
@@ -1744,7 +1744,7 @@ _calcjwk() {
     _debug3 x64 "$x64"
 
     xend=$(_math "$xend" + 1)
-    y="$(printf "%s" "$pubtext" | cut -d : -f "$xend"-10000)"
+    y="$(printf "%s" "$pubtext" | cut -d : -f "$xend"-2048)"
     _debug3 y "$y"
 
     y64="$(printf "%s" "$y" | tr -d : | _h2b | _base64 | _url_replace)"
@@ -2058,7 +2058,7 @@ _get() {
     fi
     _debug "_WGET" "$_WGET"
     if [ "$onlyheader" ]; then
-      _wget_out = "$($_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1)"
+      _wget_out="$($_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1)"
       if _contains "$_WGET" " -d "; then
         # Demultiplex wget debug output
         echo "$_wget_out" >&2
@@ -2352,6 +2352,26 @@ _readdomainconf() {
   _read_conf "$DOMAIN_CONF" "$1"
 }
 
+#_migratedomainconf   oldkey  newkey  base64encode
+_migratedomainconf() {
+  _old_key="$1"
+  _new_key="$2"
+  _b64encode="$3"
+  _value=$(_readdomainconf "$_old_key")
+  if [ -z "$_value" ]; then
+    return 1 # oldkey is not found
+  fi
+  _savedomainconf "$_new_key" "$_value" "$_b64encode"
+  _cleardomainconf "$_old_key"
+  _debug "Domain config $_old_key has been migrated to $_new_key"
+}
+
+#_migratedeployconf   oldkey  newkey  base64encode
+_migratedeployconf() {
+  _migratedomainconf "$1" "SAVED_$2" "$3" ||
+    _migratedomainconf "SAVED_$1" "SAVED_$2" "$3" # try only when oldkey itself is not found
+}
+
 #key  value  base64encode
 _savedeployconf() {
   _savedomainconf "SAVED_$1" "$2" "$3"
@@ -2366,12 +2386,14 @@ _getdeployconf() {
   if [ "$_rac_value" ]; then
     if _startswith "$_rac_value" '"' && _endswith "$_rac_value" '"'; then
       _debug2 "trim quotation marks"
-      eval "export $_rac_key=$_rac_value"
+      eval $_rac_key=$_rac_value
+      export $_rac_key
     fi
     return 0 # do nothing
   fi
-  _saved=$(_readdomainconf "SAVED_$_rac_key")
-  eval "export $_rac_key=\"\$_saved\""
+  _saved="$(_readdomainconf "SAVED_$_rac_key")"
+  eval $_rac_key="$_saved"
+  export $_rac_key
 }
 
 #_saveaccountconf  key  value  base64encode
@@ -2837,7 +2859,8 @@ _initpath() {
       DOMAIN_PATH="$domainhomeecc"
     else
       if [ ! -d "$domainhome" ] && [ -d "$domainhomeecc" ]; then
-        _info "The domain '$domain' seems to have a ECC cert already, please add '$(__red "--ecc")' parameter if you want to use that cert."
+        _info "The domain '$domain' seems to have a ECC cert already, lets use ecc cert."
+        DOMAIN_PATH="$domainhomeecc"
       fi
     fi
     _debug DOMAIN_PATH "$DOMAIN_PATH"
@@ -6707,6 +6730,13 @@ _send_notify() {
     return 0
   fi
 
+  _nsource="$NOTIFY_SOURCE"
+  if [ -z "$_nsource" ]; then
+    _nsource="$(hostname)"
+  fi
+
+  _nsubject="$_nsubject by $_nsource"
+
   _send_err=0
   for _n_hook in $(echo "$_nhooks" | tr ',' " "); do
     _n_hook_file="$(_findHook "" $_SUB_FOLDER_NOTIFY "$_n_hook")"
@@ -6761,11 +6791,12 @@ setnotify() {
   _nhook="$1"
   _nlevel="$2"
   _nmode="$3"
+  _nsource="$4"
 
   _initpath
 
-  if [ -z "$_nhook$_nlevel$_nmode" ]; then
-    _usage "Usage: $PROJECT_ENTRY --set-notify [--notify-hook <hookname>] [--notify-level <0|1|2|3>] [--notify-mode <0|1>]"
+  if [ -z "$_nhook$_nlevel$_nmode$_nsource" ]; then
+    _usage "Usage: $PROJECT_ENTRY --set-notify [--notify-hook <hookname>] [--notify-level <0|1|2|3>] [--notify-mode <0|1>] [--notify-source <hostname>]"
     _usage "$_NOTIFY_WIKI"
     return 1
   fi
@@ -6780,6 +6811,12 @@ setnotify() {
     _info "Set notify mode to: $_nmode"
     export "NOTIFY_MODE=$_nmode"
     _saveaccountconf "NOTIFY_MODE" "$NOTIFY_MODE"
+  fi
+
+  if [ "$_nsource" ]; then
+    _info "Set notify source to: $_nsource"
+    export "NOTIFY_SOURCE=$_nsource"
+    _saveaccountconf "NOTIFY_SOURCE" "$NOTIFY_SOURCE"
   fi
 
   if [ "$_nhook" ]; then
@@ -6942,6 +6979,7 @@ Parameters:
                                       0: Bulk mode. Send all the domain's notifications in one message(mail).
                                       1: Cert mode. Send a message for every single cert.
   --notify-hook <hookname>          Set the notify hook
+  --notify-source <server name>     Set the server name in the notification message
   --revoke-reason <0-10>            The reason for revocation, can be used in conjunction with the '--revoke' command.
                                       See: $_REVOKE_WIKI
 
@@ -7099,7 +7137,9 @@ _selectServer() {
 _getCAShortName() {
   caurl="$1"
   if [ -z "$caurl" ]; then
-    caurl="$DEFAULT_CA"
+    #use letsencrypt as default value if the Le_API is empty
+    #this case can only come from the old upgrading.
+    caurl="$CA_LETSENCRYPT_V2"
   fi
   if [ "$CA_SSLCOM_ECC" = "$caurl" ]; then
     caurl="$CA_SSLCOM_RSA" #just hack to get the short name
@@ -7216,6 +7256,7 @@ _process() {
   _notify_hook=""
   _notify_level=""
   _notify_mode=""
+  _notify_source=""
   _revoke_reason=""
   _eab_kid=""
   _eab_hmac_key=""
@@ -7496,7 +7537,7 @@ _process() {
       shift
       ;;
     --home)
-      export LE_WORKING_DIR="$2"
+      export LE_WORKING_DIR="$(echo "$2" | sed 's|/$||')"
       shift
       ;;
     --cert-home | --certhome)
@@ -7708,6 +7749,15 @@ _process() {
       _notify_mode="$_nmode"
       shift
       ;;
+    --notify-source)
+      _nsource="$2"
+      if _startswith "$_nsource" "-"; then
+        _err "'$_nsource' is not valid host name for '$1'"
+        return 1
+      fi
+      _notify_source="$_nsource"
+      shift
+      ;;
     --revoke-reason)
       _revoke_reason="$2"
       if _startswith "$_revoke_reason" "-"; then
@@ -7862,7 +7912,7 @@ _process() {
     createCSR "$_domain" "$_altdomains" "$_ecc"
     ;;
   setnotify)
-    setnotify "$_notify_hook" "$_notify_level" "$_notify_mode"
+    setnotify "$_notify_hook" "$_notify_level" "$_notify_mode" "$_notify_source"
     ;;
   setdefaultca)
     setdefaultca

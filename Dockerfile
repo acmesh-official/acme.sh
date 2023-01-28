@@ -1,4 +1,4 @@
-FROM alpine:3.16.3
+FROM alpine:3.17
 
 RUN apk --no-cache add -f \
   openssl \
@@ -12,7 +12,8 @@ RUN apk --no-cache add -f \
   oath-toolkit-oathtool \
   tar \
   libidn \
-  jq
+  jq \
+  cronie
 
 ENV LE_CONFIG_HOME /acme.sh
 
@@ -64,12 +65,10 @@ RUN for verb in help \
 
 RUN printf "%b" '#!'"/usr/bin/env sh\n \
 if [ \"\$1\" = \"daemon\" ];  then \n \
- trap \"echo stop && killall crond && exit 0\" SIGTERM SIGINT \n \
- crond && sleep infinity &\n \
- wait \n \
+ exec crond -n \n \
 else \n \
  exec -- \"\$@\"\n \
-fi" >/entry.sh && chmod +x /entry.sh
+fi\n" >/entry.sh && chmod +x /entry.sh
 
 VOLUME /acme.sh
 
