@@ -191,7 +191,7 @@ truenas_deploy() {
     _related_name_list=$(printf "%s" "$_release_list" | jq -r "[.[] | {name,certId: .config.ingress?.main.tls[]?.scaleCert} | select(.certId==$_active_cert_id) | .name ] | unique")
     _release_length=$(printf "%s" $_related_name_list | jq -r "length")
     _info "Found $_release_length related chart release in list: $_related_name_list"
-    for i in $(seq 0 $((_release_length-1))); do
+    for i in $(seq 0 $((_release_length - 1))); do
       _release_name=$(echo "$_related_name_list" | jq -r ".[$i]")
       _info "Updating certificate from $_active_cert_id to $_cert_id for chart release: $_release_name"
       #Read the chart release configuration
