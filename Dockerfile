@@ -65,7 +65,7 @@ RUN for verb in help \
 
 RUN printf "%b" '#!'"/usr/bin/env sh\n \
 if [ \"\$1\" = \"daemon\" ];  then \n \
- exec crond -n \n \
+ exec crond -n -s -m off \n \
 else \n \
  exec -- \"\$@\"\n \
 fi\n" >/entry.sh && chmod +x /entry.sh
