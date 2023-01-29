@@ -28,9 +28,9 @@ jobs:
         id: step_one
         run: |
           if [ "$DOCKER_PASSWORD" ] ; then
-            echo "::set-output name=hasToken::true"
+            echo "hasToken=true" >>$GITHUB_OUTPUT
           else
-            echo "::set-output name=hasToken::false"
+            echo "hasToken=false" >>$GITHUB_OUTPUT
           fi
       - name: Check the value
         run: echo ${{ steps.step_one.outputs.hasToken }}
