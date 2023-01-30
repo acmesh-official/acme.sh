@@ -20,7 +20,7 @@
 # Dependencies:
 # -------------
 # - jq and curl
-# - docker (When using 2 Factor Authentication and SYNO_TOTP_SECRET is set)
+# - oathtool or docker (When using 2 Factor Authentication and SYNO_TOTP_SECRET is set)
 #
 #returns 0 means success, otherwise error.
 
@@ -94,10 +94,17 @@ synology_dsm_deploy() {
 
   otp_code=""
   if [ -n "$SYNO_TOTP_SECRET" ]; then
-    if _exists docker; then
-      otp_code="$(docker run --rm -it toolbelt/oathtool --base32 --totp "${SYNO_TOTP_SECRET}" 2>/dev/null | cut -b 1-6)"
+    if _exists oathtool; then
+      otp_code="$(oathtool --base32 --totp "${SYNO_TOTP_SECRET}" 2>/dev/null)"
+    elif _exists docker; then
+      if [[ "$(docker images -q toolbelt/oathtool:latest 2> /dev/null)" == "" ]]; then
+        read -e -p "docker is available but oathtool docker image must be downloaded, do you want to download it (Y) or abort (N) ? " choice
+        [[ "$choice" == [Yy]* ]] && docker image pull toolbelt/oathtool:latest && otp_code="$(docker run --rm -it toolbelt/oathtool --base32 --totp "${SYNO_TOTP_SECRET}" 2>/dev/null | cut -b 1-6)" || { echo "Abort requested or download failed"; return 1; }
+      else
+        otp_code="$(docker run --rm -it toolbelt/oathtool --base32 --totp "${SYNO_TOTP_SECRET}" 2>/dev/null | cut -b 1-6)"
+      fi
     else
-      _err "docker could not be found, install docker synology package to use SYNO_TOTP_SECRET"
+      _err "neither oathtool or docker could be found, install oathtool binary or docker synology package to use SYNO_TOTP_SECRET"
       return 1
     fi
   fi
