@@ -99,7 +99,7 @@ synology_dsm_deploy() {
     elif _exists docker; then
       if [[ "$(docker images -q toolbelt/oathtool:latest 2> /dev/null)" == "" ]]; then
         read -e -p "docker is available but oathtool docker image must be downloaded, do you want to download it (Y) or abort (N) ? " choice
-        [[ "$choice" == [Yy]* ]] && docker image pull toolbelt/oathtool:latest && otp_code="$(docker run --rm -it toolbelt/oathtool --base32 --totp "${SYNO_TOTP_SECRET}" 2>/dev/null | cut -b 1-6)" || { echo "Abort requested or download failed"; return 1; }
+        [[ "$choice" == [Yy]* ]] && docker image pull toolbelt/oathtool:latest && otp_code="$(docker run --rm -it toolbelt/oathtool --base32 --totp "${SYNO_TOTP_SECRET}" 2>/dev/null | cut -b 1-6)" || { _err "Abort requested or download failed"; return 1; }
       else
         otp_code="$(docker run --rm -it toolbelt/oathtool --base32 --totp "${SYNO_TOTP_SECRET}" 2>/dev/null | cut -b 1-6)"
       fi
