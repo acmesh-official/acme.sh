@@ -4023,7 +4023,7 @@ _ns_purge_cf() {
 
 #checks if cf server is available
 _ns_is_available_cf() {
-  if _get "https://cloudflare-dns.com" "" 1 >/dev/null 2>&1; then
+  if _get "https://cloudflare-dns.com" "" 10 >/dev/null; then
     return 0
   else
     return 1
@@ -4031,7 +4031,7 @@ _ns_is_available_cf() {
 }
 
 _ns_is_available_google() {
-  if _get "https://dns.google" "" 1 >/dev/null 2>&1; then
+  if _get "https://dns.google" "" 10 >/dev/null; then
     return 0
   else
     return 1
@@ -4047,7 +4047,7 @@ _ns_lookup_google() {
 }
 
 _ns_is_available_ali() {
-  if _get "https://dns.alidns.com" "" 1 >/dev/null 2>&1; then
+  if _get "https://dns.alidns.com" "" 10 >/dev/null; then
     return 0
   else
     return 1
@@ -4063,7 +4063,7 @@ _ns_lookup_ali() {
 }
 
 _ns_is_available_dp() {
-  if _get "https://doh.pub" "" 1 >/dev/null 2>&1; then
+  if _get "https://doh.pub" "" 10 >/dev/null; then
     return 0
   else
     return 1
