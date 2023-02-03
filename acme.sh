@@ -1856,11 +1856,11 @@ _inithttp() {
       _ACME_CURL="$_ACME_CURL -g "
     fi
 
-    # don't use --fail-with-body 
-    ##from curl 7.76: return fail on HTTP errors but keep the body
-    #if _contains "$(curl --help http 2>&1)" "--fail-with-body"; then
-    #  _ACME_CURL="$_ACME_CURL --fail-with-body "
-    #fi
+#don't use --fail-with-body 
+##from curl 7.76: return fail on HTTP errors but keep the body
+#if _contains "$(curl --help http 2>&1)" "--fail-with-body"; then
+#  _ACME_CURL="$_ACME_CURL --fail-with-body "
+#fi
   fi
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
