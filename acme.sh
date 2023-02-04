@@ -1856,10 +1856,11 @@ _inithttp() {
       _ACME_CURL="$_ACME_CURL -g "
     fi
 
-    #from curl 7.76: return fail on HTTP errors but keep the body
-    if _contains "$(curl --help http 2>&1)" "--fail-with-body"; then
-      _ACME_CURL="$_ACME_CURL --fail-with-body "
-    fi
+    #don't use --fail-with-body
+    ##from curl 7.76: return fail on HTTP errors but keep the body
+    #if _contains "$(curl --help http 2>&1)" "--fail-with-body"; then
+    #  _ACME_CURL="$_ACME_CURL --fail-with-body "
+    #fi
   fi
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
@@ -4023,7 +4024,7 @@ _ns_purge_cf() {
 
 #checks if cf server is available
 _ns_is_available_cf() {
-  if _get "https://cloudflare-dns.com" "" 1 >/dev/null 2>&1; then
+  if _get "https://cloudflare-dns.com" "" 10 >/dev/null; then
     return 0
   else
     return 1
@@ -4031,7 +4032,7 @@ _ns_is_available_cf() {
 }
 
 _ns_is_available_google() {
-  if _get "https://dns.google" "" 1 >/dev/null 2>&1; then
+  if _get "https://dns.google" "" 10 >/dev/null; then
     return 0
   else
     return 1
@@ -4047,7 +4048,7 @@ _ns_lookup_google() {
 }
 
 _ns_is_available_ali() {
-  if _get "https://dns.alidns.com" "" 1 >/dev/null 2>&1; then
+  if _get "https://dns.alidns.com" "" 10 >/dev/null; then
     return 0
   else
     return 1
@@ -4063,7 +4064,7 @@ _ns_lookup_ali() {
 }
 
 _ns_is_available_dp() {
-  if _get "https://doh.pub" "" 1 >/dev/null 2>&1; then
+  if _get "https://doh.pub" "" 10 >/dev/null; then
     return 0
   else
     return 1
