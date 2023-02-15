@@ -4674,13 +4674,11 @@ $_authorizations_map"
       _debug entry "$entry"
       keyauthorization=""
       if [ -z "$entry" ]; then
-        if ! _startswith "$d" '*.'; then
-          _debug "Not a wildcard domain, lets check whether the validation is already valid."
-          if echo "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
-            _debug "$d is already valid."
-            keyauthorization="$STATE_VERIFIED"
-            _debug keyauthorization "$keyauthorization"
-          fi
+        _debug "Let's check whether the validation is already valid."
+        if echo "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
+          _debug "$d is already valid."
+          keyauthorization="$STATE_VERIFIED"
+          _debug keyauthorization "$keyauthorization"
         fi
         if [ -z "$keyauthorization" ]; then
           _err "Error, can not get domain token entry $d for $vtype"
