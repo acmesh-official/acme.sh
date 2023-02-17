@@ -43,6 +43,19 @@ ssh_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
+  if ! _ssh_load_config; then
+    return 1
+  fi
+  
+  _deploy_ssh_servers="$DEPLOY_SSH_SERVER"
+  for DEPLOY_SSH_SERVER in $_deploy_ssh_servers; do
+    _ssh_deploy
+  done
+}
+
+_ssh_load_config() {
+  _deploy_ssh_servers=""
+
   # USER is required to login by SSH to remote host.
   _migratedeployconf Le_Deploy_ssh_user DEPLOY_SSH_USER
   _getdeployconf DEPLOY_SSH_USER
@@ -169,11 +182,6 @@ ssh_deploy() {
   else
     _info "Required commands batched and sent in single call to remote host"
   fi
-
-  _deploy_ssh_servers="$DEPLOY_SSH_SERVER"
-  for DEPLOY_SSH_SERVER in $_deploy_ssh_servers; do
-    _ssh_deploy
-  done
 }
 
 _ssh_deploy() {
