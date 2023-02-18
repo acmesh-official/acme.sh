@@ -2398,6 +2398,7 @@ _getdeployconf() {
     return 0 # do nothing
   fi
   _saved="$(_readdomainconf "SAVED_$_rac_key")"
+  _saved=$(echo "$_saved" | sed 's/"/\\"/g')
   eval $_rac_key="\"$_saved\""
   export $_rac_key
 }
