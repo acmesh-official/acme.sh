@@ -5772,6 +5772,7 @@ deploy() {
     return 1
   fi
 
+  _debug2 DOMAIN_CONF "$DOMAIN_CONF"
   . "$DOMAIN_CONF"
 
   _savedomainconf Le_DeployHook "$_hooks"
