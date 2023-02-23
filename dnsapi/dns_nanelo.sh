@@ -9,7 +9,7 @@ NANELO_API="https://api.nanelo.com/v1/"
 
 ########  Public functions #####################
 
-#Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+# Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_nanelo_add() {
   fulldomain=$1
   txtvalue=$2
@@ -29,7 +29,7 @@ dns_nanelo_add() {
   if _contains "${response}" 'success'; then
     return 0
   fi
-  _err "Could not create resource record, check logs"
+  _err "Could not create resource record, please check the logs"
   _err "${response}"
   return 1
 }
@@ -53,7 +53,7 @@ dns_nanelo_rm() {
   if _contains "${response}" 'success'; then
     return 0
   fi
-  _err "Could not delete resource record, check logs"
+  _err "Could not delete resource record, please check the logs"
   _err "${response}"
   return 1
 }
