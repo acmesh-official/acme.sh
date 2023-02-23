@@ -25,7 +25,7 @@ dns_nanelo_add() {
   _saveaccountconf_mutable NANELO_TOKEN "$NANELO_TOKEN"
 
   _info "Adding TXT record to ${fulldomain}"
-  response="$(_get "$NANELO_API$NANELO_TOKEN/dns/addrecord?type=TXT&name=${fulldomain}&value=${txtvalue}")"
+  response="$(_get "$NANELO_API$NANELO_TOKEN/dns/addrecord?type=TXT&ttl=60&name=${fulldomain}&value=${txtvalue}")"
   if _contains "${response}" 'success'; then
     return 0
   fi
@@ -49,7 +49,7 @@ dns_nanelo_rm() {
   _saveaccountconf_mutable NANELO_TOKEN "$NANELO_TOKEN"
 
   _info "Deleting resource record $fulldomain"
-  response="$(_get "$NANELO_API$NANELO_TOKEN/dns/deleterecord?type=TXT&name=${fulldomain}&value=${txtvalue}")"
+  response="$(_get "$NANELO_API$NANELO_TOKEN/dns/deleterecord?type=TXT&ttl=60&name=${fulldomain}&value=${txtvalue}")"
   if _contains "${response}" 'success'; then
     return 0
   fi
