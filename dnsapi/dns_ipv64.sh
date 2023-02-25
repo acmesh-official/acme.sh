@@ -37,8 +37,8 @@ dns_ipv64_add() {
   _debug _domain "$_domain"
 
   # convert to lower case
-  _domain="$(echo "$_domain" | tr '[:upper:]' '[:lower:]')"
-  _sub_domain="$(echo "$_sub_domain" | tr '[:upper:]' '[:lower:]')"
+  _domain="$(echo "$_domain" | _lower_case')"
+  _sub_domain="$(echo "$_sub_domain" | _lower_case)"
   # Now add the TXT record
   _info "Trying to add TXT record"
   if _ipv64_rest "POST" "add_record=$_domain&praefix=$_sub_domain&type=TXT&content=$txtvalue"; then
@@ -74,8 +74,8 @@ dns_ipv64_rm() {
   _debug _domain "$_domain"
 
   # convert to lower case
-  _domain="$(echo "$_domain" | tr '[:upper:]' '[:lower:]')"
-  _sub_domain="$(echo "$_sub_domain" | tr '[:upper:]' '[:lower:]')"
+  _domain="$(echo "$_domain" | _lower_case)"
+  _sub_domain="$(echo "$_sub_domain" | _lower_case)"
   # Now delete the TXT record
   _info "Trying to delete TXT record"
   if _ipv64_rest "DELETE" "del_record=$_domain&praefix=$_sub_domain&type=TXT&content=$txtvalue"; then
