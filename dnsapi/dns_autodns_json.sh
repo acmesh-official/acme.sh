@@ -45,7 +45,7 @@ dns_autodns_json_add() {
   _post_data="{\"adds\":[{\"name\":\"$_autodns_sub_domain\",\"ttl\":600,\"type\":\"TXT\",\"value\":\"$txtvalue\"}]}"
   _response="$(dns_autodns_api_call "/zone/$_autodns_zone/_stream" "$_post_data")"
 
-  if [ "$?" -eq "0" ] && _contains "$_response" '{"type":"Zone","summary":1}'; then
+  if _contains "$_response" '{"type":"Zone","summary":1}'; then
     _info "Added, OK"
     return 0
   fi
@@ -64,7 +64,6 @@ dns_autodns_json_rm() {
   AUTODNS_PASSWORD="${AUTODNS_PASSWORD:-$(_readaccountconf_mutable AUTODNS_PASSWORD)}"
   AUTODNS_CONTEXT="${AUTODNS_CONTEXT:-$(_readaccountconf_mutable AUTODNS_CONTEXT)}"
 
-
   if ! _get_autodns_zone "$fulldomain"; then
     _err "invalid domain"
     return 1
@@ -74,14 +73,13 @@ dns_autodns_json_rm() {
   _post_data="{\"rems\":[{\"name\":\"$_autodns_sub_domain\",\"type\":\"TXT\",\"value\":\"$txtvalue\"}]}"
   _response="$(dns_autodns_api_call "/zone/$_autodns_zone/_stream" "$_post_data")"
 
-  if [ "$?" -eq "0" ] && _contains "$_response" '{"type":"Zone","summary":1}'; then
+  if _contains "$_response" '{"type":"Zone","summary":1}'; then
     _info "Deleted, OK"
     return 0
   fi
 
   return 1
 }
-
 
 dns_autodns_api_call() {
   _api_route="$1"
