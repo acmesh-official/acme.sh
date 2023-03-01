@@ -2229,6 +2229,12 @@ _send_signed_request() {
         _debug3 _body "$_body"
       fi
 
+      if [ "$code" = '503' ]; then
+        _sleep_overload_retry_sec=3
+        _info "It seems the CA server is currently overloaded, let's wait and retry. Sleeping $_sleep_overload_retry_sec seconds."
+        _sleep $_sleep_overload_retry_sec
+        continue
+      fi
       if _contains "$_body" "JWS has invalid anti-replay nonce" || _contains "$_body" "JWS has an invalid anti-replay nonce"; then
         _info "It seems the CA server is busy now, let's wait and retry. Sleeping $_sleep_retry_sec seconds."
         _CACHED_NONCE=""
