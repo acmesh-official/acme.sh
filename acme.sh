@@ -2229,8 +2229,8 @@ _send_signed_request() {
         _debug3 _body "$_body"
       fi
 
-      if [ "$code" = '503' ]; then
-        _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      if [ "$code" = '503' ] || [ "$_retryafter" ]; then
         _sleep_overload_retry_sec=$_retryafter
         if [ -z "$_sleep_overload_retry_sec" ]; then
           _sleep_overload_retry_sec=5
