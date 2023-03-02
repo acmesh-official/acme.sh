@@ -2230,7 +2230,11 @@ _send_signed_request() {
       fi
 
       if [ "$code" = '503' ]; then
-        _sleep_overload_retry_sec=3
+        _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+        _sleep_overload_retry_sec=$_retryafter
+        if [ -z "$_sleep_overload_retry_sec" ]; then
+          _sleep_overload_retry_sec=5
+        fi
         _info "It seems the CA server is currently overloaded, let's wait and retry. Sleeping $_sleep_overload_retry_sec seconds."
         _sleep $_sleep_overload_retry_sec
         continue
