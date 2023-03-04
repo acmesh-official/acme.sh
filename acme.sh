@@ -2873,7 +2873,7 @@ _initpath() {
 
     if _isEccKey "$_ilength"; then
       DOMAIN_PATH="$domainhomeecc"
-    elif [ -z "$__SELECTED_RSA_KEY" ]
+    elif [ -z "$__SELECTED_RSA_KEY" ]; then
       if [ ! -d "$domainhome" ] && [ -d "$domainhomeecc" ]; then
         _info "The domain '$domain' seems to have a ECC cert already, lets use ecc cert."
         DOMAIN_PATH="$domainhomeecc"
