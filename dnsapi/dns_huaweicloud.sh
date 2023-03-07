@@ -105,16 +105,15 @@ dns_huaweicloud_rm() {
     _err "dns_api(dns_huaweicloud): Error removing record."
     return 1
   fi
- 
+
   return 0
 }
 
 ###################  Private functions below ##################################
 
-
 # _recursive_rm_record
 # remove all records from the record set
-# 
+#
 # _token=$1
 # _domain=$2
 # _zoneid=$3
