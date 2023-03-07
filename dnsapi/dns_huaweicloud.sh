@@ -246,8 +246,7 @@ _add_record() {
       \"type\": \"TXT\",
       \"ttl\": 1,
       \"records\": [
-        ${_exist_record},
-        \"\\\"${_txtvalue}\\\"\"
+        ${_exist_record},\"\\\"${_txtvalue}\\\"\"
       ]
     }"
   fi
