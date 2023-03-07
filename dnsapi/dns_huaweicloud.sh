@@ -261,9 +261,9 @@ _add_record() {
   _debug2 "${_post_body}"
   if [ -z "${_exist_record}" ]; then
     _post "${_post_body}" "${dns_api}/v2/zones/${zoneid}/recordsets" >/dev/null
-  else 
-    _post "${_post_body}" "${dns_api}/v2/zones/${zoneid}/recordsets/{$_record_id}" false "PUT" >/dev/null
-  fi 
+  else
+    _post "${_post_body}" "${dns_api}/v2/zones/${zoneid}/recordsets/${_record_id}" false "PUT" >/dev/null
+  fi
   _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
   if [ "$_code" != "202" ]; then
     _err "dns_huaweicloud: http code ${_code}"
