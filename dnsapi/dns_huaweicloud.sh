@@ -175,11 +175,11 @@ _get_zoneid() {
     if _contains "${response}" '"id"'; then
       zoneidlist=$(echo "${response}" | _egrep_o "\"id\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | tr -d " ")
       zonenamelist=$(echo "${response}" | _egrep_o "\"name\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | tr -d " ")
-      _debug2 "Return Zone ID(s):" "${zoneidlist}"
-      _debug2 "Return Zone Name(s):" "${zonenamelist}"
+      _debug2 "Returned Zone ID(s):" "${zoneidlist}"
+      _debug2 "Returned Zone Name(s):" "${zonenamelist}"
       zoneidnum=0
       zoneidcount=$(echo "${zoneidlist}" | grep -c '^')
-      _debug "Retund Zone ID(s) Count:" "${zoneidcount}"
+      _debug "Returned Zone ID(s) Count:" "${zoneidcount}"
       while [ "${zoneidnum}" -lt "${zoneidcount}" ]; do
         zoneidnum=$(_math "$zoneidnum" + 1)
         _zoneid=$(echo "${zoneidlist}" | sed -n "${zoneidnum}p")
