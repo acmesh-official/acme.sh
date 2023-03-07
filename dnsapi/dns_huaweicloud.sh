@@ -98,6 +98,7 @@ dns_huaweicloud_rm() {
   fi
   _debug "Zone ID is:" "${zoneid}"
 
+  record_id="$(_get_recordset_id "${token}" "${fulldomain}" "${zoneid}")"
   _recursive_rm_record "${token}" "${fulldomain}" "${zoneid}" "${record_id}"
   ret="$?"
   if [ "${ret}" != "0" ]; then
@@ -134,16 +135,16 @@ _recursive_rm_record() {
   # Therotically HuaweiCloud does not allow more than one record set
   # But remove them recurringly to increase robusty
 
-  while [ "${_record_id}" != "0" && "${_retry_cnt}" != "0" ]; do
+  while [ "${_record_id}" != "0" ] && [ "${_retry_cnt}" != "0" ]; do
     _debug "Removing Record"
-    _retry_cnt=$((${_retry_cnt} - 1))
+    _retry_cnt=$((_retry_cnt - 1))
     _rm_record "${_token}" "${_zoneid}" "${_record_id}"
     _record_id="$(_get_recordset_id "${_token}" "${_domain}" "${_zoneid}")"
     _debug2 "Checking record exists: record_id=${_record_id}"
   done
 
   # Check if retry count is reached
-  if [ "${_retry_cnt}" == "0" ]; then
+  if [ "${_retry_cnt}" = "0" ]; then
     _debug "Failed to remove record after 50 attempts, please try removing it manually in the dashboard"
     return 1
   fi
@@ -164,7 +165,7 @@ _get_zoneid() {
 
   i=1
   while true; do
-    h=$(printf "%s" "${_domain_string}" | cut -d . -f $i-100)
+    h=$(printf "%s" "${_domain_string}" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
