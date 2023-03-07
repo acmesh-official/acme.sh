@@ -254,19 +254,16 @@ _add_record() {
   _record_id="$(_get_recordset_id "${_token}" "${_domain}" "${zoneid}")"
   _debug "Record Set ID is:" "${_record_id}"
 
-  # Remove all records
-  _recursive_rm_record "${token}" "${_domain}" "${_zoneid}" "${_record_id}"
-  ret="$?"
-  if [ "${ret}" != "0" ]; then
-    return 1
-  fi
-
   # Add brand new records with all old and new records
   export _H2="Content-Type: application/json"
   export _H1="X-Auth-Token: ${_token}"
 
   _debug2 "${_post_body}"
-  _post "${_post_body}" "${dns_api}/v2/zones/${zoneid}/recordsets" >/dev/null
+  if [ -z "${_exist_record}" ]; then
+    _post "${_post_body}" "${dns_api}/v2/zones/${zoneid}/recordsets" >/dev/null
+  else 
+    _post "${_post_body}" "${dns_api}/v2/zones/${zoneid}/recordsets/{$_record_id}" false "PUT" >/dev/null
+  fi 
   _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
   if [ "$_code" != "202" ]; then
     _err "dns_huaweicloud: http code ${_code}"
