@@ -28,9 +28,9 @@ jobs:
         id: step_one
         run: |
           if [ "$DOCKER_PASSWORD" ] ; then
-            echo "::set-output name=hasToken::true"
+            echo "hasToken=true" >>$GITHUB_OUTPUT
           else
-            echo "::set-output name=hasToken::false"
+            echo "hasToken=false" >>$GITHUB_OUTPUT
           fi
       - name: Check the value
         run: echo ${{ steps.step_one.outputs.hasToken }}
@@ -41,11 +41,11 @@ jobs:
     if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
     steps:
       - name: checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: login to docker hub
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin

@@ -139,8 +139,8 @@ _get_root() {
 }
 
 _successful_update() {
-  if (echo "$_result" | grep -q 'newserial'); then return 0; fi
-  return 1
+  if (echo "$_result" | _egrep_o 'data":\[[^]]*]' | grep -q '"newserial":null'); then return 1; fi
+  return 0
 }
 
 _findentry() {

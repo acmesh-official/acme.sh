@@ -184,6 +184,27 @@ truenas_deploy() {
     _info "S3 certificate is not configured or is not the same as TrueNAS web UI"
   fi
 
+  _info "Checking if any chart release Apps is using the same certificate as TrueNAS web UI. Tool 'jq' is required"
+  if _exists jq; then
+    _info "Query all chart release"
+    _release_list=$(_get "$_api_url/chart/release")
+    _related_name_list=$(printf "%s" "$_release_list" | jq -r "[.[] | {name,certId: .config.ingress?.main.tls[]?.scaleCert} | select(.certId==$_active_cert_id) | .name ] | unique")
+    _release_length=$(printf "%s" "$_related_name_list" | jq -r "length")
+    _info "Found $_release_length related chart release in list: $_related_name_list"
+    for i in $(seq 0 $((_release_length - 1))); do
+      _release_name=$(echo "$_related_name_list" | jq -r ".[$i]")
+      _info "Updating certificate from $_active_cert_id to $_cert_id for chart release: $_release_name"
+      #Read the chart release configuration
+      _chart_config=$(printf "%s" "$_release_list" | jq -r ".[] | select(.name==\"$_release_name\")")
+      #Replace the old certificate id with the new one in path .config.ingress.main.tls[].scaleCert. Then update .config.ingress
+      _updated_chart_config=$(printf "%s" "$_chart_config" | jq "(.config.ingress?.main.tls[]? | select(.scaleCert==$_active_cert_id) | .scaleCert  ) |= $_cert_id | .config.ingress ")
+      _update_chart_result="$(_post "{\"values\" : { \"ingress\" : $_updated_chart_config } }" "$_api_url/chart/release/id/$_release_name" "" "PUT" "application/json")"
+      _debug3 _update_chart_result "$_update_chart_result"
+    done
+  else
+    _info "Tool 'jq' does not exists, skip chart release checking"
+  fi
+
   _info "Deleting old certificate"
   _delete_result="$(_post "" "$_api_url/certificate/id/$_active_cert_id" "" "DELETE" "application/json")"
 

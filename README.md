@@ -361,10 +361,6 @@ Ok, it's done.
 
 # 10. Issue ECC certificates
 
-`Let's Encrypt` can now issue **ECDSA** certificates.
-
-And we support them too!
-
 Just set the `keylength` parameter with a prefix `ec-`.
 
 For example:
@@ -385,10 +381,12 @@ Please look at the `keylength` parameter above.
 
 Valid values are:
 
-1. **ec-256 (prime256v1, "ECDSA P-256")**
+1. **ec-256 (prime256v1, "ECDSA P-256", which is the default key type)**
 2. **ec-384 (secp384r1,  "ECDSA P-384")**
 3. **ec-521 (secp521r1,  "ECDSA P-521", which is not supported by Let's Encrypt yet.)**
-
+4. **2048   (RSA2048)**
+5. **3072   (RSA3072)**
+6. **4096   (RSA4096)**
 
 
 # 11. Issue Wildcard certificates
