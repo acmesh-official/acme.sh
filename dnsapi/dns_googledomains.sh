@@ -63,4 +63,6 @@ dns_googledomains_rm() {
     fi
     i=$((i + 1))
   done
+  export _H1="Content-Type: application/json"
+  _post "{\"accessToken\":\"$GOOGLEDOMAINS_TOKEN\",\"keepExpiredRecords\":true,\"recordsToRemove\":[{\"digest\":\"$txtvalue\",\"fqdn\":\"$fulldomain\"}]}" "$GOOGLEDOMAINS_API/$current_domain:rotateChallenges" "" ""
 }
