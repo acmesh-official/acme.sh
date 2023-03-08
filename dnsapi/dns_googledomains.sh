@@ -22,9 +22,9 @@ dns_googledomains_add() {
 
 	_debug "First detect the root zone"
 	i=0
-	while [ $i -le $(echo "$fulldomain" | grep -o '\.' | wc -l) ]; do
+	while [ $i -le "$(echo "$fulldomain" | grep -o '\.' | wc -l)" ]; do
 		# join the domain parts from the current index to the end
-		current_domain=$(echo "$fulldomain" | cut -d "." -f $(($i+1))-)
+		current_domain=$(echo "$fulldomain" | cut -d "." -f $((i+1))-)
 	
 		# make a curl request to the URL and break the loop if the HTTP response code is 200
 		response="$(_get "$GOOGLEDOMAINS_API/$current_domain")"
@@ -40,8 +40,6 @@ dns_googledomains_add() {
 	export _H1="Content-Type: application/json"
 	_post "{\"accessToken\":\"$GOOGLEDOMAINS_TOKEN\",\"keepExpiredRecords\":true,\"recordsToAdd\":[{\"digest\":\"$txtvalue\",\"fqdn\":\"$fulldomain\"}]}" "$GOOGLEDOMAINS_API/$current_domain:rotateChallenges" "" ""
 }
-
-#fulldomain txtvalue
 dns_googledomains_rm() {
 	fulldomain=$1
 	txtvalue=$2
@@ -51,14 +49,12 @@ dns_googledomains_rm() {
 	_debug fulldomain "$fulldomain"
 	_debug txtvalue "$txtvalue"
 	i=0
-	while [ $i -le $(echo "$fulldomain" | grep -o '\.' | wc -l) ]; do
+	while [ $i -le "$(echo "$fulldomain" | grep -o '\.' | wc -l)" ]; do
 		# join the domain parts from the current index to the end
-		current_domain=$(echo "$fulldomain" | cut -d "." -f $(($i+1))-)
-		echo $current_domain
+		current_domain=$(echo "$fulldomain" | cut -d "." -f $((i+1))-)
 	
 		# make a curl request to the URL and break the loop if the HTTP response code is 200
 		response="$(_get "$GOOGLEDOMAINS_API/$current_domain")"
-		echo $response
 		if _contains "$response" "INVALID_ARGUMENT"; then
 			echo "Invalid domain: $current_domain"
 		else
@@ -67,6 +63,4 @@ dns_googledomains_rm() {
 		fi
 		i=$((i+1))
 	done
-	export _H1="Content-Type: application/json"
-	_post "{\"accessToken\":\"$GOOGLEDOMAINS_TOKEN\",\"keepExpiredRecords\":true,\"recordsToRemove\":[{\"digest\":\"$txtvalue\",\"fqdn\":\"$fulldomain\"}]}" "$GOOGLEDOMAINS_API/$current_domain:rotateChallenges" "" ""
 }
