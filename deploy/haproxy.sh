@@ -36,6 +36,14 @@
 # Note: This functionality requires HAProxy was compiled against
 # a version of OpenSSL that supports this.
 #
+# export DEPLOY_HAPROXY_HOT_UPDATE="yes"
+# export DEPLOY_HAPROXY_STATS_SOCKET="UNIX:/run/haproxy/admin.sock"
+#
+# OPTIONAL: Deploy the certificate over the HAProxy stats socket without
+# needing to reload HAProxy. Default is "no".
+#
+# Require the socat binary. DEPLOY_HAPROXY_STATS_SOCKET variable uses the socat
+# address format.
 
 ########  Public functions #####################
 
@@ -53,6 +61,8 @@ haproxy_deploy() {
   DEPLOY_HAPROXY_BUNDLE_DEFAULT="no"
   DEPLOY_HAPROXY_ISSUER_DEFAULT="no"
   DEPLOY_HAPROXY_RELOAD_DEFAULT="true"
+  DEPLOY_HAPROXY_HOT_UPDATE_DEFAULT="no"
+  DEPLOY_HAPROXY_STATS_SOCKET_DEFAULT="UNIX:/run/haproxy/admin.sock"
 
   _debug _cdomain "${_cdomain}"
   _debug _ckey "${_ckey}"
@@ -118,6 +128,26 @@ haproxy_deploy() {
     Le_Deploy_haproxy_reload="${DEPLOY_HAPROXY_RELOAD_DEFAULT}"
   fi
 
+  # HOT_UPDATE is optional. If not provided then assume "${DEPLOY_HAPROXY_HOT_UPDATE_DEFAULT}"
+  _getdeployconf DEPLOY_HAPROXY_HOT_UPDATE
+  _debug2 DEPLOY_HAPROXY_HOT_UPDATE "${DEPLOY_HAPROXY_HOT_UPDATE}"
+  if [ -n "${DEPLOY_HAPROXY_HOT_UPDATE}" ]; then
+    Le_Deploy_haproxy_hot_update="${DEPLOY_HAPROXY_HOT_UPDATE}"
+    _savedomainconf Le_Deploy_haproxy_hot_update "${Le_Deploy_haproxy_hot_update}"
+  elif [ -z "${Le_Deploy_haproxy_hot_update}" ]; then
+    Le_Deploy_haproxy_hot_update="${DEPLOY_HAPROXY_HOT_UPDATE_DEFAULT}"
+  fi
+
+  # STATS_SOCKET is optional. If not provided then assume "${DEPLOY_HAPROXY_STATS_SOCKET_DEFAULT}"
+  _getdeployconf DEPLOY_HAPROXY_STATS_SOCKET
+  _debug2 DEPLOY_HAPROXY_STATS_SOCKET "${DEPLOY_HAPROXY_STATS_SOCKET}"
+  if [ -n "${DEPLOY_HAPROXY_STATS_SOCKET}" ]; then
+    Le_Deploy_haproxy_stats_socket="${DEPLOY_HAPROXY_STATS_SOCKET}"
+    _savedomainconf Le_Deploy_haproxy_stats_socket "${Le_Deploy_haproxy_stats_socket}"
+  elif [ -z "${Le_Deploy_haproxy_stats_socket}" ]; then
+    Le_Deploy_haproxy_stats_socket="${DEPLOY_HAPROXY_STATS_SOCKET_DEFAULT}"
+  fi
+
   # Set the suffix depending if we are creating a bundle or not
   if [ "${Le_Deploy_haproxy_bundle}" = "yes" ]; then
     _info "Bundle creation requested"
@@ -142,6 +172,7 @@ haproxy_deploy() {
   _issuer="${_pem}.issuer"
   _ocsp="${_pem}.ocsp"
   _reload="${Le_Deploy_haproxy_reload}"
+  _statssock="${Le_Deploy_haproxy_stats_socket}"
 
   _info "Deploying PEM file"
   # Create a temporary PEM file
@@ -265,15 +296,48 @@ haproxy_deploy() {
     fi
   fi
 
-  # Reload HAProxy
-  _debug _reload "${_reload}"
-  eval "${_reload}"
-  _ret=$?
-  if [ "${_ret}" != "0" ]; then
-    _err "Error code ${_ret} during reload"
-    return ${_ret}
+  if [ "${Le_Deploy_haproxy_hot_update}" = "yes" ]; then
+    # Update certificate over HAProxy stats socket.
+    _info "Update the certificate over HAProxy stats socket."
+    if _exists socat; then
+      _socat_cert_cmd="echo 'show ssl cert' | socat '${_statssock}' - | grep -q '^${_pem}$'"
+      _debug _socat_cert_cmd "${_socat_cert_cmd}"
+      eval "${_socat_cert_cmd}"
+      _ret=$?
+      if [ "${_ret}" != "0" ]; then
+        _err "Couldn't find '${_pem}' in haproxy 'show ssl cert'"
+        return "${_ret}"
+      fi
+      _socat_cert_set_cmd="echo -e 'set ssl cert ${_pem} <<\n$(cat "${_pem}")\n' | socat '${_statssock}' - | grep -q 'Transaction created'"
+      _debug _socat_cert_set_cmd "${_socat_cert_set_cmd}"
+      eval "${_socat_cert_set_cmd}"
+      _ret=$?
+      if [ "${_ret}" != "0" ]; then
+        _err "Can't update '${_pem}' in haproxy"
+        return "${_ret}"
+      fi
+      _socat_cert_commit_cmd="echo 'commit ssl cert ${_pem}' | socat '${_statssock}' - | grep -q '^Success!$'"
+      _debug _socat_cert_commit_cmd "${_socat_cert_commit_cmd}"
+      eval "${_socat_cert_commit_cmd}"
+      _ret=$?
+      if [ "${_ret}" != "0" ]; then
+        _err "Can't commit '${_pem}' in haproxy"
+        return ${_ret}
+      fi
+    else
+      _err "'socat' is not available, couldn't update over stats socket"
+    fi
   else
-    _info "Reload successful"
+    # Reload HAProxy
+    _debug _reload "${_reload}"
+    eval "${_reload}"
+    _ret=$?
+    if [ "${_ret}" != "0" ]; then
+      _err "Error code ${_ret} during reload"
+      return ${_ret}
+    else
+      _info "Reload successful"
+    fi
   fi
 
   return 0
