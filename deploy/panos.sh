@@ -61,7 +61,7 @@ deployer() {
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"key\"\r\n\r\n$_panos_key"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"format\"\r\n\r\npem"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"passphrase\"\r\n\r\n123456"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_ckey")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ckey")"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_cdomain.key")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ckey")"
     fi
     #Close multipart
     content="$content${nl}--$delim--${nl}${nl}"
@@ -92,9 +92,18 @@ deployer() {
 
 # This is the main function that will call the other functions to deploy everything.
 panos_deploy() {
-  _cdomain="$1"
+  _cdomain=${1//[*]/WILDCARD_}  #Wildcard Safe filename
   _ckey="$2"
   _cfullchain="$5"
+  # VALID ECC KEY CHECK
+  if [[ "${_ckey: -8}" == "_ecc.key" ]] && [[ ! -f $_ckey ]]; then
+    _debug "The ECC key $_ckey doesn't exist. Attempting to strip _ecc from the filename"
+    _ckey="${_ckey:0:${#_ckey}-8}.key"
+    if [[ ! -f $_ckey ]]; then
+      _err "Still didn't work.  Try issuing the certificate using RSA (non-ECC) encryption."
+     return 1
+    fi
+  fi
   # PANOS ENV VAR check
   if [ -z "$PANOS_USER" ] || [ -z "$PANOS_PASS" ] || [ -z "$PANOS_HOST" ]; then
     _debug "No ENV variables found lets check for saved variables"
