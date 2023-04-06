@@ -298,15 +298,35 @@ haproxy_deploy() {
 
   if [ "${Le_Deploy_haproxy_hot_update}" = "yes" ]; then
     # Update certificate over HAProxy stats socket.
-    _info "Update the certificate over HAProxy stats socket."
     if _exists socat; then
+      # look for the certificate on the stats socket, to chose between updating or creating one
       _socat_cert_cmd="echo 'show ssl cert' | socat '${_statssock}' - | grep -q '^${_pem}$'"
       _debug _socat_cert_cmd "${_socat_cert_cmd}"
       eval "${_socat_cert_cmd}"
       _ret=$?
       if [ "${_ret}" != "0" ]; then
-        _err "Couldn't find '${_pem}' in haproxy 'show ssl cert'"
-        return "${_ret}"
+        _newcert="1"
+        _info "Creating new certificate '${_pem}' over HAProxy stats socket."
+        # certificate wasn't found, it's a new one. We should check if the crt-list exists and creates/inserts the certificate.
+        _socat_crtlist_show_cmd="echo 'show ssl crt-list' | socat '${_statssock}' - | grep -q '^${Le_Deploy_haproxy_pem_path}$'"
+        _debug _socat_crtlist_show_cmd "${_socat_crtlist_show_cmd}"
+        eval "${_socat_crtlist_show_cmd}"
+        _ret=$?
+        if [ "${_ret}" != "0" ]; then
+          _err "Couldn't find '${Le_Deploy_haproxy_pem_path}' in haproxy 'show ssl crt-list'"
+          return "${_ret}"
+        fi
+        # create a new certificate
+        _socat_new_cmd="echo 'new ssl cert ${_pem}' | socat '${_statssock}' - | grep -q 'New empty'"
+        _debug _socat_new_cmd "${_socat_new_cmd}"
+        eval "${_socat_new_cmd}"
+        _ret=$?
+        if [ "${_ret}" != "0" ]; then
+          _err "Couldn't create '${_pem}' in haproxy"
+          return "${_ret}"
+        fi
+      else
+        _info "Update existing certificate '${_pem}' over HAProxy stats socket."
       fi
       _socat_cert_set_cmd="echo -e 'set ssl cert ${_pem} <<\n$(cat "${_pem}")\n' | socat '${_statssock}' - | grep -q 'Transaction created'"
       _debug _socat_cert_set_cmd "${_socat_cert_set_cmd}"
@@ -323,6 +343,17 @@ haproxy_deploy() {
       if [ "${_ret}" != "0" ]; then
         _err "Can't commit '${_pem}' in haproxy"
         return ${_ret}
+      fi
+      if [ "${_newcert}" = "1" ]; then
+       # if this is a new certificate, it needs to be inserted into the crt-list`
+        _socat_cert_add_cmd="echo 'add ssl crt-list ${Le_Deploy_haproxy_pem_path} ${_pem}' | socat '${_statssock}' - | grep -q 'Success!'"
+        _debug _socat_cert_add_cmd "${_socat_cert_add_cmd}"
+        eval "${_socat_cert_add_cmd}"
+        _ret=$?
+        if [ "${_ret}" != "0" ]; then
+          _err "Can't update '${_pem}' in haproxy"
+          return "${_ret}"
+        fi
       fi
     else
       _err "'socat' is not available, couldn't update over stats socket"
