@@ -25,15 +25,27 @@ parse_response() {
   else
     status=$(echo "$1" | sed 's/^.*"\([a-z]*\)".*/\1/g')
     message=$(echo "$1" | sed 's/^.*<result>\(.*\)<\/result.*/\1/g')
+    if  [ "$type" = 'testkey' ] && [ "$status" != "success" ]; then
+      _debug "**** Saved API key is invalid ****"
+      unset _panos_key
+    fi
   fi
   return 0
 }
 
 deployer() {
   content=""
-  type=$1 # Types are keygen, cert, key, commit
-  _debug "**** Deploying $type *****"
+  type=$1 # Types are testkey, keygen, cert, key, commit
+  _debug "**** Deploying $type ****"
   panos_url="https://$_panos_host/api/"
+  
+  #Test API Key by performing an empty commit.
+  if [ "$type" = 'testkey' ]; then
+    _H1="Content-Type: application/x-www-form-urlencoded"
+    content="type=commit&cmd=<commit></commit>&key=$_panos_key"
+  fi
+
+  # Generate API Key
   if [ "$type" = 'keygen' ]; then
     _H1="Content-Type: application/x-www-form-urlencoded"
     content="type=keygen&user=$_panos_user&password=$_panos_pass"
@@ -134,8 +146,22 @@ panos_deploy() {
     _err "Please pass username and password and host as env variables PANOS_USER, PANOS_PASS and PANOS_HOST"
     return 1
   else
-    _debug "Getting PANOS KEY"
-    deployer keygen
+    #Check for saved API Key
+    _getdeployconf PANOS_KEY
+    _panos_key=$PANOS_KEY
+    if [ "$_panos_key" ]; then
+      _debug "**** Testing Saved API KEY ****"
+      deployer testkey
+    fi
+
+    # Generate a new API key if needed
+    if [ -z "$_panos_key" ]; then
+      _debug "**** Generating new PANOS API KEY ****"
+      deployer keygen
+      _savedeployconf PANOS_KEY "$_panos_key" 1
+    fi
+
+    # Recheck the key
     if [ -z "$_panos_key" ]; then
       _err "Missing apikey."
       return 1
