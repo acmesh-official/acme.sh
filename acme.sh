@@ -1852,9 +1852,15 @@ _inithttp() {
       _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
     fi
 
-    if _contains "$(curl --help 2>&1)" "--globoff"; then
+    if _contains "$(curl --help 2>&1)" "--globoff" || _contains "$(curl --help curl 2>&1)" "--globoff"; then
       _ACME_CURL="$_ACME_CURL -g "
     fi
+
+    #don't use --fail-with-body
+    ##from curl 7.76: return fail on HTTP errors but keep the body
+    #if _contains "$(curl --help http 2>&1)" "--fail-with-body"; then
+    #  _ACME_CURL="$_ACME_CURL --fail-with-body "
+    #fi
   fi
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
@@ -1872,11 +1878,11 @@ _inithttp() {
     elif [ "$CA_BUNDLE" ]; then
       _ACME_WGET="$_ACME_WGET --ca-certificate=$CA_BUNDLE "
     fi
-  fi
 
-  #from wget 1.14: do not skip body on 404 error
-  if [ "$_ACME_WGET" ] && _contains "$($_ACME_WGET --help 2>&1)" "--content-on-error"; then
-    _ACME_WGET="$_ACME_WGET --content-on-error "
+    #from wget 1.14: do not skip body on 404 error
+    if _contains "$(wget --help 2>&1)" "--content-on-error"; then
+      _ACME_WGET="$_ACME_WGET --content-on-error "
+    fi
   fi
 
   __HTTP_INITIALIZED=1
@@ -2223,6 +2229,16 @@ _send_signed_request() {
         _debug3 _body "$_body"
       fi
 
+      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      if [ "$code" = '503' ] || [ "$_retryafter" ]; then
+        _sleep_overload_retry_sec=$_retryafter
+        if [ -z "$_sleep_overload_retry_sec" ]; then
+          _sleep_overload_retry_sec=5
+        fi
+        _info "It seems the CA server is currently overloaded, let's wait and retry. Sleeping $_sleep_overload_retry_sec seconds."
+        _sleep $_sleep_overload_retry_sec
+        continue
+      fi
       if _contains "$_body" "JWS has invalid anti-replay nonce" || _contains "$_body" "JWS has an invalid anti-replay nonce"; then
         _info "It seems the CA server is busy now, let's wait and retry. Sleeping $_sleep_retry_sec seconds."
         _CACHED_NONCE=""
@@ -2857,7 +2873,7 @@ _initpath() {
 
     if _isEccKey "$_ilength"; then
       DOMAIN_PATH="$domainhomeecc"
-    else
+    elif [ -z "$__SELECTED_RSA_KEY" ]; then
       if [ ! -d "$domainhome" ] && [ -d "$domainhomeecc" ]; then
         _info "The domain '$domain' seems to have a ECC cert already, lets use ecc cert."
         DOMAIN_PATH="$domainhomeecc"
@@ -4018,7 +4034,7 @@ _ns_purge_cf() {
 
 #checks if cf server is available
 _ns_is_available_cf() {
-  if _get "https://cloudflare-dns.com" "" 1 >/dev/null 2>&1; then
+  if _get "https://cloudflare-dns.com" "" 10 >/dev/null; then
     return 0
   else
     return 1
@@ -4026,7 +4042,7 @@ _ns_is_available_cf() {
 }
 
 _ns_is_available_google() {
-  if _get "https://dns.google" "" 1 >/dev/null 2>&1; then
+  if _get "https://dns.google" "" 10 >/dev/null; then
     return 0
   else
     return 1
@@ -4042,7 +4058,7 @@ _ns_lookup_google() {
 }
 
 _ns_is_available_ali() {
-  if _get "https://dns.alidns.com" "" 1 >/dev/null 2>&1; then
+  if _get "https://dns.alidns.com" "" 10 >/dev/null; then
     return 0
   else
     return 1
@@ -4058,7 +4074,7 @@ _ns_lookup_ali() {
 }
 
 _ns_is_available_dp() {
-  if _get "https://doh.pub" "" 1 >/dev/null 2>&1; then
+  if _get "https://doh.pub" "" 10 >/dev/null; then
     return 0
   else
     return 1
@@ -7502,6 +7518,9 @@ _process() {
     --keylength | -k)
       _keylength="$2"
       shift
+      if [ "$_keylength" ] && ! _isEccKey "$_keylength"; then
+        export __SELECTED_RSA_KEY=1
+      fi
       ;;
     -ak | --accountkeylength)
       _accountkeylength="$2"
