@@ -6146,8 +6146,22 @@ revoke() {
 
   uri="${ACME_REVOKE_CERT}"
 
+  _info "Try account key first."
+  if _send_signed_request "$uri" "$data" "" "$ACCOUNT_KEY_PATH"; then
+    if [ -z "$response" ]; then
+      _info "Revoke success."
+      rm -f "$CERT_PATH"
+      cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
+      cat "$CSR_PATH" >"$CSR_PATH.revoked"
+      return 0
+    else
+      _err "Revoke error."
+      _debug "$response"
+    fi
+  fi
+
   if [ -f "$CERT_KEY_PATH" ]; then
-    _info "Try domain key first."
+    _info "Try domain key."
     if _send_signed_request "$uri" "$data" "" "$CERT_KEY_PATH"; then
       if [ -z "$response" ]; then
         _info "Revoke success."
@@ -6162,21 +6176,6 @@ revoke() {
     fi
   else
     _info "Domain key file doesn't exist."
-  fi
-
-  _info "Try account key."
-
-  if _send_signed_request "$uri" "$data" "" "$ACCOUNT_KEY_PATH"; then
-    if [ -z "$response" ]; then
-      _info "Revoke success."
-      rm -f "$CERT_PATH"
-      cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
-      cat "$CSR_PATH" >"$CSR_PATH.revoked"
-      return 0
-    else
-      _err "Revoke error."
-      _debug "$response"
-    fi
   fi
   return 1
 }
