@@ -275,7 +275,7 @@ _check_curl_version() {
 
   if [ "$_major" -ge "8" ]; then
     #ok
-    return 0;
+    return 0
   fi
   if [ "$_major" = "7" ]; then
     if [ "$_minor" -lt "40" ]; then
