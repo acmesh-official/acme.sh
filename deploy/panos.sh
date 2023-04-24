@@ -10,6 +10,7 @@
 # export PANOS_USER=""  # required
 # export PANOS_PASS=""  # required
 # export PANOS_HOST=""  # required
+# export PANOS_KEY=""   # optional
 
 # This function is to parse the XML
 parse_response() {
@@ -25,7 +26,7 @@ parse_response() {
   else
     status=$(echo "$1" | sed 's/^.*"\([a-z]*\)".*/\1/g')
     message=$(echo "$1" | sed 's/^.*<result>\(.*\)<\/result.*/\1/g')
-    if  [ "$type" = 'testkey' ] && [ "$status" != "success" ]; then
+    if [ "$type" = 'testkey' ] && [ "$status" != "success" ]; then
       _debug "**** Saved API key is invalid ****"
       unset _panos_key
     fi
@@ -38,7 +39,7 @@ deployer() {
   type=$1 # Types are testkey, keygen, cert, key, commit
   _debug "**** Deploying $type ****"
   panos_url="https://$_panos_host/api/"
-  
+
   #Test API Key by performing an empty commit.
   if [ "$type" = 'testkey' ]; then
     _H1="Content-Type: application/x-www-form-urlencoded"
@@ -104,16 +105,17 @@ deployer() {
 
 # This is the main function that will call the other functions to deploy everything.
 panos_deploy() {
-  _cdomain=${1//[*]/WILDCARD_}  #Wildcard Safe filename
+  _cdomain=$(echo "$1" | sed 's/*/WILDCARD_/g') #Wildcard Safe Filename
   _ckey="$2"
   _cfullchain="$5"
   # VALID ECC KEY CHECK
-  if [[ "${_ckey: -8}" == "_ecc.key" ]] && [[ ! -f $_ckey ]]; then
-    _debug "The ECC key $_ckey doesn't exist. Attempting to strip _ecc from the filename"
-    _ckey="${_ckey:0:${#_ckey}-8}.key"
-    if [[ ! -f $_ckey ]]; then
-      _err "Still didn't work.  Try issuing the certificate using RSA (non-ECC) encryption."
-     return 1
+  keysuffix=$(printf '%s' "$_ckey" | tail -c 8)
+  if [ "$keysuffix" = "_ecc.key" ] && [ ! -f "$_ckey" ]; then
+    _debug "The ECC key $_ckey doesn't exist. Attempting to strip '_ecc' from the key name"
+    _ckey=$(echo "$_ckey" | sed 's/\(.*\)_ecc.key$/\1.key/g')
+    if [ ! -f "$_ckey" ]; then
+      _err "Unable to find a valid key.  Try issuing the certificate using RSA (non-ECC) encryption."
+      return 1
     fi
   fi
   # PANOS ENV VAR check
@@ -122,9 +124,11 @@ panos_deploy() {
     _getdeployconf PANOS_USER
     _getdeployconf PANOS_PASS
     _getdeployconf PANOS_HOST
+    _getdeployconf PANOS_KEY
     _panos_user=$PANOS_USER
     _panos_pass=$PANOS_PASS
     _panos_host=$PANOS_HOST
+    _panos_key=$PANOS_KEY
     if [ -z "$_panos_user" ] && [ -z "$_panos_pass" ] && [ -z "$_panos_host" ]; then
       _err "No host, user and pass found.. If this is the first time deploying please set PANOS_HOST, PANOS_USER and PANOS_PASS in environment variables. Delete them after you have succesfully deployed certs."
       return 1
@@ -140,28 +144,33 @@ panos_deploy() {
     _panos_user="$PANOS_USER"
     _panos_pass="$PANOS_PASS"
     _panos_host="$PANOS_HOST"
+    if [ "$PANOS_KEY" ]; then
+      _savedeployconf PANOS_KEY "$PANOS_KEY" 1
+      _panos_key="$PANOS_KEY"
+    else
+      _getdeployconf PANOS_KEY
+      _panos_key=$PANOS_KEY
+    fi
   fi
   _debug "Let's use username and pass to generate token."
   if [ -z "$_panos_user" ] || [ -z "$_panos_pass" ] || [ -z "$_panos_host" ]; then
     _err "Please pass username and password and host as env variables PANOS_USER, PANOS_PASS and PANOS_HOST"
     return 1
   else
-    #Check for saved API Key
-    _getdeployconf PANOS_KEY
-    _panos_key=$PANOS_KEY
+    #Test API Key
     if [ "$_panos_key" ]; then
       _debug "**** Testing Saved API KEY ****"
       deployer testkey
     fi
 
-    # Generate a new API key if needed
+    # Generate a new API key if no valid key exists
     if [ -z "$_panos_key" ]; then
       _debug "**** Generating new PANOS API KEY ****"
       deployer keygen
       _savedeployconf PANOS_KEY "$_panos_key" 1
     fi
 
-    # Recheck the key
+    # Confirm that a valid key was generated
     if [ -z "$_panos_key" ]; then
       _err "Missing apikey."
       return 1
