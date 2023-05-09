@@ -78,7 +78,7 @@ dns_vultr_rm() {
     return 1
   fi
 
-  _record_id="$(echo "$response" | tr '{}' '\n' | grep '"TXT"' | grep -- "$txtvalue" | tr ',' '\n' | grep -i 'id' | cut -d : -f 2)"
+  _record_id="$(echo "$response" | tr '{}' '\n' | grep '"TXT"' | grep -- "$txtvalue" | tr ',' '\n' | grep -i 'id' | cut -d : -f 2 | tr -d '"')"
   _debug _record_id "$_record_id"
   if [ "$_record_id" ]; then
     _info "Successfully retrieved the record id for ACME challenge."
@@ -116,7 +116,7 @@ _get_root() {
       return 1
     fi
 
-    if printf "%s\n" "$response" | grep '^\{.*\}' >/dev/null; then
+    if printf "%s\n" "$response" | grep -E '^\{.*\}' >/dev/null; then
       if _contains "$response" "\"domain\":\"$_domain\""; then
         _sub_domain="$(echo "$fulldomain" | sed "s/\\.$_domain\$//")"
         return 0
