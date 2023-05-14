@@ -10,7 +10,7 @@ dns_nsupdate_add() {
   NSUPDATE_SERVER_PORT="${NSUPDATE_SERVER_PORT:-$(_readaccountconf_mutable NSUPDATE_SERVER_PORT)}"
   NSUPDATE_KEY="${NSUPDATE_KEY:-$(_readaccountconf_mutable NSUPDATE_KEY)}"
   NSUPDATE_ZONE="${NSUPDATE_ZONE:-$(_readaccountconf_mutable NSUPDATE_ZONE)}"
-  NSUPDATE_OPT="${NSUPDATE_ZONE:-$(_readaccountconf_mutable NSUPDATE_OPT)}"
+  NSUPDATE_OPT="${NSUPDATE_OPT:-$(_readaccountconf_mutable NSUPDATE_OPT)}"
 
   _checkKeyFile || return 1
 
@@ -23,6 +23,7 @@ dns_nsupdate_add() {
 
   [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
   [ -n "${NSUPDATE_SERVER_PORT}" ] || NSUPDATE_SERVER_PORT=53
+  [ -n "${NSUPDATE_OPT}" ] || NSUPDATE_OPT=""
 
   _info "adding ${fulldomain}. 60 in txt \"${txtvalue}\""
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_1" ] && nsdebug="-d"
