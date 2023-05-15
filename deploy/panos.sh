@@ -161,7 +161,7 @@ panos_deploy() {
     _getdeployconf PANOS_USER
   fi
 
-  # PANOS_KEY
+  # PANOS_PASS
   if [ "$PANOS_PASS" ]; then
     _debug "Detected ENV variable PANOS_PASS. Saving to file."
     _savedeployconf PANOS_PASS "$PANOS_PASS" 1
