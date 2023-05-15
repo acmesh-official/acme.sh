@@ -7,10 +7,24 @@
 #
 # Firewall admin with superuser and IP address is required.
 #
-# export PANOS_USER=""  # required
-# export PANOS_PASS=""  # required
-# export PANOS_HOST=""  # required
-# export PANOS_KEY=""   # optional
+# You MUST include the following environment variable when first running
+# the sccript (can be deleted afterwards):
+#
+# REQURED:
+#     export PANOS_HOST=""  # required
+#
+# AND one of the two authenticiation methods:
+#
+# Method 1: Username & Password  (RECOMMENDED)
+#     export PANOS_USER=""
+#     export PANOS_PASS=""
+#
+# Method 2: API KEY
+#     export PANOS_KEY=""
+#
+#
+# The Username & Password method will automatically generate a new API key if
+# no key is found, or if a saved key has expired or is invalid.
 
 # This function is to parse the XML
 parse_response() {
@@ -26,8 +40,8 @@ parse_response() {
   else
     status=$(echo "$1" | sed 's/^.*"\([a-z]*\)".*/\1/g')
     message=$(echo "$1" | sed 's/^.*<result>\(.*\)<\/result.*/\1/g')
-    if [ "$type" = 'testkey' ] && [ "$status" != "success" ]; then
-      _debug "**** Saved API key is invalid ****"
+    if [ "$type" = 'keytest' ] && [ "$status" != "success" ]; then
+      _debug "****  API Key has EXPIRED or is INVALID ****"
       unset _panos_key
     fi
   fi
@@ -36,25 +50,27 @@ parse_response() {
 
 deployer() {
   content=""
-  type=$1 # Types are testkey, keygen, cert, key, commit
-  _debug "**** Deploying $type ****"
+  type=$1 # Types are keytest, keygen, cert, key, commit
   panos_url="https://$_panos_host/api/"
 
   #Test API Key by performing an empty commit.
-  if [ "$type" = 'testkey' ]; then
+  if [ "$type" = 'keytest' ]; then
+    _debug "**** Testing saved API Key ****"
     _H1="Content-Type: application/x-www-form-urlencoded"
     content="type=commit&cmd=<commit></commit>&key=$_panos_key"
   fi
 
   # Generate API Key
   if [ "$type" = 'keygen' ]; then
+    _debug "**** Generating new API Key ****"
     _H1="Content-Type: application/x-www-form-urlencoded"
     content="type=keygen&user=$_panos_user&password=$_panos_pass"
     # content="$content${nl}--$delim${nl}Content-Disposition: form-data; type=\"keygen\"; user=\"$_panos_user\"; password=\"$_panos_pass\"${nl}Content-Type: application/octet-stream${nl}${nl}"
   fi
 
   if [ "$type" = 'cert' ] || [ "$type" = 'key' ]; then
-    #Generate DEIM
+    _debug "**** Deploying $type ****"
+    #Generate DELIM
     delim="-----MultipartDelimiter$(date "+%s%N")"
     nl="\015\012"
     #Set Header
@@ -83,8 +99,14 @@ deployer() {
   fi
 
   if [ "$type" = 'commit' ]; then
+    _debug "**** Committing changes ****"
     export _H1="Content-Type: application/x-www-form-urlencoded"
-    cmd=$(printf "%s" "<commit><partial><$_panos_user></$_panos_user></partial></commit>" | _url_encode)
+    if [ "$_panos_user" ]; then
+      _commit_desc=$_panos_user
+    else
+      _commit_desc="acmesh"
+    fi
+    cmd=$(printf "%s" "<commit><partial><$_commit_desc></$_commit_desc></partial></commit>" | _url_encode)
     content="type=commit&key=$_panos_key&cmd=$cmd"
   fi
   response=$(_post "$content" "$panos_url" "" "POST")
@@ -118,52 +140,66 @@ panos_deploy() {
       return 1
     fi
   fi
-  # PANOS ENV VAR check
-  if [ -z "$PANOS_USER" ] || [ -z "$PANOS_PASS" ] || [ -z "$PANOS_HOST" ]; then
-    _debug "No ENV variables found lets check for saved variables"
-    _getdeployconf PANOS_USER
-    _getdeployconf PANOS_PASS
-    _getdeployconf PANOS_HOST
-    _getdeployconf PANOS_KEY
-    _panos_user=$PANOS_USER
-    _panos_pass=$PANOS_PASS
-    _panos_host=$PANOS_HOST
-    _panos_key=$PANOS_KEY
-    if [ -z "$_panos_user" ] && [ -z "$_panos_pass" ] && [ -z "$_panos_host" ]; then
-      _err "No host, user and pass found.. If this is the first time deploying please set PANOS_HOST, PANOS_USER and PANOS_PASS in environment variables. Delete them after you have succesfully deployed certs."
-      return 1
-    else
-      _debug "Using saved env variables."
-    fi
-  else
-    _debug "Detected ENV variables to be saved to the deploy conf."
-    # Encrypt and save user
-    _savedeployconf PANOS_USER "$PANOS_USER" 1
-    _savedeployconf PANOS_PASS "$PANOS_PASS" 1
+
+  # Environment Checks
+
+  # PANOS_HOST
+  if [ "$PANOS_HOST" ]; then
+    _debug "Detected ENV variable PANOS_HOST. Saving to file."
     _savedeployconf PANOS_HOST "$PANOS_HOST" 1
-    _panos_user="$PANOS_USER"
-    _panos_pass="$PANOS_PASS"
-    _panos_host="$PANOS_HOST"
-    if [ "$PANOS_KEY" ]; then
-      _savedeployconf PANOS_KEY "$PANOS_KEY" 1
-      _panos_key="$PANOS_KEY"
-    else
-      _getdeployconf PANOS_KEY
-      _panos_key=$PANOS_KEY
-    fi
+  else
+    _debug "Attempting to load variable PANOS_HOST from file."
+    _getdeployconf PANOS_HOST
   fi
-  _debug "Let's use username and pass to generate token."
-  if [ -z "$_panos_user" ] || [ -z "$_panos_pass" ] || [ -z "$_panos_host" ]; then
-    _err "Please pass username and password and host as env variables PANOS_USER, PANOS_PASS and PANOS_HOST"
+
+  # PANOS USER
+  if [ "$PANOS_USER" ]; then
+    _debug "Detected ENV variable PANOS_USER. Saving to file."
+    _savedeployconf PANOS_USER "$PANOS_USER" 1
+  else
+    _debug "Attempting to load variable PANOS_USER from file."
+    _getdeployconf PANOS_USER
+  fi
+
+  # PANOS_KEY
+  if [ "$PANOS_PASS" ]; then
+    _debug "Detected ENV variable PANOS_PASS. Saving to file."
+    _savedeployconf PANOS_PASS "$PANOS_PASS" 1
+  else
+    _debug "Attempting to load variable PANOS_PASS from file."
+    _getdeployconf PANOS_PASS
+  fi
+
+  # PANOS_KEY
+  if [ "$PANOS_KEY" ]; then
+    _debug "Detected ENV variable PANOS_KEY. Saving to file."
+    _savedeployconf PANOS_KEY "$PANOS_KEY" 1
+  else
+    _debug "Attempting to load variable PANOS_KEY from file."
+    _getdeployconf PANOS_KEY
+  fi
+
+  #Store variables
+  _panos_host=$PANOS_HOST
+  _panos_key=$PANOS_KEY
+  _panos_user=$PANOS_USER
+  _panos_pass=$PANOS_PASS
+
+  #Test API Key if found.  If the key is invalid, the variable panos_key will be unset.
+  if [ "$_panos_host" ] && [ "$_panos_key" ]; then
+    _debug "**** Testing API KEY ****"
+    deployer keytest
+  fi
+
+  # Check for valid variables
+  if [ -z "$_panos_host" ]; then
+    _err "No host found.  Please enter a valid host as environment variable PANOS_HOST."
+    return 1
+  elif [ -z "$_panos_key" ] && { [ -z "$_panos_user" ] || [ -z "$_panos_pass" ]; }; then
+    _err "No user and pass OR valid API key found.. If this is the first time deploying please set PANOS_USER and PANOS_PASS -- AND/OR -- PANOS_KEY in environment variables. Delete them after you have succesfully deployed certs."
     return 1
   else
-    #Test API Key
-    if [ "$_panos_key" ]; then
-      _debug "**** Testing Saved API KEY ****"
-      deployer testkey
-    fi
-
-    # Generate a new API key if no valid key exists
+    # Generate a new API key if no valid API key is found
     if [ -z "$_panos_key" ]; then
       _debug "**** Generating new PANOS API KEY ****"
       deployer keygen
@@ -172,7 +208,7 @@ panos_deploy() {
 
     # Confirm that a valid key was generated
     if [ -z "$_panos_key" ]; then
-      _err "Missing apikey."
+      _err "Unable to generate an API key.  The user and pass may be invalid or not authorized to generate a new key.  Please check the credentials and try again"
       return 1
     else
       deployer cert
