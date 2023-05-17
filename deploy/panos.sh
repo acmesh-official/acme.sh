@@ -7,26 +7,24 @@
 #
 # Firewall admin with superuser and IP address is required.
 #
-# You MUST include the following environment variable when first running
-# the sccript (can be deleted afterwards):
-#
 # REQURED:
 #     export PANOS_HOST=""  # required
+#     export PANOS_USER=""  # required
 #
 # AND one of the two authenticiation methods:
 #
-# Method 1: Username & Password  (RECOMMENDED)
-#     export PANOS_USER=""
+# Method 1:  Password  (RECOMMENDED)
 #     export PANOS_PASS=""
 #
 # Method 2: API KEY
 #     export PANOS_KEY=""
 #
 #
-# The Username & Password method will automatically generate a new API key if
+# The Password method will automatically generate a new API key if
 # no key is found, or if a saved key has expired or is invalid.
+#
 
-# This function is to parse the XML
+# This function is to parse the XML response from the firewall
 parse_response() {
   type=$2
   if [ "$type" = 'keygen' ]; then
@@ -48,6 +46,7 @@ parse_response() {
   return 0
 }
 
+#This function is used to deploy to the firewall
 deployer() {
   content=""
   type=$1 # Types are keytest, keygen, cert, key, commit
@@ -68,6 +67,7 @@ deployer() {
     # content="$content${nl}--$delim${nl}Content-Disposition: form-data; type=\"keygen\"; user=\"$_panos_user\"; password=\"$_panos_pass\"${nl}Content-Type: application/octet-stream${nl}${nl}"
   fi
 
+  # Deploy Cert or Key
   if [ "$type" = 'cert' ] || [ "$type" = 'key' ]; then
     _debug "**** Deploying $type ****"
     #Generate DELIM
@@ -98,17 +98,19 @@ deployer() {
     content=$(printf %b "$content")
   fi
 
+  # Commit changes
   if [ "$type" = 'commit' ]; then
     _debug "**** Committing changes ****"
     export _H1="Content-Type: application/x-www-form-urlencoded"
-    if [ "$_panos_user" ]; then
-      _commit_desc=$_panos_user
+    #Check for force commit
+    if [ "$FORCE" ]; then
+      cmd=$(printf "%s" "<commit><partial><force></force><$_panos_user></$_panos_user></partial></commit>" | _url_encode)
     else
-      _commit_desc="acmesh"
+      cmd=$(printf "%s" "<commit><partial><$_panos_user></$_panos_user></partial></commit>" | _url_encode)
     fi
-    cmd=$(printf "%s" "<commit><partial><$_commit_desc></$_commit_desc></partial></commit>" | _url_encode)
     content="type=commit&key=$_panos_key&cmd=$cmd"
   fi
+
   response=$(_post "$content" "$panos_url" "" "POST")
   parse_response "$response" "$type"
   # Saving response to variables
@@ -140,8 +142,6 @@ panos_deploy() {
       return 1
     fi
   fi
-
-  # Environment Checks
 
   # PANOS_HOST
   if [ "$PANOS_HOST" ]; then
@@ -193,10 +193,13 @@ panos_deploy() {
 
   # Check for valid variables
   if [ -z "$_panos_host" ]; then
-    _err "No host found.  Please enter a valid host as environment variable PANOS_HOST."
+    _err "No host found. If this is your first time deploying, please set PANOS_HOST in ENV variables. You can delete it after you have successfully deployed the certs."
+    return 1
+  elif [ -z "$_panos_user" ]; then
+    _err "No user found. If this is your first time deploying, please set PANOS_USER in ENV variables. You can delete it after you have successfully deployed certs."
     return 1
   elif [ -z "$_panos_key" ] && { [ -z "$_panos_user" ] || [ -z "$_panos_pass" ]; }; then
-    _err "No user and pass OR valid API key found.. If this is the first time deploying please set PANOS_USER and PANOS_PASS -- AND/OR -- PANOS_KEY in environment variables. Delete them after you have succesfully deployed certs."
+    _err "No pass OR valid API key found. If this is your first time deploying please set PANOS_PASS and/or PANOS_KEY in ENV variables. You can delete them after you have succesfully deployed certs."
     return 1
   else
     # Generate a new API key if no valid API key is found
@@ -208,7 +211,7 @@ panos_deploy() {
 
     # Confirm that a valid key was generated
     if [ -z "$_panos_key" ]; then
-      _err "Unable to generate an API key.  The user and pass may be invalid or not authorized to generate a new key.  Please check the credentials and try again"
+      _err "Unable to generate an API key.  The user and pass may be invalid or not authorized to generate a new key.  Please check the PANOS_USER and PANOS_PASS credentials and try again"
       return 1
     else
       deployer cert
