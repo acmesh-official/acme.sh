@@ -70,7 +70,7 @@ jobs:
       TestingDomain: ${{ matrix.TestingDomain }}
       ACME_USE_WGET: ${{ matrix.ACME_USE_WGET }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install tools
       run: sudo apt-get install -y socat wget
     - name: Start StepCA
@@ -80,15 +80,20 @@ jobs:
             -p 9000:9000 \
             -e "DOCKER_STEPCA_INIT_NAME=Smallstep" \
             -e "DOCKER_STEPCA_INIT_DNS_NAMES=localhost,$(hostname -f)" \
+            -e "DOCKER_STEPCA_INIT_REMOTE_MANAGEMENT=true" \
+            -e "DOCKER_STEPCA_INIT_PASSWORD=test" \
             --name stepca \
-            smallstep/step-ca \
-            && sleep 5 && docker exec  stepca step ca provisioner add acme --type ACME \
+            smallstep/step-ca:0.23.1
+
+            sleep 5
+            docker exec  stepca bash -c "echo test >test" \
+            && docker exec stepca step ca provisioner add acme --type ACME --admin-subject  step --admin-password-file=/home/step/test \
             && docker exec  stepca kill -1 1 \
             && docker exec  stepca cat /home/step/certs/root_ca.crt | sudo bash -c "cat - >>/etc/ssl/certs/ca-certificates.crt"
     - name: Clone acmetest
       run: |
           cd .. \
-          && git clone https://github.com/acmesh-official/acmetest.git \
+          && git clone --depth=1 https://github.com/acmesh-official/acmetest.git \
           && cp -r acme.sh acmetest/
     - name: Run acmetest
       run: |

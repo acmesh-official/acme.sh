@@ -39,7 +39,7 @@ dns_gcloud_rm() {
   _dns_gcloud_start_tr || return $?
   _dns_gcloud_get_rrdatas || return $?
   echo "$rrdatas" | _dns_gcloud_remove_rrs || return $?
-  echo "$rrdatas" | grep -F -v "\"$txtvalue\"" | _dns_gcloud_add_rrs || return $?
+  echo "$rrdatas" | grep -F -v -- "\"$txtvalue\"" | _dns_gcloud_add_rrs || return $?
   _dns_gcloud_execute_tr || return $?
 
   _info "$fulldomain record added"

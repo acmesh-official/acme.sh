@@ -51,8 +51,8 @@ jobs:
       TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
       ACME_USE_WGET: ${{ matrix.ACME_USE_WGET }}
     steps:
-    - uses: actions/checkout@v2
-    - uses: vmactions/cf-tunnel@v0.0.3
+    - uses: actions/checkout@v3
+    - uses: vmactions/cf-tunnel@v0
       id: tunnel
       with:
         protocol: http
@@ -60,7 +60,7 @@ jobs:
     - name: Set envs
       run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
     - name: Clone acmetest
-      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/solaris-vm@v0
       with:
         envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN ACME_USE_WGET'

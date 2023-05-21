@@ -1,10 +1,11 @@
 #!/usr/bin/env sh
 
-# Here is the script to deploy the cert to G-Core CDN service (https://gcorelabs.com/ru/) using the G-Core Labs API (https://docs.gcorelabs.com/cdn/).
+# Here is the script to deploy the cert to G-Core CDN service (https://gcore.com/) using the G-Core Labs API (https://apidocs.gcore.com/cdn).
 # Returns 0 when success.
 #
 # Written by temoffey <temofffey@gmail.com>
 # Public domain, 2019
+# Update by DreamOfIce <admin@dreamofice.cn> in 2023
 
 #export DEPLOY_GCORE_CDN_USERNAME=myusername
 #export DEPLOY_GCORE_CDN_PASSWORD=mypassword
@@ -56,7 +57,7 @@ gcore_cdn_deploy() {
   _request="{\"username\":\"$Le_Deploy_gcore_cdn_username\",\"password\":\"$Le_Deploy_gcore_cdn_password\"}"
   _debug _request "$_request"
   export _H1="Content-Type:application/json"
-  _response=$(_post "$_request" "https://api.gcdn.co/auth/jwt/login")
+  _response=$(_post "$_request" "https://api.gcore.com/auth/jwt/login")
   _debug _response "$_response"
   _regex=".*\"access\":\"\([-._0-9A-Za-z]*\)\".*$"
   _debug _regex "$_regex"
@@ -69,8 +70,8 @@ gcore_cdn_deploy() {
   fi
 
   _info "Find CDN resource with cname $_cdomain"
-  export _H2="Authorization:Token $_token"
-  _response=$(_get "https://api.gcdn.co/resources")
+  export _H2="Authorization:Bearer $_token"
+  _response=$(_get "https://api.gcore.com/cdn/resources")
   _debug _response "$_response"
   _regex="\"primary_resource\":null},"
   _debug _regex "$_regex"
@@ -102,7 +103,7 @@ gcore_cdn_deploy() {
   _date=$(date "+%d.%m.%Y %H:%M:%S")
   _request="{\"name\":\"$_cdomain ($_date)\",\"sslCertificate\":\"$_fullchain\",\"sslPrivateKey\":\"$_key\"}"
   _debug _request "$_request"
-  _response=$(_post "$_request" "https://api.gcdn.co/sslData")
+  _response=$(_post "$_request" "https://api.gcore.com/cdn/sslData")
   _debug _response "$_response"
   _regex=".*\"id\":\([0-9]*\).*$"
   _debug _regex "$_regex"
@@ -117,7 +118,7 @@ gcore_cdn_deploy() {
   _info "Update CDN resource"
   _request="{\"originGroup\":$_originGroup,\"sslData\":$_sslDataAdd}"
   _debug _request "$_request"
-  _response=$(_post "$_request" "https://api.gcdn.co/resources/$_resourceId" '' "PUT")
+  _response=$(_post "$_request" "https://api.gcore.com/cdn/resources/$_resourceId" '' "PUT")
   _debug _response "$_response"
   _regex=".*\"sslData\":\([0-9]*\).*$"
   _debug _regex "$_regex"
@@ -133,7 +134,7 @@ gcore_cdn_deploy() {
     _info "Not found old SSL certificate"
   else
     _info "Delete old SSL certificate"
-    _response=$(_post '' "https://api.gcdn.co/sslData/$_sslDataOld" '' "DELETE")
+    _response=$(_post '' "https://api.gcore.com/cdn/sslData/$_sslDataOld" '' "DELETE")
     _debug _response "$_response"
   fi
 
