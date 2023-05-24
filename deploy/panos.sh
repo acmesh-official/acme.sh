@@ -56,7 +56,7 @@ deployer() {
   if [ "$type" = 'keytest' ]; then
     _debug "**** Testing saved API Key ****"
     _H1="Content-Type: application/x-www-form-urlencoded"
-    content="type=commit&cmd=<commit></commit>&key=$_panos_key"
+    content="type=commit&key=$_panos_key&action=partial&cmd=<commit><partial><admin><member>acmekeytest</member></admin></partial></commit>"
   fi
 
   # Generate API Key
@@ -132,6 +132,7 @@ panos_deploy() {
   _cdomain=$(echo "$1" | sed 's/*/WILDCARD_/g') #Wildcard Safe Filename
   _ckey="$2"
   _cfullchain="$5"
+
   # VALID ECC KEY CHECK
   keysuffix=$(printf '%s' "$_ckey" | tail -c 8)
   if [ "$keysuffix" = "_ecc.key" ] && [ ! -f "$_ckey" ]; then
@@ -196,10 +197,10 @@ panos_deploy() {
     _err "No host found. If this is your first time deploying, please set PANOS_HOST in ENV variables. You can delete it after you have successfully deployed the certs."
     return 1
   elif [ -z "$_panos_user" ]; then
-    _err "No user found. If this is your first time deploying, please set PANOS_USER in ENV variables. You can delete it after you have successfully deployed certs."
+    _err "No user found. If this is your first time deploying, please set PANOS_USER in ENV variables. You can delete it after you have successfully deployed the certs."
     return 1
   elif [ -z "$_panos_key" ] && { [ -z "$_panos_user" ] || [ -z "$_panos_pass" ]; }; then
-    _err "No pass OR valid API key found. If this is your first time deploying please set PANOS_PASS and/or PANOS_KEY in ENV variables. You can delete them after you have succesfully deployed certs."
+    _err "No pass OR valid API key found. If this is your first time deploying please set PANOS_PASS and/or PANOS_KEY in ENV variables. You can delete them after you have succesfully deployed the certs."
     return 1
   else
     # Generate a new API key if no valid API key is found
