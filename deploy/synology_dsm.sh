@@ -119,7 +119,7 @@ synology_dsm_deploy() {
 
   sid=$(echo "$response" | grep "sid" | sed -n 's/.*"sid" *: *"\([^"]*\).*/\1/p')
   token=$(echo "$response" | grep "synotoken" | sed -n 's/.*"synotoken" *: *"\([^"]*\).*/\1/p')
-  _debug Session ID "$sid"
+  _debug "Session ID" "$sid"
   _debug SynoToken "$token"
   if [ -z "$SYNO_Device_ID" ] || [ -z "$sid" ] || [ -z "$token" ]; then
     _err "Unable to authenticate to $_base_url - check your username & password."
