@@ -108,7 +108,7 @@ synology_dsm_deploy() {
     _debug3 H1 "${_H1}"
   fi
 
-  response=$(_post "method=login&account=$encoded_username&passwd=$encoded_password&api=SYNO.API.Auth&version=$api_version&enable_syno_token=yes&otp_code=$otp_code" "$_base_url/webapi/auth.cgi?enable_syno_token=yes")
+  response=$(_post "method=login&account=$encoded_username&passwd=$encoded_password&api=SYNO.API.Auth&version=$api_version&enable_syno_token=yes&otp_code=$otp_code&device_name=certrenewal&device_id=$SYNO_DID" "$_base_url/webapi/auth.cgi?enable_syno_token=yes")
   token=$(echo "$response" | grep "synotoken" | sed -n 's/.*"synotoken" *: *"\([^"]*\).*/\1/p')
   _debug3 response "$response"
   _debug token "$token"

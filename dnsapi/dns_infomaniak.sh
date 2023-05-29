@@ -76,7 +76,7 @@ dns_infomaniak_add() {
   domain_id=${zone_and_id#* }
 
   # extract first part of domain
-  key=${fulldomain%.$zone}
+  key=${fulldomain%."$zone"}
 
   _debug "zone:$zone id:$domain_id key:$key"
 
@@ -149,7 +149,7 @@ dns_infomaniak_rm() {
   domain_id=${zone_and_id#* }
 
   # extract first part of domain
-  key=${fulldomain%.$zone}
+  key=${fulldomain%."$zone"}
 
   _debug "zone:$zone id:$domain_id key:$key"
 

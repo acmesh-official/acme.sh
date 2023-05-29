@@ -67,7 +67,7 @@ gitlab_deploy() {
 
   error_response="error"
 
-  if test "${_response#*$error_response}" != "$_response"; then
+  if test "${_response#*"$error_response"}" != "$_response"; then
     _err "Error in deploying certificate:"
     _err "$_response"
     return 1
