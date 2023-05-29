@@ -161,7 +161,7 @@ _get_zone() {
     return 0
   fi
 
-  _err 'Couldn\'t find root domain zone.'
+  _err 'Couldn'\''t find root domain zone.'
 
   return 1
 }
