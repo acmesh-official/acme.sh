@@ -140,14 +140,13 @@ _dns() {
 # Gets the root domain zone for given domain.
 # Usage: _get_zone _acme-challenge.www.example.com
 _get_zone() {
-  _info 'Getting domain zone...'
-  _debug2 'Initial FQDN' "$1"
   fqdn="$1"
-  fqdn="${fqdn#*.}" # Strip "_acme-challenge" right away
-  _debug2 'Reduced FQDN' "$fqdn"
+  domains="$(_get "$AF_URL_DOMAINS" "" 10)"
+  _info 'Getting domain zone...'
+  _debug2 'FQDN' "$fqdn"
+  _debug2 'Domains' "$domains"
 
-  domains="$(_get "$AF_URL_DOMAINS" '' 10)"
-  while true; do
+  while _contains "$fqdn" "."; do
     if _contains "$domains" "$fqdn"; then
       domain="$fqdn"
       _info "Found root domain zone: $domain"
@@ -162,7 +161,7 @@ _get_zone() {
     return 0
   fi
 
-  _err "Couldn't find root domain zone."
+  _err 'Couldn\'t find root domain zone.'
 
   return 1
 }
