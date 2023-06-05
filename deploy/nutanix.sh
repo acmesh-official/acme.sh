@@ -1,3 +1,5 @@
+#!/usr/bin/env sh
+
 #Here is a script to deploy cert to nutanix prism server.
 
 #returns 0 means success, otherwise error.
