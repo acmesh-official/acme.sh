@@ -8,7 +8,6 @@
 # export NUTANIX_PASS=""  # required
 # export NUTANIX_HOST=""  # required
 
-
 #domain keyfile certfile cafile fullchain
 nutanix_deploy() {
   _cdomain="$1"
@@ -53,5 +52,3 @@ nutanix_deploy() {
   curl --silent --fail --user "$_nutanix_user:$_nutanix_pass" -F caChain=@"$_cca" -F cert=@"$_ccert" -F key=@"$_ckey" -F keyType=RSA_2048 -k https://"$_nutanix_host":9440/PrismGateway/services/rest/v1/keys/pem/import >/dev/null
   return $?
 }
-
-
