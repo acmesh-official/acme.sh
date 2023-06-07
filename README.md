@@ -58,7 +58,7 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 - [splynx](https://forum.splynx.com/t/free-ssl-cert-for-splynx-lets-encrypt/297)
 - [archlinux](https://www.archlinux.org/packages/community/any/acme.sh)
 - [opnsense.org](https://github.com/opnsense/plugins/tree/master/security/acme-client/src/opnsense/scripts/OPNsense/AcmeClient)
-- [CentOS Web Panel](http://centos-webpanel.com/)
+- [CentOS Web Panel](https://control-webpanel.com)
 - [lnmp.org](https://lnmp.org/)
 - [more...](https://github.com/acmesh-official/acme.sh/wiki/Blogs-and-tutorials)
 
