@@ -4,7 +4,6 @@
 
 #returns 0 means success, otherwise error.
 
-
 # Note that SSH must be able to login to remote host without a password...
 # The user must have sudo-access without password
 #
@@ -12,11 +11,8 @@
 # test that you can login to USER@SERVER from the host running acme.sh before
 # using this script.
 
-
-
 # export OPENGEAR_USER=""        # required
 # export OPENGEAR_HOST="om1234"  # defaults to domain name
-
 
 Le_Deploy_ssh_cmd="ssh"
 
@@ -33,7 +29,6 @@ opengear_deploy() {
   _debug _ccert "$_ccert"
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
-
 
   # OPENGEAR ENV VAR check
   if [ -z "$OPENGEAR_HOST" ]; then
@@ -73,8 +68,6 @@ opengear_deploy() {
   return "$_err_code"
 }
 
-
-
 #cmd
 _ssh_remote_cmd() {
   _cmd="$1"
@@ -92,4 +85,3 @@ _ssh_remote_cmd() {
 
   return $_err_code
 }
-
