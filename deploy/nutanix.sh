@@ -50,7 +50,7 @@ nutanix_deploy() {
     _nutanix_pass="$NUTANIX_PASS"
     _nutanix_host="$NUTANIX_HOST"
   fi
-  curl --silent --fail --user "$_nutanix_user:$_nutanix_pass" -F caChain=@$_cca -F cert=@$_ccert -F key=@$_ckey -F keyType=RSA_2048 -k https://$_nutanix_host:9440/PrismGateway/services/rest/v1/keys/pem/import >/dev/null
+  curl --silent --fail --user "$_nutanix_user:$_nutanix_pass" -F caChain=@"$_cca" -F cert=@"$_ccert" -F key=@"$_ckey" -F keyType=RSA_2048 -k https://"$_nutanix_host":9440/PrismGateway/services/rest/v1/keys/pem/import >/dev/null
   return $?
 }
 
