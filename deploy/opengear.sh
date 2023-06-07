@@ -35,10 +35,6 @@ opengear_deploy() {
   _debug _cfullchain "$_cfullchain"
 
 
-  Le_Deploy_og_keyfile="/tmp/$(basename $_ckey)"
-  Le_Deploy_og_fullchain="/tmp/$(basename $_cfullchain)"
-
-
   # OPENGEAR ENV VAR check
   if [ -z "$OPENGEAR_HOST" ]; then
     # HOST is not set in environment, check for saved variable
@@ -68,13 +64,13 @@ opengear_deploy() {
   fi
   _info "Deploying to $_opengear_host"
 
-  _cmdstr="sudo echo -e \"set services.https.certificate =$(cat $_cfullchain | base64 -w0)\nset services.https.private_key =$(cat $_ckey | base64 -w0)\npush\" | /usr/unsupported/bin/ogconfig-cli"
+  _cmdstr="sudo echo -e \"set services.https.certificate =$(cat "$_cfullchain" | base64 -w0)\nset services.https.private_key =$(cat "$_ckey" | base64 -w0)\npush\" | /usr/unsupported/bin/ogconfig-cli"
   _info "will deploy new certificate"
   if ! _ssh_remote_cmd "$_cmdstr"; then
-    return $_err_code
+    return "$_err_code"
   fi
 
-  return $_err_code
+  return "$_err_code"
 }
 
 
