@@ -2884,6 +2884,7 @@ _initpath() {
       fi
     fi
     _debug DOMAIN_PATH "$DOMAIN_PATH"
+    export DOMAIN_PATH
   fi
 
   if [ -z "$DOMAIN_BACKUP_PATH" ]; then
@@ -4952,18 +4953,6 @@ $_authorizations_map"
         if ! chmod a+r "$wellknown_path/$token"; then
           _debug "chmod failed, but we just continue."
         fi
-        if [ ! "$usingApache" ]; then
-          if webroot_owner=$(_stat "$_currentRoot"); then
-            _debug "Changing owner/group of .well-known to $webroot_owner"
-            if ! _exec "chown -R \"$webroot_owner\" \"$_currentRoot/.well-known\""; then
-              _debug "$(cat "$_EXEC_TEMP_ERR")"
-              _exec_err >/dev/null 2>&1
-            fi
-          else
-            _debug "not changing owner/group of webroot"
-          fi
-        fi
-
       fi
     elif [ "$vtype" = "$VTYPE_ALPN" ]; then
       acmevalidationv1="$(printf "%s" "$keyauthorization" | _digest "sha256" "hex")"
