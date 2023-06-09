@@ -4364,11 +4364,12 @@ issue() {
   _pre_hook="${10}"
   _post_hook="${11}"
   _renew_hook="${12}"
-  _local_addr="${13}"
-  _challenge_alias="${14}"
-  _preferred_chain="${15}"
-  _valid_from="${16}"
-  _valid_to="${17}"
+  _webroot_hook="${13}"
+  _local_addr="${14}"
+  _challenge_alias="${15}"
+  _preferred_chain="${16}"
+  _valid_from="${17}"
+  _valid_to="${18}"
 
   if [ -z "$_ACME_IS_RENEW" ]; then
     _initpath "$_main_domain" "$_key_length"
@@ -4925,8 +4926,10 @@ $_authorizations_map"
       else
         if [ "$_currentRoot" = "apache" ]; then
           wellknown_path="$ACME_DIR"
+          webroot_root="$ACME_DIR"
         else
           wellknown_path="$_currentRoot/.well-known/acme-challenge"
+          webroot_root="$_currentRoot"
           if [ ! -d "$_currentRoot/.well-known" ]; then
             removelevel='1'
           elif [ ! -d "$_currentRoot/.well-known/acme-challenge" ]; then
@@ -4961,6 +4964,18 @@ $_authorizations_map"
             fi
           else
             _debug "not changing owner/group of webroot"
+          fi
+        fi
+        if [ "$_webroot_hook" ]; then
+          if ! (
+            export TOKEN="$token"
+            cd "$webroot_root" && eval "$_webroot_hook"
+          ); then
+            _err "$d:Error when run webroot hook."
+            _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+            _clearup
+            _on_issue_err "$_post_hook" "$vlist"
+            return 1
           fi
         fi
 
@@ -6970,6 +6985,7 @@ Parameters:
   --pre-hook <command>              Command to be run before obtaining any certificates.
   --post-hook <command>             Command to be run after attempting to obtain/renew certificates. Runs regardless of whether obtain/renew succeeded or failed.
   --renew-hook <command>            Command to be run after each successfully renewed certificate.
+  --webroot-hook <command>          Command to be run after token file is created inside the webroot, before validation.
   --deploy-hook <hookname>          The hook file to deploy cert
   --ocsp, --ocsp-must-staple        Generate OCSP-Must-Staple extension.
   --always-force-new-domain-key     Generate new domain key on renewal. Otherwise, the domain key is not changed by default.
@@ -7253,6 +7269,7 @@ _process() {
   _pre_hook=""
   _post_hook=""
   _renew_hook=""
+  _webroot_hook=""
   _deploy_hook=""
   _logfile=""
   _log=""
@@ -7654,6 +7671,10 @@ _process() {
       _renew_hook="$2"
       shift
       ;;
+    --webroot-hook)
+      _webroot_hook="$2"
+      shift
+      ;;
     --deploy-hook)
       if [ -z "$2" ] || _startswith "$2" "-"; then
         _usage "Please specify a value for '--deploy-hook'"
@@ -7864,7 +7885,7 @@ _process() {
   uninstall) uninstall "$_nocron" ;;
   upgrade) upgrade ;;
   issue)
-    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_valid_from" "$_valid_to"
+    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_webroot_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_valid_from" "$_valid_to"
     ;;
   deploy)
     deploy "$_domain" "$_deploy_hook" "$_ecc"
