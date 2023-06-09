@@ -2884,6 +2884,7 @@ _initpath() {
       fi
     fi
     _debug DOMAIN_PATH "$DOMAIN_PATH"
+    export DOMAIN_PATH
   fi
 
   if [ -z "$DOMAIN_BACKUP_PATH" ]; then
@@ -4684,28 +4685,26 @@ $_authorizations_map"
         thumbprint="$(__calc_account_thumbprint)"
       fi
 
+      keyauthorization=""
+
+      if echo "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
+        _debug "$d is already valid."
+        keyauthorization="$STATE_VERIFIED"
+        _debug keyauthorization "$keyauthorization"
+      fi
+
       entry="$(echo "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
-      keyauthorization=""
-      if [ -z "$entry" ]; then
-        if ! _startswith "$d" '*.'; then
-          _debug "Not a wildcard domain, lets check whether the validation is already valid."
-          if echo "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
-            _debug "$d is already valid."
-            keyauthorization="$STATE_VERIFIED"
-            _debug keyauthorization "$keyauthorization"
-          fi
+
+      if [ -z "$keyauthorization" -a -z "$entry" ]; then
+        _err "Error, can not get domain token entry $d for $vtype"
+        _supported_vtypes="$(echo "$response" | _egrep_o "\"challenges\":\[[^]]*]" | tr '{' "\n" | grep type | cut -d '"' -f 4 | tr "\n" ' ')"
+        if [ "$_supported_vtypes" ]; then
+          _err "The supported validation types are: $_supported_vtypes, but you specified: $vtype"
         fi
-        if [ -z "$keyauthorization" ]; then
-          _err "Error, can not get domain token entry $d for $vtype"
-          _supported_vtypes="$(echo "$response" | _egrep_o "\"challenges\":\[[^]]*]" | tr '{' "\n" | grep type | cut -d '"' -f 4 | tr "\n" ' ')"
-          if [ "$_supported_vtypes" ]; then
-            _err "The supported validation types are: $_supported_vtypes, but you specified: $vtype"
-          fi
-          _clearup
-          _on_issue_err "$_post_hook"
-          return 1
-        fi
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
       fi
 
       if [ -z "$keyauthorization" ]; then
@@ -4731,12 +4730,6 @@ $_authorizations_map"
         fi
         keyauthorization="$token.$thumbprint"
         _debug keyauthorization "$keyauthorization"
-
-        if printf "%s" "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
-          _debug "$d is already verified."
-          keyauthorization="$STATE_VERIFIED"
-          _debug keyauthorization "$keyauthorization"
-        fi
       fi
 
       dvlist="$d$sep$keyauthorization$sep$uri$sep$vtype$sep$_currentRoot"
@@ -4960,18 +4953,6 @@ $_authorizations_map"
         if ! chmod a+r "$wellknown_path/$token"; then
           _debug "chmod failed, but we just continue."
         fi
-        if [ ! "$usingApache" ]; then
-          if webroot_owner=$(_stat "$_currentRoot"); then
-            _debug "Changing owner/group of .well-known to $webroot_owner"
-            if ! _exec "chown -R \"$webroot_owner\" \"$_currentRoot/.well-known\""; then
-              _debug "$(cat "$_EXEC_TEMP_ERR")"
-              _exec_err >/dev/null 2>&1
-            fi
-          else
-            _debug "not changing owner/group of webroot"
-          fi
-        fi
-
       fi
     elif [ "$vtype" = "$VTYPE_ALPN" ]; then
       acmevalidationv1="$(printf "%s" "$keyauthorization" | _digest "sha256" "hex")"
