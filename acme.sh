@@ -2942,7 +2942,7 @@ _exec() {
   fi
 
   if [ "$_EXEC_TEMP_ERR" ]; then
-    eval "$@ 2>>$_EXEC_TEMP_ERR"
+    eval "$@" 2>>"$_EXEC_TEMP_ERR"
   else
     eval "$@"
   fi
@@ -2964,7 +2964,7 @@ _apachePath() {
     fi
   fi
 
-  if ! _exec $_APACHECTL -V >/dev/null; then
+  if ! _exec "$_APACHECTL" -V >/dev/null; then
     _exec_err
     return 1
   fi
@@ -3017,7 +3017,7 @@ _restoreApache() {
 
   cat "$APACHE_CONF_BACKUP_DIR/$httpdconfname" >"$httpdconf"
   _debug "Restored: $httpdconf."
-  if ! _exec $_APACHECTL -t; then
+  if ! _exec "$_APACHECTL" -t; then
     _exec_err
     _err "Sorry, restore apache config error, please contact me."
     return 1
@@ -3184,7 +3184,7 @@ _setNginx() {
     return 1
   fi
   _info "Check the nginx conf before setting up."
-  if ! _exec "nginx -t" >/dev/null; then
+  if ! _exec nginx -t >/dev/null; then
     _exec_err
     return 1
   fi
@@ -3212,7 +3212,7 @@ location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
   fi
   _debug3 "Modified config:$(cat $FOUND_REAL_NGINX_CONF)"
   _info "nginx conf is done, let's check it again."
-  if ! _exec "nginx -t" >/dev/null; then
+  if ! _exec nginx -t >/dev/null; then
     _exec_err
     _err "It seems that nginx conf was broken, let's restore."
     cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
@@ -3220,7 +3220,7 @@ location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
   fi
 
   _info "Reload nginx"
-  if ! _exec "nginx -s reload" >/dev/null; then
+  if ! _exec nginx -s reload >/dev/null; then
     _exec_err
     _err "It seems that nginx reload error, let's restore."
     cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
@@ -3346,7 +3346,7 @@ _restoreNginx() {
   done
 
   _info "Reload nginx"
-  if ! _exec "nginx -s reload" >/dev/null; then
+  if ! _exec nginx -s reload >/dev/null; then
     _exec_err
     _err "It seems that nginx reload error, please report bug."
     return 1
