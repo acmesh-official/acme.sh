@@ -2942,9 +2942,9 @@ _exec() {
   fi
 
   if [ "$_EXEC_TEMP_ERR" ]; then
-    eval "$@" 2>>"$_EXEC_TEMP_ERR"
+    "$@" 2>>"$_EXEC_TEMP_ERR"
   else
-    eval "$@"
+    "$@"
   fi
 }
 
