@@ -99,7 +99,8 @@ synology_dsm_deploy() {
   _info "Logging into $SYNO_Hostname:$SYNO_Port"
   encoded_username="$(printf "%s" "$SYNO_Username" | _url_encode)"
   encoded_password="$(printf "%s" "$SYNO_Password" | _url_encode)"
-  
+
+  otp_code=""
   # START - DEPRECATED, only kept for legacy compatibility reasons
   if [ -n "$SYNO_TOTP_SECRET" ]; then
     _info "WARNING: Usage of SYNO_TOTP_SECRET is deprecated!"
@@ -119,7 +120,7 @@ synology_dsm_deploy() {
       _debug3 H1 "${_H1}"
     fi
 
-    response=$(_post "method=login&account=$encoded_username&passwd=$encoded_password&api=SYNO.API.Auth&version=$api_version&enable_syno_token=yes&otp_code=$otp_code&device_name=certrenewal&device_id=$SYNO_DID" "$_base_url/webapi/auth.cgi?enable_syno_token=yes")
+    response=$(_post "method=login&account=$encoded_username&passwd=$encoded_password&api=SYNO.API.Auth&version=$api_version&enable_syno_token=yes&otp_code=$DEPRECATED_otp_code&device_name=certrenewal&device_id=$SYNO_DID" "$_base_url/webapi/auth.cgi?enable_syno_token=yes")
     _debug3 response "$response"
   # END - DEPRECATED, only kept for legacy compatibility reasons
   # Get device ID if still empty first, otherwise log in right away
