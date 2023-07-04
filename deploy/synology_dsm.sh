@@ -145,7 +145,7 @@ synology_dsm_deploy() {
   token=$(echo "$response" | grep "synotoken" | sed -n 's/.*"synotoken" *: *"\([^"]*\).*/\1/p')
   _debug "Session ID" "$sid"
   _debug SynoToken "$token"
-  if [ -z "$SYNO_DID" && -z "$SYNO_Device_ID" ] || [ -z "$sid" ] || [ -z "$token" ]; then
+  if [ -z "$SYNO_DID" ] && [ -z "$SYNO_Device_ID" ] || [ -z "$sid" ] || [ -z "$token" ]; then
     _err "Unable to authenticate to $_base_url - check your username & password."
     _err "If two-factor authentication is enabled for the user, set SYNO_Device_ID."
     return 1
