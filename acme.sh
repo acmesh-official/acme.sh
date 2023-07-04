@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.0.6
+VER=3.0.7
 
 PROJECT_NAME="acme.sh"
 
@@ -2884,6 +2884,7 @@ _initpath() {
       fi
     fi
     _debug DOMAIN_PATH "$DOMAIN_PATH"
+    export DOMAIN_PATH
   fi
 
   if [ -z "$DOMAIN_BACKUP_PATH" ]; then
@@ -2935,22 +2936,6 @@ _initpath() {
 
 }
 
-_exec() {
-  if [ -z "$_EXEC_TEMP_ERR" ]; then
-    _EXEC_TEMP_ERR="$(_mktemp)"
-  fi
-
-  if [ "$_EXEC_TEMP_ERR" ]; then
-    eval "$@ 2>>$_EXEC_TEMP_ERR"
-  else
-    eval "$@"
-  fi
-}
-
-_exec_err() {
-  [ "$_EXEC_TEMP_ERR" ] && _err "$(cat "$_EXEC_TEMP_ERR")" && echo "" >"$_EXEC_TEMP_ERR"
-}
-
 _apachePath() {
   _APACHECTL="apachectl"
   if ! _exists apachectl; then
@@ -2963,8 +2948,7 @@ _apachePath() {
     fi
   fi
 
-  if ! _exec $_APACHECTL -V >/dev/null; then
-    _exec_err
+  if ! $_APACHECTL -V >/dev/null; then
     return 1
   fi
 
@@ -3016,8 +3000,7 @@ _restoreApache() {
 
   cat "$APACHE_CONF_BACKUP_DIR/$httpdconfname" >"$httpdconf"
   _debug "Restored: $httpdconf."
-  if ! _exec $_APACHECTL -t; then
-    _exec_err
+  if ! $_APACHECTL -t; then
     _err "Sorry, restore apache config error, please contact me."
     return 1
   fi
@@ -3035,8 +3018,7 @@ _setApache() {
   #test the conf first
   _info "Checking if there is an error in the apache config file before starting."
 
-  if ! _exec "$_APACHECTL" -t >/dev/null; then
-    _exec_err
+  if ! $_APACHECTL -t >/dev/null; then
     _err "The apache config file has error, please fix it first, then try again."
     _err "Don't worry, there is nothing changed to your system."
     return 1
@@ -3097,8 +3079,7 @@ Allow from all
     chmod 755 "$ACME_DIR"
   fi
 
-  if ! _exec "$_APACHECTL" graceful; then
-    _exec_err
+  if ! $_APACHECTL graceful; then
     _err "$_APACHECTL  graceful error, please contact me."
     _restoreApache
     return 1
@@ -3183,8 +3164,7 @@ _setNginx() {
     return 1
   fi
   _info "Check the nginx conf before setting up."
-  if ! _exec "nginx -t" >/dev/null; then
-    _exec_err
+  if ! nginx -t >/dev/null; then
     return 1
   fi
 
@@ -3211,16 +3191,14 @@ location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
   fi
   _debug3 "Modified config:$(cat $FOUND_REAL_NGINX_CONF)"
   _info "nginx conf is done, let's check it again."
-  if ! _exec "nginx -t" >/dev/null; then
-    _exec_err
+  if ! nginx -t >/dev/null; then
     _err "It seems that nginx conf was broken, let's restore."
     cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
     return 1
   fi
 
   _info "Reload nginx"
-  if ! _exec "nginx -s reload" >/dev/null; then
-    _exec_err
+  if ! nginx -s reload >/dev/null; then
     _err "It seems that nginx reload error, let's restore."
     cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
     return 1
@@ -3345,8 +3323,7 @@ _restoreNginx() {
   done
 
   _info "Reload nginx"
-  if ! _exec "nginx -s reload" >/dev/null; then
-    _exec_err
+  if ! nginx -s reload >/dev/null; then
     _err "It seems that nginx reload error, please report bug."
     return 1
   fi
@@ -4952,18 +4929,6 @@ $_authorizations_map"
         if ! chmod a+r "$wellknown_path/$token"; then
           _debug "chmod failed, but we just continue."
         fi
-        if [ ! "$usingApache" ]; then
-          if webroot_owner=$(_stat "$_currentRoot"); then
-            _debug "Changing owner/group of .well-known to $webroot_owner"
-            if ! _exec "chown -R \"$webroot_owner\" \"$_currentRoot/.well-known\""; then
-              _debug "$(cat "$_EXEC_TEMP_ERR")"
-              _exec_err >/dev/null 2>&1
-            fi
-          else
-            _debug "not changing owner/group of webroot"
-          fi
-        fi
-
       fi
     elif [ "$vtype" = "$VTYPE_ALPN" ]; then
       acmevalidationv1="$(printf "%s" "$keyauthorization" | _digest "sha256" "hex")"
