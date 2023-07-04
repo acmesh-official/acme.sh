@@ -5,7 +5,7 @@
 ################################################################################
 # Authors: Brian Hartvigsen (creator), https://github.com/tresni
 #          Martin Arndt (contributor), https://troublezone.net/
-# Updated: 2023-05-28
+# Updated: 2023-07-03
 # Issues:  https://github.com/acmesh-official/acme.sh/issues/2727
 ################################################################################
 # Usage:
@@ -41,6 +41,8 @@ synology_dsm_deploy() {
   _getdeployconf SYNO_Username
   _getdeployconf SYNO_Password
   _getdeployconf SYNO_Create
+  _getdeployconf SYNO_DID
+  _getdeployconf SYNO_TOTP_SECRET
   _getdeployconf SYNO_Device_Name
   _getdeployconf SYNO_Device_ID
   if [ -z "${SYNO_Username:-}" ] || [ -z "${SYNO_Password:-}" ]; then
@@ -74,7 +76,7 @@ synology_dsm_deploy() {
   _debug2 SYNO_Hostname "$SYNO_Hostname"
   _debug2 SYNO_Port "$SYNO_Port"
 
-  # Get the certificate description, but don't save it until we verfiy it's real
+  # Get the certificate description, but don't save it until we verify it's real
   _getdeployconf SYNO_Certificate
   _debug SYNO_Certificate "${SYNO_Certificate:-}"
 
@@ -97,9 +99,31 @@ synology_dsm_deploy() {
   _info "Logging into $SYNO_Hostname:$SYNO_Port"
   encoded_username="$(printf "%s" "$SYNO_Username" | _url_encode)"
   encoded_password="$(printf "%s" "$SYNO_Password" | _url_encode)"
+  
+  # START - DEPRECATED, only kept for legacy compatibility reasons
+  if [ -n "$SYNO_TOTP_SECRET" ]; then
+    _info "WARNING: Usage of SYNO_TOTP_SECRET is deprecated!"
+    _info "         See synology_dsm.sh script or ACME.sh Wiki page for details:"
+    _info "         https://github.com/acmesh-official/acme.sh/wiki/Synology-NAS-Guide"
+    DEPRECATED_otp_code=""
+    if _exists oathtool; then
+      DEPRECATED_otp_code="$(oathtool --base32 --totp "${SYNO_TOTP_SECRET}" 2>/dev/null)"
+    else
+      _err "oathtool could not be found, install oathtool to use SYNO_TOTP_SECRET"
+      return 1
+    fi
 
+    if [ -n "$SYNO_DID" ]; then
+      _H1="Cookie: did=$SYNO_DID"
+      export _H1
+      _debug3 H1 "${_H1}"
+    fi
+
+    response=$(_post "method=login&account=$encoded_username&passwd=$encoded_password&api=SYNO.API.Auth&version=$api_version&enable_syno_token=yes&otp_code=$otp_code&device_name=certrenewal&device_id=$SYNO_DID" "$_base_url/webapi/auth.cgi?enable_syno_token=yes")
+    _debug3 response "$response"
+  # END - DEPRECATED, only kept for legacy compatibility reasons
   # Get device ID if still empty first, otherwise log in right away
-  if [ -z "${SYNO_Device_ID:-}" ]; then
+  elif [ -z "${SYNO_Device_ID:-}" ]; then
     printf "Enter OTP code for user '%s': " "$SYNO_Username"
     read -r otp_code
     if [ -z "${SYNO_Device_Name:-}" ]; then
@@ -121,7 +145,7 @@ synology_dsm_deploy() {
   token=$(echo "$response" | grep "synotoken" | sed -n 's/.*"synotoken" *: *"\([^"]*\).*/\1/p')
   _debug "Session ID" "$sid"
   _debug SynoToken "$token"
-  if [ -z "$SYNO_Device_ID" ] || [ -z "$sid" ] || [ -z "$token" ]; then
+  if [ -z "$SYNO_DID" && -z "$SYNO_Device_ID" ] || [ -z "$sid" ] || [ -z "$token" ]; then
     _err "Unable to authenticate to $_base_url - check your username & password."
     _err "If two-factor authentication is enabled for the user, set SYNO_Device_ID."
     return 1
@@ -150,7 +174,7 @@ synology_dsm_deploy() {
     return 1
   fi
 
-  # we've verified this certificate description is a thing, so save it
+  # We've verified this certificate description is a thing, so save it
   _savedeployconf SYNO_Certificate "$SYNO_Certificate" "base64"
 
   _info "Generate form POST request"
@@ -162,10 +186,10 @@ synology_dsm_deploy() {
   content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"id\"${nl}${nl}$id"
   content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"desc\"${nl}${nl}${SYNO_Certificate}"
   if echo "$response" | sed -n "s/.*\"desc\":\"$escaped_certificate\",\([^{]*\).*/\1/p" | grep -- 'is_default":true' >/dev/null; then
-    _debug2 default "this is the default certificate"
+    _debug2 default "This is the default certificate"
     content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"as_default\"${nl}${nl}true"
   else
-    _debug2 default "this is NOT the default certificate"
+    _debug2 default "This is NOT the default certificate"
   fi
   content="$content${nl}--$delim--${nl}"
   content="$(printf "%b_" "$content")"
@@ -193,7 +217,7 @@ synology_dsm_deploy() {
 
 ####################  Private functions below ##################################
 _logout() {
-  # Logout to not occupy a permanent session, e. g. in DSM's "Connected Users" widget
+  # Logout to not occupy a permanent session, e.g. in DSM's "Connected Users" widget
   response=$(_get "$_base_url/webapi/entry.cgi?api=SYNO.API.Auth&version=$api_version&method=logout")
   _debug3 response "$response"
 }
