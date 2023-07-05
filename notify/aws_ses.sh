@@ -25,7 +25,6 @@ aws_ses_send() {
   AWS_SES_SECRET_ACCESS_KEY="${AWS_SES_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SES_SECRET_ACCESS_KEY)}"
   AWS_SES_REGION="${AWS_SES_REGION:-$(_readaccountconf_mutable AWS_SES_REGION)}"
 
-
   if [ -z "$AWS_SES_ACCESS_KEY_ID" ] || [ -z "$AWS_SES_SECRET_ACCESS_KEY" ]; then
     _use_container_role || _use_instance_role
   fi
