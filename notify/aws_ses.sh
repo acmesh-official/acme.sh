@@ -1,9 +1,9 @@
 #!/usr/bin/env sh
 
 #
-#AWS_SES_ACCESS_KEY_ID="sdfsdfsdfljlbjkljlkjsdfoiwje"
+#AWS_ACCESS_KEY_ID="sdfsdfsdfljlbjkljlkjsdfoiwje"
 #
-#AWS_SES_SECRET_ACCESS_KEY="xxxxxxx"
+#AWS_SECRET_ACCESS_KEY="xxxxxxx"
 #
 #AWS_SES_REGION="us-east-1"
 #
@@ -21,17 +21,17 @@ aws_ses_send() {
   _statusCode="$3" #0: success, 1: error 2($RENEW_SKIP): skipped
   _debug "_statusCode" "$_statusCode"
 
-  AWS_SES_ACCESS_KEY_ID="${AWS_SES_ACCESS_KEY_ID:-$(_readaccountconf_mutable AWS_SES_ACCESS_KEY_ID)}"
-  AWS_SES_SECRET_ACCESS_KEY="${AWS_SES_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SES_SECRET_ACCESS_KEY)}"
+  AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-$(_readaccountconf_mutable AWS_ACCESS_KEY_ID)}"
+  AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
   AWS_SES_REGION="${AWS_SES_REGION:-$(_readaccountconf_mutable AWS_SES_REGION)}"
 
-  if [ -z "$AWS_SES_ACCESS_KEY_ID" ] || [ -z "$AWS_SES_SECRET_ACCESS_KEY" ]; then
+  if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     _use_container_role || _use_instance_role
   fi
 
-  if [ -z "$AWS_SES_ACCESS_KEY_ID" ] || [ -z "$AWS_SES_SECRET_ACCESS_KEY" ]; then
-    AWS_SES_ACCESS_KEY_ID=""
-    AWS_SES_SECRET_ACCESS_KEY=""
+  if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+    AWS_ACCESS_KEY_ID=""
+    AWS_SECRET_ACCESS_KEY=""
     _err "You haven't specified the aws SES api key id and and api key secret yet."
     _err "Please create your key and try again. see $(__green $AWS_WIKI)"
     return 1
@@ -46,8 +46,8 @@ aws_ses_send() {
 
   #save for future use, unless using a role which will be fetched as needed
   if [ -z "$_using_role" ]; then
-    _saveaccountconf_mutable AWS_SES_ACCESS_KEY_ID "$AWS_SES_ACCESS_KEY_ID"
-    _saveaccountconf_mutable AWS_SES_SECRET_ACCESS_KEY "$AWS_SES_SECRET_ACCESS_KEY"
+    _saveaccountconf_mutable AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
+    _saveaccountconf_mutable AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
   fi
 
   AWS_SES_TO="${AWS_SES_TO:-$(_readaccountconf_mutable AWS_SES_TO)}"
@@ -93,8 +93,8 @@ _use_metadata() {
         _debug3 "_key" "$_key"
         _secure_debug3 "_value" "$_value"
         case "$_key" in
-        AccessKeyId) echo "AWS_SES_ACCESS_KEY_ID=$_value" ;;
-        SecretAccessKey) echo "AWS_SES_SECRET_ACCESS_KEY=$_value" ;;
+        AccessKeyId) echo "AWS_ACCESS_KEY_ID=$_value" ;;
+        SecretAccessKey) echo "AWS_SECRET_ACCESS_KEY=$_value" ;;
         Token) echo "AWS_SESSION_TOKEN=$_value" ;;
         esac
       done |
@@ -173,7 +173,7 @@ aws_rest() {
 
   _debug2 StringToSign "$StringToSign"
 
-  kSecret="AWS4$AWS_SES_SECRET_ACCESS_KEY"
+  kSecret="AWS4$AWS_SECRET_ACCESS_KEY"
 
   #kSecret="wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY" ############################
 
@@ -197,7 +197,7 @@ aws_rest() {
   signature="$(printf "$StringToSign%s" | _hmac "$Hash" "$kSigningH" hex)"
   _debug2 signature "$signature"
 
-  Authorization="$Algorithm Credential=$AWS_SES_ACCESS_KEY_ID/$CredentialScope, SignedHeaders=$SignedHeaders, Signature=$signature"
+  Authorization="$Algorithm Credential=$AWS_ACCESS_KEY_ID/$CredentialScope, SignedHeaders=$SignedHeaders, Signature=$signature"
   _debug2 Authorization "$Authorization"
 
   _H2="Authorization: $Authorization"
