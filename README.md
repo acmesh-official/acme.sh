@@ -51,14 +51,12 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 - [ruby-china.org](https://ruby-china.org/topics/31983)
 - [Proxmox](https://pve.proxmox.com/wiki/Certificate_Management)
 - [pfsense](https://github.com/pfsense/FreeBSD-ports/pull/89)
-- [webfaction](https://community.webfaction.com/questions/19988/using-letsencrypt)
 - [Loadbalancer.org](https://www.loadbalancer.org/blog/loadbalancer-org-with-lets-encrypt-quick-and-dirty)
 - [discourse.org](https://meta.discourse.org/t/setting-up-lets-encrypt/40709)
 - [Centminmod](https://centminmod.com/letsencrypt-acmetool-https.html)
 - [splynx](https://forum.splynx.com/t/free-ssl-cert-for-splynx-lets-encrypt/297)
-- [archlinux](https://www.archlinux.org/packages/community/any/acme.sh)
 - [opnsense.org](https://github.com/opnsense/plugins/tree/master/security/acme-client/src/opnsense/scripts/OPNsense/AcmeClient)
-- [CentOS Web Panel](http://centos-webpanel.com/)
+- [CentOS Web Panel](https://control-webpanel.com)
 - [lnmp.org](https://lnmp.org/)
 - [more...](https://github.com/acmesh-official/acme.sh/wiki/Blogs-and-tutorials)
 
@@ -361,10 +359,6 @@ Ok, it's done.
 
 # 10. Issue ECC certificates
 
-`Let's Encrypt` can now issue **ECDSA** certificates.
-
-And we support them too!
-
 Just set the `keylength` parameter with a prefix `ec-`.
 
 For example:
@@ -385,10 +379,12 @@ Please look at the `keylength` parameter above.
 
 Valid values are:
 
-1. **ec-256 (prime256v1, "ECDSA P-256")**
+1. **ec-256 (prime256v1, "ECDSA P-256", which is the default key type)**
 2. **ec-384 (secp384r1,  "ECDSA P-384")**
 3. **ec-521 (secp521r1,  "ECDSA P-521", which is not supported by Let's Encrypt yet.)**
-
+4. **2048   (RSA2048)**
+5. **3072   (RSA3072)**
+6. **4096   (RSA4096)**
 
 
 # 11. Issue Wildcard certificates

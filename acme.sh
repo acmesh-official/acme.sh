@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.0.5
+VER=3.0.6
 
 PROJECT_NAME="acme.sh"
 
@@ -53,8 +53,8 @@ CA_SERVERS="$CA_ZEROSSL,$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_BUYPASS,$
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 
-DEFAULT_ACCOUNT_KEY_LENGTH=2048
-DEFAULT_DOMAIN_KEY_LENGTH=2048
+DEFAULT_ACCOUNT_KEY_LENGTH=ec-256
+DEFAULT_DOMAIN_KEY_LENGTH=ec-256
 
 DEFAULT_OPENSSL_BIN="openssl"
 
@@ -1637,7 +1637,7 @@ _stat() {
 #keyfile
 _isRSA() {
   keyfile=$1
-  if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} rsa -in "$keyfile" -noout -text | grep "^publicExponent:" >/dev/null 2>&1; then
+  if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} rsa -in "$keyfile" -noout -text 2>&1 | grep "^publicExponent:" 2>&1 >/dev/null; then
     return 0
   fi
   return 1
@@ -1646,7 +1646,7 @@ _isRSA() {
 #keyfile
 _isEcc() {
   keyfile=$1
-  if grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" >/dev/null 2>&1; then
+  if grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" 2>&1 >/dev/null; then
     return 0
   fi
   return 1
@@ -1744,7 +1744,7 @@ _calcjwk() {
     _debug3 x64 "$x64"
 
     xend=$(_math "$xend" + 1)
-    y="$(printf "%s" "$pubtext" | cut -d : -f "$xend"-10000)"
+    y="$(printf "%s" "$pubtext" | cut -d : -f "$xend"-2048)"
     _debug3 y "$y"
 
     y64="$(printf "%s" "$y" | tr -d : | _h2b | _base64 | _url_replace)"
@@ -1852,9 +1852,15 @@ _inithttp() {
       _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
     fi
 
-    if _contains "$(curl --help 2>&1)" "--globoff"; then
+    if _contains "$(curl --help 2>&1)" "--globoff" || _contains "$(curl --help curl 2>&1)" "--globoff"; then
       _ACME_CURL="$_ACME_CURL -g "
     fi
+
+    #don't use --fail-with-body
+    ##from curl 7.76: return fail on HTTP errors but keep the body
+    #if _contains "$(curl --help http 2>&1)" "--fail-with-body"; then
+    #  _ACME_CURL="$_ACME_CURL --fail-with-body "
+    #fi
   fi
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
@@ -1872,11 +1878,11 @@ _inithttp() {
     elif [ "$CA_BUNDLE" ]; then
       _ACME_WGET="$_ACME_WGET --ca-certificate=$CA_BUNDLE "
     fi
-  fi
 
-  #from wget 1.14: do not skip body on 404 error
-  if [ "$_ACME_WGET" ] && _contains "$($_ACME_WGET --help 2>&1)" "--content-on-error"; then
-    _ACME_WGET="$_ACME_WGET --content-on-error "
+    #from wget 1.14: do not skip body on 404 error
+    if _contains "$(wget --help 2>&1)" "--content-on-error"; then
+      _ACME_WGET="$_ACME_WGET --content-on-error "
+    fi
   fi
 
   __HTTP_INITIALIZED=1
@@ -2058,7 +2064,7 @@ _get() {
     fi
     _debug "_WGET" "$_WGET"
     if [ "$onlyheader" ]; then
-      _wget_out = "$($_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1)"
+      _wget_out="$($_WGET --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" -S -O /dev/null "$url" 2>&1)"
       if _contains "$_WGET" " -d "; then
         # Demultiplex wget debug output
         echo "$_wget_out" >&2
@@ -2223,6 +2229,20 @@ _send_signed_request() {
         _debug3 _body "$_body"
       fi
 
+      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      if [ "$code" = '503' ]; then
+        _sleep_overload_retry_sec=$_retryafter
+        if [ -z "$_sleep_overload_retry_sec" ]; then
+          _sleep_overload_retry_sec=5
+        fi
+        if [ $_sleep_overload_retry_sec -le 600 ]; then
+          _info "It seems the CA server is currently overloaded, let's wait and retry. Sleeping $_sleep_overload_retry_sec seconds."
+          _sleep $_sleep_overload_retry_sec
+          continue
+        else
+          _info "The retryafter=$_retryafter is too large > 600, not retry anymore."
+        fi
+      fi
       if _contains "$_body" "JWS has invalid anti-replay nonce" || _contains "$_body" "JWS has an invalid anti-replay nonce"; then
         _info "It seems the CA server is busy now, let's wait and retry. Sleeping $_sleep_retry_sec seconds."
         _CACHED_NONCE=""
@@ -2352,6 +2372,26 @@ _readdomainconf() {
   _read_conf "$DOMAIN_CONF" "$1"
 }
 
+#_migratedomainconf   oldkey  newkey  base64encode
+_migratedomainconf() {
+  _old_key="$1"
+  _new_key="$2"
+  _b64encode="$3"
+  _value=$(_readdomainconf "$_old_key")
+  if [ -z "$_value" ]; then
+    return 1 # oldkey is not found
+  fi
+  _savedomainconf "$_new_key" "$_value" "$_b64encode"
+  _cleardomainconf "$_old_key"
+  _debug "Domain config $_old_key has been migrated to $_new_key"
+}
+
+#_migratedeployconf   oldkey  newkey  base64encode
+_migratedeployconf() {
+  _migratedomainconf "$1" "SAVED_$2" "$3" ||
+    _migratedomainconf "SAVED_$1" "SAVED_$2" "$3" # try only when oldkey itself is not found
+}
+
 #key  value  base64encode
 _savedeployconf() {
   _savedomainconf "SAVED_$1" "$2" "$3"
@@ -2366,12 +2406,14 @@ _getdeployconf() {
   if [ "$_rac_value" ]; then
     if _startswith "$_rac_value" '"' && _endswith "$_rac_value" '"'; then
       _debug2 "trim quotation marks"
-      eval "export $_rac_key=$_rac_value"
+      eval $_rac_key=$_rac_value
+      export $_rac_key
     fi
     return 0 # do nothing
   fi
-  _saved=$(_readdomainconf "SAVED_$_rac_key")
-  eval "export $_rac_key=\"\$_saved\""
+  _saved="$(_readdomainconf "SAVED_$_rac_key")"
+  eval $_rac_key=\$_saved
+  export $_rac_key
 }
 
 #_saveaccountconf  key  value  base64encode
@@ -2835,12 +2877,14 @@ _initpath() {
 
     if _isEccKey "$_ilength"; then
       DOMAIN_PATH="$domainhomeecc"
-    else
+    elif [ -z "$__SELECTED_RSA_KEY" ]; then
       if [ ! -d "$domainhome" ] && [ -d "$domainhomeecc" ]; then
-        _info "The domain '$domain' seems to have a ECC cert already, please add '$(__red "--ecc")' parameter if you want to use that cert."
+        _info "The domain '$domain' seems to have a ECC cert already, lets use ecc cert."
+        DOMAIN_PATH="$domainhomeecc"
       fi
     fi
     _debug DOMAIN_PATH "$DOMAIN_PATH"
+    export DOMAIN_PATH
   fi
 
   if [ -z "$DOMAIN_BACKUP_PATH" ]; then
@@ -2892,22 +2936,6 @@ _initpath() {
 
 }
 
-_exec() {
-  if [ -z "$_EXEC_TEMP_ERR" ]; then
-    _EXEC_TEMP_ERR="$(_mktemp)"
-  fi
-
-  if [ "$_EXEC_TEMP_ERR" ]; then
-    eval "$@ 2>>$_EXEC_TEMP_ERR"
-  else
-    eval "$@"
-  fi
-}
-
-_exec_err() {
-  [ "$_EXEC_TEMP_ERR" ] && _err "$(cat "$_EXEC_TEMP_ERR")" && echo "" >"$_EXEC_TEMP_ERR"
-}
-
 _apachePath() {
   _APACHECTL="apachectl"
   if ! _exists apachectl; then
@@ -2920,8 +2948,7 @@ _apachePath() {
     fi
   fi
 
-  if ! _exec $_APACHECTL -V >/dev/null; then
-    _exec_err
+  if ! $_APACHECTL -V >/dev/null; then
     return 1
   fi
 
@@ -2973,8 +3000,7 @@ _restoreApache() {
 
   cat "$APACHE_CONF_BACKUP_DIR/$httpdconfname" >"$httpdconf"
   _debug "Restored: $httpdconf."
-  if ! _exec $_APACHECTL -t; then
-    _exec_err
+  if ! $_APACHECTL -t; then
     _err "Sorry, restore apache config error, please contact me."
     return 1
   fi
@@ -2992,8 +3018,7 @@ _setApache() {
   #test the conf first
   _info "Checking if there is an error in the apache config file before starting."
 
-  if ! _exec "$_APACHECTL" -t >/dev/null; then
-    _exec_err
+  if ! $_APACHECTL -t >/dev/null; then
     _err "The apache config file has error, please fix it first, then try again."
     _err "Don't worry, there is nothing changed to your system."
     return 1
@@ -3054,8 +3079,7 @@ Allow from all
     chmod 755 "$ACME_DIR"
   fi
 
-  if ! _exec "$_APACHECTL" graceful; then
-    _exec_err
+  if ! $_APACHECTL graceful; then
     _err "$_APACHECTL  graceful error, please contact me."
     _restoreApache
     return 1
@@ -3140,8 +3164,7 @@ _setNginx() {
     return 1
   fi
   _info "Check the nginx conf before setting up."
-  if ! _exec "nginx -t" >/dev/null; then
-    _exec_err
+  if ! nginx -t >/dev/null; then
     return 1
   fi
 
@@ -3168,16 +3191,14 @@ location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
   fi
   _debug3 "Modified config:$(cat $FOUND_REAL_NGINX_CONF)"
   _info "nginx conf is done, let's check it again."
-  if ! _exec "nginx -t" >/dev/null; then
-    _exec_err
+  if ! nginx -t >/dev/null; then
     _err "It seems that nginx conf was broken, let's restore."
     cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
     return 1
   fi
 
   _info "Reload nginx"
-  if ! _exec "nginx -s reload" >/dev/null; then
-    _exec_err
+  if ! nginx -s reload >/dev/null; then
     _err "It seems that nginx reload error, let's restore."
     cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
     return 1
@@ -3302,8 +3323,7 @@ _restoreNginx() {
   done
 
   _info "Reload nginx"
-  if ! _exec "nginx -s reload" >/dev/null; then
-    _exec_err
+  if ! nginx -s reload >/dev/null; then
     _err "It seems that nginx reload error, please report bug."
     return 1
   fi
@@ -3995,7 +4015,7 @@ _ns_purge_cf() {
 
 #checks if cf server is available
 _ns_is_available_cf() {
-  if _get "https://cloudflare-dns.com" "" 1 >/dev/null 2>&1; then
+  if _get "https://cloudflare-dns.com" "" 10 >/dev/null; then
     return 0
   else
     return 1
@@ -4003,7 +4023,7 @@ _ns_is_available_cf() {
 }
 
 _ns_is_available_google() {
-  if _get "https://dns.google" "" 1 >/dev/null 2>&1; then
+  if _get "https://dns.google" "" 10 >/dev/null; then
     return 0
   else
     return 1
@@ -4019,7 +4039,7 @@ _ns_lookup_google() {
 }
 
 _ns_is_available_ali() {
-  if _get "https://dns.alidns.com" "" 1 >/dev/null 2>&1; then
+  if _get "https://dns.alidns.com" "" 10 >/dev/null; then
     return 0
   else
     return 1
@@ -4035,7 +4055,7 @@ _ns_lookup_ali() {
 }
 
 _ns_is_available_dp() {
-  if _get "https://doh.pub" "" 1 >/dev/null 2>&1; then
+  if _get "https://doh.pub" "" 10 >/dev/null; then
     return 0
   else
     return 1
@@ -4050,8 +4070,7 @@ _ns_lookup_dp() {
   _ns_lookup_impl "$_cf_ep" "$_cf_ld" "$_cf_ld_type"
 }
 
-#domain, type
-_ns_lookup() {
+_ns_select_doh() {
   if [ -z "$DOH_USE" ]; then
     _debug "Detect dns server first."
     if _ns_is_available_cf; then
@@ -4070,7 +4089,11 @@ _ns_lookup() {
       _err "No doh"
     fi
   fi
+}
 
+#domain, type
+_ns_lookup() {
+  _ns_select_doh
   if [ "$DOH_USE" = "$DOH_CLOUDFLARE" ] || [ -z "$DOH_USE" ]; then
     _ns_lookup_cf "$@"
   elif [ "$DOH_USE" = "$DOH_GOOGLE" ]; then
@@ -4093,6 +4116,7 @@ __check_txt() {
   _debug "_c_txtdomain" "$_c_txtdomain"
   _debug "_c_aliasdomain" "$_c_aliasdomain"
   _debug "_c_txt" "$_c_txt"
+  _ns_select_doh
   _answers="$(_ns_lookup "$_c_aliasdomain" TXT)"
   _contains "$_answers" "$_c_txt"
 
@@ -4637,28 +4661,26 @@ $_authorizations_map"
         thumbprint="$(__calc_account_thumbprint)"
       fi
 
+      keyauthorization=""
+
+      if echo "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
+        _debug "$d is already valid."
+        keyauthorization="$STATE_VERIFIED"
+        _debug keyauthorization "$keyauthorization"
+      fi
+
       entry="$(echo "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
-      keyauthorization=""
-      if [ -z "$entry" ]; then
-        if ! _startswith "$d" '*.'; then
-          _debug "Not a wildcard domain, lets check whether the validation is already valid."
-          if echo "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
-            _debug "$d is already valid."
-            keyauthorization="$STATE_VERIFIED"
-            _debug keyauthorization "$keyauthorization"
-          fi
+
+      if [ -z "$keyauthorization" -a -z "$entry" ]; then
+        _err "Error, can not get domain token entry $d for $vtype"
+        _supported_vtypes="$(echo "$response" | _egrep_o "\"challenges\":\[[^]]*]" | tr '{' "\n" | grep type | cut -d '"' -f 4 | tr "\n" ' ')"
+        if [ "$_supported_vtypes" ]; then
+          _err "The supported validation types are: $_supported_vtypes, but you specified: $vtype"
         fi
-        if [ -z "$keyauthorization" ]; then
-          _err "Error, can not get domain token entry $d for $vtype"
-          _supported_vtypes="$(echo "$response" | _egrep_o "\"challenges\":\[[^]]*]" | tr '{' "\n" | grep type | cut -d '"' -f 4 | tr "\n" ' ')"
-          if [ "$_supported_vtypes" ]; then
-            _err "The supported validation types are: $_supported_vtypes, but you specified: $vtype"
-          fi
-          _clearup
-          _on_issue_err "$_post_hook"
-          return 1
-        fi
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
       fi
 
       if [ -z "$keyauthorization" ]; then
@@ -4684,12 +4706,6 @@ $_authorizations_map"
         fi
         keyauthorization="$token.$thumbprint"
         _debug keyauthorization "$keyauthorization"
-
-        if printf "%s" "$response" | grep '"status":"valid"' >/dev/null 2>&1; then
-          _debug "$d is already verified."
-          keyauthorization="$STATE_VERIFIED"
-          _debug keyauthorization "$keyauthorization"
-        fi
       fi
 
       dvlist="$d$sep$keyauthorization$sep$uri$sep$vtype$sep$_currentRoot"
@@ -4913,18 +4929,6 @@ $_authorizations_map"
         if ! chmod a+r "$wellknown_path/$token"; then
           _debug "chmod failed, but we just continue."
         fi
-        if [ ! "$usingApache" ]; then
-          if webroot_owner=$(_stat "$_currentRoot"); then
-            _debug "Changing owner/group of .well-known to $webroot_owner"
-            if ! _exec "chown -R \"$webroot_owner\" \"$_currentRoot/.well-known\""; then
-              _debug "$(cat "$_EXEC_TEMP_ERR")"
-              _exec_err >/dev/null 2>&1
-            fi
-          else
-            _debug "not changing owner/group of webroot"
-          fi
-        fi
-
       fi
     elif [ "$vtype" = "$VTYPE_ALPN" ]; then
       acmevalidationv1="$(printf "%s" "$keyauthorization" | _digest "sha256" "hex")"
@@ -5739,6 +5743,7 @@ deploy() {
     return 1
   fi
 
+  _debug2 DOMAIN_CONF "$DOMAIN_CONF"
   . "$DOMAIN_CONF"
 
   _savedomainconf Le_DeployHook "$_hooks"
@@ -6098,8 +6103,22 @@ revoke() {
 
   uri="${ACME_REVOKE_CERT}"
 
+  _info "Try account key first."
+  if _send_signed_request "$uri" "$data" "" "$ACCOUNT_KEY_PATH"; then
+    if [ -z "$response" ]; then
+      _info "Revoke success."
+      rm -f "$CERT_PATH"
+      cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
+      cat "$CSR_PATH" >"$CSR_PATH.revoked"
+      return 0
+    else
+      _err "Revoke error."
+      _debug "$response"
+    fi
+  fi
+
   if [ -f "$CERT_KEY_PATH" ]; then
-    _info "Try domain key first."
+    _info "Try domain key."
     if _send_signed_request "$uri" "$data" "" "$CERT_KEY_PATH"; then
       if [ -z "$response" ]; then
         _info "Revoke success."
@@ -6114,21 +6133,6 @@ revoke() {
     fi
   else
     _info "Domain key file doesn't exist."
-  fi
-
-  _info "Try account key."
-
-  if _send_signed_request "$uri" "$data" "" "$ACCOUNT_KEY_PATH"; then
-    if [ -z "$response" ]; then
-      _info "Revoke success."
-      rm -f "$CERT_PATH"
-      cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
-      cat "$CSR_PATH" >"$CSR_PATH.revoked"
-      return 0
-    else
-      _err "Revoke error."
-      _debug "$response"
-    fi
   fi
   return 1
 }
@@ -6703,6 +6707,13 @@ _send_notify() {
     return 0
   fi
 
+  _nsource="$NOTIFY_SOURCE"
+  if [ -z "$_nsource" ]; then
+    _nsource="$(hostname)"
+  fi
+
+  _nsubject="$_nsubject by $_nsource"
+
   _send_err=0
   for _n_hook in $(echo "$_nhooks" | tr ',' " "); do
     _n_hook_file="$(_findHook "" $_SUB_FOLDER_NOTIFY "$_n_hook")"
@@ -6757,11 +6768,12 @@ setnotify() {
   _nhook="$1"
   _nlevel="$2"
   _nmode="$3"
+  _nsource="$4"
 
   _initpath
 
-  if [ -z "$_nhook$_nlevel$_nmode" ]; then
-    _usage "Usage: $PROJECT_ENTRY --set-notify [--notify-hook <hookname>] [--notify-level <0|1|2|3>] [--notify-mode <0|1>]"
+  if [ -z "$_nhook$_nlevel$_nmode$_nsource" ]; then
+    _usage "Usage: $PROJECT_ENTRY --set-notify [--notify-hook <hookname>] [--notify-level <0|1|2|3>] [--notify-mode <0|1>] [--notify-source <hostname>]"
     _usage "$_NOTIFY_WIKI"
     return 1
   fi
@@ -6776,6 +6788,12 @@ setnotify() {
     _info "Set notify mode to: $_nmode"
     export "NOTIFY_MODE=$_nmode"
     _saveaccountconf "NOTIFY_MODE" "$NOTIFY_MODE"
+  fi
+
+  if [ "$_nsource" ]; then
+    _info "Set notify source to: $_nsource"
+    export "NOTIFY_SOURCE=$_nsource"
+    _saveaccountconf "NOTIFY_SOURCE" "$NOTIFY_SOURCE"
   fi
 
   if [ "$_nhook" ]; then
@@ -6938,6 +6956,7 @@ Parameters:
                                       0: Bulk mode. Send all the domain's notifications in one message(mail).
                                       1: Cert mode. Send a message for every single cert.
   --notify-hook <hookname>          Set the notify hook
+  --notify-source <server name>     Set the server name in the notification message
   --revoke-reason <0-10>            The reason for revocation, can be used in conjunction with the '--revoke' command.
                                       See: $_REVOKE_WIKI
 
@@ -7095,7 +7114,9 @@ _selectServer() {
 _getCAShortName() {
   caurl="$1"
   if [ -z "$caurl" ]; then
-    caurl="$DEFAULT_CA"
+    #use letsencrypt as default value if the Le_API is empty
+    #this case can only come from the old upgrading.
+    caurl="$CA_LETSENCRYPT_V2"
   fi
   if [ "$CA_SSLCOM_ECC" = "$caurl" ]; then
     caurl="$CA_SSLCOM_RSA" #just hack to get the short name
@@ -7212,6 +7233,7 @@ _process() {
   _notify_hook=""
   _notify_level=""
   _notify_mode=""
+  _notify_source=""
   _revoke_reason=""
   _eab_kid=""
   _eab_hmac_key=""
@@ -7457,6 +7479,9 @@ _process() {
     --keylength | -k)
       _keylength="$2"
       shift
+      if [ "$_keylength" ] && ! _isEccKey "$_keylength"; then
+        export __SELECTED_RSA_KEY=1
+      fi
       ;;
     -ak | --accountkeylength)
       _accountkeylength="$2"
@@ -7492,7 +7517,7 @@ _process() {
       shift
       ;;
     --home)
-      export LE_WORKING_DIR="$2"
+      export LE_WORKING_DIR="$(echo "$2" | sed 's|/$||')"
       shift
       ;;
     --cert-home | --certhome)
@@ -7704,6 +7729,15 @@ _process() {
       _notify_mode="$_nmode"
       shift
       ;;
+    --notify-source)
+      _nsource="$2"
+      if _startswith "$_nsource" "-"; then
+        _err "'$_nsource' is not valid host name for '$1'"
+        return 1
+      fi
+      _notify_source="$_nsource"
+      shift
+      ;;
     --revoke-reason)
       _revoke_reason="$2"
       if _startswith "$_revoke_reason" "-"; then
@@ -7858,7 +7892,7 @@ _process() {
     createCSR "$_domain" "$_altdomains" "$_ecc"
     ;;
   setnotify)
-    setnotify "$_notify_hook" "$_notify_level" "$_notify_mode"
+    setnotify "$_notify_hook" "$_notify_level" "$_notify_mode" "$_notify_source"
     ;;
   setdefaultca)
     setdefaultca

@@ -14,6 +14,9 @@
 #'ovh-eu'
 OVH_EU='https://eu.api.ovh.com/1.0'
 
+#'ovh-us'
+OVH_US='https://api.us.ovhcloud.com/1.0'
+
 #'ovh-ca':
 OVH_CA='https://ca.api.ovh.com/1.0'
 
@@ -29,9 +32,6 @@ SYS_EU='https://eu.api.soyoustart.com/1.0'
 #'soyoustart-ca'
 SYS_CA='https://ca.api.soyoustart.com/1.0'
 
-#'runabove-ca'
-RAV_CA='https://api.runabove.com/1.0'
-
 wiki="https://github.com/acmesh-official/acme.sh/wiki/How-to-use-OVH-domain-api"
 
 ovh_success="https://github.com/acmesh-official/acme.sh/wiki/OVH-Success"
@@ -43,6 +43,10 @@ _ovh_get_api() {
 
   ovh-eu | ovheu)
     printf "%s" $OVH_EU
+    return
+    ;;
+  ovh-us | ovhus)
+    printf "%s" $OVH_US
     return
     ;;
   ovh-ca | ovhca)
@@ -65,14 +69,15 @@ _ovh_get_api() {
     printf "%s" $SYS_CA
     return
     ;;
-  runabove-ca | runaboveca)
-    printf "%s" $RAV_CA
+  # raw API url starts with https://
+  https*)
+    printf "%s" "$1"
     return
     ;;
 
   *)
 
-    _err "Unknown parameter : $1"
+    _err "Unknown endpoint : $1"
     return 1
     ;;
   esac

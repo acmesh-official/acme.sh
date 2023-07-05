@@ -57,16 +57,16 @@ _dns_openstack_create_recordset() {
 
   if [ -z "$_recordset_id" ]; then
     _info "Creating a new recordset"
-    if ! _recordset_id=$(openstack recordset create -c id -f value --type TXT --record "$txtvalue" "$_zone_id" "$fulldomain."); then
+    if ! _recordset_id=$(openstack recordset create -c id -f value --type TXT --record="$txtvalue" "$_zone_id" "$fulldomain."); then
       _err "No recordset ID found after create"
       return 1
     fi
   else
     _info "Updating existing recordset"
-    # Build new list of --record <rec> args for update
-    _record_args="--record $txtvalue"
+    # Build new list of --record=<rec> args for update
+    _record_args="--record=$txtvalue"
     for _rec in $_records; do
-      _record_args="$_record_args --record $_rec"
+      _record_args="$_record_args --record=$_rec"
     done
     # shellcheck disable=SC2086
     if ! _recordset_id=$(openstack recordset set -c id -f value $_record_args "$_zone_id" "$fulldomain."); then
@@ -107,13 +107,13 @@ _dns_openstack_delete_recordset() {
     fi
   else
     _info "Found existing records, updating recordset"
-    # Build new list of --record <rec> args for update
+    # Build new list of --record=<rec> args for update
     _record_args=""
     for _rec in $_records; do
       if [ "$_rec" = "$txtvalue" ]; then
         continue
       fi
-      _record_args="$_record_args --record $_rec"
+      _record_args="$_record_args --record=$_rec"
     done
     # shellcheck disable=SC2086
     if ! openstack recordset set -c id -f value $_record_args "$_zone_id" "$fulldomain." >/dev/null; then

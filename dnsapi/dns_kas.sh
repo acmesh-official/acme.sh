@@ -215,7 +215,7 @@ _get_record_id() {
     return 1
   fi
 
-  _record_id="$(echo "$response" | tr -d '\n\r' | sed "s/<item xsi:type=\"ns2:Map\">/\n/g" | grep -i "$_record_name" | grep -i ">TXT<" | sed "s/<item><key xsi:type=\"xsd:string\">record_id<\/key><value xsi:type=\"xsd:string\">/=>/g" | sed "s/<\/value><\/item>/\n/g" | grep "=>" | sed "s/=>//g")"
+  _record_id="$(echo "$response" | tr -d '\n\r' | sed "s/<item xsi:type=\"ns2:Map\">/\n/g" | grep -i "$_record_name" | grep -i ">TXT<" | sed "s/<item><key xsi:type=\"xsd:string\">record_id<\/key><value xsi:type=\"xsd:string\">/=>/g" | grep -i "$_txtvalue" | sed "s/<\/value><\/item>/\n/g" | grep "=>" | sed "s/=>//g")"
   _debug "[KAS] -> Record Id: " "$_record_id"
   return 0
 }

@@ -33,7 +33,7 @@ jobs:
       TEST_CA: "Pebble Intermediate CA"
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install tools
       run: sudo apt-get install -y socat
     - name: Run Pebble
@@ -41,7 +41,7 @@ jobs:
     - name: Set up Pebble
       run: curl --request POST --data '{"ip":"10.30.50.1"}' http://localhost:8055/set-default-ipv4
     - name: Clone acmetest
-      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
       run: cd ../acmetest && ./letest.sh
 
@@ -58,7 +58,7 @@ jobs:
       TEST_IPCERT: 1
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install tools
       run: sudo apt-get install -y socat
     - name: Run Pebble
@@ -67,6 +67,6 @@ jobs:
         -e PEBBLE_VA_ALWAYS_VALID=1 \
         -p 14000:14000 -p 15000:15000   letsencrypt/pebble:latest pebble -config /test/config/pebble-config.json -strict
     - name: Clone acmetest
-      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
       run: cd ../acmetest && ./letest.sh

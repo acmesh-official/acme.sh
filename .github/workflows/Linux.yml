@@ -33,11 +33,11 @@ jobs:
       TEST_PREFERRED_CHAIN: (STAGING) Pretend Pear X1
       TEST_ACME_Server: "LetsEncrypt.org_test"
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Clone acmetest
       run: |
           cd .. \
-          && git clone https://github.com/acmesh-official/acmetest.git \
+          && git clone --depth=1 https://github.com/acmesh-official/acmetest.git \
           && cp -r acme.sh acmetest/
     - name: Run acmetest
       run: |
