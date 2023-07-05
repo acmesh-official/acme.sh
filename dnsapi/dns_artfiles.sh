@@ -24,8 +24,7 @@ AF_URL_DOMAINS=${AF_URL_DCP}'domain/get_domains.html'
 
 # Adds a new TXT record for given ACME challenge value & domain.
 # Usage: dns_artfiles_add _acme-challenge.www.example.com "ACME challenge value"
-dns_artfiles_add()
-{
+dns_artfiles_add() {
   domain="$1"
   txtValue="$2"
   _info 'Using ArtFiles.de DNS addition API…'
@@ -56,8 +55,7 @@ dns_artfiles_add()
 
 # Removes the existing TXT record for given ACME challenge value & domain.
 # Usage: dns_artfiles_rm _acme-challenge.www.example.com "ACME challenge value"
-dns_artfiles_rm()
-{
+dns_artfiles_rm() {
   domain="$1"
   txtValue="$2"
   _info 'Using ArtFiles.de DNS removal API…'
@@ -91,15 +89,13 @@ dns_artfiles_rm()
 
 # Cleans awful TXT records response of ArtFiles's API & pretty prints it.
 # Usage: _clean_records
-_clean_records()
-{
+_clean_records() {
   _info 'Cleaning TXT records…'
   # Extract TXT part, strip trailing quote sign (ACME.sh API guidelines forbid
   # usage of SED's GNU extensions, hence couldn't omit it via regex), strip '\'
   # from '\"' & turn '\n' into real LF characters.
   # Yup, awful API to use - but that's all we got to get this working, so… ;)
   _debug2 'Raw  ' "$response"
-                                                                                                             
   response="$(printf -- '%s' "$response" | sed 's/^.*TXT":"\([^}]*\).*$/\1/;s/,".*$//;s/.$//;s/\\"/"/g;s/\\n/\n/g')"
   _debug2 'Clean' "$response"
 }
@@ -107,8 +103,7 @@ _clean_records()
 # Executes an HTTP GET or POST request for getting or setting DNS records,
 # containing given payload upon POST.
 # Usage: _dns [GET | SET] [payload]
-_dns()
-{
+_dns() {
   _info 'Executing HTTP request…'
   action="$1"
   payload="$(printf -- '%s' "$2" | _url_encode)"
@@ -134,8 +129,7 @@ _dns()
 
 # Gets the root domain zone for given domain.
 # Usage: _get_zone _acme-challenge.www.example.com
-_get_zone()
-{
+_get_zone() {
   fqdn="$1"
   domains="$(_get "$AF_URL_DOMAINS" '' 10)"
   _info 'Getting domain zone…'
@@ -164,8 +158,7 @@ _get_zone()
 
 # Sets the credentials for accessing ArtFiles's API
 # Usage: _set_credentials
-_set_credentials()
-{
+_set_credentials() {
   _info 'Setting credentials…'
   AF_API_USERNAME="${AF_API_USERNAME:-$(_readaccountconf_mutable AF_API_USERNAME)}"
   AF_API_PASSWORD="${AF_API_PASSWORD:-$(_readaccountconf_mutable AF_API_PASSWORD)}"
@@ -179,9 +172,9 @@ _set_credentials()
 
 # Adds the HTTP Authorization & Content-Type headers to a follow-up request.
 # Usage: _set_headers
-_set_headers()
-{
+_set_headers() {
   _info 'Setting headers…'
-  export _H1="$(printf -- 'Authorization: Basic %s:%s' "$AF_API_USERNAME" "$AF_API_PASSWORD" | _base64)"
+  encoded="$(printf -- '%s:%s' "$AF_API_USERNAME" "$AF_API_PASSWORD" | _base64)"
+  export _H1="Authorization: Basic $encoded"
   export _H2='Content-Type: application/json'
 }
