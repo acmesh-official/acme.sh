@@ -76,7 +76,7 @@ dns_artfiles_rm() {
   fi
 
   _clean_records
-  response="$(printf -- '%s' "$response" | sed '$d')"
+  response="$(printf -- '%s' "$response" | sed '/_acme-challenge "'"$txtValue"'"/d')"
   _dns 'SET' "$response"
   if ! _contains "$response" "$AF_API_SUCCESS"; then
     _err 'Removing ACME challenge value failed.'
