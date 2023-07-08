@@ -5020,9 +5020,9 @@ $_authorizations_map"
         break
       fi
 
-      if [ "$status" = "pending" ]; then
+      if _contains "$status" "pending"; then
         _info "Pending, The CA is processing your order, please just wait. ($waittimes/$MAX_RETRY_TIMES)"
-      elif [ "$status" = "processing" ]; then
+      elif _contains "$status" "processing"; then
         _info "Processing, The CA is processing your order, please just wait. ($waittimes/$MAX_RETRY_TIMES)"
       else
         _err "$d:Verify error:$response"
