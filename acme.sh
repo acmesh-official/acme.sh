@@ -2278,7 +2278,7 @@ _setopt() {
   if [ ! -f "$__conf" ]; then
     touch "$__conf"
   fi
-  if [ -n "$(tail -c 1 <"$__conf")" ]; then
+  if [ -n "$(tail -c1 <"$__conf")" ]; then
     echo >>"$__conf"
   fi
 
