@@ -2224,8 +2224,8 @@ _send_signed_request() {
 
     _body="$response"
     if [ "$needbase64" ]; then
-    _body="$(echo "$_body" | _dbase64 multiline)"
-    _debug3 _body "$_body"
+      _body="$(echo "$_body" | _dbase64 multiline)"
+      _debug3 _body "$_body"
     fi
     _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
 
