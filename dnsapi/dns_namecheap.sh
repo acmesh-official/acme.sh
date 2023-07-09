@@ -82,7 +82,7 @@ _get_root() {
     _debug "Failed domain lookup via domains.getList api call. Trying domain lookup via domains.dns.getHosts api."
     # The above "getList" api will only return hosts *owned* by the calling user. However, if the calling
     # user is not the owner, but still has administrative rights, we must query the getHosts api directly.
-    # See this comment and the official namecheap response: http://disq.us/p/1q6v9x9
+    # See this comment and the official namecheap response: https://disq.us/p/1q6v9x9
     if ! _get_root_by_getHosts "$fulldomain"; then
       return 1
     fi
@@ -157,7 +157,7 @@ _namecheap_set_publicip() {
 
   if [ -z "$NAMECHEAP_SOURCEIP" ]; then
     _err "No Source IP specified for Namecheap API."
-    _err "Use your public ip address or an url to retrieve it (e.g. https://ipconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
+    _err "Use your public ip address or an url to retrieve it (e.g. https://ifconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
     return 1
   else
     _saveaccountconf NAMECHEAP_SOURCEIP "$NAMECHEAP_SOURCEIP"
@@ -175,7 +175,7 @@ _namecheap_set_publicip() {
       _publicip=$(_get "$addr")
     else
       _err "No Source IP specified for Namecheap API."
-      _err "Use your public ip address or an url to retrieve it (e.g. https://ipconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
+      _err "Use your public ip address or an url to retrieve it (e.g. https://ifconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
       return 1
     fi
   fi
@@ -208,7 +208,7 @@ _namecheap_parse_host() {
   _hostid=$(echo "$_host" | _egrep_o ' HostId="[^"]*' | cut -d '"' -f 2)
   _hostname=$(echo "$_host" | _egrep_o ' Name="[^"]*' | cut -d '"' -f 2)
   _hosttype=$(echo "$_host" | _egrep_o ' Type="[^"]*' | cut -d '"' -f 2)
-  _hostaddress=$(echo "$_host" | _egrep_o ' Address="[^"]*' | cut -d '"' -f 2)
+  _hostaddress=$(echo "$_host" | _egrep_o ' Address="[^"]*' | cut -d '"' -f 2 | _xml_decode)
   _hostmxpref=$(echo "$_host" | _egrep_o ' MXPref="[^"]*' | cut -d '"' -f 2)
   _hostttl=$(echo "$_host" | _egrep_o ' TTL="[^"]*' | cut -d '"' -f 2)
 
@@ -259,7 +259,7 @@ _set_namecheap_TXT() {
   _debug hosts "$hosts"
 
   if [ -z "$hosts" ]; then
-    _error "Hosts not found"
+    _err "Hosts not found"
     return 1
   fi
 
@@ -313,7 +313,7 @@ _del_namecheap_TXT() {
   _debug hosts "$hosts"
 
   if [ -z "$hosts" ]; then
-    _error "Hosts not found"
+    _err "Hosts not found"
     return 1
   fi
 
@@ -404,4 +404,8 @@ _namecheap_set_tld_sld() {
 
   done
 
+}
+
+_xml_decode() {
+  sed 's/&quot;/"/g'
 }

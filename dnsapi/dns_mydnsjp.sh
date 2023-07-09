@@ -150,7 +150,7 @@ _get_root() {
 _mydnsjp_retrieve_domain() {
   _debug "Login to MyDNS.JP"
 
-  response="$(_post "masterid=$MYDNSJP_MasterID&masterpwd=$MYDNSJP_Password" "$MYDNSJP_API/?MENU=100")"
+  response="$(_post "MENU=100&masterid=$MYDNSJP_MasterID&masterpwd=$MYDNSJP_Password" "$MYDNSJP_API/members/")"
   cookie="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2)"
 
   # If cookies is not empty then logon successful
@@ -159,21 +159,7 @@ _mydnsjp_retrieve_domain() {
     return 1
   fi
 
-  _debug "Retrieve DOMAIN INFO page"
-
-  export _H1="Cookie:${cookie}"
-
-  response="$(_get "$MYDNSJP_API/?MENU=300")"
-
-  if [ "$?" != "0" ]; then
-    _err "Fail to retrieve DOMAIN INFO."
-    return 1
-  fi
-
   _root_domain=$(echo "$response" | grep "DNSINFO\[domainname\]" | sed 's/^.*value="\([^"]*\)".*/\1/')
-
-  # Logout
-  response="$(_get "$MYDNSJP_API/?MENU=090")"
 
   _debug _root_domain "$_root_domain"
 

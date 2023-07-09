@@ -18,15 +18,15 @@ dns_netlify_add() {
     NETLIFY_ACCESS_TOKEN=""
     _err "Please specify your Netlify Access Token and try again."
     return 1
+  else
+    _saveaccountconf_mutable NETLIFY_ACCESS_TOKEN "$NETLIFY_ACCESS_TOKEN"
   fi
 
   _info "Using Netlify"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
-  _saveaccountconf_mutable NETLIFY_ACCESS_TOKEN "$NETLIFY_ACCESS_TOKEN"
-
-  if ! _get_root "$fulldomain" "$accesstoken"; then
+  if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
@@ -62,9 +62,9 @@ dns_netlify_rm() {
   _debug txtdomain "$txtdomain"
   _debug txt "$txt"
 
-  _saveaccountconf_mutable NETLIFY_ACCESS_TOKEN "$NETLIFY_ACCESS_TOKEN"
+  NETLIFY_ACCESS_TOKEN="${NETLIFY_ACCESS_TOKEN:-$(_readaccountconf_mutable NETLIFY_ACCESS_TOKEN)}"
 
-  if ! _get_root "$txtdomain" "$accesstoken"; then
+  if ! _get_root "$txtdomain"; then
     _err "invalid domain"
     return 1
   fi
@@ -114,7 +114,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
-      _domain_id=$(echo "$response" | _egrep_o "\"[^\"]*\",\"name\":\"$h" | cut -d , -f 1 | tr -d \")
+      _domain_id=$(echo "$response" | _egrep_o "\"[^\"]*\",\"name\":\"$h\"" | cut -d , -f 1 | tr -d \")
       if [ "$_domain_id" ]; then
         if [ "$i" = 1 ]; then
           #create the record at the domain apex (@) if only the domain name was provided as --domain-alias

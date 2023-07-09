@@ -20,21 +20,17 @@ dns_desec_add() {
   _debug txtvalue "$txtvalue"
 
   DEDYN_TOKEN="${DEDYN_TOKEN:-$(_readaccountconf_mutable DEDYN_TOKEN)}"
-  DEDYN_NAME="${DEDYN_NAME:-$(_readaccountconf_mutable DEDYN_NAME)}"
 
-  if [ -z "$DEDYN_TOKEN" ] || [ -z "$DEDYN_NAME" ]; then
+  if [ -z "$DEDYN_TOKEN" ]; then
     DEDYN_TOKEN=""
-    DEDYN_NAME=""
-    _err "You did not specify DEDYN_TOKEN and DEDYN_NAME yet."
+    _err "You did not specify DEDYN_TOKEN yet."
     _err "Please create your key and try again."
     _err "e.g."
     _err "export DEDYN_TOKEN=d41d8cd98f00b204e9800998ecf8427e"
-    _err "export DEDYN_NAME=foobar.dedyn.io"
     return 1
   fi
-  #save the api token and name to the account conf file.
+  #save the api token to the account conf file.
   _saveaccountconf_mutable DEDYN_TOKEN "$DEDYN_TOKEN"
-  _saveaccountconf_mutable DEDYN_NAME "$DEDYN_NAME"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain" "$REST_API/"; then
@@ -47,7 +43,7 @@ dns_desec_add() {
   # Get existing TXT record
   _debug "Getting txt records"
   txtvalues="\"\\\"$txtvalue\\\"\""
-  _desec_rest GET "$REST_API/$DEDYN_NAME/rrsets/$_sub_domain/TXT/"
+  _desec_rest GET "$REST_API/$_domain/rrsets/$_sub_domain/TXT/"
 
   if [ "$_code" = "200" ]; then
     oldtxtvalues="$(echo "$response" | _egrep_o "\"records\":\\[\"\\S*\"\\]" | cut -d : -f 2 | tr -d "[]\\\\\"" | sed "s/,/ /g")"
@@ -61,9 +57,9 @@ dns_desec_add() {
   fi
   _debug txtvalues "$txtvalues"
   _info "Adding record"
-  body="[{\"subname\":\"$_sub_domain\", \"type\":\"TXT\", \"records\":[$txtvalues], \"ttl\":60}]"
+  body="[{\"subname\":\"$_sub_domain\", \"type\":\"TXT\", \"records\":[$txtvalues], \"ttl\":3600}]"
 
-  if _desec_rest PUT "$REST_API/$DEDYN_NAME/rrsets/" "$body"; then
+  if _desec_rest PUT "$REST_API/$_domain/rrsets/" "$body"; then
     if _contains "$response" "$txtvalue"; then
       _info "Added, OK"
       return 0
@@ -87,16 +83,13 @@ dns_desec_rm() {
   _debug txtvalue "$txtvalue"
 
   DEDYN_TOKEN="${DEDYN_TOKEN:-$(_readaccountconf_mutable DEDYN_TOKEN)}"
-  DEDYN_NAME="${DEDYN_NAME:-$(_readaccountconf_mutable DEDYN_NAME)}"
 
-  if [ -z "$DEDYN_TOKEN" ] || [ -z "$DEDYN_NAME" ]; then
+  if [ -z "$DEDYN_TOKEN" ]; then
     DEDYN_TOKEN=""
-    DEDYN_NAME=""
-    _err "You did not specify DEDYN_TOKEN and DEDYN_NAME yet."
+    _err "You did not specify DEDYN_TOKEN yet."
     _err "Please create your key and try again."
     _err "e.g."
     _err "export DEDYN_TOKEN=d41d8cd98f00b204e9800998ecf8427e"
-    _err "export DEDYN_NAME=foobar.dedyn.io"
     return 1
   fi
 
@@ -112,7 +105,7 @@ dns_desec_rm() {
   # Get existing TXT record
   _debug "Getting txt records"
   txtvalues=""
-  _desec_rest GET "$REST_API/$DEDYN_NAME/rrsets/$_sub_domain/TXT/"
+  _desec_rest GET "$REST_API/$_domain/rrsets/$_sub_domain/TXT/"
 
   if [ "$_code" = "200" ]; then
     oldtxtvalues="$(echo "$response" | _egrep_o "\"records\":\\[\"\\S*\"\\]" | cut -d : -f 2 | tr -d "[]\\\\\"" | sed "s/,/ /g")"
@@ -130,8 +123,8 @@ dns_desec_rm() {
   _debug txtvalues "$txtvalues"
 
   _info "Deleting record"
-  body="[{\"subname\":\"$_sub_domain\", \"type\":\"TXT\", \"records\":[$txtvalues], \"ttl\":60}]"
-  _desec_rest PUT "$REST_API/$DEDYN_NAME/rrsets/" "$body"
+  body="[{\"subname\":\"$_sub_domain\", \"type\":\"TXT\", \"records\":[$txtvalues], \"ttl\":3600}]"
+  _desec_rest PUT "$REST_API/$_domain/rrsets/" "$body"
   if [ "$_code" = "200" ]; then
     _info "Deleted, OK"
     return 0

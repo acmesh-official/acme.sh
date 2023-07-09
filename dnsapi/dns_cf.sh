@@ -25,9 +25,16 @@ dns_cf_add() {
   CF_Email="${CF_Email:-$(_readaccountconf_mutable CF_Email)}"
 
   if [ "$CF_Token" ]; then
-    _saveaccountconf_mutable CF_Token "$CF_Token"
-    _saveaccountconf_mutable CF_Account_ID "$CF_Account_ID"
-    _saveaccountconf_mutable CF_Zone_ID "$CF_Zone_ID"
+    if [ "$CF_Zone_ID" ]; then
+      _savedomainconf CF_Token "$CF_Token"
+      _savedomainconf CF_Account_ID "$CF_Account_ID"
+      _savedomainconf CF_Zone_ID "$CF_Zone_ID"
+    else
+      _saveaccountconf_mutable CF_Token "$CF_Token"
+      _saveaccountconf_mutable CF_Account_ID "$CF_Account_ID"
+      _clearaccountconf_mutable CF_Zone_ID
+      _clearaccountconf CF_Zone_ID
+    fi
   else
     if [ -z "$CF_Key" ] || [ -z "$CF_Email" ]; then
       CF_Key=""
@@ -45,6 +52,14 @@ dns_cf_add() {
     #save the api key and email to the account conf file.
     _saveaccountconf_mutable CF_Key "$CF_Key"
     _saveaccountconf_mutable CF_Email "$CF_Email"
+
+    _clearaccountconf_mutable CF_Token
+    _clearaccountconf_mutable CF_Account_ID
+    _clearaccountconf_mutable CF_Zone_ID
+    _clearaccountconf CF_Token
+    _clearaccountconf CF_Account_ID
+    _clearaccountconf CF_Zone_ID
+
   fi
 
   _debug "First detect the root zone"

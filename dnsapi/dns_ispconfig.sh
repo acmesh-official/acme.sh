@@ -32,7 +32,11 @@ dns_ispconfig_rm() {
 ####################  Private functions below ##################################
 
 _ISPC_credentials() {
-  if [ -z "${ISPC_User}" ] || [ -z "$ISPC_Password" ] || [ -z "${ISPC_Api}" ] || [ -z "${ISPC_Api_Insecure}" ]; then
+  ISPC_User="${ISPC_User:-$(_readaccountconf_mutable ISPC_User)}"
+  ISPC_Password="${ISPC_Password:-$(_readaccountconf_mutable ISPC_Password)}"
+  ISPC_Api="${ISPC_Api:-$(_readaccountconf_mutable ISPC_Api)}"
+  ISPC_Api_Insecure="${ISPC_Api_Insecure:-$(_readaccountconf_mutable ISPC_Api_Insecure)}"
+  if [ -z "${ISPC_User}" ] || [ -z "${ISPC_Password}" ] || [ -z "${ISPC_Api}" ] || [ -z "${ISPC_Api_Insecure}" ]; then
     ISPC_User=""
     ISPC_Password=""
     ISPC_Api=""
@@ -40,10 +44,10 @@ _ISPC_credentials() {
     _err "You haven't specified the ISPConfig Login data, URL and whether you want check the ISPC SSL cert. Please try again."
     return 1
   else
-    _saveaccountconf ISPC_User "${ISPC_User}"
-    _saveaccountconf ISPC_Password "${ISPC_Password}"
-    _saveaccountconf ISPC_Api "${ISPC_Api}"
-    _saveaccountconf ISPC_Api_Insecure "${ISPC_Api_Insecure}"
+    _saveaccountconf_mutable ISPC_User "${ISPC_User}"
+    _saveaccountconf_mutable ISPC_Password "${ISPC_Password}"
+    _saveaccountconf_mutable ISPC_Api "${ISPC_Api}"
+    _saveaccountconf_mutable ISPC_Api_Insecure "${ISPC_Api_Insecure}"
     # Set whether curl should use secure or insecure mode
     export HTTPS_INSECURE="${ISPC_Api_Insecure}"
   fi
@@ -75,7 +79,7 @@ _ISPC_getZoneInfo() {
     # suffix . needed for zone -> domain.tld.
     curData="{\"session_id\":\"${sessionID}\",\"primary_id\":{\"origin\":\"${curZone}.\"}}"
     curResult="$(_post "${curData}" "${ISPC_Api}?dns_zone_get")"
-    _debug "Calling _ISPC_getZoneInfo: '${curData}' '${ISPC_Api}?login'"
+    _debug "Calling _ISPC_getZoneInfo: '${curData}' '${ISPC_Api}?dns_zone_get'"
     _debug "Result of _ISPC_getZoneInfo: '$curResult'"
     if _contains "${curResult}" '"id":"'; then
       zoneFound=true
@@ -110,18 +114,32 @@ _ISPC_getZoneInfo() {
       ;;
     *) _info "Retrieved Zone ID" ;;
     esac
-    client_id=$(echo "${curResult}" | _egrep_o "sys_userid.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
-    _debug "Client ID: '${client_id}'"
-    case "${client_id}" in
+    sys_userid=$(echo "${curResult}" | _egrep_o "sys_userid.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
+    _debug "SYS User ID: '${sys_userid}'"
+    case "${sys_userid}" in
     '' | *[!0-9]*)
-      _err "Client ID is not numeric."
+      _err "SYS User ID is not numeric."
       return 1
       ;;
-    *) _info "Retrieved Client ID." ;;
+    *) _info "Retrieved SYS User ID." ;;
     esac
     zoneFound=""
     zoneEnd=""
   fi
+  # Need to get client_id as it is different from sys_userid
+  curData="{\"session_id\":\"${sessionID}\",\"sys_userid\":\"${sys_userid}\"}"
+  curResult="$(_post "${curData}" "${ISPC_Api}?client_get_id")"
+  _debug "Calling _ISPC_ClientGetID: '${curData}' '${ISPC_Api}?client_get_id'"
+  _debug "Result of _ISPC_ClientGetID: '$curResult'"
+  client_id=$(echo "${curResult}" | _egrep_o "response.*" | cut -d ':' -f 2 | cut -d '"' -f 2 | tr -d '{}')
+  _debug "Client ID: '${client_id}'"
+  case "${client_id}" in
+  '' | *[!0-9]*)
+    _err "Client ID is not numeric."
+    return 1
+    ;;
+  *) _info "Retrieved Client ID." ;;
+  esac
 }
 
 _ISPC_addTxt() {

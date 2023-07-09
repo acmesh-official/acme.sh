@@ -1,6 +1,15 @@
 # An ACME Shell script: acme.sh 
 
-![LetsEncrypt](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)
+[![FreeBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml)
+[![OpenBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenBSD.yml)
+[![NetBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/NetBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/NetBSD.yml)
+[![MacOS](https://github.com/acmesh-official/acme.sh/actions/workflows/MacOS.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/MacOS.yml)
+[![Ubuntu](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml)
+[![Windows](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml)
+[![Solaris](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml)
+[![DragonFlyBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml)
+
+
 ![Shellcheck](https://github.com/acmesh-official/acme.sh/workflows/Shellcheck/badge.svg)
 ![PebbleStrict](https://github.com/acmesh-official/acme.sh/workflows/PebbleStrict/badge.svg)
 ![DockerHub](https://github.com/acmesh-official/acme.sh/workflows/Build%20DockerHub/badge.svg)
@@ -15,18 +24,18 @@
 
 - An ACME protocol client written purely in Shell (Unix shell) language.
 - Full ACME protocol implementation.
-- Support ACME v1 and ACME v2
-- Support ACME v2 wildcard certs
+- Support ECDSA certs
+- Support SAN and wildcard certs
 - Simple, powerful and very easy to use. You only need 3 minutes to learn it.
 - Bash, dash and sh compatible.
-- Purely written in Shell with no dependencies on python or the official Let's Encrypt client.
+- Purely written in Shell with no dependencies on python.
 - Just one script to issue, renew and install your certificates automatically.
 - DOES NOT require `root/sudoer` access.
-- Docker friendly
-- IPv6 support
+- Docker ready
+- IPv6 ready
 - Cron job notifications for renewal or error etc.
 
-It's probably the `easiest & smartest` shell script to automatically issue & renew the free certificates from Let's Encrypt.
+It's probably the `easiest & smartest` shell script to automatically issue & renew the free certificates.
 
 Wiki: https://github.com/acmesh-official/acme.sh/wiki
 
@@ -42,14 +51,12 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 - [ruby-china.org](https://ruby-china.org/topics/31983)
 - [Proxmox](https://pve.proxmox.com/wiki/Certificate_Management)
 - [pfsense](https://github.com/pfsense/FreeBSD-ports/pull/89)
-- [webfaction](https://community.webfaction.com/questions/19988/using-letsencrypt)
 - [Loadbalancer.org](https://www.loadbalancer.org/blog/loadbalancer-org-with-lets-encrypt-quick-and-dirty)
 - [discourse.org](https://meta.discourse.org/t/setting-up-lets-encrypt/40709)
 - [Centminmod](https://centminmod.com/letsencrypt-acmetool-https.html)
 - [splynx](https://forum.splynx.com/t/free-ssl-cert-for-splynx-lets-encrypt/297)
-- [archlinux](https://www.archlinux.org/packages/community/any/acme.sh)
 - [opnsense.org](https://github.com/opnsense/plugins/tree/master/security/acme-client/src/opnsense/scripts/OPNsense/AcmeClient)
-- [CentOS Web Panel](http://centos-webpanel.com/)
+- [CentOS Web Panel](https://control-webpanel.com)
 - [lnmp.org](https://lnmp.org/)
 - [more...](https://github.com/acmesh-official/acme.sh/wiki/Blogs-and-tutorials)
 
@@ -57,38 +64,44 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
 | NO | Status| Platform|
 |----|-------|---------|
-|1|[![MacOS](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)|Mac OSX
-|2|[![Windows](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)|Windows (cygwin with curl, openssl and crontab included)
-|3|[![FreeBSD](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)|FreeBSD
-|4|[![Ubuntu](https://github.com/acmesh-official/acme.sh/workflows/LetsEncrypt/badge.svg)](https://github.com/acmesh-official/acme.sh/actions?query=workflow%3ALetsEncrypt)| Ubuntu
-|5|[![](https://acmesh-official.github.io/acmetest/status/pfsense.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|pfsense
-|6|[![](https://acmesh-official.github.io/acmetest/status/openbsd.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|OpenBSD
-|7|[![](https://acmesh-official.github.io/acmetest/status/solaris.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|SunOS/Solaris
-|8|[![](https://acmesh-official.github.io/acmetest/status/debian-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)| Debian
-|9|[![](https://acmesh-official.github.io/acmetest/status/centos-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|CentOS
-|10|[![](https://acmesh-official.github.io/acmetest/status/opensuse-leap-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|openSUSE
-|11|[![](https://acmesh-official.github.io/acmetest/status/alpine-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Alpine Linux (with curl)
-|12|[![](https://acmesh-official.github.io/acmetest/status/archlinux-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Archlinux
-|13|[![](https://acmesh-official.github.io/acmetest/status/fedora-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|fedora
-|14|[![](https://acmesh-official.github.io/acmetest/status/kalilinux-kali.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Kali Linux
-|15|[![](https://acmesh-official.github.io/acmetest/status/oraclelinux-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Oracle Linux
-|16|[![](https://acmesh-official.github.io/acmetest/status/proxmox.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)| Proxmox: See Proxmox VE Wiki. Version [4.x, 5.0, 5.1](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x,_5.0_and_5.1)#Let.27s_Encrypt_using_acme.sh), version [5.2 and up](https://pve.proxmox.com/wiki/Certificate_Management)
-|17|-----| Cloud Linux  https://github.com/acmesh-official/acme.sh/issues/111
-|18|[![](https://acmesh-official.github.io/acmetest/status/mageia.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Mageia
-|19|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/acmesh-official/acme.sh/wiki/How-to-run-on-OpenWRT)
-|20|[![](https://acmesh-official.github.io/acmetest/status/gentoo-stage3-amd64.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|Gentoo Linux
-|21|[![](https://acmesh-official.github.io/acmetest/status/clearlinux-latest.svg)](https://github.com/acmesh-official/acmetest#here-are-the-latest-status)|ClearLinux
+|1|[![MacOS](https://github.com/acmesh-official/acme.sh/actions/workflows/MacOS.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/MacOS.yml)|Mac OSX
+|2|[![Windows](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml)|Windows (cygwin with curl, openssl and crontab included)
+|3|[![FreeBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml)|FreeBSD
+|4|[![Solaris](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml)|Solaris
+|5|[![Ubuntu](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml)| Ubuntu
+|6|NA|pfsense
+|7|[![OpenBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenBSD.yml)|OpenBSD
+|8|[![NetBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/NetBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/NetBSD.yml)|NetBSD
+|9|[![DragonFlyBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml)|DragonFlyBSD
+|10|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)| Debian
+|11|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|CentOS
+|12|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|openSUSE
+|13|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Alpine Linux (with curl)
+|14|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Archlinux
+|15|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|fedora
+|16|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Kali Linux
+|17|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Oracle Linux
+|18|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Mageia
+|19|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Gentoo Linux
+|10|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|ClearLinux
+|11|-----| Cloud Linux  https://github.com/acmesh-official/acme.sh/issues/111
+|22|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/acmesh-official/acme.sh/wiki/How-to-run-on-OpenWRT)
+|23|[![](https://acmesh-official.github.io/acmetest/status/proxmox.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)| Proxmox: See Proxmox VE Wiki. Version [4.x, 5.0, 5.1](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x,_5.0_and_5.1)#Let.27s_Encrypt_using_acme.sh), version [5.2 and up](https://pve.proxmox.com/wiki/Certificate_Management)
 
-For all build statuses, check our [weekly build project](https://github.com/acmesh-official/acmetest):
+
+Check our [testing project](https://github.com/acmesh-official/acmetest):
 
 https://github.com/acmesh-official/acmetest
 
 # Supported CA
 
-- Letsencrypt.org CA(default)
-- [ZeroSSL.com CA](https://github.com/acmesh-official/acme.sh/wiki/ZeroSSL.com-CA)
+- [ZeroSSL.com CA](https://github.com/acmesh-official/acme.sh/wiki/ZeroSSL.com-CA)(default)
+- Letsencrypt.org CA
 - [BuyPass.com CA](https://github.com/acmesh-official/acme.sh/wiki/BuyPass.com-CA)
+- [SSL.com CA](https://github.com/acmesh-official/acme.sh/wiki/SSL.com-CA)
+- [Google.com Public CA](https://github.com/acmesh-official/acme.sh/wiki/Google-Public-CA)
 - [Pebble strict Mode](https://github.com/letsencrypt/pebble)
+- Any other [RFC8555](https://tools.ietf.org/html/rfc8555)-compliant CA
 
 # Supported modes
 
@@ -109,13 +122,13 @@ https://github.com/acmesh-official/acmetest
 Check this project: https://github.com/acmesh-official/get.acme.sh
 
 ```bash
-curl https://get.acme.sh | sh
+curl https://get.acme.sh | sh -s email=my@example.com
 ```
 
 Or:
 
 ```bash
-wget -O -  https://get.acme.sh | sh
+wget -O -  https://get.acme.sh | sh -s email=my@example.com
 ```
 
 
@@ -126,7 +139,7 @@ Clone this project and launch installation:
 ```bash
 git clone https://github.com/acmesh-official/acme.sh.git
 cd ./acme.sh
-./acme.sh --install
+./acme.sh --install -m my@example.com
 ```
 
 You `don't have to be root` then, although `it is recommended`.
@@ -346,10 +359,6 @@ Ok, it's done.
 
 # 10. Issue ECC certificates
 
-`Let's Encrypt` can now issue **ECDSA** certificates.
-
-And we support them too!
-
 Just set the `keylength` parameter with a prefix `ec-`.
 
 For example:
@@ -370,10 +379,12 @@ Please look at the `keylength` parameter above.
 
 Valid values are:
 
-1. **ec-256 (prime256v1, "ECDSA P-256")**
+1. **ec-256 (prime256v1, "ECDSA P-256", which is the default key type)**
 2. **ec-384 (secp384r1,  "ECDSA P-384")**
 3. **ec-521 (secp521r1,  "ECDSA P-521", which is not supported by Let's Encrypt yet.)**
-
+4. **2048   (RSA2048)**
+5. **3072   (RSA3072)**
+6. **4096   (RSA4096)**
 
 
 # 11. Issue Wildcard certificates
@@ -468,7 +479,7 @@ TODO:
 
 ### Code Contributors
 
-This project exists thanks to all the people who contribute. [[Contribute](CONTRIBUTING.md)].
+This project exists thanks to all the people who contribute.
 <a href="https://github.com/acmesh-official/acme.sh/graphs/contributors"><img src="https://opencollective.com/acmesh/contributors.svg?width=890&button=false" /></a>
 
 ### Financial Contributors
@@ -493,6 +504,12 @@ Support this project with your organization. Your logo will show up here with a 
 <a href="https://opencollective.com/acmesh/organization/7/website"><img src="https://opencollective.com/acmesh/organization/7/avatar.svg"></a>
 <a href="https://opencollective.com/acmesh/organization/8/website"><img src="https://opencollective.com/acmesh/organization/8/avatar.svg"></a>
 <a href="https://opencollective.com/acmesh/organization/9/website"><img src="https://opencollective.com/acmesh/organization/9/avatar.svg"></a>
+
+
+#### Sponsors
+
+[![quantumca-acmesh-logo](https://user-images.githubusercontent.com/8305679/183255712-634ee1db-bb61-4c03-bca0-bacce99e078c.svg)](https://www.quantumca.com.cn/?__utm_source=acmesh-donation)
+
 
 # 19. License & Others
 

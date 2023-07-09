@@ -28,47 +28,59 @@ fritzbox_deploy() {
   _debug _cfullchain "$_cfullchain"
 
   if ! _exists iconv; then
-    if ! _exists perl; then
-      _err "iconv or perl not found"
-      return 1
+    if ! _exists uconv; then
+      if ! _exists perl; then
+        _err "iconv or uconv or perl not found"
+        return 1
+      fi
     fi
   fi
 
-  _fritzbox_username="${DEPLOY_FRITZBOX_USERNAME}"
-  _fritzbox_password="${DEPLOY_FRITZBOX_PASSWORD}"
-  _fritzbox_url="${DEPLOY_FRITZBOX_URL}"
+  # Clear traces of incorrectly stored values
+  _clearaccountconf DEPLOY_FRITZBOX_USERNAME
+  _clearaccountconf DEPLOY_FRITZBOX_PASSWORD
+  _clearaccountconf DEPLOY_FRITZBOX_URL
 
-  _debug _fritzbox_url "$_fritzbox_url"
-  _debug _fritzbox_username "$_fritzbox_username"
-  _secure_debug _fritzbox_password "$_fritzbox_password"
-  if [ -z "$_fritzbox_username" ]; then
+  # Read config from saved values or env
+  _getdeployconf DEPLOY_FRITZBOX_USERNAME
+  _getdeployconf DEPLOY_FRITZBOX_PASSWORD
+  _getdeployconf DEPLOY_FRITZBOX_URL
+
+  _debug DEPLOY_FRITZBOX_URL "$DEPLOY_FRITZBOX_URL"
+  _debug DEPLOY_FRITZBOX_USERNAME "$DEPLOY_FRITZBOX_USERNAME"
+  _secure_debug DEPLOY_FRITZBOX_PASSWORD "$DEPLOY_FRITZBOX_PASSWORD"
+
+  if [ -z "$DEPLOY_FRITZBOX_USERNAME" ]; then
     _err "FRITZ!Box username is not found, please define DEPLOY_FRITZBOX_USERNAME."
     return 1
   fi
-  if [ -z "$_fritzbox_password" ]; then
+  if [ -z "$DEPLOY_FRITZBOX_PASSWORD" ]; then
     _err "FRITZ!Box password is not found, please define DEPLOY_FRITZBOX_PASSWORD."
     return 1
   fi
-  if [ -z "$_fritzbox_url" ]; then
+  if [ -z "$DEPLOY_FRITZBOX_URL" ]; then
     _err "FRITZ!Box url is not found, please define DEPLOY_FRITZBOX_URL."
     return 1
   fi
 
-  _saveaccountconf DEPLOY_FRITZBOX_USERNAME "${_fritzbox_username}"
-  _saveaccountconf DEPLOY_FRITZBOX_PASSWORD "${_fritzbox_password}"
-  _saveaccountconf DEPLOY_FRITZBOX_URL "${_fritzbox_url}"
+  # Save current values
+  _savedeployconf DEPLOY_FRITZBOX_USERNAME "$DEPLOY_FRITZBOX_USERNAME"
+  _savedeployconf DEPLOY_FRITZBOX_PASSWORD "$DEPLOY_FRITZBOX_PASSWORD"
+  _savedeployconf DEPLOY_FRITZBOX_URL "$DEPLOY_FRITZBOX_URL"
 
   # Do not check for a valid SSL certificate, because initially the cert is not valid, so it could not install the LE generated certificate
   export HTTPS_INSECURE=1
 
   _info "Log in to the FRITZ!Box"
-  _fritzbox_challenge="$(_get "${_fritzbox_url}/login_sid.lua" | sed -e 's/^.*<Challenge>//' -e 's/<\/Challenge>.*$//')"
+  _fritzbox_challenge="$(_get "${DEPLOY_FRITZBOX_URL}/login_sid.lua" | sed -e 's/^.*<Challenge>//' -e 's/<\/Challenge>.*$//')"
   if _exists iconv; then
-    _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${_fritzbox_password}" | iconv -f ASCII -t UTF16LE | md5sum | awk '{print $1}')"
+    _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${DEPLOY_FRITZBOX_PASSWORD}" | iconv -f ASCII -t UTF16LE | _digest md5 hex)"
+  elif _exists uconv; then
+    _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${DEPLOY_FRITZBOX_PASSWORD}" | uconv -f ASCII -t UTF16LE | _digest md5 hex)"
   else
-    _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${_fritzbox_password}" | perl -p -e 'use Encode qw/encode/; print encode("UTF-16LE","$_"); $_="";' | md5sum | awk '{print $1}')"
+    _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${DEPLOY_FRITZBOX_PASSWORD}" | perl -p -e 'use Encode qw/encode/; print encode("UTF-16LE","$_"); $_="";' | _digest md5 hex)"
   fi
-  _fritzbox_sid="$(_get "${_fritzbox_url}/login_sid.lua?sid=0000000000000000&username=${_fritzbox_username}&response=${_fritzbox_challenge}-${_fritzbox_hash}" | sed -e 's/^.*<SID>//' -e 's/<\/SID>.*$//')"
+  _fritzbox_sid="$(_get "${DEPLOY_FRITZBOX_URL}/login_sid.lua?sid=0000000000000000&username=${DEPLOY_FRITZBOX_USERNAME}&response=${_fritzbox_challenge}-${_fritzbox_hash}" | sed -e 's/^.*<SID>//' -e 's/<\/SID>.*$//')"
 
   if [ -z "${_fritzbox_sid}" ] || [ "${_fritzbox_sid}" = "0000000000000000" ]; then
     _err "Logging in to the FRITZ!Box failed. Please check username, password and URL."
@@ -100,7 +112,7 @@ fritzbox_deploy() {
   _info "Upload certificate to the FRITZ!Box"
 
   export _H1="Content-type: multipart/form-data boundary=${_post_boundary}"
-  _post "$(cat "${_post_request}")" "${_fritzbox_url}/cgi-bin/firmwarecfg" | grep SSL
+  _post "$(cat "${_post_request}")" "${DEPLOY_FRITZBOX_URL}/cgi-bin/firmwarecfg" | grep SSL
 
   retval=$?
   if [ $retval = 0 ]; then

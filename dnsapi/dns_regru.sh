@@ -92,9 +92,10 @@ _get_root() {
   domains_list=$(echo "${response}" | grep dname | sed -r "s/.*dname=\"([^\"]+)\".*/\\1/g")
 
   for ITEM in ${domains_list}; do
+    IDN_ITEM=${ITEM}
     case "${domain}" in
-    *${ITEM}*)
-      _domain=${ITEM}
+    *${IDN_ITEM}*)
+      _domain="$(_idn "${ITEM}")"
       _debug _domain "${_domain}"
       return 0
       ;;

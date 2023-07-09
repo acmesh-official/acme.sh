@@ -39,7 +39,7 @@ dns_gcloud_rm() {
   _dns_gcloud_start_tr || return $?
   _dns_gcloud_get_rrdatas || return $?
   echo "$rrdatas" | _dns_gcloud_remove_rrs || return $?
-  echo "$rrdatas" | grep -F -v "\"$txtvalue\"" | _dns_gcloud_add_rrs || return $?
+  echo "$rrdatas" | grep -F -v -- "\"$txtvalue\"" | _dns_gcloud_add_rrs || return $?
   _dns_gcloud_execute_tr || return $?
 
   _info "$fulldomain record added"
@@ -98,7 +98,7 @@ _dns_gcloud_remove_rrs() {
     --ttl="$ttl" \
     --type=TXT \
     --zone="$managedZone" \
-    --transaction-file="$tr"; then
+    --transaction-file="$tr" --; then
     _debug tr "$(cat "$tr")"
     rm -r "$trd"
     _err "_dns_gcloud_remove_rrs: failed to remove RRs"
@@ -113,7 +113,7 @@ _dns_gcloud_add_rrs() {
     --ttl="$ttl" \
     --type=TXT \
     --zone="$managedZone" \
-    --transaction-file="$tr"; then
+    --transaction-file="$tr" --; then
     _debug tr "$(cat "$tr")"
     rm -r "$trd"
     _err "_dns_gcloud_add_rrs: failed to add RRs"
@@ -163,5 +163,8 @@ _dns_gcloud_get_rrdatas() {
     return 1
   fi
   ttl=$(echo "$rrdatas" | cut -f1)
-  rrdatas=$(echo "$rrdatas" | cut -f2 | sed 's/","/"\n"/g')
+  # starting with version 353.0.0 gcloud seems to
+  # separate records with a semicolon instead of commas
+  # see also https://cloud.google.com/sdk/docs/release-notes#35300_2021-08-17
+  rrdatas=$(echo "$rrdatas" | cut -f2 | sed 's/"[,;]"/"\n"/g')
 }
