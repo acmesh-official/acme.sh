@@ -13,15 +13,15 @@
 
 # Please Read this guide first: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
 
-# BMN urls:
-# https://BMN_USER:BMN_PASSWORD@www.bookmyname.com/dyndns/?hostname=_acme-challenge.domain.tld&type=txt&ttl=300&do=add&value="XXXXXXXX"'
-# https://BMN_USER:BMN_PASSWORD@www.bookmyname.com/dyndns/?hostname=_acme-challenge.domain.tld&type=txt&ttl=300&do=remove&value="XXXXXXXX"'
+# BookMyName urls:
+# https://BOOKMYNAME_USERNAME:BOOKMYNAME_PASSWORD@www.bookmyname.com/dyndns/?hostname=_acme-challenge.domain.tld&type=txt&ttl=300&do=add&value="XXXXXXXX"'
+# https://BOOKMYNAME_USERNAME:BOOKMYNAME_PASSWORD@www.bookmyname.com/dyndns/?hostname=_acme-challenge.domain.tld&type=txt&ttl=300&do=remove&value="XXXXXXXX"'
 
 # Output:
 #good: update done, cid 123456, domain id 456789, type txt, ip XXXXXXXX
 #good: remove done 1, cid 123456, domain id 456789, ttl 300, type txt, ip XXXXXXXX
 
-# Be careful, BookMyName DNS servers can be slow to pick up changes; using dnssleep is thus advised.
+# Be careful, BMN DNS servers can be slow to pick up changes; using dnssleep is thus advised.
 
 # Usage:
 # export BOOKMYNAME_USERNAME="ABCDE-FREE"
