@@ -162,7 +162,7 @@ _get_root() {
   p=1
 
   # Use Zone ID directly if provided
-  if [ "$CF_Zone_ID" ]; then
+  if [ -z "$CF_Zone_ID" ]; then
     if ! _cf_rest GET "zones/$CF_Zone_ID"; then
       return 1
     else
