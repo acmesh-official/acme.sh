@@ -36,8 +36,9 @@ parse_response() {
       message="PAN-OS Key could not be set."
     fi
   else
-    status=$(echo "$1" | sed 's/^.*"\([a-z]*\)".*/\1/g')
-    message=$(echo "$1" | sed 's/^.*<result>\(.*\)<\/result.*/\1/g')
+    status=$(echo "$1" | tr -d '\n' | sed 's/^.*"\([a-z]*\)".*/\1/g')
+    message=$(echo "$1" | tr -d '\n' | sed 's/.*\(<result>\|<msg>\|<line>\)\([^<]*\).*/\2/g')
+    _debug "Firewall message:  $message"
     if [ "$type" = 'keytest' ] && [ "$status" != "success" ]; then
       _debug "****  API Key has EXPIRED or is INVALID ****"
       unset _panos_key
@@ -58,7 +59,7 @@ deployer() {
     _H1="Content-Type: application/x-www-form-urlencoded"
     #Exclude all scopes for the empty commit
     _exclude_scope="<policy-and-objects>exclude</policy-and-objects><device-and-network>exclude</device-and-network><shared-object>exclude</shared-object>"
-    content="type=commit&key=$_panos_key&cmd=<commit><partial>$_exclude_scope<admin><member>acmekeytest</member></admin></partial></commit>"
+    content="type=commit&action=partial&key=$_panos_key&cmd=<commit><partial>$_exclude_scope<admin><member>acmekeytest</member></admin></partial></commit>"
   fi
 
   # Generate API Key
@@ -104,20 +105,21 @@ deployer() {
   if [ "$type" = 'commit' ]; then
     _debug "**** Committing changes ****"
     export _H1="Content-Type: application/x-www-form-urlencoded"
-    #Check for force commit
+    #Check for force commit - will commit ALL uncommited changes to the firewall. Use with caution!
     if [ "$FORCE" ]; then
-      cmd=$(printf "%s" "<commit><partial><force></force><$_panos_user></$_panos_user></partial></commit>" | _url_encode)
+      _debug "Force switch detected.  Committing ALL changes to the firewall."
+      cmd=$(printf "%s" "<commit><partial><force><admin><member>$_panos_user</member></admin></force></partial></commit>" | _url_encode)
     else
-      cmd=$(printf "%s" "<commit><partial><$_panos_user></$_panos_user></partial></commit>" | _url_encode)
+      _exclude_scope="<policy-and-objects>exclude</policy-and-objects><device-and-network>exclude</device-and-network>"
+      cmd=$(printf "%s" "<commit><partial>$_exclude_scope<admin><member>$_panos_user</member></admin></partial></commit>" | _url_encode)
     fi
-    content="type=commit&key=$_panos_key&cmd=$cmd"
+    content="type=commit&action=partial&key=$_panos_key&cmd=$cmd"
   fi
 
   response=$(_post "$content" "$panos_url" "" "POST")
   parse_response "$response" "$type"
   # Saving response to variables
   response_status=$status
-  #DEBUG
   _debug response_status "$response_status"
   if [ "$response_status" = "success" ]; then
     _debug "Successfully deployed $type"
