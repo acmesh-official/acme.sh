@@ -56,7 +56,9 @@ deployer() {
   if [ "$type" = 'keytest' ]; then
     _debug "**** Testing saved API Key ****"
     _H1="Content-Type: application/x-www-form-urlencoded"
-    content="type=commit&key=$_panos_key&action=partial&cmd=<commit><partial><admin><member>acmekeytest</member></admin></partial></commit>"
+    #Exclude all scopes for the empty commit
+    _exclude_scope="<policy-and-objects>exclude</policy-and-objects><device-and-network>exclude</device-and-network><shared-object>exclude</shared-object>"
+    content="type=commit&key=$_panos_key&cmd=<commit><partial>$_exclude_scope<admin><member>acmekeytest</member></admin></partial></commit>"
   fi
 
   # Generate API Key
