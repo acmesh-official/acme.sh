@@ -137,15 +137,10 @@ panos_deploy() {
   _ckey="$2"
   _cfullchain="$5"
 
-  # VALID ECC KEY CHECK
-  keysuffix=$(printf '%s' "$_ckey" | tail -c 8)
-  if [ "$keysuffix" = "_ecc.key" ] && [ ! -f "$_ckey" ]; then
-    _debug "The ECC key $_ckey doesn't exist. Attempting to strip '_ecc' from the key name"
-    _ckey=$(echo "$_ckey" | sed 's/\(.*\)_ecc.key$/\1.key/g')
-    if [ ! -f "$_ckey" ]; then
-      _err "Unable to find a valid key.  Try issuing the certificate using RSA (non-ECC) encryption."
-      return 1
-    fi
+  # VALID FILE CHECK
+  if [ ! -f "$_ckey" ] || [ ! -f "$_cfullchain" ]; then
+    _err "Unable to find a valid key and/or cert.  If this is an ECDSA/ECC cert, use the --ecc flag when deploying."
+    return 1
   fi
 
   # PANOS_HOST
