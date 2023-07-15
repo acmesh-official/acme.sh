@@ -5,19 +5,20 @@
 ################################################################################
 # Author:   Martin Arndt, https://troublezone.net/
 # Released: 2022-02-27
-# Issues:   https://github.com/Eagle3386/acme.sh/issues
+# Issues:    https://github.com/acmesh-official/acme.sh/issues/XXXX
 ################################################################################
 # Usage:
-# 1. export AF_API_USERNAME="api12345678"
-# 2. export AF_API_PASSWORD="apiPassword"
+# 1. export AF_API_USERNAME='api12345678'
+# 2. export AF_API_PASSWORD='apiPassword'
 # 3. acme.sh --issue -d example.com --dns dns_artfiles
 ################################################################################
 
 ########## API configuration ###################################################
+
 AF_API_SUCCESS='status":"OK'
 AF_URL_DCP='https://dcp.c.artfiles.de/api/'
 AF_URL_DNS=${AF_URL_DCP}'dns/{*}_dns.html?domain='
-AF_URL_DOMAINS=${AF_URL_BASE}'domain/get_domains.html'
+AF_URL_DOMAINS=${AF_URL_DCP}'domain/get_domains.html'
 
 ########## Public functions ####################################################
 
@@ -26,19 +27,11 @@ AF_URL_DOMAINS=${AF_URL_BASE}'domain/get_domains.html'
 dns_artfiles_add() {
   domain="$1"
   txtValue="$2"
-  _info 'Using ArtFiles.de DNS addition API'
+  _info 'Using ArtFiles.de DNS addition API…'
   _debug 'Domain' "$domain"
   _debug 'txtValue' "$txtValue"
 
-  AF_API_USERNAME="${AF_API_USERNAME:-$(_readaccountconf_mutable AF_API_USERNAME)}"
-  AF_API_PASSWORD="${AF_API_PASSWORD:-$(_readaccountconf_mutable AF_API_PASSWORD)}"
-  if [ -z "$AF_API_USERNAME" ] || [ -z "$AF_API_PASSWORD" ]; then
-    _err 'Missing ArtFiles.de username and/or password.'
-    _err 'Please ensure both are set via export command & try again.'
-
-    return 1
-  fi
-
+  _set_credentials
   _saveaccountconf_mutable 'AF_API_USERNAME' "$AF_API_USERNAME"
   _saveaccountconf_mutable 'AF_API_PASSWORD' "$AF_API_PASSWORD"
 
@@ -65,10 +58,11 @@ dns_artfiles_add() {
 dns_artfiles_rm() {
   domain="$1"
   txtValue="$2"
-  _info 'Using ArtFiles.de DNS removal API'
+  _info 'Using ArtFiles.de DNS removal API…'
   _debug 'Domain' "$domain"
   _debug 'txtValue' "$txtValue"
 
+  _set_credentials
   _set_headers
   _get_zone "$domain"
   if ! _dns 'GET'; then
@@ -82,7 +76,7 @@ dns_artfiles_rm() {
   fi
 
   _clean_records
-  response="$(printf -- '%s' "$response" | sed '$d')"
+  response="$(printf -- '%s' "$response" | sed '/_acme-challenge "'"$txtValue"'"/d')"
   _dns 'SET' "$response"
   if ! _contains "$response" "$AF_API_SUCCESS"; then
     _err 'Removing ACME challenge value failed.'
@@ -96,15 +90,13 @@ dns_artfiles_rm() {
 # Cleans awful TXT records response of ArtFiles's API & pretty prints it.
 # Usage: _clean_records
 _clean_records() {
+  _info 'Cleaning TXT records…'
   # Extract TXT part, strip trailing quote sign (ACME.sh API guidelines forbid
   # usage of SED's GNU extensions, hence couldn't omit it via regex), strip '\'
   # from '\"' & turn '\n' into real LF characters.
-  # Yup, awful API to use - but that's all we got to get this working, so... ;)
+  # Yup, awful API to use - but that's all we got to get this working, so… ;)
   _debug2 'Raw  ' "$response"
-  response="$(
-    printf -- '%s' "$response"
-    \  | sed 's/^\(.*TXT":"\)\([^,}]*\)\(.*\)$/\2/;s/.$//;s/\\"/"/g;s/\\n/\n/g'
-  )"
+  response="$(printf -- '%s' "$response" | sed 's/^.*TXT":"\([^}]*\).*$/\1/;s/,".*$//;s/.$//;s/\\"/"/g;s/\\n/\n/g')"
   _debug2 'Clean' "$response"
 }
 
@@ -112,12 +104,10 @@ _clean_records() {
 # containing given payload upon POST.
 # Usage: _dns [GET | SET] [payload]
 _dns() {
+  _info 'Executing HTTP request…'
   action="$1"
   payload="$(printf -- '%s' "$2" | _url_encode)"
-  url="$(
-    printf -- '%s%s' "$AF_URL_DNS" "$domain"
-    \  | sed 's/{\*}/'"$(printf -- '%s' "$action" | _lower_case)"'/'
-  )"
+  url="$(printf -- '%s%s' "$AF_URL_DNS" "$domain" | sed 's/{\*}/'"$(printf -- '%s' "$action" | _lower_case)"'/')"
 
   if [ "$action" = 'SET' ]; then
     _debug2 'Payload' "$payload"
@@ -141,8 +131,8 @@ _dns() {
 # Usage: _get_zone _acme-challenge.www.example.com
 _get_zone() {
   fqdn="$1"
-  domains="$(_get "$AF_URL_DOMAINS" "" 10)"
-  _info 'Getting domain zone...'
+  domains="$(_get "$AF_URL_DOMAINS" '' 10)"
+  _info 'Getting domain zone…'
   _debug2 'FQDN' "$fqdn"
   _debug2 'Domains' "$domains"
 
@@ -166,9 +156,24 @@ _get_zone() {
   return 1
 }
 
+# Sets the credentials for accessing ArtFiles's API
+# Usage: _set_credentials
+_set_credentials() {
+  _info 'Setting credentials…'
+  AF_API_USERNAME="${AF_API_USERNAME:-$(_readaccountconf_mutable AF_API_USERNAME)}"
+  AF_API_PASSWORD="${AF_API_PASSWORD:-$(_readaccountconf_mutable AF_API_PASSWORD)}"
+  if [ -z "$AF_API_USERNAME" ] || [ -z "$AF_API_PASSWORD" ]; then
+    _err 'Missing ArtFiles.de username and/or password.'
+    _err 'Please ensure both are set via export command & try again.'
+
+    return 1
+  fi
+}
+
 # Adds the HTTP Authorization & Content-Type headers to a follow-up request.
 # Usage: _set_headers
 _set_headers() {
+  _info 'Setting headers…'
   encoded="$(printf -- '%s:%s' "$AF_API_USERNAME" "$AF_API_PASSWORD" | _base64)"
   export _H1="Authorization: Basic $encoded"
   export _H2='Content-Type: application/json'
