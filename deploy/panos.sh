@@ -129,7 +129,6 @@ panos_deploy() {
   _cdomain=$(echo "$1" | sed 's/*/WILDCARD_/g') #Wildcard Safe Filename
   _ckey="$2"
   _cfullchain="$5"
- _regen_keys=false    #Flag to regenerate keys if PANOS_USER or PANOS_PASS changes.
 
 
   # VALID FILE CHECK
