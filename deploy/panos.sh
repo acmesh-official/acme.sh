@@ -130,7 +130,6 @@ panos_deploy() {
   _ckey="$2"
   _cfullchain="$5"
 
-
   # VALID FILE CHECK
   if [ ! -f "$_ckey" ] || [ ! -f "$_cfullchain" ]; then
     _err "Unable to find a valid key and/or cert.  If this is an ECDSA/ECC cert, use the --ecc flag when deploying."
@@ -174,12 +173,10 @@ panos_deploy() {
     unset _panos_key
   fi
 
-
   #Store variables
   _panos_host=$PANOS_HOST
   _panos_user=$PANOS_USER
   _panos_pass=$PANOS_PASS
-
 
   #Test API Key if found.  If the key is invalid, the variable _panos_key will be unset.
   if [ "$_panos_host" ] && [ "$_panos_key" ]; then
