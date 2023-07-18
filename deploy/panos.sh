@@ -8,21 +8,13 @@
 # Firewall admin with superuser and IP address is required.
 #
 # REQURED:
-#     export PANOS_HOST=""  # required
-#     export PANOS_USER=""  # required
-#
-# AND one of the two authenticiation methods:
-#
-# Method 1:  Password  (RECOMMENDED)
+#     export PANOS_HOST=""
+#     export PANOS_USER=""    #User *MUST* have Commit and Import Permissions in XML API for Admin Role
 #     export PANOS_PASS=""
 #
-# Method 2: API KEY
-#     export PANOS_KEY=""
-#
-#
-# The Password method will automatically generate a new API key if
+# The script will automatically generate a new API key if
 # no key is found, or if a saved key has expired or is invalid.
-#
+
 
 # This function is to parse the XML response from the firewall
 parse_response() {
@@ -53,13 +45,15 @@ deployer() {
   type=$1 # Types are keytest, keygen, cert, key, commit
   panos_url="https://$_panos_host/api/"
 
-  #Test API Key by performing an empty commit.
+  #Test API Key by performing a lookup
   if [ "$type" = 'keytest' ]; then
     _debug "**** Testing saved API Key ****"
     _H1="Content-Type: application/x-www-form-urlencoded"
-    #Exclude all scopes for the empty commit
-    _exclude_scope="<policy-and-objects>exclude</policy-and-objects><device-and-network>exclude</device-and-network><shared-object>exclude</shared-object>"
-    content="type=commit&action=partial&key=$_panos_key&cmd=<commit><partial>$_exclude_scope<admin><member>acmekeytest</member></admin></partial></commit>"
+    # Get Version Info to test key
+    content="type=version&key=$_panos_key"
+    ## Exclude all scopes for the empty commit
+    #_exclude_scope="<policy-and-objects>exclude</policy-and-objects><device-and-network>exclude</device-and-network><shared-object>exclude</shared-object>"
+    #content="type=commit&action=partial&key=$_panos_key&cmd=<commit><partial>$_exclude_scope<admin><member>acmekeytest</member></admin></partial></commit>"
   fi
 
   # Generate API Key
@@ -170,22 +164,17 @@ panos_deploy() {
     _getdeployconf PANOS_PASS
   fi
 
-  # PANOS_KEY
-  if [ "$PANOS_KEY" ]; then
-    _debug "Detected ENV variable PANOS_KEY. Saving to file."
-    _savedeployconf PANOS_KEY "$PANOS_KEY" 1
-  else
-    _debug "Attempting to load variable PANOS_KEY from file."
-    _getdeployconf PANOS_KEY
-  fi
-
   #Store variables
   _panos_host=$PANOS_HOST
-  _panos_key=$PANOS_KEY
   _panos_user=$PANOS_USER
   _panos_pass=$PANOS_PASS
 
-  #Test API Key if found.  If the key is invalid, the variable panos_key will be unset.
+  #Load saved keys
+  _getdeployconf PANOS_KEY
+  _panos_key=$PANOS_KEY
+
+
+  #Test API Key if found.  If the key is invalid, the variable _panos_key will be unset.
   if [ "$_panos_host" ] && [ "$_panos_key" ]; then
     _debug "**** Testing API KEY ****"
     deployer keytest
@@ -198,8 +187,8 @@ panos_deploy() {
   elif [ -z "$_panos_user" ]; then
     _err "No user found. If this is your first time deploying, please set PANOS_USER in ENV variables. You can delete it after you have successfully deployed the certs."
     return 1
-  elif [ -z "$_panos_key" ] && { [ -z "$_panos_user" ] || [ -z "$_panos_pass" ]; }; then
-    _err "No pass OR valid API key found. If this is your first time deploying please set PANOS_PASS and/or PANOS_KEY in ENV variables. You can delete them after you have succesfully deployed the certs."
+  elif [ -z "$_panos_pass" ]; then
+    _err "No password found. If this is your first time deploying, please set PANOS_PASS in ENV variables. You can delete it after you have successfully deployed the certs."
     return 1
   else
     # Generate a new API key if no valid API key is found
