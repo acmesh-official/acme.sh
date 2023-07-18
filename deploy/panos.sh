@@ -15,7 +15,6 @@
 # The script will automatically generate a new API key if
 # no key is found, or if a saved key has expired or is invalid.
 
-
 # This function is to parse the XML response from the firewall
 parse_response() {
   type=$2
@@ -130,6 +129,8 @@ panos_deploy() {
   _cdomain=$(echo "$1" | sed 's/*/WILDCARD_/g') #Wildcard Safe Filename
   _ckey="$2"
   _cfullchain="$5"
+ _regen_keys=false    #Flag to regenerate keys if PANOS_USER or PANOS_PASS changes.
+
 
   # VALID FILE CHECK
   if [ ! -f "$_ckey" ] || [ ! -f "$_cfullchain" ]; then
@@ -164,14 +165,21 @@ panos_deploy() {
     _getdeployconf PANOS_PASS
   fi
 
+  # PANOS_KEY
+  _getdeployconf PANOS_KEY
+  if [ "$PANOS_KEY" ]; then
+    _debug "Detected saved key."
+    _panos_key=$PANOS_KEY
+  else
+    _debug "No key detected"
+    unset _panos_key
+  fi
+
+
   #Store variables
   _panos_host=$PANOS_HOST
   _panos_user=$PANOS_USER
   _panos_pass=$PANOS_PASS
-
-  #Load saved keys
-  _getdeployconf PANOS_KEY
-  _panos_key=$PANOS_KEY
 
 
   #Test API Key if found.  If the key is invalid, the variable _panos_key will be unset.
