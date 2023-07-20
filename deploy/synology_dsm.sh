@@ -66,7 +66,7 @@ synology_dsm_deploy() {
     SYNO_Device_Name=
     SYNO_Device_ID=
   fi
-  
+
   if [ -z "${SYNO_Username:-}" ] || [ -z "${SYNO_Password:-}" ]; then
     _err "You must set either SYNO_USE_TEMP_ADMIN, or set both SYNO_Username and SYNO_Password."
     return 1
@@ -104,8 +104,7 @@ synology_dsm_deploy() {
     _err "Do not use a backslash (\) in your certificate description"
     return 1
   fi
-
-  _base_url="$SYNO_Scheme://$SYNO_Hostname:$SYNO_Port"
+ _base_url="$SYNO_Scheme://$SYNO_Hostname:$SYNO_Port"
   _debug _base_url "$_base_url"
 
   _debug "Getting API version"
@@ -259,7 +258,7 @@ _logout() {
 _remove_temp_admin() {
   flag=$1
   username=$2
-  
+
   if [ -n "${flag}" ]; then
     _debug "Removing temp admin user in Synology DSM"
     synouser --del "$username" >/dev/null
