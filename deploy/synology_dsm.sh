@@ -104,7 +104,8 @@ synology_dsm_deploy() {
     _err "Do not use a backslash (\) in your certificate description"
     return 1
   fi
- _base_url="$SYNO_Scheme://$SYNO_Hostname:$SYNO_Port"
+
+  _base_url="$SYNO_Scheme://$SYNO_Hostname:$SYNO_Port"
   _debug _base_url "$_base_url"
 
   _debug "Getting API version"
