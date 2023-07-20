@@ -61,7 +61,7 @@ synology_dsm_deploy() {
     fi
     _debug "Setting temp admin user credential..."
     SYNO_Username=sc-acmesh-tmp
-    SYNO_Password=`openssl rand -base64 16`
+    SYNO_Password=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16)
     # Ignore 2FA-OTP settings which won't be needed.
     SYNO_Device_Name=
     SYNO_Device_ID=
