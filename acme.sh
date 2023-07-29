@@ -2103,9 +2103,20 @@ _head_n() {
 }
 
 _tail_n() {
-  if ! tail -n "$1" 2>/dev/null; then
+  if _is_solaris; then
     #fix for solaris
     tail -"$1"
+  else
+    tail -n "$1"
+  fi
+}
+
+_tail_c() {
+  if _is_solaris; then
+    #fix for solaris
+    tail -"$1"c
+  else
+    tail -c "$1"
   fi
 }
 
@@ -2280,7 +2291,7 @@ _setopt() {
   if [ ! -f "$__conf" ]; then
     touch "$__conf"
   fi
-  if [ -n "$(tail -c1 <"$__conf")" ]; then
+  if [ -n "$(_tail_c 1 <"$__conf")" ]; then
     echo >>"$__conf"
   fi
 
