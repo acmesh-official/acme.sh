@@ -924,7 +924,9 @@ _sed_i() {
 }
 
 _egrep_o() {
-  if ! egrep -o "$1" 2>/dev/null; then
+  if _exists egrep; then
+    egrep -o "$1" 2>/dev/null;
+  else
     sed -n 's/.*\('"$1"'\).*/\1/p'
   fi
 }
