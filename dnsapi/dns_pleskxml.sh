@@ -386,13 +386,13 @@ _pleskxml_get_root_domain() {
   # We don't actually need to check for type, name, *and* id, but it guarantees only usable lines are returned.
 
   output="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>ok</status>' | sed 's/<ascii-name>/<name>/g;s/<\/ascii-name>/<\/name>/g' | grep '<name>' | grep '<id>')"
-  debug_output="$(printf "$output" | sed -n 's:.*<name>\(.*\)</name>.*:\1:p')"
-  
+  debug_output="$(printf "%s" "$output" | sed -n 's:.*<name>\(.*\)</name>.*:\1:p')"
+
   _debug 'Domains managed by Plesk server are:'
-  _debug "$debug_output" 
+  _debug "$debug_output"
 
   _debug "Querying Plesk server for list of additional managed domains..."
-  
+
   _call_api "$pleskxml_tplt_get_additional_domains"
   if [ "$pleskxml_retcode" -ne 0 ]; then
     return 1
@@ -405,18 +405,18 @@ _pleskxml_get_root_domain() {
   # We don't actually need to check for type, name, *and* id, but it guarantees only usable lines are returned.
 
   output_additional="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>ok</status>' | sed 's/<ascii-name>/<name>/g;s/<\/ascii-name>/<\/name>/g' | grep '<name>' | grep '<id>')"
-  debug_additional="$(printf "$output_additional" | sed -n 's:.*<name>\(.*\)</name>.*:\1:p')"
+  debug_additional="$(printf "%s" "$output_additional" | sed -n 's:.*<name>\(.*\)</name>.*:\1:p')"
 
   _debug 'Additional domains managed by Plesk server are:'
   _debug "$debug_additional"
-  
+
   # Concate the two outputs together.
-  
-  output="$(printf "$output $NEWLINE $output_additional")"
-  debug_output="$(printf "$output" | sed -n 's:.*<name>\(.*\)</name>.*:\1:p')"
-  
+
+  output="$(printf "%s" "$output $NEWLINE $output_additional")"
+  debug_output="$(printf "%s" "$output" | sed -n 's:.*<name>\(.*\)</name>.*:\1:p')"
+
   _debug 'Domains (including additional) managed by Plesk server are:'
-  _debug "$debug_output" 
+  _debug "$debug_output"
 
   # loop and test if domain, or any parent domain, is managed by Plesk
   # Loop until we don't have any '.' in the string we're testing as a candidate Plesk-managed domain
