@@ -923,11 +923,17 @@ _sed_i() {
   fi
 }
 
+if [ "$(echo abc | egrep -o b 2>/dev/null)" = "b" ]; then
+  __USE_EGREP=1
+else
+  __USE_EGREP=""
+fi
+
 _egrep_o() {
-  if _is_solaris; then
-    sed -n 's/.*\('"$1"'\).*/\1/p'
-  else
+  if [ "$__USE_EGREP" ]; then
     egrep -o "$1"
+  else
+    sed -n 's/.*\('"$1"'\).*/\1/p'
   fi
 }
 
