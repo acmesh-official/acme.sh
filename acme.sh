@@ -924,10 +924,10 @@ _sed_i() {
 }
 
 _egrep_o() {
-  if _exists egrep; then
-    egrep -o "$1" 2>/dev/null
-  else
+  if _is_solaris; then
     sed -n 's/.*\('"$1"'\).*/\1/p'
+  else
+    egrep -o "$1"
   fi
 }
 
