@@ -923,8 +923,16 @@ _sed_i() {
   fi
 }
 
+if [ "$(echo abc | egrep -o b 2>/dev/null)" = "b" ]; then
+  __USE_EGREP=1
+else
+  __USE_EGREP=""
+fi
+
 _egrep_o() {
-  if ! egrep -o "$1" 2>/dev/null; then
+  if [ "$__USE_EGREP" ]; then
+    egrep -o "$1"
+  else
     sed -n 's/.*\('"$1"'\).*/\1/p'
   fi
 }
@@ -2101,9 +2109,20 @@ _head_n() {
 }
 
 _tail_n() {
-  if ! tail -n "$1" 2>/dev/null; then
+  if _is_solaris; then
     #fix for solaris
     tail -"$1"
+  else
+    tail -n "$1"
+  fi
+}
+
+_tail_c() {
+  if _is_solaris; then
+    #fix for solaris
+    tail -"$1"c
+  else
+    tail -c "$1"
   fi
 }
 
@@ -2278,7 +2297,7 @@ _setopt() {
   if [ ! -f "$__conf" ]; then
     touch "$__conf"
   fi
-  if [ -n "$(tail -c1 <"$__conf")" ]; then
+  if [ -n "$(_tail_c 1 <"$__conf")" ]; then
     echo >>"$__conf"
   fi
 

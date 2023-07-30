@@ -43,6 +43,7 @@ aws_ses_send() {
     _err "Please specify your region and try again. see https://docs.aws.amazon.com/general/latest/gr/ses.html"
     return 1
   fi
+  _saveaccountconf_mutable AWS_SES_REGION "$AWS_SES_REGION"
 
   #save for future use, unless using a role which will be fetched as needed
   if [ -z "$_using_role" ]; then
