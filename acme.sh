@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.0.6
+VER=3.0.7
 
 PROJECT_NAME="acme.sh"
 
@@ -923,8 +923,16 @@ _sed_i() {
   fi
 }
 
+if [ "$(echo abc | egrep -o b 2>/dev/null)" = "b" ]; then
+  __USE_EGREP=1
+else
+  __USE_EGREP=""
+fi
+
 _egrep_o() {
-  if ! egrep -o "$1" 2>/dev/null; then
+  if [ "$__USE_EGREP" ]; then
+    egrep -o "$1"
+  else
     sed -n 's/.*\('"$1"'\).*/\1/p'
   fi
 }
@@ -2101,9 +2109,20 @@ _head_n() {
 }
 
 _tail_n() {
-  if ! tail -n "$1" 2>/dev/null; then
+  if _is_solaris; then
     #fix for solaris
     tail -"$1"
+  else
+    tail -n "$1"
+  fi
+}
+
+_tail_c() {
+  if _is_solaris; then
+    #fix for solaris
+    tail -"$1"c
+  else
+    tail -c "$1"
   fi
 }
 
@@ -2116,6 +2135,7 @@ _send_signed_request() {
   if [ -z "$keyfile" ]; then
     keyfile="$ACCOUNT_KEY_PATH"
   fi
+  _debug "=======Begin Send Signed Request======="
   _debug url "$url"
   _debug payload "$payload"
 
@@ -2277,7 +2297,7 @@ _setopt() {
   if [ ! -f "$__conf" ]; then
     touch "$__conf"
   fi
-  if [ -n "$(tail -c 1 <"$__conf")" ]; then
+  if [ -n "$(_tail_c 1 <"$__conf")" ]; then
     echo >>"$__conf"
   fi
 
@@ -4602,9 +4622,10 @@ issue() {
         _d="*.$_d"
       fi
       _debug2 _d "$_d"
-      _authorizations_map="$_d,$response
+      _authorizations_map="$_d,$response#$_authz_url
 $_authorizations_map"
     done
+
     _debug2 _authorizations_map "$_authorizations_map"
 
     _index=0
@@ -4656,7 +4677,8 @@ $_authorizations_map"
         _on_issue_err "$_post_hook"
         return 1
       fi
-
+      _authz_url="$(echo "$_candidates" | sed "s/$_idn_d,//" | _egrep_o "#.*" | sed "s/^#//")"
+      _debug _authz_url "$_authz_url"
       if [ -z "$thumbprint" ]; then
         thumbprint="$(__calc_account_thumbprint)"
       fi
@@ -4708,7 +4730,7 @@ $_authorizations_map"
         _debug keyauthorization "$keyauthorization"
       fi
 
-      dvlist="$d$sep$keyauthorization$sep$uri$sep$vtype$sep$_currentRoot"
+      dvlist="$d$sep$keyauthorization$sep$uri$sep$vtype$sep$_currentRoot$sep$_authz_url"
       _debug dvlist "$dvlist"
 
       vlist="$vlist$dvlist$dvsep"
@@ -4725,6 +4747,7 @@ $_authorizations_map"
       keyauthorization=$(echo "$ventry" | cut -d "$sep" -f 2)
       vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
       _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
+      _authz_url=$(echo "$ventry" | cut -d "$sep" -f 6)
       _debug d "$d"
       if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
         _debug "$d is already verified, skip $vtype."
@@ -4850,7 +4873,7 @@ $_authorizations_map"
     uri=$(echo "$ventry" | cut -d "$sep" -f 3)
     vtype=$(echo "$ventry" | cut -d "$sep" -f 4)
     _currentRoot=$(echo "$ventry" | cut -d "$sep" -f 5)
-
+    _authz_url=$(echo "$ventry" | cut -d "$sep" -f 6)
     if [ "$keyauthorization" = "$STATE_VERIFIED" ]; then
       _info "$d is already verified, skip $vtype."
       continue
@@ -4860,6 +4883,7 @@ $_authorizations_map"
     _debug "d" "$d"
     _debug "keyauthorization" "$keyauthorization"
     _debug "uri" "$uri"
+    _debug "_authz_url" "$_authz_url"
     removelevel=""
     token="$(printf "%s" "$keyauthorization" | cut -d '.' -f 1)"
 
@@ -4967,6 +4991,7 @@ $_authorizations_map"
       MAX_RETRY_TIMES=30
     fi
 
+    _debug "Lets check the status of the authz"
     while true; do
       waittimes=$(_math "$waittimes" + 1)
       if [ "$waittimes" -ge "$MAX_RETRY_TIMES" ]; then
@@ -5014,9 +5039,9 @@ $_authorizations_map"
         break
       fi
 
-      if [ "$status" = "pending" ]; then
+      if _contains "$status" "pending"; then
         _info "Pending, The CA is processing your order, please just wait. ($waittimes/$MAX_RETRY_TIMES)"
-      elif [ "$status" = "processing" ]; then
+      elif _contains "$status" "processing"; then
         _info "Processing, The CA is processing your order, please just wait. ($waittimes/$MAX_RETRY_TIMES)"
       else
         _err "$d:Verify error:$response"
@@ -5029,7 +5054,7 @@ $_authorizations_map"
       _sleep 2
       _debug "checking"
 
-      _send_signed_request "$uri"
+      _send_signed_request "$_authz_url"
 
       if [ "$?" != "0" ]; then
         _err "$d:Verify error:$response"

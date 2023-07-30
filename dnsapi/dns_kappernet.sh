@@ -45,8 +45,8 @@ dns_kappernet_add() {
   if _kappernet_api GET "action=new&subject=$_domain&data=$data"; then
 
     if _contains "$response" "{\"OK\":true"; then
-      _info "Waiting 120 seconds for DNS to spread the new record"
-      _sleep 120
+      _info "Waiting 1 second for DNS to spread the new record"
+      _sleep 1
       return 0
     else
       _err "Error creating a TXT DNS Record: $fullhostname TXT $txtvalue"
