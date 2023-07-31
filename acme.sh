@@ -2419,6 +2419,11 @@ _savedeployconf() {
   _cleardomainconf "$1"
 }
 
+#_cleardeployconf key
+_cleardeployconf() {
+  _cleardomainconf "SAVED_$1"
+}
+
 #key
 _getdeployconf() {
   _rac_key="$1"
