@@ -22,8 +22,8 @@ dns_gd_add() {
   if [ -z "$GD_Key" ] || [ -z "$GD_Secret" ]; then
     GD_Key=""
     GD_Secret=""
-    _err "You don't specify godaddy api key and secret yet."
-    _err "Please create you key and try again."
+    _err "You didn't specify godaddy api key and secret yet."
+    _err "Please create your key and try again."
     return 1
   fi
 
@@ -46,7 +46,7 @@ dns_gd_add() {
   fi
 
   if _contains "$response" "$txtvalue"; then
-    _info "The record is existing, skip"
+    _info "This record already exists, skipping"
     return 0
   fi
 

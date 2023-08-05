@@ -62,7 +62,7 @@ jobs:
         nat: |
           "8080": "80"
         prepare: |
-          pkg install -y curl socat
+          pkg install -y curl socat libnghttp2
         usesh: true
         run: |
           cd ../acmetest \

@@ -6,7 +6,7 @@
 #See https://developer.leaseweb.com for more information.
 ########  Public functions #####################
 
-LSW_API="https://api.leaseweb.com/hosting/v2/domains/"
+LSW_API="https://api.leaseweb.com/hosting/v2/domains"
 
 #Usage: dns_leaseweb_add   _acme-challenge.www.domain.com
 dns_leaseweb_add() {
