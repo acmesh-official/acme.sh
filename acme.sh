@@ -68,6 +68,7 @@ ID_TYPE_IP="ip"
 LOCAL_ANY_ADDRESS="0.0.0.0"
 
 DEFAULT_RENEW=60
+DEFAULT_RENEW_TOLERANCE=0
 
 NO_VALUE="no"
 
@@ -5390,7 +5391,7 @@ renew() {
   _debug2 "initpath again."
   _initpath "$Le_Domain" "$_isEcc"
 
-  if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
+  if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$(($Le_NextRenewTime - $_renew_tolerance))" ]; then
     _info "Skip, Next renewal time is: $(__green "$Le_NextRenewTimeStr")"
     _info "Add '$(__red '--force')' to force to renew."
     if [ -z "$_ACME_IN_RENEWALL" ]; then
@@ -6942,6 +6943,7 @@ Parameters:
   -m, --email <email>               Specifies the account email, only valid for the '--install' and '--update-account' command.
   --accountkey <file>               Specifies the account key path, only valid for the '--install' command.
   --days <ndays>                    Specifies the days to renew the cert when using '--issue' command. The default value is $DEFAULT_RENEW days.
+  --renew-tolerance <nsec>          Specifies an offset in seconds to be tolerated in case the renewal time is near when using '--renew' command. The default value is $DEFAULT_RENEW_TOLERANCE seconds.
   --httpport <port>                 Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --tlsport <port>                  Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --local-address <ip>              Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
@@ -7266,6 +7268,7 @@ _process() {
   _preferred_chain=""
   _valid_from=""
   _valid_to=""
+  _renew_tolerance="$DEFAULT_RENEW_TOLERANCE"
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -7782,6 +7785,15 @@ _process() {
       ;;
     --preferred-chain)
       _preferred_chain="$2"
+      shift
+      ;;
+    --renew-tolerance)
+      _rtolerance="$2"
+      if _startswith "$_rtolerance" "-"; then
+        _err "'$_rtolerance' is not a integer for '$1'"
+        return 1
+      fi
+      _renew_tolerance="$_rtolerance"
       shift
       ;;
     *)
