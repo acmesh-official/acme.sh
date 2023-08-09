@@ -91,8 +91,10 @@ synology_dsm_deploy() {
 
   _debug "Getting API version"
   response=$(_get "$_base_url/webapi/query.cgi?api=SYNO.API.Info&version=1&method=query&query=SYNO.API.Auth")
+  api_path=$(echo "$response" | grep "SYNO.API.Auth" | sed -n 's/.*"path" *: *"\([0-9]*\)".*/\1/p')
   api_version=$(echo "$response" | grep "SYNO.API.Auth" | sed -n 's/.*"maxVersion" *: *\([0-9]*\).*/\1/p')
   _debug3 response "$response"
+  _debug3 api_path "$api_path"
   _debug3 api_version "$api_version"
 
   # Login, get the session ID & SynoToken from JSON
@@ -133,12 +135,12 @@ synology_dsm_deploy() {
       [ -n "${SYNO_Device_Name}" ] || SYNO_Device_Name="CertRenewal"
     fi
 
-    response=$(_get "$_base_url/webapi/entry.cgi?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&otp_code=$otp_code&enable_syno_token=yes&enable_device_token=yes&device_name=$SYNO_Device_Name")
+    response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&otp_code=$otp_code&enable_syno_token=yes&enable_device_token=yes&device_name=$SYNO_Device_Name")
     _debug3 response "$response"
     SYNO_Device_ID=$(echo "$response" | grep "device_id" | sed -n 's/.*"device_id" *: *"\([^"]*\).*/\1/p')
     _secure_debug2 SYNO_Device_ID "$SYNO_Device_ID"
   else
-    response=$(_get "$_base_url/webapi/entry.cgi?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes&device_name=$SYNO_Device_Name&device_id=$SYNO_Device_ID")
+    response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes&device_name=$SYNO_Device_Name&device_id=$SYNO_Device_ID")
     _debug3 response "$response"
   fi
 
