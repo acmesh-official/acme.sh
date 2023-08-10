@@ -79,10 +79,6 @@ MODE_STATELESS="stateless"
 
 STATE_VERIFIED="verified_ok"
 
-NGINX="nginx:"
-NGINX_START="#ACME_NGINX_START"
-NGINX_END="#ACME_NGINX_END"
-
 BEGIN_CSR="-----BEGIN [NEW ]\{0,4\}CERTIFICATE REQUEST-----"
 END_CSR="-----END [NEW ]\{0,4\}CERTIFICATE REQUEST-----"
 
@@ -229,20 +225,6 @@ _dlg_versions() {
     ${ACME_OPENSSL_BIN:-openssl} version 2>&1
   else
     echo "$ACME_OPENSSL_BIN doesn't exist."
-  fi
-
-  echo "apache:"
-  if [ "$_APACHECTL" ] && _exists "$_APACHECTL"; then
-    $_APACHECTL -V 2>&1
-  else
-    echo "apache doesn't exist."
-  fi
-
-  echo "nginx:"
-  if _exists "nginx"; then
-    nginx -V 2>&1
-  else
-    echo "nginx doesn't exist."
   fi
 
   echo "socat:"
@@ -1057,12 +1039,15 @@ _sign() {
     return 1
   fi
 
-  _sign_openssl="${ACME_OPENSSL_BIN:-openssl} dgst -sign $keyfile "
+  _sign_openssl=("${ACME_OPENSSL_BIN:-openssl}" dgst -sign "$keyfile")
 
   if _isRSA "$keyfile" >/dev/null 2>&1; then
-    $_sign_openssl -$alg | _base64
+    cmd=("${_sign_openssl[@]}" -$alg)
+    "${cmd[@]}" | _base64
   elif _isEcc "$keyfile" >/dev/null 2>&1; then
-    if ! _signedECText="$($_sign_openssl -sha$__ECC_KEY_LEN | ${ACME_OPENSSL_BIN:-openssl} asn1parse -inform DER)"; then
+    cmd1=("${_sign_openssl[@]}" -sha$__ECC_KEY_LEN)
+    cmd2=("${ACME_OPENSSL_BIN:-openssl}" asn1parse -inform DER)
+    if ! _signedECText="$("${cmd1[@]}" | "${cmd2[@]}")"; then
       _err "Sign failed: $_sign_openssl"
       _err "Key file: $keyfile"
       _err "Key content:$(wc -l <"$keyfile") lines"
@@ -1845,23 +1830,23 @@ _inithttp() {
   fi
 
   if [ -z "$_ACME_CURL" ] && _exists "curl"; then
-    _ACME_CURL="curl --silent --dump-header $HTTP_HEADER "
+    _ACME_CURL=(curl --silent --dump-header "${HTTP_HEADER}")
     if [ -z "$ACME_HTTP_NO_REDIRECTS" ]; then
-      _ACME_CURL="$_ACME_CURL -L "
+      _ACME_CURL+=(-L)
     fi
     if [ "$DEBUG" ] && [ "$DEBUG" -ge 2 ]; then
       _CURL_DUMP="$(_mktemp)"
-      _ACME_CURL="$_ACME_CURL --trace-ascii $_CURL_DUMP "
+      _ACME_CURL+=(--trace-ascii $_CURL_DUMP)
     fi
 
     if [ "$CA_PATH" ]; then
-      _ACME_CURL="$_ACME_CURL --capath $CA_PATH "
+      _ACME_CURL+=(--capath "$CA_PATH")
     elif [ "$CA_BUNDLE" ]; then
-      _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
+      _ACME_CURL+=(--cacert "$CA_BUNDLE")
     fi
 
     if _contains "$(curl --help 2>&1)" "--globoff" || _contains "$(curl --help curl 2>&1)" "--globoff"; then
-      _ACME_CURL="$_ACME_CURL -g "
+      _ACME_CURL+=(-g)
     fi
 
     #don't use --fail-with-body
@@ -1916,42 +1901,44 @@ _post() {
   _inithttp
 
   if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
-    _CURL="$_ACME_CURL"
+    _CURL=("${_ACME_CURL[@]}")
     if [ "$HTTPS_INSECURE" ]; then
-      _CURL="$_CURL --insecure  "
+      _CURL+=(--insecure)
     fi
     if [ "$httpmethod" = "HEAD" ]; then
-      _CURL="$_CURL -I  "
+      _CURL+=(-I)
     fi
-    _debug "_CURL" "$_CURL"
+    _debug "_CURL" "${_CURL[*]}"
     if [ "$needbase64" ]; then
       if [ "$body" ]; then
         if [ "$_postContentType" ]; then
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+          cmd=("${_CURL[@]}" --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")
         else
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+          cmd=("${_CURL[@]}" --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")
         fi
       else
         if [ "$_postContentType" ]; then
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url" | _base64)"
+          cmd=("${_CURL[@]}" --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url")
         else
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url" | _base64)"
+          cmd=("${_CURL[@]}" --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url")
         fi
       fi
+      response="$("${cmd[@]}" | _base64)"
     else
       if [ "$body" ]; then
         if [ "$_postContentType" ]; then
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+          cmd=("${_CURL[@]}" --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")
         else
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+          cmd=("${_CURL[@]}" --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")
         fi
       else
         if [ "$_postContentType" ]; then
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url")"
+          cmd=("${_CURL[@]}" --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url")
         else
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url")"
+          cmd=("${_CURL[@]}" --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url")
         fi
       fi
+      response="$("${cmd[@]}")"
     fi
     _ret="$?"
     if [ "$_ret" != "0" ]; then
@@ -2041,18 +2028,18 @@ _get() {
   _inithttp
 
   if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
-    _CURL="$_ACME_CURL"
+    _CURL=("${_ACME_CURL[@]}")
     if [ "$HTTPS_INSECURE" ]; then
       _CURL="$_CURL --insecure  "
     fi
     if [ "$t" ]; then
       _CURL="$_CURL --connect-timeout $t"
     fi
-    _debug "_CURL" "$_CURL"
+    _debug "_CURL" "${_CURL[*]}"
     if [ "$onlyheader" ]; then
-      $_CURL -I --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
+      "${_CURL[@]}" -I --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
     else
-      $_CURL --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
+      "${_CURL[@]}" --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
     fi
     ret=$?
     if [ "$ret" != "0" ]; then
@@ -2864,10 +2851,6 @@ _initpath() {
     ACME_DIR="/home/.acme"
   fi
 
-  if [ -z "$APACHE_CONF_BACKUP_DIR" ]; then
-    APACHE_CONF_BACKUP_DIR="$LE_CONFIG_HOME"
-  fi
-
   if [ -z "$USER_AGENT" ]; then
     USER_AGENT="$DEFAULT_USER_AGENT"
   fi
@@ -2956,405 +2939,9 @@ _initpath() {
 
 }
 
-_apachePath() {
-  _APACHECTL="apachectl"
-  if ! _exists apachectl; then
-    if _exists apache2ctl; then
-      _APACHECTL="apache2ctl"
-    else
-      _err "'apachectl not found. It seems that apache is not installed, or you are not root user.'"
-      _err "Please use webroot mode to try again."
-      return 1
-    fi
-  fi
-
-  if ! $_APACHECTL -V >/dev/null; then
-    return 1
-  fi
-
-  if [ "$APACHE_HTTPD_CONF" ]; then
-    _saveaccountconf APACHE_HTTPD_CONF "$APACHE_HTTPD_CONF"
-    httpdconf="$APACHE_HTTPD_CONF"
-    httpdconfname="$(basename "$httpdconfname")"
-  else
-    httpdconfname="$($_APACHECTL -V | grep SERVER_CONFIG_FILE= | cut -d = -f 2 | tr -d '"')"
-    _debug httpdconfname "$httpdconfname"
-
-    if [ -z "$httpdconfname" ]; then
-      _err "Can not read apache config file."
-      return 1
-    fi
-
-    if _startswith "$httpdconfname" '/'; then
-      httpdconf="$httpdconfname"
-      httpdconfname="$(basename "$httpdconfname")"
-    else
-      httpdroot="$($_APACHECTL -V | grep HTTPD_ROOT= | cut -d = -f 2 | tr -d '"')"
-      _debug httpdroot "$httpdroot"
-      httpdconf="$httpdroot/$httpdconfname"
-      httpdconfname="$(basename "$httpdconfname")"
-    fi
-  fi
-  _debug httpdconf "$httpdconf"
-  _debug httpdconfname "$httpdconfname"
-  if [ ! -f "$httpdconf" ]; then
-    _err "Apache Config file not found" "$httpdconf"
-    return 1
-  fi
-  return 0
-}
-
-_restoreApache() {
-  if [ -z "$usingApache" ]; then
-    return 0
-  fi
-  _initpath
-  if ! _apachePath; then
-    return 1
-  fi
-
-  if [ ! -f "$APACHE_CONF_BACKUP_DIR/$httpdconfname" ]; then
-    _debug "No config file to restore."
-    return 0
-  fi
-
-  cat "$APACHE_CONF_BACKUP_DIR/$httpdconfname" >"$httpdconf"
-  _debug "Restored: $httpdconf."
-  if ! $_APACHECTL -t; then
-    _err "Sorry, restore apache config error, please contact me."
-    return 1
-  fi
-  _debug "Restored successfully."
-  rm -f "$APACHE_CONF_BACKUP_DIR/$httpdconfname"
-  return 0
-}
-
-_setApache() {
-  _initpath
-  if ! _apachePath; then
-    return 1
-  fi
-
-  #test the conf first
-  _info "Checking if there is an error in the apache config file before starting."
-
-  if ! $_APACHECTL -t >/dev/null; then
-    _err "The apache config file has error, please fix it first, then try again."
-    _err "Don't worry, there is nothing changed to your system."
-    return 1
-  else
-    _info "OK"
-  fi
-
-  #backup the conf
-  _debug "Backup apache config file" "$httpdconf"
-  if ! cp "$httpdconf" "$APACHE_CONF_BACKUP_DIR/"; then
-    _err "Can not backup apache config file, so abort. Don't worry, the apache config is not changed."
-    _err "This might be a bug of $PROJECT_NAME , please report issue: $PROJECT"
-    return 1
-  fi
-  _info "JFYI, Config file $httpdconf is backuped to $APACHE_CONF_BACKUP_DIR/$httpdconfname"
-  _info "In case there is an error that can not be restored automatically, you may try restore it yourself."
-  _info "The backup file will be deleted on success, just forget it."
-
-  #add alias
-
-  apacheVer="$($_APACHECTL -V | grep "Server version:" | cut -d : -f 2 | cut -d " " -f 2 | cut -d '/' -f 2)"
-  _debug "apacheVer" "$apacheVer"
-  apacheMajor="$(echo "$apacheVer" | cut -d . -f 1)"
-  apacheMinor="$(echo "$apacheVer" | cut -d . -f 2)"
-
-  if [ "$apacheVer" ] && [ "$apacheMajor$apacheMinor" -ge "24" ]; then
-    echo "
-Alias /.well-known/acme-challenge  $ACME_DIR
-
-<Directory $ACME_DIR >
-Require all granted
-</Directory>
-  " >>"$httpdconf"
-  else
-    echo "
-Alias /.well-known/acme-challenge  $ACME_DIR
-
-<Directory $ACME_DIR >
-Order allow,deny
-Allow from all
-</Directory>
-  " >>"$httpdconf"
-  fi
-
-  _msg="$($_APACHECTL -t 2>&1)"
-  if [ "$?" != "0" ]; then
-    _err "Sorry, apache config error"
-    if _restoreApache; then
-      _err "The apache config file is restored."
-    else
-      _err "Sorry, the apache config file can not be restored, please report bug."
-    fi
-    return 1
-  fi
-
-  if [ ! -d "$ACME_DIR" ]; then
-    mkdir -p "$ACME_DIR"
-    chmod 755 "$ACME_DIR"
-  fi
-
-  if ! $_APACHECTL graceful; then
-    _err "$_APACHECTL  graceful error, please contact me."
-    _restoreApache
-    return 1
-  fi
-  usingApache="1"
-  return 0
-}
-
-#find the real nginx conf file
-#backup
-#set the nginx conf
-#returns the real nginx conf file
-_setNginx() {
-  _d="$1"
-  _croot="$2"
-  _thumbpt="$3"
-
-  FOUND_REAL_NGINX_CONF=""
-  FOUND_REAL_NGINX_CONF_LN=""
-  BACKUP_NGINX_CONF=""
-  _debug _croot "$_croot"
-  _start_f="$(echo "$_croot" | cut -d : -f 2)"
-  _debug _start_f "$_start_f"
-  if [ -z "$_start_f" ]; then
-    _debug "find start conf from nginx command"
-    if [ -z "$NGINX_CONF" ]; then
-      if ! _exists "nginx"; then
-        _err "nginx command is not found."
-        return 1
-      fi
-      NGINX_CONF="$(nginx -V 2>&1 | _egrep_o "--conf-path=[^ ]* " | tr -d " ")"
-      _debug NGINX_CONF "$NGINX_CONF"
-      NGINX_CONF="$(echo "$NGINX_CONF" | cut -d = -f 2)"
-      _debug NGINX_CONF "$NGINX_CONF"
-      if [ -z "$NGINX_CONF" ]; then
-        _err "Can not find nginx conf."
-        NGINX_CONF=""
-        return 1
-      fi
-      if [ ! -f "$NGINX_CONF" ]; then
-        _err "'$NGINX_CONF' doesn't exist."
-        NGINX_CONF=""
-        return 1
-      fi
-      _debug "Found nginx conf file:$NGINX_CONF"
-    fi
-    _start_f="$NGINX_CONF"
-  fi
-  _debug "Start detect nginx conf for $_d from:$_start_f"
-  if ! _checkConf "$_d" "$_start_f"; then
-    _err "Can not find conf file for domain $d"
-    return 1
-  fi
-  _info "Found conf file: $FOUND_REAL_NGINX_CONF"
-
-  _ln=$FOUND_REAL_NGINX_CONF_LN
-  _debug "_ln" "$_ln"
-
-  _lnn=$(_math $_ln + 1)
-  _debug _lnn "$_lnn"
-  _start_tag="$(sed -n "$_lnn,${_lnn}p" "$FOUND_REAL_NGINX_CONF")"
-  _debug "_start_tag" "$_start_tag"
-  if [ "$_start_tag" = "$NGINX_START" ]; then
-    _info "The domain $_d is already configured, skip"
-    FOUND_REAL_NGINX_CONF=""
-    return 0
-  fi
-
-  mkdir -p "$DOMAIN_BACKUP_PATH"
-  _backup_conf="$DOMAIN_BACKUP_PATH/$_d.nginx.conf"
-  _debug _backup_conf "$_backup_conf"
-  BACKUP_NGINX_CONF="$_backup_conf"
-  _info "Backup $FOUND_REAL_NGINX_CONF to $_backup_conf"
-  if ! cp "$FOUND_REAL_NGINX_CONF" "$_backup_conf"; then
-    _err "backup error."
-    FOUND_REAL_NGINX_CONF=""
-    return 1
-  fi
-
-  if ! _exists "nginx"; then
-    _err "nginx command is not found."
-    return 1
-  fi
-  _info "Check the nginx conf before setting up."
-  if ! nginx -t >/dev/null; then
-    return 1
-  fi
-
-  _info "OK, Set up nginx config file"
-
-  if ! sed -n "1,${_ln}p" "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"; then
-    cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
-    _err "write nginx conf error, but don't worry, the file is restored to the original version."
-    return 1
-  fi
-
-  echo "$NGINX_START
-location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
-  default_type text/plain;
-  return 200 \"\$1.$_thumbpt\";
-}
-#NGINX_START
-" >>"$FOUND_REAL_NGINX_CONF"
-
-  if ! sed -n "${_lnn},99999p" "$_backup_conf" >>"$FOUND_REAL_NGINX_CONF"; then
-    cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
-    _err "write nginx conf error, but don't worry, the file is restored."
-    return 1
-  fi
-  _debug3 "Modified config:$(cat $FOUND_REAL_NGINX_CONF)"
-  _info "nginx conf is done, let's check it again."
-  if ! nginx -t >/dev/null; then
-    _err "It seems that nginx conf was broken, let's restore."
-    cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
-    return 1
-  fi
-
-  _info "Reload nginx"
-  if ! nginx -s reload >/dev/null; then
-    _err "It seems that nginx reload error, let's restore."
-    cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
-    return 1
-  fi
-
-  return 0
-}
-
-#d , conf
-_checkConf() {
-  _d="$1"
-  _c_file="$2"
-  _debug "Start _checkConf from:$_c_file"
-  if [ ! -f "$2" ] && ! echo "$2" | grep '*$' >/dev/null && echo "$2" | grep '*' >/dev/null; then
-    _debug "wildcard"
-    for _w_f in $2; do
-      if [ -f "$_w_f" ] && _checkConf "$1" "$_w_f"; then
-        return 0
-      fi
-    done
-    #not found
-    return 1
-  elif [ -f "$2" ]; then
-    _debug "single"
-    if _isRealNginxConf "$1" "$2"; then
-      _debug "$2 is found."
-      FOUND_REAL_NGINX_CONF="$2"
-      return 0
-    fi
-    if cat "$2" | tr "\t" " " | grep "^ *include *.*;" >/dev/null; then
-      _debug "Try include files"
-      for included in $(cat "$2" | tr "\t" " " | grep "^ *include *.*;" | sed "s/include //" | tr -d " ;"); do
-        _debug "check included $included"
-        if ! _startswith "$included" "/" && _exists dirname; then
-          _relpath="$(dirname "$2")"
-          _debug "_relpath" "$_relpath"
-          included="$_relpath/$included"
-        fi
-        if _checkConf "$1" "$included"; then
-          return 0
-        fi
-      done
-    fi
-    return 1
-  else
-    _debug "$2 not found."
-    return 1
-  fi
-  return 1
-}
-
-#d , conf
-_isRealNginxConf() {
-  _debug "_isRealNginxConf $1 $2"
-  if [ -f "$2" ]; then
-    for _fln in $(tr "\t" ' ' <"$2" | grep -n "^ *server_name.* $1" | cut -d : -f 1); do
-      _debug _fln "$_fln"
-      if [ "$_fln" ]; then
-        _start=$(tr "\t" ' ' <"$2" | _head_n "$_fln" | grep -n "^ *server *" | grep -v server_name | _tail_n 1)
-        _debug "_start" "$_start"
-        _start_n=$(echo "$_start" | cut -d : -f 1)
-        _start_nn=$(_math $_start_n + 1)
-        _debug "_start_n" "$_start_n"
-        _debug "_start_nn" "$_start_nn"
-
-        _left="$(sed -n "${_start_nn},99999p" "$2")"
-        _debug2 _left "$_left"
-        _end="$(echo "$_left" | tr "\t" ' ' | grep -n "^ *server *" | grep -v server_name | _head_n 1)"
-        _debug "_end" "$_end"
-        if [ "$_end" ]; then
-          _end_n=$(echo "$_end" | cut -d : -f 1)
-          _debug "_end_n" "$_end_n"
-          _seg_n=$(echo "$_left" | sed -n "1,${_end_n}p")
-        else
-          _seg_n="$_left"
-        fi
-
-        _debug "_seg_n" "$_seg_n"
-
-        _skip_ssl=1
-        for _listen_i in $(echo "$_seg_n" | tr "\t" ' ' | grep "^ *listen" | tr -d " "); do
-          if [ "$_listen_i" ]; then
-            if [ "$(echo "$_listen_i" | _egrep_o "listen.*ssl")" ]; then
-              _debug2 "$_listen_i is ssl"
-            else
-              _debug2 "$_listen_i is plain text"
-              _skip_ssl=""
-              break
-            fi
-          fi
-        done
-
-        if [ "$_skip_ssl" = "1" ]; then
-          _debug "ssl on, skip"
-        else
-          FOUND_REAL_NGINX_CONF_LN=$_fln
-          _debug3 "found FOUND_REAL_NGINX_CONF_LN" "$FOUND_REAL_NGINX_CONF_LN"
-          return 0
-        fi
-      fi
-    done
-  fi
-  return 1
-}
-
-#restore all the nginx conf
-_restoreNginx() {
-  if [ -z "$NGINX_RESTORE_VLIST" ]; then
-    _debug "No need to restore nginx, skip."
-    return
-  fi
-  _debug "_restoreNginx"
-  _debug "NGINX_RESTORE_VLIST" "$NGINX_RESTORE_VLIST"
-
-  for ng_entry in $(echo "$NGINX_RESTORE_VLIST" | tr "$dvsep" ' '); do
-    _debug "ng_entry" "$ng_entry"
-    _nd=$(echo "$ng_entry" | cut -d "$sep" -f 1)
-    _ngconf=$(echo "$ng_entry" | cut -d "$sep" -f 2)
-    _ngbackupconf=$(echo "$ng_entry" | cut -d "$sep" -f 3)
-    _info "Restoring from $_ngbackupconf to $_ngconf"
-    cat "$_ngbackupconf" >"$_ngconf"
-  done
-
-  _info "Reload nginx"
-  if ! nginx -s reload >/dev/null; then
-    _err "It seems that nginx reload error, please report bug."
-    return 1
-  fi
-  return 0
-}
-
 _clearup() {
   _stopserver "$serverproc"
   serverproc=""
-  _restoreApache
-  _restoreNginx
   _clearupdns
   if [ -z "$DEBUG" ]; then
     rm -f "$TLS_CONF"
@@ -3468,7 +3055,7 @@ _on_before_issue() {
     if ! (
       export Le_Domain="$_chk_main_domain"
       export Le_Alt="$_chk_alt_domains"
-      cd "$DOMAIN_PATH" && eval "$_chk_pre_hook"
+      cd "$DOMAIN_PATH" && eval "\"$_chk_pre_hook\""
     ); then
       _err "Error when run pre hook."
       return 1
@@ -3540,15 +3127,6 @@ _on_before_issue() {
     fi
   done
 
-  if _hasfield "$_chk_web_roots" "apache"; then
-    if ! _setApache; then
-      _err "set up apache error. Report error to me."
-      return 1
-    fi
-  else
-    usingApache=""
-  fi
-
 }
 
 _on_issue_err() {
@@ -3567,7 +3145,7 @@ _on_issue_err() {
   if [ "$_chk_post_hook" ]; then
     _info "Run post hook:'$_chk_post_hook'"
     if ! (
-      cd "$DOMAIN_PATH" && eval "$_chk_post_hook"
+      cd "$DOMAIN_PATH" && eval "\"$_chk_post_hook\""
     ); then
       _err "Error when run post hook."
       return 1
@@ -3615,7 +3193,7 @@ _on_issue_success() {
       export CA_CERT_PATH
       export CERT_FULLCHAIN_PATH
       export Le_Domain="$_main_domain"
-      cd "$DOMAIN_PATH" && eval "$_chk_post_hook"
+      cd "$DOMAIN_PATH" && eval "\"$_chk_post_hook\""
     ); then
       _err "Error when run post hook."
       return 1
@@ -3631,7 +3209,7 @@ _on_issue_success() {
       export CA_CERT_PATH
       export CERT_FULLCHAIN_PATH
       export Le_Domain="$_main_domain"
-      cd "$DOMAIN_PATH" && eval "$_chk_renew_hook"
+      cd "$DOMAIN_PATH" && eval "\"$_chk_renew_hook\""
     ); then
       _err "Error when run renew hook."
       return 1
@@ -3802,7 +3380,7 @@ _regAccount() {
     fi
     _savecaconf "ACCOUNT_URL" "$_accUri"
   else
-    ACCOUNT_URL="$(_readcaconf ACCOUNT_URL)"
+    ACCOUNT_URL="$(_readcaconf "ACCOUNT_URL")"
   fi
   export ACCOUNT_URL="$_accUri"
 
@@ -4338,7 +3916,7 @@ issue() {
     return 1
   fi
   if [ -z "$1" ]; then
-    _usage "Please specify at least one validation method: '--webroot', '--standalone', '--apache', '--nginx' or '--dns' etc."
+    _usage "Please specify at least one validation method: '--webroot', '--standalone' or '--dns' etc."
     return 1
   fi
   _web_roots="$1"
@@ -4862,7 +4440,6 @@ $_authorizations_map"
     fi
   fi
 
-  NGINX_RESTORE_VLIST=""
   _debug "ok, let's start to verify"
 
   _ncIndex=1
@@ -4905,54 +4482,6 @@ $_authorizations_map"
       elif [ "$_currentRoot" = "$MODE_STATELESS" ]; then
         _info "Stateless mode for domain:$d"
         _sleep 1
-      elif _startswith "$_currentRoot" "$NGINX"; then
-        _info "Nginx mode for domain:$d"
-        #set up nginx server
-        FOUND_REAL_NGINX_CONF=""
-        BACKUP_NGINX_CONF=""
-        if ! _setNginx "$d" "$_currentRoot" "$thumbprint"; then
-          _clearup
-          _on_issue_err "$_post_hook" "$vlist"
-          return 1
-        fi
-
-        if [ "$FOUND_REAL_NGINX_CONF" ]; then
-          _realConf="$FOUND_REAL_NGINX_CONF"
-          _backup="$BACKUP_NGINX_CONF"
-          _debug _realConf "$_realConf"
-          NGINX_RESTORE_VLIST="$d$sep$_realConf$sep$_backup$dvsep$NGINX_RESTORE_VLIST"
-        fi
-        _sleep 1
-      else
-        if [ "$_currentRoot" = "apache" ]; then
-          wellknown_path="$ACME_DIR"
-        else
-          wellknown_path="$_currentRoot/.well-known/acme-challenge"
-          if [ ! -d "$_currentRoot/.well-known" ]; then
-            removelevel='1'
-          elif [ ! -d "$_currentRoot/.well-known/acme-challenge" ]; then
-            removelevel='2'
-          else
-            removelevel='3'
-          fi
-        fi
-
-        _debug wellknown_path "$wellknown_path"
-
-        _debug "writing token:$token to $wellknown_path/$token"
-
-        mkdir -p "$wellknown_path"
-
-        if ! printf "%s" "$keyauthorization" >"$wellknown_path/$token"; then
-          _err "$d:Can not write token to file : $wellknown_path/$token"
-          _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
-          _clearup
-          _on_issue_err "$_post_hook" "$vlist"
-          return 1
-        fi
-        if ! chmod a+r "$wellknown_path/$token"; then
-          _debug "chmod failed, but we just continue."
-        fi
       fi
     elif [ "$vtype" = "$VTYPE_ALPN" ]; then
       acmevalidationv1="$(printf "%s" "$keyauthorization" | _digest "sha256" "hex")"
@@ -6852,7 +6381,6 @@ Commands:
   --upgrade                Upgrade $PROJECT_NAME to the latest code from $PROJECT.
   --issue                  Issue a cert.
   --deploy                 Deploy the cert to your server.
-  -i, --install-cert       Install the issued cert to apache/nginx or any other server.
   -r, --renew              Renew a cert.
   --renew-all              Renew all the certs.
   --revoke                 Revoke a cert.
@@ -6908,7 +6436,6 @@ Parameters:
   --stateless                       Use stateless mode.
                                       See: $_STATELESS_WIKI
 
-  --apache                          Use apache mode.
   --dns [dns_hook]                  Use dns manual mode or dns api. Defaults to manual mode when argument is omitted.
                                       See: $_DNS_API_WIKI
 
@@ -6922,14 +6449,6 @@ Parameters:
   --eab-kid <eab_key_id>            Key Identifier for External Account Binding.
   --eab-hmac-key <eab_hmac_key>     HMAC key for External Account Binding.
 
-
-  These parameters are to install the cert to nginx/apache or any other server after issue/renew a cert:
-
-  --cert-file <file>                Path to copy the cert file to after issue/renew..
-  --key-file <file>                 Path to copy the key file to after issue/renew.
-  --ca-file <file>                  Path to copy the intermediate cert file to after issue/renew.
-  --fullchain-file <file>           Path to copy the fullchain cert file to after issue/renew.
-  --reloadcmd <command>             Command to execute after issue/renew to reload the server.
 
   --server <server_uri>             ACME Directory Resource URI. (default: $DEFAULT_CA)
                                       See: $_SERVER_WIKI
@@ -7464,26 +6983,6 @@ _process() {
       lvalue="$2"
       _local_address="$_local_address$lvalue,"
       shift
-      ;;
-    --apache)
-      wvalue="apache"
-      if [ -z "$_webroot" ]; then
-        _webroot="$wvalue"
-      else
-        _webroot="$_webroot,$wvalue"
-      fi
-      ;;
-    --nginx)
-      wvalue="$NGINX"
-      if [ "$2" ] && ! _startswith "$2" "-"; then
-        wvalue="$NGINX$2"
-        shift
-      fi
-      if [ -z "$_webroot" ]; then
-        _webroot="$wvalue"
-      else
-        _webroot="$_webroot,$wvalue"
-      fi
       ;;
     --dns)
       wvalue="$W_DNS"
