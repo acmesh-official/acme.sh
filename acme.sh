@@ -1039,12 +1039,15 @@ _sign() {
     return 1
   fi
 
-  _sign_openssl="${ACME_OPENSSL_BIN:-openssl} dgst -sign $keyfile "
+  _sign_openssl=("${ACME_OPENSSL_BIN:-openssl}" dgst -sign "$keyfile")
 
   if _isRSA "$keyfile" >/dev/null 2>&1; then
-    $_sign_openssl -$alg | _base64
+    cmd=("${_sign_openssl[@]}" -$alg)
+    "${cmd[@]}" | _base64
   elif _isEcc "$keyfile" >/dev/null 2>&1; then
-    if ! _signedECText="$($_sign_openssl -sha$__ECC_KEY_LEN | ${ACME_OPENSSL_BIN:-openssl} asn1parse -inform DER)"; then
+    cmd1=("${_sign_openssl[@]}" -sha$__ECC_KEY_LEN)
+    cmd2=("${ACME_OPENSSL_BIN:-openssl}" asn1parse -inform DER)
+    if ! _signedECText="$("${cmd1[@]}" | "${cmd2[@]}")"; then
       _err "Sign failed: $_sign_openssl"
       _err "Key file: $keyfile"
       _err "Key content:$(wc -l <"$keyfile") lines"
@@ -1827,23 +1830,23 @@ _inithttp() {
   fi
 
   if [ -z "$_ACME_CURL" ] && _exists "curl"; then
-    _ACME_CURL="curl --silent --dump-header $HTTP_HEADER "
+    _ACME_CURL=(curl --silent --dump-header "${HTTP_HEADER}")
     if [ -z "$ACME_HTTP_NO_REDIRECTS" ]; then
-      _ACME_CURL="$_ACME_CURL -L "
+      _ACME_CURL+=(-L)
     fi
     if [ "$DEBUG" ] && [ "$DEBUG" -ge 2 ]; then
       _CURL_DUMP="$(_mktemp)"
-      _ACME_CURL="$_ACME_CURL --trace-ascii $_CURL_DUMP "
+      _ACME_CURL+=(--trace-ascii $_CURL_DUMP)
     fi
 
     if [ "$CA_PATH" ]; then
-      _ACME_CURL="$_ACME_CURL --capath $CA_PATH "
+      _ACME_CURL+=(--capath "$CA_PATH")
     elif [ "$CA_BUNDLE" ]; then
-      _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
+      _ACME_CURL+=(--cacert "$CA_BUNDLE")
     fi
 
     if _contains "$(curl --help 2>&1)" "--globoff" || _contains "$(curl --help curl 2>&1)" "--globoff"; then
-      _ACME_CURL="$_ACME_CURL -g "
+      _ACME_CURL+=(-g)
     fi
 
     #don't use --fail-with-body
@@ -1898,42 +1901,44 @@ _post() {
   _inithttp
 
   if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
-    _CURL="$_ACME_CURL"
+    _CURL=("${_ACME_CURL[@]}")
     if [ "$HTTPS_INSECURE" ]; then
-      _CURL="$_CURL --insecure  "
+      _CURL+=(--insecure)
     fi
     if [ "$httpmethod" = "HEAD" ]; then
-      _CURL="$_CURL -I  "
+      _CURL+=(-I)
     fi
-    _debug "_CURL" "$_CURL"
+    _debug "_CURL" "${_CURL[*]}"
     if [ "$needbase64" ]; then
       if [ "$body" ]; then
         if [ "$_postContentType" ]; then
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+          cmd=("${_CURL[@]}" --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")
         else
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url" | _base64)"
+          cmd=("${_CURL[@]}" --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")
         fi
       else
         if [ "$_postContentType" ]; then
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url" | _base64)"
+          cmd=("${_CURL[@]}" --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url")
         else
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url" | _base64)"
+          cmd=("${_CURL[@]}" --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url")
         fi
       fi
+      response="$("${cmd[@]}" | _base64)"
     else
       if [ "$body" ]; then
         if [ "$_postContentType" ]; then
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+          cmd=("${_CURL[@]}" --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")
         else
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")"
+          cmd=("${_CURL[@]}" --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data "$body" "$_post_url")
         fi
       else
         if [ "$_postContentType" ]; then
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url")"
+          cmd=("${_CURL[@]}" --user-agent "$USER_AGENT" -X $httpmethod -H "Content-Type: $_postContentType" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url")
         else
-          response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url")"
+          cmd=("${_CURL[@]}" --user-agent "$USER_AGENT" -X $httpmethod -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$_post_url")
         fi
       fi
+      response="$("${cmd[@]}")"
     fi
     _ret="$?"
     if [ "$_ret" != "0" ]; then
@@ -2023,18 +2028,18 @@ _get() {
   _inithttp
 
   if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
-    _CURL="$_ACME_CURL"
+    _CURL=("${_ACME_CURL[@]}")
     if [ "$HTTPS_INSECURE" ]; then
       _CURL="$_CURL --insecure  "
     fi
     if [ "$t" ]; then
       _CURL="$_CURL --connect-timeout $t"
     fi
-    _debug "_CURL" "$_CURL"
+    _debug "_CURL" "${_CURL[*]}"
     if [ "$onlyheader" ]; then
-      $_CURL -I --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
+      "${_CURL[@]}" -I --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
     else
-      $_CURL --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
+      "${_CURL[@]}" --user-agent "$USER_AGENT" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" "$url"
     fi
     ret=$?
     if [ "$ret" != "0" ]; then
@@ -3050,7 +3055,7 @@ _on_before_issue() {
     if ! (
       export Le_Domain="$_chk_main_domain"
       export Le_Alt="$_chk_alt_domains"
-      cd "$DOMAIN_PATH" && eval "$_chk_pre_hook"
+      cd "$DOMAIN_PATH" && eval "\"$_chk_pre_hook\""
     ); then
       _err "Error when run pre hook."
       return 1
@@ -3140,7 +3145,7 @@ _on_issue_err() {
   if [ "$_chk_post_hook" ]; then
     _info "Run post hook:'$_chk_post_hook'"
     if ! (
-      cd "$DOMAIN_PATH" && eval "$_chk_post_hook"
+      cd "$DOMAIN_PATH" && eval "\"$_chk_post_hook\""
     ); then
       _err "Error when run post hook."
       return 1
@@ -3188,7 +3193,7 @@ _on_issue_success() {
       export CA_CERT_PATH
       export CERT_FULLCHAIN_PATH
       export Le_Domain="$_main_domain"
-      cd "$DOMAIN_PATH" && eval "$_chk_post_hook"
+      cd "$DOMAIN_PATH" && eval "\"$_chk_post_hook\""
     ); then
       _err "Error when run post hook."
       return 1
@@ -3204,7 +3209,7 @@ _on_issue_success() {
       export CA_CERT_PATH
       export CERT_FULLCHAIN_PATH
       export Le_Domain="$_main_domain"
-      cd "$DOMAIN_PATH" && eval "$_chk_renew_hook"
+      cd "$DOMAIN_PATH" && eval "\"$_chk_renew_hook\""
     ); then
       _err "Error when run renew hook."
       return 1
@@ -3375,7 +3380,7 @@ _regAccount() {
     fi
     _savecaconf "ACCOUNT_URL" "$_accUri"
   else
-    ACCOUNT_URL="$(_readcaconf ACCOUNT_URL)"
+    ACCOUNT_URL="$(_readcaconf "ACCOUNT_URL")"
   fi
   export ACCOUNT_URL="$_accUri"
 
