@@ -6925,7 +6925,7 @@ Parameters:
 
   These parameters are to install the cert to nginx/apache or any other server after issue/renew a cert:
 
-  --cert-file <file>                Path to copy the cert file to after issue/renew..
+  --cert-file <file>                Path to copy the cert file to after issue/renew.
   --key-file <file>                 Path to copy the key file to after issue/renew.
   --ca-file <file>                  Path to copy the intermediate cert file to after issue/renew.
   --fullchain-file <file>           Path to copy the fullchain cert file to after issue/renew.
