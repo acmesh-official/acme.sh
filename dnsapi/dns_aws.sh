@@ -157,7 +157,7 @@ _get_root() {
 
   # iterate over names (a.b.c.d -> b.c.d -> c.d -> d)
   while true; do
-    h=$(printf "%s." "$domain" | cut -d . -f $i-100 | sed 's/\./\\./g')
+    h=$(printf "%s" "$domain" | cut -d . -f $i-100 | sed 's/\./\\./g')
     _debug "Checking domain: $h"
     if [ -z "$h" ]; then
       _error "invalid domain"
@@ -168,7 +168,7 @@ _get_root() {
     aws_rest GET "2013-04-01/hostedzone"
     while true; do
       if _contains "$response" "<Name>$h.</Name>"; then
-        hostedzone="$(echo "$response" | tr -d '\n' | sed 's/<HostedZone>/#&/g' | tr '#' '\n' | _egrep_o "<HostedZone><Id>[^<]*<.Id><Name>$h<.Name>.*<PrivateZone>false<.PrivateZone>.*<.HostedZone>")"
+        hostedzone="$(echo "$response" | tr -d '\n' | sed 's/<HostedZone>/#&/g' | tr '#' '\n' | _egrep_o "<HostedZone><Id>[^<]*<.Id><Name>$h.<.Name>.*<PrivateZone>false<.PrivateZone>.*<.HostedZone>")"
         _debug hostedzone "$hostedzone"
         if [ "$hostedzone" ]; then
           _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "<Id>.*<.Id>" | head -n 1 | _egrep_o ">.*<" | tr -d "<>")
