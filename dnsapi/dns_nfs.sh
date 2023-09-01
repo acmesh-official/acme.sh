@@ -13,7 +13,6 @@
 # Usage: dns_nfs_add _acme-challenge.domain.com "KjiayTfXPHmnHmOdevsOtJyzsU9AHw2T6R0lNVCl_oi"
 dns_nfs_add() {
   FULLDOMAIN=$1
-  TXTVALUE=$2
   ROOTDOMAIN=$(echo "$FULLDOMAIN" | awk -F '.' '{print $(NF-1)"."$NF}')
   SUBDOMAIN=$(echo "$FULLDOMAIN" | sed 's/.'"$ROOTDOMAIN"'//g')
 
@@ -27,7 +26,6 @@ dns_nfs_add() {
 # Usage: dns_nfs_rm domain.com "KjiayTfXPHmnHmOdevsOtJyzsU9AHw2T6R0lNVCl_oi"
 dns_nfs_rm() {
   FULLDOMAIN=$1
-  TXTVALUE=$2
   ROOTDOMAIN=$(echo "$FULLDOMAIN" | awk -F '.' '{print $(NF-1)"."$NF}')
   SUBDOMAIN=$(echo "$FULLDOMAIN" | sed 's/.'"$ROOTDOMAIN"'//g')
 
