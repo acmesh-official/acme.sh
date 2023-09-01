@@ -65,6 +65,7 @@ _nfs_rest () {
     while test $COUNT -le $#
     do
         eval "PARAMETER=\$$COUNT"
+        # shellcheck disable=SC2153
         PARAMETERS="$PARAMETERS&$PARAMETER"
         COUNT=$((COUNT + 1))
     done
