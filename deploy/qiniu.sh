@@ -53,7 +53,7 @@ qiniu_deploy() {
   sslcert_access_token="$(_make_access_token "$sslcert_path")"
   _debug sslcert_access_token "$sslcert_access_token"
   export _H1="Authorization: QBox $sslcert_access_token"
-  sslcert_response=$(_post "$sslcerl_body" "$QINIU_API_BASE$sslcert_path" 0 "POST" "application/json" | _dbase64 "multiline")
+  sslcert_response=$(_post "$sslcerl_body" "$QINIU_API_BASE$sslcert_path" 0 "POST" "application/json" | _dbase64)
 
   if ! _contains "$sslcert_response" "certID"; then
     _err "Error in creating certificate:"
@@ -75,7 +75,7 @@ qiniu_deploy() {
     update_access_token="$(_make_access_token "$update_path")"
     _debug update_access_token "$update_access_token"
     export _H1="Authorization: QBox $update_access_token"
-    update_response=$(_post "$update_body" "$QINIU_API_BASE$update_path" 0 "PUT" "application/json" | _dbase64 "multiline")
+    update_response=$(_post "$update_body" "$QINIU_API_BASE$update_path" 0 "PUT" "application/json" | _dbase64)
 
     if _contains "$update_response" "error"; then
       _err "Error in updating domain $domain httpsconf:"

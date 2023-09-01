@@ -110,7 +110,7 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$response" "<domain>$host"; then
+    if _contains "$response" ">$host</domain>"; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain="$host"
       return 0

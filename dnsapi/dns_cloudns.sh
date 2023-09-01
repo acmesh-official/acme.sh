@@ -78,7 +78,7 @@ dns_cloudns_rm() {
     return 1
   fi
 
-  for i in $(echo "$response" | tr '{' "\n" | grep "$record"); do
+  for i in $(echo "$response" | tr '{' "\n" | grep -- "$record"); do
     record_id=$(echo "$i" | tr ',' "\n" | grep -E '^"id"' | sed -re 's/^\"id\"\:\"([0-9]+)\"$/\1/g')
 
     if [ -n "$record_id" ]; then

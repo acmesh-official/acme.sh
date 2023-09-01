@@ -74,7 +74,7 @@ dns_mydevil_rm() {
   validRecords="^${num}${w}${fulldomain}${w}TXT${w}${any}${txtvalue}$"
   for id in $(devil dns list "$domain" | tail -n+2 | grep "${validRecords}" | cut -w -s -f 1); do
     _info "Removing record $id from domain $domain"
-    devil dns del "$domain" "$id" || _err "Could not remove DNS record."
+    echo "y" | devil dns del "$domain" "$id" || _err "Could not remove DNS record."
   done
 }
 
@@ -87,7 +87,9 @@ mydevil_get_domain() {
   domain=""
 
   for domain in $(devil dns list | cut -w -s -f 1 | tail -n+2); do
+    _debug "Checking domain: $domain"
     if _endswith "$fulldomain" "$domain"; then
+      _debug "Fulldomain '$fulldomain' matches '$domain'"
       printf -- "%s" "$domain"
       return 0
     fi
