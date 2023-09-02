@@ -102,7 +102,7 @@ ECC_SUFFIX="${ECC_SEP}ecc"
 LOG_LEVEL_1=1
 LOG_LEVEL_2=2
 LOG_LEVEL_3=3
-DEFAULT_LOG_LEVEL="$LOG_LEVEL_1"
+DEFAULT_LOG_LEVEL="$LOG_LEVEL_2"
 
 DEBUG_LEVEL_1=1
 DEBUG_LEVEL_2=2
@@ -6917,7 +6917,7 @@ Parameters:
   -k, --keylength <bits>            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521.
   -ak, --accountkeylength <bits>    Specifies the account key length: 2048, 3072, 4096
   --log [file]                      Specifies the log file. Defaults to \"$DEFAULT_LOG_FILE\" if argument is omitted.
-  --log-level <1|2>                 Specifies the log level, default is 1.
+  --log-level <1|2>                 Specifies the log level, default is $DEFAULT_LOG_LEVEL.
   --syslog <0|3|6|7>                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
   --eab-kid <eab_key_id>            Key Identifier for External Account Binding.
   --eab-hmac-key <eab_hmac_key>     HMAC key for External Account Binding.
