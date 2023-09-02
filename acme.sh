@@ -931,7 +931,7 @@ fi
 
 _egrep_o() {
   if [ "$__USE_EGREP" ]; then
-    egrep -o "$1"
+    egrep -o -- "$1"
   else
     sed -n 's/.*\('"$1"'\).*/\1/p'
   fi
@@ -1561,7 +1561,7 @@ createDomainKey() {
 createCSR() {
   _info "Creating csr"
   if [ -z "$1" ]; then
-    _usage "Usage: $PROJECT_ENTRY --create-csr --domain <domain.tld> [--domain <domain2.tld> ...]"
+    _usage "Usage: $PROJECT_ENTRY --create-csr --domain <domain.tld> [--domain <domain2.tld> ...] [--ecc]"
     return
   fi
 
@@ -3130,7 +3130,7 @@ _setNginx() {
         _err "nginx command is not found."
         return 1
       fi
-      NGINX_CONF="$(nginx -V 2>&1 | _egrep_o "--conf-path=[^ ]* " | tr -d " ")"
+      NGINX_CONF="$(nginx -V 2>&1 | _egrep_o "\-\-conf-path=[^ ]* " | tr -d " ")"
       _debug NGINX_CONF "$NGINX_CONF"
       NGINX_CONF="$(echo "$NGINX_CONF" | cut -d = -f 2)"
       _debug NGINX_CONF "$NGINX_CONF"
@@ -6925,7 +6925,7 @@ Parameters:
 
   These parameters are to install the cert to nginx/apache or any other server after issue/renew a cert:
 
-  --cert-file <file>                Path to copy the cert file to after issue/renew..
+  --cert-file <file>                Path to copy the cert file to after issue/renew.
   --key-file <file>                 Path to copy the key file to after issue/renew.
   --ca-file <file>                  Path to copy the intermediate cert file to after issue/renew.
   --fullchain-file <file>           Path to copy the fullchain cert file to after issue/renew.
@@ -6955,7 +6955,8 @@ Parameters:
   --no-profile                      Only valid for '--install' command, which means: do not install aliases to user profile.
   --no-color                        Do not output color text.
   --force-color                     Force output of color text. Useful for non-interactive use with the aha tool for HTML E-Mails.
-  --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--to-pkcs12' and '--create-csr'
+  --ecc                             Specifies use of the ECC cert. Only valid for '--install-cert', '--renew', '--remove ', '--revoke',
+                                      '--deploy', '--to-pkcs8', '--to-pkcs12' and '--create-csr'.
   --csr <file>                      Specifies the input csr.
   --pre-hook <command>              Command to be run before obtaining any certificates.
   --post-hook <command>             Command to be run after attempting to obtain/renew certificates. Runs regardless of whether obtain/renew succeeded or failed.
