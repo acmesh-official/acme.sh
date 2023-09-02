@@ -5015,9 +5015,9 @@ $_authorizations_map"
         errordetail="$(echo "$error" | _egrep_o '"detail": *"[^"]*' | cut -d '"' -f 4)"
         _debug2 errordetail "$errordetail"
         if [ "$errordetail" ]; then
-          _err "$d:Verify error:$errordetail"
+          _err "Invalid status, $d:Verify error detail:$errordetail"
         else
-          _err "$d:Verify error:$error"
+          _err "Invalid status, $d:Verify error:$error"
         fi
         if [ "$DEBUG" ]; then
           if [ "$vtype" = "$VTYPE_HTTP" ]; then
@@ -5044,7 +5044,7 @@ $_authorizations_map"
       elif _contains "$status" "processing"; then
         _info "Processing, The CA is processing your order, please just wait. ($waittimes/$MAX_RETRY_TIMES)"
       else
-        _err "$d:Verify error:$response"
+        _err "Unknown status: $status, $d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
         _on_issue_err "$_post_hook" "$vlist"
@@ -5057,7 +5057,7 @@ $_authorizations_map"
       _send_signed_request "$_authz_url"
 
       if [ "$?" != "0" ]; then
-        _err "$d:Verify error:$response"
+        _err "Invalid code, $d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
         _on_issue_err "$_post_hook" "$vlist"
