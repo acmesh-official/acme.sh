@@ -51,7 +51,7 @@ dns_tencent_rm() {
     _debug2 record_id "$record_id"
     if [ -z "$record_id" ]; then
       _debug "Due to TencentCloud API synchronization delay, record not found, waiting 10 seconds and retrying"
-      sleep 10
+      _sleep 10
       attempt=$((attempt + 1))
     fi
   done
@@ -71,7 +71,7 @@ dns_tencent_rm() {
 
 _get_root() {
   domain=$1
-  i=2
+  i=1
   p=1
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
@@ -144,19 +144,20 @@ _check_exist_query() {
 # shell client for tencent cloud api v3 | @author: rehiy
 
 tencent_sha256() {
-  printf %b "$@" | ${ACME_OPENSSL_BIN:-openssl} dgst -sha256 -hex | sed 's/^.* //'
+  printf %b "$@" | _digest sha256 hex
 }
 
 tencent_hmac_sha256() {
   k=$1
   shift
-  printf %b "$@" | ${ACME_OPENSSL_BIN:-openssl} dgst -sha256 -hmac "$k" | sed 's/^.* //'
+  hex_key=$(_ascii_hex "$k" | tr -d ' ')
+  printf %b "$@" | _hmac sha256 "$hex_key" hex
 }
 
 tencent_hmac_sha256_hexkey() {
   k=$1
   shift
-  printf %b "$@" | ${ACME_OPENSSL_BIN:-openssl} dgst -sha256 -mac HMAC -macopt "hexkey:$k" | sed 's/^.* //'
+  printf %b "$@" | _hmac sha256 "$k" hex
 }
 
 tencent_signature_v3() {
