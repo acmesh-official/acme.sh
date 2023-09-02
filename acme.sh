@@ -3130,7 +3130,7 @@ _setNginx() {
         _err "nginx command is not found."
         return 1
       fi
-      NGINX_CONF="$(nginx -V 2>&1 | _egrep_o "--conf-path=[^ ]* " | tr -d " ")"
+      NGINX_CONF="$(nginx -V 2>&1 | _egrep_o "\-\-conf-path=[^ ]* " | tr -d " ")"
       _debug NGINX_CONF "$NGINX_CONF"
       NGINX_CONF="$(echo "$NGINX_CONF" | cut -d = -f 2)"
       _debug NGINX_CONF "$NGINX_CONF"
