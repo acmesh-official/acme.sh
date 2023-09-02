@@ -506,10 +506,6 @@ Support this project with your organization. Your logo will show up here with a 
 <a href="https://opencollective.com/acmesh/organization/9/website"><img src="https://opencollective.com/acmesh/organization/9/avatar.svg"></a>
 
 
-#### Sponsors
-
-[![quantumca-acmesh-logo](https://user-images.githubusercontent.com/8305679/183255712-634ee1db-bb61-4c03-bca0-bacce99e078c.svg)](https://www.quantumca.com.cn/?__utm_source=acmesh-donation)
-
 
 # 19. License & Others
 
