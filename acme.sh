@@ -102,12 +102,12 @@ ECC_SUFFIX="${ECC_SEP}ecc"
 LOG_LEVEL_1=1
 LOG_LEVEL_2=2
 LOG_LEVEL_3=3
-DEFAULT_LOG_LEVEL="$LOG_LEVEL_1"
+DEFAULT_LOG_LEVEL="$LOG_LEVEL_2"
 
 DEBUG_LEVEL_1=1
 DEBUG_LEVEL_2=2
 DEBUG_LEVEL_3=3
-DEBUG_LEVEL_DEFAULT=$DEBUG_LEVEL_1
+DEBUG_LEVEL_DEFAULT=$DEBUG_LEVEL_2
 DEBUG_LEVEL_NONE=0
 
 DOH_CLOUDFLARE=1
@@ -5015,9 +5015,9 @@ $_authorizations_map"
         errordetail="$(echo "$error" | _egrep_o '"detail": *"[^"]*' | cut -d '"' -f 4)"
         _debug2 errordetail "$errordetail"
         if [ "$errordetail" ]; then
-          _err "$d:Verify error:$errordetail"
+          _err "Invalid status, $d:Verify error detail:$errordetail"
         else
-          _err "$d:Verify error:$error"
+          _err "Invalid status, $d:Verify error:$error"
         fi
         if [ "$DEBUG" ]; then
           if [ "$vtype" = "$VTYPE_HTTP" ]; then
@@ -5044,7 +5044,7 @@ $_authorizations_map"
       elif _contains "$status" "processing"; then
         _info "Processing, The CA is processing your order, please just wait. ($waittimes/$MAX_RETRY_TIMES)"
       else
-        _err "$d:Verify error:$response"
+        _err "Unknown status: $status, $d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
         _on_issue_err "$_post_hook" "$vlist"
@@ -5057,7 +5057,7 @@ $_authorizations_map"
       _send_signed_request "$_authz_url"
 
       if [ "$?" != "0" ]; then
-        _err "$d:Verify error:$response"
+        _err "Invalid code, $d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
         _on_issue_err "$_post_hook" "$vlist"
@@ -6899,7 +6899,7 @@ Parameters:
 
   -f, --force                       Force install, force cert renewal or override sudo restrictions.
   --staging, --test                 Use staging server, for testing.
-  --debug [0|1|2|3]                 Output debug info. Defaults to 1 if argument is omitted.
+  --debug [0|1|2|3]                 Output debug info. Defaults to $DEBUG_LEVEL_DEFAULT if argument is omitted.
   --output-insecure                 Output all the sensitive messages.
                                       By default all the credentials/sensitive messages are hidden from the output/debug/log for security.
   -w, --webroot <directory>         Specifies the web root folder for web root mode.
@@ -6917,7 +6917,7 @@ Parameters:
   -k, --keylength <bits>            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521.
   -ak, --accountkeylength <bits>    Specifies the account key length: 2048, 3072, 4096
   --log [file]                      Specifies the log file. Defaults to \"$DEFAULT_LOG_FILE\" if argument is omitted.
-  --log-level <1|2>                 Specifies the log level, default is 1.
+  --log-level <1|2>                 Specifies the log level, default is $DEFAULT_LOG_LEVEL.
   --syslog <0|3|6|7>                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
   --eab-kid <eab_key_id>            Key Identifier for External Account Binding.
   --eab-hmac-key <eab_hmac_key>     HMAC key for External Account Binding.
