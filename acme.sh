@@ -107,7 +107,7 @@ DEFAULT_LOG_LEVEL="$LOG_LEVEL_1"
 DEBUG_LEVEL_1=1
 DEBUG_LEVEL_2=2
 DEBUG_LEVEL_3=3
-DEBUG_LEVEL_DEFAULT=$DEBUG_LEVEL_1
+DEBUG_LEVEL_DEFAULT=$DEBUG_LEVEL_2
 DEBUG_LEVEL_NONE=0
 
 DOH_CLOUDFLARE=1
@@ -6899,7 +6899,7 @@ Parameters:
 
   -f, --force                       Force install, force cert renewal or override sudo restrictions.
   --staging, --test                 Use staging server, for testing.
-  --debug [0|1|2|3]                 Output debug info. Defaults to 1 if argument is omitted.
+  --debug [0|1|2|3]                 Output debug info. Defaults to $DEBUG_LEVEL_DEFAULT if argument is omitted.
   --output-insecure                 Output all the sensitive messages.
                                       By default all the credentials/sensitive messages are hidden from the output/debug/log for security.
   -w, --webroot <directory>         Specifies the web root folder for web root mode.
