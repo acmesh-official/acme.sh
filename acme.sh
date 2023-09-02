@@ -931,7 +931,7 @@ fi
 
 _egrep_o() {
   if [ "$__USE_EGREP" ]; then
-    egrep -o "$1"
+    egrep -o -- "$1"
   else
     sed -n 's/.*\('"$1"'\).*/\1/p'
   fi
