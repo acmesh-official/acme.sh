@@ -45,14 +45,14 @@ dns_tencent_rm() {
   _debug "Get record list"
   attempt=1
   max_attempts=5
-  while [ -z "$record_id" ] && [ $attempt -le $max_attempts ]; do
+  while [ -z "$record_id" ] && [ "$attempt" -le $max_attempts ]; do
     _check_exist_query "$_domain" "$_sub_domain" "$txtvalue" && _tencent_rest "DescribeRecordFilterList"
     record_id="$(echo "$response" | _egrep_o "\"RecordId\":\s*[0-9]+" | _egrep_o "[0-9]+")"
     _debug2 record_id "$record_id"
     if [ -z "$record_id" ]; then
       _debug "Due to TencentCloud API synchronization delay, record not found, waiting 10 seconds and retrying"
       _sleep 10
-      attempt=$((attempt + 1))
+      attempt=$(_math "$attempt + 1")
     fi
   done
 
@@ -162,7 +162,7 @@ tencent_hmac_sha256_hexkey() {
 
 tencent_signature_v3() {
   service=$1
-  action=$(echo "$2" | tr '[:upper:]' '[:lower:]')
+  action=$(echo "$2" | _lower_case)
   payload=${3:-'{}'}
   timestamp=${4:-$(date +%s)}
 
