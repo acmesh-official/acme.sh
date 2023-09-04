@@ -118,7 +118,7 @@ _get_root() {
     fi
 
     if _contains "$response" '"domainid":'; then
-      _domain_id=$(printf "%s" "$response" | grep '"domainid":' | cut -d : -f 2 | cut -d , -f 1 | tr -d '\r' | tr -d '\n')
+      _domain_id=$(printf "%s" "$response" | grep -o '"domainid":[0-9]*'| awk -F':' '{print $2}')
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
         _domain="$h"
