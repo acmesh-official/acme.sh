@@ -150,7 +150,7 @@ tencent_sha256() {
 tencent_hmac_sha256() {
   k=$1
   shift
-  hex_key=$(_ascii_hex "$k" | tr -d ' ')
+  hex_key=$(printf %b "$k" | _hex_dump | tr -d ' ')
   printf %b "$@" | _hmac sha256 "$hex_key" hex
 }
 
@@ -183,6 +183,7 @@ tencent_signature_v3() {
 
   credentialScope="$date/$service/tc3_request"
   stringToSign="$algorithm\n$timestamp\n$credentialScope\n$(tencent_sha256 "$canonicalRequest")"
+  _debug "stringToSign: $stringToSign"
 
   secretDate=$(tencent_hmac_sha256 "TC3$secretKey" "$date")
   secretService=$(tencent_hmac_sha256_hexkey "$secretDate" "$service")
