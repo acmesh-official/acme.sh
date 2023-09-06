@@ -99,7 +99,6 @@ _get_root() {
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     if [ -z "$h" ]; then
-      #not valid
       return 1
     fi
 
