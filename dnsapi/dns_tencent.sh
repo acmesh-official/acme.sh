@@ -183,7 +183,6 @@ tencent_signature_v3() {
 
   credentialScope="$date/$service/tc3_request"
   stringToSign="$algorithm\n$timestamp\n$credentialScope\n$(tencent_sha256 "$canonicalRequest")"
-  _debug "stringToSign: $stringToSign"
 
   secretDate=$(tencent_hmac_sha256 "TC3$secretKey" "$date")
   secretService=$(tencent_hmac_sha256_hexkey "$secretDate" "$service")
