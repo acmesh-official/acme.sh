@@ -19,7 +19,7 @@
 # - export SYNO_Scheme="http"
 # - export SYNO_Hostname="localhost"
 # - export SYNO_Port="5000"
-# - export SYNO_Create=1 to allow creating the certificate if it doesn't exist
+# - export SYNO_Create=1   - to allow creating the certificate if it doesn't exist
 # - export SYNO_Device_Name="CertRenewal" - required if 2FA-OTP enabled
 # - export SYNO_Device_ID=""              - required for skipping 2FA-OTP
 # 3. acme.sh --deploy --deploy-hook synology_dsm -d example.com
@@ -191,7 +191,7 @@ synology_dsm_deploy() {
 
   _H1="X-SYNO-TOKEN: $token"
   export _H1
-  _debug2 H1 "${_H1}" 
+  _debug2 H1 "${_H1}"
 
   # Now that we know the username & password are good, save them
   _savedeployconf SYNO_Username "$SYNO_Username"
