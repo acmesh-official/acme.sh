@@ -53,7 +53,7 @@ dns_servercow_add() {
   if printf -- "%s" "$response" | grep "{\"name\":\"$_sub_domain\",\"ttl\":20,\"type\":\"TXT\"" >/dev/null; then
     _info "A txt record with the same name already exists."
     # trim the string on the left
-    txtvalue_old=${response#*{\"name\":\"$_sub_domain\",\"ttl\":20,\"type\":\"TXT\",\"content\":\"}
+    txtvalue_old=${response#*{\"name\":\""$_sub_domain"\",\"ttl\":20,\"type\":\"TXT\",\"content\":\"}
     # trim the string on the right
     txtvalue_old=${txtvalue_old%%\"*}
 

@@ -117,7 +117,7 @@ _ali_urlencode() {
 _ali_nonce() {
   #_head_n 1 </dev/urandom | _digest "sha256" hex | cut -c 1-31
   #Not so good...
-  date +"%s%N"
+  date +"%s%N" | sed 's/%N//g'
 }
 
 _check_exist_query() {

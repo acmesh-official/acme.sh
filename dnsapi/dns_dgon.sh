@@ -192,6 +192,7 @@ _get_base_domain() {
   ## get URL for the list of domains
   ## may get: "links":{"pages":{"last":".../v2/domains/DOM/records?page=2","next":".../v2/domains/DOM/records?page=2"}}
   DOMURL="https://api.digitalocean.com/v2/domains"
+  found=""
 
   ## while we dont have a matching domain we keep going
   while [ -z "$found" ]; do
@@ -205,9 +206,7 @@ _get_base_domain() {
     fi
     _debug2 domain_list "$domain_list"
 
-    ## for each shortening of our $fulldomain, check if it exists in the $domain_list
-    ## can never start on 1 (aka whole $fulldomain) as $fulldomain starts with "_acme-challenge"
-    i=2
+    i=1
     while [ $i -gt 0 ]; do
       ## get next longest domain
       _domain=$(printf "%s" "$fulldomain" | cut -d . -f "$i"-"$MAX_DOM")

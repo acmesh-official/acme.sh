@@ -273,16 +273,27 @@ _check_curl_version() {
   _minor="$(_getfield "$_cversion" 2 '.')"
   _debug2 "_minor" "$_minor"
 
-  if [ "$_major$_minor" -lt "740" ]; then
+  if [ "$_major" -ge "8" ]; then
+    #ok
+    return 0
+  fi
+  if [ "$_major" = "7" ]; then
+    if [ "$_minor" -lt "40" ]; then
+      _err "curl v$_cversion doesn't support unit socket"
+      _err "Please upgrade to curl 7.40 or later."
+      return 1
+    fi
+    if [ "$_minor" -lt "50" ]; then
+      _debug "Use short host name"
+      export _CURL_NO_HOST=1
+    else
+      export _CURL_NO_HOST=
+    fi
+    return 0
+  else
     _err "curl v$_cversion doesn't support unit socket"
     _err "Please upgrade to curl 7.40 or later."
     return 1
   fi
-  if [ "$_major$_minor" -lt "750" ]; then
-    _debug "Use short host name"
-    export _CURL_NO_HOST=1
-  else
-    export _CURL_NO_HOST=
-  fi
-  return 0
+
 }

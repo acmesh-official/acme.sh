@@ -1,4 +1,4 @@
-FROM alpine:3.15
+FROM alpine:3.17
 
 RUN apk --no-cache add -f \
   openssl \
@@ -12,7 +12,8 @@ RUN apk --no-cache add -f \
   oath-toolkit-oathtool \
   tar \
   libidn \
-  jq
+  jq \
+  cronie
 
 ENV LE_CONFIG_HOME /acme.sh
 
@@ -25,7 +26,7 @@ COPY ./ /install_acme.sh/
 RUN cd /install_acme.sh && ([ -f /install_acme.sh/acme.sh ] && /install_acme.sh/acme.sh --install || curl https://get.acme.sh | sh) && rm -rf /install_acme.sh/
 
 
-RUN ln -s  /root/.acme.sh/acme.sh  /usr/local/bin/acme.sh && crontab -l | grep acme.sh | sed 's#> /dev/null##' | crontab -
+RUN ln -s /root/.acme.sh/acme.sh /usr/local/bin/acme.sh && crontab -l | grep acme.sh | sed 's#> /dev/null#> /proc/1/fd/1 2>/proc/1/fd/2#' | crontab -
 
 RUN for verb in help \
   version \
@@ -64,12 +65,10 @@ RUN for verb in help \
 
 RUN printf "%b" '#!'"/usr/bin/env sh\n \
 if [ \"\$1\" = \"daemon\" ];  then \n \
- trap \"echo stop && killall crond && exit 0\" SIGTERM SIGINT \n \
- crond && sleep infinity &\n \
- wait \n \
+ exec crond -n -s -m off \n \
 else \n \
  exec -- \"\$@\"\n \
-fi" >/entry.sh && chmod +x /entry.sh
+fi\n" >/entry.sh && chmod +x /entry.sh
 
 VOLUME /acme.sh
 

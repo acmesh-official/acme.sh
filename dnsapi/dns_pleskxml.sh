@@ -41,9 +41,13 @@ pleskxml_init_checks_done=0
 NEWLINE='\
 '
 
-pleskxml_tplt_get_domains="<packet><customer><get-domain-list><filter/></get-domain-list></customer></packet>"
+pleskxml_tplt_get_domains="<packet><webspace><get><filter/><dataset><gen_info/></dataset></get></webspace></packet>"
 # Get a list of domains that PLESK can manage, so we can check root domain + host for acme.sh
 # Also used to test credentials and URI.
+# No params.
+
+pleskxml_tplt_get_additional_domains="<packet><site><get><filter/><dataset><gen_info/></dataset></get></site></packet>"
+# Get a list of additional domains that PLESK can manage, so we can check root domain + host for acme.sh
 # No params.
 
 pleskxml_tplt_get_dns_records="<packet><dns><get_rec><filter><site-id>%s</site-id></filter></get_rec></dns></packet>"
@@ -145,22 +149,25 @@ dns_pleskxml_rm() {
   )"
 
   if [ -z "$reclist" ]; then
-    _err "No TXT records found for root domain ${root_domain_name} (Plesk domain ID ${root_domain_id}). Exiting."
+    _err "No TXT records found for root domain $fulldomain (Plesk domain ID ${root_domain_id}). Exiting."
     return 1
   fi
 
-  _debug "Got list of DNS TXT records for root domain '$root_domain_name':"
+  _debug "Got list of DNS TXT records for root Plesk domain ID ${root_domain_id} of root domain $fulldomain:"
   _debug "$reclist"
 
+  # Extracting the id of the TXT record for the full domain (NOT case-sensitive) and corresponding value
   recid="$(
     _value "$reclist" |
-      grep "<host>${fulldomain}.</host>" |
+      grep -i "<host>${fulldomain}.</host>" |
       grep "<value>${txtvalue}</value>" |
       sed 's/^.*<id>\([0-9]\{1,\}\)<\/id>.*$/\1/'
   )"
 
+  _debug "Got id from line: $recid"
+
   if ! _value "$recid" | grep '^[0-9]\{1,\}$' >/dev/null; then
-    _err "DNS records for root domain '${root_domain_name}' (Plesk ID ${root_domain_id}) + host '${sub_domain_name}' do not contain the TXT record '${txtvalue}'"
+    _err "DNS records for root domain '${fulldomain}.' (Plesk ID ${root_domain_id}) + host '${sub_domain_name}' do not contain the TXT record '${txtvalue}'"
     _err "Cannot delete TXT record. Exiting."
     return 1
   fi
@@ -251,9 +258,12 @@ _call_api() {
 
   # Detect any <status> that isn't "ok". None of the used calls should fail if the API is working correctly.
   # Also detect if there simply aren't any status lines (null result?) and report that, as well.
+  # Remove <data></data> structure from result string, since it might contain <status> values that are related to the status of the domain and not to the API request
 
-  statuslines_count_total="$(echo "$pleskxml_prettyprint_result" | grep -c '^ *<status>[^<]*</status> *$')"
-  statuslines_count_okay="$(echo "$pleskxml_prettyprint_result" | grep -c '^ *<status>ok</status> *$')"
+  statuslines_count_total="$(echo "$pleskxml_prettyprint_result" | sed '/<data>/,/<\/data>/d' | grep -c '^ *<status>[^<]*</status> *$')"
+  statuslines_count_okay="$(echo "$pleskxml_prettyprint_result" | sed '/<data>/,/<\/data>/d' | grep -c '^ *<status>ok</status> *$')"
+  _debug "statuslines_count_total=$statuslines_count_total."
+  _debug "statuslines_count_okay=$statuslines_count_okay."
 
   if [ -z "$statuslines_count_total" ]; then
 
@@ -369,16 +379,44 @@ _pleskxml_get_root_domain() {
     return 1
   fi
 
-  # Generate a crude list of domains known to this Plesk account.
+  # Generate a crude list of domains known to this Plesk account based on subscriptions.
   # We convert <ascii-name> tags to <name> so it'll flag on a hit with either <name> or <ascii-name> fields,
   # for non-Western character sets.
   # Output will be one line per known domain, containing 2 <name> tages and a single <id> tag
   # We don't actually need to check for type, name, *and* id, but it guarantees only usable lines are returned.
 
-  output="$(_api_response_split "$pleskxml_prettyprint_result" 'domain' '<type>domain</type>' | sed 's/<ascii-name>/<name>/g;s/<\/ascii-name>/<\/name>/g' | grep '<name>' | grep '<id>')"
+  output="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>ok</status>' | sed 's/<ascii-name>/<name>/g;s/<\/ascii-name>/<\/name>/g' | grep '<name>' | grep '<id>')"
+  debug_output="$(printf "%s" "$output" | sed -n 's:.*<name>\(.*\)</name>.*:\1:p')"
 
-  _debug 'Domains managed by Plesk server are (ignore the hacked output):'
-  _debug "$output"
+  _debug 'Domains managed by Plesk server are:'
+  _debug "$debug_output"
+
+  _debug "Querying Plesk server for list of additional managed domains..."
+
+  _call_api "$pleskxml_tplt_get_additional_domains"
+  if [ "$pleskxml_retcode" -ne 0 ]; then
+    return 1
+  fi
+
+  # Generate a crude list of additional domains known to this Plesk account based on sites.
+  # We convert <ascii-name> tags to <name> so it'll flag on a hit with either <name> or <ascii-name> fields,
+  # for non-Western character sets.
+  # Output will be one line per known domain, containing 2 <name> tages and a single <id> tag
+  # We don't actually need to check for type, name, *and* id, but it guarantees only usable lines are returned.
+
+  output_additional="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>ok</status>' | sed 's/<ascii-name>/<name>/g;s/<\/ascii-name>/<\/name>/g' | grep '<name>' | grep '<id>')"
+  debug_additional="$(printf "%s" "$output_additional" | sed -n 's:.*<name>\(.*\)</name>.*:\1:p')"
+
+  _debug 'Additional domains managed by Plesk server are:'
+  _debug "$debug_additional"
+
+  # Concate the two outputs together.
+
+  output="$(printf "%s" "$output $NEWLINE $output_additional")"
+  debug_output="$(printf "%s" "$output" | sed -n 's:.*<name>\(.*\)</name>.*:\1:p')"
+
+  _debug 'Domains (including additional) managed by Plesk server are:'
+  _debug "$debug_output"
 
   # loop and test if domain, or any parent domain, is managed by Plesk
   # Loop until we don't have any '.' in the string we're testing as a candidate Plesk-managed domain
