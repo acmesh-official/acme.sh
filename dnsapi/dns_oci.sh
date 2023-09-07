@@ -265,6 +265,7 @@ _signed_request() {
     _response="$(_get "https://${_sig_host}${_sig_target}")"
   elif [ "$_curl_method" = "PATCH" ]; then
     export _H1="$_date_header"
+    # shellcheck disable=SC2090
     export _H2="$_sig_body_sha256"
     export _H3="$_sig_body_type"
     export _H4="$_sig_body_length"
