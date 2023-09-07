@@ -15,11 +15,12 @@
 #   1. export SYNO_Username="adminUser"
 #   2. export SYNO_Password="adminPassword"
 # Optional exports (shown values are the defaults):
-# - export SYNO_Certificate="" to replace a specific certificate via description
+# - export SYNO_Certificate="" - to replace a specific certificate via description
 # - export SYNO_Scheme="http"
 # - export SYNO_Hostname="localhost"
 # - export SYNO_Port="5000"
-# - export SYNO_Device_Name="CertRenewal" - required for skipping 2FA-OTP
+# - export SYNO_Create=1 to allow creating the certificate if it doesn't exist
+# - export SYNO_Device_Name="CertRenewal" - required if 2FA-OTP enabled
 # - export SYNO_Device_ID=""              - required for skipping 2FA-OTP
 # 3. acme.sh --deploy --deploy-hook synology_dsm -d example.com
 ################################################################################
@@ -110,8 +111,10 @@ synology_dsm_deploy() {
 
   _debug "Getting API version"
   response=$(_get "$_base_url/webapi/query.cgi?api=SYNO.API.Info&version=1&method=query&query=SYNO.API.Auth")
+  api_path=$(echo "$response" | grep "SYNO.API.Auth" | sed -n 's/.*"path" *: *"\([0-9]*\)".*/\1/p')
   api_version=$(echo "$response" | grep "SYNO.API.Auth" | sed -n 's/.*"maxVersion" *: *\([0-9]*\).*/\1/p')
   _debug3 response "$response"
+  _debug3 api_path "$api_path"
   _debug3 api_version "$api_version"
 
   # Login, get the session ID & SynoToken from JSON
@@ -151,21 +154,26 @@ synology_dsm_deploy() {
     response=$(_get "$_base_url/webapi/entry.cgi?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes")
     _debug3 response "$response"
   # Get device ID if still empty first, otherwise log in right away
+  # If SYNO_Device_Name is set, we treat that account enabled two-factor authorization, consider SYNO_Device_ID is not set, so it won't be able to login without requiring the OTP code.
   elif [ -n "${SYNO_Device_Name:-}" ] && [ -z "${SYNO_Device_ID:-}" ]; then
     printf "Enter OTP code for user '%s': " "$SYNO_Username"
     read -r otp_code
-    response=$(_get "$_base_url/webapi/entry.cgi?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&otp_code=$otp_code&enable_syno_token=yes&enable_device_token=yes&device_name=$SYNO_Device_Name")
-    _debug3 response "$response"
-    SYNO_Device_ID=$(echo "$response" | grep "device_id" | sed -n 's/.*"device_id" *: *"\([^"]*\).*/\1/p')
+    response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&otp_code=$otp_code&enable_syno_token=yes&enable_device_token=yes&device_name=$SYNO_Device_Name")
+    _secure_debug3 response "$response"
+
+    id_property='device_id'
+    [ "${api_version}" -gt '6' ] || id_property='did'
+    SYNO_Device_ID=$(echo "$response" | grep "$id_property" | sed -n 's/.*"'$id_property'" *: *"\([^"]*\).*/\1/p')
     _secure_debug2 SYNO_Device_ID "$SYNO_Device_ID"
+  # Otherwise, if SYNO_Device_ID is set, we can just use it to login.
   else
     if [ -z "${SYNO_Device_Name:-}" ]; then
       printf "Enter device name or leave empty for default (CertRenewal): "
       read -r SYNO_Device_Name
       [ -n "${SYNO_Device_Name}" ] || SYNO_Device_Name="CertRenewal"
     fi
-    response=$(_get "$_base_url/webapi/entry.cgi?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes&device_name=$SYNO_Device_Name&device_id=$SYNO_Device_ID")
-    _debug3 response "$response"
+    response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes&device_name=$SYNO_Device_Name&device_id=$SYNO_Device_ID")
+    _secure_debug3 response "$response"
   fi
 
   sid=$(echo "$response" | grep "sid" | sed -n 's/.*"sid" *: *"\([^"]*\).*/\1/p')
@@ -183,7 +191,7 @@ synology_dsm_deploy() {
 
   _H1="X-SYNO-TOKEN: $token"
   export _H1
-  _debug2 H1 "${_H1}"
+  _debug2 H1 "${_H1}" 
 
   # Now that we know the username & password are good, save them
   _savedeployconf SYNO_Username "$SYNO_Username"
