@@ -2118,12 +2118,7 @@ _tail_n() {
 }
 
 _tail_c() {
-  if _is_solaris; then
-    #fix for solaris
-    tail -"$1"c
-  else
-    tail -c "$1"
-  fi
+  tail -c "$1" 2>/dev/null || tail -"$1"c
 }
 
 # url  payload needbase64  keyfile
