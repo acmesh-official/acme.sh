@@ -3766,7 +3766,7 @@ _regAccount() {
     _debug3 externalBinding "$externalBinding"
   fi
   if [ "$_email" ]; then
-    email_sg="\"contact\": [\"mailto:$_email\"], "
+    email_sg="\"contact\": ['$(for E in $_email; do echo -n '"mailto:'$E'",' ; done | sed -r 's/,$//')'], "
   fi
   regjson="{$email_sg\"termsOfServiceAgreed\": true$externalBinding}"
 
@@ -3845,7 +3845,7 @@ updateaccount() {
   _email="$(_getAccountEmail)"
 
   if [ "$_email" ]; then
-    updjson='{"contact": ["mailto:'$_email'"]}'
+    updjson='{"contact": ['$(for E in $_email; do echo -n '"mailto:'$E'",' ; done | sed -r 's/,$//')']}'
   else
     updjson='{"contact": []}'
   fi
