@@ -2118,12 +2118,7 @@ _tail_n() {
 }
 
 _tail_c() {
-  if _is_solaris; then
-    #fix for solaris
-    tail -"$1"c
-  else
-    tail -c "$1"
-  fi
+  tail -c "$1" 2>/dev/null || tail -"$1"c
 }
 
 # url  payload needbase64  keyfile
@@ -5993,6 +5988,7 @@ installcronjob() {
   fi
   _t=$(_time)
   random_minute=$(_math $_t % 60)
+  random_hour=$(_math $_t / 60 % 24)
 
   if ! _exists "$_CRONTAB" && _exists "fcrontab"; then
     _CRONTAB="fcrontab"
@@ -6017,16 +6013,14 @@ installcronjob() {
   _info "Installing cron job"
   if ! $_CRONTAB -l | grep "$PROJECT_ENTRY --cron"; then
     if _exists uname && uname -a | grep SunOS >/dev/null; then
-      $_CRONTAB -l | {
-        cat
-        echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
-      } | $_CRONTAB --
+      _CRONTAB_STDIN="$_CRONTAB --"
     else
-      $_CRONTAB -l | {
-        cat
-        echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
-      } | $_CRONTAB -
+      _CRONTAB_STDIN="$_CRONTAB -"
     fi
+    $_CRONTAB -l | {
+      cat
+      echo "$random_minute $random_hour * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
+    } | $_CRONTAB_STDIN
   fi
   if [ "$?" != "0" ]; then
     _err "Install cron job failed. You need to manually renew your certs."

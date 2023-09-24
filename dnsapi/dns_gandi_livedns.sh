@@ -1,7 +1,8 @@
 #!/usr/bin/env sh
 
 # Gandi LiveDNS v5 API
-# https://doc.livedns.gandi.net/
+# https://api.gandi.net/docs/livedns/
+# https://api.gandi.net/docs/authentication/ for token + apikey (deprecated) authentication
 # currently under beta
 #
 # Requires GANDI API KEY set in GANDI_LIVEDNS_KEY set as environment variable
@@ -19,13 +20,20 @@ dns_gandi_livedns_add() {
   fulldomain=$1
   txtvalue=$2
 
-  if [ -z "$GANDI_LIVEDNS_KEY" ]; then
-    _err "No API key specified for Gandi LiveDNS."
-    _err "Create your key and export it as GANDI_LIVEDNS_KEY"
+  if [ -z "$GANDI_LIVEDNS_KEY" ] && [ -z "$GANDI_LIVEDNS_TOKEN" ]; then
+    _err "No Token or API key (deprecated) specified for Gandi LiveDNS."
+    _err "Create your token or key and export it as GANDI_LIVEDNS_KEY or GANDI_LIVEDNS_TOKEN respectively"
     return 1
   fi
 
-  _saveaccountconf GANDI_LIVEDNS_KEY "$GANDI_LIVEDNS_KEY"
+  # Keep only one secret in configuration
+  if [ -n "$GANDI_LIVEDNS_TOKEN" ]; then
+    _saveaccountconf GANDI_LIVEDNS_TOKEN "$GANDI_LIVEDNS_TOKEN"
+    _clearaccountconf GANDI_LIVEDNS_KEY
+  elif [ -n "$GANDI_LIVEDNS_KEY" ]; then
+    _saveaccountconf GANDI_LIVEDNS_KEY "$GANDI_LIVEDNS_KEY"
+    _clearaccountconf GANDI_LIVEDNS_TOKEN
+  fi
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -157,7 +165,12 @@ _gandi_livedns_rest() {
   _debug "$ep"
 
   export _H1="Content-Type: application/json"
-  export _H2="X-Api-Key: $GANDI_LIVEDNS_KEY"
+
+  if [ -n "$GANDI_LIVEDNS_TOKEN" ]; then
+    export _H2="Authorization: Bearer $GANDI_LIVEDNS_TOKEN"
+  else
+    export _H2="X-Api-Key: $GANDI_LIVEDNS_KEY"
+  fi
 
   if [ "$m" = "GET" ]; then
     response="$(_get "$GANDI_LIVEDNS_API/$ep")"
