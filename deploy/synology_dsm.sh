@@ -91,8 +91,8 @@ synology_dsm_deploy() {
 
   _debug "Getting API version"
   response=$(_get "$_base_url/webapi/query.cgi?api=SYNO.API.Info&version=1&method=query&query=SYNO.API.Auth")
-  api_path=$(echo "$response" | grep "SYNO.API.Auth" | sed -n 's/.*"path" *: *"\([0-9]*\)".*/\1/p')
-  api_version=$(echo "$response" | grep "SYNO.API.Auth" | sed -n 's/.*"maxVersion" *: *\([0-9]*\).*/\1/p')
+  api_path=$(echo "$response" | jq '.data."SYNO.API.Auth".path')
+  api_version=$(echo "$response" | jq '.data."SYNO.API.Auth".maxVersion')
   _debug3 response "$response"
   _debug3 api_path "$api_path"
   _debug3 api_version "$api_version"
