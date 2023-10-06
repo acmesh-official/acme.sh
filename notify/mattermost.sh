@@ -38,7 +38,7 @@ mattermost_send() {
   _data="$_data\"message\": \"$_content\"}"
 
   export _H1="Authorization: Bearer $MATTERMOST_BOT_TOKEN"
-
+  response=""
   if _post "$_data" "$MATTERMOST_API_URL" "" "POST" "application/json; charset=utf-8"; then
     MATTERMOST_RESULT_OK=$(echo "$response" | _egrep_o 'create_at')
     if [ "$?" = "0" ] && [ "$MATTERMOST_RESULT_OK" ]; then
