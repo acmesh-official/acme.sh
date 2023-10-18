@@ -42,7 +42,7 @@ dns_la_add() {
   _debug _domain "$_domain"
 
   _info "Adding record"
-  
+
   # record type is enum in new api, 16 for TXT
   if _la_post "{\"domainId\":\"$_domain_id\",\"type\":16,\"host\":\"$_sub_domain\",\"data\":\"$txtvalue\",\"ttl\":600}" "record"; then
     if _contains "$response" '"id":'; then
@@ -163,7 +163,7 @@ _la_get() {
 
   export _H1="Authorization: Basic $LA_Token"
 
-  if ! response="$(_get "$url"  | tr -d ' ' | tr "}" ",")"; then
+  if ! response="$(_get "$url" | tr -d ' ' | tr "}" ",")"; then
     _err "Error: $url"
     return 1
   fi
@@ -185,14 +185,19 @@ _la_post() {
   if ! response="$(_post "$body" "$url" "" "$http_method")"; then
     _err "Error: $url"
     return 1
-  fi  
-  
+  fi
+
   _debug2 response "$response"
   return 0
 }
 
 _la_token() {
-  LA_Token=$(echo -n "$LA_Ak:$LA_Sk" | base64 -w 0)
+  LA_Token=$(printf "$LA_Ak:$LA_Sk" | base64 -w 0)
+  _debug "$LA_Token"
+
+  return 0
+}
+ -w 0)
   _debug "$LA_Token"
 
   return 0
