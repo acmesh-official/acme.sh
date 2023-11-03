@@ -2,8 +2,8 @@
 
 # West.cn Domain api
 #
-#WEST_Username="uername"
-#
+#WEST_Username="username"
+# set key at https://www.west.cn/manager/API/APIconfig.asp
 #WEST_Key="sADDsdasdgdsf"
 
 REST_API="https://api.west.cn/API/v2"
@@ -63,8 +63,6 @@ dns_west_rm() {
   fi
 
   _contains "$response" "success"
-
-
 }
 
 #add the txt record.
