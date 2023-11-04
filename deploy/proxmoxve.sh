@@ -110,7 +110,7 @@ proxmoxve_deploy() {
   # cleaner than anything else I had here.
   #
   # This dumps the json payload to a variable that should be passable to the
-  # _psot function.
+  # _post function.
   _json_payload=$(
     cat <<HEREDOC
 {
@@ -125,7 +125,7 @@ HEREDOC
   _debug2 Payload "$_json_payload"
 
   # Push certificates to server.
-  export _HTTPS_INSECURE=1
+  export HTTPS_INSECURE=1
   export _H1="Authorization: PVEAPIToken=${_proxmoxve_header_api_token}"
   _post "$_json_payload" "$_target_url" "" POST "application/json"
 
