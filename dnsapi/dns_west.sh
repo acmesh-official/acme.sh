@@ -20,8 +20,8 @@ dns_west_add() {
   if [ -z "$WEST_Username" ] || [ -z "$WEST_Key" ]; then
     WEST_Username=""
     WEST_Key=""
-    _err "You don't specify dnspod api key and key id yet."
-    _err "Please create you key and try again."
+    _err "You don't specify west api key and username yet."
+    _err "Please set you key and try again."
     return 1
   fi
 
@@ -41,7 +41,7 @@ dns_west_rm() {
   WEST_Key="${WEST_Key:-$(_readaccountconf_mutable WEST_Key)}"
 
   if ! _rest POST "domain/dns/" "act=dnsrec.list&username=$WEST_Username&apikey=$WEST_Key&domain=$fulldomain&hostname=$fulldomain&record_type=TXT"; then
-    _err "Record.Lis error."
+    _err "dnsrec.list error."
     return 1
   fi
 
@@ -58,7 +58,7 @@ dns_west_rm() {
   fi
 
   if ! _rest POST "domain/dns/" "act=dnsrec.remove&username=$WEST_Username&apikey=$WEST_Key&domain=$fulldomain&hostname=$fulldomain&record_id=$record_id"; then
-    _err "Record.Remove error."
+    _err "dnsrec.remove error."
     return 1
   fi
 
