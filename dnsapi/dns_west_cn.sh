@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 
 # West.cn Domain api
-#
 #WEST_Username="username"
 #WEST_Key="sADDsdasdgdsf"
 #Set key at https://www.west.cn/manager/API/APIconfig.asp
