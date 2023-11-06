@@ -3,15 +3,15 @@
 # West.cn Domain api
 #
 #WEST_Username="username"
-# set key at https://www.west.cn/manager/API/APIconfig.asp
 #WEST_Key="sADDsdasdgdsf"
+#Set key at https://www.west.cn/manager/API/APIconfig.asp
 
 REST_API="https://api.west.cn/API/v2"
 
 ########  Public functions #####################
 
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
-dns_west_add() {
+dns_west_cn_add() {
   fulldomain=$1
   txtvalue=$2
 
@@ -33,7 +33,7 @@ dns_west_add() {
 }
 
 #Usage: rm _acme-challenge.www.domain.com
-dns_west_rm() {
+dns_west_cn_rm() {
   fulldomain=$1
   txtvalue=$2
 
