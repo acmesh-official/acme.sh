@@ -72,7 +72,7 @@ add_record() {
 
   _info "Adding record"
 
-  if ! _rest POST "domain/dns/" "act=dnsrec.add&username=$WEST_Username&apikey=$WEST_Key&domain=$fulldomain&hostname=$fulldomain&record_type=TXT&value=$txtvalue"; then
+  if ! _rest POST "domain/dns/" "act=dnsrec.add&username=$WEST_Username&apikey=$WEST_Key&domain=$fulldomain&hostname=$fulldomain&record_type=TXT&record_value=$txtvalue"; then
     return 1
   fi
 
