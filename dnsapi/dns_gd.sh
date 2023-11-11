@@ -51,7 +51,7 @@ dns_gd_add() {
   fi
 
   _add_data="{\"data\":\"$txtvalue\"}"
-  for t in $(echo "$response" | tr '{' "\n" | grep "\"name\":\"$_sub_domain\"" | tr ',' "\n" | grep '"data"' | cut -d : -f 2); do
+  for t in $(echo "$response" | tr '{' "\n" | grep "\"name\":\"$fulldomain\"" | tr ',' "\n" | grep '"data"' | cut -d : -f 2); do
     _debug2 t "$t"
     # ignore empty (previously removed) records, to prevent useless _acme-challenge TXT entries
     if [ "$t" ] && [ "$t" != '""' ]; then
