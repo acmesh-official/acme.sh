@@ -42,7 +42,7 @@ dns_gcloud_rm() {
   echo "$rrdatas" | grep -F -v -- "\"$txtvalue\"" | _dns_gcloud_add_rrs || return $?
   _dns_gcloud_execute_tr || return $?
 
-  _info "$fulldomain record added"
+  _info "$fulldomain record removed"
 }
 
 ####################  Private functions below ##################################
