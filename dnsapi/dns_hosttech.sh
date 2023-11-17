@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-#Hosttech_Key="abcdefg"
+#Hosttech_Key="abcdefghuhu"
 
 Hosttech_Api="https://api.ns1.hosttech.eu/api/user/v1"
 
