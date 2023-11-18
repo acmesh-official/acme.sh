@@ -1,18 +1,16 @@
 #!/usr/bin/env sh
-
-# Acme.sh DNS API wrapper for websupport.sk
-#
-# Original author: trgo.sk (https://github.com/trgosk)
-# Tweaks by: akulumbeg (https://github.com/akulumbeg)
-# Report Bugs here: https://github.com/akulumbeg/acme.sh
+# shellcheck disable=SC2034
+dns_websupport_info='Websupport.sk
+Site: Websupport.sk
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_websupport
+Options:
+ WS_ApiKey API Key. Called "Identifier" in the WS Admin
+ WS_ApiSecret API Secret. Called "Secret key" in the WS Admin
+Issues: github.com/acmesh-official/acme.sh/issues/3486
+Author: trgo.sk <https://github.com/trgosk>, akulumbeg <https://github.com/akulumbeg>
+'
 
 # Requirements: API Key and Secret from https://admin.websupport.sk/en/auth/apiKey
-#
-# WS_ApiKey="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-# (called "Identifier" in the WS Admin)
-#
-# WS_ApiSecret="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-# (called "Secret key" in the WS Admin)
 
 WS_Api="https://rest.websupport.sk"
 

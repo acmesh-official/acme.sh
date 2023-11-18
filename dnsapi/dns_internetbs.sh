@@ -1,12 +1,14 @@
 #!/usr/bin/env sh
-
-#This is the Internet.BS api wrapper for acme.sh
-#
-#Author: <alexey@nelexa.ru> Ne-Lexa
-#Report Bugs here: https://github.com/Ne-Lexa/acme.sh
-
-#INTERNETBS_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#INTERNETBS_API_PASSWORD="sdfsdfsdfljlbjkljlkjsdfoiwje"
+# shellcheck disable=SC2034
+dns_internetbs_info='InternetBS.net
+Site: InternetBS.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_internetbs
+Options:
+ INTERNETBS_API_KEY API Key
+ INTERNETBS_API_PASSWORD API Password
+Issues: github.com/acmesh-official/acme.sh/issues/2261
+Author: Ne-Lexa <alexey@nelexa.ru>
+'
 
 INTERNETBS_API_URL="https://api.internet.bs"
 

@@ -1,6 +1,12 @@
 #!/usr/bin/env sh
-
-#NETLIFY_ACCESS_TOKEN="xxxx"
+# shellcheck disable=SC2034
+dns_netlify_info='Netlify.com
+Site: Netlify.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_netlify
+Options:
+ NETLIFY_ACCESS_TOKEN API Token
+Issues: github.com/acmesh-official/acme.sh/issues/3088
+'
 
 NETLIFY_HOST="api.netlify.com/api/v1/"
 NETLIFY_URL="https://$NETLIFY_HOST"

@@ -1,4 +1,14 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_nsupdate_info='nsupdate RFC 2136 DynDNS client
+Site: bind9.readthedocs.io/en/v9.18.19/manpages.html#nsupdate-dynamic-dns-update-utility
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_nsupdate
+Options:
+ NSUPDATE_SERVER Server hostname. Default: "localhost".
+ NSUPDATE_SERVER_PORT Server port. Default: "53".
+ NSUPDATE_KEY File path to TSIG key.
+ NSUPDATE_ZONE Domain zone to update. Optional.
+'
 
 ########  Public functions #####################
 

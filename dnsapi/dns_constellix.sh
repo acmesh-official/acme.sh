@@ -1,10 +1,16 @@
 #!/usr/bin/env sh
-
-# Author: Wout Decre <wout@canodus.be>
+# shellcheck disable=SC2034
+dns_constellix_info='Constellix.com
+Site: Constellix.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_constellix
+Options:
+ CONSTELLIX_Key API Key
+ CONSTELLIX_Secret API Secret
+Issues: github.com/acmesh-official/acme.sh/issues/2724
+Author: Wout Decre <wout@canodus.be>
+'
 
 CONSTELLIX_Api="https://api.dns.constellix.com/v1"
-#CONSTELLIX_Key="XXX"
-#CONSTELLIX_Secret="XXX"
 
 ########  Public functions #####################
 

@@ -1,19 +1,14 @@
 #!/usr/bin/env sh
-
-##########
-# Custom servercow.de DNS API v1 for use with [acme.sh](https://github.com/acmesh-official/acme.sh)
-#
-# Usage:
-# export SERVERCOW_API_Username=username
-# export SERVERCOW_API_Password=password
-# acme.sh --issue -d example.com --dns dns_servercow
-#
-# Issues:
-# Any issues / questions / suggestions can be posted here:
-# https://github.com/jhartlep/servercow-dns-api/issues
-#
-# Author: Jens Hartlep
-##########
+# shellcheck disable=SC2034
+dns_servercow_info='ServerCow.de
+Site: ServerCow.de
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_servercow
+Options:
+ SERVERCOW_API_Username Username
+ SERVERCOW_API_Password Password
+Issues: github.com/jhartlep/servercow-dns-api/issues
+Author: Jens Hartlep
+'
 
 SERVERCOW_API="https://api.servercow.de/dns/v1/domains"
 

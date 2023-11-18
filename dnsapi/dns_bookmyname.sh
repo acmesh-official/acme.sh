@@ -1,17 +1,16 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_bookmyname_info='BookMyName.com
+Site: BookMyName.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_bookmyname
+Options:
+ BOOKMYNAME_USERNAME Username
+ BOOKMYNAME_PASSWORD Password
+Issues: github.com/acmesh-official/acme.sh/issues/3209
+Author: Neilpang
+'
 
-#Here is a sample custom api script.
-#This file name is "dns_bookmyname.sh"
-#So, here must be a method   dns_bookmyname_add()
-#Which will be called by acme.sh to add the txt record to your api system.
-#returns 0 means success, otherwise error.
-#
-#Author: Neilpang
-#Report Bugs here: https://github.com/acmesh-official/acme.sh
-#
 ########  Public functions #####################
-
-# Please Read this guide first: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
 
 # BookMyName urls:
 # https://BOOKMYNAME_USERNAME:BOOKMYNAME_PASSWORD@www.bookmyname.com/dyndns/?hostname=_acme-challenge.domain.tld&type=txt&ttl=300&do=add&value="XXXXXXXX"'

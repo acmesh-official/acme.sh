@@ -1,10 +1,12 @@
 #!/usr/bin/env sh
-
-# Dnspod.com Domain api
-#
-#DPI_Id="1234"
-#
-#DPI_Key="sADDsdasdgdsf"
+# shellcheck disable=SC2034
+dns_dpi_info='DNSPod.com
+Site: DNSPod.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_dpi
+Options:
+ DPI_Id Id
+ DPI_Key Key
+'
 
 REST_API="https://api.dnspod.com"
 

@@ -1,17 +1,16 @@
 #!/usr/bin/env sh
-########################################################################
-# NocWorx script for acme.sh
-#
-# Handles DNS Updates for the Following vendors:
-#   - Nexcess.net
-#   - Thermo.io
-#   - Futurehosting.com
-#
-# Environment variables:
-#
-#  - NW_API_TOKEN  (Your API Token)
-#  - NW_API_ENDPOINT (One of the following listed below)
-#
+# shellcheck disable=SC2034
+dns_nw_info='Nexcess.net (NocWorx)
+Domains: Thermo.io Futurehosting.com
+Site: Nexcess.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_nw
+Options:
+ NW_API_TOKEN API Token
+ NW_API_ENDPOINT API Endpoint. Default: "https://portal.nexcess.net".
+Issues: github.com/acmesh-official/acme.sh/issues/2088
+Author: Frank Laszlo <flaszlo@nexcess.net>
+'
+
 # Endpoints:
 #   - https://portal.nexcess.net (default)
 #   - https://core.thermo.io
@@ -22,8 +21,6 @@
 #        - https://portal.nexcess.net/api-token
 #        - https://core.thermo.io/api-token
 #        - https://my.futurehosting.com/api-token
-#
-# Author: Frank Laszlo <flaszlo@nexcess.net>
 
 NW_API_VERSION="0"
 

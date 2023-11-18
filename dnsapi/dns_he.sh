@@ -1,15 +1,14 @@
 #!/usr/bin/env sh
-
-########################################################################
-# Hurricane Electric hook script for acme.sh
-#
-# Environment variables:
-#
-#  - $HE_Username  (your dns.he.net username)
-#  - $HE_Password  (your dns.he.net password)
-#
-# Author: Ondrej Simek <me@ondrejsimek.com>
-# Git repo: https://github.com/angel333/acme.sh
+# shellcheck disable=SC2034
+dns_he_info='Hurricane Electric HE.net
+Site: dns.he.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_he
+Options:
+ HE_Username Username
+ HE_Password Password
+Issues: github.com/angel333/acme.sh/issues/
+Author: Ondrej Simek <me@ondrejsimek.com>
+'
 
 #-- dns_he_add() - Add TXT record --------------------------------------
 # Usage: dns_he_add _acme-challenge.subdomain.domain.com "XyZ123..."

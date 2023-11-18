@@ -1,12 +1,12 @@
 #!/usr/bin/env sh
-
-# DNSimple domain api
-# https://github.com/pho3nixf1re/acme.sh/issues
-#
-# This is your oauth token which can be acquired on the account page. Please
-# note that this must be an _account_ token and not a _user_ token.
-# https://dnsimple.com/a/<your account id>/account/access_tokens
-# DNSimple_OAUTH_TOKEN="sdfsdfsdfljlbjkljlkjsdfoiwje"
+# shellcheck disable=SC2034
+dns_dnsimple_info='DNSimple.com
+Site: DNSimple.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_dnsimple
+Options:
+ DNSimple_OAUTH_TOKEN OAuth Token
+Issues: github.com/pho3nixf1re/acme.sh/issues
+'
 
 DNSimple_API="https://api.dnsimple.com/v2"
 

@@ -1,4 +1,15 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_edgedns_info='Akamai.com Edge DNS
+Site: techdocs.Akamai.com/edge-dns/reference/edge-dns-api
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_edgedns
+Options: Specify individual credentials
+ AKAMAI_HOST Host
+ AKAMAI_ACCESS_TOKEN Access token
+ AKAMAI_CLIENT_TOKEN Client token
+ AKAMAI_CLIENT_SECRET Client secret
+Issues: github.com/acmesh-official/acme.sh/issues/3157
+'
 
 # Akamai Edge DNS v2  API
 # User must provide Open Edgegrid API credentials to the EdgeDNS installation. The remote user in EdgeDNS must have CRUD access to
@@ -6,18 +17,10 @@
 
 # Report bugs to https://control.akamai.com/apps/support-ui/#/contact-support
 
-# Values to export:
-# --EITHER--
 # *** TBD. NOT IMPLEMENTED YET ***
-# specify Edgegrid credentials file and section
-# AKAMAI_EDGERC=<full file path>
-# AKAMAI_EDGERC_SECTION="default"
-## --OR--
-# specify indiviual credentials
-# export AKAMAI_HOST = <host>
-# export AKAMAI_ACCESS_TOKEN = <access token>
-# export AKAMAI_CLIENT_TOKEN = <client token>
-# export AKAMAI_CLIENT_SECRET = <client secret>
+# Specify Edgegrid credentials file and section.
+# AKAMAI_EDGERC Edge RC. Full file path
+# AKAMAI_EDGERC_SECTION Edge RC Section. E.g. "default"
 
 ACME_EDGEDNS_VERSION="0.1.0"
 

@@ -1,6 +1,12 @@
 #!/usr/bin/env sh
-
-# Author: Janos Lenart <janos@lenart.io>
+# shellcheck disable=SC2034
+dns_gcloud_info='Google Cloud DNS
+Site: Cloud.Google.com/dns
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_gcloud
+Options:
+ CLOUDSDK_ACTIVE_CONFIG_NAME Active config name. E.g. "default"
+Author: Janos Lenart <janos@lenart.io>
+'
 
 ########  Public functions #####################
 

@@ -1,9 +1,13 @@
 #!/usr/bin/env sh
-
-#
-# ULTRA_USR="your_user_goes_here"
-#
-# ULTRA_PWD="some_password_goes_here"
+# shellcheck disable=SC2034
+dns_ultra_info='UltraDNS.com
+Site: UltraDNS.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_ultra
+Options:
+ ULTRA_USR Username
+ ULTRA_PWD Password
+Issues: github.com/acmesh-official/acme.sh/issues/2118
+'
 
 ULTRA_API="https://api.ultradns.com/v3/"
 ULTRA_AUTH_API="https://api.ultradns.com/v2/"

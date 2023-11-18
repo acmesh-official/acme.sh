@@ -1,5 +1,15 @@
 #!/usr/bin/env sh
-#developed by linux-insideDE
+# shellcheck disable=SC2034
+dns_netcup_info='netcup.eu
+Domains: netcup.de netcup.net
+Site: netcup.eu/
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_netcup
+Options:
+ NC_Apikey API Key
+ NC_Apipw API Password
+ NC_CID Customer Number
+Author: linux-insideDE
+'
 
 NC_Apikey="${NC_Apikey:-$(_readaccountconf_mutable NC_Apikey)}"
 NC_Apipw="${NC_Apipw:-$(_readaccountconf_mutable NC_Apipw)}"

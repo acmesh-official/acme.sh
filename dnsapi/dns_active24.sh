@@ -1,6 +1,13 @@
 #!/usr/bin/env sh
-
-#ACTIVE24_Token="sdfsdfsdfljlbjkljlkjsdfoiwje"
+# shellcheck disable=SC2034
+dns_active24_info='Active24.com
+Site: Active24.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_active24
+Options:
+ ACTIVE24_Token API Token
+Issues: github.com/acmesh-official/acme.sh/issues/2059
+Author: Milan Pála
+'
 
 ACTIVE24_Api="https://api.active24.com"
 

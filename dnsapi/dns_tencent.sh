@@ -1,8 +1,14 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_tencent_info='Tencent.com
+Site: cloud.Tencent.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_tencent
+Options:
+ Tencent_SecretId Secret ID
+ Tencent_SecretKey Secret Key
+Issues: github.com/acmesh-official/acme.sh/issues/4781
+'
 Tencent_API="https://dnspod.tencentcloudapi.com"
-
-#Tencent_SecretId="AKIDz81d2cd22cdcdc2dcd1cc1d1A"
-#Tencent_SecretKey="Gu5t9abcabcaabcbabcbbbcbcbbccbbcb"
 
 #Usage: dns_tencent_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_tencent_add() {

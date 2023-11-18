@@ -1,7 +1,13 @@
 #!/usr/bin/env sh
-
-#LA_Id="test123"
-#LA_Key="d1j2fdo4dee3948"
+# shellcheck disable=SC2034
+dns_la_info='dns.la
+Site: dns.la
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_la
+Options:
+ LA_Id API ID
+ LA_Key API key
+Issues: github.com/acmesh-official/acme.sh/issues/4257
+'
 
 LA_Api="https://api.dns.la/api"
 

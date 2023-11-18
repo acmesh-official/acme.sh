@@ -1,14 +1,15 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_freedns_info='FreeDNS
+Site: FreeDNS.afraid.org
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_freedns
+Options:
+ FREEDNS_User Username
+ FREEDNS_Password Password
+Issues: github.com/acmesh-official/acme.sh/issues/2305
+Author: David Kerr <https://github.com/dkerr64>
+'
 
-#This file name is "dns_freedns.sh"
-#So, here must be a method dns_freedns_add()
-#Which will be called by acme.sh to add the txt record to your api system.
-#returns 0 means success, otherwise error.
-#
-#Author: David Kerr
-#Report Bugs here: https://github.com/dkerr64/acme.sh
-#or here... https://github.com/acmesh-official/acme.sh/issues/2305
-#
 ########  Public functions #####################
 
 # Export FreeDNS userid and password in following variables...

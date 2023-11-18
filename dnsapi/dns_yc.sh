@@ -1,11 +1,18 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_yc_info='Yandex Cloud DNS
+Site: Cloud.Yandex.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_yc
+Options:
+ YC_Zone_ID DNS Zone ID
+ YC_Folder_ID YC Folder ID
+ YC_SA_ID Service Account ID
+ YC_SA_Key_ID Service Account IAM Key ID
+ YC_SA_Key_File_Path Private key file path. Optional.
+ YC_SA_Key_File_PEM_b64 Base64 content of private key file. Use instead of Path to private key file. Optional.
+Issues: github.com/acmesh-official/acme.sh/issues/4210
+'
 
-#YC_Zone_ID="" # DNS Zone ID
-#YC_Folder_ID="" # YC Folder ID
-#YC_SA_ID="" # Service Account ID
-#YC_SA_Key_ID="" # Service Account IAM Key ID
-#YC_SA_Key_File_Path="/path/to/private.key" # Path to private.key use instead of YC_SA_Key_File_PEM_b64
-#YC_SA_Key_File_PEM_b64="" # Base64 content of private.key use instead of YC_SA_Key_File_Path
 YC_Api="https://dns.api.cloud.yandex.net/dns/v1"
 
 ########  Public functions #####################

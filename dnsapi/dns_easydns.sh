@@ -1,14 +1,17 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_easydns_info='easyDNS.net
+Site: easyDNS.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_easydns
+Options:
+ EASYDNS_Token API Token
+ EASYDNS_Key API Key
+Issues: github.com/acmesh-official/acme.sh/issues/2647
+Author: Neilpang, wurzelpanzer <wurzelpanzer@maximolider.net>
+'
 
-#######################################################
-#
-# easyDNS REST API for acme.sh by Neilpang based on dns_cf.sh
-#
 # API Documentation: https://sandbox.rest.easydns.net:3001/
-#
-# Author: wurzelpanzer [wurzelpanzer@maximolider.net]
-# Report Bugs here: https://github.com/acmesh-official/acme.sh/issues/2647
-#
+
 ####################  Public functions #################
 
 #EASYDNS_Key="xxxxxxxxxxxxxxxxxxxxxxxx"

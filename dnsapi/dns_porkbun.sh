@@ -1,8 +1,13 @@
 #!/usr/bin/env sh
-
-#
-#PORKBUN_API_KEY="pk1_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-#PORKBUN_SECRET_API_KEY="sk1_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+# shellcheck disable=SC2034
+dns_porkbun_info='Porkbun.com
+Site: Porkbun.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_porkbun
+Options:
+ PORKBUN_API_KEY API Key
+ PORKBUN_SECRET_API_KEY API Secret
+Issues: github.com/acmesh-official/acme.sh/issues/3450
+'
 
 PORKBUN_Api="https://porkbun.com/api/json/v3"
 

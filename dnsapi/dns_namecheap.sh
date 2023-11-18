@@ -1,12 +1,17 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_namecheap_info='NameCheap.com
+Site: NameCheap.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_namecheap
+Options:
+ NAMECHEAP_API_KEY API Key
+ NAMECHEAP_USERNAME Username
+ NAMECHEAP_SOURCEIP Source IP
+Issues: github.com/acmesh-official/acme.sh/issues/2107
+'
 
 # Namecheap API
 # https://www.namecheap.com/support/api/intro.aspx
-#
-# Requires Namecheap API key set in
-#NAMECHEAP_API_KEY,
-#NAMECHEAP_USERNAME,
-#NAMECHEAP_SOURCEIP
 # Due to Namecheap's API limitation all the records of your domain will be read and re applied, make sure to have a backup of your records you could apply if any issue would arise.
 
 ########  Public functions #####################

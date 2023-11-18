@@ -1,9 +1,13 @@
 #!/usr/bin/env sh
-# one.com ui wrapper for acme.sh
-
-#
-#     export ONECOM_User="username"
-#     export ONECOM_Password="password"
+# shellcheck disable=SC2034
+dns_one_info='one.com
+Site: one.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_one
+Options:
+ ONECOM_User Username
+ ONECOM_Password Password
+Issues: github.com/acmesh-official/acme.sh/issues/2103
+'
 
 dns_one_add() {
   fulldomain=$1

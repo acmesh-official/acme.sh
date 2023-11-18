@@ -1,21 +1,15 @@
 #!/usr/bin/env sh
-
-########
-# Custom cyon.ch DNS API for use with [acme.sh](https://github.com/acmesh-official/acme.sh)
-#
-# Usage: acme.sh --issue --dns dns_cyon -d www.domain.com
-#
-# Dependencies:
-# -------------
-# - oathtool (When using 2 Factor Authentication)
-#
-# Issues:
-# -------
-# Any issues / questions / suggestions can be posted here:
-# https://github.com/noplanman/cyon-api/issues
-#
-# Author: Armando Lüscher <armando@noplanman.ch>
-########
+# shellcheck disable=SC2034
+dns_cyon_info='cyon.ch
+Site: cyon.ch
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_cyon
+Options:
+ CY_Username Username
+ CY_Password API Token
+ CY_OTP_Secret OTP token. Only required if using 2FA
+Issues: github.com/noplanman/cyon-api/issues
+Author: Armando Lüscher <armando@noplanman.ch>
+'
 
 dns_cyon_add() {
   _cyon_load_credentials &&

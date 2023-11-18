@@ -1,15 +1,13 @@
 #!/usr/bin/env sh
-
-########################################################################
-# https://namemaster.de hook script for acme.sh
-#
-# Environment variables:
-#
-#  - $NM_user      (your namemaster.de API username)
-#  - $NM_sha256       (your namemaster.de API password_as_sha256hash)
-#
-# Author: Thilo Gass <thilo.gass@gmail.com>
-# Git repo: https://github.com/ThiloGa/acme.sh
+# shellcheck disable=SC2034
+dns_nm_info='NameMaster.de
+Site: NameMaster.de
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_nm
+Options:
+ NM_user API Username
+ NM_sha256 API Password as SHA256 hash
+Author: Thilo Gass <thilo.gass@gmail.com>
+'
 
 #-- dns_nm_add() - Add TXT record --------------------------------------
 # Usage: dns_nm_add _acme-challenge.subdomain.domain.com "XyZ123..."

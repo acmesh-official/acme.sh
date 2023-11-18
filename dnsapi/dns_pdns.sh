@@ -1,12 +1,14 @@
 #!/usr/bin/env sh
-
-#PowerDNS Embedded API
-#https://doc.powerdns.com/md/httpapi/api_spec/
-#
-#PDNS_Url="http://ns.example.com:8081"
-#PDNS_ServerId="localhost"
-#PDNS_Token="0123456789ABCDEF"
-#PDNS_Ttl=60
+# shellcheck disable=SC2034
+dns_pdns_info='PowerDNS Server API
+Site: PowerDNS.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_pdns
+Options:
+ PDNS_Url API URL. E.g. "http://ns.example.com:8081"
+ PDNS_ServerId Server ID. E.g. "localhost"
+ PDNS_Token API Token
+ PDNS_Ttl=60 Domain TTL. Default: "60".
+'
 
 DEFAULT_PDNS_TTL=60
 
