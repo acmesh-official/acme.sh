@@ -1,7 +1,6 @@
 #!/usr/bin/bash
 
 #Hosttech_Key="abcdefghuhu"
-
 Hosttech_Api="https://api.ns1.hosttech.eu/api/user/v1"
 
 ########  Public functions #####################
@@ -34,8 +33,6 @@ dns_hosttech_add() {
   if _hosttech_rest POST "zones/$_domain/records" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"text\":\"$txtvalue\",\"ttl\":600}"; then
     if _contains "$_response" "$_sub_domain"; then
       _debug recordID "$(echo "$_response" | grep -o '"id":[^"]*' | grep -Po "\d+")"
-    
-      #save the created recordID to the account conf file, so we can read it back for deleting in dns_hosttech_rm.
       _saveaccountconf recordID "$(echo "$_response" | grep -o '"id":[^"]*' | grep -Po "\d+")"
       _info "Added, OK"
       return 0
@@ -46,7 +43,6 @@ dns_hosttech_add() {
   fi
   _err "Add txt record error."
   return 1
-
 }
  
 #fulldomain txtvalue
