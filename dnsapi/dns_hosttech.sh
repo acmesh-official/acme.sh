@@ -1,6 +1,7 @@
 #!/usr/bin/bash
 
-#Hosttech_Key="abcdefghuhu"
+#Hosttech_Key="asdfasdfawefasdfawefasdafe"
+
 Hosttech_Api="https://api.ns1.hosttech.eu/api/user/v1"
 
 ########  Public functions #####################
@@ -29,10 +30,12 @@ dns_hosttech_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  _info "Adding record"  
+  _info "Adding record"
   if _hosttech_rest POST "zones/$_domain/records" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"text\":\"$txtvalue\",\"ttl\":600}"; then
     if _contains "$_response" "$_sub_domain"; then
       _debug recordID "$(echo "$_response" | grep -o '"id":[^"]*' | grep -Po "\d+")"
+
+      #save the created recordID to the account conf file, so we can read it back for deleting in dns_hosttech_rm.
       _saveaccountconf recordID "$(echo "$_response" | grep -o '"id":[^"]*' | grep -Po "\d+")"
       _info "Added, OK"
       return 0
@@ -43,13 +46,15 @@ dns_hosttech_add() {
   fi
   _err "Add txt record error."
   return 1
+
 }
 
+#fulldomain txtvalue
 dns_hosttech_rm() {
   fulldomain=$1
   txtvalue=$2
+
   Hosttech_Key="${Hosttech_Key:-$(_readaccountconf_mutable Hosttech_Key)}"
-  
   if [ -z "$Hosttech_Key" ]; then
     Hosttech_Key=""
     _err "You didn't specify a Hosttech api key."
