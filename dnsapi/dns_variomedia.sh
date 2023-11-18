@@ -1,7 +1,12 @@
 #!/usr/bin/env sh
-
-#
-#VARIOMEDIA_API_TOKEN=000011112222333344445555666677778888
+# shellcheck disable=SC2034
+dns_variomedia_info='variomedia.de
+Site: variomedia.de
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_variomedia
+Options:
+ VARIOMEDIA_API_TOKEN API Token
+Issues: github.com/acmesh-official/acme.sh/issues/2564
+'
 
 VARIOMEDIA_API="https://api.variomedia.de"
 

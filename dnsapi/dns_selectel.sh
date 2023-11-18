@@ -1,8 +1,12 @@
 #!/usr/bin/env sh
-
-#
-#SL_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
+# shellcheck disable=SC2034
+dns_selectel_info='Selectel.com
+Domains: Selectel.ru
+Site: Selectel.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_selectel
+Options:
+ SL_Key API Key
+'
 
 SL_Api="https://api.selectel.ru/domains/v1"
 

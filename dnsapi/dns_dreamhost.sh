@@ -1,10 +1,14 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_dreamhost_info='DreamHost.com
+Site: DreamHost.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_dreamhost
+Options:
+ DH_API_KEY API Key
+Issues: github.com/RhinoLance/acme.sh
+Author: RhinoLance
+'
 
-#Author: RhinoLance
-#Report Bugs here: https://github.com/RhinoLance/acme.sh
-#
-
-#define the api endpoint
 DH_API_ENDPOINT="https://api.dreamhost.com/"
 querystring=""
 

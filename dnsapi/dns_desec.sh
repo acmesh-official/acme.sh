@@ -1,11 +1,13 @@
 #!/usr/bin/env sh
-#
-# deSEC.io Domain API
-#
-# Author: Zheng Qian
-#
-# deSEC API doc
-# https://desec.readthedocs.io/en/latest/
+# shellcheck disable=SC2034
+dns_desec_info='deSEC.io
+Site: desec.readthedocs.io/en/latest/
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_desec
+Options:
+ DDNSS_Token API Token
+Issues: github.com/acmesh-official/acme.sh/issues/2180
+Author: Zheng Qian
+'
 
 REST_API="https://desec.io/api/v1/domains"
 

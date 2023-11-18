@@ -1,11 +1,13 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_vscale_info='vscale.io
+Site: vscale.io
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_vscale
+Options:
+ VSCALE_API_KEY API Key
+Author: Alex Loban <https://github.com/LAV45>
+'
 
-#This is the vscale.io api wrapper for acme.sh
-#
-#Author: Alex Loban
-#Report Bugs here: https://github.com/LAV45/acme.sh
-
-#VSCALE_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
 VSCALE_API_URL="https://api.vscale.io/v1"
 
 ########  Public functions #####################

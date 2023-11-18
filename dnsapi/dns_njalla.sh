@@ -1,7 +1,12 @@
 #!/usr/bin/env sh
-
-#
-#NJALLA_Token="sdfsdfsdfljlbjkljlkjsdfoiwje"
+# shellcheck disable=SC2034
+dns_njalla_info='Njalla
+Site: Njal.la
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_njalla
+Options:
+ NJALLA_Token API Token
+Issues: github.com/acmesh-official/acme.sh/issues/2913
+'
 
 NJALLA_Api="https://njal.la/api/1/"
 

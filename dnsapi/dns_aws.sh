@@ -1,13 +1,15 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_aws_info='Amazon AWS Route53 domain API
+Site: docs.aws.amazon.com/route53/
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_aws
+Options:
+ AWS_ACCESS_KEY_ID API Key ID
+ AWS_SECRET_ACCESS_KEY API Secret
+'
 
-#
-#AWS_ACCESS_KEY_ID="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
-#AWS_SECRET_ACCESS_KEY="xxxxxxx"
-
-#This is the Amazon Route53 api wrapper for acme.sh
-#All `_sleep` commands are included to avoid Route53 throttling, see
-#https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html#limits-api-requests
+# All `_sleep` commands are included to avoid Route53 throttling, see
+# https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html#limits-api-requests
 
 AWS_HOST="route53.amazonaws.com"
 AWS_URL="https://$AWS_HOST"
