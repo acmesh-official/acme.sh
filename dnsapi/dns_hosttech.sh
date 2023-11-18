@@ -44,13 +44,12 @@ dns_hosttech_add() {
   _err "Add txt record error."
   return 1
 }
- 
-#fulldomain txtvalue
+
 dns_hosttech_rm() {
   fulldomain=$1
   txtvalue=$2
-
   Hosttech_Key="${Hosttech_Key:-$(_readaccountconf_mutable Hosttech_Key)}"
+  
   if [ -z "$Hosttech_Key" ]; then
     Hosttech_Key=""
     _err "You didn't specify a Hosttech api key."
