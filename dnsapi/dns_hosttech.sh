@@ -14,7 +14,7 @@ dns_hosttech_add() {
   Hosttech_Key="${Hosttech_Key:-$(_readaccountconf_mutable Hosttech_Key)}"
   if [ -z "$Hosttech_Key" ]; then
     Hosttech_Key=""
-    _err "You didn't specify a Hosttech api key."
+    _err "You didn't specify a Hosttech api key"
     _err "You can get yours from https://www.myhosttech.eu/user/dns/api"
     return 1
   fi
