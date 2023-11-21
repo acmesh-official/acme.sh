@@ -61,7 +61,7 @@ jobs:
         nat: |
           "8080": "80"
         prepare: |
-          pkg_add curl socat
+          /usr/sbin/pkg_add curl socat
         usesh: true
         copyback: false
         run: |
