@@ -90,7 +90,6 @@ ssh_deploy() {
   fi
   _savedeployconf DEPLOY_SSH_REMOTE_CMD_QUOTE "$DEPLOY_SSH_REMOTE_CMD_QUOTE"
 
-
   # BACKUP is optional. If not provided then default to previously saved value or yes.
   _migratedeployconf Le_Deploy_ssh_backup DEPLOY_SSH_BACKUP
   _getdeployconf DEPLOY_SSH_BACKUP
@@ -449,9 +448,9 @@ _ssh_remote_cmd() {
   if [ "$DEPLOY_SSH_REMOTE_CMD_QUOTE" = "yes" ]; then
     # quotations in bash cmd below intended.  Squash travis spellcheck error
     # shellcheck disable=SC2029
-    $_ssh_cmd "$DEPLOY_SSH_USER@$_host" $DEPLOY_SSH_REMOTE_SHELL "'$_cmd'"
+    $_ssh_cmd "$DEPLOY_SSH_USER@$_host" "$DEPLOY_SSH_REMOTE_SHELL" "'$_cmd'"
   else
-    $_ssh_cmd "$DEPLOY_SSH_USER@$_host" $DEPLOY_SSH_REMOTE_SHELL "$_cmd"
+    $_ssh_cmd "$DEPLOY_SSH_USER@$_host" "$DEPLOY_SSH_REMOTE_SHELL" "$_cmd"
   fi
   _err_code="$?"
 
