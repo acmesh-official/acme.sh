@@ -25,6 +25,7 @@
 # export DEPLOY_SSH_MULTI_CALL=""  # yes or no, default to no or previously saved value
 # export DEPLOY_SSH_USE_SCP="" yes or no, default to no
 # export DEPLOY_SSH_SCP_CMD="" defaults to "scp -q"
+# export DEPLOY_SSH_REMOTE_SHELL="" # defaults to sh -c
 #
 ########  Public functions #####################
 
@@ -70,6 +71,15 @@ ssh_deploy() {
     DEPLOY_SSH_CMD="ssh -T"
   fi
   _savedeployconf DEPLOY_SSH_CMD "$DEPLOY_SSH_CMD"
+
+  # REMOTE_SHELL is optional. If not provided then use sh
+  _migratedeployconf Le_Deploy_ssh_remote_shell DEPLOY_SSH_REMOTE_SHELL
+  _getdeployconf DEPLOY_SSH_REMOTE_SHELL
+  _debug2 DEPLOY_SSH_REMOTE_SHELL "$DEPLOY_SSH_REMOTE_SHELL"
+  if [ -z "$DEPLOY_SSH_REMOTE_SHELL" ]; then
+    DEPLOY_SSH_REMOTE_SHELL="sh -c"
+  fi
+  _savedeployconf DEPLOY_SSH_REMOTE_SHELL "$DEPLOY_SSH_REMOTE_SHELL"
 
   # BACKUP is optional. If not provided then default to previously saved value or yes.
   _migratedeployconf Le_Deploy_ssh_backup DEPLOY_SSH_BACKUP
@@ -428,7 +438,7 @@ _ssh_remote_cmd() {
 
   # quotations in bash cmd below intended.  Squash travis spellcheck error
   # shellcheck disable=SC2029
-  $_ssh_cmd "$DEPLOY_SSH_USER@$_host" sh -c "'$_cmd'"
+  $_ssh_cmd "$DEPLOY_SSH_USER@$_host" $DEPLOY_SSH_REMOTE_SHELL "'$_cmd'"
   _err_code="$?"
 
   if [ "$_err_code" != "0" ]; then
