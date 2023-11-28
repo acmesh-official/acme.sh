@@ -59,8 +59,8 @@ opengear_deploy() {
   fi
   _info "Deploying to $_opengear_host"
 
-  _cmdstr="sudo echo -e \"set services.https.certificate =$(cat "$_cfullchain" | base64 -w0)\nset services.https.private_key =$(cat "$_ckey" | base64 -w0)\npush\" | /usr/bin/ogconfig-cli || \
-           sudo echo -e \"set services.https.certificate =$(cat "$_cfullchain" | base64 -w0)\nset services.https.private_key =$(cat "$_ckey" | base64 -w0)\npush\" | /usr/unsupported/bin/ogconfig-cli"
+  _cmdstr="sudo echo -e \"set services.https.certificate =$(base64 -w0 "$_cfullchain")\nset services.https.private_key =$(base64 -w0 "$_ckey")\npush\" | /usr/bin/ogconfig-cli || \
+           sudo echo -e \"set services.https.certificate =$(base64 -w0 "$_cfullchain")\nset services.https.private_key =$(base64 -w0 "$_ckey")\npush\" | /usr/unsupported/bin/ogconfig-cli"
   _info "will deploy new certificate"
   if ! _ssh_remote_cmd "$_cmdstr"; then
     return "$_err_code"
