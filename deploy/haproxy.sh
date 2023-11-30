@@ -147,7 +147,7 @@ haproxy_deploy() {
   # Create a temporary PEM file
   _temppem="$(_mktemp)"
   _debug _temppem "${_temppem}"
-  cat "${_ccert}" "${_cca}" "${_ckey}" >"${_temppem}"
+  cat "${_ccert}" "${_cca}" "${_ckey}" | grep . >"${_temppem}"
   _ret="$?"
 
   # Check that we could create the temporary file
