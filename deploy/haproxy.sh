@@ -102,6 +102,11 @@ haproxy_deploy() {
     _savedomainconf Le_Deploy_haproxy_pem_name "${Le_Deploy_haproxy_pem_name}"
   elif [ -z "${Le_Deploy_haproxy_pem_name}" ]; then
     Le_Deploy_haproxy_pem_name="${DEPLOY_HAPROXY_PEM_NAME_DEFAULT}"
+    # We better not have '*' as the first character
+    if [ "${Le_Deploy_haproxy_pem_name%%"${Le_Deploy_haproxy_pem_name#?}"}" = '*' ]; then
+      # removes the first characters and add a _ instead
+      Le_Deploy_haproxy_pem_name="_${Le_Deploy_haproxy_pem_name#?}"
+    fi
   fi
 
   # BUNDLE is optional. If not provided then assume "${DEPLOY_HAPROXY_BUNDLE_DEFAULT}"
