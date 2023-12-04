@@ -8,7 +8,7 @@
 [![Windows](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml)
 [![Solaris](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml)
 [![DragonFlyBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml)
-
+[![Omnios](https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml)
 
 ![Shellcheck](https://github.com/acmesh-official/acme.sh/workflows/Shellcheck/badge.svg)
 ![PebbleStrict](https://github.com/acmesh-official/acme.sh/workflows/PebbleStrict/badge.svg)
