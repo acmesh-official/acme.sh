@@ -4,8 +4,8 @@
 #GCORE_Key='773$7b7adaf2a2b32bfb1b83787b4ff32a67eb178e3ada1af733e47b1411f2461f7f4fa7ed7138e2772a46124377bad7384b3bb8d87748f87b3f23db4b8bbe41b2bb'
 #
 
-GCORE_Api="https://api.gcorelabs.com/dns/v2"
-GCORE_Doc="https://apidocs.gcore.com/dns"
+GCORE_Api="https://api.gcore.com/dns/v2"
+GCORE_Doc="https://api.gcore.com/docs/dns"
 
 ########  Public functions #####################
 

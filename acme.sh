@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.0.7
+VER=3.0.8
 
 PROJECT_NAME="acme.sh"
 
@@ -931,7 +931,7 @@ fi
 
 _egrep_o() {
   if [ "$__USE_EGREP" ]; then
-    egrep -o -- "$1"
+    egrep -o -- "$1" 2>/dev/null
   else
     sed -n 's/.*\('"$1"'\).*/\1/p'
   fi
@@ -1793,6 +1793,10 @@ _date2time() {
   fi
   #Mac/BSD
   if date -u -j -f "%Y-%m-%d %H:%M:%S" "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
+    return
+  fi
+  #Omnios
+  if da="$(echo "$1" | tr -d "Z" | tr "T" ' ')" perl -MTime::Piece -e 'print Time::Piece->strptime($ENV{da}, "%Y-%m-%d %H:%M:%S")->epoch, "\n";' 2>/dev/null; then
     return
   fi
   _err "Can not parse _date2time $1"
