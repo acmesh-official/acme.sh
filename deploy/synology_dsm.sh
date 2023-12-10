@@ -168,7 +168,7 @@ synology_dsm_deploy() {
   _savedeployconf SYNO_Device_ID "$SYNO_Device_ID"
 
   _info "Getting certificates in Synology DSM"
-  response=$(_post "api=SYNO.Core.Certificate.CRT&method=list&version=1&_sid=$sid" "$_base_url/webapi/entry.cgi")
+  response=$(_post "api=SYNO.Core.Certificate.CRT&method=list&version=1&_sid=$sid" "$_base_url/webapi/$api_path")
   _debug3 response "$response"
   escaped_certificate="$(printf "%s" "$SYNO_Certificate" | sed 's/\([].*^$[]\)/\\\1/g;s/"/\\\\"/g')"
   _debug escaped_certificate "$escaped_certificate"
@@ -202,7 +202,7 @@ synology_dsm_deploy() {
   content="${content%_}" # protect trailing \n
 
   _info "Upload certificate to the Synology DSM"
-  response=$(_post "$content" "$_base_url/webapi/entry.cgi?api=SYNO.Core.Certificate&method=import&version=1&SynoToken=$token&_sid=$sid" "" "POST" "multipart/form-data; boundary=${delim}")
+  response=$(_post "$content" "$_base_url/webapi/$api_path?api=SYNO.Core.Certificate&method=import&version=1&SynoToken=$token&_sid=$sid" "" "POST" "multipart/form-data; boundary=${delim}")
   _debug3 response "$response"
 
   if ! echo "$response" | grep '"error":' >/dev/null; then
@@ -224,6 +224,6 @@ synology_dsm_deploy() {
 ####################  Private functions below ##################################
 _logout() {
   # Logout to not occupy a permanent session, e.g. in DSM's "Connected Users" widget
-  response=$(_get "$_base_url/webapi/entry.cgi?api=SYNO.API.Auth&version=$api_version&method=logout")
+  response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=logout")
   _debug3 response "$response"
 }
