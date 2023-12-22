@@ -223,7 +223,8 @@ synology_dsm_deploy() {
 
 ####################  Private functions below ##################################
 _logout() {
-  # Logout to not occupy a permanent session, e.g. in DSM's "Connected Users" widget
-  response=$(_get "$_base_url/webapi/entry.cgi?api=SYNO.API.Auth&version=$api_version&method=logout")
+  # Logout to not occupy a permanent session, e.g. in DSM's "Connected Users" widget 
+  #Edit Darkneo - reuse previous variables to logout properly only for CERT user
+  response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=logout&_sid=$sid")
   _debug3 response "$response"
 }
