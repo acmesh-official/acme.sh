@@ -1,13 +1,16 @@
 #!/usr/bin/env sh
-
-#
-#CF_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
-#CF_Email="xxxx@sss.com"
-
-#CF_Token="xxxx"
-#CF_Account_ID="xxxx"
-#CF_Zone_ID="xxxx"
+# shellcheck disable=SC2034
+dns_cf_info='CloudFlare
+Site: CloudFlare.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_cf
+Options:
+ CF_Key API Key
+ CF_Email Your account email
+OptionsAlt:
+ CF_Token API Token
+ CF_Account_ID Account ID
+ CF_Zone_ID Zone ID. Optional.
+'
 
 CF_Api="https://api.cloudflare.com/client/v4"
 

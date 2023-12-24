@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_domeneshop_info='DomeneShop.no
+Site: DomeneShop.no
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_domeneshop
+Options:
+ DOMENESHOP_Token Token
+ DOMENESHOP_Secret Secret
+Issues: github.com/acmesh-official/acme.sh/issues/2457
+'
 
 DOMENESHOP_Api_Endpoint="https://api.domeneshop.no/v0"
 

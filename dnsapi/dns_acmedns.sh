@@ -1,18 +1,18 @@
 #!/usr/bin/env sh
-#
-#Author: Wolfgang Ebner
-#Author: Sven Neubuaer
-#Report Bugs here: https://github.com/dampfklon/acme.sh
-#
-# Usage:
-# export ACMEDNS_BASE_URL="https://auth.acme-dns.io"
-#
-# You can optionally define an already existing account:
-#
-# export ACMEDNS_USERNAME="<username>"
-# export ACMEDNS_PASSWORD="<password>"
-# export ACMEDNS_SUBDOMAIN="<subdomain>"
-#
+# shellcheck disable=SC2034
+dns_acmedns_info='acme-dns Server API
+ The acme-dns is a limited DNS server with RESTful API to handle ACME DNS challenges.
+Site: github.com/joohoi/acme-dns
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_acmedns
+Options:
+ ACMEDNS_USERNAME Username. Optional.
+ ACMEDNS_PASSWORD Password. Optional.
+ ACMEDNS_SUBDOMAIN Subdomain. Optional.
+ ACMEDNS_BASE_URL API endpoint. Default: "https://auth.acme-dns.io".
+Issues: github.com/dampfklon/acme.sh
+Author: Wolfgang Ebner, Sven Neubuaer
+'
+
 ########  Public functions #####################
 
 #Usage: dns_acmedns_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"

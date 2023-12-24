@@ -1,4 +1,14 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_transip_info='TransIP.nl
+Site: TransIP.nl
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_transip
+Options:
+ TRANSIP_Username Username
+ TRANSIP_Key_File Private key file path
+Issues: github.com/acmesh-official/acme.sh/issues/2949
+'
+
 TRANSIP_Api_Url="https://api.transip.nl/v6"
 TRANSIP_Token_Read_Only="false"
 TRANSIP_Token_Expiration="30 minutes"

@@ -1,14 +1,21 @@
 #!/usr/bin/env sh
-
-# OpenStack Designate API plugin
-#
-# This requires you to have OpenStackClient and python-desginateclient
-# installed.
-#
-# You will require Keystone V3 credentials loaded into your environment, which
-# could be either password or v3applicationcredential type.
-#
-# Author: Andy Botting <andy@andybotting.com>
+# shellcheck disable=SC2034
+dns_openstack_info='OpenStack Designate API
+ Depends on OpenStackClient and python-desginateclient.
+ You will require Keystone V3 credentials loaded into your environment,
+ which could be either password or v3 application credential type.
+Site: docs.openstack.org/api-ref/dns/
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_openstack
+Options:
+ OS_AUTH_URL Auth URL. E.g. "https://keystone.example.com:5000/"
+ OS_USERNAME Username
+ OS_PASSWORD Password
+ OS_PROJECT_NAME Project name
+ OS_PROJECT_DOMAIN_NAME Project domain name. E.g. "Default"
+ OS_USER_DOMAIN_NAME User domain name. E.g. "Default"
+Issues: github.com/acmesh-official/acme.sh/issues/3054
+Author: Andy Botting <andy@andybotting.com>
+'
 
 ########  Public functions #####################
 

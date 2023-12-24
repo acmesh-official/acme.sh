@@ -1,6 +1,15 @@
 #!/usr/bin/env sh
-
-WIKI="https://github.com/acmesh-official/acme.sh/wiki/How-to-use-Azure-DNS"
+# shellcheck disable=SC2034
+dns_azure_info='Azure
+Site: Azure.microsoft.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_azure
+Options:
+ AZUREDNS_SUBSCRIPTIONID Subscription ID
+ AZUREDNS_TENANTID Tenant ID
+ AZUREDNS_APPID App ID. App ID of the service principal
+ AZUREDNS_CLIENTSECRET Client Secret. Secret from creating the service principal
+ AZUREDNS_MANAGEDIDENTITY Use Managed Identity. Use Managed Identity assigned to a resource instead of a service principal. "true"/"false"
+'
 
 ########  Public functions #####################
 

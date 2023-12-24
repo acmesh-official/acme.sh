@@ -1,10 +1,13 @@
 #!/usr/bin/env sh
-
-# bug reports to dev@1e.ca
-
-#
-#NS1_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
+# shellcheck disable=SC2034
+dns_nsone_info='ns1.com
+Domains: ns1.net
+Site: ns1.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_nsone
+Options:
+ NS1_Key API Key
+Author: <dev@1e.ca>
+'
 
 NS1_Api="https://api.nsone.net/v1"
 

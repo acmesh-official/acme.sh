@@ -1,20 +1,21 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_dynu_info='Dynu.com
+Site: Dynu.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_dynu
+Options:
+ Dynu_ClientId Client ID
+ Dynu_Secret Secret
+Issues: github.com/shar0119/acme.sh
+Author: Dynu Systems Inc
+'
 
-#Client ID
-#Dynu_ClientId="0b71cae7-a099-4f6b-8ddf-94571cdb760d"
-#
-#Secret
-#Dynu_Secret="aCUEY4BDCV45KI8CSIC3sp2LKQ9"
-#
 #Token
 Dynu_Token=""
 #
 #Endpoint
 Dynu_EndPoint="https://api.dynu.com/v2"
-#
-#Author: Dynu Systems, Inc.
-#Report Bugs here: https://github.com/shar0119/acme.sh
-#
+
 ########  Public functions #####################
 
 #Usage: add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"

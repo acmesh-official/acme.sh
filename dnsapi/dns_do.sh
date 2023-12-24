@@ -1,12 +1,15 @@
 #!/usr/bin/env sh
-
-# DNS API for Domain-Offensive / Resellerinterface / Domainrobot
-
-# Report bugs at https://github.com/seidler2547/acme.sh/issues
-
-# set these environment variables to match your customer ID and password:
-# DO_PID="KD-1234567"
-# DO_PW="cdfkjl3n2"
+# shellcheck disable=SC2034
+dns_do_info='Domain-Offensive (Old)
+ Domain-Offensive / ResellerInterface.de / DomainRobot.
+ Removed.
+Site: ResellerInterface.de
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_do
+Options:
+ DO_PID Customer ID
+ DO_PW Password
+Issues: github.com/seidler2547/acme.sh/issues
+'
 
 DO_URL="https://soap.resellerinterface.de/"
 

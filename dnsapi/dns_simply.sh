@@ -1,10 +1,13 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_simply_info='Simply.com
+Site: Simply.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_simply
+Options:
+ SIMPLY_AccountName Account name
+ SIMPLY_ApiKey API Key
+'
 
-# API-integration for Simply.com (https://www.simply.com)
-
-#SIMPLY_AccountName="accountname"
-#SIMPLY_ApiKey="apikey"
-#
 #SIMPLY_Api="https://api.simply.com/2/"
 SIMPLY_Api_Default="https://api.simply.com/2"
 

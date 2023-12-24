@@ -1,9 +1,15 @@
 #!/usr/bin/env sh
-
-#
-#AURORA_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
-#AURORA_Secret="sdfsdfsdfljlbjkljlkjsdfoiwje"
+# shellcheck disable=SC2034
+dns_aurora_info='versio.nl AuroraDNS
+Domains: pcextreme.nl
+Site: versio.nl
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_aurora
+Options:
+ AURORA_Key API Key
+ AURORA_Secret API Secret
+Issues: github.com/acmesh-official/acme.sh/issues/3459
+Author: Jasper Zonneveld
+'
 
 AURORA_Api="https://api.auroradns.eu"
 

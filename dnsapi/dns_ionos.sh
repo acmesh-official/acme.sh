@@ -1,14 +1,13 @@
 #!/usr/bin/env sh
-
-# Supports IONOS DNS API v1.0.1
-#
-# Usage:
-#   Export IONOS_PREFIX and IONOS_SECRET before calling acme.sh:
-#
-#   $ export IONOS_PREFIX="..."
-#   $ export IONOS_SECRET="..."
-#
-#   $ acme.sh --issue --dns dns_ionos ...
+# shellcheck disable=SC2034
+dns_ionos_info='IONOS.de
+Site: IONOS.de
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_ionos
+Options:
+ IONOS_PREFIX Prefix
+ IONOS_SECRET Secret
+Issues: github.com/acmesh-official/acme.sh/issues/3379
+'
 
 IONOS_API="https://api.hosting.ionos.com/dns"
 IONOS_ROUTE_ZONES="/v1/zones"

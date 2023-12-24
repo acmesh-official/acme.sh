@@ -1,9 +1,13 @@
 #!/usr/bin/env sh
-
-#
-#PointHQ_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
-#PointHQ_Email="xxxx@sss.com"
+# shellcheck disable=SC2034
+dns_pointhq_info='pointhq.com PointDNS
+Site: pointhq.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_pointhq
+Options:
+ PointHQ_Key API Key
+ PointHQ_Email Email
+Issues: github.com/acmesh-official/acme.sh/issues/2060
+'
 
 PointHQ_Api="https://api.pointhq.com"
 

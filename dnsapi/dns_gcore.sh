@@ -1,8 +1,12 @@
 #!/usr/bin/env sh
-
-#
-#GCORE_Key='773$7b7adaf2a2b32bfb1b83787b4ff32a67eb178e3ada1af733e47b1411f2461f7f4fa7ed7138e2772a46124377bad7384b3bb8d87748f87b3f23db4b8bbe41b2bb'
-#
+# shellcheck disable=SC2034
+dns_gcore_info='Gcore.com
+Site: Gcore.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_gcore
+Options:
+ GCORE_Key API Key
+Issues: github.com/acmesh-official/acme.sh/issues/4460
+'
 
 GCORE_Api="https://api.gcore.com/dns/v2"
 GCORE_Doc="https://api.gcore.com/docs/dns"

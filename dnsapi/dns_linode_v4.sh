@@ -1,7 +1,12 @@
 #!/usr/bin/env sh
-
-#Original Author: Philipp Grosswiler <philipp.grosswiler@swiss-design.net>
-#v4 Update Author: Aaron W. Swenson <aaron@grandmasfridge.org>
+# shellcheck disable=SC2034
+dns_linode_v4_info='Linode.com
+Site: Linode.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_linode_v4
+Options:
+ LINODE_V4_API_KEY API Key
+Author: Philipp Grosswiler <philipp.grosswiler@swiss-design.net>, Aaron W. Swenson <aaron@grandmasfridge.org>
+'
 
 LINODE_V4_API_URL="https://api.linode.com/v4/domains"
 

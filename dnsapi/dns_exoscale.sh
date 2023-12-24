@@ -1,4 +1,12 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_exoscale_info='Exoscale.com
+Site: Exoscale.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_exoscale
+Options:
+ EXOSCALE_API_KEY API Key
+ EXOSCALE_SECRET_KEY API Secret key
+'
 
 EXOSCALE_API=https://api.exoscale.com/dns/v1
 

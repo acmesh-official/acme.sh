@@ -1,10 +1,15 @@
 #!/usr/bin/env sh
-
-#
-#NIC_ClientID='0dc0xxxxxxxxxxxxxxxxxxxxxxxxce88'
-#NIC_ClientSecret='3LTtxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxnuW8'
-#NIC_Username="000000/NIC-D"
-#NIC_Password="xxxxxxx"
+# shellcheck disable=SC2034
+dns_nic_info='nic.ru
+Site: nic.ru
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_nic
+Options:
+ NIC_ClientID Client ID
+ NIC_ClientSecret Client Secret
+ NIC_Username Username
+ NIC_Password Password
+Issues: github.com/acmesh-official/acme.sh/issues/2547
+'
 
 NIC_Api="https://api.nic.ru"
 

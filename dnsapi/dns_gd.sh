@@ -1,12 +1,12 @@
 #!/usr/bin/env sh
-
-#Godaddy domain api
-# Get API key and secret from https://developer.godaddy.com/
-#
-# GD_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
-# GD_Secret="asdfsdfsfsdfsdfdfsdf"
-#
-# Ex.: acme.sh --issue --staging --dns dns_gd -d "*.s.example.com" -d "s.example.com"
+# shellcheck disable=SC2034
+dns_gd_info='GoDaddy.com
+Site: GoDaddy.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_gd
+Options:
+ GD_Key API Key
+ GD_Secret API Secret
+'
 
 GD_Api="https://api.godaddy.com/v1"
 

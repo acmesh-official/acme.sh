@@ -1,15 +1,14 @@
 #!/usr/bin/env sh
-
-# dnsHome.de API for acme.sh
-#
-# This Script adds the necessary TXT record to a Subdomain
-#
-# Author dnsHome.de (https://github.com/dnsHome-de)
-#
-# Report Bugs to https://github.com/acmesh-official/acme.sh/issues/3819
-#
-# export DNSHOME_Subdomain=""
-# export DNSHOME_SubdomainPassword=""
+# shellcheck disable=SC2034
+dns_dnshome_info='dnsHome.de
+Site: dnsHome.de
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_dnshome
+Options:
+ DNSHOME_Subdomain Subdomain
+ DNSHOME_SubdomainPassword Subdomain Password
+Issues: github.com/acmesh-official/acme.sh/issues/3819
+Author: dnsHome.de https://github.com/dnsHome-de
+'
 
 # Usage: add subdomain.ddnsdomain.tld "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 # Used to add txt record

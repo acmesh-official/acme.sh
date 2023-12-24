@@ -1,15 +1,16 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_mydevil_info='MyDevil.net
+ MyDevil.net already supports automatic Lets Encrypt certificates,
+ except for wildcard domains.
+ This script depends on devil command that MyDevil.net provides,
+ which means that it works only on server side.
+Site: MyDevil.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_mydevil
+Issues: github.com/acmesh-official/acme.sh/issues/2079
+Author: Marcin Konicki <https://ahwayakchih.neoni.net>
+'
 
-# MyDevil.net API (2019-02-03)
-#
-# MyDevil.net already supports automatic Let's Encrypt certificates,
-# except for wildcard domains.
-#
-# This script depends on `devil` command that MyDevil.net provides,
-# which means that it works only on server side.
-#
-# Author: Marcin Konicki <https://ahwayakchih.neoni.net>
-#
 ########  Public functions #####################
 
 #Usage: dns_mydevil_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"

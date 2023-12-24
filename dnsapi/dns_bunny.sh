@@ -1,16 +1,13 @@
 #!/usr/bin/env sh
-
-## Will be called by acme.sh to add the TXT record via the Bunny DNS API.
-## returns 0 means success, otherwise error.
-
-## Author: nosilver4u <nosilver4u at ewww.io>
-## GitHub: https://github.com/nosilver4u/acme.sh
-
-##
-## Environment Variables Required:
-##
-## BUNNY_API_KEY="75310dc4-ca77-9ac3-9a19-f6355db573b49ce92ae1-2655-3ebd-61ac-3a3ae34834cc"
-##
+# shellcheck disable=SC2034
+dns_bunny_info='Bunny.net
+Site: Bunny.net/dns/
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_bunny
+Options:
+ BUNNY_API_KEY API Key
+Issues: github.com/acmesh-official/acme.sh/issues/4296
+Author: <nosilver4u@ewww.io>
+'
 
 #####################  Public functions  #####################
 

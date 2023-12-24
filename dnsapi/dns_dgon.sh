@@ -1,16 +1,12 @@
 #!/usr/bin/env sh
-
-## Will be called by acme.sh to add the txt record to your api system.
-## returns 0 means success, otherwise error.
-
-## Author: thewer <github at thewer.com>
-## GitHub: https://github.com/gitwer/acme.sh
-
-##
-## Environment Variables Required:
-##
-## DO_API_KEY="75310dc4ca779ac39a19f6355db573b49ce92ae126553ebd61ac3a3ae34834cc"
-##
+# shellcheck disable=SC2034
+dns_dgon_info='DigitalOcean.com
+Site: DigitalOcean.com/help/api/
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_dgon
+Options:
+ DO_API_KEY API Key
+Author: <github@thewer.com>
+'
 
 #####################  Public functions  #####################
 

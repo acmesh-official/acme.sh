@@ -1,9 +1,15 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_scaleway_info='ScaleWay.com
+Site: ScaleWay.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_scaleway
+Options:
+ SCALEWAY_API_TOKEN API Token
+Issues: github.com/acmesh-official/acme.sh/issues/3295
+'
 
 # Scaleway API
 # https://developers.scaleway.com/en/products/domain/dns/api/
-#
-# Requires Scaleway API token set in SCALEWAY_API_TOKEN
 
 ########  Public functions #####################
 
