@@ -923,7 +923,7 @@ _sed_i() {
   fi
 }
 
-if [ "$(echo abc | egrep -o b 2>/dev/null)" = "b" ]; then
+if [ "$(echo abc | grep -E -o b 2>/dev/null)" = "b" ]; then
   __USE_EGREP=1
 else
   __USE_EGREP=""
@@ -931,7 +931,7 @@ fi
 
 _egrep_o() {
   if [ "$__USE_EGREP" ]; then
-    egrep -o -- "$1" 2>/dev/null
+    grep -E -o -- "$1" 2>/dev/null
   else
     sed -n 's/.*\('"$1"'\).*/\1/p'
   fi
