@@ -128,7 +128,7 @@ _1984hosting_login() {
   _debug "Login to 1984Hosting as user $One984HOSTING_Username."
   username=$(printf '%s' "$One984HOSTING_Username" | _url_encode)
   password=$(printf '%s' "$One984HOSTING_Password" | _url_encode)
-  url="https://1984.hosting/accounts/checkuserauth/"
+  url="https://1984.hosting/api/auth/"
 
   _get "https://1984.hosting/accounts/login/" | grep "csrfmiddlewaretoken"
   csrftoken="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'csrftoken=[^;]*;' | tr -d ';')"
@@ -185,7 +185,7 @@ _check_cookies() {
     return 1
   fi
 
-  _authget "https://1984.hosting/accounts/loginstatus/"
+  _authget "https://1984.hosting/api/auth/"
   if _contains "$_response" '"ok": true'; then
     _debug "Cached cookies still valid."
     return 0
