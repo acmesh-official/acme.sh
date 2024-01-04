@@ -55,41 +55,41 @@ _dns_gcloud_start_tr() {
   tr="$trd/tr.yaml"
   _debug tr "$tr"
 
-  if ! gcloud dns record-sets transaction start \
+  _err "__SIGA_DEBUG tr: >$tr<"
+  _err "__SIGA_DEBUG zone: >$managedZone<"
+
+  gcloud dns record-sets transaction start \
     --transaction-file="$tr" \
-    --zone="$managedZone"; then
-    rm -r "$trd"
-    _err "_dns_gcloud_start_tr: failed to execute transaction"
-    return 1
-  fi
+    --zone="$managedZone"
+    rc=$?
+    _err "_dns_gcloud_start_tr: RC= $rc failed to execute transaction"
+    return 0
 }
 
 _dns_gcloud_execute_tr() {
-  if ! gcloud dns record-sets transaction execute \
+    _debug __SIGA_DEBUG _dns_gcloud_execute_tr
+
+  gcloud dns record-sets transaction execute \
     --transaction-file="$tr" \
-    --zone="$managedZone"; then
+    --zone="$managedZone"
+    rc=$?
     _debug tr "$(cat "$tr")"
-    rm -r "$trd"
-    _err "_dns_gcloud_execute_tr: failed to execute transaction"
-    return 1
-  fi
-  rm -r "$trd"
+    _err "_dns_gcloud_execute_tr: RC= $rc failed to execute transaction"
+
 
   for i in $(seq 1 120); do
+
+  _err "__SIGA_DEBUG i: $i"
     if gcloud dns record-sets changes list \
       --zone="$managedZone" \
-      --filter='status != done' |
-      grep -q '^.*'; then
+      --filter='status != done' \
+      | grep -q '^.*'; then
       _info "_dns_gcloud_execute_tr: waiting for transaction to be comitted ($i/120)..."
       sleep 5
     else
       return 0
     fi
   done
-
-  _err "_dns_gcloud_execute_tr: transaction is still pending after 10 minutes"
-  rm -r "$trd"
-  return 1
 }
 
 _dns_gcloud_remove_rrs() {
@@ -108,17 +108,16 @@ _dns_gcloud_remove_rrs() {
 
 _dns_gcloud_add_rrs() {
   ttl=60
-  if ! xargs -r gcloud dns record-sets transaction add \
+  xargs -r gcloud dns record-sets transaction add \
     --name="$fulldomain." \
     --ttl="$ttl" \
     --type=TXT \
     --zone="$managedZone" \
-    --transaction-file="$tr" --; then
+    --transaction-file="$tr"
+    rc=$?
     _debug tr "$(cat "$tr")"
-    rm -r "$trd"
-    _err "_dns_gcloud_add_rrs: failed to add RRs"
-    return 1
-  fi
+    _err "_dns_gcloud_add_rrs: rc=$rc failed to add RRs"
+    return 0
 }
 
 _dns_gcloud_find_zone() {
