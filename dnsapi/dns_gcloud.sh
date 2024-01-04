@@ -58,19 +58,27 @@ _dns_gcloud_start_tr() {
   gcloud dns record-sets transaction start \
     --transaction-file="$tr" \
     --zone="$managedZone"
-    rc=$?
+
+  rc=$?
+  if $rc != 0; then
     _err "_dns_gcloud_start_tr: RC= $rc failed to execute transaction"
-    return 0
+  fi
+
+  return $rc
 }
 
 _dns_gcloud_execute_tr() {
   gcloud dns record-sets transaction execute \
     --transaction-file="$tr" \
     --zone="$managedZone"
-    rc=$?
+  rc=$?
+
+  if $rc != 0; then
     _debug tr "$(cat "$tr")"
     _err "_dns_gcloud_execute_tr: RC= $rc failed to execute transaction"
 
+    return $rc
+  fi
 
   for i in $(seq 1 120); do
     if gcloud dns record-sets changes list \
@@ -107,10 +115,14 @@ _dns_gcloud_add_rrs() {
     --type=TXT \
     --zone="$managedZone" \
     --transaction-file="$tr"
-    rc=$?
+
+  rc=$?
+  if $rc != 0; then
     _debug tr "$(cat "$tr")"
     _err "_dns_gcloud_add_rrs: rc=$rc failed to add RRs"
-    return 0
+  fi
+
+  return $rc
 }
 
 _dns_gcloud_find_zone() {
