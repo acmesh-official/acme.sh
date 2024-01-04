@@ -55,9 +55,6 @@ _dns_gcloud_start_tr() {
   tr="$trd/tr.yaml"
   _debug tr "$tr"
 
-  _err "__SIGA_DEBUG tr: >$tr<"
-  _err "__SIGA_DEBUG zone: >$managedZone<"
-
   gcloud dns record-sets transaction start \
     --transaction-file="$tr" \
     --zone="$managedZone"
@@ -67,8 +64,6 @@ _dns_gcloud_start_tr() {
 }
 
 _dns_gcloud_execute_tr() {
-    _debug __SIGA_DEBUG _dns_gcloud_execute_tr
-
   gcloud dns record-sets transaction execute \
     --transaction-file="$tr" \
     --zone="$managedZone"
@@ -78,8 +73,6 @@ _dns_gcloud_execute_tr() {
 
 
   for i in $(seq 1 120); do
-
-  _err "__SIGA_DEBUG i: $i"
     if gcloud dns record-sets changes list \
       --zone="$managedZone" \
       --filter='status != done' \
