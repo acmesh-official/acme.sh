@@ -39,7 +39,7 @@ cdn_ali_deploy() {
   _savedomainconf DEPLOY_CDN_Ali_Prefix "$DEPLOY_CDN_Ali_Prefix"
 
   # read cert and key files and urlencode both
-  _certnamestr=$DEPLOY_CDN_Ali_Prefix$_cdomain'-'$(sha1sum "$_ccert" | cut -c1-20)
+  _certnamestr=$_cdomain
   _certtext=$(sed '/^$/d' <"$_cfullchain")
   _keytext=$(sed '/^$/d' <"$_ckey")
   _certstr=$(_ali_urlencode "$_certtext")
@@ -59,18 +59,20 @@ cdn_ali_deploy() {
 _set_cert_query() {
   query=''
   query=$query'AccessKeyId='$DEPLOY_CDN_Ali_Key
-  query=$query'&Action=SetDomainServerCertificate'
+  query=$query'&Action=BatchSetCdnDomainServerCertificate'
   query=$query'&CertName='$2
+  query=$query'&CertType=upload'
   query=$query'&DomainName='$1
-  query=$query'&Format=json'
-  query=$query'&PrivateKey='$4
-  query=$query'&ServerCertificate='$3
-  query=$query'&ServerCertificateStatus=on'
+  query=$query'&ForceSet=1'
+  query=$query'&Format=JSON'
+  query=$query'&SSLPri='$4
+  query=$query'&SSLProtocol=on'
+  query=$query'&SSLPub='$3
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query"&SignatureNonce=$(_ali_nonce)"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
-  query=$query'&Version=2014-11-11'
+  query=$query'&Version=2018-05-10'
 
   _debug2 query "$query"
 }
