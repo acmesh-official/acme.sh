@@ -2,7 +2,7 @@
 
 ############################################################
 # KingHost API support                                     #
-# http://api.kinghost.net/doc/                             #
+# https://api.kinghost.net/doc/                             #
 #                                                          #
 # Author: Felipe Keller Braz <felipebraz@kinghost.com.br>  #
 # Report Bugs here: https://github.com/kinghost/acme.sh    #
@@ -37,7 +37,7 @@ dns_kinghost_add() {
   _debug "Getting txt records"
   _kinghost_rest GET "dns" "name=$fulldomain&content=$txtvalue"
 
-  #This API call returns "status":"ok" if dns record does not exists
+  #This API call returns "status":"ok" if dns record does not exist
   #We are creating a new txt record here, so we expect the "ok" status
   if ! echo "$response" | grep '"status":"ok"' >/dev/null; then
     _err "Error"

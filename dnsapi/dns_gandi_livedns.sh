@@ -1,12 +1,14 @@
 #!/usr/bin/env sh
 
 # Gandi LiveDNS v5 API
-# http://doc.livedns.gandi.net/
+# https://api.gandi.net/docs/livedns/
+# https://api.gandi.net/docs/authentication/ for token + apikey (deprecated) authentication
 # currently under beta
 #
 # Requires GANDI API KEY set in GANDI_LIVEDNS_KEY set as environment variable
 #
 #Author: Frédéric Crozat <fcrozat@suse.com>
+#        Dominik Röttsches <drott@google.com>
 #Report Bugs here: https://github.com/fcrozat/acme.sh
 #
 ########  Public functions #####################
@@ -18,13 +20,20 @@ dns_gandi_livedns_add() {
   fulldomain=$1
   txtvalue=$2
 
-  if [ -z "$GANDI_LIVEDNS_KEY" ]; then
-    _err "No API key specified for Gandi LiveDNS."
-    _err "Create your key and export it as GANDI_LIVEDNS_KEY"
+  if [ -z "$GANDI_LIVEDNS_KEY" ] && [ -z "$GANDI_LIVEDNS_TOKEN" ]; then
+    _err "No Token or API key (deprecated) specified for Gandi LiveDNS."
+    _err "Create your token or key and export it as GANDI_LIVEDNS_KEY or GANDI_LIVEDNS_TOKEN respectively"
     return 1
   fi
 
-  _saveaccountconf GANDI_LIVEDNS_KEY "$GANDI_LIVEDNS_KEY"
+  # Keep only one secret in configuration
+  if [ -n "$GANDI_LIVEDNS_TOKEN" ]; then
+    _saveaccountconf GANDI_LIVEDNS_TOKEN "$GANDI_LIVEDNS_TOKEN"
+    _clearaccountconf GANDI_LIVEDNS_KEY
+  elif [ -n "$GANDI_LIVEDNS_KEY" ]; then
+    _saveaccountconf GANDI_LIVEDNS_KEY "$GANDI_LIVEDNS_KEY"
+    _clearaccountconf GANDI_LIVEDNS_TOKEN
+  fi
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -36,9 +45,7 @@ dns_gandi_livedns_add() {
   _debug domain "$_domain"
   _debug sub_domain "$_sub_domain"
 
-  _gandi_livedns_rest PUT "domains/$_domain/records/$_sub_domain/TXT" "{\"rrset_ttl\": 300, \"rrset_values\":[\"$txtvalue\"]}" \
-    && _contains "$response" '{"message": "DNS Record Created"}' \
-    && _info "Add $(__green "success")"
+  _dns_gandi_append_record "$_domain" "$_sub_domain" "$txtvalue"
 }
 
 #Usage: fulldomain txtvalue
@@ -56,9 +63,23 @@ dns_gandi_livedns_rm() {
   _debug fulldomain "$fulldomain"
   _debug domain "$_domain"
   _debug sub_domain "$_sub_domain"
+  _debug txtvalue "$txtvalue"
 
-  _gandi_livedns_rest DELETE "domains/$_domain/records/$_sub_domain/TXT" ""
+  if ! _dns_gandi_existing_rrset_values "$_domain" "$_sub_domain"; then
+    return 1
+  fi
+  _new_rrset_values=$(echo "$_rrset_values" | sed "s/...$txtvalue...//g")
+  # Cleanup dangling commata.
+  _new_rrset_values=$(echo "$_new_rrset_values" | sed "s/, ,/ ,/g")
+  _new_rrset_values=$(echo "$_new_rrset_values" | sed "s/, *\]/\]/g")
+  _new_rrset_values=$(echo "$_new_rrset_values" | sed "s/\[ *,/\[/g")
+  _debug "New rrset_values" "$_new_rrset_values"
 
+  _gandi_livedns_rest PUT \
+    "domains/$_domain/records/$_sub_domain/TXT" \
+    "{\"rrset_ttl\": 300, \"rrset_values\": $_new_rrset_values}" &&
+    _contains "$response" '{"message": "DNS Record Created"}' &&
+    _info "Removing record $(__green "success")"
 }
 
 ####################  Private functions below ##################################
@@ -98,6 +119,45 @@ _get_root() {
   return 1
 }
 
+_dns_gandi_append_record() {
+  domain=$1
+  sub_domain=$2
+  txtvalue=$3
+
+  if _dns_gandi_existing_rrset_values "$domain" "$sub_domain"; then
+    _debug "Appending new value"
+    _rrset_values=$(echo "$_rrset_values" | sed "s/\"]/\",\"$txtvalue\"]/")
+  else
+    _debug "Creating new record" "$_rrset_values"
+    _rrset_values="[\"$txtvalue\"]"
+  fi
+  _debug new_rrset_values "$_rrset_values"
+  _gandi_livedns_rest PUT "domains/$_domain/records/$sub_domain/TXT" \
+    "{\"rrset_ttl\": 300, \"rrset_values\": $_rrset_values}" &&
+    _contains "$response" '{"message": "DNS Record Created"}' &&
+    _info "Adding record $(__green "success")"
+}
+
+_dns_gandi_existing_rrset_values() {
+  domain=$1
+  sub_domain=$2
+  if ! _gandi_livedns_rest GET "domains/$domain/records/$sub_domain"; then
+    return 1
+  fi
+  if ! _contains "$response" '"rrset_type": "TXT"'; then
+    _debug "Does not have a _acme-challenge TXT record yet."
+    return 1
+  fi
+  if _contains "$response" '"rrset_values": \[\]'; then
+    _debug "Empty rrset_values for TXT record, no previous TXT record."
+    return 1
+  fi
+  _debug "Already has TXT record."
+  _rrset_values=$(echo "$response" | _egrep_o 'rrset_values.*\[.*\]' |
+    _egrep_o '\[".*\"]')
+  return 0
+}
+
 _gandi_livedns_rest() {
   m=$1
   ep="$2"
@@ -105,7 +165,12 @@ _gandi_livedns_rest() {
   _debug "$ep"
 
   export _H1="Content-Type: application/json"
-  export _H2="X-Api-Key: $GANDI_LIVEDNS_KEY"
+
+  if [ -n "$GANDI_LIVEDNS_TOKEN" ]; then
+    export _H2="Authorization: Bearer $GANDI_LIVEDNS_TOKEN"
+  else
+    export _H2="X-Api-Key: $GANDI_LIVEDNS_KEY"
+  fi
 
   if [ "$m" = "GET" ]; then
     response="$(_get "$GANDI_LIVEDNS_API/$ep")"

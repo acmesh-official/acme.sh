@@ -117,7 +117,7 @@ _ali_urlencode() {
 _ali_nonce() {
   #_head_n 1 </dev/urandom | _digest "sha256" hex | cut -c 1-31
   #Not so good...
-  date +"%s%N"
+  date +"%s%N" | sed 's/%N//g'
 }
 
 _check_exist_query() {
@@ -181,11 +181,12 @@ _describe_records_query() {
 
 _clean() {
   _check_exist_query "$_domain" "$_sub_domain"
+  # do not correct grammar here
   if ! _ali_rest "Check exist records" "ignore"; then
     return 1
   fi
 
-  record_id="$(echo "$response" | tr '{' "\n" | grep "$_sub_domain" | grep "$txtvalue" | tr "," "\n" | grep RecordId | cut -d '"' -f 4)"
+  record_id="$(echo "$response" | tr '{' "\n" | grep "$_sub_domain" | grep -- "$txtvalue" | tr "," "\n" | grep RecordId | cut -d '"' -f 4)"
   _debug2 record_id "$record_id"
 
   if [ -z "$record_id" ]; then

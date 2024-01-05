@@ -24,7 +24,7 @@ dns_he_add() {
   if [ -z "$HE_Username" ] || [ -z "$HE_Password" ]; then
     HE_Username=
     HE_Password=
-    _err "No auth details provided. Please set user credentials using the \$HE_Username and \$HE_Password envoronment variables."
+    _err "No auth details provided. Please set user credentials using the \$HE_Username and \$HE_Password environment variables."
     return 1
   fi
   _saveaccountconf_mutable HE_Username "$HE_Username"
@@ -85,7 +85,7 @@ dns_he_rm() {
     _debug "The txt record is not found, just skip"
     return 0
   fi
-  _record_id="$(echo "$response" | tr -d "#" | sed "s/<tr/#<tr/g" | tr -d "\n" | tr "#" "\n" | grep "$_full_domain" | grep '"dns_tr"' | grep "$_txt_value" | cut -d '"' -f 4)"
+  _record_id="$(echo "$response" | tr -d "#" | sed "s/<tr/#<tr/g" | tr -d "\n" | tr "#" "\n" | grep "$_full_domain" | grep '"dns_tr"' | grep -- "$_txt_value" | cut -d '"' -f 4)"
   _debug2 _record_id "$_record_id"
   if [ -z "$_record_id" ]; then
     _err "Can not find record id"
@@ -101,8 +101,8 @@ dns_he_rm() {
   body="$body&hosted_dns_editzone=1"
   body="$body&hosted_dns_delrecord=1"
   body="$body&hosted_dns_delconfirm=delete"
-  _post "$body" "https://dns.he.net/" \
-    | grep '<div id="dns_status" onClick="hideThis(this);">Successfully removed record.</div>' \
+  _post "$body" "https://dns.he.net/" |
+    grep '<div id="dns_status" onClick="hideThis(this);">Successfully removed record.</div>' \
       >/dev/null
   exit_code="$?"
   if [ "$exit_code" -eq 0 ]; then
@@ -134,9 +134,9 @@ _find_zone() {
   _zone_ids=$(echo "$_matches" | _egrep_o "hosted_dns_zoneid=[0-9]*&" | cut -d = -f 2 | tr -d '&')
   _zone_names=$(echo "$_matches" | _egrep_o "name=.*onclick" | cut -d '"' -f 2)
   _debug2 "These are the zones on this HE account:"
-  _debug2 "$_zone_names"
+  _debug2 "_zone_names" "$_zone_names"
   _debug2 "And these are their respective IDs:"
-  _debug2 "$_zone_ids"
+  _debug2 "_zone_ids" "$_zone_ids"
   if [ -z "$_zone_names" ] || [ -z "$_zone_ids" ]; then
     _err "Can not get zone names."
     return 1
@@ -154,10 +154,14 @@ _find_zone() {
 
     _debug "Looking for zone \"${_attempted_zone}\""
 
-    line_num="$(echo "$_zone_names" | grep -n "^$_attempted_zone" | cut -d : -f 1)"
-
+    line_num="$(echo "$_zone_names" | grep -n "^$_attempted_zone\$" | _head_n 1 | cut -d : -f 1)"
+    _debug2 line_num "$line_num"
     if [ "$line_num" ]; then
       _zone_id=$(echo "$_zone_ids" | sed -n "${line_num}p")
+      if [ -z "$_zone_id" ]; then
+        _err "Can not find zone id."
+        return 1
+      fi
       _debug "Found relevant zone \"$_attempted_zone\" with id \"$_zone_id\" - will be used for domain \"$_domain\"."
       return 0
     fi

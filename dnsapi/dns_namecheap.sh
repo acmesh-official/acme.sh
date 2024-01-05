@@ -3,16 +3,15 @@
 # Namecheap API
 # https://www.namecheap.com/support/api/intro.aspx
 #
-# Requires Namecheap API key set in NAMECHEAP_API_KEY, NAMECHEAP_SOURCEIP and NAMECHEAP_USERNAME set as environment variable
+# Requires Namecheap API key set in
+#NAMECHEAP_API_KEY,
+#NAMECHEAP_USERNAME,
+#NAMECHEAP_SOURCEIP
 # Due to Namecheap's API limitation all the records of your domain will be read and re applied, make sure to have a backup of your records you could apply if any issue would arise.
 
 ########  Public functions #####################
 
-if [ "$STAGE" -eq 1 ]; then
-  NAMECHEAP_API="https://api.sandbox.namecheap.com/xml.response"
-else
-  NAMECHEAP_API="https://api.namecheap.com/xml.response"
-fi
+NAMECHEAP_API="https://api.namecheap.com/xml.response"
 
 #Usage: dns_namecheap_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_namecheap_add() {
@@ -77,6 +76,22 @@ dns_namecheap_rm() {
 # _sub_domain=_acme-challenge.www
 # _domain=domain.com
 _get_root() {
+  fulldomain=$1
+
+  if ! _get_root_by_getList "$fulldomain"; then
+    _debug "Failed domain lookup via domains.getList api call. Trying domain lookup via domains.dns.getHosts api."
+    # The above "getList" api will only return hosts *owned* by the calling user. However, if the calling
+    # user is not the owner, but still has administrative rights, we must query the getHosts api directly.
+    # See this comment and the official namecheap response: https://disq.us/p/1q6v9x9
+    if ! _get_root_by_getHosts "$fulldomain"; then
+      return 1
+    fi
+  fi
+
+  return 0
+}
+
+_get_root_by_getList() {
   domain=$1
 
   if ! _namecheap_post "namecheap.domains.getList"; then
@@ -95,6 +110,10 @@ _get_root() {
       #not valid
       return 1
     fi
+    if ! _contains "$h" "\\."; then
+      #not valid
+      return 1
+    fi
 
     if ! _contains "$response" "$h"; then
       _debug "$h not found"
@@ -109,18 +128,43 @@ _get_root() {
   return 1
 }
 
+_get_root_by_getHosts() {
+  i=100
+  p=99
+
+  while [ $p -ne 0 ]; do
+
+    h=$(printf "%s" "$1" | cut -d . -f $i-100)
+    if [ -n "$h" ]; then
+      if _contains "$h" "\\."; then
+        _debug h "$h"
+        if _namecheap_set_tld_sld "$h"; then
+          _sub_domain=$(printf "%s" "$1" | cut -d . -f 1-$p)
+          _domain="$h"
+          return 0
+        else
+          _debug "$h not found"
+        fi
+      fi
+    fi
+    i="$p"
+    p=$(_math "$p" - 1)
+  done
+  return 1
+}
+
 _namecheap_set_publicip() {
 
   if [ -z "$NAMECHEAP_SOURCEIP" ]; then
     _err "No Source IP specified for Namecheap API."
-    _err "Use your public ip address or an url to retrieve it (e.g. https://ipconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
+    _err "Use your public ip address or an url to retrieve it (e.g. https://ifconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
     return 1
   else
     _saveaccountconf NAMECHEAP_SOURCEIP "$NAMECHEAP_SOURCEIP"
     _debug sourceip "$NAMECHEAP_SOURCEIP"
 
     ip=$(echo "$NAMECHEAP_SOURCEIP" | _egrep_o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
-    addr=$(echo "$NAMECHEAP_SOURCEIP" | _egrep_o '(http|https)://.*')
+    addr=$(echo "$NAMECHEAP_SOURCEIP" | _egrep_o '(http|https):\/\/.*')
 
     _debug2 ip "$ip"
     _debug2 addr "$addr"
@@ -131,7 +175,7 @@ _namecheap_set_publicip() {
       _publicip=$(_get "$addr")
     else
       _err "No Source IP specified for Namecheap API."
-      _err "Use your public ip address or an url to retrieve it (e.g. https://ipconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
+      _err "Use your public ip address or an url to retrieve it (e.g. https://ifconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
       return 1
     fi
   fi
@@ -144,7 +188,7 @@ _namecheap_set_publicip() {
 _namecheap_post() {
   command=$1
   data="ApiUser=${NAMECHEAP_USERNAME}&ApiKey=${NAMECHEAP_API_KEY}&ClientIp=${_publicip}&UserName=${NAMECHEAP_USERNAME}&Command=${command}"
-
+  _debug2 "_namecheap_post data" "$data"
   response="$(_post "$data" "$NAMECHEAP_API" "" "POST")"
   _debug2 response "$response"
 
@@ -161,12 +205,12 @@ _namecheap_parse_host() {
   _host=$1
   _debug _host "$_host"
 
-  _hostid=$(echo "$_host" | _egrep_o '\sHostId="[^"]*' | cut -d '"' -f 2)
-  _hostname=$(echo "$_host" | _egrep_o '\sName="[^"]*' | cut -d '"' -f 2)
-  _hosttype=$(echo "$_host" | _egrep_o '\sType="[^"]*' | cut -d '"' -f 2)
-  _hostaddress=$(echo "$_host" | _egrep_o '\sAddress="[^"]*' | cut -d '"' -f 2)
-  _hostmxpref=$(echo "$_host" | _egrep_o '\sMXPref="[^"]*' | cut -d '"' -f 2)
-  _hostttl=$(echo "$_host" | _egrep_o '\sTTL="[^"]*' | cut -d '"' -f 2)
+  _hostid=$(echo "$_host" | _egrep_o ' HostId="[^"]*' | cut -d '"' -f 2)
+  _hostname=$(echo "$_host" | _egrep_o ' Name="[^"]*' | cut -d '"' -f 2)
+  _hosttype=$(echo "$_host" | _egrep_o ' Type="[^"]*' | cut -d '"' -f 2)
+  _hostaddress=$(echo "$_host" | _egrep_o ' Address="[^"]*' | cut -d '"' -f 2 | _xml_decode)
+  _hostmxpref=$(echo "$_host" | _egrep_o ' MXPref="[^"]*' | cut -d '"' -f 2)
+  _hostttl=$(echo "$_host" | _egrep_o ' TTL="[^"]*' | cut -d '"' -f 2)
 
   _debug hostid "$_hostid"
   _debug hostname "$_hostname"
@@ -199,9 +243,12 @@ _namecheap_check_config() {
 _set_namecheap_TXT() {
   subdomain=$2
   txt=$3
-  tld=$(echo "$1" | cut -d '.' -f 2)
-  sld=$(echo "$1" | cut -d '.' -f 1)
-  request="namecheap.domains.dns.getHosts&SLD=$sld&TLD=$tld"
+
+  if ! _namecheap_set_tld_sld "$1"; then
+    return 1
+  fi
+
+  request="namecheap.domains.dns.getHosts&SLD=${_sld}&TLD=${_tld}"
 
   if ! _namecheap_post "$request"; then
     _err "$error"
@@ -212,7 +259,7 @@ _set_namecheap_TXT() {
   _debug hosts "$hosts"
 
   if [ -z "$hosts" ]; then
-    _error "Hosts not found"
+    _err "Hosts not found"
     return 1
   fi
 
@@ -221,6 +268,12 @@ _set_namecheap_TXT() {
   while read -r host; do
     if _contains "$host" "<host"; then
       _namecheap_parse_host "$host"
+      _debug2 _hostname "_hostname"
+      _debug2 _hosttype "_hosttype"
+      _debug2 _hostaddress "_hostaddress"
+      _debug2 _hostmxpref "_hostmxpref"
+      _hostaddress="$(printf "%s" "$_hostaddress" | _url_encode)"
+      _debug2 "encoded _hostaddress" "_hostaddress"
       _namecheap_add_host "$_hostname" "$_hosttype" "$_hostaddress" "$_hostmxpref" "$_hostttl"
     fi
   done <<EOT
@@ -231,7 +284,7 @@ EOT
 
   _debug hostrequestfinal "$_hostrequest"
 
-  request="namecheap.domains.dns.setHosts&SLD=${sld}&TLD=${tld}${_hostrequest}"
+  request="namecheap.domains.dns.setHosts&SLD=${_sld}&TLD=${_tld}${_hostrequest}"
 
   if ! _namecheap_post "$request"; then
     _err "$error"
@@ -244,9 +297,12 @@ EOT
 _del_namecheap_TXT() {
   subdomain=$2
   txt=$3
-  tld=$(echo "$1" | cut -d '.' -f 2)
-  sld=$(echo "$1" | cut -d '.' -f 1)
-  request="namecheap.domains.dns.getHosts&SLD=$sld&TLD=$tld"
+
+  if ! _namecheap_set_tld_sld "$1"; then
+    return 1
+  fi
+
+  request="namecheap.domains.dns.getHosts&SLD=${_sld}&TLD=${_tld}"
 
   if ! _namecheap_post "$request"; then
     _err "$error"
@@ -257,7 +313,7 @@ _del_namecheap_TXT() {
   _debug hosts "$hosts"
 
   if [ -z "$hosts" ]; then
-    _error "Hosts not found"
+    _err "Hosts not found"
     return 1
   fi
 
@@ -272,6 +328,7 @@ _del_namecheap_TXT() {
         _debug "TXT entry found"
         found=1
       else
+        _hostaddress="$(printf "%s" "$_hostaddress" | _url_encode)"
         _namecheap_add_host "$_hostname" "$_hosttype" "$_hostaddress" "$_hostmxpref" "$_hostttl"
       fi
     fi
@@ -286,7 +343,7 @@ EOT
 
   _debug hostrequestfinal "$_hostrequest"
 
-  request="namecheap.domains.dns.setHosts&SLD=${sld}&TLD=${tld}${_hostrequest}"
+  request="namecheap.domains.dns.setHosts&SLD=${_sld}&TLD=${_tld}${_hostrequest}"
 
   if ! _namecheap_post "$request"; then
     _err "$error"
@@ -305,4 +362,50 @@ _namecheap_reset_hostList() {
 _namecheap_add_host() {
   _hostindex=$(_math "$_hostindex" + 1)
   _hostrequest=$(printf '%s&HostName%d=%s&RecordType%d=%s&Address%d=%s&MXPref%d=%d&TTL%d=%d' "$_hostrequest" "$_hostindex" "$1" "$_hostindex" "$2" "$_hostindex" "$3" "$_hostindex" "$4" "$_hostindex" "$5")
+}
+
+_namecheap_set_tld_sld() {
+  domain=$1
+  _tld=""
+  _sld=""
+
+  i=2
+
+  while true; do
+
+    _tld=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _debug tld "$_tld"
+
+    if [ -z "$_tld" ]; then
+      _debug "invalid tld"
+      return 1
+    fi
+
+    j=$(_math "$i" - 1)
+
+    _sld=$(printf "%s" "$domain" | cut -d . -f 1-"$j")
+    _debug sld "$_sld"
+
+    if [ -z "$_sld" ]; then
+      _debug "invalid sld"
+      return 1
+    fi
+
+    request="namecheap.domains.dns.getHosts&SLD=$_sld&TLD=$_tld"
+
+    if ! _namecheap_post "$request"; then
+      _debug "sld($_sld)/tld($_tld) not found"
+    else
+      _debug "sld($_sld)/tld($_tld) found"
+      return 0
+    fi
+
+    i=$(_math "$i" + 1)
+
+  done
+
+}
+
+_xml_decode() {
+  sed 's/&quot;/"/g'
 }

@@ -39,10 +39,10 @@ dns_gcloud_rm() {
   _dns_gcloud_start_tr || return $?
   _dns_gcloud_get_rrdatas || return $?
   echo "$rrdatas" | _dns_gcloud_remove_rrs || return $?
-  echo "$rrdatas" | grep -F -v "\"$txtvalue\"" | _dns_gcloud_add_rrs || return $?
+  echo "$rrdatas" | grep -F -v -- "\"$txtvalue\"" | _dns_gcloud_add_rrs || return $?
   _dns_gcloud_execute_tr || return $?
 
-  _info "$fulldomain record added"
+  _info "$fulldomain record removed"
 }
 
 ####################  Private functions below ##################################
@@ -78,8 +78,8 @@ _dns_gcloud_execute_tr() {
   for i in $(seq 1 120); do
     if gcloud dns record-sets changes list \
       --zone="$managedZone" \
-      --filter='status != done' \
-      | grep -q '^.*'; then
+      --filter='status != done' |
+      grep -q '^.*'; then
       _info "_dns_gcloud_execute_tr: waiting for transaction to be comitted ($i/120)..."
       sleep 5
     else
@@ -93,12 +93,12 @@ _dns_gcloud_execute_tr() {
 }
 
 _dns_gcloud_remove_rrs() {
-  if ! xargs --no-run-if-empty gcloud dns record-sets transaction remove \
+  if ! xargs -r gcloud dns record-sets transaction remove \
     --name="$fulldomain." \
     --ttl="$ttl" \
     --type=TXT \
     --zone="$managedZone" \
-    --transaction-file="$tr"; then
+    --transaction-file="$tr" --; then
     _debug tr "$(cat "$tr")"
     rm -r "$trd"
     _err "_dns_gcloud_remove_rrs: failed to remove RRs"
@@ -108,12 +108,12 @@ _dns_gcloud_remove_rrs() {
 
 _dns_gcloud_add_rrs() {
   ttl=60
-  if ! xargs --no-run-if-empty gcloud dns record-sets transaction add \
+  if ! xargs -r gcloud dns record-sets transaction add \
     --name="$fulldomain." \
     --ttl="$ttl" \
     --type=TXT \
     --zone="$managedZone" \
-    --transaction-file="$tr"; then
+    --transaction-file="$tr" --; then
     _debug tr "$(cat "$tr")"
     rm -r "$trd"
     _err "_dns_gcloud_add_rrs: failed to add RRs"
@@ -131,17 +131,17 @@ _dns_gcloud_find_zone() {
     filter="$filter$part. "
     part="$(echo "$part" | sed 's/[^.]*\.*//')"
   done
-  filter="$filter)"
+  filter="$filter) AND visibility=public"
   _debug filter "$filter"
 
-  # List domains and find the longest match (in case of some levels of delegation)
+  # List domains and find the zone with the deepest sub-domain (in case of some levels of delegation)
   if ! match=$(gcloud dns managed-zones list \
     --format="value(name, dnsName)" \
-    --filter="$filter" \
-    | while read -r dnsName name; do
-      printf "%s\t%s\t%s\n" "${#dnsName}" "$dnsName" "$name"
-    done \
-    | sort -n -r | _head_n 1 | cut -f2,3 | grep '^.*'); then
+    --filter="$filter" |
+    while read -r dnsName name; do
+      printf "%s\t%s\t%s\n" "$(echo "$name" | awk -F"." '{print NF-1}')" "$dnsName" "$name"
+    done |
+    sort -n -r | _head_n 1 | cut -f2,3 | grep '^.*'); then
     _err "_dns_gcloud_find_zone: Can't find a matching managed zone! Perhaps wrong project or gcloud credentials?"
     return 1
   fi
@@ -163,5 +163,8 @@ _dns_gcloud_get_rrdatas() {
     return 1
   fi
   ttl=$(echo "$rrdatas" | cut -f1)
-  rrdatas=$(echo "$rrdatas" | cut -f2 | sed 's/","/"\n"/g')
+  # starting with version 353.0.0 gcloud seems to
+  # separate records with a semicolon instead of commas
+  # see also https://cloud.google.com/sdk/docs/release-notes#35300_2021-08-17
+  rrdatas=$(echo "$rrdatas" | cut -f2 | sed 's/"[,;]"/"\n"/g')
 }

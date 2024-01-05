@@ -1,101 +1,135 @@
-# An ACME Shell script: acme.sh [![Build Status](https://travis-ci.org/Neilpang/acme.sh.svg?branch=master)](https://travis-ci.org/Neilpang/acme.sh)
+# An ACME Shell script: acme.sh 
 
+[![FreeBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml)
+[![OpenBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenBSD.yml)
+[![NetBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/NetBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/NetBSD.yml)
+[![MacOS](https://github.com/acmesh-official/acme.sh/actions/workflows/MacOS.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/MacOS.yml)
+[![Ubuntu](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml)
+[![Windows](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml)
+[![Solaris](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml)
+[![DragonFlyBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml)
+[![Omnios](https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml)
+
+![Shellcheck](https://github.com/acmesh-official/acme.sh/workflows/Shellcheck/badge.svg)
+![PebbleStrict](https://github.com/acmesh-official/acme.sh/workflows/PebbleStrict/badge.svg)
+![DockerHub](https://github.com/acmesh-official/acme.sh/workflows/Build%20DockerHub/badge.svg)
+
+
+<a href="https://opencollective.com/acmesh" alt="Financial Contributors on Open Collective"><img src="https://opencollective.com/acmesh/all/badge.svg?label=financial+contributors" /></a> 
 [![Join the chat at https://gitter.im/acme-sh/Lobby](https://badges.gitter.im/acme-sh/Lobby.svg)](https://gitter.im/acme-sh/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Docker stars](https://img.shields.io/docker/stars/neilpang/acme.sh.svg)](https://hub.docker.com/r/neilpang/acme.sh "Click to view the image on Docker Hub")
+[![Docker pulls](https://img.shields.io/docker/pulls/neilpang/acme.sh.svg)](https://hub.docker.com/r/neilpang/acme.sh "Click to view the image on Docker Hub")
+
+
+
 - An ACME protocol client written purely in Shell (Unix shell) language.
 - Full ACME protocol implementation.
-- Support ACME v1 and ACME v2
-- Support ACME v2 wildcard certs
+- Support ECDSA certs
+- Support SAN and wildcard certs
 - Simple, powerful and very easy to use. You only need 3 minutes to learn it.
 - Bash, dash and sh compatible.
-- Simplest shell script for Let's Encrypt free certificate client.
-- Purely written in Shell with no dependencies on python or the official Let's Encrypt client.
+- Purely written in Shell with no dependencies on python.
 - Just one script to issue, renew and install your certificates automatically.
 - DOES NOT require `root/sudoer` access.
-- Docker friendly
-- IPv6 support
+- Docker ready
+- IPv6 ready
+- Cron job notifications for renewal or error etc.
 
-It's probably the `easiest & smartest` shell script to automatically issue & renew the free certificates from Let's Encrypt.
+It's probably the `easiest & smartest` shell script to automatically issue & renew the free certificates.
 
-Wiki: https://github.com/Neilpang/acme.sh/wiki
+Wiki: https://github.com/acmesh-official/acme.sh/wiki
 
-For Docker Fans: [acme.sh :two_hearts: Docker ](https://github.com/Neilpang/acme.sh/wiki/Run-acme.sh-in-docker)
+For Docker Fans: [acme.sh :two_hearts: Docker ](https://github.com/acmesh-official/acme.sh/wiki/Run-acme.sh-in-docker)
 
 Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 
 
-# [中文说明](https://github.com/Neilpang/acme.sh/wiki/%E8%AF%B4%E6%98%8E)
+# [中文说明](https://github.com/acmesh-official/acme.sh/wiki/%E8%AF%B4%E6%98%8E)
 
 # Who:
 - [FreeBSD.org](https://blog.crashed.org/letsencrypt-in-freebsd-org/)
 - [ruby-china.org](https://ruby-china.org/topics/31983)
-- [Proxmox](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x_and_newer))
+- [Proxmox](https://pve.proxmox.com/wiki/Certificate_Management)
 - [pfsense](https://github.com/pfsense/FreeBSD-ports/pull/89)
-- [webfaction](https://community.webfaction.com/questions/19988/using-letsencrypt)
 - [Loadbalancer.org](https://www.loadbalancer.org/blog/loadbalancer-org-with-lets-encrypt-quick-and-dirty)
 - [discourse.org](https://meta.discourse.org/t/setting-up-lets-encrypt/40709)
 - [Centminmod](https://centminmod.com/letsencrypt-acmetool-https.html)
 - [splynx](https://forum.splynx.com/t/free-ssl-cert-for-splynx-lets-encrypt/297)
-- [archlinux](https://aur.archlinux.org/packages/acme.sh-git/)
 - [opnsense.org](https://github.com/opnsense/plugins/tree/master/security/acme-client/src/opnsense/scripts/OPNsense/AcmeClient)
-- [CentOS Web Panel](http://centos-webpanel.com/)
+- [CentOS Web Panel](https://control-webpanel.com)
 - [lnmp.org](https://lnmp.org/)
-- [more...](https://github.com/Neilpang/acme.sh/wiki/Blogs-and-tutorials)
+- [more...](https://github.com/acmesh-official/acme.sh/wiki/Blogs-and-tutorials)
 
 # Tested OS
 
 | NO | Status| Platform|
 |----|-------|---------|
-|1|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/ubuntu-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)| Ubuntu
-|2|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/debian-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)| Debian
-|3|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/centos-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|CentOS
-|4|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/windows-cygwin.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Windows (cygwin with curl, openssl and crontab included)
-|5|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/freebsd.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|FreeBSD
-|6|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/pfsense.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|pfsense
-|7|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/opensuse-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|openSUSE
-|8|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/alpine-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Alpine Linux (with curl)
-|9|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/base-archlinux.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Archlinux
-|10|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/fedora-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|fedora
-|11|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/kalilinux-kali-linux-docker.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Kali Linux
-|12|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/oraclelinux-latest.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Oracle Linux
-|13|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/proxmox.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)| Proxmox https://pve.proxmox.com/wiki/HTTPSCertificateConfiguration#Let.27s_Encrypt_using_acme.sh
-|14|-----| Cloud Linux  https://github.com/Neilpang/le/issues/111
-|15|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/openbsd.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|OpenBSD
-|16|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/mageia.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Mageia
-|17|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/Neilpang/acme.sh/wiki/How-to-run-on-OpenWRT)
-|18|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/solaris.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|SunOS/Solaris
-|19|[![](https://cdn.rawgit.com/Neilpang/acmetest/master/status/gentoo-stage3-amd64.svg)](https://github.com/Neilpang/letest#here-are-the-latest-status)|Gentoo Linux
-|20|[![Build Status](https://travis-ci.org/Neilpang/acme.sh.svg?branch=master)](https://travis-ci.org/Neilpang/acme.sh)|Mac OSX
+|1|[![MacOS](https://github.com/acmesh-official/acme.sh/actions/workflows/MacOS.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/MacOS.yml)|Mac OSX
+|2|[![Windows](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml)|Windows (cygwin with curl, openssl and crontab included)
+|3|[![FreeBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml)|FreeBSD
+|4|[![Solaris](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml)|Solaris
+|5|[![Ubuntu](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Ubuntu.yml)| Ubuntu
+|6|NA|pfsense
+|7|[![OpenBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenBSD.yml)|OpenBSD
+|8|[![NetBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/NetBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/NetBSD.yml)|NetBSD
+|9|[![DragonFlyBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml)|DragonFlyBSD
+|10|[![Omnios](https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml)|Omnios
+|11|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)| Debian
+|12|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|CentOS
+|13|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|openSUSE
+|14|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Alpine Linux (with curl)
+|15|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Archlinux
+|16|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|fedora
+|17|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Kali Linux
+|18|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Oracle Linux
+|19|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Mageia
+|10|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Gentoo Linux
+|11|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|ClearLinux
+|22|-----| Cloud Linux  https://github.com/acmesh-official/acme.sh/issues/111
+|23|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/acmesh-official/acme.sh/wiki/How-to-run-on-OpenWRT)
+|24|[![](https://acmesh-official.github.io/acmetest/status/proxmox.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)| Proxmox: See Proxmox VE Wiki. Version [4.x, 5.0, 5.1](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x,_5.0_and_5.1)#Let.27s_Encrypt_using_acme.sh), version [5.2 and up](https://pve.proxmox.com/wiki/Certificate_Management)
 
-For all build statuses, check our [weekly build project](https://github.com/Neilpang/acmetest):
 
-https://github.com/Neilpang/acmetest
+Check our [testing project](https://github.com/acmesh-official/acmetest):
 
+https://github.com/acmesh-official/acmetest
+
+# Supported CA
+
+- [ZeroSSL.com CA](https://github.com/acmesh-official/acme.sh/wiki/ZeroSSL.com-CA)(default)
+- Letsencrypt.org CA
+- [BuyPass.com CA](https://github.com/acmesh-official/acme.sh/wiki/BuyPass.com-CA)
+- [SSL.com CA](https://github.com/acmesh-official/acme.sh/wiki/SSL.com-CA)
+- [Google.com Public CA](https://github.com/acmesh-official/acme.sh/wiki/Google-Public-CA)
+- [Pebble strict Mode](https://github.com/letsencrypt/pebble)
+- Any other [RFC8555](https://tools.ietf.org/html/rfc8555)-compliant CA
 
 # Supported modes
 
 - Webroot mode
 - Standalone mode
+- Standalone tls-alpn mode
 - Apache mode
 - Nginx mode
 - DNS mode
-- [DNS alias mode](https://github.com/Neilpang/acme.sh/wiki/DNS-alias-mode)
-- [Stateless mode](https://github.com/Neilpang/acme.sh/wiki/Stateless-Mode)
+- [DNS alias mode](https://github.com/acmesh-official/acme.sh/wiki/DNS-alias-mode)
+- [Stateless mode](https://github.com/acmesh-official/acme.sh/wiki/Stateless-Mode)
 
 
 # 1. How to install
 
 ### 1. Install online
 
-Check this project: https://github.com/Neilpang/get.acme.sh
+Check this project: https://github.com/acmesh-official/get.acme.sh
 
 ```bash
-curl https://get.acme.sh | sh
+curl https://get.acme.sh | sh -s email=my@example.com
 ```
 
 Or:
 
 ```bash
-wget -O -  https://get.acme.sh | sh
+wget -O -  https://get.acme.sh | sh -s email=my@example.com
 ```
 
 
@@ -104,14 +138,14 @@ wget -O -  https://get.acme.sh | sh
 Clone this project and launch installation:
 
 ```bash
-git clone https://github.com/Neilpang/acme.sh.git
+git clone https://github.com/acmesh-official/acme.sh.git
 cd ./acme.sh
-./acme.sh --install
+./acme.sh --install -m my@example.com
 ```
 
 You `don't have to be root` then, although `it is recommended`.
 
-Advanced Installation: https://github.com/Neilpang/acme.sh/wiki/How-to-install
+Advanced Installation: https://github.com/acmesh-official/acme.sh/wiki/How-to-install
 
 The installer will perform 3 actions:
 
@@ -173,7 +207,7 @@ The certs will be placed in `~/.acme.sh/example.com/`
 
 The certs will be renewed automatically every **60** days.
 
-More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
+More examples: https://github.com/acmesh-official/acme.sh/wiki/How-to-issue-a-cert
 
 
 # 3. Install the cert to Apache/Nginx etc.
@@ -219,14 +253,26 @@ Port `80` (TCP) **MUST** be free to listen on, otherwise you will be prompted to
 acme.sh --issue --standalone -d example.com -d www.example.com -d cp.example.com
 ```
 
-More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
+More examples: https://github.com/acmesh-official/acme.sh/wiki/How-to-issue-a-cert
+
+# 5. Use Standalone ssl server to issue cert
+
+**(requires you to be root/sudoer or have permission to listen on port 443 (TCP))**
+
+Port `443` (TCP) **MUST** be free to listen on, otherwise you will be prompted to free it and try again.
+
+```bash
+acme.sh --issue --alpn -d example.com -d www.example.com -d cp.example.com
+```
+
+More examples: https://github.com/acmesh-official/acme.sh/wiki/How-to-issue-a-cert
 
 
-# 5. Use Apache mode
+# 6. Use Apache mode
 
 **(requires you to be root/sudoer, since it is required to interact with Apache server)**
 
-If you are running a web server, Apache or Nginx, it is recommended to use the `Webroot mode`.
+If you are running a web server, it is recommended to use the `Webroot mode`.
 
 Particularly, if you are running an Apache server, you can use Apache mode instead. This mode doesn't write any files to your web root folder.
 
@@ -236,17 +282,17 @@ Just set string "apache" as the second argument and it will force use of apache 
 acme.sh --issue --apache -d example.com -d www.example.com -d cp.example.com
 ```
 
-**This apache mode is only to issue the cert, it will not change your apache config files. 
+**This apache mode is only to issue the cert, it will not change your apache config files.
 You will need to configure your website config files to use the cert by yourself.
-We don't want to mess your apache server, don't worry.**
+We don't want to mess with your apache server, don't worry.**
 
-More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
+More examples: https://github.com/acmesh-official/acme.sh/wiki/How-to-issue-a-cert
 
-# 6. Use Nginx mode
+# 7. Use Nginx mode
 
 **(requires you to be root/sudoer, since it is required to interact with Nginx server)**
 
-If you are running a web server, Apache or Nginx, it is recommended to use the `Webroot mode`.
+If you are running a web server, it is recommended to use the `Webroot mode`.
 
 Particularly, if you are running an nginx server, you can use nginx mode instead. This mode doesn't write any files to your web root folder.
 
@@ -260,91 +306,27 @@ So, the config is not changed.
 acme.sh --issue --nginx -d example.com -d www.example.com -d cp.example.com
 ```
 
-**This nginx mode is only to issue the cert, it will not change your nginx config files. 
+**This nginx mode is only to issue the cert, it will not change your nginx config files.
 You will need to configure your website config files to use the cert by yourself.
-We don't want to mess your nginx server, don't worry.**
+We don't want to mess with your nginx server, don't worry.**
 
-More examples: https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
+More examples: https://github.com/acmesh-official/acme.sh/wiki/How-to-issue-a-cert
 
-# 7. Automatic DNS API integration
+# 8. Automatic DNS API integration
 
 If your DNS provider supports API access, we can use that API to automatically issue the certs.
 
 You don't have to do anything manually!
 
-### Currently acme.sh supports:
+### Currently acme.sh supports most of the dns providers:
 
-1. CloudFlare.com API
-1. DNSPod.cn API
-1. CloudXNS.com API
-1. GoDaddy.com API
-1. PowerDNS.com API
-1. OVH, kimsufi, soyoustart and runabove API
-1. nsupdate API
-1. LuaDNS.com API
-1. DNSMadeEasy.com API
-1. AWS Route 53
-1. aliyun.com(阿里云) API
-1. ISPConfig 3.1 API
-1. Alwaysdata.com API
-1. Linode.com API
-1. FreeDNS (https://freedns.afraid.org/)
-1. cyon.ch
-1. Domain-Offensive/Resellerinterface/Domainrobot API
-1. Gandi LiveDNS API
-1. Knot DNS API
-1. DigitalOcean API (native)
-1. ClouDNS.net API
-1. Infoblox NIOS API (https://www.infoblox.com/)
-1. VSCALE (https://vscale.io/)
-1. Dynu API (https://www.dynu.com)
-1. DNSimple API
-1. NS1.com API
-1. DuckDNS.org API
-1. Name.com API
-1. Dyn Managed DNS API
-1. Yandex PDD API (https://pdd.yandex.ru)
-1. Hurricane Electric DNS service (https://dns.he.net)
-1. UnoEuro API (https://www.unoeuro.com/)
-1. INWX (https://www.inwx.de/)
-1. Servercow (https://servercow.de)
-1. Namesilo (https://www.namesilo.com)
-1. InternetX autoDNS API (https://internetx.com)
-1. Azure DNS
-1. selectel.com(selectel.ru) DNS API
-1. zonomi.com DNS API
-1. DreamHost.com API
-1. DirectAdmin API
-1. KingHost (https://www.kinghost.com.br/)
-1. Zilore (https://zilore.com)
-1. Loopia.se API
-1. acme-dns (https://github.com/joohoi/acme-dns)
-1. TELE3 (https://www.tele3.cz)
-1. EUSERV.EU (https://www.euserv.eu)
-1. DNSPod.com API (https://www.dnspod.com)
-1. Google Cloud DNS API
-1. ConoHa (https://www.conoha.jp)
-1. netcup DNS API (https://www.netcup.de)
-1. GratisDNS.dk (https://gratisdns.dk)
-1. Namecheap API (https://www.namecheap.com/)
+https://github.com/acmesh-official/acme.sh/wiki/dnsapi
 
-And: 
+# 9. Use DNS manual mode:
 
-**lexicon DNS API: https://github.com/Neilpang/acme.sh/wiki/How-to-use-lexicon-dns-api
-   (DigitalOcean, DNSimple, DNSMadeEasy, DNSPark, EasyDNS, Namesilo, NS1, PointHQ, Rage4 and Vultr etc.)**
+See: https://github.com/acmesh-official/acme.sh/wiki/dns-manual-mode first.
 
-
-**More APIs coming soon...**
-
-If your DNS provider is not on the supported list above, you can write your own DNS API script easily. If you do, please consider submitting a [Pull Request](https://github.com/Neilpang/acme.sh/pulls) and contribute it to the project.
-
-For more details: [How to use DNS API](dnsapi)
-
-# 8. Use DNS manual mode:
-
-See: https://github.com/Neilpang/acme.sh/wiki/dns-manual-mode first.
-
-If your dns provider doesn't support any api access, you can add the txt record by your hand.
+If your dns provider doesn't support any api access, you can add the txt record by hand.
 
 ```bash
 acme.sh --issue --dns -d example.com -d www.example.com -d cp.example.com
@@ -376,11 +358,7 @@ Ok, it's done.
 
 **Please use dns api mode instead.**
 
-# 9. Issue ECC certificates
-
-`Let's Encrypt` can now issue **ECDSA** certificates.
-
-And we support them too!
+# 10. Issue ECC certificates
 
 Just set the `keylength` parameter with a prefix `ec-`.
 
@@ -402,13 +380,15 @@ Please look at the `keylength` parameter above.
 
 Valid values are:
 
-1. **ec-256 (prime256v1, "ECDSA P-256")**
+1. **ec-256 (prime256v1, "ECDSA P-256", which is the default key type)**
 2. **ec-384 (secp384r1,  "ECDSA P-384")**
 3. **ec-521 (secp521r1,  "ECDSA P-521", which is not supported by Let's Encrypt yet.)**
+4. **2048   (RSA2048)**
+5. **3072   (RSA3072)**
+6. **4096   (RSA4096)**
 
 
-
-# 10. Issue Wildcard certificates
+# 11. Issue Wildcard certificates
 
 It's simple, just give a wildcard domain as the `-d` parameter.
 
@@ -418,7 +398,7 @@ acme.sh  --issue -d example.com  -d '*.example.com'  --dns dns_cf
 
 
 
-# 11. How to renew the certs
+# 12. How to renew the certs
 
 No, you don't need to renew the certs manually. All the certs will be renewed automatically every **60** days.
 
@@ -435,7 +415,7 @@ acme.sh --renew -d example.com --force --ecc
 ```
 
 
-# 12. How to stop cert renewal
+# 13. How to stop cert renewal
 
 To stop renewal of a cert, you can execute the following to remove the cert from the renewal list:
 
@@ -448,7 +428,7 @@ The cert/key file is not removed from the disk.
 You can remove the respective directory (e.g. `~/.acme.sh/example.com`) by yourself.
 
 
-# 13. How to upgrade `acme.sh`
+# 14. How to upgrade `acme.sh`
 
 acme.sh is in constant development, so it's strongly recommended to use the latest code.
 
@@ -473,36 +453,73 @@ acme.sh --upgrade --auto-upgrade 0
 ```
 
 
-# 14. Issue a cert from an existing CSR
+# 15. Issue a cert from an existing CSR
 
-https://github.com/Neilpang/acme.sh/wiki/Issue-a-cert-from-existing-CSR
+https://github.com/acmesh-official/acme.sh/wiki/Issue-a-cert-from-existing-CSR
 
 
-# 15. Under the Hood
+# 16. Send notifications in cronjob
+
+https://github.com/acmesh-official/acme.sh/wiki/notify
+
+
+# 17. Under the Hood
 
 Speak ACME language using shell, directly to "Let's Encrypt".
 
 TODO:
 
 
-# 16. Acknowledgments
+# 18. Acknowledgments
 
 1. Acme-tiny: https://github.com/diafygi/acme-tiny
 2. ACME protocol: https://github.com/ietf-wg-acme/acme
 
 
-# 17. License & Others
+## Contributors
+
+### Code Contributors
+
+This project exists thanks to all the people who contribute.
+<a href="https://github.com/acmesh-official/acme.sh/graphs/contributors"><img src="https://opencollective.com/acmesh/contributors.svg?width=890&button=false" /></a>
+
+### Financial Contributors
+
+Become a financial contributor and help us sustain our community. [[Contribute](https://opencollective.com/acmesh/contribute)]
+
+#### Individuals
+
+<a href="https://opencollective.com/acmesh"><img src="https://opencollective.com/acmesh/individuals.svg?width=890"></a>
+
+#### Organizations
+
+Support this project with your organization. Your logo will show up here with a link to your website. [[Contribute](https://opencollective.com/acmesh/contribute)]
+
+<a href="https://opencollective.com/acmesh/organization/0/website"><img src="https://opencollective.com/acmesh/organization/0/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/1/website"><img src="https://opencollective.com/acmesh/organization/1/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/2/website"><img src="https://opencollective.com/acmesh/organization/2/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/3/website"><img src="https://opencollective.com/acmesh/organization/3/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/4/website"><img src="https://opencollective.com/acmesh/organization/4/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/5/website"><img src="https://opencollective.com/acmesh/organization/5/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/6/website"><img src="https://opencollective.com/acmesh/organization/6/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/7/website"><img src="https://opencollective.com/acmesh/organization/7/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/8/website"><img src="https://opencollective.com/acmesh/organization/8/avatar.svg"></a>
+<a href="https://opencollective.com/acmesh/organization/9/website"><img src="https://opencollective.com/acmesh/organization/9/avatar.svg"></a>
+
+
+
+# 19. License & Others
 
 License is GPLv3
 
 Please Star and Fork me.
 
-[Issues](https://github.com/Neilpang/acme.sh/issues) and [pull requests](https://github.com/Neilpang/acme.sh/pulls) are welcome.
+[Issues](https://github.com/acmesh-official/acme.sh/issues) and [pull requests](https://github.com/acmesh-official/acme.sh/pulls) are welcome.
 
 
-# 18. Donate
+# 20. Donate
 Your donation makes **acme.sh** better:
 
 1. PayPal/Alipay(支付宝)/Wechat(微信): [https://donate.acme.sh/](https://donate.acme.sh/)
-  
-[Donate List](https://github.com/Neilpang/acme.sh/wiki/Donate-list)
+
+[Donate List](https://github.com/acmesh-official/acme.sh/wiki/Donate-list)

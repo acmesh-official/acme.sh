@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 ########
-# Custom cyon.ch DNS API for use with [acme.sh](https://github.com/Neilpang/acme.sh)
+# Custom cyon.ch DNS API for use with [acme.sh](https://github.com/acmesh-official/acme.sh)
 #
 # Usage: acme.sh --issue --dns dns_cyon -d www.domain.com
 #
@@ -18,23 +18,23 @@
 ########
 
 dns_cyon_add() {
-  _cyon_load_credentials \
-    && _cyon_load_parameters "$@" \
-    && _cyon_print_header "add" \
-    && _cyon_login \
-    && _cyon_change_domain_env \
-    && _cyon_add_txt \
-    && _cyon_logout
+  _cyon_load_credentials &&
+    _cyon_load_parameters "$@" &&
+    _cyon_print_header "add" &&
+    _cyon_login &&
+    _cyon_change_domain_env &&
+    _cyon_add_txt &&
+    _cyon_logout
 }
 
 dns_cyon_rm() {
-  _cyon_load_credentials \
-    && _cyon_load_parameters "$@" \
-    && _cyon_print_header "delete" \
-    && _cyon_login \
-    && _cyon_change_domain_env \
-    && _cyon_delete_txt \
-    && _cyon_logout
+  _cyon_load_credentials &&
+    _cyon_load_parameters "$@" &&
+    _cyon_print_header "delete" &&
+    _cyon_login &&
+    _cyon_change_domain_env &&
+    _cyon_delete_txt &&
+    _cyon_logout
 }
 
 #########################
@@ -44,7 +44,7 @@ dns_cyon_rm() {
 _cyon_load_credentials() {
   # Convert loaded password to/from base64 as needed.
   if [ "${CY_Password_B64}" ]; then
-    CY_Password="$(printf "%s" "${CY_Password_B64}" | _dbase64 "multiline")"
+    CY_Password="$(printf "%s" "${CY_Password_B64}" | _dbase64)"
   elif [ "${CY_Password}" ]; then
     CY_Password_B64="$(printf "%s" "${CY_Password}" | _base64)"
   fi
@@ -66,7 +66,7 @@ _cyon_load_credentials() {
   _debug "Save credentials to account.conf"
   _saveaccountconf CY_Username "${CY_Username}"
   _saveaccountconf CY_Password_B64 "$CY_Password_B64"
-  if [ ! -z "${CY_OTP_Secret}" ]; then
+  if [ -n "${CY_OTP_Secret}" ]; then
     _saveaccountconf CY_OTP_Secret "$CY_OTP_Secret"
   else
     _clearaccountconf CY_OTP_Secret
@@ -164,7 +164,7 @@ _cyon_login() {
   # todo: instead of just checking if the env variable is defined, check if we actually need to do a 2FA auth request.
 
   # 2FA authentication with OTP?
-  if [ ! -z "${CY_OTP_Secret}" ]; then
+  if [ -n "${CY_OTP_Secret}" ]; then
     _info "  - Authorising with OTP code..."
 
     if ! _exists oathtool; then
