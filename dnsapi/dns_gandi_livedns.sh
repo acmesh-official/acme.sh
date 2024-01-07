@@ -13,7 +13,7 @@
 #
 ########  Public functions #####################
 
-GANDI_LIVEDNS_API="https://dns.api.gandi.net/api/v5"
+GANDI_LIVEDNS_API="https://api.gandi.net/v5/livedns"
 
 #Usage: dns_gandi_livedns_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_gandi_livedns_add() {
@@ -169,7 +169,7 @@ _gandi_livedns_rest() {
   if [ -n "$GANDI_LIVEDNS_TOKEN" ]; then
     export _H2="Authorization: Bearer $GANDI_LIVEDNS_TOKEN"
   else
-    export _H2="X-Api-Key: $GANDI_LIVEDNS_KEY"
+    export _H2="Authorization: Apikey $GANDI_LIVEDNS_KEY"
   fi
 
   if [ "$m" = "GET" ]; then
