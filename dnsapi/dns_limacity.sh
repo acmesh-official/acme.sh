@@ -82,7 +82,7 @@ _lima_get_domain_id() {
   _lima_get_root "$1"
   _debug "$domain"
 
-  LIMACITY_DOMAINID=$(_get "${APIBASE}/domains.json" | _egrep_o "{\"id\":[0-9]*[^}]*$domain" | _egrep_o "[0-9]*")
+  LIMACITY_DOMAINID=$(_get "${APIBASE}/domains.json" | _egrep_o ":[0-9]*[^}]*$domain" | _egrep_o "[0-9]*")
 
   _debug "$LIMACITY_DOMAINID"
   if [ -z "$LIMACITY_DOMAINID" ]; then
