@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.0.7
+VER=3.0.8
 
 PROJECT_NAME="acme.sh"
 
@@ -102,12 +102,12 @@ ECC_SUFFIX="${ECC_SEP}ecc"
 LOG_LEVEL_1=1
 LOG_LEVEL_2=2
 LOG_LEVEL_3=3
-DEFAULT_LOG_LEVEL="$LOG_LEVEL_1"
+DEFAULT_LOG_LEVEL="$LOG_LEVEL_2"
 
 DEBUG_LEVEL_1=1
 DEBUG_LEVEL_2=2
 DEBUG_LEVEL_3=3
-DEBUG_LEVEL_DEFAULT=$DEBUG_LEVEL_1
+DEBUG_LEVEL_DEFAULT=$DEBUG_LEVEL_2
 DEBUG_LEVEL_NONE=0
 
 DOH_CLOUDFLARE=1
@@ -931,7 +931,7 @@ fi
 
 _egrep_o() {
   if [ "$__USE_EGREP" ]; then
-    egrep -o "$1"
+    egrep -o -- "$1" 2>/dev/null
   else
     sed -n 's/.*\('"$1"'\).*/\1/p'
   fi
@@ -1561,7 +1561,7 @@ createDomainKey() {
 createCSR() {
   _info "Creating csr"
   if [ -z "$1" ]; then
-    _usage "Usage: $PROJECT_ENTRY --create-csr --domain <domain.tld> [--domain <domain2.tld> ...]"
+    _usage "Usage: $PROJECT_ENTRY --create-csr --domain <domain.tld> [--domain <domain2.tld> ...] [--ecc]"
     return
   fi
 
@@ -1793,6 +1793,10 @@ _date2time() {
   fi
   #Mac/BSD
   if date -u -j -f "%Y-%m-%d %H:%M:%S" "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
+    return
+  fi
+  #Omnios
+  if da="$(echo "$1" | tr -d "Z" | tr "T" ' ')" perl -MTime::Piece -e 'print Time::Piece->strptime($ENV{da}, "%Y-%m-%d %H:%M:%S")->epoch, "\n";' 2>/dev/null; then
     return
   fi
   _err "Can not parse _date2time $1"
@@ -2118,12 +2122,7 @@ _tail_n() {
 }
 
 _tail_c() {
-  if _is_solaris; then
-    #fix for solaris
-    tail -"$1"c
-  else
-    tail -c "$1"
-  fi
+  tail -c "$1" 2>/dev/null || tail -"$1"c
 }
 
 # url  payload needbase64  keyfile
@@ -3130,7 +3129,7 @@ _setNginx() {
         _err "nginx command is not found."
         return 1
       fi
-      NGINX_CONF="$(nginx -V 2>&1 | _egrep_o "--conf-path=[^ ]* " | tr -d " ")"
+      NGINX_CONF="$(nginx -V 2>&1 | _egrep_o "\-\-conf-path=[^ ]* " | tr -d " ")"
       _debug NGINX_CONF "$NGINX_CONF"
       NGINX_CONF="$(echo "$NGINX_CONF" | cut -d = -f 2)"
       _debug NGINX_CONF "$NGINX_CONF"
@@ -5015,9 +5014,9 @@ $_authorizations_map"
         errordetail="$(echo "$error" | _egrep_o '"detail": *"[^"]*' | cut -d '"' -f 4)"
         _debug2 errordetail "$errordetail"
         if [ "$errordetail" ]; then
-          _err "$d:Verify error:$errordetail"
+          _err "Invalid status, $d:Verify error detail:$errordetail"
         else
-          _err "$d:Verify error:$error"
+          _err "Invalid status, $d:Verify error:$error"
         fi
         if [ "$DEBUG" ]; then
           if [ "$vtype" = "$VTYPE_HTTP" ]; then
@@ -5044,7 +5043,7 @@ $_authorizations_map"
       elif _contains "$status" "processing"; then
         _info "Processing, The CA is processing your order, please just wait. ($waittimes/$MAX_RETRY_TIMES)"
       else
-        _err "$d:Verify error:$response"
+        _err "Unknown status: $status, $d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
         _on_issue_err "$_post_hook" "$vlist"
@@ -5057,7 +5056,7 @@ $_authorizations_map"
       _send_signed_request "$_authz_url"
 
       if [ "$?" != "0" ]; then
-        _err "$d:Verify error:$response"
+        _err "Invalid code, $d:Verify error:$response"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
         _on_issue_err "$_post_hook" "$vlist"
@@ -5993,6 +5992,7 @@ installcronjob() {
   fi
   _t=$(_time)
   random_minute=$(_math $_t % 60)
+  random_hour=$(_math $_t / 60 % 24)
 
   if ! _exists "$_CRONTAB" && _exists "fcrontab"; then
     _CRONTAB="fcrontab"
@@ -6017,16 +6017,14 @@ installcronjob() {
   _info "Installing cron job"
   if ! $_CRONTAB -l | grep "$PROJECT_ENTRY --cron"; then
     if _exists uname && uname -a | grep SunOS >/dev/null; then
-      $_CRONTAB -l | {
-        cat
-        echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
-      } | $_CRONTAB --
+      _CRONTAB_STDIN="$_CRONTAB --"
     else
-      $_CRONTAB -l | {
-        cat
-        echo "$random_minute 0 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
-      } | $_CRONTAB -
+      _CRONTAB_STDIN="$_CRONTAB -"
     fi
+    $_CRONTAB -l | {
+      cat
+      echo "$random_minute $random_hour * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
+    } | $_CRONTAB_STDIN
   fi
   if [ "$?" != "0" ]; then
     _err "Install cron job failed. You need to manually renew your certs."
@@ -6899,7 +6897,7 @@ Parameters:
 
   -f, --force                       Force install, force cert renewal or override sudo restrictions.
   --staging, --test                 Use staging server, for testing.
-  --debug [0|1|2|3]                 Output debug info. Defaults to 1 if argument is omitted.
+  --debug [0|1|2|3]                 Output debug info. Defaults to $DEBUG_LEVEL_DEFAULT if argument is omitted.
   --output-insecure                 Output all the sensitive messages.
                                       By default all the credentials/sensitive messages are hidden from the output/debug/log for security.
   -w, --webroot <directory>         Specifies the web root folder for web root mode.
@@ -6917,7 +6915,7 @@ Parameters:
   -k, --keylength <bits>            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521.
   -ak, --accountkeylength <bits>    Specifies the account key length: 2048, 3072, 4096
   --log [file]                      Specifies the log file. Defaults to \"$DEFAULT_LOG_FILE\" if argument is omitted.
-  --log-level <1|2>                 Specifies the log level, default is 1.
+  --log-level <1|2>                 Specifies the log level, default is $DEFAULT_LOG_LEVEL.
   --syslog <0|3|6|7>                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
   --eab-kid <eab_key_id>            Key Identifier for External Account Binding.
   --eab-hmac-key <eab_hmac_key>     HMAC key for External Account Binding.
@@ -6925,7 +6923,7 @@ Parameters:
 
   These parameters are to install the cert to nginx/apache or any other server after issue/renew a cert:
 
-  --cert-file <file>                Path to copy the cert file to after issue/renew..
+  --cert-file <file>                Path to copy the cert file to after issue/renew.
   --key-file <file>                 Path to copy the key file to after issue/renew.
   --ca-file <file>                  Path to copy the intermediate cert file to after issue/renew.
   --fullchain-file <file>           Path to copy the fullchain cert file to after issue/renew.
@@ -6955,7 +6953,8 @@ Parameters:
   --no-profile                      Only valid for '--install' command, which means: do not install aliases to user profile.
   --no-color                        Do not output color text.
   --force-color                     Force output of color text. Useful for non-interactive use with the aha tool for HTML E-Mails.
-  --ecc                             Specifies to use the ECC cert. Valid for '--install-cert', '--renew', '--revoke', '--to-pkcs12' and '--create-csr'
+  --ecc                             Specifies use of the ECC cert. Only valid for '--install-cert', '--renew', '--remove ', '--revoke',
+                                      '--deploy', '--to-pkcs8', '--to-pkcs12' and '--create-csr'.
   --csr <file>                      Specifies the input csr.
   --pre-hook <command>              Command to be run before obtaining any certificates.
   --post-hook <command>             Command to be run after attempting to obtain/renew certificates. Runs regardless of whether obtain/renew succeeded or failed.

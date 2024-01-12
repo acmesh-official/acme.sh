@@ -46,6 +46,10 @@ pleskxml_tplt_get_domains="<packet><webspace><get><filter/><dataset><gen_info/><
 # Also used to test credentials and URI.
 # No params.
 
+pleskxml_tplt_get_additional_domains="<packet><site><get><filter/><dataset><gen_info/></dataset></get></site></packet>"
+# Get a list of additional domains that PLESK can manage, so we can check root domain + host for acme.sh
+# No params.
+
 pleskxml_tplt_get_dns_records="<packet><dns><get_rec><filter><site-id>%s</site-id></filter></get_rec></dns></packet>"
 # Get all DNS records for a Plesk domain ID.
 # PARAM = Plesk domain id to query
@@ -375,16 +379,44 @@ _pleskxml_get_root_domain() {
     return 1
   fi
 
-  # Generate a crude list of domains known to this Plesk account.
+  # Generate a crude list of domains known to this Plesk account based on subscriptions.
   # We convert <ascii-name> tags to <name> so it'll flag on a hit with either <name> or <ascii-name> fields,
   # for non-Western character sets.
   # Output will be one line per known domain, containing 2 <name> tages and a single <id> tag
   # We don't actually need to check for type, name, *and* id, but it guarantees only usable lines are returned.
 
   output="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>ok</status>' | sed 's/<ascii-name>/<name>/g;s/<\/ascii-name>/<\/name>/g' | grep '<name>' | grep '<id>')"
+  debug_output="$(printf "%s" "$output" | sed -n 's:.*<name>\(.*\)</name>.*:\1:p')"
 
-  _debug 'Domains managed by Plesk server are (ignore the hacked output):'
-  _debug "$output"
+  _debug 'Domains managed by Plesk server are:'
+  _debug "$debug_output"
+
+  _debug "Querying Plesk server for list of additional managed domains..."
+
+  _call_api "$pleskxml_tplt_get_additional_domains"
+  if [ "$pleskxml_retcode" -ne 0 ]; then
+    return 1
+  fi
+
+  # Generate a crude list of additional domains known to this Plesk account based on sites.
+  # We convert <ascii-name> tags to <name> so it'll flag on a hit with either <name> or <ascii-name> fields,
+  # for non-Western character sets.
+  # Output will be one line per known domain, containing 2 <name> tages and a single <id> tag
+  # We don't actually need to check for type, name, *and* id, but it guarantees only usable lines are returned.
+
+  output_additional="$(_api_response_split "$pleskxml_prettyprint_result" 'result' '<status>ok</status>' | sed 's/<ascii-name>/<name>/g;s/<\/ascii-name>/<\/name>/g' | grep '<name>' | grep '<id>')"
+  debug_additional="$(printf "%s" "$output_additional" | sed -n 's:.*<name>\(.*\)</name>.*:\1:p')"
+
+  _debug 'Additional domains managed by Plesk server are:'
+  _debug "$debug_additional"
+
+  # Concate the two outputs together.
+
+  output="$(printf "%s" "$output $NEWLINE $output_additional")"
+  debug_output="$(printf "%s" "$output" | sed -n 's:.*<name>\(.*\)</name>.*:\1:p')"
+
+  _debug 'Domains (including additional) managed by Plesk server are:'
+  _debug "$debug_output"
 
   # loop and test if domain, or any parent domain, is managed by Plesk
   # Loop until we don't have any '.' in the string we're testing as a candidate Plesk-managed domain
