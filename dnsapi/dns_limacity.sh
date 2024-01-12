@@ -51,7 +51,7 @@ dns_limacity_rm() {
   if ! _lima_get_domain_id "$fulldomain"; then return 1; fi
 
   for recordId in $(_get "${APIBASE}/domains/${LIMACITY_DOMAINID}/records.json" | _egrep_o "{\"id\":[0-9]*[^}]*,\"name\":\"${fulldomain}\"" | _egrep_o "[0-9]*"); do
-    _post "" "https://www.lima-city.de/usercp/domains/${LIMACITY_DOMAINID}/records/${recordId}" "" "DELETE"
+    _post "" "${APIBASE}/domains/${LIMACITY_DOMAINID}/records/${recordId}" "" "DELETE"
   done
 
   return 0
@@ -66,7 +66,7 @@ _lima_get_domain_id() {
   p=1
 
   domains=$(_get "${APIBASE}/domains.json")
-  if [ "$(echo "$domains" | _egrep_o "^\{\"domains\"")" ]; then
+  if [ "$(echo "$domains" | _egrep_o "{.*\"domains\"")" ]; then
     response="$(echo "$domains" | tr -d "\n" | tr '{' "|" | sed 's/|/&{/g' | tr "|" "\n")"
     while true; do
       h=$(printf "%s" "$domain" | cut -d . -f $i-100)
