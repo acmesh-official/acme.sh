@@ -65,9 +65,9 @@ _lima_get_domain_id() {
   i=2
   p=1
 
-  response=$(_get "${APIBASE}/domains.json")
-  if "$response"; then
-    response="$(echo "$response" | tr -d "\n" | tr '{' "|" | sed 's/|/&{/g' | tr "|" "\n")"
+  domains=$(_get "${APIBASE}/domains.json")
+  if [ "$(echo "$domains" | _egrep_o "^\{\"domains\"")" ] ; then
+    response="$(echo "$domains" | tr -d "\n" | tr '{' "|" | sed 's/|/&{/g' | tr "|" "\n")"
     while true; do
       h=$(printf "%s" "$domain" | cut -d . -f $i-100)
       _debug h "$h"
@@ -76,7 +76,7 @@ _lima_get_domain_id() {
         return 1
       fi
 
-      hostedzone="$(echo "$response" | _egrep_o "{.*\"domain\":\s*\"$h\".*}")"
+      hostedzone="$(echo "$response" | _egrep_o "{.*\"unicode_fqdn\":\s*\"$h\".*}")"
       if [ "$hostedzone" ]; then
         LIMACITY_DOMAINID=$(printf "%s\n" "$hostedzone" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
         if [ "$LIMACITY_DOMAINID" ]; then
