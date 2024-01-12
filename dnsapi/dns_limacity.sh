@@ -59,35 +59,36 @@ dns_limacity_rm() {
 
 ####################  Private functions below ##################################
 
-_lima_get_root() {
-  _lima_get_root=$1
-  i=1
-  while true; do
-    h=$(printf "%s" "$_lima_get_root" | cut -d . -f `_math "$i" -100`)
-    _debug h "$h"
-    if [ -z "$h" ]; then
-      #not valid
-      return 0
-    fi
-
-    if _contains "$h" "\."; then
-      domain=$h
-    fi
-
-    i=$(_math "$i" + 1)
-  done
-}
-
 _lima_get_domain_id() {
-  _lima_get_root "$1"
+  domain="$1"
   _debug "$domain"
+  i=2
+  p=1
 
-  LIMACITY_DOMAINID=$(_get "${APIBASE}/domains.json" | _egrep_o ":[0-9]*[^}]*$domain" | _egrep_o "[0-9]*")
+  response=$(_get "${APIBASE}/domains.json")
+  if "$response"; then
+    response="$(echo "$response" | tr -d "\n" | tr '{' "|" | sed 's/|/&{/g' | tr "|" "\n")"
+    while true; do
+      h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+      _debug h "$h"
+      if [ -z "$h" ]; then
+        #not valid
+        return 1
+      fi
 
-  _debug "$LIMACITY_DOMAINID"
-  if [ -z "$LIMACITY_DOMAINID" ]; then
-    return 1
+      hostedzone="$(echo "$response" | _egrep_o "{.*\"domain\":\s*\"$h\".*}")"
+      if [ "$hostedzone" ]; then
+        LIMACITY_DOMAINID=$(printf "%s\n" "$hostedzone" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
+        if [ "$LIMACITY_DOMAINID" ]; then
+          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+          _domain=$h
+          return 0
+        fi
+        return 1
+      fi
+      p=$i
+      i=$(_math "$i" + 1)
+    done
   fi
-
-  return 0
+  return 1
 }
