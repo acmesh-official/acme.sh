@@ -493,8 +493,6 @@ jobs:
         copyback: false
         prepare: pkg install socat
         run: |
-          pkg set-mediator -v -I default@1.1 openssl
-          export PATH=/usr/gnu/bin:$PATH
           if [ "${{ secrets.TokenName1}}" ] ; then
             export ${{ secrets.TokenName1}}="${{ secrets.TokenValue1}}"
           fi
