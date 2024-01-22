@@ -109,7 +109,8 @@ rm_record() {
   _uuid=""
   if _existingchallenge "$_domain" "$_host" "$new_challenge"; then
     # Delete
-    if _opns_rest "POST" "/record/delRecord/${_uuid}" "\{\}"; then
+    if _opns_rest "POST" "/record/delRecord/${_uuid}" "{}"; then
+      _return_str="$response"
       if echo "$_return_str" | _egrep_o "\"result\":\"deleted\"" >/dev/null; then
         _opns_rest "POST" "/service/reconfigure" "{}"
         _debug "Record deleted"
