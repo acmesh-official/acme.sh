@@ -127,7 +127,7 @@ _ISPC_getZoneInfo() {
   curResult="$(_post "${curData}" "${ISPC_Api}?client_get_id")"
   _debug "Calling _ISPC_ClientGetID: '${curData}' '${ISPC_Api}?client_get_id'"
   _debug "Result of _ISPC_ClientGetID: '$curResult'"
-  client_id=$(echo "${curResult}" | _egrep_o "response.*" | cut -d ':' -f 2 | cut -d '"' -f 2 | tr -d '{}')
+  client_id=$(echo "${curResult}" | _egrep_o "response.*" | cut -d ':' -f 2 | cut -d '"' -f 2 | cut -d '[' -f 1 | tr -d '{}')
   _debug "Client ID: '${client_id}'"
   case "${client_id}" in
   '' | *[!0-9]*)
