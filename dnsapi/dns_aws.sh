@@ -207,6 +207,65 @@ _use_container_role() {
 }
 
 _use_instance_role() {
+  # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html
+  # https://aws.amazon.com/blogs/security/get-the-full-benefits-of-imdsv2-and-disable-imdsv1-across-your-aws-infrastructure/
+  _url="http://169.254.169.254/latest/meta-data/"
+  _response=$(curl --write-out "%{http_code}\n" -s -HEAD $_url)
+  _debug "_response" "$_response"
+  if [ "$_response" -eq "401" ]; then
+    _use_imdsv2_instance_role
+  else
+    _use_imdsv1_instance_role
+  fi
+}
+
+_use_imdsv2_instance_role() {
+  _request_token_url="http://169.254.169.254/latest/api/token"
+  _instance_role_url="http://169.254.169.254/latest/meta-data/iam"
+  _request_token="$(curl -s -X PUT "$_request_token_url" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")"
+  _debug "_request_token" "$_request_token"
+  if [ -z "$_request_token" ]; then
+    _debug "Unable to fetch IMDSv2 token from instance metadata"
+    return 1
+  fi
+  _instance_role_name="$(curl -s -H "X-aws-ec2-metadata-token: $_request_token" http://169.254.169.254/latest/meta-data/iam/security-credentials/)"
+  _debug "_instance_role_name" "$_instance_role_name"
+  if [ -z "$_instance_role_name" ]; then
+    _debug "Unable to fetch instance role name from instance metadata"
+    return 1
+  fi
+  _use_metadata_imdsv2 "http://169.254.169.254/latest/meta-data/iam/security-credentials/$_instance_role_name" "$_request_token"
+}
+
+_use_metadata_imdsv2() {
+  _aws_creds="$(
+    curl -s -H "X-aws-ec2-metadata-token: $2" "$1" |
+      _normalizeJson |
+      tr '{,}' '\n' |
+      while read -r _line; do
+        _key="$(echo "${_line%%:*}" | tr -d '"')"
+        _value="${_line#*:}"
+        _debug3 "_key" "$_key"
+        _secure_debug3 "_value" "$_value"
+        case "$_key" in
+        AccessKeyId) echo "AWS_ACCESS_KEY_ID=$_value" ;;
+        SecretAccessKey) echo "AWS_SECRET_ACCESS_KEY=$_value" ;;
+        Token) echo "AWS_SESSION_TOKEN=$_value" ;;
+        esac
+      done |
+      paste -sd' ' -
+  )"
+  _secure_debug "_aws_creds" "$_aws_creds"
+
+  if [ -z "$_aws_creds" ]; then
+    return 1
+  fi
+
+  eval "$_aws_creds"
+  _using_role=true
+}
+
+_use_imdsv1_instance_role() {
   _url="http://169.254.169.254/latest/meta-data/iam/security-credentials/"
   _debug "_url" "$_url"
   if ! _get "$_url" true 1 | _head_n 1 | grep -Fq 200; then
@@ -215,10 +274,10 @@ _use_instance_role() {
   fi
   _aws_role=$(_get "$_url" "" 1)
   _debug "_aws_role" "$_aws_role"
-  _use_metadata "$_url$_aws_role"
+  _use_metadata_imdsv1 "$_url$_aws_role"
 }
 
-_use_metadata() {
+_use_metadata_imdsv1() {
   _aws_creds="$(
     _get "$1" "" 1 |
       _normalizeJson |
