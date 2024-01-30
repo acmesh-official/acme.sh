@@ -345,7 +345,7 @@ _debug() {
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_1" ]; then
     _bash_debug=$(__debug_bash_helper)
-    _printargs "${_bash_debug}$@" >&2
+    _printargs "${_bash_debug}$*" >&2
   fi
 }
 
@@ -379,7 +379,7 @@ _debug2() {
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_2" ]; then
     _bash_debug=$(__debug_bash_helper)
-    _printargs "${_bash_debug}$@" >&2
+    _printargs "${_bash_debug}$*" >&2
   fi
 }
 
@@ -412,7 +412,7 @@ _debug3() {
   fi
   if [ "${DEBUG:-$DEBUG_LEVEL_NONE}" -ge "$DEBUG_LEVEL_3" ]; then
     _bash_debug=$(__debug_bash_helper)
-    _printargs "${_bash_debug}$@" >&2
+    _printargs "${_bash_debug}$*" >&2
   fi
 }
 
@@ -2709,6 +2709,7 @@ _clearAPI() {
 }
 
 #server
+# shellcheck disable=SC2120
 _initAPI() {
   _api_server="${1:-$ACME_DIRECTORY}"
   _debug "_init api for server: $_api_server"
@@ -2719,6 +2720,7 @@ _initAPI() {
   while [ -z "$ACME_NEW_ACCOUNT" ] && [ "${_request_retry_times}" -lt "$MAX_API_RETRY_TIMES" ]; do
     _request_retry_times=$(_math "$_request_retry_times" + 1)
     response=$(_get "$_api_server")
+    # shellcheck disable=SC2181
     if [ "$?" != "0" ]; then
       _debug2 "response" "$response"
       _info "Can not init api for: $_api_server."
@@ -7086,7 +7088,7 @@ _processAccountConf() {
 }
 
 _checkSudo() {
-  if [ -z "__INTERACTIVE" ]; then
+  if [ -z "${__INTERACTIVE}" ]; then
     #don't check if it's not in an interactive shell
     return 0
   fi
