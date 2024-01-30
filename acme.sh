@@ -4263,18 +4263,50 @@ _match_issuer() {
 
 #ip
 _isIPv4() {
-  for seg in $(echo "$1" | tr '.' ' '); do
-    _debug2 seg "$seg"
-    if [ "$(echo "$seg" | tr -d '[0-9]')" ]; then
-      #not all number
-      return 1
+    # Disable pathname expansion
+    set -f
+
+    # Save the current value of IFS
+    _isIPv4_saveIFS="$IFS"
+    IFS='.'
+
+    # Split the IP into octets
+    _chk_ipv4="$1"
+    # We specifically want word splitting here.  We have disabled pathname expansion (globbing) with set -f.
+    # shellcheck disable=SC2086
+    set -- $_chk_ipv4
+
+    # Restore the original value of IFS
+    IFS="$_isIPv4_saveIFS"
+
+    # Re-enable pathname expansion
+    set +f
+
+    # Check if the IP has exactly 4 octets
+    if [ $# -ne 4 ]; then
+        # Invalid IPv4 address
+        _debug2 "$_chk_ipv4 does not have 4 octets"
+        return 1
     fi
-    if [ $seg -ge 0 ] && [ $seg -lt 256 ]; then
-      continue
-    fi
-    return 1
-  done
-  return 0
+
+    # Validate each octet
+    for octet in "$@"; do
+        _debug2 octet "$octet"
+        # Check if octet is numeric
+        if ! [ "$octet" -eq "$octet" ] 2>/dev/null; then
+            # octet is not numeric
+            return 1
+        fi
+
+        # Check if octet is in range 0-255
+        if [ "$octet" -lt 0 ] || [ "$octet" -gt 255 ]; then
+            # octet is out of range
+            return 1
+        fi
+    done
+
+    # If all checks pass, IP is valid
+    return 0
 }
 
 #ip6
