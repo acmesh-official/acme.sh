@@ -210,7 +210,6 @@ _use_instance_role() {
   # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html
   # https://aws.amazon.com/blogs/security/get-the-full-benefits-of-imdsv2-and-disable-imdsv1-across-your-aws-infrastructure/
   _instance_role_name_url="http://169.254.169.254/latest/meta-data/iam/security-credentials/"
-  #_response=$(curl --write-out "%{http_code}\n" -s -HEAD $_url)
   if _get "$_instance_role_name_url" true 1 | _head_n 1 | grep -Fq 401; then
     _debug "Using IMDSv2"
     _token_url="http://169.254.169.254/latest/api/token"
