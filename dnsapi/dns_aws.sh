@@ -207,15 +207,14 @@ _use_container_role() {
 }
 
 _use_instance_role() {
-  # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html
-  # https://aws.amazon.com/blogs/security/get-the-full-benefits-of-imdsv2-and-disable-imdsv1-across-your-aws-infrastructure/
   _instance_role_name_url="http://169.254.169.254/latest/meta-data/iam/security-credentials/"
+
   if _get "$_instance_role_name_url" true 1 | _head_n 1 | grep -Fq 401; then
     _debug "Using IMDSv2"
     _token_url="http://169.254.169.254/latest/api/token"
     export _H1="X-aws-ec2-metadata-token-ttl-seconds: 21600"
     _token="$(_post "" "$_token_url" "" "PUT")"
-    _debug "_token" "$_token"
+    _secure_debug3 "_token" "$_token"
     if [ -z "$_token" ]; then
       _debug "Unable to fetch IMDSv2 token from instance metadata"
       return 1
@@ -227,9 +226,9 @@ _use_instance_role() {
     _debug "Unable to fetch IAM role from instance metadata"
     return 1
   fi
+
   _instance_role_name=$(_get "$_instance_role_name_url" "" 1)
   _debug "_instance_role_name" "$_instance_role_name"
-
   _use_metadata "$_instance_role_name_url$_instance_role_name" "$_token"
 }
 
