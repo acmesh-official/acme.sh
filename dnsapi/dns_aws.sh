@@ -229,6 +229,7 @@ _use_instance_role() {
   _instance_role_name=$(_get "$_instance_role_name_url" "" 1)
   _debug "_instance_role_name" "$_instance_role_name"
   _use_metadata "$_instance_role_name_url$_instance_role_name" "$_token"
+
 }
 
 _use_metadata() {
