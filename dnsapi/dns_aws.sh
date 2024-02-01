@@ -145,7 +145,6 @@ dns_aws_rm() {
   fi
   _sleep 1
   return 1
-
 }
 
 ####################  Private functions below ##################################
