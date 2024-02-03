@@ -2499,10 +2499,10 @@ _startserver() {
   _debug Le_Listen_V6 "$Le_Listen_V6"
 
   _NC="socat"
-  if [ "$Le_Listen_V4" ]; then
-    _NC="$_NC -4"
-  elif [ "$Le_Listen_V6" ]; then
+  if [ "$Le_Listen_V6" ]; then
     _NC="$_NC -6"
+  else
+    _NC="$_NC -4"
   fi
 
   if [ "$DEBUG" ] && [ "$DEBUG" -gt "1" ]; then
