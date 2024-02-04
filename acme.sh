@@ -2531,6 +2531,7 @@ printf '%s' '$content';" 2>"$_socaterr" &
       _err "socat: $(cat $_socaterr)"
       _err "Can not listen for user: $(whoami)"
       _err "Maybe try with root again?"
+      rm -f "$_socaterr"
       return 1
     fi
   fi
