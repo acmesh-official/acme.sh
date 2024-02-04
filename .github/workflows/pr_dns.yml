@@ -4,8 +4,6 @@ on:
   pull_request_target:
     types:
       - opened
-    branches:
-      - 'dev'
     paths:
       - 'dnsapi/*.sh'
 
