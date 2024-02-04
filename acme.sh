@@ -2519,12 +2519,21 @@ _startserver() {
   _content_len="$(printf "%s" "$content" | wc -c)"
   _debug _content_len "$_content_len"
   _debug "_NC" "$_NC $SOCAT_OPTIONS"
+  _socaterr="$(_mktemp)"
   $_NC $SOCAT_OPTIONS SYSTEM:"sleep 1; \
 echo 'HTTP/1.0 200 OK'; \
 echo 'Content-Length\: $_content_len'; \
 echo ''; \
-printf '%s' '$content';" &
+printf '%s' '$content';" 2>"$_socaterr" &
   serverproc="$!"
+  if [ -f "$_socaterr" ]; Then
+    if grep "Permission denied" "$_socaterr" >/dev/null; Then
+      _err "socat: $(cat $_socaterr)"
+      _err "Can not listen for user: $(whoami)"
+      _err "Maybe try with root again?"
+      return 1
+    fi
+  fi
 }
 
 _stopserver() {
