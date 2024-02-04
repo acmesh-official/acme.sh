@@ -2527,7 +2527,7 @@ echo ''; \
 printf '%s' '$content';" 2>"$_socaterr" &
   serverproc="$!"
   if [ -f "$_socaterr" ]; Then
-    if grep "Permission denied" "$_socaterr" >/dev/null; Then
+    if grep "Permission denied" "$_socaterr" >/dev/null; then
       _err "socat: $(cat $_socaterr)"
       _err "Can not listen for user: $(whoami)"
       _err "Maybe try with root again?"
