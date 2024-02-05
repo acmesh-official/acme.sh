@@ -5109,7 +5109,7 @@ $_authorizations_map"
     _on_issue_err "$_post_hook"
     return 1
   fi
-  if [ "$code" != "200" ] || [ "$code" != "201" ]; then
+  if [ "$code" != "200" ] && [ "$code" != "201" ]; then
     _err "Sign failed, finalize code is not 200 or 201."
     _err "$response"
     _on_issue_err "$_post_hook"
