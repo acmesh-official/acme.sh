@@ -2499,10 +2499,10 @@ _startserver() {
   _debug Le_Listen_V6 "$Le_Listen_V6"
 
   _NC="socat"
-  if [ "$Le_Listen_V4" ]; then
-    _NC="$_NC -4"
-  elif [ "$Le_Listen_V6" ]; then
+  if [ "$Le_Listen_V6" ]; then
     _NC="$_NC -6"
+  else
+    _NC="$_NC -4"
   fi
 
   if [ "$DEBUG" ] && [ "$DEBUG" -gt "1" ]; then
@@ -2519,22 +2519,34 @@ _startserver() {
   _content_len="$(printf "%s" "$content" | wc -c)"
   _debug _content_len "$_content_len"
   _debug "_NC" "$_NC $SOCAT_OPTIONS"
+  export _SOCAT_ERR="$(_mktemp)"
   $_NC $SOCAT_OPTIONS SYSTEM:"sleep 1; \
 echo 'HTTP/1.0 200 OK'; \
 echo 'Content-Length\: $_content_len'; \
 echo ''; \
-printf '%s' '$content';" &
+printf '%s' '$content';" 2>"$_SOCAT_ERR" &
   serverproc="$!"
+  if [ -f "$_SOCAT_ERR" ]; then
+    if grep "Permission denied" "$_SOCAT_ERR" >/dev/null; then
+      _err "socat: $(cat $_SOCAT_ERR)"
+      _err "Can not listen for user: $(whoami)"
+      _err "Maybe try with root again?"
+      rm -f "$_SOCAT_ERR"
+      return 1
+    fi
+  fi
 }
 
 _stopserver() {
   pid="$1"
   _debug "pid" "$pid"
   if [ -z "$pid" ]; then
+    rm -f "$_SOCAT_ERR"
     return
   fi
 
   kill $pid
+  rm -f "$_SOCAT_ERR"
 
 }
 
@@ -4515,7 +4527,7 @@ issue() {
 
   vlist="$Le_Vlist"
   _cleardomainconf "Le_Vlist"
-  _info "Getting domain auth token for each domain"
+  _debug "Getting domain auth token for each domain"
   sep='#'
   dvsep=','
   if [ -z "$vlist" ]; then
@@ -4571,11 +4583,21 @@ issue() {
     if [ "$_notAfter" ]; then
       _newOrderObj="$_newOrderObj,\"notAfter\": \"$_notAfter\""
     fi
+    _debug "STEP 1, Ordering a Certificate"
     if ! _send_signed_request "$ACME_NEW_ORDER" "$_newOrderObj}"; then
       _err "Create new order error."
       _clearup
       _on_issue_err "$_post_hook"
       return 1
+    fi
+    if _contains "$response" "invalid"; then
+      if echo "$response" | _normalizeJson | grep '"status":"invalid"' >/dev/null 2>&1; then
+        _err "Create new order with invalid status."
+        _err "$response"
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
     fi
 
     Le_LinkOrder="$(echo "$responseHeaders" | grep -i '^Location.*$' | _tail_n 1 | tr -d "\r\n " | cut -d ":" -f 2-)"
@@ -4601,6 +4623,7 @@ issue() {
       return 1
     fi
 
+    _debug "STEP 2, Get the authorizations of each domain"
     #domain and authz map
     _authorizations_map=""
     for _authz_url in $(echo "$_authorizations_seg" | tr ',' ' '); do
@@ -4609,6 +4632,7 @@ issue() {
         _err "get to authz error."
         _err "_authorizations_seg" "$_authorizations_seg"
         _err "_authz_url" "$_authz_url"
+        _err "$response"
         _clearup
         _on_issue_err "$_post_hook"
         return 1
@@ -4616,6 +4640,14 @@ issue() {
 
       response="$(echo "$response" | _normalizeJson)"
       _debug2 response "$response"
+      if echo "$response" | grep '"status":"invalid"' >/dev/null 2>&1; then
+        _err "get authz objec with invalid status, please try again later."
+        _err "_authorizations_seg" "$_authorizations_seg"
+        _err "$response"
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
       _d="$(echo "$response" | _egrep_o '"value" *: *"[^"]*"' | cut -d : -f 2- | tr -d ' "')"
       if _contains "$response" "\"wildcard\" *: *true"; then
         _d="*.$_d"
