@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 #
-# REGRU_API_Username="test"
+# REGRU_API_Username="test" 
 #
 # REGRU_API_Password="test"
 #
