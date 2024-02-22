@@ -9,12 +9,13 @@
 # Issues:  https://github.com/acmesh-official/acme.sh/issues/2727
 ################################################################################
 # Usage:
+# 1. Set required environment variables (two ways):
 # - Create temp admin user automatically:
 #   export SYNO_USE_TEMP_ADMIN=1
 # - Or provide your own admin user credential:
 #   1. export SYNO_Username="adminUser"
 #   2. export SYNO_Password="adminPassword"
-# Optional exports (shown values are the defaults):
+# 2. Set optional environment variables (shown values are the defaults):
 # - export SYNO_Certificate="" - to replace a specific certificate via description
 # - export SYNO_Scheme="http"
 # - export SYNO_Hostname="localhost"
@@ -22,7 +23,8 @@
 # - export SYNO_Create=1   - to allow creating the certificate if it doesn't exist
 # - export SYNO_Device_Name="CertRenewal" - required if 2FA-OTP enabled
 # - export SYNO_Device_ID=""              - required for skipping 2FA-OTP
-# 3. acme.sh --deploy --deploy-hook synology_dsm -d example.com
+# 3. Run command:
+# acme.sh --deploy --deploy-hook synology_dsm -d example.com
 ################################################################################
 # Dependencies:
 # - jq & curl
