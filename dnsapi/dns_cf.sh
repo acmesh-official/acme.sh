@@ -18,22 +18,37 @@ dns_cf_add() {
   fulldomain=$1
   txtvalue=$2
 
-  CF_Token="${CF_Token:-$(_readaccountconf_mutable CF_Token)}"
-  CF_Account_ID="${CF_Account_ID:-$(_readaccountconf_mutable CF_Account_ID)}"
-  CF_Zone_ID="${CF_Zone_ID:-$(_readaccountconf_mutable CF_Zone_ID)}"
+  CF_Token="${CF_Token:-$(_readdomainconf CF_Token)}"
+  CF_Account_ID="${CF_Account_ID:-$(_readdomainconf CF_Account_ID)}"
+  CF_Zone_ID="${CF_Zone_ID:-$(_readdomainconf CF_Zone_ID)}"
   CF_Key="${CF_Key:-$(_readaccountconf_mutable CF_Key)}"
   CF_Email="${CF_Email:-$(_readaccountconf_mutable CF_Email)}"
 
   if [ "$CF_Token" ]; then
-    if [ "$CF_Zone_ID" ]; then
-      _savedomainconf CF_Token "$CF_Token"
+    if [ -z "$CF_Account_ID" ] && [ -z "$CF_Zone_ID" ]; then
+      _err "You didn't specify Account ID or Zone ID yet."
+      _err "You can get one from Cloudflare dashboard zone's Overview page."
+      return 1
+    fi
+
+    if [ "$CF_Account_ID" ] && [ "$CF_Zone_ID" ]; then
+      _err "You should specify either Account ID or Zone ID:"
+      _err "https://github.com/acmesh-official/acme.sh/wiki/dnsapi#a-using-a-restrictive-api-token"
+      return 1
+    fi
+
+    _savedomainconf CF_Token "$CF_Token"
+
+    if [ "$CF_Account_ID" ]; then
       _savedomainconf CF_Account_ID "$CF_Account_ID"
+    else
+      _cleardomainconf CF_Account_ID
+    fi
+
+    if [ "$CF_Zone_ID" ]; then
       _savedomainconf CF_Zone_ID "$CF_Zone_ID"
     else
-      _saveaccountconf_mutable CF_Token "$CF_Token"
-      _saveaccountconf_mutable CF_Account_ID "$CF_Account_ID"
-      _clearaccountconf_mutable CF_Zone_ID
-      _clearaccountconf CF_Zone_ID
+      _cleardomainconf CF_Zone_ID
     fi
   else
     if [ -z "$CF_Key" ] || [ -z "$CF_Email" ]; then
@@ -52,15 +67,13 @@ dns_cf_add() {
     #save the api key and email to the account conf file.
     _saveaccountconf_mutable CF_Key "$CF_Key"
     _saveaccountconf_mutable CF_Email "$CF_Email"
-
-    _clearaccountconf_mutable CF_Token
-    _clearaccountconf_mutable CF_Account_ID
-    _clearaccountconf_mutable CF_Zone_ID
-    _clearaccountconf CF_Token
-    _clearaccountconf CF_Account_ID
-    _clearaccountconf CF_Zone_ID
-
   fi
+  _clearaccountconf_mutable CF_Token
+  _clearaccountconf_mutable CF_Account_ID
+  _clearaccountconf_mutable CF_Zone_ID
+  _clearaccountconf CF_Token
+  _clearaccountconf CF_Account_ID
+  _clearaccountconf CF_Zone_ID
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
