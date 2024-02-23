@@ -122,16 +122,23 @@ synology_dsm_deploy() {
     return 1
   fi
 
+  # Create temp admin user
   if [ -n "$SYNO_UseTempAdmin" ]; then
     _debug "Creating temp admin user in Synology DSM..."
     synouser --add "$SYNO_Username" "$SYNO_Password" "" 0 "scruelt@hotmail.com" 0 >/dev/null
-    synogroup --memberadd administrators "$SYNO_Username" >/dev/null
+    if [ -n "$(synogroup --help | grep '\-\-memberadd')" ]; then
+      synogroup --memberaddx administrators "$SYNO_Username" >/dev/null
+    else
+      # For supporting DSM 6.x which only has `--member` parameter.
+      cur_admins=$(synogroup --get administrators | awk -F '[][]' '/Group Members/,0{if(NF>1)printf "%s ", $2}')
+      _secure_debug3 admin_users "$cur_admins$SYNO_Username"
+      synogroup --memberx administrators $cur_admins $SYNO_Username >/dev/null
+    fi
   fi
 
+  _debug "Getting API version..."
   _base_url="$SYNO_Scheme://$SYNO_Hostname:$SYNO_Port"
   _debug _base_url "$_base_url"
-
-  _debug "Getting API version..."
   response=$(_get "$_base_url/webapi/query.cgi?api=SYNO.API.Info&version=1&method=query&query=SYNO.API.Auth")
   api_path=$(echo "$response" | grep "SYNO.API.Auth" | sed -n 's/.*"path" *: *"\([^"]*\)".*/\1/p')
   api_version=$(echo "$response" | grep "SYNO.API.Auth" | sed -n 's/.*"maxVersion" *: *\([0-9]*\).*/\1/p')
