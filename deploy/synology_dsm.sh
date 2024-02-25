@@ -11,8 +11,7 @@
 # Usage:
 # 1. Set required environment variables:
 # - use automatically created temp admin user to authenticate
-#   1. disable "enfore 2FA-OTP for admins" via control panel
-#   2. `export SYNO_UseTempAdmin=1`
+#   `export SYNO_UseTempAdmin=1`
 # - or provide your own admin user credential to authenticate
 #   1. `export SYNO_Username="adminUser"`
 #   2. `export SYNO_Password="adminPassword"`
@@ -70,8 +69,8 @@ synology_dsm_deploy() {
   _debug2 SYNO_UseTempAdmin "$SYNO_UseTempAdmin"
 
   # Back to use existing admin user if explicitly requested
-  if [ "$SYNO_UseTempAdmin" -eq 0 ]; then
-    _debug2 Back to use existing user rather than temp admin user.
+  if [ "$SYNO_UseTempAdmin" == "0" ]; then
+    _debug2 "Back to use existing user rather than temp admin user."
     SYNO_UseTempAdmin=""
   fi
   _savedeployconf SYNO_UseTempAdmin "$SYNO_UseTempAdmin"
@@ -177,31 +176,46 @@ synology_dsm_deploy() {
   # If SYNO_DeviceID or SYNO_OTPCode is set, we treat current account enabled 2FA-OTP.
   # Notice that if SYNO_UseTempAdmin=1, both variables will be unset
   else
-    if [ -n "$SYNO_UseTempAdmin" ]; then
-      _debug "Creating temp admin user in Synology DSM..."
-      synouser --add "$SYNO_Username" "$SYNO_Password" "" 0 "scruelt@hotmail.com" 0 >/dev/null
-      if synogroup --help | grep -q '\-\-memberadd'; then
-        synogroup --memberadd administrators "$SYNO_Username" >/dev/null
-      else
-        # For supporting DSM 6.x which only has `--member` parameter.
-        cur_admins=$(synogroup --get administrators | awk -F '[][]' '/Group Members/,0{if(NF>1)printf "%s ", $2}')
-        _secure_debug3 admin_users "$cur_admins$SYNO_Username"
-        # shellcheck disable=SC2086
-        synogroup --member administrators $cur_admins $SYNO_Username >/dev/null
-      fi
-    fi
     if [ -n "$SYNO_DeviceID" ] || [ -n "$SYNO_OTPCode" ]; then
       response='{"error":{"code":403}}'
     # Assume the current account disabled 2FA-OTP, try to log in right away.
     else
+      if [ -n "$SYNO_UseTempAdmin" ]; then
+        _debug "Creating temp admin user in Synology DSM..."
+        synouser --add "$SYNO_Username" "$SYNO_Password" "" 0 "scruelt@hotmail.com" 0 >/dev/null
+        if synogroup --help | grep -q '\-\-memberadd'; then
+          synogroup --memberadd administrators "$SYNO_Username" >/dev/null
+        else
+          # For supporting DSM 6.x which only has `--member` parameter.
+          cur_admins=$(synogroup --get administrators | awk -F '[][]' '/Group Members/,0{if(NF>1)printf "%s ", $2}')
+          _secure_debug3 admin_users "$cur_admins$SYNO_Username"
+          # shellcheck disable=SC2086
+          synogroup --member administrators $cur_admins $SYNO_Username >/dev/null
+        fi
+        # havig a workaround to temporary disable enforce 2FA-OTP
+        otp_enforce_option=$(synogetkeyvalue /etc/synoinfo.conf otp_enforce_option)
+        if [ -n "$otp_enforce_option" ] && [ "${otp_enforce_option:-"none"}" != "none" ]; then
+          synosetkeyvalue /etc/synoinfo.conf otp_enforce_option none
+          _info "Temporary disabled enforce 2FA-OTP to complete authentication."
+          _info "previous_otp_enforce_option" "$otp_enforce_option"
+
+        else
+          otp_enforce_option=""
+        fi
+      fi
       response=$(_get "$_base_url/webapi/entry.cgi?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes")
+      if [ -n "$SYNO_UseTempAdmin" ] && [ -n "$otp_enforce_option" ]; then
+        synosetkeyvalue /etc/synoinfo.conf otp_enforce_option "$otp_enforce_option"
+        _info "Restored previous enforce 2FA-OTP option."
+      fi
       _debug3 response "$response"
     fi
   fi
 
   error_code=$(echo "$response" | grep '"error"' | grep -oP '(?<="code":)\d+')
   # Account has 2FA-OTP enabled, since error 403 reported.
-  if [ "${error_code:-0}" -eq 403 ]; then
+  # https://global.download.synology.com/download/Document/Software/DeveloperGuide/Firmware/DSM/All/enu/Synology_DiskStation_Administration_CLI_Guide.pdf
+  if [ "$error_code" == "403" ]; then
     if [ -z "$SYNO_DeviceName" ]; then
       printf "Enter device name or leave empty for default (CertRenewal): "
       read -r SYNO_DeviceName
@@ -235,18 +249,18 @@ synology_dsm_deploy() {
   fi
 
   if [ -n "$error_code" ]; then
-    if [ "$error_code" -eq 403 ] && [ -n "$SYNO_DeviceID" ]; then
+    if [ "$error_code" == "403" ] && [ -n "$SYNO_DeviceID" ]; then
       _savedeployconf SYNO_DeviceID ""
       _err "Failed to authenticate with SYNO_DeviceID (may expired or invalid), please try again in a new terminal window."
-    elif [ "$error_code" -eq 404 ]; then
+    elif [ "$error_code" == "404" ]; then
       _err "Failed to authenticate with provided 2FA-OTP code, please try again in a new terminal window."
-    elif [ "$error_code" -eq 406 ]; then
+    elif [ "$error_code" == "406" ]; then
       if [ -n "$SYNO_UseTempAdmin" ]; then
         _err "SYNO_UseTempAdmin=1 is not supported if enforce auth with 2FA-OTP is enabled."
       else
         _err "Enforce auth with 2FA-OTP enabled, please configure the user to enable 2FA-OTP to continue."
       fi
-    elif [ "$error_code" -eq 400 ] || [ "$error_code" -eq 401 ] || [ "$error_code" -eq 408 ] || [ "$error_code" -eq 409 ] || [ "$error_code" -eq 410 ]; then
+    elif [ "$error_code" == "400" ] || [ "$error_code" == "401" ] || [ "$error_code" == "408" ] || [ "$error_code" == "409" ] || [ "$error_code" == "410" ]; then
       _err "Failed to authenticate with a non-existent or disabled account, or the account password is incorrect or has expired."
     else
       _err "Failed to authenticate with error: $error_code."
@@ -313,7 +327,7 @@ synology_dsm_deploy() {
   # We've verified this certificate description is a thing, so save it
   _savedeployconf SYNO_Certificate "$SYNO_Certificate" "base64"
 
-  _info "Generating form POST request.."
+  _info "Generating form POST request..."
   nl="\0015\0012"
   delim="--------------------------$(_utc_date | tr -d -- '-: ')"
   content="--$delim${nl}Content-Disposition: form-data; name=\"key\"; filename=\"$(basename "$_ckey")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ckey")\0012"
@@ -337,16 +351,16 @@ synology_dsm_deploy() {
 
   if ! echo "$response" | grep '"error":' >/dev/null; then
     if echo "$response" | grep '"restart_httpd":true' >/dev/null; then
-      _info "Restarting HTTP services succeeded..."
+      _info "Restart HTTP services succeeded."
     else
-      _info "Restarting HTTP services failed."
+      _info "Restart HTTP services failed."
     fi
     _temp_admin_cleanup "$SYNO_UseTempAdmin" "$SYNO_Username"
     _logout
     return 0
   else
     _temp_admin_cleanup "$SYNO_UseTempAdmin" "$SYNO_Username"
-    _err "Unable to update certificate, error code $response."
+    _err "Unable to update certificate, got error response: $response."
     _logout
     return 1
   fi
