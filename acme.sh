@@ -3195,7 +3195,8 @@ _setNginx() {
     return 1
   fi
   _info "Check the nginx conf before setting up."
-  if ! nginx -t >/dev/null; then
+  if ! nginx -t >/dev/null 2>&1; then
+    _err "It seems that nginx conf is not correct, cannot continue."
     return 1
   fi
 
@@ -3222,14 +3223,14 @@ location ~ \"^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)\$\" {
   fi
   _debug3 "Modified config:$(cat $FOUND_REAL_NGINX_CONF)"
   _info "nginx conf is done, let's check it again."
-  if ! nginx -t >/dev/null; then
+  if ! nginx -t >/dev/null 2>&1; then
     _err "It seems that nginx conf was broken, let's restore."
     cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
     return 1
   fi
 
   _info "Reload nginx"
-  if ! nginx -s reload >/dev/null; then
+  if ! nginx -s reload >/dev/null 2>&1; then
     _err "It seems that nginx reload error, let's restore."
     cat "$_backup_conf" >"$FOUND_REAL_NGINX_CONF"
     return 1
