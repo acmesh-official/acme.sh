@@ -31,7 +31,7 @@
 #   - `export SYNO_DeviceID=""`    - required for omitting 2FA-OTP (might be
 #                                    deprecated, auth with OTP code instead)
 # 3. Run command:
-# acme.sh --deploy --deploy-hook synology_dsm -d example.com
+# `acme.sh --deploy --deploy-hook synology_dsm -d example.com``
 ################################################################################
 # Dependencies:
 # - curl
@@ -73,7 +73,6 @@ synology_dsm_deploy() {
     _debug2 "Back to use existing user rather than temp admin user."
     SYNO_UseTempAdmin=""
   fi
-  _savedeployconf SYNO_UseTempAdmin "$SYNO_UseTempAdmin"
 
   if [ -n "$SYNO_UseTempAdmin" ]; then
     if ! _exists synouser || ! _exists synogroup; then
@@ -288,6 +287,7 @@ synology_dsm_deploy() {
   if [ -n "$SYNO_UseTempAdmin" ]; then
     _savedeployconf SYNO_Username ""
     _savedeployconf SYNO_Password ""
+    _savedeployconf SYNO_UseTempAdmin "$SYNO_UseTempAdmin"
   else
     _savedeployconf SYNO_Username "$SYNO_Username"
     _savedeployconf SYNO_Password "$SYNO_Password"
