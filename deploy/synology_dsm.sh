@@ -8,30 +8,34 @@
 # Updated: 2023-07-03
 # Issues:  https://github.com/acmesh-official/acme.sh/issues/2727
 ################################################################################
-# Usage:
+# Usage (shown values are the examples):
 # 1. Set required environment variables:
 # - use automatically created temp admin user to authenticate
-#   `export SYNO_USE_TEMP_ADMIN=1`
+#   export SYNO_USE_TEMP_ADMIN=1
 # - or provide your own admin user credential to authenticate
-#   1. `export SYNO_USERNAME="adminUser"`
-#   2. `export SYNO_PASSWORD="adminPassword"`
-# 2. Set optional environment variables (shown values are the defaults)
+#   1. export SYNO_USERNAME="adminUser"
+#   2. export SYNO_PASSWORD="adminPassword"
+# 2. Set optional environment variables
 # - common optional variables
-#   - `export SYNO_SCHEME="http"`
-#   - `export SYNO_HOSTNAME="localhost"`
-#   - `export SYNO_PORT="5000"`
-#   - `export SYNO_CREATE=""` - to allow creating the cert if it doesn't exist
-#   - `export SYNO_CERTIFICATE=""` - to replace a specific cert by its
+#   - export SYNO_SCHEME="http"         - defaults to "http"
+#   - export SYNO_HOSTNAME="localhost"  - defaults to "localhost"
+#   - export SYNO_PORT="5000"           - defaults to "5000"
+#   - export SYNO_CREATE=1 - to allow creating the cert if it doesn't exist
+#   - export SYNO_CERTIFICATE="" - to replace a specific cert by its
 #                                    description
 # - 2FA-OTP optional variables (with your own admin user)
-#   - `export SYNO_OTP_CODE=""`     - required for 2FA-OTP, script won't require
-#                                    interactive input the code if set.
-#   - `export SYNO_DEVICE_NAME=""`  - required for 2FA-OTP, script won't require
-#                                    interactive input the device name if set.
-#   - `export SYNO_DEVICE_ID=""`    - required for omitting 2FA-OTP (might be
-#                                    deprecated, auth with OTP code instead)
+#   - export SYNO_OTP_CODE="XXXXXX" - if set, script won't require to
+#                                     interactive input the OTP code
+#   - export SYNO_DEVICE_NAME="CertRenewal" - if set, script won't require to
+#                                             interactive input the device name
+#   - export SYNO_DEVICE_ID=""    - (deprecated) required for omitting 2FA-OTP
+#                                   (please auth with OTP code instead)
+# - temp admin optional variables
+#   - export SYNO_LOCAL_HOSTNAME=1   - if set to 1, force to treat hostname is
+#                                      targeting current local machine (since
+#                                      this method only locally supported)
 # 3. Run command:
-# `acme.sh --deploy --deploy-hook synology_dsm -d example.com``
+# acme.sh --deploy --deploy-hook synology_dsm -d example.com
 ################################################################################
 # Dependencies:
 # - curl
@@ -83,8 +87,6 @@ synology_dsm_deploy() {
     SYNO_DEVICE_ID=
     SYNO_DEVICE_NAME=
     SYNO_OTP_CODE=
-    # Pre-delete temp admin user if already exists.
-    synouser --del "$SYNO_USERNAME" >/dev/null 2>/dev/null
   else
     _debug2 SYNO_USERNAME "$SYNO_USERNAME"
     _secure_debug2 SYNO_PASSWORD "$SYNO_PASSWORD"
@@ -178,7 +180,16 @@ synology_dsm_deploy() {
     # Assume the current account disabled 2FA-OTP, try to log in right away.
     else
       if [ -n "$SYNO_USE_TEMP_ADMIN" ]; then
+        _getdeployconf SYNO_LOCAL_HOSTNAME
+        _debug SYNO_LOCAL_HOSTNAME "${SYNO_LOCAL_HOSTNAME:-}"
+        if [ "$SYNO_LOCAL_HOSTNAME" != "1" ] && [ "$SYNO_LOCAL_HOSTNAME" == "$SYNO_HOSTNAME" ]; then
+          if [ "$SYNO_HOSTNAME" != "localhost" ] && [ "$SYNO_HOSTNAME" != "127.0.0.1" ]; then
+            _err "SYNO_USE_TEMP_ADMIN=1 Only support locally deployment, if you are sure that hostname $SYNO_HOSTNAME is targeting to your **current local machine**, execute 'export SYNO_LOCAL_HOSTNAME=1' then rerun."
+            return 1
+          fi
+        fi
         _debug "Creating temp admin user in Synology DSM..."
+        synouser --del "$SYNO_USERNAME" >/dev/null 2>/dev/null
         synouser --add "$SYNO_USERNAME" "$SYNO_PASSWORD" "" 0 "scruelt@hotmail.com" 0 >/dev/null
         if synogroup --help | grep -q '\-\-memberadd'; then
           synogroup --memberadd administrators "$SYNO_USERNAME" >/dev/null
@@ -229,6 +240,7 @@ synology_dsm_deploy() {
         printf "Enter OTP code for user '%s': " "$SYNO_USERNAME"
         read -r SYNO_OTP_CODE
       fi
+      _secure_debug SYNO_OTP_CODE "${SYNO_OTP_CODE:-}"
 
       if [ -z "$SYNO_OTP_CODE" ]; then
         response='{"error":{"code":404}}'
@@ -288,6 +300,7 @@ synology_dsm_deploy() {
     _cleardeployconf SYNO_DEVICE_ID
     _cleardeployconf SYNO_DEVICE_NAME
     _savedeployconf SYNO_USE_TEMP_ADMIN "$SYNO_USE_TEMP_ADMIN"
+    _savedeployconf SYNO_LOCAL_HOSTNAME "$SYNO_HOSTNAME"
   else
     _savedeployconf SYNO_USERNAME "$SYNO_USERNAME"
     _savedeployconf SYNO_PASSWORD "$SYNO_PASSWORD"
@@ -308,7 +321,7 @@ synology_dsm_deploy() {
     if [ "$error_code" -eq 105 ]; then
       _err "Current user is not administrator and does not have sufficient permission for deploying."
     else
-      _err "Failed to fetch certificate info with error: $error_code, contact Synology for more info about it."
+      _err "Failed to fetch certificate info with error: $error_code, please try again or contact Synology to learn more."
     fi
     _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 1
