@@ -206,7 +206,6 @@ synology_dsm_deploy() {
           synosetkeyvalue /etc/synoinfo.conf otp_enforce_option none
           _info "Temporary disabled enforce 2FA-OTP to complete authentication."
           _info "previous_otp_enforce_option" "$otp_enforce_option"
-
         else
           otp_enforce_option=""
         fi
@@ -403,16 +402,15 @@ _cleardeployconf() {
 
 # key
 __check2cleardeployconfexp() {
-  # Warning: 
   _key="$1"
   _clear_key="CLEAR_$_key"
   # Clear saved settings if explicitly requested
-  if [ -n "$(eval echo \$$_clear_key)" ]; then
+  if [ -n "$(eval echo \$"$_clear_key")" ]; then
     _debug2 "$_key: value cleared from config, exported value will be ignored."
     _cleardeployconf "$_key"
-    eval $_key=
-    export $_key=
-    eval SAVED_$_key=
-    export SAVED_$_key=
+    eval "$_key"=
+    export "$_key"=
+    eval SAVED_"$_key"=
+    export SAVED_"$_key"=
   fi
 }
