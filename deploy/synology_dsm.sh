@@ -68,7 +68,7 @@ synology_dsm_deploy() {
   # Prepare to use temp admin if SYNO_USE_TEMP_ADMIN is set
   _debug2 SYNO_USE_TEMP_ADMIN "$SYNO_USE_TEMP_ADMIN"
   _getdeployconf SYNO_USE_TEMP_ADMIN
-  __check2cleardeployconfexp SYNO_USE_TEMP_ADMIN
+  _check2cleardeployconfexp SYNO_USE_TEMP_ADMIN
   _debug2 SYNO_USE_TEMP_ADMIN "$SYNO_USE_TEMP_ADMIN"
 
   if [ -n "$SYNO_USE_TEMP_ADMIN" ]; then
@@ -122,7 +122,7 @@ synology_dsm_deploy() {
   # Get the certificate description, but don't save it until we verify it's real
   _migratedeployconf SYNO_Certificate SYNO_CERTIFICATE "base64"
   _getdeployconf SYNO_CERTIFICATE
-  __check2cleardeployconfexp SYNO_CERTIFICATE
+  _check2cleardeployconfexp SYNO_CERTIFICATE
   _debug SYNO_CERTIFICATE "${SYNO_CERTIFICATE:-}"
 
   # shellcheck disable=SC1003 # We are not trying to escape a single quote
@@ -189,16 +189,24 @@ synology_dsm_deploy() {
           fi
         fi
         _debug "Creating temp admin user in Synology DSM..."
-        synouser --del "$SYNO_USERNAME" >/dev/null 2>/dev/null
-        synouser --add "$SYNO_USERNAME" "$SYNO_PASSWORD" "" 0 "scruelt@hotmail.com" 0 >/dev/null
-        if synogroup --help | grep -q '\-\-memberadd'; then
+        if synogroup --help | grep -q '\-\-memberadd '; then
+          _temp_admin_create $SYNO_USERNAME $SYNO_PASSWORD
           synogroup --memberadd administrators "$SYNO_USERNAME" >/dev/null
-        else
+        elif synogroup --help | grep -q '\-\-member '; then
           # For supporting DSM 6.x which only has `--member` parameter.
           cur_admins=$(synogroup --get administrators | awk -F '[][]' '/Group Members/,0{if(NF>1)printf "%s ", $2}')
-          _secure_debug3 admin_users "$cur_admins$SYNO_USERNAME"
-          # shellcheck disable=SC2086
-          synogroup --member administrators $cur_admins $SYNO_USERNAME >/dev/null
+          if [ -n "$cur_admins" ]; then
+            _temp_admin_create $SYNO_USERNAME $SYNO_PASSWORD
+            _secure_debug3 admin_users "$cur_admins$SYNO_USERNAME"
+            # shellcheck disable=SC2086
+            synogroup --member administrators $cur_admins $SYNO_USERNAME >/dev/null
+          else
+            _err "Tool synogroup may be broken, please set SYNO_USERNAME and SYNO_PASSWORD instead."
+            return 1
+          fi
+        else
+          _err "Unsupported synogroup tool detected, please set SYNO_USERNAME and SYNO_PASSWORD instead."
+          return 1
         fi
         # havig a workaround to temporary disable enforce 2FA-OTP
         otp_enforce_option=$(synogetkeyvalue /etc/synoinfo.conf otp_enforce_option)
@@ -385,13 +393,20 @@ _logout() {
   _debug3 response "$response"
 }
 
-_temp_admin_cleanup() {
-  flag=$1
-  username=$2
+_temp_admin_create() {
+  _username="$1"
+  _password="$2"
+  synouser --del "$_username" >/dev/null 2>/dev/null
+  synouser --add "$_username" "$_password" "" 0 "scruelt@hotmail.com" 0 >/dev/null
+}
 
-  if [ -n "${flag}" ]; then
+_temp_admin_cleanup() {
+  _flag=$1
+  _username=$2
+
+  if [ -n "${_flag}" ]; then
     _debug "Cleanuping temp admin info..."
-    synouser --del "$username" >/dev/null
+    synouser --del "$_username" >/dev/null
   fi
 }
 
@@ -401,7 +416,7 @@ _cleardeployconf() {
 }
 
 # key
-__check2cleardeployconfexp() {
+_check2cleardeployconfexp() {
   _key="$1"
   _clear_key="CLEAR_$_key"
   # Clear saved settings if explicitly requested
