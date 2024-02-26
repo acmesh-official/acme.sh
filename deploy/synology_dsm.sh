@@ -190,13 +190,13 @@ synology_dsm_deploy() {
         fi
         _debug "Creating temp admin user in Synology DSM..."
         if synogroup --help | grep -q '\-\-memberadd '; then
-          _temp_admin_create $SYNO_USERNAME $SYNO_PASSWORD
+          _temp_admin_create "$SYNO_USERNAME" "$SYNO_PASSWORD"
           synogroup --memberadd administrators "$SYNO_USERNAME" >/dev/null
         elif synogroup --help | grep -q '\-\-member '; then
           # For supporting DSM 6.x which only has `--member` parameter.
           cur_admins=$(synogroup --get administrators | awk -F '[][]' '/Group Members/,0{if(NF>1)printf "%s ", $2}')
           if [ -n "$cur_admins" ]; then
-            _temp_admin_create $SYNO_USERNAME $SYNO_PASSWORD
+            _temp_admin_create "$SYNO_USERNAME" "$SYNO_PASSWORD"
             _secure_debug3 admin_users "$cur_admins$SYNO_USERNAME"
             # shellcheck disable=SC2086
             synogroup --member administrators $cur_admins $SYNO_USERNAME >/dev/null
