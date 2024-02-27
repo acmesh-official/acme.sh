@@ -23,17 +23,17 @@
 #   - export SYNO_CREATE=1 - to allow creating the cert if it doesn't exist
 #   - export SYNO_CERTIFICATE="" - to replace a specific cert by its
 #                                    description
-# - 2FA-OTP optional variables (with your own admin user)
-#   - export SYNO_OTP_CODE="XXXXXX" - if set, script won't require to
-#                                     interactive input the OTP code
-#   - export SYNO_DEVICE_NAME="CertRenewal" - if set, script won't require to
-#                                             interactive input the device name
-#   - export SYNO_DEVICE_ID=""    - (deprecated) required for omitting 2FA-OTP
-#                                   (please auth with OTP code instead)
 # - temp admin optional variables
 #   - export SYNO_LOCAL_HOSTNAME=1   - if set to 1, force to treat hostname is
 #                                      targeting current local machine (since
 #                                      this method only locally supported)
+# - exsiting admin 2FA-OTP optional variables
+#   - export SYNO_OTP_CODE="XXXXXX" - if set, script won't require to
+#                                     interactive input the OTP code
+#   - export SYNO_DEVICE_NAME="CertRenewal" - if set, script won't require to
+#                                             interactive input the device name
+#   - export SYNO_DEVICE_ID=""      - (deprecated, auth with OTP code instead)
+#                                     required for omitting 2FA-OTP
 # 3. Run command:
 # acme.sh --deploy --deploy-hook synology_dsm -d example.com
 ################################################################################
