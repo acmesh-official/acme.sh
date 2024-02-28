@@ -157,7 +157,7 @@ _get_root() {
 
   # iterate over names (a.b.c.d -> b.c.d -> c.d -> d)
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f $i-100 | sed 's/\./\\./g')
     _debug "Checking domain: $h"
     if [ -z "$h" ]; then
       _error "invalid domain"

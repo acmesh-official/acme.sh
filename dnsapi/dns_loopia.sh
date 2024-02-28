@@ -107,7 +107,7 @@ _loopia_load_config() {
   fi
 
   if _contains "$LOOPIA_Password" "'" || _contains "$LOOPIA_Password" '"'; then
-    _err "Password contains quoute or double quoute and this is not supported by dns_loopia.sh"
+    _err "Password contains a quotation mark or double quotation marks and this is not supported by dns_loopia.sh"
     return 1
   fi
 

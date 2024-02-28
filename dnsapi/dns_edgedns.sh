@@ -418,7 +418,7 @@ _edgedns_make_data_to_sign() {
   _secure_debug2 "hdr" "$hdr"
   _edgedns_make_content_hash
   path="$(echo "$_request_url_path" | tr -d "\n\r" | sed 's/https\?:\/\///')"
-  path="${path#*$AKAMAI_HOST}"
+  path=${path#*"$AKAMAI_HOST"}
   _debug "hier path" "$path"
   # dont expose headers to sign so use MT string
   _mdata="$(printf "%s\thttps\t%s\t%s\t%s\t%s\t%s" "$_request_method" "$AKAMAI_HOST" "$path" "" "$_hash" "$hdr")"

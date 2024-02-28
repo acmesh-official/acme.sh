@@ -194,7 +194,7 @@ _inwx_login() {
 
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
 
-  INWX_Cookie=$(printf "Cookie: %s" "$(grep "domrobot=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'domrobot=[^;]*;' | tr -d ';')")
+  INWX_Cookie=$(printf "Cookie: %s" "$(grep "domrobot=" "$HTTP_HEADER" | grep -i "^Set-Cookie:" | _tail_n 1 | _egrep_o 'domrobot=[^;]*;' | tr -d ';')")
   _H1=$INWX_Cookie
   export _H1
   export INWX_Cookie
