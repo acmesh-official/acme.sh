@@ -171,8 +171,8 @@ _zyxel_gs1900_deployment_precheck() {
       if [ "${ACME_USE_WGET:-0}" = "0" ] && [ "$test_login_page_exitcode" = "56" ]; then
         _info "Warning: curl is returning exit code 56. Please re-run with --debug for more information."
         _debug "If the above curl trace contains the error 'SSL routines::unexpected eof while reading, errno 0'"
-        _debug "please either ensure you are running the latest versions of curl and openssl."
-        _debug "For more information see: https://github.com/openssl/openssl/issues/18866#issuecomment-1194219601"
+        _debug "please ensure you are running the latest versions of curl and openssl. For more information"
+        _debug "see: https://github.com/openssl/openssl/issues/18866#issuecomment-1194219601"
       elif ([ "${ACME_USE_WGET:-0}" = "0" ] && [ "$test_login_page_exitcode" = "60" ]) || ([ "${ACME_USE_WGET:-0}" = "1" ] && [ "$test_login_page_exitcode" = "5" ]); then
         _err "The SSL certificate at $_zyxel_switch_base_uri could not be validated."
         _err "Please double check your hostname, port, and that you are actually connecting to your switch."
