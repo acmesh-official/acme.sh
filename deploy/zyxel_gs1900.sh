@@ -44,7 +44,6 @@
 #      DEPLOY_ZYXEL_SWITCH          - The switch hostname. (Default: _cdomain)
 #      DEPLOY_ZYXEL_SWITCH_USER     - The webadmin user. (Default: admin)
 #      DEPLOY_ZYXEL_SWITCH_PASSWORD - The webadmin password for the switch.
-#      DEPLOY_ZYXEL_SWITCH_VALIDATE - If "0" skip SSL validation. (Default: "1")
 #      DEPLOY_ZYXEL_SWITCH_REBOOT   - If "1" reboot after update. (Default: "0")
 #
 #   5. Run the deployment plugin:
@@ -104,22 +103,6 @@ zyxel_gs1900_deploy() {
   fi
   _debug2 DEPLOY_ZYXEL_SWITCH_REBOOT "$_zyxel_switch_reboot"
 
-  _getdeployconf DEPLOY_ZYXEL_SWITCH_VALIDATE
-  if [ -z "$DEPLOY_ZYXEL_SWITCH_VALIDATE" ]; then
-    _zyxel_switch_validate_cert="1"
-  else
-    _zyxel_switch_validate_cert="$DEPLOY_ZYXEL_SWITCH_VALIDATE"
-    _savedeployconf DEPLOY_ZYXEL_SWITCH_VALIDATE "$DEPLOY_ZYXEL_SWITCH_VALIDATE"
-  fi
-  _debug2 DEPLOY_ZYXEL_SWITCH_VALIDATE "$_zyxel_switch_validate_cert"
-
-  if [ "$_zyxel_switch_validate_cert" -ne "1" ]; then
-    _info "SSL certificate validation is disabled. Skipping certificate validation for web requests."
-    export HTTPS_INSECURE=1
-  else
-    _info "SSL certificate validation is enabled."
-  fi
-
   _zyxel_switch_base_uri="https://${_zyxel_switch_host}"
 
   _info "Beginning to deploy to a Zyxel GS1900 series switch at ${_zyxel_switch_base_uri}."
@@ -139,7 +122,6 @@ zyxel_gs1900_deploy() {
     _zyxel_gs1900_trigger_reboot || return $?
   fi
 
-  _info "Finishing certificate deployment to Zyxel GS1900 series switch."
   return 0
 }
 
@@ -178,7 +160,7 @@ _zyxel_gs1900_deployment_precheck() {
         _err "Please double check your hostname, port, and that you are actually connecting to your switch."
         _err "If the problem persists then please ensure that the certificate is not self-signed, has not"
         _err "expired, and matches the switch hostname. If you expect validation to fail then you can disable"
-        _err "certificate validation by setting DEPLOY_ZYXEL_SWITCH_VALIDATE=\"0\"."
+        _err "certificate validation by running with --insecure."
         return 1
       else
         _err "Failed to submit the initial login attempt to $_zyxel_switch_base_uri."
