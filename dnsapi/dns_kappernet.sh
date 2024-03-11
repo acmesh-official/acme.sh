@@ -6,8 +6,7 @@
 
 #KAPPERNETDNS_Key="yourKAPPERNETapikey"
 #KAPPERNETDNS_Secret="yourKAPPERNETapisecret"
-
-KAPPERNETDNS_Api="https://dnspanel.kapper.net/API/1.2?APIKey=$KAPPERNETDNS_Key&APISecret=$KAPPERNETDNS_Secret"
+#KAPPERNETDNS_Api="https://dnspanel.kapper.net/API/1.2?APIKey=$KAPPERNETDNS_Key&APISecret=$KAPPERNETDNS_Secret"
 
 ###############################################################################
 # called with
@@ -19,10 +18,9 @@ dns_kappernet_add() {
 
   KAPPERNETDNS_Key="${KAPPERNETDNS_Key:-$(_readaccountconf_mutable KAPPERNETDNS_Key)}"
   KAPPERNETDNS_Secret="${KAPPERNETDNS_Secret:-$(_readaccountconf_mutable KAPPERNETDNS_Secret)}"
+  KAPPERNETDNS_Api="https://dnspanel.kapper.net/API/1.2?APIKey=$KAPPERNETDNS_Key&APISecret=$KAPPERNETDNS_Secret"
 
   if [ -z "$KAPPERNETDNS_Key" ] || [ -z "$KAPPERNETDNS_Secret" ]; then
-    KAPPERNETDNS_Key=""
-    KAPPERNETDNS_Secret=""
     _err "Please specify your kapper.net api key and secret."
     _err "If you have not received yours - send your mail to"
     _err "support@kapper.net to get  your key and secret."
@@ -41,7 +39,7 @@ dns_kappernet_add() {
   _debug _domain "DOMAIN: $_domain"
 
   _info "Trying to add TXT DNS Record"
-  data="%7B%22name%22%3A%22$fullhostname%22%2C%22type%22%3A%22TXT%22%2C%22content%22%3A%22$txtvalue%22%2C%22ttl%22%3A%223600%22%2C%22prio%22%3A%22%22%7D"
+  data="%7B%22name%22%3A%22$fullhostname%22%2C%22type%22%3A%22TXT%22%2C%22content%22%3A%22$txtvalue%22%2C%22ttl%22%3A%22300%22%2C%22prio%22%3A%22%22%7D"
   if _kappernet_api GET "action=new&subject=$_domain&data=$data"; then
 
     if _contains "$response" "{\"OK\":true"; then
@@ -66,10 +64,9 @@ dns_kappernet_rm() {
 
   KAPPERNETDNS_Key="${KAPPERNETDNS_Key:-$(_readaccountconf_mutable KAPPERNETDNS_Key)}"
   KAPPERNETDNS_Secret="${KAPPERNETDNS_Secret:-$(_readaccountconf_mutable KAPPERNETDNS_Secret)}"
+  KAPPERNETDNS_Api="https://dnspanel.kapper.net/API/1.2?APIKey=$KAPPERNETDNS_Key&APISecret=$KAPPERNETDNS_Secret"
 
   if [ -z "$KAPPERNETDNS_Key" ] || [ -z "$KAPPERNETDNS_Secret" ]; then
-    KAPPERNETDNS_Key=""
-    KAPPERNETDNS_Secret=""
     _err "Please specify your kapper.net api key and secret."
     _err "If you have not received yours - send your mail to"
     _err "support@kapper.net to get  your key and secret."
@@ -81,7 +78,7 @@ dns_kappernet_rm() {
   _saveaccountconf_mutable KAPPERNETDNS_Secret "$KAPPERNETDNS_Secret"
 
   _info "Trying to remove the TXT Record: $fullhostname containing $txtvalue"
-  data="%7B%22name%22%3A%22$fullhostname%22%2C%22type%22%3A%22TXT%22%2C%22content%22%3A%22$txtvalue%22%2C%22ttl%22%3A%223600%22%2C%22prio%22%3A%22%22%7D"
+  data="%7B%22name%22%3A%22$fullhostname%22%2C%22type%22%3A%22TXT%22%2C%22content%22%3A%22$txtvalue%22%2C%22ttl%22%3A%22300%22%2C%22prio%22%3A%22%22%7D"
   if _kappernet_api GET "action=del&subject=$fullhostname&data=$data"; then
     if _contains "$response" "{\"OK\":true"; then
       return 0
@@ -141,7 +138,7 @@ _kappernet_api() {
   if [ "$method" = "GET" ]; then
     response="$(_get "$url")"
   else
-    _err "Unsupported method"
+    _err "Unsupported method or missing Secret/Key"
     return 1
   fi
 
