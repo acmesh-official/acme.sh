@@ -4378,6 +4378,7 @@ issue() {
   _preferred_chain="${15}"
   _valid_from="${16}"
   _valid_to="${17}"
+  _comment="${18}"
 
   if [ -z "$_ACME_IS_RENEW" ]; then
     _initpath "$_main_domain" "$_key_length"
@@ -4437,6 +4438,8 @@ issue() {
   _savedomainconf "Le_PreHook" "$_pre_hook" "base64"
   _savedomainconf "Le_PostHook" "$_post_hook" "base64"
   _savedomainconf "Le_RenewHook" "$_renew_hook" "base64"
+
+  _savedomainconf "Le_Comment" "$_comment"
 
   if [ "$_local_addr" ]; then
     _savedomainconf "Le_LocalAddress" "$_local_addr"
@@ -5444,6 +5447,7 @@ renew() {
   Le_PostHook="$(_readdomainconf Le_PostHook)"
   Le_RenewHook="$(_readdomainconf Le_RenewHook)"
   Le_Preferred_Chain="$(_readdomainconf Le_Preferred_Chain)"
+  Le_Comment="$(_readdomainconf Le_Comment)"
   # When renewing from an old version, the empty Le_Keylength means 2048.
   # Note, do not use DEFAULT_DOMAIN_KEY_LENGTH as that value may change over
   # time but an empty value implies 2048 specifically.
@@ -5451,7 +5455,7 @@ renew() {
   if [ -z "$Le_Keylength" ]; then
     Le_Keylength=2048
   fi
-  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain" "$Le_Valid_From" "$Le_Valid_To"
+  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain" "$Le_Valid_From" "$Le_Valid_To" "$Le_Comment"
   res="$?"
   if [ "$res" != "0" ]; then
     return "$res"
@@ -6952,6 +6956,7 @@ Parameters:
   --syslog <0|3|6|7>                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
   --eab-kid <eab_key_id>            Key Identifier for External Account Binding.
   --eab-hmac-key <eab_hmac_key>     HMAC key for External Account Binding.
+  --comment                         add a custom comment to the certificate configuration
 
 
   These parameters are to install the cert to nginx/apache or any other server after issue/renew a cert:
@@ -7295,6 +7300,7 @@ _process() {
   _eab_kid=""
   _eab_hmac_key=""
   _preferred_chain=""
+  _comment=""
   _valid_from=""
   _valid_to=""
   while [ ${#} -gt 0 ]; do
@@ -7815,6 +7821,10 @@ _process() {
       _preferred_chain="$2"
       shift
       ;;
+    --comment)
+      _comment="$2"
+      shift
+      ;;
     *)
       _err "Unknown parameter : $1"
       return 1
@@ -7886,7 +7896,7 @@ _process() {
   uninstall) uninstall "$_nocron" ;;
   upgrade) upgrade ;;
   issue)
-    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_valid_from" "$_valid_to"
+    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_valid_from" "$_valid_to" "$_comment"
     ;;
   deploy)
     deploy "$_domain" "$_deploy_hook" "$_ecc"
