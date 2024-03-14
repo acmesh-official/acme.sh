@@ -144,30 +144,45 @@ _namecom_login() {
 }
 
 _namecom_get_root() {
-  domain=$1
-  i=2
-  p=1
+  full_domain=$1
 
-  if ! _namecom_rest GET "domains"; then
-    return 1
-  fi
+  # Strip the subdomain from the full domain
+  domain=$(echo "$full_domain" | sed 's/.*\.\([^.]*\.[^.]*\)$/\1/')
 
-  # Need to exclude the last field (tld)
-  numfields=$(echo "$domain" | _egrep_o "\." | wc -l)
-  while [ $i -le "$numfields" ]; do
-    host=$(printf "%s" "$domain" | cut -d . -f $i-100)
-    _debug host "$host"
-    if [ -z "$host" ]; then
+  # Initialize variables for pagination
+  _page=1
+
+  while true; do
+    if ! _namecom_rest GET "domains?page=$_page&perPage=1000"; then
+      _debug "Error: Failed to retrieve domains from API"
       return 1
     fi
 
-    if _contains "$response" "$host"; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
-      _domain="$host"
+    _debug "Response for $full_domain: $response"
+
+    # Check if the domain is found in the current page
+    if echo "$response" | grep -q "\"domainName\":\"$domain\""; then
+      _debug "Domain $domain found in the response"
+      # Extract the subdomain from the full domain
+      _sub_domain=$(echo "$full_domain" | sed "s/\.$domain$//")
+      _domain=$domain
+      _debug "Subdomain for $full_domain: $_sub_domain"
+      _debug "Domain: $_domain"
       return 0
+    else
+      _debug "Domain $domain not found in the current page"
     fi
-    p=$i
-    i=$(_math "$i" + 1)
+
+    # Check if there are more pages
+    if echo "$response" | grep -q '"nextPage":'; then
+      _page=$(_math "$_page" + 1)
+      _debug "Moving to the next page $_page for domain $full_domain"
+    else
+      _debug "No more pages to search for domain $full_domain"
+      break
+    fi
   done
+
+  _debug "Domain $domain not found in any page"
   return 1
 }
