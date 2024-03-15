@@ -96,7 +96,7 @@ zyxel_gs1900_deploy() {
 
   _getdeployconf DEPLOY_ZYXEL_SWITCH_REBOOT
   if [ -z "$DEPLOY_ZYXEL_SWITCH_REBOOT" ]; then
-    _zyxel_switch_reboot="1"
+    _zyxel_switch_reboot="0"
   else
     _zyxel_switch_reboot="$DEPLOY_ZYXEL_SWITCH_REBOOT"
     _savedeployconf DEPLOY_ZYXEL_SWITCH_REBOOT "$DEPLOY_ZYXEL_SWITCH_REBOOT"
@@ -268,7 +268,7 @@ _zyxel_gs1900_upload_certificate() {
   existing_validity=$(_zyxel_html_extract_dates "$upload_page_html")
   _debug2 "existing_validity" "$existing_validity"
 
-  form_xss_value=$(printf "%s" "$upload_page_html" | _egrep_o 'name="XSSID"\s*value="[^"]+"' | sed 's/^.*="\([^"]\+\)"$/\1/g')
+  form_xss_value=$(printf "%s" "$upload_page_html" | _egrep_o 'name="XSSID"\s*value="[^"]+"' | sed 's/^.*="\([^"]\{1,\}\)"$/\1/g')
   _secure_debug2 "form_xss_value" "$form_xss_value"
   
   # If a certificate exists on the switch already there will be two XSS keys - we want the first one
@@ -319,13 +319,13 @@ _zyxel_gs1900_upload_certificate() {
   # ensure the temporary files are cleaned up
   [ -f "${temp_pkcs12}" ] && rm -f "${temp_pkcs12}"
 
-  return $ret
+  return $_ret
 }
 
 _zyxel_gs1900_trigger_reboot() {
   # Trigger a reboot via the management reboot page in the web ui
   reboot_page_html=$(_get "${_zyxel_switch_base_uri}/cgi-bin/dispatcher.cgi?cmd=5888" | tr -d '\n')
-  reboot_xss_value=$(printf "%s" "$reboot_page_html" | _egrep_o 'name="XSSID"\s*value="[^"]+"' | sed 's/^.*="\([^"]\+\)"$/\1/g')
+  reboot_xss_value=$(printf "%s" "$reboot_page_html" | _egrep_o 'name="XSSID"\s*value="[^"]+"' | sed 's/^.*="\([^"]\{1,\}\)"$/\1/g')
   _secure_debug2 "reboot_xss_value" "$reboot_xss_value"
 
   reboot_response_html=$(_post "XSSID=${reboot_xss_value}&cmd=5889&sysSubmit=Reboot" "${_zyxel_switch_base_uri}/cgi-bin/dispatcher.cgi" '' "POST" "application/x-www-form-urlencoded")
@@ -353,7 +353,7 @@ _zyxel_html_table_lookup() {
   # when provided with the html of the page and the label (i.e. "Model Name:")
   html="$1"
   label=$(printf "%s" "$2" | tr -d ' ')
-  lookup_result=$(printf "%s" "$html" | tr -d "\t\r\n\v\f" | sed 's/<tr>/\n<tr>/g' | sed 's/<td[^>]*>/<td>/g' | tr -d ' ' | grep -i "$label" | sed "s/<tr><td>$label<\/td><td>\([^<]\+\)<\/td><\/tr>/\1/i")
+  lookup_result=$(printf "%s" "$html" | tr -d "\t\r\n\v\f" | sed 's/<tr>/\n<tr>/g' | sed 's/<td[^>]*>/<td>/g' | tr -d ' ' | grep -i "$label" | sed "s/<tr><td>$label<\/td><td>\([^<]\{1,\}\)<\/td><\/tr>/\1/i")
   printf "%s" "$lookup_result"
   return 0
 }
@@ -389,7 +389,7 @@ _zyxel_gs1900_password_obfuscate() {
       append_chr=$(_math "$login_pw_len" % 10)
     else
       # add random characters for the sake of obfuscation...
-      rand=$(head -q /dev/urandom | tr -cd '0-9' | head -c5 | sed 's/^0\+//' )
+      rand=$(head -q /dev/urandom | tr -cd '0-9' | head -c5 | sed 's/^0\{1,\}//' )
       rand=$(printf "%5d" "$rand")
       rand_idx=$(_math "$rand" % "${#login_allowed_chrs}")
       append_chr=$(echo $login_allowed_chrs | awk -v var=${rand_idx} '{ str=substr($0,var+1,1); print str }')
@@ -415,9 +415,9 @@ _zyxel_gs1900_get_firmware_version() {
 }
 
 _zyxel_gs1900_parse_major_version() {
-  printf "%s" "$1" | sed 's/^V\([0-9]\+\).\+$/\1/gi'
+  printf "%s" "$1" | sed 's/^V\([0-9]\{1,\}\).\{1,\}$/\1/gi'
 }
 
 _zyxel_gs1900_parse_minor_version() {
-  printf "%s" "$1" | sed 's/^.\+\.\([0-9]\+\)$/\1/gi'
+  printf "%s" "$1" | sed 's/^.\{1,\}\.\([0-9]\{1,\}\)$/\1/gi'
 }
