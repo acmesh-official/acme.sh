@@ -134,7 +134,7 @@ _porkbun_rest() {
   api_key_trimmed=$(echo "$PORKBUN_API_KEY" | tr -d '"')
   secret_api_key_trimmed=$(echo "$PORKBUN_SECRET_API_KEY" | tr -d '"')
 
-  test -z "$data" && data="{" || data="$(echo $data | cut -d'}' -f1),"
+  test -z "$data" && data="{" || data="$(echo "$data" | cut -d'}' -f1),"
   data="$data\"apikey\":\"$api_key_trimmed\",\"secretapikey\":\"$secret_api_key_trimmed\"}"
 
   export _H1="Content-Type: application/json"
