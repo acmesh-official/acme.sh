@@ -373,7 +373,7 @@ haproxy_deploy() {
         return ${_ret}
       fi
       if [ "${_newcert}" = "1" ]; then
-       # if this is a new certificate, it needs to be inserted into the crt-list`
+        # if this is a new certificate, it needs to be inserted into the crt-list`
         _socat_cert_add_cmd="echo '${_cmdpfx}add ssl crt-list ${Le_Deploy_haproxy_pem_path} ${_pem}' | socat '${_statssock}' - | grep -q 'Success!'"
         _debug _socat_cert_add_cmd "${_socat_cert_add_cmd}"
         eval "${_socat_cert_add_cmd}"
