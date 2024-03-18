@@ -42,19 +42,26 @@ directadmin_deploy() {
 # Usage: _DA_credentials
 # It will check if the needed settings are available
 _DA_credentials() {
-  DEPLOY_DA_Api="${DEPLOY_DA_Api:-$(_getdeployconf DEPLOY_DA_Api)}"
-  DEPLOY_DA_Api_Insecure="${DEPLOY_DA_Api_Insecure:-$(_getdeployconf DEPLOY_DA_Api_Insecure)}"
-  if [ -z "${DEPLOY_DA_Api}" ] || [ -z "${DEPLOY_DA_Api_Insecure}" ]; then
-    DEPLOY_DA_Api=""
-    DEPLOY_DA_Api_Insecure=""
-    _err "You haven't specified the DirectAdmin Login data, URL and whether you want check the DirectAdmin SSL cert. Please try again."
+  _getdeployconf DEPLOY_DA_Api
+  if [ -z "$DEPLOY_DA_Api" ]; then
+    _err "You haven't specified the DirectAdmin Login data/URL. Please set the env variable DEPLOY_DA_Api"
     return 1
   else
-    _saveaccountconf_mutable DEPLOY_DA_Api "${DEPLOY_DA_Api}"
-    _saveaccountconf_mutable DEPLOY_DA_Api_Insecure "${DEPLOY_DA_Api_Insecure}"
-    # Set whether curl should use secure or insecure mode
-    export HTTPS_INSECURE="${DEPLOY_DA_Api_Insecure}"
+    _savedeployconf DEPLOY_DA_Api "$DEPLOY_DA_Api"
   fi
+  _debug2 DEPLOY_DA_Api "$DEPLOY_DA_Api"
+
+  _getdeployconf DEPLOY_DA_Api_Insecure
+  if [ -z "$DEPLOY_DA_Api_Insecure" ]; then
+    _debug "Using DEPLOY_DA_Api_Insecure=0 so ssl cert is checked for validity, please set to 1 to have it just accepted."
+    DEPLOY_DA_Api_Insecure=0
+  else
+    _savedeployconf DEPLOY_DA_Api_Insecure "$DEPLOY_DA_Api_Insecure"
+  fi
+  _debug2 DEPLOY_DA_Api_Insecure "$DEPLOY_DA_Api_Insecure"
+
+  # Set whether curl/wget should use secure or insecure mode
+  export HTTPS_INSECURE="${DEPLOY_DA_Api_Insecure}"
 }
 
 # Usage: _da_get_api CMD_API_* data example.com
