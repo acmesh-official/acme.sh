@@ -41,7 +41,7 @@ dns_kappernet_add() {
   _debug _domain "DOMAIN: $_domain"
 
   _info "Trying to add TXT DNS Record"
-  data="%7B%22name%22%3A%22$fullhostname%22%2C%22type%22%3A%22TXT%22%2C%22content%22%3A%22$txtvalue%22%2C%22ttl%22%3A%223600%22%2C%22prio%22%3A%22%22%7D"
+  data="%7B%22name%22%3A%22$fullhostname%22%2C%22type%22%3A%22TXT%22%2C%22content%22%3A%22$txtvalue%22%2C%22ttl%22%3A%22300%22%2C%22prio%22%3A%22%22%7D"
   if _kappernet_api GET "action=new&subject=$_domain&data=$data"; then
 
     if _contains "$response" "{\"OK\":true"; then
@@ -81,7 +81,7 @@ dns_kappernet_rm() {
   _saveaccountconf_mutable KAPPERNETDNS_Secret "$KAPPERNETDNS_Secret"
 
   _info "Trying to remove the TXT Record: $fullhostname containing $txtvalue"
-  data="%7B%22name%22%3A%22$fullhostname%22%2C%22type%22%3A%22TXT%22%2C%22content%22%3A%22$txtvalue%22%2C%22ttl%22%3A%223600%22%2C%22prio%22%3A%22%22%7D"
+  data="%7B%22name%22%3A%22$fullhostname%22%2C%22type%22%3A%22TXT%22%2C%22content%22%3A%22$txtvalue%22%2C%22ttl%22%3A%22300%22%2C%22prio%22%3A%22%22%7D"
   if _kappernet_api GET "action=del&subject=$fullhostname&data=$data"; then
     if _contains "$response" "{\"OK\":true"; then
       return 0
