@@ -11,10 +11,10 @@
 # Report bugs to https://github.com/Eddict/acme.sh/issues
 #
 # Values to export:
-# export DA_Api="https://remoteUser:remotePassword@da.example.com:8443"
-# export DA_Api_Insecure=1
+# export DEPLOY_DA_Api="https://remoteUser:remotePassword@da.example.com:8443"
+# export DEPLOY_DA_Api_Insecure=1
 #
-# Set DA_Api_Insecure to 1 for insecure and 0 for secure -> difference is
+# Set DEPLOY_DA_Api_Insecure to 1 for insecure and 0 for secure -> difference is
 # whether ssl cert is checked for validity (0) or whether it is just accepted (1)
 #
 # Thanks to https://github.com/TigerP, creator of dnsapi/dns_da.sh
@@ -42,18 +42,18 @@ directadmin_deploy() {
 # Usage: _DA_credentials
 # It will check if the needed settings are available
 _DA_credentials() {
-  DA_Api="${DA_Api:-$(_readaccountconf_mutable DA_Api)}"
-  DA_Api_Insecure="${DA_Api_Insecure:-$(_readaccountconf_mutable DA_Api_Insecure)}"
-  if [ -z "${DA_Api}" ] || [ -z "${DA_Api_Insecure}" ]; then
-    DA_Api=""
-    DA_Api_Insecure=""
+  DEPLOY_DA_Api="${DEPLOY_DA_Api:-$(_getdeployconf DEPLOY_DA_Api)}"
+  DEPLOY_DA_Api_Insecure="${DEPLOY_DA_Api_Insecure:-$(_getdeployconf DEPLOY_DA_Api_Insecure)}"
+  if [ -z "${DEPLOY_DA_Api}" ] || [ -z "${DEPLOY_DA_Api_Insecure}" ]; then
+    DEPLOY_DA_Api=""
+    DEPLOY_DA_Api_Insecure=""
     _err "You haven't specified the DirectAdmin Login data, URL and whether you want check the DirectAdmin SSL cert. Please try again."
     return 1
   else
-    _saveaccountconf_mutable DA_Api "${DA_Api}"
-    _saveaccountconf_mutable DA_Api_Insecure "${DA_Api_Insecure}"
+    _saveaccountconf_mutable DEPLOY_DA_Api "${DEPLOY_DA_Api}"
+    _saveaccountconf_mutable DEPLOY_DA_Api_Insecure "${DEPLOY_DA_Api_Insecure}"
     # Set whether curl should use secure or insecure mode
-    export HTTPS_INSECURE="${DA_Api_Insecure}"
+    export HTTPS_INSECURE="${DEPLOY_DA_Api_Insecure}"
   fi
 }
 
@@ -67,7 +67,7 @@ _da_get_api() {
   domain=$3
   _debug "$domain; $data"
 
-  if ! response=$(_get "$DA_Api/$cmd?$data"); then
+  if ! response=$(_get "$DEPLOY_DA_Api/$cmd?$data"); then
     _err "error $cmd"
     return 1
   fi
@@ -79,7 +79,7 @@ _da_get_api() {
 # Use the API to set the certificates
 _DA_setSSL() {
   curData="domain=${_cdomain}&json=yes"
-  _debug "Calling _da_get_api: '${curData}' '${DA_Api}/CMD_API_SSL'"
+  _debug "Calling _da_get_api: '${curData}' '${DEPLOY_DA_Api}/CMD_API_SSL'"
   _da_get_api CMD_API_SSL "${curData}" "${domain}"
   _secure_debug2 "response" "$response"
   cert_response=$response
@@ -121,7 +121,7 @@ _DA_setSSL() {
   fi
 
   curData="domain=${_cdomain}&view=cacert&json=yes"
-  _debug "Calling _DA_da_get_api_getSSL: '${curData}' '${DA_Api}/CMD_API_SSL'"
+  _debug "Calling _DA_da_get_api_getSSL: '${curData}' '${DEPLOY_DA_Api}/CMD_API_SSL'"
   _da_get_api CMD_API_SSL "${curData}" "${_cdomain}"
   _secure_debug2 "response" "$response"
   cacert_response=$response
@@ -201,7 +201,7 @@ _DA_setSSL() {
       encoded_cacert_value="$(printf "%s" "${cca}" | _url_encode)"
       _debug2 encoded_cacert_value "$encoded_cacert_value"
       curData="domain=${_cdomain}&action=save&type=cacert&active=yes&cacert=${encoded_cacert_value}"
-      response="$(_post "$curData" "${DA_Api}/CMD_API_SSL")"
+      response="$(_post "$curData" "${DEPLOY_DA_Api}/CMD_API_SSL")"
       if _contains "${response}" 'error=0'; then
         _info "$(__green "Setting the cacert succeeded for domain '${_cdomain}'.")"
       else
@@ -217,7 +217,7 @@ _DA_setSSL() {
       encoded_keycert_value="$(printf "%s" "${ckey}$'\n'${ccert}" | _url_encode)"
       _debug2 encoded_cert_value "$encoded_keycert_value"
       curData="domain=${_cdomain}&action=save&type=paste&request=no&certificate=${encoded_keycert_value}"
-      response="$(_post "$curData" "${DA_Api}/CMD_API_SSL")"
+      response="$(_post "$curData" "${DEPLOY_DA_Api}/CMD_API_SSL")"
       if _contains "${response}" 'error=0'; then
         _info "$(__green "Setting the key and cert succeeded for domain '${_cdomain}'.")"
       else
