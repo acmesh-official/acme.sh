@@ -25,12 +25,11 @@ dns_acmedns_add() {
   _debug "txtvalue $txtvalue"
 
   #for compatiblity from account conf
+  ACMEDNS_BASE_URL="${ACMEDNS_BASE_URL:-$(_readaccountconf_mutable ACMEDNS_BASE_URL)}"
   ACMEDNS_USERNAME="${ACMEDNS_USERNAME:-$(_readaccountconf_mutable ACMEDNS_USERNAME)}"
-  _clearaccountconf_mutable ACMEDNS_USERNAME
   ACMEDNS_PASSWORD="${ACMEDNS_PASSWORD:-$(_readaccountconf_mutable ACMEDNS_PASSWORD)}"
-  _clearaccountconf_mutable ACMEDNS_PASSWORD
   ACMEDNS_SUBDOMAIN="${ACMEDNS_SUBDOMAIN:-$(_readaccountconf_mutable ACMEDNS_SUBDOMAIN)}"
-  _clearaccountconf_mutable ACMEDNS_SUBDOMAIN
+  _clearaccountconf_mutable ACMEDNS_UPDATE_URL
 
   ACMEDNS_BASE_URL="${ACMEDNS_BASE_URL:-$(_readdomainconf ACMEDNS_BASE_URL)}"
   ACMEDNS_USERNAME="${ACMEDNS_USERNAME:-$(_readdomainconf ACMEDNS_USERNAME)}"
