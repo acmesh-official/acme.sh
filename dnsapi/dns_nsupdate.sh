@@ -11,6 +11,7 @@ dns_nsupdate_add() {
   NSUPDATE_KEY="${NSUPDATE_KEY:-$(_readaccountconf_mutable NSUPDATE_KEY)}"
   NSUPDATE_ZONE="${NSUPDATE_ZONE:-$(_readaccountconf_mutable NSUPDATE_ZONE)}"
 
+  _nsupdate_cmd="nsupdate -k"
   _checkKeyFile || return 1
 
   # save the dns server and key to the account conf file.
@@ -26,13 +27,13 @@ dns_nsupdate_add() {
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_1" ] && nsdebug="-d"
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_2" ] && nsdebug="-D"
   if [ -z "${NSUPDATE_ZONE}" ]; then
-    nsupdate -k "${NSUPDATE_KEY}" $nsdebug <<EOF
+    $_nsupdate_cmd "${NSUPDATE_KEY}" $nsdebug <<EOF
 server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
 update add ${fulldomain}. 60 in txt "${txtvalue}"
 send
 EOF
   else
-    nsupdate -k "${NSUPDATE_KEY}" $nsdebug <<EOF
+    $_nsupdate_cmd "${NSUPDATE_KEY}" $nsdebug <<EOF
 server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
 zone ${NSUPDATE_ZONE}.
 update add ${fulldomain}. 60 in txt "${txtvalue}"
@@ -56,6 +57,7 @@ dns_nsupdate_rm() {
   NSUPDATE_KEY="${NSUPDATE_KEY:-$(_readaccountconf_mutable NSUPDATE_KEY)}"
   NSUPDATE_ZONE="${NSUPDATE_ZONE:-$(_readaccountconf_mutable NSUPDATE_ZONE)}"
 
+  _nsupdate_cmd="nsupdate -k"
   _checkKeyFile || return 1
   [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
   [ -n "${NSUPDATE_SERVER_PORT}" ] || NSUPDATE_SERVER_PORT=53
@@ -63,13 +65,13 @@ dns_nsupdate_rm() {
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_1" ] && nsdebug="-d"
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_2" ] && nsdebug="-D"
   if [ -z "${NSUPDATE_ZONE}" ]; then
-    nsupdate -k "${NSUPDATE_KEY}" $nsdebug <<EOF
+    $_nsupdate_cmd "${NSUPDATE_KEY}" $nsdebug <<EOF
 server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
 update delete ${fulldomain}. txt
 send
 EOF
   else
-    nsupdate -k "${NSUPDATE_KEY}" $nsdebug <<EOF
+    $_nsupdate_cmd "${NSUPDATE_KEY}" $nsdebug <<EOF
 server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
 zone ${NSUPDATE_ZONE}.
 update delete ${fulldomain}. txt
@@ -92,6 +94,11 @@ _checkKeyFile() {
     return 1
   fi
   if [ ! -r "${NSUPDATE_KEY}" ]; then
+    #check for key as string
+    if [ -z "${NSUPDATE_KEY##hmac-*}" ]; then
+      _nsupdate_cmd="nsupdate -y"
+      return 0
+    fi
     _err "key ${NSUPDATE_KEY} is unreadable"
     return 1
   fi
