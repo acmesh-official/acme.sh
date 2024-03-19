@@ -12,8 +12,7 @@ RUN apk --no-cache add -f \
   oath-toolkit-oathtool \
   tar \
   libidn \
-  jq \
-  cronie
+  jq
 
 ENV LE_CONFIG_HOME /acme.sh
 
@@ -21,12 +20,17 @@ ARG AUTO_UPGRADE=1
 
 ENV AUTO_UPGRADE $AUTO_UPGRADE
 
-#Install
+#Install with --no-cron (cron created at first run of 'daemon')
 COPY ./ /install_acme.sh/
-RUN cd /install_acme.sh && ([ -f /install_acme.sh/acme.sh ] && /install_acme.sh/acme.sh --install || curl https://get.acme.sh | sh) && rm -rf /install_acme.sh/
+RUN cd /install_acme.sh && ([ -f /install_acme.sh/acme.sh ] && /install_acme.sh/acme.sh --install --no-cron || curl https://get.acme.sh | sh) && rm -rf /install_acme.sh/
 
 
-RUN ln -s /root/.acme.sh/acme.sh /usr/local/bin/acme.sh && crontab -l | grep acme.sh | sed 's#> /dev/null#> /proc/1/fd/1 2>/proc/1/fd/2#' | crontab -
+RUN ln -s /root/.acme.sh/acme.sh /usr/local/bin/acme.sh && \
+  # Install cronjob on first run.  This enables each instances crontab to be randomly timed instead of random per build
+  # Remove > /dev/null so BusyBox's crond -f will output stdout/stderr from cronjobs
+  echo '@reboot /usr/local/bin/--install-cronjob && crontab -l | grep acme.sh | sed "s#> /dev/null##" | crontab - && crontab -l | grep -v @reboot | crontab - || /usr/local/bin/--uninstall-cronjob && crontab -l' | crontab - && \
+  # Output crontab during build process for verification/debugging
+  crontab -l
 
 RUN for verb in help \
   version \
@@ -65,7 +69,7 @@ RUN for verb in help \
 
 RUN printf "%b" '#!'"/usr/bin/env sh\n \
 if [ \"\$1\" = \"daemon\" ];  then \n \
- exec crond -n -s -m off \n \
+ exec crond -f \n \
 else \n \
  exec -- \"\$@\"\n \
 fi\n" >/entry.sh && chmod +x /entry.sh
