@@ -5,7 +5,7 @@
 ################################################################################
 # Authors: Brian Hartvigsen (creator), https://github.com/tresni
 #          Martin Arndt (contributor), https://troublezone.net/
-# Updated: 2023-07-03
+# Updated: 2024-02-27
 # Issues:  https://github.com/acmesh-official/acme.sh/issues/2727
 ################################################################################
 # Usage:
@@ -114,8 +114,8 @@ synology_dsm_deploy() {
   api_path=$(echo "$response" | grep "SYNO.API.Auth" | sed -n 's/.*"path" *: *"\([^"]*\)".*/\1/p')
   api_version=$(echo "$response" | grep "SYNO.API.Auth" | sed -n 's/.*"maxVersion" *: *\([0-9]*\).*/\1/p')
   _debug3 response "$response"
-  _debug3 api_path "$api_path"
-  _debug3 api_version "$api_version"
+  _debug2 api_path "$api_path"
+  _debug2 api_version "$api_version"
 
   # Login, get the session ID & SynoToken from JSON
   _info "Logging into $SYNO_Hostname:$SYNO_Port"
@@ -137,11 +137,11 @@ synology_dsm_deploy() {
     if [ -n "$SYNO_DID" ]; then
       _H1="Cookie: did=$SYNO_DID"
       export _H1
-      _debug3 H1 "${_H1}"
+      _secure_debug3 H1 "${_H1}"
     fi
 
     response=$(_post "method=login&account=$encoded_username&passwd=$encoded_password&api=SYNO.API.Auth&version=$api_version&enable_syno_token=yes&otp_code=$DEPRECATED_otp_code&device_name=certrenewal&device_id=$SYNO_DID" "$_base_url/webapi/auth.cgi?enable_syno_token=yes")
-    _debug3 response "$response"
+    _secure_debug3 response "$response"
   # END - DEPRECATED, only kept for legacy compatibility reasons
   # If SYNO_DeviceDevice_ID & SYNO_Device_Name both empty, just log in normally
   elif [ -z "${SYNO_Device_ID:-}" ] && [ -z "${SYNO_Device_Name:-}" ]; then
@@ -152,7 +152,7 @@ synology_dsm_deploy() {
       synogroup --memberadd administrators "$SYNO_Username" >/dev/null
     fi
     response=$(_get "$_base_url/webapi/entry.cgi?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes")
-    _debug3 response "$response"
+    _secure_debug3 response "$response"
   # Get device ID if still empty first, otherwise log in right away
   # If SYNO_Device_Name is set, we treat that account enabled two-factor authorization, consider SYNO_Device_ID is not set, so it won't be able to login without requiring the OTP code.
   elif [ -n "${SYNO_Device_Name:-}" ] && [ -z "${SYNO_Device_ID:-}" ]; then
@@ -210,7 +210,7 @@ synology_dsm_deploy() {
   _debug2 id "$id"
 
   if [ -z "$id" ] && [ -z "${SYNO_Create:-}" ]; then
-    _err "Unable to find certificate: $SYNO_Certificate & \$SYNO_Create is not set"
+    _err "Unable to find certificate due to empty ID & \$SYNO_Create is not set."
     _remove_temp_admin "$SYNO_USE_TEMP_ADMIN" "$SYNO_Username"
     return 1
   fi
