@@ -5,13 +5,18 @@ Ali_API="https://alidns.aliyuncs.com/"
 #Ali_Key="LTqIA87hOKdjevsf5"
 #Ali_Secret="0p5EYueFNq501xnCPzKNbx6K51qPH2"
 
-#Usage: dns_ali_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+#Usage: dns_ali_add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_ali_add() {
   fulldomain=$1
   txtvalue=$2
 
   Ali_Key="${Ali_Key:-$(_readaccountconf_mutable Ali_Key)}"
   Ali_Secret="${Ali_Secret:-$(_readaccountconf_mutable Ali_Secret)}"
+
+  if [ -z "$Ali_Key" ] || [ -z "$Ali_Secret" ]; then
+    _use_instance_role
+  fi
+
   if [ -z "$Ali_Key" ] || [ -z "$Ali_Secret" ]; then
     Ali_Key=""
     Ali_Secret=""
@@ -20,8 +25,10 @@ dns_ali_add() {
   fi
 
   #save the api key and secret to the account conf file.
-  _saveaccountconf_mutable Ali_Key "$Ali_Key"
-  _saveaccountconf_mutable Ali_Secret "$Ali_Secret"
+  if [ -z "$_using_role" ]; then
+    _saveaccountconf_mutable Ali_Key "$Ali_Key"
+    _saveaccountconf_mutable Ali_Secret "$Ali_Secret"
+  fi
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -77,6 +84,47 @@ _get_root() {
   return 1
 }
 
+_use_instance_role() {
+  _url="http://100.100.100.200/latest/meta-data/ram/security-credentials/"
+  _debug "_url" "$_url"
+
+  # **Do Not** set the parameter `onlyheadr` for _get, it will
+  # send a HEAD request instead of GET. And alicloud
+  # mata url not allow HEAD request.
+  if _get "$_url" "" 1 | grep '404 - Not Found' >/dev/null; then
+    _debug "Unable to fetch RAM role from instance metadata"
+    return 1
+  fi
+  _ali_instance_role=$(_get "$_url" "" 1)
+  _debug "_ali_instance_role" "_ali_instance_role"
+
+  _ali_creds="$(
+    _get "$_url$_ali_instance_role" "" 1 |
+      _normalizeJson |
+      tr '{,}' '\n' |
+      while read -r _line; do
+        _key="$(echo "${_line%%:*}" | tr -d '"')"
+        _value="${_line#*:}"
+        _debug3 "_key" "$_key"
+        _secure_debug3 "_value" "$_value"
+        case "$_key" in
+        AccessKeyId) echo "Ali_Key=$_value" ;;
+        AccessKeySecret) echo "Ali_Secret=$_value" ;;
+        SecurityToken) echo "ALICLOUD_SECURITY_TOKEN=$_value" ;;
+        esac
+      done |
+      paste -sd' ' -
+  )"
+  _secure_debug "_ali_creds" "$_ali_creds"
+
+  if [ -z "$_ali_creds" ]; then
+    return 1
+  fi
+
+  eval "$_ali_creds"
+  _using_role=true
+}
+
 _ali_rest() {
   signature=$(printf "%s" "GET&%2F&$(_ali_urlencode "$query")" | _hmac "sha1" "$(printf "%s" "$Ali_Secret&" | _hex_dump | tr -d " ")" | _base64)
   signature=$(_ali_urlencode "$signature")
@@ -129,6 +177,9 @@ _check_exist_query() {
   query=$query'&DomainName='$_qdomain
   query=$query'&Format=json'
   query=$query'&RRKeyWord='$_qsubdomain
+  if [ -n "$ALICLOUD_SECURITY_TOKEN" ]; then
+    query=$query'&SecurityToken='$(_ali_urlencode "$ALICLOUD_SECURITY_TOKEN")
+  fi
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query"&SignatureNonce=$(_ali_nonce)"
   query=$query'&SignatureVersion=1.0'
@@ -144,6 +195,9 @@ _add_record_query() {
   query=$query'&DomainName='$1
   query=$query'&Format=json'
   query=$query'&RR='$2
+  if [ -n "$ALICLOUD_SECURITY_TOKEN" ]; then
+    query=$query'&SecurityToken='$(_ali_urlencode "$ALICLOUD_SECURITY_TOKEN")
+  fi
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query"&SignatureNonce=$(_ali_nonce)"
   query=$query'&SignatureVersion=1.0'
@@ -159,6 +213,9 @@ _delete_record_query() {
   query=$query'&Action=DeleteDomainRecord'
   query=$query'&Format=json'
   query=$query'&RecordId='$1
+  if [ -n "$ALICLOUD_SECURITY_TOKEN" ]; then
+    query=$query'&SecurityToken='$(_ali_urlencode "$ALICLOUD_SECURITY_TOKEN")
+  fi
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query"&SignatureNonce=$(_ali_nonce)"
   query=$query'&SignatureVersion=1.0'
@@ -172,6 +229,9 @@ _describe_records_query() {
   query=$query'&Action=DescribeDomainRecords'
   query=$query'&DomainName='$1
   query=$query'&Format=json'
+  if [ -n "$ALICLOUD_SECURITY_TOKEN" ]; then
+    query=$query'&SecurityToken='$(_ali_urlencode "$ALICLOUD_SECURITY_TOKEN")
+  fi
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query"&SignatureNonce=$(_ali_nonce)"
   query=$query'&SignatureVersion=1.0'
