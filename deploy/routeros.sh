@@ -127,6 +127,11 @@ routeros_deploy() {
   _savedeployconf ROUTER_OS_SCP_CMD "$ROUTER_OS_SCP_CMD"
   _savedeployconf ROUTER_OS_ADDITIONAL_SERVICES "$ROUTER_OS_ADDITIONAL_SERVICES"
 
+  # rename wildcards to avoid * character in file names
+  if [ "$(printf %c $_cdomain)" = '*' ]; then
+    _cdomain=$(echo $_cdomain|sed 's/\*/star/g')
+  fi
+
   # push key to routeros
   if ! _scp_certificate "$_ckey" "$ROUTER_OS_USERNAME@$ROUTER_OS_HOST:$_cdomain.key"; then
     return $_err_code
