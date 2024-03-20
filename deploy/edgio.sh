@@ -9,7 +9,10 @@
 # export EDGIO_CLIENT_SECRET="Your Edgio Client Secret"
 # export EDGIO_ENVIRONMENT_ID="Your Edgio Environment ID"
 
-#returns 0 means success, otherwise error.
+# If have more than one Environment ID
+# export EDGIO_ENVIRONMENT_ID="ENVIRONMENT_ID_1 ENVIRONMENT_ID_2"
+
+# returns 0 means success, otherwise error.
 
 ########  Public functions #####################
 
@@ -64,17 +67,20 @@ edgio_deploy() {
   string_ccert=$(sed 's/$/\\n/' "$_ccert" | tr -d '\n')
   string_cca=$(sed 's/$/\\n/' "$_cca" | tr -d '\n')
   string_key=$(sed 's/$/\\n/' "$_ckey" | tr -d '\n')
-  _data="{\"environment_id\":\"$EDGIO_ENVIRONMENT_ID\",\"primary_cert\":\"$string_ccert\",\"intermediate_cert\":\"$string_cca\",\"private_key\":\"$string_key\"}"
-  _debug Upload_certificate_data "$_data"
-  _H1="Authorization: Bearer $_access_token"
-  _response=$(_post "$_data" "https://edgioapis.com/config/v0.1/tls-certs" "" "POST" "application/json")
 
-  if _contains "$_response" "message"; then
-    _err "Error in deploying $_cdomain certificate to Edgio."
-    _err "$_response"
-    return 1
-  fi
-  _debug Upload_certificate_response "$_response"
-  _info "Domain $_cdomain certificate successfully deployed to Edgio."
+  for ENVIRONMENT_ID in $EDGIO_ENVIRONMENT_ID; do
+    _data="{\"environment_id\":\"$ENVIRONMENT_ID\",\"primary_cert\":\"$string_ccert\",\"intermediate_cert\":\"$string_cca\",\"private_key\":\"$string_key\"}"
+    _debug Upload_certificate_data "$_data"
+    _H1="Authorization: Bearer $_access_token"
+    _response=$(_post "$_data" "https://edgioapis.com/config/v0.1/tls-certs" "" "POST" "application/json")
+    if _contains "$_response" "message"; then
+      _err "Error in deploying $_cdomain certificate to Edgio ENVIRONMENT_ID $ENVIRONMENT_ID."
+      _err "$_response"
+      return 1
+    fi
+    _debug Upload_certificate_response "$_response"
+    _info "Domain $_cdomain certificate successfully deployed to Edgio ENVIRONMENT_ID $ENVIRONMENT_ID."
+  done
+
   return 0
 }
