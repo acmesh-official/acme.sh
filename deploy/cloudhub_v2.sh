@@ -127,7 +127,7 @@ cloudhub_v2_deploy() {
   fi
 
   _ret="$?"
-  _debug cert_response "$cert_response"  
+  _debug cert_response "$cert_response"
 
   if [ "$_ret" != 0 ]; then
     _err "Error while creating/updating TLS-Context"
