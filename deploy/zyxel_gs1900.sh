@@ -275,26 +275,41 @@ _zyxel_gs1900_upload_certificate() {
   form_xss_value=$(printf "%s" "$form_xss_value" | head -n 1)
   _secure_debug2 "form_xss_value" "$form_xss_value"
 
-  _debug2 "Send upload request to the server"
-  _inithttp
-  _CURL="$_ACME_CURL"
-  if [ "$HTTPS_INSECURE" ]; then
-    _CURL="$_CURL --insecure  "
-  fi
+  _info "Generating the certificate upload request"
+  upload_post_request="$(_mktemp)"
+  upload_post_boundary="---------------------------$(date +%Y%m%d%H%M%S)"
+  {
+    printf -- "--"
+    printf -- "%s\r\n" "${upload_post_boundary}"
+    printf "Content-Disposition: form-data; name=\"XSSID\"\r\n\r\n%s\r\n" "${form_xss_value}"
+    printf -- "--"
+    printf -- "%s\r\n" "${upload_post_boundary}"
+    printf "Content-Disposition: form-data; name=\"pwd\"\r\n\r\n%s\r\n" "${tmp_cert_password}"
+    printf -- "--"
+    printf -- "%s\r\n" "${upload_post_boundary}"
+    printf "Content-Disposition: form-data; name=\"cmd\"\r\n\r\n%s\r\n" "31"
+    printf -- "--"
+    printf -- "%s\r\n" "${upload_post_boundary}"
+    printf "Content-Disposition: form-data; name=\"sysSubmit\"\r\n\r\n%s\r\n" "Import"
+    printf -- "--"
+    printf -- "%s\r\n" "${upload_post_boundary}"
+    printf "Content-Disposition: form-data; name=\"http_file\"; filename=\"cert.pfx\"\r\n"
+    printf "Content-Type: application/octet-stream\r\n\r\n"
+    cat "${temp_pkcs12}"
+    printf "\r\n"
+    printf -- "--"
+    printf -- "%s--" "${upload_post_boundary}"
+  } >>"${upload_post_request}"
+
+  _info "Upload certificate to the switch"
 
   # Unfortunately we cannot rely upon the switch response across switch models
   # to return a consistent body return - so we cannot inspect the result of this
   # upload to determine success. We will need to re-query the certificates page
   # and compare the validity dates to try and identify if they have changed.
-  upload_response_html=$($_CURL \
-    -X "POST" \
-    -H "$_H1" \
-    --form "XSSID=${form_xss_value}" \
-    --form "http_file=@${temp_pkcs12}" \
-    --form "pwd=${temp_cert_password}" \
-    --form "cmd=31" \
-    --form "sysSubmit=Import" \
-    "${_zyxel_switch_base_uri}/cgi-bin/httpuploadcert.cgi")
+  export _H2="Content-type: multipart/form-data boundary=${upload_post_boundary}"
+  _post "$(cat "${upload_post_request}")" "${_zyxel_switch_base_uri}/cgi-bin/httpuploadcert.cgi"
+  rm "${upload_post_request}"
 
   # Pause for a few seconds to give the switch a chance to process the certificate
   # For some reason I've found this to be necessary on my GS1900-24E
