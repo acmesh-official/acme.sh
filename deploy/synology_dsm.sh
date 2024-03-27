@@ -9,19 +9,24 @@
 # Issues:  https://github.com/acmesh-official/acme.sh/issues/2727
 ################################################################################
 # Usage:
-# 1. export SYNO_Username="adminUser"
-# 2. export SYNO_Password="adminPassword"
+# - Create temp admin user automatically:
+#   export SYNO_USE_TEMP_ADMIN=1
+# - Or provide your own admin user credential:
+#   1. export SYNO_Username="adminUser"
+#   2. export SYNO_Password="adminPassword"
 # Optional exports (shown values are the defaults):
-# - export SYNO_Certificate="" to replace a specific certificate via description
+# - export SYNO_Certificate="" - to replace a specific certificate via description
 # - export SYNO_Scheme="http"
 # - export SYNO_Hostname="localhost"
 # - export SYNO_Port="5000"
-# - export SYNO_Device_Name="CertRenewal" - required for skipping 2FA-OTP
+# - export SYNO_Create=1   - to allow creating the certificate if it doesn't exist
+# - export SYNO_Device_Name="CertRenewal" - required if 2FA-OTP enabled
 # - export SYNO_Device_ID=""              - required for skipping 2FA-OTP
 # 3. acme.sh --deploy --deploy-hook synology_dsm -d example.com
 ################################################################################
 # Dependencies:
 # - jq & curl
+# - synouser & synogroup (When available and SYNO_USE_TEMP_ADMIN is set)
 ################################################################################
 # Return value:
 # 0 means success, otherwise error.
@@ -38,6 +43,7 @@ synology_dsm_deploy() {
   _debug _cdomain "$_cdomain"
 
   # Get username & password, but don't save until we authenticated successfully
+  _getdeployconf SYNO_USE_TEMP_ADMIN
   _getdeployconf SYNO_Username
   _getdeployconf SYNO_Password
   _getdeployconf SYNO_Create
@@ -45,12 +51,25 @@ synology_dsm_deploy() {
   _getdeployconf SYNO_TOTP_SECRET
   _getdeployconf SYNO_Device_Name
   _getdeployconf SYNO_Device_ID
-  if [ -z "${SYNO_Username:-}" ] || [ -z "${SYNO_Password:-}" ]; then
-    _err "SYNO_Username & SYNO_Password must be set"
-    return 1
+
+  # Prepare temp admin user info if SYNO_USE_TEMP_ADMIN is set
+  if [ -n "${SYNO_USE_TEMP_ADMIN:-}" ]; then
+    if ! _exists synouser; then
+      if ! _exists synogroup; then
+        _err "Tools are missing for creating temp admin user, please set SYNO_Username & SYNO_Password instead."
+        return 1
+      fi
+    fi
+    _debug "Setting temp admin user credential..."
+    SYNO_Username=sc-acmesh-tmp
+    SYNO_Password=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16)
+    # Ignore 2FA-OTP settings which won't be needed.
+    SYNO_Device_Name=
+    SYNO_Device_ID=
   fi
-  if [ -n "${SYNO_Device_Name:-}" ] && [ -z "${SYNO_Device_ID:-}" ]; then
-    _err "SYNO_Device_Name set, but SYNO_Device_ID is empty"
+
+  if [ -z "${SYNO_Username:-}" ] || [ -z "${SYNO_Password:-}" ]; then
+    _err "You must set either SYNO_USE_TEMP_ADMIN, or set both SYNO_Username and SYNO_Password."
     return 1
   fi
   _debug2 SYNO_Username "$SYNO_Username"
@@ -69,6 +88,7 @@ synology_dsm_deploy() {
   [ -n "${SYNO_Scheme}" ] || SYNO_Scheme="http"
   [ -n "${SYNO_Hostname}" ] || SYNO_Hostname="localhost"
   [ -n "${SYNO_Port}" ] || SYNO_Port="5000"
+  _savedeployconf SYNO_USE_TEMP_ADMIN "$SYNO_USE_TEMP_ADMIN"
   _savedeployconf SYNO_Scheme "$SYNO_Scheme"
   _savedeployconf SYNO_Hostname "$SYNO_Hostname"
   _savedeployconf SYNO_Port "$SYNO_Port"
@@ -108,13 +128,11 @@ synology_dsm_deploy() {
     _info "WARNING: Usage of SYNO_TOTP_SECRET is deprecated!"
     _info "         See synology_dsm.sh script or ACME.sh Wiki page for details:"
     _info "         https://github.com/acmesh-official/acme.sh/wiki/Synology-NAS-Guide"
-    DEPRECATED_otp_code=""
-    if _exists oathtool; then
-      DEPRECATED_otp_code="$(oathtool --base32 --totp "${SYNO_TOTP_SECRET}" 2>/dev/null)"
-    else
+    if ! _exists oathtool; then
       _err "oathtool could not be found, install oathtool to use SYNO_TOTP_SECRET"
       return 1
     fi
+    DEPRECATED_otp_code="$(oathtool --base32 --totp "${SYNO_TOTP_SECRET}" 2>/dev/null)"
 
     if [ -n "$SYNO_DID" ]; then
       _H1="Cookie: did=$SYNO_DID"
@@ -125,16 +143,21 @@ synology_dsm_deploy() {
     response=$(_post "method=login&account=$encoded_username&passwd=$encoded_password&api=SYNO.API.Auth&version=$api_version&enable_syno_token=yes&otp_code=$DEPRECATED_otp_code&device_name=certrenewal&device_id=$SYNO_DID" "$_base_url/webapi/auth.cgi?enable_syno_token=yes")
     _debug3 response "$response"
   # END - DEPRECATED, only kept for legacy compatibility reasons
+  # If SYNO_DeviceDevice_ID & SYNO_Device_Name both empty, just log in normally
+  elif [ -z "${SYNO_Device_ID:-}" ] && [ -z "${SYNO_Device_Name:-}" ]; then
+    if [ -n "$SYNO_USE_TEMP_ADMIN" ]; then
+      _debug "Creating temp admin user in Synology DSM"
+      synouser --del "$SYNO_Username" >/dev/null 2>/dev/null
+      synouser --add "$SYNO_Username" "$SYNO_Password" "" 0 "" 0 >/dev/null
+      synogroup --memberadd administrators "$SYNO_Username" >/dev/null
+    fi
+    response=$(_get "$_base_url/webapi/entry.cgi?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes")
+    _debug3 response "$response"
   # Get device ID if still empty first, otherwise log in right away
-  elif [ -z "${SYNO_Device_ID:-}" ]; then
+  # If SYNO_Device_Name is set, we treat that account enabled two-factor authorization, consider SYNO_Device_ID is not set, so it won't be able to login without requiring the OTP code.
+  elif [ -n "${SYNO_Device_Name:-}" ] && [ -z "${SYNO_Device_ID:-}" ]; then
     printf "Enter OTP code for user '%s': " "$SYNO_Username"
     read -r otp_code
-    if [ -z "${SYNO_Device_Name:-}" ]; then
-      printf "Enter device name or leave empty for default (CertRenewal): "
-      read -r SYNO_Device_Name
-      [ -n "${SYNO_Device_Name}" ] || SYNO_Device_Name="CertRenewal"
-    fi
-
     response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&otp_code=$otp_code&enable_syno_token=yes&enable_device_token=yes&device_name=$SYNO_Device_Name")
     _secure_debug3 response "$response"
 
@@ -142,18 +165,27 @@ synology_dsm_deploy() {
     [ "${api_version}" -gt '6' ] || id_property='did'
     SYNO_Device_ID=$(echo "$response" | grep "$id_property" | sed -n 's/.*"'$id_property'" *: *"\([^"]*\).*/\1/p')
     _secure_debug2 SYNO_Device_ID "$SYNO_Device_ID"
+  # Otherwise, if SYNO_Device_ID is set, we can just use it to login.
   else
+    if [ -z "${SYNO_Device_Name:-}" ]; then
+      printf "Enter device name or leave empty for default (CertRenewal): "
+      read -r SYNO_Device_Name
+      [ -n "${SYNO_Device_Name}" ] || SYNO_Device_Name="CertRenewal"
+    fi
     response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes&device_name=$SYNO_Device_Name&device_id=$SYNO_Device_ID")
-    _debug3 response "$response"
+    _secure_debug3 response "$response"
   fi
 
   sid=$(echo "$response" | grep "sid" | sed -n 's/.*"sid" *: *"\([^"]*\).*/\1/p')
   token=$(echo "$response" | grep "synotoken" | sed -n 's/.*"synotoken" *: *"\([^"]*\).*/\1/p')
   _debug "Session ID" "$sid"
   _debug SynoToken "$token"
-  if [ -z "$SYNO_DID" ] && [ -z "$SYNO_Device_ID" ] || [ -z "$sid" ] || [ -z "$token" ]; then
+  if [ -z "$sid" ] || [ -z "$token" ]; then
     _err "Unable to authenticate to $_base_url - check your username & password."
-    _err "If two-factor authentication is enabled for the user, set SYNO_Device_ID."
+    _err "If two-factor authentication is enabled for the user:"
+    _err "- set SYNO_Device_Name then input *correct* OTP-code manually"
+    _err "- get & set SYNO_Device_ID via your browser cookies"
+    _remove_temp_admin "$SYNO_USE_TEMP_ADMIN" "$SYNO_Username"
     return 1
   fi
 
@@ -164,8 +196,10 @@ synology_dsm_deploy() {
   # Now that we know the username & password are good, save them
   _savedeployconf SYNO_Username "$SYNO_Username"
   _savedeployconf SYNO_Password "$SYNO_Password"
-  _savedeployconf SYNO_Device_Name "$SYNO_Device_Name"
-  _savedeployconf SYNO_Device_ID "$SYNO_Device_ID"
+  if [ -z "${SYNO_USE_TEMP_ADMIN:-}" ]; then
+    _savedeployconf SYNO_Device_Name "$SYNO_Device_Name"
+    _savedeployconf SYNO_Device_ID "$SYNO_Device_ID"
+  fi
 
   _info "Getting certificates in Synology DSM"
   response=$(_post "api=SYNO.Core.Certificate.CRT&method=list&version=1&_sid=$sid" "$_base_url/webapi/entry.cgi")
@@ -177,6 +211,7 @@ synology_dsm_deploy() {
 
   if [ -z "$id" ] && [ -z "${SYNO_Create:-}" ]; then
     _err "Unable to find certificate: $SYNO_Certificate & \$SYNO_Create is not set"
+    _remove_temp_admin "$SYNO_USE_TEMP_ADMIN" "$SYNO_Username"
     return 1
   fi
 
@@ -211,10 +246,11 @@ synology_dsm_deploy() {
     else
       _info "Restarting HTTP services failed"
     fi
-
+    _remove_temp_admin "$SYNO_USE_TEMP_ADMIN" "$SYNO_Username"
     _logout
     return 0
   else
+    _remove_temp_admin "$SYNO_USE_TEMP_ADMIN" "$SYNO_Username"
     _err "Unable to update certificate, error code $response"
     _logout
     return 1
@@ -223,7 +259,17 @@ synology_dsm_deploy() {
 
 ####################  Private functions below ##################################
 _logout() {
-  # Logout to not occupy a permanent session, e.g. in DSM's "Connected Users" widget
-  response=$(_get "$_base_url/webapi/entry.cgi?api=SYNO.API.Auth&version=$api_version&method=logout")
+  # Logout CERT user only to not occupy a permanent session, e.g. in DSM's "Connected Users" widget (based on previous variables)
+  response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=logout&_sid=$sid")
   _debug3 response "$response"
+}
+
+_remove_temp_admin() {
+  flag=$1
+  username=$2
+
+  if [ -n "${flag}" ]; then
+    _debug "Removing temp admin user in Synology DSM"
+    synouser --del "$username" >/dev/null
+  fi
 }
