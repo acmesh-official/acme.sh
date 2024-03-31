@@ -14,7 +14,7 @@
 #
 # OPTIONAL
 #    export PANOS_TEMPLATE="" #Template Name of panorama managed devices
-# 
+#
 # The script will automatically generate a new API key if
 # no key is found, or if a saved key has expired or is invalid.
 
@@ -80,7 +80,7 @@ deployer() {
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n$_cdomain"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"key\"\r\n\r\n$_panos_key"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"format\"\r\n\r\npem"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_cfullchain")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_cfullchain")"    
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_cfullchain")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_cfullchain")"
       if [ "$_panos_template" ]; then
         content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"target-tpl\"\r\n\r\n$_panos_template"
       fi
