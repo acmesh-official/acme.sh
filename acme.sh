@@ -2396,13 +2396,18 @@ _migratedomainconf() {
   _old_key="$1"
   _new_key="$2"
   _b64encode="$3"
-  _value=$(_readdomainconf "$_old_key")
-  if [ -z "$_value" ]; then
-    return 1 # oldkey is not found
-  fi
-  _savedomainconf "$_new_key" "$_value" "$_b64encode"
+  _old_value=$(_readdomainconf "$_old_key")
   _cleardomainconf "$_old_key"
-  _debug "Domain config $_old_key has been migrated to $_new_key"
+  if [ -z "$_old_value" ]; then
+    return 1 # migrated failed: old value is empty
+  fi
+  _new_value=$(_readdomainconf "$_new_key")
+  if [ -n "$_new_value" ]; then
+    _debug "Domain config new key exists, old key $_old_key='$_old_value' has been removed."
+    return 1 # migrated failed: old value replaced by new value
+  fi
+  _savedomainconf "$_new_key" "$_old_value" "$_b64encode"
+  _debug "Domain config $_old_key has been migrated to $_new_key."
 }
 
 #_migratedeployconf   oldkey  newkey  base64encode
@@ -3768,7 +3773,7 @@ _regAccount() {
     eab_sign_t="$eab_protected64.$eab_payload64"
     _debug3 eab_sign_t "$eab_sign_t"
 
-    key_hex="$(_durl_replace_base64 "$_eab_hmac_key" | _dbase64 multi | _hex_dump | tr -d ' ')"
+    key_hex="$(_durl_replace_base64 "$_eab_hmac_key" | _dbase64 | _hex_dump | tr -d ' ')"
     _debug3 key_hex "$key_hex"
 
     eab_signature=$(printf "%s" "$eab_sign_t" | _hmac sha256 $key_hex | _base64 | _url_replace)
