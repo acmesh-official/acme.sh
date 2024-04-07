@@ -44,7 +44,7 @@ cachefly_deploy() {
   _debug CACHEFLY_TOKEN "$CACHEFLY_TOKEN"
   export _H1="Authorization: Bearer $CACHEFLY_TOKEN"
   _response=$(_post "$_request_body" "$CACHEFLY_API_BASE/certificates" "" "POST" "application/json")
-  
+
   if _contains "$_response" "message"; then
     _err "Error in deploying $_cdomain certificate to CacheFly."
     _err "$_response"

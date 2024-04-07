@@ -48,14 +48,14 @@ netlify_deploy() {
   string_ccert=$(sed 's/$/\\n/' "$_ccert" | tr -d '\n')
   string_cca=$(sed 's/$/\\n/' "$_cca" | tr -d '\n')
   string_key=$(sed 's/$/\\n/' "$_ckey" | tr -d '\n')
-  
+
   for SITE_ID in $Netlify_SITE_ID; do
     _request_body="{\"certificate\":\"$string_ccert\",\"key\":\"$string_key\",\"ca_certificates\":\"$string_cca\"}"
     _debug _request_body "$_request_body"
     _debug Netlify_ACCESS_TOKEN "$Netlify_ACCESS_TOKEN"
     export _H1="Authorization: Bearer $Netlify_ACCESS_TOKEN"
     _response=$(_post "$_request_body" "https://api.netlify.com/api/v1/sites/$SITE_ID/ssl" "" "POST" "application/json")
-    
+
     if _contains "$_response" "\"error\""; then
       _err "Error in deploying $_cdomain certificate to Netlify SITE_ID $SITE_ID."
       _err "$_response"

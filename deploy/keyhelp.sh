@@ -92,8 +92,8 @@ keyhelp_deploy() {
     target_type=$(echo "$_response" | grep 'target_type' | grep 'checked' | sed -n 's/.*value="\([^"]*\).*/\1/p')
     _debug "cert_value" "$cert_value"
     if [ -z "$cert_value" ]; then
-    _err "Fail to get certificate id."
-    return 1
+      _err "Fail to get certificate id."
+      return 1
     fi
 
     _request_body="submit=1&id=$DOMAIN_ID&target_type=$target_type&certificate_type=custom&certificate_id=$cert_value"
@@ -101,8 +101,8 @@ keyhelp_deploy() {
     _message=$(echo "$_response" | grep -A 2 'message-body' | sed -n '/<div class="message-body ">/,/<\/div>/{//!p;}' | sed 's/<[^>]*>//g' | sed 's/^ *//;s/ *$//')
     _info "_message" "$_message"
     if [ -z "$_message" ]; then
-    _err "Fail to apply certificate."
-    return 1
+      _err "Fail to apply certificate."
+      return 1
     fi
   done
 

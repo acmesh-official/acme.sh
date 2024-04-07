@@ -23,7 +23,7 @@ edgio_deploy() {
   _ccert="$3"
   _cca="$4"
   _cfullchain="$5"
-  
+
   _debug _cdomain "$_cdomain"
   _debug _ckey "$_ckey"
   _debug _ccert "$_ccert"
@@ -50,11 +50,11 @@ edgio_deploy() {
   else
     _savedomainconf EDGIO_ENVIRONMENT_ID "$EDGIO_ENVIRONMENT_ID"
   fi
-  
+
   _info "Getting access token"
   _data="client_id=$EDGIO_CLIENT_ID&client_secret=$EDGIO_CLIENT_SECRET&grant_type=client_credentials&scope=app.config"
   _debug Get_access_token_data "$_data"
-  _response=$(_post "$_data" "https://id.edgio.app/connect/token" "" "POST" "application/x-www-form-urlencoded" )
+  _response=$(_post "$_data" "https://id.edgio.app/connect/token" "" "POST" "application/x-www-form-urlencoded")
   _debug Get_access_token_response "$_response"
   _access_token=$(echo "$_response" | _json_decode | _egrep_o '"access_token":"[^"]*' | cut -d : -f 2 | tr -d '"')
   _debug _access_token "$_access_token"
