@@ -1,0 +1,10 @@
+PDNS_Url=http://192.168.42.199:8000
+PDNS_ServerId=localhost
+PDNS_Token=aaff153f99761ce9931f6717016ad2f4-0b87b0a7263927744a361008e0c5110b
+DEPLOY_DOCKER_CONTAINER_LABEL=sh.acme.autoload.domain=test.elaon.de
+DEPLOY_DOCKER_CONTAINER_KEY_FILE=/opt/emqx/etc/certs/key.pem
+DEPLOY_DOCKER_CONTAINER_CERT_FILE="/opt/emqx/etc/certs/cert.pem"
+DEPLOY_DOCKER_CONTAINER_CA_FILE="/opt/emqx/etc/certs/cacert.pem"
+DEPLOY_DOCKER_CONTAINER_FULLCHAIN_FILE="/opt/emqx/etc/certs/full.pem"
+DEPLOY_DOCKER_CONTAINER_RELOAD_CMD="chmod 664 /opt/emqx/etc/certs/*.pem && /opt/emqx/bin/emqx stop"
+#DEPLOY_DOCKER_CONTAINER_RUN_AS_ROOT="true"
