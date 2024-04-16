@@ -32,7 +32,7 @@ aws_ses_send() {
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     AWS_ACCESS_KEY_ID=""
     AWS_SECRET_ACCESS_KEY=""
-    _err "You haven't specified the aws SES api key id and and api key secret yet."
+    _err "You haven't specified the aws SES api key id and api key secret yet."
     _err "Please create your key and try again. see $(__green $AWS_WIKI)"
     return 1
   fi

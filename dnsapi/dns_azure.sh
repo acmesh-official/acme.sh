@@ -342,7 +342,7 @@ _get_root() {
   p=1
 
   ## Ref: https://docs.microsoft.com/en-us/rest/api/dns/zones/list
-  ## returns up to 100 zones in one response therefore handling more results is not not implemented
+  ## returns up to 100 zones in one response therefore handling more results is not implemented
   ## (ZoneListResult with  continuation token for the next page of results)
   ## Per https://docs.microsoft.com/en-us/azure/azure-subscription-service-limits#dns-limits you are limited to 100 Zone/subscriptions anyways
   ##
