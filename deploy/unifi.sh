@@ -87,7 +87,6 @@ unifi_deploy() {
 
   # Unifi Controller environment (self hosted or any Cloud Key) --
   # auto-detect by file /usr/lib/unifi/data/keystore
-  # Additional detection of OS version to handle missing keytool.
   _unifi_keystore="${DEPLOY_UNIFI_KEYSTORE:-/usr/lib/unifi/data/keystore}"
   if [ -f "$_unifi_keystore" ]; then
     _debug _unifi_keystore "$_unifi_keystore"
