@@ -1,17 +1,24 @@
 #!/usr/bin/env sh
 
-# Supports IONOS DNS API v1.0.1
+# Supports IONOS DNS API v1.0.1 and IONOS Cloud DNS API v1.15.4
 #
 # Usage:
-#   Export IONOS_PREFIX and IONOS_SECRET before calling acme.sh:
+#   Export IONOS_PREFIX and IONOS_SECRET or IONOS_TOKEN before calling acme.sh:
 #
 #   $ export IONOS_PREFIX="..."
 #   $ export IONOS_SECRET="..."
+# or 
+#   $ export IONOS_TOKEN="..."
 #
 #   $ acme.sh --issue --dns dns_ionos ...
+#
+# if IONOS_PREFIX and IONOS_SECRET are set, the script will use IONOS DNS API
+# if IONOS_TOKEN is set, the script will use the IONOS Cloud DNS API
 
 IONOS_API="https://api.hosting.ionos.com/dns"
+IONOS_CLOUD_API="https://dns.de-fra.ionos.com"
 IONOS_ROUTE_ZONES="/v1/zones"
+IONOS_CLOUD_ROUTE_ZONES="/zones"
 
 IONOS_TXT_TTL=60 # minimum accepted by API
 IONOS_TXT_PRIO=10
@@ -24,11 +31,20 @@ dns_ionos_add() {
     return 1
   fi
 
-  _body="[{\"name\":\"$_sub_domain.$_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"ttl\":$IONOS_TXT_TTL,\"prio\":$IONOS_TXT_PRIO,\"disabled\":false}]"
+  if [ $_context == "core" ];then
+    _body="[{\"name\":\"$_sub_domain.$_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"ttl\":$IONOS_TXT_TTL,\"prio\":$IONOS_TXT_PRIO,\"disabled\":false}]"
 
-  if _ionos_rest POST "$IONOS_ROUTE_ZONES/$_zone_id/records" "$_body" && [ "$_code" = "201" ]; then
-    _info "TXT record has been created successfully."
-    return 0
+    if _ionos_rest POST "$IONOS_ROUTE_ZONES/$_zone_id/records" "$_body" && [ "$_code" = "201" ]; then
+      _info "TXT record has been created successfully."
+      return 0
+    fi
+  else
+    _body="{\"properties\":{\"name\":\"$fulldomain\", \"type\":\"TXT\", \"content\":\"$txtvalue\"}}"
+
+    if _ionos_cloud_rest POST "$IONOS_CLOUD_ROUTE_ZONES/$_zone_id/records" "$_body" && [ "$_code" = "202" ]; then
+      _info "TXT record has been created successfully."
+      return 0
+    fi
   fi
 
   return 1
@@ -58,25 +74,67 @@ dns_ionos_rm() {
 _ionos_init() {
   IONOS_PREFIX="${IONOS_PREFIX:-$(_readaccountconf_mutable IONOS_PREFIX)}"
   IONOS_SECRET="${IONOS_SECRET:-$(_readaccountconf_mutable IONOS_SECRET)}"
+  IONOS_TOKEN="${IONOS_TOKEN:-$(_readaccountconf_mutable IONOS_TOKEN)}"
 
-  if [ -z "$IONOS_PREFIX" ] || [ -z "$IONOS_SECRET" ]; then
-    _err "You didn't specify an IONOS api prefix and secret yet."
-    _err "Read https://beta.developer.hosting.ionos.de/docs/getstarted to learn how to get a prefix and secret."
+  if [ -n "$IONOS_PREFIX" ] || [ -n "$IONOS_SECRET" ]; then
+    _info "You have specified an IONOS api prefix and secret."
+    _info "The script will use the IONOS DNS API: $IONOS_API"
+
+    _saveaccountconf_mutable IONOS_PREFIX "$IONOS_PREFIX"
+    _saveaccountconf_mutable IONOS_SECRET "$IONOS_SECRET"
+
+    if ! _get_root "$fulldomain"; then
+      _err "Cannot find this domain in your IONOS account."
+      return 1
+    fi
+    $_context="core" 
+  else if [ -n "$IONOS_TOKEN" ]; then
+    _info "You have specified an IONOS token."
+    _info "The script will use the IONOS Cloud DNS API: $IONOS_CLOUD_API"
+
+    _saveaccountconf_mutable IONOS_TOKEN "$IONOS_TOKEN"
+
+    if ! _get_cloud_zone "$fulldomain"; then
+      _err "Cannot find this zone in your IONOS account."
+      return 1
+    fi
+    $_context="cloud"
+  else
+    _err "You didn't specify an IONOS credentials yet."
+    _err "If you are using the IONOS DNS API, Read https://beta.developer.hosting.ionos.de/docs/getstarted to learn how to get a prefix and secret."
+    _err "If you are using the IONOS Cloud DNS API, Read https://api.ionos.com/docs/authentication/v1/#tag/tokens/operation/tokensGenerate to learn how to get a token."
     _err ""
     _err "Then set them before calling acme.sh:"
     _err "\$ export IONOS_PREFIX=\"...\""
     _err "\$ export IONOS_SECRET=\"...\""
+    _err "#or"
+    _err "\$ export IONOS_TOKEN=\"...\""
     _err "\$ acme.sh --issue -d ... --dns dns_ionos"
     return 1
   fi
 
-  _saveaccountconf_mutable IONOS_PREFIX "$IONOS_PREFIX"
-  _saveaccountconf_mutable IONOS_SECRET "$IONOS_SECRET"
+  return 0
+}
 
-  if ! _get_root "$fulldomain"; then
-    _err "Cannot find this domain in your IONOS account."
-    return 1
+_get_cloud_zone() {
+  zone=$1
+  i=1
+  p=1
+
+  if _ionos_cloud_rest GET "$IONOS_ROUTE_ZONES?filter.zoneName=$zone"; then
+    _response="$(echo "$_response" | tr -d "\n")"
+
+    _zone="$(echo "$_response" | _egrep_o "\"name\":\"$zone\".*\}")"
+    if [ "$_zone" ]; then
+      _zone_id=$(printf "%s\n" "$_zone" | _egrep_o "\"id\":\"[a-fA-F0-9\-]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
+      if [ "$_zone_id" ]; then
+        return 0
+      fi
+      return 1
+    fi
   fi
+
+  return 1
 }
 
 _get_root() {
@@ -155,6 +213,35 @@ _ionos_rest() {
     export _H3=
 
     _response="$(_get "$IONOS_API$route")"
+  fi
+
+  _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
+
+  if [ "$?" != "0" ]; then
+    _err "Error $route: $_response"
+    return 1
+  fi
+
+  _debug2 "_response" "$_response"
+  _debug2 "_code" "$_code"
+
+  return 0
+}
+
+_ionos_cloud_rest() {
+  method="$1"
+  route="$2"
+  data="$3"
+
+  export _H1="Authorization: Bearer $IONOS_TOKEN"
+
+  # clear headers
+  : >"$HTTP_HEADER"
+
+  if [ "$method" != "GET" ]; then
+    _response="$(_post "$data" "$IONOS_CLOUD_API$route" "" "$method" "application/json")"
+  else
+    _response="$(_get "$IONOS_CLOUD_API$route")"
   fi
 
   _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
