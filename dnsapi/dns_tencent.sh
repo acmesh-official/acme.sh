@@ -14,7 +14,7 @@ dns_tencent_add() {
   if [ -z "$Tencent_SecretId" ] || [ -z "$Tencent_SecretKey" ]; then
     Tencent_SecretId=""
     Tencent_SecretKey=""
-    _err "You don't specify tencent api SecretId and SecretKey yet."
+    _err "You don't specify tencent api Tencent_SecretId and Tencent_SecretKey yet."
     return 1
   fi
 
