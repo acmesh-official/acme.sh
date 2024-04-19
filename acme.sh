@@ -20,6 +20,8 @@ _SUB_FOLDER_DEPLOY="deploy"
 
 _SUB_FOLDERS="$_SUB_FOLDER_DNSAPI $_SUB_FOLDER_DEPLOY $_SUB_FOLDER_NOTIFY"
 
+CA_LETSENCRYPT_V1="https://acme-v01.api.letsencrypt.org/directory"
+CA_LETSENCRYPT_V1_TEST="https://acme-staging.api.letsencrypt.org/directory"
 CA_LETSENCRYPT_V2="https://acme-v02.api.letsencrypt.org/directory"
 CA_LETSENCRYPT_V2_TEST="https://acme-staging-v02.api.letsencrypt.org/directory"
 
@@ -5399,18 +5401,15 @@ renew() {
   . "$DOMAIN_CONF"
   _debug Le_API "$Le_API"
 
-  case "$Le_API" in
-  "$CA_LETSENCRYPT_V2_TEST")
-    _info "Switching back to $CA_LETSENCRYPT_V2"
-    Le_API="$CA_LETSENCRYPT_V2"
+  # Fix outdated configurations; do not switch environments
+  case "${Le_API}" in
+  "${CA_LETSENCRYPT_V1_TEST}")
+    Le_API="${CA_LETSENCRYPT_V2_TEST}"
+    _info "Switching staging to ${Le_API}"
     ;;
-  "$CA_BUYPASS_TEST")
-    _info "Switching back to $CA_BUYPASS"
-    Le_API="$CA_BUYPASS"
-    ;;
-  "$CA_GOOGLE_TEST")
-    _info "Switching back to $CA_GOOGLE"
-    Le_API="$CA_GOOGLE"
+  "${CA_LETSENCRYPT_V1}")
+    Le_API="${CA_LETSENCRYPT_V2}"
+    _info "Switching production to ${Le_API}"
     ;;
   esac
 
