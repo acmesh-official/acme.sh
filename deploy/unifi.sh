@@ -13,10 +13,10 @@
 #       OS Version v2.0.0+
 #       Network Application version 7.0.0+
 #       OS version ~3.1 removed java and keytool from the UnifiOS. These must be
-#         manually installed by the system owner at their own risk, as 
+#         manually installed by the system owner at their own risk, as
 #         doing so may invalidate official Ubiquiti support/warranty.
 #         `apt update && apt install openjdk-11-jre-headless -y`
-# 
+#
 # Please report bugs to https://github.com/acmesh-official/acme.sh/issues/3359
 
 #returns 0 means success, otherwise error.
@@ -92,7 +92,8 @@ unifi_deploy() {
     _debug _unifi_keystore "$_unifi_keystore"
     if ! _exists keytool; then
       _err "keytool not found."
-      _keytool_instructions=$(cat <<-EOF
+      _keytool_instructions=$(
+        cat <<-EOF
       Unifi removed keytool from the console OS after version 3. 
       You may be able to reinstall with
       "apt update && apt install openjdk-11-jre-headless -y"
@@ -104,7 +105,7 @@ unifi_deploy() {
       https://github.com/acmesh-official/acme.sh/wiki/deployhooks#examples-using-ssh-deploy
 
 EOF
-)
+      )
       _info "$_keytool_instructions"
       return 1
     else
@@ -155,14 +156,16 @@ EOF
       -in "$_import_pkcs12" \
       -password pass:aircontrolenterprise \
       -nokeys | ${ACME_OPENSSL_BIN:-openssl} x509 -text \
-      -noout | grep -i "signature" | grep -iq ecdsa > /dev/null 2>&1; then
+      -noout | grep -i "signature" | grep -iq ecdsa >/dev/null 2>&1; then
       cp -f /usr/lib/unifi/data/system.properties /usr/lib/unifi/data/system.properties_original
       _info "Updating system configuration for cipher compatibility."
       _info "Saved original system config to /usr/lib/unifi/data/system.properties_original"
       sed -i '/unifi\.https\.ciphers/d' /usr/lib/unifi/data/system.properties
-      echo "unifi.https.ciphers=ECDHE-ECDSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-GCM-SHA256" &>> /usr/lib/unifi/data/system.properties
+      echo "unifi.https.ciphers=ECDHE-ECDSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-GCM-SHA256" &
+      >>/usr/lib/unifi/data/system.properties
       sed -i '/unifi\.https\.sslEnabledProtocols/d' /usr/lib/unifi/data/system.properties
-      echo "unifi.https.sslEnabledProtocols=TLSv1.3,TLSv1.2" &>> /usr/lib/unifi/data/system.properties
+      echo "unifi.https.sslEnabledProtocols=TLSv1.3,TLSv1.2" &
+      >>/usr/lib/unifi/data/system.properties
       _info "System configuration updated."
     fi
 
