@@ -1430,6 +1430,9 @@ _toPkcs() {
   else
     ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -inkey "$_ckey" -in "$_ccert" -certfile "$_cca"
   fi
+  if [ "$?" == "0" ]; then
+    _savedomainconf "Le_PFXPassword" "$pfxPassword"
+  fi
 
 }
 
@@ -5337,6 +5340,12 @@ $_authorizations_map"
   fi
   _savedomainconf "Le_NextRenewTimeStr" "$Le_NextRenewTimeStr"
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
+
+  #convert to pkcs12
+  if [ "$Le_PFXPassword" ]; then
+    _toPkcs "$CERT_PFX_PATH" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$Le_PFXPassword"
+  fi
+  export CERT_PFX_PATH
 
   if [ "$_real_cert$_real_key$_real_ca$_reload_cmd$_real_fullchain" ]; then
     _savedomainconf "Le_RealCertPath" "$_real_cert"
