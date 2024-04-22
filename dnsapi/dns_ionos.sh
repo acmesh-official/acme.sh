@@ -58,14 +58,27 @@ dns_ionos_rm() {
     return 1
   fi
 
-  if ! _ionos_get_record "$fulldomain" "$_zone_id" "$txtvalue"; then
-    _err "Could not find _acme-challenge TXT record."
-    return 1
-  fi
+  if [ $_context == "core" ];then
+    if ! _ionos_get_record "$fulldomain" "$_zone_id" "$txtvalue"; then
+      _err "Could not find _acme-challenge TXT record."
+      return 1
+    fi
 
-  if _ionos_rest DELETE "$IONOS_ROUTE_ZONES/$_zone_id/records/$_record_id" && [ "$_code" = "200" ]; then
-    _info "TXT record has been deleted successfully."
-    return 0
+    if _ionos_rest DELETE "$IONOS_ROUTE_ZONES/$_zone_id/records/$_record_id" && [ "$_code" = "200" ]; then
+      _info "TXT record has been deleted successfully."
+      return 0
+    fi 
+  else
+    if ! _ionos_cloud_get_record "$fulldomain" "$_zone_id" "$txtvalue"; then
+      _err "Could not find _acme-challenge TXT record."
+      return 1
+    fi
+
+    if _ionos_cloud_rest DELETE "$IONOS_CLOUD_ROUTE_ZONES/$_zone_id/records/$_record_id" && [ "$_code" = "200" ]; then
+      _info "TXT record has been deleted successfully."
+      return 0
+    fi 
+
   fi
 
   return 1
@@ -76,7 +89,7 @@ _ionos_init() {
   IONOS_SECRET="${IONOS_SECRET:-$(_readaccountconf_mutable IONOS_SECRET)}"
   IONOS_TOKEN="${IONOS_TOKEN:-$(_readaccountconf_mutable IONOS_TOKEN)}"
 
-  if [ -n "$IONOS_PREFIX" ] || [ -n "$IONOS_SECRET" ]; then
+  if [ -n "$IONOS_PREFIX" ] && [ -n "$IONOS_SECRET" ]; then
     _info "You have specified an IONOS api prefix and secret."
     _info "The script will use the IONOS DNS API: $IONOS_API"
 
@@ -100,7 +113,7 @@ _ionos_init() {
     fi
     $_context="cloud"
   else
-    _err "You didn't specify an IONOS credentials yet."
+    _err "You didn't specify any IONOS credentials yet."
     _err "If you are using the IONOS DNS API, Read https://beta.developer.hosting.ionos.de/docs/getstarted to learn how to get a prefix and secret."
     _err "If you are using the IONOS Cloud DNS API, Read https://api.ionos.com/docs/authentication/v1/#tag/tokens/operation/tokensGenerate to learn how to get a token."
     _err ""
@@ -114,27 +127,6 @@ _ionos_init() {
   fi
 
   return 0
-}
-
-_get_cloud_zone() {
-  zone=$1
-  i=1
-  p=1
-
-  if _ionos_cloud_rest GET "$IONOS_ROUTE_ZONES?filter.zoneName=$zone"; then
-    _response="$(echo "$_response" | tr -d "\n")"
-
-    _zone="$(echo "$_response" | _egrep_o "\"name\":\"$zone\".*\}")"
-    if [ "$_zone" ]; then
-      _zone_id=$(printf "%s\n" "$_zone" | _egrep_o "\"id\":\"[a-fA-F0-9\-]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
-      if [ "$_zone_id" ]; then
-        return 0
-      fi
-      return 1
-    fi
-  fi
-
-  return 1
 }
 
 _get_root() {
@@ -172,12 +164,52 @@ _get_root() {
   return 1
 }
 
+_get_cloud_zone() {
+  zone=$1
+  i=1
+  p=1
+
+  if _ionos_cloud_rest GET "$IONOS_CLOUD_ROUTE_ZONES?filter.zoneName=$zone"; then
+    _response="$(echo "$_response" | tr -d "\n")"
+
+    _zone="$(echo "$_response" | _egrep_o "\"name\":\"$zone\".*\}")"
+    if [ "$_zone" ]; then
+      _zone_id=$(printf "%s\n" "$_zone" | _egrep_o "\"id\":\"[a-fA-F0-9\-]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
+      if [ "$_zone_id" ]; then
+        return 0
+      fi
+      return 1
+    fi
+  fi
+
+  return 1
+}
+
 _ionos_get_record() {
   fulldomain=$1
   zone_id=$2
   txtrecord=$3
 
   if _ionos_rest GET "$IONOS_ROUTE_ZONES/$zone_id?recordName=$fulldomain&recordType=TXT"; then
+    _response="$(echo "$_response" | tr -d "\n")"
+
+    _record="$(echo "$_response" | _egrep_o "\"name\":\"$fulldomain\"[^\}]*\"type\":\"TXT\"[^\}]*\"content\":\"\\\\\"$txtrecord\\\\\"\".*\}")"
+    if [ "$_record" ]; then
+      _record_id=$(printf "%s\n" "$_record" | _egrep_o "\"id\":\"[a-fA-F0-9\-]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
+
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
+_ionos_cloud_get_record() {
+  fulldomain=$1
+  zone_id=$2
+  txtrecord=$3
+
+  if _ionos_cloud_rest GET "$IONOS_ROUTE_ZONES/$zone_id/records"; then
     _response="$(echo "$_response" | tr -d "\n")"
 
     _record="$(echo "$_response" | _egrep_o "\"name\":\"$fulldomain\"[^\}]*\"type\":\"TXT\"[^\}]*\"content\":\"\\\\\"$txtrecord\\\\\"\".*\}")"
