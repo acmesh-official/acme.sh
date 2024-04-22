@@ -1243,6 +1243,12 @@ _createcsr() {
   _debug2 csr "$csr"
   _debug2 csrconf "$csrconf"
 
+  if [ -f "$csrconf" ]; then
+    _info "CSR config already exists - skip config generation" "$csrconf"
+    ${ACME_OPENSSL_BIN:-openssl} req -new -sha256 -key "$csrkey" -config "$csrconf" -out "$csr"
+    return
+  fi
+  
   printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\nextendedKeyUsage=serverAuth,clientAuth\n" >"$csrconf"
 
   if [ "$acmeValidationv1" ]; then
