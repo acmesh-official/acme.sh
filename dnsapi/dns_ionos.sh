@@ -101,7 +101,7 @@ _ionos_init() {
       return 1
     fi
     $_context="core" 
-  else if [ -n "$IONOS_TOKEN" ]; then
+  elif [ -n "$IONOS_TOKEN" ]; then
     _info "You have specified an IONOS token."
     _info "The script will use the IONOS Cloud DNS API: $IONOS_CLOUD_API"
 
