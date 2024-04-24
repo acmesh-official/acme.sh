@@ -108,7 +108,7 @@ _ionos_init() {
     _saveaccountconf_mutable IONOS_TOKEN "$IONOS_TOKEN"
 
     if ! _get_cloud_zone "$fulldomain"; then
-      _err "Cannot find this zone in your IONOS account."
+      _err "Cannot find zone $zone in your IONOS account."
       return 1
     fi
     $_context="cloud"
@@ -165,20 +165,17 @@ _get_root() {
 }
 
 _get_cloud_zone() {
-  zone=$1
-  i=1
-  p=1
+  domain=$1
+  zone=$(printf "%s" "$domain" | cut -d . -f 2-)
 
   if _ionos_cloud_rest GET "$IONOS_CLOUD_ROUTE_ZONES?filter.zoneName=$zone"; then
     _response="$(echo "$_response" | tr -d "\n")"
 
-    _zone="$(echo "$_response" | _egrep_o "\"name\":\"$zone\".*\}")"
-    if [ "$_zone" ]; then
-      _zone_id=$(printf "%s\n" "$_zone" | _egrep_o "\"id\":\"[a-fA-F0-9\-]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
-      if [ "$_zone_id" ]; then
-        return 0
-      fi
-      return 1
+    _zone_list_items=$(echo "$_response" | _egrep_o "\"items\":.*")
+
+    _zone_id=$(printf "%s\n" "$_zone_list_items" | _egrep_o "\"id\":\"[a-fA-F0-9\-]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
+    if [ "$_zone_id" ]; then
+      return 0
     fi
   fi
 
