@@ -39,7 +39,8 @@ dns_ionos_add() {
       return 0
     fi
   else
-    _body="{\"properties\":{\"name\":\"$fulldomain\", \"type\":\"TXT\", \"content\":\"$txtvalue\"}}"
+    _record_name=$(printf "%s" "$fulldomain" | cut -d . -f 1)
+    _body="{\"properties\":{\"name\":\"$_record_name\", \"type\":\"TXT\", \"content\":\"$txtvalue\"}}"
 
     if _ionos_cloud_rest POST "$IONOS_CLOUD_ROUTE_ZONES/$_zone_id/records" "$_body" && [ "$_code" = "202" ]; then
       _info "TXT record has been created successfully."
@@ -69,7 +70,8 @@ dns_ionos_rm() {
       return 0
     fi 
   else
-    if ! _ionos_cloud_get_record "$fulldomain" "$_zone_id" "$txtvalue"; then
+    _record_name=$(printf "%s" "$fulldomain" | cut -d . -f 1)
+    if ! _ionos_cloud_get_record "$_record_name" "$_zone_id" "$txtvalue"; then
       _err "Could not find _acme-challenge TXT record."
       return 1
     fi
@@ -202,14 +204,14 @@ _ionos_get_record() {
 }
 
 _ionos_cloud_get_record() {
-  fulldomain=$1
+  _record_name=$1
   zone_id=$2
   txtrecord=$3
 
   if _ionos_cloud_rest GET "$IONOS_ROUTE_ZONES/$zone_id/records"; then
     _response="$(echo "$_response" | tr -d "\n")"
 
-    _record="$(echo "$_response" | _egrep_o "\"name\":\"$fulldomain\"[^\}]*\"type\":\"TXT\"[^\}]*\"content\":\"\\\\\"$txtrecord\\\\\"\".*\}")"
+    _record="$(echo "$_response" | _egrep_o "\"name\":\"$_record_name\"[^\}]*\"type\":\"TXT\"[^\}]*\"content\":\"\\\\\"$txtrecord\\\\\"\".*\}")"
     if [ "$_record" ]; then
       _record_id=$(printf "%s\n" "$_record" | _egrep_o "\"id\":\"[a-fA-F0-9\-]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
 
