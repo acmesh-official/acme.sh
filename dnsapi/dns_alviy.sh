@@ -110,7 +110,7 @@ _get_root() {
       return 1
     fi
 
-    if ! _alviy_rest GET "zone/$h"; then
+    if ! _alviy_rest GET "zone/$h/"; then
       return 1
     fi
 
