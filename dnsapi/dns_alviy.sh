@@ -104,7 +104,7 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain"  | rev | cut -d . -f 1-2 | rev )
     if [ -z "$h" ]; then
       #not valid
       return 1
