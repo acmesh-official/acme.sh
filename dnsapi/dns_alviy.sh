@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-
+#
 # Alviy domain api
 # Get API key and secret from https://cloud.alviy.com/token
 #
