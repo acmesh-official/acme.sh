@@ -37,7 +37,7 @@ dns_alviy_add() {
   _debug _domain "$_domain"
 
   _debug "Getting existing records"
-  if _alviy_txt_exists $_domain $fulldomain $txtvalue; then
+  if _alviy_txt_exists "$_domain" "$fulldomain" "$txtvalue"; then
     _info "This record already exists, skipping"
     return 0
   fi
@@ -48,7 +48,7 @@ dns_alviy_add() {
   if _alviy_rest POST "zone/$_domain/domain/$fulldomain/" "$_add_data"; then
     _debug "Checking updated records of '${fulldomain}'"
 
-    if ! _alviy_txt_exists $_domain $fulldomain $txtvalue; then
+    if ! _alviy_txt_exists "$_domain" "$fulldomain" "$txtvalue"; then
       _err "TXT record '${txtvalue}' for '${fulldomain}', value wasn't set!"
       return 1
     fi
@@ -79,13 +79,13 @@ dns_alviy_rm() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  if ! _alviy_txt_exists $_domain $fulldomain $txtvalue; then
+  if ! _alviy_txt_exists "$_domain" "$fulldomain" "$txtvalue"; then
     _info "The record does not exist, skip"
     return 0
   fi
 
   _add_data=""
-  uuid=$(echo $response |tr "{" "\n"|grep $txtvalue|tr "," "\n"|grep uuid|cut -d \" -f4)
+  uuid=$(echo "$response" |tr "{" "\n"|grep "$txtvalue"|tr "," "\n"|grep uuid|cut -d \" -f4)
   # delete record
   _debug "Delete TXT record for '${fulldomain}'"
   if ! _alviy_rest DELETE "zone/$_domain/record/$uuid" "{\"confirm\":1}"; then
@@ -163,7 +163,7 @@ _alviy_rest() {
     response="$(_get "$Alviy_Api/$path")"
   fi
   _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
-  if [ "$_code" == "401" ]; then
+  if [ "$_code" = "401" ]; then
     _err "It seems that your api key or secret is not correct."
     return 1
   fi
