@@ -85,7 +85,7 @@ dns_alviy_rm() {
   fi
 
   _add_data=""
-  uuid=$(echo "$response" |tr "{" "\n"|grep "$txtvalue"|tr "," "\n"|grep uuid|cut -d \" -f4)
+  uuid=$(echo "$response" | tr "{" "\n" | grep "$txtvalue" | tr "," "\n" | grep uuid | cut -d \" -f4)
   # delete record
   _debug "Delete TXT record for '${fulldomain}'"
   if ! _alviy_rest DELETE "zone/$_domain/record/$uuid" "{\"confirm\":1}"; then
@@ -168,7 +168,6 @@ _alviy_rest() {
     return 1
   fi
 
-
   if [ "$_code" != "200" ]; then
     _err "API call error ($method): $path Response code $_code"
   fi
@@ -180,4 +179,3 @@ _alviy_rest() {
   _debug2 response "$response"
   return 0
 }
-
