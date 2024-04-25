@@ -31,7 +31,7 @@ dns_ionos_add() {
     return 1
   fi
 
-  if [ $_context == "core" ];then
+  if [ "$_context" == "core" ];then
     _body="[{\"name\":\"$_sub_domain.$_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"ttl\":$IONOS_TXT_TTL,\"prio\":$IONOS_TXT_PRIO,\"disabled\":false}]"
 
     if _ionos_rest POST "$IONOS_ROUTE_ZONES/$_zone_id/records" "$_body" && [ "$_code" = "201" ]; then
@@ -59,7 +59,7 @@ dns_ionos_rm() {
     return 1
   fi
 
-  if [ $_context == "core" ];then
+  if [ "$_context" == "core" ];then
     if ! _ionos_get_record "$fulldomain" "$_zone_id" "$txtvalue"; then
       _err "Could not find _acme-challenge TXT record."
       return 1
@@ -102,7 +102,7 @@ _ionos_init() {
       _err "Cannot find this domain in your IONOS account."
       return 1
     fi
-    $_context="core" 
+    _context="core" 
   elif [ -n "$IONOS_TOKEN" ]; then
     _info "You have specified an IONOS token."
     _info "The script will use the IONOS Cloud DNS API: $IONOS_CLOUD_API"
@@ -113,7 +113,7 @@ _ionos_init() {
       _err "Cannot find zone $zone in your IONOS account."
       return 1
     fi
-    $_context="cloud"
+    _context="cloud"
   else
     _err "You didn't specify any IONOS credentials yet."
     _err "If you are using the IONOS DNS API, Read https://beta.developer.hosting.ionos.de/docs/getstarted to learn how to get a prefix and secret."
