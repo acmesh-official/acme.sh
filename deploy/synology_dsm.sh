@@ -227,7 +227,7 @@ synology_dsm_deploy() {
     fi
   fi
 
-  error_code=$(echo "$response" | grep '"error":' | grep '"code":[0-9]*' | grep -o '[0-9]*')
+  error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -o '[0-9]*')
   _debug2 error_code "$error_code"
   # Account has 2FA-OTP enabled, since error 403 reported.
   # https://global.download.synology.com/download/Document/Software/DeveloperGuide/Firmware/DSM/All/enu/Synology_DiskStation_Administration_CLI_Guide.pdf
@@ -262,7 +262,7 @@ synology_dsm_deploy() {
         _secure_debug2 SYNO_DEVICE_ID "$SYNO_DEVICE_ID"
       fi
     fi
-    error_code=$(echo "$response" | grep '"error":' | grep '"code":[0-9]*' | grep -o '[0-9]*')
+    error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -o '[0-9]*')
     _debug2 error_code "$error_code"
   fi
 
@@ -325,7 +325,7 @@ synology_dsm_deploy() {
   id=$(echo "$response" | sed -n "s/.*\"desc\":\"$escaped_certificate\",\"id\":\"\([^\"]*\).*/\1/p")
   _debug2 id "$id"
 
-  error_code=$(echo "$response" | grep '"error":' | grep '"code":[0-9]*' | grep -o '[0-9]*')
+  error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -o '[0-9]*')
   _debug2 error_code "$error_code"
   if [ -n "$error_code" ]; then
     if [ "$error_code" -eq 105 ]; then
