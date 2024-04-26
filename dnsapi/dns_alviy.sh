@@ -105,8 +105,8 @@ _get_root() {
   h=$(printf "%s" "$domain" | rev | cut -d . -f 1-2 | rev)
   if [ -z "$h" ]; then
     #not valid
-    hd=$(printf "%s" "$domain" | rev)
-    _debug "can't get host from $domain $hd"
+    _alviy_rest GET "zone/$domain/"
+    _debug "can't get host from $domain"
     return 1
   fi
 
