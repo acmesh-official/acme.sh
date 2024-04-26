@@ -102,16 +102,16 @@ dns_alviy_rm() {
 # _domain=domain.com
 _get_root() {
   domain=$1
-  i=2
   h=$(printf "%s" "$domain" | rev | cut -d . -f 1-2 | rev)
   if [ -z "$h" ]; then
     #not valid
-	_debug "can't get host from $domain"
+    hd=$(printf "%s" "$domain" | rev)
+    _debug "can't get host from $domain $hd"
     return 1
   fi
 
   if ! _alviy_rest GET "zone/$h/"; then
-	return 1
+    return 1
   fi
 
   if _contains "$response" '"code":"NOT_FOUND"'; then
