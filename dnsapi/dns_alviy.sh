@@ -103,28 +103,24 @@ dns_alviy_rm() {
 _get_root() {
   domain=$1
   i=2
-  p=1
-  while true; do
-    h=$(printf "%s" "$domain" | rev | cut -d . -f 1-2 | rev)
-    if [ -z "$h" ]; then
-      #not valid
-      return 1
-    fi
+  h=$(printf "%s" "$domain" | rev | cut -d . -f 1-2 | rev)
+  if [ -z "$h" ]; then
+    #not valid
+	_debug "can't get host from $domain"
+    return 1
+  fi
 
-    if ! _alviy_rest GET "zone/$h/"; then
-      return 1
-    fi
+  if ! _alviy_rest GET "zone/$h/"; then
+	return 1
+  fi
 
-    if _contains "$response" '"code":"NOT_FOUND"'; then
-      _debug "$h not found"
-    else
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
-      _domain="$h"
-      return 0
-    fi
-    p="$i"
-    i=$(_math "$i" + 1)
-  done
+  if _contains "$response" '"code":"NOT_FOUND"'; then
+    _debug "$h not found"
+  else
+    _sub_domain=$(printf "%s" "$domain" | rev | cut -d . -f 3- | rev)
+    _domain="$h"
+    return 0
+  fi
   return 1
 }
 
