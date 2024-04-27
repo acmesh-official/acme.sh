@@ -104,11 +104,11 @@ _get_root() {
   domain=$1
   i=3
   a="init"
-  while [ ! -z $a ]; do
+  while [ -n $a ]; do
     a=$(printf "%s" "$domain" | cut -d . -f $i-)
-    i=$(($i + 1))
+    i=$((i + 1))
   done
-  n=$(($i - 3))
+  n=$((i - 3))
   h=$(printf "%s" "$domain" | cut -d . -f $n-)
   if [ -z "$h" ]; then
     #not valid
@@ -124,7 +124,7 @@ _get_root() {
   if _contains "$response" '"code":"NOT_FOUND"'; then
     _debug "$h not found"
   else
-    s=$(($n - 1))
+    s=$((n - 1))
     _sub_domain=$(printf "%s" "$domain" | cut -d . -f -$s)
     _domain="$h"
     return 0
