@@ -104,13 +104,12 @@ _get_root() {
   domain=$1
   i=3
   a="init"
-  while [ ! -z $a ]
-  do
+  while [ ! -z $a ]; do
     a=$(printf "%s" "$domain" | cut -d . -f $i-)
-    i=`expr $i + 1`
+    i=$(($i + 1))
   done
-  num=`expr $i - 3`
-  h=$(printf "%s" "$domain" | cut -d . -f $num-)
+  n=$(($i - 3))
+  h=$(printf "%s" "$domain" | cut -d . -f $n-)
   if [ -z "$h" ]; then
     #not valid
     _alviy_rest GET "zone/$domain/"
@@ -125,8 +124,8 @@ _get_root() {
   if _contains "$response" '"code":"NOT_FOUND"'; then
     _debug "$h not found"
   else
-    s_n=`expr $num - 1`
-    _sub_domain=$(printf "%s" "$domain" | cut -d . -f -$s_n)
+    s=$(($n - 1))
+    _sub_domain=$(printf "%s" "$domain" | cut -d . -f -$s)
     _domain="$h"
     return 0
   fi
