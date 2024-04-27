@@ -102,7 +102,15 @@ dns_alviy_rm() {
 # _domain=domain.com
 _get_root() {
   domain=$1
-  h=$(printf "%s" "$domain" | rev | cut -d . -f 1-2 | rev)
+  i=3
+  a="init"
+  while [ ! -z $a ]
+  do
+    a=$(printf "%s" "$domain" | cut -d . -f $i-)
+    i=`expr $i + 1`
+  done
+  num=`expr $i - 3`
+  h=$(printf "%s" "$domain" | cut -d . -f $num-)
   if [ -z "$h" ]; then
     #not valid
     _alviy_rest GET "zone/$domain/"
@@ -117,7 +125,8 @@ _get_root() {
   if _contains "$response" '"code":"NOT_FOUND"'; then
     _debug "$h not found"
   else
-    _sub_domain=$(printf "%s" "$domain" | rev | cut -d . -f 3- | rev)
+    s_n=`expr $num - 1`
+    _sub_domain=$(printf "%s" "$domain" | cut -d . -f -$s_n)
     _domain="$h"
     return 0
   fi
