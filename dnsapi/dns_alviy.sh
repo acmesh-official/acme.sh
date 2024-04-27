@@ -104,7 +104,7 @@ _get_root() {
   domain=$1
   i=3
   a="init"
-  while [ -n $a ]; do
+  while [ -n "$a" ]; do
     a=$(printf "%s" "$domain" | cut -d . -f $i-)
     i=$((i + 1))
   done
