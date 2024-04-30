@@ -67,7 +67,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Clone acmetest
-      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      run: cd .. && git clone --depth=1 -b randomize_record_content_letest https://github.com/zak905/acmetest.git  && cp -r acme.sh acmetest/
     - name: Set env file
       run: |
         cd ../acmetest
