@@ -513,5 +513,6 @@ _sl_init_vars() {
   if [ -z "$_non_save" ]; then
     _saveaccountconf_mutable SL_Ver "$SL_Ver"
   fi
+
   return 0
 }
