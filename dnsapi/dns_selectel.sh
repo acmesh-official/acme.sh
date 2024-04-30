@@ -427,7 +427,7 @@ _sl_init_vars() {
   # version API
   SL_Ver="${SL_Ver:-$(_readaccountconf_mutable SL_Ver)}"
   if [ -z "$SL_Ver" ]; then
-    SL_Ver="v1"
+    SL_Ver="v2"
   fi
   if ! [ "$SL_Ver" = "v1" ] && ! [ "$SL_Ver" = "v2" ]; then
     _err "You don't specify selectel.ru API version."
