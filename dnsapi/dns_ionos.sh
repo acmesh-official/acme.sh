@@ -208,6 +208,8 @@ _ionos_cloud_get_record() {
   fulldomain=$3
   _record_name=$(printf "%s" "$fulldomain" | cut -d . -f 1)
 
+   _info "grepping with the following args: zone_id=$zone_id txtrecord=$txtrecord fulldomain=$fulldomain _record_name=$_record_name"
+
   if _ionos_cloud_rest GET "$IONOS_CLOUD_ROUTE_ZONES/$zone_id/records"; then
     _response="$(echo "$_response" | tr -d "\n")"
 
