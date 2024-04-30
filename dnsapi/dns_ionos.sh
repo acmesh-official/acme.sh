@@ -70,13 +70,12 @@ dns_ionos_rm() {
       return 0
     fi 
   else
-    _record_name=$(printf "%s" "$fulldomain" | cut -d . -f 1)
-    if ! _ionos_cloud_get_record "$_record_name" "$_zone_id" "$txtvalue"; then
+    if ! _ionos_cloud_get_record "$_zone_id" "$txtvalue" "$fulldomain"; then
       _err "Could not find _acme-challenge TXT record."
       return 1
     fi
 
-    if _ionos_cloud_rest DELETE "$IONOS_CLOUD_ROUTE_ZONES/$_zone_id/records/$_record_id" && [ "$_code" = "200" ]; then
+    if _ionos_cloud_rest DELETE "$IONOS_CLOUD_ROUTE_ZONES/$_zone_id/records/$_record_id" && [ "$_code" = "202" ]; then
       _info "TXT record has been deleted successfully."
       return 0
     fi 
@@ -204,14 +203,17 @@ _ionos_get_record() {
 }
 
 _ionos_cloud_get_record() {
-  _record_name=$1
-  zone_id=$2
-  txtrecord=$3
+  zone_id=$1
+  txtrecord=$2
+  fulldomain=$3
+  _record_name=$(printf "%s" "$fulldomain" | cut -d . -f 1)
 
-  if _ionos_cloud_rest GET "$IONOS_ROUTE_ZONES/$zone_id/records"; then
+  if _ionos_cloud_rest GET "$IONOS_CLOUD_ROUTE_ZONES/$zone_id/records"; then
     _response="$(echo "$_response" | tr -d "\n")"
 
-    _record="$(echo "$_response" | _egrep_o "\"name\":\"$_record_name\"[^\}]*\"type\":\"TXT\"[^\}]*\"content\":\"\\\\\"$txtrecord\\\\\"\".*\}")"
+    pattern="{\"id\":\"[a-fA-F0-9\-]*\",\"type\":\"record\",\"href\":\"/zones/$zone_id/records/[a-fA-F0-9\-]*\",\"metadata\":{\"createdDate\":\"[A-Z0-9\:\.\-]*\",\"lastModifiedDate\":\"[A-Z0-9\:\.\-]*\",\"fqdn\":\"$fulldomain\",\"state\":\"AVAILABLE\",\"zoneId\":\"$zone_id\"},\"properties\":{\"content\":\"$txtrecord\",\"enabled\":true,\"name\":\"$_record_name\",\"priority\":[0-9]*,\"ttl\":[0-9]*,\"type\":\"TXT\"}}"
+
+    _record="$(echo "$_response" | _egrep_o $pattern)"
     if [ "$_record" ]; then
       _record_id=$(printf "%s\n" "$_record" | _egrep_o "\"id\":\"[a-fA-F0-9\-]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
 
