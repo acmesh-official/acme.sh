@@ -31,7 +31,7 @@ dns_ionos_add() {
     return 1
   fi
 
-  if [ "$_context" == "core" ];then
+  if [ "$_context" = "core" ];then
     _body="[{\"name\":\"$_sub_domain.$_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"ttl\":$IONOS_TXT_TTL,\"prio\":$IONOS_TXT_PRIO,\"disabled\":false}]"
 
     if _ionos_rest POST "$IONOS_ROUTE_ZONES/$_zone_id/records" "$_body" && [ "$_code" = "201" ]; then
@@ -59,7 +59,7 @@ dns_ionos_rm() {
     return 1
   fi
 
-  if [ "$_context" == "core" ];then
+  if [ "$_context" = "core" ];then
     if ! _ionos_get_record "$fulldomain" "$_zone_id" "$txtvalue"; then
       _err "Could not find _acme-challenge TXT record."
       return 1
@@ -218,7 +218,7 @@ _ionos_cloud_get_record() {
 
     pattern="{\"id\":\"[a-fA-F0-9\-]*\",\"type\":\"record\",\"href\":\"/zones/$zone_id/records/[a-fA-F0-9\-]*\",\"metadata\":{\"createdDate\":\"[A-Z0-9\:\.\-]*\",\"lastModifiedDate\":\"[A-Z0-9\:\.\-]*\",\"fqdn\":\"$fulldomain\",\"state\":\"AVAILABLE\",\"zoneId\":\"$zone_id\"},\"properties\":{\"content\":\"$txtrecord\",\"enabled\":true,\"name\":\"$_record_name\",\"priority\":[0-9]*,\"ttl\":[0-9]*,\"type\":\"TXT\"}}"
 
-    _record="$(echo "$_response" | _egrep_o $pattern)"
+    _record="$(echo "$_response" | _egrep_o "$pattern")"
      _info "the found record after grep: $_record"
     if [ "$_record" ]; then
       _record_id=$(printf "%s\n" "$_record" | _egrep_o "\"id\":\"[a-fA-F0-9\-]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
