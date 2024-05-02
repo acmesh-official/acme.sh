@@ -205,11 +205,11 @@ _ionos_get_record() {
 _ionos_cloud_get_record() {
   zone_id=$1
   txtrecord=$2
-  fulldomain=$3
-  _record_name=$(printf "%s" "$fulldomain" | cut -d . -f 1)
-  # this is to transform record name to lower case
+   # this is to transform the domain to lower case
+  fulldomain=$(printf "%s" "$3"  | tr "[:upper:]" "[:lower:]")
+    # this is to transform record name to lower case
   # IONOS Cloud API transforms all record names to lower case
-  _record_name=${_record_name@L}
+  _record_name=$(printf "%s" "$fulldomain" | cut -d . -f 1 | tr "[:upper:]" "[:lower:]")
 
    _info "grepping with the following args: zone_id=$zone_id txtrecord=$txtrecord fulldomain=$fulldomain _record_name=$_record_name"
 
