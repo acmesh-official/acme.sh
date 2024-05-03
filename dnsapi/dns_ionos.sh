@@ -7,7 +7,7 @@
 #
 #   $ export IONOS_PREFIX="..."
 #   $ export IONOS_SECRET="..."
-# or 
+# or
 #   $ export IONOS_TOKEN="..."
 #
 #   $ acme.sh --issue --dns dns_ionos ...
@@ -31,7 +31,7 @@ dns_ionos_add() {
     return 1
   fi
 
-  if [ "$_context" = "core" ];then
+  if [ "$_context" = "core" ]; then
     _body="[{\"name\":\"$_sub_domain.$_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"ttl\":$IONOS_TXT_TTL,\"prio\":$IONOS_TXT_PRIO,\"disabled\":false}]"
 
     if _ionos_rest POST "$IONOS_ROUTE_ZONES/$_zone_id/records" "$_body" && [ "$_code" = "201" ]; then
@@ -59,7 +59,7 @@ dns_ionos_rm() {
     return 1
   fi
 
-  if [ "$_context" = "core" ];then
+  if [ "$_context" = "core" ]; then
     if ! _ionos_get_record "$fulldomain" "$_zone_id" "$txtvalue"; then
       _err "Could not find _acme-challenge TXT record."
       return 1
@@ -68,7 +68,7 @@ dns_ionos_rm() {
     if _ionos_rest DELETE "$IONOS_ROUTE_ZONES/$_zone_id/records/$_record_id" && [ "$_code" = "200" ]; then
       _info "TXT record has been deleted successfully."
       return 0
-    fi 
+    fi
   else
     if ! _ionos_cloud_get_record "$_zone_id" "$txtvalue" "$fulldomain"; then
       _err "Could not find _acme-challenge TXT record."
@@ -78,7 +78,7 @@ dns_ionos_rm() {
     if _ionos_cloud_rest DELETE "$IONOS_CLOUD_ROUTE_ZONES/$_zone_id/records/$_record_id" && [ "$_code" = "202" ]; then
       _info "TXT record has been deleted successfully."
       return 0
-    fi 
+    fi
 
   fi
 
@@ -101,7 +101,7 @@ _ionos_init() {
       _err "Cannot find this domain in your IONOS account."
       return 1
     fi
-    _context="core" 
+    _context="core"
   elif [ -n "$IONOS_TOKEN" ]; then
     _info "You have specified an IONOS token."
     _info "The script will use the IONOS Cloud DNS API: $IONOS_CLOUD_API"
@@ -205,21 +205,21 @@ _ionos_get_record() {
 _ionos_cloud_get_record() {
   zone_id=$1
   txtrecord=$2
-   # this is to transform the domain to lower case
-  fulldomain=$(printf "%s" "$3"  | tr "[:upper:]" "[:lower:]")
-    # this is to transform record name to lower case
+  # this is to transform the domain to lower case
+  fulldomain=$(printf "%s" "$3" | tr "[:upper:]" "[:lower:]")
+  # this is to transform record name to lower case
   # IONOS Cloud API transforms all record names to lower case
   _record_name=$(printf "%s" "$fulldomain" | cut -d . -f 1 | tr "[:upper:]" "[:lower:]")
 
-   _info "grepping with the following args: zone_id=$zone_id txtrecord=$txtrecord fulldomain=$fulldomain _record_name=$_record_name"
+  _info "grepping with the following args: zone_id=$zone_id txtrecord=$txtrecord fulldomain=$fulldomain _record_name=$_record_name"
 
   if _ionos_cloud_rest GET "$IONOS_CLOUD_ROUTE_ZONES/$zone_id/records"; then
     _response="$(echo "$_response" | tr -d "\n")"
 
-    pattern="{\"id\":\"[a-fA-F0-9\-]*\",\"type\":\"record\",\"href\":\"/zones/$zone_id/records/[a-fA-F0-9\-]*\",\"metadata\":{\"createdDate\":\"[A-Z0-9\:\.\-]*\",\"lastModifiedDate\":\"[A-Z0-9\:\.\-]*\",\"fqdn\":\"$fulldomain\",\"state\":\"AVAILABLE\",\"zoneId\":\"$zone_id\"},\"properties\":{\"content\":\"$txtrecord\",\"enabled\":true,\"name\":\"$_record_name\",\"priority\":[0-9]*,\"ttl\":[0-9]*,\"type\":\"TXT\"}}"
+    pattern="\{\"id\":\"[a-fA-F0-9\-]*\",\"type\":\"record\",\"href\":\"/zones/$zone_id/records/[a-fA-F0-9\-]*\",\"metadata\":\{\"createdDate\":\"[A-Z0-9\:\.\-]*\",\"lastModifiedDate\":\"[A-Z0-9\:\.\-]*\",\"fqdn\":\"$fulldomain\",\"state\":\"AVAILABLE\",\"zoneId\":\"$zone_id\"\},\"properties\":\{\"content\":\"$txtrecord\",\"enabled\":true,\"name\":\"$_record_name\",\"priority\":[0-9]*,\"ttl\":[0-9]*,\"type\":\"TXT\"\}\}"
 
     _record="$(echo "$_response" | _egrep_o "$pattern")"
-     _info "the found record after grep: $_record"
+    _info "the found record after grep: $_record"
     if [ "$_record" ]; then
       _record_id=$(printf "%s\n" "$_record" | _egrep_o "\"id\":\"[a-fA-F0-9\-]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
       _info "the record id after the search is: $_record_id"
