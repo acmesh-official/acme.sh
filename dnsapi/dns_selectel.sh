@@ -1,23 +1,23 @@
 #!/usr/bin/env sh
 
-# переменные, которые должны быть определены перед запуском
-#   export SL_Ver="v1"                    - версия API: 'v2' (actual) или 'v1' (legacy).
-#                                           По-умолчанию: v1
-# Если SL_Ver="v1"
-#   export SL_Key="API_Key"               - Токен Selectel (API key)
-#                                           Посмотреть или создать можно в панели управления в правом верхнем углу откройте меню Профиль и настройки -> Ключи API.
+# Variables that must be defined before running
+#   export SL_Ver="v1"                    - version API: 'v2' (actual) or 'v1' (legacy).
+#                                           Default: v1
+# If SL_Ver="v1"
+#   export SL_Key="API_Key"               - Token Selectel (API key)
+#                                           You can view or create in the control panel in the upper right corner, open the menu: "Profile and setting -> Keys API".
 #                                           https://my.selectel.ru/profile/apikeys
-# Если SL_Ver="v2"
-#   export SL_Expire=60                   - время жизни token в минутах (0-1440).
-#                                           По-умолчанию: 1400 минут
-#   export SL_Login_ID=<account_id>       - номер аккаунта в панели управления;
-#   export SL_Project_Name=<project_name> - имя проекта.
-#   export SL_Login_name=<username>       - имя сервисного пользователя. Посмотреть имя можно в панели управления:
-#                                           в правом верхнем углу откройте меню → Профиль и настройки → раздел Управление пользователями → вкладка Сервисные пользователи
-#   export SL_Pswd='pswd'                 - пароль сервисного пользователя, можно посмотреть при создании пользователя или изменить на новый.
-# Все эти переменные будут сохранены ~/.acme.sh/account.conf  и будут использоваться повторно при необходимости.
+# If SL_Ver="v2"
+#   export SL_Expire=60                   - token lifetime in minutes (0-1440).
+#                                           Default: 1400 minutes
+#   export SL_Login_ID=<account_id>       - account number in the control panel;
+#   export SL_Project_Name=<project_name> - name project.
+#   export SL_Login_name=<username>       - service user name. You can view the name in the control panel:
+#                                           in the upper right corner open menu: "Profile and setting → User management → Service users
+#   export SL_Pswd='pswd'                 - service user password, can be viewed when creating a user or changed to a new one.
+# All these variables will be saved in ~/.acme.sh/account.conf and will be reused as needed.
 #
-# Авторизация описана в:
+# Authorization is described in:
 #   https://developers.selectel.ru/docs/control-panel/authorization/
 #   https://developers.selectel.com/docs/control-panel/authorization/
 
@@ -75,24 +75,24 @@ dns_selectel_add() {
       return 0
     fi
     if _contains "$response" "already_exists"; then
-      # запись TXT с $fulldomain уже существует
+      # record TXT with $fulldomain already exists
       if [ "$SL_Ver" = "v2" ]; then
-        # надо добавить к существующей записи еще один content
-        # считать записи rrset
+        # It is necessary to add one more content to the comments
+        # read all records rrset
         _debug "Getting txt records"
         _sl_rest GET "${_ext_uri}"
-        # Уже есть значение $txtvalue, добавлять не надо
+        # There is already a $txtvalue value, no need to add it
         if _contains "$response" "$txtvalue"; then
           _info "Added, OK"
-          _info "Txt record ${fulldomain} со значением ${txtvalue} already exists"
+          _info "Txt record ${fulldomain} with value ${txtvalue} already exists"
           return 0
         fi
-        # группа \1 - полная запись rrset; группа \2 - значение атрибута records, а именно {"content":"\"value1\""},{"content":"\"value2\""}",...
+        # group \1 - full record rrset; group \2 - records attribute value, exactly {"content":"\"value1\""},{"content":"\"value2\""}",...
         _record_seg="$(echo "$response" | sed -En "s/.*(\{\"id\"[^}]*${fulldomain}[^}]*records[^}]*\[(\{[^]]*\})\][^}]*}).*/\1/p")"
         _record_array="$(echo "$response" | sed -En "s/.*(\{\"id\"[^}]*${fulldomain}[^}]*records[^}]*\[(\{[^]]*\})\][^}]*}).*/\2/p")"
         # record id
         _record_id="$(echo "$_record_seg" | tr "," "\n" | tr "}" "\n" | tr -d " " | grep "\"id\"" | cut -d : -f 2 | tr -d "\"")"
-        # готовим _data
+        # preparing _data
         _tmp_str="${_record_array},{\"content\":\"${_text_tmp}\"}"
         _data="{\"ttl\": 60, \"records\": [${_tmp_str}]}"
         _debug3 _record_seg "$_record_seg"
@@ -172,11 +172,11 @@ dns_selectel_rm() {
     return 1
   fi
   # record id
-  # следующие строки меняют алгоритм удаления записей со значением $txtvalue
-  # если использовать 1-ю строку, то за раз удаляются все такие записи
-  # если использовать 2-ю строку, то удаляется только первая запись из них
-  #_record_id="$(echo "$_record_seg" | tr "," "\n" | tr "}" "\n" | tr -d " " | grep "\"id\"" | cut -d : -f 2 | tr -d "\"")" # удалять все записи со значением $txtvalue
-  _record_id="$(echo "$_record_seg" | tr "," "\n" | tr "}" "\n" | tr -d " " | grep "\"id\"" | cut -d : -f 2 | tr -d "\"" | sed '1!d')" # удалять только первую запись со значением $txtvalue
+  # the following lines change the algorithm for deleting records with the value $txtvalue
+  # if you use the 1st line, then all such records are deleted at once
+  # if you use the 2nd line, then only the first entry from them is deleted
+  #_record_id="$(echo "$_record_seg" | tr "," "\n" | tr "}" "\n" | tr -d " " | grep "\"id\"" | cut -d : -f 2 | tr -d "\"")"
+  _record_id="$(echo "$_record_seg" | tr "," "\n" | tr "}" "\n" | tr -d " " | grep "\"id\"" | cut -d : -f 2 | tr -d "\"" | sed '1!d')"
   if [ -z "$_record_id" ]; then
     _err "can not find _record_id"
     return 1
@@ -190,17 +190,17 @@ dns_selectel_rm() {
     _del_uri="${_ext_uri}${_record_id}"
     _debug _del_uri "$_del_uri"
     if [ -z "$_new_arr" ]; then
-      # удалить запись
+      # remove record
       if ! _sl_rest DELETE "${_del_uri}"; then
         _err "Delete record error: ${_del_uri}."
       else
         info "Delete record success: ${_del_uri}."
       fi
     else
-      # обновить запись, удалив content
+      # update a record by removing one element in content
       _data="{\"ttl\": 60, \"records\": [${_new_arr}]}"
       _debug3 _data "$_data"
-      # вызов REST API PATCH
+      # REST API PATCH call
       if _sl_rest PATCH "${_del_uri}" "$_data"; then
         _info "Patched, OK: ${_del_uri}"
       else
