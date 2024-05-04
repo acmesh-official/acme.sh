@@ -4,7 +4,7 @@
 #   export SL_Ver="v1"                    - версия API: 'v2' (actual) или 'v1' (legacy).
 #                                           По-умолчанию: v1
 # Если SL_Ver="v1"
-#   export SL_Key="API_KEY"               - Токен Selectel (API key)
+#   export SL_Key="API_Key"               - Токен Selectel (API key)
 #                                           Посмотреть или создать можно в панели управления в правом верхнем углу откройте меню Профиль и настройки -> Ключи API.
 #                                           https://my.selectel.ru/profile/apikeys
 # Если SL_Ver="v2"
@@ -35,12 +35,11 @@ dns_selectel_add() {
   if ! _sl_init_vars; then
     return 1
   fi
-  _debug2 SL_Ver "$SL_Ver"
-  _secure_debug3 SL_Key "$SL_Key"
-  _debug2 SL_Expire "$SL_Expire"
-  _debug2 SL_Login_Name "$SL_Login_Name"
-  _debug2 SL_Login_ID "$SL_Login_ID"
-  _debug2 SL_Project_Name "$SL_Project_Name"
+  _debug3 SL_Ver "$SL_Ver"
+  _debug3 SL_Expire "$SL_Expire"
+  _debug3 SL_Login_Name "$SL_Login_Name"
+  _debug3 SL_Login_ID "$SL_Login_ID"
+  _debug3 SL_Project_Name "$SL_Project_Name"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -56,9 +55,7 @@ dns_selectel_add() {
     _ext_srv1="/zones/"
     _ext_srv2="/rrset/"
     _text_tmp=$(echo "$txtvalue" | sed -En "s/[\"]*([^\"]*)/\1/p")
-    _debug txtvalue "$txtvalue"
     _text_tmp='\"'$_text_tmp'\"'
-    _debug _text_tmp "$_text_tmp"
     _data="{\"type\": \"TXT\", \"ttl\": 60, \"name\": \"${fulldomain}.\", \"records\": [{\"content\":\"$_text_tmp\"}]}"
   elif [ "$SL_Ver" = "v1" ]; then
     _ext_srv1="/"
@@ -69,8 +66,8 @@ dns_selectel_add() {
     return 1
   fi
   _ext_uri="${_ext_srv1}$_domain_id${_ext_srv2}"
-  _debug3 _ext_uri "$_ext_uri"
-  _debug3 _data "$_data"
+  _debug _ext_uri "$_ext_uri"
+  _debug _data "$_data"
 
   if _sl_rest POST "$_ext_uri" "$_data"; then
     if _contains "$response" "$txtvalue"; then
@@ -101,7 +98,7 @@ dns_selectel_add() {
         _debug3 _record_seg "$_record_seg"
         _debug3 _record_array "$_record_array"
         _debug3 _record_array "$_record_id"
-        _debug2 "New data for record" "$_data"
+        _debug "New data for record" "$_data"
         if _sl_rest PATCH "${_ext_uri}${_record_id}" "$_data"; then
           _info "Added, OK"
           return 0
@@ -124,12 +121,11 @@ dns_selectel_rm() {
   if ! _sl_init_vars "nosave"; then
     return 1
   fi
-  _debug2 SL_Ver "$SL_Ver"
-  _secure_debug3 SL_Key "$SL_Key"
-  _debug2 SL_Expire "$SL_Expire"
-  _debug2 SL_Login_Name "$SL_Login_Name"
-  _debug2 SL_Login_ID "$SL_Login_ID"
-  _debug2 SL_Project_Name "$SL_Project_Name"
+  _debug3 SL_Ver "$SL_Ver"
+  _debug3 SL_Expire "$SL_Expire"
+  _debug3 SL_Login_Name "$SL_Login_Name"
+  _debug3 SL_Login_ID "$SL_Login_ID"
+  _debug3 SL_Project_Name "$SL_Project_Name"
   #
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -153,7 +149,7 @@ dns_selectel_rm() {
   #
   _debug "Getting txt records"
   _ext_uri="${_ext_srv1}$_domain_id${_ext_srv2}"
-  _debug3 _ext_uri "$_ext_uri"
+  _debug _ext_uri "$_ext_uri"
   _sl_rest GET "${_ext_uri}"
   #
   if ! _contains "$response" "$txtvalue"; then
@@ -176,7 +172,11 @@ dns_selectel_rm() {
     return 1
   fi
   # record id
-  _record_id="$(echo "$_record_seg" | tr "," "\n" | tr "}" "\n" | tr -d " " | grep "\"id\"" | cut -d : -f 2 | tr -d "\"" | sed '1!d')"
+  # следующие строки меняют алгоритм удаления записей со значением $txtvalue
+  # если использовать 1-ю строку, то за раз удаляются все такие записи 
+  # если использовать 2-ю строку, то удаляется только первая запись из них
+  #_record_id="$(echo "$_record_seg" | tr "," "\n" | tr "}" "\n" | tr -d " " | grep "\"id\"" | cut -d : -f 2 | tr -d "\"")" # удалять все записи со значением $txtvalue
+  _record_id="$(echo "$_record_seg" | tr "," "\n" | tr "}" "\n" | tr -d " " | grep "\"id\"" | cut -d : -f 2 | tr -d "\"" | sed '1!d')" # удалять только первую запись со значением $txtvalue
   if [ -z "$_record_id" ]; then
     _err "can not find _record_id"
     return 1
@@ -188,6 +188,7 @@ dns_selectel_rm() {
     _new_arr="$(echo "$_record_seg" | sed -En "s/.*(\{\"id\"[^}]*records[^[]*(\[(\{[^]]*${txtvalue}[^]]*)\])[^}]*}).*/\3/gp" | sed -En "s/(\},\{)/}\n{/gp" | sed "/${txtvalue}/d" | sed ":a;N;s/\n/,/;ta")"
     # uri record for DEL or PATCH
     _del_uri="${_ext_uri}${_record_id}"
+    _debug _del_uri "$_del_uri"
     if [ -z "$_new_arr" ]; then
       # удалить запись
       if ! _sl_rest DELETE "${_del_uri}"; then
@@ -210,7 +211,7 @@ dns_selectel_rm() {
     # legacy
     for _one_id in $_record_id; do
       _del_uri="${_ext_uri}${_one_id}"
-      _debug2 _ext_uri "$_del_uri"
+      _debug _del_uri "$_del_uri"
       if ! _sl_rest DELETE "${_del_uri}"; then
         _err "Delete record error: ${_del_uri}."
       else
@@ -302,7 +303,6 @@ _sl_rest() {
   data="$3"
 
   _token=$(_get_auth_token)
-  #_debug "$_token"
   if [ -z "$_token" ]; then
     _err "BAD key or token $ep"
     return 1
@@ -394,7 +394,7 @@ _sl_init_vars() {
   # version API
   SL_Ver="${SL_Ver:-$(_readaccountconf_mutable SL_Ver)}"
   if [ -z "$SL_Ver" ]; then
-    SL_Ver="v2"
+    SL_Ver="v1"
   fi
   if ! [ "$SL_Ver" = "v1" ] && ! [ "$SL_Ver" = "v2" ]; then
     _err "You don't specify selectel.ru API version."
@@ -459,7 +459,6 @@ _sl_init_vars() {
     fi
     # service user password
     SL_Pswd="${SL_Pswd:-$(_readaccountconf_mutable SL_Pswd)}"
-    #_secure_debug3 SL_Pswd "$SL_Pswd"
     if [ -z "$SL_Pswd" ]; then
       SL_Pswd=''
       _err "You did not specify the service user password."
