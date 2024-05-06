@@ -211,18 +211,14 @@ _ionos_cloud_get_record() {
   # IONOS Cloud API transforms all record names to lower case
   _record_name=$(printf "%s" "$fulldomain" | cut -d . -f 1 | tr "[:upper:]" "[:lower:]")
 
-  _info "grepping with the following args: zone_id=$zone_id txtrecord=$txtrecord fulldomain=$fulldomain _record_name=$_record_name"
-
   if _ionos_cloud_rest GET "$IONOS_CLOUD_ROUTE_ZONES/$zone_id/records"; then
     _response="$(echo "$_response" | tr -d "\n")"
 
     pattern="\{\"id\":\"[a-fA-F0-9\-]*\",\"type\":\"record\",\"href\":\"/zones/$zone_id/records/[a-fA-F0-9\-]*\",\"metadata\":\{\"createdDate\":\"[A-Z0-9\:\.\-]*\",\"lastModifiedDate\":\"[A-Z0-9\:\.\-]*\",\"fqdn\":\"$fulldomain\",\"state\":\"AVAILABLE\",\"zoneId\":\"$zone_id\"\},\"properties\":\{\"content\":\"$txtrecord\",\"enabled\":true,\"name\":\"$_record_name\",\"priority\":[0-9]*,\"ttl\":[0-9]*,\"type\":\"TXT\"\}\}"
 
     _record="$(echo "$_response" | _egrep_o "$pattern")"
-    _info "the found record after grep: $_record"
     if [ "$_record" ]; then
       _record_id=$(printf "%s\n" "$_record" | _egrep_o "\"id\":\"[a-fA-F0-9\-]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
-      _info "the record id after the search is: $_record_id"
       return 0
     fi
   fi
