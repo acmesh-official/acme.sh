@@ -73,6 +73,7 @@ synology_dsm_deploy() {
   if [ -n "$SYNO_USE_TEMP_ADMIN" ]; then
     if ! _exists synouser || ! _exists synogroup || ! _exists synosetkeyvalue; then
       _err "Missing required tools to creat temp admin user, please set SYNO_USERNAME and SYNO_PASSWORD instead."
+      _err "Notice: temp admin user authorization method only supports local deployment on DSM."
       return 1
     fi
     if synouser --help 2>&1 | grep -q 'Permission denied'; then
@@ -211,11 +212,14 @@ synology_dsm_deploy() {
           _err "Unsupported synogroup tool detected, please set SYNO_USERNAME and SYNO_PASSWORD instead."
           return 1
         fi
-        # havig a workaround to temporary disable enforce 2FA-OTP
+        # havig a workaround to temporary disable enforce 2FA-OTP, will restore
+        # it soon (after a single request), though if any accident occurs like
+        # unexpected interruption, this setting can be easily reverted manually.
         otp_enforce_option=$(synogetkeyvalue /etc/synoinfo.conf otp_enforce_option)
         if [ -n "$otp_enforce_option" ] && [ "${otp_enforce_option:-"none"}" != "none" ]; then
           synosetkeyvalue /etc/synoinfo.conf otp_enforce_option none
-          _info "Temporary disabled enforce 2FA-OTP to complete temp admin authentication."
+          _info "Enforcing 2FA-OTP has been disabled to complete temp admin authentication."
+          _info "Notice: it will be restored soon, if not, you can restore it manually via Control Panel."
           _info "previous_otp_enforce_option" "$otp_enforce_option"
         else
           otp_enforce_option=""
