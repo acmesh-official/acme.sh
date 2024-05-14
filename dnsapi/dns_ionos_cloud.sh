@@ -11,7 +11,7 @@
 IONOS_CLOUD_API="https://dns.de-fra.ionos.com"
 IONOS_CLOUD_ROUTE_ZONES="/zones"
 
-dns_ionos_add() {
+dns_ionos_cloud_add() {
   fulldomain=$1
   txtvalue=$2
 
@@ -30,7 +30,7 @@ dns_ionos_add() {
   return 1
 }
 
-dns_ionos_rm() {
+dns_ionos_cloud_rm() {
   fulldomain=$1
   txtvalue=$2
 
@@ -57,7 +57,7 @@ _ionos_init() {
   if [ -z "$IONOS_TOKEN" ]; then
     _err "You didn't specify an IONOS token yet."
     _err "Read https://api.ionos.com/docs/authentication/v1/#tag/tokens/operation/tokensGenerate to learn how to get a token."
-    _err ""
+    _err "You need to set it before calling acme.sh:"
     _err "\$ export IONOS_TOKEN=\"...\""
     _err "\$ acme.sh --issue -d ... --dns dns_ionos_cloud"
     return 1
