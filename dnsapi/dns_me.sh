@@ -1,9 +1,13 @@
 #!/usr/bin/env sh
-
-# bug reports to dev@1e.ca
-
-# ME_Key=qmlkdjflmkqdjf
-# ME_Secret=qmsdlkqmlksdvnnpae
+# shellcheck disable=SC2034
+dns_me_info='DnsMadeEasy.com
+Site: DnsMadeEasy.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_me
+Options:
+ ME_Key API Key
+ ME_Secret API Secret
+Author: <dev@1e.ca>
+'
 
 ME_Api=https://api.dnsmadeeasy.com/V2.0/dns/managed
 

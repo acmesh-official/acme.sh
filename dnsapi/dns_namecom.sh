@@ -1,9 +1,14 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_namecom_info='Name.com
+Site: Name.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_namecom
+Options:
+ Namecom_Username Username
+ Namecom_Token API Token
+Author: RaidenII
+'
 
-#Author: RaidenII
-#Created 06/28/2017
-#Updated 03/01/2018, rewrote to support name.com API v4
-#Utilize name.com API to finish dns-01 verifications.
 ########  Public functions #####################
 
 Namecom_API="https://api.name.com/v4"

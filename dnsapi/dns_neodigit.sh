@@ -1,13 +1,13 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_neodigit_info='Neodigit.net
+Site: Neodigit.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_neodigit
+Options:
+ NEODIGIT_API_TOKEN API Token
+Author: Adrian Almenar
+'
 
-#
-# NEODIGIT_API_TOKEN="jasdfhklsjadhflnhsausdfas"
-
-# This is Neodigit.net api wrapper for acme.sh
-#
-# Author: Adrian Almenar
-# Report Bugs here: https://github.com/tecnocratica/acme.sh
-#
 NEODIGIT_API_URL="https://api.neodigit.net/v1"
 #
 ########  Public functions #####################
