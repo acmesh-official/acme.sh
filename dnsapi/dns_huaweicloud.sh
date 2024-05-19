@@ -1,8 +1,14 @@
 #!/usr/bin/env sh
-
-# HUAWEICLOUD_Username
-# HUAWEICLOUD_Password
-# HUAWEICLOUD_DomainName
+# shellcheck disable=SC2034
+dns_huaweicloud_info='HuaweiCloud.com
+Site: HuaweiCloud.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_huaweicloud
+Options:
+ HUAWEICLOUD_Username Username
+ HUAWEICLOUD_Password Password
+ HUAWEICLOUD_DomainName DomainName
+Issues: github.com/acmesh-official/acme.sh/issues/3265
+'
 
 iam_api="https://iam.myhuaweicloud.com"
 dns_api="https://dns.ap-southeast-1.myhuaweicloud.com" # Should work

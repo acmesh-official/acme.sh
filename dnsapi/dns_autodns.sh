@@ -1,16 +1,15 @@
 #!/usr/bin/env sh
-# -*- mode: sh; tab-width: 2; indent-tabs-mode: s; coding: utf-8 -*-
-
-# This is the InternetX autoDNS xml api wrapper for acme.sh
-# Author: auerswald@gmail.com
-# Created: 2018-01-14
-#
-#     export AUTODNS_USER="username"
-#     export AUTODNS_PASSWORD="password"
-#     export AUTODNS_CONTEXT="context"
-#
-# Usage:
-#     acme.sh --issue --dns dns_autodns -d example.com
+# shellcheck disable=SC2034
+dns_autodns_info='InternetX autoDNS
+ InternetX autoDNS XML API
+Site: InternetX.com/autodns/
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_autodns
+Options:
+ AUTODNS_USER Username
+ AUTODNS_PASSWORD Password
+ AUTODNS_CONTEXT Context
+Author: <auerswald@gmail.com>
+'
 
 AUTODNS_API="https://gateway.autodns.com"
 

@@ -1,15 +1,14 @@
 #!/usr/bin/env sh
-
-# This is the OpenProvider API wrapper for acme.sh
-#
-# Author: Sylvia van Os
-# Report Bugs here: https://github.com/acmesh-official/acme.sh/issues/2104
-#
-#     export OPENPROVIDER_USER="username"
-#     export OPENPROVIDER_PASSWORDHASH="hashed_password"
-#
-# Usage:
-#     acme.sh --issue --dns dns_openprovider -d example.com
+# shellcheck disable=SC2034
+dns_openprovider_info='OpenProvider.eu
+Site: OpenProvider.eu
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_openprovider
+Options:
+ OPENPROVIDER_USER Username
+ OPENPROVIDER_PASSWORDHASH Password hash
+Issues: github.com/acmesh-official/acme.sh/issues/2104
+Author: Sylvia van Os
+'
 
 OPENPROVIDER_API="https://api.openprovider.eu/"
 #OPENPROVIDER_API="https://api.cte.openprovider.eu/" # Test API

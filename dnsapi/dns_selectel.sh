@@ -12,7 +12,7 @@
 #                                           Default: 1400 minutes
 #   export SL_Login_ID=<account_id>       - account number in the control panel;
 #   export SL_Project_Name=<project_name> - name project.
-#   export SL_Login_name=<username>       - service user name. You can view the name in the control panel:
+#   export SL_Login_Name=<username>       - service user name. You can view the name in the control panel:
 #                                           in the upper right corner open menu: "Profile and setting → User management → Service users
 #   export SL_Pswd='pswd'                 - service user password, can be viewed when creating a user or changed to a new one.
 # All these variables will be saved in ~/.acme.sh/account.conf and will be reused as needed.

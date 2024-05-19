@@ -1,16 +1,17 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_kinghost_info='King.host
+Domains: KingHost.net KingHost.com.br
+Site: King.host
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_kinghost
+Options:
+ KINGHOST_Username Username
+ KINGHOST_Password Password
+Author: Felipe Keller Braz <felipebraz@kinghost.com.br>
+'
 
-############################################################
 # KingHost API support                                     #
 # https://api.kinghost.net/doc/                             #
-#                                                          #
-# Author: Felipe Keller Braz <felipebraz@kinghost.com.br>  #
-# Report Bugs here: https://github.com/kinghost/acme.sh    #
-#                                                          #
-# Values to export:                                        #
-# export KINGHOST_Username="email@provider.com"            #
-# export KINGHOST_Password="xxxxxxxxxx"                    #
-############################################################
 
 KING_Api="https://api.kinghost.net/acme"
 

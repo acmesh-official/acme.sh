@@ -1,16 +1,14 @@
 #!/usr/bin/env sh
-
-# Provider: RackCorp (www.rackcorp.com)
-# Author: Stephen Dendtler (sdendtler@rackcorp.com)
-# Report Bugs here: https://github.com/senjoo/acme.sh
-# Alternate email contact: support@rackcorp.com
-#
-# You'll need an API key (Portal: ADMINISTRATION -> API)
-# Set the environment variables as below:
-#
-#    export RACKCORP_APIUUID="UUIDHERE"
-#    export RACKCORP_APISECRET="SECRETHERE"
-#
+# shellcheck disable=SC2034
+dns_rackcorp_info='RackCorp.com
+Site: RackCorp.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_rackcorp
+Options:
+ RACKCORP_APIUUID API UUID. See Portal: ADMINISTRATION -> API
+ RACKCORP_APISECRET API Secret
+Issues: github.com/acmesh-official/acme.sh/issues/3351
+Author: Stephen Dendtler <sdendtler@rackcorp.com>
+'
 
 RACKCORP_API_ENDPOINT="https://api.rackcorp.net/api/rest/v2.4/json.php"
 

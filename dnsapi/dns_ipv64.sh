@@ -1,13 +1,13 @@
 #!/usr/bin/env sh
-
-#Created by Roman Lumetsberger, to use ipv64.net's API to add/remove text records
-#2022/11/29
-
-# Pass credentials before "acme.sh --issue --dns dns_ipv64 ..."
-# --
-# export IPv64_Token="aaaaaaaaaaaaaaaaaaaaaaaaaa"
-# --
-#
+# shellcheck disable=SC2034
+dns_ipv64_info='IPv64.net
+Site: IPv64.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_ipv64
+Options:
+ IPv64_Token API Token
+Issues: github.com/acmesh-official/acme.sh/issues/4419
+Author: Roman Lumetsberger
+'
 
 IPv64_API="https://ipv64.net/api"
 

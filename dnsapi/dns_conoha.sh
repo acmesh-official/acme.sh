@@ -1,4 +1,15 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_conoha_info='ConoHa.jp
+Domains: ConoHa.io
+Site: ConoHa.jp
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_conoha
+Options:
+ CONOHA_Username Username
+ CONOHA_Password Password
+ CONOHA_TenantId TenantId
+ CONOHA_IdentityServiceApi Identity Service API. E.g. "https://identity.xxxx.conoha.io/v2.0"
+'
 
 CONOHA_DNS_EP_PREFIX_REGEXP="https://dns-service\."
 
