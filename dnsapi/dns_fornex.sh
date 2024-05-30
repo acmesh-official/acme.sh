@@ -3,7 +3,7 @@
 # Author: @SBohomolov <noc@fornex.com>
 # Site: Fornex.com
 # Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_fornex
-# Bugs: https://github.com/fornex-com/acme.sh/issues/
+# Bugs: https://github.com/acmesh-official/acme.sh/issues/5161
 
 FORNEX_API_URL="https://fornex.com/api/dns/domain"
 
