@@ -1,5 +1,10 @@
 #!/usr/bin/env sh
 
+# Author: @SBohomolov <noc@fornex.com>
+# Site: Fornex.com
+# Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_fornex
+# Bugs: https://github.com/fornex-com/acme.sh/issues/
+
 FORNEX_API_URL="https://fornex.com/api/dns/domain"
 
 ########  Public functions #####################
