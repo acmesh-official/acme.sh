@@ -1,13 +1,13 @@
 #!/usr/bin/env sh
-# Author: non7top@gmail.com
-# 07 Jul 2017
-# report bugs at https://github.com/non7top/acme.sh
-
-# Values to export:
-# export PDD_Token="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-
-# Sometimes cloudflare / google doesn't pick new dns records fast enough.
-# You can add --dnssleep XX to params as workaround.
+# shellcheck disable=SC2034
+dns_yandex_info='Yandex Domains
+Site: tech.Yandex.com/domain/
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_yandex
+Options:
+ PDD_Token API Token
+Issues: github.com/non7top/acme.sh/issues
+Author: <non7top@gmail.com>
+'
 
 ########  Public functions #####################
 

@@ -1,10 +1,12 @@
 #!/usr/bin/env sh
-
-# Dnspod.cn Domain api
-#
-#DP_Id="1234"
-#
-#DP_Key="sADDsdasdgdsf"
+# shellcheck disable=SC2034
+dns_dp_info='DNSPod.cn
+Site: DNSPod.cn
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_dp
+Options:
+ DP_Id Id
+ DP_Key Key
+'
 
 REST_API="https://dnsapi.cn"
 

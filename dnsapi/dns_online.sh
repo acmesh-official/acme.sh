@@ -1,9 +1,16 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_online_info='online.net
+Domains: scaleway.com
+Site: online.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_online
+Options:
+ ONLINE_API_KEY API Key
+Issues: github.com/acmesh-official/acme.sh/issues/2093
+'
 
 # Online API
 # https://console.online.net/en/api/
-#
-# Requires Online API key set in ONLINE_API_KEY
 
 ########  Public functions #####################
 

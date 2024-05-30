@@ -1,8 +1,12 @@
 #!/usr/bin/env sh
-
-#
-#HETZNER_Token="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
+# shellcheck disable=SC2034
+dns_hetzner_info='Hetzner.com
+Site: Hetzner.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_hetzner
+Options:
+ HETZNER_Token API Token
+Issues: github.com/acmesh-official/acme.sh/issues/2943
+'
 
 HETZNER_Api="https://dns.hetzner.com/api/v1"
 

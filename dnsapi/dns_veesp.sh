@@ -1,10 +1,14 @@
 #!/usr/bin/env sh
-
-# bug reports to stepan@plyask.in
-
-#
-#     export VEESP_User="username"
-#     export VEESP_Password="password"
+# shellcheck disable=SC2034
+dns_veesp_info='veesp.com
+Site: veesp.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_veesp
+Options:
+ VEESP_User Username
+ VEESP_Password Password
+Issues: github.com/acmesh-official/acme.sh/issues/3712
+Author: <stepan@plyask.in>
+'
 
 VEESP_Api="https://secure.veesp.com/api"
 

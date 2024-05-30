@@ -1,9 +1,13 @@
 #!/usr/bin/env sh
-
-#
-#RAGE4_TOKEN="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
-#RAGE4_USERNAME="xxxx@sss.com"
+# shellcheck disable=SC2034
+dns_rage4_info='rage4.com
+Site: rage4.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_rage4
+Options:
+ RAGE4_TOKEN API Key
+ RAGE4_USERNAME Username
+Issues: github.com/acmesh-official/acme.sh/issues/4306
+'
 
 RAGE4_Api="https://rage4.com/rapi/"
 
