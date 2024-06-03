@@ -5,6 +5,7 @@
 # https://docs.directadmin.com/changelog/version-1.24.4.html#cmd-api-catch-all-pop-passwords-frontpage-protected-dirs-ssl-certs
 
 # This deployment required following variables
+# export DirectAdmin_SCHEME="https" # Optional, https or http, defaults to https
 # export DirectAdmin_ENDPOINT="example.com:2222"
 # export DirectAdmin_USERNAME="Your DirectAdmin Username"
 # export DirectAdmin_KEY="Your DirectAdmin Login Key or Password"
@@ -53,6 +54,11 @@ directadmin_deploy() {
     _savedomainconf DirectAdmin_MAIN_DOMAIN "$DirectAdmin_MAIN_DOMAIN"
   fi
 
+  # Optional SCHEME
+  _getdeployconf DirectAdmin_SCHEME
+  # set default values for DirectAdmin_SCHEME
+  [ -n "${DirectAdmin_SCHEME}" ] || DirectAdmin_SCHEME="https"
+
   _info "Deploying certificate to DirectAdmin..."
 
   # upload certificate
@@ -65,7 +71,7 @@ directadmin_deploy() {
   _debug DirectAdmin_USERNAME "$DirectAdmin_USERNAME"
   _debug DirectAdmin_KEY "$DirectAdmin_KEY"
   _debug DirectAdmin_MAIN_DOMAIN "$DirectAdmin_MAIN_DOMAIN"
-  _response=$(_post "$_request_body" "https://$DirectAdmin_USERNAME:$DirectAdmin_KEY@$DirectAdmin_ENDPOINT/CMD_API_SSL" "" "POST" "application/json")
+  _response=$(_post "$_request_body" "$DirectAdmin_SCHEME://$DirectAdmin_USERNAME:$DirectAdmin_KEY@$DirectAdmin_ENDPOINT/CMD_API_SSL" "" "POST" "application/json")
 
   if _contains "$_response" "error=1"; then
     _err "Error in deploying $_cdomain certificate to DirectAdmin Domain $DirectAdmin_MAIN_DOMAIN."
