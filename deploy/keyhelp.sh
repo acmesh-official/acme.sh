@@ -5,6 +5,7 @@
 # export DEPLOY_KEYHELP_BASEURL="https://keyhelp.example.com"
 # export DEPLOY_KEYHELP_USERNAME="Your KeyHelp Username"
 # export DEPLOY_KEYHELP_PASSWORD="Your KeyHelp Password"
+# export DEPLOY_KEYHELP_ENFORCE_HTTPS="1" # 0 or 1, input 1 to enable Enforce HTTP to HTTPS redirection.
 # export DEPLOY_KEYHELP_DOMAIN_ID="Depoly certificate to this Domain ID"
 
 # Open the 'Edit domain' page, and you will see id=xxx at the end of the URL. This is the Domain ID.
@@ -54,6 +55,11 @@ keyhelp_deploy() {
     _savedomainconf DEPLOY_KEYHELP_DOMAIN_ID "$DEPLOY_KEYHELP_DOMAIN_ID"
   fi
 
+  # Optional DEPLOY_KEYHELP_ENFORCE_HTTPS
+  _getdeployconf DEPLOY_KEYHELP_ENFORCE_HTTPS
+  # set default values for DEPLOY_KEYHELP_ENFORCE_HTTPS
+  [ -n "${DEPLOY_KEYHELP_ENFORCE_HTTPS}" ] || DEPLOY_KEYHELP_ENFORCE_HTTPS="1"
+
   _info "Logging in to keyhelp panel"
   username_encoded="$(printf "%s" "${DEPLOY_KEYHELP_USERNAME}" | _url_encode)"
   password_encoded="$(printf "%s" "${DEPLOY_KEYHELP_PASSWORD}" | _url_encode)"
@@ -96,7 +102,7 @@ keyhelp_deploy() {
       return 1
     fi
 
-    _request_body="submit=1&id=$DOMAIN_ID&target_type=$target_type&certificate_type=custom&certificate_id=$cert_value"
+    _request_body="submit=1&id=$DOMAIN_ID&target_type=$target_type&certificate_type=custom&certificate_id=$cert_value&enforce_https=$DEPLOY_KEYHELP_ENFORCE_HTTPS"
     _response=$(_post "$_request_body" "$DEPLOY_KEYHELP_BASEURL/index.php?page=domains&action=edit" "" "POST")
     _message=$(echo "$_response" | grep -A 2 'message-body' | sed -n '/<div class="message-body ">/,/<\/div>/{//!p;}' | sed 's/<[^>]*>//g' | sed 's/^ *//;s/ *$//')
     _info "_message" "$_message"
