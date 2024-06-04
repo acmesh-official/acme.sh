@@ -6,11 +6,50 @@
 # Bugs: https://github.com/acmesh-official/acme.sh/issues/5161
 
 
+## install jq ##
+
+# Check the operating system
+if [ "$(uname)" = "Darwin" ]; then
+    # macOS - install jq using Homebrew
+    if ! command -v brew >/dev/null 2>&1; then
+        echo "Error: Homebrew is not installed. Please install Homebrew first." >&2
+        exit 1
+    fi
+    brew install jq
+elif [ -f "/etc/redhat-release" ] || [ -f "/etc/centos-release" ] || [ -f "/etc/fedora-release" ]; then
+    # RedHat/CentOS/Fedora - install jq using yum or dnf
+    if command -v dnf >/dev/null 2>&1; then
+        dnf install -y jq
+    elif command -v yum >/dev/null 2>&1; then
+        yum install -y jq
+    else
+        echo "Error: Neither yum nor dnf package manager found." >&2
+        exit 1
+    fi
+elif [ -f "/etc/lsb-release" ] || [ -f "/etc/debian_version" ]; then
+    # Debian/Ubuntu - install jq using apt
+    if command -v apt >/dev/null 2>&1; then
+        apt update
+        apt install -y jq
+    else
+        echo "Error: apt package manager not found." >&2
+        exit 1
+    fi
+else
+    echo "Error: Unsupported operating system." >&2
+    exit 1
+fi
+
+# jq installed successfully
+echo "jq installed successfully."
+
+#######################################################
+
 FORNEX_API_URL="https://fornex.com/api/dns/domain"
 
-########  Public functions #####################
+########  Public functions ###########################
 
-#Usage: dns_fornex_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+# Usage: dns_fornex_add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_fornex_add() {
   fulldomain=$1
   txtvalue=$2
@@ -57,7 +96,10 @@ dns_fornex_rm() {
 
   _info "Removing TXT records for domain: _acme-challenge.$domain"
 
-  txt_ids=$(curl -X GET -H "Authorization: Api-Key $FORNEX_API_KEY" "https://fornex.com/api/dns/domain/$domain/entry_set/" | jq -r '.[] | select(.type == "TXT") | .id')
+  response=$(curl -X GET -H "Authorization: Api-Key $FORNEX_API_KEY" "https://fornex.com/api/dns/domain/$domain/entry_set/")
+  
+  # Extract TXT record IDs using jq
+  txt_ids=$(echo "$response" | jq -r '.[] | select(.type == "TXT") | .id')
 
   if [ -z "$txt_ids" ]; then
     _info "No TXT records found for domain: _acme-challenge.$domain"
@@ -66,7 +108,7 @@ dns_fornex_rm() {
 
   for txt_id in $txt_ids; do
     _info "Removing TXT record with ID: $txt_id"
-    if ! _rest DELETE "$domain/entry_set/$txt_id"; then
+    if ! curl -X DELETE -H "Authorization: Api-Key $FORNEX_API_KEY" "https://fornex.com/api/dns/domain/$domain/entry_set/$txt_id/"; then
       _err "Failed to remove TXT record with ID: $txt_id"
     else
       _info "TXT record with ID $txt_id removed successfully"
@@ -78,8 +120,8 @@ dns_fornex_rm() {
 
 ####################  Private functions below ##################################
 
-#_acme-challenge.www.domain.com
-#returns
+# _acme-challenge.www.domain.com
+# returns
 # _sub_domain=_acme-challenge.www
 # _domain=domain.com
 _get_domain_id() {
@@ -102,7 +144,6 @@ _get_domain_id() {
   return 0
 }
 
-
 _Fornex_API() {
   FORNEX_API_KEY="${FORNEX_API_KEY:-$(_readaccountconf_mutable FORNEX_API_KEY)}"
   if [ -z "$FORNEX_API_KEY" ]; then
@@ -117,7 +158,7 @@ _Fornex_API() {
   _saveaccountconf_mutable FORNEX_API_KEY "$FORNEX_API_KEY"
 }
 
-#method method action data
+# method method action data
 _rest() {
   m=$1
   ep="$2"
@@ -130,11 +171,10 @@ _rest() {
   if [ "$m" != "GET" ]; then
     _debug data "$data"
     url="$FORNEX_API_URL/$ep"
-    echo "curl -X $m -H 'Authorization: Api-Key $FORNEX_API_KEY' -d '$data' \"$url\""
-    response="$(_post "$data" "$url" "" "$m")"
+    response=$(curl -X "$m" -H "Authorization: Api-Key $FORNEX_API_KEY" -d "$data" "$url")
   else
-    echo "curl -X GET -H 'Authorization: Api-Key $FORNEX_API_KEY' $FORNEX_API_URL/$ep"
-    response="$(_get "$FORNEX_API_URL/$ep" | _normalizeJson)"
+    url="$FORNEX_API_URL/$ep"
+    response=$(curl -X GET -H "Authorization: Api-Key $FORNEX_API_KEY" "$url")
   fi
 
   _ret="$?"
