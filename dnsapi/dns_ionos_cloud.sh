@@ -95,10 +95,10 @@ _ionos_cloud_get_record() {
   zone_id=$1
   txtrecord=$2
   # this is to transform the domain to lower case
-  fulldomain=$(printf "%s" "$3" | tr "[:upper:]" "[:lower:]")
+  fulldomain=$(printf "%s" "$3" | _lower_case
   # this is to transform record name to lower case
   # IONOS Cloud API transforms all record names to lower case
-  _record_name=$(printf "%s" "$fulldomain" | cut -d . -f 1 | tr "[:upper:]" "[:lower:]")
+  _record_name=$(printf "%s" "$fulldomain" | cut -d . -f 1 | _lower_case)
 
   if _ionos_cloud_rest GET "$IONOS_CLOUD_ROUTE_ZONES/$zone_id/records"; then
     _response="$(echo "$_response" | tr -d "\n")"
