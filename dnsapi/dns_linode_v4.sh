@@ -126,7 +126,7 @@ _Linode_API() {
 # _domain=domain.com
 # _domain_id=12345
 _get_root() {
-  local full_host_str="$1"
+  full_host_str="$1"
 
   i=2
   p=1
@@ -140,7 +140,7 @@ _get_root() {
       return 1
     fi
 
-   _debug "Querying Linode APIv4 for hosted zone: $h"
+    _debug "Querying Linode APIv4 for hosted zone: $h"
     if _H4="X-Filter: {\"domain\":\"$h\"}" _rest GET; then
       _debug "Got response from API: $response"
       response="$(echo "$response" | tr -d "\n" | tr '{' "|" | sed 's/|/&{/g' | tr "|" "\n")"
