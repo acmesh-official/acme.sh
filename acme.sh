@@ -7075,7 +7075,7 @@ installOnline() {
 _getRepoHash() {
   _hash_path=$1
   shift
-  _hash_url="https://api.github.com/repos/acmesh-official/$PROJECT_NAME/git/refs/$_hash_path"
+  _hash_url="${PROJECT_API:-https://api.github.com/repos/acmesh-official}/$PROJECT_NAME/git/refs/$_hash_path"
   _get $_hash_url | tr -d "\r\n" | tr '{},' '\n\n\n' | grep '"sha":' | cut -d '"' -f 4
 }
 
