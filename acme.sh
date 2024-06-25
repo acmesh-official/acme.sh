@@ -1243,7 +1243,14 @@ _createcsr() {
   _debug2 csr "$csr"
   _debug2 csrconf "$csrconf"
 
-  printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]\nextendedKeyUsage=serverAuth,clientAuth\n" >"$csrconf"
+  printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]" >"$csrconf"
+
+  if [ "$Le_ExtKeyUse" ]; then
+    _savedomainconf Le_ExtKeyUse "$Le_ExtKeyUse"
+    printf "\nextendedKeyUsage=$Le_ExtKeyUse\n" >>"$csrconf"
+  else
+    printf "\nextendedKeyUsage=serverAuth,clientAuth\n" >>"$csrconf"
+  fi
 
   if [ "$acmeValidationv1" ]; then
     domainlist="$(_idn "$domainlist")"
@@ -7007,6 +7014,7 @@ Parameters:
   --post-hook <command>             Command to be run after attempting to obtain/renew certificates. Runs regardless of whether obtain/renew succeeded or failed.
   --renew-hook <command>            Command to be run after each successfully renewed certificate.
   --deploy-hook <hookname>          The hook file to deploy cert
+  --extended-key-usage <string>     Manually define the CSR extended key usage value. The default is serverAuth,clientAuth.
   --ocsp, --ocsp-must-staple        Generate OCSP-Must-Staple extension.
   --always-force-new-domain-key     Generate new domain key on renewal. Otherwise, the domain key is not changed by default.
   --auto-upgrade [0|1]              Valid for '--upgrade' command, indicating whether to upgrade automatically in future. Defaults to 1 if argument is omitted.
@@ -7696,6 +7704,10 @@ _process() {
         return 1
       fi
       _deploy_hook="$_deploy_hook$2,"
+      shift
+      ;;
+    --extended-key-usage)
+      Le_ExtKeyUse="$2"
       shift
       ;;
     --ocsp-must-staple | --ocsp)
