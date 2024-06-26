@@ -127,8 +127,6 @@ _get_root() {
   i=1
   p=1
 
-  _anx_rest GET "zone.json"
-
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     _debug h "$h"
@@ -137,6 +135,7 @@ _get_root() {
       return 1
     fi
 
+    _anx_rest GET "zone.json/${h}"
     if _contains "$response" "\"name\":\"$h\""; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain=$h
