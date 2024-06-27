@@ -108,7 +108,7 @@ _get_domain() {
       return 0
     fi
   done
-  _err "Either their is no such host on your dnyv6 account or it cannot be accessed with this key"
+  _err "Either their is no such host on your dynv6 account or it cannot be accessed with this key"
   return 1
 }
 
