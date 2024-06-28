@@ -7,10 +7,13 @@
 #DEPLOY_DOCKER_CONTAINER_CA_FILE="/path/to/ca.pem"
 #DEPLOY_DOCKER_CONTAINER_FULLCHAIN_FILE="/path/to/fullchain.pem"
 #DEPLOY_DOCKER_CONTAINER_RELOAD_CMD="service nginx force-reload"
+#DEPLOY_DOCKER_CONTAINER_RUN_AS_ROOT="false"
 
 _DEPLOY_DOCKER_WIKI="https://github.com/acmesh-official/acme.sh/wiki/deploy-to-docker-containers"
 
 _DOCKER_HOST_DEFAULT="/var/run/docker.sock"
+
+_RUN_AS_ROOT="false"
 
 docker_deploy() {
   _cdomain="$1"
@@ -94,6 +97,18 @@ docker_deploy() {
     _savedeployconf DEPLOY_DOCKER_CONTAINER_RELOAD_CMD "$DEPLOY_DOCKER_CONTAINER_RELOAD_CMD" "base64"
   fi
 
+  _getdeployconf DEPLOY_DOCKER_CONTAINER_RUN_AS_ROOT
+  if [ "$DEPLOY_DOCKER_CONTAINER_RUN_AS_ROOT" == "true" ]; then
+    DEPLOY_DOCKER_CONTAINER_RUN_AS_ROOT="true"
+    _RUN_AS_ROOT="true"
+  else
+    DEPLOY_DOCKER_CONTAINER_RUN_AS_ROOT="false"
+  fi
+  _debug2 DEPLOY_DOCKER_CONTAINER_RUN_AS_ROOT "$DEPLOY_DOCKER_CONTAINER_RUN_AS_ROOT"
+  if [ "$DEPLOY_DOCKER_CONTAINER_RUN_AS_ROOT" ]; then
+    _savedeployconf DEPLOY_DOCKER_CONTAINER_RUN_AS_ROOT "$DEPLOY_DOCKER_CONTAINER_RUN_AS_ROOT"
+  fi
+
   _cid="$(_get_id "$DEPLOY_DOCKER_CONTAINER_LABEL")"
   _info "Container id: $_cid"
   if [ -z "$_cid" ]; then
@@ -163,7 +178,12 @@ _docker_exec() {
   _dcid="$1"
   shift
   if [ "$_USE_DOCKER_COMMAND" ]; then
-    docker exec -i "$_dcid" sh -c "$*"
+    _OPTS=""
+    if [ "$_RUN_AS_ROOT" == "true" ]; then
+      _OPTS="-u root"
+      _debug2 "Run docker exec with user root"
+    fi
+    docker exec $_OPTS -i "$_dcid" sh -c "$*"
   elif [ "$_USE_REST" ]; then
     _err "Not implemented yet."
     return 1
@@ -171,8 +191,13 @@ _docker_exec() {
     _cmd="$*"
     #_cmd="$(printf "%s" "$_cmd" | sed 's/ /","/g')"
     _debug2 _cmd "$_cmd"
+    _OPTS=""
+    if [ "$_RUN_AS_ROOT" == "true" ]; then
+      _OPTS='"User": "root", '
+      _debug2 "Run docker exec with user root"
+    fi
     #create exec instance:
-    cjson="$(_curl_unix_sock "$_DOCKER_SOCK" POST "/containers/$_dcid/exec" "{\"Cmd\": [\"sh\", \"-c\", \"$_cmd\"]}")"
+    cjson="$(_curl_unix_sock "$_DOCKER_SOCK" POST "/containers/$_dcid/exec" "{$_OPTS\"Cmd\": [\"sh\", \"-c\", \"$_cmd\"]}")"
     _debug2 cjson "$cjson"
     execid="$(echo "$cjson" | cut -d '"' -f 4)"
     _debug execid "$execid"
