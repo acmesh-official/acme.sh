@@ -206,7 +206,7 @@ _get_zone_id() {
     return 1
   fi
 
-  zone_id="$(echo "$response" | tr '}' '\n' | grep "$selected" | tr ',' '\n' | grep id | tr -d '"')"
+  zone_id="$(echo "$response" | tr '}' '\n' | grep "$selected" | tr ',' '\n' | grep '"id":' | tr -d '"')"
   _zone_id="${zone_id#id:}"
   _debug "zone id: $_zone_id"
 }
