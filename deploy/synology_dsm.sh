@@ -218,7 +218,7 @@ synology_dsm_deploy() {
           otp_enforce_option=""
         fi
       fi
-      response=$(_get "$_base_url/webapi/entry.cgi?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes")
+      response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes")
       if [ -n "$SYNO_USE_TEMP_ADMIN" ] && [ -n "$otp_enforce_option" ]; then
         synosetkeyvalue /etc/synoinfo.conf otp_enforce_option "$otp_enforce_option"
         _info "Restored previous enforce 2FA-OTP option."
