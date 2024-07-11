@@ -131,7 +131,7 @@ _url_encode_upper() {
   encoded=$(_url_encode)
 
   for match in $(echo "$encoded" | _egrep_o '%..' | sort -u); do
-    upper=$(echo "$match" | tr '[:lower:]' '[:upper:]')
+    upper=$(echo "$match" | _upper_case)
     encoded=$(echo "$encoded" | sed "s/$match/$upper/g")
   done
 
