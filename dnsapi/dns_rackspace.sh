@@ -1,9 +1,13 @@
 #!/usr/bin/env sh
-#
-#
-#RACKSPACE_Username=""
-#
-#RACKSPACE_Apikey=""
+# shellcheck disable=SC2034
+dns_rackspace_info='RackSpace.com
+Site: RackSpace.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_rackspace
+Options:
+ RACKSPACE_Apikey API Key
+ RACKSPACE_Username Username
+Issues: github.com/acmesh-official/acme.sh/issues/2091
+'
 
 RACKSPACE_Endpoint="https://dns.api.rackspacecloud.com/v1.0"
 
