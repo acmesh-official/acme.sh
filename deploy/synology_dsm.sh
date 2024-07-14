@@ -169,7 +169,7 @@ synology_dsm_deploy() {
       _debug3 H1 "${_H1}"
     fi
 
-    response=$(_post "method=login&account=$encoded_username&passwd=$encoded_password&api=SYNO.API.Auth&version=$api_version&enable_syno_token=yes&otp_code=$DEPRECATED_otp_code&device_name=certrenewal&device_id=$SYNO_DEVICE_ID" "$_base_url/webapi/auth.cgi?enable_syno_token=yes")
+    response=$(_post "method=login&account=$encoded_username&passwd=$encoded_password&api=SYNO.API.Auth&version=$api_version&enable_syno_token=yes&otp_code=$DEPRECATED_otp_code&device_name=certrenewal&device_id=$SYNO_DEVICE_ID" "$_base_url/webapi/$api_path?enable_syno_token=yes")
     _debug3 response "$response"
   # ## END ## - DEPRECATED, for backward compatibility
   # If SYNO_DEVICE_ID or SYNO_OTP_CODE is set, we treat current account enabled 2FA-OTP.
@@ -218,7 +218,7 @@ synology_dsm_deploy() {
           otp_enforce_option=""
         fi
       fi
-      response=$(_get "$_base_url/webapi/entry.cgi?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes")
+      response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes")
       if [ -n "$SYNO_USE_TEMP_ADMIN" ] && [ -n "$otp_enforce_option" ]; then
         synosetkeyvalue /etc/synoinfo.conf otp_enforce_option "$otp_enforce_option"
         _info "Restored previous enforce 2FA-OTP option."
