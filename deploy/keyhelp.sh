@@ -5,7 +5,6 @@
 # export DEPLOY_KEYHELP_BASEURL="https://keyhelp.example.com"
 # export DEPLOY_KEYHELP_USERNAME="Your KeyHelp Username"
 # export DEPLOY_KEYHELP_PASSWORD="Your KeyHelp Password"
-# export DEPLOY_KEYHELP_ENFORCE_HTTPS="1" # 0 or 1, input 1 to enable Enforce HTTP to HTTPS redirection.
 # export DEPLOY_KEYHELP_DOMAIN_ID="Depoly certificate to this Domain ID"
 
 # Open the 'Edit domain' page, and you will see id=xxx at the end of the URL. This is the Domain ID.
@@ -96,13 +95,28 @@ keyhelp_deploy() {
     _response=$(_get "$DEPLOY_KEYHELP_BASEURL/index.php?page=domains&action=edit&id=$DOMAIN_ID")
     cert_value=$(echo "$_response" | grep "$certificate_name" | sed -n 's/.*value="\([^"]*\).*/\1/p')
     target_type=$(echo "$_response" | grep 'target_type' | grep 'checked' | sed -n 's/.*value="\([^"]*\).*/\1/p')
+    if [ "$target_type" = "directory" ]; then
+      path=$(echo "$_response" | awk '/name="path"/{getline; print}' | sed -n 's/.*value="\([^"]*\).*/\1/p')
+    fi
+    echo "$_response" | grep "is_prefer_https" | grep "checked" >/dev/null
+    if [ $? -eq 0 ]; then
+      is_prefer_https=1
+    else
+      is_prefer_https=0
+    fi
+    echo "$_response" | grep "hsts_enabled" | grep "checked" >/dev/null
+    if [ $? -eq 0 ]; then
+      hsts_enabled=1
+    else
+      hsts_enabled=0
+    fi
     _debug "cert_value" "$cert_value"
     if [ -z "$cert_value" ]; then
       _err "Fail to get certificate id."
       return 1
     fi
 
-    _request_body="submit=1&id=$DOMAIN_ID&target_type=$target_type&certificate_type=custom&certificate_id=$cert_value&enforce_https=$DEPLOY_KEYHELP_ENFORCE_HTTPS"
+    _request_body="submit=1&id=$DOMAIN_ID&target_type=$target_type&path=$path&is_prefer_https=$is_prefer_https&hsts_enabled=$hsts_enabled&certificate_type=custom&certificate_id=$cert_value&enforce_https=$DEPLOY_KEYHELP_ENFORCE_HTTPS"
     _response=$(_post "$_request_body" "$DEPLOY_KEYHELP_BASEURL/index.php?page=domains&action=edit" "" "POST")
     _message=$(echo "$_response" | grep -A 2 'message-body' | sed -n '/<div class="message-body ">/,/<\/div>/{//!p;}' | sed 's/<[^>]*>//g' | sed 's/^ *//;s/ *$//')
     _info "_message" "$_message"
