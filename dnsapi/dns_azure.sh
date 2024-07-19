@@ -83,7 +83,7 @@ dns_azure_add() {
     _saveaccountconf_mutable AZUREDNS_CLIENTSECRET "$AZUREDNS_CLIENTSECRET"
   fi
 
-	  accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET" "$AZUREDNS_ARC")
+  accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET" "$AZUREDNS_ARC")
 
   if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
     _err "invalid domain"
@@ -314,13 +314,14 @@ _azure_getaccess_token() {
     # https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/how-to-use-vm-token#get-a-token-using-http
     export _H1="Metadata: true"
 
-    if [ "$arc" = true ]; then 
-    	response="$(_get http://localhost:40342/metadata/identity/oauth2/token\?api-version=2019-08-15\&resource=https://management.azure.com/)"
-    	T=$(cat $HTTP_HEADER | grep Www | sed 's/Www-Authenticate: Basic realm=//g' | sed 's/[^a-zA-Z0-9\/\.\-]//g')
-    	export _H2="Authorization: Basic $(cat $T)"
-    	response="$(_get http://localhost:40342/metadata/identity/oauth2/token\?api-version=2019-08-15\&resource=https://management.azure.com/)"
+    if [ "$arc" = true ]; then
+      response="$(_get http://localhost:40342/metadata/identity/oauth2/token\?api-version=2019-08-15\&resource=https://management.azure.com/)"
+      CHALLANGE=$(cat "$HTTP_HEADER" | grep Www | sed 's/Www-Authenticate: Basic realm=//g' | sed 's/[^a-zA-Z0-9\/\.\-]//g')
+      _H2="Authorization: Basic $(cat "$CHALLANGE")"
+      export _H2
+      response="$(_get http://localhost:40342/metadata/identity/oauth2/token\?api-version=2019-08-15\&resource=https://management.azure.com/)"
     else
-	response="$(_get http://169.254.169.254/metadata/identity/oauth2/token\?api-version=2018-02-01\&resource=https://management.azure.com/)"
+      response="$(_get http://169.254.169.254/metadata/identity/oauth2/token\?api-version=2018-02-01\&resource=https://management.azure.com/)"
     fi
 
     response="$(echo "$response" | _normalizeJson)"
