@@ -6737,6 +6737,11 @@ cron() {
   export _ACME_IN_CRON=1
   _initpath
   _info "$(__green "===Starting cron===")"
+  if [ -z "$FORCE" ] && [ -z "$__INTERACTIVE" ]; then
+    random_sec=$(_math $$ % 59)
+    _info "Sleeping for $random_sec seconds."
+    _sleep $random_sec
+  fi
   if [ "$AUTO_UPGRADE" = "1" ]; then
     export LE_WORKING_DIR
     (
