@@ -111,7 +111,7 @@ _check_yandex360_variables() {
     _err '                 ERROR'
     _err '========================================='
     _err "A required environment variable YANDEX360_ORG_ID is not set"
-    _err 'For more details, please visit: https://wiki.acme.sh/dnsapi#30-use-pddyandexru-api'
+    _err 'For more details, please visit: https://github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_yandex360'
     _err '========================================='
     return 1
   fi
@@ -126,7 +126,7 @@ _check_yandex360_variables() {
     _info 'Please note that this token is valid for a limited time after issuance.'
     _info 'It is recommended to obtain the token interactively using acme.sh for one-time setup.'
     _info 'Subsequent token renewals will be handled automatically.'
-    _info 'For more details, please visit: https://wiki.acme.sh/dnsapi#30-use-pddyandexru-api'
+    _info 'For more details, please visit: https://github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_yandex360'
     _info '========================================='
 
     _saveaccountconf_mutable YANDEX360_ACCESS_TOKEN "$YANDEX360_ACCESS_TOKEN"
@@ -140,7 +140,7 @@ _check_yandex360_variables() {
     _err '========================================='
     _err 'The preferred environment variables YANDEX360_CLIENT_ID, YANDEX360_CLIENT_SECRET, and YANDEX360_ORG_ID, or alternatively YANDEX360_ACCESS_TOKEN, is not set.'
     _err 'It is recommended to export the first three variables over the latter before running acme.sh.'
-    _err 'For more details, please visit: https://wiki.acme.sh/dnsapi#30-use-pddyandexru-api'
+    _err 'For more details, please visit: https://github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_yandex360'
     _err '========================================='
     return 1
   fi
