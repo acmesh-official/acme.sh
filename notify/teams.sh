@@ -10,9 +10,9 @@ teams_send() {
   _statusCode="$3" #0: success, 1: error 2($RENEW_SKIP): skipped
   _debug "_statusCode" "$_statusCode"
 
-  _color_success="Good" # green
-  _color_danger="Attention"  # red
-  _color_muted="Accent"   # gray
+  _color_success="Good"
+  _color_danger="Attention"
+  _color_muted="Accent"
 
   TEAMS_WEBHOOK_URL="${TEAMS_WEBHOOK_URL:-$(_readaccountconf_mutable TEAMS_WEBHOOK_URL)}"
   if [ -z "$TEAMS_WEBHOOK_URL" ]; then
