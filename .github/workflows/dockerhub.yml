@@ -51,7 +51,7 @@ jobs:
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
       - name: build and push the image
         run: |
-          DOCKER_IMAGE=neilpang/acme.sh
+          DOCKER_IMAGE=${{ secrets.DOCKER_USERNAME }}/acme.sh
 
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             DOCKER_IMAGE_TAG=${GITHUB_REF#refs/tags/}
