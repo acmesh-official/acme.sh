@@ -14,6 +14,8 @@ Options:
 # User must provide login data and URL to the ISPConfig installation incl. port.
 # The remote user in ISPConfig must have access to:
 # - DNS txt Functions
+# - DNS zone functions
+# - Client functions
 
 ########  Public functions #####################
 
