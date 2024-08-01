@@ -75,7 +75,9 @@ dns_yandex360_rm() {
 
   record_id=$(
     echo "$response" |
-      sed -En 's/.*"recordId":([0-9]+).*"text":"'"${txtvalue}"'".*$/\1/p'
+      _egrep_o '\{[^}]*'"${txtvalue}"'[^}]*\}' |
+      _egrep_o '"recordId":[0-9]*' |
+      cut -d':' -f2
   )
 
   if [ -z "$record_id" ]; then
