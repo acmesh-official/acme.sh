@@ -40,11 +40,11 @@ dns_yandex360_add() {
 
   response="$(_post "$data" "$dns_api_url" '' 'POST' 'application/json')"
   response="$(echo "$response" | _normalizeJson)"
-  _debug 'Response' "$response"
 
   if _contains "$response" 'recordId'; then
     return 0
   else
+    _debug 'Response' "$response"
     return 1
   fi
 }
@@ -66,10 +66,10 @@ dns_yandex360_rm() {
   dns_api_url="${YANDEX360_API_BASE}/${YANDEX360_ORG_ID}/domains/${root_domain}/dns?perPage=100"
   response="$(_get "$dns_api_url" '' '')"
   response="$(echo "$response" | _normalizeJson)"
-  _debug 'Response' "$response"
 
   if ! _contains "$response" "$txtvalue"; then
     _info 'DNS record not found. Nothing to remove.'
+    _debug 'Response' "$response"
     return 1
   fi
 
@@ -88,11 +88,11 @@ dns_yandex360_rm() {
 
   response="$(_post '' "$delete_url" '' 'DELETE')"
   response="$(echo "$response" | _normalizeJson)"
-  _debug 'Response' "$response"
 
   if _contains "$response" '{}'; then
     return 0
   else
+    _debug 'Response' "$response"
     return 1
   fi
 }
@@ -179,10 +179,10 @@ _get_token() {
 
   response="$(_post "$data" "$device_code_url" '' 'POST')"
   response="$(echo "$response" | _normalizeJson)"
-  _debug 'Response' "$response"
 
   if ! _contains "$response" 'device_code'; then
     _err 'Failed to get device code'
+    _debug 'Response' "$response"
     return 1
   fi
 
@@ -244,9 +244,8 @@ _get_token() {
           tr -d '"'
       )
 
-      _secure_debug 'Response' "$response"
-      _secure_debug 'Received access token' "$YANDEX360_ACCESS_TOKEN"
-      _secure_debug 'Received refresh token' "$YANDEX360_REFRESH_TOKEN"
+      _secure_debug 'Obtained access token' "$YANDEX360_ACCESS_TOKEN"
+      _secure_debug 'Obtained refresh token' "$YANDEX360_REFRESH_TOKEN"
 
       _saveaccountconf_mutable YANDEX360_REFRESH_TOKEN "$YANDEX360_REFRESH_TOKEN"
 
@@ -288,7 +287,6 @@ _refresh_token() {
         tr -d '"'
     )
 
-    _secure_debug 'Response' "$response"
     _secure_debug 'Received access token' "$YANDEX360_ACCESS_TOKEN"
     _secure_debug 'Received refresh token' "$YANDEX360_REFRESH_TOKEN"
 
@@ -299,8 +297,8 @@ _refresh_token() {
     _info 'Access token refreshed successfully'
     return 0
   else
-    _debug 'Response' "$response"
     _info 'Failed to refresh token. Will attempt to obtain a new one.'
+    _debug 'Response' "$response"
     return 1
   fi
 }
