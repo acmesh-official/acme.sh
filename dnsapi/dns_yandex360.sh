@@ -14,7 +14,7 @@ Issues: https://github.com/acmesh-official/acme.sh/issues/5213
 Author: <Als@admin.ru.net>
 '
 
-YANDEX360_API_BASE='https://api360.yandex.net/directory/v1/org'
+YANDEX360_API_BASE='https://api360.yandex.net/directory/v1'
 YANDEX360_OAUTH_BASE='https://oauth.yandex.ru'
 
 ########  Public functions #####################
@@ -35,7 +35,7 @@ dns_yandex360_add() {
   sub_domain=$(echo "$fulldomain" | sed "s/\.$root_domain$//")
 
   _debug 'Adding Yandex 360 DNS record for subdomain' "$sub_domain"
-  dns_api_url="${YANDEX360_API_BASE}/${YANDEX360_ORG_ID}/domains/${root_domain}/dns"
+  dns_api_url="${YANDEX360_API_BASE}/org/${YANDEX360_ORG_ID}/domains/${root_domain}/dns"
   data='{"name":"'"$sub_domain"'","type":"TXT","ttl":60,"text":"'"$txtvalue"'"}'
 
   response="$(_post "$data" "$dns_api_url" '' 'POST' 'application/json')"
@@ -63,7 +63,7 @@ dns_yandex360_rm() {
   fi
 
   _debug 'Retrieving 100 records from Yandex 360 DNS'
-  dns_api_url="${YANDEX360_API_BASE}/${YANDEX360_ORG_ID}/domains/${root_domain}/dns?perPage=100"
+  dns_api_url="${YANDEX360_API_BASE}/org/${YANDEX360_ORG_ID}/domains/${root_domain}/dns?perPage=100"
   response="$(_get "$dns_api_url" '' '')"
   response="$(echo "$response" | _normalizeJson)"
 
@@ -86,7 +86,7 @@ dns_yandex360_rm() {
   fi
 
   _debug 'Removing DNS record' "$record_id"
-  delete_url="${YANDEX360_API_BASE}/${YANDEX360_ORG_ID}/domains/${root_domain}/dns/${record_id}"
+  delete_url="${YANDEX360_API_BASE}/org/${YANDEX360_ORG_ID}/domains/${root_domain}/dns/${record_id}"
 
   response="$(_post '' "$delete_url" '' 'DELETE')"
   response="$(echo "$response" | _normalizeJson)"
@@ -317,7 +317,7 @@ _get_root() {
       return 1
     fi
 
-    dns_api_url="${YANDEX360_API_BASE}/${YANDEX360_ORG_ID}/domains/${h}/dns"
+    dns_api_url="${YANDEX360_API_BASE}/org/${YANDEX360_ORG_ID}/domains/${h}/dns"
 
     response="$(_get "$dns_api_url" '' '')"
     response="$(echo "$response" | _normalizeJson)"
