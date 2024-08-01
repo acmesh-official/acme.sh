@@ -24,7 +24,7 @@ dns_yandex360_add() {
   txtvalue=$2
   _info 'Using Yandex 360 DNS API'
 
-  if ! _check_yandex360_variables; then
+  if ! _check_variables; then
     return 1
   fi
 
@@ -54,7 +54,7 @@ dns_yandex360_rm() {
   txtvalue=$2
   _info 'Using Yandex 360 DNS API'
 
-  if ! _check_yandex360_variables; then
+  if ! _check_variables; then
     return 1
   fi
 
@@ -101,7 +101,7 @@ dns_yandex360_rm() {
 
 ####################  Private functions below ##################################
 
-_check_yandex360_variables() {
+_check_variables() {
   YANDEX360_CLIENT_ID="${YANDEX360_CLIENT_ID:-$(_readaccountconf_mutable YANDEX360_CLIENT_ID)}"
   YANDEX360_CLIENT_SECRET="${YANDEX360_CLIENT_SECRET:-$(_readaccountconf_mutable YANDEX360_CLIENT_SECRET)}"
   YANDEX360_ORG_ID="${YANDEX360_ORG_ID:-$(_readaccountconf_mutable YANDEX360_ORG_ID)}"
@@ -133,32 +133,33 @@ _check_yandex360_variables() {
 
     _saveaccountconf_mutable YANDEX360_ACCESS_TOKEN "$YANDEX360_ACCESS_TOKEN"
     export _H1="Authorization: OAuth $YANDEX360_ACCESS_TOKEN"
-    return 0
-  fi
 
-  if [ -z "$YANDEX360_CLIENT_ID" ] || [ -z "$YANDEX360_CLIENT_SECRET" ]; then
+  elif [ -z "$YANDEX360_CLIENT_ID" ] || [ -z "$YANDEX360_CLIENT_SECRET" ]; then
     _err '========================================='
     _err '                 ERROR'
     _err '========================================='
-    _err 'The preferred environment variables YANDEX360_CLIENT_ID, YANDEX360_CLIENT_SECRET, and YANDEX360_ORG_ID, or alternatively YANDEX360_ACCESS_TOKEN, is not set.'
-    _err 'It is recommended to export the first three variables over the latter before running acme.sh.'
+    _err 'The required environment variables YANDEX360_CLIENT_ID and YANDEX360_CLIENT_SECRET are not set.'
+    _err 'Alternatively, you can set YANDEX360_ACCESS_TOKEN environment variable.'
     _err 'For more details, please visit: https://github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_yandex360'
     _err '========================================='
     return 1
-  fi
 
+  else
   _saveaccountconf_mutable YANDEX360_CLIENT_ID "$YANDEX360_CLIENT_ID"
   _saveaccountconf_mutable YANDEX360_CLIENT_SECRET "$YANDEX360_CLIENT_SECRET"
 
   if [ -n "$YANDEX360_REFRESH_TOKEN" ]; then
     _debug 'Refresh token found. Attempting to refresh access token.'
-    if _refresh_token; then
-      return 0
+      if ! _refresh_token; then
+        if ! _get_token; then
+          return 1
     fi
   fi
-
+    else
   if ! _get_token; then
     return 1
+      fi
+    fi
   fi
 
   return 0
