@@ -7,8 +7,8 @@ Docs: https://github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_yandex360
 Options:
  YANDEX360_CLIENT_ID OAuth 2.0 ClientID
  YANDEX360_CLIENT_SECRET OAuth 2.0 Client secret
- YANDEX360_ORG_ID Organization ID
 OptionsAlt:
+ YANDEX360_ORG_ID Organization ID. Optional.
  YANDEX360_ACCESS_TOKEN OAuth 2.0 Access token. Optional.
 Issues: https://github.com/acmesh-official/acme.sh/issues/5213
 Author: <Als@admin.ru.net>
@@ -108,18 +108,6 @@ _check_variables() {
   YANDEX360_ACCESS_TOKEN="${YANDEX360_ACCESS_TOKEN:-$(_readaccountconf_mutable YANDEX360_ACCESS_TOKEN)}"
   YANDEX360_REFRESH_TOKEN="${YANDEX360_REFRESH_TOKEN:-$(_readaccountconf_mutable YANDEX360_REFRESH_TOKEN)}"
 
-  if [ -z "$YANDEX360_ORG_ID" ]; then
-    _err '========================================='
-    _err '                 ERROR'
-    _err '========================================='
-    _err "A required environment variable YANDEX360_ORG_ID is not set"
-    _err 'For more details, please visit: https://github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_yandex360'
-    _err '========================================='
-    return 1
-  fi
-
-  _saveaccountconf_mutable YANDEX360_ORG_ID "$YANDEX360_ORG_ID"
-
   if [ -n "$YANDEX360_ACCESS_TOKEN" ]; then
     _info '========================================='
     _info '              ATTENTION'
@@ -145,20 +133,43 @@ _check_variables() {
     return 1
 
   else
-  _saveaccountconf_mutable YANDEX360_CLIENT_ID "$YANDEX360_CLIENT_ID"
-  _saveaccountconf_mutable YANDEX360_CLIENT_SECRET "$YANDEX360_CLIENT_SECRET"
+    _saveaccountconf_mutable YANDEX360_CLIENT_ID "$YANDEX360_CLIENT_ID"
+    _saveaccountconf_mutable YANDEX360_CLIENT_SECRET "$YANDEX360_CLIENT_SECRET"
 
-  if [ -n "$YANDEX360_REFRESH_TOKEN" ]; then
-    _debug 'Refresh token found. Attempting to refresh access token.'
+    if [ -n "$YANDEX360_REFRESH_TOKEN" ]; then
+      _debug 'Refresh token found. Attempting to refresh access token.'
       if ! _refresh_token; then
         if ! _get_token; then
           return 1
+        fi
+      fi
+    else
+      if ! _get_token; then
+        return 1
+      fi
     fi
   fi
+
+  if [ -z "$YANDEX360_ORG_ID" ]; then
+    org_response="$(_get "${YANDEX360_API_BASE}/org" '' '')"
+    org_response="$(echo "$org_response" | _normalizeJson)"
+
+    if _contains "$org_response" '"organizations":'; then
+      YANDEX360_ORG_ID=$(
+        echo "$org_response" |
+          _egrep_o '"id":[[:space:]]*[0-9]+' |
+          cut -d: -f2
+      )
+      _debug 'Automatically retrieved YANDEX360_ORG_ID' "$YANDEX360_ORG_ID"
     else
-  if ! _get_token; then
-    return 1
-      fi
+      _err '========================================='
+      _err '                 ERROR'
+      _err '========================================='
+      _err "Failed to retrieve YANDEX360_ORG_ID automatically."
+      _err 'For more details, please visit: https://github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_yandex360'
+      _err '========================================='
+      _debug 'Response' "$org_response"
+      return 1
     fi
   fi
 
@@ -308,28 +319,48 @@ _refresh_token() {
 
 _get_root() {
   domain="$1"
-  i=1
-  while true; do
-    h=$(echo "$domain" | cut -d . -f "$i"-)
-    _debug "Checking domain: $h"
 
-    if [ -z "$h" ]; then
-      _err "Could not determine root domain"
-      return 1
+  for org_id in $YANDEX360_ORG_ID; do
+    _debug 'Checking organization ID' "$org_id"
+    domains_api_url="${YANDEX360_API_BASE}/org/${org_id}/domains"
+
+    domains_response="$(_get "$domains_api_url" '' '')"
+    domains_response="$(echo "$domains_response" | _normalizeJson)"
+
+    if ! _contains "$domains_response" '"domains":'; then
+      _debug 'No domains found for organization' "$org_id"
+      _debug 'Response' "$domains_response"
+      continue
     fi
 
-    dns_api_url="${YANDEX360_API_BASE}/org/${YANDEX360_ORG_ID}/domains/${h}/dns"
+    domain_names=$(
+      echo "$domains_response" |
+        _egrep_o '"name":"[^"]*"' |
+        cut -d'"' -f4
+    )
 
-    response="$(_get "$dns_api_url" '' '')"
-    response="$(echo "$response" | _normalizeJson)"
-    _debug 'Response' "$response"
+    for d in $domain_names; do
+      d="$(_idn "$d")"
+      _debug 'Checking domain' "$d"
 
-    if _contains "$response" '"total":'; then
-      root_domain="$h"
-      _debug 'Root domain found' "$root_domain"
+      if _endswith "$domain" "$d"; then
+        root_domain="$d"
+        break
+      fi
+    done
+
+    if [ -n "$root_domain" ]; then
+      _debug "Root domain found: $root_domain in organization $org_id"
+
+      YANDEX360_ORG_ID="$org_id"
+      _saveaccountconf_mutable YANDEX360_ORG_ID "$YANDEX360_ORG_ID"
+
       return 0
     fi
-
-    i=$(_math "$i" + 1)
   done
+
+  if [ -z "$root_domain" ]; then
+    _err "Could not find a matching root domain for $domain in any organization"
+    return 1
+  fi
 }
