@@ -20,7 +20,7 @@ YANDEX360_OAUTH_BASE='https://oauth.yandex.ru'
 ########  Public functions #####################
 
 dns_yandex360_add() {
-  fulldomain=$1
+  fulldomain="$(_idn "$1")"
   txtvalue=$2
   _info 'Using Yandex 360 DNS API'
 
@@ -50,7 +50,7 @@ dns_yandex360_add() {
 }
 
 dns_yandex360_rm() {
-  fulldomain=$1
+  fulldomain="$(_idn "$1")"
   txtvalue=$2
   _info 'Using Yandex 360 DNS API'
 
