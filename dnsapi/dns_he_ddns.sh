@@ -33,11 +33,5 @@ dns_he_ddns_add() {
   _contains "$response" "good" && return 0 || return 1
 }
 
-#Usage: fulldomain txtvalue
-#Remove the txt record after validation.
-dns_he_ddns_rm() {
-  fulldomain=$1
-  txtvalue=$2
-  _debug fulldomain "$fulldomain"
-  _debug txtvalue "$txtvalue"
-}
+# dns_he_ddns_rm() is not implemented because the API call always updates the
+# contents of the existing record (that the API key gives access to).
