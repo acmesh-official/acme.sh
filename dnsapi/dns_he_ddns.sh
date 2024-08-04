@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
 dns_he_ddns_info='Hurricane Electric HE.net DDNS
 Site: dns.he.net
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_he_ddns
