@@ -56,7 +56,7 @@ dns_nsd_add() {
   local zone_serial_next=$[$zone_serial+1]
   local tmp_zonefile=$(mktemp)
   cat "$Nsd_ZoneFile" | sed "s/$zone_serial/$zone_serial_next/" > "$tmp_zonefile"
-  mv "$tmp_zonefile" "$Nsd_ZoneFile"
+  cat "$tmp_zonefile" > "$Nsd_ZoneFile"
   rm -rf "$tmp_zonefile"
   
   _info "Added TXT record for $fulldomain"
