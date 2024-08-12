@@ -93,7 +93,7 @@ dns_porkbun_rm() {
       _err "Delete record error."
       return 1
     fi
-    echo "$response" | tr -d " " | grep '\"status\":"SUCCESS"' >/dev/null
+    echo "$response" | tr -d " " | grep '"status":"SUCCESS"' >/dev/null
   fi
 
 }
