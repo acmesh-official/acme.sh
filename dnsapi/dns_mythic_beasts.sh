@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_mythic_beasts_info='Mythic-Beasts.com
+Site: Mythic-Beasts.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_mythic_beasts
+Options:
+ MB_AK API Key
+ MB_AS API Secret
+Issues: github.com/acmesh-official/acme.sh/issues/3848
+'
 # Mythic Beasts is a long-standing UK service provider using standards-based OAuth2 authentication
 # To test: ./acme.sh --dns dns_mythic_beasts --test --debug 1 --output-insecure --issue --domain domain.com
 # Cannot retest once cert is issued

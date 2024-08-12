@@ -1,4 +1,14 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_knot_info='Knot Server knsupdate
+Site: www.knot-dns.cz/docs/2.5/html/man_knsupdate.html
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_knot
+Options:
+ KNOT_SERVER Server hostname. Default: "localhost".
+ KNOT_KEY File path to TSIG key
+'
+
+# See also dns_nsupdate.sh
 
 ########  Public functions #####################
 
