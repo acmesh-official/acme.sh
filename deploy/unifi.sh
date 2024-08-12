@@ -104,6 +104,7 @@ unifi_deploy() {
 
     _debug "Generate import pkcs12"
     _import_pkcs12="$(_mktemp)"
+    _debug  "_toPkcs $_import_pkcs12 $_ckey $_ccert $_cca $_unifi_keypass unifi root"
     _toPkcs "$_import_pkcs12" "$_ckey" "$_ccert" "$_cca" "$_unifi_keypass" unifi root
     # shellcheck disable=SC2181
     if [ "$?" != "0" ]; then
@@ -153,9 +154,9 @@ unifi_deploy() {
 
     rm "$_import_pkcs12"
 
-    # Restarting unifi-core will bring up unifi, doing it out of order results in
-    # a certificate error, and may break wifiman. (unconfirmed)
-    # Restart if we aren't doing unifi-core, otherwise stop and let unifi-core restart it.
+    # Restarting unifi-core will bring up unifi, doing it out of order results in 
+    # a certificate error, and breaks wifiman.
+    # Restart if we aren't doing unifi-core, otherwise stop for later restart.
     if systemctl -q is-active unifi; then
       if [ ! -f "${DEPLOY_UNIFI_CORE_CONFIG:-/data/unifi-core/config}/unifi-core.key" ]; then
         _reload_cmd="${_reload_cmd:+$_reload_cmd && }systemctl restart unifi"
