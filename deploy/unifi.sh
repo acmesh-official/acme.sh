@@ -15,16 +15,6 @@
 #       OS version ~3.1 removed java and keytool from the UnifiOS.
 #       Using PKCS12 format keystore appears to work fine.
 #
-#     See below regarding keytool. Not tested.
-#   - Unifi Dream Machine
-#       This has not been tested on other "all-in-one" devices such as
-#       UDM Pro or Unifi Express.
-#
-#       OS Version v2.0.0+
-#       Network Application version 7.0.0+
-#       OS version ~3.1 removed java and keytool from the UnifiOS.
-#       Using PKCS12 format keystore appears to work fine.
-#
 # Please report bugs to https://github.com/acmesh-official/acme.sh/issues/3359
 
 #returns 0 means success, otherwise error.
@@ -94,7 +84,6 @@ unifi_deploy() {
   _reload_cmd=""
 
   # Unifi Controller environment (self hosted or any Cloud Key) --
-  # auto-detect by file /usr/lib/unifi/data/keystore
   # auto-detect by file /usr/lib/unifi/data/keystore
   _unifi_keystore="${DEPLOY_UNIFI_KEYSTORE:-/usr/lib/unifi/data/keystore}"
   if [ -f "$_unifi_keystore" ]; then
@@ -174,11 +163,6 @@ unifi_deploy() {
       else
         _reload_cmd="${_reload_cmd:+$_reload_cmd && }systemctl stop unifi"
       fi
-      if [ ! -f "${DEPLOY_UNIFI_CORE_CONFIG:-/data/unifi-core/config}/unifi-core.key" ]; then
-        _reload_cmd="${_reload_cmd:+$_reload_cmd && }systemctl restart unifi"
-      else
-        _reload_cmd="${_reload_cmd:+$_reload_cmd && }systemctl stop unifi"
-      fi
     fi
     _services_updated="${_services_updated} unifi"
     _info "Install Unifi Controller certificate success!"
@@ -228,11 +212,6 @@ unifi_deploy() {
       _err "The directory $_unifi_core_config is not writable; please check permissions."
       return 1
     fi
-
-    # Save the existing certs in case something goes wrong.
-    cp -f "${_unifi_core_config}"/unifi-core.crt "${_unifi_core_config}"/unifi-core_original.crt
-    cp -f "${_unifi_core_config}"/unifi-core.key "${_unifi_core_config}"/unifi-core_original.key
-    _info "Previous certificate and key saved to ${_unifi_core_config}/unifi-core_original.crt/key."
 
     # Save the existing certs in case something goes wrong.
     cp -f "${_unifi_core_config}"/unifi-core.crt "${_unifi_core_config}"/unifi-core_original.crt
