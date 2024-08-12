@@ -5,7 +5,6 @@
 #   - self-hosted Unifi Controller
 #   - Unifi Cloud Key (Gen1/2/2+)
 #   - Unifi Cloud Key running UnifiOS (v2.0.0+, Gen2/2+ only)
-#     See below regarding keytool. Not tested.
 #   - Unifi Dream Machine
 #       This has not been tested on other "all-in-one" devices such as
 #       UDM Pro or Unifi Express.
