@@ -1,18 +1,14 @@
 #!/usr/bin/env sh
-
-#This is the euserv.eu api wrapper for acme.sh
-#
-#Author: Michael Brueckner
-#Report Bugs: https://www.github.com/initit/acme.sh  or  mbr@initit.de
-
-#
-#EUSERV_Username="username"
-#
-#EUSERV_Password="password"
-#
-# Dependencies:
-# -------------
-# - none -
+# shellcheck disable=SC2034
+dns_euserv_info='EUserv.com
+Domains: EUserv.eu
+Site: EUserv.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_euserv
+Options:
+ EUSERV_Username Username
+ EUSERV_Password Password
+Author: Michael Brueckner
+'
 
 EUSERV_Api="https://api.euserv.net"
 

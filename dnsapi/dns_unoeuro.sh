@@ -1,9 +1,13 @@
 #!/usr/bin/env sh
-
-#
-#UNO_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
-#UNO_User="UExxxxxx"
+# shellcheck disable=SC2034
+dns_unoeuro_info='unoeuro.com
+ Deprecated. The unoeuro.com is now simply.com
+Site: unoeuro.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_unoeuro
+Options:
+ UNO_Key API Key
+ UNO_User Username
+'
 
 Uno_Api="https://api.simply.com/1"
 

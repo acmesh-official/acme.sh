@@ -1,8 +1,13 @@
 #!/usr/bin/env sh
-
-#
-#PORKBUN_API_KEY="pk1_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-#PORKBUN_SECRET_API_KEY="sk1_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+# shellcheck disable=SC2034
+dns_porkbun_info='Porkbun.com
+Site: Porkbun.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_porkbun
+Options:
+ PORKBUN_API_KEY API Key
+ PORKBUN_SECRET_API_KEY API Secret
+Issues: github.com/acmesh-official/acme.sh/issues/3450
+'
 
 PORKBUN_Api="https://porkbun.com/api/json/v3"
 
@@ -88,7 +93,7 @@ dns_porkbun_rm() {
       _err "Delete record error."
       return 1
     fi
-    echo "$response" | tr -d " " | grep '\"status\":"SUCCESS"' >/dev/null
+    echo "$response" | tr -d " " | grep '"status":"SUCCESS"' >/dev/null
   fi
 
 }
@@ -134,7 +139,7 @@ _porkbun_rest() {
   api_key_trimmed=$(echo "$PORKBUN_API_KEY" | tr -d '"')
   secret_api_key_trimmed=$(echo "$PORKBUN_SECRET_API_KEY" | tr -d '"')
 
-  test -z "$data" && data="{" || data="$(echo $data | cut -d'}' -f1),"
+  test -z "$data" && data="{" || data="$(echo "$data" | cut -d'}' -f1),"
   data="$data\"apikey\":\"$api_key_trimmed\",\"secretapikey\":\"$secret_api_key_trimmed\"}"
 
   export _H1="Content-Type: application/json"

@@ -1,8 +1,14 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_namesilo_info='NameSilo.com
+Site: NameSilo.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_namesilo
+Options:
+ Namesilo_Key API Key
+Author: meowthink
+'
 
-#Author: meowthink
-#Created 01/14/2017
-#Utilize namesilo.com API to finish dns-01 verifications.
+#Utilize API to finish dns-01 verifications.
 
 Namesilo_API="https://www.namesilo.com/api"
 

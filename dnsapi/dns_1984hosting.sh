@@ -1,21 +1,17 @@
 #!/usr/bin/env sh
-# This file name is "dns_1984hosting.sh"
-# So, here must be a method dns_1984hosting_add()
-# Which will be called by acme.sh to add the txt record to your api system.
-# returns 0 means success, otherwise error.
-
-# Author: Adrian Fedoreanu
-# Report Bugs here: https://github.com/acmesh-official/acme.sh
-# or here... https://github.com/acmesh-official/acme.sh/issues/2851
+# shellcheck disable=SC2034
+dns_1984hosting_info='1984.hosting
+Domains: 1984.is
+Site: 1984.hosting
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_1984hosting
+Options:
+ One984HOSTING_Username Username
+ One984HOSTING_Password Password
+Issues: github.com/acmesh-official/acme.sh/issues/2851
+Author: Adrian Fedoreanu
+'
 
 ######## Public functions #####################
-
-# Export 1984HOSTING username and password in following variables
-#
-#  One984HOSTING_Username=username
-#  One984HOSTING_Password=password
-#
-# username/password and csrftoken/sessionid cookies are saved in ~/.acme.sh/account.conf
 
 # Usage: dns_1984hosting_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 # Add a text record.
@@ -215,8 +211,8 @@ _get_root() {
       return 1
     fi
 
-    _authget "https://1984.hosting/domains/soacheck/?zone=$h&nameserver=ns0.1984.is."
-    if _contains "$_response" "serial" && ! _contains "$_response" "null"; then
+    _authget "https://1984.hosting/domains/zonestatus/$h/?cached=no"
+    if _contains "$_response" '"ok": true'; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
@@ -250,7 +246,6 @@ _authget() {
 }
 
 # Truncate huge HTML response
-# Echo: Argument list too long
 _htmlget() {
   export _H1="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE; $One984HOSTING_SESSIONID_COOKIE"
   _response=$(_get "$1" | grep "$2")
