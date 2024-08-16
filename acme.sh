@@ -5866,7 +5866,6 @@ _installcert() {
   _real_ca="$4"
   _real_fullchain="$5"
   _reload_cmd="$6"
-  _backup_prefix="$7"
 
   if [ "$_real_cert" = "$NO_VALUE" ]; then
     _real_cert=""
@@ -5884,7 +5883,7 @@ _installcert() {
     _real_fullchain=""
   fi
 
-  _backup_path="$DOMAIN_BACKUP_PATH/$_backup_prefix"
+  _backup_path="$DOMAIN_BACKUP_PATH"
   mkdir -p "$_backup_path"
 
   if [ "$_real_cert" ]; then
