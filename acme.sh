@@ -4391,6 +4391,8 @@ issue() {
   _preferred_chain="${15}"
   _valid_from="${16}"
   _valid_to="${17}"
+  _real_key_chown="${18}"
+  _real_key_chmod="${19}"
 
   if [ -z "$_ACME_IS_RENEW" ]; then
     _initpath "$_main_domain" "$_key_length"
@@ -5352,13 +5354,15 @@ $_authorizations_map"
   fi
   export CERT_PFX_PATH
 
-  if [ "$_real_cert$_real_key$_real_ca$_reload_cmd$_real_fullchain" ]; then
+  if [ "$_real_cert$_real_key$_real_ca$_reload_cmd$_real_fullchain$_real_key_chown$_real_key_chmod" ]; then
     _savedomainconf "Le_RealCertPath" "$_real_cert"
     _savedomainconf "Le_RealCACertPath" "$_real_ca"
     _savedomainconf "Le_RealKeyPath" "$_real_key"
+    _savedomainconf "Le_RealKeyChown" "$_real_key_chown"
+    _savedomainconf "Le_RealKeyChmod" "$_real_key_chmod"
     _savedomainconf "Le_ReloadCmd" "$_reload_cmd" "base64"
     _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
-    if ! _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"; then
+    if ! _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd" "$_real_key_chown" "$_real_key_chmod"; then
       return 1
     fi
   fi
@@ -5470,7 +5474,7 @@ renew() {
   if [ -z "$Le_Keylength" ]; then
     Le_Keylength=2048
   fi
-  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain" "$Le_Valid_From" "$Le_Valid_To"
+  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain" "$Le_Valid_From" "$Le_Valid_To" "$Le_RealKeyChown" "$Le_RealKeyChmod"
   res="$?"
   if [ "$res" != "0" ]; then
     return "$res"
@@ -5637,6 +5641,8 @@ signcsr() {
   _local_addr="${11}"
   _challenge_alias="${12}"
   _preferred_chain="${13}"
+  _real_key_chown="${14}"
+  _real_key_chmod="${15}"
 
   _csrsubj=$(_readSubjectFromCSR "$_csrfile")
   if [ "$?" != "0" ]; then
@@ -5680,7 +5686,7 @@ signcsr() {
   _info "Copying CSR to: $CSR_PATH"
   cp "$_csrfile" "$CSR_PATH"
 
-  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_addr" "$_challenge_alias" "$_preferred_chain"
+  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_addr" "$_challenge_alias" "$_preferred_chain" "$_real_key_chown" "$_real_key_chmod"
 
 }
 
@@ -5830,7 +5836,7 @@ deploy() {
 installcert() {
   _main_domain="$1"
   if [ -z "$_main_domain" ]; then
-    _usage "Usage: $PROJECT_ENTRY --install-cert --domain <domain.tld> [--ecc] [--cert-file <file>] [--key-file <file>] [--ca-file <file>] [ --reloadcmd <command>] [--fullchain-file <file>]"
+    _usage "Usage: $PROJECT_ENTRY --install-cert --domain <domain.tld> [--ecc] [--cert-file <file>] [--key-file <file>] [--key-chown <owner[:group]>] [--key-chmod <perm>] [--ca-file <file>] [ --reloadcmd <command>] [--fullchain-file <file>]"
     return 1
   fi
 
@@ -5840,6 +5846,8 @@ installcert() {
   _reload_cmd="$5"
   _real_fullchain="$6"
   _isEcc="$7"
+  _real_key_chown="$8"
+  _real_key_chmod="$9"
 
   _initpath "$_main_domain" "$_isEcc"
   if [ ! -d "$DOMAIN_PATH" ]; then
@@ -5851,11 +5859,13 @@ installcert() {
   _savedomainconf "Le_RealCertPath" "$_real_cert"
   _savedomainconf "Le_RealCACertPath" "$_real_ca"
   _savedomainconf "Le_RealKeyPath" "$_real_key"
+  _savedomainconf "Le_RealKeyChown" "$_real_key_chown"
+  _savedomainconf "Le_RealKeyChmod" "$_real_key_chmod"
   _savedomainconf "Le_ReloadCmd" "$_reload_cmd" "base64"
   _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
   export Le_ForceNewDomainKey="$(_readdomainconf Le_ForceNewDomainKey)"
   export Le_Next_Domain_Key
-  _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"
+  _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd" "$_real_key_chown" "$_real_key_chmod"
 }
 
 #domain  cert  key  ca  fullchain reloadcmd backup-prefix
@@ -5866,6 +5876,8 @@ _installcert() {
   _real_ca="$4"
   _real_fullchain="$5"
   _reload_cmd="$6"
+  _real_key_chown="$7"
+  _real_key_chmod="$8"
 
   if [ "$_real_cert" = "$NO_VALUE" ]; then
     _real_cert=""
@@ -5921,8 +5933,14 @@ _installcert() {
         cat "$CERT_KEY_PATH" >"$_real_key" || return 1
       else
         touch "$_real_key" || return 1
-        chmod 600 "$_real_key"
+        # chmod 600 "$_real_key"
         cat "$CERT_KEY_PATH" >"$_real_key" || return 1
+      fi
+      if [ "$_real_key_chown" ]; then
+        chown "$_real_key_chown" "$_real_key" || return 1
+      fi
+      if [ "$_real_key_chmod" ]; then
+        chmod "$_real_key_chmod" "$_real_key" || return 1
       fi
     fi
   fi
@@ -6976,6 +6994,8 @@ Parameters:
 
   --cert-file <file>                Path to copy the cert file to after issue/renew.
   --key-file <file>                 Path to copy the key file to after issue/renew.
+  --key-chown <owner:[group]>       Change owner/group of copied key file after issue/renew.
+  --key-chmod <perm>                Change permission of copied key file after issue/renew. Defaults to \"600\".
   --ca-file <file>                  Path to copy the intermediate cert file to after issue/renew.
   --fullchain-file <file>           Path to copy the fullchain cert file to after issue/renew.
   --reloadcmd <command>             Command to execute after issue/renew to reload the server.
@@ -7269,6 +7289,8 @@ _process() {
   _accountkeylength="$DEFAULT_ACCOUNT_KEY_LENGTH"
   _cert_file=""
   _key_file=""
+  _key_chown=""
+  _key_chmod="600"
   _ca_file=""
   _fullchain_file=""
   _reloadcmd=""
@@ -7569,6 +7591,14 @@ _process() {
       ;;
     --key-file | --keypath)
       _key_file="$2"
+      shift
+      ;;
+    --key-chown | --keychown)
+      _key_chown="$2"
+      shift
+      ;;
+    --key-chmod | --keychmod)
+      _key_chmod="$2"
       shift
       ;;
     --ca-file | --capath)
@@ -7909,19 +7939,19 @@ _process() {
   uninstall) uninstall "$_nocron" ;;
   upgrade) upgrade ;;
   issue)
-    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_valid_from" "$_valid_to"
+    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_valid_from" "$_valid_to" "$_key_chown" "$_key_chmod"
     ;;
   deploy)
     deploy "$_domain" "$_deploy_hook" "$_ecc"
     ;;
   signcsr)
-    signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain"
+    signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_key_chown" "$_key_chmod"
     ;;
   showcsr)
     showcsr "$_csr" "$_domain"
     ;;
   installcert)
-    installcert "$_domain" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_ecc"
+    installcert "$_domain" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_ecc" "$_key_chown" "$_key_chmod"
     ;;
   renew)
     renew "$_domain" "$_ecc" "$_server"
