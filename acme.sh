@@ -3881,6 +3881,9 @@ updateaccount() {
   if [ "$code" = '200' ]; then
     echo "$response" >"$ACCOUNT_JSON_PATH"
     _info "Account update success for $_accUri."
+
+    ACCOUNT_THUMBPRINT="$(__calc_account_thumbprint)"
+    _info "ACCOUNT_THUMBPRINT" "$ACCOUNT_THUMBPRINT"
   else
     _info "An error occurred and the account was not updated."
     return 1
@@ -7139,7 +7142,7 @@ _processAccountConf() {
 }
 
 _checkSudo() {
-  if [ -z "__INTERACTIVE" ]; then
+  if [ -z "$__INTERACTIVE" ]; then
     #don't check if it's not in an interactive shell
     return 0
   fi
