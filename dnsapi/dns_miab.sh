@@ -19,7 +19,7 @@ dns_miab_add() {
   txtvalue=$2
   _info "Using miab challange add"
   _debug fulldomain "$fulldomain"
-  # Added to accomodate the new TXT record format used by the API
+  # Added to accomodate the new TXT record format used by the API to include value= and ttl=
   _debug txtvalue "value="+="$txtvalue"+="&ttl=300"
 
   #retrieve MIAB environemt vars
