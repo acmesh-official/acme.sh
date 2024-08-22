@@ -16,11 +16,11 @@ Author: Darven Dissek, William Gertz
 #Usage: dns_miab_add  _acme-challenge.www.domain.com  "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_miab_add() {
   fulldomain=$1
-  txtvalue=$2
-  _info "Using miab challange add"
-  _debug fulldomain "$fulldomain"
+  txtvalue="value="$2"&ttl=300"
   # Added to accomodate the new TXT record format used by the API to include value= and ttl=
-  _debug txtvalue "value="+="$txtvalue"+="&ttl=300"
+  _info "Using miab challenge add"
+  _debug fulldomain "$fulldomain"
+  _debug txtvalue $txtvalue
 
   #retrieve MIAB environemt vars
   if ! _retrieve_miab_env; then
@@ -56,7 +56,7 @@ dns_miab_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  _info "Using miab challage delete"
+  _info "Using miab challenge delete"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
