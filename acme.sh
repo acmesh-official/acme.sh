@@ -464,6 +464,12 @@ _contains() {
   echo "$_str" | grep -- "$_sub" >/dev/null 2>&1
 }
 
+_contains_fixed() {
+  _str="$1"
+  _sub="$2"
+  echo "$_str" | grep -F -- "$_sub" >/dev/null 2>&1
+}
+
 _hasfield() {
   _str="$1"
   _field="$2"
@@ -1345,7 +1351,7 @@ _readSubjectAltNamesFromCSR() {
   _dnsAltnames="$(${ACME_OPENSSL_BIN:-openssl} req -noout -text -in "$_csrfile" | grep "^ *DNS:.*" | tr -d ' \n')"
   _debug _dnsAltnames "$_dnsAltnames"
 
-  if _contains "$_dnsAltnames," "DNS:$_csrsubj,"; then
+  if _contains_fixed "$_dnsAltnames," "DNS:$_csrsubj,"; then
     _debug "AltNames contains subject"
     _excapedAlgnames="$(echo "$_dnsAltnames" | tr '*' '#')"
     _debug _excapedAlgnames "$_excapedAlgnames"
