@@ -7003,7 +7003,7 @@ Parameters:
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
   --ca-bundle <file>                Specifies the path to the CA certificate bundle to verify api server's certificate.
   --ca-path <directory>             Specifies directory containing CA certificates in PEM format, used by wget or curl.
-  --no-cron                         Only valid for '--install' command, which means: do not install the default cron job.
+  --no-cron, --nocron               Only valid for '--install' command, which means: do not install the default cron job.
                                       In this case, the certs will not be renewed automatically.
   --no-profile                      Only valid for '--install' command, which means: do not install aliases to user profile.
   --no-color                        Do not output color text.
