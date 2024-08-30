@@ -83,6 +83,27 @@ aws_ses_send() {
   response="$(aws_rest POST "" "" "$_data")"
 }
 
+_use_container_role() {
+  # automatically set if running inside ECS
+  if [ -z "$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI" ]; then
+    _debug "No ECS environment variable detected"
+    return 1
+  fi
+  _use_metadata "169.254.170.2$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"
+}
+
+_use_instance_role() {
+  _url="http://169.254.169.254/latest/meta-data/iam/security-credentials/"
+  _debug "_url" "$_url"
+  if ! _get "$_url" true 1 | _head_n 1 | grep -Fq 200; then
+    _debug "Unable to fetch IAM role from instance metadata"
+    return 1
+  fi
+  _aws_role=$(_get "$_url" "" 1)
+  _debug "_aws_role" "$_aws_role"
+  _use_metadata "$_url$_aws_role"
+}
+
 _use_metadata() {
   _aws_creds="$(
     _get "$1" "" 1 |
