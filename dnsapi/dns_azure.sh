@@ -9,6 +9,7 @@ Options:
  AZUREDNS_APPID App ID. App ID of the service principal
  AZUREDNS_CLIENTSECRET Client Secret. Secret from creating the service principal
  AZUREDNS_MANAGEDIDENTITY Use Managed Identity. Use Managed Identity assigned to a resource instead of a service principal. "true"/"false"
+ AZUREDNS_BEARERTOKEN Optional Bearer Token. Used instead of service principal credentials or managed identity
 '
 
 ########  Public functions #####################
@@ -83,7 +84,11 @@ dns_azure_add() {
     _saveaccountconf_mutable AZUREDNS_CLIENTSECRET "$AZUREDNS_CLIENTSECRET"
   fi
 
-  accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
+  if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
+    accesstoken=$(echo "$AZUREDNS_BEARERTOKEN" | sed "s/Bearer //g")
+  else
+    accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
+  fi
 
   if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
     _err "invalid domain"
