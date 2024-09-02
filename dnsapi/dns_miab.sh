@@ -20,7 +20,7 @@ dns_miab_add() {
   txtvalue="value=$2&ttl=300"
   _info "Using miab challenge add"
   _debug fulldomain "$fulldomain"
-  _debug txtvalue $txtvalue
+  _debug txtvalue "$txtvalue"
 
   #retrieve MIAB environemt vars
   if ! _retrieve_miab_env; then
