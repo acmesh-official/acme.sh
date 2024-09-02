@@ -17,10 +17,10 @@ Author: Darven Dissek, William Gertz
 dns_miab_add() {
   fulldomain=$1
   # Added "value=" and "&ttl=300" to accomodate the new TXT record format used by the MIAB/PMIAB API
-  txtvalue="value=" "$2" "&ttl=300"
+  txtvalue="value=$2&ttl=300"
   _info "Using miab challenge add"
   _debug fulldomain "$fulldomain"
-  _debug txtvalue "$txtvalue"
+  _debug txtvalue $txtvalue
 
   #retrieve MIAB environemt vars
   if ! _retrieve_miab_env; then
