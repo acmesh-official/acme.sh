@@ -50,8 +50,6 @@ dns_azure_add() {
     AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
     AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
     if [ -z "$AZUREDNS_BEARERTOKEN" ]; then    
-      _info "Using provided bearer token"
-    else
       if [ -z "$AZUREDNS_TENANTID" ]; then
         AZUREDNS_SUBSCRIPTIONID=""
         AZUREDNS_TENANTID=""
@@ -78,6 +76,8 @@ dns_azure_add() {
         _err "You didn't specify the Azure Client Secret"
         return 1
       fi
+    else
+      _info "Using provided bearer token"
     fi
 
     #save account details to account conf file, don't opt in for azure manages identity check.
