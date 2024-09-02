@@ -16,8 +16,8 @@ Author: Darven Dissek, William Gertz
 #Usage: dns_miab_add  _acme-challenge.www.domain.com  "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_miab_add() {
   fulldomain=$1
+  # Added "value=" and "&ttl=300" to accomodate the new TXT record format used by the MIAB API
   txtvalue="value="$2"&ttl=300"
-  # Added to accomodate the new TXT record format used by the API to include value= and ttl=
   _info "Using miab challenge add"
   _debug fulldomain "$fulldomain"
   _debug txtvalue $txtvalue
