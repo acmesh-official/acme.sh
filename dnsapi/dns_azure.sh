@@ -45,36 +45,39 @@ dns_azure_add() {
     _saveaccountconf_mutable AZUREDNS_APPID ""
     _saveaccountconf_mutable AZUREDNS_CLIENTSECRET ""
   else
-    _info "You didn't ask to use Azure managed identity, checking service principal credentials"
+    _info "You didn't ask to use Azure managed identity, checking service principal credentials or provided bearer token"
     AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
     AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
     AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
+    if [ -z "$AZUREDNS_BEARERTOKEN" ]; then    
+      _info "Using provided bearer token"
+    else
+      if [ -z "$AZUREDNS_TENANTID" ]; then
+        AZUREDNS_SUBSCRIPTIONID=""
+        AZUREDNS_TENANTID=""
+        AZUREDNS_APPID=""
+        AZUREDNS_CLIENTSECRET=""
+        _err "You didn't specify the Azure Tenant ID "
+        return 1
+      fi
 
-    if [ -z "$AZUREDNS_TENANTID" ]; then
-      AZUREDNS_SUBSCRIPTIONID=""
-      AZUREDNS_TENANTID=""
-      AZUREDNS_APPID=""
-      AZUREDNS_CLIENTSECRET=""
-      _err "You didn't specify the Azure Tenant ID "
-      return 1
-    fi
+      if [ -z "$AZUREDNS_APPID" ]; then
+        AZUREDNS_SUBSCRIPTIONID=""
+        AZUREDNS_TENANTID=""
+        AZUREDNS_APPID=""
+        AZUREDNS_CLIENTSECRET=""
+        _err "You didn't specify the Azure App ID"
+        return 1
+      fi
 
-    if [ -z "$AZUREDNS_APPID" ]; then
-      AZUREDNS_SUBSCRIPTIONID=""
-      AZUREDNS_TENANTID=""
-      AZUREDNS_APPID=""
-      AZUREDNS_CLIENTSECRET=""
-      _err "You didn't specify the Azure App ID"
-      return 1
-    fi
-
-    if [ -z "$AZUREDNS_CLIENTSECRET" ]; then
-      AZUREDNS_SUBSCRIPTIONID=""
-      AZUREDNS_TENANTID=""
-      AZUREDNS_APPID=""
-      AZUREDNS_CLIENTSECRET=""
-      _err "You didn't specify the Azure Client Secret"
-      return 1
+      if [ -z "$AZUREDNS_CLIENTSECRET" ]; then
+        AZUREDNS_SUBSCRIPTIONID=""
+        AZUREDNS_TENANTID=""
+        AZUREDNS_APPID=""
+        AZUREDNS_CLIENTSECRET=""
+        _err "You didn't specify the Azure Client Secret"
+        return 1
+      fi
     fi
 
     #save account details to account conf file, don't opt in for azure manages identity check.
@@ -360,7 +363,6 @@ _get_root() {
   ## (ZoneListResult with  continuation token for the next page of results)
   ## Per https://docs.microsoft.com/en-us/azure/azure-subscription-service-limits#dns-limits you are limited to 100 Zone/subscriptions anyways
   ##
-  _debug "$accesstoken $subscriptionId"
   _azure_rest GET "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Network/dnszones?\$top=500&api-version=2017-09-01" "" "$accesstoken"
   # Find matching domain name in Json response
   while true; do
