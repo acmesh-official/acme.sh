@@ -101,7 +101,6 @@ dns_azure_add() {
   acmeRecordURI="https://management.azure.com$(printf '%s' "$_domain_id" | sed 's/\\//g')/TXT/$_sub_domain?api-version=2017-09-01"
   _debug "$acmeRecordURI"
   # Get existing TXT record
-  _debug "$acmeRecordURI $accesstoken"
   _azure_rest GET "$acmeRecordURI" "" "$accesstoken"
   values="{\"value\":[\"$txtvalue\"]}"
   timestamp="$(_time)"
@@ -361,6 +360,7 @@ _get_root() {
   ## (ZoneListResult with  continuation token for the next page of results)
   ## Per https://docs.microsoft.com/en-us/azure/azure-subscription-service-limits#dns-limits you are limited to 100 Zone/subscriptions anyways
   ##
+  _debug "$accesstoken $subscriptionId"
   _azure_rest GET "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Network/dnszones?\$top=500&api-version=2017-09-01" "" "$accesstoken"
   # Find matching domain name in Json response
   while true; do
