@@ -126,6 +126,7 @@ dns_azure_add() {
   # Add the txtvalue TXT Record
   body="{\"properties\":{\"metadata\":{\"acmetscheck\":\"$timestamp\"},\"TTL\":10, \"TXTRecords\":[$values]}}"
   _azure_rest PUT "$acmeRecordURI" "$body" "$accesstoken"
+  _debug "$acmeRecordURI $body $accesstoken"
   if [ "$_code" = "200" ] || [ "$_code" = '201' ]; then
     _info "validation value added"
     return 0
