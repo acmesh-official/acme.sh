@@ -194,8 +194,12 @@ dns_azure_rm() {
     fi
   fi
 
-  accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
-
+  if [ -z "$AZUREDNS_BEARERTOKEN" ]; then    
+    accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
+  else
+    accesstoken=$(echo "$AZUREDNS_BEARERTOKEN" | sed "s/Bearer //g")
+  fi
+  
   if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
     _err "invalid domain"
     return 1
