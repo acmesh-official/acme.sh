@@ -39,7 +39,6 @@ dns_yandex360_add() {
   data='{"name":"'"$sub_domain"'","type":"TXT","ttl":60,"text":"'"$txtvalue"'"}'
 
   response="$(_post "$data" "$dns_api_url" '' 'POST' 'application/json')"
-  response="$(echo "$response" | _normalizeJson)"
 
   if _contains "$response" 'recordId'; then
     return 0
@@ -65,13 +64,14 @@ dns_yandex360_rm() {
   _debug 'Retrieving 100 records from Yandex 360 DNS'
   dns_api_url="${YANDEX360_API_BASE}/org/${YANDEX360_ORG_ID}/domains/${root_domain}/dns?perPage=100"
   response="$(_get "$dns_api_url" '' '')"
-  response="$(echo "$response" | _normalizeJson)"
 
   if ! _contains "$response" "$txtvalue"; then
     _info 'DNS record not found. Nothing to remove.'
     _debug 'Response' "$response"
     return 1
   fi
+
+  response="$(echo "$response" | _normalizeJson)"
 
   record_id=$(
     echo "$response" |
@@ -89,7 +89,6 @@ dns_yandex360_rm() {
   delete_url="${YANDEX360_API_BASE}/org/${YANDEX360_ORG_ID}/domains/${root_domain}/dns/${record_id}"
 
   response="$(_post '' "$delete_url" '' 'DELETE')"
-  response="$(echo "$response" | _normalizeJson)"
 
   if _contains "$response" '{}'; then
     return 0
@@ -138,27 +137,20 @@ _check_variables() {
 
     if [ -n "$YANDEX360_REFRESH_TOKEN" ]; then
       _debug 'Refresh token found. Attempting to refresh access token.'
-      if ! _refresh_token; then
-        if ! _get_token; then
-          return 1
-        fi
-      fi
-    else
-      if ! _get_token; then
-        return 1
-      fi
     fi
+
+    _refresh_token || _get_token || return 1
   fi
 
   if [ -z "$YANDEX360_ORG_ID" ]; then
     org_response="$(_get "${YANDEX360_API_BASE}/org" '' '')"
-    org_response="$(echo "$org_response" | _normalizeJson)"
 
-    if _contains "$org_response" '"organizations":'; then
+    if _contains "$org_response" '"organizations"'; then
+      org_response="$(echo "$org_response" | _normalizeJson)"
       YANDEX360_ORG_ID=$(
         echo "$org_response" |
           _egrep_o '"id":[[:space:]]*[0-9]+' |
-          cut -d: -f2
+          cut -d':' -f2
       )
       _debug 'Automatically retrieved YANDEX360_ORG_ID' "$YANDEX360_ORG_ID"
     else
@@ -177,13 +169,13 @@ _check_variables() {
 }
 
 _get_token() {
-  _info "$(_red '=========================================')"
-  _info "$(_red '                 NOTICE')"
-  _info "$(_red '=========================================')"
-  _info "$(_red 'Before using the Yandex 360 API, you need to complete an authorization procedure.')"
-  _info "$(_red 'The initial access token is obtained interactively and is a one-time operation.')"
-  _info "$(_red 'Subsequent API requests will be handled automatically.')"
-  _info "$(_red '=========================================')"
+  _info "$(__red '=========================================')"
+  _info "$(__red '                 NOTICE')"
+  _info "$(__red '=========================================')"
+  _info "$(__red 'Before using the Yandex 360 API, you need to complete an authorization procedure.')"
+  _info "$(__red 'The initial access token is obtained interactively and is a one-time operation.')"
+  _info "$(__red 'Subsequent API requests will be handled automatically.')"
+  _info "$(__red '=========================================')"
 
   _info 'Initiating device authorization flow'
   device_code_url="${YANDEX360_OAUTH_BASE}/device/code"
@@ -192,7 +184,6 @@ _get_token() {
   data="client_id=$YANDEX360_CLIENT_ID&device_id=acme.sh ${hostname}&device_name=acme.sh ${hostname}"
 
   response="$(_post "$data" "$device_code_url" '' 'POST')"
-  response="$(echo "$response" | _normalizeJson)"
 
   if ! _contains "$response" 'device_code'; then
     _err 'Failed to get device code'
@@ -200,34 +191,33 @@ _get_token() {
     return 1
   fi
 
+  response="$(echo "$response" | _normalizeJson)"
+
   device_code=$(
     echo "$response" |
       _egrep_o '"device_code":"[^"]*"' |
-      cut -d: -f2 |
-      tr -d '"'
+      cut -d'"' -f4
   )
   _debug 'Device code' "$device_code"
 
   user_code=$(
     echo "$response" |
       _egrep_o '"user_code":"[^"]*"' |
-      cut -d: -f2 |
-      tr -d '"'
+      cut -d'"' -f4
   )
   _debug 'User code' "$user_code"
 
   verification_url=$(
     echo "$response" |
       _egrep_o '"verification_url":"[^"]*"' |
-      cut -d: -f2- |
-      tr -d '"'
+      cut -d'"' -f4
   )
   _debug 'Verification URL' "$verification_url"
 
   interval=$(
     echo "$response" |
       _egrep_o '"interval":[[:space:]]*[0-9]+' |
-      cut -d: -f2
+      cut -d':' -f2
   )
   _debug 'Polling interval' "$interval"
 
@@ -242,20 +232,18 @@ _get_token() {
     data="grant_type=device_code&code=$device_code&client_id=$YANDEX360_CLIENT_ID&client_secret=$YANDEX360_CLIENT_SECRET"
 
     response="$(_post "$data" "$token_url" '' 'POST')"
-    response="$(echo "$response" | _normalizeJson)"
 
     if _contains "$response" 'access_token'; then
+      response="$(echo "$response" | _normalizeJson)"
       YANDEX360_ACCESS_TOKEN=$(
         echo "$response" |
           _egrep_o '"access_token":"[^"]*"' |
-          cut -d: -f2- |
-          tr -d '"'
+          cut -d'"' -f4
       )
       YANDEX360_REFRESH_TOKEN=$(
         echo "$response" |
           _egrep_o '"refresh_token":"[^"]*"' |
-          cut -d: -f2- |
-          tr -d '"'
+          cut -d'"' -f4
       )
 
       _secure_debug 'Obtained access token' "$YANDEX360_ACCESS_TOKEN"
@@ -285,20 +273,18 @@ _refresh_token() {
   data="grant_type=refresh_token&refresh_token=$YANDEX360_REFRESH_TOKEN&client_id=$YANDEX360_CLIENT_ID&client_secret=$YANDEX360_CLIENT_SECRET"
 
   response="$(_post "$data" "$token_url" '' 'POST')"
-  response="$(echo "$response" | _normalizeJson)"
 
   if _contains "$response" 'access_token'; then
+    response="$(echo "$response" | _normalizeJson)"
     YANDEX360_ACCESS_TOKEN=$(
       echo "$response" |
         _egrep_o '"access_token":"[^"]*"' |
-        cut -d: -f2 |
-        tr -d '"'
+        cut -d'"' -f4
     )
     YANDEX360_REFRESH_TOKEN=$(
       echo "$response" |
         _egrep_o '"refresh_token":"[^"]*"' |
-        cut -d: -f2- |
-        tr -d '"'
+        cut -d'"' -f4
     )
 
     _secure_debug 'Received access token' "$YANDEX360_ACCESS_TOKEN"
@@ -325,14 +311,14 @@ _get_root() {
     domains_api_url="${YANDEX360_API_BASE}/org/${org_id}/domains"
 
     domains_response="$(_get "$domains_api_url" '' '')"
-    domains_response="$(echo "$domains_response" | _normalizeJson)"
 
-    if ! _contains "$domains_response" '"domains":'; then
+    if ! _contains "$domains_response" '"domains"'; then
       _debug 'No domains found for organization' "$org_id"
       _debug 'Response' "$domains_response"
       continue
     fi
 
+    domains_response="$(echo "$domains_response" | _normalizeJson)"
     domain_names=$(
       echo "$domains_response" |
         _egrep_o '"name":"[^"]*"' |
