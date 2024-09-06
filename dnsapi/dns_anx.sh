@@ -1,9 +1,12 @@
 #!/usr/bin/env sh
-
-# Anexia CloudDNS acme.sh hook
-# Author: MA
-
-#ANX_Token="xxxx"
+# shellcheck disable=SC2034
+dns_anx_info='Anexia.com CloudDNS
+Site: Anexia.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_anx
+Options:
+ ANX_Token API Token
+Issues: github.com/acmesh-official/acme.sh/issues/3238
+'
 
 ANX_API='https://engine.anexia-it.com/api/clouddns/v1'
 

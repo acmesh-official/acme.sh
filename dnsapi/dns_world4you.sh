@@ -1,7 +1,14 @@
 #!/usr/bin/env sh
-
-# World4You - www.world4you.com
-# Lorenz Stechauner, 2020 - https://www.github.com/NerLOR
+# shellcheck disable=SC2034
+dns_world4you_info='World4You.com
+Site: World4You.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_world4you
+Options:
+ WORLD4YOU_USERNAME Username
+ WORLD4YOU_PASSWORD Password
+Issues: github.com/acmesh-official/acme.sh/issues/3269
+Author: Lorenz Stechauner <https://www.github.com/NerLOR>
+'
 
 WORLD4YOU_API="https://my.world4you.com/en"
 PAKETNR=''

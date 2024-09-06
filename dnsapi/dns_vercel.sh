@@ -1,11 +1,14 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_vercel_info='Vercel.com
+Site: Vercel.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_vercel
+Options:
+ VERCEL_TOKEN API Token
+'
 
-# Vercel DNS API
-#
 # This is your API token which can be acquired on the account page.
 # https://vercel.com/account/tokens
-#
-# VERCEL_TOKEN="sdfsdfsdfljlbjkljlkjsdfoiwje"
 
 VERCEL_API="https://api.vercel.com"
 

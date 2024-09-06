@@ -1,8 +1,15 @@
 #!/usr/bin/env sh
-#Author StefanAbl
-#Usage specify a private keyfile to use with dynv6 'export KEY="path/to/keyfile"'
-#or use the HTTP REST API by by specifying a token 'export DYNV6_TOKEN="value"
-#if no keyfile is specified, you will be asked if you want to create one in /home/$USER/.ssh/dynv6 and /home/$USER/.ssh/dynv6.pub
+# shellcheck disable=SC2034
+dns_dynv6_info='DynV6.com
+Site: DynV6.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_dynv6
+Options:
+ DYNV6_TOKEN REST API token. Get from https://DynV6.com/keys
+OptionsAlt:
+ KEY Path to SSH private key file. E.g. "/root/.ssh/dynv6"
+Issues: github.com/acmesh-official/acme.sh/issues/2702
+Author: StefanAbl
+'
 
 dynv6_api="https://dynv6.com/api/v2"
 ########  Public functions #####################

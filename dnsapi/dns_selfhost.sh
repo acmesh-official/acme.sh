@@ -1,8 +1,15 @@
 #!/usr/bin/env sh
-#
-#       Author: Marvin Edeler
-#       Report Bugs here: https://github.com/Marvo2011/acme.sh/issues/1
-#	Last Edit: 17.02.2022
+# shellcheck disable=SC2034
+dns_selfhost_info='SelfHost.de
+Site: SelfHost.de
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_selfhost
+Options:
+ SELFHOSTDNS_USERNAME Username
+ SELFHOSTDNS_PASSWORD Password
+ SELFHOSTDNS_MAP Subdomain name
+Issues: github.com/acmesh-official/acme.sh/issues/4291
+Author: Marvin Edeler
+'
 
 dns_selfhost_add() {
   fulldomain=$1

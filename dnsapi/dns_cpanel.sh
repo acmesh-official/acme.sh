@@ -1,18 +1,18 @@
 #!/usr/bin/env sh
-#
-#Author: Bjarne Saltbaek
-#Report Bugs here: https://github.com/acmesh-official/acme.sh/issues/3732
-#
-#
+# shellcheck disable=SC2034
+dns_cpanel_info='cPanel Server API
+ Manage DNS via cPanel Dashboard.
+Site: cPanel.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_cpanel
+Options:
+ cPanel_Username Username
+ cPanel_Apitoken API Token
+ cPanel_Hostname Server URL. E.g. "https://hostname:port"
+Issues: github.com/acmesh-official/acme.sh/issues/3732
+Author: Bjarne Saltbaek
+'
+
 ########  Public functions #####################
-#
-# Export CPANEL username,api token and hostname in the following variables
-#
-# cPanel_Username=username
-# cPanel_Apitoken=apitoken
-# cPanel_Hostname=hostname
-#
-# Usage: add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 
 # Used to add txt record
 dns_cpanel_add() {

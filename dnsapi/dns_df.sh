@@ -1,18 +1,15 @@
 #!/usr/bin/env sh
-
-########################################################################
-# https://dyndnsfree.de hook script for acme.sh
-#
-# Environment variables:
-#
-#  - $DF_user      (your dyndnsfree.de username)
-#  - $DF_password  (your dyndnsfree.de password)
-#
-# Author: Thilo Gass <thilo.gass@gmail.com>
-# Git repo: https://github.com/ThiloGa/acme.sh
-
-#-- dns_df_add() - Add TXT record --------------------------------------
-# Usage: dns_df_add _acme-challenge.subdomain.domain.com "XyZ123..."
+# shellcheck disable=SC2034
+dns_df_info='DynDnsFree.de
+Domains: dynup.de
+Site: DynDnsFree.de
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_df
+Options:
+ DF_user Username
+ DF_password Password
+Issues: github.com/acmesh-official/acme.sh/issues/2897
+Author: Thilo Gass <thilo.gass@gmail.com>
+'
 
 dyndnsfree_api="https://dynup.de/acme.php"
 

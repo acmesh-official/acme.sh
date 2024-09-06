@@ -1,11 +1,12 @@
 #!/usr/bin/env sh
-
-# bug reports to support+acmesh@misaka.io
-# based on dns_nsone.sh by dev@1e.ca
-
-#
-#Misaka_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
+# shellcheck disable=SC2034
+dns_misaka_info='Misaka.io
+Site: Misaka.io
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_misaka
+Options:
+ Misaka_Key API Key
+Author: <support+acmesh@misaka.io>
+'
 
 Misaka_Api="https://dnsapi.misaka.io/dns"
 

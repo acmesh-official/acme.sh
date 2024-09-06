@@ -1,17 +1,14 @@
 #!/usr/bin/env sh
-
-################################################################################
-# ACME.sh 3rd party DNS API plugin for ArtFiles.de
-################################################################################
-# Author:   Martin Arndt, https://troublezone.net/
-# Released: 2022-02-27
-# Issues:   https://github.com/acmesh-official/acme.sh/issues/4718
-################################################################################
-# Usage:
-# 1. export AF_API_USERNAME='api12345678'
-# 2. export AF_API_PASSWORD='apiPassword'
-# 3. acme.sh --issue -d example.com --dns dns_artfiles
-################################################################################
+# shellcheck disable=SC2034
+dns_artfiles_info='ArtFiles.de
+Site: ArtFiles.de
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_artfiles
+Options:
+ AF_API_USERNAME API Username
+ AF_API_PASSWORD API Password
+Issues: github.com/acmesh-official/acme.sh/issues/4718
+Author: Martin Arndt <https://troublezone.net/>
+'
 
 ########## API configuration ###################################################
 

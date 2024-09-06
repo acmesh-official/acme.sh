@@ -1,13 +1,15 @@
 #!/usr/bin/env sh
-
-#Application Key
-#OVH_AK="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
-#Application Secret
-#OVH_AS="sdfsafsdfsdfdsfsdfsa"
-#
-#Consumer Key
-#OVH_CK="sdfsdfsdfsdfsdfdsf"
+# shellcheck disable=SC2034
+dns_ovh_info='OVH.com
+Domains: kimsufi.com soyoustart.com
+Site: OVH.com
+Docs: github.com/acmesh-official/acme.sh/wiki/How-to-use-OVH-domain-api
+Options:
+ OVH_END_POINT Endpoint. "ovh-eu", "ovh-us", "ovh-ca", "kimsufi-eu", "kimsufi-ca", "soyoustart-eu", "soyoustart-ca" or raw URL. Default: "ovh-eu".
+ OVH_AK Application Key
+ OVH_AS Application Secret
+ OVH_CK Consumer Key
+'
 
 #OVH_END_POINT=ovh-eu
 

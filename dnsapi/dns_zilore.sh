@@ -1,7 +1,13 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_zilore_info='Zilore.com
+Site: Zilore.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_zilore
+Options:
+ Zilore_Key API Key
+'
 
 Zilore_API="https://api.zilore.com/dns/v1"
-# Zilore_Key="YOUR-ZILORE-API-KEY"
 
 ########  Public functions #####################
 

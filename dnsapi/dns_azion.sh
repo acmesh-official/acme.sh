@@ -1,9 +1,13 @@
 #!/usr/bin/env sh
-
-#
-#AZION_Email=""
-#AZION_Password=""
-#
+# shellcheck disable=SC2034
+dns_azion_info='Azion.om
+Site: Azion.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_azion
+Options:
+ AZION_Email Email
+ AZION_Password Password
+Issues: github.com/acmesh-official/acme.sh/issues/3555
+'
 
 AZION_Api="https://api.azionapi.net"
 
