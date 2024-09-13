@@ -1,5 +1,6 @@
 name: DNS
 on:
+  workflow_dispatch:
   push:
     paths:
       - 'dnsapi/*.sh'
