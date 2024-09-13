@@ -15,6 +15,11 @@ on:
       - '.github/workflows/Windows.yml'
 
 
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
 jobs:
   Windows:
     strategy:
@@ -24,12 +29,12 @@ jobs:
            CA_ECDSA: ""
            CA: ""
            CA_EMAIL: ""
-           TEST_PREFERRED_CHAIN: (STAGING) Pretend Pear X1
-         - TEST_ACME_Server: "ZeroSSL.com"
-           CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
-           CA: "ZeroSSL RSA Domain Secure Site CA"
-           CA_EMAIL: "githubtest@acme.sh"
-           TEST_PREFERRED_CHAIN: ""
+           TEST_PREFERRED_CHAIN: (STAGING)
+         #- TEST_ACME_Server: "ZeroSSL.com"
+         #  CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
+         #  CA: "ZeroSSL RSA Domain Secure Site CA"
+         #  CA_EMAIL: "githubtest@acme.sh"
+         #  TEST_PREFERRED_CHAIN: ""
     runs-on: windows-latest
     env:
       TEST_ACME_Server: ${{ matrix.TEST_ACME_Server }}
@@ -44,7 +49,7 @@ jobs:
     - name: Set git to use LF
       run: |
           git config --global core.autocrlf false
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Install cygwin base packages with chocolatey
       run: |
           choco config get cacheLocation
@@ -52,7 +57,7 @@ jobs:
       shell: cmd
     - name: Install cygwin additional packages
       run: |
-          C:\tools\cygwin\cygwinsetup.exe -qgnNdO -R C:/tools/cygwin -s http://mirrors.kernel.org/sourceware/cygwin/ -P socat,curl,cron,unzip,git,xxd
+          C:\tools\cygwin\cygwinsetup.exe -qgnNdO -R C:/tools/cygwin -s https://mirrors.kernel.org/sourceware/cygwin/ -P socat,curl,cron,unzip,git,xxd
       shell: cmd
     - name: Set ENV
       shell: cmd
@@ -64,7 +69,7 @@ jobs:
           echo "PATH=%PATH%"
     - name: Clone acmetest
       shell: cmd
-      run: cd .. && git clone https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
       shell: cmd
       run: cd ../acmetest && bash.exe -c ./letest.sh

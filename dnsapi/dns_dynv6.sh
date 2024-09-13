@@ -1,8 +1,15 @@
 #!/usr/bin/env sh
-#Author StefanAbl
-#Usage specify a private keyfile to use with dynv6 'export KEY="path/to/keyfile"'
-#or use the HTTP REST API by by specifying a token 'export DYNV6_TOKEN="value"
-#if no keyfile is specified, you will be asked if you want to create one in /home/$USER/.ssh/dynv6 and /home/$USER/.ssh/dynv6.pub
+# shellcheck disable=SC2034
+dns_dynv6_info='DynV6.com
+Site: DynV6.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_dynv6
+Options:
+ DYNV6_TOKEN REST API token. Get from https://DynV6.com/keys
+OptionsAlt:
+ KEY Path to SSH private key file. E.g. "/root/.ssh/dynv6"
+Issues: github.com/acmesh-official/acme.sh/issues/2702
+Author: StefanAbl
+'
 
 dynv6_api="https://dynv6.com/api/v2"
 ########  Public functions #####################
@@ -94,8 +101,8 @@ _get_domain() {
   _your_hosts="$(echo "$_your_hosts" | awk '/\./ {print $1}')"
   for l in $_your_hosts; do
     #echo "host: $l"
-    if test "${_full_domain#*$l}" != "$_full_domain"; then
-      _record="${_full_domain%.$l}"
+    if test "${_full_domain#*"$l"}" != "$_full_domain"; then
+      _record=${_full_domain%."$l"}
       _host=$l
       _debug "The host is $_host and the record $_record"
       return 0
@@ -143,7 +150,7 @@ _dns_dynv6_add_http() {
     return 1
   fi
   _get_zone_name "$_zone_id"
-  record="${fulldomain%%.$_zone_name}"
+  record=${fulldomain%%."$_zone_name"}
   _set_record TXT "$record" "$txtvalue"
   if _contains "$response" "$txtvalue"; then
     _info "Successfully added record"
@@ -161,7 +168,7 @@ _dns_dynv6_rm_http() {
     return 1
   fi
   _get_zone_name "$_zone_id"
-  record="${fulldomain%%.$_zone_name}"
+  record=${fulldomain%%."$_zone_name"}
   _get_record_id "$_zone_id" "$record" "$txtvalue"
   _del_record "$_zone_id" "$_record_id"
   if [ -z "$response" ]; then

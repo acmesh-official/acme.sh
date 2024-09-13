@@ -1,10 +1,13 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_inwx_info='INWX.de
+Site: INWX.de
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_inwx
+Options:
+ INWX_User Username
+ INWX_Password Password
+'
 
-#
-#INWX_User="username"
-#
-#INWX_Password="password"
-#
 # Dependencies:
 # -------------
 # - oathtool (When using 2 Factor Authentication)
@@ -194,7 +197,7 @@ _inwx_login() {
 
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
 
-  INWX_Cookie=$(printf "Cookie: %s" "$(grep "domrobot=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'domrobot=[^;]*;' | tr -d ';')")
+  INWX_Cookie=$(printf "Cookie: %s" "$(grep "domrobot=" "$HTTP_HEADER" | grep -i "^Set-Cookie:" | _tail_n 1 | _egrep_o 'domrobot=[^;]*;' | tr -d ';')")
   _H1=$INWX_Cookie
   export _H1
   export INWX_Cookie

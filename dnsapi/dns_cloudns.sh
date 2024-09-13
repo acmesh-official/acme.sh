@@ -1,12 +1,15 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_cloudns_info='ClouDNS.net
+Site: ClouDNS.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_cloudns
+Options:
+ CLOUDNS_AUTH_ID Regular auth ID
+ CLOUDNS_SUB_AUTH_ID Sub auth ID
+ CLOUDNS_AUTH_PASSWORD Auth Password
+Author: Boyan Peychev <boyan@cloudns.net>
+'
 
-# Author: Boyan Peychev <boyan at cloudns dot net>
-# Repository: https://github.com/ClouDNS/acme.sh/
-# Editor: I Komang Suryadana
-
-#CLOUDNS_AUTH_ID=XXXXX
-#CLOUDNS_SUB_AUTH_ID=XXXXX
-#CLOUDNS_AUTH_PASSWORD="YYYYYYYYY"
 CLOUDNS_API="https://api.cloudns.net"
 DOMAIN_TYPE=
 DOMAIN_MASTER=
@@ -78,7 +81,7 @@ dns_cloudns_rm() {
     return 1
   fi
 
-  for i in $(echo "$response" | tr '{' "\n" | grep "$record"); do
+  for i in $(echo "$response" | tr '{' "\n" | grep -- "$record"); do
     record_id=$(echo "$i" | tr ',' "\n" | grep -E '^"id"' | sed -re 's/^\"id\"\:\"([0-9]+)\"$/\1/g')
 
     if [ -n "$record_id" ]; then

@@ -1,6 +1,12 @@
 #!/usr/bin/env sh
-
-# Author: Janos Lenart <janos@lenart.io>
+# shellcheck disable=SC2034
+dns_gcloud_info='Google Cloud DNS
+Site: Cloud.Google.com/dns
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_gcloud
+Options:
+ CLOUDSDK_ACTIVE_CONFIG_NAME Active config name. E.g. "default"
+Author: Janos Lenart <janos@lenart.io>
+'
 
 ########  Public functions #####################
 
@@ -39,10 +45,10 @@ dns_gcloud_rm() {
   _dns_gcloud_start_tr || return $?
   _dns_gcloud_get_rrdatas || return $?
   echo "$rrdatas" | _dns_gcloud_remove_rrs || return $?
-  echo "$rrdatas" | grep -F -v "\"$txtvalue\"" | _dns_gcloud_add_rrs || return $?
+  echo "$rrdatas" | grep -F -v -- "\"$txtvalue\"" | _dns_gcloud_add_rrs || return $?
   _dns_gcloud_execute_tr || return $?
 
-  _info "$fulldomain record added"
+  _info "$fulldomain record removed"
 }
 
 ####################  Private functions below ##################################
@@ -98,7 +104,7 @@ _dns_gcloud_remove_rrs() {
     --ttl="$ttl" \
     --type=TXT \
     --zone="$managedZone" \
-    --transaction-file="$tr"; then
+    --transaction-file="$tr" --; then
     _debug tr "$(cat "$tr")"
     rm -r "$trd"
     _err "_dns_gcloud_remove_rrs: failed to remove RRs"
@@ -113,7 +119,7 @@ _dns_gcloud_add_rrs() {
     --ttl="$ttl" \
     --type=TXT \
     --zone="$managedZone" \
-    --transaction-file="$tr"; then
+    --transaction-file="$tr" --; then
     _debug tr "$(cat "$tr")"
     rm -r "$trd"
     _err "_dns_gcloud_add_rrs: failed to add RRs"

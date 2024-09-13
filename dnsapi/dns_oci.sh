@@ -1,6 +1,19 @@
 #!/usr/bin/env sh
-#
-# Acme.sh DNS API plugin for Oracle Cloud Infrastructure
+# shellcheck disable=SC2034
+dns_oci_info='Oracle Cloud Infrastructure (OCI)
+ If OCI CLI configuration file ~/.oci/config has a DEFAULT profile then it will be used.
+Site: Cloud.Oracle.com
+Docs: github.com/acmesh-official/acme.sh/wiki/How-to-use-Oracle-Cloud-Infrastructure-DNS
+Options:
+ OCI_CLI_TENANCY OCID of tenancy that contains the target DNS zone. Optional.
+ OCI_CLI_USER OCID of user with permission to add/remove records from zones. Optional.
+ OCI_CLI_REGION Should point to the tenancy home region. Optional.
+ OCI_CLI_KEY_FILE Path to private API signing key file in PEM format. Optional.
+ OCI_CLI_KEY The private API signing key in PEM format. Optional.
+Issues: github.com/acmesh-official/acme.sh/issues/3540
+Author: Avi Miller <me@dje.li>
+'
+
 # Copyright (c) 2021, Oracle and/or its affiliates
 #
 # The plugin will automatically use the default profile from an OCI SDK and CLI
@@ -159,7 +172,7 @@ _oci_config() {
   fi
 
   if [ "$(printf "%s\n" "$OCI_CLI_KEY" | wc -l)" -eq 1 ]; then
-    OCI_CLI_KEY=$(printf "%s" "$OCI_CLI_KEY" | _dbase64 multiline)
+    OCI_CLI_KEY=$(printf "%s" "$OCI_CLI_KEY" | _dbase64)
   fi
 
   return 0
@@ -265,6 +278,7 @@ _signed_request() {
     _response="$(_get "https://${_sig_host}${_sig_target}")"
   elif [ "$_curl_method" = "PATCH" ]; then
     export _H1="$_date_header"
+    # shellcheck disable=SC2090
     export _H2="$_sig_body_sha256"
     export _H3="$_sig_body_type"
     export _H4="$_sig_body_length"

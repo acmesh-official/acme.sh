@@ -1,14 +1,21 @@
 #!/usr/bin/env sh
-
-# OpenStack Designate API plugin
-#
-# This requires you to have OpenStackClient and python-desginateclient
-# installed.
-#
-# You will require Keystone V3 credentials loaded into your environment, which
-# could be either password or v3applicationcredential type.
-#
-# Author: Andy Botting <andy@andybotting.com>
+# shellcheck disable=SC2034
+dns_openstack_info='OpenStack Designate API
+ Depends on OpenStackClient and python-desginateclient.
+ You will require Keystone V3 credentials loaded into your environment,
+ which could be either password or v3 application credential type.
+Site: docs.openstack.org/api-ref/dns/
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_openstack
+Options:
+ OS_AUTH_URL Auth URL. E.g. "https://keystone.example.com:5000/"
+ OS_USERNAME Username
+ OS_PASSWORD Password
+ OS_PROJECT_NAME Project name
+ OS_PROJECT_DOMAIN_NAME Project domain name. E.g. "Default"
+ OS_USER_DOMAIN_NAME User domain name. E.g. "Default"
+Issues: github.com/acmesh-official/acme.sh/issues/3054
+Author: Andy Botting <andy@andybotting.com>
+'
 
 ########  Public functions #####################
 
@@ -57,16 +64,16 @@ _dns_openstack_create_recordset() {
 
   if [ -z "$_recordset_id" ]; then
     _info "Creating a new recordset"
-    if ! _recordset_id=$(openstack recordset create -c id -f value --type TXT --record "$txtvalue" "$_zone_id" "$fulldomain."); then
+    if ! _recordset_id=$(openstack recordset create -c id -f value --type TXT --record="$txtvalue" "$_zone_id" "$fulldomain."); then
       _err "No recordset ID found after create"
       return 1
     fi
   else
     _info "Updating existing recordset"
-    # Build new list of --record <rec> args for update
-    _record_args="--record $txtvalue"
+    # Build new list of --record=<rec> args for update
+    _record_args="--record=$txtvalue"
     for _rec in $_records; do
-      _record_args="$_record_args --record $_rec"
+      _record_args="$_record_args --record=$_rec"
     done
     # shellcheck disable=SC2086
     if ! _recordset_id=$(openstack recordset set -c id -f value $_record_args "$_zone_id" "$fulldomain."); then
@@ -107,13 +114,13 @@ _dns_openstack_delete_recordset() {
     fi
   else
     _info "Found existing records, updating recordset"
-    # Build new list of --record <rec> args for update
+    # Build new list of --record=<rec> args for update
     _record_args=""
     for _rec in $_records; do
       if [ "$_rec" = "$txtvalue" ]; then
         continue
       fi
-      _record_args="$_record_args --record $_rec"
+      _record_args="$_record_args --record=$_rec"
     done
     # shellcheck disable=SC2086
     if ! openstack recordset set -c id -f value $_record_args "$_zone_id" "$fulldomain." >/dev/null; then

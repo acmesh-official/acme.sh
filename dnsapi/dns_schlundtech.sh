@@ -1,16 +1,14 @@
 #!/usr/bin/env sh
-# -*- mode: sh; tab-width: 2; indent-tabs-mode: s; coding: utf-8 -*-
-
-# Schlundtech DNS API
-# Author: mod242
-# Created: 2019-40-29
-# Completly based on the autoDNS xml api wrapper by auerswald@gmail.com
-#
-#     export SCHLUNDTECH_USER="username"
-#     export SCHLUNDTECH_PASSWORD="password"
-#
-# Usage:
-#     acme.sh --issue --dns dns_schlundtech -d example.com
+# shellcheck disable=SC2034
+dns_schlundtech_info='SchlundTech.de
+Site: SchlundTech.de
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_schlundtech
+Options:
+ SCHLUNDTECH_USER Username
+ SCHLUNDTECH_PASSWORD Password
+Issues: github.com/acmesh-official/acme.sh/issues/2246
+Author: <https://github.com/mod242>
+'
 
 SCHLUNDTECH_API="https://gateway.schlundtech.de"
 

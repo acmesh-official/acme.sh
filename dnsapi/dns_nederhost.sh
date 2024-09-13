@@ -1,6 +1,12 @@
 #!/usr/bin/env sh
-
-#NederHost_Key="sdfgikogfdfghjklkjhgfcdcfghjk"
+# shellcheck disable=SC2034
+dns_nederhost_info='NederHost.nl
+Site: NederHost.nl
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_nederhost
+Options:
+ NederHost_Key API Key
+Issues: github.com/acmesh-official/acme.sh/issues/2089
+'
 
 NederHost_Api="https://api.nederhost.nl/dns/v1"
 
@@ -112,12 +118,8 @@ _nederhost_rest() {
   export _H1="Authorization: Bearer $NederHost_Key"
   export _H2="Content-Type: application/json"
 
-  if [ "$m" != "GET" ]; then
-    _debug data "$data"
-    response="$(_post "$data" "$NederHost_Api/$ep" "" "$m")"
-  else
-    response="$(_get "$NederHost_Api/$ep")"
-  fi
+  _debug data "$data"
+  response="$(_post "$data" "$NederHost_Api/$ep" "" "$m")"
 
   _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
   _debug "http response code $_code"

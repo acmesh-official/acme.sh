@@ -1,12 +1,18 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_leaseweb_info='Leaseweb.com
+Site: Leaseweb.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_leaseweb
+Options:
+ LSW_Key API Key
+Issues: github.com/acmesh-official/acme.sh/issues/2558
+Author: Rolph Haspers <r.haspers@global.leaseweb.com>
+'
 
-#Author: Rolph Haspers <r.haspers@global.leaseweb.com>
-#Utilize leaseweb.com API to finish dns-01 verifications.
-#Requires a Leaseweb API Key (export LSW_Key="Your Key")
-#See http://developer.leaseweb.com for more information.
+#See https://developer.leaseweb.com for more information.
 ########  Public functions #####################
 
-LSW_API="https://api.leaseweb.com/hosting/v2/domains/"
+LSW_API="https://api.leaseweb.com/hosting/v2/domains"
 
 #Usage: dns_leaseweb_add   _acme-challenge.www.domain.com
 dns_leaseweb_add() {

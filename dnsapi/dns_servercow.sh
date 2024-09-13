@@ -1,19 +1,14 @@
 #!/usr/bin/env sh
-
-##########
-# Custom servercow.de DNS API v1 for use with [acme.sh](https://github.com/acmesh-official/acme.sh)
-#
-# Usage:
-# export SERVERCOW_API_Username=username
-# export SERVERCOW_API_Password=password
-# acme.sh --issue -d example.com --dns dns_servercow
-#
-# Issues:
-# Any issues / questions / suggestions can be posted here:
-# https://github.com/jhartlep/servercow-dns-api/issues
-#
-# Author: Jens Hartlep
-##########
+# shellcheck disable=SC2034
+dns_servercow_info='ServerCow.de
+Site: ServerCow.de
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_servercow
+Options:
+ SERVERCOW_API_Username Username
+ SERVERCOW_API_Password Password
+Issues: github.com/jhartlep/servercow-dns-api/issues
+Author: Jens Hartlep
+'
 
 SERVERCOW_API="https://api.servercow.de/dns/v1/domains"
 
@@ -53,7 +48,7 @@ dns_servercow_add() {
   if printf -- "%s" "$response" | grep "{\"name\":\"$_sub_domain\",\"ttl\":20,\"type\":\"TXT\"" >/dev/null; then
     _info "A txt record with the same name already exists."
     # trim the string on the left
-    txtvalue_old=${response#*{\"name\":\"$_sub_domain\",\"ttl\":20,\"type\":\"TXT\",\"content\":\"}
+    txtvalue_old=${response#*{\"name\":\""$_sub_domain"\",\"ttl\":20,\"type\":\"TXT\",\"content\":\"}
     # trim the string on the right
     txtvalue_old=${txtvalue_old%%\"*}
 

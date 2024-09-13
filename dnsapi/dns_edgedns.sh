@@ -1,4 +1,15 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_edgedns_info='Akamai.com Edge DNS
+Site: techdocs.Akamai.com/edge-dns/reference/edge-dns-api
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_edgedns
+Options: Specify individual credentials
+ AKAMAI_HOST Host
+ AKAMAI_ACCESS_TOKEN Access token
+ AKAMAI_CLIENT_TOKEN Client token
+ AKAMAI_CLIENT_SECRET Client secret
+Issues: github.com/acmesh-official/acme.sh/issues/3157
+'
 
 # Akamai Edge DNS v2  API
 # User must provide Open Edgegrid API credentials to the EdgeDNS installation. The remote user in EdgeDNS must have CRUD access to
@@ -6,18 +17,10 @@
 
 # Report bugs to https://control.akamai.com/apps/support-ui/#/contact-support
 
-# Values to export:
-# --EITHER--
 # *** TBD. NOT IMPLEMENTED YET ***
-# specify Edgegrid credentials file and section
-# AKAMAI_EDGERC=<full file path>
-# AKAMAI_EDGERC_SECTION="default"
-## --OR--
-# specify indiviual credentials
-# export AKAMAI_HOST = <host>
-# export AKAMAI_ACCESS_TOKEN = <access token>
-# export AKAMAI_CLIENT_TOKEN = <client token>
-# export AKAMAI_CLIENT_SECRET = <client secret>
+# Specify Edgegrid credentials file and section.
+# AKAMAI_EDGERC Edge RC. Full file path
+# AKAMAI_EDGERC_SECTION Edge RC Section. E.g. "default"
 
 ACME_EDGEDNS_VERSION="0.1.0"
 
@@ -176,6 +179,7 @@ _EDGEDNS_credentials() {
   _debug "GettingEdge DNS credentials"
   _log "$(printf "ACME DNSAPI Edge DNS version %s" ${ACME_EDGEDNS_VERSION})"
   args_missing=0
+  AKAMAI_ACCESS_TOKEN="${AKAMAI_ACCESS_TOKEN:-$(_readaccountconf_mutable AKAMAI_ACCESS_TOKEN)}"
   if [ -z "$AKAMAI_ACCESS_TOKEN" ]; then
     AKAMAI_ACCESS_TOKEN=""
     AKAMAI_CLIENT_TOKEN=""
@@ -184,6 +188,7 @@ _EDGEDNS_credentials() {
     _err "AKAMAI_ACCESS_TOKEN is missing"
     args_missing=1
   fi
+  AKAMAI_CLIENT_TOKEN="${AKAMAI_CLIENT_TOKEN:-$(_readaccountconf_mutable AKAMAI_CLIENT_TOKEN)}"
   if [ -z "$AKAMAI_CLIENT_TOKEN" ]; then
     AKAMAI_ACCESS_TOKEN=""
     AKAMAI_CLIENT_TOKEN=""
@@ -192,6 +197,7 @@ _EDGEDNS_credentials() {
     _err "AKAMAI_CLIENT_TOKEN is missing"
     args_missing=1
   fi
+  AKAMAI_HOST="${AKAMAI_HOST:-$(_readaccountconf_mutable AKAMAI_HOST)}"
   if [ -z "$AKAMAI_HOST" ]; then
     AKAMAI_ACCESS_TOKEN=""
     AKAMAI_CLIENT_TOKEN=""
@@ -200,6 +206,7 @@ _EDGEDNS_credentials() {
     _err "AKAMAI_HOST is missing"
     args_missing=1
   fi
+  AKAMAI_CLIENT_SECRET="${AKAMAI_CLIENT_SECRET:-$(_readaccountconf_mutable AKAMAI_CLIENT_SECRET)}"
   if [ -z "$AKAMAI_CLIENT_SECRET" ]; then
     AKAMAI_ACCESS_TOKEN=""
     AKAMAI_CLIENT_TOKEN=""
@@ -414,7 +421,7 @@ _edgedns_make_data_to_sign() {
   _secure_debug2 "hdr" "$hdr"
   _edgedns_make_content_hash
   path="$(echo "$_request_url_path" | tr -d "\n\r" | sed 's/https\?:\/\///')"
-  path="${path#*$AKAMAI_HOST}"
+  path=${path#*"$AKAMAI_HOST"}
   _debug "hier path" "$path"
   # dont expose headers to sign so use MT string
   _mdata="$(printf "%s\thttps\t%s\t%s\t%s\t%s\t%s" "$_request_method" "$AKAMAI_HOST" "$path" "" "$_hash" "$hdr")"

@@ -1,8 +1,12 @@
 #!/usr/bin/env sh
-
-#
-#SL_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
+# shellcheck disable=SC2034
+dns_selectel_info='Selectel.com
+Domains: Selectel.ru
+Site: Selectel.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_selectel
+Options:
+ SL_Key API Key
+'
 
 SL_Api="https://api.selectel.ru/domains/v1"
 
@@ -76,7 +80,7 @@ dns_selectel_rm() {
     return 1
   fi
 
-  _record_seg="$(echo "$response" | _egrep_o "\"content\" *: *\"$txtvalue\"[^}]*}")"
+  _record_seg="$(echo "$response" | _egrep_o "[^{]*\"content\" *: *\"$txtvalue\"[^}]*}")"
   _debug2 "_record_seg" "$_record_seg"
   if [ -z "$_record_seg" ]; then
     _err "can not find _record_seg"
@@ -120,7 +124,7 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$response" "\"name\": \"$h\","; then
+    if _contains "$response" "\"name\" *: *\"$h\","; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       _domain=$h
       _debug "Getting domain id for $h"

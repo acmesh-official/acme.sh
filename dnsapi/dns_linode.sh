@@ -1,6 +1,12 @@
 #!/usr/bin/env sh
-
-#Author: Philipp Grosswiler <philipp.grosswiler@swiss-design.net>
+# shellcheck disable=SC2034
+dns_linode_info='Linode.com (Old)
+ Deprecated. Use dns_linode_v4
+Site: Linode.com
+Options:
+ LINODE_API_KEY API Key
+Author: Philipp Grosswiler <philipp.grosswiler@swiss-design.net>
+'
 
 LINODE_API_URL="https://api.linode.com/?api_key=$LINODE_API_KEY&api_action="
 

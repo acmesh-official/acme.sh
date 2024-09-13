@@ -1,18 +1,23 @@
 #!/usr/bin/env sh
-
-#Application Key
-#OVH_AK="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
-#Application Secret
-#OVH_AS="sdfsafsdfsdfdsfsdfsa"
-#
-#Consumer Key
-#OVH_CK="sdfsdfsdfsdfsdfdsf"
+# shellcheck disable=SC2034
+dns_ovh_info='OVH.com
+Domains: kimsufi.com soyoustart.com
+Site: OVH.com
+Docs: github.com/acmesh-official/acme.sh/wiki/How-to-use-OVH-domain-api
+Options:
+ OVH_END_POINT Endpoint. "ovh-eu", "ovh-us", "ovh-ca", "kimsufi-eu", "kimsufi-ca", "soyoustart-eu", "soyoustart-ca" or raw URL. Default: "ovh-eu".
+ OVH_AK Application Key
+ OVH_AS Application Secret
+ OVH_CK Consumer Key
+'
 
 #OVH_END_POINT=ovh-eu
 
 #'ovh-eu'
 OVH_EU='https://eu.api.ovh.com/1.0'
+
+#'ovh-us'
+OVH_US='https://api.us.ovhcloud.com/1.0'
 
 #'ovh-ca':
 OVH_CA='https://ca.api.ovh.com/1.0'
@@ -29,9 +34,6 @@ SYS_EU='https://eu.api.soyoustart.com/1.0'
 #'soyoustart-ca'
 SYS_CA='https://ca.api.soyoustart.com/1.0'
 
-#'runabove-ca'
-RAV_CA='https://api.runabove.com/1.0'
-
 wiki="https://github.com/acmesh-official/acme.sh/wiki/How-to-use-OVH-domain-api"
 
 ovh_success="https://github.com/acmesh-official/acme.sh/wiki/OVH-Success"
@@ -43,6 +45,10 @@ _ovh_get_api() {
 
   ovh-eu | ovheu)
     printf "%s" $OVH_EU
+    return
+    ;;
+  ovh-us | ovhus)
+    printf "%s" $OVH_US
     return
     ;;
   ovh-ca | ovhca)
@@ -65,14 +71,15 @@ _ovh_get_api() {
     printf "%s" $SYS_CA
     return
     ;;
-  runabove-ca | runaboveca)
-    printf "%s" $RAV_CA
+  # raw API url starts with https://
+  https*)
+    printf "%s" "$1"
     return
     ;;
 
   *)
 
-    _err "Unknown parameter : $1"
+    _err "Unknown endpoint : $1"
     return 1
     ;;
   esac
@@ -92,7 +99,7 @@ _initAuth() {
 
   if [ "$OVH_AK" != "$(_readaccountconf OVH_AK)" ]; then
     _info "It seems that your ovh key is changed, let's clear consumer key first."
-    _clearaccountconf OVH_CK
+    _clearaccountconf_mutable OVH_CK
   fi
   _saveaccountconf_mutable OVH_AK "$OVH_AK"
   _saveaccountconf_mutable OVH_AS "$OVH_AS"
@@ -118,13 +125,14 @@ _initAuth() {
     #return and wait for retry.
     return 1
   fi
+  _saveaccountconf_mutable OVH_CK "$OVH_CK"
 
   _info "Checking authentication"
 
   if ! _ovh_rest GET "domain" || _contains "$response" "INVALID_CREDENTIAL" || _contains "$response" "NOT_CREDENTIAL"; then
     _err "The consumer key is invalid: $OVH_CK"
     _err "Please retry to create a new one."
-    _clearaccountconf OVH_CK
+    _clearaccountconf_mutable OVH_CK
     return 1
   fi
   _info "Consumer key is ok."
@@ -198,6 +206,8 @@ dns_ovh_rm() {
       if ! _ovh_rest DELETE "domain/zone/$_domain/record/$rid"; then
         return 1
       fi
+      _ovh_rest POST "domain/zone/$_domain/refresh"
+      _debug "Refresh:$response"
       return 0
     fi
   done
@@ -233,8 +243,7 @@ _ovh_authentication() {
   _secure_debug consumerKey "$consumerKey"
 
   OVH_CK="$consumerKey"
-  _saveaccountconf OVH_CK "$OVH_CK"
-
+  _saveaccountconf_mutable OVH_CK "$OVH_CK"
   _info "Please open this link to do authentication: $(__green "$validationUrl")"
 
   _info "Here is a guide for you: $(__green "$wiki")"

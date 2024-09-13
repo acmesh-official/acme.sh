@@ -1,16 +1,12 @@
 #!/usr/bin/env sh
-
-## Will be called by acme.sh to add the txt record to your api system.
-## returns 0 means success, otherwise error.
-
-## Author: thewer <github at thewer.com>
-## GitHub: https://github.com/gitwer/acme.sh
-
-##
-## Environment Variables Required:
-##
-## DO_API_KEY="75310dc4ca779ac39a19f6355db573b49ce92ae126553ebd61ac3a3ae34834cc"
-##
+# shellcheck disable=SC2034
+dns_dgon_info='DigitalOcean.com
+Site: DigitalOcean.com/help/api/
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_dgon
+Options:
+ DO_API_KEY API Key
+Author: <github@thewer.com>
+'
 
 #####################  Public functions  #####################
 
@@ -192,6 +188,7 @@ _get_base_domain() {
   ## get URL for the list of domains
   ## may get: "links":{"pages":{"last":".../v2/domains/DOM/records?page=2","next":".../v2/domains/DOM/records?page=2"}}
   DOMURL="https://api.digitalocean.com/v2/domains"
+  found=""
 
   ## while we dont have a matching domain we keep going
   while [ -z "$found" ]; do
@@ -205,9 +202,7 @@ _get_base_domain() {
     fi
     _debug2 domain_list "$domain_list"
 
-    ## for each shortening of our $fulldomain, check if it exists in the $domain_list
-    ## can never start on 1 (aka whole $fulldomain) as $fulldomain starts with "_acme-challenge"
-    i=2
+    i=1
     while [ $i -gt 0 ]; do
       ## get next longest domain
       _domain=$(printf "%s" "$fulldomain" | cut -d . -f "$i"-"$MAX_DOM")

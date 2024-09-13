@@ -1,12 +1,13 @@
 #!/usr/bin/env sh
-
-#
-#AD_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
-
-#This is the Alwaysdata api wrapper for acme.sh
-#
-#Author: Paul Koppen
-#Report Bugs here: https://github.com/wpk-/acme.sh
+# shellcheck disable=SC2034
+dns_ad_info='AlwaysData.com
+Site: AlwaysData.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_ad
+Options:
+ AD_API_KEY API Key
+Issues: github.com/acmesh-official/acme.sh/pull/503
+Author: Paul Koppen
+'
 
 AD_API_URL="https://$AD_API_KEY:@api.alwaysdata.com/v1"
 

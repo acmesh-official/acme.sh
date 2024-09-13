@@ -1,12 +1,17 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_namecheap_info='NameCheap.com
+Site: NameCheap.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_namecheap
+Options:
+ NAMECHEAP_API_KEY API Key
+ NAMECHEAP_USERNAME Username
+ NAMECHEAP_SOURCEIP Source IP
+Issues: github.com/acmesh-official/acme.sh/issues/2107
+'
 
 # Namecheap API
 # https://www.namecheap.com/support/api/intro.aspx
-#
-# Requires Namecheap API key set in
-#NAMECHEAP_API_KEY,
-#NAMECHEAP_USERNAME,
-#NAMECHEAP_SOURCEIP
 # Due to Namecheap's API limitation all the records of your domain will be read and re applied, make sure to have a backup of your records you could apply if any issue would arise.
 
 ########  Public functions #####################
@@ -82,7 +87,7 @@ _get_root() {
     _debug "Failed domain lookup via domains.getList api call. Trying domain lookup via domains.dns.getHosts api."
     # The above "getList" api will only return hosts *owned* by the calling user. However, if the calling
     # user is not the owner, but still has administrative rights, we must query the getHosts api directly.
-    # See this comment and the official namecheap response: http://disq.us/p/1q6v9x9
+    # See this comment and the official namecheap response: https://disq.us/p/1q6v9x9
     if ! _get_root_by_getHosts "$fulldomain"; then
       return 1
     fi
@@ -259,7 +264,7 @@ _set_namecheap_TXT() {
   _debug hosts "$hosts"
 
   if [ -z "$hosts" ]; then
-    _error "Hosts not found"
+    _err "Hosts not found"
     return 1
   fi
 
@@ -313,7 +318,7 @@ _del_namecheap_TXT() {
   _debug hosts "$hosts"
 
   if [ -z "$hosts" ]; then
-    _error "Hosts not found"
+    _err "Hosts not found"
     return 1
   fi
 
