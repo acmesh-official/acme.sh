@@ -29,6 +29,7 @@ dns_azure_add() {
     AZUREDNS_TENANTID=""
     AZUREDNS_APPID=""
     AZUREDNS_CLIENTSECRET=""
+    AZUREDNS_OIDC_TOKEN=""
     _err "You didn't specify the Azure Subscription ID"
     return 1
   fi
@@ -43,17 +44,22 @@ dns_azure_add() {
     _saveaccountconf_mutable AZUREDNS_TENANTID ""
     _saveaccountconf_mutable AZUREDNS_APPID ""
     _saveaccountconf_mutable AZUREDNS_CLIENTSECRET ""
+    _saveaccountconf_mutable AZUREDNS_USE_OIDC "false"
+    _saveaccountconf_mutable AZUREDNS_OIDC_TOKEN ""
   else
     _info "You didn't ask to use Azure managed identity, checking service principal credentials"
     AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
     AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
     AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
+    AZUREDNS_USE_OIDC="${AZUREDNS_USE_OIDC:-$(_readaccountconf_mutable AZUREDNS_USE_OIDC)}"
+    AZUREDNS_OIDC_TOKEN="${AZUREDNS_OIDC_TOKEN:-$(_readaccountconf_mutable AZUREDNS_OIDC_TOKEN)}"
 
     if [ -z "$AZUREDNS_TENANTID" ]; then
       AZUREDNS_SUBSCRIPTIONID=""
       AZUREDNS_TENANTID=""
       AZUREDNS_APPID=""
       AZUREDNS_CLIENTSECRET=""
+      AZUREDNS_OIDC_TOKEN=""
       _err "You didn't specify the Azure Tenant ID "
       return 1
     fi
@@ -63,27 +69,53 @@ dns_azure_add() {
       AZUREDNS_TENANTID=""
       AZUREDNS_APPID=""
       AZUREDNS_CLIENTSECRET=""
+      AZUREDNS_OIDC_TOKEN=""
       _err "You didn't specify the Azure App ID"
       return 1
     fi
 
-    if [ -z "$AZUREDNS_CLIENTSECRET" ]; then
-      AZUREDNS_SUBSCRIPTIONID=""
-      AZUREDNS_TENANTID=""
-      AZUREDNS_APPID=""
-      AZUREDNS_CLIENTSECRET=""
-      _err "You didn't specify the Azure Client Secret"
-      return 1
+    if [ "$AZUREDNS_USE_OIDC" = true ]; then
+      if [ -z "$AZUREDNS_OIDC_TOKEN" ]; then
+        AZUREDNS_SUBSCRIPTIONID=""
+        AZUREDNS_TENANTID=""
+        AZUREDNS_APPID=""
+        AZUREDNS_CLIENTSECRET=""
+        AZUREDNS_OIDC_TOKEN=""
+        _err "You didn't specify the Azure OIDC token"
+        return 1
+      fi
+
+      _saveaccountconf_mutable AZUREDNS_USE_OIDC "$AZUREDNS_USE_OIDC"
+      _saveaccountconf_mutable AZUREDNS_OIDC_TOKEN "$AZUREDNS_OIDC_TOKEN"
+      _saveaccountconf_mutable AZUREDNS_CLIENTSECRET ""
+    else
+      if [ -z "$AZUREDNS_CLIENTSECRET" ]; then
+        AZUREDNS_SUBSCRIPTIONID=""
+        AZUREDNS_TENANTID=""
+        AZUREDNS_APPID=""
+        AZUREDNS_CLIENTSECRET=""
+        AZUREDNS_OIDC_TOKEN=""
+        _err "You didn't specify the Azure Client Secret"
+        return 1
+      fi
+
+      _saveaccountconf_mutable AZUREDNS_CLIENTSECRET "$AZUREDNS_CLIENTSECRET"
+      _saveaccountconf_mutable AZUREDNS_USE_OIDC "false"
+      _saveaccountconf_mutable AZUREDNS_OIDC_TOKEN ""
     fi
 
     #save account details to account conf file, don't opt in for azure manages identity check.
     _saveaccountconf_mutable AZUREDNS_MANAGEDIDENTITY "false"
     _saveaccountconf_mutable AZUREDNS_TENANTID "$AZUREDNS_TENANTID"
     _saveaccountconf_mutable AZUREDNS_APPID "$AZUREDNS_APPID"
-    _saveaccountconf_mutable AZUREDNS_CLIENTSECRET "$AZUREDNS_CLIENTSECRET"
   fi
 
-  accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
+  if [ "$AZUREDNS_USE_OIDC" = true ]; then
+    token="$AZUREDNS_OIDC_TOKEN"
+  else
+    token="$AZUREDNS_CLIENTSECRET"
+  fi
+  accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_USE_OIDC" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$token")
 
   if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
     _err "invalid domain"
@@ -145,6 +177,7 @@ dns_azure_rm() {
     AZUREDNS_TENANTID=""
     AZUREDNS_APPID=""
     AZUREDNS_CLIENTSECRET=""
+    AZUREDNS_OIDC_TOKEN=""
     _err "You didn't specify the Azure Subscription ID "
     return 1
   fi
@@ -157,6 +190,8 @@ dns_azure_rm() {
     AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
     AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
     AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
+    AZUREDNS_USE_OIDC="${AZUREDNS_USE_OIDC:-$(_readaccountconf_mutable AZUREDNS_USE_OIDC)}"
+    AZUREDNS_OIDC_TOKEN="${AZUREDNS_OIDC_TOKEN:-$(_readaccountconf_mutable AZUREDNS_OIDC_TOKEN)}"
 
     if [ -z "$AZUREDNS_TENANTID" ]; then
       AZUREDNS_SUBSCRIPTIONID=""
@@ -176,16 +211,34 @@ dns_azure_rm() {
       return 1
     fi
 
-    if [ -z "$AZUREDNS_CLIENTSECRET" ]; then
-      AZUREDNS_SUBSCRIPTIONID=""
-      AZUREDNS_TENANTID=""
-      AZUREDNS_APPID=""
-      AZUREDNS_CLIENTSECRET=""
-      _err "You didn't specify the Azure Client Secret"
-      return 1
+    if [ "$AZUREDNS_USE_OIDC" = true ]; then
+      if [ -z "$AZUREDNS_OIDC_TOKEN" ]; then
+        AZUREDNS_SUBSCRIPTIONID=""
+        AZUREDNS_TENANTID=""
+        AZUREDNS_APPID=""
+        AZUREDNS_CLIENTSECRET=""
+        AZUREDNS_OIDC_TOKEN=""
+        _err "You didn't specify the Azure OIDC token"
+        return 1
+      fi
+    else
+      if [ -z "$AZUREDNS_CLIENTSECRET" ]; then
+        AZUREDNS_SUBSCRIPTIONID=""
+        AZUREDNS_TENANTID=""
+        AZUREDNS_APPID=""
+        AZUREDNS_CLIENTSECRET=""
+        AZUREDNS_OIDC_TOKEN=""
+        _err "You didn't specify the Azure Client Secret"
+        return 1
+      fi
     fi
   fi
 
+  if [ "$AZUREDNS_USE_OIDC" = true ]; then
+    token="$AZUREDNS_OIDC_TOKEN"
+  else
+    token="$AZUREDNS_CLIENTSECRET"
+  fi
   accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
 
   if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
@@ -289,9 +342,10 @@ _azure_rest() {
 ## Ref: https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-protocols-oauth-service-to-service#request-an-access-token
 _azure_getaccess_token() {
   managedIdentity=$1
-  tenantID=$2
-  clientID=$3
-  clientSecret=$4
+  useOidc=$2
+  tenantID=$3
+  clientID=$4
+  token=$5
 
   accesstoken="${AZUREDNS_BEARERTOKEN:-$(_readaccountconf_mutable AZUREDNS_BEARERTOKEN)}"
   expires_on="${AZUREDNS_TOKENVALIDTO:-$(_readaccountconf_mutable AZUREDNS_TOKENVALIDTO)}"
@@ -319,7 +373,13 @@ _azure_getaccess_token() {
   else
     export _H1="accept: application/json"
     export _H2="Content-Type: application/x-www-form-urlencoded"
-    body="resource=$(printf "%s" 'https://management.core.windows.net/' | _url_encode)&client_id=$(printf "%s" "$clientID" | _url_encode)&client_secret=$(printf "%s" "$clientSecret" | _url_encode)&grant_type=client_credentials"
+    body="resource=$(printf "%s" 'https://management.core.windows.net/' | _url_encode)&client_id=$(printf "%s" "$clientID" | _url_encode)&grant_type=client_credentials"
+    if [ "$useOidc" = true ]; then
+      # https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow#third-case-access-token-request-with-a-federated-credential
+      body="${body}&client_assertion_type=$(printf "%s" "urn:ietf:params:oauth:client-assertion-type:jwt-bearer" | _url_encode)&client_assertion=$(printf "%s" "$token" | _url_encode)"
+    else
+      body="${body}&client_secret=$(printf "%s" "$token" | _url_encode)"
+    fi
     _secure_debug2 "data $body"
     response="$(_post "$body" "https://login.microsoftonline.com/$tenantID/oauth2/token" "" "POST")"
     _ret="$?"
