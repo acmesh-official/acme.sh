@@ -117,25 +117,39 @@ _get_root() {
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f $i-100)
     _debug h "$h"
-    _debug response "$response"
     if [ -z "$h" ]; then
       #not valid
       return 1
     fi
-    if ! _ultra_rest GET "zones"; then
-      return 1
-    fi
-    if _contains "${response}" "${h}." >/dev/null; then
-      _domain_id=$(echo "$response" | _egrep_o "${h}" | head -1)
-      if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
-        _domain="${h}"
-        _debug sub_domain "${_sub_domain}"
-        _debug domain "${_domain}"
-        return 0
+    while true; do
+      if ! _ultra_rest GET "zones?limit=1000&q=name:${h}${_cursor_next}"; then
+        return 1
       fi
-      return 1
-    fi
+      _debug response "$response"
+      _zones=$(echo "$response" | _egrep_o '"zones":\[.*\]')
+      _debug _zones  "${_zones}"
+      if _contains "${_zones}" "${h}." >/dev/null; then
+        _domain_id=$(echo "$_zones" | _egrep_o "${h}" | head -1)
+        _debug "Domainid: $_domain_id"
+        if [ "$_domain_id" ]; then
+          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+          _domain="${h}"
+          _debug sub_domain "${_sub_domain}"
+          _debug domain "${_domain}"
+          return 0
+        fi
+        return 1
+      fi
+      _cursor_info=$(echo "$response" | _egrep_o "\"cursorInfo\":\s*{[^}]*}")
+      _debug _cursor_info "${_cursor_info}"
+      if _contains "${_cursor_info}" "\"next\""; then
+        _next_token=$(echo  "${_cursor_info}" | cut -d':' -f3 | cut -d',' -f1 | tr -d '"' )
+        _debug _next_token "${_next_token}"
+        _cursor_next="&cursor=${_next_token}"
+      else
+        break
+      fi
+    done
     p=$i
     i=$(_math "$i" + 1)
   done
