@@ -163,12 +163,23 @@ _inwx_check_cookie() {
   return 1
 }
 
+_htmlEscape() {
+  local s
+  s=${1//&/&amp;}
+  s=${s//</&lt;}
+  s=${s//>/&gt;}
+  s=${s//'"'/&quot;}
+  printf -- %s "$s"
+}
+
 _inwx_login() {
 
   if _inwx_check_cookie; then
     _debug "Already logged in"
     return 0
   fi
+
+  XML_PASS=$(_htmlEscape "$INWX_Password")
 
   xml_content=$(printf '<?xml version="1.0" encoding="UTF-8"?>
   <methodCall>
@@ -193,7 +204,7 @@ _inwx_login() {
     </value>
    </param>
   </params>
-  </methodCall>' "$INWX_User" "$INWX_Password")
+  </methodCall>' "$INWX_User" "$XML_PASS")
 
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
 
