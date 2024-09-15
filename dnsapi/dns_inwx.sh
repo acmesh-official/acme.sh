@@ -164,12 +164,12 @@ _inwx_check_cookie() {
 }
 
 _htmlEscape() {
-  local s
-  s=${1//&/&amp;}
-  s=${s//</&lt;}
-  s=${s//>/&gt;}
-  s=${s//'"'/&quot;}
-  printf -- %s "$s"
+  _s="$1"
+  _s=$(echo "$_s" |  sed "s/&/&amp;/g")
+  _s=$(echo "$_s" |  sed "s/</\&lt;/g")
+  _s=$(echo "$_s" |  sed "s/>/\&gt;/g")
+  _s=$(echo "$_s" |  sed 's/"/\&quot;/g')
+  printf -- %s "$_s"
 }
 
 _inwx_login() {
