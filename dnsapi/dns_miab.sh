@@ -16,8 +16,9 @@ Author: Darven Dissek, William Gertz
 #Usage: dns_miab_add  _acme-challenge.www.domain.com  "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_miab_add() {
   fulldomain=$1
-  txtvalue=$2
-  _info "Using miab challange add"
+  # Added "value=" and "&ttl=300" to accomodate the new TXT record format used by the MIAB/PMIAB API
+  txtvalue="value=$2&ttl=300"
+  _info "Using miab challenge add"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
@@ -26,7 +27,7 @@ dns_miab_add() {
     return 1
   fi
 
-  #check domain and seperate into doamin and host
+  #check domain and seperate into domain and host
   if ! _get_root "$fulldomain"; then
     _err "Cannot find any part of ${fulldomain} is hosted on ${MIAB_Server}"
     return 1
@@ -55,7 +56,7 @@ dns_miab_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  _info "Using miab challage delete"
+  _info "Using miab challenge delete"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
