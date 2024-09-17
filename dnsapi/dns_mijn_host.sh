@@ -9,145 +9,114 @@ Options:
  MIJN_HOST_ENDPOINT_API API Endpoint URL. E.g. "https://mijn.host/api/v2"
 '
 
-########  Public functions #####################
+########  Public functions ###################### Constants for your mijn-host API
+MIJN_HOST_API="https://api.mijn-host.com/v1"
 
-# Usage: dns_mijnhost_add _acme-challenge.www.domain.com "TXT_RECORD_VALUE"
-dns_mijnhost_add() {
+# Add TXT record for domain verification
+dns_mijn_host_add() {
   fulldomain=$1
   txtvalue=$2
-  _info "Using mijn.host API"
-  _debug fulldomain "$fulldomain"
-  _debug txtvalue "$txtvalue"
 
   MIJN_HOST_API_KEY="${MIJN_HOST_API_KEY:-$(_readaccountconf_mutable MIJN_HOST_API_KEY)}"
-  MIJN_HOST_ENDPOINT_API="${MIJN_HOST_ENDPOINT_API:-$(_readaccountconf_mutable MIJN_HOST_ENDPOINT_API)}"
+  if [ -z "$MIJN_HOST_API_KEY" ]; then
+    MIJN_HOST_API_KEY=""
+    _err "You haven't specified mijn-host API key yet."
+    _err "Please set it and try again."
+    return 1
+  fi
+
+  # Save the API key for future use
+  _saveaccountconf_mutable MIJN_HOST_API_KEY "$MIJN_HOST_API_KEY"
+
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "Invalid domain"
+    return 1
+  fi
+
+  _debug "Add TXT record"
   
-  if [ -z "$MIJN_HOST_API_KEY" ] || [ -z "$MIJN_HOST_ENDPOINT_API" ]; then
-    _err "You didn't specify mijn.host API key or API endpoint yet."
-    return 1
-  fi
-
-  _saveaccountconf_mutable MIJN_HOST_API_KEY "$MIJN_HOST_API_KEY"
-  _saveaccountconf_mutable MIJN_HOST_ENDPOINT_API "$MIJN_HOST_ENDPOINT_API"
-
-  _debug "Fetching DNS zone for $fulldomain"
-  if ! _get_root "$fulldomain" "$MIJN_HOST_ENDPOINT_API"; then
-    _err "Invalid domain"
-    return 1
-  fi
-  _debug _domain "$_domain"
-  _debug _sub_domain "$_sub_domain"
-
-  _info "Adding TXT record"
-  body="{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"content\":\"$txtvalue\",\"ttl\":300}"
-  if _mijnhost_rest POST "$MIJN_HOST_ENDPOINT_API/dnszones/$_domain/records" "$body"; then
-    if _contains "$response" "\"content\":\"$txtvalue\""; then
-      _info "TXT record added successfully"
-      return 0
-    else
-      _err "Failed to add TXT record"
-      return 1
-    fi
-  fi
-
-  _err "Error adding TXT record"
-  return 1
-}
-
-# Usage: dns_mijnhost_rm _acme-challenge.www.domain.com "TXT_RECORD_VALUE"
-dns_mijnhost_rm() {
-  fulldomain=$1
-  txtvalue=$2
-  _info "Using mijn.host API to remove record"
-  _debug fulldomain "$fulldomain"
-  _debug txtvalue "$txtvalue"
-
-  MIJN_HOST_API_KEY="${MIJN_HOST_API_KEY:-$(_readaccountconf_mutable MIJN_HOST_API_KEY)}"
-  MIJN_HOST_ENDPOINT_API="${MIJN_HOST_ENDPOINT_API:-$(_readaccountconf_mutable MIJN_HOST_ENDPOINT_API)}"
-
-  if [ -z "$MIJN_HOST_API_KEY" ] || [ -z "$MIJN_HOST_ENDPOINT_API" ]; then
-    _err "You didn't specify mijn.host API key or API endpoint yet."
-    return 1
-  fi
-
-  _saveaccountconf_mutable MIJN_HOST_API_KEY "$MIJN_HOST_API_KEY"
-  _saveaccountconf_mutable MIJN_HOST_ENDPOINT_API "$MIJN_HOST_ENDPOINT_API"
-
-  _debug "Fetching DNS zone for $fulldomain"
-  if ! _get_root "$fulldomain" "$MIJN_HOST_ENDPOINT_API"; then
-    _err "Invalid domain"
-    return 1
-  fi
-  _debug _domain "$_domain"
-  _debug _sub_domain "$_sub_domain"
-
-  _debug "Fetching existing TXT records"
-  if ! _mijnhost_rest GET "$MIJN_HOST_ENDPOINT_API/dnszones/$_domain/records"; then
-    _err "Error fetching records"
-    return 1
-  fi
-
-  record_id=$(printf "%s" "$response" | grep "\"content\":\"$txtvalue\"" | cut -d'"' -f4)
-  if [ -z "$record_id" ]; then
-    _err "Could not find record to remove"
-    return 1
-  fi
-
-  _info "Removing TXT record"
-  if _mijnhost_rest DELETE "$MIJN_HOST_ENDPOINT_API/dnszones/$_domain/records/$record_id"; then
-    _info "Record deleted successfully"
-    return 0
-  else
-    _err "Failed to delete record"
-    return 1
-  fi
-}
-
-####################  Private functions ########################
-
-_mijnhost_rest() {
-  method=$1
-  endpoint=$2
-  data=$3
+  # Build the payload for the API
+  data="{\"type\": \"TXT\", \"name\": \"$subdomain\", \"content\": \"$txtvalue\", \"ttl\": 120}"
 
   export _H1="Authorization: Bearer $MIJN_HOST_API_KEY"
   export _H2="Content-Type: application/json"
+  
+  # Use the _post method to make the API request
+  response="$(_post "$data" "$MIJN_HOST_API/zones/$root_zone/records")"
 
-  _debug "$endpoint"
-  if [ "$method" = "GET" ]; then
-    response="$(_get "$endpoint")"
-  else
-    response="$(_post "$data" "$endpoint" "" "$method")"
-  fi
-
-  if [ $? -ne 0 ]; then
-    _err "API request failed"
+  if _contains "$response" "error"; then
+    _err "Error adding TXT record: $response"
     return 1
   fi
 
-  _secure_debug response "$response"
+  _info "TXT record added successfully"
   return 0
 }
 
+# Remove TXT record after verification
+dns_mijn_host_rm() {
+  fulldomain=$1
+  txtvalue=$2
+
+  MIJN_HOST_API_KEY="${MIJN_HOST_API_KEY:-$(_readaccountconf_mutable MIJN_HOST_API_KEY)}"
+  if [ -z "$MIJN_HOST_API_KEY" ]; then
+    MIJN_HOST_API_KEY=""
+    _err "You haven't specified mijn-host API key yet."
+    return 1
+  fi
+
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "Invalid domain"
+    return 1
+  fi
+
+  _debug "Removing TXT record"
+  
+  # Build the payload for the API
+  export _H1="Authorization: Bearer $MIJN_HOST_API_KEY"
+  
+  # Use the _get method to find the record ID for deletion
+  record_id="$(_get "$MIJN_HOST_API/zones/$root_zone/records?type=TXT&name=$subdomain")"
+
+  if [ -z "$record_id" ]; then
+    _err "TXT record not found"
+    return 1
+  fi
+
+  # Delete the TXT record
+  response="$(_post "" "$MIJN_HOST_API/zones/$root_zone/records/$record_id" "DELETE")"
+
+  if _contains "$response" "error"; then
+    _err "Error removing TXT record: $response"
+    return 1
+  fi
+
+  _info "TXT record removed successfully"
+  return 0
+}
+
+# Helper function to detect the root zone
 _get_root() {
   domain=$1
-  api_endpoint=$2
   i=2
-  while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
-    _debug "Testing root domain $h"
+  p=1
 
-    if ! _mijnhost_rest GET "$api_endpoint/dnszones?name=$h"; then
+  while true; do
+    h=$(printf "%s" "$domain" | cut -d . -f $i-)
+    if [ -z "$h" ]; then
       return 1
     fi
 
-    if _contains "$response" "\"name\":\"$h\""; then
-      _domain=$h
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$((i - 1)))
+    if _contains "$(dig ns $h)" "mijn-host.com"; then
+      root_zone="$h"
+      subdomain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       return 0
     fi
 
-    i=$((i + 1))
+    p=$i
+    i=$(_math "$i" + 1)
   done
 
   return 1
