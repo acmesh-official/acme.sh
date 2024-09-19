@@ -10,7 +10,7 @@ Options:
 '
 
 ########  Public functions ###################### Constants for your mijn-host API
-MIJN_HOST_API="https://api.mijn-host.com/v2"
+MIJN_HOST_API="https://mijn.host/api/v2"
 
 # Add TXT record for domain verification
 dns_mijn_host_add() {
@@ -27,7 +27,7 @@ dns_mijn_host_add() {
 
   # Save the API key for future use
   _saveaccountconf_mutable MIJN_HOST_API_KEY "$MIJN_HOST_API_KEY"
-
+  
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "Invalid domain"
@@ -37,13 +37,18 @@ dns_mijn_host_add() {
   _debug "Add TXT record"
   
   # Build the payload for the API
-  data="{\"type\": \"TXT\", \"name\": \"$subdomain\", \"content\": \"$txtvalue\", \"ttl\": 120}"
+  data="{\"records\": [{\"type\": \"TXT\", \"name\": \"$subdomain\", \"value\": \"$txtvalue\", \"ttl\": 120}]}"
 
-  export _H1="Authorization: Bearer $MIJN_HOST_API_KEY"
+  export _H1="API-Key: $MIJN_HOST_API_KEY"
   export _H2="Content-Type: application/json"
-  
+
+  # Construct the API URL
+  api_url="$MIJN_HOST_API/domains/$_domain/dns"
+
   # Use the _post method to make the API request
-  response="$(_post "$data" "$MIJN_HOST_API/zones/$root_zone/records")"
+  response="$(_post "$data" "$api_url" "" "PUT")"
+
+  echo "response: $response"
 
   if _contains "$response" "error"; then
     _err "Error adding TXT record: $response"
@@ -75,21 +80,37 @@ dns_mijn_host_rm() {
   _debug "Removing TXT record"
   
   # Build the payload for the API
-  export _H1="Authorization: Bearer $MIJN_HOST_API_KEY"
+  export _H1="API-Key: $MIJN_HOST_API_KEY"
+  export _H2="Content-Type: application/json"
   
-  # Use the _get method to find the record ID for deletion
-  record_id="$(_get "$MIJN_HOST_API/zones/$root_zone/records?type=TXT&name=$subdomain")"
+  # Construct the API URL
+  api_url="$MIJN_HOST_API/domains/$_domain/dns"
+  
+  # Get current records
+  current_records="$(_get "$MIJN_HOST_API/domains/$_domain/dns")"
 
-  if [ -z "$record_id" ]; then
-    _err "TXT record not found"
-    return 1
-  fi
+  # Extract existing records into a temporary file
+  echo "$current_records" | grep -o '"type":"TXT".*?}' | sed -E 's/\\//g' > /tmp/current_records.json
+  
+  # Build the new records without the specified TXT record
+  updated_records=$(cat /tmp/current_records.json | awk -v d="$fulldomain" -v v="$txtvalue" '
+    BEGIN { RS="},"; ORS="," }
+    {
+      if ($0 ~ d && $0 ~ v) next
+      print $0
+    }
+  ' | sed 's/,$//')
 
-  # Delete the TXT record
-  response="$(_post "" "$MIJN_HOST_API/zones/$root_zone/records/$record_id" "DELETE")"
+  # Build the new payload
+  data="{\"records\": [$updated_records]}"
 
+  echo "data: $data"
+
+  # Use the _put method to update the records
+  response="$(_post "$data" "$MIJN_HOST_API/domains/$_domain/dns" "" "PUT")"
+  
   if _contains "$response" "error"; then
-    _err "Error removing TXT record: $response"
+    _err "Error updating TXT record: $response"
     return 1
   fi
 
