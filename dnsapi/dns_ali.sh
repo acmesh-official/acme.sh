@@ -14,7 +14,7 @@ Options:
 # https://github.com/acmesh-official/acme.sh/pull/5205#issuecomment-2357867276
 # Be careful when modifying this file, especially when making breaking changes for common functions
 
-Ali_API="https://alidns.aliyuncs.com/"
+Ali_DNS_API="https://alidns.aliyuncs.com/"
 
 #Usage: dns_ali_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_ali_add() {
@@ -71,7 +71,7 @@ _ali_rest() {
 
   signature=$(printf "%s" "$mtd&%2F&$(printf "%s" "$query" | _url_encode upper-hex)" | _hmac "sha1" "$(printf "%s" "$Ali_Secret&" | _hex_dump | tr -d " ")" | _base64)
   signature=$(printf "%s" "$signature" | _url_encode upper-hex)
-  url="$Ali_API?Signature=$signature"
+  url="$endpoint?Signature=$signature"
 
   if [ "$mtd" = "GET" ]; then
     url="$url&$query"
@@ -140,6 +140,7 @@ _get_root() {
 _check_exist_query() {
   _qdomain="$1"
   _qsubdomain="$2"
+  endpoint=$Ali_DNS_API
   query=''
   query=$query'AccessKeyId='$Ali_Key
   query=$query'&Action=DescribeDomainRecords'
@@ -155,6 +156,7 @@ _check_exist_query() {
 }
 
 _add_record_query() {
+  endpoint=$Ali_DNS_API
   query=''
   query=$query'AccessKeyId='$Ali_Key
   query=$query'&Action=AddDomainRecord'
@@ -171,6 +173,7 @@ _add_record_query() {
 }
 
 _delete_record_query() {
+  endpoint=$Ali_DNS_API
   query=''
   query=$query'AccessKeyId='$Ali_Key
   query=$query'&Action=DeleteDomainRecord'
@@ -184,6 +187,7 @@ _delete_record_query() {
 }
 
 _describe_records_query() {
+  endpoint=$Ali_DNS_API
   query=''
   query=$query'AccessKeyId='$Ali_Key
   query=$query'&Action=DescribeDomainRecords'

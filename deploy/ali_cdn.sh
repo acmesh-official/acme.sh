@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034,SC2154
 
 # Script to create certificate to Alibaba Cloud CDN
 #
@@ -23,8 +24,7 @@ if ! . "$dnsapi_ali"; then
   return 1
 fi
 
-# shellcheck disable=SC2034
-Ali_API="https://cdn.aliyuncs.com/"
+Ali_CDN_API="https://cdn.aliyuncs.com/"
 
 ali_cdn_deploy() {
   _cdomain="$1"
@@ -66,9 +66,9 @@ ali_cdn_deploy() {
   return 0
 }
 
-# shellcheck disable=SC2154
 # domain pub pri
 _set_cdn_domain_ssl_certificate_query() {
+  endpoint=$Ali_CDN_API
   query=''
   query=$query'AccessKeyId='$Ali_Key
   query=$query'&Action=SetCdnDomainSSLCertificate'
