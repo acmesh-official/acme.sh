@@ -10,7 +10,7 @@ Options:
 '
 
 ########  Public functions ###################### Constants for your mijn-host API
-MIJN_HOST_API="https://api.mijn-host.com/v1"
+MIJN_HOST_API="https://api.mijn-host.com/v2"
 
 # Add TXT record for domain verification
 dns_mijn_host_add() {
@@ -109,7 +109,7 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$(dig ns $h)" "mijn-host.com"; then
+    if _contains "$(dig ns "$h")" "mijn.host"; then
       root_zone="$h"
       subdomain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
       return 0
