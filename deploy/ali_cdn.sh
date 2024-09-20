@@ -39,7 +39,7 @@ ali_cdn_deploy() {
     return 1
   fi
 
-  _prepare_ali_credentials
+  _prepare_ali_credentials || return 1
 
   _getdeployconf DEPLOY_ALI_CDN_DOMAIN
   if [ "$DEPLOY_ALI_CDN_DOMAIN" ]; then

@@ -21,7 +21,7 @@ dns_ali_add() {
   fulldomain=$1
   txtvalue=$2
 
-  _prepare_ali_credentials
+  _prepare_ali_credentials || return 1
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
