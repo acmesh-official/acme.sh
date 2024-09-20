@@ -49,7 +49,7 @@ dns_azure_add() {
     AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
     AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
     AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
-    if [ -z "$AZUREDNS_BEARERTOKEN" ]; then    
+    if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
       if [ -z "$AZUREDNS_TENANTID" ]; then
         AZUREDNS_SUBSCRIPTIONID=""
         AZUREDNS_TENANTID=""
@@ -87,7 +87,7 @@ dns_azure_add() {
     _saveaccountconf_mutable AZUREDNS_CLIENTSECRET "$AZUREDNS_CLIENTSECRET"
   fi
 
-  if [ -z "$AZUREDNS_BEARERTOKEN" ]; then    
+  if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
     accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
   else
     accesstoken=$(echo "$AZUREDNS_BEARERTOKEN" | sed "s/Bearer //g")
@@ -197,7 +197,7 @@ dns_azure_rm() {
     fi
   fi
 
-  if [ -z "$AZUREDNS_BEARERTOKEN" ]; then    
+  if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
     accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
   else
     accesstoken=$(echo "$AZUREDNS_BEARERTOKEN" | sed "s/Bearer //g")
