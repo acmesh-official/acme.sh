@@ -111,8 +111,7 @@ _timeweb_split_acme_fqdn() {
   TW_Page_Limit=100
   TW_Page_Offset=0
 
-  while [ -z "$TW_Domains_Total" ] ||
-    [ "$((TW_Domains_Total + TW_Page_Limit))" -gt "$((TW_Page_Offset + TW_Page_Limit))" ]; do
+  while [ -z "$TW_Domains_Returned" ] || [ "$TW_Domains_Returned" -ge "$TW_Page_Limit" ]; do
 
     _timeweb_list_domains "$TW_Page_Limit" "$TW_Page_Offset" || return 1
 
@@ -161,8 +160,8 @@ _timeweb_get_dns_txt() {
   TW_Page_Limit=100
   TW_Page_Offset=0
 
-  while [ -z "$TW_Dns_Records_Total" ] ||
-    [ "$((TW_Dns_Records_Total + TW_Page_Limit))" -gt "$((TW_Page_Offset + TW_Page_Limit))" ]; do
+  while [ -z "$TW_Dns_Records_Returned" ] || [ "$TW_Dns_Records_Returned" -ge "$TW_Page_Limit" ]; do
+
     _timeweb_list_dns_records "$TW_Page_Limit" "$TW_Page_Offset" || return 1
 
     while
@@ -195,7 +194,7 @@ _timeweb_get_dns_txt() {
 # Param 2: Offset for domains list.
 #
 # Sets the "TW_Domains" variable.
-# Sets the "TW_Domains_Total" variable.
+# Sets the "TW_Domains_Returned" variable.
 _timeweb_list_domains() {
   _debug "Listing domains via Timeweb Cloud API. Limit: $1, offset: $2."
 
@@ -211,22 +210,22 @@ _timeweb_list_domains() {
     return 1
   }
 
-  TW_Domains_Total=$(
+  TW_Domains_Returned=$(
     echo "$TW_Domains" |
       sed 's/.*"meta":{"total":\([0-9]*\)[^0-9].*/\1/'
   )
 
-  [ -z "$TW_Domains_Total" ] && {
+  [ -z "$TW_Domains_Returned" ] && {
     _err "Failed to extract the total count of domains."
     return 1
   }
 
-  [ "$TW_Domains_Total" -eq "0" ] && {
+  [ "$TW_Domains_Returned" -eq "0" ] && {
     _err "Domains are missing."
     return 1
   }
 
-  _debug "Total count of domains in the Timeweb Cloud account: $TW_Domains_Total."
+  _debug "Domains returned by Timeweb Cloud API: $TW_Domains_Returned."
 }
 
 # Lists domain DNS records via the Timeweb Cloud API.
@@ -235,7 +234,7 @@ _timeweb_list_domains() {
 # Param 2: Offset for DNS records list.
 #
 # Sets the "TW_Dns_Records" variable.
-# Sets the "TW_Dns_Records_Total" variable.
+# Sets the "TW_Dns_Records_Returned" variable.
 _timeweb_list_dns_records() {
   _debug "Listing domain DNS records via the Timeweb Cloud API. Limit: $1, offset: $2."
 
@@ -251,22 +250,22 @@ _timeweb_list_dns_records() {
     return 1
   }
 
-  TW_Dns_Records_Total=$(
+  TW_Dns_Records_Returned=$(
     echo "$TW_Dns_Records" |
       sed 's/.*"meta":{"total":\([0-9]*\)[^0-9].*/\1/'
   )
 
-  [ -z "$TW_Dns_Records_Total" ] && {
+  [ -z "$TW_Dns_Records_Returned" ] && {
     _err "Failed to extract the total count of DNS records."
     return 1
   }
 
-  [ "$TW_Dns_Records_Total" -eq "0" ] && {
+  [ "$TW_Dns_Records_Returned" -eq "0" ] && {
     _err "DNS records are missing."
     return 1
   }
 
-  _debug "Total count of DNS records: $TW_Dns_Records_Total."
+  _debug "DNS records returned by Timeweb Cloud API: $TW_Dns_Records_Returned."
 }
 
 # Verifies whether the domain is the primary domain for the ACME DNS-01 challenge FQDN.
