@@ -110,6 +110,7 @@ _timeweb_split_acme_fqdn() {
 
   TW_Page_Limit=100
   TW_Page_Offset=0
+  TW_Domains_Returned=""
 
   while [ -z "$TW_Domains_Returned" ] || [ "$TW_Domains_Returned" -ge "$TW_Page_Limit" ]; do
 
@@ -159,6 +160,7 @@ _timeweb_get_dns_txt() {
 
   TW_Page_Limit=100
   TW_Page_Offset=0
+  TW_Dns_Records_Returned=""
 
   while [ -z "$TW_Dns_Records_Returned" ] || [ "$TW_Dns_Records_Returned" -ge "$TW_Page_Limit" ]; do
 
