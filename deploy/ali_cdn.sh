@@ -15,15 +15,6 @@
 # If you have multiple CDN domains using the same certificate, just
 # export DEPLOY_ALI_CDN_DOMAIN="cdn1.example.com cdn2.example.com"
 
-# Load dnsapi/dns_ali.sh to reduce the duplicated codes
-# https://github.com/acmesh-official/acme.sh/pull/5205#issuecomment-2357867276
-dnsapi_ali="$(_findHook "" "$_SUB_FOLDER_DNSAPI" dns_ali)"
-# shellcheck source=/dev/null
-if ! . "$dnsapi_ali"; then
-  _err "Error loading file $dnsapi_ali. Please check your API file and try again."
-  return 1
-fi
-
 Ali_CDN_API="https://cdn.aliyuncs.com/"
 
 ali_cdn_deploy() {
@@ -38,6 +29,15 @@ ali_cdn_deploy() {
   _debug _ccert "$_ccert"
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
+
+  # Load dnsapi/dns_ali.sh to reduce the duplicated codes
+  # https://github.com/acmesh-official/acme.sh/pull/5205#issuecomment-2357867276
+  dnsapi_ali="$(_findHook "$_cdomain" "$_SUB_FOLDER_DNSAPI" dns_ali)"
+  # shellcheck source=/dev/null
+  if ! . "$dnsapi_ali"; then
+    _err "Error loading file $dnsapi_ali. Please check your API file and try again."
+    return 1
+  fi
 
   _prepare_ali_credentials
 
