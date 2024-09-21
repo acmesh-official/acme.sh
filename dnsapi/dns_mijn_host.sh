@@ -96,17 +96,17 @@ dns_mijn_host_rm() {
   api_url="$MIJN_HOST_API/domains/$_domain/dns"
   
   # Get current records
-  response="$(_get "$MIJN_HOST_API/domains/$_domain/dns")"
+  response="$(_get "$api_url")"
   
   updated_records=$(echo "$response" | jq '.data.records')
 
   updated_records=$(echo "$updated_records" | jq --arg value "$txtvalue" 'map(select(.value != $value))')
 
   # Build the new payload
-  data="{\"records\": [$updated_records]}"
+  data="{\"records\": $updated_records}"
 
   # Use the _put method to update the records
-  response="$(_post "$data" "$MIJN_HOST_API/domains/$_domain/dns" "" "PUT")"
+  response="$(_post "$data" "$api_url" "" "PUT")"
   
   if _contains "$response" "error"; then
     _err "Error updating TXT record: $response"
