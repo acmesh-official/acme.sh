@@ -28,7 +28,7 @@ dns_gcore_add() {
   fi
 
   #save the api key to the account conf file.
-  _saveaccountconf_mutable GCORE_Key "$GCORE_Key"
+  _saveaccountconf_mutable GCORE_Key "$GCORE_Key" "base64"
 
   _debug "First detect the zone name"
   if ! _get_root "$fulldomain"; then
