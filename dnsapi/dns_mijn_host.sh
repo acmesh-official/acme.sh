@@ -37,7 +37,7 @@ dns_mijn_host_add() {
   _debug "Add TXT record"
   
   # Build the payload for the API
-  data="{\"records\": [{\"type\": \"TXT\", \"name\": \"$subdomain\", \"value\": \"$txtvalue\", \"ttl\": 120}]}"
+  data="{\"type\":\"TXT\",\"name\":\"$subdomain\",\"value\":\"$txtvalue\",\"ttl\":120}"
 
   export _H1="API-Key: $MIJN_HOST_API_KEY"
   export _H2="Content-Type: application/json"
@@ -45,10 +45,19 @@ dns_mijn_host_add() {
   # Construct the API URL
   api_url="$MIJN_HOST_API/domains/$_domain/dns"
 
+  # Getting preivous records
+  get_response="$(_get "$api_url")"
+  records=$(echo "$get_response" | jq -r '.data.records')
+
+  # Updating the records
+  updated_records=$(echo "$records" | jq --argjson data "$data" '. += [$data]')
+  
+  # data
+  data="{\"records\": $updated_records}"
+
   # Use the _post method to make the API request
   response="$(_post "$data" "$api_url" "" "PUT")"
 
-  echo "response: $response"
 
   if _contains "$response" "error"; then
     _err "Error adding TXT record: $response"
@@ -87,24 +96,14 @@ dns_mijn_host_rm() {
   api_url="$MIJN_HOST_API/domains/$_domain/dns"
   
   # Get current records
-  current_records="$(_get "$MIJN_HOST_API/domains/$_domain/dns")"
-
-  # Extract existing records into a temporary file
-  echo "$current_records" | grep -o '"type":"TXT".*?}' | sed -E 's/\\//g' > /tmp/current_records.json
+  response="$(_get "$MIJN_HOST_API/domains/$_domain/dns")"
   
-  # Build the new records without the specified TXT record
-  updated_records=$(cat /tmp/current_records.json | awk -v d="$fulldomain" -v v="$txtvalue" '
-    BEGIN { RS="},"; ORS="," }
-    {
-      if ($0 ~ d && $0 ~ v) next
-      print $0
-    }
-  ' | sed 's/,$//')
+  updated_records=$(echo "$response" | jq '.data.records')
+
+  updated_records=$(echo "$updated_records" | jq --arg value "$txtvalue" 'map(select(.value != $value))')
 
   # Build the new payload
   data="{\"records\": [$updated_records]}"
-
-  echo "data: $data"
 
   # Use the _put method to update the records
   response="$(_post "$data" "$MIJN_HOST_API/domains/$_domain/dns" "" "PUT")"
