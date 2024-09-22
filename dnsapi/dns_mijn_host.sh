@@ -42,8 +42,10 @@ dns_mijn_host_add() {
   export _H1="API-Key: $MIJN_HOST_API_KEY"
   export _H2="Content-Type: application/json"
 
+  extracted_domain="${fulldomain#*_acme-challenge.}"
+
   # Construct the API URL
-  api_url="$MIJN_HOST_API/domains/$_domain/dns"
+  api_url="$MIJN_HOST_API/domains/$extracted_domain/dns"
 
   # Getting preivous records
   get_response="$(_get "$api_url")"
@@ -57,7 +59,6 @@ dns_mijn_host_add() {
 
   # Use the _post method to make the API request
   response="$(_post "$data" "$api_url" "" "PUT")"
-
 
   if _contains "$response" "error"; then
     _err "Error adding TXT record: $response"
@@ -91,9 +92,11 @@ dns_mijn_host_rm() {
   # Build the payload for the API
   export _H1="API-Key: $MIJN_HOST_API_KEY"
   export _H2="Content-Type: application/json"
+
+  extracted_domain="${fulldomain#*_acme-challenge.}"
   
   # Construct the API URL
-  api_url="$MIJN_HOST_API/domains/$_domain/dns"
+  api_url="$MIJN_HOST_API/domains/$extracted_domain/dns"
   
   # Get current records
   response="$(_get "$api_url")"
