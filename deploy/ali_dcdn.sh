@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034,SC2154
 
-# Script to create certificate to Alibaba Cloud CDN
+# Script to create certificate to Alibaba Cloud DCDN
 #
 # Docs: https://github.com/acmesh-official/acme.sh/wiki/deployhooks#33-deploy-your-certificate-to-cdn-or-dcdn-of-alibaba-cloud-aliyun
 #
@@ -10,16 +10,16 @@
 # export Ali_Secret="ALISECRETKEY"
 # The credentials are shared with all the Alibaba Cloud deploy hooks and dnsapi
 #
-# To specify the CDN domain that is different from the certificate CN, usually used for multi-domain or wildcard certificates
-# export DEPLOY_ALI_CDN_DOMAIN="cdn.example.com"
+# To specify the DCDN domain that is different from the certificate CN, usually used for multi-domain or wildcard certificates
+# export DEPLOY_ALI_DCDN_DOMAIN="dcdn.example.com"
 # If you have multiple CDN domains using the same certificate, just
-# export DEPLOY_ALI_CDN_DOMAIN="cdn1.example.com cdn2.example.com"
+# export DEPLOY_ALI_DCDN_DOMAIN="dcdn1.example.com dcdn2.example.com"
 #
-# For DCDN, see ali_dcdn deploy hook
+# For regular CDN, see ali_cdn deploy hook
 
-Ali_CDN_API="https://cdn.aliyuncs.com/"
+Ali_DCDN_API="https://dcdn.aliyuncs.com/"
 
-ali_cdn_deploy() {
+ali_dcdn_deploy() {
   _cdomain="$1"
   _ckey="$2"
   _ccert="$3"
@@ -43,11 +43,11 @@ ali_cdn_deploy() {
 
   _prepare_ali_credentials || return 1
 
-  _getdeployconf DEPLOY_ALI_CDN_DOMAIN
-  if [ "$DEPLOY_ALI_CDN_DOMAIN" ]; then
-    _savedeployconf DEPLOY_ALI_CDN_DOMAIN "$DEPLOY_ALI_CDN_DOMAIN"
+  _getdeployconf DEPLOY_ALI_DCDN_DOMAIN
+  if [ "$DEPLOY_ALI_DCDN_DOMAIN" ]; then
+    _savedeployconf DEPLOY_ALI_DCDN_DOMAIN "$DEPLOY_ALI_DCDN_DOMAIN"
   else
-    DEPLOY_ALI_CDN_DOMAIN="$_cdomain"
+    DEPLOY_ALI_DCDN_DOMAIN="$_cdomain"
   fi
 
   # read cert and key files and urlencode both
@@ -58,9 +58,9 @@ ali_cdn_deploy() {
   _debug2 _key "$_key"
 
   ## update domain ssl config
-  for domain in $DEPLOY_ALI_CDN_DOMAIN; do
+  for domain in $DEPLOY_ALI_DCDN_DOMAIN; do
     _set_cdn_domain_ssl_certificate_query "$domain" "$_cert" "$_key"
-    if _ali_rest "Set CDN domain SSL certificate for $domain" "" POST; then
+    if _ali_rest "Set DCDN domain SSL certificate for $domain" "" POST; then
       _info "Domain $domain certificate has been deployed successfully"
     fi
   done
@@ -69,11 +69,11 @@ ali_cdn_deploy() {
 }
 
 # domain pub pri
-_set_cdn_domain_ssl_certificate_query() {
-  endpoint=$Ali_CDN_API
+_set_dcdn_domain_ssl_certificate_query() {
+  endpoint=$Ali_DCDN_API
   query=''
   query=$query'AccessKeyId='$Ali_Key
-  query=$query'&Action=SetCdnDomainSSLCertificate'
+  query=$query'&Action=SetDcdnDomainSSLCertificate'
   query=$query'&CertType=upload'
   query=$query'&DomainName='$1
   query=$query'&Format=json'
@@ -84,5 +84,5 @@ _set_cdn_domain_ssl_certificate_query() {
   query=$query"&SignatureNonce=$(_ali_nonce)"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
-  query=$query'&Version=2018-05-10'
+  query=$query'&Version=2018-01-05'
 }
