@@ -59,7 +59,7 @@ ali_dcdn_deploy() {
 
   ## update domain ssl config
   for domain in $DEPLOY_ALI_DCDN_DOMAIN; do
-    _set_cdn_domain_ssl_certificate_query "$domain" "$_cert" "$_key"
+    _set_dcdn_domain_ssl_certificate_query "$domain" "$_cert" "$_key"
     if _ali_rest "Set DCDN domain SSL certificate for $domain" "" POST; then
       _info "Domain $domain certificate has been deployed successfully"
     fi
@@ -84,5 +84,5 @@ _set_dcdn_domain_ssl_certificate_query() {
   query=$query"&SignatureNonce=$(_ali_nonce)"
   query=$query'&SignatureVersion=1.0'
   query=$query'&Timestamp='$(_timestamp)
-  query=$query'&Version=2018-01-05'
+  query=$query'&Version=2018-01-15'
 }
