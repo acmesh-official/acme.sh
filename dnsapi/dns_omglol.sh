@@ -39,6 +39,9 @@ dns_omglol_add() {
   _debug "omg.lol Address" "$omglol_address"
 
   omglol_validate "$omglol_apikey" "$omglol_address" "$fulldomain"
+  if [ ! $? ]; then
+    return 1
+  fi
 
   dnsName=$(_getDnsRecordName "$fulldomain" "$omglol_address")
   authHeader="$(_createAuthHeader "$omglol_apikey")"
@@ -66,6 +69,9 @@ dns_omglol_rm() {
   _debug address "$omglol_address"
 
   omglol_validate "$omglol_apikey" "$omglol_address" "$fulldomain"
+  if [ ! $? ]; then
+    return 1
+  fi
 
   dnsName=$(_getDnsRecordName "$fulldomain" "$omglol_address")
   authHeader="$(_createAuthHeader "$omglol_apikey")"
@@ -82,24 +88,24 @@ omglol_validate() {
 
   if [ "" = "$omglol_address" ]; then
     _err "omg.lol base address not provided.  Exiting"
-    exit 1
+    return 1
   fi
 
   if [ "" = "$omglol_apikey" ]; then
     _err "omg.lol API key not provided.  Exiting"
-    exit 1
+    return 1
   fi
 
   _endswith "$fulldomain" "omg.lol"
   if [ ! $? ]; then
     _err "Domain name requested is not under omg.lol"
-    exit 1
+    return 1
   fi
 
   _endswith "$fulldomain" "$omglol_address.omg.lol"
   if [ ! $? ]; then
     _err "Domain name is not a subdomain of provided omg.lol address $omglol_address"
-    exit 1
+    return 1
   fi
 
   _debug "omglol_validate(): Required environment parameters are all present"
