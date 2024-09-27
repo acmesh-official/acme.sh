@@ -148,13 +148,13 @@ unifi_deploy() {
       -password pass:aircontrolenterprise \
       -nokeys | ${ACME_OPENSSL_BIN:-openssl} x509 -text \
       -noout | grep -i "signature" | grep -iq ecdsa >/dev/null 2>&1; then
-      cp -f ${_unifi_system_properties} ${_unifi_system_properties}_original
+      cp -f "${_unifi_system_properties}" "${_unifi_system_properties}_original"
       _info "Updating system configuration for cipher compatibility."
       _info "Saved original system config to ${_unifi_system_properties}_original"
-      sed -i '/unifi\.https\.ciphers/d' ${_unifi_system_properties}
-      echo "unifi.https.ciphers=ECDHE-ECDSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-GCM-SHA256" >> ${_unifi_system_properties} 
-      sed -i '/unifi\.https\.sslEnabledProtocols/d' ${_unifi_system_properties}
-      echo "unifi.https.sslEnabledProtocols=TLSv1.3,TLSv1.2" >> ${_unifi_system_properties}
+      sed -i '/unifi\.https\.ciphers/d' "${_unifi_system_properties}"
+      echo "unifi.https.ciphers=ECDHE-ECDSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-GCM-SHA256" >>"${_unifi_system_properties}"
+      sed -i '/unifi\.https\.sslEnabledProtocols/d' "${_unifi_system_properties}"
+      echo "unifi.https.sslEnabledProtocols=TLSv1.3,TLSv1.2" >>"${_unifi_system_properties}"
       _info "System configuration updated."
     fi
 
