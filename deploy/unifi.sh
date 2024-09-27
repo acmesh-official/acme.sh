@@ -30,7 +30,9 @@
 # Keystore password (built into Unifi Controller, not a user-set password):
 #DEPLOY_UNIFI_KEYPASS="aircontrolenterprise"
 # Command to restart Unifi Controller:
-#DEPLOY_UNIFI_RELOAD="service unifi restart"
+# DEPLOY_UNIFI_RELOAD="systemctl restart unifi"
+# System Properties file location for controller
+#DEPLOY_UNIFI_SYSTEM_PROPERTIES="/usr/lib/unifi/data/system.properties"
 #
 # Settings for Unifi Cloud Key Gen1 (nginx admin pages):
 # Directory where cloudkey.crt and cloudkey.key live:
@@ -43,7 +45,7 @@
 # Directory where unifi-core.crt and unifi-core.key live:
 #DEPLOY_UNIFI_CORE_CONFIG="/data/unifi-core/config/"
 # Command to restart unifi-core:
-#DEPLOY_UNIFI_RELOAD="systemctl restart unifi-core"
+# DEPLOY_UNIFI_OS_RELOAD="systemctl restart unifi-core"
 #
 # At least one of DEPLOY_UNIFI_KEYSTORE, DEPLOY_UNIFI_CLOUDKEY_CERTDIR,
 # or DEPLOY_UNIFI_CORE_CONFIG must exist to receive the deployed certs.
@@ -69,12 +71,16 @@ unifi_deploy() {
   _getdeployconf DEPLOY_UNIFI_CLOUDKEY_CERTDIR
   _getdeployconf DEPLOY_UNIFI_CORE_CONFIG
   _getdeployconf DEPLOY_UNIFI_RELOAD
+  _getdeployconf DEPLOY_UNIFI_SYSTEM_PROPERTIES
+  _getdeployconf DEPLOY_UNIFI_OS_RELOAD
 
   _debug2 DEPLOY_UNIFI_KEYSTORE "$DEPLOY_UNIFI_KEYSTORE"
   _debug2 DEPLOY_UNIFI_KEYPASS "$DEPLOY_UNIFI_KEYPASS"
   _debug2 DEPLOY_UNIFI_CLOUDKEY_CERTDIR "$DEPLOY_UNIFI_CLOUDKEY_CERTDIR"
   _debug2 DEPLOY_UNIFI_CORE_CONFIG "$DEPLOY_UNIFI_CORE_CONFIG"
   _debug2 DEPLOY_UNIFI_RELOAD "$DEPLOY_UNIFI_RELOAD"
+  _debug2 DEPLOY_UNIFI_OS_RELOAD "$DEPLOY_UNIFI_OS_RELOAD"
+  _debug2 DEPLOY_UNIFI_SYSTEM_PROPERTIES "$DEPLOY_UNIFI_SYSTEM_PROPERTIES"
 
   # Space-separated list of environments detected and installed:
   _services_updated=""
@@ -136,18 +142,19 @@ unifi_deploy() {
     fi
 
     # Update unifi service for certificate cipher compatibility
+    _unifi_system_properties="${DEPLOY_UNIFI_SYSTEM_PROPERTIES:-/usr/lib/unifi/data/system.properties}"
     if ${ACME_OPENSSL_BIN:-openssl} pkcs12 \
       -in "$_import_pkcs12" \
       -password pass:aircontrolenterprise \
       -nokeys | ${ACME_OPENSSL_BIN:-openssl} x509 -text \
       -noout | grep -i "signature" | grep -iq ecdsa >/dev/null 2>&1; then
-      cp -f /usr/lib/unifi/data/system.properties /usr/lib/unifi/data/system.properties_original
+      cp -f ${_unifi_system_properties} ${_unifi_system_properties}_original
       _info "Updating system configuration for cipher compatibility."
-      _info "Saved original system config to /usr/lib/unifi/data/system.properties_original"
-      sed -i '/unifi\.https\.ciphers/d' /usr/lib/unifi/data/system.properties
-      echo "unifi.https.ciphers=ECDHE-ECDSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-GCM-SHA256" >>/usr/lib/unifi/data/system.properties
-      sed -i '/unifi\.https\.sslEnabledProtocols/d' /usr/lib/unifi/data/system.properties
-      echo "unifi.https.sslEnabledProtocols=TLSv1.3,TLSv1.2" >>/usr/lib/unifi/data/system.properties
+      _info "Saved original system config to ${_unifi_system_properties}_original"
+      sed -i '/unifi\.https\.ciphers/d' ${_unifi_system_properties}
+      echo "unifi.https.ciphers=ECDHE-ECDSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-GCM-SHA256" >> ${_unifi_system_properties} 
+      sed -i '/unifi\.https\.sslEnabledProtocols/d' ${_unifi_system_properties}
+      echo "unifi.https.sslEnabledProtocols=TLSv1.3,TLSv1.2" >> ${_unifi_system_properties}
       _info "System configuration updated."
     fi
 
@@ -155,13 +162,16 @@ unifi_deploy() {
 
     # Restarting unifi-core will bring up unifi, doing it out of order results in
     # a certificate error, and breaks wifiman.
-    # Restart if we aren't doing unifi-core, otherwise stop for later restart.
-    if systemctl -q is-active unifi; then
-      if [ ! -f "${DEPLOY_UNIFI_CORE_CONFIG:-/data/unifi-core/config}/unifi-core.key" ]; then
-        _reload_cmd="${_reload_cmd:+$_reload_cmd && }systemctl restart unifi"
-      else
-        _reload_cmd="${_reload_cmd:+$_reload_cmd && }systemctl stop unifi"
-      fi
+    # Restart if we aren't doing Unifi OS (e.g. unifi-core service), otherwise stop for later restart.
+    _unifi_reload="${DEPLOY_UNIFI_RELOAD:-systemctl restart unifi}"
+    if [ ! -f "${DEPLOY_UNIFI_CORE_CONFIG:-/data/unifi-core/config}/unifi-core.key" ]; then
+      _reload_cmd="${_reload_cmd:+$_reload_cmd && }$_unifi_reload"
+    else
+      _info "Stopping Unifi Controller for later restart."
+      _unifi_stop=$(echo "${_unifi_reload}" | sed -e 's/restart/stop/')
+      $_unifi_stop
+      _reload_cmd="${_reload_cmd:+$_reload_cmd && }$_unifi_reload"
+      _info "Unifi Controller stopped."
     fi
     _services_updated="${_services_updated} unifi"
     _info "Install Unifi Controller certificate success!"
@@ -215,14 +225,14 @@ unifi_deploy() {
     # Save the existing certs in case something goes wrong.
     cp -f "${_unifi_core_config}"/unifi-core.crt "${_unifi_core_config}"/unifi-core_original.crt
     cp -f "${_unifi_core_config}"/unifi-core.key "${_unifi_core_config}"/unifi-core_original.key
-    _info "Previous certificate and key saved to ${_unifi_core_config}/unifi-core_original.crt/key."
+    _info "Previous certificate and key saved to ${_unifi_core_config}/unifi-core_original.crt.key."
 
     cat "$_cfullchain" >"${_unifi_core_config}/unifi-core.crt"
     cat "$_ckey" >"${_unifi_core_config}/unifi-core.key"
 
-    if systemctl -q is-active unifi-core; then
-      _reload_cmd="${_reload_cmd:+$_reload_cmd && }systemctl restart unifi-core"
-    fi
+    _unifi_os_reload="${DEPLOY_UNIFI_OS_RELOAD:-systemctl restart unifi-core}"
+    _reload_cmd="${_reload_cmd:+$_reload_cmd && }$_unifi_os_reload"
+
     _info "Install UnifiOS certificate success!"
     _services_updated="${_services_updated} unifi-core"
   elif [ "$DEPLOY_UNIFI_CORE_CONFIG" ]; then
