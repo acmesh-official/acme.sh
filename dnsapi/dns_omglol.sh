@@ -6,10 +6,10 @@ Domains: omg.lol
 Site: github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_duckdns
 Options:
- omglolapikey API Key from omg.lol.  This is accesible from the bottom of the account page at https://home.omg.lol/account
- omgloladdress This is your omg.lol address, without the preceding @ - you can see your list on your dashboard at https://home.omg.lol/dashboard
+ omg_apikey API Key from omg.lol.  This is accesible from the bottom of the account page at https://home.omg.lol/account
+ omg_address This is your omg.lol address, without the preceding @ - you can see your list on your dashboard at https://home.omg.lol/dashboard
 Issues: github.com/acmesh-official/acme.sh
-Author: @Kholin <kholin+omglolapi@omg.lol>  
+Author: @Kholin <kholin+acme.omglolapi@omg.lol>  
 '
 
 #returns 0 means success, otherwise error.
@@ -22,33 +22,33 @@ Author: @Kholin <kholin+omglolapi@omg.lol>
 dns_omglol_add() {
   fulldomain=$1
   txtvalue=$2
-  omglol_apikey="${omglol_apikey:-$(_readaccountconf_mutable omglol_apikey)}"
-  omglol_address="${omglol_address:-$(_readaccountconf_mutable omglol_address)}"
+  omg_apikey="${omg_apikey:-$(_readaccountconf_mutable omg_apikey)}"
+  omg_address="${omg_address:-$(_readaccountconf_mutable omg_address)}"
 
   # As omg.lol includes a leading @ for their addresses, pre-strip this before save
-  omglol_address="$(echo "$omglol_address" | tr -d '@')"
+  omg_address="$(echo "$omg_address" | tr -d '@')"
 
-  _saveaccountconf_mutable omglol_apikey "$omglol_apikey"
-  _saveaccountconf_mutable omglol_address "$omglol_address"
+  _saveaccountconf_mutable omg_apikey "$omg_apikey"
+  _saveaccountconf_mutable omg_address "$omg_address"
 
   _info "Using omg.lol."
   _debug "Function" "dns_omglol_add()"
   _debug "Full Domain Name" "$fulldomain"
   _debug "txt Record Value" "$txtvalue"
-  _secure_debug "omg.lol API key" "$omglol_apikey"
-  _debug "omg.lol Address" "$omglol_address"
+  _secure_debug "omg.lol API key" "$omg_apikey"
+  _debug "omg.lol Address" "$omg_address"
 
-  omglol_validate "$omglol_apikey" "$omglol_address" "$fulldomain"
+  omg_validate "$omg_apikey" "$omg_address" "$fulldomain"
   if [ ! $? ]; then
     return 1
   fi
 
-  dnsName=$(_getDnsRecordName "$fulldomain" "$omglol_address")
-  authHeader="$(_createAuthHeader "$omglol_apikey")"
+  dnsName=$(_getDnsRecordName "$fulldomain" "$omg_address")
+  authHeader="$(_createAuthHeader "$omg_apikey")"
 
-  _debug2 "  dns_omglol_add(): Address" "$dnsName"
+  _debug2 "dns_omglol_add(): Address" "$dnsName"
 
-  omglol_add "$omglol_address" "$authHeader" "$dnsName" "$txtvalue"
+  omg_add "$omg_address" "$authHeader" "$dnsName" "$txtvalue"
 
 }
 
@@ -57,41 +57,48 @@ dns_omglol_add() {
 dns_omglol_rm() {
   fulldomain=$1
   txtvalue=$2
-  omglol_apikey="${omglol_apikey:-$(_readaccountconf_mutable omglol_apikey)}"
-  omglol_address="${omglol_address:-$(_readaccountconf_mutable omglol_address)}"
+  omg_apikey="${omg_apikey:-$(_readaccountconf_mutable omg_apikey)}"
+  omg_address="${omg_address:-$(_readaccountconf_mutable omg_address)}"
 
   # As omg.lol includes a leading @ for their addresses, strip this in case provided
-  omglol_address="$(echo "$omglol_address" | tr -d '@')"
+  omg_address="$(echo "$omg_address" | tr -d '@')"
 
   _info "Using omg.lol"
-  _debug fulldomain "$fulldomain"
-  _secure_debug ApiKey "$omglol_apikey"
-  _debug address "$omglol_address"
+  _debug "Function" "dns_omglol_rm()"
+  _debug "Full Domain Name" "$fulldomain"
+  _debug "txt Record Value" "$txtvalue"
+  _secure_debug "omg.lol API key" "$omg_apikey"
+  _debug "omg.lol Address" "$omg_address"
 
-  omglol_validate "$omglol_apikey" "$omglol_address" "$fulldomain"
+  omg_validate "$omg_apikey" "$omg_address" "$fulldomain"
   if [ ! $? ]; then
     return 1
   fi
 
-  dnsName=$(_getDnsRecordName "$fulldomain" "$omglol_address")
-  authHeader="$(_createAuthHeader "$omglol_apikey")"
+  dnsName=$(_getDnsRecordName "$fulldomain" "$omg_address")
+  authHeader="$(_createAuthHeader "$omg_apikey")"
 
-  omglol_delete "$omglol_address" "$authHeader" "$dnsName" "$txtvalue"
+  omg_delete "$omg_address" "$authHeader" "$dnsName" "$txtvalue"
 }
 
 ####################  Private functions below ##################################
 # Check that the minimum requirements are present.  Close ungracefully if not
-omglol_validate() {
-  omglol_apikey=$1
-  omglol_address=$2
+omg_validate() {
+  omg_apikey=$1
+  omg_address=$2
   fulldomain=$3
 
-  if [ "" = "$omglol_address" ]; then
+  _debug2 "Function" "dns_validate()"
+  _secure_debug2 "omg.lol API key" "$omg_apikey"
+  _debug2 "omg.lol Address" "$omg_address"
+  _debug2 "Full Domain Name" "$fulldomain"
+
+  if [ "" = "$omg_address" ]; then
     _err "omg.lol base address not provided.  Exiting"
     return 1
   fi
 
-  if [ "" = "$omglol_apikey" ]; then
+  if [ "" = "$omg_apikey" ]; then
     _err "omg.lol API key not provided.  Exiting"
     return 1
   fi
@@ -102,52 +109,52 @@ omglol_validate() {
     return 1
   fi
 
-  _endswith "$fulldomain" "$omglol_address.omg.lol"
+  _endswith "$fulldomain" "$omg_address.omg.lol"
   if [ ! $? ]; then
-    _err "Domain name is not a subdomain of provided omg.lol address $omglol_address"
+    _err "Domain name is not a subdomain of provided omg.lol address $omg_address"
     return 1
   fi
 
-  _debug "omglol_validate(): Required environment parameters are all present"
+  _debug "Required environment parameters are all present"
 }
 
 # Add (or modify) an entry for a new ACME query
-omglol_add() {
+omg_add() {
   address=$1
   authHeader=$2
   dnsName=$3
   txtvalue=$4
 
-  _info "  Creating DNS entry for $dnsName"
-  _debug2 "  omglol_add()"
-  _debug2 "  omg.lol Address: " "$address"
-  _secure_debug2 "  omg.lol authorization header: " "$authHeader"
-  _debug2 "  Full Domain name:" "$dnsName.$address.omg.lol"
-  _debug2 "  TXT value to set:" "$txtvalue"
+  _info "Creating DNS entry for $dnsName"
+  _debug2 "omg_add()"
+  _debug2 "omg.lol Address: " "$address"
+  _secure_debug2 "omg.lol authorization header: " "$authHeader"
+  _debug2 "Full Domain name:" "$dnsName.$address.omg.lol"
+  _debug2 "TXT value to set:" "$txtvalue"
 
   export _H1="$authHeader"
 
   endpoint="https://api.omg.lol/address/$address/dns"
-  _debug2 "  Endpoint" "$endpoint"
+  _debug3 "Endpoint" "$endpoint"
 
   payload='{"type": "TXT", "name":"'"$dnsName"'", "data":"'"$txtvalue"'", "ttl":30}'
-  _debug2 "  Payload" "$payload"
+  _debug3 "Payload" "$payload"
 
   response=$(_post "$payload" "$endpoint" "" "POST" "application/json")
 
-  omglol_validate_add "$response" "$dnsName.$address" "$txtvalue"
+  omg_validate_add "$response" "$dnsName.$address" "$txtvalue"
 }
 
-omglol_validate_add() {
+omg_validate_add() {
   response=$1
   name=$2
   content=$3
 
-  _info "  Validating DNS record addition"
-  _debug2 "  omglol_validate_add()"
-  _debug2 "  Response" "$response"
-  _debug2 "  DNS Name" "$name"
-  _debug2 "  DNS value" "$content"
+  _debug "Validating DNS record addition"
+  _debug2 "omg_validate_add()"
+  _debug3 "Response" "$response"
+  _debug3 "DNS Name" "$name"
+  _debug3 "DNS value" "$content"
 
   _jsonResponseCheck "$response" "success" "true"
   if [ "1" = "$?" ]; then
@@ -173,30 +180,30 @@ omglol_validate_add() {
     return 1
   fi
 
-  _debug "  Record Created successfully"
+  _info "Record Created successfully"
   return 0
 }
 
-omglol_getRecords() {
+omg_getRecords() {
   address=$1
   authHeader=$2
   dnsName=$3
   txtValue=$4
 
-  _debug2 "    omglol_getRecords()"
-  _debug2 "    omg.lol Address: " "$address"
-  _secure_debug2 "    omg.lol Auth Header: " "$authHeader"
-  _debug2 "    omg.lol DNS name:" "$dnsName"
-  _debug2 "    txt Value" "$txtValue"
+  _debug2 "omg_getRecords()"
+  _debug3 "omg.lol Address: " "$address"
+  _secure_debug3 "omg.lol Auth Header: " "$authHeader"
+  _debug3 "omg.lol DNS name:" "$dnsName"
+  _debug3 "txt Value" "$txtValue"
 
   export _H1="$authHeader"
 
   endpoint="https://api.omg.lol/address/$address/dns"
-  _debug2 "    Endpoint" "$endpoint"
+  _debug3 "Endpoint" "$endpoint"
 
   payload=$(_get "$endpoint")
 
-  _debug2 "    Received Payload:" "$payload"
+  _debug3 "Received Payload:" "$payload"
 
   # Reformat the JSON to be more parseable
   recordID=$(echo "$payload" | _stripWhitespace)
@@ -207,41 +214,45 @@ omglol_getRecords() {
   _getJsonElement "$recordID" "id"
 }
 
-omglol_delete() {
+omg_delete() {
   address=$1
   authHeader=$2
   dnsName=$3
   txtValue=$4
 
-  _info "  Deleting DNS entry for $dnsName with value $txtValue"
-  _debug2 "  omglol_delete()"
-  _debug2 "  omg.lol Address: " "$address"
-  _secure_debug2 "  omg.lol Auth Header: " "$authHeader"
-  _debug2 "  Full Domain name:" "$dnsName.$address.omg.lol"
-  _debug2 "  txt Value" "$txtValue"
+  _info "Deleting DNS entry for $dnsName with value $txtValue"
+  _debug3 "omg_delete()"
+  _debug3 "omg.lol Address: " "$address"
+  _secure_debug3 "omg.lol Auth Header: " "$authHeader"
+  _debug3 "Full Domain name:" "$dnsName.$address.omg.lol"
+  _debug3 "txt Value" "$txtValue"
 
-  record=$(omglol_getRecords "$address" "$authHeader" "$dnsName" "$txtvalue")
+  record=$(omg_getRecords "$address" "$authHeader" "$dnsName" "$txtvalue")
+  if [ "" = "$record" ]; then
+    _err "DNS record $address not found!"
+    return 1
+  fi
 
   endpoint="https://api.omg.lol/address/$address/dns/$record"
-  _debug2 "  Endpoint" "$endpoint"
+  _debug3 "Endpoint" "$endpoint"
 
   export _H1="$authHeader"
   output=$(_post "" "$endpoint" "" "DELETE")
 
-  _debug2 "  Response" "$output"
+  _debug3 "Response" "$output"
 
-  omglol_validate_delete "$output"
+  omg_validate_delete "$output"
 }
 
 # Validate the response on request to delete.  Confirm stastus is success and
 # Message indicates deletion was successful
 # Input: Response - HTTP response received from delete request
-omglol_validate_delete() {
+omg_validate_delete() {
   response=$1
 
-  _info "  Validating DNS record deletion"
-  _debug2 "    omglol_validate_delete()"
-  _debug "    Response" "$response"
+  _info "Validating DNS record deletion"
+  _debug3 "omg_validate_delete()"
+  _debug3 "Response" "$response"
 
   _jsonResponseCheck "$output" "success" "true"
   if [ "1" = "$?" ]; then
@@ -255,7 +266,7 @@ omglol_validate_delete() {
     return 1
   fi
 
-  _info "  Record deleted successfully"
+  _info "Record deleted successfully"
   return 0
 }
 
@@ -268,19 +279,19 @@ _jsonResponseCheck() {
 
   correct=$(echo "$correct" | _lower_case)
 
-  _debug3 "  jsonResponseCheck()"
-  _debug3 "    Response to parse" "$response"
-  _debug3 "    Field to get response from" "$field"
-  _debug3 "    What is the correct response" "$correct"
+  _debug3 "jsonResponseCheck()"
+  _debug3 "Response to parse" "$response"
+  _debug3 "Field to get response from" "$field"
+  _debug3 "What is the correct response" "$correct"
 
   responseValue=$(_jsonGetLastResponse "$response" "$field")
 
   if [ "$responseValue" != "$correct" ]; then
-    _debug3 "    Expected: $correct"
-    _debug3 "      Actual: $responseValue"
+    _debug3 "Expected: $correct"
+    _debug3 "Actual: $responseValue"
     return 1
   else
-    _debug3 "    Matched: $responseValue"
+    _debug3 "Matched: $responseValue"
   fi
   return 0
 }
@@ -289,19 +300,20 @@ _jsonGetLastResponse() {
   response=$1
   field=$2
 
-  _debug3 "    jsonGetLastResponse()"
-  _debug3 "      Response provided" "$response"
-  _debug3 "      Field to get responses for" "$field"
+  _debug3 "jsonGetLastResponse()"
+  _debug3 "Response provided" "$response"
+  _debug3 "Field to get responses for" "$field"
+
   responseValue=$(echo "$response" | grep -- "\"$field\"" | cut -f2 -d":")
 
-  _debug3 "      Response lines found:" "$responseValue"
+  _debug3 "Response lines found:" "$responseValue"
 
   responseValue=$(echo "$responseValue" | sed 's/^ //g' | sed 's/^"//g' | sed 's/\\"//g')
   responseValue=$(echo "$responseValue" | sed 's/,$//g' | sed 's/"$//g')
   responseValue=$(echo "$responseValue" | _lower_case)
 
-  _debug3 "      Responses found" "$responseValue"
-  _debug3 "      Response Selected" "$(echo "$responseValue" | tail -1)"
+  _debug3 "Responses found" "$responseValue"
+  _debug3 "Response Selected" "$(echo "$responseValue" | tail -1)"
 
   echo "$responseValue" | tail -1
 }
@@ -318,12 +330,16 @@ _getJsonElement() {
   content=$1
   field=$2
 
+  _debug3 "_getJsonElement()"
+  _debug3 "Input JSON element" "$content"
+  _debug3 "JSON element to isolate" "$field"
+
   # With a single JSON entry to parse, convert commas to newlines puts each element on
   # its own line - which then allows us to just grep teh name, remove the key, and
   # isolate the value
   output=$(echo "$content" | tr ',' '\n' | grep -- "\"$field\":" | sed 's/.*: //g')
 
-  _debug3 "    String before unquoting: $output"
+  _debug3 "String before unquoting: $output"
 
   _unquoteString "$output"
 }
@@ -331,8 +347,11 @@ _getJsonElement() {
 _createAuthHeader() {
   apikey=$1
 
+  _debug3 "_createAuthHeader()"
+  _secure_debug3 "Provided API Key" "$apikey"
+
   authheader="Authorization: Bearer $apikey"
-  _secure_debug2 "    Authorization Header" "$authheader"
+  _secure_debug3 "Authorization Header" "$authheader"
   echo "$authheader"
 }
 
@@ -340,12 +359,19 @@ _getDnsRecordName() {
   fqdn=$1
   address=$2
 
+  _debug3 "_getDnsRecordName()"
+  _debug3 "FQDN" "$fqdn"
+  _debug3 "omg.lol Address" "$address"
+
   echo "$fqdn" | sed 's/\.omg\.lol//g' | sed 's/\.'"$address"'$//g'
 }
 
 _unquoteString() {
   output=$1
   quotes=0
+
+  _debug3 "_unquoteString()"
+  _debug3 "Possibly quoted string" "$output"
 
   _startswith "$output" "\""
   if [ $? ]; then
@@ -357,12 +383,12 @@ _unquoteString() {
     quotes=$((quotes + 1))
   fi
 
-  _debug3 "    Original String: $output"
-  _debug3 "    Quotes found: $quotes"
+  _debug3 "Original String: $output"
+  _debug3 "Quotes found: $quotes"
 
   if [ $((quotes)) -gt 1 ]; then
     output=$(echo "$output" | sed 's/^"//g' | sed 's/"$//g')
-    _debug3 "    Quotes removed: $output"
+    _debug3 "Quotes removed: $output"
   fi
 
   echo "$output"
