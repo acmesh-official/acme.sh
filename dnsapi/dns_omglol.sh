@@ -135,10 +135,10 @@ omg_add() {
   export _H1="$authHeader"
 
   endpoint="https://api.omg.lol/address/$address/dns"
-  _debug3 "Endpoint" "$endpoint"
+  _debug2 "Endpoint" "$endpoint"
 
   payload='{"type": "TXT", "name":"'"$dnsName"'", "data":"'"$txtvalue"'", "ttl":30}'
-  _debug3 "Payload" "$payload"
+  _debug2 "Payload" "$payload"
 
   response=$(_post "$payload" "$endpoint" "" "POST" "application/json")
 
@@ -152,9 +152,9 @@ omg_validate_add() {
 
   _debug "Validating DNS record addition"
   _debug2 "omg_validate_add()"
-  _debug3 "Response" "$response"
-  _debug3 "DNS Name" "$name"
-  _debug3 "DNS value" "$content"
+  _debug2 "Response" "$response"
+  _debug2 "DNS Name" "$name"
+  _debug2 "DNS value" "$content"
 
   _jsonResponseCheck "$response" "success" "true"
   if [ "1" = "$?" ]; then
@@ -191,19 +191,19 @@ omg_getRecords() {
   txtValue=$4
 
   _debug2 "omg_getRecords()"
-  _debug3 "omg.lol Address: " "$address"
-  _secure_debug3 "omg.lol Auth Header: " "$authHeader"
-  _debug3 "omg.lol DNS name:" "$dnsName"
-  _debug3 "txt Value" "$txtValue"
+  _debug2 "omg.lol Address: " "$address"
+  _secure_debug2 "omg.lol Auth Header: " "$authHeader"
+  _debug2 "omg.lol DNS name:" "$dnsName"
+  _debug2 "txt Value" "$txtValue"
 
   export _H1="$authHeader"
 
   endpoint="https://api.omg.lol/address/$address/dns"
-  _debug3 "Endpoint" "$endpoint"
+  _debug2 "Endpoint" "$endpoint"
 
   payload=$(_get "$endpoint")
 
-  _debug3 "Received Payload:" "$payload"
+  _debug2 "Received Payload:" "$payload"
 
   # Reformat the JSON to be more parseable
   recordID=$(echo "$payload" | _stripWhitespace)
@@ -221,11 +221,11 @@ omg_delete() {
   txtValue=$4
 
   _info "Deleting DNS entry for $dnsName with value $txtValue"
-  _debug3 "omg_delete()"
-  _debug3 "omg.lol Address: " "$address"
-  _secure_debug3 "omg.lol Auth Header: " "$authHeader"
-  _debug3 "Full Domain name:" "$dnsName.$address.omg.lol"
-  _debug3 "txt Value" "$txtValue"
+  _debug2 "omg_delete()"
+  _debug2 "omg.lol Address: " "$address"
+  _secure_debug2 "omg.lol Auth Header: " "$authHeader"
+  _debug2 "Full Domain name:" "$dnsName.$address.omg.lol"
+  _debug2 "txt Value" "$txtValue"
 
   record=$(omg_getRecords "$address" "$authHeader" "$dnsName" "$txtvalue")
   if [ "" = "$record" ]; then
@@ -234,12 +234,12 @@ omg_delete() {
   fi
 
   endpoint="https://api.omg.lol/address/$address/dns/$record"
-  _debug3 "Endpoint" "$endpoint"
+  _debug2 "Endpoint" "$endpoint"
 
   export _H1="$authHeader"
   output=$(_post "" "$endpoint" "" "DELETE")
 
-  _debug3 "Response" "$output"
+  _debug2 "Response" "$output"
 
   omg_validate_delete "$output"
 }
@@ -251,8 +251,8 @@ omg_validate_delete() {
   response=$1
 
   _info "Validating DNS record deletion"
-  _debug3 "omg_validate_delete()"
-  _debug3 "Response" "$response"
+  _debug2 "omg_validate_delete()"
+  _debug2 "Response" "$response"
 
   _jsonResponseCheck "$output" "success" "true"
   if [ "1" = "$?" ]; then
