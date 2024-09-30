@@ -28,8 +28,8 @@ dns_omglol_add() {
   # As omg.lol includes a leading @ for their addresses, pre-strip this before save
   OMG_Address="$(echo "$OMG_Address" | tr -d '@')"
 
-  _saveaccountconf_mutable omg_apikey "$OMG_ApiKey"
-  _saveaccountconf_mutable omg_address "$OMG_Address"
+  _saveaccountconf_mutable OMG_ApiKey "$OMG_ApiKey"
+  _saveaccountconf_mutable OMG_Address "$OMG_Address"
 
   _info "Using omg.lol."
   _debug "Function" "dns_omglol_add()"
