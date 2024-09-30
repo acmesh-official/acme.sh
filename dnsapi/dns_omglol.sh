@@ -6,10 +6,10 @@ Domains: omg.lol
 Site: github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_duckdns
 Options:
- omg_apikey API Key from omg.lol.  This is accesible from the bottom of the account page at https://home.omg.lol/account
- omg_address This is your omg.lol address, without the preceding @ - you can see your list on your dashboard at https://home.omg.lol/dashboard
+ OMG_ApiKey API Key from omg.lol.  This is accesible from the bottom of the account page at https://home.omg.lol/account
+ OMG_Address This is your omg.lol address, without the preceding @ - you can see your list on your dashboard at https://home.omg.lol/dashboard
 Issues: github.com/acmesh-official/acme.sh
-Author: @Kholin <kholin+acme.omglolapi@omg.lol>  
+Author: @Kholin <kholin+acme.omglolapi@omg.lol>
 '
 
 #returns 0 means success, otherwise error.
@@ -22,33 +22,33 @@ Author: @Kholin <kholin+acme.omglolapi@omg.lol>
 dns_omglol_add() {
   fulldomain=$1
   txtvalue=$2
-  omg_apikey="${omg_apikey:-$(_readaccountconf_mutable omg_apikey)}"
-  omg_address="${omg_address:-$(_readaccountconf_mutable omg_address)}"
+  OMG_ApiKey="${OMG_ApiKey:-$(_readaccountconf_mutable OMG_ApiKey)}"
+  OMG_Address="${OMG_Address:-$(_readaccountconf_mutable OMG_Address)}"
 
   # As omg.lol includes a leading @ for their addresses, pre-strip this before save
-  omg_address="$(echo "$omg_address" | tr -d '@')"
+  OMG_Address="$(echo "$OMG_Address" | tr -d '@')"
 
-  _saveaccountconf_mutable omg_apikey "$omg_apikey"
-  _saveaccountconf_mutable omg_address "$omg_address"
+  _saveaccountconf_mutable omg_apikey "$OMG_ApiKey"
+  _saveaccountconf_mutable omg_address "$OMG_Address"
 
   _info "Using omg.lol."
   _debug "Function" "dns_omglol_add()"
   _debug "Full Domain Name" "$fulldomain"
   _debug "txt Record Value" "$txtvalue"
-  _secure_debug "omg.lol API key" "$omg_apikey"
-  _debug "omg.lol Address" "$omg_address"
+  _secure_debug "omg.lol API key" "$OMG_ApiKey"
+  _debug "omg.lol Address" "$OMG_Address"
 
-  omg_validate "$omg_apikey" "$omg_address" "$fulldomain"
+  omg_validate "$OMG_ApiKey" "$OMG_Address" "$fulldomain"
   if [ ! $? ]; then
     return 1
   fi
 
-  dnsName=$(_getDnsRecordName "$fulldomain" "$omg_address")
-  authHeader="$(_createAuthHeader "$omg_apikey")"
+  dnsName=$(_getDnsRecordName "$fulldomain" "$OMG_Address")
+  authHeader="$(_createAuthHeader "$OMG_ApiKey")"
 
   _debug2 "dns_omglol_add(): Address" "$dnsName"
 
-  omg_add "$omg_address" "$authHeader" "$dnsName" "$txtvalue"
+  omg_add "$OMG_Address" "$authHeader" "$dnsName" "$txtvalue"
 
 }
 
@@ -57,28 +57,28 @@ dns_omglol_add() {
 dns_omglol_rm() {
   fulldomain=$1
   txtvalue=$2
-  omg_apikey="${omg_apikey:-$(_readaccountconf_mutable omg_apikey)}"
-  omg_address="${omg_address:-$(_readaccountconf_mutable omg_address)}"
+  OMG_ApiKey="${OMG_ApiKey:-$(_readaccountconf_mutable OMG_ApiKey)}"
+  OMG_Address="${OMG_Address:-$(_readaccountconf_mutable OMG_Address)}"
 
   # As omg.lol includes a leading @ for their addresses, strip this in case provided
-  omg_address="$(echo "$omg_address" | tr -d '@')"
+  OMG_Address="$(echo "$OMG_Address" | tr -d '@')"
 
   _info "Using omg.lol"
   _debug "Function" "dns_omglol_rm()"
   _debug "Full Domain Name" "$fulldomain"
   _debug "txt Record Value" "$txtvalue"
-  _secure_debug "omg.lol API key" "$omg_apikey"
-  _debug "omg.lol Address" "$omg_address"
+  _secure_debug "omg.lol API key" "$OMG_ApiKey"
+  _debug "omg.lol Address" "$OMG_Address"
 
-  omg_validate "$omg_apikey" "$omg_address" "$fulldomain"
+  omg_validate "$OMG_ApiKey" "$OMG_Address" "$fulldomain"
   if [ ! $? ]; then
     return 1
   fi
 
-  dnsName=$(_getDnsRecordName "$fulldomain" "$omg_address")
-  authHeader="$(_createAuthHeader "$omg_apikey")"
+  dnsName=$(_getDnsRecordName "$fulldomain" "$OMG_Address")
+  authHeader="$(_createAuthHeader "$OMG_ApiKey")"
 
-  omg_delete "$omg_address" "$authHeader" "$dnsName" "$txtvalue"
+  omg_delete "$OMG_Address" "$authHeader" "$dnsName" "$txtvalue"
 }
 
 ####################  Private functions below ##################################
