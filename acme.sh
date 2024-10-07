@@ -148,8 +148,6 @@ NOTIFY_MODE_CERT=1
 
 NOTIFY_MODE_DEFAULT=$NOTIFY_MODE_BULK
 
-_BASE64_ENCODED_CFGS="Le_PreHook Le_PostHook Le_RenewHook Le_Preferred_Chain Le_ReloadCmd"
-
 _DEBUG_WIKI="https://github.com/acmesh-official/acme.sh/wiki/How-to-debug-acme.sh"
 
 _PREPARE_LINK="https://github.com/acmesh-official/acme.sh/wiki/Install-preparations"
