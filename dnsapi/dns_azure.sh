@@ -87,6 +87,7 @@ dns_azure_add() {
     _saveaccountconf_mutable AZUREDNS_CLIENTSECRET "$AZUREDNS_CLIENTSECRET"
   fi
 
+  # Use provided bearer token if available and prefix it with Bearer if not already done
   if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
     accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
   else
