@@ -9,6 +9,7 @@ Options:
  AZUREDNS_APPID App ID. App ID of the service principal
  AZUREDNS_CLIENTSECRET Client Secret. Secret from creating the service principal
  AZUREDNS_MANAGEDIDENTITY Use Managed Identity. Use Managed Identity assigned to a resource instead of a service principal. "true"/"false"
+ AZUREDNS_BEARERTOKEN Optional Bearer Token. Used instead of service principal credentials or managed identity
 '
 
 wiki=https://github.com/acmesh-official/acme.sh/wiki/How-to-use-Azure-DNS
@@ -31,6 +32,7 @@ dns_azure_add() {
     AZUREDNS_TENANTID=""
     AZUREDNS_APPID=""
     AZUREDNS_CLIENTSECRET=""
+    AZUREDNS_BEARERTOKEN=""
     _err "You didn't specify the Azure Subscription ID"
     return 1
   fi
@@ -45,37 +47,45 @@ dns_azure_add() {
     _saveaccountconf_mutable AZUREDNS_TENANTID ""
     _saveaccountconf_mutable AZUREDNS_APPID ""
     _saveaccountconf_mutable AZUREDNS_CLIENTSECRET ""
+    _saveaccountconf_mutable AZUREDNS_BEARERTOKEN ""
   else
-    _info "You didn't ask to use Azure managed identity, checking service principal credentials"
+    _info "You didn't ask to use Azure managed identity, checking service principal credentials or provided bearer token"
     AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
     AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
     AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
+    AZUREDNS_BEARERTOKEN="${AZUREDNS_BEARERTOKEN:-$(_readaccountconf_mutable AZUREDNS_BEARERTOKEN)}"
+    if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
+      if [ -z "$AZUREDNS_TENANTID" ]; then
+        AZUREDNS_SUBSCRIPTIONID=""
+        AZUREDNS_TENANTID=""
+        AZUREDNS_APPID=""
+        AZUREDNS_CLIENTSECRET=""
+        AZUREDNS_BEARERTOKEN=""
+        _err "You didn't specify the Azure Tenant ID "
+        return 1
+      fi
 
-    if [ -z "$AZUREDNS_TENANTID" ]; then
-      AZUREDNS_SUBSCRIPTIONID=""
-      AZUREDNS_TENANTID=""
-      AZUREDNS_APPID=""
-      AZUREDNS_CLIENTSECRET=""
-      _err "You didn't specify the Azure Tenant ID "
-      return 1
-    fi
+      if [ -z "$AZUREDNS_APPID" ]; then
+        AZUREDNS_SUBSCRIPTIONID=""
+        AZUREDNS_TENANTID=""
+        AZUREDNS_APPID=""
+        AZUREDNS_CLIENTSECRET=""
+        AZUREDNS_BEARERTOKEN=""
+        _err "You didn't specify the Azure App ID"
+        return 1
+      fi
 
-    if [ -z "$AZUREDNS_APPID" ]; then
-      AZUREDNS_SUBSCRIPTIONID=""
-      AZUREDNS_TENANTID=""
-      AZUREDNS_APPID=""
-      AZUREDNS_CLIENTSECRET=""
-      _err "You didn't specify the Azure App ID"
-      return 1
-    fi
-
-    if [ -z "$AZUREDNS_CLIENTSECRET" ]; then
-      AZUREDNS_SUBSCRIPTIONID=""
-      AZUREDNS_TENANTID=""
-      AZUREDNS_APPID=""
-      AZUREDNS_CLIENTSECRET=""
-      _err "You didn't specify the Azure Client Secret"
-      return 1
+      if [ -z "$AZUREDNS_CLIENTSECRET" ]; then
+        AZUREDNS_SUBSCRIPTIONID=""
+        AZUREDNS_TENANTID=""
+        AZUREDNS_APPID=""
+        AZUREDNS_CLIENTSECRET=""
+        AZUREDNS_BEARERTOKEN=""
+        _err "You didn't specify the Azure Client Secret"
+        return 1
+      fi
+    else
+      _info "Using provided bearer token"
     fi
 
     #save account details to account conf file, don't opt in for azure manages identity check.
@@ -83,9 +93,14 @@ dns_azure_add() {
     _saveaccountconf_mutable AZUREDNS_TENANTID "$AZUREDNS_TENANTID"
     _saveaccountconf_mutable AZUREDNS_APPID "$AZUREDNS_APPID"
     _saveaccountconf_mutable AZUREDNS_CLIENTSECRET "$AZUREDNS_CLIENTSECRET"
+    _saveaccountconf_mutable AZUREDNS_BEARERTOKEN "$AZUREDNS_BEARERTOKEN"
   fi
 
-  accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
+  if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
+    accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
+  else
+    accesstoken=$(echo "$AZUREDNS_BEARERTOKEN" | sed "s/Bearer //g")
+  fi
 
   if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
     _err "invalid domain"
@@ -147,6 +162,7 @@ dns_azure_rm() {
     AZUREDNS_TENANTID=""
     AZUREDNS_APPID=""
     AZUREDNS_CLIENTSECRET=""
+    AZUREDNS_BEARERTOKEN=""
     _err "You didn't specify the Azure Subscription ID "
     return 1
   fi
@@ -155,40 +171,51 @@ dns_azure_rm() {
   if [ "$AZUREDNS_MANAGEDIDENTITY" = true ]; then
     _info "Using Azure managed identity"
   else
-    _info "You didn't ask to use Azure managed identity, checking service principal credentials"
+    _info "You didn't ask to use Azure managed identity, checking service principal credentials or provided bearer token"
     AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
     AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
     AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
+    AZUREDNS_BEARERTOKEN="${AZUREDNS_BEARERTOKEN:-$(_readaccountconf_mutable AZUREDNS_BEARERTOKEN)}"
+    if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
+      if [ -z "$AZUREDNS_TENANTID" ]; then
+        AZUREDNS_SUBSCRIPTIONID=""
+        AZUREDNS_TENANTID=""
+        AZUREDNS_APPID=""
+        AZUREDNS_CLIENTSECRET=""
+        AZUREDNS_BEARERTOKEN=""
+        _err "You didn't specify the Azure Tenant ID "
+        return 1
+      fi
 
-    if [ -z "$AZUREDNS_TENANTID" ]; then
-      AZUREDNS_SUBSCRIPTIONID=""
-      AZUREDNS_TENANTID=""
-      AZUREDNS_APPID=""
-      AZUREDNS_CLIENTSECRET=""
-      _err "You didn't specify the Azure Tenant ID "
-      return 1
-    fi
+      if [ -z "$AZUREDNS_APPID" ]; then
+        AZUREDNS_SUBSCRIPTIONID=""
+        AZUREDNS_TENANTID=""
+        AZUREDNS_APPID=""
+        AZUREDNS_CLIENTSECRET=""
+        AZUREDNS_BEARERTOKEN=""
+        _err "You didn't specify the Azure App ID"
+        return 1
+      fi
 
-    if [ -z "$AZUREDNS_APPID" ]; then
-      AZUREDNS_SUBSCRIPTIONID=""
-      AZUREDNS_TENANTID=""
-      AZUREDNS_APPID=""
-      AZUREDNS_CLIENTSECRET=""
-      _err "You didn't specify the Azure App ID"
-      return 1
-    fi
-
-    if [ -z "$AZUREDNS_CLIENTSECRET" ]; then
-      AZUREDNS_SUBSCRIPTIONID=""
-      AZUREDNS_TENANTID=""
-      AZUREDNS_APPID=""
-      AZUREDNS_CLIENTSECRET=""
-      _err "You didn't specify the Azure Client Secret"
-      return 1
+      if [ -z "$AZUREDNS_CLIENTSECRET" ]; then
+        AZUREDNS_SUBSCRIPTIONID=""
+        AZUREDNS_TENANTID=""
+        AZUREDNS_APPID=""
+        AZUREDNS_CLIENTSECRET=""
+        AZUREDNS_BEARERTOKEN=""
+        _err "You didn't specify the Azure Client Secret"
+        return 1
+      fi
+    else
+      _info "Using provided bearer token"
     fi
   fi
 
-  accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
+  if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
+    accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
+  else
+    accesstoken=$(echo "$AZUREDNS_BEARERTOKEN" | sed "s/Bearer //g")
+  fi
 
   if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
     _err "invalid domain"
@@ -295,7 +322,7 @@ _azure_getaccess_token() {
   clientID=$3
   clientSecret=$4
 
-  accesstoken="${AZUREDNS_BEARERTOKEN:-$(_readaccountconf_mutable AZUREDNS_BEARERTOKEN)}"
+  accesstoken="${AZUREDNS_ACCESSTOKEN:-$(_readaccountconf_mutable AZUREDNS_ACCESSTOKEN)}"
   expires_on="${AZUREDNS_TOKENVALIDTO:-$(_readaccountconf_mutable AZUREDNS_TOKENVALIDTO)}"
 
   # can we reuse the bearer token?
@@ -339,7 +366,7 @@ _azure_getaccess_token() {
     _err "error $response"
     return 1
   fi
-  _saveaccountconf_mutable AZUREDNS_BEARERTOKEN "$accesstoken"
+  _saveaccountconf_mutable AZUREDNS_ACCESSTOKEN "$accesstoken"
   _saveaccountconf_mutable AZUREDNS_TOKENVALIDTO "$expires_on"
   printf "%s" "$accesstoken"
   return 0
