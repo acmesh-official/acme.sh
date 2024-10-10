@@ -30,6 +30,7 @@ dns_azure_add() {
     AZUREDNS_TENANTID=""
     AZUREDNS_APPID=""
     AZUREDNS_CLIENTSECRET=""
+    AZUREDNS_BEARERTOKEN=""
     _err "You didn't specify the Azure Subscription ID"
     return 1
   fi
@@ -44,6 +45,7 @@ dns_azure_add() {
     _saveaccountconf_mutable AZUREDNS_TENANTID ""
     _saveaccountconf_mutable AZUREDNS_APPID ""
     _saveaccountconf_mutable AZUREDNS_CLIENTSECRET ""
+    _saveaccountconf_mutable AZUREDNS_BEARERTOKEN ""
   else
     _info "You didn't ask to use Azure managed identity, checking service principal credentials or provided bearer token"
     AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
@@ -56,6 +58,7 @@ dns_azure_add() {
         AZUREDNS_TENANTID=""
         AZUREDNS_APPID=""
         AZUREDNS_CLIENTSECRET=""
+        AZUREDNS_BEARERTOKEN=""
         _err "You didn't specify the Azure Tenant ID "
         return 1
       fi
@@ -65,6 +68,7 @@ dns_azure_add() {
         AZUREDNS_TENANTID=""
         AZUREDNS_APPID=""
         AZUREDNS_CLIENTSECRET=""
+        AZUREDNS_BEARERTOKEN=""
         _err "You didn't specify the Azure App ID"
         return 1
       fi
@@ -74,6 +78,7 @@ dns_azure_add() {
         AZUREDNS_TENANTID=""
         AZUREDNS_APPID=""
         AZUREDNS_CLIENTSECRET=""
+        AZUREDNS_BEARERTOKEN=""
         _err "You didn't specify the Azure Client Secret"
         return 1
       fi
@@ -155,6 +160,7 @@ dns_azure_rm() {
     AZUREDNS_TENANTID=""
     AZUREDNS_APPID=""
     AZUREDNS_CLIENTSECRET=""
+    AZUREDNS_BEARERTOKEN=""
     _err "You didn't specify the Azure Subscription ID "
     return 1
   fi
@@ -174,6 +180,7 @@ dns_azure_rm() {
         AZUREDNS_TENANTID=""
         AZUREDNS_APPID=""
         AZUREDNS_CLIENTSECRET=""
+        AZUREDNS_BEARERTOKEN=""
         _err "You didn't specify the Azure Tenant ID "
         return 1
       fi
@@ -183,6 +190,7 @@ dns_azure_rm() {
         AZUREDNS_TENANTID=""
         AZUREDNS_APPID=""
         AZUREDNS_CLIENTSECRET=""
+        AZUREDNS_BEARERTOKEN=""
         _err "You didn't specify the Azure App ID"
         return 1
       fi
@@ -192,6 +200,7 @@ dns_azure_rm() {
         AZUREDNS_TENANTID=""
         AZUREDNS_APPID=""
         AZUREDNS_CLIENTSECRET=""
+        AZUREDNS_BEARERTOKEN=""
         _err "You didn't specify the Azure Client Secret"
         return 1
       fi
