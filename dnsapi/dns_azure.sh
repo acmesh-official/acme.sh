@@ -49,7 +49,8 @@ dns_azure_add() {
     AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
     AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
     AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
-    if [ -z "$AZUREDNS_BEARERTOKEN2" ]; then
+    if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
+      _debug "Contents of bearertoken: $AZUREDNS_BEARERTOKEN"
       if [ -z "$AZUREDNS_TENANTID" ]; then
         AZUREDNS_SUBSCRIPTIONID=""
         AZUREDNS_TENANTID=""
@@ -85,14 +86,13 @@ dns_azure_add() {
     _saveaccountconf_mutable AZUREDNS_TENANTID "$AZUREDNS_TENANTID"
     _saveaccountconf_mutable AZUREDNS_APPID "$AZUREDNS_APPID"
     _saveaccountconf_mutable AZUREDNS_CLIENTSECRET "$AZUREDNS_CLIENTSECRET"
-    _saveaccountconf_mutable AZUREDNS_BEARERTOKEN2 "$AZUREDNS_BEARERTOKEN2"
+    _saveaccountconf_mutable AZUREDNS_BEARERTOKEN "$AZUREDNS_BEARERTOKEN"
   fi
 
-  # Use provided bearer token if available and prefix it with Bearer if not already done
-  if [ -z "$AZUREDNS_BEARERTOKEN2" ]; then
+  if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
     accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
   else
-    accesstoken=$(echo "$AZUREDNS_BEARERTOKEN2" | sed "s/Bearer //g")
+    accesstoken=$(echo "$AZUREDNS_BEARERTOKEN" | sed "s/Bearer //g")
   fi
 
   if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
@@ -167,7 +167,8 @@ dns_azure_rm() {
     AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
     AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
     AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
-    if [ -z "$AZUREDNS_BEARERTOKEN2" ]; then
+    if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
+      _debug "Contents of bearertoken second time: $AZUREDNS_BEARERTOKEN"
       if [ -z "$AZUREDNS_TENANTID" ]; then
         AZUREDNS_SUBSCRIPTIONID=""
         AZUREDNS_TENANTID=""
@@ -199,10 +200,10 @@ dns_azure_rm() {
     fi
   fi
 
-  if [ -z "$AZUREDNS_BEARERTOKEN2" ]; then
+  if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
     accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
   else
-    accesstoken=$(echo "$AZUREDNS_BEARERTOKEN2" | sed "s/Bearer //g")
+    accesstoken=$(echo "$AZUREDNS_BEARERTOKEN" | sed "s/Bearer //g")
   fi
 
   if ! _get_root "$fulldomain" "$AZUREDNS_SUBSCRIPTIONID" "$accesstoken"; then
