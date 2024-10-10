@@ -49,6 +49,7 @@ dns_azure_add() {
     AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
     AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
     AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
+    AZUREDNS_BEARERTOKEN="${AZUREDNS_BEARERTOKEN:-$(_readaccountconf_mutable AZUREDNS_BEARERTOKEN)}"
     if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
       _debug "Contents of bearertoken: $AZUREDNS_BEARERTOKEN"
       if [ -z "$AZUREDNS_TENANTID" ]; then
@@ -167,6 +168,7 @@ dns_azure_rm() {
     AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
     AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
     AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
+    AZUREDNS_BEARERTOKEN="${AZUREDNS_BEARERTOKEN:-$(_readaccountconf_mutable AZUREDNS_BEARERTOKEN)}"
     if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
       _debug "Contents of bearertoken second time: $AZUREDNS_BEARERTOKEN"
       if [ -z "$AZUREDNS_TENANTID" ]; then
