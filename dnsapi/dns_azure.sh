@@ -49,6 +49,7 @@ dns_azure_add() {
     AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
     AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
     AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
+    AZUREDNS_BEARERTOKEN="${AZUREDNS_BEARERTOKEN:-$(_readaccountconf_mutable AZUREDNS_BEARERTOKEN)}"
     if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
       if [ -z "$AZUREDNS_TENANTID" ]; then
         AZUREDNS_SUBSCRIPTIONID=""
@@ -85,6 +86,7 @@ dns_azure_add() {
     _saveaccountconf_mutable AZUREDNS_TENANTID "$AZUREDNS_TENANTID"
     _saveaccountconf_mutable AZUREDNS_APPID "$AZUREDNS_APPID"
     _saveaccountconf_mutable AZUREDNS_CLIENTSECRET "$AZUREDNS_CLIENTSECRET"
+    _saveaccountconf_mutable AZUREDNS_BEARERTOKEN "$AZUREDNS_BEARERTOKEN"
   fi
 
   if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
@@ -165,6 +167,7 @@ dns_azure_rm() {
     AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
     AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
     AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
+    AZUREDNS_BEARERTOKEN="${AZUREDNS_BEARERTOKEN:-$(_readaccountconf_mutable AZUREDNS_BEARERTOKEN)}"
     if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
       if [ -z "$AZUREDNS_TENANTID" ]; then
         AZUREDNS_SUBSCRIPTIONID=""
@@ -308,7 +311,7 @@ _azure_getaccess_token() {
   clientID=$3
   clientSecret=$4
 
-  accesstoken="${AZUREDNS_BEARERTOKEN:-$(_readaccountconf_mutable AZUREDNS_BEARERTOKEN)}"
+  accesstoken="${AZUREDNS_ACCESSTOKEN:-$(_readaccountconf_mutable AZUREDNS_ACCESSTOKEN)}"
   expires_on="${AZUREDNS_TOKENVALIDTO:-$(_readaccountconf_mutable AZUREDNS_TOKENVALIDTO)}"
 
   # can we reuse the bearer token?
@@ -352,7 +355,7 @@ _azure_getaccess_token() {
     _err "error $response"
     return 1
   fi
-  _saveaccountconf_mutable AZUREDNS_BEARERTOKEN "$accesstoken"
+  _saveaccountconf_mutable AZUREDNS_ACCESSTOKEN "$accesstoken"
   _saveaccountconf_mutable AZUREDNS_TOKENVALIDTO "$expires_on"
   printf "%s" "$accesstoken"
   return 0
