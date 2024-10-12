@@ -9,7 +9,7 @@ Options:
 Issues: github.com/acmesh-official/acme.sh/issues/3450
 '
 
-PORKBUN_Api="https://porkbun.com/api/json/v3"
+PORKBUN_Api="https://api.porkbun.com/api/json/v3"
 
 ########  Public functions #####################
 
