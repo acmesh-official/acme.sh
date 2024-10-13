@@ -93,7 +93,6 @@ dns_netlify_rm() {
       _err "error removing validation value ($_code)"
       return 1
     fi
-    return 0
   fi
   return 1
 }

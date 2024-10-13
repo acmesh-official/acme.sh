@@ -41,9 +41,7 @@ dns_scaleway_add() {
     _err error "$response"
     return 1
   fi
-  _info "Record added."
 
-  return 0
 }
 
 dns_scaleway_rm() {
@@ -71,9 +69,7 @@ dns_scaleway_rm() {
     _err error "$response"
     return 1
   fi
-  _info "Record deleted."
 
-  return 0
 }
 
 ####################  Private functions below ##################################
