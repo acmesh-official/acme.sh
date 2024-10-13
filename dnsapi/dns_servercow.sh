@@ -81,7 +81,6 @@ dns_servercow_add() {
     return 1
   fi
 
-  return 1
 }
 
 # Usage fulldomain txtvalue
