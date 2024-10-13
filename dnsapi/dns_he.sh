@@ -143,7 +143,7 @@ _find_zone() {
   # Walk through all possible zone names
   _strip_counter=1
   while true; do
-    _attempted_zone=$(echo "$_domain" | cut -d . -f ${_strip_counter}-)
+    _attempted_zone=$(echo "$_domain" | cut -d . -f "${_strip_counter}"-)
 
     # All possible zone names have been tried
     if [ -z "$_attempted_zone" ]; then

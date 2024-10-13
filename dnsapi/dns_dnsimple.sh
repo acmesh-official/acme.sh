@@ -105,7 +105,7 @@ _get_root() {
     if _contains "$response" 'not found'; then
       _debug "$h not found"
     else
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p"revious)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$previous")
       _domain="$h"
 
       _debug _domain "$_domain"

@@ -159,7 +159,7 @@ _get_root() {
       return 0
     fi
     p=$i
-    i=$(_math $i + 1)
+    i=$(_math "$i" + 1)
   done
   _debug "$domain not found"
 

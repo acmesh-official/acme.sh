@@ -189,7 +189,7 @@ _get_root() {
     if [ -z "$h" ]; then
       return 1
     fi
-    i=$(_math $i + 1)
+    i=$(_math "$i" + 1)
   done
   _debug "no matching domain for $domain found"
 
