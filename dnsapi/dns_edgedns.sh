@@ -362,19 +362,11 @@ _edgedns_rest() {
 }
 
 _edgedns_eg_timestamp() {
-  _debug "Generating signature Timestamp"
-  _debug3 "Retriving ntp time"
-  _timeheaders="$(_get "https://www.ntp.org" "onlyheader")"
-  _debug3 "_timeheaders" "$_timeheaders"
-  _ntpdate="$(echo "$_timeheaders" | grep -i "Date:" | _head_n 1 | cut -d ':' -f 2- | tr -d "\r\n")"
-  _debug3 "_ntpdate" "$_ntpdate"
-  _ntpdate="$(echo "${_ntpdate}" | sed -e 's/^[[:space:]]*//')"
-  _debug3 "_NTPDATE" "$_ntpdate"
-  _ntptime="$(echo "${_ntpdate}" | _head_n 1 | cut -d " " -f 5 | tr -d "\r\n")"
-  _debug3 "_ntptime" "$_ntptime"
-  _eg_timestamp=$(date -u "+%Y%m%dT")
-  _eg_timestamp="$(printf "%s%s+0000" "$_eg_timestamp" "$_ntptime")"
-  _debug "_eg_timestamp" "$_eg_timestamp"
+  _debug "Generating signature timestamp"
+  # Gets the current UTC date and time and reformats it to yyyyMMddTHH:mm:ss+0000.
+  # Reference: https://developer.akamai.com/legacy/introduction/Client_Auth.html
+  _eg_timestamp="$(_utc_date | sed 's/-//g' | sed 's/ /T/' | sed 's/$/+0000/')"
+  _debug3 "_eg_timestamp" "$_eg_timestamp"
 }
 
 _edgedns_new_nonce() {
