@@ -181,7 +181,7 @@ _get_root() {
   fi
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
 
     if _contains "$_zones_response" "\"name\":\"$h.\""; then
       _domain="$h."
@@ -194,7 +194,7 @@ _get_root() {
     if [ -z "$h" ]; then
       return 1
     fi
-    i=$(_math $i + 1)
+    i=$(_math "$i" + 1)
   done
   _debug "$domain not found"
 

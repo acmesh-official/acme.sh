@@ -180,14 +180,14 @@ _get_root() {
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
   while true; do
-    h=$(echo "$domain" | cut -d . -f $i-100)
+    h=$(echo "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
     fi
 
     if _contains "$response" "$h"; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi

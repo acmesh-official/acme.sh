@@ -113,7 +113,7 @@ _get_root() {
   #cycle through the passed domain seperating out a test domain discarding
   #   the subdomain by marching thorugh the dots
   while true; do
-    _test_domain=$(printf "%s" "$_passed_domain" | cut -d . -f ${_i}-100)
+    _test_domain=$(printf "%s" "$_passed_domain" | cut -d . -f "${_i}"-100)
     _debug _test_domain "$_test_domain"
 
     if [ -z "$_test_domain" ]; then
@@ -123,7 +123,7 @@ _get_root() {
     #report found if the test domain is in the json response and
     #   report the subdomain
     if _contains "$response" "\"$_test_domain\""; then
-      _sub_domain=$(printf "%s" "$_passed_domain" | cut -d . -f 1-${_p})
+      _sub_domain=$(printf "%s" "$_passed_domain" | cut -d . -f 1-"${_p}")
       _domain=${_test_domain}
       return 0
     fi

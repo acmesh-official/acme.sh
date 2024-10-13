@@ -110,10 +110,10 @@ _timestamp() {
 
 _get_root() {
   domain=$1
-  i=2
+  i=1
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -125,7 +125,7 @@ _get_root() {
     fi
 
     if _contains "$response" "PageNumber"; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _debug _sub_domain "$_sub_domain"
       _domain="$h"
       _debug _domain "$_domain"
