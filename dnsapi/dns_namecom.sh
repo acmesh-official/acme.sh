@@ -159,7 +159,7 @@ _namecom_get_root() {
 
   # Need to exclude the last field (tld)
   numfields=$(echo "$domain" | _egrep_o "\." | wc -l)
-  while [ $i -le "$numfields" ]; do
+  while [ "$i" -le "$numfields" ]; do
     host=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug host "$host"
     if [ -z "$host" ]; then

@@ -55,8 +55,6 @@ dns_netlify_add() {
     return 1
   fi
 
-  _err "Not fully implemented!"
-  return 1
 }
 
 #Usage: dns_myapi_rm   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"

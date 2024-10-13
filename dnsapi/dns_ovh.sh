@@ -113,7 +113,7 @@ _initAuth() {
     _saveaccountconf_mutable OVH_END_POINT "$OVH_END_POINT"
   fi
 
-  OVH_API="$(_ovh_get_api $OVH_END_POINT)"
+  OVH_API="$(_ovh_get_api "$OVH_END_POINT")"
   _debug OVH_API "$OVH_API"
 
   OVH_CK="${OVH_CK:-$(_readaccountconf_mutable OVH_CK)}"

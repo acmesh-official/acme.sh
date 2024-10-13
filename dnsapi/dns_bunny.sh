@@ -222,7 +222,7 @@ _get_base_domain() {
     done
 
     if [ -z "$found" ]; then
-      page=$(_math $page + 1)
+      page=$(_math "$page" + 1)
       nextpage="https://api.bunny.net/dnszone?page=$page"
       ## Find the next page if we don't have a match.
       hasnextpage="$(echo "$domain_list" | _egrep_o "\"HasMoreItems\"\s*:\s*true")"

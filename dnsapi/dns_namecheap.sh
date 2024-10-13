@@ -137,7 +137,7 @@ _get_root_by_getHosts() {
   i=100
   p=99
 
-  while [ $p -ne 0 ]; do
+  while [ "$p" -ne 0 ]; do
 
     h=$(printf "%s" "$1" | cut -d . -f "$i"-100)
     if [ -n "$h" ]; then
