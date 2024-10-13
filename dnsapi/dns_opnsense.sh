@@ -144,7 +144,7 @@ _get_root() {
   fi
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -153,7 +153,7 @@ _get_root() {
     id=$(echo "$_domain_response" | _egrep_o "\"uuid\":\"[a-z0-9\-]*\",\"enabled\":\"1\",\"type\":\"primary\",\"domainname\":\"${h}\"" | cut -d ':' -f 2 | cut -d '"' -f 2)
     if [ -n "$id" ]; then
       _debug id "$id"
-      _host=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _host=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="${h}"
       _domainid="${id}"
       return 0

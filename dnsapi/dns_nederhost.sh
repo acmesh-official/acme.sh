@@ -88,8 +88,8 @@ _get_root() {
   i=2
   p=1
   while true; do
-    _domain=$(printf "%s" "$domain" | cut -d . -f $i-100)
-    _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+    _domain=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
+    _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
     _debug _domain "$_domain"
     if [ -z "$_domain" ]; then
       #not valid

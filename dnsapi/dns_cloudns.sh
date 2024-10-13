@@ -164,7 +164,7 @@ _dns_cloudns_get_zone_info() {
 _dns_cloudns_get_zone_name() {
   i=2
   while true; do
-    zoneForCheck=$(printf "%s" "$1" | cut -d . -f $i-100)
+    zoneForCheck=$(printf "%s" "$1" | cut -d . -f "$i"-100)
 
     if [ -z "$zoneForCheck" ]; then
       return 1

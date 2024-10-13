@@ -171,7 +171,7 @@ _get_root() {
   i=1
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
 
     _debug "try to find: $h"
     if _rcode0_rest "GET" "/api/v1/acme/zones/$h"; then

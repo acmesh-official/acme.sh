@@ -122,7 +122,7 @@ _get_root() {
   p=1
   _debug "Detecting root zone"
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       return 1
     fi
@@ -134,7 +134,7 @@ _get_root() {
     if _contains "$response" "\"name\":\"$h\""; then
       _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[0-9]*" | cut -d ':' -f 2)
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d '.' -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d '.' -f 1-"$p")
         _domain="$h"
 
         _debug _domain_id "$_domain_id"

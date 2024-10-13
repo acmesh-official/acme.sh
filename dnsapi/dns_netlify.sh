@@ -111,7 +111,7 @@ _get_root() {
   _netlify_rest GET "dns_zones" "" "$accesstoken"
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug2 "Checking domain: $h"
     if [ -z "$h" ]; then
       #not valid
@@ -126,7 +126,7 @@ _get_root() {
           #create the record at the domain apex (@) if only the domain name was provided as --domain-alias
           _sub_domain="@"
         else
-          _sub_domain=$(echo "$domain" | cut -d . -f 1-$p)
+          _sub_domain=$(echo "$domain" | cut -d . -f 1-"$p")
         fi
         _domain=$h
         return 0

@@ -69,7 +69,7 @@ _lima_get_domain_id() {
   if [ "$(echo "$domains" | _egrep_o "\{.*""domains""")" ]; then
     response="$(echo "$domains" | tr -d "\n" | tr '{' "|" | sed 's/|/&{/g' | tr "|" "\n")"
     while true; do
-      h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+      h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
       _debug h "$h"
       if [ -z "$h" ]; then
         #not valid
@@ -80,7 +80,7 @@ _lima_get_domain_id() {
       if [ "$hostedzone" ]; then
         LIMACITY_DOMAINID=$(printf "%s\n" "$hostedzone" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
         if [ "$LIMACITY_DOMAINID" ]; then
-          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
           _domain=$h
           return 0
         fi

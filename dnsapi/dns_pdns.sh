@@ -181,7 +181,7 @@ _get_root() {
   fi
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
 
     if _contains "$_zones_response" "\"name\":\"$h.\""; then
       _domain="$h."
