@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
-dns_miab_info='Power-Mail-in-a-Box
+dns_pmiab_info='Power-Mail-in-a-Box
 Site: MailInaBox.email
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_pmiab
 Options:
