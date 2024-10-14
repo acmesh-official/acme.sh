@@ -66,7 +66,7 @@ dns_pmiab_rm() {
     return 1
   fi
 
-  #check domain and seperate into doamin and host
+  #check domain and separate into domain and host
   if ! _get_root "$fulldomain"; then
     _err "Cannot find any part of ${fulldomain} is hosted on ${PMIAB_Server}"
     return 1
