@@ -8,7 +8,7 @@ Options:
  PMIAB_Password Admin password
  PMIAB_Server Server hostname. FQDN of your_PMIAB Server
 Issues: github.com/acmesh-official/acme.sh/issues/2550
-Author: Roland Giesler
+Author: Roland Giesler (lifeboy)
 Cloned from dns_miab by Darven Dissek, William Gertz
 '
 
@@ -17,8 +17,7 @@ Cloned from dns_miab by Darven Dissek, William Gertz
 #Usage: dns_pmiab_add  _acme-challenge.www.domain.com  "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_pmiab_add() {
   fulldomain=$1
-  # Added "value=" and "&ttl=300" to accomodate the new TXT record format used by the PMIAB API
-  txtvalue="value=$2&ttl=300"
+  txtvalue="$2"
   _info "Using pmiab challenge add"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
@@ -39,6 +38,7 @@ dns_pmiab_add() {
 
   #add the challenge record
   _api_path="custom/${fulldomain}/txt"
+  # Added "value=" and "&ttl=300" to accomodate the new TXT record format used by the PMIAB API
   _pmiab_rest "value=$txtvalue&ttl=300" "$_api_path" "POST"
 
   #check if result was good
