@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/bash
 # shellcheck disable=SC2034
 dns_pdns_info='PowerDNS Server API
 Site: PowerDNS.com
@@ -10,6 +10,7 @@ Options:
  PDNS_Ttl=60 Domain TTL. Default: "60".
 '
 
+
 DEFAULT_PDNS_TTL=60
 
 ########  Public functions #####################
@@ -19,6 +20,11 @@ DEFAULT_PDNS_TTL=60
 dns_pdns_add() {
   fulldomain=$1
   txtvalue=$2
+
+  PDNS_Url="${PDNS_Url:-$(_readaccountconf_mutable PDNS_Url)}"
+  PDNS_ServerId="${PDNS_ServerId:-$(_readaccountconf_mutable PDNS_ServerId)}"
+  PDNS_Token="${PDNS_Token:-$(_readaccountconf_mutable PDNS_Token)}"
+  PDNS_Ttl="${PDNS_Ttl:-$(_readaccountconf_mutable PDNS_Ttl)}"
 
   if [ -z "$PDNS_Url" ]; then
     PDNS_Url=""
@@ -72,6 +78,11 @@ dns_pdns_add() {
 dns_pdns_rm() {
   fulldomain=$1
   txtvalue=$2
+
+  PDNS_Url="${PDNS_Url:-$(_readaccountconf_mutable PDNS_Url)}"
+  PDNS_ServerId="${PDNS_ServerId:-$(_readaccountconf_mutable PDNS_ServerId)}"
+  PDNS_Token="${PDNS_Token:-$(_readaccountconf_mutable PDNS_Token)}"
+  PDNS_Ttl="${PDNS_Ttl:-$(_readaccountconf_mutable PDNS_Ttl)}"
 
   if [ -z "$PDNS_Ttl" ]; then
     PDNS_Ttl="$DEFAULT_PDNS_TTL"
