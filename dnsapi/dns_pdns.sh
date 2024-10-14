@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_pdns_info='PowerDNS Server API
 Site: PowerDNS.com
@@ -9,7 +9,6 @@ Options:
  PDNS_Token API Token
  PDNS_Ttl=60 Domain TTL. Default: "60".
 '
-
 
 DEFAULT_PDNS_TTL=60
 
