@@ -51,12 +51,12 @@ dns_pdns_add() {
   fi
 
   #save the api addr and key to the account conf file.
-  _saveaccountconf PDNS_Url "$PDNS_Url"
-  _saveaccountconf PDNS_ServerId "$PDNS_ServerId"
-  _saveaccountconf PDNS_Token "$PDNS_Token"
+  _saveaccountconf_mutable PDNS_Url "$PDNS_Url"
+  _saveaccountconf_mutable PDNS_ServerId "$PDNS_ServerId"
+  _saveaccountconf_mutable PDNS_Token "$PDNS_Token"
 
   if [ "$PDNS_Ttl" != "$DEFAULT_PDNS_TTL" ]; then
-    _saveaccountconf PDNS_Ttl "$PDNS_Ttl"
+    _saveaccountconf_mutable PDNS_Ttl "$PDNS_Ttl"
   fi
 
   _debug "Detect root zone"
