@@ -9,7 +9,7 @@ Options:
 Issues: github.com/acmesh-official/acme.sh/issues/3450
 '
 
-PORKBUN_Api="https://porkbun.com/api/json/v3"
+PORKBUN_Api="https://api.porkbun.com/api/json/v3"
 
 ########  Public functions #####################
 
@@ -93,7 +93,7 @@ dns_porkbun_rm() {
       _err "Delete record error."
       return 1
     fi
-    echo "$response" | tr -d " " | grep '\"status\":"SUCCESS"' >/dev/null
+    echo "$response" | tr -d " " | grep '"status":"SUCCESS"' >/dev/null
   fi
 
 }
@@ -107,7 +107,7 @@ _get_root() {
   domain=$1
   i=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       return 1
@@ -139,7 +139,7 @@ _porkbun_rest() {
   api_key_trimmed=$(echo "$PORKBUN_API_KEY" | tr -d '"')
   secret_api_key_trimmed=$(echo "$PORKBUN_SECRET_API_KEY" | tr -d '"')
 
-  test -z "$data" && data="{" || data="$(echo $data | cut -d'}' -f1),"
+  test -z "$data" && data="{" || data="$(echo "$data" | cut -d'}' -f1),"
   data="$data\"apikey\":\"$api_key_trimmed\",\"secretapikey\":\"$secret_api_key_trimmed\"}"
 
   export _H1="Content-Type: application/json"

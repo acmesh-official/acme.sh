@@ -211,8 +211,8 @@ _get_root() {
       return 1
     fi
 
-    _authget "https://1984.hosting/domains/soacheck/?zone=$h&nameserver=ns0.1984.is."
-    if _contains "$_response" "serial" && ! _contains "$_response" "null"; then
+    _authget "https://1984.hosting/domains/zonestatus/$h/?cached=no"
+    if _contains "$_response" '"ok": true'; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
@@ -246,7 +246,6 @@ _authget() {
 }
 
 # Truncate huge HTML response
-# Echo: Argument list too long
 _htmlget() {
   export _H1="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE; $One984HOSTING_SESSIONID_COOKIE"
   _response=$(_get "$1" | grep "$2")

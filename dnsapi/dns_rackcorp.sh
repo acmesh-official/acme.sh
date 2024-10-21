@@ -83,7 +83,7 @@ _get_root() {
     return 1
   fi
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug searchhost "$h"
     if [ -z "$h" ]; then
       _err "Could not find domain for record $domain in RackCorp using the provided credentials"
@@ -95,7 +95,7 @@ _get_root() {
 
     if _contains "$response" "\"matches\":1"; then
       if _contains "$response" "\"name\":\"$h\""; then
-        _lookup=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _lookup=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain="$h"
         return 0
       fi

@@ -109,7 +109,7 @@ _get_root_by_getList() {
 
   while true; do
 
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -123,7 +123,7 @@ _get_root_by_getList() {
     if ! _contains "$response" "$h"; then
       _debug "$h not found"
     else
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi
@@ -137,14 +137,14 @@ _get_root_by_getHosts() {
   i=100
   p=99
 
-  while [ $p -ne 0 ]; do
+  while [ "$p" -ne 0 ]; do
 
-    h=$(printf "%s" "$1" | cut -d . -f $i-100)
+    h=$(printf "%s" "$1" | cut -d . -f "$i"-100)
     if [ -n "$h" ]; then
       if _contains "$h" "\\."; then
         _debug h "$h"
         if _namecheap_set_tld_sld "$h"; then
-          _sub_domain=$(printf "%s" "$1" | cut -d . -f 1-$p)
+          _sub_domain=$(printf "%s" "$1" | cut -d . -f 1-"$p")
           _domain="$h"
           return 0
         else
@@ -378,7 +378,7 @@ _namecheap_set_tld_sld() {
 
   while true; do
 
-    _tld=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _tld=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug tld "$_tld"
 
     if [ -z "$_tld" ]; then

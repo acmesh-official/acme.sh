@@ -80,7 +80,7 @@ _get_root() {
   fulldomain=$1
   i=1
   while true; do
-    h=$(printf "%s" "$fulldomain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$fulldomain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       return 1

@@ -39,7 +39,7 @@
 ################################################################################
 # Dependencies:
 # - curl
-# - synouser & synogroup (When available and SYNO_USE_TEMP_ADMIN is set)
+# - synouser & synogroup & synosetkeyvalue (Required for SYNO_USE_TEMP_ADMIN=1)
 ################################################################################
 # Return value:
 # 0 means success, otherwise error.
@@ -66,14 +66,18 @@ synology_dsm_deploy() {
   _getdeployconf SYNO_DEVICE_NAME
 
   # Prepare to use temp admin if SYNO_USE_TEMP_ADMIN is set
-  _debug2 SYNO_USE_TEMP_ADMIN "$SYNO_USE_TEMP_ADMIN"
   _getdeployconf SYNO_USE_TEMP_ADMIN
   _check2cleardeployconfexp SYNO_USE_TEMP_ADMIN
   _debug2 SYNO_USE_TEMP_ADMIN "$SYNO_USE_TEMP_ADMIN"
 
   if [ -n "$SYNO_USE_TEMP_ADMIN" ]; then
-    if ! _exists synouser || ! _exists synogroup; then
-      _err "Tools are missing for creating temp admin user, please set SYNO_USERNAME and SYNO_PASSWORD instead."
+    if ! _exists synouser || ! _exists synogroup || ! _exists synosetkeyvalue; then
+      _err "Missing required tools to creat temp admin user, please set SYNO_USERNAME and SYNO_PASSWORD instead."
+      _err "Notice: temp admin user authorization method only supports local deployment on DSM."
+      return 1
+    fi
+    if synouser --help 2>&1 | grep -q 'Permission denied'; then
+      _err "For creating temp admin user, the deploy script must be run as root."
       return 1
     fi
 
@@ -109,9 +113,9 @@ synology_dsm_deploy() {
 
   # Default values for scheme, hostname and port
   # Defaulting to localhost and http, because it's localhost…
-  [ -n "$SYNO_SCHEME" ] || SYNO_SCHEME="http"
-  [ -n "$SYNO_HOSTNAME" ] || SYNO_HOSTNAME="localhost"
-  [ -n "$SYNO_PORT" ] || SYNO_PORT="5000"
+  [ -n "$SYNO_SCHEME" ] || SYNO_SCHEME=http
+  [ -n "$SYNO_HOSTNAME" ] || SYNO_HOSTNAME=localhost
+  [ -n "$SYNO_PORT" ] || SYNO_PORT=5000
   _savedeployconf SYNO_SCHEME "$SYNO_SCHEME"
   _savedeployconf SYNO_HOSTNAME "$SYNO_HOSTNAME"
   _savedeployconf SYNO_PORT "$SYNO_PORT"
@@ -169,7 +173,7 @@ synology_dsm_deploy() {
       _debug3 H1 "${_H1}"
     fi
 
-    response=$(_post "method=login&account=$encoded_username&passwd=$encoded_password&api=SYNO.API.Auth&version=$api_version&enable_syno_token=yes&otp_code=$DEPRECATED_otp_code&device_name=certrenewal&device_id=$SYNO_DEVICE_ID" "$_base_url/webapi/auth.cgi?enable_syno_token=yes")
+    response=$(_post "method=login&account=$encoded_username&passwd=$encoded_password&api=SYNO.API.Auth&version=$api_version&enable_syno_token=yes&otp_code=$DEPRECATED_otp_code&device_name=certrenewal&device_id=$SYNO_DEVICE_ID" "$_base_url/webapi/$api_path?enable_syno_token=yes")
     _debug3 response "$response"
   # ## END ## - DEPRECATED, for backward compatibility
   # If SYNO_DEVICE_ID or SYNO_OTP_CODE is set, we treat current account enabled 2FA-OTP.
@@ -184,7 +188,7 @@ synology_dsm_deploy() {
         _debug SYNO_LOCAL_HOSTNAME "${SYNO_LOCAL_HOSTNAME:-}"
         if [ "$SYNO_LOCAL_HOSTNAME" != "1" ] && [ "$SYNO_LOCAL_HOSTNAME" == "$SYNO_HOSTNAME" ]; then
           if [ "$SYNO_HOSTNAME" != "localhost" ] && [ "$SYNO_HOSTNAME" != "127.0.0.1" ]; then
-            _err "SYNO_USE_TEMP_ADMIN=1 Only support locally deployment, if you are sure that hostname $SYNO_HOSTNAME is targeting to your **current local machine**, execute 'export SYNO_LOCAL_HOSTNAME=1' then rerun."
+            _err "SYNO_USE_TEMP_ADMIN=1 only support local deployment, though if you are sure that the hostname $SYNO_HOSTNAME is targeting to your **current local machine**, execute 'export SYNO_LOCAL_HOSTNAME=1' then rerun."
             return 1
           fi
         fi
@@ -201,24 +205,27 @@ synology_dsm_deploy() {
             # shellcheck disable=SC2086
             synogroup --member administrators $cur_admins $SYNO_USERNAME >/dev/null
           else
-            _err "Tool synogroup may be broken, please set SYNO_USERNAME and SYNO_PASSWORD instead."
+            _err "The tool synogroup may be broken, please set SYNO_USERNAME and SYNO_PASSWORD instead."
             return 1
           fi
         else
           _err "Unsupported synogroup tool detected, please set SYNO_USERNAME and SYNO_PASSWORD instead."
           return 1
         fi
-        # havig a workaround to temporary disable enforce 2FA-OTP
+        # havig a workaround to temporary disable enforce 2FA-OTP, will restore
+        # it soon (after a single request), though if any accident occurs like
+        # unexpected interruption, this setting can be easily reverted manually.
         otp_enforce_option=$(synogetkeyvalue /etc/synoinfo.conf otp_enforce_option)
         if [ -n "$otp_enforce_option" ] && [ "${otp_enforce_option:-"none"}" != "none" ]; then
           synosetkeyvalue /etc/synoinfo.conf otp_enforce_option none
-          _info "Temporary disabled enforce 2FA-OTP to complete authentication."
+          _info "Enforcing 2FA-OTP has been disabled to complete temp admin authentication."
+          _info "Notice: it will be restored soon, if not, you can restore it manually via Control Panel."
           _info "previous_otp_enforce_option" "$otp_enforce_option"
         else
           otp_enforce_option=""
         fi
       fi
-      response=$(_get "$_base_url/webapi/entry.cgi?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes")
+      response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes")
       if [ -n "$SYNO_USE_TEMP_ADMIN" ] && [ -n "$otp_enforce_option" ]; then
         synosetkeyvalue /etc/synoinfo.conf otp_enforce_option "$otp_enforce_option"
         _info "Restored previous enforce 2FA-OTP option."
@@ -230,7 +237,7 @@ synology_dsm_deploy() {
   error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -o '[0-9]*')
   _debug2 error_code "$error_code"
   # Account has 2FA-OTP enabled, since error 403 reported.
-  # https://global.download.synology.com/download/Document/Software/DeveloperGuide/Firmware/DSM/All/enu/Synology_DiskStation_Administration_CLI_Guide.pdf
+  # https://global.download.synology.com/download/Document/Software/DeveloperGuide/Os/DSM/All/enu/DSM_Login_Web_API_Guide_enu.pdf
   if [ "$error_code" == "403" ]; then
     if [ -z "$SYNO_DEVICE_NAME" ]; then
       printf "Enter device name or leave empty for default (CertRenewal): "
@@ -274,12 +281,16 @@ synology_dsm_deploy() {
       _err "Failed to authenticate with provided 2FA-OTP code, please try again in a new terminal window."
     elif [ "$error_code" == "406" ]; then
       if [ -n "$SYNO_USE_TEMP_ADMIN" ]; then
-        _err "SYNO_USE_TEMP_ADMIN=1 is not supported if enforce auth with 2FA-OTP is enabled."
+        _err "Failed with unexcepted error, please report this by providing full log with '--debug 3'."
       else
         _err "Enforce auth with 2FA-OTP enabled, please configure the user to enable 2FA-OTP to continue."
       fi
-    elif [ "$error_code" == "400" ] || [ "$error_code" == "401" ] || [ "$error_code" == "408" ] || [ "$error_code" == "409" ] || [ "$error_code" == "410" ]; then
-      _err "Failed to authenticate with a non-existent or disabled account, or the account password is incorrect or has expired."
+    elif [ "$error_code" == "400" ]; then
+      _err "Failed to authenticate, no such account or incorrect password."
+    elif [ "$error_code" == "401" ]; then
+      _err "Failed to authenticate with a non-existent account."
+    elif [ "$error_code" == "408" ] || [ "$error_code" == "409" ] || [ "$error_code" == "410" ]; then
+      _err "Failed to authenticate, the account password has expired or must be changed."
     else
       _err "Failed to authenticate with error: $error_code."
     fi
@@ -293,7 +304,7 @@ synology_dsm_deploy() {
   _debug SynoToken "$token"
   if [ -z "$sid" ] || [ -z "$token" ]; then
     # Still can't get necessary info even got no errors, may Synology have API updated?
-    _err "Unable to authenticate to $_base_url, you may report the full log to the community."
+    _err "Unable to authenticate to $_base_url, you may report this by providing full log with '--debug 3'."
     _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 1
   fi
@@ -331,7 +342,7 @@ synology_dsm_deploy() {
     if [ "$error_code" -eq 105 ]; then
       _err "Current user is not administrator and does not have sufficient permission for deploying."
     else
-      _err "Failed to fetch certificate info with error: $error_code, please try again or contact Synology to learn more."
+      _err "Failed to fetch certificate info: $error_code, please try again or contact Synology to learn more."
     fi
     _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 1

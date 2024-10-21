@@ -16,8 +16,8 @@ dynv6_api="https://dynv6.com/api/v2"
 # Please Read this guide first: https://github.com/Neilpang/acme.sh/wiki/DNS-API-Dev-Guide
 #Usage: dns_dynv6_add  _acme-challenge.www.domain.com  "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_dynv6_add() {
-  fulldomain=$1
-  txtvalue=$2
+  fulldomain="$(echo "$1" | _lower_case)"
+  txtvalue="$2"
   _info "Using dynv6 api"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
@@ -43,15 +43,14 @@ dns_dynv6_add() {
       _err "Something went wrong! it does not seem like the record was added successfully"
       return 1
     fi
-    return 1
   fi
-  return 1
+
 }
 #Usage: fulldomain txtvalue
 #Remove the txt record after validation.
 dns_dynv6_rm() {
-  fulldomain=$1
-  txtvalue=$2
+  fulldomain="$(echo "$1" | _lower_case)"
+  txtvalue="$2"
   _info "Using dynv6 API"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
@@ -206,7 +205,7 @@ _get_zone_id() {
     return 1
   fi
 
-  zone_id="$(echo "$response" | tr '}' '\n' | grep "$selected" | tr ',' '\n' | grep id | tr -d '"')"
+  zone_id="$(echo "$response" | tr '}' '\n' | grep "$selected" | tr ',' '\n' | grep '"id":' | tr -d '"')"
   _zone_id="${zone_id#id:}"
   _debug "zone id: $_zone_id"
 }
