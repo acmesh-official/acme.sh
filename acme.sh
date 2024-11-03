@@ -2193,7 +2193,6 @@ _send_signed_request() {
         _debug2 _headers "$_headers"
         _CACHED_NONCE="$(echo "$_headers" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
       fi
-      _debug2 _CACHED_NONCE "$_CACHED_NONCE"
       if [ "$?" != "0" ]; then
         _err "Cannot connect to $nonceurl to get nonce."
         return 1
