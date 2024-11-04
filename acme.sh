@@ -3743,7 +3743,7 @@ _regAccount() {
 
   if [ "$ACME_DIRECTORY" = "$CA_ZEROSSL" ]; then
     if [ -z "$_eab_kid" ] || [ -z "$_eab_hmac_key" ]; then
-      _info "No EAB credentials found for ZeroSSL, let's get one"
+      _info "No EAB credentials found for ZeroSSL, let's obtain them"
       if [ -z "$_email" ]; then
         _info "$(__green "$PROJECT_NAME is using ZeroSSL as default CA now.")"
         _info "$(__green "Please update your account with an email address first.")"
