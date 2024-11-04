@@ -3761,7 +3761,7 @@ _regAccount() {
       _eab_kid="$(echo "$_eabresp" | tr ',}' '\n\n' | grep '"eab_kid"' | cut -d : -f 2 | tr -d '"')"
       _secure_debug2 _eab_kid "$_eab_kid"
       if [ -z "$_eab_kid" ]; then
-        _err "Can not resolve _eab_kid"
+        _err "Cannot resolve _eab_kid"
         return 1
       fi
       _eab_hmac_key="$(echo "$_eabresp" | tr ',}' '\n\n' | grep '"eab_hmac_key"' | cut -d : -f 2 | tr -d '"')"
