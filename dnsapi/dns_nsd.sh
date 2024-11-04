@@ -1,7 +1,13 @@
 #!/usr/bin/env sh
-
-#Nsd_ZoneFile="/etc/nsd/zones/example.com.zone"
-#Nsd_Command="sudo nsd-control reload"
+# shellcheck disable=SC2034
+dns_nsd_info='NLnetLabs NSD Server
+Site: github.com/NLnetLabs/nsd
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#nsd
+Options:
+ Nsd_ZoneFile Zone File path. E.g. "/etc/nsd/zones/example.com.zone"
+ Nsd_Command Command. E.g. "sudo nsd-control reload"
+Issues: github.com/acmesh-official/acme.sh/issues/2245
+'
 
 # args: fulldomain txtvalue
 dns_nsd_add() {

@@ -1,17 +1,16 @@
 #!/usr/bin/env sh
-########################################################################
-# NocWorx script for acme.sh
-#
-# Handles DNS Updates for the Following vendors:
-#   - Nexcess.net
-#   - Thermo.io
-#   - Futurehosting.com
-#
-# Environment variables:
-#
-#  - NW_API_TOKEN  (Your API Token)
-#  - NW_API_ENDPOINT (One of the following listed below)
-#
+# shellcheck disable=SC2034
+dns_nw_info='Nexcess.net (NocWorx)
+Domains: Thermo.io Futurehosting.com
+Site: Nexcess.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_nw
+Options:
+ NW_API_TOKEN API Token
+ NW_API_ENDPOINT API Endpoint. Default: "https://portal.nexcess.net".
+Issues: github.com/acmesh-official/acme.sh/issues/2088
+Author: Frank Laszlo <flaszlo@nexcess.net>
+'
+
 # Endpoints:
 #   - https://portal.nexcess.net (default)
 #   - https://core.thermo.io
@@ -22,8 +21,6 @@
 #        - https://portal.nexcess.net/api-token
 #        - https://core.thermo.io/api-token
 #        - https://my.futurehosting.com/api-token
-#
-# Author: Frank Laszlo <flaszlo@nexcess.net>
 
 NW_API_VERSION="0"
 
@@ -157,7 +154,7 @@ _get_root() {
 
     _debug response "${response}"
     while true; do
-      h=$(printf "%s" "${domain}" | cut -d . -f $i-100)
+      h=$(printf "%s" "${domain}" | cut -d . -f "$i"-100)
       _debug h "${h}"
       if [ -z "${h}" ]; then
         #not valid
@@ -168,7 +165,7 @@ _get_root() {
       if [ "${hostedzone}" ]; then
         _zone_id=$(printf "%s\n" "${hostedzone}" | _egrep_o "\"zone_id\": *[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
         if [ "${_zone_id}" ]; then
-          _sub_domain=$(printf "%s" "${domain}" | cut -d . -f 1-${p})
+          _sub_domain=$(printf "%s" "${domain}" | cut -d . -f 1-"${p}")
           _domain="${h}"
           return 0
         fi

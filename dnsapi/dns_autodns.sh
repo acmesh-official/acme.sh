@@ -1,16 +1,15 @@
 #!/usr/bin/env sh
-# -*- mode: sh; tab-width: 2; indent-tabs-mode: s; coding: utf-8 -*-
-
-# This is the InternetX autoDNS xml api wrapper for acme.sh
-# Author: auerswald@gmail.com
-# Created: 2018-01-14
-#
-#     export AUTODNS_USER="username"
-#     export AUTODNS_PASSWORD="password"
-#     export AUTODNS_CONTEXT="context"
-#
-# Usage:
-#     acme.sh --issue --dns dns_autodns -d example.com
+# shellcheck disable=SC2034
+dns_autodns_info='InternetX autoDNS
+ InternetX autoDNS XML API
+Site: InternetX.com/autodns/
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_autodns
+Options:
+ AUTODNS_USER Username
+ AUTODNS_PASSWORD Password
+ AUTODNS_CONTEXT Context
+Author: <auerswald@gmail.com>
+'
 
 AUTODNS_API="https://gateway.autodns.com"
 
@@ -111,7 +110,7 @@ _get_autodns_zone() {
   p=1
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
 
     if [ -z "$h" ]; then
@@ -129,7 +128,7 @@ _get_autodns_zone() {
     if _contains "$autodns_response" "<summary>1</summary>" >/dev/null; then
       _zone="$(echo "$autodns_response" | _egrep_o '<name>[^<]*</name>' | cut -d '>' -f 2 | cut -d '<' -f 1)"
       _system_ns="$(echo "$autodns_response" | _egrep_o '<system_ns>[^<]*</system_ns>' | cut -d '>' -f 2 | cut -d '<' -f 1)"
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       return 0
     fi
 

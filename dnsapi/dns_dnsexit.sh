@@ -1,13 +1,16 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_dnsexit_info='DNSExit.com
+Site: DNSExit.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_dnsexit
+Options:
+ DNSEXIT_API_KEY API Key
+ DNSEXIT_AUTH_USER Username
+ DNSEXIT_AUTH_PASS Password
+Issues: github.com/acmesh-official/acme.sh/issues/4719
+Author: Samuel Jimenez
+'
 
-#use dns-01 at DNSExit.com
-
-#Author: Samuel Jimenez
-#Report Bugs here: https://github.com/acmesh-official/acme.sh
-
-#DNSEXIT_API_KEY=ABCDEFGHIJ0123456789abcdefghij
-#DNSEXIT_AUTH_USER=login@email.address
-#DNSEXIT_AUTH_PASS=aStrongPassword
 DNSEXIT_API_URL="https://api.dnsexit.com/dns/"
 DNSEXIT_HOSTS_URL="https://update.dnsexit.com/ipupdate/hosts.jsp"
 
@@ -81,7 +84,7 @@ _get_root() {
   domain=$1
   i=1
   while true; do
-    _domain=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _domain=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$_domain"
     if [ -z "$_domain" ]; then
       return 1

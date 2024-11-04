@@ -1,10 +1,12 @@
 #!/usr/bin/env sh
-
-# Dnspod.com Domain api
-#
-#DPI_Id="1234"
-#
-#DPI_Key="sADDsdasdgdsf"
+# shellcheck disable=SC2034
+dns_dpi_info='DNSPod.com
+Site: DNSPod.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_dpi
+Options:
+ DPI_Id Id
+ DPI_Key Key
+'
 
 REST_API="https://api.dnspod.com"
 
@@ -107,7 +109,7 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -121,7 +123,7 @@ _get_root() {
       _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
       _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _debug _sub_domain "$_sub_domain"
         _domain="$h"
         _debug _domain "$_domain"

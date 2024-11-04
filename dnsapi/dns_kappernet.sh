@@ -1,13 +1,13 @@
 #!/usr/bin/env sh
-
-# kapper.net domain api
-# for further questions please contact: support@kapper.net
-# please report issues here: https://github.com/acmesh-official/acme.sh/issues/2977
-
-#KAPPERNETDNS_Key="yourKAPPERNETapikey"
-#KAPPERNETDNS_Secret="yourKAPPERNETapisecret"
-
-KAPPERNETDNS_Api="https://dnspanel.kapper.net/API/1.2?APIKey=$KAPPERNETDNS_Key&APISecret=$KAPPERNETDNS_Secret"
+# shellcheck disable=SC2034
+dns_kappernet_info='kapper.net
+Site: kapper.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_kappernet
+Options:
+ KAPPERNETDNS_Key API Key
+ KAPPERNETDNS_Secret API Secret
+Issues: github.com/acmesh-official/acme.sh/issues/2977
+'
 
 ###############################################################################
 # called with
@@ -19,10 +19,9 @@ dns_kappernet_add() {
 
   KAPPERNETDNS_Key="${KAPPERNETDNS_Key:-$(_readaccountconf_mutable KAPPERNETDNS_Key)}"
   KAPPERNETDNS_Secret="${KAPPERNETDNS_Secret:-$(_readaccountconf_mutable KAPPERNETDNS_Secret)}"
+  KAPPERNETDNS_Api="https://dnspanel.kapper.net/API/1.2?APIKey=$KAPPERNETDNS_Key&APISecret=$KAPPERNETDNS_Secret"
 
   if [ -z "$KAPPERNETDNS_Key" ] || [ -z "$KAPPERNETDNS_Secret" ]; then
-    KAPPERNETDNS_Key=""
-    KAPPERNETDNS_Secret=""
     _err "Please specify your kapper.net api key and secret."
     _err "If you have not received yours - send your mail to"
     _err "support@kapper.net to get  your key and secret."
@@ -66,10 +65,9 @@ dns_kappernet_rm() {
 
   KAPPERNETDNS_Key="${KAPPERNETDNS_Key:-$(_readaccountconf_mutable KAPPERNETDNS_Key)}"
   KAPPERNETDNS_Secret="${KAPPERNETDNS_Secret:-$(_readaccountconf_mutable KAPPERNETDNS_Secret)}"
+  KAPPERNETDNS_Api="https://dnspanel.kapper.net/API/1.2?APIKey=$KAPPERNETDNS_Key&APISecret=$KAPPERNETDNS_Secret"
 
   if [ -z "$KAPPERNETDNS_Key" ] || [ -z "$KAPPERNETDNS_Secret" ]; then
-    KAPPERNETDNS_Key=""
-    KAPPERNETDNS_Secret=""
     _err "Please specify your kapper.net api key and secret."
     _err "If you have not received yours - send your mail to"
     _err "support@kapper.net to get  your key and secret."
@@ -104,7 +102,7 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -115,7 +113,7 @@ _get_root() {
     if _contains "$response" '"OK":false'; then
       _debug "$h not found"
     else
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi
@@ -141,7 +139,7 @@ _kappernet_api() {
   if [ "$method" = "GET" ]; then
     response="$(_get "$url")"
   else
-    _err "Unsupported method"
+    _err "Unsupported method or missing Secret/Key"
     return 1
   fi
 

@@ -1,9 +1,15 @@
 #!/usr/bin/env sh
-
-#Script to use with curanet.dk, scannet.dk, wannafind.dk, dandomain.dk DNS management.
-#Requires api credentials with scope: dns
-#Author: Peter L. Hansen <peter@r12.dk>
-#Version 1.0
+# shellcheck disable=SC2034
+dns_curanet_info='Curanet.dk
+Domains: scannet.dk wannafind.dk dandomain.dk
+Site: Curanet.dk
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_curanet
+Options:
+ CURANET_AUTHCLIENTID Auth ClientID. Requires scope dns
+ CURANET_AUTHSECRET Auth Secret
+Issues: github.com/acmesh-official/acme.sh/issues/3933
+Author: Peter L. Hansen <peter@r12.dk>
+'
 
 CURANET_REST_URL="https://api.curanet.dk/dns/v1/Domains"
 CURANET_AUTH_URL="https://apiauth.dk.team.blue/auth/realms/Curanet/protocol/openid-connect/token"
@@ -136,7 +142,7 @@ _get_root() {
   i=1
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid

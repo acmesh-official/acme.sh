@@ -1,4 +1,4 @@
-name: Check dns api
+name: Check notify api
 
 on:
   pull_request_target:

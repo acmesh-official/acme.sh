@@ -1,7 +1,12 @@
 #!/usr/bin/env sh
-
-#Original Author: Philipp Grosswiler <philipp.grosswiler@swiss-design.net>
-#v4 Update Author: Aaron W. Swenson <aaron@grandmasfridge.org>
+# shellcheck disable=SC2034
+dns_linode_v4_info='Linode.com
+Site: Linode.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_linode_v4
+Options:
+ LINODE_V4_API_KEY API Key
+Author: Philipp Grosswiler <philipp.grosswiler@swiss-design.net>, Aaron W. Swenson <aaron@grandmasfridge.org>
+'
 
 LINODE_V4_API_URL="https://api.linode.com/v4/domains"
 
@@ -133,7 +138,7 @@ _get_root() {
   if _rest GET; then
     response="$(echo "$response" | tr -d "\n" | tr '{' "|" | sed 's/|/&{/g' | tr "|" "\n")"
     while true; do
-      h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+      h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
       _debug h "$h"
       if [ -z "$h" ]; then
         #not valid
@@ -144,7 +149,7 @@ _get_root() {
       if [ "$hostedzone" ]; then
         _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "\"id\": *[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
         if [ "$_domain_id" ]; then
-          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
           _domain=$h
           return 0
         fi

@@ -1,12 +1,13 @@
 #!/usr/bin/env sh
-
-#
-#AD_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
-
-#This is the Alwaysdata api wrapper for acme.sh
-#
-#Author: Paul Koppen
-#Report Bugs here: https://github.com/wpk-/acme.sh
+# shellcheck disable=SC2034
+dns_ad_info='AlwaysData.com
+Site: AlwaysData.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_ad
+Options:
+ AD_API_KEY API Key
+Issues: github.com/acmesh-official/acme.sh/pull/503
+Author: Paul Koppen
+'
 
 AD_API_URL="https://$AD_API_KEY:@api.alwaysdata.com/v1"
 
@@ -94,7 +95,7 @@ _get_root() {
   if _ad_rest GET "domain/"; then
     response="$(echo "$response" | tr -d "\n" | sed 's/{/\n&/g')"
     while true; do
-      h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+      h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
       _debug h "$h"
       if [ -z "$h" ]; then
         #not valid
@@ -105,7 +106,7 @@ _get_root() {
       if [ "$hostedzone" ]; then
         _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
         if [ "$_domain_id" ]; then
-          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
           _domain=$h
           return 0
         fi
