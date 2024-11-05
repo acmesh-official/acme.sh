@@ -1,11 +1,14 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_vercel_info='Vercel.com
+Site: Vercel.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_vercel
+Options:
+ VERCEL_TOKEN API Token
+'
 
-# Vercel DNS API
-#
 # This is your API token which can be acquired on the account page.
 # https://vercel.com/account/tokens
-#
-# VERCEL_TOKEN="sdfsdfsdfljlbjkljlkjsdfoiwje"
 
 VERCEL_API="https://api.vercel.com"
 
@@ -91,7 +94,7 @@ _get_root() {
   i=1
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -102,7 +105,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain=$h
       return 0
     fi

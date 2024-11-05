@@ -1,11 +1,14 @@
 #!/usr/bin/env sh
-
-# bug reports to dev@1e.ca
-
-#
-#LUA_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
-#LUA_Email="user@luadns.net"
+# shellcheck disable=SC2034
+dns_lua_info='LuaDNS.com
+Domains: LuaDNS.net
+Site: LuaDNS.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_lua
+Options:
+ LUA_Key API key
+ LUA_Email Email
+Author: <dev@1e.ca>
+'
 
 LUA_Api="https://api.luadns.com/v1"
 
@@ -107,7 +110,7 @@ _get_root() {
     return 1
   fi
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -118,7 +121,7 @@ _get_root() {
       _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[^,]*,\"name\":\"$h\"" | cut -d : -f 2 | cut -d , -f 1)
       _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain="$h"
         return 0
       fi

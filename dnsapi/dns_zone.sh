@@ -1,8 +1,16 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_zone_info='Zone.eu
+Site: Zone.eu
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_zone
+Options:
+ ZONE_Username Username
+ ZONE_Key API Key
+Issues: github.com/acmesh-official/acme.sh/issues/2146
+'
 
 # Zone.ee dns API
 # https://help.zone.eu/kb/zoneid-api-v2/
-# required ZONE_Username and ZONE_Key
 
 ZONE_Api="https://api.zone.eu/v2"
 ########  Public functions #####################
@@ -129,9 +137,9 @@ _zone_rest() {
 
 _get_root() {
   domain=$1
-  i=2
+  i=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       return 1

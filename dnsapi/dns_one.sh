@@ -1,9 +1,13 @@
 #!/usr/bin/env sh
-# one.com ui wrapper for acme.sh
-
-#
-#     export ONECOM_User="username"
-#     export ONECOM_Password="password"
+# shellcheck disable=SC2034
+dns_one_info='one.com
+Site: one.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_one
+Options:
+ ONECOM_User Username
+ ONECOM_Password Password
+Issues: github.com/acmesh-official/acme.sh/issues/2103
+'
 
 dns_one_add() {
   fulldomain=$1
@@ -90,7 +94,7 @@ _get_root() {
   i=1
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
 
     if [ -z "$h" ]; then
       #not valid
@@ -100,7 +104,7 @@ _get_root() {
     response="$(_get "https://www.one.com/admin/api/domains/$h/dns/custom_records")"
 
     if ! _contains "$response" "CRMRST_000302"; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi

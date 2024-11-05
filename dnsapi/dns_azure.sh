@@ -1,13 +1,24 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_azure_info='Azure
+Site: Azure.microsoft.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_azure
+Options:
+ AZUREDNS_SUBSCRIPTIONID Subscription ID
+ AZUREDNS_TENANTID Tenant ID
+ AZUREDNS_APPID App ID. App ID of the service principal
+ AZUREDNS_CLIENTSECRET Client Secret. Secret from creating the service principal
+ AZUREDNS_MANAGEDIDENTITY Use Managed Identity. Use Managed Identity assigned to a resource instead of a service principal. "true"/"false"
+'
 
-WIKI="https://github.com/acmesh-official/acme.sh/wiki/How-to-use-Azure-DNS"
+wiki=https://github.com/acmesh-official/acme.sh/wiki/How-to-use-Azure-DNS
 
 ########  Public functions #####################
 
 # Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 # Used to add txt record
 #
-# Ref: https://docs.microsoft.com/en-us/rest/api/dns/recordsets/createorupdate
+# Ref: https://learn.microsoft.com/en-us/rest/api/dns/record-sets/create-or-update?view=rest-dns-2018-05-01&tabs=HTTP
 #
 
 dns_azure_add() {
@@ -124,7 +135,7 @@ dns_azure_add() {
 # Usage: fulldomain txtvalue
 # Used to remove the txt record after validation
 #
-# Ref: https://docs.microsoft.com/en-us/rest/api/dns/recordsets/delete
+# Ref: https://learn.microsoft.com/en-us/rest/api/dns/record-sets/delete?view=rest-dns-2018-05-01&tabs=HTTP
 #
 dns_azure_rm() {
   fulldomain=$1
@@ -256,10 +267,10 @@ _azure_rest() {
     if [ "$_code" = "401" ]; then
       # we have an invalid access token set to expired
       _saveaccountconf_mutable AZUREDNS_TOKENVALIDTO "0"
-      _err "access denied make sure your Azure settings are correct. See $WIKI"
+      _err "Access denied. Invalid access token. Make sure your Azure settings are correct. See: $wiki"
       return 1
     fi
-    # See https://docs.microsoft.com/en-us/azure/architecture/best-practices/retry-service-specific#general-rest-and-retry-guidelines for retryable HTTP codes
+    # See https://learn.microsoft.com/en-us/azure/architecture/best-practices/retry-service-specific#general-rest-and-retry-guidelines for retryable HTTP codes
     if [ "$_ret" != "0" ] || [ -z "$_code" ] || [ "$_code" = "408" ] || [ "$_code" = "500" ] || [ "$_code" = "503" ] || [ "$_code" = "504" ]; then
       _request_retry_times="$(_math "$_request_retry_times" + 1)"
       _info "REST call error $_code retrying $ep in $_request_retry_times s"
@@ -277,7 +288,7 @@ _azure_rest() {
   return 0
 }
 
-## Ref: https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-protocols-oauth-service-to-service#request-an-access-token
+## Ref: https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow#request-an-access-token
 _azure_getaccess_token() {
   managedIdentity=$1
   tenantID=$2
@@ -301,7 +312,7 @@ _azure_getaccess_token() {
   _debug "getting new bearer token"
 
   if [ "$managedIdentity" = true ]; then
-    # https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/how-to-use-vm-token#get-a-token-using-http
+    # https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/how-to-use-vm-token#get-a-token-using-http
     export _H1="Metadata: true"
     response="$(_get http://169.254.169.254/metadata/identity/oauth2/token\?api-version=2018-02-01\&resource=https://management.azure.com/)"
     response="$(echo "$response" | _normalizeJson)"
@@ -321,7 +332,7 @@ _azure_getaccess_token() {
   fi
 
   if [ -z "$accesstoken" ]; then
-    _err "no acccess token received. Check your Azure settings see $WIKI"
+    _err "No acccess token received. Check your Azure settings. See: $wiki"
     return 1
   fi
   if [ "$_ret" != "0" ]; then
@@ -341,15 +352,18 @@ _get_root() {
   i=1
   p=1
 
-  ## Ref: https://docs.microsoft.com/en-us/rest/api/dns/zones/list
-  ## returns up to 100 zones in one response therefore handling more results is not not implemented
-  ## (ZoneListResult with  continuation token for the next page of results)
-  ## Per https://docs.microsoft.com/en-us/azure/azure-subscription-service-limits#dns-limits you are limited to 100 Zone/subscriptions anyways
+  ## Ref: https://learn.microsoft.com/en-us/rest/api/dns/zones/list?view=rest-dns-2018-05-01&tabs=HTTP
+  ## returns up to 100 zones in one response. Handling more results is not implemented
+  ## (ZoneListResult with continuation token for the next page of results)
+  ##
+  ## TODO: handle more than 100 results, as per:
+  ## https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/azure-subscription-service-limits#azure-dns-limits
+  ## The new limit is 250 Public DNS zones per subscription, while the old limit was only 100
   ##
   _azure_rest GET "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Network/dnszones?\$top=500&api-version=2017-09-01" "" "$accesstoken"
   # Find matching domain name in Json response
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug2 "Checking domain: $h"
     if [ -z "$h" ]; then
       #not valid
@@ -364,7 +378,7 @@ _get_root() {
           #create the record at the domain apex (@) if only the domain name was provided as --domain-alias
           _sub_domain="@"
         else
-          _sub_domain=$(echo "$domain" | cut -d . -f 1-$p)
+          _sub_domain=$(echo "$domain" | cut -d . -f 1-"$p")
         fi
         _domain=$h
         return 0

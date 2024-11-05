@@ -5,6 +5,15 @@
 #   - self-hosted Unifi Controller
 #   - Unifi Cloud Key (Gen1/2/2+)
 #   - Unifi Cloud Key running UnifiOS (v2.0.0+, Gen2/2+ only)
+#   - Unifi Dream Machine
+#       This has not been tested on other "all-in-one" devices such as
+#       UDM Pro or Unifi Express.
+#
+#       OS Version v2.0.0+
+#       Network Application version 7.0.0+
+#       OS version ~3.1 removed java and keytool from the UnifiOS.
+#       Using PKCS12 format keystore appears to work fine.
+#
 # Please report bugs to https://github.com/acmesh-official/acme.sh/issues/3359
 
 #returns 0 means success, otherwise error.
@@ -74,14 +83,16 @@ unifi_deploy() {
   _reload_cmd=""
 
   # Unifi Controller environment (self hosted or any Cloud Key) --
-  # auto-detect by file /usr/lib/unifi/data/keystore:
+  # auto-detect by file /usr/lib/unifi/data/keystore
   _unifi_keystore="${DEPLOY_UNIFI_KEYSTORE:-/usr/lib/unifi/data/keystore}"
   if [ -f "$_unifi_keystore" ]; then
-    _info "Installing certificate for Unifi Controller (Java keystore)"
     _debug _unifi_keystore "$_unifi_keystore"
     if ! _exists keytool; then
-      _err "keytool not found"
-      return 1
+      _do_keytool=0
+      _info "Installing certificate for Unifi Controller (PKCS12 keystore)."
+    else
+      _do_keytool=1
+      _info "Installing certificate for Unifi Controller (Java keystore)"
     fi
     if [ ! -w "$_unifi_keystore" ]; then
       _err "The file $_unifi_keystore is not writable, please change the permission."
@@ -92,6 +103,7 @@ unifi_deploy() {
 
     _debug "Generate import pkcs12"
     _import_pkcs12="$(_mktemp)"
+    _debug "_toPkcs $_import_pkcs12 $_ckey $_ccert $_cca $_unifi_keypass unifi root"
     _toPkcs "$_import_pkcs12" "$_ckey" "$_ccert" "$_cca" "$_unifi_keypass" unifi root
     # shellcheck disable=SC2181
     if [ "$?" != "0" ]; then
@@ -99,22 +111,57 @@ unifi_deploy() {
       return 1
     fi
 
-    _debug "Import into keystore: $_unifi_keystore"
-    if keytool -importkeystore \
-      -deststorepass "$_unifi_keypass" -destkeypass "$_unifi_keypass" -destkeystore "$_unifi_keystore" \
-      -srckeystore "$_import_pkcs12" -srcstoretype PKCS12 -srcstorepass "$_unifi_keypass" \
-      -alias unifi -noprompt; then
-      _debug "Import keystore success!"
-      rm "$_import_pkcs12"
+    # Save the existing keystore in case something goes wrong.
+    mv -f "${_unifi_keystore}" "${_unifi_keystore}"_original
+    _info "Previous keystore saved to ${_unifi_keystore}_original."
+
+    if [ "$_do_keytool" -eq 1 ]; then
+      _debug "Import into keystore: $_unifi_keystore"
+      if keytool -importkeystore \
+        -deststorepass "$_unifi_keypass" -destkeypass "$_unifi_keypass" -destkeystore "$_unifi_keystore" \
+        -srckeystore "$_import_pkcs12" -srcstoretype PKCS12 -srcstorepass "$_unifi_keypass" \
+        -alias unifi -noprompt; then
+        _debug "Import keystore success!"
+      else
+        _err "Error importing into Unifi Java keystore."
+        _err "Please re-run with --debug and report a bug."
+        _info "Restoring original keystore."
+        mv -f "${_unifi_keystore}"_original "${_unifi_keystore}"
+        rm "$_import_pkcs12"
+        return 1
+      fi
     else
-      _err "Error importing into Unifi Java keystore."
-      _err "Please re-run with --debug and report a bug."
-      rm "$_import_pkcs12"
-      return 1
+      _debug "Copying new keystore to $_unifi_keystore"
+      cp -f "$_import_pkcs12" "$_unifi_keystore"
     fi
 
+    # Update unifi service for certificate cipher compatibility
+    if ${ACME_OPENSSL_BIN:-openssl} pkcs12 \
+      -in "$_import_pkcs12" \
+      -password pass:aircontrolenterprise \
+      -nokeys | ${ACME_OPENSSL_BIN:-openssl} x509 -text \
+      -noout | grep -i "signature" | grep -iq ecdsa >/dev/null 2>&1; then
+      cp -f /usr/lib/unifi/data/system.properties /usr/lib/unifi/data/system.properties_original
+      _info "Updating system configuration for cipher compatibility."
+      _info "Saved original system config to /usr/lib/unifi/data/system.properties_original"
+      sed -i '/unifi\.https\.ciphers/d' /usr/lib/unifi/data/system.properties
+      echo "unifi.https.ciphers=ECDHE-ECDSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-GCM-SHA256" >>/usr/lib/unifi/data/system.properties
+      sed -i '/unifi\.https\.sslEnabledProtocols/d' /usr/lib/unifi/data/system.properties
+      echo "unifi.https.sslEnabledProtocols=TLSv1.3,TLSv1.2" >>/usr/lib/unifi/data/system.properties
+      _info "System configuration updated."
+    fi
+
+    rm "$_import_pkcs12"
+
+    # Restarting unifi-core will bring up unifi, doing it out of order results in
+    # a certificate error, and breaks wifiman.
+    # Restart if we aren't doing unifi-core, otherwise stop for later restart.
     if systemctl -q is-active unifi; then
-      _reload_cmd="${_reload_cmd:+$_reload_cmd && }service unifi restart"
+      if [ ! -f "${DEPLOY_UNIFI_CORE_CONFIG:-/data/unifi-core/config}/unifi-core.key" ]; then
+        _reload_cmd="${_reload_cmd:+$_reload_cmd && }systemctl restart unifi"
+      else
+        _reload_cmd="${_reload_cmd:+$_reload_cmd && }systemctl stop unifi"
+      fi
     fi
     _services_updated="${_services_updated} unifi"
     _info "Install Unifi Controller certificate success!"
@@ -164,6 +211,11 @@ unifi_deploy() {
       _err "The directory $_unifi_core_config is not writable; please check permissions."
       return 1
     fi
+
+    # Save the existing certs in case something goes wrong.
+    cp -f "${_unifi_core_config}"/unifi-core.crt "${_unifi_core_config}"/unifi-core_original.crt
+    cp -f "${_unifi_core_config}"/unifi-core.key "${_unifi_core_config}"/unifi-core_original.key
+    _info "Previous certificate and key saved to ${_unifi_core_config}/unifi-core_original.crt/key."
 
     cat "$_cfullchain" >"${_unifi_core_config}/unifi-core.crt"
     cat "$_ckey" >"${_unifi_core_config}/unifi-core.key"

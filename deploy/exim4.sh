@@ -109,6 +109,5 @@ exim4_deploy() {
     fi
     return 1
   fi
-  return 0
 
 }

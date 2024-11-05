@@ -1,6 +1,13 @@
 #!/usr/bin/env sh
-
-#Author: Timur Umarov <inbox@tumarov.com>
+# shellcheck disable=SC2034
+dns_fornex_info='Fornex.com
+Site: Fornex.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_fornex
+Options:
+ FORNEX_API_KEY API Key
+Issues: github.com/acmesh-official/acme.sh/issues/3998
+Author: Timur Umarov <inbox@tumarov.com>
+'
 
 FORNEX_API_URL="https://fornex.com/api/dns/v0.1"
 
@@ -83,7 +90,7 @@ _get_root() {
 
   i=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid

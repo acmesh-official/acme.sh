@@ -1,12 +1,13 @@
 #!/usr/bin/env sh
-
-# kapper.net domain api
-# for further questions please contact: support@kapper.net
-# please report issues here: https://github.com/acmesh-official/acme.sh/issues/2977
-
-#KAPPERNETDNS_Key="yourKAPPERNETapikey"
-#KAPPERNETDNS_Secret="yourKAPPERNETapisecret"
-#KAPPERNETDNS_Api="https://dnspanel.kapper.net/API/1.2?APIKey=$KAPPERNETDNS_Key&APISecret=$KAPPERNETDNS_Secret"
+# shellcheck disable=SC2034
+dns_kappernet_info='kapper.net
+Site: kapper.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_kappernet
+Options:
+ KAPPERNETDNS_Key API Key
+ KAPPERNETDNS_Secret API Secret
+Issues: github.com/acmesh-official/acme.sh/issues/2977
+'
 
 ###############################################################################
 # called with
@@ -101,7 +102,7 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -112,7 +113,7 @@ _get_root() {
     if _contains "$response" '"OK":false'; then
       _debug "$h not found"
     else
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi

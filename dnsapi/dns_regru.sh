@@ -1,10 +1,13 @@
 #!/usr/bin/env sh
-
-#
-# REGRU_API_Username="test"
-#
-# REGRU_API_Password="test"
-#
+# shellcheck disable=SC2034
+dns_regru_info='reg.ru
+Site: reg.ru
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_regru
+Options:
+ REGRU_API_Username Username
+ REGRU_API_Password Password
+Issues: github.com/acmesh-official/acme.sh/issues/2336
+'
 
 REGRU_API_URL="https://api.reg.ru/api/regru2"
 

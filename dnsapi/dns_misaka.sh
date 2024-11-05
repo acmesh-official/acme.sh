@@ -1,11 +1,12 @@
 #!/usr/bin/env sh
-
-# bug reports to support+acmesh@misaka.io
-# based on dns_nsone.sh by dev@1e.ca
-
-#
-#Misaka_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
+# shellcheck disable=SC2034
+dns_misaka_info='Misaka.io
+Site: Misaka.io
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_misaka
+Options:
+ Misaka_Key API Key
+Author: <support+acmesh@misaka.io>
+'
 
 Misaka_Api="https://dnsapi.misaka.io/dns"
 
@@ -115,7 +116,7 @@ _get_root() {
     return 1
   fi
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -123,7 +124,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\""; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi
