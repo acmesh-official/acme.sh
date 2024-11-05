@@ -145,7 +145,6 @@ _get_root() {
       return 1
     fi
 
-
     _debug "Querying Linode APIv4 for hosted zone: $h"
     if _H4="X-Filter: {\"domain\":\"$h\"}" _rest GET; then
       _debug "Got response from API: $response"
