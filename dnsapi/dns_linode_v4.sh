@@ -4,7 +4,7 @@ dns_linode_v4_info='Linode.com
 Site: Linode.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_linode_v4
 Options:
-  LINODE_V4_API_KEY API Key
+ LINODE_V4_API_KEY API Key
 Author: Philipp Grosswiler <philipp.grosswiler@swiss-design.net>, Aaron W. Swenson <aaron@grandmasfridge.org>
 '
 
@@ -138,24 +138,25 @@ _get_root() {
   while true; do
     # loop through the received string (e.g.  _acme-challenge.sub3.sub2.sub1.domain.tld),
     # starting from the lowest subdomain, and check if it's a hosted domain
-    h=$(printf "%s" "$full_host_str" | cut -d . -f $i-100)
-    _debug h "$h"
-    if [ -z "$h" ]; then
+    tst_hosted_domain=$(printf "%s" "$full_host_str" | cut -d . -f "$i"-100)
+    _debug tst_hosted_domain "$tst_hosted_domain"
+    if [ -z "$tst_hosted_domain" ]; then
       #not valid
+      _err "Couldn't get domain from string '$full_host_str'."
       return 1
     fi
 
-    _debug "Querying Linode APIv4 for hosted zone: $h"
-    if _H4="X-Filter: {\"domain\":\"$h\"}" _rest GET; then
+    _debug "Querying Linode APIv4 for hosted zone: $tst_hosted_domain"
+    if _H4="X-Filter: {\"domain\":\"$tst_hosted_domain\"}" _rest GET; then
       _debug "Got response from API: $response"
       response="$(echo "$response" | tr -d "\n" | tr '{' "|" | sed 's/|/&{/g' | tr "|" "\n")"
-      hostedzone="$(echo "$response" | _egrep_o "\{.*\"domain\": *\"$h\".*}")"
+      hostedzone="$(echo "$response" | _egrep_o "\{.*\"domain\": *\"$tst_hosted_domain\".*}")"
       if [ "$hostedzone" ]; then
         _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "\"id\": *[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
-        _debug "Found domain hosted on Linode DNS. Zone: $h, id: $_domain_id"
+        _debug "Found domain hosted on Linode DNS. Zone: $tst_hosted_domain, id: $_domain_id"
         if [ "$_domain_id" ]; then
-          _sub_domain=$(printf "%s" "$full_host_str" | cut -d . -f 1-$p)
-          _domain=$h
+          _sub_domain=$(printf "%s" "$full_host_str" | cut -d . -f 1-"$p")
+          _domain=$tst_hosted_domain
           return 0
         fi
         return 1
