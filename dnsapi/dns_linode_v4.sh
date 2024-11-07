@@ -182,7 +182,6 @@ _rest() {
   export _H1="Accept: application/json"
   export _H2="Content-Type: application/json"
   export _H3="Authorization: Bearer $LINODE_V4_API_KEY"
-  export _H4 # used to query for the root domain on _get_root()
 
   if [ "$mtd" != "GET" ]; then
     # both POST and DELETE.
@@ -191,10 +190,6 @@ _rest() {
   else
     response="$(_get "$LINODE_V4_API_URL$ep$data")"
   fi
-
-  # unset _H4, for it not to be used on every request unnecessarily, because it
-  # causes random failures inside Linode API when using unnecessary _H4 parameters (e.g. X-Filter)
-  unset _H4
 
   if [ "$?" != "0" ]; then
     _err "error $ep"
