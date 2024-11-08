@@ -76,7 +76,7 @@ dns_linode_v4_rm() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  if _rest GET "/$_domain_id/records" && [ -n "$response" ]; then
+  if _H4="X-Filter: { \"type\": \"TXT\", \"name\": \"$_sub_domain\" }" _rest GET "/$_domain_id/records" && [ -n "$response" ]; then
     response="$(echo "$response" | tr -d "\n" | tr '{' "|" | sed 's/|/&{/g' | tr "|" "\n")"
 
     resource="$(echo "$response" | _egrep_o "\{.*\"name\": *\"$_sub_domain\".*}")"
