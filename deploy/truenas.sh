@@ -66,8 +66,17 @@ truenas_deploy() {
 
   _info "Getting TrueNAS version"
   _response=$(_get "$_api_url/system/version")
-  _info "TrueNAS system version: $_response"
-  _truenas_version=$(echo "$_response"  | cut -d '-' -f 3)
+
+  if [[ "$_response" == *"SCALE"* ]]; then
+    _truenas_os=$(echo "$_response"  | cut -d '-' -f 2)
+    _truenas_version=$(echo "$_response"  | cut -d '-' -f 3 | tr -d '"')
+  else
+    _truenas_os="unknown"
+    _truenas_version="unknown"
+  fi
+  
+  _info "Detected TrueNAS system os: $_truenas_os"
+  _info "Detected TrueNAS system version: $_truenas_version"
 
   if [ -z "$_response" ]; then
     _err "Unable to authenticate to $_api_url."
@@ -123,7 +132,7 @@ truenas_deploy() {
   _truenas_version_23_10="23.10.0.0"
   _truenas_version_24_10="24.10.0.0"
 
-  if [ "$(echo -e "$_truenas_version_23_10\n$_truenas_version" | sort -V | head -n 1)" != "$_truenas_version_23_10" ]; then
+  if [[ "$_truenas_os" != "SCALE" || "$(echo -e "$_truenas_version_23_10\n$_truenas_version" | sort -V | head -n 1)" != "$_truenas_version_23_10" ]]; then
     _info "Checking if WebDAV certificate is the same as the TrueNAS web UI"
     _webdav_list=$(_get "$_api_url/webdav")
     _webdav_cert_id=$(echo "$_webdav_list" | grep '"certssl":' | tr -d -- '"certsl: ,')
@@ -171,7 +180,7 @@ truenas_deploy() {
     fi
   fi
 
-  if [ "$(echo -e "$_truenas_version_24_10\n$_truenas_version" | sort -V | head -n 1)" != "$_truenas_version_24_10" ]; then
+  if [[ "$_truenas_os" != "SCALE" || "$(echo -e "$_truenas_version_24_10\n$_truenas_version" | sort -V | head -n 1)" != "$_truenas_version_24_10" ]]; then
     _info "Checking if any chart release Apps is using the same certificate as TrueNAS web UI. Tool 'jq' is required"
     if _exists jq; then
       _info "Query all chart release"
