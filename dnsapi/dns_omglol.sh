@@ -1,22 +1,18 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
-dns_myapi_info='omg.lol
- Based on the omg.lol API, defined at https://api.omg.lol/
-Domains: omg.lol
-Site: github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
-Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_duckdns
+dns_omglol_info='omg.lol
+Site: omg.lol
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_omglol
 Options:
- OMG_ApiKey API Key from omg.lol.  This is accesible from the bottom of the account page at https://home.omg.lol/account
+ OMG_ApiKey API Key from omg.lol. This is accessible from the bottom of the account page at https://home.omg.lol/account
  OMG_Address This is your omg.lol address, without the preceding @ - you can see your list on your dashboard at https://home.omg.lol/dashboard
-Issues: github.com/acmesh-official/acme.sh
+Issues: github.com/acmesh-official/acme.sh/issues/5299
 Author: @Kholin <kholin+acme.omglolapi@omg.lol>
 '
 
-#returns 0 means success, otherwise error.
+# See API Docs https://api.omg.lol/
 
 ########  Public functions #####################
-
-# Please Read this guide first: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
 
 #Usage: dns_myapi_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_omglol_add() {
@@ -244,8 +240,8 @@ omg_delete() {
   omg_validate_delete "$output"
 }
 
-# Validate the response on request to delete.  Confirm stastus is success and
-# Message indicates deletion was successful
+# Validate the response on request to delete.
+# Confirm status is success and message indicates deletion was successful.
 # Input: Response - HTTP response received from delete request
 omg_validate_delete() {
   response=$1
