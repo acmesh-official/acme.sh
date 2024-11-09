@@ -1,16 +1,13 @@
 #!/usr/bin/env sh
-
-# acme.sh DNS API for Timeweb Cloud provider (https://timeweb.cloud).
-#
-# Author: https://github.com/nikolaypronchev.
-#
-# Prerequisites:
-# Timeweb Cloud API JWT token. Obtain one from the Timeweb Cloud control panel
-# ("API and Terraform" section: https://timeweb.cloud/my/api-keys). The JWT token
-# must be provided to this script in one of two ways:
-# 1.  As the "TW_Token" variable, for example: "export TW_Token=eyJhbG...zUxMiIs";
-# 2.  As a "TW_Token" config entry in acme.sh account config file
-#     (usually located at ~/.acme.sh/account.conf by default).
+# shellcheck disable=SC2034
+dns_timeweb_info='Timeweb.Cloud
+Site: Timeweb.Cloud
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_timeweb
+Options:
+ TW_Token API JWT token. Get it from the control panel at https://timeweb.cloud/my/api-keys
+Issues: github.com/acmesh-official/acme.sh/issues/5140
+Author: Nikolay Pronchev <https://github.com/nikolaypronchev>
+'
 
 TW_Api="https://api.timeweb.cloud/api/v1"
 
