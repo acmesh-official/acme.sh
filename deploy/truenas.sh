@@ -9,7 +9,7 @@
 #
 # Following environment variables must be set:
 #
-# export DEPLOY_TRUENAS_APIKEY="<API_KEY_GENERATED_IN_THE_WEB_UI"
+# export DEPLOY_TRUENAS_APIKEY="<API_KEY_GENERATED_IN_THE_WEB_UI>"
 #
 # The following environmental variables may be set if you don't like their
 # default values:
@@ -64,6 +64,11 @@ truenas_deploy() {
   _response=$(_get "$_api_url/system/state")
   _info "TrueNAS system state: $_response."
 
+  _info "Getting TrueNAS version"
+  _response=$(_get "$_api_url/system/version")
+  _info "TrueNAS system version: $_response"
+  _truenas_version=$(echo "$_response"  | cut -d '-' -f 3)
+
   if [ -z "$_response" ]; then
     _err "Unable to authenticate to $_api_url."
     _err 'Check your connection settings are correct, e.g.'
@@ -115,27 +120,78 @@ truenas_deploy() {
 
   _debug3 _activate_result "$_activate_result"
 
-  _info "Checking if WebDAV certificate is the same as the TrueNAS web UI"
-  _webdav_list=$(_get "$_api_url/webdav")
-  _webdav_cert_id=$(echo "$_webdav_list" | grep '"certssl":' | tr -d -- '"certsl: ,')
+  _truenas_version_23_10="23.10.0.0"
+  _truenas_version_24_10="24.10.0.0"
 
-  if [ "$_webdav_cert_id" = "$_active_cert_id" ]; then
-    _info "Updating the WebDAV certificate"
-    _debug _webdav_cert_id "$_webdav_cert_id"
-    _webdav_data="{\"certssl\": \"${_cert_id}\"}"
-    _activate_webdav_cert="$(_post "$_webdav_data" "$_api_url/webdav" "" "PUT" "application/json")"
-    _webdav_new_cert_id=$(echo "$_activate_webdav_cert" | _json_decode | grep '"certssl":' | sed -n 's/.*: \([0-9]\{1,\}\),\{0,1\}$/\1/p')
-    if [ "$_webdav_new_cert_id" -eq "$_cert_id" ]; then
-      _info "WebDAV certificate updated successfully"
-    else
-      _err "Unable to set WebDAV certificate"
-      _debug3 _activate_webdav_cert "$_activate_webdav_cert"
+  if [ "$(echo -e "$_truenas_version_23_10\n$_truenas_version" | sort -V | head -n 1)" != "$_truenas_version_23_10" ]; then
+    _info "Checking if WebDAV certificate is the same as the TrueNAS web UI"
+    _webdav_list=$(_get "$_api_url/webdav")
+    _webdav_cert_id=$(echo "$_webdav_list" | grep '"certssl":' | tr -d -- '"certsl: ,')
+
+    if [ "$_webdav_cert_id" = "$_active_cert_id" ]; then
+      _info "Updating the WebDAV certificate"
+      _debug _webdav_cert_id "$_webdav_cert_id"
+      _webdav_data="{\"certssl\": \"${_cert_id}\"}"
+      _activate_webdav_cert="$(_post "$_webdav_data" "$_api_url/webdav" "" "PUT" "application/json")"
+      _webdav_new_cert_id=$(echo "$_activate_webdav_cert" | _json_decode | grep '"certssl":' | sed -n 's/.*: \([0-9]\{1,\}\),\{0,1\}$/\1/p')
+      if [ "$_webdav_new_cert_id" -eq "$_cert_id" ]; then
+        _info "WebDAV certificate updated successfully"
+      else
+        _err "Unable to set WebDAV certificate"
+        _debug3 _activate_webdav_cert "$_activate_webdav_cert"
+        _debug3 _webdav_new_cert_id "$_webdav_new_cert_id"
+        return 1
+      fi
       _debug3 _webdav_new_cert_id "$_webdav_new_cert_id"
-      return 1
+    else
+      _info "WebDAV certificate is not configured or is not the same as TrueNAS web UI"
     fi
-    _debug3 _webdav_new_cert_id "$_webdav_new_cert_id"
-  else
-    _info "WebDAV certificate is not configured or is not the same as TrueNAS web UI"
+
+    _info "Checking if S3 certificate is the same as the TrueNAS web UI"
+    _s3_list=$(_get "$_api_url/s3")
+    _s3_cert_id=$(echo "$_s3_list" | grep '"certificate":' | tr -d -- '"certifa:_ ,')
+
+    if [ "$_s3_cert_id" = "$_active_cert_id" ]; then
+      _info "Updating the S3 certificate"
+      _debug _s3_cert_id "$_s3_cert_id"
+      _s3_data="{\"certificate\": \"${_cert_id}\"}"
+      _activate_s3_cert="$(_post "$_s3_data" "$_api_url/s3" "" "PUT" "application/json")"
+      _s3_new_cert_id=$(echo "$_activate_s3_cert" | _json_decode | grep '"certificate":' | sed -n 's/.*: \([0-9]\{1,\}\),\{0,1\}$/\1/p')
+      if [ "$_s3_new_cert_id" -eq "$_cert_id" ]; then
+        _info "S3 certificate updated successfully"
+      else
+        _err "Unable to set S3 certificate"
+        _debug3 _activate_s3_cert "$_activate_s3_cert"
+        _debug3 _s3_new_cert_id "$_s3_new_cert_id"
+        return 1
+      fi
+      _debug3 _activate_s3_cert "$_activate_s3_cert"
+    else
+      _info "S3 certificate is not configured or is not the same as TrueNAS web UI"
+    fi
+  fi
+
+  if [ "$(echo -e "$_truenas_version_24_10\n$_truenas_version" | sort -V | head -n 1)" != "$_truenas_version_24_10" ]; then
+    _info "Checking if any chart release Apps is using the same certificate as TrueNAS web UI. Tool 'jq' is required"
+    if _exists jq; then
+      _info "Query all chart release"
+      _release_list=$(_get "$_api_url/chart/release")
+      _related_name_list=$(printf "%s" "$_release_list" | jq -r "[.[] | {name,certId: .config.ingress?.main.tls[]?.scaleCert} | select(.certId==$_active_cert_id) | .name ] | unique")
+      _release_length=$(printf "%s" "$_related_name_list" | jq -r "length")
+      _info "Found $_release_length related chart release in list: $_related_name_list"
+      for i in $(seq 0 $((_release_length - 1))); do
+        _release_name=$(echo "$_related_name_list" | jq -r ".[$i]")
+        _info "Updating certificate from $_active_cert_id to $_cert_id for chart release: $_release_name"
+        #Read the chart release configuration
+        _chart_config=$(printf "%s" "$_release_list" | jq -r ".[] | select(.name==\"$_release_name\")")
+        #Replace the old certificate id with the new one in path .config.ingress.main.tls[].scaleCert. Then update .config.ingress
+        _updated_chart_config=$(printf "%s" "$_chart_config" | jq "(.config.ingress?.main.tls[]? | select(.scaleCert==$_active_cert_id) | .scaleCert  ) |= $_cert_id | .config.ingress ")
+        _update_chart_result="$(_post "{\"values\" : { \"ingress\" : $_updated_chart_config } }" "$_api_url/chart/release/id/$_release_name" "" "PUT" "application/json")"
+        _debug3 _update_chart_result "$_update_chart_result"
+      done
+    else
+      _info "Tool 'jq' does not exists, skip chart release checking"
+    fi
   fi
 
   _info "Checking if FTP certificate is the same as the TrueNAS web UI"
@@ -159,50 +215,6 @@ truenas_deploy() {
     _debug3 _activate_ftp_cert "$_activate_ftp_cert"
   else
     _info "FTP certificate is not configured or is not the same as TrueNAS web UI"
-  fi
-
-  _info "Checking if S3 certificate is the same as the TrueNAS web UI"
-  _s3_list=$(_get "$_api_url/s3")
-  _s3_cert_id=$(echo "$_s3_list" | grep '"certificate":' | tr -d -- '"certifa:_ ,')
-
-  if [ "$_s3_cert_id" = "$_active_cert_id" ]; then
-    _info "Updating the S3 certificate"
-    _debug _s3_cert_id "$_s3_cert_id"
-    _s3_data="{\"certificate\": \"${_cert_id}\"}"
-    _activate_s3_cert="$(_post "$_s3_data" "$_api_url/s3" "" "PUT" "application/json")"
-    _s3_new_cert_id=$(echo "$_activate_s3_cert" | _json_decode | grep '"certificate":' | sed -n 's/.*: \([0-9]\{1,\}\),\{0,1\}$/\1/p')
-    if [ "$_s3_new_cert_id" -eq "$_cert_id" ]; then
-      _info "S3 certificate updated successfully"
-    else
-      _err "Unable to set S3 certificate"
-      _debug3 _activate_s3_cert "$_activate_s3_cert"
-      _debug3 _s3_new_cert_id "$_s3_new_cert_id"
-      return 1
-    fi
-    _debug3 _activate_s3_cert "$_activate_s3_cert"
-  else
-    _info "S3 certificate is not configured or is not the same as TrueNAS web UI"
-  fi
-
-  _info "Checking if any chart release Apps is using the same certificate as TrueNAS web UI. Tool 'jq' is required"
-  if _exists jq; then
-    _info "Query all chart release"
-    _release_list=$(_get "$_api_url/chart/release")
-    _related_name_list=$(printf "%s" "$_release_list" | jq -r "[.[] | {name,certId: .config.ingress?.main.tls[]?.scaleCert} | select(.certId==$_active_cert_id) | .name ] | unique")
-    _release_length=$(printf "%s" "$_related_name_list" | jq -r "length")
-    _info "Found $_release_length related chart release in list: $_related_name_list"
-    for i in $(seq 0 $((_release_length - 1))); do
-      _release_name=$(echo "$_related_name_list" | jq -r ".[$i]")
-      _info "Updating certificate from $_active_cert_id to $_cert_id for chart release: $_release_name"
-      #Read the chart release configuration
-      _chart_config=$(printf "%s" "$_release_list" | jq -r ".[] | select(.name==\"$_release_name\")")
-      #Replace the old certificate id with the new one in path .config.ingress.main.tls[].scaleCert. Then update .config.ingress
-      _updated_chart_config=$(printf "%s" "$_chart_config" | jq "(.config.ingress?.main.tls[]? | select(.scaleCert==$_active_cert_id) | .scaleCert  ) |= $_cert_id | .config.ingress ")
-      _update_chart_result="$(_post "{\"values\" : { \"ingress\" : $_updated_chart_config } }" "$_api_url/chart/release/id/$_release_name" "" "PUT" "application/json")"
-      _debug3 _update_chart_result "$_update_chart_result"
-    done
-  else
-    _info "Tool 'jq' does not exists, skip chart release checking"
   fi
 
   _info "Deleting old certificate"
