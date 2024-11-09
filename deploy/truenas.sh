@@ -180,7 +180,7 @@ truenas_deploy() {
     fi
   fi
 
-  if [[ "$_truenas_os" != "SCALE" || "$(echo -e "$_truenas_version_24_10\n$_truenas_version" | sort -V | head -n 1)" != "$_truenas_version_24_10" ]]; then
+  if [[ "$_truenas_os" == "SCALE" || "$(echo -e "$_truenas_version_24_10\n$_truenas_version" | sort -V | head -n 1)" != "$_truenas_version_24_10" ]]; then
     _info "Checking if any chart release Apps is using the same certificate as TrueNAS web UI. Tool 'jq' is required"
     if _exists jq; then
       _info "Query all chart release"
