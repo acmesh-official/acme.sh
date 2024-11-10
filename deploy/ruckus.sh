@@ -149,8 +149,7 @@ _response_cookie() {
 _post_upload() {
   _post_action="$1"
   _post_file="$2"
-  _post_url="$3"
-
+  
   _post_boundary="----FormBoundary$(date "+%s%N")"
   
   _post_data="$({
