@@ -1,9 +1,8 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
-# Here is a script to deploy cert to Ruckus Zone Director/Unleashed.
-#
-# Adapted from:
-# https://ms264556.net/pages/PfSenseLetsEncryptToRuckus
+# Here is a script to deploy cert to Ruckus ZoneDirector / Unleashed.
+# 
+# Public domain, 2024, Tony Rielly <https://github.com/ms264556>
 #
 # ```sh
 # acme.sh --deploy -d ruckus.example.com --deploy-hook ruckus
@@ -13,11 +12,11 @@
 # deploy script to work.
 #
 # ```sh
-# export RUCKUS_HOST=ruckus.example.com
+# export RUCKUS_HOST=myruckus.example.com
 # export RUCKUS_USER=myruckususername
 # export RUCKUS_PASS=myruckuspassword
 #
-# acme.sh --deploy -d ruckus.example.com --deploy-hook ruckus
+# acme.sh --deploy -d myruckus.example.com --deploy-hook ruckus
 # ```
 #
 # returns 0 means success, otherwise error.
@@ -66,45 +65,110 @@ ruckus_deploy() {
   _debug RUCKUS_USER "$RUCKUS_USER"
   _debug RUCKUS_PASS "$RUCKUS_PASS"
 
-  COOKIE_JAR=$(mktemp)
-  cleanup() {
-    rm $COOKIE_JAR
-  }
-  trap cleanup EXIT
+  export HTTPS_INSECURE=1
+  export ACME_HTTP_NO_REDIRECTS=1
 
-  LOGIN_URL=$(curl https://$RUCKUS_HOST -ksSLo /dev/null -w '%{url_effective}')
-  _debug LOGIN_URL "$LOGIN_URL"
+  _info Discovering the login URL
+  _get "https://$RUCKUS_HOST" >/dev/null
+  _login_url="$(_response_header 'Location')"
+  if [ -n "$_login_url" ]; then
+    _login_path=$(echo "$_login_url" | sed 's|https\?://[^/]\+||')
+    if [ -z "$_login_path" ]; then
+      # redirect was to a different host
+      _get "$_login_url" >/dev/null
+      _login_url="$(_response_header 'Location')"
+    fi
+  fi
 
-  XSS=$(curl -ksSic $COOKIE_JAR $LOGIN_URL -d username=$RUCKUS_USER -d password="$RUCKUS_PASS" -d ok='Log In' | awk '/^HTTP_X_CSRF_TOKEN:/ { print $2 }' | tr -d '\040\011\012\015')
-  _debug XSS "$XSS"
+  if [ -z "${_login_url}" ]; then
+    _err "Connection failed: couldn't find login page."
+    return 1
+  fi
+  
+  _base_url=$(dirname "$_login_url")
+  _login_page=$(basename "$_login_url")
 
-  if [ -n "$XSS" ]; then
-    _info "Authentication successful"
-  else
-    _err "Authentication failed"
+   if [ "$_login_page" = "index.html" ]; then
+    _err "Connection temporarily unavailable: Unleashed Rebuilding."
     return 1
   fi
 
-  BASE_URL=$(dirname $LOGIN_URL)
-  CONF_ARGS="-ksSo /dev/null -b $COOKIE_JAR -c $COOKIE_JAR"
-  UPLOAD="$CONF_ARGS $BASE_URL/_upload.jsp?request_type=xhr"
-  CMD="$CONF_ARGS $BASE_URL/_cmdstat.jsp"
+   if [ "$_login_page" = "wizard.jsp" ]; then
+    _err "Connection failed: Setup Wizard not complete."
+    return 1
+  fi
+ 
+  _info Login
+  _username_encoded="$(printf "%s" "$RUCKUS_USER" | _url_encode)"
+  _password_encoded="$(printf "%s" "$RUCKUS_PASS" | _url_encode)"
+  _login_query="$(printf "%s" "username=${_username_encoded}&password=${_password_encoded}&ok=Log+In")"
+  _post "$_login_query" "$_login_url" >/dev/null
 
-  REPLACE_CERT_AJAX='<ajax-request action="docmd" comp="system" updater="rid.0.5" xcmd="replace-cert" checkAbility="6" timeout="-1"><xcmd cmd="replace-cert" cn="'$RUCKUS_HOST'"/></ajax-request>'
-  CERT_REBOOT_AJAX='<ajax-request action="docmd" comp="worker" updater="rid.0.5" xcmd="cert-reboot" checkAbility="6"><xcmd cmd="cert-reboot" action="undefined"/></ajax-request>'
+  _login_code="$(_response_code)"
+  if [ "$_login_code" = "200" ]; then
+    _err "Login failed: incorrect credentials."
+    return 1
+  fi
+  
+  _info Collect Session Cookie
+  _H1="Cookie: $(_response_cookie)"
+  export _H1
+  _info Collect CSRF Token
+  _H2="X-CSRF-Token: $(_response_header 'HTTP_X_CSRF_TOKEN')"
+  export _H2
 
   _info "Uploading certificate"
-  curl $UPLOAD -H "X-CSRF-Token: $XSS" -F "u=@$_ccert" -F action=uploadcert -F callback=uploader_uploadcert || return 1
-
+  _post_upload "uploadcert" "$_cfullchain"
+  
   _info "Uploading private key"
-  curl $UPLOAD -H "X-CSRF-Token: $XSS" -F "u=@$_ckey" -F action=uploadprivatekey -F callback=uploader_uploadprivatekey || return 1
+  _post_upload "uploadprivatekey" "$_ckey"
 
   _info "Replacing certificate"
-  curl $CMD -H "X-CSRF-Token: $XSS" --data-raw "$REPLACE_CERT_AJAX" || return 1
-
-  _info "Rebooting"
-  curl $CMD -H "X-CSRF-Token: $XSS" --data-raw "$CERT_REBOOT_AJAX" || return 1
-
+  _replace_cert_ajax='<ajax-request action="docmd" comp="system" updater="rid.0.5" xcmd="replace-cert" checkAbility="6" timeout="-1"><xcmd cmd="replace-cert" cn="'$RUCKUS_HOST'"/></ajax-request>'
+  _post "$_replace_cert_ajax" "$_base_url/_cmdstat.jsp" >/dev/null
+  
+  info "Rebooting"
+  _cert_reboot_ajax='<ajax-request action="docmd" comp="worker" updater="rid.0.5" xcmd="cert-reboot" checkAbility="6"><xcmd cmd="cert-reboot" action="undefined"/></ajax-request>'
+  _post "$_cert_reboot_ajax" "$_base_url/_cmdstat.jsp" >/dev/null
+  
   return 0
 }
 
+_response_code() {
+  < "$HTTP_HEADER" _egrep_o "^HTTP[^ ]* .*$" | cut -d " " -f 2-100 | tr -d "\f\n" | _egrep_o "^[0-9]*"
+}
+
+_response_header() {
+    < "$HTTP_HEADER" grep -i "^$1:" | cut -d ':' -f 2- | tr -d "\r\n\t "
+}
+
+_response_cookie() {
+  _response_header 'Set-Cookie' | awk -F';' '{for(i=1;i<=NF;i++) if (tolower($i) !~ /(path|domain|expires|max-age|secure|httponly|samesite)/) printf "%s; ", $i}' | sed 's/; $//'
+}
+
+_post_upload() {
+  _post_action="$1"
+  _post_file="$2"
+  _post_url="$3"
+
+  _post_boundary="----FormBoundary$(date "+%s%N")"
+  
+  _post_data="$({
+    printf -- "--%s\r\n" "$_post_boundary"
+    printf -- "Content-Disposition: form-data; name=\"u\"; filename=\"%s\"\r\n" "$_post_action"
+    printf -- "Content-Type: application/octet-stream\r\n\r\n"
+    printf -- "%s\r\n" "$(cat "$_post_file")"
+
+    printf -- "--%s\r\n" "$_post_boundary"
+    printf -- "Content-Disposition: form-data; name=\"action\"\r\n\r\n"
+    printf -- "%s\r\n" "$_post_action"
+
+    printf -- "--%s\r\n" "$_post_boundary"
+    printf -- "Content-Disposition: form-data; name=\"callback\"\r\n\r\n"
+    printf -- "%s\r\n" "uploader_$_post_action"
+
+    printf -- "--%s--\r\n\r\n" "$_post_boundary"
+  })"
+
+  _post "$_post_data" "$_base_url/_upload.jsp?request_type=xhr" "" "" "multipart/form-data; boundary=$_post_boundary" >/dev/null
+}
