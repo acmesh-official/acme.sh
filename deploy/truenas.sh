@@ -67,14 +67,14 @@ truenas_deploy() {
   _info "Getting TrueNAS version"
   _response=$(_get "$_api_url/system/version")
 
-  if [[ "$_response" == *"SCALE"* ]]; then
-    _truenas_os=$(echo "$_response"  | cut -d '-' -f 2)
-    _truenas_version=$(echo "$_response"  | cut -d '-' -f 3 | tr -d '"' | cut -d '.'  -f 1,2)
+  if [[ "$_response" = *"SCALE"* ]]; then
+    _truenas_os=$(echo "$_response" | cut -d '-' -f 2)
+    _truenas_version=$(echo "$_response" | cut -d '-' -f 3 | tr -d '"' | cut -d '.' -f 1,2)
   else
     _truenas_os="unknown"
     _truenas_version="unknown"
   fi
-  
+
   _info "Detected TrueNAS system os: $_truenas_os"
   _info "Detected TrueNAS system version: $_truenas_version"
 
@@ -132,7 +132,8 @@ truenas_deploy() {
   _truenas_version_23_10="23.10"
   _truenas_version_24_10="24.10"
 
-  if [[ "$_truenas_os" != "SCALE" || "$(echo -e "$_truenas_version_23_10\n$_truenas_version" | sort -V | head -n 1)" != "$_truenas_version_23_10" ]]; then
+  _check_version=$(echo -e "$_truenas_version_23_10\n$_truenas_version" | sort -V | head -n 1)
+  if [ "$_truenas_os" != "SCALE" ] || [ "$_check_version" != "$_truenas_version_23_10" ]; then
     _info "Checking if WebDAV certificate is the same as the TrueNAS web UI"
     _webdav_list=$(_get "$_api_url/webdav")
     _webdav_cert_id=$(echo "$_webdav_list" | grep '"certssl":' | tr -d -- '"certsl: ,')
@@ -180,8 +181,9 @@ truenas_deploy() {
     fi
   fi
 
-  if [ "$_truenas_os" == "SCALE" ]; then
-    if [ "$(echo -e "$_truenas_version_24_10\n$_truenas_version" | sort -V | head -n 1)" != "$_truenas_version_24_10" ]; then
+  if [ "$_truenas_os" = "SCALE" ]; then
+    _check_version=$(echo -e "$_truenas_version_24_10\n$_truenas_version" | sort -V | head -n 1)
+    if [ "$_check_version" != "$_truenas_version_24_10" ]; then
       _info "Checking if any chart release Apps is using the same certificate as TrueNAS web UI. Tool 'jq' is required"
       if _exists jq; then
         _info "Query all chart release"
@@ -211,12 +213,12 @@ truenas_deploy() {
         _app_length=$(echo "$_app_id_list" | wc -l)
         _info "Found $_app_length apps"
         _info "Checking for each app if an update is needed"
-        for i in $(seq 1 $_app_length); do
+        for i in $(seq 1 "$_app_length"); do
           _app_id=$(echo "$_app_id_list" | sed -n "${i}p")
           _app_config="$(_post "\"$_app_id\"" "$_api_url/app/config" "" "POST" "application/json")"
           # Check if the app use the same certificate TrueNAS web UI
           _app_active_cert_config=$(echo "$_app_config" | _json_decode | jq -r ".ix_certificates[\"$_active_cert_id\"]")
-          if [[ "$_app_active_cert_config" != "null" ]]; then
+          if [ "$_app_active_cert_config" != "null" ]; then
             _info "Updating certificate from $_active_cert_id to $_cert_id for app: $_app_id"
             #Replace the old certificate id with the new one in path
             _update_app_result="$(_post "{\"values\" : { \"network\": { \"certificate_id\": $_cert_id } } }" "$_api_url/app/id/$_app_id" "" "PUT" "application/json")"
