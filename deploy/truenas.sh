@@ -69,7 +69,7 @@ truenas_deploy() {
 
   if [[ "$_response" == *"SCALE"* ]]; then
     _truenas_os=$(echo "$_response"  | cut -d '-' -f 2)
-    _truenas_version=$(echo "$_response"  | cut -d '-' -f 3 | tr -d '"')
+    _truenas_version=$(echo "$_response"  | cut -d '-' -f 3 | tr -d '"' | cut -d '.'  -f 1,2)
   else
     _truenas_os="unknown"
     _truenas_version="unknown"
@@ -129,8 +129,8 @@ truenas_deploy() {
 
   _debug3 _activate_result "$_activate_result"
 
-  _truenas_version_23_10="23.10.0.0"
-  _truenas_version_24_10="24.10.0.0"
+  _truenas_version_23_10="23.10"
+  _truenas_version_24_10="24.10"
 
   if [[ "$_truenas_os" != "SCALE" || "$(echo -e "$_truenas_version_23_10\n$_truenas_version" | sort -V | head -n 1)" != "$_truenas_version_23_10" ]]; then
     _info "Checking if WebDAV certificate is the same as the TrueNAS web UI"
