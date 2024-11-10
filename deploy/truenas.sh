@@ -226,7 +226,7 @@ truenas_deploy() {
           fi
         done
       else
-        _info "Tool 'jq' does not exists, skip chart release checking"
+        _info "Tool 'jq' does not exists, skip app checking"
       fi
     fi
   fi
