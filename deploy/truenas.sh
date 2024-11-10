@@ -180,26 +180,52 @@ truenas_deploy() {
     fi
   fi
 
-  if [[ "$_truenas_os" == "SCALE" || "$(echo -e "$_truenas_version_24_10\n$_truenas_version" | sort -V | head -n 1)" != "$_truenas_version_24_10" ]]; then
-    _info "Checking if any chart release Apps is using the same certificate as TrueNAS web UI. Tool 'jq' is required"
-    if _exists jq; then
-      _info "Query all chart release"
-      _release_list=$(_get "$_api_url/chart/release")
-      _related_name_list=$(printf "%s" "$_release_list" | jq -r "[.[] | {name,certId: .config.ingress?.main.tls[]?.scaleCert} | select(.certId==$_active_cert_id) | .name ] | unique")
-      _release_length=$(printf "%s" "$_related_name_list" | jq -r "length")
-      _info "Found $_release_length related chart release in list: $_related_name_list"
-      for i in $(seq 0 $((_release_length - 1))); do
-        _release_name=$(echo "$_related_name_list" | jq -r ".[$i]")
-        _info "Updating certificate from $_active_cert_id to $_cert_id for chart release: $_release_name"
-        #Read the chart release configuration
-        _chart_config=$(printf "%s" "$_release_list" | jq -r ".[] | select(.name==\"$_release_name\")")
-        #Replace the old certificate id with the new one in path .config.ingress.main.tls[].scaleCert. Then update .config.ingress
-        _updated_chart_config=$(printf "%s" "$_chart_config" | jq "(.config.ingress?.main.tls[]? | select(.scaleCert==$_active_cert_id) | .scaleCert  ) |= $_cert_id | .config.ingress ")
-        _update_chart_result="$(_post "{\"values\" : { \"ingress\" : $_updated_chart_config } }" "$_api_url/chart/release/id/$_release_name" "" "PUT" "application/json")"
-        _debug3 _update_chart_result "$_update_chart_result"
-      done
+  if [ "$_truenas_os" == "SCALE" ]; then
+    if [ "$(echo -e "$_truenas_version_24_10\n$_truenas_version" | sort -V | head -n 1)" != "$_truenas_version_24_10" ]; then
+      _info "Checking if any chart release Apps is using the same certificate as TrueNAS web UI. Tool 'jq' is required"
+      if _exists jq; then
+        _info "Query all chart release"
+        _release_list=$(_get "$_api_url/chart/release")
+        _related_name_list=$(printf "%s" "$_release_list" | jq -r "[.[] | {name,certId: .config.ingress?.main.tls[]?.scaleCert} | select(.certId==$_active_cert_id) | .name ] | unique")
+        _release_length=$(printf "%s" "$_related_name_list" | jq -r "length")
+        _info "Found $_release_length related chart release in list: $_related_name_list"
+        for i in $(seq 0 $((_release_length - 1))); do
+          _release_name=$(echo "$_related_name_list" | jq -r ".[$i]")
+          _info "Updating certificate from $_active_cert_id to $_cert_id for chart release: $_release_name"
+          #Read the chart release configuration
+          _chart_config=$(printf "%s" "$_release_list" | jq -r ".[] | select(.name==\"$_release_name\")")
+          #Replace the old certificate id with the new one in path .config.ingress.main.tls[].scaleCert. Then update .config.ingress
+          _updated_chart_config=$(printf "%s" "$_chart_config" | jq "(.config.ingress?.main.tls[]? | select(.scaleCert==$_active_cert_id) | .scaleCert  ) |= $_cert_id | .config.ingress ")
+          _update_chart_result="$(_post "{\"values\" : { \"ingress\" : $_updated_chart_config } }" "$_api_url/chart/release/id/$_release_name" "" "PUT" "application/json")"
+          _debug3 _update_chart_result "$_update_chart_result"
+        done
+      else
+        _info "Tool 'jq' does not exists, skip chart release checking"
+      fi
     else
-      _info "Tool 'jq' does not exists, skip chart release checking"
+      _info "Checking if any app is using the same certificate as TrueNAS web UI. Tool 'jq' is required"
+      if _exists jq; then
+        _info "Query all apps"
+        _app_list=$(_get "$_api_url/app")
+        _app_id_list=$(printf "%s" "$_app_list" | jq -r '.[].name')
+        _app_length=$(echo "$_app_id_list" | wc -l)
+        _info "Found $_app_length apps"
+        _info "Checking for each app if an update is needed"
+        for i in $(seq 1 $_app_length); do
+          _app_id=$(echo "$_app_id_list" | sed -n "${i}p")
+          _app_config="$(_post "\"$_app_id\"" "$_api_url/app/config" "" "POST" "application/json")"
+          # Check if the app use the same certificate TrueNAS web UI
+          _app_active_cert_config=$(echo "$_app_config" | _json_decode | jq -r ".ix_certificates[\"$_active_cert_id\"]")
+          if [[ "$_app_active_cert_config" != "null" ]]; then
+            _info "Updating certificate from $_active_cert_id to $_cert_id for app: $_app_id"
+            #Replace the old certificate id with the new one in path
+            _update_app_result="$(_post "{\"values\" : { \"network\": { \"certificate_id\": $_cert_id } } }" "$_api_url/app/id/$_app_id" "" "PUT" "application/json")"
+            _debug3 _update_app_result "$_update_app_result"
+          fi
+        done
+      else
+        _info "Tool 'jq' does not exists, skip chart release checking"
+      fi
     fi
   fi
 
