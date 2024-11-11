@@ -1442,7 +1442,7 @@ _toPkcs() {
   else
     ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -inkey "$_ckey" -in "$_ccert" -certfile "$_cca"
   fi
-  if [ "$?" == "0" ]; then
+  if [ "$?" = "0" ]; then
     _savedomainconf "Le_PFXPassword" "$pfxPassword"
   fi
 
@@ -2193,7 +2193,6 @@ _send_signed_request() {
         _debug2 _headers "$_headers"
         _CACHED_NONCE="$(echo "$_headers" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
       fi
-      _debug2 _CACHED_NONCE "$_CACHED_NONCE"
       if [ "$?" != "0" ]; then
         _err "Cannot connect to $nonceurl to get nonce."
         return 1
