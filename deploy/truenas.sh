@@ -132,7 +132,7 @@ truenas_deploy() {
   _truenas_version_23_10="23.10"
   _truenas_version_24_10="24.10"
 
-  _check_version=$(echo -e "$_truenas_version_23_10\n$_truenas_version" | sort -V | head -n 1)
+  _check_version=$(printf "%s\n%s" "$_truenas_version_23_10" "$_truenas_version" | sort -V | head -n 1)
   if [ "$_truenas_os" != "SCALE" ] || [ "$_check_version" != "$_truenas_version_23_10" ]; then
     _info "Checking if WebDAV certificate is the same as the TrueNAS web UI"
     _webdav_list=$(_get "$_api_url/webdav")
@@ -182,7 +182,7 @@ truenas_deploy() {
   fi
 
   if [ "$_truenas_os" = "SCALE" ]; then
-    _check_version=$(echo -e "$_truenas_version_24_10\n$_truenas_version" | sort -V | head -n 1)
+    _check_version=$(printf "%s\n%s" "$_truenas_version_24_10" "$_truenas_version" | sort -V | head -n 1)
     if [ "$_check_version" != "$_truenas_version_24_10" ]; then
       _info "Checking if any chart release Apps is using the same certificate as TrueNAS web UI. Tool 'jq' is required"
       if _exists jq; then
