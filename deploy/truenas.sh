@@ -67,7 +67,7 @@ truenas_deploy() {
   _info "Getting TrueNAS version"
   _response=$(_get "$_api_url/system/version")
 
-  if [[ "$_response" = *"SCALE"* ]]; then
+  if echo "$_response" | grep -q "SCALE"; then
     _truenas_os=$(echo "$_response" | cut -d '-' -f 2)
     _truenas_version=$(echo "$_response" | cut -d '-' -f 3 | tr -d '"' | cut -d '.' -f 1,2)
   else
