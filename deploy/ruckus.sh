@@ -63,7 +63,7 @@ ruckus_deploy() {
 
   _debug RUCKUS_HOST "$RUCKUS_HOST"
   _debug RUCKUS_USER "$RUCKUS_USER"
-  _debug RUCKUS_PASS "$RUCKUS_PASS"
+  _secure_debug RUCKUS_PASS "$RUCKUS_PASS"
 
   export HTTPS_INSECURE=1
   export ACME_HTTP_NO_REDIRECTS=1
@@ -127,7 +127,7 @@ ruckus_deploy() {
   _replace_cert_ajax='<ajax-request action="docmd" comp="system" updater="rid.0.5" xcmd="replace-cert" checkAbility="6" timeout="-1"><xcmd cmd="replace-cert" cn="'$RUCKUS_HOST'"/></ajax-request>'
   _post "$_replace_cert_ajax" "$_base_url/_cmdstat.jsp" >/dev/null
   
-  info "Rebooting"
+  _info "Rebooting"
   _cert_reboot_ajax='<ajax-request action="docmd" comp="worker" updater="rid.0.5" xcmd="cert-reboot" checkAbility="6"><xcmd cmd="cert-reboot" action="undefined"/></ajax-request>'
   _post "$_cert_reboot_ajax" "$_base_url/_cmdstat.jsp" >/dev/null
   
