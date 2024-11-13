@@ -68,7 +68,7 @@ ruckus_deploy() {
   export HTTPS_INSECURE=1
   export ACME_HTTP_NO_REDIRECTS=1
 
-  _info Discovering the login URL
+  _info "Discovering the login URL"
   _get "https://$RUCKUS_HOST" >/dev/null
   _login_url="$(_response_header 'Location')"
   if [ -n "$_login_url" ]; then
@@ -98,7 +98,7 @@ ruckus_deploy() {
     return 1
   fi
  
-  _info Login
+  _info "Login"
   _username_encoded="$(printf "%s" "$RUCKUS_USER" | _url_encode)"
   _password_encoded="$(printf "%s" "$RUCKUS_PASS" | _url_encode)"
   _login_query="$(printf "%s" "username=${_username_encoded}&password=${_password_encoded}&ok=Log+In")"
@@ -110,10 +110,10 @@ ruckus_deploy() {
     return 1
   fi
   
-  _info Collect Session Cookie
+  _info "Collect Session Cookie"
   _H1="Cookie: $(_response_cookie)"
   export _H1
-  _info Collect CSRF Token
+  _info "Collect CSRF Token"
   _H2="X-CSRF-Token: $(_response_header 'HTTP_X_CSRF_TOKEN')"
   export _H2
 
