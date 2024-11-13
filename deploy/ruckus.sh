@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 # Here is a script to deploy cert to Ruckus ZoneDirector / Unleashed.
-# 
+#
 # Public domain, 2024, Tony Rielly <https://github.com/ms264556>
 #
 # ```sh
@@ -84,20 +84,20 @@ ruckus_deploy() {
     _err "Connection failed: couldn't find login page."
     return 1
   fi
-  
+
   _base_url=$(dirname "$_login_url")
   _login_page=$(basename "$_login_url")
 
-   if [ "$_login_page" = "index.html" ]; then
+  if [ "$_login_page" = "index.html" ]; then
     _err "Connection temporarily unavailable: Unleashed Rebuilding."
     return 1
   fi
 
-   if [ "$_login_page" = "wizard.jsp" ]; then
+  if [ "$_login_page" = "wizard.jsp" ]; then
     _err "Connection failed: Setup Wizard not complete."
     return 1
   fi
- 
+
   _info "Login"
   _username_encoded="$(printf "%s" "$RUCKUS_USER" | _url_encode)"
   _password_encoded="$(printf "%s" "$RUCKUS_PASS" | _url_encode)"
@@ -109,7 +109,7 @@ ruckus_deploy() {
     _err "Login failed: incorrect credentials."
     return 1
   fi
-  
+
   _info "Collect Session Cookie"
   _H1="Cookie: $(_response_cookie)"
   export _H1
@@ -119,27 +119,27 @@ ruckus_deploy() {
 
   _info "Uploading certificate"
   _post_upload "uploadcert" "$_cfullchain"
-  
+
   _info "Uploading private key"
   _post_upload "uploadprivatekey" "$_ckey"
 
   _info "Replacing certificate"
   _replace_cert_ajax='<ajax-request action="docmd" comp="system" updater="rid.0.5" xcmd="replace-cert" checkAbility="6" timeout="-1"><xcmd cmd="replace-cert" cn="'$RUCKUS_HOST'"/></ajax-request>'
   _post "$_replace_cert_ajax" "$_base_url/_cmdstat.jsp" >/dev/null
-  
+
   _info "Rebooting"
   _cert_reboot_ajax='<ajax-request action="docmd" comp="worker" updater="rid.0.5" xcmd="cert-reboot" checkAbility="6"><xcmd cmd="cert-reboot" action="undefined"/></ajax-request>'
   _post "$_cert_reboot_ajax" "$_base_url/_cmdstat.jsp" >/dev/null
-  
+
   return 0
 }
 
 _response_code() {
-  < "$HTTP_HEADER" _egrep_o "^HTTP[^ ]* .*$" | cut -d " " -f 2-100 | tr -d "\f\n" | _egrep_o "^[0-9]*"
+  _egrep_o <"$HTTP_HEADER" "^HTTP[^ ]* .*$" | cut -d " " -f 2-100 | tr -d "\f\n" | _egrep_o "^[0-9]*"
 }
 
 _response_header() {
-    < "$HTTP_HEADER" grep -i "^$1:" | cut -d ':' -f 2- | tr -d "\r\n\t "
+  grep <"$HTTP_HEADER" -i "^$1:" | cut -d ':' -f 2- | tr -d "\r\n\t "
 }
 
 _response_cookie() {
@@ -149,9 +149,9 @@ _response_cookie() {
 _post_upload() {
   _post_action="$1"
   _post_file="$2"
-  
+
   _post_boundary="----FormBoundary$(date "+%s%N")"
-  
+
   _post_data="$({
     printf -- "--%s\r\n" "$_post_boundary"
     printf -- "Content-Disposition: form-data; name=\"u\"; filename=\"%s\"\r\n" "$_post_action"
