@@ -65,7 +65,6 @@ ruckus_deploy() {
   _debug RUCKUS_USER "$RUCKUS_USER"
   _secure_debug RUCKUS_PASS "$RUCKUS_PASS"
 
-  export HTTPS_INSECURE=1
   export ACME_HTTP_NO_REDIRECTS=1
 
   _info "Discovering the login URL"
