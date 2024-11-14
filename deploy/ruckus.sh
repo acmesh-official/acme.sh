@@ -74,8 +74,8 @@ ruckus_deploy() {
     _login_path=$(echo "$_login_url" | sed 's|https\?://[^/]\+||')
     if [ -z "$_login_path" ]; then
       # redirect was to a different host
-      _get "$_login_url" >/dev/null
-      _login_url="$(_response_header 'Location')"
+      _err "Connection failed: redirected to a different host. Configure Unleashed with a Preferred Master or Management Interface."
+      return 1
     fi
   fi
 
@@ -142,7 +142,7 @@ _response_header() {
 }
 
 _response_cookie() {
-  _response_header 'Set-Cookie' | awk -F';' '{for(i=1;i<=NF;i++) if (tolower($i) !~ /(path|domain|expires|max-age|secure|httponly|samesite)/) printf "%s; ", $i}' | sed 's/; $//'
+  _response_header 'Set-Cookie' | sed 's/;.*//'
 }
 
 _post_upload() {
