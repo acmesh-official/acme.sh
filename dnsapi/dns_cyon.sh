@@ -241,9 +241,10 @@ _cyon_add_txt() {
 
   add_txt_message="$(printf "%s" "${add_txt_response}" | _cyon_get_response_message)"
   add_txt_status="$(printf "%s" "${add_txt_response}" | _cyon_get_response_status)"
+  add_txt_validation="$(printf "%s" "${add_txt_response}" | _cyon_get_validation_status)"
 
   # Bail if adding TXT entry fails.
-  if [ "${add_txt_status}" != "true" ]; then
+  if [ "${add_txt_status}" != "true" ] || [ "${add_txt_validation}" != "true" ] ; then
     _err "    ${add_txt_message}"
     _err ""
     return 1
@@ -306,6 +307,10 @@ _cyon_get_response_message() {
 
 _cyon_get_response_status() {
   _egrep_o '"status":\w*' | cut -d : -f 2
+}
+
+_cyon_get_validation_status() {
+  _egrep_o '"valid":\w*' | cut -d : -f 2
 }
 
 _cyon_get_response_success() {
