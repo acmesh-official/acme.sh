@@ -232,7 +232,7 @@ _cyon_add_txt() {
   _info "  - Adding DNS TXT entry..."
 
   add_txt_url="https://my.cyon.ch/domain/dnseditor/add-record-async"
-  add_txt_data="zone=${fulldomain_idn}.&ttl=900&type=TXT&value=${txtvalue}"
+  add_txt_data="name=${fulldomain_idn}.&ttl=900&type=TXT&dnscontent=${txtvalue}"
 
   add_txt_response="$(_post "$add_txt_data" "$add_txt_url")"
   _debug add_txt_response "${add_txt_response}"
