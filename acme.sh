@@ -1628,6 +1628,11 @@ _time2str() {
     return
   fi
 
+  #Omnios
+  if date -u -r "$1" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null; then
+    return
+  fi
+
   #Solaris
   if printf "%(%Y-%m-%dT%H:%M:%SZ)T\n" $1 2>/dev/null; then
     return
