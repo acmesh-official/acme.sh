@@ -3,14 +3,31 @@
 # Helper function: Perform a GET request
 _get() {
   local url=$1
-  curl -s -H "Authorization: Bearer $U20I_Bearer" "$url"
+  local Bearer=$2
+  curl -s -H "Authorization: Bearer $Bearer" "$url"
 }
 
 # Helper function: Perform a POST request
 _post() {
   local data=$1
   local url=$2
-  curl -s -X POST -H "Authorization: Bearer $U20I_Bearer" -H "Content-Type: application/json" -d "$data" "$url"
+  local Bearer=$3
+  curl -s -X POST -H "Authorization: Bearer $Bearer" -H "Content-Type: application/json" -d "$data" "$url"
+}
+
+
+# Helper function to parse arguments
+_parse_arguments() {
+  for arg in "$@"; do
+    case "$arg" in
+      --bearer=*)
+        _bearer="${arg#*=}"
+        ;;
+      --debug)
+        debug=true
+        ;;
+    esac
+  done
 }
 
 # Add a TXT record to 20i DNS
@@ -18,8 +35,14 @@ dns_20i_add() {
   local fulldomain=$1
   local txtvalue=$2
 
-  if [ -z "$U20I_Bearer" ]; then
-    echo "Error: U20I_Bearer must be set in the environment."
+  # Parse arguments for bearer token or other credentials
+  _parse_arguments "$@"
+
+  # Use the passed bearer token or fallback to environment variable
+  local bearer="${_bearer:-$U20I_Bearer}"
+
+  if [ -z "$bearer" ]; then
+    echo "Error: Bearer token must be provided using --bearer or U20I_Bearer environment variable."
     return 1
   fi
 
@@ -30,7 +53,7 @@ dns_20i_add() {
   local subdomain="_acme-challenge"
 
   # Check if the TXT record already exists
-  local dns_response=$(_get "https://api.20i.com/domain/$domain/dns")
+  local dns_response=$(_get "https://api.20i.com/domain/$domain/dns" $bearer)
   if echo "$dns_response" | jq -e '.error' > /dev/null 2>&1; then
     local error_message=$(echo "$dns_response" | jq -r '.error.message')
     echo "Error retrieving DNS records: $error_message"
@@ -58,7 +81,7 @@ EOF
   )
 
   # Make API request to add the TXT record
-  local add_response=$(_post "$payload" "https://api.20i.com/domain/$domain/dns")
+  local add_response=$(_post "$payload" "https://api.20i.com/domain/$domain/dns" $bearer)
   if echo "$add_response" | jq -e '.error' > /dev/null 2>&1; then
     local error_message=$(echo "$add_response" | jq -r '.error.message')
     echo "Error adding TXT record: $error_message"
@@ -74,8 +97,14 @@ dns_20i_rm() {
   local fulldomain=$1
   local txtvalue=$2
 
-  if [ -z "$U20I_Bearer" ]; then
-    echo "Error: U20I_Bearer must be set in the environment."
+    # Parse arguments for bearer token or other credentials
+  _parse_arguments "$@"
+
+  # Use the passed bearer token or fallback to environment variable
+  local bearer="${_bearer:-$U20I_Bearer}"
+
+  if [ -z "$bearer" ]; then
+    echo "Error: Bearer token must be provided using --bearer or U20I_Bearer environment variable."
     return 1
   fi
 
@@ -85,7 +114,7 @@ dns_20i_rm() {
   local domain=$(echo "$fulldomain" | sed -r 's/^[^\.]+\.(.+)$/\1/')
 
   # Get existing DNS records
-  local dns_response=$(_get "https://api.20i.com/domain/$domain/dns")
+  local dns_response=$(_get "https://api.20i.com/domain/$domain/dns" $bearer)
   if echo "$dns_response" | jq -e '.error' > /dev/null 2>&1; then
     local error_message=$(echo "$dns_response" | jq -r '.error.message')
     echo "Error retrieving DNS records: $error_message"
@@ -113,7 +142,7 @@ EOF
   )
 
   # Make API request to remove the TXT record
-  local remove_response=$(_post "$payload" "https://api.20i.com/domain/$domain/dns")
+  local remove_response=$(_post "$payload" "https://api.20i.com/domain/$domain/dns" $bearer)
   if echo "$remove_response" | jq -e '.error' > /dev/null 2>&1; then
     local error_message=$(echo "$remove_response" | jq -r '.error.message')
     echo "Error removing TXT record: $error_message"
