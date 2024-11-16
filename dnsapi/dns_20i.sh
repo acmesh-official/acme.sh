@@ -16,20 +16,6 @@ _post() {
 }
 
 
-# Helper function to parse arguments
-_parse_arguments() {
-  for arg in "$@"; do
-    case "$arg" in
-      --bearer=*)
-        _bearer="${arg#*=}"
-        ;;
-      --debug)
-        debug=true
-        ;;
-    esac
-  done
-}
-
 # Add a TXT record to 20i DNS
 dns_20i_add() {
   local fulldomain=$1
