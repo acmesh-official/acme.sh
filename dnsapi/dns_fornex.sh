@@ -56,7 +56,7 @@ dns_fornex_rm() {
   fi
 
   _debug "Getting txt records"
-  _rest GET "dns/domain/$_domain/entry_set"
+  _rest GET "dns/domain/$_domain/entry_set?type=TXT&q=_acme-challenge"
 
   if ! _contains "$response" "$txtvalue"; then
     _err "Txt record not found"
