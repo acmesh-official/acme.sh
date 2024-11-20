@@ -66,7 +66,7 @@ dns_fornex_rm() {
   _record_id="$(echo "$response" | _egrep_o "\{[^\{]*\"value\"*:*\"$txtvalue\"[^\}]*\}" | sed -n -e 's#.*"id":\([0-9]*\).*#\1#p')"
   _debug "_record_id" "$_record_id"
   if [ -z "$_record_id" ]; then
-    _err "can not find _record_id
+    _err "can not find _record_id"
     return 1
   fi
 
