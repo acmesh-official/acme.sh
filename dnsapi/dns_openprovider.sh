@@ -38,7 +38,7 @@ dns_openprovider_add() {
     addzonerecordrequestparameters="dns/zones/$_domain_name"
     addzonerecordrequestbody="{\"id\":$_domain_id,\"name\":\"$_domain_name\",\"records\":{\"add\":[{\"name\":\"$_sub_domain\",\"ttl\":900,\"type\":\"TXT\",\"value\":\"$txtvalue\"}]}}"
     
-    if _openprovider_rest PUT $addzonerecordrequestparameters $addzonerecordrequestbody; then
+    if _openprovider_rest PUT "$addzonerecordrequestparameters" "$addzonerecordrequestbody"; then
       if _contains "$response" "\"success\":true"; then
         return 0
       elif _contains "$response" "\"Duplicate record\""; then
@@ -73,7 +73,7 @@ dns_openprovider_rm() {
     removezonerecordrequestparameters="dns/zones/$_domain_name"
     removezonerecordrequestbody="{\"id\":$_domain_id,\"name\":\"$_domain_name\",\"records\":{\"remove\":[{\"name\":\"$_sub_domain\",\"ttl\":900,\"type\":\"TXT\",\"value\":\"\\\"$txtvalue\\\"\"}]}}"
     
-    if _openprovider_rest PUT $removezonerecordrequestparameters $removezonerecordrequestbody; then
+    if _openprovider_rest PUT "$removezonerecordrequestparameters" "$removezonerecordrequestbody"; then
       if _contains "$response" "\"success\":true"; then
         return 0
       else
