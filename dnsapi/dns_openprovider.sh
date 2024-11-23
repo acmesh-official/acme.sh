@@ -1,246 +1,198 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
-dns_openprovider_info='OpenProvider.eu
-Site: OpenProvider.eu
-Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_openprovider
+dns_openprovider_info='OpenProvider
+Site: 
+  OpenProvider.eu 
+  OpenProvider.com
+Docs: 
+  github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_openprovider
 Options:
- OPENPROVIDER_USER Username
- OPENPROVIDER_PASSWORDHASH Password hash
-Issues: github.com/acmesh-official/acme.sh/issues/2104
-Author: Sylvia van Os
+ OPENPROVIDER_USERNAME Openprovider Account Username
+ OPENPROVIDER_PASSWORD Openprovider Account Password
+Issues: 
+  github.com/acmesh-official/acme.sh/issues/2104
+Author: 
+  Sylvia van Os (original SOAP/XML API)
+  Lambiek12 (converted to REST API)
 '
 
-OPENPROVIDER_API="https://api.openprovider.eu/"
-#OPENPROVIDER_API="https://api.cte.openprovider.eu/" # Test API
+OPENPROVIDER_API_URL="https://api.openprovider.eu/v1beta"
 
 ########  Public functions #####################
 
-#Usage: dns_openprovider_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
-dns_openprovider_add() {
-  fulldomain="$1"
-  txtvalue="$2"
+# Usage: add  _acme-challenge.www.domain.com  "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+# Used to add txt record
+dns_openprovider_add() { 
+  fulldomain=$1
+  txtvalue=$2
 
-  OPENPROVIDER_USER="${OPENPROVIDER_USER:-$(_readaccountconf_mutable OPENPROVIDER_USER)}"
-  OPENPROVIDER_PASSWORDHASH="${OPENPROVIDER_PASSWORDHASH:-$(_readaccountconf_mutable OPENPROVIDER_PASSWORDHASH)}"
-
-  if [ -z "$OPENPROVIDER_USER" ] || [ -z "$OPENPROVIDER_PASSWORDHASH" ]; then
-    _err "You didn't specify the openprovider user and/or password hash."
+  _openprovider_prepare_credentials || return 1
+  
+  _debug "Try fetch OpenProvider DNS zone details"
+  if ! _get_dns_zone "$fulldomain"; then
+    _err "DNS zone not found within configured OpenProvider account."
     return 1
   fi
 
-  # save the username and password to the account conf file.
-  _saveaccountconf_mutable OPENPROVIDER_USER "$OPENPROVIDER_USER"
-  _saveaccountconf_mutable OPENPROVIDER_PASSWORDHASH "$OPENPROVIDER_PASSWORDHASH"
-
-  _debug "First detect the root zone"
-  if ! _get_root "$fulldomain"; then
-    _err "invalid domain"
-    return 1
-  fi
-
-  _debug _domain_name "$_domain_name"
-  _debug _domain_extension "$_domain_extension"
-
-  _debug "Getting current records"
-  existing_items=""
-  results_retrieved=0
-  while true; do
-    _openprovider_request "$(printf '<searchZoneRecordDnsRequest><name>%s.%s</name><offset>%s</offset></searchZoneRecordDnsRequest>' "$_domain_name" "$_domain_extension" "$results_retrieved")"
-
-    items="$response"
-    while true; do
-      item="$(echo "$items" | _egrep_o '<openXML>.*<\/openXML>' | sed -n 's/.*\(<item>.*<\/item>\).*/\1/p')"
-      _debug existing_items "$existing_items"
-      _debug results_retrieved "$results_retrieved"
-      _debug item "$item"
-
-      if [ -z "$item" ]; then
-        break
-      fi
-
-      tmpitem="$(echo "$item" | sed 's/\*/\\*/g')"
-      items="$(echo "$items" | sed "s|${tmpitem}||")"
-
-      results_retrieved="$(_math "$results_retrieved" + 1)"
-      new_item="$(echo "$item" | sed -n 's/.*<item>.*\(<name>\(.*\)\.'"$_domain_name"'\.'"$_domain_extension"'<\/name>.*\(<type>.*<\/type>\).*\(<value>.*<\/value>\).*\(<prio>.*<\/prio>\).*\(<ttl>.*<\/ttl>\)\).*<\/item>.*/<item><name>\2<\/name>\3\4\5\6<\/item>/p')"
-      if [ -z "$new_item" ]; then
-        # Domain apex
-        new_item="$(echo "$item" | sed -n 's/.*<item>.*\(<name>\(.*\)'"$_domain_name"'\.'"$_domain_extension"'<\/name>.*\(<type>.*<\/type>\).*\(<value>.*<\/value>\).*\(<prio>.*<\/prio>\).*\(<ttl>.*<\/ttl>\)\).*<\/item>.*/<item><name>\2<\/name>\3\4\5\6<\/item>/p')"
-      fi
-
-      if [ -z "$(echo "$new_item" | _egrep_o ".*<type>(A|AAAA|CNAME|MX|SPF|SRV|TXT|TLSA|SSHFP|CAA)<\/type>.*")" ]; then
-        _debug "not an allowed record type, skipping" "$new_item"
-        continue
-      fi
-
-      existing_items="$existing_items$new_item"
-    done
-
-    total="$(echo "$response" | _egrep_o '<total>.*?<\/total>' | sed -n 's/.*<total>\(.*\)<\/total>.*/\1/p')"
-
-    _debug total "$total"
-    if [ "$results_retrieved" -eq "$total" ]; then
-      break
-    fi
-  done
-
-  _debug "Creating acme record"
-  acme_record="$(echo "$fulldomain" | sed -e "s/.$_domain_name.$_domain_extension$//")"
-  _openprovider_request "$(printf '<modifyZoneDnsRequest><domain><name>%s</name><extension>%s</extension></domain><type>master</type><records><array>%s<item><name>%s</name><type>TXT</type><value>%s</value><ttl>600</ttl></item></array></records></modifyZoneDnsRequest>' "$_domain_name" "$_domain_extension" "$existing_items" "$acme_record" "$txtvalue")"
-
-  return 0
-}
-
-#Usage: fulldomain txtvalue
-#Remove the txt record after validation.
-dns_openprovider_rm() {
-  fulldomain="$1"
-  txtvalue="$2"
-
-  OPENPROVIDER_USER="${OPENPROVIDER_USER:-$(_readaccountconf_mutable OPENPROVIDER_USER)}"
-  OPENPROVIDER_PASSWORDHASH="${OPENPROVIDER_PASSWORDHASH:-$(_readaccountconf_mutable OPENPROVIDER_PASSWORDHASH)}"
-
-  if [ -z "$OPENPROVIDER_USER" ] || [ -z "$OPENPROVIDER_PASSWORDHASH" ]; then
-    _err "You didn't specify the openprovider user and/or password hash."
-    return 1
-  fi
-
-  # save the username and password to the account conf file.
-  _saveaccountconf_mutable OPENPROVIDER_USER "$OPENPROVIDER_USER"
-  _saveaccountconf_mutable OPENPROVIDER_PASSWORDHASH "$OPENPROVIDER_PASSWORDHASH"
-
-  _debug "First detect the root zone"
-  if ! _get_root "$fulldomain"; then
-    _err "invalid domain"
-    return 1
-  fi
-
-  _debug _domain_name "$_domain_name"
-  _debug _domain_extension "$_domain_extension"
-
-  _debug "Getting current records"
-  existing_items=""
-  results_retrieved=0
-  while true; do
-    _openprovider_request "$(printf '<searchZoneRecordDnsRequest><name>%s.%s</name><offset>%s</offset></searchZoneRecordDnsRequest>' "$_domain_name" "$_domain_extension" "$results_retrieved")"
-
-    # Remove acme records from items
-    items="$response"
-    while true; do
-      item="$(echo "$items" | _egrep_o '<openXML>.*<\/openXML>' | sed -n 's/.*\(<item>.*<\/item>\).*/\1/p')"
-      _debug existing_items "$existing_items"
-      _debug results_retrieved "$results_retrieved"
-      _debug item "$item"
-
-      if [ -z "$item" ]; then
-        break
-      fi
-
-      tmpitem="$(echo "$item" | sed 's/\*/\\*/g')"
-      items="$(echo "$items" | sed "s|${tmpitem}||")"
-
-      results_retrieved="$(_math "$results_retrieved" + 1)"
-      if ! echo "$item" | grep -v "$fulldomain"; then
-        _debug "acme record, skipping" "$item"
-        continue
-      fi
-
-      new_item="$(echo "$item" | sed -n 's/.*<item>.*\(<name>\(.*\)\.'"$_domain_name"'\.'"$_domain_extension"'<\/name>.*\(<type>.*<\/type>\).*\(<value>.*<\/value>\).*\(<prio>.*<\/prio>\).*\(<ttl>.*<\/ttl>\)\).*<\/item>.*/<item><name>\2<\/name>\3\4\5\6<\/item>/p')"
-
-      if [ -z "$new_item" ]; then
-        # domain apex
-        new_item="$(echo "$item" | sed -n 's/.*<item>.*\(<name>\(.*\)'"$_domain_name"'\.'"$_domain_extension"'<\/name>.*\(<type>.*<\/type>\).*\(<value>.*<\/value>\).*\(<prio>.*<\/prio>\).*\(<ttl>.*<\/ttl>\)\).*<\/item>.*/<item><name>\2<\/name>\3\4\5\6<\/item>/p')"
-      fi
-
-      if [ -z "$(echo "$new_item" | _egrep_o ".*<type>(A|AAAA|CNAME|MX|SPF|SRV|TXT|TLSA|SSHFP|CAA)<\/type>.*")" ]; then
-        _debug "not an allowed record type, skipping" "$new_item"
-        continue
-      fi
-
-      existing_items="$existing_items$new_item"
-    done
-
-    total="$(echo "$response" | _egrep_o '<total>.*?<\/total>' | sed -n 's/.*<total>\(.*\)<\/total>.*/\1/p')"
-
-    _debug total "$total"
-
-    if [ "$results_retrieved" -eq "$total" ]; then
-      break
-    fi
-  done
-
-  _debug "Removing acme record"
-  _openprovider_request "$(printf '<modifyZoneDnsRequest><domain><name>%s</name><extension>%s</extension></domain><type>master</type><records><array>%s</array></records></modifyZoneDnsRequest>' "$_domain_name" "$_domain_extension" "$existing_items")"
-
-  return 0
-}
-
-####################  Private functions below ##################################
-#_acme-challenge.www.domain.com
-#returns
-# _domain_name=domain
-# _domain_extension=com
-_get_root() {
-  domain=$1
-  i=2
-
-  results_retrieved=0
-  while true; do
-    h=$(echo "$domain" | cut -d . -f "$i"-100)
-    _debug h "$h"
-    if [ -z "$h" ]; then
-      #not valid
-      return 1
-    fi
-
-    _openprovider_request "$(printf '<searchDomainRequest><domainNamePattern>%s</domainNamePattern><offset>%s</offset></searchDomainRequest>' "$(echo "$h" | cut -d . -f 1)" "$results_retrieved")"
-
-    items="$response"
-    while true; do
-      item="$(echo "$items" | _egrep_o '<openXML>.*<\/openXML>' | sed -n 's/.*\(<domain>.*<\/domain>\).*/\1/p')"
-      _debug existing_items "$existing_items"
-      _debug results_retrieved "$results_retrieved"
-      _debug item "$item"
-
-      if [ -z "$item" ]; then
-        break
-      fi
-
-      tmpitem="$(echo "$item" | sed 's/\*/\\*/g')"
-      items="$(echo "$items" | sed "s|${tmpitem}||")"
-
-      results_retrieved="$(_math "$results_retrieved" + 1)"
-
-      _domain_name="$(echo "$item" | sed -n 's/.*<domain>.*<name>\(.*\)<\/name>.*<\/domain>.*/\1/p')"
-      _domain_extension="$(echo "$item" | sed -n 's/.*<domain>.*<extension>\(.*\)<\/extension>.*<\/domain>.*/\1/p')"
-      _debug _domain_name "$_domain_name"
-      _debug _domain_extension "$_domain_extension"
-      if [ "$_domain_name.$_domain_extension" = "$h" ]; then
+  if [ -n "$_domain_id" ]; then
+    addzonerecordrequestparameters="dns/zones/$_domain_name"
+    addzonerecordrequestbody="{\"id\":$_domain_id,\"name\":\"$_domain_name\",\"records\":{\"add\":[{\"name\":\"$_sub_domain\",\"ttl\":900,\"type\":\"TXT\",\"value\":\"$txtvalue\"}]}}"
+    
+    if _openprovider_rest PUT $addzonerecordrequestparameters $addzonerecordrequestbody; then
+      if _contains "$response" "\"success\":true"; then
         return 0
+      elif _contains "$response" "\"Duplicate record\""; then
+        _debug "Record already existed"
+        return 0
+      else
+        _err "Adding TXT record failed due to errors."
+        return 1
       fi
-    done
-
-    total="$(echo "$response" | _egrep_o '<total>.*?<\/total>' | sed -n 's/.*<total>\(.*\)<\/total>.*/\1/p')"
-
-    _debug total "$total"
-
-    if [ "$results_retrieved" -eq "$total" ]; then
-      results_retrieved=0
-      i="$(_math "$i" + 1)"
     fi
-  done
+  fi
+
+  _err "Adding TXT record failed due to errors."
   return 1
 }
 
-_openprovider_request() {
-  request_xml=$1
+# Usage: rm  _acme-challenge.www.domain.com  "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+# Used to remove the txt record after validation
+dns_openprovider_rm() { 
+  fulldomain=$1
+  txtvalue=$2
 
-  xml_prefix='<?xml version="1.0" encoding="UTF-8"?>'
-  xml_content=$(printf '<openXML><credentials><username>%s</username><hash>%s</hash></credentials>%s</openXML>' "$OPENPROVIDER_USER" "$OPENPROVIDER_PASSWORDHASH" "$request_xml")
-  response="$(_post "$(echo "$xml_prefix$xml_content" | tr -d '\n')" "$OPENPROVIDER_API" "" "POST" "application/xml")"
-  _debug response "$response"
-  if ! _contains "$response" "<openXML><reply><code>0</code>.*</reply></openXML>"; then
-    _err "API request failed."
+  _openprovider_prepare_credentials || return 1
+
+  _debug "Try fetch OpenProvider DNS zone details"
+  if ! _get_dns_zone "$fulldomain"; then
+    _err "DNS zone not found within configured OpenProvider account."
     return 1
   fi
+  
+  if [ -n "$_domain_id" ]; then
+    removezonerecordrequestparameters="dns/zones/$_domain_name"
+    removezonerecordrequestbody="{\"id\":$_domain_id,\"name\":\"$_domain_name\",\"records\":{\"remove\":[{\"name\":\"$_sub_domain\",\"ttl\":900,\"type\":\"TXT\",\"value\":\"\\\"$txtvalue\\\"\"}]}}"
+    
+    if _openprovider_rest PUT $removezonerecordrequestparameters $removezonerecordrequestbody; then
+      if _contains "$response" "\"success\":true"; then
+        return 0
+      else
+        _err "Removing TXT record failed due to errors."
+        return 1
+      fi
+    fi
+  fi
+
+  _err "Removing TXT record failed due to errors."
+  return 1
+}
+
+####################  OpenProvider API common functions  ####################
+_openprovider_prepare_credentials() {
+  OPENPROVIDER_USERNAME="${OPENPROVIDER_USERNAME:-$(_readaccountconf_mutable OPENPROVIDER_USERNAME)}"
+  OPENPROVIDER_PASSWORD="${OPENPROVIDER_PASSWORD:-$(_readaccountconf_mutable OPENPROVIDER_PASSWORD)}"
+
+  if [ -z "$OPENPROVIDER_USERNAME" ] || [ -z "$OPENPROVIDER_PASSWORD" ]; then
+    OPENPROVIDER_USERNAME=""
+    OPENPROVIDER_PASSWORD=""
+    _err "You didn't specify the Openprovider username or password yet."
+    return 1
+  fi
+
+  #save the credentials to the account conf file.
+  _saveaccountconf_mutable OPENPROVIDER_USERNAME "$OPENPROVIDER_USERNAME"
+  _saveaccountconf_mutable OPENPROVIDER_PASSWORD "$OPENPROVIDER_PASSWORD"
+}
+
+_openprovider_rest(){
+  httpmethod=$1
+  queryparameters=$2
+  requestbody=$3
+
+  _openprovider_rest_login
+  if [ -z "$openproviderauthtoken" ]; then
+    _err "Unable to fetch authentication token from Openprovider API."
+    return 1
+  fi
+
+  export _H1="Content-Type: application/json"
+  export _H2="Accept: application/json"  
+  export _H3="Authorization: Bearer $openproviderauthtoken"  
+
+  _debug httpmethod "$httpmethod"
+  _debug requestfullurl "$OPENPROVIDER_API_URL/$queryparameters"
+  _debug queryparameters "$queryparameters"
+  
+  if [ "$httpmethod" != "GET" ]; then
+    _debug requestbody "$requestbody"   
+
+    response="$(_post "$requestbody" "$OPENPROVIDER_API_URL/$queryparameters" "" "$httpmethod")"
+  else
+    response="$(_get "$OPENPROVIDER_API_URL/$queryparameters")"
+  fi
+
+  if [ "$?" != "0" ]; then
+    _err "No valid parameters supplied for Openprovider API: Error $queryparameters"
+    return 1
+  fi
+
+  _debug2 response "$response"
+
+  return 0
+}
+
+_openprovider_rest_login(){
+  export _H1="Content-Type: application/json"
+  export _H2="Accept: application/json"
+
+  loginrequesturl="$OPENPROVIDER_API_URL/auth/login"
+  loginrequestbody="{\"ip\":\"0.0.0.0\",\"password\":\"$OPENPROVIDER_PASSWORD\",\"username\":\"$OPENPROVIDER_USERNAME\"}"
+  loginresponse="$(_post "$loginrequestbody" "$loginrequesturl" "" "POST")"
+  
+  openproviderauthtoken="$(printf "%s\n" "$loginresponse" | _egrep_o '"token" *: *"[^"]*' | _head_n 1 | sed 's#^"token" *: *"##')"
+  _debug openproviderauthtoken "$openproviderauthtoken"
+
+  export openproviderauthtoken
+}
+
+####################  Private functions ##################################
+
+# Usage: _get_dns_zone _acme-challenge.www.domain.com
+# Returns:
+# _domain_id=123456789
+# _domain_name=domain.com
+# _sub_domain=_acme-challenge.www
+_get_dns_zone(){
+  domain=$1
+  i=1
+  p=1
+
+while true; do
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
+    if [ -z "$h" ]; then
+      # Empty value not allowed
+      return 1
+    fi
+    
+    if ! _openprovider_rest GET "dns/zones/$h" ""; then
+      return 1
+    fi
+
+    if _contains "$response" "\"name\":\"$h\""; then
+      _domain_id="$(printf "%s\n" "$response" | _egrep_o '"id" *: *[^,]*' | _head_n 1 | sed 's#^"id" *: *##')"
+      _debug _domain_id "$_domain_id"
+
+      _domain_name="$h"
+      _debug _domain_name "$_domain_name"
+
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
+      _debug _sub_domain "$_sub_domain"
+      return 0
+    fi
+
+    p=$i
+    i=$(_math "$i" + 1)
+  done
+
+  return 1
 }
