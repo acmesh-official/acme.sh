@@ -22,12 +22,12 @@ OPENPROVIDER_API_URL="https://api.openprovider.eu/v1beta"
 
 # Usage: add  _acme-challenge.www.domain.com  "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 # Used to add txt record
-dns_openprovider_add() { 
+dns_openprovider_add() {
   fulldomain=$1
   txtvalue=$2
 
   _openprovider_prepare_credentials || return 1
-  
+
   _debug "Try fetch OpenProvider DNS zone details"
   if ! _get_dns_zone "$fulldomain"; then
     _err "DNS zone not found within configured OpenProvider account."
@@ -37,7 +37,7 @@ dns_openprovider_add() {
   if [ -n "$_domain_id" ]; then
     addzonerecordrequestparameters="dns/zones/$_domain_name"
     addzonerecordrequestbody="{\"id\":$_domain_id,\"name\":\"$_domain_name\",\"records\":{\"add\":[{\"name\":\"$_sub_domain\",\"ttl\":900,\"type\":\"TXT\",\"value\":\"$txtvalue\"}]}}"
-    
+
     if _openprovider_rest PUT "$addzonerecordrequestparameters" "$addzonerecordrequestbody"; then
       if _contains "$response" "\"success\":true"; then
         return 0
@@ -57,7 +57,7 @@ dns_openprovider_add() {
 
 # Usage: rm  _acme-challenge.www.domain.com  "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 # Used to remove the txt record after validation
-dns_openprovider_rm() { 
+dns_openprovider_rm() {
   fulldomain=$1
   txtvalue=$2
 
@@ -68,11 +68,11 @@ dns_openprovider_rm() {
     _err "DNS zone not found within configured OpenProvider account."
     return 1
   fi
-  
+
   if [ -n "$_domain_id" ]; then
     removezonerecordrequestparameters="dns/zones/$_domain_name"
     removezonerecordrequestbody="{\"id\":$_domain_id,\"name\":\"$_domain_name\",\"records\":{\"remove\":[{\"name\":\"$_sub_domain\",\"ttl\":900,\"type\":\"TXT\",\"value\":\"\\\"$txtvalue\\\"\"}]}}"
-    
+
     if _openprovider_rest PUT "$removezonerecordrequestparameters" "$removezonerecordrequestbody"; then
       if _contains "$response" "\"success\":true"; then
         return 0
@@ -104,7 +104,7 @@ _openprovider_prepare_credentials() {
   _saveaccountconf_mutable OPENPROVIDER_PASSWORD "$OPENPROVIDER_PASSWORD"
 }
 
-_openprovider_rest(){
+_openprovider_rest() {
   httpmethod=$1
   queryparameters=$2
   requestbody=$3
@@ -116,15 +116,15 @@ _openprovider_rest(){
   fi
 
   export _H1="Content-Type: application/json"
-  export _H2="Accept: application/json"  
-  export _H3="Authorization: Bearer $openproviderauthtoken"  
+  export _H2="Accept: application/json"
+  export _H3="Authorization: Bearer $openproviderauthtoken"
 
   _debug httpmethod "$httpmethod"
   _debug requestfullurl "$OPENPROVIDER_API_URL/$queryparameters"
   _debug queryparameters "$queryparameters"
-  
+
   if [ "$httpmethod" != "GET" ]; then
-    _debug requestbody "$requestbody"   
+    _debug requestbody "$requestbody"
 
     response="$(_post "$requestbody" "$OPENPROVIDER_API_URL/$queryparameters" "" "$httpmethod")"
   else
@@ -141,14 +141,14 @@ _openprovider_rest(){
   return 0
 }
 
-_openprovider_rest_login(){
+_openprovider_rest_login() {
   export _H1="Content-Type: application/json"
   export _H2="Accept: application/json"
 
   loginrequesturl="$OPENPROVIDER_API_URL/auth/login"
   loginrequestbody="{\"ip\":\"0.0.0.0\",\"password\":\"$OPENPROVIDER_PASSWORD\",\"username\":\"$OPENPROVIDER_USERNAME\"}"
   loginresponse="$(_post "$loginrequestbody" "$loginrequesturl" "" "POST")"
-  
+
   openproviderauthtoken="$(printf "%s\n" "$loginresponse" | _egrep_o '"token" *: *"[^"]*' | _head_n 1 | sed 's#^"token" *: *"##')"
   _debug openproviderauthtoken "$openproviderauthtoken"
 
@@ -162,18 +162,18 @@ _openprovider_rest_login(){
 # _domain_id=123456789
 # _domain_name=domain.com
 # _sub_domain=_acme-challenge.www
-_get_dns_zone(){
+_get_dns_zone() {
   domain=$1
   i=1
   p=1
 
-while true; do
+  while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       # Empty value not allowed
       return 1
     fi
-    
+
     if ! _openprovider_rest GET "dns/zones/$h" ""; then
       return 1
     fi
