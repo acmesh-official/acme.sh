@@ -51,7 +51,7 @@ _ws_call() {
     _ws_response=$(midclt -K "$DEPLOY_TRUENAS_APIKEY" call "$1")
   fi
   _debug "_ws_response" "$_ws_response"
-  printf "%s" $_ws_response
+  printf "%s" "$_ws_response"
   return 0
 }
 
@@ -99,7 +99,7 @@ _ws_get_job_result() {
     then
       _ws_result="$(printf "%s" "$_ws_response" | jq '.[]."result"')"
       _debug "_ws_result" "$_ws_result"
-      printf "%s" $_ws_result
+      printf "%s" "$_ws_result"
       _ws_error="$(printf "%s" "$_ws_response" | jq '.[]."error"')"
       if [ "$_ws_error" != "null" ]
       then
@@ -175,7 +175,7 @@ truenas_ws_deploy() {
   then
     _err "Error calling system.ready:"
     _err "$_ws_response"
-    exit $_ws_re
+    exit $_ws_ret
   fi
 
   if [ "$_ws_response" != "TRUE" ]
@@ -196,7 +196,7 @@ truenas_ws_deploy() {
   _truenas_version=$(printf "%s" "$_ws_response" | jq -r '."version"' | cut -d '-' -f 3)
   _info "TrueNAS system: $_truenas_system"
   _info "TrueNAS version: $_truenas_version"
-  if [ "$_truenas_system" != "SCALE" ] && ["$_truenas_system" != "CORE" ]
+  if [ "$_truenas_system" != "SCALE" ] && [ "$_truenas_system" != "CORE" ]
   then
     _err "Cannot gather TrueNAS system. Nor CORE oder SCALE detected."
     exit 10
@@ -210,7 +210,6 @@ truenas_ws_deploy() {
   _ui_certificate_name=$(printf "%s"  "$_ws_response" | jq -r '."ui_certificate"."name"')
   _info "Current WebUI certificate ID: $_ui_certificate_id"
   _info "Current WebUI certificate name: $_ui_certificate_name"
-  _info "WebUI redirect to https: $_ui_http_redirect"
 
 ########## Upload new certificate
 
@@ -225,9 +224,10 @@ truenas_ws_deploy() {
     exit 3
   fi
   _ws_result=$(_ws_get_job_result "$_ws_jobid")
-  if [ $? -gt 0 ]
+  _ws_ret=$?
+  if [ $_ws_ret -gt 0 ]
   then
-    exit $?
+    exit $_ws_ret
   fi
   _debug "_ws_result" "$_ws_result"
   _new_certid=$(printf "%s" "$_ws_result" | jq -r '."id"')
@@ -251,11 +251,11 @@ truenas_ws_deploy() {
   then
     _info "Replace app certificates..."
     _ws_response=$(_ws_call "app.query")
-    for _app_name in $(printf "%s" $_ws_response | jq -r '.[]."name"')
+    for _app_name in $(printf "%s" "$_ws_response" | jq -r '.[]."name"')
     do
       _info "Checking app $_app_name..."
       _ws_response=$(_ws_call "app.config" "$_app_name")
-      if [ "$(printf "%s" $_ws_response | jq -r '."network" | has("certificate_id")')" = "true" ]
+      if [ "$(printf "%s" "$_ws_response" | jq -r '."network" | has("certificate_id")')" = "true" ]
       then
         _info "App has certificate option, setup new certificate..."
         _info "App will be redeployed after updating the certificate."
@@ -267,9 +267,10 @@ truenas_ws_deploy() {
           exit 3
         fi
         _ws_result=$(_ws_get_job_result "$_ws_jobid")
-         if [ $? -gt 0 ]
+        _ws_ret=$?
+         if [ $_ws_ret -gt 0 ]
          then
-           exit $?
+           exit $_ws_ret
          fi
         _debug "_ws_result" "$_ws_result"
         _info "App certificate replaced."
@@ -305,10 +306,11 @@ truenas_ws_deploy() {
     _err "No JobID returned from websocket method."
     exit 3
   fi
-  _ws_result=$(_ws_get_job_result $_ws_jobid)
-  if [ $? -gt 0 ]
+  _ws_result=$(_ws_get_job_result "$_ws_jobid")
+  _ws_ret=$?
+  if [ $_ws_ret -gt 0 ]
   then
-    exit $?
+    exit $_ws_ret
   fi
 
 
