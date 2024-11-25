@@ -38,16 +38,13 @@ _ws_call() {
   _debug "_ws_call arg1" "$1"
   _debug "_ws_call arg2" "$2"
   _debug "_ws_call arg3" "$3"
-  if [ $# -eq 3 ]
-  then
+  if [ $# -eq 3 ]; then
     _ws_response=$(midclt -K "$DEPLOY_TRUENAS_APIKEY" call "$1" "$2" "$3")
   fi
-  if [ $# -eq 2 ]
-  then
+  if [ $# -eq 2 ]; then
     _ws_response=$(midclt -K "$DEPLOY_TRUENAS_APIKEY" call "$1" "$2")
   fi
-  if [ $# -eq 1 ]
-  then
+  if [ $# -eq 1 ]; then
     _ws_response=$(midclt -K "$DEPLOY_TRUENAS_APIKEY" call "$1")
   fi
   _debug "_ws_response" "$_ws_response"
@@ -69,13 +66,12 @@ _ws_call() {
 #   1: false
 _ws_check_jobid() {
   case "$1" in
-    [0-9]*)
-      return 0
-      ;;
+  [0-9]*)
+    return 0
+    ;;
   esac
   return 1
 }
-
 
 # Wait for job to finish and return result as JSON
 # Usage:
@@ -91,18 +87,15 @@ _ws_check_jobid() {
 # Returns:
 #   n/a
 _ws_get_job_result() {
-  while true
-  do
+  while true; do
     sleep 2
     _ws_response=$(_ws_call "core.get_jobs" "[[\"id\", \"=\", $1]]")
-    if [ "$(printf "%s" "$_ws_response" | jq -r '.[]."state"')" != "RUNNING" ]
-    then
+    if [ "$(printf "%s" "$_ws_response" | jq -r '.[]."state"')" != "RUNNING" ]; then
       _ws_result="$(printf "%s" "$_ws_response" | jq '.[]."result"')"
       _debug "_ws_result" "$_ws_result"
       printf "%s" "$_ws_result"
       _ws_error="$(printf "%s" "$_ws_response" | jq '.[]."error"')"
-      if [ "$_ws_error" != "null" ]
-      then
+      if [ "$_ws_error" != "null" ]; then
         _err "Job $1 failed:"
         _err "$_ws_error"
         return 7
@@ -112,9 +105,6 @@ _ws_get_job_result() {
   done
   return 0
 }
-
-
-
 
 ########################
 ### Public functions ###
@@ -153,33 +143,30 @@ truenas_ws_deploy() {
   _debug _file_ca "$_file_ca"
   _debug _file_fullchain "$_file_fullchain"
 
-########## Environment check
+  ########## Environment check
 
   _info "Checking environment variables..."
   _getdeployconf DEPLOY_TRUENAS_APIKEY
   # Check API Key
-  if [ -z "$DEPLOY_TRUENAS_APIKEY" ]
-  then
+  if [ -z "$DEPLOY_TRUENAS_APIKEY" ]; then
     _err "TrueNAS API key not found, please set the DEPLOY_TRUENAS_APIKEY environment variable."
     return 1
   fi
   _secure_debug2 DEPLOY_TRUENAS_APIKEY "$DEPLOY_TRUENAS_APIKEY"
   _info "Environment variables: OK"
 
-########## Health check
+  ########## Health check
 
   _info "Checking TrueNAS health..."
   _ws_response=$(_ws_call "system.ready" | tr '[:lower:]' '[:upper:]')
   _ws_ret=$?
-  if [ $_ws_ret -gt 0 ]
-  then
+  if [ $_ws_ret -gt 0 ]; then
     _err "Error calling system.ready:"
     _err "$_ws_response"
     return $_ws_ret
   fi
 
-  if [ "$_ws_response" != "TRUE" ]
-  then
+  if [ "$_ws_response" != "TRUE" ]; then
     _err "TrueNAS is not ready."
     _err "Please check environment variables DEPLOY_TRUENAS_APIKEY, DEPLOY_TRUENAS_HOSTNAME and DEPLOY_TRUENAS_PROTOCOL."
     _err "Verify API key."
@@ -188,7 +175,7 @@ truenas_ws_deploy() {
   _savedeployconf DEPLOY_TRUENAS_APIKEY "$DEPLOY_TRUENAS_APIKEY"
   _info "TrueNAS health: OK"
 
-########## System info
+  ########## System info
 
   _info "Gather system info..."
   _ws_response=$(_ws_call "system.info")
@@ -196,82 +183,73 @@ truenas_ws_deploy() {
   _truenas_version=$(printf "%s" "$_ws_response" | jq -r '."version"' | cut -d '-' -f 3)
   _info "TrueNAS system: $_truenas_system"
   _info "TrueNAS version: $_truenas_version"
-  if [ "$_truenas_system" != "SCALE" ] && [ "$_truenas_system" != "CORE" ]
-  then
+  if [ "$_truenas_system" != "SCALE" ] && [ "$_truenas_system" != "CORE" ]; then
     _err "Cannot gather TrueNAS system. Nor CORE oder SCALE detected."
     return 10
   fi
 
-########## Gather current certificate
+  ########## Gather current certificate
 
   _info "Gather current WebUI certificate..."
   _ws_response="$(_ws_call "system.general.config")"
   _ui_certificate_id=$(printf "%s" "$_ws_response" | jq -r '."ui_certificate"."id"')
-  _ui_certificate_name=$(printf "%s"  "$_ws_response" | jq -r '."ui_certificate"."name"')
+  _ui_certificate_name=$(printf "%s" "$_ws_response" | jq -r '."ui_certificate"."name"')
   _info "Current WebUI certificate ID: $_ui_certificate_id"
   _info "Current WebUI certificate name: $_ui_certificate_name"
 
-########## Upload new certificate
+  ########## Upload new certificate
 
   _info "Upload new certificate..."
   _certname="acme_$(_utc_date | tr -d '\-\:' | tr ' ' '_')"
   _debug _certname "$_certname"
   _ws_jobid=$(_ws_call "certificate.create" "{\"name\": \"${_certname}\", \"create_type\": \"CERTIFICATE_CREATE_IMPORTED\", \"certificate\": \"$(_json_encode <"$_file_fullchain")\", \"privatekey\": \"$(_json_encode <"$_file_key")\", \"passphrase\": \"\"}")
   _debug "_ws_jobid" "$_ws_jobid"
-  if ! _ws_check_jobid "$_ws_jobid"
-  then
+  if ! _ws_check_jobid "$_ws_jobid"; then
     _err "No JobID returned from websocket method."
     return 3
   fi
   _ws_result=$(_ws_get_job_result "$_ws_jobid")
   _ws_ret=$?
-  if [ $_ws_ret -gt 0 ]
-  then
+  if [ $_ws_ret -gt 0 ]; then
     return $_ws_ret
   fi
   _debug "_ws_result" "$_ws_result"
   _new_certid=$(printf "%s" "$_ws_result" | jq -r '."id"')
   _info "New certificate ID: $_new_certid"
 
-########## FTP
+  ########## FTP
 
   _info "Replace FTP certificate..."
   _ws_response=$(_ws_call "ftp.update" "{\"ssltls_certificate\": $_new_certid}")
   _ftp_certid=$(printf "%s" "$_ws_response" | jq -r '."ssltls_certificate"')
-  if [ "$_ftp_certid" != "$_new_certid" ]
-  then
+  if [ "$_ftp_certid" != "$_new_certid" ]; then
     _err "Cannot set FTP certificate."
     _debug "_ws_response" "$_ws_response"
     return 4
   fi
 
-########## ix Apps (SCALE only)
+  ########## ix Apps (SCALE only)
 
-  if [ "$_truenas_system" = "SCALE" ]
-  then
+  if [ "$_truenas_system" = "SCALE" ]; then
     _info "Replace app certificates..."
     _ws_response=$(_ws_call "app.query")
-    for _app_name in $(printf "%s" "$_ws_response" | jq -r '.[]."name"')
-    do
+    for _app_name in $(printf "%s" "$_ws_response" | jq -r '.[]."name"'); do
       _info "Checking app $_app_name..."
       _ws_response=$(_ws_call "app.config" "$_app_name")
-      if [ "$(printf "%s" "$_ws_response" | jq -r '."network" | has("certificate_id")')" = "true" ]
-      then
+      if [ "$(printf "%s" "$_ws_response" | jq -r '."network" | has("certificate_id")')" = "true" ]; then
         _info "App has certificate option, setup new certificate..."
         _info "App will be redeployed after updating the certificate."
         _ws_jobid=$(_ws_call "app.update" "$_app_name" "{\"values\": {\"network\": {\"certificate_id\": $_new_certid}}}")
         _debug "_ws_jobid" "$_ws_jobid"
-        if ! _ws_check_jobid "$_ws_jobid"
-        then
+        if ! _ws_check_jobid "$_ws_jobid"; then
           _err "No JobID returned from websocket method."
           return 3
         fi
         _ws_result=$(_ws_get_job_result "$_ws_jobid")
         _ws_ret=$?
-         if [ $_ws_ret -gt 0 ]
-         then
-           return $_ws_ret
-         fi
+        if [ $_ws_ret -gt 0 ]; then
+          return $_ws_ret
+        fi
         _debug "_ws_result" "$_ws_result"
         _info "App certificate replaced."
       else
@@ -280,13 +258,12 @@ truenas_ws_deploy() {
     done
   fi
 
-########## WebUI
+  ########## WebUI
 
   _info "Replace WebUI certificate..."
   _ws_response=$(_ws_call "system.general.update" "{\"ui_certificate\": $_new_certid}")
   _changed_certid=$(printf "%s" "$_ws_response" | jq -r '."ui_certificate"."id"')
-  if [ "$_changed_certid" != "$_new_certid" ]
-  then
+  if [ "$_changed_certid" != "$_new_certid" ]; then
     _err "WebUI certificate change error.."
     return 5
   else
@@ -297,22 +274,19 @@ truenas_ws_deploy() {
   _info "Waiting for UI restart..."
   sleep 6
 
-########## Certificates
+  ########## Certificates
 
   _info "Deleting old certificate..."
   _ws_jobid=$(_ws_call "certificate.delete" "$_ui_certificate_id")
-  if ! _ws_check_jobid "$_ws_jobid"
-  then
+  if ! _ws_check_jobid "$_ws_jobid"; then
     _err "No JobID returned from websocket method."
     return 3
   fi
   _ws_result=$(_ws_get_job_result "$_ws_jobid")
   _ws_ret=$?
-  if [ $_ws_ret -gt 0 ]
-  then
+  if [ $_ws_ret -gt 0 ]; then
     return $_ws_ret
   fi
-
 
   _info "Have a nice day...bye!"
 
