@@ -201,6 +201,7 @@ truenas_ws_deploy() {
 
   _info "Upload new certificate..."
   _certname="acme_$(_utc_date | tr -d '\-\:' | tr ' ' '_')"
+  _info "New WebUI certificate name: $_certname"
   _debug _certname "$_certname"
   _ws_jobid=$(_ws_call "certificate.create" "{\"name\": \"${_certname}\", \"create_type\": \"CERTIFICATE_CREATE_IMPORTED\", \"certificate\": \"$(_json_encode <"$_file_fullchain")\", \"privatekey\": \"$(_json_encode <"$_file_key")\", \"passphrase\": \"\"}")
   _debug "_ws_jobid" "$_ws_jobid"
