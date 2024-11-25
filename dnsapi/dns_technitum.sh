@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
-dns_myapi_info='Custom API Example
- A sample custom DNS API script.
+dns_technitum_info='Technitum DNS Server
+
 Domains: example.com
 Site: github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_duckdns
@@ -21,10 +21,10 @@ Author: Neil Pang <neilgit@neilpang.com>
 # Please Read this guide first: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
 
 #Usage: dns_myapi_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
-dns_myapi_add() {
+dns_technitum_add() {
   fulldomain=$1
   txtvalue=$2
-  _info "Using myapi"
+  _info "Using technitum"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
   _err "Not implemented!"
@@ -33,12 +33,17 @@ dns_myapi_add() {
 
 #Usage: fulldomain txtvalue
 #Remove the txt record after validation.
-dns_myapi_rm() {
+dns_technitum_rm() {
   fulldomain=$1
   txtvalue=$2
-  _info "Using myapi"
+  _info "Using technitum"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
+  _err "Not implemented!"
+  return 1
 }
 
 ####################  Private functions below ##################################
+
+
+dns_technitum_add "_acme-challenge.test.07q.de" "abcd"
