@@ -161,7 +161,7 @@ truenas_ws_deploy() {
   if [ -z "$DEPLOY_TRUENAS_APIKEY" ]
   then
     _err "TrueNAS API key not found, please set the DEPLOY_TRUENAS_APIKEY environment variable."
-    exit 1
+    return 1
   fi
   _secure_debug2 DEPLOY_TRUENAS_APIKEY "$DEPLOY_TRUENAS_APIKEY"
   _info "Environment variables: OK"
@@ -175,7 +175,7 @@ truenas_ws_deploy() {
   then
     _err "Error calling system.ready:"
     _err "$_ws_response"
-    exit $_ws_ret
+    return $_ws_ret
   fi
 
   if [ "$_ws_response" != "TRUE" ]
@@ -183,7 +183,7 @@ truenas_ws_deploy() {
     _err "TrueNAS is not ready."
     _err "Please check environment variables DEPLOY_TRUENAS_APIKEY, DEPLOY_TRUENAS_HOSTNAME and DEPLOY_TRUENAS_PROTOCOL."
     _err "Verify API key."
-    exit 2
+    return 2
   fi
   _savedeployconf DEPLOY_TRUENAS_APIKEY "$DEPLOY_TRUENAS_APIKEY"
   _info "TrueNAS health: OK"
@@ -199,7 +199,7 @@ truenas_ws_deploy() {
   if [ "$_truenas_system" != "SCALE" ] && [ "$_truenas_system" != "CORE" ]
   then
     _err "Cannot gather TrueNAS system. Nor CORE oder SCALE detected."
-    exit 10
+    return 10
   fi
 
 ########## Gather current certificate
@@ -221,13 +221,13 @@ truenas_ws_deploy() {
   if ! _ws_check_jobid "$_ws_jobid"
   then
     _err "No JobID returned from websocket method."
-    exit 3
+    return 3
   fi
   _ws_result=$(_ws_get_job_result "$_ws_jobid")
   _ws_ret=$?
   if [ $_ws_ret -gt 0 ]
   then
-    exit $_ws_ret
+    return $_ws_ret
   fi
   _debug "_ws_result" "$_ws_result"
   _new_certid=$(printf "%s" "$_ws_result" | jq -r '."id"')
@@ -242,7 +242,7 @@ truenas_ws_deploy() {
   then
     _err "Cannot set FTP certificate."
     _debug "_ws_response" "$_ws_response"
-    exit 4
+    return 4
   fi
 
 ########## ix Apps (SCALE only)
@@ -264,13 +264,13 @@ truenas_ws_deploy() {
         if ! _ws_check_jobid "$_ws_jobid"
         then
           _err "No JobID returned from websocket method."
-          exit 3
+          return 3
         fi
         _ws_result=$(_ws_get_job_result "$_ws_jobid")
         _ws_ret=$?
          if [ $_ws_ret -gt 0 ]
          then
-           exit $_ws_ret
+           return $_ws_ret
          fi
         _debug "_ws_result" "$_ws_result"
         _info "App certificate replaced."
@@ -288,7 +288,7 @@ truenas_ws_deploy() {
   if [ "$_changed_certid" != "$_new_certid" ]
   then
     _err "WebUI certificate change error.."
-    exit 5
+    return 5
   else
     _info "WebUI certificate replaced."
   fi
@@ -304,13 +304,13 @@ truenas_ws_deploy() {
   if ! _ws_check_jobid "$_ws_jobid"
   then
     _err "No JobID returned from websocket method."
-    exit 3
+    return 3
   fi
   _ws_result=$(_ws_get_job_result "$_ws_jobid")
   _ws_ret=$?
   if [ $_ws_ret -gt 0 ]
   then
-    exit $_ws_ret
+    return $_ws_ret
   fi
 
 
