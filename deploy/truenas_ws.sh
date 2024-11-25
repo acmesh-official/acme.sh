@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 # TrueNAS deploy script for SCALE/CORE using websocket
 # It is recommend to use a wildcard certificate
