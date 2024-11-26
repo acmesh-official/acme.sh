@@ -8,7 +8,7 @@ Options:
  Technitium_Server Server Address
  Technitium_Token API Token
 Issues: github.com/acmesh-official/acme.sh
-Author: Neil Pang <neilgit@neilpang.com>
+Author: Henning Reich <acmesh@qupfer.de>
 '
 
 #This file name is "dns_myapi.sh"
