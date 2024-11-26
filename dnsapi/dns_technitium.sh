@@ -29,6 +29,7 @@ dns_technitium_add() {
 dns_technitium_rm() {
   fulldomain=$1
   txtvalue=$2
+  _Technitium_account
   _info "Using Technitium"
   response="$(_get "$Technitium_Server/api/zones/records/delete?token=$Technitium_Token&domain=$fulldomain&type=TXT&text=${txtvalue}")"
   if _contains "$response" '"status":"ok"'; then
