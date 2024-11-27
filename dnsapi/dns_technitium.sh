@@ -12,12 +12,10 @@ Author: Henning Reich <acmesh@qupfer.de>
 '
 
 dns_technitium_add() {
+  _info "add txt Record using Technitium"
+  _Technitium_account
   fulldomain=$1
   txtvalue=$2
-  _Technitium_account
-  _info "Using Technitium"
-  _debug fulldomain "$fulldomain"
-  _debug txtvalue "$txtvalue"
   response="$(_get "$Technitium_Server/api/zones/records/add?token=$Technitium_Token&domain=$fulldomain&type=TXT&text=${txtvalue}")"
   if _contains "$response" '"status":"ok"'; then
     return 0
@@ -27,10 +25,10 @@ dns_technitium_add() {
 }
 
 dns_technitium_rm() {
+  _info "remove txt record using Technitium"
+  _Technitium_account
   fulldomain=$1
   txtvalue=$2
-  _Technitium_account
-  _info "Using Technitium"
   response="$(_get "$Technitium_Server/api/zones/records/delete?token=$Technitium_Token&domain=$fulldomain&type=TXT&text=${txtvalue}")"
   if _contains "$response" '"status":"ok"'; then
     return 0
