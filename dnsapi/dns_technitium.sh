@@ -7,7 +7,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_technitium
 Options:
  Technitium_Server Server Address
  Technitium_Token API Token
-Issues: github.com/acmesh-official/acme.sh
+Issues:https://github.com/acmesh-official/acme.sh/issues/6116
 Author: Henning Reich <acmesh@qupfer.de>
 '
 
