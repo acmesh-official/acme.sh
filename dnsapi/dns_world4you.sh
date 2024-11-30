@@ -218,7 +218,7 @@ _get_paketnr() {
   TLD="$domain"
   _debug domain "$domain"
   RECORD=$(echo "$fqdn" | cut -c"1-$((${#fqdn} - ${#TLD} - 1))")
-  PAKETNR=$(echo "$domains" | grep "$domain" | sed 's/^[^,]*, *\([0-9]*\).*$/\1/')
+  PAKETNR=$(echo "$domains" | grep -o " $domain.*" | sed 's/^[^,]*, *\([0-9]*\).*$/\1/')
   return 0
 }
 
