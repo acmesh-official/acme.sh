@@ -9,7 +9,7 @@ Issues: github.com/acmesh-official/acme.sh/issues/3998
 Author: Timur Umarov <inbox@tumarov.com>
 '
 
-FORNEX_API_URL="https://fornex.com/api/dns/v0.1"
+FORNEX_API_URL="https://fornex.com/api"
 
 ########  Public functions #####################
 
@@ -30,12 +30,10 @@ dns_fornex_add() {
   fi
 
   _info "Adding record"
-  if _rest POST "$_domain/entry_set/add/" "host=$fulldomain&type=TXT&value=$txtvalue&apikey=$FORNEX_API_KEY"; then
+  if _rest POST "dns/domain/$_domain/entry_set/" "{\"host\" : \"${fulldomain}\" , \"type\" : \"TXT\" , \"value\" : \"${txtvalue}\" , \"ttl\" : null}"; then
     _debug _response "$response"
-    if _contains "$response" '"ok": true' || _contains "$response" 'Такая запись уже существует.'; then
-      _info "Added, OK"
-      return 0
-    fi
+    _info "Added, OK"
+    return 0
   fi
   _err "Add txt record error."
   return 1
@@ -58,21 +56,21 @@ dns_fornex_rm() {
   fi
 
   _debug "Getting txt records"
-  _rest GET "$_domain/entry_set.json?apikey=$FORNEX_API_KEY"
+  _rest GET "dns/domain/$_domain/entry_set?type=TXT&q=$fulldomain"
 
   if ! _contains "$response" "$txtvalue"; then
     _err "Txt record not found"
     return 1
   fi
 
-  _record_id="$(echo "$response" | _egrep_o "{[^{]*\"value\"*:*\"$txtvalue\"[^}]*}" | sed -n -e 's#.*"id": \([0-9]*\).*#\1#p')"
+  _record_id="$(echo "$response" | _egrep_o "\{[^\{]*\"value\"*:*\"$txtvalue\"[^\}]*\}" | sed -n -e 's#.*"id":\([0-9]*\).*#\1#p')"
   _debug "_record_id" "$_record_id"
   if [ -z "$_record_id" ]; then
     _err "can not find _record_id"
     return 1
   fi
 
-  if ! _rest POST "$_domain/entry_set/$_record_id/delete/" "apikey=$FORNEX_API_KEY"; then
+  if ! _rest DELETE "dns/domain/$_domain/entry_set/$_record_id/"; then
     _err "Delete record error."
     return 1
   fi
@@ -97,11 +95,11 @@ _get_root() {
       return 1
     fi
 
-    if ! _rest GET "domain_list.json?q=$h&apikey=$FORNEX_API_KEY"; then
+    if ! _rest GET "dns/domain/"; then
       return 1
     fi
 
-    if _contains "$response" "\"$h\"" >/dev/null; then
+    if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
       _domain=$h
       return 0
     else
@@ -134,7 +132,9 @@ _rest() {
   data="$3"
   _debug "$ep"
 
-  export _H1="Accept: application/json"
+  export _H1="Authorization: Api-Key $FORNEX_API_KEY"
+  export _H2="Content-Type: application/json"
+  export _H3="Accept: application/json"
 
   if [ "$m" != "GET" ]; then
     _debug data "$data"

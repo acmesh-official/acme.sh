@@ -55,14 +55,14 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
 
     if [ -z "$h" ]; then
       #not valid
       return 1
     fi
 
-    _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+    _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
     _domain="$h"
 
     if _transip_rest GET "domains/$h/dns" && _contains "$response" "dnsEntries"; then

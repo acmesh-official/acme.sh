@@ -81,7 +81,6 @@ dns_servercow_add() {
     return 1
   fi
 
-  return 1
 }
 
 # Usage fulldomain txtvalue
@@ -137,7 +136,7 @@ _get_root() {
   p=1
 
   while true; do
-    _domain=$(printf "%s" "$fulldomain" | cut -d . -f $i-100)
+    _domain=$(printf "%s" "$fulldomain" | cut -d . -f "$i"-100)
 
     _debug _domain "$_domain"
     if [ -z "$_domain" ]; then
@@ -150,7 +149,7 @@ _get_root() {
     fi
 
     if ! _contains "$response" '"error":"no such domain in user context"' >/dev/null; then
-      _sub_domain=$(printf "%s" "$fulldomain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$fulldomain" | cut -d . -f 1-"$p")
       if [ -z "$_sub_domain" ]; then
         # not valid
         return 1

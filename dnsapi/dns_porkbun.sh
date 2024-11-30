@@ -9,7 +9,7 @@ Options:
 Issues: github.com/acmesh-official/acme.sh/issues/3450
 '
 
-PORKBUN_Api="https://porkbun.com/api/json/v3"
+PORKBUN_Api="https://api.porkbun.com/api/json/v3"
 
 ########  Public functions #####################
 
@@ -107,7 +107,7 @@ _get_root() {
   domain=$1
   i=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       return 1

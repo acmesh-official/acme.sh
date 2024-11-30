@@ -41,9 +41,7 @@ dns_scaleway_add() {
     _err error "$response"
     return 1
   fi
-  _info "Record added."
 
-  return 0
 }
 
 dns_scaleway_rm() {
@@ -71,9 +69,7 @@ dns_scaleway_rm() {
     _err error "$response"
     return 1
   fi
-  _info "Record deleted."
 
-  return 0
 }
 
 ####################  Private functions below ##################################
@@ -104,7 +100,7 @@ _get_root() {
   i=1
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -113,7 +109,7 @@ _get_root() {
     _scaleway_rest GET "dns-zones/$h/records"
 
     if ! _contains "$response" "subdomain not found" >/dev/null; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi

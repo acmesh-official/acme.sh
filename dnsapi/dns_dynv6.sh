@@ -43,9 +43,8 @@ dns_dynv6_add() {
       _err "Something went wrong! it does not seem like the record was added successfully"
       return 1
     fi
-    return 1
   fi
-  return 1
+
 }
 #Usage: fulldomain txtvalue
 #Remove the txt record after validation.

@@ -135,7 +135,7 @@ _get_root() {
   p=1
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug2 "Checking domain: $h"
     if ! jd_rest GET "domain"; then
       _err "error get domain list"
@@ -153,7 +153,7 @@ _get_root() {
       if [ "$hostedzone" ]; then
         _domain_id="$(echo "$hostedzone" | tr ',' '\n' | grep "\"id\":" | cut -d : -f 2)"
         if [ "$_domain_id" ]; then
-          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
           _domain=$h
           return 0
         fi

@@ -181,7 +181,7 @@ _get_root() {
 
   _debug "Trying to get zone id by domain name for '$domain_without_acme'."
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -193,7 +193,7 @@ _get_root() {
     if _contains "$response" "\"name\":\"$h\"" || _contains "$response" '"total_entries":1'; then
       _domain_id=$(echo "$response" | _egrep_o "\[.\"id\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain=$h
         HETZNER_Zone_ID=$_domain_id
         _savedomainconf "$domain_param_name" "$HETZNER_Zone_ID"

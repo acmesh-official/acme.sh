@@ -16,8 +16,7 @@ Author: Darven Dissek, William Gertz
 #Usage: dns_miab_add  _acme-challenge.www.domain.com  "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_miab_add() {
   fulldomain=$1
-  # Added "value=" and "&ttl=300" to accomodate the new TXT record format used by the MIAB/PMIAB API
-  txtvalue="value=$2&ttl=300"
+  txtvalue=$2
   _info "Using miab challenge add"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
@@ -113,7 +112,7 @@ _get_root() {
   #cycle through the passed domain seperating out a test domain discarding
   #   the subdomain by marching thorugh the dots
   while true; do
-    _test_domain=$(printf "%s" "$_passed_domain" | cut -d . -f ${_i}-100)
+    _test_domain=$(printf "%s" "$_passed_domain" | cut -d . -f "${_i}"-100)
     _debug _test_domain "$_test_domain"
 
     if [ -z "$_test_domain" ]; then
@@ -123,7 +122,7 @@ _get_root() {
     #report found if the test domain is in the json response and
     #   report the subdomain
     if _contains "$response" "\"$_test_domain\""; then
-      _sub_domain=$(printf "%s" "$_passed_domain" | cut -d . -f 1-${_p})
+      _sub_domain=$(printf "%s" "$_passed_domain" | cut -d . -f 1-"${_p}")
       _domain=${_test_domain}
       return 0
     fi
