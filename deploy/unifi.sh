@@ -156,6 +156,8 @@ unifi_deploy() {
       sed -i '/unifi\.https\.sslEnabledProtocols/d' "${_unifi_system_properties}"
       echo "unifi.https.sslEnabledProtocols=TLSv1.3,TLSv1.2" >>"${_unifi_system_properties}"
       _info "System configuration updated."
+    else
+      _info "New certificate does not require ecdsa ciphers, not updating system properties."
     fi
 
     rm "$_import_pkcs12"
@@ -191,12 +193,23 @@ unifi_deploy() {
       return 1
     fi
     # Cloud Key expects to load the keystore from /etc/ssl/private/unifi.keystore.jks.
-    # Normally /usr/lib/unifi/data/keystore is a symlink there (so the keystore was
-    # updated above), but if not, we don't know how to handle this installation:
-    if ! cmp -s "$_unifi_keystore" "${_cloudkey_certdir}/unifi.keystore.jks"; then
-      _err "Unsupported Cloud Key configuration: keystore not found at '${_cloudkey_certdir}/unifi.keystore.jks'"
-      return 1
+    # It appears that unifi won't start if this is a symlink, so we'll copy it instead.
+
+    # if ! cmp -s "$_unifi_keystore" "${_cloudkey_certdir}/unifi.keystore.jks"; then
+    #   _err "Unsupported Cloud Key configuration: keystore not found at '${_cloudkey_certdir}/unifi.keystore.jks'"
+    #   return 1
+    # fi
+
+    _info "Updating ${_cloudkey_certdir}/unifi.keystore.jks"
+    if [ -e "${_cloudkey_certdir}/unifi.keystore.jks" ]; then
+      if [ -L "${_cloudkey_certdir}/unifi.keystore.jks" ]; then
+        rm -f "${_cloudkey_certdir}/unifi.keystore.jks"
+      else
+        mv "${_cloudkey_certdir}/unifi.keystore.jks" "${_cloudkey_certdir}/unifi.keystore.jks_original"
+      fi
     fi
+
+    cp "_unifi_keystore" "${_cloudkey_certdir}/unifi.keystore.jks"
 
     cat "$_cfullchain" >"${_cloudkey_certdir}/cloudkey.crt"
     cat "$_ckey" >"${_cloudkey_certdir}/cloudkey.key"
