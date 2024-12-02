@@ -1,7 +1,16 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_transip_info='TransIP.nl
+Site: TransIP.nl
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_transip
+Options:
+ TRANSIP_Username Username
+ TRANSIP_Key_File Private key file path
+Issues: github.com/acmesh-official/acme.sh/issues/2949
+'
+
 TRANSIP_Api_Url="https://api.transip.nl/v6"
 TRANSIP_Token_Read_Only="false"
-TRANSIP_Token_Global_Key="false"
 TRANSIP_Token_Expiration="30 minutes"
 # You can't reuse a label token, so we leave this empty normally
 TRANSIP_Token_Label=""
@@ -46,14 +55,14 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
 
     if [ -z "$h" ]; then
       #not valid
       return 1
     fi
 
-    _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+    _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
     _domain="$h"
 
     if _transip_rest GET "domains/$h/dns" && _contains "$response" "dnsEntries"; then
@@ -96,7 +105,11 @@ _transip_get_token() {
   nonce=$(echo "TRANSIP$(_time)" | _digest sha1 hex | cut -c 1-32)
   _debug nonce "$nonce"
 
-  data="{\"login\":\"${TRANSIP_Username}\",\"nonce\":\"${nonce}\",\"read_only\":\"${TRANSIP_Token_Read_Only}\",\"expiration_time\":\"${TRANSIP_Token_Expiration}\",\"label\":\"${TRANSIP_Token_Label}\",\"global_key\":\"${TRANSIP_Token_Global_Key}\"}"
+  # make IP whitelisting configurable
+  TRANSIP_Token_Global_Key="${TRANSIP_Token_Global_Key:-$(_readaccountconf_mutable TRANSIP_Token_Global_Key)}"
+  _saveaccountconf_mutable TRANSIP_Token_Global_Key "$TRANSIP_Token_Global_Key"
+
+  data="{\"login\":\"${TRANSIP_Username}\",\"nonce\":\"${nonce}\",\"read_only\":\"${TRANSIP_Token_Read_Only}\",\"expiration_time\":\"${TRANSIP_Token_Expiration}\",\"label\":\"${TRANSIP_Token_Label}\",\"global_key\":\"${TRANSIP_Token_Global_Key:-false}\"}"
   _debug data "$data"
 
   #_signature=$(printf "%s" "$data" | openssl dgst -sha512 -sign "$TRANSIP_Key_File" | _base64)
@@ -139,6 +152,18 @@ _transip_setup() {
   _saveaccountconf_mutable TRANSIP_Username "$TRANSIP_Username"
   _saveaccountconf_mutable TRANSIP_Key_File "$TRANSIP_Key_File"
 
+  # download key file if it's an URL
+  if _startswith "$TRANSIP_Key_File" "http"; then
+    _debug "download transip key file"
+    TRANSIP_Key_URL=$TRANSIP_Key_File
+    TRANSIP_Key_File="$(_mktemp)"
+    chmod 600 "$TRANSIP_Key_File"
+    if ! _get "$TRANSIP_Key_URL" >"$TRANSIP_Key_File"; then
+      _err "Error getting key file from : $TRANSIP_Key_URL"
+      return 1
+    fi
+  fi
+
   if [ -f "$TRANSIP_Key_File" ]; then
     if ! grep "BEGIN PRIVATE KEY" "$TRANSIP_Key_File" >/dev/null 2>&1; then
       _err "Key file doesn't seem to be a valid key: ${TRANSIP_Key_File}"
@@ -154,6 +179,12 @@ _transip_setup() {
       _err "Can not get token."
       return 1
     fi
+  fi
+
+  if [ -n "${TRANSIP_Key_URL}" ]; then
+    _debug "delete transip key file"
+    rm "${TRANSIP_Key_File}"
+    TRANSIP_Key_File=$TRANSIP_Key_URL
   fi
 
   _get_root "$fulldomain" || return 1

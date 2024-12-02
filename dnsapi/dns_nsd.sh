@@ -1,7 +1,13 @@
 #!/usr/bin/env sh
-
-#Nsd_ZoneFile="/etc/nsd/zones/example.com.zone"
-#Nsd_Command="sudo nsd-control reload"
+# shellcheck disable=SC2034
+dns_nsd_info='NLnetLabs NSD Server
+Site: github.com/NLnetLabs/nsd
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#nsd
+Options:
+ Nsd_ZoneFile Zone File path. E.g. "/etc/nsd/zones/example.com.zone"
+ Nsd_Command Command. E.g. "sudo nsd-control reload"
+Issues: github.com/acmesh-official/acme.sh/issues/2245
+'
 
 # args: fulldomain txtvalue
 dns_nsd_add() {
@@ -51,7 +57,7 @@ dns_nsd_rm() {
   Nsd_ZoneFile="${Nsd_ZoneFile:-$(_readdomainconf Nsd_ZoneFile)}"
   Nsd_Command="${Nsd_Command:-$(_readdomainconf Nsd_Command)}"
 
-  sed -i "/$fulldomain. $ttlvalue IN TXT \"$txtvalue\"/d" "$Nsd_ZoneFile"
+  _sed_i "/$fulldomain. $ttlvalue IN TXT \"$txtvalue\"/d" "$Nsd_ZoneFile"
   _info "Removed TXT record for $fulldomain"
   _debug "Running $Nsd_Command"
   if eval "$Nsd_Command"; then

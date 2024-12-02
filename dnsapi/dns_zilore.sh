@@ -1,7 +1,13 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_zilore_info='Zilore.com
+Site: Zilore.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_zilore
+Options:
+ Zilore_Key API Key
+'
 
 Zilore_API="https://api.zilore.com/dns/v1"
-# Zilore_Key="YOUR-ZILORE-API-KEY"
 
 ########  Public functions #####################
 
@@ -92,9 +98,9 @@ dns_zilore_rm() {
 
 _get_root() {
   domain=$1
-  i=2
+  i=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid

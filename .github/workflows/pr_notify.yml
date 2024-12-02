@@ -1,0 +1,30 @@
+name: Check notify api
+
+on:
+  pull_request_target:
+    types:
+      - opened
+    branches:
+      - 'dev'
+    paths:
+      - 'notify/*.sh'
+
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `**Welcome**
+                Please make sure you've read our [Code-of-conduct](../wiki/Code-of-conduct) and  add the usage here: [notify](../wiki/notify).
+                Then reply on this message, otherwise, your code will not be reviewed or merged.
+                We look forward to reviewing your Pull request shortly ✨
+                `
+            })
+

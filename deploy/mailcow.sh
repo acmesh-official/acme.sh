@@ -20,14 +20,25 @@ mailcow_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  _mailcow_path="${DEPLOY_MAILCOW_PATH}"
+  _getdeployconf DEPLOY_MAILCOW_PATH
+  _getdeployconf DEPLOY_MAILCOW_RELOAD
 
-  if [ -z "$_mailcow_path" ]; then
+  _debug DEPLOY_MAILCOW_PATH "$DEPLOY_MAILCOW_PATH"
+  _debug DEPLOY_MAILCOW_RELOAD "$DEPLOY_MAILCOW_RELOAD"
+
+  if [ -z "$DEPLOY_MAILCOW_PATH" ]; then
     _err "Mailcow path is not found, please define DEPLOY_MAILCOW_PATH."
     return 1
   fi
 
-  _ssl_path="${_mailcow_path}/data/assets/ssl/"
+  _savedeployconf DEPLOY_MAILCOW_PATH "$DEPLOY_MAILCOW_PATH"
+  [ -n "$DEPLOY_MAILCOW_RELOAD" ] && _savedeployconf DEPLOY_MAILCOW_RELOAD "$DEPLOY_MAILCOW_RELOAD"
+
+  _ssl_path="$DEPLOY_MAILCOW_PATH"
+  if [ -f "$DEPLOY_MAILCOW_PATH/generate_config.sh" ]; then
+    _ssl_path="$DEPLOY_MAILCOW_PATH/data/assets/ssl/"
+  fi
+
   if [ ! -d "$_ssl_path" ]; then
     _err "Cannot find mailcow ssl path: $_ssl_path"
     return 1
@@ -46,7 +57,7 @@ mailcow_deploy() {
     return 1
   fi
 
-  DEFAULT_MAILCOW_RELOAD="cd ${_mailcow_path} && docker-compose restart postfix-mailcow dovecot-mailcow nginx-mailcow"
+  DEFAULT_MAILCOW_RELOAD="docker restart \$(docker ps --quiet --filter name=nginx-mailcow --filter name=dovecot-mailcow --filter name=postfix-mailcow)"
   _reload="${DEPLOY_MAILCOW_RELOAD:-$DEFAULT_MAILCOW_RELOAD}"
 
   _info "Run reload: $_reload"

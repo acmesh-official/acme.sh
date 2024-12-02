@@ -1,10 +1,13 @@
 #!/usr/bin/env sh
-
-#
-# REGRU_API_Username="test"
-#
-# REGRU_API_Password="test"
-#
+# shellcheck disable=SC2034
+dns_regru_info='reg.ru
+Site: reg.ru
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_regru
+Options:
+ REGRU_API_Username Username
+ REGRU_API_Password Password
+Issues: github.com/acmesh-official/acme.sh/issues/2336
+'
 
 REGRU_API_URL="https://api.reg.ru/api/regru2"
 
@@ -92,9 +95,10 @@ _get_root() {
   domains_list=$(echo "${response}" | grep dname | sed -r "s/.*dname=\"([^\"]+)\".*/\\1/g")
 
   for ITEM in ${domains_list}; do
+    IDN_ITEM=${ITEM}
     case "${domain}" in
-    *${ITEM}*)
-      _domain=${ITEM}
+    *${IDN_ITEM}*)
+      _domain="$(_idn "${ITEM}")"
       _debug _domain "${_domain}"
       return 0
       ;;

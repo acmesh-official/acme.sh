@@ -1,4 +1,14 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_knot_info='Knot Server knsupdate
+Site: www.knot-dns.cz/docs/2.5/html/man_knsupdate.html
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_knot
+Options:
+ KNOT_SERVER Server hostname. Default: "localhost".
+ KNOT_KEY File path to TSIG key
+'
+
+# See also dns_nsupdate.sh
 
 ########  Public functions #####################
 
@@ -19,8 +29,9 @@ dns_knot_add() {
 
   _info "Adding ${fulldomain}. 60 TXT \"${txtvalue}\""
 
-  knsupdate -y "${KNOT_KEY}" <<EOF
+  knsupdate <<EOF
 server ${KNOT_SERVER}
+key ${KNOT_KEY}
 zone ${_domain}.
 update add ${fulldomain}. 60 TXT "${txtvalue}"
 send
@@ -49,8 +60,9 @@ dns_knot_rm() {
 
   _info "Removing ${fulldomain}. TXT"
 
-  knsupdate -y "${KNOT_KEY}" <<EOF
+  knsupdate <<EOF
 server ${KNOT_SERVER}
+key ${KNOT_KEY}
 zone ${_domain}.
 update del ${fulldomain}. TXT
 send

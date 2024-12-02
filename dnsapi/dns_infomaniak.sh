@@ -1,19 +1,20 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_infomaniak_info='Infomaniak.com
+Site: Infomaniak.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_infomaniak
+Options:
+ INFOMANIAK_API_TOKEN API Token
+Issues: github.com/acmesh-official/acme.sh/issues/3188
+'
 
-###############################################################################
-# Infomaniak API integration
-#
 # To use this API you need visit the API dashboard of your account
 # once logged into https://manager.infomaniak.com add /api/dashboard to the URL
-#
-# Please report bugs to
-# https://github.com/acmesh-official/acme.sh/issues/3188
 #
 # Note: the URL looks like this:
 # https://manager.infomaniak.com/v3/<account_id>/api/dashboard
 # Then generate a token with the scope Domain
 # this is given as an environment variable INFOMANIAK_API_TOKEN
-###############################################################################
 
 # base variables
 
@@ -76,7 +77,7 @@ dns_infomaniak_add() {
   domain_id=${zone_and_id#* }
 
   # extract first part of domain
-  key=${fulldomain%.$zone}
+  key=${fulldomain%."$zone"}
 
   _debug "zone:$zone id:$domain_id key:$key"
 
@@ -149,7 +150,7 @@ dns_infomaniak_rm() {
   domain_id=${zone_and_id#* }
 
   # extract first part of domain
-  key=${fulldomain%.$zone}
+  key=${fulldomain%."$zone"}
 
   _debug "zone:$zone id:$domain_id key:$key"
 

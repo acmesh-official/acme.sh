@@ -1,22 +1,13 @@
 #!/usr/bin/env sh
-# -*- mode: sh; tab-width: 2; indent-tabs-mode: s; coding: utf-8 -*-
-
-# one.com ui wrapper for acme.sh
-# Author: github: @diseq
-# Created: 2019-02-17
-# Fixed by: @der-berni
-# Modified: 2020-04-07
-#
-#     Use ONECOM_KeepCnameProxy to keep the CNAME DNS record
-#     export ONECOM_KeepCnameProxy="1"
-#
-#     export ONECOM_User="username"
-#     export ONECOM_Password="password"
-#
-# Usage:
-#     acme.sh --issue --dns dns_one -d example.com
-#
-#     only single domain supported atm
+# shellcheck disable=SC2034
+dns_one_info='one.com
+Site: one.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_one
+Options:
+ ONECOM_User Username
+ ONECOM_Password Password
+Issues: github.com/acmesh-official/acme.sh/issues/2103
+'
 
 dns_one_add() {
   fulldomain=$1
@@ -36,26 +27,8 @@ dns_one_add() {
   subdomain="${_sub_domain}"
   maindomain=${_domain}
 
-  useProxy=0
-  if [ "${_sub_domain}" = "_acme-challenge" ]; then
-    subdomain="proxy${_sub_domain}"
-    useProxy=1
-  fi
-
   _debug subdomain "$subdomain"
   _debug maindomain "$maindomain"
-
-  if [ $useProxy -eq 1 ]; then
-    #Check if the CNAME exists
-    _dns_one_getrecord "CNAME" "$_sub_domain" "$subdomain.$maindomain"
-    if [ -z "$id" ]; then
-      _info "$(__red "Add CNAME Proxy record: '$(__green "\"$_sub_domain\" => \"$subdomain.$maindomain\"")'")"
-      _dns_one_addrecord "CNAME" "$_sub_domain" "$subdomain.$maindomain"
-
-      _info "Not valid yet, let's wait 1 hour to take effect."
-      _sleep 3600
-    fi
-  fi
 
   #Check if the TXT exists
   _dns_one_getrecord "TXT" "$subdomain" "$txtvalue"
@@ -92,26 +65,8 @@ dns_one_rm() {
   subdomain="${_sub_domain}"
   maindomain=${_domain}
 
-  useProxy=0
-  if [ "${_sub_domain}" = "_acme-challenge" ]; then
-    subdomain="proxy${_sub_domain}"
-    useProxy=1
-  fi
-
   _debug subdomain "$subdomain"
   _debug maindomain "$maindomain"
-  if [ $useProxy -eq 1 ]; then
-    if [ "$ONECOM_KeepCnameProxy" = "1" ]; then
-      _info "$(__red "Keeping CNAME Proxy record: '$(__green "\"$_sub_domain\" => \"$subdomain.$maindomain\"")'")"
-    else
-      #Check if the CNAME exists
-      _dns_one_getrecord "CNAME" "$_sub_domain" "$subdomain.$maindomain"
-      if [ -n "$id" ]; then
-        _info "$(__red "Removing CNAME Proxy record: '$(__green "\"$_sub_domain\" => \"$subdomain.$maindomain\"")'")"
-        _dns_one_delrecord "$id"
-      fi
-    fi
-  fi
 
   #Check if the TXT exists
   _dns_one_getrecord "TXT" "$subdomain" "$txtvalue"
@@ -136,10 +91,10 @@ dns_one_rm() {
 # _domain=domain.com
 _get_root() {
   domain="$1"
-  i=2
+  i=1
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
 
     if [ -z "$h" ]; then
       #not valid
@@ -149,7 +104,7 @@ _get_root() {
     response="$(_get "https://www.one.com/admin/api/domains/$h/dns/custom_records")"
 
     if ! _contains "$response" "CRMRST_000302"; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi
@@ -163,8 +118,6 @@ _get_root() {
 _dns_one_login() {
 
   # get credentials
-  ONECOM_KeepCnameProxy="${ONECOM_KeepCnameProxy:-$(_readaccountconf_mutable ONECOM_KeepCnameProxy)}"
-  ONECOM_KeepCnameProxy="${ONECOM_KeepCnameProxy:-0}"
   ONECOM_User="${ONECOM_User:-$(_readaccountconf_mutable ONECOM_User)}"
   ONECOM_Password="${ONECOM_Password:-$(_readaccountconf_mutable ONECOM_Password)}"
   if [ -z "$ONECOM_User" ] || [ -z "$ONECOM_Password" ]; then
@@ -176,7 +129,6 @@ _dns_one_login() {
   fi
 
   #save the api key and email to the account conf file.
-  _saveaccountconf_mutable ONECOM_KeepCnameProxy "$ONECOM_KeepCnameProxy"
   _saveaccountconf_mutable ONECOM_User "$ONECOM_User"
   _saveaccountconf_mutable ONECOM_Password "$ONECOM_Password"
 

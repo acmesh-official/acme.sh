@@ -1,12 +1,17 @@
 #!/usr/bin/env sh
-#
-#
-#RACKSPACE_Username=""
-#
-#RACKSPACE_Apikey=""
+# shellcheck disable=SC2034
+dns_rackspace_info='RackSpace.com
+Site: RackSpace.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_rackspace
+Options:
+ RACKSPACE_Apikey API Key
+ RACKSPACE_Username Username
+Issues: github.com/acmesh-official/acme.sh/issues/2091
+'
 
 RACKSPACE_Endpoint="https://dns.api.rackspacecloud.com/v1.0"
 
+# 20210923 - RS changed the fields in the API response; fix sed
 # 20190213 - The name & id fields swapped in the API response; fix sed
 # 20190101 - Duplicating file for new pull request to dev branch
 # Original - tcocca:rackspace_dnsapi https://github.com/acmesh-official/acme.sh/pull/1297
@@ -67,7 +72,7 @@ _get_root_zone() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -79,11 +84,11 @@ _get_root_zone() {
     _debug2 response "$response"
     if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
       # Response looks like:
-      #   {"ttl":300,"accountId":12345,"id":1111111,"name":"example.com","emailAddress": ...<and so on>
-      _domain_id=$(echo "$response" | sed -n "s/^.*\"id\":\([^,]*\),\"name\":\"$h\",.*/\1/p")
+      #   {"id":"12345","accountId":"1111111","name": "example.com","ttl":3600,"emailAddress": ... <and so on>
+      _domain_id=$(echo "$response" | sed -n "s/^.*\"id\":\"\([^,]*\)\",\"accountId\":\"[0-9]*\",\"name\":\"$h\",.*/\1/p")
       _debug2 domain_id "$_domain_id"
       if [ -n "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain=$h
         return 0
       fi

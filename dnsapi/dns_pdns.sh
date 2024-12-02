@@ -1,12 +1,14 @@
 #!/usr/bin/env sh
-
-#PowerDNS Embedded API
-#https://doc.powerdns.com/md/httpapi/api_spec/
-#
-#PDNS_Url="http://ns.example.com:8081"
-#PDNS_ServerId="localhost"
-#PDNS_Token="0123456789ABCDEF"
-#PDNS_Ttl=60
+# shellcheck disable=SC2034
+dns_pdns_info='PowerDNS Server API
+Site: PowerDNS.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_pdns
+Options:
+ PDNS_Url API URL. E.g. "http://ns.example.com:8081"
+ PDNS_ServerId Server ID. E.g. "localhost"
+ PDNS_Token API Token
+ PDNS_Ttl=60 Domain TTL. Default: "60".
+'
 
 DEFAULT_PDNS_TTL=60
 
@@ -17,6 +19,11 @@ DEFAULT_PDNS_TTL=60
 dns_pdns_add() {
   fulldomain=$1
   txtvalue=$2
+
+  PDNS_Url="${PDNS_Url:-$(_readaccountconf_mutable PDNS_Url)}"
+  PDNS_ServerId="${PDNS_ServerId:-$(_readaccountconf_mutable PDNS_ServerId)}"
+  PDNS_Token="${PDNS_Token:-$(_readaccountconf_mutable PDNS_Token)}"
+  PDNS_Ttl="${PDNS_Ttl:-$(_readaccountconf_mutable PDNS_Ttl)}"
 
   if [ -z "$PDNS_Url" ]; then
     PDNS_Url=""
@@ -44,12 +51,12 @@ dns_pdns_add() {
   fi
 
   #save the api addr and key to the account conf file.
-  _saveaccountconf PDNS_Url "$PDNS_Url"
-  _saveaccountconf PDNS_ServerId "$PDNS_ServerId"
-  _saveaccountconf PDNS_Token "$PDNS_Token"
+  _saveaccountconf_mutable PDNS_Url "$PDNS_Url"
+  _saveaccountconf_mutable PDNS_ServerId "$PDNS_ServerId"
+  _saveaccountconf_mutable PDNS_Token "$PDNS_Token"
 
   if [ "$PDNS_Ttl" != "$DEFAULT_PDNS_TTL" ]; then
-    _saveaccountconf PDNS_Ttl "$PDNS_Ttl"
+    _saveaccountconf_mutable PDNS_Ttl "$PDNS_Ttl"
   fi
 
   _debug "Detect root zone"
@@ -70,6 +77,11 @@ dns_pdns_add() {
 dns_pdns_rm() {
   fulldomain=$1
   txtvalue=$2
+
+  PDNS_Url="${PDNS_Url:-$(_readaccountconf_mutable PDNS_Url)}"
+  PDNS_ServerId="${PDNS_ServerId:-$(_readaccountconf_mutable PDNS_ServerId)}"
+  PDNS_Token="${PDNS_Token:-$(_readaccountconf_mutable PDNS_Token)}"
+  PDNS_Ttl="${PDNS_Ttl:-$(_readaccountconf_mutable PDNS_Ttl)}"
 
   if [ -z "$PDNS_Ttl" ]; then
     PDNS_Ttl="$DEFAULT_PDNS_TTL"
@@ -103,7 +115,7 @@ set_record() {
     _build_record_string "$oldchallenge"
   done
 
-  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"REPLACE\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [$_record_string]}]}"; then
+  if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"REPLACE\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [$_record_string]}]}" "application/json"; then
     _err "Set txt record error."
     return 1
   fi
@@ -126,7 +138,7 @@ rm_record() {
 
   if _contains "$_existing_challenges" "$txtvalue"; then
     #Delete all challenges (PowerDNS API does not allow to delete content)
-    if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"DELETE\", \"name\": \"$full.\", \"type\": \"TXT\"}]}"; then
+    if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"DELETE\", \"name\": \"$full.\", \"type\": \"TXT\"}]}" "application/json"; then
       _err "Delete txt record error."
       return 1
     fi
@@ -140,7 +152,7 @@ rm_record() {
         fi
       done
       #Recreate the existing challenges
-      if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"REPLACE\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [$_record_string]}]}"; then
+      if ! _pdns_rest "PATCH" "/api/v1/servers/$PDNS_ServerId/zones/$root" "{\"rrsets\": [{\"changetype\": \"REPLACE\", \"name\": \"$full.\", \"type\": \"TXT\", \"ttl\": $PDNS_Ttl, \"records\": [$_record_string]}]}" "application/json"; then
         _err "Set txt record error."
         return 1
       fi
@@ -175,13 +187,13 @@ _get_root() {
   i=1
 
   if _pdns_rest "GET" "/api/v1/servers/$PDNS_ServerId/zones"; then
-    _zones_response="$response"
+    _zones_response=$(echo "$response" | _normalizeJson)
   fi
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
 
-    if _contains "$_zones_response" "\"name\": \"$h.\""; then
+    if _contains "$_zones_response" "\"name\":\"$h.\""; then
       _domain="$h."
       if [ -z "$h" ]; then
         _domain="=2E"
@@ -192,7 +204,7 @@ _get_root() {
     if [ -z "$h" ]; then
       return 1
     fi
-    i=$(_math $i + 1)
+    i=$(_math "$i" + 1)
   done
   _debug "$domain not found"
 
@@ -203,12 +215,13 @@ _pdns_rest() {
   method=$1
   ep=$2
   data=$3
+  ct=$4
 
   export _H1="X-API-Key: $PDNS_Token"
 
   if [ ! "$method" = "GET" ]; then
     _debug data "$data"
-    response="$(_post "$data" "$PDNS_Url$ep" "" "$method")"
+    response="$(_post "$data" "$PDNS_Url$ep" "" "$method" "$ct")"
   else
     response="$(_get "$PDNS_Url$ep")"
   fi

@@ -1,11 +1,13 @@
 #!/usr/bin/env sh
-
-#
-#LOOPIA_User="username"
-#
-#LOOPIA_Password="password"
-#
-#LOOPIA_Api="https://api.loopia.<TLD>/RPCSERV"
+# shellcheck disable=SC2034
+dns_loopia_info='Loopia.se
+Site: Loopia.se
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_loopia
+Options:
+ LOOPIA_Api API URL. E.g. "https://api.loopia.<TLD>/RPCSERV" where the <TLD> is one of: com, no, rs, se. Default: "se".
+ LOOPIA_User Username
+ LOOPIA_Password Password
+'
 
 LOOPIA_Api_Default="https://api.loopia.se/RPCSERV"
 
@@ -32,8 +34,12 @@ dns_loopia_add() {
 
   _info "Adding record"
 
-  _loopia_add_sub_domain "$_domain" "$_sub_domain"
-  _loopia_add_record "$_domain" "$_sub_domain" "$txtvalue"
+  if ! _loopia_add_sub_domain "$_domain" "$_sub_domain"; then
+    return 1
+  fi
+  if ! _loopia_add_record "$_domain" "$_sub_domain" "$txtvalue"; then
+    return 1
+  fi
 
 }
 
@@ -70,12 +76,13 @@ dns_loopia_rm() {
         <value><string>%s</string></value>
       </param>
     </params>
-  </methodCall>' "$LOOPIA_User" "$LOOPIA_Password" "$_domain" "$_sub_domain")
+  </methodCall>' "$LOOPIA_User" "$Encoded_Password" "$_domain" "$_sub_domain")
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
 
   if ! _contains "$response" "OK"; then
-    _err "Error could not get txt records"
+    err_response=$(echo "$response" | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
+    _err "Error could not get txt records: $err_response"
     return 1
   fi
 }
@@ -101,6 +108,12 @@ _loopia_load_config() {
     return 1
   fi
 
+  if _contains "$LOOPIA_Password" "'" || _contains "$LOOPIA_Password" '"'; then
+    _err "Password contains a quotation mark or double quotation marks and this is not supported by dns_loopia.sh"
+    return 1
+  fi
+
+  Encoded_Password=$(_xml_encode "$LOOPIA_Password")
   return 0
 }
 
@@ -133,11 +146,12 @@ _loopia_get_records() {
         <value><string>%s</string></value>
       </param>
     </params>
-  </methodCall>' $LOOPIA_User $LOOPIA_Password "$domain" "$sub_domain")
+  </methodCall>' "$LOOPIA_User" "$Encoded_Password" "$domain" "$sub_domain")
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
   if ! _contains "$response" "<array>"; then
-    _err "Error"
+    err_response=$(echo "$response" | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
+    _err "Error: $err_response"
     return 1
   fi
   return 0
@@ -162,18 +176,18 @@ _get_root() {
     <value><string>%s</string></value>
    </param>
   </params>
-  </methodCall>' $LOOPIA_User $LOOPIA_Password)
+  </methodCall>' "$LOOPIA_User" "$Encoded_Password")
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
   while true; do
-    h=$(echo "$domain" | cut -d . -f $i-100)
+    h=$(echo "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
     fi
 
     if _contains "$response" "$h"; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi
@@ -206,32 +220,35 @@ _loopia_add_record() {
         <value><string>%s</string></value>
       </param>
       <param>
-        <struct>
-          <member>
-            <name>type</name>
-            <value><string>TXT</string></value>
-          </member>
-          <member>
-            <name>priority</name>
-            <value><int>0</int></value>
-          </member>
-          <member>
-            <name>ttl</name>
-            <value><int>300</int></value>
-          </member>
-          <member>
-            <name>rdata</name>
-            <value><string>%s</string></value>
-          </member>
-        </struct>
+        <value>
+          <struct>
+            <member>
+              <name>type</name>
+              <value><string>TXT</string></value>
+            </member>
+            <member>
+              <name>priority</name>
+              <value><int>0</int></value>
+            </member>
+            <member>
+              <name>ttl</name>
+              <value><int>300</int></value>
+            </member>
+            <member>
+              <name>rdata</name>
+              <value><string>%s</string></value>
+            </member>
+          </struct>
+        </value>
       </param>
     </params>
-  </methodCall>' $LOOPIA_User $LOOPIA_Password "$domain" "$sub_domain" "$txtval")
+  </methodCall>' "$LOOPIA_User" "$Encoded_Password" "$domain" "$sub_domain" "$txtval")
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
 
   if ! _contains "$response" "OK"; then
-    _err "Error"
+    err_response=$(echo "$response" | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
+    _err "Error: $err_response"
     return 1
   fi
   return 0
@@ -255,7 +272,7 @@ _sub_domain_exists() {
         <value><string>%s</string></value>
       </param>
     </params>
-  </methodCall>' $LOOPIA_User $LOOPIA_Password "$domain")
+  </methodCall>' "$LOOPIA_User" "$Encoded_Password" "$domain")
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
 
@@ -290,13 +307,22 @@ _loopia_add_sub_domain() {
         <value><string>%s</string></value>
       </param>
     </params>
-  </methodCall>' $LOOPIA_User $LOOPIA_Password "$domain" "$sub_domain")
+  </methodCall>' "$LOOPIA_User" "$Encoded_Password" "$domain" "$sub_domain")
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
 
   if ! _contains "$response" "OK"; then
-    _err "Error"
+    err_response=$(echo "$response" | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
+    _err "Error: $err_response"
     return 1
   fi
   return 0
+}
+
+_xml_encode() {
+  encoded_string=$1
+  encoded_string=$(echo "$encoded_string" | sed 's/&/\&amp;/')
+  encoded_string=$(echo "$encoded_string" | sed 's/</\&lt;/')
+  encoded_string=$(echo "$encoded_string" | sed 's/>/\&gt;/')
+  printf "%s" "$encoded_string"
 }

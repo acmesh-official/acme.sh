@@ -1,9 +1,12 @@
 #!/usr/bin/env sh
-
-# Anexia CloudDNS acme.sh hook
-# Author: MA
-
-#ANX_Token="xxxx"
+# shellcheck disable=SC2034
+dns_anx_info='Anexia.com CloudDNS
+Site: Anexia.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_anx
+Options:
+ ANX_Token API Token
+Issues: github.com/acmesh-official/acme.sh/issues/3238
+'
 
 ANX_API='https://engine.anexia-it.com/api/clouddns/v1'
 
@@ -127,18 +130,17 @@ _get_root() {
   i=1
   p=1
 
-  _anx_rest GET "zone.json"
-
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
       return 1
     fi
 
+    _anx_rest GET "zone.json/${h}"
     if _contains "$response" "\"name\":\"$h\""; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain=$h
       return 0
     fi

@@ -1,12 +1,18 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_vultr_info='vultr.com
+Site: vultr.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_vultr
+Options:
+ VULTR_API_KEY API Key
+Issues: github.com/acmesh-official/acme.sh/issues/2374
+Author:
+'
 
-#
-#VULTR_API_KEY=000011112222333344445555666677778888
-
-VULTR_Api="https://api.vultr.com/v1"
+VULTR_Api="https://api.vultr.com/v2"
 
 ########  Public functions #####################
-
+#
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_vultr_add() {
   fulldomain=$1
@@ -31,14 +37,14 @@ dns_vultr_add() {
   _debug _domain "$_domain"
 
   _debug 'Getting txt records'
-  _vultr_rest GET "dns/records?domain=$_domain"
+  _vultr_rest GET "domains/$_domain/records"
 
-  if printf "%s\n" "$response" | grep "\"type\":\"TXT\",\"name\":\"$fulldomain\"" >/dev/null; then
+  if printf "%s\n" "$response" | grep -- "\"type\":\"TXT\",\"name\":\"$fulldomain\"" >/dev/null; then
     _err 'Error'
     return 1
   fi
 
-  if ! _vultr_rest POST 'dns/create_record' "domain=$_domain&name=$_sub_domain&data=\"$txtvalue\"&type=TXT"; then
+  if ! _vultr_rest POST "domains/$_domain/records" "{\"name\":\"$_sub_domain\",\"data\":\"$txtvalue\",\"type\":\"TXT\"}"; then
     _err "$response"
     return 1
   fi
@@ -71,14 +77,14 @@ dns_vultr_rm() {
   _debug _domain "$_domain"
 
   _debug 'Getting txt records'
-  _vultr_rest GET "dns/records?domain=$_domain"
+  _vultr_rest GET "domains/$_domain/records"
 
-  if printf "%s\n" "$response" | grep "\"type\":\"TXT\",\"name\":\"$fulldomain\"" >/dev/null; then
+  if printf "%s\n" "$response" | grep -- "\"type\":\"TXT\",\"name\":\"$fulldomain\"" >/dev/null; then
     _err 'Error'
     return 1
   fi
 
-  _record_id="$(echo "$response" | tr '{}' '\n' | grep '"TXT"' | grep "$txtvalue" | tr ',' '\n' | grep -i 'RECORDID' | cut -d : -f 2)"
+  _record_id="$(echo "$response" | tr '{}' '\n' | grep '"TXT"' | grep -- "$txtvalue" | tr ',' '\n' | grep -i 'id' | cut -d : -f 2 | tr -d '"')"
   _debug _record_id "$_record_id"
   if [ "$_record_id" ]; then
     _info "Successfully retrieved the record id for ACME challenge."
@@ -87,7 +93,7 @@ dns_vultr_rm() {
     return 0
   fi
 
-  if ! _vultr_rest POST 'dns/delete_record' "domain=$_domain&RECORDID=$_record_id"; then
+  if ! _vultr_rest DELETE "domains/$_domain/records/$_record_id"; then
     _err "$response"
     return 1
   fi
@@ -106,17 +112,17 @@ _get_root() {
   domain=$1
   i=1
   while true; do
-    _domain=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _domain=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$_domain"
     if [ -z "$_domain" ]; then
       return 1
     fi
 
-    if ! _vultr_rest GET "dns/list"; then
+    if ! _vultr_rest GET "domains"; then
       return 1
     fi
 
-    if printf "%s\n" "$response" | grep '^\[.*\]' >/dev/null; then
+    if printf "%s\n" "$response" | grep -E '^\{.*\}' >/dev/null; then
       if _contains "$response" "\"domain\":\"$_domain\""; then
         _sub_domain="$(echo "$fulldomain" | sed "s/\\.$_domain\$//")"
         return 0
@@ -139,10 +145,10 @@ _vultr_rest() {
   data="$3"
   _debug "$ep"
 
-  api_key_trimmed=$(echo $VULTR_API_KEY | tr -d '"')
+  api_key_trimmed=$(echo "$VULTR_API_KEY" | tr -d '"')
 
-  export _H1="Api-Key: $api_key_trimmed"
-  export _H2='Content-Type: application/x-www-form-urlencoded'
+  export _H1="Authorization: Bearer $api_key_trimmed"
+  export _H2='Content-Type: application/json'
 
   if [ "$m" != "GET" ]; then
     _debug data "$data"

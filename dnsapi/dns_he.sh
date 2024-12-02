@@ -1,15 +1,14 @@
 #!/usr/bin/env sh
-
-########################################################################
-# Hurricane Electric hook script for acme.sh
-#
-# Environment variables:
-#
-#  - $HE_Username  (your dns.he.net username)
-#  - $HE_Password  (your dns.he.net password)
-#
-# Author: Ondrej Simek <me@ondrejsimek.com>
-# Git repo: https://github.com/angel333/acme.sh
+# shellcheck disable=SC2034
+dns_he_info='Hurricane Electric HE.net
+Site: dns.he.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_he
+Options:
+ HE_Username Username
+ HE_Password Password
+Issues: github.com/angel333/acme.sh/issues/
+Author: Ondrej Simek <me@ondrejsimek.com>
+'
 
 #-- dns_he_add() - Add TXT record --------------------------------------
 # Usage: dns_he_add _acme-challenge.subdomain.domain.com "XyZ123..."
@@ -85,7 +84,7 @@ dns_he_rm() {
     _debug "The txt record is not found, just skip"
     return 0
   fi
-  _record_id="$(echo "$response" | tr -d "#" | sed "s/<tr/#<tr/g" | tr -d "\n" | tr "#" "\n" | grep "$_full_domain" | grep '"dns_tr"' | grep "$_txt_value" | cut -d '"' -f 4)"
+  _record_id="$(echo "$response" | tr -d "#" | sed "s/<tr/#<tr/g" | tr -d "\n" | tr "#" "\n" | grep "$_full_domain" | grep '"dns_tr"' | grep -- "$_txt_value" | cut -d '"' -f 4)"
   _debug2 _record_id "$_record_id"
   if [ -z "$_record_id" ]; then
     _err "Can not find record id"
@@ -144,7 +143,7 @@ _find_zone() {
   # Walk through all possible zone names
   _strip_counter=1
   while true; do
-    _attempted_zone=$(echo "$_domain" | cut -d . -f ${_strip_counter}-)
+    _attempted_zone=$(echo "$_domain" | cut -d . -f "${_strip_counter}"-)
 
     # All possible zone names have been tried
     if [ -z "$_attempted_zone" ]; then

@@ -1,5 +1,15 @@
 #!/usr/bin/env sh
-#developed by linux-insideDE
+# shellcheck disable=SC2034
+dns_netcup_info='netcup.eu
+Domains: netcup.de netcup.net
+Site: netcup.eu/
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_netcup
+Options:
+ NC_Apikey API Key
+ NC_Apipw API Password
+ NC_CID Customer Number
+Author: linux-insideDE
+'
 
 NC_Apikey="${NC_Apikey:-$(_readaccountconf_mutable NC_Apikey)}"
 NC_Apipw="${NC_Apipw:-$(_readaccountconf_mutable NC_Apipw)}"
@@ -119,16 +129,16 @@ login() {
   tmp=$(_post "{\"action\": \"login\", \"param\": {\"apikey\": \"$NC_Apikey\", \"apipassword\": \"$NC_Apipw\", \"customernumber\": \"$NC_CID\"}}" "$end" "" "POST")
   sid=$(echo "$tmp" | tr '{}' '\n' | grep apisessionid | cut -d '"' -f 4)
   _debug "$tmp"
-  if [ "$(_getfield "$msg" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
-    _err "$msg"
+  if [ "$(_getfield "$tmp" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
+    _err "$tmp"
     return 1
   fi
 }
 logout() {
   tmp=$(_post "{\"action\": \"logout\", \"param\": {\"apikey\": \"$NC_Apikey\", \"apisessionid\": \"$sid\", \"customernumber\": \"$NC_CID\"}}" "$end" "" "POST")
   _debug "$tmp"
-  if [ "$(_getfield "$msg" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
-    _err "$msg"
+  if [ "$(_getfield "$tmp" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
+    _err "$tmp"
     return 1
   fi
 }

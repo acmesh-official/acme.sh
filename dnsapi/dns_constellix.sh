@@ -1,10 +1,16 @@
 #!/usr/bin/env sh
-
-# Author: Wout Decre <wout@canodus.be>
+# shellcheck disable=SC2034
+dns_constellix_info='Constellix.com
+Site: Constellix.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_constellix
+Options:
+ CONSTELLIX_Key API Key
+ CONSTELLIX_Secret API Secret
+Issues: github.com/acmesh-official/acme.sh/issues/2724
+Author: Wout Decre <wout@canodus.be>
+'
 
 CONSTELLIX_Api="https://api.dns.constellix.com/v1"
-#CONSTELLIX_Key="XXX"
-#CONSTELLIX_Secret="XXX"
 
 ########  Public functions #####################
 
@@ -30,16 +36,41 @@ dns_constellix_add() {
     return 1
   fi
 
-  _info "Adding TXT record"
-  if _constellix_rest POST "domains/${_domain_id}/records" "[{\"type\":\"txt\",\"add\":true,\"set\":{\"name\":\"${_sub_domain}\",\"ttl\":120,\"roundRobin\":[{\"value\":\"${txtvalue}\"}]}}]"; then
-    if printf -- "%s" "$response" | grep "{\"success\":\"1 record(s) added, 0 record(s) updated, 0 record(s) deleted\"}" >/dev/null; then
-      _info "Added"
-      return 0
+  # The TXT record might already exist when working with wildcard certificates. In that case, update the record by adding the new value.
+  _debug "Search TXT record"
+  if _constellix_rest GET "domains/${_domain_id}/records/TXT/search?exact=${_sub_domain}"; then
+    if printf -- "%s" "$response" | grep "{\"errors\":\[\"Requested record was not found\"\]}" >/dev/null; then
+      _info "Adding TXT record"
+      if _constellix_rest POST "domains/${_domain_id}/records" "[{\"type\":\"txt\",\"add\":true,\"set\":{\"name\":\"${_sub_domain}\",\"ttl\":60,\"roundRobin\":[{\"value\":\"${txtvalue}\"}]}}]"; then
+        if printf -- "%s" "$response" | grep "{\"success\":\"1 record(s) added, 0 record(s) updated, 0 record(s) deleted\"}" >/dev/null; then
+          _info "Added"
+          return 0
+        else
+          _err "Error adding TXT record"
+        fi
+      fi
     else
-      _err "Error adding TXT record"
-      return 1
+      _record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[0-9]*" | cut -d ':' -f 2)
+      if _constellix_rest GET "domains/${_domain_id}/records/TXT/${_record_id}"; then
+        _new_rr_values=$(printf "%s\n" "$response" | _egrep_o '"roundRobin":\[[^]]*\]' | sed "s/\]$/,{\"value\":\"${txtvalue}\"}]/")
+        _debug _new_rr_values "$_new_rr_values"
+        _info "Updating TXT record"
+        if _constellix_rest PUT "domains/${_domain_id}/records/TXT/${_record_id}" "{\"name\":\"${_sub_domain}\",\"ttl\":60,${_new_rr_values}}"; then
+          if printf -- "%s" "$response" | grep "{\"success\":\"Record.*updated successfully\"}" >/dev/null; then
+            _info "Updated"
+            return 0
+          elif printf -- "%s" "$response" | grep "{\"errors\":\[\"Contents are identical\"\]}" >/dev/null; then
+            _info "Already exists, no need to update"
+            return 0
+          else
+            _err "Error updating TXT record"
+          fi
+        fi
+      fi
     fi
   fi
+
+  return 1
 }
 
 # Usage: fulldomain txtvalue
@@ -61,16 +92,26 @@ dns_constellix_rm() {
     return 1
   fi
 
-  _info "Removing TXT record"
-  if _constellix_rest POST "domains/${_domain_id}/records" "[{\"type\":\"txt\",\"delete\":true,\"filter\":{\"field\":\"name\",\"op\":\"eq\",\"value\":\"${_sub_domain}\"}}]"; then
-    if printf -- "%s" "$response" | grep "{\"success\":\"0 record(s) added, 0 record(s) updated, 1 record(s) deleted\"}" >/dev/null; then
+  # The TXT record might have been removed already when working with some wildcard certificates.
+  _debug "Search TXT record"
+  if _constellix_rest GET "domains/${_domain_id}/records/TXT/search?exact=${_sub_domain}"; then
+    if printf -- "%s" "$response" | grep "{\"errors\":\[\"Requested record was not found\"\]}" >/dev/null; then
       _info "Removed"
       return 0
     else
-      _err "Error removing TXT record"
-      return 1
+      _info "Removing TXT record"
+      if _constellix_rest POST "domains/${_domain_id}/records" "[{\"type\":\"txt\",\"delete\":true,\"filter\":{\"field\":\"name\",\"op\":\"eq\",\"value\":\"${_sub_domain}\"}}]"; then
+        if printf -- "%s" "$response" | grep "{\"success\":\"0 record(s) added, 0 record(s) updated, 1 record(s) deleted\"}" >/dev/null; then
+          _info "Removed"
+          return 0
+        else
+          _err "Error removing TXT record"
+        fi
+      fi
     fi
   fi
+
+  return 1
 }
 
 ####################  Private functions below ##################################
@@ -81,7 +122,7 @@ _get_root() {
   p=1
   _debug "Detecting root zone"
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       return 1
     fi
@@ -91,9 +132,9 @@ _get_root() {
     fi
 
     if _contains "$response" "\"name\":\"$h\""; then
-      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[0-9]+" | cut -d ':' -f 2)
+      _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[0-9]*" | cut -d ':' -f 2)
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d '.' -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d '.' -f 1-"$p")
         _domain="$h"
 
         _debug _domain_id "$_domain_id"

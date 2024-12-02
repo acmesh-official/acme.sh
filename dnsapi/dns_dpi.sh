@@ -1,10 +1,12 @@
 #!/usr/bin/env sh
-
-# Dnspod.com Domain api
-#
-#DPI_Id="1234"
-#
-#DPI_Key="sADDsdasdgdsf"
+# shellcheck disable=SC2034
+dns_dpi_info='DNSPod.com
+Site: DNSPod.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_dpi
+Options:
+ DPI_Id Id
+ DPI_Key Key
+'
 
 REST_API="https://api.dnspod.com"
 
@@ -53,7 +55,7 @@ dns_dpi_rm() {
     return 1
   fi
 
-  if ! _rest POST "Record.List" "user_token=$DPI_Id,$DPI_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain"; then
+  if ! _rest POST "Record.List" "login_token=$DPI_Id,$DPI_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain"; then
     _err "Record.Lis error."
     return 1
   fi
@@ -63,19 +65,19 @@ dns_dpi_rm() {
     return 0
   fi
 
-  record_id=$(echo "$response" | _egrep_o '{[^{]*"value":"'"$txtvalue"'"' | cut -d , -f 1 | cut -d : -f 2 | tr -d \")
+  record_id=$(echo "$response" | tr "{" "\n" | grep -- "$txtvalue" | grep '^"id"' | cut -d : -f 2 | cut -d '"' -f 2)
   _debug record_id "$record_id"
   if [ -z "$record_id" ]; then
     _err "Can not get record id."
     return 1
   fi
 
-  if ! _rest POST "Record.Remove" "user_token=$DPI_Id,$DPI_Key&format=json&domain_id=$_domain_id&record_id=$record_id"; then
+  if ! _rest POST "Record.Remove" "login_token=$DPI_Id,$DPI_Key&format=json&domain_id=$_domain_id&record_id=$record_id"; then
     _err "Record.Remove error."
     return 1
   fi
 
-  _contains "$response" "Action completed successful"
+  _contains "$response" "Operation successful"
 
 }
 
@@ -89,11 +91,11 @@ add_record() {
 
   _info "Adding record"
 
-  if ! _rest POST "Record.Create" "user_token=$DPI_Id,$DPI_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain&record_type=TXT&value=$txtvalue&record_line=default"; then
+  if ! _rest POST "Record.Create" "login_token=$DPI_Id,$DPI_Key&format=json&domain_id=$_domain_id&sub_domain=$_sub_domain&record_type=TXT&value=$txtvalue&record_line=default"; then
     return 1
   fi
 
-  _contains "$response" "Action completed successful" || _contains "$response" "Domain record already exists"
+  _contains "$response" "Operation successful" || _contains "$response" "Domain record already exists"
 }
 
 ####################  Private functions below ##################################
@@ -107,21 +109,21 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
     fi
 
-    if ! _rest POST "Domain.Info" "user_token=$DPI_Id,$DPI_Key&format=json&domain=$h"; then
+    if ! _rest POST "Domain.Info" "login_token=$DPI_Id,$DPI_Key&format=json&domain=$h"; then
       return 1
     fi
 
-    if _contains "$response" "Action completed successful"; then
+    if _contains "$response" "Operation successful"; then
       _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
       _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _debug _sub_domain "$_sub_domain"
         _domain="$h"
         _debug _domain "$_domain"
