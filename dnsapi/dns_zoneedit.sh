@@ -100,7 +100,7 @@ _zoneedit_api() {
 
   # Execute request
   i=3 # Tries
-  while [ $i -gt 0 ]; do
+  while [ "$i" -gt 0 ]; do
     i=$(_math "$i" - 1)
 
     if ! response=$(_get "$geturl"); then
