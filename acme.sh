@@ -6441,9 +6441,9 @@ _get_ARI() {
   _debug2 "_aki" "$_aki"
   _debug2 "_ser" "$_ser"
 
-  _akiurl="$(echo "$_aki" | _h2b  | _base64  | tr -d = | _url_encode)"
+  _akiurl="$(echo "$_aki" | _h2b | _base64 | tr -d = | _url_encode)"
   _debug2 "_akiurl" "$_akiurl"
-  _serurl="$(echo "$_ser" | _h2b  | _base64  | tr -d = | _url_encode)"
+  _serurl="$(echo "$_ser" | _h2b | _base64 | tr -d = | _url_encode)"
   _debug2 "_serurl" "$_serurl"
   
   _ARI_URL="$ACME_RENEWAL_INFO/$_akiurl.$_serurl"
