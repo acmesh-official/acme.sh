@@ -2746,6 +2746,7 @@ _clearAPI() {
   ACME_REVOKE_CERT=""
   ACME_NEW_NONCE=""
   ACME_AGREEMENT=""
+  ACME_RENEWAL_INFO=""
 }
 
 #server
@@ -2790,6 +2791,9 @@ _initAPI() {
     ACME_AGREEMENT=$(echo "$response" | _egrep_o 'termsOfService" *: *"[^"]*"' | cut -d '"' -f 3)
     export ACME_AGREEMENT
 
+    ACME_RENEWAL_INFO=$(echo "$response" | _egrep_o 'renewalInfo" *: *"[^"]*"' | cut -d '"' -f 3)
+    export ACME_RENEWAL_INFO
+
     _debug "ACME_KEY_CHANGE" "$ACME_KEY_CHANGE"
     _debug "ACME_NEW_AUTHZ" "$ACME_NEW_AUTHZ"
     _debug "ACME_NEW_ORDER" "$ACME_NEW_ORDER"
@@ -2797,6 +2801,7 @@ _initAPI() {
     _debug "ACME_REVOKE_CERT" "$ACME_REVOKE_CERT"
     _debug "ACME_AGREEMENT" "$ACME_AGREEMENT"
     _debug "ACME_NEW_NONCE" "$ACME_NEW_NONCE"
+    _debug "ACME_RENEWAL_INFO" "$ACME_RENEWAL_INFO"
     if [ "$ACME_NEW_ACCOUNT" ] && [ "$ACME_NEW_ORDER" ]; then
       return 0
     fi
@@ -6414,6 +6419,36 @@ deactivate() {
       return 1
     fi
   done
+}
+
+#cert
+_getAKI() {
+  _cert="$1"
+  openssl x509 -in "$_cert" -text -noout | grep "X509v3 Authority Key Identifier" -A 1 | _tail_n 1 | tr -d ' :'
+}
+
+#cert
+_getSerial() {
+  _cert="$1"
+  openssl x509 -in "$_cert" -serial -noout | cut -d = -f 2
+}
+
+#cert
+_get_ARI() {
+  _cert="$1"
+  _aki=$(_getAKI "$_cert")
+  _ser=$(_getSerial "$_cert")
+  _debug2 "_aki" "$_aki"
+  _debug2 "_ser" "$_ser"
+
+  _akiurl="$(echo "$_aki" | _h2b  | _base64  | tr -d = | _url_encode)"
+  _debug2 "_akiurl" "$_akiurl"
+  _serurl="$(echo "$_ser" | _h2b  | _base64  | tr -d = | _url_encode)"
+  _debug2 "_serurl" "$_serurl"
+  
+  _ARI_URL="$ACME_RENEWAL_INFO/$_akiurl.$_serurl"
+  _get "$_ARI_URL"
+
 }
 
 # Detect profile file if not specified as environment variable
