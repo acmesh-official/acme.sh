@@ -39,7 +39,7 @@ dns_west_cn_rm() {
   WEST_Username="${WEST_Username:-$(_readaccountconf_mutable WEST_Username)}"
   WEST_Key="${WEST_Key:-$(_readaccountconf_mutable WEST_Key)}"
 
-  if ! _rest POST "domain/dns/" "act=dnsrec.list&username=$WEST_Username&apikey=$WEST_Key&domain=$fulldomain&hostname=$fulldomain&record_type=TXT"; then
+  if ! _rest POST "domain/dns/" "act=dnsrec.list&username=$WEST_Username&apikey=$WEST_Key&domain=${fulldomain#*.}&hostname=${fulldomain%%.*}&record_type=TXT"; then
     _err "dnsrec.list error."
     return 1
   fi
@@ -56,7 +56,7 @@ dns_west_cn_rm() {
     return 1
   fi
 
-  if ! _rest POST "domain/dns/" "act=dnsrec.remove&username=$WEST_Username&apikey=$WEST_Key&domain=$fulldomain&hostname=$fulldomain&record_id=$record_id"; then
+  if ! _rest POST "domain/dns/" "act=dnsrec.remove&username=$WEST_Username&apikey=$WEST_Key&domain=${fulldomain#*.}&hostname=${fulldomain%%.*}&record_id=$record_id"; then
     _err "dnsrec.remove error."
     return 1
   fi
@@ -72,7 +72,7 @@ add_record() {
 
   _info "Adding record"
 
-  if ! _rest POST "domain/dns/" "act=dnsrec.add&username=$WEST_Username&apikey=$WEST_Key&domain=$fulldomain&hostname=$fulldomain&record_type=TXT&record_value=$txtvalue"; then
+  if ! _rest POST "domain/dns/" "act=dnsrec.add&username=$WEST_Username&apikey=$WEST_Key&domain=${fulldomain#*.}&hostname=${fulldomain%%.*}&record_type=TXT&record_value=$txtvalue"; then
     return 1
   fi
 
