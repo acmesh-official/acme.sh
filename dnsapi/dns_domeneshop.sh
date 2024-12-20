@@ -93,7 +93,7 @@ _get_domainid() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug "h" "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -102,7 +102,7 @@ _get_domainid() {
 
     if _contains "$response" "\"$h\"" >/dev/null; then
       # We have found the domain name.
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain=$h
       _domainid=$(printf "%s" "$response" | _egrep_o "[^{]*\"domain\":\"$_domain\"[^}]*" | _egrep_o "\"id\":[0-9]+" | cut -d : -f 2)
       return 0

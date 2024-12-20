@@ -72,7 +72,7 @@ _get_root_zone() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -88,7 +88,7 @@ _get_root_zone() {
       _domain_id=$(echo "$response" | sed -n "s/^.*\"id\":\"\([^,]*\)\",\"accountId\":\"[0-9]*\",\"name\":\"$h\",.*/\1/p")
       _debug2 domain_id "$_domain_id"
       if [ -n "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain=$h
         return 0
       fi

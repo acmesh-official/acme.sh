@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.0.8
+VER=3.1.0
 
 PROJECT_NAME="acme.sh"
 
@@ -672,8 +672,10 @@ _hex_dump() {
 #0  1  2  3  4  5  6  7  8  9  -  _  .  ~
 #30 31 32 33 34 35 36 37 38 39 2d 5f 2e 7e
 
+#_url_encode [upper-hex]  the encoded hex will be upper-case if the argument upper-hex is followed
 #stdin stdout
 _url_encode() {
+  _upper_hex=$1
   _hex_str=$(_hex_dump)
   _debug3 "_url_encode"
   _debug3 "_hex_str" "$_hex_str"
@@ -883,6 +885,9 @@ _url_encode() {
       ;;
     #other hex
     *)
+      if [ "$_upper_hex" = "upper-hex" ]; then
+        _hex_code=$(printf "%s" "$_hex_code" | _upper_case)
+      fi
       printf '%%%s' "$_hex_code"
       ;;
     esac
@@ -1437,7 +1442,7 @@ _toPkcs() {
   else
     ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -inkey "$_ckey" -in "$_ccert" -certfile "$_cca"
   fi
-  if [ "$?" == "0" ]; then
+  if [ "$?" = "0" ]; then
     _savedomainconf "Le_PFXPassword" "$pfxPassword"
   fi
 
@@ -1620,6 +1625,11 @@ _time2str() {
 
   #Linux
   if date -u --date=@"$1" "+%Y-%m-%dT%H:%M:%SZ" 2>/dev/null; then
+    return
+  fi
+
+  #Omnios
+  if date -u -r "$1" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null; then
     return
   fi
 
@@ -1806,7 +1816,11 @@ _date2time() {
     return
   fi
   #Omnios
-  if da="$(echo "$1" | tr -d "Z" | tr "T" ' ')" perl -MTime::Piece -e 'print Time::Piece->strptime($ENV{da}, "%Y-%m-%d %H:%M:%S")->epoch, "\n";' 2>/dev/null; then
+  if python3 -c "import datetime; print(int(datetime.datetime.strptime(\"$1\", \"%Y-%m-%d %H:%M:%S\").replace(tzinfo=datetime.timezone.utc).timestamp()))" 2>/dev/null; then
+    return
+  fi
+  #Omnios
+  if python3 -c "import datetime; print(int(datetime.datetime.strptime(\"$1\", \"%Y-%m-%dT%H:%M:%SZ\").replace(tzinfo=datetime.timezone.utc).timestamp()))" 2>/dev/null; then
     return
   fi
   _err "Cannot parse _date2time $1"
@@ -2188,7 +2202,6 @@ _send_signed_request() {
         _debug2 _headers "$_headers"
         _CACHED_NONCE="$(echo "$_headers" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
       fi
-      _debug2 _CACHED_NONCE "$_CACHED_NONCE"
       if [ "$?" != "0" ]; then
         _err "Cannot connect to $nonceurl to get nonce."
         return 1
@@ -2361,7 +2374,7 @@ _clear_conf() {
   _sdkey="$2"
   if [ "$_c_c_f" ]; then
     _conf_data="$(cat "$_c_c_f")"
-    echo "$_conf_data" | sed "s/^$_sdkey *=.*$//" >"$_c_c_f"
+    echo "$_conf_data" | sed "/^$_sdkey *=.*$/d" >"$_c_c_f"
   else
     _err "Config file is empty, cannot clear"
   fi
@@ -5110,6 +5123,19 @@ $_authorizations_map"
         _clearup
         _on_issue_err "$_post_hook" "$vlist"
         return 1
+      fi
+      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      _sleep_overload_retry_sec=$_retryafter
+      if [ "$_sleep_overload_retry_sec" ]; then
+        if [ $_sleep_overload_retry_sec -le 600 ]; then
+          _sleep $_sleep_overload_retry_sec
+        else
+          _info "The retryafter=$_retryafter value is too large (> 600), will not retry anymore."
+          _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+          _clearup
+          _on_issue_err "$_post_hook" "$vlist"
+          return 1
+        fi
       fi
     done
 

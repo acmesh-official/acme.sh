@@ -113,7 +113,7 @@ _initAuth() {
     _saveaccountconf_mutable OVH_END_POINT "$OVH_END_POINT"
   fi
 
-  OVH_API="$(_ovh_get_api $OVH_END_POINT)"
+  OVH_API="$(_ovh_get_api "$OVH_END_POINT")"
   _debug OVH_API "$OVH_API"
 
   OVH_CK="${OVH_CK:-$(_readaccountconf_mutable OVH_CK)}"
@@ -260,7 +260,7 @@ _get_root() {
   i=1
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -273,7 +273,7 @@ _get_root() {
     if ! _contains "$response" "This service does not exist" >/dev/null &&
       ! _contains "$response" "This call has not been granted" >/dev/null &&
       ! _contains "$response" "NOT_GRANTED_CALL" >/dev/null; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi

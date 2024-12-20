@@ -158,7 +158,7 @@ _get_root() {
 
   # iterate over names (a.b.c.d -> b.c.d -> c.d -> d)
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100 | sed 's/\./\\./g')
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100 | sed 's/\./\\./g')
     _debug "Checking domain: $h"
     if [ -z "$h" ]; then
       _error "invalid domain"
@@ -174,7 +174,7 @@ _get_root() {
         if [ "$hostedzone" ]; then
           _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "<Id>.*<.Id>" | head -n 1 | _egrep_o ">.*<" | tr -d "<>")
           if [ "$_domain_id" ]; then
-            _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+            _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
             _domain=$h
             return 0
           fi

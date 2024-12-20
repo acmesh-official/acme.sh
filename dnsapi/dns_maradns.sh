@@ -72,7 +72,7 @@ _reload_maradns() {
   pidpath="$1"
   kill -s HUP -- "$(cat "$pidpath")"
   if [ $? -ne 0 ]; then
-    _err "Unable to reload MaraDNS, kill returned $?"
+    _err "Unable to reload MaraDNS, kill returned"
     return 1
   fi
 }

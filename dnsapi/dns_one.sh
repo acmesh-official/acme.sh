@@ -94,7 +94,7 @@ _get_root() {
   i=1
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
 
     if [ -z "$h" ]; then
       #not valid
@@ -104,7 +104,7 @@ _get_root() {
     response="$(_get "https://www.one.com/admin/api/domains/$h/dns/custom_records")"
 
     if ! _contains "$response" "CRMRST_000302"; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi
