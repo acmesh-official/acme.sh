@@ -139,7 +139,7 @@ unifi_deploy() {
     _unifi_keystore_dir=$(dirname "${_unifi_keystore}")
     _unifi_keystore_dir_owner=$(ls -ld "${_unifi_keystore_dir}" | awk '{print $3}')
     _unifi_keystore_owner=$(ls -l "${_unifi_keystore}" | awk '{print $3}')
-    if ! [ "${_unifi_keystore_owner}" = "${_unifi_keystore_dir_owner}" ] ; then
+    if ! [ "${_unifi_keystore_owner}" = "${_unifi_keystore_dir_owner}" ]; then
       _debug "Changing keystore owner to ${_unifi_keystore_dir_owner}"
       chown $_unifi_keystore_dir_owner "${_unifi_keystore}" >/dev/null 2>&1 # fail quietly if we're not running as root
     fi
@@ -150,12 +150,12 @@ unifi_deploy() {
       -password pass:aircontrolenterprise \
       -nokeys | ${ACME_OPENSSL_BIN:-openssl} x509 -text \
       -noout | grep -i "signature" | grep -iq ecdsa >/dev/null 2>&1; then
-      if [ -f "$(dirname ${DEPLOY_UNIFI_KEYSTORE})/system.properties" ] ; then
+      if [ -f "$(dirname ${DEPLOY_UNIFI_KEYSTORE})/system.properties" ]; then
         _unifi_system_properties="$(dirname ${DEPLOY_UNIFI_KEYSTORE})/system.properties"
       else
         _unifi_system_properties="/usr/lib/unifi/data/system.properties"
       fi
-      if [ -f "${_unifi_system_properties}" ] ; then
+      if [ -f "${_unifi_system_properties}" ]; then
         cp -f "${_unifi_system_properties}" "${_unifi_system_properties}"_original
         _info "Updating system configuration for cipher compatibility."
         _info "Saved original system config to ${_unifi_system_properties}_original"
