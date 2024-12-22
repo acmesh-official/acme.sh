@@ -141,7 +141,7 @@ unifi_deploy() {
     _unifi_keystore_owner=$(ls -l "${_unifi_keystore}" | awk '{print $3}')
     if ! [ "${_unifi_keystore_owner}" = "${_unifi_keystore_dir_owner}" ]; then
       _debug "Changing keystore owner to ${_unifi_keystore_dir_owner}"
-      chown $_unifi_keystore_dir_owner "${_unifi_keystore}" >/dev/null 2>&1 # fail quietly if we're not running as root
+      chown "$_unifi_keystore_dir_owner" "${_unifi_keystore}" >/dev/null 2>&1 # fail quietly if we're not running as root
     fi
 
     # Update unifi service for certificate cipher compatibility
@@ -150,8 +150,8 @@ unifi_deploy() {
       -password pass:aircontrolenterprise \
       -nokeys | ${ACME_OPENSSL_BIN:-openssl} x509 -text \
       -noout | grep -i "signature" | grep -iq ecdsa >/dev/null 2>&1; then
-      if [ -f "$(dirname ${DEPLOY_UNIFI_KEYSTORE})/system.properties" ]; then
-        _unifi_system_properties="$(dirname ${DEPLOY_UNIFI_KEYSTORE})/system.properties"
+      if [ -f "$(dirname "${DEPLOY_UNIFI_KEYSTORE}")/system.properties" ]; then
+        _unifi_system_properties="$(dirname "${DEPLOY_UNIFI_KEYSTORE}")/system.properties"
       else
         _unifi_system_properties="/usr/lib/unifi/data/system.properties"
       fi
