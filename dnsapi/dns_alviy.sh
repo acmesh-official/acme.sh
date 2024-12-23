@@ -1,11 +1,12 @@
 #!/usr/bin/env sh
-# Alviy domain api
-#
-# Get API key and secret from https://cloud.alviy.com/token
-#
-# Alviy_token="some-secret-key"
-#
-# Ex.: acme.sh --issue --staging --dns dns_alviy -d "*.s.example.com" -d "s.example.com"
+# shellcheck disable=SC2034
+dns_alviy_info='Alviy.com
+Site: Alviy.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_alviy
+Options:
+ Alviy_token API token. Get it from the https://cloud.alviy.com/token
+Issues: github.com/acmesh-official/acme.sh/issues/5115
+'
 
 Alviy_Api="https://cloud.alviy.com/api/v1"
 

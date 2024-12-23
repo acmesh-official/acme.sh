@@ -76,7 +76,7 @@ dns_linode_v4_rm() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  if _rest GET "/$_domain_id/records" && [ -n "$response" ]; then
+  if _H4="X-Filter: { \"type\": \"TXT\", \"name\": \"$_sub_domain\" }" _rest GET "/$_domain_id/records" && [ -n "$response" ]; then
     response="$(echo "$response" | tr -d "\n" | tr '{' "|" | sed 's/|/&{/g' | tr "|" "\n")"
 
     resource="$(echo "$response" | _egrep_o "\{.*\"name\": *\"$_sub_domain\".*}")"
@@ -131,34 +131,42 @@ _Linode_API() {
 # _domain=domain.com
 # _domain_id=12345
 _get_root() {
-  domain=$1
+  full_host_str="$1"
+
   i=2
   p=1
+  while true; do
+    # loop through the received string (e.g.  _acme-challenge.sub3.sub2.sub1.domain.tld),
+    # starting from the lowest subdomain, and check if it's a hosted domain
+    tst_hosted_domain=$(printf "%s" "$full_host_str" | cut -d . -f "$i"-100)
+    _debug tst_hosted_domain "$tst_hosted_domain"
+    if [ -z "$tst_hosted_domain" ]; then
+      #not valid
+      _err "Couldn't get domain from string '$full_host_str'."
+      return 1
+    fi
 
-  if _rest GET; then
-    response="$(echo "$response" | tr -d "\n" | tr '{' "|" | sed 's/|/&{/g' | tr "|" "\n")"
-    while true; do
-      h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
-      _debug h "$h"
-      if [ -z "$h" ]; then
-        #not valid
-        return 1
-      fi
-
-      hostedzone="$(echo "$response" | _egrep_o "\{.*\"domain\": *\"$h\".*}")"
+    _debug "Querying Linode APIv4 for hosted zone: $tst_hosted_domain"
+    if _H4="X-Filter: {\"domain\":\"$tst_hosted_domain\"}" _rest GET; then
+      _debug "Got response from API: $response"
+      response="$(echo "$response" | tr -d "\n" | tr '{' "|" | sed 's/|/&{/g' | tr "|" "\n")"
+      hostedzone="$(echo "$response" | _egrep_o "\{.*\"domain\": *\"$tst_hosted_domain\".*}")"
       if [ "$hostedzone" ]; then
         _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "\"id\": *[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
+        _debug "Found domain hosted on Linode DNS. Zone: $tst_hosted_domain, id: $_domain_id"
         if [ "$_domain_id" ]; then
-          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
-          _domain=$h
+          _sub_domain=$(printf "%s" "$full_host_str" | cut -d . -f 1-"$p")
+          _domain=$tst_hosted_domain
           return 0
         fi
         return 1
       fi
+
       p=$i
       i=$(_math "$i" + 1)
-    done
-  fi
+    fi
+  done
+
   return 1
 }
 
