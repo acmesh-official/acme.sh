@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
 
 # Variables that must be defined before running
 #   export SL_Ver="v1"                    - version API: 'v2' (actual) or 'v1' (legacy).
@@ -35,11 +36,11 @@ dns_selectel_add() {
   if ! _sl_init_vars; then
     return 1
   fi
-  _debug3 SL_Ver "$SL_Ver"
-  _debug3 SL_Expire "$SL_Expire"
-  _debug3 SL_Login_Name "$SL_Login_Name"
-  _debug3 SL_Login_ID "$SL_Login_ID"
-  _debug3 SL_Project_Name "$SL_Project_Name"
+  _debug2 SL_Ver "$SL_Ver"
+  _debug2 SL_Expire "$SL_Expire"
+  _debug2 SL_Login_Name "$SL_Login_Name"
+  _debug2 SL_Login_ID "$SL_Login_ID"
+  _debug2 SL_Project_Name "$SL_Project_Name"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -95,9 +96,9 @@ dns_selectel_add() {
         # preparing _data
         _tmp_str="${_record_array},{\"content\":\"${_text_tmp}\"}"
         _data="{\"ttl\": 60, \"records\": [${_tmp_str}]}"
-        _debug3 _record_seg "$_record_seg"
-        _debug3 _record_array "$_record_array"
-        _debug3 _record_array "$_record_id"
+        _debug2 _record_seg "$_record_seg"
+        _debug2 _record_array "$_record_array"
+        _debug2 _record_array "$_record_id"
         _debug "New data for record" "$_data"
         if _sl_rest PATCH "${_ext_uri}${_record_id}" "$_data"; then
           _info "Added, OK"
@@ -121,11 +122,11 @@ dns_selectel_rm() {
   if ! _sl_init_vars "nosave"; then
     return 1
   fi
-  _debug3 SL_Ver "$SL_Ver"
-  _debug3 SL_Expire "$SL_Expire"
-  _debug3 SL_Login_Name "$SL_Login_Name"
-  _debug3 SL_Login_ID "$SL_Login_ID"
-  _debug3 SL_Project_Name "$SL_Project_Name"
+  _debug2 SL_Ver "$SL_Ver"
+  _debug2 SL_Expire "$SL_Expire"
+  _debug2 SL_Login_Name "$SL_Login_Name"
+  _debug2 SL_Login_ID "$SL_Login_ID"
+  _debug2 SL_Project_Name "$SL_Project_Name"
   #
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -166,7 +167,7 @@ dns_selectel_rm() {
     _err "Error. Unsupported version API $SL_Ver"
     return 1
   fi
-  _debug3 "_record_seg" "$_record_seg"
+  _debug2 "_record_seg" "$_record_seg"
   if [ -z "$_record_seg" ]; then
     _err "can not find _record_seg"
     return 1
@@ -181,7 +182,7 @@ dns_selectel_rm() {
     _err "can not find _record_id"
     return 1
   fi
-  _debug3 "_record_id" "$_record_id"
+  _debug2 "_record_id" "$_record_id"
   # delete all record type TXT with text $txtvalue
   if [ "$SL_Ver" = "v2" ]; then
     # actual
@@ -199,7 +200,7 @@ dns_selectel_rm() {
     else
       # update a record by removing one element in content
       _data="{\"ttl\": 60, \"records\": [${_new_arr}]}"
-      _debug3 _data "$_data"
+      _debug2 _data "$_data"
       # REST API PATCH call
       if _sl_rest PATCH "${_del_uri}" "$_data"; then
         _info "Patched, OK: ${_del_uri}"
@@ -314,15 +315,16 @@ _sl_rest() {
   fi
   export _H1="${_h1_name}: ${_token}"
   export _H2="Content-Type: application/json"
-  _debug3 "Full URI: " "$SL_Api/${SL_Ver}${ep}"
-  _debug3 "_H1:" "$_H1"
-  _debug3 "_H2:" "$_H2"
+  _debug2 "Full URI: " "$SL_Api/${SL_Ver}${ep}"
+  _debug2 "_H1:" "$_H1"
+  _debug2 "_H2:" "$_H2"
   if [ "$m" != "GET" ]; then
     _debug data "$data"
     response="$(_post "$data" "$SL_Api/${SL_Ver}${ep}" "" "$m")"
   else
     response="$(_get "$SL_Api/${SL_Ver}${ep}")"
   fi
+  # shellcheck disable=SC2181
   if [ "$?" != "0" ]; then
     _err "error $ep"
     return 1
@@ -353,13 +355,12 @@ _get_auth_token() {
       _project_name=$(_getfield "$token_v2" 4 "$_sl_sep")
       _receipt_time=$(_getfield "$token_v2" 5 "$_sl_sep")
       _login_id=$(_getfield "$token_v2" 3 "$_sl_sep")
-      _debug3 _login_name "$_login_name"
-      _debug3 _login_id "$_login_id"
-      _debug3 _project_name "$_project_name"
-      # _debug3 _receipt_time "$(date -d @"$_receipt_time" -u)"
+      _debug2 _login_name "$_login_name"
+      _debug2 _login_id "$_login_id"
+      _debug2 _project_name "$_project_name"
       # check the validity of the token for the user and the project and its lifetime
       _dt_diff_minute=$((($(date +%s) - _receipt_time) / 60))
-      _debug3 _dt_diff_minute "$_dt_diff_minute"
+      _debug2 _dt_diff_minute "$_dt_diff_minute"
       [ "$_dt_diff_minute" -gt "$SL_Expire" ] && unset _token_keystone
       if [ "$_project_name" != "$SL_Project_Name" ] || [ "$_login_name" != "$SL_Login_Name" ] || [ "$_login_id" != "$SL_Login_ID" ]; then
         unset _token_keystone
