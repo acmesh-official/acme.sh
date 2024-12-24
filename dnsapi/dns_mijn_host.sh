@@ -126,7 +126,7 @@ dns_mijn_host_rm() {
 _get_root() {
   domain=$1
 
-  # Get all domains 
+  # Get all domains
   export _H1="API-Key: $MIJN_HOST_API_KEY"
   export _H2="Content-Type: application/json"
 
@@ -140,17 +140,17 @@ _get_root() {
     _err "Error listing domains: $response"
     return 1
   fi
-  
+
   # Extract root oomains from response
   rootDomains=$(echo "$response" | jq -r '.data.domains[].domain')
 
   for rootDomain in $rootDomains; do
     if _contains "$domain" "$rootDomain"; then
       _domain="$rootDomain"
-      _sub_domain=$(printf '%s\n' "${domain//."$rootDomain"/}")
+      _sub_domain=$(echo "$domain" | sed "s/$rootDomain//g")
       return 0
     fi
   done
 
-  return 1    
+  return 1
 }
