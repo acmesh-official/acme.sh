@@ -267,7 +267,7 @@ _get_root() {
       _err "Error read records of all domains $SL_Ver"
       return 1
     fi
-    i=2
+    i=1
     p=1
     while true; do
       h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
