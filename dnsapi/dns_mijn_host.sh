@@ -26,7 +26,7 @@ dns_mijn_host_add() {
 
   # Save the API key for future use
   _saveaccountconf_mutable MIJN_HOST_API_KEY "$MIJN_HOST_API_KEY"
-  
+
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "Invalid domain"
@@ -34,7 +34,7 @@ dns_mijn_host_add() {
   fi
 
   _debug "Add TXT record"
-  
+
   # Build the payload for the API
   data="{\"type\":\"TXT\",\"name\":\"$subdomain\",\"value\":\"$txtvalue\",\"ttl\":120}"
 
@@ -52,7 +52,7 @@ dns_mijn_host_add() {
 
   # Updating the records
   updated_records=$(echo "$records" | jq --argjson data "$data" '. += [$data]')
-  
+
   # data
   data="{\"records\": $updated_records}"
 
@@ -87,19 +87,19 @@ dns_mijn_host_rm() {
   fi
 
   _debug "Removing TXT record"
-  
+
   # Build the payload for the API
   export _H1="API-Key: $MIJN_HOST_API_KEY"
   export _H2="Content-Type: application/json"
 
   extracted_domain="${fulldomain#*_acme-challenge.}"
-  
+
   # Construct the API URL
   api_url="$MIJN_HOST_API/domains/$extracted_domain/dns"
-  
+
   # Get current records
   response="$(_get "$api_url")"
-  
+
   updated_records=$(echo "$response" | jq '.data.records')
 
   updated_records=$(echo "$updated_records" | jq --arg value "$txtvalue" 'map(select(.value != $value))')
@@ -109,7 +109,7 @@ dns_mijn_host_rm() {
 
   # Use the _put method to update the records
   response="$(_post "$data" "$api_url" "" "PUT")"
-  
+
   if _contains "$response" "error"; then
     _err "Error updating TXT record: $response"
     return 1
@@ -126,14 +126,14 @@ _get_root() {
   p=1
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-)
     if [ -z "$h" ]; then
       return 1
     fi
 
     if _contains "$(dig ns "$h")" "mijn.host"; then
       root_zone="$h"
-      subdomain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      subdomain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       return 0
     fi
 
