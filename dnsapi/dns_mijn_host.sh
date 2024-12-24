@@ -39,7 +39,7 @@ dns_mijn_host_add() {
   _debug "Add TXT record"
 
   # Build the payload for the API
-  data="{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"value\":\"$txtvalue\",\"ttl\":120}"
+  data="{\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"value\":\"$txtvalue\",\"ttl\":120}"
 
   export _H1="API-Key: $MIJN_HOST_API_KEY"
   export _H2="Content-Type: application/json"
@@ -55,8 +55,8 @@ dns_mijn_host_add() {
 
   # Updating the records
   updated_records=$(echo "$records" | sed -E "s/\]( *$)/,$data\]/")
-  
-  _debug "Updated records" "$updatedrecords"
+
+  _debug "Updated records" "$updated_records"
 
   # data
   data="{\"records\": $updated_records}"
@@ -106,20 +106,20 @@ dns_mijn_host_rm() {
 
   # Get current records
   response="$(_get "$api_url")"
-  
+
   _debug "Get current records response:" "$response"
 
   records=$(echo "$get_response" | _egrep_o '"records":\[.*\]' | sed 's/"records"://')
-  
+
   _debug "Current records:" "$records"
 
   updated_records=$(echo "$updated_records" | sed -E "s/\{[^}]*\"value\":\"$txtvalue\"[^}]*\},?//g" | sed 's/,]/]/g')
-  
+
   _debug "Updated records:" "$updated_records"
 
   # Build the new payload
   data="{\"records\": $updated_records}"
-  
+
   _debug "Payload:" "$data"
 
   # Use the _put method to update the records
