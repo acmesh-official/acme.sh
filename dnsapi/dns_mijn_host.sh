@@ -147,7 +147,7 @@ _get_root() {
   for rootDomain in $rootDomains; do
     if _contains "$domain" "$rootDomain"; then
       _domain="$rootDomain"
-      _sub_domain=$(echo "$domain" | sed "s/$rootDomain//g")
+      _sub_domain=$(echo "$domain" | sed "s/.$rootDomain//g")
       return 0
     fi
   done
