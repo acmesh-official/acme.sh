@@ -3,7 +3,7 @@
 dns_mijnhost_info='mijn.host
 Domains: mijn.host
 Site: mijn.host
-Docs: https://mijn.host/api/doc/api-3563900
+Docs: https://mijn.host/api/doc/
 Options:
  MIJN_HOST_API_KEY API Key
 '
@@ -33,22 +33,25 @@ dns_mijn_host_add() {
     return 1
   fi
 
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain "$_domain"
+
   _debug "Add TXT record"
 
   # Build the payload for the API
-  data="{\"type\":\"TXT\",\"name\":\"$subdomain\",\"value\":\"$txtvalue\",\"ttl\":120}"
+  data="{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"value\":\"$txtvalue\",\"ttl\":120}"
 
   export _H1="API-Key: $MIJN_HOST_API_KEY"
   export _H2="Content-Type: application/json"
 
-  extracted_domain="${fulldomain#*_acme-challenge.}"
-
   # Construct the API URL
-  api_url="$MIJN_HOST_API/domains/$extracted_domain/dns"
+  api_url="$MIJN_HOST_API/domains/$_domain/dns"
 
-  # Getting preivous records
+  # Getting previous records
   get_response="$(_get "$api_url")"
   records=$(echo "$get_response" | jq -r '.data.records')
+
+  _debug2 "previous records" "$records"
 
   # Updating the records
   updated_records=$(echo "$records" | jq --argjson data "$data" '. += [$data]')
@@ -59,7 +62,9 @@ dns_mijn_host_add() {
   # Use the _post method to make the API request
   response="$(_post "$data" "$api_url" "" "PUT")"
 
-  if _contains "$response" "error"; then
+  _debug2 "Response" "$response"
+
+  if ! _contains "$response" "200"; then
     _err "Error adding TXT record: $response"
     return 1
   fi
@@ -92,10 +97,8 @@ dns_mijn_host_rm() {
   export _H1="API-Key: $MIJN_HOST_API_KEY"
   export _H2="Content-Type: application/json"
 
-  extracted_domain="${fulldomain#*_acme-challenge.}"
-
   # Construct the API URL
-  api_url="$MIJN_HOST_API/domains/$extracted_domain/dns"
+  api_url="$MIJN_HOST_API/domains/$_domain/dns"
 
   # Get current records
   response="$(_get "$api_url")"
@@ -110,7 +113,7 @@ dns_mijn_host_rm() {
   # Use the _put method to update the records
   response="$(_post "$data" "$api_url" "" "PUT")"
 
-  if _contains "$response" "error"; then
+  if ! _contains "$response" "200"; then
     _err "Error updating TXT record: $response"
     return 1
   fi
@@ -122,24 +125,32 @@ dns_mijn_host_rm() {
 # Helper function to detect the root zone
 _get_root() {
   domain=$1
-  i=2
-  p=1
 
-  while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f "$i"-)
-    if [ -z "$h" ]; then
-      return 1
-    fi
+  # Get all domains 
+  export _H1="API-Key: $MIJN_HOST_API_KEY"
+  export _H2="Content-Type: application/json"
 
-    if _contains "$(dig ns "$h")" "mijn.host"; then
-      root_zone="$h"
-      subdomain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
+  # Construct the API URL
+  api_url="$MIJN_HOST_API/domains"
+
+  # Get current records
+  response="$(_get "$api_url")"
+
+  if ! _contains "$response" "200"; then
+    _err "Error listing domains: $response"
+    return 1
+  fi
+  
+  # Extract root oomains from response
+  rootDomains=$(echo "$response" | jq -r '.data.domains[].domain')
+
+  for rootDomain in $rootDomains; do
+    if _contains "$domain" "$rootDomain"; then
+      _domain="$rootDomain"
+      _sub_domain=$(printf '%s\n' "${domain//."$rootDomain"/}")
       return 0
     fi
-
-    p=$i
-    i=$(_math "$i" + 1)
   done
 
-  return 1
+  return 1    
 }
