@@ -49,20 +49,24 @@ dns_mijn_host_add() {
 
   # Getting previous records
   get_response="$(_get "$api_url")"
-  records=$(echo "$get_response" | jq -r '.data.records')
+  records=$(echo "$get_response" | _egrep_o '"records":\[.*\]' | sed 's/"records"://')
 
-  _debug2 "previous records" "$records"
+  _debug "Current records" "$records"
 
   # Updating the records
-  updated_records=$(echo "$records" | jq --argjson data "$data" '. += [$data]')
+  updated_records=$(echo "$records" | sed -E "s/\]( *$)/,$data\]/")
+  
+  _debug "Updated records" "$updatedrecords"
 
   # data
   data="{\"records\": $updated_records}"
 
+  _debug "json data add_dns PUT call:" "$data"
+
   # Use the _post method to make the API request
   response="$(_post "$data" "$api_url" "" "PUT")"
 
-  _debug2 "Response" "$response"
+  _debug "Response to PUT dns_add" "$response"
 
   if ! _contains "$response" "200"; then
     _err "Error adding TXT record: $response"
@@ -102,16 +106,26 @@ dns_mijn_host_rm() {
 
   # Get current records
   response="$(_get "$api_url")"
+  
+  _debug "Get current records response:" "$response"
 
-  updated_records=$(echo "$response" | jq '.data.records')
+  records=$(echo "$get_response" | _egrep_o '"records":\[.*\]' | sed 's/"records"://')
+  
+  _debug "Current records:" "$records"
 
-  updated_records=$(echo "$updated_records" | jq --arg value "$txtvalue" 'map(select(.value != $value))')
+  updated_records=$(echo "$updated_records" | sed -E "s/\{[^}]*\"value\":\"$txtvalue\"[^}]*\},?//g" | sed 's/,]/]/g')
+  
+  _debug "Updated records:" "$updated_records"
 
   # Build the new payload
   data="{\"records\": $updated_records}"
+  
+  _debug "Payload:" "$data"
 
   # Use the _put method to update the records
   response="$(_post "$data" "$api_url" "" "PUT")"
+
+  _debug "Response:" "$response"
 
   if ! _contains "$response" "200"; then
     _err "Error updating TXT record: $response"
@@ -141,8 +155,10 @@ _get_root() {
     return 1
   fi
 
-  # Extract root oomains from response
-  rootDomains=$(echo "$response" | jq -r '.data.domains[].domain')
+  # Extract root domains from response
+  rootDomains=$(echo "$response" | _egrep_o '"domain":"[^"]*"' | sed -E 's/"domain":"([^"]*)"/\1/')
+
+  _debug "Root domains:" "$rootDomains"
 
   for rootDomain in $rootDomains; do
     if _contains "$domain" "$rootDomain"; then
