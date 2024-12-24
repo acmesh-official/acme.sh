@@ -6,7 +6,6 @@ Site: mijn.host
 Docs: https://mijn.host/api/doc/api-3563900
 Options:
  MIJN_HOST_API_KEY API Key
- MIJN_HOST_ENDPOINT_API API Endpoint URL. E.g. "https://mijn.host/api/v2"
 '
 
 ########  Public functions ###################### Constants for your mijn-host API
