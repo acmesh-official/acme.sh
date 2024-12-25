@@ -107,25 +107,23 @@ dns_mijn_host_rm() {
   # Get current records
   get_response="$(_get "$api_url")"
 
-  _debug "Get current records response:" "$response"
+  _debug "Get current records response:" "$get_response"
 
   records=$(echo "$get_response" | _egrep_o '"records":\[.*\]' | sed 's/"records"://')
 
   _debug "Current records:" "$records"
 
-  updated_records=$(echo "$updated_records" | sed -E "s/\{[^}]*\"value\":\"$txtvalue\"[^}]*\},?//g" | sed 's/,]/]/g')
+  updated_records=$(echo "$records" | sed -E "s/\{[^}]*\"value\":\"$txtvalue\"[^}]*\},?//g" | sed 's/,]/]/g')
 
   _debug "Updated records:" "$updated_records"
 
   # Build the new payload
   data="{\"records\": $updated_records}"
 
-  _debug "Payload:" "$data"
-
   # Use the _put method to update the records
   response="$(_post "$data" "$api_url" "" "PUT")"
 
-  _debug "Response:" "$response"
+  _debug "Response to PUT dns_rm:" "$response"
 
   if ! _contains "$response" "200"; then
     _err "Error updating TXT record: $response"
