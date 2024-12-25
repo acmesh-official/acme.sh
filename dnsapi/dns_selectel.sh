@@ -7,10 +7,9 @@
 # Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_selectel
 # Options:
 # Variables that must be defined before running
+#   SL_Ver can take one of the values 'v1' or 'v2', default is 'v1'
 #   SL_Ver='v1', when using version API legacy (v1)
-#       OR  
 #   SL_Ver='v2', when using version API actual (v2)
-#   default = 'v1'
 # when using API version v1, i.e. SL_Ver is 'v1' or not defined:
 #   SL_Key - API Key, required
 # when using API version v2:
