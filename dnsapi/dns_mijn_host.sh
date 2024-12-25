@@ -39,7 +39,7 @@ dns_mijn_host_add() {
   _debug "Add TXT record"
 
   # Build the payload for the API
-  data="{\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"value\":\"$txtvalue\",\"ttl\":120}"
+  data="{\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"value\":\"$txtvalue\",\"ttl\":300}"
 
   export _H1="API-Key: $MIJN_HOST_API_KEY"
   export _H2="Content-Type: application/json"
@@ -95,7 +95,7 @@ dns_mijn_host_rm() {
     return 1
   fi
 
-  _debug "Removing TXT record"
+  _debug "Removing TXT record" "$txtvalue"
 
   # Build the payload for the API
   export _H1="API-Key: $MIJN_HOST_API_KEY"
@@ -105,7 +105,7 @@ dns_mijn_host_rm() {
   api_url="$MIJN_HOST_API/domains/$_domain/dns"
 
   # Get current records
-  response="$(_get "$api_url")"
+  get_response="$(_get "$api_url")"
 
   _debug "Get current records response:" "$response"
 
