@@ -162,6 +162,9 @@ _get_root() {
     if _contains "$domain" "$rootDomain"; then
       _domain="$rootDomain"
       _sub_domain=$(echo "$domain" | sed "s/.$rootDomain//g")
+
+      _debug "Found root domain" "$_domain" "and subdomain" "$_sub_domain" "for" "$domain"
+
       return 0
     fi
   done
