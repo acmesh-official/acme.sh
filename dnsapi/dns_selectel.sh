@@ -1,26 +1,28 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
 
+# dns_selectel_info='Selectel.com
+# Domains: Selectel.ru
+# Site: Selectel.com
+# Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_selectel
+# Options:
 # Variables that must be defined before running
-#   export SL_Ver="v1"                    - version API: 'v2' (actual) or 'v1' (legacy).
-#                                           Default: v1
-# If SL_Ver="v1"
-#   export SL_Key="API_Key"               - Token Selectel (API key)
-#                                           You can view or create in the control panel in the upper right corner, open the menu: "Profile and setting -> Keys API".
-#                                           https://my.selectel.ru/profile/apikeys
-# If SL_Ver="v2"
-#   export SL_Expire=60                   - token lifetime in minutes (0-1440).
-#                                           Default: 1400 minutes
-#   export SL_Login_ID=<account_id>       - account number in the control panel;
-#   export SL_Project_Name=<project_name> - name project.
-#   export SL_Login_Name=<username>       - service user name. You can view the name in the control panel:
-#                                           in the upper right corner open menu: "Profile and setting → User management → Service users
-#   export SL_Pswd='pswd'                 - service user password, can be viewed when creating a user or changed to a new one.
-# All these variables will be saved in ~/.acme.sh/account.conf and will be reused as needed.
+#   SL_Ver='v1', when using version API legacy (v1)
+#       OR  
+#   SL_Ver='v2', when using version API actual (v2)
+#   default = 'v1'
+# when using API version v1, i.e. SL_Ver is 'v1' or not defined:
+#   SL_Key - API Key, required
+# when using API version v2:
+#   SL_Ver          - required as 'v2'
+#   SL_Login_ID     - account ID, required
+#   SL_Project_Name - name project, required
+#   SL_Login_Name   - service user name, required
+#   SL_Pswd         - service user password, required
+#   SL_Expire       - token lifetime in minutes (0-1440), default 1400 minutes
 #
-# Authorization is described in:
-#   https://developers.selectel.ru/docs/control-panel/authorization/
-#   https://developers.selectel.com/docs/control-panel/authorization/
+# Issues: github.com/acmesh-official/acme.sh/issues/5126
+#
 
 SL_Api="https://api.selectel.ru/domains"
 auth_uri="https://cloud.api.selcloud.ru/identity/v3/auth/tokens"
