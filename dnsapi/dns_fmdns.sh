@@ -14,7 +14,7 @@
 
 # IMPORTANT NOTE: set the validation delay at a minimum value of 360s, since facileManager usually updates dns zones every 300s
 
-########  Public functions #####################
+#####################  Public functions #####################
 
 dns_fmdns_add() {
   fulldomain="${1}"
@@ -88,7 +88,7 @@ dns_fmdns_rm() {
   return $?
 }
 
-####################  Private functions below ##################################
+#####################  Private functions #####################
 
 _fmDnsApi_addRecord() {
   _info "Connecting to ${FMDNS_API_ENDPOINT}"
