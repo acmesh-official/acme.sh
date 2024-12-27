@@ -92,7 +92,7 @@ _get_root() {
   i=2
   previous=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       # not valid
       return 1
@@ -105,7 +105,7 @@ _get_root() {
     if _contains "$response" 'not found'; then
       _debug "$h not found"
     else
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$previous)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$previous")
       _domain="$h"
 
       _debug _domain "$_domain"

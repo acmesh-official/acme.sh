@@ -112,7 +112,7 @@ _get_root() {
   domain=$1
   i=1
   while true; do
-    _domain=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _domain=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$_domain"
     if [ -z "$_domain" ]; then
       return 1

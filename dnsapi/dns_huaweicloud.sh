@@ -210,7 +210,7 @@ _get_recordset_id() {
   _zoneid=$3
   export _H1="X-Auth-Token: ${_token}"
 
-  response=$(_get "${dns_api}/v2/zones/${_zoneid}/recordsets?name=${_domain}")
+  response=$(_get "${dns_api}/v2/zones/${_zoneid}/recordsets?name=${_domain}&status=ACTIVE")
   if _contains "${response}" '"id"'; then
     _id="$(echo "${response}" | _egrep_o "\"id\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | tr -d " ")"
     printf "%s" "${_id}"
@@ -227,7 +227,7 @@ _add_record() {
 
   # Get Existing Records
   export _H1="X-Auth-Token: ${_token}"
-  response=$(_get "${dns_api}/v2/zones/${zoneid}/recordsets?name=${_domain}")
+  response=$(_get "${dns_api}/v2/zones/${zoneid}/recordsets?name=${_domain}&status=ACTIVE")
 
   _debug2 "${response}"
   _exist_record=$(echo "${response}" | _egrep_o '"records":[^]]*' | sed 's/\"records\"\:\[//g')

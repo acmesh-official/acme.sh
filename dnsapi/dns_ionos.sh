@@ -87,7 +87,7 @@ _get_root() {
     _response="$(echo "$_response" | tr -d "\n")"
 
     while true; do
-      h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+      h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
       if [ -z "$h" ]; then
         return 1
       fi
@@ -96,7 +96,7 @@ _get_root() {
       if [ "$_zone" ]; then
         _zone_id=$(printf "%s\n" "$_zone" | _egrep_o "\"id\":\"[a-fA-F0-9\-]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '\"')
         if [ "$_zone_id" ]; then
-          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
           _domain=$h
 
           return 0

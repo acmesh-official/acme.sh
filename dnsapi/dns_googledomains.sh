@@ -132,7 +132,7 @@ _dns_googledomains_get_zone() {
 
   i=2
   while true; do
-    curr=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    curr=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug curr "$curr"
 
     if [ -z "$curr" ]; then

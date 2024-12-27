@@ -102,7 +102,7 @@ _get_root() {
   i=1
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       return 1
     fi
@@ -112,7 +112,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"id\":\"$h\""; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d '.' -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d '.' -f 1-"$p")
       _domain="$h"
       return 0
     fi

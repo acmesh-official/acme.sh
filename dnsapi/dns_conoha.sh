@@ -237,7 +237,7 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100).
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100).
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -251,7 +251,7 @@ _get_root() {
     if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
       _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\"" | head -n 1 | cut -d : -f 2 | tr -d \")
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain=$h
         return 0
       fi

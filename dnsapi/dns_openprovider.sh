@@ -68,7 +68,7 @@ dns_openprovider_add() {
         new_item="$(echo "$item" | sed -n 's/.*<item>.*\(<name>\(.*\)'"$_domain_name"'\.'"$_domain_extension"'<\/name>.*\(<type>.*<\/type>\).*\(<value>.*<\/value>\).*\(<prio>.*<\/prio>\).*\(<ttl>.*<\/ttl>\)\).*<\/item>.*/<item><name>\2<\/name>\3\4\5\6<\/item>/p')"
       fi
 
-      if [ -z "$(echo "$new_item" | _egrep_o ".*<type>(A|AAAA|CNAME|MX|SPF|SRV|TXT|TLSA|SSHFP|CAA|NS)<\/type>.*")" ]; then
+      if [ -z "$(echo "$new_item" | _egrep_o ".*<type>(A|AAAA|CNAME|MX|SPF|SRV|TXT|TLSA|SSHFP|CAA)<\/type>.*")" ]; then
         _debug "not an allowed record type, skipping" "$new_item"
         continue
       fi
@@ -152,7 +152,7 @@ dns_openprovider_rm() {
         new_item="$(echo "$item" | sed -n 's/.*<item>.*\(<name>\(.*\)'"$_domain_name"'\.'"$_domain_extension"'<\/name>.*\(<type>.*<\/type>\).*\(<value>.*<\/value>\).*\(<prio>.*<\/prio>\).*\(<ttl>.*<\/ttl>\)\).*<\/item>.*/<item><name>\2<\/name>\3\4\5\6<\/item>/p')"
       fi
 
-      if [ -z "$(echo "$new_item" | _egrep_o ".*<type>(A|AAAA|CNAME|MX|SPF|SRV|TXT|TLSA|SSHFP|CAA|NS)<\/type>.*")" ]; then
+      if [ -z "$(echo "$new_item" | _egrep_o ".*<type>(A|AAAA|CNAME|MX|SPF|SRV|TXT|TLSA|SSHFP|CAA)<\/type>.*")" ]; then
         _debug "not an allowed record type, skipping" "$new_item"
         continue
       fi
@@ -186,7 +186,7 @@ _get_root() {
 
   results_retrieved=0
   while true; do
-    h=$(echo "$domain" | cut -d . -f $i-100)
+    h=$(echo "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid

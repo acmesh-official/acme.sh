@@ -28,7 +28,7 @@ dns_gcore_add() {
   fi
 
   #save the api key to the account conf file.
-  _saveaccountconf_mutable GCORE_Key "$GCORE_Key"
+  _saveaccountconf_mutable GCORE_Key "$GCORE_Key" "base64"
 
   _debug "First detect the zone name"
   if ! _get_root "$fulldomain"; then
@@ -138,7 +138,7 @@ _get_root() {
   p=1
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -152,7 +152,7 @@ _get_root() {
     if _contains "$response" "\"name\":\"$h\""; then
       _zone_name=$h
       if [ "$_zone_name" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain=$h
         return 0
       fi

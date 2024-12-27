@@ -113,9 +113,9 @@ synology_dsm_deploy() {
 
   # Default values for scheme, hostname and port
   # Defaulting to localhost and http, because it's localhost…
-  [ -n "$SYNO_SCHEME" ] || SYNO_SCHEME="http"
-  [ -n "$SYNO_HOSTNAME" ] || SYNO_HOSTNAME="localhost"
-  [ -n "$SYNO_PORT" ] || SYNO_PORT="5000"
+  [ -n "$SYNO_SCHEME" ] || SYNO_SCHEME=http
+  [ -n "$SYNO_HOSTNAME" ] || SYNO_HOSTNAME=localhost
+  [ -n "$SYNO_PORT" ] || SYNO_PORT=5000
   _savedeployconf SYNO_SCHEME "$SYNO_SCHEME"
   _savedeployconf SYNO_HOSTNAME "$SYNO_HOSTNAME"
   _savedeployconf SYNO_PORT "$SYNO_PORT"
