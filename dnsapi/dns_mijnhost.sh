@@ -5,27 +5,27 @@ Domains: mijn.host
 Site: mijn.host
 Docs: https://mijn.host/api/doc/
 Options:
- MIJN_HOST_API_KEY API Key
+ MIJNHOST_API_KEY API Key
 '
 
 ########  Public functions ###################### Constants for your mijn-host API
-MIJN_HOST_API="https://mijn.host/api/v2"
+MIJNHOST_API="https://mijn.host/api/v2"
 
 # Add TXT record for domain verification
-dns_mijn_host_add() {
+dns_mijnhost_add() {
   fulldomain=$1
   txtvalue=$2
 
-  MIJN_HOST_API_KEY="${MIJN_HOST_API_KEY:-$(_readaccountconf_mutable MIJN_HOST_API_KEY)}"
-  if [ -z "$MIJN_HOST_API_KEY" ]; then
-    MIJN_HOST_API_KEY=""
+  MIJNHOST_API_KEY="${MIJNHOST_API_KEY:-$(_readaccountconf_mutable MIJNHOST_API_KEY)}"
+  if [ -z "$MIJNHOST_API_KEY" ]; then
+    MIJNHOST_API_KEY=""
     _err "You haven't specified mijn-host API key yet."
     _err "Please set it and try again."
     return 1
   fi
 
   # Save the API key for future use
-  _saveaccountconf_mutable MIJN_HOST_API_KEY "$MIJN_HOST_API_KEY"
+  _saveaccountconf_mutable MIJNHOST_API_KEY "$MIJNHOST_API_KEY"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -41,14 +41,14 @@ dns_mijn_host_add() {
   # Build the payload for the API
   data="{\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"value\":\"$txtvalue\",\"ttl\":300}"
 
-  export _H1="API-Key: $MIJN_HOST_API_KEY"
+  export _H1="API-Key: $MIJNHOST_API_KEY"
   export _H2="Content-Type: application/json"
 
   # Construct the API URL
-  api_url="$MIJN_HOST_API/domains/$_domain/dns"
+  api_url="$MIJNHOST_API/domains/$_domain/dns"
 
   # Getting previous records
-  get_response="$(_get "$api_url")"
+  get_response="$(_get "$api_url" "" "120")"
   records=$(echo "$get_response" | _egrep_o '"records":\[.*\]' | sed 's/"records"://')
 
   _debug "Current records" "$records"
@@ -78,13 +78,13 @@ dns_mijn_host_add() {
 }
 
 # Remove TXT record after verification
-dns_mijn_host_rm() {
+dns_mijnhost_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  MIJN_HOST_API_KEY="${MIJN_HOST_API_KEY:-$(_readaccountconf_mutable MIJN_HOST_API_KEY)}"
-  if [ -z "$MIJN_HOST_API_KEY" ]; then
-    MIJN_HOST_API_KEY=""
+  MIJNHOST_API_KEY="${MIJNHOST_API_KEY:-$(_readaccountconf_mutable MIJNHOST_API_KEY)}"
+  if [ -z "$MIJNHOST_API_KEY" ]; then
+    MIJNHOST_API_KEY=""
     _err "You haven't specified mijn-host API key yet."
     return 1
   fi
@@ -98,14 +98,14 @@ dns_mijn_host_rm() {
   _debug "Removing TXT record" "$txtvalue"
 
   # Build the payload for the API
-  export _H1="API-Key: $MIJN_HOST_API_KEY"
+  export _H1="API-Key: $MIJNHOST_API_KEY"
   export _H2="Content-Type: application/json"
 
   # Construct the API URL
-  api_url="$MIJN_HOST_API/domains/$_domain/dns"
+  api_url="$MIJNHOST_API/domains/$_domain/dns"
 
   # Get current records
-  get_response="$(_get "$api_url")"
+  get_response="$(_get "$api_url" "" "120")"
 
   _debug "Get current records response:" "$get_response"
 
@@ -139,14 +139,14 @@ _get_root() {
   domain=$1
 
   # Get all domains
-  export _H1="API-Key: $MIJN_HOST_API_KEY"
+  export _H1="API-Key: $MIJNHOST_API_KEY"
   export _H2="Content-Type: application/json"
 
   # Construct the API URL
-  api_url="$MIJN_HOST_API/domains"
+  api_url="$MIJNHOST_API/domains"
 
   # Get current records
-  response="$(_get "$api_url")"
+  response="$(_get "$api_url" "" "120")"
 
   if ! _contains "$response" "200"; then
     _err "Error listing domains: $response"
