@@ -169,6 +169,8 @@ _mijnhost_rest() {
 
   MAX_REQUEST_RETRY_TIMES=5
   _request_retry_times=0
+  _retry_sleep=5 #Initial sleep time in seconds.
+
   while [ "${_request_retry_times}" -lt "$MAX_REQUEST_RETRY_TIMES" ]; do
     _debug3 _request_retry_times "$_request_retry_times"
     export _H1="API-Key: $MIJNHOST_API_KEY"
@@ -195,8 +197,8 @@ _mijnhost_rest() {
     if [ "$_ret" != "0" ] || [ -z "$_code" ] || [ "$_code" = "400" ] || _contains "$response" "DNS records not managed by mijn.host"; then #Sometimes API errors out
       _request_retry_times="$(_math "$_request_retry_times" + 1)"
       _info "REST call error $_code retrying $ep in $_request_retry_times s"
-      # Sleep 10 times the number of retries in seconds, to increase backoff time
-      _sleep "$(_math "$_request_retry_times" \* 10)"
+      _sleep "$_retry_sleep"
+      _retry_sleep="$(_math "$_retry_sleep" \* 2)"
       continue
     fi
     break
