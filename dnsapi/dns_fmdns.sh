@@ -12,7 +12,7 @@
 # export FMDNS_API_TOKEN='xxxxx'
 # export FMDNS_API_DOMAIN_ID='xxxxx'
 
-# IMPORTANT NOTE: set the validation delay at at least 360s since facileManager updates dns zones usually every 300s
+# IMPORTANT NOTE: set the validation delay at a minimum value of 360s, since facileManager usually updates dns zones every 300s
 
 ########  Public functions #####################
 
