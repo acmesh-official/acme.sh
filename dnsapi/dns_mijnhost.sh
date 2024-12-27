@@ -33,48 +33,47 @@ dns_mijnhost_add() {
     return 1
   fi
 
-  _debug _sub_domain "$_sub_domain"
-  _debug _domain "$_domain"
-
-  _debug "Add TXT record"
-
-  # Build the payload for the API
-  data="{\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"value\":\"$txtvalue\",\"ttl\":300}"
-
-  export _H1="API-Key: $MIJNHOST_API_KEY"
-  export _H2="Content-Type: application/json"
+  _debug2 _sub_domain "$_sub_domain"
+  _debug2 _domain "$_domain"
+  _debug "Adding TXT record"
 
   # Construct the API URL
   api_url="$MIJNHOST_API/domains/$_domain/dns"
 
   # Getting previous records
-  get_response="$(_get "$api_url" "" "120")"
-  records=$(echo "$get_response" | _egrep_o '"records":\[.*\]' | sed 's/"records"://')
+  _mijnhost_rest GET "$api_url" ""
 
-  _debug "Current records" "$records"
+  if [ "$_code" != "200" ]; then
+    _err "Error getting current DNS enties ($_code)"
+    return 1
+  fi
+
+  records=$(echo "$response" | _egrep_o '"records":\[.*\]' | sed 's/"records"://')
+
+  _debug2 "Current records" "$records"
+
+  # Build the payload for the API
+  data="{\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"value\":\"$txtvalue\",\"ttl\":300}"
+
+  _debug2 "Record to add: " "$data"
 
   # Updating the records
   updated_records=$(echo "$records" | sed -E "s/\]( *$)/,$data\]/")
 
-  _debug "Updated records" "$updated_records"
+  _debug2 "Updated records" "$updated_records"
 
   # data
   data="{\"records\": $updated_records}"
 
-  _debug "json data add_dns PUT call:" "$data"
+  _mijnhost_rest PUT "$api_url" "$data"
 
-  # Use the _post method to make the API request
-  response="$(_post "$data" "$api_url" "" "PUT")"
-
-  _debug "Response to PUT dns_add" "$response"
-
-  if ! _contains "$response" "200"; then
-    _err "Error adding TXT record: $response"
+  if [ "$_code" = "200" ]; then
+    _info "DNS record succesfully added"
+    return 0
+  else
+    _err "Error adding DNS record ($_code)"
     return 1
   fi
-
-  _info "TXT record added successfully"
-  return 0
 }
 
 # Remove TXT record after verification
@@ -95,79 +94,117 @@ dns_mijnhost_rm() {
     return 1
   fi
 
-  _debug "Removing TXT record" "$txtvalue"
-
-  # Build the payload for the API
-  export _H1="API-Key: $MIJNHOST_API_KEY"
-  export _H2="Content-Type: application/json"
+  _debug "Removing TXT record" "$txtvalue" "for" "$fulldomain"
 
   # Construct the API URL
   api_url="$MIJNHOST_API/domains/$_domain/dns"
 
   # Get current records
-  get_response="$(_get "$api_url" "" "120")"
+  _mijnhost_rest GET "$api_url" ""
 
-  _debug "Get current records response:" "$get_response"
+  if [ "$_code" != "200" ]; then
+    _err "Error getting current DNS enties ($_code)"
+    return 1
+  fi
 
-  records=$(echo "$get_response" | _egrep_o '"records":\[.*\]' | sed 's/"records"://')
+  _debug2 "Get current records response:" "$response"
 
-  _debug "Current records:" "$records"
+  records=$(echo "$response" | _egrep_o '"records":\[.*\]' | sed 's/"records"://')
+
+  _debug2 "Current records:" "$records"
 
   updated_records=$(echo "$records" | sed -E "s/\{[^}]*\"value\":\"$txtvalue\"[^}]*\},?//g" | sed 's/,]/]/g')
 
-  _debug "Updated records:" "$updated_records"
+  _debug2 "Updated records:" "$updated_records"
 
   # Build the new payload
   data="{\"records\": $updated_records}"
 
   # Use the _put method to update the records
-  response="$(_post "$data" "$api_url" "" "PUT")"
+  _mijnhost_rest PUT "$api_url" "$data"
 
-  _debug "Response to PUT dns_rm:" "$response"
-
-  if ! _contains "$response" "200"; then
-    _err "Error updating TXT record: $response"
+  if [ "$_code" = "200" ]; then
+    _info "DNS record removed successfully"
+    return 0
+  else
+    _err "Error removing DNS record ($_code)"
     return 1
   fi
-
-  _info "TXT record removed successfully"
-  return 0
 }
 
 # Helper function to detect the root zone
 _get_root() {
   domain=$1
 
-  # Get all domains
-  export _H1="API-Key: $MIJNHOST_API_KEY"
-  export _H2="Content-Type: application/json"
-
-  # Construct the API URL
-  api_url="$MIJNHOST_API/domains"
-
   # Get current records
-  response="$(_get "$api_url" "" "120")"
+  _debug "Getting current domains"
+  _mijnhost_rest GET "$MIJNHOST_API/domains" ""
 
-  if ! _contains "$response" "200"; then
-    _err "Error listing domains: $response"
+  if [ "$_code" != "200" ]; then
+    _err "error getting current domains ($_code)"
     return 1
   fi
 
   # Extract root domains from response
   rootDomains=$(echo "$response" | _egrep_o '"domain":"[^"]*"' | sed -E 's/"domain":"([^"]*)"/\1/')
-
   _debug "Root domains:" "$rootDomains"
 
   for rootDomain in $rootDomains; do
     if _contains "$domain" "$rootDomain"; then
       _domain="$rootDomain"
       _sub_domain=$(echo "$domain" | sed "s/.$rootDomain//g")
-
       _debug "Found root domain" "$_domain" "and subdomain" "$_sub_domain" "for" "$domain"
-
       return 0
     fi
   done
-
   return 1
+}
+
+# Helper function for rest calls
+_mijnhost_rest() {
+  m=$1
+  ep="$2"
+  data="$3"
+
+  MAX_REQUEST_RETRY_TIMES=5
+  _request_retry_times=0
+  while [ "${_request_retry_times}" -lt "$MAX_REQUEST_RETRY_TIMES" ]; do
+    _debug3 _request_retry_times "$_request_retry_times"
+    export _H1="API-Key: $MIJNHOST_API_KEY"
+    export _H2="Content-Type: application/json"
+    # clear headers from previous request to avoid getting wrong http code on timeouts
+    : >"$HTTP_HEADER"
+    _debug "$ep"
+    if [ "$m" != "GET" ]; then
+      _debug2 "data $data"
+      response="$(_post "$data" "$ep" "" "$m")"
+    else
+      response="$(_get "$ep")"
+    fi
+    _ret="$?"
+    _debug2 "response $response"
+    _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
+    _debug "http response code $_code"
+    if [ "$_code" = "401" ]; then
+      # we have an invalid API token, maybe it is expired?
+      _err "Access denied. Invalid API token."
+      return 1
+    fi
+
+    if [ "$_ret" != "0" ] || [ -z "$_code" ]; then
+      _request_retry_times="$(_math "$_request_retry_times" + 1)"
+      _info "REST call error $_code retrying $ep in $_request_retry_times s"
+      # Sleep 10 times the number of retries in seconds, to increase backoff time
+      _sleep "$(_math "$_request_retry_times" \* 10)"
+      continue
+    fi
+    break
+  done
+  if [ "$_request_retry_times" = "$MAX_REQUEST_RETRY_TIMES" ]; then
+    _err "Error mijn.host API call was retried $MAX_REQUEST_RETRY_TIMES times."
+    _err "Calling $ep failed."
+    return 1
+  fi
+  response="$(echo "$response" | _normalizeJson)"
+  return 0
 }
