@@ -19,8 +19,8 @@ dns_mijnhost_add() {
   MIJNHOST_API_KEY="${MIJNHOST_API_KEY:-$(_readaccountconf_mutable MIJNHOST_API_KEY)}"
   if [ -z "$MIJNHOST_API_KEY" ]; then
     MIJNHOST_API_KEY=""
-    _err "You haven't specified mijn-host API key yet."
-    _err "Please set it and try again."
+    _err "You haven't specified your mijn-host API key yet."
+    _err "Please add MIJNHOST_API_KEY to the env."
     return 1
   fi
 
@@ -35,7 +35,7 @@ dns_mijnhost_add() {
 
   _debug2 _sub_domain "$_sub_domain"
   _debug2 _domain "$_domain"
-  _debug "Adding TXT record"
+  _debug "Adding DNS record" "${fulldomain}."
 
   # Construct the API URL
   api_url="$MIJNHOST_API/domains/$_domain/dns"
@@ -55,7 +55,7 @@ dns_mijnhost_add() {
   # Build the payload for the API
   data="{\"type\":\"TXT\",\"name\":\"$fulldomain.\",\"value\":\"$txtvalue\",\"ttl\":300}"
 
-  _debug2 "Record to add: " "$data"
+  _debug2 "Record to add" "$data"
 
   # Updating the records
   updated_records=$(echo "$records" | sed -E "s/\]( *$)/,$data\]/")
@@ -68,10 +68,10 @@ dns_mijnhost_add() {
   _mijnhost_rest PUT "$api_url" "$data"
 
   if [ "$_code" = "200" ]; then
-    _info "DNS record succesfully added"
+    _info "DNS record succesfully added."
     return 0
   else
-    _err "Error adding DNS record ($_code)"
+    _err "Error adding DNS record ($_code)."
     return 1
   fi
 }
@@ -84,17 +84,18 @@ dns_mijnhost_rm() {
   MIJNHOST_API_KEY="${MIJNHOST_API_KEY:-$(_readaccountconf_mutable MIJNHOST_API_KEY)}"
   if [ -z "$MIJNHOST_API_KEY" ]; then
     MIJNHOST_API_KEY=""
-    _err "You haven't specified mijn-host API key yet."
+    _err "You haven't specified your mijn-host API key yet."
+    _err "Please add MIJNHOST_API_KEY to the env."
     return 1
   fi
 
-  _debug "First detect the root zone"
+  _debug "Detecting root zone for" "${fulldomain}."
   if ! _get_root "$fulldomain"; then
     _err "Invalid domain"
     return 1
   fi
 
-  _debug "Removing TXT record" "$txtvalue" "for" "$fulldomain"
+  _debug "Removing DNS record for TXT value" "${txtvalue}."
 
   # Construct the API URL
   api_url="$MIJNHOST_API/domains/$_domain/dns"
@@ -124,10 +125,10 @@ dns_mijnhost_rm() {
   _mijnhost_rest PUT "$api_url" "$data"
 
   if [ "$_code" = "200" ]; then
-    _info "DNS record removed successfully"
+    _info "DNS record removed successfully."
     return 0
   else
-    _err "Error removing DNS record ($_code)"
+    _err "Error removing DNS record ($_code)."
     return 1
   fi
 }
@@ -191,7 +192,7 @@ _mijnhost_rest() {
       return 1
     fi
 
-    if [ "$_ret" != "0" ] || [ -z "$_code" ]; then
+    if [ "$_ret" != "0" ] || [ -z "$_code" ] || [ "$_code" = "400" ] || _contains "$response" "DNS records not managed by mijn.host"; then #Sometimes API errors out
       _request_retry_times="$(_math "$_request_retry_times" + 1)"
       _info "REST call error $_code retrying $ep in $_request_retry_times s"
       # Sleep 10 times the number of retries in seconds, to increase backoff time
