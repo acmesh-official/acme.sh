@@ -1,18 +1,14 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_openprovider_rest_info='OpenProvider (REST)
-Site: 
-  OpenProvider.eu 
-  OpenProvider.com
-Docs: 
-  github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_openprovider_rest
+Domains: OpenProvider.com
+Site: OpenProvider.eu
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_openprovider_rest
 Options:
  OPENPROVIDER_REST_USERNAME Openprovider Account Username
  OPENPROVIDER_REST_PASSWORD Openprovider Account Password
-Issues: 
-  github.com/acmesh-official/acme.sh/issues/6122
-Author: 
-  Lambiek12
+Issues: github.com/acmesh-official/acme.sh/issues/6122
+Author: Lambiek12
 '
 
 OPENPROVIDER_API_URL="https://api.openprovider.eu/v1beta"
