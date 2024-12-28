@@ -167,7 +167,7 @@ _mijnhost_rest() {
   ep="$2"
   data="$3"
 
-  MAX_REQUEST_RETRY_TIMES=5
+  MAX_REQUEST_RETRY_TIMES=15
   _request_retry_times=0
   _retry_sleep=5 #Initial sleep time in seconds.
 
