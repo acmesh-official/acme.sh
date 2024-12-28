@@ -196,7 +196,7 @@ _mijnhost_rest() {
 
     if [ "$_ret" != "0" ] || [ -z "$_code" ] || [ "$_code" = "400" ] || _contains "$response" "DNS records not managed by mijn.host"; then #Sometimes API errors out
       _request_retry_times="$(_math "$_request_retry_times" + 1)"
-      _info "REST call error $_code retrying $ep in $_request_retry_times s"
+      _info "REST call error $_code retrying $ep in $_retry_sleep s"
       _sleep "$_retry_sleep"
       _retry_sleep="$(_math "$_retry_sleep" \* 2)"
       continue
