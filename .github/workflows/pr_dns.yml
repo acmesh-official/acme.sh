@@ -23,6 +23,7 @@ jobs:
                 First thing: don't send PR to the master branch, please send to the dev branch instead.
                 Please make sure you've read our [DNS API Dev Guide](../wiki/DNS-API-Dev-Guide) and [DNS-API-Test](../wiki/DNS-API-Test).
                 Then reply on this message, otherwise, your code will not be reviewed or merged.
+                Please also make sure to add/update the usage here: https://github.com/acmesh-official/acme.sh/wiki/dnsapi2
                 We look forward to reviewing your Pull request shortly ✨
                 注意: 必须通过了 [DNS-API-Test](../wiki/DNS-API-Test) 才会被 review. 无论是修改, 还是新加的 dns api, 都必须确保通过这个测试.
                 `
