@@ -1,18 +1,18 @@
 #!/usr/bin/env sh
 
-# 
-# facileManager (https://github.com/WillyXJ/facileManager) hook script for acme.sh
-#
-# Author: Gianluca Giacometti
-# Git repo and usage: https://github.com/gianlucagiacometti/proxmox-acme-facilemanager
-#
-
-# Values to export:
-# export FMDNS_API_ENDPOINT='https://my.fmdnsapi.endpoint'
-# export FMDNS_API_TOKEN='xxxxx'
-# export FMDNS_API_DOMAIN_ID='xxxxx'
-
-# IMPORTANT NOTE: set the validation delay at a minimum value of 360s, since facileManager usually updates dns zones every 300s
+# shellcheck disable=SC2034
+dns_fmdns_info='facileManager DNS API
+ API for self-hosted facileManager DNS.
+Domains: github.com/WillyXJ/facileManager
+Site: github.com/gianlucagiacometti/proxmox-acme-facilemanager
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_fmdns
+Options:
+ FMDNS_API_ENDPOINT API Endpoint. Web address of the API endpoint. 
+ FMDNS_API_TOKEN API Token.
+ FMDNS_API_DOMAIN_ID Domain ID. Domain ID in your facileManager database.
+Issues: github.com/gianlucagiacometti/proxmox-acme-facilemanager
+Author: Gianluca Giacometti <php@gianlucagiacometti.it>
+'
 
 #####################  Public functions #####################
 
