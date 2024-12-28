@@ -172,7 +172,7 @@ _mijnhost_rest() {
   _retry_sleep=5 #Initial sleep time in seconds.
 
   while [ "${_request_retry_times}" -lt "$MAX_REQUEST_RETRY_TIMES" ]; do
-    _debug3 _request_retry_times "$_request_retry_times"
+    _debug2 _request_retry_times "$_request_retry_times"
     export _H1="API-Key: $MIJNHOST_API_KEY"
     export _H2="Content-Type: application/json"
     # clear headers from previous request to avoid getting wrong http code on timeouts
