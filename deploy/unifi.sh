@@ -209,7 +209,7 @@ unifi_deploy() {
       fi
     fi
 
-    cp "_unifi_keystore" "${_cloudkey_certdir}/unifi.keystore.jks"
+    cp "${_unifi_keystore}" "${_cloudkey_certdir}/unifi.keystore.jks"
 
     cat "$_cfullchain" >"${_cloudkey_certdir}/cloudkey.crt"
     cat "$_ckey" >"${_cloudkey_certdir}/cloudkey.key"
