@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_limacity_info='lima-city.de
-Site: www.lima-city.de/
+Site: www.lima-city.de
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_limacity
 Options:
  LIMACITY_APIKEY API Key. Note: The API Key must have following roles: dns.admin, domains.reader
