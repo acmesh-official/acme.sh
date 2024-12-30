@@ -2,8 +2,7 @@
 
 # shellcheck disable=SC2034
 dns_fmdns_info='facileManager DNS API
- API for self-hosted facileManager DNS.
-Domains: github.com/WillyXJ/facileManager
+ API for self-hosted facileManager DNS github.com/WillyXJ/facileManager
 Site: github.com/gianlucagiacometti/proxmox-acme-facilemanager
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_fmdns
 Options:
