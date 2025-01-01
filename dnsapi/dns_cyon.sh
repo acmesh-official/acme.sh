@@ -228,6 +228,7 @@ _cyon_change_domain_env() {
   _info ""
 }
 
+
 _cyon_add_txt() {
   _info "  - Adding DNS TXT entry..."
 
