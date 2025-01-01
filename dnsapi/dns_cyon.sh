@@ -244,7 +244,7 @@ _cyon_add_txt() {
   add_txt_validation="$(printf "%s" "${add_txt_response}" | _cyon_get_validation_status)"
 
   # Bail if adding TXT entry fails.
-  if [ "${add_txt_status}" != "true" ] || [ "${add_txt_validation}" != "true" ] ; then
+  if [ "${add_txt_status}" != "true" ] || [ "${add_txt_validation}" != "true" ]; then
     _err "    ${add_txt_message}"
     _err ""
     return 1
