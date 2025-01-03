@@ -304,11 +304,11 @@ _cyon_get_response_message() {
 }
 
 _cyon_get_response_status() {
-  _egrep_o '"status":\w*' | cut -d : -f 2
+  _egrep_o '"status":[a-zA-z0-9]*' | cut -d : -f 2
 }
 
 _cyon_get_validation_status() {
-  _egrep_o '"valid":\w*' | cut -d : -f 2
+  _egrep_o '"valid":[a-zA-z0-9]*' | cut -d : -f 2
 }
 
 _cyon_get_response_success() {
