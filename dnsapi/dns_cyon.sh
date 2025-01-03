@@ -216,7 +216,7 @@ _cyon_change_domain_env() {
   if ! _cyon_check_if_2fa_missed "${domain_env_response}"; then return 1; fi
 
   # Bail if domain environment change fails.
-  if [ "$(printf "%s" "${domain_env_response}" | _cyon_get_envchange_success)" != "true" ]; then
+  if [ "$(printf "%s" "${domain_env_response}" | _cyon_get_environment_change_status)" != "true" ]; then
     _err "    $(printf "%s" "${domain_env_response}" | _cyon_get_response_message)"
     _err ""
     return 1
@@ -315,8 +315,8 @@ _cyon_get_response_success() {
   _egrep_o '"onSuccess":"[^"]*"' | cut -d : -f 2 | tr -d '"'
 }
 
-_cyon_get_envchange_success() {
-  _egrep_o '"authenticated":\w*' | cut -d : -f 2
+_cyon_get_environment_change_status() {
+  _egrep_o '"authenticated":[a-zA-z0-9]*' | cut -d : -f 2
 }
 
 _cyon_check_if_2fa_missed() {
