@@ -4,7 +4,7 @@ dns_he_ddns_info='Hurricane Electric HE.net DDNS
 Site: dns.he.net
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_he_ddns
 Options:
- HE_DDNS_KEY The DDNS key for updating the TXT record
+ HE_DDNS_KEY The DDNS key
 Author: Markku Leiniö
 '
 
