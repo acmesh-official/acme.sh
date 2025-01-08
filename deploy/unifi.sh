@@ -135,20 +135,36 @@ unifi_deploy() {
       cp -f "$_import_pkcs12" "$_unifi_keystore"
     fi
 
+    # correct file ownership according to the directory, the keystore is placed in
+    _unifi_keystore_dir=$(dirname "${_unifi_keystore}")
+    _unifi_keystore_dir_owner=$(find "${_unifi_keystore_dir}" -maxdepth 0 -printf '%u\n')
+    _unifi_keystore_owner=$(find "${_unifi_keystore}" -maxdepth 0 -printf '%u\n')
+    if ! [ "${_unifi_keystore_owner}" = "${_unifi_keystore_dir_owner}" ]; then
+      _debug "Changing keystore owner to ${_unifi_keystore_dir_owner}"
+      chown "$_unifi_keystore_dir_owner" "${_unifi_keystore}" >/dev/null 2>&1 # fail quietly if we're not running as root
+    fi
+
     # Update unifi service for certificate cipher compatibility
     if ${ACME_OPENSSL_BIN:-openssl} pkcs12 \
       -in "$_import_pkcs12" \
       -password pass:aircontrolenterprise \
       -nokeys | ${ACME_OPENSSL_BIN:-openssl} x509 -text \
       -noout | grep -i "signature" | grep -iq ecdsa >/dev/null 2>&1; then
-      cp -f /usr/lib/unifi/data/system.properties /usr/lib/unifi/data/system.properties_original
-      _info "Updating system configuration for cipher compatibility."
-      _info "Saved original system config to /usr/lib/unifi/data/system.properties_original"
-      sed -i '/unifi\.https\.ciphers/d' /usr/lib/unifi/data/system.properties
-      echo "unifi.https.ciphers=ECDHE-ECDSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-GCM-SHA256" >>/usr/lib/unifi/data/system.properties
-      sed -i '/unifi\.https\.sslEnabledProtocols/d' /usr/lib/unifi/data/system.properties
-      echo "unifi.https.sslEnabledProtocols=TLSv1.3,TLSv1.2" >>/usr/lib/unifi/data/system.properties
-      _info "System configuration updated."
+      if [ -f "$(dirname "${DEPLOY_UNIFI_KEYSTORE}")/system.properties" ]; then
+        _unifi_system_properties="$(dirname "${DEPLOY_UNIFI_KEYSTORE}")/system.properties"
+      else
+        _unifi_system_properties="/usr/lib/unifi/data/system.properties"
+      fi
+      if [ -f "${_unifi_system_properties}" ]; then
+        cp -f "${_unifi_system_properties}" "${_unifi_system_properties}"_original
+        _info "Updating system configuration for cipher compatibility."
+        _info "Saved original system config to ${_unifi_system_properties}_original"
+        sed -i '/unifi\.https\.ciphers/d' "${_unifi_system_properties}"
+        echo "unifi.https.ciphers=ECDHE-ECDSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-GCM-SHA256" >>"${_unifi_system_properties}"
+        sed -i '/unifi\.https\.sslEnabledProtocols/d' "${_unifi_system_properties}"
+        echo "unifi.https.sslEnabledProtocols=TLSv1.3,TLSv1.2" >>"${_unifi_system_properties}"
+        _info "System configuration updated."
+      fi
     fi
 
     rm "$_import_pkcs12"
