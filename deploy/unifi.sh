@@ -30,7 +30,9 @@
 # Keystore password (built into Unifi Controller, not a user-set password):
 #DEPLOY_UNIFI_KEYPASS="aircontrolenterprise"
 # Command to restart Unifi Controller:
-#DEPLOY_UNIFI_RELOAD="service unifi restart"
+# DEPLOY_UNIFI_RELOAD="systemctl restart unifi"
+# System Properties file location for controller
+#DEPLOY_UNIFI_SYSTEM_PROPERTIES="/usr/lib/unifi/data/system.properties"
 #
 # Settings for Unifi Cloud Key Gen1 (nginx admin pages):
 # Directory where cloudkey.crt and cloudkey.key live:
@@ -43,7 +45,7 @@
 # Directory where unifi-core.crt and unifi-core.key live:
 #DEPLOY_UNIFI_CORE_CONFIG="/data/unifi-core/config/"
 # Command to restart unifi-core:
-#DEPLOY_UNIFI_RELOAD="systemctl restart unifi-core"
+# DEPLOY_UNIFI_OS_RELOAD="systemctl restart unifi-core"
 #
 # At least one of DEPLOY_UNIFI_KEYSTORE, DEPLOY_UNIFI_CLOUDKEY_CERTDIR,
 # or DEPLOY_UNIFI_CORE_CONFIG must exist to receive the deployed certs.
@@ -69,12 +71,16 @@ unifi_deploy() {
   _getdeployconf DEPLOY_UNIFI_CLOUDKEY_CERTDIR
   _getdeployconf DEPLOY_UNIFI_CORE_CONFIG
   _getdeployconf DEPLOY_UNIFI_RELOAD
+  _getdeployconf DEPLOY_UNIFI_SYSTEM_PROPERTIES
+  _getdeployconf DEPLOY_UNIFI_OS_RELOAD
 
   _debug2 DEPLOY_UNIFI_KEYSTORE "$DEPLOY_UNIFI_KEYSTORE"
   _debug2 DEPLOY_UNIFI_KEYPASS "$DEPLOY_UNIFI_KEYPASS"
   _debug2 DEPLOY_UNIFI_CLOUDKEY_CERTDIR "$DEPLOY_UNIFI_CLOUDKEY_CERTDIR"
   _debug2 DEPLOY_UNIFI_CORE_CONFIG "$DEPLOY_UNIFI_CORE_CONFIG"
   _debug2 DEPLOY_UNIFI_RELOAD "$DEPLOY_UNIFI_RELOAD"
+  _debug2 DEPLOY_UNIFI_OS_RELOAD "$DEPLOY_UNIFI_OS_RELOAD"
+  _debug2 DEPLOY_UNIFI_SYSTEM_PROPERTIES "$DEPLOY_UNIFI_SYSTEM_PROPERTIES"
 
   # Space-separated list of environments detected and installed:
   _services_updated=""
@@ -145,6 +151,7 @@ unifi_deploy() {
     fi
 
     # Update unifi service for certificate cipher compatibility
+    _unifi_system_properties="${DEPLOY_UNIFI_SYSTEM_PROPERTIES:-/usr/lib/unifi/data/system.properties}"
     if ${ACME_OPENSSL_BIN:-openssl} pkcs12 \
       -in "$_import_pkcs12" \
       -password pass:aircontrolenterprise \
@@ -171,13 +178,16 @@ unifi_deploy() {
 
     # Restarting unifi-core will bring up unifi, doing it out of order results in
     # a certificate error, and breaks wifiman.
-    # Restart if we aren't doing unifi-core, otherwise stop for later restart.
-    if systemctl -q is-active unifi; then
-      if [ ! -f "${DEPLOY_UNIFI_CORE_CONFIG:-/data/unifi-core/config}/unifi-core.key" ]; then
-        _reload_cmd="${_reload_cmd:+$_reload_cmd && }systemctl restart unifi"
-      else
-        _reload_cmd="${_reload_cmd:+$_reload_cmd && }systemctl stop unifi"
-      fi
+    # Restart if we aren't doing Unifi OS (e.g. unifi-core service), otherwise stop for later restart.
+    _unifi_reload="${DEPLOY_UNIFI_RELOAD:-systemctl restart unifi}"
+    if [ ! -f "${DEPLOY_UNIFI_CORE_CONFIG:-/data/unifi-core/config}/unifi-core.key" ]; then
+      _reload_cmd="${_reload_cmd:+$_reload_cmd && }$_unifi_reload"
+    else
+      _info "Stopping Unifi Controller for later restart."
+      _unifi_stop=$(echo "${_unifi_reload}" | sed -e 's/restart/stop/')
+      $_unifi_stop
+      _reload_cmd="${_reload_cmd:+$_reload_cmd && }$_unifi_reload"
+      _info "Unifi Controller stopped."
     fi
     _services_updated="${_services_updated} unifi"
     _info "Install Unifi Controller certificate success!"
@@ -197,12 +207,23 @@ unifi_deploy() {
       return 1
     fi
     # Cloud Key expects to load the keystore from /etc/ssl/private/unifi.keystore.jks.
-    # Normally /usr/lib/unifi/data/keystore is a symlink there (so the keystore was
-    # updated above), but if not, we don't know how to handle this installation:
-    if ! cmp -s "$_unifi_keystore" "${_cloudkey_certdir}/unifi.keystore.jks"; then
-      _err "Unsupported Cloud Key configuration: keystore not found at '${_cloudkey_certdir}/unifi.keystore.jks'"
-      return 1
+    # It appears that unifi won't start if this is a symlink, so we'll copy it instead.
+
+    # if ! cmp -s "$_unifi_keystore" "${_cloudkey_certdir}/unifi.keystore.jks"; then
+    #   _err "Unsupported Cloud Key configuration: keystore not found at '${_cloudkey_certdir}/unifi.keystore.jks'"
+    #   return 1
+    # fi
+
+    _info "Updating ${_cloudkey_certdir}/unifi.keystore.jks"
+    if [ -e "${_cloudkey_certdir}/unifi.keystore.jks" ]; then
+      if [ -L "${_cloudkey_certdir}/unifi.keystore.jks" ]; then
+        rm -f "${_cloudkey_certdir}/unifi.keystore.jks"
+      else
+        mv "${_cloudkey_certdir}/unifi.keystore.jks" "${_cloudkey_certdir}/unifi.keystore.jks_original"
+      fi
     fi
+
+    cp "${_unifi_keystore}" "${_cloudkey_certdir}/unifi.keystore.jks"
 
     cat "$_cfullchain" >"${_cloudkey_certdir}/cloudkey.crt"
     cat "$_ckey" >"${_cloudkey_certdir}/cloudkey.key"
@@ -231,14 +252,14 @@ unifi_deploy() {
     # Save the existing certs in case something goes wrong.
     cp -f "${_unifi_core_config}"/unifi-core.crt "${_unifi_core_config}"/unifi-core_original.crt
     cp -f "${_unifi_core_config}"/unifi-core.key "${_unifi_core_config}"/unifi-core_original.key
-    _info "Previous certificate and key saved to ${_unifi_core_config}/unifi-core_original.crt/key."
+    _info "Previous certificate and key saved to ${_unifi_core_config}/unifi-core_original.crt.key."
 
     cat "$_cfullchain" >"${_unifi_core_config}/unifi-core.crt"
     cat "$_ckey" >"${_unifi_core_config}/unifi-core.key"
 
-    if systemctl -q is-active unifi-core; then
-      _reload_cmd="${_reload_cmd:+$_reload_cmd && }systemctl restart unifi-core"
-    fi
+    _unifi_os_reload="${DEPLOY_UNIFI_OS_RELOAD:-systemctl restart unifi-core}"
+    _reload_cmd="${_reload_cmd:+$_reload_cmd && }$_unifi_os_reload"
+
     _info "Install UnifiOS certificate success!"
     _services_updated="${_services_updated} unifi-core"
   elif [ "$DEPLOY_UNIFI_CORE_CONFIG" ]; then
@@ -277,6 +298,8 @@ unifi_deploy() {
   _savedeployconf DEPLOY_UNIFI_CLOUDKEY_CERTDIR "$DEPLOY_UNIFI_CLOUDKEY_CERTDIR"
   _savedeployconf DEPLOY_UNIFI_CORE_CONFIG "$DEPLOY_UNIFI_CORE_CONFIG"
   _savedeployconf DEPLOY_UNIFI_RELOAD "$DEPLOY_UNIFI_RELOAD"
+  _savedeployconf DEPLOY_UNIFI_OS_RELOAD "$DEPLOY_UNIFI_OS_RELOAD"
+  _savedeployconf DEPLOY_UNIFI_SYSTEM_PROPERTIES "$DEPLOY_UNIFI_SYSTEM_PROPERTIES"
 
   return 0
 }
