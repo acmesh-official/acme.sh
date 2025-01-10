@@ -4,8 +4,8 @@ dns_omglol_info='omg.lol
 Site: omg.lol
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_omglol
 Options:
- OMG_ApiKey API Key from omg.lol. This is accessible from the bottom of the account page at https://home.omg.lol/account
- OMG_Address This is your omg.lol address, without the preceding @ - you can see your list on your dashboard at https://home.omg.lol/dashboard
+ OMG_ApiKey API Key. This is accessible from the bottom of the account page at https://home.omg.lol/account
+ OMG_Address Address. This is your omg.lol address, without the preceding @ - you can see your list on your dashboard at https://home.omg.lol/dashboard
 Issues: github.com/acmesh-official/acme.sh/issues/5299
 Author: @Kholin <kholin+acme.omglolapi@omg.lol>
 '
