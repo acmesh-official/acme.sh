@@ -45,8 +45,9 @@ dns_active24_rm() {
   _active24_init
 
   _debug "Getting txt records"
-  # The API filter object does not seem to work. We need to get all records and find the record ourselves.
-  _active24_rest GET "/v2/service/$_service_id/dns/record?rowsPerPage=100"
+  # The API needs to send data in body in order the filter to work
+  _active24_rest GET "/v2/service/$_service_id/dns/record" "{\"page\":1,\"descending\":true,\"sortBy\":\"name\",\"rowsPerPage\":100,\"totalRecords\":0,\"filters\":{\"type\":[\"TXT\"],\"name\":\"${_sub_domain}\"}}"
+  #_active24_rest GET "/v2/service/$_service_id/dns/record?rowsPerPage=100"
 
   if _contains "$response" "error"; then
     _err "Error"
@@ -187,8 +188,13 @@ _active24_rest() {
     _debug "data" "$data"
     response="$(_post "$data" "$Active24_Api${ep_qs}" "" "$m" "application/json")"
   else
-    _debug2 "GET $Active24_Api${ep_qs}"
-    response="$(_get "$Active24_Api${ep_qs}")"
+    if [ -z "$data" ]; then
+      _debug2 "GET $Active24_Api${ep_qs}"
+      response="$(_get "$Active24_Api${ep_qs}")"
+    else
+      _debug2 "GET $Active24_Api${ep_qs} with data: ${data}"
+      response="$(_post "$data" "$Active24_Api${ep_qs}" "" "$m" "application/json")"
+    fi
   fi
   if [ "$?" != "0" ]; then
     _err "error $ep"
