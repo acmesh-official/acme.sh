@@ -155,9 +155,9 @@ _active24_get_service_id() {
 
 _active24_rest() {
   m=$1
-  ep=$2
-  ep_qs=$ep
-  #ep=$(printf "%s" "$ep_qs" | cut -d '?' -f1) # no query string
+  ep_qs=$2 # with query string
+  # ep=$2
+  ep=$(printf "%s" "$ep_qs" | cut -d '?' -f1) # no query string
   data="$3"
 
   _debug "A24 $ep"
@@ -180,7 +180,7 @@ _active24_rest() {
   _debug2 H3 "$_H3"
   _debug2 H4 "$_H4"
 
-  _sleep 1
+  # _sleep 1
 
   if [ "$m" != "GET" ]; then
     _debug2 "${m} $Active24_Api${ep_qs}"
