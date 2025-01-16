@@ -19,7 +19,7 @@ Beget_Api="https://api.beget.com/api"
 dns_beget_add() {
   fulldomain=$1
   txtvalue=$2
-  _debug "dns_beget_add $fulldomain $txtvalue"
+  _debug "dns_beget_add() $fulldomain $txtvalue"
 
   Beget_Username="${Beget_Username:-$(_readaccountconf_mutable Beget_Username)}"
   Beget_Password="${Beget_Password:-$(_readaccountconf_mutable Beget_Password)}"
@@ -49,20 +49,27 @@ dns_beget_add() {
     data="{\"subdomain\":\"$_sub_domain\",\"domain_id\":$_domain_id}"
     res=$(_api_call "$Beget_Api/domain/addSubdomainVirtual" "$data")
 
-    if _contains "$res" "^{\"status\":\"success\",\"answer\":{\"status\":\"success\",\"result\":[0-9]*}}$"; then
+    if _is_api_reply_ok "$res"; then
       _debug "Cleanup subdomen records"
       data="{\"fqdn\":\"$fulldomain\",\"records\":{}}"
       res=$(_api_call "$Beget_Api/dns/changeRecords" "$data")
+      if ! _is_api_reply_ok "$res"; then
+        _err "Can't cleanup subdomain records."
+        return 1
+      fi
       data="{\"fqdn\":\"www.$fulldomain\",\"records\":{}}"
       res=$(_api_call "$Beget_Api/dns/changeRecords" "$data")
+      if ! _is_api_reply_ok "$res"; then
+        _err "Can't cleanup subdomain records."
+        return 1
+      fi
     fi
   fi
 
   _info "Get current domain records"
   data="{\"fqdn\":\"$fulldomain\"}"
   res=$(_api_call "$Beget_Api/dns/getData" "$data")
-
-  if ! _contains "$res" "^{\"status\":\"success\",\"answer\":{\"status\":\"success\",\"result\":{.*}}}$"; then
+  if ! _is_api_reply_ok "$res"; then
     _err "Can't get domain records."
     return 1
   fi
@@ -82,6 +89,10 @@ dns_beget_add() {
   data=$(_add_record "$data" "TXT" "$str")
 
   res=$(_api_call "$Beget_Api/dns/changeRecords" "$data")
+  if ! _is_api_reply_ok "$res"; then
+    _err "Can't change domain records."
+    return 1
+  fi
 
   return 0
 }
@@ -91,7 +102,7 @@ dns_beget_add() {
 dns_beget_rm() {
   fulldomain=$1
   txtvalue=$2
-  _debug "dns_beget_rm $fulldomain $txtvalue"
+  _debug "dns_beget_rm() $fulldomain $txtvalue"
 
   Beget_Username="${Beget_Username:-$(_readaccountconf_mutable Beget_Username)}"
   Beget_Password="${Beget_Password:-$(_readaccountconf_mutable Beget_Password)}"
@@ -99,9 +110,8 @@ dns_beget_rm() {
   _info "Get current domain records"
   data="{\"fqdn\":\"$fulldomain\"}"
   res=$(_api_call "$Beget_Api/dns/getData" "$data")
-
-  if ! _contains "$res" "^{\"status\":\"success\",\"answer\":{\"status\":\"success\",\"result\":{.*}}}$"; then
-    _err Can\'t get domain records.
+  if ! _is_api_reply_ok "$res"; then
+    _err "Can't get domain records."
     return 1
   fi
 
@@ -120,6 +130,10 @@ dns_beget_rm() {
   data=$(_rm_record "$data" "$str")
 
   res=$(_api_call "$Beget_Api/dns/changeRecords" "$data")
+  if ! _is_api_reply_ok "$res"; then
+    _err "Can't change domain records."
+    return 1
+  fi
 
   return 0
 }
@@ -138,6 +152,10 @@ _get_root() {
 
   _debug "Request domain list"
   res=$(_api_call "$Beget_Api/domain/getList")
+  if ! _is_api_reply_ok "$res"; then
+    _err "Can't get domain list."
+    return 1
+  fi
 
   while true; do
     h=$(printf "%s" "$fulldomain" | cut -d . -f "$i"-100)
@@ -217,9 +235,13 @@ _api_call() {
     url=${url}"&input_data="
     url=${url}$(echo "$input_data" | _url_encode)
   fi
-
   res=$(_get "$url")
 
   _debug "Reply: $res"
   echo "$res"
+}
+
+# Usage: _is_api_reply_ok [api_reply]
+_is_api_reply_ok() {
+  _contains "$1" '^{"status":"success","answer":{"status":"success","result":.*}}$'
 }
