@@ -12,7 +12,7 @@ Author: ARNik arnik@arnik.ru
 
 Beget_Api="https://api.beget.com/api"
 
-########  Public functions #####################
+####################  Public functions ####################
 
 # Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 # Used to add txt record
@@ -35,38 +35,13 @@ dns_beget_add() {
   _saveaccountconf_mutable Beget_Username "$Beget_Username"
   _saveaccountconf_mutable Beget_Password "$Beget_Password"
 
-  _info "First detect the root zone"
-  if ! _get_root "$fulldomain"; then
-    _err "invalid domain"
+  _info "Prepare subdomain."
+  if ! _prepare_subdomain "$fulldomain"; then
+    _err "Can't prepare subdomain."
     return 1
   fi
-  _debug _domain_id "$_domain_id"
-  _debug _sub_domain "$_sub_domain"
-  _debug _domain "$_domain"
 
-  if [ -n "$_sub_domain" ]; then
-    _debug "Create subdomen for the record"
-    data="{\"subdomain\":\"$_sub_domain\",\"domain_id\":$_domain_id}"
-    res=$(_api_call "$Beget_Api/domain/addSubdomainVirtual" "$data")
-
-    if _is_api_reply_ok "$res"; then
-      _debug "Cleanup subdomen records"
-      data="{\"fqdn\":\"$fulldomain\",\"records\":{}}"
-      res=$(_api_call "$Beget_Api/dns/changeRecords" "$data")
-      if ! _is_api_reply_ok "$res"; then
-        _err "Can't cleanup subdomain records."
-        return 1
-      fi
-      data="{\"fqdn\":\"www.$fulldomain\",\"records\":{}}"
-      res=$(_api_call "$Beget_Api/dns/changeRecords" "$data")
-      if ! _is_api_reply_ok "$res"; then
-        _err "Can't cleanup subdomain records."
-        return 1
-      fi
-    fi
-  fi
-
-  _info "Get current domain records"
+  _info "Get domain records"
   data="{\"fqdn\":\"$fulldomain\"}"
   res=$(_api_call "$Beget_Api/dns/getData" "$data")
   if ! _is_api_reply_ok "$res"; then
@@ -138,7 +113,62 @@ dns_beget_rm() {
   return 0
 }
 
-####################  Private functions below ##################################
+####################  Private functions below ####################
+
+# Create subdomain if needed
+# Usage: _prepare_subdomain [fulldomain]
+_prepare_subdomain() {
+  fulldomain=$1
+
+  _info "Detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+  _debug _domain_id "$_domain_id"
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain "$_domain"
+
+  if [ -z "$_sub_domain" ]; then
+    _debug "$fulldomain is a root domain."
+    return 0
+  fi
+
+  _info "Get subdomain list"
+  res=$(_api_call "$Beget_Api/domain/getSubdomainList")
+  if ! _is_api_reply_ok "$res"; then
+    _err "Can't get subdomain list."
+    return 1
+  fi
+
+  if _contains "$res" "\"fqdn\":\"$fulldomain\""; then
+    _debug "Subdomain $fulldomain already exist."
+    return 0
+  fi
+
+  _info "Subdomain $fulldomain does not exist. Let's create one."
+  data="{\"subdomain\":\"$_sub_domain\",\"domain_id\":$_domain_id}"
+  res=$(_api_call "$Beget_Api/domain/addSubdomainVirtual" "$data")
+  if ! _is_api_reply_ok "$res"; then
+    _err "Can't create subdomain."
+    return 1
+  fi
+
+  _debug "Cleanup subdomen records"
+  data="{\"fqdn\":\"$fulldomain\",\"records\":{}}"
+  res=$(_api_call "$Beget_Api/dns/changeRecords" "$data")
+  if ! _is_api_reply_ok "$res"; then
+    _debug "Can't cleanup $fulldomain records."
+  fi
+
+  data="{\"fqdn\":\"www.$fulldomain\",\"records\":{}}"
+  res=$(_api_call "$Beget_Api/dns/changeRecords" "$data")
+  if ! _is_api_reply_ok "$res"; then
+    _debug "Can't cleanup www.$fulldomain records."
+  fi
+
+  return 0
+}
 
 # Usage: _get_root _acme-challenge.www.domain.com
 #returns
@@ -150,7 +180,7 @@ _get_root() {
   i=1
   p=1
 
-  _debug "Request domain list"
+  _debug "Get domain list"
   res=$(_api_call "$Beget_Api/domain/getList")
   if ! _is_api_reply_ok "$res"; then
     _err "Can't get domain list."
