@@ -1873,7 +1873,7 @@ _inithttp() {
   fi
 
   if [ -z "$_ACME_CURL" ] && _exists "curl"; then
-    _ACME_CURL="curl --silent --dump-header $HTTP_HEADER "
+    _ACME_CURL="curl -k --silent --dump-header $HTTP_HEADER "
     if [ -z "$ACME_HTTP_NO_REDIRECTS" ]; then
       _ACME_CURL="$_ACME_CURL -L "
     fi
