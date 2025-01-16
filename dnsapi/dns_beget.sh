@@ -20,6 +20,7 @@ dns_beget_add() {
   fulldomain=$1
   txtvalue=$2
   _debug "dns_beget_add() $fulldomain $txtvalue"
+  fulldomain=$(echo "$fulldomain" | _lower_case)
 
   Beget_Username="${Beget_Username:-$(_readaccountconf_mutable Beget_Username)}"
   Beget_Password="${Beget_Password:-$(_readaccountconf_mutable Beget_Password)}"
@@ -78,6 +79,7 @@ dns_beget_rm() {
   fulldomain=$1
   txtvalue=$2
   _debug "dns_beget_rm() $fulldomain $txtvalue"
+  fulldomain=$(echo "$fulldomain" | _lower_case)
 
   Beget_Username="${Beget_Username:-$(_readaccountconf_mutable Beget_Username)}"
   Beget_Password="${Beget_Password:-$(_readaccountconf_mutable Beget_Password)}"
