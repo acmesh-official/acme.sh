@@ -237,7 +237,9 @@ _add_record() {
 _rm_record() {
   data=$1
   record_data=$2
-  echo "$data" | sed "s/$record_data,//" | sed "s/,$record_data//" | sed "s/$record_data//"
+  echo "$data" | sed "s/$record_data//g" | sed "s/,\+/,/g" |
+    sed "s/{,/{/g" | sed "s/,}/}/g" |
+    sed "s/\[,/\[/g" | sed "s/,\]/\]/g"
 }
 
 _txt_to_dns_json() {
