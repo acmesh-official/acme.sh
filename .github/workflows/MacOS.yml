@@ -29,7 +29,7 @@ jobs:
            CA_ECDSA: ""
            CA: ""
            CA_EMAIL: ""
-           TEST_PREFERRED_CHAIN: (STAGING) Pretend Pear X1
+           TEST_PREFERRED_CHAIN: (STAGING)
          #- TEST_ACME_Server: "ZeroSSL.com"
          #  CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
          #  CA: "ZeroSSL RSA Domain Secure Site CA"
@@ -44,7 +44,7 @@ jobs:
       CA_EMAIL: ${{ matrix.CA_EMAIL }}
       TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install tools
       run:  brew install socat
     - name: Clone acmetest

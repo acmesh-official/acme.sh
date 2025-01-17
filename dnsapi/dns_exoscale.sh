@@ -1,4 +1,12 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_exoscale_info='Exoscale.com
+Site: Exoscale.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_exoscale
+Options:
+ EXOSCALE_API_KEY API Key
+ EXOSCALE_SECRET_KEY API Secret key
+'
 
 EXOSCALE_API=https://api.exoscale.com/dns/v1
 
@@ -111,7 +119,7 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -122,7 +130,7 @@ _get_root() {
       _domain_id=$(echo "$response" | tr '{' "\n" | grep "\"name\":\"$h\"" | _egrep_o "\"id\":[^,]+" | _head_n 1 | cut -d : -f 2 | tr -d \")
       _domain_token=$(echo "$response" | tr '{' "\n" | grep "\"name\":\"$h\"" | _egrep_o "\"token\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
       if [ "$_domain_token" ] && [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain=$h
         return 0
       fi

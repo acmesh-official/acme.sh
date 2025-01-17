@@ -1,11 +1,18 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_yc_info='Yandex Cloud DNS
+Site: Cloud.Yandex.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_yc
+Options:
+ YC_Zone_ID DNS Zone ID
+ YC_Folder_ID YC Folder ID
+ YC_SA_ID Service Account ID
+ YC_SA_Key_ID Service Account IAM Key ID
+ YC_SA_Key_File_Path Private key file path. Optional.
+ YC_SA_Key_File_PEM_b64 Base64 content of private key file. Use instead of Path to private key file. Optional.
+Issues: github.com/acmesh-official/acme.sh/issues/4210
+'
 
-#YC_Zone_ID="" # DNS Zone ID
-#YC_Folder_ID="" # YC Folder ID
-#YC_SA_ID="" # Service Account ID
-#YC_SA_Key_ID="" # Service Account IAM Key ID
-#YC_SA_Key_File_Path="/path/to/private.key" # Path to private.key use instead of YC_SA_Key_File_PEM_b64
-#YC_SA_Key_File_PEM_b64="" # Base64 content of private.key use instead of YC_SA_Key_File_Path
 YC_Api="https://dns.api.cloud.yandex.net/dns/v1"
 
 ########  Public functions #####################
@@ -172,7 +179,7 @@ _get_root() {
   fi
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -190,7 +197,7 @@ _get_root() {
       _domain_id=$(echo "$response" | _normalizeJson | _egrep_o "[^{]*\"zone\":\"$h\"[^}]*" | _egrep_o "\"id\"[^,]*" | _egrep_o "[^:]*$" | tr -d '"')
       _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain=$h
         return 0
       fi

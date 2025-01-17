@@ -99,11 +99,11 @@ proxmoxve_deploy() {
     _proxmoxve_api_token_key="$DEPLOY_PROXMOXVE_API_TOKEN_KEY"
     _savedeployconf DEPLOY_PROXMOXVE_API_TOKEN_KEY "$DEPLOY_PROXMOXVE_API_TOKEN_KEY"
   fi
-  _debug2 DEPLOY_PROXMOXVE_API_TOKEN_KEY _proxmoxve_api_token_key
+  _debug2 DEPLOY_PROXMOXVE_API_TOKEN_KEY "$_proxmoxve_api_token_key"
 
   # PVE API Token header value. Used in "Authorization: PVEAPIToken".
   _proxmoxve_header_api_token="${_proxmoxve_user}@${_proxmoxve_user_realm}!${_proxmoxve_api_token_name}=${_proxmoxve_api_token_key}"
-  _debug2 "Auth Header" _proxmoxve_header_api_token
+  _debug2 "Auth Header" "$_proxmoxve_header_api_token"
 
   # Ugly. I hate putting heredocs inside functions because heredocs don't
   # account for whitespace correctly but it _does_ work and is several times
@@ -124,8 +124,8 @@ HEREDOC
   )
   _debug2 Payload "$_json_payload"
 
-  # Push certificates to server.
-  export _HTTPS_INSECURE=1
+  _info "Push certificates to server"
+  export HTTPS_INSECURE=1
   export _H1="Authorization: PVEAPIToken=${_proxmoxve_header_api_token}"
   _post "$_json_payload" "$_target_url" "" POST "application/json"
 

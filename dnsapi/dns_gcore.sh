@@ -1,11 +1,15 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_gcore_info='Gcore.com
+Site: Gcore.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_gcore
+Options:
+ GCORE_Key API Key
+Issues: github.com/acmesh-official/acme.sh/issues/4460
+'
 
-#
-#GCORE_Key='773$7b7adaf2a2b32bfb1b83787b4ff32a67eb178e3ada1af733e47b1411f2461f7f4fa7ed7138e2772a46124377bad7384b3bb8d87748f87b3f23db4b8bbe41b2bb'
-#
-
-GCORE_Api="https://api.gcorelabs.com/dns/v2"
-GCORE_Doc="https://apidocs.gcore.com/dns"
+GCORE_Api="https://api.gcore.com/dns/v2"
+GCORE_Doc="https://api.gcore.com/docs/dns"
 
 ########  Public functions #####################
 
@@ -24,7 +28,7 @@ dns_gcore_add() {
   fi
 
   #save the api key to the account conf file.
-  _saveaccountconf_mutable GCORE_Key "$GCORE_Key"
+  _saveaccountconf_mutable GCORE_Key "$GCORE_Key" "base64"
 
   _debug "First detect the zone name"
   if ! _get_root "$fulldomain"; then
@@ -134,7 +138,7 @@ _get_root() {
   p=1
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -148,7 +152,7 @@ _get_root() {
     if _contains "$response" "\"name\":\"$h\""; then
       _zone_name=$h
       if [ "$_zone_name" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain=$h
         return 0
       fi

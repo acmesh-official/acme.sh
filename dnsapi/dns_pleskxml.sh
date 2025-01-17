@@ -1,10 +1,17 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_pleskxml_info='Plesk Server API
+Site: Plesk.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_pleskxml
+Options:
+ pleskxml_uri Plesk server API URL. E.g. "https://your-plesk-server.net:8443/enterprise/control/agent.php"
+ pleskxml_user Username
+ pleskxml_pass Password
+Issues: github.com/acmesh-official/acme.sh/issues/2577
+Author: Stilez, <https://github.com/romanlum>
+'
 
-##  Name: dns_pleskxml.sh
-##  Created by Stilez.
-##  Also uses some code from PR#1832 by @romanlum (https://github.com/acmesh-official/acme.sh/pull/1832/files)
-
-##  This DNS-01 method uses the Plesk XML API described at:
+##  Plesk XML API described at:
 ##  https://docs.plesk.com/en-US/12.5/api-rpc/about-xml-api.28709
 ##  and more specifically: https://docs.plesk.com/en-US/12.5/api-rpc/reference.28784
 
@@ -16,21 +23,6 @@
 ##  For ACME v2 purposes, new TXT records are appended when added, and removing one TXT record will not affect any other TXT records.
 
 ##  The user credentials (username+password) and URL/URI for the Plesk XML API must be set by the user
-##  before this module is called (case sensitive):
-##
-##  ```
-##  export pleskxml_uri="https://address-of-my-plesk-server.net:8443/enterprise/control/agent.php"
-##          (or probably something similar)
-##  export pleskxml_user="my plesk username"
-##  export pleskxml_pass="my plesk password"
-##  ```
-
-##  Ok, let's issue a cert now:
-##  ```
-##  acme.sh --issue --dns dns_pleskxml -d example.com -d www.example.com
-##  ```
-##
-##  The `pleskxml_uri`, `pleskxml_user` and `pleskxml_pass` will be saved in `~/.acme.sh/account.conf` and reused when needed.
 
 ####################  INTERNAL VARIABLES + NEWLINE + API TEMPLATES ##################################
 

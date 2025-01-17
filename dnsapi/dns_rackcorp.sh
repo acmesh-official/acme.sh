@@ -1,16 +1,14 @@
 #!/usr/bin/env sh
-
-# Provider: RackCorp (www.rackcorp.com)
-# Author: Stephen Dendtler (sdendtler@rackcorp.com)
-# Report Bugs here: https://github.com/senjoo/acme.sh
-# Alternate email contact: support@rackcorp.com
-#
-# You'll need an API key (Portal: ADMINISTRATION -> API)
-# Set the environment variables as below:
-#
-#    export RACKCORP_APIUUID="UUIDHERE"
-#    export RACKCORP_APISECRET="SECRETHERE"
-#
+# shellcheck disable=SC2034
+dns_rackcorp_info='RackCorp.com
+Site: RackCorp.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_rackcorp
+Options:
+ RACKCORP_APIUUID API UUID. See Portal: ADMINISTRATION -> API
+ RACKCORP_APISECRET API Secret
+Issues: github.com/acmesh-official/acme.sh/issues/3351
+Author: Stephen Dendtler <sdendtler@rackcorp.com>
+'
 
 RACKCORP_API_ENDPOINT="https://api.rackcorp.net/api/rest/v2.4/json.php"
 
@@ -85,7 +83,7 @@ _get_root() {
     return 1
   fi
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug searchhost "$h"
     if [ -z "$h" ]; then
       _err "Could not find domain for record $domain in RackCorp using the provided credentials"
@@ -97,7 +95,7 @@ _get_root() {
 
     if _contains "$response" "\"matches\":1"; then
       if _contains "$response" "\"name\":\"$h\""; then
-        _lookup=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _lookup=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain="$h"
         return 0
       fi

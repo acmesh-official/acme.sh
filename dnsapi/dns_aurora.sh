@@ -1,9 +1,15 @@
 #!/usr/bin/env sh
-
-#
-#AURORA_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
-#AURORA_Secret="sdfsdfsdfljlbjkljlkjsdfoiwje"
+# shellcheck disable=SC2034
+dns_aurora_info='versio.nl AuroraDNS
+Domains: pcextreme.nl
+Site: versio.nl
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_aurora
+Options:
+ AURORA_Key API Key
+ AURORA_Secret API Secret
+Issues: github.com/acmesh-official/acme.sh/issues/3459
+Author: Jasper Zonneveld
+'
 
 AURORA_Api="https://api.auroradns.eu"
 
@@ -111,7 +117,7 @@ _get_root() {
   p=1
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -126,7 +132,7 @@ _get_root() {
       _domain_id=$(echo "$response" | _normalizeJson | tr -d "{}" | tr "," "\n" | grep "\"id\": *\"" | cut -d : -f 2 | tr -d \" | _head_n 1 | tr -d " ")
       _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain=$h
         return 0
       fi

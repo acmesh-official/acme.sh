@@ -1,10 +1,15 @@
 #!/usr/bin/env sh
-
-# Author: Radek Sprta <sprta@vshosting.cz>
-
-#CLOUDDNS_EMAIL=XXXXX
-#CLOUDDNS_PASSWORD="YYYYYYYYY"
-#CLOUDDNS_CLIENT_ID=XXXXX
+# shellcheck disable=SC2034
+dns_clouddns_info='vshosting.cz CloudDNS
+Site: github.com/vshosting/clouddns
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_clouddns
+Options:
+ CLOUDDNS_EMAIL Email
+ CLOUDDNS_PASSWORD Password
+ CLOUDDNS_CLIENT_ID Client ID
+Issues: github.com/acmesh-official/acme.sh/issues/2699
+Author: Radek Sprta <sprta@vshosting.cz>
+'
 
 CLOUDDNS_API='https://admin.vshosting.cloud/clouddns'
 CLOUDDNS_LOGIN_API='https://admin.vshosting.cloud/api/public/auth/login'

@@ -20,7 +20,6 @@ concurrency:
 
 
 
-
 jobs:
   NetBSD:
     strategy:
@@ -30,13 +29,13 @@ jobs:
            CA_ECDSA: ""
            CA: ""
            CA_EMAIL: ""
-           TEST_PREFERRED_CHAIN: (STAGING) Pretend Pear X1
+           TEST_PREFERRED_CHAIN: (STAGING)
          #- TEST_ACME_Server: "ZeroSSL.com"
          #  CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
          #  CA: "ZeroSSL RSA Domain Secure Site CA"
          #  CA_EMAIL: "githubtest@acme.sh"
          #  TEST_PREFERRED_CHAIN: ""
-    runs-on: macos-12
+    runs-on: ubuntu-latest
     env:
       TEST_LOCAL: 1
       TEST_ACME_Server: ${{ matrix.TEST_ACME_Server }}
@@ -44,8 +43,9 @@ jobs:
       CA: ${{ matrix.CA }}
       CA_EMAIL: ${{ matrix.CA_EMAIL }}
       TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
+      ACME_USE_WGET: ${{ matrix.ACME_USE_WGET }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: vmactions/cf-tunnel@v0
       id: tunnel
       with:
@@ -55,13 +55,13 @@ jobs:
       run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/netbsd-vm@v0
+    - uses: vmactions/netbsd-vm@v1
       with:
-        envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN'
+        envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN ACME_USE_WGET'
         nat: |
           "8080": "80"
         prepare: |
-          pkg_add curl socat
+          /usr/sbin/pkg_add curl socat
         usesh: true
         copyback: false
         run: |

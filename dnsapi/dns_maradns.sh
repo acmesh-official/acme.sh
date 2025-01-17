@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_maradns_info='MaraDNS Server
+Site: MaraDNS.samiam.org
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_maradns
+Options:
+ MARA_ZONE_FILE Zone file path. E.g. "/etc/maradns/db.domain.com"
+ MARA_DUENDE_PID_PATH Duende PID Path. E.g. "/run/maradns/etc_maradns_mararc.pid"
+Issues: github.com/acmesh-official/acme.sh/issues/2072
+'
 
 #Usage: dns_maradns_add _acme-challenge.www.domain.com "token"
 dns_maradns_add() {
@@ -63,7 +72,7 @@ _reload_maradns() {
   pidpath="$1"
   kill -s HUP -- "$(cat "$pidpath")"
   if [ $? -ne 0 ]; then
-    _err "Unable to reload MaraDNS, kill returned $?"
+    _err "Unable to reload MaraDNS, kill returned"
     return 1
   fi
 }
