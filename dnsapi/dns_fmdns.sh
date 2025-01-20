@@ -92,7 +92,7 @@ dns_fmdns_rm() {
 _fmDnsApi_addRecord() {
   _info "Connecting to ${FMDNS_API_ENDPOINT}"
   _info "Adding record to zone"
-  curData="{\"fmAuthToken\":\"${FMDNS_API_TOKEN}\",\"id\":\"${FMDNS_API_DOMAIN_ID}\",\"action\":\"add\",\"name\":\"${fulldomain}\",\"value\":\"${txtvalue}\",\"type\":\"TXT\",\"ttl\":\"5\",\"autoupdate\":\"yes\"}"
+  curData="{\"fmAuthToken\":\"${FMDNS_API_TOKEN}\",\"id\":\"${FMDNS_API_DOMAIN_ID}\",\"action\":\"add\",\"name\":\"${fulldomain}\",\"value\":\"${txtvalue}\",\"type\":\"TXT\",\"ttl\":\"5\",\"reload\":\"yes\"}"
   curResult="$(_post "${curData}" "${FMDNS_API_ENDPOINT}")"
   _info "API result: '${curResult}'"
   _debug "Calling facileManager API: '${curData}' '${FMDNS_API_ENDPOINT}'"
@@ -111,7 +111,7 @@ _fmDnsApi_addRecord() {
 _fmDnsApi_removeRecord() {
   _info "Connecting to ${FMDNS_API_ENDPOINT}"
   _info "Removing record from zone"
-  curData="{\"fmAuthToken\":\"${FMDNS_API_TOKEN}\",\"id\":\"${FMDNS_API_DOMAIN_ID}\",\"action\":\"delete\",\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"ttl\":\"5\",\"autoupdate\":\"yes\"}"
+  curData="{\"fmAuthToken\":\"${FMDNS_API_TOKEN}\",\"id\":\"${FMDNS_API_DOMAIN_ID}\",\"action\":\"delete\",\"name\":\"${fulldomain}\",\"type\":\"TXT\",\"ttl\":\"5\",\"reload\":\"yes\"}"
   curResult="$(_post "${curData}" "${FMDNS_API_ENDPOINT}")"
   _info "API result: '${curResult}'"
   _debug "Calling facileManager API: '${curData}' '${FMDNS_API_ENDPOINT}'"
