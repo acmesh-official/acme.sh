@@ -41,10 +41,12 @@ dns_1984hosting_add() {
   url="https://1984.hosting/domains/entry/"
 
   postdata="entry=new"
-  postdata="$postdata&type=TXT"
-  postdata="$postdata&ttl=900"
   postdata="$postdata&zone=$_domain"
+  postdata="$postdata&type=TXT"
   postdata="$postdata&host=$_sub_domain"
+  postdata="$postdata&ttl=900"
+  # without setting the priority, validaton will fail.
+  postdata="$postdata&priority=10"
   postdata="$postdata&rdata=%22$value%22"
   _debug2 postdata "$postdata"
 
