@@ -95,8 +95,8 @@ _get_root() {
   i=1
   p=1
   while true; do
-    _domain=$(printf "%s" "$domain" | cut -d . -f $i-100)
-    _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+    _domain=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
+    _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
     _debug _domain "$_domain"
     if [ -z "$_domain" ]; then
       #not valid
@@ -121,8 +121,8 @@ _get_zoneid() {
   i=1
   p=1
   while true; do
-    _domain=$(printf "%s" "$domain" | cut -d . -f $i-100)
-    _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+    _domain=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
+    _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
     _debug _domain "$_domain"
     if [ -z "$_domain" ]; then
       #not valid
@@ -158,7 +158,7 @@ _get_recordid() {
       _debug "No records in dns"
       return 1
     fi
-    if ! _contains "$_response" '\"name\":\"'$subdomain'\"'; then
+    if ! _contains "$_response" '\"name\":\"'"$subdomain"'\"'; then
       _debug "Record does not exist"
       return 1
     fi
