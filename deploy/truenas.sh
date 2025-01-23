@@ -217,7 +217,7 @@ truenas_deploy() {
           _app_id=$(echo "$_app_id_list" | sed -n "${i}p")
           _app_config="$(_post "\"$_app_id\"" "$_api_url/app/config" "" "POST" "application/json")"
           # Check if the app use the same certificate TrueNAS web UI
-          _app_active_cert_config=$(echo "$_app_config" | _json_decode | jq -r ".ix_certificates[\"$_active_cert_id\"]")
+          _app_active_cert_config=$(echo "$_app_config" | tr -d '\000-\037' | _json_decode | jq -r ".ix_certificates[\"$_active_cert_id\"]")
           if [ "$_app_active_cert_config" != "null" ]; then
             _info "Updating certificate from $_active_cert_id to $_cert_id for app: $_app_id"
             #Replace the old certificate id with the new one in path
