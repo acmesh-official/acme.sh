@@ -59,7 +59,7 @@ dns_hosttech_rm() {
   if [ -z "$Hosttech_Key" ]; then
     Hosttech_Key=""
     _err "You didn't specify a Hosttech api key."
-    _err "You can get yours from You can get yours from https://www.myhosttech.eu/user/dns/api"
+    _err "You can get yours from https://www.myhosttech.eu/user/dns/api"
     return 1
   fi
 
