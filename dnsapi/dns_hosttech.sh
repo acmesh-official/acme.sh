@@ -131,11 +131,11 @@ _get_zoneid() {
 
     if _hosttech_rest GET "zones?query=${_domain}"; then
       if [ "$(echo "$_response" | _egrep_o '"name":"[^"]*' | cut -d'"' -f4)" = "${_domain}" ]; then
-          # Get the id of the zone in question
-          _zoneid="$(echo "$_response" | _egrep_o '"id":[0-9]*' | cut -d':' -f2)" 
-          if [ -z "$_zoneid" ]; then
-            return 1
-          fi
+        # Get the id of the zone in question
+        _zoneid="$(echo "$_response" | _egrep_o '"id":[0-9]*' | cut -d':' -f2)" 
+        if [ -z "$_zoneid" ]; then
+          return 1
+        fi
         return 0
       fi
     else
