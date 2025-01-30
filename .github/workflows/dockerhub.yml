@@ -15,6 +15,8 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  DOCKER_IMAGE: neilpang/acme.sh
 
 jobs:
   CheckToken:
@@ -44,6 +46,11 @@ jobs:
         uses: actions/checkout@v4
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5.5.1
+        with:
+          images: ${DOCKER_IMAGE}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: login to docker hub
@@ -51,8 +58,6 @@ jobs:
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
       - name: build and push the image
         run: |
-          DOCKER_IMAGE=neilpang/acme.sh
-
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             DOCKER_IMAGE_TAG=${GITHUB_REF#refs/tags/}
           fi
@@ -66,8 +71,14 @@ jobs:
             fi
           fi
 
+          DOCKER_LABELS=()
+          while read -r label; do
+            DOCKER_LABELS+=(--label "${label}")
+          done <<<"${DOCKER_METADATA_OUTPUT_LABELS}"
+
           docker buildx build \
             --tag ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG} \
+            "${DOCKER_LABELS[@]}" \
             --output "type=image,push=true" \
             --build-arg AUTO_UPGRADE=${AUTO_UPGRADE} \
             --platform linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7,linux/386,linux/ppc64le,linux/s390x .

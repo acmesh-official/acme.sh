@@ -1,14 +1,12 @@
 #!/usr/bin/env sh
-
-#Created by RaidenII, to use DuckDNS's API to add/remove text records
-#06/27/2017
-
-# Pass credentials before "acme.sh --issue --dns dns_duckdns ..."
-# --
-# export DuckDNS_Token="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-# --
-#
-# Due to the fact that DuckDNS uses StartSSL as cert provider, --insecure may need to be used with acme.sh
+# shellcheck disable=SC2034
+dns_duckdns_info='DuckDNS.org
+Site: www.DuckDNS.org
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_duckdns
+Options:
+ DuckDNS_Token API Token
+Author: RaidenII
+'
 
 DuckDNS_API="https://www.duckdns.org/update"
 

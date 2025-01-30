@@ -1,8 +1,12 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_lexicon_info='Lexicon DNS client
+Site: github.com/AnalogJ/lexicon
+Docs: github.com/acmesh-official/acme.sh/wiki/How-to-use-lexicon-DNS-API
+Options:
+ PROVIDER Provider
+'
 
-# dns api wrapper of lexicon for acme.sh
-
-# https://github.com/AnalogJ/lexicon
 lexicon_cmd="lexicon"
 
 wiki="https://github.com/acmesh-official/acme.sh/wiki/How-to-use-lexicon-dns-api"

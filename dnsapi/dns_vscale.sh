@@ -1,11 +1,13 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_vscale_info='vscale.io
+Site: vscale.io
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_vscale
+Options:
+ VSCALE_API_KEY API Key
+Author: Alex Loban <https://github.com/LAV45>
+'
 
-#This is the vscale.io api wrapper for acme.sh
-#
-#Author: Alex Loban
-#Report Bugs here: https://github.com/LAV45/acme.sh
-
-#VSCALE_API_KEY="sdfsdfsdfljlbjkljlkjsdfoiwje"
 VSCALE_API_URL="https://api.vscale.io/v1"
 
 ########  Public functions #####################
@@ -95,7 +97,7 @@ _get_root() {
   if _vscale_rest GET "domains/"; then
     response="$(echo "$response" | tr -d "\n" | sed 's/{/\n&/g')"
     while true; do
-      h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+      h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
       _debug h "$h"
       if [ -z "$h" ]; then
         #not valid
@@ -106,7 +108,7 @@ _get_root() {
       if [ "$hostedzone" ]; then
         _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
         if [ "$_domain_id" ]; then
-          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
           _domain=$h
           return 0
         fi

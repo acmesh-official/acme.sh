@@ -1,9 +1,13 @@
 #!/usr/bin/env sh
-
-# West.cn Domain api
-#WEST_Username="username"
-#WEST_Key="sADDsdasdgdsf"
-#Set key at https://www.west.cn/manager/API/APIconfig.asp
+# shellcheck disable=SC2034
+dns_west_cn_info='West.cn
+Site: West.cn
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_west_cn
+Options:
+ WEST_Username API username
+ WEST_Key API Key. Set at https://www.west.cn/manager/API/APIconfig.asp
+Issues: github.com/acmesh-official/acme.sh/issues/4894
+'
 
 REST_API="https://api.west.cn/API/v2"
 

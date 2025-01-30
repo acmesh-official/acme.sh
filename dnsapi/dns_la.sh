@@ -1,7 +1,13 @@
 #!/usr/bin/env sh
-
-#LA_Id="test123"
-#LA_Key="d1j2fdo4dee3948"
+# shellcheck disable=SC2034
+dns_la_info='dns.la
+Site: dns.la
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_la
+Options:
+ LA_Id API ID
+ LA_Key API key
+Issues: github.com/acmesh-official/acme.sh/issues/4257
+'
 
 LA_Api="https://api.dns.la/api"
 
@@ -107,7 +113,7 @@ _get_root() {
   p=1
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -120,7 +126,7 @@ _get_root() {
     if _contains "$response" '"domainid":'; then
       _domain_id=$(printf "%s" "$response" | grep '"domainid":' | cut -d : -f 2 | cut -d , -f 1 | tr -d '\r' | tr -d '\n')
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain="$h"
         return 0
       fi

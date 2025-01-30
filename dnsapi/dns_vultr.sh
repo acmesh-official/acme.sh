@@ -1,7 +1,13 @@
 #!/usr/bin/env sh
-
-#
-#VULTR_API_KEY=000011112222333344445555666677778888
+# shellcheck disable=SC2034
+dns_vultr_info='vultr.com
+Site: vultr.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_vultr
+Options:
+ VULTR_API_KEY API Key
+Issues: github.com/acmesh-official/acme.sh/issues/2374
+Author:
+'
 
 VULTR_Api="https://api.vultr.com/v2"
 
@@ -106,7 +112,7 @@ _get_root() {
   domain=$1
   i=1
   while true; do
-    _domain=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _domain=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$_domain"
     if [ -z "$_domain" ]; then
       return 1

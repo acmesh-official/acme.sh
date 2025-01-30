@@ -1,14 +1,23 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_myapi_info='Custom API Example
+ A sample custom DNS API script description.
+Domains: example.com example.net
+Site: github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_myapi
+Options:
+ MYAPI_Token API Token. Get API Token from https://example.com/api/
+ MYAPI_Variable2 Option 2. Default "default value".
+ MYAPI_Variable2 Option 3. Optional.
+Issues: github.com/acmesh-official/acme.sh
+Author: Neil Pang <neilgit@neilpang.com>
+'
 
-#Here is a sample custom api script.
 #This file name is "dns_myapi.sh"
 #So, here must be a method   dns_myapi_add()
 #Which will be called by acme.sh to add the txt record to your api system.
 #returns 0 means success, otherwise error.
-#
-#Author: Neilpang
-#Report Bugs here: https://github.com/acmesh-official/acme.sh
-#
+
 ########  Public functions #####################
 
 # Please Read this guide first: https://github.com/acmesh-official/acme.sh/wiki/DNS-API-Dev-Guide

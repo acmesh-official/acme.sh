@@ -1,4 +1,14 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_nsupdate_info='nsupdate RFC 2136 DynDNS client
+Site: bind9.readthedocs.io/en/v9.18.19/manpages.html#nsupdate-dynamic-dns-update-utility
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_nsupdate
+Options:
+ NSUPDATE_SERVER Server hostname. Default: "localhost".
+ NSUPDATE_SERVER_PORT Server port. Default: "53".
+ NSUPDATE_KEY File path to TSIG key.
+ NSUPDATE_ZONE Domain zone to update. Optional.
+'
 
 ########  Public functions #####################
 
@@ -10,6 +20,7 @@ dns_nsupdate_add() {
   NSUPDATE_SERVER_PORT="${NSUPDATE_SERVER_PORT:-$(_readaccountconf_mutable NSUPDATE_SERVER_PORT)}"
   NSUPDATE_KEY="${NSUPDATE_KEY:-$(_readaccountconf_mutable NSUPDATE_KEY)}"
   NSUPDATE_ZONE="${NSUPDATE_ZONE:-$(_readaccountconf_mutable NSUPDATE_ZONE)}"
+  NSUPDATE_OPT="${NSUPDATE_OPT:-$(_readaccountconf_mutable NSUPDATE_OPT)}"
 
   _checkKeyFile || return 1
 
@@ -18,21 +29,25 @@ dns_nsupdate_add() {
   _saveaccountconf_mutable NSUPDATE_SERVER_PORT "${NSUPDATE_SERVER_PORT}"
   _saveaccountconf_mutable NSUPDATE_KEY "${NSUPDATE_KEY}"
   _saveaccountconf_mutable NSUPDATE_ZONE "${NSUPDATE_ZONE}"
+  _saveaccountconf_mutable NSUPDATE_OPT "${NSUPDATE_OPT}"
 
   [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
   [ -n "${NSUPDATE_SERVER_PORT}" ] || NSUPDATE_SERVER_PORT=53
+  [ -n "${NSUPDATE_OPT}" ] || NSUPDATE_OPT=""
 
   _info "adding ${fulldomain}. 60 in txt \"${txtvalue}\""
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_1" ] && nsdebug="-d"
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_2" ] && nsdebug="-D"
   if [ -z "${NSUPDATE_ZONE}" ]; then
-    nsupdate -k "${NSUPDATE_KEY}" $nsdebug <<EOF
+    #shellcheck disable=SC2086
+    nsupdate -k "${NSUPDATE_KEY}" $nsdebug $NSUPDATE_OPT <<EOF
 server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
 update add ${fulldomain}. 60 in txt "${txtvalue}"
 send
 EOF
   else
-    nsupdate -k "${NSUPDATE_KEY}" $nsdebug <<EOF
+    #shellcheck disable=SC2086
+    nsupdate -k "${NSUPDATE_KEY}" $nsdebug $NSUPDATE_OPT <<EOF
 server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
 zone ${NSUPDATE_ZONE}.
 update add ${fulldomain}. 60 in txt "${txtvalue}"
@@ -55,6 +70,7 @@ dns_nsupdate_rm() {
   NSUPDATE_SERVER_PORT="${NSUPDATE_SERVER_PORT:-$(_readaccountconf_mutable NSUPDATE_SERVER_PORT)}"
   NSUPDATE_KEY="${NSUPDATE_KEY:-$(_readaccountconf_mutable NSUPDATE_KEY)}"
   NSUPDATE_ZONE="${NSUPDATE_ZONE:-$(_readaccountconf_mutable NSUPDATE_ZONE)}"
+  NSUPDATE_OPT="${NSUPDATE_OPT:-$(_readaccountconf_mutable NSUPDATE_OPT)}"
 
   _checkKeyFile || return 1
   [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
@@ -63,13 +79,15 @@ dns_nsupdate_rm() {
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_1" ] && nsdebug="-d"
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_2" ] && nsdebug="-D"
   if [ -z "${NSUPDATE_ZONE}" ]; then
-    nsupdate -k "${NSUPDATE_KEY}" $nsdebug <<EOF
+    #shellcheck disable=SC2086
+    nsupdate -k "${NSUPDATE_KEY}" $nsdebug $NSUPDATE_OPT <<EOF
 server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
 update delete ${fulldomain}. txt
 send
 EOF
   else
-    nsupdate -k "${NSUPDATE_KEY}" $nsdebug <<EOF
+    #shellcheck disable=SC2086
+    nsupdate -k "${NSUPDATE_KEY}" $nsdebug $NSUPDATE_OPT <<EOF
 server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
 zone ${NSUPDATE_ZONE}.
 update delete ${fulldomain}. txt

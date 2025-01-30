@@ -1,16 +1,16 @@
 #!/usr/bin/env sh
-
-#OPNsense Bind API
-#https://docs.opnsense.org/development/api.html
-#
-#OPNs_Host="opnsense.example.com"
-#OPNs_Port="443"
-# optional, defaults to 443 if unset
-#OPNs_Key="qocfU9RSbt8vTIBcnW8bPqCrpfAHMDvj5OzadE7Str+rbjyCyk7u6yMrSCHtBXabgDDXx/dY0POUp7ZA"
-#OPNs_Token="pZEQ+3ce8dDlfBBdg3N8EpqpF5I1MhFqdxX06le6Gl8YzyQvYCfCzNaFX9O9+IOSyAs7X71fwdRiZ+Lv"
-#OPNs_Api_Insecure=0
-# optional, defaults to 0 if unset
-# Set 1 for insecure and 0 for secure -> difference is whether ssl cert is checked for validity (0) or whether it is just accepted (1)
+# shellcheck disable=SC2034
+dns_opnsense_info='OPNsense Server
+Site: docs.opnsense.org/development/api.html
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_opnsense
+Options:
+ OPNs_Host Server Hostname. E.g. "opnsense.example.com"
+ OPNs_Port Port. Default: "443".
+ OPNs_Key API Key
+ OPNs_Token API Token
+ OPNs_Api_Insecure Insecure TLS. 0: check for cert validity, 1: always accept
+Issues: github.com/acmesh-official/acme.sh/issues/2480
+'
 
 ########  Public functions #####################
 #Usage: add _acme-challenge.www.domain.com "123456789ABCDEF0000000000000000000000000000000000000"
@@ -144,7 +144,7 @@ _get_root() {
   fi
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -153,13 +153,13 @@ _get_root() {
     id=$(echo "$_domain_response" | _egrep_o "\"uuid\":\"[a-z0-9\-]*\",\"enabled\":\"1\",\"type\":\"primary\",\"domainname\":\"${h}\"" | cut -d ':' -f 2 | cut -d '"' -f 2)
     if [ -n "$id" ]; then
       _debug id "$id"
-      _host=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _host=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="${h}"
       _domainid="${id}"
       return 0
     fi
     p=$i
-    i=$(_math $i + 1)
+    i=$(_math "$i" + 1)
   done
   _debug "$domain not found"
 

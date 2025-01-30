@@ -1,7 +1,14 @@
 #!/usr/bin/env sh
-
-# DNS API for acme.sh for Core-Networks (https://beta.api.core-networks.de/doc/).
-# created by 5ll and francis
+# shellcheck disable=SC2034
+dns_cn_info='Core-Networks.de
+Site: beta.api.Core-Networks.de/doc/
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_cn
+Options:
+ CN_User User
+ CN_Password Password
+Issues: github.com/acmesh-official/acme.sh/issues/2142
+Author: 5ll, francis
+'
 
 CN_API="https://beta.api.core-networks.de"
 
@@ -124,7 +131,7 @@ _cn_get_root() {
   p=1
   while true; do
 
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     _debug _H1 "${_H1}"
 
@@ -142,7 +149,7 @@ _cn_get_root() {
     fi
 
     if _contains "$_cn_zonelist" "\"name\":\"$h\"" >/dev/null; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain=$h
       return 0
     else

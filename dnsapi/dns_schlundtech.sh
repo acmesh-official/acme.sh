@@ -1,16 +1,14 @@
 #!/usr/bin/env sh
-# -*- mode: sh; tab-width: 2; indent-tabs-mode: s; coding: utf-8 -*-
-
-# Schlundtech DNS API
-# Author: mod242
-# Created: 2019-40-29
-# Completly based on the autoDNS xml api wrapper by auerswald@gmail.com
-#
-#     export SCHLUNDTECH_USER="username"
-#     export SCHLUNDTECH_PASSWORD="password"
-#
-# Usage:
-#     acme.sh --issue --dns dns_schlundtech -d example.com
+# shellcheck disable=SC2034
+dns_schlundtech_info='SchlundTech.de
+Site: SchlundTech.de
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_schlundtech
+Options:
+ SCHLUNDTECH_USER Username
+ SCHLUNDTECH_PASSWORD Password
+Issues: github.com/acmesh-official/acme.sh/issues/2246
+Author: <https://github.com/mod242>
+'
 
 SCHLUNDTECH_API="https://gateway.schlundtech.de"
 
@@ -108,7 +106,7 @@ _get_autodns_zone() {
   p=1
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
 
     if [ -z "$h" ]; then
@@ -126,7 +124,7 @@ _get_autodns_zone() {
     if _contains "$autodns_response" "<summary>1</summary>" >/dev/null; then
       _zone="$(echo "$autodns_response" | _egrep_o '<name>[^<]*</name>' | cut -d '>' -f 2 | cut -d '<' -f 1)"
       _system_ns="$(echo "$autodns_response" | _egrep_o '<system_ns>[^<]*</system_ns>' | cut -d '>' -f 2 | cut -d '<' -f 1)"
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       return 0
     fi
 

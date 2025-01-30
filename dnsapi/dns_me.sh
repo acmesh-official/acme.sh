@@ -1,9 +1,13 @@
 #!/usr/bin/env sh
-
-# bug reports to dev@1e.ca
-
-# ME_Key=qmlkdjflmkqdjf
-# ME_Secret=qmsdlkqmlksdvnnpae
+# shellcheck disable=SC2034
+dns_me_info='DnsMadeEasy.com
+Site: DnsMadeEasy.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_me
+Options:
+ ME_Key API Key
+ ME_Secret API Secret
+Author: <dev@1e.ca>
+'
 
 ME_Api=https://api.dnsmadeeasy.com/V2.0/dns/managed
 
@@ -103,7 +107,7 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -116,7 +120,7 @@ _get_root() {
     if _contains "$response" "\"name\":\"$h\""; then
       _domain_id=$(printf "%s\n" "$response" | sed 's/^{//; s/}$//; s/{.*}//' | sed -r 's/^.*"id":([0-9]+).*$/\1/')
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain="$h"
         return 0
       fi

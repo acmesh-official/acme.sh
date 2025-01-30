@@ -1,12 +1,15 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_cloudns_info='ClouDNS.net
+Site: ClouDNS.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_cloudns
+Options:
+ CLOUDNS_AUTH_ID Regular auth ID
+ CLOUDNS_SUB_AUTH_ID Sub auth ID
+ CLOUDNS_AUTH_PASSWORD Auth Password
+Author: Boyan Peychev <boyan@cloudns.net>
+'
 
-# Author: Boyan Peychev <boyan at cloudns dot net>
-# Repository: https://github.com/ClouDNS/acme.sh/
-# Editor: I Komang Suryadana
-
-#CLOUDNS_AUTH_ID=XXXXX
-#CLOUDNS_SUB_AUTH_ID=XXXXX
-#CLOUDNS_AUTH_PASSWORD="YYYYYYYYY"
 CLOUDNS_API="https://api.cloudns.net"
 DOMAIN_TYPE=
 DOMAIN_MASTER=
@@ -161,7 +164,7 @@ _dns_cloudns_get_zone_info() {
 _dns_cloudns_get_zone_name() {
   i=2
   while true; do
-    zoneForCheck=$(printf "%s" "$1" | cut -d . -f $i-100)
+    zoneForCheck=$(printf "%s" "$1" | cut -d . -f "$i"-100)
 
     if [ -z "$zoneForCheck" ]; then
       return 1

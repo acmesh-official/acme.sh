@@ -89,7 +89,7 @@ _use_metadata() {
       _normalizeJson |
       tr '{,}' '\n' |
       while read -r _line; do
-        _key="$(echo "${_line%%:*}" | tr -d '"')"
+        _key="$(echo "${_line%%:*}" | tr -d \")"
         _value="${_line#*:}"
         _debug3 "_key" "$_key"
         _secure_debug3 "_value" "$_value"

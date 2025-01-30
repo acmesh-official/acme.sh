@@ -1,10 +1,15 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_googledomains_info='Google Domains
+Site: Domains.Google.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_googledomains
+Options:
+ GOOGLEDOMAINS_ACCESS_TOKEN API Access Token
+ GOOGLEDOMAINS_ZONE Zone
+Issues: github.com/acmesh-official/acme.sh/issues/4545
+Author: Alex Leigh <leigh@alexleigh.me>
+'
 
-# Author: Alex Leigh <leigh at alexleigh dot me>
-# Created: 2023-03-02
-
-#GOOGLEDOMAINS_ACCESS_TOKEN="xxxx"
-#GOOGLEDOMAINS_ZONE="xxxx"
 GOOGLEDOMAINS_API="https://acmedns.googleapis.com/v1/acmeChallengeSets"
 
 ######## Public functions ########
@@ -127,7 +132,7 @@ _dns_googledomains_get_zone() {
 
   i=2
   while true; do
-    curr=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    curr=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug curr "$curr"
 
     if [ -z "$curr" ]; then

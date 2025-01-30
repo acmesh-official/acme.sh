@@ -1,11 +1,13 @@
 #!/usr/bin/env sh
-
-#
-#LOOPIA_User="username"
-#
-#LOOPIA_Password="password"
-#
-#LOOPIA_Api="https://api.loopia.<TLD>/RPCSERV"
+# shellcheck disable=SC2034
+dns_loopia_info='Loopia.se
+Site: Loopia.se
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_loopia
+Options:
+ LOOPIA_Api API URL. E.g. "https://api.loopia.<TLD>/RPCSERV" where the <TLD> is one of: com, no, rs, se. Default: "se".
+ LOOPIA_User Username
+ LOOPIA_Password Password
+'
 
 LOOPIA_Api_Default="https://api.loopia.se/RPCSERV"
 
@@ -178,14 +180,14 @@ _get_root() {
 
   response="$(_post "$xml_content" "$LOOPIA_Api" "" "POST")"
   while true; do
-    h=$(echo "$domain" | cut -d . -f $i-100)
+    h=$(echo "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
     fi
 
     if _contains "$response" "$h"; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi

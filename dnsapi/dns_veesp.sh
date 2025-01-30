@@ -1,10 +1,14 @@
 #!/usr/bin/env sh
-
-# bug reports to stepan@plyask.in
-
-#
-#     export VEESP_User="username"
-#     export VEESP_Password="password"
+# shellcheck disable=SC2034
+dns_veesp_info='veesp.com
+Site: veesp.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_veesp
+Options:
+ VEESP_User Username
+ VEESP_Password Password
+Issues: github.com/acmesh-official/acme.sh/issues/3712
+Author: <stepan@plyask.in>
+'
 
 VEESP_Api="https://secure.veesp.com/api"
 
@@ -108,7 +112,7 @@ _get_root() {
     return 1
   fi
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -121,7 +125,7 @@ _get_root() {
       _service_id=$(printf "%s\n" "$response" | _egrep_o "\"name\":\"$h\",\"service_id\":[^}]*" | cut -d : -f 3 | cut -d '"' -f 2)
       _debug _service_id "$_service_id"
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain="$h"
         return 0
       fi

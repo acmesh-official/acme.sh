@@ -1,9 +1,13 @@
 #!/usr/bin/env sh
-
-#
-# Hexonet_Login="username!roleId"
-#
-# Hexonet_Password="rolePassword"
+# shellcheck disable=SC2034
+dns_hexonet_info='Hexonet.com
+Site: Hexonet.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_hexonet
+Options:
+ Hexonet_Login Login. E.g. "username!roleId"
+ Hexonet_Password Role Password
+Issues: github.com/acmesh-official/acme.sh/issues/2389
+'
 
 Hexonet_Api="https://coreapi.1api.net/api/call.cgi"
 
@@ -119,7 +123,7 @@ _get_root() {
   i=1
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -131,7 +135,7 @@ _get_root() {
     fi
 
     if _contains "$response" "CODE=200"; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain=$h
       return 0
     fi

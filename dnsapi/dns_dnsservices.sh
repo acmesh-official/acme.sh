@@ -1,12 +1,15 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_dnsservices_info='DNS.Services
+Site: DNS.Services
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_dnsservices
+Options:
+ DnsServices_Username Username
+ DnsServices_Password Password
+Issues: github.com/acmesh-official/acme.sh/issues/4152
+Author: Bjarke Bruun <bbruun@gmail.com>
+'
 
-#This file name is "dns_dnsservices.sh"
-#Script for Danish DNS registra and DNS hosting provider https://dns.services
-
-#Author: Bjarke Bruun <bbruun@gmail.com>
-#Report Bugs here: https://github.com/acmesh-official/acme.sh/issues/4152
-
-# Global variable to connect to the DNS.Services API
 DNSServices_API=https://dns.services/api
 
 ########  Public functions #####################

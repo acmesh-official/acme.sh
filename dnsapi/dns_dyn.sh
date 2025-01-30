@@ -1,10 +1,16 @@
 #!/usr/bin/env sh
-#
-# Dyn.com Domain API
-#
-# Author: Gerd Naschenweng
-# https://github.com/magicdude4eva
-#
+# shellcheck disable=SC2034
+dns_dyn_info='Dyn.com
+Domains: dynect.net
+Site: Dyn.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_dyn
+Options:
+ DYN_Customer Customer
+ DYN_Username API Username
+ DYN_Password Secret
+Author: Gerd Naschenweng <https://github.com/magicdude4eva>
+'
+
 # Dyn Managed DNS API
 # https://help.dyn.com/dns-api-knowledge-base/
 #
@@ -19,13 +25,6 @@
 # ZoneAddNode
 # ZoneRemoveNode
 # ZonePublish
-# --
-#
-# Pass credentials before "acme.sh --issue --dns dns_dyn ..."
-# --
-# export DYN_Customer="customer"
-# export DYN_Username="apiuser"
-# export DYN_Password="secret"
 # --
 
 DYN_API="https://api.dynect.net/REST"

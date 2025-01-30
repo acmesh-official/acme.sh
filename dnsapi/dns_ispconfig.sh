@@ -1,16 +1,21 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_ispconfig_info='ISPConfig Server API
+Site: ISPConfig.org
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_ispconfig
+Options:
+ ISPC_User Remote User
+ ISPC_Password Remote Password
+ ISPC_Api API URL. E.g. "https://ispc.domain.tld:8080/remote/json.php"
+ ISPC_Api_Insecure Insecure TLS. 0: check for cert validity, 1: always accept
+'
 
 # ISPConfig 3.1 API
-# User must provide login data and URL to the ISPConfig installation incl. port. The remote user in ISPConfig must have access to:
+# User must provide login data and URL to the ISPConfig installation incl. port.
+# The remote user in ISPConfig must have access to:
 # - DNS txt Functions
-
-# Report bugs to https://github.com/sjau/acme.sh
-
-# Values to export:
-# export ISPC_User="remoteUser"
-# export ISPC_Password="remotePassword"
-# export ISPC_Api="https://ispc.domain.tld:8080/remote/json.php"
-# export ISPC_Api_Insecure=1     # Set 1 for insecure and 0 for secure -> difference is whether ssl cert is checked for validity (0) or whether it is just accepted (1)
+# - DNS zone functions
+# - Client functions
 
 ########  Public functions #####################
 

@@ -1,7 +1,13 @@
 #!/usr/bin/env sh
-
-#DD_API_User="xxxxx"
-#DD_API_Key="xxxxxx"
+# shellcheck disable=SC2034
+dns_durabledns_info='DurableDNS.com
+Site: DurableDNS.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_durabledns
+Options:
+ DD_API_User API User
+ DD_API_Key API Key
+Issues: github.com/acmesh-official/acme.sh/issues/2281
+'
 
 _DD_BASE="https://durabledns.com/services/dns"
 
@@ -104,7 +110,7 @@ _get_root() {
   i=1
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -112,7 +118,7 @@ _get_root() {
     fi
 
     if _contains "$response" ">$h.</origin>"; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain=$h
       return 0
     fi

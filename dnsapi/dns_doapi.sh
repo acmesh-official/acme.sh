@@ -1,14 +1,16 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_doapi_info='Domain-Offensive do.de
+ Official LetsEncrypt API for do.de / Domain-Offensive.
+ This API is also available to private customers/individuals.
+Site: do.de
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_doapi
+Options:
+ DO_LETOKEN LetsEncrypt Token
+Issues: github.com/acmesh-official/acme.sh/issues/2057
+'
 
-# Official Let's Encrypt API for do.de / Domain-Offensive
-#
-# This is different from the dns_do adapter, because dns_do is only usable for enterprise customers
-# This API is also available to private customers/individuals
-#
-# Provide the required LetsEncrypt token like this:
-# DO_LETOKEN="FmD408PdqT1E269gUK57"
-
-DO_API="https://www.do.de/api/letsencrypt"
+DO_API="https://my.do.de/api/letsencrypt"
 
 ########  Public functions #####################
 

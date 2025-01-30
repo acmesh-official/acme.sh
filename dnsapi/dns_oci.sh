@@ -1,6 +1,19 @@
 #!/usr/bin/env sh
-#
-# Acme.sh DNS API plugin for Oracle Cloud Infrastructure
+# shellcheck disable=SC2034
+dns_oci_info='Oracle Cloud Infrastructure (OCI)
+ If OCI CLI configuration file ~/.oci/config has a DEFAULT profile then it will be used.
+Site: Cloud.Oracle.com
+Docs: github.com/acmesh-official/acme.sh/wiki/How-to-use-Oracle-Cloud-Infrastructure-DNS
+Options:
+ OCI_CLI_TENANCY OCID of tenancy that contains the target DNS zone. Optional.
+ OCI_CLI_USER OCID of user with permission to add/remove records from zones. Optional.
+ OCI_CLI_REGION Should point to the tenancy home region. Optional.
+ OCI_CLI_KEY_FILE Path to private API signing key file in PEM format. Optional.
+ OCI_CLI_KEY The private API signing key in PEM format. Optional.
+Issues: github.com/acmesh-official/acme.sh/issues/3540
+Author: Avi Miller <me@dje.li>
+'
+
 # Copyright (c) 2021, Oracle and/or its affiliates
 #
 # The plugin will automatically use the default profile from an OCI SDK and CLI
@@ -177,7 +190,7 @@ _get_zone() {
   p=1
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       # not valid
@@ -186,7 +199,7 @@ _get_zone() {
 
     _domain_id=$(_signed_request "GET" "/20180115/zones/$h" "" "id")
     if [ "$_domain_id" ]; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain=$h
 
       _debug _domain_id "$_domain_id"

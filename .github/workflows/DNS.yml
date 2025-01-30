@@ -1,5 +1,6 @@
 name: DNS
 on:
+  workflow_dispatch:
   push:
     paths:
       - 'dnsapi/*.sh'
@@ -280,7 +281,7 @@ jobs:
     - uses: vmactions/openbsd-vm@v1
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
-        prepare: pkg_add socat curl
+        prepare: pkg_add socat curl libiconv
         usesh: true
         copyback: false
         run: |

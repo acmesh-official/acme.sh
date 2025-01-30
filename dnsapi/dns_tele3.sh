@@ -1,14 +1,13 @@
 #!/usr/bin/env sh
-#
-# tele3.cz DNS API
-#
-# Author: Roman Blizik
-# Report Bugs here: https://github.com/par-pa/acme.sh
-#
-# --
-# export TELE3_Key="MS2I4uPPaI..."
-# export TELE3_Secret="kjhOIHGJKHg"
-# --
+# shellcheck disable=SC2034
+dns_tele3_info='tele3.cz
+Site: tele3.cz
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#tele3
+Options:
+ TELE3_Key API Key
+ TELE3_Secret API Secret
+Author: Roman Blizik <https://github.com/par-pa>
+'
 
 TELE3_API="https://www.tele3.cz/acme/"
 

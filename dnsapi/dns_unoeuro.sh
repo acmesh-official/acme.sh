@@ -1,9 +1,13 @@
 #!/usr/bin/env sh
-
-#
-#UNO_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
-#UNO_User="UExxxxxx"
+# shellcheck disable=SC2034
+dns_unoeuro_info='unoeuro.com
+ Deprecated. The unoeuro.com is now simply.com
+Site: unoeuro.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_unoeuro
+Options:
+ UNO_Key API Key
+ UNO_User Username
+'
 
 Uno_Api="https://api.simply.com/1"
 
@@ -129,7 +133,7 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -143,7 +147,7 @@ _get_root() {
     if _contains "$response" "\"status\": 200"; then
       _domain_id=$h
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain=$h
         return 0
       fi

@@ -1,5 +1,15 @@
 #!/usr/bin/env sh
-#developed by linux-insideDE
+# shellcheck disable=SC2034
+dns_netcup_info='netcup.eu
+Domains: netcup.de netcup.net
+Site: netcup.eu/
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_netcup
+Options:
+ NC_Apikey API Key
+ NC_Apipw API Password
+ NC_CID Customer Number
+Author: linux-insideDE
+'
 
 NC_Apikey="${NC_Apikey:-$(_readaccountconf_mutable NC_Apikey)}"
 NC_Apipw="${NC_Apipw:-$(_readaccountconf_mutable NC_Apipw)}"
@@ -9,7 +19,7 @@ client=""
 
 dns_netcup_add() {
   _debug NC_Apikey "$NC_Apikey"
-  login
+  _login
   if [ "$NC_Apikey" = "" ] || [ "$NC_Apipw" = "" ] || [ "$NC_CID" = "" ]; then
     _err "No Credentials given"
     return 1
@@ -51,7 +61,7 @@ dns_netcup_add() {
 }
 
 dns_netcup_rm() {
-  login
+  _login
   fulldomain=$1
   txtvalue=$2
 
@@ -115,7 +125,7 @@ dns_netcup_rm() {
   logout
 }
 
-login() {
+_login() {
   tmp=$(_post "{\"action\": \"login\", \"param\": {\"apikey\": \"$NC_Apikey\", \"apipassword\": \"$NC_Apipw\", \"customernumber\": \"$NC_CID\"}}" "$end" "" "POST")
   sid=$(echo "$tmp" | tr '{}' '\n' | grep apisessionid | cut -d '"' -f 4)
   _debug "$tmp"

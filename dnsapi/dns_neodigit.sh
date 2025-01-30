@@ -1,13 +1,13 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_neodigit_info='Neodigit.net
+Site: Neodigit.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_neodigit
+Options:
+ NEODIGIT_API_TOKEN API Token
+Author: Adrian Almenar
+'
 
-#
-# NEODIGIT_API_TOKEN="jasdfhklsjadhflnhsausdfas"
-
-# This is Neodigit.net api wrapper for acme.sh
-#
-# Author: Adrian Almenar
-# Report Bugs here: https://github.com/tecnocratica/acme.sh
-#
 NEODIGIT_API_URL="https://api.neodigit.net/v1"
 #
 ########  Public functions #####################
@@ -126,7 +126,7 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -142,7 +142,7 @@ _get_root() {
     if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
       _domain_id=$(echo "$response" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain=$h
         return 0
       fi

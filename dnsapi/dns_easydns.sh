@@ -1,14 +1,17 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_easydns_info='easyDNS.net
+Site: easyDNS.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_easydns
+Options:
+ EASYDNS_Token API Token
+ EASYDNS_Key API Key
+Issues: github.com/acmesh-official/acme.sh/issues/2647
+Author: Neilpang, wurzelpanzer <wurzelpanzer@maximolider.net>
+'
 
-#######################################################
-#
-# easyDNS REST API for acme.sh by Neilpang based on dns_cf.sh
-#
 # API Documentation: https://sandbox.rest.easydns.net:3001/
-#
-# Author: wurzelpanzer [wurzelpanzer@maximolider.net]
-# Report Bugs here: https://github.com/acmesh-official/acme.sh/issues/2647
-#
+
 ####################  Public functions #################
 
 #EASYDNS_Key="xxxxxxxxxxxxxxxxxxxxxxxx"
@@ -118,7 +121,7 @@ _get_root() {
   i=1
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -130,7 +133,7 @@ _get_root() {
     fi
 
     if _contains "$response" "\"status\":200"; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain=$h
       return 0
     fi

@@ -1,27 +1,14 @@
 #!/usr/bin/env sh
-
-# Joker.com API for acme.sh
-#
-# This script adds the necessary TXT record to a domain in Joker.com.
-#
-# You must activate Dynamic DNS in Joker.com DNS configuration first.
-# Username and password below refer to Dynamic DNS authentication,
-# not your Joker.com login credentials.
-# See: https://joker.com/faq/content/11/427/en/what-is-dynamic-dns-dyndns.html
-#
-# NOTE: This script does not support wildcard certificates, because
-# Joker.com API does not support adding two TXT records with the same
-# subdomain. Adding the second record will overwrite the first one.
-# See: https://joker.com/faq/content/6/496/en/let_s-encrypt-support.html
-#   "... this request will replace all TXT records for the specified
-#    label by the provided content"
-#
-# Author: aattww (https://github.com/aattww/)
-#
-# Report bugs to https://github.com/acmesh-official/acme.sh/issues/2840
-#
-# JOKER_USERNAME="xxxx"
-# JOKER_PASSWORD="xxxx"
+# shellcheck disable=SC2034
+dns_joker_info='Joker.com
+Site: Joker.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_joker
+Options:
+ JOKER_USERNAME Username
+ JOKER_PASSWORD Password
+Issues: github.com/acmesh-official/acme.sh/issues/2840
+Author: <https://github.com/aattww/>
+'
 
 JOKER_API="https://svc.joker.com/nic/replace"
 
@@ -93,7 +80,7 @@ _get_root() {
   fulldomain=$1
   i=1
   while true; do
-    h=$(printf "%s" "$fulldomain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$fulldomain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       return 1

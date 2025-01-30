@@ -1,9 +1,13 @@
 #!/usr/bin/env sh
-
-#
-# ULTRA_USR="your_user_goes_here"
-#
-# ULTRA_PWD="some_password_goes_here"
+# shellcheck disable=SC2034
+dns_ultra_info='UltraDNS.com
+Site: UltraDNS.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_ultra
+Options:
+ ULTRA_USR Username
+ ULTRA_PWD Password
+Issues: github.com/acmesh-official/acme.sh/issues/2118
+'
 
 ULTRA_API="https://api.ultradns.com/v3/"
 ULTRA_AUTH_API="https://api.ultradns.com/v2/"
@@ -111,7 +115,7 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     _debug response "$response"
     if [ -z "$h" ]; then
@@ -124,7 +128,7 @@ _get_root() {
     if _contains "${response}" "${h}." >/dev/null; then
       _domain_id=$(echo "$response" | _egrep_o "${h}" | head -1)
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain="${h}"
         _debug sub_domain "${_sub_domain}"
         _debug domain "${_domain}"

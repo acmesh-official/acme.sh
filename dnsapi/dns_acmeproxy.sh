@@ -1,9 +1,17 @@
 #!/usr/bin/env sh
-
-## Acmeproxy DNS provider to be used with acmeproxy (https://github.com/mdbraber/acmeproxy)
-## API integration by Maarten den Braber
-##
-## Report any bugs via https://github.com/mdbraber/acme.sh
+# shellcheck disable=SC2034
+dns_acmeproxy_info='AcmeProxy Server API
+ AcmeProxy can be used to as a single host in your network to request certificates through a DNS API.
+ Clients can connect with the one AcmeProxy host so you do not need to store DNS API credentials on every single host.
+Site: github.com/mdbraber/acmeproxy
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_acmeproxy
+Options:
+ ACMEPROXY_ENDPOINT API Endpoint
+ ACMEPROXY_USERNAME Username
+ ACMEPROXY_PASSWORD Password
+Issues: github.com/acmesh-official/acme.sh/issues/2251
+Author: Maarten den Braber
+'
 
 dns_acmeproxy_add() {
   fulldomain="${1}"

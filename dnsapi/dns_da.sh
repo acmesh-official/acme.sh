@@ -1,31 +1,14 @@
 #!/usr/bin/env sh
-# -*- mode: sh; tab-width: 2; indent-tabs-mode: s; coding: utf-8 -*-
-# vim: et ts=2 sw=2
-#
-# DirectAdmin 1.41.0 API
-# The DirectAdmin interface has it's own Let's encrypt functionality, but this
-# script can be used to generate certificates for names which are not hosted on
-# DirectAdmin
-#
-# User must provide login data and URL to DirectAdmin incl. port.
-# You can create login key, by using the Login Keys function
-# ( https://da.example.com:8443/CMD_LOGIN_KEYS ), which only has access to
-# - CMD_API_DNS_CONTROL
-# - CMD_API_SHOW_DOMAINS
-#
-# See also https://www.directadmin.com/api.php and
-# https://www.directadmin.com/features.php?id=1298
-#
-# Report bugs to https://github.com/TigerP/acme.sh/issues
-#
-# Values to export:
-# export DA_Api="https://remoteUser:remotePassword@da.example.com:8443"
-# export DA_Api_Insecure=1
-#
-# Set DA_Api_Insecure to 1 for insecure and 0 for secure -> difference is
-# whether ssl cert is checked for validity (0) or whether it is just accepted
-# (1)
-#
+# shellcheck disable=SC2034
+dns_da_info='DirectAdmin Server API
+Site: DirectAdmin.com/api.php
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_da
+Options:
+ DA_Api API Server URL. E.g. "https://remoteUser:remotePassword@da.domain.tld:8443"
+ DA_Api_Insecure Insecure TLS. 0: check for cert validity, 1: always accept
+Issues: github.com/TigerP/acme.sh/issues
+'
+
 ########  Public functions #####################
 
 # Usage: dns_myapi_add  _acme-challenge.www.example.com  "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
@@ -78,7 +61,7 @@ _get_root() {
   # response will contain "list[]=example.com&list[]=example.org"
   _da_api CMD_API_SHOW_DOMAINS "" "${domain}"
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       # not valid
@@ -86,7 +69,7 @@ _get_root() {
       return 1
     fi
     if _contains "$response" "$h" >/dev/null; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain=$h
       return 0
     fi

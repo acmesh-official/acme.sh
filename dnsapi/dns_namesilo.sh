@@ -1,8 +1,14 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_namesilo_info='NameSilo.com
+Site: NameSilo.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_namesilo
+Options:
+ Namesilo_Key API Key
+Author: meowthink
+'
 
-#Author: meowthink
-#Created 01/14/2017
-#Utilize namesilo.com API to finish dns-01 verifications.
+#Utilize API to finish dns-01 verifications.
 
 Namesilo_API="https://www.namesilo.com/api"
 
@@ -103,15 +109,15 @@ _get_root() {
 
   # Need to exclude the last field (tld)
   numfields=$(echo "$domain" | _egrep_o "\." | wc -l)
-  while [ $i -le "$numfields" ]; do
-    host=$(printf "%s" "$domain" | cut -d . -f $i-100)
+  while [ "$i" -le "$numfields" ]; do
+    host=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug host "$host"
     if [ -z "$host" ]; then
       return 1
     fi
 
     if _contains "$response" ">$host</domain>"; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$host"
       return 0
     fi

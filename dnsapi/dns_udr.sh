@@ -1,14 +1,14 @@
 #!/usr/bin/env sh
-
-# united-domains Reselling (https://www.ud-reselling.com/) DNS API
-# Author: Andreas Scherer (https://github.com/andischerer)
-# Created: 2021-02-01
-#
-# Set the environment variables as below:
-#
-#    export UDR_USER="your_username_goes_here"
-#    export UDR_PASS="some_password_goes_here"
-#
+# shellcheck disable=SC2034
+dns_udr_info='united-domains Reselling
+Site: ud-reselling.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_udr
+Options:
+ UDR_USER Username
+ UDR_PASS Password
+Issues: github.com/acmesh-official/acme.sh/issues/3923
+Author: Andreas Scherer <https://github.com/andischerer>
+'
 
 UDR_API="https://api.domainreselling.de/api/call.cgi"
 UDR_TTL="30"
@@ -115,7 +115,7 @@ _get_root() {
   fi
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
 
     if [ -z "$h" ]; then
