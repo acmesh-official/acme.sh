@@ -8,18 +8,17 @@
 # OPTIONAL:
 #     export FGT_PORT="10443"             # Custom HTTPS port (defaults to 443 if not set)
 #
+# This script is intended for use as an acme.sh deploy hook.
+#
 # Run `acme.sh --deploy -d example.com --deploy-hook fortigate --insecure` to use this script.
 # '--insecure' is required to allow acme.sh to connect to the FortiGate API over HTTPS without a pre-existing valid certificate.
-#
 
 # Function to parse response from the firewall
 parse_response() {
   status=$(echo "$1" | grep -o '"status":[ ]*"[^"]*"' | sed 's/"status":[ ]*"\([^"]*\)"/\1/')
-  error_code=$(echo "$1" | grep -o '"error":[ ]*[-0-9]*' | sed 's/"error":[ ]*\([-0-9]*\)/\1/')
-  http_status=$(echo "$1" | grep -o '"http_status":[ ]*[0-9]*' | sed 's/"http_status":[ ]*\([0-9]*\)/\1/')
 
   if [ "$status" != "success" ]; then
-    _err "FortiGate error: HTTP $http_status, Code $error_code"
+    _err "Operation failed. Deploy with --insecure if current certificate is invalid. Try deploying with --debug to troubleshoot."
     return 1
   else
     _debug "Operation successful."
@@ -80,7 +79,6 @@ fortigate_deploy() {
     return 1
   fi
 
-  # Handle environment variables
   for var in FGT_HOST FGT_TOKEN FGT_PORT; do
     if [ "$(eval echo \$$var)" ]; then
       _debug "Detected ENV variable $var. Saving to file."
