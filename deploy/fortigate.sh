@@ -71,7 +71,7 @@ EOF
 
 # Main function
 fortigate_deploy() {
-  _cdomain=$(echo "$1" | sed 's/*/WILDCARD_/g')
+  _cdomain="$(echo "$1" | sed 's/*/WILDCARD_/g')_$(date -u +"%Y-%m-%d")" # Append date to certname to avoid conflicts
   _ckey="$2"
   _cfullchain="$5"
 
