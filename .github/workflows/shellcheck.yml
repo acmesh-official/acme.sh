@@ -1,5 +1,6 @@
 name: Shellcheck
 on:
+  workflow_dispatch:
   push:
     branches:
       - '*'
