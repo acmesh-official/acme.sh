@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # Script to deploy a certificate to FortiGate via API and set it as the current web GUI certificate.
 #
-# FortiGate's native ACME integration does not support wildcard certificates, 
+# FortiGate's native ACME integration does not support wildcard certificates,
 # and is not supported if you have a custom management web port (eg. DNAT web traffic).
 #
 # REQUIRED:
@@ -32,9 +32,10 @@ parse_response() {
 
 # Function to deploy base64-encoded certificate to firewall
 deployer() {
-  cert_base64=$(cat "$_cfullchain" | _base64 | tr -d '\n')
-  key_base64=$(cat "$_ckey" | _base64 | tr -d '\n')
-  payload=$(cat <<EOF
+  cert_base64=$(_base64 <"$_cfullchain" | tr -d '\n')
+  key_base64=$(_base64 <"$_ckey" | tr -d '\n')
+  payload=$(
+    cat <<EOF
 {
   "type": "regular",
   "scope": "global",
@@ -43,7 +44,7 @@ deployer() {
   "file_content": "$cert_base64"
 }
 EOF
-)
+  )
   url="https://${FGT_HOST}:${FGT_PORT}/api/v2/monitor/vpn-certificate/local/import"
   _debug "Uploading certificate via URL: $url"
   _H1="Authorization: Bearer $FGT_TOKEN"
@@ -54,15 +55,16 @@ EOF
 
 # Function to upload CA certificate to firewall (FortiGate doesn't automatically extract CA from fullchain)
 upload_ca_cert() {
-  ca_base64=$(cat "$_cca" | _base64 | tr -d '\n')
-  payload=$(cat <<EOF
+  ca_base64=$(_base64 <"$_cca" | tr -d '\n')
+  payload=$(
+    cat <<EOF
 {
   "import_method": "file",
   "scope": "global",
   "file_content": "$ca_base64"
 }
 EOF
-)
+  )
   url="https://${FGT_HOST}:${FGT_PORT}/api/v2/monitor/vpn-certificate/ca/import"
   _debug "Uploading CA certificate via URL: $url"
   _H1="Authorization: Bearer $FGT_TOKEN"
@@ -78,12 +80,13 @@ EOF
 
 # Function to activate the new certificate
 set_active_web_cert() {
-  payload=$(cat <<EOF
+  payload=$(
+    cat <<EOF
 {
   "admin-server-cert": "$_cdomain"
 }
 EOF
-)
+  )
   url="https://${FGT_HOST}:${FGT_PORT}/api/v2/cmdb/system/global"
   _debug "Setting GUI certificate..."
   _H1="Authorization: Bearer $FGT_TOKEN"
@@ -97,13 +100,13 @@ cleanup_previous_certificate() {
 
   if [ -n "$FGT_LAST_CERT" ] && [ "$FGT_LAST_CERT" != "$_cdomain" ]; then
     _debug "Found previously deployed certificate: $FGT_LAST_CERT. Deleting it."
-    
+
     url="https://${FGT_HOST}:${FGT_PORT}/api/v2/cmdb/vpn.certificate/local/${FGT_LAST_CERT}"
 
     _H1="Authorization: Bearer $FGT_TOKEN"
     response=$(_post "" "$url" "" "DELETE" "application/json")
     _debug "Delete certificate API response: $response"
-    
+
     parse_response "$response" "Delete previous certificate" || return 1
   else
     _debug "No previous certificate found or new cert is the same as the previous one."
