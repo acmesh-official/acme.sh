@@ -302,8 +302,7 @@ _zyxel_gs1900_upload_certificate() {
 
   # Unfortunately we cannot rely upon the switch response across switch models
   # to return a consistent body return - so we cannot inspect the result of this
-  # upload to determine success. We will need to re-query the certificates page
-  # and compare the validity dates to try and identify if they have changed.
+  # upload to determine success.
   upload_response=$(_zyxel_upload_pkcs12 "${upload_post_request}" "${upload_post_boundary}" 2>&1)
   _debug3 "Upload response: ${upload_response}"
   rm "${upload_post_request}"
