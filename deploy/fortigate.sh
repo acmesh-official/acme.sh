@@ -145,7 +145,7 @@ fortigate_deploy() {
   FGT_PORT="${FGT_PORT:-443}"
   _debug "Using FortiGate port: $FGT_PORT"
 
-  # Deploy new certificate and set it as active.
+  # Upload new certificate
   deployer || return 1
 
   # Upload base64-encoded CA certificate
@@ -155,6 +155,7 @@ fortigate_deploy() {
     _debug "No CA certificate provided."
   fi
 
+  # Set new certificate as current web cert
   set_active_web_cert || return 1
 
   # Cleanup previous certificate
