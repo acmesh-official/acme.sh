@@ -186,8 +186,8 @@ synology_dsm_deploy() {
       if [ -n "$SYNO_USE_TEMP_ADMIN" ]; then
         _getdeployconf SYNO_LOCAL_HOSTNAME
         _debug SYNO_LOCAL_HOSTNAME "${SYNO_LOCAL_HOSTNAME:-}"
-        if [ "$SYNO_LOCAL_HOSTNAME" != "1" ]; then
-          if [ "$SYNO_HOSTNAME" != "localhost" ] && [ "$SYNO_HOSTNAME" != "127.0.0.1" ]; then
+        if [ "$SYNO_HOSTNAME" != "localhost" ] && [ "$SYNO_HOSTNAME" != "127.0.0.1" ]; then
+          if [ "$SYNO_LOCAL_HOSTNAME" != "1" ]; then
             _err "SYNO_USE_TEMP_ADMIN=1 only support local deployment, though if you are sure that the hostname $SYNO_HOSTNAME is targeting to your **current local machine**, execute 'export SYNO_LOCAL_HOSTNAME=1' then rerun."
             return 1
           fi
