@@ -4219,6 +4219,7 @@ _check_dns_entries() {
       _debug "aliasDomain" "$aliasDomain"
       _debug "txt" "$txt"
       _debug "d_api" "$d_api"
+      aliasDomain="$(echo "$aliasDomain" | sed "s/^@\{0,1\}\.//")"
       _info "Checking $d for $aliasDomain"
       if _contains "$_success_txt" ",$txt,"; then
         _info "Already succeeded, continuing."
