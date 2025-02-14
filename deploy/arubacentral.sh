@@ -170,8 +170,10 @@ _delete_old_certificate() {
     response=$(_post "" "$delete_url" "" "DELETE" "application/json")
     _debug "Delete certificate API response: $response"
 
-    if echo "$response" | grep -q '"error"'; then
-      _err "❌ Failed to delete previous certificate."
+    if echo "$response" | jq -e '.description | test("not present")' >/dev/null 2>&1; then
+      _debug "✅ Previous certificate not found - skipping."
+    elif echo "$response" | jq -e '.error_code' >/dev/null 2>&1; then
+      _err "❌ Failed to delete previous certificate: $(echo "$response" | jq -r '.description')"
     else
       _debug "✅ Previous certificate deleted successfully."
     fi
