@@ -54,7 +54,7 @@ arubacentral_deploy() {
 
   # Base64 encode the passphrase
   _debug "Encoding passphrase in Base64..."
-  _passphrase_base64=$(echo -n "$_passphrase" | _base64 | tr -d '\n')
+  _passphrase_base64=$(printf "%s" "$_passphrase" | _base64 | tr -d '\n')
 
   # Upload Certificate with Automatic Token Refresh on Failure
   _upload_certificate || return 1
@@ -116,6 +116,20 @@ _refresh_access_token() {
   _getdeployconf "ARUBA_ACCESS_TOKEN"
   _getdeployconf "ARUBA_REFRESH_TOKEN"
 
+  # 🔍 Step 1: Check if the access token is still valid
+  _debug "Checking if the access token is still valid..."
+  check_url="${ARUBA_HOST}/configuration/v1/certificates?limit=1"
+  _H1="Authorization: Bearer $ARUBA_ACCESS_TOKEN"
+  response=$(_post "" "$check_url" "" "GET" "application/json")
+
+  if echo "$response" | grep -q '"error":"invalid_token"'; then
+    _debug "❌ Access token is invalid, refreshing..."
+  else
+    _debug "✅ Access token is still valid, skipping refresh."
+    return 0  # Skip refresh
+  fi
+
+  # 🔄 Step 2: Refresh token if it's invalid
   _debug "Refreshing Aruba Central API token..."
   refresh_url="${ARUBA_HOST}/oauth2/token"
 
@@ -139,16 +153,15 @@ EOF
   if [ -n "$new_token" ]; then
     _debug "✅ Token refreshed successfully!"
     _savedeployconf "ARUBA_ACCESS_TOKEN" "$new_token" 1
-    
+    ARUBA_ACCESS_TOKEN="$new_token"
+
     if [ -n "$new_refresh_token" ]; then
       _debug "🔄 Updating refresh token..."
       _savedeployconf "ARUBA_REFRESH_TOKEN" "$new_refresh_token" 1
+      ARUBA_REFRESH_TOKEN="$new_refresh_token"
     else
-      _debug "⚠️ Aruba Central did not return a new refresh token!"
+      _debug "⚠️ Aruba Central did not return a new refresh token! Keeping the old one."
     fi
-
-    ARUBA_ACCESS_TOKEN="$new_token"
-    ARUBA_REFRESH_TOKEN="$new_refresh_token"
   else
     _err "❌ Failed to refresh API token. Please manually generate a new one."
     return 1
@@ -158,12 +171,12 @@ EOF
 # Function to delete the previous certificate
 _delete_old_certificate() {
   _getdeployconf "ARUBA_LAST_CERT"
-  
+
   if [ -n "$ARUBA_LAST_CERT" ]; then
     _debug "Found previous certificate: $ARUBA_LAST_CERT. Deleting it..."
     delete_url="${ARUBA_HOST}/configuration/v1/certificates/${ARUBA_LAST_CERT}"
     _H1="Authorization: Bearer $ARUBA_ACCESS_TOKEN"
-    
+
     response=$(_post "" "$delete_url" "" "DELETE" "application/json")
     _debug "Delete certificate API response: $response"
 
