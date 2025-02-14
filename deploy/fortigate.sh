@@ -155,7 +155,7 @@ fortigate_deploy() {
     _debug "No CA certificate provided."
   fi
 
-  # Set new certificate as current web cert
+  # Set new certificate as active
   set_active_web_cert || return 1
 
   # Cleanup previous certificate
