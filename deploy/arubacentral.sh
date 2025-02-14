@@ -126,7 +126,7 @@ _refresh_access_token() {
     _debug "❌ Access token is invalid, refreshing..."
   else
     _debug "✅ Access token is still valid, skipping refresh."
-    return 0  # Skip refresh
+    return 0 # Skip refresh
   fi
 
   # 🔄 Step 2: Refresh token if it's invalid
