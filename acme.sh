@@ -5818,7 +5818,7 @@ _deploy() {
         return 1
       fi
 
-      if ! $d_command "$_d" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH"; then
+      if ! $d_command "$_d" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH" "$CERT_PFX_PATH"; then
         _err "Error deploying for domain: $_d"
         return 1
       fi
