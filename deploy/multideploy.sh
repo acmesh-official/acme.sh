@@ -85,7 +85,7 @@ _check_deployfile() {
   fi
 
   # Extract all services from config
-  services=$(yq e ".configs[] | select(.name == \"$deploy_config\").services[]" "$deploy_file")
+  services=$(_get_services_list "$deploy_file" "$deploy_config")
 
   if [ -z "$services" ]; then
     _err "Config '$deploy_config' does not have any services to deploy to."
@@ -112,3 +112,29 @@ _check_deployfile() {
     fi
   done
 }
+
+# deploy_filepath deploy_config
+_get_services_list() {
+  deploy_file="$1"
+  deploy_config="$2"
+
+  services=$(yq e ".configs[] | select(.name == \"$deploy_config\").services[]" "$deploy_file")
+  echo "$services"
+}
+
+# deploy_filepath service_names
+_get_full_services_list() {
+  deploy_file="$1"
+  shift
+  service_names="$*"
+
+  full_services=""
+  for service in $service_names; do
+    full_service=$(yq e ".services[] | select(.name == \"$service\")" "$deploy_file")
+    full_services="$full_services
+$full_service"
+  done
+
+  echo "$full_services"
+}
+
