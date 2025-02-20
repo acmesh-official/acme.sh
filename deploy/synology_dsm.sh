@@ -411,7 +411,7 @@ _temp_admin_create() {
   _username="$1"
   _password="$2"
   synouser --del "$_username" >/dev/null 2>/dev/null
-  synouser --add "$_username" "$_password" "" 0 "scruelt@hotmail.com" 0 >/dev/null
+  synouser --add "$_username" "$_password" "" 0 "" 0 >/dev/null
 }
 
 _temp_admin_cleanup() {
