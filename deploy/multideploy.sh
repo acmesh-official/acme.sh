@@ -66,6 +66,7 @@ _preprocess_deployfile() {
   _debug3 "yq is installed."
 
   # Check if deploy file exists
+  IFS=$(printf '\n')
   for file in "$@"; do
     _debug3 "Checking file" "$DOMAIN_PATH/$file"
     if [ -f "$DOMAIN_PATH/$file" ]; then
@@ -79,6 +80,7 @@ _preprocess_deployfile() {
       _debug3 "File not found"
     fi
   done
+  IFS=$OLDIFS
 
   if [ -n "$found_file" ]; then
     _check_deployfile "$DOMAIN_PATH/$found_file" "$MULTIDEPLOY_CONFIG"
@@ -124,6 +126,7 @@ _check_deployfile() {
   fi
   _debug2 "Config has services."
 
+  IFS=$(printf '\n')
   # Check if extracted services exist in services list
   for _service in $_services; do
     _debug2 "Checking service" "$_service"
@@ -145,6 +148,7 @@ _check_deployfile() {
       return 1
     fi
   done
+  IFS=$OLDIFS
 }
 
 # deploy_filepath deploy_config
@@ -166,25 +170,27 @@ _export_envs() {
 
   _secure_debug3 "Exporting envs" "$_env_list"
 
-  for _env in $_env_list; do
-    _key=$(echo "$_env" | cut -d '=' -f1)
-    _value=$(echo "$_env" | cut -d '=' -f2-)
+  IFS=$(printf '\n')
+  echo "$_env_list" | yq e -r 'to_entries | .[] | .key + "=" + .value' | while IFS='=' read -r _key _value; do
     _savedomainconf "$_key" "$_value"
     _secure_debug3 "Saved $_key" "$_value"
   done
+  IFS=$OLDIFS
 }
 
 _clear_envs() {
   _env_list="$1"
 
   _secure_debug3 "Clearing envs" "$_env_list"
+  env_pairs=$(echo "$_env_list" | yq e -r 'to_entries | .[] | .key + "=" + .value')
 
-  for _env in $_env_list; do
-    _key=$(echo "$_env" | cut -d '=' -f1)
+  IFS=$(printf '\n')
+  echo "$env_pairs" | while IFS='=' read -r _key _value; do
     _debug3 "Deleting key" "$_key"
     _cleardomainconf "SAVED_$_key"
     unset "$_key"
   done
+  IFS="$OLDIFS"
 }
 
 # deploy_filepath services_array
@@ -196,14 +202,17 @@ _deploy_services() {
   _debug3 "Deploy file" "$_deploy_file"
   _debug3 "Services" "$_services"
 
+  IFS=$(printf '\n')
   for _service in $_services; do
     _debug2 "Service" "$_service"
     _hook=$(yq e ".services[] | select(.name == \"$_service\").hook" "$_deploy_file")
     _envs=$(yq e ".services[] | select(.name == \"$_service\").environment[]" "$_deploy_file")
+
     _export_envs "$_envs"
     _deploy_service "$_service" "$_hook"
     _clear_envs "$_envs"
   done
+  IFS=$OLDIFS
 }
 
 _deploy_service() {
