@@ -30,8 +30,6 @@ multideploy_deploy() {
   fi
   _debug2 "DOMAIN_DIR" "$DOMAIN_DIR"
 
-  _preprocess_deployfile "$DOMAIN_DIR/$MULTIDEPLOY_FILENAME" || return 1
-
   MULTIDEPLOY_CONFIG="${MULTIDEPLOY_CONFIG:-$(_getdeployconf MULTIDEPLOY_CONFIG)}"
   if [ -z "$MULTIDEPLOY_CONFIG" ]; then
     MULTIDEPLOY_CONFIG="default"
@@ -91,7 +89,10 @@ _preprocess_deployfile() {
 # deploy_filepath _deploy_config
 _check_deployfile() {
   _deploy_file="$1"
-  _deploy_config="$3"
+  _deploy_config="$2"
+
+  _debug2 "Deploy file" "$_deploy_file"
+  _debug2 "Deploy config" "$_deploy_config"
 
   # Check version
   _deploy_file_version=$(yq '.version' "$_deploy_file")
@@ -99,23 +100,29 @@ _check_deployfile() {
     _err "As of $PROJECT_NAME $VER, the deploy file needs version $MULTIDEPLOY_VERSION! Your current deploy file is of version $_deploy_file_version."
     return 1
   fi
+  _debug2 "Deploy file version is compatible: $_deploy_file_version"
 
   # Check if config exists
   if ! yq e ".configs[] | select(.name == \"$_deploy_config\")" "$_deploy_file" >/dev/null; then
     _err "Config '$_deploy_config' not found."
     return 1
   fi
+  _debug2 "Config found: $_deploy_config"
 
   # Extract all services from config
   _services=$(_get_services_list "$_deploy_file" "$_deploy_config")
+  _debug2 "Services" "$_services"
 
   if [ -z "$_services" ]; then
     _err "Config '$_deploy_config' does not have any services to deploy to."
     return 1
   fi
+  _debug2 "Config has services."
 
   # Check if extracted services exist in services list
   for _service in $_services; do
+    _debug2 "Checking service" "$_service"
+    # Check if service exists
     if ! yq e ".services[] | select(.name == \"$_service\")" "$_deploy_file" >/dev/null; then
       _err "Service '$_service' not found."
       return 1
@@ -140,6 +147,10 @@ _get_services_list() {
   _deploy_file="$1"
   _deploy_config="$2"
 
+  _debug2 "Getting services list"
+  _debug3 "Deploy file" "$_deploy_file"
+  _debug3 "Deploy config" "$_deploy_config"
+
   _services=$(yq e ".configs[] | select(.name == \"$_deploy_config\").services[]" "$_deploy_file")
   echo "$_services"
 }
@@ -149,6 +160,9 @@ _get_full_services_list() {
   _deploy_file="$1"
   shift
   _service_names="$*"
+
+  _debug3 "Deploy file" "$_deploy_file"
+  _debug3 "Service names" "$_service_names"
 
   _full_services=""
   for _service in $_service_names; do
@@ -164,6 +178,8 @@ $_full_service"
 _export_envs() {
   _env_list="$1"
 
+  _secure_debug3 "Exporting envs" "$_env_list"
+
   for _env in $_env_list; do
     _key=$(echo "$_env" | cut -d '=' -f1)
     _value=$(echo "$_env" | cut -d '=' -f2-)
@@ -174,6 +190,8 @@ _export_envs() {
 
 _clear_envs() {
   _env_list="$1"
+
+  _secure_debug3 "Clearing envs" "$_env_list"
 
   for _env in $_env_list; do
     _key=$(echo "$_env" | cut -d '=' -f1)
@@ -188,6 +206,9 @@ _deploy_services() {
   _deploy_file="$1"
   shift
   _services="$*"
+
+  _debug3 "Deploy file" "$_deploy_file"
+  _debug3 "Services" "$_services"
 
   for _service in $_services; do
     _hook=$(yq e ".services[] | select(.name == \"$_service\").hook" "$_deploy_file")
