@@ -2,13 +2,21 @@
 
 # MULTIDEPLOY_CONFIG="default"
 
-########  Public functions #####################
-
 MULTIDEPLOY_VERSION="1.0"
 MULTIDEPLOY_FILENAME="multideploy.yml"
 MULTIDEPLOY_FILENAME2="multideploy.yaml"
 
-# domain keyfile certfile cafile fullchain pfx
+# Description: This function handles the deployment of certificates to multiple services.
+#              It processes the provided certificate files and deploys them according to the
+#              configuration specified in the MULTIDEPLOY_CONFIG.
+#
+# Parameters:
+#   _cdomain     - The domain name for which the certificate is issued.
+#   _ckey        - The private key file for the certificate.
+#   _ccert       - The certificate file.
+#   _cca         - The CA (Certificate Authority) file.
+#   _cfullchain  - The full chain certificate file.
+#   _cpfx        - The PFX (Personal Information Exchange) file.
 multideploy_deploy() {
   _cdomain="$1"
   _ckey="$2"
@@ -40,7 +48,10 @@ multideploy_deploy() {
   fi
 
   OLDIFS=$IFS
-  file=$(_preprocess_deployfile "$MULTIDEPLOY_FILENAME" "$MULTIDEPLOY_FILENAME2") || return 1
+  if ! file=$(_preprocess_deployfile "$MULTIDEPLOY_FILENAME" "$MULTIDEPLOY_FILENAME2"); then
+    _err "Failed to preprocess deploy file."
+    return 1
+  fi
   _debug3 "File" "$file"
 
   # Deploy to services
@@ -54,9 +65,13 @@ multideploy_deploy() {
   return 0
 }
 
-####################  Private functions below #####################
-
-# deploy_filepath
+# Description:
+#   This function preprocesses the deploy file by checking if 'yq' is installed,
+#   verifying the existence of the deploy file, and ensuring only one deploy file is present.
+# Arguments:
+#   $@ - Posible deploy file names.
+# Usage:
+#   _preprocess_deployfile "<deploy_file1>" "<deploy_file2>"
 _preprocess_deployfile() {
   # Check if yq is installed
   if ! command -v yq >/dev/null 2>&1; then
@@ -93,7 +108,13 @@ _preprocess_deployfile() {
   echo "$DOMAIN_PATH/$found_file"
 }
 
-# deploy_filepath _deploy_config
+# Description:
+#   This function checks the deploy file for version compatibility and the existence of the specified configuration and services.
+# Arguments:
+#   $1 - The path to the deploy configuration file.
+#   $2 - The name of the deploy configuration to use.
+# Usage:
+#   _check_deployfile "<deploy_file_path>" "<deploy_config_name>"
 _check_deployfile() {
   _deploy_file="$1"
   _deploy_config="$2"
@@ -144,7 +165,7 @@ _check_deployfile() {
 
     # Check if service has environment
     if ! yq e ".services[] | select(.name == \"$_service\").environment" "$_deploy_file" >/dev/null; then
-      _err "Service '$_service' does not an environment."
+      _err "Service '$_service' does not have an environment."
       return 1
     fi
   done
@@ -211,7 +232,13 @@ _clear_envs() {
   IFS="$OLDIFS"
 }
 
-# deploy_filepath services_array
+# Description:
+#   This function deploys services listed in the deploy configuration file.
+# Arguments:
+#   $1 - The path to the deploy configuration file.
+#   $2 - The list of services to deploy.
+# Usage:
+#   _deploy_services "<deploy_file_path>" "<services_list>"
 _deploy_services() {
   _deploy_file="$1"
   shift
@@ -220,8 +247,7 @@ _deploy_services() {
   _debug3 "Deploy file" "$_deploy_file"
   _debug3 "Services" "$_services"
 
-  IFS=$(printf '\n')
-  for _service in $_services; do
+  printf '%s\n' "$_services" | while IFS= read -r _service; do
     _debug2 "Service" "$_service"
     _hook=$(yq e ".services[] | select(.name == \"$_service\").hook" "$_deploy_file")
     _envs=$(yq e ".services[] | select(.name == \"$_service\").environment[]" "$_deploy_file")
@@ -230,9 +256,14 @@ _deploy_services() {
     _deploy_service "$_service" "$_hook"
     _clear_envs "$_envs"
   done
-  IFS=$OLDIFS
 }
 
+# Description: Deploys a service using the specified hook.
+# Arguments:
+#   $1 - The name of the service to deploy.
+#   $2 - The hook to use for deployment.
+# Usage:
+#   _deploy_service <service_name> <hook>
 _deploy_service() {
   _name="$1"
   _hook="$2"
