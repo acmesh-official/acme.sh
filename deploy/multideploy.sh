@@ -5,7 +5,8 @@
 ########  Public functions #####################
 
 MULTIDEPLOY_VERSION="1.0"
-MULTIDEPLOY_FILENAME="multideploy.yaml"
+MULTIDEPLOY_FILENAME="multideploy.yml"
+MULTIDEPLOY_FILENAME2="multideploy.yaml"
 
 # domain keyfile certfile cafile fullchain pfx
 multideploy_deploy() {
@@ -56,18 +57,30 @@ multideploy_deploy() {
 
 # deploy_filepath
 _preprocess_deployfile() {
-  _deploy_file="$1"
-
   # Check if yq is installed
   if ! command -v yq >/dev/null 2>&1; then
     _err "yq is not installed! Please install yq and try again."
     return 1
   fi
+  _debug3 "yq is installed."
 
-  # Check if deploy file exists and create a default template if not
-  if [ -f "$_deploy_file" ]; then
-    _debug3 "Deploy file found."
-    _check_deployfile "$_deploy_file" "$MULTIDEPLOY_CONFIG"
+  # Check if deploy file exists
+  for file in "$@"; do
+    _debug3 "Checking file" "$DOMAIN_PATH/$file"
+    if [ -f "$DOMAIN_PATH/$file" ]; then
+      _debug3 "File found"
+      if [ -n "$found_file" ]; then
+        _err "Multiple deploy files found. Please keep only one deploy file."
+        return 1
+      fi
+      found_file="$file"
+    else
+      _debug3 "File not found"
+    fi
+  done
+
+  if [ -n "$found_file" ]; then
+    _check_deployfile "$DOMAIN_PATH/$found_file" "$MULTIDEPLOY_CONFIG"
   else
     # TODO: Replace URL with wiki link
     _err "Deploy file not found. Go to https://CHANGE_URL_TO_WIKI to see how to create one."
