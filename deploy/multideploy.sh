@@ -29,7 +29,7 @@ multideploy_deploy() {
   fi
   _debug2 "DOMAIN_DIR" "$DOMAIN_DIR"
 
-  _preprocess_deployfile "$DOMAIN_DIR/$MULTIDEPLOY_FILENAME"
+  _preprocess_deployfile "$DOMAIN_DIR/$MULTIDEPLOY_FILENAME" || return 1
 
   MULTIDEPLOY_CONFIG="${MULTIDEPLOY_CONFIG:-$(_getdeployconf MULTIDEPLOY_CONFIG)}"
   if [ -z "$MULTIDEPLOY_CONFIG" ]; then
@@ -47,7 +47,7 @@ multideploy_deploy() {
 
 # deploy_filepath
 _preprocess_deployfile() {
-  deploy_file="$1"
+  _deploy_file="$1"
 
   # Check if yq is installed
   if ! command -v yq >/dev/null 2>&1; then
@@ -56,9 +56,9 @@ _preprocess_deployfile() {
   fi
 
   # Check if deploy file exists and create a default template if not
-  if [ -f "$deploy_file" ]; then
+  if [ -f "$_deploy_file" ]; then
     _debug3 "Deploy file found."
-    _check_deployfile "$deploy_file" "$MULTIDEPLOY_CONFIG"
+    _check_deployfile "$_deploy_file" "$MULTIDEPLOY_CONFIG"
   else
     # TODO: Replace URL with wiki link
     _err "Deploy file not found. Go to https://CHANGE_URL_TO_WIKI to see how to create one."
@@ -66,48 +66,48 @@ _preprocess_deployfile() {
   fi
 }
 
-# deploy_filepath deploy_config
+# deploy_filepath _deploy_config
 _check_deployfile() {
-  deploy_file="$1"
-  deploy_config="$3"
+  _deploy_file="$1"
+  _deploy_config="$3"
 
   # Check version
-  deploy_file_version=$(yq '.version' "$deploy_file")
-  if [ "$MULTIDEPLOY_VERSION" != "$deploy_file_version" ]; then
-    _err "As of $PROJECT_NAME $VER, the deploy file needs version $MULTIDEPLOY_VERSION! Your current deploy file is of version $deploy_file_version."
+  _deploy_file_version=$(yq '.version' "$_deploy_file")
+  if [ "$MULTIDEPLOY_VERSION" != "$_deploy_file_version" ]; then
+    _err "As of $PROJECT_NAME $VER, the deploy file needs version $MULTIDEPLOY_VERSION! Your current deploy file is of version $_deploy_file_version."
     return 1
   fi
 
   # Check if config exists
-  if ! yq e ".configs[] | select(.name == \"$deploy_config\")" "$deploy_file" >/dev/null; then
-    _err "Config '$deploy_config' not found."
+  if ! yq e ".configs[] | select(.name == \"$_deploy_config\")" "$_deploy_file" >/dev/null; then
+    _err "Config '$_deploy_config' not found."
     return 1
   fi
 
   # Extract all services from config
-  services=$(_get_services_list "$deploy_file" "$deploy_config")
+  _services=$(_get_services_list "$_deploy_file" "$_deploy_config")
 
-  if [ -z "$services" ]; then
-    _err "Config '$deploy_config' does not have any services to deploy to."
+  if [ -z "$_services" ]; then
+    _err "Config '$_deploy_config' does not have any services to deploy to."
     return 1
   fi
 
   # Check if extracted services exist in services list
-  for service in $services; do
-    if ! yq e ".services[] | select(.name == \"$service\")" "$deploy_file" >/dev/null; then
-      _err "Service '$service' not found."
+  for _service in $_services; do
+    if ! yq e ".services[] | select(.name == \"$_service\")" "$_deploy_file" >/dev/null; then
+      _err "Service '$_service' not found."
       return 1
     fi
 
     # Check if service has hook
-    if ! yq e ".services[] | select(.name == \"$service\").hook" "$deploy_file" >/dev/null; then
-      _err "Service '$service' does not have a hook."
+    if ! yq e ".services[] | select(.name == \"$_service\").hook" "$_deploy_file" >/dev/null; then
+      _err "Service '$_service' does not have a hook."
       return 1
     fi
 
     # Check if service has environment
-    if ! yq e ".services[] | select(.name == \"$service\").environment" "$deploy_file" >/dev/null; then
-      _err "Service '$service' does not an environment."
+    if ! yq e ".services[] | select(.name == \"$_service\").environment" "$_deploy_file" >/dev/null; then
+      _err "Service '$_service' does not an environment."
       return 1
     fi
   done
@@ -115,26 +115,26 @@ _check_deployfile() {
 
 # deploy_filepath deploy_config
 _get_services_list() {
-  deploy_file="$1"
-  deploy_config="$2"
+  _deploy_file="$1"
+  _deploy_config="$2"
 
-  services=$(yq e ".configs[] | select(.name == \"$deploy_config\").services[]" "$deploy_file")
-  echo "$services"
+  _services=$(yq e ".configs[] | select(.name == \"$_deploy_config\").services[]" "$_deploy_file")
+  echo "$_services"
 }
 
 # deploy_filepath service_names
 _get_full_services_list() {
-  deploy_file="$1"
+  _deploy_file="$1"
   shift
-  service_names="$*"
+  _service_names="$*"
 
-  full_services=""
-  for service in $service_names; do
-    full_service=$(yq e ".services[] | select(.name == \"$service\")" "$deploy_file")
-    full_services="$full_services
-$full_service"
+  _full_services=""
+  for _service in $_service_names; do
+    _full_service=$(yq e ".services[] | select(.name == \"$_service\")" "$_deploy_file")
+    _full_services="$_full_services
+$_full_service"
   done
 
-  echo "$full_services"
+  echo "$_full_services"
 }
 
