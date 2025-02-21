@@ -119,8 +119,7 @@ _preprocess_deployfile() {
   if [ -n "$found_file" ]; then
     _check_deployfile "$DOMAIN_PATH/$found_file" "$MULTIDEPLOY_CONFIG"
   else
-    # TODO: Replace URL with wiki link
-    _err "Deploy file not found. Go to https://CHANGE_URL_TO_WIKI to see how to create one."
+    _err "Deploy file not found. Go to https://github.com/acmesh-official/acme.sh/wiki/deployhooks#36-deploying-to-multiple-services-with-the-same-hooks to see how to create one."
     return 1
   fi
 
