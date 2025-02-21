@@ -138,3 +138,25 @@ $_full_service"
   echo "$_full_services"
 }
 
+# env_list
+_export_envs() {
+  _env_list="$1"
+
+  for _env in $_env_list; do
+    _key=$(echo "$_env" | cut -d '=' -f1)
+    _value=$(echo "$_env" | cut -d '=' -f2-)
+    _savedomainconf "$_key" "$_value"
+    _secure_debug3 "Saved $_key" "$_value"
+  done
+}
+
+_clear_envs() {
+  _env_list="$1"
+
+  for _env in $_env_list; do
+    _key=$(echo "$_env" | cut -d '=' -f1)
+    _debug3 "Deleting key" "$_key"
+    _cleardomainconf "SAVED_$_key"
+    unset "$_key"
+  done
+}
