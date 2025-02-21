@@ -151,7 +151,13 @@ _check_deployfile() {
   IFS=$OLDIFS
 }
 
-# deploy_filepath deploy_config
+# Description:
+#   This function retrieves a list of services from the deploy configuration file.
+# Arguments:
+#   $1 - The path to the deploy configuration file.
+#   $2 - The name of the deploy configuration to use.
+# Usage:
+#   _get_services_list "<deploy_file_path>" "<deploy_config_name>"
 _get_services_list() {
   _deploy_file="$1"
   _deploy_config="$2"
@@ -164,7 +170,12 @@ _get_services_list() {
   echo "$_services"
 }
 
-# env_list
+# Description: This function takes a list of environment variables in YAML format,
+#              parses them, and exports each key-value pair as environment variables.
+# Arguments:
+#   $1 - A string containing the list of environment variables in YAML format.
+# Usage:
+#   _export_envs "$env_list"
 _export_envs() {
   _env_list="$1"
 
@@ -178,6 +189,13 @@ _export_envs() {
   IFS=$OLDIFS
 }
 
+# Description:
+#   This function takes a YAML formatted string of environment variables, parses it,
+#   and clears each environment variable. It logs the process of clearing each variable.
+# Arguments:
+#   $1 - A YAML formatted string containing environment variable key-value pairs.
+# Usage:
+#   _clear_envs "<yaml_string>"
 _clear_envs() {
   _env_list="$1"
 
@@ -188,7 +206,7 @@ _clear_envs() {
   echo "$env_pairs" | while IFS='=' read -r _key _value; do
     _debug3 "Deleting key" "$_key"
     _cleardomainconf "SAVED_$_key"
-    unset "$_key"
+    unset -v "$_key"
   done
   IFS="$OLDIFS"
 }
