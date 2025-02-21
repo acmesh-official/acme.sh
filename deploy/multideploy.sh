@@ -39,10 +39,13 @@ multideploy_deploy() {
     _debug2 "MULTIDEPLOY_CONFIG" "$MULTIDEPLOY_CONFIG"
   fi
 
+  OLDIFS=$IFS
+  file=$(_preprocess_deployfile "$MULTIDEPLOY_FILENAME" "$MULTIDEPLOY_FILENAME2") || return 1
+  _debug3 "File" "$file"
+
   # Deploy to services
-  _services=$(_get_services_list "$DOMAIN_DIR/$MULTIDEPLOY_FILENAME" "$MULTIDEPLOY_CONFIG")
-  _full_services=$(_get_full_services_list "$DOMAIN_DIR/$MULTIDEPLOY_FILENAME" "$_services")
-  _deploy_services "$DOMAIN_DIR/$MULTIDEPLOY_FILENAME" "$_full_services"
+  _services=$(_get_services_list "$file" "$MULTIDEPLOY_CONFIG")
+  _deploy_services "$file" "$_services"
 
   # Save deployhook for renewals
   _debug2 "Setting Le_DeployHook"
@@ -84,6 +87,8 @@ _preprocess_deployfile() {
     _err "Deploy file not found. Go to https://CHANGE_URL_TO_WIKI to see how to create one."
     return 1
   fi
+
+  echo "$DOMAIN_PATH/$found_file"
 }
 
 # deploy_filepath _deploy_config
@@ -155,25 +160,6 @@ _get_services_list() {
   echo "$_services"
 }
 
-# deploy_filepath service_names
-_get_full_services_list() {
-  _deploy_file="$1"
-  shift
-  _service_names="$*"
-
-  _debug3 "Deploy file" "$_deploy_file"
-  _debug3 "Service names" "$_service_names"
-
-  _full_services=""
-  for _service in $_service_names; do
-    _full_service=$(yq e ".services[] | select(.name == \"$_service\")" "$_deploy_file")
-    _full_services="$_full_services
-$_full_service"
-  done
-
-  echo "$_full_services"
-}
-
 # env_list
 _export_envs() {
   _env_list="$1"
@@ -211,6 +197,7 @@ _deploy_services() {
   _debug3 "Services" "$_services"
 
   for _service in $_services; do
+    _debug2 "Service" "$_service"
     _hook=$(yq e ".services[] | select(.name == \"$_service\").hook" "$_deploy_file")
     _envs=$(yq e ".services[] | select(.name == \"$_service\").environment[]" "$_deploy_file")
     _export_envs "$_envs"
