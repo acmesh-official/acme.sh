@@ -40,7 +40,16 @@ multideploy_deploy() {
     _debug2 "MULTIDEPLOY_CONFIG" "$MULTIDEPLOY_CONFIG"
   fi
 
-  # TODO: Deploy to services
+  # Deploy to services
+  _services=$(_get_services_list "$DOMAIN_DIR/$MULTIDEPLOY_FILENAME" "$MULTIDEPLOY_CONFIG")
+  _full_services=$(_get_full_services_list "$DOMAIN_DIR/$MULTIDEPLOY_FILENAME" "$_services")
+  _deploy_services "$DOMAIN_DIR/$MULTIDEPLOY_FILENAME" "$_full_services"
+
+  # Save deployhook for renewals
+  _debug2 "Setting Le_DeployHook"
+  _savedomainconf "Le_DeployHook" "multideploy"
+
+  return 0
 }
 
 ####################  Private functions below #####################
@@ -159,4 +168,35 @@ _clear_envs() {
     _cleardomainconf "SAVED_$_key"
     unset "$_key"
   done
+}
+
+# deploy_filepath services_array
+_deploy_services() {
+  _deploy_file="$1"
+  shift
+  _services="$*"
+
+  for _service in $_services; do
+    _hook=$(yq e ".services[] | select(.name == \"$_service\").hook" "$_deploy_file")
+    _envs=$(yq e ".services[] | select(.name == \"$_service\").environment[]" "$_deploy_file")
+    _export_envs "$_envs"
+    _deploy_service "$_service" "$_hook"
+    _clear_envs "$_envs"
+  done
+}
+
+_deploy_service() {
+  _name="$1"
+  _hook="$2"
+
+  _debug2 "SERVICE" "$_name"
+  _debug2 "HOOK" "$_hook"
+
+  _info "$(__green "Deploying") to '$_name' using '$_hook'"
+  if echo "$DOMAIN_PATH" | grep -q "$ECC_SUFFIX"; then
+    _debug2 "User wants to use ECC."
+    deploy "$_cdomain" "$_hook" "isEcc"
+  else
+    deploy "$_cdomain" "$_hook"
+  fi
 }
