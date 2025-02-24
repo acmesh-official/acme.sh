@@ -4200,7 +4200,24 @@ __purge_txt() {
 _check_dns_entries() {
   _success_txt=","
   _end_time="$(_time)"
-  _end_time="$(_math "$_end_time" + 1200)" #let's check no more than 20 minutes.
+
+  # Use default values for DNS timeout (1200 seconds/20 minutes) and DNS retry
+  # interval (10 seconds), unless configured at script invocation to be
+  # something else.
+  _dnstimeout=1200 #default timeout is 20 minutes
+  if [ -n "$Le_DNSValidateTimeout" ]; then
+    # Use configured DNS validation timeout
+    _dnstimeout="$Le_DNSValidateTimeout"
+    _savedomainconf "Le_DNSValidateTimeout" "$Le_DNSValidateTimeout"
+  fi  
+  _dnsinterval=10 #default interval between retries is 10 seconds
+  if [ -n "$Le_DNSValidateInterval" ]; then
+    # Use configured DNS validation retry interval
+    _dnsinterval="$Le_DNSValidateInterval"
+    _savedomainconf "Le_DNSValidateInterval" "$Le_DNSValidateInterval"
+  fi
+
+  _end_time="$(_math "$_end_time" + "$_dnstimeout")" #let's check no longer than this
 
   while [ "$(_time)" -le "$_end_time" ]; do
     _info "You can use '--dnssleep' to disable public dns checks."
@@ -4239,8 +4256,8 @@ _check_dns_entries() {
       _sleep 10
     done
     if [ "$_left" ]; then
-      _info "Let's wait for 10 seconds and check again".
-      _sleep 10
+      _info "Let's wait for "$_dnsinterval" seconds and check again".
+      _sleep $_dnsinterval
     else
       _info "All checks succeeded"
       return 0
@@ -6993,6 +7010,8 @@ Parameters:
 
   --dnssleep <seconds>              The time in seconds to wait for all the txt records to propagate in dns api mode.
                                       It's not necessary to use this by default, $PROJECT_NAME polls dns status by DOH automatically.
+  --dns-validate-interval <seconds> How long to pause between attempts to validate with DNS. Default: 10 seconds.
+  --dns-validate-timeout <seconds>  How much total time to allow DNS for validations before declaring a failure. Default: 1200 seconds (20 minutes).
   -k, --keylength <bits>            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521.
   -ak, --accountkeylength <bits>    Specifies the account key length: 2048, 3072, 4096
   --log [file]                      Specifies the log file. Defaults to \"$DEFAULT_LOG_FILE\" if argument is omitted.
@@ -7312,6 +7331,8 @@ _process() {
   _httpport=""
   _tlsport=""
   _dnssleep=""
+  _dnsvalidateinterval=""
+  _dnsvalidatetimeout=""
   _listraw=""
   _stopRenewOnError=""
   #_insecure=""
@@ -7580,6 +7601,16 @@ _process() {
     --dnssleep)
       _dnssleep="$2"
       Le_DNSSleep="$_dnssleep"
+      shift
+      ;;
+    --dns-validate-interval)
+      _dnsvalidateinterval="$2"
+      Le_DNSValidateInterval="$_dnsvalidateinterval"
+      shift
+      ;;
+    --dns-validate-timeout)
+      _dnsvalidatetimeout="$2"
+      Le_DNSValidateTimeout="$_dnsvalidatetimeout"
       shift
       ;;
     --keylength | -k)
