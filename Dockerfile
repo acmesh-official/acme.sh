@@ -1,4 +1,5 @@
-FROM alpine:3.17
+ARG ALPINE_VERSION=3.17
+FROM alpine:${ALPINE_VERSION}
 
 RUN apk --no-cache add -f \
   openssl \
