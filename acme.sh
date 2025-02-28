@@ -4209,7 +4209,7 @@ _check_dns_entries() {
     # Use configured DNS validation timeout
     _dnstimeout="$Le_DNSValidateTimeout"
     _savedomainconf "Le_DNSValidateTimeout" "$Le_DNSValidateTimeout"
-  fi  
+  fi
   _dnsinterval=10 #default interval between retries is 10 seconds
   if [ -n "$Le_DNSValidateInterval" ]; then
     # Use configured DNS validation retry interval
