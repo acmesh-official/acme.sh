@@ -4,8 +4,8 @@
 # ACME.sh 3rd party deploy plugin for multiple (same) services
 ################################################################################
 # Authors: tomo2403 (creator), https://github.com/tomo2403
-# Updated: 2024-07-03
-# Issues:  https://github.com/acmesh-official/acme.sh/issues/XXXXX
+# Updated: 2025-03-01
+# Issues:  https://github.com/acmesh-official/acme.sh/issues and mention @tomo2403
 ################################################################################
 # Usage (shown values are the examples):
 # 1. Set optional environment variables
