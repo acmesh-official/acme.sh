@@ -56,6 +56,12 @@ DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 DEFAULT_ACCOUNT_KEY_LENGTH=ec-256
 DEFAULT_DOMAIN_KEY_LENGTH=ec-256
 
+# These values are in seconds. They were hard-coded to these values in previous
+# versions of this script that existed before the DNS validation timers could
+# be configured on script invocation via the command line.
+DEFAULT_DNS_VALIDATION_TIMEOUT="1200"
+DEFAULT_DNS_VALIDATION_RETRY_INTERVAL="10"
+
 DEFAULT_OPENSSL_BIN="openssl"
 
 VTYPE_HTTP="http-01"
@@ -4197,31 +4203,49 @@ __purge_txt() {
 }
 
 #wait and check each dns entries
+#
+#  _check_dns_entries takes two parameters:
+#
+#    $1 is the dnsvalidationtimeout parameter. Which is the maximum time to
+#       wait for DNS validation.
+#
+#    $2 is the dnsvalidationretryinterval parameter. Which is the amount of
+#       time to wait between attempts to check to see if the appropriate DNS
+#       TXT records have been added.
+#
 _check_dns_entries() {
   _success_txt=","
-  _end_time="$(_time)"
 
-  # Use default values for DNS timeout (1200 seconds/20 minutes) and DNS retry
-  # interval (10 seconds), unless configured at script invocation to be
-  # something else.
-  _dnstimeout=1200 #default timeout is 20 minutes
-  if [ -n "$Le_DNSValidateTimeout" ]; then
+  # Use default values for DNS timeout and DNS retry interval, unless specified
+  # at script invocation to be something else.
+  _cdnsevalidationtimeout="$DEFAULT_DNS_VALIDATION_TIMEOUT"
+  _cdnsevalidationretryinterval="$DEFAULT_DNS_VALIDATION_RETRY_INTERVAL"
+
+  # Some warning and status messages should only be printed during the first
+  # pass.
+  _cdnsefirstpass="1"
+
+  if [ -n "$1" ]; then
     # Use configured DNS validation timeout
-    _dnstimeout="$Le_DNSValidateTimeout"
-    _savedomainconf "Le_DNSValidateTimeout" "$Le_DNSValidateTimeout"
+    _cdnsevalidationtimeout="$1"
+    _savedomainconf "Le_DNSValidationTimeout" "$1"
   fi
-  _dnsinterval=10 #default interval between retries is 10 seconds
-  if [ -n "$Le_DNSValidateInterval" ]; then
+  if [ -n "$2" ]; then
     # Use configured DNS validation retry interval
-    _dnsinterval="$Le_DNSValidateInterval"
-    _savedomainconf "Le_DNSValidateInterval" "$Le_DNSValidateInterval"
+    _cdnsevalidationretryinterval="$2"
+    _savedomainconf "Le_DNSValidationRetryInterval" "$2"
   fi
 
-  _end_time="$(_math "$_end_time" + "$_dnstimeout")" #let's check no longer than this
+  #determine when to stop checking
+  _end_time="$(_time)"
+  _end_time="$(_math "$_end_time" + "$_cdnsevalidationtimeout")"
 
   while [ "$(_time)" -le "$_end_time" ]; do
-    _info "You can use '--dnssleep' to disable public dns checks."
-    _info "See: $_DNSCHECK_WIKI"
+    if [ -n "$_cdnsefirstpass" ]; then
+      _info "You can use '--dnssleep' to disable public DNS checks."
+      _info "See: $_DNSCHECK_WIKI"
+      _cdnsefirstpass=""
+    fi
     _left=""
     for entry in $dns_entries; do
       d=$(_getfield "$entry" 1)
@@ -4256,8 +4280,8 @@ _check_dns_entries() {
       _sleep 10
     done
     if [ "$_left" ]; then
-      _info "Let's wait for "$_dnsinterval" seconds and check again".
-      _sleep $_dnsinterval
+      _info "Let's wait for $_cdnsevalidationretryinterval seconds and check again".
+      _sleep "$_cdnsevalidationretryinterval"
     else
       _info "All checks succeeded"
       return 0
@@ -4927,7 +4951,7 @@ $_authorizations_map"
     if [ -z "$Le_DNSSleep" ]; then
       _info "Let's check each DNS record now. Sleeping for 20 seconds first."
       _sleep 20
-      if ! _check_dns_entries; then
+      if ! _check_dns_entries "$_dnsvalidationtimeout" "$_dnsvalidationretryinterval"; then
         _err "Error checking DNS."
         _on_issue_err "$_post_hook"
         _clearup
@@ -7010,8 +7034,8 @@ Parameters:
 
   --dnssleep <seconds>              The time in seconds to wait for all the txt records to propagate in dns api mode.
                                       It's not necessary to use this by default, $PROJECT_NAME polls dns status by DOH automatically.
-  --dns-validate-interval <seconds> How long to pause between attempts to validate with DNS. Default: 10 seconds.
-  --dns-validate-timeout <seconds>  How much total time to allow DNS for validations before declaring a failure. Default: 1200 seconds (20 minutes).
+  --dns-validation-retry-interval <seconds> How long to pause between attempts to validate with DNS TXT records. Default: $DEFAULT_DNS_VALIDATION_RETRY_INTERVAL seconds.
+  --dns-validation-timeout <seconds>  How much total time to allow DNS validation to succeed declaring a failure. Default: $DEFAULT_DNS_VALIDATION_TIMEOUT seconds.
   -k, --keylength <bits>            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521.
   -ak, --accountkeylength <bits>    Specifies the account key length: 2048, 3072, 4096
   --log [file]                      Specifies the log file. Defaults to \"$DEFAULT_LOG_FILE\" if argument is omitted.
@@ -7331,8 +7355,8 @@ _process() {
   _httpport=""
   _tlsport=""
   _dnssleep=""
-  _dnsvalidateinterval=""
-  _dnsvalidatetimeout=""
+  _dnsvalidationinterval=""
+  _dnsvalidationtimeout=""
   _listraw=""
   _stopRenewOnError=""
   #_insecure=""
@@ -7603,14 +7627,14 @@ _process() {
       Le_DNSSleep="$_dnssleep"
       shift
       ;;
-    --dns-validate-interval)
-      _dnsvalidateinterval="$2"
-      Le_DNSValidateInterval="$_dnsvalidateinterval"
+    --dns-validation-retry-interval)
+      _dnsvalidationretryinterval="$2"
+      Le_DNSValidationRetryInterval="$_dnsvalidationretryinterval"
       shift
       ;;
-    --dns-validate-timeout)
-      _dnsvalidatetimeout="$2"
-      Le_DNSValidateTimeout="$_dnsvalidatetimeout"
+    --dns-validation-timeout)
+      _dnsvalidationtimeout="$2"
+      Le_DNSValidationTimeout="$_dnsvalidationtimeout"
       shift
       ;;
     --keylength | -k)
