@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.1.0
+VER=3.1.1
 
 PROJECT_NAME="acme.sh"
 
@@ -921,6 +921,9 @@ _sed_i() {
   if sed -h 2>&1 | grep "\-i\[SUFFIX]" >/dev/null 2>&1; then
     _debug "Using sed  -i"
     sed -i "$options" "$filename"
+  elif sed -h 2>&1 | grep "\-i extension" >/dev/null 2>&1; then
+    _debug "Using FreeBSD sed -i"
+    sed -i "" "$options" "$filename"
   else
     _debug "No -i support in sed"
     text="$(cat "$filename")"
