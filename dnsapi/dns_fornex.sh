@@ -95,7 +95,7 @@ _get_root() {
       return 1
     fi
 
-    if ! _rest GET "dns/domain/"; then
+    if ! _rest GET "dns/domain/?q=$h"; then
       return 1
     fi
 
