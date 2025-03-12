@@ -1,11 +1,18 @@
 #!/usr/bin/env sh
 
-#  Usage to order a * certificate
-#  ./acme.sh --issue -d '*.www.domain.com'  --dns dns_sdns --server letsencrypt --dnssleep 240
+# s-dns is the Domain Name Registration System of Kyberio GmbH, former Hostway Deutschland GmbH
+
+# Steps to order a * certificate:
+# First log in into the domain robot, enable the dynamic DNS password for your zone and click save.
+
+# Copy the password and set the SDNS_ZONE_KEY variable with
+# export SDNS_ZONE_KEY=your_zone_key
+
+#
+# ./acme.sh --issue -d '*.www.domain.com'  --dns dns_sdns --server letsencrypt --dnssleep 240
 
 SDNS_API_URL="https://robot.s-dns.de:8488/"
 
-# export SDNS_ZONE_KEY=your_zone_key
 
 ########  Public functions #####################
 
