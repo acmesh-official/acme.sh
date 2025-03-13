@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 
 dns_myaddr_add() {
-  fulldomain=$1
   txtvalue=$2
 
   myaddr_key="${myaddr_key:-$(_readaccountconf_mutable myaddr_key)}"
