@@ -24,6 +24,5 @@ dns_myaddr_add() {
 }
 
 dns_myaddr_rm() {
-  #this is just to prevent an error in acme.sh, myaddr will automatic remove the txts after few minutes
-  fulldomain=$1
+  _debug "this is just to prevent an error in acme.sh, myaddr will automatic remove the txts after few minutes"
 }
