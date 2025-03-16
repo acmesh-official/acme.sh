@@ -15,11 +15,11 @@ RUN apk --no-cache add -f \
   jq \
   cronie
 
-ENV LE_CONFIG_HOME /acme.sh
+ENV LE_CONFIG_HOME=/acme.sh
 
 ARG AUTO_UPGRADE=1
 
-ENV AUTO_UPGRADE $AUTO_UPGRADE
+ENV AUTO_UPGRADE=$AUTO_UPGRADE
 
 #Install
 COPY ./ /install_acme.sh/
