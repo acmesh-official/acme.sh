@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.1.0
+VER=3.1.1
 
 PROJECT_NAME="acme.sh"
 
@@ -921,6 +921,9 @@ _sed_i() {
   if sed -h 2>&1 | grep "\-i\[SUFFIX]" >/dev/null 2>&1; then
     _debug "Using sed  -i"
     sed -i "$options" "$filename"
+  elif sed -h 2>&1 | grep "\-i extension" >/dev/null 2>&1; then
+    _debug "Using FreeBSD sed -i"
+    sed -i "" "$options" "$filename"
   else
     _debug "No -i support in sed"
     text="$(cat "$filename")"
@@ -1442,7 +1445,7 @@ _toPkcs() {
   else
     ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -inkey "$_ckey" -in "$_ccert" -certfile "$_cca"
   fi
-  if [ "$?" == "0" ]; then
+  if [ "$?" = "0" ]; then
     _savedomainconf "Le_PFXPassword" "$pfxPassword"
   fi
 
@@ -1625,6 +1628,11 @@ _time2str() {
 
   #Linux
   if date -u --date=@"$1" "+%Y-%m-%dT%H:%M:%SZ" 2>/dev/null; then
+    return
+  fi
+
+  #Omnios
+  if date -u -r "$1" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null; then
     return
   fi
 
@@ -1811,7 +1819,11 @@ _date2time() {
     return
   fi
   #Omnios
-  if da="$(echo "$1" | tr -d "Z" | tr "T" ' ')" perl -MTime::Piece -e 'print Time::Piece->strptime($ENV{da}, "%Y-%m-%d %H:%M:%S")->epoch, "\n";' 2>/dev/null; then
+  if python3 -c "import datetime; print(int(datetime.datetime.strptime(\"$1\", \"%Y-%m-%d %H:%M:%S\").replace(tzinfo=datetime.timezone.utc).timestamp()))" 2>/dev/null; then
+    return
+  fi
+  #Omnios
+  if python3 -c "import datetime; print(int(datetime.datetime.strptime(\"$1\", \"%Y-%m-%dT%H:%M:%SZ\").replace(tzinfo=datetime.timezone.utc).timestamp()))" 2>/dev/null; then
     return
   fi
   _err "Cannot parse _date2time $1"
@@ -2193,7 +2205,6 @@ _send_signed_request() {
         _debug2 _headers "$_headers"
         _CACHED_NONCE="$(echo "$_headers" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
       fi
-      _debug2 _CACHED_NONCE "$_CACHED_NONCE"
       if [ "$?" != "0" ]; then
         _err "Cannot connect to $nonceurl to get nonce."
         return 1
@@ -4994,9 +5005,11 @@ $_authorizations_map"
 
         _debug "Writing token: $token to $wellknown_path/$token"
 
-        mkdir -p "$wellknown_path"
-
-        if ! printf "%s" "$keyauthorization" >"$wellknown_path/$token"; then
+        # Ensure .well-known is visible to web server user/group
+        # https://github.com/Neilpang/acme.sh/pull/32
+        if ! (umask ugo+rx &&
+          mkdir -p "$wellknown_path" &&
+          printf "%s" "$keyauthorization" >"$wellknown_path/$token"); then
           _err "$d: Cannot write token to file: $wellknown_path/$token"
           _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
           _clearup
@@ -5810,7 +5823,7 @@ _deploy() {
         return 1
       fi
 
-      if ! $d_command "$_d" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH"; then
+      if ! $d_command "$_d" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH" "$CERT_PFX_PATH"; then
         _err "Error deploying for domain: $_d"
         return 1
       fi
@@ -6053,7 +6066,7 @@ installcronjob() {
     _script="$(_readlink "$_SCRIPT_")"
     _debug _script "$_script"
     if [ -f "$_script" ]; then
-      _info "Usinging the current script from: $_script"
+      _info "Using the current script from: $_script"
       lesh="$_script"
     else
       _err "Cannot install cronjob, $PROJECT_ENTRY not found."
@@ -6805,7 +6818,7 @@ _send_notify() {
 
   _nsource="$NOTIFY_SOURCE"
   if [ -z "$_nsource" ]; then
-    _nsource="$(hostname)"
+    _nsource="$(uname -n)"
   fi
 
   _nsubject="$_nsubject by $_nsource"
@@ -7007,7 +7020,7 @@ Parameters:
 
   --accountconf <file>              Specifies a customized account config file.
   --home <directory>                Specifies the home dir for $PROJECT_NAME.
-  --cert-home <directory>           Specifies the home dir to save all the certs, only valid for '--install' command.
+  --cert-home <directory>           Specifies the home dir to save all the certs.
   --config-home <directory>         Specifies the home dir to save all the configurations.
   --useragent <string>              Specifies the user agent string. it will be saved for future use too.
   -m, --email <email>               Specifies the account email, only valid for the '--install' and '--update-account' command.
