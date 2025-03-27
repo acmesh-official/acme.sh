@@ -229,7 +229,7 @@ _clear_envs() {
 _deploy_services() {
   _deploy_file="$1"
   _debug3 "Deploy file" "$_deploy_file"
-  
+
   _services=$(yq e '.services[].name' "$_deploy_file")
   _debug3 "Services" "$_services"
 
