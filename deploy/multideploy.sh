@@ -9,7 +9,7 @@
 ################################################################################
 # Usage (shown values are the examples):
 # 1. Set optional environment variables
-#   - export MULTIDEPLOY_CONFIG="default"     - "default" will be automatically used if not set"
+#   - export MULTIDEPLOY_FILENAME="multideploy.yaml"     - "multideploy.yml" will be automatically used if not set"
 #
 # 2. Run command:
 # acme.sh --deploy --deploy-hook multideploy -d example.com
@@ -22,12 +22,10 @@
 ################################################################################
 
 MULTIDEPLOY_VERSION="1.0"
-MULTIDEPLOY_FILENAME="multideploy.yml"
-MULTIDEPLOY_FILENAME2="multideploy.yaml"
 
 # Description: This function handles the deployment of certificates to multiple services.
 #              It processes the provided certificate files and deploys them according to the
-#              configuration specified in the MULTIDEPLOY_CONFIG.
+#              configuration specified in the multideploy file.
 #
 # Parameters:
 #   _cdomain     - The domain name for which the certificate is issued.
@@ -57,25 +55,24 @@ multideploy_deploy() {
   fi
   _debug2 "DOMAIN_DIR" "$DOMAIN_DIR"
 
-  MULTIDEPLOY_CONFIG="${MULTIDEPLOY_CONFIG:-$(_getdeployconf MULTIDEPLOY_CONFIG)}"
-  if [ -z "$MULTIDEPLOY_CONFIG" ]; then
-    MULTIDEPLOY_CONFIG="default"
-    _info "MULTIDEPLOY_CONFIG is not set, so I will use 'default'."
+  MULTIDEPLOY_FILENAME="${MULTIDEPLOY_FILENAME:-$(_getdeployconf MULTIDEPLOY_FILENAME)}"
+  if [ -z "$MULTIDEPLOY_FILENAME" ]; then
+    MULTIDEPLOY_FILENAME="multideploy.yml"
+    _info "MULTIDEPLOY_FILENAME is not set, so I will use 'multideploy.yml'."
   else
-    _savedeployconf "MULTIDEPLOY_CONFIG" "$MULTIDEPLOY_CONFIG"
-    _debug2 "MULTIDEPLOY_CONFIG" "$MULTIDEPLOY_CONFIG"
+    _savedeployconf "MULTIDEPLOY_FILENAME" "$MULTIDEPLOY_FILENAME"
+    _debug2 "MULTIDEPLOY_FILENAME" "$MULTIDEPLOY_FILENAME"
   fi
 
   OLDIFS=$IFS
-  if ! file=$(_preprocess_deployfile "$MULTIDEPLOY_FILENAME" "$MULTIDEPLOY_FILENAME2"); then
+  if ! file=$(_preprocess_deployfile "$MULTIDEPLOY_FILENAME"); then
     _err "Failed to preprocess deploy file."
     return 1
   fi
   _debug3 "File" "$file"
 
   # Deploy to services
-  _services=$(_get_services_list "$file" "$MULTIDEPLOY_CONFIG")
-  _deploy_services "$file" "$_services"
+  _deploy_services "$file"
 
   # Save deployhook for renewals
   _debug2 "Setting Le_DeployHook"
@@ -90,7 +87,7 @@ multideploy_deploy() {
 # Arguments:
 #   $@ - Posible deploy file names.
 # Usage:
-#   _preprocess_deployfile "<deploy_file1>" "<deploy_file2>"
+#   _preprocess_deployfile "<deploy_file1>" "<deploy_file2>?"
 _preprocess_deployfile() {
   # Check if yq is installed
   if ! command -v yq >/dev/null 2>&1; then
@@ -117,7 +114,7 @@ _preprocess_deployfile() {
   IFS=$OLDIFS
 
   if [ -n "$found_file" ]; then
-    _check_deployfile "$DOMAIN_PATH/$found_file" "$MULTIDEPLOY_CONFIG"
+    _check_deployfile "$DOMAIN_PATH/$found_file"
   else
     _err "Deploy file not found. Go to https://github.com/acmesh-official/acme.sh/wiki/deployhooks#36-deploying-to-multiple-services-with-the-same-hooks to see how to create one."
     return 1
@@ -132,13 +129,10 @@ _preprocess_deployfile() {
 #   $1 - The path to the deploy configuration file.
 #   $2 - The name of the deploy configuration to use.
 # Usage:
-#   _check_deployfile "<deploy_file_path>" "<deploy_config_name>"
+#   _check_deployfile "<deploy_file_path>"
 _check_deployfile() {
   _deploy_file="$1"
-  _deploy_config="$2"
-
   _debug2 "Deploy file" "$_deploy_file"
-  _debug2 "Deploy config" "$_deploy_config"
 
   # Check version
   _deploy_file_version=$(yq '.version' "$_deploy_file")
@@ -148,19 +142,12 @@ _check_deployfile() {
   fi
   _debug2 "Deploy file version is compatible: $_deploy_file_version"
 
-  # Check if config exists
-  if ! yq e ".configs[] | select(.name == \"$_deploy_config\")" "$_deploy_file" >/dev/null; then
-    _err "Config '$_deploy_config' not found."
-    return 1
-  fi
-  _debug2 "Config found: $_deploy_config"
-
   # Extract all services from config
-  _services=$(_get_services_list "$_deploy_file" "$_deploy_config")
+  _services=$(yq e '.services[].name' "$_deploy_file")
   _debug2 "Services" "$_services"
 
   if [ -z "$_services" ]; then
-    _err "Config '$_deploy_config' does not have any services to deploy to."
+    _err "Config does not have any services to deploy to."
     return 1
   fi
   _debug2 "Config has services."
@@ -188,25 +175,6 @@ _check_deployfile() {
     fi
   done
   IFS=$OLDIFS
-}
-
-# Description:
-#   This function retrieves a list of services from the deploy configuration file.
-# Arguments:
-#   $1 - The path to the deploy configuration file.
-#   $2 - The name of the deploy configuration to use.
-# Usage:
-#   _get_services_list "<deploy_file_path>" "<deploy_config_name>"
-_get_services_list() {
-  _deploy_file="$1"
-  _deploy_config="$2"
-
-  _debug2 "Getting services list"
-  _debug3 "Deploy file" "$_deploy_file"
-  _debug3 "Deploy config" "$_deploy_config"
-
-  _services=$(yq e ".configs[] | select(.name == \"$_deploy_config\").services[]" "$_deploy_file")
-  echo "$_services"
 }
 
 # Description: This function takes a list of environment variables in YAML format,
@@ -260,10 +228,9 @@ _clear_envs() {
 #   _deploy_services "<deploy_file_path>" "<services_list>"
 _deploy_services() {
   _deploy_file="$1"
-  shift
-  _services="$*"
-
   _debug3 "Deploy file" "$_deploy_file"
+  
+  _services=$(yq e '.services[].name' "$_deploy_file")
   _debug3 "Services" "$_services"
 
   printf '%s\n' "$_services" | while IFS= read -r _service; do
