@@ -22,7 +22,11 @@ ARG AUTO_UPGRADE=1
 ENV AUTO_UPGRADE=$AUTO_UPGRADE
 
 #Install
-COPY ./ /install_acme.sh/
+COPY ./acme.sh /install_acme.sh/acme.sh
+COPY ./deploy /install_acme.sh/deploy
+COPY ./dnsapi /install_acme.sh/dnsapi
+COPY ./notify /install_acme.sh/notify
+
 RUN cd /install_acme.sh && ([ -f /install_acme.sh/acme.sh ] && /install_acme.sh/acme.sh --install || curl https://get.acme.sh | sh) && rm -rf /install_acme.sh/
 
 
