@@ -212,7 +212,7 @@ _get_root() {
 _response_has_error() {
   unset _response_error
 
-  err_part="$(echo "$response" | _egrep_o '"error":{[^}]*}')"
+  err_part="$(echo "$response" | _egrep_o '"error":\{[^\}]*\}')"
 
   if [ -n "$err_part" ]; then
     err_code=$(echo "$err_part" | _egrep_o '"code":[0-9]+' | cut -d : -f 2)

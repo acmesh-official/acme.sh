@@ -34,5 +34,11 @@ dns_he_ddns_add() {
   _contains "$response" "good" && return 0 || return 1
 }
 
-# dns_he_ddns_rm() is not implemented because the API call always updates the
+# dns_he_ddns_rm() is not doing anything because the API call always updates the
 # contents of the existing record (that the API key gives access to).
+
+dns_he_ddns_rm() {
+  fulldomain=$1
+  _debug "Delete TXT record called for '${fulldomain}', not doing anything."
+  return 0
+}
