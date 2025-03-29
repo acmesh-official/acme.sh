@@ -5986,7 +5986,7 @@ _installcert() {
     ); then
       _info "$(__green "Reload successful")"
     else
-      _err "Reload error for: $Le_Domain"
+      _err "Reload error for: $_main_domain"
     fi
   fi
 
