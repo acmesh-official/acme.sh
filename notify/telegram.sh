@@ -4,6 +4,7 @@
 
 #TELEGRAM_BOT_APITOKEN=""
 #TELEGRAM_BOT_CHATID=""
+#TELEGRAM_BOT_URLBASE=""
 
 telegram_send() {
   _subject="$1"
@@ -27,6 +28,12 @@ telegram_send() {
   fi
   _saveaccountconf_mutable TELEGRAM_BOT_CHATID "$TELEGRAM_BOT_CHATID"
 
+  TELEGRAM_BOT_URLBASE="${TELEGRAM_BOT_URLBASE:-$(_readaccountconf_mutable TELEGRAM_BOT_URLBASE)}"
+  if [ -z "$TELEGRAM_BOT_URLBASE" ]; then
+    TELEGRAM_BOT_URLBASE="https://api.telegram.org"
+  fi
+  _saveaccountconf_mutable TELEGRAM_BOT_URLBASE "$TELEGRAM_BOT_URLBASE"
+
   _subject="$(printf "%s" "$_subject" | sed 's/\\/\\\\\\\\/g' | sed 's/\]/\\\\\]/g' | sed 's/\([_*[()~`>#+--=|{}.!]\)/\\\\\1/g')"
   _content="$(printf "%s" "$_content" | sed 's/\\/\\\\\\\\/g' | sed 's/\]/\\\\\]/g' | sed 's/\([_*[()~`>#+--=|{}.!]\)/\\\\\1/g')"
   _content="$(printf "*%s*\n%s" "$_subject" "$_content" | _json_encode)"
@@ -38,7 +45,7 @@ telegram_send() {
   _debug "$_data"
 
   export _H1="Content-Type: application/json"
-  _telegram_bot_url="https://api.telegram.org/bot${TELEGRAM_BOT_APITOKEN}/sendMessage"
+  _telegram_bot_url="${TELEGRAM_BOT_URLBASE}/bot${TELEGRAM_BOT_APITOKEN}/sendMessage"
   if _post "$_data" "$_telegram_bot_url" >/dev/null; then
     # shellcheck disable=SC2154
     _message=$(printf "%s\n" "$response" | sed -n 's/.*"ok":\([^,]*\).*/\1/p')
