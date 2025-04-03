@@ -238,8 +238,9 @@ The ownership and permission info of existing files are preserved. You can pre-c
 
 Install/copy the cert/key to the production Apache or Nginx path.
 
-The cert will be renewed every **60** days by default (which is configurable). Once the cert is renewed, the Apache/Nginx service will be reloaded automatically by the command: `service apache2 force-reload` or `service nginx force-reload`.
+There's no need to issue the command `--install-cert` again because the given paths are stored inside the configuration file of each certificate (`.acme.sh/example.com_ecc/example.com.conf`).
 
+The cert will be renewed every **60** days by default (which is configurable). Once the cert is renewed, the Apache/Nginx service will be reloaded automatically by the command: `service apache2 force-reload` or `service nginx force-reload`.
 
 **Please take care:  The reloadcmd is very important. The cert can be automatically renewed, but, without a correct 'reloadcmd' the cert may not be flushed to your server(like nginx or apache), then your website will not be able to show renewed cert in 60 days.**
 
