@@ -233,7 +233,9 @@ _deploy_services() {
   _services=$(yq e '.services[].name' "$_deploy_file")
   _debug3 "Services" "$_services"
 
-  printf '%s\n' "$_services" | while IFS= read -r _service; do
+  _service_list=$(printf '%s\n' "$_services")
+
+  for _service in $(printf '%s\n' "$_service_list"); do
     _debug2 "Service" "$_service"
     _hook=$(yq e ".services[] | select(.name == \"$_service\").hook" "$_deploy_file")
     _envs=$(yq e ".services[] | select(.name == \"$_service\").environment[]" "$_deploy_file")
