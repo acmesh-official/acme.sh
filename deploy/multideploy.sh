@@ -260,10 +260,5 @@ _deploy_service() {
   _debug2 "HOOK" "$_hook"
 
   _info "$(__green "Deploying") to '$_name' using '$_hook'"
-  if echo "$DOMAIN_PATH" | grep -q "$ECC_SUFFIX"; then
-    _debug2 "User wants to use ECC."
-    deploy "$_cdomain" "$_hook" "isEcc"
-  else
-    deploy "$_cdomain" "$_hook"
-  fi
+  _deploy "$_cdomain" "$_hook"
 }
