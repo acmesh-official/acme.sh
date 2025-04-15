@@ -93,7 +93,7 @@ dns_spaceship_rm() {
 
   # Prepare payload and URL for deleting TXT record
   # Note: 'name' in payload uses subdomain (e.g., _acme-challenge.sub) as required by Spaceship API
-  payload="{\"type\": \"TXT\", \"name\": \"$subdomain\", \"value\": \"$escaped_txtvalue\"}"
+  payload="[{\"type\": \"TXT\", \"name\": \"$subdomain\", \"value\": \"$escaped_txtvalue\"}]"
   url="$SPACESHIP_API_BASE/dns/records/$_domain"
 
   # Send API request
@@ -156,6 +156,7 @@ _get_root() {
   while [ $i -le $max_attempts ]; do
     _cutdomain=$(echo "$domain" | rev | cut -d . -f 1-$i | rev)
     if [ -z "$_cutdomain" ]; then
+      _debug "Reached end of domain parts."
       break
     fi
 
