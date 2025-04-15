@@ -132,47 +132,49 @@ _spaceship_init() {
 _get_root() {
   domain="$1"
 
-  # Check if user manually specified root domain
+  # Check manual override
   SPACESHIP_ROOT_DOMAIN="${SPACESHIP_ROOT_DOMAIN:-$(_readaccountconf_mutable SPACESHIP_ROOT_DOMAIN)}"
   if [ -n "$SPACESHIP_ROOT_DOMAIN" ]; then
     _domain="$SPACESHIP_ROOT_DOMAIN"
     _debug "Using manually specified or saved root domain: $_domain"
-    # Ensure it's saved (in case it was read from config but not saved previously)
     _saveaccountconf_mutable SPACESHIP_ROOT_DOMAIN "$SPACESHIP_ROOT_DOMAIN"
     return 0
   fi
 
-  # Split domain into parts and try from back to front
-  _debug "Detecting root zone for $domain from back to front"
-  _parts=$(echo "$domain" | tr '.' '\n' | wc -l)
-  if [ "$_parts" -lt 2 ]; then
-    _err "Invalid domain format for $domain"
-    return 1
-  fi
+  _debug "Detecting root zone for '$domain'"
 
-  # Start with the last 2 parts (e.g., example.com) and move forward
   i=2
-  max_attempts=$((_parts + 1))
-  while [ $i -le $max_attempts ]; do
-    _cutdomain=$(echo "$domain" | rev | cut -d . -f 1-$i | rev)
+  p=1
+  while true; do
+    _cutdomain=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
+
+    _debug "Attempt i=$i: Checking if '$_cutdomain' is root zone (cut ret=$?)"
+
     if [ -z "$_cutdomain" ]; then
-      _debug "Reached end of domain parts."
+      _debug "Cut resulted in empty string, root zone not found."
       break
     fi
 
-    _debug "Checking if $_cutdomain is root zone"
+    # Call the API to check if this _cutdomain is a manageable zone
     if _spaceship_api_request "GET" "$SPACESHIP_API_BASE/dns/records/$_cutdomain?take=1&skip=0"; then
+      # API call succeeded (HTTP 200 OK for GET /dns/records)
       _domain="$_cutdomain"
-      _debug "Root zone found: $_domain"
-      # Save the detected root domain to configuration for future use
+      _debug "Root zone found: '$_domain'"
+
+      # Save the detected root domain
       _saveaccountconf_mutable SPACESHIP_ROOT_DOMAIN "$_domain"
-      _info "Root domain $_domain saved to configuration for future use."
+      _info "Root domain '$_domain' saved to configuration for future use."
+
       return 0
     fi
+
+    _debug "API check failed for '$_cutdomain'. Continuing search."
+
+    p=$i
     i=$((i + 1))
   done
 
-  _err "Could not detect root zone for $domain after $max_attempts attempts. Please set SPACESHIP_ROOT_DOMAIN manually."
+  _err "Could not detect root zone for '$domain'. Please set SPACESHIP_ROOT_DOMAIN manually."
   return 1
 }
 
