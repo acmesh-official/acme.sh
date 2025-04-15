@@ -195,6 +195,18 @@ _spaceship_api_request() {
     return 1
   fi
 
-  _debug "API response: $response"
-  return 0
+  _debug "API response body: $response"
+
+  if [ "$method" = "GET" ]; then
+    if _contains "$(_head_n 1 <"$HTTP_HEADER")" '200'; then
+      return 0
+    fi
+  else
+    if _contains "$(_head_n 1 <"$HTTP_HEADER")" '204'; then
+      return 0
+    fi
+  fi
+
+  _debug "API response header: $HTTP_HEADER"
+  return 1
 }
