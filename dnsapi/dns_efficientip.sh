@@ -1,5 +1,5 @@
 #!/bin/sh
-export dns_efficientip_info='efficientip.com
+dns_efficientip_info='efficientip.com
 Site: https://efficientip.com/
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_efficientip
 Options:
