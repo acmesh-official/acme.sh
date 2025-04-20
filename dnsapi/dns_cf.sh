@@ -92,7 +92,7 @@ dns_cf_add() {
     if _contains "$response" "$txtvalue"; then
       _info "Added, OK"
       return 0
-    elif _contains "$response" "The record already exists"; then
+    elif _contains "$response" "An identical record already exists"; then
       _info "Already exists, OK"
       return 0
     else
