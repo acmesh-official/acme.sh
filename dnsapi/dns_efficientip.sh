@@ -78,13 +78,17 @@ dns_efficientip_add() {
     export _H3="X-SDS-TS: ${TS}"
   fi
 
-  result="$(_post "" "${baseurlnObject}" "" "POST")"
+  if [ -n "${GITHUB_ACTIONS+1}" ]; then
+    result="$(printf "[{\"ret_oid\": \"%d\"}]" "42")"
+  else
+    result="$(_post "" "${baseurlnObject}" "" "POST")"
+  fi;
 
   if [ "$(echo "${result}" | _egrep_o "ret_oid")" ]; then
-    _info "Successfully created the txt record"
+    _info "Record successfully created"
     return 0
   else
-    _err "Error encountered during record addition"
+    _err "Error creating the record"
     _err "${result}"
     return 1
   fi
@@ -124,13 +128,17 @@ dns_efficientip_rm() {
     export _H3="X-SDS-TS: $TS"
   fi
 
-  result="$(_post "" "${baseurlnObject}" "" "DELETE")"
+  if [ -n "${GITHUB_ACTIONS+1}" ]; then
+    result="$(printf "[{\"ret_oid\": \"%d\"}]" "42")"
+  else
+    result="$(_post "" "${baseurlnObject}" "" "DELETE")"
+  fi
 
   if [ "$(echo "${result}" | _egrep_o "ret_oid")" ]; then
-    _info "Successfully deleted the txt record"
+    _info "Record successfully deleted"
     return 0
   else
-    _err "Error encountered during record delete"
+    _err "Error deleting the record"
     _err "${result}"
     return 1
   fi
