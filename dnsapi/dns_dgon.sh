@@ -203,7 +203,7 @@ _get_base_domain() {
     _debug2 domain_list "$domain_list"
 
     i=1
-    while [ $i -gt 0 ]; do
+    while [ "$i" -gt 0 ]; do
       ## get next longest domain
       _domain=$(printf "%s" "$fulldomain" | cut -d . -f "$i"-"$MAX_DOM")
       ## check we got something back from our cut (or are we at the end)
@@ -215,14 +215,14 @@ _get_base_domain() {
       ## check if it exists
       if [ -n "$found" ]; then
         ## exists - exit loop returning the parts
-        sub_point=$(_math $i - 1)
+        sub_point=$(_math "$i" - 1)
         _sub_domain=$(printf "%s" "$fulldomain" | cut -d . -f 1-"$sub_point")
         _debug _domain "$_domain"
         _debug _sub_domain "$_sub_domain"
         return 0
       fi
       ## increment cut point $i
-      i=$(_math $i + 1)
+      i=$(_math "$i" + 1)
     done
 
     if [ -z "$found" ]; then

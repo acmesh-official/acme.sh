@@ -124,7 +124,7 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -133,7 +133,7 @@ _get_root() {
     _online_rest GET "domain/$h/version/active"
 
     if ! _contains "$response" "Domain not found" >/dev/null; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       _real_dns_version=$(echo "$response" | _egrep_o '"uuid_ref":.*' | cut -d ':' -f 2 | cut -d '"' -f 2)
       return 0

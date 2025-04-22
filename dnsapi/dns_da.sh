@@ -61,7 +61,7 @@ _get_root() {
   # response will contain "list[]=example.com&list[]=example.org"
   _da_api CMD_API_SHOW_DOMAINS "" "${domain}"
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       # not valid
@@ -69,7 +69,7 @@ _get_root() {
       return 1
     fi
     if _contains "$response" "$h" >/dev/null; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain=$h
       return 0
     fi

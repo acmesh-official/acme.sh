@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.0.8
+VER=3.1.1
 
 PROJECT_NAME="acme.sh"
 
@@ -672,8 +672,10 @@ _hex_dump() {
 #0  1  2  3  4  5  6  7  8  9  -  _  .  ~
 #30 31 32 33 34 35 36 37 38 39 2d 5f 2e 7e
 
+#_url_encode [upper-hex]  the encoded hex will be upper-case if the argument upper-hex is followed
 #stdin stdout
 _url_encode() {
+  _upper_hex=$1
   _hex_str=$(_hex_dump)
   _debug3 "_url_encode"
   _debug3 "_hex_str" "$_hex_str"
@@ -883,6 +885,9 @@ _url_encode() {
       ;;
     #other hex
     *)
+      if [ "$_upper_hex" = "upper-hex" ]; then
+        _hex_code=$(printf "%s" "$_hex_code" | _upper_case)
+      fi
       printf '%%%s' "$_hex_code"
       ;;
     esac
@@ -916,6 +921,9 @@ _sed_i() {
   if sed -h 2>&1 | grep "\-i\[SUFFIX]" >/dev/null 2>&1; then
     _debug "Using sed  -i"
     sed -i "$options" "$filename"
+  elif sed -h 2>&1 | grep "\-i extension" >/dev/null 2>&1; then
+    _debug "Using FreeBSD sed -i"
+    sed -i "" "$options" "$filename"
   else
     _debug "No -i support in sed"
     text="$(cat "$filename")"
@@ -1437,7 +1445,7 @@ _toPkcs() {
   else
     ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -inkey "$_ckey" -in "$_ccert" -certfile "$_cca"
   fi
-  if [ "$?" == "0" ]; then
+  if [ "$?" = "0" ]; then
     _savedomainconf "Le_PFXPassword" "$pfxPassword"
   fi
 
@@ -1620,6 +1628,11 @@ _time2str() {
 
   #Linux
   if date -u --date=@"$1" "+%Y-%m-%dT%H:%M:%SZ" 2>/dev/null; then
+    return
+  fi
+
+  #Omnios
+  if date -u -r "$1" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null; then
     return
   fi
 
@@ -1806,7 +1819,11 @@ _date2time() {
     return
   fi
   #Omnios
-  if da="$(echo "$1" | tr -d "Z" | tr "T" ' ')" perl -MTime::Piece -e 'print Time::Piece->strptime($ENV{da}, "%Y-%m-%d %H:%M:%S")->epoch, "\n";' 2>/dev/null; then
+  if python3 -c "import datetime; print(int(datetime.datetime.strptime(\"$1\", \"%Y-%m-%d %H:%M:%S\").replace(tzinfo=datetime.timezone.utc).timestamp()))" 2>/dev/null; then
+    return
+  fi
+  #Omnios
+  if python3 -c "import datetime; print(int(datetime.datetime.strptime(\"$1\", \"%Y-%m-%dT%H:%M:%SZ\").replace(tzinfo=datetime.timezone.utc).timestamp()))" 2>/dev/null; then
     return
   fi
   _err "Cannot parse _date2time $1"
@@ -2188,7 +2205,6 @@ _send_signed_request() {
         _debug2 _headers "$_headers"
         _CACHED_NONCE="$(echo "$_headers" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
       fi
-      _debug2 _CACHED_NONCE "$_CACHED_NONCE"
       if [ "$?" != "0" ]; then
         _err "Cannot connect to $nonceurl to get nonce."
         return 1
@@ -2361,7 +2377,7 @@ _clear_conf() {
   _sdkey="$2"
   if [ "$_c_c_f" ]; then
     _conf_data="$(cat "$_c_c_f")"
-    echo "$_conf_data" | sed "s/^$_sdkey *=.*$//" >"$_c_c_f"
+    echo "$_conf_data" | sed "/^$_sdkey *=.*$/d" >"$_c_c_f"
   else
     _err "Config file is empty, cannot clear"
   fi
@@ -3881,6 +3897,9 @@ updateaccount() {
   if [ "$code" = '200' ]; then
     echo "$response" >"$ACCOUNT_JSON_PATH"
     _info "Account update success for $_accUri."
+
+    ACCOUNT_THUMBPRINT="$(__calc_account_thumbprint)"
+    _info "ACCOUNT_THUMBPRINT" "$ACCOUNT_THUMBPRINT"
   else
     _info "An error occurred and the account was not updated."
     return 1
@@ -4986,9 +5005,11 @@ $_authorizations_map"
 
         _debug "Writing token: $token to $wellknown_path/$token"
 
-        mkdir -p "$wellknown_path"
-
-        if ! printf "%s" "$keyauthorization" >"$wellknown_path/$token"; then
+        # Ensure .well-known is visible to web server user/group
+        # https://github.com/Neilpang/acme.sh/pull/32
+        if ! (umask ugo+rx &&
+          mkdir -p "$wellknown_path" &&
+          printf "%s" "$keyauthorization" >"$wellknown_path/$token"); then
           _err "$d: Cannot write token to file: $wellknown_path/$token"
           _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
           _clearup
@@ -5107,6 +5128,19 @@ $_authorizations_map"
         _clearup
         _on_issue_err "$_post_hook" "$vlist"
         return 1
+      fi
+      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      _sleep_overload_retry_sec=$_retryafter
+      if [ "$_sleep_overload_retry_sec" ]; then
+        if [ $_sleep_overload_retry_sec -le 600 ]; then
+          _sleep $_sleep_overload_retry_sec
+        else
+          _info "The retryafter=$_retryafter value is too large (> 600), will not retry anymore."
+          _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
+          _clearup
+          _on_issue_err "$_post_hook" "$vlist"
+          return 1
+        fi
       fi
     done
 
@@ -5789,7 +5823,7 @@ _deploy() {
         return 1
       fi
 
-      if ! $d_command "$_d" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH"; then
+      if ! $d_command "$_d" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH" "$CERT_PFX_PATH"; then
         _err "Error deploying for domain: $_d"
         return 1
       fi
@@ -5952,7 +5986,7 @@ _installcert() {
     ); then
       _info "$(__green "Reload successful")"
     else
-      _err "Reload error for: $Le_Domain"
+      _err "Reload error for: $_main_domain"
     fi
   fi
 
@@ -6032,7 +6066,7 @@ installcronjob() {
     _script="$(_readlink "$_SCRIPT_")"
     _debug _script "$_script"
     if [ -f "$_script" ]; then
-      _info "Usinging the current script from: $_script"
+      _info "Using the current script from: $_script"
       lesh="$_script"
     else
       _err "Cannot install cronjob, $PROJECT_ENTRY not found."
@@ -6784,7 +6818,7 @@ _send_notify() {
 
   _nsource="$NOTIFY_SOURCE"
   if [ -z "$_nsource" ]; then
-    _nsource="$(hostname)"
+    _nsource="$(uname -n)"
   fi
 
   _nsubject="$_nsubject by $_nsource"
@@ -6986,7 +7020,7 @@ Parameters:
 
   --accountconf <file>              Specifies a customized account config file.
   --home <directory>                Specifies the home dir for $PROJECT_NAME.
-  --cert-home <directory>           Specifies the home dir to save all the certs, only valid for '--install' command.
+  --cert-home <directory>           Specifies the home dir to save all the certs.
   --config-home <directory>         Specifies the home dir to save all the configurations.
   --useragent <string>              Specifies the user agent string. it will be saved for future use too.
   -m, --email <email>               Specifies the account email, only valid for the '--install' and '--update-account' command.
@@ -7139,7 +7173,7 @@ _processAccountConf() {
 }
 
 _checkSudo() {
-  if [ -z "__INTERACTIVE" ]; then
+  if [ -z "$__INTERACTIVE" ]; then
     #don't check if it's not in an interactive shell
     return 0
   fi

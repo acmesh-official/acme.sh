@@ -1,12 +1,14 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_ionos_cloud_info='IONOS Cloud DNS
+Site: ionos.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_ionos_cloud
+Options:
+ IONOS_TOKEN API Token.
+Issues: github.com/acmesh-official/acme.sh/issues/5243
+'
 
 # Supports IONOS Cloud DNS API v1.15.4
-#
-# Usage:
-#   Export IONOS_TOKEN before calling acme.sh:
-#   $ export IONOS_TOKEN="..."
-#
-#   $ acme.sh --issue --dns dns_ionos_cloud ...
 
 IONOS_CLOUD_API="https://dns.de-fra.ionos.com"
 IONOS_CLOUD_ROUTE_ZONES="/zones"

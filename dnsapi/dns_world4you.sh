@@ -115,7 +115,7 @@ dns_world4you_rm() {
 
   _resethttp
   export ACME_HTTP_NO_REDIRECTS=1
-  body="DeleteDnsRecordForm[recordId]=$recordid&DeleteDnsRecordForm[uniqueFormIdDP]=$formiddp&DeleteDnsRecordForm[_token]=$form_token"
+  body="DeleteDnsRecordForm[id]=$recordid&DeleteDnsRecordForm[uniqueFormIdDP]=$formiddp&DeleteDnsRecordForm[_token]=$form_token"
   _info "Removing record..."
   ret=$(_post "$body" "$WORLD4YOU_API/$paketnr/dns/record/delete" '' POST 'application/x-www-form-urlencoded')
   _resethttp
@@ -202,7 +202,8 @@ _get_paketnr() {
   fqdn="$1"
   form="$2"
 
-  domains=$(echo "$form" | grep '<ul class="nav header-paket-list">' | sed 's/<li/\n<li/g' | sed 's/<[^>]*>/ /g' | sed 's/^.*>\([^>]*\)$/\1/')
+  domains=$(echo "$form" | grep 'paketListData' | grep -o '"fqdn":"[^"]*"' | sed 's/.*:"\(.*\)"/\1/')
+  _debug domains "$domains"
   domain=''
   for domain in $domains; do
     if _contains "$fqdn" "$domain\$"; then
@@ -217,7 +218,7 @@ _get_paketnr() {
   TLD="$domain"
   _debug domain "$domain"
   RECORD=$(echo "$fqdn" | cut -c"1-$((${#fqdn} - ${#TLD} - 1))")
-  PAKETNR=$(echo "$domains" | grep "$domain" | sed 's/^[^,]*, *\([0-9]*\).*$/\1/')
+  PAKETNR=$(echo "$form" | grep -o "\"id\":[^{}]*\"fqdn\":\"$domain\"" | sed 's/"id":\([0-9]*\).*$/\1/')
   return 0
 }
 

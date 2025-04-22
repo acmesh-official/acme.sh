@@ -126,7 +126,7 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -140,7 +140,7 @@ _get_root() {
     if _contains "$response" "\"domainName\":\"$h\"" >/dev/null; then
       dnsId=$(printf "%s" "$response" | tr -d "{}" | cut -d , -f 2 | cut -d : -f 2)
       _domain_name=$h
-      _node=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _node=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       return 0
     fi
     p=$i

@@ -190,7 +190,7 @@ _get_zone() {
   p=1
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       # not valid
@@ -199,7 +199,7 @@ _get_zone() {
 
     _domain_id=$(_signed_request "GET" "/20180115/zones/$h" "" "id")
     if [ "$_domain_id" ]; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain=$h
 
       _debug _domain_id "$_domain_id"

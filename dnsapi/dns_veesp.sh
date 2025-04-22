@@ -112,7 +112,7 @@ _get_root() {
     return 1
   fi
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -125,7 +125,7 @@ _get_root() {
       _service_id=$(printf "%s\n" "$response" | _egrep_o "\"name\":\"$h\",\"service_id\":[^}]*" | cut -d : -f 3 | cut -d '"' -f 2)
       _debug _service_id "$_service_id"
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain="$h"
         return 0
       fi
