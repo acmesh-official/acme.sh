@@ -33,9 +33,9 @@ dns_efficientip_add() {
     EfficientIP_Server=""
     _err "You didn't specify any EfficientIP credentials or token or server (EfficientIP_Creds; EfficientIP_Token_Key; EfficientIP_Token_Secret; EfficientIP_Server)."
     _err "Please set them via EXPORT EfficientIP_Creds=username:password or EXPORT EfficientIP_server=ip/hostname"
-    _err "or if you want to use Token instead set via EXPORT EfficientIP_Token_Key=yourkey"
+    _err "or if you want to use Token instead EXPORT EfficientIP_Token_Key=yourkey"
     _err "and EXPORT EfficientIP_Token_Secret=yoursecret"
-    _err "and try again."
+    _err "then try again."
     return 1
   fi
 
