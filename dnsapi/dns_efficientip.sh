@@ -14,7 +14,6 @@ OptionsAlt:
   EfficientIP_Server EfficientIP SOLIDserver Management IP address or FQDN.
   EfficientIP_DNS_Name Name of the DNS smart or server hosting the zone. Optional.
   EfficientIP_View Name of the DNS view hosting the zone. Optional.
-
 Issues: github.com/acmesh-official/acme.sh/issues/6325
 Author: EfficientIP-Labs <contact@efficientip.com>
 '
