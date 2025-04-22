@@ -97,7 +97,7 @@ dns_azure_add() {
   fi
 
   if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
-    accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
+    accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET" "$AZUREDNS_ARC")
   else
     accesstoken=$(echo "$AZUREDNS_BEARERTOKEN" | sed "s/Bearer //g")
   fi
@@ -212,7 +212,7 @@ dns_azure_rm() {
   fi
 
   if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
-    accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET")
+    accesstoken=$(_azure_getaccess_token "$AZUREDNS_MANAGEDIDENTITY" "$AZUREDNS_TENANTID" "$AZUREDNS_APPID" "$AZUREDNS_CLIENTSECRET", "$AZUREDNS_ARC")
   else
     accesstoken=$(echo "$AZUREDNS_BEARERTOKEN" | sed "s/Bearer //g")
   fi
@@ -321,6 +321,7 @@ _azure_getaccess_token() {
   tenantID=$2
   clientID=$3
   clientSecret=$4
+  arc=$5
 
   accesstoken="${AZUREDNS_ACCESSTOKEN:-$(_readaccountconf_mutable AZUREDNS_ACCESSTOKEN)}"
   expires_on="${AZUREDNS_TOKENVALIDTO:-$(_readaccountconf_mutable AZUREDNS_TOKENVALIDTO)}"
@@ -341,7 +342,17 @@ _azure_getaccess_token() {
   if [ "$managedIdentity" = true ]; then
     # https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/how-to-use-vm-token#get-a-token-using-http
     export _H1="Metadata: true"
-    response="$(_get http://169.254.169.254/metadata/identity/oauth2/token\?api-version=2018-02-01\&resource=https://management.azure.com/)"
+
+    if [ "$arc" = true ]; then
+      response="$(_get http://localhost:40342/metadata/identity/oauth2/token\?api-version=2019-08-15\&resource=https://management.azure.com/)"
+      CHALLENGE=$(grep Www "$HTTP_HEADER" | sed 's/Www-Authenticate: Basic realm=//g' | sed 's/[^a-zA-Z0-9\/\.\-]//g')
+      _H2="Authorization: Basic $(cat "$CHALLENGE")"
+      export _H2
+      response="$(_get http://localhost:40342/metadata/identity/oauth2/token\?api-version=2019-08-15\&resource=https://management.azure.com/)"
+    else
+      response="$(_get http://169.254.169.254/metadata/identity/oauth2/token\?api-version=2018-02-01\&resource=https://management.azure.com/)"
+    fi
+
     response="$(echo "$response" | _normalizeJson)"
     accesstoken=$(echo "$response" | _egrep_o "\"access_token\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
     expires_on=$(echo "$response" | _egrep_o "\"expires_on\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
