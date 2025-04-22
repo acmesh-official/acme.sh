@@ -14,7 +14,6 @@ Author: EfficientIP-Labs <contact@efficientip.com>
 '
 
 dns_efficientip_add() {
-
   fulldomain=$1
   txtvalue=$2
 
@@ -22,7 +21,7 @@ dns_efficientip_add() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
-  if ([ -z "$EfficientIP_Creds" ] && ([ -z "$EfficientIP_Token_Key" ] || [ -z "$EfficientIP_Token_Secret" ])) || [ -z "$EfficientIP_Server" ]; then
+  if ([ -z "${EfficientIP_Creds}" ] && ([ -z "${EfficientIP_Token_Key}" ] || [ -z "${EfficientIP_Token_Secret}" ])) || [ -z "${EfficientIP_Server}" ]; then
     EfficientIP_Creds=""
     EfficientIP_Token_Key=""
     EfficientIP_Token_Secret=""
@@ -35,6 +34,16 @@ dns_efficientip_add() {
     return 1
   fi
 
+  if [ -z "${EfficientIP_DNS_Name}" ]; then
+    EfficientIP_DNS_Name=""
+  fi;
+  EfficientIP_DNSNameEncoded=$(printf "%b" "${EfficientIP_DNS_Name}" | _url_encode)
+
+  if [ -z "${EfficientIP_View}" ]; then
+    EfficientIP_View=""
+  fi;
+  EfficientIP_ViewEncoded=$(printf "%b" "${EfficientIP_View}" | _url_encode)
+
   _saveaccountconf EfficientIP_Creds "${EfficientIP_Creds}"
   _saveaccountconf EfficientIP_Token_Key "${EfficientIP_Token_Key}"
   _saveaccountconf EfficientIP_Token_Secret "${EfficientIP_Token_Secret}"
@@ -42,15 +51,13 @@ dns_efficientip_add() {
   _saveaccountconf EfficientIP_DNS_Name "${EfficientIP_DNS_Name}"
   _saveaccountconf EfficientIP_View "${EfficientIP_View}"
 
-  EfficientIP_ViewEncoded=$(printf "%b" "${EfficientIP_View}" | _url_encode)
-  EfficientIP_DNSNameEncoded=$(printf "%b" "${EfficientIP_DNS_Name}" | _url_encode)
-
   export _H1="Accept-Language:en-US"
-  baseurlnObject="https://${EfficientIP_Server}/rest/dns_rr_add?rr_type=TXT&rr_name=$fulldomain&rr_value1=$txtvalue"
+  baseurlnObject="https://${EfficientIP_Server}/rest/dns_rr_add?rr_type=TXT&rr_name=${fulldomain}&rr_value1=${txtvalue}"
 
   if [ "${EfficientIP_DNSNameEncoded}" != "" ]; then
     baseurlnObject="${baseurlnObject}&dns_name=${EfficientIP_DNSNameEncoded}"
   fi
+
   if [ "${EfficientIP_ViewEncoded}" != "" ]; then
     baseurlnObject="${baseurlnObject}&dnsview_name=${EfficientIP_ViewEncoded}"
   fi
