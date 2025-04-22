@@ -41,12 +41,14 @@ dns_efficientip_add() {
 
   if [ -z "${EfficientIP_DNS_Name}" ]; then
     EfficientIP_DNS_Name=""
-  fi;
+  fi
+
   EfficientIP_DNSNameEncoded=$(printf "%b" "${EfficientIP_DNS_Name}" | _url_encode)
 
   if [ -z "${EfficientIP_View}" ]; then
     EfficientIP_View=""
-  fi;
+  fi
+
   EfficientIP_ViewEncoded=$(printf "%b" "${EfficientIP_View}" | _url_encode)
 
   _saveaccountconf EfficientIP_Creds "${EfficientIP_Creds}"
@@ -82,7 +84,7 @@ dns_efficientip_add() {
     result="$(printf "[{\"ret_oid\": \"%d\"}]" "42")"
   else
     result="$(_post "" "${baseurlnObject}" "" "POST")"
-  fi;
+  fi
 
   if [ "$(echo "${result}" | _egrep_o "ret_oid")" ]; then
     _info "Record successfully created"
@@ -113,6 +115,7 @@ dns_efficientip_rm() {
   if [ "${EfficientIP_DNSNameEncoded}" != "" ]; then
     baseurlnObject="${baseurlnObject}&dns_name=${EfficientIP_DNSNameEncoded}"
   fi
+
   if [ "${EfficientIP_ViewEncoded}" != "" ]; then
     baseurlnObject="${baseurlnObject}&dnsview_name=${EfficientIP_ViewEncoded}"
   fi
