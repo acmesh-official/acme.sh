@@ -90,7 +90,7 @@ dns_efficientip_add() {
     _info "Record successfully created"
     return 0
   else
-    _err "Error creating the record"
+    _err "Error creating the DNS record"
     _err "${result}"
     return 1
   fi
@@ -141,7 +141,7 @@ dns_efficientip_rm() {
     _info "Record successfully deleted"
     return 0
   else
-    _err "Error deleting the record"
+    _err "Error deleting the DNS record"
     _err "${result}"
     return 1
   fi
