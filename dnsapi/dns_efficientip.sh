@@ -4,11 +4,16 @@ Site: https://efficientip.com/
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_efficientip
 Options:
   EfficientIP_Creds HTTP Basic Authentication credentials. E.g. "username:password"
-  EfficientIP_Token_Key Alternative API token key identifier, prefered over basic authentication.
+  EfficientIP_Server EfficientIP SOLIDserver Management IP address or FQDN.
+  EfficientIP_DNS_Name Name of the DNS smart or server hosting the zone. Optional.
+  EfficientIP_View Name of the DNS view hosting the zone. Optional.
+OptionsAlt:
+  EfficientIP_Token_Key Alternative API token key, prefered over basic authentication.
   EfficientIP_Token_Secret Alternative API token secret, required when using a token key.
-  EfficientIP_Server EfficientIP SOLIDserver Management IP or FQDN.
-  EfficientIP_DNS_Name Name of the DNS smart or server.
-  EfficientIP_View Name of the DNS view (optional).
+  EfficientIP_Server EfficientIP SOLIDserver Management IP address or FQDN.
+  EfficientIP_DNS_Name Name of the DNS smart or server hosting the zone. Optional.
+  EfficientIP_View Name of the DNS view hosting the zone. Optional.
+
 Issues: github.com/acmesh-official/acme.sh/issues/<fixme>
 Author: EfficientIP-Labs <contact@efficientip.com>
 '
