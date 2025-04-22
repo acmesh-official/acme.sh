@@ -345,8 +345,8 @@ _azure_getaccess_token() {
 
     if [ "$arc" = true ]; then
       response="$(_get http://localhost:40342/metadata/identity/oauth2/token\?api-version=2019-08-15\&resource=https://management.azure.com/)"
-      CHALLANGE=$(cat "$HTTP_HEADER" | grep Www | sed 's/Www-Authenticate: Basic realm=//g' | sed 's/[^a-zA-Z0-9\/\.\-]//g')
-      _H2="Authorization: Basic $(cat "$CHALLANGE")"
+      CHALLENGE=$(grep Www "$HTTP_HEADER" | sed 's/Www-Authenticate: Basic realm=//g' | sed 's/[^a-zA-Z0-9\/\.\-]//g')
+      _H2="Authorization: Basic $(cat "$CHALLENGE")"
       export _H2
       response="$(_get http://localhost:40342/metadata/identity/oauth2/token\?api-version=2019-08-15\&resource=https://management.azure.com/)"
     else
