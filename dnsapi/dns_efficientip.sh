@@ -26,7 +26,7 @@ dns_efficientip_add() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
-  if ([ -z "${EfficientIP_Creds}" ] && ([ -z "${EfficientIP_Token_Key}" ] || [ -z "${EfficientIP_Token_Secret}" ])) || [ -z "${EfficientIP_Server}" ]; then
+  if { [ -z "${EfficientIP_Creds}" ] && { [ -z "${EfficientIP_Token_Key}" ] || [ -z "${EfficientIP_Token_Secret}" ]; }; } || [ -z "${EfficientIP_Server}" ]; then
     EfficientIP_Creds=""
     EfficientIP_Token_Key=""
     EfficientIP_Token_Secret=""
