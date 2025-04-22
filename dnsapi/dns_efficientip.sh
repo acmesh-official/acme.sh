@@ -80,7 +80,7 @@ dns_efficientip_add() {
     export _H3="X-SDS-TS: ${TS}"
   fi
 
-  if [ -n "${GITHUB_ACTIONS+1}" ]; then
+  if [ -n "${TEST_DNS+1}" ]; then
     result="$(printf "[{\"ret_oid\": \"%d\"}]" "42")"
   else
     result="$(_post "" "${baseurlnObject}" "" "POST")"
@@ -131,7 +131,7 @@ dns_efficientip_rm() {
     export _H3="X-SDS-TS: $TS"
   fi
 
-  if [ -n "${GITHUB_ACTIONS+1}" ]; then
+  if [ -n "${TEST_DNS+1}" ]; then
     result="$(printf "[{\"ret_oid\": \"%d\"}]" "42")"
   else
     result="$(_post "" "${baseurlnObject}" "" "DELETE")"
