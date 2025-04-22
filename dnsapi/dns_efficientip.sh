@@ -80,11 +80,7 @@ dns_efficientip_add() {
     export _H3="X-SDS-TS: ${TS}"
   fi
 
-  if [ -n "${TEST_DNS+1}" ]; then
-    result="$(printf "[{\"ret_oid\": \"%d\"}]" "42")"
-  else
-    result="$(_post "" "${baseurlnObject}" "" "POST")"
-  fi
+  result="$(_post "" "${baseurlnObject}" "" "POST")"
 
   if [ "$(echo "${result}" | _egrep_o "ret_oid")" ]; then
     _info "Record successfully created"
@@ -131,11 +127,7 @@ dns_efficientip_rm() {
     export _H3="X-SDS-TS: $TS"
   fi
 
-  if [ -n "${TEST_DNS+1}" ]; then
-    result="$(printf "[{\"ret_oid\": \"%d\"}]" "42")"
-  else
-    result="$(_post "" "${baseurlnObject}" "" "DELETE")"
-  fi
+  result="$(_post "" "${baseurlnObject}" "" "DELETE")"
 
   if [ "$(echo "${result}" | _egrep_o "ret_oid")" ]; then
     _info "Record successfully deleted"
