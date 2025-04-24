@@ -133,11 +133,11 @@ _get_root() {
   domain="$1"
 
   # Check manual override
-  SPACESHIP_ROOT_DOMAIN="${SPACESHIP_ROOT_DOMAIN:-$(_readaccountconf_mutable SPACESHIP_ROOT_DOMAIN)}"
+  SPACESHIP_ROOT_DOMAIN="${SPACESHIP_ROOT_DOMAIN:-$(_readdomainconf SPACESHIP_ROOT_DOMAIN)}"
   if [ -n "$SPACESHIP_ROOT_DOMAIN" ]; then
     _domain="$SPACESHIP_ROOT_DOMAIN"
     _debug "Using manually specified or saved root domain: $_domain"
-    _saveaccountconf_mutable SPACESHIP_ROOT_DOMAIN "$SPACESHIP_ROOT_DOMAIN"
+    _savedomainconf SPACESHIP_ROOT_DOMAIN "$SPACESHIP_ROOT_DOMAIN"
     return 0
   fi
 
@@ -162,7 +162,7 @@ _get_root() {
       _debug "Root zone found: '$_domain'"
 
       # Save the detected root domain
-      _saveaccountconf_mutable SPACESHIP_ROOT_DOMAIN "$_domain"
+      _savedomainconf SPACESHIP_ROOT_DOMAIN "$_domain"
       _info "Root domain '$_domain' saved to configuration for future use."
 
       return 0
