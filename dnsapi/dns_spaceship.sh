@@ -143,7 +143,7 @@ _get_root() {
 
   _debug "Detecting root zone for '$domain'"
 
-  i=2
+  i=1
   p=1
   while true; do
     _cutdomain=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
