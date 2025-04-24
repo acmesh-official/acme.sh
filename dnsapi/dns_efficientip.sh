@@ -86,7 +86,7 @@ dns_efficientip_add() {
     _info "Record successfully created"
     return 0
   else
-    _err "Error creating the DNS record using EIP"
+    _err "Error creating the DNS record EIP"
     _err "${result}"
     return 1
   fi
