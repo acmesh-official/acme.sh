@@ -1865,33 +1865,33 @@ _mktemp() {
 # "https://[2001:420:2c7f:11:10:86:92:243]/acme/acme/authz/5B0PBcY4uSboiG7Pc19ltTjjsWCsqUay"],
 # "finalize":"https://[2001:420:2c7f:11:10:86:92:243]/acme/acme/order/3LlSglOPQbnGgy0I1wMbnxSVJrHnDqT2/finalize"}'
 _parse_authorizations() {
-awk '
-    BEGIN {
-        FS = "";
-        inside = 0;
-        match_found = 0
-    }{
-    for (i = 1; i <= NF; i++) {
-        if (substr($0, i, 16) == "\"authorizations\"") {
-            match_found = 1
-        }
-        if (match_found) {
-            if ($i == "[") {
-                inside++
+    awk '
+        BEGIN {
+            FS = "";
+            inside = 0;
+            match_found = 0
+        }{
+        for (i = 1; i <= NF; i++) {
+            if (substr($0, i, 16) == "\"authorizations\"") {
+                match_found = 1
             }
-            if (inside > 0 && (inside > 1 || ($i != "[" && $i != "]"))) {
-                printf "%s", $i
-            }
-            if ($i == "]") {
-                inside--
-                if (inside == 0) {
-                    print ""
-                    match_found = 0
+            if (match_found) {
+                if ($i == "[") {
+                    inside++
+                }
+                if (inside > 0 && (inside > 1 || ($i != "[" && $i != "]"))) {
+                    printf "%s", $i
+                }
+                if ($i == "]") {
+                    inside--
+                    if (inside == 0) {
+                        print ""
+                        match_found = 0
+                    }
                 }
             }
         }
-    }
-}'
+    }'
 }
 
 #clear all the https envs to cause _inithttp() to run next time.
