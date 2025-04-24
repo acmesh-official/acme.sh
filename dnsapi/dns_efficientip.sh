@@ -83,10 +83,10 @@ dns_efficientip_add() {
   result="$(_post "" "${baseurlnObject}" "" "POST")"
 
   if [ "$(echo "${result}" | _egrep_o "ret_oid")" ]; then
-    _info "Record successfully created"
+    _info "DNS record successfully created"
     return 0
   else
-    _err "Error creating the DNS record"
+    _err "Error creating DNS record"
     _err "${result}"
     return 1
   fi
@@ -130,10 +130,10 @@ dns_efficientip_rm() {
   result="$(_post "" "${baseurlnObject}" "" "DELETE")"
 
   if [ "$(echo "${result}" | _egrep_o "ret_oid")" ]; then
-    _info "Record successfully deleted"
+    _info "DNS Record successfully deleted"
     return 0
   else
-    _err "Error deleting the DNS record"
+    _err "Error deleting DNS record"
     _err "${result}"
     return 1
   fi
