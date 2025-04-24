@@ -59,7 +59,7 @@ dns_efficientip_add() {
   _saveaccountconf EfficientIP_View "${EfficientIP_View}"
 
   export _H1="Accept-Language:en-US"
-  baseurlnObject="https://${EfficientIP_Server}/rest/dns_rr_add?rr_type=TXT&rr_name=${fulldomain}&rr_value1=${txtvalue}"
+  baseurlnObject="https://${EfficientIP_Server}/rest/dns_rr_add?rr_type=TXT&rr_ttl=300&rr_name=${fulldomain}&rr_value1=${txtvalue}"
 
   if [ "${EfficientIP_DNSNameEncoded}" != "" ]; then
     baseurlnObject="${baseurlnObject}&dns_name=${EfficientIP_DNSNameEncoded}"
@@ -86,7 +86,7 @@ dns_efficientip_add() {
     _info "Record successfully created"
     return 0
   else
-    _err "Error creating the DNS record with EIP"
+    _err "Error creating the DNS record"
     _err "${result}"
     return 1
   fi
