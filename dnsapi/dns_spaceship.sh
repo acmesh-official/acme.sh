@@ -114,7 +114,7 @@ _spaceship_init() {
 
   if [ -z "$SPACESHIP_API_KEY" ] || [ -z "$SPACESHIP_API_SECRET" ]; then
     _err "Spaceship API credentials are not set. Please set SPACESHIP_API_KEY and SPACESHIP_API_SECRET."
-    _err "Ensure ~/.acme.sh directory has restricted permissions (chmod 700 ~/.acme.sh) to protect credentials."
+    _err "Ensure \"$LE_CONFIG_HOME\" directory has restricted permissions (chmod 700 \"$LE_CONFIG_HOME\") to protect credentials."
     return 1
   fi
 
