@@ -2,7 +2,7 @@
 # shellcheck disable=SC2034
 dns_spaceship_info='Spaceship.com
 Site: Spaceship.com
-Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_spaceship
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_spaceship
 Options:
  SPACESHIP_API_KEY Spaceship API Key
  SPACESHIP_API_SECRET Spaceship API Secret
