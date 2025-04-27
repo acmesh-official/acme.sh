@@ -183,7 +183,7 @@ _spaceship_api_request() {
   url="$2"
   payload="$3"
 
-  _debug "Sending $method request to $url with payload $payload"
+  _debug2 "Sending $method request to $url with payload $payload"
   if [ "$method" = "GET" ]; then
     response="$(_get "$url")"
   else
@@ -195,7 +195,7 @@ _spaceship_api_request() {
     return 1
   fi
 
-  _debug "API response body: $response"
+  _debug2 "API response body: $response"
 
   if [ "$method" = "GET" ]; then
     if _contains "$(_head_n 1 <"$HTTP_HEADER")" '200'; then
@@ -207,6 +207,6 @@ _spaceship_api_request() {
     fi
   fi
 
-  _debug "API response header: $HTTP_HEADER"
+  _debug2 "API response header: $HTTP_HEADER"
   return 1
 }
