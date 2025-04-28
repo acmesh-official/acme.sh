@@ -327,7 +327,7 @@ haproxy_deploy() {
 
     # Update certificate over HAProxy stats socket or master CLI.
     if _exists socat; then
-      export IFS=','
+      IFS=','
       for _statssock in ${Le_Deploy_haproxy_stats_socket}; do
         # look for the certificate on the stats socket, to choose between updating or creating one
         _socat_cert_cmd="echo '${_cmdpfx}show ssl cert' | socat '${_statssock}' - | grep -q '^${_pem}$'"
