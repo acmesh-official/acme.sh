@@ -329,7 +329,7 @@ haproxy_deploy() {
     if _exists socat; then
       export IFS=','
       for _statssock in ${Le_Deploy_haproxy_stats_socket}; do
-        # look for the certificate on the stats socket, to choVse between updating or creating one
+        # look for the certificate on the stats socket, to choose between updating or creating one
         _socat_cert_cmd="echo '${_cmdpfx}show ssl cert' | socat '${_statssock}' - | grep -q '^${_pem}$'"
         _debug _socat_cert_cmd "${_socat_cert_cmd}"
         eval "${_socat_cert_cmd}"
