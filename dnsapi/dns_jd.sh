@@ -1,9 +1,14 @@
 #!/usr/bin/env sh
-
-#
-#JD_ACCESS_KEY_ID="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#JD_ACCESS_KEY_SECRET="xxxxxxx"
-#JD_REGION="cn-north-1"
+# shellcheck disable=SC2034
+dns_jd_info='jdcloud.com
+Site: jdcloud.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_jd
+Options:
+ JD_ACCESS_KEY_ID Access key ID
+ JD_ACCESS_KEY_SECRET Access key secret
+ JD_REGION Region. E.g. "cn-north-1"
+Issues: github.com/acmesh-official/acme.sh/issues/2388
+'
 
 _JD_ACCOUNT="https://uc.jdcloud.com/account/accesskey"
 
@@ -130,7 +135,7 @@ _get_root() {
   p=1
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug2 "Checking domain: $h"
     if ! jd_rest GET "domain"; then
       _err "error get domain list"
@@ -148,7 +153,7 @@ _get_root() {
       if [ "$hostedzone" ]; then
         _domain_id="$(echo "$hostedzone" | tr ',' '\n' | grep "\"id\":" | cut -d : -f 2)"
         if [ "$_domain_id" ]; then
-          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
           _domain=$h
           return 0
         fi

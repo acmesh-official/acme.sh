@@ -1,13 +1,15 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_aws_info='Amazon AWS Route53 domain API
+Site: docs.aws.amazon.com/route53/
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_aws
+Options:
+ AWS_ACCESS_KEY_ID API Key ID
+ AWS_SECRET_ACCESS_KEY API Secret
+'
 
-#
-#AWS_ACCESS_KEY_ID="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
-#AWS_SECRET_ACCESS_KEY="xxxxxxx"
-
-#This is the Amazon Route53 api wrapper for acme.sh
-#All `_sleep` commands are included to avoid Route53 throttling, see
-#https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html#limits-api-requests
+# All `_sleep` commands are included to avoid Route53 throttling, see
+# https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html#limits-api-requests
 
 AWS_HOST="route53.amazonaws.com"
 AWS_URL="https://$AWS_HOST"
@@ -156,7 +158,7 @@ _get_root() {
 
   # iterate over names (a.b.c.d -> b.c.d -> c.d -> d)
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100 | sed 's/\./\\./g')
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100 | sed 's/\./\\./g')
     _debug "Checking domain: $h"
     if [ -z "$h" ]; then
       _error "invalid domain"
@@ -172,7 +174,7 @@ _get_root() {
         if [ "$hostedzone" ]; then
           _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "<Id>.*<.Id>" | head -n 1 | _egrep_o ">.*<" | tr -d "<>")
           if [ "$_domain_id" ]; then
-            _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+            _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
             _domain=$h
             return 0
           fi

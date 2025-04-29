@@ -1,13 +1,13 @@
 #!/usr/bin/env sh
-
-# Created by Laraveluser
-#
-# Pass credentials before "acme.sh --issue --dns dns_limacity ..."
-# --
-# export LIMACITY_APIKEY="<API-KEY>"
-# --
-#
-# Pleas note: APIKEY must have following roles: dns.admin, domains.reader
+# shellcheck disable=SC2034
+dns_limacity_info='lima-city.de
+Site: www.lima-city.de
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_limacity
+Options:
+ LIMACITY_APIKEY API Key. Note: The API Key must have following roles: dns.admin, domains.reader
+Issues: github.com/acmesh-official/acme.sh/issues/4758
+Author: @Laraveluser
+'
 
 ########  Public functions #####################
 
@@ -69,7 +69,7 @@ _lima_get_domain_id() {
   if [ "$(echo "$domains" | _egrep_o "\{.*""domains""")" ]; then
     response="$(echo "$domains" | tr -d "\n" | tr '{' "|" | sed 's/|/&{/g' | tr "|" "\n")"
     while true; do
-      h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+      h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
       _debug h "$h"
       if [ -z "$h" ]; then
         #not valid
@@ -80,7 +80,7 @@ _lima_get_domain_id() {
       if [ "$hostedzone" ]; then
         LIMACITY_DOMAINID=$(printf "%s\n" "$hostedzone" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d : -f 2 | tr -d \ )
         if [ "$LIMACITY_DOMAINID" ]; then
-          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+          _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
           _domain=$h
           return 0
         fi

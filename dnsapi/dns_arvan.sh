@@ -1,11 +1,16 @@
 #!/usr/bin/env sh
-
-# Arvan_Token="Apikey xxxx"
+# shellcheck disable=SC2034
+dns_arvan_info='ArvanCloud.ir
+Site: ArvanCloud.ir
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_arvan
+Options:
+ Arvan_Token API Token
+Issues: github.com/acmesh-official/acme.sh/issues/2796
+Author: Vahid Fardi
+'
 
 ARVAN_API_URL="https://napi.arvancloud.ir/cdn/4.0/domains"
-# Author: Vahid Fardi
-# Report Bugs here: https://github.com/Neilpang/acme.sh
-#
+
 ########  Public functions #####################
 
 #Usage: dns_arvan_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
@@ -102,7 +107,7 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -115,7 +120,7 @@ _get_root() {
     if _contains "$response" "\"domain\":\"$h\""; then
       _domain_id=$(echo "$response" | cut -d : -f 3 | cut -d , -f 1 | tr -d \")
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain=$h
         return 0
       fi

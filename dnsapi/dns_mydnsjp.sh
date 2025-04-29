@@ -1,14 +1,14 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_mydnsjp_info='MyDNS.JP
+Site: MyDNS.JP
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_mydnsjp
+Options:
+ MYDNSJP_MasterID Master ID
+ MYDNSJP_Password Password
+Author: epgdatacapbon
+'
 
-#Here is a api script for MyDNS.JP.
-#This file name is "dns_mydnsjp.sh"
-#So, here must be a method   dns_mydnsjp_add()
-#Which will be called by acme.sh to add the txt record to your api system.
-#returns 0 means success, otherwise error.
-#
-#Author: epgdatacapbon
-#Report Bugs here: https://github.com/epgdatacapbon/acme.sh
-#
 ########  Public functions #####################
 
 # Export MyDNS.JP MasterID and Password in following variables...
@@ -126,7 +126,7 @@ _get_root() {
   fi
 
   while true; do
-    _domain=$(printf "%s" "$fulldomain" | cut -d . -f $i-100)
+    _domain=$(printf "%s" "$fulldomain" | cut -d . -f "$i"-100)
 
     if [ -z "$_domain" ]; then
       # not valid
@@ -134,7 +134,7 @@ _get_root() {
     fi
 
     if [ "$_domain" = "$_root_domain" ]; then
-      _sub_domain=$(printf "%s" "$fulldomain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$fulldomain" | cut -d . -f 1-"$p")
       return 0
     fi
 

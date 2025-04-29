@@ -1,16 +1,13 @@
 #!/usr/bin/env sh
-
-## Will be called by acme.sh to add the TXT record via the Bunny DNS API.
-## returns 0 means success, otherwise error.
-
-## Author: nosilver4u <nosilver4u at ewww.io>
-## GitHub: https://github.com/nosilver4u/acme.sh
-
-##
-## Environment Variables Required:
-##
-## BUNNY_API_KEY="75310dc4-ca77-9ac3-9a19-f6355db573b49ce92ae1-2655-3ebd-61ac-3a3ae34834cc"
-##
+# shellcheck disable=SC2034
+dns_bunny_info='Bunny.net
+Site: Bunny.net/dns/
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_bunny
+Options:
+ BUNNY_API_KEY API Key
+Issues: github.com/acmesh-official/acme.sh/issues/4296
+Author: <nosilver4u@ewww.io>
+'
 
 #####################  Public functions  #####################
 
@@ -199,7 +196,7 @@ _get_base_domain() {
     _debug2 domain_list "$domain_list"
 
     i=1
-    while [ $i -gt 0 ]; do
+    while [ "$i" -gt 0 ]; do
       ## get next longest domain
       _domain=$(printf "%s" "$fulldomain" | cut -d . -f "$i"-"$MAX_DOM")
       ## check we got something back from our cut (or are we at the end)
@@ -211,7 +208,7 @@ _get_base_domain() {
       ## check if it exists
       if [ -n "$found" ]; then
         ## exists - exit loop returning the parts
-        sub_point=$(_math $i - 1)
+        sub_point=$(_math "$i" - 1)
         _sub_domain=$(printf "%s" "$fulldomain" | cut -d . -f 1-"$sub_point")
         _domain_id="$(echo "$found" | _egrep_o "Id\"\s*\:\s*\"*[0-9]+" | _egrep_o "[0-9]+")"
         _debug _domain_id "$_domain_id"
@@ -221,11 +218,11 @@ _get_base_domain() {
         return 0
       fi
       ## increment cut point $i
-      i=$(_math $i + 1)
+      i=$(_math "$i" + 1)
     done
 
     if [ -z "$found" ]; then
-      page=$(_math $page + 1)
+      page=$(_math "$page" + 1)
       nextpage="https://api.bunny.net/dnszone?page=$page"
       ## Find the next page if we don't have a match.
       hasnextpage="$(echo "$domain_list" | _egrep_o "\"HasMoreItems\"\s*:\s*true")"

@@ -1,10 +1,13 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_simply_info='Simply.com
+Site: Simply.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_simply
+Options:
+ SIMPLY_AccountName Account name
+ SIMPLY_ApiKey API Key
+'
 
-# API-integration for Simply.com (https://www.simply.com)
-
-#SIMPLY_AccountName="accountname"
-#SIMPLY_ApiKey="apikey"
-#
 #SIMPLY_Api="https://api.simply.com/2/"
 SIMPLY_Api_Default="https://api.simply.com/2"
 
@@ -163,7 +166,7 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -176,7 +179,7 @@ _get_root() {
     if ! _contains "$response" "$SIMPLY_SUCCESS_CODE"; then
       _debug "$h not found"
     else
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi

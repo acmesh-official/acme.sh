@@ -1,7 +1,14 @@
 #!/usr/bin/env sh
-
-# World4You - www.world4you.com
-# Lorenz Stechauner, 2020 - https://www.github.com/NerLOR
+# shellcheck disable=SC2034
+dns_world4you_info='World4You.com
+Site: World4You.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_world4you
+Options:
+ WORLD4YOU_USERNAME Username
+ WORLD4YOU_PASSWORD Password
+Issues: github.com/acmesh-official/acme.sh/issues/3269
+Author: Lorenz Stechauner <https://www.github.com/NerLOR>
+'
 
 WORLD4YOU_API="https://my.world4you.com/en"
 PAKETNR=''
@@ -108,7 +115,7 @@ dns_world4you_rm() {
 
   _resethttp
   export ACME_HTTP_NO_REDIRECTS=1
-  body="DeleteDnsRecordForm[recordId]=$recordid&DeleteDnsRecordForm[uniqueFormIdDP]=$formiddp&DeleteDnsRecordForm[_token]=$form_token"
+  body="DeleteDnsRecordForm[id]=$recordid&DeleteDnsRecordForm[uniqueFormIdDP]=$formiddp&DeleteDnsRecordForm[_token]=$form_token"
   _info "Removing record..."
   ret=$(_post "$body" "$WORLD4YOU_API/$paketnr/dns/record/delete" '' POST 'application/x-www-form-urlencoded')
   _resethttp
@@ -195,7 +202,8 @@ _get_paketnr() {
   fqdn="$1"
   form="$2"
 
-  domains=$(echo "$form" | grep '<ul class="nav header-paket-list">' | sed 's/<li/\n<li/g' | sed 's/<[^>]*>/ /g' | sed 's/^.*>\([^>]*\)$/\1/')
+  domains=$(echo "$form" | grep 'paketListData' | grep -o '"fqdn":"[^"]*"' | sed 's/.*:"\(.*\)"/\1/')
+  _debug domains "$domains"
   domain=''
   for domain in $domains; do
     if _contains "$fqdn" "$domain\$"; then
@@ -210,7 +218,7 @@ _get_paketnr() {
   TLD="$domain"
   _debug domain "$domain"
   RECORD=$(echo "$fqdn" | cut -c"1-$((${#fqdn} - ${#TLD} - 1))")
-  PAKETNR=$(echo "$domains" | grep "$domain" | sed 's/^[^,]*, *\([0-9]*\).*$/\1/')
+  PAKETNR=$(echo "$form" | grep -o "\"id\":[^{}]*\"fqdn\":\"$domain\"" | sed 's/"id":\([0-9]*\).*$/\1/')
   return 0
 }
 

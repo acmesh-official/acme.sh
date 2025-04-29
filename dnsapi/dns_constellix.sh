@@ -1,10 +1,16 @@
 #!/usr/bin/env sh
-
-# Author: Wout Decre <wout@canodus.be>
+# shellcheck disable=SC2034
+dns_constellix_info='Constellix.com
+Site: Constellix.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_constellix
+Options:
+ CONSTELLIX_Key API Key
+ CONSTELLIX_Secret API Secret
+Issues: github.com/acmesh-official/acme.sh/issues/2724
+Author: Wout Decre <wout@canodus.be>
+'
 
 CONSTELLIX_Api="https://api.dns.constellix.com/v1"
-#CONSTELLIX_Key="XXX"
-#CONSTELLIX_Secret="XXX"
 
 ########  Public functions #####################
 
@@ -116,7 +122,7 @@ _get_root() {
   p=1
   _debug "Detecting root zone"
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       return 1
     fi
@@ -128,7 +134,7 @@ _get_root() {
     if _contains "$response" "\"name\":\"$h\""; then
       _domain_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":[0-9]*" | cut -d ':' -f 2)
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d '.' -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d '.' -f 1-"$p")
         _domain="$h"
 
         _debug _domain_id "$_domain_id"
