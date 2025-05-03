@@ -114,6 +114,7 @@ https://github.com/acmesh-official/acmetest
 - DNS mode
 - [DNS alias mode](https://github.com/acmesh-official/acme.sh/wiki/DNS-alias-mode)
 - [Stateless mode](https://github.com/acmesh-official/acme.sh/wiki/Stateless-Mode)
+- [HTTP API mode](https://github.com/acmesh-official/acme.sh/wiki/HTTP-API)
 
 
 # 1. How to install
@@ -358,7 +359,30 @@ Ok, it's done.
 
 **Please use dns api mode instead.**
 
-# 10. Issue ECC certificates
+# 10. Use HTTP API mode
+
+If you want to deploy the challenge files using an external method like SCP or FTPS, you can use the HTTP API mode:
+
+```bash
+acme.sh --issue -d example.com --httpapi scp
+```
+
+You'll need to configure the required environment variables first:
+
+```bash
+# For SCP plugin
+export HTTP_SCP_USER="username"
+export HTTP_SCP_HOST="example.com"
+export HTTP_SCP_PATH="/var/www/html"
+```
+
+Available HTTP API plugins:
+- `scp`: Deploy challenge files via SCP
+- `ftps`: Deploy challenge files via FTPS
+
+More information: [HTTP API mode](https://github.com/acmesh-official/acme.sh/wiki/HTTP-API)
+
+# 11. Issue ECC certificates
 
 Just set the `keylength` parameter with a prefix `ec-`.
 
@@ -388,7 +412,7 @@ Valid values are:
 6. **4096   (RSA4096)**
 
 
-# 11. Issue Wildcard certificates
+# 12. Issue Wildcard certificates
 
 It's simple, just give a wildcard domain as the `-d` parameter.
 
@@ -398,7 +422,7 @@ acme.sh  --issue -d example.com  -d '*.example.com'  --dns dns_cf
 
 
 
-# 12. How to renew the certs
+# 13. How to renew the certs
 
 No, you don't need to renew the certs manually. All the certs will be renewed automatically every **60** days.
 
@@ -415,7 +439,7 @@ acme.sh --renew -d example.com --force --ecc
 ```
 
 
-# 13. How to stop cert renewal
+# 14. How to stop cert renewal
 
 To stop renewal of a cert, you can execute the following to remove the cert from the renewal list:
 
@@ -428,7 +452,7 @@ The cert/key file is not removed from the disk.
 You can remove the respective directory (e.g. `~/.acme.sh/example.com`) by yourself.
 
 
-# 14. How to upgrade `acme.sh`
+# 15. How to upgrade `acme.sh`
 
 acme.sh is in constant development, so it's strongly recommended to use the latest code.
 
@@ -453,24 +477,24 @@ acme.sh --upgrade --auto-upgrade 0
 ```
 
 
-# 15. Issue a cert from an existing CSR
+# 16. Issue a cert from an existing CSR
 
 https://github.com/acmesh-official/acme.sh/wiki/Issue-a-cert-from-existing-CSR
 
 
-# 16. Send notifications in cronjob
+# 17. Send notifications in cronjob
 
 https://github.com/acmesh-official/acme.sh/wiki/notify
 
 
-# 17. Under the Hood
+# 18. Under the Hood
 
 Speak ACME language using shell, directly to "Let's Encrypt".
 
 TODO:
 
 
-# 18. Acknowledgments
+# 19. Acknowledgments
 
 1. Acme-tiny: https://github.com/diafygi/acme-tiny
 2. ACME protocol: https://github.com/ietf-wg-acme/acme
@@ -508,7 +532,7 @@ Support this project with your organization. Your logo will show up here with a 
 
 
 
-# 19. License & Others
+# 20. License & Others
 
 License is GPLv3
 
@@ -517,7 +541,7 @@ Please Star and Fork me.
 [Issues](https://github.com/acmesh-official/acme.sh/issues) and [pull requests](https://github.com/acmesh-official/acme.sh/pulls) are welcome.
 
 
-# 20. Donate
+# 21. Donate
 Your donation makes **acme.sh** better:
 
 1. PayPal/Alipay(支付宝)/Wechat(微信): [https://donate.acme.sh/](https://donate.acme.sh/)
