@@ -52,7 +52,7 @@ cqhttp_send() {
   _finalUrl="$CQHTTP_APIROOT$CQHTTP_APIPATH?access_token=$_access_token&user_id=$_user_id&message=$_message"
   response="$(_get "$_finalUrl")"
 
-  if [ "$?" = "0" ] && _contains "$response" "\"retcode\":0,\"status\":\"ok\""; then
+  if [ "$?" = "0" ] && _contains "$response" "\"retcode\":0" && _contains "$response" "\"status\":\"ok\""; then
     _info "QQ send success."
     return 0
   fi
