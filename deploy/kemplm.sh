@@ -23,11 +23,11 @@ kemplm_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-	if ! _exists jq; then
-		_err "jq not found"
-	fi
+  if ! _exists jq; then
+    _err "jq not found"
+  fi
 
-	# Rename wildcard certs, kemp accepts only alphanumeric names
+  # Rename wildcard certs, kemp accepts only alphanumeric names
   _kemp_domain=$(echo "${_cdomain}" | sed 's/\*/wildcard/')
   _debug _kemp_domain "$_kemp_domain"
 
@@ -76,7 +76,7 @@ kemplm_deploy() {
 
   # Upload new certificate to Kemp Loadmaster
   _kemp_upload_cert=$(_mktemp)
-  cat "${_cfullchain}" "${_ckey}" | base64 -w 0 > "${_kemp_upload_cert}"
+  cat "${_cfullchain}" "${_ckey}" | base64 -w 0 >"${_kemp_upload_cert}"
 
   _info "Uploading certificate to Kemp Loadmaster"
   _post_request="{\"cmd\": \"addcert\", \"apikey\": \"${DEPLOY_KEMP_TOKEN}\", \"replace\": ${_kemp_replace_cert}, \"cert\": \"${_kemp_domain}\", \"data\": \"$(cat ${_kemp_upload_cert})\"}"
