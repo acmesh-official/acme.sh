@@ -79,7 +79,8 @@ kemplm_deploy() {
   cat "${_cfullchain}" "${_ckey}" | base64 -w 0 >"${_kemp_upload_cert}"
 
   _info "Uploading certificate to Kemp Loadmaster"
-  _post_request="{\"cmd\": \"addcert\", \"apikey\": \"${DEPLOY_KEMP_TOKEN}\", \"replace\": ${_kemp_replace_cert}, \"cert\": \"${_kemp_domain}\", \"data\": \"$(cat ${_kemp_upload_cert})\"}"
+  _post_data=$(cat "${_kemp_upload_cert}")
+  _post_request="{\"cmd\": \"addcert\", \"apikey\": \"${DEPLOY_KEMP_TOKEN}\", \"replace\": ${_kemp_replace_cert}, \"cert\": \"${_kemp_domain}\", \"data\": \"${_post_data}\"}"
   _debug3 _post_request "${_post_request}"
   _kemp_post_result=$(_post "${_post_request}" "${DEPLOY_KEMP_URL}/accessv2")
   _retval=$?
@@ -99,5 +100,5 @@ kemplm_deploy() {
 
   rm "${_kemp_upload_cert}"
 
-  return $retval
+  return $_retval
 }
