@@ -116,6 +116,30 @@ ruckus_deploy() {
   _H2="X-CSRF-Token: $(_response_header 'HTTP_X_CSRF_TOKEN')"
   export _H2
 
+  if _isRSA "$_ckey" >/dev/null 2>&1; then
+    _debug "Using RSA certificate."
+  else
+    _info "Verifying ECC certificate support."
+
+    _ul_version="$(_get_unleashed_version)"
+    if [ -z "$_ul_version" ]; then
+      _err "Your controller doesn't support ECC certificates. Please deploy an RSA certificate."
+      return 1
+    fi
+
+    _ul_version_major="$(echo "$_ul_version" | cut -d . -f 1)"
+    _ul_version_minor="$(echo "$_ul_version" | cut -d . -f 2)"
+    if [ "$_ul_version_major" -lt "200" ]; then
+      _err "ZoneDirector doesn't support ECC certificates. Please deploy an RSA certificate."
+      return 1
+    elif [ "$_ul_version_minor" -lt "13" ]; then
+      _err "Unleashed $_ul_version_major.$_ul_version_minor doesn't support ECC certificates. Please deploy an RSA certificate or upgrade to Unleashed 200.13+."
+      return 1
+    fi
+
+    _debug "ECC certificates OK for Unleashed $_ul_version_major.$_ul_version_minor."
+  fi
+
   _info "Uploading certificate"
   _post_upload "uploadcert" "$_cfullchain"
 
@@ -143,6 +167,10 @@ _response_header() {
 
 _response_cookie() {
   _response_header 'Set-Cookie' | sed 's/;.*//'
+}
+
+_get_unleashed_version() {
+  _post '<ajax-request action="getstat" comp="system"><sysinfo/></ajax-request>' "$_base_url/_cmdstat.jsp" | _egrep_o "version-num=\"[^\"]*\"" | cut -d '"' -f 2
 }
 
 _post_upload() {
