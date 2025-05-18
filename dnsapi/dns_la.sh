@@ -3,16 +3,16 @@
 # LA_Id="123"
 # LA_Sk="456"
 # LA_Token=""
-#dns_la_info='dns.la
-Site: dns.la
-Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_la
-Options:
-我的账户 API 密钥 中获取 APIID APISecret
- LA_Id APIID
- LA_Key APISecret
- LA_Token 用冒号连接 APIID APISecret 再base64生成
-Issues: github.com/acmesh-official/acme.sh/issues/4257
-'
+#
+#Site: dns.la
+#Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_la
+#Options:
+#我的账户 API 密钥 中获取 APIID APISecret
+# LA_Id APIID
+# LA_Key APISecret
+# LA_Token 用冒号连接 APIID APISecret 再base64生成
+#Issues: github.com/acmesh-official/acme.sh/issues/4257
+#'
 LA_Api="https://api.dns.la/api"
 
 ########  Public functions #####################
