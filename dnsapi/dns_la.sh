@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-# LA_Ak="123"
+# LA_Id="123"
 # LA_Sk="456"
 # LA_Token=""
 dns_la_info='dns.la
@@ -9,7 +9,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_la
 Options:
  LA_Id APIID
  LA_Key APISecret
- LA_Token 用冒号连接 APIID APISecret 载base64生成
+ LA_Token 用冒号连接 APIID APISecret 再base64生成
 Issues: github.com/acmesh-official/acme.sh/issues/4257
 '
 
@@ -22,20 +22,20 @@ dns_la_add() {
   fulldomain=$1
   txtvalue=$2
 
-  LA_Ak="${LA_Ak:-$(_readaccountconf_mutable LA_Ak)}"
+  LA_Id="${LA_Id:-$(_readaccountconf_mutable LA_Id)}"
   LA_Sk="${LA_Sk:-$(_readaccountconf_mutable LA_Sk)}"
-  _log "LA_Ak=$LA_Ak"
+  _log "LA_Id=$LA_Id"
   _log "LA_Sk=$LA_Sk"
 
-  if [ -z "$LA_Ak" ] || [ -z "$LA_Sk" ]; then
-    LA_Ak=""
+  if [ -z "$LA_Id" ] || [ -z "$LA_Sk" ]; then
+    LA_Id=""
     LA_Sk=""
     _err "You didn't specify a dnsla api id and key yet."
     return 1
   fi
 
   #save the api key and email to the account conf file.
-  _saveaccountconf_mutable LA_Ak "$LA_Ak"
+  _saveaccountconf_mutable LA_Id "$LA_Id"
   _saveaccountconf_mutable LA_Sk "$LA_Sk"
 
   # generate dnsla token
@@ -75,7 +75,7 @@ dns_la_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  LA_Ak="${LA_Ak:-$(_readaccountconf_mutable LA_Ak)}"
+  LA_Id="${LA_Id:-$(_readaccountconf_mutable LA_Id)}"
   LA_Sk="${LA_Sk:-$(_readaccountconf_mutable LA_Sk)}"
 
   _debug "First detect the root zone"
@@ -201,7 +201,7 @@ _la_post() {
 }
 
 _la_token() {
-  LA_Token=$(printf "%s:%s" "$LA_Ak" "$LA_Sk" | base64 -w 0)
+  LA_Token=$(printf "%s:%s" "$LA_Id" "$LA_Sk" | base64 -w 0)
   _debug "$LA_Token"
 
   return 0
@@ -211,7 +211,7 @@ root@ip-172-26-13-185:~# nano .acme.sh/dnsapi/dns_la.sh
 root@ip-172-26-13-185:~# cat .acme.sh/dnsapi/dns_la.sh 
 #!/usr/bin/env sh
 
-# LA_Ak="123"
+# LA_Id="123"
 # LA_Sk="456"
 # LA_Token=""
 
@@ -224,20 +224,20 @@ dns_la_add() {
   fulldomain=$1
   txtvalue=$2
 
-  LA_Ak="${LA_Ak:-$(_readaccountconf_mutable LA_Ak)}"
+  LA_Id="${LA_Id:-$(_readaccountconf_mutable LA_Id)}"
   LA_Sk="${LA_Sk:-$(_readaccountconf_mutable LA_Sk)}"
-  _log "LA_Ak=$LA_Ak"
+  _log "LA_Id=$LA_Id"
   _log "LA_Sk=$LA_Sk"
 
-  if [ -z "$LA_Ak" ] || [ -z "$LA_Sk" ]; then
-    LA_Ak=""
+  if [ -z "$LA_Id" ] || [ -z "$LA_Sk" ]; then
+    LA_Id=""
     LA_Sk=""
     _err "You didn't specify a dnsla api id and key yet."
     return 1
   fi
 
   #save the api key and email to the account conf file.
-  _saveaccountconf_mutable LA_Ak "$LA_Ak"
+  _saveaccountconf_mutable LA_Id "$LA_Id"
   _saveaccountconf_mutable LA_Sk "$LA_Sk"
 
   # generate dnsla token
@@ -277,7 +277,7 @@ dns_la_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  LA_Ak="${LA_Ak:-$(_readaccountconf_mutable LA_Ak)}"
+  LA_Id="${LA_Id:-$(_readaccountconf_mutable LA_Id)}"
   LA_Sk="${LA_Sk:-$(_readaccountconf_mutable LA_Sk)}"
 
   _la_token
@@ -405,7 +405,7 @@ _la_post() {
 }
 
 _la_token() {
-  LA_Token=$(printf "%s:%s" "$LA_Ak" "$LA_Sk" | base64 -w 0)
+  LA_Token=$(printf "%s:%s" "$LA_Id" "$LA_Sk" | base64 -w 0)
   _debug "$LA_Token"
 
   return 0
