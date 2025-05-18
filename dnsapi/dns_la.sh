@@ -112,7 +112,7 @@ dns_la_rm() {
     _err "Delete record error."
     return 1
   fi
-  _contains "$response" '"code":300'
+  _contains "$response" '"code":200'
 
 }
 
