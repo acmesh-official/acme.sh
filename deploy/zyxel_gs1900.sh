@@ -245,7 +245,7 @@ _zyxel_gs1900_should_update() {
   _debug2 "_remote_cert_serial" "$_remote_cert_serial"
 
   # Get our certificate serial number
-  _our_cert_serial=$(${ACME_OPENSSL_BIN:-openssl} x509 -noout -serial < "${_ccert}")
+  _our_cert_serial=$(${ACME_OPENSSL_BIN:-openssl} x509 -noout -serial <"${_ccert}")
   _debug2 "_our_cert_serial" "$_our_cert_serial"
 
   [ "${_remote_cert_serial}" != "${_our_cert_serial}" ]
