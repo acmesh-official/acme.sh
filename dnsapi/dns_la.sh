@@ -3,7 +3,7 @@
 # LA_Id="123"
 # LA_Sk="456"
 # LA_Token=""
-dns_la_info='dns.la
+#dns_la_info='dns.la
 Site: dns.la
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_la
 Options:
@@ -91,12 +91,12 @@ dns_la_rm() {
 
   _debug "Getting txt records"
   # record type is enum in new api, 16 for TXT
-  if ! _la_get "recordList?pageIndex=1&pageSize=10&domainid=$_domain_id&host=$_sub_domain&type=16&data=$txtvalue"; then
+  if ! _la_get "recordList?pageIndex=1&pageSize=10&domainId=$_domain_id&host=$_sub_domain&type=16&data=$txtvalue"; then
     _err "Error"
     return 1
   fi
 
-  if ! _contains "$response" '"recordid":'; then
+  if ! _contains "$response" '"id":'; then
     _info "Don't need to remove."
     return 0
   fi
