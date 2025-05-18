@@ -34,8 +34,12 @@ directadmin_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
+  if ! _exists jq ; then
+    _err "Please install jq first"
+    return 1
+  fi
+
   _DA_credentials && _DA_setSSL
-  return 0
 }
 
 ####################  Private functions below ##################################
@@ -79,7 +83,6 @@ _da_get_api() {
     return 1
   fi
   _secure_debug2 response "$response"
-  return 0
 }
 
 # Usage: _DA_setSSL
@@ -241,6 +244,4 @@ _DA_setSSL() {
       fi
     fi
   fi
-
-  return 0
 }
