@@ -128,7 +128,7 @@ _get_root() {
   p=1
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -142,7 +142,7 @@ _get_root() {
       _domain_id=$(echo "$response" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')
       _log "_domain_id" "$_domain_id"
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain="$h"
         return 0
       fi
