@@ -203,7 +203,7 @@ _la_post() {
 }
 
 _la_token() {
-  LA_Token=$(printf "%s:%s" "$LA_Id" "$LA_Sk" | base64 -w 0)
+  LA_Token=$(printf "%s:%s" "$LA_Id" "$LA_Sk" | _base64)
   _debug "$LA_Token"
 
   return 0
