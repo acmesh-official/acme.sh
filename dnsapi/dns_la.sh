@@ -5,7 +5,7 @@
 # shellcheck disable=SC2034
 LA_Token='dns.la
 Site: dns.la
-Docs: https://github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_la
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_la
 Options:
  LA_Id APIID
  LA_Sk APISecret
