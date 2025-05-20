@@ -5,10 +5,10 @@
 # shellcheck disable=SC2034
 LA_Token='dns.la
 Site: dns.la
-Docs: https://www.dns.la/docs/ApiDoc
+Docs: https://github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_la
 Options:
  LA_Id APIID
- LA_Key APISecret
+ LA_Sk APISecret
  LA_Token 用冒号连接 APIID APISecret 再base64生成
 Issues: github.com/acmesh-official/acme.sh/issues/4257
 '
