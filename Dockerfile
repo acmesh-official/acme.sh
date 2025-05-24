@@ -13,6 +13,7 @@ RUN apk --no-cache add -f \
   tar \
   libidn \
   jq \
+  yq \
   cronie
 
 ENV LE_CONFIG_HOME=/acme.sh
