@@ -51,10 +51,11 @@ dns_wts_add() {
     _info "TXT record has been successfully added."
     # export TMP_RecordID="$(echo "$_response" | _egrep_o '"record_id"[[:space:]]*:[[:space:]]*[0-9]+' | cut -d ':' -f2 | tr -d ' ')"
     TMP_RecordID="$(echo "$_response" | _egrep_o '"record_id"[[:space:]]*:[[:space:]]*[0-9]+' | cut -d ':' -f2 | tr -d ' ')"
-    TMP_RECORD_FILE="/tmp/acme-wts/${fulldomain//\*/_}.record_id"
-    mkdir -p /tmp/acme-wts
-    echo "$TMP_RecordID" > "$TMP_RECORD_FILE"
-    _info "Saved TMP_RecordID=$TMP_RecordID to $TMP_RECORD_FILE"
+    # TMP_RECORD_FILE="/tmp/acme-wts/${fulldomain//\*/_}.record_id"
+    # mkdir -p /tmp/acme-wts
+    #  echo "$TMP_RecordID" > "$TMP_RECORD_FILE"
+    _saveaccountconf_mutable "_WTS_RecordID_$fulldomain" "$TMP_RecordID"
+    _info "Saved TMP_RecordID=$TMP_RecordID"
 
 
     return 0
@@ -94,18 +95,18 @@ dns_wts_rm() {
   # Now delete the TXT record
   _info "Trying to delete TXT record"
 
-  TMP_RECORD_FILE="/tmp/acme-wts/${fulldomain//\*/_}.record_id"
+  # TMP_RECORD_FILE="/tmp/acme-wts/${fulldomain//\*/_}.record_id"
 
-  if [ -f "$TMP_RECORD_FILE" ]; then
-    TMP_RecordID="$(cat "$TMP_RECORD_FILE")"
-    rm -f "$TMP_RECORD_FILE"
-    _debug "Loaded TMP_RecordID=$TMP_RecordID from $TMP_RECORD_FILE"
-  else
-    _err "TMP_RecordID file not found for domain $fulldomain"
-    return 1
-  fi
+  # if [ -f "$TMP_RECORD_FILE" ]; then
+    # TMP_RecordID="$(cat "$TMP_RECORD_FILE")"
+    # rm -f "$TMP_RECORD_FILE"
+    # _debug "Loaded TMP_RecordID=$TMP_RecordID from $TMP_RECORD_FILE"
+  # else
+    # _err "TMP_RecordID file not found for domain $fulldomain"
+    # return 1
+  # fi
 
-
+  TMP_RecordID="$(_readaccountconf_mutable "_WTS_RecordID_$fulldomain")"
 
   if [ -z "$TMP_RecordID" ]; then
     _err "TMP_RecordID not found. Cannot delete record."
