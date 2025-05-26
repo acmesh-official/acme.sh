@@ -12,7 +12,11 @@ Author: Lukas Wärner (CEO)
 WTS_API="https://wts-api.de/hosting/domain"
 ########  Public functions ######################
 
-TMP_RecordID=0 # Temporary Id of the creazed record will be safed here.
+# TMP_RecordID=0 # Temporary Id of the creazed record will be safed here.
+
+TMP_DIR="/tmp/acme-wts"
+mkdir -p "$TMP_DIR"
+TMP_RECORD_FILE="$TMP_DIR/${fulldomain//\*/_}.record_id"
 
 #Usage: dns_wts_add _acme-challenge.domain.waerner-techservices.de "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_wts_add() {
@@ -45,8 +49,14 @@ dns_wts_add() {
   _info "Trying to add TXT record"
   if _WTS_rest "POST" "/$_domain/records/add/txt/$_sub_domain/$txtvalue?WTS-API-Token=$WTS_API_Token"; then
     _info "TXT record has been successfully added."
-    TMP_RecordID="$(echo "$_response" | _egrep_o '"record_id"[[:space:]]*:[[:space:]]*"[^"]+"' | cut -d ':' -f2 | tr -d ' "')"  
-    _debug "Saved TMP_RecordID=$TMP_RecordID"
+    # export TMP_RecordID="$(echo "$_response" | _egrep_o '"record_id"[[:space:]]*:[[:space:]]*[0-9]+' | cut -d ':' -f2 | tr -d ' ')"
+    TMP_RecordID="$(echo "$_response" | _egrep_o '"record_id"[[:space:]]*:[[:space:]]*[0-9]+' | cut -d ':' -f2 | tr -d ' ')"
+    TMP_RECORD_FILE="/tmp/acme-wts/${fulldomain//\*/_}.record_id"
+    mkdir -p /tmp/acme-wts
+    echo "$TMP_RecordID" > "$TMP_RECORD_FILE"
+    _info "Saved TMP_RecordID=$TMP_RecordID to $TMP_RECORD_FILE"
+
+
     return 0
   else
     _err "Errors happened during adding the TXT record, response=$_response"
@@ -83,6 +93,27 @@ dns_wts_rm() {
   _sub_domain="$(echo "$_sub_domain" | _lower_case)"
   # Now delete the TXT record
   _info "Trying to delete TXT record"
+
+  TMP_RECORD_FILE="/tmp/acme-wts/${fulldomain//\*/_}.record_id"
+
+  if [ -f "$TMP_RECORD_FILE" ]; then
+    TMP_RecordID="$(cat "$TMP_RECORD_FILE")"
+    rm -f "$TMP_RECORD_FILE"
+    _debug "Loaded TMP_RecordID=$TMP_RecordID from $TMP_RECORD_FILE"
+  else
+    _err "TMP_RecordID file not found for domain $fulldomain"
+    return 1
+  fi
+
+
+
+  if [ -z "$TMP_RecordID" ]; then
+    _err "TMP_RecordID not found. Cannot delete record."
+    return 1
+  fi
+
+  _info "Using TMP_RecordID: $TMP_RecordID"
+
   if _WTS_rest "DELETE" "/$_domain/records/remove/$TMP_RecordID?WTS-API-Token=$WTS_API_Token"; then
     _info "TXT record has been successfully deleted."
     return 0
@@ -186,7 +217,11 @@ _WTS_rest() {
   echo "$_response" | grep -q "\"info\":\"success\""
 
 
-  if ! _contains "$_response" "\"success\":\True"; then
+  if _contains "$_response" '"error_desc":"Error while deleting dns-record."'; then
+    return 1
+  fi
+
+  if ! _contains "$_response" '"success":true'; then
     return 1
   fi
   _debug2 response "$_response"
