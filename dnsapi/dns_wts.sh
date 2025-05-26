@@ -176,6 +176,7 @@ _WTS_rest() {
   _debug2 response "$_response"
 
   if _contains "$_response" '"error_desc":"Error while deleting dns-record."'; then
+    _err "Error while deleting dns-record"
     return 1
   fi
 
