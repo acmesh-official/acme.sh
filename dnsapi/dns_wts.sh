@@ -1,4 +1,5 @@
-#!/bin/bash 
+#!/bin/bash
+
 dns_wts_info='Wärner Technologie Services
 Site: Waerner-TechServices.de
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_wts
@@ -9,15 +10,10 @@ Author: Lukas Wärner (CEO)
 '
 
 WTS_API="https://wts-api.de/hosting/domain"
+
 ########  Public functions ######################
 
-# TMP_RecordID=0 # Temporary Id of the creazed record will be safed here.
-
-# TMP_DIR="/tmp/acme-wts"
-# mkdir -p "$TMP_DIR"
-# TMP_RECORD_FILE="$TMP_DIR/${fulldomain//\*/_}.record_id"
-
-#Usage: dns_wts_add _acme-challenge.domain.waerner-techservices.de "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+# Add TXT record
 dns_wts_add() {
   fulldomain=$1
   txtvalue=$2
@@ -30,47 +26,36 @@ dns_wts_add() {
     return 1
   fi
 
-  # Now save the credentials.
   _saveaccountconf_mutable WTS_API_Token "$WTS_API_Token"
 
   if ! _get_root "$fulldomain"; then
-    _err "invalid domain" "$fulldomain"
+    _err "Invalid domain: $fulldomain"
     return 1
   fi
+
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  # convert to lower case
   _domain="$(echo "$_domain" | _lower_case)"
   _sub_domain="$(echo "$_sub_domain" | _lower_case)"
-  
-  # Now add the TXT record
+
   _info "Trying to add TXT record"
   if _WTS_rest "POST" "/$_domain/records/add/txt/$_sub_domain/$txtvalue?WTS-API-Token=$WTS_API_Token"; then
     _info "TXT record has been successfully added."
-    # export TMP_RecordID="$(echo "$_response" | _egrep_o '"record_id"[[:space:]]*:[[:space:]]*[0-9]+' | cut -d ':' -f2 | tr -d ' ')"
-    TMP_RecordID="$(echo "$_response" | _egrep_o '"record_id"[[:space:]]*:[[:space:]]*[0-9]+' | cut -d ':' -f2 | tr -d ' ')"
-    # TMP_RECORD_FILE="/tmp/acme-wts/${fulldomain//\*/_}.record_id"
-    # mkdir -p /tmp/acme-wts
-    #  echo "$TMP_RecordID" > "$TMP_RECORD_FILE"
+
+    TMP_RecordID="$(echo "$_response" | _egrep_o '"record_id"[[:space:]]*:[[:space:]]*[0-9]+' | grep -o '[0-9]\+')"
     clean_domain="${fulldomain//\*/_wildcard_}"
-    _saveaccountconf_mutable "_WTS_RecordID" "$TMP_RecordID"
-    
+
+    _saveaccountconf_mutable "SAVED__WTS_RecordID__$clean_domain" "$TMP_RecordID"
     _info "Saved TMP_RecordID=$TMP_RecordID"
-
-
     return 0
   else
     _err "Errors happened during adding the TXT record, response=$_response"
     return 1
   fi
-
-
 }
 
-#Usage: fulldomain txtvalue
-#Usage: dns_wts_rm _acme-challenge.domain.waerner-techservices.de "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
-#Remove the txt record after validation.
+# Remove TXT record
 dns_wts_rm() {
   fulldomain=$1
   txtvalue=$2
@@ -78,37 +63,24 @@ dns_wts_rm() {
   WTS_API_Token="${WTS_API_Token:-$(_readaccountconf_mutable WTS_API_Token)}"
   if [ -z "$WTS_API_Token" ]; then
     _err "You must export variable: WTS_API_Token"
-    _err "The API Key for your WTS account is necessary."
-    _err "You can look it up in your WTS account."
     return 1
   fi
 
   if ! _get_root "$fulldomain"; then
-    _err "invalid domain" "$fulldomain"
+    _err "Invalid domain: $fulldomain"
     return 1
   fi
+
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  # convert to lower case
   _domain="$(echo "$_domain" | _lower_case)"
   _sub_domain="$(echo "$_sub_domain" | _lower_case)"
-  # Now delete the TXT record
+
   _info "Trying to delete TXT record"
 
-  # TMP_RECORD_FILE="/tmp/acme-wts/${fulldomain//\*/_}.record_id"
-
-  # if [ -f "$TMP_RECORD_FILE" ]; then
-    # TMP_RecordID="$(cat "$TMP_RECORD_FILE")"
-    # rm -f "$TMP_RECORD_FILE"
-    # _debug "Loaded TMP_RecordID=$TMP_RecordID from $TMP_RECORD_FILE"
-  # else
-    # _err "TMP_RecordID file not found for domain $fulldomain"
-    # return 1
-  # fi
-
   clean_domain="${fulldomain//\*/_wildcard_}"
-  TMP_RecordID="$(_readaccountconf_mutable "_WTS_RecordID")"
+  TMP_RecordID="$(_readaccountconf_mutable "SAVED__WTS_RecordID__$clean_domain")"
 
   if [ -z "$TMP_RecordID" ]; then
     _err "TMP_RecordID not found. Cannot delete record."
@@ -121,22 +93,13 @@ dns_wts_rm() {
     _info "TXT record has been successfully deleted."
     return 0
   else
-    if [ -z "$TMP_RecordID" ]; then
-     _err "Errors happened during deleting the TXT record, because the temporary record-id from creation is not set."
-     return 1
-    else:
-     _err "Errors happened during deleting the TXT record, response=$_response"
-     return 1
-    fi
+    _err "Errors happened during deleting the TXT record, response=$_response"
+    return 1
   fi
-
 }
 
 ####################  Private functions below ##################################
-#_acme-challenge.www.domain.com
-#returns
-# _sub_domain=_acme-challenge.www
-# _domain=domain.com
+
 _get_root() {
   domain="$1"
   i=1
@@ -150,11 +113,9 @@ _get_root() {
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
-      #not valid
       return 1
     fi
 
-    #if _contains "$domain_data" "\""$h"\"\:"; then
     if _contains "$domain_data" "\"""$h""\"\:"; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
@@ -166,8 +127,7 @@ _get_root() {
   return 1
 }
 
-#send get request to api
-# $1 has to set the api-function
+# Send GET request
 _WTS_get() {
   url="$WTS_API/$1"
   export _H1="Authorization: Bearer $WTS_API_Token"
@@ -183,12 +143,8 @@ _WTS_get() {
   fi
 }
 
+# REST request
 _WTS_rest() {
-  url="$WTS_API"
-  export _H1="Authorization: Bearer $WTS_API_Token"
-  export _H2="Content-Type: application/x-www-form-urlencoded"
-  
-
   method="$1"
   path="$2"
   full_url="$WTS_API$path"
@@ -217,16 +173,10 @@ _WTS_rest() {
   fi
 
   _debug2 response "$_response"
-  echo "$_response" | grep -q "\"info\":\"success\""
-
 
   if _contains "$_response" '"error_desc":"Error while deleting dns-record."'; then
     return 1
   fi
 
-  if ! _contains "$_response" '"success":true'; then
-    return 1
-  fi
-  _debug2 response "$_response"
-  return 0
+  echo "$_response" | grep -q "\"success\":true"
 }
