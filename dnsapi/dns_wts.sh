@@ -88,12 +88,13 @@ dns_wts_rm() {
     _info "TXT record has been successfully deleted."
     return 0
   else
-    if $WTS_API_Token == 0:
+    if [ -z "$TMP_RecordID" ]; then
      _err "Errors happened during deleting the TXT record, because the temporary record-id from creation is not set."
      return 1
     else:
      _err "Errors happened during deleting the TXT record, response=$_response"
      return 1
+    fi
   fi
 
 }
