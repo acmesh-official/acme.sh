@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2034
 
 dns_wts_info='Wärner Technologie Services
 Site: Waerner-TechServices.de
