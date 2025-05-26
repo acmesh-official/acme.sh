@@ -14,9 +14,9 @@ WTS_API="https://wts-api.de/hosting/domain"
 
 # TMP_RecordID=0 # Temporary Id of the creazed record will be safed here.
 
-TMP_DIR="/tmp/acme-wts"
-mkdir -p "$TMP_DIR"
-TMP_RECORD_FILE="$TMP_DIR/${fulldomain//\*/_}.record_id"
+# TMP_DIR="/tmp/acme-wts"
+# mkdir -p "$TMP_DIR"
+# TMP_RECORD_FILE="$TMP_DIR/${fulldomain//\*/_}.record_id"
 
 #Usage: dns_wts_add _acme-challenge.domain.waerner-techservices.de "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_wts_add() {
