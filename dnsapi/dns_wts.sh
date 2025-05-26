@@ -13,6 +13,8 @@ WTS_API="https://wts-api.de/hosting/domain"
 
 ########  Public functions ######################
 
+TMP_RecordID=0 # Temporary Id of the creazed record will be safed here.
+
 #Usage: dns_wts_add _acme-challenge.domain.waerner-techservices.de "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_wts_add() {
   fulldomain=$1
@@ -41,7 +43,8 @@ dns_wts_add() {
   _sub_domain="$(echo "$_sub_domain" | _lower_case)"
   # Now add the TXT record
   _info "Trying to add TXT record"
-  if _WTS_rest "POST" "add_record=$_domain&praefix=$_sub_domain&type=TXT&content=$txtvalue"; then
+  # if _WTS_rest "POST" "add_record=$_domain&praefix=$_sub_domain&type=TXT&content=$txtvalue"; then
+  if _WTS_rest "POST" "/$_domain/records/add/txt/$_sub_domain/$txtvalue?WTS-API-Token=$WTS_API_Token"; then
     _info "TXT record has been successfully added."
     return 0
   else
@@ -78,7 +81,7 @@ dns_wts_rm() {
   _sub_domain="$(echo "$_sub_domain" | _lower_case)"
   # Now delete the TXT record
   _info "Trying to delete TXT record"
-  if _WTS_rest "DELETE" "del_record=$_domain&praefix=$_sub_domain&type=TXT&content=$txtvalue"; then
+  if _WTS_rest "DELETE" "/$_domain/records/remove/$TMP_RecordID?WTS-API-Token=$WTS_API_Token"; then
     _info "TXT record has been successfully deleted."
     return 0
   else
