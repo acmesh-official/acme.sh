@@ -5,7 +5,7 @@ Site: Waerner-TechServices.de
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_wts
 Options:
  WTS_API_Token API Token
-Issues: github.com/acmesh-official/acme.sh/issues/4419
+Issues: github.com/acmesh-official/acme.sh/issues/6372
 Author: Lukas Wärner (CEO)
 '
 
@@ -41,16 +41,19 @@ dns_wts_add() {
   # convert to lower case
   _domain="$(echo "$_domain" | _lower_case)"
   _sub_domain="$(echo "$_sub_domain" | _lower_case)"
+  
   # Now add the TXT record
   _info "Trying to add TXT record"
-  # if _WTS_rest "POST" "add_record=$_domain&praefix=$_sub_domain&type=TXT&content=$txtvalue"; then
   if _WTS_rest "POST" "/$_domain/records/add/txt/$_sub_domain/$txtvalue?WTS-API-Token=$WTS_API_Token"; then
     _info "TXT record has been successfully added."
+    TMP_RecordID="$(echo "$_response" | _egrep_o '"record_id"[[:space:]]*:[[:space:]]*"[^"]+"' | cut -d ':' -f2 | tr -d ' "')"  
+    _debug "Saved TMP_RecordID=$TMP_RecordID"
     return 0
   else
     _err "Errors happened during adding the TXT record, response=$_response"
     return 1
   fi
+
 
 }
 
@@ -85,8 +88,12 @@ dns_wts_rm() {
     _info "TXT record has been successfully deleted."
     return 0
   else
-    _err "Errors happened during deleting the TXT record, response=$_response"
-    return 1
+    if $WTS_API_Token == 0:
+     _err "Errors happened during deleting the TXT record, because the temporary record-id from creation is not set."
+     return 1
+    else:
+     _err "Errors happened during deleting the TXT record, response=$_response"
+     return 1
   fi
 
 }
