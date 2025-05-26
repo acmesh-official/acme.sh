@@ -1,5 +1,4 @@
-#!/usr/bin/env sh
-# shellcheck disable=SC2034
+#!/bin/bash 
 dns_wts_info='Wärner Technologie Services
 Site: Waerner-TechServices.de
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_wts
