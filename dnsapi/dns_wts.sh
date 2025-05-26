@@ -55,7 +55,7 @@ dns_wts_add() {
     # mkdir -p /tmp/acme-wts
     #  echo "$TMP_RecordID" > "$TMP_RECORD_FILE"
     clean_domain="${fulldomain//\*/_wildcard_}"
-    _saveaccountconf_mutable "_WTS_RecordID_$clean_domain" "$TMP_RecordID"
+    _saveaccountconf_mutable "_WTS_RecordID" "$TMP_RecordID"
     
     _info "Saved TMP_RecordID=$TMP_RecordID"
 
@@ -109,7 +109,7 @@ dns_wts_rm() {
   # fi
 
   clean_domain="${fulldomain//\*/_wildcard_}"
-  TMP_RecordID="$(_readaccountconf_mutable "_WTS_RecordID_$clean_domain")"
+  TMP_RecordID="$(_readaccountconf_mutable "_WTS_RecordID")"
 
   if [ -z "$TMP_RecordID" ]; then
     _err "TMP_RecordID not found. Cannot delete record."
