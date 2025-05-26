@@ -5,13 +5,13 @@
 #
 # User must provide login data and URL (incl. port) to DirectAdmin.
 # You can create login key, by using the Login Keys function
-# ( https://da.example.com:8443/CMD_LOGIN_KEYS ), which only has access to
+# ( https://example.com:2222/CMD_LOGIN_KEYS ), which only has access to
 # - CMD_API_SSL
 #
 # Report bugs to https://github.com/Eddict/acme.sh/issues
 #
 # Values to export:
-# export DEPLOY_DA_Api="https://remoteUser:remotePassword@da.example.com:8443"
+# export DEPLOY_DA_Api="https://da_user:da_passwd@example.com:2222"
 # export DEPLOY_DA_Api_Insecure=1
 #
 # Set DEPLOY_DA_Api_Insecure to 1 for insecure and 0 for secure -> difference is
