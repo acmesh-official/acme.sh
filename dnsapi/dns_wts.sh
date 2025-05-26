@@ -10,7 +10,6 @@ Author: Lukas Wärner (CEO)
 '
 
 WTS_API="https://wts-api.de/hosting/domain"
-
 ########  Public functions ######################
 
 TMP_RecordID=0 # Temporary Id of the creazed record will be safed here.
@@ -109,7 +108,9 @@ _get_root() {
   i=1
   p=1
 
-  _WTS_get "get_domains"
+  WTS_API_Token="${WTS_API_Token:-$(_readaccountconf_mutable WTS_API_Token)}"
+
+  _WTS_get "list?WTS-API-Token=$WTS_API_Token"
   domain_data=$_response
 
   while true; do
@@ -134,7 +135,7 @@ _get_root() {
 #send get request to api
 # $1 has to set the api-function
 _WTS_get() {
-  url="$WTS_API?$1"
+  url="$WTS_API/$1"
   export _H1="Authorization: Bearer $WTS_API_Token"
 
   _response=$(_get "$url")
@@ -152,15 +153,40 @@ _WTS_rest() {
   url="$WTS_API"
   export _H1="Authorization: Bearer $WTS_API_Token"
   export _H2="Content-Type: application/x-www-form-urlencoded"
-  _response=$(_post "$2" "$url" "" "$1")
+  
+
+  method="$1"
+  path="$2"
+  full_url="$WTS_API$path"
+
+  export _H1="Authorization: Bearer $WTS_API_Token"
+  export _H2="Content-Type: application/x-www-form-urlencoded"
+
+  if [ "$method" = "POST" ]; then
+    _response=$(_post "" "$full_url")
+  elif [ "$method" = "DELETE" ]; then
+    _response=$(_post "" "$full_url" "" "DELETE")
+  else
+    _response=$(_get "$full_url")
+  fi
 
   if _contains "$_response" "429 Too Many Requests"; then
     _info "API throttled, sleeping to reset the limit"
     _sleep 10
-    _response=$(_post "$2" "$url" "" "$1")
+    if [ "$method" = "POST" ]; then
+      _response=$(_post "" "$full_url")
+    elif [ "$method" = "DELETE" ]; then
+      _response=$(_post "" "$full_url" "" "DELETE")
+    else
+      _response=$(_get "$full_url")
+    fi
   fi
 
-  if ! _contains "$_response" "\"info\":\"success\""; then
+  _debug2 response "$_response"
+  echo "$_response" | grep -q "\"info\":\"success\""
+
+
+  if ! _contains "$_response" "\"success\":\True"; then
     return 1
   fi
   _debug2 response "$_response"
