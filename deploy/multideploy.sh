@@ -191,7 +191,7 @@ _export_envs() {
   IFS=$(printf '\n')
   echo "$_env_list" | yq e -r 'to_entries | .[] | .key + "=" + .value' | while IFS='=' read -r _key _value; do
     _value=$(eval echo "$_value")
-    _savedomainconf "$_key" "$_value"
+    _savedeployconf "$_key" "$_value"
     _secure_debug3 "Saved $_key" "$_value"
   done
   IFS=$OLDIFS
