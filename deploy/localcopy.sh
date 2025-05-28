@@ -93,6 +93,7 @@ localcopy_deploy() {
   _savedeployconf DEPLOY_LOCALCOPY_CERTKEY "$DEPLOY_LOCALCOPY_CERTKEY"
   _savedeployconf DEPLOY_LOCALCOPY_FULLCHAIN "$DEPLOY_LOCALCOPY_FULLCHAIN"
   _savedeployconf DEPLOY_LOCALCOPY_CA "$DEPLOY_LOCALCOPY_CA"
+  _savedeployconf DEPLOY_LOCALCOPY_RELOADCMD "$DEPLOY_LOCALCOPY_RELOADCMD" "base64"
 
   _info "$(__green ""localcopy" deploy success")"
   return 0
