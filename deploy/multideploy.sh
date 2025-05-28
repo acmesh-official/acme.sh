@@ -72,13 +72,17 @@ multideploy_deploy() {
   _debug3 "File" "$file"
 
   # Deploy to services
-  _deploy_services "$file"
+  if _deploy_services "$file"; then
+    _deploymentOk=0
+  else
+    _deploymentOk=1
+  fi
 
   # Save deployhook for renewals
   _debug2 "Setting Le_DeployHook"
   _savedomainconf "Le_DeployHook" "multideploy"
 
-  return 0
+  return "$_deploymentOk"
 }
 
 # Description:
@@ -235,15 +239,26 @@ _deploy_services() {
 
   _service_list=$(printf '%s\n' "$_services")
 
+  _errors=""
   for _service in $(printf '%s\n' "$_service_list"); do
     _debug2 "Service" "$_service"
     _hook=$(yq e ".services[] | select(.name == \"$_service\").hook" "$_deploy_file")
     _envs=$(yq e ".services[] | select(.name == \"$_service\").environment[]" "$_deploy_file")
 
     _export_envs "$_envs"
-    _deploy_service "$_service" "$_hook"
+    if ! _deploy_service "$_service" "$_hook"; then
+      _errors="$_service, $_errors"
+    fi
     _clear_envs "$_envs"
   done
+
+  if [ -n "$_errors" ]; then
+    _err "Deployment failed for services: $_errors"
+    return 1
+  else
+    _debug "All services deployed successfully."
+    return 0
+  fi
 }
 
 # Description: Deploys a service using the specified hook.
@@ -261,4 +276,5 @@ _deploy_service() {
 
   _info "$(__green "Deploying") to '$_name' using '$_hook'"
   _deploy "$_cdomain" "$_hook"
+  return $?
 }
