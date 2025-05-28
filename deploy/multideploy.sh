@@ -72,17 +72,14 @@ multideploy_deploy() {
   _debug3 "File" "$file"
 
   # Deploy to services
-  if _deploy_services "$file"; then
-    _deploymentOk=0
-  else
-    _deploymentOk=1
-  fi
+  _deploy_services "$file"
+  _exitCode="$?"
 
   # Save deployhook for renewals
   _debug2 "Setting Le_DeployHook"
   _savedomainconf "Le_DeployHook" "multideploy"
 
-  return "$_deploymentOk"
+  return "$_exitCode"
 }
 
 # Description:
@@ -239,7 +236,8 @@ _deploy_services() {
 
   _service_list=$(printf '%s\n' "$_services")
 
-  _errors=""
+  _failedServices=""
+  _failedCount=0
   for _service in $(printf '%s\n' "$_service_list"); do
     _debug2 "Service" "$_service"
     _hook=$(yq e ".services[] | select(.name == \"$_service\").hook" "$_deploy_file")
@@ -247,18 +245,21 @@ _deploy_services() {
 
     _export_envs "$_envs"
     if ! _deploy_service "$_service" "$_hook"; then
-      _errors="$_service, $_errors"
+      _failedServices="$_service, $_failedServices"
+      _failedCount=$((_failedCount + 1))
     fi
     _clear_envs "$_envs"
   done
 
-  if [ -n "$_errors" ]; then
-    _err "Deployment failed for services: $_errors"
-    return 1
+  _debug3 "Failed services" "$_failedServices"
+  _debug2 "Failed count" "$_failedCount"
+  if [ -n "$_failedServices" ]; then
+    _info "$(__red "Deployment failed") for services: $_failedServices"
   else
     _debug "All services deployed successfully."
-    return 0
   fi
+
+  return "$_failedCount"
 }
 
 # Description: Deploys a service using the specified hook.
