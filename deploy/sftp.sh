@@ -34,7 +34,6 @@ sftp_deploy() {
   _debug _cfullchain "$_cfullchain"
 
   # HOSTS is required to login by sftp to remote host.
-  _migratedeployconf Le_Deploy_sftp_hosts DEPLOY_SFTP_HOSTS
   _getdeployconf DEPLOY_SFTP_HOSTS
   _debug2 DEPLOY_SFTP_HOSTS "$DEPLOY_SFTP_HOSTS"
   if [ -z "$DEPLOY_SFTP_HOSTS" ]; then
@@ -45,7 +44,6 @@ sftp_deploy() {
 
   # KEYFILE is optional.
   # If provided then private key will be copied to provided filename.
-  _migratedeployconf Le_Deploy_sftp_keyfile DEPLOY_SFTP_KEYFILE
   _getdeployconf DEPLOY_SFTP_KEYFILE
   _debug2 DEPLOY_SFTP_KEYFILE "$DEPLOY_SFTP_KEYFILE"
   if [ -n "$DEPLOY_SFTP_KEYFILE" ]; then
@@ -54,7 +52,6 @@ sftp_deploy() {
 
   # CERTFILE is optional.
   # If provided then certificate will be copied or appended to provided filename.
-  _migratedeployconf Le_Deploy_sftp_certfile DEPLOY_SFTP_CERTFILE
   _getdeployconf DEPLOY_SFTP_CERTFILE
   _debug2 DEPLOY_SFTP_CERTFILE "$DEPLOY_SFTP_CERTFILE"
   if [ -n "$DEPLOY_SFTP_CERTFILE" ]; then
@@ -63,7 +60,6 @@ sftp_deploy() {
 
   # CAFILE is optional.
   # If provided then CA intermediate certificate will be copied or appended to provided filename.
-  _migratedeployconf Le_Deploy_sftp_cafile DEPLOY_SFTP_CAFILE
   _getdeployconf DEPLOY_SFTP_CAFILE
   _debug2 DEPLOY_SFTP_CAFILE "$DEPLOY_SFTP_CAFILE"
   if [ -n "$DEPLOY_SFTP_CAFILE" ]; then
@@ -72,7 +68,6 @@ sftp_deploy() {
 
   # FULLCHAIN is optional.
   # If provided then fullchain certificate will be copied or appended to provided filename.
-  _migratedeployconf Le_Deploy_sftp_fullchain DEPLOY_SFTP_FULLCHAIN
   _getdeployconf DEPLOY_SFTP_FULLCHAIN
   _debug2 DEPLOY_SFTP_FULLCHAIN "$DEPLOY_SFTP_FULLCHAIN"
   if [ -n "$DEPLOY_SFTP_FULLCHAIN" ]; then
