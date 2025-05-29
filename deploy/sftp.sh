@@ -118,10 +118,10 @@ sftp_deploy() {
   for _sftp_host in $_sftp_hosts ; do
     sftp "$_sftp_host"\
 <<EOF
-put $_ckey $_ckey_path
-put $_ccert $_ccert_path
-put $_cca $_cca_path
-put $_cfullchain $_cfullchain_path
+put "$_ckey" "$_ckey_path"
+put "$_ccert" "$_ccert_path"
+put "$_cca" "$_cca_path"
+put "$_cfullchain" "$_cfullchain_path"
 EOF
     _sftp_error="$?"
 
