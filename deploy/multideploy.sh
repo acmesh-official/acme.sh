@@ -271,5 +271,4 @@ _deploy_service() {
 
   _info "$(__green "Deploying") to '$_name' using '$_hook'"
   _deploy "$_cdomain" "$_hook"
-  return $?
 }
