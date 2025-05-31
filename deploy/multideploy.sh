@@ -49,12 +49,6 @@ multideploy_deploy() {
   _debug _cfullchain "$_cfullchain"
   _debug _cpfx "$_cpfx"
 
-  DOMAIN_DIR=$_cdomain
-  if echo "$DOMAIN_PATH" | grep -q "$ECC_SUFFIX"; then
-    DOMAIN_DIR="$DOMAIN_DIR"_ecc
-  fi
-  _debug2 "DOMAIN_DIR" "$DOMAIN_DIR"
-
   MULTIDEPLOY_FILENAME="${MULTIDEPLOY_FILENAME:-$(_getdeployconf MULTIDEPLOY_FILENAME)}"
   if [ -z "$MULTIDEPLOY_FILENAME" ]; then
     MULTIDEPLOY_FILENAME="multideploy.yml"
