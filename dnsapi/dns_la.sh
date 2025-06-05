@@ -3,7 +3,7 @@
 # LA_Id="123"
 # LA_Sk="456"
 # shellcheck disable=SC2034
-LA_Token='dns.la
+dns_la_info='dns.la
 Site: dns.la
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_la
 Options:
