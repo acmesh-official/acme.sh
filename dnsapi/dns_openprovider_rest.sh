@@ -113,7 +113,7 @@ _openprovider_rest() {
   export _H1="Content-Type: application/json"
   export _H2="Accept: application/json"
   export _H3="Authorization: Bearer $openproviderauthtoken"
-    
+
   if [ "$httpmethod" != "GET" ]; then
     response="$(_post "$requestbody" "$OPENPROVIDER_API_URL/$queryparameters" "" "$httpmethod")"
   else
