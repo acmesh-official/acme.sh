@@ -113,14 +113,8 @@ _openprovider_rest() {
   export _H1="Content-Type: application/json"
   export _H2="Accept: application/json"
   export _H3="Authorization: Bearer $openproviderauthtoken"
-
-  _debug httpmethod "$httpmethod"
-  _debug requestfullurl "$OPENPROVIDER_API_URL/$queryparameters"
-  _debug queryparameters "$queryparameters"
-
+    
   if [ "$httpmethod" != "GET" ]; then
-    _debug requestbody "$requestbody"
-
     response="$(_post "$requestbody" "$OPENPROVIDER_API_URL/$queryparameters" "" "$httpmethod")"
   else
     response="$(_get "$OPENPROVIDER_API_URL/$queryparameters")"
@@ -145,7 +139,6 @@ _openprovider_rest_login() {
   loginresponse="$(_post "$loginrequestbody" "$loginrequesturl" "" "POST")"
 
   openproviderauthtoken="$(printf "%s\n" "$loginresponse" | _egrep_o '"token" *: *"[^"]*' | _head_n 1 | sed 's#^"token" *: *"##')"
-  _debug openproviderauthtoken "$openproviderauthtoken"
 
   export openproviderauthtoken
 }
