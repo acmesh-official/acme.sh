@@ -186,8 +186,8 @@ synology_dsm_deploy() {
       if [ -n "$SYNO_USE_TEMP_ADMIN" ]; then
         _getdeployconf SYNO_LOCAL_HOSTNAME
         _debug SYNO_LOCAL_HOSTNAME "${SYNO_LOCAL_HOSTNAME:-}"
-        if [ "$SYNO_LOCAL_HOSTNAME" != "1" ] && [ "$SYNO_LOCAL_HOSTNAME" == "$SYNO_HOSTNAME" ]; then
-          if [ "$SYNO_HOSTNAME" != "localhost" ] && [ "$SYNO_HOSTNAME" != "127.0.0.1" ]; then
+        if [ "$SYNO_HOSTNAME" != "localhost" ] && [ "$SYNO_HOSTNAME" != "127.0.0.1" ]; then
+          if [ "$SYNO_LOCAL_HOSTNAME" != "1" ]; then
             _err "SYNO_USE_TEMP_ADMIN=1 only support local deployment, though if you are sure that the hostname $SYNO_HOSTNAME is targeting to your **current local machine**, execute 'export SYNO_LOCAL_HOSTNAME=1' then rerun."
             return 1
           fi
@@ -320,7 +320,7 @@ synology_dsm_deploy() {
     _cleardeployconf SYNO_DEVICE_ID
     _cleardeployconf SYNO_DEVICE_NAME
     _savedeployconf SYNO_USE_TEMP_ADMIN "$SYNO_USE_TEMP_ADMIN"
-    _savedeployconf SYNO_LOCAL_HOSTNAME "$SYNO_HOSTNAME"
+    _savedeployconf SYNO_LOCAL_HOSTNAME "$SYNO_LOCAL_HOSTNAME"
   else
     _savedeployconf SYNO_USERNAME "$SYNO_USERNAME"
     _savedeployconf SYNO_PASSWORD "$SYNO_PASSWORD"
@@ -411,7 +411,7 @@ _temp_admin_create() {
   _username="$1"
   _password="$2"
   synouser --del "$_username" >/dev/null 2>/dev/null
-  synouser --add "$_username" "$_password" "" 0 "scruelt@hotmail.com" 0 >/dev/null
+  synouser --add "$_username" "$_password" "" 0 "" 0 >/dev/null
 }
 
 _temp_admin_cleanup() {

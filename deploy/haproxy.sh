@@ -357,7 +357,7 @@ haproxy_deploy() {
         _info "Update existing certificate '${_pem}' over HAProxy ${_socketname}."
       fi
       _socat_cert_set_cmd="echo -e '${_cmdpfx}set ssl cert ${_pem} <<\n$(cat "${_pem}")\n' | socat '${_statssock}' - | grep -q 'Transaction created'"
-      _debug _socat_cert_set_cmd "${_socat_cert_set_cmd}"
+      _secure_debug _socat_cert_set_cmd "${_socat_cert_set_cmd}"
       eval "${_socat_cert_set_cmd}"
       _ret=$?
       if [ "${_ret}" != "0" ]; then
