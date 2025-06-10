@@ -37,7 +37,6 @@ plex_deploy() {
 
   #_DEPLOY_PLEX_WIKI="https://github.com/acmesh-official/acme.sh/wiki/deploy-to-plex"
 
-
   _plex_to_pkcs() {
     # The existing _toPkcs command doesn't have an option to specify cipher, so copied here
     # to force using a modern cipher, as required by PMS:
@@ -50,7 +49,6 @@ plex_deploy() {
 
     ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -certpbe AES-256-CBC -keypbe AES-256-CBC -macalg SHA256 -inkey "$_ckey" -in "$_ccert" -certfile "$_cca" -password "pass:$pfxPassword"
   }
-
 
   if [ -z "$PLEX_PKCS12_password" ]; then
     _err "The PLEX_PKCS12_password variable is not defined. Plex requires a password for the certificate."
@@ -76,7 +74,7 @@ plex_deploy() {
 
   _debug "Generate import pkcs12"
 
-  if !  _plex_to_pkcs "$PLEX_PKCS12_file" "$_ckey" "$_ccert" "$_cca" "$PLEX_PKCS12_password"; then
+  if ! _plex_to_pkcs "$PLEX_PKCS12_file" "$_ckey" "$_ccert" "$_cca" "$PLEX_PKCS12_password"; then
     _err "Error generating pkcs12. Please re-run with --debug and report a bug."
     return 1
   fi
