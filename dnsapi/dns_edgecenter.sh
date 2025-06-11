@@ -1,13 +1,13 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
-
-# EdgeCenter DNS API integration for acme.sh
-# Author: Konstantin Ruchev <konstantin.ruchev@edgecenter.ru>
-dns_edgecenter_info='edgecenter DNS API
-Site: https://edgecenter.ru
-Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_edgecenter
+dns_edgecenter_info='EdgeCenter.ru
+Site: EdgeCenter.ru
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_edgecenter
 Options:
- EDGECENTER_API_KEY auth APIKey'
+ EDGECENTER_API_KEY API Key
+Issues: github.com/acmesh-official/acme.sh/issues/6313
+Author: Konstantin Ruchev <konstantin.ruchev@edgecenter.ru>
+'
 
 EDGECENTER_API="https://api.edgecenter.ru"
 DOMAIN_TYPE=
