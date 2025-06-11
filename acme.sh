@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.1.1
+VER=3.1.2
 
 PROJECT_NAME="acme.sh"
 
@@ -1017,7 +1017,7 @@ _digest() {
 
   outputhex="$2"
 
-  if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ] || [ "$alg" = "md5" ]; then
+  if [ "$alg" = "sha3-256" ] || [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ] || [ "$alg" = "md5" ]; then
     if [ "$outputhex" ]; then
       ${ACME_OPENSSL_BIN:-openssl} dgst -"$alg" -hex | cut -d = -f 2 | tr -d ' '
     else
@@ -5503,6 +5503,13 @@ renew() {
   Le_Keylength="$(_readdomainconf Le_Keylength)"
   if [ -z "$Le_Keylength" ]; then
     Le_Keylength=2048
+  fi
+  if [ "$CA_LETSENCRYPT_V2" = "$Le_API" ]; then
+    #letsencrypt doesn't support ocsp anymore
+    if [ "$Le_OCSP_Staple" ]; then
+      export Le_OCSP_Staple=""
+      _cleardomainconf Le_OCSP_Staple
+    fi
   fi
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain" "$Le_Valid_From" "$Le_Valid_To"
   res="$?"
