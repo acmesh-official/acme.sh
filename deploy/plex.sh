@@ -14,6 +14,8 @@
 # PLEX_PKCS12_password -- Password for the PKCS file. Required by plex
 # PLEX_PKCS12_file -- Full PKCS file location, otherwise defaults to placing with the other certs in that domain with a pfx extension
 # PLEX_sudo_required -- 1 = True, 0 = False. You may need to add "plex ALL=(ALL) NOPASSWD:/bin/systemctl restart plexmediaserver.service" to your sudo'ers file
+# PLEX_RELOAD -- Optional custom command to restart Plex. If not set, the script will try
+#                to restart the service via systemctl when Plex is detected as active.
 
 ########  Public functions #####################
 
@@ -34,6 +36,7 @@ plex_deploy() {
   _getdeployconf PLEX_PKCS12_password
   _getdeployconf PLEX_PKCS12_file
   _getdeployconf PLEX_sudo_required
+  _getdeployconf PLEX_RELOAD
 
   #_DEPLOY_PLEX_WIKI="https://github.com/acmesh-official/acme.sh/wiki/deploy-to-plex"
 
@@ -69,8 +72,9 @@ plex_deploy() {
   fi
 
   _debug2 PLEX_sudo_required "$PLEX_sudo_required"
+  _debug2 PLEX_RELOAD "$PLEX_RELOAD"
 
-  _reload_cmd=""
+  _reload_cmd="$PLEX_RELOAD"
 
   _debug "Generate import pkcs12"
 
@@ -79,12 +83,14 @@ plex_deploy() {
     return 1
   fi
 
-  if systemctl -q is-active plexmediaserver; then
-    _debug2 "Plex is active. Restarting..."
-    if [ -z "$PLEX_sudo_required" ]; then
-      _reload_cmd="systemctl restart plexmediaserver.service"
-    else
-      _reload_cmd="sudo systemctl restart plexmediaserver.service"
+  if [ -z "$_reload_cmd" ]; then
+    if systemctl -q is-active plexmediaserver; then
+      _debug2 "Plex is active. Restarting..."
+      if [ "$PLEX_sudo_required" = "1" ]; then
+        _reload_cmd="sudo systemctl restart plexmediaserver.service"
+      else
+        _reload_cmd="systemctl restart plexmediaserver.service"
+      fi
     fi
   fi
   if [ -z "$_reload_cmd" ]; then
@@ -105,6 +111,7 @@ plex_deploy() {
   _savedeployconf PLEX_PKCS12_password "$PLEX_PKCS12_password"
   _savedeployconf PLEX_PKCS12_file "$PLEX_PKCS12_file"
   _savedeployconf PLEX_sudo_required "$PLEX_sudo_required"
+  _savedeployconf PLEX_RELOAD "$PLEX_RELOAD"
 
   return 0
 }
