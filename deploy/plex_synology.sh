@@ -1,5 +1,4 @@
 #!/usr/bin/bash
-# shellcheck disable=SC2154
 
 # Here is a script to deploy cert to local Plex Media Server on Synology.
 # Based on https://www.snbforums.com/threads/issue-lets-encrypt-certificate-with-acme-sh-use-it-with-synology-dsm-and-plex.70395/
