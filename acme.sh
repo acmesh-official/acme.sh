@@ -1401,6 +1401,12 @@ _ss() {
     return 0
   fi
 
+  if [ "$(uname)" = "AIX" ]; then
+    _debug "Using: AIX netstat"
+    netstat -an | grep "^tcp" | grep "LISTEN" | grep "\.$_port "
+    return 0
+  fi
+
   if _exists "netstat"; then
     _debug "Using: netstat"
     if netstat -help 2>&1 | grep "\-p proto" >/dev/null; then
