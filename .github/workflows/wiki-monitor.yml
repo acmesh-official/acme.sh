@@ -15,7 +15,7 @@ jobs:
           echo "Time: $(date '+%Y-%m-%d %H:%M:%S')" >> wiki-change-msg.txt
           echo "" >> wiki-change-msg.txt
           cat "$GITHUB_EVENT_PATH"
-          jq -r '.gollum.pages // [] | .[] | "Page: \(.html_url) (action: \(.action))"' "$GITHUB_EVENT_PATH" >> wiki-change-msg.txt
+          jq -r '.pages // [] | .[] | "Page: \(.html_url) (action: \(.action))"' "$GITHUB_EVENT_PATH" >> wiki-change-msg.txt
 
       - name: Create issue to notify Neilpang
         uses: peter-evans/create-issue-from-file@v5
