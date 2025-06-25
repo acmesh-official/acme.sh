@@ -1,0 +1,32 @@
+name: Notify via Issue on Wiki Edit
+
+on:
+  gollum:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate wiki change message
+        run: |
+          echo "Wiki page:" > wiki-change-msg.txt
+          echo "User: ${{ github.actor }}" >> wiki-change-msg.txt
+          echo "Time: $(date '+%Y-%m-%d %H:%M:%S')" >> wiki-change-msg.txt
+          echo "" >> wiki-change-msg.txt
+          for page in $(jq -r '.gollum.pages[].html_url' "$GITHUB_EVENT_PATH"); do
+            echo "Path: $page" >> wiki-change-msg.txt
+          done
+
+      - name: Create issue to notify Neilpang
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: "Wiki page"
+          content-filepath: ./wiki-change-msg.txt
+          assignees: Neilpang
+        env:
+          TZ: Asia/Shanghai
+
+
+
+
+
