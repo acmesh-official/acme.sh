@@ -2314,6 +2314,25 @@ _send_signed_request() {
 
 }
 
+_calc_cert_id() {
+  _cf="$1"
+  _cert_serial=$(${ACME_OPENSSL_BIN:-openssl} x509 -noout -serial -in "$_cf" | cut -d '=' -f 2 | _h2b | _base64 | _url_replace)
+  _debug3 "Certificate Serial Number: $_cert_serial"
+  if [ -z "$_cert_serial" ]; then
+    _err "Failed to parse certificate Serial Number"
+    return 1
+  fi
+  _cert_authority_kid=$(${ACME_OPENSSL_BIN:-openssl} x509 -noout -text -in "$_cf" | grep -i "authority key id" -A 1 | _tail_n 1 | _egrep_o "[A-F0-9:]+" | tr -d ':' | _h2b | _base64 | _url_replace)
+  _debug3 "Certificate Authority Key Identifier: $_cert_authority_kid"
+  if [ -z "$_cert_authority_kid" ]; then
+    _err "Failed to parse certificate Authority Key Identifier"
+    return 1
+  fi
+  _cert_id="$_cert_authority_kid.$_cert_serial"
+  _debug2 "Certificate ID for Renewal Info: $_cert_id"
+  return 0
+}
+
 #setopt "file"  "opt"  "="  "value" [";"]
 _setopt() {
   __conf="$1"
@@ -5323,6 +5342,12 @@ $_authorizations_map"
 
   Le_CertCreateTimeStr=$(_time2str "$Le_CertCreateTime")
   _savedomainconf "Le_CertCreateTimeStr" "$Le_CertCreateTimeStr"
+
+  if _calc_cert_id "$CERT_PATH"; then
+    _savedomainconf "Le_RenewalInfoCertId" "$_cert_id"
+  else
+    _cleardomainconf "Le_RenewalInfoCertId"
+  fi
 
   if [ -z "$Le_RenewalDays" ] || [ "$Le_RenewalDays" -lt "0" ]; then
     Le_RenewalDays="$DEFAULT_RENEW"
