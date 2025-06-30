@@ -4324,6 +4324,48 @@ _get_chain_subjects() {
   fi
 }
 
+_update_renewal_info() {
+  if [ -z "$ACME_RENEWAL_INFO" ]; then
+    _debug3 "Renewal Info is not supported for $Le_API."
+    return 1
+  fi
+  if [ -z "$Le_RenewalInfoCertId" ]; then
+    _debug3 "No Certificate Identifier found. Skipping ACME Renewal Info."
+    return 1
+  fi
+  if [ -z "$Le_EnableRenewalInfo" ] || [ "$Le_EnableRenewalInfo" -ne "1" ]; then
+    _debug3 "Renewal Info is not enabled."
+    _cleardomainconf "Le_RenewalInfoLastUpdate"
+    _cleardomainconf "Le_RenewalInfoLastUpdateStr"
+    _cleardomainconf "Le_RenewalInfoExplanation"
+    return 1
+  fi
+  response=$(_get "$ACME_RENEWAL_INFO/$Le_RenewalInfoCertId" | _json_decode | _normalizeJson)
+  if ! _contains "$response" "\"start\"" || ! _contains "$response" "\"end\""; then
+    _debug2 "Failed to parse Renewal Info."
+    return 1
+  fi
+  _renewal_info_start_time_str="$(echo $response | _egrep_o '"start":"[^"]+"' | cut -d '"' -f 4)"
+  _renewal_info_start_time="$(_date2time "$_renewal_info_start_time_str")"
+  _renewal_info_end_time_str="$(echo $response | _egrep_o '"end":"[^"]+"' | cut -d '"' -f 4)"
+  _renewal_info_end_time="$(_date2time "$_renewal_info_end_time_str")"
+  if [ $_renewal_info_start_time -gt $_renewal_info_end_time ]; then
+    _debug2 "Malformed Renewal Info."
+    return 1
+  fi
+  _savedomainconf "Le_NextRenewTime" "$_renewal_info_start_time"
+  _savedomainconf "Le_NextRenewTimeStr" "$_renewal_info_start_time_str"
+  if _contains "$response" "\"explanationURL\""; then
+    Le_RenewalInfoExplanation="$(echo $response | _egrep_o '"explanationURL":"[^"]+"' | cut -d '"' -f 4)"
+    export Le_RenewalInfoExplanation
+  fi
+  Le_RenewalInfoLastUpdate="$(_time)"
+  Le_RenewalInfoLastUpdateStr="$(_time2str "$Le_RenewalInfoLastUpdate")"
+  _savedomainconf "Le_RenewalInfoLastUpdate" "$Le_RenewalInfoLastUpdate"
+  _savedomainconf "Le_RenewalInfoLastUpdateStr" "$Le_RenewalInfoLastUpdateStr"
+  return 0
+}
+
 #cert  issuer
 _match_issuer() {
   _cfile="$1"
@@ -4645,6 +4687,10 @@ issue() {
     fi
     if [ "$_notAfter" ]; then
       _newOrderObj="$_newOrderObj,\"notAfter\": \"$_notAfter\""
+    fi
+    Le_RenewalInfoCertId=$(_readdomainconf "Le_RenewalInfoCertId")
+    if [ "$_ACME_IS_RENEW" ] && [ -n "$Le_EnableRenewalInfo" ] && [ "$Le_EnableRenewalInfo" -eq "1" ] && [ -n "$Le_RenewalInfoCertId" ]; then
+      _newOrderObj="$_newOrderObj,\"replaces\": \"$Le_RenewalInfoCertId\""
     fi
     _debug "STEP 1, Ordering a Certificate"
     if ! _send_signed_request "$ACME_NEW_ORDER" "$_newOrderObj}"; then
@@ -5325,6 +5371,10 @@ $_authorizations_map"
       _info "Your cert key is in: $(__green "$CERT_KEY_PATH")"
     fi
 
+    if [ "$_ACME_IS_RENEW" ] && [ -n "$Le_EnableRenewalInfo" ] && [ "$Le_EnableRenewalInfo" -eq "1" ] && [ -n "$Le_RenewalInfoExplanation" ]; then
+      _info "More info on this renewal: $(__green "$Le_RenewalInfoExplanation")."
+    fi
+
     if [ ! "$USER_PATH" ] || [ ! "$_ACME_IN_CRON" ]; then
       USER_PATH="$PATH"
       _saveaccountconf "USER_PATH" "$USER_PATH"
@@ -5344,7 +5394,7 @@ $_authorizations_map"
   _savedomainconf "Le_CertCreateTimeStr" "$Le_CertCreateTimeStr"
 
   if _calc_cert_id "$CERT_PATH"; then
-    _savedomainconf "Le_RenewalInfoCertId" "$_cert_id"
+    _savedomainconf "Le_RenewalInfoCertId" "$Le_RenewalInfoCertId"
   else
     _cleardomainconf "Le_RenewalInfoCertId"
   fi
@@ -5416,6 +5466,14 @@ $_authorizations_map"
   _savedomainconf "Le_NextRenewTimeStr" "$Le_NextRenewTimeStr"
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
 
+  if [ -z "$Le_EnableRenewalInfo" ] || [ "$Le_EnableRenewalInfo" -eq "1" ]; then
+    _savedomainconf "Le_EnableRenewalInfo" "1"
+  else
+    _savedomainconf "Le_EnableRenewalInfo" "0"
+  fi
+  Le_EnableRenewalInfo="$(_readdomainconf "Le_EnableRenewalInfo")"
+  _update_renewal_info
+
   #convert to pkcs12
   if [ "$Le_PFXPassword" ]; then
     _toPkcs "$CERT_PFX_PATH" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$Le_PFXPassword"
@@ -5482,6 +5540,15 @@ renew() {
 
   . "$DOMAIN_CONF"
   _debug Le_API "$Le_API"
+
+  ACME_DIRECTORY="$Le_API"
+
+  _initAPI
+  if _update_renewal_info; then
+    Le_NextRenewTime=$(_readdomainconf "Le_NextRenewTime")
+    Le_NextRenewTimeStr=$(_readdomainconf "Le_NextRenewTimeStr")
+  fi
+  _clearAPI
 
   case "$Le_API" in
   "$CA_LETSENCRYPT_V2_TEST")
@@ -7069,6 +7136,9 @@ Parameters:
   -m, --email <email>               Specifies the account email, only valid for the '--install' and '--update-account' command.
   --accountkey <file>               Specifies the account key path, only valid for the '--install' command.
   --days <ndays>                    Specifies the days to renew the cert when using '--issue' command. The default value is $DEFAULT_RENEW days.
+  --enable-ari <0|1>                Enable/Disable ACME Renewal Info (ARI). Default value is: 1.
+                                      0: disabled. Local check only.
+                                      1: enabled. Ask the CA for Renewal Window.
   --httpport <port>                 Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --tlsport <port>                  Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --local-address <ip>              Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
@@ -7357,6 +7427,7 @@ _process() {
   _accountkey=""
   _certhome=""
   _confighome=""
+  _enable_ari=""
   _httpport=""
   _tlsport=""
   _dnssleep=""
@@ -7703,6 +7774,15 @@ _process() {
       _days="$2"
       Le_RenewalDays="$_days"
       shift
+      ;;
+    --enable-ari)
+      _enable_ari="$2"
+      if [ -z "$_enable_ari" ] || _startswith "$_enable_ari" '-'; then
+        Le_EnableRenewalInfo="1"
+      else
+        shift
+      fi
+      Le_EnableRenewalInfo="$_enable_ari"
       ;;
     --valid-from)
       _valid_from="$2"
