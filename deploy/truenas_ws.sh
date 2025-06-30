@@ -39,13 +39,13 @@ _ws_call() {
   _debug "_ws_call arg2" "$2"
   _debug "_ws_call arg3" "$3"
   if [ $# -eq 3 ]; then
-    _ws_response=$(midclt -K "$DEPLOY_TRUENAS_APIKEY" call "$1" "$2" "$3")
+    _ws_response=$(midclt --uri $_ws_uri -K "$DEPLOY_TRUENAS_APIKEY" call "$1" "$2" "$3")
   fi
   if [ $# -eq 2 ]; then
-    _ws_response=$(midclt -K "$DEPLOY_TRUENAS_APIKEY" call "$1" "$2")
+    _ws_response=$(midclt --uri $_ws_uri -K "$DEPLOY_TRUENAS_APIKEY" call "$1" "$2")
   fi
   if [ $# -eq 1 ]; then
-    _ws_response=$(midclt -K "$DEPLOY_TRUENAS_APIKEY" call "$1")
+    _ws_response=$(midclt --uri $_ws_uri -K "$DEPLOY_TRUENAS_APIKEY" call "$1")
   fi
   _debug "_ws_response" "$_ws_response"
   printf "%s" "$_ws_response"
@@ -60,7 +60,7 @@ _ws_upload_cert() {
 import sys
 
 from truenas_api_client import Client
-with Client() as c:
+with Client(uri="$_ws_uri") as c:
 
   ### Login with API key
   print("I:Trying to upload new certificate...")
@@ -174,6 +174,16 @@ truenas_ws_deploy() {
   _debug _file_cert "$_file_cert"
   _debug _file_ca "$_file_ca"
   _debug _file_fullchain "$_file_fullchain"
+
+  ########## Default values for hostname and protocol
+  [ -n "${DEPLOY_TRUENAS_HOSTNAME}" ] || DEPLOY_TRUENAS_HOSTNAME="localhost"
+  [ -n "${DEPLOY_TRUENAS_PROTOCOL}" ] || DEPLOY_TRUENAS_PROTOCOL="ws"
+
+  _debug2 DEPLOY_TRUENAS_HOSTNAME "$DEPLOY_TRUENAS_HOSTNAME"
+  _debug2 DEPLOY_TRUENAS_PROTOCOL "$DEPLOY_TRUENAS_PROTOCOL"
+
+  _ws_uri="$DEPLOY_TRUENAS_PROTOCOL://$DEPLOY_TRUENAS_HOSTNAME/websocket"
+  _debug _ws_uri "$_ws_uri"
 
   ########## Environment check
 
@@ -304,7 +314,7 @@ truenas_ws_deploy() {
   _info "Restarting WebUI..."
   _ws_response=$(_ws_call "system.general.ui_restart")
   _info "Waiting for UI restart..."
-  sleep 6
+  sleep 15
 
   ########## Certificates
 
