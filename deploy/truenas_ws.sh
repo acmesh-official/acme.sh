@@ -39,13 +39,13 @@ _ws_call() {
   _debug "_ws_call arg2" "$2"
   _debug "_ws_call arg3" "$3"
   if [ $# -eq 3 ]; then
-    _ws_response=$(midclt --uri $_ws_uri -K "$DEPLOY_TRUENAS_APIKEY" call "$1" "$2" "$3")
+    _ws_response=$(midclt --uri "$_ws_uri" -K "$DEPLOY_TRUENAS_APIKEY" call "$1" "$2" "$3")
   fi
   if [ $# -eq 2 ]; then
-    _ws_response=$(midclt --uri $_ws_uri -K "$DEPLOY_TRUENAS_APIKEY" call "$1" "$2")
+    _ws_response=$(midclt --uri "$_ws_uri" -K "$DEPLOY_TRUENAS_APIKEY" call "$1" "$2")
   fi
   if [ $# -eq 1 ]; then
-    _ws_response=$(midclt --uri $_ws_uri -K "$DEPLOY_TRUENAS_APIKEY" call "$1")
+    _ws_response=$(midclt --uri "$_ws_uri" -K "$DEPLOY_TRUENAS_APIKEY" call "$1")
   fi
   _debug "_ws_response" "$_ws_response"
   printf "%s" "$_ws_response"
