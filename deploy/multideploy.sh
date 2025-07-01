@@ -235,7 +235,7 @@ _deploy_services() {
   for _service in $(printf '%s\n' "$_service_list"); do
     _debug2 "Service" "$_service"
     _hook=$(yq e ".services[] | select(.name == \"$_service\").hook" "$_deploy_file")
-    _envs=$(yq e ".services[] | select(.name == \"$_service\").environment[]" "$_deploy_file")
+    _envs=$(yq e ".services[] | select(.name == \"$_service\").environment" "$_deploy_file")
 
     _export_envs "$_envs"
     if ! _deploy_service "$_service" "$_hook"; then
