@@ -237,7 +237,7 @@ _hetzner_rest() {
 
   key_trimmed=$(echo "$HETZNER_Token" | tr -d \")
 
-  export _H1="Content-TType: application/json"
+  export _H1="Content-Type: application/json"
   export _H2="Auth-API-Token: $key_trimmed"
 
   if [ "$m" != "GET" ]; then
