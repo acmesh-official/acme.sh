@@ -100,7 +100,7 @@ dns_la_rm() {
     return 0
   fi
 
-  record_id=$(printf "%s" "$response" | grep '"id":' | head -n1 | sed 's/.*"id": *"\([^"]*\)".*/\1/')
+  record_id=$(printf "%s" "$response" | grep '"id":' | _head_n 1 | sed 's/.*"id": *"\([^"]*\)".*/\1/')
   _debug "record_id" "$record_id"
   if [ -z "$record_id" ]; then
     _err "Can not get record id to remove."
