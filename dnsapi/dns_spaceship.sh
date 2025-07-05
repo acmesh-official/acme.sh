@@ -8,7 +8,7 @@ Options:
  SPACESHIP_API_SECRET Spaceship API Secret
  SPACESHIP_ROOT_DOMAIN (Optional) Manually specify the root domain if auto-detection fails
 Issues: github.com/acmesh-official/acme.sh/issues/6304
-Author: Meow <https://github.com/Meo597>
+Author: Meow <@Meo597>
 '
 
 # Spaceship API

@@ -5,7 +5,7 @@ Domains: mijn.host
 Site: mijn.host
 Docs: https://mijn.host/api/doc/
 Issues: https://github.com/acmesh-official/acme.sh/issues/6177
-Author: peterv99
+Author: @peterv99
 Options:
  MIJNHOST_API_KEY API Key
 '
