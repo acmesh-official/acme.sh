@@ -1,11 +1,15 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_zoneedit_info='ZoneEdit.com
+Site: ZoneEdit.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_zoneedit
+Options:
+ ZONEEDIT_ID ID
+ ZONEEDIT_Token API Token
+Issues: github.com/acmesh-official/acme.sh/issues/6135
+'
 
 # https://github.com/blueslow/sslcertzoneedit
-
-# Only need to export the credentials once, acme.sh will save for automatic renewal.
-# export ZONEEDIT_ID="Your id"
-# export ZONEEDIT_Token="Your token"
-# acme.sh --issue --dns dns_zoneedit -d example.com -d www.example.com
 
 ########  Public functions #####################
 
@@ -13,7 +17,7 @@
 dns_zoneedit_add() {
   fulldomain=$1
   txtvalue=$2
-  _info "Using Zoneedit"
+  _info "Using ZoneEdit"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
@@ -45,7 +49,7 @@ dns_zoneedit_add() {
 dns_zoneedit_rm() {
   fulldomain=$1
   txtvalue=$2
-  _info "Using Zoneedit"
+  _info "Using ZoneEdit"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
@@ -114,7 +118,7 @@ _zoneedit_api() {
       if [ "$ze_sleep" ]; then _sleep "$ze_sleep"; fi
       return 0
     elif _contains "$response" "ERROR.*Minimum.*seconds"; then
-      _info "Zoneedit responded with a rate limit of..."
+      _info "ZoneEdit responded with a rate limit of..."
       ze_ratelimit=$(echo "$response" | sed -n 's/.*Minimum \([0-9]\+\) seconds.*/\1/p')
       if [ "$ze_ratelimit" ] && [ ! "$(echo "$ze_ratelimit" | tr -d '0-9')" ]; then
         _info "$ze_ratelimit seconds."

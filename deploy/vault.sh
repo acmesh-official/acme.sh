@@ -80,8 +80,13 @@ vault_deploy() {
   if [ -n "$VAULT_RENEW_TOKEN" ]; then
     URL="$VAULT_ADDR/v1/auth/token/renew-self"
     _info "Renew the Vault token to default TTL"
-    if ! _post "" "$URL" >/dev/null; then
+    _response=$(_post "" "$URL")
+    if [ "$?" != "0" ]; then
       _err "Failed to renew the Vault token"
+      return 1
+    fi
+    if echo "$_response" | grep -q '"errors":\['; then
+      _err "Failed to renew the Vault token: $_response"
       return 1
     fi
   fi
@@ -91,29 +96,85 @@ vault_deploy() {
   if [ -n "$VAULT_FABIO_MODE" ]; then
     _info "Writing certificate and key to $URL in Fabio mode"
     if [ -n "$VAULT_KV_V2" ]; then
-      _post "{ \"data\": {\"cert\": \"$_cfullchain\", \"key\": \"$_ckey\"} }" "$URL" >/dev/null || return 1
+      _response=$(_post "{ \"data\": {\"cert\": \"$_cfullchain\", \"key\": \"$_ckey\"} }" "$URL")
+      if [ "$?" != "0" ]; then return 1; fi
+      if echo "$_response" | grep -q '"errors":\['; then
+        _err "Vault error: $_response"
+        return 1
+      fi
     else
-      _post "{\"cert\": \"$_cfullchain\", \"key\": \"$_ckey\"}" "$URL" >/dev/null || return 1
+      _response=$(_post "{\"cert\": \"$_cfullchain\", \"key\": \"$_ckey\"}" "$URL")
+      if [ "$?" != "0" ]; then return 1; fi
+      if echo "$_response" | grep -q '"errors":\['; then
+        _err "Vault error: $_response"
+        return 1
+      fi
     fi
   else
     if [ -n "$VAULT_KV_V2" ]; then
       _info "Writing certificate to $URL/cert.pem"
-      _post "{\"data\": {\"value\": \"$_ccert\"}}" "$URL/cert.pem" >/dev/null || return 1
+      _response=$(_post "{\"data\": {\"value\": \"$_ccert\"}}" "$URL/cert.pem")
+      if [ "$?" != "0" ]; then return 1; fi
+      if echo "$_response" | grep -q '"errors":\['; then
+        _err "Vault error writing cert.pem: $_response"
+        return 1
+      fi
+
       _info "Writing key to $URL/cert.key"
-      _post "{\"data\": {\"value\": \"$_ckey\"}}" "$URL/cert.key" >/dev/null || return 1
+      _response=$(_post "{\"data\": {\"value\": \"$_ckey\"}}" "$URL/cert.key")
+      if [ "$?" != "0" ]; then return 1; fi
+      if echo "$_response" | grep -q '"errors":\['; then
+        _err "Vault error writing cert.key: $_response"
+        return 1
+      fi
+
       _info "Writing CA certificate to $URL/ca.pem"
-      _post "{\"data\": {\"value\": \"$_cca\"}}" "$URL/ca.pem" >/dev/null || return 1
+      _response=$(_post "{\"data\": {\"value\": \"$_cca\"}}" "$URL/ca.pem")
+      if [ "$?" != "0" ]; then return 1; fi
+      if echo "$_response" | grep -q '"errors":\['; then
+        _err "Vault error writing ca.pem: $_response"
+        return 1
+      fi
+
       _info "Writing full-chain certificate to $URL/fullchain.pem"
-      _post "{\"data\": {\"value\": \"$_cfullchain\"}}" "$URL/fullchain.pem" >/dev/null || return 1
+      _response=$(_post "{\"data\": {\"value\": \"$_cfullchain\"}}" "$URL/fullchain.pem")
+      if [ "$?" != "0" ]; then return 1; fi
+      if echo "$_response" | grep -q '"errors":\['; then
+        _err "Vault error writing fullchain.pem: $_response"
+        return 1
+      fi
     else
       _info "Writing certificate to $URL/cert.pem"
-      _post "{\"value\": \"$_ccert\"}" "$URL/cert.pem" >/dev/null || return 1
+      _response=$(_post "{\"value\": \"$_ccert\"}" "$URL/cert.pem")
+      if [ "$?" != "0" ]; then return 1; fi
+      if echo "$_response" | grep -q '"errors":\['; then
+        _err "Vault error writing cert.pem: $_response"
+        return 1
+      fi
+
       _info "Writing key to $URL/cert.key"
-      _post "{\"value\": \"$_ckey\"}" "$URL/cert.key" >/dev/null || return 1
+      _response=$(_post "{\"value\": \"$_ckey\"}" "$URL/cert.key")
+      if [ "$?" != "0" ]; then return 1; fi
+      if echo "$_response" | grep -q '"errors":\['; then
+        _err "Vault error writing cert.key: $_response"
+        return 1
+      fi
+
       _info "Writing CA certificate to $URL/ca.pem"
-      _post "{\"value\": \"$_cca\"}" "$URL/ca.pem" >/dev/null || return 1
+      _response=$(_post "{\"value\": \"$_cca\"}" "$URL/ca.pem")
+      if [ "$?" != "0" ]; then return 1; fi
+      if echo "$_response" | grep -q '"errors":\['; then
+        _err "Vault error writing ca.pem: $_response"
+        return 1
+      fi
+
       _info "Writing full-chain certificate to $URL/fullchain.pem"
-      _post "{\"value\": \"$_cfullchain\"}" "$URL/fullchain.pem" >/dev/null || return 1
+      _response=$(_post "{\"value\": \"$_cfullchain\"}" "$URL/fullchain.pem")
+      if [ "$?" != "0" ]; then return 1; fi
+      if echo "$_response" | grep -q '"errors":\['; then
+        _err "Vault error writing fullchain.pem: $_response"
+        return 1
+      fi
     fi
 
     # To make it compatible with the wrong ca path `chain.pem` which was used in former versions
@@ -121,11 +182,20 @@ vault_deploy() {
       _err "The CA certificate has moved from chain.pem to ca.pem, if you don't depend on chain.pem anymore, you can delete it to avoid this warning"
       _info "Updating CA certificate to $URL/chain.pem for backward compatibility"
       if [ -n "$VAULT_KV_V2" ]; then
-        _post "{\"data\": {\"value\": \"$_cca\"}}" "$URL/chain.pem" >/dev/null || return 1
+        _response=$(_post "{\"data\": {\"value\": \"$_cca\"}}" "$URL/chain.pem")
+        if [ "$?" != "0" ]; then return 1; fi
+        if echo "$_response" | grep -q '"errors":\['; then
+          _err "Vault error writing chain.pem: $_response"
+          return 1
+        fi
       else
-        _post "{\"value\": \"$_cca\"}" "$URL/chain.pem" >/dev/null || return 1
+        _response=$(_post "{\"value\": \"$_cca\"}" "$URL/chain.pem")
+        if [ "$?" != "0" ]; then return 1; fi
+        if echo "$_response" | grep -q '"errors":\['; then
+          _err "Vault error writing chain.pem: $_response"
+          return 1
+        fi
       fi
     fi
   fi
-
 }
