@@ -2328,8 +2328,8 @@ _calc_cert_id() {
     _err "Failed to parse certificate Authority Key Identifier"
     return 1
   fi
-  _cert_id="$_cert_authority_kid.$_cert_serial"
-  _debug2 "Certificate ID for Renewal Info: $_cert_id"
+  Le_RenewalInfoCertId="$_cert_authority_kid.$_cert_serial"
+  _debug2 "Certificate ID for Renewal Info: $Le_RenewalInfoCertId"
   return 0
 }
 
