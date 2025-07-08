@@ -6,7 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_namecom
 Options:
  Namecom_Username Username
  Namecom_Token API Token
-Author: RaidenII
+Author: @RaidenII
 '
 
 ########  Public functions #####################

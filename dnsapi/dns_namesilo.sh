@@ -5,7 +5,7 @@ Site: NameSilo.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_namesilo
 Options:
  Namesilo_Key API Key
-Author: meowthink
+Author: @meowthink
 '
 
 #Utilize API to finish dns-01 verifications.

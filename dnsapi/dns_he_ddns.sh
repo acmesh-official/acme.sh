@@ -5,6 +5,7 @@ Site: dns.he.net
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_he_ddns
 Options:
  HE_DDNS_KEY The DDNS key
+Issues: https://github.com/acmesh-official/acme.sh/issues/5238
 Author: Markku Leiniö
 '
 
