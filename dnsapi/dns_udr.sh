@@ -7,7 +7,7 @@ Options:
  UDR_USER Username
  UDR_PASS Password
 Issues: github.com/acmesh-official/acme.sh/issues/3923
-Author: Andreas Scherer <https://github.com/andischerer>
+Author: Andreas Scherer <@andischerer>
 '
 
 UDR_API="https://api.domainreselling.de/api/call.cgi"

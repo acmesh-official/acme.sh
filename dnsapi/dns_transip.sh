@@ -24,7 +24,7 @@ dns_transip_add() {
   _debug txtvalue="$txtvalue"
   _transip_setup "$fulldomain" || return 1
   _info "Creating TXT record."
-  if ! _transip_rest POST "domains/$_domain/dns" "{\"dnsEntry\":{\"name\":\"$_sub_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"expire\":300}}"; then
+  if ! _transip_rest POST "domains/$_domain/dns" "{\"dnsEntry\":{\"name\":\"$_sub_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"expire\":60}}"; then
     _err "Could not add TXT record."
     return 1
   fi
@@ -38,7 +38,7 @@ dns_transip_rm() {
   _debug txtvalue="$txtvalue"
   _transip_setup "$fulldomain" || return 1
   _info "Removing TXT record."
-  if ! _transip_rest DELETE "domains/$_domain/dns" "{\"dnsEntry\":{\"name\":\"$_sub_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"expire\":300}}"; then
+  if ! _transip_rest DELETE "domains/$_domain/dns" "{\"dnsEntry\":{\"name\":\"$_sub_domain\",\"type\":\"TXT\",\"content\":\"$txtvalue\",\"expire\":60}}"; then
     _err "Could not remove TXT record $_sub_domain for $domain"
     return 1
   fi
