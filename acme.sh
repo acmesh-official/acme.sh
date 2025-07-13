@@ -3513,7 +3513,7 @@ _on_before_issue() {
   _debug _chk_alt_domains "$_chk_alt_domains"
   #run pre hook
   if [ "$_chk_pre_hook" ]; then
-    _info "Runing pre hook:'$_chk_pre_hook'"
+    _info "Running pre hook:'$_chk_pre_hook'"
     if ! (
       export Le_Domain="$_chk_main_domain"
       export Le_Alt="$_chk_alt_domains"
