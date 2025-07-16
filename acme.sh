@@ -3513,7 +3513,7 @@ _on_before_issue() {
   _debug _chk_alt_domains "$_chk_alt_domains"
   #run pre hook
   if [ "$_chk_pre_hook" ]; then
-    _info "Runing pre hook:'$_chk_pre_hook'"
+    _info "Running pre hook:'$_chk_pre_hook'"
     if ! (
       export Le_Domain="$_chk_main_domain"
       export Le_Alt="$_chk_alt_domains"
@@ -4502,6 +4502,7 @@ issue() {
 
   if ! _on_before_issue "$_web_roots" "$_main_domain" "$_alt_domains" "$_pre_hook" "$_local_addr"; then
     _err "_on_before_issue."
+    _on_issue_err "$_post_hook"
     return 1
   fi
 
