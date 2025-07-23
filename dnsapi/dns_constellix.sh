@@ -156,6 +156,9 @@ _constellix_rest() {
   data="$3"
   _debug "$ep"
 
+  # Prevent rate limit
+  _sleep 2
+
   rdate=$(date +"%s")"000"
   hmac=$(printf "%s" "$rdate" | _hmac sha1 "$(printf "%s" "$CONSTELLIX_Secret" | _hex_dump | tr -d ' ')" | _base64)
 
