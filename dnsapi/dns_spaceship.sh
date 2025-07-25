@@ -4,11 +4,11 @@ dns_spaceship_info='Spaceship.com
 Site: Spaceship.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_spaceship
 Options:
- SPACESHIP_API_KEY Spaceship API Key
- SPACESHIP_API_SECRET Spaceship API Secret
- SPACESHIP_ROOT_DOMAIN (Optional) Manually specify the root domain if auto-detection fails
+ SPACESHIP_API_KEY API Key
+ SPACESHIP_API_SECRET API Secret
+ SPACESHIP_ROOT_DOMAIN Root domain. Manually specify the root domain if auto-detection fails. Optional.
 Issues: github.com/acmesh-official/acme.sh/issues/6304
-Author: Meow <https://github.com/Meo597>
+Author: Meow <@Meo597>
 '
 
 # Spaceship API

@@ -7,7 +7,7 @@ Options:
  BEGET_User API user
  BEGET_Password API password
 Issues: github.com/acmesh-official/acme.sh/issues/6200
-Author: ARNik arnik@arnik.ru
+Author: ARNik <arnik@arnik.ru>
 '
 
 Beget_Api="https://api.beget.com/api"

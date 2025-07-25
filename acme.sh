@@ -1401,6 +1401,12 @@ _ss() {
     return 0
   fi
 
+  if [ "$(uname)" = "AIX" ]; then
+    _debug "Using: AIX netstat"
+    netstat -an | grep "^tcp" | grep "LISTEN" | grep "\.$_port "
+    return 0
+  fi
+
   if _exists "netstat"; then
     _debug "Using: netstat"
     if netstat -help 2>&1 | grep "\-p proto" >/dev/null; then
@@ -2761,7 +2767,7 @@ _initAPI() {
   _request_retry_times=0
   while [ -z "$ACME_NEW_ACCOUNT" ] && [ "${_request_retry_times}" -lt "$MAX_API_RETRY_TIMES" ]; do
     _request_retry_times=$(_math "$_request_retry_times" + 1)
-    response=$(_get "$_api_server")
+    response=$(_get "$_api_server" "" 10)
     if [ "$?" != "0" ]; then
       _debug2 "response" "$response"
       _info "Cannot init API for: $_api_server."
@@ -3507,7 +3513,7 @@ _on_before_issue() {
   _debug _chk_alt_domains "$_chk_alt_domains"
   #run pre hook
   if [ "$_chk_pre_hook" ]; then
-    _info "Runing pre hook:'$_chk_pre_hook'"
+    _info "Running pre hook:'$_chk_pre_hook'"
     if ! (
       export Le_Domain="$_chk_main_domain"
       export Le_Alt="$_chk_alt_domains"
@@ -4496,6 +4502,7 @@ issue() {
 
   if ! _on_before_issue "$_web_roots" "$_main_domain" "$_alt_domains" "$_pre_hook" "$_local_addr"; then
     _err "_on_before_issue."
+    _on_issue_err "$_post_hook"
     return 1
   fi
 
