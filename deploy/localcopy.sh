@@ -8,13 +8,17 @@
 # (e.g. The deploy-freenas script for TrueNAS Core/Scale
 # https://github.com/danb35/deploy-freenas/ )
 #
+# If the same file is configured for the certificate key
+# and the certificate and/or full chain, a combined PEM file will
+# be output instead.
 #
 # Environment variables to be utilized are as follows:
 #
-# DEPLOY_LOCALCOPY_CERTIFICATE - /path/to/target/cert.cer
 # DEPLOY_LOCALCOPY_CERTKEY - /path/to/target/cert.key
+# DEPLOY_LOCALCOPY_CERTIFICATE - /path/to/target/cert.cer
 # DEPLOY_LOCALCOPY_FULLCHAIN - /path/to/target/fullchain.cer
 # DEPLOY_LOCALCOPY_CA - /path/to/target/ca.cer
+# DEPLOY_LOCALCOPY_PFX - /path/to/target/cert.pfx
 # DEPLOY_LOCALCOPY_RELOADCMD - "echo 'this is my cmd'"
 
 ########  Public functions #####################
@@ -26,18 +30,53 @@ localcopy_deploy() {
   _ccert="$3"
   _cca="$4"
   _cfullchain="$5"
+  _cpfx="$6"
 
   _debug _cdomain "$_cdomain"
   _debug _ckey "$_ckey"
   _debug _ccert "$_ccert"
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
+  _debug _cpfx "$_cpfx"
 
   _getdeployconf DEPLOY_LOCALCOPY_CERTIFICATE
   _getdeployconf DEPLOY_LOCALCOPY_CERTKEY
   _getdeployconf DEPLOY_LOCALCOPY_FULLCHAIN
   _getdeployconf DEPLOY_LOCALCOPY_CA
   _getdeployconf DEPLOY_LOCALCOPY_RELOADCMD
+  _getdeployconf DEPLOY_LOCALCOPY_PFX
+  _combined_target=""
+  _combined_srccert=""
+
+  if [ "$DEPLOY_LOCALCOPY_CERTKEY" ] &&
+    { [ "$DEPLOY_LOCALCOPY_CERTKEY" = "$DEPLOY_LOCALCOPY_FULLCHAIN" ] ||
+      [ "$DEPLOY_LOCALCOPY_CERTKEY" = "$DEPLOY_LOCALCOPY_CERTIFICATE" ]; }; then
+
+    _combined_target="$DEPLOY_LOCALCOPY_CERTKEY"
+    _savedeployconf DEPLOY_LOCALCOPY_CERTKEY "$DEPLOY_LOCALCOPY_CERTKEY"
+
+    if [ "$DEPLOY_LOCALCOPY_CERTKEY" = "$DEPLOY_LOCALCOPY_CERTIFICATE" ]; then
+      _combined_srccert="$_ccert"
+      _savedeployconf DEPLOY_LOCALCOPY_CERTIFICATE "$DEPLOY_LOCALCOPY_CERTIFICATE"
+      DEPLOY_LOCALCOPY_CERTIFICATE=""
+    fi
+    if [ "$DEPLOY_LOCALCOPY_CERTKEY" = "$DEPLOY_LOCALCOPY_FULLCHAIN" ]; then
+      _combined_srccert="$_cfullchain"
+      _savedeployconf DEPLOY_LOCALCOPY_FULLCHAIN "$DEPLOY_LOCALCOPY_FULLCHAIN"
+      DEPLOY_LOCALCOPY_FULLCHAIN=""
+    fi
+    DEPLOY_LOCALCOPY_CERTKEY=""
+    _info "Creating combined PEM at $_combined_target"
+    _tmpfile="$(mktemp)"
+    if ! cat "$_combined_srccert" "$_ckey" >"$_tmpfile"; then
+      _err "Failed to build combined PEM file"
+      return 1
+    fi
+    if ! mv "$_tmpfile" "$_combined_target"; then
+      _err "Failed to move combined PEM into place"
+      return 1
+    fi
+  fi
 
   if [ "$DEPLOY_LOCALCOPY_CERTIFICATE" ]; then
     _info "Copying certificate"
@@ -46,7 +85,6 @@ localcopy_deploy() {
       _err "Failed to copy certificate, aborting."
       return 1
     fi
-    _savedeployconf DEPLOY_LOCALCOPY_CERTIFICATE "$DEPLOY_LOCALCOPY_CERTIFICATE"
   fi
 
   if [ "$DEPLOY_LOCALCOPY_CERTKEY" ]; then
@@ -77,6 +115,16 @@ localcopy_deploy() {
       return 1
     fi
     _savedeployconf DEPLOY_LOCALCOPY_CA "$DEPLOY_LOCALCOPY_CA"
+  fi
+
+  if [ "$DEPLOY_LOCALCOPY_PFX" ]; then
+    _info "Copying PFX"
+    _debug "Copying $_cpfx to $DEPLOY_LOCALCOPY_PFX"
+    if ! eval "cp $_cpfx $DEPLOY_LOCALCOPY_PFX"; then
+      _err "Failed to copy PFX, aborting."
+      return 1
+    fi
+    _savedeployconf DEPLOY_LOCALCOPY_PFX "$DEPLOY_LOCALCOPY_PFX"
   fi
 
   _reload=$DEPLOY_LOCALCOPY_RELOADCMD
