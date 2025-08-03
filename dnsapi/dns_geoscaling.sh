@@ -1,12 +1,12 @@
 #!/usr/bin/env sh
-
-########################################################################
-# Geoscaling hook script for acme.sh
-#
-# Environment variables:
-#
-#  - $GEOSCALING_Username  (your Geoscaling username - this is usually NOT an amail address)
-#  - $GEOSCALING_Password  (your Geoscaling password)
+# shellcheck disable=SC2034
+dns_geoscaling_info='GeoScaling.com
+Site: GeoScaling.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_geoscaling
+Options:
+ GEOSCALING_Username Username. This is usually NOT an email address
+ GEOSCALING_Password Password
+'
 
 #-- dns_geoscaling_add() - Add TXT record --------------------------------------
 # Usage: dns_geoscaling_add _acme-challenge.subdomain.domain.com "XyZ123..."
@@ -202,7 +202,7 @@ find_zone() {
   # Walk through all possible zone names
   strip_counter=1
   while true; do
-    attempted_zone=$(echo "${domain}" | cut -d . -f ${strip_counter}-)
+    attempted_zone=$(echo "${domain}" | cut -d . -f "${strip_counter}"-)
 
     # All possible zone names have been tried
     if [ -z "${attempted_zone}" ]; then

@@ -1,0 +1,60 @@
+name: Notify via Issue on Wiki Edit
+
+on:
+  gollum:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout wiki repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki
+
+      - name: Generate wiki change message
+        run: |
+            actor="${{ github.actor }}"
+            sender_url=$(jq -r '.sender.html_url' "$GITHUB_EVENT_PATH")
+            page_name=$(jq -r '.pages[0].page_name' "$GITHUB_EVENT_PATH")
+            page_sha=$(jq -r '.pages[0].sha' "$GITHUB_EVENT_PATH")
+            page_url=$(jq -r '.pages[0].html_url' "$GITHUB_EVENT_PATH")
+            page_action=$(jq -r '.pages[0].action' "$GITHUB_EVENT_PATH")
+            now="$(date '+%Y-%m-%d %H:%M:%S')"
+
+            cd wiki
+            prev_sha=$(git rev-list $page_sha^ -- "$page_name.md" | head -n 1)
+            if [ -n "$prev_sha" ]; then
+                git diff $prev_sha $page_sha -- "$page_name.md" > ../wiki.diff || echo "(No diff found)" > ../wiki.diff
+            else
+                echo "(no diff)" > ../wiki.diff
+            fi
+            cd ..
+            {
+            echo "Wiki edited"
+            echo -n "User: "
+            echo "[$actor]($sender_url)"
+            echo "Time: $now"
+            echo "Page: [$page_name]($page_url) (Action: $page_action)"
+            echo ""
+            echo "----"
+            echo "###  diff："
+            echo '```diff'
+            cat wiki.diff
+            echo '```'
+            } > wiki-change-msg.txt
+
+      - name: Create issue to notify Neilpang
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: "Wiki edited"
+          content-filepath: ./wiki-change-msg.txt
+          assignees: Neilpang
+        env:
+          TZ: Asia/Shanghai
+
+
+
+
+

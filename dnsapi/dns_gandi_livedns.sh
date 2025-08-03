@@ -1,16 +1,19 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_gandi_livedns_info='Gandi.net LiveDNS
+Site: Gandi.net/domain/dns
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_gandi_livedns
+Options:
+ GANDI_LIVEDNS_KEY API Key
+Issues: github.com/fcrozat/acme.sh
+Author: Frédéric Crozat <fcrozat@suse.com>, Dominik Röttsches <drott@google.com>
+'
 
 # Gandi LiveDNS v5 API
 # https://api.gandi.net/docs/livedns/
 # https://api.gandi.net/docs/authentication/ for token + apikey (deprecated) authentication
 # currently under beta
-#
-# Requires GANDI API KEY set in GANDI_LIVEDNS_KEY set as environment variable
-#
-#Author: Frédéric Crozat <fcrozat@suse.com>
-#        Dominik Röttsches <drott@google.com>
-#Report Bugs here: https://github.com/fcrozat/acme.sh
-#
+
 ########  Public functions #####################
 
 GANDI_LIVEDNS_API="https://api.gandi.net/v5/livedns"
@@ -92,7 +95,7 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -109,7 +112,7 @@ _get_root() {
     elif _contains "$response" '"code": 404'; then
       _debug "$h not found"
     else
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi

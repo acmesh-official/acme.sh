@@ -1,19 +1,16 @@
 #!/usr/bin/env sh
-########################################################################
-# All-inkl Kasserver hook script for acme.sh
-#
-# Environment variables:
-#
-#  - $KAS_Login (Kasserver API login name)
-#  - $KAS_Authtype (Kasserver API auth type. Default: plain)
-#  - $KAS_Authdata (Kasserver API auth data.)
-#
-# Last update: squared GmbH <github@squaredgmbh.de>
-# Credits:
-# - dns_he.sh. Thanks a lot man!
-# - Martin Kammerlander, Phlegx Systems OG <martin.kammerlander@phlegx.com>
-# - Marc-Oliver Lange <git@die-lang.es>
-# - https://github.com/o1oo11oo/kasapi.sh
+# shellcheck disable=SC2034
+dns_kas_info='All-inkl Kas Server
+Site: kas.all-inkl.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_kas
+Options:
+ KAS_Login API login name
+ KAS_Authtype API auth type. Default: "plain"
+ KAS_Authdata API auth data
+Issues: github.com/acmesh-official/acme.sh/issues/2715
+Author: squared GmbH <github@squaredgmbh.de>, Martin Kammerlander <martin.kammerlander@phlegx.com>, Marc-Oliver Lange <git@die-lang.es>
+'
+
 ########################################################################
 KAS_Api_GET="$(_get "https://kasapi.kasserver.com/soap/wsdl/KasApi.wsdl")"
 KAS_Api="$(echo "$KAS_Api_GET" | tr -d ' ' | grep -i "<soap:addresslocation=" | sed "s/='/\n/g" | grep -i "http" | sed "s/'\/>//g")"

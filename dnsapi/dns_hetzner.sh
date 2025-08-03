@@ -1,8 +1,12 @@
 #!/usr/bin/env sh
-
-#
-#HETZNER_Token="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
+# shellcheck disable=SC2034
+dns_hetzner_info='Hetzner.com
+Site: Hetzner.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_hetzner
+Options:
+ HETZNER_Token API Token
+Issues: github.com/acmesh-official/acme.sh/issues/2943
+'
 
 HETZNER_Api="https://dns.hetzner.com/api/v1"
 
@@ -177,7 +181,7 @@ _get_root() {
 
   _debug "Trying to get zone id by domain name for '$domain_without_acme'."
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -189,7 +193,7 @@ _get_root() {
     if _contains "$response" "\"name\":\"$h\"" || _contains "$response" '"total_entries":1'; then
       _domain_id=$(echo "$response" | _egrep_o "\[.\"id\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain=$h
         HETZNER_Zone_ID=$_domain_id
         _savedomainconf "$domain_param_name" "$HETZNER_Zone_ID"
@@ -208,7 +212,7 @@ _get_root() {
 _response_has_error() {
   unset _response_error
 
-  err_part="$(echo "$response" | _egrep_o '"error":{[^}]*}')"
+  err_part="$(echo "$response" | _egrep_o '"error":\{[^\}]*\}')"
 
   if [ -n "$err_part" ]; then
     err_code=$(echo "$err_part" | _egrep_o '"code":[0-9]+' | cut -d : -f 2)
