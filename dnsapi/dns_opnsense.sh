@@ -150,7 +150,9 @@ _get_root() {
       return 1
     fi
     _debug h "$h"
-    id=$(echo "$_domain_response" | _egrep_o "\"uuid\":\"[a-z0-9\-]*\",\"enabled\":\"1\",\"type\":\"primary\",\"domainname\":\"${h}\"" | cut -d ':' -f 2 | cut -d '"' -f 2)
+    string_with_searched_domain_and_others_before_it=$(echo "$_domain_response" | _egrep_o "\"uuid\":\"[a-z0-9\-]*\",\"enabled\":\"1\",\"type\":\"primary\",.*\"domainname\":\"${h}\"")
+    string_with_searched_domain_only=$(echo "$string_with_searched_domain_and_others_before_it" | rev | cut -d '{' -f 1 | rev)
+    id=$(echo "$string_with_searched_domain_only" | cut -d ':' -f 2 | cut -d '"' -f 2)
     if [ -n "$id" ]; then
       _debug id "$id"
       _host=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
