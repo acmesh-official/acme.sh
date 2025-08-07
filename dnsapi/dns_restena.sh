@@ -49,7 +49,7 @@ dns_restena_add() {
   _saveaccountconf_mutable RESTENA_ZONE "$RESTENA_ZONE"
 
   # Extract the label part by removing the zone suffix
-  label="${fulldomain%.$RESTENA_ZONE}"
+  label="${fulldomain%."$RESTENA_ZONE"}"
 
   # This is needed to wrap the request in double quotes
   data="\\\"$txtvalue\\\""
@@ -65,7 +65,7 @@ dns_restena_add() {
 
   # Set Content-Type header
   export _H1="Content-Type: application/json"
-  
+
   # Make the API call to add the TXT record
   response="$(_post "$body" "$_restena_api" "" "PUT")"
   _debug "API response: $response"
@@ -107,7 +107,7 @@ dns_restena_rm() {
   fi
 
   # Extract the label part by removing the zone suffix
-  label="${fulldomain%.$RESTENA_ZONE}"
+  label="${fulldomain%."$RESTENA_ZONE"}"
 
   _info "Removing TXT record via Restena API..."
   _debug "Zone: $RESTENA_ZONE"
