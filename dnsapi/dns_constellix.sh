@@ -117,7 +117,7 @@ dns_constellix_rm() {
 ####################  Private functions below ##################################
 
 _get_root() {
-  domain=$1
+  domain=$(echo "$1" | _lower_case)
   i=2
   p=1
   _debug "Detecting root zone"
