@@ -7,7 +7,7 @@ Options:
  FREEDNS_User Username
  FREEDNS_Password Password
 Issues: github.com/acmesh-official/acme.sh/issues/2305
-Author: David Kerr <https://github.com/dkerr64>
+Author: David Kerr <@dkerr64>
 '
 
 ########  Public functions #####################

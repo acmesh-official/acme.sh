@@ -1,16 +1,15 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_mijnhost_info='mijn.host
-Domains: mijn.host
 Site: mijn.host
-Docs: https://mijn.host/api/doc/
-Issues: https://github.com/acmesh-official/acme.sh/issues/6177
-Author: peterv99
+Docs: https://github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_mijnhost
 Options:
  MIJNHOST_API_KEY API Key
+Issues: github.com/acmesh-official/acme.sh/issues/6177
+Author: @peterv99
 '
 
-########  Public functions ###################### Constants for your mijn-host API
+########  Public functions ######################
 MIJNHOST_API="https://mijn.host/api/v2"
 
 # Add TXT record for domain verification

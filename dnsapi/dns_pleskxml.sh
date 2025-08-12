@@ -8,7 +8,7 @@ Options:
  pleskxml_user Username
  pleskxml_pass Password
 Issues: github.com/acmesh-official/acme.sh/issues/2577
-Author: Stilez, <https://github.com/romanlum>
+Author: @Stilez, @romanlum
 '
 
 ##  Plesk XML API described at:
