@@ -1,14 +1,20 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_rcode0_info='Rcode0 rcodezero.at
+Site: rcodezero.at
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_rcode0
+Options:
+ RCODE0_URL API URL. E.g. "https://my.rcodezero.at"
+ RCODE0_API_TOKEN API Token
+ RCODE0_TTL TTL. Default: "60".
+Issues: github.com/acmesh-official/acme.sh/issues/2490
+'
 
 #Rcode0 API Integration
 #https://my.rcodezero.at/api-doc
 #
 # log into https://my.rcodezero.at/enableapi and  get your ACME API Token (the ACME API token has limited
 # access to the REST calls needed for acme.sh only)
-#
-#RCODE0_URL="https://my.rcodezero.at"
-#RCODE0_API_TOKEN="0123456789ABCDEF"
-#RCODE0_TTL=60
 
 DEFAULT_RCODE0_URL="https://my.rcodezero.at"
 DEFAULT_RCODE0_TTL=60
@@ -165,7 +171,7 @@ _get_root() {
   i=1
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
 
     _debug "try to find: $h"
     if _rcode0_rest "GET" "/api/v1/acme/zones/$h"; then
@@ -183,7 +189,7 @@ _get_root() {
     if [ -z "$h" ]; then
       return 1
     fi
-    i=$(_math $i + 1)
+    i=$(_math "$i" + 1)
   done
   _debug "no matching domain for $domain found"
 

@@ -1,13 +1,15 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_aws_info='Amazon AWS Route53 domain API
+Site: docs.aws.amazon.com/route53/
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_aws
+Options:
+ AWS_ACCESS_KEY_ID API Key ID
+ AWS_SECRET_ACCESS_KEY API Secret
+'
 
-#
-#AWS_ACCESS_KEY_ID="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
-#AWS_SECRET_ACCESS_KEY="xxxxxxx"
-
-#This is the Amazon Route53 api wrapper for acme.sh
-#All `_sleep` commands are included to avoid Route53 throttling, see
-#https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html#limits-api-requests
+# All `_sleep` commands are included to avoid Route53 throttling, see
+# https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html#limits-api-requests
 
 AWS_HOST="route53.amazonaws.com"
 AWS_URL="https://$AWS_HOST"
@@ -145,7 +147,6 @@ dns_aws_rm() {
   fi
   _sleep 1
   return 1
-
 }
 
 ####################  Private functions below ##################################
@@ -157,7 +158,7 @@ _get_root() {
 
   # iterate over names (a.b.c.d -> b.c.d -> c.d -> d)
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100 | sed 's/\./\\./g')
     _debug "Checking domain: $h"
     if [ -z "$h" ]; then
       _error "invalid domain"
@@ -173,7 +174,7 @@ _get_root() {
         if [ "$hostedzone" ]; then
           _domain_id=$(printf "%s\n" "$hostedzone" | _egrep_o "<Id>.*<.Id>" | head -n 1 | _egrep_o ">.*<" | tr -d "<>")
           if [ "$_domain_id" ]; then
-            _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+            _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
             _domain=$h
             return 0
           fi
@@ -207,24 +208,40 @@ _use_container_role() {
 }
 
 _use_instance_role() {
-  _url="http://169.254.169.254/latest/meta-data/iam/security-credentials/"
-  _debug "_url" "$_url"
-  if ! _get "$_url" true 1 | _head_n 1 | grep -Fq 200; then
+  _instance_role_name_url="http://169.254.169.254/latest/meta-data/iam/security-credentials/"
+
+  if _get "$_instance_role_name_url" true 1 | _head_n 1 | grep -Fq 401; then
+    _debug "Using IMDSv2"
+    _token_url="http://169.254.169.254/latest/api/token"
+    export _H1="X-aws-ec2-metadata-token-ttl-seconds: 21600"
+    _token="$(_post "" "$_token_url" "" "PUT")"
+    _secure_debug3 "_token" "$_token"
+    if [ -z "$_token" ]; then
+      _debug "Unable to fetch IMDSv2 token from instance metadata"
+      return 1
+    fi
+    export _H1="X-aws-ec2-metadata-token: $_token"
+  fi
+
+  if ! _get "$_instance_role_name_url" true 1 | _head_n 1 | grep -Fq 200; then
     _debug "Unable to fetch IAM role from instance metadata"
     return 1
   fi
-  _aws_role=$(_get "$_url" "" 1)
-  _debug "_aws_role" "$_aws_role"
-  _use_metadata "$_url$_aws_role"
+
+  _instance_role_name=$(_get "$_instance_role_name_url" "" 1)
+  _debug "_instance_role_name" "$_instance_role_name"
+  _use_metadata "$_instance_role_name_url$_instance_role_name" "$_token"
+
 }
 
 _use_metadata() {
+  export _H1="X-aws-ec2-metadata-token: $2"
   _aws_creds="$(
     _get "$1" "" 1 |
       _normalizeJson |
       tr '{,}' '\n' |
       while read -r _line; do
-        _key="$(echo "${_line%%:*}" | tr -d '"')"
+        _key="$(echo "${_line%%:*}" | tr -d '\"')"
         _value="${_line#*:}"
         _debug3 "_key" "$_key"
         _secure_debug3 "_value" "$_value"

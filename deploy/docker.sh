@@ -18,6 +18,7 @@ docker_deploy() {
   _ccert="$3"
   _cca="$4"
   _cfullchain="$5"
+  _cpfx="$6"
   _debug _cdomain "$_cdomain"
   _getdeployconf DEPLOY_DOCKER_CONTAINER_LABEL
   _debug2 DEPLOY_DOCKER_CONTAINER_LABEL "$DEPLOY_DOCKER_CONTAINER_LABEL"
@@ -88,6 +89,12 @@ docker_deploy() {
     _savedeployconf DEPLOY_DOCKER_CONTAINER_FULLCHAIN_FILE "$DEPLOY_DOCKER_CONTAINER_FULLCHAIN_FILE"
   fi
 
+  _getdeployconf DEPLOY_DOCKER_CONTAINER_PFX_FILE
+  _debug2 DEPLOY_DOCKER_CONTAINER_PFX_FILE "$DEPLOY_DOCKER_CONTAINER_PFX_FILE"
+  if [ "$DEPLOY_DOCKER_CONTAINER_PFX_FILE" ]; then
+    _savedeployconf DEPLOY_DOCKER_CONTAINER_PFX_FILE "$DEPLOY_DOCKER_CONTAINER_PFX_FILE"
+  fi
+
   _getdeployconf DEPLOY_DOCKER_CONTAINER_RELOAD_CMD
   _debug2 DEPLOY_DOCKER_CONTAINER_RELOAD_CMD "$DEPLOY_DOCKER_CONTAINER_RELOAD_CMD"
   if [ "$DEPLOY_DOCKER_CONTAINER_RELOAD_CMD" ]; then
@@ -121,6 +128,12 @@ docker_deploy() {
 
   if [ "$DEPLOY_DOCKER_CONTAINER_FULLCHAIN_FILE" ]; then
     if ! _docker_cp "$_cid" "$_cfullchain" "$DEPLOY_DOCKER_CONTAINER_FULLCHAIN_FILE"; then
+      return 1
+    fi
+  fi
+
+  if [ "$DEPLOY_DOCKER_CONTAINER_PFX_FILE" ]; then
+    if ! _docker_cp "$_cid" "$_cpfx" "$DEPLOY_DOCKER_CONTAINER_PFX_FILE"; then
       return 1
     fi
   fi
@@ -273,16 +286,27 @@ _check_curl_version() {
   _minor="$(_getfield "$_cversion" 2 '.')"
   _debug2 "_minor" "$_minor"
 
-  if [ "$_major$_minor" -lt "740" ]; then
+  if [ "$_major" -ge "8" ]; then
+    #ok
+    return 0
+  fi
+  if [ "$_major" = "7" ]; then
+    if [ "$_minor" -lt "40" ]; then
+      _err "curl v$_cversion doesn't support unit socket"
+      _err "Please upgrade to curl 7.40 or later."
+      return 1
+    fi
+    if [ "$_minor" -lt "50" ]; then
+      _debug "Use short host name"
+      export _CURL_NO_HOST=1
+    else
+      export _CURL_NO_HOST=
+    fi
+    return 0
+  else
     _err "curl v$_cversion doesn't support unit socket"
     _err "Please upgrade to curl 7.40 or later."
     return 1
   fi
-  if [ "$_major$_minor" -lt "750" ]; then
-    _debug "Use short host name"
-    export _CURL_NO_HOST=1
-  else
-    export _CURL_NO_HOST=
-  fi
-  return 0
+
 }

@@ -1,21 +1,15 @@
 #!/usr/bin/env sh
-
-########
-# Custom cyon.ch DNS API for use with [acme.sh](https://github.com/acmesh-official/acme.sh)
-#
-# Usage: acme.sh --issue --dns dns_cyon -d www.domain.com
-#
-# Dependencies:
-# -------------
-# - oathtool (When using 2 Factor Authentication)
-#
-# Issues:
-# -------
-# Any issues / questions / suggestions can be posted here:
-# https://github.com/noplanman/cyon-api/issues
-#
-# Author: Armando Lüscher <armando@noplanman.ch>
-########
+# shellcheck disable=SC2034
+dns_cyon_info='cyon.ch
+Site: cyon.ch
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_cyon
+Options:
+ CY_Username Username
+ CY_Password API Token
+ CY_OTP_Secret OTP token. Only required if using 2FA
+Issues: github.com/noplanman/cyon-api/issues
+Author: Armando Lüscher <armando@noplanman.ch>
+'
 
 dns_cyon_add() {
   _cyon_load_credentials &&
@@ -221,10 +215,8 @@ _cyon_change_domain_env() {
 
   if ! _cyon_check_if_2fa_missed "${domain_env_response}"; then return 1; fi
 
-  domain_env_success="$(printf "%s" "${domain_env_response}" | _egrep_o '"authenticated":\w*' | cut -d : -f 2)"
-
   # Bail if domain environment change fails.
-  if [ "${domain_env_success}" != "true" ]; then
+  if [ "$(printf "%s" "${domain_env_response}" | _cyon_get_environment_change_status)" != "true" ]; then
     _err "    $(printf "%s" "${domain_env_response}" | _cyon_get_response_message)"
     _err ""
     return 1
@@ -238,7 +230,7 @@ _cyon_add_txt() {
   _info "  - Adding DNS TXT entry..."
 
   add_txt_url="https://my.cyon.ch/domain/dnseditor/add-record-async"
-  add_txt_data="zone=${fulldomain_idn}.&ttl=900&type=TXT&value=${txtvalue}"
+  add_txt_data="name=${fulldomain_idn}.&ttl=900&type=TXT&dnscontent=${txtvalue}"
 
   add_txt_response="$(_post "$add_txt_data" "$add_txt_url")"
   _debug add_txt_response "${add_txt_response}"
@@ -247,9 +239,10 @@ _cyon_add_txt() {
 
   add_txt_message="$(printf "%s" "${add_txt_response}" | _cyon_get_response_message)"
   add_txt_status="$(printf "%s" "${add_txt_response}" | _cyon_get_response_status)"
+  add_txt_validation="$(printf "%s" "${add_txt_response}" | _cyon_get_validation_status)"
 
   # Bail if adding TXT entry fails.
-  if [ "${add_txt_status}" != "true" ]; then
+  if [ "${add_txt_status}" != "true" ] || [ "${add_txt_validation}" != "true" ]; then
     _err "    ${add_txt_message}"
     _err ""
     return 1
@@ -311,11 +304,19 @@ _cyon_get_response_message() {
 }
 
 _cyon_get_response_status() {
-  _egrep_o '"status":\w*' | cut -d : -f 2
+  _egrep_o '"status":[a-zA-z0-9]*' | cut -d : -f 2
+}
+
+_cyon_get_validation_status() {
+  _egrep_o '"valid":[a-zA-z0-9]*' | cut -d : -f 2
 }
 
 _cyon_get_response_success() {
   _egrep_o '"onSuccess":"[^"]*"' | cut -d : -f 2 | tr -d '"'
+}
+
+_cyon_get_environment_change_status() {
+  _egrep_o '"authenticated":[a-zA-z0-9]*' | cut -d : -f 2
 }
 
 _cyon_check_if_2fa_missed() {

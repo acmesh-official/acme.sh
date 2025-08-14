@@ -1,7 +1,12 @@
 #!/usr/bin/env sh
-
-#
-#VULTR_API_KEY=000011112222333344445555666677778888
+# shellcheck disable=SC2034
+dns_vultr_info='vultr.com
+Site: vultr.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_vultr
+Options:
+ VULTR_API_KEY API Key
+Issues: github.com/acmesh-official/acme.sh/issues/2374
+'
 
 VULTR_Api="https://api.vultr.com/v2"
 
@@ -78,7 +83,7 @@ dns_vultr_rm() {
     return 1
   fi
 
-  _record_id="$(echo "$response" | tr '{}' '\n' | grep '"TXT"' | grep -- "$txtvalue" | tr ',' '\n' | grep -i 'id' | cut -d : -f 2)"
+  _record_id="$(echo "$response" | tr '{}' '\n' | grep '"TXT"' | grep -- "$txtvalue" | tr ',' '\n' | grep -i 'id' | cut -d : -f 2 | tr -d '"')"
   _debug _record_id "$_record_id"
   if [ "$_record_id" ]; then
     _info "Successfully retrieved the record id for ACME challenge."
@@ -106,7 +111,7 @@ _get_root() {
   domain=$1
   i=1
   while true; do
-    _domain=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _domain=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$_domain"
     if [ -z "$_domain" ]; then
       return 1
@@ -116,7 +121,7 @@ _get_root() {
       return 1
     fi
 
-    if printf "%s\n" "$response" | grep '^\{.*\}' >/dev/null; then
+    if printf "%s\n" "$response" | grep -E '^\{.*\}' >/dev/null; then
       if _contains "$response" "\"domain\":\"$_domain\""; then
         _sub_domain="$(echo "$fulldomain" | sed "s/\\.$_domain\$//")"
         return 0
@@ -139,7 +144,7 @@ _vultr_rest() {
   data="$3"
   _debug "$ep"
 
-  api_key_trimmed=$(echo $VULTR_API_KEY | tr -d '"')
+  api_key_trimmed=$(echo "$VULTR_API_KEY" | tr -d '"')
 
   export _H1="Authorization: Bearer $api_key_trimmed"
   export _H2='Content-Type: application/json'

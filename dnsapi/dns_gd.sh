@@ -1,12 +1,12 @@
 #!/usr/bin/env sh
-
-#Godaddy domain api
-# Get API key and secret from https://developer.godaddy.com/
-#
-# GD_Key="sdfsdfsdfljlbjkljlkjsdfoiwje"
-# GD_Secret="asdfsdfsfsdfsdfdfsdf"
-#
-# Ex.: acme.sh --issue --staging --dns dns_gd -d "*.s.example.com" -d "s.example.com"
+# shellcheck disable=SC2034
+dns_gd_info='GoDaddy.com
+Site: GoDaddy.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_gd
+Options:
+ GD_Key API Key
+ GD_Secret API Secret
+'
 
 GD_Api="https://api.godaddy.com/v1"
 
@@ -22,8 +22,8 @@ dns_gd_add() {
   if [ -z "$GD_Key" ] || [ -z "$GD_Secret" ]; then
     GD_Key=""
     GD_Secret=""
-    _err "You don't specify godaddy api key and secret yet."
-    _err "Please create you key and try again."
+    _err "You didn't specify godaddy api key and secret yet."
+    _err "Please create your key and try again."
     return 1
   fi
 
@@ -46,7 +46,7 @@ dns_gd_add() {
   fi
 
   if _contains "$response" "$txtvalue"; then
-    _info "The record is existing, skip"
+    _info "This record already exists, skipping"
     return 0
   fi
 
@@ -148,7 +148,7 @@ _get_root() {
   i=2
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -161,7 +161,7 @@ _get_root() {
     if _contains "$response" '"code":"NOT_FOUND"'; then
       _debug "$h not found"
     else
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi

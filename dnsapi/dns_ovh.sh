@@ -1,18 +1,23 @@
 #!/usr/bin/env sh
-
-#Application Key
-#OVH_AK="sdfsdfsdfljlbjkljlkjsdfoiwje"
-#
-#Application Secret
-#OVH_AS="sdfsafsdfsdfdsfsdfsa"
-#
-#Consumer Key
-#OVH_CK="sdfsdfsdfsdfsdfdsf"
+# shellcheck disable=SC2034
+dns_ovh_info='OVH.com
+Domains: kimsufi.com soyoustart.com
+Site: OVH.com
+Docs: github.com/acmesh-official/acme.sh/wiki/How-to-use-OVH-domain-api
+Options:
+ OVH_END_POINT Endpoint. "ovh-eu", "ovh-us", "ovh-ca", "kimsufi-eu", "kimsufi-ca", "soyoustart-eu", "soyoustart-ca" or raw URL. Default: "ovh-eu".
+ OVH_AK Application Key
+ OVH_AS Application Secret
+ OVH_CK Consumer Key
+'
 
 #OVH_END_POINT=ovh-eu
 
 #'ovh-eu'
 OVH_EU='https://eu.api.ovh.com/1.0'
+
+#'ovh-us'
+OVH_US='https://api.us.ovhcloud.com/1.0'
 
 #'ovh-ca':
 OVH_CA='https://ca.api.ovh.com/1.0'
@@ -29,9 +34,6 @@ SYS_EU='https://eu.api.soyoustart.com/1.0'
 #'soyoustart-ca'
 SYS_CA='https://ca.api.soyoustart.com/1.0'
 
-#'runabove-ca'
-RAV_CA='https://api.runabove.com/1.0'
-
 wiki="https://github.com/acmesh-official/acme.sh/wiki/How-to-use-OVH-domain-api"
 
 ovh_success="https://github.com/acmesh-official/acme.sh/wiki/OVH-Success"
@@ -43,6 +45,10 @@ _ovh_get_api() {
 
   ovh-eu | ovheu)
     printf "%s" $OVH_EU
+    return
+    ;;
+  ovh-us | ovhus)
+    printf "%s" $OVH_US
     return
     ;;
   ovh-ca | ovhca)
@@ -65,14 +71,15 @@ _ovh_get_api() {
     printf "%s" $SYS_CA
     return
     ;;
-  runabove-ca | runaboveca)
-    printf "%s" $RAV_CA
+  # raw API url starts with https://
+  https*)
+    printf "%s" "$1"
     return
     ;;
 
   *)
 
-    _err "Unknown parameter : $1"
+    _err "Unknown endpoint : $1"
     return 1
     ;;
   esac
@@ -106,7 +113,7 @@ _initAuth() {
     _saveaccountconf_mutable OVH_END_POINT "$OVH_END_POINT"
   fi
 
-  OVH_API="$(_ovh_get_api $OVH_END_POINT)"
+  OVH_API="$(_ovh_get_api "$OVH_END_POINT")"
   _debug OVH_API "$OVH_API"
 
   OVH_CK="${OVH_CK:-$(_readaccountconf_mutable OVH_CK)}"
@@ -253,7 +260,7 @@ _get_root() {
   i=1
   p=1
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
       #not valid
       return 1
@@ -266,7 +273,7 @@ _get_root() {
     if ! _contains "$response" "This service does not exist" >/dev/null &&
       ! _contains "$response" "This call has not been granted" >/dev/null &&
       ! _contains "$response" "NOT_GRANTED_CALL" >/dev/null; then
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi

@@ -1,12 +1,17 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_namecheap_info='NameCheap.com
+Site: NameCheap.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_namecheap
+Options:
+ NAMECHEAP_API_KEY API Key
+ NAMECHEAP_USERNAME Username
+ NAMECHEAP_SOURCEIP Source IP
+Issues: github.com/acmesh-official/acme.sh/issues/2107
+'
 
 # Namecheap API
 # https://www.namecheap.com/support/api/intro.aspx
-#
-# Requires Namecheap API key set in
-#NAMECHEAP_API_KEY,
-#NAMECHEAP_USERNAME,
-#NAMECHEAP_SOURCEIP
 # Due to Namecheap's API limitation all the records of your domain will be read and re applied, make sure to have a backup of your records you could apply if any issue would arise.
 
 ########  Public functions #####################
@@ -104,7 +109,7 @@ _get_root_by_getList() {
 
   while true; do
 
-    h=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -118,7 +123,7 @@ _get_root_by_getList() {
     if ! _contains "$response" "$h"; then
       _debug "$h not found"
     else
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-$p)
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi
@@ -132,14 +137,14 @@ _get_root_by_getHosts() {
   i=100
   p=99
 
-  while [ $p -ne 0 ]; do
+  while [ "$p" -ne 0 ]; do
 
-    h=$(printf "%s" "$1" | cut -d . -f $i-100)
+    h=$(printf "%s" "$1" | cut -d . -f "$i"-100)
     if [ -n "$h" ]; then
       if _contains "$h" "\\."; then
         _debug h "$h"
         if _namecheap_set_tld_sld "$h"; then
-          _sub_domain=$(printf "%s" "$1" | cut -d . -f 1-$p)
+          _sub_domain=$(printf "%s" "$1" | cut -d . -f 1-"$p")
           _domain="$h"
           return 0
         else
@@ -373,7 +378,7 @@ _namecheap_set_tld_sld() {
 
   while true; do
 
-    _tld=$(printf "%s" "$domain" | cut -d . -f $i-100)
+    _tld=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug tld "$_tld"
 
     if [ -z "$_tld" ]; then

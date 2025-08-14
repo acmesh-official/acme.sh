@@ -1,10 +1,13 @@
 #!/usr/bin/env sh
-
-# hosting.de API
-
-# Values to export:
-# export HOSTINGDE_ENDPOINT='https://secure.hosting.de'
-# export HOSTINGDE_APIKEY='xxxxx'
+# shellcheck disable=SC2034
+dns_hostingde_info='Hosting.de
+Site: Hosting.de
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_hostingde
+Options:
+ HOSTINGDE_ENDPOINT Endpoint. E.g. "https://secure.hosting.de"
+ HOSTINGDE_APIKEY API Key
+Issues: github.com/acmesh-official/acme.sh/issues/2058
+'
 
 ########  Public functions #####################
 
