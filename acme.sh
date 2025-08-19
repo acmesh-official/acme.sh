@@ -1909,7 +1909,7 @@ _inithttp() {
   fi
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
-    _ACME_WGET="wget -q"
+    _ACME_WGET="${ACME_CUSTOM_WGET:-wget} -q"
     if [ "$ACME_HTTP_NO_REDIRECTS" ]; then
       _ACME_WGET="$_ACME_WGET --max-redirect 0 "
     fi
@@ -7069,7 +7069,7 @@ Parameters:
   --listen-v4                       Force standalone/tls server to listen at ipv4.
   --listen-v6                       Force standalone/tls server to listen at ipv6.
   --openssl-bin <file>              Specifies a custom openssl bin location.
-  --use-wget                        Force to use wget, if you have both curl and wget installed.
+  --use-wget[=<command>]            Force to use wget, if you have both curl and wget installed.
   --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force use of dns manual mode.
                                       See:  $_DNS_MANUAL_WIKI
 
@@ -7824,6 +7824,11 @@ _process() {
     --use-wget)
       _use_wget="1"
       ACME_USE_WGET="1"
+      ;;
+    --use-wget=*)
+      _use_wget="1"
+      ACME_USE_WGET="1"
+      ACME_CUSTOM_WGET="${1#--use-wget=}"
       ;;
     --branch | -b)
       export BRANCH="$2"
