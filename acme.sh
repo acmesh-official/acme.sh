@@ -180,6 +180,8 @@ _VALIDITY_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Validity"
 
 _DNSCHECK_WIKI="https://github.com/acmesh-official/acme.sh/wiki/dnscheck"
 
+_ZEROSSL_DEFAULT_CA_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Change-default-CA-to-ZeroSSL"
+
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
 _DNS_MANUAL_WARN="It seems that you are using dns manual mode. please take care: $_DNS_MANUAL_ERR"
@@ -2306,7 +2308,15 @@ _send_signed_request() {
         _sleep $_sleep_retry_sec
         continue
       fi
+
+      if [ "$code" = '400' ] && _contains "$_body" "The JWS Signature MUST be present" && [ ! "$_ACME_USE_NONDEFAULT_SERVER" ]; then
+        _shortCAOptions="$(_getCAShortNameList)"
+        _err "To use a different CA server (default used: $DEFAULT_CA), provide a --server parameter with one of: $_shortCAOptions."
+        _err "For example:      $PROJECT_ENTRY --issue -d example.com -w /home/wwwroot/example.com --server letsencrypt"
+        _err "We recommend using ZeroSSL. Read more about using ZeroSSL here: $_ZEROSSL_DEFAULT_CA_WIKI"
+      fi
     fi
+
     return 0
   done
   _info "Giving up sending to CA server after $MAX_REQUEST_RETRY_TIMES retries."
@@ -7266,6 +7276,16 @@ _getCAShortName() {
   echo "$caurl"
 }
 
+_getCAShortNameList() {
+    _res=''
+    for snames in $CA_NAMES; do
+        _shortname=$(_getfield "$snames" 2)
+        _res="$_res$_shortname, "
+    done
+    _clean="${_res:0:-2}"
+    echo "$_clean"
+}
+
 #set default ca to $ACME_DIRECTORY
 setdefaultca() {
   if [ -z "$ACME_DIRECTORY" ]; then
@@ -7505,6 +7525,7 @@ _process() {
       ;;
     --server)
       _server="$2"
+      export _ACME_USE_NONDEFAULT_SERVER=1
       shift
       ;;
     --debug)
