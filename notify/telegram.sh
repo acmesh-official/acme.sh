@@ -39,6 +39,7 @@ telegram_send() {
   _content="$(printf "*%s*\n%s" "$_subject" "$_content" | _json_encode)"
   _data="{\"text\": \"$_content\", "
   _data="$_data\"chat_id\": \"$TELEGRAM_BOT_CHATID\", "
+  _data="$_data\"message_thread_id\": \"$TELEGRAM_MESSAGE_THREAD_ID\", "
   _data="$_data\"parse_mode\": \"MarkdownV2\", "
   _data="$_data\"disable_web_page_preview\": \"1\"}"
 
