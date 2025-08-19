@@ -2222,7 +2222,7 @@ _send_signed_request() {
     _debug2 nonce "$nonce"
     if [ -z "$nonce" ]; then
       _info "Could not get nonce, let's try again."
-      _sleep 2
+      _sleep $SLEEP_TIME
       continue
     fi
 
@@ -5065,6 +5065,10 @@ $_authorizations_map"
       MAX_RETRY_TIMES=30
     fi
 
+    if [ -z "$SLEEP_TIME" ]; then
+      SLEEP_TIME=2
+    fi
+
     _debug "Let's check the authz status"
     while true; do
       waittimes=$(_math "$waittimes" + 1)
@@ -5124,8 +5128,8 @@ $_authorizations_map"
         _on_issue_err "$_post_hook" "$vlist"
         return 1
       fi
-      _debug "Sleep 2 seconds before verifying again"
-      _sleep 2
+      _debug "Sleep $SLEEP_TIME seconds before verifying again"
+      _sleep $SLEEP_TIME
       _debug "Checking"
 
       _send_signed_request "$_authz_url"
@@ -5199,7 +5203,7 @@ $_authorizations_map"
         _info "Sleeping for $_retryafter seconds then retrying"
         _sleep $_retryafter
       else
-        _sleep 2
+        _sleep SLEEP_TIME
       fi
     else
       _err "Signing error: wrong status"
