@@ -20,8 +20,8 @@
 # The script will automatically generate a new API key if
 # no key is found, or if a saved key has expired or is invalid.
 
-
-
+_COMMIT_WAIT_INTERVAL=30   # query commit status every 30 seconds
+_COMMIT_WAIT_ITERATIONS=20 # query commit status 20 times (20*30 = 600 seconds = 10 minutes)
 
 # This function is to parse the XML response from the firewall
 parse_response() {
@@ -59,11 +59,11 @@ deployer() {
   content=""
   type=$1 # Types are keytest, keygen, cert, key, commit, job_status, push
   panos_url="https://$_panos_host/api/"
+  export _H1="Content-Type: application/x-www-form-urlencoded"
 
   #Test API Key by performing a lookup
   if [ "$type" = 'keytest' ]; then
     _debug "**** Testing saved API Key ****"
-    _H1="Content-Type: application/x-www-form-urlencoded"
     # Get Version Info to test key
     content="type=version&key=$_panos_key"
     ## Exclude all scopes for the empty commit
@@ -74,7 +74,6 @@ deployer() {
   # Generate API Key
   if [ "$type" = 'keygen' ]; then
     _debug "**** Generating new API Key ****"
-    _H1="Content-Type: application/x-www-form-urlencoded"
     content="type=keygen&user=$_panos_user&password=$_panos_pass"
     # content="$content${nl}--$delim${nl}Content-Disposition: form-data; type=\"keygen\"; user=\"$_panos_user\"; password=\"$_panos_pass\"${nl}Content-Type: application/octet-stream${nl}${nl}"
   fi
@@ -99,7 +98,7 @@ deployer() {
       fi
       if [ "$_panos_vsys" ]; then
         content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"target-tpl-vsys\"\r\n\r\n$_panos_vsys"
-      fi      
+      fi
     fi
     if [ "$type" = 'key' ]; then
       panos_url="${panos_url}?type=import"
@@ -114,7 +113,7 @@ deployer() {
       fi
       if [ "$_panos_vsys" ]; then
         content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"target-tpl-vsys\"\r\n\r\n$_panos_vsys"
-      fi  
+      fi
     fi
     #Close multipart
     content="$content${nl}--$delim--${nl}${nl}"
@@ -125,7 +124,6 @@ deployer() {
   # Commit changes
   if [ "$type" = 'commit' ]; then
     _debug "**** Committing changes ****"
-    export _H1="Content-Type: application/x-www-form-urlencoded"
     #Check for force commit - will commit ALL uncommited changes to the firewall. Use with caution!
     if [ "$FORCE" ]; then
       _debug "Force switch detected.  Committing ALL changes to the firewall."
@@ -140,7 +138,6 @@ deployer() {
   # Query job status
   if [ "$type" = 'job_status' ]; then
     echo "**** Querying job $_commit_job_id status ****"
-    H1="Content-Type: application/x-www-form-urlencoded"
     cmd=$(printf "%s" "<show><jobs><id>$_commit_job_id</id></jobs></show>" | _url_encode)
     content="type=op&key=$_panos_key&cmd=$cmd"
   fi
@@ -148,7 +145,6 @@ deployer() {
   # Push changes
   if [ "$type" = 'push' ]; then
     echo "**** Pushing changes ****"
-    H1="Content-Type: application/x-www-form-urlencoded"
     cmd=$(printf "%s" "<commit-all><template-stack><name>$_panos_template_stack</name><admin><member>$_panos_user</member></admin></template-stack></commit-all>" | _url_encode)
     content="type=commit&action=all&key=$_panos_key&cmd=$cmd"
   fi
@@ -288,13 +284,15 @@ panos_deploy() {
       deployer commit
       if [ "$_panos_template_stack" ]; then
         # try to get job status for 20 times in 30 sec interval
-        for ((i = 0 ; i < 20 ; i++ )); do
-            deployer job_status
-            if [[ "$_commit_job_status" == "OK" ]]; then
-                echo "Commit finished!"
-                break
-            fi
-            sleep 30
+        i=0
+        while [ "$i" -lt $_COMMIT_WAIT_ITERATIONS ]; do
+          deployer job_status
+          if [ "$_commit_job_status" = "OK" ]; then
+            echo "Commit finished!"
+            break
+          fi
+          sleep $_COMMIT_WAIT_INTERVAL
+          i=$((i + 1))
         done
         deployer push
       fi
