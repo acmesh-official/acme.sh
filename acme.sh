@@ -5565,7 +5565,7 @@ renewAll() {
   _set_level=${NOTIFY_LEVEL:-$NOTIFY_LEVEL_DEFAULT}
   _debug "_set_level" "$_set_level"
   export _ACME_IN_RENEWALL=1
-  for di in "${CERT_HOME}"/*.*/; do
+  for di in "${CERT_HOME}"/*/; do
     _debug di "$di"
     if ! [ -d "$di" ]; then
       _debug "Not a directory, skipping: $di"
