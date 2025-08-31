@@ -203,6 +203,14 @@ _export_envs() {
 # Description:
 #   This function takes a YAML formatted string of environment variables, parses it,
 #   and clears each environment variable. It logs the process of clearing each variable.
+#
+#   Note: Environment variables for a hook may be optional and differ between
+#   services using the same hook.
+#   If one service sets optional environment variables and another does not, the
+#   variables may persist and affect subsequent deployments.
+#   Clearing these variables after each service ensures that only the
+#   environment variables explicitly specified for each service in the deploy
+#   file are used.
 # Arguments:
 #   $1 - A YAML formatted string containing environment variable key-value pairs.
 # Usage:
