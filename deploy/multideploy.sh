@@ -235,7 +235,7 @@ _deploy_services() {
 
   _failedServices=""
   _failedCount=0
-  while read -r _service; do
+  while read -r _service <&3; do
     _debug2 "Service" "$_service"
     _hook=$(yq e ".services[] | select(.name == \"$_service\").hook" "$_deploy_file")
     _envs=$(yq e ".services[] | select(.name == \"$_service\").environment" "$_deploy_file")
@@ -246,7 +246,7 @@ _deploy_services() {
       _failedCount=$((_failedCount + 1))
     fi
     _clear_envs "$_envs"
-  done < "$_tempfile"
+  done 3< "$_tempfile"
 
   _debug3 "Failed services" "$_failedServices"
   _debug2 "Failed count" "$_failedCount"
