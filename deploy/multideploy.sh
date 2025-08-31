@@ -68,10 +68,6 @@ multideploy_deploy() {
   _deploy_services "$file"
   _exitCode="$?"
 
-  # Save deployhook for renewals
-  _debug2 "Setting Le_DeployHook"
-  _savedomainconf "Le_DeployHook" "multideploy"
-
   return "$_exitCode"
 }
 
