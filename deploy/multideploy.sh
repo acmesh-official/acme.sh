@@ -154,21 +154,18 @@ _check_deployfile() {
       _err "Service '$_service' not found."
       return 1
     fi
-    _secure_debug3 "check: Service '$_service' configuration" "$_service_config"
 
     _service_hook=$(echo "$_service_config" | yq e ".hook" -)
     if [ -z "$_service_hook" ] || [ "$_service_hook" = "null" ]; then
       _err "Service '$_service' does not have a hook."
       return 1
     fi
-    _debug3 "check: Service '$_service' hook" "$_service_hook"
 
     _service_environment=$(echo "$_service_config" | yq e ".environment" -)
     if [ -z "$_service_environment" ] || [ "$_service_environment" = "null" ]; then
       _err "Service '$_service' does not have an environment."
       return 1
     fi
-    _secure_debug3 "check: Service '$_service' environment" "$_service_environment"
   done
 }
 
