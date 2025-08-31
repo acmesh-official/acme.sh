@@ -192,6 +192,7 @@ _export_envs() {
 
   IFS=$(printf '\n')
   echo "$_env_list" | yq e -r 'to_entries | .[] | .key + "=" + .value' | while IFS='=' read -r _key _value; do
+    # Using eval to expand nested variables in the configuration file
     _value=$(eval echo "$_value")
     _savedeployconf "$_key" "$_value"
     _secure_debug3 "Saved $_key" "$_value"
