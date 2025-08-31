@@ -127,7 +127,7 @@ _preprocess_deployfile() {
 #   _check_deployfile "<deploy_file_path>"
 _check_deployfile() {
   _deploy_file="$1"
-  _debug2 "Deploy file" "$_deploy_file"
+  _debug2 "check: Deploy file" "$_deploy_file"
 
   # Check version
   _deploy_file_version=$(yq '.version' "$_deploy_file")
@@ -135,38 +135,44 @@ _check_deployfile() {
     _err "As of $PROJECT_NAME $VER, the deploy file needs version $MULTIDEPLOY_VERSION! Your current deploy file is of version $_deploy_file_version."
     return 1
   fi
-  _debug2 "Deploy file version is compatible: $_deploy_file_version"
+  _debug2 "check: Deploy file version is compatible: $_deploy_file_version"
 
   # Extract all services from config
   _services=$(yq e '.services[].name' "$_deploy_file")
-  _debug2 "Services" "$_services"
 
   if [ -z "$_services" ]; then
     _err "Config does not have any services to deploy to."
     return 1
   fi
-  _debug2 "Config has services."
+  _debug2 "check: Config has services."
+  echo "$_services" | while read -r _service; do
+    _debug3 " - $_service"
+  done
 
   # Check if extracted services exist in services list
   echo "$_services" | while read -r _service; do
-    _debug2 "Checking service" "$_service"
+    _debug2 "check: Checking service: $_service"
     # Check if service exists
-    if ! yq e ".services[] | select(.name == \"$_service\")" "$_deploy_file" >/dev/null; then
+    _service_config=$(yq e ".services[] | select(.name == \"$_service\")" "$_deploy_file")
+    if [ -z "$_service_config" ] || [ "$_service_config" = "null" ]; then
       _err "Service '$_service' not found."
       return 1
     fi
+    _secure_debug3 "check: Service '$_service' configuration" "$_service_config"
 
-    # Check if service has hook
-    if ! yq e ".services[] | select(.name == \"$_service\").hook" "$_deploy_file" >/dev/null; then
+    _service_hook=$(echo "$_service_config" | yq e ".hook" -)
+    if [ -z "$_service_hook" ] || [ "$_service_hook" = "null" ]; then
       _err "Service '$_service' does not have a hook."
       return 1
     fi
+    _debug3 "check: Service '$_service' hook" "$_service_hook"
 
-    # Check if service has environment
-    if ! yq e ".services[] | select(.name == \"$_service\").environment" "$_deploy_file" >/dev/null; then
+    _service_environment=$(echo "$_service_config" | yq e ".environment" -)
+    if [ -z "$_service_environment" ] || [ "$_service_environment" = "null" ]; then
       _err "Service '$_service' does not have an environment."
       return 1
     fi
+    _secure_debug3 "check: Service '$_service' environment" "$_service_environment"
   done
 }
 
