@@ -108,10 +108,13 @@ _preprocess_deployfile() {
   done
   IFS=$OLDIFS
 
-  if [ -n "$found_file" ]; then
-    _check_deployfile "$DOMAIN_PATH/$found_file"
-  else
+  if [ -z "$found_file" ];
+  then
     _err "Deploy file not found. Go to https://github.com/acmesh-official/acme.sh/wiki/deployhooks#36-deploying-to-multiple-services-with-the-same-hooks to see how to create one."
+    return 1
+  fi
+  if ! _check_deployfile "$DOMAIN_PATH/$found_file"; then
+    _err "Deploy file is not valid: $DOMAIN_PATH/$found_file"
     return 1
   fi
 
