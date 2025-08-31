@@ -147,9 +147,8 @@ _check_deployfile() {
   fi
   _debug2 "Config has services."
 
-  IFS=$(printf '\n')
   # Check if extracted services exist in services list
-  for _service in $_services; do
+  echo "$_services" | while read -r _service; do
     _debug2 "Checking service" "$_service"
     # Check if service exists
     if ! yq e ".services[] | select(.name == \"$_service\")" "$_deploy_file" >/dev/null; then
@@ -169,7 +168,6 @@ _check_deployfile() {
       return 1
     fi
   done
-  IFS=$OLDIFS
 }
 
 # Description: This function takes a list of environment variables in YAML format,
@@ -225,14 +223,15 @@ _deploy_services() {
   _deploy_file="$1"
   _debug3 "Deploy file" "$_deploy_file"
 
-  _services=$(yq e '.services[].name' "$_deploy_file")
-  _debug3 "Services" "$_services"
+  _tempfile=$(mktemp)
+  trap "rm -f $_tempfile" EXIT
 
-  _service_list=$(printf '%s\n' "$_services")
+  yq e '.services[].name' "$_deploy_file" > $_tempfile
+  _debug3 "Services" "$(cat $_tempfile)"
 
   _failedServices=""
   _failedCount=0
-  for _service in $(printf '%s\n' "$_service_list"); do
+  while read -r _service; do
     _debug2 "Service" "$_service"
     _hook=$(yq e ".services[] | select(.name == \"$_service\").hook" "$_deploy_file")
     _envs=$(yq e ".services[] | select(.name == \"$_service\").environment" "$_deploy_file")
@@ -243,7 +242,7 @@ _deploy_services() {
       _failedCount=$((_failedCount + 1))
     fi
     _clear_envs "$_envs"
-  done
+  done < "$_tempfile"
 
   _debug3 "Failed services" "$_failedServices"
   _debug2 "Failed count" "$_failedCount"
