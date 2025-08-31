@@ -58,7 +58,6 @@ multideploy_deploy() {
     _debug2 "MULTIDEPLOY_FILENAME" "$MULTIDEPLOY_FILENAME"
   fi
 
-  OLDIFS=$IFS
   if ! file=$(_preprocess_deployfile "$MULTIDEPLOY_FILENAME"); then
     _err "Failed to preprocess deploy file."
     return 1
@@ -92,7 +91,6 @@ _preprocess_deployfile() {
   _debug3 "yq is installed."
 
   # Check if deploy file exists
-  IFS=$(printf '\n')
   for file in "$@"; do
     _debug3 "Checking file" "$DOMAIN_PATH/$file"
     if [ -f "$DOMAIN_PATH/$file" ]; then
@@ -106,7 +104,6 @@ _preprocess_deployfile() {
       _debug3 "File not found"
     fi
   done
-  IFS=$OLDIFS
 
   if [ -z "$found_file" ];
   then
@@ -190,14 +187,12 @@ _export_envs() {
 
   _secure_debug3 "Exporting envs" "$_env_list"
 
-  IFS=$(printf '\n')
   echo "$_env_list" | yq e -r 'to_entries | .[] | .key + "=" + .value' | while IFS='=' read -r _key _value; do
     # Using eval to expand nested variables in the configuration file
     _value=$(eval echo "$_value")
     _savedeployconf "$_key" "$_value"
     _secure_debug3 "Saved $_key" "$_value"
   done
-  IFS=$OLDIFS
 }
 
 # Description:
@@ -221,13 +216,11 @@ _clear_envs() {
   _secure_debug3 "Clearing envs" "$_env_list"
   env_pairs=$(echo "$_env_list" | yq e -r 'to_entries | .[] | .key + "=" + .value')
 
-  IFS=$(printf '\n')
   echo "$env_pairs" | while IFS='=' read -r _key _value; do
     _debug3 "Deleting key" "$_key"
     _cleardomainconf "SAVED_$_key"
     unset -v "$_key"
   done
-  IFS="$OLDIFS"
 }
 
 # Description:
