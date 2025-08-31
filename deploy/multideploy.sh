@@ -244,8 +244,8 @@ _deploy_services() {
   _tempfile=$(mktemp)
   trap "rm -f $_tempfile" EXIT
 
-  yq e '.services[].name' "$_deploy_file" > $_tempfile
-  _debug3 "Services" "$(cat $_tempfile)"
+  yq e '.services[].name' "$_deploy_file" > "$_tempfile"
+  _debug3 "Services" "$(cat "$_tempfile")"
 
   _failedServices=""
   _failedCount=0
