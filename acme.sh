@@ -2538,15 +2538,17 @@ _startserver() {
   _NC="socat"
   if [ "$Le_Listen_V6" ]; then
     _NC="$_NC -6"
+    SOCAT_OPTIONS=TCP6-LISTEN
   else
     _NC="$_NC -4"
+    SOCAT_OPTIONS=TCP4-LISTEN
   fi
 
   if [ "$DEBUG" ] && [ "$DEBUG" -gt "1" ]; then
     _NC="$_NC -d -d -v"
   fi
 
-  SOCAT_OPTIONS=TCP-LISTEN:$Le_HTTPPort,crlf,reuseaddr,fork
+  SOCAT_OPTIONS=$SOCAT_OPTIONS:$Le_HTTPPort,crlf,reuseaddr,fork
 
   #Adding bind to local-address
   if [ "$ncaddr" ]; then
