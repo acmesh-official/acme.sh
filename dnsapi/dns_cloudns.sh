@@ -197,10 +197,11 @@ _dns_cloudns_http_api_call() {
     auth_user="auth-id=$CLOUDNS_AUTH_ID"
   fi
 
+  encoded_password=$(echo "$CLOUDNS_AUTH_PASSWORD" | tr -d "\n\r" | _url_encode)
   if [ -z "$2" ]; then
-    data="$auth_user&auth-password=$CLOUDNS_AUTH_PASSWORD"
+    data="$auth_user&auth-password=$encoded_password"
   else
-    data="$auth_user&auth-password=$CLOUDNS_AUTH_PASSWORD&$2"
+    data="$auth_user&auth-password=$encoded_password&$2"
   fi
 
   response="$(_get "$CLOUDNS_API/$method?$data")"

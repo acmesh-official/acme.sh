@@ -7,7 +7,7 @@ Options:
  BOOKMYNAME_USERNAME Username
  BOOKMYNAME_PASSWORD Password
 Issues: github.com/acmesh-official/acme.sh/issues/3209
-Author: Neilpang
+Author: @Neilpang
 '
 
 ########  Public functions #####################

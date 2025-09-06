@@ -52,6 +52,39 @@ _ws_call() {
   return 0
 }
 
+# Upload certificate with webclient api
+_ws_upload_cert() {
+
+  /usr/bin/env python - <<EOF
+
+import sys
+
+from truenas_api_client import Client
+with Client() as c:
+
+  ### Login with API key
+  print("I:Trying to upload new certificate...")
+  ret = c.call("auth.login_with_api_key", "${DEPLOY_TRUENAS_APIKEY}")
+  if ret:
+    ### upload certificate
+    with open('$1', 'r') as file:
+      fullchain = file.read()
+    with open('$2', 'r') as file:
+      privatekey = file.read()
+    ret = c.call("certificate.create", {"name": "$3", "create_type": "CERTIFICATE_CREATE_IMPORTED", "certificate": fullchain, "privatekey": privatekey, "passphrase": ""}, job=True)
+    print("R:" + str(ret["id"]))
+    sys.exit(0)
+  else:
+    print("R:0")
+    print("E:_ws_upload_cert error!")
+    sys.exit(7)
+
+EOF
+
+  return $?
+
+}
+
 # Check argument is a number
 # Usage:
 #
@@ -129,7 +162,6 @@ _ws_get_job_result() {
 #  5: WebUI cert error
 #  6: Job error
 #  7: WS call error
-# 10: No CORE or SCALE detected
 #
 truenas_ws_deploy() {
   _domain="$1"
@@ -179,14 +211,8 @@ truenas_ws_deploy() {
 
   _info "Gather system info..."
   _ws_response=$(_ws_call "system.info")
-  _truenas_system=$(printf "%s" "$_ws_response" | jq -r '."version"' | cut -d '-' -f 2 | tr '[:lower:]' '[:upper:]')
-  _truenas_version=$(printf "%s" "$_ws_response" | jq -r '."version"' | cut -d '-' -f 3)
-  _info "TrueNAS system: $_truenas_system"
+  _truenas_version=$(printf "%s" "$_ws_response" | jq -r '."version"')
   _info "TrueNAS version: $_truenas_version"
-  if [ "$_truenas_system" != "SCALE" ] && [ "$_truenas_system" != "CORE" ]; then
-    _err "Cannot gather TrueNAS system. Nor CORE oder SCALE detected."
-    return 10
-  fi
 
   ########## Gather current certificate
 
@@ -203,19 +229,26 @@ truenas_ws_deploy() {
   _certname="acme_$(_utc_date | tr -d '\-\:' | tr ' ' '_')"
   _info "New WebUI certificate name: $_certname"
   _debug _certname "$_certname"
-  _ws_jobid=$(_ws_call "certificate.create" "{\"name\": \"${_certname}\", \"create_type\": \"CERTIFICATE_CREATE_IMPORTED\", \"certificate\": \"$(_json_encode <"$_file_fullchain")\", \"privatekey\": \"$(_json_encode <"$_file_key")\", \"passphrase\": \"\"}")
-  _debug "_ws_jobid" "$_ws_jobid"
-  if ! _ws_check_jobid "$_ws_jobid"; then
-    _err "No JobID returned from websocket method."
-    return 3
-  fi
-  _ws_result=$(_ws_get_job_result "$_ws_jobid")
-  _ws_ret=$?
-  if [ $_ws_ret -gt 0 ]; then
-    return $_ws_ret
-  fi
-  _debug "_ws_result" "$_ws_result"
-  _new_certid=$(printf "%s" "$_ws_result" | jq -r '."id"')
+  _ws_out=$(_ws_upload_cert "$_file_fullchain" "$_file_key" "$_certname")
+
+  echo "$_ws_out" | while IFS= read -r LINE; do
+    case "$LINE" in
+    I:*)
+      _info "${LINE#I:}"
+      ;;
+    D:*)
+      _debug "${LINE#D:}"
+      ;;
+    E*)
+      _err "${LINE#E:}"
+      ;;
+    *) ;;
+
+    esac
+  done
+
+  _new_certid=$(echo "$_ws_out" | grep 'R:' | cut -d ':' -f 2)
+
   _info "New certificate ID: $_new_certid"
 
   ########## FTP
@@ -231,33 +264,31 @@ truenas_ws_deploy() {
 
   ########## ix Apps (SCALE only)
 
-  if [ "$_truenas_system" = "SCALE" ]; then
-    _info "Replace app certificates..."
-    _ws_response=$(_ws_call "app.query")
-    for _app_name in $(printf "%s" "$_ws_response" | jq -r '.[]."name"'); do
-      _info "Checking app $_app_name..."
-      _ws_response=$(_ws_call "app.config" "$_app_name")
-      if [ "$(printf "%s" "$_ws_response" | jq -r '."network" | has("certificate_id")')" = "true" ]; then
-        _info "App has certificate option, setup new certificate..."
-        _info "App will be redeployed after updating the certificate."
-        _ws_jobid=$(_ws_call "app.update" "$_app_name" "{\"values\": {\"network\": {\"certificate_id\": $_new_certid}}}")
-        _debug "_ws_jobid" "$_ws_jobid"
-        if ! _ws_check_jobid "$_ws_jobid"; then
-          _err "No JobID returned from websocket method."
-          return 3
-        fi
-        _ws_result=$(_ws_get_job_result "$_ws_jobid")
-        _ws_ret=$?
-        if [ $_ws_ret -gt 0 ]; then
-          return $_ws_ret
-        fi
-        _debug "_ws_result" "$_ws_result"
-        _info "App certificate replaced."
-      else
-        _info "App has no certificate option, skipping..."
+  _info "Replace app certificates..."
+  _ws_response=$(_ws_call "app.query")
+  for _app_name in $(printf "%s" "$_ws_response" | jq -r '.[]."name"'); do
+    _info "Checking app $_app_name..."
+    _ws_response=$(_ws_call "app.config" "$_app_name")
+    if [ "$(printf "%s" "$_ws_response" | jq -r '."network" | has("certificate_id")')" = "true" ]; then
+      _info "App has certificate option, setup new certificate..."
+      _info "App will be redeployed after updating the certificate."
+      _ws_jobid=$(_ws_call "app.update" "$_app_name" "{\"values\": {\"network\": {\"certificate_id\": $_new_certid}}}")
+      _debug "_ws_jobid" "$_ws_jobid"
+      if ! _ws_check_jobid "$_ws_jobid"; then
+        _err "No JobID returned from websocket method."
+        return 3
       fi
-    done
-  fi
+      _ws_result=$(_ws_get_job_result "$_ws_jobid")
+      _ws_ret=$?
+      if [ $_ws_ret -gt 0 ]; then
+        return $_ws_ret
+      fi
+      _debug "_ws_result" "$_ws_result"
+      _info "App certificate replaced."
+    else
+      _info "App has no certificate option, skipping..."
+    fi
+  done
 
   ########## WebUI
 

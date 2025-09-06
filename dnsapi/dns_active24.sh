@@ -1,17 +1,17 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
-dns_active24_info='Active24.com
-Site: Active24.com
+dns_active24_info='Active24.cz
+Site: Active24.cz
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_active24
 Options:
- ACTIVE24_Token API Token
+ Active24_ApiKey API Key. Called "Identifier" in the Active24 Admin
+ Active24_ApiSecret API Secret. Called "Secret key" in the Active24 Admin
 Issues: github.com/acmesh-official/acme.sh/issues/2059
-Author: Milan Pála
 '
 
-ACTIVE24_Api="https://api.active24.com"
-
-########  Public functions #####################
+Active24_Api="https://rest.active24.cz"
+# export Active24_ApiKey=ak48l3h7-ak5d-qn4t-p8gc-b6fs8c3l
+# export Active24_ApiSecret=ajvkeo3y82ndsu2smvxy3o36496dcascksldncsq
 
 # Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 # Used to add txt record
@@ -22,8 +22,8 @@ dns_active24_add() {
   _active24_init
 
   _info "Adding txt record"
-  if _active24_rest POST "dns/$_domain/txt/v1" "{\"name\":\"$_sub_domain\",\"text\":\"$txtvalue\",\"ttl\":0}"; then
-    if _contains "$response" "errors"; then
+  if _active24_rest POST "/v2/service/$_service_id/dns/record" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"content\":\"$txtvalue\",\"ttl\":300}"; then
+    if _contains "$response" "error"; then
       _err "Add txt record error."
       return 1
     else
@@ -31,6 +31,7 @@ dns_active24_add() {
       return 0
     fi
   fi
+
   _err "Add txt record error."
   return 1
 }
@@ -44,19 +45,25 @@ dns_active24_rm() {
   _active24_init
 
   _debug "Getting txt records"
-  _active24_rest GET "dns/$_domain/records/v1"
+  # The API needs to send data in body in order the filter to work
+  # TODO: web can also add content $txtvalue to filter and then get the id from response
+  _active24_rest GET "/v2/service/$_service_id/dns/record" "{\"page\":1,\"descending\":true,\"sortBy\":\"name\",\"rowsPerPage\":100,\"totalRecords\":0,\"filters\":{\"type\":[\"TXT\"],\"name\":\"${_sub_domain}\"}}"
+  #_active24_rest GET "/v2/service/$_service_id/dns/record?rowsPerPage=100"
 
-  if _contains "$response" "errors"; then
+  if _contains "$response" "error"; then
     _err "Error"
     return 1
   fi
 
-  hash_ids=$(echo "$response" | _egrep_o "[^{]+${txtvalue}[^}]+" | _egrep_o "hashId\":\"[^\"]+" | cut -c10-)
+  # Note: it might never be more than one record actually, NEEDS more INVESTIGATION
+  record_ids=$(printf "%s" "$response" | _egrep_o "[^{]+${txtvalue}[^}]+" | _egrep_o '"id" *: *[^,]+' | cut -d ':' -f 2)
+  _debug2 record_ids "$record_ids"
 
-  for hash_id in $hash_ids; do
-    _debug "Removing hash_id" "$hash_id"
-    if _active24_rest DELETE "dns/$_domain/$hash_id/v1" ""; then
-      if _contains "$response" "errors"; then
+  for redord_id in $record_ids; do
+    _debug "Removing record_id" "$redord_id"
+    _debug "txtvalue" "$txtvalue"
+    if _active24_rest DELETE "/v2/service/$_service_id/dns/record/$redord_id" ""; then
+      if _contains "$response" "error"; then
         _err "Unable to remove txt record."
         return 1
       else
@@ -70,21 +77,15 @@ dns_active24_rm() {
   return 1
 }
 
-####################  Private functions below ##################################
-#_acme-challenge.www.domain.com
-#returns
-# _sub_domain=_acme-challenge.www
-# _domain=domain.com
-# _domain_id=sdjkglgdfewsdfg
 _get_root() {
   domain=$1
+  i=1
+  p=1
 
-  if ! _active24_rest GET "dns/domains/v1"; then
+  if ! _active24_rest GET "/v1/user/self/service"; then
     return 1
   fi
 
-  i=1
-  p=1
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug "h" "$h"
@@ -104,45 +105,102 @@ _get_root() {
   return 1
 }
 
-_active24_rest() {
-  m=$1
-  ep="$2"
-  data="$3"
-  _debug "$ep"
-
-  export _H1="Authorization: Bearer $ACTIVE24_Token"
-
-  if [ "$m" != "GET" ]; then
-    _debug "data" "$data"
-    response="$(_post "$data" "$ACTIVE24_Api/$ep" "" "$m" "application/json")"
-  else
-    response="$(_get "$ACTIVE24_Api/$ep")"
-  fi
-
-  if [ "$?" != "0" ]; then
-    _err "error $ep"
-    return 1
-  fi
-  _debug2 response "$response"
-  return 0
-}
-
 _active24_init() {
-  ACTIVE24_Token="${ACTIVE24_Token:-$(_readaccountconf_mutable ACTIVE24_Token)}"
-  if [ -z "$ACTIVE24_Token" ]; then
-    ACTIVE24_Token=""
-    _err "You didn't specify a Active24 api token yet."
-    _err "Please create the token and try again."
+  Active24_ApiKey="${Active24_ApiKey:-$(_readaccountconf_mutable Active24_ApiKey)}"
+  Active24_ApiSecret="${Active24_ApiSecret:-$(_readaccountconf_mutable Active24_ApiSecret)}"
+  #Active24_ServiceId="${Active24_ServiceId:-$(_readaccountconf_mutable Active24_ServiceId)}"
+
+  if [ -z "$Active24_ApiKey" ] || [ -z "$Active24_ApiSecret" ]; then
+    Active24_ApiKey=""
+    Active24_ApiSecret=""
+    _err "You don't specify Active24 api key and ApiSecret yet."
+    _err "Please create your key and try again."
     return 1
   fi
 
-  _saveaccountconf_mutable ACTIVE24_Token "$ACTIVE24_Token"
+  #save the credentials to the account conf file.
+  _saveaccountconf_mutable Active24_ApiKey "$Active24_ApiKey"
+  _saveaccountconf_mutable Active24_ApiSecret "$Active24_ApiSecret"
+
+  _debug "A24 API CHECK"
+  if ! _active24_rest GET "/v2/check"; then
+    _err "A24 API check failed with: $response"
+    return 1
+  fi
+
+  if ! echo "$response" | tr -d " " | grep \"verified\":true >/dev/null; then
+    _err "A24 API check failed with: $response"
+    return 1
+  fi
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
+
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
+  _active24_get_service_id "$_domain"
+  _debug _service_id "$_service_id"
+}
+
+_active24_get_service_id() {
+  _d=$1
+  if ! _active24_rest GET "/v1/user/self/zone/${_d}"; then
+    return 1
+  else
+    response=$(echo "$response" | _json_decode)
+    _service_id=$(echo "$response" | _egrep_o '"id" *: *[^,]+' | cut -d ':' -f 2)
+  fi
+}
+
+_active24_rest() {
+  m=$1
+  ep_qs=$2 # with query string
+  # ep=$2
+  ep=$(printf "%s" "$ep_qs" | cut -d '?' -f1) # no query string
+  data="$3"
+
+  _debug "A24 $ep"
+  _debug "A24 $Active24_ApiKey"
+  _debug "A24 $Active24_ApiSecret"
+
+  timestamp=$(_time)
+  datez=$(date -u +"%Y%m%dT%H%M%SZ")
+  canonicalRequest="${m} ${ep} ${timestamp}"
+  signature=$(printf "%s" "$canonicalRequest" | _hmac sha1 "$(printf "%s" "$Active24_ApiSecret" | _hex_dump | tr -d " ")" hex)
+  authorization64="$(printf "%s:%s" "$Active24_ApiKey" "$signature" | _base64)"
+
+  export _H1="Date: ${datez}"
+  export _H2="Accept: application/json"
+  export _H3="Content-Type: application/json"
+  export _H4="Authorization: Basic ${authorization64}"
+
+  _debug2 H1 "$_H1"
+  _debug2 H2 "$_H2"
+  _debug2 H3 "$_H3"
+  _debug2 H4 "$_H4"
+
+  # _sleep 1
+
+  if [ "$m" != "GET" ]; then
+    _debug2 "${m} $Active24_Api${ep_qs}"
+    _debug "data" "$data"
+    response="$(_post "$data" "$Active24_Api${ep_qs}" "" "$m" "application/json")"
+  else
+    if [ -z "$data" ]; then
+      _debug2 "GET $Active24_Api${ep_qs}"
+      response="$(_get "$Active24_Api${ep_qs}")"
+    else
+      _debug2 "GET $Active24_Api${ep_qs} with data: ${data}"
+      response="$(_post "$data" "$Active24_Api${ep_qs}" "" "$m" "application/json")"
+    fi
+  fi
+  if [ "$?" != "0" ]; then
+    _err "error $ep"
+    return 1
+  fi
+  _debug2 response "$response"
+  return 0
 }

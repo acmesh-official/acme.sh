@@ -7,7 +7,7 @@ Options:
  WS_ApiKey API Key. Called "Identifier" in the WS Admin
  WS_ApiSecret API Secret. Called "Secret key" in the WS Admin
 Issues: github.com/acmesh-official/acme.sh/issues/3486
-Author: trgo.sk <https://github.com/trgosk>, akulumbeg <https://github.com/akulumbeg>
+Author: trgo.sk <@trgosk>, @akulumbeg
 '
 
 # Requirements: API Key and Secret from https://admin.websupport.sk/en/auth/apiKey

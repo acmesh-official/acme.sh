@@ -5,7 +5,7 @@ Site: vscale.io
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_vscale
 Options:
  VSCALE_API_KEY API Key
-Author: Alex Loban <https://github.com/LAV45>
+Author: Alex Loban <@LAV45>
 '
 
 VSCALE_API_URL="https://api.vscale.io/v1"

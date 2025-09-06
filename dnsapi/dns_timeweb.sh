@@ -6,7 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_timeweb
 Options:
  TW_Token API JWT token. Get it from the control panel at https://timeweb.cloud/my/api-keys
 Issues: github.com/acmesh-official/acme.sh/issues/5140
-Author: Nikolay Pronchev <https://github.com/nikolaypronchev>
+Author: Nikolay Pronchev <@nikolaypronchev>
 '
 
 TW_Api="https://api.timeweb.cloud/api/v1"

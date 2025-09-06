@@ -1,11 +1,11 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_freemyip_info='FreeMyIP.com
-Site: freemyip.com
+Site: FreeMyIP.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_freemyip
 Options:
  FREEMYIP_Token API Token
-Issues: github.com/acmesh-official/acme.sh/issues/{XXXX}
+Issues: github.com/acmesh-official/acme.sh/issues/6247
 Author: Recolic Keghart <root@recolic.net>, @Giova96
 '
 

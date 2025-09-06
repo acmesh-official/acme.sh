@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.1.1
+VER=3.1.2
 
 PROJECT_NAME="acme.sh"
 
@@ -1401,6 +1401,12 @@ _ss() {
     return 0
   fi
 
+  if [ "$(uname)" = "AIX" ]; then
+    _debug "Using: AIX netstat"
+    netstat -an | grep "^tcp" | grep "LISTEN" | grep "\.$_port "
+    return 0
+  fi
+
   if _exists "netstat"; then
     _debug "Using: netstat"
     if netstat -help 2>&1 | grep "\-p proto" >/dev/null; then
@@ -1805,6 +1811,10 @@ _time() {
 #    2022-04-01 08:10:33   to   1648800633
 #or  2022-04-01T08:10:33Z  to   1648800633
 _date2time() {
+  #Mac/BSD
+  if date -u -j -f "%Y-%m-%d %H:%M:%S" "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
+    return
+  fi
   #Linux
   if date -u -d "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
     return
@@ -1812,10 +1822,6 @@ _date2time() {
 
   #Solaris
   if gdate -u -d "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
-    return
-  fi
-  #Mac/BSD
-  if date -u -j -f "%Y-%m-%d %H:%M:%S" "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
     return
   fi
   #Omnios
@@ -2532,15 +2538,17 @@ _startserver() {
   _NC="socat"
   if [ "$Le_Listen_V6" ]; then
     _NC="$_NC -6"
+    SOCAT_OPTIONS=TCP6-LISTEN
   else
     _NC="$_NC -4"
+    SOCAT_OPTIONS=TCP4-LISTEN
   fi
 
   if [ "$DEBUG" ] && [ "$DEBUG" -gt "1" ]; then
     _NC="$_NC -d -d -v"
   fi
 
-  SOCAT_OPTIONS=TCP-LISTEN:$Le_HTTPPort,crlf,reuseaddr,fork
+  SOCAT_OPTIONS=$SOCAT_OPTIONS:$Le_HTTPPort,crlf,reuseaddr,fork
 
   #Adding bind to local-address
   if [ "$ncaddr" ]; then
@@ -2761,7 +2769,7 @@ _initAPI() {
   _request_retry_times=0
   while [ -z "$ACME_NEW_ACCOUNT" ] && [ "${_request_retry_times}" -lt "$MAX_API_RETRY_TIMES" ]; do
     _request_retry_times=$(_math "$_request_retry_times" + 1)
-    response=$(_get "$_api_server")
+    response=$(_get "$_api_server" "" 10)
     if [ "$?" != "0" ]; then
       _debug2 "response" "$response"
       _info "Cannot init API for: $_api_server."
@@ -3507,7 +3515,7 @@ _on_before_issue() {
   _debug _chk_alt_domains "$_chk_alt_domains"
   #run pre hook
   if [ "$_chk_pre_hook" ]; then
-    _info "Runing pre hook:'$_chk_pre_hook'"
+    _info "Running pre hook:'$_chk_pre_hook'"
     if ! (
       export Le_Domain="$_chk_main_domain"
       export Le_Alt="$_chk_alt_domains"
@@ -4496,6 +4504,7 @@ issue() {
 
   if ! _on_before_issue "$_web_roots" "$_main_domain" "$_alt_domains" "$_pre_hook" "$_local_addr"; then
     _err "_on_before_issue."
+    _on_issue_err "$_post_hook"
     return 1
   fi
 
@@ -4755,7 +4764,8 @@ $_authorizations_map"
         _debug keyauthorization "$keyauthorization"
       fi
 
-      entry="$(echo "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
+      # Fix for empty error objects in response which mess up the original code, adapted from fix suggested here: https://github.com/acmesh-official/acme.sh/issues/4933#issuecomment-1870499018
+      entry="$(echo "$response" | sed s/'"error":{}'/'"error":null'/ | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
 
       if [ -z "$keyauthorization" -a -z "$entry" ]; then
@@ -5503,6 +5513,13 @@ renew() {
   Le_Keylength="$(_readdomainconf Le_Keylength)"
   if [ -z "$Le_Keylength" ]; then
     Le_Keylength=2048
+  fi
+  if [ "$CA_LETSENCRYPT_V2" = "$Le_API" ]; then
+    #letsencrypt doesn't support ocsp anymore
+    if [ "$Le_OCSP_Staple" ]; then
+      export Le_OCSP_Staple=""
+      _cleardomainconf Le_OCSP_Staple
+    fi
   fi
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain" "$Le_Valid_From" "$Le_Valid_To"
   res="$?"
@@ -6337,7 +6354,8 @@ _deactivate() {
     fi
     _debug "Trigger validation."
     vtype="$(_getIdType "$_d_domain")"
-    entry="$(echo "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
+    # Fix for empty error objects in response which mess up the original code, adapted from fix suggested here: https://github.com/acmesh-official/acme.sh/issues/4933#issuecomment-1870499018
+    entry="$(echo "$response" | sed s/'"error":{}'/'"error":null'/ | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
     _debug entry "$entry"
     if [ -z "$entry" ]; then
       _err "$d: Cannot get domain token"
