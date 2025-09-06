@@ -101,8 +101,7 @@ _preprocess_deployfile() {
     fi
   done
 
-  if [ -z "$found_file" ];
-  then
+  if [ -z "$found_file" ]; then
     _err "Deploy file not found. Go to https://github.com/acmesh-official/acme.sh/wiki/deployhooks#36-deploying-to-multiple-services-with-the-same-hooks to see how to create one."
     return 1
   fi
@@ -228,9 +227,9 @@ _deploy_services() {
   _debug3 "Deploy file" "$_deploy_file"
 
   _tempfile=$(mktemp)
-  trap "rm -f $_tempfile" EXIT
+  trap 'rm -f $_tempfile' EXIT
 
-  yq e '.services[].name' "$_deploy_file" > "$_tempfile"
+  yq e '.services[].name' "$_deploy_file" >"$_tempfile"
   _debug3 "Services" "$(cat "$_tempfile")"
 
   _failedServices=""
@@ -246,7 +245,7 @@ _deploy_services() {
       _failedCount=$((_failedCount + 1))
     fi
     _clear_envs "$_envs"
-  done 3< "$_tempfile"
+  done 3<"$_tempfile"
 
   _debug3 "Failed services" "$_failedServices"
   _debug2 "Failed count" "$_failedCount"
