@@ -100,7 +100,7 @@ _get_root() {
   bestzone=""
   for z in $zones; do
     case "$fulldomain" in
-      *.$z|$z)
+      *."$z"|"$z")
         if [ ${#z} -gt ${#bestzone} ]; then
           bestzone=$z
         fi
