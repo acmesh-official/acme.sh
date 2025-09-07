@@ -90,21 +90,21 @@ _get_root() {
   response="$(_get "$NANELO_API$NANELO_TOKEN/dns/getzones")" || return 1
 
   # Extract "zones" array into space-separated list
-  zones=$(echo "$response" \
-    | tr -d ' \n' \
-    | sed -n 's/.*"zones":\[\([^]]*\)\].*/\1/p' \
-    | tr -d '"' \
-    | tr , ' ')
+  zones=$(echo "$response" |
+    tr -d ' \n' |
+    sed -n 's/.*"zones":\[\([^]]*\)\].*/\1/p' |
+    tr -d '"' |
+    tr , ' ')
   _debug zones "$zones"
 
   bestzone=""
   for z in $zones; do
     case "$fulldomain" in
-      *."$z"|"$z")
-        if [ ${#z} -gt ${#bestzone} ]; then
-          bestzone=$z
-        fi
-        ;;
+    *."$z" | "$z")
+      if [ ${#z} -gt ${#bestzone} ]; then
+        bestzone=$z
+      fi
+      ;;
     esac
   done
 
