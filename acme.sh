@@ -2539,9 +2539,11 @@ _startserver() {
   if [ "$Le_Listen_V6" ]; then
     _NC="$_NC -6"
     SOCAT_OPTIONS=TCP6-LISTEN
-  else
+  elif [ "$Le_Listen_V4" ]; then
     _NC="$_NC -4"
     SOCAT_OPTIONS=TCP4-LISTEN
+  else
+    SOCAT_OPTIONS=TCP-LISTEN
   fi
 
   if [ "$DEBUG" ] && [ "$DEBUG" -gt "1" ]; then
