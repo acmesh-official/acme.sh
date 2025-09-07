@@ -1,27 +1,21 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
-
-# dns_selectel_info='Selectel.com
-# Domains: Selectel.ru
-# Site: Selectel.com
-# Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_selectel
-# Options:
-# Variables that must be defined before running
-#   SL_Ver can take one of the values 'v1' or 'v2', default is 'v1'
-#   SL_Ver='v1', when using version API legacy (v1)
-#   SL_Ver='v2', when using version API actual (v2)
-# when using API version v1, i.e. SL_Ver is 'v1' or not defined:
-#   SL_Key - API Key, required
-# when using API version v2:
-#   SL_Ver          - required as 'v2'
-#   SL_Login_ID     - account ID, required
-#   SL_Project_Name - name project, required
-#   SL_Login_Name   - service user name, required
-#   SL_Pswd         - service user password, required
-#   SL_Expire       - token lifetime in minutes (0-1440), default 1400 minutes
-#
-# Issues: github.com/acmesh-official/acme.sh/issues/5126
-#
+dns_selectel_info='Selectel.com
+Domains: Selectel.ru
+Site: Selectel.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_selectel
+Options: For old API version v1 (deprecated)
+   SL_Ver API version. Use "v1".
+   SL_Key API Key
+OptionsAlt: For the current API version v2
+   SL_Ver API version. Use "v2".
+   SL_Login_ID Account ID
+   SL_Project_Name Project name
+   SL_Login_Name Service user name
+   SL_Pswd Service user password
+   SL_Expire Token lifetime. In minutes (0-1440). Default "1400"
+Issues: github.com/acmesh-official/acme.sh/issues/5126
+'
 
 SL_Api="https://api.selectel.ru/domains"
 auth_uri="https://cloud.api.selcloud.ru/identity/v3/auth/tokens"

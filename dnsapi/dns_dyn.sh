@@ -8,7 +8,7 @@ Options:
  DYN_Customer Customer
  DYN_Username API Username
  DYN_Password Secret
-Author: Gerd Naschenweng <https://github.com/magicdude4eva>
+Author: Gerd Naschenweng <@magicdude4eva>
 '
 
 # Dyn Managed DNS API

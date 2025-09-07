@@ -6,7 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#tele3
 Options:
  TELE3_Key API Key
  TELE3_Secret API Secret
-Author: Roman Blizik <https://github.com/par-pa>
+Author: Roman Blizik <@par-pa>
 '
 
 TELE3_API="https://www.tele3.cz/acme/"

@@ -7,7 +7,7 @@ Options:
  WORLD4YOU_USERNAME Username
  WORLD4YOU_PASSWORD Password
 Issues: github.com/acmesh-official/acme.sh/issues/3269
-Author: Lorenz Stechauner <https://www.github.com/NerLOR>
+Author: Lorenz Stechauner <@NerLOR>
 '
 
 WORLD4YOU_API="https://my.world4you.com/en"
