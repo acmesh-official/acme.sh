@@ -17,8 +17,9 @@ _SCRIPT_="$0"
 _SUB_FOLDER_NOTIFY="notify"
 _SUB_FOLDER_DNSAPI="dnsapi"
 _SUB_FOLDER_DEPLOY="deploy"
+_SUB_FOLDER_HTTPAPI="httpapi"
 
-_SUB_FOLDERS="$_SUB_FOLDER_DNSAPI $_SUB_FOLDER_DEPLOY $_SUB_FOLDER_NOTIFY"
+_SUB_FOLDERS="$_SUB_FOLDER_DNSAPI $_SUB_FOLDER_DEPLOY $_SUB_FOLDER_NOTIFY $_SUB_FOLDER_HTTPAPI"
 
 CA_LETSENCRYPT_V2="https://acme-v02.api.letsencrypt.org/directory"
 CA_LETSENCRYPT_V2_TEST="https://acme-staging-v02.api.letsencrypt.org/directory"
@@ -72,6 +73,7 @@ DEFAULT_RENEW=60
 NO_VALUE="no"
 
 W_DNS="dns"
+W_HTTPAPI="http"
 W_ALPN="alpn"
 DNS_ALIAS_PREFIX="="
 
@@ -3406,6 +3408,7 @@ _restoreNginx() {
 _clearup() {
   _stopserver "$serverproc"
   serverproc=""
+  _cleanup_http_entries
   _restoreApache
   _restoreNginx
   _clearupdns
@@ -3415,6 +3418,42 @@ _clearup() {
     rm -f "$TLS_KEY"
     rm -f "$TLS_CSR"
   fi
+}
+
+_cleanup_http_entries() {
+  if [ -z "$_http_entries" ]; then
+    _debug "_cleanup_http_entries: No HTTP entries to clean up"
+    return 0
+  fi
+  _debug "Cleaning up HTTP entries: $_http_entries"
+
+  entries=$(echo "$_http_entries" | tr "$dvsep" ' ')
+  for entry in $entries; do
+    d=$(echo "$entry" | cut -d "$sep" -f 1)
+    token=$(echo "$entry" | cut -d "$sep" -f 2)
+    keyauthorization=$(echo "$entry" | cut -d "$sep" -f 3)
+    _httpapi=$(echo "$entry" | cut -d "$sep" -f 4)
+
+    _debug "Removing HTTP challenge for $d using $_httpapi"
+
+    h_api="$(_findHook "$d" $_SUB_FOLDER_HTTPAPI "$_httpapi")"
+    if [ "$h_api" ]; then
+      if ! . "$h_api"; then
+        _err "Error loading HTTP API file: $h_api"
+        continue
+      fi
+
+      _remove_fn="${_httpapi}_rm"
+      if ! _exists "$_remove_fn"; then
+        _err "HTTP API file doesn't implement removal function: $_remove_fn"
+        continue
+      fi
+
+      if ! "$_remove_fn" "$d" "$token" "$keyauthorization"; then
+        _err "Error removing HTTP challenge for domain: $d"
+      fi
+    fi
+  done
 }
 
 _clearupdns() {
@@ -4999,6 +5038,56 @@ $_authorizations_map"
           NGINX_RESTORE_VLIST="$d$sep$_realConf$sep$_backup$dvsep$NGINX_RESTORE_VLIST"
         fi
         _sleep 1
+      elif _startswith "$_currentRoot" "http_"; then
+        _info "Using HTTP API validation for domain: $d"
+        _httpapi="$(echo "$_currentRoot" | cut -d "_" -f 2-)"
+        h_api="$(_findHook "$d" $_SUB_FOLDER_HTTPAPI "$_currentRoot")"
+        _debug h_api "$h_api"
+
+        if [ "$h_api" ]; then
+          _debug "Found domain HTTP API file: $h_api"
+          if ! . "$h_api"; then
+            _err "Error loading HTTP API file: $h_api"
+            _cleanup_http_entries
+            _clearup
+            _on_issue_err "$_post_hook" "$vlist"
+            return 1
+          fi
+
+          _deploy_fn="${_currentRoot}_deploy"
+          if ! _exists "$_deploy_fn"; then
+            _err "HTTP API file doesn't implement deployment function: $_deploy_fn"
+            _cleanup_http_entries
+            _clearup
+            _on_issue_err "$_post_hook" "$vlist"
+            return 1
+          fi
+
+          if ! "$_deploy_fn" "$d" "$token" "$keyauthorization"; then
+            _err "Error deploying HTTP challenge for domain: $d"
+            _cleanup_http_entries
+            _clearup
+            _on_issue_err "$_post_hook" "$vlist"
+            return 1
+          fi
+
+          _http_entries="${_http_entries}${d}${sep}${token}${sep}${keyauthorization}${sep}${_currentRoot}${dvsep}"
+        else
+          # Fall back to normal webroot challenge if no hook is found
+          _info "No HTTP API hook found for $_currentRoot, falling back to normal validation"
+          if [ "$_currentRoot" = "apache" ]; then
+            wellknown_path="$ACME_DIR"
+          else
+            wellknown_path="$_currentRoot/.well-known/acme-challenge"
+            if [ ! -d "$_currentRoot/.well-known" ]; then
+              removelevel='1'
+            elif [ ! -d "$_currentRoot/.well-known/acme-challenge" ]; then
+              removelevel='2'
+            else
+              removelevel='3'
+            fi
+          fi
+        fi
       else
         if [ "$_currentRoot" = "apache" ]; then
           wellknown_path="$ACME_DIR"
@@ -7093,6 +7182,7 @@ Parameters:
 
   --password <password>             Add a password to exported pfx file. Use with --to-pkcs12.
 
+  --http-api <provider>             Use HTTP API for challenge validation
 
 "
 }
@@ -7371,6 +7461,7 @@ _process() {
   _preferred_chain=""
   _valid_from=""
   _valid_to=""
+  _http_api=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -7892,6 +7983,18 @@ _process() {
     --preferred-chain)
       _preferred_chain="$2"
       shift
+      ;;
+    --http-api)
+      wvalue="$W_HTTPAPI"
+      if [ "$2" ] && ! _startswith "$2" "-"; then
+        wvalue="$2"
+        shift
+      fi
+      if [ -z "$_webroot" ]; then
+        _webroot="$wvalue"
+      else
+        _webroot="$_webroot,$wvalue"
+      fi
       ;;
     *)
       _err "Unknown parameter: $1"
