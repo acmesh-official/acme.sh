@@ -36,7 +36,7 @@ dns_nanelo_add() {
   _debug _domain "$_domain"
 
   _info "Adding TXT record to ${fulldomain}"
-  response="$(_get "$NANELO_API$NANELO_TOKEN/dns/addrecord?domain=${_domain}&type=TXT&ttl=60&name=${_sub_domain}&value=${txtvalue}")"
+  response="$(_post "" "$NANELO_API$NANELO_TOKEN/dns/addrecord?domain=${_domain}&type=TXT&ttl=60&name=${_sub_domain}&value=${txtvalue}" "" "" "")"
   if _contains "${response}" 'success'; then
     return 0
   fi
@@ -68,7 +68,7 @@ dns_nanelo_rm() {
   _debug _domain "$_domain"
 
   _info "Deleting resource record $fulldomain"
-  response="$(_get "$NANELO_API$NANELO_TOKEN/dns/deleterecord?domain=${_domain}&type=TXT&ttl=60&name=${_sub_domain}&value=${txtvalue}")"
+  response="$(_post "" "$NANELO_API$NANELO_TOKEN/dns/deleterecord?domain=${_domain}&type=TXT&ttl=60&name=${_sub_domain}&value=${txtvalue}" "" "" "")"
   if _contains "${response}" 'success'; then
     return 0
   fi
