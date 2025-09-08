@@ -8,7 +8,7 @@ Options:
 OptionsAlt:
  KEY Path to SSH private key file. E.g. "/root/.ssh/dynv6"
 Issues: github.com/acmesh-official/acme.sh/issues/2702
-Author: StefanAbl
+Author: @StefanAbl
 '
 
 dynv6_api="https://dynv6.com/api/v2"
