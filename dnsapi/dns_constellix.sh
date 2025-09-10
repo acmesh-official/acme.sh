@@ -117,7 +117,7 @@ dns_constellix_rm() {
 ####################  Private functions below ##################################
 
 _get_root() {
-  domain=$1
+  domain=$(echo "$1" | _lower_case)
   i=2
   p=1
   _debug "Detecting root zone"
@@ -155,6 +155,9 @@ _constellix_rest() {
   ep="$2"
   data="$3"
   _debug "$ep"
+
+  # Prevent rate limit
+  _sleep 2
 
   rdate=$(date +"%s")"000"
   hmac=$(printf "%s" "$rdate" | _hmac sha1 "$(printf "%s" "$CONSTELLIX_Secret" | _hex_dump | tr -d ' ')" | _base64)
