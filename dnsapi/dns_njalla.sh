@@ -98,7 +98,7 @@ dns_njalla_rm() {
     echo "$records" | while read -r record; do
       record_name=$(echo "$record" | _egrep_o "\"name\":\s?\"[^\"]*\"" | cut -d : -f 2 | tr -d " " | tr -d \")
       record_content=$(echo "$record" | _egrep_o "\"content\":\s?\"[^\"]*\"" | cut -d : -f 2 | tr -d " " | tr -d \")
-      record_id=$(echo "$record" | _egrep_o "\"id\":\s?[0-9]+" | cut -d : -f 2 | tr -d " " | tr -d \")
+      record_id=$(echo "$record" | _egrep_o "\"id\":\s?\"[0-9]+" | cut -d : -f 2 | tr -d " " | tr -d \")
       if [ "$_sub_domain" = "$record_name" ]; then
         if [ "$txtvalue" = "$record_content" ]; then
           _debug "record_id" "$record_id"
