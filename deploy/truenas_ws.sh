@@ -175,25 +175,31 @@ truenas_ws_deploy() {
   _debug _file_ca "$_file_ca"
   _debug _file_fullchain "$_file_fullchain"
 
-  ########## Default values for hostname and protocol
-  [ -n "${DEPLOY_TRUENAS_HOSTNAME}" ] || DEPLOY_TRUENAS_HOSTNAME="localhost"
-  [ -n "${DEPLOY_TRUENAS_PROTOCOL}" ] || DEPLOY_TRUENAS_PROTOCOL="ws"
-
-  _debug2 DEPLOY_TRUENAS_HOSTNAME "$DEPLOY_TRUENAS_HOSTNAME"
-  _debug2 DEPLOY_TRUENAS_PROTOCOL "$DEPLOY_TRUENAS_PROTOCOL"
-
-  _ws_uri="$DEPLOY_TRUENAS_PROTOCOL://$DEPLOY_TRUENAS_HOSTNAME/websocket"
-  _debug _ws_uri "$_ws_uri"
-
   ########## Environment check
 
   _info "Checking environment variables..."
   _getdeployconf DEPLOY_TRUENAS_APIKEY
+  _getdeployconf DEPLOY_TRUENAS_HOSTNAME
+  _getdeployconf DEPLOY_TRUENAS_PROTOCOL
   # Check API Key
   if [ -z "$DEPLOY_TRUENAS_APIKEY" ]; then
     _err "TrueNAS API key not found, please set the DEPLOY_TRUENAS_APIKEY environment variable."
     return 1
   fi
+  # Check Hostname, default to localhost if not set
+  if [ -z "$DEPLOY_TRUENAS_HOSTNAME" ]; then
+    _info "TrueNAS hostname not set. Using 'localhost'."
+    DEPLOY_TRUENAS_HOSTNAME="localhost"
+  fi
+  # Check protocol, default to ws if not set
+  if [ -z "$DEPLOY_TRUENAS_PROTOCOL" ]; then
+    _info "TrueNAS protocol not set. Using 'ws'."
+    DEPLOY_TRUENAS_PROTOCOL="ws"
+  fi
+  _ws_uri="$DEPLOY_TRUENAS_PROTOCOL://$DEPLOY_TRUENAS_HOSTNAME/websocket"
+  _debug2 DEPLOY_TRUENAS_HOSTNAME "$DEPLOY_TRUENAS_HOSTNAME"
+  _debug2 DEPLOY_TRUENAS_PROTOCOL "$DEPLOY_TRUENAS_PROTOCOL"
+  _debug _ws_uri "$_ws_uri"
   _secure_debug2 DEPLOY_TRUENAS_APIKEY "$DEPLOY_TRUENAS_APIKEY"
   _info "Environment variables: OK"
 
@@ -215,6 +221,8 @@ truenas_ws_deploy() {
     return 2
   fi
   _savedeployconf DEPLOY_TRUENAS_APIKEY "$DEPLOY_TRUENAS_APIKEY"
+  _savedeployconf DEPLOY_TRUENAS_HOSTNAME "$DEPLOY_TRUENAS_HOSTNAME"
+  _savedeployconf DEPLOY_TRUENAS_PROTOCOL "$DEPLOY_TRUENAS_PROTOCOL"
   _info "TrueNAS health: OK"
 
   ########## System info
