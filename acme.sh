@@ -5473,20 +5473,25 @@ renew() {
   . "$DOMAIN_CONF"
   _debug Le_API "$Le_API"
 
-  case "$Le_API" in
-  "$CA_LETSENCRYPT_V2_TEST")
-    _info "Switching back to $CA_LETSENCRYPT_V2"
-    Le_API="$CA_LETSENCRYPT_V2"
-    ;;
-  "$CA_BUYPASS_TEST")
-    _info "Switching back to $CA_BUYPASS"
-    Le_API="$CA_BUYPASS"
-    ;;
-  "$CA_GOOGLE_TEST")
-    _info "Switching back to $CA_GOOGLE"
-    Le_API="$CA_GOOGLE"
-    ;;
-  esac
+  if [ "$STAGE" ]; then
+    _info "Switching to $DEFAULT_STAGING_CA"
+    $Le_API="$DEFAULT_STAGING_CA"
+  else
+    case "$Le_API" in
+    "$CA_LETSENCRYPT_V2_TEST")
+      _info "Switching back to $CA_LETSENCRYPT_V2"
+      Le_API="$CA_LETSENCRYPT_V2"
+      ;;
+    "$CA_BUYPASS_TEST")
+      _info "Switching back to $CA_BUYPASS"
+      Le_API="$CA_BUYPASS"
+      ;;
+    "$CA_GOOGLE_TEST")
+      _info "Switching back to $CA_GOOGLE"
+      Le_API="$CA_GOOGLE"
+      ;;
+    esac
+  fi
 
   if [ "$_server" ]; then
     Le_API="$_server"
