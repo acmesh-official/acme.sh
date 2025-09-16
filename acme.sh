@@ -7702,7 +7702,7 @@ _process() {
       _valid_to="$2"
       shift
       ;;
-    --certificate-profile)
+    --certificate-profile | --profile)
       _certificate_profile="$2"
       shift
       ;;
