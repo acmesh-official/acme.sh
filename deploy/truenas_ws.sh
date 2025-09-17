@@ -121,7 +121,7 @@ _ws_check_jobid() {
 #   n/a
 _ws_get_job_result() {
   while true; do
-    sleep 2
+    _sleep 2
     _ws_response=$(_ws_call "core.get_jobs" "[[\"id\", \"=\", $1]]")
     if [ "$(printf "%s" "$_ws_response" | jq -r '.[]."state"')" != "RUNNING" ]; then
       _ws_result="$(printf "%s" "$_ws_response" | jq '.[]."result"')"
@@ -322,7 +322,7 @@ truenas_ws_deploy() {
   _info "Restarting WebUI..."
   _ws_response=$(_ws_call "system.general.ui_restart")
   _info "Waiting for UI restart..."
-  sleep 15
+  _sleep 15
 
   ########## Certificates
 
