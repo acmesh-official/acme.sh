@@ -223,7 +223,7 @@ _printargs() {
 }
 
 _dlg_versions() {
-  echo "Diagnosis versions: "
+  echo "Diagnose versions: "
   echo "openssl:$ACME_OPENSSL_BIN"
   if _exists "${ACME_OPENSSL_BIN:-openssl}"; then
     ${ACME_OPENSSL_BIN:-openssl} version 2>&1
@@ -7039,6 +7039,8 @@ Parameters:
   --syslog <0|3|6|7>                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
   --eab-kid <eab_key_id>            Key Identifier for External Account Binding.
   --eab-hmac-key <eab_hmac_key>     HMAC key for External Account Binding.
+  --ari-enable <0|1>                Boolean to check the renewalInfo endpoint when evaluating whether a renewal is necessary, 0: false/disabled, 1: true/enabled.
+  --ari-wait-duration <seconds>     The time in seconds to wait for the renewal window suggested by the renewalInfo endpoint.
 
 
   These parameters are to install the cert to nginx/Apache or any other server after issue/renew a cert:
@@ -7487,6 +7489,14 @@ _process() {
       ;;
     --set-default-chain)
       _CMD="setdefaultchain"
+      ;;
+    --ari-enable)
+      _ari_enable="${2}"
+      ARI_ENABLE="$_ari_enable"
+      shift
+      ;;
+    --ari-sleep-duration)
+      _CMD="setdef"
       ;;
     -d | --domain)
       _dvalue="$2"
