@@ -23,9 +23,6 @@ _SUB_FOLDERS="$_SUB_FOLDER_DNSAPI $_SUB_FOLDER_DEPLOY $_SUB_FOLDER_NOTIFY"
 CA_LETSENCRYPT_V2="https://acme-v02.api.letsencrypt.org/directory"
 CA_LETSENCRYPT_V2_TEST="https://acme-staging-v02.api.letsencrypt.org/directory"
 
-CA_BUYPASS="https://api.buypass.com/acme/directory"
-CA_BUYPASS_TEST="https://api.test4.buypass.no/acme/directory"
-
 CA_ZEROSSL="https://acme.zerossl.com/v2/DV90"
 _ZERO_EAB_ENDPOINT="https://api.zerossl.com/acme/eab-credentials-email"
 
@@ -42,14 +39,12 @@ CA_NAMES="
 ZeroSSL.com,zerossl
 LetsEncrypt.org,letsencrypt
 LetsEncrypt.org_test,letsencrypt_test,letsencrypttest
-BuyPass.com,buypass
-BuyPass.com_test,buypass_test,buypasstest
 SSL.com,sslcom
 Google.com,google
 Google.com_test,googletest,google_test
 "
 
-CA_SERVERS="$CA_ZEROSSL,$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_BUYPASS,$CA_BUYPASS_TEST,$CA_SSLCOM_RSA,$CA_GOOGLE,$CA_GOOGLE_TEST"
+CA_SERVERS="$CA_ZEROSSL,$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_SSLCOM_RSA,$CA_GOOGLE,$CA_GOOGLE_TEST"
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 
@@ -5477,10 +5472,6 @@ renew() {
   "$CA_LETSENCRYPT_V2_TEST")
     _info "Switching back to $CA_LETSENCRYPT_V2"
     Le_API="$CA_LETSENCRYPT_V2"
-    ;;
-  "$CA_BUYPASS_TEST")
-    _info "Switching back to $CA_BUYPASS"
-    Le_API="$CA_BUYPASS"
     ;;
   "$CA_GOOGLE_TEST")
     _info "Switching back to $CA_GOOGLE"
