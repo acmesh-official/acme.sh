@@ -180,6 +180,8 @@ _VALIDITY_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Validity"
 
 _DNSCHECK_WIKI="https://github.com/acmesh-official/acme.sh/wiki/dnscheck"
 
+_PROFILESELECTION_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Profile-selection"
+
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
 _DNS_MANUAL_WARN="It seems that you are using dns manual mode. please take care: $_DNS_MANUAL_ERR"
@@ -7006,7 +7008,8 @@ Parameters:
                                       If no match, the default offered chain will be used. (default: empty)
                                       See: $_PREFERRED_CHAIN_WIKI
 
-  --certificate-profile <profile>   If the CA offers profiles, select the desired profile
+  --cert-profile, --certificate-profile <profile>  If the CA offers profiles, select the desired profile
+                                      See: $_PROFILESELECTION_WIKI
 
   --valid-to    <date-time>         Request the NotAfter field of the cert.
                                       See: $_VALIDITY_WIKI
