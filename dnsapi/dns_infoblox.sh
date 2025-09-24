@@ -6,6 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_infoblox
 Options:
  Infoblox_Creds Credentials. E.g. "username:password"
  Infoblox_Server Server hostname. IP or FQDN of infoblox appliance
+ Infoblox_View if not using "default"
 Issues: github.com/jasonkeller/acme.sh
 Author: Jason Keller, Elijah Tenai
 '
@@ -25,7 +26,7 @@ dns_infoblox_add() {
     Infoblox_Creds=""
     Infoblox_Server=""
     _err "You didn't specify the Infoblox credentials or server (Infoblox_Creds; Infoblox_Server)."
-    _err "Please set them via EXPORT Infoblox_Creds=username:password or EXPORT Infoblox_server=ip/hostname and try again."
+    _err "Please set them via EXPORT Infoblox_Creds=username:password or EXPORT Infoblox_Server=ip/hostname and try again."
     return 1
   fi
 
