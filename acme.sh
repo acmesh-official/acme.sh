@@ -23,9 +23,6 @@ _SUB_FOLDERS="$_SUB_FOLDER_DNSAPI $_SUB_FOLDER_DEPLOY $_SUB_FOLDER_NOTIFY"
 CA_LETSENCRYPT_V2="https://acme-v02.api.letsencrypt.org/directory"
 CA_LETSENCRYPT_V2_TEST="https://acme-staging-v02.api.letsencrypt.org/directory"
 
-CA_BUYPASS="https://api.buypass.com/acme/directory"
-CA_BUYPASS_TEST="https://api.test4.buypass.no/acme/directory"
-
 CA_ZEROSSL="https://acme.zerossl.com/v2/DV90"
 _ZERO_EAB_ENDPOINT="https://api.zerossl.com/acme/eab-credentials-email"
 
@@ -42,14 +39,12 @@ CA_NAMES="
 ZeroSSL.com,zerossl
 LetsEncrypt.org,letsencrypt
 LetsEncrypt.org_test,letsencrypt_test,letsencrypttest
-BuyPass.com,buypass
-BuyPass.com_test,buypass_test,buypasstest
 SSL.com,sslcom
 Google.com,google
 Google.com_test,googletest,google_test
 "
 
-CA_SERVERS="$CA_ZEROSSL,$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_BUYPASS,$CA_BUYPASS_TEST,$CA_SSLCOM_RSA,$CA_GOOGLE,$CA_GOOGLE_TEST"
+CA_SERVERS="$CA_ZEROSSL,$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_SSLCOM_RSA,$CA_GOOGLE,$CA_GOOGLE_TEST"
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 
@@ -436,14 +431,28 @@ _secure_debug3() {
   fi
 }
 
+__USE_TR_TAG=""
+if [ "$(echo "abc" | LANG=C tr a-z A-Z 2>/dev/null)" != "ABC" ]; then
+  __USE_TR_TAG="1"
+fi
+export __USE_TR_TAG
+
 _upper_case() {
-  # shellcheck disable=SC2018,SC2019
-  tr '[a-z]' '[A-Z]'
+  if [ "$__USE_TR_TAG" ]; then
+    LANG=C tr '[:lower:]' '[:upper:]'
+  else
+    # shellcheck disable=SC2018,SC2019
+    LANG=C tr '[a-z]' '[A-Z]'
+  fi
 }
 
 _lower_case() {
-  # shellcheck disable=SC2018,SC2019
-  tr '[A-Z]' '[a-z]'
+  if [ "$__USE_TR_TAG" ]; then
+    LANG=C tr '[:upper:]' '[:lower:]'
+  else
+    # shellcheck disable=SC2018,SC2019
+    LANG=C tr '[A-Z]' '[a-z]'
+  fi
 }
 
 _startswith() {
@@ -1811,6 +1820,10 @@ _time() {
 #    2022-04-01 08:10:33   to   1648800633
 #or  2022-04-01T08:10:33Z  to   1648800633
 _date2time() {
+  #Mac/BSD
+  if date -u -j -f "%Y-%m-%d %H:%M:%S" "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
+    return
+  fi
   #Linux
   if date -u -d "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
     return
@@ -1818,10 +1831,6 @@ _date2time() {
 
   #Solaris
   if gdate -u -d "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
-    return
-  fi
-  #Mac/BSD
-  if date -u -j -f "%Y-%m-%d %H:%M:%S" "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
     return
   fi
   #Omnios
@@ -2538,15 +2547,19 @@ _startserver() {
   _NC="socat"
   if [ "$Le_Listen_V6" ]; then
     _NC="$_NC -6"
-  else
+    SOCAT_OPTIONS=TCP6-LISTEN
+  elif [ "$Le_Listen_V4" ]; then
     _NC="$_NC -4"
+    SOCAT_OPTIONS=TCP4-LISTEN
+  else
+    SOCAT_OPTIONS=TCP-LISTEN
   fi
 
   if [ "$DEBUG" ] && [ "$DEBUG" -gt "1" ]; then
     _NC="$_NC -d -d -v"
   fi
 
-  SOCAT_OPTIONS=TCP-LISTEN:$Le_HTTPPort,crlf,reuseaddr,fork
+  SOCAT_OPTIONS=$SOCAT_OPTIONS:$Le_HTTPPort,crlf,reuseaddr,fork
 
   #Adding bind to local-address
   if [ "$ncaddr" ]; then
@@ -5459,10 +5472,6 @@ renew() {
   "$CA_LETSENCRYPT_V2_TEST")
     _info "Switching back to $CA_LETSENCRYPT_V2"
     Le_API="$CA_LETSENCRYPT_V2"
-    ;;
-  "$CA_BUYPASS_TEST")
-    _info "Switching back to $CA_BUYPASS"
-    Le_API="$CA_BUYPASS"
     ;;
   "$CA_GOOGLE_TEST")
     _info "Switching back to $CA_GOOGLE"

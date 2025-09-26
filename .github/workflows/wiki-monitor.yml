@@ -12,6 +12,7 @@ jobs:
         with:
           repository: ${{ github.repository }}.wiki
           path: wiki
+          fetch-depth: 0
 
       - name: Generate wiki change message
         run: |
@@ -53,6 +54,7 @@ jobs:
           assignees: Neilpang
         env:
           TZ: Asia/Shanghai
+
 
 
 
