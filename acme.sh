@@ -32,6 +32,8 @@ CA_SSLCOM_ECC="https://acme.ssl.com/sslcom-dv-ecc"
 CA_GOOGLE="https://dv.acme-v02.api.pki.goog/directory"
 CA_GOOGLE_TEST="https://dv.acme-v02.test-api.pki.goog/directory"
 
+CA_ACTALIS="https://acme-api.actalis.com/acme/directory"
+
 DEFAULT_CA=$CA_ZEROSSL
 DEFAULT_STAGING_CA=$CA_LETSENCRYPT_V2_TEST
 
@@ -42,9 +44,10 @@ LetsEncrypt.org_test,letsencrypt_test,letsencrypttest
 SSL.com,sslcom
 Google.com,google
 Google.com_test,googletest,google_test
+Actalis.com,actalis.com,actalis
 "
 
-CA_SERVERS="$CA_ZEROSSL,$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_SSLCOM_RSA,$CA_GOOGLE,$CA_GOOGLE_TEST"
+CA_SERVERS="$CA_ZEROSSL,$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_SSLCOM_RSA,$CA_GOOGLE,$CA_GOOGLE_TEST,$CA_ACTALIS"
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 
