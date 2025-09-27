@@ -7542,7 +7542,7 @@ _process() {
       ;;
     --list-profiles)
       _CMD="list_profiles"
-      ;;      
+      ;;
     -d | --domain)
       _dvalue="$2"
 
@@ -8110,7 +8110,7 @@ _process() {
     ;;
   list_profiles)
     list_profiles
-    ;;    
+    ;;
   *)
     if [ "$_CMD" ]; then
       _err "Invalid command: $_CMD"
