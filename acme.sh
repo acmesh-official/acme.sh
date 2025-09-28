@@ -5804,7 +5804,7 @@ list() {
   _sep="|"
   if [ "$_raw" ]; then
     if [ -z "$_domain" ]; then
-      printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}CA${_sep}Created${_sep}Renew"
+      printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Profile${_sep}CA${_sep}Created${_sep}Renew"
     fi
     for di in "${CERT_HOME}"/*.*/; do
       d=$(basename "$di")
@@ -5819,7 +5819,7 @@ list() {
           . "$DOMAIN_CONF"
           _ca="$(_getCAShortName "$Le_API")"
           if [ -z "$_domain" ]; then
-            printf "%s\n" "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$_ca${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
+            printf "%s\n" "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$Le_Certificate_Profile${_sep}$_ca${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
           else
             if [ "$_domain" = "$d" ]; then
               cat "$DOMAIN_CONF"
