@@ -2793,7 +2793,6 @@ _clearAPI() {
   ACME_REVOKE_CERT=""
   ACME_NEW_NONCE=""
   ACME_AGREEMENT=""
-  ACME_RENEWAL_INFO=""
 }
 
 #server
