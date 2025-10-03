@@ -4720,6 +4720,7 @@ issue() {
     Le_RenewalInfoCertId=$(_readdomainconf "Le_RenewalInfoCertId")
     if [ "$_ACME_IS_RENEW" ] && [ -n "$Le_EnableRenewalInfo" ] && [ "$Le_EnableRenewalInfo" -eq "1" ] && [ -n "$Le_RenewalInfoCertId" ]; then
       _newOrderObj="$_newOrderObj,\"replaces\": \"$Le_RenewalInfoCertId\""
+    fi
     if [ "$_certificate_profile" ]; then
       _newOrderObj="$_newOrderObj,\"profile\": \"$_certificate_profile\""
     fi
