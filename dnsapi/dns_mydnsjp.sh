@@ -6,7 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_mydnsjp
 Options:
  MYDNSJP_MasterID Master ID
  MYDNSJP_Password Password
-Author: epgdatacapbon
+Author: @tkmsst
 '
 
 ########  Public functions #####################

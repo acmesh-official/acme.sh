@@ -144,8 +144,8 @@ source=\"/certificate remove [ find name=$_cdomain.cer_0 ];\
 \n/certificate remove [ find name=$_cdomain.cer_1 ];\
 \n/certificate remove [ find name=$_cdomain.cer_2 ];\
 \ndelay 1;\
-\n/certificate import file-name=$_cdomain.cer passphrase=\\\"\\\";\
-\n/certificate import file-name=$_cdomain.key passphrase=\\\"\\\";\
+\n/certificate import file-name=\\\"$_cdomain.cer\\\" passphrase=\\\"\\\";\
+\n/certificate import file-name=\\\"$_cdomain.key\\\" passphrase=\\\"\\\";\
 \ndelay 1;\
 \n:do {/file remove $_cdomain.cer; } on-error={ }\
 \n:do {/file remove $_cdomain.key; } on-error={ }\

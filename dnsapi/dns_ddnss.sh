@@ -6,7 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_ddnss
 Options:
  DDNSS_Token API Token
 Issues: github.com/acmesh-official/acme.sh/issues/2230
-Author: RaidenII, helbgd, mod242
+Author: @helbgd, @mod242
 '
 
 DDNSS_DNS_API="https://ddnss.de/upd.php"

@@ -4,6 +4,7 @@
 
 #NTFY_URL="https://ntfy.sh"
 #NTFY_TOPIC="xxxxxxxxxxxxx"
+#NTFY_TOKEN="xxxxxxxxxxxxx"
 
 ntfy_send() {
   _subject="$1"
@@ -21,6 +22,12 @@ ntfy_send() {
   NTFY_TOPIC="${NTFY_TOPIC:-$(_readaccountconf_mutable NTFY_TOPIC)}"
   if [ "$NTFY_TOPIC" ]; then
     _saveaccountconf_mutable NTFY_TOPIC "$NTFY_TOPIC"
+  fi
+
+  NTFY_TOKEN="${NTFY_TOKEN:-$(_readaccountconf_mutable NTFY_TOKEN)}"
+  if [ "$NTFY_TOKEN" ]; then
+    _saveaccountconf_mutable NTFY_TOKEN "$NTFY_TOKEN"
+    export _H1="Authorization: Bearer $NTFY_TOKEN"
   fi
 
   _data="${_subject}. $_content"

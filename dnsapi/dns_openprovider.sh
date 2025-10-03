@@ -2,6 +2,7 @@
 # shellcheck disable=SC2034
 dns_openprovider_info='OpenProvider.eu
 Site: OpenProvider.eu
+Domains: OpenProvider.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_openprovider
 Options:
  OPENPROVIDER_USER Username

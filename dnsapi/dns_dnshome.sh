@@ -7,7 +7,7 @@ Options:
  DNSHOME_Subdomain Subdomain
  DNSHOME_SubdomainPassword Subdomain Password
 Issues: github.com/acmesh-official/acme.sh/issues/3819
-Author: dnsHome.de https://github.com/dnsHome-de
+Author: @dnsHome-de
 '
 
 # Usage: add subdomain.ddnsdomain.tld "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"

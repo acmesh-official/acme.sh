@@ -7,7 +7,7 @@ Options:
  PDNS_Url API URL. E.g. "http://ns.example.com:8081"
  PDNS_ServerId Server ID. E.g. "localhost"
  PDNS_Token API Token
- PDNS_Ttl=60 Domain TTL. Default: "60".
+ PDNS_Ttl Domain TTL. Default: "60".
 '
 
 DEFAULT_PDNS_TTL=60

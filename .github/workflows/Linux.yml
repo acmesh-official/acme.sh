@@ -26,7 +26,7 @@ jobs:
   Linux:
     strategy:
       matrix:
-        os: ["ubuntu:latest", "debian:latest", "almalinux:latest", "fedora:latest", "opensuse/leap:latest", "alpine:latest", "oraclelinux:8", "kalilinux/kali", "archlinux:latest", "mageia", "gentoo/stage3"]
+        os: ["ubuntu:latest", "debian:latest", "almalinux:latest", "fedora:latest", "opensuse/leap:latest", "alpine:latest", "oraclelinux:8", "kalilinux/kali", "archlinux:latest", "gentoo/stage3"]
     runs-on: ubuntu-latest
     env:
       TEST_LOCAL: 1

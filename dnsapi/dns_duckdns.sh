@@ -5,7 +5,7 @@ Site: www.DuckDNS.org
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_duckdns
 Options:
  DuckDNS_Token API Token
-Author: RaidenII
+Author: @RaidenII
 '
 
 DuckDNS_API="https://www.duckdns.org/update"

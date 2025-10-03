@@ -6,7 +6,6 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_vultr
 Options:
  VULTR_API_KEY API Key
 Issues: github.com/acmesh-official/acme.sh/issues/2374
-Author:
 '
 
 VULTR_Api="https://api.vultr.com/v2"

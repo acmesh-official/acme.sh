@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.1.0
+VER=3.1.2
 
 PROJECT_NAME="acme.sh"
 
@@ -23,9 +23,6 @@ _SUB_FOLDERS="$_SUB_FOLDER_DNSAPI $_SUB_FOLDER_DEPLOY $_SUB_FOLDER_NOTIFY"
 CA_LETSENCRYPT_V2="https://acme-v02.api.letsencrypt.org/directory"
 CA_LETSENCRYPT_V2_TEST="https://acme-staging-v02.api.letsencrypt.org/directory"
 
-CA_BUYPASS="https://api.buypass.com/acme/directory"
-CA_BUYPASS_TEST="https://api.test4.buypass.no/acme/directory"
-
 CA_ZEROSSL="https://acme.zerossl.com/v2/DV90"
 _ZERO_EAB_ENDPOINT="https://api.zerossl.com/acme/eab-credentials-email"
 
@@ -35,6 +32,8 @@ CA_SSLCOM_ECC="https://acme.ssl.com/sslcom-dv-ecc"
 CA_GOOGLE="https://dv.acme-v02.api.pki.goog/directory"
 CA_GOOGLE_TEST="https://dv.acme-v02.test-api.pki.goog/directory"
 
+CA_ACTALIS="https://acme-api.actalis.com/acme/directory"
+
 DEFAULT_CA=$CA_ZEROSSL
 DEFAULT_STAGING_CA=$CA_LETSENCRYPT_V2_TEST
 
@@ -42,14 +41,13 @@ CA_NAMES="
 ZeroSSL.com,zerossl
 LetsEncrypt.org,letsencrypt
 LetsEncrypt.org_test,letsencrypt_test,letsencrypttest
-BuyPass.com,buypass
-BuyPass.com_test,buypass_test,buypasstest
 SSL.com,sslcom
 Google.com,google
 Google.com_test,googletest,google_test
+Actalis.com,actalis.com,actalis
 "
 
-CA_SERVERS="$CA_ZEROSSL,$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_BUYPASS,$CA_BUYPASS_TEST,$CA_SSLCOM_RSA,$CA_GOOGLE,$CA_GOOGLE_TEST"
+CA_SERVERS="$CA_ZEROSSL,$CA_LETSENCRYPT_V2,$CA_LETSENCRYPT_V2_TEST,$CA_SSLCOM_RSA,$CA_GOOGLE,$CA_GOOGLE_TEST,$CA_ACTALIS"
 
 DEFAULT_USER_AGENT="$PROJECT_NAME/$VER ($PROJECT)"
 
@@ -179,6 +177,8 @@ _PREFERRED_CHAIN_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Preferred
 _VALIDITY_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Validity"
 
 _DNSCHECK_WIKI="https://github.com/acmesh-official/acme.sh/wiki/dnscheck"
+
+_PROFILESELECTION_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Profile-selection"
 
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
@@ -436,14 +436,28 @@ _secure_debug3() {
   fi
 }
 
+__USE_TR_TAG=""
+if [ "$(echo "abc" | LANG=C tr a-z A-Z 2>/dev/null)" != "ABC" ]; then
+  __USE_TR_TAG="1"
+fi
+export __USE_TR_TAG
+
 _upper_case() {
-  # shellcheck disable=SC2018,SC2019
-  tr '[a-z]' '[A-Z]'
+  if [ "$__USE_TR_TAG" ]; then
+    LANG=C tr '[:lower:]' '[:upper:]'
+  else
+    # shellcheck disable=SC2018,SC2019
+    LANG=C tr '[a-z]' '[A-Z]'
+  fi
 }
 
 _lower_case() {
-  # shellcheck disable=SC2018,SC2019
-  tr '[A-Z]' '[a-z]'
+  if [ "$__USE_TR_TAG" ]; then
+    LANG=C tr '[:upper:]' '[:lower:]'
+  else
+    # shellcheck disable=SC2018,SC2019
+    LANG=C tr '[A-Z]' '[a-z]'
+  fi
 }
 
 _startswith() {
@@ -921,6 +935,9 @@ _sed_i() {
   if sed -h 2>&1 | grep "\-i\[SUFFIX]" >/dev/null 2>&1; then
     _debug "Using sed  -i"
     sed -i "$options" "$filename"
+  elif sed -h 2>&1 | grep "\-i extension" >/dev/null 2>&1; then
+    _debug "Using FreeBSD sed -i"
+    sed -i "" "$options" "$filename"
   else
     _debug "No -i support in sed"
     text="$(cat "$filename")"
@@ -1398,6 +1415,12 @@ _ss() {
     return 0
   fi
 
+  if [ "$(uname)" = "AIX" ]; then
+    _debug "Using: AIX netstat"
+    netstat -an | grep "^tcp" | grep "LISTEN" | grep "\.$_port "
+    return 0
+  fi
+
   if _exists "netstat"; then
     _debug "Using: netstat"
     if netstat -help 2>&1 | grep "\-p proto" >/dev/null; then
@@ -1802,6 +1825,10 @@ _time() {
 #    2022-04-01 08:10:33   to   1648800633
 #or  2022-04-01T08:10:33Z  to   1648800633
 _date2time() {
+  #Mac/BSD
+  if date -u -j -f "%Y-%m-%d %H:%M:%S" "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
+    return
+  fi
   #Linux
   if date -u -d "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
     return
@@ -1809,10 +1836,6 @@ _date2time() {
 
   #Solaris
   if gdate -u -d "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
-    return
-  fi
-  #Mac/BSD
-  if date -u -j -f "%Y-%m-%d %H:%M:%S" "$(echo "$1" | tr -d "Z" | tr "T" ' ')" +"%s" 2>/dev/null; then
     return
   fi
   #Omnios
@@ -2305,6 +2328,25 @@ _send_signed_request() {
 
 }
 
+_calc_cert_id() {
+  _cf="$1"
+  _cert_serial=$(${ACME_OPENSSL_BIN:-openssl} x509 -noout -serial -in "$_cf" | cut -d '=' -f 2 | _h2b | _base64 | _url_replace)
+  _debug3 "Certificate Serial Number: $_cert_serial"
+  if [ -z "$_cert_serial" ]; then
+    _err "Failed to parse certificate Serial Number"
+    return 1
+  fi
+  _cert_authority_kid=$(${ACME_OPENSSL_BIN:-openssl} x509 -noout -text -in "$_cf" | grep -i "authority key id" -A 1 | _tail_n 1 | _egrep_o "[A-F0-9:]+" | tr -d ':' | _h2b | _base64 | _url_replace)
+  _debug3 "Certificate Authority Key Identifier: $_cert_authority_kid"
+  if [ -z "$_cert_authority_kid" ]; then
+    _err "Failed to parse certificate Authority Key Identifier"
+    return 1
+  fi
+  Le_RenewalInfoCertId="$_cert_authority_kid.$_cert_serial"
+  _debug2 "Certificate ID for Renewal Info: $Le_RenewalInfoCertId"
+  return 0
+}
+
 #setopt "file"  "opt"  "="  "value" [";"]
 _setopt() {
   __conf="$1"
@@ -2529,15 +2571,19 @@ _startserver() {
   _NC="socat"
   if [ "$Le_Listen_V6" ]; then
     _NC="$_NC -6"
-  else
+    SOCAT_OPTIONS=TCP6-LISTEN
+  elif [ "$Le_Listen_V4" ]; then
     _NC="$_NC -4"
+    SOCAT_OPTIONS=TCP4-LISTEN
+  else
+    SOCAT_OPTIONS=TCP-LISTEN
   fi
 
   if [ "$DEBUG" ] && [ "$DEBUG" -gt "1" ]; then
     _NC="$_NC -d -d -v"
   fi
 
-  SOCAT_OPTIONS=TCP-LISTEN:$Le_HTTPPort,crlf,reuseaddr,fork
+  SOCAT_OPTIONS=$SOCAT_OPTIONS:$Le_HTTPPort,crlf,reuseaddr,fork
 
   #Adding bind to local-address
   if [ "$ncaddr" ]; then
@@ -2743,10 +2789,10 @@ _clearAPI() {
   ACME_KEY_CHANGE=""
   ACME_NEW_AUTHZ=""
   ACME_NEW_ORDER=""
+  ACME_RENEWAL_INFO=""
   ACME_REVOKE_CERT=""
   ACME_NEW_NONCE=""
   ACME_AGREEMENT=""
-  ACME_RENEWAL_INFO=""
 }
 
 #server
@@ -2759,7 +2805,7 @@ _initAPI() {
   _request_retry_times=0
   while [ -z "$ACME_NEW_ACCOUNT" ] && [ "${_request_retry_times}" -lt "$MAX_API_RETRY_TIMES" ]; do
     _request_retry_times=$(_math "$_request_retry_times" + 1)
-    response=$(_get "$_api_server")
+    response=$(_get "$_api_server" "" 10)
     if [ "$?" != "0" ]; then
       _debug2 "response" "$response"
       _info "Cannot init API for: $_api_server."
@@ -2782,6 +2828,9 @@ _initAPI() {
     ACME_NEW_ACCOUNT=$(echo "$response" | _egrep_o 'newAccount" *: *"[^"]*"' | cut -d '"' -f 3)
     export ACME_NEW_ACCOUNT
 
+    ACME_RENEWAL_INFO=$(echo "$response" | _egrep_o 'renewalInfo" *: *"[^"]*"' | cut -d '"' -f 3)
+    export ACME_RENEWAL_INFO
+
     ACME_REVOKE_CERT=$(echo "$response" | _egrep_o 'revokeCert" *: *"[^"]*"' | cut -d '"' -f 3)
     export ACME_REVOKE_CERT
 
@@ -2791,17 +2840,14 @@ _initAPI() {
     ACME_AGREEMENT=$(echo "$response" | _egrep_o 'termsOfService" *: *"[^"]*"' | cut -d '"' -f 3)
     export ACME_AGREEMENT
 
-    ACME_RENEWAL_INFO=$(echo "$response" | _egrep_o 'renewalInfo" *: *"[^"]*"' | cut -d '"' -f 3)
-    export ACME_RENEWAL_INFO
-
     _debug "ACME_KEY_CHANGE" "$ACME_KEY_CHANGE"
     _debug "ACME_NEW_AUTHZ" "$ACME_NEW_AUTHZ"
     _debug "ACME_NEW_ORDER" "$ACME_NEW_ORDER"
     _debug "ACME_NEW_ACCOUNT" "$ACME_NEW_ACCOUNT"
+    _debug "ACME_RENEWAL_INFO" "$ACME_RENEWAL_INFO"
     _debug "ACME_REVOKE_CERT" "$ACME_REVOKE_CERT"
     _debug "ACME_AGREEMENT" "$ACME_AGREEMENT"
     _debug "ACME_NEW_NONCE" "$ACME_NEW_NONCE"
-    _debug "ACME_RENEWAL_INFO" "$ACME_RENEWAL_INFO"
     if [ "$ACME_NEW_ACCOUNT" ] && [ "$ACME_NEW_ORDER" ]; then
       return 0
     fi
@@ -3509,7 +3555,7 @@ _on_before_issue() {
   _debug _chk_alt_domains "$_chk_alt_domains"
   #run pre hook
   if [ "$_chk_pre_hook" ]; then
-    _info "Runing pre hook:'$_chk_pre_hook'"
+    _info "Running pre hook:'$_chk_pre_hook'"
     if ! (
       export Le_Domain="$_chk_main_domain"
       export Le_Alt="$_chk_alt_domains"
@@ -4296,6 +4342,48 @@ _get_chain_subjects() {
   fi
 }
 
+_update_renewal_info() {
+  if [ -z "$ACME_RENEWAL_INFO" ]; then
+    _debug3 "Renewal Info is not supported for $Le_API."
+    return 1
+  fi
+  if [ -z "$Le_RenewalInfoCertId" ]; then
+    _debug3 "No Certificate Identifier found. Skipping ACME Renewal Info."
+    return 1
+  fi
+  if [ -z "$Le_EnableRenewalInfo" ] || [ "$Le_EnableRenewalInfo" -ne "1" ]; then
+    _debug3 "Renewal Info is not enabled."
+    _cleardomainconf "Le_RenewalInfoLastUpdate"
+    _cleardomainconf "Le_RenewalInfoLastUpdateStr"
+    _cleardomainconf "Le_RenewalInfoExplanation"
+    return 1
+  fi
+  response=$(_get "$ACME_RENEWAL_INFO/$Le_RenewalInfoCertId" | _json_decode | _normalizeJson)
+  if ! _contains "$response" "\"start\"" || ! _contains "$response" "\"end\""; then
+    _debug2 "Failed to parse Renewal Info."
+    return 1
+  fi
+  _renewal_info_start_time_str="$(echo $response | _egrep_o '"start":"[^"]+"' | cut -d '"' -f 4)"
+  _renewal_info_start_time="$(_date2time "$_renewal_info_start_time_str")"
+  _renewal_info_end_time_str="$(echo $response | _egrep_o '"end":"[^"]+"' | cut -d '"' -f 4)"
+  _renewal_info_end_time="$(_date2time "$_renewal_info_end_time_str")"
+  if [ $_renewal_info_start_time -gt $_renewal_info_end_time ]; then
+    _debug2 "Malformed Renewal Info."
+    return 1
+  fi
+  _savedomainconf "Le_NextRenewTime" "$_renewal_info_start_time"
+  _savedomainconf "Le_NextRenewTimeStr" "$_renewal_info_start_time_str"
+  if _contains "$response" "\"explanationURL\""; then
+    Le_RenewalInfoExplanation="$(echo $response | _egrep_o '"explanationURL":"[^"]+"' | cut -d '"' -f 4)"
+    export Le_RenewalInfoExplanation
+  fi
+  Le_RenewalInfoLastUpdate="$(_time)"
+  Le_RenewalInfoLastUpdateStr="$(_time2str "$Le_RenewalInfoLastUpdate")"
+  _savedomainconf "Le_RenewalInfoLastUpdate" "$Le_RenewalInfoLastUpdate"
+  _savedomainconf "Le_RenewalInfoLastUpdateStr" "$Le_RenewalInfoLastUpdateStr"
+  return 0
+}
+
 #cert  issuer
 _match_issuer() {
   _cfile="$1"
@@ -4412,6 +4500,7 @@ issue() {
   _preferred_chain="${15}"
   _valid_from="${16}"
   _valid_to="${17}"
+  _certificate_profile="${18}"
 
   if [ -z "$_ACME_IS_RENEW" ]; then
     _initpath "$_main_domain" "$_key_length"
@@ -4487,6 +4576,11 @@ issue() {
   else
     _cleardomainconf "Le_Preferred_Chain"
   fi
+  if [ "$_certificate_profile" ]; then
+    _savedomainconf "Le_Certificate_Profile" "$_certificate_profile"
+  else
+    _cleardomainconf "Le_Certificate_Profile"
+  fi
 
   Le_API="$ACME_DIRECTORY"
   _savedomainconf "Le_API" "$Le_API"
@@ -4498,6 +4592,7 @@ issue() {
 
   if ! _on_before_issue "$_web_roots" "$_main_domain" "$_alt_domains" "$_pre_hook" "$_local_addr"; then
     _err "_on_before_issue."
+    _on_issue_err "$_post_hook"
     return 1
   fi
 
@@ -4617,6 +4712,13 @@ issue() {
     fi
     if [ "$_notAfter" ]; then
       _newOrderObj="$_newOrderObj,\"notAfter\": \"$_notAfter\""
+    fi
+    Le_RenewalInfoCertId=$(_readdomainconf "Le_RenewalInfoCertId")
+    if [ "$_ACME_IS_RENEW" ] && [ -n "$Le_EnableRenewalInfo" ] && [ "$Le_EnableRenewalInfo" -eq "1" ] && [ -n "$Le_RenewalInfoCertId" ]; then
+      _newOrderObj="$_newOrderObj,\"replaces\": \"$Le_RenewalInfoCertId\""
+    fi
+    if [ "$_certificate_profile" ]; then
+      _newOrderObj="$_newOrderObj,\"profile\": \"$_certificate_profile\""
     fi
     _debug "STEP 1, Ordering a Certificate"
     if ! _send_signed_request "$ACME_NEW_ORDER" "$_newOrderObj}"; then
@@ -4757,7 +4859,8 @@ $_authorizations_map"
         _debug keyauthorization "$keyauthorization"
       fi
 
-      entry="$(echo "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
+      # Fix for empty error objects in response which mess up the original code, adapted from fix suggested here: https://github.com/acmesh-official/acme.sh/issues/4933#issuecomment-1870499018
+      entry="$(echo "$response" | sed s/'"error":{}'/'"error":null'/ | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
       _debug entry "$entry"
 
       if [ -z "$keyauthorization" -a -z "$entry" ]; then
@@ -5007,9 +5110,11 @@ $_authorizations_map"
 
         _debug "Writing token: $token to $wellknown_path/$token"
 
-        mkdir -p "$wellknown_path"
-
-        if ! printf "%s" "$keyauthorization" >"$wellknown_path/$token"; then
+        # Ensure .well-known is visible to web server user/group
+        # https://github.com/Neilpang/acme.sh/pull/32
+        if ! (umask ugo+rx &&
+          mkdir -p "$wellknown_path" &&
+          printf "%s" "$keyauthorization" >"$wellknown_path/$token"); then
           _err "$d: Cannot write token to file: $wellknown_path/$token"
           _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
           _clearup
@@ -5295,6 +5400,10 @@ $_authorizations_map"
       _info "Your cert key is in: $(__green "$CERT_KEY_PATH")"
     fi
 
+    if [ "$_ACME_IS_RENEW" ] && [ -n "$Le_EnableRenewalInfo" ] && [ "$Le_EnableRenewalInfo" -eq "1" ] && [ -n "$Le_RenewalInfoExplanation" ]; then
+      _info "More info on this renewal: $(__green "$Le_RenewalInfoExplanation")."
+    fi
+
     if [ ! "$USER_PATH" ] || [ ! "$_ACME_IN_CRON" ]; then
       USER_PATH="$PATH"
       _saveaccountconf "USER_PATH" "$USER_PATH"
@@ -5312,6 +5421,12 @@ $_authorizations_map"
 
   Le_CertCreateTimeStr=$(_time2str "$Le_CertCreateTime")
   _savedomainconf "Le_CertCreateTimeStr" "$Le_CertCreateTimeStr"
+
+  if _calc_cert_id "$CERT_PATH"; then
+    _savedomainconf "Le_RenewalInfoCertId" "$Le_RenewalInfoCertId"
+  else
+    _cleardomainconf "Le_RenewalInfoCertId"
+  fi
 
   if [ -z "$Le_RenewalDays" ] || [ "$Le_RenewalDays" -lt "0" ]; then
     Le_RenewalDays="$DEFAULT_RENEW"
@@ -5380,6 +5495,14 @@ $_authorizations_map"
   _savedomainconf "Le_NextRenewTimeStr" "$Le_NextRenewTimeStr"
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
 
+  if [ -z "$Le_EnableRenewalInfo" ] || [ "$Le_EnableRenewalInfo" -eq "1" ]; then
+    _savedomainconf "Le_EnableRenewalInfo" "1"
+  else
+    _savedomainconf "Le_EnableRenewalInfo" "0"
+  fi
+  Le_EnableRenewalInfo="$(_readdomainconf "Le_EnableRenewalInfo")"
+  _update_renewal_info
+
   #convert to pkcs12
   if [ "$Le_PFXPassword" ]; then
     _toPkcs "$CERT_PFX_PATH" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$Le_PFXPassword"
@@ -5447,14 +5570,19 @@ renew() {
   . "$DOMAIN_CONF"
   _debug Le_API "$Le_API"
 
+  ACME_DIRECTORY="$Le_API"
+
+  _initAPI
+  if _update_renewal_info; then
+    Le_NextRenewTime=$(_readdomainconf "Le_NextRenewTime")
+    Le_NextRenewTimeStr=$(_readdomainconf "Le_NextRenewTimeStr")
+  fi
+  _clearAPI
+
   case "$Le_API" in
   "$CA_LETSENCRYPT_V2_TEST")
     _info "Switching back to $CA_LETSENCRYPT_V2"
     Le_API="$CA_LETSENCRYPT_V2"
-    ;;
-  "$CA_BUYPASS_TEST")
-    _info "Switching back to $CA_BUYPASS"
-    Le_API="$CA_BUYPASS"
     ;;
   "$CA_GOOGLE_TEST")
     _info "Switching back to $CA_GOOGLE"
@@ -5497,6 +5625,7 @@ renew() {
   Le_PostHook="$(_readdomainconf Le_PostHook)"
   Le_RenewHook="$(_readdomainconf Le_RenewHook)"
   Le_Preferred_Chain="$(_readdomainconf Le_Preferred_Chain)"
+  Le_Certificate_Profile="$(_readdomainconf Le_Certificate_Profile)"
   # When renewing from an old version, the empty Le_Keylength means 2048.
   # Note, do not use DEFAULT_DOMAIN_KEY_LENGTH as that value may change over
   # time but an empty value implies 2048 specifically.
@@ -5504,7 +5633,14 @@ renew() {
   if [ -z "$Le_Keylength" ]; then
     Le_Keylength=2048
   fi
-  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain" "$Le_Valid_From" "$Le_Valid_To"
+  if [ "$CA_LETSENCRYPT_V2" = "$Le_API" ]; then
+    #letsencrypt doesn't support ocsp anymore
+    if [ "$Le_OCSP_Staple" ]; then
+      export Le_OCSP_Staple=""
+      _cleardomainconf Le_OCSP_Staple
+    fi
+  fi
+  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain" "$Le_Valid_From" "$Le_Valid_To" "$Le_Certificate_Profile"
   res="$?"
   if [ "$res" != "0" ]; then
     return "$res"
@@ -5799,6 +5935,48 @@ list() {
 
 }
 
+list_profiles() {
+  _initpath
+  _initAPI
+
+  _l_server_url="$ACME_DIRECTORY"
+  _l_server_name="$(_getCAShortName "$_l_server_url")"
+  _info "Fetching profiles from $_l_server_name ($_l_server_url)..."
+
+  response=$(_get "$_l_server_url" "" 10)
+  if [ "$?" != "0" ]; then
+    _err "Failed to connect to CA directory: $_l_server_url"
+    return 1
+  fi
+
+  normalized_response=$(echo "$response" | _normalizeJson)
+  profiles_json=$(echo "$normalized_response" | _egrep_o '"profiles" *: *\{[^\}]*\}')
+
+  if [ -z "$profiles_json" ]; then
+    _info "The CA '$_l_server_name' does not publish certificate profiles via its directory endpoint."
+    return 0
+  fi
+
+  # Strip the outer layer to get the key-value pairs
+  profiles_kv=$(echo "$profiles_json" | sed 's/"profiles" *: *{//' | sed 's/}$//' | tr ',' '\n')
+
+  printf "\n%-15s %s\n" "name" "info"
+  printf -- "--------------------------------------------------------------------\n"
+
+  _old_IFS="$IFS"
+  IFS='
+'
+  for pair in $profiles_kv; do
+    # Trim quotes and whitespace
+    _name=$(echo "$pair" | cut -d: -f1 | tr -d '" \t')
+    _info_url=$(echo "$pair" | cut -d: -f2- | sed 's/^ *//' | tr -d '"')
+    printf "%-15s %s\n" "$_name" "$_info_url"
+  done
+  IFS="$_old_IFS"
+
+  return 0
+}
+
 _deploy() {
   _d="$1"
   _hooks="$2"
@@ -5823,7 +6001,7 @@ _deploy() {
         return 1
       fi
 
-      if ! $d_command "$_d" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH"; then
+      if ! $d_command "$_d" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$CERT_FULLCHAIN_PATH" "$CERT_PFX_PATH"; then
         _err "Error deploying for domain: $_d"
         return 1
       fi
@@ -5986,7 +6164,7 @@ _installcert() {
     ); then
       _info "$(__green "Reload successful")"
     else
-      _err "Reload error for: $Le_Domain"
+      _err "Reload error for: $_main_domain"
     fi
   fi
 
@@ -6066,7 +6244,7 @@ installcronjob() {
     _script="$(_readlink "$_SCRIPT_")"
     _debug _script "$_script"
     if [ -f "$_script" ]; then
-      _info "Usinging the current script from: $_script"
+      _info "Using the current script from: $_script"
       lesh="$_script"
     else
       _err "Cannot install cronjob, $PROJECT_ENTRY not found."
@@ -6337,7 +6515,8 @@ _deactivate() {
     fi
     _debug "Trigger validation."
     vtype="$(_getIdType "$_d_domain")"
-    entry="$(echo "$response" | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
+    # Fix for empty error objects in response which mess up the original code, adapted from fix suggested here: https://github.com/acmesh-official/acme.sh/issues/4933#issuecomment-1870499018
+    entry="$(echo "$response" | sed s/'"error":{}'/'"error":null'/ | _egrep_o '[^\{]*"type":"'$vtype'"[^\}]*')"
     _debug entry "$entry"
     if [ -z "$entry" ]; then
       _err "$d: Cannot get domain token"
@@ -6419,36 +6598,6 @@ deactivate() {
       return 1
     fi
   done
-}
-
-#cert
-_getAKI() {
-  _cert="$1"
-  openssl x509 -in "$_cert" -text -noout | grep "X509v3 Authority Key Identifier" -A 1 | _tail_n 1 | tr -d ' :'
-}
-
-#cert
-_getSerial() {
-  _cert="$1"
-  openssl x509 -in "$_cert" -serial -noout | cut -d = -f 2
-}
-
-#cert
-_get_ARI() {
-  _cert="$1"
-  _aki=$(_getAKI "$_cert")
-  _ser=$(_getSerial "$_cert")
-  _debug2 "_aki" "$_aki"
-  _debug2 "_ser" "$_ser"
-
-  _akiurl="$(echo "$_aki" | _h2b | _base64 | tr -d = | _url_encode)"
-  _debug2 "_akiurl" "$_akiurl"
-  _serurl="$(echo "$_ser" | _h2b | _base64 | tr -d = | _url_encode)"
-  _debug2 "_serurl" "$_serurl"
-
-  _ARI_URL="$ACME_RENEWAL_INFO/$_akiurl.$_serurl"
-  _get "$_ARI_URL"
-
 }
 
 # Detect profile file if not specified as environment variable
@@ -6848,7 +6997,7 @@ _send_notify() {
 
   _nsource="$NOTIFY_SOURCE"
   if [ -z "$_nsource" ]; then
-    _nsource="$(hostname)"
+    _nsource="$(uname -n)"
   fi
 
   _nsubject="$_nsubject by $_nsource"
@@ -7006,6 +7155,9 @@ Parameters:
                                       If no match, the default offered chain will be used. (default: empty)
                                       See: $_PREFERRED_CHAIN_WIKI
 
+  --cert-profile, --certificate-profile <profile>  If the CA offers profiles, select the desired profile
+                                      See: $_PROFILESELECTION_WIKI
+
   --valid-to    <date-time>         Request the NotAfter field of the cert.
                                       See: $_VALIDITY_WIKI
   --valid-from  <date-time>         Request the NotBefore field of the cert.
@@ -7050,12 +7202,15 @@ Parameters:
 
   --accountconf <file>              Specifies a customized account config file.
   --home <directory>                Specifies the home dir for $PROJECT_NAME.
-  --cert-home <directory>           Specifies the home dir to save all the certs, only valid for '--install' command.
+  --cert-home <directory>           Specifies the home dir to save all the certs.
   --config-home <directory>         Specifies the home dir to save all the configurations.
   --useragent <string>              Specifies the user agent string. it will be saved for future use too.
   -m, --email <email>               Specifies the account email, only valid for the '--install' and '--update-account' command.
   --accountkey <file>               Specifies the account key path, only valid for the '--install' command.
   --days <ndays>                    Specifies the days to renew the cert when using '--issue' command. The default value is $DEFAULT_RENEW days.
+  --enable-ari <0|1>                Enable/Disable ACME Renewal Info (ARI). Default value is: 1.
+                                      0: disabled. Local check only.
+                                      1: enabled. Ask the CA for Renewal Window.
   --httpport <port>                 Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --tlsport <port>                  Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --local-address <ip>              Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
@@ -7344,6 +7499,7 @@ _process() {
   _accountkey=""
   _certhome=""
   _confighome=""
+  _enable_ari=""
   _httpport=""
   _tlsport=""
   _dnssleep=""
@@ -7381,6 +7537,7 @@ _process() {
   _preferred_chain=""
   _valid_from=""
   _valid_to=""
+  _certificate_profile=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -7483,6 +7640,9 @@ _process() {
       ;;
     --set-default-chain)
       _CMD="setdefaultchain"
+      ;;
+    --list-profiles)
+      _CMD="list_profiles"
       ;;
     -d | --domain)
       _dvalue="$2"
@@ -7691,12 +7851,25 @@ _process() {
       Le_RenewalDays="$_days"
       shift
       ;;
+    --enable-ari)
+      _enable_ari="$2"
+      if [ -z "$_enable_ari" ] || _startswith "$_enable_ari" '-'; then
+        Le_EnableRenewalInfo="1"
+      else
+        shift
+      fi
+      Le_EnableRenewalInfo="$_enable_ari"
+      ;;
     --valid-from)
       _valid_from="$2"
       shift
       ;;
     --valid-to)
       _valid_to="$2"
+      shift
+      ;;
+    --certificate-profile | --cert-profile)
+      _certificate_profile="$2"
       shift
       ;;
     --httpport)
@@ -7974,7 +8147,7 @@ _process() {
   uninstall) uninstall "$_nocron" ;;
   upgrade) upgrade ;;
   issue)
-    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_valid_from" "$_valid_to"
+    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_valid_from" "$_valid_to" "$_certificate_profile"
     ;;
   deploy)
     deploy "$_domain" "$_deploy_hook" "$_ecc"
@@ -8044,6 +8217,9 @@ _process() {
     ;;
   setdefaultchain)
     setdefaultchain "$_preferred_chain"
+    ;;
+  list_profiles)
+    list_profiles
     ;;
   *)
     if [ "$_CMD" ]; then

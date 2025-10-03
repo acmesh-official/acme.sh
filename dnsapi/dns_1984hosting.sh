@@ -128,7 +128,7 @@ _1984hosting_login() {
 
   _get "https://1984.hosting/accounts/login/" | grep "csrfmiddlewaretoken"
   csrftoken="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'csrftoken=[^;]*;' | tr -d ';')"
-  sessionid="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'sessionid=[^;]*;' | tr -d ';')"
+  sessionid="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'cookie1984nammnamm=[^;]*;' | tr -d ';')"
 
   if [ -z "$csrftoken" ] || [ -z "$sessionid" ]; then
     _err "One or more cookies are empty: '$csrftoken', '$sessionid'."
@@ -145,7 +145,7 @@ _1984hosting_login() {
   _debug2 response "$response"
 
   if _contains "$response" '"loggedin": true'; then
-    One984HOSTING_SESSIONID_COOKIE="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'sessionid=[^;]*;' | tr -d ';')"
+    One984HOSTING_SESSIONID_COOKIE="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'cookie1984nammnamm=[^;]*;' | tr -d ';')"
     One984HOSTING_CSRFTOKEN_COOKIE="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'csrftoken=[^;]*;' | tr -d ';')"
     export One984HOSTING_SESSIONID_COOKIE
     export One984HOSTING_CSRFTOKEN_COOKIE

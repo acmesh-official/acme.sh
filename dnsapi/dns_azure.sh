@@ -9,7 +9,7 @@ Options:
  AZUREDNS_APPID App ID. App ID of the service principal
  AZUREDNS_CLIENTSECRET Client Secret. Secret from creating the service principal
  AZUREDNS_MANAGEDIDENTITY Use Managed Identity. Use Managed Identity assigned to a resource instead of a service principal. "true"/"false"
- AZUREDNS_BEARERTOKEN Optional Bearer Token. Used instead of service principal credentials or managed identity
+ AZUREDNS_BEARERTOKEN Bearer Token. Used instead of service principal credentials or managed identity. Optional.
 '
 
 wiki=https://github.com/acmesh-official/acme.sh/wiki/How-to-use-Azure-DNS
@@ -340,8 +340,17 @@ _azure_getaccess_token() {
 
   if [ "$managedIdentity" = true ]; then
     # https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/how-to-use-vm-token#get-a-token-using-http
-    export _H1="Metadata: true"
-    response="$(_get http://169.254.169.254/metadata/identity/oauth2/token\?api-version=2018-02-01\&resource=https://management.azure.com/)"
+    if [ -n "$IDENTITY_ENDPOINT" ]; then
+      # Some Azure environments may set IDENTITY_ENDPOINT (formerly MSI_ENDPOINT) to have an alternative metadata endpoint
+      url="$IDENTITY_ENDPOINT?api-version=2019-08-01&resource=https://management.azure.com/"
+      headers="X-IDENTITY-HEADER: $IDENTITY_HEADER"
+    else
+      url="http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://management.azure.com/"
+      headers="Metadata: true"
+    fi
+
+    export _H1="$headers"
+    response="$(_get "$url")"
     response="$(echo "$response" | _normalizeJson)"
     accesstoken=$(echo "$response" | _egrep_o "\"access_token\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
     expires_on=$(echo "$response" | _egrep_o "\"expires_on\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")

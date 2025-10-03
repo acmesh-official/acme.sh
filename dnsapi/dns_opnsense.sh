@@ -110,15 +110,16 @@ rm_record() {
   if _existingchallenge "$_domain" "$_host" "$new_challenge"; then
     # Delete
     if _opns_rest "POST" "/record/delRecord/${_uuid}" "\{\}"; then
-      if echo "$_return_str" | _egrep_o "\"result\":\"deleted\"" >/dev/null; then
-        _opns_rest "POST" "/service/reconfigure" "{}"
+      if echo "$response" | _egrep_o "\"result\":\"deleted\"" >/dev/null; then
         _debug "Record deleted"
+        _opns_rest "POST" "/service/reconfigure" "{}"
+        _debug "Service reconfigured"
       else
         _err "Error deleting record $_host from domain $fulldomain"
         return 1
       fi
     else
-      _err "Error deleting record $_host from domain $fulldomain"
+      _err "Error requesting deletion of record $_host from domain $fulldomain"
       return 1
     fi
   else
@@ -150,14 +151,17 @@ _get_root() {
       return 1
     fi
     _debug h "$h"
-    id=$(echo "$_domain_response" | _egrep_o "\"uuid\":\"[a-z0-9\-]*\",\"enabled\":\"1\",\"type\":\"primary\",\"domainname\":\"${h}\"" | cut -d ':' -f 2 | cut -d '"' -f 2)
-    if [ -n "$id" ]; then
-      _debug id "$id"
-      _host=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
-      _domain="${h}"
-      _domainid="${id}"
-      return 0
-    fi
+    lines=$(echo "$_domain_response" | sed 's/{/\n/g')
+    for line in $lines; do
+      id=$(echo "$line" | _egrep_o "\"uuid\":\"[a-z0-9\-]*\",\"enabled\":\"1\",\"type\":\"primary\",.*\"domainname\":\"${h}\"" | cut -d ':' -f 2 | cut -d '"' -f 2)
+      if [ -n "$id" ]; then
+        _debug id "$id"
+        _host=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
+        _domain="${h}"
+        _domainid="${id}"
+        return 0
+      fi
+    done
     p=$i
     i=$(_math "$i" + 1)
   done
@@ -206,13 +210,13 @@ _existingchallenge() {
     return 1
   fi
   _uuid=""
-  _uuid=$(echo "$_record_response" | _egrep_o "\"uuid\":\"[^\"]*\",\"enabled\":\"[01]\",\"domain\":\"$1\",\"name\":\"$2\",\"type\":\"TXT\",\"value\":\"$3\"" | cut -d ':' -f 2 | cut -d '"' -f 2)
+  _uuid=$(echo "$_record_response" | _egrep_o "\"uuid\":\"[a-z0-9\-]*\",\"enabled\":\"[01]\",\"domain\":\"[a-z0-9\-]*\",\"%domain\":\"$1\",\"name\":\"$2\",\"type\":\"TXT\",\"value\":\"$3\"" | cut -d ':' -f 2 | cut -d '"' -f 2)
 
   if [ -n "$_uuid" ]; then
     _debug uuid "$_uuid"
     return 0
   fi
-  _debug "${2}.$1{1} record not found"
+  _debug "${2}.${1} record not found"
 
   return 1
 }

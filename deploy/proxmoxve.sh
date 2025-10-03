@@ -127,6 +127,16 @@ HEREDOC
   _info "Push certificates to server"
   export HTTPS_INSECURE=1
   export _H1="Authorization: PVEAPIToken=${_proxmoxve_header_api_token}"
-  _post "$_json_payload" "$_target_url" "" POST "application/json"
+  response=$(_post "$_json_payload" "$_target_url" "" POST "application/json")
+  _retval=$?
+  if [ "${_retval}" -eq 0 ]; then
+    _debug3 response "$response"
+    _info "Certificate successfully deployed"
+    return 0
+  else
+    _err "Certificate deployment failed"
+    _debug "Response" "$response"
+    return 1
+  fi
 
 }

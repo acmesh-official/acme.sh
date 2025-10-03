@@ -7,7 +7,7 @@ Options:
  JOKER_USERNAME Username
  JOKER_PASSWORD Password
 Issues: github.com/acmesh-official/acme.sh/issues/2840
-Author: <https://github.com/aattww/>
+Author: @aattww
 '
 
 JOKER_API="https://svc.joker.com/nic/replace"
