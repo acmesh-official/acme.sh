@@ -2840,9 +2840,6 @@ _initAPI() {
     ACME_AGREEMENT=$(echo "$response" | _egrep_o 'termsOfService" *: *"[^"]*"' | cut -d '"' -f 3)
     export ACME_AGREEMENT
 
-    ACME_RENEWAL_INFO=$(echo "$response" | _egrep_o 'renewalInfo" *: *"[^"]*"' | cut -d '"' -f 3)
-    export ACME_RENEWAL_INFO
-
     _debug "ACME_KEY_CHANGE" "$ACME_KEY_CHANGE"
     _debug "ACME_NEW_AUTHZ" "$ACME_NEW_AUTHZ"
     _debug "ACME_NEW_ORDER" "$ACME_NEW_ORDER"
