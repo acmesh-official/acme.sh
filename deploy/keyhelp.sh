@@ -50,7 +50,7 @@ keyhelp_deploy() {
 
   for _host in $_hosts; do
     _key="$(_getfield "$_keys" "$_i" " ")"
-    _i="$(_math $_i + 1)"
+    _i="$(_math "$_i" + 1)"
 
     export _H1="X-API-Key: $_key"
 
