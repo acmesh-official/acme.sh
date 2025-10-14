@@ -59,7 +59,7 @@ dns_nanelo_rm() {
   fi
   _saveaccountconf_mutable NANELO_TOKEN "$NANELO_TOKEN"
 
-  _debug "First detect the root zone"
+  _debug "First, let's detect the root zone:"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
