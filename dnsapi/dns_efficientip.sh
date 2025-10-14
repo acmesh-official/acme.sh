@@ -93,7 +93,6 @@ dns_efficientip_add() {
 }
 
 dns_efficientip_rm() {
-
   fulldomain=$1
   txtvalue=$2
 
