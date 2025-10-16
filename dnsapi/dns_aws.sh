@@ -161,7 +161,7 @@ _get_root() {
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100 | sed 's/\./\\./g')
     _debug "Checking domain: $h"
     if [ -z "$h" ]; then
-      _error "invalid domain"
+      _err "invalid domain"
       return 1
     fi
 
