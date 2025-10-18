@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_efficientip_info='efficientip.com
 Site: https://efficientip.com/
