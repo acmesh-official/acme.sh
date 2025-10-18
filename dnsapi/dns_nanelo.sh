@@ -27,8 +27,16 @@ dns_nanelo_add() {
   fi
   _saveaccountconf_mutable NANELO_TOKEN "$NANELO_TOKEN"
 
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain "$_domain"
+
   _info "Adding TXT record to ${fulldomain}"
-  response="$(_get "$NANELO_API$NANELO_TOKEN/dns/addrecord?type=TXT&ttl=60&name=${fulldomain}&value=${txtvalue}")"
+  response="$(_post "" "$NANELO_API$NANELO_TOKEN/dns/addrecord?domain=${_domain}&type=TXT&ttl=60&name=${_sub_domain}&value=${txtvalue}" "" "" "")"
   if _contains "${response}" 'success'; then
     return 0
   fi
@@ -51,12 +59,62 @@ dns_nanelo_rm() {
   fi
   _saveaccountconf_mutable NANELO_TOKEN "$NANELO_TOKEN"
 
+  _debug "First, let's detect the root zone:"
+  if ! _get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain "$_domain"
+
   _info "Deleting resource record $fulldomain"
-  response="$(_get "$NANELO_API$NANELO_TOKEN/dns/deleterecord?type=TXT&ttl=60&name=${fulldomain}&value=${txtvalue}")"
+  response="$(_post "" "$NANELO_API$NANELO_TOKEN/dns/deleterecord?domain=${_domain}&type=TXT&ttl=60&name=${_sub_domain}&value=${txtvalue}" "" "" "")"
   if _contains "${response}" 'success'; then
     return 0
   fi
   _err "Could not delete resource record, please check the logs"
   _err "${response}"
   return 1
+}
+
+####################  Private functions below ##################################
+#_acme-challenge.www.domain.com
+#returns
+# _sub_domain=_acme-challenge.www
+# _domain=domain.com
+
+_get_root() {
+  fulldomain=$1
+
+  # Fetch all zones from Nanelo
+  response="$(_get "$NANELO_API$NANELO_TOKEN/dns/getzones")" || return 1
+
+  # Extract "zones" array into space-separated list
+  zones=$(echo "$response" |
+    tr -d ' \n' |
+    sed -n 's/.*"zones":\[\([^]]*\)\].*/\1/p' |
+    tr -d '"' |
+    tr , ' ')
+  _debug zones "$zones"
+
+  bestzone=""
+  for z in $zones; do
+    case "$fulldomain" in
+    *."$z" | "$z")
+      if [ ${#z} -gt ${#bestzone} ]; then
+        bestzone=$z
+      fi
+      ;;
+    esac
+  done
+
+  if [ -z "$bestzone" ]; then
+    _err "No matching zone found for $fulldomain"
+    return 1
+  fi
+
+  _domain="$bestzone"
+  _sub_domain=$(printf "%s" "$fulldomain" | sed "s/\\.$_domain\$//")
+
+  return 0
 }
