@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-keyhelp_deploy() {
+keyhelp_api_deploy() {
   _cdomain="$1"
   _ckey="$2"
   _ccert="$3"
