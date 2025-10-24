@@ -201,7 +201,7 @@ dns_ovh_rm() {
     if ! _ovh_rest GET "domain/zone/$_domain/record/$rid"; then
       return 1
     fi
-    if _contains "$response" "\"target\":\"$txtvalue\""; then
+    if _contains "$response" "$txtvalue"; then
       _debug "Found txt id:$rid"
       if ! _ovh_rest DELETE "domain/zone/$_domain/record/$rid"; then
         return 1
