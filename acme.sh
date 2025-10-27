@@ -2668,10 +2668,10 @@ _starttlsserver() {
 
   _debug Le_Listen_V4 "$Le_Listen_V4"
   _debug Le_Listen_V6 "$Le_Listen_V6"
-  if [ "$Le_Listen_V4" ]; then
-    __S_OPENSSL="$__S_OPENSSL -4"
-  elif [ "$Le_Listen_V6" ]; then
+  if [ "$Le_Listen_V6" ]; then
     __S_OPENSSL="$__S_OPENSSL -6"
+  elif [ "$Le_Listen_V4" ]; then
+    __S_OPENSSL="$__S_OPENSSL -4"
   fi
 
   if [ "$acmeValidationv1" ]; then
@@ -5372,12 +5372,12 @@ $_authorizations_map"
     _clearaccountconf "HTTPS_INSECURE"
   fi
 
-  if [ "$Le_Listen_V4" ]; then
-    _savedomainconf "Le_Listen_V4" "$Le_Listen_V4"
-    _cleardomainconf Le_Listen_V6
-  elif [ "$Le_Listen_V6" ]; then
+  if [ "$Le_Listen_V6" ]; then
     _savedomainconf "Le_Listen_V6" "$Le_Listen_V6"
     _cleardomainconf Le_Listen_V4
+  elif [ "$Le_Listen_V4" ]; then
+    _savedomainconf "Le_Listen_V4" "$Le_Listen_V4"
+    _cleardomainconf Le_Listen_V6
   fi
 
   if [ "$Le_ForceNewDomainKey" = "1" ]; then
@@ -7888,10 +7888,14 @@ _process() {
     --listen-v4)
       _listen_v4="1"
       Le_Listen_V4="$_listen_v4"
+      _listen_v6=""
+      Le_Listen_V6=""
       ;;
     --listen-v6)
       _listen_v6="1"
       Le_Listen_V6="$_listen_v6"
+      _listen_v4=""
+      Le_Listen_V4=""
       ;;
     --openssl-bin)
       _openssl_bin="$2"
