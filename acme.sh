@@ -2305,7 +2305,7 @@ _send_signed_request() {
           _sleep $_sleep_overload_retry_sec
           continue
         else
-          _info "The retryafter=$_retryafter value is too large (> 600), will not retry anymore."
+          _err "The retryafter=$_retryafter value is too large (> 600), will not retry anymore."
         fi
       fi
       if _contains "$_body" "JWS has invalid anti-replay nonce" || _contains "$_body" "JWS has an invalid anti-replay nonce"; then
@@ -2323,7 +2323,7 @@ _send_signed_request() {
     fi
     return 0
   done
-  _info "Giving up sending to CA server after $MAX_REQUEST_RETRY_TIMES retries."
+  _err "Giving up sending to CA server after $MAX_REQUEST_RETRY_TIMES retries."
   return 1
 
 }
@@ -5170,11 +5170,8 @@ $_authorizations_map"
         if [ $_sleep_overload_retry_sec -le 600 ]; then
           _sleep $_sleep_overload_retry_sec
         else
-          _info "The retryafter=$_retryafter value is too large (> 600), will not retry anymore."
-          _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
-          _clearup
-          _on_issue_err "$_post_hook" "$vlist"
-          return 1
+          _info "The retryafter=$_retryafter value is too large (> 600); sleeping for 600 seconds."
+          _sleep 600
         fi
       fi
     done
@@ -6322,7 +6319,7 @@ revoke() {
       fi
     fi
   else
-    _info "Domain key file doesn't exist."
+    _err "Domain key file $CERT_KEY_PATH doesn't exist."
   fi
   return 1
 }
