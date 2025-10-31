@@ -38,18 +38,18 @@ ntfy_send() {
   fi
 
   case "$_statusCode" in
-    0)
-      _priority="$_priority_default"
-      _tag="$_tag_success"
-      ;;
-    1)
-      _priority="$_priority_error"
-      _tag="$_tag_error"
-      ;;
-    2)
-      _priority="$_priority_default"
-      _tag="$_tag_info"
-      ;;
+  0)
+    _priority="$_priority_default"
+    _tag="$_tag_success"
+    ;;
+  1)
+    _priority="$_priority_error"
+    _tag="$_tag_error"
+    ;;
+  2)
+    _priority="$_priority_default"
+    _tag="$_tag_info"
+    ;;
   esac
 
   export _H2="Priority: $_priority"
