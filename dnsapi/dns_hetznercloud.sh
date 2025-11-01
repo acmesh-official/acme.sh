@@ -290,9 +290,15 @@ _hetznercloud_parse_zone_fields() {
   if [ -z "${zone_id}" ] || [ -z "${zone_name}" ]; then
     return 1
   fi
+  zone_name_trimmed=$(printf "%s" "${zone_name}" | sed 's/\.$//')
+  if zone_name_ascii=$(_idn "${zone_name_trimmed}"); then
+    zone_name="${zone_name_ascii}"
+  else
+    zone_name="${zone_name_trimmed}"
+  fi
   _hetznercloud_zone_id="${zone_id}"
   _hetznercloud_zone_name="${zone_name}"
-  _hetznercloud_zone_name_lc=$(printf "%s" "${zone_name}" | sed 's/\.$//' | _lower_case)
+  _hetznercloud_zone_name_lc=$(printf "%s" "${zone_name}" | _lower_case)
   return 0
 }
 
