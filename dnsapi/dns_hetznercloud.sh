@@ -8,11 +8,13 @@ Options:
 Optional:
  HETZNER_TTL Custom TTL for new TXT rrsets (default 120)
  HETZNER_API Override API endpoint (default https://api.hetzner.cloud/v1)
+ HETZNER_MAX_ATTEMPTS Number of 1s polls to wait for async actions (default 120)
 Issues: github.com/acmesh-official/acme.sh/issues
 '
 
 HETZNERCLOUD_API_DEFAULT="https://api.hetzner.cloud/v1"
 HETZNERCLOUD_TTL_DEFAULT=120
+HETZNER_MAX_ATTEMPTS_DEFAULT=120
 
 ########  Public functions #####################
 
@@ -57,6 +59,9 @@ dns_hetznercloud_add() {
 
   case "${_hetznercloud_last_http_code}" in
   200 | 201 | 202 | 204)
+    if ! _hetznercloud_handle_action_response "TXT record add"; then
+      return 1
+    fi
     _info "Hetzner Cloud TXT record added."
     return 0
     ;;
@@ -116,6 +121,9 @@ dns_hetznercloud_rm() {
     fi
     case "${_hetznercloud_last_http_code}" in
     200 | 201 | 202 | 204)
+      if ! _hetznercloud_handle_action_response "TXT record remove"; then
+        return 1
+      fi
       _info "Hetzner Cloud TXT record removed."
       return 0
       ;;
@@ -170,6 +178,17 @@ _hetznercloud_init() {
     return 1
   fi
   _saveaccountconf_mutable HETZNER_TTL "${HETZNER_TTL}"
+
+  HETZNER_MAX_ATTEMPTS="${HETZNER_MAX_ATTEMPTS:-$(_readaccountconf_mutable HETZNER_MAX_ATTEMPTS)}"
+  if [ -z "${HETZNER_MAX_ATTEMPTS}" ]; then
+    HETZNER_MAX_ATTEMPTS="${HETZNER_MAX_ATTEMPTS_DEFAULT}"
+  fi
+  attempts_check=$(printf "%s" "${HETZNER_MAX_ATTEMPTS}" | tr -d '0-9')
+  if [ -n "${attempts_check}" ]; then
+    _err "HETZNER_MAX_ATTEMPTS must be an integer value."
+    return 1
+  fi
+  _saveaccountconf_mutable HETZNER_MAX_ATTEMPTS "${HETZNER_MAX_ATTEMPTS}"
 
   return 0
 }
@@ -434,4 +453,141 @@ _hetznercloud_api() {
   fi
 
   return 0
+}
+
+_hetznercloud_handle_action_response() {
+  context="${1}"
+  if [ -z "${response}" ]; then
+    return 0
+  fi
+
+  normalized=$(printf "%s" "${response}" | _normalizeJson)
+
+  failed_message=""
+  if failed_message=$(_hetznercloud_extract_failed_action_message "${normalized}"); then
+    if [ -n "${failed_message}" ]; then
+      _err "Hetzner Cloud DNS ${context} failed: ${failed_message}"
+    else
+      _err "Hetzner Cloud DNS ${context} failed."
+    fi
+    return 1
+  fi
+
+  action_ids=""
+  if action_ids=$(_hetznercloud_extract_action_ids "${normalized}"); then
+    for action_id in ${action_ids}; do
+      if [ -z "${action_id}" ]; then
+        continue
+      fi
+      if ! _hetznercloud_wait_for_action "${action_id}" "${context}"; then
+        return 1
+      fi
+    done
+  fi
+
+  return 0
+}
+
+_hetznercloud_extract_failed_action_message() {
+  normalized="${1}"
+  failed_section=$(printf "%s" "${normalized}" | _egrep_o '"failed_actions":\[[^]]*\]')
+  if [ -z "${failed_section}" ]; then
+    return 1
+  fi
+  if _contains "${failed_section}" '"failed_actions":[]'; then
+    return 1
+  fi
+  message=$(printf "%s" "${failed_section}" | _egrep_o '"message":"[^"]*"' | _head_n 1 | cut -d : -f 2 | tr -d '"')
+  if [ -n "${message}" ]; then
+    printf "%s" "${message}"
+  else
+    printf "%s" "${failed_section}"
+  fi
+  return 0
+}
+
+_hetznercloud_extract_action_ids() {
+  normalized="${1}"
+  actions_section=$(printf "%s" "${normalized}" | _egrep_o '"actions":\[[^]]*\]')
+  if [ -z "${actions_section}" ]; then
+    return 1
+  fi
+  action_ids=$(printf "%s" "${actions_section}" | _egrep_o '"id":[0-9]*' | cut -d : -f 2 | tr -d '"' | tr '\n' ' ')
+  action_ids=$(printf "%s" "${action_ids}" | tr -s ' ')
+  action_ids=$(printf "%s" "${action_ids}" | sed 's/^ //;s/ $//')
+  if [ -z "${action_ids}" ]; then
+    return 1
+  fi
+  printf "%s" "${action_ids}"
+  return 0
+}
+
+_hetznercloud_wait_for_action() {
+  action_id="${1}"
+  context="${2}"
+  attempts="0"
+
+  while true; do
+    if ! _hetznercloud_api GET "/actions/${action_id}"; then
+      return 1
+    fi
+    if [ "${_hetznercloud_last_http_code}" != "200" ]; then
+      _hetznercloud_log_http_error "Hetzner Cloud DNS action ${action_id} query failed" "${_hetznercloud_last_http_code}"
+      return 1
+    fi
+
+    normalized=$(printf "%s" "${response}" | _normalizeJson)
+    action_status=$(_hetznercloud_action_status_from_normalized "${normalized}")
+
+    if [ -z "${action_status}" ]; then
+      _err "Hetzner Cloud DNS ${context} action ${action_id} returned no status."
+      return 1
+    fi
+
+    if [ "${action_status}" = "success" ]; then
+      return 0
+    fi
+
+    if [ "${action_status}" = "error" ]; then
+      if action_error=$(_hetznercloud_action_error_from_normalized "${normalized}"); then
+        _err "Hetzner Cloud DNS ${context} action ${action_id} failed: ${action_error}"
+      else
+        _err "Hetzner Cloud DNS ${context} action ${action_id} failed."
+      fi
+      return 1
+    fi
+
+    attempts=$(_math "${attempts}" + 1)
+    if [ "${attempts}" -ge "${HETZNER_MAX_ATTEMPTS}" ]; then
+      _err "Hetzner Cloud DNS ${context} action ${action_id} did not complete after ${HETZNER_MAX_ATTEMPTS} attempts."
+      return 1
+    fi
+
+    _sleep 1
+  done
+}
+
+_hetznercloud_action_status_from_normalized() {
+  normalized="${1}"
+  status=$(printf "%s" "${normalized}" | _egrep_o '"status":"[^"]*"' | _head_n 1 | cut -d : -f 2 | tr -d '"')
+  printf "%s" "${status}"
+}
+
+_hetznercloud_action_error_from_normalized() {
+  normalized="${1}"
+  error_section=$(printf "%s" "${normalized}" | _egrep_o '"error":{[^}]*}')
+  if [ -z "${error_section}" ]; then
+    return 1
+  fi
+  message=$(printf "%s" "${error_section}" | _egrep_o '"message":"[^"]*"' | _head_n 1 | cut -d : -f 2 | tr -d '"')
+  if [ -n "${message}" ]; then
+    printf "%s" "${message}"
+    return 0
+  fi
+  code=$(printf "%s" "${error_section}" | _egrep_o '"code":"[^"]*"' | _head_n 1 | cut -d : -f 2 | tr -d '"')
+  if [ -n "${code}" ]; then
+    printf "%s" "${code}"
+    return 0
+  fi
+  return 1
 }
