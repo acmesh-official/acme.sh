@@ -154,7 +154,7 @@ _get_root() {
     export _H3="Authorization: Bearer $CURANET_ACCESS_TOKEN"
     response="$(_get "$CURANET_REST_URL/$h/Records" "" "")"
 
-    if [ ! "$(echo "$response" | _egrep_o "Entity not found")" ]; then
+    if [ ! "$(echo "$response" | _egrep_o "Entity not found|Bad Request")" ]; then
       _domain=$h
       return 0
     fi
