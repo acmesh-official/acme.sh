@@ -71,7 +71,7 @@ with Client(uri="$_ws_uri") as c:
       fullchain = file.read()
     with open('$2', 'r') as file:
       privatekey = file.read()
-    ret = c.call("certificate.create", {"name": "$3", "create_type": "CERTIFICATE_CREATE_IMPORTED", "certificate": fullchain, "privatekey": privatekey, "passphrase": ""}, job=True)
+    ret = c.call("certificate.create", {"name": "$3", "create_type": "CERTIFICATE_CREATE_IMPORTED", "certificate": fullchain, "privatekey": privatekey}, job=True)
     print("R:" + str(ret["id"]))
     sys.exit(0)
   else:
