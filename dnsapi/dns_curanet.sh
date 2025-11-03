@@ -15,7 +15,7 @@ CURANET_REST_URL="https://api.curanet.dk/dns/v1/Domains"
 CURANET_AUTH_URL="https://apiauth.dk.team.blue/auth/realms/Curanet/protocol/openid-connect/token"
 CURANET_ACCESS_TOKEN=""
 
-########  Public functions #####################
+########  Public functions ####################
 
 #Usage: dns_curanet_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_curanet_add() {
