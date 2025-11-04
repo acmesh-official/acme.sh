@@ -7,7 +7,7 @@ Options:
  EASYDNS_Token API Token
  EASYDNS_Key API Key
 Issues: github.com/acmesh-official/acme.sh/issues/2647
-Author: Neilpang, wurzelpanzer <wurzelpanzer@maximolider.net>
+Author: @Neilpang, wurzelpanzer <wurzelpanzer@maximolider.net>
 '
 
 # API Documentation: https://sandbox.rest.easydns.net:3001/
