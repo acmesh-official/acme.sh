@@ -15,7 +15,7 @@ CURANET_REST_URL="https://api.curanet.dk/dns/v1/Domains"
 CURANET_AUTH_URL="https://apiauth.dk.team.blue/auth/realms/Curanet/protocol/openid-connect/token"
 CURANET_ACCESS_TOKEN=""
 
-########  Public functions #####################
+########  Public functions ####################
 
 #Usage: dns_curanet_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_curanet_add() {
@@ -154,7 +154,7 @@ _get_root() {
     export _H3="Authorization: Bearer $CURANET_ACCESS_TOKEN"
     response="$(_get "$CURANET_REST_URL/$h/Records" "" "")"
 
-    if [ ! "$(echo "$response" | _egrep_o "Entity not found")" ]; then
+    if [ ! "$(echo "$response" | _egrep_o "Entity not found|Bad Request")" ]; then
       _domain=$h
       return 0
     fi
