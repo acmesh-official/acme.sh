@@ -7086,8 +7086,6 @@ Parameters:
   --alpn                            Use standalone alpn mode.
   --stateless                       Use stateless mode.
                                       See: $_STATELESS_WIKI
-  --request-v4                      Force client requests to use ipv4.
-  --request-v6                      Force client requests to use ipv6.
 
   --apache                          Use Apache mode.
   --dns [dns_hook]                  Use dns manual mode or dns api. Defaults to manual mode when argument is omitted.
@@ -7149,6 +7147,8 @@ Parameters:
   --auto-upgrade [0|1]              Valid for '--upgrade' command, indicating whether to upgrade automatically in future. Defaults to 1 if argument is omitted.
   --listen-v4                       Force standalone/tls server to listen at ipv4.
   --listen-v6                       Force standalone/tls server to listen at ipv6.
+  --request-v4                      Force client requests to use ipv4 to connect to the CA server.
+  --request-v6                      Force client requests to use ipv6 to connect to the CA server.
   --openssl-bin <file>              Specifies a custom openssl bin location.
   --use-wget                        Force to use wget, if you have both curl and wget installed.
   --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force use of dns manual mode.
@@ -7270,15 +7270,19 @@ _processAccountConf() {
   if [ "$_request_v6" ]; then
     _saveaccountconf "ACME_USE_IPV6_REQUESTS" "$_request_v6"
     _clearaccountconf "ACME_USE_IPV4_REQUESTS"
-  elif [ "$ACME_USE_IPV6_REQUESTS" ]; then
-    _saveaccountconf "ACME_USE_IPV6_REQUESTS" "$ACME_USE_IPV6_REQUESTS"
-    _clearaccountconf "ACME_USE_IPV4_REQUESTS"
+    ACME_USE_IPV4_REQUESTS=
   elif [ "$_request_v4" ]; then
     _saveaccountconf "ACME_USE_IPV4_REQUESTS" "$_request_v4"
     _clearaccountconf "ACME_USE_IPV6_REQUESTS"
+    ACME_USE_IPV6_REQUESTS=
+  elif [ "$ACME_USE_IPV6_REQUESTS" ]; then
+    _saveaccountconf "ACME_USE_IPV6_REQUESTS" "$ACME_USE_IPV6_REQUESTS"
+    _clearaccountconf "ACME_USE_IPV4_REQUESTS"
+    ACME_USE_IPV4_REQUESTS=
   elif [ "$ACME_USE_IPV4_REQUESTS" ]; then
     _saveaccountconf "ACME_USE_IPV4_REQUESTS" "$ACME_USE_IPV4_REQUESTS"
     _clearaccountconf "ACME_USE_IPV6_REQUESTS"
+    ACME_USE_IPV6_REQUESTS=
   fi
 
 }
