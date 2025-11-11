@@ -14,6 +14,13 @@ ntfy_send() {
   _debug "_content" "$_content"
   _debug "_statusCode" "$_statusCode"
 
+  _priority_default="default"
+  _priority_error="high"
+
+  _tag_success="white_check_mark"
+  _tag_error="warning"
+  _tag_info="information_source"
+
   NTFY_URL="${NTFY_URL:-$(_readaccountconf_mutable NTFY_URL)}"
   if [ "$NTFY_URL" ]; then
     _saveaccountconf_mutable NTFY_URL "$NTFY_URL"
@@ -30,7 +37,26 @@ ntfy_send() {
     export _H1="Authorization: Bearer $NTFY_TOKEN"
   fi
 
-  _data="${_subject}. $_content"
+  case "$_statusCode" in
+  0)
+    _priority="$_priority_default"
+    _tag="$_tag_success"
+    ;;
+  1)
+    _priority="$_priority_error"
+    _tag="$_tag_error"
+    ;;
+  2)
+    _priority="$_priority_default"
+    _tag="$_tag_info"
+    ;;
+  esac
+
+  export _H2="Priority: $_priority"
+  export _H3="Tags: $_tag"
+  export _H4="Title: $PROJECT_NAME: $_subject"
+
+  _data="$_content"
   response="$(_post "$_data" "$NTFY_URL/$NTFY_TOPIC" "" "POST" "")"
 
   if [ "$?" = "0" ] && _contains "$response" "expires"; then
