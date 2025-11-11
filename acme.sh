@@ -4714,7 +4714,7 @@ issue() {
       _newOrderObj="$_newOrderObj,\"notAfter\": \"$_notAfter\""
     fi
     Le_RenewalInfoCertId=$(_readdomainconf "Le_RenewalInfoCertId")
-    if [ "$_ACME_IS_RENEW" ] && [ -n "$Le_EnableRenewalInfo" ] && [ "$Le_EnableRenewalInfo" -eq "1" ] && [ -n "$Le_RenewalInfoCertId" ]; then
+    if [ -z "$FORCE" ] && [ "$_ACME_IS_RENEW" ] && [ -n "$Le_EnableRenewalInfo" ] && [ "$Le_EnableRenewalInfo" -eq "1" ] && [ -n "$Le_RenewalInfoCertId" ]; then
       _newOrderObj="$_newOrderObj,\"replaces\": \"$Le_RenewalInfoCertId\""
     fi
     if [ "$_certificate_profile" ]; then
