@@ -1271,7 +1271,7 @@ _createcsr() {
     _savedomainconf Le_ExtKeyUse "$Le_ExtKeyUse"
     printf "\nextendedKeyUsage=$Le_ExtKeyUse\n" >>"$csrconf"
   else
-    printf "\nextendedKeyUsage=serverAuth,clientAuth\n" >>"$csrconf"
+    printf "\nextendedKeyUsage=serverAuth\n" >>"$csrconf"
   fi
 
   if [ "$acmeValidationv1" ]; then
