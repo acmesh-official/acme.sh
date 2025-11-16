@@ -1,3 +1,5 @@
+[![zerossl.com](https://github.com/user-attachments/assets/7531085e-399b-4ac2-82a2-90d14a0b7f05)](https://zerossl.com/?fromacme.sh)
+
 # An ACME Shell script: acme.sh 
 
 [![FreeBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml)
