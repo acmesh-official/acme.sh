@@ -208,6 +208,8 @@ The certs will be placed in `~/.acme.sh/example.com/`
 
 The certs will be renewed automatically every **60** days.
 
+The certs will default to ECC certificates.
+
 More examples: https://github.com/acmesh-official/acme.sh/wiki/How-to-issue-a-cert
 
 
@@ -359,27 +361,11 @@ Ok, it's done.
 
 **Please use dns api mode instead.**
 
-# 10. Issue ECC certificates
+# 10. Issue certificates of different key types and lengths (ECC or RSA)
 
-Just set the `keylength` parameter with a prefix `ec-`.
+Just set the `keylength` to a valid, supported, value.
 
-For example:
-
-### Single domain ECC certificate
-
-```bash
-acme.sh --issue -w /home/wwwroot/example.com -d example.com --keylength ec-256
-```
-
-### SAN multi domain ECC certificate
-
-```bash
-acme.sh --issue -w /home/wwwroot/example.com -d example.com -d www.example.com --keylength ec-256
-```
-
-Please look at the `keylength` parameter above.
-
-Valid values are:
+Valid values for the `keylength` parameter are:
 
 1. **ec-256 (prime256v1, "ECDSA P-256", which is the default key type)**
 2. **ec-384 (secp384r1,  "ECDSA P-384")**
@@ -388,6 +374,19 @@ Valid values are:
 5. **3072   (RSA3072)**
 6. **4096   (RSA4096)**
 
+For example:
+
+### Single domain with ECDSA P-384 certificate
+
+```bash
+acme.sh --issue -w /home/wwwroot/example.com -d example.com --keylength ec-384
+```
+
+### SAN multi domain with RSA4096 certificate
+
+```bash
+acme.sh --issue -w /home/wwwroot/example.com -d example.com -d www.example.com --keylength 4096
+```
 
 # 11. Issue Wildcard certificates
 
