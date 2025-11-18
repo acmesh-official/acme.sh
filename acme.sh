@@ -1271,7 +1271,7 @@ _createcsr() {
     _savedomainconf Le_ExtKeyUse "$Le_ExtKeyUse"
     printf "\nextendedKeyUsage=$Le_ExtKeyUse\n" >>"$csrconf"
   else
-    printf "\nextendedKeyUsage=serverAuth,clientAuth\n" >>"$csrconf"
+    printf "\nextendedKeyUsage=serverAuth\n" >>"$csrconf"
   fi
 
   if [ "$acmeValidationv1" ]; then
@@ -1897,6 +1897,11 @@ _inithttp() {
 
   if [ -z "$_ACME_CURL" ] && _exists "curl"; then
     _ACME_CURL="curl --silent --dump-header $HTTP_HEADER "
+    if [ "$ACME_USE_IPV6_REQUESTS" ]; then
+      _ACME_CURL="$_ACME_CURL --ipv6 "
+    elif [ "$ACME_USE_IPV4_REQUESTS" ]; then
+      _ACME_CURL="$_ACME_CURL --ipv4 "
+    fi
     if [ -z "$ACME_HTTP_NO_REDIRECTS" ]; then
       _ACME_CURL="$_ACME_CURL -L "
     fi
@@ -1924,6 +1929,11 @@ _inithttp() {
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
     _ACME_WGET="wget -q"
+    if [ "$ACME_USE_IPV6_REQUESTS" ]; then
+      _ACME_WGET="$_ACME_WGET --inet6-only "
+    elif [ "$ACME_USE_IPV4_REQUESTS" ]; then
+      _ACME_WGET="$_ACME_WGET --inet4-only "
+    fi
     if [ "$ACME_HTTP_NO_REDIRECTS" ]; then
       _ACME_WGET="$_ACME_WGET --max-redirect 0 "
     fi
@@ -7137,6 +7147,8 @@ Parameters:
   --auto-upgrade [0|1]              Valid for '--upgrade' command, indicating whether to upgrade automatically in future. Defaults to 1 if argument is omitted.
   --listen-v4                       Force standalone/tls server to listen at ipv4.
   --listen-v6                       Force standalone/tls server to listen at ipv6.
+  --request-v4                      Force client requests to use ipv4 to connect to the CA server.
+  --request-v6                      Force client requests to use ipv6 to connect to the CA server.
   --openssl-bin <file>              Specifies a custom openssl bin location.
   --use-wget                        Force to use wget, if you have both curl and wget installed.
   --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force use of dns manual mode.
@@ -7253,6 +7265,24 @@ _processAccountConf() {
     _saveaccountconf "ACME_USE_WGET" "$_use_wget"
   elif [ "$ACME_USE_WGET" ]; then
     _saveaccountconf "ACME_USE_WGET" "$ACME_USE_WGET"
+  fi
+
+  if [ "$_request_v6" ]; then
+    _saveaccountconf "ACME_USE_IPV6_REQUESTS" "$_request_v6"
+    _clearaccountconf "ACME_USE_IPV4_REQUESTS"
+    ACME_USE_IPV4_REQUESTS=
+  elif [ "$_request_v4" ]; then
+    _saveaccountconf "ACME_USE_IPV4_REQUESTS" "$_request_v4"
+    _clearaccountconf "ACME_USE_IPV6_REQUESTS"
+    ACME_USE_IPV6_REQUESTS=
+  elif [ "$ACME_USE_IPV6_REQUESTS" ]; then
+    _saveaccountconf "ACME_USE_IPV6_REQUESTS" "$ACME_USE_IPV6_REQUESTS"
+    _clearaccountconf "ACME_USE_IPV4_REQUESTS"
+    ACME_USE_IPV4_REQUESTS=
+  elif [ "$ACME_USE_IPV4_REQUESTS" ]; then
+    _saveaccountconf "ACME_USE_IPV4_REQUESTS" "$ACME_USE_IPV4_REQUESTS"
+    _clearaccountconf "ACME_USE_IPV6_REQUESTS"
+    ACME_USE_IPV6_REQUESTS=
   fi
 
 }
@@ -7420,6 +7450,8 @@ _process() {
   _local_address=""
   _log_level=""
   _auto_upgrade=""
+  _request_v4=""
+  _request_v6=""
   _listen_v4=""
   _listen_v6=""
   _openssl_bin=""
@@ -7884,6 +7916,18 @@ _process() {
         shift
       fi
       AUTO_UPGRADE="$_auto_upgrade"
+      ;;
+    --request-v4)
+      _request_v4="1"
+      ACME_USE_IPV4_REQUESTS="1"
+      _request_v6=""
+      ACME_USE_IPV6_REQUESTS=""
+      ;;
+    --request-v6)
+      _request_v6="1"
+      ACME_USE_IPV6_REQUESTS="1"
+      _request_v4=""
+      ACME_USE_IPV4_REQUESTS=""
       ;;
     --listen-v4)
       _listen_v4="1"

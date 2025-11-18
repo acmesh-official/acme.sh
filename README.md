@@ -1,3 +1,5 @@
+[![zerossl.com](https://github.com/user-attachments/assets/7531085e-399b-4ac2-82a2-90d14a0b7f05)](https://zerossl.com/?fromacme.sh)
+
 # An ACME Shell script: acme.sh 
 
 [![FreeBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml)
@@ -84,7 +86,6 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 |18|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Oracle Linux
 |19|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Mageia
 |10|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Gentoo Linux
-|11|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|ClearLinux
 |22|-----| Cloud Linux  https://github.com/acmesh-official/acme.sh/issues/111
 |23|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/acmesh-official/acme.sh/wiki/How-to-run-on-OpenWRT)
 |24|[![](https://acmesh-official.github.io/acmetest/status/proxmox.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)| Proxmox: See Proxmox VE Wiki. Version [4.x, 5.0, 5.1](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x,_5.0_and_5.1)#Let.27s_Encrypt_using_acme.sh), version [5.2 and up](https://pve.proxmox.com/wiki/Certificate_Management)
