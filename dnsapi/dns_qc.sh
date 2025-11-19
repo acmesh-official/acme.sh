@@ -141,7 +141,7 @@ _get_root() {
   fi
 
   if ! _qc_rest GET "zones"; then
-    _debug "qc_rest failed"
+    _err "qc_rest failed"
     return 1
   fi
 
