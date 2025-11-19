@@ -122,7 +122,12 @@ _acmedns_lookup_from_json() {
   [ -z "$_storage" ] && _storage="$HOME/.acme-dns.json"
   [ ! -f "$_storage" ] && return 1
 
-  _entry="$(sed -n "/\"${_domain//./\\.}\"[[:space:]]*:/,/}/p" "$_storage")"
+  # Escape dots in the domain for use in sed
+  _safe_domain=$(printf '%s\n' "$_domain" | sed 's/\./\\./g')
+
+  _entry="$(
+    sed -n "/\"$_safe_domain\"[[:space:]]*:/,/}/p" "$_storage"
+  )"
   [ -z "$_entry" ] && return 1
 
   _server_url="$(echo "$_entry" | sed -n 's/.*"server_url":[ ]*"\([^"]*\)".*/\1/p')"
