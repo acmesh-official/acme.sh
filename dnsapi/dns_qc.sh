@@ -107,7 +107,7 @@ dns_qc_rm() {
   if [ "${response}" = "" ]; then
     _info "Don't need to remove."
   else
-    record_id=$(echo "$response" |  grep \"id\"| awk -F ' ' '{print $2}'| sed 's/,$//')
+    record_id=$(echo "$response" | grep \"id\"| awk -F ' ' '{print $2}'| sed 's/,$//')
     _debug "record_id" "$record_id"
     if [ -z "$record_id" ]; then
       _err "Can not get record id to remove."
