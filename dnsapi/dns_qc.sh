@@ -112,7 +112,7 @@ dns_qc_rm() {
     _debug "txt record_id" "$record_id"
     if [ -z "$record_id" ]; then
       _info "Can not get txt record id to remove."
-      return 1
+      return 0
     fi
     if ! _qc_rest DELETE "zones/$_domain_id/records/$record_id"; then
       _info "Delete txt record error."
