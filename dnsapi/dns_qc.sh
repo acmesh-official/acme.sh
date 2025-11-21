@@ -59,13 +59,13 @@ dns_qc_add() {
   #  count=$(printf "%s\n" "$response" | _egrep_o "\"count\":[^,]*" | cut -d : -f 2)
   #  _debug count "$count"
   #  if [ "$count" = "0" ]; then
-  _info "Adding record"
+  _info "Adding txt record"
   if _qc_rest POST "zones/$_domain_id/records" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":1800}"; then
     if _contains "$response" "$txtvalue"; then
-      _info "Added, OK"
+      _info "Added txt record, OK"
       return 0
     elif _contains "$response" "Same record already exists"; then
-      _info "Already exists, OK"
+      _info "txt record already exists, OK"
       return 0
     else
       _err "Add txt record error: $response"
@@ -103,18 +103,19 @@ dns_qc_rm() {
     return 1
   fi
 
-  response=$(echo "$response"|jq ".result[]" | select(.content == \"$txtvalue\") | select(.type == \"TXT\"))
+  response=$(echo "$response"|jq ".result[] | select(.id) | select(.content == \"$txtvalue\") | select(.type == \"TXT\")")
+  _debug get txt response "$response"
   if [ "${response}" = "" ]; then
-    _info "Don't need to remove."
+    _info "Don't need to remove txt records."
   else
     record_id=$(echo "$response" | grep \"id\"| awk -F ' ' '{print $2}'| sed 's/,$//')
-    _debug "record_id" "$record_id"
+    _debug "txt record_id" "$record_id"
     if [ -z "$record_id" ]; then
-      _err "Can not get record id to remove."
+      _err "Can not get txt record id to remove."
       return 1
     fi
     if ! _qc_rest DELETE "zones/$_domain_id/records/$record_id"; then
-      _err "Delete record error."
+      _err "Delete txt record error."
       return 1
     fi
     _info "TXT Record ID: $record_id successfully deleted"
