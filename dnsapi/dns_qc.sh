@@ -103,7 +103,7 @@ dns_qc_rm() {
     return 1
   fi
 
-  response=$(echo "$response"|jq ".result[] | select(.content == \"$txtvalue\") | select(.type == \"TXT\")")
+  response=$(echo "$response"|jq ".result[]" | select(.content == \"$txtvalue\") | select(.type == \"TXT\"))
   if [ "${response}" = "" ]; then
     _info "Don't need to remove."
   else
