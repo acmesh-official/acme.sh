@@ -16,7 +16,7 @@
 #    export PANOS_TEMPLATE="" # Template Name of panorama managed devices
 #    export PANOS_TEMPLATE_STACK="" # set a Template Stack if certificate should also be pushed automatically
 #    export PANOS_VSYS="Shared"  # name of the vsys to import the certificate
-#    export PANOS_FILENAME="" # use a custom filename to work around Panorama's 31-character limit
+#    export PANOS_CERTNAME="" # use a custom certificate name to work around Panorama's 31-character limit
 #
 # The script will automatically generate a new API key if
 # no key is found, or if a saved key has expired or is invalid.
@@ -90,7 +90,7 @@ deployer() {
     if [ "$type" = 'cert' ]; then
       panos_url="${panos_url}?type=import"
       content="--$delim${nl}Content-Disposition: form-data; name=\"category\"\r\n\r\ncertificate"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n$_panos_filename"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n$_panos_certname"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"key\"\r\n\r\n$_panos_key"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"format\"\r\n\r\npem"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_cfullchain")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_cfullchain")"
@@ -104,11 +104,11 @@ deployer() {
     if [ "$type" = 'key' ]; then
       panos_url="${panos_url}?type=import"
       content="--$delim${nl}Content-Disposition: form-data; name=\"category\"\r\n\r\nprivate-key"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n$_panos_filename"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n$_panos_certname"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"key\"\r\n\r\n$_panos_key"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"format\"\r\n\r\npem"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"passphrase\"\r\n\r\n123456"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_panos_filename.key")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ckey")"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_panos_certname.key")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ckey")"
       if [ "$_panos_template" ]; then
         content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"target-tpl\"\r\n\r\n$_panos_template"
       fi
@@ -169,6 +169,7 @@ deployer() {
 
 # This is the main function that will call the other functions to deploy everything.
 panos_deploy() {
+  _cdomain=$(echo "$1" | sed 's/*/WILDCARD_/g') #Wildcard Safe Filename
   _ckey="$2"
   _cfullchain="$5"
 
@@ -242,13 +243,13 @@ panos_deploy() {
     _getdeployconf PANOS_VSYS
   fi
 
-  # PANOS_FILENAME
-  if [ "$PANOS_FILENAME" ]; then
-    _debug "Detected ENV variable PANOS_FILENAME. Saving to file."
-    _savedeployconf PANOS_FILENAME "$PANOS_FILENAME" 1
+  # PANOS_CERTNAME
+  if [ "$PANOS_CERTNAME" ]; then
+    _debug "Detected ENV variable PANOS_CERTNAME. Saving to file."
+    _savedeployconf PANOS_CERTNAME "$PANOS_CERTNAME" 1
   else
-    _debug "Attempting to load variable PANOS_FILENAME from file."
-    _getdeployconf PANOS_FILENAME
+    _debug "Attempting to load variable PANOS_CERTNAME from file."
+    _getdeployconf PANOS_CERTNAME
   fi
 
   #Store variables
@@ -258,7 +259,7 @@ panos_deploy() {
   _panos_template=$PANOS_TEMPLATE
   _panos_template_stack=$PANOS_TEMPLATE_STACK
   _panos_vsys=$PANOS_VSYS
-  _panos_filename=$PANOS_FILENAME
+  _panos_certname=$PANOS_CERTNAME
 
   #Test API Key if found.  If the key is invalid, the variable _panos_key will be unset.
   if [ "$_panos_host" ] && [ "$_panos_key" ]; then
@@ -277,10 +278,10 @@ panos_deploy() {
     _err "No password found. If this is your first time deploying, please set PANOS_PASS in ENV variables. You can delete it after you have successfully deployed the certs."
     return 1
   else
-    # Use filename based on the first domain on the certificate if no custom filename is set
-    if [ -z "$_panos_filename" ]; then
-      _panos_filename=$(echo "$1" | sed 's/*/WILDCARD_/g') #Wildcard Safe Filename
-      _savedeployconf PANOS_FILENAME "$_panos_filename" 1
+    # Use certificate name based on the first domain on the certificate if no custom certificate name is set
+    if [ -z "$_panos_certname" ]; then
+      _panos_certname="$_cdomain"
+      _savedeployconf PANOS_CERTNAME "$_panos_certname" 1
     fi
 
     # Generate a new API key if no valid API key is found
