@@ -121,7 +121,7 @@ dns_efficientip_rm() {
   else
     TS=$(date +%s)
     Sig=$(printf "%b\n$TS\nDELETE\n${baseurlnObject}" "${EfficientIP_Token_Secret}" | _digest sha3-256 hex)
-    EfficientIP_CredsEncoded=$(printf "%b:%b" "${EfficientIP_Token_Key}" "$Sig" | _base64)
+    EfficientIP_CredsEncoded=$(printf "%b:%b" "${EfficientIP_Token_Key}" "$Sig")
     export _H2="Authorization: SDS ${EfficientIP_CredsEncoded}"
     export _H3="X-SDS-TS: $TS"
   fi
