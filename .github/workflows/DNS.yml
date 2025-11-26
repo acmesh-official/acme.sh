@@ -50,11 +50,12 @@ jobs:
     needs: CheckToken
     if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
     env:
-      TEST_DNS : ${{ secrets.TEST_DNS }}
+      TEST_DNS: ${{ secrets.TEST_DNS }}
       TestingDomain: ${{ secrets.TestingDomain }}
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      TEST_DNS_TXT_LEN: ${{ secrets.TEST_DNS_TXT_LEN }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
       DEBUG: ${{ secrets.DEBUG }}
@@ -87,6 +88,9 @@ jobs:
         if [ "${{ secrets.TokenName5}}" ] ; then
           echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> docker.env
         fi
+        if [ -n "${TEST_DNS_TXT_LEN}" ]; then
+          echo "TEST_DNS_TXT_LEN=${TEST_DNS_TXT_LEN}" >> docker.env
+        fi
 
     - name: Run acmetest
       run: cd ../acmetest && ./rundocker.sh  testall
@@ -103,6 +107,7 @@ jobs:
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      TEST_DNS_TXT_LEN: ${{ secrets.TEST_DNS_TXT_LEN }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
       DEBUG: ${{ secrets.DEBUG }}
@@ -151,6 +156,7 @@ jobs:
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      TEST_DNS_TXT_LEN: ${{ secrets.TEST_DNS_TXT_LEN }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
       DEBUG: ${{ secrets.DEBUG }}
@@ -213,6 +219,7 @@ jobs:
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      TEST_DNS_TXT_LEN: ${{ secrets.TEST_DNS_TXT_LEN }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
       DEBUG: ${{ secrets.DEBUG }}
@@ -229,7 +236,7 @@ jobs:
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/freebsd-vm@v1
       with:
-        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TEST_DNS_TXT_LEN TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: pkg install -y socat curl
         usesh: true
         copyback: false
@@ -264,6 +271,7 @@ jobs:
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      TEST_DNS_TXT_LEN: ${{ secrets.TEST_DNS_TXT_LEN }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
       DEBUG: ${{ secrets.DEBUG }}
@@ -280,7 +288,7 @@ jobs:
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/openbsd-vm@v1
       with:
-        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TEST_DNS_TXT_LEN TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: pkg_add socat curl libiconv
         usesh: true
         copyback: false
@@ -315,6 +323,7 @@ jobs:
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      TEST_DNS_TXT_LEN: ${{ secrets.TEST_DNS_TXT_LEN }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
       DEBUG: ${{ secrets.DEBUG }}
@@ -331,7 +340,7 @@ jobs:
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/netbsd-vm@v1
       with:
-        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TEST_DNS_TXT_LEN TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: |
           /usr/sbin/pkg_add curl socat
         usesh: true
@@ -367,6 +376,7 @@ jobs:
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      TEST_DNS_TXT_LEN: ${{ secrets.TEST_DNS_TXT_LEN }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
       DEBUG: ${{ secrets.DEBUG }}
@@ -383,7 +393,7 @@ jobs:
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/dragonflybsd-vm@v1
       with:
-        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TEST_DNS_TXT_LEN TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: |
           pkg install -y curl socat libnghttp2
         usesh: true
@@ -422,6 +432,7 @@ jobs:
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      TEST_DNS_TXT_LEN: ${{ secrets.TEST_DNS_TXT_LEN }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
       DEBUG: ${{ secrets.DEBUG }}
@@ -439,7 +450,7 @@ jobs:
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/solaris-vm@v1
       with:
-        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy HTTPS_INSECURE TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TEST_DNS_TXT_LEN TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         copyback: false
         prepare: pkgutil -y -i socat
         run: |
@@ -473,6 +484,7 @@ jobs:
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      TEST_DNS_TXT_LEN: ${{ secrets.TEST_DNS_TXT_LEN }}
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
       DEBUG: ${{ secrets.DEBUG }}
@@ -490,7 +502,7 @@ jobs:
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/omnios-vm@v1
       with:
-        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy HTTPS_INSECURE TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TEST_DNS_TXT_LEN TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         copyback: false
         prepare: pkg install socat
         run: |
