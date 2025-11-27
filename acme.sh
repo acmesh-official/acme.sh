@@ -5242,6 +5242,16 @@ $_authorizations_map"
         return 1
       fi
       break
+    elif _contains "$response" "\"ready\""; then
+      _info "Order status is 'ready', let's sleep and retry."
+      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      _debug "_retryafter" "$_retryafter"
+      if [ "$_retryafter" ]; then
+        _info "Sleeping for $_retryafter seconds then retrying"
+        _sleep $_retryafter
+      else
+        _sleep 2
+      fi
     elif _contains "$response" "\"processing\""; then
       _info "Order status is 'processing', let's sleep and retry."
       _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
