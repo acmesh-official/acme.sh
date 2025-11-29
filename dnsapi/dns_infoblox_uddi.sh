@@ -39,7 +39,6 @@ dns_infoblox_uddi_add() {
   export _H2="Content-Type: application/json"
 
   zone_url="https://$Infoblox_Portal/api/ddi/v1/dns/auth_zone"
-  _debug "Fetching zones from: $zone_url"
   zone_result="$(_get "$zone_url")"
   _debug2 "zone_result: $zone_result"
 
@@ -77,12 +76,11 @@ dns_infoblox_uddi_add() {
   filter="fqdn eq '$zone_fqdn.' or fqdn eq '$zone_fqdn'"
   filter_encoded=$(_url_encode "$filter")
   zone_query="$zone_url?_filter=$filter_encoded"
-  _debug "Fetching zone_id with filter: $zone_query"
   zone_lookup="$(_get "$zone_query")"
   _debug2 "zone_lookup: $zone_lookup"
   zone_id=$(echo "$zone_lookup" | _egrep_o '"id":"dns/auth_zone/[^\"]*"' | _head_n 1 | sed 's/.*"id":"\([^\"]*\)".*/\1/')
 
-  _debug "zone_id: $zone_id"
+  _debug zone_id "$zone_id"
 
   if [ -z "$zone_id" ]; then
     _err "Could not find zone ID for $zone_fqdn"
@@ -90,20 +88,16 @@ dns_infoblox_uddi_add() {
     return 1
   fi
 
-  _debug "Extracting name_in_zone from fulldomain='$fulldomain' with zone_fqdn='$zone_fqdn'"
   name_in_zone=$(echo "$fulldomain" | sed "s/\.$zone_fqdn\$//")
-  _debug "name_in_zone after removing zone: '$name_in_zone'"
   name_in_zone=$(echo "$name_in_zone" | sed 's/\.$//')
-  _debug "name_in_zone final: '$name_in_zone'"
+  _debug name_in_zone "$name_in_zone"
 
   baseurl="https://$Infoblox_Portal/api/ddi/v1/dns/record"
 
   body="{\"type\":\"TXT\",\"name_in_zone\":\"$name_in_zone\",\"zone\":\"$zone_id\",\"ttl\":120,\"inheritance_sources\":{\"ttl\":{\"action\":\"override\"}},\"rdata\":{\"text\":\"$txtvalue\"}}"
 
-  _debug "POST URL: $baseurl"
-  _debug "POST body: $body"
   result="$(_post "$body" "$baseurl" "" "POST")"
-  _debug "POST result: $result"
+  _debug2 result "$result"
 
   if echo "$result" | grep -q '"id"'; then
     record_id=$(echo "$result" | _egrep_o '"id":"[^"]*"' | head -1 | sed 's/"id":"\([^"]*\)"/\1/')
@@ -137,7 +131,6 @@ dns_infoblox_uddi_rm() {
   export _H2="Content-Type: application/json"
 
   zone_url="https://$Infoblox_Portal/api/ddi/v1/dns/auth_zone"
-  _debug "Fetching zones from: $zone_url"
   zone_result="$(_get "$zone_url")"
   _debug2 "zone_result: $zone_result"
 
@@ -175,12 +168,11 @@ dns_infoblox_uddi_rm() {
   filter="fqdn eq '$zone_fqdn.' or fqdn eq '$zone_fqdn'"
   filter_encoded=$(_url_encode "$filter")
   zone_query="$zone_url?_filter=$filter_encoded"
-  _debug "Fetching zone_id with filter: $zone_query"
   zone_lookup="$(_get "$zone_query")"
   _debug2 "zone_lookup: $zone_lookup"
   zone_id=$(echo "$zone_lookup" | _egrep_o '"id":"dns/auth_zone/[^\"]*"' | _head_n 1 | sed 's/.*"id":"\([^\"]*\)".*/\1/')
 
-  _debug "zone_id: $zone_id"
+  _debug zone_id "$zone_id"
 
   if [ -z "$zone_id" ]; then
     _err "Could not find zone ID for $zone_fqdn"
@@ -189,15 +181,14 @@ dns_infoblox_uddi_rm() {
   fi
 
   name_in_zone=$(echo "$fulldomain" | sed "s/\.$zone_fqdn\$//" | sed 's/\.$//')
-  _debug "name_in_zone: $name_in_zone"
+  _debug name_in_zone "$name_in_zone"
 
   filter="type eq 'TXT' and name_in_zone eq '$name_in_zone' and zone eq '$zone_id' and rdata.text eq '$txtvalue'"
   filter_encoded=$(_url_encode "$filter")
   geturl="https://$Infoblox_Portal/api/ddi/v1/dns/record?_filter=$filter_encoded"
-  _debug "GET URL: $geturl"
 
   result="$(_get "$geturl")"
-  _debug "GET result: $result"
+  _debug2 result "$result"
 
   if echo "$result" | grep -q '"results":'; then
     record_id=$(echo "$result" | _egrep_o '"id":"dns/record/[^\"]*"' | _head_n 1 | sed 's/.*"id":"\([^\"]*\)".*/\1/')
@@ -205,10 +196,9 @@ dns_infoblox_uddi_rm() {
 
     if [ -n "$record_id" ]; then
       record_uuid=$(echo "$record_id" | sed 's/.*\/\([a-f0-9-]*\)$/\1/')
-      _debug "Found record UUID: $record_uuid"
+      _debug record_uuid "$record_uuid"
 
       delurl="https://$Infoblox_Portal/api/ddi/v1/dns/record/$record_uuid"
-      _debug "DELETE URL: $delurl"
       rmResult="$(_post "" "$delurl" "" "DELETE")"
 
       if [ -z "$rmResult" ] || [ "$rmResult" = "{}" ]; then
@@ -221,7 +211,6 @@ dns_infoblox_uddi_rm() {
       fi
     else
       _err "Record to delete didn't match an existing record (no matching txtvalue found)"
-      _debug "Looking for txtvalue: $txtvalue"
       return 1
     fi
   else
