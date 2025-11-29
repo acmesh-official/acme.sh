@@ -183,7 +183,7 @@ _get_root() {
         # Found the zone
         _domain="$h"
         _domain_id="$zone_id"
-        
+
         # Calculate subdomain
         if [ "$_domain" = "$domain" ]; then
           _sub_domain=""
@@ -191,7 +191,7 @@ _get_root() {
           _cutlength=$((${#domain} - ${#_domain} - 1))
           _sub_domain=$(printf "%s" "$domain" | cut -c "1-$_cutlength")
         fi
-        
+
         return 0
       fi
     fi
