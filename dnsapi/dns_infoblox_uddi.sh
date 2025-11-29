@@ -73,7 +73,7 @@ dns_infoblox_uddi_add() {
     return 1
   fi
 
-  zone_id=$(echo "$zone_result" | jq -r '(.results // .)[] | select(.fqdn == "'"$zone_fqdn"'" or .fqdn == "'"$zone_fqdn"'.") | .id' | head -1)
+  zone_id=$(echo "$zone_result" | _egrep_o '"id":"dns/auth_zone/[^"]*"' | _egrep_o 'dns/auth_zone/[^"]*' | _head_n 1)
 
   _debug "zone_id: $zone_id"
 
@@ -164,7 +164,7 @@ dns_infoblox_uddi_rm() {
     return 1
   fi
 
-  zone_id=$(echo "$zone_result" | jq -r '(.results // .)[] | select(.fqdn == "'"$zone_fqdn"'" or .fqdn == "'"$zone_fqdn"'.") | .id' | head -1)
+  zone_id=$(echo "$zone_result" | _egrep_o '"id":"dns/auth_zone/[^"]*"' | _egrep_o 'dns/auth_zone/[^"]*' | _head_n 1)
 
   _debug "zone_id: $zone_id"
 
@@ -186,10 +186,8 @@ dns_infoblox_uddi_rm() {
   _debug "GET result: $result"
 
   if echo "$result" | grep -q '"results":'; then
-    record_count=$(echo "$result" | jq -r '.results | length')
-    _debug "Found $record_count result(s)"
-
-    record_id=$(echo "$result" | jq -r '.results[] | select(.rdata.text == "'"$txtvalue"'") | .id' | head -1)
+    record_id=$(echo "$result" | _egrep_o '"id":"dns/record/[^"]*"' | _egrep_o 'dns/record/[^"]*' | _head_n 1)
+    _debug "Found record_id: $record_id"
 
     if [ -n "$record_id" ]; then
       record_uuid=$(echo "$record_id" | sed 's/.*\/\([a-f0-9-]*\)$/\1/')
