@@ -35,7 +35,7 @@ dns_infoblox_uddi_add() {
   _saveaccountconf_mutable Infoblox_UDDI_Key "$Infoblox_UDDI_Key"
   _saveaccountconf_mutable Infoblox_Portal "$Infoblox_Portal"
 
-  export _H1="Authorization: token $Infoblox_UDDI_Key"
+  export _H1="Authorization: Token $Infoblox_UDDI_Key"
   export _H2="Content-Type: application/json"
 
   zone_url="https://$Infoblox_Portal/api/ddi/v1/dns/auth_zone"
@@ -126,7 +126,7 @@ dns_infoblox_uddi_rm() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
-  export _H1="Authorization: token $Infoblox_UDDI_Key"
+  export _H1="Authorization: Token $Infoblox_UDDI_Key"
   export _H2="Content-Type: application/json"
 
   zone_url="https://$Infoblox_Portal/api/ddi/v1/dns/auth_zone"
