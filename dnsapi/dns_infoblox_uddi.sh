@@ -73,7 +73,14 @@ dns_infoblox_uddi_add() {
     return 1
   fi
 
-  zone_id=$(echo "$zone_result" | _egrep_o '"id":"dns/auth_zone/[^"]*"' | _egrep_o 'dns/auth_zone/[^"]*' | _head_n 1)
+  # Fetch exact zone_id for the matched fqdn using server-side filtering
+  filter="fqdn eq '$zone_fqdn.' or fqdn eq '$zone_fqdn'"
+  filter_encoded=$(_url_encode "$filter")
+  zone_query="$zone_url?_filter=$filter_encoded"
+  _debug "Fetching zone_id with filter: $zone_query"
+  zone_lookup="$(_get "$zone_query")"
+  _debug2 "zone_lookup: $zone_lookup"
+  zone_id=$(echo "$zone_lookup" | _egrep_o '"id":"dns/auth_zone/[^\"]*"' | _head_n 1 | sed 's/.*"id":"\([^\"]*\)".*/\1/')
 
   _debug "zone_id: $zone_id"
 
@@ -164,7 +171,14 @@ dns_infoblox_uddi_rm() {
     return 1
   fi
 
-  zone_id=$(echo "$zone_result" | _egrep_o '"id":"dns/auth_zone/[^"]*"' | _egrep_o 'dns/auth_zone/[^"]*' | _head_n 1)
+  # Fetch exact zone_id for the matched fqdn using server-side filtering
+  filter="fqdn eq '$zone_fqdn.' or fqdn eq '$zone_fqdn'"
+  filter_encoded=$(_url_encode "$filter")
+  zone_query="$zone_url?_filter=$filter_encoded"
+  _debug "Fetching zone_id with filter: $zone_query"
+  zone_lookup="$(_get "$zone_query")"
+  _debug2 "zone_lookup: $zone_lookup"
+  zone_id=$(echo "$zone_lookup" | _egrep_o '"id":"dns/auth_zone/[^\"]*"' | _head_n 1 | sed 's/.*"id":"\([^\"]*\)".*/\1/')
 
   _debug "zone_id: $zone_id"
 
@@ -177,7 +191,7 @@ dns_infoblox_uddi_rm() {
   name_in_zone=$(echo "$fulldomain" | sed "s/\.$zone_fqdn\$//" | sed 's/\.$//')
   _debug "name_in_zone: $name_in_zone"
 
-  filter="type eq 'TXT' and name_in_zone eq '$name_in_zone' and zone eq '$zone_id'"
+  filter="type eq 'TXT' and name_in_zone eq '$name_in_zone' and zone eq '$zone_id' and rdata.text eq '$txtvalue'"
   filter_encoded=$(_url_encode "$filter")
   geturl="https://$Infoblox_Portal/api/ddi/v1/dns/record?_filter=$filter_encoded"
   _debug "GET URL: $geturl"
@@ -186,7 +200,7 @@ dns_infoblox_uddi_rm() {
   _debug "GET result: $result"
 
   if echo "$result" | grep -q '"results":'; then
-    record_id=$(echo "$result" | _egrep_o '"id":"dns/record/[^"]*"' | _egrep_o 'dns/record/[^"]*' | _head_n 1)
+    record_id=$(echo "$result" | _egrep_o '"id":"dns/record/[^\"]*"' | _head_n 1 | sed 's/.*"id":"\([^\"]*\)".*/\1/')
     _debug "Found record_id: $record_id"
 
     if [ -n "$record_id" ]; then
