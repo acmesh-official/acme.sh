@@ -218,4 +218,3 @@ dns_infoblox_uddi_rm() {
     return 1
   fi
 }
-
