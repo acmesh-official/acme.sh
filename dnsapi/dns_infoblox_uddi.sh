@@ -2,11 +2,11 @@
 # shellcheck disable=SC2034
 dns_infoblox_uddi_info='Infoblox UDDI
 Site: Infoblox.com
-Docs: docs.infoblox.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_infoblox_uddi
 Options:
  Infoblox_UDDI_Key API Key for Infoblox UDDI
  Infoblox_Portal URL, e.g. "csp.infoblox.com" or "csp.eu.infoblox.com"
-Issues: github.com/acmesh-official/acme.sh
+Issues: github.com/acmesh-official/acme.sh/issues
 Author: Stefan Riegel
 '
 
@@ -17,25 +17,28 @@ dns_infoblox_uddi_add() {
   fulldomain=$1
   txtvalue=$2
 
+  Infoblox_UDDI_Key="${Infoblox_UDDI_Key:-$(_readaccountconf_mutable Infoblox_UDDI_Key)}"
+  Infoblox_Portal="${Infoblox_Portal:-$(_readaccountconf_mutable Infoblox_Portal)}"
+
   _info "Using Infoblox UDDI API"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
-  if [ -z "$Infoblox_UDDI_Key" ] || [ -z "$Infoblox_Server" ]; then
+  if [ -z "$Infoblox_UDDI_Key" ] || [ -z "$Infoblox_Portal" ]; then
     Infoblox_UDDI_Key=""
-    Infoblox_Server=""
-    _err "You didn't specify the Infoblox UDDI key or server (Infoblox_UDDI_Key; Infoblox_Server)."
-    _err "Please set them via EXPORT Infoblox_UDDI_Key=your_key, EXPORT Infoblox_Server=csp.infoblox.com and try again."
+    Infoblox_Portal=""
+    _err "You didn't specify the Infoblox UDDI key or server (Infoblox_UDDI_Key; Infoblox_Portal)."
+    _err "Please set them via EXPORT Infoblox_UDDI_Key=your_key, EXPORT Infoblox_Portal=csp.infoblox.com and try again."
     return 1
   fi
 
-  _saveaccountconf Infoblox_UDDI_Key "$Infoblox_UDDI_Key"
-  _saveaccountconf Infoblox_Server "$Infoblox_Server"
+  _saveaccountconf_mutable Infoblox_UDDI_Key "$Infoblox_UDDI_Key"
+  _saveaccountconf_mutable Infoblox_Portal "$Infoblox_Portal"
 
   export _H1="Authorization: token $Infoblox_UDDI_Key"
   export _H2="Content-Type: application/json"
 
-  zone_url="https://$Infoblox_Server/api/ddi/v1/dns/auth_zone"
+  zone_url="https://$Infoblox_Portal/api/ddi/v1/dns/auth_zone"
   _debug "Fetching zones from: $zone_url"
   zone_result="$(_get "$zone_url")"
   _debug2 "zone_result: $zone_result"
@@ -66,7 +69,7 @@ dns_infoblox_uddi_add() {
 
   if [ -z "$zone_fqdn" ]; then
     _err "Could not determine zone for domain $fulldomain"
-    _err "Available zones: $(echo "$zone_result" | grep -o '"fqdn":"[^"]*"' | sed 's/"fqdn":"//;s/"//')"
+    _err "Available zones: $(echo "$zone_result" | _egrep_o '"fqdn":"[^"]*"' | sed 's/"fqdn":"//;s/"//')"
     return 1
   fi
 
@@ -86,7 +89,7 @@ dns_infoblox_uddi_add() {
   name_in_zone=$(echo "$name_in_zone" | sed 's/\.$//')
   _debug "name_in_zone final: '$name_in_zone'"
 
-  baseurl="https://$Infoblox_Server/api/ddi/v1/dns/record"
+  baseurl="https://$Infoblox_Portal/api/ddi/v1/dns/record"
 
   body="{\"type\":\"TXT\",\"name_in_zone\":\"$name_in_zone\",\"zone\":\"$zone_id\",\"ttl\":120,\"inheritance_sources\":{\"ttl\":{\"action\":\"override\"}},\"rdata\":{\"text\":\"$txtvalue\"}}"
 
@@ -96,7 +99,7 @@ dns_infoblox_uddi_add() {
   _debug "POST result: $result"
 
   if echo "$result" | grep -q '"id"'; then
-    record_id=$(echo "$result" | grep -o '"id":"[^"]*"' | head -1 | sed 's/"id":"\([^"]*\)"/\1/')
+    record_id=$(echo "$result" | _egrep_o '"id":"[^"]*"' | head -1 | sed 's/"id":"\([^"]*\)"/\1/')
     _info "Successfully created TXT record with ID: $record_id"
     return 0
   else
@@ -111,6 +114,14 @@ dns_infoblox_uddi_rm() {
   fulldomain=$1
   txtvalue=$2
 
+  Infoblox_UDDI_Key="${Infoblox_UDDI_Key:-$(_readaccountconf_mutable Infoblox_UDDI_Key)}"
+  Infoblox_Portal="${Infoblox_Portal:-$(_readaccountconf_mutable Infoblox_Portal)}"
+
+  if [ -z "$Infoblox_UDDI_Key" ] || [ -z "$Infoblox_Portal" ]; then
+    _err "Credentials not found"
+    return 1
+  fi
+
   _info "Using Infoblox UDDI API"
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
@@ -118,7 +129,7 @@ dns_infoblox_uddi_rm() {
   export _H1="Authorization: token $Infoblox_UDDI_Key"
   export _H2="Content-Type: application/json"
 
-  zone_url="https://$Infoblox_Server/api/ddi/v1/dns/auth_zone"
+  zone_url="https://$Infoblox_Portal/api/ddi/v1/dns/auth_zone"
   _debug "Fetching zones from: $zone_url"
   zone_result="$(_get "$zone_url")"
   _debug2 "zone_result: $zone_result"
@@ -149,7 +160,7 @@ dns_infoblox_uddi_rm() {
 
   if [ -z "$zone_fqdn" ]; then
     _err "Could not determine zone for domain $fulldomain"
-    _err "Available zones: $(echo "$zone_result" | grep -o '"fqdn":"[^"]*"' | sed 's/"fqdn":"//;s/"//')"
+    _err "Available zones: $(echo "$zone_result" | _egrep_o '"fqdn":"[^"]*"' | sed 's/"fqdn":"//;s/"//')"
     return 1
   fi
 
@@ -168,7 +179,7 @@ dns_infoblox_uddi_rm() {
 
   filter="type==\"TXT\" and name_in_zone==\"$name_in_zone\" and zone==\"$zone_id\""
   filter_encoded=$(printf "%b" "$filter" | _url_encode)
-  geturl="https://$Infoblox_Server/api/ddi/v1/dns/record?_filter=$filter_encoded"
+  geturl="https://$Infoblox_Portal/api/ddi/v1/dns/record?_filter=$filter_encoded"
   _debug "GET URL: $geturl"
 
   result="$(_get "$geturl")"
@@ -184,7 +195,7 @@ dns_infoblox_uddi_rm() {
       record_uuid=$(echo "$record_id" | sed 's/.*\/\([a-f0-9-]*\)$/\1/')
       _debug "Found record UUID: $record_uuid"
 
-      delurl="https://$Infoblox_Server/api/ddi/v1/dns/record/$record_uuid"
+      delurl="https://$Infoblox_Portal/api/ddi/v1/dns/record/$record_uuid"
       _debug "DELETE URL: $delurl"
       rmResult="$(_post "" "$delurl" "" "DELETE")"
 
