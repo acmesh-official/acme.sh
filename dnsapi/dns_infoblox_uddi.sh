@@ -73,7 +73,7 @@ dns_infoblox_uddi_add() {
     return 1
   fi
 
-  zone_id=$(echo "$zone_result" | jq -r '.results[] | select(.fqdn == "'"$zone_fqdn"'" or .fqdn == "'"$zone_fqdn"'.") | .id' | head -1)
+  zone_id=$(echo "$zone_result" | jq -r '(.results // .)[] | select(.fqdn == "'"$zone_fqdn"'" or .fqdn == "'"$zone_fqdn"'.") | .id' | head -1)
 
   _debug "zone_id: $zone_id"
 
@@ -164,7 +164,7 @@ dns_infoblox_uddi_rm() {
     return 1
   fi
 
-  zone_id=$(echo "$zone_result" | jq -r '.results[] | select(.fqdn == "'"$zone_fqdn"'" or .fqdn == "'"$zone_fqdn"'.") | .id' | head -1)
+  zone_id=$(echo "$zone_result" | jq -r '(.results // .)[] | select(.fqdn == "'"$zone_fqdn"'" or .fqdn == "'"$zone_fqdn"'.") | .id' | head -1)
 
   _debug "zone_id: $zone_id"
 
@@ -177,8 +177,8 @@ dns_infoblox_uddi_rm() {
   name_in_zone=$(echo "$fulldomain" | sed "s/\.$zone_fqdn\$//" | sed 's/\.$//')
   _debug "name_in_zone: $name_in_zone"
 
-  filter="type==\"TXT\" and name_in_zone==\"$name_in_zone\" and zone==\"$zone_id\""
-  filter_encoded=$(printf "%b" "$filter" | _url_encode)
+  filter="type eq 'TXT' and name_in_zone eq '$name_in_zone' and zone eq '$zone_id'"
+  filter_encoded=$(_url_encode "$filter")
   geturl="https://$Infoblox_Portal/api/ddi/v1/dns/record?_filter=$filter_encoded"
   _debug "GET URL: $geturl"
 
