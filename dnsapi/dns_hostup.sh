@@ -319,10 +319,14 @@ _hostup_find_record() {
   records="$(printf "%s" "$_hostup_response" | tr '{' '\n')"
 
   while IFS= read -r line; do
-    case "$line" in
+    # Normalize line to make TXT value matching reliable
+    line_clean="$(printf "%s" "$line" | tr -d '\r\n')"
+    line_value_clean="$(printf "%s" "$line_clean" | sed 's/\\"//g')"
+
+    case "$line_clean" in
     *'"type":"TXT"'*'"name"'*'"value"'*)
-      name_value="$(printf "%s" "$line" | _hostup_json_extract "name")"
-      record_value="$(printf "%s" "$line" | _hostup_json_extract "value")"
+      name_value="$(_hostup_json_extract "name" "$line_clean")"
+      record_value="$(_hostup_json_extract "value" "$line_value_clean")"
 
       _debug "hostup_record_raw" "$record_value"
       if [ "${record_value#\"}" != "$record_value" ] && [ "${record_value%\"}" != "$record_value" ]; then
@@ -337,7 +341,7 @@ _hostup_find_record() {
       _debug "hostup_record_value" "$record_value"
 
       if [ "$name_value" = "$fqdn" ] && [ "$record_value" = "$txtvalue" ]; then
-        record_id="$(printf "%s" "$line" | _hostup_json_extract "id")"
+        record_id="$(_hostup_json_extract "id" "$line_clean")"
         if [ -n "$record_id" ]; then
           HOSTUP_RECORD_ID="$record_id"
           return 0
@@ -354,13 +358,30 @@ EOF
 
 _hostup_json_extract() {
   key="$1"
-  printf "%s" "$line" |
-    _egrep_o "\"$key\":\"[^\"]*\"" |
-    head -n1 |
-    cut -d : -f2- |
-    sed 's/^"//' |
-    sed 's/"$//' |
-    sed 's/\\"/"/g'
+  input="${2:-$line}"
+
+  # First try to extract quoted values (strings)
+  quoted_match="$(printf "%s" "$input" | _egrep_o "\"$key\":\"[^\"]*\"" | head -n1)"
+  if [ -n "$quoted_match" ]; then
+    printf "%s" "$quoted_match" |
+      cut -d : -f2- |
+      sed 's/^"//' |
+      sed 's/"$//' |
+      sed 's/\\"/"/g'
+    return 0
+  fi
+
+  # Fallback for unquoted values (e.g., numeric IDs)
+  unquoted_match="$(printf "%s" "$input" | _egrep_o "\"$key\":[^,}]*" | head -n1)"
+  if [ -n "$unquoted_match" ]; then
+    printf "%s" "$unquoted_match" |
+      cut -d : -f2- |
+      tr -d '", ' |
+      tr -d '\r\n'
+    return 0
+  fi
+
+  return 1
 }
 
 _hostup_json_escape() {
@@ -398,6 +419,12 @@ _hostup_clear_record_id() {
 }
 
 _hostup_extract_record_id() {
+  record_id="$(_hostup_json_extract "id" "$1")"
+  if [ -n "$record_id" ]; then
+    printf "%s" "$record_id"
+    return 0
+  fi
+
   printf "%s" "$1" | _egrep_o '"id":[0-9]+' | head -n1 | cut -d: -f2
 }
 
