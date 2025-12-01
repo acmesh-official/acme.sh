@@ -181,7 +181,7 @@ _hostup_detect_zone() {
       HOSTUP_ZONE_ID="$_lookup_zone_id"
       return 0
     fi
-    
+
     case "$_domain_candidate" in
     *.*) ;;
     *) break ;;
