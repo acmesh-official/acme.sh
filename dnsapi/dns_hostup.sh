@@ -171,7 +171,7 @@ _hostup_detect_zone() {
     return 1
   fi
 
-  _domain_candidate="$(printf "%s" "$fulldomain" | tr 'A-Z' 'a-z')"
+  _domain_candidate="$(printf "%s" "$fulldomain" | tr '[:upper:]' '[:lower:]')"
   _debug "hostup_initial_candidate" "$_domain_candidate"
 
   while [ -n "$_domain_candidate" ]; do
@@ -181,10 +181,10 @@ _hostup_detect_zone() {
       HOSTUP_ZONE_ID="$_lookup_zone_id"
       return 0
     fi
-
+    
     case "$_domain_candidate" in
-      *.*) ;;
-      *) break ;;
+    *.*) ;;
+    *) break ;;
     esac
 
     _domain_candidate="${_domain_candidate#*.}"
@@ -210,7 +210,7 @@ _hostup_record_name() {
   suffix=".$zonedomain"
   case "$fulldomain" in
   *"$suffix")
-    printf "%s" "${fulldomain%$suffix}"
+    printf "%s" "${fulldomain%"$suffix"}"
     ;;
   *)
     # Domain not within zone, fall back to full host
@@ -371,7 +371,7 @@ _hostup_record_key() {
   zone_id="$1"
   domain="$2"
   safe_zone="$(printf "%s" "$zone_id" | sed 's/[^A-Za-z0-9]/_/g')"
-  safe_domain="$(printf "%s" "$domain" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9]/_/g')"
+  safe_domain="$(printf "%s" "$domain" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g')"
   printf "%s_%s" "$safe_zone" "$safe_domain"
 }
 
@@ -449,7 +449,7 @@ _hostup_rest() {
   _debug2 "_hostup_response" "$_hostup_response"
 
   case "$http_status" in
-  200|201|204) return 0 ;;
+  200 | 201 | 204) return 0 ;;
   401)
     _err "HostUp API returned 401 Unauthorized. Check HOSTUP_API_KEY scopes and IP restrictions."
     return 1
