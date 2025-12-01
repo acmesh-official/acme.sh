@@ -182,9 +182,10 @@ _hostup_detect_zone() {
       return 0
     fi
 
-    if ! printf "%s" "$_domain_candidate" | _contains "."; then
-      break
-    fi
+    case "$_domain_candidate" in
+      *.*) ;;
+      *) break ;;
+    esac
 
     _domain_candidate="${_domain_candidate#*.}"
   done
