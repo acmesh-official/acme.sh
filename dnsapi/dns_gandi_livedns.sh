@@ -23,6 +23,8 @@ dns_gandi_livedns_add() {
   fulldomain=$1
   txtvalue=$2
 
+  GANDI_LIVEDNS_KEY="${GANDI_LIVEDNS_KEY:-$(_readaccountconf_mutable GANDI_LIVEDNS_KEY)}"
+  GANDI_LIVEDNS_TOKEN="${GANDI_LIVEDNS_TOKEN:-$(_readaccountconf_mutable GANDI_LIVEDNS_TOKEN)}"
   if [ -z "$GANDI_LIVEDNS_KEY" ] && [ -z "$GANDI_LIVEDNS_TOKEN" ]; then
     _err "No Token or API key (deprecated) specified for Gandi LiveDNS."
     _err "Create your token or key and export it as GANDI_LIVEDNS_KEY or GANDI_LIVEDNS_TOKEN respectively"
@@ -31,11 +33,11 @@ dns_gandi_livedns_add() {
 
   # Keep only one secret in configuration
   if [ -n "$GANDI_LIVEDNS_TOKEN" ]; then
-    _saveaccountconf GANDI_LIVEDNS_TOKEN "$GANDI_LIVEDNS_TOKEN"
-    _clearaccountconf GANDI_LIVEDNS_KEY
+    _saveaccountconf_mutable GANDI_LIVEDNS_TOKEN "$GANDI_LIVEDNS_TOKEN"
+    _clearaccountconf_mutable GANDI_LIVEDNS_KEY
   elif [ -n "$GANDI_LIVEDNS_KEY" ]; then
-    _saveaccountconf GANDI_LIVEDNS_KEY "$GANDI_LIVEDNS_KEY"
-    _clearaccountconf GANDI_LIVEDNS_TOKEN
+    _saveaccountconf_mutable GANDI_LIVEDNS_KEY "$GANDI_LIVEDNS_KEY"
+    _clearaccountconf_mutable GANDI_LIVEDNS_TOKEN
   fi
 
   _debug "First detect the root zone"
