@@ -71,7 +71,7 @@ dns_acmedns_add() {
   data="{\"subdomain\":\"$ACMEDNS_SUBDOMAIN\", \"txt\": \"$txtvalue\"}"
 
   _debug data "$data"
-  response="$(_post "$data" "$ACMEDNS_UPDATE_URL" "" "POST")"
+  response="$(_post "$data" "$ACMEDNS_UPDATE_URL" "" "POST" "application/json")"
   _debug response "$response"
 
   if ! echo "$response" | grep "\"$txtvalue\"" >/dev/null; then
