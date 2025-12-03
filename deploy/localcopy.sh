@@ -67,14 +67,21 @@ localcopy_deploy() {
     fi
     DEPLOY_LOCALCOPY_CERTKEY=""
     _info "Creating combined PEM at $_combined_target"
-    _tmpfile="$(mktemp)"
-    if ! cat "$_combined_srccert" "$_ckey" >"$_tmpfile"; then
-      _err "Failed to build combined PEM file"
-      return 1
-    fi
-    if ! mv "$_tmpfile" "$_combined_target"; then
-      _err "Failed to move combined PEM into place"
-      return 1
+    if [ -f "$_combined_target" ]; then
+      if ! cat "$_combined_srccert" "$_ckey" >"$_combined_target"; then
+        _err "Failed to create PEM file"
+        return 1
+      fi
+    else
+      if ! touch "$_combined_target"; then
+        _err "Failed to create PEM file"
+        return 1
+      fi
+      chmod 600 "$_combined_target"
+      if ! cat "$_combined_srccert" "$_ckey" >"$_combined_target"; then
+        _err "Failed to create PEM file"
+        return 1
+      fi
     fi
   fi
 
