@@ -66,29 +66,35 @@ localcopy_deploy() {
       DEPLOY_LOCALCOPY_FULLCHAIN=""
     fi
     DEPLOY_LOCALCOPY_CERTKEY=""
-    _info "Creating combined PEM at $_combined_target"
-    if [ -f "$_combined_target" ]; then
-      if ! cat "$_combined_srccert" "$_ckey" >"$_combined_target"; then
-        _err "Failed to create PEM file"
-        return 1
-      fi
-    else
-      if ! touch "$_combined_target"; then
-        _err "Failed to create PEM file"
-        return 1
-      fi
-      chmod 600 "$_combined_target"
-      if ! cat "$_combined_srccert" "$_ckey" >"$_combined_target"; then
+    _info "Creating combined PEM"
+    _debug "Creating combined PEM at $_combined_target"
+    if ! [ -f "$_combined_target" ]; then
+      if ! (
+        touch "$_combined_target"
+        chmod 600 "$_combined_target"
+      ); then
         _err "Failed to create PEM file"
         return 1
       fi
     fi
+    if ! cat "$_combined_srccert" "$_ckey" >"$_combined_target"; then
+      _err "Failed to create PEM file"
+      return 1
+    fi
   fi
-
   if [ "$DEPLOY_LOCALCOPY_CERTIFICATE" ]; then
     _info "Copying certificate"
     _debug "Copying $_ccert to $DEPLOY_LOCALCOPY_CERTIFICATE"
-    if ! eval "cp $_ccert $DEPLOY_LOCALCOPY_CERTIFICATE"; then
+    if ! [ -f "$DEPLOY_LOCALCOPY_CERTIFICATE" ]; then
+      if ! (
+        touch "$DEPLOY_LOCALCOPY_CERTIFICATE"
+        chmod 600 "$DEPLOY_LOCALCOPY_CERTIFICATE"
+      ); then
+        _err "Failed to copy certificate, aborting."
+        return 1
+      fi
+    fi
+    if ! cat "$_ccert" >"$DEPLOY_LOCALCOPY_CERTIFICATE"; then
       _err "Failed to copy certificate, aborting."
       return 1
     fi
@@ -97,7 +103,16 @@ localcopy_deploy() {
   if [ "$DEPLOY_LOCALCOPY_CERTKEY" ]; then
     _info "Copying certificate key"
     _debug "Copying $_ckey to $DEPLOY_LOCALCOPY_CERTKEY"
-    if ! eval "cp $_ckey $DEPLOY_LOCALCOPY_CERTKEY"; then
+    if ! [ -f "$DEPLOY_LOCALCOPY_CERTKEY" ]; then
+      if ! (
+        touch "$DEPLOY_LOCALCOPY_CERTKEY"
+        chmod 600 "$DEPLOY_LOCALCOPY_CERTKEY"
+      ); then
+        _err "Failed to copy certificate key, aborting."
+        return 1
+      fi
+    fi
+    if ! cat "$_ckey" >"$DEPLOY_LOCALCOPY_CERTKEY"; then
       _err "Failed to copy certificate key, aborting."
       return 1
     fi
@@ -107,7 +122,16 @@ localcopy_deploy() {
   if [ "$DEPLOY_LOCALCOPY_FULLCHAIN" ]; then
     _info "Copying fullchain"
     _debug "Copying $_cfullchain to $DEPLOY_LOCALCOPY_FULLCHAIN"
-    if ! eval "cp $_cfullchain $DEPLOY_LOCALCOPY_FULLCHAIN"; then
+    if ! [ -f "$DEPLOY_LOCALCOPY_FULLCHAIN" ]; then
+      if ! (
+        touch "$DEPLOY_LOCALCOPY_FULLCHAIN"
+        chmod 600 "$DEPLOY_LOCALCOPY_FULLCHAIN"
+      ); then
+        _err "Failed to copy fullchain, aborting."
+        return 1
+      fi
+    fi
+    if ! cat "$_cfullchain" >"$DEPLOY_LOCALCOPY_FULLCHAIN"; then
       _err "Failed to copy fullchain, aborting."
       return 1
     fi
@@ -117,7 +141,16 @@ localcopy_deploy() {
   if [ "$DEPLOY_LOCALCOPY_CA" ]; then
     _info "Copying CA"
     _debug "Copying $_cca to $DEPLOY_LOCALCOPY_CA"
-    if ! eval "cp $_cca $DEPLOY_LOCALCOPY_CA"; then
+    if ! [ -f "$DEPLOY_LOCALCOPY_CA" ]; then
+      if ! (
+        touch "$DEPLOY_LOCALCOPY_CA"
+        chmod 600 "$DEPLOY_LOCALCOPY_CA"
+      ); then
+        _err "Failed to copy CA, aborting."
+        return 1
+      fi
+    fi
+    if ! cat "$_cca" >"$DEPLOY_LOCALCOPY_CA"; then
       _err "Failed to copy CA, aborting."
       return 1
     fi
@@ -127,7 +160,16 @@ localcopy_deploy() {
   if [ "$DEPLOY_LOCALCOPY_PFX" ]; then
     _info "Copying PFX"
     _debug "Copying $_cpfx to $DEPLOY_LOCALCOPY_PFX"
-    if ! eval "cp $_cpfx $DEPLOY_LOCALCOPY_PFX"; then
+    if ! [ -f "$DEPLOY_LOCALCOPY_PFX" ]; then
+      if ! (
+        touch "$DEPLOY_LOCALCOPY_PFX"
+        chmod 600 "$DEPLOY_LOCALCOPY_PFX"
+      ); then
+        _err "Failed to copy PFX, aborting."
+        return 1
+      fi
+    fi
+    if ! cat "$_cpfx" >"$DEPLOY_LOCALCOPY_PFX"; then
       _err "Failed to copy PFX, aborting."
       return 1
     fi
