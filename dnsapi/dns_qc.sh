@@ -34,7 +34,7 @@ dns_qc_add() {
     _err "Please check and retry."
     return 1
   fi
-    #save the api key and email to the account conf file.
+  #save the api key and email to the account conf file.
   _savedomainconf QC_API_EMAIL "$QC_API_EMAIL"
 
   _debug "First detect the root zone"
@@ -103,12 +103,12 @@ dns_qc_rm() {
     return 1
   fi
 
-  response=$(echo "$response"|jq ".result[] | select(.id) | select(.content == \"$txtvalue\") | select(.type == \"TXT\")")
+  response=$(echo "$response" | jq ".result[] | select(.id) | select(.content == \"$txtvalue\") | select(.type == \"TXT\")")
   _debug "get txt response" "$response"
   if [ "${response}" = "" ]; then
     _info "Don't need to remove txt records."
   else
-    record_id=$(echo "$response" | grep \"id\"| awk -F ' ' '{print $2}'| sed 's/,$//')
+    record_id=$(echo "$response" | grep \"id\" | awk -F ' ' '{print $2}' | sed 's/,$//')
     _debug "txt record_id" "$record_id"
     if [ -z "$record_id" ]; then
       _err "Can not get txt record id to remove.  Run in debug mode."
