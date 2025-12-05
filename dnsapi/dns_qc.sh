@@ -110,6 +110,10 @@ dns_qc_rm() {
   else
     record_id=$(echo "$response" | grep \"id\"| awk -F ' ' '{print $2}'| sed 's/,$//')
     _debug "txt record_id" "$record_id"
+    if [ -z "$record_id" ]; then
+      _err "Can not get txt record id to remove."
+      return 1
+    fi
     if ! _qc_rest DELETE "zones/$_domain_id/records/$record_id"; then
       _info "Delete txt record error."
       return 1
