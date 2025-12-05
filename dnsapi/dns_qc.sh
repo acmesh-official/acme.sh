@@ -24,7 +24,7 @@ dns_qc_add() {
   if [ "$QC_API_KEY" ]; then
     _savedomainconf QC_API_KEY "$QC_API_KEY"
   else
-    _err "You didn't specify a QUIC.cloud are api key and email yet."
+    _err "You didn't specify a QUIC.cloud api key as QC_API_KEY."
     _err "You can get yours from here https://my.quic.cloud/up/api."
     return 1
   fi
