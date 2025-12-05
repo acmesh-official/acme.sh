@@ -97,9 +97,10 @@ _ali_rest() {
 }
 
 _ali_nonce() {
-  #_head_n 1 </dev/urandom | _digest "sha256" hex | cut -c 1-31
-  #Not so good...
-  date +"%s%N" | sed 's/%N//g'
+  if [ "$ACME_OPENSSL_BIN" ]; then
+    "$ACME_OPENSSL_BIN" rand -hex 16 2>/dev/null && return 0
+  fi
+  printf "%s" "$(date +%s)$$$(date +%N)" | _digest sha256 hex | cut -c 1-32
 }
 
 _timestamp() {
