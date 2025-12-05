@@ -22,7 +22,7 @@ dns_qc_add() {
   QC_API_EMAIL="${QC_API_EMAIL:-$(_readaccountconf_mutable QC_API_EMAIL)}"
 
   if [ "$QC_API_KEY" ]; then
-    _savedomainconf QC_API_KEY "$QC_API_KEY"
+    _saveaccountconf_mutable QC_API_KEY "$QC_API_KEY"
   else
     _err "You didn't specify a QUIC.cloud api key as QC_API_KEY."
     _err "You can get yours from here https://my.quic.cloud/up/api."
@@ -35,7 +35,7 @@ dns_qc_add() {
     return 1
   fi
   #save the api key and email to the account conf file.
-  _savedomainconf QC_API_EMAIL "$QC_API_EMAIL"
+  _saveaccountconf_mutable QC_API_EMAIL "$QC_API_EMAIL"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
