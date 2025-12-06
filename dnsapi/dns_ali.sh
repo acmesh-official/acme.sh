@@ -103,7 +103,7 @@ _ali_nonce() {
   printf "%s" "$(date +%s)$$$(date +%N)" | _digest sha256 hex | cut -c 1-32
 }
 
-_timestamp() {
+_ali_timestamp() {
   date -u +"%Y-%m-%dT%H%%3A%M%%3A%SZ"
 }
 
@@ -151,7 +151,7 @@ _check_exist_query() {
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query"&SignatureNonce=$(_ali_nonce)"
   query=$query'&SignatureVersion=1.0'
-  query=$query'&Timestamp='$(_timestamp)
+  query=$query'&Timestamp='$(_ali_timestamp)
   query=$query'&TypeKeyWord=TXT'
   query=$query'&Version=2015-01-09'
 }
@@ -167,7 +167,7 @@ _add_record_query() {
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query"&SignatureNonce=$(_ali_nonce)"
   query=$query'&SignatureVersion=1.0'
-  query=$query'&Timestamp='$(_timestamp)
+  query=$query'&Timestamp='$(_ali_timestamp)
   query=$query'&Type=TXT'
   query=$query'&Value='$3
   query=$query'&Version=2015-01-09'
@@ -183,7 +183,7 @@ _delete_record_query() {
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query"&SignatureNonce=$(_ali_nonce)"
   query=$query'&SignatureVersion=1.0'
-  query=$query'&Timestamp='$(_timestamp)
+  query=$query'&Timestamp='$(_ali_timestamp)
   query=$query'&Version=2015-01-09'
 }
 
@@ -197,7 +197,7 @@ _describe_records_query() {
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query"&SignatureNonce=$(_ali_nonce)"
   query=$query'&SignatureVersion=1.0'
-  query=$query'&Timestamp='$(_timestamp)
+  query=$query'&Timestamp='$(_ali_timestamp)
   query=$query'&Version=2015-01-09'
 }
 
