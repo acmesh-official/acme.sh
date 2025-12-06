@@ -10,7 +10,7 @@ Issues: github.com/acmesh-official/acme.sh/issues/6372
 Author: Lukas Wärner (CEO)
 '
 
-WTS_API="https://waerner-techservices.de/hosting/domain"
+WTS_API="https://api.waerner-techservices.de/hosting/domain"
 
 ########  Public functions ######################
 
