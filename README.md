@@ -1,3 +1,5 @@
+[![zerossl.com](https://github.com/user-attachments/assets/7531085e-399b-4ac2-82a2-90d14a0b7f05)](https://zerossl.com/?fromacme.sh)
+
 # An ACME Shell script: acme.sh 
 
 [![FreeBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/FreeBSD.yml)
@@ -84,7 +86,6 @@ Twitter: [@neilpangxa](https://twitter.com/neilpangxa)
 |18|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Oracle Linux
 |19|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Mageia
 |10|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Gentoo Linux
-|11|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|ClearLinux
 |22|-----| Cloud Linux  https://github.com/acmesh-official/acme.sh/issues/111
 |23|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/acmesh-official/acme.sh/wiki/How-to-run-on-OpenWRT)
 |24|[![](https://acmesh-official.github.io/acmetest/status/proxmox.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)| Proxmox: See Proxmox VE Wiki. Version [4.x, 5.0, 5.1](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x,_5.0_and_5.1)#Let.27s_Encrypt_using_acme.sh), version [5.2 and up](https://pve.proxmox.com/wiki/Certificate_Management)
@@ -206,6 +207,8 @@ You must point and bind all the domains to the same webroot dir: `/home/wwwroot/
 The certs will be placed in `~/.acme.sh/example.com/`
 
 The certs will be renewed automatically every **60** days.
+
+The certs will default to ECC certificates.
 
 More examples: https://github.com/acmesh-official/acme.sh/wiki/How-to-issue-a-cert
 
@@ -358,27 +361,11 @@ Ok, it's done.
 
 **Please use dns api mode instead.**
 
-# 10. Issue ECC certificates
+# 10. Issue certificates of different key types and lengths (ECC or RSA)
 
-Just set the `keylength` parameter with a prefix `ec-`.
+Just set the `keylength` to a valid, supported, value.
 
-For example:
-
-### Single domain ECC certificate
-
-```bash
-acme.sh --issue -w /home/wwwroot/example.com -d example.com --keylength ec-256
-```
-
-### SAN multi domain ECC certificate
-
-```bash
-acme.sh --issue -w /home/wwwroot/example.com -d example.com -d www.example.com --keylength ec-256
-```
-
-Please look at the `keylength` parameter above.
-
-Valid values are:
+Valid values for the `keylength` parameter are:
 
 1. **ec-256 (prime256v1, "ECDSA P-256", which is the default key type)**
 2. **ec-384 (secp384r1,  "ECDSA P-384")**
@@ -387,6 +374,19 @@ Valid values are:
 5. **3072   (RSA3072)**
 6. **4096   (RSA4096)**
 
+For example:
+
+### Single domain with ECDSA P-384 certificate
+
+```bash
+acme.sh --issue -w /home/wwwroot/example.com -d example.com --keylength ec-384
+```
+
+### SAN multi domain with RSA4096 certificate
+
+```bash
+acme.sh --issue -w /home/wwwroot/example.com -d example.com -d www.example.com --keylength 4096
+```
 
 # 11. Issue Wildcard certificates
 
@@ -523,3 +523,20 @@ Your donation makes **acme.sh** better:
 1. PayPal/Alipay(支付宝)/Wechat(微信): [https://donate.acme.sh/](https://donate.acme.sh/)
 
 [Donate List](https://github.com/acmesh-official/acme.sh/wiki/Donate-list)
+
+# 21. About this repository
+
+> [!NOTE]
+> This repository is officially maintained by <strong>ZeroSSL</strong> as part of our commitment to providing secure and reliable SSL/TLS solutions. We welcome contributions and feedback from the community!  
+> For more information about our services, including free and paid SSL/TLS certificates, visit https://zerossl.com.
+>   
+> All donations made through this repository go directly to the original independent maintainer (Neil Pang), not to ZeroSSL.
+<p align="center">
+	<a href="https://zerossl.com.com">
+		<picture>
+			<source media="(prefers-color-scheme: dark)" srcset="https://zerossl.com/assets/images/zerossl_logo_white.svg">
+			<source media="(prefers-color-scheme: light)" srcset="https://zerossl.com/assets/images/zerossl_logo.svg">
+			<img src="https://zerossl.com/assets/images/zerossl_logo.svg" alt="ZeroSSL" width="256">
+		</picture>
+	</a>
+</p>
