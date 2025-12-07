@@ -10,9 +10,10 @@ Options:
 Issues: github.com/acmesh-official/acme.sh
 '
 # Base URL for the mgw-media.de API
-#MGWM_API_BASE="https://api.mgw-media.de/record"
-MGWM_API_BASE="http://217.114.220.70/record"
+MGWM_API_BASE="https://api.mgw-media.de/record"
+
 ########  Public functions #####################
+
 # This function is called by acme.sh to add a TXT record.
 dns_mgwm_add() {
   fulldomain=$1
@@ -23,12 +24,12 @@ dns_mgwm_add() {
 
   # Call the new private function to handle the API request.
   # The 'add' action, fulldomain, type 'txt' and txtvalue are passed.
-  if _mgwm_perform_api_request "add" "$fulldomain" "txt" "$txtvalue"; then
-      _info "TXT record for $fulldomain successfully added via MGWM API."
+  if _mgwm_request "add" "$fulldomain" "txt" "$txtvalue"; then
+      _info "TXT record for $fulldomain successfully added via mgw-media.de API."
       _sleep 10 # Wait briefly for DNS propagation, a common practice in DNS-01 hooks.
       return 0
   else
-      # Error message already logged by _mgwm_perform_api_request, but a specific one here helps.
+      # Error message already logged by _mgwm_request, but a specific one here helps.
       _err "mgwm_add: Failed to add TXT record for $fulldomain."
       return 1
   fi
@@ -43,33 +44,32 @@ dns_mgwm_rm() {
 
   # Call the new private function to handle the API request.
   # The 'rm' action, fulldomain, type 'txt' and txtvalue are passed.
-  if _mgwm_perform_api_request "rm" "$fulldomain" "txt" "$txtvalue"; then
-      _info "TXT record for $fulldomain successfully removed via MGWM API."
+  if _mgwm_request "rm" "$fulldomain" "txt" "$txtvalue"; then
+      _info "TXT record for $fulldomain successfully removed via mgw-media.de API."
       return 0
   else
-      # Error message already logged by _mgwm_perform_api_request, but a specific one here helps.
+      # Error message already logged by _mgwm_request, but a specific one here helps.
       _err "mgwm_rm: Failed to remove TXT record for $fulldomain."
       return 1
   fi
 }
 ####################  Private functions below ##################################
 
-# _mgwm_perform_api_request() encapsulates the API call logic, including
+# _mgwm_request() encapsulates the API call logic, including
 # loading credentials, setting the Authorization header, and executing the request.
 # Arguments:
 #   $1: action (e.g., "add", "rm")
 #   $2: fulldomain
 #   $3: type (e.g., "txt")
 #   $4: content (the txtvalue)
-_mgwm_perform_api_request() {
+_mgwm_request() {
   _action="$1"
   _fulldomain="$2"
   _type="$3"
   _content="$4"
 
-  _debug "Calling _mgwm_perform_api_request for action: $_action, domain: $_fulldomain, type: $_type, content: $_content"
+  _debug "Calling _mgwm_request for action: $_action, domain: $_fulldomain, type: $_type, content: $_content"
 
-  # --- Start of _mgwm_init_env logic (now embedded here) ---
   # Load credentials from environment or acme.sh config
   MGWM_CUSTOMER="${MGWM_CUSTOMER:-$(_readaccountconf_mutable MGWM_CUSTOMER)}"
   MGWM_API_HASH="${MGWM_API_HASH:-$(_readaccountconf_mutable MGWM_API_HASH)}"
@@ -89,26 +89,22 @@ _mgwm_perform_api_request() {
   _credentials="$(printf "%s:%s" "$MGWM_CUSTOMER" "$MGWM_API_HASH" | _base64)"
   export _H1="Authorization: Basic $_credentials"
   _debug "Set Authorization Header: Basic <credentials_encoded>" # Log debug message without sensitive credentials
-  export _H2="Host: api.mgw-media.de"
-  # --- End of _mgwm_init_env logic ---
 
   # Construct the API URL based on the action and provided parameters.
-  _request_url="${MGWM_API_BASE}.php?action=${_action}&fulldomain=${_fulldomain}&type=${_type}&content=${_content}"
-  _debug "Constructed MGWM API URL for action '$_action': ${_request_url}"
+  _request_url="${MGWM_API_BASE}/${_action}/${_fulldomain}/${_type}/${_content}"
+  _debug "Constructed mgw-media.de API URL for action '$_action': ${_request_url}"
 
   # Execute the HTTP GET request with the Authorization Header.
   # The 5th parameter of _get is where acme.sh expects custom HTTP headers like Authorization.
   response="$(_get "$_request_url")"
-  _debug "MGWM API response for action '$_action': $response"
+  _debug "mgw-media.de API response for action '$_action': $response"
 
   # Check the API response for success. The API returns "OK" on success.
   if [ "$response" = "OK" ]; then
-      _info "MGWM API action '$_action' for record '$_fulldomain' successful."
+      _info "mgw-media.de API action '$_action' for record '$_fulldomain' successful."
       return 0
   else
-      _err "mgwm_perform_api_request: Failed API action '$_action' for record '$_fulldomain'. Unexpected API Response: '$response'"
+      _err "Failed mgw-media.de API action '$_action' for record '$_fulldomain'. Unexpected API Response: '$response'"
       return 1
   fi
 }
-
-# The original _mgwm_init_env function is now removed as its logic is integrated into _mgwm_perform_api_request.
