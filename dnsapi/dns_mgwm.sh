@@ -3,11 +3,11 @@
 # DNS provider information for acme.sh
 dns_mgwm_info='mgw-media.de
 Site: mgw-media.de
-Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_mgwm
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_mgwm
 Options:
  MGWM_CUSTOMER Your customer number
  MGWM_API_HASH Your API Hash
-Issues: github.com/acmesh-official/acme.sh
+Issues: github.com/acmesh-official/acme.sh/issues/6669
 '
 # Base URL for the mgw-media.de API
 MGWM_API_BASE="https://api.mgw-media.de/record"
