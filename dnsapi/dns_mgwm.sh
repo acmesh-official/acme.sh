@@ -10,7 +10,8 @@ Options:
 Issues: github.com/acmesh-official/acme.sh
 '
 # Base URL for the mgw-media.de API
-MGWM_API_BASE="https://api.mgw-media.de/record"
+#MGWM_API_BASE="https://api.mgw-media.de/record"
+MGWM_API_BASE="http://217.114.220.70/record"
 ########  Public functions #####################
 # This function is called by acme.sh to add a TXT record.
 dns_mgwm_add() {
@@ -88,6 +89,7 @@ _mgwm_perform_api_request() {
   _credentials="$(printf "%s:%s" "$MGWM_CUSTOMER" "$MGWM_API_HASH" | _base64)"
   export _H1="Authorization: Basic $_credentials"
   _debug "Set Authorization Header: Basic <credentials_encoded>" # Log debug message without sensitive credentials
+  export _H2="Host: api.mgw-media.de"
   # --- End of _mgwm_init_env logic ---
 
   # Construct the API URL based on the action and provided parameters.
