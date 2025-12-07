@@ -1,6 +1,5 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
-# DNS provider information for acme.sh
 dns_mgwm_info='mgw-media.de
 Site: mgw-media.de
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_mgwm
