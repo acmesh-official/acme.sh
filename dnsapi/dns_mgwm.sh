@@ -47,7 +47,7 @@ dns_mgwm_add() {
   _debug "Set Authorization Header: Basic <credentials_encoded>" # Log debug message without sensitive credentials
 
   # Construct the API URL for adding a record with query parameters
-  _add_url="${MGWM_API_ENDPOINT}?action=add&fulldomain=${fulldomain}&type=txt&content=${txtvalue}"
+  _add_url="${MGWM_API_ENDPOINT}.php?action=add&fulldomain=${fulldomain}&type=txt&content=${txtvalue}"
   _debug "Calling MGWM ADD URL: ${_add_url}"
 
   # Execute the HTTP GET request with the Authorization Header (_H1)
@@ -98,7 +98,7 @@ dns_mgwm_rm() {
 
   # Construct the API URL for removing a record with query parameters
   # The RM API from mgw-media.de does not expect a 'content' parameter.
-  _rm_url="${MGWM_API_ENDPOINT}?action=rm&fulldomain=${fulldomain}&type=txt"
+  _rm_url="${MGWM_API_ENDPOINT}.php?action=rm&fulldomain=${fulldomain}&type=txt"
   _debug "Calling MGWM RM URL: ${_rm_url}"
 
   # Execute the HTTP GET request with the Authorization Header (_H1)
