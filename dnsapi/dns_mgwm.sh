@@ -24,13 +24,13 @@ dns_mgwm_add() {
   # Call the new private function to handle the API request.
   # The 'add' action, fulldomain, type 'txt' and txtvalue are passed.
   if _mgwm_request "add" "$fulldomain" "txt" "$txtvalue"; then
-      _info "TXT record for $fulldomain successfully added via mgw-media.de API."
-      _sleep 10 # Wait briefly for DNS propagation, a common practice in DNS-01 hooks.
-      return 0
+    _info "TXT record for $fulldomain successfully added via mgw-media.de API."
+    _sleep 10 # Wait briefly for DNS propagation, a common practice in DNS-01 hooks.
+    return 0
   else
-      # Error message already logged by _mgwm_request, but a specific one here helps.
-      _err "mgwm_add: Failed to add TXT record for $fulldomain."
-      return 1
+    # Error message already logged by _mgwm_request, but a specific one here helps.
+    _err "mgwm_add: Failed to add TXT record for $fulldomain."
+    return 1
   fi
 }
 # This function is called by acme.sh to remove a TXT record after validation.
@@ -44,12 +44,12 @@ dns_mgwm_rm() {
   # Call the new private function to handle the API request.
   # The 'rm' action, fulldomain, type 'txt' and txtvalue are passed.
   if _mgwm_request "rm" "$fulldomain" "txt" "$txtvalue"; then
-      _info "TXT record for $fulldomain successfully removed via mgw-media.de API."
-      return 0
+    _info "TXT record for $fulldomain successfully removed via mgw-media.de API."
+    return 0
   else
-      # Error message already logged by _mgwm_request, but a specific one here helps.
-      _err "mgwm_rm: Failed to remove TXT record for $fulldomain."
-      return 1
+    # Error message already logged by _mgwm_request, but a specific one here helps.
+    _err "mgwm_rm: Failed to remove TXT record for $fulldomain."
+    return 1
   fi
 }
 ####################  Private functions below ##################################
@@ -100,10 +100,10 @@ _mgwm_request() {
 
   # Check the API response for success. The API returns "OK" on success.
   if [ "$response" = "OK" ]; then
-      _info "mgw-media.de API action '$_action' for record '$_fulldomain' successful."
-      return 0
+    _info "mgw-media.de API action '$_action' for record '$_fulldomain' successful."
+    return 0
   else
-      _err "Failed mgw-media.de API action '$_action' for record '$_fulldomain'. Unexpected API Response: '$response'"
-      return 1
+    _err "Failed mgw-media.de API action '$_action' for record '$_fulldomain'. Unexpected API Response: '$response'"
+    return 1
   fi
 }
