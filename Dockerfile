@@ -13,6 +13,7 @@ RUN apk --no-cache add -f \
   tar \
   libidn \
   jq \
+  yq-go \
   cronie
 
 ENV LE_WORKING_DIR=/acmebin
