@@ -17,7 +17,7 @@ dns_qc_add() {
   fulldomain=$1
   txtvalue=$2
 
-  _debug "Enter dns_qc_add fulldomain: $fulldomain, txtvalue: $txtvalue"
+  _debug "Enter dns_qc_add fulldomain: $fulldomain, txtvalue: $txtvalue."
   QC_API_KEY="${QC_API_KEY:-$(_readaccountconf_mutable QC_API_KEY)}"
   QC_API_EMAIL="${QC_API_EMAIL:-$(_readaccountconf_mutable QC_API_EMAIL)}"
 
