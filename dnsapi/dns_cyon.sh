@@ -168,8 +168,6 @@ _cyon_login() {
     export _H2
   fi
 
-  # todo: instead of just checking if the env variable is defined, check if we actually need to do a 2FA auth request.
-
   # 2FA authentication with OTP?
   if [ -n "${CY_OTP_Secret}" ]; then
     _info "  - Authorising with OTP code..."
