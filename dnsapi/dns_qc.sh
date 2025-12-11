@@ -39,7 +39,7 @@ dns_qc_add() {
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
-    _err "invalid domain"
+    _err "invalid domain during add"
     return 1
   fi
   _debug _domain_id "$_domain_id"
@@ -59,7 +59,7 @@ dns_qc_add() {
   #  count=$(printf "%s\n" "$response" | _egrep_o "\"count\":[^,]*" | cut -d : -f 2)
   #  _debug count "$count"
   #  if [ "$count" = "0" ]; then
-  _info "Adding txt record"
+  _info "Adding txt record."
   if _qc_rest POST "zones/$_domain_id/records" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":1800}"; then
     if _contains "$response" "$txtvalue"; then
       _info "Added txt record, OK"
@@ -88,7 +88,7 @@ dns_qc_rm() {
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
-    _err "invalid domain"
+    _err "invalid domain during rm"
     return 1
   fi
   _debug _domain_id "$_domain_id"
