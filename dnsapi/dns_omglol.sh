@@ -129,7 +129,8 @@ omg_testconnect() {
   _secure_debug2 "omg.lol API key" "$omg_apikey"
   _debug2 "omg.lol Address" "$omg_address"
 
-  export _H1=$(_createAuthHeader "$omg_apikey")
+  authheader="$(_createAuthHeader "$omg_apikey")"
+  export _H1="$authheader"
   endpoint="https://api.omg.lol/address/$omg_address/info"
   _debug2 "Endpoint for validation" "$endpoint"
 
