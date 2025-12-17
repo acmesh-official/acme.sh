@@ -5482,9 +5482,9 @@ _split_cert_chain() {
     cat "$_certf" >"$_fullchainf"
     _end_n="$(grep -n -- "$END_CERT" "$_fullchainf" | _head_n 1 | cut -d : -f 1)"
     _debug _end_n "$_end_n"
-    sed -n "1,${_end_n}p" "$_fullchainf" >"$_certf"
+    sed -n "1,${_end_n}{/^$/!p}" "$_fullchainf" >"$_certf"
     _end_n="$(_math $_end_n + 1)"
-    sed -n "${_end_n},9999p" "$_fullchainf" >"$_caf"
+    sed -n "${_end_n},9999{/^$/!p}" "$_fullchainf" >"$_caf"
   fi
 }
 
