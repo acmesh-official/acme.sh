@@ -6773,7 +6773,7 @@ install() {
     chmod 700 "$LE_CONFIG_HOME"
   fi
 
-  cp "$PROJECT_ENTRY" "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/$PROJECT_ENTRY"
+  cp $(dirname "$0")/"$PROJECT_ENTRY" "$LE_WORKING_DIR/" && chmod +x "$LE_WORKING_DIR/$PROJECT_ENTRY"
 
   if [ "$?" != "0" ]; then
     _err "Installation failed, cannot copy $PROJECT_ENTRY"
