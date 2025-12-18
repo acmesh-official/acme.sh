@@ -75,8 +75,8 @@ dns_servercow_add() {
     else
       # Content is a single value - extract it
       _debug "Content is a single value"
-      txtvalue_old=${content_field%%\"*}
-      txtvalue_old=${txtvalue_old#\"}
+      txtvalue_old=${content_field#\"}
+      txtvalue_old=${txtvalue_old%%\"*}
       
       _debug txtvalue_old "$txtvalue_old"
       
