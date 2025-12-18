@@ -12,26 +12,25 @@ Author: Jens Hartlep
 
 SERVERCOW_API="https://api.servercow.de/dns/v1/domains"
 
-# Usage dns_servercow_add _acme-challenge.www.domain.com "abcdefghijklmnopqrstuvwxyz"
+########  Public functions #####################
+
+#Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_servercow_add() {
   fulldomain=$1
   txtvalue=$2
 
-  _info "Using servercow"
-  _debug fulldomain "$fulldomain"
-  _debug txtvalue "$txtvalue"
-
   SERVERCOW_API_Username="${SERVERCOW_API_Username:-$(_readaccountconf_mutable SERVERCOW_API_Username)}"
   SERVERCOW_API_Password="${SERVERCOW_API_Password:-$(_readaccountconf_mutable SERVERCOW_API_Password)}"
+
   if [ -z "$SERVERCOW_API_Username" ] || [ -z "$SERVERCOW_API_Password" ]; then
     SERVERCOW_API_Username=""
     SERVERCOW_API_Password=""
-    _err "You don't specify servercow api username and password yet."
+    _err "You didn't specify a ServerCow api username and password yet."
     _err "Please create your username and password and try again."
     return 1
   fi
 
-  # save the credentials to the account conf file
+  #save the api username and password to the account conf file.
   _saveaccountconf_mutable SERVERCOW_API_Username "$SERVERCOW_API_Username"
   _saveaccountconf_mutable SERVERCOW_API_Password "$SERVERCOW_API_Password"
 
@@ -44,61 +43,86 @@ dns_servercow_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
+  _debug "Getting txt records"
   # check whether a txt record already exists for the subdomain
   if printf -- "%s" "$response" | grep "{\"name\":\"$_sub_domain\",\"ttl\":20,\"type\":\"TXT\"" >/dev/null; then
     _info "A txt record with the same name already exists."
-    # trim the string on the left
-    txtvalue_old=${response#*{\"name\":\""$_sub_domain"\",\"ttl\":20,\"type\":\"TXT\",\"content\":\"}
-    # trim the string on the right
-    txtvalue_old=${txtvalue_old%%\"*}
-
-    _debug txtvalue_old "$txtvalue_old"
-
-    _info "Add the new txtvalue to the existing txt record."
-    if _servercow_api POST "$_domain" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":[\"$txtvalue\",\"$txtvalue_old\"],\"ttl\":20}"; then
-      if printf -- "%s" "$response" | grep "ok" >/dev/null; then
-        _info "Added additional txtvalue, OK"
-        return 0
-      else
-        _err "add txt record error."
-        return 1
+    
+    # Extract the content field
+    content_field=${response#*{\"name\":\""$_sub_domain"\",\"ttl\":20,\"type\":\"TXT\",\"content\":}
+    
+    # Check if content is already an array (starts with [)
+    if printf -- "%s" "$content_field" | grep '^\[' >/dev/null; then
+      # Content is an array - extract all values
+      _debug "Content is already an array"
+      # Extract everything between [ and ]
+      content_array=${content_field#\[}
+      content_array=${content_array%%\]*}
+      
+      # Build new array with new value prepended
+      _info "Add the new txtvalue to the existing txt record array."
+      if _servercow_api POST "$_domain" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":[\"$txtvalue\",$content_array],\"ttl\":20}"; then
+        if printf -- "%s" "$response" | grep "ok" >/dev/null; then
+          _info "Added additional txtvalue, OK"
+          return 0
+        else
+          _err "Add txt record error."
+          return 1
+        fi
       fi
+      _err "Add txt record error."
+      return 1
+    else
+      # Content is a single value - extract it
+      _debug "Content is a single value"
+      txtvalue_old=${content_field%%\"*}
+      txtvalue_old=${txtvalue_old#\"}
+      
+      _debug txtvalue_old "$txtvalue_old"
+      
+      _info "Add the new txtvalue to the existing txt record."
+      if _servercow_api POST "$_domain" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":[\"$txtvalue\",\"$txtvalue_old\"],\"ttl\":20}"; then
+        if printf -- "%s" "$response" | grep "ok" >/dev/null; then
+          _info "Added additional txtvalue, OK"
+          return 0
+        else
+          _err "Add txt record error."
+          return 1
+        fi
+      fi
+      _err "Add txt record error."
+      return 1
     fi
-    _err "add txt record error."
-    return 1
   else
     _info "There is no txt record with the name yet."
+    _info "Adding record"
     if _servercow_api POST "$_domain" "{\"type\":\"TXT\",\"name\":\"$fulldomain\",\"content\":\"$txtvalue\",\"ttl\":20}"; then
       if printf -- "%s" "$response" | grep "ok" >/dev/null; then
         _info "Added, OK"
         return 0
       else
-        _err "add txt record error."
+        _err "Add txt record error."
         return 1
       fi
     fi
-    _err "add txt record error."
+    _err "Add txt record error."
     return 1
   fi
 
 }
 
-# Usage fulldomain txtvalue
-# Remove the txt record after validation
+#fulldomain txtvalue
 dns_servercow_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  _info "Using servercow"
-  _debug fulldomain "$fulldomain"
-  _debug txtvalue "$fulldomain"
-
   SERVERCOW_API_Username="${SERVERCOW_API_Username:-$(_readaccountconf_mutable SERVERCOW_API_Username)}"
   SERVERCOW_API_Password="${SERVERCOW_API_Password:-$(_readaccountconf_mutable SERVERCOW_API_Password)}"
+
   if [ -z "$SERVERCOW_API_Username" ] || [ -z "$SERVERCOW_API_Password" ]; then
     SERVERCOW_API_Username=""
     SERVERCOW_API_Password=""
-    _err "You don't specify servercow api username and password yet."
+    _err "You didn't specify a ServerCow api username and password yet."
     _err "Please create your username and password and try again."
     return 1
   fi
@@ -108,28 +132,30 @@ dns_servercow_rm() {
     _err "invalid domain"
     return 1
   fi
-
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  if _servercow_api DELETE "$_domain" "{\"type\":\"TXT\",\"name\":\"$fulldomain\"}"; then
-    if printf -- "%s" "$response" | grep "ok" >/dev/null; then
-      _info "Deleted, OK"
-      _contains "$response" '"message":"ok"'
-    else
-      _err "delete txt record error."
-      return 1
-    fi
+  _debug "Deleting txt record"
+  if ! _servercow_api DELETE "$_domain" "{\"type\":\"TXT\",\"name\":\"$fulldomain\"}"; then
+    _err "Delete record error."
+    return 1
+  fi
+
+  if printf -- "%s" "$response" | grep "ok" >/dev/null; then
+    _info "Deleted, OK"
+    return 0
+  else
+    _err "Delete txt record error."
+    return 1
   fi
 
 }
 
 ####################  Private functions below ##################################
-
-# _acme-challenge.www.domain.com
-# returns
-#  _sub_domain=_acme-challenge.www
-#  _domain=domain.com
+#_acme-challenge.www.domain.com
+#returns
+# _sub_domain=_acme-challenge.www
+# _domain=domain.com
 _get_root() {
   fulldomain=$1
   i=2
@@ -137,10 +163,9 @@ _get_root() {
 
   while true; do
     _domain=$(printf "%s" "$fulldomain" | cut -d . -f "$i"-100)
-
     _debug _domain "$_domain"
     if [ -z "$_domain" ]; then
-      # not valid
+      #not valid
       return 1
     fi
 
@@ -151,10 +176,9 @@ _get_root() {
     if ! _contains "$response" '"error":"no such domain in user context"' >/dev/null; then
       _sub_domain=$(printf "%s" "$fulldomain" | cut -d . -f 1-"$p")
       if [ -z "$_sub_domain" ]; then
-        # not valid
+        #not valid
         return 1
       fi
-
       return 0
     fi
 
