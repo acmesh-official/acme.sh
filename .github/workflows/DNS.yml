@@ -68,12 +68,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Clone acmetest
-      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - name: Add oathtool to ubuntu package list
-      run: |
-        cd ../acmetest
-        # Add oathtool to the ubuntu platform package list
-        sed -i 's/unzip,openssl,cron,socat,curl,idn,wget/unzip,openssl,cron,socat,curl,idn,wget,oathtool/' plat.conf
+      run: cd .. && git clone --depth=1 https://github.com/flybyray/acmetest.git  && cp -r acme.sh acmetest/
     - name: Set env file
       run: |
         cd ../acmetest
