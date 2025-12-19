@@ -110,11 +110,17 @@ dns_inwx_rm() {
         <string>%s</string>
        </value>
       </member>
+      <member>
+       <name>content</name>
+       <value>
+        <string>%s</string>
+       </value>
+      </member>
      </struct>
     </value>
    </param>
   </params>
-  </methodCall>' "$_domain" "$_sub_domain")
+  </methodCall>' "$_domain" "$_sub_domain" "$txtvalue")
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
 
   if ! _contains "$response" "Command completed successfully"; then
