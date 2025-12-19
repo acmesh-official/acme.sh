@@ -67,10 +67,15 @@ jobs:
       TokenName5: ${{ secrets.TokenName5}}
     steps:
     - uses: actions/checkout@v4
-    - name: Install oathtool
-      run: sudo apt-get update && sudo apt-get install -y oathtool
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - name: Ensure oathtool in test container
+      run: |
+        cd ../acmetest
+        # Add oathtool installation to acmetest Dockerfile if it exists
+        if [ -f Dockerfile ]; then
+          sed -i 's/tzdata/tzdata oath-toolkit-oathtool/g' Dockerfile
+        fi
     - name: Set env file
       run: |
         cd ../acmetest
