@@ -7728,6 +7728,14 @@ _process() {
         _webroot="$_webroot,$wvalue"
       fi
       ;;
+      --bearer)
+      bearer_value=""
+      if [ "$2" ] && ! _startswith "$2" "-"; then
+        bearer_value="$2"
+        shift
+      fi
+      _bearer="$bearer_value"
+      ;;
     --dnssleep)
       _dnssleep="$2"
       Le_DNSSleep="$_dnssleep"
