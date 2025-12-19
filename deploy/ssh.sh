@@ -25,7 +25,8 @@
 # export DEPLOY_SSH_MULTI_CALL=""  # yes or no, default to no or previously saved value
 # export DEPLOY_SSH_USE_SCP="" yes or no, default to no
 # export DEPLOY_SSH_SCP_CMD="" defaults to "scp -q"
-#
+# export DEPLOY_SSH_REMOTE_SHELL="" # defaults to sh -c
+# export DEPLOY_SSH_REMOTE_CMD_QUOTE="" # yes or no, defaults to yes
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
@@ -70,6 +71,24 @@ ssh_deploy() {
     DEPLOY_SSH_CMD="ssh -T"
   fi
   _savedeployconf DEPLOY_SSH_CMD "$DEPLOY_SSH_CMD"
+
+  # REMOTE_SHELL is optional. If not provided then use sh
+  _migratedeployconf Le_Deploy_ssh_remote_shell DEPLOY_SSH_REMOTE_SHELL
+  _getdeployconf DEPLOY_SSH_REMOTE_SHELL
+  _debug2 DEPLOY_SSH_REMOTE_SHELL "$DEPLOY_SSH_REMOTE_SHELL"
+  if [ -z "$DEPLOY_SSH_REMOTE_SHELL" ]; then
+    DEPLOY_SSH_REMOTE_SHELL="sh -c"
+  fi
+  _savedeployconf DEPLOY_SSH_REMOTE_SHELL "$DEPLOY_SSH_REMOTE_SHELL"
+
+  # REMOTE_CMD_QUOTE is optional. If not provided then yes
+  _migratedeployconf Le_Deploy_ssh_remote_cmd_quote DEPLOY_SSH_REMOTE_CMD_QUOTE
+  _getdeployconf DEPLOY_SSH_REMOTE_CMD_QUOTE
+  _debug2 DEPLOY_SSH_REMOTE_CMD_QUOTE "$DEPLOY_SSH_REMOTE_CMD_QUOTE"
+  if [ -z "$DEPLOY_SSH_REMOTE_CMD_QUOTE" ]; then
+    DEPLOY_SSH_REMOTE_CMD_QUOTE="yes"
+  fi
+  _savedeployconf DEPLOY_SSH_REMOTE_CMD_QUOTE "$DEPLOY_SSH_REMOTE_CMD_QUOTE"
 
   # BACKUP is optional. If not provided then default to previously saved value or yes.
   _migratedeployconf Le_Deploy_ssh_backup DEPLOY_SSH_BACKUP
@@ -426,9 +445,13 @@ _ssh_remote_cmd() {
   _secure_debug "Remote commands to execute: $_cmd"
   _info "Submitting sequence of commands to remote server by $_ssh_cmd"
 
-  # quotations in bash cmd below intended.  Squash travis spellcheck error
-  # shellcheck disable=SC2029
-  $_ssh_cmd "$DEPLOY_SSH_USER@$_host" sh -c "'$_cmd'"
+  if [ "$DEPLOY_SSH_REMOTE_CMD_QUOTE" = "yes" ]; then
+    # quotations in bash cmd below intended.  Squash travis spellcheck error
+    # shellcheck disable=SC2029
+    $_ssh_cmd "$DEPLOY_SSH_USER@$_host" "$DEPLOY_SSH_REMOTE_SHELL" "'$_cmd'"
+  else
+    $_ssh_cmd "$DEPLOY_SSH_USER@$_host" "$DEPLOY_SSH_REMOTE_SHELL" "$_cmd"
+  fi
   _err_code="$?"
 
   if [ "$_err_code" != "0" ]; then
