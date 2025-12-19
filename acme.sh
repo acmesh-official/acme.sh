@@ -5840,7 +5840,7 @@ list() {
     if [ -z "$_domain" ]; then
       printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Profile${_sep}CA${_sep}Created${_sep}Renew"
     fi
-    for di in "${CERT_HOME}"/*.*/; do
+    for di in "${CERT_HOME}"/{*.*,*:*}/; do
       d=$(basename "$di")
       _debug d "$d"
       (
