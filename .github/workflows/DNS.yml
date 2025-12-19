@@ -69,11 +69,11 @@ jobs:
     - uses: actions/checkout@v4
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - name: Install oathtool in test container
+    - name: Patch acmetest to install oathtool in container
       run: |
         cd ../acmetest
-        # Modify letest.sh to install oathtool at runtime  
-        sed -i '/TEST_LOCAL skip setup/a apt-get update -qq && apt-get install -y -qq oathtool > /dev/null 2>&1 || true' letest.sh
+        # Add oathtool installation before the test runs inside container
+        sed -i '/^_setup() {$/a \  if command -v apt-get >/dev/null 2>&1; then\n    apt-get update -qq && apt-get install -y -qq oathtool >/dev/null 2>&1 || true\n  fi' letest.sh
     - name: Set env file
       run: |
         cd ../acmetest
