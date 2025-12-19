@@ -3843,7 +3843,7 @@ _regAccount() {
     _debug3 externalBinding "$externalBinding"
   fi
   if [ "$_email" ]; then
-    email_sg="\"contact\": [\"mailto:$_email\"], "
+    email_sg="\"contact\": ['$(for E in $_email; do echo -n '"mailto:'$E'",' ; done | sed -r 's/,$//')'], "
   fi
   regjson="{$email_sg\"termsOfServiceAgreed\": true$externalBinding}"
 
@@ -3921,7 +3921,7 @@ updateaccount() {
   _email="$(_getAccountEmail)"
 
   if [ "$_email" ]; then
-    updjson='{"contact": ["mailto:'$_email'"]}'
+    updjson='{"contact": ['$(for E in $_email; do echo -n '"mailto:'$E'",' ; done | sed -r 's/,$//')']}'
   else
     updjson='{"contact": []}'
   fi
@@ -7142,7 +7142,8 @@ Parameters:
   --cert-home <directory>           Specifies the home dir to save all the certs.
   --config-home <directory>         Specifies the home dir to save all the configurations.
   --useragent <string>              Specifies the user agent string. it will be saved for future use too.
-  -m, --email <email>               Specifies the account email, only valid for the '--install' and '--update-account' command.
+  -m, --email <email>               Specifies the account email address(es), only valid for the '--install' and '--update-account' command.
+                                      To configure multiple addresses, pass them in quotes separated by space: '--email \"1st@mail.com 2nd@xyz.net\"'
   --accountkey <file>               Specifies the account key path, only valid for the '--install' command.
   --days <ndays>                    Specifies the days to renew the cert when using '--issue' command. The default value is $DEFAULT_RENEW days.
   --httpport <port>                 Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
