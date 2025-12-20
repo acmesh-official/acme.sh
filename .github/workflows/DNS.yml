@@ -116,7 +116,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install tools
-      run:  brew install socat oath-toolkit
+      run:  brew install socat
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
@@ -173,7 +173,7 @@ jobs:
       shell: cmd
     - name: Install cygwin additional packages
       run: |
-          C:\tools\cygwin\cygwinsetup.exe -qgnNdO -R C:/tools/cygwin -s https://mirrors.kernel.org/sourceware/cygwin/ -P socat,curl,cron,unzip,git,oath-toolkit
+          C:\tools\cygwin\cygwinsetup.exe -qgnNdO -R C:/tools/cygwin -s https://mirrors.kernel.org/sourceware/cygwin/ -P socat,curl,cron,unzip,git
       shell: cmd
     - name: Set ENV
       shell: cmd
@@ -230,7 +230,7 @@ jobs:
     - uses: vmactions/freebsd-vm@v1
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
-        prepare: pkg install -y socat curl oath-toolkit
+        prepare: pkg install -y socat curl
         usesh: true
         copyback: false
         run: |
@@ -281,7 +281,7 @@ jobs:
     - uses: vmactions/openbsd-vm@v1
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
-        prepare: pkg_add socat curl libiconv oath-toolkit
+        prepare: pkg_add socat curl libiconv
         usesh: true
         copyback: false
         run: |
@@ -333,7 +333,7 @@ jobs:
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: |
-          /usr/sbin/pkg_add curl socat oath-toolkit
+          /usr/sbin/pkg_add curl socat
         usesh: true
         copyback: false
         run: |
@@ -385,7 +385,7 @@ jobs:
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: |
-          pkg install -y curl socat libnghttp2 oath-toolkit
+          pkg install -y curl socat libnghttp2
         usesh: true
         copyback: false
         run: |
@@ -443,7 +443,7 @@ jobs:
         copyback: false
         prepare: |
           pkgutil -U
-          pkgutil -y -i socat oathtool
+          pkgutil -y -i socat
         run: |
           pkg set-mediator -v -I default@1.1 openssl
           export PATH=/usr/gnu/bin:$PATH
@@ -494,7 +494,7 @@ jobs:
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy HTTPS_INSECURE TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         copyback: false
-        prepare: pkg install socat oath-toolkit
+        prepare: pkg install socat
         run: |
           if [ "${{ secrets.TokenName1}}" ] ; then
             export ${{ secrets.TokenName1}}="${{ secrets.TokenValue1}}"
