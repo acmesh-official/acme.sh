@@ -125,7 +125,7 @@ _check_deployfile() {
   _debug2 "check: Deploy file" "$_deploy_file"
 
   # Check version
-  _deploy_file_version=$(yq '.version' "$_deploy_file")
+  _deploy_file_version=$(yq -r '.version' "$_deploy_file")
   if [ "$MULTIDEPLOY_VERSION" != "$_deploy_file_version" ]; then
     _err "As of $PROJECT_NAME $VER, the deploy file needs version $MULTIDEPLOY_VERSION! Your current deploy file is of version $_deploy_file_version."
     return 1
@@ -133,7 +133,7 @@ _check_deployfile() {
   _debug2 "check: Deploy file version is compatible: $_deploy_file_version"
 
   # Extract all services from config
-  _services=$(yq e '.services[].name' "$_deploy_file")
+  _services=$(yq -r '.services[].name' "$_deploy_file")
 
   if [ -z "$_services" ]; then
     _err "Config does not have any services to deploy to."
@@ -148,19 +148,19 @@ _check_deployfile() {
   echo "$_services" | while read -r _service; do
     _debug2 "check: Checking service: $_service"
     # Check if service exists
-    _service_config=$(yq e ".services[] | select(.name == \"$_service\")" "$_deploy_file")
+    _service_config=$(yq -r ".services[] | select(.name == \"$_service\")" "$_deploy_file")
     if [ -z "$_service_config" ] || [ "$_service_config" = "null" ]; then
       _err "Service '$_service' not found."
       return 1
     fi
 
-    _service_hook=$(echo "$_service_config" | yq e ".hook" -)
+    _service_hook=$(echo "$_service_config" | yq -r ".hook" -)
     if [ -z "$_service_hook" ] || [ "$_service_hook" = "null" ]; then
       _err "Service '$_service' does not have a hook."
       return 1
     fi
 
-    _service_environment=$(echo "$_service_config" | yq e ".environment" -)
+    _service_environment=$(echo "$_service_config" | yq -r ".environment" -)
     if [ -z "$_service_environment" ] || [ "$_service_environment" = "null" ]; then
       _err "Service '$_service' does not have an environment."
       return 1
@@ -179,7 +179,7 @@ _export_envs() {
 
   _secure_debug3 "Exporting envs" "$_env_list"
 
-  echo "$_env_list" | yq e -r 'to_entries | .[] | .key + "=" + .value' | while IFS='=' read -r _key _value; do
+  echo "$_env_list" | yq -r 'to_entries | .[] | .key + "=" + .value' | while IFS='=' read -r _key _value; do
     # Using eval to expand nested variables in the configuration file
     _value=$(eval 'echo "'"$_value"'"')
     _savedeployconf "$_key" "$_value"
@@ -206,7 +206,7 @@ _clear_envs() {
   _env_list="$1"
 
   _secure_debug3 "Clearing envs" "$_env_list"
-  env_pairs=$(echo "$_env_list" | yq e -r 'to_entries | .[] | .key + "=" + .value')
+  env_pairs=$(echo "$_env_list" | yq -r 'to_entries | .[] | .key + "=" + .value')
 
   echo "$env_pairs" | while IFS='=' read -r _key _value; do
     _debug3 "Deleting key" "$_key"
@@ -229,15 +229,15 @@ _deploy_services() {
   _tempfile=$(mktemp)
   trap 'rm -f $_tempfile' EXIT
 
-  yq e '.services[].name' "$_deploy_file" >"$_tempfile"
+  yq -r '.services[].name' "$_deploy_file" >"$_tempfile"
   _debug3 "Services" "$(cat "$_tempfile")"
 
   _failedServices=""
   _failedCount=0
   while read -r _service <&3; do
     _debug2 "Service" "$_service"
-    _hook=$(yq e ".services[] | select(.name == \"$_service\").hook" "$_deploy_file")
-    _envs=$(yq e ".services[] | select(.name == \"$_service\").environment" "$_deploy_file")
+    _hook=$(yq -r ".services[] | select(.name == \"$_service\").hook" "$_deploy_file")
+    _envs=$(yq -r ".services[] | select(.name == \"$_service\").environment" "$_deploy_file")
 
     _export_envs "$_envs"
     if ! _deploy_service "$_service" "$_hook"; then
