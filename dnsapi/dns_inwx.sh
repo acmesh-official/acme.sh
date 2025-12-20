@@ -6,7 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_inwx
 Options:
  INWX_User Username
  INWX_Password Password
- INWX_Shared_Secret 2 Factor Authentication Shared Secret (optional)
+ INWX_Shared_Secret 2 Factor Authentication Shared Secret (optional requires oathtool)
 '
 
 # Dependencies:
