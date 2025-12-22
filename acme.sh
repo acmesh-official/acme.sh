@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.1.2
+VER=3.1.3
 
 PROJECT_NAME="acme.sh"
 
@@ -1031,7 +1031,7 @@ _digest() {
 
   outputhex="$2"
 
-  if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ] || [ "$alg" = "md5" ]; then
+  if [ "$alg" = "sha3-256" ] || [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ] || [ "$alg" = "md5" ]; then
     if [ "$outputhex" ]; then
       ${ACME_OPENSSL_BIN:-openssl} dgst -"$alg" -hex | cut -d = -f 2 | tr -d ' '
     else
@@ -1250,7 +1250,7 @@ _idn() {
   fi
 }
 
-#_createcsr  cn  san_list  keyfile csrfile conf acmeValidationv1
+#_createcsr  cn  san_list  keyfile csrfile conf acmeValidationv1 extendedUsage
 _createcsr() {
   _debug _createcsr
   domain="$1"
@@ -1259,6 +1259,7 @@ _createcsr() {
   csr="$4"
   csrconf="$5"
   acmeValidationv1="$6"
+  extusage="$7"
   _debug2 domain "$domain"
   _debug2 domainlist "$domainlist"
   _debug2 csrkey "$csrkey"
@@ -1267,9 +1268,8 @@ _createcsr() {
 
   printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]" >"$csrconf"
 
-  if [ "$Le_ExtKeyUse" ]; then
-    _savedomainconf Le_ExtKeyUse "$Le_ExtKeyUse"
-    printf "\nextendedKeyUsage=$Le_ExtKeyUse\n" >>"$csrconf"
+  if [ "$extusage" ]; then
+    printf "\nextendedKeyUsage=$extusage\n" >>"$csrconf"
   else
     printf "\nextendedKeyUsage=serverAuth,clientAuth\n" >>"$csrconf"
   fi
@@ -1897,6 +1897,11 @@ _inithttp() {
 
   if [ -z "$_ACME_CURL" ] && _exists "curl"; then
     _ACME_CURL="curl --silent --dump-header $HTTP_HEADER "
+    if [ "$ACME_USE_IPV6_REQUESTS" ]; then
+      _ACME_CURL="$_ACME_CURL --ipv6 "
+    elif [ "$ACME_USE_IPV4_REQUESTS" ]; then
+      _ACME_CURL="$_ACME_CURL --ipv4 "
+    fi
     if [ -z "$ACME_HTTP_NO_REDIRECTS" ]; then
       _ACME_CURL="$_ACME_CURL -L "
     fi
@@ -1924,6 +1929,11 @@ _inithttp() {
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
     _ACME_WGET="wget -q"
+    if [ "$ACME_USE_IPV6_REQUESTS" ]; then
+      _ACME_WGET="$_ACME_WGET --inet6-only "
+    elif [ "$ACME_USE_IPV4_REQUESTS" ]; then
+      _ACME_WGET="$_ACME_WGET --inet4-only "
+    fi
     if [ "$ACME_HTTP_NO_REDIRECTS" ]; then
       _ACME_WGET="$_ACME_WGET --max-redirect 0 "
     fi
@@ -4435,6 +4445,7 @@ issue() {
   _valid_from="${16}"
   _valid_to="${17}"
   _certificate_profile="${18}"
+  _extended_key_usage="${19}"
 
   if [ -z "$_ACME_IS_RENEW" ]; then
     _initpath "$_main_domain" "$_key_length"
@@ -4579,11 +4590,24 @@ issue() {
         return 1
       fi
     fi
-    if ! _createcsr "$_main_domain" "$_alt_domains" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"; then
+    _keyusage="$_extended_key_usage"
+    if [ "$Le_API" = "$CA_GOOGLE" ] || [ "$Le_API" = "$CA_GOOGLE_TEST" ]; then
+      if [ -z "$_keyusage" ]; then
+        #https://github.com/acmesh-official/acme.sh/issues/6610
+        #google accepts serverauth only
+        _keyusage="serverAuth"
+      fi
+    fi
+    if ! _createcsr "$_main_domain" "$_alt_domains" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF" "" "$_keyusage"; then
       _err "Error creating CSR."
       _clearup
       _on_issue_err "$_post_hook"
       return 1
+    fi
+    if [ "$_extended_key_usage" ]; then
+      _savedomainconf "Le_ExtKeyUse" "$_extended_key_usage"
+    else
+      _cleardomainconf "Le_ExtKeyUse"
     fi
   fi
 
@@ -5215,6 +5239,16 @@ $_authorizations_map"
         return 1
       fi
       break
+    elif _contains "$response" "\"ready\""; then
+      _info "Order status is 'ready', let's sleep and retry."
+      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      _debug "_retryafter" "$_retryafter"
+      if [ "$_retryafter" ]; then
+        _info "Sleeping for $_retryafter seconds then retrying"
+        _sleep $_retryafter
+      else
+        _sleep 2
+      fi
     elif _contains "$response" "\"processing\""; then
       _info "Order status is 'processing', let's sleep and retry."
       _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
@@ -5540,7 +5574,7 @@ renew() {
       _cleardomainconf Le_OCSP_Staple
     fi
   fi
-  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain" "$Le_Valid_From" "$Le_Valid_To" "$Le_Certificate_Profile"
+  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain" "$Le_Valid_From" "$Le_Valid_To" "$Le_Certificate_Profile" "$Le_ExtKeyUse"
   res="$?"
   if [ "$res" != "0" ]; then
     return "$res"
@@ -7134,6 +7168,8 @@ Parameters:
   --auto-upgrade [0|1]              Valid for '--upgrade' command, indicating whether to upgrade automatically in future. Defaults to 1 if argument is omitted.
   --listen-v4                       Force standalone/tls server to listen at ipv4.
   --listen-v6                       Force standalone/tls server to listen at ipv6.
+  --request-v4                      Force client requests to use ipv4 to connect to the CA server.
+  --request-v6                      Force client requests to use ipv6 to connect to the CA server.
   --openssl-bin <file>              Specifies a custom openssl bin location.
   --use-wget                        Force to use wget, if you have both curl and wget installed.
   --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force use of dns manual mode.
@@ -7250,6 +7286,24 @@ _processAccountConf() {
     _saveaccountconf "ACME_USE_WGET" "$_use_wget"
   elif [ "$ACME_USE_WGET" ]; then
     _saveaccountconf "ACME_USE_WGET" "$ACME_USE_WGET"
+  fi
+
+  if [ "$_request_v6" ]; then
+    _saveaccountconf "ACME_USE_IPV6_REQUESTS" "$_request_v6"
+    _clearaccountconf "ACME_USE_IPV4_REQUESTS"
+    ACME_USE_IPV4_REQUESTS=
+  elif [ "$_request_v4" ]; then
+    _saveaccountconf "ACME_USE_IPV4_REQUESTS" "$_request_v4"
+    _clearaccountconf "ACME_USE_IPV6_REQUESTS"
+    ACME_USE_IPV6_REQUESTS=
+  elif [ "$ACME_USE_IPV6_REQUESTS" ]; then
+    _saveaccountconf "ACME_USE_IPV6_REQUESTS" "$ACME_USE_IPV6_REQUESTS"
+    _clearaccountconf "ACME_USE_IPV4_REQUESTS"
+    ACME_USE_IPV4_REQUESTS=
+  elif [ "$ACME_USE_IPV4_REQUESTS" ]; then
+    _saveaccountconf "ACME_USE_IPV4_REQUESTS" "$ACME_USE_IPV4_REQUESTS"
+    _clearaccountconf "ACME_USE_IPV6_REQUESTS"
+    ACME_USE_IPV6_REQUESTS=
   fi
 
 }
@@ -7417,6 +7471,8 @@ _process() {
   _local_address=""
   _log_level=""
   _auto_upgrade=""
+  _request_v4=""
+  _request_v6=""
   _listen_v4=""
   _listen_v6=""
   _openssl_bin=""
@@ -7434,6 +7490,7 @@ _process() {
   _valid_from=""
   _valid_to=""
   _certificate_profile=""
+  _extended_key_usage=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -7829,7 +7886,7 @@ _process() {
       shift
       ;;
     --extended-key-usage)
-      Le_ExtKeyUse="$2"
+      _extended_key_usage="$2"
       shift
       ;;
     --ocsp-must-staple | --ocsp)
@@ -7881,6 +7938,18 @@ _process() {
         shift
       fi
       AUTO_UPGRADE="$_auto_upgrade"
+      ;;
+    --request-v4)
+      _request_v4="1"
+      ACME_USE_IPV4_REQUESTS="1"
+      _request_v6=""
+      ACME_USE_IPV6_REQUESTS=""
+      ;;
+    --request-v6)
+      _request_v6="1"
+      ACME_USE_IPV6_REQUESTS="1"
+      _request_v4=""
+      ACME_USE_IPV4_REQUESTS=""
       ;;
     --listen-v4)
       _listen_v4="1"
@@ -8034,7 +8103,7 @@ _process() {
   uninstall) uninstall "$_nocron" ;;
   upgrade) upgrade ;;
   issue)
-    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_valid_from" "$_valid_to" "$_certificate_profile"
+    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_valid_from" "$_valid_to" "$_certificate_profile" "$_extended_key_usage"
     ;;
   deploy)
     deploy "$_domain" "$_deploy_hook" "$_ecc"

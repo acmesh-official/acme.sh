@@ -65,7 +65,7 @@ jobs:
       run: |
         docker run --rm -itd --name=pebble \
         -e PEBBLE_VA_ALWAYS_VALID=1 \
-        -p 14000:14000 -p 15000:15000   letsencrypt/pebble:latest pebble -config /test/config/pebble-config.json -strict
+        -p 14000:14000 -p 15000:15000   ghcr.io/letsencrypt/pebble:latest -config /test/config/pebble-config.json -strict
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
