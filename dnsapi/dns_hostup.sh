@@ -3,7 +3,7 @@
 
 dns_hostup_info='HostUp DNS
 Site: hostup.se
-Docs: https://hostup.se/en/support/api-autentisering/
+Docs: https://developer.hostup.se/
 Options:
  HOSTUP_API_KEY     Required. HostUp API key with read:dns + write:dns + read:domains scopes.
  HOSTUP_API_BASE    Optional. Override API base URL (default: https://cloud.hostup.se/api).
@@ -171,7 +171,7 @@ _hostup_detect_zone() {
     return 1
   fi
 
-  _domain_candidate="$(_lower_case "$fulldomain")"
+  _domain_candidate="$(printf "%s" "$fulldomain" | _lower_case)"
   _debug "hostup_initial_candidate" "$_domain_candidate"
 
   while [ -n "$_domain_candidate" ]; do
@@ -392,7 +392,7 @@ _hostup_record_key() {
   zone_id="$1"
   domain="$2"
   safe_zone="$(printf "%s" "$zone_id" | sed 's/[^A-Za-z0-9]/_/g')"
-  safe_domain="$(printf "%s" "$(_lower_case "$domain")" | sed 's/[^a-z0-9]/_/g')"
+  safe_domain="$(printf "%s" "$domain" | _lower_case | sed 's/[^a-z0-9]/_/g')"
   printf "%s_%s" "$safe_zone" "$safe_domain"
 }
 
