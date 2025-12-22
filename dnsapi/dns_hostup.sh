@@ -171,7 +171,7 @@ _hostup_detect_zone() {
     return 1
   fi
 
-  _domain_candidate="$(printf "%s" "$fulldomain" | tr '[:upper:]' '[:lower:]')"
+  _domain_candidate="$(_lower_case "$fulldomain")"
   _debug "hostup_initial_candidate" "$_domain_candidate"
 
   while [ -n "$_domain_candidate" ]; do
@@ -361,7 +361,7 @@ _hostup_json_extract() {
   input="${2:-$line}"
 
   # First try to extract quoted values (strings)
-  quoted_match="$(printf "%s" "$input" | _egrep_o "\"$key\":\"[^\"]*\"" | head -n1)"
+  quoted_match="$(printf "%s" "$input" | _egrep_o "\"$key\":\"[^\"]*\"" | _head_n 1)"
   if [ -n "$quoted_match" ]; then
     printf "%s" "$quoted_match" |
       cut -d : -f2- |
@@ -372,7 +372,7 @@ _hostup_json_extract() {
   fi
 
   # Fallback for unquoted values (e.g., numeric IDs)
-  unquoted_match="$(printf "%s" "$input" | _egrep_o "\"$key\":[^,}]*" | head -n1)"
+  unquoted_match="$(printf "%s" "$input" | _egrep_o "\"$key\":[^,}]*" | _head_n 1)"
   if [ -n "$unquoted_match" ]; then
     printf "%s" "$unquoted_match" |
       cut -d : -f2- |
@@ -392,7 +392,7 @@ _hostup_record_key() {
   zone_id="$1"
   domain="$2"
   safe_zone="$(printf "%s" "$zone_id" | sed 's/[^A-Za-z0-9]/_/g')"
-  safe_domain="$(printf "%s" "$domain" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g')"
+  safe_domain="$(printf "%s" "$(_lower_case "$domain")" | sed 's/[^a-z0-9]/_/g')"
   printf "%s_%s" "$safe_zone" "$safe_domain"
 }
 
@@ -425,7 +425,7 @@ _hostup_extract_record_id() {
     return 0
   fi
 
-  printf "%s" "$1" | _egrep_o '"id":[0-9]+' | head -n1 | cut -d: -f2
+  printf "%s" "$1" | _egrep_o '"id":[0-9]+' | _head_n 1 | cut -d: -f2
 }
 
 _hostup_delete_record_by_id() {
