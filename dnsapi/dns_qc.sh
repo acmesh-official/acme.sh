@@ -18,6 +18,11 @@ dns_qc_add() {
   txtvalue=$2
 
   _debug "Enter dns_qc_add fulldomain: $fulldomain, txtvalue: $txtvalue"
+  if ! _exists jq; then
+    _err "jq not found"
+    return 1
+  fi
+
   QC_API_KEY="${QC_API_KEY:-$(_readaccountconf_mutable QC_API_KEY)}"
   QC_API_EMAIL="${QC_API_EMAIL:-$(_readaccountconf_mutable QC_API_EMAIL)}"
 
