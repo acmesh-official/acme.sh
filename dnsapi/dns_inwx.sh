@@ -6,6 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_inwx
 Options:
  INWX_User Username
  INWX_Password Password
+ INWX_Shared_Secret 2 Factor Authentication Shared Secret (optional requires oathtool)
 '
 
 # Dependencies:
@@ -110,11 +111,17 @@ dns_inwx_rm() {
         <string>%s</string>
        </value>
       </member>
+      <member>
+       <name>content</name>
+       <value>
+        <string>%s</string>
+       </value>
+      </member>
      </struct>
     </value>
    </param>
   </params>
-  </methodCall>' "$_domain" "$_sub_domain")
+  </methodCall>' "$_domain" "$_sub_domain" "$txtvalue")
   response="$(_post "$xml_content" "$INWX_Api" "" "POST")"
 
   if ! _contains "$response" "Command completed successfully"; then
@@ -125,7 +132,7 @@ dns_inwx_rm() {
   if ! printf "%s" "$response" | grep "count" >/dev/null; then
     _info "Do not need to delete record"
   else
-    _record_id=$(printf '%s' "$response" | _egrep_o '.*(<member><name>record){1}(.*)([0-9]+){1}' | _egrep_o '<name>id<\/name><value><int>[0-9]+' | _egrep_o '[0-9]+')
+    _record_id=$(printf '%s' "$response" | _egrep_o '.*(<member><name>record){1}(.*)([0-9]+){1}' | _egrep_o '<name>id<\/name><value><string>[0-9]+' | _egrep_o '[0-9]+')
     _info "Deleting record"
     _inwx_delete_record "$_record_id"
   fi
@@ -324,7 +331,7 @@ _inwx_delete_record() {
       <member>
        <name>id</name>
        <value>
-        <int>%s</int>
+        <string>%s</string>
        </value>
       </member>
      </struct>
@@ -362,7 +369,7 @@ _inwx_update_record() {
       <member>
        <name>id</name>
        <value>
-        <int>%s</int>
+        <string>%s</string>
        </value>
       </member>
      </struct>
