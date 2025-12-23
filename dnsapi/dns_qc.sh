@@ -19,7 +19,7 @@ dns_qc_add() {
 
   _debug "Enter dns_qc_add fulldomain: $fulldomain, txtvalue: $txtvalue"
   if ! _exists jq; then
-    _err "In dns_qc jq not found"
+    _err "In dns_qc jq not found."
     return 1
   fi
 
