@@ -7,7 +7,7 @@ Options:
  SCHLUNDTECH_USER Username
  SCHLUNDTECH_PASSWORD Password
 Issues: github.com/acmesh-official/acme.sh/issues/2246
-Author: <https://github.com/mod242>
+Author: @mod242
 '
 
 SCHLUNDTECH_API="https://gateway.schlundtech.de"
