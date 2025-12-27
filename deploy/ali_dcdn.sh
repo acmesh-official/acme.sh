@@ -83,6 +83,6 @@ _set_dcdn_domain_ssl_certificate_query() {
   query=$query'&SignatureMethod=HMAC-SHA1'
   query=$query"&SignatureNonce=$(_ali_nonce)"
   query=$query'&SignatureVersion=1.0'
-  query=$query'&Timestamp='$(_timestamp)
+  query=$query'&Timestamp='$(_ali_timestamp)
   query=$query'&Version=2018-01-15'
 }
