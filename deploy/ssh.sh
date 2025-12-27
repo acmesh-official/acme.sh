@@ -239,7 +239,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       fi
     else
       # ssh echo to the file
-      _cmdstr="$_cmdstr echo \"$(cat "$_ckey")\" > $DEPLOY_SSH_KEYFILE;"
+      _cmdstr="$_cmdstr echo \"$(cat "$_ckey")\" > $DEPLOY_SSH_KEYFILE; chmod 600 $DEPLOY_SSH_KEYFILE;"
       _info "will copy private key to remote file $DEPLOY_SSH_KEYFILE"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
