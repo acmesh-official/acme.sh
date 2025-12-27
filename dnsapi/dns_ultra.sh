@@ -122,6 +122,18 @@ _get_root() {
       #not valid
       return 1
     fi
+    # First try to access the zone directly (more reliable)
+    if _ultra_rest GET "zones/${h}"; then
+      if _contains "${response}" "\"name\":" >/dev/null; then
+        _domain_id="${h}"
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
+        _domain="${h}"
+        _debug sub_domain "${_sub_domain}"
+        _debug domain "${_domain}"
+        return 0
+      fi
+    fi
+    # Fallback: check the zones list if direct access failed
     if ! _ultra_rest GET "zones"; then
       return 1
     fi
