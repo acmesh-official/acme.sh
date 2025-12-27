@@ -17,6 +17,7 @@
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml/badge.svg" alt="Solaris"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml/badge.svg" alt="DragonFlyBSD"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml/badge.svg" alt="Omnios"></a>
+  <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml/badge.svg" alt="OpenIndiana"></a>
 </p>
 
 <p align="center">
