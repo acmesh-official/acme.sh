@@ -1020,6 +1020,12 @@ _checkcert() {
   fi
 }
 
+#file
+_enddate() {
+  _cf="$1"
+  ${ACME_OPENSSL_BIN:-openssl} x509 -noout -enddate -in "$_cf" | cut -d = -f 2
+}
+
 #Usage: hashalg  [outputhex]
 #Output Base64-encoded digest
 _digest() {
@@ -1847,6 +1853,25 @@ _date2time() {
     return
   fi
   _err "Cannot parse _date2time $1"
+  return 1
+}
+
+#support the output format of openssl -enddate:
+#     Apr 01 08:10:33 2022 GMT   to   1641283833
+_ssldate2time() {
+  #Linux
+  if date -u -d "$1" +"%s" 2>/dev/null; then
+    return
+  fi
+  #Solaris
+  if gdate -u -d "$1" +"%s" 2>/dev/null; then
+    return
+  fi
+  #Mac/BSD
+  if date -j -f "%b %d %T %Y %Z" "$1" +"%s" 2>/dev/null; then
+    return
+  fi
+  _err "Can not parse _date2time $1"
   return 1
 }
 
@@ -5387,7 +5412,7 @@ $_authorizations_map"
   Le_CertCreateTimeStr=$(_time2str "$Le_CertCreateTime")
   _savedomainconf "Le_CertCreateTimeStr" "$Le_CertCreateTimeStr"
 
-  if [ -z "$Le_RenewalDays" ] || [ "$Le_RenewalDays" -lt "0" ]; then
+  if [ -z "$Le_RenewalDays" ]; then
     Le_RenewalDays="$DEFAULT_RENEW"
   else
     _savedomainconf "Le_RenewalDays" "$Le_RenewalDays"
@@ -5446,6 +5471,11 @@ $_authorizations_map"
         Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
       fi
     fi
+  elif [ "$Le_RenewalDays" -lt "0" ]; then
+    _enddate=$(_enddate "$CERT_PATH")
+    _endtime=$(_ssldate2time "$_enddate")
+    Le_NextRenewTime=$(_math "$_endtime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
+    Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
   else
     Le_NextRenewTime=$(_math "$Le_CertCreateTime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
     Le_NextRenewTime=$(_math "$Le_NextRenewTime" - 86400)
