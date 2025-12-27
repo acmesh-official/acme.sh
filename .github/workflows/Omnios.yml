@@ -67,7 +67,7 @@ jobs:
         nat: |
           "8080": "80"
         prepare: pkg install socat wget
-        copyback: false
+        sync: nfs
         run: |
           cd ../acmetest \
           && ./letest.sh

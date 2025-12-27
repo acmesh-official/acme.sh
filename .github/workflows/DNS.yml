@@ -232,7 +232,7 @@ jobs:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: pkg install -y socat curl
         usesh: true
-        copyback: false
+        sync: nfs
         run: |
           if [ "${{ secrets.TokenName1}}" ] ; then
             export ${{ secrets.TokenName1}}="${{ secrets.TokenValue1}}"
@@ -283,7 +283,7 @@ jobs:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: pkg_add socat curl libiconv
         usesh: true
-        copyback: false
+        sync: nfs
         run: |
           if [ "${{ secrets.TokenName1}}" ] ; then
             export ${{ secrets.TokenName1}}="${{ secrets.TokenValue1}}"
@@ -335,7 +335,7 @@ jobs:
         prepare: |
           /usr/sbin/pkg_add curl socat
         usesh: true
-        copyback: false
+        sync: nfs
         run: |
           if [ "${{ secrets.TokenName1}}" ] ; then
             export ${{ secrets.TokenName1}}="${{ secrets.TokenValue1}}"
@@ -387,7 +387,7 @@ jobs:
         prepare: |
           pkg install -y curl socat libnghttp2
         usesh: true
-        copyback: false
+        sync: nfs
         run: |
           if [ "${{ secrets.TokenName1}}" ] ; then
             export ${{ secrets.TokenName1}}="${{ secrets.TokenValue1}}"
@@ -440,7 +440,7 @@ jobs:
     - uses: vmactions/solaris-vm@v1
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy HTTPS_INSECURE TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
-        copyback: false
+        sync: nfs
         prepare: |
           pkgutil -U
           pkgutil -y -i socat
@@ -493,7 +493,7 @@ jobs:
     - uses: vmactions/omnios-vm@v1
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy HTTPS_INSECURE TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
-        copyback: false
+        sync: nfs
         prepare: pkg install socat
         run: |
           if [ "${{ secrets.TokenName1}}" ] ; then

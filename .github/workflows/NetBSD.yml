@@ -63,7 +63,7 @@ jobs:
         prepare: |
           /usr/sbin/pkg_add curl socat
         usesh: true
-        copyback: false
+        sync: nfs
         run: |
           cd ../acmetest \
           && ./letest.sh
