@@ -69,7 +69,7 @@ jobs:
         prepare: |
           pkgutil -U
           pkgutil -y -i socat curl wget
-        copyback: false
+        sync: nfs
         run: |
           cd ../acmetest \
           && ./letest.sh

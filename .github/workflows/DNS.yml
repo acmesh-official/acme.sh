@@ -232,7 +232,7 @@ jobs:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: pkg install -y socat curl
         usesh: true
-        copyback: false
+        sync: nfs
         run: |
           if [ "${{ secrets.TokenName1}}" ] ; then
             export ${{ secrets.TokenName1}}="${{ secrets.TokenValue1}}"
@@ -283,7 +283,7 @@ jobs:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: pkg_add socat curl libiconv
         usesh: true
-        copyback: false
+        sync: nfs
         run: |
           if [ "${{ secrets.TokenName1}}" ] ; then
             export ${{ secrets.TokenName1}}="${{ secrets.TokenValue1}}"
@@ -335,7 +335,7 @@ jobs:
         prepare: |
           /usr/sbin/pkg_add curl socat
         usesh: true
-        copyback: false
+        sync: nfs
         run: |
           if [ "${{ secrets.TokenName1}}" ] ; then
             export ${{ secrets.TokenName1}}="${{ secrets.TokenValue1}}"
@@ -387,7 +387,7 @@ jobs:
         prepare: |
           pkg install -y curl socat libnghttp2
         usesh: true
-        copyback: false
+        sync: nfs
         run: |
           if [ "${{ secrets.TokenName1}}" ] ; then
             export ${{ secrets.TokenName1}}="${{ secrets.TokenValue1}}"
@@ -440,7 +440,7 @@ jobs:
     - uses: vmactions/solaris-vm@v1
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy HTTPS_INSECURE TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
-        copyback: false
+        sync: nfs
         prepare: |
           pkgutil -U
           pkgutil -y -i socat
@@ -493,7 +493,56 @@ jobs:
     - uses: vmactions/omnios-vm@v1
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy HTTPS_INSECURE TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
-        copyback: false
+        sync: nfs
+        prepare: pkg install socat
+        run: |
+          if [ "${{ secrets.TokenName1}}" ] ; then
+            export ${{ secrets.TokenName1}}="${{ secrets.TokenValue1}}"
+          fi
+          if [ "${{ secrets.TokenName2}}" ] ; then
+            export ${{ secrets.TokenName2}}="${{ secrets.TokenValue2}}"
+          fi
+          if [ "${{ secrets.TokenName3}}" ] ; then
+            export ${{ secrets.TokenName3}}="${{ secrets.TokenValue3}}"
+          fi
+          if [ "${{ secrets.TokenName4}}" ] ; then
+            export ${{ secrets.TokenName4}}="${{ secrets.TokenValue4}}"
+          fi
+          if [ "${{ secrets.TokenName5}}" ] ; then
+            export ${{ secrets.TokenName5}}="${{ secrets.TokenValue5}}"
+          fi
+          cd ../acmetest
+          ./letest.sh
+
+
+  OpenIndiana:
+    runs-on: ubuntu-latest
+    needs: Omnios
+    env:
+      TEST_DNS : ${{ secrets.TEST_DNS }}
+      TestingDomain: ${{ secrets.TestingDomain }}
+      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
+      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      CASE: le_test_dnsapi
+      TEST_LOCAL: 1
+      DEBUG: ${{ secrets.DEBUG }}
+      http_proxy: ${{ secrets.http_proxy }}
+      https_proxy: ${{ secrets.https_proxy }}
+      HTTPS_INSECURE: 1 # always set to 1 to ignore https error, since OpenIndiana doesn't accept the expired ISRG X1 root
+      TokenName1: ${{ secrets.TokenName1}}
+      TokenName2: ${{ secrets.TokenName2}}
+      TokenName3: ${{ secrets.TokenName3}}
+      TokenName4: ${{ secrets.TokenName4}}
+      TokenName5: ${{ secrets.TokenName5}}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Clone acmetest
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - uses: vmactions/openindiana-vm@v0
+      with:
+        envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy HTTPS_INSECURE TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        sync: nfs
         prepare: pkg install socat
         run: |
           if [ "${{ secrets.TokenName1}}" ] ; then
