@@ -83,20 +83,31 @@ EOF
 # returns
 # _domain=domain.com
 _get_root() {
-  domain=$1
-  i="$(echo "$fulldomain" | tr '.' ' ' | wc -w)"
-  i=$(_math "$i" - 1)
+  ancestor="${1}."
 
-  while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
-    if [ -z "$h" ]; then
+  while true; do # loops over all ancestors of $1
+
+    # count labels
+    num_labels="$(echo "$ancestor" | tr '.' ' ' | wc -w)"
+
+    # abort if empty
+    if [ "$num_labels" -eq "0" ]; then
+      # error: could not find SOA record anywhere
+      _debug "no SOA record found in any ancestor of $1"
       return 1
     fi
-    _domain="$h"
-    return 0
+
+    # query for SOA at current ancestor
+    if [ -n "$(dig SOA +short "${ancestor}")" ]; then
+      # found SOA record
+      _info "found SOA at $ancestor"
+      _domain="${ancestor%?}"
+      return 0
+    fi
+
+    # cut one label from the left
+    ancestor=$(printf "%s" "${ancestor}" | cut -d . -f 2-)
   done
-  _debug "$domain not found"
-  return 1
 }
 
 _checkKey() {
