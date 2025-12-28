@@ -98,6 +98,7 @@ localcopy_deploy() {
       _err "Failed to copy certificate, aborting."
       return 1
     fi
+    _savedeployconf DEPLOY_LOCALCOPY_CERTIFICATE "$DEPLOY_LOCALCOPY_CERTIFICATE"
   fi
 
   if [ "$DEPLOY_LOCALCOPY_CERTKEY" ]; then
