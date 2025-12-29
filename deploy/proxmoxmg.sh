@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-# Deploy certificates to a proxmox mail gateway using the API.
+# Deploy certificates to a Proxmox Mail Gateway using the API.
 #
 # Environment variables that can be set are:
 # `DEPLOY_PROXMOXMG_SERVER`: The hostname of the proxmox backup server. Defaults to
@@ -95,7 +95,7 @@ proxmoxmg_deploy() {
   response=$(_post "{\"username\":\"${_proxmoxmg_user}@${_proxmoxmg_user_realm}\",\"password\":\"${_proxmoxmg_password}\"}" "https://${_target_hostname}:${_target_port}/api2/json/access/ticket" "" POST "application/json")
   _retval=$?
   if [ "${_retval}" -ne 0 ]; then
-    _err "Proxmox Backup Server API authentication failed."
+    _err "Proxmox Mail Gateway API authentication failed."
     _debug "Response" "$response"
     return 1
   fi
