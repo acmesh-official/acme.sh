@@ -125,13 +125,13 @@ dns_qc_rm() {
   record_id=""
 
   while IFS= read -r obj || [ -n "$obj" ]; do
-    if echo "$obj" | grep -q '"TXT"' && echo $obj | grep -q '"id"' && echo $obj | grep -q $txtvalue ; then
+    if echo "$obj" | grep -q '"TXT"' && echo "$obj" | grep -q '"id"' && echo "$obj" | grep -q "$txtvalue" ; then
       _debug "response includes" "$obj"
       record_id=$(echo "$obj" | sed 's/^\"id\":\([0-9]\+\).*/\1/')
       break
     fi
   done < "$tmpfile"
-  
+
   rm "$tmpfile"
 
   if [ -z "$record_id" ]; then
