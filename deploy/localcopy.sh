@@ -48,13 +48,13 @@ localcopy_deploy() {
   _combined_target=""
   _combined_srccert=""
 
+  # Create PEM file
   if [ "$DEPLOY_LOCALCOPY_CERTKEY" ] &&
     { [ "$DEPLOY_LOCALCOPY_CERTKEY" = "$DEPLOY_LOCALCOPY_FULLCHAIN" ] ||
       [ "$DEPLOY_LOCALCOPY_CERTKEY" = "$DEPLOY_LOCALCOPY_CERTIFICATE" ]; }; then
 
     _combined_target="$DEPLOY_LOCALCOPY_CERTKEY"
     _savedeployconf DEPLOY_LOCALCOPY_CERTKEY "$DEPLOY_LOCALCOPY_CERTKEY"
-
     if [ "$DEPLOY_LOCALCOPY_CERTKEY" = "$DEPLOY_LOCALCOPY_CERTIFICATE" ]; then
       _combined_srccert="$_ccert"
       _savedeployconf DEPLOY_LOCALCOPY_CERTIFICATE "$DEPLOY_LOCALCOPY_CERTIFICATE"
@@ -69,31 +69,18 @@ localcopy_deploy() {
     _info "Creating combined PEM"
     _debug "Creating combined PEM at $_combined_target"
     if ! [ -f "$_combined_target" ]; then
-      if ! (
-        touch "$_combined_target"
-        chmod 600 "$_combined_target"
-      ); then
-        _err "Failed to create PEM file"
-        return 1
-      fi
+      touch "$_combined_target" || return 1
+      chmod 600 "$_combined_target"
     fi
     if ! cat "$_combined_srccert" "$_ckey" >"$_combined_target"; then
       _err "Failed to create PEM file"
       return 1
     fi
   fi
+
   if [ "$DEPLOY_LOCALCOPY_CERTIFICATE" ]; then
     _info "Copying certificate"
     _debug "Copying $_ccert to $DEPLOY_LOCALCOPY_CERTIFICATE"
-    if ! [ -f "$DEPLOY_LOCALCOPY_CERTIFICATE" ]; then
-      if ! (
-        touch "$DEPLOY_LOCALCOPY_CERTIFICATE"
-        chmod 600 "$DEPLOY_LOCALCOPY_CERTIFICATE"
-      ); then
-        _err "Failed to copy certificate, aborting."
-        return 1
-      fi
-    fi
     if ! cat "$_ccert" >"$DEPLOY_LOCALCOPY_CERTIFICATE"; then
       _err "Failed to copy certificate, aborting."
       return 1
@@ -105,13 +92,8 @@ localcopy_deploy() {
     _info "Copying certificate key"
     _debug "Copying $_ckey to $DEPLOY_LOCALCOPY_CERTKEY"
     if ! [ -f "$DEPLOY_LOCALCOPY_CERTKEY" ]; then
-      if ! (
-        touch "$DEPLOY_LOCALCOPY_CERTKEY"
-        chmod 600 "$DEPLOY_LOCALCOPY_CERTKEY"
-      ); then
-        _err "Failed to copy certificate key, aborting."
-        return 1
-      fi
+      touch "$DEPLOY_LOCALCOPY_CERTKEY" || return 1
+      chmod 600 "$DEPLOY_LOCALCOPY_CERTKEY"
     fi
     if ! cat "$_ckey" >"$DEPLOY_LOCALCOPY_CERTKEY"; then
       _err "Failed to copy certificate key, aborting."
@@ -123,15 +105,6 @@ localcopy_deploy() {
   if [ "$DEPLOY_LOCALCOPY_FULLCHAIN" ]; then
     _info "Copying fullchain"
     _debug "Copying $_cfullchain to $DEPLOY_LOCALCOPY_FULLCHAIN"
-    if ! [ -f "$DEPLOY_LOCALCOPY_FULLCHAIN" ]; then
-      if ! (
-        touch "$DEPLOY_LOCALCOPY_FULLCHAIN"
-        chmod 600 "$DEPLOY_LOCALCOPY_FULLCHAIN"
-      ); then
-        _err "Failed to copy fullchain, aborting."
-        return 1
-      fi
-    fi
     if ! cat "$_cfullchain" >"$DEPLOY_LOCALCOPY_FULLCHAIN"; then
       _err "Failed to copy fullchain, aborting."
       return 1
@@ -142,15 +115,6 @@ localcopy_deploy() {
   if [ "$DEPLOY_LOCALCOPY_CA" ]; then
     _info "Copying CA"
     _debug "Copying $_cca to $DEPLOY_LOCALCOPY_CA"
-    if ! [ -f "$DEPLOY_LOCALCOPY_CA" ]; then
-      if ! (
-        touch "$DEPLOY_LOCALCOPY_CA"
-        chmod 600 "$DEPLOY_LOCALCOPY_CA"
-      ); then
-        _err "Failed to copy CA, aborting."
-        return 1
-      fi
-    fi
     if ! cat "$_cca" >"$DEPLOY_LOCALCOPY_CA"; then
       _err "Failed to copy CA, aborting."
       return 1
@@ -162,13 +126,8 @@ localcopy_deploy() {
     _info "Copying PFX"
     _debug "Copying $_cpfx to $DEPLOY_LOCALCOPY_PFX"
     if ! [ -f "$DEPLOY_LOCALCOPY_PFX" ]; then
-      if ! (
-        touch "$DEPLOY_LOCALCOPY_PFX"
-        chmod 600 "$DEPLOY_LOCALCOPY_PFX"
-      ); then
-        _err "Failed to copy PFX, aborting."
-        return 1
-      fi
+      touch "$DEPLOY_LOCALCOPY_PFX" || return 1
+      chmod 600 "$DEPLOY_LOCALCOPY_PFX"
     fi
     if ! cat "$_cpfx" >"$DEPLOY_LOCALCOPY_PFX"; then
       _err "Failed to copy PFX, aborting."
