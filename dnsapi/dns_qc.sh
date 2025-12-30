@@ -114,18 +114,18 @@ dns_qc_rm() {
   #record_id=$(echo "$response" | grep \"id\" | awk -F ' ' '{print $2}' | sed 's/,$//')
   #_debug "txt record_id" "$record_id"
   #Instead of jq
-  array=$(echo $response | grep -o '\[[^]]*\]' | sed 's/^\[\(.*\)\]$/\1/')
+  array=$(echo "$response" | grep -o '\[[^]]*\]' | sed 's/^\[\(.*\)\]$/\1/')
   if [ -z "$array" ]; then
     _err "Expected array in QC response: $response"
     return 1
   fi
   # Temporary file to hold matched content (one per line)
   tmpfile=$(_mktemp)
-  echo $array | grep -o '{[^}]*}' | sed 's/^{//;s/}$//' > "$tmpfile"
+  echo "$array" | grep -o '{[^}]*}' | sed 's/^{//;s/}$//' > "$tmpfile"
   while IFS= read -r obj || [ -n "$obj" ]; do
-    if echo $obj | grep -q '"TXT"' && echo $obj | grep -q '"id"' && echo $obj | grep -q $txtvalue ; then
+    if echo "$obj" | grep -q '"TXT"' && echo $obj | grep -q '"id"' && echo $obj | grep -q $txtvalue ; then
       _debug "response includes" "$obj"
-      record_id=$(echo $obj | sed 's/^\"id\":\([0-9]\+\).*/\1/')
+      record_id=$(echo "$obj" | sed 's/^\"id\":\([0-9]\+\).*/\1/')
       break
     fi
   done < "$tmpfile"
