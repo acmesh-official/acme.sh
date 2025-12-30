@@ -6,12 +6,11 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_sotoon
 Options:
  Sotoon_Token API Token
  Sotoon_WorkspaceUUID Workspace UUID
- Sotoon_WorkspaceName Workspace Name
 Issues: github.com/acmesh-official/acme.sh/issues/6656
 Author: Erfan Gholizade
 '
 
-SOTOON_API_URL="https://api.sotoon.ir/delivery/v2/global"
+SOTOON_API_URL="https://api.sotoon.ir/delivery/v2.1/global"
 
 ########  Public functions #####################
 
@@ -25,7 +24,6 @@ dns_sotoon_add() {
 
   Sotoon_Token="${Sotoon_Token:-$(_readaccountconf_mutable Sotoon_Token)}"
   Sotoon_WorkspaceUUID="${Sotoon_WorkspaceUUID:-$(_readaccountconf_mutable Sotoon_WorkspaceUUID)}"
-  Sotoon_WorkspaceName="${Sotoon_WorkspaceName:-$(_readaccountconf_mutable Sotoon_WorkspaceName)}"
 
   if [ -z "$Sotoon_Token" ]; then
     _err_sotoon "You didn't specify \"Sotoon_Token\" token yet."
@@ -37,16 +35,10 @@ dns_sotoon_add() {
     _err_sotoon "You can get yours from here https://ocean.sotoon.ir/profile/workspaces"
     return 1
   fi
-  if [ -z "$Sotoon_WorkspaceName" ]; then
-    _err_sotoon "You didn't specify \"Sotoon_WorkspaceName\" Workspace Name yet."
-    _err_sotoon "You can get yours from here https://ocean.sotoon.ir/profile/workspaces"
-    return 1
-  fi
 
   #save the info to the account conf file.
   _saveaccountconf_mutable Sotoon_Token "$Sotoon_Token"
   _saveaccountconf_mutable Sotoon_WorkspaceUUID "$Sotoon_WorkspaceUUID"
-  _saveaccountconf_mutable Sotoon_WorkspaceName "$Sotoon_WorkspaceName"
 
   _debug_sotoon "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -130,7 +122,6 @@ dns_sotoon_rm() {
 
   Sotoon_Token="${Sotoon_Token:-$(_readaccountconf_mutable Sotoon_Token)}"
   Sotoon_WorkspaceUUID="${Sotoon_WorkspaceUUID:-$(_readaccountconf_mutable Sotoon_WorkspaceUUID)}"
-  Sotoon_WorkspaceName="${Sotoon_WorkspaceName:-$(_readaccountconf_mutable Sotoon_WorkspaceName)}"
 
   _debug_sotoon "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -197,7 +188,6 @@ _get_root() {
 
   _debug_sotoon "Getting root domain for: $domain"
   _debug_sotoon "Sotoon WorkspaceUUID: $Sotoon_WorkspaceUUID"
-  _debug_sotoon "Sotoon WorkspaceName: $Sotoon_WorkspaceName"
 
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
@@ -212,7 +202,7 @@ _get_root() {
     _debug_sotoon "Fetching domain zones from Sotoon API"
     if ! _sotoon_rest GET ""; then
       _err_sotoon "Failed to get domain zones from Sotoon API"
-      _err_sotoon "Please check your Sotoon_Token, Sotoon_WorkspaceUUID, and Sotoon_WorkspaceName"
+      _err_sotoon "Please check your Sotoon_Token, Sotoon_WorkspaceUUID"
       return 1
     fi
 
@@ -271,7 +261,7 @@ _sotoon_rest() {
   token_trimmed=$(echo "$Sotoon_Token" | tr -d '"')
 
   # Construct the API endpoint
-  _api_path="$SOTOON_API_URL/workspaces/$Sotoon_WorkspaceUUID/namespaces/$Sotoon_WorkspaceName/domainzones"
+  _api_path="$SOTOON_API_URL/workspaces/$Sotoon_WorkspaceUUID/domainzones"
 
   if [ -n "$resource_id" ]; then
     _api_path="$_api_path/$resource_id"

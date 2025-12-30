@@ -68,7 +68,7 @@ jobs:
           "8080": "80"
         prepare: pkg_add socat curl wget libnghttp2
         usesh: true
-        copyback: false
+        sync: nfs
         run: |
           cd ../acmetest \
           && ./letest.sh

@@ -63,7 +63,7 @@ jobs:
         prepare: |
           pkg install -y curl socat libnghttp2
         usesh: true
-        copyback: false
+        sync: nfs
         run: |
           cd ../acmetest \
           && ./letest.sh
