@@ -14,7 +14,6 @@
 # `DEPLOY_PROXMOXMG_CERTIFICATE_TYPE`: Certificate type to deploy. Either 'api' or
 #                                    'smtp'. Defaults to 'api'.
 
-
 proxmoxmg_deploy() {
   _cdomain="$1"
   _ckey="$2"
