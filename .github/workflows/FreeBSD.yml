@@ -68,7 +68,7 @@ jobs:
           "8080": "80"
         prepare: pkg install -y socat curl wget
         usesh: true
-        copyback: false
+        sync: nfs
         run: |
           cd ../acmetest \
           && ./letest.sh
