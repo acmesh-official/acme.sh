@@ -20,6 +20,8 @@ ENV LE_WORKING_DIR=/acmebin
 
 ENV LE_CONFIG_HOME=/acme.sh
 
+ENV HOME=/acme.sh
+
 ARG AUTO_UPGRADE=1
 
 ENV AUTO_UPGRADE=$AUTO_UPGRADE
@@ -35,6 +37,8 @@ RUN addgroup -g 1000 acme && adduser -h $LE_CONFIG_HOME -s /bin/sh -G acme -D -H
 RUN cd /install_acme.sh && ([ -f /install_acme.sh/acme.sh ] && /install_acme.sh/acme.sh --install || curl https://get.acme.sh | sh) && rm -rf /install_acme.sh/
 
 RUN ln -s $LE_WORKING_DIR/acme.sh /usr/local/bin/acme.sh
+
+RUN chown -R acme:acme $LE_CONFIG_HOME
 
 RUN for verb in help \
   version \
