@@ -122,6 +122,8 @@ dns_qc_rm() {
   # Temporary file to hold matched content (one per line)
   tmpfile=$(_mktemp)
   echo "$array" | grep -o '{[^}]*}' | sed 's/^{//;s/}$//' > "$tmpfile"
+  record_id=""
+
   while IFS= read -r obj || [ -n "$obj" ]; do
     if echo "$obj" | grep -q '"TXT"' && echo $obj | grep -q '"id"' && echo $obj | grep -q $txtvalue ; then
       _debug "response includes" "$obj"
@@ -129,6 +131,7 @@ dns_qc_rm() {
       break
     fi
   done < "$tmpfile"
+  
   rm "$tmpfile"
 
   if [ -z "$record_id" ]; then
