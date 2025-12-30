@@ -130,15 +130,18 @@ dns_qc_rm() {
     fi
   done < $tmpfile
   rm $tmpfile
+
   if [ -z "$record_id" ]; then
-    _info "TXT record, or $txtvalue not found, noting to remove"
+    _info "TXT record, or $txtvalue not found, nothing to remove"
     return 0
   fi
+
   #End of jq replacement
   if ! _qc_rest DELETE "zones/$_domain_id/records/$record_id"; then
     _info "Delete txt record error."
     return 1
   fi
+  
   _info "TXT Record ID: $record_id successfully deleted"
   return 0
 }
