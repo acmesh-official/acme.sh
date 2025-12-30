@@ -18,11 +18,6 @@ dns_qc_add() {
   txtvalue=$2
 
   _debug "Enter dns_qc_add fulldomain: $fulldomain, txtvalue: $txtvalue"
-  if ! _exists jq; then
-    _err "In dns_qc jq not found."
-    return 1
-  fi
-
   QC_API_KEY="${QC_API_KEY:-$(_readaccountconf_mutable QC_API_KEY)}"
   QC_API_EMAIL="${QC_API_EMAIL:-$(_readaccountconf_mutable QC_API_EMAIL)}"
 
@@ -108,23 +103,43 @@ dns_qc_rm() {
     return 1
   fi
 
-  response=$(echo "$response" | jq ".result[] | select(.id) | select(.content == \"$txtvalue\") | select(.type == \"TXT\")")
-  _debug "get txt response" "$response"
-  if [ "${response}" = "" ]; then
-    _info "Don't need to remove txt records."
-  else
-    record_id=$(echo "$response" | grep \"id\" | awk -F ' ' '{print $2}' | sed 's/,$//')
-    _debug "txt record_id" "$record_id"
-    if [ -z "$record_id" ]; then
-      _err "Can not get txt record id to remove.  Run in debug mode."
-      return 1
-    fi
-    if ! _qc_rest DELETE "zones/$_domain_id/records/$record_id"; then
-      _info "Delete txt record error."
-      return 1
-    fi
-    _info "TXT Record ID: $record_id successfully deleted"
+  _debug "Pre-jq response:" "$response"
+  # Do not use jq or subsequent code
+  #response=$(echo "$response" | jq ".result[] | select(.id) | select(.content == \"$txtvalue\") | select(.type == \"TXT\")")
+  #_debug "get txt response" "$response"
+  #if [ "${response}" = "" ]; then
+  #  _info "Don't need to remove txt records."
+  #  return 0
+  #fi
+  #record_id=$(echo "$response" | grep \"id\" | awk -F ' ' '{print $2}' | sed 's/,$//')
+  #_debug "txt record_id" "$record_id"
+  #Instead of jq
+  array=$(echo $response | grep -o '\[[^]]*\]' | sed 's/^\[\(.*\)\]$/\1/')
+  if [ -z "$array" ]; then
+    _err "Expected array in QC response: $response"
+    return 1
   fi
+  # Temporary file to hold matched content (one per line)
+  tmpfile=$(_mktemp)
+  echo $array | grep -o '{[^}]*}' | sed 's/^{//;s/}$//' > "$tmpfile"
+  while IFS= read -r obj || [ -n "$obj" ]; do
+    if echo $obj | grep -q '"TXT"' && echo $obj | grep -q '"id"' && echo $obj | grep -q $txtvalue ; then
+      _debug "response includes" "$obj"
+      record_id=$(echo $obj | sed 's/^\"id\":\([0-9]\+\).*/\1/' )
+      break
+    fi
+  done < $tmpfile
+  rm $tmpfile
+  if [ -z "$record_id" ]; then
+    _info "TXT record, or $txtvalue not found, noting to remove"
+    return 0
+  fi
+  #End of jq replacement
+  if ! _qc_rest DELETE "zones/$_domain_id/records/$record_id"; then
+    _info "Delete txt record error."
+    return 1
+  fi
+  _info "TXT Record ID: $record_id successfully deleted"
   return 0
 }
 
