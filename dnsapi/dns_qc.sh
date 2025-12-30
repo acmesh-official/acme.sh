@@ -141,9 +141,10 @@ dns_qc_rm() {
     _info "Delete txt record error."
     return 1
   fi
-  
+
   _info "TXT Record ID: $record_id successfully deleted"
   return 0
+  
 }
 
 ####################  Private functions below ##################################
