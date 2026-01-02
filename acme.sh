@@ -5425,26 +5425,41 @@ $_authorizations_map"
     _cleardomainconf Le_ForceNewDomainKey
   fi
   if [ "$_notAfter" ]; then
-    Le_NextRenewTime=$(_date2time "$_notAfter")
+    Le_CertExpireTime=$(_date2time "$_notAfter")
     Le_NextRenewTimeStr="$_notAfter"
     if [ "$_valid_to" ] && ! _startswith "$_valid_to" "+"; then
       _info "The domain is set to be valid until: $_valid_to"
       _info "It cannot be renewed automatically"
       _info "See: $_VALIDITY_WIKI"
+      Le_NextRenewTime="$Le_CertExpireTime"
     else
-      _now=$(_time)
-      _debug2 "_now" "$_now"
-      _lifetime=$(_math $Le_NextRenewTime - $_now)
-      _debug2 "_lifetime" "$_lifetime"
-      if [ $_lifetime -gt 86400 ]; then
-        #if lifetime is logner than one day, it will renew one day before
-        Le_NextRenewTime=$(_math $Le_NextRenewTime - 86400)
-        Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+      # Calculate renewal time based on user's --days setting first
+      Le_UserRenewTime=$(_math "$Le_CertCreateTime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
+      _debug2 "Le_UserRenewTime" "$Le_UserRenewTime"
+      _debug2 "Le_CertExpireTime" "$Le_CertExpireTime"
+      
+      # Check if user's renewal time is after certificate expiration
+      if [ "$Le_UserRenewTime" -ge "$Le_CertExpireTime" ]; then
+        # User's setting would renew after expiration, use fallback logic
+        _now=$(_time)
+        _debug2 "_now" "$_now"
+        _lifetime=$(_math $Le_CertExpireTime - $_now)
+        _debug2 "_lifetime" "$_lifetime"
+        if [ $_lifetime -gt 86400 ]; then
+          #if lifetime is longer than one day, it will renew one day before
+          Le_NextRenewTime=$(_math $Le_CertExpireTime - 86400)
+          _info "Certificate expires in less than $Le_RenewalDays days, setting renewal to 1 day before expiration"
+        else
+          #if lifetime is less than 24 hours, it will renew one hour before
+          Le_NextRenewTime=$(_math $Le_CertExpireTime - 3600)
+          _info "Certificate expires in less than 24 hours, setting renewal to 1 hour before expiration"
+        fi
       else
-        #if lifetime is less than 24 hours, it will renew one hour before
-        Le_NextRenewTime=$(_math $Le_NextRenewTime - 3600)
-        Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+        # User's setting is valid, use it
+        Le_NextRenewTime="$Le_UserRenewTime"
+        _info "Using user-specified renewal time: $Le_RenewalDays days after issuance"
       fi
+      Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
     fi
   else
     Le_NextRenewTime=$(_math "$Le_CertCreateTime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
