@@ -1,18 +1,18 @@
-name: NetBSD
+name: OpenIndiana
 on:
   push:
     branches:
       - '*'
     paths:
       - '*.sh'
-      - '.github/workflows/NetBSD.yml'
+      - '.github/workflows/OpenIndiana.yml'
 
   pull_request:
     branches:
       - dev
     paths:
       - '*.sh'
-      - '.github/workflows/NetBSD.yml'
+      - '.github/workflows/OpenIndiana.yml'
 
 concurrency: 
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,7 +21,7 @@ concurrency:
 
 
 jobs:
-  NetBSD:
+  OpenIndiana:
     strategy:
       matrix:
         include:
@@ -30,6 +30,12 @@ jobs:
            CA: ""
            CA_EMAIL: ""
            TEST_PREFERRED_CHAIN: (STAGING)
+         - TEST_ACME_Server: "LetsEncrypt.org_test"
+           CA_ECDSA: ""
+           CA: ""
+           CA_EMAIL: ""
+           TEST_PREFERRED_CHAIN: (STAGING)
+           ACME_USE_WGET: 1
          #- TEST_ACME_Server: "ZeroSSL.com"
          #  CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
          #  CA: "ZeroSSL RSA Domain Secure Site CA"
@@ -55,14 +61,12 @@ jobs:
       run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/netbsd-vm@v1
+    - uses: vmactions/openindiana-vm@v0
       with:
         envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN ACME_USE_WGET'
         nat: |
           "8080": "80"
-        prepare: |
-          /usr/sbin/pkg_add curl socat
-        usesh: true
+        prepare: pkg install socat curl
         sync: nfs
         run: |
           cd ../acmetest \

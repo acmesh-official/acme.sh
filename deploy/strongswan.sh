@@ -33,7 +33,7 @@ strongswan_deploy() {
       return 1
     fi
     _info _confdir "${_confdir}"
-    __deploy_cert "$@" "stroke" "${_confdir}"
+    __deploy_cert "stroke" "${_confdir}" "$@"
     ${_ipsec} reload
   fi
   # For modern vici mode
@@ -50,7 +50,7 @@ strongswan_deploy() {
       _err "no swanctl config dir is found"
       return 1
     fi
-    __deploy_cert "$@" "vici" "${_confdir}"
+    __deploy_cert "vici" "${_confdir}" "$@"
     ${_swanctl} --load-creds
   fi
   if [ -z "${_swanctl}" ] && [ -z "${_ipsec}" ]; then
@@ -63,13 +63,13 @@ strongswan_deploy() {
 ####################  Private functions below ##################################
 
 __deploy_cert() {
-  _cdomain="${1}"
-  _ckey="${2}"
-  _ccert="${3}"
-  _cca="${4}"
-  _cfullchain="${5}"
-  _swan_mode="${6}"
-  _confdir="${7}"
+  _swan_mode="${1}"
+  _confdir="${2}"
+  _cdomain="${3}"
+  _ckey="${4}"
+  _ccert="${5}"
+  _cca="${6}"
+  _cfullchain="${7}"
   _debug _cdomain "${_cdomain}"
   _debug _ckey "${_ckey}"
   _debug _ccert "${_ccert}"
