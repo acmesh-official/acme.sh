@@ -1873,6 +1873,47 @@ _mktemp() {
   _err "Cannot create temp file."
 }
 
+# Parse the "authorizations" URLs from the response and account for the unlikely case
+# that there are nested square brackets due to the use of IPv6 addresses in the
+# server URL
+#
+# Example:
+# '{"id":"3LlSglOPQbnGgy0I1wMbnxSVJrHnDqT2","status":"pending","expires":"2025-04-03T14:39:22Z",
+# "identifiers":[{"type":"dns","value":"fqdn1.client.com"},{"type":"dns","value":"fqdn2.client.com"}],
+# "notBefore":"2025-04-02T14:38:22Z","notAfter":"2025-04-03T14:39:22Z",
+# "authorizations":["https://[2001:420:2c7f:11:10:86:92:243]/acme/acme/authz/AzuW3cc3Hqb5nMOPkZfG6bBAtWxp8AWH",
+# "https://[2001:420:2c7f:11:10:86:92:243]/acme/acme/authz/5B0PBcY4uSboiG7Pc19ltTjjsWCsqUay"],
+# "finalize":"https://[2001:420:2c7f:11:10:86:92:243]/acme/acme/order/3LlSglOPQbnGgy0I1wMbnxSVJrHnDqT2/finalize"}'
+_parse_authorizations() {
+  awk '
+    BEGIN {
+      FS = "";
+      inside = 0;
+      match_found = 0
+    }{
+      for (i = 1; i <= NF; i++) {
+        if (substr($0, i, 16) == "\"authorizations\"") {
+          match_found = 1
+        }
+        if (match_found) {
+          if ($i == "[") {
+            inside++
+          }
+          if (inside > 0 && (inside > 1 || ($i != "[" && $i != "]"))) {
+            printf "%s", $i
+          }
+          if ($i == "]") {
+            inside--
+            if (inside == 0) {
+              print ""
+              match_found = 0
+            }
+          }
+        }
+      }
+    }'
+}
+
 #clear all the https envs to cause _inithttp() to run next time.
 _resethttp() {
   __HTTP_INITIALIZED=""
@@ -4710,7 +4751,7 @@ issue() {
     #for dns manual mode
     _savedomainconf "Le_OrderFinalize" "$Le_OrderFinalize"
 
-    _authorizations_seg="$(echo "$response" | _json_decode | _egrep_o '"authorizations" *: *\[[^\[]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
+    _authorizations_seg="$(echo "$response" | _json_decode | _parse_authorizations | tr -d '"')"
     _debug2 _authorizations_seg "$_authorizations_seg"
     if [ -z "$_authorizations_seg" ]; then
       _err "_authorizations_seg not found."
@@ -6425,7 +6466,7 @@ _deactivate() {
     _err "Cannot get new order for domain."
     return 1
   fi
-  _authorizations_seg="$(echo "$response" | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
+  _authorizations_seg="$(echo "$response" | _json_decode | _parse_authorizations | tr -d '"')"
   _debug2 _authorizations_seg "$_authorizations_seg"
   if [ -z "$_authorizations_seg" ]; then
     _err "_authorizations_seg not found."
