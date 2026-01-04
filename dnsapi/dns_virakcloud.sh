@@ -43,6 +43,7 @@ dns_virakcloud_add() {
 
   _info "Adding TXT record"
 
+
   if _virakcloud_rest POST "domains/${_domain}/records" "{\"record\":\"${fulldomain}\",\"type\":\"TXT\",\"ttl\":3600,\"content\":\"${txtvalue}\"}"; then
     if echo "$response" | grep -q "success" || echo "$response" | grep -q "\"data\""; then
       _info "Added, OK"
