@@ -43,7 +43,6 @@ dns_virakcloud_add() {
 
   _info "Adding TXT record"
 
-
   if _virakcloud_rest POST "domains/${_domain}/records" "{\"record\":\"${fulldomain}\",\"type\":\"TXT\",\"ttl\":3600,\"content\":\"${txtvalue}\"}"; then
     if echo "$response" | grep -q "success" || echo "$response" | grep -q "\"data\""; then
       _info "Added, OK"
@@ -101,11 +100,11 @@ dns_virakcloud_rm() {
   contentid=""
   # Extract innermost objects (content objects) which look like {"id":"...","content_raw":"..."}
   # We filter for the one containing txtvalue
-  
+
   target_obj=$(echo "$response" | grep -o '{[^}]*}' | grep "$txtvalue" | _head_n 1)
-  
+
   if [ -n "$target_obj" ]; then
-      contentid=$(echo "$target_obj" | _egrep_o '"id":"[^"]*"' | cut -d '"' -f 4)
+    contentid=$(echo "$target_obj" | _egrep_o '"id":"[^"]*"' | cut -d '"' -f 4)
   fi
 
   if [ -z "$contentid" ]; then
@@ -197,7 +196,7 @@ _virakcloud_rest() {
   fi
 
   _ret="$?"
-  
+
   if [ "$_ret" != "0" ]; then
     _err "error on $m $ep"
     return 1
