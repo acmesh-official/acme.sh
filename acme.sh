@@ -2434,6 +2434,10 @@ _read_conf() {
 #_savedomainconf   key  value  base64encode
 #save to domain.conf
 _savedomainconf() {
+  if [ ! -f "$DOMAIN_CONF" ]; then
+    touch "$DOMAIN_CONF"
+    chmod 600 "$DOMAIN_CONF"
+  fi
   _save_conf "$DOMAIN_CONF" "$@"
 }
 
