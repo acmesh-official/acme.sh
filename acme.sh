@@ -2970,9 +2970,15 @@ _initpath() {
     return 0
   fi
 
+  if [ -z "$_certname" ]; then
+    CERT_NAME="$domain"
+  else
+    CERT_NAME="$_certname"
+  fi
+
   if [ -z "$DOMAIN_PATH" ]; then
-    domainhome="$CERT_HOME/$domain"
-    domainhomeecc="$CERT_HOME/$domain$ECC_SUFFIX"
+    domainhome="$CERT_HOME/$CERT_NAME"
+    domainhomeecc="$CERT_HOME/$CERT_NAME$ECC_SUFFIX"
 
     DOMAIN_PATH="$domainhome"
 
@@ -2993,21 +2999,21 @@ _initpath() {
   fi
 
   if [ -z "$DOMAIN_CONF" ]; then
-    DOMAIN_CONF="$DOMAIN_PATH/$domain.conf"
+    DOMAIN_CONF="$DOMAIN_PATH/$CERT_NAME.conf"
   fi
 
   if [ -z "$DOMAIN_SSL_CONF" ]; then
-    DOMAIN_SSL_CONF="$DOMAIN_PATH/$domain.csr.conf"
+    DOMAIN_SSL_CONF="$DOMAIN_PATH/$CERT_NAME.csr.conf"
   fi
 
   if [ -z "$CSR_PATH" ]; then
-    CSR_PATH="$DOMAIN_PATH/$domain.csr"
+    CSR_PATH="$DOMAIN_PATH/$CERT_NAME.csr"
   fi
   if [ -z "$CERT_KEY_PATH" ]; then
-    CERT_KEY_PATH="$DOMAIN_PATH/$domain.key"
+    CERT_KEY_PATH="$DOMAIN_PATH/$CERT_NAME.key"
   fi
   if [ -z "$CERT_PATH" ]; then
-    CERT_PATH="$DOMAIN_PATH/$domain.cer"
+    CERT_PATH="$DOMAIN_PATH/$CERT_NAME.cer"
   fi
   if [ -z "$CA_CERT_PATH" ]; then
     CA_CERT_PATH="$DOMAIN_PATH/ca.cer"
@@ -3016,10 +3022,10 @@ _initpath() {
     CERT_FULLCHAIN_PATH="$DOMAIN_PATH/fullchain.cer"
   fi
   if [ -z "$CERT_PFX_PATH" ]; then
-    CERT_PFX_PATH="$DOMAIN_PATH/$domain.pfx"
+    CERT_PFX_PATH="$DOMAIN_PATH/$CERT_NAME.pfx"
   fi
   if [ -z "$CERT_PKCS8_PATH" ]; then
-    CERT_PKCS8_PATH="$DOMAIN_PATH/$domain.pkcs8"
+    CERT_PKCS8_PATH="$DOMAIN_PATH/$CERT_NAME.pkcs8"
   fi
 
   if [ -z "$TLS_CONF" ]; then
@@ -7176,6 +7182,7 @@ Parameters:
   --accountconf <file>              Specifies a customized account config file.
   --home <directory>                Specifies the home dir for $PROJECT_NAME.
   --cert-home <directory>           Specifies the home dir to save all the certs.
+  --cert-name <name>                Specifies the name of the dir and base filenames of the certs, only valid for '--issue' command.
   --config-home <directory>         Specifies the home dir to save all the configurations.
   --useragent <string>              Specifies the user agent string. it will be saved for future use too.
   -m, --email <email>               Specifies the account email, only valid for the '--install' and '--update-account' command.
@@ -7488,6 +7495,7 @@ _process() {
   _accountemail=""
   _accountkey=""
   _certhome=""
+  _certname=""
   _confighome=""
   _httpport=""
   _tlsport=""
@@ -7816,6 +7824,10 @@ _process() {
     --cert-home | --certhome)
       _certhome="$2"
       export CERT_HOME="$_certhome"
+      shift
+      ;;
+    --cert-name | --certname)
+      _certname="$2"
       shift
       ;;
     --config-home)
