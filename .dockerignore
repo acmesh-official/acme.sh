@@ -1,0 +1,8 @@
+README.md
+LICENSE.md
+.git
+.gitignore
+.dockerignore
+*.md
+.DS_Store
+
