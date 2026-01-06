@@ -61,7 +61,7 @@ jobs:
       run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/openindiana-vm@v0
+    - uses: vmactions/openindiana-vm@v1
       with:
         envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN ACME_USE_WGET'
         nat: |
@@ -71,5 +71,9 @@ jobs:
         run: |
           cd ../acmetest \
           && ./letest.sh
-
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
 

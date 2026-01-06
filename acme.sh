@@ -1466,7 +1466,7 @@ _toPkcs() {
     ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -inkey "$_ckey" -in "$_ccert" -certfile "$_cca"
   fi
   if [ "$?" = "0" ]; then
-    _savedomainconf "Le_PFXPassword" "$pfxPassword"
+    _savedomainconf "Le_PFXPassword" "$pfxPassword" "base64"
   fi
 
 }
@@ -2783,6 +2783,7 @@ _clearAPI() {
   ACME_REVOKE_CERT=""
   ACME_NEW_NONCE=""
   ACME_AGREEMENT=""
+  ACME_RENEWAL_INFO=""
 }
 
 #server
@@ -2827,6 +2828,9 @@ _initAPI() {
     ACME_AGREEMENT=$(echo "$response" | _egrep_o 'termsOfService" *: *"[^"]*"' | cut -d '"' -f 3)
     export ACME_AGREEMENT
 
+    ACME_RENEWAL_INFO=$(echo "$response" | _egrep_o 'renewalInfo" *: *"[^"]*"' | cut -d '"' -f 3)
+    export ACME_RENEWAL_INFO
+
     _debug "ACME_KEY_CHANGE" "$ACME_KEY_CHANGE"
     _debug "ACME_NEW_AUTHZ" "$ACME_NEW_AUTHZ"
     _debug "ACME_NEW_ORDER" "$ACME_NEW_ORDER"
@@ -2834,6 +2838,7 @@ _initAPI() {
     _debug "ACME_REVOKE_CERT" "$ACME_REVOKE_CERT"
     _debug "ACME_AGREEMENT" "$ACME_AGREEMENT"
     _debug "ACME_NEW_NONCE" "$ACME_NEW_NONCE"
+    _debug "ACME_RENEWAL_INFO" "$ACME_RENEWAL_INFO"
     if [ "$ACME_NEW_ACCOUNT" ] && [ "$ACME_NEW_ORDER" ]; then
       return 0
     fi
@@ -4465,7 +4470,7 @@ issue() {
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
     _debug Le_NextRenewTime "$Le_NextRenewTime"
     if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
-      _valid_to_saved=$(_readdomainconf Le_Valid_to)
+      _valid_to_saved=$(_readdomainconf Le_Valid_To)
       if [ "$_valid_to_saved" ] && ! _startswith "$_valid_to_saved" "+"; then
         _info "The domain is set to be valid to: $_valid_to_saved"
         _info "It cannot be renewed automatically"
@@ -5450,10 +5455,10 @@ $_authorizations_map"
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
 
   #convert to pkcs12
+  Le_PFXPassword="$(_readdomainconf Le_PFXPassword)"
   if [ "$Le_PFXPassword" ]; then
     _toPkcs "$CERT_PFX_PATH" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$Le_PFXPassword"
   fi
-  export CERT_PFX_PATH
 
   if [ "$_real_cert$_real_key$_real_ca$_reload_cmd$_real_fullchain" ]; then
     _savedomainconf "Le_RealCertPath" "$_real_cert"
@@ -5563,6 +5568,10 @@ renew() {
   Le_RenewHook="$(_readdomainconf Le_RenewHook)"
   Le_Preferred_Chain="$(_readdomainconf Le_Preferred_Chain)"
   Le_Certificate_Profile="$(_readdomainconf Le_Certificate_Profile)"
+  Le_Valid_From="$(_readdomainconf Le_Valid_From)"
+  Le_Valid_To="$(_readdomainconf Le_Valid_To)"
+  Le_ExtKeyUse="$(_readdomainconf Le_ExtKeyUse)"
+
   # When renewing from an old version, the empty Le_Keylength means 2048.
   # Note, do not use DEFAULT_DOMAIN_KEY_LENGTH as that value may change over
   # time but an empty value implies 2048 specifically.
@@ -5744,6 +5753,10 @@ signcsr() {
   _local_addr="${11}"
   _challenge_alias="${12}"
   _preferred_chain="${13}"
+  _valid_f="${14}"
+  _valid_t="${15}"
+  _cert_prof="${16}"
+  _en_key_usage="${17}"
 
   _csrsubj=$(_readSubjectFromCSR "$_csrfile")
   if [ "$?" != "0" ]; then
@@ -5787,7 +5800,7 @@ signcsr() {
   _info "Copying CSR to: $CSR_PATH"
   cp "$_csrfile" "$CSR_PATH"
 
-  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_addr" "$_challenge_alias" "$_preferred_chain"
+  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_addr" "$_challenge_alias" "$_preferred_chain" "$_valid_f" "$_valid_t" "$_cert_prof" "$_en_key_usage"
 
 }
 
@@ -5840,7 +5853,8 @@ list() {
     if [ -z "$_domain" ]; then
       printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Profile${_sep}CA${_sep}Created${_sep}Renew"
     fi
-    for di in "${CERT_HOME}"/{*.*,*:*}/; do
+    for di in "${CERT_HOME}"/*.* "${CERT_HOME}"/*:*; do
+      [ -d "$di" ] || continue
       d=$(basename "$di")
       _debug d "$d"
       (
@@ -6535,6 +6549,36 @@ deactivate() {
       return 1
     fi
   done
+}
+
+#cert
+_getAKI() {
+  _cert="$1"
+  openssl x509 -in "$_cert" -text -noout | grep "X509v3 Authority Key Identifier" -A 1 | _tail_n 1 | tr -d ' :'
+}
+
+#cert
+_getSerial() {
+  _cert="$1"
+  openssl x509 -in "$_cert" -serial -noout | cut -d = -f 2
+}
+
+#cert
+_get_ARI() {
+  _cert="$1"
+  _aki=$(_getAKI "$_cert")
+  _ser=$(_getSerial "$_cert")
+  _debug2 "_aki" "$_aki"
+  _debug2 "_ser" "$_ser"
+
+  _akiurl="$(echo "$_aki" | _h2b | _base64 | tr -d = | _url_encode)"
+  _debug2 "_akiurl" "$_akiurl"
+  _serurl="$(echo "$_ser" | _h2b | _base64 | tr -d = | _url_encode)"
+  _debug2 "_serurl" "$_serurl"
+
+  _ARI_URL="$ACME_RENEWAL_INFO/$_akiurl.$_serurl"
+  _get "$_ARI_URL"
+
 }
 
 # Detect profile file if not specified as environment variable
@@ -8112,7 +8156,7 @@ _process() {
     deploy "$_domain" "$_deploy_hook" "$_ecc"
     ;;
   signcsr)
-    signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain"
+    signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_valid_from" "$_valid_to" "$_certificate_profile" "$_extended_key_usage"
     ;;
   showcsr)
     showcsr "$_csr" "$_domain"

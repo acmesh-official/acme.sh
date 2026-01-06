@@ -251,7 +251,11 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
 
 
 
@@ -302,7 +306,11 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
 
 
 
@@ -354,7 +362,11 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
 
 
 
@@ -406,7 +418,11 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
 
 
 
@@ -464,6 +480,11 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
 
 
   Omnios:
@@ -513,6 +534,12 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
+
 
 
   OpenIndiana:
@@ -539,7 +566,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/openindiana-vm@v0
+    - uses: vmactions/openindiana-vm@v1
       with:
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy HTTPS_INSECURE TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         sync: nfs
@@ -562,5 +589,12 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
 
+
+        
 
