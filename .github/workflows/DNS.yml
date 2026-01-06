@@ -251,7 +251,11 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
 
 
 
@@ -302,7 +306,11 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
 
 
 
@@ -354,7 +362,11 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
 
 
 
@@ -406,7 +418,11 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
 
 
 
@@ -464,6 +480,11 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
 
 
   Omnios:
@@ -513,6 +534,12 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
+
 
 
   OpenIndiana:
@@ -562,5 +589,12 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
 
+
+        
 
