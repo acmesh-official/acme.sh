@@ -3729,10 +3729,10 @@ _on_issue_success() {
 #account_key_length   eab-kid  eab-hmac-key
 registeraccount() {
   _account_key_length="$1"
-  _eab_id="$2"
+  _eab_kid="$2"
   _eab_hmac_key="$3"
   _initpath
-  _regAccount "$_account_key_length" "$_eab_id" "$_eab_hmac_key"
+  _regAccount "$_account_key_length" "$_eab_kid" "$_eab_hmac_key"
 }
 
 __calcAccountKeyHash() {
@@ -3762,7 +3762,7 @@ _getAccountEmail() {
 _regAccount() {
   _initpath
   _reg_length="$1"
-  _eab_id="$2"
+  _eab_kid="$2"
   _eab_hmac_key="$3"
   _debug3 _regAccount "$_regAccount"
   _initAPI
@@ -3779,13 +3779,13 @@ _regAccount() {
   if ! _calcjwk "$ACCOUNT_KEY_PATH"; then
     return 1
   fi
-  if [ "$_eab_id" ] && [ "$_eab_hmac_key" ]; then
-    _savecaconf CA_EAB_KEY_ID "$_eab_id"
+  if [ "$_eab_kid" ] && [ "$_eab_hmac_key" ]; then
+    _savecaconf CA_EAB_KEY_ID "$_eab_kid"
     _savecaconf CA_EAB_HMAC_KEY "$_eab_hmac_key"
   fi
-  _eab_id=$(_readcaconf "CA_EAB_KEY_ID")
+  _eab_kid=$(_readcaconf "CA_EAB_KEY_ID")
   _eab_hmac_key=$(_readcaconf "CA_EAB_HMAC_KEY")
-  _secure_debug3 _eab_id "$_eab_id"
+  _secure_debug3 _eab_kid "$_eab_kid"
   _secure_debug3 _eab_hmac_key "$_eab_hmac_key"
   _email="$(_getAccountEmail)"
   if [ "$_email" ]; then
@@ -3793,7 +3793,7 @@ _regAccount() {
   fi
 
   if [ "$ACME_DIRECTORY" = "$CA_ZEROSSL" ]; then
-    if [ -z "$_eab_id" ] || [ -z "$_eab_hmac_key" ]; then
+    if [ -z "$_eab_kid" ] || [ -z "$_eab_hmac_key" ]; then
       _info "No EAB credentials found for ZeroSSL, let's obtain them"
       if [ -z "$_email" ]; then
         _info "$(__green "$PROJECT_NAME is using ZeroSSL as default CA now.")"
@@ -3809,10 +3809,10 @@ _regAccount() {
         return 1
       fi
       _secure_debug2 _eabresp "$_eabresp"
-      _eab_id="$(echo "$_eabresp" | tr ',}' '\n\n' | grep '"eab_kid"' | cut -d : -f 2 | tr -d '"')"
-      _secure_debug2 _eab_id "$_eab_id"
-      if [ -z "$_eab_id" ]; then
-        _err "Cannot resolve _eab_id"
+      _eab_kid="$(echo "$_eabresp" | tr ',}' '\n\n' | grep '"eab_kid"' | cut -d : -f 2 | tr -d '"')"
+      _secure_debug2 _eab_kid "$_eab_kid"
+      if [ -z "$_eab_kid" ]; then
+        _err "Cannot resolve _eab_kid"
         return 1
       fi
       _eab_hmac_key="$(echo "$_eabresp" | tr ',}' '\n\n' | grep '"eab_hmac_key"' | cut -d : -f 2 | tr -d '"')"
@@ -3821,12 +3821,12 @@ _regAccount() {
         _err "Cannot resolve _eab_hmac_key"
         return 1
       fi
-      _savecaconf CA_EAB_KEY_ID "$_eab_id"
+      _savecaconf CA_EAB_KEY_ID "$_eab_kid"
       _savecaconf CA_EAB_HMAC_KEY "$_eab_hmac_key"
     fi
   fi
-  if [ "$_eab_id" ] && [ "$_eab_hmac_key" ]; then
-    eab_protected="{\"alg\":\"HS256\",\"kid\":\"$_eab_id\",\"url\":\"${ACME_NEW_ACCOUNT}\"}"
+  if [ "$_eab_kid" ] && [ "$_eab_hmac_key" ]; then
+    eab_protected="{\"alg\":\"HS256\",\"kid\":\"$_eab_kid\",\"url\":\"${ACME_NEW_ACCOUNT}\"}"
     _debug3 eab_protected "$eab_protected"
 
     eab_protected64=$(printf "%s" "$eab_protected" | _base64 | _url_replace)
@@ -4550,7 +4550,7 @@ issue() {
   _debug2 _saved_account_key_hash "$_saved_account_key_hash"
 
   if [ -z "$ACCOUNT_URL" ] || [ -z "$_saved_account_key_hash" ] || [ "$_saved_account_key_hash" != "$(__calcAccountKeyHash)" ]; then
-    if ! _regAccount "$_accountkeylength"; then
+    if ! _regAccount "$_accountkeylength" "$_eab_kid" "$_eab_hmac_key"; then
       _on_issue_err "$_post_hook"
       return 1
     fi
