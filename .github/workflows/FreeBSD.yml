@@ -68,9 +68,13 @@ jobs:
           "8080": "80"
         prepare: pkg install -y socat curl wget
         usesh: true
-        copyback: false
+        sync: nfs
         run: |
           cd ../acmetest \
           && ./letest.sh
-
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
 

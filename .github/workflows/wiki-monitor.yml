@@ -22,6 +22,7 @@ jobs:
             page_sha=$(jq -r '.pages[0].sha' "$GITHUB_EVENT_PATH")
             page_url=$(jq -r '.pages[0].html_url' "$GITHUB_EVENT_PATH")
             page_action=$(jq -r '.pages[0].action' "$GITHUB_EVENT_PATH")
+            page_summary=$(jq -r '.pages[0].summary' "$GITHUB_EVENT_PATH")
             now="$(date '+%Y-%m-%d %H:%M:%S')"
 
             cd wiki
@@ -35,9 +36,11 @@ jobs:
             {
             echo "Wiki edited"
             echo -n "User: "
-            echo "[$actor]($sender_url)"
+            echo "@$actor [$actor]($sender_url)"
             echo "Time: $now"
             echo "Page: [$page_name]($page_url) (Action: $page_action)"
+            echo "Comment: $page_summary"
+            echo "[Click here to Revert](${page_url}/_history)"
             echo ""
             echo "----"
             echo "###  diff："

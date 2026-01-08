@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.1.2
+VER=3.1.3
 
 PROJECT_NAME="acme.sh"
 
@@ -65,7 +65,7 @@ ID_TYPE_IP="ip"
 
 LOCAL_ANY_ADDRESS="0.0.0.0"
 
-DEFAULT_RENEW=60
+DEFAULT_RENEW=30
 
 NO_VALUE="no"
 
@@ -1031,7 +1031,7 @@ _digest() {
 
   outputhex="$2"
 
-  if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ] || [ "$alg" = "md5" ]; then
+  if [ "$alg" = "sha3-256" ] || [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ] || [ "$alg" = "md5" ]; then
     if [ "$outputhex" ]; then
       ${ACME_OPENSSL_BIN:-openssl} dgst -"$alg" -hex | cut -d = -f 2 | tr -d ' '
     else
@@ -1250,7 +1250,7 @@ _idn() {
   fi
 }
 
-#_createcsr  cn  san_list  keyfile csrfile conf acmeValidationv1
+#_createcsr  cn  san_list  keyfile csrfile conf acmeValidationv1 extendedUsage
 _createcsr() {
   _debug _createcsr
   domain="$1"
@@ -1259,6 +1259,7 @@ _createcsr() {
   csr="$4"
   csrconf="$5"
   acmeValidationv1="$6"
+  extusage="$7"
   _debug2 domain "$domain"
   _debug2 domainlist "$domainlist"
   _debug2 csrkey "$csrkey"
@@ -1267,9 +1268,8 @@ _createcsr() {
 
   printf "[ req_distinguished_name ]\n[ req ]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[ v3_req ]" >"$csrconf"
 
-  if [ "$Le_ExtKeyUse" ]; then
-    _savedomainconf Le_ExtKeyUse "$Le_ExtKeyUse"
-    printf "\nextendedKeyUsage=$Le_ExtKeyUse\n" >>"$csrconf"
+  if [ "$extusage" ]; then
+    printf "\nextendedKeyUsage=$extusage\n" >>"$csrconf"
   else
     printf "\nextendedKeyUsage=serverAuth,clientAuth\n" >>"$csrconf"
   fi
@@ -1466,7 +1466,7 @@ _toPkcs() {
     ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -inkey "$_ckey" -in "$_ccert" -certfile "$_cca"
   fi
   if [ "$?" = "0" ]; then
-    _savedomainconf "Le_PFXPassword" "$pfxPassword"
+    _savedomainconf "Le_PFXPassword" "$pfxPassword" "base64"
   fi
 
 }
@@ -1897,6 +1897,11 @@ _inithttp() {
 
   if [ -z "$_ACME_CURL" ] && _exists "curl"; then
     _ACME_CURL="curl --silent --dump-header $HTTP_HEADER "
+    if [ "$ACME_USE_IPV6_REQUESTS" ]; then
+      _ACME_CURL="$_ACME_CURL --ipv6 "
+    elif [ "$ACME_USE_IPV4_REQUESTS" ]; then
+      _ACME_CURL="$_ACME_CURL --ipv4 "
+    fi
     if [ -z "$ACME_HTTP_NO_REDIRECTS" ]; then
       _ACME_CURL="$_ACME_CURL -L "
     fi
@@ -1924,6 +1929,11 @@ _inithttp() {
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
     _ACME_WGET="wget -q"
+    if [ "$ACME_USE_IPV6_REQUESTS" ]; then
+      _ACME_WGET="$_ACME_WGET --inet6-only "
+    elif [ "$ACME_USE_IPV4_REQUESTS" ]; then
+      _ACME_WGET="$_ACME_WGET --inet4-only "
+    fi
     if [ "$ACME_HTTP_NO_REDIRECTS" ]; then
       _ACME_WGET="$_ACME_WGET --max-redirect 0 "
     fi
@@ -2773,6 +2783,7 @@ _clearAPI() {
   ACME_REVOKE_CERT=""
   ACME_NEW_NONCE=""
   ACME_AGREEMENT=""
+  ACME_RENEWAL_INFO=""
 }
 
 #server
@@ -2817,6 +2828,9 @@ _initAPI() {
     ACME_AGREEMENT=$(echo "$response" | _egrep_o 'termsOfService" *: *"[^"]*"' | cut -d '"' -f 3)
     export ACME_AGREEMENT
 
+    ACME_RENEWAL_INFO=$(echo "$response" | _egrep_o 'renewalInfo" *: *"[^"]*"' | cut -d '"' -f 3)
+    export ACME_RENEWAL_INFO
+
     _debug "ACME_KEY_CHANGE" "$ACME_KEY_CHANGE"
     _debug "ACME_NEW_AUTHZ" "$ACME_NEW_AUTHZ"
     _debug "ACME_NEW_ORDER" "$ACME_NEW_ORDER"
@@ -2824,6 +2838,7 @@ _initAPI() {
     _debug "ACME_REVOKE_CERT" "$ACME_REVOKE_CERT"
     _debug "ACME_AGREEMENT" "$ACME_AGREEMENT"
     _debug "ACME_NEW_NONCE" "$ACME_NEW_NONCE"
+    _debug "ACME_RENEWAL_INFO" "$ACME_RENEWAL_INFO"
     if [ "$ACME_NEW_ACCOUNT" ] && [ "$ACME_NEW_ORDER" ]; then
       return 0
     fi
@@ -4435,6 +4450,7 @@ issue() {
   _valid_from="${16}"
   _valid_to="${17}"
   _certificate_profile="${18}"
+  _extended_key_usage="${19}"
 
   if [ -z "$_ACME_IS_RENEW" ]; then
     _initpath "$_main_domain" "$_key_length"
@@ -4454,7 +4470,7 @@ issue() {
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
     _debug Le_NextRenewTime "$Le_NextRenewTime"
     if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
-      _valid_to_saved=$(_readdomainconf Le_Valid_to)
+      _valid_to_saved=$(_readdomainconf Le_Valid_To)
       if [ "$_valid_to_saved" ] && ! _startswith "$_valid_to_saved" "+"; then
         _info "The domain is set to be valid to: $_valid_to_saved"
         _info "It cannot be renewed automatically"
@@ -4579,11 +4595,24 @@ issue() {
         return 1
       fi
     fi
-    if ! _createcsr "$_main_domain" "$_alt_domains" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"; then
+    _keyusage="$_extended_key_usage"
+    if [ "$Le_API" = "$CA_GOOGLE" ] || [ "$Le_API" = "$CA_GOOGLE_TEST" ]; then
+      if [ -z "$_keyusage" ]; then
+        #https://github.com/acmesh-official/acme.sh/issues/6610
+        #google accepts serverauth only
+        _keyusage="serverAuth"
+      fi
+    fi
+    if ! _createcsr "$_main_domain" "$_alt_domains" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF" "" "$_keyusage"; then
       _err "Error creating CSR."
       _clearup
       _on_issue_err "$_post_hook"
       return 1
+    fi
+    if [ "$_extended_key_usage" ]; then
+      _savedomainconf "Le_ExtKeyUse" "$_extended_key_usage"
+    else
+      _cleardomainconf "Le_ExtKeyUse"
     fi
   fi
 
@@ -5218,6 +5247,16 @@ $_authorizations_map"
         return 1
       fi
       break
+    elif _contains "$response" "\"ready\""; then
+      _info "Order status is 'ready', let's sleep and retry."
+      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      _debug "_retryafter" "$_retryafter"
+      if [ "$_retryafter" ]; then
+        _info "Sleeping for $_retryafter seconds then retrying"
+        _sleep $_retryafter
+      else
+        _sleep 2
+      fi
     elif _contains "$response" "\"processing\""; then
       _info "Order status is 'processing', let's sleep and retry."
       _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
@@ -5416,10 +5455,10 @@ $_authorizations_map"
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
 
   #convert to pkcs12
+  Le_PFXPassword="$(_readdomainconf Le_PFXPassword)"
   if [ "$Le_PFXPassword" ]; then
     _toPkcs "$CERT_PFX_PATH" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$Le_PFXPassword"
   fi
-  export CERT_PFX_PATH
 
   if [ "$_real_cert$_real_key$_real_ca$_reload_cmd$_real_fullchain" ]; then
     _savedomainconf "Le_RealCertPath" "$_real_cert"
@@ -5529,6 +5568,10 @@ renew() {
   Le_RenewHook="$(_readdomainconf Le_RenewHook)"
   Le_Preferred_Chain="$(_readdomainconf Le_Preferred_Chain)"
   Le_Certificate_Profile="$(_readdomainconf Le_Certificate_Profile)"
+  Le_Valid_From="$(_readdomainconf Le_Valid_From)"
+  Le_Valid_To="$(_readdomainconf Le_Valid_To)"
+  Le_ExtKeyUse="$(_readdomainconf Le_ExtKeyUse)"
+
   # When renewing from an old version, the empty Le_Keylength means 2048.
   # Note, do not use DEFAULT_DOMAIN_KEY_LENGTH as that value may change over
   # time but an empty value implies 2048 specifically.
@@ -5543,7 +5586,7 @@ renew() {
       _cleardomainconf Le_OCSP_Staple
     fi
   fi
-  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain" "$Le_Valid_From" "$Le_Valid_To" "$Le_Certificate_Profile"
+  issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain" "$Le_Valid_From" "$Le_Valid_To" "$Le_Certificate_Profile" "$Le_ExtKeyUse"
   res="$?"
   if [ "$res" != "0" ]; then
     return "$res"
@@ -5710,6 +5753,10 @@ signcsr() {
   _local_addr="${11}"
   _challenge_alias="${12}"
   _preferred_chain="${13}"
+  _valid_f="${14}"
+  _valid_t="${15}"
+  _cert_prof="${16}"
+  _en_key_usage="${17}"
 
   _csrsubj=$(_readSubjectFromCSR "$_csrfile")
   if [ "$?" != "0" ]; then
@@ -5753,7 +5800,7 @@ signcsr() {
   _info "Copying CSR to: $CSR_PATH"
   cp "$_csrfile" "$CSR_PATH"
 
-  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_addr" "$_challenge_alias" "$_preferred_chain"
+  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_addr" "$_challenge_alias" "$_preferred_chain" "$_valid_f" "$_valid_t" "$_cert_prof" "$_en_key_usage"
 
 }
 
@@ -5804,9 +5851,10 @@ list() {
   _sep="|"
   if [ "$_raw" ]; then
     if [ -z "$_domain" ]; then
-      printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}CA${_sep}Created${_sep}Renew"
+      printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Profile${_sep}CA${_sep}Created${_sep}Renew"
     fi
-    for di in "${CERT_HOME}"/*.*/; do
+    for di in "${CERT_HOME}"/*.* "${CERT_HOME}"/*:*; do
+      [ -d "$di" ] || continue
       d=$(basename "$di")
       _debug d "$d"
       (
@@ -5819,7 +5867,7 @@ list() {
           . "$DOMAIN_CONF"
           _ca="$(_getCAShortName "$Le_API")"
           if [ -z "$_domain" ]; then
-            printf "%s\n" "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$_ca${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
+            printf "%s\n" "$Le_Domain${_sep}\"$Le_Keylength\"${_sep}$Le_Alt${_sep}$Le_Certificate_Profile${_sep}$_ca${_sep}$Le_CertCreateTimeStr${_sep}$Le_NextRenewTimeStr"
           else
             if [ "$_domain" = "$d" ]; then
               cat "$DOMAIN_CONF"
@@ -5836,6 +5884,48 @@ list() {
     fi
   fi
 
+}
+
+list_profiles() {
+  _initpath
+  _initAPI
+
+  _l_server_url="$ACME_DIRECTORY"
+  _l_server_name="$(_getCAShortName "$_l_server_url")"
+  _info "Fetching profiles from $_l_server_name ($_l_server_url)..."
+
+  response=$(_get "$_l_server_url" "" 10)
+  if [ "$?" != "0" ]; then
+    _err "Failed to connect to CA directory: $_l_server_url"
+    return 1
+  fi
+
+  normalized_response=$(echo "$response" | _normalizeJson)
+  profiles_json=$(echo "$normalized_response" | _egrep_o '"profiles" *: *\{[^\}]*\}')
+
+  if [ -z "$profiles_json" ]; then
+    _info "The CA '$_l_server_name' does not publish certificate profiles via its directory endpoint."
+    return 0
+  fi
+
+  # Strip the outer layer to get the key-value pairs
+  profiles_kv=$(echo "$profiles_json" | sed 's/"profiles" *: *{//' | sed 's/}$//' | tr ',' '\n')
+
+  printf "\n%-15s %s\n" "name" "info"
+  printf -- "--------------------------------------------------------------------\n"
+
+  _old_IFS="$IFS"
+  IFS='
+'
+  for pair in $profiles_kv; do
+    # Trim quotes and whitespace
+    _name=$(echo "$pair" | cut -d: -f1 | tr -d '" \t')
+    _info_url=$(echo "$pair" | cut -d: -f2- | sed 's/^ *//' | tr -d '"')
+    printf "%-15s %s\n" "$_name" "$_info_url"
+  done
+  IFS="$_old_IFS"
+
+  return 0
 }
 
 _deploy() {
@@ -6459,6 +6549,36 @@ deactivate() {
       return 1
     fi
   done
+}
+
+#cert
+_getAKI() {
+  _cert="$1"
+  openssl x509 -in "$_cert" -text -noout | grep "X509v3 Authority Key Identifier" -A 1 | _tail_n 1 | tr -d ' :'
+}
+
+#cert
+_getSerial() {
+  _cert="$1"
+  openssl x509 -in "$_cert" -serial -noout | cut -d = -f 2
+}
+
+#cert
+_get_ARI() {
+  _cert="$1"
+  _aki=$(_getAKI "$_cert")
+  _ser=$(_getSerial "$_cert")
+  _debug2 "_aki" "$_aki"
+  _debug2 "_ser" "$_ser"
+
+  _akiurl="$(echo "$_aki" | _h2b | _base64 | tr -d = | _url_encode)"
+  _debug2 "_akiurl" "$_akiurl"
+  _serurl="$(echo "$_ser" | _h2b | _base64 | tr -d = | _url_encode)"
+  _debug2 "_serurl" "$_serurl"
+
+  _ARI_URL="$ACME_RENEWAL_INFO/$_akiurl.$_serurl"
+  _get "$_ARI_URL"
+
 }
 
 # Detect profile file if not specified as environment variable
@@ -7095,6 +7215,8 @@ Parameters:
   --auto-upgrade [0|1]              Valid for '--upgrade' command, indicating whether to upgrade automatically in future. Defaults to 1 if argument is omitted.
   --listen-v4                       Force standalone/tls server to listen at ipv4.
   --listen-v6                       Force standalone/tls server to listen at ipv6.
+  --request-v4                      Force client requests to use ipv4 to connect to the CA server.
+  --request-v6                      Force client requests to use ipv6 to connect to the CA server.
   --openssl-bin <file>              Specifies a custom openssl bin location.
   --use-wget                        Force to use wget, if you have both curl and wget installed.
   --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force use of dns manual mode.
@@ -7211,6 +7333,24 @@ _processAccountConf() {
     _saveaccountconf "ACME_USE_WGET" "$_use_wget"
   elif [ "$ACME_USE_WGET" ]; then
     _saveaccountconf "ACME_USE_WGET" "$ACME_USE_WGET"
+  fi
+
+  if [ "$_request_v6" ]; then
+    _saveaccountconf "ACME_USE_IPV6_REQUESTS" "$_request_v6"
+    _clearaccountconf "ACME_USE_IPV4_REQUESTS"
+    ACME_USE_IPV4_REQUESTS=
+  elif [ "$_request_v4" ]; then
+    _saveaccountconf "ACME_USE_IPV4_REQUESTS" "$_request_v4"
+    _clearaccountconf "ACME_USE_IPV6_REQUESTS"
+    ACME_USE_IPV6_REQUESTS=
+  elif [ "$ACME_USE_IPV6_REQUESTS" ]; then
+    _saveaccountconf "ACME_USE_IPV6_REQUESTS" "$ACME_USE_IPV6_REQUESTS"
+    _clearaccountconf "ACME_USE_IPV4_REQUESTS"
+    ACME_USE_IPV4_REQUESTS=
+  elif [ "$ACME_USE_IPV4_REQUESTS" ]; then
+    _saveaccountconf "ACME_USE_IPV4_REQUESTS" "$ACME_USE_IPV4_REQUESTS"
+    _clearaccountconf "ACME_USE_IPV6_REQUESTS"
+    ACME_USE_IPV6_REQUESTS=
   fi
 
 }
@@ -7378,6 +7518,8 @@ _process() {
   _local_address=""
   _log_level=""
   _auto_upgrade=""
+  _request_v4=""
+  _request_v6=""
   _listen_v4=""
   _listen_v6=""
   _openssl_bin=""
@@ -7395,6 +7537,7 @@ _process() {
   _valid_from=""
   _valid_to=""
   _certificate_profile=""
+  _extended_key_usage=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -7497,6 +7640,9 @@ _process() {
       ;;
     --set-default-chain)
       _CMD="setdefaultchain"
+      ;;
+    --list-profiles)
+      _CMD="list_profiles"
       ;;
     -d | --domain)
       _dvalue="$2"
@@ -7787,7 +7933,7 @@ _process() {
       shift
       ;;
     --extended-key-usage)
-      Le_ExtKeyUse="$2"
+      _extended_key_usage="$2"
       shift
       ;;
     --ocsp-must-staple | --ocsp)
@@ -7839,6 +7985,18 @@ _process() {
         shift
       fi
       AUTO_UPGRADE="$_auto_upgrade"
+      ;;
+    --request-v4)
+      _request_v4="1"
+      ACME_USE_IPV4_REQUESTS="1"
+      _request_v6=""
+      ACME_USE_IPV6_REQUESTS=""
+      ;;
+    --request-v6)
+      _request_v6="1"
+      ACME_USE_IPV6_REQUESTS="1"
+      _request_v4=""
+      ACME_USE_IPV4_REQUESTS=""
       ;;
     --listen-v4)
       _listen_v4="1"
@@ -7992,13 +8150,13 @@ _process() {
   uninstall) uninstall "$_nocron" ;;
   upgrade) upgrade ;;
   issue)
-    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_valid_from" "$_valid_to" "$_certificate_profile"
+    issue "$_webroot" "$_domain" "$_altdomains" "$_keylength" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_valid_from" "$_valid_to" "$_certificate_profile" "$_extended_key_usage"
     ;;
   deploy)
     deploy "$_domain" "$_deploy_hook" "$_ecc"
     ;;
   signcsr)
-    signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain"
+    signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_valid_from" "$_valid_to" "$_certificate_profile" "$_extended_key_usage"
     ;;
   showcsr)
     showcsr "$_csr" "$_domain"
@@ -8062,6 +8220,9 @@ _process() {
     ;;
   setdefaultchain)
     setdefaultchain "$_preferred_chain"
+    ;;
+  list_profiles)
+    list_profiles
     ;;
   *)
     if [ "$_CMD" ]; then

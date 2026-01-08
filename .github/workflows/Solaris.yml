@@ -66,10 +66,16 @@ jobs:
         envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN ACME_USE_WGET'
         nat: |
           "8080": "80"
-        prepare: pkgutil -y -i socat curl wget
-        copyback: false
+        prepare: |
+          pkgutil -U
+          pkgutil -y -i socat curl wget
+        sync: nfs
         run: |
           cd ../acmetest \
           && ./letest.sh
-
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
 
