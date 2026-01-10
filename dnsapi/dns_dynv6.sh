@@ -234,7 +234,7 @@ _get_record_id() {
 
 _get_record_id_from_response() {
   response="$1"
-  _record_id="$(echo "$response" | tr '}' '\n' | grep "\"name\":\"$record\"" | grep "\"data\":\"$value\"" | tr ',' '\n' | grep id | tr -d '"' | tr -d 'id:')"
+  _record_id="$(echo "$response" | tr '}' '\n' | grep "\"name\":\"$record\"" | grep "\"data\":\"$value\"" | tr ',' '\n' | grep '"id":' | tr -d '"' | tr -d 'id:' | tr -d '{')"
   #_record_id="${_record_id#id:}"
   if [ -z "$_record_id" ]; then
     _err "no such record: $record found in zone $_zone_id"
