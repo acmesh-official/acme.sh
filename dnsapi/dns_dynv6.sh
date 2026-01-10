@@ -189,7 +189,6 @@ _get_zone_id() {
   _dynv6_rest GET zones
 
   zones="$(echo "$response" | tr '}' '\n' | tr ',' '\n' | grep name | sed 's/\[//g' | tr -d '{' | tr -d '"')"
-  #echo $zones
 
   selected=""
   for z in $zones; do
@@ -235,7 +234,6 @@ _get_record_id() {
 _get_record_id_from_response() {
   response="$1"
   _record_id="$(echo "$response" | tr '}' '\n' | grep "\"name\":\"$record\"" | grep "\"data\":\"$value\"" | tr ',' '\n' | grep '"id":' | tr -d '"' | tr -d 'id:' | tr -d '{')"
-  #_record_id="${_record_id#id:}"
   if [ -z "$_record_id" ]; then
     _err "no such record: $record found in zone $_zone_id"
     return 1
