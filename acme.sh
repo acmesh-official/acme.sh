@@ -5588,11 +5588,8 @@ renew() {
   fi
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain" "$Le_Valid_From" "$Le_Valid_To" "$Le_Certificate_Profile" "$Le_ExtKeyUse"
   res="$?"
-  if [ "$res" != "0" ]; then
-    return "$res"
-  fi
 
-  if [ "$Le_DeployHook" ]; then
+  if [ "$Le_DeployHook" ] && [ "$res" = "0" ]; then
     _deploy "$Le_Domain" "$Le_DeployHook"
     res="$?"
   fi
