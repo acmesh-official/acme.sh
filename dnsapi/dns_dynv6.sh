@@ -107,7 +107,7 @@ _get_domain() {
       return 0
     fi
   done
-  _err "Either their is no such host on your dnyv6 account or it cannot be accessed with this key"
+  _err "Either there is no such host on your dynv6 account, or it cannot be accessed with this key"
   return 1
 }
 
@@ -179,8 +179,8 @@ _dns_dynv6_rm_http() {
   fi
 }
 
+#Usage: _get_zone_id $record
 #get the zoneid for a specifc record or zone
-#usage: _get_zone_id §record
 #where $record is the record to get the id for
 #returns _zone_id the id of the zone
 _get_zone_id() {
@@ -217,9 +217,9 @@ _get_zone_name() {
   _zone_name="${_zone_name#name:}"
 }
 
-#usaage _get_record_id $zone_id $record
-# where zone_id is thevalue returned by _get_zone_id
-# and record ist in the form _acme.www for an fqdn of _acme.www.example.com
+#usage _get_record_id $zone_id $record
+# where zone_id is the value returned by _get_zone_id
+# and record is in the form _acme.www for an fqdn of _acme.www.example.com
 # returns _record_id
 _get_record_id() {
   _zone_id="$1"
