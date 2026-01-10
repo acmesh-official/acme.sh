@@ -3425,7 +3425,7 @@ _restoreNginx() {
   done
 
   _info "Reloading nginx"
-  if ! nginx -s reload >/dev/null; then
+  if ! nginx -s reload >/dev/null 2>&1; then
     _err "An error occurred while reloading nginx, please open an issue on $PROJECT."
     return 1
   fi
