@@ -1,0 +1,83 @@
+name: Haiku
+on:
+  push:
+    branches:
+      - '*'
+    paths:
+      - '*.sh'
+      - '.github/workflows/Haiku.yml'
+
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - '*.sh'
+      - '.github/workflows/Haiku.yml'
+
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
+
+jobs:
+  Haiku:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+         - TEST_ACME_Server: "LetsEncrypt.org_test"
+           CA_ECDSA: ""
+           CA: ""
+           CA_EMAIL: ""
+           TEST_PREFERRED_CHAIN: (STAGING)
+         - TEST_ACME_Server: "LetsEncrypt.org_test"
+           CA_ECDSA: ""
+           CA: ""
+           CA_EMAIL: ""
+           TEST_PREFERRED_CHAIN: (STAGING)
+           ACME_USE_WGET: 1
+         #- TEST_ACME_Server: "ZeroSSL.com"
+         #  CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
+         #  CA: "ZeroSSL RSA Domain Secure Site CA"
+         #  CA_EMAIL: "githubtest@acme.sh"
+         #  TEST_PREFERRED_CHAIN: ""
+    runs-on: ubuntu-latest
+    env:
+      TEST_LOCAL: 1
+      TEST_ACME_Server: ${{ matrix.TEST_ACME_Server }}
+      CA_ECDSA: ${{ matrix.CA_ECDSA }}
+      CA: ${{ matrix.CA }}
+      CA_EMAIL: ${{ matrix.CA_EMAIL }}
+      TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
+      ACME_USE_WGET: ${{ matrix.ACME_USE_WGET }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: vmactions/cf-tunnel@v0
+      id: tunnel
+      with:
+        protocol: http
+        port: 8080
+    - name: Set envs
+      run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
+    - name: Clone acmetest
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - uses: vmactions/haiku-vm@v1
+      with:
+        envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN ACME_USE_WGET'
+        nat: |
+          "8080": "80"
+        prepare: |
+          mkdir -p /boot/home/.cache
+          pkgman install -y cronie
+        sync: rsync
+        copyback: false
+        run: |
+          cd ../acmetest \
+          && ./letest.sh
+    - name: onError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
+
