@@ -250,6 +250,13 @@ _dlg_versions() {
     socat -V 2>&1
   else
     _debug "socat doesn't exist."
+    if _exists "python3"; then
+      python3 -V 2>&1
+    elif _exists "python2"; then
+      python2 -V 2>&1
+    elif _exists "python"; then
+      python -V 2>&1
+    fi
   fi
 }
 
@@ -2559,41 +2566,76 @@ _startserver() {
   _debug Le_Listen_V4 "$Le_Listen_V4"
   _debug Le_Listen_V6 "$Le_Listen_V6"
 
-  _NC="socat"
-  if [ "$Le_Listen_V6" ]; then
-    _NC="$_NC -6"
-    SOCAT_OPTIONS=TCP6-LISTEN
-  elif [ "$Le_Listen_V4" ]; then
-    _NC="$_NC -4"
-    SOCAT_OPTIONS=TCP4-LISTEN
-  else
-    SOCAT_OPTIONS=TCP-LISTEN
-  fi
+  if _exists "socat"; then
+    _NC="socat"
+    if [ "$Le_Listen_V6" ]; then
+      _NC="$_NC -6"
+      SOCAT_OPTIONS=TCP6-LISTEN
+    elif [ "$Le_Listen_V4" ]; then
+      _NC="$_NC -4"
+      SOCAT_OPTIONS=TCP4-LISTEN
+    else
+      SOCAT_OPTIONS=TCP-LISTEN
+    fi
 
-  if [ "$DEBUG" ] && [ "$DEBUG" -gt "1" ]; then
-    _NC="$_NC -d -d -v"
-  fi
+    if [ "$DEBUG" ] && [ "$DEBUG" -gt "1" ]; then
+      _NC="$_NC -d -d -v"
+    fi
 
-  SOCAT_OPTIONS=$SOCAT_OPTIONS:$Le_HTTPPort,crlf,reuseaddr,fork
+    SOCAT_OPTIONS=$SOCAT_OPTIONS:$Le_HTTPPort,crlf,reuseaddr,fork
 
-  #Adding bind to local-address
-  if [ "$ncaddr" ]; then
-    SOCAT_OPTIONS="$SOCAT_OPTIONS,bind=${ncaddr}"
-  fi
+    #Adding bind to local-address
+    if [ "$ncaddr" ]; then
+      SOCAT_OPTIONS="$SOCAT_OPTIONS,bind=${ncaddr}"
+    fi
 
-  _content_len="$(printf "%s" "$content" | wc -c)"
-  _debug _content_len "$_content_len"
-  _debug "_NC" "$_NC $SOCAT_OPTIONS"
-  export _SOCAT_ERR="$(_mktemp)"
-  $_NC $SOCAT_OPTIONS SYSTEM:"sleep 1; \
+    _content_len="$(printf "%s" "$content" | wc -c)"
+    _debug _content_len "$_content_len"
+    _debug "_NC" "$_NC $SOCAT_OPTIONS"
+    export _SOCAT_ERR="$(_mktemp)"
+    $_NC $SOCAT_OPTIONS SYSTEM:"sleep 1; \
 echo 'HTTP/1.0 200 OK'; \
 echo 'Content-Length\: $_content_len'; \
 echo ''; \
 printf '%s' '$content';" 2>"$_SOCAT_ERR" &
-  serverproc="$!"
+    serverproc="$!"
+  else
+    _PYTHON=""
+    if _exists "python3"; then
+      _PYTHON="python3"
+    elif _exists "python2"; then
+      _PYTHON="python2"
+    elif _exists "python"; then
+      _PYTHON="python"
+    fi
+    if [ "$_PYTHON" ]; then
+      _debug "Using python: $_PYTHON"
+      _AF="socket.AF_INET"
+      _BIND_ADDR="0.0.0.0"
+      if [ "$Le_Listen_V6" ]; then
+        _AF="socket.AF_INET6"
+        _BIND_ADDR="::"
+      fi
+      if [ "$ncaddr" ]; then
+        _BIND_ADDR="$ncaddr"
+      fi
+      export _SOCAT_ERR="$(_mktemp)"
+      $_PYTHON -c "import socket,sys;s=socket.socket($_AF,socket.SOCK_STREAM);s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind((sys.argv[2],int(sys.argv[1])));s.listen(5);res='HTTP/1.0 200 OK\r\nContent-Length: '+str(len(sys.argv[3]))+'\r\n\r\n'+sys.argv[3];
+while True:
+ c,a=s.accept()
+ c.sendall(res.encode() if hasattr(res, 'encode') else res)
+ c.close()" "$Le_HTTPPort" "$_BIND_ADDR" "$content" 2>"$_SOCAT_ERR" &
+      serverproc="$!"
+      _NC="$_PYTHON"
+    else
+      _err "Please install socat or python first for standalone mode."
+      return 1
+    fi
+  fi
+
   if [ -f "$_SOCAT_ERR" ]; then
     if grep "Permission denied" "$_SOCAT_ERR" >/dev/null; then
-      _err "socat: $(cat $_SOCAT_ERR)"
+      _err "$_NC: $(cat $_SOCAT_ERR)"
       _err "Can not listen for user: $(whoami)"
       _err "Maybe try with root again?"
       rm -f "$_SOCAT_ERR"
@@ -3557,9 +3599,9 @@ _on_before_issue() {
     fi
   fi
 
-  if _hasfield "$_chk_web_roots" "$NO_VALUE"; then
-    if ! _exists "socat"; then
-      _err "Please install socat tools first."
+  if _hasfield "$_chk_web_roots" "$NO_VALUE" && [ "$_chk_web_roots" = "$NO_VALUE" ]; then
+    if ! _exists "socat" && ! _exists "python" && ! _exists "python2" && ! _exists "python3"; then
+      _err "Please install socat or python tools first."
       return 1
     fi
   fi
@@ -6664,9 +6706,9 @@ _precheck() {
     return 1
   fi
 
-  if ! _exists "socat"; then
-    _err "It is recommended to install socat first."
-    _err "We use socat for the standalone server, which is used for standalone mode."
+  if ! _exists "socat" && ! _exists "python" && ! _exists "python2" && ! _exists "python3"; then
+    _err "It is recommended to install socat or python first."
+    _err "We use socat or python for the standalone server, which is used for standalone mode."
     _err "If you don't want to use standalone mode, you may ignore this warning."
   fi
 
