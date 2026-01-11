@@ -23,6 +23,7 @@ concurrency:
 jobs:
   Haiku:
     strategy:
+      fail-fast: false
       matrix:
         include:
          - TEST_ACME_Server: "LetsEncrypt.org_test"
