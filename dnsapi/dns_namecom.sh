@@ -15,7 +15,7 @@ Namecom_API="https://api.name.com/v4"
 
 #Usage: dns_namecom_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_namecom_add() {
-  fulldomain=$1
+  fulldomain=$(_idn "$1")
   txtvalue=$2
 
   Namecom_Username="${Namecom_Username:-$(_readaccountconf_mutable Namecom_Username)}"
@@ -68,7 +68,7 @@ dns_namecom_add() {
 #Usage: fulldomain txtvalue
 #Remove the txt record after validation.
 dns_namecom_rm() {
-  fulldomain=$1
+  fulldomain=$(_idn "$1")
   txtvalue=$2
 
   Namecom_Username="${Namecom_Username:-$(_readaccountconf_mutable Namecom_Username)}"
