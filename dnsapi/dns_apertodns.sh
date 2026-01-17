@@ -103,9 +103,9 @@ dns_apertodns_rm() {
   _debug _hostname "$_hostname"
   _debug _txtname "$_txtname"
 
-  # Build JSON payload
+  # Build JSON payload (include value for multi-TXT support)
   _info "Removing TXT record for $_hostname"
-  _body="{\"hostname\":\"$_hostname\",\"txt\":{\"name\":\"$_txtname\",\"action\":\"delete\"}}"
+  _body="{\"hostname\":\"$_hostname\",\"txt\":{\"name\":\"$_txtname\",\"value\":\"$txtvalue\",\"action\":\"delete\"}}"
 
   if _apertodns_rest POST "/.well-known/apertodns/v1/update" "$_body"; then
     if _contains "$response" "\"success\":true" || _contains "$response" "\"status\":\"good\"" || _contains "$response" "\"status\":\"nochg\""; then
