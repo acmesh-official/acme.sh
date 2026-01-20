@@ -16,7 +16,6 @@ else ## LIVE
   MVMNET_API_URL="https://api.mvmnet.com/api/1.0"
 fi
 
-
 ########  Public functions #####################
 
 dns_mvmnet_add() {
@@ -63,7 +62,6 @@ dns_mvmnet_rm() {
   _subdomain=$(echo "$fulldomain" | sed -r "s/.$_domain//")
   _debug _subdomain "$_subdomain"
 
-
   if ! _get_record_id "$_subdomain" "$_domain" "$txtvalue"; then
     _warn "Record id for $_subdomain not found, please remove it manually"
     return 0
@@ -84,8 +82,7 @@ dns_mvmnet_rm() {
 
 ####################  Private functions below ##################################
 
-_check_variables ()
-{
+_check_variables() {
   MVMNET_ID="${MVMNET_ID:-$(_readaccountconf_mutable MVMNET_ID)}"
   MVMNET_KEY="${MVMNET_KEY:-$(_readaccountconf_mutable MVMNET_KEY)}"
   MVMNET_SEED="${MVMNET_SEED:-$(_readaccountconf_mutable MVMNET_SEED)}"
@@ -98,8 +95,7 @@ _check_variables ()
   fi
 }
 
-_retrieve_and_check_variables ()
-{
+_retrieve_and_check_variables() {
   _check_variables
 
   _saveaccountconf_mutable MVMNET_ID "$MVMNET_ID"
@@ -112,8 +108,7 @@ _retrieve_and_check_variables ()
 # _sub_domain=_acme-challenge.www
 # _domain=domain.com
 # _domain_id=123456789
-_get_root ()
-{
+_get_root() {
   domain=$1
   i=1
   p=1
@@ -131,7 +126,7 @@ _get_root ()
       return 1
     fi
 
-    if _contains "$response" "\"domain_idn\":\"$h\"" ; then
+    if _contains "$response" "\"domain_idn\":\"$h\""; then
       _domain_id=$(echo "$response" | _egrep_o ".\"id\": *\"[0-9]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \" | tr -d " ")
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
@@ -193,8 +188,8 @@ _mvmnet_rest() {
   data="$3"
   _debug "$ep"
 
-  MVMNET_ID="${MVMNET_ID:-$(_readaccountconf_mutable MVMNET_ID)}" ## Case sensitive
-  MVMNET_KEY="${MVMNET_KEY:-$(_readaccountconf_mutable MVMNET_KEY)}" ## Case sensitive
+  MVMNET_ID="${MVMNET_ID:-$(_readaccountconf_mutable MVMNET_ID)}"       ## Case sensitive
+  MVMNET_KEY="${MVMNET_KEY:-$(_readaccountconf_mutable MVMNET_KEY)}"    ## Case sensitive
   MVMNET_SEED="${MVMNET_SEED:-$(_readaccountconf_mutable MVMNET_SEED)}" ## Case sensitive
 
   signature="$(printf "%s" "${MVMNET_ID}+${MVMNET_KEY}+$m+${MVMNET_SEED}" | _digest "sha1" "hex")"
@@ -203,16 +198,16 @@ _mvmnet_rest() {
   export _H2="X-Mvm-Signature: ${signature}"
 
   case "$m" in
-    POST|PUT)
-      _debug data "$data"
-      response="$(_post "$data" "$MVMNET_API_URL/$ep" "" "$m" "application/json")"
-      ;;
-    DELETE)
-      response="$(_post "" "$MVMNET_API_URL/$ep?$data" "" "$m")"
-      ;;
-    GET)
-      response="$(_get "$MVMNET_API_URL/$ep?$data")"
-      ;;
+  POST | PUT)
+    _debug data "$data"
+    response="$(_post "$data" "$MVMNET_API_URL/$ep" "" "$m" "application/json")"
+    ;;
+  DELETE)
+    response="$(_post "" "$MVMNET_API_URL/$ep?$data" "" "$m")"
+    ;;
+  GET)
+    response="$(_get "$MVMNET_API_URL/$ep?$data")"
+    ;;
   esac
 
   if [ "$?" != "0" ]; then
