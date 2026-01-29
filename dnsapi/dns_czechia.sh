@@ -154,7 +154,7 @@ _czechia_pick_zone() {
       [ -z "$z" ] && continue
       case "$fd" in
         "$z"|*".$z")
-          if [ ${#z} -gt $bestlen ]; then
+          if [ "${#z}" -gt "$bestlen" ]; then
             best="$z"
             bestlen=${#z}
           fi
@@ -189,7 +189,7 @@ _czechia_rel_host() {
   suffix=".$z"
   case "$fd" in
     *"$suffix")
-      rel="${fd%$suffix}"
+      rel="${fd%"$suffix"}"
       [ -z "$rel" ] && rel="@"
       echo "$rel"
       return 0
