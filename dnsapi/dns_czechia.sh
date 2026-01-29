@@ -119,11 +119,11 @@ _czechia_norm_zonelist() {
   # - empty entries dropped
   in="$1"
   [ -z "$in" ] && return 0
-  printf "%s" "$in" \
-    | tr '[:upper:]' '[:lower:]' \
-    | tr ' ' ',' \
-    | tr -s ',' \
-    | sed 's/[\t\r\n]//g; s/\.$//; s/^,//; s/,$//; s/,,*/,/g'
+ printf "%s" "$in" |
+  tr '[:upper:]' '[:lower:]' |
+  tr ' ' ',' |
+  tr -s ',' |
+  sed 's/[\t\r\n]//g; s/\.$//; s/^,//; s/,$//; s/,,*/,/g'
 }
 
 
@@ -137,12 +137,12 @@ _czechia_pick_zone() {
   # 1) CZ_Zone as default (only if it matches)
   if [ -n "$CZ_Zone" ]; then
     z="$CZ_Zone"
-    case "$fd" in
-      "$z"|*".$z")
-        best="$z"
-        bestlen=${#z}
-        ;;
-    esac
+   case "$fd" in
+  "$z" | *".$z")
+    best="$z"
+    bestlen=${#z}
+    ;;
+esac
   fi
 
   # 2) CZ_Zones list (longest matching suffix wins)
@@ -153,13 +153,13 @@ _czechia_pick_zone() {
       z="$(printf "%s" "$z" | sed 's/^ *//; s/ *$//; s/\.$//')"
       [ -z "$z" ] && continue
       case "$fd" in
-        "$z"|*".$z")
-          if [ "${#z}" -gt "$bestlen" ]; then
-            best="$z"
-            bestlen=${#z}
-          fi
-          ;;
-      esac
+  "$z" | *".$z")
+    if [ "${#z}" -gt "$bestlen" ]; then
+      best="$z"
+      bestlen=${#z}
+    fi
+    ;;
+esac
     done
     IFS="$oldifs"
   fi
