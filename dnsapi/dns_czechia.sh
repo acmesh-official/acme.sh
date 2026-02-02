@@ -23,7 +23,6 @@
 #   CZ_API_BASE (default https://api.czechia.com)
 #   CZ_CURL_TIMEOUT (default 30)
 
-
 dns_czechia_add() {
   fulldomain="$1"
   txtvalue="$2"
@@ -43,7 +42,6 @@ dns_czechia_add() {
   _czechia_api_request "POST" "$url" "$body"
 }
 
-
 dns_czechia_rm() {
   fulldomain="$1"
   txtvalue="$2"
@@ -62,7 +60,6 @@ dns_czechia_rm() {
 
   _czechia_api_request "DELETE" "$url" "$body"
 }
-
 
 _czechia_load_conf() {
   # token must be available for automatic renewals (read from env or account.conf)
@@ -110,7 +107,6 @@ _czechia_load_conf() {
   return 0
 }
 
-
 _czechia_norm_zonelist() {
   # Normalize comma/space separated list to a single comma-separated list
   # - lowercased
@@ -119,13 +115,12 @@ _czechia_norm_zonelist() {
   # - empty entries dropped
   in="$1"
   [ -z "$in" ] && return 0
- printf "%s" "$in" |
-  tr '[:upper:]' '[:lower:]' |
-  tr ' ' ',' |
-  tr -s ',' |
-  sed 's/[\t\r\n]//g; s/\.$//; s/^,//; s/,$//; s/,,*/,/g'
+  printf "%s" "$in" |
+    tr '[:upper:]' '[:lower:]' |
+    tr ' ' ',' |
+    tr -s ',' |
+    sed 's/[\t\r\n]//g; s/\.$//; s/^,//; s/,$//; s/,,*/,/g'
 }
-
 
 _czechia_pick_zone() {
   fulldomain="$1"
@@ -137,12 +132,12 @@ _czechia_pick_zone() {
   # 1) CZ_Zone as default (only if it matches)
   if [ -n "$CZ_Zone" ]; then
     z="$CZ_Zone"
-   case "$fd" in
-  "$z" | *".$z")
-    best="$z"
-    bestlen=${#z}
-    ;;
-esac
+    case "$fd" in
+    "$z" | *".$z")
+      best="$z"
+      bestlen=${#z}
+      ;;
+    esac
   fi
 
   # 2) CZ_Zones list (longest matching suffix wins)
@@ -153,13 +148,13 @@ esac
       z="$(printf "%s" "$z" | sed 's/^ *//; s/ *$//; s/\.$//')"
       [ -z "$z" ] && continue
       case "$fd" in
-  "$z" | *".$z")
-    if [ "${#z}" -gt "$bestlen" ]; then
-      best="$z"
-      bestlen=${#z}
-    fi
-    ;;
-esac
+      "$z" | *".$z")
+        if [ "${#z}" -gt "$bestlen" ]; then
+          best="$z"
+          bestlen=${#z}
+        fi
+        ;;
+      esac
     done
     IFS="$oldifs"
   fi
@@ -172,7 +167,6 @@ esac
   echo "$best"
   return 0
 }
-
 
 _czechia_rel_host() {
   fulldomain="$1"
@@ -188,18 +182,17 @@ _czechia_rel_host() {
 
   suffix=".$z"
   case "$fd" in
-    *"$suffix")
-      rel="${fd%"$suffix"}"
-      [ -z "$rel" ] && rel="@"
-      echo "$rel"
-      return 0
-      ;;
+  *"$suffix")
+    rel="${fd%"$suffix"}"
+    [ -z "$rel" ] && rel="@"
+    echo "$rel"
+    return 0
+    ;;
   esac
 
   _err "fulldomain '$fd' is not under zone '$z'"
   return 1
 }
-
 
 _czechia_build_body() {
   host="$1"
@@ -208,11 +201,9 @@ _czechia_build_body() {
   echo "{\"hostName\":\"$host\",\"text\":\"$txt_escaped\",\"ttl\":$CZ_TTL,\"publishZone\":$CZ_PublishZone}"
 }
 
-
 _czechia_json_escape() {
   echo "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
 }
-
 
 _czechia_api_request() {
   method="$1"
