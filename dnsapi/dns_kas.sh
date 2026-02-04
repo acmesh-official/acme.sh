@@ -232,6 +232,7 @@ _get_credential_token() {
     # Get OTP code with the defined secret.
     otp_code="$(oathtool --base32 --totp "${KAS_OTP_Secret}" 2>/dev/null)"
 
+
   fi
 
   baseParamAuth="\"kas_login\":\"$KAS_Login\""
