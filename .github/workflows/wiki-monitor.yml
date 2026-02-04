@@ -9,7 +9,7 @@ jobs:
     if: github.actor != 'neilpang'
     steps:
       - name: Checkout wiki repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ github.repository }}.wiki
           path: wiki
@@ -51,7 +51,7 @@ jobs:
             } > wiki-change-msg.txt
 
       - name: Create issue to notify Neilpang
-        uses: peter-evans/create-issue-from-file@v5
+        uses: peter-evans/create-issue-from-file@v6
         with:
           title: "Wiki edited"
           content-filepath: ./wiki-change-msg.txt
