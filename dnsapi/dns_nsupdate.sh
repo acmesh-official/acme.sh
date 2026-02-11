@@ -6,7 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_nsupdate
 Options:
  NSUPDATE_SERVER Server hostname. Default: "localhost".
  NSUPDATE_SERVER_PORT Server port. Default: "53".
- NSUPDATE_KEY File path to TSIG key.
+ NSUPDATE_KEY File path to TSIG key. Default: ""
  NSUPDATE_ZONE Domain zone to update. Optional.
 '
 
@@ -22,8 +22,6 @@ dns_nsupdate_add() {
   NSUPDATE_ZONE="${NSUPDATE_ZONE:-$(_readaccountconf_mutable NSUPDATE_ZONE)}"
   NSUPDATE_OPT="${NSUPDATE_OPT:-$(_readaccountconf_mutable NSUPDATE_OPT)}"
 
-  _checkKeyFile || return 1
-
   # save the dns server and key to the account conf file.
   _saveaccountconf_mutable NSUPDATE_SERVER "${NSUPDATE_SERVER}"
   _saveaccountconf_mutable NSUPDATE_SERVER_PORT "${NSUPDATE_SERVER_PORT}"
@@ -33,6 +31,7 @@ dns_nsupdate_add() {
 
   [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
   [ -n "${NSUPDATE_SERVER_PORT}" ] || NSUPDATE_SERVER_PORT=53
+  [ -n "${NSUPDATE_KEY}" ] || NSUPDATE_KEY=""
   [ -n "${NSUPDATE_OPT}" ] || NSUPDATE_OPT=""
 
   _info "adding ${fulldomain}. 60 in txt \"${txtvalue}\""
@@ -40,19 +39,36 @@ dns_nsupdate_add() {
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_2" ] && nsdebug="-D"
   if [ -z "${NSUPDATE_ZONE}" ]; then
     #shellcheck disable=SC2086
-    nsupdate -k "${NSUPDATE_KEY}" $nsdebug $NSUPDATE_OPT <<EOF
+    if [ -z "${NSUPDATE_KEY}" ]; then
+      nsupdate $nsdebug $NSUPDATE_OPT <<EOF
 server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
 update add ${fulldomain}. 60 in txt "${txtvalue}"
 send
 EOF
+    else
+      nsupdate -k "${NSUPDATE_KEY}" $nsdebug $NSUPDATE_OPT <<EOF
+server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
+update add ${fulldomain}. 60 in txt "${txtvalue}"
+send
+EOF
+    fi
   else
     #shellcheck disable=SC2086
-    nsupdate -k "${NSUPDATE_KEY}" $nsdebug $NSUPDATE_OPT <<EOF
+    if [ -z "${NSUPDATE_KEY}" ]; then
+      nsupdate $nsdebug $NSUPDATE_OPT <<EOF
 server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
 zone ${NSUPDATE_ZONE}.
 update add ${fulldomain}. 60 in txt "${txtvalue}"
 send
 EOF
+    else
+      nsupdate -k "${NSUPDATE_KEY}" $nsdebug $NSUPDATE_OPT <<EOF
+server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
+zone ${NSUPDATE_ZONE}.
+update add ${fulldomain}. 60 in txt "${txtvalue}"
+send
+EOF
+    fi
   fi
   if [ $? -ne 0 ]; then
     _err "error updating domain"
@@ -72,27 +88,44 @@ dns_nsupdate_rm() {
   NSUPDATE_ZONE="${NSUPDATE_ZONE:-$(_readaccountconf_mutable NSUPDATE_ZONE)}"
   NSUPDATE_OPT="${NSUPDATE_OPT:-$(_readaccountconf_mutable NSUPDATE_OPT)}"
 
-  _checkKeyFile || return 1
   [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
   [ -n "${NSUPDATE_SERVER_PORT}" ] || NSUPDATE_SERVER_PORT=53
+  [ -n "${NSUPDATE_KEY}" ] || NSUPDATE_KEY=""
   _info "removing ${fulldomain}. txt"
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_1" ] && nsdebug="-d"
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_2" ] && nsdebug="-D"
   if [ -z "${NSUPDATE_ZONE}" ]; then
     #shellcheck disable=SC2086
-    nsupdate -k "${NSUPDATE_KEY}" $nsdebug $NSUPDATE_OPT <<EOF
+    if [ -z "${NSUPDATE_KEY}" ]; then
+      nsupdate $nsdebug $NSUPDATE_OPT <<EOF
 server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
 update delete ${fulldomain}. txt
 send
 EOF
+    else
+      nsupdate -k "${NSUPDATE_KEY}" $nsdebug $NSUPDATE_OPT <<EOF
+server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
+update delete ${fulldomain}. txt
+send
+EOF
+    fi
   else
     #shellcheck disable=SC2086
-    nsupdate -k "${NSUPDATE_KEY}" $nsdebug $NSUPDATE_OPT <<EOF
+    if [ -z "${NSUPDATE_KEY}" ]; then
+      nsupdate $nsdebug $NSUPDATE_OPT <<EOF
 server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
 zone ${NSUPDATE_ZONE}.
 update delete ${fulldomain}. txt
 send
 EOF
+    else
+      nsupdate -k "${NSUPDATE_KEY}" $nsdebug $NSUPDATE_OPT <<EOF
+server ${NSUPDATE_SERVER}  ${NSUPDATE_SERVER_PORT}
+zone ${NSUPDATE_ZONE}.
+update delete ${fulldomain}. txt
+send
+EOF
+    fi
   fi
   if [ $? -ne 0 ]; then
     _err "error updating domain"
@@ -100,17 +133,4 @@ EOF
   fi
 
   return 0
-}
-
-####################  Private functions below ##################################
-
-_checkKeyFile() {
-  if [ -z "${NSUPDATE_KEY}" ]; then
-    _err "you must specify a path to the nsupdate key file"
-    return 1
-  fi
-  if [ ! -r "${NSUPDATE_KEY}" ]; then
-    _err "key ${NSUPDATE_KEY} is unreadable"
-    return 1
-  fi
 }
