@@ -1,5 +1,6 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 # shellcheck disable=SC2034
+
 dns_yc_info='Yandex Cloud DNS
 Site: Cloud.Yandex.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_yc
@@ -22,57 +23,32 @@ dns_yc_add() {
   fulldomain="$(echo "$1". | _lower_case)" # Add dot at end of domain name
   txtvalue=$2
 
-  YC_SA_Key_File_PEM_b64="${YC_SA_Key_File_PEM_b64:-$(_readaccountconf_mutable YC_SA_Key_File_PEM_b64)}"
-  YC_SA_Key_File_Path="${YC_SA_Key_File_Path:-$(_readaccountconf_mutable YC_SA_Key_File_Path)}"
-
-  if [ "$YC_SA_Key_File_PEM_b64" ]; then
-    echo "$YC_SA_Key_File_PEM_b64" | _dbase64 >private.key
-    YC_SA_Key_File="private.key"
-    _savedomainconf YC_SA_Key_File_PEM_b64 "$YC_SA_Key_File_PEM_b64"
-  else
-    YC_SA_Key_File="$YC_SA_Key_File_Path"
-    _savedomainconf YC_SA_Key_File_Path "$YC_SA_Key_File_Path"
-  fi
+  _yc_prepare_key_file
+  trap _yc_cleanup_key_file EXIT
 
   YC_Zone_ID="${YC_Zone_ID:-$(_readaccountconf_mutable YC_Zone_ID)}"
   YC_Folder_ID="${YC_Folder_ID:-$(_readaccountconf_mutable YC_Folder_ID)}"
   YC_SA_ID="${YC_SA_ID:-$(_readaccountconf_mutable YC_SA_ID)}"
   YC_SA_Key_ID="${YC_SA_Key_ID:-$(_readaccountconf_mutable YC_SA_Key_ID)}"
 
-  if [ "$YC_SA_ID" ] && [ "$YC_SA_Key_ID" ] && [ "$YC_SA_Key_File" ]; then
-    if [ -f "$YC_SA_Key_File" ]; then
-      if _isRSA "$YC_SA_Key_File" >/dev/null 2>&1; then
-        if [ "$YC_Zone_ID" ]; then
-          _savedomainconf YC_Zone_ID "$YC_Zone_ID"
-          _savedomainconf YC_SA_ID "$YC_SA_ID"
-          _savedomainconf YC_SA_Key_ID "$YC_SA_Key_ID"
-        elif [ "$YC_Folder_ID" ]; then
-          _savedomainconf YC_Folder_ID "$YC_Folder_ID"
-          _saveaccountconf_mutable YC_SA_ID "$YC_SA_ID"
-          _saveaccountconf_mutable YC_SA_Key_ID "$YC_SA_Key_ID"
-          _clearaccountconf_mutable YC_Zone_ID
-          _clearaccountconf YC_Zone_ID
-        else
-          _err "You didn't specify a Yandex Cloud Zone ID or Folder ID yet."
-          return 1
-        fi
-      else
-        _err "YC_SA_Key_File not a RSA file(_isRSA function return false)."
-        return 1
-      fi
-    else
-      _err "YC_SA_Key_File not found in path $YC_SA_Key_File."
-      return 1
-    fi
-  else
-    _clearaccountconf YC_Zone_ID
-    _clearaccountconf YC_Folder_ID
-    _clearaccountconf YC_SA_ID
-    _clearaccountconf YC_SA_Key_ID
-    _clearaccountconf YC_SA_Key_File_PEM_b64
-    _clearaccountconf YC_SA_Key_File_Path
-    _err "You didn't specify a YC_SA_ID or YC_SA_Key_ID or YC_SA_Key_File."
+  if ! _yc_validate_creds; then
     return 1
+  fi
+
+  # Save per-domain or per-account settings
+  if [ "$YC_Zone_ID" ]; then
+    _savedomainconf YC_Zone_ID "$YC_Zone_ID"
+  elif [ "$YC_Folder_ID" ]; then
+    _savedomainconf YC_Folder_ID "$YC_Folder_ID"
+  fi
+  _saveaccountconf_mutable YC_SA_ID "$YC_SA_ID"
+  _saveaccountconf_mutable YC_SA_Key_ID "$YC_SA_Key_ID"
+  if [ "${YC_SA_Key_File_PEM_b64:-}" ]; then
+    _saveaccountconf_mutable YC_SA_Key_File_PEM_b64 "$YC_SA_Key_File_PEM_b64"
+    _clearaccountconf_mutable YC_SA_Key_File_Path
+  else
+    _saveaccountconf_mutable YC_SA_Key_File_Path "$YC_SA_Key_File_Path"
+    _clearaccountconf_mutable YC_SA_Key_File_PEM_b64
   fi
 
   _debug "First detect the root zone"
@@ -95,14 +71,11 @@ dns_yc_add() {
     if _contains "$response" "\"done\": true"; then
       _info "Added, OK"
       return 0
-    else
-      _err "Add txt record error."
-      return 1
     fi
   fi
+
   _err "Add txt record error."
   return 1
-
 }
 
 #fulldomain txtvalue
@@ -110,10 +83,17 @@ dns_yc_rm() {
   fulldomain="$(echo "$1". | _lower_case)" # Add dot at end of domain name
   txtvalue=$2
 
+  _yc_prepare_key_file
+  trap _yc_cleanup_key_file EXIT
+
   YC_Zone_ID="${YC_Zone_ID:-$(_readaccountconf_mutable YC_Zone_ID)}"
   YC_Folder_ID="${YC_Folder_ID:-$(_readaccountconf_mutable YC_Folder_ID)}"
   YC_SA_ID="${YC_SA_ID:-$(_readaccountconf_mutable YC_SA_ID)}"
   YC_SA_Key_ID="${YC_SA_Key_ID:-$(_readaccountconf_mutable YC_SA_Key_ID)}"
+
+  if ! _yc_validate_creds; then
+    return 1
+  fi
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -133,25 +113,24 @@ dns_yc_rm() {
     return 1
   fi
 
+  # Note: deletes whole recordset data array, consistent with previous behavior.
   if _yc_rest POST "zones/$_domain_id:updateRecordSets" "{\"deletions\": [ { \"name\":\"$_sub_domain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":$exists_txtvalue}]}"; then
     if _contains "$response" "\"done\": true"; then
       _info "Delete, OK"
       return 0
-    else
-      _err "Delete record error."
-      return 1
     fi
   fi
+
   _err "Delete record error."
   return 1
 }
 
 ####################  Private functions below ##################################
-#_acme-challenge.www.domain.com
+
 #returns
 # _sub_domain=_acme-challenge.www
 # _domain=domain.com
-# _domain_id=sdjkglgdfewsdfg
+# _domain_id=<id>
 _get_root() {
   domain=$1
   i=1
@@ -161,38 +140,36 @@ _get_root() {
   if [ "$YC_Zone_ID" ]; then
     if ! _yc_rest GET "zones/$YC_Zone_ID"; then
       return 1
-    else
-      if echo "$response" | tr -d " " | _egrep_o "\"id\":\"$YC_Zone_ID\"" >/dev/null; then
-        _domain=$(echo "$response" | _egrep_o "\"zone\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | _head_n 1 | tr -d " ")
-        if [ "$_domain" ]; then
-          _cutlength=$((${#domain} - ${#_domain}))
-          _sub_domain=$(printf "%s" "$domain" | cut -c "1-$_cutlength")
-          _domain_id=$YC_Zone_ID
-          return 0
-        else
-          return 1
-        fi
-      else
-        return 1
+    fi
+
+    if echo "$response" | tr -d " " | _egrep_o "\"id\":\"$YC_Zone_ID\"" >/dev/null; then
+      _domain=$(echo "$response" | _egrep_o "\"zone\": *\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | _head_n 1 | tr -d " ")
+      if [ "$_domain" ]; then
+        _cutlength=$((${#domain} - ${#_domain}))
+        _sub_domain=$(printf "%s" "$domain" | cut -c "1-$_cutlength")
+        _domain_id=$YC_Zone_ID
+        return 0
       fi
     fi
+    return 1
   fi
 
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
-      #not valid
       return 1
     fi
+
     if [ "$YC_Folder_ID" ]; then
       if ! _yc_rest GET "zones?folderId=$YC_Folder_ID"; then
         return 1
       fi
     else
-      echo "You didn't specify a Yandex Cloud Folder ID."
+      _err "You didn't specify a Yandex Cloud Folder ID."
       return 1
     fi
+
     if _contains "$response" "\"zone\": \"$h\""; then
       _domain_id=$(echo "$response" | _normalizeJson | _egrep_o "[^{]*\"zone\":\"$h\"[^}]*" | _egrep_o "\"id\"[^,]*" | _egrep_o "[^:]*$" | tr -d '"')
       _debug _domain_id "$_domain_id"
@@ -206,16 +183,67 @@ _get_root() {
     p=$i
     i=$(_math "$i" + 1)
   done
-  return 1
+}
+
+_yc_validate_creds() {
+  if [ ! "$YC_SA_ID" ] || [ ! "$YC_SA_Key_ID" ] || [ ! "$YC_SA_Key_File" ]; then
+    _err "You didn't specify a YC_SA_ID or YC_SA_Key_ID or YC_SA_Key_File."
+    return 1
+  fi
+
+  if [ ! -f "$YC_SA_Key_File" ]; then
+    _err "YC_SA_Key_File not found in path $YC_SA_Key_File."
+    return 1
+  fi
+
+  if ! _isRSA "$YC_SA_Key_File" >/dev/null 2>&1; then
+    _err "YC_SA_Key_File not a RSA file(_isRSA function return false)."
+    return 1
+  fi
+
+  if [ ! "$YC_Zone_ID" ] && [ ! "$YC_Folder_ID" ]; then
+    _err "You didn't specify a Yandex Cloud Zone ID or Folder ID yet."
+    return 1
+  fi
+
+  return 0
+}
+
+# Prepare YC_SA_Key_File from either PEM_b64 (tmp) or File_Path (persistent)
+# Sets:
+#   YC_SA_Key_File
+#   YC_SA_Key_File_PEM_b64 / YC_SA_Key_File_Path (from env/accountconf)
+#   _yc_tmp_key_file (if created)
+_yc_prepare_key_file() {
+  YC_SA_Key_File_PEM_b64="${YC_SA_Key_File_PEM_b64:-$(_readaccountconf_mutable YC_SA_Key_File_PEM_b64)}"
+  YC_SA_Key_File_Path="${YC_SA_Key_File_Path:-$(_readaccountconf_mutable YC_SA_Key_File_Path)}"
+
+  _yc_tmp_key_file=""
+
+  if [ "$YC_SA_Key_File_PEM_b64" ]; then
+    _yc_tmp_key_file="$(mktemp "${TMPDIR:-/tmp}/acme-yc-key.XXXXXX")"
+    chmod 600 "$_yc_tmp_key_file"
+    echo "$YC_SA_Key_File_PEM_b64" | _dbase64 >"$_yc_tmp_key_file"
+    YC_SA_Key_File="$_yc_tmp_key_file"
+  else
+    YC_SA_Key_File="$YC_SA_Key_File_Path"
+  fi
+}
+
+# Cleanup only temp key (never touch persistent YC_SA_Key_File_Path)
+_yc_cleanup_key_file() {
+  if [ "${_yc_tmp_key_file:-}" ] && [ -f "${_yc_tmp_key_file}" ]; then
+    rm -f "${_yc_tmp_key_file}"
+  fi
 }
 
 _yc_rest() {
   m=$1
   ep="$2"
-  data="$3"
+  data="${3-}"
   _debug "$ep"
 
-  if [ ! "$YC_Token" ]; then
+  if [ ! "${YC_Token:-}" ]; then
     _debug "Login"
     _yc_login
   else
@@ -251,11 +279,8 @@ _yc_login() {
   payload=$(echo "{\"iss\":\"$YC_SA_ID\",\"aud\":\"https://iam.api.cloud.yandex.net/iam/v1/tokens\",\"iat\":$_current_timestamp,\"exp\":$_expire_timestamp}" | _normalizeJson | _base64 | _url_replace)
   _debug payload "$payload"
 
-  #signature=$(printf "%s.%s" "$header" "$payload" | ${ACME_OPENSSL_BIN:-openssl} dgst -sign "$YC_SA_Key_File -sha256 -sigopt rsa_padding_mode:pss -sigopt rsa_pss_saltlen:-1" | _base64 | _url_replace )
   _signature=$(printf "%s.%s" "$header" "$payload" | _sign "$YC_SA_Key_File" "sha256 -sigopt rsa_padding_mode:pss -sigopt rsa_pss_saltlen:-1" | _url_replace)
   _debug2 _signature "$_signature"
-
-  rm -rf "$YC_SA_Key_File"
 
   _jwt=$(printf "{\"jwt\": \"%s.%s.%s\"}" "$header" "$payload" "$_signature")
   _debug2 _jwt "$_jwt"
