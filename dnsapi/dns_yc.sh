@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 # shellcheck disable=SC2034
 
 dns_yc_info='Yandex Cloud DNS
@@ -24,7 +24,7 @@ dns_yc_add() {
   txtvalue=$2
 
   _yc_prepare_key_file
-  trap _yc_cleanup_key_file EXIT
+  trap _yc_cleanup_key_file 0
 
   YC_Zone_ID="${YC_Zone_ID:-$(_readaccountconf_mutable YC_Zone_ID)}"
   YC_Folder_ID="${YC_Folder_ID:-$(_readaccountconf_mutable YC_Folder_ID)}"
@@ -84,7 +84,7 @@ dns_yc_rm() {
   txtvalue=$2
 
   _yc_prepare_key_file
-  trap _yc_cleanup_key_file EXIT
+  trap _yc_cleanup_key_file 0
 
   YC_Zone_ID="${YC_Zone_ID:-$(_readaccountconf_mutable YC_Zone_ID)}"
   YC_Folder_ID="${YC_Folder_ID:-$(_readaccountconf_mutable YC_Folder_ID)}"
