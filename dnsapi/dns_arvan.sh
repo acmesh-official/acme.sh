@@ -5,8 +5,8 @@ Site: ArvanCloud.ir
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_arvan
 Options:
  Arvan_Token API Token
-Issues: github.com/acmesh-official/acme.sh/issues/2796
-Author: Vahid Fardi
+Issues: github.com/acmesh-official/acme.sh/issues/6788
+Author: Abolfazl Rajabpour ( abooraja ) ( mizekar.com )
 '
 
 ARVAN_API_URL="https://napi.arvancloud.ir/cdn/4.0/domains"
