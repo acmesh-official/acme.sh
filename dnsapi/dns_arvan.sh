@@ -206,27 +206,33 @@ _arvan_rest() {
   if [ "$mtd" = "DELETE" ]; then
     #DELETE Request shouldn't have Content-Type
     _debug data "$data"
-    response="$(_post "$data" "$ARVAN_API_URL/$ep" "" "$mtd")"
+    if ! response="$(_post "$data" "$ARVAN_API_URL/$ep" "" "$mtd")"; then
+      _err "Error on Arvan API request"
+      return 1
+    fi
   elif [ "$mtd" = "POST" ]; then
     export _H2="Content-Type: application/json"
     export _H3="Accept: application/json"
     _debug data "$data"
-    response="$(_post "$data" "$ARVAN_API_URL/$ep" "" "$mtd")"
+    if ! response="$(_post "$data" "$ARVAN_API_URL/$ep" "" "$mtd")"; then
+      _err "Error on Arvan API request"
+      return 1
+    fi
   else
     # برای GET request
     if [ -n "$ep" ]; then
       # اگر ep مشخص شده، به endpoint خاص درخواست می‌زنیم
-      response="$(_get "$ARVAN_API_URL/$ep")"
+      if ! response="$(_get "$ARVAN_API_URL/$ep")"; then
+        _err "Error on Arvan API request"
+        return 1
+      fi
     else
       # اگر ep خالی است، لیست دامنه‌ها را می‌گیریم
-      response="$(_get "$ARVAN_API_URL")"
+      if ! response="$(_get "$ARVAN_API_URL")"; then
+        _err "Error on Arvan API request"
+        return 1
+      fi
     fi
-  fi
-  
-  # چک کردن موفقیت درخواست
-  if [ "$?" != "0" ]; then
-    _err "Error on Arvan API request"
-    return 1
   fi
   
   _debug2 response "$response"
