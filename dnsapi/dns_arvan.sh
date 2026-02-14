@@ -87,18 +87,18 @@ dns_arvan_rm() {
     return 1
   fi
 
-  # جستجوی رکورد با نام و مقدار مشخص
-  # الگوهای مختلف برای پیدا کردن record_id
+  # Search for record with specified name and value
+  # Multiple patterns to find record_id
   _record_id=$(echo "$response" | _egrep_o "\"id\":\"[^\"]*\"[^}]*\"type\":\"[Tt][Xx][Tt]\"[^}]*\"name\":\"$_sub_domain\"[^}]*\"value\":[^}]*\"text\":\"$txtvalue\"" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
   
-  # اگر با الگوی بالا پیدا نشد، الگوی دیگر را امتحان کنیم
+  # If not found with above pattern, try another pattern
   if [ -z "$_record_id" ]; then
     _record_id=$(echo "$response" | _egrep_o "\"name\":\"$_sub_domain\"[^}]*\"type\":\"[Tt][Xx][Tt]\"[^}]*\"value\":[^}]*\"text\":\"$txtvalue\"[^}]*\"id\":\"[^\"]*\"" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
   fi
   
-  # اگر هنوز پیدا نشد، سعی کنیم از کل response استخراج کنیم
+  # If still not found, try to extract from entire response
   if [ -z "$_record_id" ]; then
-    # پیدا کردن بخش مربوط به این رکورد
+    # Find the block related to this record
     record_block=$(echo "$response" | _egrep_o "\{[^}]*\"name\":\"$_sub_domain\"[^}]*\"type\":\"[Tt][Xx][Tt]\"[^}]*\"value\":[^}]*\"text\":\"$txtvalue\"[^}]*\}")
     if [ -n "$record_block" ]; then
       _record_id=$(echo "$record_block" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
@@ -140,14 +140,14 @@ _get_root() {
   i=2
   p=1
   
-  # ابتدا لیست دامنه‌ها را از API بگیریم
+  # First, get the list of domains from API
   _debug "Getting list of domains from Arvan API"
   if ! _arvan_rest GET ""; then
     _err "Failed to get domains list from Arvan API"
     return 1
   fi
   
-  # ذخیره response برای استفاده در حلقه
+  # Save response for use in loop
   domains_list="$response"
   _debug2 "Domains list response: $domains_list"
   
@@ -159,20 +159,20 @@ _get_root() {
       return 1
     fi
 
-    # چک کردن وجود دامنه در لیست
+    # Check if domain exists in list
     if _contains "$domains_list" "\"domain\":\"$h\""; then
-      # استخراج domain_id از response
-      # فرمت ممکن: {"id":"xxx","domain":"mizekar.site",...} یا {"domain":"mizekar.site","id":"xxx",...}
+      # Extract domain_id from response
+      # Possible formats: {"id":"xxx","domain":"mizekar.site",...} or {"domain":"mizekar.site","id":"xxx",...}
       _domain_id=$(echo "$domains_list" | _egrep_o "\"id\":\"[^\"]*\"[^}]*\"domain\":\"$h\"" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
       
-      # اگر با الگوی بالا پیدا نشد، الگوی دیگر را امتحان کنیم
+      # If not found with above pattern, try another pattern
       if [ -z "$_domain_id" ]; then
         _domain_id=$(echo "$domains_list" | _egrep_o "\"domain\":\"$h\"[^}]*\"id\":\"[^\"]*\"" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
       fi
       
-      # اگر هنوز پیدا نشد، سعی کنیم از کل response استخراج کنیم
+      # If still not found, try to extract from entire response
       if [ -z "$_domain_id" ]; then
-        # پیدا کردن بخش مربوط به این دامنه
+        # Find the block related to this domain
         domain_block=$(echo "$domains_list" | _egrep_o "\{[^}]*\"domain\":\"$h\"[^}]*\}")
         if [ -n "$domain_block" ]; then
           _domain_id=$(echo "$domain_block" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
@@ -219,15 +219,15 @@ _arvan_rest() {
       return 1
     fi
   else
-    # برای GET request
+    # For GET request
     if [ -n "$ep" ]; then
-      # اگر ep مشخص شده، به endpoint خاص درخواست می‌زنیم
+      # If ep is specified, make request to specific endpoint
       if ! response="$(_get "$ARVAN_API_URL/$ep")"; then
         _err "Error on Arvan API request"
         return 1
       fi
     else
-      # اگر ep خالی است، لیست دامنه‌ها را می‌گیریم
+      # If ep is empty, get the list of domains
       if ! response="$(_get "$ARVAN_API_URL")"; then
         _err "Error on Arvan API request"
         return 1
