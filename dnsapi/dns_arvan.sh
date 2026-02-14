@@ -45,16 +45,18 @@ dns_arvan_add() {
       _info "response id is $response"
       _info "Added, OK"
       return 0
-    elif _contains "$response" "Record Data is duplicate"; then
+    elif _contains "$response" "Record Data is duplicate" || _contains "$response" "duplicate" || _contains "$response" "already exists"; then
       _info "Already exists, OK"
       return 0
     else
       _err "Add txt record error."
+      _debug "Response was: $response"
       return 1
     fi
+  else
+    _err "Add txt record error."
+    return 1
   fi
-  _err "Add txt record error."
-  return 0
 }
 
 #Usage: fulldomain txtvalue
@@ -79,20 +81,51 @@ dns_arvan_rm() {
 
   _debug "Getting txt records"
   _arvan_rest GET "${_domain}/dns-records"
-  if ! printf "%s" "$response" | grep \"current_page\":1 >/dev/null; then
+  if ! printf "%s" "$response" | grep -q "\"current_page\":1"; then
     _err "Error on Arvan Api"
     _err "Please create a github issue with debbug log"
     return 1
   fi
 
-  _record_id=$(echo "$response" | _egrep_o ".\"id\":\"[^\"]*\",\"type\":\"txt\",\"name\":\"_acme-challenge\",\"value\":{\"text\":\"$txtvalue\"}" | cut -d : -f 2 | cut -d , -f 1 | tr -d \")
+  # جستجوی رکورد با نام و مقدار مشخص
+  # الگوهای مختلف برای پیدا کردن record_id
+  _record_id=$(echo "$response" | _egrep_o "\"id\":\"[^\"]*\"[^}]*\"type\":\"[Tt][Xx][Tt]\"[^}]*\"name\":\"$_sub_domain\"[^}]*\"value\":[^}]*\"text\":\"$txtvalue\"" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
+  
+  # اگر با الگوی بالا پیدا نشد، الگوی دیگر را امتحان کنیم
+  if [ -z "$_record_id" ]; then
+    _record_id=$(echo "$response" | _egrep_o "\"name\":\"$_sub_domain\"[^}]*\"type\":\"[Tt][Xx][Tt]\"[^}]*\"value\":[^}]*\"text\":\"$txtvalue\"[^}]*\"id\":\"[^\"]*\"" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
+  fi
+  
+  # اگر هنوز پیدا نشد، سعی کنیم از کل response استخراج کنیم
+  if [ -z "$_record_id" ]; then
+    # پیدا کردن بخش مربوط به این رکورد
+    record_block=$(echo "$response" | _egrep_o "\{[^}]*\"name\":\"$_sub_domain\"[^}]*\"type\":\"[Tt][Xx][Tt]\"[^}]*\"value\":[^}]*\"text\":\"$txtvalue\"[^}]*\}")
+    if [ -n "$record_block" ]; then
+      _record_id=$(echo "$record_block" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
+    fi
+  fi
+  
+  if [ -z "$_record_id" ]; then
+    _err "Could not find record with name '$_sub_domain' and value '$txtvalue'"
+    _debug "Response was: $response"
+    return 1
+  fi
+  
+  _debug "Found record_id: $_record_id"
+  
   if ! _arvan_rest "DELETE" "${_domain}/dns-records/${_record_id}"; then
     _err "Error on Arvan Api"
     return 1
   fi
   _debug "$response"
-  _contains "$response" 'dns record deleted'
-  return 0
+  
+  if _contains "$response" 'dns record deleted' || _contains "$response" 'deleted' || _contains "$response" 'success'; then
+    _info "Record deleted successfully"
+    return 0
+  else
+    _err "Failed to delete record"
+    return 1
+  fi
 }
 
 ####################  Private functions below ##################################
@@ -106,6 +139,18 @@ _get_root() {
   domain=$1
   i=2
   p=1
+  
+  # ابتدا لیست دامنه‌ها را از API بگیریم
+  _debug "Getting list of domains from Arvan API"
+  if ! _arvan_rest GET ""; then
+    _err "Failed to get domains list from Arvan API"
+    return 1
+  fi
+  
+  # ذخیره response برای استفاده در حلقه
+  domains_list="$response"
+  _debug2 "Domains list response: $domains_list"
+  
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
@@ -114,17 +159,35 @@ _get_root() {
       return 1
     fi
 
-    if ! _arvan_rest GET "$h"; then
-      return 1
-    fi
-    if _contains "$response" "\"domain\":\"$h\""; then
-      _domain_id=$(echo "$response" | cut -d : -f 3 | cut -d , -f 1 | tr -d \")
+    # چک کردن وجود دامنه در لیست
+    if _contains "$domains_list" "\"domain\":\"$h\""; then
+      # استخراج domain_id از response
+      # فرمت ممکن: {"id":"xxx","domain":"mizekar.site",...} یا {"domain":"mizekar.site","id":"xxx",...}
+      _domain_id=$(echo "$domains_list" | _egrep_o "\"id\":\"[^\"]*\"[^}]*\"domain\":\"$h\"" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
+      
+      # اگر با الگوی بالا پیدا نشد، الگوی دیگر را امتحان کنیم
+      if [ -z "$_domain_id" ]; then
+        _domain_id=$(echo "$domains_list" | _egrep_o "\"domain\":\"$h\"[^}]*\"id\":\"[^\"]*\"" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
+      fi
+      
+      # اگر هنوز پیدا نشد، سعی کنیم از کل response استخراج کنیم
+      if [ -z "$_domain_id" ]; then
+        # پیدا کردن بخش مربوط به این دامنه
+        domain_block=$(echo "$domains_list" | _egrep_o "\{[^}]*\"domain\":\"$h\"[^}]*\}")
+        if [ -n "$domain_block" ]; then
+          _domain_id=$(echo "$domain_block" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
+        fi
+      fi
+      
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain=$h
+        _debug "Found domain: $_domain, sub_domain: $_sub_domain, domain_id: $_domain_id"
         return 0
+      else
+        _err "Could not extract domain_id for domain: $h"
+        return 1
       fi
-      return 1
     fi
     p=$i
     i=$(_math "$i" + 1)
@@ -150,7 +213,22 @@ _arvan_rest() {
     _debug data "$data"
     response="$(_post "$data" "$ARVAN_API_URL/$ep" "" "$mtd")"
   else
-    response="$(_get "$ARVAN_API_URL/$ep$data")"
+    # برای GET request
+    if [ -n "$ep" ]; then
+      # اگر ep مشخص شده، به endpoint خاص درخواست می‌زنیم
+      response="$(_get "$ARVAN_API_URL/$ep")"
+    else
+      # اگر ep خالی است، لیست دامنه‌ها را می‌گیریم
+      response="$(_get "$ARVAN_API_URL")"
+    fi
   fi
+  
+  # چک کردن موفقیت درخواست
+  if [ "$?" != "0" ]; then
+    _err "Error on Arvan API request"
+    return 1
+  fi
+  
+  _debug2 response "$response"
   return 0
 }
