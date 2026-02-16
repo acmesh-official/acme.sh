@@ -105,19 +105,46 @@ dns_yc_rm() {
   _debug _domain "$_domain"
 
   _debug "Getting txt records"
-  if _yc_rest GET "zones/${_domain_id}:getRecordSet?type=TXT&name=$_sub_domain"; then
-    exists_txtvalue=$(echo "$response" | _normalizeJson | _egrep_o "\"data\".*\][^,]*" | _egrep_o "[^:]*$")
-    _debug exists_txtvalue "$exists_txtvalue"
-  else
+  if ! _yc_rest GET "zones/${_domain_id}:getRecordSet?type=TXT&name=$_sub_domain"; then
     _err "Error: $response"
     return 1
   fi
 
-  # Note: deletes whole recordset data array, consistent with previous behavior.
-  if _yc_rest POST "zones/$_domain_id:updateRecordSets" "{\"deletions\": [ { \"name\":\"$_sub_domain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":$exists_txtvalue}]}"; then
-    if _contains "$response" "\"done\": true"; then
-      _info "Delete, OK"
-      return 0
+  _existing="$(_yc_extract_txt_data_array)"
+  _debug existing_data "$_existing"
+
+  # Nothing to delete
+  if [ -z "$_existing" ]; then
+    _info "No TXT recordset found, skip."
+    return 0
+  fi
+
+  _newdata="$(_yc_data_array_rm_one "$_existing" "$txtvalue")"
+  _debug new_data "$_newdata"
+
+  # If value wasn't present, nothing to do
+  if [ "$_newdata" = "$_existing" ]; then
+    _info "TXT value not found, skip."
+    return 0
+  fi
+
+  if [ "$_newdata" = "[]" ]; then
+    # delete whole recordset (with previous data array)
+    if _yc_rest POST "zones/$_domain_id:updateRecordSets" \
+      "{\"deletions\": [ { \"name\":\"$_sub_domain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":$_existing }]}"; then
+      if _contains "$response" "\"done\": true"; then
+        _info "Delete, OK"
+        return 0
+      fi
+    fi
+  else
+    # keep remaining values
+    if _yc_rest POST "zones/$_domain_id:upsertRecordSets" \
+      "{\"merges\": [ { \"name\":\"$_sub_domain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":$_newdata }]}"; then
+      if _contains "$response" "\"done\": true"; then
+        _info "Delete, OK"
+        return 0
+      fi
     fi
   fi
 
@@ -184,6 +211,49 @@ _get_root() {
     i=$(_math "$i" + 1)
   done
 }
+
+# Extract TXT recordset "data" array from YC response
+# Returns JSON array like ["v1","v2"] or empty string if not found
+_yc_extract_txt_data_array() {
+  echo "$response" | _normalizeJson | _egrep_o "\"data\":\\[[^\\]]*\\]" | _egrep_o "\\[[^\\]]*\\]"
+}
+
+# Remove one txt value from JSON array
+# Args: json_array txtvalue
+# Prints: new json array (possibly "[]")
+_yc_data_array_rm_one() {
+  _arr="$1"
+  _val="$2"
+
+  [ -z "$_arr" ] && { printf "[]"; return 0; }
+
+  # remove exact JSON string element occurrences
+  _new=$(printf "%s" "$_arr" | sed \
+    -e "s/\"$_val\",//g" \
+    -e "s/,\"$_val\"//g" \
+    -e "s/\"$_val\"//g" \
+    -e 's/\[,/[/' \
+    -e 's/,\]/]/' \
+    -e 's/,,/,/g')
+
+  # normalize empty leftovers
+  _new=$(printf "%s" "$_new" | sed -e 's/\[ *\]/[]/g')
+
+  # if nothing left between brackets -> []
+  if _contains "$_new" '[""]'; then
+    printf "%s" "$_new"
+    return 0
+  fi
+
+  # clean cases like "[" or "]" or "[,]"
+  if [ "$_new" = "[]" ] || [ "$_new" = "[" ] || [ "$_new" = "]" ] || [ "$_new" = "[,]" ]; then
+    printf "[]"
+    return 0
+  fi
+
+  printf "%s" "$_new"
+}
+
 
 _yc_validate_creds() {
   if [ ! "$YC_SA_ID" ] || [ ! "$YC_SA_Key_ID" ] || [ ! "$YC_SA_Key_File" ]; then
