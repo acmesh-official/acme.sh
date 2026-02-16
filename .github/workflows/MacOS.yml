@@ -44,7 +44,7 @@ jobs:
       CA_EMAIL: ${{ matrix.CA_EMAIL }}
       TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Install tools
       run:  brew install socat
     - name: Clone acmetest
