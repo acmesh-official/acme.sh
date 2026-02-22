@@ -332,11 +332,11 @@ _cyon_get_response_message() {
 }
 
 _cyon_get_response_status() {
-  _egrep_o '"status":[a-zA-z0-9]*' | cut -d : -f 2
+  _egrep_o '"status":[a-zA-Z0-9]*' | cut -d : -f 2
 }
 
 _cyon_get_validation_status() {
-  _egrep_o '"valid":[a-zA-z0-9]*' | cut -d : -f 2
+  _egrep_o '"valid":[a-zA-Z0-9]*' | cut -d : -f 2
 }
 
 _cyon_get_response_success() {
@@ -344,7 +344,7 @@ _cyon_get_response_success() {
 }
 
 _cyon_get_environment_change_status() {
-  _egrep_o '"authenticated":[a-zA-z0-9]*' | cut -d : -f 2
+  _egrep_o '"authenticated":[a-zA-Z0-9]*' | cut -d : -f 2
 }
 
 _cyon_check_if_2fa_missed() {

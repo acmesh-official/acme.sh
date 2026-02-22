@@ -43,7 +43,7 @@ jobs:
     if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
     steps:
       - name: checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: Set up QEMU
