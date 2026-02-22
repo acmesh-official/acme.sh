@@ -90,12 +90,12 @@ dns_arvan_rm() {
   # Search for record with specified name and value
   # Multiple patterns to find record_id
   _record_id=$(echo "$response" | _egrep_o "\"id\":\"[^\"]*\"[^}]*\"type\":\"[Tt][Xx][Tt]\"[^}]*\"name\":\"$_sub_domain\"[^}]*\"value\":[^}]*\"text\":\"$txtvalue\"" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
-  
+
   # If not found with above pattern, try another pattern
   if [ -z "$_record_id" ]; then
     _record_id=$(echo "$response" | _egrep_o "\"name\":\"$_sub_domain\"[^}]*\"type\":\"[Tt][Xx][Tt]\"[^}]*\"value\":[^}]*\"text\":\"$txtvalue\"[^}]*\"id\":\"[^\"]*\"" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
   fi
-  
+
   # If still not found, try to extract from entire response
   if [ -z "$_record_id" ]; then
     # Find the block related to this record
@@ -104,21 +104,21 @@ dns_arvan_rm() {
       _record_id=$(echo "$record_block" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
     fi
   fi
-  
+
   if [ -z "$_record_id" ]; then
     _err "Could not find record with name '$_sub_domain' and value '$txtvalue'"
     _debug "Response was: $response"
     return 1
   fi
-  
+
   _debug "Found record_id: $_record_id"
-  
+
   if ! _arvan_rest "DELETE" "${_domain}/dns-records/${_record_id}"; then
     _err "Error on Arvan Api"
     return 1
   fi
   _debug "$response"
-  
+
   if _contains "$response" 'dns record deleted' || _contains "$response" 'deleted' || _contains "$response" 'success'; then
     _info "Record deleted successfully"
     return 0
@@ -139,18 +139,18 @@ _get_root() {
   domain=$1
   i=2
   p=1
-  
+
   # First, get the list of domains from API
   _debug "Getting list of domains from Arvan API"
   if ! _arvan_rest GET ""; then
     _err "Failed to get domains list from Arvan API"
     return 1
   fi
-  
+
   # Save response for use in loop
   domains_list="$response"
   _debug2 "Domains list response: $domains_list"
-  
+
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
@@ -164,12 +164,12 @@ _get_root() {
       # Extract domain_id from response
       # Possible formats: {"id":"xxx","domain":"mizekar.site",...} or {"domain":"mizekar.site","id":"xxx",...}
       _domain_id=$(echo "$domains_list" | _egrep_o "\"id\":\"[^\"]*\"[^}]*\"domain\":\"$h\"" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
-      
+
       # If not found with above pattern, try another pattern
       if [ -z "$_domain_id" ]; then
         _domain_id=$(echo "$domains_list" | _egrep_o "\"domain\":\"$h\"[^}]*\"id\":\"[^\"]*\"" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
       fi
-      
+
       # If still not found, try to extract from entire response
       if [ -z "$_domain_id" ]; then
         # Find the block related to this domain
@@ -178,7 +178,7 @@ _get_root() {
           _domain_id=$(echo "$domain_block" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
         fi
       fi
-      
+
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain=$h
@@ -234,7 +234,7 @@ _arvan_rest() {
       fi
     fi
   fi
-  
+
   _debug2 response "$response"
   return 0
 }
