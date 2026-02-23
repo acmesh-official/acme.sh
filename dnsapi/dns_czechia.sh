@@ -93,7 +93,7 @@ _czechia_load_conf() {
 
   # normalize
   if [ -n "$CZ_Zone" ]; then
-    CZ_Zone="$(_lower_case "$CZ_Zone")"
+    CZ_Zone="$(printf "%s" "$CZ_Zone" | _lower_case)"
     CZ_Zone="$(printf "%s" "$CZ_Zone" | sed 's/\.$//')"
   fi
 
@@ -121,7 +121,7 @@ _czechia_norm_zonelist() {
   in="$1"
   [ -z "$in" ] && return 0
 
-  in="$(_lower_case "$in")"
+  in="$(printf "%s" "$in" | _lower_case)"
 
   printf "%s" "$in" |
     tr ' ' ',' |
@@ -132,7 +132,7 @@ _czechia_norm_zonelist() {
 _czechia_pick_zone() {
   fulldomain="$1"
 
-  fd="$(_lower_case "$fulldomain")"
+  fd="$(printf "%s" "$fulldomain" | _lower_case)"
   fd="$(printf "%s" "$fd" | sed 's/\.$//')"
 
   best=""
@@ -181,10 +181,10 @@ _czechia_rel_host() {
   fulldomain="$1"
   zone="$2"
 
-  fd="$(_lower_case "$fulldomain")"
+  fd="$(printf "%s" "$fulldomain" | _lower_case)"
   fd="$(printf "%s" "$fd" | sed 's/\.$//')"
 
-  z="$(_lower_case "$zone")"
+  z="$(printf "%s" "$zone" | _lower_case)"
   z="$(printf "%s" "$z" | sed 's/\.$//')"
 
   if [ "$fd" = "$z" ]; then
