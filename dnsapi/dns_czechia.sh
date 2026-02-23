@@ -206,10 +206,6 @@ _czechia_rel_host() {
   return 1
 }
 
-  _err "fulldomain '$fd' is not under zone '$z'"
-  return 1
-}
-
 _czechia_build_body() {
   host="$1"
   txt="$2"
