@@ -142,10 +142,10 @@ _czechia_pick_zone() {
   if [ -n "$CZ_Zone" ]; then
     z="$CZ_Zone"
     case "$fd" in
-      "$z" | *".$z")
-        best="$z"
-        bestlen=${#z}
-        ;;
+    "$z" | *".$z")
+      best="$z"
+      bestlen=${#z}
+      ;;
     esac
   fi
 
@@ -157,12 +157,12 @@ _czechia_pick_zone() {
       z="$(printf "%s" "$z" | sed 's/^ *//; s/ *$//; s/\.$//')"
       [ -z "$z" ] && continue
       case "$fd" in
-        "$z" | *".$z")
-          if [ "${#z}" -gt "$bestlen" ]; then
-            best="$z"
-            bestlen=${#z}
-          fi
-          ;;
+      "$z" | *".$z")
+        if [ "${#z}" -gt "$bestlen" ]; then
+          best="$z"
+          bestlen=${#z}
+        fi
+        ;;
       esac
     done
     IFS="$oldifs"
@@ -194,13 +194,17 @@ _czechia_rel_host() {
 
   suffix=".$z"
   case "$fd" in
-    *"$suffix")
-      rel="${fd%"$suffix"}"
-      [ -z "$rel" ] && rel="@"
-      echo "$rel"
-      return 0
-      ;;
+  *"$suffix")
+    rel="${fd%"$suffix"}"
+    [ -z "$rel" ] && rel="@"
+    echo "$rel"
+    return 0
+    ;;
   esac
+
+  _err "fulldomain '$fd' is not under zone '$z'"
+  return 1
+}
 
   _err "fulldomain '$fd' is not under zone '$z'"
   return 1
