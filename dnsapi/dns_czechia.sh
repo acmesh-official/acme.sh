@@ -92,7 +92,11 @@ _czechia_load_conf() {
   [ -z "$CZ_CURL_TIMEOUT" ] && CZ_CURL_TIMEOUT="30"
 
   # normalize
-  CZ_Zone="$(printf "%s" "$CZ_Zone" | tr '[:upper:]' '[:lower:]' | sed 's/\.$//')"
+  if [ -n "$CZ_Zone" ]; then
+    CZ_Zone="$(_lower_case "$CZ_Zone")"
+    CZ_Zone="$(printf "%s" "$CZ_Zone" | sed 's/\.$//')"
+  fi
+
   CZ_Zones="$(_czechia_norm_zonelist "$CZ_Zones")"
   CZ_API_BASE="$(printf "%s" "$CZ_API_BASE" | sed 's:/*$::')"
 
@@ -127,7 +131,9 @@ _czechia_norm_zonelist() {
 
 _czechia_pick_zone() {
   fulldomain="$1"
-  fd="$(printf "%s" "$fulldomain" | tr '[:upper:]' '[:lower:]' | sed 's/\.$//')"
+
+  fd="$(_lower_case "$fulldomain")"
+  fd="$(printf "%s" "$fd" | sed 's/\.$//')"
 
   best=""
   bestlen=0
@@ -136,10 +142,10 @@ _czechia_pick_zone() {
   if [ -n "$CZ_Zone" ]; then
     z="$CZ_Zone"
     case "$fd" in
-    "$z" | *".$z")
-      best="$z"
-      bestlen=${#z}
-      ;;
+      "$z" | *".$z")
+        best="$z"
+        bestlen=${#z}
+        ;;
     esac
   fi
 
@@ -151,12 +157,12 @@ _czechia_pick_zone() {
       z="$(printf "%s" "$z" | sed 's/^ *//; s/ *$//; s/\.$//')"
       [ -z "$z" ] && continue
       case "$fd" in
-      "$z" | *".$z")
-        if [ "${#z}" -gt "$bestlen" ]; then
-          best="$z"
-          bestlen=${#z}
-        fi
-        ;;
+        "$z" | *".$z")
+          if [ "${#z}" -gt "$bestlen" ]; then
+            best="$z"
+            bestlen=${#z}
+          fi
+          ;;
       esac
     done
     IFS="$oldifs"
@@ -175,8 +181,11 @@ _czechia_rel_host() {
   fulldomain="$1"
   zone="$2"
 
-  fd="$(printf "%s" "$fulldomain" | tr '[:upper:]' '[:lower:]' | sed 's/\.$//')"
-  z="$(printf "%s" "$zone" | tr '[:upper:]' '[:lower:]' | sed 's/\.$//')"
+  fd="$(_lower_case "$fulldomain")"
+  fd="$(printf "%s" "$fd" | sed 's/\.$//')"
+
+  z="$(_lower_case "$zone")"
+  z="$(printf "%s" "$z" | sed 's/\.$//')"
 
   if [ "$fd" = "$z" ]; then
     echo "@"
@@ -185,12 +194,12 @@ _czechia_rel_host() {
 
   suffix=".$z"
   case "$fd" in
-  *"$suffix")
-    rel="${fd%"$suffix"}"
-    [ -z "$rel" ] && rel="@"
-    echo "$rel"
-    return 0
-    ;;
+    *"$suffix")
+      rel="${fd%"$suffix"}"
+      [ -z "$rel" ] && rel="@"
+      echo "$rel"
+      return 0
+      ;;
   esac
 
   _err "fulldomain '$fd' is not under zone '$z'"
