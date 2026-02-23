@@ -113,10 +113,13 @@ _czechia_norm_zonelist() {
   # - trimmed
   # - trailing dots removed
   # - empty entries dropped
+
   in="$1"
   [ -z "$in" ] && return 0
+
+  in="$(_lower_case "$in")"
+
   printf "%s" "$in" |
-    tr '[:upper:]' '[:lower:]' |
     tr ' ' ',' |
     tr -s ',' |
     sed 's/[\t\r\n]//g; s/\.$//; s/^,//; s/,$//; s/,,*/,/g'
