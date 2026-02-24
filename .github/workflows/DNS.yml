@@ -70,25 +70,27 @@ jobs:
       - name: Clone acmetest
         run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
       - name: Set env file
+        shell: bash
         run: |
+          set -euo pipefail
           cd ../acmetest
           : > docker.env
-          if [ "${{ secrets.TokenName1 }}" ]; then echo "${{ secrets.TokenName1 }}=${{ secrets.TokenValue1 }}" >> docker.env; fi
-          if [ "${{ secrets.TokenName2 }}" ]; then echo "${{ secrets.TokenName2 }}=${{ secrets.TokenValue2 }}" >> docker.env; fi
-          if [ "${{ secrets.TokenName3 }}" ]; then echo "${{ secrets.TokenName3 }}=${{ secrets.TokenValue3 }}" >> docker.env; fi
-          if [ "${{ secrets.TokenName4 }}" ]; then echo "${{ secrets.TokenName4 }}=${{ secrets.TokenValue4 }}" >> docker.env; fi
-          if [ "${{ secrets.TokenName5 }}" ]; then echo "${{ secrets.TokenName5 }}=${{ secrets.TokenValue5 }}" >> docker.env; fi
+
+          [ -n "${{ secrets.TokenName1 }}" ] && printf '%s=%s\n' "${{ secrets.TokenName1 }}" "${{ secrets.TokenValue1 }}" >> docker.env || true
+          [ -n "${{ secrets.TokenName2 }}" ] && printf '%s=%s\n' "${{ secrets.TokenName2 }}" "${{ secrets.TokenValue2 }}" >> docker.env || true
+          [ -n "${{ secrets.TokenName3 }}" ] && printf '%s=%s\n' "${{ secrets.TokenName3 }}" "${{ secrets.TokenValue3 }}" >> docker.env || true
+          [ -n "${{ secrets.TokenName4 }}" ] && printf '%s=%s\n' "${{ secrets.TokenName4 }}" "${{ secrets.TokenValue4 }}" >> docker.env || true
+          [ -n "${{ secrets.TokenName5 }}" ] && printf '%s=%s\n' "${{ secrets.TokenName5 }}" "${{ secrets.TokenValue5 }}" >> docker.env || true
+
+          echo "docker.env lines: $(wc -l < docker.env)"
 
       - name: Debug env presence (safe)
+        shell: bash
         run: |
           echo "TEST_DNS=${TEST_DNS:+SET}"
           echo "TestingDomain=${TestingDomain:+SET}"
           echo "TEST_DNS_SLEEP=${TEST_DNS_SLEEP:+SET}"
-          echo "---- docker.env (keys only) ----"
-          cut -d= -f1 ../acmetest/docker.env | sed 's/^/- /'
-          else
-            echo "docker.env NOT FOUND"
-          fi
+          echo "docker.env lines: $(wc -l < ../acmetest/docker.env)"
       - name: Run acmetest
         run: cd ../acmetest && ./rundocker.sh  testall
 
