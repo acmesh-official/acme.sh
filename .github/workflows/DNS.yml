@@ -67,30 +67,46 @@ jobs:
       TokenName5: ${{ secrets.TokenName5}}
     steps:
     - uses: actions/checkout@v6
+
     - name: Clone acmetest
-      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git && cp -r acme.sh acmetest/
+
     - name: Set env file
       run: |
         cd ../acmetest
-        if [ "${{ secrets.TokenName1}}" ] ; then
-          echo "${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}" >> docker.env
+        rm -f docker.env
+        if [ "${{ secrets.TokenName1 }}" ] ; then
+          echo "${{ secrets.TokenName1 }}=${{ secrets.TokenValue1 }}" >> docker.env
         fi
-        if [ "${{ secrets.TokenName2}}" ] ; then
-          echo "${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}" >> docker.env
+        if [ "${{ secrets.TokenName2 }}" ] ; then
+          echo "${{ secrets.TokenName2 }}=${{ secrets.TokenValue2 }}" >> docker.env
         fi
-        if [ "${{ secrets.TokenName3}}" ] ; then
-          echo "${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}" >> docker.env
+        if [ "${{ secrets.TokenName3 }}" ] ; then
+          echo "${{ secrets.TokenName3 }}=${{ secrets.TokenValue3 }}" >> docker.env
         fi
-        if [ "${{ secrets.TokenName4}}" ] ; then
-          echo "${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}" >> docker.env
+        if [ "${{ secrets.TokenName4 }}" ] ; then
+          echo "${{ secrets.TokenName4 }}=${{ secrets.TokenValue4 }}" >> docker.env
         fi
-        if [ "${{ secrets.TokenName5}}" ] ; then
-          echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> docker.env
+        if [ "${{ secrets.TokenName5 }}" ] ; then
+          echo "${{ secrets.TokenName5 }}=${{ secrets.TokenValue5 }}" >> docker.env
+        fi
+
+    - name: Debug env presence (safe)
+      run: |
+        echo "TEST_DNS=$TEST_DNS"
+        echo "TestingDomain=$TestingDomain"
+        echo "TEST_DNS_SLEEP=$TEST_DNS_SLEEP"
+
+        echo "---- docker.env (keys only) ----"
+        if [ -f ../acmetest/docker.env ]; then
+          cut -d= -f1 ../acmetest/docker.env | sed 's/.*/- &/'
+        else
+          echo "docker.env NOT FOUND"
         fi
 
     - name: Run acmetest
-      run: cd ../acmetest && ./rundocker.sh  testall
-
+      run: cd ../acmetest && ./rundocker.sh testall
+  
 
 
 
