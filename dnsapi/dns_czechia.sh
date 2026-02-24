@@ -176,6 +176,6 @@ _czechia_api_request() {
   export _H2="Content-Type: application/json"
   export _CURL_TIMEOUT="$CZ_CURL_TIMEOUT"
 
-  resp="$(_post "$body" "$url" "" "$method" "application/json")"
-  return "$?"
+  # _post() handles POST/PUT/DELETE when method is provided.
+  _post "$body" "$url" "" "$method" "application/json"
 }
