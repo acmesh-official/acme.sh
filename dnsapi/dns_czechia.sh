@@ -10,12 +10,8 @@
 #
 # Required env:
 #   CZ_AuthorizationToken   (saved to account.conf for automatic renewals)
-#   CZ_Zone                 (default apex zone), e.g. example.com
-#     - for multi-domain SAN, use CZ_Zones (see below)
-#
-# Optional env (multi-zone):
-#   CZ_Zones  list of zones separated by comma/space, e.g. "example.com,example.net"
-#            For DNS-01 SAN, the plugin picks the longest matching zone suffix per-domain.
+#   CZ_Zones                zone(s) separated by comma/space, e.g. "example.com" or "example.com,example.net"
+#                          For SAN/wildcard, the plugin picks the longest matching zone suffix per-domain.
 #
 # Optional env (can be saved):
 #   CZ_TTL (default 3600)
@@ -73,16 +69,14 @@ _czechia_load_conf() {
   _saveaccountconf_mutable CZ_AuthorizationToken "$CZ_AuthorizationToken"
 
   # other settings can be env or saved
-  CZ_Zone="${CZ_Zone:-$(_readaccountconf_mutable CZ_Zone)}"
   CZ_Zones="${CZ_Zones:-$(_readaccountconf_mutable CZ_Zones)}"
   CZ_TTL="${CZ_TTL:-$(_readaccountconf_mutable CZ_TTL)}"
   CZ_PublishZone="${CZ_PublishZone:-$(_readaccountconf_mutable CZ_PublishZone)}"
   CZ_API_BASE="${CZ_API_BASE:-$(_readaccountconf_mutable CZ_API_BASE)}"
   CZ_CURL_TIMEOUT="${CZ_CURL_TIMEOUT:-$(_readaccountconf_mutable CZ_CURL_TIMEOUT)}"
 
-  # at least one zone source must be provided
-  if [ -z "$CZ_Zone" ] && [ -z "$CZ_Zones" ]; then
-    _err "CZ_Zone or CZ_Zones is required (apex zone), e.g. example.com or \"example.com,example.net\""
+  if [ -z "$CZ_Zones" ]; then
+    _err "CZ_Zones is required (apex zone), e.g. \"example.com\" or \"example.com,example.net\""
     return 1
   fi
 
@@ -91,17 +85,9 @@ _czechia_load_conf() {
   [ -z "$CZ_API_BASE" ] && CZ_API_BASE="https://api.czechia.com"
   [ -z "$CZ_CURL_TIMEOUT" ] && CZ_CURL_TIMEOUT="30"
 
-  # normalize
-  if [ -n "$CZ_Zone" ]; then
-    CZ_Zone="$(printf "%s" "$CZ_Zone" | _lower_case)"
-    CZ_Zone="$(printf "%s" "$CZ_Zone" | sed 's/\.$//')"
-  fi
-
   CZ_Zones="$(_czechia_norm_zonelist "$CZ_Zones")"
   CZ_API_BASE="$(printf "%s" "$CZ_API_BASE" | sed 's:/*$::')"
 
-  # persist non-secret config
-  _saveaccountconf_mutable CZ_Zone "$CZ_Zone"
   _saveaccountconf_mutable CZ_Zones "$CZ_Zones"
   _saveaccountconf_mutable CZ_TTL "$CZ_TTL"
   _saveaccountconf_mutable CZ_PublishZone "$CZ_PublishZone"
@@ -117,11 +103,10 @@ _czechia_norm_zonelist() {
   # - trimmed
   # - trailing dots removed
   # - empty entries dropped
-
   in="$1"
   [ -z "$in" ] && return 0
 
-  in="$(printf "%s" "$in" | _lower_case)"
+  in="$(_lower_case "$in")"
 
   printf "%s" "$in" |
     tr ' ' ',' |
@@ -132,44 +117,30 @@ _czechia_norm_zonelist() {
 _czechia_pick_zone() {
   fulldomain="$1"
 
-  fd="$(printf "%s" "$fulldomain" | _lower_case)"
+  fd="$(_lower_case "$fulldomain")"
   fd="$(printf "%s" "$fd" | sed 's/\.$//')"
 
   best=""
   bestlen=0
 
-  # 1) CZ_Zone as default (only if it matches)
-  if [ -n "$CZ_Zone" ]; then
-    z="$CZ_Zone"
+  oldifs="$IFS"
+  IFS=','
+  for z in $CZ_Zones; do
+    z="$(printf "%s" "$z" | sed 's/^ *//; s/ *$//; s/\.$//')"
+    [ -z "$z" ] && continue
     case "$fd" in
     "$z" | *".$z")
-      best="$z"
-      bestlen=${#z}
+      if [ "${#z}" -gt "$bestlen" ]; then
+        best="$z"
+        bestlen=${#z}
+      fi
       ;;
     esac
-  fi
-
-  # 2) CZ_Zones list (longest matching suffix wins)
-  if [ -n "$CZ_Zones" ]; then
-    oldifs="$IFS"
-    IFS=','
-    for z in $CZ_Zones; do
-      z="$(printf "%s" "$z" | sed 's/^ *//; s/ *$//; s/\.$//')"
-      [ -z "$z" ] && continue
-      case "$fd" in
-      "$z" | *".$z")
-        if [ "${#z}" -gt "$bestlen" ]; then
-          best="$z"
-          bestlen=${#z}
-        fi
-        ;;
-      esac
-    done
-    IFS="$oldifs"
-  fi
+  done
+  IFS="$oldifs"
 
   if [ -z "$best" ]; then
-    _err "No matching zone for '$fd'. Set CZ_Zone or CZ_Zones to include the apex zone for this domain."
+    _err "No matching zone for '$fd'. Set CZ_Zones to include the apex zone for this domain."
     return 1
   fi
 
@@ -181,10 +152,10 @@ _czechia_rel_host() {
   fulldomain="$1"
   zone="$2"
 
-  fd="$(printf "%s" "$fulldomain" | _lower_case)"
+  fd="$(_lower_case "$fulldomain")"
   fd="$(printf "%s" "$fd" | sed 's/\.$//')"
 
-  z="$(printf "%s" "$zone" | _lower_case)"
+  z="$(_lower_case "$zone")"
   z="$(printf "%s" "$z" | sed 's/\.$//')"
 
   if [ "$fd" = "$z" ]; then
@@ -214,6 +185,7 @@ _czechia_build_body() {
 }
 
 _czechia_json_escape() {
+  # Minimal JSON escaping for TXT value (backslash + quote)
   echo "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
 }
 
