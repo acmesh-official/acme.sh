@@ -83,7 +83,7 @@ dns_arvan_rm() {
   _arvan_rest GET "${_domain}/dns-records"
   if ! printf "%s" "$response" | grep -q "\"current_page\":1"; then
     _err "Error on Arvan Api"
-    _err "Please create a github issue with debbug log"
+    _err "Please create a github issue with debug log"
     return 1
   fi
 
