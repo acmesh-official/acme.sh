@@ -31,10 +31,6 @@ dns_czechia_add() {
   url="$CZ_API_BASE/api/DNS/$zone/TXT"
   body="$(_czechia_build_body "$host" "$txtvalue")"
 
-  _info "Czechia zone: $zone"
-  _info "Czechia API URL: $url"
-  _info "Czechia hostName: $host"
-
   _czechia_api_request "POST" "$url" "$body"
 }
 
@@ -50,10 +46,6 @@ dns_czechia_rm() {
   url="$CZ_API_BASE/api/DNS/$zone/TXT"
   body="$(_czechia_build_body "$host" "$txtvalue")"
 
-  _info "Czechia zone: $zone"
-  _info "Czechia API URL: $url"
-  _info "Czechia hostName: $host"
-
   _czechia_api_request "DELETE" "$url" "$body"
 }
 
@@ -61,7 +53,6 @@ _czechia_load_conf() {
   CZ_AuthorizationToken="${CZ_AuthorizationToken:-$(_readaccountconf_mutable CZ_AuthorizationToken)}"
   if [ -z "$CZ_AuthorizationToken" ]; then
     _err "CZ_AuthorizationToken is missing."
-    _err "Export it first: export CZ_AuthorizationToken=\"...\""
     return 1
   fi
   _saveaccountconf_mutable CZ_AuthorizationToken "$CZ_AuthorizationToken"
@@ -73,7 +64,7 @@ _czechia_load_conf() {
   CZ_CURL_TIMEOUT="${CZ_CURL_TIMEOUT:-$(_readaccountconf_mutable CZ_CURL_TIMEOUT)}"
 
   if [ -z "$CZ_Zones" ]; then
-    _err "CZ_Zones is required (apex zone), e.g. \"example.com\" or \"example.com,example.net\""
+    _err "CZ_Zones is required."
     return 1
   fi
 
@@ -95,11 +86,6 @@ _czechia_load_conf() {
 }
 
 _czechia_norm_zonelist() {
-  # Normalize comma/space separated list to a single comma-separated list
-  # - lowercased
-  # - trimmed
-  # - trailing dots removed
-  # - empty entries dropped
   in="$1"
   [ -z "$in" ] && return 0
 
@@ -137,13 +123,9 @@ _czechia_pick_zone() {
   done
   IFS="$oldifs"
 
-  if [ -z "$best" ]; then
-    _err "No matching zone for '$fd'. Set CZ_Zones to include the apex zone for this domain."
-    return 1
-  fi
+  [ -z "$best" ] && return 1
 
   printf "%s" "$best"
-  return 0
 }
 
 _czechia_rel_host() {
@@ -171,7 +153,6 @@ _czechia_rel_host() {
     ;;
   esac
 
-  _err "fulldomain '$fd' is not under zone '$z'"
   return 1
 }
 
@@ -183,7 +164,6 @@ _czechia_build_body() {
 }
 
 _czechia_json_escape() {
-  # Minimal JSON escaping for TXT value (backslash + quote)
   printf "%s" "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
 }
 
@@ -196,17 +176,6 @@ _czechia_api_request() {
   export _H2="Content-Type: application/json"
   export _CURL_TIMEOUT="$CZ_CURL_TIMEOUT"
 
-  _info "Czechia request: $method $url"
-  _debug2 "Czechia body: $body"
-
   resp="$(_post "$body" "$url" "" "$method" "application/json")"
-  post_ret="$?"
-
-  if [ "$post_ret" -ne 0 ]; then
-    _err "Czechia API call failed (ret=$post_ret). Response: ${resp:-<empty>}"
-    return 1
-  fi
-
-  _debug2 "Czechia response: ${resp:-<empty>}"
-  return 0
+  return "$?"
 }
