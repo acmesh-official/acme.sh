@@ -66,46 +66,45 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v6
-    - name: Clone acmetest
-      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - name: Set env file
-      run: |
-        cd ../acmetest
-        if [ "${{ secrets.TokenName1}}" ] ; then
-          echo "${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}" >> docker.env
-        fi
-        if [ "${{ secrets.TokenName2}}" ] ; then
-          echo "${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}" >> docker.env
-        fi
-        if [ "${{ secrets.TokenName3}}" ] ; then
-          echo "${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}" >> docker.env
-        fi
-        if [ "${{ secrets.TokenName4}}" ] ; then
-          echo "${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}" >> docker.env
-        fi
-        if [ "${{ secrets.TokenName5}}" ] ; then
-          echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> docker.env
-        fi
-
-- name: Debug docker.env (keys + CZ_* presence, safe)
-  run: |
-    echo "---- docker.env keys ----"
-    if [ -f ../acmetest/docker.env ]; then
-      cut -d= -f1 ../acmetest/docker.env | sed 's/^/- /'
-    else
-      echo "docker.env NOT FOUND"
-    fi
-    echo "---- CZ_* values masked ----"
-    if [ -f ../acmetest/docker.env ]; then
-      grep -E '^CZ_' ../acmetest/docker.env | sed 's/=.*$/=*** (masked)/' || true
-    fi
-
-    - name: Run acmetest
-      run: cd ../acmetest && ./rundocker.sh  testall
-
-
-
+      - uses: actions/checkout@v6
+      - name: Clone acmetest
+        run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      - name: Set env file
+        run: |
+          cd ../acmetest
+          if [ "${{ secrets.TokenName1}}" ] ; then
+            echo "${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}" >> docker.env
+          fi
+          if [ "${{ secrets.TokenName2}}" ] ; then
+            echo "${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}" >> docker.env
+          fi
+          if [ "${{ secrets.TokenName3}}" ] ; then
+            echo "${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}" >> docker.env
+          fi
+          if [ "${{ secrets.TokenName4}}" ] ; then
+            echo "${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}" >> docker.env
+          fi
+          if [ "${{ secrets.TokenName5}}" ] ; then
+            echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> docker.env
+          fi
+      - name: Debug env presence (safe)
+        run: |
+          echo "TEST_DNS=${TEST_DNS:+SET}"
+          echo "TestingDomain=${TestingDomain:+SET}"
+          echo "TEST_DNS_SLEEP=${TEST_DNS_SLEEP:+SET}"
+          echo "TokenName1=${TokenName1:+SET}"
+          echo "TokenName2=${TokenName2:+SET}"
+          echo "TokenName3=${TokenName3:+SET}"
+          echo "TokenName4=${TokenName4:+SET}"
+          echo "TokenName5=${TokenName5:+SET}"
+          echo "---- docker.env (keys only) ----"
+          if [ -f ../acmetest/docker.env ]; then
+            cut -d= -f1 ../acmetest/docker.env | sed 's/.*/- &/'
+          else
+            echo "docker.env NOT FOUND"
+          fi
+      - name: Run acmetest
+        run: cd ../acmetest && ./rundocker.sh  testall
 
   MacOS:
     runs-on: macos-latest
