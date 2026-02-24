@@ -88,6 +88,19 @@ jobs:
           echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> docker.env
         fi
 
+- name: Debug docker.env (keys + CZ_* presence, safe)
+  run: |
+    echo "---- docker.env keys ----"
+    if [ -f ../acmetest/docker.env ]; then
+      cut -d= -f1 ../acmetest/docker.env | sed 's/^/- /'
+    else
+      echo "docker.env NOT FOUND"
+    fi
+    echo "---- CZ_* values masked ----"
+    if [ -f ../acmetest/docker.env ]; then
+      grep -E '^CZ_' ../acmetest/docker.env | sed 's/=.*$/=*** (masked)/' || true
+    fi
+
     - name: Run acmetest
       run: cd ../acmetest && ./rundocker.sh  testall
 
