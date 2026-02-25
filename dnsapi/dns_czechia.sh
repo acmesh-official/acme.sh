@@ -25,21 +25,20 @@ dns_czechia_add() {
   fi
 
   _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
-  
+
   # Calculate hostname: remove zone from fulldomain
   _h=$(printf "%s" "$fulldomain" | sed "s/\.$_current_zone//; s/$_current_zone//")
-  
+
   # Apex domain handling
   if [ -z "$_h" ]; then
     _h="@"
   fi
 
-  # Build JSON body (POSIX compatible)
-  _q='"'
-  _body="{$_q"hostName"$_q:$_q$_h$_q,$_q"text"$_q:$_q$txtvalue$_q,$_q"ttl"$_q:3600,$_q"publishZone"$_q:1}"
+  # Build JSON body - ShellCheck & shfmt friendly
+  _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"ttl\":3600,\"publishZone\":1}"
 
   _info "Adding TXT record for $fulldomain"
-  
+
   export _H1="Content-Type: application/json"
   export _H2="authorizationToken: $CZ_AuthorizationToken"
 
@@ -66,11 +65,10 @@ dns_czechia_rm() {
   _h=$(printf "%s" "$fulldomain" | sed "s/\.$_current_zone//; s/$_current_zone//")
   [ -z "$_h" ] && _h="@"
 
-  _q='"'
-  _body="{$_q"hostName"$_q:$_q$_h$_q,$_q"text"$_q:$_q$txtvalue$_q,$_q"publishZone"$_q:1}"
+  _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"publishZone\":1}"
 
   _info "Removing TXT record for $fulldomain"
-  
+
   export _H1="Content-Type: application/json"
   export _H2="authorizationToken: $CZ_AuthorizationToken"
 
@@ -105,11 +103,11 @@ _czechia_load_conf() {
   if [ -z "$CZ_API_BASE" ]; then
     CZ_API_BASE="https://api.czechia.com"
   fi
-  
+
   # Save to account.conf for renewals
   _saveaccountconf CZ_AuthorizationToken "$CZ_AuthorizationToken"
   _saveaccountconf CZ_Zones "$CZ_Zones"
-  
+
   return 0
 }
 
@@ -117,25 +115,25 @@ _czechia_pick_zone() {
   _fulldomain="$1"
   # Lowercase and remove trailing dot
   _fd=$(printf "%s" "$_fulldomain" | tr '[:upper:]' '[:lower:]' | sed 's/\.$//')
-  
+
   _best_zone=""
-  
+
   # Split zones by comma or space
   _zones_space=$(printf "%s" "$CZ_Zones" | tr ',' ' ')
 
   for _z in $_zones_space; do
     _clean_z=$(printf "%s" "$_z" | tr -d ' ' | tr '[:upper:]' '[:lower:]' | sed 's/\.$//')
     [ -z "$_clean_z" ] && continue
-    
+
     case "$_fd" in
-      "$_clean_z"|*".$_clean_z")
-        # Find the longest matching zone suffix
-        _new_len=$(printf "%s" "$_clean_z" | wc -c)
-        _old_len=$(printf "%s" "$_best_zone" | wc -c)
-        if [ "$_new_len" -gt "$_old_len" ]; then
-          _best_zone="$_clean_z"
-        fi
-        ;;
+    "$_clean_z" | *".$_clean_z")
+      # Find the longest matching zone suffix
+      _new_len=$(printf "%s" "$_clean_z" | wc -c)
+      _old_len=$(printf "%s" "$_best_zone" | wc -c)
+      if [ "$_new_len" -gt "$_old_len" ]; then
+        _best_zone="$_clean_z"
+      fi
+      ;;
     esac
   done
 
