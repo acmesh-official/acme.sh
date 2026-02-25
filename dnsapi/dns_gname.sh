@@ -15,7 +15,7 @@ GNAME_TLDS_CACHE=""
 
 ########  Public functions #####################
 
-#Usage: add  _acme-challenge.www.domain.com   "T1rxqRBosdIK90xWCG3KLZNf6q_0HG9i01zxXp5CASc"
+#Usage: add  _acme-challenge.www.domain.com   "T1rxqRBosdIK90xWCG3KLZNf6q_0HG9i01zxXp5CAS3"
 dns_gname_add() {
   fulldomain=$1
   txtvalue=$(printf "%s" "$2" | _url_encode)
@@ -54,8 +54,8 @@ dns_gname_add() {
     return 0
   else
     if _contains "$post_response" "the same host records and record values"; then
-       _info "Successfully DNS record already exists."
-       return 0
+      _info "Successfully DNS record already exists."
+      return 0
     fi
     _err "Failed to add DNS record via Gname API."
     return 1
@@ -90,14 +90,14 @@ dns_gname_rm() {
 
   _debug "Query DNS record ID $ext_domain $final_hostname $txtvalue"
 
-  record_id=$(_get_record_id $ext_domain $final_hostname $txtvalue)
+  record_id=$(_get_record_id "$ext_domain" "$final_hostname" "$txtvalue")
 
   if [ -z "$record_id" ]; then
     _err "No DNS record found"
     return 1
   fi
 
-  _debug "DNS record ID:$record_id";
+  _debug "DNS record ID:$record_id"
   gntime=$(date +%s)
   body="appid=$GNAME_APPID&gntime=$gntime&jxid=$record_id&lang=us&ym=$ext_domain"
 
@@ -136,7 +136,7 @@ _get_record_id() {
 
   _debug "Searching with host: $target_zjt and feature: $jxz_feature"
 
-  matched_row=$(echo "$records" | grep "\"zjt\":\"$target_zjt\"" | grep "\"jxz\":\"$jxz_feature")
+  matched_row=$(echo "$records" | grep -i "\"zjt\":\"$target_zjt\"" | grep "\"jxz\":\"$jxz_feature")
 
   _debug "Final Matched Row: $matched_row"
 
@@ -161,14 +161,14 @@ _post_to_api() {
   uri=$1
   body=$2
   url="$GNAME_Api$uri"
-  gntoken=$(_gntoken $body)
+  gntoken=$(_gntoken "$body")
   body="$body&gntoken=$gntoken"
   post_response="$(_post "$body" "$url" "" "POST" "application/x-www-form-urlencoded")"
 
   curl_err_code=$?
   if [ "$curl_err_code" != "0" ]; then
-     _err "POST API $url curl error:$curl_err_code"
-     return 1
+    _err "POST API $url curl error:$curl_err_code"
+    return 1
   fi
 
   ret_code=$(echo "$post_response" | sed 's/.*"code":\([-0-9]*\).*/\1/')
@@ -208,46 +208,44 @@ _extract_domain() {
     ext_hostname=""
     ext_domain="$host"
 
-    elif [ "$dot_count" -gt 1 ]; then
-      matched_suffix=""
-      for suffix in $suffix_list; do
-        case "$host" in
-          *".$suffix")
-            if [ -z "$matched_suffix" ] || [ "${#suffix}" -gt "${#matched_suffix}" ]; then
-              matched_suffix="$suffix"
-            fi
-            ;;
-        esac
-        done
-
-        if [ -n "$matched_suffix" ]; then
-          prefix="${host%.$matched_suffix}"
-          main_name="${prefix##*.}"
-
-          ext_domain="$main_name.$matched_suffix"
-
-          if [ "$host" = "$ext_domain" ]; then
-            ext_hostname=""
-          else
-            ext_hostname="${host%.$ext_domain}"
-          fi
-
-          else
-            ext_domain=$(echo "$host" | awk -F. '{print $(NF-1)"."$NF}')
-            ext_hostname=$(echo "$host" | rev | cut -d. -f3- | rev)
+  elif [ "$dot_count" -gt 1 ]; then
+    matched_suffix=""
+    for suffix in $suffix_list; do
+      case "$host" in
+      *".$suffix")
+        if [ -z "$matched_suffix" ] || [ "${#suffix}" -gt "${#matched_suffix}" ]; then
+          matched_suffix="$suffix"
         fi
+        ;;
+      esac
+    done
+
+    if [ -n "$matched_suffix" ]; then
+      prefix="${host%."$matched_suffix"}"
+      main_name="${prefix##*.}"
+
+      ext_domain="$main_name.$matched_suffix"
+
+      if [ "$host" = "$ext_domain" ]; then
+        ext_hostname=""
+      else
+        ext_hostname="${host%."$ext_domain"}"
+      fi
+
+    else
+      ext_domain=$(echo "$host" | awk -F. '{print $(NF-1)"."$NF}')
+      ext_hostname=$(echo "$host" | rev | cut -d. -f3- | rev)
     fi
-    _debug "ext_hostname:$ext_hostname"
-    _debug "ext_domain:$ext_domain"
+  fi
+  _debug "ext_hostname:$ext_hostname"
+  _debug "ext_domain:$ext_domain"
 }
 
 # Obtain the list of domain suffixes via API
 _get_suffixes_json() {
   _debug "GET request URL: $GNAME_TLD_Api Retrieves a list of domain suffixes."
 
-  response="$(_get "$GNAME_TLD_Api")"
-
-  if [ "$?" != "0" ]; then
+  if ! response="$(_get "$GNAME_TLD_Api")"; then
     _err "Failed to retrieve list of domain suffixes"
     return 1
   fi
@@ -272,7 +270,7 @@ _gntoken() {
   data_to_sign="$1"
   full_data="${data_to_sign}${GNAME_APPKEY}"
   hash=$(printf "%s" "$full_data" | _digest md5 hex | tr -d ' ')
-  hash_upper=$(printf "%s" "$hash" | tr 'a-z' 'A-Z')
+  hash_upper=$(printf "%s" "$hash" | tr '[:lower:]' '[:upper:]')
   _debug "Signature value: $hash_upper"
   printf "%s" "$hash_upper"
 }
