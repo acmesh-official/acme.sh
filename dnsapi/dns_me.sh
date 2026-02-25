@@ -51,7 +51,9 @@ dns_me_add() {
   if _me_rest POST "$_domain_id/records/" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"value\":\"$txtvalue\",\"gtdLocation\":\"DEFAULT\",\"ttl\":120}"; then
     if printf -- "%s" "$response" | grep \"id\": >/dev/null; then
       _info "Added"
-      #todo: check if the record takes effect
+      return 0
+    elif printf -- "%s" "$response" | grep -q "already exists"; then
+      _info "Record already exists, skipping."
       return 0
     else
       _err "Add txt record error."
