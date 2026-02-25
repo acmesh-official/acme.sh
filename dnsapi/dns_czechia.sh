@@ -88,13 +88,8 @@ _czechia_load_conf() {
 _czechia_norm_zonelist() {
   in="$1"
   [ -z "$in" ] && return 0
-
-  in="$(_lower_case "$in")"
-
-  printf "%s" "$in" |
-    tr ' ' ',' |
-    tr -s ',' |
-    sed 's/[\t\r\n]//g; s/\.$//; s/^,//; s/,$//; s/,,*/,/g'
+  # Převedeme na lowercase a pomocí tr -d smažeme bílé znaky (POSIX safe)
+  _lower_case "$in" | tr -d '\t\r\n' | tr ' ' ',' | tr -s ',' | sed 's/\.$//; s/^,//; s/,$//; s/,,*/,/g'
 }
 
 _czechia_pick_zone() {
@@ -164,7 +159,7 @@ _czechia_build_body() {
 }
 
 _czechia_json_escape() {
-  printf "%s" "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+  printf "%s" "$1" | sed 's/\\/\\\\/g; s/\"/\\\"/g'
 }
 
 _czechia_api_request() {
@@ -172,10 +167,9 @@ _czechia_api_request() {
   url="$2"
   body="$3"
 
-  export _H1="authorizationToken: $CZ_AuthorizationToken"
-  export _H2="Content-Type: application/json"
-  export _CURL_TIMEOUT="$CZ_CURL_TIMEOUT"
+  _H1="authorizationToken: $CZ_AuthorizationToken"
+  _H2="Content-Type: application/json"
+  _CURL_TIMEOUT="$CZ_CURL_TIMEOUT"
 
-  # _post() handles POST/PUT/DELETE when method is provided.
   _post "$body" "$url" "" "$method" "application/json"
 }
