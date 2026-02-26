@@ -81,6 +81,12 @@ jobs:
     - name: Run acmetest
       run: |
         cd ../acmetest
+        # VNUTÍME naši verzi pluginu přímo do místa, odkud ji Docker bere
+        cp ../acme.sh/dnsapi/dns_czechia.sh ./acme.sh/dnsapi/dns_czechia.sh
+        
+        # Spustíme test s vypnutou aktualizací (přidáme NO_UPGRADE)
+        echo "NO_UPGRADE=1" >> docker.env
+        
         ./rundocker.sh testplat debian:bookworm
 
 
