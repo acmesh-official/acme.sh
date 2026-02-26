@@ -86,9 +86,11 @@ _czechia_pick_zone() {
   _fd_input="$1"
   _debug "Vstupni domena: $_fd_input"
   _debug "Dostupne zony: $CZ_Zones"
+  
   _fd=$(echo "$_fd_input" | _lower_case | sed 's/\.$//')
   _best_zone=""
 
+  # Replace comma with space using sed
   _zones_space=$(printf "%s" "$CZ_Zones" | sed 's/,/ /g')
 
   for _z in $_zones_space; do
@@ -102,7 +104,7 @@ _czechia_pick_zone() {
         fi
         ;;
     esac
-  done  # <--- TADY TI TO CHYBĚLO (před printf)
-  
+  done # Toto done uzavírá 'for'
+
   [ -n "$_best_zone" ] && printf "%s" "$_best_zone"
 }
