@@ -6,12 +6,10 @@
 #
 # Required environment variables:
 #   CZ_AuthorizationToken   Your API token from Czechia/Zoner administration.
-#   CZ_Zones                Managed zones separated by comma or space (e.g. "example.com,example.net").
-#                           The plugin picks the best matching zone for each domain.
+#   CZ_Zones                Managed zones separated by comma or space (e.g. "example.com").
 #
 # Optional environment variables:
 #   CZ_API_BASE             Defaults to https://api.czechia.com
-#   CZ_CURL_TIMEOUT         Defaults to 30
 
 dns_czechia_add() {
   fulldomain="$1"
@@ -26,15 +24,14 @@ dns_czechia_add() {
 
   _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
 
-  # Calculate hostname: remove zone from fulldomain
-  _h=$(printf "%s" "$fulldomain" | sed "s/\.$_current_zone//; s/$_current_zone//")
+  # Normalize using acme.sh internal function for consistency
+  _fd=$(_lower_case "$fulldomain" | sed 's/\.$//')
+  _cz=$(_lower_case "$_current_zone")
 
-  # Apex domain handling
-  if [ -z "$_h" ]; then
-    _h="@"
-  fi
+  # Calculate hostname
+  _h=$(printf "%s" "$_fd" | sed "s/\.$_cz//; s/$_cz//")
+  [ -z "$_h" ] && _h="@"
 
-  # Build JSON body - ShellCheck & shfmt friendly
   _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"ttl\":3600,\"publishZone\":1}"
 
   _info "Adding TXT record for $fulldomain"
@@ -49,7 +46,6 @@ dns_czechia_add() {
     _err "API error: $_res"
     return 1
   fi
-
   return 0
 }
 
@@ -62,7 +58,10 @@ dns_czechia_rm() {
   [ -z "$_current_zone" ] && return 1
 
   _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
-  _h=$(printf "%s" "$fulldomain" | sed "s/\.$_current_zone//; s/$_current_zone//")
+
+  _fd=$(_lower_case "$fulldomain" | sed 's/\.$//')
+  _cz=$(_lower_case "$_current_zone")
+  _h=$(printf "%s" "$_fd" | sed "s/\.$_cz//; s/$_cz//")
   [ -z "$_h" ] && _h="@"
 
   _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"publishZone\":1}"
@@ -83,51 +82,39 @@ dns_czechia_rm() {
 ########################################################################
 
 _czechia_load_conf() {
+  CZ_AuthorizationToken="${CZ_AuthorizationToken:-$(_getaccountconf CZ_AuthorizationToken)}"
   if [ -z "$CZ_AuthorizationToken" ]; then
-    CZ_AuthorizationToken="$(_getaccountconf CZ_AuthorizationToken)"
-  fi
-  if [ -z "$CZ_AuthorizationToken" ]; then
-    _err "You didn't specify Czechia Authorization Token (CZ_AuthorizationToken)."
+    _err "You didn't specify CZ_AuthorizationToken."
     return 1
   fi
 
+  CZ_Zones="${CZ_Zones:-$(_getaccountconf CZ_Zones)}"
   if [ -z "$CZ_Zones" ]; then
-    CZ_Zones="$(_getaccountconf CZ_Zones)"
-  fi
-  if [ -z "$CZ_Zones" ]; then
-    _err "You didn't specify Czechia Zones (CZ_Zones)."
+    _err "You didn't specify CZ_Zones."
     return 1
   fi
 
-  # Defaults
-  if [ -z "$CZ_API_BASE" ]; then
-    CZ_API_BASE="https://api.czechia.com"
-  fi
+  CZ_API_BASE="${CZ_API_BASE:-https://api.czechia.com}"
 
-  # Save to account.conf for renewals
   _saveaccountconf CZ_AuthorizationToken "$CZ_AuthorizationToken"
   _saveaccountconf CZ_Zones "$CZ_Zones"
-
   return 0
 }
 
 _czechia_pick_zone() {
   _fulldomain="$1"
-  # Lowercase and remove trailing dot
-  _fd=$(printf "%s" "$_fulldomain" | tr '[:upper:]' '[:lower:]' | sed 's/\.$//')
-
+  _fd=$(_lower_case "$_fulldomain" | sed 's/\.$//')
   _best_zone=""
 
   # Split zones by comma or space
   _zones_space=$(printf "%s" "$CZ_Zones" | tr ',' ' ')
 
   for _z in $_zones_space; do
-    _clean_z=$(printf "%s" "$_z" | tr -d ' ' | tr '[:upper:]' '[:lower:]' | sed 's/\.$//')
+    _clean_z=$(_lower_case "$_z" | tr -d ' ' | sed 's/\.$//')
     [ -z "$_clean_z" ] && continue
 
     case "$_fd" in
     "$_clean_z" | *".$_clean_z")
-      # Find the longest matching zone suffix
       _new_len=$(printf "%s" "$_clean_z" | wc -c)
       _old_len=$(printf "%s" "$_best_zone" | wc -c)
       if [ "$_new_len" -gt "$_old_len" ]; then
@@ -137,9 +124,5 @@ _czechia_pick_zone() {
     esac
   done
 
-  if [ -z "$_best_zone" ]; then
-    return 1
-  fi
-
-  printf "%s" "$_best_zone"
+  [ "$_best_zone" ] && printf "%s" "$_best_zone"
 }
