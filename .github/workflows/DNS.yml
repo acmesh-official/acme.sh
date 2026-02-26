@@ -91,15 +91,16 @@ jobs:
         echo "DEBUG=3" >> docker.env
         echo "NO_UPGRADE=1" >> docker.env
         
-        # 2. Vnutíš plugin
+        # 2. VNUTÍME plugin a VYČISTÍME ho od Windows koncovek řádků
         mkdir -p ./acme.sh/dnsapi/
-        cp ../acme.sh/dnsapi/dns_czechia.sh ./acme.sh/dnsapi/dns_czechia.sh
+        # Tento příkaz odstraní neviditelné znaky \r (CRLF -> LF)
+        sed 's/\r$//' ../acme.sh/dnsapi/dns_czechia.sh > ./acme.sh/dnsapi/dns_czechia.sh
         
-        # 3. Kontrola (jen grep, nic nespouštěj!)
-        grep "Vstupni domena" ./acme.sh/dnsapi/dns_czechia.sh || echo "Debug v souboru není"
-        
+        # 3. Kontrola (uvidíš v logu, jestli tam nejsou divné znaky)
+        head -n 1 ./acme.sh/dnsapi/dns_czechia.sh | od -c
+
         # 4. Spuštění
-        ./rundocker.sh testplat debian:bookworm
+        ./rundocker.sh testplat ubuntu:22.04
 
 
   MacOS:
