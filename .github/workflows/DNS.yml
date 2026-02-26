@@ -25,13 +25,14 @@ jobs:
       - name: Set the value
         id: step_one
         run: |
-          if [ "${{secrets.TokenName1}}" ] ; then
-            echo "::set-output name=hasToken::true"
+          # Všimni si mezer v ${{ secrets... }} a nového zápisu do $GITHUB_OUTPUT
+          if [ -n "${{ secrets.TokenName1 }}" ]; then
+            echo "hasToken=true" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=hasToken::false"
+            echo "hasToken=false" >> $GITHUB_OUTPUT
           fi
       - name: Check the value
-        run: echo ${{ steps.step_one.outputs.hasToken }}
+        run: echo "Vystup je:${{ steps.step_one.outputs.hasToken }}"
 
   Fail:
     runs-on: ubuntu-latest
@@ -87,6 +88,12 @@ jobs:
         if [ "${{ secrets.TokenName5}}" ] ; then
           echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> docker.env
         fi
+
+    - name: Debug
+      run: |
+        echo "Token name length: ${#TOKEN}"
+      env:
+        TOKEN: ${{ secrets.TokenName1 }}
 
     - name: Run acmetest
       run: cd ../acmetest && ./rundocker.sh  testall
