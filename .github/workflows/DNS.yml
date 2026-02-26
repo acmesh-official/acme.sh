@@ -64,18 +64,23 @@ jobs:
     - name: Set env file
       run: |
         cd ../acmetest
+        # Do docker.env musíme dát úplně všechno
         echo "TestingDomain=${{ secrets.TestingDomain }}" > docker.env
         echo "DNSAPI=czechia" >> docker.env
         echo "CZ_AuthorizationToken=${{ secrets.TokenValue1 }}" >> docker.env
         echo "CZ_Zones=${{ vars.TokenValue2 }}" >> docker.env
         echo "TEST_DNS_SLEEP=240" >> docker.env
         echo "DEBUG=3" >> docker.env
+        # CASE nadefinujeme uvnitř souboru
         echo "CASE=le_test_dnsapi" >> docker.env
 
     - name: Run acmetest
       run: |
         cd ../acmetest
-        ./rundocker.sh debian:bookworm -d ${{ secrets.TestingDomain }}
+        # Spustíme rundocker ÚPLNĚ BEZ PARAMETRŮ. 
+        # On si automaticky vezme první obraz, který najde v seznamu (standardně debian)
+        # a použije náš docker.env.
+        ./rundocker.sh
 
 
   MacOS:
