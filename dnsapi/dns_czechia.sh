@@ -6,10 +6,7 @@
 #
 # Required environment variables:
 #   CZ_AuthorizationToken   Your API token from Czechia/Zoner administration.
-#   CZ_Zones                Managed zones separated by comma or space (e.g. "example.com").
-#
-# Optional environment variables:
-#   CZ_API_BASE             Defaults to https://api.czechia.com
+#   CZ_Zones                Managed zones separated by comma or space.
 
 dns_czechia_add() {
   fulldomain="$1"
@@ -24,13 +21,15 @@ dns_czechia_add() {
 
   _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
 
-  # Normalize using acme.sh internal function for consistency
+  # Normalize using acme.sh internal function
   _fd=$(_lower_case "$fulldomain" | sed 's/\.$//')
   _cz=$(_lower_case "$_current_zone")
 
-  # Calculate hostname
+  # Calculate hostname without bash-isms
   _h=$(printf "%s" "$_fd" | sed "s/\.$_cz//; s/$_cz//")
-  [ -z "$_h" ] && _h="@"
+  if [ -z "$_h" ]; then
+    _h="@"
+  fi
 
   _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"ttl\":3600,\"publishZone\":1}"
 
@@ -62,7 +61,9 @@ dns_czechia_rm() {
   _fd=$(_lower_case "$fulldomain" | sed 's/\.$//')
   _cz=$(_lower_case "$_current_zone")
   _h=$(printf "%s" "$_fd" | sed "s/\.$_cz//; s/$_cz//")
-  [ -z "$_h" ] && _h="@"
+  if [ -z "$_h" ]; then
+    _h="@"
+  fi
 
   _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"publishZone\":1}"
 
@@ -106,7 +107,7 @@ _czechia_pick_zone() {
   _fd=$(_lower_case "$_fulldomain" | sed 's/\.$//')
   _best_zone=""
 
-  # Bezpečné rozdělení zón bez tr
+  # Safe list split for Docker (BusyBox)
   _zones_space=$(printf "%s" "$CZ_Zones" | sed 's/,/ /g')
 
   for _z in $_zones_space; do
@@ -115,7 +116,7 @@ _czechia_pick_zone() {
 
     case "$_fd" in
     "$_clean_z" | *".$_clean_z")
-      # Místo wc -c použijeme délku řetězce přímo v shellu (nejstabilnější v Dockeru)
+      # POSIX shell length - 100% Docker stable
       _new_len=${#_clean_z}
       _old_len=${#_best_zone}
       if [ "$_new_len" -gt "$_old_len" ]; then
@@ -128,7 +129,4 @@ _czechia_pick_zone() {
   if [ -n "$_best_zone" ]; then
     printf "%s" "$_best_zone"
   fi
-}
-
-  [ "$_best_zone" ] && printf "%s" "$_best_zone"
 }
