@@ -71,22 +71,18 @@ jobs:
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Set env file
       run: |
-        cd ../acmetest
-        if [ "${{ secrets.TokenName1}}" ] ; then
-          echo "${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}" >> docker.env
-        fi
-        if [ "${{ secrets.TokenName2}}" ] ; then
-          echo "${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}" >> docker.env
-        fi
-        if [ "${{ secrets.TokenName3}}" ] ; then
-          echo "${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}" >> docker.env
-        fi
-        if [ "${{ secrets.TokenName4}}" ] ; then
-          echo "${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}" >> docker.env
-        fi
-        if [ "${{ secrets.TokenName5}}" ] ; then
-          echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> docker.env
-        fi
+          cd ../acmetest
+          # Tady definujeme cíl a doménu
+          echo "TEST_DNS=dns_czechia" > docker.env
+          echo "TestingDomain=3.zoner-test.eu" >> docker.env
+          echo "CASE=le_test_dnsapi" >> docker.env
+          echo "DEBUG=2" >> docker.env
+        
+          echo "CZECHIA_Token=${{ secrets.TokenValue1 }}" >> docker.env
+          echo "CZECHIA_ID=${{ secrets.TokenValue2 }}" >> docker.env
+        
+          echo "--- Kontrola (uvidíš jen názvy, hodnoty budou ***) ---"
+          cat docker.env | cut -d'=' -f1
 
     - name: Run acmetest
       run: cd ../acmetest && ./rundocker.sh  testall
