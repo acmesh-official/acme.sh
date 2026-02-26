@@ -106,23 +106,29 @@ _czechia_pick_zone() {
   _fd=$(_lower_case "$_fulldomain" | sed 's/\.$//')
   _best_zone=""
 
-  # Split zones by comma or space
-  _zones_space=$(printf "%s" "$CZ_Zones" | tr ',' ' ')
+  # Bezpečné rozdělení zón bez tr
+  _zones_space=$(printf "%s" "$CZ_Zones" | sed 's/,/ /g')
 
   for _z in $_zones_space; do
-    _clean_z=$(_lower_case "$_z" | tr -d ' ' | sed 's/\.$//')
+    _clean_z=$(_lower_case "$_z" | sed 's/ //g; s/\.$//')
     [ -z "$_clean_z" ] && continue
 
     case "$_fd" in
     "$_clean_z" | *".$_clean_z")
-      _new_len=$(printf "%s" "$_clean_z" | wc -c)
-      _old_len=$(printf "%s" "$_best_zone" | wc -c)
+      # Místo wc -c použijeme délku řetězce přímo v shellu (nejstabilnější v Dockeru)
+      _new_len=${#_clean_z}
+      _old_len=${#_best_zone}
       if [ "$_new_len" -gt "$_old_len" ]; then
         _best_zone="$_clean_z"
       fi
       ;;
     esac
   done
+
+  if [ -n "$_best_zone" ]; then
+    printf "%s" "$_best_zone"
+  fi
+}
 
   [ "$_best_zone" ] && printf "%s" "$_best_zone"
 }
