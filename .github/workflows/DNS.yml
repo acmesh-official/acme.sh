@@ -64,18 +64,16 @@ jobs:
     - name: Set env file
       run: |
         cd ../acmetest
-        # 1. Variables - pozor na malá/velká písmena (používám TestingDomain)
-        echo "TEST_DNS=${{ vars.TEST_DNS }}" > docker.env
-        echo "TestingDomain=${{ vars.TestingDomain }}" >> docker.env
-        echo "TEST_DNS_SLEEP=${{ vars.TEST_DNS_SLEEP }}" >> docker.env 
-        
-        # 2. Secrets - NAPIŠ NÁZEV PROMĚNNÉ NATVRDO
-        # Tady musí být vlevo přesně to, co chce plugin dns_czechia
-        echo "CZ_AuthorizationToken=${{ secrets.TokenValue1 }}" >> docker.env   
-        echo "CZ_Zones=${{ vars.TokenValue2 }}" >> docker.env
-        
-        echo "CASE=le_test_dnsapi" >> docker.env
-        echo "DEBUG=2" >> docker.env
+        echo 'CZ_AuthorizationToken=${{ secrets.TokenValue1 }}' >> docker.env
+        echo 'CZ_Zones=${{ vars.TokenValue2 }}' >> docker.env
+        echo 'TEST_DNS=${{ vars.TEST_DNS }}' >> docker.env
+        echo 'TestingDomain=${{ vars.TestingDomain }}' >> docker.env
+        echo 'TEST_DNS_SLEEP=${{ vars.TEST_DNS_SLEEP }}' >> docker.env
+        echo 'CASE=le_test_dnsapi' >> docker.env
+        echo 'DEBUG=2' >> docker.env
+
+        echo "--- KONTROLA SOUBORU (UVIDÍŠ NÁZVY) ---"
+        cat docker.env | cut -d'=' -f1
 
     - name: Run acmetest
       run: |
