@@ -64,24 +64,18 @@ jobs:
     - name: Set env file
       run: |
         cd ../acmetest
-        echo 'CZ_AuthorizationToken=${{ secrets.TokenValue1 }}' >> docker.env
-        echo 'CZ_Zones=${{ vars.TokenValue2 }}' >> docker.env
-        echo 'TEST_DNS=${{ vars.TEST_DNS }}' >> docker.env
-        echo 'TestingDomain=${{ secrets.TestingDomain }}' >> docker.env
-        echo "TEST_DNS_SLEEP=120" >> docker.env
-        echo 'CASE=le_test_dnsapi' >> docker.env
-        echo 'DEBUG=3' >> docker.env
-
-        echo "--- KONTROLA SOUBORU (UVIDÍŠ NÁZVY) ---"
-        cat docker.env | cut -d'=' -f1
+        echo TestingDomain=${{ secrets.TestingDomain }} > docker.env
+        echo TEST_DNS_SLEEP=240 >> docker.env 
+        echo CZ_AuthorizationToken=${{ secrets.TokenValue1 }} >> docker.env   
+        echo CZ_Zones=${{ vars.TokenValue2 }} >> docker.env
+        echo CASE=le_test_dnsapi >> docker.env
+        
+        echo DEBUG=3 >> docker.env
 
     - name: Run acmetest
       run: |
         cd ../acmetest
-        # 3. Tady musí název proměnné sedět s tím, co máš v Settings
         ./rundocker.sh testall -d ${{ secrets.TestingDomain }}
-
-
 
 
   MacOS:
