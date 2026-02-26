@@ -25,11 +25,10 @@ jobs:
       - name: Set the value
         id: step_one
         run: |
-          # Všimni si mezer v ${{ secrets... }} a nového zápisu do $GITHUB_OUTPUT
           if [ -n "${{ secrets.TokenName1 }}" ]; then
-            echo "hasToken=true" >> $GITHUB_OUTPUT
+            echo "hasToken=true" >> "$GITHUB_OUTPUT"
           else
-            echo "hasToken=false" >> $GITHUB_OUTPUT
+            echo "hasToken=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Check the value
         run: echo "Vystup je:${{ steps.step_one.outputs.hasToken }}"
@@ -51,7 +50,7 @@ jobs:
     needs: CheckToken
     if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
     env:
-      TEST_DNS : ${{ secrets.TEST_DNS }}
+      TEST_DNS: ${{ secrets.TEST_DNS }}
       TestingDomain: ${{ secrets.TestingDomain }}
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
@@ -59,47 +58,23 @@ jobs:
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
       DEBUG: ${{ secrets.DEBUG }}
-      http_proxy: ${{ secrets.http_proxy }}
-      https_proxy: ${{ secrets.https_proxy }}
-      TokenName1: ${{ secrets.TokenName1}}
-      TokenName2: ${{ secrets.TokenName2}}
-      TokenName3: ${{ secrets.TokenName3}}
-      TokenName4: ${{ secrets.TokenName4}}
-      TokenName5: ${{ secrets.TokenName5}}
+      TokenName1: ${{ secrets.TokenName1 }}
+      TokenValue1: ${{ secrets.TokenValue1 }}
     steps:
-    - uses: actions/checkout@v4
-    - name: Clone acmetest
-      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - name: Set env file
-      run: |
-        cd ../acmetest
-        if [ "${{ secrets.TokenName1}}" ] ; then
-          echo "${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}" >> docker.env
-        fi
-        if [ "${{ secrets.TokenName2}}" ] ; then
-          echo "${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}" >> docker.env
-        fi
-        if [ "${{ secrets.TokenName3}}" ] ; then
-          echo "${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}" >> docker.env
-        fi
-        if [ "${{ secrets.TokenName4}}" ] ; then
-          echo "${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}" >> docker.env
-        fi
-        if [ "${{ secrets.TokenName5}}" ] ; then
-          echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> docker.env
-        fi
+      - uses: actions/checkout@v4
+      - name: Clone acmetest
+        run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git && cp -r acme.sh acmetest/
+      - name: Set env file
+        run: |
+          cd ../acmetest
+          if [ -n "${{ secrets.TokenName1 }}" ]; then
+            echo "${{ secrets.TokenName1 }}=${{ secrets.TokenValue1 }}" >> docker.env
+          fi
+          # Pokud máte další tokeny, přidejte je stejným stylem:
+          # [ -n "${{ secrets.TokenName2 }}" ] && echo "${{ secrets.TokenName2 }}=${{ secrets.TokenValue2 }}" >> docker.env
 
-    - name: Debug
-      run: |
-        echo "Token name length: ${#TOKEN}"
-      env:
-        TOKEN: ${{ secrets.TokenName1 }}
-
-    - name: Run acmetest
-      run: cd ../acmetest && ./rundocker.sh  testall
-
-
-
+      - name: Run acmetest
+        run: cd ../acmetest && ./rundocker.sh testall
 
   MacOS:
     runs-on: macos-latest
