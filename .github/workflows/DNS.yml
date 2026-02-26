@@ -25,13 +25,13 @@ jobs:
       - name: Set the value
         id: step_one
         run: |
-          if [ -n "${{ secrets.TokenName1 }}" ]; then
-            echo "hasToken=true" >> "$GITHUB_OUTPUT"
+          if [ "${{secrets.TokenName1}}" ] ; then
+            echo "::set-output name=hasToken::true"
           else
-            echo "hasToken=false" >> "$GITHUB_OUTPUT"
+            echo "::set-output name=hasToken::false"
           fi
       - name: Check the value
-        run: echo "Vystup je:${{ steps.step_one.outputs.hasToken }}"
+        run: echo ${{ steps.step_one.outputs.hasToken }}
 
   Fail:
     runs-on: ubuntu-latest
@@ -50,7 +50,7 @@ jobs:
     needs: CheckToken
     if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
     env:
-      TEST_DNS: ${{ secrets.TEST_DNS }}
+      TEST_DNS : ${{ secrets.TEST_DNS }}
       TestingDomain: ${{ secrets.TestingDomain }}
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
@@ -58,28 +58,41 @@ jobs:
       CASE: le_test_dnsapi
       TEST_LOCAL: 1
       DEBUG: ${{ secrets.DEBUG }}
-      TokenName1: ${{ secrets.TokenName1 }}
-      TokenValue1: ${{ secrets.TokenValue1 }}
+      http_proxy: ${{ secrets.http_proxy }}
+      https_proxy: ${{ secrets.https_proxy }}
+      TokenName1: ${{ secrets.TokenName1}}
+      TokenName2: ${{ secrets.TokenName2}}
+      TokenName3: ${{ secrets.TokenName3}}
+      TokenName4: ${{ secrets.TokenName4}}
+      TokenName5: ${{ secrets.TokenName5}}
     steps:
-      - uses: actions/checkout@v4
-      - name: Clone acmetest
-        run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git && cp -r acme.sh acmetest/
-      - name: Set env file
-        run: |
-          cd ../acmetest
-          # Tady to vypíšeme natvrdo, aby to Docker stoprocentně viděl
-          echo "TEST_DNS=dns_czechia" > docker.env
-          echo "TestingDomain=3.zoner-test.eu" >> docker.env
-          echo "CASE=le_test_dnsapi" >> docker.env
-          echo "DEBUG=2" >> docker.env
-        
-          # Secrets (tokeny) tam klidně nech přes ty proměnné, ty fungují
-          if [ -n "${{ secrets.TokenName1 }}" ]; then
-            echo "${{ secrets.TokenName1 }}=${{ secrets.TokenValue1 }}" >> docker.env
-          fi
-        
-          echo "--- Kontrola vytvořeného souboru ---"
-          cat docker.env | cut -d'=' -f1
+    - uses: actions/checkout@v4
+    - name: Clone acmetest
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - name: Set env file
+      run: |
+        cd ../acmetest
+        if [ "${{ secrets.TokenName1}}" ] ; then
+          echo "${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}" >> docker.env
+        fi
+        if [ "${{ secrets.TokenName2}}" ] ; then
+          echo "${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}" >> docker.env
+        fi
+        if [ "${{ secrets.TokenName3}}" ] ; then
+          echo "${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}" >> docker.env
+        fi
+        if [ "${{ secrets.TokenName4}}" ] ; then
+          echo "${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}" >> docker.env
+        fi
+        if [ "${{ secrets.TokenName5}}" ] ; then
+          echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> docker.env
+        fi
+
+    - name: Run acmetest
+      run: cd ../acmetest && ./rundocker.sh  testall
+
+
+
 
   MacOS:
     runs-on: macos-latest
@@ -640,6 +653,5 @@ jobs:
       run: |
         echo "See how to debug in VM:"
         echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
-
 
 
