@@ -64,11 +64,16 @@ jobs:
     - name: Set env file
       run: |
         cd ../acmetest
+        # Používej všude stejný název proměnné pro doménu (tady vars.TestingDomain)
         echo "TEST_DNS=${{ vars.TEST_DNS }}" > docker.env
         echo "TestingDomain=${{ vars.TestingDomain }}" >> docker.env
         echo "TEST_DNS_SLEEP=${{ vars.TEST_DNS_SLEEP }}" >> docker.env 
-        echo "${{ secrets.TokenName1 }}=${{ secrets.TokenValue1 }}" >> docker.env   
-        echo "${{ vars.TokenName2 }}=${{ vars.TokenValue2 }}" >> docker.env
+        
+        # Zapiš název proměnné pro token NATVRDO, protože GitHub neumí dynamicky číst název secretu
+        echo "CZ_AuthorizationToken=${{ secrets.TokenValue1 }}" >> docker.env   
+        
+        # Tady ti to fungovalo, tak to klidně nech, nebo také napiš CZ_Zones=...
+        echo "CZ_Zones=${{ vars.TokenValue2 }}" >> docker.env
         
         echo "CASE=le_test_dnsapi" >> docker.env
         echo "DEBUG=2" >> docker.env
@@ -76,7 +81,8 @@ jobs:
     - name: Run acmetest
       run: |
         cd ../acmetest
-        ./rundocker.sh testall -d ${{ vars.TESTING_DOMAIN }}
+        # POZOR: Tady musí být název proměnné PŘESNĚ jako v Settings (asi TestingDomain)
+        ./rundocker.sh testall -d ${{ vars.TestingDomain }}
 
 
 
