@@ -78,10 +78,10 @@ jobs:
         # Pro jistotu si v logu ověříme, že v souboru je to, co má být
         grep "=" docker.env | cut -d'=' -f1
 
-    - name: Run acmetest
+    - name: Set env file
       run: |
         cd ../acmetest
-        # 1. Nejdříve vytvoříme docker.env se vším potřebným
+        # POUZE tyto proměnné, nic víc:
         echo "TestingDomain=${{ secrets.TestingDomain }}" > docker.env
         echo "DNSAPI=czechia" >> docker.env
         echo "CZ_AuthorizationToken=${{ secrets.TokenValue1 }}" >> docker.env
