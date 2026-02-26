@@ -84,7 +84,7 @@ _czechia_load_conf() {
 
 _czechia_pick_zone() {
   _fulldomain="$1"
-  _fd=$(_lower_case "$_fulldomain" | sed 's/\.$//')
+  _fd=$(echo "$_fulldomain" | _lower_case | sed 's/\.$//')
   _best_zone=""
 
   # Replace comma with space using sed (Docker safe)
@@ -92,7 +92,7 @@ _czechia_pick_zone() {
 
   for _z in $_zones_space; do
     # Remove spaces and trailing dot, then lowercase - NO 'tr' used here
-    _clean_z=$(_lower_case "$_z" | sed 's/ //g; s/\.$//')
+    _clean_z=$(echo "$_z" | _lower_case | sed 's/ //g; s/\.$//')
     [ -z "$_clean_z" ] && continue
 
     case "$_fd" in
