@@ -64,15 +64,19 @@ jobs:
     - name: Set env file
       run: |
         cd ../acmetest
-        # Musíme simulovat parametry, které acme.sh potřebuje pro DNS mód
+        # VYMAŽEME starý obsah a dáme tam PŘESNĚ toto:
         echo "TestingDomain=${{ secrets.TestingDomain }}" > docker.env
         echo "DNSAPI=czechia" >> docker.env
         echo "CZ_AuthorizationToken=${{ secrets.TokenValue1 }}" >> docker.env
         echo "CZ_Zones=${{ vars.TokenValue2 }}" >> docker.env
         echo "CASE=le_test_dnsapi" >> docker.env
-        # DŮLEŽITÉ: Přidej toto, aby acme.sh věděl, že má použít tvůj plugin
-        echo "EXTRA_PARAMS=--dns dns_czechia" >> docker.env
+        
+        # TOTO JSOU TY DVA CHYBĚJÍCÍ ŘÁDKY:
+        echo "TEST_DNS=1" >> docker.env
         echo "DEBUG=3" >> docker.env
+        
+        # Pro jistotu si v logu ověříme, že v souboru je to, co má být
+        grep "=" docker.env | cut -d'=' -f1
 
     - name: Run acmetest
       run: |
