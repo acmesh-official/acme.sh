@@ -66,12 +66,12 @@ jobs:
         cd ../acmetest
         echo "TEST_DNS=${{ vars.TEST_DNS }}" > docker.env
         echo "TestingDomain=${{ vars.TestingDomain }}" >> docker.env
+        echo "TEST_DNS_SLEEP=${{ vars.TEST_DNS_SLEEP }}" >> docker.env 
         echo "CZ_AuthorizationToken=${{ secrets.TokenValue1 }}" >> docker.env   
-        echo "Token length: ${#TOKEN}"
-      env:
-        TOKEN: ${{ secrets.TokenValue1 }}    
-          echo "--- Kontrola vytvořeného souboru (názvy proměnných) ---"
-          cut -d'=' -f1 docker.env
+        echo "${{ secrets.TokenName2 }}=${{ secrets.TokenValue2 }}" >> docker.env
+        
+        echo "CASE=le_test_dnsapi" >> docker.env
+        echo "DEBUG=2" >> docker.env
 
     - name: Run acmetest
       run: |
