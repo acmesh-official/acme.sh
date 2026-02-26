@@ -75,6 +75,7 @@ jobs:
         echo "TEST_DNS=dns_czechia" > docker.env
         echo "TestingDomain=zoner-test.eu" >> docker.env
         echo "CASE=le_test_dnsapi" >> docker.env
+        echo "DEBUG=2" >> docker.env
         echo "CZECHIA_Token=${{ secrets.TokenValue1 }}" >> docker.env
         echo "CZECHIA_ID=${{ secrets.TokenValue2 }}" >> docker.env
 
