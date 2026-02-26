@@ -23,16 +23,16 @@ dns_czechia_add() {
 
   _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
 
-  # Normalize using acme.sh internal function - NO 'tr' used here
-  _fd=$(_lower_case "$fulldomain" | sed 's/\.$//')
-  _cz=$(_lower_case "$_current_zone")
-
-  # Calculate hostname
-  _h=$(printf "%s" "$_fd" | sed "s/\.$_cz//; s/$_cz//")
+  # Příprava hostname (ořezání zóny z fulldomain)
+  _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
+  _cz=$(echo "$_current_zone" | _lower_case | sed 's/\.$//')
+  
+  # Odstraníme zónu z názvu, abychom dostali jen hostname (např. _acme-challenge)
+  _h=$(echo "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
   [ -z "$_h" ] && _h="@"
 
+  _info "Adding TXT record for $_h in zone $_current_zone"
   _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"ttl\":3600,\"publishZone\":1}"
-  _info "Adding TXT record"
 
   export _H1="Content-Type: application/json"
   export _H2="authorizationToken: $CZ_AuthorizationToken"
@@ -53,23 +53,20 @@ dns_czechia_rm() {
   [ -z "$_current_zone" ] && return 1
 
   _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
-  _fd=$(_lower_case "$fulldomain" | sed 's/\.$//')
-  _cz=$(_lower_case "$_current_zone")
-  _h=$(printf "%s" "$_fd" | sed "s/\.$_cz//; s/$_cz//")
+  _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
+  _cz=$(echo "$_current_zone" | _lower_case | sed 's/\.$//')
+  
+  _h=$(echo "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
   [ -z "$_h" ] && _h="@"
 
+  _info "Removing TXT record $_h"
   _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"publishZone\":1}"
-  _info "Removing TXT record"
 
   export _H1="Content-Type: application/json"
   export _H2="authorizationToken: $CZ_AuthorizationToken"
   _res=$(_post "$_body" "$_url" "" "DELETE")
   return 0
 }
-
-########################################################################
-# Private functions
-########################################################################
 
 _czechia_load_conf() {
   CZ_AuthorizationToken="${CZ_AuthorizationToken:-$(_getaccountconf CZ_AuthorizationToken)}"
@@ -84,33 +81,20 @@ _czechia_load_conf() {
 
 _czechia_pick_zone() {
   _fd_input="$1"
-  _debug "Vstupni domena: $_fd_input"
-  _debug "Dostupne zony: $CZ_Zones"
-  
-  # Musíme použít vstupní parametr _fd_input a převést ho na malé písmena bez tečky na konci
   _fd=$(echo "$_fd_input" | _lower_case | sed 's/\.$//')
   _best_zone=""
-
-  # Převod čárek na mezery pro bezpečný loop v shellu
   _zones_space=$(printf "%s" "$CZ_Zones" | sed 's/,/ /g')
 
   for _z in $_zones_space; do
-    # Vyčištění zóny ze seznamu
     _clean_z=$(echo "$_z" | _lower_case | sed 's/ //g; s/\.$//')
     [ -z "$_clean_z" ] && continue
-
     case "$_fd" in
       "$_clean_z" | *".$_clean_z")
-        # Pokud najdeme shodu, uložíme si tu nejdelší (nejpřesnější) zónu
         if [ ${#_clean_z} -gt ${#_best_zone} ]; then
           _best_zone="$_clean_z"
         fi
         ;;
     esac
-  done # Konec loopu
-
-  if [ -n "$_best_zone" ]; then
-    _debug "Vybrana zona: $_best_zone"
-    printf "%s" "$_best_zone"
-  fi
+  done
+  [ -n "$_best_zone" ] && printf "%s" "$_best_zone"
 }
