@@ -71,10 +71,9 @@ jobs:
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Set env file
       run: |
-          cd ../acmetest
-          # Tady definujeme cíl a doménu
+          cd ../acmetest       
           echo "TEST_DNS=dns_czechia" > docker.env
-          echo "TestingDomain=3.zoner-test.eu" >> docker.env
+          echo "TestingDomain=zoner-test.eu" >> docker.env
           echo "CASE=le_test_dnsapi" >> docker.env
           echo "DEBUG=2" >> docker.env
         
