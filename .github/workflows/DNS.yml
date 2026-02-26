@@ -71,15 +71,11 @@ jobs:
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name:  Set env file
       run: |
-        cd ../acmetest
-        # Tady nesmí být proměnné, musí tu být přímo ten text, 
-        # jinak tam GitHub Actions zapíše hvězdičky!
+        cd ../acmetest       
         echo "TEST_DNS=dns_czechia" > docker.env
-        echo "TestingDomain=3.zoner-test.eu" >> docker.env
+        echo "TestingDomain=zoner-test.eu" >> docker.env
         echo "CASE=le_test_dnsapi" >> docker.env
-        echo "DEBUG=2" >> docker.env
-        
-        # Tyto jsou tajné, ty hvězdičky v souboru mít MUSÍ (Docker si je rozšifruje)
+        echo "DEBUG=2" >> docker.env             
         echo "CZECHIA_Token=${{ secrets.TokenValue1 }}" >> docker.env
         echo "CZECHIA_ID=${{ secrets.TokenValue2 }}" >> docker.env
         
