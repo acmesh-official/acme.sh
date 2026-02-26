@@ -83,10 +83,10 @@ _czechia_load_conf() {
 }
 
 _czechia_pick_zone() {
-  _debug "Vstupni domena: $_fulldomain"
-  _debug "Dostupne zony: $CZ_Zones"
-  _fulldomain="$1"
-  _fd=$(echo "$_fulldomain" | _lower_case | sed 's/\.$//')
+  _fd_input="$1"
+  _debug "Vstupni domena: $_fd_input"
+  _debug "Dostupne zony: $CZ_Zones"  
+  _fd=$(echo "$_fd_input" | _lower_case | sed 's/\.$//')
   _best_zone=""
 
   # Replace comma with space using sed (Docker safe)
