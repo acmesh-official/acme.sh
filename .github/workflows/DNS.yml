@@ -83,7 +83,7 @@ jobs:
     - name: Run acmetest
       run: |
         cd ../acmetest
-        ./rundocker.sh testall
+        ./rundocker.sh testall -d ${{ vars.TESTING_DOMAIN }}
 
 
 
