@@ -66,23 +66,19 @@ jobs:
         run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git && cp -r acme.sh acmetest/
       - name: Set env file
         run: |
-          # Přejdeme do složky acmetest a vytvoříme soubor tam
           cd ../acmetest
-        
-          # Zápis s jistotou, že hodnoty tam budou
+          # Tady to vypíšeme natvrdo, aby to Docker stoprocentně viděl
           echo "TEST_DNS=dns_czechia" > docker.env
           echo "TestingDomain=3.zoner-test.eu" >> docker.env
           echo "CASE=le_test_dnsapi" >> docker.env
           echo "DEBUG=2" >> docker.env
         
-          # Přidání tokenů
+          # Secrets (tokeny) tam klidně nech přes ty proměnné, ty fungují
           if [ -n "${{ secrets.TokenName1 }}" ]; then
             echo "${{ secrets.TokenName1 }}=${{ secrets.TokenValue1 }}" >> docker.env
           fi
         
-          # DŮLEŽITÁ DIAGNOSTIKA
-          echo "Cesta k souboru: $(pwd)/docker.env"
-          echo "Obsah souboru (jen klíče):"
+          echo "--- Kontrola vytvořeného souboru ---"
           cat docker.env | cut -d'=' -f1
 
   MacOS:
