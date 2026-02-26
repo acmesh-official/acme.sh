@@ -1,17 +1,19 @@
 #!/usr/bin/env sh
 
-# dns_czechia.sh - Czechia/ZONER DNS API for acme.sh (DNS-01)
+# dns_czechia.sh - CZECHIA.COM/ZONER DNS API for acme.sh (DNS-01)
 #
 # Documentation: https://api.czechia.com/swagger/index.html
 #
 # Required environment variables:
-#   CZ_AuthorizationToken   Your API token from Czechia/Zoner administration.
-#   CZ_Zones                Managed zones separated by comma or space.
+#   CZ_AuthorizationToken   Your API token from CZECHIA.COM/Zoner administration.
+#   CZ_Zones                Managed zones separated by comma or space (e.g. "example.com").
+#
+# Optional environment variables:
+#   CZ_API_BASE             Defaults to https://api.czechia.com
 
 dns_czechia_add() {
   fulldomain="$1"
   txtvalue="$2"
-
   _czechia_load_conf || return 1
   _current_zone=$(_czechia_pick_zone "$fulldomain")
   if [ -z "$_current_zone" ]; then
@@ -20,27 +22,22 @@ dns_czechia_add() {
   fi
 
   _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
-
-  # Normalize using acme.sh internal function
+  
+  # Normalize using acme.sh internal function - NO 'tr' used here
   _fd=$(_lower_case "$fulldomain" | sed 's/\.$//')
   _cz=$(_lower_case "$_current_zone")
 
-  # Calculate hostname without bash-isms
+  # Calculate hostname
   _h=$(printf "%s" "$_fd" | sed "s/\.$_cz//; s/$_cz//")
-  if [ -z "$_h" ]; then
-    _h="@"
-  fi
+  [ -z "$_h" ] && _h="@"
 
   _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"ttl\":3600,\"publishZone\":1}"
-
-  _info "Adding TXT record for $fulldomain"
+  _info "Adding TXT record"
 
   export _H1="Content-Type: application/json"
   export _H2="authorizationToken: $CZ_AuthorizationToken"
 
   _res=$(_post "$_body" "$_url" "" "POST")
-  _debug "API Response: $_res"
-
   if _contains "$_res" "errors" || _contains "$_res" "400"; then
     _err "API error: $_res"
     return 1
@@ -51,30 +48,22 @@ dns_czechia_add() {
 dns_czechia_rm() {
   fulldomain="$1"
   txtvalue="$2"
-
   _czechia_load_conf || return 1
   _current_zone=$(_czechia_pick_zone "$fulldomain")
   [ -z "$_current_zone" ] && return 1
 
   _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
-
   _fd=$(_lower_case "$fulldomain" | sed 's/\.$//')
   _cz=$(_lower_case "$_current_zone")
   _h=$(printf "%s" "$_fd" | sed "s/\.$_cz//; s/$_cz//")
-  if [ -z "$_h" ]; then
-    _h="@"
-  fi
+  [ -z "$_h" ] && _h="@"
 
   _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"publishZone\":1}"
-
-  _info "Removing TXT record for $fulldomain"
+  _info "Removing TXT record"
 
   export _H1="Content-Type: application/json"
   export _H2="authorizationToken: $CZ_AuthorizationToken"
-
   _res=$(_post "$_body" "$_url" "" "DELETE")
-  _debug "API Response: $_res"
-
   return 0
 }
 
@@ -84,19 +73,10 @@ dns_czechia_rm() {
 
 _czechia_load_conf() {
   CZ_AuthorizationToken="${CZ_AuthorizationToken:-$(_getaccountconf CZ_AuthorizationToken)}"
-  if [ -z "$CZ_AuthorizationToken" ]; then
-    _err "You didn't specify CZ_AuthorizationToken."
-    return 1
-  fi
-
+  [ -z "$CZ_AuthorizationToken" ] && _err "Missing CZ_AuthorizationToken" && return 1
   CZ_Zones="${CZ_Zones:-$(_getaccountconf CZ_Zones)}"
-  if [ -z "$CZ_Zones" ]; then
-    _err "You didn't specify CZ_Zones."
-    return 1
-  fi
-
+  [ -z "$CZ_Zones" ] && _err "Missing CZ_Zones" && return 1
   CZ_API_BASE="${CZ_API_BASE:-https://api.czechia.com}"
-
   _saveaccountconf CZ_AuthorizationToken "$CZ_AuthorizationToken"
   _saveaccountconf CZ_Zones "$CZ_Zones"
   return 0
@@ -106,27 +86,23 @@ _czechia_pick_zone() {
   _fulldomain="$1"
   _fd=$(_lower_case "$_fulldomain" | sed 's/\.$//')
   _best_zone=""
-
-  # Safe list split for Docker (BusyBox)
+  
+  # Replace comma with space using sed (Docker safe)
   _zones_space=$(printf "%s" "$CZ_Zones" | sed 's/,/ /g')
 
   for _z in $_zones_space; do
+    # Remove spaces and trailing dot, then lowercase - NO 'tr' used here
     _clean_z=$(_lower_case "$_z" | sed 's/ //g; s/\.$//')
     [ -z "$_clean_z" ] && continue
-
+    
     case "$_fd" in
-    "$_clean_z" | *".$_clean_z")
-      # POSIX shell length - 100% Docker stable
-      _new_len=${#_clean_z}
-      _old_len=${#_best_zone}
-      if [ "$_new_len" -gt "$_old_len" ]; then
-        _best_zone="$_clean_z"
-      fi
-      ;;
+      "$_clean_z"|*".$_clean_z")
+        # Compare length using native shell ${#var} - Docker/BusyBox safe
+        if [ ${#_clean_z} -gt ${#_best_zone} ]; then
+          _best_zone="$_clean_z"
+        fi
+        ;;
     esac
   done
-
-  if [ -n "$_best_zone" ]; then
-    printf "%s" "$_best_zone"
-  fi
+  [ -n "$_best_zone" ] && printf "%s" "$_best_zone"
 }
