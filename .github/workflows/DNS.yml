@@ -49,44 +49,45 @@ jobs:
     runs-on: ubuntu-latest
     needs: CheckToken
     if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
+    # Tady v env: nechej jen věci, které nechceš dávat do docker.env 
+    # nebo které jsou potřeba pro samotné spuštění rundocker.sh
     env:
-      TEST_DNS: dns_czechia
-      TestingDomain: 3.zoner-test.eu
-      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
-      TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
-      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
       CASE: le_test_dnsapi
-      TEST_LOCAL: 1
-      DEBUG: ${{ secrets.DEBUG }}
-      http_proxy: ${{ secrets.http_proxy }}
-      https_proxy: ${{ secrets.https_proxy }}
-      TokenName1: ${{ secrets.TokenName1}}
-      TokenName2: ${{ secrets.TokenName2}}
-      TokenName3: ${{ secrets.TokenName3}}
-      TokenName4: ${{ secrets.TokenName4}}
-      TokenName5: ${{ secrets.TokenName5}}
+      # Odstraňujeme duplicity, které budeme psát přímo do docker.env
     steps:
     - uses: actions/checkout@v4
+
     - name: Clone acmetest
-      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/  
+      run: |
+        cd ..
+        git clone --depth=1 https://github.com/acmesh-official/acmetest.git
+        cp -r acme.sh acmetest/
+
     - name: Set env file
       run: |
-        cd ../acmetest       
+        cd ../acmetest
+        # 1. Základní parametry z Variables
         echo "TEST_DNS=${{ vars.TEST_DNS }}" > docker.env
         echo "TestingDomain=${{ vars.TESTING_DOMAIN }}" >> docker.env
         echo "TEST_DNS_SLEEP=${{ vars.TEST_DNS_SLEEP }}" >> docker.env
         echo "CASE=le_test_dnsapi" >> docker.env
-        echo "DEBUG=2" >> docker.env        
-     
+        echo "DEBUG=2" >> docker.env
+        
+        # 2. Tokeny (1. ze secrets, 2. z variables dle tvého zadání)
         echo "CZ_AuthorizationToken=${{ secrets.TokenValue1 }}" >> docker.env
         echo "${{ vars.TokenName2 }}=${{ vars.TokenValue2 }}" >> docker.env
         
-        echo "--- Kontrola struktury docker.env ---"
+        # 3. Volitelné: přidání proxy, pokud jsou potřeba
+        [ -n "${{ secrets.http_proxy }}" ] && echo "http_proxy=${{ secrets.http_proxy }}" >> docker.env
+        [ -n "${{ secrets.https_proxy }}" ] && echo "https_proxy=${{ secrets.https_proxy }}" >> docker.env
+
+        echo "--- Kontrola vytvořeného souboru (názvy proměnných) ---"
         cut -d'=' -f1 docker.env
 
     - name: Run acmetest
-      run: cd ../acmetest && ./rundocker.sh  testall
-
+      run: |
+        cd ../acmetest
+        ./rundocker.sh testall
 
 
 
