@@ -64,6 +64,7 @@ jobs:
     - name: Set env file
       run: |
         cd ../acmetest
+        echo "DNSAPI=czechia" >> docker.env
         export TestingDomain=${{ secrets.TestingDomain }}
         export CZ_AuthorizationToken=${{ secrets.TokenValue1 }}
         export CZ_Zones=${{ vars.TokenValue2 }}
