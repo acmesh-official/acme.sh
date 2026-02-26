@@ -66,12 +66,17 @@ jobs:
         run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git && cp -r acme.sh acmetest/
       - name: Set env file
         run: |
-          cd ../acmetest
+          cd ../acmetest         
+          echo "TEST_DNS=dns_czechia" >> docker.env
+          echo "TestingDomain=${{ env.TestingDomain }}" >> docker.env
+          echo "CASE=${{ env.CASE }}" >> docker.env
+        
           if [ -n "${{ secrets.TokenName1 }}" ]; then
             echo "${{ secrets.TokenName1 }}=${{ secrets.TokenValue1 }}" >> docker.env
           fi
-          # Pokud máte další tokeny, přidejte je stejným stylem:
-          # [ -n "${{ secrets.TokenName2 }}" ] && echo "${{ secrets.TokenName2 }}=${{ secrets.TokenValue2 }}" >> docker.env
+        
+          echo "--- Kontrola obsahu env souboru ---"
+          cat docker.env | cut -d'=' -f1
 
       - name: Run acmetest
         run: cd ../acmetest && ./rundocker.sh testall
