@@ -64,12 +64,14 @@ jobs:
     - name: Set env file
       run: |
         cd ../acmetest
+        # 1. Variables - pozor na malá/velká písmena (používám TestingDomain)
         echo "TEST_DNS=${{ vars.TEST_DNS }}" > docker.env
         echo "TestingDomain=${{ vars.TestingDomain }}" >> docker.env
         echo "TEST_DNS_SLEEP=${{ vars.TEST_DNS_SLEEP }}" >> docker.env 
         
+        # 2. Secrets - NAPIŠ NÁZEV PROMĚNNÉ NATVRDO
+        # Tady musí být vlevo přesně to, co chce plugin dns_czechia
         echo "CZ_AuthorizationToken=${{ secrets.TokenValue1 }}" >> docker.env   
-        
         echo "CZ_Zones=${{ vars.TokenValue2 }}" >> docker.env
         
         echo "CASE=le_test_dnsapi" >> docker.env
@@ -78,8 +80,9 @@ jobs:
     - name: Run acmetest
       run: |
         cd ../acmetest
-        # POZOR: Tady musí být název proměnné PŘESNĚ jako v Settings (asi TestingDomain)
+        # 3. Tady musí název proměnné sedět s tím, co máš v Settings
         ./rundocker.sh testall -d ${{ vars.TestingDomain }}
+
 
 
 
