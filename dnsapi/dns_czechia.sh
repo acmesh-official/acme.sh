@@ -22,7 +22,7 @@ dns_czechia_add() {
   fi
 
   _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
-  
+
   # Normalize using acme.sh internal function - NO 'tr' used here
   _fd=$(_lower_case "$fulldomain" | sed 's/\.$//')
   _cz=$(_lower_case "$_current_zone")
@@ -86,7 +86,7 @@ _czechia_pick_zone() {
   _fulldomain="$1"
   _fd=$(_lower_case "$_fulldomain" | sed 's/\.$//')
   _best_zone=""
-  
+
   # Replace comma with space using sed (Docker safe)
   _zones_space=$(printf "%s" "$CZ_Zones" | sed 's/,/ /g')
 
@@ -94,14 +94,14 @@ _czechia_pick_zone() {
     # Remove spaces and trailing dot, then lowercase - NO 'tr' used here
     _clean_z=$(_lower_case "$_z" | sed 's/ //g; s/\.$//')
     [ -z "$_clean_z" ] && continue
-    
+
     case "$_fd" in
-      "$_clean_z"|*".$_clean_z")
-        # Compare length using native shell ${#var} - Docker/BusyBox safe
-        if [ ${#_clean_z} -gt ${#_best_zone} ]; then
-          _best_zone="$_clean_z"
-        fi
-        ;;
+    "$_clean_z" | *".$_clean_z")
+      # Compare length using native shell ${#var} - Docker/BusyBox safe
+      if [ ${#_clean_z} -gt ${#_best_zone} ]; then
+        _best_zone="$_clean_z"
+      fi
+      ;;
     esac
   done
   [ -n "$_best_zone" ] && printf "%s" "$_best_zone"
