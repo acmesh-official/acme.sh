@@ -64,18 +64,18 @@ jobs:
     - name: Set env file
       run: |
         cd ../acmetest
+        echo "TestingDomain=${{ secrets.TestingDomain }}" > docker.env
         echo "DNSAPI=czechia" >> docker.env
-        export TestingDomain=${{ secrets.TestingDomain }}
-        export CZ_AuthorizationToken=${{ secrets.TokenValue1 }}
-        export CZ_Zones=${{ vars.TokenValue2 }}
-        export TEST_DNS_SLEEP=240
-        
-        echo DEBUG=3 >> docker.env
+        echo "CZ_AuthorizationToken=${{ secrets.TokenValue1 }}" >> docker.env
+        echo "CZ_Zones=${{ vars.TokenValue2 }}" >> docker.env
+        echo "TEST_DNS_SLEEP=240" >> docker.env
+        echo "DEBUG=3" >> docker.env
+        echo "CASE=le_test_dnsapi" >> docker.env
 
     - name: Run acmetest
       run: |
         cd ../acmetest
-        ./rundocker.sh testall -d ${{ secrets.TestingDomain }}
+        ./rundocker.sh debian:bookworm
 
 
   MacOS:
