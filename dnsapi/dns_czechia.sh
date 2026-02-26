@@ -15,19 +15,19 @@ dns_czechia_add() {
   fulldomain="$1"
   txtvalue="$2"
   _czechia_load_conf || return 1
-  _current_zone=$(echo "$_current_zone" | sed 's/\.$//')
+  _current_zone=$(_czechia_pick_zone "$fulldomain")
   if [ -z "$_current_zone" ]; then
     _err "No matching zone found for $fulldomain. Please check CZ_Zones."
     return 1
   fi
 
+  # Normalizace zóny pro URL (bez tečky na konci)
+  _current_zone=$(echo "$_current_zone" | sed 's/\.$//')
   _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
 
-  # Příprava hostname (ořezání zóny z fulldomain)
   _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
   _cz=$(echo "$_current_zone" | _lower_case | sed 's/\.$//')
-  
-  # Odstraníme zónu z názvu, abychom dostali jen hostname (např. _acme-challenge)
+
   _h=$(echo "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
   [ -z "$_h" ] && _h="@"
 
@@ -49,13 +49,15 @@ dns_czechia_rm() {
   fulldomain="$1"
   txtvalue="$2"
   _czechia_load_conf || return 1
-  _current_zone=$(echo "$_current_zone" | sed 's/\.$//')
+  _current_zone=$(_czechia_pick_zone "$fulldomain")
   [ -z "$_current_zone" ] && return 1
 
+  _current_zone=$(echo "$_current_zone" | sed 's/\.$//')
   _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
+
   _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
   _cz=$(echo "$_current_zone" | _lower_case | sed 's/\.$//')
-  
+
   _h=$(echo "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
   [ -z "$_h" ] && _h="@"
 
