@@ -75,7 +75,7 @@ jobs:
     - name: Run acmetest
       run: |
         cd ../acmetest
-        ./rundocker.sh debian:bookworm
+        ./rundocker.sh -i debian:bookworm
 
 
   MacOS:
