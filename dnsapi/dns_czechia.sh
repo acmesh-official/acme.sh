@@ -87,24 +87,30 @@ _czechia_pick_zone() {
   _debug "Vstupni domena: $_fd_input"
   _debug "Dostupne zony: $CZ_Zones"
   
+  # Musíme použít vstupní parametr _fd_input a převést ho na malé písmena bez tečky na konci
   _fd=$(echo "$_fd_input" | _lower_case | sed 's/\.$//')
   _best_zone=""
 
-  # Replace comma with space using sed
+  # Převod čárek na mezery pro bezpečný loop v shellu
   _zones_space=$(printf "%s" "$CZ_Zones" | sed 's/,/ /g')
 
   for _z in $_zones_space; do
+    # Vyčištění zóny ze seznamu
     _clean_z=$(echo "$_z" | _lower_case | sed 's/ //g; s/\.$//')
     [ -z "$_clean_z" ] && continue
 
     case "$_fd" in
       "$_clean_z" | *".$_clean_z")
+        # Pokud najdeme shodu, uložíme si tu nejdelší (nejpřesnější) zónu
         if [ ${#_clean_z} -gt ${#_best_zone} ]; then
           _best_zone="$_clean_z"
         fi
         ;;
     esac
-  done # Toto done uzavírá 'for'
+  done # Konec loopu
 
-  [ -n "$_best_zone" ] && printf "%s" "$_best_zone"
+  if [ -n "$_best_zone" ]; then
+    _debug "Vybrana zona: $_best_zone"
+    printf "%s" "$_best_zone"
+  fi
 }
