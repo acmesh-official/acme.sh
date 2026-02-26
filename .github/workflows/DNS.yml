@@ -78,10 +78,10 @@ jobs:
         # Pro jistotu si v logu ověříme, že v souboru je to, co má být
         grep "=" docker.env | cut -d'=' -f1
 
-    - name: Set env file
+    - name: Run acmetest
       run: |
         cd ../acmetest
-        # POUZE tyto proměnné, nic víc:
+        # 1. Příprava env (máš správně)
         echo "TestingDomain=${{ secrets.TestingDomain }}" > docker.env
         echo "DNSAPI=czechia" >> docker.env
         echo "CZ_AuthorizationToken=${{ secrets.TokenValue1 }}" >> docker.env
@@ -91,13 +91,13 @@ jobs:
         echo "DEBUG=3" >> docker.env
         echo "NO_UPGRADE=1" >> docker.env
         
-        # 2. VNUTÍME plugin do všech možných cest, které by mohl Docker použít
+        # 2. Vnutíš plugin
         mkdir -p ./acme.sh/dnsapi/
         cp ../acme.sh/dnsapi/dns_czechia.sh ./acme.sh/dnsapi/dns_czechia.sh
         
-        # 3. Zkontrolujeme, zda soubor obsahuje tvůj debug (uvidíš v logu GHA)
-        grep "Vstupni domena" ./acme.sh/dnsapi/dns_czechia.sh || echo "POZOR: Debug v souboru CHYBÍ!"
-
+        # 3. Kontrola (jen grep, nic nespouštěj!)
+        grep "Vstupni domena" ./acme.sh/dnsapi/dns_czechia.sh || echo "Debug v souboru není"
+        
         # 4. Spuštění
         ./rundocker.sh testplat debian:bookworm
 
