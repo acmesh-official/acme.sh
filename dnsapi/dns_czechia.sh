@@ -15,7 +15,7 @@ dns_czechia_add() {
   fulldomain="$1"
   txtvalue="$2"
   _czechia_load_conf || return 1
-  _current_zone=$(_czechia_pick_zone "$fulldomain")
+  _current_zone=$(echo "$_current_zone" | sed 's/\.$//')
   if [ -z "$_current_zone" ]; then
     _err "No matching zone found for $fulldomain. Please check CZ_Zones."
     return 1
@@ -49,7 +49,7 @@ dns_czechia_rm() {
   fulldomain="$1"
   txtvalue="$2"
   _czechia_load_conf || return 1
-  _current_zone=$(_czechia_pick_zone "$fulldomain")
+  _current_zone=$(echo "$_current_zone" | sed 's/\.$//')
   [ -z "$_current_zone" ] && return 1
 
   _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
@@ -89,11 +89,11 @@ _czechia_pick_zone() {
     _clean_z=$(echo "$_z" | _lower_case | sed 's/ //g; s/\.$//')
     [ -z "$_clean_z" ] && continue
     case "$_fd" in
-      "$_clean_z" | *".$_clean_z")
-        if [ ${#_clean_z} -gt ${#_best_zone} ]; then
-          _best_zone="$_clean_z"
-        fi
-        ;;
+    "$_clean_z" | *".$_clean_z")
+      if [ ${#_clean_z} -gt ${#_best_zone} ]; then
+        _best_zone="$_clean_z"
+      fi
+      ;;
     esac
   done
   [ -n "$_best_zone" ] && printf "%s" "$_best_zone"
