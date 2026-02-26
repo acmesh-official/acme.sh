@@ -75,7 +75,7 @@ jobs:
     - name: Run acmetest
       run: |
         cd ../acmetest
-        ./rundocker.sh -i debian:bookworm
+        ./rundocker.sh debian:bookworm -d ${{ secrets.TestingDomain }}
 
 
   MacOS:
