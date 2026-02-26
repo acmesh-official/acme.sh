@@ -65,21 +65,17 @@ jobs:
 
     - name: Set env file
       run: |
-        cd ../acmetest
-        # 1. Základní parametry z Variables
+        cd ../acmetest     
         echo "TEST_DNS=${{ vars.TEST_DNS }}" > docker.env
         echo "TestingDomain=${{ vars.TESTING_DOMAIN }}" >> docker.env
         echo "TEST_DNS_SLEEP=${{ vars.TEST_DNS_SLEEP }}" >> docker.env
         echo "CASE=le_test_dnsapi" >> docker.env
         echo "DEBUG=2" >> docker.env
         
-        # 2. Tokeny (1. ze secrets, 2. z variables dle tvého zadání)
+       
         echo "CZ_AuthorizationToken=${{ secrets.TokenValue1 }}" >> docker.env
-        echo "${{ vars.TokenName2 }}=${{ vars.TokenValue2 }}" >> docker.env
-        
-        # 3. Volitelné: přidání proxy, pokud jsou potřeba
-        [ -n "${{ secrets.http_proxy }}" ] && echo "http_proxy=${{ secrets.http_proxy }}" >> docker.env
-        [ -n "${{ secrets.https_proxy }}" ] && echo "https_proxy=${{ secrets.https_proxy }}" >> docker.env
+        echo "${{ vars.TokenName2 }}=${{ vars.TokenValue2 }}" >> docker.env        
+     
 
         echo "--- Kontrola vytvořeného souboru (názvy proměnných) ---"
         cut -d'=' -f1 docker.env
