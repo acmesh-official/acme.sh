@@ -77,10 +77,7 @@ jobs:
     - name: Run acmetest
       run: |
         cd ../acmetest
-        # Spustíme rundocker ÚPLNĚ BEZ PARAMETRŮ. 
-        # On si automaticky vezme první obraz, který najde v seznamu (standardně debian)
-        # a použije náš docker.env.
-        ./rundocker.sh
+        ./rundocker.sh testplat debian:bookworm
 
 
   MacOS:
