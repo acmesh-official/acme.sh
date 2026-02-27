@@ -62,29 +62,29 @@ jobs:
         cp -r acme.sh acmetest/acme.sh
 
     - name: Run acmetest
-      env: # <--- TATO SEKCE TADY MUSÍ BÝT
+      env:
+        # Tady si to pojmenuj jakkoliv, hlavně ať to sedí na tvé Secrets
         CZ_TOKEN: ${{ secrets.TokenValue1 }}
-        CZ_ZONES: ${{ vars.TokenValue2 }}
-        TEST_DOMAIN: ${{ secrets.TestingDomain }}
+        CZ_ZONE: ${{ vars.TokenValue2 }}
+        CZ_DOMAIN: ${{ vars.TestingDomain }}
       run: |
         cd ../acmetest
         
-        # Teď už ty proměnné v shellu existují, tak je zapíšeme
-        cat <<EOF > docker.env
-        TestingDomain=$TEST_DOMAIN
+        # Použijeme "EOF" v uvozovkách - to zabrání shellu, aby proměnné interpretoval předčasně
+        cat << "EOF" > docker.env
+        TestingDomain=${CZ_DOMAIN}
         DNSAPI=czechia
-        CZ_AuthorizationToken=$CZ_TOKEN
-        CZ_Zones=$CZ_ZONES
+        CZ_AuthorizationToken=${CZ_TOKEN}
+        CZ_Zones=${CZ_ZONE}
         CASE=le_test_dnsapi
         DEBUG=3
         EOF
-        
-        # Teď už délka nebude 0
-        echo "DEBUG: Kontrola proměnných"
+
+        # Tady už jen kontrola, jestli v shellu něco je
+        echo "DEBUG: Kontrola délky"
         echo "Token délka: ${#CZ_TOKEN}"
-        echo "Zóny délka: ${#CZ_ZONES}"
         
-        # ... zbytek (mkdir, sed, rundocker)
+        # ... zbytek tvého postupu
         mkdir -p ./acme.sh/dnsapi/
         sed 's/\r$//' ../acme.sh/dnsapi/dns_czechia.sh > ./acme.sh/dnsapi/dns_czechia.sh
         ./rundocker.sh testplat ubuntu:22.04
