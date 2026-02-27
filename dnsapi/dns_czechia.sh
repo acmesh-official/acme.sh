@@ -21,30 +21,40 @@ dns_czechia_add() {
     return 1
   fi
 
-  # AGRESIVNÍ OČISTA (povolíme jen to, co v tokenu a doméně má být)
-  # Odstraní vše kromě písmen, čísel, pomlček a teček
+  # 1. AGRESIVNÍ OČISTA (prevence chyb 401 a Invalid domain)
+  # Odstraní \r, mezery a zajistí čistý string
   _cz=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/[^a-z0-9.-]//g')
   _tk=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ' | sed 's/[^a-zA-Z0-9-]//g')
   
   _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
 
+  # 2. Příprava hostname
   _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
   _h=$(echo "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
   [ -z "$_h" ] && _h="@"
 
   _info "Adding TXT record for $_h in zone $_cz"
-  _debug "Token length: ${#_tk}" # Tady musíme v Logu 33 vidět 36!
+  _debug "Token length: ${#_tk}"
+  _debug "Target URL: $_url"
   
+  # 3. Sestavení těla JSONu
   _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"ttl\":3600,\"publishZone\":1}"
   
-  export _H1="Content-Type: application/json"
-  export _H2="AuthorizationToken: $_tk"
+  # 4. Definice hlaviček
+  # V acme.sh je nejlepší poslat vlastní hlavičky jako 5. parametr funkce _post
+  _headers="AuthorizationToken: $_tk"
+  
+  # 5. Samotný POST požadavek
+  # Syntaxe: _post body url header method custom_headers
+  _res=$(_post "$_body" "$_url" "" "POST" "$_headers")
 
-  _res=$(_post "$_body" "$_url" "" "POST")
-  if _contains "$_res" "errors" || _contains "$_res" "400"; then
+  # 6. Vyhodnocení výsledku
+  if _contains "$_res" "errors" || _contains "$_res" "401" || _contains "$_res" "400"; then
     _err "API error: $_res"
     return 1
   fi
+
+  _info "Successfully added TXT record."
   return 0
 }
 dns_czechia_rm() {
