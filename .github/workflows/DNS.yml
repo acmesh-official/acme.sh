@@ -69,13 +69,17 @@ jobs:
         DNSAPI: czechia
         DEBUG: 3
       run: |
+        # 1. Musíme doinstalovat socat, který acme.sh vyžaduje
+        sudo apt-get update && sudo apt-get install -y socat
+        
         cd ../acmetest
-        # 1. Příprava skriptu přímo v systému
+        
+        # 2. Příprava tvého pluginu
         mkdir -p ./dnsapi/
         sed 's/\r$//' ../acme.sh/dnsapi/dns_czechia.sh > ./dnsapi/dns_czechia.sh
         chmod +x ./dnsapi/dns_czechia.sh
         
-        # 2. Spuštění testu přímo na Ubuntu runneru (má v sobě všechen potřebný soft)
+        # 3. Spuštění (teď už socat najde)
         ./letest.sh
 
 
