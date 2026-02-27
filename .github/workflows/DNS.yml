@@ -62,54 +62,32 @@ jobs:
         cp -r acme.sh acmetest/acme.sh
 
     - name: Run acmetest
+      env: # <--- TATO SEKCE TADY MUSÍ BÝT
+        CZ_TOKEN: ${{ secrets.TokenValue1 }}
+        CZ_ZONES: ${{ vars.TokenValue2 }}
+        TEST_DOMAIN: ${{ secrets.TestingDomain }}
       run: |
         cd ../acmetest
         
-        # 1. Příprava souboru s proměnnými prostředí
-        # Musí tam být vše, co skript potřebuje pro autentizaci a debugování
+        # Teď už ty proměnné v shellu existují, tak je zapíšeme
         cat <<EOF > docker.env
-        TestingDomain=${{ secrets.TestingDomain }}
+        TestingDomain=$TEST_DOMAIN
         DNSAPI=czechia
-        CZ_AuthorizationToken=${{ secrets.TokenValue1 }}
-        CZ_Zones=${{ vars.TokenValue2 }}
+        CZ_AuthorizationToken=$CZ_TOKEN
+        CZ_Zones=$CZ_ZONES
         CASE=le_test_dnsapi
-        TEST_DNS=1
         DEBUG=3
-        DOCKER_DEBUG=1
-        NO_UPGRADE=1
         EOF
         
-        # 2. Příprava skriptu (Pluginu)
-        # Odstraníme Windows koncovky řádků a zajistíme, že soubor existuje na správném místě v acmetestu
+        # Teď už délka nebude 0
+        echo "DEBUG: Kontrola proměnných"
+        echo "Token délka: ${#CZ_TOKEN}"
+        echo "Zóny délka: ${#CZ_ZONES}"
+        
+        # ... zbytek (mkdir, sed, rundocker)
         mkdir -p ./acme.sh/dnsapi/
         sed 's/\r$//' ../acme.sh/dnsapi/dns_czechia.sh > ./acme.sh/dnsapi/dns_czechia.sh
-        chmod +x ./acme.sh/dnsapi/dns_czechia.sh
-        
-        # 3. Kontrolní výpis pro tebe (uvidíš v logu délku tokenu a zóny bez vyzrazení obsahu)
-        echo "DEBUG: Kontrola proměnných před startem Dockeru"
-        echo "Token délka: ${#CZ_AuthorizationToken}"
-        echo "Zóny délka: ${#CZ_Zones}"
-        head -n 5 ./acme.sh/dnsapi/dns_czechia.sh
-
-    - name: Run acmetest
-      run: |
-        cd ../acmetest
-        
-        # 1. Příprava tvého skriptu (sed odstraní ty případné neviditelné znaky)
-        mkdir -p ./acme.sh/dnsapi/
-        sed 's/\r$//' ../acme.sh/dnsapi/dns_czechia.sh > ./acme.sh/dnsapi/dns_czechia.sh
-        chmod +x ./acme.sh/dnsapi/dns_czechia.sh
-        
-        # 2. Export proměnných PŘÍMO (nejen do souboru, ale i do prostředí)
-        export CZ_AuthorizationToken="${{ secrets.TokenValue1 }}"
-        export CZ_Zones="${{ vars.TokenValue2 }}"
-        export TestingDomain="${{ secrets.TestingDomain }}"
-        export DNSAPI=czechia
-        export DEBUG=3
-        
-        # 3. Místo rundocker.sh zkusíme test pustit PŘÍMO v Ubuntu runneru
-        # Tím se vyhneme chybě "load metadata for docker.io"
-        ./letest.sh
+        ./rundocker.sh testplat ubuntu:22.04
 
 
   MacOS:
