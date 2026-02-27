@@ -21,28 +21,23 @@ dns_czechia_add() {
     return 1
   fi
 
-  # Totální očista proměnných (Token i Zóna) od neviditelných znaků
-  CZ_AuthorizationToken=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ')
-  _current_zone=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/\.$//')
-  
-  _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
+  # Očista proměnných
+  _cz=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/\.$//')
+  _tk=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ')
+  _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
 
   _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
-  _cz=$(echo "$_current_zone" | _lower_case | sed 's/\.$//')
   _h=$(echo "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
   [ -z "$_h" ] && _h="@"
 
-  _info "Adding TXT record for $_h in zone $_current_zone"
-  
-  # Sestavení těla přesně podle Postmana
+  _info "Adding TXT record for $_h in zone $_cz"
   _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"ttl\":3600,\"publishZone\":1}"
 
+  # Opravený název hlavičky na AuthorizationToken (podle Postmana)
   export _H1="Content-Type: application/json"
-  export _H2="authorizationToken: $CZ_AuthorizationToken"
+  export _H2="AuthorizationToken: $_tk"
 
-  # Použijeme čistý _post bez dalších parametrů, které by mohly mást curl
   _res=$(_post "$_body" "$_url" "" "POST")
-  
   if _contains "$_res" "errors" || _contains "$_res" "400"; then
     _err "API error: $_res"
     return 1
@@ -57,20 +52,18 @@ dns_czechia_rm() {
   _current_zone=$(_czechia_pick_zone "$fulldomain")
   [ -z "$_current_zone" ] && return 1
 
-  CZ_AuthorizationToken=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ')
-  _current_zone=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/\.$//')
-  
-  _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
+  _cz=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/\.$//')
+  _tk=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ')
+  _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
 
   _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
-  _cz=$(echo "$_current_zone" | _lower_case | sed 's/\.$//')
   _h=$(echo "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
   [ -z "$_h" ] && _h="@"
 
   _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"publishZone\":1}"
 
   export _H1="Content-Type: application/json"
-  export _H2="authorizationToken: $CZ_AuthorizationToken"
+  export _H2="AuthorizationToken: $_tk"
   _res=$(_post "$_body" "$_url" "" "DELETE")
   return 0
 }
@@ -91,7 +84,6 @@ _czechia_pick_zone() {
   _fd=$(echo "$_fd_input" | _lower_case | sed 's/\.$//')
   _best_zone=""
   _zones_space=$(printf "%s" "$CZ_Zones" | sed 's/,/ /g')
-
   for _z in $_zones_space; do
     _clean_z=$(echo "$_z" | _lower_case | sed 's/ //g; s/\.$//')
     [ -z "$_clean_z" ] && continue
