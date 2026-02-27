@@ -22,8 +22,9 @@ dns_czechia_add() {
   fi
 
   # Normalizace zóny pro URL (bez tečky na konci)
-  _current_zone=$(echo "$_current_zone" | sed 's/\.$//')
-  _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
+  _current_zone=$(printf "%s" "$_current_zone" | tr -d '[:space:]' | _lower_case | sed 's/\.$//')
+  _encoded_zone=$(_unicode_url_encode "$_current_zone")
+  _url="$CZ_API_BASE/api/DNS/$_encoded_zone/TXT"
 
   _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
   _cz=$(echo "$_current_zone" | _lower_case | sed 's/\.$//')
@@ -52,8 +53,9 @@ dns_czechia_rm() {
   _current_zone=$(_czechia_pick_zone "$fulldomain")
   [ -z "$_current_zone" ] && return 1
 
-  _current_zone=$(echo "$_current_zone" | sed 's/\.$//')
-  _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
+  _current_zone=$(printf "%s" "$_current_zone" | tr -d '[:space:]' | _lower_case | sed 's/\.$//')
+  _encoded_zone=$(_unicode_url_encode "$_current_zone")
+  _url="$CZ_API_BASE/api/DNS/$_encoded_zone/TXT"
 
   _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
   _cz=$(echo "$_current_zone" | _lower_case | sed 's/\.$//')
