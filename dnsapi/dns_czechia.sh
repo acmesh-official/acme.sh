@@ -36,7 +36,7 @@ dns_czechia_add() {
   _debug "Token length: ${#_tk}" # Tady musíme v Logu 33 vidět 36!
   
   _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"ttl\":3600,\"publishZone\":1}"
-
+  
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
 
@@ -68,8 +68,7 @@ dns_czechia_rm() {
   _info "Removing TXT record $_h"
   _debug "Token length: ${#_tk}"
   
-  _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"publishZone\":1}"
-
+  _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"ttl\":3600,\"publishZone\":1}"
   # Hlavičky s velkým A a T podle tvého funkčního vzoru z Postmana
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
