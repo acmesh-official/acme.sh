@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   CheckToken:
-    runs-on: ubuntu-latest
+    runs-on: debian-latest
     outputs:
       hasToken: ${{ steps.step_one.outputs.hasToken }}
     steps:
@@ -34,7 +34,7 @@ jobs:
         run: echo ${{ steps.step_one.outputs.hasToken }}
 
   Fail:
-    runs-on: ubuntu-latest
+    runs-on: debian-latest
     needs: CheckToken
     if: "contains(needs.CheckToken.outputs.hasToken, 'false')"
     steps:
@@ -46,7 +46,7 @@ jobs:
         fi
 
   Docker:
-    runs-on: ubuntu-latest
+    runs-on: debian-latest
     environment: Testing
     needs: CheckToken
     if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
