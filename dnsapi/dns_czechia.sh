@@ -21,8 +21,10 @@ dns_czechia_add() {
     return 1
   fi
 
-  # Očista zóny bez použití 'tr', které v logu 27 zlobilo
-  _current_zone=$(echo "$_current_zone" | _lower_case | sed 's/[^a-z0-9.-]//g')
+  # Totální eliminace Windows/Docker nepořádku (\r, mezery, atd.)
+  _current_zone=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ')
+  _current_zone=$(echo "$_current_zone" | _lower_case | sed 's/\.$//')
+  
   _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
 
   _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
@@ -52,7 +54,9 @@ dns_czechia_rm() {
   _current_zone=$(_czechia_pick_zone "$fulldomain")
   [ -z "$_current_zone" ] && return 1
 
-  _current_zone=$(echo "$_current_zone" | _lower_case | sed 's/[^a-z0-9.-]//g')
+  _current_zone=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ')
+  _current_zone=$(echo "$_current_zone" | _lower_case | sed 's/\.$//')
+  
   _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
 
   _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
