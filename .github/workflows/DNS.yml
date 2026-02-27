@@ -61,45 +61,38 @@ jobs:
         git clone --depth=1 https://github.com/acmesh-official/acmetest.git    
         cp -r acme.sh acmetest/acme.sh
 
-    - name: Set env file
-      run: |
-        cd ../acmetest
-        # VYMAŽEME starý obsah a dáme tam PŘESNĚ toto:
-        echo "TestingDomain=${{ secrets.TestingDomain }}" > docker.env
-        echo "DNSAPI=czechia" >> docker.env
-        echo "CZ_AuthorizationToken=${{ secrets.TokenValue1 }}" >> docker.env
-        echo "CZ_Zones=${{ vars.TokenValue2 }}" >> docker.env
-        echo "CASE=le_test_dnsapi" >> docker.env
-        
-        # TOTO JSOU TY DVA CHYBĚJÍCÍ ŘÁDKY:
-        echo "TEST_DNS=1" >> docker.env
-        echo "DEBUG=3" >> docker.env
-        
-        # Pro jistotu si v logu ověříme, že v souboru je to, co má být
-        grep "=" docker.env | cut -d'=' -f1
-
     - name: Run acmetest
       run: |
         cd ../acmetest
-        # 1. Příprava env (máš správně)
-        echo "TestingDomain=${{ secrets.TestingDomain }}" > docker.env
-        echo "DNSAPI=czechia" >> docker.env
-        echo "CZ_AuthorizationToken=${{ secrets.TokenValue1 }}" >> docker.env
-        echo "CZ_Zones=${{ vars.TokenValue2 }}" >> docker.env
-        echo "CASE=le_test_dnsapi" >> docker.env
-        echo "TEST_DNS=1" >> docker.env
-        echo "DEBUG=3" >> docker.env
-        echo "NO_UPGRADE=1" >> docker.env
         
-        # 2. VNUTÍME plugin a VYČISTÍME ho od Windows koncovek řádků
+        # 1. Příprava souboru s proměnnými prostředí
+        # Musí tam být vše, co skript potřebuje pro autentizaci a debugování
+        cat <<EOF > docker.env
+        TestingDomain=${{ secrets.TestingDomain }}
+        DNSAPI=czechia
+        CZ_AuthorizationToken=${{ secrets.TokenValue1 }}
+        CZ_Zones=${{ vars.TokenValue2 }}
+        CASE=le_test_dnsapi
+        TEST_DNS=1
+        DEBUG=3
+        DOCKER_DEBUG=1
+        NO_UPGRADE=1
+        EOF
+        
+        # 2. Příprava skriptu (Pluginu)
+        # Odstraníme Windows koncovky řádků a zajistíme, že soubor existuje na správném místě v acmetestu
         mkdir -p ./acme.sh/dnsapi/
-        # Tento příkaz odstraní neviditelné znaky \r (CRLF -> LF)
         sed 's/\r$//' ../acme.sh/dnsapi/dns_czechia.sh > ./acme.sh/dnsapi/dns_czechia.sh
+        chmod +x ./acme.sh/dnsapi/dns_czechia.sh
         
-        # 3. Kontrola (uvidíš v logu, jestli tam nejsou divné znaky)
-        head -n 1 ./acme.sh/dnsapi/dns_czechia.sh | od -c
+        # 3. Kontrolní výpis pro tebe (uvidíš v logu délku tokenu a zóny bez vyzrazení obsahu)
+        echo "DEBUG: Kontrola proměnných před startem Dockeru"
+        echo "Token délka: ${#CZ_AuthorizationToken}"
+        echo "Zóny délka: ${#CZ_Zones}"
+        head -n 5 ./acme.sh/dnsapi/dns_czechia.sh
 
-        # 4. Spuštění
+        # 4. Spuštění testu
+        # rundocker.sh si sám načte docker.env, pokud existuje v aktuální složce
         ./rundocker.sh testplat ubuntu:22.04
 
 
