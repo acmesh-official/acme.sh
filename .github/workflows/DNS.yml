@@ -61,29 +61,22 @@ jobs:
         git clone --depth=1 https://github.com/acmesh-official/acmetest.git    
         cp -r acme.sh acmetest/acme.sh
 
-    - name: Run acmetest
+    - name: Run acmetest DIRECTLY (No Docker)
       env:
-        # Tady si to pojmenuj jakkoliv, hlavně ať to sedí na tvé Secrets
-        CZ_TOKEN: ${{ secrets.TokenValue1 }}
-        CZ_ZONE: ${{ vars.TokenValue2 }}
-        CZ_DOMAIN: ${{ vars.TestingDomain }}
+        CZ_AuthorizationToken: ${{ secrets.TokenValue1 }}
+        CZ_Zones: ${{ vars.TokenValue2 }}
+        TestingDomain: ${{ vars.TestingDomain }}
+        DNSAPI: czechia
+        DEBUG: 3
       run: |
         cd ../acmetest
+        # 1. Příprava skriptu přímo v systému
+        mkdir -p ./dnsapi/
+        sed 's/\r$//' ../acme.sh/dnsapi/dns_czechia.sh > ./dnsapi/dns_czechia.sh
+        chmod +x ./dnsapi/dns_czechia.sh
         
-        cat << EOF > docker.env
-        TestingDomain=${CZ_DOMAIN}
-        DNSAPI=czechia
-        CZ_AuthorizationToken=${CZ_TOKEN}
-        CZ_Zones=${CZ_ZONE}
-        CASE=le_test_dnsapi
-        DEBUG=3
-        EOF
-        
-        mkdir -p ./acme.sh/dnsapi/
-        sed 's/\r$//' ../acme.sh/dnsapi/dns_czechia.sh > ./acme.sh/dnsapi/dns_czechia.sh
-        chmod +x ./acme.sh/dnsapi/dns_czechia.sh
-        
-        ./rundocker.sh testplat ubuntu:22.04
+        # 2. Spuštění testu přímo na Ubuntu runneru (má v sobě všechen potřebný soft)
+        ./letest.sh
 
 
   MacOS:
