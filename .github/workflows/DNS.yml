@@ -70,8 +70,7 @@ jobs:
       run: |
         cd ../acmetest
         
-        # Použijeme "EOF" v uvozovkách - to zabrání shellu, aby proměnné interpretoval předčasně
-        cat << "EOF" > docker.env
+        cat << EOF > docker.env
         TestingDomain=${CZ_DOMAIN}
         DNSAPI=czechia
         CZ_AuthorizationToken=${CZ_TOKEN}
@@ -79,14 +78,11 @@ jobs:
         CASE=le_test_dnsapi
         DEBUG=3
         EOF
-
-        # Tady už jen kontrola, jestli v shellu něco je
-        echo "DEBUG: Kontrola délky"
-        echo "Token délka: ${#CZ_TOKEN}"
         
-        # ... zbytek tvého postupu
         mkdir -p ./acme.sh/dnsapi/
         sed 's/\r$//' ../acme.sh/dnsapi/dns_czechia.sh > ./acme.sh/dnsapi/dns_czechia.sh
+        chmod +x ./acme.sh/dnsapi/dns_czechia.sh
+        
         ./rundocker.sh testplat ubuntu:22.04
 
 
