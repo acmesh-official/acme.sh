@@ -43,10 +43,14 @@ dns_czechia_add() {
 
   # 5. Samotný POST požadavek
   _res=$(_post "$_body" "$_url" "" "POST" "$_headers")
+  
+  # PRIDAT TENTO RADEK PRO DEBUG:
+  _debug "API Response: $_res"
 
   # 6. Vyhodnocení výsledku
-  if _contains "$_res" "errors" || _contains "$_res" "401" || _contains "$_res" "400"; then
-    _err "API error: $_res"
+  # Czechia API vrací chyby v poli "errors" nebo "message"
+  if _contains "$_res" "errors" || _contains "$_res" "Message" || [ -z "$_res" ]; then
+    _err "API error details: $_res"
     return 1
   fi
 
