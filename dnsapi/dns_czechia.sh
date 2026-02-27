@@ -21,9 +21,11 @@ dns_czechia_add() {
     return 1
   fi
 
-  # Očista proměnných
-  _cz=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/\.$//')
-  _tk=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ')
+  # AGRESIVNÍ OČISTA (povolíme jen to, co v tokenu a doméně má být)
+  # Odstraní vše kromě písmen, čísel, pomlček a teček
+  _cz=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/[^a-z0-9.-]//g')
+  _tk=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ' | sed 's/[^a-zA-Z0-9-]//g')
+  
   _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
 
   _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
@@ -31,9 +33,10 @@ dns_czechia_add() {
   [ -z "$_h" ] && _h="@"
 
   _info "Adding TXT record for $_h in zone $_cz"
+  _debug "Token length: ${#_tk}" # Tady musíme v Logu 33 vidět 36!
+  
   _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"ttl\":3600,\"publishZone\":1}"
 
-  # Opravený název hlavičky na AuthorizationToken (podle Postmana)
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
 
@@ -44,7 +47,6 @@ dns_czechia_add() {
   fi
   return 0
 }
-
 dns_czechia_rm() {
   fulldomain="$1"
   txtvalue="$2"
@@ -52,18 +54,26 @@ dns_czechia_rm() {
   _current_zone=$(_czechia_pick_zone "$fulldomain")
   [ -z "$_current_zone" ] && return 1
 
-  _cz=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/\.$//')
-  _tk=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ')
+  # AGRESIVNÍ OČISTA (stejná jako v add)
+  # tr -d vymaže mezery a konce řádků, sed vymaže vše co nejsou písmena, čísla, tečky a pomlčky
+  _cz=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/[^a-z0-9.-]//g')
+  _tk=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ' | sed 's/[^a-zA-Z0-9-]//g')
+  
   _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
 
   _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
   _h=$(echo "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
   [ -z "$_h" ] && _h="@"
 
+  _info "Removing TXT record $_h"
+  _debug "Token length: ${#_tk}"
+  
   _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"publishZone\":1}"
 
+  # Hlavičky s velkým A a T podle tvého funkčního vzoru z Postmana
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
+
   _res=$(_post "$_body" "$_url" "" "DELETE")
   return 0
 }
