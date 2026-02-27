@@ -67,17 +67,18 @@ jobs:
         CZ_Zones: ${{ vars.TOKENVALUE2 }}
         TestingDomain: ${{ vars.TESTINGDOMAIN }}
         DNSAPI: czechia
-        TEST_DNSAPI: czechia
-        DEBUG: 3
       run: |
         sudo apt-get update && sudo apt-get install -y socat
-        cd ../acmetest
         
-        # Ignorujeme formátování a jdeme rovnou na věc
+        # 1. Přejdeme do složky, kde je acme.sh
+        cd ../acmetest/acme.sh/
+        
+        # 2. Nakopírujeme tam tvůj skript
         mkdir -p ./dnsapi/
-        cp ../acme.sh/dnsapi/dns_czechia.sh ./dnsapi/dns_czechia.sh
+        cp ../../acme.sh/dnsapi/dns_czechia.sh ./dnsapi/dns_czechia.sh
         
-        ./letest.sh || true # '|| true' zajistí, že se nesvalí celý job, když test selže
+        # 3. SPUSTÍME TO NAPŘÍMO (tohle nejde přeskočit)
+        ./acme.sh --issue --dns dns_czechia -d "$TestingDomain" --debug 3 --test
 
   MacOS:
     runs-on: macos-latest
