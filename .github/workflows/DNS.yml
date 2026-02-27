@@ -63,9 +63,9 @@ jobs:
 
     - name: Run acmetest DIRECTLY
       env:
-        CZ_AuthorizationToken: ${{ secrets.TOKENVALUE1 }}
-        CZ_Zones: ${{ vars.TOKENVALUE2 }}
-        TestingDomain: ${{ vars.TESTINGDOMAIN }}
+        CZ_AuthorizationToken: ${{ secrets.TokenValue1 }}
+        CZ_Zones: ${{ vars.TokenValue2 }}
+        TestingDomain: ${{ vars.TestingDomain }}
         DNSAPI: czechia
       run: |
         sudo apt-get update && sudo apt-get install -y socat
