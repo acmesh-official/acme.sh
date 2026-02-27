@@ -67,6 +67,7 @@ jobs:
         CZ_Zones: ${{ vars.TOKENVALUE2 }}
         TestingDomain: ${{ vars.TESTINGDOMAIN }}
         DNSAPI: czechia
+        TEST_DNSAPI: czechia
         DEBUG: 3
       run: |
         sudo apt-get update && sudo apt-get install -y socat
