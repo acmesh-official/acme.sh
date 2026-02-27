@@ -91,9 +91,25 @@ jobs:
         echo "Zóny délka: ${#CZ_Zones}"
         head -n 5 ./acme.sh/dnsapi/dns_czechia.sh
 
-        # 4. Spuštění testu
-        # rundocker.sh si sám načte docker.env, pokud existuje v aktuální složce
-        ./rundocker.sh testplat ubuntu:22.04
+    - name: Run acmetest
+      run: |
+        cd ../acmetest
+        
+        # 1. Příprava tvého skriptu (sed odstraní ty případné neviditelné znaky)
+        mkdir -p ./acme.sh/dnsapi/
+        sed 's/\r$//' ../acme.sh/dnsapi/dns_czechia.sh > ./acme.sh/dnsapi/dns_czechia.sh
+        chmod +x ./acme.sh/dnsapi/dns_czechia.sh
+        
+        # 2. Export proměnných PŘÍMO (nejen do souboru, ale i do prostředí)
+        export CZ_AuthorizationToken="${{ secrets.TokenValue1 }}"
+        export CZ_Zones="${{ vars.TokenValue2 }}"
+        export TestingDomain="${{ secrets.TestingDomain }}"
+        export DNSAPI=czechia
+        export DEBUG=3
+        
+        # 3. Místo rundocker.sh zkusíme test pustit PŘÍMO v Ubuntu runneru
+        # Tím se vyhneme chybě "load metadata for docker.io"
+        ./letest.sh
 
 
   MacOS:
