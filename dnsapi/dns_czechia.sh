@@ -10,52 +10,48 @@
 #
 # Optional environment variables:
 #   CZ_API_BASE             Defaults to https://api.czechia.com
-
 dns_czechia_add() {
-  fulldomain="$1"
-  txtvalue="$2"
-  _czechia_load_conf || return 1
-  _current_zone=$(_czechia_pick_zone "$fulldomain")
-  if [ -z "$_current_zone" ]; then
-    _err "No matching zone found for $fulldomain. Please check CZ_Zones."
-    return 1
-  fi
+	fulldomain="$1"
+	txtvalue="$2"
+	_czechia_load_conf || return 1
+	_current_zone=$(_czechia_pick_zone "$fulldomain")
+	if [ -z "$_current_zone" ]; then
+		_err "No matching zone found for $fulldomain. Please check CZ_Zones."
+		return 1
+	fi
 
-  # 1. AGRESIVNÍ OČISTA (prevence chyb 401 a Invalid domain)
-  # Odstraní \r, mezery a zajistí čistý string
-  _cz=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/[^a-z0-9.-]//g')
-  _tk=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ' | sed 's/[^a-zA-Z0-9-]//g')
-  
-  _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
+	# 1. AGRESIVNÍ OČISTA (prevence chyb 401 a Invalid domain)
+	_cz=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/[^a-z0-9.-]//g')
+	_tk=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ' | sed 's/[^a-zA-Z0-9-]//g')
 
-  # 2. Příprava hostname
-  _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
-  _h=$(echo "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
-  [ -z "$_h" ] && _h="@"
+	_url="$CZ_API_BASE/api/DNS/$_cz/TXT"
 
-  _info "Adding TXT record for $_h in zone $_cz"
-  _debug "Token length: ${#_tk}"
-  _debug "Target URL: $_url"
-  
-  # 3. Sestavení těla JSONu
-  _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"ttl\":3600,\"publishZone\":1}"
-  
-  # 4. Definice hlaviček
-  # V acme.sh je nejlepší poslat vlastní hlavičky jako 5. parametr funkce _post
-  _headers="AuthorizationToken: $_tk"
-  
-  # 5. Samotný POST požadavek
-  # Syntaxe: _post body url header method custom_headers
-  _res=$(_post "$_body" "$_url" "" "POST" "$_headers")
+	# 2. Příprava hostname
+	_fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
+	_h=$(echo "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
+	[ -z "$_h" ] && _h="@"
 
-  # 6. Vyhodnocení výsledku
-  if _contains "$_res" "errors" || _contains "$_res" "401" || _contains "$_res" "400"; then
-    _err "API error: $_res"
-    return 1
-  fi
+	_info "Adding TXT record for $_h in zone $_cz"
+	_debug "Token length: ${#_tk}"
+	_debug "Target URL: $_url"
 
-  _info "Successfully added TXT record."
-  return 0
+	# 3. Sestavení těla JSONu
+	_body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"ttl\":3600,\"publishZone\":1}"
+
+	# 4. Definice hlaviček
+	_headers="AuthorizationToken: $_tk"
+
+	# 5. Samotný POST požadavek
+	_res=$(_post "$_body" "$_url" "" "POST" "$_headers")
+
+	# 6. Vyhodnocení výsledku
+	if _contains "$_res" "errors" || _contains "$_res" "401" || _contains "$_res" "400"; then
+		_err "API error: $_res"
+		return 1
+	fi
+
+	_info "Successfully added TXT record."
+	return 0
 }
 dns_czechia_rm() {
   fulldomain="$1"
