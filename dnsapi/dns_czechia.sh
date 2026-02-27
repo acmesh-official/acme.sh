@@ -21,25 +21,28 @@ dns_czechia_add() {
     return 1
   fi
 
-  # Totální eliminace Windows/Docker nepořádku (\r, mezery, atd.)
-  _current_zone=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ')
-  _current_zone=$(echo "$_current_zone" | _lower_case | sed 's/\.$//')
+  # Totální očista proměnných (Token i Zóna) od neviditelných znaků
+  CZ_AuthorizationToken=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ')
+  _current_zone=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/\.$//')
   
   _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
 
   _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
   _cz=$(echo "$_current_zone" | _lower_case | sed 's/\.$//')
-
   _h=$(echo "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
   [ -z "$_h" ] && _h="@"
 
   _info "Adding TXT record for $_h in zone $_current_zone"
+  
+  # Sestavení těla přesně podle Postmana
   _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"ttl\":3600,\"publishZone\":1}"
 
   export _H1="Content-Type: application/json"
   export _H2="authorizationToken: $CZ_AuthorizationToken"
 
+  # Použijeme čistý _post bez dalších parametrů, které by mohly mást curl
   _res=$(_post "$_body" "$_url" "" "POST")
+  
   if _contains "$_res" "errors" || _contains "$_res" "400"; then
     _err "API error: $_res"
     return 1
@@ -54,18 +57,16 @@ dns_czechia_rm() {
   _current_zone=$(_czechia_pick_zone "$fulldomain")
   [ -z "$_current_zone" ] && return 1
 
-  _current_zone=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ')
-  _current_zone=$(echo "$_current_zone" | _lower_case | sed 's/\.$//')
+  CZ_AuthorizationToken=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ')
+  _current_zone=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/\.$//')
   
   _url="$CZ_API_BASE/api/DNS/$_current_zone/TXT"
 
   _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
   _cz=$(echo "$_current_zone" | _lower_case | sed 's/\.$//')
-
   _h=$(echo "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
   [ -z "$_h" ] && _h="@"
 
-  _info "Removing TXT record $_h"
   _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"publishZone\":1}"
 
   export _H1="Content-Type: application/json"
