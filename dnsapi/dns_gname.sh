@@ -145,7 +145,7 @@ _get_record_id() {
     return 1
   fi
 
-  dns_record_id=$(echo "$matched_row" | _egrep_o "\"id\":\"[^\"]*\"" | head -n 1 | cut -d : -f 2 | tr -d '"')
+  dns_record_id=$(echo "$matched_row" | _egrep_o "\"id\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '"')
 
   if [ -n "$dns_record_id" ]; then
     _debug "Successfully found record ID: $dns_record_id"
