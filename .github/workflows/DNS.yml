@@ -80,54 +80,76 @@ jobs:
         # 3. SPUSTÍME TO NAPŘÍMO (tohle nejde přeskočit)
         ./acme.sh --issue --dns dns_czechia -d "$TestingDomain" --debug 3 --test
 
-  MacOS:
-    runs-on: macos-latest
-    needs: Docker
-    env:
-      TEST_DNS : ${{ secrets.TEST_DNS }}
-      TestingDomain: ${{ secrets.TestingDomain }}
-      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
-      TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
-      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
-      CASE: le_test_dnsapi
-      TEST_LOCAL: 1
-      DEBUG: ${{ secrets.DEBUG }}
-      http_proxy: ${{ secrets.http_proxy }}
-      https_proxy: ${{ secrets.https_proxy }}
-      TokenName1: ${{ secrets.TokenName1}}
-      TokenName2: ${{ secrets.TokenName2}}
-      TokenName3: ${{ secrets.TokenName3}}
-      TokenName4: ${{ secrets.TokenName4}}
-      TokenName5: ${{ secrets.TokenName5}}
-    steps:
+MacOS:
+  runs-on: macos-latest
+  needs: Docker
+  env:
+    TEST_DNS: ${{ secrets.TEST_DNS }}
+    TestingDomain: ${{ secrets.TestingDomain }}
+    TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+    TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
+    TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+    CASE: le_test_dnsapi
+    TEST_LOCAL: 1
+    DEBUG: ${{ secrets.DEBUG }}
+    http_proxy: ${{ secrets.http_proxy }}
+    https_proxy: ${{ secrets.https_proxy }}
+    TokenName1: ${{ secrets.TokenName1 }}
+    TokenName2: ${{ secrets.TokenName2 }}
+    TokenName3: ${{ secrets.TokenName3 }}
+    TokenName4: ${{ secrets.TokenName4 }}
+    TokenName5: ${{ secrets.TokenName5 }}
+
+  steps:
     - uses: actions/checkout@v4
+
     - name: Install tools
       run: |
+        brew update
         brew install socat cloudflared
-        cloudflared --version
+        echo "cloudflared: $(cloudflared --version)"
+
+    - name: Clone acmetest into workspace
+      run: |
+        rm -rf ./acmetest
+        git clone --depth=1 https://github.com/acmesh-official/acmetest.git ./acmetest
+        # Do acmetest vložíme náš acme.sh (repo root)
+        cp -R ./acme.sh ./acmetest/acme.sh
+
+    - name: Sanity check
+      run: |
+        echo "PWD: $(pwd)"
+        echo "Workspace listing:"
+        ls -la
+        echo "acmetest listing:"
+        ls -la ./acmetest
+        echo "acmetest letest.sh:"
+        ls -la ./acmetest/letest.sh
 
     - name: Run acmetest
       run: |
-        # použij nativní cloudflared z brew (arm64)
+        # Vynutíme nativní cloudflared z brew (arm64), ať letest nestahuje amd64 tarball
         export CF_BIN="$(brew --prefix)/bin/cloudflared"
+        echo "Using CF_BIN=$CF_BIN"
+        "$CF_BIN" --version || true
 
-        if [ "${{ secrets.TokenName1}}" ] ; then
-          export ${{ secrets.TokenName1}}="${{ secrets.TokenValue1}}"
+        if [ "${{ secrets.TokenName1 }}" ] ; then
+          export ${{ secrets.TokenName1 }}="${{ secrets.TokenValue1 }}"
         fi
-        if [ "${{ secrets.TokenName2}}" ] ; then
-          export ${{ secrets.TokenName2}}="${{ secrets.TokenValue2}}"
+        if [ "${{ secrets.TokenName2 }}" ] ; then
+          export ${{ secrets.TokenName2 }}="${{ secrets.TokenValue2 }}"
         fi
-        if [ "${{ secrets.TokenName3}}" ] ; then
-          export ${{ secrets.TokenName3}}="${{ secrets.TokenValue3}}"
+        if [ "${{ secrets.TokenName3 }}" ] ; then
+          export ${{ secrets.TokenName3 }}="${{ secrets.TokenValue3 }}"
         fi
-        if [ "${{ secrets.TokenName4}}" ] ; then
-         export ${{ secrets.TokenName4}}="${{ secrets.TokenValue4}}"
+        if [ "${{ secrets.TokenName4 }}" ] ; then
+          export ${{ secrets.TokenName4 }}="${{ secrets.TokenValue4 }}"
         fi
-        if [ "${{ secrets.TokenName5}}" ] ; then
-          export ${{ secrets.TokenName5}}="${{ secrets.TokenValue5}}"
+        if [ "${{ secrets.TokenName5 }}" ] ; then
+          export ${{ secrets.TokenName5 }}="${{ secrets.TokenValue5 }}"
         fi
 
-        cd ../acmetest
+        cd ./acmetest
         ./letest.sh
 
 
