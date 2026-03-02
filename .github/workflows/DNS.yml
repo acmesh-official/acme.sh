@@ -109,26 +109,17 @@ jobs:
           brew install socat cloudflared
           echo "cloudflared: $(cloudflared --version)"
 
-      - name: Clone acmetest into workspace
+      - name: Clone acmetest
         run: |
           rm -rf ./acmetest
           git clone --depth=1 https://github.com/acmesh-official/acmetest.git ./acmetest
-          # Do acmetest vložíme náš acme.sh (repo root)
-          cp -R ./acme.sh ./acmetest/acme.sh
 
-      - name: Sanity check
-        run: |
-          echo "PWD: $(pwd)"
-          echo "Workspace listing:"
-          ls -la
-          echo "acmetest listing:"
-          ls -la ./acmetest
-          echo "acmetest letest.sh:"
-          ls -la ./acmetest/letest.sh
+          mkdir ./acmetest/acme.sh
+          cp -R . ./acmetest/acme.sh
+          rm -rf ./acmetest/acme.sh/acmetest
 
       - name: Run acmetest
         run: |
-          # Vynutíme nativní cloudflared z brew (arm64), ať letest nestahuje amd64 tarball
           export CF_BIN="$(brew --prefix)/bin/cloudflared"
           echo "Using CF_BIN=$CF_BIN"
           "$CF_BIN" --version || true
@@ -151,7 +142,6 @@ jobs:
 
           cd ./acmetest
           ./letest.sh
-
 
 
 
