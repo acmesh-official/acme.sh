@@ -109,14 +109,18 @@ jobs:
           brew install socat cloudflared
           echo "cloudflared: $(cloudflared --version)"
 
-      - name: Clone acmetest
+      - name: Clone acmetest and stage repo as ./acmetest/acme.sh (directory)
         run: |
           rm -rf ./acmetest
           git clone --depth=1 https://github.com/acmesh-official/acmetest.git ./acmetest
 
-          mkdir ./acmetest/acme.sh
-          cp -R . ./acmetest/acme.sh
-          rm -rf ./acmetest/acme.sh/acmetest
+          rm -rf ./acmetest/acme.sh
+          mkdir -p ./acmetest/acme.sh
+
+          rsync -a \
+            --exclude 'acmetest/' \
+            --exclude '.git/' \
+            ./ ./acmetest/acme.sh/
 
       - name: Run acmetest
         run: |
