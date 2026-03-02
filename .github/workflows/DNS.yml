@@ -102,11 +102,15 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install tools
-      run:  brew install socat
-    - name: Clone acmetest
-      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+      run: |
+        brew install socat cloudflared
+        cloudflared --version
+
     - name: Run acmetest
       run: |
+        # použij nativní cloudflared z brew (arm64)
+        export CF_BIN="$(brew --prefix)/bin/cloudflared"
+
         if [ "${{ secrets.TokenName1}}" ] ; then
           export ${{ secrets.TokenName1}}="${{ secrets.TokenValue1}}"
         fi
@@ -117,11 +121,12 @@ jobs:
           export ${{ secrets.TokenName3}}="${{ secrets.TokenValue3}}"
         fi
         if [ "${{ secrets.TokenName4}}" ] ; then
-          export ${{ secrets.TokenName4}}="${{ secrets.TokenValue4}}"
+         export ${{ secrets.TokenName4}}="${{ secrets.TokenValue4}}"
         fi
         if [ "${{ secrets.TokenName5}}" ] ; then
           export ${{ secrets.TokenName5}}="${{ secrets.TokenValue5}}"
         fi
+
         cd ../acmetest
         ./letest.sh
 
