@@ -22,7 +22,6 @@ dns_czechia_add() {
     return 1
   fi
 
-  # 1) Normalizace zóny a tokenu (prevence CRLF / whitespace bordelu)
   _cz=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/[^a-z0-9.-]//g')
   _tk=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ' | sed 's/[^a-zA-Z0-9-]//g')
 
@@ -33,7 +32,6 @@ dns_czechia_add() {
 
   _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
 
-  # 2) hostname relative k zone
   _fd=$(printf "%s" "$fulldomain" | _lower_case | sed 's/\.$//')
   _h=$(printf "%s" "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
   [ -z "$_h" ] && _h="@"
@@ -42,27 +40,23 @@ dns_czechia_add() {
   _debug "Target URL: $_url"
   _debug "Token length: ${#_tk}"
 
-  # 3) JSON escaping (aby to nerozbily uvozovky/backslash)
   _h_esc=$(printf "%s" "$_h" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":3600,\"publishZone\":1}"
 
-  # 4) Headers pro _post (acme.sh standard)
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
 
-  # 5) POST
   _res="$(_post "$_body" "$_url" "" "POST")"
   _debug2 "API Response" "$_res"
 
-  # FIX #2: RFC error payload (např. {"status":415,...}) => fail
+  # Czechia success může být prázdné body (200 OK), takže NEfailujeme na empty.
+  # Failujeme jen, když v body vidíme explicitní error payload.
   if echo "$_res" | grep -q '"status"[[:space:]]*:[[:space:]]*[45][0-9][0-9]'; then
     _err "API error details: $_res"
     return 1
   fi
-
-  # Legacy/alt error shapes
-  if [ -z "$_res" ] || _contains "$_res" "\"errors\"" || _contains "$_res" "\"Message\"" || _contains "$_res" "\"message\""; then
+  if _contains "$_res" "\"errors\"" || _contains "$_res" "\"Message\"" || _contains "$_res" "\"message\""; then
     _err "API error details: $_res"
     return 1
   fi
@@ -111,13 +105,11 @@ dns_czechia_rm() {
   _res="$(_post "$_body" "$_url" "" "DELETE")"
   _debug2 "API Response" "$_res"
 
-  # FIX #2: RFC error payload => fail
   if echo "$_res" | grep -q '"status"[[:space:]]*:[[:space:]]*[45][0-9][0-9]'; then
     _err "API error details: $_res"
     return 1
   fi
-
-  if [ -z "$_res" ] || _contains "$_res" "\"errors\"" || _contains "$_res" "\"Message\"" || _contains "$_res" "\"message\""; then
+  if _contains "$_res" "\"errors\"" || _contains "$_res" "\"Message\"" || _contains "$_res" "\"message\""; then
     _err "API error details: $_res"
     return 1
   fi
