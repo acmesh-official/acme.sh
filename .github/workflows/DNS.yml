@@ -70,14 +70,11 @@ jobs:
       run: |
         sudo apt-get update && sudo apt-get install -y socat
         
-        # 1. Přejdeme do složky, kde je acme.sh
         cd ../acmetest/acme.sh/
         
-        # 2. Nakopírujeme tam tvůj skript
         mkdir -p ./dnsapi/
         cp ../../acme.sh/dnsapi/dns_czechia.sh ./dnsapi/dns_czechia.sh
         
-        # 3. SPUSTÍME TO NAPŘÍMO (tohle nejde přeskočit)
         ./acme.sh --issue --dns dns_czechia -d "$TestingDomain" --debug 3 --test
 
   MacOS:
