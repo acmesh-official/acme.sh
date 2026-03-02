@@ -13,43 +13,56 @@
 dns_czechia_add() {
   fulldomain="$1"
   txtvalue="$2"
+
   _czechia_load_conf || return 1
+
   _current_zone=$(_czechia_pick_zone "$fulldomain")
   if [ -z "$_current_zone" ]; then
     _err "No matching zone found for $fulldomain. Please check CZ_Zones."
     return 1
   fi
 
-  # 1. AGRESIVNÍ OČISTA (prevence chyb 401 a Invalid domain)
+  # 1) Normalizace zóny a tokenu (prevence CRLF / whitespace bordelu)
   _cz=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/[^a-z0-9.-]//g')
   _tk=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ' | sed 's/[^a-zA-Z0-9-]//g')
 
+  if [ -z "$_cz" ] || [ -z "$_tk" ]; then
+    _err "Missing zone or AuthorizationToken (CZ_Zones/CZ_AuthorizationToken)."
+    return 1
+  fi
+
   _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
 
-  # 2. Příprava hostname
-  _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
-  _h=$(echo "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
+  # 2) hostname relative k zone
+  _fd=$(printf "%s" "$fulldomain" | _lower_case | sed 's/\.$//')
+  _h=$(printf "%s" "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
   [ -z "$_h" ] && _h="@"
 
   _info "Adding TXT record for $_h in zone $_cz"
-  _debug "Token length: ${#_tk}"
   _debug "Target URL: $_url"
+  _debug "Token length: ${#_tk}"
 
-  # 3. Sestavení těla JSONu
-  _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"ttl\":3600,\"publishZone\":1}"
+  # 3) JSON escaping (aby to nerozbily uvozovky/backslash)
+  _h_esc=$(printf "%s" "$_h" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":3600,\"publishZone\":1}"
 
-  # 4. Definice hlaviček
-  _headers="AuthorizationToken: $_tk"
+  # 4) Headers pro _post (acme.sh standard)
+  export _H1="Content-Type: application/json"
+  export _H2="AuthorizationToken: $_tk"
 
-  # 5. Samotný POST požadavek
-  _res=$(_post "$_body" "$_url" "" "POST" "$_headers")
-  
-  # PRIDAT TENTO RADEK PRO DEBUG:
-  _debug "API Response: $_res"
+  # 5) POST
+  _res="$(_post "$_body" "$_url" "" "POST")"
+  _debug2 "API Response" "$_res"
 
-  # 6. Vyhodnocení výsledku
-  # Czechia API vrací chyby v poli "errors" nebo "message"
-  if _contains "$_res" "errors" || _contains "$_res" "Message" || [ -z "$_res" ]; then
+  # FIX #2: RFC error payload (např. {"status":415,...}) => fail
+  if echo "$_res" | grep -q '"status"[[:space:]]*:[[:space:]]*[45][0-9][0-9]'; then
+    _err "API error details: $_res"
+    return 1
+  fi
+
+  # Legacy/alt error shapes
+  if [ -z "$_res" ] || _contains "$_res" "\"errors\"" || _contains "$_res" "\"Message\"" || _contains "$_res" "\"message\""; then
     _err "API error details: $_res"
     return 1
   fi
@@ -61,7 +74,9 @@ dns_czechia_add() {
 dns_czechia_rm() {
   fulldomain="$1"
   txtvalue="$2"
+
   _czechia_load_conf || return 1
+
   _current_zone=$(_czechia_pick_zone "$fulldomain")
   if [ -z "$_current_zone" ]; then
     _err "No matching zone found for $fulldomain. Please check CZ_Zones."
@@ -71,26 +86,45 @@ dns_czechia_rm() {
   _cz=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/[^a-z0-9.-]//g')
   _tk=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ' | sed 's/[^a-zA-Z0-9-]//g')
 
-  _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
-
-  _fd=$(echo "$fulldomain" | _lower_case | sed 's/\.$//')
-  _h=$(echo "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
-  [ -z "$_h" ] && _h="@"
-
-  _info "Removing TXT record $_h"
-  _debug "Token length: ${#_tk}"
-
-  _body="{\"hostName\":\"$_h\",\"text\":\"$txtvalue\",\"ttl\":3600,\"publishZone\":1}"
-  _headers="AuthorizationToken: $_tk"
-
-  _res=$(_post "$_body" "$_url" "" "DELETE" "$_headers")
-  if _contains "$_res" "errors" || _contains "$_res" "401" || _contains "$_res" "400"; then
-    _err "API error: $_res"
+  if [ -z "$_cz" ] || [ -z "$_tk" ]; then
+    _err "Missing zone or AuthorizationToken (CZ_Zones/CZ_AuthorizationToken)."
     return 1
   fi
+
+  _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
+
+  _fd=$(printf "%s" "$fulldomain" | _lower_case | sed 's/\.$//')
+  _h=$(printf "%s" "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
+  [ -z "$_h" ] && _h="@"
+
+  _info "Removing TXT record for $_h in zone $_cz"
+  _debug "Target URL: $_url"
+  _debug "Token length: ${#_tk}"
+
+  _h_esc=$(printf "%s" "$_h" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":3600,\"publishZone\":1}"
+
+  export _H1="Content-Type: application/json"
+  export _H2="AuthorizationToken: $_tk"
+
+  _res="$(_post "$_body" "$_url" "" "DELETE")"
+  _debug2 "API Response" "$_res"
+
+  # FIX #2: RFC error payload => fail
+  if echo "$_res" | grep -q '"status"[[:space:]]*:[[:space:]]*[45][0-9][0-9]'; then
+    _err "API error details: $_res"
+    return 1
+  fi
+
+  if [ -z "$_res" ] || _contains "$_res" "\"errors\"" || _contains "$_res" "\"Message\"" || _contains "$_res" "\"message\""; then
+    _err "API error details: $_res"
+    return 1
+  fi
+
+  _info "Successfully removed TXT record."
   return 0
 }
-
 _czechia_load_conf() {
   CZ_AuthorizationToken="${CZ_AuthorizationToken:-$(_getaccountconf CZ_AuthorizationToken)}"
   [ -z "$CZ_AuthorizationToken" ] && _err "Missing CZ_AuthorizationToken" && return 1
