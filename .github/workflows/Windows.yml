@@ -49,7 +49,7 @@ jobs:
     - name: Set git to use LF
       run: |
           git config --global core.autocrlf false
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Install cygwin base packages with chocolatey
       run: |
           choco config get cacheLocation
