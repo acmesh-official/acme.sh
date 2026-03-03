@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.1.2
+VER=3.1.3
 
 PROJECT_NAME="acme.sh"
 
@@ -65,7 +65,7 @@ ID_TYPE_IP="ip"
 
 LOCAL_ANY_ADDRESS="0.0.0.0"
 
-DEFAULT_RENEW=60
+DEFAULT_RENEW=30
 
 NO_VALUE="no"
 
@@ -250,6 +250,13 @@ _dlg_versions() {
     socat -V 2>&1
   else
     _debug "socat doesn't exist."
+    if _exists "python3"; then
+      python3 -V 2>&1
+    elif _exists "python2"; then
+      python2 -V 2>&1
+    elif _exists "python"; then
+      python -V 2>&1
+    fi
   fi
 }
 
@@ -588,11 +595,6 @@ if [ "$(printf '\x41')" != 'A' ]; then
   _URGLY_PRINTF=1
 fi
 
-_ESCAPE_XARGS=""
-if _exists xargs && [ "$(printf %s '\\x41' | xargs printf)" = 'A' ]; then
-  _ESCAPE_XARGS=1
-fi
-
 _h2b() {
   if _exists xxd; then
     if _contains "$(xxd --help 2>&1)" "assumes -c30"; then
@@ -611,17 +613,8 @@ _h2b() {
   jc=""
   _debug2 _URGLY_PRINTF "$_URGLY_PRINTF"
   if [ -z "$_URGLY_PRINTF" ]; then
-    if [ "$_ESCAPE_XARGS" ] && _exists xargs; then
-      _debug2 "xargs"
-      echo "$hex" | _upper_case | sed 's/\([0-9A-F]\{2\}\)/\\\\\\x\1/g' | xargs printf
-    else
-      for h in $(echo "$hex" | _upper_case | sed 's/\([0-9A-F]\{2\}\)/ \1/g'); do
-        if [ -z "$h" ]; then
-          break
-        fi
-        printf "\x$h%s"
-      done
-    fi
+    # shellcheck disable=SC2059
+    printf "$(echo "$hex" | _upper_case | sed 's/\([0-9A-F]\{2\}\)/\\x\1/g')"
   else
     for c in $(echo "$hex" | _upper_case | sed 's/\([0-9A-F]\)/ \1/g'); do
       if [ -z "$ic" ]; then
@@ -1031,7 +1024,7 @@ _digest() {
 
   outputhex="$2"
 
-  if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ] || [ "$alg" = "md5" ]; then
+  if [ "$alg" = "sha3-256" ] || [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ] || [ "$alg" = "md5" ]; then
     if [ "$outputhex" ]; then
       ${ACME_OPENSSL_BIN:-openssl} dgst -"$alg" -hex | cut -d = -f 2 | tr -d ' '
     else
@@ -1466,7 +1459,7 @@ _toPkcs() {
     ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -inkey "$_ckey" -in "$_ccert" -certfile "$_cca"
   fi
   if [ "$?" = "0" ]; then
-    _savedomainconf "Le_PFXPassword" "$pfxPassword"
+    _savedomainconf "Le_PFXPassword" "$pfxPassword" "base64"
   fi
 
 }
@@ -2351,6 +2344,7 @@ _setopt() {
   fi
   if [ ! -f "$__conf" ]; then
     touch "$__conf"
+    chmod 600 "$__conf"
   fi
   if [ -n "$(_tail_c 1 <"$__conf")" ]; then
     echo >>"$__conf"
@@ -2559,41 +2553,76 @@ _startserver() {
   _debug Le_Listen_V4 "$Le_Listen_V4"
   _debug Le_Listen_V6 "$Le_Listen_V6"
 
-  _NC="socat"
-  if [ "$Le_Listen_V6" ]; then
-    _NC="$_NC -6"
-    SOCAT_OPTIONS=TCP6-LISTEN
-  elif [ "$Le_Listen_V4" ]; then
-    _NC="$_NC -4"
-    SOCAT_OPTIONS=TCP4-LISTEN
-  else
-    SOCAT_OPTIONS=TCP-LISTEN
-  fi
+  if _exists "socat"; then
+    _NC="socat"
+    if [ "$Le_Listen_V6" ]; then
+      _NC="$_NC -6"
+      SOCAT_OPTIONS=TCP6-LISTEN
+    elif [ "$Le_Listen_V4" ]; then
+      _NC="$_NC -4"
+      SOCAT_OPTIONS=TCP4-LISTEN
+    else
+      SOCAT_OPTIONS=TCP-LISTEN
+    fi
 
-  if [ "$DEBUG" ] && [ "$DEBUG" -gt "1" ]; then
-    _NC="$_NC -d -d -v"
-  fi
+    if [ "$DEBUG" ] && [ "$DEBUG" -gt "1" ]; then
+      _NC="$_NC -d -d -v"
+    fi
 
-  SOCAT_OPTIONS=$SOCAT_OPTIONS:$Le_HTTPPort,crlf,reuseaddr,fork
+    SOCAT_OPTIONS=$SOCAT_OPTIONS:$Le_HTTPPort,crlf,reuseaddr,fork
 
-  #Adding bind to local-address
-  if [ "$ncaddr" ]; then
-    SOCAT_OPTIONS="$SOCAT_OPTIONS,bind=${ncaddr}"
-  fi
+    #Adding bind to local-address
+    if [ "$ncaddr" ]; then
+      SOCAT_OPTIONS="$SOCAT_OPTIONS,bind=${ncaddr}"
+    fi
 
-  _content_len="$(printf "%s" "$content" | wc -c)"
-  _debug _content_len "$_content_len"
-  _debug "_NC" "$_NC $SOCAT_OPTIONS"
-  export _SOCAT_ERR="$(_mktemp)"
-  $_NC $SOCAT_OPTIONS SYSTEM:"sleep 1; \
+    _content_len="$(printf "%s" "$content" | wc -c)"
+    _debug _content_len "$_content_len"
+    _debug "_NC" "$_NC $SOCAT_OPTIONS"
+    export _SOCAT_ERR="$(_mktemp)"
+    $_NC $SOCAT_OPTIONS SYSTEM:"sleep 1; \
 echo 'HTTP/1.0 200 OK'; \
 echo 'Content-Length\: $_content_len'; \
 echo ''; \
 printf '%s' '$content';" 2>"$_SOCAT_ERR" &
-  serverproc="$!"
+    serverproc="$!"
+  else
+    _PYTHON=""
+    if _exists "python3"; then
+      _PYTHON="python3"
+    elif _exists "python2"; then
+      _PYTHON="python2"
+    elif _exists "python"; then
+      _PYTHON="python"
+    fi
+    if [ "$_PYTHON" ]; then
+      _debug "Using python: $_PYTHON"
+      _AF="socket.AF_INET"
+      _BIND_ADDR="0.0.0.0"
+      if [ "$Le_Listen_V6" ]; then
+        _AF="socket.AF_INET6"
+        _BIND_ADDR="::"
+      fi
+      if [ "$ncaddr" ]; then
+        _BIND_ADDR="$ncaddr"
+      fi
+      export _SOCAT_ERR="$(_mktemp)"
+      $_PYTHON -c "import socket,sys;s=socket.socket($_AF,socket.SOCK_STREAM);s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind((sys.argv[2],int(sys.argv[1])));s.listen(5);res='HTTP/1.0 200 OK\r\nContent-Length: '+str(len(sys.argv[3]))+'\r\n\r\n'+sys.argv[3];
+while True:
+ c,a=s.accept()
+ c.sendall(res.encode() if hasattr(res, 'encode') else res)
+ c.close()" "$Le_HTTPPort" "$_BIND_ADDR" "$content" 2>"$_SOCAT_ERR" &
+      serverproc="$!"
+      _NC="$_PYTHON"
+    else
+      _err "Please install socat or python first for standalone mode."
+      return 1
+    fi
+  fi
+
   if [ -f "$_SOCAT_ERR" ]; then
     if grep "Permission denied" "$_SOCAT_ERR" >/dev/null; then
-      _err "socat: $(cat $_SOCAT_ERR)"
+      _err "$_NC: $(cat $_SOCAT_ERR)"
       _err "Can not listen for user: $(whoami)"
       _err "Maybe try with root again?"
       rm -f "$_SOCAT_ERR"
@@ -2783,6 +2812,7 @@ _clearAPI() {
   ACME_REVOKE_CERT=""
   ACME_NEW_NONCE=""
   ACME_AGREEMENT=""
+  ACME_RENEWAL_INFO=""
 }
 
 #server
@@ -2827,6 +2857,9 @@ _initAPI() {
     ACME_AGREEMENT=$(echo "$response" | _egrep_o 'termsOfService" *: *"[^"]*"' | cut -d '"' -f 3)
     export ACME_AGREEMENT
 
+    ACME_RENEWAL_INFO=$(echo "$response" | _egrep_o 'renewalInfo" *: *"[^"]*"' | cut -d '"' -f 3)
+    export ACME_RENEWAL_INFO
+
     _debug "ACME_KEY_CHANGE" "$ACME_KEY_CHANGE"
     _debug "ACME_NEW_AUTHZ" "$ACME_NEW_AUTHZ"
     _debug "ACME_NEW_ORDER" "$ACME_NEW_ORDER"
@@ -2834,6 +2867,7 @@ _initAPI() {
     _debug "ACME_REVOKE_CERT" "$ACME_REVOKE_CERT"
     _debug "ACME_AGREEMENT" "$ACME_AGREEMENT"
     _debug "ACME_NEW_NONCE" "$ACME_NEW_NONCE"
+    _debug "ACME_RENEWAL_INFO" "$ACME_RENEWAL_INFO"
     if [ "$ACME_NEW_ACCOUNT" ] && [ "$ACME_NEW_ORDER" ]; then
       return 0
     fi
@@ -3552,9 +3586,9 @@ _on_before_issue() {
     fi
   fi
 
-  if _hasfield "$_chk_web_roots" "$NO_VALUE"; then
-    if ! _exists "socat"; then
-      _err "Please install socat tools first."
+  if _hasfield "$_chk_web_roots" "$NO_VALUE" && [ "$_chk_web_roots" = "$NO_VALUE" ]; then
+    if ! _exists "socat" && ! _exists "python" && ! _exists "python2" && ! _exists "python3"; then
+      _err "Please install socat or python tools first."
       return 1
     fi
   fi
@@ -4465,7 +4499,7 @@ issue() {
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
     _debug Le_NextRenewTime "$Le_NextRenewTime"
     if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
-      _valid_to_saved=$(_readdomainconf Le_Valid_to)
+      _valid_to_saved=$(_readdomainconf Le_Valid_To)
       if [ "$_valid_to_saved" ] && ! _startswith "$_valid_to_saved" "+"; then
         _info "The domain is set to be valid to: $_valid_to_saved"
         _info "It cannot be renewed automatically"
@@ -5147,7 +5181,12 @@ $_authorizations_map"
         if [ "$DEBUG" ]; then
           if [ "$vtype" = "$VTYPE_HTTP" ]; then
             _debug "Debug: GET token URL."
-            _get "http://$d/.well-known/acme-challenge/$token" "" 1
+            if _isIPv6 "$d"; then
+              host="[$d]"
+            else
+              host="$d"
+            fi
+            _get "http://$host/.well-known/acme-challenge/$token" "" 1
           fi
         fi
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
@@ -5450,10 +5489,10 @@ $_authorizations_map"
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
 
   #convert to pkcs12
+  Le_PFXPassword="$(_readdomainconf Le_PFXPassword)"
   if [ "$Le_PFXPassword" ]; then
     _toPkcs "$CERT_PFX_PATH" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$Le_PFXPassword"
   fi
-  export CERT_PFX_PATH
 
   if [ "$_real_cert$_real_key$_real_ca$_reload_cmd$_real_fullchain" ]; then
     _savedomainconf "Le_RealCertPath" "$_real_cert"
@@ -5563,6 +5602,10 @@ renew() {
   Le_RenewHook="$(_readdomainconf Le_RenewHook)"
   Le_Preferred_Chain="$(_readdomainconf Le_Preferred_Chain)"
   Le_Certificate_Profile="$(_readdomainconf Le_Certificate_Profile)"
+  Le_Valid_From="$(_readdomainconf Le_Valid_From)"
+  Le_Valid_To="$(_readdomainconf Le_Valid_To)"
+  Le_ExtKeyUse="$(_readdomainconf Le_ExtKeyUse)"
+
   # When renewing from an old version, the empty Le_Keylength means 2048.
   # Note, do not use DEFAULT_DOMAIN_KEY_LENGTH as that value may change over
   # time but an empty value implies 2048 specifically.
@@ -5623,7 +5666,7 @@ renewAll() {
   _set_level=${NOTIFY_LEVEL:-$NOTIFY_LEVEL_DEFAULT}
   _debug "_set_level" "$_set_level"
   export _ACME_IN_RENEWALL=1
-  for di in "${CERT_HOME}"/*.*/; do
+  for di in "${CERT_HOME}"/*[.:]*/; do
     _debug di "$di"
     if ! [ -d "$di" ]; then
       _debug "Not a directory, skipping: $di"
@@ -5744,6 +5787,10 @@ signcsr() {
   _local_addr="${11}"
   _challenge_alias="${12}"
   _preferred_chain="${13}"
+  _valid_f="${14}"
+  _valid_t="${15}"
+  _cert_prof="${16}"
+  _en_key_usage="${17}"
 
   _csrsubj=$(_readSubjectFromCSR "$_csrfile")
   if [ "$?" != "0" ]; then
@@ -5787,7 +5834,7 @@ signcsr() {
   _info "Copying CSR to: $CSR_PATH"
   cp "$_csrfile" "$CSR_PATH"
 
-  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_addr" "$_challenge_alias" "$_preferred_chain"
+  issue "$_csrW" "$_csrsubj" "$_csrdomainlist" "$_csrkeylength" "$_real_cert" "$_real_key" "$_real_ca" "$_reload_cmd" "$_real_fullchain" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_addr" "$_challenge_alias" "$_preferred_chain" "$_valid_f" "$_valid_t" "$_cert_prof" "$_en_key_usage"
 
 }
 
@@ -5840,7 +5887,8 @@ list() {
     if [ -z "$_domain" ]; then
       printf "%s\n" "Main_Domain${_sep}KeyLength${_sep}SAN_Domains${_sep}Profile${_sep}CA${_sep}Created${_sep}Renew"
     fi
-    for di in "${CERT_HOME}"/*.*/; do
+    for di in "${CERT_HOME}"/*.* "${CERT_HOME}"/*:*; do
+      [ -d "$di" ] || continue
       d=$(basename "$di")
       _debug d "$d"
       (
@@ -6537,6 +6585,36 @@ deactivate() {
   done
 }
 
+#cert
+_getAKI() {
+  _cert="$1"
+  openssl x509 -in "$_cert" -text -noout | grep "X509v3 Authority Key Identifier" -A 1 | _tail_n 1 | tr -d ' :'
+}
+
+#cert
+_getSerial() {
+  _cert="$1"
+  openssl x509 -in "$_cert" -serial -noout | cut -d = -f 2
+}
+
+#cert
+_get_ARI() {
+  _cert="$1"
+  _aki=$(_getAKI "$_cert")
+  _ser=$(_getSerial "$_cert")
+  _debug2 "_aki" "$_aki"
+  _debug2 "_ser" "$_ser"
+
+  _akiurl="$(echo "$_aki" | _h2b | _base64 | tr -d = | _url_encode)"
+  _debug2 "_akiurl" "$_akiurl"
+  _serurl="$(echo "$_ser" | _h2b | _base64 | tr -d = | _url_encode)"
+  _debug2 "_serurl" "$_serurl"
+
+  _ARI_URL="$ACME_RENEWAL_INFO/$_akiurl.$_serurl"
+  _get "$_ARI_URL"
+
+}
+
 # Detect profile file if not specified as environment variable
 _detect_profile() {
   if [ -n "$PROFILE" -a -f "$PROFILE" ]; then
@@ -6585,6 +6663,7 @@ _initconf() {
 #NO_TIMESTAMP=1
 
     " >"$ACCOUNT_CONF_PATH"
+    chmod 600 "$ACCOUNT_CONF_PATH"
   fi
 }
 
@@ -6620,9 +6699,9 @@ _precheck() {
     return 1
   fi
 
-  if ! _exists "socat"; then
-    _err "It is recommended to install socat first."
-    _err "We use socat for the standalone server, which is used for standalone mode."
+  if ! _exists "socat" && ! _exists "python" && ! _exists "python2" && ! _exists "python3"; then
+    _err "It is recommended to install socat or python first."
+    _err "We use socat or python for the standalone server, which is used for standalone mode."
     _err "If you don't want to use standalone mode, you may ignore this warning."
   fi
 
@@ -8112,7 +8191,7 @@ _process() {
     deploy "$_domain" "$_deploy_hook" "$_ecc"
     ;;
   signcsr)
-    signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain"
+    signcsr "$_csr" "$_webroot" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_pre_hook" "$_post_hook" "$_renew_hook" "$_local_address" "$_challenge_alias" "$_preferred_chain" "$_valid_from" "$_valid_to" "$_certificate_profile" "$_extended_key_usage"
     ;;
   showcsr)
     showcsr "$_csr" "$_domain"
