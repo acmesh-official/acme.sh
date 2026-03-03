@@ -39,7 +39,7 @@ dns_technitium_rm() {
     _info "DNS record is configured to be auto-removed after $expiryTtl seconds. Remove operation is bypassed."
     return 0
   fi
-  
+
   response="$(_get "$Technitium_Server/api/zones/records/delete?token=$Technitium_Token&domain=$fulldomain&type=TXT&text=${txtvalue}")"
   if _contains "$response" '"status":"ok"'; then
     return 0
