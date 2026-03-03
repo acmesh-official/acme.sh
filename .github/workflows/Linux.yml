@@ -33,7 +33,7 @@ jobs:
       TEST_PREFERRED_CHAIN: (STAGING)
       TEST_ACME_Server: "LetsEncrypt.org_test"
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Clone acmetest
       run: |
           cd .. \

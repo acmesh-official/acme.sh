@@ -207,13 +207,12 @@ panos_deploy() {
   fi
 
   # PANOS_KEY
-  _getdeployconf PANOS_KEY
   if [ "$PANOS_KEY" ]; then
-    _debug "Detected saved key."
-    _panos_key=$PANOS_KEY
+    _debug "Detected ENV variable PANOS_KEY. Saving to file."
+    _savedeployconf PANOS_KEY "$PANOS_KEY" 1
   else
-    _debug "No key detected"
-    unset _panos_key
+    _debug "Attempting to load variable PANOS_KEY from file."
+    _getdeployconf PANOS_KEY
   fi
 
   # PANOS_TEMPLATE
@@ -256,6 +255,7 @@ panos_deploy() {
   _panos_host=$PANOS_HOST
   _panos_user=$PANOS_USER
   _panos_pass=$PANOS_PASS
+  _panos_key=$PANOS_KEY
   _panos_template=$PANOS_TEMPLATE
   _panos_template_stack=$PANOS_TEMPLATE_STACK
   _panos_vsys=$PANOS_VSYS
@@ -271,12 +271,6 @@ panos_deploy() {
   if [ -z "$_panos_host" ]; then
     _err "No host found. If this is your first time deploying, please set PANOS_HOST in ENV variables. You can delete it after you have successfully deployed the certs."
     return 1
-  elif [ -z "$_panos_user" ]; then
-    _err "No user found. If this is your first time deploying, please set PANOS_USER in ENV variables. You can delete it after you have successfully deployed the certs."
-    return 1
-  elif [ -z "$_panos_pass" ]; then
-    _err "No password found. If this is your first time deploying, please set PANOS_PASS in ENV variables. You can delete it after you have successfully deployed the certs."
-    return 1
   else
     # Use certificate name based on the first domain on the certificate if no custom certificate name is set
     if [ -z "$_panos_certname" ]; then
@@ -286,6 +280,13 @@ panos_deploy() {
 
     # Generate a new API key if no valid API key is found
     if [ -z "$_panos_key" ]; then
+      if [ -z "$_panos_user" ]; then
+        _err "No user found. If this is your first time deploying, please set PANOS_USER in ENV variables. You can delete it after you have successfully deployed the certs."
+        return 1
+      elif [ -z "$_panos_pass" ]; then
+        _err "No password found. If this is your first time deploying, please set PANOS_PASS in ENV variables. You can delete it after you have successfully deployed the certs."
+        return 1
+      fi
       _debug "**** Generating new PANOS API KEY ****"
       deployer keygen
       _savedeployconf PANOS_KEY "$_panos_key" 1
