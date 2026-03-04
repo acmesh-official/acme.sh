@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_gname_info='GNAME
-Site: gname.com
+Site: www.gname.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_gname
 Options:
  GNAME_APPID Your APPID
@@ -9,7 +9,7 @@ Options:
 OptionsAlt:
 '
 
-GNAME_TLD_Api="https://gname.com/request/tlds?lx=all"
+GNAME_TLD_Api="https://www.gname.com/request/tlds?lx=all"
 GNAME_Api="https://api.gname.com"
 GNAME_TLDS_CACHE=""
 
@@ -27,7 +27,7 @@ dns_gname_add() {
     GNAME_APPID=""
     GNAME_APPKEY=""
     _err "You have not configured the APPID and APPKEY for the GNAME API."
-    _err "You can get yours from here http://gname.com/domain/api."
+    _err "You can get yours from here https://www.gname.com/domain/api."
     return 1
   fi
 
@@ -45,7 +45,7 @@ dns_gname_add() {
   final_hostname=$(printf "%s" "${ext_hostname:-@}" | _url_encode)
 
   # Parameters need to be sorted by key
-  body="appid=$GNAME_APPID&gntime=$gntime&jlz=$txtvalue&lang=us&lx=TXT&mx=0&ttl=600&xl=0&ym=$ext_domain&zj=$final_hostname"
+  body="appid=$GNAME_APPID&exist=1&gntime=$gntime&jlz=$txtvalue&lang=us&lx=TXT&mx=0&ttl=600&xl=0&ym=$ext_domain&zj=$final_hostname"
 
   _info "Adding TXT record for $ext_domain, host: $final_hostname"
 
@@ -53,10 +53,6 @@ dns_gname_add() {
     _info "Successfully added DNS record."
     return 0
   else
-    if _contains "$post_response" "the same host records and record values"; then
-      _info "Successfully DNS record already exists."
-      return 0
-    fi
     _err "Failed to add DNS record via Gname API."
     return 1
   fi
@@ -74,7 +70,7 @@ dns_gname_rm() {
     GNAME_APPID=""
     GNAME_APPKEY=""
     _err "You have not configured the APPID and APPKEY for the GNAME API."
-    _err "You can get yours from here http://gname.com/domain/api."
+    _err "You can get yours from here https://www.gname.com/domain/api."
     return 1
   fi
 
@@ -93,8 +89,8 @@ dns_gname_rm() {
   record_id=$(_get_record_id "$ext_domain" "$final_hostname" "$txtvalue")
 
   if [ -z "$record_id" ]; then
-    _err "No DNS record found"
-    return 1
+    _info "DNS record not found, skip removing."
+    return 0
   fi
 
   _debug "DNS record ID:$record_id"
@@ -128,31 +124,35 @@ _get_record_id() {
   fi
 
   clean_response=$(echo "$post_response" | tr -d '\r')
-  records=$(echo "$clean_response" | sed 's/.*"data":\[//; s/\],"count".*//; s/},/}\n/g')
+  records=$(echo "$clean_response" | sed 's/.*"data":\[//; s/\],"count".*//; s/},/}\n/g' | grep "^{")
+  search_jxz=$(printf "%s" "$target_jxz" | sed 's/\//\\\//g')
+  matched_rows=$(echo "$records" | grep -Fi "\"zjt\":\"$target_zjt\"")
 
-  _debug "Cleaned Formatted Records:\n$records"
-
-  jxz_feature=$(printf "%s" "$target_jxz" | cut -c 1-10)
-
-  _debug "Searching with host: $target_zjt and feature: $jxz_feature"
-
-  matched_row=$(echo "$records" | grep -i "\"zjt\":\"$target_zjt\"" | grep "\"jxz\":\"$jxz_feature")
-
-  _debug "Final Matched Row: $matched_row"
-
-  if [ -z "$matched_row" ]; then
-    _err "Still can not find record row. Please check if host $target_zjt is correct."
+  if [ -z "$matched_rows" ]; then
+    _debug "No records found for host: $target_zjt"
     return 1
   fi
 
-  dns_record_id=$(echo "$matched_row" | _egrep_o "\"id\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '"')
+  dns_record_id=""
+  while IFS= read -r row; do
+    row_jxz=$(echo "$row" | sed 's/.*"jxz":"\([^"]*\)".*/\1/')
+    if [ "$row_jxz" = "$search_jxz" ]; then
+      dns_record_id=$(echo "$row" | _egrep_o "\"id\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '"')
+      if [ -n "$dns_record_id" ]; then
+        break
+      fi
+    fi
+  done <<EOF
+    $matched_rows
+EOF
 
   if [ -n "$dns_record_id" ]; then
-    _debug "Successfully found record ID: $dns_record_id"
+    _debug "Successfully found exact record ID: $dns_record_id"
     printf "%s" "$dns_record_id"
     return 0
   fi
 
+  _debug "Can not find exact DNS record match for: $target_zjt"
   return 1
 }
 
@@ -172,14 +172,22 @@ _post_to_api() {
   fi
 
   ret_code=$(echo "$post_response" | sed 's/.*"code":\([-0-9]*\).*/\1/')
+
   if [ "$ret_code" = "1" ]; then
     return 0
-  else
-    ret_msg=$(echo "$post_response" | sed 's/.*"msg":"\([^"]*\)".*/\1/')
-    _err "POST API $url error: [$ret_code] $ret_msg"
-    _debug "Full response: $post_response"
-    return 1
   fi
+
+  if [ "$uri" = "/api/resolution/add" ]; then
+    if _contains "$post_response" "the same host records and record values"; then
+      _info "DNS record already exists, treat as success."
+      return 0
+    fi
+  fi
+
+  ret_msg=$(echo "$post_response" | sed 's/.*"msg":"\([^"]*\)".*/\1/')
+  _err "POST API $url error: [$ret_code] $ret_msg"
+  _debug "Full response: $post_response"
+  return 1
 }
 
 # Split the complete domain into a host and a main domain.
@@ -203,6 +211,11 @@ _extract_domain() {
   suffix_list=$(echo "$main_part $sub_part" | tr -s ' ' | sed 's/^[ ]//;s/[ ]$//')
 
   dot_count=$(echo "$host" | grep -o "\." | wc -l)
+
+  if [ "$dot_count" -eq 0 ]; then
+    _err "Invalid domain format: $host (missing dot)"
+    return 1
+  fi
 
   if [ "$dot_count" -eq 1 ]; then
     ext_hostname=""
