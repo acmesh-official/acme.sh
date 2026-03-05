@@ -147,7 +147,7 @@ _cpanel_uapi_request() {
 
 _cpanel_uapi_get_root() {
   _cpanel_uapi_request "execute/DomainInfo/list_domains"
-  _debug "DomainInfo response length: $(echo "$_result" | wc -c)"
+  _debug "DomainInfo response length: ${#_result}"
 
   # Extract main_domain
   _main_domain=$(echo "$_result" | _egrep_o '"main_domain"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"main_domain"[[:space:]]*:[[:space:]]*"//;s/"//')
@@ -221,7 +221,7 @@ _cpanel_uapi_findentry() {
   _debug "Finding TXT entry for $fulldomain with value $txtvalue"
 
   _cpanel_uapi_request "execute/DNS/parse_zone?zone=${_domain}"
-  _debug "parse_zone result length: $(echo "$_result" | wc -c)"
+  _debug "parse_zone result length: ${#_result}"
 
   # Base64-encode the txtvalue to match against data_b64 in the response
   _b64_txtvalue=$(printf '%s' "$txtvalue" | base64 | tr -d '\n')
