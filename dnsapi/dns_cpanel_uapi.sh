@@ -39,12 +39,18 @@ dns_cpanel_uapi_add() {
   _record_name=$(echo "$fulldomain" | sed "s/\.${_escaped_domain}$//")
   _debug "Record name: $_record_name in zone $_domain"
 
+  # Get the current SOA serial (required by mass_edit_zone)
+  if ! _cpanel_uapi_get_serial "$_domain"; then
+    _err "Failed to get zone serial for $_domain"
+    return 1
+  fi
+  _debug "Zone serial: $_serial"
+
   # URL-encode the JSON add parameter
   _add_json="%7B%22dname%22%3A%22${_record_name}%22%2C%22ttl%22%3A14400%2C%22record_type%22%3A%22TXT%22%2C%22data%22%3A%5B%22${txtvalue}%22%5D%7D"
   _debug "add_json (encoded): $_add_json"
 
-  # serial=0 bypasses the optimistic-locking version check (documented cPanel UAPI behaviour)
-  _cpanel_uapi_request "execute/DNS/mass_edit_zone?zone=${_domain}&serial=0&add=${_add_json}"
+  _cpanel_uapi_request "execute/DNS/mass_edit_zone?zone=${_domain}&serial=${_serial}&add=${_add_json}"
   _debug "_result: $_result"
 
   if echo "$_result" | grep -q '"status":1'; then
@@ -81,8 +87,11 @@ dns_cpanel_uapi_rm() {
   fi
 
   _debug "Deleting record with line_index=$_line_index"
-  # serial=0 bypasses the optimistic-locking version check (documented cPanel UAPI behaviour)
-  _cpanel_uapi_request "execute/DNS/mass_edit_zone?zone=${_domain}&serial=0&remove=${_line_index}"
+  if ! _cpanel_uapi_get_serial "$_domain"; then
+    _err "Failed to get zone serial for $_domain"
+    return 1
+  fi
+  _cpanel_uapi_request "execute/DNS/mass_edit_zone?zone=${_domain}&serial=${_serial}&remove=${_line_index}"
   _debug "_result: $_result"
 
   if echo "$_result" | grep -q '"status":1'; then
@@ -174,6 +183,42 @@ _cpanel_uapi_get_root() {
   return 1
 }
 
+_cpanel_uapi_get_serial() {
+  _zone="$1"
+  _cpanel_uapi_request "execute/DNS/parse_zone?zone=${_zone}"
+
+  # Split JSON records onto separate lines using a POSIX-portable sed literal newline
+  # (\\n in sed replacement is a GNU/BusyBox extension; a backslash-newline works everywhere)
+  _soa_line=$(echo "$_result" | sed 's/},{/},\
+{/g' | grep '"record_type":"SOA"' | head -1)
+  _debug "SOA line: $_soa_line"
+
+  if [ -z "$_soa_line" ]; then
+    _err "SOA record not found for zone $_zone"
+    _debug "parse_zone response: $_result"
+    return 1
+  fi
+
+  # Extract the third element from data_b64 array (serial is index 2, 0-based)
+  # data_b64 format: ["ns","admin","SERIAL","refresh","retry","expire","minimum"]
+  _serial_b64=$(echo "$_soa_line" | _egrep_o '"data_b64":\[[^]]*\]' | sed 's/"data_b64":\[//;s/\]//' | sed 's/"//g' | cut -d',' -f3)
+  _debug "serial_b64: $_serial_b64"
+
+  if [ -z "$_serial_b64" ]; then
+    _err "Could not extract serial from SOA record"
+    return 1
+  fi
+
+  _serial=$(printf '%s' "$_serial_b64" | base64 -d 2>/dev/null || printf '%s' "$_serial_b64" | openssl base64 -d 2>/dev/null)
+  _debug "Decoded serial: $_serial"
+
+  if [ -z "$_serial" ]; then
+    _err "Failed to decode serial"
+    return 1
+  fi
+  return 0
+}
+
 _cpanel_uapi_findentry() {
   _debug "Finding TXT entry for $fulldomain with value $txtvalue"
 
@@ -185,7 +230,8 @@ _cpanel_uapi_findentry() {
   _debug "b64_txtvalue: $_b64_txtvalue"
 
   # Split records onto separate lines, find matching TXT record by base64 value
-  _line_index=$(echo "$_result" | awk '{gsub(/},{/, "},\n{")}1' | grep '"record_type":"TXT"' | grep -F "$_b64_txtvalue" | _egrep_o '"line_index":[0-9]+' | head -1 | cut -d: -f2)
+  _line_index=$(echo "$_result" | sed 's/},{/},\
+{/g' | grep '"record_type":"TXT"' | grep -F "$_b64_txtvalue" | _egrep_o '"line_index":[0-9]+' | head -1 | cut -d: -f2)
   _debug "line_index: $_line_index"
 
   if [ -n "$_line_index" ]; then
