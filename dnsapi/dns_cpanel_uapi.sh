@@ -189,7 +189,7 @@ _cpanel_uapi_get_serial() {
 
   # The SOA record has record_type "SOA" and data_b64 array where index 2 is the serial (base64 encoded)
   # Extract the SOA record, find the serial in data_b64
-  _soa_line=$(echo "$_result" | sed 's/},{/},\n{/g' | grep '"record_type":"SOA"' | head -1)
+  _soa_line=$(echo "$_result" | awk '{gsub(/},{/, "},\n{")}1' | grep '"record_type":"SOA"' | head -1)
   _debug "SOA line: $_soa_line"
 
   if [ -z "$_soa_line" ]; then
@@ -228,7 +228,7 @@ _cpanel_uapi_findentry() {
   _debug "b64_txtvalue: $_b64_txtvalue"
 
   # Split records onto separate lines, find matching TXT record by base64 value
-  _line_index=$(echo "$_result" | sed 's/},{/},\n{/g' | grep '"record_type":"TXT"' | grep -F "$_b64_txtvalue" | _egrep_o '"line_index":[0-9]+' | head -1 | cut -d: -f2)
+  _line_index=$(echo "$_result" | awk '{gsub(/},{/, "},\n{")}1' | grep '"record_type":"TXT"' | grep -F "$_b64_txtvalue" | _egrep_o '"line_index":[0-9]+' | head -1 | cut -d: -f2)
   _debug "line_index: $_line_index"
 
   if [ -n "$_line_index" ]; then
