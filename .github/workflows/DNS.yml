@@ -47,7 +47,6 @@ jobs:
 
   Docker:
     runs-on: ubuntu-latest
-    environment: Testing
     needs: CheckToken
     if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
     env:
@@ -67,36 +66,30 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Clone acmetest
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - name: Set env file
       run: |
-        rm -rf ./acmetest
-        git clone --depth=1 https://github.com/acmesh-official/acmetest.git ./acmetest
-        cp -r ./acme.sh ./acmetest/acme.sh
-
-    - name: Run acmetest
-      run: |
-        brew install socat cloudflared
-        export CF_BIN="$(brew --prefix)/bin/cloudflared"
-
+        cd ../acmetest
         if [ "${{ secrets.TokenName1}}" ] ; then
-          export ${{ secrets.TokenName1}}="${{ secrets.TokenValue1}}"
+          echo "${{ secrets.TokenName1}}=${{ secrets.TokenValue1}}" >> docker.env
         fi
         if [ "${{ secrets.TokenName2}}" ] ; then
-          export ${{ secrets.TokenName2}}="${{ secrets.TokenValue2}}"
+          echo "${{ secrets.TokenName2}}=${{ secrets.TokenValue2}}" >> docker.env
         fi
         if [ "${{ secrets.TokenName3}}" ] ; then
-          export ${{ secrets.TokenName3}}="${{ secrets.TokenValue3}}"
+          echo "${{ secrets.TokenName3}}=${{ secrets.TokenValue3}}" >> docker.env
         fi
         if [ "${{ secrets.TokenName4}}" ] ; then
-          export ${{ secrets.TokenName4}}="${{ secrets.TokenValue4}}"
+          echo "${{ secrets.TokenName4}}=${{ secrets.TokenValue4}}" >> docker.env
         fi
         if [ "${{ secrets.TokenName5}}" ] ; then
-          export ${{ secrets.TokenName5}}="${{ secrets.TokenValue5}}"
+          echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> docker.env
         fi
 
-        cd ./acmetest
-        ./letest.sh
+    - name: Run acmetest
+      run: cd ../acmetest && ./rundocker.sh  testall
 
 
 
@@ -121,7 +114,7 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Install tools
       run:  brew install socat
     - name: Clone acmetest
@@ -172,7 +165,7 @@ jobs:
     - name: Set git to use LF
       run: |
           git config --global core.autocrlf false
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Install cygwin base packages with chocolatey
       run: |
           choco config get cacheLocation
@@ -231,7 +224,7 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/freebsd-vm@v1
@@ -258,7 +251,7 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-    - name: onError
+    - name: DebugOnError
       if: ${{ failure() }}
       run: |
         echo "See how to debug in VM:"
@@ -286,7 +279,7 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/openbsd-vm@v1
@@ -313,7 +306,7 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-    - name: onError
+    - name: DebugOnError
       if: ${{ failure() }}
       run: |
         echo "See how to debug in VM:"
@@ -341,7 +334,7 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/netbsd-vm@v1
@@ -369,7 +362,7 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-    - name: onError
+    - name: DebugOnError
       if: ${{ failure() }}
       run: |
         echo "See how to debug in VM:"
@@ -397,7 +390,7 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/dragonflybsd-vm@v1
@@ -425,7 +418,7 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-    - name: onError
+    - name: DebugOnError
       if: ${{ failure() }}
       run: |
         echo "See how to debug in VM:"
@@ -457,7 +450,7 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/solaris-vm@v1
@@ -487,7 +480,7 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-    - name: onError
+    - name: DebugOnError
       if: ${{ failure() }}
       run: |
         echo "See how to debug in VM:"
@@ -515,7 +508,7 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/omnios-vm@v1
@@ -541,7 +534,7 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-    - name: onError
+    - name: DebugOnError
       if: ${{ failure() }}
       run: |
         echo "See how to debug in VM:"
@@ -570,7 +563,7 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/openindiana-vm@v1
@@ -596,7 +589,7 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-    - name: onError
+    - name: DebugOnError
       if: ${{ failure() }}
       run: |
         echo "See how to debug in VM:"
@@ -625,7 +618,7 @@ jobs:
       TokenName4: ${{ secrets.TokenName4}}
       TokenName5: ${{ secrets.TokenName5}}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/haiku-vm@v1
@@ -655,10 +648,8 @@ jobs:
           fi
           cd ../acmetest
           ./letest.sh
-    - name: onError
+    - name: DebugOnError
       if: ${{ failure() }}
       run: |
         echo "See how to debug in VM:"
         echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
-
-
