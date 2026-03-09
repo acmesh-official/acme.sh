@@ -61,7 +61,7 @@ dns_gname_add() {
 #Usage: remove  _acme-challenge.www.domain.com   "T1rxqRBosdIK90xWCG3KLZNf6q_0HG9i01zxXp5CASc"
 dns_gname_rm() {
   fulldomain=$1
-  txtvalue=$2
+  txtvalue=$(printf "%s" "$2" | _url_encode)
 
   GNAME_APPID="${GNAME_APPID:-$(_readaccountconf_mutable GNAME_APPID)}"
   GNAME_APPKEY="${GNAME_APPKEY:-$(_readaccountconf_mutable GNAME_APPKEY)}"
@@ -86,7 +86,10 @@ dns_gname_rm() {
 
   _debug "Query DNS record ID $ext_domain $final_hostname $txtvalue"
 
-  record_id=$(_get_record_id "$ext_domain" "$final_hostname" "$txtvalue")
+  if ! record_id=$(_get_record_id "$ext_domain" "$final_hostname" "$txtvalue"); then
+    _err "Error occurred during record lookup. Skipping deletion to avoid errors."
+    return 1
+  fi
 
   if [ -z "$record_id" ]; then
     _info "DNS record not found, skip removing."
@@ -125,18 +128,17 @@ _get_record_id() {
 
   clean_response=$(echo "$post_response" | tr -d '\r')
   records=$(echo "$clean_response" | sed 's/.*"data":\[//; s/\],"count".*//; s/},/}\n/g' | grep "^{")
-  search_jxz=$(printf "%s" "$target_jxz" | sed 's/\//\\\//g')
   matched_rows=$(echo "$records" | grep -Fi "\"zjt\":\"$target_zjt\"")
 
   if [ -z "$matched_rows" ]; then
     _debug "No records found for host: $target_zjt"
-    return 1
+    return 0
   fi
 
   dns_record_id=""
   while IFS= read -r row; do
     row_jxz=$(echo "$row" | sed 's/.*"jxz":"\([^"]*\)".*/\1/')
-    if [ "$row_jxz" = "$search_jxz" ]; then
+    if [ "$row_jxz" = "$target_jxz" ]; then
       dns_record_id=$(echo "$row" | _egrep_o "\"id\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d '"')
       if [ -n "$dns_record_id" ]; then
         break
@@ -153,7 +155,7 @@ EOF
   fi
 
   _debug "Can not find exact DNS record match for: $target_zjt"
-  return 1
+  return 0
 }
 
 # Request GNAME API,post_response: Response content
@@ -279,11 +281,9 @@ _get_suffixes_json() {
 
 # Generate API authentication signature
 _gntoken() {
-  _debug "String to be signed:$1"
   data_to_sign="$1"
   full_data="${data_to_sign}${GNAME_APPKEY}"
   hash=$(printf "%s" "$full_data" | _digest md5 hex | tr -d ' ')
-  hash_upper=$(printf "%s" "$hash" | tr '[:lower:]' '[:upper:]')
-  _debug "Signature value: $hash_upper"
+  hash_upper=$(echo "$hash" | _upper_case)
   printf "%s" "$hash_upper"
 }
