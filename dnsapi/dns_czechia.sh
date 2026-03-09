@@ -10,6 +10,7 @@
 #
 # Optional environment variables:
 #   CZ_API_BASE             Defaults to https://api.czechia.com
+
 dns_czechia_add() {
   fulldomain="$1"
   txtvalue="$2"
@@ -38,7 +39,6 @@ dns_czechia_add() {
 
   _info "Adding TXT record for $_h in zone $_cz"
   _debug "Target URL: $_url"
-  _debug "Token length: ${#_tk}"
 
   _h_esc=$(printf "%s" "$_h" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
@@ -50,13 +50,9 @@ dns_czechia_add() {
   _res="$(_post "$_body" "$_url" "" "POST")"
   _debug2 "API Response" "$_res"
 
-  # Czechia success může být prázdné body (200 OK), takže NEfailujeme na empty.
-  # Failujeme jen, když v body vidíme explicitní error payload.
-  if echo "$_res" | grep -q '"status"[[:space:]]*:[[:space:]]*[45][0-9][0-9]'; then
-    _err "API error details: $_res"
-    return 1
-  fi
-  if _contains "$_res" "\"errors\"" || _contains "$_res" "\"Message\"" || _contains "$_res" "\"message\""; then
+  # Kontrola chyb (shfmt vyžaduje zarovnání bez \ pokud je to možné)
+  if _contains "$_res" "\"status\":4" || _contains "$_res" "\"status\":5" ||
+    _contains "$_res" "\"errors\"" || _contains "$_res" "\"Message\"" || _contains "$_res" "\"message\""; then
     _err "API error details: $_res"
     return 1
   fi
@@ -92,8 +88,6 @@ dns_czechia_rm() {
   [ -z "$_h" ] && _h="@"
 
   _info "Removing TXT record for $_h in zone $_cz"
-  _debug "Target URL: $_url"
-  _debug "Token length: ${#_tk}"
 
   _h_esc=$(printf "%s" "$_h" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
@@ -105,11 +99,8 @@ dns_czechia_rm() {
   _res="$(_post "$_body" "$_url" "" "DELETE")"
   _debug2 "API Response" "$_res"
 
-  if echo "$_res" | grep -q '"status"[[:space:]]*:[[:space:]]*[45][0-9][0-9]'; then
-    _err "API error details: $_res"
-    return 1
-  fi
-  if _contains "$_res" "\"errors\"" || _contains "$_res" "\"Message\"" || _contains "$_res" "\"message\""; then
+  if _contains "$_res" "\"status\":4" || _contains "$_res" "\"status\":5" ||
+    _contains "$_res" "\"errors\"" || _contains "$_res" "\"Message\"" || _contains "$_res" "\"message\""; then
     _err "API error details: $_res"
     return 1
   fi
@@ -117,6 +108,7 @@ dns_czechia_rm() {
   _info "Successfully removed TXT record."
   return 0
 }
+
 _czechia_load_conf() {
   CZ_AuthorizationToken="${CZ_AuthorizationToken:-$(_getaccountconf CZ_AuthorizationToken)}"
   [ -z "$CZ_AuthorizationToken" ] && _err "Missing CZ_AuthorizationToken" && return 1
@@ -130,11 +122,11 @@ _czechia_load_conf() {
 
 _czechia_pick_zone() {
   _fd_input="$1"
-  _fd=$(echo "$_fd_input" | _lower_case | sed 's/\.$//')
+  _fd=$(printf "%s" "$_fd_input" | _lower_case | sed 's/\.$//')
   _best_zone=""
   _zones_space=$(printf "%s" "$CZ_Zones" | sed 's/,/ /g')
   for _z in $_zones_space; do
-    _clean_z=$(echo "$_z" | _lower_case | sed 's/ //g; s/\.$//')
+    _clean_z=$(printf "%s" "$_z" | _lower_case | sed 's/ //g; s/\.$//')
     [ -z "$_clean_z" ] && continue
     case "$_fd" in
     "$_clean_z" | *".$_clean_z")

@@ -51,38 +51,8 @@ jobs:
     needs: CheckToken
     if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
     env:
-      CASE: le_test_dnsapi
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Clone acmetest
-      run: |
-        cd ..
-        git clone --depth=1 https://github.com/acmesh-official/acmetest.git    
-        cp -r acme.sh acmetest/acme.sh
-
-    - name: Run acmetest DIRECTLY
-      env:
-        CZ_AuthorizationToken: ${{ secrets.TokenValue1 }}
-        CZ_Zones: ${{ vars.TokenValue2 }}
-        TestingDomain: ${{ vars.TestingDomain }}
-        DNSAPI: czechia
-      run: |
-        sudo apt-get update && sudo apt-get install -y socat
-        
-        cd ../acmetest/acme.sh/
-        
-        mkdir -p ./dnsapi/
-        cp ../../acme.sh/dnsapi/dns_czechia.sh ./dnsapi/dns_czechia.sh
-        
-        ./acme.sh --issue --dns dns_czechia -d "$TestingDomain" --debug 3 --test
-
-  MacOS:
-    runs-on: macos-latest
-    needs: Docker
-    env:
-      TEST_DNS: ${{ secrets.TEST_DNS }}
-      TestingDomain: ${{ vars.TestingDomain }}
+      TEST_DNS : ${{ secrets.TEST_DNS }}
+      TestingDomain: ${{ secrets.TestingDomain }}
       TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
       TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
       TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
@@ -91,58 +61,91 @@ jobs:
       DEBUG: ${{ secrets.DEBUG }}
       http_proxy: ${{ secrets.http_proxy }}
       https_proxy: ${{ secrets.https_proxy }}
-      TokenName1: ${{ secrets.TokenName1 }}
-      TokenName2: ${{ secrets.TokenName2 }}
-      TokenName3: ${{ secrets.TokenName3 }}
-      TokenName4: ${{ secrets.TokenName4 }}
-      TokenName5: ${{ secrets.TokenName5 }}
-
+      TokenName1: ${{ secrets.TokenName1}}
+      TokenName2: ${{ secrets.TokenName2}}
+      TokenName3: ${{ secrets.TokenName3}}
+      TokenName4: ${{ secrets.TokenName4}}
+      TokenName5: ${{ secrets.TokenName5}}
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+    - name: Clone acmetest
+      run: |
+        rm -rf ./acmetest
+        git clone --depth=1 https://github.com/acmesh-official/acmetest.git ./acmetest
+        cp -r ./acme.sh ./acmetest/acme.sh
 
-      - name: Install tools
-        run: |
-          brew update
-          brew install socat cloudflared
-          echo "cloudflared: $(cloudflared --version)"
+    - name: Run acmetest
+      run: |
+        brew install socat cloudflared
+        export CF_BIN="$(brew --prefix)/bin/cloudflared"
 
-      - name: Clone acmetest and stage repo as ./acmetest/acme.sh (directory)
-        run: |
-          rm -rf ./acmetest
-          git clone --depth=1 https://github.com/acmesh-official/acmetest.git ./acmetest
+        if [ "${{ secrets.TokenName1}}" ] ; then
+          export ${{ secrets.TokenName1}}="${{ secrets.TokenValue1}}"
+        fi
+        if [ "${{ secrets.TokenName2}}" ] ; then
+          export ${{ secrets.TokenName2}}="${{ secrets.TokenValue2}}"
+        fi
+        if [ "${{ secrets.TokenName3}}" ] ; then
+          export ${{ secrets.TokenName3}}="${{ secrets.TokenValue3}}"
+        fi
+        if [ "${{ secrets.TokenName4}}" ] ; then
+          export ${{ secrets.TokenName4}}="${{ secrets.TokenValue4}}"
+        fi
+        if [ "${{ secrets.TokenName5}}" ] ; then
+          export ${{ secrets.TokenName5}}="${{ secrets.TokenValue5}}"
+        fi
 
-          rm -rf ./acmetest/acme.sh
-          mkdir -p ./acmetest/acme.sh
+        cd ./acmetest
+        ./letest.sh
 
-          rsync -a \
-            --exclude 'acmetest/' \
-            --exclude '.git/' \
-            ./ ./acmetest/acme.sh/
 
-      - name: Run acmetest
-        run: |
-          export CF_BIN="$(brew --prefix)/bin/cloudflared"
-          echo "Using CF_BIN=$CF_BIN"
-          "$CF_BIN" --version || true
 
-          if [ "${{ secrets.TokenName1 }}" ] ; then
-            export ${{ secrets.TokenName1 }}="${{ secrets.TokenValue1 }}"
-          fi
-          if [ "${{ secrets.TokenName2 }}" ] ; then
-            export ${{ secrets.TokenName2 }}="${{ secrets.TokenValue2 }}"
-          fi
-          if [ "${{ secrets.TokenName3 }}" ] ; then
-            export ${{ secrets.TokenName3 }}="${{ secrets.TokenValue3 }}"
-          fi
-          if [ "${{ secrets.TokenName4 }}" ] ; then
-            export ${{ secrets.TokenName4 }}="${{ secrets.TokenValue4 }}"
-          fi
-          if [ "${{ secrets.TokenName5 }}" ] ; then
-            export ${{ secrets.TokenName5 }}="${{ secrets.TokenValue5 }}"
-          fi
 
-          cd ./acmetest
-          ./letest.sh
+  MacOS:
+    runs-on: macos-latest
+    needs: Docker
+    env:
+      TEST_DNS : ${{ secrets.TEST_DNS }}
+      TestingDomain: ${{ secrets.TestingDomain }}
+      TEST_DNS_NO_WILDCARD: ${{ secrets.TEST_DNS_NO_WILDCARD }}
+      TEST_DNS_NO_SUBDOMAIN: ${{ secrets.TEST_DNS_NO_SUBDOMAIN }}
+      TEST_DNS_SLEEP: ${{ secrets.TEST_DNS_SLEEP }}
+      CASE: le_test_dnsapi
+      TEST_LOCAL: 1
+      DEBUG: ${{ secrets.DEBUG }}
+      http_proxy: ${{ secrets.http_proxy }}
+      https_proxy: ${{ secrets.https_proxy }}
+      TokenName1: ${{ secrets.TokenName1}}
+      TokenName2: ${{ secrets.TokenName2}}
+      TokenName3: ${{ secrets.TokenName3}}
+      TokenName4: ${{ secrets.TokenName4}}
+      TokenName5: ${{ secrets.TokenName5}}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install tools
+      run:  brew install socat
+    - name: Clone acmetest
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - name: Run acmetest
+      run: |
+        if [ "${{ secrets.TokenName1}}" ] ; then
+          export ${{ secrets.TokenName1}}="${{ secrets.TokenValue1}}"
+        fi
+        if [ "${{ secrets.TokenName2}}" ] ; then
+          export ${{ secrets.TokenName2}}="${{ secrets.TokenValue2}}"
+        fi
+        if [ "${{ secrets.TokenName3}}" ] ; then
+          export ${{ secrets.TokenName3}}="${{ secrets.TokenValue3}}"
+        fi
+        if [ "${{ secrets.TokenName4}}" ] ; then
+          export ${{ secrets.TokenName4}}="${{ secrets.TokenValue4}}"
+        fi
+        if [ "${{ secrets.TokenName5}}" ] ; then
+          export ${{ secrets.TokenName5}}="${{ secrets.TokenValue5}}"
+        fi
+        cd ../acmetest
+        ./letest.sh
+
 
 
 
