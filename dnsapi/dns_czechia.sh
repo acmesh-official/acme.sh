@@ -23,8 +23,8 @@ dns_czechia_add() {
     return 1
   fi
 
-  _cz=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/[^a-z0-9.-]//g')
-  _tk=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ' | sed 's/[^a-zA-Z0-9-]//g')
+  _cz=$(printf "%s" "$_current_zone" | _lower_case | sed 's/ //g' | sed 's/[^a-z0-9.-]//g')
+  _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed 's/ //g' | sed 's/[^a-zA-Z0-9-]//g')
 
   if [ -z "$_cz" ] || [ -z "$_tk" ]; then
     _err "Missing zone or AuthorizationToken (CZ_Zones/CZ_AuthorizationToken)."
@@ -50,7 +50,6 @@ dns_czechia_add() {
   _res="$(_post "$_body" "$_url" "" "POST")"
   _debug2 "API Response" "$_res"
 
-  # Kontrola chyb (shfmt vyžaduje zarovnání bez \ pokud je to možné)
   if _contains "$_res" "\"status\":4" || _contains "$_res" "\"status\":5" ||
     _contains "$_res" "\"errors\"" || _contains "$_res" "\"Message\"" || _contains "$_res" "\"message\""; then
     _err "API error details: $_res"
@@ -73,8 +72,8 @@ dns_czechia_rm() {
     return 1
   fi
 
-  _cz=$(printf "%s" "$_current_zone" | tr -d '\r\n\t ' | _lower_case | sed 's/[^a-z0-9.-]//g')
-  _tk=$(printf "%s" "$CZ_AuthorizationToken" | tr -d '\r\n\t ' | sed 's/[^a-zA-Z0-9-]//g')
+  _cz=$(printf "%s" "$_current_zone" | _lower_case | sed 's/ //g' | sed 's/[^a-z0-9.-]//g')
+  _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed 's/ //g' | sed 's/[^a-zA-Z0-9-]//g')
 
   if [ -z "$_cz" ] || [ -z "$_tk" ]; then
     _err "Missing zone or AuthorizationToken (CZ_Zones/CZ_AuthorizationToken)."
@@ -126,7 +125,7 @@ _czechia_pick_zone() {
   _best_zone=""
   _zones_space=$(printf "%s" "$CZ_Zones" | sed 's/,/ /g')
   for _z in $_zones_space; do
-    _clean_z=$(printf "%s" "$_z" | _lower_case | sed 's/ //g; s/\.$//')
+    _clean_z=$(printf "%s" "$_z" | _lower_case | sed 's/ //g' | sed 's/\.$//')
     [ -z "$_clean_z" ] && continue
     case "$_fd" in
     "$_clean_z" | *".$_clean_z")
