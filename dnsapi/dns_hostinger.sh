@@ -10,7 +10,6 @@ Issues: https://github.com/acmesh-official/acme.sh/issues/6831
 Author: Sasha Reid <github@sasha.hackl.es>
 '
 
-
 HOSTINGER_Api="https://developers.hostinger.com/api/dns/v1/zones"
 
 ########  Public functions #####################
@@ -29,7 +28,6 @@ dns_hostinger_add() {
     return 1
   fi
   _saveaccountconf_mutable HOSTINGER_Token "$HOSTINGER_Token"
-
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -92,7 +90,7 @@ dns_hostinger_rm() {
     return 1
   fi
 
-  if _contains $response "\"name\":\"$_sub_domain\""; then
+  if _contains "$response" "\"name\":\"$_sub_domain\""; then
     if ! _hostinger_rest DELETE "$_domain" "{\"filters\":[{\"name\":\"$_sub_domain\",\"type\":\"TXT\"}]}"; then
       _err "Delete record error."
       return 1
@@ -123,7 +121,7 @@ _get_root() {
     fi
 
     _hostinger_rest GET "$h"
-    if ! _contains "$response" "Domain name is not valid" ; then
+    if ! _contains "$response" "Domain name is not valid"; then
       if [ "$response" = "[]" ]; then
         _debug "Valid subdomains are not the root"
       else
