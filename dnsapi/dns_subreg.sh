@@ -6,6 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_subreg
 Options:
  SUBREG_API_USERNAME API username
  SUBREG_API_PASSWORD API password
+Issues: github.com/acmesh-official/acme.sh/issues/6835
 Author: Tomas Pavlic <@tomaspavli>
 '
 
