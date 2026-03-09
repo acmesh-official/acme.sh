@@ -108,9 +108,7 @@ _subreg_ok() {
 # Reads from $response
 _subreg_map_get() {
   _key="$1"
-  echo "$response" | tr -d '\n\r' | \
-    _egrep_o ">${_key}</key><value[^>]*>[^<]*</value>" | \
-    sed 's/.*<value[^>]*>//;s/<\/value>//'
+  echo "$response" | tr -d '\n\r' | _egrep_o ">${_key}</key><value[^>]*>[^<]*</value>" | sed 's/.*<value[^>]*>//;s/<\/value>//'
 }
 
 # Login and store session token in _subreg_ssid
