@@ -3,13 +3,13 @@
 # dns_czechia.sh - CZECHIA.COM/ZONER DNS API for acme.sh (DNS-01)
 #
 # Documentation: https://api.czechia.com/swagger/index.html
-#
-# Required environment variables:
-#   CZ_AuthorizationToken   Your API token from CZECHIA.COM/Zoner administration.
-#   CZ_Zones                Managed zones separated by comma or space (e.g. "example.com").
-#
-# Optional environment variables:
-#   CZ_API_BASE             Defaults to https://api.czechia.com
+
+#shellcheck disable=SC2034
+dns_czechia_info='[
+  {"name":"CZ_AuthorizationToken","usage":"Your API token from CZECHIA.COM/Zoner administration.","required":"1"},
+  {"name":"CZ_Zones","usage":"Managed zones separated by comma or space (e.g. \"example.com\").","required":"1"},
+  {"name":"CZ_API_BASE","usage":"Defaults to https://api.czechia.com","required":"0"}
+]'
 
 dns_czechia_add() {
   fulldomain="$1"
@@ -47,7 +47,10 @@ dns_czechia_add() {
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
 
-  _res="$(_post "$_body" "$_url" "" "POST")"
+  if ! _res="$(_post "$_body" "$_url" "" "POST")"; then
+    _err "API request failed (network or HTTP error)."
+    return 1
+  fi
   _debug2 "API Response" "$_res"
 
   if _contains "$_res" "\"status\":4" || _contains "$_res" "\"status\":5" ||
@@ -95,7 +98,10 @@ dns_czechia_rm() {
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
 
-  _res="$(_post "$_body" "$_url" "" "DELETE")"
+  if ! _res="$(_post "$_body" "$_url" "" "DELETE")"; then
+    _err "API request failed (network or HTTP error)."
+    return 1
+  fi
   _debug2 "API Response" "$_res"
 
   if _contains "$_res" "\"status\":4" || _contains "$_res" "\"status\":5" ||
@@ -109,11 +115,12 @@ dns_czechia_rm() {
 }
 
 _czechia_load_conf() {
-  CZ_AuthorizationToken="${CZ_AuthorizationToken:-$(_getaccountconf CZ_AuthorizationToken)}"
+  CZ_AuthorizationToken="${CZ_AuthorizationToken:-$(_readaccountconf_mutable CZ_AuthorizationToken)}"
   [ -z "$CZ_AuthorizationToken" ] && _err "Missing CZ_AuthorizationToken" && return 1
-  CZ_Zones="${CZ_Zones:-$(_getaccountconf CZ_Zones)}"
+  CZ_Zones="${CZ_Zones:-$(_readaccountconf_mutable CZ_Zones)}"
   [ -z "$CZ_Zones" ] && _err "Missing CZ_Zones" && return 1
   CZ_API_BASE="${CZ_API_BASE:-https://api.czechia.com}"
+
   _saveaccountconf CZ_AuthorizationToken "$CZ_AuthorizationToken"
   _saveaccountconf CZ_Zones "$CZ_Zones"
   return 0
