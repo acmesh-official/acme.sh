@@ -10,6 +10,7 @@ Issues: https://github.com/acmesh-official/acme.sh/issues/6831
 Author: Sasha Reid <github@sasha.hackl.es>
 '
 
+
 HOSTINGER_Api="https://developers.hostinger.com/api/dns/v1/zones"
 
 ########  Public functions #####################
