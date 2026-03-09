@@ -46,7 +46,7 @@ dns_subreg_add() {
   _subreg_soap "Add_DNS_Record" "<domain>$_domain</domain><record><name>$_sub_domain</name><type>TXT</type><content>$txtvalue</content><prio>0</prio><ttl>120</ttl></record>"
   if _subreg_ok; then
     _record_id="$(_subreg_map_get record_id)"
-    _savedomainconf "SUBREG_RECORD_ID" "$_record_id"
+    _savedomainconf "$(_subreg_record_id_key "$txtvalue")" "$_record_id"
     return 0
   fi
   _err "Failed to add TXT record."
@@ -78,12 +78,12 @@ dns_subreg_rm() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  _record_id="$(_readdomainconf "SUBREG_RECORD_ID")"
+  _record_id="$(_readdomainconf "$(_subreg_record_id_key "$txtvalue")")"
   if [ -z "$_record_id" ]; then
     _err "Could not find saved record ID for $fulldomain"
     return 1
   fi
-  _cleardomainconf "SUBREG_RECORD_ID"
+  _cleardomainconf "$(_subreg_record_id_key "$txtvalue")"
 
   _debug "Deleting record ID: $_record_id"
   _subreg_soap "Delete_DNS_Record" "<domain>$_domain</domain><record><id>$_record_id</id></record>"
@@ -96,6 +96,12 @@ dns_subreg_rm() {
 }
 
 ####################  Private functions #####################
+
+# Build a domain-conf key for storing the record ID of a given TXT value.
+# Base64url chars include '-' which is invalid in shell variable names, so replace with '_'.
+_subreg_record_id_key() {
+  printf 'SUBREG_RECORD_ID_%s' "$(printf '%s' "$1" | tr -- '-' '_')"
+}
 
 # Check if the current $response contains a successful status in the ns2:Map format:
 # <item><key ...>status</key><value ...>ok</value></item>
