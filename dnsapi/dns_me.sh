@@ -53,6 +53,8 @@ dns_me_add() {
       _info "Added"
       #todo: check if the record takes effect
       return 0
+    elif printf -- "%s" "$response" | grep -q "already exists"; then
+      _info "Record already exists, skipping."
     else
       _err "Add txt record error."
       return 1
