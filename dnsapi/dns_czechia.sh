@@ -14,108 +14,63 @@ dns_czechia_info='[
 dns_czechia_add() {
   fulldomain="$1"
   txtvalue="$2"
-
   _czechia_load_conf || return 1
-
   _current_zone=$(_czechia_pick_zone "$fulldomain")
   if [ -z "$_current_zone" ]; then
     _err "No matching zone found for $fulldomain. Please check CZ_Zones."
     return 1
   fi
-
-  # Čistíme jen mezery, zbytek necháme na API
   _cz=$(printf "%s" "$_current_zone" | _lower_case | sed 's/ //g')
   _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed 's/ //g')
-
   if [ -z "$_cz" ] || [ -z "$_tk" ]; then
     _err "Missing zone or AuthorizationToken (CZ_Zones/CZ_AuthorizationToken)."
     return 1
   fi
-
   _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
-
   _fd=$(printf "%s" "$fulldomain" | _lower_case | sed 's/\.$//')
-
-  # Bezpečnější ořezávání hostname bez sed regexu
   if [ "$_fd" = "$_cz" ]; then
     _h="@"
   else
-    _h="${_fd%."$_cz"}"
+    _h=$(printf "%s" "$_fd" | sed "s/\.$_cz$//")
   fi
-
   _info "Adding TXT record for $_h in zone $_cz"
-  _debug "Target URL: $_url"
-
   _h_esc=$(printf "%s" "$_h" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":3600,\"publishZone\":1}"
-
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
-
   if ! _res="$(_post "$_body" "$_url" "" "POST")"; then
-    _err "API request failed (network or HTTP error)."
+    _err "API request failed."
     return 1
   fi
-  _debug2 "API Response" "$_res"
-
-  if _contains "$_res" "\"status\":4" || _contains "$_res" "\"status\":5" ||
-    _contains "$_res" "\"errors\"" || _contains "$_res" "\"Message\"" || _contains "$_res" "\"message\""; then
+  if _contains "$_res" "\"status\":4" || _contains "$_res" "\"status\":5" || _contains "$_res" "\"errors\""; then
     _err "API error details: $_res"
     return 1
   fi
-
-  _info "Successfully added TXT record."
   return 0
 }
 
 dns_czechia_rm() {
   fulldomain="$1"
   txtvalue="$2"
-
   _czechia_load_conf || return 1
-
   _current_zone=$(_czechia_pick_zone "$fulldomain")
-  if [ -z "$_current_zone" ]; then
-    _err "No matching zone found for $fulldomain. Please check CZ_Zones."
-    return 1
-  fi
-
+  [ -z "$_current_zone" ] && return 1
   _cz=$(printf "%s" "$_current_zone" | _lower_case | sed 's/ //g')
   _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed 's/ //g')
-
   _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
-
   _fd=$(printf "%s" "$fulldomain" | _lower_case | sed 's/\.$//')
-
   if [ "$_fd" = "$_cz" ]; then
     _h="@"
   else
-    _h="${_fd%."$_cz"}"
+    _h=$(printf "%s" "$_fd" | sed "s/\.$_cz$//")
   fi
-
-  _info "Removing TXT record for $_h in zone $_cz"
-
   _h_esc=$(printf "%s" "$_h" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":3600,\"publishZone\":1}"
-
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
-
-  if ! _res="$(_post "$_body" "$_url" "" "DELETE")"; then
-    _err "API request failed (network or HTTP error)."
-    return 1
-  fi
-  _debug2 "API Response" "$_res"
-
-  if _contains "$_res" "\"status\":4" || _contains "$_res" "\"status\":5" ||
-    _contains "$_res" "\"errors\"" || _contains "$_res" "\"Message\"" || _contains "$_res" "\"message\""; then
-    _err "API error details: $_res"
-    return 1
-  fi
-
-  _info "Successfully removed TXT record."
+  _post "$_body" "$_url" "" "DELETE" >/dev/null
   return 0
 }
 
@@ -125,27 +80,23 @@ _czechia_load_conf() {
   CZ_Zones="${CZ_Zones:-$(_readaccountconf_mutable CZ_Zones)}"
   [ -z "$CZ_Zones" ] && _err "Missing CZ_Zones" && return 1
   CZ_API_BASE="${CZ_API_BASE:-https://api.czechia.com}"
-
   _saveaccountconf_mutable CZ_AuthorizationToken "$CZ_AuthorizationToken"
   _saveaccountconf_mutable CZ_Zones "$CZ_Zones"
   return 0
 }
 
 _czechia_pick_zone() {
-  _fd_input="$1"
-  _fd=$(printf "%s" "$_fd_input" | _lower_case | sed 's/\.$//')
+  _fd=$(printf "%s" "$1" | _lower_case | sed 's/\.$//')
   _best_zone=""
   _zones_space=$(printf "%s" "$CZ_Zones" | sed 's/,/ /g')
   for _z in $_zones_space; do
     _clean_z=$(printf "%s" "$_z" | _lower_case | sed 's/ //g; s/\.$//')
     [ -z "$_clean_z" ] && continue
     case "$_fd" in
-    "$_clean_z" | *".$_clean_z")
-      if [ ${#_clean_z} -gt ${#_best_zone} ]; then
-        _best_zone="$_clean_z"
-      fi
-      ;;
+      "$_clean_z"|*".$_clean_z")
+        if [ ${#_clean_z} -gt ${#_best_zone} ]; then _best_zone="$_clean_z"; fi
+        ;;
     esac
   done
-  [ -n "$_best_zone" ] && printf "%s" "$_best_zone"
+  printf "%s" "$_best_zone"
 }
