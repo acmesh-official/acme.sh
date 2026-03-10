@@ -18,13 +18,23 @@ jobs:
 
     - name: Run ONLY Czechia DNS Test
       env:
+        # Tvoje credentials
         TokenName1: ${{ secrets.CZ_TOKEN }}
         TokenName2: ${{ secrets.CZ_ZONES }}
+        # Nastavení pro acme.sh
         TEST_DNS: dns_czechia
         TEST_DNS_SLEEP: 120
       run: |
-        git clone --depth 1 https://github.com/acmesh-official/acmetest.git ../acmetest
-        cd ../acmetest
+        # 1. Nainstalujeme acme.sh přímo sem do runneru
+        curl https://get.acme.sh | sh -s email=test@example.com
         
-        # Spustíme test pro platformu Ubuntu, ale vnutíme mu CASE přímo do příkazu
-        ./rundocker.sh testplat ubuntu:latest le_test_dnsapi
+        # 2. Zkopírujeme tvůj nový DNS plugin tam, kam patří
+        cp dnsapi/dns_czechia.sh ~/.acme.sh/dnsapi/
+        chmod +x ~/.acme.sh/dnsapi/dns_czechia.sh
+        
+        # 3. Pustíme ostrý test proti Let's Encrypt staging serveru (ať nespálíme limity)
+        # Použijeme tvou doménu z CZ_ZONES
+        ~/.acme.sh/acme.sh --issue --dns dns_czechia \
+          -d "$TokenName2" \
+          --server letsencrypt --staging \
+          --debug 2
