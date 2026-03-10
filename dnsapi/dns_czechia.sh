@@ -42,21 +42,17 @@ dns_czechia_add() {
   _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":60,\"publishZone\":1}"
 
+  _debug "URL: $_url"
+  _debug "Body: $_body"
+
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
 
-  _debug "czechia_add_url" "$_url"
-  _debug "czechia_add_body" "$_body"
-  _debug "czechia_add_token" "$_tk"
-
-  _res="$(_post "$_body" "$_url" "" "POST")"
-  _ret="$?"
-  _debug "czechia_add_response" "$_res"
-
-  if [ "$_ret" != "0" ]; then
-    _err "API request failed (curl error $_ret)."
+  if ! _res="$(_post "$_body" "$_url" "" "POST")"; then
+    _err "API request failed."
     return 1
   fi
+  _debug2 "Response: $_res"
 
   if _contains "$_res" "already exists"; then
     _info "Record already exists, skipping."
@@ -67,7 +63,6 @@ dns_czechia_add() {
     _err "API error: $_res"
     return 1
   fi
-
   return 0
 }
 
@@ -93,21 +88,14 @@ dns_czechia_rm() {
   _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":60,\"publishZone\":1}"
 
+  _debug "URL: $_url"
+  _debug "Body: $_body"
+
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
-
-  _debug "czechia_rm_url" "$_url"
-  _debug "czechia_rm_body" "$_body"
-  _debug "czechia_rm_token" "$_tk"
-
+  
   _res="$(_post "$_body" "$_url" "" "DELETE")"
-  _ret="$?"
-  _debug "czechia_rm_response" "$_res"
-
-  if [ "$_ret" != "0" ]; then
-    _debug "czechia_rm" "DELETE request failed (curl error $_ret), ignoring."
-  fi
-
+  _debug2 "Response: $_res"
   return 0
 }
 
