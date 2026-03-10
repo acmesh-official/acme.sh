@@ -18,22 +18,22 @@ jobs:
 
     - name: Run Czechia DNS Test
       env:
-        # TADY BYLA CHYBA - musí se to jmenovat přesně takto:
         CZ_AuthorizationToken: ${{ secrets.CZ_TOKEN }}
-        CZ_Zones: "zoner-test.eu" # Sem dejte vaši testovací doménu
-        # Nastavení pro acme.sh
+        CZ_Zones: "zoner-test.eu"
         TEST_DNS_SLEEP: 120
       run: |
         # 1. Instalace acme.sh
         curl https://get.acme.sh | sh -s email=jindra@zoner.com
         
-        # 2. Zkopírování vašeho vyvíjeného pluginu do složky acme.sh
-        cp dnsapi/dns_czechia.sh ~/.acme.sh/dnsapi/
-        chmod +x ~/.acme.sh/dnsapi/dns_czechia.sh
+        # 2. Zkopírování pluginu (všimněte si fixní cesty k home)
+        # Ujistíme se, že cílová složka existuje
+        mkdir -p /home/runner/.acme.sh/dnsapi
+        cp dnsapi/dns_czechia.sh /home/runner/.acme.sh/dnsapi/dns_czechia.sh
+        chmod +x /home/runner/.acme.sh/dnsapi/dns_czechia.sh
         
-        # 3. Spuštění testu proti staging serveru (v CZ_Zones musí být doména)
-        # Použijeme proměnnou $CZ_Zones, kterou jsme definovali v env:
-        ~/.acme.sh/acme.sh --issue --dns dns_czechia \
+        # 3. Spuštění s VYNUCENÝM staging serverem a správným názvem
+        /home/runner/.acme.sh/acme.sh --issue \
+          --dns dns_czechia \
           -d "$CZ_Zones" \
-          --server letsencrypt --staging \
+          --server https://acme-staging-v02.api.letsencrypt.org/directory \
           --debug 2
