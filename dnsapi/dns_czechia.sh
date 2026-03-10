@@ -93,7 +93,7 @@ _czechia_pick_zone() {
     _clean_z=$(printf "%s" "$_z" | _lower_case | sed 's/ //g; s/\.$//')
     [ -z "$_clean_z" ] && continue
     case "$_fd" in
-      "$_clean_z"|*".$_clean_z")
+    "$_clean_z"|*".$_clean_z")
         if [ ${#_clean_z} -gt ${#_best_zone} ]; then _best_zone="$_clean_z"; fi
         ;;
     esac
