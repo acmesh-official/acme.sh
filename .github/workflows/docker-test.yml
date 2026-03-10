@@ -22,9 +22,9 @@ jobs:
         TokenName2: ${{ secrets.CZ_ZONES }}
         TEST_DNS: dns_czechia
         TEST_DNS_SLEEP: 120
-        # TADY JE TA OPRAVA: Řekneme frameworku, který testovací soubor má spustit
-        CASE: le_test_dnsapi
       run: |
         git clone --depth 1 https://github.com/acmesh-official/acmetest.git ../acmetest
-        # Spustíme rundocker.sh bez argumentu, on si CASE vytáhne z ENV
-        cd ../acmetest && ./rundocker.sh
+        cd ../acmetest
+        
+        # Spustíme test pro platformu Ubuntu, ale vnutíme mu CASE přímo do příkazu
+        ./rundocker.sh testplat ubuntu:latest le_test_dnsapi
