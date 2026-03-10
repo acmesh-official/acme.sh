@@ -12,6 +12,7 @@ dns_czechia_info='[
 ]'
 
 dns_czechia_add() {
+  _info "DEBUG: Entering dns_czechia_add for $1"
   fulldomain="$1"
   txtvalue="$2"
   _czechia_load_conf || return 1
