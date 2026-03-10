@@ -36,7 +36,7 @@ dns_czechia_add() {
   _info "Adding TXT record for $_h in zone $_cz"
   _h_esc=$(printf "%s" "$_h" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
-  _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":3600,\"publishZone\":1}"
+  _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":60,\"publishZone\":1}"
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
   if ! _res="$(_post "$_body" "$_url" "" "POST")"; then
@@ -67,7 +67,7 @@ dns_czechia_rm() {
   fi
   _h_esc=$(printf "%s" "$_h" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
-  _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":3600,\"publishZone\":1}"
+  _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":60,\"publishZone\":1}"
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
   _post "$_body" "$_url" "" "DELETE" >/dev/null
