@@ -26,7 +26,7 @@ jobs:
         TEST_DNS_SLEEP: 120
       run: |
         # 1. Nainstalujeme acme.sh přímo sem do runneru
-        curl https://get.acme.sh | sh -s email=test@example.com
+        curl https://get.acme.sh | sh -s email=jindra@zoner.com
         
         # 2. Zkopírujeme tvůj nový DNS plugin tam, kam patří
         cp dnsapi/dns_czechia.sh ~/.acme.sh/dnsapi/
