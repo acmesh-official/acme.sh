@@ -21,12 +21,10 @@ jobs:
         TokenName1: ${{ secrets.CZ_TOKEN }}
         TokenName2: ${{ secrets.CZ_ZONES }}
         TEST_DNS: dns_czechia
-        # Důležité: Nastavíme delší sleep, aby Zoner stihl propsat změnu
         TEST_DNS_SLEEP: 120
+        # TADY JE TA OPRAVA: Řekneme frameworku, který testovací soubor má spustit
+        CASE: le_test_dnsapi
       run: |
         git clone --depth 1 https://github.com/acmesh-official/acmetest.git ../acmetest
-        
-        # TADY JE TA ZMĚNA:
-        # Použijeme rundocker.sh, ale řekneme mu, ať spustí jen 'le_test_dnsapi'
-        # To přeskočí instalaci, Cloudflare tunely a všechno ostatní.
-        cd ../acmetest && ./rundocker.sh le_test_dnsapi
+        # Spustíme rundocker.sh bez argumentu, on si CASE vytáhne z ENV
+        cd ../acmetest && ./rundocker.sh
