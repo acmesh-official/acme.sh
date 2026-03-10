@@ -1,19 +1,40 @@
-name: Docker Image CI
+name: DNS Czechia Test CI
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master", "dev" ] # Spustí se při pushi do těchto větví
   pull_request:
     branches: [ "master" ]
+  workflow_dispatch: # <--- TOTO povolí to tlačítko "Run workflow" v Actions
 
 jobs:
-
-  build:
-
+  test-plugin:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
-        bash -n dns_czechia.sh
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Syntax check (bash -n)
+      run: bash -n dnsapi/dns_czechia.sh
+
+    - name: Shellcheck (lint)
+      run: |
+        sudo apt-get update && sudo apt-get install -y shellcheck
+        shellcheck -e SC2034 dnsapi/dns_czechia.sh
+
+    - name: Run Acme Test Suite
+      env:
+        # Tady mapujeme GitHub Secrets na proměnné, které test očekává
+        # Musíš si je nastavit v Settings -> Secrets and variables -> Actions
+        TokenName1: ${{ secrets.CZ_TOKEN }}
+        TokenName2: ${{ secrets.CZ_ZONES }}
+        TEST_DNS: dns_czechia
+        TEST_DNS_SLEEP: 120
+      run: |
+        # Klonování testovacího frameworku acmetest
+        git clone --depth 1 https://github.com/acmesh-official/acmetest.git ../acmetest
+        
+        # Spuštění testu v Dockeru (podobně jako v tvých lozích)
+        # Tento příkaz spustí testy pro různé distribuce (Ubuntu, Debian, atd.)
+        cd ../acmetest && ./rundocker.sh testall
