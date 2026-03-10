@@ -29,29 +29,35 @@ dns_czechia_add() {
   _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
   _fd=$(printf "%s" "$fulldomain" | _lower_case | sed 's/\.$//')
 
-  # Robustní určení hostname - pokud se shoduje se zónou, použije @
   if [ "$_fd" = "$_cz" ]; then
     _h="@"
   else
     _h=$(printf "%s" "$_fd" | sed "s/\.$_cz$//")
     [ "$_h" = "$_fd" ] && _h="@"
   fi
-  # Pojistka: hostName nesmí být nikdy prázdný řetězec
   [ -z "$_h" ] && _h="@"
 
   _info "Adding TXT record for $_h in zone $_cz"
   _h_esc=$(printf "%s" "$_h" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":60,\"publishZone\":1}"
+
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
 
-  if ! _res="$(_post "$_body" "$_url" "" "POST")"; then
-    _err "API request failed."
+  _debug "czechia_add_url" "$_url"
+  _debug "czechia_add_body" "$_body"
+  _debug "czechia_add_token" "$_tk"
+
+  _res="$(_post "$_body" "$_url" "" "POST")"
+  _ret="$?"
+  _debug "czechia_add_response" "$_res"
+
+  if [ "$_ret" != "0" ]; then
+    _err "API request failed (curl error $_ret)."
     return 1
   fi
 
-  # Ignorujeme chybu, pokud záznam již existuje (časté při testech)
   if _contains "$_res" "already exists"; then
     _info "Record already exists, skipping."
     return 0
@@ -61,6 +67,7 @@ dns_czechia_add() {
     _err "API error: $_res"
     return 1
   fi
+
   return 0
 }
 
@@ -85,10 +92,22 @@ dns_czechia_rm() {
   _h_esc=$(printf "%s" "$_h" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":60,\"publishZone\":1}"
+
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
-  # Při mazání ignorujeme výsledek (pokud neexistuje, je to v pořádku)
-  _post "$_body" "$_url" "" "DELETE" >/dev/null
+
+  _debug "czechia_rm_url" "$_url"
+  _debug "czechia_rm_body" "$_body"
+  _debug "czechia_rm_token" "$_tk"
+
+  _res="$(_post "$_body" "$_url" "" "DELETE")"
+  _ret="$?"
+  _debug "czechia_rm_response" "$_res"
+
+  if [ "$_ret" != "0" ]; then
+    _debug "czechia_rm" "DELETE request failed (curl error $_ret), ignoring."
+  fi
+
   return 0
 }
 
