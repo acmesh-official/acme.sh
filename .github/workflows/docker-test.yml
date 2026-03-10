@@ -38,3 +38,12 @@ jobs:
           -d "$TokenName2" \
           --server letsencrypt --staging \
           --debug 2
+    - name: Vystavit certifikát přes dns_czechia
+      shell: bash
+      env:
+        # Použití přesně těch názvů, které skript vyžaduje
+        CZ_AuthorizationToken: ${{ secrets.CZ_AuthorizationToken }}
+        CZ_Zones: "vasedomena.cz" # doplňte vaši doménu
+      run: |
+        # Spuštění acme.sh s využitím těchto proměnných
+        ~/.acme.sh/acme.sh --issue --dns dns_czechia -d vasedomena.cz --debug
