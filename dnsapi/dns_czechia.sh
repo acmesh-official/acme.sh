@@ -41,7 +41,7 @@ dns_czechia_add() {
   _info "Adding TXT record for $_h in zone $_cz"
   _h_esc=$(printf "%s" "$_h" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
-  _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":60,\"publishZone\":1}"
+  _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":300,\"publishZone\":1}"
 
   _debug "URL: $_url"
   _debug "Body: $_body"
@@ -87,7 +87,7 @@ dns_czechia_rm() {
 
   _h_esc=$(printf "%s" "$_h" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
-  _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":60,\"publishZone\":1}"
+  _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":300,\"publishZone\":1}"
 
   _debug "URL: $_url"
   _debug "Body: $_body"
