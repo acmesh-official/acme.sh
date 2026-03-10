@@ -23,8 +23,9 @@ dns_czechia_add() {
     return 1
   fi
 
-  _cz=$(printf "%s" "$_current_zone" | _lower_case | sed 's/ //g' | sed 's/[^a-z0-9.-]//g')
-  _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed 's/ //g' | sed 's/[^a-zA-Z0-9-]//g')
+  # Čistíme jen mezery, zbytek necháme na API
+  _cz=$(printf "%s" "$_current_zone" | _lower_case | sed 's/ //g')
+  _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed 's/ //g')
 
   if [ -z "$_cz" ] || [ -z "$_tk" ]; then
     _err "Missing zone or AuthorizationToken (CZ_Zones/CZ_AuthorizationToken)."
@@ -34,8 +35,13 @@ dns_czechia_add() {
   _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
 
   _fd=$(printf "%s" "$fulldomain" | _lower_case | sed 's/\.$//')
-  _h=$(printf "%s" "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
-  [ -z "$_h" ] && _h="@"
+  
+  # Bezpečnější ořezávání hostname bez sed regexu
+  if [ "$_fd" = "$_cz" ]; then
+    _h="@"
+  else
+    _h="${_fd%."$_cz"}"
+  fi
 
   _info "Adding TXT record for $_h in zone $_cz"
   _debug "Target URL: $_url"
@@ -75,19 +81,18 @@ dns_czechia_rm() {
     return 1
   fi
 
-  _cz=$(printf "%s" "$_current_zone" | _lower_case | sed 's/ //g' | sed 's/[^a-z0-9.-]//g')
-  _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed 's/ //g' | sed 's/[^a-zA-Z0-9-]//g')
-
-  if [ -z "$_cz" ] || [ -z "$_tk" ]; then
-    _err "Missing zone or AuthorizationToken (CZ_Zones/CZ_AuthorizationToken)."
-    return 1
-  fi
+  _cz=$(printf "%s" "$_current_zone" | _lower_case | sed 's/ //g')
+  _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed 's/ //g')
 
   _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
 
   _fd=$(printf "%s" "$fulldomain" | _lower_case | sed 's/\.$//')
-  _h=$(printf "%s" "$_fd" | sed "s/\.$_cz$//; s/^$_cz$//")
-  [ -z "$_h" ] && _h="@"
+  
+  if [ "$_fd" = "$_cz" ]; then
+    _h="@"
+  else
+    _h="${_fd%."$_cz"}"
+  fi
 
   _info "Removing TXT record for $_h in zone $_cz"
 
@@ -121,8 +126,9 @@ _czechia_load_conf() {
   [ -z "$CZ_Zones" ] && _err "Missing CZ_Zones" && return 1
   CZ_API_BASE="${CZ_API_BASE:-https://api.czechia.com}"
 
-  _saveaccountconf CZ_AuthorizationToken "$CZ_AuthorizationToken"
-  _saveaccountconf CZ_Zones "$CZ_Zones"
+  # Ukládáme přes mutable variantu, aby to sedělo s načítáním
+  _saveaccountconf_mutable CZ_AuthorizationToken "$CZ_AuthorizationToken"
+  _saveaccountconf_mutable CZ_Zones "$CZ_Zones"
   return 0
 }
 
@@ -132,7 +138,7 @@ _czechia_pick_zone() {
   _best_zone=""
   _zones_space=$(printf "%s" "$CZ_Zones" | sed 's/,/ /g')
   for _z in $_zones_space; do
-    _clean_z=$(printf "%s" "$_z" | _lower_case | sed 's/ //g' | sed 's/\.$//')
+    _clean_z=$(printf "%s" "$_z" | _lower_case | sed 's/ //g; s/\.$//')
     [ -z "$_clean_z" ] && continue
     case "$_fd" in
     "$_clean_z" | *".$_clean_z")
