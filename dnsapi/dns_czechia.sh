@@ -48,7 +48,6 @@ dns_czechia_add() {
 
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
-
   if ! _res="$(_post "$_body" "$_url" "" "POST")"; then
     _err "API request failed."
     return 1
