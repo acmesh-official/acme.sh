@@ -35,7 +35,7 @@ dns_czechia_add() {
   _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
 
   _fd=$(printf "%s" "$fulldomain" | _lower_case | sed 's/\.$//')
-  
+
   # Bezpečnější ořezávání hostname bez sed regexu
   if [ "$_fd" = "$_cz" ]; then
     _h="@"
@@ -87,7 +87,7 @@ dns_czechia_rm() {
   _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
 
   _fd=$(printf "%s" "$fulldomain" | _lower_case | sed 's/\.$//')
-  
+
   if [ "$_fd" = "$_cz" ]; then
     _h="@"
   else
@@ -126,7 +126,6 @@ _czechia_load_conf() {
   [ -z "$CZ_Zones" ] && _err "Missing CZ_Zones" && return 1
   CZ_API_BASE="${CZ_API_BASE:-https://api.czechia.com}"
 
-  # Ukládáme přes mutable variantu, aby to sedělo s načítáním
   _saveaccountconf_mutable CZ_AuthorizationToken "$CZ_AuthorizationToken"
   _saveaccountconf_mutable CZ_Zones "$CZ_Zones"
   return 0
