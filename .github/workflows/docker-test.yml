@@ -16,34 +16,24 @@ jobs:
     - name: Syntax check
       run: bash -n dnsapi/dns_czechia.sh
 
-    - name: Run ONLY Czechia DNS Test
+    - name: Run Czechia DNS Test
       env:
-        # Tvoje credentials
-        TokenName1: ${{ secrets.CZ_TOKEN }}
-        TokenName2: ${{ secrets.CZ_ZONES }}
+        # TADY BYLA CHYBA - musí se to jmenovat přesně takto:
+        CZ_AuthorizationToken: ${{ secrets.CZ_TOKEN }}
+        CZ_Zones: "zoner-test.eu" # Sem dejte vaši testovací doménu
         # Nastavení pro acme.sh
-        TEST_DNS: dns_czechia
         TEST_DNS_SLEEP: 120
       run: |
-        # 1. Nainstalujeme acme.sh přímo sem do runneru
+        # 1. Instalace acme.sh
         curl https://get.acme.sh | sh -s email=jindra@zoner.com
         
-        # 2. Zkopírujeme tvůj nový DNS plugin tam, kam patří
+        # 2. Zkopírování vašeho vyvíjeného pluginu do složky acme.sh
         cp dnsapi/dns_czechia.sh ~/.acme.sh/dnsapi/
         chmod +x ~/.acme.sh/dnsapi/dns_czechia.sh
         
-        # 3. Pustíme ostrý test proti Let's Encrypt staging serveru (ať nespálíme limity)
-        # Použijeme tvou doménu z CZ_ZONES
+        # 3. Spuštění testu proti staging serveru (v CZ_Zones musí být doména)
+        # Použijeme proměnnou $CZ_Zones, kterou jsme definovali v env:
         ~/.acme.sh/acme.sh --issue --dns dns_czechia \
-          -d "$TokenName2" \
+          -d "$CZ_Zones" \
           --server letsencrypt --staging \
           --debug 2
-    - name: Vystavit certifikát přes dns_czechia
-      shell: bash
-      env:
-        # Použití přesně těch názvů, které skript vyžaduje
-        CZ_AuthorizationToken: ${{ secrets.CZ_AuthorizationToken }}
-        CZ_Zones: "vasedomena.cz" # doplňte vaši doménu
-      run: |
-        # Spuštění acme.sh s využitím těchto proměnných
-        ~/.acme.sh/acme.sh --issue --dns dns_czechia -d vasedomena.cz --debug
