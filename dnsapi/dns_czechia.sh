@@ -93,7 +93,6 @@ dns_czechia_rm() {
 
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
-  
   _res="$(_post "$_body" "$_url" "" "DELETE")"
   _debug2 "Response: $_res"
   return 0
