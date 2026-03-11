@@ -97,7 +97,16 @@ dns_czechia_rm() {
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
   _res="$(_post "$_body" "$_url" "" "DELETE")"
+  _post_exit="$?"
   _debug2 "Response: $_res"
+  if [ "$_post_exit" -ne 0 ]; then
+    _err "CZECHIA DNS API DELETE request failed for $_fd: exit code $_post_exit, response: $_res"
+    return 1
+  fi
+  if _contains "$_res" '"isError":true'; then
+    _err "CZECHIA DNS API reported an error while deleting TXT for $_fd: $_res"
+    return 1
+  fi
   return 0
 }
 
