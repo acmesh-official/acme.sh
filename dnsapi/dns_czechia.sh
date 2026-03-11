@@ -114,9 +114,11 @@ _czechia_load_conf() {
   [ -z "$CZ_AuthorizationToken" ] && _err "Missing CZ_AuthorizationToken" && return 1
   CZ_Zones="${CZ_Zones:-$(_readaccountconf_mutable CZ_Zones)}"
   [ -z "$CZ_Zones" ] && _err "Missing CZ_Zones" && return 1
-  CZ_API_BASE="${CZ_API_BASE:-https://api.czechia.com}"
+  CZ_API_BASE="${CZ_API_BASE:-$(_readaccountconf_mutable CZ_API_BASE)}"
+  [ -z "$CZ_API_BASE" ] && CZ_API_BASE="https://api.czechia.com"
   _saveaccountconf_mutable CZ_AuthorizationToken "$CZ_AuthorizationToken"
   _saveaccountconf_mutable CZ_Zones "$CZ_Zones"
+  _saveaccountconf_mutable CZ_API_BASE "$CZ_API_BASE"
   return 0
 }
 
