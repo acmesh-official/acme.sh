@@ -71,7 +71,10 @@ dns_czechia_rm() {
   txtvalue="$2"
   _czechia_load_conf || return 1
   _current_zone=$(_czechia_pick_zone "$fulldomain")
-  [ -z "$_current_zone" ] && return 1
+  if [ -z "$_current_zone" ]; then
+    _err "No matching zone found for $fulldomain. Please check CZ_Zones configuration."
+    return 1
+  fi
   _cz=$(printf "%s" "$_current_zone" | _lower_case | sed 's/ //g')
   _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed 's/ //g')
   _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
