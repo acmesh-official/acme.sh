@@ -39,13 +39,12 @@ dns_czechia_add() {
   [ -z "$_h" ] && _h="@"
 
   _info "Adding TXT record for $_h in zone $_cz"
-  _h_esc=$(printf "%s" "$_h" | sed 's/\\/\\\\/g; s/"/\\"/g')
-  _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
-  _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":300,\"publishZone\":1}"
+  _body="{\"hostName\":$(_json_encode "$_h"),\"text\":$(_json_encode "$txtvalue"),\"ttl\":300,\"publishZone\":1}"
 
   _debug "URL: $_url"
   _debug "Body: $_body"
 
+  _debug "Body: $_body"
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
   if ! _res="$(_post "$_body" "$_url" "" "POST")"; then
