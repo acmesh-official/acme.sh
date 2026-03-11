@@ -167,9 +167,9 @@ _post_to_api() {
   body="$body&gntoken=$gntoken"
   post_response="$(_post "$body" "$url" "" "POST" "application/x-www-form-urlencoded")"
 
-  curl_err_code=$?
-  if [ "$curl_err_code" != "0" ]; then
-    _err "POST API $url curl error:$curl_err_code"
+  http_err_code=$?
+  if [ "$http_err_code" != "0" ]; then
+    _err "POST API $url curl error:$http_err_code"
     return 1
   fi
 
@@ -204,7 +204,7 @@ _extract_domain() {
   fi
 
   if [ -z "$GNAME_TLDS_CACHE" ]; then
-    _err "The list of domain suffixes is empty 02"
+    _err "The list of domain suffixes is empty after retrieval; cannot extract domain"
     return 1
   fi
 
