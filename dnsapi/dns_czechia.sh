@@ -14,7 +14,7 @@ dns_czechia_info='[
 dns_czechia_add() {
   _debug "Entering dns_czechia_add for $1"
   fulldomain="$1"
-  txtvalue="$2"
+  txtvalue="$3"
   _czechia_load_conf || return 1
   _current_zone=$(_czechia_pick_zone "$fulldomain")
   if [ -z "$_current_zone" ]; then
@@ -39,11 +39,11 @@ dns_czechia_add() {
   [ -z "$_h" ] && _h="@"
 
   _info "Adding TXT record for $_h in zone $_cz"
-  _body="{\"hostName\":$(_json_encode "$_h"),\"text\":$(_json_encode "$txtvalue"),\"ttl\":300,\"publishZone\":1}"
+  _h_esc=$(printf "%s" "$_h" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":300,\"publishZone\":1}"
 
   _debug "URL: $_url"
-  _debug "Body: $_body"
-
   _debug "Body: $_body"
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
@@ -67,7 +67,7 @@ dns_czechia_add() {
 
 dns_czechia_rm() {
   fulldomain="$1"
-  txtvalue="$2"
+  txtvalue="$3"
   _czechia_load_conf || return 1
   _current_zone=$(_czechia_pick_zone "$fulldomain")
   if [ -z "$_current_zone" ]; then
