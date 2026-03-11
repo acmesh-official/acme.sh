@@ -595,11 +595,6 @@ if [ "$(printf '\x41')" != 'A' ]; then
   _URGLY_PRINTF=1
 fi
 
-_ESCAPE_XARGS=""
-if _exists xargs && [ "$(printf %s '\\x41' | xargs printf)" = 'A' ]; then
-  _ESCAPE_XARGS=1
-fi
-
 _h2b() {
   if _exists xxd; then
     if _contains "$(xxd --help 2>&1)" "assumes -c30"; then
@@ -618,17 +613,8 @@ _h2b() {
   jc=""
   _debug2 _URGLY_PRINTF "$_URGLY_PRINTF"
   if [ -z "$_URGLY_PRINTF" ]; then
-    if [ "$_ESCAPE_XARGS" ] && _exists xargs; then
-      _debug2 "xargs"
-      echo "$hex" | _upper_case | sed 's/\([0-9A-F]\{2\}\)/\\\\\\x\1/g' | xargs printf
-    else
-      for h in $(echo "$hex" | _upper_case | sed 's/\([0-9A-F]\{2\}\)/ \1/g'); do
-        if [ -z "$h" ]; then
-          break
-        fi
-        printf "\x$h%s"
-      done
-    fi
+    # shellcheck disable=SC2059
+    printf "$(echo "$hex" | _upper_case | sed 's/\([0-9A-F]\{2\}\)/\\x\1/g')"
   else
     for c in $(echo "$hex" | _upper_case | sed 's/\([0-9A-F]\)/ \1/g'); do
       if [ -z "$ic" ]; then
@@ -5195,7 +5181,12 @@ $_authorizations_map"
         if [ "$DEBUG" ]; then
           if [ "$vtype" = "$VTYPE_HTTP" ]; then
             _debug "Debug: GET token URL."
-            _get "http://$d/.well-known/acme-challenge/$token" "" 1
+            if _isIPv6 "$d"; then
+              host="[$d]"
+            else
+              host="$d"
+            fi
+            _get "http://$host/.well-known/acme-challenge/$token" "" 1
           fi
         fi
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
