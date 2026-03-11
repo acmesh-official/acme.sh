@@ -22,7 +22,7 @@ dns_czechia_add() {
     return 1
   fi
   _cz=$(printf "%s" "$_current_zone" | _lower_case | sed 's/ //g')
-  _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed 's/ //g')
+  _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed 's/^ *//; s/ *$//')
   if [ -z "$_cz" ] || [ -z "$_tk" ]; then
     _err "Missing zone or Token."
     return 1
