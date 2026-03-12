@@ -101,7 +101,7 @@ dns_gname_rm() {
   body="appid=$GNAME_APPID&gntime=$gntime&jxid=$record_id&lang=us&ym=$ext_domain"
 
   if ! _post_to_api "/api/resolution/delete" "$body"; then
-    _info "DNS record deletion failed"
+    _err "DNS record deletion failed"
     return 1
   fi
 
