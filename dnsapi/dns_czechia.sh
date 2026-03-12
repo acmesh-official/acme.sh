@@ -12,21 +12,32 @@ dns_czechia_info='[
 ]'
 
 dns_czechia_add() {
-  _debug "Entering dns_czechia_add for $1"
   fulldomain="$1"
-  txtvalue="$3"
+  txtvalue="$2"
+
+  _debug "dns_czechia_add fulldomain='$fulldomain'"
+
+  if [ -z "$fulldomain" ] || [ -z "$txtvalue" ]; then
+    _err "dns_czechia_add: missing fulldomain or txtvalue"
+    return 1
+  fi
+
   _czechia_load_conf || return 1
+
   _current_zone=$(_czechia_pick_zone "$fulldomain")
   if [ -z "$_current_zone" ]; then
     _err "No matching zone found for $fulldomain. Please check CZ_Zones."
     return 1
   fi
-  _cz=$(printf "%s" "$_current_zone" | _lower_case | sed 's/ //g')
-  _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed 's/^ *//; s/ *$//')
+
+  _cz=$(printf "%s" "$_current_zone" | _lower_case | sed 's/[[:space:]]//g; s/\.$//')
+  _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+
   if [ -z "$_cz" ] || [ -z "$_tk" ]; then
-    _err "Missing zone or Token."
+    _err "Missing zone or CZ_AuthorizationToken."
     return 1
   fi
+
   _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
   _fd=$(printf "%s" "$fulldomain" | _lower_case | sed 's/\.$//')
 
@@ -39,19 +50,25 @@ dns_czechia_add() {
   [ -z "$_h" ] && _h="@"
 
   _info "Adding TXT record for $_h in zone $_cz"
+
   _h_esc=$(printf "%s" "$_h" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _txt_esc=$(printf "%s" "$txtvalue" | sed 's/\\/\\\\/g; s/"/\\"/g')
   _body="{\"hostName\":\"$_h_esc\",\"text\":\"$_txt_esc\",\"ttl\":300,\"publishZone\":1}"
 
   _debug "URL: $_url"
   _debug "Body: $_body"
+
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
-  if ! _res="$(_post "$_body" "$_url" "" "POST")"; then
-    _err "API request failed."
+
+  _res="$(_post "$_body" "$_url" "" "POST")"
+  _post_exit="$?"
+  _debug2 "Response: $_res"
+
+  if [ "$_post_exit" -ne 0 ]; then
+    _err "API request failed. exit code $_post_exit"
     return 1
   fi
-  _debug2 "Response: $_res"
 
   if _contains "$_res" "already exists"; then
     _info "Record already exists, skipping."
@@ -62,22 +79,40 @@ dns_czechia_add() {
     _err "API error: $_res"
     return 1
   fi
+
   return 0
 }
 
 dns_czechia_rm() {
   fulldomain="$1"
-  txtvalue="$3"
+  txtvalue="$2"
+
+  _debug "dns_czechia_rm fulldomain='$fulldomain'"
+
+  if [ -z "$fulldomain" ] || [ -z "$txtvalue" ]; then
+    _err "dns_czechia_rm: missing fulldomain or txtvalue"
+    return 1
+  fi
+
   _czechia_load_conf || return 1
+
   _current_zone=$(_czechia_pick_zone "$fulldomain")
   if [ -z "$_current_zone" ]; then
     _err "No matching zone found for $fulldomain. Please check CZ_Zones configuration."
     return 1
   fi
-  _cz=$(printf "%s" "$_current_zone" | _lower_case | sed 's/ //g')
-  _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed 's/ //g')
+
+  _cz=$(printf "%s" "$_current_zone" | _lower_case | sed 's/[[:space:]]//g; s/\.$//')
+  _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+
+  if [ -z "$_cz" ] || [ -z "$_tk" ]; then
+    _err "Missing zone or CZ_AuthorizationToken."
+    return 1
+  fi
+
   _url="$CZ_API_BASE/api/DNS/$_cz/TXT"
   _fd=$(printf "%s" "$fulldomain" | _lower_case | sed 's/\.$//')
+
   if [ "$_fd" = "$_cz" ]; then
     _h="@"
   else
@@ -95,45 +130,64 @@ dns_czechia_rm() {
 
   export _H1="Content-Type: application/json"
   export _H2="AuthorizationToken: $_tk"
+
   _res="$(_post "$_body" "$_url" "" "DELETE")"
   _post_exit="$?"
   _debug2 "Response: $_res"
+
   if [ "$_post_exit" -ne 0 ]; then
     _err "CZECHIA DNS API DELETE request failed for $_fd: exit code $_post_exit, response: $_res"
     return 1
   fi
+
   if _contains "$_res" '"isError":true'; then
     _err "CZECHIA DNS API reported an error while deleting TXT for $_fd: $_res"
     return 1
   fi
+
   return 0
 }
 
 _czechia_load_conf() {
   CZ_AuthorizationToken="${CZ_AuthorizationToken:-$(_readaccountconf_mutable CZ_AuthorizationToken)}"
-  [ -z "$CZ_AuthorizationToken" ] && _err "Missing CZ_AuthorizationToken" && return 1
+  if [ -z "$CZ_AuthorizationToken" ]; then
+    _err "Missing CZ_AuthorizationToken"
+    return 1
+  fi
+
   CZ_Zones="${CZ_Zones:-$(_readaccountconf_mutable CZ_Zones)}"
-  [ -z "$CZ_Zones" ] && _err "Missing CZ_Zones" && return 1
+  if [ -z "$CZ_Zones" ]; then
+    _err "Missing CZ_Zones"
+    return 1
+  fi
+
   CZ_API_BASE="${CZ_API_BASE:-$(_readaccountconf_mutable CZ_API_BASE)}"
   [ -z "$CZ_API_BASE" ] && CZ_API_BASE="https://api.czechia.com"
+
   _saveaccountconf_mutable CZ_AuthorizationToken "$CZ_AuthorizationToken"
   _saveaccountconf_mutable CZ_Zones "$CZ_Zones"
   _saveaccountconf_mutable CZ_API_BASE "$CZ_API_BASE"
+
   return 0
 }
 
 _czechia_pick_zone() {
   _fd=$(printf "%s" "$1" | _lower_case | sed 's/\.$//')
   _best_zone=""
+
   _zones_space=$(printf "%s" "$CZ_Zones" | sed 's/,/ /g')
   for _z in $_zones_space; do
-    _clean_z=$(printf "%s" "$_z" | _lower_case | sed 's/ //g; s/\.$//')
+    _clean_z=$(printf "%s" "$_z" | _lower_case | sed 's/[[:space:]]//g; s/\.$//')
     [ -z "$_clean_z" ] && continue
+
     case "$_fd" in
-    "$_clean_z" | *".$_clean_z")
-      if [ ${#_clean_z} -gt ${#_best_zone} ]; then _best_zone="$_clean_z"; fi
-      ;;
+      "$_clean_z" | *."$_clean_z")
+        if [ ${#_clean_z} -gt ${#_best_zone} ]; then
+          _best_zone="$_clean_z"
+        fi
+        ;;
     esac
   done
+
   printf "%s" "$_best_zone"
 }
