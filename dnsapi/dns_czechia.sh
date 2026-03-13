@@ -140,7 +140,9 @@ dns_czechia_rm() {
     return 1
   fi
 
-  if _contains "$_res" '"isError":true'; then
+  _res_normalized=$(_normalizeJson "$_res")
+
+  if _contains "$_res_normalized" '"isError":true'; then
     _err "CZECHIA DNS API reported an error while deleting TXT for $_fd: $_res"
     return 1
   fi
