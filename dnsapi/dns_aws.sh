@@ -323,7 +323,6 @@ aws_rest() {
   _debug2 CredentialScope "$CredentialScope"
 
   StringToSign="$Algorithm\n$RequestDate\n$CredentialScope\n$HashedCanonicalRequest"
-
   _debug2 StringToSign "$StringToSign"
 
   kSecret="AWS4$AWS_SECRET_ACCESS_KEY"
@@ -361,20 +360,45 @@ aws_rest() {
     url="$AWS_URL/$ep?$qsr"
   fi
 
-  if [ "$mtd" = "GET" ]; then
-    response="$(_get "$url")"
-  else
-    response="$(_post "$data" "$url")"
-  fi
+  # Exponential backoff
+  max_retries=10
+  attempt=1
+  base_sleep=5
 
-  _ret="$?"
-  _debug2 response "$response"
-  if [ "$_ret" = "0" ]; then
-    if _contains "$response" "<ErrorResponse"; then
-      _err "Response error:$response"
-      return 1
+  while [ "$attempt" -le "$max_retries" ]; do
+    if [ "$mtd" = "GET" ]; then
+      response="$(_get "$url")"
+    else
+      response="$(_post "$data" "$url")"
     fi
-  fi
+
+    _ret="$?"
+    _debug2 response "$response"
+
+    if [ "$_ret" = "0" ]; then
+      if _contains "$response" "<ErrorResponse"; then
+        _err "Response error:$response"
+        if echo "$response" | grep -Eq "<Code>(Throttling|RequestThrottled|RateLimit)</Code>|<Message>Rate exceeded</Message>"; then
+          _err "AWS throttling encountered, attempt $attempt"
+          attempt=$(_math "$attempt" + 1)
+          if [ "$attempt" -le "$max_retries" ]; then
+            sleep_time=$(_math "$base_sleep" "*" 2 "^" "$((attempt - 1))")
+            _err "Sleeping $sleep_time seconds before retry..."
+            _sleep "$sleep_time"
+            continue
+          else
+            _err "Max retries ($max_retries) reached. Giving up."
+            return 1
+          fi
+        else
+          return 1
+        fi
+      fi
+    else
+      return "$_ret"
+    fi
+    break
+  done
 
   return "$_ret"
 }
