@@ -61,7 +61,7 @@ dns_gname_add() {
 #Usage: remove  _acme-challenge.www.domain.com   "T1rxqRBosdIK90xWCG3KLZNf6q_0HG9i01zxXp5CASc"
 dns_gname_rm() {
   fulldomain=$1
-  txtvalue=$(printf "%s" "$2" | _url_encode)
+  txtvalue=$2
 
   GNAME_APPID="${GNAME_APPID:-$(_readaccountconf_mutable GNAME_APPID)}"
   GNAME_APPKEY="${GNAME_APPKEY:-$(_readaccountconf_mutable GNAME_APPKEY)}"
@@ -270,7 +270,13 @@ _get_suffixes_json() {
     return 1
   fi
 
-  if ! _contains "$response" "\"code\":1"; then
+  normalized_response="$(echo "$response" | _normalizeJson)"
+  if [ -z "$normalized_response" ]; then
+    _err "Failed to normalize JSON response for domain suffix list"
+    return 1
+  fi
+
+  if ! _contains "$normalized_response" "\"code\":1"; then
     _err "Failed to retrieve list of domain name suffixes; code is not 1"
     return 1
   fi
