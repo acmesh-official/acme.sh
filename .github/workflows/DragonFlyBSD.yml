@@ -61,7 +61,8 @@ jobs:
         nat: |
           "8080": "80"
         prepare: |
-          pkg install -y curl socat libnghttp2
+          pkg install -y libnghttp2
+          pkg install -y curl socat
         usesh: true
         sync: nfs
         run: |
