@@ -47,6 +47,13 @@ dns_subreg_add() {
   _subreg_soap "Add_DNS_Record" "<domain>$_domain</domain><record><name>$_sub_domain</name><type>TXT</type><content>$txtvalue</content><prio>0</prio><ttl>120</ttl></record>"
   if _subreg_ok; then
     _record_id="$(_subreg_map_get record_id)"
+
+    if [ -z "$_record_id" ]; then
+      _err "Subreg API did not return a record_id for TXT record on $fulldomain"
+      _err "$response"
+      return 1
+    fi
+
     _savedomainconf "$(_subreg_record_id_key "$txtvalue")" "$_record_id"
     return 0
   fi
@@ -84,13 +91,15 @@ dns_subreg_rm() {
     _err "Could not find saved record ID for $fulldomain"
     return 1
   fi
-  _cleardomainconf "$(_subreg_record_id_key "$txtvalue")"
 
   _debug "Deleting record ID: $_record_id"
   _subreg_soap "Delete_DNS_Record" "<domain>$_domain</domain><record><id>$_record_id</id></record>"
   if _subreg_ok; then
+
+    _cleardomainconf "$(_subreg_record_id_key "$txtvalue")"
     return 0
   fi
+
   _err "Failed to delete TXT record."
   _err "$response"
   return 1
@@ -101,7 +110,7 @@ dns_subreg_rm() {
 # Build a domain-conf key for storing the record ID of a given TXT value.
 # Base64url chars include '-' which is invalid in shell variable names, so replace with '_'.
 _subreg_record_id_key() {
-  printf 'SUBREG_RECORD_ID_%s' "$(printf '%s' "$1" | tr -- '-' '_')"
+  printf 'SUBREG_RECORD_ID_%s' "$(printf '%s' "$1" | tr '-' '_')"
 }
 
 # Check if the current $response contains a successful status in the ns2:Map format:
@@ -132,7 +141,7 @@ _subreg_login() {
     _err "Subreg login: could not extract session token (ssid)."
     return 1
   fi
-  _debug "_subreg_ssid" "$_subreg_ssid"
+  _debug "Subreg login: session token (ssid) obtained"
   return 0
 }
 
@@ -190,7 +199,6 @@ _subreg_soap_noauth() {
   export _H1="Content-Type: text/xml"
   export _H2="SOAPAction: http://soap.subreg.cz/soap#${_cmd}"
   response="$(_post "$_soap_body" "$SUBREG_API_URL" "" "POST" "text/xml")"
-  _debug2 "response" "$response"
 }
 
 # Send an authenticated SOAP request (requires _subreg_ssid to be set)
@@ -220,5 +228,4 @@ _subreg_soap() {
   export _H1="Content-Type: text/xml"
   export _H2="SOAPAction: http://soap.subreg.cz/soap#${_cmd}"
   response="$(_post "$_soap_body" "$SUBREG_API_URL" "" "POST" "text/xml")"
-  _debug2 "response" "$response"
 }
