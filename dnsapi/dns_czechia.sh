@@ -75,7 +75,12 @@ dns_czechia_add() {
     return 0
   fi
 
-  if _contains "$_res" "\"status\":4" || _contains "$_res" "\"status\":5" || _contains "$_res" "\"errors\""; then
+  _nres="$(_normalizeJson "$_res")"
+  if [ "$?" -ne 0 ] || [ -z "$_nres" ]; then
+    _nres="$_res"
+  fi
+
+  if _contains "$_nres" "\"status\":4" || _contains "$_nres" "\"status\":5" || _contains "$_nres" "\"errors\""; then
     _err "API error: $_res"
     return 1
   fi
