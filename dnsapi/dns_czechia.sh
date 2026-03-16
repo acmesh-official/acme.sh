@@ -44,7 +44,8 @@ dns_czechia_add() {
   if [ "$_fd" = "$_cz" ]; then
     _h="@"
   else
-    _h=$(printf "%s" "$_fd" | sed "s/\.$_cz$//")
+    # Remove the literal ".<zone>" suffix from _fd, if present
+    _h=${_fd%."$_cz"}
     [ "$_h" = "$_fd" ] && _h="@"
   fi
   [ -z "$_h" ] && _h="@"
