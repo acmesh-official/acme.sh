@@ -36,13 +36,13 @@ dns_bh_add() {
   # --- 2. Add TXT record ---
   _info "Adding TXT record for $fulldomain"
 
-  json_payload="{\"fulldomain\":$(_json_encode "$fulldomain"),\"txtvalue\":$(_json_encode "$txtvalue")}"
+  json_payload="{\"fulldomain\":\"$fulldomain\",\"txtvalue\":\"$txtvalue\"}"
   if ! _bh_rest POST "dns" "$json_payload"; then
     _err "Failed to add DNS record."
     return 1
   fi
 
-  record_id=$(printf "%s" "$response" | _egrep_o "\"id\"[[:space:]]*:[[:space:]]*[0-9]\+" | cut -d':' -f2 | tr -d '[:space:]')
+  record_id=$(printf "%s" "$response" | _egrep_o "\"id\"[[:space:]]*:[[:space:]]*[0-9]+" | cut -d':' -f2 | tr -d '[:space:]')
   _debug record_id "$record_id"
 
   if [ -z "$record_id" ]; then
