@@ -155,6 +155,7 @@ _get_root() {
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
+      _err "Unable to retrieve DNS zone matching domain: $domain"
       return 1
     fi
 
@@ -169,15 +170,13 @@ _get_root() {
     p=$i
     i=$(_math "$i" + 1)
   done
-  _err "Unable to retrieve DNS zone matching domain: $domain"
-  return 1
 }
 
 # Send a SOAP request without authentication (used for Login)
 # _subreg_soap_noauth command inner_xml
-_subreg_soap_noauth() {
+_subreg_build_soap() {
   _cmd="$1"
-  _inner="$2"
+  _data_inner="$2"
 
   _soap_body="<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <SOAP-ENV:Envelope
@@ -190,7 +189,7 @@ _subreg_soap_noauth() {
   <SOAP-ENV:Body>
     <ns1:${_cmd}>
       <data>
-        ${_inner}
+        ${_data_inner}
       </data>
     </ns1:${_cmd}>
   </SOAP-ENV:Body>
@@ -203,29 +202,19 @@ _subreg_soap_noauth() {
 
 # Send an authenticated SOAP request (requires _subreg_ssid to be set)
 # _subreg_soap command inner_xml
-_subreg_soap() {
+_subreg_soap_noauth() {
   _cmd="$1"
   _inner="$2"
 
-  _soap_body="<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-<SOAP-ENV:Envelope
-    xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"
-    xmlns:ns1=\"http://soap.subreg.cz/soap\"
-    xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"
-    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"
-    xmlns:SOAP-ENC=\"http://schemas.xmlsoap.org/soap/encoding/\"
-    SOAP-ENV:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">
-  <SOAP-ENV:Body>
-    <ns1:${_cmd}>
-      <data>
-        <ssid>${_subreg_ssid}</ssid>
-        ${_inner}
-      </data>
-    </ns1:${_cmd}>
-  </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>"
+  _subreg_build_soap "$_cmd" "$_inner"
+}
 
-  export _H1="Content-Type: text/xml"
-  export _H2="SOAPAction: http://soap.subreg.cz/soap#${_cmd}"
-  response="$(_post "$_soap_body" "$SUBREG_API_URL" "" "POST" "text/xml")"
+# Send an authenticated SOAP request (requires _subreg_ssid to be set)
+# _subreg_soap command inner_xml
+_subreg_soap() {
+  _cmd="$1"
+  _inner="$2"
+  _inner_with_ssid="<ssid>${_subreg_ssid}</ssid>${_inner}"
+
+  _subreg_build_soap "$_cmd" "$_inner_with_ssid"
 }
