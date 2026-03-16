@@ -173,22 +173,28 @@ _post_to_api() {
     return 1
   fi
 
-  ret_code=$(echo "$post_response" | sed 's/.*"code":\([-0-9]*\).*/\1/')
+  normalized_response="$(echo "$post_response" | _normalizeJson)"
+  if [ -z "$normalized_response" ]; then
+    _err "Failed to normalize JSON response for [$uri]"
+    return 1
+  fi
+
+  ret_code=$(echo "$normalized_response" | sed 's/.*"code":\([-0-9]*\).*/\1/')
 
   if [ "$ret_code" = "1" ]; then
     return 0
   fi
 
   if [ "$uri" = "/api/resolution/add" ]; then
-    if _contains "$post_response" "the same host records and record values"; then
+    if _contains "$normalized_response" "the same host records and record values"; then
       _info "DNS record already exists, treat as success."
       return 0
     fi
   fi
 
-  ret_msg=$(echo "$post_response" | sed 's/.*"msg":"\([^"]*\)".*/\1/')
+  ret_msg=$(echo "$normalized_response" | sed 's/.*"msg":"\([^"]*\)".*/\1/')
   _err "POST API $url error: [$ret_code] $ret_msg"
-  _debug "Full response: $post_response"
+  _debug "Full response: $normalized_response"
   return 1
 }
 
@@ -238,19 +244,20 @@ _extract_domain() {
     if [ -n "$matched_suffix" ]; then
       prefix="${host%."$matched_suffix"}"
       main_name="${prefix##*.}"
-
       ext_domain="$main_name.$matched_suffix"
-
-      if [ "$host" = "$ext_domain" ]; then
-        ext_hostname=""
-      else
-        ext_hostname="${host%."$ext_domain"}"
-      fi
-
     else
-      ext_domain=$(echo "$host" | awk -F. '{print $(NF-1)"."$NF}')
-      ext_hostname=$(echo "$host" | rev | cut -d. -f3- | rev)
+      _tld="${host##*.}"
+      _tmp="${host%.*}"
+      _main="${_tmp##*.}"
+      ext_domain="$_main.$_tld"
     fi
+
+    if [ "$host" = "$ext_domain" ]; then
+      ext_hostname=""
+    else
+      ext_hostname="${host%."$ext_domain"}"
+    fi
+
   fi
   _debug "ext_hostname:$ext_hostname"
   _debug "ext_domain:$ext_domain"
@@ -281,7 +288,7 @@ _get_suffixes_json() {
     return 1
   fi
 
-  echo "$response"
+  echo "$normalized_response"
   return 0
 }
 
