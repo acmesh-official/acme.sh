@@ -84,7 +84,7 @@ dns_bh_rm() {
   # Sanitize key — same as in add
   _conf_key=$(printf "%s" "BH_record_ids_${fulldomain}" | tr '.-' '_')
 
-  # --- 2. Load stored record ID ---
+  # --- 2. Load stored record ID(s) ---
   _existing_ids=$(_readdomainconf "$_conf_key")
   _debug _existing_ids "$_existing_ids"
 
@@ -93,11 +93,56 @@ dns_bh_rm() {
     return 1
   fi
 
-  # Take the first ID from the list
-  record_id=$(printf "%s" "$_existing_ids" | cut -d' ' -f1)
-  # Remaining IDs for wildcard support
-  _remaining_ids=$(printf "%s" "$_existing_ids" | cut -d' ' -f2-)
-  _debug record_id "$record_id"
+  record_id=""
+  _remaining_ids=""
+
+  # Find the record ID that matches both the name and txtvalue
+  for _id in $_existing_ids; do
+    if ! _bh_rest GET "dns/$_id"; then
+      _debug "Failed to query record id $_id, skipping."
+      # Keep it in the list so a later run can try again
+      if [ -z "$_remaining_ids" ]; then
+        _remaining_ids="$_id"
+      else
+        _remaining_ids="$_remaining_ids $_id"
+      fi
+      continue
+    fi
+
+    _match_name=0
+    _match_content=0
+
+    case "$response" in
+      *"\"name\":\"$fulldomain\""*)
+        _match_name=1
+        ;;
+    esac
+
+    case "$response" in
+      *"\"content\":\"$txtvalue\""*)
+        _match_content=1
+        ;;
+    esac
+
+    if [ "$_match_name" -eq 1 ] && [ "$_match_content" -eq 1 ]; then
+      record_id="$_id"
+      _debug "Matched record id" "$record_id"
+      # Do not add this ID to _remaining_ids; it will be deleted
+      continue
+    fi
+
+    # Not a match — keep ID for potential future cleanups
+    if [ -z "$_remaining_ids" ]; then
+      _remaining_ids="$_id"
+    else
+      _remaining_ids="$_remaining_ids $_id"
+    fi
+  done
+
+  if [ -z "$record_id" ]; then
+    _err "Could not find matching TXT record for $fulldomain with the given value."
+    return 1
+  fi
 
   # --- 3. Delete record ---
   _info "Removing TXT record for $fulldomain"
@@ -108,7 +153,7 @@ dns_bh_rm() {
   fi
 
   # Update stored list — remove used ID
-  if [ -z "$_remaining_ids" ] || [ "$_remaining_ids" = "$record_id" ]; then
+  if [ -z "$_remaining_ids" ]; then
     _savedomainconf "$_conf_key" ""
   else
     _savedomainconf "$_conf_key" "$_remaining_ids"
