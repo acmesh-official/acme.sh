@@ -86,7 +86,6 @@ dns_bh_rm() {
   _conf_key=$(printf "%s" "BH_record_ids_${fulldomain}" | tr '.-' '_')
 
   # --- 2. Load stored record ID(s) ---
-  # --- 2. Load stored record ID(s) ---
   _existing_ids=$(_readdomainconf "$_conf_key")
   _debug _existing_ids "$_existing_ids"
 
@@ -102,6 +101,7 @@ dns_bh_rm() {
   for _id in $_existing_ids; do
     if ! _bh_rest GET "dns/$_id"; then
       _debug "Failed to query record id $_id, skipping."
+
       # Keep it in the list so a later run can try again
       if [ -z "$_remaining_ids" ]; then
         _remaining_ids="$_id"
@@ -110,24 +110,28 @@ dns_bh_rm() {
       fi
       continue
     fi
+
     _match_name=0
     _match_content=0
+
     case "$response" in
-      *"\"name\":\"$fulldomain\""*)
-        _match_name=1
-        ;;
+    *"\"name\":\"$fulldomain\""*)
+      _match_name=1
+      ;;
     esac
     case "$response" in
-      *"\"content\":\"$txtvalue\""*)
-        _match_content=1
-        ;;
+    *"\"content\":\"$txtvalue\""*)
+      _match_content=1
+      ;;
     esac
+
     if [ "$_match_name" -eq 1 ] && [ "$_match_content" -eq 1 ]; then
       record_id="$_id"
       _debug "Matched record id" "$record_id"
       # Do not add this ID to _remaining_ids; it will be deleted
       continue
     fi
+
     # Not a match — keep ID for potential future cleanups
     if [ -z "$_remaining_ids" ]; then
       _remaining_ids="$_id"
