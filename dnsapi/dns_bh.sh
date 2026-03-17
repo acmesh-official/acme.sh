@@ -42,7 +42,13 @@ dns_bh_add() {
     return 1
   fi
 
-  record_id=$(printf "%s" "$response" | _egrep_o "\"id\"[[:space:]]*:[[:space:]]*[0-9]+" | cut -d':' -f2 | tr -d '[:space:]')
+  _norm_add=$(printf "%s" "$response" | tr -d '[:space:]')
+  if ! _contains "$_norm_add" '"status":"success"'; then
+    _err "API error: $response"
+    return 1
+  fi
+
+  record_id=$(printf "%s" "$_norm_add" | _egrep_o '"id":[0-9]+' | cut -d':' -f2)
   _debug record_id "$record_id"
 
   if [ -z "$record_id" ]; then
@@ -113,13 +119,14 @@ dns_bh_rm() {
 
     _match_name=0
     _match_content=0
+    _norm_response=$(printf "%s" "$response" | tr -d '[:space:]')
 
-    case "$response" in
+    case "$_norm_response" in
     *"\"name\":\"$fulldomain\""*)
       _match_name=1
       ;;
     esac
-    case "$response" in
+    case "$_norm_response" in
     *"\"content\":\"$txtvalue\""*)
       _match_content=1
       ;;
@@ -181,6 +188,7 @@ _bh_rest() {
   if [ "$m" = "GET" ]; then
     response="$(_get "$BH_Api/$ep")"
   else
+    _debug data "$data"
     response="$(_post "$data" "$BH_Api/$ep" "" "$m")"
   fi
 
