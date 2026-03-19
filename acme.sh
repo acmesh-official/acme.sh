@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/bash
 
 VER=3.1.3
 
@@ -2299,7 +2299,7 @@ _send_signed_request() {
 
       _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
       if [ "$code" = '503' ]; then
-        _sleep_overload_retry_sec=$_retryafter
+        _sleep_overload_retry_sec=$(( $_retryafter > ${LE_MIN_RETRY_SLEEP:-5} ? $_retryafter : ${LE_MIN_RETRY_SLEEP:-5} ))
         if [ -z "$_sleep_overload_retry_sec" ]; then
           _sleep_overload_retry_sec=5
         fi
@@ -2308,7 +2308,7 @@ _send_signed_request() {
           _sleep $_sleep_overload_retry_sec
           continue
         else
-          _info "The retryafter=$_retryafter value is too large (> 600), will not retry anymore."
+          _info "The retryafter=$_retryafter value is too large (> ${LE_MAX_RETRY_AFTER:-3600}), will not retry anymore."
         fi
       fi
       if _contains "$_body" "JWS has invalid anti-replay nonce" || _contains "$_body" "JWS has an invalid anti-replay nonce"; then
@@ -5228,12 +5228,12 @@ $_authorizations_map"
         return 1
       fi
       _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
-      _sleep_overload_retry_sec=$_retryafter
+      _sleep_overload_retry_sec=$(( $_retryafter > ${LE_MIN_RETRY_SLEEP:-5} ? $_retryafter : ${LE_MIN_RETRY_SLEEP:-5} ))
       if [ "$_sleep_overload_retry_sec" ]; then
         if [ $_sleep_overload_retry_sec -le 600 ]; then
           _sleep $_sleep_overload_retry_sec
         else
-          _info "The retryafter=$_retryafter value is too large (> 600), will not retry anymore."
+          _info "The retryafter=$_retryafter value is too large (> ${LE_MAX_RETRY_AFTER:-3600}), will not retry anymore."
           _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
           _clearup
           _on_issue_err "$_post_hook" "$vlist"
@@ -5297,6 +5297,8 @@ $_authorizations_map"
       _debug "_retryafter" "$_retryafter"
       if [ "$_retryafter" ] && [ $_retryafter -gt 0 ]; then
         _info "Sleeping for $_retryafter seconds then retrying"
+    _info "Processing sleep: ${LE_PROCESSING_MIN_SLEEP:-15}"
+    sleep ${LE_PROCESSING_MIN_SLEEP:-15}
         _sleep $_retryafter
       else
         _sleep 2
