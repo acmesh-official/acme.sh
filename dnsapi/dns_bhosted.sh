@@ -3,7 +3,7 @@
 # shellcheck disable=SC2034
 dns_bhosted_info='bHosted.nl DNS API
 Site: bHosted.nl
-Docs: https://github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_bhosted
+Docs: https://github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_bhosted
 Options:
   BHOSTED_Username      API username
   BHOSTED_Password      API password (MD5 hash like bHosted web services example)
