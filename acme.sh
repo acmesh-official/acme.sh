@@ -5765,6 +5765,9 @@ ${_skipped_msg}
     fi
   fi
 
+  if [ "$_TREAT_SKIP_AS_SUCCESS" ] && [ "$_ret" = "$RENEW_SKIP" ]; then
+    _ret=0
+  fi
   return "$_ret"
 }
 
@@ -6983,6 +6986,7 @@ cron() {
 
     _info "Automatically upgraded to: $VER"
   fi
+  _TREAT_SKIP_AS_SUCCESS="1"
   renewAll
   _ret="$?"
   _ACME_IN_CRON=""
@@ -7230,6 +7234,7 @@ Parameters:
   --local-address <ip>              Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
   --listraw                         Only used for '--list' command, list the certs in raw format.
   -se, --stop-renew-on-error        Only valid for '--renew-all' command. Stop if one cert has error in renewal.
+  --treat-skip-as-success           Only valid for '--renew-all' command. Treat skipped certs as success, return 0 instead of $RENEW_SKIP.
   --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
   --ca-bundle <file>                Specifies the path to the CA certificate bundle to verify api server's certificate.
   --ca-path <directory>             Specifies directory containing CA certificates in PEM format, used by wget or curl.
@@ -7709,6 +7714,9 @@ _process() {
 
     -f | --force)
       FORCE="1"
+      ;;
+    --treat-skip-as-success | --treatskipassuccess)
+      _TREAT_SKIP_AS_SUCCESS="1"
       ;;
     --staging | --test)
       STAGE="1"
