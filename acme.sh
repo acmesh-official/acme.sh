@@ -5285,7 +5285,7 @@ $_authorizations_map"
       _info "Order status is 'ready', let's sleep and retry."
       _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
       _debug "_retryafter" "$_retryafter"
-      if [ "$_retryafter" ]; then
+      if [ "$_retryafter" ] && [ $_retryafter -gt 0 ]; then
         _info "Sleeping for $_retryafter seconds then retrying"
         _sleep $_retryafter
       else
@@ -5295,7 +5295,7 @@ $_authorizations_map"
       _info "Order status is 'processing', let's sleep and retry."
       _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
       _debug "_retryafter" "$_retryafter"
-      if [ "$_retryafter" ]; then
+      if [ "$_retryafter" ] && [ $_retryafter -gt 0 ]; then
         _info "Sleeping for $_retryafter seconds then retrying"
         _sleep $_retryafter
       else
