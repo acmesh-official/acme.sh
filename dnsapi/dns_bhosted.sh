@@ -285,7 +285,7 @@ _bhosted_response_has_error() {
   fi
 
   # Fallback for unexpected/non-XML responses
-  _resp_lc="$(printf "%s" "$_resp" | tr '[:upper:]' '[:lower:]')"
+  _resp_lc="$(_lower_case "$_resp")"
 
   if _contains "$_resp_lc" "error"; then
     _debug "Detected 'error' in response"
