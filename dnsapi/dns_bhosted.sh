@@ -79,7 +79,7 @@ dns_bhosted_rm() {
   _bhosted_api_del_record "$_bhosted_sld" "$_bhosted_tld" "$_rec_id" || return 1
 
   # Clear cached id after successful delete
-  _saveaccountconf_mutable "$_cache_key" ""
+  _clearaccountconf_mutable "$_cache_key"
 
   return 0
 }
