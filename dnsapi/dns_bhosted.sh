@@ -41,10 +41,10 @@ dns_bhosted_add() {
   # Extract and store record id for later cleanup
   _rec_id="$(_bhosted_extract_id "$response")"
   if [ -n "$_rec_id" ]; then
-    _cache_key="$(_bhosted_cache_key "$fulldomain" "$txtvalue")"
-    _debug "_cache_key" "$_cache_key"
+    _hash="$(_bhosted_cache_hash "$fulldomain" "$txtvalue")"
+    _debug "_hash" "$_hash"
     _debug "_rec_id" "$_rec_id"
-    _saveaccountconf_mutable "$_cache_key" "$_rec_id"
+    _bhosted_mem_set_id "$_hash" "$_rec_id"
   else
     _err "TXT record added but no record id found in response."
     _err "Cleanup may fail unless bHosted addrecord returns <id>...</id>."
@@ -66,8 +66,8 @@ dns_bhosted_rm() {
   _bhosted_load_credentials || return 1
   _bhosted_get_root "$fulldomain" || return 1
 
-  _cache_key="$(_bhosted_cache_key "$fulldomain" "$txtvalue")"
-  _rec_id="$(_readaccountconf_mutable "$_cache_key")"
+  _hash="$(_bhosted_cache_hash "$fulldomain" "$txtvalue")"
+  _rec_id="$(_bhosted_mem_get_id "$_hash")"
 
   if [ -z "$_rec_id" ]; then
     _err "No cached bHosted record id found for cleanup."
@@ -77,9 +77,6 @@ dns_bhosted_rm() {
 
   _info "Removing TXT record id=${_rec_id}: ${_bhosted_name}.${_domain}"
   _bhosted_api_del_record "$_bhosted_sld" "$_bhosted_tld" "$_rec_id" || return 1
-
-  # Clear cached id after successful delete
-  _clearaccountconf_mutable "$_cache_key"
 
   return 0
 }
@@ -350,10 +347,21 @@ _bhosted_extract_id() {
 }
 
 # Create a unique config key for cached record ids
-_bhosted_cache_key() {
+_bhosted_cache_hash() {
   _fd="$1"
   _tv="$2"
-  # md5 hex of fulldomain|txtvalue to avoid invalid chars in conf key
-  _hash="$(printf "%s|%s" "$_fd" "$_tv" | _digest md5 hex)"
-  printf "BHOSTED_RECORD_ID_%s" "$_hash"
+  # md5 hex of fulldomain|txtvalue; alleen [0-9a-f], veilig voor varnaam
+  printf "%s|%s" "$_fd" "$_tv" | _digest md5 hex
+}
+
+_bhosted_mem_set_id() {
+  _hash="$1"
+  _id="$2"
+  # In-memory opslag voor deze run
+  eval "_BHOSTED_TXT_ID_${_hash}=\"${_id}\""
+}
+
+_bhosted_mem_get_id() {
+  _hash="$1"
+  eval "printf '%s' \"\${_BHOSTED_TXT_ID_${_hash}:-}\""
 }
