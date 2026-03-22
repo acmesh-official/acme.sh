@@ -219,10 +219,11 @@ _bhosted_api_del_record() {
   _u_tld="$(printf "%s" "$_tld" | _url_encode)"
   _u_id="$(printf "%s" "$_id" | _url_encode)"
 
-  _url="${BHOSTED_API_ROOT}/delrecord?user=${_u_user}&password=${_u_pass}&tld=${_u_tld}&sld=${_u_sld}&id=${_u_id}"
+  _url="${BHOSTED_API_ROOT}/delrecord"
+  _data="user=${_u_user}&password=${_u_pass}&tld=${_u_tld}&sld=${_u_sld}&id=${_u_id}"
 
-  _debug "bHosted delete endpoint" "${BHOSTED_API_ROOT}/delrecord"
-  response="$(_get "$_url")"
+  _debug "bHosted delete endpoint" "$_url"
+  response="$(_post "$_data" "$_url")"
   _ret="$?"
 
   _debug2 "bHosted delete response" "$response"
