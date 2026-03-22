@@ -326,21 +326,21 @@ _bhosted_extract_id() {
   fi
 
   # JSON: "id":12345
-  _id="$(printf "%s" "$_resp" | _egrep_o '"id"[[:space:]]*:[[:space:]]*[0-9]+' | head -n 1 | tr -cd '0-9')"
+  _id="$(printf "%s" "$_resp" | _egrep_o '"id"[[:space:]]*:[[:space:]]*[0-9]+' | _head_n 1 | tr -cd '0-9')"
   if [ -n "$_id" ]; then
     printf "%s" "$_id"
     return 0
   fi
 
   # key=value: id=12345
-  _id="$(printf "%s" "$_resp" | _egrep_o '(^|[[:space:][:punct:]])id[[:space:]]*=[[:space:]]*[0-9]+' | head -n 1 | tr -cd '0-9')"
+  _id="$(printf "%s" "$_resp" | _egrep_o '(^|[[:space:][:punct:]])id[[:space:]]*=[[:space:]]*[0-9]+' | _head_n 1 | tr -cd '0-9')"
   if [ -n "$_id" ]; then
     printf "%s" "$_id"
     return 0
   fi
 
   # "record id 12345" / "recordid 12345"
-  _id="$(printf "%s" "$_resp" | _egrep_o '(record[[:space:]]*id|recordid)[^0-9]*[0-9]+' | head -n 1 | tr -cd '0-9')"
+  _id="$(printf "%s" "$_resp" | _egrep_o '(record[[:space:]]*id|recordid)[^0-9]*[0-9]+' | _head_n 1 | tr -cd '0-9')"
   if [ -n "$_id" ]; then
     printf "%s" "$_id"
     return 0
