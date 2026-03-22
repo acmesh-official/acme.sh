@@ -186,10 +186,10 @@ _bhosted_api_add_txt() {
   _u_content="$(printf "%s" "$_content" | _url_encode)"
   _u_ttl="$(printf "%s" "$_ttl" | _url_encode)"
 
-  _url="${BHOSTED_API_ROOT}/addrecord?user=${_u_user}&password=${_u_pass}&tld=${_u_tld}&sld=${_u_sld}&type=TXT&name=${_u_name}&content=${_u_content}&ttl=${_u_ttl}"
+  _data="user=${_u_user}&password=${_u_pass}&tld=${_u_tld}&sld=${_u_sld}&type=TXT&name=${_u_name}&content=${_u_content}&ttl=${_u_ttl}"
 
   _debug "bHosted add endpoint" "${BHOSTED_API_ROOT}/addrecord"
-  response="$(_get "$_url")"
+  response="$(_post "$_data" "${BHOSTED_API_ROOT}/addrecord")"
   _ret="$?"
 
   _debug2 "bHosted add response" "$response"
