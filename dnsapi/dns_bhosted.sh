@@ -249,7 +249,7 @@ _bhosted_xml_value() {
 
   # Flatten response to simplify parsing
   _flat="$(printf "%s" "$_resp" | tr -d '\r\n\t')"
-  printf "%s" "$_flat" | sed -n "s:.*<${_tag}>\\([^<]*\\)</${_tag}>.*:\\1:p" | head -n 1
+  printf "%s" "$_flat" | sed -n "s:.*<${_tag}>\\([^<]*\\)</${_tag}>.*:\\1:p" | _head_n 1
 }
 
 # Return code convention:
