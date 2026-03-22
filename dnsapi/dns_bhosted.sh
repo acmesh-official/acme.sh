@@ -38,7 +38,7 @@ dns_bhosted_add() {
 
   _bhosted_api_add_txt "$_bhosted_sld" "$_bhosted_tld" "$_bhosted_name" "$txtvalue" "$BHOSTED_TTL" || return 1
 
- # Extract and cache record id in-memory for cleanup in this run
+  # Extract and cache record id in-memory for cleanup in this run
   _rec_id="$(_bhosted_extract_id "$response")"
   if [ -n "$_rec_id" ]; then
     _hash="$(_bhosted_cache_hash "$fulldomain" "$txtvalue")"
