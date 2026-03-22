@@ -20,8 +20,8 @@ dns_bh_add() {
   txtvalue=$2
 
   # --- 1. Credentials ---
-  BH_API_USER="${BH_API_USER:-$(_readdomainconf BH_API_USER)}"
-  BH_API_KEY="${BH_API_KEY:-$(_readdomainconf BH_API_KEY)}"
+  BH_API_USER="${BH_API_USER:-$(_readaccountconf_mutable BH_API_USER)}"
+  BH_API_KEY="${BH_API_KEY:-$(_readaccountconf_mutable BH_API_KEY)}"
 
   if [ -z "$BH_API_USER" ] || [ -z "$BH_API_KEY" ]; then
     BH_API_USER=""
@@ -30,8 +30,8 @@ dns_bh_add() {
     return 1
   fi
 
-  _savedomainconf BH_API_USER "$BH_API_USER"
-  _savedomainconf BH_API_KEY "$BH_API_KEY"
+  _saveaccountconf_mutable BH_API_USER "$BH_API_USER"
+  _saveaccountconf_mutable BH_API_KEY "$BH_API_KEY"
 
   # --- 2. Add TXT record ---
   _info "Adding TXT record for $fulldomain"
