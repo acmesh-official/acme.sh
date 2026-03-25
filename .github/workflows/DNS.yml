@@ -88,8 +88,6 @@ jobs:
           echo "${{ secrets.TokenName5}}=${{ secrets.TokenValue5}}" >> docker.env
         fi
 
-    - name: Disable tinycore (broken in CI)
-      run: sed -i 's/^tatsushid\/tinycore/#tatsushid\/tinycore/' ../acmetest/plat.conf
     - name: Run acmetest
       run: cd ../acmetest && ./rundocker.sh  testall
 
