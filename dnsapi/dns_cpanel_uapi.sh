@@ -53,7 +53,7 @@ dns_cpanel_uapi_add() {
   _cpanel_uapi_request "execute/DNS/mass_edit_zone?zone=${_domain}&serial=${_serial}&add=${_add_json}"
   _debug "_result: $_result"
 
-  if echo "$_result" | grep -q '"status":1'; then
+  if _contains "$_result" '"status":1'; then
     _info "TXT record added successfully"
     return 0
   fi
@@ -94,7 +94,7 @@ dns_cpanel_uapi_rm() {
   _cpanel_uapi_request "execute/DNS/mass_edit_zone?zone=${_domain}&serial=${_serial}&remove=${_line_index}"
   _debug "_result: $_result"
 
-  if echo "$_result" | grep -q '"status":1'; then
+  if _contains "$_result" '"status":1'; then
     _info "TXT record removed successfully"
     return 0
   fi
@@ -131,7 +131,7 @@ _cpanel_uapi_login() {
   if ! _cpanel_uapi_checkcredentials; then return 1; fi
 
   _cpanel_uapi_request "execute/DomainInfo/list_domains"
-  if echo "$_result" | grep -q '"status":1'; then
+  if _contains "$_result" '"status":1'; then
     _debug "UAPI login check successful"
     return 0
   fi
@@ -150,7 +150,7 @@ _cpanel_uapi_get_root() {
   _debug "DomainInfo response length: ${#_result}"
 
   # Extract main_domain
-  _main_domain=$(echo "$_result" | _egrep_o '"main_domain"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"main_domain"[[:space:]]*:[[:space:]]*"//;s/"//')
+  _main_domain=$(echo "$_result" | _egrep_o '"main_domain"[[:space:]]*:[[:space:]]*"[^"]*"' | _head_n 1 | sed 's/.*"main_domain"[[:space:]]*:[[:space:]]*"//;s/"//')
   _debug "main_domain: $_main_domain"
 
   # Extract addon_domains (array of strings)
@@ -190,7 +190,7 @@ _cpanel_uapi_get_serial() {
   # Split JSON records onto separate lines using a POSIX-portable sed literal newline
   # (\\n in sed replacement is a GNU/BusyBox extension; a backslash-newline works everywhere)
   _soa_line=$(echo "$_result" | sed 's/},{/},\
-{/g' | grep '"record_type":"SOA"' | head -1)
+{/g' | grep '"record_type":"SOA"' | _head_n 1)
   _debug "SOA line: $_soa_line"
 
   if [ -z "$_soa_line" ]; then
@@ -209,7 +209,7 @@ _cpanel_uapi_get_serial() {
     return 1
   fi
 
-  _serial=$(printf '%s' "$_serial_b64" | base64 -d 2>/dev/null || printf '%s' "$_serial_b64" | openssl base64 -d 2>/dev/null)
+  _serial=$(printf '%s' "$_serial_b64" | _dbase64)
   _debug "Decoded serial: $_serial"
 
   if [ -z "$_serial" ]; then
@@ -226,12 +226,12 @@ _cpanel_uapi_findentry() {
   _debug "parse_zone result length: ${#_result}"
 
   # Base64-encode the txtvalue to match against data_b64 in the response
-  _b64_txtvalue=$(printf '%s' "$txtvalue" | base64 | tr -d '\n')
+  _b64_txtvalue=$(printf '%s' "$txtvalue" | _base64)
   _debug "b64_txtvalue: $_b64_txtvalue"
 
   # Split records onto separate lines, find matching TXT record by base64 value
   _line_index=$(echo "$_result" | sed 's/},{/},\
-{/g' | grep '"record_type":"TXT"' | grep -F "$_b64_txtvalue" | _egrep_o '"line_index":[0-9]+' | head -1 | cut -d: -f2)
+{/g' | grep '"record_type":"TXT"' | grep -F "$_b64_txtvalue" | _egrep_o '"line_index":[0-9]+' | _head_n 1 | cut -d: -f2)
   _debug "line_index: $_line_index"
 
   if [ -n "$_line_index" ]; then
