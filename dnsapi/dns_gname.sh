@@ -6,7 +6,8 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_gname
 Options:
  GNAME_APPID Your APPID
  GNAME_APPKEY Your APPKEY
-OptionsAlt:
+Issues: github.com/acmesh-official/acme.sh/issues/6874
+Author: GNDevProd <tech@gname.com>
 '
 
 GNAME_TLD_Api="https://www.gname.com/request/tlds?lx=all"
@@ -19,6 +20,8 @@ GNAME_TLDS_CACHE=""
 dns_gname_add() {
   fulldomain=$1
   txtvalue=$(printf "%s" "$2" | _url_encode)
+  #Compatible with gname API RFC 1738 standard URL encoding
+  txtvalue=$(printf '%s' "$txtvalue" | sed 's/%20/+/g')
 
   GNAME_APPID="${GNAME_APPID:-$(_readaccountconf_mutable GNAME_APPID)}"
   GNAME_APPKEY="${GNAME_APPKEY:-$(_readaccountconf_mutable GNAME_APPKEY)}"
@@ -218,7 +221,7 @@ _extract_domain() {
   sub_part=$(echo "$GNAME_TLDS_CACHE" | sed 's/.*"sub":\[\([^]]*\)\].*/\1/' | tr -d '"' | tr ',' ' ')
   suffix_list=$(echo "$main_part $sub_part" | tr -s ' ' | sed 's/^[ ]//;s/[ ]$//')
 
-  dot_count=$(echo "$host" | grep -o "\." | wc -l)
+  dot_count=$(echo "$host" | _egrep_o "\." | wc -l)
 
   if [ "$dot_count" -eq 0 ]; then
     _err "Invalid domain format: $host (missing dot)"
