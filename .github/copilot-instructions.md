@@ -39,7 +39,6 @@ Please adhere to the previous format: organize the feedback into a single, struc
 * **Function Usage:** Recommend wrapping complex or reusable logic within clearly named functions.
 * **Local Variables:** Check that variables inside functions are declared using the `local` keyword to avoid unintentionally modifying global state.
 * **Naming Convention:** Variable names should use uppercase letters and underscores (e.g., `MY_VARIABLE`), or follow established project conventions.
-* **Test Conditions:** Encourage the use of Bash's **double brackets `[[ ... ]]`** for conditional tests, as it is generally safer and more powerful (e.g., supports pattern matching and avoids Word Splitting) than single brackets `[ ... ]`.
 * **Command Substitution:** Encourage using `$(command)` over backticks `` `command` `` for command substitution, as it is easier to nest and improves readability.
 
 ### 4. External Commands and Environment
@@ -48,19 +47,19 @@ Please adhere to the previous format: organize the feedback into a single, struc
 * **Use existing acme.sh functions whenever possible.** For example: do not use `tr '[:upper:]' '[:lower:]'`, use `_lower_case` instead.
 * **Do not use `head -n`.** Use the `_head_n()` function instead.
 * **Do not use `curl` or `wget`.** Use the `_post()` and `_get()` functions instead.
+* **keep it sh compatible, do not use bash-only syntax.** We need to cross platforms between Linux/BSD/Mac.
 
 ---
 
 ### 5. Review Rules for Files Under `dnsapi/`:
 
 * **Each file must contain a `{filename}_add` function** for adding DNS TXT records. It should use `_readaccountconf_mutable` to read the API key and `_saveaccountconf_mutable` to save it. Do not use `_saveaccountconf` or `_readaccountconf`.
-
+* **keep it shell only** Do not add more dependencies. common tools, such as grep or sed etc are ok to use. do not depend on python or perl etc.
 
 ## ❌ Things to Avoid
 
 * Do not comment on purely stylistic issues like spacing or indentation, which should be handled by tools like ShellCheck or Prettier.
 * Do not be overly verbose unless a significant issue is found. Keep feedback concise and actionable.
-
 
 
 
