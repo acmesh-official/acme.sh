@@ -8,7 +8,7 @@ Options:
  cPanel_Username Username
  cPanel_Apitoken API Token
  cPanel_Hostname Server URL. E.g. "https://hostname:port"
-Issues: github.com/acmesh-official/acme.sh/issues/XXXX
+Issues: github.com/acmesh-official/acme.sh/issues/6877
 Author: Adam Bodnar
 '
 
