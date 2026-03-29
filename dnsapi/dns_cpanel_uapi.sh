@@ -8,6 +8,7 @@ Options:
  cPanel_Username Username
  cPanel_Apitoken API Token
  cPanel_Hostname Server URL. E.g. "https://hostname:port"
+ cPanel_TTL optional TXT record TTL in seconds. Default: 120
 Issues: github.com/acmesh-official/acme.sh/issues/6877
 Author: Adam Bodnar
 '
@@ -46,8 +47,14 @@ dns_cpanel_uapi_add() {
   fi
   _debug "Zone serial: $_serial"
 
+  # Use configurable TTL, default 120 seconds
+  _ttl="${cPanel_TTL:-$(_readaccountconf_mutable cPanel_TTL)}"
+  if [ -z "$_ttl" ]; then
+    _ttl=120
+  fi
+
   # URL-encode the JSON add parameter
-  _add_json="%7B%22dname%22%3A%22${_record_name}%22%2C%22ttl%22%3A14400%2C%22record_type%22%3A%22TXT%22%2C%22data%22%3A%5B%22${txtvalue}%22%5D%7D"
+  _add_json="%7B%22dname%22%3A%22${_record_name}%22%2C%22ttl%22%3A${_ttl}%2C%22record_type%22%3A%22TXT%22%2C%22data%22%3A%5B%22${txtvalue}%22%5D%7D"
   _debug "add_json (encoded): $_add_json"
 
   if ! _cpanel_uapi_request "execute/DNS/mass_edit_zone?zone=${_domain}&serial=${_serial}&add=${_add_json}"; then
@@ -130,6 +137,10 @@ _cpanel_uapi_checkcredentials() {
   _saveaccountconf_mutable cPanel_Username "$cPanel_Username"
   _saveaccountconf_mutable cPanel_Apitoken "$cPanel_Apitoken"
   _saveaccountconf_mutable cPanel_Hostname "$cPanel_Hostname"
+
+  if [ -n "$cPanel_TTL" ]; then
+    _saveaccountconf_mutable cPanel_TTL "$cPanel_TTL"
+  fi
   return 0
 }
 
