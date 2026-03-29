@@ -50,7 +50,10 @@ dns_cpanel_uapi_add() {
   _add_json="%7B%22dname%22%3A%22${_record_name}%22%2C%22ttl%22%3A14400%2C%22record_type%22%3A%22TXT%22%2C%22data%22%3A%5B%22${txtvalue}%22%5D%7D"
   _debug "add_json (encoded): $_add_json"
 
-  _cpanel_uapi_request "execute/DNS/mass_edit_zone?zone=${_domain}&serial=${_serial}&add=${_add_json}"
+  if ! _cpanel_uapi_request "execute/DNS/mass_edit_zone?zone=${_domain}&serial=${_serial}&add=${_add_json}"; then
+    _err "Request to add TXT record failed for zone $_domain"
+    return 1
+  fi
   _debug "_result: $_result"
 
   if _contains "$_result" '"status":1'; then
@@ -91,7 +94,10 @@ dns_cpanel_uapi_rm() {
     _err "Failed to get zone serial for $_domain"
     return 1
   fi
-  _cpanel_uapi_request "execute/DNS/mass_edit_zone?zone=${_domain}&serial=${_serial}&remove=${_line_index}"
+  if ! _cpanel_uapi_request "execute/DNS/mass_edit_zone?zone=${_domain}&serial=${_serial}&remove=${_line_index}"; then
+    _err "Request to remove TXT record failed for zone $_domain"
+    return 1
+  fi
   _debug "_result: $_result"
 
   if _contains "$_result" '"status":1'; then
@@ -130,7 +136,10 @@ _cpanel_uapi_checkcredentials() {
 _cpanel_uapi_login() {
   if ! _cpanel_uapi_checkcredentials; then return 1; fi
 
-  _cpanel_uapi_request "execute/DomainInfo/list_domains"
+  if ! _cpanel_uapi_request "execute/DomainInfo/list_domains"; then
+    _err "Request to cPanel API failed during login check"
+    return 1
+  fi
   if _contains "$_result" '"status":1'; then
     _debug "UAPI login check successful"
     return 0
@@ -143,10 +152,14 @@ _cpanel_uapi_login() {
 _cpanel_uapi_request() {
   export _H1="Authorization: cpanel $cPanel_Username:$cPanel_Apitoken"
   _result=$(_get "$cPanel_Hostname/$1")
+  return $?
 }
 
 _cpanel_uapi_get_root() {
-  _cpanel_uapi_request "execute/DomainInfo/list_domains"
+  if ! _cpanel_uapi_request "execute/DomainInfo/list_domains"; then
+    _err "Request to cPanel API failed while listing domains"
+    return 1
+  fi
   _debug "DomainInfo response length: ${#_result}"
 
   # Extract main_domain
@@ -185,7 +198,10 @@ _cpanel_uapi_get_root() {
 
 _cpanel_uapi_get_serial() {
   _zone="$1"
-  _cpanel_uapi_request "execute/DNS/parse_zone?zone=${_zone}"
+  if ! _cpanel_uapi_request "execute/DNS/parse_zone?zone=${_zone}"; then
+    _err "Request to parse zone failed for $_zone"
+    return 1
+  fi
 
   # Split JSON records onto separate lines using a POSIX-portable sed literal newline
   # (\\n in sed replacement is a GNU/BusyBox extension; a backslash-newline works everywhere)
@@ -222,7 +238,10 @@ _cpanel_uapi_get_serial() {
 _cpanel_uapi_findentry() {
   _debug "Finding TXT entry for $fulldomain with value $txtvalue"
 
-  _cpanel_uapi_request "execute/DNS/parse_zone?zone=${_domain}"
+  if ! _cpanel_uapi_request "execute/DNS/parse_zone?zone=${_domain}"; then
+    _err "Request to parse zone failed for $_domain"
+    return 1
+  fi
   _debug "parse_zone result length: ${#_result}"
 
   # Base64-encode the txtvalue to match against data_b64 in the response
