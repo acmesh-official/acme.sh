@@ -6,6 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_aws
 Options:
  AWS_ACCESS_KEY_ID API Key ID
  AWS_SECRET_ACCESS_KEY API Secret
+ AWS_ROLE_ARN Optional Role ARN to assume (for cross-account Route53 access)
 '
 
 # All `_sleep` commands are included to avoid Route53 throttling, see
@@ -39,11 +40,19 @@ dns_aws_add() {
     return 1
   fi
 
+  AWS_ROLE_ARN="${AWS_ROLE_ARN:-$(_readaccountconf_mutable AWS_ROLE_ARN)}"
+  if [ -n "$AWS_ROLE_ARN" ]; then
+    _use_role "$AWS_ROLE_ARN" || return 1
+  fi
+
   #save for future use, unless using a role which will be fetched as needed
   if [ -z "$_using_role" ]; then
     _saveaccountconf_mutable AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
     _saveaccountconf_mutable AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
     _saveaccountconf_mutable AWS_DNS_SLOWRATE "$AWS_DNS_SLOWRATE"
+  fi
+  if [ -n "$AWS_ROLE_ARN" ]; then
+    _saveaccountconf_mutable AWS_ROLE_ARN "$AWS_ROLE_ARN"
   fi
 
   _debug "First detect the root zone"
@@ -105,6 +114,11 @@ dns_aws_rm() {
 
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     _use_container_role || _use_instance_role
+  fi
+
+  AWS_ROLE_ARN="${AWS_ROLE_ARN:-$(_readaccountconf_mutable AWS_ROLE_ARN)}"
+  if [ -n "$AWS_ROLE_ARN" ]; then
+    _use_role "$AWS_ROLE_ARN" || return 1
   fi
 
   _debug "First detect the root zone"
@@ -261,6 +275,56 @@ _use_metadata() {
 
   eval "$_aws_creds"
   _using_role=true
+}
+
+_use_role() {
+  _role_arn="$1"
+  _debug "Assuming role: $_role_arn"
+  _encoded_arn="$(printf '%s' "$_role_arn" | sed 's/:/%3A/g; s|/|%2F|g')"
+  _sts_response="$(_aws_sts_rest "Action=AssumeRole&RoleArn=$_encoded_arn&RoleSessionName=acme-sh&Version=2011-06-15")"
+  if ! _contains "$_sts_response" "<AssumeRoleResponse"; then
+    _err "Failed to assume role: $_role_arn"
+    return 1
+  fi
+  AWS_ACCESS_KEY_ID="$(echo "$_sts_response" | _egrep_o "<AccessKeyId>[^<]*" | cut -d'>' -f2)"
+  AWS_SECRET_ACCESS_KEY="$(echo "$_sts_response" | _egrep_o "<SecretAccessKey>[^<]*" | cut -d'>' -f2)"
+  AWS_SESSION_TOKEN="$(echo "$_sts_response" | _egrep_o "<SessionToken>[^<]*" | cut -d'>' -f2)"
+  if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ] || [ -z "$AWS_SESSION_TOKEN" ]; then
+    _err "Failed to parse credentials from AssumeRole response"
+    return 1
+  fi
+  _debug "Successfully assumed role: $_role_arn"
+}
+
+_aws_sts_rest() {
+  _qstr="$1"
+  _sts_host="sts.amazonaws.com"
+  _sts_region="us-east-1"
+  _sts_service="sts"
+  _sts_date="$(date -u +"%Y%m%dT%H%M%SZ")"
+  _sts_date_only="$(echo "$_sts_date" | cut -c 1-8)"
+  _sts_signed_headers="host;x-amz-date"
+  _sts_canonical_headers="host:$_sts_host\nx-amz-date:$_sts_date\n"
+  if [ -n "$AWS_SESSION_TOKEN" ]; then
+    _sts_canonical_headers="${_sts_canonical_headers}x-amz-security-token:$AWS_SESSION_TOKEN\n"
+    _sts_signed_headers="${_sts_signed_headers};x-amz-security-token"
+  fi
+  _sts_cr="GET\n/\n$_qstr\n$_sts_canonical_headers\n$_sts_signed_headers\n$(printf "%s" "" | _digest sha256 hex)"
+  _sts_hcr="$(printf '%b' "$_sts_cr" | _digest sha256 hex)"
+  _sts_scope="$_sts_date_only/$_sts_region/$_sts_service/aws4_request"
+  _sts_sts="AWS4-HMAC-SHA256\n$_sts_date\n$_sts_scope\n$_sts_hcr"
+  _sts_ksh="$(printf "%s" "AWS4$AWS_SECRET_ACCESS_KEY" | _hex_dump | tr -d " ")"
+  _sts_kdh="$(printf "$_sts_date_only%s" | _hmac sha256 "$_sts_ksh" hex)"
+  _sts_krh="$(printf "$_sts_region%s" | _hmac sha256 "$_sts_kdh" hex)"
+  _sts_ksrvh="$(printf "$_sts_service%s" | _hmac sha256 "$_sts_krh" hex)"
+  _sts_ksigh="$(printf "%s" "aws4_request" | _hmac sha256 "$_sts_ksrvh" hex)"
+  _sts_sig="$(printf "$_sts_sts%s" | _hmac sha256 "$_sts_ksigh" hex)"
+  export _H1="x-amz-date: $_sts_date"
+  export _H2="Authorization: AWS4-HMAC-SHA256 Credential=$AWS_ACCESS_KEY_ID/$_sts_scope, SignedHeaders=$_sts_signed_headers, Signature=$_sts_sig"
+  if [ -n "$AWS_SESSION_TOKEN" ]; then
+    export _H3="x-amz-security-token: $AWS_SESSION_TOKEN"
+  fi
+  _get "https://$_sts_host/?$_qstr"
 }
 
 #method uri qstr data
