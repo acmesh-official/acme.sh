@@ -353,7 +353,7 @@ synology_dsm_deploy() {
   _debug2 SYNO_CREATE "$SYNO_CREATE"
 
   if [ -z "$id" ] && [ -z "$SYNO_CREATE" ]; then
-    _err "Unable to find certificate: $SYNO_CERTIFICATE and $SYNO_CREATE is not set."
+    _err "Unable to find certificate: $SYNO_CERTIFICATE and \$SYNO_CREATE is not set."
     _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 1
   fi
