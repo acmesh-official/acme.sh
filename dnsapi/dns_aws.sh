@@ -41,14 +41,21 @@ dns_aws_add() {
   fi
 
   AWS_ROLE_ARN="${AWS_ROLE_ARN:-$(_readaccountconf_mutable AWS_ROLE_ARN)}"
+  # Capture static credentials before role assumption may overwrite them
+  _save_key_id="$AWS_ACCESS_KEY_ID"
+  _save_secret="$AWS_SECRET_ACCESS_KEY"
   if [ -n "$AWS_ROLE_ARN" ]; then
     _use_role "$AWS_ROLE_ARN" || return 1
   fi
 
-  #save for future use, unless using a role which will be fetched as needed
+  # Save static credentials for future use, unless using an instance/container
+  # role (indicated by _using_role=true from _use_metadata).  Note: _use_role()
+  # intentionally does NOT set _using_role — when the caller owns static keys and
+  # assumes a cross-account role, _save_key_id/_save_secret still hold those
+  # static keys and must be persisted so future renewals can re-assume the role.
   if [ -z "$_using_role" ]; then
-    _saveaccountconf_mutable AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
-    _saveaccountconf_mutable AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
+    _saveaccountconf_mutable AWS_ACCESS_KEY_ID "$_save_key_id"
+    _saveaccountconf_mutable AWS_SECRET_ACCESS_KEY "$_save_secret"
     _saveaccountconf_mutable AWS_DNS_SLOWRATE "$AWS_DNS_SLOWRATE"
   fi
   if [ -n "$AWS_ROLE_ARN" ]; then
@@ -114,6 +121,12 @@ dns_aws_rm() {
 
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     _use_container_role || _use_instance_role
+  fi
+
+  if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+    _err "You haven't specified the aws route53 api key id and and api key secret yet."
+    _err "Please create your key and try again. see $(__green $AWS_WIKI)"
+    return 1
   fi
 
   AWS_ROLE_ARN="${AWS_ROLE_ARN:-$(_readaccountconf_mutable AWS_ROLE_ARN)}"
@@ -280,24 +293,39 @@ _use_metadata() {
 _use_role() {
   _role_arn="$1"
   _debug "Assuming role: $_role_arn"
-  _encoded_arn="$(printf '%s' "$_role_arn" | sed 's/:/%3A/g; s|/|%2F|g')"
+  _encoded_arn="$(printf '%s' "$_role_arn" | _url_encode)"
   _sts_response="$(_aws_sts_rest "Action=AssumeRole&RoleArn=$_encoded_arn&RoleSessionName=acme-sh&Version=2011-06-15")"
   if ! _contains "$_sts_response" "<AssumeRoleResponse"; then
     _err "Failed to assume role: $_role_arn"
     return 1
   fi
-  AWS_ACCESS_KEY_ID="$(echo "$_sts_response" | _egrep_o "<AccessKeyId>[^<]*" | cut -d'>' -f2)"
-  AWS_SECRET_ACCESS_KEY="$(echo "$_sts_response" | _egrep_o "<SecretAccessKey>[^<]*" | cut -d'>' -f2)"
-  AWS_SESSION_TOKEN="$(echo "$_sts_response" | _egrep_o "<SessionToken>[^<]*" | cut -d'>' -f2)"
-  if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ] || [ -z "$AWS_SESSION_TOKEN" ]; then
+  # Parse into temporary variables so the caller's credentials are not
+  # overwritten if parsing partially fails.
+  _assumed_key_id="$(echo "$_sts_response" | _egrep_o "<AccessKeyId>[^<]*" | cut -d'>' -f2)"
+  _assumed_secret="$(echo "$_sts_response" | _egrep_o "<SecretAccessKey>[^<]*" | cut -d'>' -f2)"
+  _assumed_token="$(echo "$_sts_response" | _egrep_o "<SessionToken>[^<]*" | cut -d'>' -f2)"
+  if [ -z "$_assumed_key_id" ] || [ -z "$_assumed_secret" ] || [ -z "$_assumed_token" ]; then
     _err "Failed to parse credentials from AssumeRole response"
     return 1
   fi
+  # Defense-in-depth: AWS credentials contain only alphanumeric and base64
+  # characters.  Reject anything else to prevent HTTP header injection or
+  # format-string issues if the STS response were ever spoofed.
+  case "$_assumed_key_id$_assumed_secret$_assumed_token" in
+    *[!A-Za-z0-9+/=]*)
+      _err "AssumeRole response contains unexpected characters"
+      return 1
+      ;;
+  esac
+  AWS_ACCESS_KEY_ID="$_assumed_key_id"
+  AWS_SECRET_ACCESS_KEY="$_assumed_secret"
+  AWS_SESSION_TOKEN="$_assumed_token"
   _debug "Successfully assumed role: $_role_arn"
 }
 
 _aws_sts_rest() {
   _qstr="$1"
+  unset _H3
   _sts_host="sts.amazonaws.com"
   _sts_region="us-east-1"
   _sts_service="sts"
@@ -314,11 +342,11 @@ _aws_sts_rest() {
   _sts_scope="$_sts_date_only/$_sts_region/$_sts_service/aws4_request"
   _sts_sts="AWS4-HMAC-SHA256\n$_sts_date\n$_sts_scope\n$_sts_hcr"
   _sts_ksh="$(printf "%s" "AWS4$AWS_SECRET_ACCESS_KEY" | _hex_dump | tr -d " ")"
-  _sts_kdh="$(printf "$_sts_date_only%s" | _hmac sha256 "$_sts_ksh" hex)"
-  _sts_krh="$(printf "$_sts_region%s" | _hmac sha256 "$_sts_kdh" hex)"
-  _sts_ksrvh="$(printf "$_sts_service%s" | _hmac sha256 "$_sts_krh" hex)"
-  _sts_ksigh="$(printf "%s" "aws4_request" | _hmac sha256 "$_sts_ksrvh" hex)"
-  _sts_sig="$(printf "$_sts_sts%s" | _hmac sha256 "$_sts_ksigh" hex)"
+  _sts_kdh="$(printf '%s' "$_sts_date_only" | _hmac sha256 "$_sts_ksh" hex)"
+  _sts_krh="$(printf '%s' "$_sts_region" | _hmac sha256 "$_sts_kdh" hex)"
+  _sts_ksrvh="$(printf '%s' "$_sts_service" | _hmac sha256 "$_sts_krh" hex)"
+  _sts_ksigh="$(printf '%s' "aws4_request" | _hmac sha256 "$_sts_ksrvh" hex)"
+  _sts_sig="$(printf '%b' "$_sts_sts" | _hmac sha256 "$_sts_ksigh" hex)"
   export _H1="x-amz-date: $_sts_date"
   export _H2="Authorization: AWS4-HMAC-SHA256 Credential=$AWS_ACCESS_KEY_ID/$_sts_scope, SignedHeaders=$_sts_signed_headers, Signature=$_sts_sig"
   if [ -n "$AWS_SESSION_TOKEN" ]; then
