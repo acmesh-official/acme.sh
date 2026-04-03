@@ -30,7 +30,7 @@ dns_cpanel_uapi_add() {
   fi
 
   _debug "Detecting root zone"
-  if ! _cpanel_uapi_get_root "$fulldomain"; then
+  if ! _cpanel_uapi_get_root; then
     _err "No matching root domain for $fulldomain found"
     return 1
   fi
@@ -49,15 +49,23 @@ dns_cpanel_uapi_add() {
 
   # Use configurable TTL, default 120 seconds
   _ttl="${cPanel_TTL:-$(_readaccountconf_mutable cPanel_TTL)}"
-  if [ -z "$_ttl" ]; then
-    _ttl=120
-  fi
+  case "$_ttl" in
+    "")
+      _ttl=120
+      ;;
+    *[!0-9]*)
+      _debug "Invalid cPanel_TTL provided, falling back to default 120"
+      _ttl=120
+      ;;
+  esac
 
-  # URL-encode the JSON add parameter
-  _add_json="%7B%22dname%22%3A%22${_record_name}%22%2C%22ttl%22%3A${_ttl}%2C%22record_type%22%3A%22TXT%22%2C%22data%22%3A%5B%22${txtvalue}%22%5D%7D"
-  _debug "add_json (encoded): $_add_json"
+  # Build JSON and URL-encode it for the add parameter
+  _add_json=$(printf '{"dname":"%s","ttl":%s,"record_type":"TXT","data":["%s"]}' "$_record_name" "$_ttl" "$txtvalue")
+  _debug "add_json: $_add_json"
+  _add_json_encoded=$(printf '%s' "$_add_json" | _url_encode)
+  _debug "add_json (encoded): $_add_json_encoded"
 
-  if ! _cpanel_uapi_request "execute/DNS/mass_edit_zone?zone=${_domain}&serial=${_serial}&add=${_add_json}"; then
+  if ! _cpanel_uapi_request "execute/DNS/mass_edit_zone?zone=${_domain}&serial=${_serial}&add=${_add_json_encoded}"; then
     _err "Request to add TXT record failed for zone $_domain"
     return 1
   fi
@@ -86,12 +94,12 @@ dns_cpanel_uapi_rm() {
     return 1
   fi
 
-  if ! _cpanel_uapi_get_root "$fulldomain"; then
+  if ! _cpanel_uapi_get_root; then
     _err "No matching root domain for $fulldomain found"
     return 1
   fi
 
-  if ! _cpanel_uapi_findentry "$fulldomain" "$txtvalue"; then
+  if ! _cpanel_uapi_findentry; then
     _info "Entry doesn't exist, nothing to delete"
     return 0
   fi
