@@ -50,13 +50,13 @@ dns_cpanel_uapi_add() {
   # Use configurable TTL, default 120 seconds
   _ttl="${cPanel_TTL:-$(_readaccountconf_mutable cPanel_TTL)}"
   case "$_ttl" in
-    "")
-      _ttl=120
-      ;;
-    *[!0-9]*)
-      _debug "Invalid cPanel_TTL provided, falling back to default 120"
-      _ttl=120
-      ;;
+  "")
+    _ttl=120
+    ;;
+  *[!0-9]*)
+    _debug "Invalid cPanel_TTL provided, falling back to default 120"
+    _ttl=120
+    ;;
   esac
 
   # Build JSON and URL-encode it for the add parameter
