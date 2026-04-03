@@ -109,12 +109,12 @@ _bhosted_load_credentials() {
 _bhosted_get_root() {
   domain="$1"
 
-  BHOSTED_SLD="${BHOSTED_SLD:-$(_readaccountconf_mutable BHOSTED_SLD)}"
-  BHOSTED_TLD="${BHOSTED_TLD:-$(_readaccountconf_mutable BHOSTED_TLD)}"
+  BHOSTED_SLD="${BHOSTED_SLD:-$(_readdomainconf BHOSTED_SLD)}"
+  BHOSTED_TLD="${BHOSTED_TLD:-$(_readdomainconf BHOSTED_TLD)}"
 
   if [ -n "$BHOSTED_SLD" ] && [ -n "$BHOSTED_TLD" ]; then
-    _saveaccountconf_mutable BHOSTED_SLD "$BHOSTED_SLD"
-    _saveaccountconf_mutable BHOSTED_TLD "$BHOSTED_TLD"
+    _savedomainconf BHOSTED_SLD "$BHOSTED_SLD"
+    _savedomainconf BHOSTED_TLD "$BHOSTED_TLD"
 
     _domain="${BHOSTED_SLD}.${BHOSTED_TLD}"
     case "$domain" in
