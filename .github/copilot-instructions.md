@@ -47,6 +47,9 @@ Please adhere to the previous format: organize the feedback into a single, struc
 * **Use existing acme.sh functions whenever possible.** For example: do not use `tr '[:upper:]' '[:lower:]'`, use `_lower_case` instead.
 * **Do not use `head -n`.** Use the `_head_n()` function instead.
 * **Do not use `curl` or `wget`.** Use the `_post()` and `_get()` functions instead.
+* **Do not use `awk`.** Use the `cut` and `sed` instead.
+* **Do not use `[:space:]` or `[:punct:]`.** 
+* **Do not use `grep -E` or `grep -O`, .** Use the `_egrep_o` function instead.
 * **keep it sh compatible, do not use bash-only syntax.** We need to cross platforms between Linux/BSD/Mac.
 
 ---
