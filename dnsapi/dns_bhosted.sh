@@ -350,18 +350,24 @@ _bhosted_extract_id() {
 _bhosted_cache_hash() {
   _fd="$1"
   _tv="$2"
-  # md5 hex of fulldomain|txtvalue; alleen [0-9a-f], veilig voor varnaam
+  # md5 hex of fulldomain|txtvalue
   printf "%s|%s" "$_fd" "$_tv" | _digest md5 hex
+}
+
+_bhosted_cache_key() {
+  _hash="$1"
+  printf "%s" "BHOSTED_TXT_ID_${_hash}"
 }
 
 _bhosted_mem_set_id() {
   _hash="$1"
   _id="$2"
-  # In-memory opslag voor deze run
-  eval "_BHOSTED_TXT_ID_${_hash}=\"${_id}\""
+  _key="$(_bhosted_cache_key "$_hash")"
+  _savedomainconf "$_key" "$_id"
 }
 
 _bhosted_mem_get_id() {
   _hash="$1"
-  eval "printf '%s' \"\${_BHOSTED_TXT_ID_${_hash}:-}\""
+  _key="$(_bhosted_cache_key "$_hash")"
+  _readdomainconf "$_key"
 }
