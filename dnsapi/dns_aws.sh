@@ -293,7 +293,7 @@ _use_metadata() {
 _use_role() {
   _role_arn="$1"
   _debug "Assuming role: $_role_arn"
-  _encoded_arn="$(printf '%s' "$_role_arn" | _url_encode)"
+  _encoded_arn="$(printf '%s' "$_role_arn" | _url_encode upper-hex)"
   _sts_response="$(_aws_sts_rest "Action=AssumeRole&RoleArn=$_encoded_arn&RoleSessionName=acme-sh&Version=2011-06-15")"
   if ! _contains "$_sts_response" "<AssumeRoleResponse"; then
     _err "Failed to assume role: $_role_arn"
