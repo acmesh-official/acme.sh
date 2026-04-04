@@ -6,9 +6,10 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
+    if: github.actor != 'neilpang'
     steps:
       - name: Checkout wiki repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ github.repository }}.wiki
           path: wiki

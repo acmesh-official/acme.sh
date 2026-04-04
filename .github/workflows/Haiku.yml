@@ -1,18 +1,18 @@
-name: Solaris
+name: Haiku
 on:
   push:
     branches:
       - '*'
     paths:
       - '*.sh'
-      - '.github/workflows/Solaris.yml'
+      - '.github/workflows/Haiku.yml'
 
   pull_request:
     branches:
       - dev
     paths:
       - '*.sh'
-      - '.github/workflows/Solaris.yml'
+      - '.github/workflows/Haiku.yml'
 
 concurrency: 
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,8 +21,9 @@ concurrency:
 
 
 jobs:
-  Solaris:
+  Haiku:
     strategy:
+      fail-fast: false
       matrix:
         include:
          - TEST_ACME_Server: "LetsEncrypt.org_test"
@@ -61,15 +62,16 @@ jobs:
       run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/solaris-vm@v1
+    - uses: vmactions/haiku-vm@v1
       with:
         envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN ACME_USE_WGET'
         nat: |
           "8080": "80"
         prepare: |
-          pkgutil -U
-          pkgutil -y -i socat curl wget
-        sync: nfs
+          mkdir -p /boot/home/.cache
+          pkgman install -y cronie
+        sync: rsync
+        copyback: false
         run: |
           cd ../acmetest \
           && ./letest.sh

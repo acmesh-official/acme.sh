@@ -5,6 +5,10 @@
 #TELEGRAM_BOT_APITOKEN=""
 #TELEGRAM_BOT_CHATID=""
 #TELEGRAM_BOT_URLBASE=""
+#TELEGRAM_BOT_THREADID=""
+
+# To get TELEGRAM_BOT_THREADID, just copy the link of the message from the thread.
+# https://t.me/c/123456789/XXX/1520 - XXX is the TELEGRAM_BOT_THREADID
 
 telegram_send() {
   _subject="$1"
@@ -28,6 +32,12 @@ telegram_send() {
   fi
   _saveaccountconf_mutable TELEGRAM_BOT_CHATID "$TELEGRAM_BOT_CHATID"
 
+  TELEGRAM_BOT_THREADID="${TELEGRAM_BOT_THREADID:-$(_readaccountconf_mutable TELEGRAM_BOT_THREADID)}"
+  if [ -z "$TELEGRAM_BOT_THREADID" ]; then
+    TELEGRAM_BOT_THREADID=""
+  fi
+  _saveaccountconf_mutable TELEGRAM_BOT_THREADID "$TELEGRAM_BOT_THREADID"
+
   TELEGRAM_BOT_URLBASE="${TELEGRAM_BOT_URLBASE:-$(_readaccountconf_mutable TELEGRAM_BOT_URLBASE)}"
   if [ -z "$TELEGRAM_BOT_URLBASE" ]; then
     TELEGRAM_BOT_URLBASE="https://api.telegram.org"
@@ -39,6 +49,9 @@ telegram_send() {
   _content="$(printf "*%s*\n%s" "$_subject" "$_content" | _json_encode)"
   _data="{\"text\": \"$_content\", "
   _data="$_data\"chat_id\": \"$TELEGRAM_BOT_CHATID\", "
+  if [ -n "$TELEGRAM_BOT_THREADID" ]; then
+    _data="$_data\"message_thread_id\": \"$TELEGRAM_BOT_THREADID\", "
+  fi
   _data="$_data\"parse_mode\": \"MarkdownV2\", "
   _data="$_data\"disable_web_page_preview\": \"1\"}"
 

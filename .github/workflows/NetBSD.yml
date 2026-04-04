@@ -45,8 +45,8 @@ jobs:
       TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
       ACME_USE_WGET: ${{ matrix.ACME_USE_WGET }}
     steps:
-    - uses: actions/checkout@v4
-    - uses: vmactions/cf-tunnel@v0
+    - uses: actions/checkout@v6
+    - uses: anyvm-org/cf-tunnel@v0
       id: tunnel
       with:
         protocol: http
@@ -63,9 +63,13 @@ jobs:
         prepare: |
           /usr/sbin/pkg_add curl socat
         usesh: true
-        copyback: false
+        sync: nfs
         run: |
           cd ../acmetest \
           && ./letest.sh
-
-
+    - name: DebugOnError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
+        
