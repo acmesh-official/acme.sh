@@ -186,7 +186,7 @@ _cpanel_uapi_get_root() {
   _debug "main_domain: $_main_domain"
 
   # Extract addon_domains (array of strings)
-  _addon_domains=$(echo "$_result" | _egrep_o '"addon_domains"[[:space:]]*:[[:space:]]*\[[^]]*\]' | _egrep_o '"[a-zA-Z0-9._-]+"' | sed 's/"//g' | grep -v 'addon_domains')
+  _addon_domains=$(echo "$_result" | _egrep_o '"addon_domains"[[:space:]]*:[[:space:]]*\[[^]]*\]' | sed 's/.*"addon_domains"[[:space:]]*:[[:space:]]*\[//;s/\][[:space:]]*$//' | _egrep_o '"[a-zA-Z0-9._-]+"' | sed 's/"//g')
   _debug "addon_domains: $_addon_domains"
 
   # Build list of all domains to check
@@ -199,7 +199,7 @@ _cpanel_uapi_get_root() {
   for _check_domain in $_all_domains; do
     if [ -z "$_check_domain" ]; then continue; fi
     if _endswith "$fulldomain" "$_check_domain"; then
-      _len=$(printf '%s' "$_check_domain" | wc -c)
+      _len=${#_check_domain}
       if [ "$_len" -gt "$_best_len" ]; then
         _best_match="$_check_domain"
         _best_len="$_len"
