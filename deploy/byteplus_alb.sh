@@ -390,32 +390,9 @@ ${_cr_hash}"
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  URL encode (RFC 3986) — awk-based for performance
+#  URL encode (RFC 3986)
 # ══════════════════════════════════════════════════════════════════════════════
 
 _byteplus_urlencode() {
-  printf '%s' "$1" | awk 'BEGIN {
-    for (i = 0; i <= 255; i++) {
-      c = sprintf("%c", i)
-      if (c ~ /[a-zA-Z0-9.~_\-]/)
-        safe[i] = c
-      else
-        safe[i] = sprintf("%%%02X", i)
-    }
-  }
-  {
-    n = length($0)
-    for (i = 1; i <= n; i++) {
-      c = substr($0, i, 1)
-      printf "%s", safe[ord(c)]
-    }
-    # Print newline as %0A (except trailing, which command substitution strips)
-    if (NR > 0) printf "%%0A"
-  }
-  function ord(c,   i2) {
-    for (i2 = 0; i2 <= 255; i2++)
-      if (sprintf("%c", i2) == c) return i2
-    return 0
-  }
-  END { }' | sed 's/%0A$//'
+  _url_encode "$1"
 }
