@@ -58,6 +58,7 @@ Never use raw shell commands when acme.sh provides a wrapper function. This is t
 | Instead of | Use |
 |---|---|
 | `tr '[:upper:]' '[:lower:]'` | `_lower_case()` |
+| `tr '[:lower:]' '[:upper:]'` | `_upper_case()` |
 | `head -n 1` | `_head_n 1` |
 | `openssl dgst` / `openssl` | `_digest()` / `_hmac()` |
 | `date` | `_utc_date()` with `sed`/`tr` |
@@ -68,6 +69,14 @@ Never use raw shell commands when acme.sh provides a wrapper function. This is t
 | `grep -E` / `grep -Po` | `_egrep_o()` |
 | `printf` | `echo` |
 | `idn` command | `_idn()` / `_is_idn()` |
+| `mktemp` | `_mktemp()` |
+| `[:space:]` | ` ` |
+| `[:alnum:]` | `A-Za-z0-9` |
+| `[:alpha:]` | `A-Za-z` |
+| `[:digit:]` | `0-9` |
+| `awk` | `cut` / `sed` / `while read` loops |
+
+
 
 When fixing a pattern issue, fix **all instances** in the file, not just the one highlighted.
 
