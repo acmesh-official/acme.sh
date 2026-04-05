@@ -139,8 +139,8 @@ byteplus_alb_deploy() {
   _date_tag=$(date -u +%Y%m%d-%H%M)
   # Replace wildcard * and dots for a valid cert name
   _safe_domain=$(echo "$_cdomain" | sed 's/\*\.//g' | sed 's/\./-/g')
-  # Underscore version for bash variable names (hyphens not allowed in var names)
-  _conf_key=$(echo "$_cdomain" | sed 's/\*\.//g' | sed 's/\./_/g')
+  # Safe identifier version for deployconf keys: map all non [A-Za-z0-9_] to _
+  _conf_key=$(echo "$_cdomain" | sed 's/^\*\.//' | sed 's/[^A-Za-z0-9_]/_/g')
 
   if [ -z "$BYTEPLUS_CERT_NAME" ]; then
     BYTEPLUS_CERT_NAME="acme-${_safe_domain}-${_date_tag}"
