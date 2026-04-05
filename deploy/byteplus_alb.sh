@@ -346,7 +346,8 @@ ${_BYTEPLUS_EMPTY_HASH}"
   # URL-encoded certificate or private key material.
 
   # Hash of canonical request
-  _cr_hash=$(_digest "sha256" "hex" "$_canonical_request")
+  # _digest is provided by acme.sh and works across OpenSSL versions.
+  _cr_hash=$(printf '%s' "$_canonical_request" | _digest sha256 hex)
 
   # Credential scope
   _credential_scope="${_date_only}/${BYTEPLUS_REGION}/${_BYTEPLUS_SERVICE}/request"
@@ -360,20 +361,29 @@ ${_cr_hash}"
   _debug2 _string_to_sign "$_string_to_sign"
 
   # Signing key derivation (HMAC chain)
-  _k_date=$(printf '%s' "$_date_only" | openssl dgst -sha256 -hmac "$BYTEPLUS_SECRET_KEY" | awk '{print $NF}')
-  _k_region=$(printf '%s' "$BYTEPLUS_REGION" | openssl dgst -sha256 -mac HMAC -macopt "hexkey:${_k_date}" | awk '{print $NF}')
-  _k_service=$(printf '%s' "$_BYTEPLUS_SERVICE" | openssl dgst -sha256 -mac HMAC -macopt "hexkey:${_k_region}" | awk '{print $NF}')
-  _k_signing=$(printf '%s' "request" | openssl dgst -sha256 -mac HMAC -macopt "hexkey:${_k_service}" | awk '{print $NF}')
+  # _hmac <algo> <hex-key> reads data from stdin and returns a hex digest.
+  # acme.sh's _hmac abstracts away OpenSSL version differences, so this works
+  # on both modern (-mac HMAC -macopt hexkey:) and older (-hmac) OpenSSL builds.
+  #
+  # The first step seeds the chain from the raw secret key, so we convert it
+  # to hex first with _hex_dump (also an acme.sh built-in).
+  _secret_hex=$(printf '%s' "$BYTEPLUS_SECRET_KEY" | _hex_dump | tr -d ' \n')
+  _k_date=$(printf '%s'              "$_date_only"         | _hmac sha256 "$_secret_hex"  hex)
+  _k_region=$(printf '%s'            "$BYTEPLUS_REGION"    | _hmac sha256 "$_k_date"      hex)
+  _k_service=$(printf '%s'           "$_BYTEPLUS_SERVICE"  | _hmac sha256 "$_k_region"    hex)
+  _k_signing=$(printf '%s'           "request"             | _hmac sha256 "$_k_service"   hex)
 
   # Final signature
-  _signature=$(printf '%s' "$_string_to_sign" | openssl dgst -sha256 -mac HMAC -macopt "hexkey:${_k_signing}" | awk '{print $NF}')
+  _signature=$(printf '%s' "$_string_to_sign" | _hmac sha256 "$_k_signing" hex)
 
   # Authorization header
   _auth="HMAC-SHA256 Credential=${BYTEPLUS_ACCESS_KEY}/${_credential_scope}, SignedHeaders=${_signed_headers}, Signature=${_signature}"
 
   _secure_debug2 _auth "$_auth"
 
-  # Build URL and execute GET request
+  # Build URL and execute GET request via acme.sh's _get helper.
+  # _get handles exit-status checking, respects _H1/_H2/_H3 extra headers,
+  # and provides consistent error handling across platforms.
   _url="https://${_BYTEPLUS_HOST}/?${_sorted_query}"
 
   _saved_H1="${_H1:-}"
