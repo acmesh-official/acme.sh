@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 # shellcheck disable=SC2034,SC2154
 #
 # acme.sh deploy hook: BytePlus Application Load Balancer (ALB)
