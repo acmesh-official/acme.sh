@@ -363,7 +363,7 @@ ${_cr_hash}"
   # Authorization header
   _auth="HMAC-SHA256 Credential=${BYTEPLUS_ACCESS_KEY}/${_credential_scope}, SignedHeaders=${_signed_headers}, Signature=${_signature}"
 
-  _debug2 _auth "$_auth"
+  _secure_debug2 _auth "$_auth"
 
   # Build URL and execute GET request
   _url="https://${_BYTEPLUS_HOST}/?${_sorted_query}"
