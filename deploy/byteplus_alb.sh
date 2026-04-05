@@ -338,7 +338,7 @@ ${_BYTEPLUS_EMPTY_HASH}"
   # URL-encoded certificate or private key material.
 
   # Hash of canonical request
-  _cr_hash=$(printf '%s' "$_canonical_request" | openssl dgst -sha256 | awk '{print $NF}')
+  _cr_hash=$(_digest "sha256" "hex" "$_canonical_request")
 
   # Credential scope
   _credential_scope="${_date_only}/${BYTEPLUS_REGION}/${_BYTEPLUS_SERVICE}/request"
