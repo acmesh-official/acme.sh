@@ -318,7 +318,7 @@ _byteplus_alb_api() {
   _date_only=$(date -u +%Y%m%d)
 
   # Sort query params for canonical request
-  _sorted_query=$(echo "$_query_params" | tr '&' '\n' | sort | tr '\n' '&' | sed 's/&$//')
+  _sorted_query=$(echo "$_query_params" | tr '&' '\n' | LC_ALL=C sort | tr '\n' '&' | sed 's/&$//')
 
   # Canonical headers — only host and x-date
   _canonical_headers="host:${_BYTEPLUS_HOST}
