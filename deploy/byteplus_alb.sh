@@ -334,7 +334,8 @@ ${_canonical_headers}
 ${_signed_headers}
 ${_BYTEPLUS_EMPTY_HASH}"
 
-  _debug2 _canonical_request "$_canonical_request"
+  # Do not log _canonical_request because the query string may contain
+  # URL-encoded certificate or private key material.
 
   # Hash of canonical request
   _cr_hash=$(printf '%s' "$_canonical_request" | openssl dgst -sha256 | awk '{print $NF}')
