@@ -191,52 +191,12 @@ byteplus_alb_deploy() {
 # ══════════════════════════════════════════════════════════════════════════════
 
 _byteplus_first_time_deploy() {
-  _info "No previous CertificateId found. Uploading new certificate..."
-
-  if [ -n "$BYTEPLUS_PROJECT_NAME" ]; then
-    _upload_response=$(_byteplus_alb_api "UploadCertificate" \
-      "CertificateType=Server" \
-      "CertificateName=${BYTEPLUS_CERT_NAME}" \
-      "ProjectName=${BYTEPLUS_PROJECT_NAME}" \
-      "PublicKey=${_public_key}" \
-      "PrivateKey=${_private_key}")
-  else
-    _upload_response=$(_byteplus_alb_api "UploadCertificate" \
-      "CertificateType=Server" \
-      "CertificateName=${BYTEPLUS_CERT_NAME}" \
-      "PublicKey=${_public_key}" \
-      "PrivateKey=${_private_key}")
-  fi
-
-  _debug2 _upload_response "$_upload_response"
-
-  _new_cert_id=$(_byteplus_extract_cert_id "$_upload_response")
-
-  if [ -z "$_new_cert_id" ]; then
-    _err "UploadCertificate failed: $(_byteplus_extract_error "$_upload_response")"
-    _debug2 "Full response" "$_upload_response"
-    return 1
-  fi
-
-  _info "Certificate uploaded. CertificateId: $_new_cert_id"
-
-  # Set description if provided
-  if [ -n "$BYTEPLUS_CERT_DESCRIPTION" ]; then
-    _info "Setting certificate description..."
-    _byteplus_alb_api "ModifyCertificateAttributes" \
-      "CertificateId=${_new_cert_id}" \
-      "CertificateName=${BYTEPLUS_CERT_NAME}" \
-      "Description=${BYTEPLUS_CERT_DESCRIPTION}" >/dev/null
-  fi
-
-  _info ""
-  _info "╔══════════════════════════════════════════════════════════════════╗"
-  _info "║  ACTION REQUIRED (one-time only)                               ║"
-  _info "║  Assign CertificateId '$_new_cert_id'"
-  _info "║  to your ALB Listener in BytePlus Console.                     ║"
-  _info "║  After that, all future renewals will be fully automatic.      ║"
-  _info "╚══════════════════════════════════════════════════════════════════╝"
-  _info ""
+  _info "No previous CertificateId found."
+  _err "Refusing to upload certificate material because this hook passes PublicKey/PrivateKey as request parameters."
+  _err "Uploading a private key in the request URL can leak it via logs, proxies, and process listings."
+  _err "Please upload the certificate to BytePlus manually for the initial deployment, set BYTEPLUS_CERT_ID, and rerun."
+  _err "This hook must be updated to send PublicKey and PrivateKey in a POST body before automatic first-time upload can be enabled safely."
+  return 1
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
