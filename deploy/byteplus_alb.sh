@@ -147,7 +147,15 @@ byteplus_alb_deploy() {
   fi
 
   # Enforce BytePlus naming rules: start with letter, max 128 chars
-  BYTEPLUS_CERT_NAME=$(echo "$BYTEPLUS_CERT_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g' | cut -c1-128)
+  BYTEPLUS_CERT_NAME=$(echo "$BYTEPLUS_CERT_NAME" | sed 's/[^A-Za-z0-9._-]/-/g')
+  case "$BYTEPLUS_CERT_NAME" in
+    [A-Za-z]*)
+      ;;
+    *)
+      BYTEPLUS_CERT_NAME="a$BYTEPLUS_CERT_NAME"
+      ;;
+  esac
+  BYTEPLUS_CERT_NAME=$(echo "$BYTEPLUS_CERT_NAME" | cut -c1-128)
 
   _info "Certificate name: $BYTEPLUS_CERT_NAME"
 
