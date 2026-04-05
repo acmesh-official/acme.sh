@@ -252,14 +252,14 @@ _byteplus_delete_old_cert() {
   _del_cert_id="$1"
 
   _info "Waiting 5s for cert status to settle..."
-  sleep 5
+  _sleep 5
 
   _info "Deleting old certificate '$_del_cert_id'..."
   _del_response=$(_byteplus_alb_api "DeleteCertificate" "CertificateId=${_del_cert_id}")
 
   if echo "$_del_response" | grep -q '"Error"'; then
     _info "Delete failed, retrying in 10s..."
-    sleep 10
+    _sleep 10
     _del_response=$(_byteplus_alb_api "DeleteCertificate" "CertificateId=${_del_cert_id}")
 
     if echo "$_del_response" | grep -q '"Error"'; then
