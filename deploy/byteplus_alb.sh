@@ -367,12 +367,24 @@ ${_cr_hash}"
   # Build URL and execute GET request
   _url="https://${_BYTEPLUS_HOST}/?${_sorted_query}"
 
-  _response=$(curl -s --connect-timeout 10 --max-time 60 -X GET \
-    -H "Authorization: ${_auth}" \
-    -H "X-Date: ${_x_date}" \
-    -H "Host: ${_BYTEPLUS_HOST}" \
-    "${_url}")
+  _saved_H1="${_H1:-}"
+  _saved_H2="${_H2:-}"
+  _saved_H3="${_H3:-}"
 
+  _H1="Authorization: ${_auth}"
+  _H2="X-Date: ${_x_date}"
+  _H3="Host: ${_BYTEPLUS_HOST}"
+  _response="$(_get "$_url")"
+  _request_ret="$?"
+
+  _H1="$_saved_H1"
+  _H2="$_saved_H2"
+  _H3="$_saved_H3"
+
+  if [ "$_request_ret" != "0" ]; then
+    _err "byteplus_alb_api request failed for [$_action]"
+    return 1
+  fi
   _debug2 "_byteplus_alb_api response [$_action]" "$_response"
   printf '%s' "$_response"
 }
