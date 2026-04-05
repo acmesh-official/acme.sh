@@ -24,12 +24,6 @@ dns_cpanel_uapi_add() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
-  if ! _cpanel_uapi_login; then
-    _err "cPanel UAPI login failed for user $cPanel_Username."
-    return 1
-  fi
-
-  _debug "Detecting root zone"
   if ! _cpanel_uapi_get_root; then
     _err "No matching root domain for $fulldomain found"
     return 1
@@ -89,11 +83,6 @@ dns_cpanel_uapi_rm() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
-  if ! _cpanel_uapi_login; then
-    _err "cPanel UAPI login failed for user $cPanel_Username."
-    return 1
-  fi
-
   if ! _cpanel_uapi_get_root; then
     _err "No matching root domain for $fulldomain found"
     return 1
@@ -152,22 +141,6 @@ _cpanel_uapi_checkcredentials() {
   return 0
 }
 
-_cpanel_uapi_login() {
-  if ! _cpanel_uapi_checkcredentials; then return 1; fi
-
-  if ! _cpanel_uapi_request "execute/DomainInfo/list_domains"; then
-    _err "Request to cPanel API failed during login check"
-    return 1
-  fi
-  if _contains "$_result" '"status":1'; then
-    _debug "UAPI login check successful"
-    return 0
-  fi
-  _err "UAPI login check failed. Is the API token correct?"
-  _debug "Response: $_result"
-  return 1
-}
-
 _cpanel_uapi_request() {
   export _H1="Authorization: cpanel $cPanel_Username:$cPanel_Apitoken"
   _result=$(_get "$cPanel_Hostname/$1")
@@ -175,11 +148,19 @@ _cpanel_uapi_request() {
 }
 
 _cpanel_uapi_get_root() {
+  if ! _cpanel_uapi_checkcredentials; then return 1; fi
+
   if ! _cpanel_uapi_request "execute/DomainInfo/list_domains"; then
     _err "Request to cPanel API failed while listing domains"
     return 1
   fi
   _debug "DomainInfo response length: ${#_result}"
+
+  if ! _contains "$_result" '"status":1'; then
+    _err "cPanel UAPI request failed. Is the API token correct?"
+    _debug "Response: $_result"
+    return 1
+  fi
 
   # Extract main_domain
   _main_domain=$(echo "$_result" | _egrep_o '"main_domain"[[:space:]]*:[[:space:]]*"[^"]*"' | _head_n 1 | sed 's/.*"main_domain"[[:space:]]*:[[:space:]]*"//;s/"//')
