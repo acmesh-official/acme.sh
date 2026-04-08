@@ -137,13 +137,13 @@ _cpanel_uapi_checkcredentials() {
 
   if [ -n "$cPanel_TTL" ]; then
     case "$cPanel_TTL" in
-      *[!0-9]*)
-        _info "Ignoring invalid cPanel_TTL: $cPanel_TTL"
-        cPanel_TTL=""
-        ;;
-      *)
-        _saveaccountconf_mutable cPanel_TTL "$cPanel_TTL"
-        ;;
+    *[!0-9]*)
+      _info "Ignoring invalid cPanel_TTL: $cPanel_TTL"
+      cPanel_TTL=""
+      ;;
+    *)
+      _saveaccountconf_mutable cPanel_TTL "$cPanel_TTL"
+      ;;
     esac
   fi
   return 0
