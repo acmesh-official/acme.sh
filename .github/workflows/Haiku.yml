@@ -53,7 +53,7 @@ jobs:
       ACME_USE_WGET: ${{ matrix.ACME_USE_WGET }}
     steps:
     - uses: actions/checkout@v6
-    - uses: vmactions/cf-tunnel@v0
+    - uses: anyvm-org/cf-tunnel@v0
       id: tunnel
       with:
         protocol: http
