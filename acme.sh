@@ -5324,6 +5324,11 @@ $_authorizations_map"
     _link_cert_retry="$(_math $_link_cert_retry + 1)"
   done
 
+  # cover case where the final poll returned 'valid'
+  if [ -z "$Le_LinkCert" ] && _contains "$response" "\"status\":\"valid\""; then
+    Le_LinkCert="$(echo "$response" | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
+  fi
+
   if [ -z "$Le_LinkCert" ]; then
     _err "Signing failed. Could not get Le_LinkCert, and stopped retrying after reaching the retry limit."
     _err "$response"
