@@ -83,7 +83,6 @@ byteplus_alb_deploy() {
   _getdeployconf BYTEPLUS_PROJECT_NAME
   _getdeployconf BYTEPLUS_DELETE_OLD_CERT
   _getdeployconf BYTEPLUS_CERT_NAME
-  _getdeployconf BYTEPLUS_CERT_DESCRIPTION
 
   # Restore from environment if _getdeployconf cleared them
   if [ -z "$BYTEPLUS_PROJECT_NAME" ] && [ -n "$_env_project_name" ]; then
