@@ -204,7 +204,8 @@ _byteplus_first_time_deploy() {
   _info "No previous CertificateId found."
   _err "Refusing to upload certificate material because this hook passes PublicKey/PrivateKey as request parameters."
   _err "Uploading a private key in the request URL can leak it via logs, proxies, and process listings."
-  _err "Please upload the certificate to BytePlus manually for the initial deployment, set BYTEPLUS_CERT_ID, and rerun."
+  _err "Please upload the certificate to BytePlus manually for the initial deployment, set BYTEPLUS_CERT_ID_${_conf_key} to that CertificateId, and rerun."
+  _err "This hook stores CertificateId values per domain using deployconf, so the variable name must include the current domain-specific suffix."
   _err "This hook must be updated to send PublicKey and PrivateKey in a POST body before automatic first-time upload can be enabled safely."
   return 1
 }
