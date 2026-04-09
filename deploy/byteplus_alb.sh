@@ -360,11 +360,14 @@ ${_cr_hash}"
   _saved_H2="${_H2:-}"
   _saved_H3="${_H3:-}"
   _saved_H4="${_H4:-}"
+  _saved_H5="${_H5:-}"
 
   _H1="Authorization: ${_auth}"
   _H2="X-Date: ${_x_date}"
   _H3="Host: ${_BYTEPLUS_HOST}"
   _H4="Content-Type: application/x-www-form-urlencoded"
+  _H5=""
+  
   _response="$(_post "$_body" "$_url" "" "POST")"
   _request_ret="$?"
 
@@ -372,6 +375,7 @@ ${_cr_hash}"
   _H2="$_saved_H2"
   _H3="$_saved_H3"
   _H4="$_saved_H4"
+  _H5="$_saved_H5"
 
   if [ "$_request_ret" != "0" ]; then
     _err "byteplus_alb_api request failed for [$_action]"
