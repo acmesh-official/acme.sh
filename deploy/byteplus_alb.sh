@@ -348,24 +348,28 @@ ${_cr_hash}"
 
   _secure_debug2 _auth "$_auth"
 
-  # Build URL and execute GET request via acme.sh's _get helper.
-  # _get handles exit-status checking, respects _H1/_H2/_H3 extra headers,
-  # and provides consistent error handling across platforms.
-  _url="https://${_BYTEPLUS_HOST}/?${_sorted_query}"
+  # Send request parameters in the POST body instead of the URL query string.
+  # This avoids exposing sensitive or large values in debug-logged URLs and
+  # reduces the risk of exceeding URL length limits.
+  _url="https://${_BYTEPLUS_HOST}/"
+  _body="$_sorted_query"
 
   _saved_H1="${_H1:-}"
   _saved_H2="${_H2:-}"
   _saved_H3="${_H3:-}"
+  _saved_H4="${_H4:-}"
 
   _H1="Authorization: ${_auth}"
   _H2="X-Date: ${_x_date}"
   _H3="Host: ${_BYTEPLUS_HOST}"
-  _response="$(_get "$_url")"
+  _H4="Content-Type: application/x-www-form-urlencoded"
+  _response="$(_post "$_body" "$_url" "" "POST")"
   _request_ret="$?"
 
   _H1="$_saved_H1"
   _H2="$_saved_H2"
   _H3="$_saved_H3"
+  _H4="$_saved_H4"
 
   if [ "$_request_ret" != "0" ]; then
     _err "byteplus_alb_api request failed for [$_action]"
