@@ -5,16 +5,18 @@
 # https://github.com/acmesh-official/acme.sh/wiki/deployhooks
 #
 # Deploys SSL/TLS certificates issued by acme.sh to BytePlus ALB.
-# Supports automatic renewal with zero-downtime certificate rotation.
+# Supports automatic renewal with zero-downtime certificate rotation
+# for certificates that have already been uploaded and have a saved
+# BytePlus CertificateId.
 #
 # ┌─────────────────────────────────────────────────────────────────────┐
 # │  FIRST TIME (new domain)                                           │
 # │  1. acme.sh --issue  -d example.com -w /var/www/html/              │
-# │  2. acme.sh --deploy -d example.com --deploy-hook byteplus_alb     │
-# │     → UploadCertificate → saves CertificateId                      │
-# │  3. Manually assign cert to ALB Listener (one-time only)           │
+# │  2. Upload/import the certificate to BytePlus ALB manually         │
+# │  3. Save/configure the existing CertificateId for this hook        │
+# │  4. Manually assign cert to ALB Listener (one-time only)           │
 # │                                                                    │
-# │  RENEWAL (fully automatic)                                         │
+# │  RENEWAL (fully automatic after CertificateId is configured)       │
 # │  acme.sh cron triggers renew → deploy hook runs automatically      │
 # │  → ReplaceCertificate (UpdateMode=new) — single API call           │
 # │  → All attached listeners updated, old cert auto-deleted           │
