@@ -213,43 +213,10 @@ _byteplus_first_time_deploy() {
 
 _byteplus_renewal_deploy() {
   _info "Replacing old certificate '$_old_cert_id' (UpdateMode=new)..."
-
-  if [ -n "$BYTEPLUS_PROJECT_NAME" ]; then
-    _replace_response=$(_byteplus_alb_api "ReplaceCertificate" \
-      "OldCertificateId=${_old_cert_id}" \
-      "UpdateMode=new" \
-      "CertificateName=${BYTEPLUS_CERT_NAME}" \
-      "ProjectName=${BYTEPLUS_PROJECT_NAME}" \
-      "PublicKey=${_public_key}" \
-      "PrivateKey=${_private_key}")
-  else
-    _replace_response=$(_byteplus_alb_api "ReplaceCertificate" \
-      "OldCertificateId=${_old_cert_id}" \
-      "UpdateMode=new" \
-      "CertificateName=${BYTEPLUS_CERT_NAME}" \
-      "PublicKey=${_public_key}" \
-      "PrivateKey=${_private_key}")
-  fi
-
-  _debug2 _replace_response "$_replace_response"
-
-  _new_cert_id=$(_byteplus_extract_cert_id "$_replace_response")
-
-  if [ -z "$_new_cert_id" ]; then
-    _err "ReplaceCertificate failed: $(_byteplus_extract_error "$_replace_response")"
-    _debug2 "Full response" "$_replace_response"
-    return 1
-  fi
-
-  _info "Certificate replaced successfully on all attached listeners."
-  _info "New CertificateId: $_new_cert_id"
-
-  # Auto-cleanup old certificate
-  if [ "$BYTEPLUS_DELETE_OLD_CERT" = "true" ]; then
-    _byteplus_delete_old_cert "$_old_cert_id"
-  else
-    _info "Auto-delete disabled. Old certificate '$_old_cert_id' kept in inventory."
-  fi
+  _err "Refusing to replace certificate material because this hook passes PublicKey/PrivateKey as request parameters."
+  _err "Uploading a private key in the request URL can leak it via logs, proxies, and process listings."
+  _err "Please replace the certificate in BytePlus manually for renewal until this hook is updated to send PublicKey and PrivateKey in a POST body safely."
+  return 1
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
