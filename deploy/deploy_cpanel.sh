@@ -1,27 +1,17 @@
 #!/usr/bin/env sh
-# Here is the script to deploy the cert to your cpanel using the cpanel API.
-# Uses command line uapi.  --user option is needed only if run as root.
-# Returns 0 when success.
-#
-# Configure DEPLOY_CPANEL_AUTO_<...> options to enable or restrict automatic
-# detection of deployment targets through UAPI (if not set, defaults below are used.)
-# - ENABLED : 'true' for multi-site / wildcard capability; otherwise single-site mode.
-# - NOMATCH : 'true' to allow deployment to sites that do not match the certificate.
-# - INCLUDE : Comma-separated list - sites must match this field.
-# - EXCLUDE : Comma-separated list - sites must NOT match this field.
-# INCLUDE/EXCLUDE both support non-lexical, glob-style matches using '*'
-#
-# Please note that I am no longer using Github. If you want to report an issue
-# or contact me, visit https://forum.webseodesigners.com/web-design-seo-and-hosting-f16/
-#
-# Written by Santeri Kannisto <santeri.kannisto@webseodesigners.com>
-# Public domain, 2017-2018
-#
-# export DEPLOY_CPANEL_USER=myusername
-# export DEPLOY_CPANEL_AUTO_ENABLED='true'
-# export DEPLOY_CPANEL_AUTO_NOMATCH='false'
-# export DEPLOY_CPANEL_AUTO_INCLUDE='*'
-# export DEPLOY_CPANEL_AUTO_EXCLUDE=''
+
+# Script to deploy certificate to cpanel
+# https://api.docs.cpanel.net/cpanel-api-2/cpanel-api-2-modules-ssl/cpanel-api-2-functions-ssl-installssl
+
+# This deployment required following variables
+# export Netlify_ACCESS_TOKEN="Your Netlify Access Token"
+# export Netlify_SITE_ID="Your Netlify Site ID"
+
+# export cPanel_Username="Username"
+# export cPanel_Apitoken="API Token"
+# export cPanel_Hostname="Server URL. E.g. https://hostname:port"
+
+# returns 0 means success, otherwise error.
 
 ########  Public functions #####################
 
