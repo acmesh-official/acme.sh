@@ -95,30 +95,6 @@ _myget() {
 
 ########  Private functions #####################
 
-# Internal utility to process YML from UAPI - looks at main_domain, sub_domains, addon domains and parked domains
-#[response]
-__cpanel_parse_response() {
-  if [ $# -gt 0 ]; then resp="$*"; else resp="$(cat)"; fi
-
-  echo "$resp" |
-    sed -En \
-      -e 's/\r$//' \
-      -e 's/^( *)([_.[:alnum:]]+) *: *(.*)/\1,\2,\3/p' \
-      -e 's/^( *)- (.*)/\1,-,\2/p' |
-    awk -F, '{
-      level = length($1)/2;
-      section[level] = $2;
-      for (i in section) {if (i > level) {delete section[i]}}
-      if (length($3) > 0) {
-        prefix="";
-        for (i=0; i < level; i++)
-          { prefix = (prefix)(section[i])("/") }
-        printf("%s%s=%s\n", prefix, $2, $3);
-      }
-    }' |
-    sed -En -e 's/^result\/data\/(main_domain|sub_domains\/-|addon_domains\/-|parked_domains\/-)=(.*)$/\2/p'
-}
-
 # Load parameter by prefix+name - fallback to default if not set, and save to config
 #pname pdefault
 __cpanel_initautoparam() {
