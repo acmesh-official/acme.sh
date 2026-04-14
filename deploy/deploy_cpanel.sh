@@ -44,7 +44,7 @@ deploy_cpanel_deploy() {
 
   # adding cert
   _info "Adding the cert"
-  if ! _myget "json-api/cpanel?cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=SSL&cpanel_jsonapi_func=installssl&domain=$_domain&crt=$_cert&key=$_key"; then
+  if ! _myget "json-api/cpanel?cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=SSL&cpanel_jsonapi_func=installssl&domain=$_cdomain&crt=$_cert&key=$_key"; then
     _err "cPanel API request failed while installing the certificate."
     return 1
   fi
