@@ -1599,6 +1599,7 @@ createCSR() {
   domain="$1"
   domainlist="$2"
   _isEcc="$3"
+  _csreku="$4"
 
   _initpath "$domain" "$_isEcc"
 
@@ -1612,7 +1613,7 @@ createCSR() {
     _err "Please create it first."
     return 1
   fi
-  _createcsr "$domain" "$domainlist" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"
+  _createcsr "$domain" "$domainlist" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF" "" "$_csreku"
 
 }
 
@@ -8259,7 +8260,7 @@ _process() {
     createDomainKey "$_domain" "$_keylength"
     ;;
   createCSR)
-    createCSR "$_domain" "$_altdomains" "$_ecc"
+    createCSR "$_domain" "$_altdomains" "$_ecc" "$_extended_key_usage"
     ;;
   setnotify)
     setnotify "$_notify_hook" "$_notify_level" "$_notify_mode" "$_notify_source"
