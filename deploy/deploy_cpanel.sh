@@ -44,14 +44,54 @@ deploy_cpanel_deploy() {
 
   # adding cert
   _info "Adding the cert"
-  _myget "json-api/cpanel?cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=SSL&cpanel_jsonapi_func=installssl&domain=$_domain&crt=$_cert&key=$_key"
-  # if _successful_update; then return 0; fi
-  # _err "Couldn't create entry!"
-  # return 1
+  if ! _myget "json-api/cpanel?cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=SSL&cpanel_jsonapi_func=installssl&domain=$_domain&crt=$_cert&key=$_key"; then
+    _err "cPanel API request failed while installing the certificate."
+    return 1
+  fi
+
+  if [ -z "$_result" ]; then
+    _err "cPanel API returned an empty response."
+    return 1
+  fi
+
+  if ! _cpanel_result_ok; then
+    return 1
+  fi
+
   return 0
 }
 
+_cpanel_result_ok() {
+  _cpanel_status="$(_egrep_o '"status"[ ]*:[ ]*[0-9]+' <<EOF
+$_result
+EOF
+)"
+  _cpanel_status="$(echo "$_cpanel_status" | sed 's/.*:[ ]*//')"
 
+  if [ "$_cpanel_status" = "1" ]; then
+    return 0
+  fi
+
+  _cpanel_error="$(_egrep_o '"statusmsg"[ ]*:[ ]*"[^"]*"' <<EOF
+$_result
+EOF
+)"
+  if [ -z "$_cpanel_error" ]; then
+    _cpanel_error="$(_egrep_o '"error"[ ]*:[ ]*"[^"]*"' <<EOF
+$_result
+EOF
+)"
+  fi
+  _cpanel_error="$(echo "$_cpanel_error" | sed 's/^[^:]*:[ ]*"//; s/"$//')"
+
+  if [ -n "$_cpanel_error" ]; then
+    _err "cPanel API error: $_cpanel_error"
+  else
+    _err "cPanel API reported failure."
+  fi
+
+  return 1
+}
 ####################  Private functions below ##################################
 
 _checkcredentials() {
