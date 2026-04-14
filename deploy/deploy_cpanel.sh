@@ -95,15 +95,3 @@ _myget() {
 
 ########  Private functions #####################
 
-# Load parameter by prefix+name - fallback to default if not set, and save to config
-#pname pdefault
-__cpanel_initautoparam() {
-  pname="$1"
-  pdefault="$2"
-  pkey="DEPLOY_CPANEL_AUTO_$pname"
-
-  _getdeployconf "$pkey"
-  [ -n "$(eval echo "\"\$$pkey\"")" ] || eval "$pkey=\"$pdefault\""
-  _debug2 "$pkey" "$(eval echo "\"\$$pkey\"")"
-  _savedeployconf "$pkey" "$(eval echo "\"\$$pkey\"")"
-}
