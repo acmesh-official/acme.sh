@@ -4,9 +4,6 @@
 # https://api.docs.cpanel.net/cpanel-api-2/cpanel-api-2-modules-ssl/cpanel-api-2-functions-ssl-installssl
 
 # This deployment required following variables
-# export Netlify_ACCESS_TOKEN="Your Netlify Access Token"
-# export Netlify_SITE_ID="Your Netlify Site ID"
-
 # export cPanel_Username="Username"
 # export cPanel_Apitoken="API Token"
 # export cPanel_Hostname="Server URL. E.g. https://hostname:port"
