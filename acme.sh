@@ -2299,7 +2299,7 @@ _send_signed_request() {
 
       _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
       if [ "$code" = '503' ]; then
-        _sleep_overload_retry_sec=$(( ${_retryafter:-0} > ${LE_MIN_RETRY_SLEEP:-5} ? ${_retryafter:-0} : ${LE_MIN_RETRY_SLEEP:-5} ))
+        _sleep_overload_retry_sec=$((${_retryafter:-0} > ${LE_MIN_RETRY_SLEEP:-5} ? ${_retryafter:-0} : ${LE_MIN_RETRY_SLEEP:-5}))
         if [ -z "$_sleep_overload_retry_sec" ]; then
           _sleep_overload_retry_sec=5
         fi
@@ -5228,7 +5228,7 @@ $_authorizations_map"
         return 1
       fi
       _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
-      _sleep_overload_retry_sec=$(( ${_retryafter:-0} > ${LE_MIN_RETRY_SLEEP:-5} ? ${_retryafter:-0} : ${LE_MIN_RETRY_SLEEP:-5} ))
+      _sleep_overload_retry_sec=$((${_retryafter:-0} > ${LE_MIN_RETRY_SLEEP:-5} ? ${_retryafter:-0} : ${LE_MIN_RETRY_SLEEP:-5}))
       if [ "$_sleep_overload_retry_sec" ]; then
         if [ "$_sleep_overload_retry_sec" -le "${LE_MAX_RETRY_AFTER:-3600}" ]; then
           _sleep $_sleep_overload_retry_sec
@@ -5299,7 +5299,7 @@ $_authorizations_map"
         _info "Sleeping for $_retryafter seconds then retrying"
     _info "Processing sleep: ${LE_PROCESSING_MIN_SLEEP:-15}s"
     _sleep "${LE_PROCESSING_MIN_SLEEP:-15}"
-        _sleep $_retryafter
+    _sleep $_retryafter
       else
         _sleep 2
       fi
