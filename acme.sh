@@ -5141,8 +5141,9 @@ $_authorizations_map"
         return 1
       fi
       _dns_root_d="$d"
+      _wildcard=""
       if _startswith "$_dns_root_d" "*."; then
-        _dns_root_d="$(echo "$_dns_root_d" | sed 's/*.//')"
+        _dns_root_d="${_dns_root_d#*.}"
         _wildcard=1
       fi
 
