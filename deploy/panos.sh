@@ -68,8 +68,8 @@ deployer() {
     # Get Version Info to test key
     content="type=version&key=$_panos_key"
     ## Exclude all scopes for the empty commit
-    #_exclude_scope="<policy-and-objects>exclude</policy-and-objects><device-and-network>exclude</device-and-network><shared-object>exclude</shared-object>"
-    #content="type=commit&action=partial&key=$_panos_key&cmd=<commit><partial>$_exclude_scope<admin><member>acmekeytest</member></admin></partial></commit>"
+    #_exclude_scope="<device-and-network>excluded</device-and-network><shared-object>excluded</shared-object>"
+    #content="type=commit&action=partial&key=$_panos_key&cmd=<commit><partial>$_exclude_scope<admin><member>$_panos_user</member></admin></partial></commit>"
   fi
 
   # Generate API Key
@@ -128,10 +128,9 @@ deployer() {
     #Check for force commit - will commit ALL uncommited changes to the firewall. Use with caution!
     if [ "$FORCE" ]; then
       _debug "Force switch detected.  Committing ALL changes to the firewall."
-      cmd=$(printf "%s" "<commit><partial><force><admin><member>$_panos_user</member></admin></force></partial></commit>" | _url_encode)
+      cmd=$(printf "%s" "<commit><force><partial><admin><member>$_panos_user</member></admin></partial></force></commit>" | _url_encode)
     else
-      _exclude_scope="<policy-and-objects>exclude</policy-and-objects><device-and-network>exclude</device-and-network>"
-      cmd=$(printf "%s" "<commit><partial>$_exclude_scope<admin><member>$_panos_user</member></admin></partial></commit>" | _url_encode)
+      cmd=$(printf "%s" "<commit><partial><admin><member>$_panos_user</member></admin></partial></commit>" | _url_encode)
     fi
     content="type=commit&action=partial&key=$_panos_key&cmd=$cmd"
   fi
