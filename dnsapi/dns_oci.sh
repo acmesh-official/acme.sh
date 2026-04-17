@@ -10,6 +10,7 @@ Options:
  OCI_CLI_REGION Should point to the tenancy home region. Optional.
  OCI_CLI_KEY_FILE Path to private API signing key file in PEM format. Optional.
  OCI_CLI_KEY The private API signing key in PEM format. Optional.
+ OCI_COMPARTMENT_ID OCID of the compartment containing the target DNS zone. Optional.
 Issues: github.com/acmesh-official/acme.sh/issues/3540
 Author: Avi Miller <me@dje.li>
 '
@@ -23,6 +24,7 @@ Author: Avi Miller <me@dje.li>
 # - OCI_CLI_TENANCY : OCID of tenancy that contains the target DNS zone
 # - OCI_CLI_USER    : OCID of user with permission to add/remove records from zones
 # - OCI_CLI_REGION  : Should point to the tenancy home region
+# - OCI_COMPARTMENT_ID : OCID of compartment containing the DNS zone (defaults to tenancy)
 #
 # One of the following two variables is required:
 # - OCI_CLI_KEY_FILE: Path to private API signing key file in PEM format; or
@@ -128,6 +130,22 @@ _oci_config() {
     return 1
   fi
 
+  OCI_COMPARTMENT_ID="${OCI_COMPARTMENT_ID:-$(_readaccountconf_mutable OCI_COMPARTMENT_ID)}"
+  if [ "$OCI_COMPARTMENT_ID" ]; then
+    _saveaccountconf_mutable OCI_COMPARTMENT_ID "$OCI_COMPARTMENT_ID"
+  elif [ -f "$OCI_CLI_CONFIG_FILE" ]; then
+    _debug "Reading OCI_COMPARTMENT_ID value from: $OCI_CLI_CONFIG_FILE"
+    OCI_COMPARTMENT_ID="${OCI_COMPARTMENT_ID:-$(_readini "$OCI_CLI_CONFIG_FILE" compartment-id "$OCI_CLI_PROFILE")}"
+    if [ "$OCI_COMPARTMENT_ID" ]; then
+      _saveaccountconf_mutable OCI_COMPARTMENT_ID "$OCI_COMPARTMENT_ID"
+    fi
+  fi
+
+  if [ -z "$OCI_COMPARTMENT_ID" ]; then
+    OCI_COMPARTMENT_ID="$OCI_CLI_TENANCY"
+    _debug "OCI_COMPARTMENT_ID not set, defaulting to tenancy OCID"
+  fi
+
   OCI_CLI_USER="${OCI_CLI_USER:-$(_readaccountconf_mutable OCI_CLI_USER)}"
   if [ "$OCI_CLI_USER" ]; then
     _saveaccountconf_mutable OCI_CLI_USER "$OCI_CLI_USER"
@@ -197,7 +215,7 @@ _get_zone() {
       return 1
     fi
 
-    _domain_id=$(_signed_request "GET" "/20180115/zones/$h" "" "id")
+    _domain_id=$(_signed_request "GET" "/20180115/zones/$h?compartmentId=$OCI_COMPARTMENT_ID" "" "id")
     if [ "$_domain_id" ]; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain=$h
