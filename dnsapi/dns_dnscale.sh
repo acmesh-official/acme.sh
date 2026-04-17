@@ -169,6 +169,13 @@ _dnscale_rest() {
   ep=$2
   data=$3
 
+  _dnscale_old_H1=$_H1
+  _dnscale_old_H2=$_H2
+  _dnscale_old_H3=$_H3
+  _dnscale_has_H1="${_H1+1}"
+  _dnscale_has_H2="${_H2+1}"
+  _dnscale_has_H3="${_H3+1}"
+
   export _H1="Authorization: Bearer ${DNSCALE_Token}"
   export _H2="Content-Type: application/json"
   export _H3="Accept: application/json"
@@ -182,17 +189,37 @@ _dnscale_rest() {
   ret="$?"
   if [ "$ret" != "0" ]; then
     _debug "API request failed"
-    return 1
+    ret=1
+  else
+    # API responses wrap as {"status":"success","data":...} or
+    # {"status":"error","error":{"code":"...","message":"..."}}.
+    if _contains "$response" "\"status\":\"error\""; then
+      _debug "API error response"
+      _debug response "$response"
+      ret=1
+    else
+      _debug2 response "$response"
+      ret=0
+    fi
   fi
 
-  # API responses wrap as {"status":"success","data":...} or
-  # {"status":"error","error":{"code":"...","message":"..."}}.
-  if _contains "$response" "\"status\":\"error\""; then
-    _debug "API error response"
-    _debug response "$response"
-    return 1
+  if [ -n "$_dnscale_has_H1" ]; then
+    export _H1="$_dnscale_old_H1"
+  else
+    unset _H1
   fi
 
-  _debug2 response "$response"
-  return 0
+  if [ -n "$_dnscale_has_H2" ]; then
+    export _H2="$_dnscale_old_H2"
+  else
+    unset _H2
+  fi
+
+  if [ -n "$_dnscale_has_H3" ]; then
+    export _H3="$_dnscale_old_H3"
+  else
+    unset _H3
+  fi
+
+  return "$ret"
 }
