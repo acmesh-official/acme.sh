@@ -5016,7 +5016,7 @@ $_authorizations_map"
       _sleep 20
     else
       _savedomainconf "Le_DNSSleep" "$Le_DNSSleep"
-      _info "Sleeping for $(__green $Le_DNSSleep) seconds to wait for the the TXT records to take effect"
+      _info "Sleeping for $(__green $Le_DNSSleep) seconds to wait for the TXT records to take effect"
       _sleep "$Le_DNSSleep"
     fi
   fi
