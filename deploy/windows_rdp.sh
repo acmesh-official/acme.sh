@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# install a certificate on a Windows host over OpenSSH and bind it to the Remote 
+# install a certificate on a Windows host over OpenSSH and bind it to the Remote
 # Desktop listener (RDP-Tcp).
 #
 # One ssh invocation does the whole job:
@@ -24,98 +24,98 @@
 #                          Active RDP sessions will drop!
 
 windows_rdp_deploy() {
-	_cdomain="$1"
-	_ckey="$2"
-	_ccert="$3"
-	_cca="$4"
-	_cfullchain="$5"
+  _cdomain="$1"
+  _ckey="$2"
+  _ccert="$3"
+  _cca="$4"
+  _cfullchain="$5"
 
-	_debug _cdomain "$_cdomain"
-	_debug _ckey "$_ckey"
-	_debug _ccert "$_ccert"
-	_debug _cca "$_cca"
-	_debug _cfullchain "$_cfullchain"
+  _debug _cdomain "$_cdomain"
+  _debug _ckey "$_ckey"
+  _debug _ccert "$_ccert"
+  _debug _cca "$_cca"
+  _debug _cfullchain "$_cfullchain"
 
-	for _bin in openssl ssh; do
-		if ! _exists "$_bin"; then
-			_err "$_bin is required but was not found in PATH."
-			return 1
-		fi
-	done
+  for _bin in openssl ssh; do
+    if ! _exists "$_bin"; then
+      _err "$_bin is required but was not found in PATH."
+      return 1
+    fi
+  done
 
-	# ---- configuration ------------------------------------------------------
-	_getdeployconf DEPLOY_WIN_RDP_HOST
-	_getdeployconf DEPLOY_WIN_RDP_USER
-	_getdeployconf DEPLOY_WIN_RDP_PORT
-	_getdeployconf DEPLOY_WIN_RDP_SSH_OPTS
-	_getdeployconf DEPLOY_WIN_RDP_LISTENER
-	_getdeployconf DEPLOY_WIN_RDP_RESTART
+  # ---- configuration ------------------------------------------------------
+  _getdeployconf DEPLOY_WIN_RDP_HOST
+  _getdeployconf DEPLOY_WIN_RDP_USER
+  _getdeployconf DEPLOY_WIN_RDP_PORT
+  _getdeployconf DEPLOY_WIN_RDP_SSH_OPTS
+  _getdeployconf DEPLOY_WIN_RDP_LISTENER
+  _getdeployconf DEPLOY_WIN_RDP_RESTART
 
-	if [ -z "$DEPLOY_WIN_RDP_HOST" ]; then
-		_err "DEPLOY_WIN_RDP_HOST must be set."
-		return 1
-	fi
+  if [ -z "$DEPLOY_WIN_RDP_HOST" ]; then
+    _err "DEPLOY_WIN_RDP_HOST must be set."
+    return 1
+  fi
 
-	_savedeployconf DEPLOY_WIN_RDP_HOST "$DEPLOY_WIN_RDP_HOST"
-	[ -n "$DEPLOY_WIN_RDP_USER" ] && _savedeployconf DEPLOY_WIN_RDP_USER "$DEPLOY_WIN_RDP_USER"
-	[ -n "$DEPLOY_WIN_RDP_PORT" ] && _savedeployconf DEPLOY_WIN_RDP_PORT "$DEPLOY_WIN_RDP_PORT"
-	[ -n "$DEPLOY_WIN_RDP_SSH_OPTS" ] && _savedeployconf DEPLOY_WIN_RDP_SSH_OPTS "$DEPLOY_WIN_RDP_SSH_OPTS"
-	[ -n "$DEPLOY_WIN_RDP_LISTENER" ] && _savedeployconf DEPLOY_WIN_RDP_LISTENER "$DEPLOY_WIN_RDP_LISTENER"
-	[ -n "$DEPLOY_WIN_RDP_RESTART" ] && _savedeployconf DEPLOY_WIN_RDP_RESTART "$DEPLOY_WIN_RDP_RESTART"
+  _savedeployconf DEPLOY_WIN_RDP_HOST "$DEPLOY_WIN_RDP_HOST"
+  [ -n "$DEPLOY_WIN_RDP_USER" ] && _savedeployconf DEPLOY_WIN_RDP_USER "$DEPLOY_WIN_RDP_USER"
+  [ -n "$DEPLOY_WIN_RDP_PORT" ] && _savedeployconf DEPLOY_WIN_RDP_PORT "$DEPLOY_WIN_RDP_PORT"
+  [ -n "$DEPLOY_WIN_RDP_SSH_OPTS" ] && _savedeployconf DEPLOY_WIN_RDP_SSH_OPTS "$DEPLOY_WIN_RDP_SSH_OPTS"
+  [ -n "$DEPLOY_WIN_RDP_LISTENER" ] && _savedeployconf DEPLOY_WIN_RDP_LISTENER "$DEPLOY_WIN_RDP_LISTENER"
+  [ -n "$DEPLOY_WIN_RDP_RESTART" ] && _savedeployconf DEPLOY_WIN_RDP_RESTART "$DEPLOY_WIN_RDP_RESTART"
 
-	_port="${DEPLOY_WIN_RDP_PORT:-22}"
-	_listener="${DEPLOY_WIN_RDP_LISTENER:-RDP-Tcp}"
-	[ -n "$DEPLOY_WIN_RDP_USER" ] && {
-		_target="$DEPLOY_WIN_RDP_USER@$DEPLOY_WIN_RDP_HOST"
-	} || {
-		_target="$DEPLOY_WIN_RDP_HOST"
-	}
-	_pfx_pass="acme"
+  _port="${DEPLOY_WIN_RDP_PORT:-22}"
+  _listener="${DEPLOY_WIN_RDP_LISTENER:-RDP-Tcp}"
+  [ -n "$DEPLOY_WIN_RDP_USER" ] && {
+    _target="$DEPLOY_WIN_RDP_USER@$DEPLOY_WIN_RDP_HOST"
+  } || {
+    _target="$DEPLOY_WIN_RDP_HOST"
+  }
+  _pfx_pass="acme"
 
-	# ---- build PFX + thumbprint locally ------------------------------------
-	_pfx_file="$(_mktemp)"
+  # ---- build PFX + thumbprint locally ------------------------------------
+  _pfx_file="$(_mktemp)"
 
-	_debug "Building PFX at $_pfx_file"
-	# Use `-certfile "$_cfullchain"` if the entire certificate chain
-	# shall be included into the pkcs12 container. This should not
-	# be necessary usually, since the certificates are likely in
-	# the trust stores of the machines anyways, but we have the option
-	# if we should need to in the future.
-	if ! openssl pkcs12 -export \
-		-inkey "$_ckey" -in "$_ccert" \
-		-name "acme.sh ${_cdomain}" \
-		-passout "pass:$_pfx_pass" \
-		-out "$_pfx_file"; then
-		_err "Failed to build PFX archive."
-		rm -f "$_pfx_file"
-		return 1
-	fi
+  _debug "Building PFX at $_pfx_file"
+  # Use `-certfile "$_cfullchain"` if the entire certificate chain
+  # shall be included into the pkcs12 container. This should not
+  # be necessary usually, since the certificates are likely in
+  # the trust stores of the machines anyways, but we have the option
+  # if we should need to in the future.
+  if ! openssl pkcs12 -export \
+    -inkey "$_ckey" -in "$_ccert" \
+    -name "acme.sh ${_cdomain}" \
+    -passout "pass:$_pfx_pass" \
+    -out "$_pfx_file"; then
+    _err "Failed to build PFX archive."
+    rm -f "$_pfx_file"
+    return 1
+  fi
 
-	# openssl prints "SHA1 Fingerprint=AA:BB:CC:..."; strip prefix and colons.
-	_thumb="$(openssl x509 -in "$_ccert" -noout -fingerprint -sha1 |
-		sed 's/.*=//; s/://g')"
-	if [ -z "$_thumb" ]; then
-		_err "Failed to compute certificate thumbprint."
-		rm -f "$_pfx_file"
-		return 1
-	fi
-	_debug "Thumbprint: $_thumb"
+  # openssl prints "SHA1 Fingerprint=AA:BB:CC:..."; strip prefix and colons.
+  _thumb="$(openssl x509 -in "$_ccert" -noout -fingerprint -sha1 |
+    sed 's/.*=//; s/://g')"
+  if [ -z "$_thumb" ]; then
+    _err "Failed to compute certificate thumbprint."
+    rm -f "$_pfx_file"
+    return 1
+  fi
+  _debug "Thumbprint: $_thumb"
 
-	# Base64 on one line, no whitespace.
-	_pfx_b64="$(openssl base64 -A -in "$_pfx_file")"
-	rm -f "$_pfx_file"
+  # Base64 on one line, no whitespace.
+  _pfx_b64="$(openssl base64 -A -in "$_pfx_file")"
+  rm -f "$_pfx_file"
 
-	# ---- build installer script --------------------------------------------
-	if [ "$DEPLOY_WIN_RDP_RESTART" = "1" ]; then
-		_restart_ps='Restart-Service -Name TermService -Force'
-	else
-		_restart_ps='# New RdP connections will pick up the new cert automatically.'
-	fi
+  # ---- build installer script --------------------------------------------
+  if [ "$DEPLOY_WIN_RDP_RESTART" = "1" ]; then
+    _restart_ps='Restart-Service -Name TermService -Force'
+  else
+    _restart_ps='# New RdP connections will pick up the new cert automatically.'
+  fi
 
-	# Escape every literal `$` with `\$` so the shell does not expand it.
-	# Values substituted from shell: $_pfx_b64, $_pfx_pass, $_thumb, $_listener.
-	_ps1=$(
-		cat <<PSEOF
+  # Escape every literal `$` with `\$` so the shell does not expand it.
+  # Values substituted from shell: $_pfx_b64, $_pfx_pass, $_thumb, $_listener.
+  _ps1=$(
+    cat <<PSEOF
 
 \$ErrorActionPreference = 'Stop'
 
@@ -153,23 +153,23 @@ Write-Host "Listener ${_listener} now uses ${_thumb}"
 
 ${_restart_ps}
 PSEOF
-	)
-	_debug "Powershell script:${_ps1}"
+  )
+  _debug "Powershell script:${_ps1}"
 
-	# ---- run over a single ssh connection ----------------------------------
-	_ssh_opts="-o BatchMode=yes -p $_port"
-	if [ -n "$DEPLOY_WIN_RDP_SSH_OPTS" ]; then
-		_ssh_opts="$_ssh_opts $DEPLOY_WIN_RDP_SSH_OPTS"
-	fi
+  # ---- run over a single ssh connection ----------------------------------
+  _ssh_opts="-o BatchMode=yes -p $_port"
+  if [ -n "$DEPLOY_WIN_RDP_SSH_OPTS" ]; then
+    _ssh_opts="$_ssh_opts $DEPLOY_WIN_RDP_SSH_OPTS"
+  fi
 
-	_info "Deploying to $DEPLOY_WIN_RDP_HOST ..."
-	# shellcheck disable=SC2086
-	if ! printf '%s\n' "$_ps1" | ssh $_ssh_opts "$_target" \
-		'powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command -'; then
-		_err "Remote install failed. Re-run acme.sh with --debug to see the PowerShell output."
-		return 1
-	fi
+  _info "Deploying to $DEPLOY_WIN_RDP_HOST ..."
+  # shellcheck disable=SC2086
+  if ! printf '%s\n' "$_ps1" | ssh $_ssh_opts "$_target" \
+    'powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command -'; then
+    _err "Remote install failed. Re-run acme.sh with --debug to see the PowerShell output."
+    return 1
+  fi
 
-	_info "Certificate for $_cdomain deployed and bound to $_listener on $DEPLOY_WIN_RDP_HOST."
-	return 0
+  _info "Certificate for $_cdomain deployed and bound to $_listener on $DEPLOY_WIN_RDP_HOST."
+  return 0
 }
