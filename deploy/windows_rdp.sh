@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 # install a certificate on a Windows host over OpenSSH and bind it to the Remote
 # Desktop listener (RDP-Tcp).
@@ -13,15 +13,15 @@
 #   export DEPLOY_WIN_RDP_HOST=winserver.example.com
 #   acme.sh --deploy -d winserver.example.com --deploy-hook windows_rdp
 #
-# DEPLOY_WIN_RDP_* variables (remembered after the first successful run):
-#   HOST        required   SSH host
-#   USER        optional   SSH user, must be a local administrator (can also by set via ssh_config)
-#   PORT        optional   SSH port, default 22
-#   SSH_OPTS    optional   extra ssh options, e.g.
-#                          "-i /root/.ssh/win_id_ed25519 -o StrictHostKeyChecking=yes"
-#   LISTENER    optional   RDP listener name, default RDP-Tcp
-#   RESTART     optional   "1" to restart TermService after install.
-#                          Active RDP sessions will drop!
+# Available variables:
+#   DEPLOY_WIN_RDP_HOST        required   SSH host
+#   DEPLOY_WIN_RDP_USER        optional   SSH user, must be a local administrator (can also by set via ssh_config)
+#   DEPLOY_WIN_RDP_PORT        optional   SSH port, default 22
+#   DEPLOY_WIN_RDP_SSH_OPTS    optional   extra ssh options, e.g.
+#   									  "-i /root/.ssh/win_id_ed25519 -o StrictHostKeyChecking=yes"
+#   DEPLOY_WIN_RDP_LISTENER    optional   RDP listener name, default RDP-Tcp
+#   DEPLOY_WIN_RDP_RESTART     optional   "1" to restart TermService after install.
+#   									  Active RDP sessions will drop!
 
 windows_rdp_deploy() {
   _cdomain="$1"
@@ -36,12 +36,10 @@ windows_rdp_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  for _bin in openssl ssh; do
-    if ! _exists "$_bin"; then
-      _err "$_bin is required but was not found in PATH."
-      return 1
-    fi
-  done
+  if ! _exists "ssh"; then
+    _err "ssh is required but was not found in PATH."
+    return 1
+  fi
 
   # ---- configuration ------------------------------------------------------
   _getdeployconf DEPLOY_WIN_RDP_HOST
@@ -65,11 +63,11 @@ windows_rdp_deploy() {
 
   _port="${DEPLOY_WIN_RDP_PORT:-22}"
   _listener="${DEPLOY_WIN_RDP_LISTENER:-RDP-Tcp}"
-  [ -n "$DEPLOY_WIN_RDP_USER" ] && {
+  if [ -n "$DEPLOY_WIN_RDP_USER" ]; then
     _target="$DEPLOY_WIN_RDP_USER@$DEPLOY_WIN_RDP_HOST"
-  } || {
+  else
     _target="$DEPLOY_WIN_RDP_HOST"
-  }
+  fi
   _pfx_pass="acme"
 
   # ---- build PFX + thumbprint locally ------------------------------------
@@ -81,7 +79,7 @@ windows_rdp_deploy() {
   # be necessary usually, since the certificates are likely in
   # the trust stores of the machines anyways, but we have the option
   # if we should need to in the future.
-  if ! openssl pkcs12 -export \
+  if ! ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export \
     -inkey "$_ckey" -in "$_ccert" \
     -name "acme.sh ${_cdomain}" \
     -passout "pass:$_pfx_pass" \
@@ -92,7 +90,7 @@ windows_rdp_deploy() {
   fi
 
   # openssl prints "SHA1 Fingerprint=AA:BB:CC:..."; strip prefix and colons.
-  _thumb="$(openssl x509 -in "$_ccert" -noout -fingerprint -sha1 |
+  _thumb="$(${ACME_OPENSSL_BIN:-openssl} x509 -in "$_ccert" -noout -fingerprint -sha1 |
     sed 's/.*=//; s/://g')"
   if [ -z "$_thumb" ]; then
     _err "Failed to compute certificate thumbprint."
@@ -101,8 +99,7 @@ windows_rdp_deploy() {
   fi
   _debug "Thumbprint: $_thumb"
 
-  # Base64 on one line, no whitespace.
-  _pfx_b64="$(openssl base64 -A -in "$_pfx_file")"
+  _pfx_b64=$(_base64 "multiline" <"$_pfx_file")
   rm -f "$_pfx_file"
 
   # ---- build installer script --------------------------------------------
