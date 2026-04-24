@@ -65,7 +65,7 @@ ID_TYPE_IP="ip"
 
 LOCAL_ANY_ADDRESS="0.0.0.0"
 
-DEFAULT_RENEW=30
+DEFAULT_RENEW="${DEFAULT_RENEW:-30}"
 
 NO_VALUE="no"
 
@@ -1599,6 +1599,7 @@ createCSR() {
   domain="$1"
   domainlist="$2"
   _isEcc="$3"
+  _csreku="$4"
 
   _initpath "$domain" "$_isEcc"
 
@@ -1612,7 +1613,7 @@ createCSR() {
     _err "Please create it first."
     return 1
   fi
-  _createcsr "$domain" "$domainlist" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF"
+  _createcsr "$domain" "$domainlist" "$CERT_KEY_PATH" "$CSR_PATH" "$DOMAIN_SSL_CONF" "" "$_csreku"
 
 }
 
@@ -5324,6 +5325,11 @@ $_authorizations_map"
     _link_cert_retry="$(_math $_link_cert_retry + 1)"
   done
 
+  # cover case where the final poll returned 'valid'
+  if [ -z "$Le_LinkCert" ] && _contains "$response" "\"status\":\"valid\""; then
+    Le_LinkCert="$(echo "$response" | _egrep_o '"certificate" *: *"[^"]*"' | cut -d '"' -f 4)"
+  fi
+
   if [ -z "$Le_LinkCert" ]; then
     _err "Signing failed. Could not get Le_LinkCert, and stopped retrying after reaching the retry limit."
     _err "$response"
@@ -5667,7 +5673,7 @@ renewAll() {
   _set_level=${NOTIFY_LEVEL:-$NOTIFY_LEVEL_DEFAULT}
   _debug "_set_level" "$_set_level"
   export _ACME_IN_RENEWALL=1
-  for di in "${CERT_HOME}"/*[.:]*/; do
+  for di in "${CERT_HOME}"/*.* "${CERT_HOME}"/*:*; do
     _debug di "$di"
     if ! [ -d "$di" ]; then
       _debug "Not a directory, skipping: $di"
@@ -8254,7 +8260,7 @@ _process() {
     createDomainKey "$_domain" "$_keylength"
     ;;
   createCSR)
-    createCSR "$_domain" "$_altdomains" "$_ecc"
+    createCSR "$_domain" "$_altdomains" "$_ecc" "$_extended_key_usage"
     ;;
   setnotify)
     setnotify "$_notify_hook" "$_notify_level" "$_notify_mode" "$_notify_source"
