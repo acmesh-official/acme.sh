@@ -150,11 +150,11 @@ byteplus_alb_deploy() {
   # Enforce BytePlus naming rules: start with letter, max 128 chars
   BYTEPLUS_CERT_NAME=$(echo "$BYTEPLUS_CERT_NAME" | sed 's/[^A-Za-z0-9._-]/-/g')
   case "$BYTEPLUS_CERT_NAME" in
-    [A-Za-z]*)
-      ;;
-    *)
-      BYTEPLUS_CERT_NAME="a$BYTEPLUS_CERT_NAME"
-      ;;
+  [A-Za-z]*) ;;
+
+  *)
+    BYTEPLUS_CERT_NAME="a$BYTEPLUS_CERT_NAME"
+    ;;
   esac
   BYTEPLUS_CERT_NAME=$(echo "$BYTEPLUS_CERT_NAME" | cut -c1-128)
 
@@ -337,10 +337,10 @@ ${_cr_hash}"
   # The first step seeds the chain from the raw secret key, so we convert it
   # to hex first with _hex_dump (also an acme.sh built-in).
   _secret_hex=$(printf '%s' "$BYTEPLUS_SECRET_KEY" | _hex_dump | tr -d ' \n')
-  _k_date=$(printf '%s'              "$_date_only"         | _hmac sha256 "$_secret_hex"  hex)
-  _k_region=$(printf '%s'            "$BYTEPLUS_REGION"    | _hmac sha256 "$_k_date"      hex)
-  _k_service=$(printf '%s'           "$_BYTEPLUS_SERVICE"  | _hmac sha256 "$_k_region"    hex)
-  _k_signing=$(printf '%s'           "request"             | _hmac sha256 "$_k_service"   hex)
+  _k_date=$(printf '%s' "$_date_only" | _hmac sha256 "$_secret_hex" hex)
+  _k_region=$(printf '%s' "$BYTEPLUS_REGION" | _hmac sha256 "$_k_date" hex)
+  _k_service=$(printf '%s' "$_BYTEPLUS_SERVICE" | _hmac sha256 "$_k_region" hex)
+  _k_signing=$(printf '%s' "request" | _hmac sha256 "$_k_service" hex)
 
   # Final signature
   _signature=$(printf '%s' "$_string_to_sign" | _hmac sha256 "$_k_signing" hex)
@@ -367,7 +367,7 @@ ${_cr_hash}"
   _H3="Host: ${_BYTEPLUS_HOST}"
   _H4="Content-Type: application/x-www-form-urlencoded"
   _H5=""
-  
+
   _response="$(_post "$_body" "$_url" "" "POST")"
   _request_ret="$?"
 
