@@ -1,27 +1,27 @@
-name: NetBSD
+name: MidnightBSD
 on:
   push:
     branches:
       - '*'
     paths:
       - '*.sh'
-      - '.github/workflows/NetBSD.yml'
+      - '.github/workflows/MidnightBSD.yml'
 
   pull_request:
     branches:
       - dev
     paths:
       - '*.sh'
-      - '.github/workflows/NetBSD.yml'
+      - '.github/workflows/MidnightBSD.yml'
 
-concurrency: 
+concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 
 
 jobs:
-  NetBSD:
+  MidnightBSD:
     strategy:
       matrix:
         include:
@@ -55,14 +55,13 @@ jobs:
       run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/netbsd-vm@v1
+    - uses: vmactions/midnightbsd-vm@v1
       with:
         debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
         envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN ACME_USE_WGET'
         nat: |
           "8080": "80"
-        prepare: |
-          /usr/sbin/pkg_add curl socat
+        prepare: mport install socat curl wget || true
         usesh: true
         sync: nfs
         run: |
@@ -73,4 +72,3 @@ jobs:
       run: |
         echo "See how to debug in VM:"
         echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"
-        

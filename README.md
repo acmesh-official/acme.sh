@@ -16,6 +16,7 @@
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml/badge.svg" alt="Windows"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml/badge.svg" alt="Solaris"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml/badge.svg" alt="DragonFlyBSD"></a>
+  <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/MidnightBSD.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/MidnightBSD.yml/badge.svg" alt="MidnightBSD"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml/badge.svg" alt="Omnios"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml/badge.svg" alt="OpenIndiana"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml/badge.svg" alt="Haiku"></a>
@@ -95,21 +96,22 @@
 |7|[![OpenBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenBSD.yml)|OpenBSD
 |8|[![NetBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/NetBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/NetBSD.yml)|NetBSD
 |9|[![DragonFlyBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml)|DragonFlyBSD
-|10|[![Omnios](https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml)|Omnios
-|11|[![OpenIndiana](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml)|OpenIndiana
-|12|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)| Debian
-|13|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|openSUSE
-|14|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Alpine Linux (with curl)
-|15|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Archlinux
-|16|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|fedora
-|17|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Kali Linux
-|18|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Oracle Linux
-|19|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Mageia
-|20|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Gentoo Linux
-|21|-----| Cloud Linux  https://github.com/acmesh-official/acme.sh/issues/111
-|22|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/acmesh-official/acme.sh/wiki/How-to-run-on-OpenWRT)
-|23|[![](https://acmesh-official.github.io/acmetest/status/proxmox.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)| Proxmox: See Proxmox VE Wiki. Version [4.x, 5.0, 5.1](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x,_5.0_and_5.1)#Let.27s_Encrypt_using_acme.sh), version [5.2 and up](https://pve.proxmox.com/wiki/Certificate_Management)
-|24|[![Haiku](https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml)|Haiku OS
+|10|[![MidnightBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/MidnightBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/MidnightBSD.yml)|MidnightBSD
+|11|[![Omnios](https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml)|Omnios
+|12|[![OpenIndiana](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml)|OpenIndiana
+|13|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)| Debian
+|14|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|openSUSE
+|15|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Alpine Linux (with curl)
+|16|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Archlinux
+|17|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|fedora
+|18|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Kali Linux
+|19|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Oracle Linux
+|20|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Mageia
+|21|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Gentoo Linux
+|22|-----| Cloud Linux  https://github.com/acmesh-official/acme.sh/issues/111
+|23|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/acmesh-official/acme.sh/wiki/How-to-run-on-OpenWRT)
+|24|[![](https://acmesh-official.github.io/acmetest/status/proxmox.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)| Proxmox: See Proxmox VE Wiki. Version [4.x, 5.0, 5.1](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x,_5.0_and_5.1)#Let.27s_Encrypt_using_acme.sh), version [5.2 and up](https://pve.proxmox.com/wiki/Certificate_Management)
+|25|[![Haiku](https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml)|Haiku OS
 
 
 > 🧪 Check our [testing project](https://github.com/acmesh-official/acmetest)
