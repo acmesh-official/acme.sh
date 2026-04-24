@@ -37,8 +37,8 @@ jobs:
            TEST_PREFERRED_CHAIN: (STAGING)
            ACME_USE_WGET: 1
          - TEST_ACME_Server: "ZeroSSL.com"
-           CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
-           CA: "ZeroSSL RSA Domain Secure Site CA"
+           CA_ECDSA: "ZeroSSL ECC DV SSL CA 2"
+           CA: "ZeroSSL RSA DV SSL CA 2"
            CA_EMAIL: "githubtest@acme.sh"
            TEST_PREFERRED_CHAIN: ""
          - TEST_ACME_Server: "https://localhost:9000/acme/acme/directory"
