@@ -171,11 +171,11 @@ _cpanel_uapi_get_root() {
   fi
 
   # Extract main_domain
-  _main_domain=$(echo "$_result" | _egrep_o '"main_domain"[[:space:]]*:[[:space:]]*"[^"]*"' | _head_n 1 | sed 's/.*"main_domain"[[:space:]]*:[[:space:]]*"//;s/"//')
+  _main_domain=$(echo "$_result" | _egrep_o '"main_domain":"[^"]*"' | _head_n 1 | sed 's/.*"main_domain":"//;s/"//')
   _debug "main_domain: $_main_domain"
 
   # Extract addon_domains (array of strings)
-  _addon_domains=$(echo "$_result" | _egrep_o '"addon_domains"[[:space:]]*:[[:space:]]*\[[^]]*\]' | sed 's/.*"addon_domains"[[:space:]]*:[[:space:]]*\[//;s/\][[:space:]]*$//' | _egrep_o '"[a-zA-Z0-9._-]+"' | sed 's/"//g')
+  _addon_domains=$(echo "$_result" | _egrep_o '"addon_domains":\[[^]]*\]' | sed 's/.*"addon_domains":\[//;s/\]$//' | _egrep_o '"[a-zA-Z0-9._-]+"' | sed 's/"//g')
   _debug "addon_domains: $_addon_domains"
 
   # Build list of all domains to check
