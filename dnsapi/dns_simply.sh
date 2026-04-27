@@ -8,8 +8,7 @@ Options:
  SIMPLY_ApiKey API Key
 '
 
-#SIMPLY_Api="https://api.simply.com/2/"
-SIMPLY_Api_Default="https://api.simply.com/2"
+SIMPLY_Api="https://api.simply.com/2"
 
 #This is used for determining success of REST call
 SIMPLY_SUCCESS_CODE='"status":200'
@@ -122,13 +121,8 @@ dns_simply_rm() {
 ####################  Private functions below ##################################
 
 _simply_load_config() {
-  SIMPLY_Api="${SIMPLY_Api:-$(_readaccountconf_mutable SIMPLY_Api)}"
   SIMPLY_AccountName="${SIMPLY_AccountName:-$(_readaccountconf_mutable SIMPLY_AccountName)}"
   SIMPLY_ApiKey="${SIMPLY_ApiKey:-$(_readaccountconf_mutable SIMPLY_ApiKey)}"
-
-  if [ -z "$SIMPLY_Api" ]; then
-    SIMPLY_Api="$SIMPLY_Api_Default"
-  fi
 
   if [ -z "$SIMPLY_AccountName" ] || [ -z "$SIMPLY_ApiKey" ]; then
     SIMPLY_AccountName=""
@@ -144,9 +138,6 @@ _simply_load_config() {
 }
 
 _simply_save_config() {
-  if [ "$SIMPLY_Api" != "$SIMPLY_Api_Default" ]; then
-    _saveaccountconf_mutable SIMPLY_Api "$SIMPLY_Api"
-  fi
   _saveaccountconf_mutable SIMPLY_AccountName "$SIMPLY_AccountName"
   _saveaccountconf_mutable SIMPLY_ApiKey "$SIMPLY_ApiKey"
 }
