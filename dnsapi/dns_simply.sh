@@ -10,9 +10,6 @@ Options:
 
 SIMPLY_Api="https://api.simply.com/2"
 
-#This is used for determining success of REST call
-SIMPLY_SUCCESS_CODE='"status":200'
-
 ########  Public functions #####################
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_simply_add() {
@@ -71,7 +68,7 @@ dns_simply_rm() {
     return 1
   fi
 
-  records=$(echo "$response" | tr '{' "\n" | grep 'record_id\|type\|data\|\name' | sed 's/\"record_id/;\"record_id/' | tr "\n" ' ' | tr -d ' ' | tr ';' ' ')
+  records=$(echo "$response" | tr '{' "\n" | grep 'record_id\|type\|data\|name' | sed 's/\"record_id/;\"record_id/' | tr "\n" ' ' | tr -d ' ' | tr ';' ' ')
 
   nr_of_deleted_records=0
   _info "Fetching txt record"
@@ -94,7 +91,7 @@ dns_simply_rm() {
 
       if [ "$record_id" -gt 0 ]; then
 
-        if ! _simply_delete_record "$_domain" "$_sub_domain" "$record_id"; then
+        if ! _simply_delete_record "$_domain" "$record_id"; then
           _err "Record with id $record_id could not be deleted"
           return 1
         fi
@@ -154,26 +151,33 @@ _simply_get_all_records() {
 
 _get_root() {
   domain=$1
+
+  if ! _simply_rest GET "my/products/"; then
+    return 1
+  fi
+
   i=2
   p=1
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
-      #not valid
       return 1
     fi
 
-    if ! _simply_rest GET "my/products/$h/dns/"; then
-      return 1
-    fi
+    # Split on } so that "object" and "name_idn" (nested inside "domain":{})
+    # end up on the same line, allowing extraction of the correct handle
+    # even for IDN domains where object is punycode and name_idn is unicode.
+    _domain=$(printf "%s" "$response" | tr '}' '\n' \
+      | grep "\"object\":\"$h\"\|\"name\":\"$h\"\|\"name_idn\":\"$h\"" \
+      | sed -n 's/.*"object":"\([^"]*\)".*/\1/p' \
+      | head -1)
 
-    if ! _contains "$response" "$SIMPLY_SUCCESS_CODE"; then
-      _debug "$h not found"
-    else
+    if [ -n "$_domain" ]; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
-      _domain="$h"
       return 0
     fi
+
+    _debug "No Simply.com product found for $h"
     p="$i"
     i=$(_math "$i" + 1)
   done
@@ -188,12 +192,12 @@ _simply_add_record() {
   data="{\"name\": \"$sub_domain\", \"type\":\"TXT\", \"data\": \"$txtval\", \"priority\":0, \"ttl\": 3600}"
 
   if ! _simply_rest POST "my/products/$domain/dns/records/" "$data"; then
-    _err "Adding record not successfull!"
+    _err "Adding record not successful!"
     return 1
   fi
 
-  if ! _contains "$response" "$SIMPLY_SUCCESS_CODE"; then
-    _err "Call to API not sucessfull, see below message for more details"
+  if [ "$_code" != "200" ]; then
+    _err "Call to API not successful, see below message for more details"
     _err "$response"
     return 1
   fi
@@ -203,18 +207,17 @@ _simply_add_record() {
 
 _simply_delete_record() {
   domain=$1
-  sub_domain=$2
-  record_id=$3
+  record_id=$2
 
   _debug record_id "Delete record with id $record_id"
 
   if ! _simply_rest DELETE "my/products/$domain/dns/records/$record_id/"; then
-    _err "Deleting record not successfull!"
+    _err "Deleting record not successful!"
     return 1
   fi
 
-  if ! _contains "$response" "$SIMPLY_SUCCESS_CODE"; then
-    _err "Call to API not sucessfull, see below message for more details"
+  if [ "$_code" != "200" ]; then
+    _err "Call to API not successful, see below message for more details"
     _err "$response"
     return 1
   fi
@@ -261,3 +264,4 @@ _simply_rest() {
 
   return 0
 }
+
