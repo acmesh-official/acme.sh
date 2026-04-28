@@ -194,12 +194,12 @@ _simply_add_record() {
   fi
 
   case "$_code" in
-    2*) ;;
-    *)
-      _err "Call to API not successful (HTTP $_code), see below message for more details"
-      _err "$response"
-      return 1
-      ;;
+  2*) ;;
+  *)
+    _err "Call to API not successful (HTTP $_code), see below message for more details"
+    _err "$response"
+    return 1
+    ;;
   esac
 
   return 0
@@ -217,12 +217,12 @@ _simply_delete_record() {
   fi
 
   case "$_code" in
-    2*) ;;
-    *)
-      _err "Call to API not successful (HTTP $_code), see below message for more details"
-      _err "$response"
-      return 1
-      ;;
+  2*) ;;
+  *)
+    _err "Call to API not successful (HTTP $_code), see below message for more details"
+    _err "$response"
+    return 1
+    ;;
   esac
 
   return 0
