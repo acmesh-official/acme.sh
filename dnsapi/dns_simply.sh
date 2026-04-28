@@ -196,11 +196,14 @@ _simply_add_record() {
     return 1
   fi
 
-  if [ "$_code" != "200" ]; then
-    _err "Call to API not successful, see below message for more details"
-    _err "$response"
-    return 1
-  fi
+  case "$_code" in
+    2*) ;;
+    *)
+      _err "Call to API not successful (HTTP $_code), see below message for more details"
+      _err "$response"
+      return 1
+      ;;
+  esac
 
   return 0
 }
@@ -216,11 +219,14 @@ _simply_delete_record() {
     return 1
   fi
 
-  if [ "$_code" != "200" ]; then
-    _err "Call to API not successful, see below message for more details"
-    _err "$response"
-    return 1
-  fi
+  case "$_code" in
+    2*) ;;
+    *)
+      _err "Call to API not successful (HTTP $_code), see below message for more details"
+      _err "$response"
+      return 1
+      ;;
+  esac
 
   return 0
 }
