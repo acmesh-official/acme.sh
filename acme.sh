@@ -2300,16 +2300,16 @@ _send_signed_request() {
 
       _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
       if [ "$code" = '503' ]; then
-        _sleep_overload_retry_sec=$_retryafter
+        _sleep_overload_retry_sec=$((${_retryafter:-0} > ${LE_MIN_RETRY_SLEEP:-5} ? ${_retryafter:-0} : ${LE_MIN_RETRY_SLEEP:-5}))
         if [ -z "$_sleep_overload_retry_sec" ]; then
           _sleep_overload_retry_sec=5
         fi
-        if [ $_sleep_overload_retry_sec -le 600 ]; then
+        if [ "$_sleep_overload_retry_sec" -le "${LE_MAX_RETRY_AFTER:-3600}" ]; then
           _info "It seems the CA server is currently overloaded, let's wait and retry. Sleeping for $_sleep_overload_retry_sec seconds."
           _sleep $_sleep_overload_retry_sec
           continue
         else
-          _info "The retryafter=$_retryafter value is too large (> 600), will not retry anymore."
+          _info "The retryafter=$_retryafter value is too large (> ${LE_MAX_RETRY_AFTER:-3600}), will not retry anymore."
         fi
       fi
       if _contains "$_body" "JWS has invalid anti-replay nonce" || _contains "$_body" "JWS has an invalid anti-replay nonce"; then
@@ -5229,12 +5229,12 @@ $_authorizations_map"
         return 1
       fi
       _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
-      _sleep_overload_retry_sec=$_retryafter
+      _sleep_overload_retry_sec=$((${_retryafter:-0} > ${LE_MIN_RETRY_SLEEP:-5} ? ${_retryafter:-0} : ${LE_MIN_RETRY_SLEEP:-5}))
       if [ "$_sleep_overload_retry_sec" ]; then
-        if [ $_sleep_overload_retry_sec -le 600 ]; then
+        if [ "$_sleep_overload_retry_sec" -le "${LE_MAX_RETRY_AFTER:-3600}" ]; then
           _sleep $_sleep_overload_retry_sec
         else
-          _info "The retryafter=$_retryafter value is too large (> 600), will not retry anymore."
+          _info "The retryafter=$_retryafter value is too large (> ${LE_MAX_RETRY_AFTER:-3600}), will not retry anymore."
           _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
           _clearup
           _on_issue_err "$_post_hook" "$vlist"
@@ -5296,9 +5296,11 @@ $_authorizations_map"
       _info "Order status is 'processing', let's sleep and retry."
       _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
       _debug "_retryafter" "$_retryafter"
-      if [ "$_retryafter" ] && [ $_retryafter -gt 0 ]; then
+      if [ "${_retryafter:-0}" -ge 0 ]; then
         _info "Sleeping for $_retryafter seconds then retrying"
-        _sleep $_retryafter
+    _info "Processing sleep: ${LE_PROCESSING_MIN_SLEEP:-15}s"
+    _sleep "${LE_PROCESSING_MIN_SLEEP:-15}"
+    _sleep $_retryafter
       else
         _sleep 2
       fi
