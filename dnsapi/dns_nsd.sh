@@ -9,6 +9,18 @@ Options:
 Issues: github.com/acmesh-official/acme.sh/issues/2245
 '
 
+# args: zonefile
+_local_nsd_get_serial()
+{
+    local _zone_file="$1"
+    cat "$_zone_file" | \
+	sed -n '/IN[ \t]*SOA.*/,/[)]/p' | \
+	sed 's/\([^;]\);\(.*\)/\1/g' | \
+	sed -z 's/\n//g' | \
+	sed 's/\([^(]*\)[(]\([^)]*\)[)]/\2/g' | \
+	sed 's/\([ \t]*\)\([0-9]*\)\(.*\)/\2/g'
+}
+
 # args: fulldomain txtvalue
 dns_nsd_add() {
   fulldomain=$1
@@ -37,6 +49,16 @@ dns_nsd_add() {
   _savedomainconf Nsd_Command "$Nsd_Command"
 
   echo "$fulldomain. $ttlvalue IN TXT \"$txtvalue\"" >>"$Nsd_ZoneFile"
+
+  # Updating serial. The idea is that we'll parse out the old serial first,
+  # generate a new one by incrementing, then sed-replace the old by the new one.
+  local zone_serial=$(_local_nsd_get_serial "$Nsd_ZoneFile")
+  local zone_serial_next=$[$zone_serial+1]
+  local tmp_zonefile=$(mktemp)
+  cat "$Nsd_ZoneFile" | sed "s/$zone_serial/$zone_serial_next/" > "$tmp_zonefile"
+  cat "$tmp_zonefile" > "$Nsd_ZoneFile"
+  rm -rf "$tmp_zonefile"
+  
   _info "Added TXT record for $fulldomain"
   _debug "Running $Nsd_Command"
   if eval "$Nsd_Command"; then
