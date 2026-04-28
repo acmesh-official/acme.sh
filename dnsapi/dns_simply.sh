@@ -167,10 +167,10 @@ _get_root() {
     # Split on } so that "object" and "name_idn" (nested inside "domain":{})
     # end up on the same line, allowing extraction of the correct handle
     # even for IDN domains where object is punycode and name_idn is unicode.
-    _domain=$(printf "%s" "$response" | tr '}' '\n' \
-      | grep "\"object\":\"$h\"\|\"name\":\"$h\"\|\"name_idn\":\"$h\"" \
-      | sed -n 's/.*"object":"\([^"]*\)".*/\1/p' \
-      | head -1)
+    _domain=$(printf "%s" "$response" | tr '}' '\n' |
+      grep "\"object\":\"$h\"\|\"name\":\"$h\"\|\"name_idn\":\"$h\"" |
+      sed -n 's/.*"object":"\([^"]*\)".*/\1/p' |
+      head -1)
 
     if [ -n "$_domain" ]; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
@@ -242,13 +242,17 @@ _simply_rest() {
 
   export _H2="Content-Type: application/json"
 
+  _tmpf="$(mktemp)"
   if [ "$m" != "GET" ]; then
-    response="$(_post "$data" "$SIMPLY_Api/$ep" "" "$m")"
+    _post "$data" "$SIMPLY_Api/$ep" "" "$m" >"$_tmpf"
   else
-    response="$(_get "$SIMPLY_Api/$ep")"
+    _get "$SIMPLY_Api/$ep" >"$_tmpf"
   fi
+  _ret=$?
+  response="$(cat "$_tmpf")"
+  rm -f "$_tmpf"
 
-  if [ "$?" != "0" ]; then
+  if [ "$_ret" != "0" ]; then
     _err "error $ep"
     return 1
   fi
@@ -264,4 +268,3 @@ _simply_rest() {
 
   return 0
 }
-
