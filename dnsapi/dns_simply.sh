@@ -193,10 +193,10 @@ _simply_add_record() {
     return 1
   fi
 
-  case "$_code" in
+  case "$_simply_http_code" in
   2*) ;;
   *)
-    _err "Call to API not successful (HTTP $_code), see below message for more details"
+    _err "Call to API not successful (HTTP $_simply_http_code), see below message for more details"
     _err "$response"
     return 1
     ;;
@@ -216,10 +216,10 @@ _simply_delete_record() {
     return 1
   fi
 
-  case "$_code" in
+  case "$_simply_http_code" in
   2*) ;;
   *)
-    _err "Call to API not successful (HTTP $_code), see below message for more details"
+    _err "Call to API not successful (HTTP $_simply_http_code), see below message for more details"
     _err "$response"
     return 1
     ;;
@@ -256,7 +256,7 @@ _simply_rest() {
     return 1
   fi
 
-  _code="$(grep -i '^HTTP/' "$HTTP_HEADER" | tail -1 | cut -d' ' -f2)"
+  _simply_http_code="$(grep -i '^HTTP/' "$HTTP_HEADER" | tail -1 | cut -d' ' -f2)"
 
   response="$(echo "$response" | _normalizeJson)"
 
