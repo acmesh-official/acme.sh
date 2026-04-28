@@ -58,6 +58,7 @@ DEFAULT_OPENSSL_BIN="openssl"
 
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
+VTYPE_DNS_PERSIST="dns-persist-01"
 VTYPE_ALPN="tls-alpn-01"
 
 ID_TYPE_DNS="dns"
@@ -70,6 +71,7 @@ DEFAULT_RENEW="${DEFAULT_RENEW:-30}"
 NO_VALUE="no"
 
 W_DNS="dns"
+W_DNS_PERSIST="persist-dns" # not dns-persist because dns* namespace is already used for dns api hooks
 W_ALPN="alpn"
 DNS_ALIAS_PREFIX="="
 
@@ -4451,7 +4453,7 @@ issue() {
     return 1
   fi
   if [ -z "$1" ]; then
-    _usage "Please specify at least one validation method: '--webroot', '--standalone', '--apache', '--nginx' or '--dns' etc."
+    _usage "Please specify at least one validation method: '--webroot', '--standalone', '--apache', '--nginx', '--dns-persist' or '--dns' etc."
     return 1
   fi
   _web_roots="$1"
@@ -4810,6 +4812,10 @@ $_authorizations_map"
         vtype="$VTYPE_DNS"
       fi
 
+      if [ "$_currentRoot" = "$W_DNS_PERSIST" ]; then
+        vtype="$VTYPE_DNS_PERSIST"
+      fi
+
       if [ "$_currentRoot" = "$W_ALPN" ]; then
         vtype="$VTYPE_ALPN"
       fi
@@ -4867,7 +4873,7 @@ $_authorizations_map"
         token="$(echo "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
         _debug token "$token"
 
-        if [ -z "$token" ]; then
+        if [ -z "$token" ] && [ "$vtype" != "$VTYPE_DNS_PERSIST" ]; then
           _err "Cannot get domain token $entry"
           _clearup
           _on_issue_err "$_post_hook"
@@ -5122,6 +5128,51 @@ $_authorizations_map"
         _clearupwebbroot "$_currentRoot" "$removelevel" "$token"
         _clearup
         _on_issue_err "$_post_hook" "$vlist"
+        return 1
+      fi
+    elif [ "$vtype" = "$VTYPE_DNS_PERSIST" ]; then
+      _info "dns-persist-01 selected"
+      caadomain="$(echo "$entry" | _egrep_o '"issuer-domain-names":\["[^"]+"' | cut -d'"' -f4)" # this get first domain entry
+      _debug caadomain "$caadomain"
+      if [ -z "$caadomain" ]; then
+        _err "Cannot get valid issuer domain name for $entry"
+        _debug $ventry $ventry
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
+      _dns_root_d="$d"
+      _wildcard=""
+      if _startswith "$_dns_root_d" "*."; then
+        _dns_root_d="${_dns_root_d#*.}"
+        _wildcard=1
+      fi
+
+      persisttxt="$(_ns_lookup "_validation-persist.$_dns_root_d" TXT)"
+
+      # there can be infinite allowing txt record due to paramters unlike other challenge so don't bother check ourselves, just it had txt record that hava our accounturi
+      if ! _contains "$persisttxt" "$ACCOUNT_URL"; then
+        _info "Please set persistent txt record at _validation-persist.$_dns_root_d"
+        if [ -z "$_wildcard" ]; then
+          _info "there are multiple parameters, but  \"$caadomain; accounturi=$ACCOUNT_URL\" should work"
+        else
+          _info "there are multiple parameters, but  \"$caadomain; accounturi=$ACCOUNT_URL; policy=wildcard\" should work"
+        fi
+
+        if [ "$__INTERACTIVE" ]; then
+          _info "Press Enter to continue..."
+          read _tmp
+        else
+          _err "no txt record about our account and not this in non-interactive, error out"
+          _clearup
+          _on_issue_err "$_post_hook"
+          return 1
+        fi
+
+      elif [ -n "$_wildcard" ] && ! _contains "$persisttxt" "policy=wildcard"; then
+        _err "we are asking for wildcard but no policy=wildcard  at _validation-persist.$_dns_root_d"
+        _clearup
+        _on_issue_err "$_post_hook"
         return 1
       fi
     fi
@@ -7816,6 +7867,14 @@ _process() {
         wvalue="$2"
         shift
       fi
+      if [ -z "$_webroot" ]; then
+        _webroot="$wvalue"
+      else
+        _webroot="$_webroot,$wvalue"
+      fi
+      ;;
+    --dns-persist)
+      wvalue="$W_DNS_PERSIST"
       if [ -z "$_webroot" ]; then
         _webroot="$wvalue"
       else
