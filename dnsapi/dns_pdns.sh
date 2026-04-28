@@ -50,6 +50,9 @@ dns_pdns_add() {
     PDNS_Ttl="$DEFAULT_PDNS_TTL"
   fi
 
+  # Ensure PDNS_Url has no trailing slash ('/')
+  PDNS_Url="${PDNS_Url%/}"
+
   #save the api addr and key to the account conf file.
   _saveaccountconf_mutable PDNS_Url "$PDNS_Url"
   _saveaccountconf_mutable PDNS_ServerId "$PDNS_ServerId"
