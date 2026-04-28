@@ -164,9 +164,6 @@ _get_root() {
       return 1
     fi
 
-    # Split on } so that "object" and "name_idn" (nested inside "domain":{})
-    # end up on the same line, allowing extraction of the correct handle
-    # even for IDN domains where object is punycode and name_idn is unicode.
     _domain=$(printf "%s" "$response" | tr '}' '\n' |
       grep "\"object\":\"$h\"\|\"name\":\"$h\"\|\"name_idn\":\"$h\"" |
       sed -n 's/.*"object":"\([^"]*\)".*/\1/p' |
@@ -261,6 +258,13 @@ _simply_rest() {
   if [ "$_ret" != "0" ]; then
     _err "error $ep"
     return 1
+  fi
+
+  _code="$(printf "%s" "$response" | tail -1)"
+  if printf "%s" "$_code" | grep -qE '^[0-9]{3}$'; then
+    response="$(printf "%s" "$response" | sed '$d')"
+  else
+    _code=""
   fi
 
   response="$(echo "$response" | _normalizeJson)"
