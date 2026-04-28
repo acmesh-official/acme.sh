@@ -245,27 +245,18 @@ _simply_rest() {
 
   export _H2="Content-Type: application/json"
 
-  _tmpf="$(mktemp)"
   if [ "$m" != "GET" ]; then
-    _post "$data" "$SIMPLY_Api/$ep" "" "$m" >"$_tmpf"
+    response="$(_post "$data" "$SIMPLY_Api/$ep" "" "$m")"
   else
-    _get "$SIMPLY_Api/$ep" >"$_tmpf"
+    response="$(_get "$SIMPLY_Api/$ep")"
   fi
-  _ret=$?
-  response="$(cat "$_tmpf")"
-  rm -f "$_tmpf"
 
-  if [ "$_ret" != "0" ]; then
+  if [ "$?" != "0" ]; then
     _err "error $ep"
     return 1
   fi
 
-  _code="$(printf "%s" "$response" | tail -1)"
-  if printf "%s" "$_code" | grep -qE '^[0-9]{3}$'; then
-    response="$(printf "%s" "$response" | sed '$d')"
-  else
-    _code=""
-  fi
+  _code="$(grep -i '^HTTP/' "$HTTP_HEADER" | tail -1 | cut -d' ' -f2)"
 
   response="$(echo "$response" | _normalizeJson)"
 
