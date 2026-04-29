@@ -36,6 +36,8 @@ dns_firestorm_add() {
   _saveaccountconf_mutable FST_Secret "$FST_Secret"
   if [ "$FST_Url" != "$FST_Url_DEFAULT" ]; then
     _saveaccountconf_mutable FST_Url "$FST_Url"
+  else
+    _clearaccountconf_mutable FST_Url
   fi
 
   subdomain=$(printf "%s" "$fulldomain" | sed 's/^_acme-challenge\.//')
@@ -44,7 +46,9 @@ dns_firestorm_add() {
   _debug "Subdomain" "$subdomain"
   _debug "TXT value" "$txtvalue"
 
-  response="$(_firestorm_api "update" "{\"subdomain\":\"$subdomain\",\"txt\":\"$txtvalue\"}")"
+  body="{\"subdomain\":\"$(_json_safe "$subdomain")\",\"txt\":\"$(_json_safe "$txtvalue")\"}"
+
+  response="$(_firestorm_api "update" "$body")"
 
   if _contains "$response" "$txtvalue"; then
     _info "TXT record added successfully"
@@ -65,20 +69,34 @@ dns_firestorm_rm() {
   FST_Url="${FST_Url:-$(_readaccountconf_mutable FST_Url)}"
   FST_Url="${FST_Url:-$FST_Url_DEFAULT}"
 
+  if [ -z "$FST_Key" ] || [ -z "$FST_Secret" ]; then
+    _err "FST_Key and FST_Secret must be set"
+    return 1
+  fi
+
   subdomain=$(printf "%s" "$fulldomain" | sed 's/^_acme-challenge\.//')
 
   _info "Removing TXT record for $fulldomain"
 
-  response="$(_firestorm_api "remove" "{\"subdomain\":\"$subdomain\",\"txt\":\"$txtvalue\"}")"
+  body="{\"subdomain\":\"$(_json_safe "$subdomain")\",\"txt\":\"$(_json_safe "$txtvalue")\"}"
+
+  response="$(_firestorm_api "remove" "$body")"
 
   if _contains "$response" "removed"; then
     _info "TXT record removed"
+    return 0
   fi
 
-  return 0
+  _err "Failed to remove TXT record: $response"
+  return 1
 }
 
 ####################  Private functions below ##################################
+
+# Escape special characters for safe JSON string interpolation
+_json_safe() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
 
 _firestorm_api() {
   action=$1
