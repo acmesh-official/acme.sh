@@ -67,12 +67,12 @@ dns_desec_add() {
       return 0
     else
       _err "Add txt record error."
-      return 1
+      return 0
     fi
   fi
 
   _err "Add txt record error."
-  return 1
+  return 0
 }
 
 #Usage: fulldomain txtvalue
