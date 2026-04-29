@@ -5013,9 +5013,11 @@ $_authorizations_map"
         _clearup
         return 1
       fi
+      _info "Public DNS checks succeeded. Sleeping for 20 seconds to give the CA's DNS resolvers more time."
+      _sleep 20
     else
       _savedomainconf "Le_DNSSleep" "$Le_DNSSleep"
-      _info "Sleeping for $(__green $Le_DNSSleep) seconds to wait for the the TXT records to take effect"
+      _info "Sleeping for $(__green $Le_DNSSleep) seconds to wait for the TXT records to take effect"
       _sleep "$Le_DNSSleep"
     fi
   fi
