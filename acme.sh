@@ -4072,8 +4072,8 @@ makednspersistvalue() {
     _info ""
     _info "Add the following DNS TXT record to enable persistent DNS validation:"
     _info ""
-    _info "$(printf 'TXT domain:    %s' "$(__green "$_txt_name")")"
-    _info "$(printf 'TXT value:     %s' "$(__green "\"$_mdpv_ca_name$_txt_suffix\"")")"
+    _info "$(printf 'TXT persist domain:%s' "$(__green "$_txt_name")")"
+    _info "$(printf 'TXT persist value :%s' "$(__green "\"$_mdpv_ca_name$_txt_suffix\"")")"
     _info ""
     return 0
   fi
@@ -4103,8 +4103,8 @@ makednspersistvalue() {
   for _id in $_caaids; do
     [ -z "$_id" ] && continue
     _info ""
-    _info "$(printf 'TXT domain: %s' "$(__green "$_txt_name")")"
-    _info "$(printf 'TXT value : %s' "$(__green "\"$_id$_txt_suffix\"")")"
+    _info "$(printf 'TXT persist domain:%s' "$(__green "$_txt_name")")"
+    _info "$(printf 'TXT persist value :%s' "$(__green "\"$_id$_txt_suffix\"")")"
   done
   _info ""
 }
@@ -4790,12 +4790,40 @@ issue() {
     if [ "$_certificate_profile" ]; then
       _newOrderObj="$_newOrderObj,\"profile\": \"$_certificate_profile\""
     fi
+
+    # RFC 9773 Section 5: include "replaces" only when this is an actual
+    # renewal (--renew path), the CA advertises renewalInfo, and a prior
+    # cert exists. --issue (even with --force) is not a renewal per RFC 9773
+    # which speaks of "a clear predecessor certificate" issued by this CA.
+    _replaces_certID=""
+    if [ "$_ACME_IS_RENEW" = "1" ] && [ "$ACME_RENEWAL_INFO" ] && [ -f "$CERT_PATH" ]; then
+      _replaces_certID="$(_getARICertID "$CERT_PATH")"
+      _debug "Adding ARI replaces" "$_replaces_certID"
+    fi
+
     _debug "STEP 1, Ordering a Certificate"
-    if ! _send_signed_request "$ACME_NEW_ORDER" "$_newOrderObj}"; then
+    _newOrderReplacesObj="$_newOrderObj"
+    if [ "$_replaces_certID" ]; then
+      _newOrderReplacesObj="$_newOrderObj,\"replaces\": \"$_replaces_certID\""
+    fi
+    if ! _send_signed_request "$ACME_NEW_ORDER" "$_newOrderReplacesObj}"; then
       _err "Error creating new order."
       _clearup
       _on_issue_err "$_post_hook"
       return 1
+    fi
+    # RFC 9773 Section 5 only defines the "alreadyReplaced" error, but real CAs
+    # (Let's Encrypt) may also reject with a malformed error if the prior cert
+    # was issued by a different issuer / different CA. Retry without "replaces"
+    # whenever the failure mentions ARI or the replaces field.
+    if [ "$_replaces_certID" ] && { _contains "$response" "alreadyReplaced" || _contains "$response" "'replaces'" || _contains "$response" "ARI"; }; then
+      _info "ARI 'replaces' rejected by CA, retrying newOrder without 'replaces'."
+      if ! _send_signed_request "$ACME_NEW_ORDER" "$_newOrderObj}"; then
+        _err "Error creating new order."
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
     fi
     if _contains "$response" "invalid"; then
       if echo "$response" | _normalizeJson | grep '"status":"invalid"' >/dev/null 2>&1; then
@@ -5581,6 +5609,30 @@ $_authorizations_map"
     Le_NextRenewTime=$(_math "$Le_NextRenewTime" - 86400)
     Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
   fi
+
+  # RFC 9773 ARI: if the CA exposes renewalInfo, override Le_NextRenewTime
+  # with a time picked at random within the suggestedWindow. This both gives
+  # the CA full control over renewal scheduling and disperses renewals across
+  # the network so all clients don't hit the CA at the same instant.
+  if [ "$ACME_RENEWAL_INFO" ] && [ -f "$CERT_PATH" ] && [ -z "$_notAfter" ]; then
+    _ari_resp_new="$(_get_ARI "$CERT_PATH")"
+    _debug2 "_ari_resp_new" "$_ari_resp_new"
+    _ari_start_new="$(echo "$_ari_resp_new" | _egrep_o '"start" *: *"[^"]*' | sed 's/.*"//')"
+    _ari_end_new="$(echo "$_ari_resp_new" | _egrep_o '"end" *: *"[^"]*' | sed 's/.*"//')"
+    if [ "$_ari_start_new" ] && [ "$_ari_end_new" ]; then
+      _ari_start_t_new="$(_date2time "$(echo "$_ari_start_new" | sed 's/\.[0-9]*//')")"
+      _ari_end_t_new="$(_date2time "$(echo "$_ari_end_new" | sed 's/\.[0-9]*//')")"
+      if [ "$_ari_start_t_new" ] && [ "$_ari_end_t_new" ] && [ "$_ari_end_t_new" -gt "$_ari_start_t_new" ]; then
+        _ari_window=$(_math "$_ari_end_t_new" - "$_ari_start_t_new")
+        _ari_offset=$(_math "$(_time)" % "$_ari_window")
+        Le_NextRenewTime=$(_math "$_ari_start_t_new" + "$_ari_offset")
+        Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+        _info "ARI suggestedWindow: $(__green "$_ari_start_new") to $(__green "$_ari_end_new")"
+        _info "Next renewal time picked from ARI window: $(__green "$Le_NextRenewTimeStr")"
+      fi
+    fi
+  fi
+
   _savedomainconf "Le_NextRenewTimeStr" "$Le_NextRenewTimeStr"
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
 
@@ -5676,7 +5728,31 @@ renew() {
   _debug2 "initpath again."
   _initpath "$Le_Domain" "$_isEcc"
 
-  if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
+  # ARI (RFC 9773): fetch the CA's suggestedWindow on every renewal check.
+  # If the window has started, renew now even if Le_NextRenewTime is in the future.
+  _ari_should_renew=""
+  if [ -z "$FORCE" ] && [ -f "$CERT_PATH" ]; then
+    if _initAPI && [ "$ACME_RENEWAL_INFO" ]; then
+      _ari_resp="$(_get_ARI "$CERT_PATH")"
+      _debug2 "_ari_resp" "$_ari_resp"
+      _ari_start="$(echo "$_ari_resp" | _egrep_o '"start" *: *"[^"]*' | sed 's/.*"//')"
+      _ari_end="$(echo "$_ari_resp" | _egrep_o '"end" *: *"[^"]*' | sed 's/.*"//')"
+      _debug "ARI suggestedWindow.start" "$_ari_start"
+      _debug "ARI suggestedWindow.end" "$_ari_end"
+      if [ "$_ari_start" ]; then
+        _ari_start_t="$(_date2time "$(echo "$_ari_start" | sed 's/\.[0-9]*//')")"
+        _debug "_ari_start_t" "$_ari_start_t"
+        if [ "$_ari_start_t" ] && [ "$(_time)" -ge "$_ari_start_t" ]; then
+          _info "ARI suggestedWindow has started ($(__green "$_ari_start")), proceeding with renewal."
+          _ari_should_renew="1"
+        else
+          _info "ARI suggestedWindow starts at: $(__green "$_ari_start")"
+        fi
+      fi
+    fi
+  fi
+
+  if [ -z "$FORCE" ] && [ -z "$_ari_should_renew" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
     _info "Skipping. Next renewal time is: $(__green "$Le_NextRenewTimeStr")"
     _info "Add '$(__red '--force')' to force renewal."
     if [ -z "$_ACME_IN_RENEWALL" ]; then
@@ -6698,21 +6774,29 @@ _getSerial() {
 }
 
 #cert
-_get_ARI() {
+#Compute the ARI/replaces certID for a cert: base64url(AKI).base64url(Serial)
+#per RFC 9773 Section 4.1.
+_getARICertID() {
   _cert="$1"
   _aki=$(_getAKI "$_cert")
   _ser=$(_getSerial "$_cert")
   _debug2 "_aki" "$_aki"
   _debug2 "_ser" "$_ser"
 
-  _akiurl="$(echo "$_aki" | _h2b | _base64 | tr -d = | _url_encode)"
+  _akiurl="$(echo "$_aki" | _h2b | _base64 | _url_replace)"
   _debug2 "_akiurl" "$_akiurl"
-  _serurl="$(echo "$_ser" | _h2b | _base64 | tr -d = | _url_encode)"
+  _serurl="$(echo "$_ser" | _h2b | _base64 | _url_replace)"
   _debug2 "_serurl" "$_serurl"
 
-  _ARI_URL="$ACME_RENEWAL_INFO/$_akiurl.$_serurl"
-  _get "$_ARI_URL"
+  printf "%s.%s" "$_akiurl" "$_serurl"
+}
 
+#cert
+_get_ARI() {
+  _cert="$1"
+  _ari_certID="$(_getARICertID "$_cert")"
+  _ARI_URL="$ACME_RENEWAL_INFO/$_ari_certID"
+  _get "$_ARI_URL"
 }
 
 # Detect profile file if not specified as environment variable
