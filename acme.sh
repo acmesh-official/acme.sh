@@ -4030,17 +4030,31 @@ deactivateaccount() {
   fi
 }
 
-#domain  wildcard  ca_name
+#domain  wildcard  ca_name  days
 #Print the TXT record(s) the user must add to enable persistent DNS validation
 #per draft-ietf-acme-dns-persist-01.
 makednspersistvalue() {
   _mdpv_domain="$1"
   _mdpv_wildcard="$2"
   _mdpv_ca_name="$3"
+  _mdpv_days="$4"
 
   if [ -z "$_mdpv_domain" ]; then
     _err "Please specify a domain with -d."
     return 1
+  fi
+
+  if [ -n "$_mdpv_days" ]; then
+    case "$_mdpv_days" in
+    '' | *[!0-9]*)
+      _err "--dns-persist-days must be a positive integer, got: $_mdpv_days"
+      return 1
+      ;;
+    esac
+    if [ "$_mdpv_days" -lt 1 ]; then
+      _err "--dns-persist-days must be at least 1."
+      return 1
+    fi
   fi
 
   _initpath
@@ -4066,6 +4080,11 @@ makednspersistvalue() {
   _txt_suffix="; accounturi=$_accUri"
   if [ "$_mdpv_wildcard" = "1" ]; then
     _txt_suffix="$_txt_suffix; policy=wildcard"
+  fi
+  if [ -n "$_mdpv_days" ]; then
+    _persist_until=$(_math "$(_time)" + "$_mdpv_days" \* 86400)
+    _txt_suffix="$_txt_suffix; persistUntil=$_persist_until"
+    _info "persistUntil set to $(__green "$(_time2str "$_persist_until")") ($_mdpv_days days from now)"
   fi
 
   if [ -n "$_mdpv_ca_name" ]; then
@@ -7402,6 +7421,10 @@ Parameters:
                                       (e.g. 'ssl.com') as the issuer-domain-name in the TXT record. If
                                       omitted, the identities are read from the ACME directory's
                                       'caaIdentities' field and one record is printed per identity.
+  --dns-persist-days <N>            Used with '--make-dns-persist-value'. Add a 'persistUntil' field to
+                                      the TXT record so the record self-expires N days from now (the CA
+                                      will refuse new validations against the record after that time).
+                                      If omitted, the record has no expiry.
 
 
   These parameters are to install the cert to nginx/Apache or any other server after issue/renew a cert:
@@ -7775,6 +7798,7 @@ _process() {
   _extended_key_usage=""
   _dns_persist_wildcard=""
   _dns_persist_ca_name=""
+  _dns_persist_days=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -7877,6 +7901,10 @@ _process() {
       ;;
     --dns-persist-ca-name | --dnspersistcaname)
       _dns_persist_ca_name="$2"
+      shift
+      ;;
+    --dns-persist-days | --dnspersistdays)
+      _dns_persist_days="$2"
       shift
       ;;
     --set-notify)
@@ -8447,7 +8475,7 @@ _process() {
     deactivateaccount
     ;;
   makednspersistvalue)
-    makednspersistvalue "$_domain" "$_dns_persist_wildcard" "$_dns_persist_ca_name"
+    makednspersistvalue "$_domain" "$_dns_persist_wildcard" "$_dns_persist_ca_name" "$_dns_persist_days"
     ;;
   list)
     list "$_listraw" "$_domain"

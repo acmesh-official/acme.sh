@@ -406,7 +406,7 @@ DNS persist mode lets you place a **single, long‑lived `_validation-persist` T
 #### 🪄 Step 1: Print the TXT record value
 
 ```bash
-acme.sh --make-dns-persist-value -d example.com [--server letsencrypt] [--dns-persist-wildcard] [--dns-persist-ca-name "sectigo.com"]
+acme.sh --make-dns-persist-value -d example.com [--server letsencrypt] [--dns-persist-wildcard] [--dns-persist-ca-name "sectigo.com"] [--dns-persist-days 365]
 ```
 
 Options:
@@ -416,17 +416,18 @@ Options:
 | `--server <ca>` | Pick the CA (default is your configured default). The account is registered automatically if you have not used this CA before. |
 | `--dns-persist-wildcard` | Adds `policy=wildcard` to the record so it also authorizes wildcard / subdomain certs. |
 | `--dns-persist-ca-name <name>` | Use a specific CA identity domain (e.g. `sectigo.com`). If omitted, identities are read from the ACME directory's `caaIdentities` field and one record per identity is printed — you only need to add **any one** of them. |
+| `--dns-persist-days <N>` | Adds `persistUntil=<unix-timestamp>` to the record, set to N days from now. The CA will refuse new validations against the record after that time. Omit for a record with no expiry. |
 
 You should get an output like:
 
 ```sh
-TXT domain:    _validation-persist.example.com
-TXT value:     "letsencrypt.org; accounturi=https://acme-v02.api.letsencrypt.org/acme/acct/123456789"
+TXT persist domain:_validation-persist.example.com
+TXT persist value :"letsencrypt.org; accounturi=https://acme-v02.api.letsencrypt.org/acme/acct/123456789"
 ```
 
 #### ✍️ Step 2: Add the TXT record to your DNS
 
-Add the printed `TXT domain` / `TXT value` pair as a TXT record at your DNS provider, then wait for it to propagate.
+Add the printed `TXT persist domain` / `TXT persist value` pair as a TXT record at your DNS provider, then wait for it to propagate.
 
 #### 📜 Step 3: Issue the certificate
 
@@ -485,7 +486,7 @@ acme.sh --issue -d example.com -d '*.example.com' --dns dns_cf
 
 ### 1️⃣3️⃣ How to Renew Certificates
 
-> 🔄 No need to renew manually! All certs will be renewed automatically every **30** days.
+> 🔄 No need to renew manually! All certs will be renewed automatically every **30** days, **or earlier when the CA's ARI says so** (see below).
 
 However, you can force a renewal:
 
@@ -498,6 +499,38 @@ acme.sh --renew -d example.com --force
 ```sh
 acme.sh --renew -d example.com --force --ecc
 ```
+
+#### 📡 ACME Renewal Information (ARI) — RFC 9773
+
+If the CA exposes a `renewalInfo` endpoint in its ACME directory (Let's Encrypt, ZeroSSL, etc.), `acme.sh` follows [RFC 9773](https://www.rfc-editor.org/rfc/rfc9773.html) automatically — **no flag needed, no opt-in**:
+
+| What | When | Why |
+|------|------|-----|
+| 🔍 **Polls `suggestedWindow`** | Every cron run, before deciding to skip | Lets the CA shift the renewal time forward in case of an incident (key compromise, mass revocation, etc.) |
+| 🎯 **Picks a random renewal time** inside the window | Right after a successful issuance/renewal | Disperses renewals across the network so all clients don't hit the CA at the same instant |
+| 🔗 **Sends `replaces=<certID>`** in `newOrder` | On renewal | Lets the CA correlate the new order with the certificate it supersedes (RFC 9773 §5) |
+| ↩️ **Retries without `replaces`** | If the CA rejects with `alreadyReplaced` or an ARI validation error | Robust against edge cases (e.g. switching CAs, retired issuers) |
+
+**Renewal trigger logic:** the cert is renewed if **any one** of the following becomes true:
+
+1. `--force` is given
+2. The CA's **ARI `suggestedWindow` has started**
+3. The cached `Le_NextRenewTime` has passed (default fallback for CAs without ARI)
+
+You can see the resulting next renewal time (already ARI-picked when applicable) in:
+
+```sh
+acme.sh --info -d example.com
+# Look for: Le_NextRenewTimeStr=...
+```
+
+For the live ARI window the CA is currently advertising, run with `--debug 2`:
+
+```sh
+acme.sh --renew -d example.com --debug 2 2>&1 | grep -i 'ARI suggestedWindow'
+```
+
+> 💡 If your CA does not advertise `renewalInfo`, `acme.sh` falls back to the classic 30-day rule — no behavior change.
 
 ---
 
