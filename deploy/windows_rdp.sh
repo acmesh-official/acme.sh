@@ -70,35 +70,21 @@ windows_rdp_deploy() {
   fi
   _pfx_pass="acme"
 
-  # ---- build PFX + thumbprint locally ------------------------------------
-  _pfx_file="$(_mktemp)"
-
-  _debug "Building PFX at $_pfx_file"
-  # Use `-certfile "$_cfullchain"` if the entire certificate chain
-  # shall be included into the pkcs12 container. This should not
-  # be necessary usually, since the certificates are likely in
-  # the trust stores of the machines anyways, but we have the option
-  # if we should need to in the future.
-  if ! ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export \
-    -inkey "$_ckey" -in "$_ccert" \
-    -name "acme.sh ${_cdomain}" \
-    -passout "pass:$_pfx_pass" \
-    -out "$_pfx_file"; then
-    _err "Failed to build PFX archive."
-    rm -f "$_pfx_file"
-    return 1
-  fi
-
-  # openssl prints "SHA1 Fingerprint=AA:BB:CC:..."; strip prefix and colons.
-  _thumb="$(${ACME_OPENSSL_BIN:-openssl} x509 -in "$_ccert" -noout -fingerprint -sha1 |
-    sed 's/.*=//; s/://g')"
+  # ---- build thumbprint + PFX locally ------------------------------------
+  _thumb="$(_fingerprint "$_ccert" 'sha1')"
   if [ -z "$_thumb" ]; then
     _err "Failed to compute certificate thumbprint."
-    rm -f "$_pfx_file"
     return 1
   fi
   _debug "Thumbprint: $_thumb"
 
+  _debug "Building PFX at $_pfx_file"
+  _pfx_file="$(_mktemp)"
+  if ! _toPkcs "$_pfx_file" "$_ckey" "$_ccert" "$_cca" "$_pfx_pass"; then
+    _err "Failed to build PFX archive."
+    rm -f "$_pfx_file"
+    return 1
+  fi
   _pfx_b64=$(_base64 "multiline" <"$_pfx_file")
   rm -f "$_pfx_file"
 

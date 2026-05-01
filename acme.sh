@@ -1057,6 +1057,25 @@ _digest() {
 
 }
 
+#Usage: certpath hashalg
+#Output certificate fingerprint without colons
+_fingerprint() {
+  cert="$1"
+  alg="$2"
+  if [ -z "$alg" ]; then
+    _usage "Usage: _fingerprint certpath hashalg"
+    return 1
+  fi
+
+  if [ "$alg" = "sha256" ] || [ "$alg" = "sha1" ] || [ "$alg" = "md5" ]; then
+    # openssl prints "SHA1 Fingerprint=AA:BB:CC:..."; strip prefix and colons.
+    ${ACME_OPENSSL_BIN:-openssl} x509 -in "$cert" -noout -fingerprint -"$alg" | sed 's/.*=//; s/://g'
+  else
+    _err "$alg is not supported yet"
+    return 1
+  fi
+}
+
 #Usage: hashalg  secret_hex  [outputhex]
 #Output binary hmac
 _hmac() {
