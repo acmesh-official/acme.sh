@@ -59,6 +59,7 @@ DEFAULT_OPENSSL_BIN="openssl"
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
 VTYPE_ALPN="tls-alpn-01"
+VTYPE_DNS_PERSIST="dns-persist-01"
 
 ID_TYPE_DNS="dns"
 ID_TYPE_IP="ip"
@@ -71,6 +72,7 @@ NO_VALUE="no"
 
 W_DNS="dns"
 W_ALPN="alpn"
+W_DNS_PERSIST="dns_persist"
 DNS_ALIAS_PREFIX="="
 
 MODE_STATELESS="stateless"
@@ -4028,6 +4030,85 @@ deactivateaccount() {
   fi
 }
 
+#domain  wildcard  ca_name
+#Print the TXT record(s) the user must add to enable persistent DNS validation
+#per draft-ietf-acme-dns-persist-01.
+makednspersistvalue() {
+  _mdpv_domain="$1"
+  _mdpv_wildcard="$2"
+  _mdpv_ca_name="$3"
+
+  if [ -z "$_mdpv_domain" ]; then
+    _err "Please specify a domain with -d."
+    return 1
+  fi
+
+  _initpath
+
+  _accUri="$(_readcaconf ACCOUNT_URL)"
+  if [ -z "$_accUri" ]; then
+    _info "No account is registered for $ACME_DIRECTORY yet, registering one now..."
+    if ! _regAccount "$DEFAULT_ACCOUNT_KEY_LENGTH"; then
+      _err "Cannot register account."
+      return 1
+    fi
+    _accUri="$(_readcaconf ACCOUNT_URL)"
+  fi
+
+  if [ -z "$_accUri" ]; then
+    _err "Cannot determine the ACME account URL."
+    return 1
+  fi
+  _debug "Account URL" "$_accUri"
+
+  _txt_name="_validation-persist.$_mdpv_domain"
+
+  _txt_suffix="; accounturi=$_accUri"
+  if [ "$_mdpv_wildcard" = "1" ]; then
+    _txt_suffix="$_txt_suffix; policy=wildcard"
+  fi
+
+  if [ -n "$_mdpv_ca_name" ]; then
+    _info ""
+    _info "Add the following DNS TXT record to enable persistent DNS validation:"
+    _info ""
+    _info "$(printf 'TXT domain:    %s' "$(__green "$_txt_name")")"
+    _info "$(printf 'TXT value:     %s' "$(__green "\"$_mdpv_ca_name$_txt_suffix\"")")"
+    _info ""
+    return 0
+  fi
+
+  _info "Fetching ACME directory: $ACME_DIRECTORY"
+  _dir_resp="$(_get "$ACME_DIRECTORY" "" 30)"
+  if [ "$?" != "0" ] || [ -z "$_dir_resp" ]; then
+    _err "Cannot fetch ACME directory: $ACME_DIRECTORY"
+    return 1
+  fi
+  _dir_resp="$(echo "$_dir_resp" | _json_decode)"
+  _debug2 _dir_resp "$_dir_resp"
+
+  _caa_array="$(echo "$_dir_resp" | tr -d ' \r\n\t' | _egrep_o '"caaIdentities":\[[^]]*\]')"
+  _debug2 _caa_array "$_caa_array"
+  _caaids="$(echo "$_caa_array" | sed 's/.*\[//' | sed 's/\].*//' | tr ',' '\n' | tr -d '"')"
+  _debug2 _caaids "$_caaids"
+
+  if [ -z "$_caaids" ]; then
+    _err "The directory does not include 'caaIdentities'. Please specify --dns-persist-ca-name explicitly."
+    return 1
+  fi
+
+  _info ""
+  _info "Add ANY ONE of the following DNS TXT records to enable persistent DNS validation."
+  _info "(You only need to add one; pick whichever issuer identity you prefer.)"
+  for _id in $_caaids; do
+    [ -z "$_id" ] && continue
+    _info ""
+    _info "$(printf 'TXT domain: %s' "$(__green "$_txt_name")")"
+    _info "$(printf 'TXT value : %s' "$(__green "\"$_id$_txt_suffix\"")")"
+  done
+  _info ""
+}
+
 # domain folder  file
 _findHook() {
   _hookdomain="$1"
@@ -4806,7 +4887,9 @@ $_authorizations_map"
 
       vtype="$VTYPE_HTTP"
       #todo, v2 wildcard force to use dns
-      if _startswith "$_currentRoot" "$W_DNS"; then
+      if [ "$_currentRoot" = "$W_DNS_PERSIST" ]; then
+        vtype="$VTYPE_DNS_PERSIST"
+      elif _startswith "$_currentRoot" "$W_DNS"; then
         vtype="$VTYPE_DNS"
       fi
 
@@ -4864,18 +4947,7 @@ $_authorizations_map"
       fi
 
       if [ -z "$keyauthorization" ]; then
-        token="$(echo "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
-        _debug token "$token"
-
-        if [ -z "$token" ]; then
-          _err "Cannot get domain token $entry"
-          _clearup
-          _on_issue_err "$_post_hook"
-          return 1
-        fi
-
         uri="$(echo "$entry" | _egrep_o '"url":"[^"]*' | cut -d '"' -f 4 | _head_n 1)"
-
         _debug uri "$uri"
 
         if [ -z "$uri" ]; then
@@ -4884,8 +4956,26 @@ $_authorizations_map"
           _on_issue_err "$_post_hook"
           return 1
         fi
-        keyauthorization="$token.$thumbprint"
-        _debug keyauthorization "$keyauthorization"
+
+        if [ "$vtype" = "$VTYPE_DNS_PERSIST" ]; then
+          # dns-persist-01 challenges have no token; the TXT record is
+          # provisioned out-of-band. Use a non-empty placeholder so the
+          # downstream code does not treat this entry as already verified.
+          keyauthorization="$VTYPE_DNS_PERSIST"
+          _debug keyauthorization "$keyauthorization"
+        else
+          token="$(echo "$entry" | _egrep_o '"token":"[^"]*' | cut -d : -f 2 | tr -d '"')"
+          _debug token "$token"
+
+          if [ -z "$token" ]; then
+            _err "Cannot get domain token $entry"
+            _clearup
+            _on_issue_err "$_post_hook"
+            return 1
+          fi
+          keyauthorization="$token.$thumbprint"
+          _debug keyauthorization "$keyauthorization"
+        fi
       fi
 
       dvlist="$d$sep$keyauthorization$sep$uri$sep$vtype$sep$_currentRoot$sep$_authz_url"
@@ -7158,6 +7248,8 @@ Commands:
   --update-account         Update account info.
   --register-account       Register account key.
   --deactivate-account     Deactivate the account.
+  --make-dns-persist-value Print the DNS TXT record(s) to enable persistent DNS validation
+                           (draft-ietf-acme-dns-persist-01). Use with -d <domain>.
   --create-account-key     Create an account private key, professional use.
   --install-cronjob        Install the cron job to renew certs, you don't need to call this. The 'install' command can automatically install the cron job.
   --uninstall-cronjob      Uninstall the cron job. The 'uninstall' command can do this automatically.
@@ -7205,6 +7297,10 @@ Parameters:
   --dns [dns_hook]                  Use dns manual mode or dns api. Defaults to manual mode when argument is omitted.
                                       See: $_DNS_API_WIKI
 
+  --dns-persist                     Use dns-persist-01 validation (draft-ietf-acme-dns-persist-01).
+                                      Requires the persistent _validation-persist TXT record to already
+                                      exist. Use '--make-dns-persist-value' to print the value to add.
+
   --dnssleep <seconds>              The time in seconds to wait for all the txt records to propagate in dns api mode.
                                       It's not necessary to use this by default, $PROJECT_NAME polls dns status by DOH automatically.
   -k, --keylength <bits>            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521.
@@ -7214,6 +7310,14 @@ Parameters:
   --syslog <0|3|6|7>                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
   --eab-kid <eab_key_id>            Key Identifier for External Account Binding.
   --eab-hmac-key <eab_hmac_key>     HMAC key for External Account Binding.
+
+  --dns-persist-wildcard            Used with '--make-dns-persist-value'. Adds 'policy=wildcard' to the
+                                      generated TXT record so the issuer is also authorized for wildcards
+                                      and subdomains (draft-ietf-acme-dns-persist-01).
+  --dns-persist-ca-name <name>      Used with '--make-dns-persist-value'. Use the given CA identity domain
+                                      (e.g. 'ssl.com') as the issuer-domain-name in the TXT record. If
+                                      omitted, the identities are read from the ACME directory's
+                                      'caaIdentities' field and one record is printed per identity.
 
 
   These parameters are to install the cert to nginx/Apache or any other server after issue/renew a cert:
@@ -7585,6 +7689,8 @@ _process() {
   _valid_to=""
   _certificate_profile=""
   _extended_key_usage=""
+  _dns_persist_wildcard=""
+  _dns_persist_ca_name=""
   while [ ${#} -gt 0 ]; do
     case "${1}" in
 
@@ -7678,6 +7784,16 @@ _process() {
       ;;
     --deactivate-account)
       _CMD="deactivateaccount"
+      ;;
+    --make-dns-persist-value | --makednspersistvalue)
+      _CMD="makednspersistvalue"
+      ;;
+    --dns-persist-wildcard | --dnspersistwildcard)
+      _dns_persist_wildcard="1"
+      ;;
+    --dns-persist-ca-name | --dnspersistcaname)
+      _dns_persist_ca_name="$2"
+      shift
       ;;
     --set-notify)
       _CMD="setnotify"
@@ -7816,6 +7932,14 @@ _process() {
         wvalue="$2"
         shift
       fi
+      if [ -z "$_webroot" ]; then
+        _webroot="$wvalue"
+      else
+        _webroot="$_webroot,$wvalue"
+      fi
+      ;;
+    --dns-persist)
+      wvalue="$W_DNS_PERSIST"
       if [ -z "$_webroot" ]; then
         _webroot="$wvalue"
       else
@@ -8237,6 +8361,9 @@ _process() {
     ;;
   deactivateaccount)
     deactivateaccount
+    ;;
+  makednspersistvalue)
+    makednspersistvalue "$_domain" "$_dns_persist_wildcard" "$_dns_persist_ca_name"
     ;;
   list)
     list "$_listraw" "$_domain"

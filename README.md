@@ -146,6 +146,7 @@
 | 🌐 DNS mode | Use DNS TXT records |
 | 🔗 [DNS alias mode](https://github.com/acmesh-official/acme.sh/wiki/DNS-alias-mode) | Use DNS alias for verification |
 | 📡 [Stateless mode](https://github.com/acmesh-official/acme.sh/wiki/Stateless-Mode) | Stateless verification |
+| 📌 DNS persist mode | Persistent DNS TXT record ([draft-ietf-acme-dns-persist-01](https://datatracker.ietf.org/doc/draft-ietf-acme-dns-persist/)) |
 
 ---
 
@@ -396,7 +397,50 @@ acme.sh --renew -d example.com
 
 ---
 
-### 🔟 Issue Certificates of Different Key Types (ECC or RSA)
+### 🔟 Use DNS Persist Mode
+
+📚 Spec: [draft-ietf-acme-dns-persist-01](https://datatracker.ietf.org/doc/draft-ietf-acme-dns-persist/)
+
+DNS persist mode lets you place a **single, long‑lived `_validation-persist` TXT record** in your zone and reuse it for every subsequent issuance and renewal. There is no per-issuance challenge token, so renewals require **no DNS edits** — useful when DNS API access is not available but you still want unattended renewals.
+
+#### 🪄 Step 1: Print the TXT record value
+
+```bash
+acme.sh --make-dns-persist-value -d example.com [--server letsencrypt] [--dns-persist-wildcard] [--dns-persist-ca-name "sectigo.com"]
+```
+
+Options:
+
+| Flag | Description |
+|------|-------------|
+| `--server <ca>` | Pick the CA (default is your configured default). The account is registered automatically if you have not used this CA before. |
+| `--dns-persist-wildcard` | Adds `policy=wildcard` to the record so it also authorizes wildcard / subdomain certs. |
+| `--dns-persist-ca-name <name>` | Use a specific CA identity domain (e.g. `sectigo.com`). If omitted, identities are read from the ACME directory's `caaIdentities` field and one record per identity is printed — you only need to add **any one** of them. |
+
+You should get an output like:
+
+```sh
+TXT domain:    _validation-persist.example.com
+TXT value:     "letsencrypt.org; accounturi=https://acme-v02.api.letsencrypt.org/acme/acct/123456789"
+```
+
+#### ✍️ Step 2: Add the TXT record to your DNS
+
+Add the printed `TXT domain` / `TXT value` pair as a TXT record at your DNS provider, then wait for it to propagate.
+
+#### 📜 Step 3: Issue the certificate
+
+```bash
+acme.sh --issue -d example.com --dns-persist
+```
+
+✅ **Done!** No challenge token is provisioned during issuance — the CA reads the persistent TXT record directly.
+
+> 🔄 Renewals just work: `acme.sh --renew -d example.com` (or the cron job) reuses the same TXT record automatically — no further DNS edits needed.
+
+---
+
+### 1️⃣1️⃣ Issue Certificates of Different Key Types (ECC or RSA)
 
 Just set the `keylength` to a valid, supported value.
 
@@ -427,7 +471,7 @@ acme.sh --issue -w /home/wwwroot/example.com -d example.com -d www.example.com -
 
 ---
 
-### 1️⃣1️⃣ Issue Wildcard Certificates
+### 1️⃣2️⃣ Issue Wildcard Certificates
 
 It's simple! Just give a wildcard domain as the `-d` parameter:
 
@@ -439,7 +483,7 @@ acme.sh --issue -d example.com -d '*.example.com' --dns dns_cf
 
 ---
 
-### 1️⃣2️⃣ How to Renew Certificates
+### 1️⃣3️⃣ How to Renew Certificates
 
 > 🔄 No need to renew manually! All certs will be renewed automatically every **30** days.
 
@@ -457,7 +501,7 @@ acme.sh --renew -d example.com --force --ecc
 
 ---
 
-### 1️⃣3️⃣ How to Stop Certificate Renewal
+### 1️⃣4️⃣ How to Stop Certificate Renewal
 
 To stop renewal of a cert, you can execute the following to remove the cert from the renewal list:
 
@@ -471,7 +515,7 @@ The cert/key file is not removed from the disk.
 
 ---
 
-### 1️⃣4️⃣ How to Upgrade acme.sh
+### 1️⃣5️⃣ How to Upgrade acme.sh
 
 > 🚀 acme.sh is in constant development — it's strongly recommended to use the latest code.
 
@@ -495,25 +539,25 @@ acme.sh --upgrade --auto-upgrade 0
 
 ---
 
-### 1️⃣5️⃣ Issue a Certificate from an Existing CSR
+### 1️⃣6️⃣ Issue a Certificate from an Existing CSR
 
 📚 https://github.com/acmesh-official/acme.sh/wiki/Issue-a-cert-from-existing-CSR
 
 ---
 
-### 1️⃣6️⃣ Send Notifications in Cronjob
+### 1️⃣7️⃣ Send Notifications in Cronjob
 
 📚 https://github.com/acmesh-official/acme.sh/wiki/notify
 
 ---
 
-### 1️⃣7️⃣ Under the Hood
+### 1️⃣8️⃣ Under the Hood
 
 > 🔧 Speak ACME language using shell, directly to "Let's Encrypt".
 
 ---
 
-### 1️⃣8️⃣ Acknowledgments
+### 1️⃣9️⃣ Acknowledgments
 
 | Project | Link |
 |---------|------|
@@ -555,7 +599,7 @@ Support this project with your organization. Your logo will show up here with a 
 
 ---
 
-### 1️⃣9️⃣ License & Others
+### 2️⃣0️⃣ License & Others
 
 📄 **License:** GPLv3
 
@@ -565,7 +609,7 @@ Support this project with your organization. Your logo will show up here with a 
 
 ---
 
-### 2️⃣0️⃣ Donate
+### 2️⃣1️⃣ Donate
 
 > 💝 Your donation makes **acme.sh** better!
 
@@ -577,7 +621,7 @@ Support this project with your organization. Your logo will show up here with a 
 
 ---
 
-### 2️⃣1️⃣ About This Repository
+### 2️⃣2️⃣ About This Repository
 
 > [!NOTE]
 > This repository is officially maintained by <strong>ZeroSSL</strong> as part of our commitment to providing secure and reliable SSL/TLS solutions. We welcome contributions and feedback from the community!  
