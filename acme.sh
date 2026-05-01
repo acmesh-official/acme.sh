@@ -1015,6 +1015,24 @@ _checkcert() {
   fi
 }
 
+#file
+_enddate() {
+  _cf="$1"
+  _res="$(${ACME_OPENSSL_BIN:-openssl} x509 -noout -enddate -in "$_cf")"
+  if [ "$?" != "0" ] || [ -z "$_res" ]; then
+    return 1
+  fi
+
+  case "$_res" in
+  notAfter=*)
+    echo "${_res#notAfter=}"
+    ;;
+  *)
+    return 1
+    ;;
+  esac
+}
+
 #Usage: hashalg  [outputhex]
 #Output Base64-encoded digest
 _digest() {
@@ -1843,6 +1861,25 @@ _date2time() {
     return
   fi
   _err "Cannot parse _date2time $1"
+  return 1
+}
+
+#support the output format of openssl -enddate:
+#     Apr 01 08:10:33 2022 GMT   to   1641283833
+_ssldate2time() {
+  #Linux
+  if date -u -d "$1" +"%s" 2>/dev/null; then
+    return
+  fi
+  #Solaris
+  if gdate -u -d "$1" +"%s" 2>/dev/null; then
+    return
+  fi
+  #Mac/BSD
+  if date -j -f "%b %d %T %Y %Z" "$1" +"%s" 2>/dev/null; then
+    return
+  fi
+  _err "Cannot parse _ssldate2time $1"
   return 1
 }
 
@@ -5564,7 +5601,7 @@ $_authorizations_map"
   Le_CertCreateTimeStr=$(_time2str "$Le_CertCreateTime")
   _savedomainconf "Le_CertCreateTimeStr" "$Le_CertCreateTimeStr"
 
-  if [ -z "$Le_RenewalDays" ] || [ "$Le_RenewalDays" -lt "0" ]; then
+  if [ -z "$Le_RenewalDays" ]; then
     Le_RenewalDays="$DEFAULT_RENEW"
   else
     _savedomainconf "Le_RenewalDays" "$Le_RenewalDays"
@@ -5623,6 +5660,20 @@ $_authorizations_map"
         Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
       fi
     fi
+  elif [ "$Le_RenewalDays" -lt "0" ]; then
+    _enddate_value=$(_enddate "$CERT_PATH")
+    if [ "$?" != "0" ] || [ -z "$_enddate_value" ]; then
+      _err "Failed to get certificate end date for $CERT_PATH"
+      return 1
+    fi
+
+    _endtime=$(_ssldate2time "$_enddate_value")
+    if [ "$?" != "0" ] || [ -z "$_endtime" ]; then
+      _err "Cannot parse _enddate_value: $_enddate_value"
+      return 1
+    fi
+    Le_NextRenewTime=$(_math "$_endtime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
+    Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
   else
     Le_NextRenewTime=$(_math "$Le_CertCreateTime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
     Le_NextRenewTime=$(_math "$Le_NextRenewTime" - 86400)
@@ -7446,6 +7497,7 @@ Parameters:
   -m, --email <email>               Specifies the account email, only valid for the '--install' and '--update-account' command.
   --accountkey <file>               Specifies the account key path, only valid for the '--install' command.
   --days <ndays>                    Specifies the days to renew the cert when using '--issue' command. The default value is $DEFAULT_RENEW days.
+                                      Negative values could be used to specify a number of days relative to the expiration date of the certificate.
   --httpport <port>                 Specifies the standalone listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --tlsport <port>                  Specifies the standalone tls listening port. Only valid if the server is behind a reverse proxy or load balancer.
   --local-address <ip>              Specifies the standalone/tls server listening address, in case you have multiple ip addresses.
