@@ -1018,7 +1018,19 @@ _checkcert() {
 #file
 _enddate() {
   _cf="$1"
-  ${ACME_OPENSSL_BIN:-openssl} x509 -noout -enddate -in "$_cf" | cut -d = -f 2
+  _res="$(${ACME_OPENSSL_BIN:-openssl} x509 -noout -enddate -in "$_cf")"
+  if [ "$?" != "0" ] || [ -z "$_res" ]; then
+    return 1
+  fi
+
+  case "$_res" in
+  notAfter=*)
+    echo "${_res#notAfter=}"
+    ;;
+  *)
+    return 1
+    ;;
+  esac
 }
 
 #Usage: hashalg  [outputhex]
@@ -5650,7 +5662,16 @@ $_authorizations_map"
     fi
   elif [ "$Le_RenewalDays" -lt "0" ]; then
     _enddate_value=$(_enddate "$CERT_PATH")
+    if [ "$?" != "0" ] || [ -z "$_enddate_value" ]; then
+      _err "Failed to get certificate end date for $CERT_PATH"
+      return 1
+    fi
+
     _endtime=$(_ssldate2time "$_enddate_value")
+    if [ "$?" != "0" ] || [ -z "$_endtime" ]; then
+      _err "Cannot parse _enddate_value: $_enddate_value"
+      return 1
+    fi
     Le_NextRenewTime=$(_math "$_endtime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
     Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
   else
