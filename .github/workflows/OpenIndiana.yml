@@ -67,7 +67,7 @@ jobs:
         envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN ACME_USE_WGET'
         nat: |
           "8080": "80"
-        prepare: pkg install socat curl
+        prepare: pkg update || true; pkg install socat curl
         sync: nfs
         run: |
           cd ../acmetest \
