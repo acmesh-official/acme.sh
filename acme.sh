@@ -1867,7 +1867,7 @@ _ssldate2time() {
   if date -j -f "%b %d %T %Y %Z" "$1" +"%s" 2>/dev/null; then
     return
   fi
-  _err "Can not parse _date2time $1"
+  _err "Cannot parse _ssldate2time $1"
   return 1
 }
 
