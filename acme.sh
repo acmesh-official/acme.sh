@@ -5649,8 +5649,8 @@ $_authorizations_map"
       fi
     fi
   elif [ "$Le_RenewalDays" -lt "0" ]; then
-    _enddate=$(_enddate "$CERT_PATH")
-    _endtime=$(_ssldate2time "$_enddate")
+    _enddate_value=$(_enddate "$CERT_PATH")
+    _endtime=$(_ssldate2time "$_enddate_value")
     Le_NextRenewTime=$(_math "$_endtime" + "$Le_RenewalDays" \* 24 \* 60 \* 60)
     Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
   else
