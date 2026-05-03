@@ -6539,7 +6539,7 @@ installcronjob() {
   fi
   _t=$(_time)
   random_minute=$(_math $_t % 60)
-  random_hour=$(_math $_t / 60 % 24)
+  random_hour=$(_math $_t / 60 % 6)
 
   if ! _exists "$_CRONTAB" && _exists "fcrontab"; then
     _CRONTAB="fcrontab"
@@ -6570,7 +6570,7 @@ installcronjob() {
     fi
     $_CRONTAB -l 2>/dev/null | {
       cat
-      echo "$random_minute $random_hour * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
+      echo "$random_minute $random_hour/6 * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
     } | $_CRONTAB_STDIN
   fi
   if [ "$?" != "0" ]; then
