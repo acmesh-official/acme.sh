@@ -6853,7 +6853,7 @@ deactivate() {
 #cert
 _getAKI() {
   _cert="$1"
-  openssl x509 -in "$_cert" -text -noout | grep "X509v3 Authority Key Identifier" -A 1 | _tail_n 1 | tr -d ' :'
+  openssl x509 -in "$_cert" -text -noout | grep "X509v3 Authority Key Identifier" -A 1 | _tail_n 1 | _egrep_o "[A-F0-9:]+" | tr -d ':'
 }
 
 #cert
