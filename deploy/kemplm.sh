@@ -48,8 +48,7 @@ kemplm_deploy() {
     return 1
   fi
 
-  # Save current values
-  _savedeployconf DEPLOY_KEMP_TOKEN "$DEPLOY_KEMP_TOKEN"
+  # Save non-sensitive config only; token must always be supplied via environment
   _savedeployconf DEPLOY_KEMP_URL "$DEPLOY_KEMP_URL"
 
   # Check if certificate is already installed
