@@ -6853,13 +6853,13 @@ deactivate() {
 #cert
 _getAKI() {
   _cert="$1"
-  openssl x509 -in "$_cert" -text -noout | grep "X509v3 Authority Key Identifier" -A 1 | _tail_n 1 | _egrep_o "[A-F0-9:]+" | tr -d ':'
+  ${ACME_OPENSSL_BIN:-openssl} x509 -in "$_cert" -text -noout | grep "X509v3 Authority Key Identifier" -A 1 | _tail_n 1 | tr -d ': ' | sed "s/keyid//"
 }
 
 #cert
 _getSerial() {
   _cert="$1"
-  openssl x509 -in "$_cert" -serial -noout | cut -d = -f 2
+  ${ACME_OPENSSL_BIN:-openssl} x509 -in "$_cert" -serial -noout | cut -d = -f 2
 }
 
 #cert
