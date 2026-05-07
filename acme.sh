@@ -4655,7 +4655,7 @@ issue() {
   if [ -f "$DOMAIN_CONF" ]; then
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
     _debug Le_NextRenewTime "$Le_NextRenewTime"
-    if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
+    if [ -z "$FORCE" ] && [ -z "$_ari_should_renew" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
       _valid_to_saved=$(_readdomainconf Le_Valid_To)
       if [ "$_valid_to_saved" ] && ! _startswith "$_valid_to_saved" "+"; then
         _info "The domain is set to be valid to: $_valid_to_saved"
