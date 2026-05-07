@@ -5867,6 +5867,8 @@ renew() {
         if [ "$_ari_start_t" ] && [ "$(_time)" -ge "$_ari_start_t" ]; then
           _info "ARI suggestedWindow has started ($(__green "$_ari_start")), proceeding with renewal."
           _ari_should_renew="1"
+          _savedomainconf Le_NextRenewTime "$_ari_start"
+          _savedomainconf Le_NextRenewTimeStr "$_ari_start_t"
         else
           _info "ARI suggestedWindow starts at: $(__green "$_ari_start")"
         fi
