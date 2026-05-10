@@ -6498,7 +6498,7 @@ _install_win_taskscheduler() {
   _info "Please input your Windows password for: $(__green "$_myname")"
   _password="$(__read_password)"
   #SCHTASKS.exe '/create' '/SC' 'DAILY' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "00:$_randomminute" '/RU' "$_myname" '/RP' "$_password" '/TR' "$_winbash -l -c '$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry'" >/dev/null
-  echo SCHTASKS.exe '/create' '/SC' 'HOURLY' '/MO' '6' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "0$_randomhour:$_randomminute" '/RU' "$_myname" '/RP' "$_password" '/TR' "\"$_winbash -l -c '$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry'\"" | cmd.exe >/dev/null
+  echo SCHTASKS.exe '/create' '/SC' 'HOURLY' '/MO' '6' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "$(printf '%02d:%02d' "$_randomhour" "$_randomminute")" '/RU' "$_myname" '/RP' "$_password" '/TR' "\"$_winbash -l -c '$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry'\"" | cmd.exe >/dev/null
   echo
 
 }
