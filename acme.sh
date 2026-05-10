@@ -5861,14 +5861,27 @@ renew() {
       _ari_end="$(echo "$_ari_resp" | _egrep_o '"end" *: *"[^"]*' | sed 's/.*"//')"
       _debug "ARI suggestedWindow.start" "$_ari_start"
       _debug "ARI suggestedWindow.end" "$_ari_end"
-      if [ "$_ari_start" ]; then
+      if [ "$_ari_start" ] && [ "$_ari_end" ]; then
         _ari_start_t="$(_date2time "$(echo "$_ari_start" | sed 's/\.[0-9]*//')")"
+        _ari_end_t="$(_date2time "$(echo "$_ari_end" | sed 's/\.[0-9]*//')")"
         _debug "_ari_start_t" "$_ari_start_t"
+        _debug "_ari_end_t" "$_ari_end_t"
+        _debug "Le_NextRenewTime" "$Le_NextRenewTime"
+        # Update ARI if needed
+        if [ "$_ari_start_t" ] && [ "$_ari_end_t" ] && [ "$_ari_end_t" -gt "$_ari_start_t" ] && ([ "$Le_NextRenewTime" -lt "$_ari_start_t" ] || [ "$Le_NextRenewTime" -gt "$_ari_end_t" ]); then
+          _ari_old_time_str="$Le_NextRenewTimeStr"
+          _ari_window=$(_math "$_ari_end_t" - "$_ari_start_t")
+          _ari_offset=$(_math "$(_time)" % "$_ari_window")
+          Le_NextRenewTime=$(_math "$_ari_start_t" + "$_ari_offset")
+          Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+          _info "ARI suggestedWindow: $(__green "$_ari_old_time_str") to $(__green "$Le_NextRenewTimeStr")"
+          _info "Next renewal time picked from ARI window: $(__green "$Le_NextRenewTimeStr")"
+          _savedomainconf Le_NextRenewTime "$Le_NextRenewTime"
+          _savedomainconf Le_NextRenewTimeStr "$Le_NextRenewTimeStr"
+        fi
         if [ "$_ari_start_t" ] && [ "$(_time)" -ge "$_ari_start_t" ]; then
           _info "ARI suggestedWindow has started ($(__green "$_ari_start")), proceeding with renewal."
           _ari_should_renew="1"
-          _savedomainconf Le_NextRenewTime "$_ari_start"
-          _savedomainconf Le_NextRenewTimeStr "$_ari_start_t"
         else
           _info "ARI suggestedWindow starts at: $(__green "$_ari_start")"
         fi
