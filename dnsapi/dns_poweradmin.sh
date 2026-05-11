@@ -99,7 +99,7 @@ _set_record() {
   full=$1
   new_challenge=$2
 
-  data="{\"name\":\"$full\",\"type\":\"TXT\",\"content\":\"\\\"$new_challenge\\\"\",\"ttl\":60}"
+  data='{"name":"'$full'","type":"TXT","content":"'$new_challenge'","ttl":60}'
 
   if ! _poweradmin_rest "POST" "/api/v${POWERADMIN_API_VERSION}/zones/$_zone_id/records" "$data" "application/json"; then
     _err "Failed to add TXT record"
@@ -217,6 +217,9 @@ _poweradmin_rest() {
     _debug "Payload: $data"
     response="$(_post "$data" "$POWERADMIN_URL$ep" "" "$method" "$ct")"
   fi
+
+  # Clear _H1 variable
+  unset -v _H1
 
   if [ "$?" != "0" ]; then
     _err "API error on $method $ep"
