@@ -5850,7 +5850,6 @@ renew() {
   # If the window has started, renew now even if Le_NextRenewTime is in the future.
   # Set NO_ARI=1 (env, account.conf, or ca.conf) to opt out and use only
   # Le_NextRenewTime for the renewal decision.
-  _ari_should_renew=""
   if [ "$NO_ARI" = "1" ]; then
     _debug "NO_ARI=1, skipping ARI suggestedWindow check"
   elif [ -z "$FORCE" ] && [ -f "$CERT_PATH" ]; then
@@ -5868,7 +5867,7 @@ renew() {
         _debug "_ari_end_t" "$_ari_end_t"
         _debug "Le_NextRenewTime" "$Le_NextRenewTime"
         # Update ARI if needed
-        if [ "$_ari_start_t" ] && [ "$_ari_end_t" ] && [ "$_ari_end_t" -gt "$_ari_start_t" ] && ([ "$Le_NextRenewTime" -lt "$_ari_start_t" ] || [ "$Le_NextRenewTime" -gt "$_ari_end_t" ]); then
+        if [ "$_ari_start_t" ] && [ "$_ari_end_t" ] && [ "$Le_NextRenewTime" ] && [ "$_ari_end_t" -gt "$_ari_start_t" ] && ([ "$Le_NextRenewTime" -lt "$_ari_start_t" ] || [ "$Le_NextRenewTime" -gt "$_ari_end_t" ]); then
           _ari_old_time_str="$Le_NextRenewTimeStr"
           _ari_window=$(_math "$_ari_end_t" - "$_ari_start_t")
           _ari_offset=$(_math "$(_time)" % "$_ari_window")
@@ -5881,7 +5880,6 @@ renew() {
         fi
         if [ "$_ari_start_t" ] && [ "$(_time)" -ge "$_ari_start_t" ]; then
           _info "ARI suggestedWindow has started ($(__green "$_ari_start")), proceeding with renewal."
-          _ari_should_renew="1"
         else
           _info "ARI suggestedWindow starts at: $(__green "$_ari_start")"
         fi
@@ -5889,7 +5887,7 @@ renew() {
     fi
   fi
 
-  if [ -z "$FORCE" ] && [ -z "$_ari_should_renew" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
+  if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
     _info "Skipping. Next renewal time is: $(__green "$Le_NextRenewTimeStr")"
     _info "Add '$(__red '--force')' to force renewal."
     if [ -z "$_ACME_IN_RENEWALL" ]; then
