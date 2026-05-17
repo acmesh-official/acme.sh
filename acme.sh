@@ -5988,7 +5988,7 @@ renewAll() {
     d=$(basename "$di")
     _debug d "$d"
     _d_ari="$d.ari"
-    _debug d_ari "$d_ari"
+    _debug _d_ari "$_d_ari"
     (
       if _endswith "$d" "$ECC_SUFFIX"; then
         _isEcc=$(echo "$d" | cut -d "$ECC_SEP" -f 2)
