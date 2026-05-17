@@ -1858,8 +1858,14 @@ _calcjwk() {
   __CACHED_JWK_KEY_FILE="$keyfile"
 }
 
+# [offset_hours]
 _time() {
-  date -u "+%s"
+  _now_unix="$(date -u "+%s")"
+  if [ "$1" ]; then
+    _offset_sec="$(_math "$1" * 3600)"
+    _now_unix="$(_math "$_now_unix" + "$_offset_sec")"
+  fi
+  echo "$_now_unix"
 }
 
 #support 2 formats:
