@@ -5786,7 +5786,7 @@ _split_cert_chain() {
   fi
 }
 
-#domain  [isEcc] [server]
+#domain  [isEcc] [server] [cron_interval]
 renew() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ]; then
@@ -5796,6 +5796,8 @@ renew() {
 
   _isEcc="$2"
   _renewServer="$3"
+  _cron_interval="$4"
+
   _debug "_renewServer" "$_renewServer"
 
   _initpath "$Le_Domain" "$_isEcc"
@@ -5843,6 +5845,7 @@ renew() {
   # If the window has started, renew now even if Le_NextRenewTime is in the future.
   # Set NO_ARI=1 (env, account.conf, or ca.conf) to opt out and use only
   # Le_NextRenewTime for the renewal decision.
+  _ari_should_renew=""
   if [ "$NO_ARI" = "1" ]; then
     _debug "NO_ARI=1, skipping ARI suggestedWindow check"
   elif [ -z "$FORCE" ] && [ -f "$CERT_PATH" ]; then
@@ -5868,13 +5871,19 @@ renew() {
           _ari_offset=$(_math "$(_time)" % "$_ari_window")
           Le_NextRenewTime=$(_math "$_ari_start_t" + "$_ari_offset")
           Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
-          _info "ARI suggestedWindow: $(__green "$_ari_old_time_str") to $(__green "$Le_NextRenewTimeStr")"
+          _info "ARI suggestedWindow: $(__green "$(_time2str "$_ari_start_t")") to $(__green "$(_time2str "$_ari_end_t")")"
           _info "Next renewal time picked from ARI window: $(__green "$Le_NextRenewTimeStr")"
           _savedomainconf Le_NextRenewTime "$Le_NextRenewTime"
           _savedomainconf Le_NextRenewTimeStr "$Le_NextRenewTimeStr"
         fi
-        if [ "$Le_NextRenewTime" ] && [ "$(_time)" -ge "$Le_NextRenewTime" ]; then
-          _info "ARI suggested renewal has passed ($(__green "$Le_NextRenewTime")), proceeding with renewal."
+        _next_cron_run_t="$(_time "$_cron_interval")"
+        if [ "$Le_NextRenewTime" ] && ([ "$(_time)" -ge "$Le_NextRenewTime" ] || [ "$_next_cron_run_t" -ge "$_ari_end_t" ]); then
+          _ari_should_renew="1"
+          if [ "$_next_cron_run_t" -ge "$_ari_end_t" ]; then
+            _info "ARI early renewal of cert due to next cron run '$(_time2str "$_next_cron_run_t")' being after window end '$(_time2str "$_ari_end_t")'"
+          else
+            _info "ARI suggested renewal has passed ($(__green "$Le_NextRenewTime")), proceeding with renewal."
+          fi
           if [ "$_ari_explanation_url" ]; then
             _info "For more information on this renewal: $(__green "$_ari_explanation_url")"
           fi
@@ -5885,7 +5894,7 @@ renew() {
     fi
   fi
 
-  if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
+  if [ -z "$FORCE" ] && [ -z "$_ari_should_renew" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
     _info "Skipping. Next renewal time is: $(__green "$Le_NextRenewTimeStr")"
     _info "Add '$(__red '--force')' to force renewal."
     if [ -z "$_ACME_IN_RENEWALL" ]; then
@@ -8601,7 +8610,7 @@ _process() {
     installcert "$_domain" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_ecc"
     ;;
   renew)
-    renew "$_domain" "$_ecc" "$_server"
+    renew "$_domain" "$_ecc" "$_server" "$_cron_interval"
     ;;
   renewAll)
     renewAll "$_stopRenewOnError" "$_server"
