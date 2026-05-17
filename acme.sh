@@ -4655,7 +4655,7 @@ issue() {
   if [ -f "$DOMAIN_CONF" ]; then
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
     _debug Le_NextRenewTime "$Le_NextRenewTime"
-    if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
+    if [ -z "$FORCE" ] && [ -z "$_ari_should_renew" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
       _valid_to_saved=$(_readdomainconf Le_Valid_To)
       if [ "$_valid_to_saved" ] && ! _startswith "$_valid_to_saved" "+"; then
         _info "The domain is set to be valid to: $_valid_to_saved"
@@ -5829,7 +5829,6 @@ renew() {
   # If the window has started, renew now even if Le_NextRenewTime is in the future.
   # Set NO_ARI=1 (env, account.conf, or ca.conf) to opt out and use only
   # Le_NextRenewTime for the renewal decision.
-  _ari_should_renew=""
   if [ "$NO_ARI" = "1" ]; then
     _debug "NO_ARI=1, skipping ARI suggestedWindow check"
   elif [ -z "$FORCE" ] && [ -f "$CERT_PATH" ]; then
@@ -5840,20 +5839,39 @@ renew() {
       _ari_end="$(echo "$_ari_resp" | _egrep_o '"end" *: *"[^"]*' | sed 's/.*"//')"
       _debug "ARI suggestedWindow.start" "$_ari_start"
       _debug "ARI suggestedWindow.end" "$_ari_end"
-      if [ "$_ari_start" ]; then
+      if [ "$_ari_start" ] && [ "$_ari_end" ]; then
         _ari_start_t="$(_date2time "$(echo "$_ari_start" | sed 's/\.[0-9]*//')")"
+        _ari_end_t="$(_date2time "$(echo "$_ari_end" | sed 's/\.[0-9]*//')")"
+        _ari_explanation_url="$(echo "$_ari_resp" | _egrep_o '"explanationURL" *: *"[^"]*' | sed 's/.*"//')"
         _debug "_ari_start_t" "$_ari_start_t"
-        if [ "$_ari_start_t" ] && [ "$(_time)" -ge "$_ari_start_t" ]; then
-          _info "ARI suggestedWindow has started ($(__green "$_ari_start")), proceeding with renewal."
-          _ari_should_renew="1"
+        _debug "_ari_end_t" "$_ari_end_t"
+        _debug "_ari_explanation_url" "$_ari_explanation_url"
+        _debug "Le_NextRenewTime" "$Le_NextRenewTime"
+        # Update ARI if needed
+        if [ "$_ari_start_t" ] && [ "$_ari_end_t" ] && [ "$Le_NextRenewTime" ] && [ "$_ari_end_t" -gt "$_ari_start_t" ] && ([ "$Le_NextRenewTime" -lt "$_ari_start_t" ] || [ "$Le_NextRenewTime" -gt "$_ari_end_t" ]); then
+          _ari_old_time_str="$Le_NextRenewTimeStr"
+          _ari_window=$(_math "$_ari_end_t" - "$_ari_start_t")
+          _ari_offset=$(_math "$(_time)" % "$_ari_window")
+          Le_NextRenewTime=$(_math "$_ari_start_t" + "$_ari_offset")
+          Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+          _info "ARI suggestedWindow: $(__green "$_ari_old_time_str") to $(__green "$Le_NextRenewTimeStr")"
+          _info "Next renewal time picked from ARI window: $(__green "$Le_NextRenewTimeStr")"
+          _savedomainconf Le_NextRenewTime "$Le_NextRenewTime"
+          _savedomainconf Le_NextRenewTimeStr "$Le_NextRenewTimeStr"
+        fi
+        if [ "$Le_NextRenewTime" ] && [ "$(_time)" -ge "$Le_NextRenewTime" ]; then
+          _info "ARI suggested renewal has passed ($(__green "$Le_NextRenewTime")), proceeding with renewal."
+          if [ "$_ari_explanation_url" ]; then
+            _info "For more information on this renewal: $(__green "$_ari_explanation_url")"
+          fi
         else
-          _info "ARI suggestedWindow starts at: $(__green "$_ari_start")"
+          _info "ARI suggested renewal starts at: $(__green "$Le_NextRenewTime")"
         fi
       fi
     fi
   fi
 
-  if [ -z "$FORCE" ] && [ -z "$_ari_should_renew" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
+  if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
     _info "Skipping. Next renewal time is: $(__green "$Le_NextRenewTimeStr")"
     _info "Add '$(__red '--force')' to force renewal."
     if [ -z "$_ACME_IN_RENEWALL" ]; then
@@ -5948,12 +5966,19 @@ renewAll() {
     fi
     d=$(basename "$di")
     _debug d "$d"
+    _d_ari="$d.ari"
+    _debug _d_ari "$_d_ari"
     (
       if _endswith "$d" "$ECC_SUFFIX"; then
         _isEcc=$(echo "$d" | cut -d "$ECC_SEP" -f 2)
         d=$(echo "$d" | cut -d "$ECC_SEP" -f 1)
       fi
       renew "$d" "$_isEcc" "$_server"
+      rc="$?"
+      if [ "$rc" = "0" ] && [ "$_ari_explanation_url" ]; then
+        echo "$_ari_explanation_url" > $_d_ari
+      fi
+      return $rc
     )
     rc="$?"
     _debug "Return code: $rc"
@@ -5968,8 +5993,13 @@ renewAll() {
           _send_notify "Renew $d success" "Good, the cert is renewed." "$NOTIFY_HOOK" 0
         fi
       fi
+      _renewal_explanation=""
+      if [ -f $_d_ari ]; then
+        _renewal_explanation=" ($(cat $_d_ari))"
+        rm -f $_d_ari
+      fi
 
-      _success_msg="${_success_msg}    $d
+      _success_msg="${_success_msg}    $d$_renewal_explanation
 "
     elif [ "$rc" = "$RENEW_SKIP" ]; then
       if [ $_error_level -gt $NOTIFY_LEVEL_SKIP ]; then
