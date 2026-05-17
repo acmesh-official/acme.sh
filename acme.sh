@@ -6506,6 +6506,7 @@ _install_win_taskscheduler() {
   _centry="$2"
   _randomminute="$3"
   _randomhour="$4"
+  _cron_interval="$5"
   if ! _exists cygpath; then
     _err "cygpath not found"
     return 1
@@ -6528,12 +6529,20 @@ _install_win_taskscheduler() {
   fi
   _debug "_lesh" "$_lesh"
 
+  if [ "$_cron_interval" -ge 24 ]; then
+    _sched_config="/SC DAILY"
+  elif [ "$_cron_interval" -le 1 ]; then
+    _sched_config="/SC HOURLY"
+  else
+    _sched_config="/SC HOURLY /MO $_cron_interval"
+  fi
+
   _info "To install the scheduler task to your Windows account, you must input your Windows password."
   _info "$PROJECT_NAME will not save your password."
   _info "Please input your Windows password for: $(__green "$_myname")"
   _password="$(__read_password)"
   #SCHTASKS.exe '/create' '/SC' 'DAILY' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "00:$_randomminute" '/RU' "$_myname" '/RP' "$_password" '/TR' "$_winbash -l -c '$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry'" >/dev/null
-  echo SCHTASKS.exe '/create' '/SC' 'HOURLY' '/MO' '6' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "$(printf '%02d:%02d' "$_randomhour" "$_randomminute")" '/RU' "$_myname" '/RP' "$_password" '/TR' "\"$_winbash -l -c '$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry'\"" | cmd.exe >/dev/null
+  echo SCHTASKS.exe '/create' "$_sched_config" '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "$(printf '%02d:%02d' "$_randomhour" "$_randomminute")" '/RU' "$_myname" '/RP' "$_password" '/TR' "\"$_winbash -l -c '$_lesh --cron $_centry'\"" | cmd.exe >/dev/null
   echo
 
 }
@@ -6554,6 +6563,7 @@ _uninstall_win_taskscheduler() {
 #confighome
 installcronjob() {
   _c_home="$1"
+  _cron_interval="$2"
   _initpath
   _CRONTAB="crontab"
   if [ -f "$LE_WORKING_DIR/$PROJECT_ENTRY" ]; then
@@ -6570,8 +6580,13 @@ installcronjob() {
       return 1
     fi
   fi
+  if [ -z "$_cron_interval" ]; then
+    _info "Defaulting cron interval to 6 hours"
+    _cron_interval="6"
+  fi
+  _c_entry="--home \"$LE_WORKING_DIR\" --cron-interval \"$_cron_interval\" "
   if [ "$_c_home" ]; then
-    _c_entry="--config-home \"$_c_home\" "
+    _c_entry="${_c_entry}--config-home \"$_c_home\" "
   fi
   _t=$(_time)
   random_minute=$(_math $_t % 60)
@@ -6584,7 +6599,7 @@ installcronjob() {
   if ! _exists "$_CRONTAB"; then
     if _exists cygpath && _exists schtasks.exe; then
       _info "It seems you are on Windows, let's install the Windows scheduler task."
-      if _install_win_taskscheduler "$lesh" "$_c_entry" "$random_minute" "$random_hour"; then
+      if _install_win_taskscheduler "$lesh" "$_c_entry" "$random_minute" "$random_hour" "$_cron_interval"; then
         _info "Successfully installed Windows scheduler task."
         return 0
       else
@@ -6606,13 +6621,13 @@ installcronjob() {
     fi
     $_CRONTAB -l 2>/dev/null | {
       cat
-      echo "$random_minute $random_hour,$(_math $random_hour + 6),$(_math $random_hour + 12),$(_math $random_hour + 18) * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
+      echo "$random_minute $random_hour/$_cron_interval * * * $lesh --cron $_c_entry> /dev/null"
     } | $_CRONTAB_STDIN
   fi
   if [ "$?" != "0" ]; then
     _err "Failed to install cron job. You need to manually renew your certs."
     _err "Alternatively, you can add a cron job by yourself:"
-    _err "$lesh --cron --home \"$LE_WORKING_DIR\" > /dev/null"
+    _err "$lesh --cron $_c_entry> /dev/null"
     return 1
   fi
 }
@@ -8646,7 +8661,9 @@ _process() {
   info)
     info "$_domain" "$_ecc"
     ;;
-  installcronjob) installcronjob "$_confighome" ;;
+  installcronjob)
+    installcronjob "$_confighome" "$_cron_interval"
+    ;;
   uninstallcronjob) uninstallcronjob ;;
   cron)
     cron "$_cron_interval"
