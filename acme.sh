@@ -558,6 +558,14 @@ _exists() {
   return $ret
 }
 
+_isint() {
+  case "${1#[+-]}" in
+    (*[!0123456789]*) return 1 ;;
+    ('')              return 1 ;;
+    (*)               return 0 ;;
+  esac
+}
+
 #a + b
 _math() {
   _m_opts="$@"
@@ -8487,6 +8495,18 @@ _process() {
       ;;
     --preferred-chain)
       _preferred_chain="$2"
+      shift
+      ;;
+    --cron-interval)
+      _cron_interval="$2"
+      if ! _isint "$_cron_interval"; then
+        _err "'$_cron_interval' is not an integer for '$1'"
+        return 1
+      fi
+      if [ "$_cron_interval" -lt 1 ] || [ "$_cron_interval" -gt 24 ]; then
+        _err "'$_cron_interval' must be in the range 1-24 (inclusive) for '$1'"
+        return 1
+      fi
       shift
       ;;
     *)
