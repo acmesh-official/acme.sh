@@ -7317,6 +7317,7 @@ _uninstallalias() {
 cron() {
   export _ACME_IN_CRON=1
   _initpath
+  _cron_interval="$1"
   _info "$(__green "===Starting cron===")"
   if [ "$AUTO_UPGRADE" = "1" ]; then
     export LE_WORKING_DIR
@@ -7335,7 +7336,7 @@ cron() {
     _info "Automatically upgraded to: $VER"
   fi
   _TREAT_SKIP_AS_SUCCESS="1"
-  renewAll
+  renewAll "" "" "$_cron_interval"
   _ret="$?"
   _ACME_IN_CRON=""
   _info "$(__green "===End cron===")"
@@ -8647,7 +8648,9 @@ _process() {
     ;;
   installcronjob) installcronjob "$_confighome" ;;
   uninstallcronjob) uninstallcronjob ;;
-  cron) cron ;;
+  cron)
+    cron "$_cron_interval"
+    ;;
   toPkcs)
     toPkcs "$_domain" "$_password" "$_ecc"
     ;;
