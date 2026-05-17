@@ -5877,10 +5877,10 @@ renew() {
           _savedomainconf Le_NextRenewTimeStr "$Le_NextRenewTimeStr"
         fi
         _next_cron_run_t="$(_time "$_cron_interval")"
-        if [ "$Le_NextRenewTime" ] && ([ "$(_time)" -ge "$Le_NextRenewTime" ] || [ "$_next_cron_run_t" -ge "$_ari_end_t" ]); then
+        if [ "$Le_NextRenewTime" ] && [ "$_next_cron_run_t" -ge "$Le_NextRenewTime" ]; then
           _ari_should_renew="1"
-          if [ "$_next_cron_run_t" -ge "$_ari_end_t" ]; then
-            _info "ARI early renewal of cert due to next cron run '$(_time2str "$_next_cron_run_t")' being after window end '$(_time2str "$_ari_end_t")'"
+          if [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
+            _info "ARI early renewal of cert due to next cron run '$(_time2str "$_next_cron_run_t")' being after selected renewal time '$Le_NextRenewTimeStr'"
           else
             _info "ARI suggested renewal has passed ($(__green "$Le_NextRenewTime")), proceeding with renewal."
           fi
@@ -6590,7 +6590,7 @@ installcronjob() {
   fi
   _t=$(_time)
   random_minute=$(_math $_t % 60)
-  random_hour=$(_math $_t / 60 % 6)
+  random_hour=$(_math $_t / 60 % "$_cron_interval")
 
   if ! _exists "$_CRONTAB" && _exists "fcrontab"; then
     _CRONTAB="fcrontab"
@@ -6621,7 +6621,7 @@ installcronjob() {
     fi
     $_CRONTAB -l 2>/dev/null | {
       cat
-      echo "$random_minute $random_hour/$_cron_interval * * * $lesh --cron $_c_entry> /dev/null"
+      echo "$random_minute ${random_hour}-23/$_cron_interval * * * $lesh --cron $_c_entry> /dev/null"
     } | $_CRONTAB_STDIN
   fi
   if [ "$?" != "0" ]; then
