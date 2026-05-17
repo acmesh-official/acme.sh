@@ -5962,7 +5962,7 @@ renew() {
   return "$res"
 }
 
-#renewAll  [stopRenewOnError] [server]
+#renewAll  [stopRenewOnError] [server] [cron_interval]
 renewAll() {
   _initpath
   _clearCA
@@ -5971,6 +5971,9 @@ renewAll() {
 
   _server="$2"
   _debug "_server" "$_server"
+
+  _cron_interval="$3"
+  debug "_cron_interval" "$_cron_interval"
 
   _ret="0"
   _success_msg=""
@@ -5996,7 +5999,7 @@ renewAll() {
         _isEcc=$(echo "$d" | cut -d "$ECC_SEP" -f 2)
         d=$(echo "$d" | cut -d "$ECC_SEP" -f 1)
       fi
-      renew "$d" "$_isEcc" "$_server"
+      renew "$d" "$_isEcc" "$_server" "$_cron_interval"
       rc="$?"
       if [ "$rc" = "0" ] && [ "$_ari_explanation_url" ]; then
         echo "$_ari_explanation_url" > $_d_ari
@@ -8613,7 +8616,7 @@ _process() {
     renew "$_domain" "$_ecc" "$_server" "$_cron_interval"
     ;;
   renewAll)
-    renewAll "$_stopRenewOnError" "$_server"
+    renewAll "$_stopRenewOnError" "$_server" "$_cron_interval"
     ;;
   revoke)
     revoke "$_domain" "$_ecc" "$_revoke_reason"
