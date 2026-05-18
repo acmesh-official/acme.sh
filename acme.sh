@@ -182,6 +182,8 @@ _DNSCHECK_WIKI="https://github.com/acmesh-official/acme.sh/wiki/dnscheck"
 
 _PROFILESELECTION_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Profile-selection"
 
+_ARI_WIKI="https://github.com/acmesh-official/acme.sh/wiki/ARI"
+
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
 _DNS_MANUAL_WARN="It seems that you are using dns manual mode. please take care: $_DNS_MANUAL_ERR"
@@ -7662,6 +7664,10 @@ Parameters:
 
   --password <password>             Add a password to exported pfx file. Use with --to-pkcs12.
 
+  --cron-interval <interval hours>  Sets the cron interval when installing the cron job or used by the renew commands to detect if
+                                      early cert renewal is required when using ARI. Only valid for '--install', '--install-cronjob',
+                                      '--renew', '--renew-all', and '--cron'.
+                                      See: $_ARI_WIKI
 
 "
 }
