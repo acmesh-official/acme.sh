@@ -6562,7 +6562,7 @@ _uninstall_win_taskscheduler() {
   fi
 }
 
-#confighome
+# confighome [cron_interval]
 installcronjob() {
   _c_home="$1"
   _cron_interval="$2"
@@ -7153,7 +7153,7 @@ _installalias() {
 
 }
 
-# nocron confighome noprofile accountemail
+# nocron confighome noprofile accountemail [cron_interval]
 install() {
 
   if [ -z "$LE_WORKING_DIR" ]; then
@@ -7164,6 +7164,7 @@ install() {
   _c_home="$2"
   _noprofile="$3"
   _accountemail="$4"
+  _cron_interval="$5"
 
   if ! _initpath; then
     _err "Install failed."
@@ -7258,7 +7259,7 @@ install() {
   fi
 
   if [ -z "$_nocron" ]; then
-    installcronjob "$_c_home"
+    installcronjob "$_c_home" "$_cron_interval"
   fi
 
   if [ -z "$NO_DETECT_SH" ]; then
@@ -8616,7 +8617,9 @@ _process() {
   fi
   _debug "Running cmd: ${_CMD}"
   case "${_CMD}" in
-  install) install "$_nocron" "$_confighome" "$_noprofile" "$_accountemail" ;;
+  install)
+    install "$_nocron" "$_confighome" "$_noprofile" "$_accountemail" "$_cron_interval"
+    ;;
   uninstall) uninstall "$_nocron" ;;
   upgrade) upgrade ;;
   issue)
