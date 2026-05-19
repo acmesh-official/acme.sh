@@ -126,6 +126,7 @@ dns_laodc_rm() {
 # _acme-challenge.www.domain.com
 # returns
 # _domain=domain.com
+# _sub_domain=www
 _get_root() {
   fqdn=$1
 
