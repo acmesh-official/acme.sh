@@ -9,22 +9,30 @@ Issues: support+acme-sh@laodc.com
 Author: @laodc
 '
 
-########  Public functions #####################
+# Usage:
+#   export LaoDC_Key="your-api-key"
+#   acme.sh --issue --dns dns_laodc -d example.com -d *.example.com
+#
+# The credentials will be saved in ~/.acme.sh/account.conf
 
 LAODC_VER="0.1.2"
 LAODC_API_ENDPOINT="https://dns.laodc.com/v1"
 
-#Usage: dns_laodc_add   _acme-challenge.www.domain.com  ZPXvna6tBhq7XQMH7_t2WC2sg0F-BdmtmmpUJiK6Ho
+########  Public functions #####################
+
+# Usage: dns_laodc_add  _acme-challenge.www.domain.com  ZPXvna6tBhq7XQMH7_t2WC2sg0F-BdmtmmpUJiK6Ho
 dns_laodc_add() {
   fulldomain=$1
   txtvalue=$2
   export txtvalue
 
+  _info "Using LaoDC DNS API"
+
   LaoDC_Key="${LaoDC_Key:-$(_readaccountconf_mutable LaoDC_Key)}"
   if [ -z "$LaoDC_Key" ]; then
     LaoDC_Key=""
-    _err "You don't specify LaoDC API Key yet."
-    _err "Please create your key and try again."
+    _err "You didn't specify a LaoDC API Key yet."
+    _err "Please export LaoDC_Key and try again."
     return 1
   fi
 
@@ -33,19 +41,21 @@ dns_laodc_add() {
 
   _debug "Checking root zone exists for [$fulldomain]"
   if ! _get_root "$fulldomain"; then
-    _err "invalid domain"
+    _err "Invalid domain"
     return 1
   fi
 
-  _debug _root_domain "$_domain"
-  _debug _sub_domain "$_sub_domain"
-  _debug _domain "$fulldomain"
   domain_hash=$(echo "$response" | _egrep_o "\"hash\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
+  _debug _domain "$_domain"
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain_hash "$domain_hash"
 
   if _laodc_api "GET" "$domain_hash" "$_sub_domain"; then
     if [ "$_code" = "200" ]; then
-      _debug _response "$response"
       subdomain_hash=$(echo "$response" | _egrep_o "\"hash\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
+      _debug _sub_domain_hash "$subdomain_hash"
+
+      _info "Updating acme record"
       if _laodc_api "PATCH" "$domain_hash" "$subdomain_hash" "$txtvalue"; then
         if [ "$_code" = "201" ]; then
           _info "Updated, OK"
@@ -56,6 +66,7 @@ dns_laodc_add() {
         fi
       fi
     else
+      _info "Adding acme record"
       if _laodc_api "POST" "$domain_hash" "$_sub_domain" "$txtvalue"; then
         if [ "$_code" = "201" ]; then
           _info "Added, OK"
@@ -80,21 +91,22 @@ dns_laodc_rm() {
 
   _debug "Checking root zone exists for [$fulldomain]"
   if ! _get_root "$fulldomain"; then
-    _err "invalid domain"
+    _err "Invalid domain"
     return 1
   fi
 
+  domain_hash=$(echo "$response" | _egrep_o "\"hash\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
   _debug _root_domain "$_domain"
   _debug _sub_domain "$_sub_domain"
-  _debug _domain "$fulldomain"
-
-  domain_hash=$(echo "$response" | _egrep_o "\"hash\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
+  _debug _domain_hash "$domain_hash"
 
   if _laodc_api "GET" "$domain_hash" "$_sub_domain"; then
     if [ "$_code" = "200" ]; then
-    
       subdomain_hash=$(echo "$response" | _egrep_o "\"hash\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
-      if _laodc_api "DELETE" "$domain_hash" "$subdomain_hash" "$txtvalue"; then
+      _debug _sub_domain_hash "$subdomain_hash"
+
+      _info "Deleting acme record"
+      if _laodc_api "DELETE" "$domain_hash" "$subdomain_hash" ""; then
         if [ "$_code" = "204" ]; then
           _info "Deleted, OK"
           return 0
@@ -115,13 +127,13 @@ dns_laodc_rm() {
 # returns
 # _domain=domain.com
 _get_root() {
-  rdomain=$1
+  fqdn=$1
 
-  i="$(echo "$rdomain" | tr '.' ' ' | wc -w)"
+  i="$(echo "$fqdn" | tr '.' ' ' | wc -w)"
   i=$(_math "$i" - 1)
 
   while true; do
-    h=$(printf "%s" "$rdomain" | cut -d . -f "$i"-100)
+    h=$(printf "%s" "$fqdn" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       return 1 # not valid domain
@@ -131,14 +143,14 @@ _get_root() {
     if _laodc_api "GET" "$h"; then
       if [ "$_code" = "200" ]; then
         _domain="$h"
-        _sub_domain="${rdomain%."$_domain"}"
+        _sub_domain="${fqdn%."$_domain"}"
         return 0
       fi
     fi
 
     i=$(_math "$i" - 1)
     if [ "$i" -lt 2 ]; then
-      return 1 #not found, no need to check _acme-challenge.sub.domain in leaseweb api.
+      return 1 # not found, no need to check _acme-challenge.sub.domain in api.
     fi
   done
 
@@ -158,7 +170,7 @@ _laodc_api() {
   case $method in
     GET)
       if [ -n "$subdomain" ]; then
-        response="$(_get "$LAODC_API_ENDPOINT/$domain/$subdomain")"
+        response="$(_get "$LAODC_API_ENDPOINT/$domain/$subdomain?type=TXT")"
       else
         response="$(_get "$LAODC_API_ENDPOINT/$domain")"
       fi
@@ -202,8 +214,7 @@ _laodc_api() {
       return 0
       ;;
     DELETE)
-      data="{ \"type\": \"TXT\" }"
-      response="$(_post "$data" "$LAODC_API_ENDPOINT/$domain/$subdomain" "" "DELETE" "application/json")"
+      response="$(_post "" "$LAODC_API_ENDPOINT/$domain/$subdomain" "" "DELETE" "application/json")"
       responseHeaders="$(cat "$HTTP_HEADER")"
 
       if echo "$responseHeaders" | grep -i "Content-Type: *application/json" >/dev/null 2>&1; then
