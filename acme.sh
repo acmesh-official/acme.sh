@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.1.3
+VER=3.1.4
 
 PROJECT_NAME="acme.sh"
 
@@ -4655,7 +4655,7 @@ issue() {
   if [ -f "$DOMAIN_CONF" ]; then
     Le_NextRenewTime=$(_readdomainconf Le_NextRenewTime)
     _debug Le_NextRenewTime "$Le_NextRenewTime"
-    if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
+    if [ -z "$FORCE" ] && [ -z "$_ari_should_renew" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
       _valid_to_saved=$(_readdomainconf Le_Valid_To)
       if [ "$_valid_to_saved" ] && ! _startswith "$_valid_to_saved" "+"; then
         _info "The domain is set to be valid to: $_valid_to_saved"
@@ -4870,8 +4870,12 @@ issue() {
     # renewal (--renew path), the CA advertises renewalInfo, and a prior
     # cert exists. --issue (even with --force) is not a renewal per RFC 9773
     # which speaks of "a clear predecessor certificate" issued by this CA.
+    # NO_ARI=1 (env, account.conf, or ca.conf) disables ARI entirely, so the
+    # "replaces" field is also omitted.
     _replaces_certID=""
-    if [ "$_ACME_IS_RENEW" = "1" ] && [ "$ACME_RENEWAL_INFO" ] && [ -f "$CERT_PATH" ]; then
+    if [ "$NO_ARI" = "1" ]; then
+      _debug "NO_ARI=1, omitting ARI 'replaces' field from newOrder"
+    elif [ "$_ACME_IS_RENEW" = "1" ] && [ "$ACME_RENEWAL_INFO" ] && [ -f "$CERT_PATH" ]; then
       _replaces_certID="$(_getARICertID "$CERT_PATH")"
       _debug "Adding ARI replaces" "$_replaces_certID"
     fi
@@ -5703,7 +5707,11 @@ $_authorizations_map"
   # with a time picked at random within the suggestedWindow. This both gives
   # the CA full control over renewal scheduling and disperses renewals across
   # the network so all clients don't hit the CA at the same instant.
-  if [ "$ACME_RENEWAL_INFO" ] && [ -f "$CERT_PATH" ] && [ -z "$_notAfter" ]; then
+  # Set NO_ARI=1 (env, account.conf, or ca.conf) to opt out and fall back to
+  # the legacy time-based renewal calculation.
+  if [ "$NO_ARI" = "1" ]; then
+    _debug "NO_ARI=1, skipping ARI suggestedWindow override"
+  elif [ "$ACME_RENEWAL_INFO" ] && [ -f "$CERT_PATH" ] && [ -z "$_notAfter" ]; then
     _ari_resp_new="$(_get_ARI "$CERT_PATH")"
     _debug2 "_ari_resp_new" "$_ari_resp_new"
     _ari_start_new="$(echo "$_ari_resp_new" | _egrep_o '"start" *: *"[^"]*' | sed 's/.*"//')"
@@ -5819,8 +5827,12 @@ renew() {
 
   # ARI (RFC 9773): fetch the CA's suggestedWindow on every renewal check.
   # If the window has started, renew now even if Le_NextRenewTime is in the future.
+  # Set NO_ARI=1 (env, account.conf, or ca.conf) to opt out and use only
+  # Le_NextRenewTime for the renewal decision.
   _ari_should_renew=""
-  if [ -z "$FORCE" ] && [ -f "$CERT_PATH" ]; then
+  if [ "$NO_ARI" = "1" ]; then
+    _debug "NO_ARI=1, skipping ARI suggestedWindow check"
+  elif [ -z "$FORCE" ] && [ -f "$CERT_PATH" ]; then
     if _initAPI && [ "$ACME_RENEWAL_INFO" ]; then
       _ari_resp="$(_get_ARI "$CERT_PATH")"
       _debug2 "_ari_resp" "$_ari_resp"
@@ -6871,6 +6883,16 @@ _getARICertID() {
   _ser=$(_getSerial "$_cert")
   _debug2 "_aki" "$_aki"
   _debug2 "_ser" "$_ser"
+
+  # RFC 9773 Section 4.1 requires the DER-encoded INTEGER value bytes of
+  # serialNumber. When the high bit of the first byte is set (>= 0x80) DER
+  # prepends a 0x00 sign byte to keep the integer positive; openssl's hex
+  # output strips that, so add it back. Boulder (LE) accepts either form,
+  # but Sectigo (ZeroSSL) is strict and rejects newOrder with HTTP 401
+  # "replaces field does not identify a certificate" if the byte is missing.
+  case "$_ser" in
+  [89aAbBcCdDeEfF]*) _ser="00$_ser" ;;
+  esac
 
   _akiurl="$(echo "$_aki" | _h2b | _base64 | _url_replace)"
   _debug2 "_akiurl" "$_akiurl"
