@@ -68,6 +68,15 @@ dns_simply_rm() {
     return 1
   fi
 
+  case "$_simply_http_code" in
+  2*) ;;
+  *)
+    _err "Failed to fetch DNS records (HTTP $_simply_http_code)"
+    _err "$response"
+    return 1
+    ;;
+  esac
+
   records=$(echo "$response" | tr '{' "\n" | grep -E 'record_id|type|data|name' | sed 's/\"record_id/;\"record_id/' | tr "\n" ' ' | tr -d ' ' | tr ';' ' ')
 
   nr_of_deleted_records=0
@@ -262,7 +271,10 @@ _simply_rest() {
     response="$(_get "$SIMPLY_Api/$ep")"
   fi
 
-  if [ "$?" != "0" ]; then
+  _ret="$?"
+  unset _H1 _H2
+
+  if [ "$_ret" != "0" ]; then
     _err "error $ep"
     return 1
   fi
