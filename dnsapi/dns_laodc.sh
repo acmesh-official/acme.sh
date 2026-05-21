@@ -50,32 +50,14 @@ dns_laodc_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain_hash "$domain_hash"
 
-  if _laodc_api "GET" "$domain_hash" "$_sub_domain"; then
-    if [ "$_code" = "200" ]; then
-      subdomain_hash=$(echo "$response" | _egrep_o "\"hash\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
-      _debug _sub_domain_hash "$subdomain_hash"
-
-      _info "Updating acme record"
-      if _laodc_api "PATCH" "$domain_hash" "$subdomain_hash" "$txtvalue"; then
-        if [ "$_code" = "201" ]; then
-          _info "Updated, OK"
-          return 0
-        else
-          _err "Update TXT record error, invalid code. Code: $_code"
-          return 1
-        fi
-      fi
+  _info "Adding acme record"
+  if _laodc_api "POST" "$domain_hash" "$_sub_domain" "$txtvalue"; then
+    if [ "$_code" = "201" ]; then
+      _info "Added, OK"
+      return 0
     else
-      _info "Adding acme record"
-      if _laodc_api "POST" "$domain_hash" "$_sub_domain" "$txtvalue"; then
-        if [ "$_code" = "201" ]; then
-          _info "Added, OK"
-          return 0
-        else
-          _err "Add TXT record error, invalid code. Code: $_code"
-          return 1
-        fi
-      fi
+      _err "Add TXT record error, invalid code. Code: $_code"
+      return 1
     fi
   fi
 
@@ -100,21 +82,14 @@ dns_laodc_rm() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain_hash "$domain_hash"
 
-  if _laodc_api "GET" "$domain_hash" "$_sub_domain"; then
-    if [ "$_code" = "200" ]; then
-      subdomain_hash=$(echo "$response" | _egrep_o "\"hash\":\"[^\"]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \")
-      _debug _sub_domain_hash "$subdomain_hash"
-
-      _info "Deleting acme record"
-      if _laodc_api "DELETE" "$domain_hash" "$subdomain_hash" ""; then
-        if [ "$_code" = "204" ]; then
-          _info "Deleted, OK"
-          return 0
-        else
-          _err "Delete TXT record error, invalid code. Code: $_code"
-          return 1
-        fi
-      fi
+  _info "Deleting acme record"
+  if _laodc_api "DELETE" "$domain_hash" "$_sub_domain" "$txtvalue"; then
+    if [ "$_code" = "204" ]; then
+      _info "Deleted, OK"
+      return 0
+    else
+      _err "Delete TXT record error, invalid code. Code: $_code"
+      return 1
     fi
   fi
 
@@ -200,22 +175,9 @@ _laodc_api() {
       _debug response "$response"
       return 0
       ;;
-    PATCH)
-      data="{ \"type\": \"TXT\", \"value\": \"$value\", \"ttl\": \"60\" }"
-      response="$(_post "$data" "$LAODC_API_ENDPOINT/$domain/$subdomain" "" "PATCH" "application/json")"
-      responseHeaders="$(cat "$HTTP_HEADER")"
-
-      if echo "$responseHeaders" | grep -i "Content-Type: *application/json" >/dev/null 2>&1; then
-        response="$(echo "$response" | _json_decode | _normalizeJson)"
-      fi
-
-      _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
-      _debug "http response code $_code"
-      _debug response "$response"
-      return 0
-      ;;
     DELETE)
-      response="$(_post "" "$LAODC_API_ENDPOINT/$domain/$subdomain" "" "DELETE" "application/json")"
+      data="{ \"type\": \"TXT\", \"value\": \"$value\" }"
+      response="$(_post "$data" "$LAODC_API_ENDPOINT/$domain/$subdomain" "" "DELETE" "application/json")"
       responseHeaders="$(cat "$HTTP_HEADER")"
 
       if echo "$responseHeaders" | grep -i "Content-Type: *application/json" >/dev/null 2>&1; then
