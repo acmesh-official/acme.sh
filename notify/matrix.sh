@@ -36,19 +36,35 @@ matrix_send() {
   fi
   _saveaccountconf_mutable MATRIX_ROOM_ID "$MATRIX_ROOM_ID"
 
-  export _H1="Accept: application/json"
-  export _H2="Content-Type: application/json"
-  export _H3="Authorization: Bearer $MATRIX_API_TOKEN"
+  _h1="$_H1"
+  _h2="$_H2"
+  _h3="$_H3"
+  _h4="$_H4"
+  _h5="$_H5"
+
+  _H1="Accept: application/json"
+  _H2="Content-Type: application/json"
+  _H3="Authorization: Bearer $MATRIX_API_TOKEN"
+  unset _H4
+  unset _H5
 
   _content="$(printf "*%s*\n%s" "$_subject" "$_content" | _json_encode)"
   _data="{\"msgtype\": \"m.text\", \"body\": \"$_content\"}"
-  if _post "$_data" "$MATRIX_SERVER_URL/_matrix/client/r0/rooms/$MATRIX_ROOM_ID/send/m.room.message"; then
-    # shellcheck disable=SC2154
-    if _contains "$response" "event_id"; then
-      _info "matrix send success."
-      return 0
-    fi
+
+  _post "$_data" "$MATRIX_SERVER_URL/_matrix/client/r0/rooms/$MATRIX_ROOM_ID/send/m.room.message"
+
+  _H1="$_h1"
+  _H2="$_h2"
+  _H3="$_h3"
+  _H4="$_h4"
+  _H5="$_h5"
+
+  # shellcheck disable=SC2154
+  if _contains "$response" "event_id"; then
+    _info "matrix send success."
+    return 0
   fi
+
   _err "matrix send error."
   _err "$response"
   return 1
