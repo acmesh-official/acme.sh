@@ -26,7 +26,7 @@ dns_cdmon_add() {
     return 1
   fi
 
-  _saveaccountconf_mutable CDMON_Key "$CDMON_Key"i
+  _saveaccountconf_mutable CDMON_Key "$CDMON_Key"
 
   _debug "First, we detect the root zone"
   if ! _get_root "$fulldomain"; then
