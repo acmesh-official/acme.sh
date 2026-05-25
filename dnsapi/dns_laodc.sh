@@ -104,13 +104,11 @@ dns_laodc_rm() {
 # _sub_domain=www
 _get_root() {
   fqdn=$1
-
-  i="$(echo "$fqdn" | tr '.' ' ' | wc -w)"
-  i=$(_math "$i" - 1)
+  p=1
+  i=2
 
   while true; do
     h=$(printf "%s" "$fqdn" | cut -d . -f "$i"-100)
-    _debug h "$h"
     if [ -z "$h" ]; then
       return 1 # not valid domain
     fi
@@ -119,15 +117,13 @@ _get_root() {
     if _laodc_api "GET" "$h"; then
       if [ "$_code" = "200" ]; then
         _domain="$h"
-        _sub_domain="${fqdn%."$_domain"}"
+        _sub_domain=$(printf "%s" "$fqdn" | cut -d . -f 1-"$p")
         return 0
       fi
     fi
 
-    i=$(_math "$i" - 1)
-    if [ "$i" -lt 2 ]; then
-      return 1 # not found, no need to check _acme-challenge.sub.domain in api.
-    fi
+    p="$i"
+    i=$(_math "$i" + 1)
   done
 
   return 1
@@ -150,46 +146,39 @@ _laodc_api() {
       else
         response="$(_get "$LAODC_API_ENDPOINT/$domain")"
       fi
-      responseHeaders="$(cat "$HTTP_HEADER")"
-
-      if echo "$responseHeaders" | grep -i "Content-Type: *application/json" >/dev/null 2>&1; then
-        response="$(echo "$response" | _json_decode | _normalizeJson)"
-      fi
-
-      _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
-      _debug "http response code $_code"
-      _debug response "$response"
-      return 0
       ;;
     POST)
+      # Sanitize value input
+      value=$(printf '%s' "$value" | sed 's/\\/\\\\/g; s/"/\\"/g')
       data="{ \"type\": \"TXT\", \"value\": \"$value\", \"ttl\": \"60\" }"
       response="$(_post "$data" "$LAODC_API_ENDPOINT/$domain/$subdomain" "" "POST" "application/json")"
-      responseHeaders="$(cat "$HTTP_HEADER")"
-
-      if echo "$responseHeaders" | grep -i "Content-Type: *application/json" >/dev/null 2>&1; then
-        response="$(echo "$response" | _json_decode | _normalizeJson)"
-      fi
-
-      _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
-      _debug "http response code $_code"
-      _debug response "$response"
-      return 0
       ;;
     DELETE)
+      # Sanitize value input
+      value=$(printf '%s' "$value" | sed 's/\\/\\\\/g; s/"/\\"/g')
       data="{ \"type\": \"TXT\", \"value\": \"$value\" }"
       response="$(_post "$data" "$LAODC_API_ENDPOINT/$domain/$subdomain" "" "DELETE" "application/json")"
-      responseHeaders="$(cat "$HTTP_HEADER")"
-
-      if echo "$responseHeaders" | grep -i "Content-Type: *application/json" >/dev/null 2>&1; then
-        response="$(echo "$response" | _json_decode | _normalizeJson)"
-      fi
-
-      _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
-      _debug "http response code $_code"
-      _debug response "$response"
-      return 0
       ;;
   esac
 
-  return 1
+  # Unset immediately after request to prevent leaks
+  export _H2=
+  export _H3=
+
+  if [ "$?" != "0" ]; then
+    _err "Error $domain"
+    return 1
+  fi
+
+  responseHeaders="$(cat "$HTTP_HEADER")"
+
+  if echo "$responseHeaders" | grep -i "Content-Type: *application/json" >/dev/null 2>&1; then
+    response="$(echo "$response" | _json_decode | _normalizeJson)"
+  fi
+
+  _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
+
+  _debug "http response code $_code"
+  _debug response "$response"
+  return 0
 }
