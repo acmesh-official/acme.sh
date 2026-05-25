@@ -67,7 +67,7 @@ dns_cdmon_rm() {
   _debug _domain "$_domain"
 
   _info "Removing record"
-  if _cdmon_rest "dnsrecords/delete" "{\"data\":{\"type\":\"TXT\",\"domain\":\"$_domain\",\"host\":\"$_sub_domain\"}}"; then
+  if _cdmon_rest "dnsrecords/delete" "{\"data\":{\"value\":\"$txtvalue\",\"type\":\"TXT\",\"domain\":\"$_domain\",\"host\":\"$_sub_domain\"}}"; then
     if _contains "$response" "\"status\":\"ok\""; then
       _info "Deleted, OK"
       return 0
