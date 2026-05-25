@@ -20,7 +20,7 @@ dns_cdmon_add() {
   CDMON_Key="${CDMON_Key:-$(_readaccountconf_mutable CDMON_Key)}"
 
   if [ -z "$CDMON_Key" ]; then
-    CDMON_key=""
+    CDMON_Key=""
     _err "You didn't specify your cdmon api key yet."
     _err "Please create your key and try again."
     return 1
@@ -89,6 +89,11 @@ _get_root() {
   domain=$1
   i=1
   p=1
+
+  if ! _cdmon_rest "domains/list"; then
+    return 1
+  fi
+
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
@@ -96,11 +101,6 @@ _get_root() {
       #not valid
       return 1
     fi
-
-    if ! _cdmon_rest "domains/list"; then
-      return 1
-    fi
-
     if _contains "$response" "\"domain\":\"$h\""; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain=$h
@@ -124,8 +124,11 @@ _cdmon_rest() {
 
   _debug data "$data"
   response="$(_post "$data" "$CDMON_Api/$ep")"
+  _ret="$?"
 
-  if [ "$?" != "0" ]; then
+  unset _H1 _H2
+
+  if [ "$_ret" != "0" ]; then
     _err "error $ep"
     return 1
   fi
