@@ -13,7 +13,7 @@ CDMON_Api="https://api-domains.cdmon.services/api-domains"
 ########  Public functions #####################
 # Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 # Used to add txt record
-dns_cdmon_add() { 
+dns_cdmon_add() {
   fulldomain=$1
   txtvalue=$2
 
@@ -109,7 +109,7 @@ _get_root() {
     p=$i
     i=$(_math "$i" + 1)
   done
-  return 1 
+  return 1
 }
 
 _cdmon_rest() {
