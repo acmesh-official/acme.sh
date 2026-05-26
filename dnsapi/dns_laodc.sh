@@ -140,25 +140,25 @@ _laodc_api() {
   export _H3="Authorization: Bearer $LaoDC_Key"
 
   case $method in
-    GET)
-      if [ -n "$subdomain" ]; then
-        response="$(_get "$LAODC_API_ENDPOINT/$domain/$subdomain?type=TXT")"
-      else
-        response="$(_get "$LAODC_API_ENDPOINT/$domain")"
-      fi
-      ;;
-    POST)
-      # Sanitize value input
-      value=$(printf '%s' "$value" | sed 's/\\/\\\\/g; s/"/\\"/g')
-      data="{ \"type\": \"TXT\", \"value\": \"$value\", \"ttl\": \"60\" }"
-      response="$(_post "$data" "$LAODC_API_ENDPOINT/$domain/$subdomain" "" "POST" "application/json")"
-      ;;
-    DELETE)
-      # Sanitize value input
-      value=$(printf '%s' "$value" | sed 's/\\/\\\\/g; s/"/\\"/g')
-      data="{ \"type\": \"TXT\", \"value\": \"$value\" }"
-      response="$(_post "$data" "$LAODC_API_ENDPOINT/$domain/$subdomain" "" "DELETE" "application/json")"
-      ;;
+  GET)
+    if [ -n "$subdomain" ]; then
+      response="$(_get "$LAODC_API_ENDPOINT/$domain/$subdomain?type=TXT")"
+    else
+      response="$(_get "$LAODC_API_ENDPOINT/$domain")"
+    fi
+    ;;
+  POST)
+    # Sanitize value input
+    value=$(printf '%s' "$value" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    data="{ \"type\": \"TXT\", \"value\": \"$value\", \"ttl\": \"60\" }"
+    response="$(_post "$data" "$LAODC_API_ENDPOINT/$domain/$subdomain" "" "POST" "application/json")"
+    ;;
+  DELETE)
+    # Sanitize value input
+    value=$(printf '%s' "$value" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    data="{ \"type\": \"TXT\", \"value\": \"$value\" }"
+    response="$(_post "$data" "$LAODC_API_ENDPOINT/$domain/$subdomain" "" "DELETE" "application/json")"
+    ;;
   esac
 
   # Unset immediately after request to prevent leaks
