@@ -3,7 +3,7 @@
 dns_creoline_info='creoline
 Site: https://www.creoline.com/de
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_creoline
-Help: https://help.creoline.com/
+Help: https://help.creoline.com
 Options:
  creolineApiToken
  creolineApiSecret
