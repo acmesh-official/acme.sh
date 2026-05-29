@@ -132,8 +132,8 @@ _1984hosting_login() {
   # Fetch the login page to obtain CSRF and session cookies.
   # Note: _get sets the global 'url', so assign the auth URL afterwards.
   _get "https://1984.hosting/accounts/login/" >/dev/null
-  csrftoken="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'csrftoken=[^;]*;' | tr -d ';')"
-  sessionid="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'cookie1984nammnamm=[^;]*;' | tr -d ';')"
+  csrftoken="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'csrftoken=[^;]*;' | _head_n 1 | tr -d ';')"
+  sessionid="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'cookie1984nammnamm=[^;]*;' | _head_n 1 | tr -d ';')"
 
   if [ -z "$csrftoken" ] || [ -z "$sessionid" ]; then
     _err "One or more cookies are empty: '$csrftoken', '$sessionid'."
@@ -151,8 +151,8 @@ _1984hosting_login() {
   _debug2 response "$response"
 
   if _contains "$response" '"loggedin": true'; then
-    One984HOSTING_SESSIONID_COOKIE="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'cookie1984nammnamm=[^;]*;' | tr -d ';')"
-    One984HOSTING_CSRFTOKEN_COOKIE="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'csrftoken=[^;]*;' | tr -d ';')"
+    One984HOSTING_SESSIONID_COOKIE="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'cookie1984nammnamm=[^;]*;' | _head_n 1 | tr -d ';')"
+    One984HOSTING_CSRFTOKEN_COOKIE="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'csrftoken=[^;]*;' | _head_n 1 | tr -d ';')"
     export One984HOSTING_SESSIONID_COOKIE
     export One984HOSTING_CSRFTOKEN_COOKIE
     _saveaccountconf_mutable One984HOSTING_Username "$One984HOSTING_Username"
