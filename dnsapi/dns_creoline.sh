@@ -29,8 +29,8 @@ dns_creoline_add() {
     _err "Please set it with the Command 'export creolineApiToken=<YourToken>' and 'export creolineApiSecret=<YourSecret>'."
     return 1
   else
-    _savedomainconf creolineApiToken "$creolineApiToken"
-    _savedomainconf creolineApiSecret "$creolineApiSecret"
+    _saveaccountconf creolineApiToken "$creolineApiToken"
+    _saveaccountconf creolineApiSecret "$creolineApiSecret"
   fi
 
   _debug "Detecting the root dns zone."
