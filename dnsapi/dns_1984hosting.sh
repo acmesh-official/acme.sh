@@ -7,7 +7,6 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_1984hosting
 Options:
  One984HOSTING_Username Username
  One984HOSTING_Password Password
- One984HOSTING_OTP OTP/2FA code. Optional. One-shot only, never stored, so unusable for unattended renewal of 2FA accounts.
 Issues: github.com/acmesh-official/acme.sh/issues/2851
 Author: Adrian Fedoreanu
 '
@@ -125,9 +124,6 @@ _1984hosting_login() {
   _debug "Login to 1984Hosting as user $One984HOSTING_Username."
   username=$(printf '%s' "$One984HOSTING_Username" | _url_encode)
   password=$(printf '%s' "$One984HOSTING_Password" | _url_encode)
-  # OTP is time-based; only useful for a single interactive run, never persisted.
-  One984HOSTING_OTP="${One984HOSTING_OTP:-}"
-  otpkey=$(printf '%s' "$One984HOSTING_OTP" | _url_encode)
 
   # Fetch the login page to obtain CSRF and session cookies.
   # Note: _get sets the global 'url', so assign the auth URL afterwards.
@@ -146,7 +142,7 @@ _1984hosting_login() {
   export _H3="X-CSRFToken: $csrf_header"
 
   url="https://1984.hosting/api/auth/"
-  response="$(_post "username=$username&password=$password&otpkey=$otpkey" "$url")"
+  response="$(_post "username=$username&password=$password" "$url")"
   response="$(echo "$response" | _normalizeJson)"
   _debug2 response "$response"
 
