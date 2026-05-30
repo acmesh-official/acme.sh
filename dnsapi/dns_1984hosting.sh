@@ -7,6 +7,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_1984hosting
 Options:
  One984HOSTING_Username Username
  One984HOSTING_Password Password
+ One984HOSTING_TOTP_Secret Base32 TOTP shared secret. Required only if the account has 2FA enabled. Requires oathtool. Used to mint the OTP code automatically at login so cron renewals keep working.
 Issues: github.com/acmesh-official/acme.sh/issues/2851
 Author: Adrian Fedoreanu
 '
@@ -125,6 +126,22 @@ _1984hosting_login() {
   username=$(printf '%s' "$One984HOSTING_Username" | _url_encode)
   password=$(printf '%s' "$One984HOSTING_Password" | _url_encode)
 
+  # When 2FA is enabled, mint a fresh TOTP code from the stored shared secret.
+  # Empty otpkey is accepted by the server when 2FA is off.
+  otpkey=""
+  if [ -n "$One984HOSTING_TOTP_Secret" ]; then
+    if ! _exists oathtool; then
+      _err "oathtool is required to use One984HOSTING_TOTP_Secret for 2FA. Please install it."
+      return 1
+    fi
+    otpcode="$(oathtool --base32 --totp "$One984HOSTING_TOTP_Secret" 2>/dev/null)"
+    if [ -z "$otpcode" ]; then
+      _err "Failed to generate TOTP code from One984HOSTING_TOTP_Secret."
+      return 1
+    fi
+    otpkey="$(printf '%s' "$otpcode" | _url_encode)"
+  fi
+
   # Fetch the login page to obtain CSRF and session cookies.
   # Note: _get sets the global 'url', so assign the auth URL afterwards.
   _get "https://1984.hosting/accounts/login/" >/dev/null
@@ -142,7 +159,7 @@ _1984hosting_login() {
   export _H3="X-CSRFToken: $csrf_header"
 
   url="https://1984.hosting/api/auth/"
-  response="$(_post "username=$username&password=$password" "$url")"
+  response="$(_post "username=$username&password=$password&otpkey=$otpkey" "$url")"
   response="$(echo "$response" | _normalizeJson)"
   _debug2 response "$response"
 
@@ -153,6 +170,11 @@ _1984hosting_login() {
     export One984HOSTING_CSRFTOKEN_COOKIE
     _saveaccountconf_mutable One984HOSTING_Username "$One984HOSTING_Username"
     _saveaccountconf_mutable One984HOSTING_Password "$One984HOSTING_Password"
+    if [ -n "$One984HOSTING_TOTP_Secret" ]; then
+      _saveaccountconf_mutable One984HOSTING_TOTP_Secret "$One984HOSTING_TOTP_Secret"
+    else
+      _clearaccountconf_mutable One984HOSTING_TOTP_Secret
+    fi
     _saveaccountconf_mutable One984HOSTING_SESSIONID_COOKIE "$One984HOSTING_SESSIONID_COOKIE"
     _saveaccountconf_mutable One984HOSTING_CSRFTOKEN_COOKIE "$One984HOSTING_CSRFTOKEN_COOKIE"
     return 0
@@ -163,6 +185,7 @@ _1984hosting_login() {
 _check_credentials() {
   One984HOSTING_Username="${One984HOSTING_Username:-$(_readaccountconf_mutable One984HOSTING_Username)}"
   One984HOSTING_Password="${One984HOSTING_Password:-$(_readaccountconf_mutable One984HOSTING_Password)}"
+  One984HOSTING_TOTP_Secret="${One984HOSTING_TOTP_Secret:-$(_readaccountconf_mutable One984HOSTING_TOTP_Secret)}"
   if [ -z "$One984HOSTING_Username" ] || [ -z "$One984HOSTING_Password" ]; then
     One984HOSTING_Username=""
     One984HOSTING_Password=""
