@@ -11,6 +11,7 @@ Options:
 # All `_sleep` commands are included to avoid Route53 throttling, see
 # https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html#limits-api-requests
 
+# Updated from "route53.amazonaws.com"
 AWS_HOST="route53.global.api.aws"
 AWS_URL="https://$AWS_HOST"
 
