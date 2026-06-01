@@ -22,6 +22,8 @@ dns_creoline_add() {
   creolineApiSecret="${creolineApiSecret:-$(_readaccountconf_mutable creolineApiSecret)}"
 
   if [ -z "$creolineApiToken" ] || [ -z "$creolineApiSecret" ]; then
+    _clearaccountconf_mutable creolineApiToken
+    _clearaccountconf_mutable creolineApiSecret
     _clearaccountconf creolineApiToken
     _clearaccountconf creolineApiSecret
 
@@ -29,8 +31,8 @@ dns_creoline_add() {
     _err "Please set it with the Command 'export creolineApiToken=<YourToken>' and 'export creolineApiSecret=<YourSecret>'."
     return 1
   else
-    _saveaccountconf creolineApiToken "$creolineApiToken"
-    _saveaccountconf creolineApiSecret "$creolineApiSecret"
+    _saveaccountconf_mutable creolineApiToken "$creolineApiToken"
+    _saveaccountconf_mutable creolineApiSecret "$creolineApiSecret"
   fi
 
   _debug "Detecting the root dns zone."
