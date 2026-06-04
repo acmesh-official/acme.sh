@@ -4895,7 +4895,7 @@ issue() {
     # (Let's Encrypt) may also reject with a malformed error if the prior cert
     # was issued by a different issuer / different CA. Retry without "replaces"
     # whenever the failure mentions ARI or the replaces field.
-    if [ "$_replaces_certID" ] && { _contains "$response" "alreadyReplaced" || _contains "$response" "'replaces'" || _contains "$response" "ARI"; }; then
+    if [ "$_replaces_certID" ] && { _contains "$response" "alreadyReplaced" || _contains "$response" "urn:ietf:params:acme:error:malformed" || _contains "$response" "'replaces'" || _contains "$response" "ARI"; }; then
       _info "ARI 'replaces' rejected by CA, retrying newOrder without 'replaces'."
       if ! _send_signed_request "$ACME_NEW_ORDER" "$_newOrderObj}"; then
         _err "Error creating new order."
@@ -5785,7 +5785,7 @@ renew() {
   _debug "_renewServer" "$_renewServer"
 
   _initpath "$Le_Domain" "$_isEcc"
-
+  _info "Renew: $Le_Domain"
   _set_level=${NOTIFY_LEVEL:-$NOTIFY_LEVEL_DEFAULT}
   _info "$(__green "Renewing: '$Le_Domain'")"
   if [ ! -f "$DOMAIN_CONF" ]; then
@@ -6865,7 +6865,7 @@ deactivate() {
 #cert
 _getAKI() {
   _cert="$1"
-  ${ACME_OPENSSL_BIN:-openssl} x509 -in "$_cert" -text -noout | grep "X509v3 Authority Key Identifier" -A 1 | _tail_n 1 | tr -d ': ' | sed "s/keyid//"
+  ${ACME_OPENSSL_BIN:-openssl} x509 -in "$_cert" -text -noout | grep -A 1 "X509v3 Authority Key Identifier" | _tail_n 1 | tr -d ': ' | sed "s/keyid//"
 }
 
 #cert
