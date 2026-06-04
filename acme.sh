@@ -6865,7 +6865,7 @@ deactivate() {
 #cert
 _getAKI() {
   _cert="$1"
-  ${ACME_OPENSSL_BIN:-openssl} x509 -in "$_cert" -text -noout | grep "X509v3 Authority Key Identifier" -A 1 | _tail_n 1 | tr -d ': ' | sed "s/keyid//"
+  ${ACME_OPENSSL_BIN:-openssl} x509 -in "$_cert" -text -noout | grep -A 1 "X509v3 Authority Key Identifier" | _tail_n 1 | tr -d ': ' | sed "s/keyid//"
 }
 
 #cert
