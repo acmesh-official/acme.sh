@@ -5312,6 +5312,8 @@ $_authorizations_map"
         fi
       fi
     elif [ "$vtype" = "$VTYPE_ALPN" ]; then
+      _ncaddr="$(_getfield "$_local_addr" "$_ncIndex")"
+      _ncIndex="$(_math $_ncIndex + 1)"
       acmevalidationv1="$(printf "%s" "$keyauthorization" | _digest "sha256" "hex")"
       _debug acmevalidationv1 "$acmevalidationv1"
       if ! _starttlsserver "$d" "" "$Le_TLSPort" "$keyauthorization" "$_ncaddr" "$acmevalidationv1"; then
