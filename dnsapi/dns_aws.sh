@@ -312,10 +312,10 @@ _use_role() {
   # characters.  Reject anything else to prevent HTTP header injection or
   # format-string issues if the STS response were ever spoofed.
   case "$_assumed_key_id$_assumed_secret$_assumed_token" in
-    *[!A-Za-z0-9+/=]*)
-      _err "AssumeRole response contains unexpected characters"
-      return 1
-      ;;
+  *[!A-Za-z0-9+/=]*)
+    _err "AssumeRole response contains unexpected characters"
+    return 1
+    ;;
   esac
   AWS_ACCESS_KEY_ID="$_assumed_key_id"
   AWS_SECRET_ACCESS_KEY="$_assumed_secret"
