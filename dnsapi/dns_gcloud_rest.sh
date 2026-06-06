@@ -34,15 +34,16 @@ dns_gcloud_rest_add() {
   _save_config || return 1
 
   access_token=$(_get_access_token) || return 1
+  zone=$(_pick_zone "${access_token}" "${domain}") || return 1
 
   _debug "Adding TXT record for ${domain}: ${record}"
 
   # If a matching ResourceRecordSet exists, the record is inserted into it.
   # Otherwise a new ResourceRecordSet is created.
-  if _has_rrset "${access_token}" "${domain}" TXT; then
-    _patch_add_rrset "${access_token}" "${domain}" TXT "${record}"
+  if _has_rrset "${access_token}" "${zone}" "${domain}" TXT; then
+    _patch_add_rrset "${access_token}" "${zone}" "${domain}" TXT "${record}"
   else
-    _create_rrset "${access_token}" "${domain}" TXT "${record}"
+    _create_rrset "${access_token}" "${zone}" "${domain}" TXT "${record}"
   fi
 }
 
@@ -55,16 +56,17 @@ dns_gcloud_rest_rm() {
   _save_config || return 1
 
   access_token=$(_get_access_token) || return 1
+  zone=$(_pick_zone "${access_token}" "${domain}") || return 1
 
   _debug "Removing TXT record for ${domain}: ${record}"
 
   # If the ResourceRecordSet has more than one record, the record is removed
   # from it. Otherwise, if the ResourceRecordSet contains only this record,
   # the entire ResourceRecordSet deleted.
-  if _has_many_records "${access_token}" "${domain}" TXT; then
-    _patch_remove_rrset "${access_token}" "${domain}" TXT "${record}"
-  elif _has_record "${access_token}" "${domain}" TXT "${record}"; then
-    _delete_rrset "${access_token}" "${domain}" TXT
+  if _has_many_records "${access_token}" "${zone}" "${domain}" TXT; then
+    _patch_remove_rrset "${access_token}" "${zone}" "${domain}" TXT "${record}"
+  elif _has_record "${access_token}" "${zone}" "${domain}" TXT "${record}"; then
+    _delete_rrset "${access_token}" "${zone}" "${domain}" TXT
   fi
 }
 
@@ -477,14 +479,14 @@ _pick_zone() {
   # Find the zone whose name is the longest suffix of the given domain.
   _debug "Determining the correct zone for DNS record."
   suffix_len=0
-  for z in $zones; do
+  for z in ${zones}; do
     dns_suffix=$(_get_dns_suffix_for_zone "${access_token}" "${z}")
     _debug dns_suffix "${dns_suffix}"
     case "${domain}." in # Include trailing dot in the pattern to match.
-    *$dns_suffix)
-      if [ "${#z}" -gt "${suffix_len}" ]; then
+    *.${dns_suffix})
+      if [ "${#dns_suffix}" -gt "${suffix_len}" ]; then
         zone="${z}"
-        suffix_len="${#z}"
+        suffix_len="${#dns_suffix}"
       fi
       ;;
     esac
@@ -501,10 +503,9 @@ _pick_zone() {
 # Fetch a ResourceRecordSet from the Cloud DNS API.
 _get_rrset() {
   access_token="$1"
-  domain="$2"
-  record_type="$3"
-
-  zone=$(_pick_zone "${access_token}" "${domain}") || return 1
+  zone="$2"
+  domain="$3"
+  record_type="$4"
 
   _debug "Fetching RRSet: ${domain} ${record_type}."
   _H1="Authorization: Bearer ${access_token}"
@@ -522,10 +523,9 @@ _get_rrset() {
 # Like _get_rrset but quieter.
 _has_rrset() {
   access_token="$1"
-  domain="$2"
-  record_type="$3"
-
-  zone=$(_pick_zone "${access_token}" "${domain}") || return 1
+  zone="$2"
+  domain="$3"
+  record_type="$4"
 
   _debug "Fetching RRSet: ${domain} ${record_type}."
   _H1="Authorization: Bearer ${access_token}"
@@ -539,10 +539,11 @@ _has_rrset() {
 # Determine if a ResourceRecordSet has multiple records.
 _has_many_records() {
   access_token="$1"
-  domain="$2"
-  record_type="$3"
+  zone="$2"
+  domain="$3"
+  record_type="$4"
 
-  rrset=$(_get_rrset "${access_token}" "${domain}" "${record_type}") || return 1
+  rrset=$(_get_rrset "${access_token}" "${zone}" "${domain}" "${record_type}") || return 1
   count=$(echo "${rrset}" | _extract_records | wc -l)
   if [ "${count}" -lt 2 ]; then
     return 1
@@ -552,11 +553,12 @@ _has_many_records() {
 # Determine if a ResourceRecordSet has a given record.
 _has_record() {
   access_token="$1"
-  domain="$2"
-  record_type="$3"
-  record="$4"
+  zone="$2"
+  domain="$3"
+  record_type="$4"
+  record="$5"
 
-  rrset=$(_get_rrset "${access_token}" "${domain}" "${record_type}") || return 1
+  rrset=$(_get_rrset "${access_token}" "${zone}" "${domain}" "${record_type}") || return 1
   echo "${rrset}" | _extract_records | grep -F "${record}" >/dev/null
 }
 
@@ -619,12 +621,11 @@ _remove_rrdata() {
 # Create a new ResourceRecordSet with the given record.
 _create_rrset() {
   access_token="$1"
-  domain="$2"
-  record_type="$3"
-  record="$4"
+  zone="$2"
+  domain="$3"
+  record_type="$4"
+  record="$5"
   ttl="300" # 5 minutes
-
-  zone=$(_pick_zone "${access_token}" "${domain}") || return 1
 
   request="$(echo "${record}" | _format_rrset "${domain}" "${record_type}" "${ttl}")"
 
@@ -650,10 +651,9 @@ _create_rrset() {
 # Delete a ResourceRecordSet.
 _delete_rrset() {
   access_token="$1"
-  domain="$2"
-  record_type="$3"
-
-  zone=$(_pick_zone "${access_token}" "${domain}") || return 1
+  zone="$2"
+  domain="$3"
+  record_type="$4"
 
   _debug "Deleting RRSet: ${domain} ${record_type}."
   _H1="Authorization: Bearer ${access_token}"
@@ -677,13 +677,12 @@ _delete_rrset() {
 # Add a record to an ResourceRecordSet.
 _patch_add_rrset() {
   access_token="$1"
-  domain="$2"
-  record_type="$3"
-  record="$4"
+  zone="$2"
+  domain="$3"
+  record_type="$4"
+  record="$5"
 
-  zone=$(_pick_zone "${access_token}" "${domain}") || return 1
-
-  rrset=$(_get_rrset "${access_token}" "${domain}" "${record_type}") || return 1
+  rrset=$(_get_rrset "${access_token}" "${zone}" "${domain}" "${record_type}") || return 1
   request="$(echo "${rrset}" | _add_rrdata "${record}")"
 
   _debug "Adding record to existing RRSet: ${domain} ${record_type} ${record}."
@@ -708,13 +707,12 @@ _patch_add_rrset() {
 # Remove a record to an ResourceRecordSet.
 _patch_remove_rrset() {
   access_token="$1"
-  domain="$2"
-  record_type="$3"
-  record="$4"
+  zone="$2"
+  domain="$3"
+  record_type="$4"
+  record="$5"
 
-  zone=$(_pick_zone "${access_token}" "${domain}") || return 1
-
-  rrset=$(_get_rrset "${access_token}" "${domain}" "${record_type}") || return 1
+  rrset=$(_get_rrset "${access_token}" "${zone}" "${domain}" "${record_type}") || return 1
   request="$(echo "${rrset}" | _remove_rrdata "${record}")"
 
   _debug "Removing record from existing RRSet: ${domain} ${record_type} ${record}."
