@@ -102,10 +102,10 @@ dns_muumuu_rm() {
 #  _sub_domain  _acme-challenge.www
 #  _domain      example.com
 _muumuu_get_root() {
-  local domain="$1"
-  local i=1
-  local p=0
-  local h
+  domain="$1"
+  i=1
+  p=0
+  h=""
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
@@ -134,21 +134,21 @@ _muumuu_get_root() {
 }
 
 _muumuu_rest() {
-  local method="$1"
-  local path="$2"
-  local data="$3"
-  local url="${MUUMUU_API}${path}"
+  _method="$1"
+  _path="$2"
+  _data="$3"
+  _url="${MUUMUU_API}${_path}"
 
   export _H1="Authorization: Bearer ${MUUMUU_PAT}"
   export _H2="Content-Type: application/json"
   export _H3="Accept: application/json"
 
-  _secure_debug2 data "$data"
+  _secure_debug2 data "$_data"
 
-  if [ "$method" = "GET" ]; then
-    response="$(_get "$url")"
+  if [ "$_method" = "GET" ]; then
+    response="$(_get "$_url")"
   else
-    response="$(_post "$data" "$url" "" "$method")"
+    response="$(_post "$_data" "$_url" "" "$_method")"
   fi
   _ret="$?"
   _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
@@ -156,7 +156,7 @@ _muumuu_rest() {
   _secure_debug2 response "$response"
 
   if [ "$_ret" != "0" ]; then
-    _err "Error accessing ${url}"
+    _err "Error accessing ${_url}"
     return 1
   fi
 
