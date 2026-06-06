@@ -659,7 +659,7 @@ _delete_rrset() {
   _H1="Authorization: Bearer ${access_token}"
   response=$(
     _post \
-      "${request}" \
+      "" \
       "https://dns.googleapis.com/dns/v1/projects/${GCP_PROJECT}/managedZones/${zone}/rrsets/${domain}./${record_type}" \
       "" \
       "DELETE" \
