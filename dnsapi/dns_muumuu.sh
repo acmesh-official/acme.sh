@@ -13,7 +13,7 @@ MUUMUU_API="https://muumuu-domain.com/api/v2"
 ########  Public functions #####################
 
 dns_muumuu_add() {
-  fulldomain="$1"
+  fulldomain=$(printf "%s" "$1" | _lower_case)
   txtvalue="$2"
 
   _info "Using muumuu-domain.com DNS API"
@@ -51,7 +51,7 @@ dns_muumuu_add() {
 }
 
 dns_muumuu_rm() {
-  fulldomain="$1"
+  fulldomain=$(printf "%s" "$1" | _lower_case)
   txtvalue="$2"
 
   _info "Using muumuu-domain.com DNS API"
