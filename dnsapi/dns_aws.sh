@@ -35,31 +35,35 @@ dns_aws_add() {
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     AWS_ACCESS_KEY_ID=""
     AWS_SECRET_ACCESS_KEY=""
-    _err "You haven't specified the aws route53 api key id and and api key secret yet."
+    _err "You haven't specified the aws route53 api key id and api key secret yet."
     _err "Please create your key and try again. see $(__green $AWS_WIKI)"
     return 1
   fi
 
   AWS_ROLE_ARN="${AWS_ROLE_ARN:-$(_readaccountconf_mutable AWS_ROLE_ARN)}"
-  # Capture static credentials before role assumption may overwrite them
-  _save_key_id="$AWS_ACCESS_KEY_ID"
-  _save_secret="$AWS_SECRET_ACCESS_KEY"
-  if [ -n "$AWS_ROLE_ARN" ]; then
-    _use_role "$AWS_ROLE_ARN" || return 1
-  fi
 
-  # Save static credentials for future use, unless using an instance/container
-  # role (indicated by _using_role=true from _use_metadata).  Note: _use_role()
-  # intentionally does NOT set _using_role — when the caller owns static keys and
-  # assumes a cross-account role, _save_key_id/_save_secret still hold those
-  # static keys and must be persisted so future renewals can re-assume the role.
-  if [ -z "$_using_role" ]; then
-    _saveaccountconf_mutable AWS_ACCESS_KEY_ID "$_save_key_id"
-    _saveaccountconf_mutable AWS_SECRET_ACCESS_KEY "$_save_secret"
-    _saveaccountconf_mutable AWS_DNS_SLOWRATE "$AWS_DNS_SLOWRATE"
-  fi
-  if [ -n "$AWS_ROLE_ARN" ]; then
-    _saveaccountconf_mutable AWS_ROLE_ARN "$AWS_ROLE_ARN"
+  # Persist credentials and assume the role only once per process.  acme.sh
+  # calls dns_aws_add once per challenge, so a multi-domain/SAN cert runs this
+  # several times in the same shell.  _use_role() overwrites AWS_ACCESS_KEY_ID /
+  # AWS_SECRET_ACCESS_KEY in-process with temporary AssumeRole credentials;
+  # without this guard the second call would read those temporary keys here and
+  # persist them to account.conf, breaking later unattended renewals once they
+  # expire.  The sentinel also avoids needlessly re-assuming the role.
+  if [ -z "$_aws_role_done" ]; then
+    # Save static credentials for future use, unless using an instance/container
+    # role (indicated by _using_role=true from _use_metadata).  Role assumption
+    # happens below, so AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY still hold the
+    # caller's static keys here and are safe to persist.
+    if [ -z "$_using_role" ]; then
+      _saveaccountconf_mutable AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
+      _saveaccountconf_mutable AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
+      _saveaccountconf_mutable AWS_DNS_SLOWRATE "$AWS_DNS_SLOWRATE"
+    fi
+    if [ -n "$AWS_ROLE_ARN" ]; then
+      _use_role "$AWS_ROLE_ARN" || return 1
+      _saveaccountconf_mutable AWS_ROLE_ARN "$AWS_ROLE_ARN"
+    fi
+    _aws_role_done=1
   fi
 
   _debug "First detect the root zone"
@@ -124,14 +128,17 @@ dns_aws_rm() {
   fi
 
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-    _err "You haven't specified the aws route53 api key id and and api key secret yet."
+    _err "You haven't specified the aws route53 api key id and api key secret yet."
     _err "Please create your key and try again. see $(__green $AWS_WIKI)"
     return 1
   fi
 
   AWS_ROLE_ARN="${AWS_ROLE_ARN:-$(_readaccountconf_mutable AWS_ROLE_ARN)}"
-  if [ -n "$AWS_ROLE_ARN" ]; then
+  # Assume the role only once per process; if dns_aws_add already assumed it in
+  # this run, the temporary credentials are still in the environment and reused.
+  if [ -n "$AWS_ROLE_ARN" ] && [ -z "$_aws_role_done" ]; then
     _use_role "$AWS_ROLE_ARN" || return 1
+    _aws_role_done=1
   fi
 
   _debug "First detect the root zone"
