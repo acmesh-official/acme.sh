@@ -355,8 +355,8 @@ _jwt_claim_set() {
   _print "\"iss\":\"${GCP_SERVICE_ACCOUNT}\","
   _print "\"scope\":\"https://www.googleapis.com/auth/ndev.clouddns.readwrite\","
   _print "\"aud\":\"https://oauth2.googleapis.com/token\","
-  _print "\"iat\":\"${iat}\","
-  _print "\"exp\":\"${exp}\""
+  _print "\"iat\":${iat},"
+  _print "\"exp\":${exp}"
   _print "}"
 }
 
