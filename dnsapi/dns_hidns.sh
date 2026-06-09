@@ -140,7 +140,7 @@ _get_root() {
       return 1
     fi
 
-    if ! _hidns_rest GET "/domains?page=1&pageSize=20&keyword=$h"; then
+    if ! _hidns_rest GET "/domains?page=1&pageSize=1&keyword=$h"; then
       return 1
     fi
 
@@ -149,13 +149,13 @@ _get_root() {
 
     _idx=1
     for _n in $_names; do
-      if [ "$_n" = "$h" ]; then
+      if [ "$_n" = "$h" ] || _endswith "$h" ".$_n"; then
         _domain_id=$(echo "$_ids" | sed -n "${_idx}p")
         if [ -z "$_domain_id" ]; then
           break
         fi
-        _sub_domain=$(echo "$domain" | cut -d . -f 1-"$p")
-        _domain=$h
+        _sub_domain=$(echo "$domain" | sed "s/\.$_n\$//")
+        _domain=$_n
         return 0
       fi
       _idx=$(_math "$_idx" + 1)
