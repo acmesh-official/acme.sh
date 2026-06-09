@@ -140,18 +140,21 @@ _get_root() {
       return 1
     fi
 
-    if ! _hidns_rest GET "/domains?page=1&pageSize=200"; then
+    if ! _hidns_rest GET "/domains?page=1&pageSize=20&keyword=$h"; then
       return 1
     fi
 
-    if _contains "$response" "\"name\":\"$h\""; then
-      _domain_id=$(echo "$response" | _egrep_o '"id":[0-9]*' | _head_n 1 | cut -d : -f 2 | tr -d ' ')
-      if [ "$_domain_id" ]; then
-        _sub_domain=$(echo "$domain" | cut -d . -f 1-"$p")
-        _domain=$h
-        return 0
-      fi
-      return 1
+    _domain_pairs=$(echo "$response" | _egrep_o '"id":[0-9]*,"name":"[^"]*"')
+    if [ -z "$_domain_pairs" ]; then
+      _domain_pairs=$(echo "$response" | _egrep_o '"name":"[^"]*","id":[0-9]*')
+    fi
+
+    _match=$(echo "$_domain_pairs" | grep "\"name\":\"$h\"")
+    if [ -n "$_match" ]; then
+      _domain_id=$(echo "$_match" | _head_n 1 | _egrep_o '"id":[0-9]*' | cut -d : -f 2 | tr -d ' ')
+      _sub_domain=$(echo "$domain" | cut -d . -f 1-"$p")
+      _domain=$h
+      return 0
     fi
 
     p=$i
