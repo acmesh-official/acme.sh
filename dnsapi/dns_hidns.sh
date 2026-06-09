@@ -16,7 +16,7 @@ HIDNS_API="${HIDNS_API:-$HIDNS_Url}"
 
 #Usage: dns_hidns_add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_hidns_add() {
-  fulldomain=$1
+  fulldomain=$(_idn "$1")
   txtvalue=$2
 
   _info "Using HiDNS API"
@@ -51,7 +51,7 @@ dns_hidns_add() {
 
 #Usage: dns_hidns_rm _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_hidns_rm() {
-  fulldomain=$1
+  fulldomain=$(_idn "$1")
   txtvalue=$2
 
   _info "Using HiDNS API"
@@ -144,18 +144,22 @@ _get_root() {
       return 1
     fi
 
-    _domain_pairs=$(echo "$response" | _egrep_o '"id":[0-9]*,"name":"[^"]*"')
-    if [ -z "$_domain_pairs" ]; then
-      _domain_pairs=$(echo "$response" | _egrep_o '"name":"[^"]*","id":[0-9]*')
-    fi
+    _ids=$(echo "$response" | _egrep_o '"id":[0-9]*' | cut -d : -f 2)
+    _names=$(echo "$response" | _egrep_o '"name":"[^"]*"' | cut -d : -f 2 | tr -d '"')
 
-    _match=$(echo "$_domain_pairs" | grep "\"name\":\"$h\"")
-    if [ -n "$_match" ]; then
-      _domain_id=$(echo "$_match" | _head_n 1 | _egrep_o '"id":[0-9]*' | cut -d : -f 2 | tr -d ' ')
-      _sub_domain=$(echo "$domain" | cut -d . -f 1-"$p")
-      _domain=$h
-      return 0
-    fi
+    _idx=1
+    for _n in $_names; do
+      if [ "$_n" = "$h" ]; then
+        _domain_id=$(echo "$_ids" | sed -n "${_idx}p")
+        if [ -z "$_domain_id" ]; then
+          break
+        fi
+        _sub_domain=$(echo "$domain" | cut -d . -f 1-"$p")
+        _domain=$h
+        return 0
+      fi
+      _idx=$(_math "$_idx" + 1)
+    done
 
     p=$i
     i=$(_math "$i" + 1)
