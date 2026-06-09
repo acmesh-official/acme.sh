@@ -322,7 +322,7 @@ _ab_authenticate() {
 _ab_get_token() {
   _ab_authdata="grant_type=password&username=$AB_User&password=$AB_Pass"
 
-  if ! _ab_rest POST "/auth/token" "$_ab_authdata" ||  ! _contains "$response" "access_token"; then
+  if ! _ab_rest POST "/auth/token" "$_ab_authdata" || ! _contains "$response" "access_token"; then
     _err "Authentication failure"
     return 1
   fi
