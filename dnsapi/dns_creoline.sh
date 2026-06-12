@@ -13,7 +13,7 @@ creolineApi="https://api.creoline.com/v1"
 
 ########  Public functions #####################
 
-# Usage: add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+# Usage: add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPB8"
 dns_creoline_add() {
   fulldomain=$1
   txtvalue=$2
