@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
+
 dns_creoline_info='creoline
 Site: https://www.creoline.com/de
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_creoline
@@ -13,7 +14,7 @@ creolineApi="https://api.creoline.com/v1"
 
 ########  Public functions #####################
 
-# Usage: add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+# Usage: add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPB6"
 dns_creoline_add() {
   fulldomain=$1
   txtvalue=$2
