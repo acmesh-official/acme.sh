@@ -146,7 +146,7 @@ _ionos_rest() {
 
   if [ "$method" != "GET" ]; then
     export _H2="Accept: application/json"
-    export _H3="Content-Type: application/json"
+    export _H3=
 
     _response="$(_post "$data" "$IONOS_API$route" "" "$method" "application/json")"
   else
