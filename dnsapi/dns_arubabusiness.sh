@@ -211,11 +211,14 @@ _ab_domain_id() {
 #   TXT correspond to record type 5
 #   ArubaBusiness appends a terminating dot (.) to the record name
 #   The content field may contain the following character sequence: \"
+#   All record names are always converted to lowercase
 #
 _ab_dns_record_id() {
   _record_name=$1
   _txt_value=$2
   _dns_details=$3
+
+  _record_name_lowercase=$(printf "%s" "$_record_name" | tr '[:upper:]' '[:lower:]')
 
   # _record_contents contains one element less than the other lists
   _record_ids=$(printf "%s" "$_dns_details" | tr ',' '\n' | _egrep_o '"Id": .*' | cut -d : -f 2 | tr -d ' ' | tr '\n' ' ')
@@ -223,7 +226,7 @@ _ab_dns_record_id() {
   _record_types=$(printf "%s" "$_dns_details" | tr ',' '\n' | _egrep_o '"Type": .*' | cut -d : -f 2 | tr -d ' "' | tr '\n' ' ')
   _record_contents=$(printf "%s" "$_dns_details" | tr ',' '\n' | _egrep_o '"Content": .*' | cut -d : -f 2 | tr -d '\\ "' | tr '\n' ' ')
 
-  _info "Looking for a TXT record matching inputs - name: $_record_name value: $_txt_value"
+  _info "Looking for a TXT record matching inputs - name: $_record_name_lowercase value: $_txt_value"
 
   _i=2
   _record_ids_count=$(printf "%s" "$_record_ids" | tr ' ' '\n' | wc -l)
@@ -234,7 +237,7 @@ _ab_dns_record_id() {
     _current_type=$(printf "%s" "$_record_types" | cut -d " " -f "$_i")
     _current_content=$(printf "%s" "$_record_contents" | cut -d " " -f "$_j")
 
-    if [ "$_record_name." = "$_current_name" ] && [ "5" = "$_current_type" ] && [ "$_txt_value" = "$_current_content" ]; then
+    if [ "$_record_name_lowercase." = "$_current_name" ] && [ "5" = "$_current_type" ] && [ "$_txt_value" = "$_current_content" ]; then
       dns_record_id=$(printf "%s" "$_record_ids" | cut -d " " -f "$_i")
       _info "Found matching record with id: $dns_record_id"
       return 0
