@@ -190,7 +190,7 @@ _ab_domain_id() {
 }
 
 #
-# Usage: _ab_dns_details _acme-challenge.www.domain.com "aaaabbbbcccc111122223333" "{JSON_CONTENT}"
+# Usage: _ab_dns_record_id _acme-challenge.www.domain.com "aaaabbbbcccc111122223333" "{JSON_CONTENT}"
 #
 # Extract the record id of the first TXT record whose name and content match the input values
 #
