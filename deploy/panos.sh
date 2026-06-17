@@ -16,6 +16,7 @@
 #    export PANOS_TEMPLATE="" # Template Name of panorama managed devices
 #    export PANOS_TEMPLATE_STACK="" # set a Template Stack if certificate should also be pushed automatically
 #    export PANOS_VSYS="Shared"  # name of the vsys to import the certificate
+#    export PANOS_CERTNAME="" # use a custom certificate name to work around Panorama's 31-character limit
 #
 # The script will automatically generate a new API key if
 # no key is found, or if a saved key has expired or is invalid.
@@ -67,8 +68,8 @@ deployer() {
     # Get Version Info to test key
     content="type=version&key=$_panos_key"
     ## Exclude all scopes for the empty commit
-    #_exclude_scope="<policy-and-objects>exclude</policy-and-objects><device-and-network>exclude</device-and-network><shared-object>exclude</shared-object>"
-    #content="type=commit&action=partial&key=$_panos_key&cmd=<commit><partial>$_exclude_scope<admin><member>acmekeytest</member></admin></partial></commit>"
+    #_exclude_scope="<device-and-network>excluded</device-and-network><shared-object>excluded</shared-object>"
+    #content="type=commit&action=partial&key=$_panos_key&cmd=<commit><partial>$_exclude_scope<admin><member>$_panos_user</member></admin></partial></commit>"
   fi
 
   # Generate API Key
@@ -89,7 +90,7 @@ deployer() {
     if [ "$type" = 'cert' ]; then
       panos_url="${panos_url}?type=import"
       content="--$delim${nl}Content-Disposition: form-data; name=\"category\"\r\n\r\ncertificate"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n$_cdomain"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n$_panos_certname"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"key\"\r\n\r\n$_panos_key"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"format\"\r\n\r\npem"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_cfullchain")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_cfullchain")"
@@ -103,11 +104,11 @@ deployer() {
     if [ "$type" = 'key' ]; then
       panos_url="${panos_url}?type=import"
       content="--$delim${nl}Content-Disposition: form-data; name=\"category\"\r\n\r\nprivate-key"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n$_cdomain"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"certificate-name\"\r\n\r\n$_panos_certname"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"key\"\r\n\r\n$_panos_key"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"format\"\r\n\r\npem"
       content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"passphrase\"\r\n\r\n123456"
-      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_cdomain.key")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ckey")"
+      content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"file\"; filename=\"$(basename "$_panos_certname.key")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ckey")"
       if [ "$_panos_template" ]; then
         content="$content${nl}--$delim${nl}Content-Disposition: form-data; name=\"target-tpl\"\r\n\r\n$_panos_template"
       fi
@@ -127,10 +128,9 @@ deployer() {
     #Check for force commit - will commit ALL uncommited changes to the firewall. Use with caution!
     if [ "$FORCE" ]; then
       _debug "Force switch detected.  Committing ALL changes to the firewall."
-      cmd=$(printf "%s" "<commit><partial><force><admin><member>$_panos_user</member></admin></force></partial></commit>" | _url_encode)
+      cmd=$(printf "%s" "<commit><force><partial><admin><member>$_panos_user</member></admin></partial></force></commit>" | _url_encode)
     else
-      _exclude_scope="<policy-and-objects>exclude</policy-and-objects><device-and-network>exclude</device-and-network>"
-      cmd=$(printf "%s" "<commit><partial>$_exclude_scope<admin><member>$_panos_user</member></admin></partial></commit>" | _url_encode)
+      cmd=$(printf "%s" "<commit><partial><admin><member>$_panos_user</member></admin></partial></commit>" | _url_encode)
     fi
     content="type=commit&action=partial&key=$_panos_key&cmd=$cmd"
   fi
@@ -206,13 +206,12 @@ panos_deploy() {
   fi
 
   # PANOS_KEY
-  _getdeployconf PANOS_KEY
   if [ "$PANOS_KEY" ]; then
-    _debug "Detected saved key."
-    _panos_key=$PANOS_KEY
+    _debug "Detected ENV variable PANOS_KEY. Saving to file."
+    _savedeployconf PANOS_KEY "$PANOS_KEY" 1
   else
-    _debug "No key detected"
-    unset _panos_key
+    _debug "Attempting to load variable PANOS_KEY from file."
+    _getdeployconf PANOS_KEY
   fi
 
   # PANOS_TEMPLATE
@@ -242,13 +241,24 @@ panos_deploy() {
     _getdeployconf PANOS_VSYS
   fi
 
+  # PANOS_CERTNAME
+  if [ "$PANOS_CERTNAME" ]; then
+    _debug "Detected ENV variable PANOS_CERTNAME. Saving to file."
+    _savedeployconf PANOS_CERTNAME "$PANOS_CERTNAME" 1
+  else
+    _debug "Attempting to load variable PANOS_CERTNAME from file."
+    _getdeployconf PANOS_CERTNAME
+  fi
+
   #Store variables
   _panos_host=$PANOS_HOST
   _panos_user=$PANOS_USER
   _panos_pass=$PANOS_PASS
+  _panos_key=$PANOS_KEY
   _panos_template=$PANOS_TEMPLATE
   _panos_template_stack=$PANOS_TEMPLATE_STACK
   _panos_vsys=$PANOS_VSYS
+  _panos_certname=$PANOS_CERTNAME
 
   #Test API Key if found.  If the key is invalid, the variable _panos_key will be unset.
   if [ "$_panos_host" ] && [ "$_panos_key" ]; then
@@ -260,15 +270,22 @@ panos_deploy() {
   if [ -z "$_panos_host" ]; then
     _err "No host found. If this is your first time deploying, please set PANOS_HOST in ENV variables. You can delete it after you have successfully deployed the certs."
     return 1
-  elif [ -z "$_panos_user" ]; then
-    _err "No user found. If this is your first time deploying, please set PANOS_USER in ENV variables. You can delete it after you have successfully deployed the certs."
-    return 1
-  elif [ -z "$_panos_pass" ]; then
-    _err "No password found. If this is your first time deploying, please set PANOS_PASS in ENV variables. You can delete it after you have successfully deployed the certs."
-    return 1
   else
+    # Use certificate name based on the first domain on the certificate if no custom certificate name is set
+    if [ -z "$_panos_certname" ]; then
+      _panos_certname="$_cdomain"
+      _savedeployconf PANOS_CERTNAME "$_panos_certname" 1
+    fi
+
     # Generate a new API key if no valid API key is found
     if [ -z "$_panos_key" ]; then
+      if [ -z "$_panos_user" ]; then
+        _err "No user found. If this is your first time deploying, please set PANOS_USER in ENV variables. You can delete it after you have successfully deployed the certs."
+        return 1
+      elif [ -z "$_panos_pass" ]; then
+        _err "No password found. If this is your first time deploying, please set PANOS_PASS in ENV variables. You can delete it after you have successfully deployed the certs."
+        return 1
+      fi
       _debug "**** Generating new PANOS API KEY ****"
       deployer keygen
       _savedeployconf PANOS_KEY "$_panos_key" 1

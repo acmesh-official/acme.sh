@@ -6,6 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_technitium
 Options:
  Technitium_Server Server Address
  Technitium_Token API Token
+ Technitium_Expiry_Ttl Number of seconds before DNS server auto-deletes the acme record
 Issues: github.com/acmesh-official/acme.sh/issues/6116
 Author: Henning Reich <acmesh@qupfer.de>
 '
@@ -15,7 +16,10 @@ dns_technitium_add() {
   _Technitium_account
   fulldomain=$1
   txtvalue=$2
-  response="$(_get "$Technitium_Server/api/zones/records/add?token=$Technitium_Token&domain=$fulldomain&type=TXT&text=${txtvalue}")"
+  expiryTtl=${Technitium_Expirty_Ttl:-$(_readaccountconf_mutable Technitium_Expiry_Ttl)}
+  expiryTtl=${expiryTtl:-0}
+
+  response="$(_get "$Technitium_Server/api/zones/records/add?token=$Technitium_Token&domain=$fulldomain&type=TXT&text=${txtvalue}&expiryTtl=$expiryTtl")"
   if _contains "$response" '"status":"ok"'; then
     return 0
   fi
@@ -28,6 +32,14 @@ dns_technitium_rm() {
   _Technitium_account
   fulldomain=$1
   txtvalue=$2
+  expiryTtl=${Technitium_Expirty_Ttl:-$(_readaccountconf_mutable Technitium_Expiry_Ttl)}
+  expiryTtl=${expiryTtl:-0}
+
+  if [ "$expiryTtl" -ne 0 ]; then
+    _info "DNS record is configured to be auto-removed after $expiryTtl seconds. Remove operation is bypassed."
+    return 0
+  fi
+
   response="$(_get "$Technitium_Server/api/zones/records/delete?token=$Technitium_Token&domain=$fulldomain&type=TXT&text=${txtvalue}")"
   if _contains "$response" '"status":"ok"'; then
     return 0

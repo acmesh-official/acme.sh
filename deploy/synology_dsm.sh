@@ -353,7 +353,7 @@ synology_dsm_deploy() {
   _debug2 SYNO_CREATE "$SYNO_CREATE"
 
   if [ -z "$id" ] && [ -z "$SYNO_CREATE" ]; then
-    _err "Unable to find certificate: $SYNO_CERTIFICATE and $SYNO_CREATE is not set."
+    _err "Unable to find certificate: $SYNO_CERTIFICATE and \$SYNO_CREATE is not set."
     _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 1
   fi
@@ -387,7 +387,7 @@ synology_dsm_deploy() {
     if echo "$response" | grep '"restart_httpd":true' >/dev/null; then
       _info "Restart HTTP services succeeded."
     else
-      _info "Restart HTTP services failed."
+      _info "Restart HTTP services not necessary."
     fi
     _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     _logout

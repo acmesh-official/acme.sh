@@ -128,13 +128,15 @@ HEREDOC
   export HTTPS_INSECURE=1
   export _H1="Authorization: PVEAPIToken=${_proxmoxve_header_api_token}"
   response=$(_post "$_json_payload" "$_target_url" "" POST "application/json")
+  response="$(echo "$response" | _json_decode | _normalizeJson)"
+  message=$(echo "$response" | _egrep_o '"message":"[^"]*' | cut -d : -f 2 | tr -d '"')
   _retval=$?
-  if [ "${_retval}" -eq 0 ]; then
+  if [ "${_retval}" -eq 0 ] && [ -z "$message" ]; then
     _debug3 response "$response"
     _info "Certificate successfully deployed"
     return 0
   else
-    _err "Certificate deployment failed"
+    _err "Certificate deployment failed: $message"
     _debug "Response" "$response"
     return 1
   fi
