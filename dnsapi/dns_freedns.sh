@@ -231,7 +231,7 @@ _freedns_add_txt_record() {
   export _H1="Cookie:$1"
   export _H2="Accept-Language:en-US"
   domain_id="$2"
-  subdomain="$3"
+  subdomain="$(printf '%s' "$3" | _url_encode)"
   value="$(printf '%s' "$4" | _url_encode)"
   url="https://freedns.afraid.org/subdomain/save.php?step=2"
 
