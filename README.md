@@ -1,7 +1,21 @@
 <p align="center">
-  <a href="https://zerossl.com/?fromacme.sh">
-    <img src="https://github.com/user-attachments/assets/7531085e-399b-4ac2-82a2-90d14a0b7f05" alt="zerossl.com">
-  </a>
+<a href="https://zerossl.com?utm_source=acme-sh">
+<picture>
+  <!-- Dark mode -->
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="https://github.com/user-attachments/assets/1308516b-e0cc-496d-b5df-e3932423ead6" />
+  <!-- Light mode -->
+  <source
+    media="(prefers-color-scheme: light)"
+    srcset="https://github.com/user-attachments/assets/4ba7a79e-8cc9-4d49-87fc-02d44fb7b043" />
+  <!-- Fallback for environments without media queries -->
+  <img
+    alt="ZeroSSL"
+    src="https://github.com/user-attachments/assets/4ba7a79e-8cc9-4d49-87fc-02d44fb7b043"
+    height="auto" />
+</picture>
+</a>
 </p>
 
 <h1 align="center">🔐 acme.sh</h1>
