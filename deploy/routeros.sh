@@ -125,7 +125,7 @@ routeros_deploy() {
   _savedeployconf ROUTER_OS_PORT "$ROUTER_OS_PORT"
   _savedeployconf ROUTER_OS_SSH_CMD "$ROUTER_OS_SSH_CMD"
   _savedeployconf ROUTER_OS_SCP_CMD "$ROUTER_OS_SCP_CMD"
-  _savedeployconf ROUTER_OS_ADDITIONAL_SERVICES "$ROUTER_OS_ADDITIONAL_SERVICES"
+  _savedeployconf ROUTER_OS_ADDITIONAL_SERVICES "$ROUTER_OS_ADDITIONAL_SERVICES" "base64"
 
   # push key to routeros
   if ! _scp_certificate "$_ckey" "$ROUTER_OS_USERNAME@$ROUTER_OS_HOST:$_cdomain.key"; then
