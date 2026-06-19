@@ -246,6 +246,7 @@ fi
   _savedeployconf DEPLOY_TRUENAS_APIKEY "$DEPLOY_TRUENAS_APIKEY"
   _savedeployconf DEPLOY_TRUENAS_HOSTNAME "$DEPLOY_TRUENAS_HOSTNAME"
   _savedeployconf DEPLOY_TRUENAS_PROTOCOL "$DEPLOY_TRUENAS_PROTOCOL"
+  _savedeployconf DEPLOY_TRUENAS_PORT "$DEPLOY_TRUENAS_PORT"
   _info "TrueNAS health: OK"
 
   ########## System info
