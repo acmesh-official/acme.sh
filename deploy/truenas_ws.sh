@@ -16,7 +16,12 @@
 #
 # # API KEY
 # # Use the folowing URL to create a new API token: <TRUENAS_HOSTNAME OR IP>/ui/apikeys
-# export DEPLOY_TRUENAS_APIKEY="<API_KEY_GENERATED_IN_THE_WEB_UI"
+# export DEPLOY_TRUENAS_APIKEY="<API_KEY_GENERATED_IN_THE_WEB_UI>"
+# Optional:
+# export DEPLOY_TRUENAS_HOSTNAME="<TRUENAS_HOSTNAME_OR_IP>"
+# export DEPLOY_TRUENAS_PROTOCOL="wss"   # ws or wss
+# export DEPLOY_TRUENAS_PORT="443"       # optional, e.g. 80, 443, 8443
+
 #
 
 ### Private functions
@@ -181,6 +186,8 @@ truenas_ws_deploy() {
   _getdeployconf DEPLOY_TRUENAS_APIKEY
   _getdeployconf DEPLOY_TRUENAS_HOSTNAME
   _getdeployconf DEPLOY_TRUENAS_PROTOCOL
+  _getdeployconf DEPLOY_TRUENAS_PORT
+
   # Check API Key
   if [ -z "$DEPLOY_TRUENAS_APIKEY" ]; then
     _err "TrueNAS API key not found, please set the DEPLOY_TRUENAS_APIKEY environment variable."
@@ -196,6 +203,22 @@ truenas_ws_deploy() {
     _info "TrueNAS protocol not set. Using 'ws'."
     DEPLOY_TRUENAS_PROTOCOL="ws"
   fi
+
+  
+# Check port, optional
+if [ -n "$DEPLOY_TRUENAS_PORT" ]; then
+  case "$DEPLOY_TRUENAS_PORT" in
+    ''|*[!0-9]*)
+      _err "Invalid TrueNAS port '$DEPLOY_TRUENAS_PORT'. DEPLOY_TRUENAS_PORT must be numeric."
+      return 8
+      ;;
+  esac
+
+  _ws_uri="$DEPLOY_TRUENAS_PROTOCOL://$DEPLOY_TRUENAS_HOSTNAME:$DEPLOY_TRUENAS_PORT/websocket"
+else
+  _ws_uri="$DEPLOY_TRUENAS_PROTOCOL://$DEPLOY_TRUENAS_HOSTNAME/websocket"
+fi
+
   _ws_uri="$DEPLOY_TRUENAS_PROTOCOL://$DEPLOY_TRUENAS_HOSTNAME/websocket"
   _debug2 DEPLOY_TRUENAS_HOSTNAME "$DEPLOY_TRUENAS_HOSTNAME"
   _debug2 DEPLOY_TRUENAS_PROTOCOL "$DEPLOY_TRUENAS_PROTOCOL"
@@ -216,7 +239,7 @@ truenas_ws_deploy() {
 
   if [ "$_ws_response" != "TRUE" ]; then
     _err "TrueNAS is not ready."
-    _err "Please check environment variables DEPLOY_TRUENAS_APIKEY, DEPLOY_TRUENAS_HOSTNAME and DEPLOY_TRUENAS_PROTOCOL."
+    _err "Please check environment variables DEPLOY_TRUENAS_APIKEY, DEPLOY_TRUENAS_HOSTNAME, DEPLOY_TRUENAS_PROTOCOL and DEPLOY_TRUENAS_PORT."
     _err "Verify API key."
     return 2
   fi
