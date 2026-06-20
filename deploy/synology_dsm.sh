@@ -72,7 +72,7 @@ synology_dsm_deploy() {
 
   if [ -n "$SYNO_USE_TEMP_ADMIN" ]; then
     if ! _exists synouser || ! _exists synogroup || ! _exists synosetkeyvalue; then
-      _err "Missing required tools to creat temp admin user, please set SYNO_USERNAME and SYNO_PASSWORD instead."
+      _err "Missing required tools to create temp admin user, please set SYNO_USERNAME and SYNO_PASSWORD instead."
       _err "Notice: temp admin user authorization method only supports local deployment on DSM."
       return 1
     fi
