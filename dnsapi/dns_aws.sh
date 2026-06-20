@@ -11,7 +11,7 @@ Options:
 # All `_sleep` commands are included to avoid Route53 throttling, see
 # https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html#limits-api-requests
 
-AWS_HOST="route53.amazonaws.com"
+AWS_HOST="${AWS_HOST:-route53.amazonaws.com}"
 AWS_URL="https://$AWS_HOST"
 
 AWS_WIKI="https://github.com/acmesh-official/acme.sh/wiki/How-to-use-Amazon-Route53-API"
@@ -316,7 +316,7 @@ aws_rest() {
   RequestDateOnly="$(echo "$RequestDate" | cut -c 1-8)"
   _debug2 RequestDateOnly "$RequestDateOnly"
 
-  Region="us-east-1"
+  Region="${Region:-us-east-1}"
   Service="route53"
 
   CredentialScope="$RequestDateOnly/$Region/$Service/aws4_request"
