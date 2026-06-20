@@ -234,7 +234,7 @@ synology_dsm_deploy() {
     fi
   fi
 
-  error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -o '[0-9]*')
+  error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -Eo '[0-9]+')
   _debug2 error_code "$error_code"
   # Account has 2FA-OTP enabled, since error 403 reported.
   # https://global.download.synology.com/download/Document/Software/DeveloperGuide/Os/DSM/All/enu/DSM_Login_Web_API_Guide_enu.pdf
