@@ -140,7 +140,15 @@ _nic_get_authtoken() {
 
   res=$(_post "grant_type=password&username=${NIC_Username}&password=${NIC_Password}&scope=%28GET%7CPUT%7CPOST%7CDELETE%29%3A%2Fdns-master%2F.%2B" "$NIC_Api/oauth/token" "" "POST")
   if _contains "$res" "access_token"; then
-    _auth_token=$(printf "%s" "$res" | cut -d , -f2 | tr -d "\"" | sed "s/access_token://")
+  
+    _res_arr=$(printf "%s" "$res" | tr -d "\"{}" | tr "," " ");
+    
+    for r in $_res_arr; do 
+      if [ $(echo "$r" | grep "access_token") ]; then 
+        _auth_token=$(echo "$r" | sed "s/access_token://")
+      fi
+    done
+
     _info "Token received"
     _debug _auth_token "$_auth_token"
     return 0
