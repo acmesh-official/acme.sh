@@ -4895,7 +4895,7 @@ issue() {
     # (Let's Encrypt) may also reject with a malformed error if the prior cert
     # was issued by a different issuer / different CA. Retry without "replaces"
     # whenever the failure mentions ARI or the replaces field.
-    if [ "$_replaces_certID" ] && { _contains "$response" "alreadyReplaced" || _contains "$response" "'replaces'" || _contains "$response" "ARI"; }; then
+    if [ "$_replaces_certID" ] && { _contains "$response" "alreadyReplaced" || _contains "$response" "urn:ietf:params:acme:error:malformed" || _contains "$response" "'replaces'" || _contains "$response" "ARI"; }; then
       _info "ARI 'replaces' rejected by CA, retrying newOrder without 'replaces'."
       if ! _send_signed_request "$ACME_NEW_ORDER" "$_newOrderObj}"; then
         _err "Error creating new order."
@@ -5312,6 +5312,8 @@ $_authorizations_map"
         fi
       fi
     elif [ "$vtype" = "$VTYPE_ALPN" ]; then
+      _ncaddr="$(_getfield "$_local_addr" "$_ncIndex")"
+      _ncIndex="$(_math $_ncIndex + 1)"
       acmevalidationv1="$(printf "%s" "$keyauthorization" | _digest "sha256" "hex")"
       _debug acmevalidationv1 "$acmevalidationv1"
       if ! _starttlsserver "$d" "" "$Le_TLSPort" "$keyauthorization" "$_ncaddr" "$acmevalidationv1"; then
@@ -5542,6 +5544,13 @@ $_authorizations_map"
     return 1
   fi
 
+  if ! _contains "$response" "$BEGIN_CERT"; then
+    response="$(echo "$response" | _dbase64 "multiline" | tr -d '\0' | _normalizeJson)"
+    _err "Signing failed: $(echo "$response" | _egrep_o '"detail":"[^"]*"')"
+    _on_issue_err "$_post_hook"
+    return 1
+  fi
+
   echo "$response" >"$CERT_PATH"
   _split_cert_chain "$CERT_PATH" "$CERT_FULLCHAIN_PATH" "$CA_CERT_PATH"
   if [ -z "$_preferred_chain" ]; then
@@ -5559,6 +5568,11 @@ $_authorizations_map"
         if ! _send_signed_request "$rel"; then
           _err "Signing failed, could not download cert: $rel"
           _err "$response"
+          continue
+        fi
+
+        if ! _contains "$response" "$BEGIN_CERT"; then
+          _debug2 "Skipping alternate cert link due to unexpected response format."
           continue
         fi
         _relcert="$CERT_PATH.alt"
@@ -5785,7 +5799,7 @@ renew() {
   _debug "_renewServer" "$_renewServer"
 
   _initpath "$Le_Domain" "$_isEcc"
-
+  _info "Renew: $Le_Domain"
   _set_level=${NOTIFY_LEVEL:-$NOTIFY_LEVEL_DEFAULT}
   _info "$(__green "Renewing: '$Le_Domain'")"
   if [ ! -f "$DOMAIN_CONF" ]; then
@@ -6865,7 +6879,7 @@ deactivate() {
 #cert
 _getAKI() {
   _cert="$1"
-  ${ACME_OPENSSL_BIN:-openssl} x509 -in "$_cert" -text -noout | grep "X509v3 Authority Key Identifier" -A 1 | _tail_n 1 | tr -d ': ' | sed "s/keyid//"
+  ${ACME_OPENSSL_BIN:-openssl} x509 -in "$_cert" -text -noout | grep -A 1 "X509v3 Authority Key Identifier" | _tail_n 1 | tr -d ': ' | sed "s/keyid//"
 }
 
 #cert
