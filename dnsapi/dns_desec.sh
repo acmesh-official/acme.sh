@@ -49,7 +49,7 @@ dns_desec_add() {
   _desec_rest GET "$REST_API/$_domain/rrsets/$_sub_domain/TXT/"
 
   if [ "$_code" = "200" ]; then
-    oldtxtvalues="$(echo "$response" | _egrep_o "\"records\":\\[\"\\S*\"\\]" | cut -d : -f 2 | tr -d "[]\\\\\"" | sed "s/,/ /g")"
+    oldtxtvalues="$(echo "$response" | _egrep_o "\"records\":\\[\"[^ ]*\"\\]" | cut -d : -f 2 | tr -d "[]\\\\\"" | sed "s/,/ /g")"
     _debug "existing TXT found"
     _debug oldtxtvalues "$oldtxtvalues"
     if [ -n "$oldtxtvalues" ]; then
@@ -111,7 +111,7 @@ dns_desec_rm() {
   _desec_rest GET "$REST_API/$_domain/rrsets/$_sub_domain/TXT/"
 
   if [ "$_code" = "200" ]; then
-    oldtxtvalues="$(echo "$response" | _egrep_o "\"records\":\\[\"\\S*\"\\]" | cut -d : -f 2 | tr -d "[]\\\\\"" | sed "s/,/ /g")"
+    oldtxtvalues="$(echo "$response" | _egrep_o "\"records\":\\[\"[^ ]*\"\\]" | cut -d : -f 2 | tr -d "[]\\\\\"" | sed "s/,/ /g")"
     _debug "existing TXT found"
     _debug oldtxtvalues "$oldtxtvalues"
     if [ -n "$oldtxtvalues" ]; then
