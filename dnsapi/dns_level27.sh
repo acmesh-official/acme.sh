@@ -1,10 +1,10 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
-dns_level27_info='Level27.com
-Site: Level27.eu
+dns_level27_info='Level27
+Site: Level27.be
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_level27
 Options:
- LEVEL27_API_KEY API key. Get one from the Level27 control panel (CP4) or via "lvl token".
+ LEVEL27_API_KEY API key. Get one from the Level27 control panel (https://app.level27.eu/account/profile/security).
 OptionsAlt:
  LEVEL27_API API base URL. Optional. Default "https://api.level27.eu/v1".
 Issues: github.com/acmesh-official/acme.sh/issues
@@ -99,7 +99,7 @@ _level27_init() {
   if [ -z "$LEVEL27_API_KEY" ]; then
     LEVEL27_API_KEY=""
     _err "You must export the variable LEVEL27_API_KEY before using the Level27 DNS API."
-    _err "Get an API key from the Level27 control panel (CP4) or via 'lvl token'."
+    _err "Get an API key from the Level27 control panel (https://app.level27.eu/account/profile/security)."
     return 1
   fi
   LEVEL27_API_KEY="$(echo "$LEVEL27_API_KEY" | tr -d '"')"
