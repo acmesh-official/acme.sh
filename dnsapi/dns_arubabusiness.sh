@@ -36,8 +36,6 @@ dns_arubabusiness_add() {
   _full_domain=$1
   _txt_value=$2
 
-  _ab_authenticate
-
   if ! _ab_authenticate; then
     return 1
   fi
@@ -218,7 +216,7 @@ _ab_dns_record_id() {
   _txt_value=$2
   _dns_details=$3
 
-  _record_name_lowercase=$(printf "%s" "$_record_name" | tr '[:upper:]' '[:lower:]')
+  _record_name_lowercase=$(printf "%s" "$_record_name" | _lower_case)
 
   # _record_contents contains one element less than the other lists
   _record_ids=$(printf "%s" "$_dns_details" | tr ',' '\n' | _egrep_o '"Id": .*' | cut -d : -f 2 | tr -d ' ' | tr '\n' ' ')
@@ -315,17 +313,23 @@ _ab_authenticate() {
 # Try acquiring a temporary access token. The token should have a 24h lifespan
 #
 # Variables
+#   _ab_user_enc
+#   _ab_pass_enc
 #   _ab_authdata
 #   AB_User
 #   AB_Pass
 #   AB_Token
-#   ARUBABUSINESS_API
 #   response
+#   _H2
 #
 _ab_get_token() {
-  _ab_authdata="grant_type=password&username=$AB_User&password=$AB_Pass"
+  _ab_user_enc=$(printf "%s" "$AB_User" | _url_encode)
+  _ab_pass_enc=$(printf "%s" "$AB_Pass" | _url_encode)
+  _ab_authdata="grant_type=password&username=$_ab_user_enc&password=$_ab_pass_enc"
 
-  if ! _ab_rest POST "/auth/token" "$_ab_authdata" || ! _contains "$response" "access_token"; then
+  _H2="Content-Type: application/x-www-form-urlencoded"
+
+  if ! _ab_rest POST "auth/token" "$_ab_authdata" || ! _contains "$response" "access_token"; then
     _err "Authentication failure"
     return 1
   fi
@@ -342,7 +346,7 @@ _ab_get_token() {
 }
 
 #
-# Usage: _ab_rest POST "/example/endpoint" "password=123"
+# Usage: _ab_rest POST "example/endpoint" "password=123"
 #
 # Perform a REST request using the given method, endpoint and data
 #
@@ -369,18 +373,23 @@ _ab_rest() {
   _key_trimmed=$(printf "%s" "$AB_Key" | tr -d '"')
   _token_trimmed=$(printf "%s" "$AB_Token" | tr -d '"')
 
-  export _H1="Accept: application/json"
-  export _H2="Content-Type: application/json"
+  _H1="Accept: application/json"
+
+  if [ -z "$_H2" ]; then
+    # Default to application/json
+    _H2="Content-Type: application/json"
+  fi
 
   if [ "$_key_trimmed" ]; then
-    export _H3="Authorization-Key: $_key_trimmed"
+    _H3="Authorization-Key: $_key_trimmed"
   else
     _err "Missing Api Key"
+    _ab_cleanup_headers
     return 1
   fi
 
   if [ "$_token_trimmed" ]; then
-    export _H4="Authorization: Bearer $_token_trimmed"
+    _H4="Authorization: Bearer $_token_trimmed"
   else
     _debug "No access token set"
   fi
@@ -393,12 +402,29 @@ _ab_rest() {
 
   _ret_code=$?
 
+  _ab_cleanup_headers
+
   if [ "$_ret_code" != "0" ]; then
     _err "Failed to call endpoint: $_endpoint"
     return 1
   fi
 
   return 0
+}
+
+#
+# Usage: _ab_cleanup_headers
+#
+# Unset header variables to avoid interfering with other calls
+#
+# Variables
+#   _H1
+#   _H2
+#   _H3
+#   _H4
+#
+_ab_cleanup_headers() {
+  unset _H1 _H2 _H3 _H4
 }
 
 #
