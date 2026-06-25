@@ -85,12 +85,10 @@ dns_infomaniak_add() {
 
   # API call
   response=$(_post "$data" "${INFOMANIAK_API_URL}/2/zones/${zone}/records")
-  if [ -n "$response" ]; then
-    if [ ! "$(echo "$response" | _contains '"result":"success"')" ]; then
-      _info "Record added"
-      _debug "response: $response"
-      return 0
-    fi
+  if _contains "$response" '"result":"success"'; then
+    _info "Record added"
+    _debug "response: $response"
+    return 0
   fi
   _err "Could not create record."
   _debug "Response: $response"
@@ -169,11 +167,10 @@ dns_infomaniak_rm() {
 
   # API call
   response=$(_post "" "${INFOMANIAK_API_URL}/2/zones/${zone}/records/${record_id}" "" DELETE)
-  if [ -n "$response" ]; then
-    if [ ! "$(echo "$response" | _contains '"result":"success"')" ]; then
-      _info "Record deleted"
-      return 0
-    fi
+  if _contains "$response" '"result":"success"'; then
+    _info "Record deleted"
+    _debug "response: $response"
+    return 0
   fi
   _err "Could not delete record."
   _debug "Response: $response"
