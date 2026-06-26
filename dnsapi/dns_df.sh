@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_df_info='DynDnsFree.de
-Domains: dynup.de
 Site: DynDnsFree.de
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_df
 Options:

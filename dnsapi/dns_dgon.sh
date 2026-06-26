@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_dgon_info='DigitalOcean.com
-Site: DigitalOcean.com/help/api/
+Site: DigitalOcean.com/help/api
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_dgon
 Options:
  DO_API_KEY API Key

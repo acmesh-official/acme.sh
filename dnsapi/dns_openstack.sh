@@ -4,7 +4,7 @@ dns_openstack_info='OpenStack Designate API
  Depends on OpenStackClient and python-desginateclient.
  You will require Keystone V3 credentials loaded into your environment,
  which could be either password or v3 application credential type.
-Site: docs.openstack.org/api-ref/dns/
+Site: docs.openstack.org/api-ref/dns
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_openstack
 Options:
  OS_AUTH_URL Auth URL. E.g. "https://keystone.example.com:5000/"

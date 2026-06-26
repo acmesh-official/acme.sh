@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_ipprojects_info='IP-Projects DNS
-Site: ip-projects.de/
+Site: ip-projects.de
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_ipprojects
 Options:
  IPP_Apikey API Key

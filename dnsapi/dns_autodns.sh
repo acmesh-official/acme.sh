@@ -2,7 +2,7 @@
 # shellcheck disable=SC2034
 dns_autodns_info='InternetX autoDNS
  InternetX autoDNS XML API
-Site: InternetX.com/autodns/
+Site: InternetX.com/autodns
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_autodns
 Options:
  AUTODNS_USER Username

@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_conoha_info='ConoHa.jp
-Domains: ConoHa.io
 Site: ConoHa.jp
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_conoha
 Options:
