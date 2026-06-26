@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_cn_info='Core-Networks.de
-Site: beta.api.Core-Networks.de/doc/
+Site: beta.api.Core-Networks.de/doc
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_cn
 Options:
  CN_User User

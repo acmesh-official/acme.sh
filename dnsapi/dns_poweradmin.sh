@@ -5,7 +5,7 @@
 # Credits to the authors of dnsapi/dns_pdns.sh as this reuses much of that code.
 
 dns_poweradmin_info='Poweradmin API
-Site: https://www.poweradmin.org/
+Site: poweradmin.org
 Docs: https://github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_poweradmin
 Options:
 POWERADMIN_URL API URL (with scheme). E.g. "https://poweradmin.example.com" or "http://192.168.0.10:8080"

@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_euserv_info='EUserv.com
-Domains: EUserv.eu
 Site: EUserv.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_euserv
 Options:

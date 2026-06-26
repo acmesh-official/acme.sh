@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_desec_info='deSEC.io
-Site: desec.readthedocs.io/en/latest/
+Site: desec.readthedocs.io/en/latest
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_desec
 Options:
  DDNSS_Token API Token

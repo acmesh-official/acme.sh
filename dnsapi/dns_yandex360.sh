@@ -2,7 +2,7 @@
 # shellcheck disable=SC2034
 dns_yandex360_info='Yandex 360 for Business DNS API.
  Yandex 360 for Business is a digital environment for effective collaboration.
-Site: https://360.yandex.com/
+Site: 360.yandex.com
 Docs: https://github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_yandex360
 Options:
  YANDEX360_CLIENT_ID OAuth 2.0 ClientID

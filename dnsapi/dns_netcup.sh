@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_netcup_info='netcup.eu
-Domains: netcup.de netcup.net
-Site: netcup.eu/
+Domains: netcup.de
+Site: netcup.eu
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_netcup
 Options:
  NC_Apikey API Key

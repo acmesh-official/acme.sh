@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_lua_info='LuaDNS.com
-Domains: LuaDNS.net
 Site: LuaDNS.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_lua
 Options:

@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_technitium_info='Technitium DNS Server
-Site: Technitium.com/dns/
+Site: Technitium.com/dns
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_technitium
 Options:
  Technitium_Server Server Address

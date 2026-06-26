@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_gname_info='GNAME
-Site: www.gname.com
+Site: gname.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_gname
 Options:
  GNAME_APPID Your APPID
