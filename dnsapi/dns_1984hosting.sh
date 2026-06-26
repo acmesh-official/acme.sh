@@ -10,6 +10,7 @@ Options:
  One984HOSTING_TOTP_Secret Base32 TOTP shared secret. Required only if the account has 2FA enabled. Requires oathtool. Used to mint the OTP code automatically at login so cron renewals keep working.
 Issues: github.com/acmesh-official/acme.sh/issues/2851
 Author: Adrian Fedoreanu
+A
 '
 
 ######## Public functions #####################
