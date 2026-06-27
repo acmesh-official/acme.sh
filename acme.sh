@@ -8056,6 +8056,9 @@ _process() {
     -f | --force)
       FORCE="1"
       ;;
+    --no-sudo-check)
+      NO_SUDO_CHECK="1"
+      ;;
     --treat-skip-as-success | --treatskipassuccess)
       _TREAT_SKIP_AS_SUCCESS="1"
       ;;
@@ -8488,11 +8491,14 @@ _process() {
 
   if [ "${_CMD}" != "install" ]; then
     if [ "$__INTERACTIVE" ] && ! _checkSudo; then
-      if [ -z "$FORCE" ]; then
+      if [ -z "$FORCE" ] && [ -z "$NO_SUDO_CHECK" ]; then
         #Use "echo" here, instead of _info. it's too early
         echo "It seems that you are using sudo, please read this page first:"
         echo "$_SUDO_WIKI"
         return 1
+      fi
+      if ! [ -z "$NO_SUDO_CHECK" ]; then
+        echo "Running as $(whoami)"
       fi
     fi
     __initHome
