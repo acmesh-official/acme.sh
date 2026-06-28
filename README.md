@@ -615,6 +615,8 @@ This project exists thanks to all the people who contribute.
 
 <a href="https://github.com/acmesh-official/acme.sh/graphs/contributors"><img src="https://opencollective.com/acmesh/contributors.svg?width=890&button=false" /></a>
 
+If you want to become a contributor make sure to read [CONTRIBUTING.md](./CONTRIBUTING.md).
+
 ### 💰 Financial Contributors
 
 Become a financial contributor and help us sustain our community. [[Contribute](https://opencollective.com/acmesh/contribute)]
