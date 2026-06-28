@@ -152,7 +152,7 @@ _desec_rest() {
     _secure_debug2 data "$data"
     response="$(_post "$data" "$ep" "" "$m")"
     _info "Sleeping 1s to respect deSEC write rate limit"
-    sleep 1
+    _sleep 1
   else
     response="$(_get "$ep")"
   fi
