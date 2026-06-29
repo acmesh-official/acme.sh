@@ -55,7 +55,6 @@ dns_hostup_add() {
 
   record_name_fqdn="$(_hostup_fqdn "$fulldomain")"
   if _hostup_find_record "$HOSTUP_ZONE_ID" "$record_name_fqdn" "$hostup_add_txtvalue"; then
-    _hostup_save_record_id "$HOSTUP_ZONE_ID" "$fulldomain" "$hostup_add_txtvalue" "$HOSTUP_RECORD_ID"
     _info "TXT record already exists for $fulldomain"
     return 0
   fi
@@ -64,15 +63,6 @@ dns_hostup_add() {
 
   if ! _hostup_rest "POST" "/dns-zones/$HOSTUP_ZONE_ID/records" "$request_body"; then
     return 1
-  fi
-
-  record_id="$(_hostup_extract_record_id "$_hostup_response")"
-  if [ -z "$record_id" ] && _hostup_find_record "$HOSTUP_ZONE_ID" "$record_name_fqdn" "$hostup_add_txtvalue"; then
-    record_id="$HOSTUP_RECORD_ID"
-  fi
-  if [ -n "$record_id" ]; then
-    _hostup_save_record_id "$HOSTUP_ZONE_ID" "$fulldomain" "$hostup_add_txtvalue" "$record_id"
-    _debug "hostup_saved_record_id" "$record_id"
   fi
 
   _info "Added TXT record for $fulldomain"
@@ -98,11 +88,6 @@ dns_hostup_rm() {
 
   record_name_fqdn="$(_hostup_fqdn "$fulldomain")"
   record_value="$txtvalue"
-
-  record_id_cached="$(_hostup_get_saved_record_id "$HOSTUP_ZONE_ID" "$fulldomain" "$record_value")"
-  if [ -n "$record_id_cached" ]; then
-    _debug "hostup_record_id_cached" "$record_id_cached"
-  fi
 
   if ! _hostup_find_record "$HOSTUP_ZONE_ID" "$record_name_fqdn" "$record_value"; then
     _info "TXT record not found for $record_name_fqdn. Skipping removal."
@@ -497,23 +482,6 @@ _hostup_record_key() {
   printf "%s_%s" "$safe_zone" "$safe_domain"
 }
 
-_hostup_save_record_id() {
-  zone_id="$1"
-  domain="$2"
-  txtvalue="$3"
-  record_id="$4"
-  key="$(_hostup_record_key "$zone_id" "$domain" "$txtvalue")"
-  _saveaccountconf_mutable "HOSTUP_RECORD_$key" "$record_id"
-}
-
-_hostup_get_saved_record_id() {
-  zone_id="$1"
-  domain="$2"
-  txtvalue="$3"
-  key="$(_hostup_record_key "$zone_id" "$domain" "$txtvalue")"
-  _readaccountconf_mutable "HOSTUP_RECORD_$key"
-}
-
 _hostup_clear_record_id() {
   zone_id="$1"
   domain="$2"
@@ -524,16 +492,6 @@ _hostup_clear_record_id() {
   if [ "$legacy_key" != "$key" ]; then
     _clearaccountconf_mutable "HOSTUP_RECORD_$legacy_key"
   fi
-}
-
-_hostup_extract_record_id() {
-  record_id="$(_hostup_json_extract "id" "$1")"
-  if [ -n "$record_id" ]; then
-    printf "%s" "$record_id"
-    return 0
-  fi
-
-  printf "%s" "$1" | _egrep_o '"id":[0-9]+' | _head_n 1 | cut -d: -f2
 }
 
 _hostup_delete_record_by_id() {
@@ -571,8 +529,7 @@ _hostup_rest() {
   _hostup_response=""
 
   export _H1="Authorization: Bearer $HOSTUP_API_KEY"
-  export _H2="Content-Type: application/json"
-  export _H3="Accept: application/json"
+  export _H2="Accept: application/json"
 
   if [ "$method" = "GET" ]; then
     _hostup_response="$(_get "$HOSTUP_API_BASE$route")"
@@ -584,7 +541,6 @@ _hostup_rest() {
 
   unset _H1
   unset _H2
-  unset _H3
 
   if [ "$ret" != "0" ]; then
     _err "HTTP request failed for $route"
