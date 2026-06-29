@@ -16,7 +16,7 @@ IONOS_TXT_TTL=60 # minimum accepted by API
 IONOS_TXT_PRIO=10
 
 dns_ionos_add() {
-  fulldomain=$1
+  fulldomain="$(echo "$1" | _lower_case)"
   txtvalue=$2
 
   if ! _ionos_init; then
@@ -34,7 +34,7 @@ dns_ionos_add() {
 }
 
 dns_ionos_rm() {
-  fulldomain=$1
+  fulldomain="$(echo "$1" | _lower_case)"
   txtvalue=$2
 
   if ! _ionos_init; then
