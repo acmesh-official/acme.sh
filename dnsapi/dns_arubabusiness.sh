@@ -16,8 +16,6 @@ Options:
 #
 
 ARUBABUSINESS_API='https://api.arubabusiness.it'
-ARUBA_TXT_TYPE="5"
-ARUBA_SUCCESS_HTTP_CODES="200 201 202 204"
 
 ######## Public functions ########
 
@@ -208,7 +206,6 @@ _ab_domain_id() {
 #   _record_contents_count
 #   _i
 #   dns_record_id
-#   ARUBA_TXT_TYPE
 #
 # Notes
 #   TXT correspond to record type 5
@@ -225,26 +222,32 @@ _ab_dns_record_id() {
 
   # Extract the record ids, which are integers and contain no commas, colons or spaces
   # The first id is skipped because it refers to the domain id
-  _record_ids=$(printf "%s" "$_dns_details" | _egrep_o '"Id":[^,]*' | _tail_n +2 | cut -d : -f 2 | tr -d ' ')
+  _record_ids=$(printf "%s" "$_dns_details" | sed 's/"Id":/\n"Id":/g' | _egrep_o '"Id":[^,]*' | _tail_n +2 | cut -d : -f 2 | tr -d ' ' | tr '\n' ' ')
 
   # Extract the record names, which are strings but cannot contain commas, colons, spaces and quotes
   # The first name is skipped because it refers to the domain name
-  _record_names=$(printf "%s" "$_dns_details" | _egrep_o '"Name":[^,]*' | _tail_n +2 | cut -d : -f 2 | tr -d ' "')
+  _record_names=$(printf "%s" "$_dns_details" | sed 's/"Name":/\n"Name":/g' | _egrep_o '"Name":[^,]*' | _tail_n +2 | cut -d : -f 2 | tr -d ' "' | tr '\n' ' ')
 
   # Extract the record types, which  are integers (except for the first one) and contain no commas, colons or spaces
   # The first type is skipped because it refers to the domain type
-  _record_types=$(printf "%s" "$_dns_details" | _egrep_o '"Type":[^,]*' | _tail_n +2 | cut -d : -f 2 | tr -d ' ')
+  _record_types=$(printf "%s" "$_dns_details" | sed 's/"Type":/\n"Type":/g' | _egrep_o '"Type":[^,]*' | _tail_n +2 | cut -d : -f 2 | tr -d ' ' | tr '\n' ' ')
 
   # Extract the record contents, which are strings and may contain no quotes except for TXT records, which must be delimited by two \" literals
   # Note: There is no domain related entry here
   # Note: A " character is appended at the end of each content to make it easier to process the list later
-  _record_contents=$(printf "%s" "$_dns_details" | _egrep_o '"Content": *"(\\")?[^"]*(\\")?"' | cut -d : -f 2- | sed -n 's/"\(.*\)"/\1/p' | sed 's/\\"//g' | sed  's/\(.*\)/\1"/')
+  _record_contents=$(printf "%s" "$_dns_details" | sed 's/"Content":/\n"Content":/g' | sed 's/\\"//g' | _egrep_o '"Content": *"[^"]*"' | cut -d : -f 2- | sed -n 's/"\(.*\)"/\1/p' | tr '\n' '#')
 
+  _info "IDS: $_record_ids"
+  _info "NAMES: $_record_names"
+  _info "TYPEs: $_record_types"
+  _info "CONTENTS: $_record_contents"
 
-  _record_ids_count=$(echo "$_record_ids" | wc -l)
-  _record_names_count=$(echo "$_record_names" | wc -l)
-  _record_types_count=$(echo "$_record_types" | wc -l)
-  _record_contents_count=$(echo "$_record_contents" | wc -l)
+  _record_ids_count=$(printf "%s" "$_record_ids" | tr ' ' '\n' | wc -l)
+  _record_names_count=$(printf "%s" "$_record_names" | tr ' ' '\n' | wc -l)
+  _record_types_count=$(printf "%s" "$_record_types" | tr ' ' '\n' | wc -l)
+  _record_contents_count=$(printf "%s" "$_record_contents" | tr '#' '\n' | wc -l)
+
+  _info "Ids: $_record_ids_count, names: $_record_names_count, types: $_record_types_count, contents: $_record_contents_count"
 
   if [ "$_record_ids_count" != "$_record_names_count" ] || [ "$_record_ids_count" != "$_record_types_count" ] || [ "$_record_ids_count" != "$_record_contents_count" ]; then
     _err "Failed to parse record elements. Ids: $_record_ids_count, names: $_record_names_count, types: $_record_types_count, contents: $_record_contents_count"
@@ -257,14 +260,14 @@ _ab_dns_record_id() {
   while [ "$_i" -le "$_record_ids_count" ]; do
     _current_name=$(printf "%s" "$_record_names" | cut -d " " -f "$_i")
     _current_type=$(printf "%s" "$_record_types" | cut -d " " -f "$_i")
-    _current_content=$(printf "%s" "$_record_contents" | cut -d "\"" -f "$_i")
+    _current_content=$(printf "%s" "$_record_contents" | cut -d "#" -f "$_i")
 
-    if [ "$_record_name_lowercase." = "$_current_name" ] && [ "$ARUBA_TXT_TYPE" = "$_current_type" ] && [ "$_txt_value" = "$_current_content" ]; then
+    if [ "$_record_name_lowercase." = "$_current_name" ] && [ "5" = "$_current_type" ] && [ "$_txt_value" = "$_current_content" ]; then
       dns_record_id=$(printf "%s" "$_record_ids" | cut -d " " -f "$_i")
       _info "Found matching record with id: $dns_record_id"
       return 0
     else
-      _debug2 "Record does not match - type: $_current_type name: $_current_name value: $_current_content"
+      _debug2 "Record does not match - type: '$_current_type' name: '$_current_name' value: '$_current_content'; Expected '$_record_name_lowercase.' '5' '$_txt_value'"
     fi
     _i=$(_math "$_i" + 1)
   done
@@ -353,7 +356,7 @@ _ab_get_token() {
 
   _H2="Content-Type: application/x-www-form-urlencoded"
 
-  if ! _ab_rest POST "auth/token" "$_ab_authdata" || ! _contains "$response" "access_token"; then
+  if ! _ab_rest POST "auth/token" "$_ab_authdata" ||  ! _contains "$response" "access_token"; then
     _err "Authentication failure"
     return 1
   fi
@@ -469,13 +472,14 @@ _ab_cleanup_headers() {
 # Variables
 #   _status
 #   _http_status
+#   _success_http_codes
 #   HTTP_HEADER
-#   ARUBA_SUCCESS_HTTP_CODES
 #
 _ab_call_is_success() {
+  _success_http_codes="200 201 202 204"
   if [ -f "$HTTP_HEADER" ]; then
-    _http_status=$(_egrep_o "^HTTP[\/0-9. ]*" < "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2)
-    for _status in $ARUBA_SUCCESS_HTTP_CODES; do
+    _http_status=$(_egrep_o "^HTTP[\/0-9. ]*" <"$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2)
+    for _status in $_success_http_codes; do
       if [ "$_status" = "$_http_status" ]; then
         return 0
       fi
