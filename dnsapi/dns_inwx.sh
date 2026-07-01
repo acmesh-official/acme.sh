@@ -315,7 +315,7 @@ _get_root() {
     # IDN fallback: INWX returns Unicode zone names; when $h is ACE/punycode,
     # encode each zone name via _idn() and compare — no python dependency.
     if _contains "$h" "xn--"; then
-      _zone_unicode=$(printf "%s" "$response" | _egrep_o '<string>[^<]*</string>' |
+      _zone_unicode=$(printf "%s" "$response" | _egrep_o '<string>[^<]*' |
         sed 's/<[^>]*>//g' | while IFS= read -r _z; do
         if [ "$(_idn "$_z")" = "$h" ]; then
           printf "%s" "$_z"
