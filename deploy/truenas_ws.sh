@@ -202,22 +202,20 @@ truenas_ws_deploy() {
     DEPLOY_TRUENAS_PROTOCOL="ws"
   fi
 
-  
-# Check port, optional
-if [ -n "$DEPLOY_TRUENAS_PORT" ]; then
-  case "$DEPLOY_TRUENAS_PORT" in
-    ''|*[!0-9]*)
+  # Check port, optional
+  if [ -n "$DEPLOY_TRUENAS_PORT" ]; then
+    case "$DEPLOY_TRUENAS_PORT" in
+    '' | *[!0-9]*)
       _err "Invalid TrueNAS port '$DEPLOY_TRUENAS_PORT'. DEPLOY_TRUENAS_PORT must be numeric."
       return 8
       ;;
-  esac
+    esac
 
-  _ws_uri="$DEPLOY_TRUENAS_PROTOCOL://$DEPLOY_TRUENAS_HOSTNAME:$DEPLOY_TRUENAS_PORT/websocket"
-else
-  _ws_uri="$DEPLOY_TRUENAS_PROTOCOL://$DEPLOY_TRUENAS_HOSTNAME/websocket"
-fi
+    _ws_uri="$DEPLOY_TRUENAS_PROTOCOL://$DEPLOY_TRUENAS_HOSTNAME:$DEPLOY_TRUENAS_PORT/websocket"
+  else
+    _ws_uri="$DEPLOY_TRUENAS_PROTOCOL://$DEPLOY_TRUENAS_HOSTNAME/websocket"
+  fi
 
-  _ws_uri="$DEPLOY_TRUENAS_PROTOCOL://$DEPLOY_TRUENAS_HOSTNAME/websocket"
   _debug2 DEPLOY_TRUENAS_HOSTNAME "$DEPLOY_TRUENAS_HOSTNAME"
   _debug2 DEPLOY_TRUENAS_PROTOCOL "$DEPLOY_TRUENAS_PROTOCOL"
   _debug _ws_uri "$_ws_uri"
