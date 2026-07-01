@@ -7512,8 +7512,8 @@ Parameters:
 
   --dnssleep <seconds>              The time in seconds to wait for all the txt records to propagate in dns api mode.
                                       It's not necessary to use this by default, $PROJECT_NAME polls dns status by DOH automatically.
-  -k, --keylength <bits>            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521.
-  -ak, --accountkeylength <bits>    Specifies the account key length: 2048, 3072, 4096
+  -k, --keylength <bits>            Specifies the domain key length: 2048, 3072, 4096, 8192 or ec-256 (default), ec-384, ec-521.
+  -ak, --accountkeylength <bits>    Specifies the account key length: 2048, 3072, 4096, 8192 or ec-256 (default), ec-384, ec-521.
   --log [file]                      Specifies the log file. Defaults to \"$DEFAULT_LOG_FILE\" if argument is omitted.
   --log-level <1|2>                 Specifies the log level, default is $DEFAULT_LOG_LEVEL.
   --syslog <0|3|6|7>                Syslog level, 0: disable syslog, 3: error, 6: info, 7: debug.
