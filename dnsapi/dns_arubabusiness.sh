@@ -14,7 +14,10 @@ Options:
 # A word of warning: as of this writing, api.arubabusiness.it only supports oauth authentication using the "password" grant type.
 # If you are REALLY sure you want to use it, it would be wise set up a dedicated technical user without administrative privileges
 #
+
 ARUBABUSINESS_API='https://api.arubabusiness.it'
+ARUBA_TXT_TYPE="5"
+ARUBA_SUCCESS_HTTP_CODES="200 201 202 204"
 
 ######## Public functions ########
 
@@ -45,18 +48,16 @@ dns_arubabusiness_add() {
   fi
 
   if _ab_dns_record_id "$_full_domain" "$_txt_value" "$dns_details"; then
-    # Multiple identical records are allowed to coexist.
-    # This is very unlikely, but, in order to avoid interferences between jobs, this process is killed
-    _err "A TXT record with name: $_full_domain and value: $_txt_value already exists"
-    _err "Please make sure that there are no other concurrent jobs running and that the dns records are clean"
-    return 1
+    # This is very unlikely, but allow the process to use the existing record
+    _info "A TXT record with name: $_full_domain and value: $_txt_value already exists (id: $dns_record_id)"
+    return 0
   fi
 
   _body="{ \"IdDomain\": $domain_id, \"Type\": \"TXT\", \"Name\": \"$_full_domain\", \"Content\": \"\\\"$_txt_value\\\"\" }"
 
   _debug "Adding TXT record with name: $_full_domain and value: $_txt_value"
 
-  if ! _ab_rest POST "api/domains/dns/record" "$_body" || _ab_is_failure_message "$response" || ! _contains "$response" "DomainId"; then
+  if ! _ab_rest POST "api/domains/dns/record" "$_body" || ! _contains "$response" "DomainId"; then
     _err "Failed to add TXT record with name: $_full_domain"
     return 1
   fi
@@ -109,7 +110,7 @@ dns_arubabusiness_rm() {
   fi
 
   _debug "Deleting TXT record: $dns_record_id"
-  if ! _ab_rest DELETE "api/domains/dns/record/$dns_record_id" || _ab_is_failure_message "$response" || ! _contains "$response" "DomainId"; then
+  if ! _ab_rest DELETE "api/domains/dns/record/$dns_record_id" || ! _contains "$response" "DomainId"; then
     _err "Failed to delete TXT record: $dns_record_id"
     return 1
   fi
@@ -174,7 +175,8 @@ _ab_domain_id() {
     else
       sub_domain="$_candidate_subdomain"
       root_domain="$_candidate_domain"
-      domain_id="$(printf "%s" "$dns_details" | tr ',' '\n' | _egrep_o '"Id": .*' | _head_n 1 | cut -d : -f 2 | tr -d ' "')"
+      # Extract the domain id, which is an integer and contains no commas
+      domain_id="$(printf "%s" "$dns_details" | _egrep_o '"Id":[^,]*' | _head_n 1 | cut -d : -f 2 | tr -d ' "')"
 
       if [ -z "$domain_id" ]; then
         _err "Could not determine the domain id for: $root_domain"
@@ -201,9 +203,12 @@ _ab_domain_id() {
 #   _record_types
 #   _record_contents
 #   _record_ids_count
+#   _record_names_count
+#   _record_types_count
+#   _record_contents_count
 #   _i
-#   _j
 #   dns_record_id
+#   ARUBA_TXT_TYPE
 #
 # Notes
 #   TXT correspond to record type 5
@@ -218,24 +223,43 @@ _ab_dns_record_id() {
 
   _record_name_lowercase=$(printf "%s" "$_record_name" | _lower_case)
 
-  # _record_contents contains one element less than the other lists
-  _record_ids=$(printf "%s" "$_dns_details" | tr ',' '\n' | _egrep_o '"Id": .*' | cut -d : -f 2 | tr -d ' ' | tr '\n' ' ')
-  _record_names=$(printf "%s" "$_dns_details" | tr ',' '\n' | _egrep_o '"Name": .*' | cut -d : -f 2 | tr -d ' "' | tr '\n' ' ')
-  _record_types=$(printf "%s" "$_dns_details" | tr ',' '\n' | _egrep_o '"Type": .*' | cut -d : -f 2 | tr -d ' "' | tr '\n' ' ')
-  _record_contents=$(printf "%s" "$_dns_details" | tr ',' '\n' | _egrep_o '"Content": .*' | cut -d : -f 2 | tr -d '\\ "' | tr '\n' ' ')
+  # Extract the record ids, which are integers and contain no commas, colons or spaces
+  # The first id is skipped because it refers to the domain id
+  _record_ids=$(printf "%s" "$_dns_details" | _egrep_o '"Id":[^,]*' | _tail_n +2 | cut -d : -f 2 | tr -d ' ')
+
+  # Extract the record names, which are strings but cannot contain commas, colons, spaces and quotes
+  # The first name is skipped because it refers to the domain name
+  _record_names=$(printf "%s" "$_dns_details" | _egrep_o '"Name":[^,]*' | _tail_n +2 | cut -d : -f 2 | tr -d ' "')
+
+  # Extract the record types, which  are integers (except for the first one) and contain no commas, colons or spaces
+  # The first type is skipped because it refers to the domain type
+  _record_types=$(printf "%s" "$_dns_details" | _egrep_o '"Type":[^,]*' | _tail_n +2 | cut -d : -f 2 | tr -d ' ')
+
+  # Extract the record contents, which are strings and may contain no quotes except for TXT records, which must be delimited by two \" literals
+  # Note: There is no domain related entry here
+  # Note: A " character is appended at the end of each content to make it easier to process the list later
+  _record_contents=$(printf "%s" "$_dns_details" | _egrep_o '"Content": *"(\\")?[^"]*(\\")?"' | cut -d : -f 2- | sed -n 's/"\(.*\)"/\1/p' | sed 's/\\"//g' | sed  's/\(.*\)/\1"/')
+
+
+  _record_ids_count=$(echo "$_record_ids" | wc -l)
+  _record_names_count=$(echo "$_record_names" | wc -l)
+  _record_types_count=$(echo "$_record_types" | wc -l)
+  _record_contents_count=$(echo "$_record_contents" | wc -l)
+
+  if [ "$_record_ids_count" != "$_record_names_count" ] || [ "$_record_ids_count" != "$_record_types_count" ] || [ "$_record_ids_count" != "$_record_contents_count" ]; then
+    _err "Failed to parse record elements. Ids: $_record_ids_count, names: $_record_names_count, types: $_record_types_count, contents: $_record_contents_count"
+    return 1
+  fi
 
   _info "Looking for a TXT record matching inputs - name: $_record_name_lowercase value: $_txt_value"
 
-  _i=2
-  _record_ids_count=$(printf "%s" "$_record_ids" | tr ' ' '\n' | wc -l)
+  _i=1
   while [ "$_i" -le "$_record_ids_count" ]; do
-    _j=$(_math "$_i" - 1)
-
     _current_name=$(printf "%s" "$_record_names" | cut -d " " -f "$_i")
     _current_type=$(printf "%s" "$_record_types" | cut -d " " -f "$_i")
-    _current_content=$(printf "%s" "$_record_contents" | cut -d " " -f "$_j")
+    _current_content=$(printf "%s" "$_record_contents" | cut -d "\"" -f "$_i")
 
-    if [ "$_record_name_lowercase." = "$_current_name" ] && [ "5" = "$_current_type" ] && [ "$_txt_value" = "$_current_content" ]; then
+    if [ "$_record_name_lowercase." = "$_current_name" ] && [ "$ARUBA_TXT_TYPE" = "$_current_type" ] && [ "$_txt_value" = "$_current_content" ]; then
       dns_record_id=$(printf "%s" "$_record_ids" | cut -d " " -f "$_i")
       _info "Found matching record with id: $dns_record_id"
       return 0
@@ -262,11 +286,11 @@ _ab_dns_record_id() {
 _ab_dns_details() {
   _domain=$1
 
-  if ! _ab_rest GET "api/domains/dns/$_domain/details" || _ab_is_failure_message "$response" || ! _contains "$response" "DomainId"; then
+  if ! _ab_rest GET "api/domains/dns/$_domain/details" || ! _contains "$response" "DomainId"; then
     return 1
   fi
 
-  dns_details="$(printf "%s" "$response" | tr -d '\r\n')"
+  dns_details="$response"
   return 0
 }
 
@@ -402,14 +426,18 @@ _ab_rest() {
 
   _ret_code=$?
 
-  _ab_cleanup_headers
-
-  if [ "$_ret_code" != "0" ]; then
+  if [ "$_ret_code" = "0" ] && _ab_call_is_success; then
+    # Normalize the json response
+    response="$(printf "%s" "$response" | _normalizeJson)"
+    _ret_code=0
+  else
     _err "Failed to call endpoint: $_endpoint"
-    return 1
+    _ret_code=1
   fi
 
-  return 0
+  _ab_cleanup_headers
+
+  return $_ret_code
 }
 
 #
@@ -424,22 +452,35 @@ _ab_rest() {
 #   _H4
 #
 _ab_cleanup_headers() {
-  unset _H1 _H2 _H3 _H4
+  # Cleanup request headers
+  unset _H1 _H2 _H3 _H4 _H5
+
+  # Cleanup response headers
+  if [ -f "$HTTP_HEADER" ]; then
+    : >"$HTTP_HEADER"
+  fi
 }
 
 #
-# Usage: _ab_is_failure_message "message"
+# Usage: _ab_call_is_success
 #
-# Check whether the input contains substrings that indicate a failure
+# Check whether a call's response http status is one of 200, 201, 202 or 204 (other 2xx are not handled)
 #
 # Variables
-#   _message: $1
+#   _status
+#   _http_status
+#   HTTP_HEADER
+#   ARUBA_SUCCESS_HTTP_CODES
 #
-_ab_is_failure_message() {
-  _message=$1
-  if _contains "$_message" "denied" || _contains "$_message" "does not belong" || _contains "$_message" "can be performed only by the domain owner" || _contains "$_message" "error" || _contains "$_message" "reference not set to an instance of an object" || _startswith "$_message" "4-[0-9]*:"; then
-    return 0
-  else
-    return 1
+_ab_call_is_success() {
+  if [ -f "$HTTP_HEADER" ]; then
+    _http_status=$(_egrep_o "^HTTP[\/0-9. ]*" < "$HTTP_HEADER" | _head_n 1 | cut -d " " -f 2)
+    for _status in $ARUBA_SUCCESS_HTTP_CODES; do
+      if [ "$_status" = "$_http_status" ]; then
+        return 0
+      fi
+    done
   fi
+
+  return 1
 }
