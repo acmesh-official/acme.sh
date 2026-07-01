@@ -63,19 +63,6 @@ dns_glesys_add() {
     return 1
   fi
 
-  record_id="$(
-    printf "%s" "$response" |
-      tr -d '\r\n\t ' |
-      _egrep_o '"recordid":"?[0-9]+' |
-      _egrep_o '[0-9]+$'
-  )"
-
-  if [ -z "$record_id" ]; then
-    _err "Failed to extract TXT record id from API response"
-    _debug2 "API response" "$response"
-    return 1
-  fi
-
   _info "TXT record added"
 
   return 0
