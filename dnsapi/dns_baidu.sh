@@ -481,6 +481,11 @@ _baidu_bcd_post() {
   _baidu_info "signedHeaders: $_signed_headers_dbg"
   _baidu_info "payload_sha256: $_payload_hash"
   _baidu_debug "baidu_bcd.http.payload" "$(_baidu_dbg_trim "$(_baidu_redact_txt "$_payload")")"
+  _H1="Authorization: $_auth"
+  _H2="x-bce-date: $_ts"
+  _H3="x-bce-content-sha256: $_payload_hash"
+  _H4="Host: $BAIDU_BCD_HOST"
+  _H5=""
   response="$(_post "$_payload" "$_url" "" "POST" "$_content_type")"
   _ret="$?"
   _baidu_info "ret: $_ret"
@@ -500,9 +505,9 @@ _baidu_dns_call() {
   _method="$1"
   _uri="$2"
   _payload="$3"
+  _content_type="application/json"
   _attempt=1
   _max_attempts=3
-  _content_type="application/json"
 
   while [ "$_attempt" -le "$_max_attempts" ]; do
     _ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
@@ -515,27 +520,25 @@ _baidu_dns_call() {
     _auth="$_BAIDU_BCE_AUTH_RESULT"
     _url="https://${BAIDU_DNS_HOST}${_uri}"
 
+    # Route through acme.sh's _get/_post (they honor _H1.._H5); no raw curl.
+    _H1="Authorization: $_auth"
+    _H2="x-bce-date: $_ts"
+    _H3="x-bce-content-sha256: $_payload_hash"
+    _H4="Host: $BAIDU_DNS_HOST"
+    _H5="Content-Type: $_content_type"
+
     if [ "$_method" = "GET" ]; then
-      _raw="$(curl -sS -X GET "$_url" -H "Authorization: $_auth" -H "x-bce-date: $_ts" -H "x-bce-content-sha256: $_payload_hash" -H "Host: $BAIDU_DNS_HOST" -H "Content-Type: $_content_type" -w '\n__HTTP_STATUS__:%{http_code}')"
+      response="$(_get "$_url")"
     elif [ "$_method" = "DELETE" ]; then
-      _raw="$(curl -sS -X DELETE "$_url" -H "Authorization: $_auth" -H "x-bce-date: $_ts" -H "x-bce-content-sha256: $_payload_hash" -H "Host: $BAIDU_DNS_HOST" -H "Content-Type: $_content_type" -w '\n__HTTP_STATUS__:%{http_code}')"
+      response="$(_post "" "$_url" "" "DELETE")"
     else
-      _raw="$(curl -sS -X POST "$_url" -H "Authorization: $_auth" -H "x-bce-date: $_ts" -H "x-bce-content-sha256: $_payload_hash" -H "Host: $BAIDU_DNS_HOST" -H "Content-Type: $_content_type" --data "$_payload" -w '\n__HTTP_STATUS__:%{http_code}')"
+      response="$(_post "$_payload" "$_url")"
     fi
     _ret="$?"
+    _baidu_info "${_method} ${_uri} ret=${_ret}"
 
-    _http="$(printf "%s" "$_raw" | tail -n 1 | cut -d : -f 2)"
-    response="$(printf "%s" "$_raw" | sed '$d')"
-    _baidu_info "${_method} ${_uri} ret=${_ret} http=${_http:-0}"
-
-    if [ "$_ret" = "0" ] && [ -n "$_http" ] && [ "$_http" -lt 400 ]; then
-      if _contains "$response" "\"code\":\"Exception\"" || _contains "$response" "平台服务繁忙"; then
-        if [ "$_attempt" -lt "$_max_attempts" ]; then
-          sleep 2
-          _attempt=$(_math "$_attempt" + 1)
-          continue
-        fi
-      fi
+    # Baidu may return a business error (Exception / 平台服务繁忙) inside HTTP 200.
+    if [ "$_ret" = "0" ] && ! _contains "$response" "\"code\":\"Exception\"" && ! _contains "$response" "平台服务繁忙"; then
       return 0
     fi
 
