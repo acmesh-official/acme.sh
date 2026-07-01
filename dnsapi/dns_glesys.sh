@@ -58,7 +58,7 @@ dns_glesys_add() {
   _debug response_code "$response_code"
 
   if [ "$response_code" != "200" ]; then
-    _err "GleSYS API responded with an unexpected status when attempting to remove TXT record"
+    _err "GleSYS API responded with an unexpected status when attempting to add TXT record"
     _debug2 "API response" "$response"
     return 1
   fi
