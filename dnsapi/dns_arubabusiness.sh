@@ -356,7 +356,7 @@ _ab_get_token() {
 
   _H2="Content-Type: application/x-www-form-urlencoded"
 
-  if ! _ab_rest POST "auth/token" "$_ab_authdata" ||  ! _contains "$response" "access_token"; then
+  if ! _ab_rest POST "auth/token" "$_ab_authdata" || ! _contains "$response" "access_token"; then
     _err "Authentication failure"
     return 1
   fi
