@@ -197,7 +197,7 @@ _glesys_get_root() {
       return 1
     fi
 
-    if _glesys_rest GET "/details?domainname=$h"; then
+    if _glesys_rest GET "/listrecords?domainname=$h"; then
       response_code=$(
         printf "%s" "$response" |
           tr -d '\r\n\t ' |
