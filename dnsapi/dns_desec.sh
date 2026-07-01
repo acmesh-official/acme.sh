@@ -39,6 +39,7 @@ dns_desec_add() {
     _err "invalid domain"
     return 1
   fi
+  _sub_domain=$(echo "$_sub_domain" | _lower_case)
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
@@ -48,7 +49,7 @@ dns_desec_add() {
   _desec_rest GET "$REST_API/$_domain/rrsets/$_sub_domain/TXT/"
 
   if [ "$_code" = "200" ]; then
-    oldtxtvalues="$(echo "$response" | _egrep_o "\"records\":\\[\"\\S*\"\\]" | cut -d : -f 2 | tr -d "[]\\\\\"" | sed "s/,/ /g")"
+    oldtxtvalues="$(echo "$response" | _egrep_o "\"records\":\\[\"[^ ]*\"\\]" | cut -d : -f 2 | tr -d "[]\\\\\"" | sed "s/,/ /g")"
     _debug "existing TXT found"
     _debug oldtxtvalues "$oldtxtvalues"
     if [ -n "$oldtxtvalues" ]; then
@@ -100,7 +101,7 @@ dns_desec_rm() {
     _err "invalid domain"
     return 1
   fi
-
+  _sub_domain=$(echo "$_sub_domain" | _lower_case)
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
@@ -110,7 +111,7 @@ dns_desec_rm() {
   _desec_rest GET "$REST_API/$_domain/rrsets/$_sub_domain/TXT/"
 
   if [ "$_code" = "200" ]; then
-    oldtxtvalues="$(echo "$response" | _egrep_o "\"records\":\\[\"\\S*\"\\]" | cut -d : -f 2 | tr -d "[]\\\\\"" | sed "s/,/ /g")"
+    oldtxtvalues="$(echo "$response" | _egrep_o "\"records\":\\[\"[^ ]*\"\\]" | cut -d : -f 2 | tr -d "[]\\\\\"" | sed "s/,/ /g")"
     _debug "existing TXT found"
     _debug oldtxtvalues "$oldtxtvalues"
     if [ -n "$oldtxtvalues" ]; then
@@ -150,6 +151,8 @@ _desec_rest() {
   if [ "$m" != "GET" ]; then
     _secure_debug2 data "$data"
     response="$(_post "$data" "$ep" "" "$m")"
+    _info "Sleeping 1s to respect deSEC write rate limit"
+    _sleep 1
   else
     response="$(_get "$ep")"
   fi
