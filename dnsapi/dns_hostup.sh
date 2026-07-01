@@ -6,13 +6,13 @@ Site: hostup.se
 Docs: https://developer.hostup.se/
 Options:
  HOSTUP_API_KEY     Required. HostUp API key with read:dns + write:dns + read:domains scopes.
- HOSTUP_API_BASE    Optional. Override API base URL (default: https://cloud.hostup.se/api).
+ HOSTUP_API_BASE    Optional. Override API base URL (default: https://cloud.hostup.se/api/v2).
  HOSTUP_TTL         Optional. TTL for TXT records (default: 60 seconds).
- HOSTUP_ZONE_ID     Optional. Force a specific zone ID (skip auto-detection).
+ HOSTUP_ZONE_ID     Optional. Force a specific v2 zone ID (zone_...) and skip auto-detection.
 Author: HostUp (https://cloud.hostup.se/contact/en)
 '
 
-HOSTUP_API_BASE_DEFAULT="https://cloud.hostup.se/api"
+HOSTUP_API_BASE_DEFAULT="https://cloud.hostup.se/api/v2"
 HOSTUP_DEFAULT_TTL=60
 
 # Public: add TXT record
@@ -20,6 +20,7 @@ HOSTUP_DEFAULT_TTL=60
 dns_hostup_add() {
   fulldomain="$1"
   txtvalue="$2"
+  hostup_add_txtvalue="$2"
 
   _info "Using HostUp DNS API"
 
@@ -34,31 +35,34 @@ dns_hostup_add() {
 
   record_name="$(_hostup_record_name "$fulldomain" "$HOSTUP_ZONE_DOMAIN")"
   record_name="$(_hostup_sanitize_name "$record_name")"
-  record_value="$(_hostup_json_escape "$txtvalue")"
+  hostup_add_record_value="$(_hostup_json_escape "$hostup_add_txtvalue")"
 
-  ttl="${HOSTUP_TTL:-$HOSTUP_DEFAULT_TTL}"
+  raw_ttl="${HOSTUP_TTL:-$HOSTUP_DEFAULT_TTL}"
+  ttl="$(_hostup_normalize_ttl "$raw_ttl")"
+  if [ -z "$ttl" ]; then
+    _err "HOSTUP_TTL must be a whole number between 60 and 86400 seconds."
+    return 1
+  fi
+  if [ -n "$HOSTUP_TTL" ]; then
+    HOSTUP_TTL="$ttl"
+    _saveaccountconf_mutable HOSTUP_TTL "$HOSTUP_TTL"
+  fi
 
   _debug "zone_id" "$HOSTUP_ZONE_ID"
   _debug "zone_domain" "$HOSTUP_ZONE_DOMAIN"
   _debug "record_name" "$record_name"
   _debug "ttl" "$ttl"
 
-  request_body="{\"name\":\"$record_name\",\"type\":\"TXT\",\"value\":\"$record_value\",\"ttl\":$ttl}"
-
-  if ! _hostup_rest "POST" "/dns/zones/$HOSTUP_ZONE_ID/records" "$request_body"; then
-    return 1
+  record_name_fqdn="$(_hostup_fqdn "$fulldomain")"
+  if _hostup_find_record "$HOSTUP_ZONE_ID" "$record_name_fqdn" "$hostup_add_txtvalue"; then
+    _info "TXT record already exists for $fulldomain"
+    return 0
   fi
 
-  if ! _contains "$_hostup_response" '"success":true'; then
-    _err "HostUp DNS API: failed to create TXT record for $fulldomain"
-    _debug2 "_hostup_response" "$_hostup_response"
-    return 1
-  fi
+  request_body="{\"name\":\"$record_name\",\"type\":\"TXT\",\"value\":\"$hostup_add_record_value\",\"ttl\":$ttl}"
 
-  record_id="$(_hostup_extract_record_id "$_hostup_response")"
-  if [ -n "$record_id" ]; then
-    _hostup_save_record_id "$HOSTUP_ZONE_ID" "$fulldomain" "$record_id"
-    _debug "hostup_saved_record_id" "$record_id"
+  if ! _hostup_rest "POST" "/dns-zones/$HOSTUP_ZONE_ID/records" "$request_body"; then
+    return 1
   fi
 
   _info "Added TXT record for $fulldomain"
@@ -85,20 +89,9 @@ dns_hostup_rm() {
   record_name_fqdn="$(_hostup_fqdn "$fulldomain")"
   record_value="$txtvalue"
 
-  record_id_cached="$(_hostup_get_saved_record_id "$HOSTUP_ZONE_ID" "$fulldomain")"
-  if [ -n "$record_id_cached" ]; then
-    _debug "hostup_record_id_cached" "$record_id_cached"
-    if _hostup_delete_record_by_id "$HOSTUP_ZONE_ID" "$record_id_cached"; then
-      _info "Deleted TXT record $record_id_cached"
-      _hostup_clear_record_id "$HOSTUP_ZONE_ID" "$fulldomain"
-      HOSTUP_ZONE_ID=""
-      return 0
-    fi
-  fi
-
   if ! _hostup_find_record "$HOSTUP_ZONE_ID" "$record_name_fqdn" "$record_value"; then
     _info "TXT record not found for $record_name_fqdn. Skipping removal."
-    _hostup_clear_record_id "$HOSTUP_ZONE_ID" "$fulldomain"
+    _hostup_clear_record_id "$HOSTUP_ZONE_ID" "$fulldomain" "$record_value"
     return 0
   fi
 
@@ -109,7 +102,7 @@ dns_hostup_rm() {
   fi
 
   _info "Deleted TXT record $HOSTUP_RECORD_ID"
-  _hostup_clear_record_id "$HOSTUP_ZONE_ID" "$fulldomain"
+  _hostup_clear_record_id "$HOSTUP_ZONE_ID" "$fulldomain" "$record_value"
   HOSTUP_ZONE_ID=""
   return 0
 }
@@ -127,20 +120,17 @@ _hostup_init() {
   if [ -z "$HOSTUP_API_BASE" ]; then
     HOSTUP_API_BASE="$HOSTUP_API_BASE_DEFAULT"
   fi
+  HOSTUP_API_BASE="$(_hostup_normalize_api_base "$HOSTUP_API_BASE")"
 
   if [ -z "$HOSTUP_API_KEY" ]; then
     HOSTUP_API_KEY=""
     _err "HOSTUP_API_KEY is not set."
-    _err "Please export your HostUp API key with read:dns and write:dns scopes."
+    _err "Please export your HostUp API key with read:dns, write:dns, and read:domains scopes."
     return 1
   fi
 
   _saveaccountconf_mutable HOSTUP_API_KEY "$HOSTUP_API_KEY"
   _saveaccountconf_mutable HOSTUP_API_BASE "$HOSTUP_API_BASE"
-
-  if [ -n "$HOSTUP_TTL" ]; then
-    _saveaccountconf_mutable HOSTUP_TTL "$HOSTUP_TTL"
-  fi
 
   if [ -n "$HOSTUP_ZONE_ID" ]; then
     _saveaccountconf_mutable HOSTUP_ZONE_ID "$HOSTUP_ZONE_ID"
@@ -149,11 +139,80 @@ _hostup_init() {
   return 0
 }
 
+_hostup_normalize_api_base() {
+  api_base="${1%/}"
+
+  case "$api_base" in
+  */api/v2)
+    printf "%s" "$api_base"
+    ;;
+  */api)
+    printf "%s/v2" "$api_base"
+    ;;
+  *)
+    printf "%s" "$api_base"
+    ;;
+  esac
+}
+
+_hostup_normalize_ttl() {
+  ttl_value="$1"
+
+  case "$ttl_value" in
+  "" | *[!0-9]*)
+    return 1
+    ;;
+  esac
+
+  while [ "${ttl_value#0}" != "$ttl_value" ]; do
+    ttl_value="${ttl_value#0}"
+  done
+  [ -z "$ttl_value" ] && ttl_value=0
+
+  case "$ttl_value" in
+  ??????*)
+    return 1
+    ;;
+  esac
+
+  if [ "$ttl_value" -lt 60 ] || [ "$ttl_value" -gt 86400 ]; then
+    return 1
+  fi
+
+  printf "%s" "$ttl_value"
+}
+
+_hostup_domain_in_zone() {
+  host="$(printf "%s" "${1%.}" | _lower_case)"
+  zone="$(printf "%s" "${2%.}" | _lower_case)"
+
+  if [ -z "$host" ] || [ -z "$zone" ]; then
+    return 1
+  fi
+
+  if [ "$host" = "$zone" ]; then
+    return 0
+  fi
+
+  case "$host" in
+  *."$zone")
+    return 0
+    ;;
+  esac
+
+  return 1
+}
+
 _hostup_detect_zone() {
   fulldomain="$1"
 
   if [ -n "$HOSTUP_ZONE_ID" ] && [ -n "$HOSTUP_ZONE_DOMAIN" ]; then
-    return 0
+    if _hostup_domain_in_zone "$fulldomain" "$HOSTUP_ZONE_DOMAIN"; then
+      return 0
+    fi
+    _debug "hostup_cached_zone_mismatch" "$HOSTUP_ZONE_DOMAIN"
+    HOSTUP_ZONE_ID=""
+    HOSTUP_ZONE_DOMAIN=""
   fi
 
   HOSTUP_ZONE_DOMAIN=""
@@ -162,16 +221,16 @@ _hostup_detect_zone() {
   if [ -n "$HOSTUP_ZONE_ID" ] && [ -z "$HOSTUP_ZONE_DOMAIN" ]; then
     # Attempt to fetch domain name for provided zone ID
     if _hostup_fetch_zone_details "$HOSTUP_ZONE_ID"; then
-      return 0
+      if _hostup_domain_in_zone "$fulldomain" "$HOSTUP_ZONE_DOMAIN"; then
+        return 0
+      fi
+      _debug "hostup_forced_zone_mismatch" "$HOSTUP_ZONE_DOMAIN"
     fi
     HOSTUP_ZONE_ID=""
+    HOSTUP_ZONE_DOMAIN=""
   fi
 
-  if ! _hostup_load_zones; then
-    return 1
-  fi
-
-  _domain_candidate="$(printf "%s" "$fulldomain" | _lower_case)"
+  _domain_candidate="$(printf "%s" "${fulldomain%.}" | _lower_case)"
   _debug "hostup_initial_candidate" "$_domain_candidate"
 
   while [ -n "$_domain_candidate" ]; do
@@ -240,11 +299,11 @@ _hostup_fqdn() {
 _hostup_fetch_zone_details() {
   zone_id="$1"
 
-  if ! _hostup_rest "GET" "/dns/zones/$zone_id/records" ""; then
+  if ! _hostup_rest "GET" "/dns-zones/$zone_id/records" ""; then
     return 1
   fi
 
-  zonedomain="$(printf "%s" "$_hostup_response" | _egrep_o '"domain":"[^"]*"' | sed -n '1p' | cut -d ':' -f 2 | tr -d '"')"
+  zonedomain="$(_hostup_json_extract "name" "$_hostup_response")"
   if [ -n "$zonedomain" ]; then
     HOSTUP_ZONE_DOMAIN="$zonedomain"
     return 0
@@ -254,7 +313,7 @@ _hostup_fetch_zone_details() {
 }
 
 _hostup_load_zones() {
-  if ! _hostup_rest "GET" "/dns/zones" ""; then
+  if ! _hostup_rest "GET" "/dns-zones?limit=1000" ""; then
     return 1
   fi
 
@@ -263,9 +322,9 @@ _hostup_load_zones() {
 
   while IFS= read -r line; do
     case "$line" in
-    *'"domain_id"'*'"domain"'*)
-      zone_id="$(printf "%s" "$line" | _hostup_json_extract "domain_id")"
-      zone_domain="$(printf "%s" "$line" | _hostup_json_extract "domain")"
+    *'"id"'*'"name"'*)
+      zone_id="$(_hostup_json_extract "id" "$line")"
+      zone_domain="$(_hostup_json_extract "name" "$line")"
       if [ -n "$zone_id" ] && [ -n "$zone_domain" ]; then
         HOSTUP_ZONES_CACHE="${HOSTUP_ZONES_CACHE}${zone_domain}|${zone_id}
 "
@@ -290,9 +349,30 @@ _hostup_lookup_zone() {
   _lookup_zone_id=""
   _lookup_zone_domain=""
 
+  encoded_domain="$(printf "%s" "$lookup_domain" | _url_encode)"
+  if _hostup_rest "GET" "/dns-zones?name=$encoded_domain&limit=1" ""; then
+    zone_id="$(_hostup_json_extract "id" "$_hostup_response")"
+    zone_domain="$(_hostup_json_extract "name" "$_hostup_response")"
+    if [ -n "$zone_id" ] && [ -n "$zone_domain" ]; then
+      zone_domain_lower="$(printf "%s" "$zone_domain" | _lower_case)"
+      if [ "$zone_domain_lower" = "$lookup_domain" ]; then
+        _lookup_zone_domain="$zone_domain"
+        _lookup_zone_id="$zone_id"
+        HOSTUP_ZONE_DOMAIN="$zone_domain"
+        HOSTUP_ZONE_ID="$zone_id"
+        return 0
+      fi
+    fi
+  fi
+
+  if [ -z "$HOSTUP_ZONES_CACHE" ] && ! _hostup_load_zones; then
+    return 1
+  fi
+
   while IFS='|' read -r domain zone_id; do
     [ -z "$domain" ] && continue
-    if [ "$domain" = "$lookup_domain" ]; then
+    domain_lower="$(printf "%s" "$domain" | _lower_case)"
+    if [ "$domain_lower" = "$lookup_domain" ]; then
       _lookup_zone_domain="$domain"
       _lookup_zone_id="$zone_id"
       HOSTUP_ZONE_DOMAIN="$domain"
@@ -307,50 +387,50 @@ EOF
 }
 
 _hostup_find_record() {
-  zone_id="$1"
-  fqdn="$2"
-  txtvalue="$3"
+  _hostup_find_zone_id="$1"
+  _hostup_find_fqdn="$2"
+  _hostup_find_txtvalue="$3"
 
-  if ! _hostup_rest "GET" "/dns/zones/$zone_id/records" ""; then
+  _hostup_find_encoded_name="$(printf "%s" "$_hostup_find_fqdn" | _url_encode)"
+  if ! _hostup_rest "GET" "/dns-zones/$_hostup_find_zone_id/records?type=TXT&name=$_hostup_find_encoded_name" ""; then
     return 1
   fi
 
   HOSTUP_RECORD_ID=""
-  records="$(printf "%s" "$_hostup_response" | tr '{' '\n')"
+  _hostup_find_records="$(printf "%s" "$_hostup_response" | tr '{' '\n')"
 
-  while IFS= read -r line; do
+  while IFS= read -r _hostup_find_line; do
     # Normalize line to make TXT value matching reliable
-    line_clean="$(printf "%s" "$line" | tr -d '\r\n')"
-    line_value_clean="$(printf "%s" "$line_clean" | sed 's/\\"//g')"
+    _hostup_find_line_clean="$(printf "%s" "$_hostup_find_line" | tr -d '\r\n')"
+    _hostup_find_line_value_clean="$(printf "%s" "$_hostup_find_line_clean" | sed 's/\\"//g')"
 
-    case "$line_clean" in
-    *'"type":"TXT"'*'"name"'*'"value"'*)
-      name_value="$(_hostup_json_extract "name" "$line_clean")"
-      record_value="$(_hostup_json_extract "value" "$line_value_clean")"
+    _hostup_find_record_type="$(_hostup_json_extract "type" "$_hostup_find_line_clean")"
+    [ "$_hostup_find_record_type" != "TXT" ] && continue
 
-      _debug "hostup_record_raw" "$record_value"
-      if [ "${record_value#\"}" != "$record_value" ] && [ "${record_value%\"}" != "$record_value" ]; then
-        record_value="${record_value#\"}"
-        record_value="${record_value%\"}"
-      fi
-      if [ "${record_value#\'}" != "$record_value" ] && [ "${record_value%\'}" != "$record_value" ]; then
-        record_value="${record_value#\'}"
-        record_value="${record_value%\'}"
-      fi
-      record_value="$(printf "%s" "$record_value" | tr -d '\r\n')"
-      _debug "hostup_record_value" "$record_value"
+    _hostup_find_name_value="$(_hostup_json_extract "name" "$_hostup_find_line_clean")"
+    _hostup_find_record_value="$(_hostup_json_extract "value" "$_hostup_find_line_value_clean")"
 
-      if [ "$name_value" = "$fqdn" ] && [ "$record_value" = "$txtvalue" ]; then
-        record_id="$(_hostup_json_extract "id" "$line_clean")"
-        if [ -n "$record_id" ]; then
-          HOSTUP_RECORD_ID="$record_id"
-          return 0
-        fi
+    _debug "hostup_record_raw" "$_hostup_find_record_value"
+    if [ "${_hostup_find_record_value#\"}" != "$_hostup_find_record_value" ] && [ "${_hostup_find_record_value%\"}" != "$_hostup_find_record_value" ]; then
+      _hostup_find_record_value="${_hostup_find_record_value#\"}"
+      _hostup_find_record_value="${_hostup_find_record_value%\"}"
+    fi
+    if [ "${_hostup_find_record_value#\'}" != "$_hostup_find_record_value" ] && [ "${_hostup_find_record_value%\'}" != "$_hostup_find_record_value" ]; then
+      _hostup_find_record_value="${_hostup_find_record_value#\'}"
+      _hostup_find_record_value="${_hostup_find_record_value%\'}"
+    fi
+    _hostup_find_record_value="$(printf "%s" "$_hostup_find_record_value" | tr -d '\r\n')"
+    _debug "hostup_record_value" "$_hostup_find_record_value"
+
+    if [ "$_hostup_find_name_value" = "$_hostup_find_fqdn" ] && [ "$_hostup_find_record_value" = "$_hostup_find_txtvalue" ]; then
+      _hostup_find_record_id="$(_hostup_json_extract "id" "$_hostup_find_line_clean")"
+      if [ -n "$_hostup_find_record_id" ]; then
+        HOSTUP_RECORD_ID="$_hostup_find_record_id"
+        return 0
       fi
-      ;;
-    esac
+    fi
   done <<EOF
-$records
+$_hostup_find_records
 EOF
 
   return 1
@@ -361,22 +441,22 @@ _hostup_json_extract() {
   input="${2:-$line}"
 
   # First try to extract quoted values (strings)
-  quoted_match="$(printf "%s" "$input" | _egrep_o "\"$key\":\"[^\"]*\"" | _head_n 1)"
+  quoted_match="$(printf "%s" "$input" | _egrep_o "\"$key\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | _head_n 1)"
   if [ -n "$quoted_match" ]; then
     printf "%s" "$quoted_match" |
       cut -d : -f2- |
-      sed 's/^"//' |
-      sed 's/"$//' |
+      sed 's/^[[:space:]]*"//' |
+      sed 's/"[[:space:]]*$//' |
       sed 's/\\"/"/g'
     return 0
   fi
 
   # Fallback for unquoted values (e.g., numeric IDs)
-  unquoted_match="$(printf "%s" "$input" | _egrep_o "\"$key\":[^,}]*" | _head_n 1)"
+  unquoted_match="$(printf "%s" "$input" | _egrep_o "\"$key\"[[:space:]]*:[[:space:]]*[^,}]*" | _head_n 1)"
   if [ -n "$unquoted_match" ]; then
     printf "%s" "$unquoted_match" |
       cut -d : -f2- |
-      tr -d '", ' |
+      tr -d '", 	' |
       tr -d '\r\n'
     return 0
   fi
@@ -391,56 +471,54 @@ _hostup_json_escape() {
 _hostup_record_key() {
   zone_id="$1"
   domain="$2"
+  txtvalue="$3"
   safe_zone="$(printf "%s" "$zone_id" | sed 's/[^A-Za-z0-9]/_/g')"
   safe_domain="$(printf "%s" "$domain" | _lower_case | sed 's/[^a-z0-9]/_/g')"
+  if [ -n "$txtvalue" ]; then
+    safe_value="$(printf "%s" "$txtvalue" | sed 's/[^A-Za-z0-9]/_/g')"
+    printf "%s_%s_%s" "$safe_zone" "$safe_domain" "$safe_value"
+    return 0
+  fi
   printf "%s_%s" "$safe_zone" "$safe_domain"
-}
-
-_hostup_save_record_id() {
-  zone_id="$1"
-  domain="$2"
-  record_id="$3"
-  key="$(_hostup_record_key "$zone_id" "$domain")"
-  _saveaccountconf_mutable "HOSTUP_RECORD_$key" "$record_id"
-}
-
-_hostup_get_saved_record_id() {
-  zone_id="$1"
-  domain="$2"
-  key="$(_hostup_record_key "$zone_id" "$domain")"
-  _readaccountconf_mutable "HOSTUP_RECORD_$key"
 }
 
 _hostup_clear_record_id() {
   zone_id="$1"
   domain="$2"
-  key="$(_hostup_record_key "$zone_id" "$domain")"
+  txtvalue="$3"
+  key="$(_hostup_record_key "$zone_id" "$domain" "$txtvalue")"
   _clearaccountconf_mutable "HOSTUP_RECORD_$key"
-}
-
-_hostup_extract_record_id() {
-  record_id="$(_hostup_json_extract "id" "$1")"
-  if [ -n "$record_id" ]; then
-    printf "%s" "$record_id"
-    return 0
+  legacy_key="$(_hostup_record_key "$zone_id" "$domain")"
+  if [ "$legacy_key" != "$key" ]; then
+    _clearaccountconf_mutable "HOSTUP_RECORD_$legacy_key"
   fi
-
-  printf "%s" "$1" | _egrep_o '"id":[0-9]+' | _head_n 1 | cut -d: -f2
 }
 
 _hostup_delete_record_by_id() {
   zone_id="$1"
   record_id="$2"
 
-  if ! _hostup_rest "DELETE" "/dns/zones/$zone_id/records/$record_id" ""; then
-    return 1
-  fi
-
-  if ! _contains "$_hostup_response" '"success":true'; then
+  if ! _hostup_rest "DELETE" "/dns-zones/$zone_id/records/$record_id" ""; then
     return 1
   fi
 
   return 0
+}
+
+_hostup_problem_error() {
+  problem_code="$(_hostup_json_extract "code" "$_hostup_response")"
+  problem_detail="$(_hostup_json_extract "detail" "$_hostup_response")"
+
+  if [ -n "$problem_detail" ]; then
+    if [ -n "$problem_code" ]; then
+      _err "HostUp API error ($problem_code): $problem_detail"
+    else
+      _err "HostUp API error: $problem_detail"
+    fi
+    return 0
+  fi
+
+  return 1
 }
 
 _hostup_rest() {
@@ -451,8 +529,7 @@ _hostup_rest() {
   _hostup_response=""
 
   export _H1="Authorization: Bearer $HOSTUP_API_KEY"
-  export _H2="Content-Type: application/json"
-  export _H3="Accept: application/json"
+  export _H2="Accept: application/json"
 
   if [ "$method" = "GET" ]; then
     _hostup_response="$(_get "$HOSTUP_API_BASE$route")"
@@ -464,7 +541,6 @@ _hostup_rest() {
 
   unset _H1
   unset _H2
-  unset _H3
 
   if [ "$ret" != "0" ]; then
     _err "HTTP request failed for $route"
@@ -478,23 +554,23 @@ _hostup_rest() {
   case "$http_status" in
   200 | 201 | 204) return 0 ;;
   401)
-    _err "HostUp API returned 401 Unauthorized. Check HOSTUP_API_KEY scopes and IP restrictions."
+    _hostup_problem_error || _err "HostUp API returned 401 Unauthorized. Check HOSTUP_API_KEY scopes and IP restrictions."
     return 1
     ;;
   403)
-    _err "HostUp API returned 403 Forbidden. The API key lacks required DNS scopes."
+    _hostup_problem_error || _err "HostUp API returned 403 Forbidden. The API key lacks required DNS/domain scopes."
     return 1
     ;;
   404)
-    _err "HostUp API returned 404 Not Found for $route"
+    _hostup_problem_error || _err "HostUp API returned 404 Not Found for $route"
     return 1
     ;;
   429)
-    _err "HostUp API rate limit exceeded. Please retry later."
+    _hostup_problem_error || _err "HostUp API rate limit exceeded. Please retry later."
     return 1
     ;;
   *)
-    _err "HostUp API request failed with status $http_status"
+    _hostup_problem_error || _err "HostUp API request failed with status $http_status"
     return 1
     ;;
   esac
