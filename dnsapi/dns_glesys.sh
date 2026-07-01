@@ -76,9 +76,6 @@ dns_glesys_add() {
     return 1
   fi
 
-  state_key=$(_glesys_record_id_state_key "$txtvalue")
-  _debug "state_key" "$state_key"
-  _savedomainconf "$state_key" "$record_id"
   _info "TXT record added"
 
   return 0
@@ -100,18 +97,14 @@ dns_glesys_rm() {
     return 1
   fi
 
-  state_key=$(_glesys_record_id_state_key "$txtvalue")
-  _debug state_key "$state_key"
-
-  record_id=$(_readdomainconf "$state_key")
-  _debug record_id "$record_id"
-
-  if [ -z "$record_id" ]; then
-    _err "No saved TXT record id found for $fulldomain"
-    return 1
+  if ! _glesys_find_record_id "$txtvalue"; then
+    _info "TXT record not present, skip removal"
+    return 0
   fi
 
-  if ! _glesys_rest POST "/deleterecord" "{\"recordid\":$record_id}"; then
+  _debug _record_id "$_record_id"
+
+  if ! _glesys_rest POST "/deleterecord" "{\"recordid\":$_record_id}"; then
     _err "Failed to send HTTP request to remove TXT record"
     return 1
   fi
@@ -131,7 +124,6 @@ dns_glesys_rm() {
     return 1
   fi
 
-  _cleardomainconf "$state_key"
   _info "TXT record removed"
 
   return 0
@@ -139,12 +131,56 @@ dns_glesys_rm() {
 
 ######## Private functions ####################################################
 
-# Outputs:
-#   Key that maps to the TXT record ID in domain conf  "GLESYS_RECORD_ID_xyz"
-_glesys_record_id_state_key() {
+_glesys_find_record_id() {
   txtvalue="$1"
 
-  printf "%s" "GLESYS_RECORD_ID_$(printf "%s" "$txtvalue" | _digest sha256 hex)"
+  _debug txtvalue "$txtvalue"
+
+  if [ -z "$txtvalue" ]; then
+    return 1
+  fi
+
+  _record_id=""
+
+  _debug "Looking for TXT record with value" "$txtvalue"
+
+  if ! _glesys_rest GET "/listrecords?domainname=$_domain"; then
+    _err "Failed to list DNS records"
+    return 1
+  fi
+
+  records="$(
+    printf "%s" "$response" |
+      tr -d '\r\n\t ' |
+      sed 's/},{/}\
+{/g'
+  )"
+
+  _debug2 records "$records"
+
+  expected_data="\"data\":\"$txtvalue\""
+
+  _record_id="$(
+    printf "%s\n" "$records" |
+      while IFS= read -r record; do
+        printf "%s" "$record" | grep -q '"type":"TXT"' || continue
+        printf "%s" "$record" | grep -Fq "$expected_data" || continue
+
+        printf "%s" "$record" |
+          grep -E -o '"recordid":"?[0-9]+' |
+          grep -E -o '[0-9]+$'
+
+        break
+      done
+  )"
+
+  _debug _record_id "$_record_id"
+
+  if [ -z "$_record_id" ]; then
+    return 1
+  fi
+
+  return 0
 }
 
 # Finds:
