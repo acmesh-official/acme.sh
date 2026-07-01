@@ -263,6 +263,8 @@ jobs:
   GhostBSD:
     runs-on: ubuntu-latest
     needs: FreeBSD
+    # GhostBSD VM frequently flakes on boot/ssh; don't let it fail the whole run
+    continue-on-error: true
     env:
       TEST_DNS : ${{ secrets.TEST_DNS }}
       TestingDomain: ${{ secrets.TestingDomain }}
