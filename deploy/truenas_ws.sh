@@ -61,7 +61,6 @@ _ws_call() {
 _ws_upload_cert() {
 
   /usr/bin/env python - <<EOF
-
 import sys
 
 from truenas_api_client import Client
@@ -83,7 +82,6 @@ with Client(uri="$_ws_uri") as c:
     print("R:0")
     print("E:_ws_upload_cert error!")
     sys.exit(7)
-
 EOF
 
   return $?
