@@ -312,6 +312,22 @@ _get_root() {
       _domain="$h"
       return 0
     fi
+    # IDN fallback: INWX returns Unicode zone names; when $h is ACE/punycode,
+    # encode each zone name via _idn() and compare — no python dependency.
+    if _contains "$h" "xn--"; then
+      _zone_unicode=$(printf "%s" "$response" | _egrep_o '<string>[^<]*' |
+        sed 's/<[^>]*>//g' | while IFS= read -r _z; do
+        if [ "$(_idn "$_z")" = "$h" ]; then
+          printf "%s" "$_z"
+          break
+        fi
+      done)
+      if [ -n "$_zone_unicode" ]; then
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
+        _domain="$_zone_unicode"
+        return 0
+      fi
+    fi
     p=$i
     i=$(_math "$i" + 1)
   done
