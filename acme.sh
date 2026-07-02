@@ -6470,6 +6470,7 @@ _install_win_taskscheduler() {
   _lesh="$1"
   _centry="$2"
   _randomminute="$3"
+  _randomhour="$4"
   if ! _exists cygpath; then
     _err "cygpath not found"
     return 1
@@ -6539,7 +6540,7 @@ installcronjob() {
   fi
   _t=$(_time)
   random_minute=$(_math $_t % 60)
-  random_hour=$(_math $_t / 60 % 24)
+  random_hour=$(_math $_t / 60 % 6)
 
   if ! _exists "$_CRONTAB" && _exists "fcrontab"; then
     _CRONTAB="fcrontab"
@@ -6548,7 +6549,7 @@ installcronjob() {
   if ! _exists "$_CRONTAB"; then
     if _exists cygpath && _exists schtasks.exe; then
       _info "It seems you are on Windows, let's install the Windows scheduler task."
-      if _install_win_taskscheduler "$lesh" "$_c_entry" "$random_minute"; then
+      if _install_win_taskscheduler "$lesh" "$_c_entry" "$random_minute" "$random_hour"; then
         _info "Successfully installed Windows scheduler task."
         return 0
       else
@@ -6570,7 +6571,7 @@ installcronjob() {
     fi
     $_CRONTAB -l 2>/dev/null | {
       cat
-      echo "$random_minute $random_hour * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
+      echo "$random_minute $random_hour,$(_math $random_hour + 6),$(_math $random_hour + 12),$(_math $random_hour + 18) * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
     } | $_CRONTAB_STDIN
   fi
   if [ "$?" != "0" ]; then
