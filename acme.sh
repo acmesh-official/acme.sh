@@ -182,6 +182,8 @@ _DNSCHECK_WIKI="https://github.com/acmesh-official/acme.sh/wiki/dnscheck"
 
 _PROFILESELECTION_WIKI="https://github.com/acmesh-official/acme.sh/wiki/Profile-selection"
 
+_ARI_WIKI="https://github.com/acmesh-official/acme.sh/wiki/ARI"
+
 _DNS_MANUAL_ERR="The dns manual mode can not renew automatically, you must issue it again manually. You'd better use the other modes instead."
 
 _DNS_MANUAL_WARN="It seems that you are using dns manual mode. please take care: $_DNS_MANUAL_ERR"
@@ -556,6 +558,14 @@ _exists() {
   ret="$?"
   _debug3 "$cmd exists=$ret"
   return $ret
+}
+
+_isint() {
+  case "${1#[+-]}" in
+    (*[!0123456789]*) return 1 ;;
+    ('')              return 1 ;;
+    (*)               return 0 ;;
+  esac
 }
 
 #a + b
@@ -1850,8 +1860,14 @@ _calcjwk() {
   __CACHED_JWK_KEY_FILE="$keyfile"
 }
 
+# [offset_hours]
 _time() {
-  date -u "+%s"
+  _now_unix="$(date -u "+%s")"
+  if [ "$1" ]; then
+    _offset_sec="$(_math "$1" * 3600)"
+    _now_unix="$(_math "$_now_unix" + "$_offset_sec")"
+  fi
+  echo "$_now_unix"
 }
 
 #support 2 formats:
@@ -5786,7 +5802,7 @@ _split_cert_chain() {
   fi
 }
 
-#domain  [isEcc] [server]
+#domain  [isEcc] [server] [cron_interval]
 renew() {
   Le_Domain="$1"
   if [ -z "$Le_Domain" ]; then
@@ -5796,6 +5812,8 @@ renew() {
 
   _isEcc="$2"
   _renewServer="$3"
+  _cron_interval="$4"
+
   _debug "_renewServer" "$_renewServer"
 
   _initpath "$Le_Domain" "$_isEcc"
@@ -5854,14 +5872,39 @@ renew() {
       _ari_end="$(echo "$_ari_resp" | _egrep_o '"end" *: *"[^"]*' | sed 's/.*"//')"
       _debug "ARI suggestedWindow.start" "$_ari_start"
       _debug "ARI suggestedWindow.end" "$_ari_end"
-      if [ "$_ari_start" ]; then
+      if [ "$_ari_start" ] && [ "$_ari_end" ]; then
         _ari_start_t="$(_date2time "$(echo "$_ari_start" | sed 's/\.[0-9]*//')")"
+        _ari_end_t="$(_date2time "$(echo "$_ari_end" | sed 's/\.[0-9]*//')")"
+        _ari_explanation_url="$(echo "$_ari_resp" | _egrep_o '"explanationURL" *: *"[^"]*' | sed 's/.*"//')"
         _debug "_ari_start_t" "$_ari_start_t"
-        if [ "$_ari_start_t" ] && [ "$(_time)" -ge "$_ari_start_t" ]; then
-          _info "ARI suggestedWindow has started ($(__green "$_ari_start")), proceeding with renewal."
+        _debug "_ari_end_t" "$_ari_end_t"
+        _debug "_ari_explanation_url" "$_ari_explanation_url"
+        _debug "Le_NextRenewTime" "$Le_NextRenewTime"
+        # Update ARI if needed
+        if [ "$_ari_start_t" ] && [ "$_ari_end_t" ] && [ "$Le_NextRenewTime" ] && [ "$_ari_end_t" -gt "$_ari_start_t" ] && ([ "$Le_NextRenewTime" -lt "$_ari_start_t" ] || [ "$Le_NextRenewTime" -gt "$_ari_end_t" ]); then
+          _ari_old_time_str="$Le_NextRenewTimeStr"
+          _ari_window=$(_math "$_ari_end_t" - "$_ari_start_t")
+          _ari_offset=$(_math "$(_time)" % "$_ari_window")
+          Le_NextRenewTime=$(_math "$_ari_start_t" + "$_ari_offset")
+          Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+          _info "ARI suggestedWindow: $(__green "$(_time2str "$_ari_start_t")") to $(__green "$(_time2str "$_ari_end_t")")"
+          _info "Next renewal time picked from ARI window: $(__green "$Le_NextRenewTimeStr")"
+          _savedomainconf Le_NextRenewTime "$Le_NextRenewTime"
+          _savedomainconf Le_NextRenewTimeStr "$Le_NextRenewTimeStr"
+        fi
+        _next_cron_run_t="$(_time "$_cron_interval")"
+        if [ "$Le_NextRenewTime" ] && [ "$_next_cron_run_t" -ge "$Le_NextRenewTime" ]; then
           _ari_should_renew="1"
+          if [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
+            _info "ARI early renewal of cert due to next cron run '$(_time2str "$_next_cron_run_t")' being after selected renewal time '$Le_NextRenewTimeStr'"
+          else
+            _info "ARI suggested renewal has passed ($(__green "$Le_NextRenewTime")), proceeding with renewal."
+          fi
+          if [ "$_ari_explanation_url" ]; then
+            _info "For more information on this renewal: $(__green "$_ari_explanation_url")"
+          fi
         else
-          _info "ARI suggestedWindow starts at: $(__green "$_ari_start")"
+          _info "ARI suggested renewal starts at: $(__green "$Le_NextRenewTime")"
         fi
       fi
     fi
@@ -5935,7 +5978,7 @@ renew() {
   return "$res"
 }
 
-#renewAll  [stopRenewOnError] [server]
+#renewAll  [stopRenewOnError] [server] [cron_interval]
 renewAll() {
   _initpath
   _clearCA
@@ -5944,6 +5987,9 @@ renewAll() {
 
   _server="$2"
   _debug "_server" "$_server"
+
+  _cron_interval="$3"
+  debug "_cron_interval" "$_cron_interval"
 
   _ret="0"
   _success_msg=""
@@ -5962,12 +6008,19 @@ renewAll() {
     fi
     d=$(basename "$di")
     _debug d "$d"
+    _d_ari="$d.ari"
+    _debug _d_ari "$_d_ari"
     (
       if _endswith "$d" "$ECC_SUFFIX"; then
         _isEcc=$(echo "$d" | cut -d "$ECC_SEP" -f 2)
         d=$(echo "$d" | cut -d "$ECC_SEP" -f 1)
       fi
-      renew "$d" "$_isEcc" "$_server"
+      renew "$d" "$_isEcc" "$_server" "$_cron_interval"
+      rc="$?"
+      if [ "$rc" = "0" ] && [ "$_ari_explanation_url" ]; then
+        echo "$_ari_explanation_url" > $_d_ari
+      fi
+      return $rc
     )
     rc="$?"
     _debug "Return code: $rc"
@@ -5982,8 +6035,13 @@ renewAll() {
           _send_notify "Renew $d success" "Good, the cert is renewed." "$NOTIFY_HOOK" 0
         fi
       fi
+      _renewal_explanation=""
+      if [ -f $_d_ari ]; then
+        _renewal_explanation=" ($(cat $_d_ari))"
+        rm -f $_d_ari
+      fi
 
-      _success_msg="${_success_msg}    $d
+      _success_msg="${_success_msg}    $d$_renewal_explanation
 "
     elif [ "$rc" = "$RENEW_SKIP" ]; then
       if [ $_error_level -gt $NOTIFY_LEVEL_SKIP ]; then
@@ -6463,6 +6521,8 @@ _install_win_taskscheduler() {
   _lesh="$1"
   _centry="$2"
   _randomminute="$3"
+  _randomhour="$4"
+  _cron_interval="$5"
   if ! _exists cygpath; then
     _err "cygpath not found"
     return 1
@@ -6485,12 +6545,20 @@ _install_win_taskscheduler() {
   fi
   _debug "_lesh" "$_lesh"
 
+  if [ "$_cron_interval" -ge 24 ]; then
+    _sched_config="/SC DAILY"
+  elif [ "$_cron_interval" -le 1 ]; then
+    _sched_config="/SC HOURLY"
+  else
+    _sched_config="/SC HOURLY /MO $_cron_interval"
+  fi
+
   _info "To install the scheduler task to your Windows account, you must input your Windows password."
   _info "$PROJECT_NAME will not save your password."
   _info "Please input your Windows password for: $(__green "$_myname")"
   _password="$(__read_password)"
   #SCHTASKS.exe '/create' '/SC' 'DAILY' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "00:$_randomminute" '/RU' "$_myname" '/RP' "$_password" '/TR' "$_winbash -l -c '$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry'" >/dev/null
-  echo SCHTASKS.exe '/create' '/SC' 'DAILY' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "00:$_randomminute" '/RU' "$_myname" '/RP' "$_password" '/TR' "\"$_winbash -l -c '$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry'\"" | cmd.exe >/dev/null
+  echo SCHTASKS.exe '/create' "$_sched_config" '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "$(printf '%02d:%02d' "$_randomhour" "$_randomminute")" '/RU' "$_myname" '/RP' "$_password" '/TR' "\"$_winbash -l -c '$_lesh --cron $_centry'\"" | cmd.exe >/dev/null
   echo
 
 }
@@ -6508,9 +6576,10 @@ _uninstall_win_taskscheduler() {
   fi
 }
 
-#confighome
+# confighome [cron_interval]
 installcronjob() {
   _c_home="$1"
+  _cron_interval="$2"
   _initpath
   _CRONTAB="crontab"
   if [ -f "$LE_WORKING_DIR/$PROJECT_ENTRY" ]; then
@@ -6527,12 +6596,17 @@ installcronjob() {
       return 1
     fi
   fi
+  if [ -z "$_cron_interval" ]; then
+    _info "Defaulting cron interval to 6 hours"
+    _cron_interval="6"
+  fi
+  _c_entry="--home \"$LE_WORKING_DIR\" --cron-interval \"$_cron_interval\" "
   if [ "$_c_home" ]; then
-    _c_entry="--config-home \"$_c_home\" "
+    _c_entry="${_c_entry}--config-home \"$_c_home\" "
   fi
   _t=$(_time)
   random_minute=$(_math $_t % 60)
-  random_hour=$(_math $_t / 60 % 24)
+  random_hour=$(_math $_t / 60 % "$_cron_interval")
 
   if ! _exists "$_CRONTAB" && _exists "fcrontab"; then
     _CRONTAB="fcrontab"
@@ -6541,7 +6615,7 @@ installcronjob() {
   if ! _exists "$_CRONTAB"; then
     if _exists cygpath && _exists schtasks.exe; then
       _info "It seems you are on Windows, let's install the Windows scheduler task."
-      if _install_win_taskscheduler "$lesh" "$_c_entry" "$random_minute"; then
+      if _install_win_taskscheduler "$lesh" "$_c_entry" "$random_minute" "$random_hour" "$_cron_interval"; then
         _info "Successfully installed Windows scheduler task."
         return 0
       else
@@ -6563,13 +6637,13 @@ installcronjob() {
     fi
     $_CRONTAB -l 2>/dev/null | {
       cat
-      echo "$random_minute $random_hour * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
+      echo "$random_minute ${random_hour}-23/$_cron_interval * * * $lesh --cron $_c_entry> /dev/null"
     } | $_CRONTAB_STDIN
   fi
   if [ "$?" != "0" ]; then
     _err "Failed to install cron job. You need to manually renew your certs."
     _err "Alternatively, you can add a cron job by yourself:"
-    _err "$lesh --cron --home \"$LE_WORKING_DIR\" > /dev/null"
+    _err "$lesh --cron $_c_entry> /dev/null"
     return 1
   fi
 }
@@ -7093,7 +7167,7 @@ _installalias() {
 
 }
 
-# nocron confighome noprofile accountemail
+# nocron confighome noprofile accountemail [cron_interval]
 install() {
 
   if [ -z "$LE_WORKING_DIR" ]; then
@@ -7104,6 +7178,7 @@ install() {
   _c_home="$2"
   _noprofile="$3"
   _accountemail="$4"
+  _cron_interval="$5"
 
   if ! _initpath; then
     _err "Install failed."
@@ -7198,7 +7273,7 @@ install() {
   fi
 
   if [ -z "$_nocron" ]; then
-    installcronjob "$_c_home"
+    installcronjob "$_c_home" "$_cron_interval"
   fi
 
   if [ -z "$NO_DETECT_SH" ]; then
@@ -7274,6 +7349,7 @@ _uninstallalias() {
 cron() {
   export _ACME_IN_CRON=1
   _initpath
+  _cron_interval="$1"
   _info "$(__green "===Starting cron===")"
   if [ "$AUTO_UPGRADE" = "1" ]; then
     export LE_WORKING_DIR
@@ -7292,7 +7368,7 @@ cron() {
     _info "Automatically upgraded to: $VER"
   fi
   _TREAT_SKIP_AS_SUCCESS="1"
-  renewAll
+  renewAll "" "" "$_cron_interval"
   _ret="$?"
   _ACME_IN_CRON=""
   _info "$(__green "===End cron===")"
@@ -7603,6 +7679,10 @@ Parameters:
 
   --password <password>             Add a password to exported pfx file. Use with --to-pkcs12.
 
+  --cron-interval <interval hours>  Sets the cron interval when installing the cron job or used by the renew commands to detect if
+                                      early cert renewal is required when using ARI. Only valid for '--install', '--install-cronjob',
+                                      '--renew', '--renew-all', and '--cron'.
+                                      See: $_ARI_WIKI
 
 "
 }
@@ -8472,6 +8552,18 @@ _process() {
       _preferred_chain="$2"
       shift
       ;;
+    --cron-interval)
+      _cron_interval="$2"
+      if ! _isint "$_cron_interval"; then
+        _err "'$_cron_interval' is not an integer for '$1'"
+        return 1
+      fi
+      if [ "$_cron_interval" -lt 1 ] || [ "$_cron_interval" -gt 24 ]; then
+        _err "'$_cron_interval' must be in the range 1-24 (inclusive) for '$1'"
+        return 1
+      fi
+      shift
+      ;;
     *)
       _err "Unknown parameter: $1"
       return 1
@@ -8539,7 +8631,9 @@ _process() {
   fi
   _debug "Running cmd: ${_CMD}"
   case "${_CMD}" in
-  install) install "$_nocron" "$_confighome" "$_noprofile" "$_accountemail" ;;
+  install)
+    install "$_nocron" "$_confighome" "$_noprofile" "$_accountemail" "$_cron_interval"
+    ;;
   uninstall) uninstall "$_nocron" ;;
   upgrade) upgrade ;;
   issue)
@@ -8558,10 +8652,10 @@ _process() {
     installcert "$_domain" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_ecc"
     ;;
   renew)
-    renew "$_domain" "$_ecc" "$_server"
+    renew "$_domain" "$_ecc" "$_server" "$_cron_interval"
     ;;
   renewAll)
-    renewAll "$_stopRenewOnError" "$_server"
+    renewAll "$_stopRenewOnError" "$_server" "$_cron_interval"
     ;;
   revoke)
     revoke "$_domain" "$_ecc" "$_revoke_reason"
@@ -8590,9 +8684,13 @@ _process() {
   info)
     info "$_domain" "$_ecc"
     ;;
-  installcronjob) installcronjob "$_confighome" ;;
+  installcronjob)
+    installcronjob "$_confighome" "$_cron_interval"
+    ;;
   uninstallcronjob) uninstallcronjob ;;
-  cron) cron ;;
+  cron)
+    cron "$_cron_interval"
+    ;;
   toPkcs)
     toPkcs "$_domain" "$_password" "$_ecc"
     ;;
