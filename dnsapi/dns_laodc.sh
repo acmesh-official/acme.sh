@@ -1,11 +1,13 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
-dns_laodc_info='LaoDC DNS Server
+dns_laodc_info='LaoDC DNS API Server
 Site: laodc.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_laodc
 Options:
  LaoDC_Key API Key
-Issues: support+acme-sh@laodc.com
+Issues:
+  support+acme-sh@laodc.com
+  https://github.com/acmesh-official/acme.sh/issues/6973
 Author: @laodc
 '
 
