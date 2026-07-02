@@ -5886,6 +5886,7 @@ renew() {
           if [ "$_ari_explanation_url" ]; then
             _info "For more information on this renewal: $(__green "$_ari_explanation_url")"
           fi
+        fi
       fi
     fi
   fi
