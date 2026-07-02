@@ -5996,7 +5996,7 @@ renewAll() {
       renew "$d" "$_isEcc" "$_server"
       rc="$?"
       if [ "$rc" = "0" ] && [ "$_ari_explanation_url" ]; then
-        echo "$_ari_explanation_url" > "$_d_ari"
+        echo "$_ari_explanation_url" >"$_d_ari"
       fi
       return $rc
     )
