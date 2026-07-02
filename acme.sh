@@ -7738,9 +7738,16 @@ _checkSudo() {
       return 0
     fi
     if [ -n "$SUDO_COMMAND" ]; then
-      #it's a normal user doing "sudo su", or `sudo -i` or `sudo -s`, or `sudo su acmeuser1`
-      _endswith "$SUDO_COMMAND" /bin/su || _contains "$SUDO_COMMAND" "/bin/su " || grep "^$SUDO_COMMAND\$" /etc/shells >/dev/null 2>&1
-      return $?
+      #The SUDO_* env vars are often inherited into shells that were not
+      #started as `sudo acme.sh` at all (e.g. `sudo su - user`, or
+      #`sudo pct enter <VID>` on Proxmox, which copies them into the
+      #container). Only warn when sudo was used to run acme.sh itself;
+      #anything else means the sudo happened further up and is fine.
+      #https://github.com/acmesh-official/acme.sh/issues/6400
+      if _contains "$SUDO_COMMAND" "$PROJECT_ENTRY"; then
+        return 1
+      fi
+      return 0
     fi
     #otherwise
     return 1
