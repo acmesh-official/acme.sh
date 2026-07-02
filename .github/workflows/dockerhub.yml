@@ -41,6 +41,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: CheckToken
     if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: checkout code
         uses: actions/checkout@v6
@@ -58,6 +61,9 @@ jobs:
       - name: login to docker hub
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      - name: login to ghcr
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
       - name: build and push the image
         run: |
           if [[ $GITHUB_REF == refs/tags/* ]]; then
@@ -73,6 +79,8 @@ jobs:
             fi
           fi
 
+          echo "DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}" >>"$GITHUB_ENV"
+
           DOCKER_LABELS=()
           while read -r label; do
             DOCKER_LABELS+=(--label "${label}")
@@ -84,3 +92,9 @@ jobs:
             --output "type=image,push=true" \
             --build-arg AUTO_UPGRADE=${AUTO_UPGRADE} \
             --platform linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7,linux/386,linux/ppc64le,linux/s390x .
+      - name: mirror the image to ghcr (best-effort)
+        run: |
+          docker buildx imagetools create \
+            --tag ghcr.io/${{ github.repository }}:${DOCKER_IMAGE_TAG} \
+            ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG} \
+            || echo "::warning::GHCR mirror failed; Docker Hub publish unaffected"
