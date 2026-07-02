@@ -170,10 +170,20 @@ ssh_deploy() {
     _info "Required commands batched and sent in single call to remote host"
   fi
 
+  _returnCode=0
   _deploy_ssh_servers="$DEPLOY_SSH_SERVER"
   for DEPLOY_SSH_SERVER in $_deploy_ssh_servers; do
     _ssh_deploy
+    if [ $? -ne 0 ]; then
+      # in case of an error, remember it, but keep going for now
+      _returnCode=1
+      if [ $_set_level -ge $NOTIFY_LEVEL_ERROR ]; then
+        _send_notify "Failed to deploy to $DEPLOY_SSH_SERVER" "Some or all of the files have not been transmitted to the server." "$NOTIFY_HOOK" "$RENEW_SKIP"
+      fi
+    fi
   done
+
+  return $_returnCode
 }
 
 _ssh_deploy() {
