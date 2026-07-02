@@ -129,7 +129,7 @@ dns_infomaniak_rm() {
   fi
 
   export _H1="Authorization: Bearer $INFOMANIAK_API_TOKEN"
-  export _H2="ContentType: application/json"
+  export _H2="Content-Type: application/json"
 
   fulldomain=$1
   txtvalue=$2
