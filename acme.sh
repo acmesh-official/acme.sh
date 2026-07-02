@@ -5871,23 +5871,21 @@ renew() {
         # Update ARI if needed
         if [ "$_ari_start_t" ] && [ "$_ari_end_t" ] && [ "$Le_NextRenewTime" ] && [ "$_ari_end_t" -gt "$_ari_start_t" ] && ([ "$Le_NextRenewTime" -lt "$_ari_start_t" ] || [ "$Le_NextRenewTime" -gt "$_ari_end_t" ]); then
           _ari_old_time_str="$Le_NextRenewTimeStr"
+          _info "Current renewal time: $(__green "$_ari_old_time_str")"
           _ari_window=$(_math "$_ari_end_t" - "$_ari_start_t")
           _ari_offset=$(_math "$(_time)" % "$_ari_window")
           Le_NextRenewTime=$(_math "$_ari_start_t" + "$_ari_offset")
           Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
-          _info "ARI suggestedWindow: $(__green "$_ari_old_time_str") to $(__green "$Le_NextRenewTimeStr")"
-          _info "Next renewal time picked from ARI window: $(__green "$Le_NextRenewTimeStr")"
+          _info "ARI suggestedWindow: $(__green "$_ari_start") to $(__green "$_ari_end")"
+          _info "Updating renewal time picked from ARI window: $(__green "$Le_NextRenewTimeStr")"
           _savedomainconf Le_NextRenewTime "$Le_NextRenewTime"
           _savedomainconf Le_NextRenewTimeStr "$Le_NextRenewTimeStr"
         fi
         if [ "$Le_NextRenewTime" ] && [ "$(_time)" -ge "$Le_NextRenewTime" ]; then
-          _info "ARI suggested renewal has passed ($(__green "$Le_NextRenewTime")), proceeding with renewal."
+          _info "ARI suggested renewal has passed ($(__green "$Le_NextRenewTimeStr")), proceeding with renewal."
           if [ "$_ari_explanation_url" ]; then
             _info "For more information on this renewal: $(__green "$_ari_explanation_url")"
           fi
-        else
-          _info "ARI suggested renewal starts at: $(__green "$Le_NextRenewTime")"
-        fi
       fi
     fi
   fi
@@ -5987,7 +5985,7 @@ renewAll() {
     fi
     d=$(basename "$di")
     _debug d "$d"
-    _d_ari="$d.ari"
+    _d_ari="$di.ari"
     _debug _d_ari "$_d_ari"
     (
       if _endswith "$d" "$ECC_SUFFIX"; then
@@ -5997,7 +5995,7 @@ renewAll() {
       renew "$d" "$_isEcc" "$_server"
       rc="$?"
       if [ "$rc" = "0" ] && [ "$_ari_explanation_url" ]; then
-        echo "$_ari_explanation_url" > $_d_ari
+        echo "$_ari_explanation_url" > "$_d_ari"
       fi
       return $rc
     )
@@ -6015,9 +6013,9 @@ renewAll() {
         fi
       fi
       _renewal_explanation=""
-      if [ -f $_d_ari ]; then
-        _renewal_explanation=" ($(cat $_d_ari))"
-        rm -f $_d_ari
+      if [ -f "$_d_ari" ]; then
+        _renewal_explanation=" ($(cat "$_d_ari"))"
+        rm -f "$_d_ari"
       fi
 
       _success_msg="${_success_msg}    $d$_renewal_explanation
