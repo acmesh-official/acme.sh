@@ -18,7 +18,7 @@ dns_selfhost_add() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txt"
 
-  SELFHOSTDNS_UPDATE_URL="https://selfhost.de/cgi-bin/api.pl"
+  SELFHOSTDNS_UPDATE_URL="https://account.selfhost.de/cgi-bin/api.pl"
 
   # Get values, but don't save until we successfully validated
   SELFHOSTDNS_USERNAME="${SELFHOSTDNS_USERNAME:-$(_readaccountconf_mutable SELFHOSTDNS_USERNAME)}"
