@@ -6,6 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_volcengine
 Options:
  Volcengine_ACCESS_KEY_ID API Key ID
  Volcengine_SECRET_ACCESS_KEY API Secret
+ Volcengine_SESSION_TOKEN Session Token. Optional, only needed when using temporary STS credentials.
 '
 
 Volcengine_HOST="dns.volcengineapi.com"
@@ -17,6 +18,7 @@ Volcengine_URL="https://$Volcengine_HOST"
 dns_volcengine_add() {
   fulldomain=$1
   txtvalue=$2
+  _record_id=""
 
   Volcengine_ACCESS_KEY_ID="${Volcengine_ACCESS_KEY_ID:-$(_readaccountconf_mutable Volcengine_ACCESS_KEY_ID)}"
   Volcengine_SECRET_ACCESS_KEY="${Volcengine_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable Volcengine_SECRET_ACCESS_KEY)}"
@@ -24,7 +26,7 @@ dns_volcengine_add() {
   if [ -z "$Volcengine_ACCESS_KEY_ID" ] || [ -z "$Volcengine_SECRET_ACCESS_KEY" ]; then
     Volcengine_ACCESS_KEY_ID=""
     Volcengine_SECRET_ACCESS_KEY=""
-    _err "You haven't specified the volcengine dns api key id and and api key secret yet."
+    _err "You haven't specified the volcengine dns api key id and api key secret yet."
     return 1
   fi
 
@@ -48,12 +50,12 @@ dns_volcengine_add() {
     return 1
   fi
 
-  if _contains "$response" "\"FQDN\":\"$_domain\""; then
-    _record_id="$(echo "$response" | _egrep_o "\"RecordID\":\"[0-9]+\"," | cut -d: -f2 | cut -d, -f1 | tr -d '"')"
-    _debug "_record_id" "$_record_id"
-  else
-    _debug "single new add"
-  fi
+  # ListRecords already filtered by ZID + Host + Value + SearchMode:exact,
+  # so any returned record is our target. Don't match on FQDN: Volcengine
+  # lowercases the Host/FQDN in the response, which would break a
+  # case-sensitive string compare against $fulldomain.
+  _record_id="$(echo "$response" | _egrep_o "\"RecordID\":\"[0-9]+\"," | cut -d: -f2 | cut -d, -f1 | tr -d '"')"
+  _debug "_record_id" "$_record_id"
 
   if [ "$_record_id" ] && _contains "$response" "$txtvalue"; then
     _info "The TXT record already exists. Skipping."
@@ -63,7 +65,7 @@ dns_volcengine_add() {
 
   _debug "Adding records"
 
-  if volcengine_rest POST "" "Action=CreateRecord&Version=2018-08-01" "{\"ZID\":$_domain_id,\"Host\":\"$_sub_domain\",\"Type\":\"TXT\",\"Value\":\"$txtvalue\"}"; then
+  if volcengine_rest POST "" "Action=CreateRecord&Version=2018-08-01" "{\"ZID\":$_domain_id,\"Host\":\"$_sub_domain\",\"Type\":\"TXT\",\"Value\":\"$txtvalue\",\"Remark\":\"acme.sh\"}"; then
     _info "TXT record updated successfully."
     _sleep 1
     return 0
@@ -77,6 +79,7 @@ dns_volcengine_add() {
 dns_volcengine_rm() {
   fulldomain=$1
   txtvalue=$2
+  _record_id=""
 
   Volcengine_ACCESS_KEY_ID="${Volcengine_ACCESS_KEY_ID:-$(_readaccountconf_mutable Volcengine_ACCESS_KEY_ID)}"
   Volcengine_SECRET_ACCESS_KEY="${Volcengine_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable Volcengine_SECRET_ACCESS_KEY)}"
@@ -98,10 +101,14 @@ dns_volcengine_rm() {
     return 1
   fi
 
-  if _contains "$response" "\"FQDN\":\"$_domain\""; then
-    _record_id="$(echo "$response" | _egrep_o "\"RecordID\":\"[0-9]+\"," | cut -d: -f2 | cut -d, -f1 | tr -d '"')"
-    _debug "_record_id" "$_record_id"
-  else
+  # ListRecords already filtered by ZID + Host + Value + SearchMode:exact,
+  # so any returned record is our target. Don't match on FQDN: Volcengine
+  # lowercases the Host/FQDN in the response, which would break a
+  # case-sensitive string compare against $fulldomain.
+  _record_id="$(echo "$response" | _egrep_o "\"RecordID\":\"[0-9]+\"," | cut -d: -f2 | cut -d, -f1 | tr -d '"')"
+  _debug "_record_id" "$_record_id"
+
+  if [ -z "$_record_id" ]; then
     _debug "no records exist, skip"
     _sleep 1
     return 0
@@ -133,7 +140,9 @@ _get_root() {
     fi
 
     # iterate over paginated result for list_hosted_zones
-    volcengine_rest POST "" "Action=ListZones&Version=2018-08-01" "{\"Key\":\"$h\",\"SearchMode\":\"exact\"}"
+    if ! volcengine_rest POST "" "Action=ListZones&Version=2018-08-01" "{\"Key\":\"$h\",\"SearchMode\":\"exact\"}"; then
+      return 1
+    fi
     if _contains "$response" "\"ZoneName\":\"$h\""; then
       _domain_id=$(printf "%s" "$response" | _egrep_o "\"ZID\":[0-9]+," | cut -d: -f2 | cut -d, -f1)
       if [ "$_domain_id" ]; then
@@ -161,6 +170,15 @@ volcengine_rest() {
   _debug ep "$ep"
   _debug qsr "$qsr"
   _debug data "$data"
+
+  # clear any header state left over from a previous request so that
+  # conditionally-set headers (e.g. x-content-sha256, x-security-token)
+  # can't leak into the next request
+  _H1=""
+  _H2=""
+  _H3=""
+  _H4=""
+  _H5=""
 
   CanonicalURI="/$ep"
   _debug2 CanonicalURI "$CanonicalURI"
@@ -209,7 +227,7 @@ volcengine_rest() {
   CanonicalRequest="$mtd\n$CanonicalURI\n$CanonicalQueryString\n$CanonicalHeaders\n$SignedHeaders\n$(printf "%s" "$RequestPayload" | _digest "$Hash" hex)"
   _debug2 CanonicalRequest "$CanonicalRequest"
 
-  HashedCanonicalRequest="$(printf "$CanonicalRequest%s" | _digest "$Hash" hex)"
+  HashedCanonicalRequest="$(printf '%b' "$CanonicalRequest" | _digest "$Hash" hex)"
   _debug2 HashedCanonicalRequest "$HashedCanonicalRequest"
 
   Algorithm="HMAC-SHA256"
@@ -237,26 +255,26 @@ volcengine_rest() {
   kSecretH="$(printf "%s" "$kSecret" | _hex_dump | tr -d " ")"
   _secure_debug2 kSecretH "$kSecretH"
 
-  kDateH="$(printf "$RequestDateOnly%s" | _hmac "$Hash" "$kSecretH" hex)"
+  kDateH="$(printf "%s" "$RequestDateOnly" | _hmac "$Hash" "$kSecretH" hex)"
   _debug2 kDateH "$kDateH"
 
-  kRegionH="$(printf "$Region%s" | _hmac "$Hash" "$kDateH" hex)"
+  kRegionH="$(printf "%s" "$Region" | _hmac "$Hash" "$kDateH" hex)"
   _debug2 kRegionH "$kRegionH"
 
-  kServiceH="$(printf "$Service%s" | _hmac "$Hash" "$kRegionH" hex)"
+  kServiceH="$(printf "%s" "$Service" | _hmac "$Hash" "$kRegionH" hex)"
   _debug2 kServiceH "$kServiceH"
 
   kSigningH="$(printf "%s" "request" | _hmac "$Hash" "$kServiceH" hex)"
   _debug2 kSigningH "$kSigningH"
 
-  signature="$(printf "$StringToSign%s" | _hmac "$Hash" "$kSigningH" hex)"
+  signature="$(printf '%b' "$StringToSign" | _hmac "$Hash" "$kSigningH" hex)"
   _debug2 signature "$signature"
 
   Authorization="$Algorithm Credential=$Volcengine_ACCESS_KEY_ID/$CredentialScope, SignedHeaders=$SignedHeaders, Signature=$signature"
   _debug2 Authorization "$Authorization"
 
   _H2="Authorization: $Authorization"
-  _debug _H2 "$_H2"
+  _debug2 _H2 "$_H2"
 
   url="$Volcengine_URL/$ep"
   if [ "$qsr" ]; then
@@ -270,7 +288,7 @@ volcengine_rest() {
   fi
 
   _ret="$?"
-  _debug2 response "$response"
+  _debug response "$response"
   if [ "$_ret" = "0" ]; then
     if _contains "$response" "\"Error\":{"; then
       _err "Response error:$response"
