@@ -4707,6 +4707,13 @@ issue() {
   else
     _cleardomainconf "Le_ChallengeAlias"
   fi
+  # Save Le_DNSSleep unconditionally here: the save inside the dns_entries
+  # branch is skipped when all authorizations are already valid (e.g. issuing
+  # the ECC twin of a just-issued RSA cert), which left the setting out of
+  # that cert's conf. https://github.com/acmesh-official/acme.sh/issues/6986
+  if [ "$Le_DNSSleep" ]; then
+    _savedomainconf "Le_DNSSleep" "$Le_DNSSleep"
+  fi
   if [ "$_preferred_chain" ]; then
     _savedomainconf "Le_Preferred_Chain" "$_preferred_chain" "base64"
   else
