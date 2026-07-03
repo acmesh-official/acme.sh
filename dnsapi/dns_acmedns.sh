@@ -8,12 +8,13 @@ Options:
  ACMEDNS_USERNAME Username. Optional.
  ACMEDNS_PASSWORD Password. Optional.
  ACMEDNS_SUBDOMAIN Subdomain. Optional.
+ ACMEDNS_STORAGE JSON config. Optional.
  ACMEDNS_BASE_URL API endpoint. Default: "https://auth.acme-dns.io".
 Issues: github.com/dampfklon/acme.sh
 Author: Wolfgang Ebner, Sven Neubuaer
 '
 
-########  Public functions #####################
+########## Public functions ##########
 
 #Usage: dns_acmedns_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 # Used to add txt record
@@ -32,14 +33,24 @@ dns_acmedns_add() {
   ACMEDNS_SUBDOMAIN="${ACMEDNS_SUBDOMAIN:-$(_readaccountconf_mutable ACMEDNS_SUBDOMAIN)}"
   _clearaccountconf_mutable ACMEDNS_SUBDOMAIN
 
+  # Load per-domain config
   ACMEDNS_BASE_URL="${ACMEDNS_BASE_URL:-$(_readdomainconf ACMEDNS_BASE_URL)}"
   ACMEDNS_USERNAME="${ACMEDNS_USERNAME:-$(_readdomainconf ACMEDNS_USERNAME)}"
   ACMEDNS_PASSWORD="${ACMEDNS_PASSWORD:-$(_readdomainconf ACMEDNS_PASSWORD)}"
   ACMEDNS_SUBDOMAIN="${ACMEDNS_SUBDOMAIN:-$(_readdomainconf ACMEDNS_SUBDOMAIN)}"
+  ACMEDNS_STORAGE="${ACMEDNS_STORAGE:-$(_readdomainconf ACMEDNS_STORAGE)}"
 
-  if [ "$ACMEDNS_BASE_URL" = "" ]; then
-    ACMEDNS_BASE_URL="https://auth.acme-dns.io"
+  # Detect if user explicitly configured JSON storage
+  _use_storage_conf=""
+  [ -n "$ACMEDNS_STORAGE" ] && _use_storage_conf=1
+
+  # Load from JSON storage if credentials are incomplete
+  if [ -z "$ACMEDNS_USERNAME" ] || [ -z "$ACMEDNS_PASSWORD" ] || [ -z "$ACMEDNS_SUBDOMAIN" ]; then
+    _acmedns_lookup_from_json "$fulldomain"
   fi
+
+  # Default acme-dns endpoint
+  [ -z "$ACMEDNS_BASE_URL" ] && ACMEDNS_BASE_URL="https://auth.acme-dns.io"
 
   ACMEDNS_UPDATE_URL="$ACMEDNS_BASE_URL/update"
   ACMEDNS_REGISTER_URL="$ACMEDNS_BASE_URL/register"
@@ -61,10 +72,21 @@ dns_acmedns_add() {
     read -r _
   fi
 
+  # Save per-domain config
   _savedomainconf ACMEDNS_BASE_URL "$ACMEDNS_BASE_URL"
-  _savedomainconf ACMEDNS_USERNAME "$ACMEDNS_USERNAME"
-  _savedomainconf ACMEDNS_PASSWORD "$ACMEDNS_PASSWORD"
-  _savedomainconf ACMEDNS_SUBDOMAIN "$ACMEDNS_SUBDOMAIN"
+
+  # Save either JSON storage or credentials (mutually exclusive)
+  if [ "$_use_storage_conf" = "1" ]; then
+    _savedomainconf ACMEDNS_STORAGE "$ACMEDNS_STORAGE"
+    _cleardomainconf ACMEDNS_USERNAME
+    _cleardomainconf ACMEDNS_PASSWORD
+    _cleardomainconf ACMEDNS_SUBDOMAIN
+  else
+    _savedomainconf ACMEDNS_USERNAME "$ACMEDNS_USERNAME"
+    _savedomainconf ACMEDNS_PASSWORD "$ACMEDNS_PASSWORD"
+    _savedomainconf ACMEDNS_SUBDOMAIN "$ACMEDNS_SUBDOMAIN"
+    _cleardomainconf ACMEDNS_STORAGE
+  fi
 
   export _H1="X-Api-User: $ACMEDNS_USERNAME"
   export _H2="X-Api-Key: $ACMEDNS_PASSWORD"
@@ -78,7 +100,6 @@ dns_acmedns_add() {
     _err "invalid response of acme-dns"
     return 1
   fi
-
 }
 
 #Usage: fulldomain txtvalue
@@ -91,4 +112,34 @@ dns_acmedns_rm() {
   _debug "txtvalue $txtvalue"
 }
 
-####################  Private functions below ##################################
+########## Private functions ##########
+
+_acmedns_lookup_from_json() {
+  _fulldomain="$1"
+  _domain="${_fulldomain#_acme-challenge.}"
+
+  _storage="$ACMEDNS_STORAGE"
+  [ -z "$_storage" ] && _storage="$HOME/.acme-dns.json"
+  [ ! -f "$_storage" ] && return 1
+
+  # Escape dots in the domain for use in sed
+  _safe_domain=$(printf '%s\n' "$_domain" | sed 's/\./\\./g')
+
+  _entry="$(
+    sed -n "/\"$_safe_domain\"[[:space:]]*:/,/}/p" "$_storage"
+  )"
+  [ -z "$_entry" ] && return 1
+
+  _server_url="$(echo "$_entry" | sed -n 's/.*"server_url":[ ]*"\([^"]*\)".*/\1/p')"
+  _username="$(echo "$_entry" | sed -n 's/.*"username":[ ]*"\([^"]*\)".*/\1/p')"
+  _password="$(echo "$_entry" | sed -n 's/.*"password":[ ]*"\([^"]*\)".*/\1/p')"
+  _subdomain="$(echo "$_entry" | sed -n 's/.*"subdomain":[ ]*"\([^"]*\)".*/\1/p')"
+
+  [ -n "$_server_url" ] && ACMEDNS_BASE_URL="$_server_url"
+  [ -n "$_username" ] && ACMEDNS_USERNAME="$_username"
+  [ -n "$_password" ] && ACMEDNS_PASSWORD="$_password"
+  [ -n "$_subdomain" ] && ACMEDNS_SUBDOMAIN="$_subdomain"
+
+  ACMEDNS_STORAGE="$_storage"
+  return 0
+}
