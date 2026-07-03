@@ -113,7 +113,13 @@ _wedos_init() {
 # the current hour on the WEDOS servers (Europe/Prague timezone).
 # The POSIX TZ string is used so no tzdata is required on the client.
 _wedos_auth() {
-  _wedos_hour=$(TZ='CET-1CEST,M3.5.0,M10.5.0/3' date +%H)
+  if [ "$_wedos_utc" ]; then
+    # fallback: WAPI accepts 1 hour of skew, UTC+1 fits both CET and CEST
+    _wedos_hour=$(date -u +%H)
+    _wedos_hour=$(printf '%02d' "$(((${_wedos_hour#0} + 1) % 24))")
+  else
+    _wedos_hour=$(TZ='CET-1CEST,M3.5.0,M10.5.0/3' date +%H)
+  fi
   _wedos_phash=$(printf '%s' "$WEDOS_Wapipass" | _digest sha1 hex)
   printf '%s' "${WEDOS_Username}${_wedos_phash}${_wedos_hour}" | _digest sha1 hex
 }
@@ -153,6 +159,23 @@ _wedos_request() {
     return 0
   fi
 
+  # some systems ignore the TZ variable (Haiku), sending a wrong auth hour;
+  # retry once with the UTC fallback in _wedos_auth
+  if [ "$_wedos_code" = "2050" ] && [ -z "$_wedos_utc" ]; then
+    _wedos_utc=1
+    _wedos_request "$_wedos_cmd" "$_wedos_data"
+    return $?
+  fi
+
+  # 2050 = bad credentials, 2051 = IP not whitelisted, 2052 = IP blocked
+  if [ "$_wedos_code" = "2050" ] || [ "$_wedos_code" = "2051" ] || [ "$_wedos_code" = "2052" ]; then
+    _wedos_result=$(echo "$response" | _egrep_o '"result": *"[^"]*"' | _head_n 1 | cut -d '"' -f 4)
+    _err "WAPI authentication error $_wedos_code: $_wedos_result"
+    _err "Check WEDOS_Username, WEDOS_Wapipass and the WAPI IP whitelist."
+    _wedos_autherr=1
+    return 1
+  fi
+
   _debug "WAPI error for command '$_wedos_cmd': $response"
   return 1
 }
@@ -166,6 +189,7 @@ _wedos_request() {
 _get_root() {
   _gr_full="$1"
   _gr_i=1
+  _wedos_autherr=""
   while true; do
     _gr_candidate=$(printf '%s' "$_gr_full" | cut -d . -f "${_gr_i}"-100)
     _debug2 "Checking zone candidate: $_gr_candidate"
@@ -181,6 +205,11 @@ _get_root() {
         _sub_domain=$(printf '%s' "$_gr_full" | cut -d . -f 1-"$((_gr_i - 1))")
       fi
       return 0
+    fi
+
+    # auth error hits every candidate, stop the walk
+    if [ "$_wedos_autherr" ]; then
+      return 1
     fi
 
     _gr_i=$((_gr_i + 1))
