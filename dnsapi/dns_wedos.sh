@@ -65,7 +65,7 @@ dns_wedos_rm() {
 
   # _get_root leaves the dns-rows-list response for $_domain in $response
   _debug "Looking up row IDs for TXT value: $txtvalue"
-  _row_ids=$(echo "$response" | tr '{' '\n' | grep -F -- "\"rdata\":\"$txtvalue\"" | grep -F -- "\"name\":\"$_sub_domain\"" | _egrep_o '"ID": *"?[0-9]*' | _egrep_o '[0-9]*')
+  _row_ids=$(echo "$response" | tr '{' '\n' | grep -F -- "\"rdata\":\"$txtvalue\"" | grep -F -- "\"name\":\"$_sub_domain\"" | _egrep_o '"ID": *"[0-9]*"' | tr -dc '0-9\n')
   _debug _row_ids "$_row_ids"
 
   if [ -z "$_row_ids" ]; then
@@ -147,7 +147,7 @@ _wedos_request() {
   fi
   _debug2 "WAPI response: $response"
 
-  _wedos_code=$(echo "$response" | _egrep_o '"code": *[0-9]*' | _head_n 1 | _egrep_o '[0-9]*')
+  _wedos_code=$(echo "$response" | _egrep_o '"code": *[0-9]*' | _head_n 1 | tr -dc '0-9')
   _debug2 "WAPI result code: $_wedos_code"
   if [ "$_wedos_code" = "1000" ]; then
     return 0
