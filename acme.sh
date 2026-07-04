@@ -4110,7 +4110,7 @@ updateaccountkey() {
 
   _accUri=$(_readcaconf "ACCOUNT_URL")
   _debug _accUri "$_accUri"
-  
+
   if [ -z "_accUri" ]; then
     _err "The account URL is empty, please run '--update-account' first to update the account info, then try again."
     return 1
@@ -4119,12 +4119,12 @@ updateaccountkey() {
     return 1
   fi
   _inner_payload="{\"account\": \"$_accUri\", \"oldKey\": $jwk}"
-  
+
   _initAPI
   if [ -z "$ACME_KEY_CHANGE" ]; then
     return 1
   fi
-  
+
   url="$ACME_KEY_CHANGE"
   if _createkey "$length" "$ACCOUNT_KEY_PATH_NEW"; then
     _info "New account key creation OK."
@@ -4149,7 +4149,7 @@ updateaccountkey() {
   _debug3 _inner_sig "$_inner_sig"
 
   body="{\"protected\": \"$_inner_protected64\", \"payload\": \"$_inner_payload64\", \"signature\": \"$_inner_sig\"}"
-  
+
   if ! _send_signed_request "$url" "$body" "" "$ACCOUNT_KEY_PATH"; then
     _err "Error rotating account key: $response."
     rm "$ACCOUNT_KEY_PATH_NEW"
@@ -4168,7 +4168,8 @@ updateaccountkey() {
     rm "$ACCOUNT_KEY_PATH_NEW"
     exit 1
   fi 
-  
+
+  mv "$ACCOUNT_KEY_PATH" "$ACCOUNT_KEY_PATH.old"
   mv "$ACCOUNT_KEY_PATH_NEW" "$ACCOUNT_KEY_PATH"
 }
 
