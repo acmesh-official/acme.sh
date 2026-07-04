@@ -8224,11 +8224,11 @@ _process() {
     --update-account | --updateaccount)
       _CMD="updateaccount"
       ;;
-    --register-account | --registeraccount)
-      _CMD="registeraccount"
-      ;;
     --update-account-key | --updateaccountkey)
       _CMD="updateaccountkey"
+      ;;
+    --register-account | --registeraccount)
+      _CMD="registeraccount"
       ;;
     --deactivate-account)
       _CMD="deactivateaccount"
