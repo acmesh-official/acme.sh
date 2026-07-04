@@ -4167,7 +4167,7 @@ updateaccountkey() {
     _err "Account key rollover error: $response"
     rm "$ACCOUNT_KEY_PATH_NEW"
     exit 1
-  fi 
+  fi
 
   mv "$ACCOUNT_KEY_PATH" "$ACCOUNT_KEY_PATH.old"
   mv "$ACCOUNT_KEY_PATH_NEW" "$ACCOUNT_KEY_PATH"
