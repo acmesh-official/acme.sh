@@ -4097,6 +4097,81 @@ updateaccount() {
   fi
 }
 
+#Implement account key rollover
+updateaccountkey() {
+  length="$1"
+  _initpath
+
+  if [ ! -f "$ACCOUNT_KEY_PATH" ]; then
+    _err "Account key not found at: $ACCOUNT_KEY_PATH"
+    return 1
+  fi
+  ACCOUNT_KEY_PATH_NEW="$ACCOUNT_KEY_PATH.new"
+
+  _accUri=$(_readcaconf "ACCOUNT_URL")
+  _debug _accUri "$_accUri"
+  
+  if [ -z "_accUri" ]; then
+    _err "The account URL is empty, please run '--update-account' first to update the account info, then try again."
+    return 1
+  fi
+  if ! _calcjwk "$ACCOUNT_KEY_PATH"; then
+    return 1
+  fi
+  _inner_payload="{\"account\": \"$_accUri\", \"oldKey\": $jwk}"
+  
+  _initAPI
+  if [ -z "$ACME_KEY_CHANGE" ]; then
+    return 1
+  fi
+  
+  url="$ACME_KEY_CHANGE"
+  if _createkey "$length" "$ACCOUNT_KEY_PATH_NEW"; then
+    _info "New account key creation OK."
+  else
+    _err "New account key creation error."
+    return 1
+  fi
+
+  if ! _calcjwk "$ACCOUNT_KEY_PATH_NEW"; then
+    return 1
+  fi
+  _inner_protected="$JWK_HEADERPLACE_PART1\", \"url\": \"${url}$JWK_HEADERPLACE_PART2, \"jwk\": $jwk"'}'
+  _inner_protected64="$(printf "%s" "$_inner_protected" | _base64 | _url_replace)"
+  _inner_payload64="$(printf "%s" "$_inner_payload" | _base64 | _url_replace)"
+  if ! _inner_sig_t="$(printf "%s" "$_inner_protected64.$_inner_payload64" | _sign "$ACCOUNT_KEY_PATH_NEW" "sha256")"; then
+    _err "Sign request failed."
+    return 1
+  fi
+  _debug3 _inner_sig_t "$_inner_sig_t"
+
+  _inner_sig="$(printf "%s" "$_inner_sig_t" | _url_replace)"
+  _debug3 _inner_sig "$_inner_sig"
+
+  body="{\"protected\": \"$_inner_protected64\", \"payload\": \"$_inner_payload64\", \"signature\": \"$_inner_sig\"}"
+  
+  if ! _send_signed_request "$url" "$body" "" "$ACCOUNT_KEY_PATH"; then
+    _err "Error rotating account key: $response."
+    rm "$ACCOUNT_KEY_PATH_NEW"
+    return 1
+  fi
+
+  if [ "$code" = '200' ]; then
+    echo "$response" >"$ACCOUNT_JSON_PATH"
+    _info "Successfully rotated"
+  elif [ "$code" = "409" ]; then
+    _error "An existing account is using the new key"
+    rm "$ACCOUNT_KEY_PATH_NEW"
+    exit 1
+  else
+    _err "Account key rollover error: $response"
+    rm "$ACCOUNT_KEY_PATH_NEW"
+    exit 1
+  fi 
+  
+  mv "$ACCOUNT_KEY_PATH_NEW" "$ACCOUNT_KEY_PATH"
+}
+
 #Implement deactivate account
 deactivateaccount() {
   _initpath
@@ -8152,6 +8227,9 @@ _process() {
     --register-account | --registeraccount)
       _CMD="registeraccount"
       ;;
+    --update-account-key | --updateaccountkey)
+      _CMD="updateaccountkey"
+      ;;
     --deactivate-account)
       _CMD="deactivateaccount"
       ;;
@@ -8741,6 +8819,9 @@ _process() {
     ;;
   updateaccount)
     updateaccount
+    ;;
+  updateaccountkey)
+    updateaccountkey "$_accountkeylength"
     ;;
   deactivateaccount)
     deactivateaccount
