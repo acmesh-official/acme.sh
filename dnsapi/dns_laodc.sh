@@ -1,17 +1,17 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
-dns_laodc_info='LaoDC DNS Server
+dns_laodc_info='LaoDC DNS API Server
 Site: laodc.com
-Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_laodc
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_laodc
 Options:
  LaoDC_Key API Key
-Issues: support+acme-sh@laodc.com
+Issues: github.com/acmesh-official/acme.sh/issues/6973
 Author: @laodc
 '
 
 # Usage:
 #   export LaoDC_Key="your-api-key"
-#   acme.sh --issue --dns dns_laodc -d example.com -d *.example.com
+#   acme.sh --issue --dns dns_laodc -d example.la -d *.example.la --dnssleep 120
 #
 # The credentials will be saved in ~/.acme.sh/account.conf
 
@@ -20,11 +20,10 @@ LAODC_API_ENDPOINT="https://dns.laodc.com/v1"
 
 ########  Public functions #####################
 
-# Usage: dns_laodc_add  _acme-challenge.www.domain.com  ZPXvna6tBhq7XQMH7_t2WC2sg0F-BdmtmmpUJiK6Ho
+# Usage: dns_laodc_add  _acme-challenge.example.la  ZPXvna6tBhq7XQMH7_t2WC2sg0F-BdmtmmpUJiK6Ho
 dns_laodc_add() {
   fulldomain=$1
   txtvalue=$2
-  export txtvalue
 
   _info "Using LaoDC DNS API"
 
@@ -105,7 +104,7 @@ dns_laodc_rm() {
 _get_root() {
   fqdn=$1
   p=1
-  i=2
+  i=1
 
   while true; do
     h=$(printf "%s" "$fqdn" | cut -d . -f "$i"-100)
@@ -161,11 +160,14 @@ _laodc_api() {
     ;;
   esac
 
+  _ret=$?
+
   # Unset immediately after request to prevent leaks
+  export _H1=
   export _H2=
   export _H3=
 
-  if [ "$?" != "0" ]; then
+  if [ "$_ret" != "0" ]; then
     _err "Error $domain"
     return 1
   fi
