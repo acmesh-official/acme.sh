@@ -1,7 +1,21 @@
 <p align="center">
-  <a href="https://zerossl.com/?fromacme.sh">
-    <img src="https://github.com/user-attachments/assets/7531085e-399b-4ac2-82a2-90d14a0b7f05" alt="zerossl.com">
-  </a>
+<a href="https://zerossl.com?utm_source=acme-sh">
+<picture>
+  <!-- Dark mode -->
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="https://github.com/user-attachments/assets/1308516b-e0cc-496d-b5df-e3932423ead6" />
+  <!-- Light mode -->
+  <source
+    media="(prefers-color-scheme: light)"
+    srcset="https://github.com/user-attachments/assets/4ba7a79e-8cc9-4d49-87fc-02d44fb7b043" />
+  <!-- Fallback for environments without media queries -->
+  <img
+    alt="ZeroSSL"
+    src="https://github.com/user-attachments/assets/4ba7a79e-8cc9-4d49-87fc-02d44fb7b043"
+    height="auto" />
+</picture>
+</a>
 </p>
 
 <h1 align="center">🔐 acme.sh</h1>
@@ -17,8 +31,10 @@
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml/badge.svg" alt="Solaris"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml/badge.svg" alt="DragonFlyBSD"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/MidnightBSD.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/MidnightBSD.yml/badge.svg" alt="MidnightBSD"></a>
+  <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/GhostBSD.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/GhostBSD.yml/badge.svg" alt="GhostBSD"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml/badge.svg" alt="Omnios"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml/badge.svg" alt="OpenIndiana"></a>
+  <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Tribblix.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Tribblix.yml/badge.svg" alt="Tribblix"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml/badge.svg" alt="Haiku"></a>
 </p>
 
@@ -112,6 +128,8 @@
 |23|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/acmesh-official/acme.sh/wiki/How-to-run-on-OpenWRT)
 |24|[![](https://acmesh-official.github.io/acmetest/status/proxmox.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)| Proxmox: See Proxmox VE Wiki. Version [4.x, 5.0, 5.1](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x,_5.0_and_5.1)#Let.27s_Encrypt_using_acme.sh), version [5.2 and up](https://pve.proxmox.com/wiki/Certificate_Management)
 |25|[![Haiku](https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml)|Haiku OS
+|26|[![Tribblix](https://github.com/acmesh-official/acme.sh/actions/workflows/Tribblix.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Tribblix.yml)|Tribblix
+|27|[![GhostBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/GhostBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/GhostBSD.yml)|GhostBSD
 
 
 > 🧪 Check our [testing project](https://github.com/acmesh-official/acmetest)
@@ -610,6 +628,8 @@ acme.sh --upgrade --auto-upgrade 0
 This project exists thanks to all the people who contribute.
 
 <a href="https://github.com/acmesh-official/acme.sh/graphs/contributors"><img src="https://opencollective.com/acmesh/contributors.svg?width=890&button=false" /></a>
+
+If you want to become a contributor make sure to read [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ### 💰 Financial Contributors
 

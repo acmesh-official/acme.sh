@@ -76,7 +76,7 @@ dns_czechia_add() {
     return 0
   fi
 
-  _nres="$(_normalizeJson "$_res")"
+  _nres="$(printf '%s' "$_res" | _normalizeJson)"
   if [ "$?" -ne 0 ] || [ -z "$_nres" ]; then
     _nres="$_res"
   fi
