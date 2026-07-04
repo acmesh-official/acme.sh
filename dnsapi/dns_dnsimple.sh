@@ -5,6 +5,7 @@ Site: DNSimple.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_dnsimple
 Options:
  DNSimple_OAUTH_TOKEN OAuth Token
+ DNSimple_ACCOUNT_ID Account ID. Optional, only needed when the token can access multiple accounts.
 Issues: github.com/pho3nixf1re/acme.sh/issues
 '
 
@@ -28,7 +29,7 @@ dns_dnsimple_add() {
   _saveaccountconf DNSimple_OAUTH_TOKEN "$DNSimple_OAUTH_TOKEN"
 
   if ! _get_account_id; then
-    _err "failed to retrive account id"
+    _err "failed to retrieve account id"
     return 1
   fi
 
@@ -57,7 +58,7 @@ dns_dnsimple_rm() {
   fulldomain=$1
 
   if ! _get_account_id; then
-    _err "failed to retrive account id"
+    _err "failed to retrieve account id"
     return 1
   fi
 
@@ -122,13 +123,16 @@ _get_root() {
 
 # returns _account_id
 _get_account_id() {
-  _debug "retrive account id"
-  if ! _dnsimple_rest GET "whoami"; then
-    return 1
+  DNSimple_ACCOUNT_ID="${DNSimple_ACCOUNT_ID:-$(_readaccountconf DNSimple_ACCOUNT_ID)}"
+  if [ "$DNSimple_ACCOUNT_ID" ]; then
+    _saveaccountconf DNSimple_ACCOUNT_ID "$DNSimple_ACCOUNT_ID"
+    _account_id="$DNSimple_ACCOUNT_ID"
+    _debug _account_id "$_account_id"
+    return 0
   fi
 
-  if _contains "$response" "\"account\":null"; then
-    _err "no account associated with this token"
+  _debug "retrieve account id"
+  if ! _dnsimple_rest GET "whoami"; then
     return 1
   fi
 
@@ -137,7 +141,25 @@ _get_account_id() {
     return 1
   fi
 
+  if _contains "$response" "\"account\":null"; then
+    # the whoami of a user token (dnsimple_u_*) carries no account,
+    # so list the accounts the token can access instead
+    # https://github.com/acmesh-official/acme.sh/issues/6491
+    if ! _dnsimple_rest GET "accounts"; then
+      return 1
+    fi
+  fi
+
   _account_id=$(printf "%s" "$response" | _egrep_o "\"id\":[^,]*,\"email\":" | cut -d: -f2 | cut -d, -f1)
+  if [ -z "$_account_id" ]; then
+    _err "no account associated with this token"
+    return 1
+  fi
+  if [ "$(echo "$_account_id" | wc -l)" -gt 1 ]; then
+    _err "The token has access to multiple accounts, please pick one and set it explicitly:"
+    _err "export DNSimple_ACCOUNT_ID=<one of: $(echo "$_account_id" | tr '\n' ' ')>"
+    return 1
+  fi
   _debug _account_id "$_account_id"
 
   return 0

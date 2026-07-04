@@ -918,6 +918,15 @@ _json_decode() {
   echo "$_j_str"
 }
 
+#extract the authorization URLs from an order response on stdin, as a
+#comma-separated list. The entries are quoted URL strings and a quote cannot
+#occur inside a URL, so the first '"]' is always the end of the array. A
+#char-class scan would stop early on the brackets of an IPv6 host
+#(https://[2001:db8::1]/...). Outputs nothing if the field is missing.
+_authorizations_from_order() {
+  sed -n 's/.*"authorizations" *: *\[//p' | sed 's/" *\].*//' | tr -d '" '
+}
+
 #options file
 _sed_i() {
   options="$1"
@@ -1179,6 +1188,11 @@ _createkey() {
   length="$1"
   f="$2"
   _debug2 "_createkey for file:$f"
+  if ! _exists "${ACME_OPENSSL_BIN:-openssl}"; then
+    _err "Please install openssl first. ACME_OPENSSL_BIN=$ACME_OPENSSL_BIN"
+    _err "We need openssl to generate keys."
+    return 1
+  fi
   eccname="$length"
   if _startswith "$length" "ec-"; then
     length=$(printf "%s" "$length" | cut -d '-' -f 2-100)
@@ -1201,6 +1215,7 @@ _createkey() {
 
   _debug "Using length $length"
 
+  _new_key_file=""
   if ! [ -e "$f" ]; then
     if ! touch "$f" >/dev/null 2>&1; then
       _f_path="$(dirname "$f")"
@@ -1214,6 +1229,7 @@ _createkey() {
       return 1
     fi
     chmod 600 "$f"
+    _new_key_file="1"
   fi
 
   if _isEccKey "$length"; then
@@ -1222,6 +1238,10 @@ _createkey() {
       echo "$_opkey" >"$f"
     else
       _err "Error encountered for ECC key named $eccname"
+      #do not leave an empty file behind, or the next run would treat the key as existing
+      if [ "$_new_key_file" ]; then
+        rm -f "$f"
+      fi
       return 1
     fi
   else
@@ -1234,6 +1254,10 @@ _createkey() {
       echo "$_opkey" >"$f"
     else
       _err "Error encountered for RSA key of length $length"
+      #do not leave an empty file behind, or the next run would treat the key as existing
+      if [ "$_new_key_file" ]; then
+        rm -f "$f"
+      fi
       return 1
     fi
   fi
@@ -2834,13 +2858,44 @@ __initHome() {
     _debug "Using default home: $DEFAULT_INSTALL_HOME"
     LE_WORKING_DIR="$DEFAULT_INSTALL_HOME"
   fi
+  # Convert a relative --home to an absolute path: later code cd's around
+  # (e.g. installOnline extracts and enters the archive dir), where a
+  # relative path would point into the wrong directory.
+  # https://github.com/acmesh-official/acme.sh/issues/6477
+  case "$LE_WORKING_DIR" in
+  /*) ;;
+  *)
+    if [ -d "$LE_WORKING_DIR" ]; then
+      LE_WORKING_DIR="$(cd "$LE_WORKING_DIR" && pwd)"
+    fi
+    ;;
+  esac
   export LE_WORKING_DIR
 
   if [ -z "$LE_CONFIG_HOME" ]; then
     LE_CONFIG_HOME="$LE_WORKING_DIR"
   fi
+  case "$LE_CONFIG_HOME" in
+  /*) ;;
+  *)
+    if [ -d "$LE_CONFIG_HOME" ]; then
+      LE_CONFIG_HOME="$(cd "$LE_CONFIG_HOME" && pwd)"
+    fi
+    ;;
+  esac
   _debug "Using config home: $LE_CONFIG_HOME"
   export LE_CONFIG_HOME
+
+  # Paths with whitespace break the unquoted $_CURL/$_WGET command expansion,
+  # so fail early with a clear error instead of a cryptic curl/wget failure.
+  # https://github.com/acmesh-official/acme.sh/issues/2163
+  case "$LE_WORKING_DIR$LE_CONFIG_HOME" in
+  *" "*)
+    _err "The --home or --config-home path can not contain spaces: '$LE_WORKING_DIR'"
+    _err "Please install $PROJECT_NAME to a path without spaces."
+    exit 1
+    ;;
+  esac
 
   _DEFAULT_ACCOUNT_CONF_PATH="$LE_CONFIG_HOME/account.conf"
 
@@ -3513,7 +3568,7 @@ _restoreNginx() {
   done
 
   _info "Reloading nginx"
-  if ! nginx -s reload >/dev/null; then
+  if ! nginx -s reload >/dev/null 2>&1; then
     _err "An error occurred while reloading nginx, please open an issue on $PROJECT."
     return 1
   fi
@@ -3857,7 +3912,7 @@ _regAccount() {
 
   mkdir -p "$CA_DIR"
 
-  if [ ! -f "$ACCOUNT_KEY_PATH" ]; then
+  if [ ! -s "$ACCOUNT_KEY_PATH" ]; then
     if ! _create_account_key "$_reg_length"; then
       _err "Error creating account key."
       return 1
@@ -4935,7 +4990,7 @@ issue() {
     #for dns manual mode
     _savedomainconf "Le_OrderFinalize" "$Le_OrderFinalize"
 
-    _authorizations_seg="$(echo "$response" | _json_decode | _egrep_o '"authorizations" *: *\[[^\[]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
+    _authorizations_seg="$(echo "$response" | _json_decode | _authorizations_from_order)"
     _debug2 _authorizations_seg "$_authorizations_seg"
     if [ -z "$_authorizations_seg" ]; then
       _err "_authorizations_seg not found."
@@ -5751,6 +5806,21 @@ $_authorizations_map"
     fi
   fi
 
+  # Warn when the scheduled renewal falls after the cert has already expired,
+  # e.g. a 1-day cert from an internal CA combined with the default 30-day
+  # schedule, which computes from the creation date and never looks at
+  # notAfter. Skip the warning for a fixed-date --valid-to: there
+  # Le_NextRenewTime equals the expiry by design and the non-renewable state
+  # was already reported above. https://github.com/acmesh-official/acme.sh/issues/6917
+  if [ -z "$_valid_to" ] || _startswith "$_valid_to" "+"; then
+    _renew_chk_enddate="$(_enddate "$CERT_PATH")"
+    _renew_chk_endtime="$(_ssldate2time "$_renew_chk_enddate")"
+    if [ "$Le_NextRenewTime" ] && [ "$_renew_chk_endtime" ] && [ "$Le_NextRenewTime" -ge "$_renew_chk_endtime" ]; then
+      _info "$(__red "WARNING: the cert expires at $_renew_chk_enddate, BEFORE the next scheduled renewal time $Le_NextRenewTimeStr.")"
+      _info "$(__red "The cert will already be expired when the renewal runs. If your CA issues short-lived certs, use a negative --days value (e.g. --days -1) to renew relative to the expiry time.")"
+    fi
+  fi
+
   _savedomainconf "Le_NextRenewTimeStr" "$Le_NextRenewTimeStr"
   _savedomainconf "Le_NextRenewTime" "$Le_NextRenewTime"
 
@@ -5838,6 +5908,14 @@ renew() {
   fi
   _info "Renewing using Le_API=$Le_API"
 
+  # Honor --local-address given on the renew/renewAll command line: it overrides
+  # the value saved at issue time (and gets re-saved by issue() below), so certs
+  # issued before the machine gained multiple addresses can still be renewed.
+  # https://github.com/acmesh-official/acme.sh/issues/7009
+  if [ "$_local_address" ]; then
+    Le_LocalAddress="$_local_address"
+  fi
+
   _clearAPI
   _clearCA
   export ACME_DIRECTORY="$Le_API"
@@ -5850,7 +5928,6 @@ renew() {
   # If the window has started, renew now even if Le_NextRenewTime is in the future.
   # Set NO_ARI=1 (env, account.conf, or ca.conf) to opt out and use only
   # Le_NextRenewTime for the renewal decision.
-  _ari_should_renew=""
   if [ "$NO_ARI" = "1" ]; then
     _debug "NO_ARI=1, skipping ARI suggestedWindow check"
   elif [ -z "$FORCE" ] && [ -f "$CERT_PATH" ]; then
@@ -5861,20 +5938,38 @@ renew() {
       _ari_end="$(echo "$_ari_resp" | _egrep_o '"end" *: *"[^"]*' | sed 's/.*"//')"
       _debug "ARI suggestedWindow.start" "$_ari_start"
       _debug "ARI suggestedWindow.end" "$_ari_end"
-      if [ "$_ari_start" ]; then
+      if [ "$_ari_start" ] && [ "$_ari_end" ]; then
         _ari_start_t="$(_date2time "$(echo "$_ari_start" | sed 's/\.[0-9]*//')")"
+        _ari_end_t="$(_date2time "$(echo "$_ari_end" | sed 's/\.[0-9]*//')")"
+        _ari_explanation_url="$(echo "$_ari_resp" | _egrep_o '"explanationURL" *: *"[^"]*' | sed 's/.*"//')"
         _debug "_ari_start_t" "$_ari_start_t"
-        if [ "$_ari_start_t" ] && [ "$(_time)" -ge "$_ari_start_t" ]; then
-          _info "ARI suggestedWindow has started ($(__green "$_ari_start")), proceeding with renewal."
-          _ari_should_renew="1"
-        else
-          _info "ARI suggestedWindow starts at: $(__green "$_ari_start")"
+        _debug "_ari_end_t" "$_ari_end_t"
+        _debug "_ari_explanation_url" "$_ari_explanation_url"
+        _debug "Le_NextRenewTime" "$Le_NextRenewTime"
+        # Update ARI if needed
+        if [ "$_ari_start_t" ] && [ "$_ari_end_t" ] && [ "$Le_NextRenewTime" ] && [ "$_ari_end_t" -gt "$_ari_start_t" ] && ([ "$Le_NextRenewTime" -lt "$_ari_start_t" ] || [ "$Le_NextRenewTime" -gt "$_ari_end_t" ]); then
+          _ari_old_time_str="$Le_NextRenewTimeStr"
+          _info "Current renewal time: $(__green "$_ari_old_time_str")"
+          _ari_window=$(_math "$_ari_end_t" - "$_ari_start_t")
+          _ari_offset=$(_math "$(_time)" % "$_ari_window")
+          Le_NextRenewTime=$(_math "$_ari_start_t" + "$_ari_offset")
+          Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+          _info "ARI suggestedWindow: $(__green "$_ari_start") to $(__green "$_ari_end")"
+          _info "Updating renewal time picked from ARI window: $(__green "$Le_NextRenewTimeStr")"
+          _savedomainconf Le_NextRenewTime "$Le_NextRenewTime"
+          _savedomainconf Le_NextRenewTimeStr "$Le_NextRenewTimeStr"
+        fi
+        if [ "$Le_NextRenewTime" ] && [ "$(_time)" -ge "$Le_NextRenewTime" ]; then
+          _info "ARI suggested renewal has passed ($(__green "$Le_NextRenewTimeStr")), proceeding with renewal."
+          if [ "$_ari_explanation_url" ]; then
+            _info "For more information on this renewal: $(__green "$_ari_explanation_url")"
+          fi
         fi
       fi
     fi
   fi
 
-  if [ -z "$FORCE" ] && [ -z "$_ari_should_renew" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
+  if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
     _info "Skipping. Next renewal time is: $(__green "$Le_NextRenewTimeStr")"
     _info "Add '$(__red '--force')' to force renewal."
     if [ -z "$_ACME_IN_RENEWALL" ]; then
@@ -5917,11 +6012,8 @@ renew() {
   fi
   issue "$Le_Webroot" "$Le_Domain" "$Le_Alt" "$Le_Keylength" "$Le_RealCertPath" "$Le_RealKeyPath" "$Le_RealCACertPath" "$Le_ReloadCmd" "$Le_RealFullChainPath" "$Le_PreHook" "$Le_PostHook" "$Le_RenewHook" "$Le_LocalAddress" "$Le_ChallengeAlias" "$Le_Preferred_Chain" "$Le_Valid_From" "$Le_Valid_To" "$Le_Certificate_Profile" "$Le_ExtKeyUse"
   res="$?"
-  if [ "$res" != "0" ]; then
-    return "$res"
-  fi
 
-  if [ "$Le_DeployHook" ]; then
+  if [ "$Le_DeployHook" ] && [ "$res" = "0" ]; then
     _deploy "$Le_Domain" "$Le_DeployHook"
     res="$?"
   fi
@@ -5969,12 +6061,19 @@ renewAll() {
     fi
     d=$(basename "$di")
     _debug d "$d"
+    _d_ari="$di.ari"
+    _debug _d_ari "$_d_ari"
     (
       if _endswith "$d" "$ECC_SUFFIX"; then
         _isEcc=$(echo "$d" | cut -d "$ECC_SEP" -f 2)
         d=$(echo "$d" | cut -d "$ECC_SEP" -f 1)
       fi
       renew "$d" "$_isEcc" "$_server"
+      rc="$?"
+      if [ "$rc" = "0" ] && [ "$_ari_explanation_url" ]; then
+        echo "$_ari_explanation_url" >"$_d_ari"
+      fi
+      return $rc
     )
     rc="$?"
     _debug "Return code: $rc"
@@ -5989,8 +6088,13 @@ renewAll() {
           _send_notify "Renew $d success" "Good, the cert is renewed." "$NOTIFY_HOOK" 0
         fi
       fi
+      _renewal_explanation=""
+      if [ -f "$_d_ari" ]; then
+        _renewal_explanation=" ($(cat "$_d_ari"))"
+        rm -f "$_d_ari"
+      fi
 
-      _success_msg="${_success_msg}    $d
+      _success_msg="${_success_msg}    $d$_renewal_explanation
 "
     elif [ "$rc" = "$RENEW_SKIP" ]; then
       if [ $_error_level -gt $NOTIFY_LEVEL_SKIP ]; then
@@ -6315,7 +6419,13 @@ deploy() {
   fi
 
   _debug2 DOMAIN_CONF "$DOMAIN_CONF"
-  . "$DOMAIN_CONF"
+  # The cert dir may exist without a domain conf (e.g. the conf was deleted, or
+  # the cert was placed here manually). Deploy can still proceed using env-provided
+  # settings, and _savedomainconf below will recreate the conf, so only source it
+  # when present instead of failing on a missing file.
+  if [ -f "$DOMAIN_CONF" ]; then
+    . "$DOMAIN_CONF"
+  fi
 
   _savedomainconf Le_DeployHook "$_hooks"
 
@@ -6470,6 +6580,7 @@ _install_win_taskscheduler() {
   _lesh="$1"
   _centry="$2"
   _randomminute="$3"
+  _randomhour="$4"
   if ! _exists cygpath; then
     _err "cygpath not found"
     return 1
@@ -6539,7 +6650,7 @@ installcronjob() {
   fi
   _t=$(_time)
   random_minute=$(_math $_t % 60)
-  random_hour=$(_math $_t / 60 % 24)
+  random_hour=$(_math $_t / 60 % 6)
 
   if ! _exists "$_CRONTAB" && _exists "fcrontab"; then
     _CRONTAB="fcrontab"
@@ -6548,7 +6659,7 @@ installcronjob() {
   if ! _exists "$_CRONTAB"; then
     if _exists cygpath && _exists schtasks.exe; then
       _info "It seems you are on Windows, let's install the Windows scheduler task."
-      if _install_win_taskscheduler "$lesh" "$_c_entry" "$random_minute"; then
+      if _install_win_taskscheduler "$lesh" "$_c_entry" "$random_minute" "$random_hour"; then
         _info "Successfully installed Windows scheduler task."
         return 0
       else
@@ -6570,7 +6681,7 @@ installcronjob() {
     fi
     $_CRONTAB -l 2>/dev/null | {
       cat
-      echo "$random_minute $random_hour * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
+      echo "$random_minute $random_hour,$(_math $random_hour + 6),$(_math $random_hour + 12),$(_math $random_hour + 18) * * * $lesh --cron --home \"$LE_WORKING_DIR\" $_c_entry> /dev/null"
     } | $_CRONTAB_STDIN
   fi
   if [ "$?" != "0" ]; then
@@ -6766,7 +6877,7 @@ _deactivate() {
     _err "Cannot get new order for domain."
     return 1
   fi
-  _authorizations_seg="$(echo "$response" | _egrep_o '"authorizations" *: *\[[^\]*\]' | cut -d '[' -f 2 | tr -d ']' | tr -d '"')"
+  _authorizations_seg="$(echo "$response" | _json_decode | _authorizations_from_order)"
   _debug2 _authorizations_seg "$_authorizations_seg"
   if [ -z "$_authorizations_seg" ]; then
     _err "_authorizations_seg not found."
@@ -7198,6 +7309,12 @@ install() {
 
   if [ "$_DEFAULT_CERT_HOME" != "$CERT_HOME" ]; then
     _saveaccountconf "CERT_HOME" "$CERT_HOME"
+    # Create the custom cert home now instead of on first issuance, so the
+    # user can see --install honored it.
+    # https://github.com/acmesh-official/acme.sh/issues/4756
+    if [ ! -d "$CERT_HOME" ]; then
+      mkdir -p "$CERT_HOME"
+    fi
   fi
 
   if [ "$_DEFAULT_ACCOUNT_KEY_PATH" != "$ACCOUNT_KEY_PATH" ]; then
@@ -7638,7 +7755,9 @@ installOnline() {
 
     cd "$PROJECT_NAME-$_branch"
     chmod +x $PROJECT_ENTRY
-    if ./$PROJECT_ENTRY --install "$@"; then
+    ./$PROJECT_ENTRY --install "$@"
+    _install_rc="$?"
+    if [ "$_install_rc" = "0" ]; then
       _info "Install success!"
     fi
 
@@ -7646,6 +7765,9 @@ installOnline() {
 
     rm -rf "$PROJECT_NAME-$_branch"
     rm -f "$localname"
+    # Propagate the install result so a failed upgrade is not reported as
+    # success. https://github.com/acmesh-official/acme.sh/issues/6477
+    exit "$_install_rc"
   )
 }
 
@@ -8544,6 +8666,15 @@ _process() {
   fi
 
   _debug2 LE_WORKING_DIR "$LE_WORKING_DIR"
+
+  # --days and --valid-to are mutually exclusive by design: --valid-to pins
+  # the cert lifetime and the renewal time follows the expiry, so a
+  # creation-based --days schedule can not apply.
+  if [ "$_days" ] && [ "$_valid_to" ]; then
+    _err "--days can not be used together with --valid-to."
+    _err "With --valid-to, the renewal time is derived from the expiry time automatically."
+    return 1
+  fi
 
   if [ "$DEBUG" ]; then
     version

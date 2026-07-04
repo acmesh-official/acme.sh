@@ -189,10 +189,22 @@ _docker_exec() {
     _debug2 cjson "$cjson"
     execid="$(echo "$cjson" | cut -d '"' -f 4)"
     _debug execid "$execid"
-    ejson="$(_curl_unix_sock "$_DOCKER_SOCK" POST "/exec/$execid/start" "{\"Detach\": false,\"Tty\": false}")"
+    #Detach:true is required for podman's docker-compatible API: with
+    #Detach:false it streams the command output on the connection, so the
+    #non-empty response was misread as an error (issue #4977). The real
+    #result is checked via the exec inspect ExitCode below instead.
+    ejson="$(_curl_unix_sock "$_DOCKER_SOCK" POST "/exec/$execid/start" "{\"Detach\": true,\"Tty\": false}")"
     _debug2 ejson "$ejson"
-    if [ "$ejson" ]; then
-      _err "$ejson"
+    _et=0
+    ijson="$(_curl_unix_sock "$_DOCKER_SOCK" GET "/exec/$execid/json")"
+    while _contains "$ijson" "\"Running\":true" && [ "$_et" -lt 10 ]; do
+      sleep 1
+      _et="$(_math "$_et" + 1)"
+      ijson="$(_curl_unix_sock "$_DOCKER_SOCK" GET "/exec/$execid/json")"
+    done
+    _debug2 ijson "$ijson"
+    if ! echo "$ijson" | _egrep_o "\"ExitCode\": *0[,}]" >/dev/null 2>&1; then
+      _err "docker exec error: $ijson"
       return 1
     fi
   else
