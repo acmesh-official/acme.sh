@@ -6062,7 +6062,7 @@ renew() {
     fi
     if [ "$res" != "0" ]; then
       if [ -z "$_ACME_IN_RENEWALL" ]; then
-        if [ $_set_level -ge $NOTIFY_LEVEL_SKIP ]; then
+        if [ $_set_level -ge $NOTIFY_LEVEL_ERROR ]; then
           _send_notify "Renew $Le_Domain error" "There is an error." "$NOTIFY_HOOK" 1
         fi
       fi
