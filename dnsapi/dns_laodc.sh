@@ -27,16 +27,7 @@ dns_laodc_add() {
 
   _info "Using LaoDC DNS API"
 
-  LaoDC_Key="${LaoDC_Key:-$(_readaccountconf_mutable LaoDC_Key)}"
-  if [ -z "$LaoDC_Key" ]; then
-    LaoDC_Key=""
-    _err "You didn't specify a LaoDC API Key yet."
-    _err "Please export LaoDC_Key and try again."
-    return 1
-  fi
-
-  # Save the api key to the account conf file.
-  _saveaccountconf_mutable LaoDC_Key "$LaoDC_Key"
+  _laodc_validate_key
 
   _debug "Checking root zone exists for [$fulldomain]"
   if ! _get_root "$fulldomain"; then
@@ -68,7 +59,7 @@ dns_laodc_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  LaoDC_Key="${LaoDC_Key:-$(_readaccountconf_mutable LaoDC_Key)}"
+  _laodc_validate_key
 
   _debug "Checking root zone exists for [$fulldomain]"
   if ! _get_root "$fulldomain"; then
@@ -126,6 +117,20 @@ _get_root() {
   done
 
   return 1
+}
+
+_laodc_validate_key() {
+  LaoDC_Key="${LaoDC_Key:-$(_readaccountconf_mutable LaoDC_Key)}"
+
+  if [ -z "$LaoDC_Key" ]; then
+    LaoDC_Key=""
+    _err "You didn't specify a LaoDC API Key yet."
+    _err "Please export LaoDC_Key and try again."
+    return 1
+  fi
+
+  # Save the api key to the account conf file.
+  _saveaccountconf_mutable LaoDC_Key "$LaoDC_Key"
 }
 
 _laodc_api() {
