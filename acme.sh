@@ -4160,11 +4160,9 @@ updateaccountkey() {
   fi
 
   if [ "$code" = '200' ]; then
-    if ! _calcjwk "$ACCOUNT_KEY_PATH_NEW"; then
-      _err "Cannot use new account key."
-      rm -f "$ACCOUNT_KEY_PATH_NEW"
-      return 1
-    fi
+    echo "$response" >"$ACCOUNT_JSON_PATH"
+    mv -f "$ACCOUNT_KEY_PATH_NEW" "$ACCOUNT_KEY_PATH"
+    _info "Account key rotation success for $_accUri."
   elif [ "$code" = "409" ]; then
     _err "An existing account is using the new key"
     rm -f "$ACCOUNT_KEY_PATH_NEW"
@@ -4175,9 +4173,8 @@ updateaccountkey() {
     return 1
   fi
 
-  echo "$response" >"$ACCOUNT_JSON_PATH"
-  mv -f "$ACCOUNT_KEY_PATH_NEW" "$ACCOUNT_KEY_PATH"
-  _info "Account key rotation success for $_accUri."
+  __CACHED_JWK_KEY_FILE=""
+  _calcjwk "$ACCOUNT_KEY_PATH"
 
   ACCOUNT_THUMBPRINT="$(__calc_account_thumbprint)"
   _info "ACCOUNT_THUMBPRINT" "$ACCOUNT_THUMBPRINT"
