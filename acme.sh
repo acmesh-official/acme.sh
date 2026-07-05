@@ -6017,6 +6017,31 @@ renew() {
   fi
 
   if [ -z "$FORCE" ] && [ "$Le_NextRenewTime" ] && [ "$(_time)" -lt "$Le_NextRenewTime" ]; then
+    _renew_retry_fixed=""
+    res="0"
+    _ensure_install "$Le_Domain"
+    res="$?"
+    if [ "$Le_DeployHook" ] && [ "$res" = "0" ]; then
+      _ensure_deploy "$Le_Domain"
+      res="$?"
+    fi
+    if [ "$res" != "0" ]; then
+      if [ -z "$_ACME_IN_RENEWALL" ]; then
+        if [ $_set_level -ge $NOTIFY_LEVEL_SKIP ]; then
+          _send_notify "Renew $Le_Domain error" "There is an error." "$NOTIFY_HOOK" 1
+        fi
+      fi
+      return 1
+    fi
+    if [ "$_renew_retry_fixed" ]; then
+      _info "Install/deploy retry succeeded, no renewal is needed."
+      if [ -z "$_ACME_IN_RENEWALL" ]; then
+        if [ $_set_level -ge $NOTIFY_LEVEL_RENEW ]; then
+          _send_notify "Renew $Le_Domain success" "Good, the cert install/deploy retry succeeded." "$NOTIFY_HOOK" 0
+        fi
+      fi
+      return 0
+    fi
     _info "Skipping. Next renewal time is: $(__green "$Le_NextRenewTimeStr")"
     _info "Add '$(__red '--force')' to force renewal."
     if [ -z "$_ACME_IN_RENEWALL" ]; then
@@ -6450,6 +6475,45 @@ _deploy() {
       _info "$(__green Success)"
     fi
   done
+
+  _deploy_success_time="$(_time)"
+  _savedomainconf "Le_DeploySuccessTime" "$_deploy_success_time"
+  _savedomainconf "Le_DeploySuccessTimeStr" "$(_time2str "$_deploy_success_time")"
+}
+
+_ensure_deploy() {
+  _d="$1"
+  if [ -z "$Le_DeployHook" ]; then
+    return 0
+  fi
+  if [ -z "$Le_CertCreateTime" ]; then
+    return 0
+  fi
+
+  _deploy_success_time="$(_readdomainconf Le_DeploySuccessTime)"
+  if [ -z "$_deploy_success_time" ]; then
+    _debug "Le_DeploySuccessTime is empty, skip deploy retry check."
+    return 0
+  fi
+  case "$_deploy_success_time$Le_CertCreateTime" in
+  *[!0-9]*)
+    _debug "Le_DeploySuccessTime or Le_CertCreateTime is not a number, skip deploy retry check."
+    return 0
+    ;;
+  esac
+
+  if [ "$_deploy_success_time" -lt "$Le_CertCreateTime" ]; then
+    _info "The cert was created after the last successful deploy, retrying deploy hooks."
+    if _deploy "$_d" "$Le_DeployHook"; then
+      _info "Deploy retry succeeded."
+      _renew_retry_fixed=1
+      return 0
+    fi
+    _err "Deploy retry failed."
+    return 1
+  fi
+
+  return 0
 }
 
 #domain hooks
@@ -6609,9 +6673,54 @@ _installcert() {
       _info "$(__green "Reload successful")"
     else
       _err "Reload error for: $_main_domain"
+      return 1
     fi
   fi
 
+  _installcert_success_time="$(_time)"
+  _savedomainconf "Le_InstallCertSuccessTime" "$_installcert_success_time"
+  _savedomainconf "Le_InstallCertSuccessTimeStr" "$(_time2str "$_installcert_success_time")"
+}
+
+_ensure_install() {
+  _d="$1"
+  if [ -z "$Le_CertCreateTime" ]; then
+    return 0
+  fi
+
+  _real_cert="$(_readdomainconf Le_RealCertPath)"
+  _real_key="$(_readdomainconf Le_RealKeyPath)"
+  _real_ca="$(_readdomainconf Le_RealCACertPath)"
+  _reload_cmd="$(_readdomainconf Le_ReloadCmd)"
+  _real_fullchain="$(_readdomainconf Le_RealFullChainPath)"
+  if [ -z "$_real_cert$_real_key$_real_ca$_reload_cmd$_real_fullchain" ]; then
+    return 0
+  fi
+
+  _installcert_success_time="$(_readdomainconf Le_InstallCertSuccessTime)"
+  if [ -z "$_installcert_success_time" ]; then
+    _debug "Le_InstallCertSuccessTime is empty, skip install retry check."
+    return 0
+  fi
+  case "$_installcert_success_time$Le_CertCreateTime" in
+  *[!0-9]*)
+    _debug "Le_InstallCertSuccessTime or Le_CertCreateTime is not a number, skip install retry check."
+    return 0
+    ;;
+  esac
+
+  if [ "$_installcert_success_time" -lt "$Le_CertCreateTime" ]; then
+    _info "The cert was created after the last successful install, retrying install cert."
+    if _installcert "$_d" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"; then
+      _info "Install cert retry succeeded."
+      _renew_retry_fixed=1
+      return 0
+    fi
+    _err "Install cert retry failed."
+    return 1
+  fi
+
+  return 0
 }
 
 __read_password() {
