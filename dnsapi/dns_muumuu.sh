@@ -5,7 +5,7 @@ Site: muumuu-domain.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_muumuu
 Options:
  MUUMUU_PAT Personal Access Token (scopes: domains:read, dns:read, dns:write)
-Issues: github.com/acmesh-official/acme.sh/issues
+Issues: github.com/acmesh-official/acme.sh/issues/7011
 '
 
 MUUMUU_API="https://muumuu-domain.com/api/v2"
@@ -40,13 +40,13 @@ dns_muumuu_add() {
   _info "Adding TXT record for ${fulldomain}"
   body="{\"fqdn\":\"${fulldomain}.\",\"type\":\"TXT\",\"value\":\"${txtvalue}\",\"ttl\":3600}"
   if _muumuu_rest POST "/me/domains/${_domain_id}/dns-records" "$body"; then
-    if [ "$_code" = "201" ]; then
+    if [ "$_muumuu_code" = "201" ]; then
       _info "TXT record added successfully"
       return 0
     fi
   fi
 
-  _err "Failed to add TXT record (HTTP ${_code})"
+  _err "Failed to add TXT record (HTTP ${_muumuu_code})"
   return 1
 }
 
@@ -76,7 +76,7 @@ dns_muumuu_rm() {
     return 1
   fi
 
-  record_id=$(echo "$response" | _egrep_o "\"id\":[0-9]+[^}]*\"value\":\"${txtvalue}\"" | _egrep_o "\"id\":[0-9]+" | cut -d: -f2)
+  record_id=$(echo "$response" | _egrep_o "\"id\":[0-9]+[^}]*\"value\":\"${txtvalue}\"" | _egrep_o "\"id\":[0-9]+" | _head_n 1 | cut -d: -f2)
   if [ -z "$record_id" ]; then
     _info "TXT record not found, nothing to remove"
     return 0
@@ -84,13 +84,13 @@ dns_muumuu_rm() {
   _debug record_id "$record_id"
 
   if _muumuu_rest DELETE "/me/domains/${_domain_id}/dns-records/${record_id}"; then
-    if [ "$_code" = "204" ]; then
+    if [ "$_muumuu_code" = "204" ]; then
       _info "TXT record deleted successfully"
       return 0
     fi
   fi
 
-  _err "Failed to delete TXT record (HTTP ${_code})"
+  _err "Failed to delete TXT record (HTTP ${_muumuu_code})"
   return 1
 }
 
@@ -114,8 +114,8 @@ _muumuu_get_root() {
     if ! _muumuu_rest GET "/me/domains?fqdn=${h}&page-size=1"; then
       return 1
     fi
-    if [ "$_code" = "401" ] || [ "$_code" = "403" ]; then
-      _err "Authentication failed (HTTP ${_code}). Check MUUMUU_PAT."
+    if [ "$_muumuu_code" = "401" ] || [ "$_muumuu_code" = "403" ]; then
+      _err "Authentication failed (HTTP ${_muumuu_code}). Check MUUMUU_PAT."
       return 1
     fi
     if _contains "$response" "\"fqdn\":\"${h}\""; then
@@ -134,29 +134,31 @@ _muumuu_get_root() {
 }
 
 _muumuu_rest() {
-  _method="$1"
-  _path="$2"
-  _data="$3"
-  _url="${MUUMUU_API}${_path}"
+  _muumuu_method="$1"
+  _muumuu_path="$2"
+  _muumuu_data="$3"
+  _muumuu_url="${MUUMUU_API}${_muumuu_path}"
 
   export _H1="Authorization: Bearer ${MUUMUU_PAT}"
   export _H2="Content-Type: application/json"
   export _H3="Accept: application/json"
+  export _H4=""
+  export _H5=""
 
-  _secure_debug2 data "$_data"
+  _secure_debug2 data "$_muumuu_data"
 
-  if [ "$_method" = "GET" ]; then
-    response="$(_get "$_url")"
+  if [ "$_muumuu_method" = "GET" ]; then
+    response="$(_get "$_muumuu_url")"
   else
-    response="$(_post "$_data" "$_url" "" "$_method")"
+    response="$(_post "$_muumuu_data" "$_muumuu_url" "" "$_muumuu_method")"
   fi
-  _ret="$?"
-  _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
-  _debug "HTTP code: ${_code}"
+  _muumuu_ret="$?"
+  _muumuu_code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
+  _debug "HTTP code: ${_muumuu_code}"
   _secure_debug2 response "$response"
 
-  if [ "$_ret" != "0" ]; then
-    _err "Error accessing ${_url}"
+  if [ "$_muumuu_ret" != "0" ]; then
+    _err "Error accessing ${_muumuu_url}"
     return 1
   fi
 
