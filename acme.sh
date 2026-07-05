@@ -4179,7 +4179,7 @@ updateaccountkey() {
   _debug "Calc CA_KEY_HASH" "$CA_KEY_HASH"
   _savecaconf CA_KEY_HASH "$CA_KEY_HASH"
 
-#  mv -f "$ACCOUNT_KEY_PATH" "$ACCOUNT_KEY_PATH.old"
+  # mv -f "$ACCOUNT_KEY_PATH" "$ACCOUNT_KEY_PATH.old"
   mv -f "$ACCOUNT_KEY_PATH_NEW" "$ACCOUNT_KEY_PATH"
 }
 
