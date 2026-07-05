@@ -27,7 +27,7 @@ dns_laodc_add() {
 
   _info "Using LaoDC DNS API"
 
-  _laodc_validate_key
+  _laodc_validate_key || return 1
 
   _debug "Checking root zone exists for [$fulldomain]"
   if ! _get_root "$fulldomain"; then
@@ -59,7 +59,7 @@ dns_laodc_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  _laodc_validate_key
+  _laodc_validate_key || return 1
 
   _debug "Checking root zone exists for [$fulldomain]"
   if ! _get_root "$fulldomain"; then
@@ -107,7 +107,13 @@ _get_root() {
     if _laodc_api "GET" "$h"; then
       if [ "$_code" = "200" ]; then
         _domain="$h"
+
+        # DNS alias mode - @ is alias for fqdn
         _sub_domain=$(printf "%s" "$fqdn" | cut -d . -f 1-"$p")
+        if [ "$i" = "1" ]; then
+          _sub_domain="@"
+        fi
+
         return 0
       fi
     fi
