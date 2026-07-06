@@ -276,7 +276,7 @@ synology_dsm_deploy() {
   if [ -n "$error_code" ]; then
     if [ "$error_code" == "403" ] && [ -n "$SYNO_DEVICE_ID" ]; then
       _cleardeployconf SYNO_DEVICE_ID
-      _err "Failed to authenticate with SYNO_DEVICE_ID (may expired or invalid), please try again in a new terminal window."
+      _err "Failed to authenticate with SYNO_DEVICE_ID (may be expired or invalid), please try again in a new terminal window."
     elif [ "$error_code" == "404" ]; then
       _err "Failed to authenticate with provided 2FA-OTP code, please try again in a new terminal window."
     elif [ "$error_code" == "406" ]; then
@@ -322,8 +322,8 @@ synology_dsm_deploy() {
     _savedeployconf SYNO_USE_TEMP_ADMIN "$SYNO_USE_TEMP_ADMIN"
     _savedeployconf SYNO_LOCAL_HOSTNAME "$SYNO_LOCAL_HOSTNAME"
   else
-    _savedeployconf SYNO_USERNAME "$SYNO_USERNAME"
-    _savedeployconf SYNO_PASSWORD "$SYNO_PASSWORD"
+    _savedeployconf SYNO_USERNAME "$SYNO_USERNAME" "base64"
+    _savedeployconf SYNO_PASSWORD "$SYNO_PASSWORD" "base64"
     _savedeployconf SYNO_DEVICE_ID "$SYNO_DEVICE_ID"
     _savedeployconf SYNO_DEVICE_NAME "$SYNO_DEVICE_NAME"
   fi

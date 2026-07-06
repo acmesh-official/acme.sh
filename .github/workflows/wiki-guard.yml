@@ -1,0 +1,95 @@
+name: Restore Wiki Pages Deleted by Others
+
+# The gollum event only fires on page create/update, never on deletion,
+# so deletions can only be caught by polling the wiki git history.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  gollum:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: wiki-guard
+  cancel-in-progress: false
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout wiki repository
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki
+          fetch-depth: 0
+
+      - name: Restore pages deleted by non-maintainer
+        id: restore
+        run: |
+          cd wiki
+          git config core.quotePath false
+
+          # Any author email under this domain is the maintainer and may delete pages.
+          OWNER_DOMAIN="neilpang.com"
+
+          : > ../restored.txt
+
+          # Paths deleted within the recent window (rolling; the cron runs
+          # every 10 minutes, so 7 days gives ample overlap without
+          # resurrecting old deletions the maintainer already accepted).
+          # --no-renames makes a rename count as a deletion of the old path,
+          # so a page renamed by a non-maintainer is restored under its
+          # original name (the new name stays -- creating pages is allowed).
+          git log --since="7 days ago" --diff-filter=D --no-renames --name-only --format= \
+            | sort -u \
+            | while IFS= read -r f; do
+                if [ -z "$f" ] || [ -e "$f" ]; then
+                  continue
+                fi
+                # The most recent commit (in full history) that deleted this path.
+                del="$(git log -1 --diff-filter=D --no-renames --format=%H -- "$f")"
+                if [ -z "$del" ]; then
+                  continue
+                fi
+                ae="$(git show -s --format=%ae "$del" | tr 'A-Z' 'a-z')"
+                case "$ae" in
+                  *@"$OWNER_DOMAIN")
+                    continue
+                    ;;
+                esac
+                an="$(git show -s --format=%an "$del")"
+                echo "Restoring: $f (deleted in $del by $an <$ae>)"
+                git checkout "$del^" -- "$f"
+                printf '%s\n' "- \`$f\` deleted in $del by $an <$ae>" >> ../restored.txt
+              done
+
+          if [ -s ../restored.txt ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Restore pages deleted by non-maintainer"
+            git push origin HEAD || { git pull --rebase && git push origin HEAD; }
+            {
+              echo "The following wiki pages were deleted or renamed by someone other than the maintainer and have been restored automatically:"
+              echo ""
+              cat ../restored.txt
+              echo ""
+              echo "Wiki: https://github.com/${GITHUB_REPOSITORY}/wiki"
+            } > ../restore-msg.txt
+            echo "restored=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No unauthorized deletions found."
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create issue to notify Neilpang
+        if: steps.restore.outputs.restored == 'true'
+        uses: peter-evans/create-issue-from-file@v6
+        with:
+          title: "Wiki pages restored after unauthorized deletion"
+          content-filepath: ./restore-msg.txt
+          assignees: Neilpang

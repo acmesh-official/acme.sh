@@ -5,14 +5,11 @@ Site: DNSExit.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_dnsexit
 Options:
  DNSEXIT_API_KEY API Key
- DNSEXIT_AUTH_USER Username
- DNSEXIT_AUTH_PASS Password
 Issues: github.com/acmesh-official/acme.sh/issues/4719
 Author: Samuel Jimenez
 '
 
 DNSEXIT_API_URL="https://api.dnsexit.com/dns/"
-DNSEXIT_HOSTS_URL="https://update.dnsexit.com/ipupdate/hosts.jsp"
 
 ########  Public functions #####################
 #Usage: dns_dnsexit_add   _acme-challenge.*.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
@@ -28,20 +25,7 @@ dns_dnsexit_add() {
     return 1
   fi
 
-  _debug 'First detect the root zone'
-  if ! _get_root "$fulldomain"; then
-    return 1
-  fi
-  _debug _sub_domain "$_sub_domain"
-  _debug _domain "$_domain"
-
-  if ! _dnsexit_rest "{\"domain\":\"$_domain\",\"add\":{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"content\":\"$txtvalue\",\"ttl\":0,\"overwrite\":false}}"; then
-    _err "$response"
-    return 1
-  fi
-
-  _debug2 _response "$response"
-  return 0
+  _dnsexit_zone_op add ',"ttl":0,"overwrite":false'
 }
 
 #Usage: fulldomain txtvalue
@@ -58,54 +42,43 @@ dns_dnsexit_rm() {
     return 1
   fi
 
-  _debug 'First detect the root zone'
-  if ! _get_root "$fulldomain"; then
-    _err "$response"
-    return 1
-  fi
-  _debug _sub_domain "$_sub_domain"
-  _debug _domain "$_domain"
-
-  if ! _dnsexit_rest "{\"domain\":\"$_domain\",\"delete\":{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"content\":\"$txtvalue\"}}"; then
-    _err "$response"
-    return 1
-  fi
-
-  _debug2 _response "$response"
-  return 0
+  _dnsexit_zone_op delete ''
 }
 
 ####################  Private functions below ##################################
-#_acme-challenge.www.domain.com
-#returns
-# _sub_domain=_acme-challenge.www
-# _domain=domain.com
-_get_root() {
-  domain=$1
+# The legacy zone-detection endpoint (update.dnsexit.com/ipupdate/hosts.jsp)
+# was shut down by DNSExit and now returns 503, and the JSON API offers no
+# zone-list call. So find the root zone by attempting the actual operation at
+# each domain level: the API answers "code":0 only when the domain matches a
+# zone of the account. https://github.com/acmesh-official/acme.sh/issues/6914
+#Usage: _dnsexit_zone_op <add|delete> <extra-json-fields>
+_dnsexit_zone_op() {
+  _op="$1"
+  _extra="$2"
   i=1
   while true; do
-    _domain=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
-    _debug h "$_domain"
+    _domain=$(printf "%s" "$fulldomain" | cut -d . -f "$i"-100)
+    _debug _domain "$_domain"
     if [ -z "$_domain" ]; then
+      _err "Could not find the root zone of $fulldomain in your DNSExit account"
       return 1
     fi
 
-    _debug login "$DNSEXIT_AUTH_USER"
-    _debug password "$DNSEXIT_AUTH_PASS"
-    _debug domain "$_domain"
+    _sub_domain="$(printf "%s" "$fulldomain" | sed "s/\\.$_domain\$//")"
+    if [ "$_sub_domain" = "$fulldomain" ]; then
+      _sub_domain=""
+    fi
+    _debug _sub_domain "$_sub_domain"
 
-    _dnsexit_http "login=$DNSEXIT_AUTH_USER&password=$DNSEXIT_AUTH_PASS&domain=$_domain"
-
-    if _contains "$response" "0=$_domain"; then
-      _sub_domain="$(echo "$fulldomain" | sed "s/\\.$_domain\$//")"
-      return 0
-    else
-      _debug "Go to next level of $_domain"
+    if _dnsexit_rest "{\"domain\":\"$_domain\",\"$_op\":{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"content\":\"$txtvalue\"$_extra}}"; then
+      if _contains "$response" "\"code\":0" || _contains "$response" "\"code\": 0"; then
+        _debug2 _response "$response"
+        return 0
+      fi
+      _debug "Zone $_domain was not accepted, trying the next level" "$response"
     fi
     i=$(_math "$i" + 1)
   done
-
-  return 1
 }
 
 _dnsexit_rest() {
@@ -136,27 +109,7 @@ _dnsexit_rest() {
   return 0
 }
 
-_dnsexit_http() {
-  m=GET
-  param="$1"
-  _debug param "$param"
-  _debug get "$DNSEXIT_HOSTS_URL?$param"
-
-  response="$(_get "$DNSEXIT_HOSTS_URL?$param")"
-
-  _debug response "$response"
-
-  if [ "$?" != "0" ]; then
-    _err "Error $param"
-    return 1
-  fi
-
-  _debug2 response "$response"
-  return 0
-}
-
 get_account_info() {
-
   DNSEXIT_API_KEY="${DNSEXIT_API_KEY:-$(_readaccountconf_mutable DNSEXIT_API_KEY)}"
   if test -z "$DNSEXIT_API_KEY"; then
     DNSEXIT_API_KEY=''
@@ -165,24 +118,6 @@ get_account_info() {
   fi
 
   _saveaccountconf_mutable DNSEXIT_API_KEY "$DNSEXIT_API_KEY"
-
-  DNSEXIT_AUTH_USER="${DNSEXIT_AUTH_USER:-$(_readaccountconf_mutable DNSEXIT_AUTH_USER)}"
-  if test -z "$DNSEXIT_AUTH_USER"; then
-    DNSEXIT_AUTH_USER=""
-    _err 'DNSEXIT_AUTH_USER was not exported'
-    return 1
-  fi
-
-  _saveaccountconf_mutable DNSEXIT_AUTH_USER "$DNSEXIT_AUTH_USER"
-
-  DNSEXIT_AUTH_PASS="${DNSEXIT_AUTH_PASS:-$(_readaccountconf_mutable DNSEXIT_AUTH_PASS)}"
-  if test -z "$DNSEXIT_AUTH_PASS"; then
-    DNSEXIT_AUTH_PASS=""
-    _err 'DNSEXIT_AUTH_PASS was not exported'
-    return 1
-  fi
-
-  _saveaccountconf_mutable DNSEXIT_AUTH_PASS "$DNSEXIT_AUTH_PASS"
 
   return 0
 }

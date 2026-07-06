@@ -264,8 +264,16 @@ _set_namecheap_TXT() {
   _debug hosts "$hosts"
 
   if [ -z "$hosts" ]; then
-    _err "Hosts not found"
-    return 1
+    # An empty host list is only acceptable when the API positively confirms
+    # a successful getHosts reply: setHosts below REPLACES all records, so
+    # proceeding on a malformed/unparsed response would wipe the whole zone.
+    # https://github.com/acmesh-official/acme.sh/issues/6963
+    if _contains "$response" "Status=\"OK\"" && _contains "$response" "DomainDNSGetHostsResult"; then
+      _debug "No existing host records, adding the TXT record as the first one"
+    else
+      _err "Hosts not found"
+      return 1
+    fi
   fi
 
   _namecheap_reset_hostList

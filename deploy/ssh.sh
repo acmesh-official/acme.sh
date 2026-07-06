@@ -170,10 +170,16 @@ ssh_deploy() {
     _info "Required commands batched and sent in single call to remote host"
   fi
 
+  _returnCode=0
   _deploy_ssh_servers="$DEPLOY_SSH_SERVER"
   for DEPLOY_SSH_SERVER in $_deploy_ssh_servers; do
-    _ssh_deploy
+    if ! _ssh_deploy; then
+      # in case of an error, remember it, but keep going for the remaining servers
+      _returnCode=1
+    fi
   done
+
+  return $_returnCode
 }
 
 _ssh_deploy() {

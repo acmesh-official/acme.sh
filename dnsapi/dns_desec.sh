@@ -4,7 +4,7 @@ dns_desec_info='deSEC.io
 Site: desec.readthedocs.io/en/latest/
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_desec
 Options:
- DDNSS_Token API Token
+ DEDYN_TOKEN API Token
 Issues: github.com/acmesh-official/acme.sh/issues/2180
 Author: Zheng Qian
 '

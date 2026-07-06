@@ -26,9 +26,9 @@ jobs:
         id: step_one
         run: |
           if [ "${{secrets.TokenName1}}" ] ; then
-            echo "::set-output name=hasToken::true"
+            echo "hasToken=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::set-output name=hasToken::false"
+            echo "hasToken=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Check the value
         run: echo ${{ steps.step_one.outputs.hasToken }}
@@ -116,7 +116,9 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     - name: Install tools
-      run:  brew install socat
+      run: |
+        brew untap aws/tap || true
+        brew install socat
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest
@@ -176,9 +178,14 @@ jobs:
           C:\tools\cygwin\cygwinsetup.exe -qgnNdO -R C:/tools/cygwin -s https://mirrors.kernel.org/sourceware/cygwin/ -P socat,curl,cron,unzip,git
       shell: cmd
     - name: Set ENV
-      shell: cmd
+      shell: bash
       run: |
-          echo PATH=C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin >> %GITHUB_ENV%
+          echo 'PATH=C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin' >> "$GITHUB_ENV"
+          # cygwin git sees the runner workspace as owned by another user and
+          # fails with "dubious ownership" (exit 128) in the checkout post step
+          echo 'GIT_CONFIG_COUNT=1' >> "$GITHUB_ENV"
+          echo 'GIT_CONFIG_KEY_0=safe.directory' >> "$GITHUB_ENV"
+          echo 'GIT_CONFIG_VALUE_0=*' >> "$GITHUB_ENV"
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - name: Run acmetest

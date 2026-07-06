@@ -194,7 +194,8 @@ __cpanel_parse_response() {
         printf("%s%s=%s\n", prefix, $2, $3);
       }
     }' |
-    sed -En -e 's/^result\/data\/(main_domain|sub_domains\/-|addon_domains\/-|parked_domains\/-)=(.*)$/\2/p'
+    sed -En -e 's/^result\/data\/(main_domain|sub_domains\/-|addon_domains\/-|parked_domains\/-)=(.*)$/\2/p' |
+    sed -e 's/^"//' -e 's/"$//' # YAML double-quotes values starting with '*' (wildcard subdomains)
 }
 
 # Load parameter by prefix+name - fallback to default if not set, and save to config

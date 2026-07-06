@@ -10,10 +10,27 @@ jobs:
       - uses: actions/github-script@v9
         with:
           script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
+            const issue = context.payload.issue;
+            if (issue.title.startsWith("Report bugs to")) {
+              // Tracking issue for a third-party dns/deploy/notify api:
+              // no upgrade boilerplate; assign it to the opener and label it.
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                assignees: [issue.user.login]
+              });
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ["3rd party api"]
+              });
+              return;
+            }
+            await github.rest.issues.createComment({
+              issue_number: issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: "Please upgrade to the latest code and try again first. Maybe it's already fixed.              ```acme.sh --upgrade```              If it's still not working, please provide the log with `--debug 2`, otherwise, nobody can help you."
-              
             })

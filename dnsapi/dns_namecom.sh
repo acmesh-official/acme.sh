@@ -153,10 +153,9 @@ _namecom_get_root() {
   i=2
   p=1
 
-  if ! _namecom_rest GET "domains"; then
-    return 1
-  fi
-
+  # Probe each candidate with GetDomain (GET /v4/domains/{domainName}) instead
+  # of listing all domains: the list is paginated at 1000 domains per page, so
+  # larger accounts never found their domain on the first page.
   # Need to exclude the last field (tld)
   numfields=$(echo "$domain" | _egrep_o "\." | wc -l)
   while [ "$i" -le "$numfields" ]; do
@@ -166,7 +165,7 @@ _namecom_get_root() {
       return 1
     fi
 
-    if _contains "$response" "$host"; then
+    if _namecom_rest GET "domains/$host" && _contains "$response" "\"domainName\":\"$host\""; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$host"
       return 0

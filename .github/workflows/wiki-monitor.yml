@@ -9,13 +9,14 @@ jobs:
     if: github.actor != 'neilpang'
     steps:
       - name: Checkout wiki repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: ${{ github.repository }}.wiki
           path: wiki
           fetch-depth: 0
 
       - name: Generate wiki change message
+        id: msg
         run: |
             actor="${{ github.actor }}"
             sender_url=$(jq -r '.sender.html_url' "$GITHUB_EVENT_PATH")
@@ -27,6 +28,17 @@ jobs:
             now="$(date '+%Y-%m-%d %H:%M:%S')"
 
             cd wiki
+            # Skip notification when the change was authored by the
+            # maintainer himself (any author email under neilpang.com),
+            # e.g. a direct git push to the wiki repository.
+            author_email=$(git show -s --format=%ae "$page_sha" 2>/dev/null | tr 'A-Z' 'a-z')
+            case "$author_email" in
+              *@neilpang.com)
+                echo "Change authored by maintainer ($author_email); skipping notification."
+                echo "notify=false" >> "$GITHUB_OUTPUT"
+                exit 0
+                ;;
+            esac
             prev_sha=$(git rev-list $page_sha^ -- "$page_name.md" | head -n 1)
             if [ -n "$prev_sha" ]; then
                 git diff $prev_sha $page_sha -- "$page_name.md" > ../wiki.diff || echo "(No diff found)" > ../wiki.diff
@@ -44,13 +56,15 @@ jobs:
             echo "[Click here to Revert](${page_url}/_history)"
             echo ""
             echo "----"
-            echo "###  diff："
+            echo "###  diff:"
             echo '```diff'
             cat wiki.diff
             echo '```'
             } > wiki-change-msg.txt
+            echo "notify=true" >> "$GITHUB_OUTPUT"
 
       - name: Create issue to notify Neilpang
+        if: steps.msg.outputs.notify == 'true'
         uses: peter-evans/create-issue-from-file@v6
         with:
           title: "Wiki edited"

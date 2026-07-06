@@ -307,13 +307,18 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$response" "$h"; then
+    # Anchor the match to the XML tag and escape dots so $h is compared
+    # literally: _contains uses grep, which treats "$h" as a regex, and a
+    # bare "g.berlight.de" would match "<string>berlight.de" (the 'g' from
+    # "<string>" plus '.' matching '>'). See issue #5129.
+    _hregex=$(printf "%s" "$h" | sed 's/\./\\./g')
+    if _contains "$response" "<string>$_hregex</string>"; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
     fi
     # IDN fallback: INWX returns Unicode zone names; when $h is ACE/punycode,
-    # encode each zone name via _idn() and compare — no python dependency.
+    # encode each zone name via _idn() and compare -- no python dependency.
     if _contains "$h" "xn--"; then
       _zone_unicode=$(printf "%s" "$response" | _egrep_o '<string>[^<]*' |
         sed 's/<[^>]*>//g' | while IFS= read -r _z; do

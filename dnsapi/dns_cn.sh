@@ -15,7 +15,8 @@ CN_API="https://beta.api.core-networks.de"
 ########  Public functions  #####################
 
 dns_cn_add() {
-  fulldomain=$1
+  # Core-Networks API requires punycode for IDN domains
+  fulldomain=$(_idn "$1")
   txtvalue=$2
 
   if ! _cn_login; then
@@ -58,7 +59,8 @@ dns_cn_add() {
 }
 
 dns_cn_rm() {
-  fulldomain=$1
+  # Core-Networks API requires punycode for IDN domains
+  fulldomain=$(_idn "$1")
   txtvalue=$2
 
   if ! _cn_login; then
