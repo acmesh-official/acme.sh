@@ -7,6 +7,7 @@ Options:
  SELFHOSTDNS_USERNAME Username
  SELFHOSTDNS_PASSWORD Password
  SELFHOSTDNS_MAP Subdomain name
+ SELFHOSTDNS_UPDATE_URL API url. Optional. Default "https://account.selfhost.de/cgi-bin/api.pl"
 Issues: github.com/acmesh-official/acme.sh/issues/4291
 Author: Marvin Edeler
 '
