@@ -86,6 +86,11 @@ dns_selfhost_add() {
     fi
   fi
 
+  # Save api url if different from default
+  if [ "$DEFAULT_SELFHOSTDNS_UPDATE_URL" != "$SELFHOSTDNS_UPDATE_URL" ]; then
+    _saveaccountconf_mutable SELFHOSTDNS_UPDATE_URL "$SELFHOSTDNS_UPDATE_URL"
+  fi
+
   # Now that we know the values are good, save them
   _saveaccountconf_mutable SELFHOSTDNS_USERNAME "$SELFHOSTDNS_USERNAME"
   _saveaccountconf_mutable SELFHOSTDNS_PASSWORD "$SELFHOSTDNS_PASSWORD"
