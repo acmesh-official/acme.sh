@@ -2,11 +2,12 @@
 # shellcheck disable=SC2034
 dns_creoline_info='creoline
 Site: https://www.creoline.com/de
-Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_creoline
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_creoline
 Help: https://help.creoline.com
 Options:
  creolineApiToken
  creolineApiSecret
+Issues: github.com/acmesh-official/acme.sh/issues/7103
 '
 
 creolineApi="https://api.creoline.com/v1"
@@ -22,11 +23,6 @@ dns_creoline_add() {
   creolineApiSecret="${creolineApiSecret:-$(_readaccountconf_mutable creolineApiSecret)}"
 
   if [ -z "$creolineApiToken" ] || [ -z "$creolineApiSecret" ]; then
-    _clearaccountconf_mutable creolineApiToken
-    _clearaccountconf_mutable creolineApiSecret
-    _clearaccountconf creolineApiToken
-    _clearaccountconf creolineApiSecret
-
     _err "Error required creoline API Token or creoline API Secret not specified."
     _err "Please set it with the Command 'export creolineApiToken=<YourToken>' and 'export creolineApiSecret=<YourSecret>'."
     return 1
@@ -37,10 +33,6 @@ dns_creoline_add() {
 
   _debug "Detecting the root dns zone."
   if ! _get_root "$fulldomain"; then
-    if [ -z "$_sub_domain" ] || [ -z "$_domain" ]; then
-      _err "Error on detecting the root dns zone."
-      return 1
-    fi
     _err "Error on detecting the root dns zone."
     return 1
   fi
@@ -69,10 +61,6 @@ dns_creoline_rm() {
 
   _debug "Detecting the root dns zone."
   if ! _get_root "$fulldomain"; then
-    if [ -z "$_sub_domain" ] || [ -z "$_domain" ]; then
-      _err "Error on detecting the root dns zone."
-      return 1
-    fi
     _err "Error on detecting the root dns zone."
     return 1
   fi
@@ -117,6 +105,10 @@ dns_creoline_rm() {
 _get_root() {
   domain=$1
 
+  if [ -z "$_domain" ]; then
+    return 1
+  fi
+
   if ! _creoline_rest GET "dns/zone/root/$domain"; then
     return 1
   fi
@@ -138,8 +130,8 @@ _creoline_rest() {
 
   _debug method "$method"
   _debug uri "$uri"
+  _debug data "$data"
 
-  _debug2 data "$data"
   _debug2 timestamp "$timestamp"
   _debug2 canonical_request "$canonical_request"
   _debug2 signature_hash "$signature_hash"
@@ -162,17 +154,17 @@ _creoline_rest() {
   fi
 
   if [ "$method" != "GET" ]; then
-    _debug2 data "$data"
     response="$(_post "$data" "$creolineApi/$uri" "" "$method")"
   else
     response="$(_get "$creolineApi/$uri")"
   fi
 
-  _debug response "$response"
   if [ "$?" != "0" ]; then
     _err "error $uri"
     return 1
   fi
+
+  _debug response "$response"
 
   if _contains "$response" "errors"; then
     error=$(echo "$response" | _egrep_o "\"errors\":[[]*\"[^\"]+\"" | cut -d : -f 2 | tr -d \" | tr -d "[")
