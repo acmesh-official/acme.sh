@@ -10,7 +10,8 @@ Options:
 Issues: github.com/acmesh-official/acme.sh/issues/7103
 '
 
-creolineApi="https://api.creoline.com/v1"
+#creolineApi="https://api.creoline.com/v1" // TODO: Nach dev einkommentieren
+creolineApi="https://api.sk.creoline.in/v1"
 
 ########  Public functions #####################
 
@@ -104,11 +105,6 @@ dns_creoline_rm() {
 # _domain=domain.com
 _get_root() {
   domain=$1
-
-  if [ -z "$_domain" ]; then
-    return 1
-  fi
-
   if ! _creoline_rest GET "dns/zone/root/$domain"; then
     return 1
   fi
@@ -118,6 +114,10 @@ _get_root() {
 
   _domain=$(echo "$response" | _egrep_o "\"domain\"[[:space:]]*:[[:space:]]*\"[^\"]+\"" | cut -d : -f 2 | tr -d \" | _head_n 1 | tr -d " ")
   _debug _domain "$_domain"
+  
+  if [ -z "$_domain" ] || [ -z "$_sub_domain" ]; then
+    return 1
+  fi
 }
 
 _creoline_rest() {
