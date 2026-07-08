@@ -10,8 +10,7 @@ Options:
 Issues: github.com/acmesh-official/acme.sh/issues/7103
 '
 
-#creolineApi="https://api.creoline.com/v1" // TODO: Nach dev einkommentieren
-creolineApi="https://api.sk.creoline.in/v1"
+creolineApi="https://api.creoline.com/v1"
 
 ########  Public functions #####################
 
