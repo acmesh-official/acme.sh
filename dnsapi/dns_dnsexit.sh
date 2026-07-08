@@ -25,7 +25,7 @@ dns_dnsexit_add() {
     return 1
   fi
 
-  _dnsexit_zone_op add ',"ttl":0,"overwrite":false'
+  _dnsexit_zone_op add ',"ttl":1,"overwrite":false'
 }
 
 #Usage: fulldomain txtvalue
