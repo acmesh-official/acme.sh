@@ -3,7 +3,7 @@
 dns_hostinger_info='Hostinger
 Site: Hostinger.com
 Domains: hostinger.nl
-Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_hostinger
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_hostinger
 Options:
  HOSTINGER_Token API Key
 Issues: https://github.com/acmesh-official/acme.sh/issues/6831
@@ -40,7 +40,7 @@ dns_hostinger_add() {
   _debug "Getting existing records"
   _hostinger_rest GET "${_domain}"
 
-  if ! echo "$response"; then
+  if [ -z "$response" ]; then
     _err "Error"
     return 1
   fi
@@ -74,6 +74,16 @@ dns_hostinger_rm() {
   fulldomain=$1
   txtvalue=$2
 
+  HOSTINGER_Token="${HOSTINGER_Token:-$(_readaccountconf_mutable HOSTINGER_Token)}"
+
+  if [ -z "$HOSTINGER_Token" ]; then
+    HOSTINGER_Token=""
+    _err "You didn't specify a Hostinger API Key yet."
+    _err "Please read the documentation for the Hostinger API authentication at https://developers.hostinger.com/#description/authentication"
+    return 1
+  fi
+  _saveaccountconf_mutable HOSTINGER_Token "$HOSTINGER_Token"
+
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
@@ -85,15 +95,37 @@ dns_hostinger_rm() {
   _debug "Getting existing records"
   _hostinger_rest GET "${_domain}"
 
-  if ! echo "$response"; then
+  if [ -z "$response" ]; then
     _err "Error"
     return 1
   fi
 
   if _contains "$response" "\"name\":\"$_sub_domain\""; then
-    if ! _hostinger_rest DELETE "$_domain" "{\"filters\":[{\"name\":\"$_sub_domain\",\"type\":\"TXT\"}]}"; then
-      _err "Delete record error."
-      return 1
+    # Match the record, and make certain it is a TXT record for the domain not another type. Then remove our target record from the list
+    remaining_records=$(echo "$response" | _normalizeJson | _egrep_o "\{\"name\":\"$_sub_domain\",\"records\":\[.*?\].*?TXT.*?\}" | _egrep_o "\[.*?\]" | sed -E 's#\{"content":"\\"'"$txtvalue"'\\"","is_disabled":false\},?##g')
+    if [[ "$remaining_records" != "[]" ]]; then
+      remaining_json=$(echo $remaining_records | _egrep_o '"content":"\\".*?\\""' | sed -E 's/^(.*)$/{\1},/g' | tr -d '\n' | sed 's/,$//')
+        # We need to set the remaining records back to Hostinger, as we can't partially delete
+      _info "Removing $txtvalue from $_subdomain by setting records to ${remaining_json}"
+      if _hostinger_rest PUT "$_domain" "{\"zone\":[{\"name\": \"$_sub_domain\",\"records\": [${remaining_json}],\"type\":\"TXT\",\"ttl\":\"120\"}],\"overwrite\":true}"; then
+        if _contains "$response" "Request accepted"; then
+          _info "Added, OK"
+          return 0
+        elif _contains "$response" "DNS resource record is not valid or conflicts with another resource record" ||
+          _contains "$response" 'DNS:4008'; then
+          _info "Already exists, OK"
+          return 0
+        else
+          _err "Add txt record error."
+          return 1
+        fi
+      fi
+    # Otherwise delete the TXT record that matches the subdomain
+    else
+      if ! _hostinger_rest DELETE "$_domain" "{\"filters\":[{\"name\":\"$_sub_domain\",\"type\":\"TXT\"}]}"; then
+        _err "Delete record error."
+        return 1
+      fi
     fi
     echo "$response" | grep "Request accepted" >/dev/null
   else
