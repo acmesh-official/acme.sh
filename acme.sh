@@ -6912,6 +6912,12 @@ _uninstall_win_taskscheduler() {
 
 #confighome
 installcronjob() {
+  if _exists "/.dockerenv"; then
+    _err "Docker detected. \"--install-cronjob\" is disabled."
+    _err "\"$LE_CONFIG_HOME/crontab\" will be generated the first time the image is run in \"daemon\" mode."
+    _err "Changes can be made by editing the file and restarting the container."
+    return 1
+  fi
   _c_home="$1"
   _initpath
   _CRONTAB="crontab"
@@ -6977,6 +6983,12 @@ installcronjob() {
 }
 
 uninstallcronjob() {
+  if _exists "/.dockerenv"; then
+    _err "Docker detected. \"--uninstall-cronjob\" is disabled."
+    _err "\"$LE_CONFIG_HOME/crontab\" will be generated the first time the image is run in \"daemon\" mode."
+    _err "Changes can be made by editing the file and restarting the container."
+    return 1
+  fi
   _CRONTAB="crontab"
   if ! _exists "$_CRONTAB" && _exists "fcrontab"; then
     _CRONTAB="fcrontab"
@@ -7514,6 +7526,10 @@ install() {
   if ! _initpath; then
     _err "Install failed."
     return 1
+  fi
+  if _exists "/.dockerenv"; then
+    _debug "Docker detected"
+    _nocron="true"
   fi
   if [ "$_nocron" ]; then
     _debug "Skipping cron job installation"
