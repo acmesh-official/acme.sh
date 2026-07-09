@@ -81,8 +81,8 @@ if [ \"\$1\" = \"daemon\" ];  then \n \
      echo \"\$LE_CONFIG_HOME/crontab not found, generating one\" \n \
      time=\$(date -u \"+%s\") \n \
      random_minute=\$((\$time % 60)) \n \
-     random_hour=\$((\$time / 60 % 24)) \n \
-     echo \"\$random_minute \$random_hour * * * \\\"\$LE_WORKING_DIR\\\"/acme.sh --cron --home \\\"\$LE_WORKING_DIR\\\" --config-home \\\"\$LE_CONFIG_HOME\\\"\" > \"\$LE_CONFIG_HOME\"/crontab \n \
+     random_hour=\$((\$time / 60 % 6)) \n \
+     echo \"\$random_minute \$random_hour,\$((\$random_hour + 6)),\$((\$random_hour + 12)),\$((\$random_hour + 18)) * * * \\\"\$LE_WORKING_DIR\\\"/acme.sh --cron --home \\\"\$LE_WORKING_DIR\\\" --config-home \\\"\$LE_CONFIG_HOME\\\"\" > \"\$LE_CONFIG_HOME\"/crontab \n \
   fi \n \
   echo \"Running Supercronic using crontab at \$LE_CONFIG_HOME/crontab\" \n \
   exec -- /usr/bin/supercronic \"\$LE_CONFIG_HOME/crontab\" \n \
