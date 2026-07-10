@@ -102,14 +102,14 @@ dns_hostinger_rm() {
 
   if _contains "$response" "\"name\":\"$_sub_domain\""; then
     # Match the record, and make certain it is a TXT record for the domain not another type. Then remove our target record from the list
-    remaining_records=$(echo "$response" | _normalizeJson | _egrep_o "\{\"name\":\"$_sub_domain\",\"records\":\[.*?\].*?TXT.*?\}" | _egrep_o "\[.*?\]" | sed -E 's#\{"content":"\\"'"$txtvalue"'\\"","is_disabled":false\},?##g')
+    remaining_records=$(echo "$response" | _normalizeJson | _egrep_o '{"name":"'"$_sub_domain"'","records":\[[^]]+\],"ttl":[0-9]+,"type":"TXT"\}' | _egrep_o "\[.*\]" | sed -E 's#\{"content":"\\"'"$txtvalue"'\\"","is_disabled":false\},?##g')
     if [ "$remaining_records" != "[]" ]; then
-      remaining_json=$(echo "$remaining_records" | _egrep_o '"content":"\\".*?\\""' | sed -E 's/^(.*)$/{\1},/g' | tr -d '\n' | sed 's/,$//')
+      remaining_json=$(echo "$remaining_records" | _egrep_o '"content":"\\"[^}]+\\""' | sed -E 's/^(.*)$/{\1},/g' | tr -d '\n' | sed 's/,$//')
       # We need to set the remaining records back to Hostinger, as we can't partially delete
       _info "Removing $txtvalue from $_sub_domain by setting records to ${remaining_json}"
       if _hostinger_rest PUT "$_domain" "{\"zone\":[{\"name\": \"$_sub_domain\",\"records\": [${remaining_json}],\"type\":\"TXT\",\"ttl\":\"120\"}],\"overwrite\":true}"; then
         if _contains "$response" "Request accepted"; then
-          _info "Added, OK"
+          _info "Updated remaining records, OK"
           return 0
         elif _contains "$response" "DNS resource record is not valid or conflicts with another resource record" ||
           _contains "$response" 'DNS:4008'; then
@@ -153,7 +153,7 @@ _get_root() {
     fi
 
     _hostinger_rest GET "$h"
-    if ! _contains "$response" "Domain name is not valid"; then
+    if _contains "$response" "records"; then
       if [ "$response" = "[]" ]; then
         _debug "Valid subdomains are not the root"
       else
