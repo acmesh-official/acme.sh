@@ -9,8 +9,8 @@ Options:
  AWS_RA_TRUST_ANCHOR_ARN IAM Roles Anywhere trust anchor ARN. Optional, enables X.509 cert auth.
  AWS_RA_PROFILE_ARN IAM Roles Anywhere profile ARN. Optional.
  AWS_RA_ROLE_ARN IAM role ARN to assume via Roles Anywhere. Optional.
- AWS_RA_CERT Path to the Roles Anywhere client certificate PEM. Optional, default "~/.aws/rolesanywhere/certificate.pem".
- AWS_RA_KEY Path to the Roles Anywhere client private key PEM. Optional, default "~/.aws/rolesanywhere/private-key.pem".
+ AWS_RA_CERT Roles Anywhere client certificate: a PEM file path or the PEM contents. Optional, default "~/.aws/rolesanywhere/certificate.pem".
+ AWS_RA_KEY Roles Anywhere client private key: a PEM file path or the PEM contents. Optional, default "~/.aws/rolesanywhere/private-key.pem".
  AWS_RA_REGION Roles Anywhere region. Optional, default parsed from the trust anchor ARN.
  AWS_RA_DURATION Roles Anywhere session duration in seconds (900-43200). Optional, default "3600".
 '
@@ -336,15 +336,44 @@ _aws_ra_hex2dec() {
 # exchanging it for temporary credentials through the CreateSession API. On success
 # it sets AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_SESSION_TOKEN and marks the
 # session as a role so the (temporary) credentials are never persisted.
+#
+# Wrapper: materialise any inline PEM to a temp file, run the implementation, then
+# always clean up the temp files (they may hold the private key), preserving the
+# implementation's return code.
 _use_roles_anywhere() {
   AWS_RA_CERT="${AWS_RA_CERT:-$(_readaccountconf_mutable AWS_RA_CERT)}"
   AWS_RA_KEY="${AWS_RA_KEY:-$(_readaccountconf_mutable AWS_RA_KEY)}"
-  AWS_RA_REGION="${AWS_RA_REGION:-$(_readaccountconf_mutable AWS_RA_REGION)}"
-  AWS_RA_DURATION="${AWS_RA_DURATION:-$(_readaccountconf_mutable AWS_RA_DURATION)}"
 
-  # Blessed default location, shared with the official aws_signing_helper and AWS CLI.
+  # AWS_RA_CERT/AWS_RA_KEY may be a filesystem path or the PEM contents themselves
+  # (contents let the material be supplied through an env var / secret, e.g. CI).
+  _ra_cert_tmp=""
+  _ra_key_tmp=""
   _ra_cert="${AWS_RA_CERT:-$HOME/.aws/rolesanywhere/certificate.pem}"
   _ra_key="${AWS_RA_KEY:-$HOME/.aws/rolesanywhere/private-key.pem}"
+  if _startswith "$AWS_RA_CERT" "-----BEGIN"; then
+    _ra_cert_tmp="$(_mktemp)"
+    _ra_cert="$_ra_cert_tmp"
+    printf "%s" "$AWS_RA_CERT" >"$_ra_cert"
+  fi
+  if _startswith "$AWS_RA_KEY" "-----BEGIN"; then
+    _ra_key_tmp="$(_mktemp)"
+    _ra_key="$_ra_key_tmp"
+    printf "%s" "$AWS_RA_KEY" >"$_ra_key"
+  fi
+
+  _use_roles_anywhere_impl
+  _ra_ret="$?"
+
+  [ -n "$_ra_cert_tmp" ] && rm -f "$_ra_cert_tmp"
+  [ -n "$_ra_key_tmp" ] && rm -f "$_ra_key_tmp"
+  return "$_ra_ret"
+}
+
+# Implementation of the Roles Anywhere exchange. Reads $_ra_cert / $_ra_key (resolved
+# to real files by _use_roles_anywhere) and $AWS_RA_* for the rest of the config.
+_use_roles_anywhere_impl() {
+  AWS_RA_REGION="${AWS_RA_REGION:-$(_readaccountconf_mutable AWS_RA_REGION)}"
+  AWS_RA_DURATION="${AWS_RA_DURATION:-$(_readaccountconf_mutable AWS_RA_DURATION)}"
   _ra_duration="${AWS_RA_DURATION:-3600}"
 
   if [ ! -r "$_ra_cert" ]; then

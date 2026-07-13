@@ -161,6 +161,13 @@ chmod 600 ~/.aws/rolesanywhere/private-key.pem ~/.aws/rolesanywhere/certificate.
 Override the paths with `AWS_RA_CERT` / `AWS_RA_KEY` if you store them elsewhere (for
 example, a TPM- or PKCS#11-backed key managed by `aws_signing_helper` directly).
 
+`AWS_RA_CERT` / `AWS_RA_KEY` also accept the **PEM contents** directly, not just a path
+(detected by the leading `-----BEGIN`). This is convenient when the material is supplied
+through an environment variable or secret rather than a file — for instance in CI. When
+contents are given, acme.sh writes them to a temporary file for the duration of the
+signing operation and removes it immediately afterwards; the private key is never
+persisted to `account.conf`.
+
 ### Configuration
 
 ```sh
