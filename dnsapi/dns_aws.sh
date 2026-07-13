@@ -351,14 +351,17 @@ _use_roles_anywhere() {
   _ra_cert="${AWS_RA_CERT:-$HOME/.aws/rolesanywhere/certificate.pem}"
   _ra_key="${AWS_RA_KEY:-$HOME/.aws/rolesanywhere/private-key.pem}"
   if _startswith "$AWS_RA_CERT" "-----BEGIN"; then
-    _ra_cert_tmp="$(_mktemp)"
+    if ! _ra_cert_tmp="$(_aws_ra_write_temp "$AWS_RA_CERT")"; then
+      return 1
+    fi
     _ra_cert="$_ra_cert_tmp"
-    printf "%s" "$AWS_RA_CERT" >"$_ra_cert"
   fi
   if _startswith "$AWS_RA_KEY" "-----BEGIN"; then
-    _ra_key_tmp="$(_mktemp)"
+    if ! _ra_key_tmp="$(_aws_ra_write_temp "$AWS_RA_KEY")"; then
+      [ -n "$_ra_cert_tmp" ] && rm -f "$_ra_cert_tmp"
+      return 1
+    fi
     _ra_key="$_ra_key_tmp"
-    printf "%s" "$AWS_RA_KEY" >"$_ra_key"
   fi
 
   _use_roles_anywhere_impl
@@ -367,6 +370,30 @@ _use_roles_anywhere() {
   [ -n "$_ra_cert_tmp" ] && rm -f "$_ra_cert_tmp"
   [ -n "$_ra_key_tmp" ] && rm -f "$_ra_key_tmp"
   return "$_ra_ret"
+}
+
+# contents
+# Writes PEM contents to a private temp file and echoes its path. The file is created
+# under an owner-only umask and its permissions tightened to 600 before the private key
+# is written, so the key is never exposed to other users -- this also hardens the
+# predictable-name _mktemp fallback, which returns a path without creating the file.
+_aws_ra_write_temp() {
+  _ra_tmp="$(_mktemp)"
+  if [ -z "$_ra_tmp" ]; then
+    _err "Roles Anywhere: unable to create a secure temporary file."
+    return 1
+  fi
+  (
+    umask 077
+    : >"$_ra_tmp" || exit 1
+    chmod 600 "$_ra_tmp" 2>/dev/null
+    printf "%s" "$1" >"$_ra_tmp"
+  ) || {
+    _err "Roles Anywhere: unable to write the temporary certificate/key file."
+    rm -f "$_ra_tmp"
+    return 1
+  }
+  printf "%s" "$_ra_tmp"
 }
 
 # Implementation of the Roles Anywhere exchange. Reads $_ra_cert / $_ra_key (resolved
