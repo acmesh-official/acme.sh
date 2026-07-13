@@ -373,26 +373,33 @@ _use_roles_anywhere() {
 }
 
 # contents
-# Writes PEM contents to a private temp file and echoes its path. The file is created
-# under an owner-only umask and its permissions tightened to 600 before the private key
-# is written, so the key is never exposed to other users -- this also hardens the
-# predictable-name _mktemp fallback, which returns a path without creating the file.
+# Writes PEM contents to a private temp file and echoes its path.
+#
+# Because the file holds a private key, it must be created by mktemp(1), which
+# atomically opens a fresh file with O_EXCL and mode 600. We deliberately do NOT fall
+# back to the predictable _mktemp name here: that path is not created by mktemp, so
+# writing to it could follow an attacker-planted symlink or truncate an existing file
+# (a symlink/tempfile race). On systems without mktemp, callers must pass file paths.
 _aws_ra_write_temp() {
-  _ra_tmp="$(_mktemp)"
-  if [ -z "$_ra_tmp" ]; then
-    _err "Roles Anywhere: unable to create a secure temporary file."
+  if ! _exists mktemp; then
+    _err "Roles Anywhere: inline PEM contents require the 'mktemp' command."
+    _err "Point AWS_RA_CERT/AWS_RA_KEY at PEM file paths instead."
     return 1
   fi
-  (
+  _ra_tmp="$(
     umask 077
-    : >"$_ra_tmp" || exit 1
-    chmod 600 "$_ra_tmp" 2>/dev/null
-    printf "%s" "$1" >"$_ra_tmp"
-  ) || {
+    mktemp 2>/dev/null || mktemp -t "$PROJECT_NAME" 2>/dev/null
+  )"
+  if [ -z "$_ra_tmp" ] || [ ! -f "$_ra_tmp" ] || [ -L "$_ra_tmp" ]; then
+    _err "Roles Anywhere: unable to create a secure temporary file."
+    [ -n "$_ra_tmp" ] && rm -f "$_ra_tmp"
+    return 1
+  fi
+  if ! printf "%s" "$1" >"$_ra_tmp"; then
     _err "Roles Anywhere: unable to write the temporary certificate/key file."
     rm -f "$_ra_tmp"
     return 1
-  }
+  fi
   printf "%s" "$_ra_tmp"
 }
 
