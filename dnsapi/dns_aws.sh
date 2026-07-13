@@ -6,6 +6,13 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_aws
 Options:
  AWS_ACCESS_KEY_ID API Key ID
  AWS_SECRET_ACCESS_KEY API Secret
+ AWS_RA_TRUST_ANCHOR_ARN IAM Roles Anywhere trust anchor ARN. Optional, enables X.509 cert auth.
+ AWS_RA_PROFILE_ARN IAM Roles Anywhere profile ARN. Optional.
+ AWS_RA_ROLE_ARN IAM role ARN to assume via Roles Anywhere. Optional.
+ AWS_RA_CERT Path to the Roles Anywhere client certificate PEM. Optional, default "~/.aws/rolesanywhere/certificate.pem".
+ AWS_RA_KEY Path to the Roles Anywhere client private key PEM. Optional, default "~/.aws/rolesanywhere/private-key.pem".
+ AWS_RA_REGION Roles Anywhere region. Optional, default parsed from the trust anchor ARN.
+ AWS_RA_DURATION Roles Anywhere session duration in seconds (900-43200). Optional, default "3600".
 '
 
 # All `_sleep` commands are included to avoid Route53 throttling, see
@@ -28,7 +35,13 @@ dns_aws_add() {
   AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
   AWS_DNS_SLOWRATE="${AWS_DNS_SLOWRATE:-$(_readaccountconf_mutable AWS_DNS_SLOWRATE)}"
 
-  if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+  # IAM Roles Anywhere takes precedence when configured: it is a deliberate opt-in
+  # and should not silently lose to a stale key left in account.conf.
+  if _aws_ra_configured; then
+    if ! _use_roles_anywhere; then
+      return 1
+    fi
+  elif [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     _use_container_role || _use_instance_role
   fi
 
@@ -104,7 +117,11 @@ dns_aws_rm() {
   AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
   AWS_DNS_SLOWRATE="${AWS_DNS_SLOWRATE:-$(_readaccountconf_mutable AWS_DNS_SLOWRATE)}"
 
-  if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+  if _aws_ra_configured; then
+    if ! _use_roles_anywhere; then
+      return 1
+    fi
+  elif [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     _use_container_role || _use_instance_role
   fi
 
@@ -257,6 +274,186 @@ _use_metadata() {
   _secure_debug "_aws_creds" "$_aws_creds"
 
   if [ -z "$_aws_creds" ]; then
+    return 1
+  fi
+
+  eval "$_aws_creds"
+  _using_role=true
+}
+
+# Returns 0 when the IAM Roles Anywhere trust anchor, profile and role ARNs are all set.
+_aws_ra_configured() {
+  AWS_RA_TRUST_ANCHOR_ARN="${AWS_RA_TRUST_ANCHOR_ARN:-$(_readaccountconf_mutable AWS_RA_TRUST_ANCHOR_ARN)}"
+  AWS_RA_PROFILE_ARN="${AWS_RA_PROFILE_ARN:-$(_readaccountconf_mutable AWS_RA_PROFILE_ARN)}"
+  AWS_RA_ROLE_ARN="${AWS_RA_ROLE_ARN:-$(_readaccountconf_mutable AWS_RA_ROLE_ARN)}"
+  [ -n "$AWS_RA_TRUST_ANCHOR_ARN" ] && [ -n "$AWS_RA_PROFILE_ARN" ] && [ -n "$AWS_RA_ROLE_ARN" ]
+}
+
+# decimal_string multiplier addend
+# Computes (decimal_string * multiplier + addend) for small multiplier/addend,
+# keeping the running value as a decimal string so serials wider than the shell's
+# integer type are handled. No bc/awk/python (not portable across acme.sh targets).
+_aws_ra_dec_muladd() {
+  _num="$1"
+  _mul="$2"
+  _carry="$3"
+  _out=""
+  _i=${#_num}
+  while [ "$_i" -ge 1 ]; do
+    _digit=$(printf "%s" "$_num" | cut -c "$_i")
+    _p=$(_math "$_digit" \* "$_mul" + "$_carry")
+    _carry=$(_math "$_p" / 10)
+    _out="$(_math "$_p" % 10)$_out"
+    _i=$(_math "$_i" - 1)
+  done
+  while [ "$_carry" -gt 0 ]; do
+    _out="$(_math "$_carry" % 10)$_out"
+    _carry=$(_math "$_carry" / 10)
+  done
+  [ -z "$_out" ] && _out=0
+  printf "%s" "$_out"
+}
+
+# hex_string
+# Converts an arbitrarily long hex string to its decimal representation. Used to turn
+# a certificate serial number into the decimal form the Roles Anywhere Credential field
+# expects (matches certificate.SerialNumber.String() in the AWS credential helper).
+_aws_ra_hex2dec() {
+  _hex=$(printf "%s" "$1" | _upper_case)
+  _dec=0
+  _i=1
+  _len=${#_hex}
+  while [ "$_i" -le "$_len" ]; do
+    _ch=$(printf "%s" "$_hex" | cut -c "$_i")
+    _d=$(_h_char_2_dec "$_ch")
+    _dec=$(_aws_ra_dec_muladd "$_dec" 16 "$_d")
+    _i=$(_math "$_i" + 1)
+  done
+  printf "%s" "$_dec"
+}
+
+# Authenticate to AWS via IAM Roles Anywhere using an X.509 client certificate,
+# exchanging it for temporary credentials through the CreateSession API. On success
+# it sets AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_SESSION_TOKEN and marks the
+# session as a role so the (temporary) credentials are never persisted.
+_use_roles_anywhere() {
+  AWS_RA_CERT="${AWS_RA_CERT:-$(_readaccountconf_mutable AWS_RA_CERT)}"
+  AWS_RA_KEY="${AWS_RA_KEY:-$(_readaccountconf_mutable AWS_RA_KEY)}"
+  AWS_RA_REGION="${AWS_RA_REGION:-$(_readaccountconf_mutable AWS_RA_REGION)}"
+  AWS_RA_DURATION="${AWS_RA_DURATION:-$(_readaccountconf_mutable AWS_RA_DURATION)}"
+
+  # Blessed default location, shared with the official aws_signing_helper and AWS CLI.
+  _ra_cert="${AWS_RA_CERT:-$HOME/.aws/rolesanywhere/certificate.pem}"
+  _ra_key="${AWS_RA_KEY:-$HOME/.aws/rolesanywhere/private-key.pem}"
+  _ra_duration="${AWS_RA_DURATION:-3600}"
+
+  if [ ! -r "$_ra_cert" ]; then
+    _err "Roles Anywhere certificate not found or not readable: $_ra_cert"
+    _err "See $(__green "$AWS_WIKI")"
+    return 1
+  fi
+  if [ ! -r "$_ra_key" ]; then
+    _err "Roles Anywhere private key not found or not readable: $_ra_key"
+    _err "See $(__green "$AWS_WIKI")"
+    return 1
+  fi
+
+  # Region: explicit override, else the region field of the trust anchor ARN
+  # arn:aws:rolesanywhere:<region>:<account>:trust-anchor/<id>
+  _ra_region="$AWS_RA_REGION"
+  if [ -z "$_ra_region" ]; then
+    _ra_region=$(printf "%s" "$AWS_RA_TRUST_ANCHOR_ARN" | cut -d : -f 4)
+  fi
+  if [ -z "$_ra_region" ]; then
+    _err "Unable to determine Roles Anywhere region. Set AWS_RA_REGION."
+    return 1
+  fi
+  _debug2 _ra_region "$_ra_region"
+
+  # Signing algorithm is fixed by the client certificate's key type.
+  if ${ACME_OPENSSL_BIN:-openssl} rsa -in "$_ra_key" -noout >/dev/null 2>&1; then
+    _ra_algorithm="AWS4-X509-RSA-SHA256"
+  elif ${ACME_OPENSSL_BIN:-openssl} ec -in "$_ra_key" -noout >/dev/null 2>&1; then
+    _ra_algorithm="AWS4-X509-ECDSA-SHA256"
+  else
+    _err "Unsupported Roles Anywhere key type (need an RSA or EC private key): $_ra_key"
+    return 1
+  fi
+  _debug2 _ra_algorithm "$_ra_algorithm"
+
+  # base64(DER(cert)) for the X-Amz-X509 header, single line.
+  _ra_x509=$(${ACME_OPENSSL_BIN:-openssl} x509 -in "$_ra_cert" -outform DER | _base64 | tr -d '\r\n')
+  if [ -z "$_ra_x509" ]; then
+    _err "Unable to read Roles Anywhere certificate: $_ra_cert"
+    return 1
+  fi
+
+  # Certificate serial number as a decimal integer for the Credential field.
+  _ra_serial_hex=$(${ACME_OPENSSL_BIN:-openssl} x509 -in "$_ra_cert" -serial -noout | cut -d = -f 2)
+  _ra_serial=$(_aws_ra_hex2dec "$_ra_serial_hex")
+  _debug2 _ra_serial "$_ra_serial"
+
+  _ra_host="rolesanywhere.$_ra_region.amazonaws.com"
+  _ra_date="$(date -u +"%Y%m%dT%H%M%SZ")"
+  _ra_date_only="$(echo "$_ra_date" | cut -c 1-8)"
+
+  _ra_payload="{\"durationSeconds\":$_ra_duration,\"profileArn\":\"$AWS_RA_PROFILE_ARN\",\"roleArn\":\"$AWS_RA_ROLE_ARN\",\"trustAnchorArn\":\"$AWS_RA_TRUST_ANCHOR_ARN\"}"
+  _debug2 _ra_payload "$_ra_payload"
+
+  _ra_signed_headers="content-type;host;x-amz-date;x-amz-x509"
+  _ra_canonical_headers="content-type:application/json\nhost:$_ra_host\nx-amz-date:$_ra_date\nx-amz-x509:$_ra_x509\n"
+  _ra_canonical_request="POST\n/sessions\n\n$_ra_canonical_headers\n$_ra_signed_headers\n$(printf "%s" "$_ra_payload" | _digest "sha256" hex)"
+  _debug2 _ra_canonical_request "$_ra_canonical_request"
+
+  _ra_scope="$_ra_date_only/$_ra_region/rolesanywhere/aws4_request"
+  _ra_string_to_sign="$_ra_algorithm\n$_ra_date\n$_ra_scope\n$(printf "$_ra_canonical_request%s" | _digest "sha256" hex)"
+  _debug2 _ra_string_to_sign "$_ra_string_to_sign"
+
+  # Sign with the certificate's private key. openssl emits PKCS#1 for RSA and ASN.1 DER
+  # for ECDSA, which is exactly what Roles Anywhere expects; hex-encode the result.
+  _ra_signature=$(printf "$_ra_string_to_sign%s" | ${ACME_OPENSSL_BIN:-openssl} dgst -sha256 -sign "$_ra_key" | _hex_dump | tr -d ' ')
+  if [ -z "$_ra_signature" ]; then
+    _err "Roles Anywhere signing failed for key: $_ra_key"
+    return 1
+  fi
+  _secure_debug2 _ra_signature "$_ra_signature"
+
+  _ra_authz="$_ra_algorithm Credential=$_ra_serial/$_ra_scope, SignedHeaders=$_ra_signed_headers, Signature=$_ra_signature"
+  _secure_debug2 _ra_authz "$_ra_authz"
+
+  export _H1="x-amz-date: $_ra_date"
+  export _H2="x-amz-x509: $_ra_x509"
+  export _H3="content-type: application/json"
+  export _H4="Authorization: $_ra_authz"
+
+  _ra_response="$(_post "$_ra_payload" "https://$_ra_host/sessions")"
+  _ret="$?"
+  unset _H1 _H2 _H3 _H4
+  _secure_debug2 _ra_response "$_ra_response"
+  if [ "$_ret" != "0" ]; then
+    _err "Roles Anywhere CreateSession request failed."
+    return 1
+  fi
+
+  _aws_creds="$(
+    echo "$_ra_response" |
+      _normalizeJson |
+      tr '{,}' '\n' |
+      while read -r _line; do
+        _key="$(echo "${_line%%:*}" | tr -d '\"')"
+        _value="${_line#*:}"
+        case "$_key" in
+        accessKeyId) echo "AWS_ACCESS_KEY_ID=$_value" ;;
+        secretAccessKey) echo "AWS_SECRET_ACCESS_KEY=$_value" ;;
+        sessionToken) echo "AWS_SESSION_TOKEN=$_value" ;;
+        esac
+      done |
+      paste -sd' ' -
+  )"
+  _secure_debug "_aws_creds" "$_aws_creds"
+
+  if [ -z "$_aws_creds" ]; then
+    _err "Roles Anywhere did not return credentials. Response: $_ra_response"
     return 1
   fi
 
