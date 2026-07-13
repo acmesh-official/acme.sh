@@ -18,7 +18,7 @@
 _fortigate_parse_response() {
   _fortigate_response="$1"
   _fortigate_func="$2"
-  _fortigate_status=$(echo "$_fortigate_response" | grep -o '"status":[ ]*"[^"]*"' | sed 's/"status":[ ]*"\([^"]*\)"/\1/')
+  _fortigate_status=$(echo "$_fortigate_response" | _egrep_o '"status":[ ]*"[^"]*"' | cut -d '"' -f 4)
 
   if [ "$_fortigate_status" != "success" ]; then
     _err "[$_fortigate_func] Operation failed. Deploy with --insecure if current certificate is invalid. Try deploying with --debug to troubleshoot."
