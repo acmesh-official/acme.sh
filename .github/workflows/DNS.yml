@@ -237,6 +237,7 @@ jobs:
     - uses: vmactions/freebsd-vm@v1
       with:
         debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
+        cache-after-prepare: true
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: pkg install -y socat curl
         usesh: true
@@ -295,6 +296,7 @@ jobs:
     - uses: vmactions/ghostbsd-vm@v1
       with:
         debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
+        cache-after-prepare: true
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: pkg install -y socat curl
         usesh: true
@@ -351,6 +353,7 @@ jobs:
     - uses: vmactions/openbsd-vm@v1
       with:
         debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
+        cache-after-prepare: true
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: pkg_add socat curl libiconv
         usesh: true
@@ -407,6 +410,7 @@ jobs:
     - uses: vmactions/netbsd-vm@v1
       with:
         debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
+        cache-after-prepare: true
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: |
           /usr/sbin/pkg_add curl socat
@@ -464,6 +468,7 @@ jobs:
     - uses: vmactions/dragonflybsd-vm@v1
       with:
         debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
+        cache-after-prepare: true
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: |
           pkg install -y libnghttp2
@@ -525,6 +530,7 @@ jobs:
     - uses: vmactions/midnightbsd-vm@v1
       with:
         debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
+        cache-after-prepare: true
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         prepare: mport install socat curl || true
         usesh: true
@@ -582,6 +588,7 @@ jobs:
     - uses: vmactions/solaris-vm@v1
       with:
         debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
+        cache-after-prepare: true
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy HTTPS_INSECURE TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         sync: nfs
         prepare: |
@@ -641,6 +648,7 @@ jobs:
     - uses: vmactions/omnios-vm@v1
       with:
         debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
+        cache-after-prepare: true
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy HTTPS_INSECURE TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         sync: nfs
         prepare: pkg install socat
@@ -697,6 +705,7 @@ jobs:
     - uses: vmactions/openindiana-vm@v1
       with:
         debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
+        cache-after-prepare: true
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy HTTPS_INSECURE TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         sync: nfs
         prepare: pkg install socat
@@ -753,6 +762,7 @@ jobs:
     - uses: vmactions/tribblix-vm@v1
       with:
         debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
+        cache-after-prepare: true
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy HTTPS_INSECURE TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         sync: nfs
         prepare: zap install socat
@@ -809,6 +819,7 @@ jobs:
     - uses: vmactions/haiku-vm@v1
       with:
         debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
+        cache-after-prepare: true
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy HTTPS_INSECURE TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
         sync: rsync
         copyback: false
