@@ -154,10 +154,10 @@ _hestia_rest() {
   shift
 
   _hestia_data="{\"access_key\":\"$HESTIA_ACCESS\",\"secret_key\":\"$HESTIA_SECRET\",\"cmd\":\"$_hestia_cmd\""
-  _hestia_i=1
+  _hestia_argn=1
   for _hestia_arg in "$@"; do
-    _hestia_data="$_hestia_data,\"arg$_hestia_i\":\"$_hestia_arg\""
-    _hestia_i=$(_math "$_hestia_i" + 1)
+    _hestia_data="$_hestia_data,\"arg$_hestia_argn\":\"$_hestia_arg\""
+    _hestia_argn=$(_math "$_hestia_argn" + 1)
   done
   _hestia_data="$_hestia_data}"
 
