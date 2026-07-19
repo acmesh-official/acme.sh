@@ -1,307 +1,192 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
-dns_hestiacp_info='HestiaCP DNS API
-Site: https://hestiacp.com
-Docs: https://github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_hestiacp
-
+dns_hestiacp_info='HestiaCP Server API
+Site: hestiacp.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_hestiacp
 Options:
-  HESTIA_HOST    The HestiaCP panel URL (e.g., https://panel.domain.com:8083)
-  HESTIA_ACCESS  The HestiaCP API access key
-  HESTIA_SECRET  The HestiaCP API secret key
-  HESTIA_USER    Your HestiaCP username (defaults to "admin")
-
-API Key Setup:
-  1. Log in to HestiaCP panel as admin
-  2. Go to Server -> Configure -> API
-  3. Generate a key pair with "update-dns-records" permission
-  4. Copy Host, Access Key, and Secret Key
-  5. Login to our HestiaCP server as root, and go to /usr/local/hestia/data/api
-  6. The file "update-dns-records" should contain this line in order for this script to work:
-     ROLE='user'
-     COMMANDS='v-list-dns-records,v-change-dns-record,v-delete-dns-record,v-add-dns-record'
-     By default, only v-list-dns-records and v-change-dns-record are enabled.
-
-NOTES: 
- - for wildcard certificates to work, you need to use LetsEncrypt V2 provider, not Alpha ZeroSSL which is default in acme.sh
- - domains available for requesting SSL certificates will be the ones defined under your HestiaCP username (HESTIA_USER).
-
-Example Usage:
-  export HESTIA_HOST="https://panel.domain.com:8083"
-  export HESTIA_ACCESS="your_access_key"
-  export HESTIA_SECRET="your_secret_key"
-  export HESTIA_USER="your_username"
-  acme.sh --issue -d example.com -d *.example.com --dns dns_hestiacp
-
-Author: Radu Malica <radu.malica@gmail.com> https://github.com/radumalica/
-Issues: https://github.com/acmesh-official/acme.sh/issues/6251
+ HESTIA_HOST Panel URL. E.g. "https://panel.example.com:8083"
+ HESTIA_ACCESS API access key
+ HESTIA_SECRET API secret key
+ HESTIA_USER Username owning the DNS zones. Default "admin". Optional.
+Issues: github.com/acmesh-official/acme.sh/issues/6251
+Author: Radu Malica <radu.malica@gmail.com>
 '
 
 ########  Public functions #####################
 
-# Usage: add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+# Usage: dns_hestiacp_add fulldomain txtvalue
 dns_hestiacp_add() {
   fulldomain=$1
   txtvalue=$2
 
-  HESTIA_HOST="${HESTIA_HOST:-$(_readaccountconf_mutable HESTIA_HOST)}"
-  HESTIA_ACCESS="${HESTIA_ACCESS:-$(_readaccountconf_mutable HESTIA_ACCESS)}"
-  HESTIA_SECRET="${HESTIA_SECRET:-$(_readaccountconf_mutable HESTIA_SECRET)}"
-  HESTIA_USER="${HESTIA_USER:-$(_readaccountconf_mutable HESTIA_USER)}"
-  
-  if [ -z "$HESTIA_HOST" ] || [ -z "$HESTIA_ACCESS" ] || [ -z "$HESTIA_SECRET" ]; then
-    _err "Missing required HestiaCP credentials"
+  if ! _hestia_init; then
     return 1
   fi
 
-  # Remove trailing slash if present
-  HESTIA_HOST="${HESTIA_HOST%/}"
-
-  # Set default user if not provided
-  [ -z "$HESTIA_USER" ] && HESTIA_USER="admin"
-
-  # Save the credentials to the account conf file
-  _saveaccountconf_mutable HESTIA_HOST "$HESTIA_HOST"
-  _saveaccountconf_mutable HESTIA_ACCESS "$HESTIA_ACCESS"
-  _saveaccountconf_mutable HESTIA_SECRET "$HESTIA_SECRET"
-  [ "$HESTIA_USER" != "admin" ] && _saveaccountconf_mutable HESTIA_USER "$HESTIA_USER"
-
-  # Validate hostname format
-  if ! echo "$HESTIA_HOST" | grep -qE '^https?://[^/]+$'; then
-    _err "HESTIA_HOST must be a valid URL (e.g., https://panel.domain.com:8083)"
+  _debug "Detecting the root zone for $fulldomain"
+  if ! _hestia_get_root "$fulldomain"; then
+    _err "Cannot find a DNS zone for $fulldomain under user $HESTIA_USER"
     return 1
   fi
+  _debug _hestia_domain "$_hestia_domain"
+  _debug _hestia_sub "$_hestia_sub"
 
-  # Validate API keys are not obviously wrong
-  if [ ${#HESTIA_ACCESS} -lt 20 ] || [ ${#HESTIA_SECRET} -lt 20 ]; then
-    _err "HESTIA_ACCESS and HESTIA_SECRET must be valid API keys"
-    return 1
-  fi
-
-  # Extract domain and subdomain parts
-  _debug2 "Original domain: $fulldomain"
-  _domain=$(echo "$fulldomain" | sed -E 's/^[^.]+\.//' | sed -E 's/^\*\.//')
-  _debug2 "Using domain: $_domain"
-
-  # Get existing TXT records
-  _info "Getting DNS records for $_domain"
-  _payload=$(_hestia_api_payload "v-list-dns-records" "$HESTIA_USER" "$_domain" "json")
-  _debug2 "API payload: $_payload"
-  response=$(_post "$_payload" "${HESTIA_HOST}/api/" "" "POST" "--connect-timeout 10")
-  _ret=$?
-  _debug3 "Raw API response: $response"
-  _info "API response (ret=$_ret)"
-  
-  # Add timeout handling
-  if _contains "$response" "Operation timed out"; then
-    _err "API request timed out. Please try again"
-    return 1
-  fi
-
-  if [ $_ret -ne 0 ]; then
-    _err "Error accessing domain: $_domain"
-    return 1
-  fi
-  
-  if _contains "$response" "Error: "; then
-    _err "API error: $response"
-    return 1
-  fi
-  
-  _sub="_acme-challenge"
-
-  if ! _contains "$fulldomain" "$_sub"; then
-    _err "Invalid domain format - missing $_sub prefix"
-    return 1
-  fi
-
-  # Check for existing record with same value
-  _info "Checking for existing _acme-challenge TXT records"
-  found_exact=0
-  while IFS=':' read -r id value || [ -n "$id" ]; do
-    if [ -n "$id" ] && [ "$value" = "$txtvalue" ]; then
-      _info "Found existing record with correct value, keeping it"
-      found_exact=1
-      break
-    fi
-  done <<EOF
-$(_find_dns_records "$response" "$_sub" "TXT")
-EOF
-
-  # If we found exact match, we're done
-  if [ "$found_exact" = "1" ]; then
-    _info "Using existing DNS record with correct value"
+  # _hestia_get_root left the zone record listing in _hestia_response
+  if _hestia_find_records "$_hestia_sub" "TXT" | grep -F -- "$txtvalue" >/dev/null; then
+    _info "The TXT record already exists, skipping"
     return 0
   fi
 
-  # Otherwise create a new record for this challenge
-  _info "Adding new TXT record for challenge"
-  if ! _post "$(_hestia_api_payload "v-add-dns-record" "$HESTIA_USER" "$_domain" "$_sub" "TXT" "$txtvalue" "" "" "no" "600")" "${HESTIA_HOST}/api/" "" "POST" "--connect-timeout 10" >/dev/null 2>&1; then
-    _err "Error creating new TXT record"
+  _info "Adding TXT record for $fulldomain"
+  if ! _hestia_rest "v-add-dns-record" "$HESTIA_USER" "$_hestia_domain" "$_hestia_sub" "TXT" "$txtvalue" "" "" "yes" "600"; then
+    _err "Error adding TXT record: $_hestia_response"
     return 1
   fi
-  _info "Successfully added new DNS-01 challenge record"
-  _debug3 "Added TXT record with value: $txtvalue"
-  _info "Note: Please allow time for DNS propagation"
+  _info "TXT record added successfully"
   return 0
 }
 
-# Usage: rm _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+# Usage: dns_hestiacp_rm fulldomain txtvalue
 dns_hestiacp_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  HESTIA_HOST="${HESTIA_HOST:-$(_readaccountconf_mutable HESTIA_HOST)}"
-  HESTIA_ACCESS="${HESTIA_ACCESS:-$(_readaccountconf_mutable HESTIA_ACCESS)}"
-  HESTIA_SECRET="${HESTIA_SECRET:-$(_readaccountconf_mutable HESTIA_SECRET)}"
-  HESTIA_USER="${HESTIA_USER:-$(_readaccountconf_mutable HESTIA_USER)}"
-
-  # Remove trailing slash if present
-  HESTIA_HOST="${HESTIA_HOST%/}"
-
-  # Set default user if not provided
-  [ -z "$HESTIA_USER" ] && HESTIA_USER="admin"
-
-  if [ -z "$HESTIA_HOST" ] || [ -z "$HESTIA_ACCESS" ] || [ -z "$HESTIA_SECRET" ]; then
-    _err "Missing required HestiaCP credentials"
+  if ! _hestia_init; then
     return 1
   fi
 
-  # Validate hostname format
-  if ! echo "$HESTIA_HOST" | grep -qE '^https?://[^/]+$'; then
-    _err "HESTIA_HOST must be a valid URL (e.g., https://panel.domain.com:8083)"
+  _debug "Detecting the root zone for $fulldomain"
+  if ! _hestia_get_root "$fulldomain"; then
+    _err "Cannot find a DNS zone for $fulldomain under user $HESTIA_USER"
     return 1
   fi
+  _debug _hestia_domain "$_hestia_domain"
+  _debug _hestia_sub "$_hestia_sub"
 
-  # Validate API keys are not obviously wrong
-  if [ ${#HESTIA_ACCESS} -lt 20 ] || [ ${#HESTIA_SECRET} -lt 20 ]; then
-    _err "HESTIA_ACCESS and HESTIA_SECRET must be valid API keys (length >= 20)"
-    return 1
-  fi
-
-  # Extract domain parts
-  _debug2 "Original domain: $fulldomain"
-  
-  # Define subdomain constant
-  _sub="_acme-challenge"
-  _debug2 "Challenge prefix: $_sub"
-  
-  # Validate _acme-challenge prefix
-  if ! _contains "$fulldomain" "$_sub"; then
-    _err "Invalid domain format - missing $_sub prefix"
-    return 1
-  fi
-  
-  # Everything after _sub. is our domain
-  _domain=$(echo "$fulldomain" | sed -E 's/^[^.]+\.//' | sed -E 's/^\*\.//')
-  _debug2 "Using domain: $_domain"
-
-  # Get zone records
-  _info "Getting DNS records for $_domain"
-  response=$(_post "$(_hestia_api_payload "v-list-dns-records" "$HESTIA_USER" "$_domain" "json")" "${HESTIA_HOST}/api/" "" "POST" "--connect-timeout 10")
-  _ret=$?
-  _debug3 "Raw API response: $response"
-  _info "API response (ret=$_ret)"
-
-  # Add timeout handling
-  if _contains "$response" "Operation timed out"; then
-    _err "API request timed out. Please try again"
-    return 1
-  fi
-
-  # Enhanced response validation
-  if [ -z "$response" ]; then
-    _err "Empty response received from API"
-    return 1
-  fi
-
-  if [ $_ret -ne 0 ]; then
-    _err "Error accessing domain: $_domain"
-    return 1
-  fi
-  
-  if _contains "$response" "Error: "; then
-    _err "API error: $response"
-    return 1
-  fi
-
-  # Delete all _acme-challenge records
-  _info "Removing all _acme-challenge TXT records"
-  removed=0
-  while IFS=':' read -r id value || [ -n "$id" ]; do
-    if [ -n "$id" ]; then
-      _info "Deleting challenge record $id with value: $value"
-      if ! _post "$(_hestia_api_payload "v-delete-dns-record" "$HESTIA_USER" "$_domain" "$id" "no")" "${HESTIA_HOST}/api/" "" "POST" "--connect-timeout 10" >/dev/null 2>&1; then
-        _err "Error deleting TXT record $id"
-        return 1
-      fi
-      removed=$(_math "$removed" + 1)
-      _debug2 "Successfully removed record $id"
+  _hestia_removed=0
+  while IFS='|' read -r _hestia_id _hestia_value || [ -n "$_hestia_id" ]; do
+    if [ -z "$_hestia_id" ]; then
+      continue
     fi
+    if ! _contains "$_hestia_value" "$txtvalue"; then
+      continue
+    fi
+    _info "Deleting TXT record $_hestia_id"
+    if ! _hestia_rest "v-delete-dns-record" "$HESTIA_USER" "$_hestia_domain" "$_hestia_id" "yes"; then
+      _err "Error deleting TXT record $_hestia_id: $_hestia_response"
+      return 1
+    fi
+    _hestia_removed=$(_math "$_hestia_removed" + 1)
   done <<EOF
-$(_find_dns_records "$response" "$_sub" "TXT")
+$(_hestia_find_records "$_hestia_sub" "TXT")
 EOF
 
-  if [ $removed -eq 0 ]; then
-    _info "No challenge records found to remove"
+  if [ "$_hestia_removed" = "0" ]; then
+    _info "No matching TXT record found to remove"
   else
-    _info "Successfully removed $removed DNS-01 challenge record(s)"
+    _info "Removed $_hestia_removed TXT record(s)"
   fi
-
   return 0
 }
 
 ####################  Private functions below ##################################
 
-# Find all record IDs and values for a given name and type
-# Args: response record_name type
-_find_dns_records() {
-  _response="$1"
-  _name="$2"
-  _type="$3"
+_hestia_init() {
+  HESTIA_HOST="${HESTIA_HOST:-$(_readaccountconf_mutable HESTIA_HOST)}"
+  HESTIA_ACCESS="${HESTIA_ACCESS:-$(_readaccountconf_mutable HESTIA_ACCESS)}"
+  HESTIA_SECRET="${HESTIA_SECRET:-$(_readaccountconf_mutable HESTIA_SECRET)}"
+  HESTIA_USER="${HESTIA_USER:-$(_readaccountconf_mutable HESTIA_USER)}"
 
-  _debug2 "Parsing JSON response for '${_name}' ${_type} records"
-  _debug2 "$_response"
-
-  # Quick validation 
-  if _contains "$_response" "Error: "; then
-    _debug2 "Error response received: $_response"
+  if [ -z "$HESTIA_HOST" ] || [ -z "$HESTIA_ACCESS" ] || [ -z "$HESTIA_SECRET" ]; then
+    HESTIA_HOST=""
+    HESTIA_ACCESS=""
+    HESTIA_SECRET=""
+    _err "You must export HESTIA_HOST, HESTIA_ACCESS and HESTIA_SECRET first"
     return 1
   fi
 
-  # Validate we have valid JSON to parse
-  if ! _contains "$_response" "{"; then
-    _debug2 "Not a valid JSON response: $_response"
+  HESTIA_HOST="${HESTIA_HOST%/}"
+  if ! echo "$HESTIA_HOST" | grep -qE '^https?://[^/]+$'; then
+    _err "HESTIA_HOST must be a valid URL (e.g. https://panel.example.com:8083)"
     return 1
   fi
 
-  # Process JSON to find matching records
-  echo "$_response" | tr -d '\n' | sed 's/},/}\n/g' | grep -o '{[^}]*"RECORD": "_acme-challenge"[^}]*}' | while read -r line; do
-    id=$(echo "$line" | grep -o '"ID": "[^"]*' | cut -d'"' -f4)
-    value=$(echo "$line" | grep -o '"VALUE": "[^"]*' | cut -d'"' -f4)
-    echo "$id:$value"
+  if [ -z "$HESTIA_USER" ]; then
+    HESTIA_USER="admin"
+  fi
+
+  _saveaccountconf_mutable HESTIA_HOST "$HESTIA_HOST"
+  _saveaccountconf_mutable HESTIA_ACCESS "$HESTIA_ACCESS"
+  _saveaccountconf_mutable HESTIA_SECRET "$HESTIA_SECRET"
+  _saveaccountconf_mutable HESTIA_USER "$HESTIA_USER"
+  return 0
+}
+
+# Walk up the domain labels until the API returns a DNS zone.
+# Sets _hestia_domain to the zone and _hestia_sub to the record name
+# relative to the zone. The zone record listing stays in _hestia_response.
+_hestia_get_root() {
+  _hestia_fqdn=$1
+  _hestia_i=1
+  while true; do
+    _hestia_h=$(printf "%s" "$_hestia_fqdn" | cut -d . -f "$_hestia_i"-100)
+    _debug2 _hestia_h "$_hestia_h"
+    if [ -z "$_hestia_h" ]; then
+      return 1
+    fi
+    if _hestia_rest "v-list-dns-records" "$HESTIA_USER" "$_hestia_h" "json"; then
+      _hestia_domain="$_hestia_h"
+      if [ "$_hestia_h" = "$_hestia_fqdn" ]; then
+        _hestia_sub="@"
+      else
+        _hestia_sub=$(printf "%s" "$_hestia_fqdn" | cut -d . -f 1-"$(_math "$_hestia_i" - 1)")
+      fi
+      return 0
+    fi
+    _hestia_i=$(_math "$_hestia_i" + 1)
   done
 }
 
-# Build API payload
-# Args: cmd [arg1 arg2 ...]
-_hestia_api_payload() {
-  _cmd=$1
+# Call the HestiaCP API. Args: cmd [arg1 arg2 ...]
+# The response body is stored in _hestia_response.
+_hestia_rest() {
+  _hestia_cmd=$1
   shift
 
-  export _H1="Content-Type: application/json"
-
-  # Create JSON data exactly as expected by HestiaCP
-  _data="{"
-  _data="$_data\"access_key\":\"$HESTIA_ACCESS\""
-  _data="$_data,\"secret_key\":\"$HESTIA_SECRET\""
-  _data="$_data,\"cmd\":\"$_cmd\""
-  
-  _i=1
-  for arg in "$@"; do
-    _data="$_data,\"arg$_i\":\"$arg\""
-    _i=$(_math $_i + 1)
+  _hestia_data="{\"access_key\":\"$HESTIA_ACCESS\",\"secret_key\":\"$HESTIA_SECRET\",\"cmd\":\"$_hestia_cmd\""
+  _hestia_i=1
+  for _hestia_arg in "$@"; do
+    _hestia_data="$_hestia_data,\"arg$_hestia_i\":\"$_hestia_arg\""
+    _hestia_i=$(_math "$_hestia_i" + 1)
   done
+  _hestia_data="$_hestia_data}"
 
-  _data="$_data}"
-  printf "%s" "$_data"
+  _debug2 "Calling $_hestia_cmd"
+  _hestia_response=$(_post "$_hestia_data" "$HESTIA_HOST/api/" "" "POST" "application/json")
+  _hestia_ret=$?
+  _debug2 _hestia_response "$_hestia_response"
+  if [ "$_hestia_ret" != "0" ]; then
+    _err "Error connecting to the HestiaCP API"
+    return 1
+  fi
+  if _contains "$_hestia_response" "Error:"; then
+    return 1
+  fi
+  return 0
+}
+
+# Extract records matching name and type from the v-list-dns-records
+# response in _hestia_response. Prints one "id|value" line per match.
+_hestia_find_records() {
+  _hestia_fname=$1
+  _hestia_ftype=$2
+
+  echo "$_hestia_response" | tr -d '\n' | sed 's/},/}\
+/g' | grep -- "\"RECORD\": \"$_hestia_fname\"" | grep -- "\"TYPE\": \"$_hestia_ftype\"" | while read -r _hestia_line; do
+    _hestia_id=$(echo "$_hestia_line" | _egrep_o '"ID": "[^"]*' | cut -d '"' -f 4)
+    _hestia_value=$(echo "$_hestia_line" | _egrep_o '"VALUE": "[^"]*' | cut -d '"' -f 4)
+    if [ -n "$_hestia_id" ]; then
+      echo "$_hestia_id|$_hestia_value"
+    fi
+  done
 }
