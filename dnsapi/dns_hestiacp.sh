@@ -182,7 +182,7 @@ _hestia_find_records() {
   _hestia_ftype=$2
 
   echo "$_hestia_response" | tr -d '\n' | sed 's/},/}\
-/g' | grep -- "\"RECORD\": \"$_hestia_fname\"" | grep -- "\"TYPE\": \"$_hestia_ftype\"" | while read -r _hestia_line; do
+/g' | grep -F -- "\"RECORD\": \"$_hestia_fname\"" | grep -F -- "\"TYPE\": \"$_hestia_ftype\"" | while read -r _hestia_line; do
     _hestia_id=$(echo "$_hestia_line" | _egrep_o '"ID": "[^"]*' | cut -d '"' -f 4)
     _hestia_value=$(echo "$_hestia_line" | _egrep_o '"VALUE": "[^"]*' | cut -d '"' -f 4)
     if [ -n "$_hestia_id" ]; then
