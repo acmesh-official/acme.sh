@@ -128,17 +128,24 @@ HEREDOC
   export HTTPS_INSECURE=1
   export _H1="Authorization: PVEAPIToken=${_proxmoxve_header_api_token}"
   response=$(_post "$_json_payload" "$_target_url" "" POST "application/json")
+  _retval=$?
+  # The API errors out with a non-2xx HTTP status and an empty body,
+  # so the status line is checked too, not only the response body.
+  _status_code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
+  _debug2 "HTTP status" "$_status_code"
   response="$(echo "$response" | _json_decode | _normalizeJson)"
   message=$(echo "$response" | _egrep_o '"message":"[^"]*' | cut -d : -f 2 | tr -d '"')
-  _retval=$?
-  if [ "${_retval}" -eq 0 ] && [ -z "$message" ]; then
-    _debug3 response "$response"
-    _info "Certificate successfully deployed"
-    return 0
-  else
-    _err "Certificate deployment failed: $message"
-    _debug "Response" "$response"
-    return 1
-  fi
+  case "$_status_code" in
+  2[0-9][0-9])
+    if [ "${_retval}" -eq 0 ] && [ -z "$message" ]; then
+      _debug3 response "$response"
+      _info "Certificate successfully deployed"
+      return 0
+    fi
+    ;;
+  esac
+  _err "Certificate deployment failed (HTTP status $_status_code). $message"
+  _debug "Response" "$response"
+  return 1
 
 }
