@@ -143,8 +143,10 @@ unifi_deploy() {
 
     # correct file ownership according to the directory, the keystore is placed in
     _unifi_keystore_dir=$(dirname "${_unifi_keystore}")
-    _unifi_keystore_dir_owner=$(find "${_unifi_keystore_dir}" -maxdepth 0 -printf '%u\n')
-    _unifi_keystore_owner=$(find "${_unifi_keystore}" -maxdepth 0 -printf '%u\n')
+    # shellcheck disable=SC2012
+    _unifi_keystore_dir_owner=$(ls -ld "${_unifi_keystore_dir}" | awk '{print $3}')
+    # shellcheck disable=SC2012
+    _unifi_keystore_owner=$(ls -l "${_unifi_keystore}" | awk '{print $3}')
     if ! [ "${_unifi_keystore_owner}" = "${_unifi_keystore_dir_owner}" ]; then
       _debug "Changing keystore owner to ${_unifi_keystore_dir_owner}"
       chown "$_unifi_keystore_dir_owner" "${_unifi_keystore}" >/dev/null 2>&1 # fail quietly if we're not running as root

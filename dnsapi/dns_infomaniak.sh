@@ -6,14 +6,16 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_infomaniak
 Options:
  INFOMANIAK_API_TOKEN API Token
 Issues: github.com/acmesh-official/acme.sh/issues/3188
+
 '
 
-# To use this API you need visit the API dashboard of your account
-# once logged into https://manager.infomaniak.com add /api/dashboard to the URL
-#
+# To use this API you need visit the API dashboard of your account.
 # Note: the URL looks like this:
-# https://manager.infomaniak.com/v3/<account_id>/api/dashboard
-# Then generate a token with the scope Domain
+# https://manager.infomaniak.com/v3/<account_id>/ng/profile/user/token/list
+# Then generate a token with following scopes :
+#  - domain:read
+#  - dns:read
+#  - dns:write
 # this is given as an environment variable INFOMANIAK_API_TOKEN
 
 # base variables
@@ -65,33 +67,30 @@ dns_infomaniak_add() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
-  fqdn=${fulldomain#_acme-challenge.}
-
   # guess which base domain to add record to
-  zone_and_id=$(_find_zone "$fqdn")
-  if [ -z "$zone_and_id" ]; then
-    _err "cannot find zone to modify"
+  zone=$(_get_zone "$fulldomain")
+  if [ -z "$zone" ]; then
+    _err "cannot find zone:<${zone}> to modify"
     return 1
   fi
-  zone=${zone_and_id% *}
-  domain_id=${zone_and_id#* }
 
   # extract first part of domain
   key=${fulldomain%."$zone"}
 
-  _debug "zone:$zone id:$domain_id key:$key"
+  _debug "key:$key"
+  _debug "txtvalue: $txtvalue"
 
   # payload
   data="{\"type\": \"TXT\", \"source\": \"$key\", \"target\": \"$txtvalue\", \"ttl\": $INFOMANIAK_TTL}"
 
   # API call
-  response=$(_post "$data" "${INFOMANIAK_API_URL}/1/domain/$domain_id/dns/record")
-  if [ -n "$response" ] && echo "$response" | _contains '"result":"success"'; then
+  response=$(_post "$data" "${INFOMANIAK_API_URL}/2/zones/${zone}/records")
+  if _contains "$response" '"result":"success"'; then
     _info "Record added"
-    _debug "Response: $response"
+    _debug "response: $response"
     return 0
   fi
-  _err "could not create record"
+  _err "Could not create record."
   _debug "Response: $response"
   return 1
 }
@@ -106,7 +105,7 @@ dns_infomaniak_rm() {
 
   if [ -z "$INFOMANIAK_API_TOKEN" ]; then
     INFOMANIAK_API_TOKEN=""
-    _err "Please provide a valid Infomaniak API token in variable INFOMANIAK_API_TOKEN"
+    _err "Please provide a valid Infomaniak API token in variable INFOMANIAK_API_TOKEN."
     return 1
   fi
 
@@ -130,7 +129,7 @@ dns_infomaniak_rm() {
   fi
 
   export _H1="Authorization: Bearer $INFOMANIAK_API_TOKEN"
-  export _H2="ContentType: application/json"
+  export _H2="Content-Type: application/json"
 
   fulldomain=$1
   txtvalue=$2
@@ -138,63 +137,56 @@ dns_infomaniak_rm() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
-  fqdn=${fulldomain#_acme-challenge.}
-
   # guess which base domain to add record to
-  zone_and_id=$(_find_zone "$fqdn")
-  if [ -z "$zone_and_id" ]; then
-    _err "cannot find zone to modify"
+  zone=$(_get_zone "$fulldomain")
+  if [ -z "$zone" ]; then
+    _err "cannot find zone:<$zone> to modify"
     return 1
   fi
-  zone=${zone_and_id% *}
-  domain_id=${zone_and_id#* }
 
   # extract first part of domain
   key=${fulldomain%."$zone"}
+  key=$(echo "$key" | _lower_case)
 
-  _debug "zone:$zone id:$domain_id key:$key"
+  _debug "zone:$zone"
+  _debug "key:$key"
 
   # find previous record
-  # shellcheck disable=SC1004
-  record_id=$(_get "${INFOMANIAK_API_URL}/1/domain/$domain_id/dns/record" | sed 's/.*"data":\[\(.*\)\]}/\1/; s/},{/}\
-{/g' | sed -n 's/.*"id":"*\([0-9]*\)"*.*"source_idn":"'"$fulldomain"'".*"target_idn":"'"$txtvalue"'".*/\1/p')
-  if [ -z "$record_id" ]; then
-    _err "could not find record to delete"
-    return 1
-  fi
+  # shellcheck disable=SC2086
+  response=$(_get "${INFOMANIAK_API_URL}/2/zones/${zone}/records" | sed 's/.*"data":\[\(.*\)\]}/\1/; s/},{/}{/g')
+  record_id=$(echo "$response" | sed -n 's/.*"id":"*\([0-9]*\)"*.*"source":"'"$key"'".*"target":"\\"'"$txtvalue"'\\"".*/\1/p')
+  _debug "key: $key"
+  _debug "txtvalue: $txtvalue"
   _debug "record_id: $record_id"
 
+  if [ -z "$record_id" ]; then
+    _err "could not find record to delete"
+    _debug "response: $response"
+    return 1
+  fi
+
   # API call
-  response=$(_post "" "${INFOMANIAK_API_URL}/1/domain/$domain_id/dns/record/$record_id" "" DELETE)
-  if [ -n "$response" ] && echo "$response" | _contains '"result":"success"'; then
+  response=$(_post "" "${INFOMANIAK_API_URL}/2/zones/${zone}/records/${record_id}" "" DELETE)
+  if _contains "$response" '"result":"success"'; then
     _info "Record deleted"
+    _debug "response: $response"
     return 0
   fi
-  _err "could not delete record"
+  _err "Could not delete record."
+  _debug "Response: $response"
   return 1
 }
 
 ####################  Private functions below ##################################
 
-_get_domain_id() {
+_get_zone() {
   domain="$1"
-
-  # shellcheck disable=SC1004
-  _get "${INFOMANIAK_API_URL}/1/product?service_name=domain&customer_name=$domain" | sed 's/.*"data":\[{\(.*\)}\]}/\1/; s/,/\
-/g' | sed -n 's/^"id":\(.*\)/\1/p'
-}
-
-_find_zone() {
-  zone="$1"
-
-  # find domain in list, removing . parts sequentialy
-  while _contains "$zone" '\.'; do
-    _debug "testing $zone"
-    id=$(_get_domain_id "$zone")
-    if [ -n "$id" ]; then
-      echo "$zone $id"
-      return
-    fi
-    zone=${zone#*.}
-  done
+  # Whatever the domain is, you can get the fqdn with the following.
+  response=$(_get "${INFOMANIAK_API_URL}/2/domains/${domain}/zones")
+  _debug2 "_get_zone response" "$response"
+  if ! _contains "$response" '"result":"success"'; then
+    _err "cannot get zones for ${domain}, response: ${response}"
+    return 1
+  fi
+  echo "$response" | _egrep_o '"fqdn" *: *"[^"]*"' | _head_n 1 | cut -d '"' -f 4
 }

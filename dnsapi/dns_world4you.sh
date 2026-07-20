@@ -61,7 +61,7 @@ dns_world4you_add() {
     if _contains "$res" "successfully"; then
       return 0
     else
-      msg=$(echo "$res" | grep -A 15 'data-type="danger"' | grep "<h3[^>]*>[^<]" | sed 's/<[^>]*>//g' | sed 's/^\s*//g')
+      msg=$(echo "$res" | grep -A 20 'alert-notification' | grep 'class="weak-title">[^<]' | sed 's/<[^>]*>//g;s/^\s*//g')
       if [ "$msg" = '' ]; then
         _err "Unable to add record: Unknown error"
         echo "$ret" >'error-01.html'
@@ -110,7 +110,7 @@ dns_world4you_rm() {
     return 3
   fi
 
-  recordid=$(printf "TXT:%s.:\"%s\"" "$fqdn" "$value" | _base64)
+  recordid=$(echo "$form" | grep 'data-records="' | sed 's/.*"\([^"]*\)".*/\1/;s/&quot;/"/g;s/},{/}\n{/g' | grep '"type":"TXT"' | grep "\"name\":\"$fqdn\"" | grep "\"value\":\"$value\"" | sed 's/^.*"id":"\([^"]*\)".*$/\1/')
   _debug recordid "$recordid"
 
   _resethttp
@@ -125,7 +125,7 @@ dns_world4you_rm() {
     if _contains "$res" "successfully"; then
       return 0
     else
-      msg=$(echo "$res" | grep -A 15 'data-type="danger"' | grep "<h3[^>]*>[^<]" | sed 's/<[^>]*>//g' | sed 's/^\s*//g')
+      msg=$(echo "$res" | grep -A 20 'alert-notification' | grep 'class="weak-title">[^<]' | sed 's/<[^>]*>//g;s/^\s*//g')
       if [ "$msg" = '' ]; then
         _err "Unable to remove record: Unknown error"
         echo "$ret" >'error-01.html'

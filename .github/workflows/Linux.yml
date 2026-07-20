@@ -26,14 +26,21 @@ jobs:
   Linux:
     strategy:
       matrix:
-        os: ["ubuntu:latest", "debian:latest", "almalinux:latest", "fedora:latest", "opensuse/leap:latest", "alpine:latest", "oraclelinux:8", "kalilinux/kali", "archlinux:latest", "mageia", "gentoo/stage3"]
+        os: ["ubuntu:latest", "debian:latest", "almalinux:latest", "fedora:latest", "opensuse/leap:latest", "alpine:latest", "oraclelinux:8", "kalilinux/kali", "archlinux:latest", "gentoo/stage3"]
     runs-on: ubuntu-latest
     env:
       TEST_LOCAL: 1
       TEST_PREFERRED_CHAIN: (STAGING)
       TEST_ACME_Server: "LetsEncrypt.org_test"
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
+    - uses: anyvm-org/cf-tunnel@v0
+      id: tunnel
+      with:
+        protocol: http
+        port: 80
+    - name: Set envs
+      run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
     - name: Clone acmetest
       run: |
           cd .. \

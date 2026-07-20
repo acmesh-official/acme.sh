@@ -46,8 +46,8 @@ pushover_send() {
   fi
 
   export _H1="Content-Type: application/json"
-  _content="$(printf "*%s*\n" "$_content" | _json_encode)"
-  _subject="$(printf "*%s*\n" "$_subject" | _json_encode)"
+  _content="$(printf "%s" "$_content" | _json_encode)"
+  _subject="$(printf "%s" "$_subject" | _json_encode)"
   _data="{\"token\": \"$PUSHOVER_TOKEN\",\"user\": \"$PUSHOVER_USER\",\"title\": \"$_subject\",\"message\": \"$_content\",\"sound\": \"$PUSHOVER_SOUND\", \"device\": \"$PUSHOVER_DEVICE\", \"priority\": \"$PUSHOVER_PRIORITY\"}"
 
   response="$(_post "$_data" "$PUSHOVER_URI")"

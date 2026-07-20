@@ -16,7 +16,12 @@
 #
 # # API KEY
 # # Use the folowing URL to create a new API token: <TRUENAS_HOSTNAME OR IP>/ui/apikeys
-# export DEPLOY_TRUENAS_APIKEY="<API_KEY_GENERATED_IN_THE_WEB_UI"
+# export DEPLOY_TRUENAS_APIKEY="<API_KEY_GENERATED_IN_THE_WEB_UI>"
+# Optional:
+# export DEPLOY_TRUENAS_HOSTNAME="<TRUENAS_HOSTNAME_OR_IP>"
+# export DEPLOY_TRUENAS_PROTOCOL="wss"   # ws or wss
+# export DEPLOY_TRUENAS_PORT="443"       # optional, e.g. 80, 443, 8443
+
 #
 
 ### Private functions
@@ -39,13 +44,13 @@ _ws_call() {
   _debug "_ws_call arg2" "$2"
   _debug "_ws_call arg3" "$3"
   if [ $# -eq 3 ]; then
-    _ws_response=$(midclt -K "$DEPLOY_TRUENAS_APIKEY" call "$1" "$2" "$3")
+    _ws_response=$(midclt --uri "$_ws_uri" -K "$DEPLOY_TRUENAS_APIKEY" call "$1" "$2" "$3")
   fi
   if [ $# -eq 2 ]; then
-    _ws_response=$(midclt -K "$DEPLOY_TRUENAS_APIKEY" call "$1" "$2")
+    _ws_response=$(midclt --uri "$_ws_uri" -K "$DEPLOY_TRUENAS_APIKEY" call "$1" "$2")
   fi
   if [ $# -eq 1 ]; then
-    _ws_response=$(midclt -K "$DEPLOY_TRUENAS_APIKEY" call "$1")
+    _ws_response=$(midclt --uri "$_ws_uri" -K "$DEPLOY_TRUENAS_APIKEY" call "$1")
   fi
   _debug "_ws_response" "$_ws_response"
   printf "%s" "$_ws_response"
@@ -56,11 +61,10 @@ _ws_call() {
 _ws_upload_cert() {
 
   /usr/bin/env python - <<EOF
-
 import sys
 
 from truenas_api_client import Client
-with Client() as c:
+with Client(uri="$_ws_uri") as c:
 
   ### Login with API key
   print("I:Trying to upload new certificate...")
@@ -71,14 +75,13 @@ with Client() as c:
       fullchain = file.read()
     with open('$2', 'r') as file:
       privatekey = file.read()
-    ret = c.call("certificate.create", {"name": "$3", "create_type": "CERTIFICATE_CREATE_IMPORTED", "certificate": fullchain, "privatekey": privatekey, "passphrase": ""}, job=True)
+    ret = c.call("certificate.create", {"name": "$3", "create_type": "CERTIFICATE_CREATE_IMPORTED", "certificate": fullchain, "privatekey": privatekey}, job=True)
     print("R:" + str(ret["id"]))
     sys.exit(0)
   else:
     print("R:0")
     print("E:_ws_upload_cert error!")
     sys.exit(7)
-
 EOF
 
   return $?
@@ -121,7 +124,7 @@ _ws_check_jobid() {
 #   n/a
 _ws_get_job_result() {
   while true; do
-    sleep 2
+    _sleep 2
     _ws_response=$(_ws_call "core.get_jobs" "[[\"id\", \"=\", $1]]")
     if [ "$(printf "%s" "$_ws_response" | jq -r '.[]."state"')" != "RUNNING" ]; then
       _ws_result="$(printf "%s" "$_ws_response" | jq '.[]."result"')"
@@ -179,11 +182,43 @@ truenas_ws_deploy() {
 
   _info "Checking environment variables..."
   _getdeployconf DEPLOY_TRUENAS_APIKEY
+  _getdeployconf DEPLOY_TRUENAS_HOSTNAME
+  _getdeployconf DEPLOY_TRUENAS_PROTOCOL
+  _getdeployconf DEPLOY_TRUENAS_PORT
+
   # Check API Key
   if [ -z "$DEPLOY_TRUENAS_APIKEY" ]; then
     _err "TrueNAS API key not found, please set the DEPLOY_TRUENAS_APIKEY environment variable."
     return 1
   fi
+  # Check Hostname, default to localhost if not set
+  if [ -z "$DEPLOY_TRUENAS_HOSTNAME" ]; then
+    _info "TrueNAS hostname not set. Using 'localhost'."
+    DEPLOY_TRUENAS_HOSTNAME="localhost"
+  fi
+  # Check protocol, default to ws if not set
+  if [ -z "$DEPLOY_TRUENAS_PROTOCOL" ]; then
+    _info "TrueNAS protocol not set. Using 'ws'."
+    DEPLOY_TRUENAS_PROTOCOL="ws"
+  fi
+
+  # Check port, optional
+  if [ -n "$DEPLOY_TRUENAS_PORT" ]; then
+    case "$DEPLOY_TRUENAS_PORT" in
+    '' | *[!0-9]*)
+      _err "Invalid TrueNAS port '$DEPLOY_TRUENAS_PORT'. DEPLOY_TRUENAS_PORT must be numeric."
+      return 8
+      ;;
+    esac
+
+    _ws_uri="$DEPLOY_TRUENAS_PROTOCOL://$DEPLOY_TRUENAS_HOSTNAME:$DEPLOY_TRUENAS_PORT/websocket"
+  else
+    _ws_uri="$DEPLOY_TRUENAS_PROTOCOL://$DEPLOY_TRUENAS_HOSTNAME/websocket"
+  fi
+
+  _debug2 DEPLOY_TRUENAS_HOSTNAME "$DEPLOY_TRUENAS_HOSTNAME"
+  _debug2 DEPLOY_TRUENAS_PROTOCOL "$DEPLOY_TRUENAS_PROTOCOL"
+  _debug _ws_uri "$_ws_uri"
   _secure_debug2 DEPLOY_TRUENAS_APIKEY "$DEPLOY_TRUENAS_APIKEY"
   _info "Environment variables: OK"
 
@@ -200,11 +235,14 @@ truenas_ws_deploy() {
 
   if [ "$_ws_response" != "TRUE" ]; then
     _err "TrueNAS is not ready."
-    _err "Please check environment variables DEPLOY_TRUENAS_APIKEY, DEPLOY_TRUENAS_HOSTNAME and DEPLOY_TRUENAS_PROTOCOL."
+    _err "Please check environment variables DEPLOY_TRUENAS_APIKEY, DEPLOY_TRUENAS_HOSTNAME, DEPLOY_TRUENAS_PROTOCOL and DEPLOY_TRUENAS_PORT."
     _err "Verify API key."
     return 2
   fi
   _savedeployconf DEPLOY_TRUENAS_APIKEY "$DEPLOY_TRUENAS_APIKEY"
+  _savedeployconf DEPLOY_TRUENAS_HOSTNAME "$DEPLOY_TRUENAS_HOSTNAME"
+  _savedeployconf DEPLOY_TRUENAS_PROTOCOL "$DEPLOY_TRUENAS_PROTOCOL"
+  _savedeployconf DEPLOY_TRUENAS_PORT "$DEPLOY_TRUENAS_PORT"
   _info "TrueNAS health: OK"
 
   ########## System info
@@ -304,7 +342,7 @@ truenas_ws_deploy() {
   _info "Restarting WebUI..."
   _ws_response=$(_ws_call "system.general.ui_restart")
   _info "Waiting for UI restart..."
-  sleep 6
+  _sleep 15
 
   ########## Certificates
 

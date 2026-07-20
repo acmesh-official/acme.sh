@@ -6,14 +6,17 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
+    if: github.actor != 'neilpang'
     steps:
       - name: Checkout wiki repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ github.repository }}.wiki
           path: wiki
+          fetch-depth: 0
 
       - name: Generate wiki change message
+        id: msg
         run: |
             actor="${{ github.actor }}"
             sender_url=$(jq -r '.sender.html_url' "$GITHUB_EVENT_PATH")
@@ -21,9 +24,21 @@ jobs:
             page_sha=$(jq -r '.pages[0].sha' "$GITHUB_EVENT_PATH")
             page_url=$(jq -r '.pages[0].html_url' "$GITHUB_EVENT_PATH")
             page_action=$(jq -r '.pages[0].action' "$GITHUB_EVENT_PATH")
+            page_summary=$(jq -r '.pages[0].summary' "$GITHUB_EVENT_PATH")
             now="$(date '+%Y-%m-%d %H:%M:%S')"
 
             cd wiki
+            # Skip notification when the change was authored by the
+            # maintainer himself (any author email under neilpang.com),
+            # e.g. a direct git push to the wiki repository.
+            author_email=$(git show -s --format=%ae "$page_sha" 2>/dev/null | tr 'A-Z' 'a-z')
+            case "$author_email" in
+              *@neilpang.com)
+                echo "Change authored by maintainer ($author_email); skipping notification."
+                echo "notify=false" >> "$GITHUB_OUTPUT"
+                exit 0
+                ;;
+            esac
             prev_sha=$(git rev-list $page_sha^ -- "$page_name.md" | head -n 1)
             if [ -n "$prev_sha" ]; then
                 git diff $prev_sha $page_sha -- "$page_name.md" > ../wiki.diff || echo "(No diff found)" > ../wiki.diff
@@ -34,25 +49,32 @@ jobs:
             {
             echo "Wiki edited"
             echo -n "User: "
-            echo "[$actor]($sender_url)"
+            echo "@$actor [$actor]($sender_url)"
             echo "Time: $now"
             echo "Page: [$page_name]($page_url) (Action: $page_action)"
+            echo "Comment: $page_summary"
+            echo "[Click here to Revert](https://github.com/${GITHUB_REPOSITORY}/issues/new?title=revert%3A+${page_sha}&body=Revert+wiki+commit+${page_sha}+by+@${actor}.)"
+            echo ""
+            echo "[Click here to Blacklist @$actor](https://github.com/${GITHUB_REPOSITORY}/issues/new?title=blacklist%3A+${actor}&body=Blacklist+@${actor},+requested+from+the+wiki+monitor.)"
             echo ""
             echo "----"
-            echo "###  diff："
+            echo "###  diff:"
             echo '```diff'
             cat wiki.diff
             echo '```'
             } > wiki-change-msg.txt
+            echo "notify=true" >> "$GITHUB_OUTPUT"
 
       - name: Create issue to notify Neilpang
-        uses: peter-evans/create-issue-from-file@v5
+        if: steps.msg.outputs.notify == 'true'
+        uses: peter-evans/create-issue-from-file@v6
         with:
           title: "Wiki edited"
           content-filepath: ./wiki-change-msg.txt
           assignees: Neilpang
         env:
           TZ: Asia/Shanghai
+
 
 
 

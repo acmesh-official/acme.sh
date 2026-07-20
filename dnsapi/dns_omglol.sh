@@ -4,8 +4,8 @@ dns_omglol_info='omg.lol
 Site: omg.lol
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_omglol
 Options:
- OMG_ApiKey API Key. This is accessible from the bottom of the account page at https://home.omg.lol/account
- OMG_Address Address. This is your omg.lol address, without the preceding @ - you can see your list on your dashboard at https://home.omg.lol/dashboard
+ OMG_ApiKey - API Key. This is accessible from the bottom of the account page at https://home.omg.lol/account
+ OMG_Address - Address. This is your omg.lol address, without the preceding @ - you can see your list on your dashboard at https://home.omg.lol/dashboard
 Issues: github.com/acmesh-official/acme.sh/issues/5299
 Author: @Kholin <kholin+acme.omglolapi@omg.lol>
 '
@@ -35,7 +35,7 @@ dns_omglol_add() {
   _debug "omg.lol Address" "$OMG_Address"
 
   omg_validate "$OMG_ApiKey" "$OMG_Address" "$fulldomain"
-  if [ ! $? ]; then
+  if [ 1 = $? ]; then
     return 1
   fi
 
@@ -67,7 +67,7 @@ dns_omglol_rm() {
   _debug "omg.lol Address" "$OMG_Address"
 
   omg_validate "$OMG_ApiKey" "$OMG_Address" "$fulldomain"
-  if [ ! $? ]; then
+  if [ 1 = $? ]; then
     return 1
   fi
 
@@ -100,18 +100,49 @@ omg_validate() {
   fi
 
   _endswith "$fulldomain" "omg.lol"
-  if [ ! $? ]; then
+  if [ 1 = $? ]; then
     _err "Domain name requested is not under omg.lol"
     return 1
   fi
 
   _endswith "$fulldomain" "$omg_address.omg.lol"
-  if [ ! $? ]; then
+  if [ 1 = $? ]; then
     _err "Domain name is not a subdomain of provided omg.lol address $omg_address"
     return 1
   fi
 
-  _debug "Required environment parameters are all present"
+  omg_testconnect "$omg_apikey" "$omg_address"
+  if [ 1 = $? ]; then
+    _err "Authentication to omg.lol for address $omg_address using provided API key failed"
+    return 1
+  fi
+
+  _debug "Required environment parameters are all present and validated"
+}
+
+# Validate that the address and API key are both correct and associated to each other
+omg_testconnect() {
+  omg_apikey=$1
+  omg_address=$2
+
+  _debug2 "Function" "omg_testconnect"
+  _secure_debug2 "omg.lol API key" "$omg_apikey"
+  _debug2 "omg.lol Address" "$omg_address"
+
+  authheader="$(_createAuthHeader "$omg_apikey")"
+  export _H1="$authheader"
+  endpoint="https://api.omg.lol/address/$omg_address/info"
+  _debug2 "Endpoint for validation" "$endpoint"
+
+  response=$(_get "$endpoint" "" 30)
+
+  _jsonResponseCheck "$response" "status_code" 200
+  if [ 1 = $? ]; then
+    _debug2 "Failed to query omg.lol for $omg_address with provided API key"
+    _secure_debug2 "API Key" "omg_apikey"
+    _secure_debug3 "Raw response" "$response"
+    return 1
+  fi
 }
 
 # Add (or modify) an entry for a new ACME query

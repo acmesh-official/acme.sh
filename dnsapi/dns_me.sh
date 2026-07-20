@@ -53,6 +53,8 @@ dns_me_add() {
       _info "Added"
       #todo: check if the record takes effect
       return 0
+    elif printf -- "%s" "$response" | grep -q "already exists"; then
+      _info "Record already exists, skipping."
     else
       _err "Add txt record error."
       return 1
@@ -138,7 +140,7 @@ _me_rest() {
   data="$3"
   _debug "$ep"
 
-  cdate=$(LANG=C date -u +"%a, %d %b %Y %T %Z")
+  cdate=$(LC_ALL=C date -u +"%a, %d %b %Y %T %Z")
   hmac=$(printf "%s" "$cdate" | _hmac sha1 "$(printf "%s" "$ME_Secret" | _hex_dump | tr -d " ")" hex)
 
   export _H1="x-dnsme-apiKey: $ME_Key"

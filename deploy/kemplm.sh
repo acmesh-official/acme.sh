@@ -56,7 +56,7 @@ kemplm_deploy() {
   _info "Check if certificate is already present"
   _list_request="{\"cmd\": \"listcert\", \"apikey\": \"${DEPLOY_KEMP_TOKEN}\"}"
   _debug3 _list_request "${_list_request}"
-  _kemp_cert_count=$(HTTPS_INSECURE=1 _post "${_list_request}" "${DEPLOY_KEMP_URL}/accessv2" | jq -r '.cert[] | .name' | grep -c "${_kemp_domain}")
+  _kemp_cert_count=$(HTTPS_INSECURE=1 _post "${_list_request}" "${DEPLOY_KEMP_URL}/accessv2" | jq -r '.cert[] | .name' | grep -c "^${_kemp_domain}$")
   _debug2 _kemp_cert_count "${_kemp_cert_count}"
 
   _kemp_replace_cert=1
@@ -86,6 +86,7 @@ kemplm_deploy() {
       _info "Upload successful"
     else
       _err "Upload failed: ${_kemp_post_message}"
+      _retval=1
     fi
   else
     _err "Upload failed"
