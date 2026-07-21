@@ -58,7 +58,7 @@
 
 - 🐚 An ACME protocol client written **purely in Shell** (Unix shell) language
 - 📜 Full ACME protocol implementation
-- 🔑 Support **ECDSA** certificates
+- 🔑 Support admin
 - 🌐 Support **SAN** and **wildcard** certificates
 - ⚡ Simple, powerful and very easy to use — only **3 minutes** to learn!
 - 🔧 Compatible with **Bash**, **dash** and **sh**
@@ -333,7 +333,7 @@ acme.sh --issue --alpn -d example.com -d www.example.com -d cp.example.com
 
 ### 6️⃣ Use Apache Mode
 
-> 🔐 Requires root/sudoer to interact with Apache server
+> 🔐 Requires root/sudoer admin
 
 If you are running a web server, it is recommended to use the `Webroot mode`.
 
