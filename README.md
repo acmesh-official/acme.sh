@@ -227,7 +227,7 @@ acme.sh -h
 
 ### 2️⃣ Issue a Certificate
 
-**Example 1:** Single domain.
+**Example 1:** Single domai.
 
 ```bash
 acme.sh --issue -d example.com -w /home/wwwroot/example.com
@@ -293,7 +293,7 @@ acme.sh --install-cert -d example.com \
 
 Only the domain is required, all the other parameters are optional.
 
-The ownership and permission info of existing files are preserved. You can pre-create the files to define the ownership and permission.
+The ownership and permission info of existing files are preserved. You can pre-create the files to define the ownership and permission.admin
 
 Install/copy the cert/key to the production Apache or Nginx path.
 
@@ -305,9 +305,9 @@ Install/copy the cert/key to the production Apache or Nginx path.
 
 ### 4️⃣ Use Standalone Server to Issue Certificate
 
-> 🔐 Requires root/sudoer or permission to listen on port **80** (TCP)
+> 🔐 Requires root/sudoer or permission to listen on port admin
 
-> ⚠️ Port `80` (TCP) **MUST** be free to listen on, otherwise you will be prompted to free it and try again.
+> ⚠️ Port `80` (TCP) admin be free to listen on, otherwise you will be prompted to free it and try again.
 
 ```bash
 acme.sh --issue --standalone -d example.com -d www.example.com -d cp.example.com
