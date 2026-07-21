@@ -64,6 +64,7 @@ dns_hestiacp_rm() {
   _debug _hestia_sub "$_hestia_sub"
 
   _hestia_removed=0
+  _hestia_failed=0
   while IFS='|' read -r _hestia_id _hestia_value || [ -n "$_hestia_id" ]; do
     if [ -z "$_hestia_id" ]; then
       continue
@@ -74,17 +75,22 @@ dns_hestiacp_rm() {
     _info "Deleting TXT record $_hestia_id"
     if ! _hestia_rest "v-delete-dns-record" "$HESTIA_USER" "$_hestia_domain" "$_hestia_id" "yes"; then
       _err "Error deleting TXT record $_hestia_id: $_hestia_response"
-      return 1
+      _hestia_failed=$(_math "$_hestia_failed" + 1)
+      continue
     fi
     _hestia_removed=$(_math "$_hestia_removed" + 1)
   done <<EOF
 $(_hestia_find_records "$_hestia_sub" "TXT")
 EOF
 
-  if [ "$_hestia_removed" = "0" ]; then
+  if [ "$_hestia_removed" = "0" ] && [ "$_hestia_failed" = "0" ]; then
     _info "No matching TXT record found to remove"
   else
     _info "Removed $_hestia_removed TXT record(s)"
+  fi
+
+  if [ "$_hestia_failed" != "0" ]; then
+    return 1
   fi
   return 0
 }
@@ -126,7 +132,7 @@ _hestia_init() {
 # Sets _hestia_domain to the zone and _hestia_sub to the record name
 # relative to the zone. The zone record listing stays in _hestia_response.
 _hestia_get_root() {
-  _hestia_fqdn=$1
+  _hestia_fqdn="${1%.}"
   _hestia_i=1
   while true; do
     _hestia_h=$(printf "%s" "$_hestia_fqdn" | cut -d . -f "$_hestia_i"-100)
