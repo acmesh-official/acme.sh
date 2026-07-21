@@ -11,6 +11,7 @@ Options:
 Issues: github.com/acmesh-official/acme.sh/issues/6251
 Author: Radu Malica <radu.malica@gmail.com>
 '
+# Copyright (c) 2026 Radu Malica
 
 ########  Public functions #####################
 
@@ -190,4 +191,3 @@ _hestia_find_records() {
     fi
   done
 }
-
