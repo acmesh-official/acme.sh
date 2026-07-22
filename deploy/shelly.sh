@@ -4,7 +4,7 @@
 # Deploy the HTTPS server certificate to a Shelly device on the local network.
 #
 # ```sh
-# export SHELLY_HOST=[IP_ADDRESS]
+# export SHELLY_HOST=192.168.1.100
 # export SHELLY_PASSWORD=mysecret    # only if auth is enabled on the device
 # acme.sh --deploy -d shelly.example.com --deploy-hook shelly
 # ```
@@ -71,9 +71,6 @@ shelly_deploy() {
   _savedeployconf SHELLY_USER "$SHELLY_USER"
   _savedeployconf SHELLY_REBOOT "$SHELLY_REBOOT"
 
-  # We upload over HTTP because the device may not have a valid certificate yet
-  export HTTPS_INSECURE=1
-
   # --- Auth handshake (only if password is set) ---
   _shelly_auth_header=""
   if [ -n "$SHELLY_PASSWORD" ]; then
@@ -105,12 +102,14 @@ shelly_deploy() {
   if [ "$SHELLY_REBOOT" != "0" ]; then
     _info "Rebooting Shelly device to apply certificate"
     # Reboot may close the connection before sending a response
-    _post '{"id":1,"method":"Shelly.Reboot","params":{}}' \
-      "http://${SHELLY_HOST}/rpc" "" "" "application/json" || true
+    _shelly_rpc "Shelly.Reboot" '{}' || _debug "Reboot may have closed connection (expected)"
     _info "Reboot command sent. Device will restart shortly."
   else
     _info "Skipping reboot (SHELLY_REBOOT=0). Certificate will apply on next restart."
   fi
+
+  # Clear auth header so it does not leak to other hooks
+  export _H1=""
 
   return 0
 }
@@ -121,7 +120,6 @@ shelly_deploy() {
 # Sets _shelly_auth_header on success (the Authorization header value).
 _shelly_handshake() {
   _inithttp
-  _headers_file="$(_mktemp)"
 
   _debug "Probing device for auth challenge"
 
@@ -130,35 +128,16 @@ _shelly_handshake() {
   _post '{"id":1,"method":"Shelly.GetStatus"}' \
     "http://${SHELLY_HOST}/rpc" "" "" "application/json"
 
-  if [ -n "$response" ]; then
-    # Got a JSON response, so auth is not required
+  # Detect auth from HTTP status line rather than response body
+  if ! _shelly_has_auth_challenge "$HTTP_HEADER"; then
+    # No auth challenge — device accepted the request without credentials
     _debug "Device responded without auth challenge. Proceeding without auth."
-    rm -f "$_headers_file"
     return 0
   fi
 
-  _debug "Empty response from device - auth appears to be required. Extracting challenge."
-
-  # Re-issue the request to capture WWW-Authenticate header
-  if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
-    _CURL="$_ACME_CURL"
-    if [ "$HTTPS_INSECURE" ]; then
-      _CURL="$_CURL --insecure"
-    fi
-    $_CURL --user-agent "$USER_AGENT" -s -D "$_headers_file" \
-      -o /dev/null \
-      -X POST -H "Content-Type: application/json" \
-      -d '{"id":1,"method":"Shelly.GetStatus"}' \
-      "http://${SHELLY_HOST}/rpc"
-  else
-    # wget path: headers were saved to $HTTP_HEADER by _post above
-    cp "$HTTP_HEADER" "$_headers_file" 2>/dev/null
-  fi
-
-  _shelly_realm="$(grep -i '^WWW-Authenticate:' "$_headers_file" | sed 's/.*realm="//;s/".*//')"
-  _shelly_nonce="$(grep -i '^WWW-Authenticate:' "$_headers_file" | sed 's/.*nonce="//;s/".*//')"
-  _shelly_qop="$(grep -i '^WWW-Authenticate:' "$_headers_file" | sed 's/.*qop="//;s/".*//')"
-  rm -f "$_headers_file"
+  _shelly_realm="$(grep -i '^WWW-Authenticate:' "$HTTP_HEADER" | sed 's/.*realm="//;s/".*//')"
+  _shelly_nonce="$(grep -i '^WWW-Authenticate:' "$HTTP_HEADER" | sed 's/.*nonce="//;s/".*//')"
+  _shelly_qop="$(grep -i '^WWW-Authenticate:' "$HTTP_HEADER" | sed 's/.*qop="//;s/".*//')"
 
   if [ -z "$_shelly_nonce" ]; then
     _err "Failed to extract nonce from WWW-Authenticate header. Is SHELLY_PASSWORD correct?"
@@ -169,19 +148,14 @@ _shelly_handshake() {
 
   _debug "Shelly realm: $_shelly_realm"
   _debug "Shelly qop: $_shelly_qop"
-  _secure_debug "Shelly nonce: $_shelly_nonce"
+  _secure_debug "Shelly nonce" "$_shelly_nonce"
 
   # ha1 = SHA256(username:realm:password)
   _shelly_ha1="$(printf '%s' "${SHELLY_USER}:${_shelly_realm}:${SHELLY_PASSWORD}" | _digest sha256 hex)"
-  _secure_debug "Shelly ha1: $_shelly_ha1"
+  _secure_debug "Shelly ha1" "$_shelly_ha1"
 
-  # Generate client nonce (hex string for RFC 7616)
-  if [ "${ACME_OPENSSL_BIN:-openssl}" ]; then
-    _shelly_cnonce="$(${ACME_OPENSSL_BIN:-openssl} rand -hex 8 2>/dev/null)"
-  fi
-  if [ -z "$_shelly_cnonce" ]; then
-    _shelly_cnonce="$(printf '%08x%08x' $RANDOM $RANDOM)"
-  fi
+  # Generate client nonce (openssl is required for _digest, so always available)
+  _shelly_cnonce="$(${ACME_OPENSSL_BIN:-openssl} rand -hex 8 2>/dev/null)"
   _debug "Shelly cnonce: $_shelly_cnonce"
 
   # Build the digest Authorization header value (stored for reuse)
@@ -191,35 +165,43 @@ _shelly_handshake() {
   return 0
 }
 
+# Check whether the HTTP response headers contain a digest auth challenge.
+# Returns 0 (true) if a 401 with WWW-Authenticate is present.
+_shelly_has_auth_challenge() {
+  _shelly_headers_file="$1"
+  _shelly_status="$(grep -i '^HTTP/' "$_shelly_headers_file" | tail -1 | awk '{print $2}')"
+  [ "$_shelly_status" = "401" ] && grep -qi '^WWW-Authenticate:' "$_shelly_headers_file"
+}
+
 # Build or rebuild the RFC 7616 Authorization header.
 # Uses: _shelly_ha1, _shelly_nonce, _shelly_cnonce, _shelly_qop, _shelly_realm, _shelly_nc
 # Sets: _shelly_auth_header
 _shelly_build_auth_header() {
-  _nc_hex="$(printf '%08x' "$_shelly_nc")"
+  _shelly_nc_hex="$(printf '%08x' "$_shelly_nc")"
 
   # ha2 = SHA256(POST:/rpc)
-  _ha2="$(printf '%s' "POST:/rpc" | _digest sha256 hex)"
+  _shelly_ha2="$(printf '%s' "POST:/rpc" | _digest sha256 hex)"
 
   # response = SHA256(ha1:nonce:nc:cnonce:qop:ha2)
-  _digest_response="$(printf '%s' "${_shelly_ha1}:${_shelly_nonce}:${_nc_hex}:${_shelly_cnonce}:${_shelly_qop}:${_ha2}" | _digest sha256 hex)"
+  _shelly_digest_response="$(printf '%s' "${_shelly_ha1}:${_shelly_nonce}:${_shelly_nc_hex}:${_shelly_cnonce}:${_shelly_qop}:${_shelly_ha2}" | _digest sha256 hex)"
 
   # Build the Authorization header value (without the "Authorization: " prefix)
-  _shelly_auth_header="Digest username=\"${SHELLY_USER}\", realm=\"${_shelly_realm}\", nonce=\"${_shelly_nonce}\", uri=\"/rpc\", qop=${_shelly_qop}, nc=${_nc_hex}, cnonce=\"${_shelly_cnonce}\", response=\"${_digest_response}\", algorithm=SHA-256"
+  _shelly_auth_header="Digest username=\"${SHELLY_USER}\", realm=\"${_shelly_realm}\", nonce=\"${_shelly_nonce}\", uri=\"/rpc\", qop=${_shelly_qop}, nc=${_shelly_nc_hex}, cnonce=\"${_shelly_cnonce}\", response=\"${_shelly_digest_response}\", algorithm=SHA-256"
 
-  _secure_debug "Authorization header: $_shelly_auth_header"
+  _secure_debug "Authorization header" "$_shelly_auth_header"
 }
 
 # Make a Shelly JSON-RPC call.
 # Usage: _shelly_rpc <method> <params_json>
 # Returns 0 on success, 1 on error.
 _shelly_rpc() {
-  _method="$1"
-  _params="$2"
+  _shelly_method="$1"
+  _shelly_params="$2"
 
-  _body='{"id":1,"method":"'"$_method"'","params":'"$_params"'}'
+  _shelly_body='{"id":1,"method":"'"$_shelly_method"'","params":'"$_shelly_params"'}'
 
-  _debug "RPC method: $_method"
-  _debug2 "RPC body: $_body"
+  _debug "RPC method: $_shelly_method"
+  _debug2 "RPC body: $_shelly_body"
 
   if [ -n "$_shelly_auth_header" ]; then
     export _H1="Authorization: $_shelly_auth_header"
@@ -227,11 +209,11 @@ _shelly_rpc() {
     export _H1=""
   fi
 
-  _post "$_body" "http://${SHELLY_HOST}/rpc" "" "" "application/json"
-  _ret=$?
+  _post "$_shelly_body" "http://${SHELLY_HOST}/rpc" "" "" "application/json"
+  _shelly_ret=$?
 
-  if [ "$_ret" != "0" ]; then
-    _err "HTTP request failed for $_method (curl/wget error $_ret)"
+  if [ "$_shelly_ret" != "0" ]; then
+    _err "HTTP request failed for $_shelly_method (curl/wget error $_shelly_ret)"
     return 1
   fi
 
@@ -260,7 +242,7 @@ _shelly_rpc() {
 
 # Upload the certificate to the device.
 _shelly_upload_cert() {
-  _cert_data="$(_json_encode < "$_cfullchain")"
+  _shelly_cert_data="$(_json_encode < "$_cfullchain")"
 
   _debug "Clearing existing certificate"
   if ! _shelly_rpc "Shelly.PutHTTPServerCert" '{"data":null}'; then
@@ -269,7 +251,7 @@ _shelly_upload_cert() {
   fi
 
   _debug "Uploading new certificate"
-  if ! _shelly_rpc "Shelly.PutHTTPServerCert" '{"data":"'"$_cert_data"'"}'; then
+  if ! _shelly_rpc "Shelly.PutHTTPServerCert" '{"data":"'"$_shelly_cert_data"'}'; then
     _err "Failed to upload certificate to device"
     return 1
   fi
@@ -279,7 +261,7 @@ _shelly_upload_cert() {
 
 # Upload the private key to the device.
 _shelly_upload_key() {
-  _key_data="$(_json_encode < "$_ckey")"
+  _shelly_key_data="$(_json_encode < "$_ckey")"
 
   _debug "Clearing existing key"
   if ! _shelly_rpc "Shelly.PutHTTPServerKey" '{"data":null}'; then
@@ -288,7 +270,7 @@ _shelly_upload_key() {
   fi
 
   _debug "Uploading new key"
-  if ! _shelly_rpc "Shelly.PutHTTPServerKey" '{"data":"'"$_key_data"'"}'; then
+  if ! _shelly_rpc "Shelly.PutHTTPServerKey" '{"data":"'"$_shelly_key_data"'"}'; then
     _err "Failed to upload key to device"
     return 1
   fi
