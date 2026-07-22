@@ -249,18 +249,14 @@ _shelly_rpc() {
 }
 
 # Upload the certificate to the device.
+# Note: We do NOT clear the existing certificate first, because the Shelly
+# auto-removes all three files (cert, key, CA) when any one is cleared.
+# Uploading overwrites in place — no clearing needed.
 _shelly_upload_cert() {
   _shelly_cert_data="$(_json_encode < "$_cfullchain")"
 
-  _debug "Clearing existing certificate"
-  if ! _shelly_rpc "Shelly.PutHTTPServerCert" '{"data":null}'; then
-    _err "Failed to clear existing certificate on device"
-    return 1
-  fi
-
-  _debug "Uploading new certificate"
-  _sleep 1
-  if ! _shelly_rpc "Shelly.PutHTTPServerCert" '{"data":"'"$_shelly_cert_data"'}'; then
+  _debug "Uploading certificate"
+  if ! _shelly_rpc "Shelly.PutHTTPServerCert" '{"data":"'"$_shelly_cert_data"'"}'; then
     _err "Failed to upload certificate to device"
     return 1
   fi
@@ -269,17 +265,11 @@ _shelly_upload_cert() {
 }
 
 # Upload the private key to the device.
+# Note: Do not clear first — see _shelly_upload_cert for rationale.
 _shelly_upload_key() {
   _shelly_key_data="$(_json_encode < "$_ckey")"
 
-  _debug "Clearing existing key"
-  if ! _shelly_rpc "Shelly.PutHTTPServerKey" '{"data":null}'; then
-    _err "Failed to clear existing key on device"
-    return 1
-  fi
-
-  _debug "Uploading new key"
-  _sleep 1
+  _debug "Uploading key"
   if ! _shelly_rpc "Shelly.PutHTTPServerKey" '{"data":"'"$_shelly_key_data"'"}'; then
     _err "Failed to upload key to device"
     return 1
