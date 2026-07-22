@@ -36,6 +36,7 @@
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml/badge.svg" alt="OpenIndiana"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Tribblix.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Tribblix.yml/badge.svg" alt="Tribblix"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml/badge.svg" alt="Haiku"></a>
+  <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Hurd.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Hurd.yml/badge.svg" alt="Hurd"></a>
 </p>
 
 <p align="center">
@@ -130,6 +131,7 @@
 |25|[![Haiku](https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml)|Haiku OS
 |26|[![Tribblix](https://github.com/acmesh-official/acme.sh/actions/workflows/Tribblix.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Tribblix.yml)|Tribblix
 |27|[![GhostBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/GhostBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/GhostBSD.yml)|GhostBSD
+|28|[![Hurd](https://github.com/acmesh-official/acme.sh/actions/workflows/Hurd.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Hurd.yml)|GNU Hurd
 
 
 > 🧪 Check our [testing project](https://github.com/acmesh-official/acmetest)
