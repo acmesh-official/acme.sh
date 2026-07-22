@@ -259,6 +259,7 @@ _shelly_upload_cert() {
   fi
 
   _debug "Uploading new certificate"
+  _sleep 1
   if ! _shelly_rpc "Shelly.PutHTTPServerCert" '{"data":"'"$_shelly_cert_data"'}'; then
     _err "Failed to upload certificate to device"
     return 1
@@ -278,6 +279,7 @@ _shelly_upload_key() {
   fi
 
   _debug "Uploading new key"
+  _sleep 1
   if ! _shelly_rpc "Shelly.PutHTTPServerKey" '{"data":"'"$_shelly_key_data"'"}'; then
     _err "Failed to upload key to device"
     return 1
