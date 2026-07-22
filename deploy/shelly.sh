@@ -223,6 +223,14 @@ _shelly_rpc() {
     return 1
   fi
 
+  # Validate response looks like a Shelly JSON-RPC response.
+  # Catches non-JSON responses such as HTTP 429 "Too Many Requests" which
+  # would otherwise pass the empty and "error" checks below.
+  if ! _startswith "$response" '{' || ! _contains "$response" '"id"'; then
+    _err "Invalid response from Shelly device: $response"
+    return 1
+  fi
+
   # Check for JSON-RPC error in response
   if _contains "$response" '"error"'; then
     _err "RPC error from Shelly: $response"
