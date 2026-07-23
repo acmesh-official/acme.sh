@@ -34,6 +34,8 @@
 #                                             interactive input the device name
 #   - export SYNO_DEVICE_ID=""      - (deprecated, auth with OTP code instead)
 #                                     required for omitting 2FA-OTP
+#   - export SYNO_USE_TOKEN=0       - disable SynoToken authentication
+#                                     when deploying to Synology SRM
 # 3. Run command:
 # acme.sh --deploy --deploy-hook synology_dsm -d example.com
 ################################################################################
@@ -150,6 +152,18 @@ synology_dsm_deploy() {
   encoded_username="$(printf "%s" "$SYNO_USERNAME" | _url_encode)"
   encoded_password="$(printf "%s" "$SYNO_PASSWORD" | _url_encode)"
 
+  # Configure SynoToken authentication (DSM only)
+  _migratedeployconf SYNO_Use_Token SYNO_USE_TOKEN
+  _getdeployconf SYNO_USE_TOKEN
+  _check2cleardeployconfexp SYNO_USE_TOKEN
+
+  if [ "${SYNO_USE_TOKEN:-1}" = "1" ]; then
+    enable_token_param="&enable_syno_token=yes"
+  else
+    enable_token_param=""
+  fi
+  _debug enable_token_param "$enable_token_param"
+
   # ## START ## - DEPRECATED, for backward compatibility
   _getdeployconf SYNO_TOTP_SECRET
 
@@ -173,7 +187,7 @@ synology_dsm_deploy() {
       _debug3 H1 "${_H1}"
     fi
 
-    response=$(_post "method=login&account=$encoded_username&passwd=$encoded_password&api=SYNO.API.Auth&version=$api_version&enable_syno_token=yes&otp_code=$DEPRECATED_otp_code&device_name=certrenewal&device_id=$SYNO_DEVICE_ID" "$_base_url/webapi/$api_path?enable_syno_token=yes")
+    response=$(_post "method=login&account=$encoded_username&passwd=$encoded_password&api=SYNO.API.Auth&version=$api_version$enable_token_param&otp_code=$DEPRECATED_otp_code&device_name=certrenewal&device_id=$SYNO_DEVICE_ID" "$_base_url/webapi/$api_path?$enable_token_param")
     _debug3 response "$response"
   # ## END ## - DEPRECATED, for backward compatibility
   # If SYNO_DEVICE_ID or SYNO_OTP_CODE is set, we treat current account enabled 2FA-OTP.
@@ -225,7 +239,7 @@ synology_dsm_deploy() {
           otp_enforce_option=""
         fi
       fi
-      response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes")
+      response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password$enable_token_param")
       if [ -n "$SYNO_USE_TEMP_ADMIN" ] && [ -n "$otp_enforce_option" ]; then
         synosetkeyvalue /etc/synoinfo.conf otp_enforce_option "$otp_enforce_option"
         _info "Restored previous enforce 2FA-OTP option."
@@ -247,7 +261,7 @@ synology_dsm_deploy() {
 
     if [ -n "$SYNO_DEVICE_ID" ]; then
       # Omit OTP code with SYNO_DEVICE_ID.
-      response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes&device_name=$SYNO_DEVICE_NAME&device_id=$SYNO_DEVICE_ID")
+      response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password$enable_token_param&device_name=$SYNO_DEVICE_NAME&device_id=$SYNO_DEVICE_ID")
       _secure_debug3 response "$response"
     else
       # Require the OTP code if still unset.
@@ -260,7 +274,7 @@ synology_dsm_deploy() {
       if [ -z "$SYNO_OTP_CODE" ]; then
         response='{"error":{"code":404}}'
       else
-        response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes&enable_device_token=yes&device_name=$SYNO_DEVICE_NAME&otp_code=$SYNO_OTP_CODE")
+        response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password$enable_token_param&enable_device_token=yes&device_name=$SYNO_DEVICE_NAME&otp_code=$SYNO_OTP_CODE")
         _secure_debug3 response "$response"
 
         id_property='device_id'
@@ -302,16 +316,18 @@ synology_dsm_deploy() {
   token=$(echo "$response" | grep "synotoken" | sed -n 's/.*"synotoken" *: *"\([^"]*\).*/\1/p')
   _debug "Session ID" "$sid"
   _debug SynoToken "$token"
-  if [ -z "$sid" ] || [ -z "$token" ]; then
+  if [ -z "$sid" ] || { [ "${SYNO_USE_TOKEN:-1}" = "1" ] && [ -z "$token" ]; }; then
     # Still can't get necessary info even got no errors, may Synology have API updated?
     _err "Unable to authenticate to $_base_url, you may report this by providing full log with '--debug 3'."
     _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 1
   fi
 
-  _H1="X-SYNO-TOKEN: $token"
-  export _H1
-  _debug2 H1 "${_H1}"
+  if [ "${SYNO_USE_TOKEN:-1}" = "1" ]; then
+    _H1="X-SYNO-TOKEN: $token"
+    export _H1
+    _debug2 H1 "${_H1}"
+  fi
 
   # Now that we know the username and password are good, save them if not in temp admin mode.
   if [ -n "$SYNO_USE_TEMP_ADMIN" ]; then
@@ -321,11 +337,13 @@ synology_dsm_deploy() {
     _cleardeployconf SYNO_DEVICE_NAME
     _savedeployconf SYNO_USE_TEMP_ADMIN "$SYNO_USE_TEMP_ADMIN"
     _savedeployconf SYNO_LOCAL_HOSTNAME "$SYNO_LOCAL_HOSTNAME"
+    _savedeployconf SYNO_USE_TOKEN "$SYNO_USE_TOKEN"
   else
     _savedeployconf SYNO_USERNAME "$SYNO_USERNAME" "base64"
     _savedeployconf SYNO_PASSWORD "$SYNO_PASSWORD" "base64"
     _savedeployconf SYNO_DEVICE_ID "$SYNO_DEVICE_ID"
     _savedeployconf SYNO_DEVICE_NAME "$SYNO_DEVICE_NAME"
+    _savedeployconf SYNO_USE_TOKEN "$SYNO_USE_TOKEN"
   fi
 
   _info "Getting certificates in Synology DSM..."
@@ -379,8 +397,15 @@ synology_dsm_deploy() {
   content="$(printf "%b_" "$content")"
   content="${content%_}" # protect trailing \n
 
+  if [ "${SYNO_USE_TOKEN:-1}" = "1" ]; then
+    token_param="&SynoToken=$token"
+  else
+    token_param=""
+  fi
+  _debug token_param "$token_param"
+
   _info "Upload certificate to the Synology DSM."
-  response=$(_post "$content" "$_base_url/webapi/entry.cgi?api=SYNO.Core.Certificate&method=import&version=1&SynoToken=$token&_sid=$sid" "" "POST" "multipart/form-data; boundary=${delim}")
+  response=$(_post "$content" "$_base_url/webapi/entry.cgi?api=SYNO.Core.Certificate&method=import&version=1$token_param&_sid=$sid" "" "POST" "multipart/form-data; boundary=${delim}")
   _debug3 response "$response"
 
   if ! echo "$response" | grep '"error":' >/dev/null; then
