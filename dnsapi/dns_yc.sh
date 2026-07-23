@@ -115,6 +115,16 @@ dns_yc_rm() {
   YC_SA_ID="${YC_SA_ID:-$(_readaccountconf_mutable YC_SA_ID)}"
   YC_SA_Key_ID="${YC_SA_Key_ID:-$(_readaccountconf_mutable YC_SA_Key_ID)}"
 
+  YC_SA_Key_File_PEM_b64="${YC_SA_Key_File_PEM_b64:-$(_readaccountconf_mutable YC_SA_Key_File_PEM_b64)}"
+  YC_SA_Key_File_Path="${YC_SA_Key_File_Path:-$(_readaccountconf_mutable YC_SA_Key_File_Path)}"
+
+  if [ "$YC_SA_Key_File_PEM_b64" ]; then
+    echo "$YC_SA_Key_File_PEM_b64" | _dbase64 >private.key
+    YC_SA_Key_File="private.key"
+  else
+    YC_SA_Key_File="$YC_SA_Key_File_Path"
+  fi
+
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
