@@ -22,7 +22,12 @@ dns_yc_add() {
   fulldomain="$(echo "$1". | _lower_case)" # Add dot at end of domain name
   txtvalue=$2
 
+  # YC_SA_Key_File_PEM_b64/Path are always persisted to the domain conf below,
+  # so they must be recovered from there first (account conf is only a
+  # fallback for the YC_Folder_ID case, see the SA_ID/SA_Key_ID save below).
+  YC_SA_Key_File_PEM_b64="${YC_SA_Key_File_PEM_b64:-$(_readdomainconf YC_SA_Key_File_PEM_b64)}"
   YC_SA_Key_File_PEM_b64="${YC_SA_Key_File_PEM_b64:-$(_readaccountconf_mutable YC_SA_Key_File_PEM_b64)}"
+  YC_SA_Key_File_Path="${YC_SA_Key_File_Path:-$(_readdomainconf YC_SA_Key_File_Path)}"
   YC_SA_Key_File_Path="${YC_SA_Key_File_Path:-$(_readaccountconf_mutable YC_SA_Key_File_Path)}"
 
   if [ "$YC_SA_Key_File_PEM_b64" ]; then
@@ -34,9 +39,13 @@ dns_yc_add() {
     _savedomainconf YC_SA_Key_File_Path "$YC_SA_Key_File_Path"
   fi
 
+  YC_Zone_ID="${YC_Zone_ID:-$(_readdomainconf YC_Zone_ID)}"
   YC_Zone_ID="${YC_Zone_ID:-$(_readaccountconf_mutable YC_Zone_ID)}"
+  YC_Folder_ID="${YC_Folder_ID:-$(_readdomainconf YC_Folder_ID)}"
   YC_Folder_ID="${YC_Folder_ID:-$(_readaccountconf_mutable YC_Folder_ID)}"
+  YC_SA_ID="${YC_SA_ID:-$(_readdomainconf YC_SA_ID)}"
   YC_SA_ID="${YC_SA_ID:-$(_readaccountconf_mutable YC_SA_ID)}"
+  YC_SA_Key_ID="${YC_SA_Key_ID:-$(_readdomainconf YC_SA_Key_ID)}"
   YC_SA_Key_ID="${YC_SA_Key_ID:-$(_readaccountconf_mutable YC_SA_Key_ID)}"
 
   if [ "$YC_SA_ID" ] && [ "$YC_SA_Key_ID" ] && [ "$YC_SA_Key_File" ]; then
@@ -110,12 +119,19 @@ dns_yc_rm() {
   fulldomain="$(echo "$1". | _lower_case)" # Add dot at end of domain name
   txtvalue=$2
 
+  YC_Zone_ID="${YC_Zone_ID:-$(_readdomainconf YC_Zone_ID)}"
   YC_Zone_ID="${YC_Zone_ID:-$(_readaccountconf_mutable YC_Zone_ID)}"
+  YC_Folder_ID="${YC_Folder_ID:-$(_readdomainconf YC_Folder_ID)}"
   YC_Folder_ID="${YC_Folder_ID:-$(_readaccountconf_mutable YC_Folder_ID)}"
+  YC_SA_ID="${YC_SA_ID:-$(_readdomainconf YC_SA_ID)}"
   YC_SA_ID="${YC_SA_ID:-$(_readaccountconf_mutable YC_SA_ID)}"
+  YC_SA_Key_ID="${YC_SA_Key_ID:-$(_readdomainconf YC_SA_Key_ID)}"
   YC_SA_Key_ID="${YC_SA_Key_ID:-$(_readaccountconf_mutable YC_SA_Key_ID)}"
 
+  # See dns_yc_add() for why domain conf is checked before account conf.
+  YC_SA_Key_File_PEM_b64="${YC_SA_Key_File_PEM_b64:-$(_readdomainconf YC_SA_Key_File_PEM_b64)}"
   YC_SA_Key_File_PEM_b64="${YC_SA_Key_File_PEM_b64:-$(_readaccountconf_mutable YC_SA_Key_File_PEM_b64)}"
+  YC_SA_Key_File_Path="${YC_SA_Key_File_Path:-$(_readdomainconf YC_SA_Key_File_Path)}"
   YC_SA_Key_File_Path="${YC_SA_Key_File_Path:-$(_readaccountconf_mutable YC_SA_Key_File_Path)}"
 
   if [ "$YC_SA_Key_File_PEM_b64" ]; then
