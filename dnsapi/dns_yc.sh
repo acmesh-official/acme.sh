@@ -143,13 +143,31 @@ dns_yc_rm() {
     return 1
   fi
 
-  if _yc_rest POST "zones/$_domain_id:updateRecordSets" "{\"deletions\": [ { \"name\":\"$_sub_domain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":$exists_txtvalue}]}"; then
-    if _contains "$response" "\"done\": true"; then
-      _info "Delete, OK"
-      return 0
-    else
-      _err "Delete record error."
-      return 1
+  # Keep any other values already present at this name (e.g. base + wildcard
+  # domain share the same _acme-challenge name with two different values):
+  # only drop the one being removed instead of wiping out the whole rrset.
+  _remaining_txtvalue=$(echo "$exists_txtvalue" | tr -d '[] ' | tr ',' '\n' | grep -Fxv "\"$txtvalue\"" | tr '\n' ',' | sed 's/,$//')
+  _debug _remaining_txtvalue "$_remaining_txtvalue"
+
+  if [ "$_remaining_txtvalue" ]; then
+    if _yc_rest POST "zones/$_domain_id:updateRecordSets" "{\"merges\": [ { \"name\":\"$_sub_domain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":[$_remaining_txtvalue]}]}"; then
+      if _contains "$response" "\"done\": true"; then
+        _info "Delete, OK"
+        return 0
+      else
+        _err "Delete record error."
+        return 1
+      fi
+    fi
+  else
+    if _yc_rest POST "zones/$_domain_id:updateRecordSets" "{\"deletions\": [ { \"name\":\"$_sub_domain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":$exists_txtvalue}]}"; then
+      if _contains "$response" "\"done\": true"; then
+        _info "Delete, OK"
+        return 0
+      else
+        _err "Delete record error."
+        return 1
+      fi
     fi
   fi
   _err "Delete record error."
