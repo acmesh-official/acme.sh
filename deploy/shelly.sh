@@ -169,7 +169,7 @@ _shelly_handshake() {
 # Returns 0 (true) if a 401 with WWW-Authenticate is present.
 _shelly_has_auth_challenge() {
   _shelly_headers_file="$1"
-  _shelly_status="$(grep -i '^HTTP/' "$_shelly_headers_file" | tail -1 | awk '{print $2}')"
+  _shelly_status="$(grep -i '^HTTP/' "$_shelly_headers_file" | _tail_n 1 | awk '{print $2}')"
   [ "$_shelly_status" = "401" ] && grep -qi '^WWW-Authenticate:' "$_shelly_headers_file"
 }
 
@@ -204,6 +204,7 @@ _shelly_rpc() {
   _debug2 "RPC body: $_shelly_body"
 
   if [ -n "$_shelly_auth_header" ]; then
+    # shellcheck disable=SC2090
     export _H1="Authorization: $_shelly_auth_header"
   else
     export _H1=""
@@ -253,7 +254,7 @@ _shelly_rpc() {
 # auto-removes all three files (cert, key, CA) when any one is cleared.
 # Uploading overwrites in place — no clearing needed.
 _shelly_upload_cert() {
-  _shelly_cert_data="$(_json_encode < "$_cfullchain")"
+  _shelly_cert_data="$(_json_encode <"$_cfullchain")"
 
   _debug "Uploading certificate"
   if ! _shelly_rpc "Shelly.PutHTTPServerCert" '{"data":"'"$_shelly_cert_data"'"}'; then
@@ -267,7 +268,7 @@ _shelly_upload_cert() {
 # Upload the private key to the device.
 # Note: Do not clear first — see _shelly_upload_cert for rationale.
 _shelly_upload_key() {
-  _shelly_key_data="$(_json_encode < "$_ckey")"
+  _shelly_key_data="$(_json_encode <"$_ckey")"
 
   _debug "Uploading key"
   if ! _shelly_rpc "Shelly.PutHTTPServerKey" '{"data":"'"$_shelly_key_data"'"}'; then
