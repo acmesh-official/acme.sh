@@ -203,8 +203,8 @@ _shelly_rpc() {
   _debug "RPC method: $_shelly_method"
   _debug2 "RPC body: $_shelly_body"
 
+  # shellcheck disable=SC2090
   if [ -n "$_shelly_auth_header" ]; then
-    # shellcheck disable=SC2090
     export _H1="Authorization: $_shelly_auth_header"
   else
     export _H1=""
