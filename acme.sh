@@ -6015,7 +6015,7 @@ $_authorizations_map"
       _ari_end_t_new="$(_date2time "$(echo "$_ari_end_new" | sed 's/\.[0-9]*//')")"
       if [ "$_ari_start_t_new" ] && [ "$_ari_end_t_new" ] && [ "$_ari_end_t_new" -gt "$_ari_start_t_new" ]; then
         _ari_window=$(_math "$_ari_end_t_new" - "$_ari_start_t_new")
-        _ari_offset=$(_math "$(_time)" % "$_ari_window")
+        _ari_offset=$(_math "(0x$(${ACME_OPENSSL_BIN:-openssl} rand -hex 4) & 0x7FFFFFFF)" % "$_ari_window")
         Le_NextRenewTime=$(_math "$_ari_start_t_new" + "$_ari_offset")
         Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
         _info "ARI suggestedWindow: $(__green "$_ari_start_new") to $(__green "$_ari_end_new")"
@@ -6187,7 +6187,7 @@ renew() {
           _ari_old_time_str="$Le_NextRenewTimeStr"
           _info "Current renewal time: $(__green "$_ari_old_time_str")"
           _ari_window=$(_math "$_ari_end_t" - "$_ari_start_t")
-          _ari_offset=$(_math "$(_time)" % "$_ari_window")
+          _ari_offset=$(_math "(0x$(${ACME_OPENSSL_BIN:-openssl} rand -hex 4) & 0x7FFFFFFF)" % "$_ari_window")
           Le_NextRenewTime=$(_math "$_ari_start_t" + "$_ari_offset")
           Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
           _info "ARI suggestedWindow: $(__green "$_ari_start") to $(__green "$_ari_end")"
