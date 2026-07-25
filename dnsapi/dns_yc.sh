@@ -126,7 +126,7 @@ dns_yc_rm() {
 
   _debug "Getting txt records"
   if _yc_rest GET "zones/${_domain_id}:getRecordSet?type=TXT&name=$_sub_domain"; then
-    exists_txtvalue=$(echo "$response" | _normalizeJson | _egrep_o "\"data\".*\][^,]*" | _egrep_o "[^:]*$")
+    exists_txtvalue=$(echo "$response" | _normalizeJson | _egrep_o "\"data\".*\][^,]*" | _egrep_o "[^:][^:]*$")
     _debug exists_txtvalue "$exists_txtvalue"
   else
     _err "Error: $response"
@@ -194,7 +194,7 @@ _get_root() {
       return 1
     fi
     if _contains "$response" "\"zone\": \"$h\""; then
-      _domain_id=$(echo "$response" | _normalizeJson | _egrep_o "[^{]*\"zone\":\"$h\"[^}]*" | _egrep_o "\"id\"[^,]*" | _egrep_o "[^:]*$" | tr -d '"')
+      _domain_id=$(echo "$response" | _normalizeJson | _egrep_o "[^{]*\"zone\":\"$h\"[^}]*" | _egrep_o "\"id\"[^,]*" | _egrep_o "[^:][^:]*$" | tr -d '"')
       _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
@@ -264,7 +264,7 @@ _yc_login() {
   _iam_response="$(_post "$_jwt" "https://iam.api.cloud.yandex.net/iam/v1/tokens" "" "POST")"
   _debug3 _iam_response "$(echo "$_iam_response" | _normalizeJson)"
 
-  YC_Token="$(echo "$_iam_response" | _normalizeJson | _egrep_o "\"iamToken\"[^,]*" | _egrep_o "[^:]*$" | tr -d '"')"
+  YC_Token="$(echo "$_iam_response" | _normalizeJson | _egrep_o "\"iamToken\"[^,]*" | _egrep_o "[^:][^:]*$" | tr -d '"')"
   _debug3 YC_Token
 
   return 0
