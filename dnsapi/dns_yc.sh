@@ -162,7 +162,13 @@ dns_yc_rm() {
   # Keep any other values already present at this name (e.g. base + wildcard
   # domain share the same _acme-challenge name with two different values):
   # only drop the one being removed instead of wiping out the whole rrset.
-  _remaining_txtvalue=$(echo "$exists_txtvalue" | tr -d '[] ' | tr ',' '\n' | grep -Fxv "\"$txtvalue\"" | tr '\n' ',' | sed 's/,$//')
+  _remaining_txtvalue=""
+  for _v in $(echo "$exists_txtvalue" | tr -d '[] ' | tr ',' ' '); do
+    if [ "$_v" != "\"$txtvalue\"" ]; then
+      _remaining_txtvalue="$_remaining_txtvalue$_v,"
+    fi
+  done
+  _remaining_txtvalue="${_remaining_txtvalue%,}"
   _debug _remaining_txtvalue "$_remaining_txtvalue"
 
   if [ "$_remaining_txtvalue" ]; then
