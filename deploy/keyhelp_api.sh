@@ -63,7 +63,8 @@ keyhelp_api_deploy() {
 
     export _H1="X-API-Key: $_key"
 
-    _put_url="$_host/api/v2/certificates/name/$_name"
+    _name_encoded="$(printf "%s" "$_name" | _url_encode)"
+    _put_url="$_host/api/v2/certificates/name/$_name_encoded"
     if _post "$_put_body" "$_put_url" "" "PUT" "application/json" >/dev/null; then
       _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
     else
