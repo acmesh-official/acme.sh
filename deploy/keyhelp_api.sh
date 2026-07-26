@@ -31,14 +31,12 @@ keyhelp_api_deploy() {
   _savedeployconf DEPLOY_KEYHELP_HOST "$DEPLOY_KEYHELP_HOST"
   _savedeployconf DEPLOY_KEYHELP_API_KEY "$DEPLOY_KEYHELP_API_KEY"
 
-  _request_key="$(tr '\n' ':' <"$_ckey" | sed 's/:/\\n/g')"
   _request_cert="$(tr '\n' ':' <"$_ccert" | sed 's/:/\\n/g')"
   _request_ca="$(tr '\n' ':' <"$_cca" | sed 's/:/\\n/g')"
 
-  _request_body="{
+  _put_body="{
     \"name\": \"$_cdomain\",
     \"components\": {
-      \"private_key\": \"$_request_key\",
       \"certificate\": \"$_request_cert\",
       \"ca_certificate\": \"$_request_ca\"
     }
@@ -55,7 +53,7 @@ keyhelp_api_deploy() {
     export _H1="X-API-Key: $_key"
 
     _put_url="$_host/api/v2/certificates/name/$_cdomain"
-    if _post "$_request_body" "$_put_url" "" "PUT" "application/json" >/dev/null; then
+    if _post "$_put_body" "$_put_url" "" "PUT" "application/json" >/dev/null; then
       _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
     else
       _err "Cannot make PUT request to $_put_url"
@@ -65,8 +63,22 @@ keyhelp_api_deploy() {
     if [ "$_code" = "404" ]; then
       _info "$_cdomain not found, creating new entry at $_host"
 
+      if [ ! -f "$_ckey" ]; then
+        _err "Private key file $_ckey not found. It is required to create a new certificate entry."
+        return 1
+      fi
+      _request_key="$(tr '\n' ':' <"$_ckey" | sed 's/:/\\n/g')"
+      _post_body="{
+        \"name\": \"$_cdomain\",
+        \"components\": {
+          \"private_key\": \"$_request_key\",
+          \"certificate\": \"$_request_cert\",
+          \"ca_certificate\": \"$_request_ca\"
+        }
+      }"
+
       _post_url="$_host/api/v2/certificates"
-      if _post "$_request_body" "$_post_url" "" "POST" "application/json" >/dev/null; then
+      if _post "$_post_body" "$_post_url" "" "POST" "application/json" >/dev/null; then
         _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
       else
         _err "Cannot make POST request to $_post_url"
