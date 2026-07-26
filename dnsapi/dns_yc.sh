@@ -150,46 +150,16 @@ dns_yc_rm() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  _debug "Getting txt records"
-  if _yc_rest GET "zones/${_domain_id}:getRecordSet?type=TXT&name=$_sub_domain"; then
-    exists_txtvalue=$(echo "$response" | _normalizeJson | _egrep_o "\"data\".*\][^,]*" | _egrep_o "[^:][^:]*$")
-    _debug exists_txtvalue "$exists_txtvalue"
-  else
-    _err "Error: $response"
-    return 1
-  fi
-
-  # Keep any other values already present at this name (e.g. base + wildcard
-  # domain share the same _acme-challenge name with two different values):
-  # only drop the one being removed instead of wiping out the whole rrset.
-  _remaining_txtvalue=""
-  for _v in $(echo "$exists_txtvalue" | tr -d '[] ' | tr ',' ' '); do
-    if [ "$_v" != "\"$txtvalue\"" ]; then
-      _remaining_txtvalue="$_remaining_txtvalue$_v,"
-    fi
-  done
-  _remaining_txtvalue="${_remaining_txtvalue%,}"
-  _debug _remaining_txtvalue "$_remaining_txtvalue"
-
-  if [ "$_remaining_txtvalue" ]; then
-    if _yc_rest POST "zones/$_domain_id:updateRecordSets" "{\"merges\": [ { \"name\":\"$_sub_domain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":[$_remaining_txtvalue]}]}"; then
-      if _contains "$response" "\"done\": true"; then
-        _info "Delete, OK"
-        return 0
-      else
-        _err "Delete record error."
-        return 1
-      fi
-    fi
-  else
-    if _yc_rest POST "zones/$_domain_id:updateRecordSets" "{\"deletions\": [ { \"name\":\"$_sub_domain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":$exists_txtvalue}]}"; then
-      if _contains "$response" "\"done\": true"; then
-        _info "Delete, OK"
-        return 0
-      else
-        _err "Delete record error."
-        return 1
-      fi
+  # upsertRecordSets.deletions removes only the given value from the rrset,
+  # leaving any other values at the same name (e.g. base + wildcard domain)
+  # intact -- no need to read the current data set and recompute it.
+  if _yc_rest POST "zones/$_domain_id:upsertRecordSets" "{\"deletions\": [ { \"name\":\"$_sub_domain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":[\"$txtvalue\"]}]}"; then
+    if _contains "$response" "\"done\": true"; then
+      _info "Delete, OK"
+      return 0
+    else
+      _err "Delete record error."
+      return 1
     fi
   fi
   _err "Delete record error."
