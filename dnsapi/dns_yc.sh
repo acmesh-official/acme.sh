@@ -76,11 +76,21 @@ dns_yc_add() {
       return 1
     fi
   else
+    # Clear both possible stores -- YC_Zone_ID/YC_Folder_ID/key material are
+    # persisted to the domain conf, while YC_SA_ID/YC_SA_Key_ID may have been
+    # saved account-wide (Folder_ID mode), so a plain _clearaccountconf alone
+    # would leave stale values behind in whichever store wasn't touched.
+    _cleardomainconf YC_Zone_ID
     _clearaccountconf YC_Zone_ID
+    _cleardomainconf YC_Folder_ID
     _clearaccountconf YC_Folder_ID
-    _clearaccountconf YC_SA_ID
-    _clearaccountconf YC_SA_Key_ID
+    _cleardomainconf YC_SA_ID
+    _clearaccountconf_mutable YC_SA_ID
+    _cleardomainconf YC_SA_Key_ID
+    _clearaccountconf_mutable YC_SA_Key_ID
+    _cleardomainconf YC_SA_Key_File_PEM_b64
     _clearaccountconf YC_SA_Key_File_PEM_b64
+    _cleardomainconf YC_SA_Key_File_Path
     _clearaccountconf YC_SA_Key_File_Path
     _err "You didn't specify a YC_SA_ID or YC_SA_Key_ID or YC_SA_Key_File."
     return 1
