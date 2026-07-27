@@ -33,9 +33,11 @@ dns_yc_add() {
   if [ "$YC_SA_Key_File_PEM_b64" ]; then
     echo "$YC_SA_Key_File_PEM_b64" | _dbase64 >private.key
     YC_SA_Key_File="private.key"
+    _yc_key_is_temp=1
     _savedomainconf YC_SA_Key_File_PEM_b64 "$YC_SA_Key_File_PEM_b64"
   else
     YC_SA_Key_File="$YC_SA_Key_File_Path"
+    _yc_key_is_temp=""
     _savedomainconf YC_SA_Key_File_Path "$YC_SA_Key_File_Path"
   fi
 
@@ -137,8 +139,10 @@ dns_yc_rm() {
   if [ "$YC_SA_Key_File_PEM_b64" ]; then
     echo "$YC_SA_Key_File_PEM_b64" | _dbase64 >private.key
     YC_SA_Key_File="private.key"
+    _yc_key_is_temp=1
   else
     YC_SA_Key_File="$YC_SA_Key_File_Path"
+    _yc_key_is_temp=""
   fi
 
   _debug "First detect the root zone"
@@ -275,7 +279,9 @@ _yc_login() {
   _signature=$(printf "%s.%s" "$header" "$payload" | _sign "$YC_SA_Key_File" "sha256 -sigopt rsa_padding_mode:pss -sigopt rsa_pss_saltlen:-1" | _url_replace)
   _debug2 _signature "$_signature"
 
-  rm -rf "$YC_SA_Key_File"
+  if [ "$_yc_key_is_temp" ]; then
+    rm -f "$YC_SA_Key_File"
+  fi
 
   _jwt=$(printf "{\"jwt\": \"%s.%s.%s\"}" "$header" "$payload" "$_signature")
   _debug2 _jwt "$_jwt"
