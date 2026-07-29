@@ -6,8 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_freemyip
 Options:
  FREEMYIP_Token API Token
 Issues: github.com/acmesh-official/acme.sh/issues/6247
-Author: Recolic Keghart <root@recolic.net>, @Giova96
-Modified by: ExtremeFiretop for ASUSWRT-Merlin compatibility
+Author: Recolic Keghart <root@recolic.net>, @Giova96, ExtremeFiretop
 '
 
 FREEMYIP_DNS_API="https://freemyip.com/update?"
