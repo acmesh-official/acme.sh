@@ -1915,6 +1915,18 @@ _time() {
   date -u "+%s"
 }
 
+# _rand_below <max>
+_rand_below() {
+  _rb_max="$1"
+  _rb_rand="$(${ACME_OPENSSL_BIN:-openssl} rand -hex 4 2>/dev/null)"
+  if [ "$_rb_rand" ]; then
+    _math "(0x$_rb_rand & 0x7FFFFFFF)" % "$_rb_max"
+  else
+    _debug "openssl rand unavailable, falling back to time-based algorithm"
+    _math "$(_time)" % "$_rb_max"
+  fi
+}
+
 #support 2 formats:
 #    2022-04-01 08:10:33   to   1648800633
 #or  2022-04-01T08:10:33Z  to   1648800633
@@ -6015,7 +6027,7 @@ $_authorizations_map"
       _ari_end_t_new="$(_date2time "$(echo "$_ari_end_new" | sed 's/\.[0-9]*//')")"
       if [ "$_ari_start_t_new" ] && [ "$_ari_end_t_new" ] && [ "$_ari_end_t_new" -gt "$_ari_start_t_new" ]; then
         _ari_window=$(_math "$_ari_end_t_new" - "$_ari_start_t_new")
-        _ari_offset=$(_math "(0x$(${ACME_OPENSSL_BIN:-openssl} rand -hex 4) & 0x7FFFFFFF)" % "$_ari_window")
+        _ari_offset=$(_rand_below "$_ari_window")
         Le_NextRenewTime=$(_math "$_ari_start_t_new" + "$_ari_offset")
         Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
         _info "ARI suggestedWindow: $(__green "$_ari_start_new") to $(__green "$_ari_end_new")"
@@ -6187,7 +6199,7 @@ renew() {
           _ari_old_time_str="$Le_NextRenewTimeStr"
           _info "Current renewal time: $(__green "$_ari_old_time_str")"
           _ari_window=$(_math "$_ari_end_t" - "$_ari_start_t")
-          _ari_offset=$(_math "(0x$(${ACME_OPENSSL_BIN:-openssl} rand -hex 4) & 0x7FFFFFFF)" % "$_ari_window")
+          _ari_offset=$(_rand_below "$_ari_window")
           Le_NextRenewTime=$(_math "$_ari_start_t" + "$_ari_offset")
           Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
           _info "ARI suggestedWindow: $(__green "$_ari_start") to $(__green "$_ari_end")"
