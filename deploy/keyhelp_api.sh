@@ -38,9 +38,7 @@ keyhelp_api_deploy() {
   # Save current values
   _savedeployconf DEPLOY_KEYHELP_HOST "$DEPLOY_KEYHELP_HOST"
   _savedeployconf DEPLOY_KEYHELP_API_KEY "$DEPLOY_KEYHELP_API_KEY"
-  if [ -n "$DEPLOY_KEYHELP_NAME" ]; then
-    _savedeployconf DEPLOY_KEYHELP_NAME "$DEPLOY_KEYHELP_NAME"
-  fi
+  _savedeployconf DEPLOY_KEYHELP_NAME "$DEPLOY_KEYHELP_NAME"
 
   _request_cert="$(tr '\n' ':' <"$_ccert" | sed 's/:/\\n/g')"
   _request_ca="$(tr '\n' ':' <"$_cca" | sed 's/:/\\n/g')"
