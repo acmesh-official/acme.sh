@@ -7,12 +7,12 @@ Options:
  FREEMYIP_Token API Token
 Issues: github.com/acmesh-official/acme.sh/issues/6247
 Author: Recolic Keghart <root@recolic.net>, @Giova96
+Modified by: ExtremeFiretop for ASUSWRT-Merlin compatibility
 '
 
 FREEMYIP_DNS_API="https://freemyip.com/update?"
 
 ################ Public functions ################
-
 #Usage: dns_freemyip_add    fulldomain    txtvalue
 dns_freemyip_add() {
   fulldomain="$1"
@@ -27,10 +27,8 @@ dns_freemyip_add() {
     _err "Please specify your token and try again."
     return 1
   fi
-
   #save the credentials to the account conf file.
   _saveaccountconf_mutable FREEMYIP_Token "$FREEMYIP_Token"
-
   if _is_root_domain_published "$fulldomain"; then
     _err "freemyip API don't allow you to set multiple TXT record for the same subdomain!"
     _err "You must apply certificate for only one domain at a time!"
@@ -39,7 +37,6 @@ dns_freemyip_add() {
     _debug "If you are testing this workflow in github pipeline or acmetest, please set TEST_DNS_NO_SUBDOMAIN=1 and TEST_DNS_NO_WILDCARD=1"
     return 1
   fi
-
   # txtvalue must be url-encoded. But it's not necessary for acme txt value.
   _freemyip_get_until_ok "${FREEMYIP_DNS_API}token=$FREEMYIP_Token&domain=$fulldomain&txt=$txtvalue" 2>&1
   return $?
@@ -59,7 +56,6 @@ dns_freemyip_rm() {
     _err "Please specify your token and try again."
     return 1
   fi
-
   #save the credentials to the account conf file.
   _saveaccountconf_mutable FREEMYIP_Token "$FREEMYIP_Token"
 
@@ -68,11 +64,11 @@ dns_freemyip_rm() {
   return $?
 }
 
-################ Private functions below  ################
+################ Private functions below ################
 _get_root() {
   _fmi_d="$1"
 
-  echo "$_fmi_d" | rev | cut -d '.' -f 1-3 | rev
+  echo "$_fmi_d" | sed 's/.*\.\([^.]*\.[^.]*\.[^.]*\)$/\1/'
 }
 
 # There is random failure while calling freemyip API too fast. This function automatically retry until success.
@@ -80,7 +76,9 @@ _freemyip_get_until_ok() {
   _fmi_url="$1"
   for i in $(seq 1 8); do
     _debug "HTTP GET freemyip.com API '$_fmi_url', retry $i/8..."
-    _get "$_fmi_url" | tee /dev/fd/2 | grep OK && return 0
+    _fmi_response="$(_get "$_fmi_url")"
+    printf '%s\n' "$_fmi_response" >&2
+    printf '%s\n' "$_fmi_response" | grep OK && return 0
     _sleep 1 # DO NOT send the request too fast
   done
   _err "Failed to request freemyip API: $_fmi_url . Server does not say 'OK'"
