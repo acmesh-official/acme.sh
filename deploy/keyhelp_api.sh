@@ -75,7 +75,7 @@ keyhelp_api_deploy() {
     if [ "$_code" = "404" ]; then
       _info "$_name not found, creating new entry at $_host"
 
-      if [ ! -f "$_ckey" ]; then
+      if [ ! -s "$_ckey" ]; then
         _err "Private key file $_ckey not found. It is required to create a new certificate entry."
         return 1
       fi
