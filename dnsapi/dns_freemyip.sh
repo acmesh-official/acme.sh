@@ -73,16 +73,17 @@ _get_root() {
 # There is random failure while calling freemyip API too fast. This function automatically retry until success.
 _freemyip_get_until_ok() {
   _fmi_url="$1"
-  for i in $(seq 1 8); do
+  i=1
+  while [ "$i" -le 8 ]; do
     _debug "HTTP GET freemyip.com API '$_fmi_url', retry $i/8..."
     _fmi_response="$(_get "$_fmi_url")"
     printf '%s\n' "$_fmi_response" >&2
     printf '%s\n' "$_fmi_response" | grep OK && return 0
     _sleep 1 # DO NOT send the request too fast
+    i=$((i + 1))
   done
   _err "Failed to request freemyip API: $_fmi_url . Server does not say 'OK'"
   return 1
-}
 
 # Verify in public dns if domain is already there.
 _is_root_domain_published() {
@@ -90,13 +91,15 @@ _is_root_domain_published() {
   _webroot="$(_get_root "$_fmi_d")"
 
   _info "Verifying '""$_fmi_d""' freemyip webroot (""$_webroot"") is not published yet"
-  for i in $(seq 1 3); do
+  i=1
+  while [ "$i" -le 3 ]; do
     _debug "'$_webroot' ns lookup, retry $i/3..."
     if [ "$(_ns_lookup "$_fmi_d" TXT)" ]; then
       _debug "'$_webroot' already has a TXT record published!"
       return 0
     fi
     _sleep 10 # Give it some time to propagate the TXT record
+    i=$((i + 1))
   done
   return 1
 }
