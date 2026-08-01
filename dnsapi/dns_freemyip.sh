@@ -27,7 +27,7 @@ dns_freemyip_add() {
     _err "Please specify your token and try again."
     return 1
   fi
-  
+
   #save the credentials to the account conf file.
   _saveaccountconf_mutable FREEMYIP_Token "$FREEMYIP_Token"
   
@@ -39,7 +39,7 @@ dns_freemyip_add() {
     _debug "If you are testing this workflow in github pipeline or acmetest, please set TEST_DNS_NO_SUBDOMAIN=1 and TEST_DNS_NO_WILDCARD=1"
     return 1
   fi
-  
+
   # txtvalue must be url-encoded. But it's not necessary for acme txt value.
   _freemyip_get_until_ok "${FREEMYIP_DNS_API}token=$FREEMYIP_Token&domain=$fulldomain&txt=$txtvalue" 2>&1
   return $?
@@ -59,7 +59,7 @@ dns_freemyip_rm() {
     _err "Please specify your token and try again."
     return 1
   fi
-  
+
   #save the credentials to the account conf file.
   _saveaccountconf_mutable FREEMYIP_Token "$FREEMYIP_Token"
 
@@ -112,10 +112,8 @@ _is_root_domain_published() {
       _debug "'$_webroot' already has a TXT record published!"
       return 0
     fi
-
     _sleep 10 # Give it some time to propagate the TXT record
     _fmi_i=$((_fmi_i + 1))
   done
-
   return 1
 }
