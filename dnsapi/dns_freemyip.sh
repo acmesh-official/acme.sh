@@ -82,7 +82,7 @@ _freemyip_get_until_ok() {
     _sleep 1 # DO NOT send the request too fast
     i=$((i + 1))
   done
-  _err "Failed to request freemyip API: $_fmi_url . Server does not say 'OK'"
+  _err "Failed to request freemyip API. Server does not say 'OK'"
   return 1
 }
 
