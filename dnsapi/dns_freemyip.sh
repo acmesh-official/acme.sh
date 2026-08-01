@@ -30,7 +30,7 @@ dns_freemyip_add() {
 
   #save the credentials to the account conf file.
   _saveaccountconf_mutable FREEMYIP_Token "$FREEMYIP_Token"
-  
+
   if _is_root_domain_published "$fulldomain"; then
     _err "freemyip API don't allow you to set multiple TXT record for the same subdomain!"
     _err "You must apply certificate for only one domain at a time!"
@@ -79,7 +79,6 @@ _get_root() {
 _freemyip_get_until_ok() {
   _fmi_url="$1"
   _fmi_i=1
-
   while [ "$_fmi_i" -le 8 ]; do
     _debug "HTTP GET freemyip.com API '$_fmi_url', retry $_fmi_i/8..."
     _fmi_response="$(_get "$_fmi_url")"
@@ -92,7 +91,6 @@ _freemyip_get_until_ok() {
     _sleep 1 # DO NOT send the request too fast
     _fmi_i=$((_fmi_i + 1))
   done
-
   _err "Failed to request freemyip API. Server does not say 'OK'"
   return 1
 }
@@ -104,7 +102,6 @@ _is_root_domain_published() {
 
   _info "Verifying '""$_fmi_d""' freemyip webroot (""$_webroot"") is not published yet"
   _fmi_i=1
-
   while [ "$_fmi_i" -le 3 ]; do
     _debug "'$_webroot' ns lookup, retry $_fmi_i/3..."
 
