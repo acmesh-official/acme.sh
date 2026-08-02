@@ -4355,6 +4355,24 @@ deactivateaccount() {
   fi
 }
 
+#domain
+#Print the Validation Domain Name where the persistent TXT record must be
+#published: the "_validation-persist" label prepended to the domain being
+#validated (draft-ietf-acme-dns-persist-01 sec 4).
+#A wildcard identifier is validated by the record at its base domain, so the
+#leading "*." label is dropped: the wildcard scope comes from 'policy=wildcard'
+#in the record value, not from a "*" label in the record name (sec 5.1, 10.2).
+_dns_persist_txt_name() {
+  _dpt_domain="$1"
+  if _startswith "$_dpt_domain" "*."; then
+    _dpt_domain="$(echo "$_dpt_domain" | sed 's/^\*\.//')"
+  fi
+  if [ -z "$_dpt_domain" ]; then
+    return 1
+  fi
+  echo "_validation-persist.$_dpt_domain"
+}
+
 #domain  wildcard  ca_name  days
 #Print the TXT record(s) the user must add to enable persistent DNS validation
 #per draft-ietf-acme-dns-persist-01.
@@ -4367,6 +4385,20 @@ makednspersistvalue() {
   if [ -z "$_mdpv_domain" ]; then
     _err "Please specify a domain with -d."
     return 1
+  fi
+
+  _txt_name="$(_dns_persist_txt_name "$_mdpv_domain")"
+  if [ -z "$_txt_name" ]; then
+    _err "Invalid domain: $_mdpv_domain"
+    return 1
+  fi
+  _debug _txt_name "$_txt_name"
+
+  #A wildcard identifier can only be issued if the record carries
+  #'policy=wildcard', so don't print a record that is guaranteed to fail.
+  if _startswith "$_mdpv_domain" "*." && [ "$_mdpv_wildcard" != "1" ]; then
+    _info "$_mdpv_domain is a wildcard domain, adding 'policy=wildcard' automatically."
+    _mdpv_wildcard="1"
   fi
 
   if [ -n "$_mdpv_days" ]; then
@@ -4399,8 +4431,6 @@ makednspersistvalue() {
     return 1
   fi
   _debug "Account URL" "$_accUri"
-
-  _txt_name="_validation-persist.$_mdpv_domain"
 
   _txt_suffix="; accounturi=$_accUri"
   if [ "$_mdpv_wildcard" = "1" ]; then
@@ -8075,7 +8105,9 @@ Parameters:
 
   --dns-persist-wildcard            Used with '--make-dns-persist-value'. Adds 'policy=wildcard' to the
                                       generated TXT record so the issuer is also authorized for wildcards
-                                      and subdomains (draft-ietf-acme-dns-persist-01).
+                                      and subdomains (draft-ietf-acme-dns-persist-01). It is implied when
+                                      the domain given to -d is a wildcard (e.g. '*.example.com'); the
+                                      record itself is always published at the base domain.
   --dns-persist-ca-name <name>      Used with '--make-dns-persist-value'. Use the given CA identity domain
                                       (e.g. 'ssl.com') as the issuer-domain-name in the TXT record. If
                                       omitted, the identities are read from the ACME directory's
