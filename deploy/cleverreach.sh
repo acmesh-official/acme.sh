@@ -47,8 +47,8 @@ cleverreach_deploy() {
   _data="{\"grant_type\": \"client_credentials\", \"client_id\": \"${DEPLOY_CLEVERREACH_CLIENT_ID}\", \"client_secret\": \"${DEPLOY_CLEVERREACH_CLIENT_SECRET}\"}"
   _auth_result="$(_post "$_data" "$_rest_endpoint/oauth/token.php" "" "POST" "application/json")"
 
-  _debug _data "$_data"
-  _debug _auth_result "$_auth_result"
+  _secure_debug _data "$_data"
+  _secure_debug _auth_result "$_auth_result"
 
   _regex=".*\"access_token\":\"\([-._0-9A-Za-z]*\)\".*$"
   _debug _regex "$_regex"
@@ -62,7 +62,7 @@ cleverreach_deploy() {
     _subclient_token_result="$(_get "$_rest_endpoint/v3/clients/$DEPLOY_CLEVERREACH_SUBCLIENT_ID/token")"
     _access_token=$(echo "$_subclient_token_result" | sed -n "s/\"//p")
 
-    _debug _subclient_token_result "$_access_token"
+    _secure_debug _subclient_token_result "$_access_token"
 
     _info "Destroying parent token at CleverReach, as it not needed anymore"
     _destroy_result="$(_post "" "$_rest_endpoint/v3/oauth/token.json" "" "DELETE" "application/json")"
