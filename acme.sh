@@ -4949,11 +4949,18 @@ issue() {
   if [ -z "$_ACME_IS_RENEW" ]; then
     _initpath "$_main_domain" "$_key_length"
     mkdir -p "$DOMAIN_PATH"
-  elif ! _hasfield "$_web_roots" "$W_DNS"; then
+  elif [ -z "$Le_Vlist" ]; then
+    # Whether the saved order is resumed is decided by Le_Vlist below, so key
+    # this on Le_Vlist too. With no pending order to resume a new one is
+    # created, and a stale order link from the previous issuance must not be
+    # reused. https://github.com/acmesh-official/acme.sh/issues/3635
     Le_OrderFinalize=""
     Le_LinkOrder=""
-    Le_LinkCert=""
   fi
+  # Per-run state only: it is set after finalize and never read back from the
+  # saved domain conf. Carrying it over would make a run that gives up while
+  # the order is still 'processing' download the previous certificate again.
+  Le_LinkCert=""
 
   if _hasfield "$_web_roots" "$W_DNS" && [ -z "$FORCE_DNS_MANUAL" ]; then
     _err "$_DNS_MANUAL_ERROR"
