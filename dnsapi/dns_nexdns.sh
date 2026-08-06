@@ -6,7 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_nexdns
 Options:
  NEXDNS_Token API token. Can be created at https://nexdns.tech/settings/api-keys
  NEXDNS_Api API base url. Default "https://api.nexdns.tech/v1". Optional.
-Issues: github.com/acmesh-official/acme.sh/issues
+Issues: github.com/acmesh-official/acme.sh/issues/7179
 Author: NexDNS <https://github.com/nexdns>
 '
 
@@ -200,6 +200,14 @@ _nexdns_rest() {
       ;;
     esac
 
+    #A wait longer than this is a refusal rather than a schedule, and sleeping
+    #it out would hold the hook for the length of the window. Hand the run back
+    #instead, so the next cron pass picks it up.
+    if [ "$_retry_after" -gt 120 ]; then
+      _err "$m $ep failed: rate limited for ${_retry_after}s, longer than this hook will wait"
+      return 1
+    fi
+
     _info "Rate limited by the NexDNS API; retrying in $_retry_after seconds."
     _sleep "$_retry_after"
 
@@ -212,19 +220,10 @@ _nexdns_rest() {
   response="$(echo "$response" | _normalizeJson)"
   _debug2 response "$response"
 
-  #A rejected request carries {"error":{"code":..,"message":..}}, so say what the
-  #api says went wrong.
-  if _contains "$response" '"error":'; then
-    _message="$(echo "$response" | _egrep_o '"message":"[^"]*"' | _head_n 1 | cut -d '"' -f 4)"
-    if [ -z "$_message" ]; then
-      _message="$response"
-    fi
-    _err "$m $ep failed: $_message"
-    return 1
-  fi
-
-  #A delete answers 204 with an empty body, so for that one the status line is
-  #all there is to go on.
+  #The status line decides success, not the body: a delete answers 204 with no
+  #body at all, and a record whose own content contains "error": would otherwise
+  #turn a stored value into a reported failure. The body is read only for the
+  #message once the status says the request was rejected.
   _code="$(grep "^HTTP" "$HTTP_HEADER" 2>/dev/null | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
   _debug2 _code "$_code"
   case "$_code" in
@@ -233,7 +232,13 @@ _nexdns_rest() {
     ;;
   esac
 
-  _err "$m $ep failed with status $_code"
+  #A rejected request carries {"error":{"code":..,"message":..}}, so say what the
+  #api says went wrong.
+  _message="$(echo "$response" | _egrep_o '"message":"[^"]*"' | _head_n 1 | cut -d '"' -f 4)"
+  if [ -z "$_message" ]; then
+    _message="status $_code"
+  fi
+  _err "$m $ep failed: $_message"
 
   return 1
 }
