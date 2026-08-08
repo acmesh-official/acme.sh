@@ -2715,6 +2715,21 @@ _clearcaconf() {
   _clear_conf "$CA_CONF" "$1"
 }
 
+#Starts a socat listener in the background, the pid is set to _socat_pid.
+#It uses the content, _content_len, _NC and _SOCAT_ERR of _startserver.
+#options
+_startsocat() {
+  _socat_opts="$1"
+  _debug "_NC" "$_NC $_socat_opts"
+  $_NC $_socat_opts SYSTEM:"sleep 1; \
+echo 'HTTP/1.0 200 OK'; \
+echo 'Content-Length\: $_content_len'; \
+echo ''; \
+printf '%s' '$content';" 2>>"$_SOCAT_ERR" &
+  _socat_pid="$!"
+  _debug "_socat_pid" "$_socat_pid"
+}
+
 # content localaddress
 _startserver() {
   content="$1"
@@ -2728,16 +2743,24 @@ _startserver() {
   _debug Le_Listen_V4 "$Le_Listen_V4"
   _debug Le_Listen_V6 "$Le_Listen_V6"
 
+  _serverproc_v6=""
   if _exists "socat"; then
     _NC="socat"
-    if [ "$Le_Listen_V6" ]; then
+    SOCAT_OPTIONS6=""
+    if [ "$Le_Listen_V6" ] && [ -z "$Le_Listen_V4" ]; then
       _NC="$_NC -6"
       SOCAT_OPTIONS=TCP6-LISTEN
-    elif [ "$Le_Listen_V4" ]; then
+    elif [ "$Le_Listen_V4" ] && [ -z "$Le_Listen_V6" ]; then
       _NC="$_NC -4"
       SOCAT_OPTIONS=TCP4-LISTEN
-    else
+    elif [ "$ncaddr" ]; then
+      #a single local address belongs to a single family, let socat pick it
       SOCAT_OPTIONS=TCP-LISTEN
+    else
+      #listen on both ipv4 and ipv6, with one socket for each family:
+      #ipv4-mapped ipv6 addresses are not available everywhere.
+      SOCAT_OPTIONS=TCP4-LISTEN
+      SOCAT_OPTIONS6=TCP6-LISTEN
     fi
 
     if [ "$DEBUG" ] && [ "$DEBUG" -gt "1" ]; then
@@ -2745,6 +2768,10 @@ _startserver() {
     fi
 
     SOCAT_OPTIONS=$SOCAT_OPTIONS:$Le_HTTPPort,crlf,reuseaddr,fork
+    if [ "$SOCAT_OPTIONS6" ]; then
+      #ipv6only keeps this socket from colliding with the ipv4 one
+      SOCAT_OPTIONS6=$SOCAT_OPTIONS6:$Le_HTTPPort,crlf,reuseaddr,fork,ipv6only=1
+    fi
 
     #Adding bind to local-address
     if [ "$ncaddr" ]; then
@@ -2753,14 +2780,14 @@ _startserver() {
 
     _content_len="$(printf "%s" "$content" | wc -c)"
     _debug _content_len "$_content_len"
-    _debug "_NC" "$_NC $SOCAT_OPTIONS"
     export _SOCAT_ERR="$(_mktemp)"
-    $_NC $SOCAT_OPTIONS SYSTEM:"sleep 1; \
-echo 'HTTP/1.0 200 OK'; \
-echo 'Content-Length\: $_content_len'; \
-echo ''; \
-printf '%s' '$content';" 2>"$_SOCAT_ERR" &
-    serverproc="$!"
+    _startsocat "$SOCAT_OPTIONS"
+    serverproc="$_socat_pid"
+    if [ "$SOCAT_OPTIONS6" ]; then
+      #best effort, the host may have no ipv6 support at all
+      _startsocat "$SOCAT_OPTIONS6"
+      _serverproc_v6="$_socat_pid"
+    fi
   else
     _PYTHON=""
     if _exists "python3"; then
@@ -2772,21 +2799,40 @@ printf '%s' '$content';" 2>"$_SOCAT_ERR" &
     fi
     if [ "$_PYTHON" ]; then
       _debug "Using python: $_PYTHON"
-      _AF="socket.AF_INET"
-      _BIND_ADDR="0.0.0.0"
-      if [ "$Le_Listen_V6" ]; then
-        _AF="socket.AF_INET6"
+      #a comma separated list of addresses to listen on, one socket for each
+      _BIND_ADDR="0.0.0.0,::"
+      if [ "$Le_Listen_V6" ] && [ -z "$Le_Listen_V4" ]; then
         _BIND_ADDR="::"
+      elif [ "$Le_Listen_V4" ] && [ -z "$Le_Listen_V6" ]; then
+        _BIND_ADDR="0.0.0.0"
       fi
       if [ "$ncaddr" ]; then
         _BIND_ADDR="$ncaddr"
       fi
+      _debug "_BIND_ADDR" "$_BIND_ADDR"
       export _SOCAT_ERR="$(_mktemp)"
-      $_PYTHON -c "import socket,sys;s=socket.socket($_AF,socket.SOCK_STREAM);s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind((sys.argv[2],int(sys.argv[1])));s.listen(5);res='HTTP/1.0 200 OK\r\nContent-Length: '+str(len(sys.argv[3]))+'\r\n\r\n'+sys.argv[3];
+      $_PYTHON -c "import socket,sys,select
+res='HTTP/1.0 200 OK\r\nContent-Length: '+str(len(sys.argv[3]))+'\r\n\r\n'+sys.argv[3]
+ads=sys.argv[2].split(',')
+ls=[]
+for ad in ads:
+ try:
+  sk=socket.socket(socket.AF_INET6 if ':' in ad else socket.AF_INET,socket.SOCK_STREAM)
+  sk.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+  if ':' in ad and len(ads)>1:
+   sk.setsockopt(socket.IPPROTO_IPV6,socket.IPV6_V6ONLY,1)
+  sk.bind((ad,int(sys.argv[1])))
+  sk.listen(5)
+  ls.append(sk)
+ except Exception:
+  sys.stderr.write(str(sys.exc_info()[1])+'\n')
+if not ls:
+ sys.exit(1)
 while True:
- c,a=s.accept()
- c.sendall(res.encode() if hasattr(res, 'encode') else res)
- c.close()" "$Le_HTTPPort" "$_BIND_ADDR" "$content" 2>"$_SOCAT_ERR" &
+ for sk in select.select(ls,[],[])[0]:
+  c,a=sk.accept()
+  c.sendall(res.encode() if hasattr(res, 'encode') else res)
+  c.close()" "$Le_HTTPPort" "$_BIND_ADDR" "$content" 2>"$_SOCAT_ERR" &
       serverproc="$!"
       _NC="$_PYTHON"
     else
@@ -2809,6 +2855,11 @@ while True:
 _stopserver() {
   pid="$1"
   _debug "pid" "$pid"
+  if [ "$_serverproc_v6" ]; then
+    _debug "_serverproc_v6" "$_serverproc_v6"
+    kill $_serverproc_v6 >/dev/null 2>&1
+    _serverproc_v6=""
+  fi
   if [ -z "$pid" ]; then
     rm -f "$_SOCAT_ERR"
     return
@@ -2882,9 +2933,11 @@ _starttlsserver() {
 
   _debug Le_Listen_V4 "$Le_Listen_V4"
   _debug Le_Listen_V6 "$Le_Listen_V6"
-  if [ "$Le_Listen_V4" ]; then
+  #openssl s_server binds a single socket, so both options together can only
+  #mean: do not force a family, same as when neither of them is given.
+  if [ "$Le_Listen_V4" ] && [ -z "$Le_Listen_V6" ]; then
     __S_OPENSSL="$__S_OPENSSL -4"
-  elif [ "$Le_Listen_V6" ]; then
+  elif [ "$Le_Listen_V6" ] && [ -z "$Le_Listen_V4" ]; then
     __S_OPENSSL="$__S_OPENSSL -6"
   fi
 
@@ -5986,12 +6039,17 @@ $_authorizations_map"
     _clearaccountconf "HTTPS_INSECURE"
   fi
 
-  if [ "$Le_Listen_V4" ]; then
-    _savedomainconf "Le_Listen_V4" "$Le_Listen_V4"
-    _cleardomainconf Le_Listen_V6
-  elif [ "$Le_Listen_V6" ]; then
-    _savedomainconf "Le_Listen_V6" "$Le_Listen_V6"
-    _cleardomainconf Le_Listen_V4
+  if [ "$Le_Listen_V4" ] || [ "$Le_Listen_V6" ]; then
+    if [ "$Le_Listen_V4" ]; then
+      _savedomainconf "Le_Listen_V4" "$Le_Listen_V4"
+    else
+      _cleardomainconf Le_Listen_V4
+    fi
+    if [ "$Le_Listen_V6" ]; then
+      _savedomainconf "Le_Listen_V6" "$Le_Listen_V6"
+    else
+      _cleardomainconf Le_Listen_V6
+    fi
   fi
 
   if [ "$Le_ForceNewDomainKey" = "1" ]; then
@@ -8172,8 +8230,9 @@ Parameters:
   --ocsp, --ocsp-must-staple        Generate OCSP-Must-Staple extension.
   --always-force-new-domain-key     Generate new domain key on renewal. Otherwise, the domain key is not changed by default.
   --auto-upgrade [0|1]              Valid for '--upgrade' command, indicating whether to upgrade automatically in future. Defaults to 1 if argument is omitted.
-  --listen-v4                       Force standalone/tls server to listen at ipv4.
-  --listen-v6                       Force standalone/tls server to listen at ipv6.
+  --listen-v4                       Force standalone/tls server to listen at ipv4 only.
+                                      By default the standalone server listens on both ipv4 and ipv6.
+  --listen-v6                       Force standalone/tls server to listen at ipv6 only.
   --request-v4                      Force client requests to use ipv4 to connect to the CA server.
   --request-v6                      Force client requests to use ipv6 to connect to the CA server.
   --openssl-bin <file>              Specifies a custom openssl bin location.
