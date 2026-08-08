@@ -14,10 +14,10 @@
 # (that hook already covers Cloud Key running UnifiOS v2.0.0+/Gen2/2+) --
 # this hook targets the separately-installed, self-hosted "UniFi OS Server"
 # application instead, which stores certificates in its own Postgres
-# database via a local REST API rather than a Java keystore, so the `unifi`
+# database via a REST API rather than a Java keystore, so the `unifi`
 # hook's approach does not apply here.
 #
-# UniFi OS Server exposes a local REST API on its management port (default
+# UniFi OS Server exposes a REST API on its management port (default
 # 11443) that its own web UI uses for certificate management:
 #   POST   /api/auth/login                  - session login (cookie + JWT)
 #   GET    /api/userCertificates             - list uploaded certificates
@@ -40,11 +40,13 @@
 #
 # Uses core acme.sh helpers throughout (_post/_get, _json_encode,
 # _durl_replace_base64, _dbase64, _egrep_o) rather than raw curl -k or
-# python3, so HTTPS_INSECURE, the wget fallback, --debug tracing, and
-# CA_BUNDLE are all honored the same as every other hook. The management
-# API's cert is self-signed (it's a management-only port, not meant for
-# public exposure), so HTTPS_INSECURE=1 must be set in the environment for
-# this hook to connect -- see Settings below.
+# python3, so the wget fallback, --debug tracing, and CA_BUNDLE are all
+# honored the same as every other hook. The management API's cert is
+# self-signed (it's a management-only port, not meant for public exposure),
+# so this hook sets HTTPS_INSECURE=1 itself, scoped to its own subshell (see
+# acme.sh's per-hook sourcing in _deploy) -- it does not weaken TLS
+# verification for the rest of the acme.sh run, e.g. the connection to the
+# ACME CA.
 #
 # Design: rather than persisting a certificate ID between renewals, this
 # hook looks up any existing certificate row named after the domain via the
@@ -61,7 +63,6 @@
 #   DEPLOY_UNIFIOS_PASSWORD - UniFi OS Server admin password (required)
 #
 # Example:
-#   export HTTPS_INSECURE=1
 #   export DEPLOY_UNIFIOS_USERNAME="acmeuser"
 #   export DEPLOY_UNIFIOS_PASSWORD="xxxxx"
 #   acme.sh --deploy -d example.com --deploy-hook unifios
@@ -74,7 +75,7 @@ _uos_response_code() {
 
 _uos_response_cookie() {
   # $1 = cookie name
-  grep <"$HTTP_HEADER" -i "^Set-Cookie:" | grep -i "\W$1=" | _tail_n 1 | _egrep_o "$1=[^;]*" | _head_n 1
+  grep <"$HTTP_HEADER" -i "^Set-Cookie: *$1=" | _tail_n 1 | _egrep_o "$1=[^;]*" | _head_n 1
 }
 
 unifios_deploy() {
@@ -89,6 +90,10 @@ unifios_deploy() {
   _debug _ccert "$_ccert"
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
+
+  # Scoped to this hook's own subshell -- does not affect the rest of the
+  # acme.sh run (e.g. the connection to the ACME CA).
+  export HTTPS_INSECURE=1
 
   _getdeployconf DEPLOY_UNIFIOS_HOST
   DEPLOY_UNIFIOS_HOST="${DEPLOY_UNIFIOS_HOST:-https://localhost:11443}"
@@ -129,8 +134,11 @@ unifios_deploy() {
 
   # Credentials are proven correct now -- save them, rather than only at the
   # very end, so a later step failing doesn't discard a working login.
-  _savedeployconf DEPLOY_UNIFIOS_USERNAME "$DEPLOY_UNIFIOS_USERNAME"
-  _savedeployconf DEPLOY_UNIFIOS_PASSWORD "$DEPLOY_UNIFIOS_PASSWORD"
+  # base64-encoded: _save_conf wraps values in single quotes with no
+  # escaping, so a literal "'" in the password would otherwise corrupt the
+  # domain conf (see deploy/synology_dsm.sh for the same pattern).
+  _savedeployconf DEPLOY_UNIFIOS_USERNAME "$DEPLOY_UNIFIOS_USERNAME" "base64"
+  _savedeployconf DEPLOY_UNIFIOS_PASSWORD "$DEPLOY_UNIFIOS_PASSWORD" "base64"
 
   _uos_token="$(_uos_response_cookie TOKEN)"
   if [ -z "$_uos_token" ]; then
@@ -153,7 +161,27 @@ unifios_deploy() {
 
   _info "Checking for an existing '$_cdomain' certificate entry..."
   _list_json="$(_get "$DEPLOY_UNIFIOS_HOST/api/userCertificates")"
-  _old_ids="$(echo "$_list_json" | sed 's/},{/}\n{/g' | grep "\"name\":\"$_cdomain\"" | _egrep_o '"id":"[^"]*"' | cut -d '"' -f 4)"
+  _list_code="$(_uos_response_code)"
+  if [ "$_list_code" != "200" ]; then
+    _err "Failed to list existing certificates (HTTP $_list_code)."
+    _err "Response: $_list_json"
+    return 1
+  fi
+  # _normalizeJson collapses the response to one predictable line (no stray
+  # whitespace around colons, no embedded CR/LF the server might emit), then
+  # a literal embedded newline (not the two-character "\n", which GNU sed
+  # treats as a newline in the replacement but POSIX doesn't define and BSD
+  # sed emits literally) splits it one JSON object per line so grep can
+  # match a single certificate entry at a time.
+  _list_json="$(
+    echo "$_list_json" | _normalizeJson | sed 's/},{/},\
+{/g'
+  )"
+  # -F (fixed string): $_cdomain is interpolated as a literal string, not a
+  # regex. A wildcard cert's name is *.example.com -- as an unescaped BRE,
+  # the leading * would quantify the preceding character instead of
+  # matching a literal asterisk.
+  _old_ids="$(echo "$_list_json" | grep -F "\"name\":\"$_cdomain\"" | _egrep_o '"id":"[^"]*"' | cut -d '"' -f 4)"
   _debug _old_ids "$_old_ids"
 
   _info "Uploading new certificate..."
@@ -170,15 +198,22 @@ unifios_deploy() {
       _err "Could not determine new certificate ID from upload response."
       return 1
     fi
-  elif [ "$_create_code" = "400" ] && echo "$_create_json" | grep -q "USER_CERTIFICATE_DUPLICATE" && [ -n "$_old_ids" ]; then
+  elif [ "$_create_code" = "400" ] && echo "$_create_json" | grep -q "USER_CERTIFICATE_DUPLICATE"; then
     # The server already has an entry matching this exact name+fingerprint --
     # most likely a retry after a prior run already uploaded it (a real
     # renewal always produces a new fingerprint, so this shouldn't happen in
-    # normal cron use). Reuse the existing entry instead of failing, and
-    # don't delete it below.
-    _new_id="$(printf '%s\n' "$_old_ids" | _head_n 1)"
+    # normal cron use). Match on fingerprint, not just name: with more than
+    # one stale entry for this domain, reusing the wrong one would activate
+    # an old cert and delete the one that actually just collided.
+    _uos_fingerprint="$(${ACME_OPENSSL_BIN:-openssl} x509 -in "$_cfullchain" -noout -fingerprint -sha256 2>/dev/null | cut -d '=' -f 2)"
+    _new_id="$(echo "$_list_json" | grep -F "\"name\":\"$_cdomain\"" | grep -F "\"fingerprint\":\"$_uos_fingerprint\"" | _egrep_o '"id":"[^"]*"' | _head_n 1 | cut -d '"' -f 4)"
+    if [ -z "$_new_id" ]; then
+      _err "Certificate upload rejected as a duplicate (HTTP 400), but no existing entry matching this domain and fingerprint was found."
+      _err "Response: $_create_json"
+      return 1
+    fi
     _info "Certificate already present as entry $_new_id; reusing it."
-    _old_ids="$(printf '%s\n' "$_old_ids" | grep -v "^$_new_id$")"
+    _old_ids="$(echo "$_old_ids" | grep -v "^$_new_id$")"
   else
     _err "Certificate upload failed (HTTP $_create_code)."
     _err "Response: $_create_json"
