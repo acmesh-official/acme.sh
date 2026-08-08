@@ -43,8 +43,11 @@ keyhelp_api_deploy() {
   _request_cert="$(tr '\n' ':' <"$_ccert" | sed 's/:/\\n/g')"
   _request_ca="$(tr '\n' ':' <"$_cca" | sed 's/:/\\n/g')"
 
+  _keyhelp_name_json_escaped="$(printf "%s" "$_keyhelp_name" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+  _keyhelp_name_url_encoded="$(printf "%s" "$_keyhelp_name" | _url_encode)"
+
   _keyhelp_put_body="{
-    \"name\": \"$_keyhelp_name\",
+    \"name\": \"$_keyhelp_name_json_escaped\",
     \"components\": {
       \"certificate\": \"$_request_cert\",
       \"ca_certificate\": \"$_request_ca\"
@@ -61,8 +64,7 @@ keyhelp_api_deploy() {
 
     export _H1="X-API-Key: $_key"
 
-    _keyhelp_name_encoded="$(printf "%s" "$_keyhelp_name" | _url_encode)"
-    _keyhelp_put_url="$_host/api/v2/certificates/name/$_keyhelp_name_encoded"
+    _keyhelp_put_url="$_host/api/v2/certificates/name/$_keyhelp_name_url_encoded"
     if _post "$_keyhelp_put_body" "$_keyhelp_put_url" "" "PUT" "application/json" >/dev/null; then
       _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
     else
@@ -79,7 +81,7 @@ keyhelp_api_deploy() {
       fi
       _request_key="$(tr '\n' ':' <"$_ckey" | sed 's/:/\\n/g')"
       _keyhelp_post_body="{
-        \"name\": \"$_keyhelp_name\",
+        \"name\": \"$_keyhelp_name_json_escaped\",
         \"components\": {
           \"private_key\": \"$_request_key\",
           \"certificate\": \"$_request_cert\",
