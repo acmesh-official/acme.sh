@@ -2715,6 +2715,21 @@ _clearcaconf() {
   _clear_conf "$CA_CONF" "$1"
 }
 
+#Starts a socat listener in the background, the pid is set to _socat_pid.
+#It uses the content, _content_len, _NC and _SOCAT_ERR of _startserver.
+#options
+_startsocat() {
+  _socat_opts="$1"
+  _debug "_NC" "$_NC $_socat_opts"
+  $_NC $_socat_opts SYSTEM:"sleep 1; \
+echo 'HTTP/1.0 200 OK'; \
+echo 'Content-Length\: $_content_len'; \
+echo ''; \
+printf '%s' '$content';" 2>>"$_SOCAT_ERR" &
+  _socat_pid="$!"
+  _debug "_socat_pid" "$_socat_pid"
+}
+
 # content localaddress
 _startserver() {
   content="$1"
@@ -2728,16 +2743,24 @@ _startserver() {
   _debug Le_Listen_V4 "$Le_Listen_V4"
   _debug Le_Listen_V6 "$Le_Listen_V6"
 
+  _serverproc_v6=""
   if _exists "socat"; then
     _NC="socat"
-    if [ "$Le_Listen_V6" ]; then
+    SOCAT_OPTIONS6=""
+    if [ "$Le_Listen_V6" ] && [ -z "$Le_Listen_V4" ]; then
       _NC="$_NC -6"
       SOCAT_OPTIONS=TCP6-LISTEN
-    elif [ "$Le_Listen_V4" ]; then
+    elif [ "$Le_Listen_V4" ] && [ -z "$Le_Listen_V6" ]; then
       _NC="$_NC -4"
       SOCAT_OPTIONS=TCP4-LISTEN
-    else
+    elif [ "$ncaddr" ]; then
+      #a single local address belongs to a single family, let socat pick it
       SOCAT_OPTIONS=TCP-LISTEN
+    else
+      #listen on both ipv4 and ipv6, with one socket for each family:
+      #ipv4-mapped ipv6 addresses are not available everywhere.
+      SOCAT_OPTIONS=TCP4-LISTEN
+      SOCAT_OPTIONS6=TCP6-LISTEN
     fi
 
     if [ "$DEBUG" ] && [ "$DEBUG" -gt "1" ]; then
@@ -2745,6 +2768,10 @@ _startserver() {
     fi
 
     SOCAT_OPTIONS=$SOCAT_OPTIONS:$Le_HTTPPort,crlf,reuseaddr,fork
+    if [ "$SOCAT_OPTIONS6" ]; then
+      #ipv6only keeps this socket from colliding with the ipv4 one
+      SOCAT_OPTIONS6=$SOCAT_OPTIONS6:$Le_HTTPPort,crlf,reuseaddr,fork,ipv6only=1
+    fi
 
     #Adding bind to local-address
     if [ "$ncaddr" ]; then
@@ -2753,14 +2780,14 @@ _startserver() {
 
     _content_len="$(printf "%s" "$content" | wc -c)"
     _debug _content_len "$_content_len"
-    _debug "_NC" "$_NC $SOCAT_OPTIONS"
     export _SOCAT_ERR="$(_mktemp)"
-    $_NC $SOCAT_OPTIONS SYSTEM:"sleep 1; \
-echo 'HTTP/1.0 200 OK'; \
-echo 'Content-Length\: $_content_len'; \
-echo ''; \
-printf '%s' '$content';" 2>"$_SOCAT_ERR" &
-    serverproc="$!"
+    _startsocat "$SOCAT_OPTIONS"
+    serverproc="$_socat_pid"
+    if [ "$SOCAT_OPTIONS6" ]; then
+      #best effort, the host may have no ipv6 support at all
+      _startsocat "$SOCAT_OPTIONS6"
+      _serverproc_v6="$_socat_pid"
+    fi
   else
     _PYTHON=""
     if _exists "python3"; then
@@ -2772,21 +2799,40 @@ printf '%s' '$content';" 2>"$_SOCAT_ERR" &
     fi
     if [ "$_PYTHON" ]; then
       _debug "Using python: $_PYTHON"
-      _AF="socket.AF_INET"
-      _BIND_ADDR="0.0.0.0"
-      if [ "$Le_Listen_V6" ]; then
-        _AF="socket.AF_INET6"
+      #a comma separated list of addresses to listen on, one socket for each
+      _BIND_ADDR="0.0.0.0,::"
+      if [ "$Le_Listen_V6" ] && [ -z "$Le_Listen_V4" ]; then
         _BIND_ADDR="::"
+      elif [ "$Le_Listen_V4" ] && [ -z "$Le_Listen_V6" ]; then
+        _BIND_ADDR="0.0.0.0"
       fi
       if [ "$ncaddr" ]; then
         _BIND_ADDR="$ncaddr"
       fi
+      _debug "_BIND_ADDR" "$_BIND_ADDR"
       export _SOCAT_ERR="$(_mktemp)"
-      $_PYTHON -c "import socket,sys;s=socket.socket($_AF,socket.SOCK_STREAM);s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind((sys.argv[2],int(sys.argv[1])));s.listen(5);res='HTTP/1.0 200 OK\r\nContent-Length: '+str(len(sys.argv[3]))+'\r\n\r\n'+sys.argv[3];
+      $_PYTHON -c "import socket,sys,select
+res='HTTP/1.0 200 OK\r\nContent-Length: '+str(len(sys.argv[3]))+'\r\n\r\n'+sys.argv[3]
+ads=sys.argv[2].split(',')
+ls=[]
+for ad in ads:
+ try:
+  sk=socket.socket(socket.AF_INET6 if ':' in ad else socket.AF_INET,socket.SOCK_STREAM)
+  sk.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+  if ':' in ad and len(ads)>1:
+   sk.setsockopt(socket.IPPROTO_IPV6,socket.IPV6_V6ONLY,1)
+  sk.bind((ad,int(sys.argv[1])))
+  sk.listen(5)
+  ls.append(sk)
+ except Exception:
+  sys.stderr.write(str(sys.exc_info()[1])+'\n')
+if not ls:
+ sys.exit(1)
 while True:
- c,a=s.accept()
- c.sendall(res.encode() if hasattr(res, 'encode') else res)
- c.close()" "$Le_HTTPPort" "$_BIND_ADDR" "$content" 2>"$_SOCAT_ERR" &
+ for sk in select.select(ls,[],[])[0]:
+  c,a=sk.accept()
+  c.sendall(res.encode() if hasattr(res, 'encode') else res)
+  c.close()" "$Le_HTTPPort" "$_BIND_ADDR" "$content" 2>"$_SOCAT_ERR" &
       serverproc="$!"
       _NC="$_PYTHON"
     else
@@ -2809,6 +2855,11 @@ while True:
 _stopserver() {
   pid="$1"
   _debug "pid" "$pid"
+  if [ "$_serverproc_v6" ]; then
+    _debug "_serverproc_v6" "$_serverproc_v6"
+    kill $_serverproc_v6 >/dev/null 2>&1
+    _serverproc_v6=""
+  fi
   if [ -z "$pid" ]; then
     rm -f "$_SOCAT_ERR"
     return
@@ -2882,9 +2933,11 @@ _starttlsserver() {
 
   _debug Le_Listen_V4 "$Le_Listen_V4"
   _debug Le_Listen_V6 "$Le_Listen_V6"
-  if [ "$Le_Listen_V4" ]; then
+  #openssl s_server binds a single socket, so both options together can only
+  #mean: do not force a family, same as when neither of them is given.
+  if [ "$Le_Listen_V4" ] && [ -z "$Le_Listen_V6" ]; then
     __S_OPENSSL="$__S_OPENSSL -4"
-  elif [ "$Le_Listen_V6" ]; then
+  elif [ "$Le_Listen_V6" ] && [ -z "$Le_Listen_V4" ]; then
     __S_OPENSSL="$__S_OPENSSL -6"
   fi
 
@@ -4355,6 +4408,24 @@ deactivateaccount() {
   fi
 }
 
+#domain
+#Print the Validation Domain Name where the persistent TXT record must be
+#published: the "_validation-persist" label prepended to the domain being
+#validated (draft-ietf-acme-dns-persist-01 sec 4).
+#A wildcard identifier is validated by the record at its base domain, so the
+#leading "*." label is dropped: the wildcard scope comes from 'policy=wildcard'
+#in the record value, not from a "*" label in the record name (sec 5.1, 10.2).
+_dns_persist_txt_name() {
+  _dpt_domain="$1"
+  if _startswith "$_dpt_domain" "*."; then
+    _dpt_domain="$(echo "$_dpt_domain" | sed 's/^\*\.//')"
+  fi
+  if [ -z "$_dpt_domain" ]; then
+    return 1
+  fi
+  echo "_validation-persist.$_dpt_domain"
+}
+
 #domain  wildcard  ca_name  days
 #Print the TXT record(s) the user must add to enable persistent DNS validation
 #per draft-ietf-acme-dns-persist-01.
@@ -4367,6 +4438,20 @@ makednspersistvalue() {
   if [ -z "$_mdpv_domain" ]; then
     _err "Please specify a domain with -d."
     return 1
+  fi
+
+  _txt_name="$(_dns_persist_txt_name "$_mdpv_domain")"
+  if [ -z "$_txt_name" ]; then
+    _err "Invalid domain: $_mdpv_domain"
+    return 1
+  fi
+  _debug _txt_name "$_txt_name"
+
+  #A wildcard identifier can only be issued if the record carries
+  #'policy=wildcard', so don't print a record that is guaranteed to fail.
+  if _startswith "$_mdpv_domain" "*." && [ "$_mdpv_wildcard" != "1" ]; then
+    _info "$_mdpv_domain is a wildcard domain, adding 'policy=wildcard' automatically."
+    _mdpv_wildcard="1"
   fi
 
   if [ -n "$_mdpv_days" ]; then
@@ -4399,8 +4484,6 @@ makednspersistvalue() {
     return 1
   fi
   _debug "Account URL" "$_accUri"
-
-  _txt_name="_validation-persist.$_mdpv_domain"
 
   _txt_suffix="; accounturi=$_accUri"
   if [ "$_mdpv_wildcard" = "1" ]; then
@@ -4919,11 +5002,18 @@ issue() {
   if [ -z "$_ACME_IS_RENEW" ]; then
     _initpath "$_main_domain" "$_key_length"
     mkdir -p "$DOMAIN_PATH"
-  elif ! _hasfield "$_web_roots" "$W_DNS"; then
+  elif [ -z "$Le_Vlist" ]; then
+    # Whether the saved order is resumed is decided by Le_Vlist below, so key
+    # this on Le_Vlist too. With no pending order to resume a new one is
+    # created, and a stale order link from the previous issuance must not be
+    # reused. https://github.com/acmesh-official/acme.sh/issues/3635
     Le_OrderFinalize=""
     Le_LinkOrder=""
-    Le_LinkCert=""
   fi
+  # Per-run state only: it is set after finalize and never read back from the
+  # saved domain conf. Carrying it over would make a run that gives up while
+  # the order is still 'processing' download the previous certificate again.
+  Le_LinkCert=""
 
   if _hasfield "$_web_roots" "$W_DNS" && [ -z "$FORCE_DNS_MANUAL" ]; then
     _err "$_DNS_MANUAL_ERROR"
@@ -5949,12 +6039,17 @@ $_authorizations_map"
     _clearaccountconf "HTTPS_INSECURE"
   fi
 
-  if [ "$Le_Listen_V4" ]; then
-    _savedomainconf "Le_Listen_V4" "$Le_Listen_V4"
-    _cleardomainconf Le_Listen_V6
-  elif [ "$Le_Listen_V6" ]; then
-    _savedomainconf "Le_Listen_V6" "$Le_Listen_V6"
-    _cleardomainconf Le_Listen_V4
+  if [ "$Le_Listen_V4" ] || [ "$Le_Listen_V6" ]; then
+    if [ "$Le_Listen_V4" ]; then
+      _savedomainconf "Le_Listen_V4" "$Le_Listen_V4"
+    else
+      _cleardomainconf Le_Listen_V4
+    fi
+    if [ "$Le_Listen_V6" ]; then
+      _savedomainconf "Le_Listen_V6" "$Le_Listen_V6"
+    else
+      _cleardomainconf Le_Listen_V6
+    fi
   fi
 
   if [ "$Le_ForceNewDomainKey" = "1" ]; then
@@ -7369,10 +7464,18 @@ deactivate() {
   done
 }
 
+#reads the output of "openssl x509 -text" from stdin, prints the hex AKI
+#the value is on the line right after the extension header; "grep -A" is not
+#portable (Solaris /usr/bin/grep: "illegal option -- A"), so select from the
+#header to EOF and keep the second line of that range
+_extractAKI() {
+  sed -n '/X509v3 Authority Key Identifier/,$p' | _head_n 2 | _tail_n 1 | tr -d ': ' | sed "s/keyid//"
+}
+
 #cert
 _getAKI() {
   _cert="$1"
-  ${ACME_OPENSSL_BIN:-openssl} x509 -in "$_cert" -text -noout | grep -A 1 "X509v3 Authority Key Identifier" | _tail_n 1 | tr -d ': ' | sed "s/keyid//"
+  ${ACME_OPENSSL_BIN:-openssl} x509 -in "$_cert" -text -noout | _extractAKI
 }
 
 #cert
@@ -8067,7 +8170,9 @@ Parameters:
 
   --dns-persist-wildcard            Used with '--make-dns-persist-value'. Adds 'policy=wildcard' to the
                                       generated TXT record so the issuer is also authorized for wildcards
-                                      and subdomains (draft-ietf-acme-dns-persist-01).
+                                      and subdomains (draft-ietf-acme-dns-persist-01). It is implied when
+                                      the domain given to -d is a wildcard (e.g. '*.example.com'); the
+                                      record itself is always published at the base domain.
   --dns-persist-ca-name <name>      Used with '--make-dns-persist-value'. Use the given CA identity domain
                                       (e.g. 'ssl.com') as the issuer-domain-name in the TXT record. If
                                       omitted, the identities are read from the ACME directory's
@@ -8125,8 +8230,9 @@ Parameters:
   --ocsp, --ocsp-must-staple        Generate OCSP-Must-Staple extension.
   --always-force-new-domain-key     Generate new domain key on renewal. Otherwise, the domain key is not changed by default.
   --auto-upgrade [0|1]              Valid for '--upgrade' command, indicating whether to upgrade automatically in future. Defaults to 1 if argument is omitted.
-  --listen-v4                       Force standalone/tls server to listen at ipv4.
-  --listen-v6                       Force standalone/tls server to listen at ipv6.
+  --listen-v4                       Force standalone/tls server to listen at ipv4 only.
+                                      By default the standalone server listens on both ipv4 and ipv6.
+  --listen-v6                       Force standalone/tls server to listen at ipv6 only.
   --request-v4                      Force client requests to use ipv4 to connect to the CA server.
   --request-v6                      Force client requests to use ipv6 to connect to the CA server.
   --openssl-bin <file>              Specifies a custom openssl bin location.

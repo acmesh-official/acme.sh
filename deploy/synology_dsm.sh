@@ -344,6 +344,7 @@ synology_dsm_deploy() {
     else
       _err "Failed to fetch certificate info: $error_code, please try again or contact Synology to learn more."
     fi
+    _logout
     _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 1
   fi
@@ -354,6 +355,7 @@ synology_dsm_deploy() {
 
   if [ -z "$id" ] && [ -z "$SYNO_CREATE" ]; then
     _err "Unable to find certificate: $SYNO_CERTIFICATE and \$SYNO_CREATE is not set."
+    _logout
     _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 1
   fi
@@ -389,13 +391,13 @@ synology_dsm_deploy() {
     else
       _info "Restart HTTP services not necessary."
     fi
-    _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     _logout
+    _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 0
   else
-    _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     _err "Unable to update certificate, got error response: $response."
     _logout
+    _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 1
   fi
 }
@@ -403,6 +405,8 @@ synology_dsm_deploy() {
 ####################  Private functions below ##################################
 _logout() {
   # Logout CERT user only to not occupy a permanent session, e.g. in DSM's "Connected Users" widget (based on previous variables)
+  # Must be called before _temp_admin_cleanup: once the temp admin is deleted, its session can no longer be logged out.
+  # Note: this overwrites $response, so print any error message that needs it before calling.
   response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=logout&_sid=$sid")
   _debug3 response "$response"
 }
