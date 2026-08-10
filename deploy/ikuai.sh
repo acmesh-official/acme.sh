@@ -77,7 +77,7 @@ ikuai_deploy() {
   fi
 
   # Set cookie header
-  _H1="Cookie: $_cookie username=$IKUAI_USERNAME; login=1"
+  _H1="Cookie: $_cookie; username=$IKUAI_USERNAME; login=1"
 
   _info "Deploy the cert to ikuai ... "
 
