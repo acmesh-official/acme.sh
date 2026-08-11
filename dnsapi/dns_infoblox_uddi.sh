@@ -117,7 +117,7 @@ dns_infoblox_uddi_rm() {
     return 0
   fi
 
-  record_id=$(echo "$response" | _egrep_o '"id":[[:space:]]*"[^"]*"' | _head_n 1 | cut -d '"' -f 4)
+  record_id=$(echo "$response" | _egrep_o '"id":[ ]*"[^"]*"' | _head_n 1 | cut -d '"' -f 4)
   _debug "record_id" "$record_id"
 
   if [ -z "$record_id" ]; then
@@ -178,7 +178,7 @@ _get_root() {
     # Check if response contains results (even if empty)
     if _contains "$response" '"results"'; then
       # Extract zone ID - must match the pattern dns/auth_zone/...
-      zone_id=$(echo "$response" | _egrep_o '"id":[[:space:]]*"dns/auth_zone/[^"]*"' | _head_n 1 | cut -d '"' -f 4)
+      zone_id=$(echo "$response" | _egrep_o '"id":[ ]*"dns/auth_zone/[^"]*"' | _head_n 1 | cut -d '"' -f 4)
       if [ -n "$zone_id" ]; then
         # Found the zone
         _domain="$h"

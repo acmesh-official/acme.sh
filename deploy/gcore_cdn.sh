@@ -57,7 +57,7 @@ gcore_cdn_deploy() {
   _request="{\"username\":\"$Le_Deploy_gcore_cdn_username\",\"password\":\"$Le_Deploy_gcore_cdn_password\"}"
   _debug _request "$_request"
   export _H1="Content-Type:application/json"
-  _response=$(_post "$_request" "https://api.gcore.com/auth/jwt/login")
+  _response=$(_post "$_request" "https://api.gcore.com/iam/auth/jwt/login")
   _debug _response "$_response"
   _regex=".*\"access\":\"\([-._0-9A-Za-z]*\)\".*$"
   _debug _regex "$_regex"

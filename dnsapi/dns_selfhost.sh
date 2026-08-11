@@ -7,6 +7,7 @@ Options:
  SELFHOSTDNS_USERNAME Username
  SELFHOSTDNS_PASSWORD Password
  SELFHOSTDNS_MAP Subdomain name
+ SELFHOSTDNS_UPDATE_URL API url. Optional. Default "https://account.selfhost.de/cgi-bin/api.pl"
 Issues: github.com/acmesh-official/acme.sh/issues/4291
 Author: Marvin Edeler
 '
@@ -18,9 +19,11 @@ dns_selfhost_add() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txt"
 
-  SELFHOSTDNS_UPDATE_URL="https://selfhost.de/cgi-bin/api.pl"
+  DEFAULT_SELFHOSTDNS_UPDATE_URL="https://account.selfhost.de/cgi-bin/api.pl"
 
   # Get values, but don't save until we successfully validated
+  SELFHOSTDNS_UPDATE_URL="${SELFHOSTDNS_UPDATE_URL:-$(_readaccountconf_mutable SELFHOSTDNS_UPDATE_URL)}"
+  SELFHOSTDNS_UPDATE_URL="${SELFHOSTDNS_UPDATE_URL:-$DEFAULT_SELFHOSTDNS_UPDATE_URL}"
   SELFHOSTDNS_USERNAME="${SELFHOSTDNS_USERNAME:-$(_readaccountconf_mutable SELFHOSTDNS_USERNAME)}"
   SELFHOSTDNS_PASSWORD="${SELFHOSTDNS_PASSWORD:-$(_readaccountconf_mutable SELFHOSTDNS_PASSWORD)}"
   # These values are domain dependent, so read them from there
@@ -39,7 +42,10 @@ dns_selfhost_add() {
   # only match full domains (at the beginning of the string or with a leading whitespace),
   # e.g. don't match mytest.example.com or sub.test.example.com for test.example.com
   # if the domain is defined multiple times only the last occurance will be matched
-  mapEntry=$(echo "$SELFHOSTDNS_MAP" | sed -n -E "s/(^|^.*[[:space:]])($fulldomain)(:[[:digit:]]+)([:]?[[:digit:]]*)(.*)/\2\3\4/p")
+  # prepend a space to each line so "start of line" and "after whitespace"
+  # can both be matched as "after a space/tab" (portable BRE, no ERE (^|..))
+  _selfhost_tab="$(printf '\t')"
+  mapEntry=$(echo "$SELFHOSTDNS_MAP" | sed 's/^/ /' | sed -n "s/.*[ $_selfhost_tab]\($fulldomain:[0-9][0-9]*:\{0,1\}[0-9]*\).*/\1/p")
   _debug2 mapEntry "$mapEntry"
   if test -z "$mapEntry"; then
     _err "SELFHOSTDNS_MAP must contain the fulldomain incl. prefix and at least one RID"
@@ -51,7 +57,7 @@ dns_selfhost_add() {
   rid2=$(echo "$mapEntry" | cut -d: -f3)
 
   # read last used rid domain
-  lastUsedRidForDomainEntry=$(echo "$SELFHOSTDNS_MAP_LAST_USED_INTERNAL" | sed -n -E "s/(^|^.*[[:space:]])($fulldomain:[[:digit:]]+)(.*)/\2/p")
+  lastUsedRidForDomainEntry=$(echo "$SELFHOSTDNS_MAP_LAST_USED_INTERNAL" | sed 's/^/ /' | sed -n "s/.*[ $_selfhost_tab]\($fulldomain:[0-9][0-9]*\).*/\1/p")
   _debug2 lastUsedRidForDomainEntry "$lastUsedRidForDomainEntry"
   lastUsedRidForDomain=$(echo "$lastUsedRidForDomainEntry" | cut -d: -f2)
 
@@ -82,6 +88,11 @@ dns_selfhost_add() {
     else
       SELFHOSTDNS_MAP_LAST_USED_INTERNAL="$SELFHOSTDNS_MAP_LAST_USED_INTERNAL $newLastUsedRidForDomainEntry"
     fi
+  fi
+
+  # Save api url if different from default
+  if [ "$DEFAULT_SELFHOSTDNS_UPDATE_URL" != "$SELFHOSTDNS_UPDATE_URL" ]; then
+    _saveaccountconf_mutable SELFHOSTDNS_UPDATE_URL "$SELFHOSTDNS_UPDATE_URL"
   fi
 
   # Now that we know the values are good, save them

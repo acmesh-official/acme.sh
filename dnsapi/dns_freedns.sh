@@ -305,7 +305,7 @@ _freedns_domain_id() {
     fi
 
     domain_id="$(echo "$htmlpage" | tr -d " \t\r\n\v\f" | sed 's/<tr>/@<tr>/g' | tr '@' '\n' |
-      grep "<td>$search_domain</td>\|<td>$search_domain(.*)</td>" |
+      grep -E "<td>$search_domain</td>|<td>$search_domain\(.*\)</td>" |
       sed -n 's/.*\(edit\.php?edit_domain_id=[0-9a-zA-Z]*\).*/\1/p' |
       cut -d = -f 2)"
     # The above beauty extracts domain ID from the html page...

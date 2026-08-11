@@ -5,7 +5,8 @@ Site: www.knot-dns.cz/docs/2.5/html/man_knsupdate.html
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_knot
 Options:
  KNOT_SERVER Server hostname. Default: "localhost".
- KNOT_KEY File path to TSIG key
+ KNOT_KEY TSIG key data, not a file path. knsupdate "key" statement format: "[alg:]name secret". E.g. "hmac-sha256:acme_key BASE64SECRET="
+ KNOT_ZONE Zone name. Optional, set it when the challenge record lives in a delegated subdomain zone. Default: the parent domain of the challenge record.
 '
 
 # See also dns_nsupdate.sh
@@ -21,6 +22,9 @@ dns_knot_add() {
   # save the dns server and key to the account.conf file.
   _saveaccountconf KNOT_SERVER "${KNOT_SERVER}"
   _saveaccountconf KNOT_KEY "${KNOT_KEY}"
+  if [ -n "${KNOT_ZONE}" ]; then
+    _saveaccountconf KNOT_ZONE "${KNOT_ZONE}"
+  fi
 
   if ! _get_root "$fulldomain"; then
     _err "Domain does not exist."
@@ -84,6 +88,13 @@ EOF
 # _domain=domain.com
 _get_root() {
   domain=$1
+  # a delegated subdomain zone cannot be derived from the record name;
+  # let the user name the zone explicitly (issue 2881)
+  if [ -n "${KNOT_ZONE}" ]; then
+    _domain="${KNOT_ZONE%.}"
+    _debug "Using KNOT_ZONE zone" "${_domain}"
+    return 0
+  fi
   i="$(echo "$fulldomain" | tr '.' ' ' | wc -w)"
   i=$(_math "$i" - 1)
 

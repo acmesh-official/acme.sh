@@ -163,8 +163,8 @@ byteplus_alb_deploy() {
   # ── 3. Read cert and key ─────────────────────────────────────────────────────
   # BytePlus requires NO blank lines between PEM blocks in the certificate chain
 
-  _public_key=$(sed '/^[[:space:]]*$/d' "$_cfullchain" | tr -d '\r')
-  _private_key=$(sed '/^[[:space:]]*$/d' "$_ckey" | tr -d '\r')
+  _public_key=$(_strip_blank_lines <"$_cfullchain" | tr -d '\r')
+  _private_key=$(_strip_blank_lines <"$_ckey" | tr -d '\r')
 
   if [ -z "$_public_key" ] || [ -z "$_private_key" ]; then
     _err "Failed to read certificate or key file."

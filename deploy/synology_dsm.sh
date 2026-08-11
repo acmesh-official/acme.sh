@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
 ################################################################################
 # ACME.sh 3rd party deploy plugin for Synology DSM
@@ -72,7 +72,7 @@ synology_dsm_deploy() {
 
   if [ -n "$SYNO_USE_TEMP_ADMIN" ]; then
     if ! _exists synouser || ! _exists synogroup || ! _exists synosetkeyvalue; then
-      _err "Missing required tools to creat temp admin user, please set SYNO_USERNAME and SYNO_PASSWORD instead."
+      _err "Missing required tools to create temp admin user, please set SYNO_USERNAME and SYNO_PASSWORD instead."
       _err "Notice: temp admin user authorization method only supports local deployment on DSM."
       return 1
     fi
@@ -234,11 +234,11 @@ synology_dsm_deploy() {
     fi
   fi
 
-  error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -o '[0-9]*')
+  error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -Eo '[0-9]+')
   _debug2 error_code "$error_code"
   # Account has 2FA-OTP enabled, since error 403 reported.
   # https://global.download.synology.com/download/Document/Software/DeveloperGuide/Os/DSM/All/enu/DSM_Login_Web_API_Guide_enu.pdf
-  if [ "$error_code" == "403" ]; then
+  if [ "$error_code" = "403" ]; then
     if [ -z "$SYNO_DEVICE_NAME" ]; then
       printf "Enter device name or leave empty for default (CertRenewal): "
       read -r SYNO_DEVICE_NAME
@@ -269,27 +269,27 @@ synology_dsm_deploy() {
         _secure_debug2 SYNO_DEVICE_ID "$SYNO_DEVICE_ID"
       fi
     fi
-    error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -o '[0-9]*')
+    error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -Eo '[0-9]+')
     _debug2 error_code "$error_code"
   fi
 
   if [ -n "$error_code" ]; then
-    if [ "$error_code" == "403" ] && [ -n "$SYNO_DEVICE_ID" ]; then
+    if [ "$error_code" = "403" ] && [ -n "$SYNO_DEVICE_ID" ]; then
       _cleardeployconf SYNO_DEVICE_ID
-      _err "Failed to authenticate with SYNO_DEVICE_ID (may expired or invalid), please try again in a new terminal window."
-    elif [ "$error_code" == "404" ]; then
+      _err "Failed to authenticate with SYNO_DEVICE_ID (may be expired or invalid), please try again in a new terminal window."
+    elif [ "$error_code" = "404" ]; then
       _err "Failed to authenticate with provided 2FA-OTP code, please try again in a new terminal window."
-    elif [ "$error_code" == "406" ]; then
+    elif [ "$error_code" = "406" ]; then
       if [ -n "$SYNO_USE_TEMP_ADMIN" ]; then
         _err "Failed with unexcepted error, please report this by providing full log with '--debug 3'."
       else
         _err "Enforce auth with 2FA-OTP enabled, please configure the user to enable 2FA-OTP to continue."
       fi
-    elif [ "$error_code" == "400" ]; then
+    elif [ "$error_code" = "400" ]; then
       _err "Failed to authenticate, no such account or incorrect password."
-    elif [ "$error_code" == "401" ]; then
+    elif [ "$error_code" = "401" ]; then
       _err "Failed to authenticate with a non-existent account."
-    elif [ "$error_code" == "408" ] || [ "$error_code" == "409" ] || [ "$error_code" == "410" ]; then
+    elif [ "$error_code" = "408" ] || [ "$error_code" = "409" ] || [ "$error_code" = "410" ]; then
       _err "Failed to authenticate, the account password has expired or must be changed."
     else
       _err "Failed to authenticate with error: $error_code."
@@ -322,8 +322,8 @@ synology_dsm_deploy() {
     _savedeployconf SYNO_USE_TEMP_ADMIN "$SYNO_USE_TEMP_ADMIN"
     _savedeployconf SYNO_LOCAL_HOSTNAME "$SYNO_LOCAL_HOSTNAME"
   else
-    _savedeployconf SYNO_USERNAME "$SYNO_USERNAME"
-    _savedeployconf SYNO_PASSWORD "$SYNO_PASSWORD"
+    _savedeployconf SYNO_USERNAME "$SYNO_USERNAME" "base64"
+    _savedeployconf SYNO_PASSWORD "$SYNO_PASSWORD" "base64"
     _savedeployconf SYNO_DEVICE_ID "$SYNO_DEVICE_ID"
     _savedeployconf SYNO_DEVICE_NAME "$SYNO_DEVICE_NAME"
   fi
@@ -336,7 +336,7 @@ synology_dsm_deploy() {
   id=$(echo "$response" | sed -n "s/.*\"desc\":\"$escaped_certificate\",\"id\":\"\([^\"]*\).*/\1/p")
   _debug2 id "$id"
 
-  error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -o '[0-9]*')
+  error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -Eo '[0-9]+')
   _debug2 error_code "$error_code"
   if [ -n "$error_code" ]; then
     if [ "$error_code" -eq 105 ]; then
@@ -344,6 +344,7 @@ synology_dsm_deploy() {
     else
       _err "Failed to fetch certificate info: $error_code, please try again or contact Synology to learn more."
     fi
+    _logout
     _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 1
   fi
@@ -354,6 +355,7 @@ synology_dsm_deploy() {
 
   if [ -z "$id" ] && [ -z "$SYNO_CREATE" ]; then
     _err "Unable to find certificate: $SYNO_CERTIFICATE and \$SYNO_CREATE is not set."
+    _logout
     _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 1
   fi
@@ -389,13 +391,13 @@ synology_dsm_deploy() {
     else
       _info "Restart HTTP services not necessary."
     fi
-    _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     _logout
+    _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 0
   else
-    _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     _err "Unable to update certificate, got error response: $response."
     _logout
+    _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 1
   fi
 }
@@ -403,6 +405,8 @@ synology_dsm_deploy() {
 ####################  Private functions below ##################################
 _logout() {
   # Logout CERT user only to not occupy a permanent session, e.g. in DSM's "Connected Users" widget (based on previous variables)
+  # Must be called before _temp_admin_cleanup: once the temp admin is deleted, its session can no longer be logged out.
+  # Note: this overwrites $response, so print any error message that needs it before calling.
   response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=logout&_sid=$sid")
   _debug3 response "$response"
 }
@@ -422,11 +426,6 @@ _temp_admin_cleanup() {
     _debug "Cleanuping temp admin info..."
     synouser --del "$_username" >/dev/null
   fi
-}
-
-#_cleardeployconf   key
-_cleardeployconf() {
-  _cleardomainconf "SAVED_$1"
 }
 
 # key

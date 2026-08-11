@@ -1,0 +1,114 @@
+name: Blacklist Command
+
+# An issue titled "blacklist: <login-or-email>" opened by the maintainer
+# or a write-access member adds that identity to the Blacklist wiki page
+# (see wiki-guard.yml) and closes the issue. The wiki-monitor notification
+# embeds a prefilled link that opens such an issue in one click.
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+# Share the wiki-guard concurrency group so we never push to the wiki
+# at the same time as the guard.
+concurrency:
+  group: wiki-guard
+  cancel-in-progress: false
+
+jobs:
+  blacklist:
+    # Upstream only: forks have no <fork>.wiki repository to push to.
+    if: github.repository == 'acmesh-official/acme.sh' && startsWith(github.event.issue.title, 'blacklist:')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check authorization
+        id: auth
+        run: |
+          assoc="${{ github.event.issue.author_association }}"
+          case "$assoc" in
+            OWNER|MEMBER|COLLABORATOR)
+              echo "ok=true" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "issue author is not authorized ($assoc); ignoring"
+              echo "ok=false" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: Checkout wiki repository
+        if: steps.auth.outputs.ok == 'true'
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki
+
+      - name: Add the identity to the blacklist page
+        if: steps.auth.outputs.ok == 'true'
+        id: add
+        env:
+          TITLE: ${{ github.event.issue.title }}
+        run: |
+          target="$(printf '%s' "$TITLE" \
+            | sed 's/^blacklist:[[:space:]]*//; s/^@//; s/[[:space:]].*$//' \
+            | tr 'A-Z' 'a-z')"
+          case "$target" in
+            ''|*[!a-z0-9._+@-]*)
+              echo "invalid target: '$target'"
+              echo "result=invalid" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
+          echo "target=$target" >> "$GITHUB_OUTPUT"
+          cd wiki
+          if [ ! -e Blacklist.md ]; then
+            echo "result=nopage" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if grep -Fxiq -- "- $target" Blacklist.md; then
+            echo "result=already" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -n "$(tail -c1 Blacklist.md)" ]; then
+            echo >> Blacklist.md
+          fi
+          printf -- '- %s\n' "$target" >> Blacklist.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Blacklist.md
+          git commit -m "blacklist $target (requested in #${{ github.event.issue.number }})"
+          git push origin HEAD || { git pull --rebase && git push origin HEAD; }
+          echo "result=added" >> "$GITHUB_OUTPUT"
+
+      - name: Reply and close
+        if: steps.auth.outputs.ok == 'true'
+        uses: actions/github-script@v9
+        env:
+          RESULT: ${{ steps.add.outputs.result }}
+          TARGET: ${{ steps.add.outputs.target }}
+        with:
+          script: |
+            const result = process.env.RESULT;
+            const target = process.env.TARGET;
+            const messages = {
+              added: `\`${target}\` has been added to the [Blacklist](https://github.com/${context.repo.owner}/${context.repo.repo}/wiki/Blacklist). The wiki guard will revert their recent wiki changes on its next run.`,
+              already: `\`${target}\` is already on the blacklist.`,
+              invalid: "Could not parse a valid login or email from the issue title.",
+              nopage: "The Blacklist wiki page does not exist."
+            };
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: messages[result] || "No action taken."
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: "closed",
+              state_reason: result === "added" ? "completed" : "not_planned"
+            });

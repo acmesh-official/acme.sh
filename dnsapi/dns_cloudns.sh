@@ -135,7 +135,7 @@ _dns_cloudns_init_check() {
   _dns_cloudns_http_api_call "dns/login.json" ""
 
   if ! _contains "$response" "\"status\":\"Success\""; then
-    _err "Invalid CLOUDNS_AUTH_ID or CLOUDNS_AUTH_PASSWORD. Please check your login credentials."
+    _err "Invalid CLOUDNS_AUTH_ID or CLOUDNS_AUTH_PASSWORD. Server response: $response"
     return 1
   fi
 
