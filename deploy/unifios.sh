@@ -70,7 +70,11 @@
 # Please report bugs to https://github.com/acmesh-official/acme.sh/issues/7182
 
 _uos_response_code() {
-  _egrep_o <"$HTTP_HEADER" "^HTTP[^ ]* .*$" | cut -d " " -f 2-100 | tr -d "\f\n" | _egrep_o "^[0-9]*"
+  # tr strips the trailing newline along with form feeds; re-terminate
+  # before the second _egrep_o, whose sed fallback (used wherever egrep -o
+  # is unavailable) drops an unterminated final line on some platforms.
+  _uos_code="$(_egrep_o <"$HTTP_HEADER" "^HTTP[^ ]* .*$" | cut -d " " -f 2-100 | tr -d "\f\n")"
+  printf '%s\n' "$_uos_code" | _egrep_o "^[0-9][0-9]*"
 }
 
 _uos_response_cookie() {
@@ -159,35 +163,21 @@ unifios_deploy() {
   _H2="x-csrf-token: $_uos_csrf"
   export _H2
 
-  _info "Checking for an existing '$_cdomain' certificate entry..."
-  _list_json="$(_get "$DEPLOY_UNIFIOS_HOST/api/userCertificates")"
-  _list_code="$(_uos_response_code)"
-  if [ "$_list_code" != "200" ]; then
-    _err "Failed to list existing certificates (HTTP $_list_code)."
-    _err "Response: $_list_json"
-    return 1
-  fi
-  # _normalizeJson collapses the response to one predictable line (no stray
-  # whitespace around colons, no embedded CR/LF the server might emit), then
-  # a literal embedded newline (not the two-character "\n", which GNU sed
-  # treats as a newline in the replacement but POSIX doesn't define and BSD
-  # sed emits literally) splits it one JSON object per line so grep can
-  # match a single certificate entry at a time.
-  _list_json="$(
-    echo "$_list_json" | _normalizeJson | sed 's/},{/},\
-{/g'
-  )"
-  # -F (fixed string): $_cdomain is interpolated as a literal string, not a
-  # regex. A wildcard cert's name is *.example.com -- as an unescaped BRE,
-  # the leading * would quantify the preceding character instead of
-  # matching a literal asterisk.
-  _old_ids="$(echo "$_list_json" | grep -F "\"name\":\"$_cdomain\"" | _egrep_o '"id":"[^"]*"' | cut -d '"' -f 4)"
-  _debug _old_ids "$_old_ids"
-
   _info "Uploading new certificate..."
+  # "name" is a purely cosmetic label -- the server never validates it
+  # against the certificate's actual CN/SAN, and accepts arbitrary text
+  # including spaces (confirmed: a cert for example.com served correctly
+  # after being uploaded under the unrelated name "totally unrelated label").
+  # The only constraint that matters here is uniqueness: the server rejects
+  # a second entry with a name it already has, so a bare domain name would
+  # collide with the previous deploy's entry on every renewal after the
+  # first. Appending a human-readable timestamp keeps each upload's name
+  # unique while making it obvious which entry is current when browsing the
+  # UniFi OS Server UI.
+  _uos_name="$_cdomain $(date '+%Y-%m-%d %H:%M:%S')"
   _uos_key_json="$(_json_encode <"$_ckey")"
   _uos_cert_json="$(_json_encode <"$_cfullchain")"
-  _create_body="{\"name\":\"$_cdomain\",\"key\":\"$_uos_key_json\",\"cert\":\"$_uos_cert_json\"}"
+  _create_body="{\"name\":\"$_uos_name\",\"key\":\"$_uos_key_json\",\"cert\":\"$_uos_cert_json\"}"
 
   _create_json="$(_post "$_create_body" "$DEPLOY_UNIFIOS_HOST/api/userCertificates" "" "POST" "application/json")"
   _create_code="$(_uos_response_code)"
@@ -199,21 +189,63 @@ unifios_deploy() {
       return 1
     fi
   elif [ "$_create_code" = "400" ] && echo "$_create_json" | grep -q "USER_CERTIFICATE_DUPLICATE"; then
-    # The server already has an entry matching this exact name+fingerprint --
-    # most likely a retry after a prior run already uploaded it (a real
-    # renewal always produces a new fingerprint, so this shouldn't happen in
-    # normal cron use). Match on fingerprint, not just name: with more than
-    # one stale entry for this domain, reusing the wrong one would activate
-    # an old cert and delete the one that actually just collided.
-    _uos_fingerprint="$(${ACME_OPENSSL_BIN:-openssl} x509 -in "$_cfullchain" -noout -fingerprint -sha256 2>/dev/null | cut -d '=' -f 2)"
-    _new_id="$(echo "$_list_json" | grep -F "\"name\":\"$_cdomain\"" | grep -F "\"fingerprint\":\"$_uos_fingerprint\"" | _egrep_o '"id":"[^"]*"' | _head_n 1 | cut -d '"' -f 4)"
+    # HTTP 400 alone just means "bad request" -- it's the USER_CERTIFICATE_DUPLICATE
+    # code in the response body, checked above, that actually confirms this.
+    # The name above is unique to this run, so a duplicate here can only be
+    # the server's other uniqueness constraint: this exact certificate (by
+    # fingerprint) already exists as some other entry -- most likely a retry
+    # after a prior run already uploaded it (a real renewal always produces a
+    # new fingerprint, so this shouldn't happen in normal cron use). The
+    # response body doesn't include the existing entry's id, so look it up
+    # by fingerprint instead.
+    # The API's own fingerprint field is SHA-1 (20 bytes), not SHA-256 --
+    # confirmed against a real response, e.g.
+    # "fingerprint":"FC:02:50:9C:3B:3F:B7:79:9D:CA:4D:7C:AC:92:E7:D5:EA:F1:3A:29"
+    # (20 colon-separated groups). _fingerprint (core helper) strips the
+    # colons that field has, so re-insert them rather than stripping the
+    # JSON's own colons, which would also remove the ones separating every
+    # key from its value.
+    _uos_fingerprint="$(_fingerprint "$_cfullchain" sha1)"
+    if [ -z "$_uos_fingerprint" ]; then
+      _err "Could not compute the certificate's fingerprint."
+      return 1
+    fi
+    _uos_fingerprint="$(echo "$_uos_fingerprint" | sed 's/\(..\)/\1:/g; s/:$//')"
+
+    _list_json="$(_get "$DEPLOY_UNIFIOS_HOST/api/userCertificates")"
+    _list_code="$(_uos_response_code)"
+    if [ "$_list_code" != "200" ]; then
+      _err "Failed to list existing certificates (HTTP $_list_code)."
+      _err "Response: $_list_json"
+      return 1
+    fi
+    # _normalizeJson collapses the response to one predictable line (no stray
+    # whitespace around colons, no embedded CR/LF the server might emit) but
+    # also strips the trailing newline entirely -- re-terminate before the
+    # split below, since some sed implementations drop an unterminated final
+    # line rather than processing it.
+    _list_json="$(echo "$_list_json" | _normalizeJson)"
+    # A literal embedded newline (not the two-character "\n", which GNU sed
+    # treats as a newline in the replacement but POSIX doesn't define and BSD
+    # sed emits literally) splits it one JSON object per line so grep can
+    # match a single certificate entry at a time.
+    _list_json="$(
+      printf '%s\n' "$_list_json" | sed 's/},{/},\
+{/g'
+    )"
+    _new_id="$(echo "$_list_json" | grep -F "\"fingerprint\":\"$_uos_fingerprint\"" | _egrep_o '"id":"[^"]*"' | _head_n 1 | cut -d '"' -f 4)"
     if [ -z "$_new_id" ]; then
-      _err "Certificate upload rejected as a duplicate (HTTP 400), but no existing entry matching this domain and fingerprint was found."
+      _err "Certificate upload rejected as a duplicate (server reported USER_CERTIFICATE_DUPLICATE), but no existing entry matching this fingerprint was found."
       _err "Response: $_create_json"
       return 1
     fi
+    # Reusing the existing entry rather than deleting it and re-uploading
+    # under today's name+timestamp: the served content is identical either
+    # way, so replacing it would only cost an extra delete+create round trip
+    # for no functional benefit. The tradeoff is cosmetic -- this entry keeps
+    # whatever name it was given whenever it was originally uploaded, so it
+    # won't reflect today's date in the UI.
     _info "Certificate already present as entry $_new_id; reusing it."
-    _old_ids="$(echo "$_old_ids" | grep -v "^$_new_id$")"
   else
     _err "Certificate upload failed (HTTP $_create_code)."
     _err "Response: $_create_json"
@@ -230,19 +262,12 @@ unifios_deploy() {
     return 1
   fi
 
-  # The new cert is live at this point, so a failure to clean up the old
-  # entry is logged but does not fail the deploy -- the server is already
-  # serving a valid certificate.
-  for _old_id in $_old_ids; do
-    _info "Removing superseded certificate entry $_old_id..."
-    _del_json="$(_post "" "$DEPLOY_UNIFIOS_HOST/api/userCertificates/$_old_id" "" "DELETE")"
-    _del_code="$(_uos_response_code)"
-    if [ "$_del_code" != "204" ] && [ "$_del_code" != "200" ]; then
-      _err "Failed to delete superseded certificate $_old_id (HTTP $_del_code) -- leaving it in place."
-      _err "Response: $_del_json"
-    fi
-  done
-
+  # UniFi OS Server activation is exclusive server-wide (confirmed against
+  # the real API: activating one entry deactivates whichever other entry was
+  # previously active, regardless of name or domain), so the certificate just
+  # activated is guaranteed to be the one served from here on. Superseded
+  # entries are left in place rather than deleted -- the UI supports managing
+  # them directly, and nothing here depends on cleaning them up.
   _info "UniFi OS Server certificate deployed and activated successfully."
   return 0
 }
