@@ -171,10 +171,12 @@ unifios_deploy() {
   # The only constraint that matters here is uniqueness: the server rejects
   # a second entry with a name it already has, so a bare domain name would
   # collide with the previous deploy's entry on every renewal after the
-  # first. Appending a human-readable timestamp keeps each upload's name
-  # unique while making it obvious which entry is current when browsing the
-  # UniFi OS Server UI.
-  _uos_name="$_cdomain $(date '+%Y-%m-%d %H:%M:%S')"
+  # first. A full human-readable timestamp would make that obvious in the
+  # UI, but the certificate list's name column is fixed-width and doesn't
+  # wrap (confirmed against the real UI: a long name overlaps the Expires
+  # column and makes both unreadable), so keep the suffix short instead --
+  # Unix epoch seconds are still unique enough for this purpose.
+  _uos_name="$_cdomain $(date +%s)"
   _uos_key_json="$(_json_encode <"$_ckey")"
   _uos_cert_json="$(_json_encode <"$_cfullchain")"
   _create_body="{\"name\":\"$_uos_name\",\"key\":\"$_uos_key_json\",\"cert\":\"$_uos_cert_json\"}"
