@@ -4,7 +4,7 @@ dns_desec_info='deSEC.io
 Site: desec.readthedocs.io/en/latest/
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_desec
 Options:
- DEDYN_TOKEN API Token
+ DESEC_TOKEN API Token
 Issues: github.com/acmesh-official/acme.sh/issues/2180
 Author: Zheng Qian
 '
@@ -21,18 +21,29 @@ dns_desec_add() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
-  DEDYN_TOKEN="${DEDYN_TOKEN:-$(_readaccountconf_mutable DEDYN_TOKEN)}"
+  DESEC_TOKEN="${DESEC_TOKEN:-$(_readaccountconf_mutable DESEC_TOKEN)}"
 
-  if [ -z "$DEDYN_TOKEN" ]; then
-    DEDYN_TOKEN=""
-    _err "You did not specify DEDYN_TOKEN yet."
-    _err "Please create your key and try again."
-    _err "e.g."
-    _err "export DEDYN_TOKEN=d41d8cd98f00b204e9800998ecf8427e"
-    return 1
+  if [ -z "$DESEC_TOKEN" ]; then
+    DEDYN_TOKEN="${DEDYN_TOKEN:-$(_readaccountconf_mutable DEDYN_TOKEN)}"
+
+    if [ -z "$DEDYN_TOKEN" ]; then
+      DESEC_TOKEN=""
+      _err "You did not specify DESEC_TOKEN yet."
+      _err "Please create your key and try again."
+      _err "e.g."
+      _err "export DESEC_TOKEN=d41d8cd98f00b204e9800998ecf8427e"
+      return 1
+    else
+      _info "The option DEDYN_TOKEN is deprecated."
+      _info "Please rename it to DESEC_TOKEN in your configuration."
+      _info "e.g."
+      _info "export DESEC_TOKEN=your_present_token"
+
+      DESEC_TOKEN="${DEDYN_TOKEN}"
+    fi  
   fi
   #save the api token to the account conf file.
-  _saveaccountconf_mutable DEDYN_TOKEN "$DEDYN_TOKEN"
+  _saveaccountconf_mutable DESEC_TOKEN "$DESEC_TOKEN"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain" "$REST_API/"; then
@@ -85,14 +96,14 @@ dns_desec_rm() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
-  DEDYN_TOKEN="${DEDYN_TOKEN:-$(_readaccountconf_mutable DEDYN_TOKEN)}"
+  DESEC_TOKEN="${DESEC_TOKEN:-$(_readaccountconf_mutable DESEC_TOKEN)}"
 
-  if [ -z "$DEDYN_TOKEN" ]; then
-    DEDYN_TOKEN=""
-    _err "You did not specify DEDYN_TOKEN yet."
+  if [ -z "$DESEC_TOKEN" ]; then
+    DESEC_TOKEN=""
+    _err "You did not specify DESEC_TOKEN yet."
     _err "Please create your key and try again."
     _err "e.g."
-    _err "export DEDYN_TOKEN=d41d8cd98f00b204e9800998ecf8427e"
+    _err "export DESEC_TOKEN=d41d8cd98f00b204e9800998ecf8427e"
     return 1
   fi
 
@@ -144,7 +155,7 @@ _desec_rest() {
   ep="$2"
   data="$3"
 
-  export _H1="Authorization: Token $DEDYN_TOKEN"
+  export _H1="Authorization: Token $DESEC_TOKEN"
   export _H2="Accept: application/json"
   export _H3="Content-Type: application/json"
 
