@@ -9,7 +9,7 @@
 # IKUAI_PORT="80"               - port , defaults to "80"
 # IKUAI_USERNAME="admin"        - username , defaults to "admin"
 # IKUAI_PASSWORD="yourPassword" - password
-# IKUAI_CERT_ID=1               - ikuai cert id ,default is 1, only 1 is support!!!
+# IKUAI_CERT_ID=1               - ikuai cert id , defaults to 1, and only 1 is supported for now !!!
 #
 #returns 0 means success, otherwise error.
 #
@@ -35,6 +35,7 @@ ikuai_deploy() {
   _getdeployconf IKUAI_PORT
   _getdeployconf IKUAI_USERNAME
   _getdeployconf IKUAI_PASSWORD
+  _getdeployconf IKUAI_CERT_ID
 
   # Use default if not provided
   [ -n "$IKUAI_SCHEME" ] || IKUAI_SCHEME="http"
@@ -82,8 +83,8 @@ ikuai_deploy() {
   _info "Deploy the cert to ikuai ... "
 
   # Should replace \n to @ ," " to #
-  _cert_content_single_line="$(<"$_cfullchain" tr '\n' '@' | tr ' ' '#')"
-  _key_content_single_line="$(<"$_ckey" tr '\n' '@' | tr ' ' '#')"
+  _cert_content_single_line="$(tr '\n' '@' <"$_cfullchain" | tr ' ' '#')"
+  _key_content_single_line="$(tr '\n' '@' <"$_ckey" | tr ' ' '#')"
 
   _debug2 _cert_content_single_line "$_cert_content_single_line"
   _secure_debug2 _key_content_single_line "$_key_content_single_line"
