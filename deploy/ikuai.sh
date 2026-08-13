@@ -83,8 +83,8 @@ ikuai_deploy() {
   _info "Deploy the cert to ikuai ... "
 
   # Should replace \n to @ ," " to #
-  _cert_content_single_line="$(tr '\n' '@' <"$_cfullchain" | tr ' ' '#')"
-  _key_content_single_line="$(tr '\n' '@' <"$_ckey" | tr ' ' '#')"
+  _cert_content_single_line="$(tr <"$_cfullchain" '\n' '@' | tr ' ' '#')"
+  _key_content_single_line="$(tr <"$_ckey" '\n' '@' | tr ' ' '#')"
 
   _debug2 _cert_content_single_line "$_cert_content_single_line"
   _secure_debug2 _key_content_single_line "$_key_content_single_line"
