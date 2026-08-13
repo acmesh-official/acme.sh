@@ -48,13 +48,18 @@
 # verification for the rest of the acme.sh run, e.g. the connection to the
 # ACME CA.
 #
-# Design: rather than persisting a certificate ID between renewals, this
-# hook looks up any existing certificate row named after the domain via the
-# live API on every run. It uploads and activates the new certificate
-# *before* removing the old one, so a failure partway through never leaves
-# the server without a valid active cert -- worst case, a stale duplicate
-# entry is left behind for the next run (or a manual GUI cleanup) rather
-# than the server falling back to its self-signed default.
+# Design: This hook does not save a certificate ID between renewals. Each
+# upload gets a name unique to that run: the domain name plus a timestamp.
+# This name never collides with an entry from a previous deploy. This is
+# true even if that entry is still active. The hook uploads and activates
+# the new certificate before it removes any old entries. If a failure
+# occurs during this process, the server still has a valid, active
+# certificate. The hook removes old entries only after activation is
+# complete. It removes only entries whose name starts with the domain name,
+# because this is the hook's own naming convention. As a result, this step
+# can only affect entries that this hook created for this domain. It can
+# never affect a certificate that a user uploaded manually, and it can
+# never affect a self-signed certificate.
 #
 # Settings:
 #   DEPLOY_UNIFIOS_HOST - base URL of the management API
@@ -176,7 +181,7 @@ unifios_deploy() {
   # wrap (confirmed against the real UI: a long name overlaps the Expires
   # column and makes both unreadable), so keep the suffix short instead --
   # Unix epoch seconds are still unique enough for this purpose.
-  _uos_name="$_cdomain $(date +%s)"
+  _uos_name="$_cdomain $(_time)"
   _uos_key_json="$(_json_encode <"$_ckey")"
   _uos_cert_json="$(_json_encode <"$_cfullchain")"
   _create_body="{\"name\":\"$_uos_name\",\"key\":\"$_uos_key_json\",\"cert\":\"$_uos_cert_json\"}"
@@ -264,12 +269,39 @@ unifios_deploy() {
     return 1
   fi
 
-  # UniFi OS Server activation is exclusive server-wide (confirmed against
-  # the real API: activating one entry deactivates whichever other entry was
-  # previously active, regardless of name or domain), so the certificate just
-  # activated is guaranteed to be the one served from here on. Superseded
-  # entries are left in place rather than deleted -- the UI supports managing
-  # them directly, and nothing here depends on cleaning them up.
+  # UniFi OS Server activation is exclusive server-wide. Tests against the
+  # real API confirm this: activation of one entry deactivates whichever
+  # other entry was active before, no matter its name or domain. As a
+  # result, the server serves the certificate that this hook just activated.
+  # This certificate is already live. If the removal of old entries below
+  # fails, the hook logs the failure. The deploy does not fail because of
+  # this.
+  _info "Checking for old certificate entries to remove..."
+  _list_json="$(_get "$DEPLOY_UNIFIOS_HOST/api/userCertificates")"
+  _list_code="$(_uos_response_code)"
+  if [ "$_list_code" != "200" ]; then
+    _err "Failed to list certificates for cleanup (HTTP $_list_code) -- leaving old entries in place."
+  else
+    _list_json="$(echo "$_list_json" | _normalizeJson)"
+    _list_json="$(
+      printf '%s\n' "$_list_json" | sed 's/},{/},\
+{/g'
+    )"
+    # The pattern below matches the domain name followed by a space. If the
+    # space is missing, the pattern can also match a different domain that
+    # starts with the same text as this domain.
+    _old_ids="$(echo "$_list_json" | grep -F "\"name\":\"$_cdomain " | _egrep_o '"id":"[^"]*"' | cut -d '"' -f 4 | grep -v "^$_new_id$")"
+    for _old_id in $_old_ids; do
+      _info "Removing old certificate entry $_old_id..."
+      _del_json="$(_post "" "$DEPLOY_UNIFIOS_HOST/api/userCertificates/$_old_id" "" "DELETE")"
+      _del_code="$(_uos_response_code)"
+      if [ "$_del_code" != "204" ] && [ "$_del_code" != "200" ]; then
+        _err "Failed to delete old certificate $_old_id (HTTP $_del_code) -- leaving it in place."
+        _err "Response: $_del_json"
+      fi
+    done
+  fi
+
   _info "UniFi OS Server certificate deployed and activated successfully."
   return 0
 }
