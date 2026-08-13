@@ -57,9 +57,8 @@ waha_send() {
 
   _debug "_data" "$_data"
 
-  export _H1="Content-Type: application/json"
   if [ "$WAHA_API_KEY" ]; then
-    export _H2="X-Api-Key: $WAHA_API_KEY"
+    export _H1="X-Api-Key: $WAHA_API_KEY"
   fi
 
   _waha_url="${WAHA_URL}/api/sendText"
