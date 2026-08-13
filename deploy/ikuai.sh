@@ -95,7 +95,7 @@ ikuai_deploy() {
   _err_msg="$(printf "%s" "$_response" | _normalizeJson | _egrep_o '"ErrMsg":"[^"]*"' | cut -d'"' -f 4)"
   # check ErrMsg
   if [ "$_err_msg" != "Success" ]; then
-    _err "Failed to save cert to ikuai: $_err_msg"
+    _err "Failed to deploy the cert to ikuai: $_err_msg"
     return 1
   fi
 
@@ -108,7 +108,7 @@ ikuai_deploy() {
   _savedeployconf IKUAI_PASSWORD "$IKUAI_PASSWORD"
   _savedeployconf IKUAI_CERT_ID "$IKUAI_CERT_ID"
 
-  _info "Deploy the cert to ikuai success ,now enjoy it :>! "
+  _info "Successfully deployed certificate to ikuai. Enjoy! :>"
 
   return 0
 }
