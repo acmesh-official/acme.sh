@@ -227,6 +227,31 @@ Cron entry example:
 acme.sh -h
 ```
 
+#### 🔏 Verify a Release
+
+Release tags from `3.1.5` on are signed with the maintainer's SSH key. The
+signing happens on the maintainer's machine, so the private key is never
+available to CI. The public half is [`allowed_signers`](allowed_signers) in
+this repository. From a clone:
+
+```bash
+git config gpg.ssh.allowedSignersFile allowed_signers
+```
+
+```bash
+git verify-tag 3.1.5
+```
+
+The signature covers the tag object, which pins the commit and therefore the
+whole tree, so a good signature verifies every file at that release and no
+separate tarball checksum is needed. Build a tarball from the verified tag:
+
+```bash
+git archive --format=tar.gz --prefix=acme.sh-3.1.5/ 3.1.5 > acme.sh-3.1.5.tar.gz
+```
+
+> ⚠️ Tags up to `3.1.4` predate the signing key and are unsigned.
+
 ---
 
 ### 2️⃣ Issue a Certificate
