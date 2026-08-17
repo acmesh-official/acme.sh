@@ -1,24 +1,29 @@
 #!/usr/bin/env sh
-# Deploy hook for UniFi OS Server (self-hosted).
+# Deploy hook for UniFi OS, via the certificate REST API.
 #
-# Supports:
-#   - UniFi OS Server on macOS
-#   - UniFi OS Server on Linux
-#   - UniFi OS Server on Windows should also work (runs under WSL2), but
-#     has not been tested.
+# Works against any UniFi OS whose management UI exposes
+# /api/userCertificates. Confirmed on:
+#   - UniFi OS Server (the separately-installed, self-hosted application)
+#     on macOS and on Linux. Windows should also work (it runs under
+#     WSL2), but has not been tested.
+#         Tested on: Ubuntu 26.04 (remote) and macOS 26.6 (local).
+#   - UniFi OS hardware: UDM Pro on UniFi OS 5.1.26, UCG Fiber on
+#     UniFi OS 5.0.16 (user reports, see issues 7184 and 6916).
+# No lower version bound is claimed -- if the UI has a certificate
+# manager, this hook should work.
 #
-#       Tested on: Ubuntu 26.04 (remote) and macOS 26.6 (local).
+# `unifios` vs `unifi`: the split is the access method, not the product
+# line. `unifi` writes files / a Java keystore and needs local or SSH
+# access on the device; this hook drives the same REST API the web UI
+# uses and works remotely. Use `unifi` where acme.sh runs on the device
+# itself, this hook where it does not.
 #
-# This is a different product from the Cloud Key / UDM hardware and
-# self-hosted Unifi Controller covered by the `unifi` deploy hook above
-# (that hook already covers Cloud Key running UnifiOS v2.0.0+/Gen2/2+) --
-# this hook targets the separately-installed, self-hosted "UniFi OS Server"
-# application instead, which stores certificates in its own Postgres
-# database via a REST API rather than a Java keystore, so the `unifi`
-# hook's approach does not apply here.
+# The API is served on the management port, which differs per install:
+# UniFi OS Server listens on 11443 (hence the default below), while
+# UniFi OS hardware serves it on 443 -- set DEPLOY_UNIFIOS_HOST to
+# "https://<host>" there.
 #
-# UniFi OS Server exposes a REST API on its management port (default
-# 11443) that its own web UI uses for certificate management:
+# Endpoints used, all as the web UI itself calls them:
 #   POST   /api/auth/login                  - session login (cookie + JWT)
 #   GET    /api/userCertificates             - list uploaded certificates
 #   POST   /api/userCertificates             - upload a new certificate
@@ -41,8 +46,9 @@
 # Uses core acme.sh helpers throughout (_post/_get, _json_encode,
 # _durl_replace_base64, _dbase64, _egrep_o) rather than raw curl -k or
 # python3, so the wget fallback, --debug tracing, and CA_BUNDLE are all
-# honored the same as every other hook. The management API's cert is
-# self-signed (it's a management-only port, not meant for public exposure),
+# honored the same as every other hook. The management API's cert may be
+# self-signed -- it always is on a fresh install, and there is no reliable
+# way to tell in advance whether an earlier run has already replaced it --
 # so this hook sets HTTPS_INSECURE=1 itself, scoped to its own subshell (see
 # acme.sh's per-hook sourcing in _deploy) -- it does not weaken TLS
 # verification for the rest of the acme.sh run, e.g. the connection to the
@@ -63,9 +69,11 @@
 #
 # Settings:
 #   DEPLOY_UNIFIOS_HOST - base URL of the management API
-#     (default: "https://localhost:11443")
-#   DEPLOY_UNIFIOS_USERNAME - UniFi OS Server admin username (required)
-#   DEPLOY_UNIFIOS_PASSWORD - UniFi OS Server admin password (required)
+#     (default: "https://localhost:11443", i.e. a UniFi OS Server on the
+#     same machine as acme.sh; set it to "https://<host>" for UniFi OS
+#     hardware or any remote target)
+#   DEPLOY_UNIFIOS_USERNAME - UniFi OS admin username (required)
+#   DEPLOY_UNIFIOS_PASSWORD - UniFi OS admin password (required)
 #
 # Example:
 #   export DEPLOY_UNIFIOS_USERNAME="acmeuser"
