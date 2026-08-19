@@ -94,12 +94,16 @@ dns_poweradmin_rm() {
 
 ######## Private functions below #####################
 
+_json_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
 _set_record() {
   _info "Adding TXT record"
   full=$1
   new_challenge=$2
 
-  data='{"name":"'$full'","type":"TXT","content":"'$new_challenge'","ttl":60}'
+  data='{"name":"'"$(_json_escape "$full")"'","type":"TXT","content":"'"$(_json_escape "$new_challenge")"'","ttl":60}'
 
   if ! _poweradmin_rest "POST" "/api/v${POWERADMIN_API_VERSION}/zones/$_zone_id/records" "$data" "application/json"; then
     _err "Failed to add TXT record"
@@ -114,16 +118,17 @@ _rm_record() {
   full=$1
   txtvalue=$2
 
-  if ! _poweradmin_rest "GET" "/api/v${POWERADMIN_API_VERSION}/zones/$_zone_id/records"; then
+  if ! _poweradmin_rest "GET" "/api/v${POWERADMIN_API_VERSION}/zones/$_zone_id/records?type=TXT"; then
     _err "Failed to retrieve records"
     return 1
   fi
 
-  # The API returns: {"success":true,"data":[{"id":..., "name":"...", "type":"TXT", "content":"...", ...}]}
+  # The API returns: {"success":true,"data":{"records":[{"id":..., "name":"...", "type":"TXT", "content":"...", ...}]},"message":"..."}
+
   _txt_record_obj=$(
-    printf '%s\n' "$response" |
-      sed 's/^.*"data":\[//; s/\],"message":.*$//' |
-      awk '{ gsub(/},{/, "}\n{"); print }' |
+    printf '%s' "$response" |
+      tr -d '\r\n' |
+      grep -o '{[^{}]*}' |
       grep -F "\"name\":\"$full\"" |
       grep -F "\"type\":\"TXT\"" |
       grep -F "\"content\":\"$txtvalue\"" |
