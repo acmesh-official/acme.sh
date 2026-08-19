@@ -7072,6 +7072,20 @@ _uninstall_win_taskscheduler() {
   fi
 }
 
+#binpath
+#Reads a crontab listing from stdin, prints it without the acme.sh cron
+#entries that call binpath.
+_filter_cron_bin() {
+  _fcb_bin="$1"
+  if [ -z "$_fcb_bin" ]; then
+    cat
+    return
+  fi
+  #-F: binpath is a literal, not a regex (the dot of ~/.acme.sh would
+  #otherwise match any character)
+  grep -v -F "$_fcb_bin --cron"
+}
+
 #confighome
 installcronjob() {
   _c_home="$1"
@@ -7141,7 +7155,26 @@ installcronjob() {
       return 1
     fi
   fi
-  if ! echo "$_cron_entries" | grep "$PROJECT_ENTRY --cron"; then
+  #An entry that calls LE_WORKING_DIR/PROJECT_ENTRY is dead once that copy is
+  #gone: ACME_PACKAGED installs never write it, and the package manager
+  #removes it when it takes over. The entry below would then keep the install
+  #from adding a working one and cron would fail silently every day, so drop
+  #the stale entries first.
+  _cron_stale=""
+  if [ ! -f "$LE_WORKING_DIR/$PROJECT_ENTRY" ] && [ "$_cron_entries" ]; then
+    _cron_kept="$(echo "$_cron_entries" | _filter_cron_bin "\"$LE_WORKING_DIR\"/$PROJECT_ENTRY")"
+    if [ "$_cron_kept" != "$_cron_entries" ]; then
+      _info "Removing the cron job that calls the missing $LE_WORKING_DIR/$PROJECT_ENTRY"
+      _cron_entries="$_cron_kept"
+      _cron_stale=1
+    fi
+  fi
+  #>/dev/null: grep would print the matching crontab line to the console
+  _cron_add=""
+  if ! echo "$_cron_entries" | grep "$PROJECT_ENTRY --cron" >/dev/null; then
+    _cron_add=1
+  fi
+  if [ "$_cron_add" ] || [ "$_cron_stale" ]; then
     if _exists uname && uname -a | grep SunOS >/dev/null; then
       _CRONTAB_STDIN="$_CRONTAB --"
     else
@@ -7151,7 +7184,9 @@ installcronjob() {
       if [ "$_cron_entries" ]; then
         echo "$_cron_entries"
       fi
-      echo "$_cron_entry"
+      if [ "$_cron_add" ]; then
+        echo "$_cron_entry"
+      fi
     } | $_CRONTAB_STDIN
   fi
   if [ "$?" != "0" ]; then
