@@ -7081,9 +7081,19 @@ _filter_cron_bin() {
     cat
     return
   fi
-  #-F: binpath is a literal, not a regex (the dot of ~/.acme.sh would
-  #otherwise match any character)
-  grep -v -F "$_fcb_bin --cron"
+  #a case pattern with a quoted variable matches binpath literally, which
+  #grep cannot do portably: Solaris /usr/bin/grep has no -F, and as a regex
+  #the dot of ~/.acme.sh would stand for any character
+  while IFS= read -r _fcb_line || [ -n "$_fcb_line" ]; do
+    case "$_fcb_line" in
+    *"$_fcb_bin --cron"*)
+      _debug3 "Dropping cron entry" "$_fcb_line"
+      ;;
+    *)
+      echo "$_fcb_line"
+      ;;
+    esac
+  done
 }
 
 #confighome
