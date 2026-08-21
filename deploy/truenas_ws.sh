@@ -43,18 +43,16 @@ _ws_call() {
   _debug "_ws_call arg1" "$1"
   _debug "_ws_call arg2" "$2"
   _debug "_ws_call arg3" "$3"
-  if [ $# -eq 3 ]; then
-    _ws_response=$(midclt --uri "$_ws_uri" -K "$DEPLOY_TRUENAS_APIKEY" call "$1" "$2" "$3")
-  fi
-  if [ $# -eq 2 ]; then
-    _ws_response=$(midclt --uri "$_ws_uri" -K "$DEPLOY_TRUENAS_APIKEY" call "$1" "$2")
-  fi
-  if [ $# -eq 1 ]; then
-    _ws_response=$(midclt --uri "$_ws_uri" -K "$DEPLOY_TRUENAS_APIKEY" call "$1")
-  fi
+  _ws_response=$(midclt \
+    --uri "$_ws_uri" \
+    -K "$DEPLOY_TRUENAS_APIKEY" \
+    --plain \
+    call "$@")
+  _ws_ret=$?
+
   _debug "_ws_response" "$_ws_response"
   printf "%s" "$_ws_response"
-  return 0
+  return "$_ws_ret"
 }
 
 # Upload certificate with webclient api
@@ -256,8 +254,8 @@ truenas_ws_deploy() {
 
   _info "Gather current WebUI certificate..."
   _ws_response="$(_ws_call "system.general.config")"
-  _ui_certificate_id=$(printf "%s" "$_ws_response" | jq -r '."ui_certificate"."id"')
-  _ui_certificate_name=$(printf "%s" "$_ws_response" | jq -r '."ui_certificate"."name"')
+  _ui_certificate_id=$(printf "%s" "$_ws_response" | jq -r '."ui_certificate"')
+  _ui_certificate_name=$(printf "%s" "$_ws_response" | jq -r '."ui_certificate_name"')
   _info "Current WebUI certificate ID: $_ui_certificate_id"
   _info "Current WebUI certificate name: $_ui_certificate_name"
 
@@ -332,7 +330,7 @@ truenas_ws_deploy() {
 
   _info "Replace WebUI certificate..."
   _ws_response=$(_ws_call "system.general.update" "{\"ui_certificate\": $_new_certid}")
-  _changed_certid=$(printf "%s" "$_ws_response" | jq -r '."ui_certificate"."id"')
+  _changed_certid=$(printf "%s" "$_ws_response" | jq -r '."ui_certificate"')
   if [ "$_changed_certid" != "$_new_certid" ]; then
     _err "WebUI certificate change error.."
     return 5
