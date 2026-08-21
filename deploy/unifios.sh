@@ -114,6 +114,17 @@ _uos_split_json() {
 {/g'
 }
 
+_uos_grep_literal() {
+  # $1 = literal text to find, matched without a regex -- portable to
+  # grep implementations with no -F flag (e.g. Solaris), and avoids "*"
+  # or "." in a domain name being read as a regex metacharacter.
+  while IFS= read -r _uos_line || [ -n "$_uos_line" ]; do
+    case "$_uos_line" in
+    *"$1"*) echo "$_uos_line" ;;
+    esac
+  done
+}
+
 unifios_deploy() {
   _cdomain="$1"
   _ckey="$2"
@@ -209,18 +220,21 @@ unifios_deploy() {
   # column and makes both unreadable), so keep the suffix short instead --
   # Unix epoch seconds are still unique enough for this purpose.
   #
-  # This name does not include the key type. As a result, an RSA
-  # deploy and an ECC deploy of the same domain share this prefix.
-  # Because of this, the cleanup step below removes the entry that the
-  # other deploy created. Today, this causes no harm, because activation is
-  # exclusive across the whole server. Only one of the two certificates
-  # can ever be active. If that changes, this needs a fix.
-  #
-  # `deploy/haproxy.sh` and `deploy/lighttpd.sh` have the same problem for their
-  # own named certificate storage. They solve it with a ".rsa" or
-  # ".ecdsa" suffix. They pick the suffix with `_isEccKey "${Le_Keylength}"`. The
-  # same method can work here.
-  _uos_name="$_cdomain $(_time)"
+  # This name includes the key type (rsa or ecdsa), to keep an RSA
+  # deploy and an ECC deploy of the same domain from sharing this
+  # prefix. Without the key type, the cleanup step for each deploy
+  # removes the entry that the other deploy creates. `deploy/haproxy.sh`
+  # and `deploy/lighttpd.sh` use the same `_isEccKey` check, for the same
+  # reason.
+  if [ -z "${Le_Keylength}" ]; then
+    Le_Keylength=""
+  fi
+  if _isEccKey "${Le_Keylength}"; then
+    _uos_keytype="ecdsa"
+  else
+    _uos_keytype="rsa"
+  fi
+  _uos_name="$_cdomain $_uos_keytype $(_time)"
   _uos_key_json="$(_json_encode <"$_ckey")"
   _uos_cert_json="$(_json_encode <"$_cfullchain")"
   _create_body="{\"name\":\"$_uos_name\",\"key\":\"$_uos_key_json\",\"cert\":\"$_uos_cert_json\"}"
@@ -266,7 +280,7 @@ unifios_deploy() {
       return 1
     fi
     _list_json="$(_uos_split_json "$_list_json")"
-    _new_id="$(echo "$_list_json" | grep -F "\"fingerprint\":\"$_uos_fingerprint\"" | _egrep_o '"id":"[^"]*"' | _head_n 1 | cut -d '"' -f 4)"
+    _new_id="$(echo "$_list_json" | _uos_grep_literal "\"fingerprint\":\"$_uos_fingerprint\"" | _egrep_o '"id":"[^"]*"' | _head_n 1 | cut -d '"' -f 4)"
     if [ -z "$_new_id" ]; then
       _err "Certificate upload rejected as a duplicate (server reported USER_CERTIFICATE_DUPLICATE), but no existing entry matching this fingerprint was found."
       _err "Response: $_create_json"
@@ -309,10 +323,10 @@ unifios_deploy() {
     _err "Failed to list certificates for cleanup (HTTP $_list_code) -- leaving old entries in place."
   else
     _list_json="$(_uos_split_json "$_list_json")"
-    # The pattern below matches the domain name followed by a space. If the
-    # space is missing, the pattern can also match a different domain that
-    # starts with the same text as this domain.
-    _old_ids="$(echo "$_list_json" | grep -F "\"name\":\"$_cdomain " | _egrep_o '"id":"[^"]*"' | cut -d '"' -f 4 | grep -v "^$_new_id$")"
+    # The pattern below matches the domain name and key type, followed by
+    # a space. If the space is missing, the pattern can also match a
+    # different domain that starts with the same text as this domain.
+    _old_ids="$(echo "$_list_json" | _uos_grep_literal "\"name\":\"$_cdomain $_uos_keytype " | _egrep_o '"id":"[^"]*"' | cut -d '"' -f 4 | grep -v "^$_new_id$")"
     for _old_id in $_old_ids; do
       _info "Removing old certificate entry $_old_id..."
       _del_json="$(_post "" "$DEPLOY_UNIFIOS_HOST/api/userCertificates/$_old_id" "" "DELETE")"
