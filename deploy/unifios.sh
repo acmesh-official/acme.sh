@@ -120,7 +120,7 @@ _uos_grep_literal() {
   # or "." in a domain name being read as a regex metacharacter.
   while IFS= read -r _uos_line || [ -n "$_uos_line" ]; do
     case "$_uos_line" in
-    *"$1"*) echo "$_uos_line" ;;
+    *"$1"*) printf '%s\n' "$_uos_line" ;;
     esac
   done
 }
@@ -226,9 +226,7 @@ unifios_deploy() {
   # removes the entry that the other deploy creates. `deploy/haproxy.sh`
   # and `deploy/lighttpd.sh` use the same `_isEccKey` check, for the same
   # reason.
-  if [ -z "${Le_Keylength}" ]; then
-    Le_Keylength=""
-  fi
+  # shellcheck disable=SC2154 # Le_Keylength is set by acme.sh core, not this hook
   if _isEccKey "${Le_Keylength}"; then
     _uos_keytype="ecdsa"
   else
