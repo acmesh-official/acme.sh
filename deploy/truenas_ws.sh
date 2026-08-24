@@ -47,7 +47,7 @@ _ws_call() {
   # TrueNAS 26.0.0-BETA3 and later need a --plain option for midclt call, detect if it is available
   _midclt_plain=""
   case "$(midclt --help 2>/dev/null)" in
-    *--plain*) _midclt_plain="--plain" ;;
+  *--plain*) _midclt_plain="--plain" ;;
   esac
 
   _ws_response=$(midclt --uri "$_ws_uri" -K "$DEPLOY_TRUENAS_APIKEY" $_midclt_plain call "$@")
