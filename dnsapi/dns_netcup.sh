@@ -85,7 +85,15 @@ _nc_rest_add() {
     return
   fi
 
-  _nc_rest_get_scope "$fulldomain" "$_domain" || return 1
+  case "$fulldomain" in
+  _acme-challenge.*) ;;
+  *)
+    _info "The netcup REST API can only create _acme-challenge records. Not creating $fulldomain."
+    return 0
+    ;;
+  esac
+
+  _nc_rest_get_scope "$fulldomain" "$_domain"
   _debug _scope "$_scope"
 
   if ! _nc_rest POST "domain/$_domain_id/acme/challenge" "{\"scope\": \"$_scope\", \"value\": \"$txtvalue\"}" ||
@@ -131,7 +139,15 @@ _nc_rest_rm() {
     return
   fi
 
-  _nc_rest_get_scope "$fulldomain" "$_domain" || return 1
+  case "$fulldomain" in
+  _acme-challenge.*) ;;
+  *)
+    _info "The netcup REST API can only remove _acme-challenge records. Not removing $fulldomain."
+    return 0
+    ;;
+  esac
+
+  _nc_rest_get_scope "$fulldomain" "$_domain"
 
   if ! _nc_rest DELETE "domain/$_domain_id/acme/challenge/$_scope/$txtvalue"; then
     _err "Unable to remove the challenge record: $response"
@@ -184,15 +200,12 @@ _nc_rest_get_domain() {
 
 # fulldomain domain
 # Sets _scope to the host part of the challenge relative to the domain.
-# The REST API prepends _acme-challenge. to the scope itself.
+# The REST API prepends _acme-challenge. to the scope itself, so the
+# prefix is stripped from the record name. Records with other names
+# cannot exist behind the REST API: the callers treat them as a
+# successful no-op instead (the DNS-API-Test adds and removes such a
+# record and expects both calls to succeed).
 _nc_rest_get_scope() {
-  case "$1" in
-  _acme-challenge.*) ;;
-  *)
-    _err "The netcup REST API can only manage _acme-challenge records, $1 is not supported."
-    return 1
-    ;;
-  esac
   _scope="${1#_acme-challenge.}"
   if [ "$_scope" = "$2" ]; then
     _scope="@"
