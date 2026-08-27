@@ -27,8 +27,8 @@
 #
 # Optional:
 #   export DEPLOY_TRUENAS_HOSTNAME="<TRUENAS_HOSTNAME_OR_IP>				(required on first run)
-#   export DEPLOY_TRUENAS_PROTOCOL="wss"						# ws or wss		(default: wss)
-#   export DEPLOY_TRUENAS_PORT="443"						# 80, 443, 8443	(default: 443)
+#   export DEPLOY_TRUENAS_PROTOCOL="ws"						# ws or wss		(default: ws)
+#   export DEPLOY_TRUENAS_PORT="80"							# 80, 443, 8443	(default: 80)
 #   export DEPLOY_TRUENAS_UPDATE_FTP="no"					# yes or no 	(default: no) also updates the FTP certificate
 #   export DEPLOY_TRUENAS_UPDATE_APPS="no"					# yes or no		(default: no) also updates the certificate for any
 #								iX app exposing a "certificate_id" option.
@@ -113,14 +113,14 @@ truenas_websocat_deploy() {
 	# Check protocol, default to wss (encrypted) if not set: the payload
 	# carries the API key and the private key in plain text.
 	if [ -z "$DEPLOY_TRUENAS_PROTOCOL" ]; then
-		_info "TrueNAS protocol not set. Using 'wss'."
-		DEPLOY_TRUENAS_PROTOCOL="wss"
+		_info "TrueNAS protocol not set. Using 'ws'."
+		DEPLOY_TRUENAS_PROTOCOL="ws"
 	fi
 
 	# Check port, default to 443 if not set
 	if [ -z "$DEPLOY_TRUENAS_PORT" ]; then
-		_info "TrueNAS port not set. Using '443'."
-		DEPLOY_TRUENAS_PORT="443"
+		_info "TrueNAS port not set. Using '80'."
+		DEPLOY_TRUENAS_PORT="80"
 	fi
 	case "$DEPLOY_TRUENAS_PORT" in
 	'' | *[!0-9]*)
