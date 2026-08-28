@@ -10,7 +10,7 @@
 #   - jq
 #   - websocat  (a static binary you deploy)
 #
-# Why: avoids installing a Python environment / TrueNAS package on OPNsense
+# Why: avoids installing a Python environment / TrueNAS package on remote machine (like OPNsense)
 # just to push a certificate.
 #
 # IMPORTANT: This script is written in pure POSIX sh (no coproc, no bash arrays).
