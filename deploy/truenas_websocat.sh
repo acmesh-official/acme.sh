@@ -73,7 +73,7 @@ truenas_websocat_deploy() {
   fi
   _websocat_bin=$(command -v websocat 2>/dev/null)
   if [ -z "$_websocat_bin" ]; then
-    _err "websocat binary not found in PATH. Install it using your system's package manager (e.g. 'pkg install websocat' on FreeBSD/OPNsense), or download a static binary from https://github.com/vi/websocat/releases."
+    _err "websocat binary not found in PATH. Install it using your system's package manager, or download a static binary from https://github.com/vi/websocat/releases."
     return 8
   fi
 
