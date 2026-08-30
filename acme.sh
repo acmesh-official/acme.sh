@@ -2361,6 +2361,21 @@ _tail_c() {
   tail -c "$1" 2>/dev/null || tail -"$1"c
 }
 
+#code
+#Is this status the CA's front end failing rather than its ACME
+#implementation answering? 502 and 504 mean the proxy could not reach the
+#backend or gave up waiting for it, 503 that it is overloaded. The body of
+#those is the proxy's html, not problem+json, so no ACME status can be read
+#out of it and a caller looking for one abandons an order that is fine.
+#Anything else, a 500 from the ACME implementation included, is a real
+#answer and must be passed through to the caller.
+_is_gateway_error() {
+  case "$1" in
+  502 | 503 | 504) return 0 ;;
+  esac
+  return 1
+}
+
 # url  payload needbase64  keyfile
 _send_signed_request() {
   url=$1
@@ -2484,13 +2499,13 @@ _send_signed_request() {
       fi
 
       _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
-      if [ "$code" = '503' ]; then
+      if _is_gateway_error "$code"; then
         _sleep_overload_retry_sec=$_retryafter
         if [ -z "$_sleep_overload_retry_sec" ]; then
           _sleep_overload_retry_sec=5
         fi
         if [ $_sleep_overload_retry_sec -le 600 ]; then
-          _info "It seems the CA server is currently overloaded, let's wait and retry. Sleeping for $_sleep_overload_retry_sec seconds."
+          _info "The CA server answered $code, let's wait and retry. Sleeping for $_sleep_overload_retry_sec seconds."
           _sleep $_sleep_overload_retry_sec
           continue
         else
