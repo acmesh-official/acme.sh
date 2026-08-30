@@ -1482,39 +1482,57 @@ _readKeyLengthFromCSR() {
   fi
 }
 
+#port
+#Reads a netstat or ss listing on stdin, prints the lines that show a socket
+#listening on port.
+#Linux and windows print the local address as "addr:port", aix, macos, the
+#bsds and solaris print it as "addr.port", so both separators must match.
+#The state is "LISTEN" nearly everywhere, "LISTENING" on windows and lower
+#case "listen" on haiku, hence the substring match and the -i.
+_filter_listen_port() {
+  _flp_port="$1"
+  if [ -z "$_flp_port" ]; then
+    return
+  fi
+  grep -i "LISTEN" | grep "[:.]$_flp_port "
+}
+
+#port
 _ss() {
   _port="$1"
 
   if _exists "ss"; then
     _debug "Using: ss"
-    ss -ntpl 2>/dev/null | grep ":$_port "
+    ss -ntpl 2>/dev/null | _filter_listen_port "$_port"
     return 0
   fi
 
-  if [ "$(uname)" = "AIX" ]; then
-    _debug "Using: AIX netstat"
-    netstat -an | grep "^tcp" | grep "LISTEN" | grep "\.$_port "
+  #aix, macos and the bsds have no "-p protocol" socket listing that works on
+  #all of them: on netbsd "-p" is "Show statistics about protocol" instead
+  #(netstat(1), NetBSD 10.1). Their default display does show "the state of
+  #all sockets" with -a, so use that and keep only the tcp lines.
+  case "$(uname)" in
+  AIX | Darwin | DragonFly | *BSD*)
+    _debug "Using: AIX/BSD netstat"
+    netstat -an | grep "^tcp" | _filter_listen_port "$_port"
     return 0
-  fi
+    ;;
+  esac
 
   if _exists "netstat"; then
     _debug "Using: netstat"
     if netstat -help 2>&1 | grep "\-p proto" >/dev/null; then
       #for windows version netstat tool
-      netstat -an -p tcp | grep "LISTENING" | grep ":$_port "
+      netstat -an -p tcp | _filter_listen_port "$_port"
+    elif netstat -help 2>&1 | grep -- '-P protocol' >/dev/null; then
+      #for solaris
+      netstat -an -P tcp | _filter_listen_port "$_port"
+    elif netstat -help 2>&1 | grep "\-p" >/dev/null; then
+      #for full linux
+      netstat -ntpl | _filter_listen_port "$_port"
     else
-      if netstat -help 2>&1 | grep "\-p protocol" >/dev/null; then
-        netstat -an -p tcp | grep LISTEN | grep ":$_port "
-      elif netstat -help 2>&1 | grep -- '-P protocol' >/dev/null; then
-        #for solaris
-        netstat -an -P tcp | grep "\.$_port " | grep "LISTEN"
-      elif netstat -help 2>&1 | grep "\-p" >/dev/null; then
-        #for full linux
-        netstat -ntpl | grep ":$_port "
-      else
-        #for busybox (embedded linux; no pid support)
-        netstat -ntl 2>/dev/null | grep ":$_port "
-      fi
+      #for busybox (embedded linux; no pid support)
+      netstat -ntl 2>/dev/null | _filter_listen_port "$_port"
     fi
     return 0
   fi
@@ -2343,6 +2361,39 @@ _tail_c() {
   tail -c "$1" 2>/dev/null || tail -"$1"c
 }
 
+#code
+#Is this status the CA's front end failing rather than its ACME
+#implementation answering? 502 and 504 mean the proxy could not reach the
+#backend or gave up waiting for it, 503 that it is overloaded. The body of
+#those is the proxy's html, not problem+json, so no ACME status can be read
+#out of it and a caller looking for one abandons an order that is fine.
+#Anything else, a 500 from the ACME implementation included, is a real
+#answer and must be passed through to the caller.
+_is_gateway_error() {
+  case "$1" in
+  502 | 503 | 504) return 0 ;;
+  esac
+  return 1
+}
+
+#attempt
+#Seconds to wait before retry number <attempt>, for the cases where the CA
+#gave us no Retry-After to go by. A flat two seconds let the whole twenty
+#attempt budget burn out in forty eight seconds, which is shorter than the
+#gateway outages a CA really has: ZeroSSL answered 502 and 504 for over a
+#minute at a time through August 2026, so every renewal that started during
+#one of those died instead of waiting it out. Backing off spends the same
+#twenty attempts over about six minutes, which is still far below the ten
+#minutes at which a Retry-After is read as the CA refusing outright.
+_retry_backoff_sec() {
+  case "$1" in
+  1) echo 2 ;;
+  2) echo 5 ;;
+  3) echo 10 ;;
+  *) echo 20 ;;
+  esac
+}
+
 # url  payload needbase64  keyfile
 _send_signed_request() {
   url=$1
@@ -2406,8 +2457,9 @@ _send_signed_request() {
     nonce="$_CACHED_NONCE"
     _debug2 nonce "$nonce"
     if [ -z "$nonce" ]; then
-      _info "Could not get nonce, let's try again."
-      _sleep 2
+      _sleep_nonce_sec="$(_retry_backoff_sec "$_request_retry_times")"
+      _info "Could not get nonce, let's try again. Sleeping for $_sleep_nonce_sec seconds."
+      _sleep "$_sleep_nonce_sec"
       continue
     fi
 
@@ -2466,13 +2518,13 @@ _send_signed_request() {
       fi
 
       _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
-      if [ "$code" = '503' ]; then
+      if _is_gateway_error "$code"; then
         _sleep_overload_retry_sec=$_retryafter
         if [ -z "$_sleep_overload_retry_sec" ]; then
-          _sleep_overload_retry_sec=5
+          _sleep_overload_retry_sec="$(_retry_backoff_sec "$_request_retry_times")"
         fi
         if [ $_sleep_overload_retry_sec -le 600 ]; then
-          _info "It seems the CA server is currently overloaded, let's wait and retry. Sleeping for $_sleep_overload_retry_sec seconds."
+          _info "The CA server answered $code, let's wait and retry. Sleeping for $_sleep_overload_retry_sec seconds."
           _sleep $_sleep_overload_retry_sec
           continue
         else
@@ -2499,6 +2551,15 @@ _send_signed_request() {
 
 }
 
+#Reads a value from stdin, prints it escaped for use as the replacement text
+#of a sed s command delimited by '|'. The backslash must go first: a bare one
+#starts an escape sequence and backslash-digit is a backreference, both make
+#sed error out. Then '&' (the whole-match reference) and the '|' delimiter.
+#https://github.com/acmesh-official/acme.sh/issues/7213
+_sed_escape_rhs() {
+  sed -e 's/\\/\\\\/g' -e 's/&/\\&/g' -e 's/|/\\|/g'
+}
+
 #setopt "file"  "opt"  "="  "value" [";"]
 _setopt() {
   __conf="$1"
@@ -2514,34 +2575,50 @@ _setopt() {
     touch "$__conf"
     chmod 600 "$__conf"
   fi
+  __nl="
+"
+  case "$__val" in
+  *"$__nl"*)
+    #the conf format is line based and the file is sourced by the shell, so a
+    #value holding a line break cannot be represented in it (it would also
+    #make the replace sed below fail with an unterminated 's' command)
+    _err "The value of '$__opt' contains a line break, it cannot be saved to $__conf."
+    return 1
+    ;;
+  esac
   if [ -n "$(_tail_c 1 <"$__conf")" ]; then
     echo >>"$__conf"
   fi
 
   if grep -n "^$__opt$__sep" "$__conf" >/dev/null; then
     _debug3 OK
-    if _contains "$__val" "&"; then
-      __val="$(echo "$__val" | sed 's/&/\\&/g')"
-    fi
-    if _contains "$__val" "|"; then
-      __val="$(echo "$__val" | sed 's/|/\\|/g')"
-    fi
+    __val="$(printf -- "%s\n" "$__val" | _sed_escape_rhs)"
     text="$(cat "$__conf")"
-    printf -- "%s\n" "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
+    #capture first, write only on success: redirecting sed straight into the
+    #conf file truncates it before sed runs, so a failing sed (e.g. on an
+    #unescaped special character in the value) wiped the whole conf (#2426)
+    if __text="$(printf -- "%s\n" "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|")"; then
+      printf -- "%s\n" "$__text" >"$__conf"
+    else
+      _err "Cannot save '$__opt' to $__conf."
+      return 1
+    fi
 
   elif grep -n "^#$__opt$__sep" "$__conf" >/dev/null; then
-    if _contains "$__val" "&"; then
-      __val="$(echo "$__val" | sed 's/&/\\&/g')"
-    fi
-    if _contains "$__val" "|"; then
-      __val="$(echo "$__val" | sed 's/|/\\|/g')"
-    fi
+    __val="$(printf -- "%s\n" "$__val" | _sed_escape_rhs)"
     text="$(cat "$__conf")"
-    printf -- "%s\n" "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
+    if __text="$(printf -- "%s\n" "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|")"; then
+      printf -- "%s\n" "$__text" >"$__conf"
+    else
+      _err "Cannot save '$__opt' to $__conf."
+      return 1
+    fi
 
   else
     _debug3 APP
-    echo "$__opt$__sep$__val$__end" >>"$__conf"
+    #printf, not echo: dash's builtin echo interprets backslash escapes in
+    #the value and would corrupt it
+    printf -- "%s\n" "$__opt$__sep$__val$__end" >>"$__conf"
   fi
   _debug3 "$(grep -n "^$__opt$__sep" "$__conf")"
 }
@@ -2569,7 +2646,9 @@ _clear_conf() {
   _sdkey="$2"
   if [ "$_c_c_f" ]; then
     _conf_data="$(cat "$_c_c_f")"
-    echo "$_conf_data" | sed "/^$_sdkey *=.*$/d" >"$_c_c_f"
+    #printf, not echo: dash's builtin echo interprets backslash escapes and
+    #would corrupt saved values that contain them on every rewrite
+    printf -- "%s\n" "$_conf_data" | sed "/^$_sdkey *=.*$/d" >"$_c_c_f"
   else
     _err "Config file is empty, cannot clear"
   fi
@@ -3910,6 +3989,11 @@ _on_before_issue() {
       netprc="$(echo "$_netprc" | grep "$_checkaddr")"
       if [ -z "$netprc" ]; then
         netprc="$(echo "$_netprc" | grep "$LOCAL_ANY_ADDRESS:$_checkport")"
+      fi
+      if [ -z "$netprc" ]; then
+        #aix, macos, the bsds and solaris print the wildcard local address as
+        #"*.port", not "0.0.0.0:port", and it blocks $_checkaddr just the same
+        netprc="$(echo "$_netprc" | grep " [*][:.]$_checkport ")"
       fi
       if [ "$netprc" ]; then
         _err "$netprc"
@@ -7072,6 +7156,30 @@ _uninstall_win_taskscheduler() {
   fi
 }
 
+#binpath
+#Reads a crontab listing from stdin, prints it without the acme.sh cron
+#entries that call binpath.
+_filter_cron_bin() {
+  _fcb_bin="$1"
+  if [ -z "$_fcb_bin" ]; then
+    cat
+    return
+  fi
+  #a case pattern with a quoted variable matches binpath literally, which
+  #grep cannot do portably: Solaris /usr/bin/grep has no -F, and as a regex
+  #the dot of ~/.acme.sh would stand for any character
+  while IFS= read -r _fcb_line || [ -n "$_fcb_line" ]; do
+    case "$_fcb_line" in
+    *"$_fcb_bin --cron"*)
+      _debug3 "Dropping cron entry" "$_fcb_line"
+      ;;
+    *)
+      echo "$_fcb_line"
+      ;;
+    esac
+  done
+}
+
 #confighome
 installcronjob() {
   _c_home="$1"
@@ -7141,7 +7249,26 @@ installcronjob() {
       return 1
     fi
   fi
-  if ! echo "$_cron_entries" | grep "$PROJECT_ENTRY --cron"; then
+  #An entry that calls LE_WORKING_DIR/PROJECT_ENTRY is dead once that copy is
+  #gone: ACME_PACKAGED installs never write it, and the package manager
+  #removes it when it takes over. The entry below would then keep the install
+  #from adding a working one and cron would fail silently every day, so drop
+  #the stale entries first.
+  _cron_stale=""
+  if [ ! -f "$LE_WORKING_DIR/$PROJECT_ENTRY" ] && [ "$_cron_entries" ]; then
+    _cron_kept="$(echo "$_cron_entries" | _filter_cron_bin "\"$LE_WORKING_DIR\"/$PROJECT_ENTRY")"
+    if [ "$_cron_kept" != "$_cron_entries" ]; then
+      _info "Removing the cron job that calls the missing $LE_WORKING_DIR/$PROJECT_ENTRY"
+      _cron_entries="$_cron_kept"
+      _cron_stale=1
+    fi
+  fi
+  #>/dev/null: grep would print the matching crontab line to the console
+  _cron_add=""
+  if ! echo "$_cron_entries" | grep "$PROJECT_ENTRY --cron" >/dev/null; then
+    _cron_add=1
+  fi
+  if [ "$_cron_add" ] || [ "$_cron_stale" ]; then
     if _exists uname && uname -a | grep SunOS >/dev/null; then
       _CRONTAB_STDIN="$_CRONTAB --"
     else
@@ -7151,7 +7278,9 @@ installcronjob() {
       if [ "$_cron_entries" ]; then
         echo "$_cron_entries"
       fi
-      echo "$_cron_entry"
+      if [ "$_cron_add" ]; then
+        echo "$_cron_entry"
+      fi
     } | $_CRONTAB_STDIN
   fi
   if [ "$?" != "0" ]; then

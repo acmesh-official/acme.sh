@@ -23,10 +23,22 @@ jobs:
       - name: Create the v-prefixed tag
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
         run: |
-          if gh api "repos/${{ github.repository }}/git/ref/tags/v${{ github.ref_name }}" >/dev/null 2>&1; then
-            echo "Tag v${{ github.ref_name }} already exists, nothing to do."
+          if gh api "repos/$REPO/git/ref/tags/v$TAG" >/dev/null 2>&1; then
+            echo "Tag v$TAG already exists, nothing to do."
             exit 0
           fi
-          gh api "repos/${{ github.repository }}/git/refs" -f ref="refs/tags/v${{ github.ref_name }}" -f sha="${{ github.sha }}"
-          echo "Created tag v${{ github.ref_name }} -> ${{ github.sha }}"
+          # Mirror the object the pushed tag actually points at: the commit
+          # for a lightweight tag, the tag object itself for an annotated or
+          # signed one. Pointing the mirror at the commit would strip the
+          # signature, so "git verify-tag v3.1.3" would fail while
+          # "git verify-tag 3.1.3" succeeds.
+          sha="$(gh api "repos/$REPO/git/ref/tags/$TAG" --jq .object.sha)"
+          if [ -z "$sha" ] || [ "$sha" = "null" ]; then
+            echo "Could not resolve refs/tags/$TAG"
+            exit 1
+          fi
+          gh api "repos/$REPO/git/refs" -f ref="refs/tags/v$TAG" -f sha="$sha"
+          echo "Created tag v$TAG -> $sha"

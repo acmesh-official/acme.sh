@@ -9,7 +9,7 @@ Options:
  AZUREDNS_APPID App ID. App ID of the service principal
  AZUREDNS_CLIENTSECRET Client Secret. Secret from creating the service principal
  AZUREDNS_MANAGEDIDENTITY Use Managed Identity. Use Managed Identity assigned to a resource instead of a service principal. "true"/"false"
- AZUREDNS_BEARERTOKEN Bearer Token. Used instead of service principal credentials or managed identity. Optional.
+ AZUREDNS_BEARERTOKEN Bearer Token. Used instead of service principal credentials or managed identity. Not saved, provide it on every run. Optional.
 '
 
 wiki=https://github.com/acmesh-official/acme.sh/wiki/How-to-use-Azure-DNS
@@ -47,13 +47,15 @@ dns_azure_add() {
     _saveaccountconf_mutable AZUREDNS_TENANTID ""
     _saveaccountconf_mutable AZUREDNS_APPID ""
     _saveaccountconf_mutable AZUREDNS_CLIENTSECRET ""
-    _saveaccountconf_mutable AZUREDNS_BEARERTOKEN ""
+    _clearaccountconf_mutable AZUREDNS_BEARERTOKEN
   else
     _info "You didn't ask to use Azure managed identity, checking service principal credentials or provided bearer token"
     AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
     AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
     AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
-    AZUREDNS_BEARERTOKEN="${AZUREDNS_BEARERTOKEN:-$(_readaccountconf_mutable AZUREDNS_BEARERTOKEN)}"
+    #AZUREDNS_BEARERTOKEN is short-lived, so it is taken from the environment only and never
+    #read from or saved to the account conf. Versions up to 3.0.9 cached their internal access
+    #token under the same name, which must not be replayed as a user token (#7218).
     if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
       if [ -z "$AZUREDNS_TENANTID" ]; then
         AZUREDNS_SUBSCRIPTIONID=""
@@ -93,7 +95,7 @@ dns_azure_add() {
     _saveaccountconf_mutable AZUREDNS_TENANTID "$AZUREDNS_TENANTID"
     _saveaccountconf_mutable AZUREDNS_APPID "$AZUREDNS_APPID"
     _saveaccountconf_mutable AZUREDNS_CLIENTSECRET "$AZUREDNS_CLIENTSECRET"
-    _saveaccountconf_mutable AZUREDNS_BEARERTOKEN "$AZUREDNS_BEARERTOKEN"
+    _clearaccountconf_mutable AZUREDNS_BEARERTOKEN
   fi
 
   if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
@@ -175,7 +177,7 @@ dns_azure_rm() {
     AZUREDNS_TENANTID="${AZUREDNS_TENANTID:-$(_readaccountconf_mutable AZUREDNS_TENANTID)}"
     AZUREDNS_APPID="${AZUREDNS_APPID:-$(_readaccountconf_mutable AZUREDNS_APPID)}"
     AZUREDNS_CLIENTSECRET="${AZUREDNS_CLIENTSECRET:-$(_readaccountconf_mutable AZUREDNS_CLIENTSECRET)}"
-    AZUREDNS_BEARERTOKEN="${AZUREDNS_BEARERTOKEN:-$(_readaccountconf_mutable AZUREDNS_BEARERTOKEN)}"
+    #AZUREDNS_BEARERTOKEN comes from the environment only, see the note in dns_azure_add
     if [ -z "$AZUREDNS_BEARERTOKEN" ]; then
       if [ -z "$AZUREDNS_TENANTID" ]; then
         AZUREDNS_SUBSCRIPTIONID=""
