@@ -2376,6 +2376,24 @@ _is_gateway_error() {
   return 1
 }
 
+#attempt
+#Seconds to wait before retry number <attempt>, for the cases where the CA
+#gave us no Retry-After to go by. A flat two seconds let the whole twenty
+#attempt budget burn out in forty eight seconds, which is shorter than the
+#gateway outages a CA really has: ZeroSSL answered 502 and 504 for over a
+#minute at a time through August 2026, so every renewal that started during
+#one of those died instead of waiting it out. Backing off spends the same
+#twenty attempts over about six minutes, which is still far below the ten
+#minutes at which a Retry-After is read as the CA refusing outright.
+_retry_backoff_sec() {
+  case "$1" in
+  1) echo 2 ;;
+  2) echo 5 ;;
+  3) echo 10 ;;
+  *) echo 20 ;;
+  esac
+}
+
 # url  payload needbase64  keyfile
 _send_signed_request() {
   url=$1
@@ -2439,8 +2457,9 @@ _send_signed_request() {
     nonce="$_CACHED_NONCE"
     _debug2 nonce "$nonce"
     if [ -z "$nonce" ]; then
-      _info "Could not get nonce, let's try again."
-      _sleep 2
+      _sleep_nonce_sec="$(_retry_backoff_sec "$_request_retry_times")"
+      _info "Could not get nonce, let's try again. Sleeping for $_sleep_nonce_sec seconds."
+      _sleep "$_sleep_nonce_sec"
       continue
     fi
 
@@ -2502,7 +2521,7 @@ _send_signed_request() {
       if _is_gateway_error "$code"; then
         _sleep_overload_retry_sec=$_retryafter
         if [ -z "$_sleep_overload_retry_sec" ]; then
-          _sleep_overload_retry_sec=5
+          _sleep_overload_retry_sec="$(_retry_backoff_sec "$_request_retry_times")"
         fi
         if [ $_sleep_overload_retry_sec -le 600 ]; then
           _info "The CA server answered $code, let's wait and retry. Sleeping for $_sleep_overload_retry_sec seconds."
