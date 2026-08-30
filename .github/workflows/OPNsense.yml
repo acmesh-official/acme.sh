@@ -1,18 +1,18 @@
-name: OpenEuler
+name: OPNsense
 on:
   push:
     branches:
       - '*'
     paths:
       - '*.sh'
-      - '.github/workflows/OpenEuler.yml'
+      - '.github/workflows/OPNsense.yml'
 
   pull_request:
     branches:
       - dev
     paths:
       - '*.sh'
-      - '.github/workflows/OpenEuler.yml'
+      - '.github/workflows/OPNsense.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,7 +21,7 @@ concurrency:
 
 
 jobs:
-  OpenEuler:
+  OPNsense:
     strategy:
       matrix:
         include:
@@ -30,6 +30,12 @@ jobs:
            CA: ""
            CA_EMAIL: ""
            TEST_PREFERRED_CHAIN: (STAGING)
+         - TEST_ACME_Server: "LetsEncrypt.org_test"
+           CA_ECDSA: ""
+           CA: ""
+           CA_EMAIL: ""
+           TEST_PREFERRED_CHAIN: (STAGING)
+           ACME_USE_WGET: 1
     runs-on: ubuntu-latest
     env:
       TEST_LOCAL: 1
@@ -38,6 +44,7 @@ jobs:
       CA: ${{ matrix.CA }}
       CA_EMAIL: ${{ matrix.CA_EMAIL }}
       TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
+      ACME_USE_WGET: ${{ matrix.ACME_USE_WGET }}
     steps:
     - uses: actions/checkout@v7
     - uses: anyvm-org/cf-tunnel@v0
@@ -49,26 +56,27 @@ jobs:
       run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/openeuler-vm@v1
+    - uses: vmactions/opnsense-vm@v1
       with:
         debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
         cache-after-prepare: true
-        envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN'
+        envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN ACME_USE_WGET'
         nat: |
           "8080": "80"
-        prepare: |
-          # openEuler ships every repo with both a baseurl and a metalink.
-          # The metalink mirror pool is split-brain (dl-cdn.openeuler.openatom.cn
-          # froze at the 2026-08-20 snapshot while repo.openeuler.org moved on),
-          # so dnf takes repomd.xml from the stale mirror and then 404s fetching
-          # the checksummed metadata it names from the fresh ones. Keep only the
-          # vendor baseurl, which is self-consistent.
-          sed -i '/^metalink=/d' /etc/yum.repos.d/*.repo
-          dnf install -y curl socat cronie tar gzip
+        prepare: pkg install -y socat curl wget
         usesh: true
-        sync: rsync
-        copyback: false
+        sync: nfs
         run: |
+          #OPNsense is a firewall appliance whose web GUI holds the 80 port,
+          #where every --standalone case listens. configd has no "stop"
+          #action for it and the rc script cannot stop it either, so kill it.
+          #This belongs here and not in prepare: prepare runs before the
+          #cache-after-prepare reboot, which would bring the GUI back. And do
+          #NOT free the port by disabling the GUI's http redirect in
+          #config.xml: pf's automatic pass rule for the 80 port is generated
+          #from the web GUI settings, so dropping the redirect also drops the
+          #rule on the next boot, and the inbound challenge is filtered.
+          pkill lighttpd || true
           cd ../acmetest \
           && ./letest.sh
     - name: DebugOnError
