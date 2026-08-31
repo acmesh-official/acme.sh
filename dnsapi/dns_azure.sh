@@ -434,7 +434,6 @@ _get_root() {
   ## https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/azure-subscription-service-limits#azure-dns-limits
   ## The new limit is 250 Public DNS zones per subscription, while the old limit was only 100
   ##
-  #_azure_rest GET "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Network/dnszones?\$top=500&api-version=2017-09-01" "" "$accesstoken"
   _azure_rest GET "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Network/$_azure_zone_type?\$top=500&api-version=$_azure_api_version" "" "$accesstoken"
   # Find matching domain name in Json response
   while true; do
