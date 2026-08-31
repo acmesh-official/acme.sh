@@ -2376,6 +2376,28 @@ _is_gateway_error() {
   return 1
 }
 
+#response
+#Does the CA's answer to a revokeCert mean the certificate is revoked? An
+#empty body is the plain success. urn:ietf:params:acme:error:alreadyRevoked
+#is "The request specified a certificate to be revoked that has already been
+#revoked" (RFC 8555 sec 6.7), which is what a user sees when a retry follows
+#a request the CA did carry out but could not answer: the gateway ate the
+#reply, not the revocation. Either way the certificate is revoked, which is
+#what was asked for, so do not report a failure and do not go on to try the
+#domain key for a certificate that is already gone.
+#Match the error type, not the bare word: claiming a revocation that did not
+#happen is far worse than missing one, so a body that merely mentions the
+#name must not count.
+_is_revoked_response() {
+  if [ -z "$1" ]; then
+    return 0
+  fi
+  case "$1" in
+  *acme:error:alreadyRevoked*) return 0 ;;
+  esac
+  return 1
+}
+
 #attempt
 #Seconds to wait before retry number <attempt>, for the cases where the CA
 #gave us no Retry-After to go by. A flat two seconds let the whole twenty
@@ -7385,7 +7407,7 @@ revoke() {
 
   _info "Trying account key first."
   if _send_signed_request "$uri" "$data" "" "$ACCOUNT_KEY_PATH"; then
-    if [ -z "$response" ]; then
+    if _is_revoked_response "$response"; then
       _info "Successfully revoked."
       rm -f "$CERT_PATH"
       cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
@@ -7400,7 +7422,7 @@ revoke() {
   if [ -f "$CERT_KEY_PATH" ]; then
     _info "Trying domain key."
     if _send_signed_request "$uri" "$data" "" "$CERT_KEY_PATH"; then
-      if [ -z "$response" ]; then
+      if _is_revoked_response "$response"; then
         _info "Successfully revoked."
         rm -f "$CERT_PATH"
         cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
