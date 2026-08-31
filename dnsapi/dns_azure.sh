@@ -9,7 +9,7 @@ Options:
  AZUREDNS_APPID App ID. App ID of the service principal
  AZUREDNS_CLIENTSECRET Client Secret. Secret from creating the service principal
  AZUREDNS_MANAGEDIDENTITY Use Managed Identity. Use Managed Identity assigned to a resource instead of a service principal. "true"/"false"
- AZUREDNS_BEARERTOKEN Bearer Token. Used instead of service principal credentials or managed identity. Optional.
+ AZUREDNS_BEARERTOKEN Bearer Token. Used instead of service principal credentials or managed identity. Not saved, provide it on every run. Optional.
  AZUREDNS_PRIVATEZONE Use Azure Private DNS Zones instead of Public DNS Zones
 '
 
