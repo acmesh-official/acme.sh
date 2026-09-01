@@ -2033,6 +2033,32 @@ _calc_validto_renew_time() {
   fi
 }
 
+#Usage: _calc_ari_renew_time aristarttime ariendtime now currenttime pinned
+#Prints the renew time to take from the CA's ARI suggestedWindow, or nothing
+#when the window must be ignored. The point inside the window is derived from
+#the current time rather than its start, so renewals spread out across the
+#network instead of all firing at the same instant.
+#A schedule the user pinned with --days or --valid-to only yields to a window
+#that is EARLIER than what the user asked for: the CA can still pull an urgent
+#renewal forward, but it can never push a pinned renewal back.
+_calc_ari_renew_time() {
+  _cart_start="$1"
+  _cart_end="$2"
+  _cart_now="$3"
+  _cart_current="$4"
+  _cart_pinned="$5"
+  if [ -z "$_cart_start" ] || [ -z "$_cart_end" ] || [ "$_cart_end" -le "$_cart_start" ]; then
+    return 0
+  fi
+  _cart_window=$(_math "$_cart_end" - "$_cart_start")
+  _cart_offset=$(_math "$_cart_now" % "$_cart_window")
+  _cart_next=$(_math "$_cart_start" + "$_cart_offset")
+  if [ "$_cart_pinned" ] && [ "$_cart_current" ] && [ "$_cart_next" -ge "$_cart_current" ]; then
+    return 0
+  fi
+  printf "%s" "$_cart_next"
+}
+
 _mktemp() {
   if _exists mktemp; then
     if mktemp 2>/dev/null; then
@@ -6150,10 +6176,16 @@ $_authorizations_map"
   Le_CertCreateTimeStr=$(_time2str "$Le_CertCreateTime")
   _savedomainconf "Le_CertCreateTimeStr" "$Le_CertCreateTimeStr"
 
+  # Le_RenewalDays is only written to the domain conf when the user actually
+  # passed --days; the default schedule is never saved. That is what makes the
+  # presence of the value a reliable "the user pinned this" flag, here and on
+  # every later renewal check.
   if [ -z "$Le_RenewalDays" ]; then
     Le_RenewalDays="$DEFAULT_RENEW"
+    _ari_pinned=""
   else
     _savedomainconf "Le_RenewalDays" "$Le_RenewalDays"
+    _ari_pinned="1"
   fi
 
   if [ "$CA_BUNDLE" ]; then
@@ -6227,15 +6259,25 @@ $_authorizations_map"
     Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
   fi
 
-  # RFC 9773 ARI: if the CA exposes renewalInfo, override Le_NextRenewTime
-  # with a time picked at random within the suggestedWindow. This both gives
-  # the CA full control over renewal scheduling and disperses renewals across
-  # the network so all clients don't hit the CA at the same instant.
+  # RFC 9773 ARI: if the CA exposes renewalInfo, take Le_NextRenewTime from
+  # the suggestedWindow. This gives the CA control over renewal scheduling and
+  # disperses renewals across the network so all clients don't hit the CA at
+  # the same instant.
+  # An explicit --days or --valid-to wins over the window, except when the CA
+  # wants the cert renewed EARLIER than the user asked for: an urgent renewal
+  # must still get through. A fixed-date --valid-to opts out entirely, because
+  # there the cert is pinned to an expiry and is not renewed automatically at
+  # all -- letting ARI pull it forward would change that, not just its timing.
   # Set NO_ARI=1 (env, account.conf, or ca.conf) to opt out and fall back to
   # the legacy time-based renewal calculation.
+  if [ "$_notAfter" ]; then
+    _ari_pinned="1"
+  fi
   if [ "$NO_ARI" = "1" ]; then
     _debug "NO_ARI=1, skipping ARI suggestedWindow override"
-  elif [ "$ACME_RENEWAL_INFO" ] && [ -f "$CERT_PATH" ] && [ -z "$_notAfter" ]; then
+  elif [ "$_valid_to" ] && ! _startswith "$_valid_to" "+"; then
+    _debug "Fixed --valid-to, skipping ARI suggestedWindow override"
+  elif [ "$ACME_RENEWAL_INFO" ] && [ -f "$CERT_PATH" ]; then
     _ari_resp_new="$(_get_ARI "$CERT_PATH")"
     _debug2 "_ari_resp_new" "$_ari_resp_new"
     _ari_start_new="$(echo "$_ari_resp_new" | _egrep_o '"start" *: *"[^"]*' | sed 's/.*"//')"
@@ -6243,13 +6285,15 @@ $_authorizations_map"
     if [ "$_ari_start_new" ] && [ "$_ari_end_new" ]; then
       _ari_start_t_new="$(_date2time "$(echo "$_ari_start_new" | sed 's/\.[0-9]*//')")"
       _ari_end_t_new="$(_date2time "$(echo "$_ari_end_new" | sed 's/\.[0-9]*//')")"
-      if [ "$_ari_start_t_new" ] && [ "$_ari_end_t_new" ] && [ "$_ari_end_t_new" -gt "$_ari_start_t_new" ]; then
-        _ari_window=$(_math "$_ari_end_t_new" - "$_ari_start_t_new")
-        _ari_offset=$(_math "$(_time)" % "$_ari_window")
-        Le_NextRenewTime=$(_math "$_ari_start_t_new" + "$_ari_offset")
+      _ari_next_new="$(_calc_ari_renew_time "$_ari_start_t_new" "$_ari_end_t_new" "$(_time)" "$Le_NextRenewTime" "$_ari_pinned")"
+      if [ "$_ari_next_new" ]; then
+        Le_NextRenewTime="$_ari_next_new"
         Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
         _info "ARI suggestedWindow: $(__green "$_ari_start_new") to $(__green "$_ari_end_new")"
         _info "Next renewal time picked from ARI window: $(__green "$Le_NextRenewTimeStr")"
+      elif [ "$_ari_pinned" ]; then
+        _info "ARI suggestedWindow: $(__green "$_ari_start_new") to $(__green "$_ari_end_new")"
+        _info "It is later than the renewal time you asked for, keeping: $(__green "$Le_NextRenewTimeStr")"
       fi
     fi
   fi
@@ -6392,10 +6436,21 @@ renew() {
 
   # ARI (RFC 9773): fetch the CA's suggestedWindow on every renewal check.
   # If the window has started, renew now even if Le_NextRenewTime is in the future.
+  # Le_RenewalDays and Le_Valid_To are only in the domain conf when the user
+  # passed --days or --valid-to, so their presence is what pins the schedule.
+  # A pinned schedule still yields to a window that is EARLIER than it, so the
+  # CA can pull an urgent renewal forward. A fixed-date --valid-to opts out
+  # entirely: that cert is not renewed automatically at all.
   # Set NO_ARI=1 (env, account.conf, or ca.conf) to opt out and use only
   # Le_NextRenewTime for the renewal decision.
+  _ari_pinned=""
+  if [ "$Le_RenewalDays" ] || [ "$Le_Valid_To" ]; then
+    _ari_pinned="1"
+  fi
   if [ "$NO_ARI" = "1" ]; then
     _debug "NO_ARI=1, skipping ARI suggestedWindow check"
+  elif [ "$Le_Valid_To" ] && ! _startswith "$Le_Valid_To" "+"; then
+    _debug "Fixed --valid-to, skipping ARI suggestedWindow check"
   elif [ -z "$FORCE" ] && [ -f "$CERT_PATH" ]; then
     if _initAPI && [ "$ACME_RENEWAL_INFO" ]; then
       _ari_resp="$(_get_ARI "$CERT_PATH")"
@@ -6414,16 +6469,19 @@ renew() {
         _debug "Le_NextRenewTime" "$Le_NextRenewTime"
         # Update ARI if needed
         if [ "$_ari_start_t" ] && [ "$_ari_end_t" ] && [ "$Le_NextRenewTime" ] && [ "$_ari_end_t" -gt "$_ari_start_t" ] && ([ "$Le_NextRenewTime" -lt "$_ari_start_t" ] || [ "$Le_NextRenewTime" -gt "$_ari_end_t" ]); then
-          _ari_old_time_str="$Le_NextRenewTimeStr"
-          _info "Current renewal time: $(__green "$_ari_old_time_str")"
-          _ari_window=$(_math "$_ari_end_t" - "$_ari_start_t")
-          _ari_offset=$(_math "$(_time)" % "$_ari_window")
-          Le_NextRenewTime=$(_math "$_ari_start_t" + "$_ari_offset")
-          Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
-          _info "ARI suggestedWindow: $(__green "$_ari_start") to $(__green "$_ari_end")"
-          _info "Updating renewal time picked from ARI window: $(__green "$Le_NextRenewTimeStr")"
-          _savedomainconf Le_NextRenewTime "$Le_NextRenewTime"
-          _savedomainconf Le_NextRenewTimeStr "$Le_NextRenewTimeStr"
+          _ari_next="$(_calc_ari_renew_time "$_ari_start_t" "$_ari_end_t" "$(_time)" "$Le_NextRenewTime" "$_ari_pinned")"
+          if [ "$_ari_next" ]; then
+            _ari_old_time_str="$Le_NextRenewTimeStr"
+            _info "Current renewal time: $(__green "$_ari_old_time_str")"
+            Le_NextRenewTime="$_ari_next"
+            Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+            _info "ARI suggestedWindow: $(__green "$_ari_start") to $(__green "$_ari_end")"
+            _info "Updating renewal time picked from ARI window: $(__green "$Le_NextRenewTimeStr")"
+            _savedomainconf Le_NextRenewTime "$Le_NextRenewTime"
+            _savedomainconf Le_NextRenewTimeStr "$Le_NextRenewTimeStr"
+          else
+            _debug "ARI wants a later renewal than --days/--valid-to asked for, keeping $Le_NextRenewTimeStr"
+          fi
         fi
         if [ "$Le_NextRenewTime" ] && [ "$(_time)" -ge "$Le_NextRenewTime" ]; then
           _info "ARI suggested renewal has passed ($(__green "$Le_NextRenewTimeStr")), proceeding with renewal."
