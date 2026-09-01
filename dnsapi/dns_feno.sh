@@ -6,7 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_feno
 Options:
  FENO_API_KEY API key with the acme:write scope (feno_live_...)
  FENO_API_BASE API base URL. Optional. Default: "https://api.feno.no".
-Issues: github.com/mrerikcodes/feno-api/issues
+Issues: github.com/acmesh-official/acme.sh/issues/7228
 Author: Erik Nilsen <eriknilsen02@hotmail.com>
 '
 
@@ -183,7 +183,14 @@ _get_root() {
 
     if _contains "$response" '"success":true'; then
       _domain="$h"
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
+      if [ "$i" = "1" ]; then
+        # The fulldomain IS the zone. DNS alias mode can point the challenge at a delegated
+        # _acme-challenge zone, and then the record belongs at the apex - taking the first
+        # label here would create it at "kunde.kunde.no" instead.
+        _sub_domain=""
+      else
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
+      fi
       return 0
     fi
 
@@ -213,18 +220,32 @@ _feno_auth_error() {
 # Echo the id of the TXT record with relative name $1 and value $2, or nothing at all.
 #
 # The JSON array is split at "{" so each record lands on its own line - the payload has no
-# nested objects, so that is enough, and it spares the customer a jq dependency. The quotes
-# inside the grep patterns are load-bearing: they make "_acme-challenge" match the record
-# named exactly that, and NOT "_acme-challenge.www".
+# nested objects, so that is enough, and it spares the customer a jq dependency. Matching is
+# done with quoted "case" patterns rather than grep: quoting makes every character literal,
+# so no "grep -F" is needed (Solaris /usr/bin/grep has no -F). The quotes inside the patterns
+# are load-bearing - they make "_acme-challenge" match the record named exactly that, and
+# NOT "_acme-challenge.www".
+#
+# DNS names are case-insensitive, the challenge value is not, so only the name is folded.
 _feno_find_record_id() {
   _find_name=$1
   _find_value=$2
 
-  _line=$(printf "%s" "$response" | tr '{' '\n' |
-    grep -F "\"value\":\"$_find_value\"" |
-    grep -F '"type":"TXT"' |
-    grep -iF "\"name\":\"$_find_name\"" |
-    _head_n 1)
+  _find_name_lower=$(printf "%s" "$_find_name" | _lower_case)
+
+  _line=$(printf "%s\n" "$response" | tr '{' '\n' | while IFS= read -r _fline; do
+    case "$_fline" in
+    *"\"value\":\"$_find_value\""*)
+      case "$_fline" in
+      *'"type":"TXT"'*)
+        case "$(printf "%s" "$_fline" | _lower_case)" in
+        *"\"name\":\"$_find_name_lower\""*) printf "%s\n" "$_fline" ;;
+        esac
+        ;;
+      esac
+      ;;
+    esac
+  done | _head_n 1)
 
   if [ -z "$_line" ]; then
     return 0
