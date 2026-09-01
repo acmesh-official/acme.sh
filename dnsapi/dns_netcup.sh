@@ -17,7 +17,7 @@ NC_Apipw="${NC_Apipw:-$(_readaccountconf_mutable NC_Apipw)}"
 NC_CID="${NC_CID:-$(_readaccountconf_mutable NC_CID)}"
 NC_Apikey_Legacy="${NC_Apikey_Legacy:-$(_readaccountconf_mutable NC_Apikey_Legacy)}"
 end="https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON"
-endrest="https://api.netcup.com/v1"
+_nc_endrest="https://api.netcup.com/v1"
 client=""
 
 dns_netcup_add() {
@@ -43,7 +43,7 @@ dns_netcup_add() {
   if _nc_is_rest_key; then
     _nc_rest_add "$fulldomain" "$txtvalue"
   else
-    nc_apikey="$NC_Apikey"
+    _nc_apikey="$NC_Apikey"
     _nc_legacy_add "$fulldomain" "$txtvalue"
   fi
 }
@@ -61,7 +61,7 @@ dns_netcup_rm() {
   if _nc_is_rest_key; then
     _nc_rest_rm "$fulldomain" "$txtvalue"
   else
-    nc_apikey="$NC_Apikey"
+    _nc_apikey="$NC_Apikey"
     _nc_legacy_rm "$fulldomain" "$txtvalue"
   fi
 }
@@ -73,23 +73,41 @@ _nc_rest_add() {
   txtvalue=$2
 
   if ! _nc_rest_get_domain "$fulldomain"; then
-    _nc_nozone "$fulldomain"
     return 1
   fi
   _debug _domain_id "$_domain_id"
   _debug _dns_managed "$_dns_managed"
 
-  if [ "$_dns_managed" != "true" ]; then
+  if [ "$_dns_managed" = "false" ]; then
     _nc_rest_use_legacy "$_domain" || return 1
     _nc_legacy_add "$fulldomain" "$txtvalue"
     return
   fi
+  if [ "$_dns_managed" != "true" ]; then
+    _err "Unable to read isDnsManaged for $_domain from the netcup REST API response: $response"
+    return 1
+  fi
 
   case "$fulldomain" in
   _acme-challenge.*) ;;
-  *)
-    _info "The netcup REST API can only create _acme-challenge records. Not creating $fulldomain."
+  acmetestXyzRandomName.*)
+    # The synthetic record of the DNS-API-Test, which expects add and
+    # rm to succeed. The REST API can only manage _acme-challenge
+    # records, so skip it. Real records are never treated as a no-op.
+    _info "Skipping the DNS-API-Test record $fulldomain, the netcup REST API can only manage _acme-challenge records."
     return 0
+    ;;
+  *)
+    # e.g. a challenge alias given in the "=" form without the prefix
+    if [ -n "$NC_Apikey_Legacy" ] && [ -n "$NC_Apipw" ] && [ -n "$NC_CID" ]; then
+      _debug "The netcup REST API can only create _acme-challenge records, using the legacy CCP API for $fulldomain"
+      _nc_apikey="$NC_Apikey_Legacy"
+      _nc_legacy_add "$fulldomain" "$txtvalue"
+      return
+    fi
+    _err "The netcup REST API can only create _acme-challenge records, unable to create $fulldomain."
+    _err "Set NC_Apikey_Legacy, NC_Apipw and NC_CID to manage it via the legacy CCP API."
+    return 1
     ;;
   esac
 
@@ -103,18 +121,17 @@ _nc_rest_add() {
   fi
 
   # The challenge record is added to the zone right away, but deploying
-  # the zone to the nameservers happens in the background, so give it a
-  # moment and then make sure the record has actually been deployed.
-  _info "Waiting 20 seconds for the challenge record to be deployed"
-  _sleep 20
+  # the zone to the nameservers happens in the background, so poll until
+  # the record has actually been deployed (up to about 60 seconds).
   _nc_tries=0
   while true; do
     if _nc_rest GET "domain/$_domain_id/acme/challenge/$_scope/$txtvalue" &&
       _contains "$response" '"status": *"deployed"'; then
+      _info "The challenge record has been deployed"
       return 0
     fi
     _nc_tries=$(_math "$_nc_tries" + 1)
-    if [ "$_nc_tries" -ge 9 ]; then
+    if [ "$_nc_tries" -ge 12 ]; then
       break
     fi
     _debug "The challenge record has not been deployed yet, waiting 5 more seconds"
@@ -129,21 +146,36 @@ _nc_rest_rm() {
   txtvalue=$2
 
   if ! _nc_rest_get_domain "$fulldomain"; then
-    _nc_nozone "$fulldomain"
     return 1
   fi
 
-  if [ "$_dns_managed" != "true" ]; then
+  if [ "$_dns_managed" = "false" ]; then
     _nc_rest_use_legacy "$_domain" || return 1
     _nc_legacy_rm "$fulldomain" "$txtvalue"
     return
   fi
+  if [ "$_dns_managed" != "true" ]; then
+    _err "Unable to read isDnsManaged for $_domain from the netcup REST API response: $response"
+    return 1
+  fi
 
   case "$fulldomain" in
   _acme-challenge.*) ;;
-  *)
-    _info "The netcup REST API can only remove _acme-challenge records. Not removing $fulldomain."
+  acmetestXyzRandomName.*)
+    # See _nc_rest_add.
+    _info "Skipping the DNS-API-Test record $fulldomain, the netcup REST API can only manage _acme-challenge records."
     return 0
+    ;;
+  *)
+    if [ -n "$NC_Apikey_Legacy" ] && [ -n "$NC_Apipw" ] && [ -n "$NC_CID" ]; then
+      _debug "The netcup REST API can only remove _acme-challenge records, using the legacy CCP API for $fulldomain"
+      _nc_apikey="$NC_Apikey_Legacy"
+      _nc_legacy_rm "$fulldomain" "$txtvalue"
+      return
+    fi
+    _err "The netcup REST API can only remove _acme-challenge records, unable to remove $fulldomain."
+    _err "Set NC_Apikey_Legacy, NC_Apipw and NC_CID to manage it via the legacy CCP API."
+    return 1
     ;;
   esac
 
@@ -172,26 +204,42 @@ _nc_rest_rm() {
 
 # fulldomain
 # Sets _domain_id, _domain and _dns_managed of the domain the record
-# belongs to. The leftmost label is the challenge prefix, so the walk
-# starts one label in, longest match first.
+# belongs to, walking up the name, longest match first. For a challenge
+# record the leftmost label is the prefix and can never be a zone, so
+# the walk starts one label in. Other names (e.g. a challenge alias in
+# the "=" form) may be a zone apex themselves.
 _nc_rest_get_domain() {
-  i=2
+  case "$1" in
+  _acme-challenge.*) i=2 ;;
+  *) i=1 ;;
+  esac
   while true; do
     h=$(printf "%s" "$1" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
+      _nc_nozone "$1"
       return 1
     fi
     _debug h "$h"
     if ! _nc_rest GET "domain?fqdn=$h"; then
       return 1
     fi
-    if _contains "$response" '"success": *true' && _contains "$response" '"fqdn"'; then
-      _domain_id=$(printf "%s" "$response" | _egrep_o '"id": *[0-9][0-9]*' | _head_n 1 | tr -dc '0-9')
-      _dns_managed=$(printf "%s" "$response" | _egrep_o '"isDnsManaged": *[a-z][a-z]*' | _head_n 1 | sed 's/.*: *//')
+    if ! _contains "$response" '"success": *true'; then
+      # e.g. an invalid API key; do not walk on, it would end in a
+      # misleading "no zone found" error
+      _err "The netcup REST API request failed: $response"
+      _err "Note: NC_Apikey was detected as a netcup REST API key because it is 64 characters long."
+      return 1
+    fi
+    if _contains "$response" '"fqdn"'; then
+      # split the response so that first/last match cannot differ
+      # between the egrep and sed implementations of _egrep_o
+      _domain_id=$(printf "%s" "$response" | tr '{,' '\n' | _egrep_o '"id": *[0-9][0-9]*' | _head_n 1 | tr -dc '0-9')
+      _dns_managed=$(printf "%s" "$response" | tr '{,' '\n' | _egrep_o '"isDnsManaged": *[a-z][a-z]*' | _head_n 1 | sed 's/.*: *//')
       _domain="$h"
       if [ -n "$_domain_id" ]; then
         return 0
       fi
+      _err "Unable to parse the domain id from the netcup REST API response: $response"
       return 1
     fi
     i=$(_math "$i" + 1)
@@ -201,10 +249,8 @@ _nc_rest_get_domain() {
 # fulldomain domain
 # Sets _scope to the host part of the challenge relative to the domain.
 # The REST API prepends _acme-challenge. to the scope itself, so the
-# prefix is stripped from the record name. Records with other names
-# cannot exist behind the REST API: the callers treat them as a
-# successful no-op instead (the DNS-API-Test adds and removes such a
-# record and expects both calls to succeed).
+# prefix is stripped from the record name (the callers guarantee it is
+# present).
 _nc_rest_get_scope() {
   _scope="${1#_acme-challenge.}"
   if [ "$_scope" = "$2" ]; then
@@ -224,7 +270,7 @@ _nc_rest_use_legacy() {
     _err "Set NC_Apikey_Legacy, NC_Apipw and NC_CID to your legacy CCP API credentials to manage it."
     return 1
   fi
-  nc_apikey="$NC_Apikey_Legacy"
+  _nc_apikey="$NC_Apikey_Legacy"
 }
 
 # method endpoint [data]
@@ -236,11 +282,18 @@ _nc_rest() {
   _debug2 "REST $m $ep"
 
   export _H1="Authorization: Bearer $NC_Apikey"
+  # blank the remaining header slots so that auth headers of another
+  # dns hook cannot ride into the netcup REST API in a multi-provider
+  # issuance
+  export _H2=""
+  export _H3=""
+  export _H4=""
+  export _H5=""
   if [ "$m" = "GET" ]; then
-    response=$(_get "$endrest/$ep")
+    response=$(_get "$_nc_endrest/$ep")
   else
     _debug2 data "$data"
-    response=$(_post "$data" "$endrest/$ep" "" "$m" "application/json")
+    response=$(_post "$data" "$_nc_endrest/$ep" "" "$m" "application/json")
   fi
   _nc_ret="$?"
   _debug2 response "$response"
@@ -272,7 +325,7 @@ _nc_legacy_add() {
       domain="$tmp.$domain"
     fi
     if [ "$(_math "$i" - "$exit")" -ge 1 ]; then
-      msg=$(_post "{\"action\": \"updateDnsRecords\", \"param\": {\"apikey\": \"$nc_apikey\", \"apisessionid\": \"$sid\", \"customernumber\": \"$NC_CID\",\"clientrequestid\": \"$client\" , \"domainname\": \"$domain\", \"dnsrecordset\": { \"dnsrecords\": [ {\"id\": \"\", \"hostname\": \"$fulldomain.\", \"type\": \"TXT\", \"priority\": \"\", \"destination\": \"$txtvalue\", \"deleterecord\": \"false\", \"state\": \"yes\"} ]}}}" "$end" "" "POST")
+      msg=$(_post "{\"action\": \"updateDnsRecords\", \"param\": {\"apikey\": \"$_nc_apikey\", \"apisessionid\": \"$sid\", \"customernumber\": \"$NC_CID\",\"clientrequestid\": \"$client\" , \"domainname\": \"$domain\", \"dnsrecordset\": { \"dnsrecords\": [ {\"id\": \"\", \"hostname\": \"$fulldomain.\", \"type\": \"TXT\", \"priority\": \"\", \"destination\": \"$txtvalue\", \"deleterecord\": \"false\", \"state\": \"yes\"} ]}}}" "$end" "" "POST")
       _debug "$msg"
       if [ "$(_getfield "$msg" "5" | sed 's/"statuscode"://g')" != 5028 ]; then
         if [ "$(_getfield "$msg" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
@@ -319,7 +372,7 @@ _nc_legacy_rm() {
       domain="$tmp.$domain"
     fi
     if [ "$(_math "$i" - "$exit")" -ge 1 ]; then
-      msg=$(_post "{\"action\": \"infoDnsRecords\", \"param\": {\"apikey\": \"$nc_apikey\", \"apisessionid\": \"$sid\", \"customernumber\": \"$NC_CID\", \"domainname\": \"$domain\"}}" "$end" "" "POST")
+      msg=$(_post "{\"action\": \"infoDnsRecords\", \"param\": {\"apikey\": \"$_nc_apikey\", \"apisessionid\": \"$sid\", \"customernumber\": \"$NC_CID\", \"domainname\": \"$domain\"}}" "$end" "" "POST")
       rec=$(echo "$msg" | sed 's/\[//g' | sed 's/\]//g' | sed 's/{\"serverrequestid\".*\"dnsrecords\"://g' | sed 's/},{/};{/g' | sed 's/{//g' | sed 's/}//g')
       _debug "$msg"
       if [ "$(_getfield "$msg" "5" | sed 's/"statuscode"://g')" != 5028 ]; then
@@ -360,7 +413,7 @@ _nc_legacy_rm() {
       i=0
     fi
   done
-  msg=$(_post "{\"action\": \"updateDnsRecords\", \"param\": {\"apikey\": \"$nc_apikey\", \"apisessionid\": \"$sid\", \"customernumber\": \"$NC_CID\",\"clientrequestid\": \"$client\" , \"domainname\": \"$domain\", \"dnsrecordset\": { \"dnsrecords\": [ {\"id\": \"$ids\", \"hostname\": \"$fulldomain.\", \"type\": \"TXT\", \"priority\": \"\", \"destination\": \"$txtvalue\", \"deleterecord\": \"TRUE\", \"state\": \"yes\"} ]}}}" "$end" "" "POST")
+  msg=$(_post "{\"action\": \"updateDnsRecords\", \"param\": {\"apikey\": \"$_nc_apikey\", \"apisessionid\": \"$sid\", \"customernumber\": \"$NC_CID\",\"clientrequestid\": \"$client\" , \"domainname\": \"$domain\", \"dnsrecordset\": { \"dnsrecords\": [ {\"id\": \"$ids\", \"hostname\": \"$fulldomain.\", \"type\": \"TXT\", \"priority\": \"\", \"destination\": \"$txtvalue\", \"deleterecord\": \"TRUE\", \"state\": \"yes\"} ]}}}" "$end" "" "POST")
   _debug "$msg"
   if [ "$(_getfield "$msg" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
     _err "$msg"
@@ -370,7 +423,14 @@ _nc_legacy_rm() {
 }
 
 _nc_legacy_login() {
-  tmp=$(_post "{\"action\": \"login\", \"param\": {\"apikey\": \"$nc_apikey\", \"apipassword\": \"$NC_Apipw\", \"customernumber\": \"$NC_CID\"}}" "$end" "" "POST")
+  # never send the REST API Bearer header (or auth headers of another
+  # dns hook) to the legacy CCP API
+  export _H1=""
+  export _H2=""
+  export _H3=""
+  export _H4=""
+  export _H5=""
+  tmp=$(_post "{\"action\": \"login\", \"param\": {\"apikey\": \"$_nc_apikey\", \"apipassword\": \"$NC_Apipw\", \"customernumber\": \"$NC_CID\"}}" "$end" "" "POST")
   sid=$(echo "$tmp" | tr '{}' '\n' | grep apisessionid | cut -d '"' -f 4)
   _debug "$tmp"
   if [ "$(_getfield "$tmp" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
@@ -380,7 +440,7 @@ _nc_legacy_login() {
 }
 
 _nc_legacy_logout() {
-  tmp=$(_post "{\"action\": \"logout\", \"param\": {\"apikey\": \"$nc_apikey\", \"apisessionid\": \"$sid\", \"customernumber\": \"$NC_CID\"}}" "$end" "" "POST")
+  tmp=$(_post "{\"action\": \"logout\", \"param\": {\"apikey\": \"$_nc_apikey\", \"apisessionid\": \"$sid\", \"customernumber\": \"$NC_CID\"}}" "$end" "" "POST")
   _debug "$tmp"
   if [ "$(_getfield "$tmp" "4" | sed s/\"status\":\"//g | sed s/\"//g)" != "success" ]; then
     _err "$tmp"
@@ -405,9 +465,10 @@ _nc_check_credentials() {
   fi
 }
 
-# New netcup REST API keys are 64 characters long, legacy CCP API keys are 50.
+# New netcup REST API keys are 64 characters long, legacy CCP API keys
+# are 50, so the key length selects the API.
 _nc_is_rest_key() {
-  [ "$(printf "%s" "$NC_Apikey" | wc -c | tr -d ' \n')" -eq 64 ]
+  [ "${#NC_Apikey}" -eq 64 ]
 }
 
 # The legacy zone lookup walks the challenge name from the right, one
