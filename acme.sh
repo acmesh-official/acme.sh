@@ -2377,6 +2377,21 @@ _is_gateway_error() {
 }
 
 #response
+#Does the CA say the order cannot be finalized yet? By the time acme.sh
+#finalizes, every authorization is valid, and an order becomes ready as
+#soon as they all are -- so this is the CA's own state lagging, not a
+#refusal. A struggling CA lags: ZeroSSL answered this on 2026-08-31 forty
+#seconds after the authorization went valid, in the middle of the 502s it
+#was serving that morning. Waiting is the answer, not abandoning an order
+#whose challenges have all passed.
+_is_order_not_ready() {
+  case "$1" in
+  *acme:error:orderNotReady*) return 0 ;;
+  esac
+  return 1
+}
+
+#response
 #Does the CA's answer to a revokeCert mean the certificate is revoked? An
 #empty body is the plain success. urn:ietf:params:acme:error:alreadyRevoked
 #is "The request specified a certificate to be revoked that has already been
@@ -5933,11 +5948,25 @@ $_authorizations_map"
 
   _info "Let's finalize the order."
   _info "Le_OrderFinalize" "$Le_OrderFinalize"
-  if ! _send_signed_request "${Le_OrderFinalize}" "{\"csr\": \"$der\"}"; then
-    _err "Signing failed."
-    _on_issue_err "$_post_hook"
-    return 1
-  fi
+  _finalize_retry=0
+  MAX_FINALIZE_RETRY_TIMES=10
+  while [ "$_finalize_retry" -lt "$MAX_FINALIZE_RETRY_TIMES" ]; do
+    _finalize_retry=$(_math "$_finalize_retry" + 1)
+    if ! _send_signed_request "${Le_OrderFinalize}" "{\"csr\": \"$der\"}"; then
+      _err "Signing failed."
+      _on_issue_err "$_post_hook"
+      return 1
+    fi
+    if [ "$code" = "200" ]; then
+      break
+    fi
+    if ! _is_order_not_ready "$response"; then
+      break
+    fi
+    _finalize_wait_sec="$(_retry_backoff_sec "$_finalize_retry")"
+    _info "The order is not ready to be finalized yet, waiting $_finalize_wait_sec seconds. ($_finalize_retry/$MAX_FINALIZE_RETRY_TIMES)"
+    _sleep "$_finalize_wait_sec"
+  done
   if [ "$code" != "200" ]; then
     _err "Signing failed. Finalize code was not 200."
     _err "$response"
