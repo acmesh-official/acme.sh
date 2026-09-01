@@ -223,23 +223,29 @@ _nc_rest_get_domain() {
     if ! _nc_rest GET "domain?fqdn=$h"; then
       return 1
     fi
-    if ! _contains "$response" '"success": *true'; then
+    if _contains "$response" '"success": *true'; then
+      if _contains "$response" '"fqdn"'; then
+        # split the response so that first/last match cannot differ
+        # between the egrep and sed implementations of _egrep_o
+        _domain_id=$(printf "%s" "$response" | tr '{,' '\n' | _egrep_o '"id": *[0-9][0-9]*' | _head_n 1 | tr -dc '0-9')
+        _dns_managed=$(printf "%s" "$response" | tr '{,' '\n' | _egrep_o '"isDnsManaged": *[a-z][a-z]*' | _head_n 1 | sed 's/.*: *//')
+        _domain="$h"
+        if [ -n "$_domain_id" ]; then
+          return 0
+        fi
+        _err "Unable to parse the domain id from the netcup REST API response: $response"
+        return 1
+      fi
+      # an empty result, $h is not a domain of this account: walk on
+    elif _contains "$response" '"code": *"resourceDoesNotExist"'; then
+      # the API reports a domain that is not in this account with
+      # success:false and this error code: walk on
+      _debug "$h is not a domain of this account"
+    else
       # e.g. an invalid API key; do not walk on, it would end in a
       # misleading "no zone found" error
       _err "The netcup REST API request failed: $response"
       _err "Note: NC_Apikey was detected as a netcup REST API key because it is 64 characters long."
-      return 1
-    fi
-    if _contains "$response" '"fqdn"'; then
-      # split the response so that first/last match cannot differ
-      # between the egrep and sed implementations of _egrep_o
-      _domain_id=$(printf "%s" "$response" | tr '{,' '\n' | _egrep_o '"id": *[0-9][0-9]*' | _head_n 1 | tr -dc '0-9')
-      _dns_managed=$(printf "%s" "$response" | tr '{,' '\n' | _egrep_o '"isDnsManaged": *[a-z][a-z]*' | _head_n 1 | sed 's/.*: *//')
-      _domain="$h"
-      if [ -n "$_domain_id" ]; then
-        return 0
-      fi
-      _err "Unable to parse the domain id from the netcup REST API response: $response"
       return 1
     fi
     i=$(_math "$i" + 1)
