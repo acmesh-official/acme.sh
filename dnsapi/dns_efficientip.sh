@@ -92,6 +92,30 @@ dns_efficientip_add() {
   fi
 }
 
+# Build the EfficientIP auth headers for a single request.
+# SOLIDserver's SDS token signature is computed over secret\nTS\nMETHOD\nURL,
+# so it must be regenerated for every request (the URL and method differ
+# between the dns_rr_list lookup and the dns_rr_delete). This helper sets
+# _H1/_H2/_H3 for the given METHOD ($1) and full request URL ($2).
+_efficientip_set_auth() {
+  _eip_method="$1"
+  _eip_url="$2"
+
+  export _H1="Accept-Language:en-US"
+
+  if [ -z "${EfficientIP_Token_Secret}" ] || [ -z "${EfficientIP_Token_Key}" ]; then
+    EfficientIP_CredsEncoded=$(printf "%b" "${EfficientIP_Creds}" | _base64)
+    export _H2="Authorization: Basic ${EfficientIP_CredsEncoded}"
+    unset _H3 2>/dev/null || _H3=""
+  else
+    TS=$(date +%s)
+    Sig=$(printf "%b\n$TS\n%s\n%s" "${EfficientIP_Token_Secret}" "${_eip_method}" "${_eip_url}" | _digest sha3-256 hex)
+    EfficientIP_CredsEncoded=$(printf "%b:%b" "${EfficientIP_Token_Key}" "$Sig")
+    export _H2="Authorization: SDS ${EfficientIP_CredsEncoded}"
+    export _H3="X-SDS-TS: ${TS}"
+  fi
+}
+
 dns_efficientip_rm() {
   fulldomain=$1
   txtvalue=$2
@@ -102,31 +126,44 @@ dns_efficientip_rm() {
 
   EfficientIP_ViewEncoded=$(printf "%b" "${EfficientIP_View}" | _url_encode)
   EfficientIP_DNSNameEncoded=$(printf "%b" "${EfficientIP_DNS_Name}" | _url_encode)
-  EfficientIP_CredsEncoded=$(printf "%b" "${EfficientIP_Creds}" | _base64)
 
-  export _H1="Accept-Language:en-US"
+  # Step 1: resolve the record's rr_id.
+  # On smart architectures SOLIDserver stores the FQDN in rr_full_name (the
+  # relative label lives in rr_glue), so deleting by rr_name does not resolve
+  # to a unique record and the API no-ops with {"connected":false}. We must
+  # look the record up and delete by its unambiguous rr_id instead (this also
+  # matches the vendor's own documented delete example).
+  _eip_where="rr_full_name='${fulldomain}' and rr_type='TXT' and value1='${txtvalue}'"
+  _eip_where_encoded=$(printf "%b" "${_eip_where}" | _url_encode)
 
-  baseurlnObject="https://${EfficientIP_Server}/rest/dns_rr_delete?rr_type=TXT&rr_name=$fulldomain&rr_value1=$txtvalue"
+  listurl="https://${EfficientIP_Server}/rest/dns_rr_list?WHERE=${_eip_where_encoded}"
   if [ "${EfficientIP_DNSNameEncoded}" != "" ]; then
-    baseurlnObject="${baseurlnObject}&dns_name=${EfficientIP_DNSNameEncoded}"
+    listurl="${listurl}&dns_name=${EfficientIP_DNSNameEncoded}"
   fi
-
   if [ "${EfficientIP_ViewEncoded}" != "" ]; then
-    baseurlnObject="${baseurlnObject}&dnsview_name=${EfficientIP_ViewEncoded}"
+    listurl="${listurl}&dnsview_name=${EfficientIP_ViewEncoded}"
   fi
 
-  if [ -z "$EfficientIP_Token_Secret" ] || [ -z "$EfficientIP_Token_Key" ]; then
-    EfficientIP_CredsEncoded=$(printf "%b" "${EfficientIP_Creds}" | _base64)
-    export _H2="Authorization: Basic $EfficientIP_CredsEncoded"
-  else
-    TS=$(date +%s)
-    Sig=$(printf "%b\n$TS\nDELETE\n${baseurlnObject}" "${EfficientIP_Token_Secret}" | _digest sha3-256 hex)
-    EfficientIP_CredsEncoded=$(printf "%b:%b" "${EfficientIP_Token_Key}" "$Sig")
-    export _H2="Authorization: SDS ${EfficientIP_CredsEncoded}"
-    export _H3="X-SDS-TS: $TS"
-  fi
+  _efficientip_set_auth "GET" "${listurl}"
+  listresult="$(_get "${listurl}")"
+  _debug2 listresult "${listresult}"
 
-  result="$(_post "" "${baseurlnObject}" "" "DELETE")"
+  # Extract the first rr_id from the JSON list response.
+  rr_id="$(echo "${listresult}" | _egrep_o '"rr_id" *: *"[0-9]+"' | _egrep_o '[0-9]+' | head -n 1)"
+
+  if [ -z "${rr_id}" ]; then
+    _err "Error deleting DNS record: could not find rr_id for ${fulldomain}"
+    _err "${listresult}"
+    return 1
+  fi
+  _debug rr_id "${rr_id}"
+
+  # Step 2: delete by rr_id.
+  deleteurl="https://${EfficientIP_Server}/rest/dns_rr_delete?rr_id=${rr_id}"
+
+  _efficientip_set_auth "DELETE" "${deleteurl}"
+  result="$(_post "" "${deleteurl}" "" "DELETE")"
+  _debug2 result "${result}"
 
   if [ "$(echo "${result}" | _egrep_o "ret_oid")" ]; then
     _info "DNS Record successfully deleted"
