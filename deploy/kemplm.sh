@@ -48,6 +48,17 @@ kemplm_deploy() {
     return 1
   fi
 
+  # Require an explicit, previously-authorized target to prevent a caller who only
+  # holds the acme.sh credential from silently redirecting the deploy to an
+  # arbitrary/unauthorized Kemp Loadmaster endpoint.
+  _getdeployconf DEPLOY_KEMP_URL_AUTHORIZED
+  if [ -z "$DEPLOY_KEMP_URL_AUTHORIZED" ]; then
+    _savedeployconf DEPLOY_KEMP_URL_AUTHORIZED "$DEPLOY_KEMP_URL"
+  elif [ "$DEPLOY_KEMP_URL_AUTHORIZED" != "$DEPLOY_KEMP_URL" ]; then
+    _err "DEPLOY_KEMP_URL does not match the previously authorized Kemp Loadmaster endpoint. Refusing to deploy."
+    return 1
+  fi
+
   # Save current values
   _savedeployconf DEPLOY_KEMP_TOKEN "$DEPLOY_KEMP_TOKEN"
   _savedeployconf DEPLOY_KEMP_URL "$DEPLOY_KEMP_URL"
