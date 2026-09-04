@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-
+shellcheck disable=SC2016
 # TrueNAS deploy script for SCALE/CORE using websocket (websocat binary)
 # It is recommend to use a wildcard certificate
 #
