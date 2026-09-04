@@ -10,16 +10,13 @@ on:
       - '**.sh'
       - "Dockerfile"
       - '.github/workflows/dockerhub.yml'
-  # Rebuild the latest release tag weekly so a pinned version tag picks up
-  # Alpine package security updates (see issue 7209).
+  # A dispatch on a tag ref rebuilds that tag's own image; the weekly
+  # schedule (default branch only) dispatches the latest release tag so a
+  # pinned version tag picks up Alpine package security updates (issue 7209).
+  # master never publishes anything but latest.
   schedule:
     - cron: '17 3 * * 1'
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Release tag to rebuild (empty = latest release)'
-        required: false
-        default: ''
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
@@ -50,32 +47,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     needs: CheckToken
-    if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
+    if: "github.event_name != 'schedule' && contains(needs.CheckToken.outputs.hasToken, 'true')"
     permissions:
       contents: read
       packages: write
     steps:
-      - name: resolve the release tag to rebuild
-        id: rebuild
-        if: github.event_name != 'push'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          INPUT_TAG: ${{ github.event.inputs.tag }}
-        run: |
-          tag="$INPUT_TAG"
-          if [ -z "$tag" ]; then
-            tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name)"
-          fi
-          if [ -z "$tag" ]; then
-            echo "::error::cannot resolve the release tag to rebuild"
-            exit 1
-          fi
-          echo "rebuilding release tag ${tag}"
-          echo "tag=${tag}" >>"$GITHUB_OUTPUT"
       - name: checkout code
         uses: actions/checkout@v7
         with:
-          ref: ${{ steps.rebuild.outputs.tag }}
           persist-credentials: false
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -93,15 +72,12 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
       - name: build and push the image
-        env:
-          REBUILD_TAG: ${{ steps.rebuild.outputs.tag }}
         run: |
-          if [ -n "$REBUILD_TAG" ]; then
-            # scheduled/manual rebuild of an existing release tag
-            DOCKER_IMAGE_TAG=${REBUILD_TAG}
-          elif [[ $GITHUB_REF == refs/tags/* ]]; then
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
             DOCKER_IMAGE_TAG=${GITHUB_REF#refs/tags/}
-          elif [[ $GITHUB_REF == refs/heads/* ]]; then
+          fi
+
+          if [[ $GITHUB_REF == refs/heads/* ]]; then
             DOCKER_IMAGE_TAG=${GITHUB_REF#refs/heads/}
 
             if [[ $DOCKER_IMAGE_TAG == master ]]; then
@@ -117,13 +93,6 @@ jobs:
             DOCKER_LABELS+=(--label "${label}")
           done <<<"${DOCKER_METADATA_OUTPUT_LABELS}"
 
-          if [ -n "$REBUILD_TAG" ]; then
-            # the metadata action derived version/revision from the default
-            # branch; a later --label wins, so point them at the rebuilt tag
-            DOCKER_LABELS+=(--label "org.opencontainers.image.version=${REBUILD_TAG}")
-            DOCKER_LABELS+=(--label "org.opencontainers.image.revision=$(git rev-parse HEAD)")
-          fi
-
           docker buildx build \
             --tag ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG} \
             "${DOCKER_LABELS[@]}" \
@@ -136,3 +105,26 @@ jobs:
             --tag ghcr.io/${{ github.repository }}:${DOCKER_IMAGE_TAG} \
             ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG} \
             || echo "::warning::GHCR mirror failed; Docker Hub publish unaffected"
+
+  rebuild:
+    # weekly: dispatch this workflow on the latest release tag so the tag
+    # rebuilds its own image from its own commit and its own workflow file
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    permissions:
+      contents: read
+      actions: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: dispatch a rebuild of the latest release tag
+        run: |
+          tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name)"
+          if [ -z "$tag" ]; then
+            echo "::error::cannot resolve the latest release tag"
+            exit 1
+          fi
+          echo "dispatching a rebuild of ${tag}"
+          # fails with 422 when the tag's workflow file has no workflow_dispatch
+          # trigger (releases before this job existed); nothing to do then
+          gh workflow run dockerhub.yml --repo "${GITHUB_REPOSITORY}" --ref "${tag}"
