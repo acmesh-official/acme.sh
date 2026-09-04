@@ -10,7 +10,7 @@ Options:
  AZUREDNS_CLIENTSECRET Client Secret. Secret from creating the service principal
  AZUREDNS_MANAGEDIDENTITY Use Managed Identity. Use Managed Identity assigned to a resource instead of a service principal. "true"/"false"
  AZUREDNS_BEARERTOKEN Bearer Token. Used instead of service principal credentials or managed identity. Not saved, provide it on every run. Optional.
- AZUREDNS_PRIVATEZONE Use Azure Private DNS Zones instead of Public DNS Zones
+ AZUREDNS_PRIVATEZONE Use Azure Private DNS Zones instead of Public DNS Zones. "true"/"false"
 '
 
 wiki=https://github.com/acmesh-official/acme.sh/wiki/How-to-use-Azure-DNS
@@ -41,9 +41,10 @@ dns_azure_add() {
   _saveaccountconf_mutable AZUREDNS_SUBSCRIPTIONID "$AZUREDNS_SUBSCRIPTIONID"
 
   AZUREDNS_PRIVATEZONE="${AZUREDNS_PRIVATEZONE:-$(_readaccountconf_mutable AZUREDNS_PRIVATEZONE)}"
-  
-  #save plublic/private dns to account conf file.
-  _saveaccountconf_mutable AZUREDNS_PRIVATEZONE "$AZUREDNS_PRIVATEZONE"
+  if [ -z "$AZUREDNS_PRIVATEZONE" ]; then
+    #save public/private dns to account conf file.
+    _saveaccountconf_mutable AZUREDNS_PRIVATEZONE "$AZUREDNS_PRIVATEZONE"
+  fi
 
   AZUREDNS_MANAGEDIDENTITY="${AZUREDNS_MANAGEDIDENTITY:-$(_readaccountconf_mutable AZUREDNS_MANAGEDIDENTITY)}"
   if [ "$AZUREDNS_MANAGEDIDENTITY" = true ]; then
@@ -185,6 +186,8 @@ dns_azure_rm() {
     return 1
   fi
 
+  AZUREDNS_PRIVATEZONE="${AZUREDNS_PRIVATEZONE:-$(_readaccountconf_mutable AZUREDNS_PRIVATEZONE)}"
+
   AZUREDNS_MANAGEDIDENTITY="${AZUREDNS_MANAGEDIDENTITY:-$(_readaccountconf_mutable AZUREDNS_MANAGEDIDENTITY)}"
   if [ "$AZUREDNS_MANAGEDIDENTITY" = true ]; then
     _info "Using Azure managed identity"
@@ -244,7 +247,7 @@ dns_azure_rm() {
   _debug _domain "$_domain"
 
   if [ "$AZUREDNS_PRIVATEZONE" = true ]; then
-    _azure_api_version="2018-09-01"
+    _azure_api_version="2024-06-01"
     _azure_ttl_key="ttl"
     _azure_txt_key="txtRecords"
   else
@@ -419,7 +422,7 @@ _get_root() {
 
   if [ "$AZUREDNS_PRIVATEZONE" = true ]; then
     _azure_zone_type="privateDnsZones"
-    _azure_api_version="2018-09-01"
+    _azure_api_version="2024-06-01"
     _info "Querying private DNS zone"
   else
     _azure_zone_type="dnszones"
