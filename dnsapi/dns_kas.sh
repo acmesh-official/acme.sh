@@ -7,6 +7,7 @@ Options:
  KAS_Login API login name
  KAS_Authtype API auth type. Default: "plain"
  KAS_Authdata API auth data
+ KAS_OTP_Secret 2 Factor Authentication Shared Secret (optional requires oathtool)
 Issues: github.com/acmesh-official/acme.sh/issues/2715
 Author: squared GmbH <github@squaredgmbh.de>, Martin Kammerlander <martin.kammerlander@phlegx.com>, Marc-Oliver Lange <git@die-lang.es>
 '
@@ -146,6 +147,7 @@ _check_and_save() {
   KAS_Login="${KAS_Login:-$(_readaccountconf_mutable KAS_Login)}"
   KAS_Authtype="${KAS_Authtype:-$(_readaccountconf_mutable KAS_Authtype)}"
   KAS_Authdata="${KAS_Authdata:-$(_readaccountconf_mutable KAS_Authdata)}"
+  KAS_OTP_Secret="${KAS_OTP_Secret:-$(_readaccountconf_mutable KAS_OTP_Secret)}"
 
   if [ -z "$KAS_Login" ] || [ -z "$KAS_Authtype" ] || [ -z "$KAS_Authdata" ]; then
     KAS_Login=
@@ -157,6 +159,7 @@ _check_and_save() {
   _saveaccountconf_mutable KAS_Login "$KAS_Login"
   _saveaccountconf_mutable KAS_Authtype "$KAS_Authtype"
   _saveaccountconf_mutable KAS_Authdata "$KAS_Authdata"
+  _saveaccountconf_mutable KAS_OTP_Secret "$KAS_OTP_Secret"
   return 0
 }
 
@@ -219,11 +222,27 @@ _get_record_id() {
 
 # Retrieve credential token
 _get_credential_token() {
+  if [ -n "$KAS_OTP_Secret" ]; then
+    if ! _exists oathtool; then
+      _err "Please install oathtool to use 2 Factor Authentication."
+      _err ""
+      return 1
+    fi
+
+    # Get OTP code with the defined secret.
+    otp_code="$(oathtool --base32 --totp "${KAS_OTP_Secret}" 2>/dev/null)"
+  fi
+
   baseParamAuth="\"kas_login\":\"$KAS_Login\""
   baseParamAuth="$baseParamAuth,\"kas_auth_type\":\"$KAS_Authtype\""
   baseParamAuth="$baseParamAuth,\"kas_auth_data\":\"$KAS_Authdata\""
   baseParamAuth="$baseParamAuth,\"session_lifetime\":600"
   baseParamAuth="$baseParamAuth,\"session_update_lifetime\":\"Y\""
+
+
+  if [ -n "$otp_code" ]; then
+    baseParamAuth="$baseParamAuth,\"session_2fa\":\"$otp_code\""
+  fi
 
   data='<?xml version="1.0" encoding="UTF-8"?><SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:xmethodsKasApiAuthentication" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><SOAP-ENV:Body><ns1:KasAuth><Params xsi:type="xsd:string">{'
   data="$data$baseParamAuth}</Params></ns1:KasAuth></SOAP-ENV:Body></SOAP-ENV:Envelope>"
