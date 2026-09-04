@@ -75,20 +75,31 @@ RUN for verb in help \
     printf -- "%b" "#!/usr/bin/env sh\n$LE_WORKING_DIR/acme.sh --${verb} --config-home $LE_CONFIG_HOME \"\$@\"" >/usr/local/bin/--${verb} && chmod +x /usr/local/bin/--${verb} \
   ; done
 
-RUN printf "%b" '#!'"/usr/bin/env sh\n \
-if [ \"\$1\" = \"daemon\" ];  then \n \
-  if [ ! -f \"\$LE_CONFIG_HOME/crontab\" ]; then \n \
-     echo \"\$LE_CONFIG_HOME/crontab not found, generating one\" \n \
-     time=\$(date -u \"+%s\") \n \
-     random_minute=\$((\$time % 60)) \n \
-     random_hour=\$((\$time / 60 % 6)) \n \
-     echo \"\$random_minute \$random_hour,\$((\$random_hour + 6)),\$((\$random_hour + 12)),\$((\$random_hour + 18)) * * * \\\"\$LE_WORKING_DIR\\\"/acme.sh --cron --home \\\"\$LE_WORKING_DIR\\\" --config-home \\\"\$LE_CONFIG_HOME\\\"\" > \"\$LE_CONFIG_HOME\"/crontab \n \
-  fi \n \
-  echo \"Running Supercronic using crontab at \$LE_CONFIG_HOME/crontab\" \n \
-  exec -- /usr/bin/supercronic \"\$LE_CONFIG_HOME/crontab\" \n \
-else \n \
- exec -- \"\$@\"\n \
-fi\n" >/entry.sh && chmod +x /entry.sh && chmod -R o+rwx $LE_WORKING_DIR && chmod -R o+rwx $LE_CONFIG_HOME
+RUN cat <<'EOF' >/entry.sh && chmod +x /entry.sh && chmod -R o+rwx $LE_WORKING_DIR && chmod -R o+rwx $LE_CONFIG_HOME
+#!/usr/bin/env sh
+for var_file in $(env | grep '^[A-Za-z_][A-Za-z0-9_]*_FILE=' | cut -d '=' -f 1); do
+  eval "file_path=\$$var_file"
+  var_name="${var_file%_FILE}"
+  if [ -f "$file_path" ] && [ -r "$file_path" ]; then
+    file_content=$(cat "$file_path")
+    eval "$var_name=\$file_content"
+    export "$var_name"
+  fi
+done
+if [ "$1" = "daemon" ]; then
+  if [ ! -f "$LE_CONFIG_HOME/crontab" ]; then
+     echo "$LE_CONFIG_HOME/crontab not found, generating one"
+     time=$(date -u "+%s")
+     random_minute=$(($time % 60))
+     random_hour=$(($time / 60 % 6))
+     echo "$random_minute $random_hour,$(($random_hour + 6)),$(($random_hour + 12)),$(($random_hour + 18)) * * * \"$LE_WORKING_DIR\"/acme.sh --cron --home \"$LE_WORKING_DIR\" --config-home \"$LE_CONFIG_HOME\"" > "$LE_CONFIG_HOME"/crontab
+  fi
+  echo "Running Supercronic using crontab at $LE_CONFIG_HOME/crontab"
+  exec -- /usr/bin/supercronic "$LE_CONFIG_HOME/crontab"
+else
+ exec -- "$@"
+fi
+EOF
 
 VOLUME /acme.sh
 
