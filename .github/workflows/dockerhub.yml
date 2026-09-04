@@ -10,9 +10,19 @@ on:
       - '**.sh'
       - "Dockerfile"
       - '.github/workflows/dockerhub.yml'
+  # Rebuild the latest release tag weekly so a pinned version tag picks up
+  # Alpine package security updates (see issue 7209).
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to rebuild (empty = latest release)'
+        required: false
+        default: ''
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -45,9 +55,27 @@ jobs:
       contents: read
       packages: write
     steps:
+      - name: resolve the release tag to rebuild
+        id: rebuild
+        if: github.event_name != 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          tag="$INPUT_TAG"
+          if [ -z "$tag" ]; then
+            tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name)"
+          fi
+          if [ -z "$tag" ]; then
+            echo "::error::cannot resolve the release tag to rebuild"
+            exit 1
+          fi
+          echo "rebuilding release tag ${tag}"
+          echo "tag=${tag}" >>"$GITHUB_OUTPUT"
       - name: checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
+          ref: ${{ steps.rebuild.outputs.tag }}
           persist-credentials: false
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -65,12 +93,15 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
       - name: build and push the image
+        env:
+          REBUILD_TAG: ${{ steps.rebuild.outputs.tag }}
         run: |
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
+          if [ -n "$REBUILD_TAG" ]; then
+            # scheduled/manual rebuild of an existing release tag
+            DOCKER_IMAGE_TAG=${REBUILD_TAG}
+          elif [[ $GITHUB_REF == refs/tags/* ]]; then
             DOCKER_IMAGE_TAG=${GITHUB_REF#refs/tags/}
-          fi
-
-          if [[ $GITHUB_REF == refs/heads/* ]]; then
+          elif [[ $GITHUB_REF == refs/heads/* ]]; then
             DOCKER_IMAGE_TAG=${GITHUB_REF#refs/heads/}
 
             if [[ $DOCKER_IMAGE_TAG == master ]]; then
@@ -85,6 +116,13 @@ jobs:
           while read -r label; do
             DOCKER_LABELS+=(--label "${label}")
           done <<<"${DOCKER_METADATA_OUTPUT_LABELS}"
+
+          if [ -n "$REBUILD_TAG" ]; then
+            # the metadata action derived version/revision from the default
+            # branch; a later --label wins, so point them at the rebuilt tag
+            DOCKER_LABELS+=(--label "org.opencontainers.image.version=${REBUILD_TAG}")
+            DOCKER_LABELS+=(--label "org.opencontainers.image.revision=$(git rev-parse HEAD)")
+          fi
 
           docker buildx build \
             --tag ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG} \
