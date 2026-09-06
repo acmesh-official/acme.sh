@@ -5449,6 +5449,9 @@ issue() {
 
     #for dns manual mode
     _savedomainconf "Le_OrderFinalize" "$Le_OrderFinalize"
+    #the second invocation must poll this order, not the one the previous cert came from
+    _savedomainconf "Le_LinkOrder" "$Le_LinkOrder"
+    _cleardomainconf "Le_LinkCert"
 
     _authorizations_seg="$(echo "$response" | _json_decode | _authorizations_from_order)"
     _debug2 _authorizations_seg "$_authorizations_seg"
