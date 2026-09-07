@@ -1,0 +1,50 @@
+name: Apache
+on:
+  push:
+    paths:
+      - '*.sh'
+      - '.github/workflows/Apache.yml'
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - '*.sh'
+      - '.github/workflows/Apache.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  Apache:
+    runs-on: ubuntu-latest
+    env:
+      TestingDomain: example.com
+      TEST_ACME_Server: https://localhost:14000/dir
+      HTTPS_INSECURE: 1
+      TEST_LOCAL: 1
+      TEST_CA: "Pebble Intermediate CA"
+      TEST_APACHE: 1
+      CASE: le_test_apache
+    steps:
+    - uses: actions/checkout@v6
+    - name: Install tools
+      run: sudo apt-get install -y socat apache2
+    - name: Run Pebble
+      run: cd .. && curl https://raw.githubusercontent.com/letsencrypt/pebble/master/docker-compose.yml >docker-compose.yml && docker compose up -d
+    - name: Set up Pebble
+      run: curl --request POST --data '{"ip":"10.30.50.1"}' http://localhost:8055/set-default-ipv4
+    - name: Set up Apache
+      # Apache serves on 5002, which is the HTTP-01 validation port in
+      # Pebble's default config; acme.sh appends the challenge Alias to
+      # the main config itself
+      run: |
+        echo "Listen 5002" | sudo tee /etc/apache2/ports.conf
+        sudo sed -i "s/\*:80/*:5002/" /etc/apache2/sites-available/000-default.conf
+        sudo apache2ctl configtest
+        sudo systemctl restart apache2
+        curl -s -o /dev/null -w "%{http_code}" -H "Host: example.com" http://127.0.0.1:5002/ | grep -E "200|403|404"
+    - name: Clone acmetest
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - name: Run acmetest
+      run: cd ../acmetest && sudo --preserve-env ./letest.sh

@@ -150,6 +150,9 @@ _dns_dynv6_add_http() {
   fi
   _get_zone_name "$_zone_id"
   record=${fulldomain%%."$_zone_name"}
+  if [ "$fulldomain" = "$_zone_name" ]; then
+    record=""
+  fi
   _set_record TXT "$record" "$txtvalue"
   if _contains "$response" "$txtvalue"; then
     _info "Successfully added record"
@@ -168,6 +171,9 @@ _dns_dynv6_rm_http() {
   fi
   _get_zone_name "$_zone_id"
   record=${fulldomain%%."$_zone_name"}
+  if [ "$fulldomain" = "$_zone_name" ]; then
+    record=""
+  fi
   _get_record_id "$_zone_id" "$record" "$txtvalue"
   _del_record "$_zone_id" "$_record_id"
   if [ -z "$response" ]; then

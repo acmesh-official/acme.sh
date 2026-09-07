@@ -69,7 +69,12 @@ dns_gd_add() {
       return 1
     fi
 
-    if ! _contains "$response" "$txtvalue"; then
+    if _contains "$response" "UNKNOWN_DOMAIN"; then
+      # GoDaddy sometimes returns UNKNOWN_DOMAIN when reading a record back even
+      # though the PUT above succeeded; skip the local readback check and let
+      # acme.sh's own DNS propagation check verify the record was published.
+      _info "GoDaddy API won't allow reading the record back; skipping local verification."
+    elif ! _contains "$response" "$txtvalue"; then
       _err "TXT record '${txtvalue}' for '${fulldomain}', value wasn't set!"
       return 1
     fi
@@ -145,8 +150,8 @@ dns_gd_rm() {
 # _domain=domain.com
 _get_root() {
   domain=$1
-  i=2
-  p=1
+  i=1
+  p=0
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
@@ -154,17 +159,41 @@ _get_root() {
       return 1
     fi
 
-    if ! _gd_rest GET "domains/$h"; then
-      return 1
+    # The record name is whatever precedes the candidate zone. Do not assume
+    # _acme-challenge here: with DNS alias mode it can be any name, and the
+    # record may even sit at the zone apex (name "@").
+    if [ "$p" = "0" ]; then
+      _probe_sub="@"
+    else
+      _probe_sub=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
     fi
 
-    if _contains "$response" '"code":"NOT_FOUND"'; then
-      _debug "$h not found"
-    else
-      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
+    # Probe with the records endpoint instead of "GET domains/$h": since
+    # 2024-05 GoDaddy rejects the domain details call for accounts with
+    # fewer than 10 domains, while record-level calls keep working.
+    # https://github.com/acmesh-official/acme.sh/issues/4487
+    if ! _gd_rest GET "domains/$h/records/TXT/$_probe_sub"; then
+      return 1
+    fi
+    if _startswith "$response" '\['; then
+      _sub_domain="$_probe_sub"
       _domain="$h"
       return 0
     fi
+
+    # Some accounts get UNKNOWN_DOMAIN when reading records of a valid zone
+    # even though writes succeed (see issue #6517); fall back to the domain
+    # details call for them.
+    if ! _gd_rest GET "domains/$h"; then
+      return 1
+    fi
+    if _contains "$response" '"domainId"'; then
+      _sub_domain="$_probe_sub"
+      _domain="$h"
+      return 0
+    fi
+
+    _debug "$h not found"
     p="$i"
     i=$(_math "$i" + 1)
   done

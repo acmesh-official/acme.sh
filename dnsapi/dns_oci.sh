@@ -115,12 +115,15 @@ _oci_config() {
     _clearaccountconf_mutable OCI_CLI_PROFILE
   fi
 
-  OCI_CLI_TENANCY="${OCI_CLI_TENANCY:-$(_readaccountconf_mutable OCI_CLI_TENANCY)}"
+  if [ -z "$OCI_CLI_TENANCY" ] && [ -f "$OCI_CLI_CONFIG_FILE" ]; then
+    _debug "Reading OCI_CLI_TENANCY value from: $OCI_CLI_CONFIG_FILE"
+    OCI_CLI_TENANCY=$(_readini "$OCI_CLI_CONFIG_FILE" tenancy "$OCI_CLI_PROFILE")
+  fi
+  if [ -z "$OCI_CLI_TENANCY" ]; then
+    OCI_CLI_TENANCY=$(_readaccountconf_mutable OCI_CLI_TENANCY)
+  fi
   if [ "$OCI_CLI_TENANCY" ]; then
     _saveaccountconf_mutable OCI_CLI_TENANCY "$OCI_CLI_TENANCY"
-  elif [ -f "$OCI_CLI_CONFIG_FILE" ]; then
-    _debug "Reading OCI_CLI_TENANCY value from: $OCI_CLI_CONFIG_FILE"
-    OCI_CLI_TENANCY="${OCI_CLI_TENANCY:-$(_readini "$OCI_CLI_CONFIG_FILE" tenancy "$OCI_CLI_PROFILE")}"
   fi
 
   if [ -z "$OCI_CLI_TENANCY" ]; then
@@ -128,41 +131,47 @@ _oci_config() {
     return 1
   fi
 
-  OCI_CLI_USER="${OCI_CLI_USER:-$(_readaccountconf_mutable OCI_CLI_USER)}"
+  if [ -z "$OCI_CLI_USER" ] && [ -f "$OCI_CLI_CONFIG_FILE" ]; then
+    _debug "Reading OCI_CLI_USER value from: $OCI_CLI_CONFIG_FILE"
+    OCI_CLI_USER=$(_readini "$OCI_CLI_CONFIG_FILE" user "$OCI_CLI_PROFILE")
+  fi
+  if [ -z "$OCI_CLI_USER" ]; then
+    OCI_CLI_USER=$(_readaccountconf_mutable OCI_CLI_USER)
+  fi
   if [ "$OCI_CLI_USER" ]; then
     _saveaccountconf_mutable OCI_CLI_USER "$OCI_CLI_USER"
-  elif [ -f "$OCI_CLI_CONFIG_FILE" ]; then
-    _debug "Reading OCI_CLI_USER value from: $OCI_CLI_CONFIG_FILE"
-    OCI_CLI_USER="${OCI_CLI_USER:-$(_readini "$OCI_CLI_CONFIG_FILE" user "$OCI_CLI_PROFILE")}"
   fi
   if [ -z "$OCI_CLI_USER" ]; then
     _err "Error: unable to read OCI_CLI_USER from config file or environment variable."
     return 1
   fi
 
-  OCI_CLI_REGION="${OCI_CLI_REGION:-$(_readaccountconf_mutable OCI_CLI_REGION)}"
+  if [ -z "$OCI_CLI_REGION" ] && [ -f "$OCI_CLI_CONFIG_FILE" ]; then
+    _debug "Reading OCI_CLI_REGION value from: $OCI_CLI_CONFIG_FILE"
+    OCI_CLI_REGION=$(_readini "$OCI_CLI_CONFIG_FILE" region "$OCI_CLI_PROFILE")
+  fi
+  if [ -z "$OCI_CLI_REGION" ]; then
+    OCI_CLI_REGION=$(_readaccountconf_mutable OCI_CLI_REGION)
+  fi
   if [ "$OCI_CLI_REGION" ]; then
     _saveaccountconf_mutable OCI_CLI_REGION "$OCI_CLI_REGION"
-  elif [ -f "$OCI_CLI_CONFIG_FILE" ]; then
-    _debug "Reading OCI_CLI_REGION value from: $OCI_CLI_CONFIG_FILE"
-    OCI_CLI_REGION="${OCI_CLI_REGION:-$(_readini "$OCI_CLI_CONFIG_FILE" region "$OCI_CLI_PROFILE")}"
   fi
   if [ -z "$OCI_CLI_REGION" ]; then
     _err "Error: unable to read OCI_CLI_REGION from config file or environment variable."
     return 1
   fi
 
-  OCI_CLI_KEY="${OCI_CLI_KEY:-$(_readaccountconf_mutable OCI_CLI_KEY)}"
-  if [ -z "$OCI_CLI_KEY" ]; then
-    _clearaccountconf_mutable OCI_CLI_KEY
-    OCI_CLI_KEY_FILE="${OCI_CLI_KEY_FILE:-$(_readini "$OCI_CLI_CONFIG_FILE" key_file "$OCI_CLI_PROFILE")}"
-    if [ "$OCI_CLI_KEY_FILE" ] && [ -f "$OCI_CLI_KEY_FILE" ]; then
-      _debug "Reading OCI_CLI_KEY value from: $OCI_CLI_KEY_FILE"
-      OCI_CLI_KEY=$(_base64 <"$OCI_CLI_KEY_FILE")
-      _saveaccountconf_mutable OCI_CLI_KEY "$OCI_CLI_KEY"
-    fi
-  else
+  if [ -z "$OCI_CLI_KEY_FILE" ] && [ -f "$OCI_CLI_CONFIG_FILE" ]; then
+    OCI_CLI_KEY_FILE=$(_readini "$OCI_CLI_CONFIG_FILE" key_file "$OCI_CLI_PROFILE")
+  fi
+  if [ "$OCI_CLI_KEY" ]; then
     _saveaccountconf_mutable OCI_CLI_KEY "$OCI_CLI_KEY"
+  elif [ "$OCI_CLI_KEY_FILE" ] && [ -f "$OCI_CLI_KEY_FILE" ]; then
+    _debug "Reading OCI_CLI_KEY value from: $OCI_CLI_KEY_FILE"
+    OCI_CLI_KEY=$(_base64 <"$OCI_CLI_KEY_FILE")
+    _saveaccountconf_mutable OCI_CLI_KEY "$OCI_CLI_KEY"
+  else
+    OCI_CLI_KEY=$(_readaccountconf_mutable OCI_CLI_KEY)
   fi
 
   if [ -z "$OCI_CLI_KEY_FILE" ] && [ -z "$OCI_CLI_KEY" ]; then

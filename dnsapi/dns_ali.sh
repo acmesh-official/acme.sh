@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# shellcheck disable=SC2034,SC2086
+# shellcheck disable=SC2034
 dns_ali_info='AlibabaCloud.com
 Domains: Aliyun.com
 Site: AlibabaCloud.com
@@ -22,7 +22,9 @@ Ali_SIGN_ALGORITHM="ACS3-HMAC-SHA256"
 
 #Usage: dns_ali_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_ali_add() {
-  fulldomain=$1
+  # the API only accepts punycode for IDN domains, and a raw UTF-8 domain
+  # also breaks the request signature (issue 4733)
+  fulldomain=$(_idn "$1")
   txtvalue=$2
 
   _prepare_ali_credentials || return 1
@@ -33,11 +35,11 @@ dns_ali_add() {
   fi
 
   _debug "Add record"
-  _add_record_query "$_domain" "$_sub_domain" "$txtvalue" && _ali_rest "Add record"
+  _add_record_query "$_domain" "$_sub_domain" "$txtvalue" && _ali_dns_rest "Add record"
 }
 
 dns_ali_rm() {
-  fulldomain=$1
+  fulldomain=$(_idn "$1")
   txtvalue=$2
   Ali_Key="${Ali_Key:-$(_readaccountconf_mutable Ali_Key)}"
   Ali_Secret="${Ali_Secret:-$(_readaccountconf_mutable Ali_Secret)}"
@@ -72,183 +74,24 @@ _prepare_ali_credentials() {
   fi
 }
 
-_ali_query_pair() {
-  printf "%s=%s" "$(printf "%s" "$1" | _url_encode upper-hex)" "$(printf "%s" "$2" | _url_encode upper-hex)"
-}
-
-_ali_sha256_hex() {
-  printf "%s" "${1:-}" | _digest sha256 hex
-}
-
-_ali_hmac_sha256() {
-  printf "%s" "$2" | _hmac sha256 "$(printf "%s" "$1" | _hex_dump | tr -d " ")" hex
-}
-
-_ali_http() {
-  mtd="$1"
-  url="$2"
-
-  _inithttp
-
-  if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
-    _curl="$_ACME_CURL"
-    if [ "$HTTPS_INSECURE" ]; then
-      _curl="$_curl --insecure"
-    fi
-    if [ "$Ali_Token" ] && [ "$mtd" = "POST" ]; then
-      $_curl --user-agent "$USER_AGENT" -X "$mtd" \
-        -H "Authorization:${_ali_authorization}" \
-        -H "host:${Ali_DNS_HOST}" \
-        -H "x-acs-action:${_ali_action}" \
-        -H "x-acs-content-sha256:${_ali_payload_hash}" \
-        -H "x-acs-date:${_ali_date}" \
-        -H "x-acs-security-token:${Ali_Token}" \
-        -H "x-acs-signature-nonce:${_ali_nonce}" \
-        -H "x-acs-version:${Ali_DNS_VERSION}" \
-        --data "$_ali_body" \
-        "$url"
-    elif [ "$Ali_Token" ]; then
-      $_curl --user-agent "$USER_AGENT" -X "$mtd" \
-        -H "Authorization:${_ali_authorization}" \
-        -H "host:${Ali_DNS_HOST}" \
-        -H "x-acs-action:${_ali_action}" \
-        -H "x-acs-content-sha256:${_ali_payload_hash}" \
-        -H "x-acs-date:${_ali_date}" \
-        -H "x-acs-security-token:${Ali_Token}" \
-        -H "x-acs-signature-nonce:${_ali_nonce}" \
-        -H "x-acs-version:${Ali_DNS_VERSION}" \
-        "$url"
-    elif [ "$mtd" = "POST" ]; then
-      $_curl --user-agent "$USER_AGENT" -X "$mtd" \
-        -H "Authorization:${_ali_authorization}" \
-        -H "host:${Ali_DNS_HOST}" \
-        -H "x-acs-action:${_ali_action}" \
-        -H "x-acs-content-sha256:${_ali_payload_hash}" \
-        -H "x-acs-date:${_ali_date}" \
-        -H "x-acs-signature-nonce:${_ali_nonce}" \
-        -H "x-acs-version:${Ali_DNS_VERSION}" \
-        --data "$_ali_body" \
-        "$url"
-    else
-      $_curl --user-agent "$USER_AGENT" -X "$mtd" \
-        -H "Authorization:${_ali_authorization}" \
-        -H "host:${Ali_DNS_HOST}" \
-        -H "x-acs-action:${_ali_action}" \
-        -H "x-acs-content-sha256:${_ali_payload_hash}" \
-        -H "x-acs-date:${_ali_date}" \
-        -H "x-acs-signature-nonce:${_ali_nonce}" \
-        -H "x-acs-version:${Ali_DNS_VERSION}" \
-        "$url"
-    fi
-  elif [ "$_ACME_WGET" ]; then
-    _wget="$_ACME_WGET"
-    if [ "$HTTPS_INSECURE" ]; then
-      _wget="$_wget --no-check-certificate"
-    fi
-    if [ "$Ali_Token" ] && [ "$mtd" = "POST" ]; then
-      $_wget -S -O - --user-agent="$USER_AGENT" \
-        --header "Authorization:${_ali_authorization}" \
-        --header "host:${Ali_DNS_HOST}" \
-        --header "x-acs-action:${_ali_action}" \
-        --header "x-acs-content-sha256:${_ali_payload_hash}" \
-        --header "x-acs-date:${_ali_date}" \
-        --header "x-acs-security-token:${Ali_Token}" \
-        --header "x-acs-signature-nonce:${_ali_nonce}" \
-        --header "x-acs-version:${Ali_DNS_VERSION}" \
-        --post-data="$_ali_body" \
-        "$url"
-    elif [ "$Ali_Token" ]; then
-      $_wget -S -O - --user-agent="$USER_AGENT" \
-        --header "Authorization:${_ali_authorization}" \
-        --header "host:${Ali_DNS_HOST}" \
-        --header "x-acs-action:${_ali_action}" \
-        --header "x-acs-content-sha256:${_ali_payload_hash}" \
-        --header "x-acs-date:${_ali_date}" \
-        --header "x-acs-security-token:${Ali_Token}" \
-        --header "x-acs-signature-nonce:${_ali_nonce}" \
-        --header "x-acs-version:${Ali_DNS_VERSION}" \
-        --method "$mtd" --body-data="$_ali_body" \
-        "$url"
-    elif [ "$mtd" = "POST" ]; then
-      $_wget -S -O - --user-agent="$USER_AGENT" \
-        --header "Authorization:${_ali_authorization}" \
-        --header "host:${Ali_DNS_HOST}" \
-        --header "x-acs-action:${_ali_action}" \
-        --header "x-acs-content-sha256:${_ali_payload_hash}" \
-        --header "x-acs-date:${_ali_date}" \
-        --header "x-acs-signature-nonce:${_ali_nonce}" \
-        --header "x-acs-version:${Ali_DNS_VERSION}" \
-        --post-data="$_ali_body" \
-        "$url"
-    else
-      $_wget -S -O - --user-agent="$USER_AGENT" \
-        --header "Authorization:${_ali_authorization}" \
-        --header "host:${Ali_DNS_HOST}" \
-        --header "x-acs-action:${_ali_action}" \
-        --header "x-acs-content-sha256:${_ali_payload_hash}" \
-        --header "x-acs-date:${_ali_date}" \
-        --header "x-acs-signature-nonce:${_ali_nonce}" \
-        --header "x-acs-version:${Ali_DNS_VERSION}" \
-        --method "$mtd" --body-data="$_ali_body" \
-        "$url"
-    fi
-  else
-    _err "Neither curl nor wget have been found, cannot make $mtd request."
-    return 1
-  fi
-}
-
 # act ign mtd
+# query and endpoint are supplied by the CDN/DCDN deploy hooks.
+# shellcheck disable=SC2154
 _ali_rest() {
   act="$1"
   ign="$2"
-  mtd="${3:-POST}"
+  mtd="${3:-GET}"
 
-  _ali_date="$(_ali_timestamp)"
-  _ali_nonce="$(_ali_nonce)"
-  _ali_body=""
-  _ali_payload_hash="$(_ali_sha256_hex "$_ali_body")"
+  signature=$(printf "%s" "$mtd&%2F&$(printf "%s" "$query" | _ali_urlencode_upper)" | _hmac "sha1" "$(printf "%s" "$Ali_Secret&" | _hex_dump | tr -d " ")" | _base64)
+  signature=$(printf "%s" "$signature" | _ali_urlencode_upper)
+  url="$endpoint?Signature=$signature"
 
-  if [ "$Ali_Token" ]; then
-    _ali_canonical_headers="host:${Ali_DNS_HOST}
-x-acs-action:${_ali_action}
-x-acs-content-sha256:${_ali_payload_hash}
-x-acs-date:${_ali_date}
-x-acs-security-token:${Ali_Token}
-x-acs-signature-nonce:${_ali_nonce}
-x-acs-version:${Ali_DNS_VERSION}"
-    _ali_signed_headers="host;x-acs-action;x-acs-content-sha256;x-acs-date;x-acs-security-token;x-acs-signature-nonce;x-acs-version"
+  if [ "$mtd" = "GET" ]; then
+    url="$url&$query"
+    response="$(_get "$url")"
   else
-    _ali_canonical_headers="host:${Ali_DNS_HOST}
-x-acs-action:${_ali_action}
-x-acs-content-sha256:${_ali_payload_hash}
-x-acs-date:${_ali_date}
-x-acs-signature-nonce:${_ali_nonce}
-x-acs-version:${Ali_DNS_VERSION}"
-    _ali_signed_headers="host;x-acs-action;x-acs-content-sha256;x-acs-date;x-acs-signature-nonce;x-acs-version"
+    response="$(_post "$query" "$url" "" "$mtd" "application/x-www-form-urlencoded")"
   fi
-
-  _ali_canonical_request="$(printf "%s\n/\n%s\n%s\n\n%s\n%s" \
-    "$mtd" \
-    "$_ali_canonical_query" \
-    "$_ali_canonical_headers" \
-    "$_ali_signed_headers" \
-    "$_ali_payload_hash")"
-  _debug2 canonical_request "$_ali_canonical_request"
-
-  _ali_hashed_canonical="$(_ali_sha256_hex "$_ali_canonical_request")"
-  _ali_string_to_sign="$(printf "%s\n%s" "$Ali_SIGN_ALGORITHM" "$_ali_hashed_canonical")"
-  _debug2 string_to_sign "$_ali_string_to_sign"
-
-  _ali_signature="$(_ali_hmac_sha256 "$Ali_Secret" "$_ali_string_to_sign")"
-  _ali_authorization="${Ali_SIGN_ALGORITHM} Credential=${Ali_Key},SignedHeaders=${_ali_signed_headers},Signature=${_ali_signature}"
-
-  url="$Ali_DNS_API"
-  if [ "$_ali_canonical_query" ]; then
-    url="$url?$_ali_canonical_query"
-  fi
-
-  response="$(_ali_http "$mtd" "$url")"
 
   _ret="$?"
   _debug2 response "$response"
@@ -266,6 +109,20 @@ x-acs-version:${Ali_DNS_VERSION}"
   fi
 }
 
+# stdin stdout
+# The Aliyun signature requires percent-encoding with upper-case hex.
+# Do not use "_url_encode upper-hex" here: this file is also bundled by
+# third parties (e.g. Proxmox VE proxmox-acme) whose older copies of the
+# acme.sh function library ignore the upper-hex argument and output
+# lower-case hex, which invalidates the signature.
+# https://github.com/acmesh-official/acme.sh/issues/6272
+_ali_urlencode_upper() {
+  {
+    _url_encode
+    echo
+  } | sed 's/%a/%A/g;s/%b/%B/g;s/%c/%C/g;s/%d/%D/g;s/%e/%E/g;s/%f/%F/g;s/%\(.\)a/%\1A/g;s/%\(.\)b/%\1B/g;s/%\(.\)c/%\1C/g;s/%\(.\)d/%\1D/g;s/%\(.\)e/%\1E/g;s/%\(.\)f/%\1F/g'
+}
+
 _ali_nonce() {
   if [ "$ACME_OPENSSL_BIN" ]; then
     "$ACME_OPENSSL_BIN" rand -hex 16 2>/dev/null && return 0
@@ -274,10 +131,104 @@ _ali_nonce() {
 }
 
 _ali_timestamp() {
-  date -u +"%Y-%m-%dT%H:%M:%SZ"
+  date -u +"%Y-%m-%dT%H%%3A%M%%3A%SZ"
 }
 
 ####################  Private functions below  ####################
+
+_ali_query_pair() {
+  printf "%s=%s" "$(printf "%s" "$1" | _ali_urlencode_upper)" "$(printf "%s" "$2" | _ali_urlencode_upper)"
+}
+
+_ali_sha256_hex() {
+  printf "%s" "${1:-}" | _digest sha256 hex
+}
+
+_ali_hmac_sha256() {
+  printf "%s" "$2" | _hmac sha256 "$(printf "%s" "$1" | _hex_dump | tr -d " ")" hex
+}
+
+# act ign mtd
+_ali_dns_rest() {
+  act="$1"
+  ign="$2"
+  mtd="${3:-POST}"
+
+  _ali_date="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  _ali_nonce="$(_ali_nonce)"
+  _ali_body=""
+  _ali_payload_hash="$(_ali_sha256_hex "$_ali_body")"
+
+  if [ "$Ali_Token" ]; then
+    _ali_canonical_headers="content-type:application/x-www-form-urlencoded
+host:${Ali_DNS_HOST}
+x-acs-action:${_ali_action}
+x-acs-content-sha256:${_ali_payload_hash}
+x-acs-date:${_ali_date}
+x-acs-security-token:${Ali_Token}
+x-acs-signature-nonce:${_ali_nonce}
+x-acs-version:${Ali_DNS_VERSION}"
+    _ali_signed_headers="content-type;host;x-acs-action;x-acs-content-sha256;x-acs-date;x-acs-security-token;x-acs-signature-nonce;x-acs-version"
+  else
+    _ali_canonical_headers="content-type:application/x-www-form-urlencoded
+host:${Ali_DNS_HOST}
+x-acs-action:${_ali_action}
+x-acs-content-sha256:${_ali_payload_hash}
+x-acs-date:${_ali_date}
+x-acs-signature-nonce:${_ali_nonce}
+x-acs-version:${Ali_DNS_VERSION}"
+    _ali_signed_headers="content-type;host;x-acs-action;x-acs-content-sha256;x-acs-date;x-acs-signature-nonce;x-acs-version"
+  fi
+
+  _ali_canonical_request="$(printf "%s\n/\n%s\n%s\n\n%s\n%s" \
+    "$mtd" \
+    "$_ali_canonical_query" \
+    "$_ali_canonical_headers" \
+    "$_ali_signed_headers" \
+    "$_ali_payload_hash")"
+  _secure_debug2 canonical_request "$_ali_canonical_request"
+
+  _ali_hashed_canonical="$(_ali_sha256_hex "$_ali_canonical_request")"
+  _ali_string_to_sign="$(printf "%s\n%s" "$Ali_SIGN_ALGORITHM" "$_ali_hashed_canonical")"
+  _debug2 string_to_sign "$_ali_string_to_sign"
+
+  _ali_signature="$(_ali_hmac_sha256 "$Ali_Secret" "$_ali_string_to_sign")"
+  _ali_authorization="${Ali_SIGN_ALGORITHM} Credential=${Ali_Key},SignedHeaders=${_ali_signed_headers},Signature=${_ali_signature}"
+
+  url="$Ali_DNS_API"
+  if [ "$_ali_canonical_query" ]; then
+    url="$url?$_ali_canonical_query"
+  fi
+
+  response="$(
+    export _H1="Authorization: $_ali_authorization"
+    export _H2="x-acs-action: $_ali_action"
+    export _H3="x-acs-content-sha256: $_ali_payload_hash"
+    export _H4="x-acs-date: $_ali_date"
+    export _H5="x-acs-signature-nonce: $_ali_nonce"
+    export _H6="x-acs-version: $Ali_DNS_VERSION"
+    _H7=""
+    if [ "$Ali_Token" ]; then
+      export _H7="x-acs-security-token: $Ali_Token"
+    fi
+    _post "$_ali_body" "$url" "" "$mtd" "application/x-www-form-urlencoded"
+  )"
+
+  _ret="$?"
+  _debug2 response "$response"
+  if [ "$_ret" != "0" ]; then
+    _err "Error <$act>"
+    return 1
+  fi
+
+  if [ -z "$ign" ]; then
+    message="$(echo "$response" | _egrep_o "\"Message\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")"
+    if [ "$message" ]; then
+      _err "$message"
+      return 1
+    fi
+  fi
+}
 
 _get_root() {
   domain=$1
@@ -291,7 +242,7 @@ _get_root() {
     fi
 
     _describe_records_query "$h"
-    if ! _ali_rest "Get root" "ignore"; then
+    if ! _ali_dns_rest "Get root" "ignore"; then
       return 1
     fi
 
@@ -333,7 +284,7 @@ _describe_records_query() {
 _clean() {
   _check_exist_query "$_domain" "$_sub_domain"
   # do not correct grammar here
-  if ! _ali_rest "Check exist records" "ignore"; then
+  if ! _ali_dns_rest "Check exist records" "ignore"; then
     return 1
   fi
 
@@ -344,7 +295,7 @@ _clean() {
     _debug "record not found, skip"
   else
     _delete_record_query "$record_id"
-    _ali_rest "Delete record $record_id" "ignore"
+    _ali_dns_rest "Delete record $record_id" "ignore"
   fi
 
 }

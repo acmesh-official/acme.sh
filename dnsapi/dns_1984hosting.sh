@@ -7,6 +7,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_1984hosting
 Options:
  One984HOSTING_Username Username
  One984HOSTING_Password Password
+ One984HOSTING_TOTP_Secret Base32 TOTP shared secret. Required only if the account has 2FA enabled. Requires oathtool. Used to mint the OTP code automatically at login so cron renewals keep working.
 Issues: github.com/acmesh-official/acme.sh/issues/2851
 Author: Adrian Fedoreanu
 '
@@ -124,11 +125,28 @@ _1984hosting_login() {
   _debug "Login to 1984Hosting as user $One984HOSTING_Username."
   username=$(printf '%s' "$One984HOSTING_Username" | _url_encode)
   password=$(printf '%s' "$One984HOSTING_Password" | _url_encode)
-  url="https://1984.hosting/api/auth/"
 
-  _get "https://1984.hosting/accounts/login/" | grep "csrfmiddlewaretoken"
-  csrftoken="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'csrftoken=[^;]*;' | tr -d ';')"
-  sessionid="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'cookie1984nammnamm=[^;]*;' | tr -d ';')"
+  # When 2FA is enabled, mint a fresh TOTP code from the stored shared secret.
+  # Empty otpkey is accepted by the server when 2FA is off.
+  otpkey=""
+  if [ -n "$One984HOSTING_TOTP_Secret" ]; then
+    if ! _exists oathtool; then
+      _err "oathtool is required to use One984HOSTING_TOTP_Secret for 2FA. Please install it."
+      return 1
+    fi
+    otpcode="$(oathtool --base32 --totp "$One984HOSTING_TOTP_Secret" 2>/dev/null)"
+    if [ -z "$otpcode" ]; then
+      _err "Failed to generate TOTP code from One984HOSTING_TOTP_Secret."
+      return 1
+    fi
+    otpkey="$(printf '%s' "$otpcode" | _url_encode)"
+  fi
+
+  # Fetch the login page to obtain CSRF and session cookies.
+  # Note: _get sets the global 'url', so assign the auth URL afterwards.
+  _get "https://1984.hosting/accounts/login/" >/dev/null
+  csrftoken="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'csrftoken=[^;]*;' | _head_n 1 | tr -d ';')"
+  sessionid="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'cookie1984nammnamm=[^;]*;' | _head_n 1 | tr -d ';')"
 
   if [ -z "$csrftoken" ] || [ -z "$sessionid" ]; then
     _err "One or more cookies are empty: '$csrftoken', '$sessionid'."
@@ -140,17 +158,23 @@ _1984hosting_login() {
   csrf_header=$(echo "$csrftoken" | sed 's/csrftoken=//' | _head_n 1)
   export _H3="X-CSRFToken: $csrf_header"
 
-  response="$(_post "username=$username&password=$password&otpkey=" $url)"
+  url="https://1984.hosting/api/auth/"
+  response="$(_post "username=$username&password=$password&otpkey=$otpkey" "$url")"
   response="$(echo "$response" | _normalizeJson)"
   _debug2 response "$response"
 
   if _contains "$response" '"loggedin": true'; then
-    One984HOSTING_SESSIONID_COOKIE="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'cookie1984nammnamm=[^;]*;' | tr -d ';')"
-    One984HOSTING_CSRFTOKEN_COOKIE="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'csrftoken=[^;]*;' | tr -d ';')"
+    One984HOSTING_SESSIONID_COOKIE="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'cookie1984nammnamm=[^;]*;' | _head_n 1 | tr -d ';')"
+    One984HOSTING_CSRFTOKEN_COOKIE="$(grep -i '^set-cookie:' "$HTTP_HEADER" | _egrep_o 'csrftoken=[^;]*;' | _head_n 1 | tr -d ';')"
     export One984HOSTING_SESSIONID_COOKIE
     export One984HOSTING_CSRFTOKEN_COOKIE
     _saveaccountconf_mutable One984HOSTING_Username "$One984HOSTING_Username"
     _saveaccountconf_mutable One984HOSTING_Password "$One984HOSTING_Password"
+    if [ -n "$One984HOSTING_TOTP_Secret" ]; then
+      _saveaccountconf_mutable One984HOSTING_TOTP_Secret "$One984HOSTING_TOTP_Secret"
+    else
+      _clearaccountconf_mutable One984HOSTING_TOTP_Secret
+    fi
     _saveaccountconf_mutable One984HOSTING_SESSIONID_COOKIE "$One984HOSTING_SESSIONID_COOKIE"
     _saveaccountconf_mutable One984HOSTING_CSRFTOKEN_COOKIE "$One984HOSTING_CSRFTOKEN_COOKIE"
     return 0
@@ -161,6 +185,7 @@ _1984hosting_login() {
 _check_credentials() {
   One984HOSTING_Username="${One984HOSTING_Username:-$(_readaccountconf_mutable One984HOSTING_Username)}"
   One984HOSTING_Password="${One984HOSTING_Password:-$(_readaccountconf_mutable One984HOSTING_Password)}"
+  One984HOSTING_TOTP_Secret="${One984HOSTING_TOTP_Secret:-$(_readaccountconf_mutable One984HOSTING_TOTP_Secret)}"
   if [ -z "$One984HOSTING_Username" ] || [ -z "$One984HOSTING_Password" ]; then
     One984HOSTING_Username=""
     One984HOSTING_Password=""
@@ -225,9 +250,15 @@ _get_root() {
 
 # Usage: _get_zone_id url domain.com
 # Returns zone id for domain.com
+# Memoized per-domain so add/rm don't re-fetch the same zone list within a run.
+# Keyed on domain (not url) since the url is always the domains listing.
 _get_zone_id() {
   url=$1
   domain=$2
+  if [ "$_zone_id_for" = "$domain" ] && [ -n "$_zone_id" ]; then
+    _debug2 _zone_id "$_zone_id (cached)"
+    return 0
+  fi
   _htmlget "$url" "$domain"
   _zone_id="$(echo "$_response" | _egrep_o 'zone\/[0-9]+' | _head_n 1)"
   _debug2 _zone_id "$_zone_id"
@@ -235,6 +266,7 @@ _get_zone_id() {
     _err "Error getting _zone_id for $2."
     return 1
   fi
+  _zone_id_for="$domain"
   return 0
 }
 
@@ -257,9 +289,8 @@ _htmlget() {
 
 # Add extra headers to request
 _authpost() {
-  url="https://1984.hosting/domains"
-  _get_zone_id "$url" "$_domain"
-  csrf_header="$(echo "$One984HOSTING_CSRFTOKEN_COOKIE" | _egrep_o "=[^=][0-9a-zA-Z]*" | tr -d "=")"
+  _get_zone_id "https://1984.hosting/domains" "$_domain"
+  csrf_header="$(echo "$One984HOSTING_CSRFTOKEN_COOKIE" | sed 's/csrftoken=//' | _head_n 1)"
   export _H1="Cookie: $One984HOSTING_CSRFTOKEN_COOKIE; $One984HOSTING_SESSIONID_COOKIE"
   export _H2="Referer: https://1984.hosting/domains/$_zone_id"
   export _H3="X-CSRFToken: $csrf_header"

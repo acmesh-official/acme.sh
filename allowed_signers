@@ -1,0 +1,20 @@
+# acme.sh release signing key.
+#
+# Release tags are signed with this key. Its private half is held by the
+# maintainer and is never available to CI, so a compromise of the build
+# pipeline cannot produce a tag that verifies against this file.
+#
+# Fingerprint: SHA256:M60qVafm/NUywQHXAkoQcj2v6KgkfrdSXv6mPejUUeE
+#
+# To verify a release tag, from a clone of this repository:
+#
+#   git config gpg.ssh.allowedSignersFile allowed_signers
+#   git verify-tag 3.1.5
+#
+# A good signature covers the tag object, which pins the commit, which pins
+# the whole tree -- so verifying the tag verifies every file at that
+# release. Build a tarball from the verified tag with:
+#
+#   git archive --format=tar.gz --prefix=acme.sh-3.1.5/ 3.1.5 > acme.sh-3.1.5.tar.gz
+#
+github@neilpang.com namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBTjI0HBJn3uhfT2DsNcFybfAZi3ADbIacMpz1BItKdB

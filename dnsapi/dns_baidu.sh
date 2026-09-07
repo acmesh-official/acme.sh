@@ -49,26 +49,95 @@ Options:
  Baidu_SK SecretAccessKey
 OptionsAlt:
  Baidu_BCD_Host API host, default: bcd.baidubce.com
+ Baidu_DNS_Host New DNS API host, default: dns.baidubce.com
+ Baidu_API_Preference Engine preference, default: auto
  Baidu_BCD_Version API version number, default: 1
  Baidu_BCD_Expire Signature expiration seconds, default: 3600
  Baidu_View Resolve view, default: DEFAULT
+ Baidu_Line New DNS line, default: default
  Baidu_TTL Resolve ttl seconds, default: 300
  Baidu_RM_Max Max records to delete in one run, default: 20
 '
 
 BAIDU_BCD_DEFAULT_HOST="bcd.baidubce.com"
+BAIDU_DNS_DEFAULT_HOST="dns.baidubce.com"
 
 # --- Public API ---
 dns_baidu_add() {
   fulldomain=$(_idn "$1")
   txtvalue=$2
 
-  if ! _baidu_prepare_record "$fulldomain"; then
-    _baidu_err "baidu_prepare_record failed for add: $fulldomain"
+  if ! _baidu_run_with_fallback "add" "$fulldomain" "$txtvalue"; then
+    _baidu_err "all baidu api engines failed for add: $fulldomain"
     return 1
   fi
 
-  if ! _baidu_find_record_ids "$_zone_name" "$_record_domain" "TXT" "$txtvalue"; then
+  return 0
+}
+
+dns_baidu_rm() {
+  fulldomain=$(_idn "$1")
+  txtvalue=$2
+
+  if ! _baidu_run_with_fallback "rm" "$fulldomain" "$txtvalue"; then
+    _baidu_err "all baidu api engines failed for delete: $fulldomain"
+    return 1
+  fi
+
+  return 0
+}
+
+_baidu_run_with_fallback() {
+  _action="$1"
+  _fulldomain="$2"
+  _txtvalue="$3"
+
+  if ! _baidu_load_credentials; then
+    _baidu_err "baidu_load_credentials failed"
+    return 1
+  fi
+
+  for _baidu_api_engine in $(_baidu_engine_order); do
+    if ! _baidu_prepare_record "$_fulldomain"; then
+      _baidu_info "prepare failed for engine: $_baidu_api_engine"
+      continue
+    fi
+
+    if [ "$_action" = "add" ]; then
+      if _baidu_add_record "$_txtvalue"; then
+        return 0
+      fi
+    else
+      if _baidu_rm_record "$_txtvalue"; then
+        return 0
+      fi
+    fi
+
+    _baidu_info "engine failed, try next if available: $_baidu_api_engine"
+  done
+
+  return 1
+}
+
+_baidu_engine_order() {
+  _pref="$(_lower_case "$(_baidu_trim_ws "${Baidu_API_Preference:-auto}")")"
+  case "$_pref" in
+  legacy)
+    printf "%s" "legacy new"
+    ;;
+  new)
+    printf "%s" "new legacy"
+    ;;
+  *)
+    printf "%s" "new legacy"
+    ;;
+  esac
+}
+
+_baidu_add_record() {
+  _txtvalue="$1"
+
+  if ! _baidu_find_record_ids_current "$_zone_name" "$_record_domain" "TXT" "$_txtvalue"; then
     _baidu_err "baidu_find_record_ids failed for add: $_record_domain.$_zone_name"
     return 1
   fi
@@ -85,16 +154,28 @@ dns_baidu_add() {
     _ttl="300"
     ;;
   esac
-  _view="$(_baidu_trim_ws "${Baidu_View:-DEFAULT}")"
-  txtvalue="$(_baidu_trim_ws "$txtvalue")"
+
+  txtvalue="$(_baidu_trim_ws "$_txtvalue")"
   _record_domain="$(_baidu_trim_ws "$_record_domain")"
   _zone_name="$(_baidu_trim_ws "$_zone_name")"
 
-  _body="$(_baidu_payload_add_txt "$_zone_name" "$_record_domain" "$txtvalue" "$_ttl" "$_view")"
-
-  if ! _baidu_bcd_post "/domain/resolve/add" "$_body"; then
-    _baidu_err "baidu_bcd_post failed: add record"
-    return 1
+  if [ "$_baidu_api_engine" = "new" ]; then
+    _line="$(_baidu_trim_ws "${Baidu_Line:-default}")"
+    if [ -z "$_line" ]; then
+      _line="default"
+    fi
+    _body="$(_baidu_payload_add_txt_dns "$_record_domain" "$txtvalue" "$_ttl" "$_line")"
+    if ! _baidu_dns_call "POST" "/v1/dns/zone/${_zone_name}/record" "$_body"; then
+      _baidu_err "baidu_dns_call failed: add record"
+      return 1
+    fi
+  else
+    _view="$(_baidu_trim_ws "${Baidu_View:-DEFAULT}")"
+    _body="$(_baidu_payload_add_txt "$_zone_name" "$_record_domain" "$txtvalue" "$_ttl" "$_view")"
+    if ! _baidu_bcd_post "/domain/resolve/add" "$_body"; then
+      _baidu_err "baidu_bcd_post failed: add record"
+      return 1
+    fi
   fi
 
   if _baidu_is_api_error "$response"; then
@@ -105,16 +186,10 @@ dns_baidu_add() {
   return 0
 }
 
-dns_baidu_rm() {
-  fulldomain=$(_idn "$1")
-  txtvalue=$2
+_baidu_rm_record() {
+  _txtvalue="$1"
 
-  if ! _baidu_prepare_record "$fulldomain"; then
-    _baidu_err "baidu_prepare_record failed for delete: $fulldomain"
-    return 1
-  fi
-
-  if ! _baidu_find_record_ids "$_zone_name" "$_record_domain" "TXT" "$txtvalue"; then
+  if ! _baidu_find_record_ids_current "$_zone_name" "$_record_domain" "TXT" "$_txtvalue"; then
     _baidu_err "baidu_find_record_ids failed for delete: $_record_domain.$_zone_name"
     return 1
   fi
@@ -138,28 +213,37 @@ dns_baidu_rm() {
   fi
 
   for _rid in $_ids; do
-    _body="$(_baidu_payload_delete "$_zone_name" "$_rid")"
-    if ! _baidu_bcd_post "/domain/resolve/delete" "$_body"; then
-      _baidu_err "baidu_bcd_post failed: delete recordId=$_rid"
-      return 1
-    fi
-    if _baidu_is_api_error "$response"; then
-      _baidu_err "$response"
-      return 1
+    if [ "$_baidu_api_engine" = "new" ]; then
+      if ! _baidu_dns_call "DELETE" "/v1/dns/zone/${_zone_name}/record/${_rid}" ""; then
+        _baidu_err "baidu_dns_call failed: delete recordId=$_rid"
+        return 1
+      fi
+    else
+      _body="$(_baidu_payload_delete "$_zone_name" "$_rid")"
+      if ! _baidu_bcd_post "/domain/resolve/delete" "$_body"; then
+        _baidu_err "baidu_bcd_post failed: delete recordId=$_rid"
+        return 1
+      fi
+      if _baidu_is_api_error "$response"; then
+        _baidu_err "$response"
+        return 1
+      fi
     fi
   done
 
-  if ! _baidu_find_record_ids "$_zone_name" "$_record_domain" "TXT" "$txtvalue"; then
-    _baidu_err "baidu_find_record_ids failed for delete verify: $_record_domain.$_zone_name"
-    return 1
-  fi
-  _left_ids="$_BAIDU_FIND_RESULT"
-  if [ -z "$_left_ids" ]; then
-    return 0
-  fi
-  if [ -n "$_left_ids" ]; then
-    _baidu_err "delete verification failed: $_record_domain.$_zone_name still has TXT records"
-    return 1
+  if [ "$_baidu_api_engine" = "legacy" ]; then
+    if ! _baidu_find_record_ids "$_zone_name" "$_record_domain" "TXT" "$_txtvalue"; then
+      _baidu_err "baidu_find_record_ids failed for delete verify: $_record_domain.$_zone_name"
+      return 1
+    fi
+    _left_ids="$_BAIDU_FIND_RESULT"
+    if [ -z "$_left_ids" ]; then
+      return 0
+    fi
+    if [ -n "$_left_ids" ]; then
+      _baidu_err "delete verification failed: $_record_domain.$_zone_name still has TXT records"
+      return 1
+    fi
   fi
 
   return 0
@@ -182,6 +266,7 @@ _baidu_load_credentials() {
   _saveaccountconf_mutable Baidu_SK "$Baidu_SK"
 
   BAIDU_BCD_HOST="${Baidu_BCD_Host:-$BAIDU_BCD_DEFAULT_HOST}"
+  BAIDU_DNS_HOST="${Baidu_DNS_Host:-$BAIDU_DNS_DEFAULT_HOST}"
   BAIDU_BCD_VERSION="${Baidu_BCD_Version:-1}"
 
   return 0
@@ -189,13 +274,16 @@ _baidu_load_credentials() {
 
 _baidu_prepare_record() {
   _fulldomain="$1"
-  if ! _baidu_load_credentials; then
-    _baidu_err "baidu_load_credentials failed"
-    return 1
-  fi
-  if ! _baidu_get_root "$_fulldomain"; then
-    _baidu_err "Could not find zone for $_fulldomain"
-    return 1
+  if [ "$_baidu_api_engine" = "new" ]; then
+    if ! _baidu_get_root_dns "$_fulldomain"; then
+      _baidu_err "Could not find zone by new dns api for $_fulldomain"
+      return 1
+    fi
+  else
+    if ! _baidu_get_root "$_fulldomain"; then
+      _baidu_err "Could not find zone by legacy bcd api for $_fulldomain"
+      return 1
+    fi
   fi
   _record_domain="$_sub_domain"
   _zone_name="$_domain"
@@ -232,6 +320,43 @@ _baidu_get_root() {
     p=$i
     i=$(_math "$i" + 1)
   done
+}
+
+_baidu_get_root_dns() {
+  domain=$1
+  i=1
+  p=1
+
+  while true; do
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
+    if [ -z "$h" ]; then
+      _baidu_err "invalid domain: $domain"
+      return 1
+    fi
+
+    if ! _baidu_dns_call "GET" "/v1/dns/zone/${h}/record" ""; then
+      _baidu_info "baidu_dns_call failed: list zones"
+    elif ! _baidu_is_api_error "$response" && (_contains "$response" "\"records\"" || _contains "$response" "\"maxKeys\""); then
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
+      _domain=$h
+      if [ "$_sub_domain" = "$_domain" ]; then
+        _sub_domain="@"
+      fi
+      _baidu_info "zone matched by dns api: $_domain (host: $_sub_domain)"
+      return 0
+    fi
+
+    p=$i
+    i=$(_math "$i" + 1)
+  done
+}
+
+_baidu_find_record_ids_current() {
+  if [ "$_baidu_api_engine" = "new" ]; then
+    _baidu_find_record_ids_dns "$@"
+  else
+    _baidu_find_record_ids "$@"
+  fi
 }
 
 _baidu_find_record_ids() {
@@ -293,6 +418,39 @@ EOF
   _BAIDU_FIND_RESULT="$_ids"
 }
 
+_baidu_find_record_ids_dns() {
+  _zone_name="$1"
+  _record_domain="$2"
+  _rdtype="$3"
+  _rdata="$4"
+  _BAIDU_FIND_RESULT=""
+
+  if ! _baidu_dns_call "GET" "/v1/dns/zone/${_zone_name}/record" ""; then
+    _baidu_err "baidu_dns_call failed: list records"
+    return 1
+  fi
+
+  if _baidu_is_api_error "$response"; then
+    _baidu_err "baidu_dns error: $(_baidu_json_get_str "$response" "code") $(_baidu_json_get_str "$response" "message")"
+    return 1
+  fi
+
+  _normalized="$(printf "%s" "$response" | _normalizeJson)"
+  _records=$(printf "%s" "$_normalized" | sed 's/},{/}\n{/g')
+  _ids=""
+
+  while IFS= read -r _line; do
+    _id="$(_baidu_match_record_id_dns "$_line" "$_record_domain" "$_rdtype" "$_rdata")"
+    if [ "$_id" ]; then
+      _ids="$_ids $_id"
+    fi
+  done <<EOF
+$_records
+EOF
+
+  _BAIDU_FIND_RESULT="$_ids"
+}
+
 # --- HTTP ---
 _baidu_bcd_post() {
   _api_path="$1"
@@ -317,18 +475,17 @@ _baidu_bcd_post() {
     return 1
   fi
 
-  _H1="Authorization: $_auth"
-  _H2="x-bce-date: $_ts"
-  _H3="x-bce-content-sha256: $_payload_hash"
-  _H4="Host: $BAIDU_BCD_HOST"
-  _H5=""
-
   _url="https://${BAIDU_BCD_HOST}${_uri}"
   _signed_headers_dbg="$(printf "%s" "$_auth" | cut -d / -f 5)"
   _baidu_info "POST ${_uri}"
   _baidu_info "signedHeaders: $_signed_headers_dbg"
   _baidu_info "payload_sha256: $_payload_hash"
   _baidu_debug "baidu_bcd.http.payload" "$(_baidu_dbg_trim "$(_baidu_redact_txt "$_payload")")"
+  _H1="Authorization: $_auth"
+  _H2="x-bce-date: $_ts"
+  _H3="x-bce-content-sha256: $_payload_hash"
+  _H4="Host: $BAIDU_BCD_HOST"
+  _H5=""
   response="$(_post "$_payload" "$_url" "" "POST" "$_content_type")"
   _ret="$?"
   _baidu_info "ret: $_ret"
@@ -342,6 +499,56 @@ _baidu_bcd_post() {
   fi
 
   return 0
+}
+
+_baidu_dns_call() {
+  _method="$1"
+  _uri="$2"
+  _payload="$3"
+  _content_type="application/json"
+  _attempt=1
+  _max_attempts=3
+
+  while [ "$_attempt" -le "$_max_attempts" ]; do
+    _ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    _payload_hash="$(printf "%s" "$_payload" | _digest sha256 hex)"
+
+    if ! _baidu_bce_auth "$_method" "$_uri" "" "$BAIDU_DNS_HOST" "$_ts" "${Baidu_BCD_Expire:-3600}" "$_content_type" "$_payload_hash"; then
+      _baidu_err "baidu_dns auth failed"
+      return 1
+    fi
+    _auth="$_BAIDU_BCE_AUTH_RESULT"
+    _url="https://${BAIDU_DNS_HOST}${_uri}"
+
+    # Route through acme.sh's _get/_post (they honor _H1.._H5); no raw curl.
+    _H1="Authorization: $_auth"
+    _H2="x-bce-date: $_ts"
+    _H3="x-bce-content-sha256: $_payload_hash"
+    _H4="Host: $BAIDU_DNS_HOST"
+    _H5="Content-Type: $_content_type"
+
+    if [ "$_method" = "GET" ]; then
+      response="$(_get "$_url")"
+    elif [ "$_method" = "DELETE" ]; then
+      response="$(_post "" "$_url" "" "DELETE")"
+    else
+      response="$(_post "$_payload" "$_url")"
+    fi
+    _ret="$?"
+    _baidu_info "${_method} ${_uri} ret=${_ret}"
+
+    # Baidu may return a business error (Exception / 平台服务繁忙) inside HTTP 200.
+    if [ "$_ret" = "0" ] && ! _contains "$response" "\"code\":\"Exception\"" && ! _contains "$response" "平台服务繁忙"; then
+      return 0
+    fi
+
+    if [ "$_attempt" -lt "$_max_attempts" ]; then
+      sleep 2
+    fi
+    _attempt=$(_math "$_attempt" + 1)
+  done
+
+  return 1
 }
 
 # --- Auth / Signing ---
@@ -499,6 +706,14 @@ _baidu_payload_add_txt() {
   printf "%s" "{\"domain\":\"${_domain}\",\"view\":\"${_view}\",\"rdType\":\"TXT\",\"ttl\":${_ttl},\"rdata\":\"${_rdata}\",\"zoneName\":\"${_zoneName}\"}"
 }
 
+_baidu_payload_add_txt_dns() {
+  _rr="$(printf "%s" "$1" | tr -d '\r\n' | sed 's/\\/\\\\/g; s/"/\\"/g')"
+  _value="$(printf "%s" "$2" | tr -d '\r\n' | sed 's/\\/\\\\/g; s/"/\\"/g')"
+  _ttl="$3"
+  _line="$(printf "%s" "$4" | tr -d '\r\n' | sed 's/\\/\\\\/g; s/"/\\"/g')"
+  printf "%s" "{\"rr\":\"${_rr}\",\"type\":\"TXT\",\"value\":\"${_value}\",\"ttl\":${_ttl},\"line\":\"${_line}\",\"description\":\"acme.sh\"}"
+}
+
 _baidu_payload_delete() {
   _zoneName="$(_baidu_json_escape "$1")"
   _recordId="$2"
@@ -539,6 +754,18 @@ _baidu_match_record_id() {
     return 0
   fi
   printf "%s" "$_line" | _egrep_o "\"recordId\": *[0-9]*" | _head_n 1 | cut -d : -f 2 | tr -d " "
+}
+
+_baidu_match_record_id_dns() {
+  _line="$1"
+  _rr="$(printf "%s" "$2" | tr -d '\r\n' | sed 's/\\/\\\\/g; s/"/\\"/g')"
+  _type="$(printf "%s" "$3" | tr -d '\r\n' | sed 's/\\/\\\\/g; s/"/\\"/g')"
+  _value="$(printf "%s" "$4" | tr -d '\r\n' | sed 's/\\/\\\\/g; s/"/\\"/g')"
+  case "$_line" in
+  *"\"rr\":\"${_rr}\""*"\"type\":\"${_type}\""*"\"value\":\"${_value}\""*)
+    printf "%s" "$_line" | sed -n 's/.*"id":"\{0,1\}\([^",}]*\)"\{0,1\}.*/\1/p' | _head_n 1
+    ;;
+  esac
 }
 
 _baidu_hmac_sha256_hexkey() {

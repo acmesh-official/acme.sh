@@ -3,6 +3,8 @@
 #DEPLOY_DOCKER_CONTAINER_LABEL="xxxxxxx"
 
 #DEPLOY_DOCKER_CONTAINER_KEY_FILE="/path/to/key.pem"
+#DEPLOY_DOCKER_CONTAINER_KEY_MODE="0640"
+#DEPLOY_DOCKER_CONTAINER_KEY_OWNER="1000:1000"
 #DEPLOY_DOCKER_CONTAINER_CERT_FILE="/path/to/cert.pem"
 #DEPLOY_DOCKER_CONTAINER_CA_FILE="/path/to/ca.pem"
 #DEPLOY_DOCKER_CONTAINER_FULLCHAIN_FILE="/path/to/fullchain.pem"
@@ -71,6 +73,18 @@ docker_deploy() {
     _savedeployconf DEPLOY_DOCKER_CONTAINER_KEY_FILE "$DEPLOY_DOCKER_CONTAINER_KEY_FILE"
   fi
 
+  _getdeployconf DEPLOY_DOCKER_CONTAINER_KEY_MODE
+  _debug2 DEPLOY_DOCKER_CONTAINER_KEY_MODE "$DEPLOY_DOCKER_CONTAINER_KEY_MODE"
+  if [ "$DEPLOY_DOCKER_CONTAINER_KEY_MODE" ]; then
+    _savedeployconf DEPLOY_DOCKER_CONTAINER_KEY_MODE "$DEPLOY_DOCKER_CONTAINER_KEY_MODE"
+  fi
+
+  _getdeployconf DEPLOY_DOCKER_CONTAINER_KEY_OWNER
+  _debug2 DEPLOY_DOCKER_CONTAINER_KEY_OWNER "$DEPLOY_DOCKER_CONTAINER_KEY_OWNER"
+  if [ "$DEPLOY_DOCKER_CONTAINER_KEY_OWNER" ]; then
+    _savedeployconf DEPLOY_DOCKER_CONTAINER_KEY_OWNER "$DEPLOY_DOCKER_CONTAINER_KEY_OWNER"
+  fi
+
   _getdeployconf DEPLOY_DOCKER_CONTAINER_CERT_FILE
   _debug2 DEPLOY_DOCKER_CONTAINER_CERT_FILE "$DEPLOY_DOCKER_CONTAINER_CERT_FILE"
   if [ "$DEPLOY_DOCKER_CONTAINER_CERT_FILE" ]; then
@@ -111,6 +125,20 @@ docker_deploy() {
   if [ "$DEPLOY_DOCKER_CONTAINER_KEY_FILE" ]; then
     if ! _docker_cp "$_cid" "$_ckey" "$DEPLOY_DOCKER_CONTAINER_KEY_FILE"; then
       return 1
+    fi
+    if [ "$DEPLOY_DOCKER_CONTAINER_KEY_OWNER" ]; then
+      _info "Setting key file owner to $DEPLOY_DOCKER_CONTAINER_KEY_OWNER"
+      if ! _docker_exec "$_cid" chown "$DEPLOY_DOCKER_CONTAINER_KEY_OWNER" "$DEPLOY_DOCKER_CONTAINER_KEY_FILE"; then
+        _err "Can not change owner of key file in container"
+        return 1
+      fi
+    fi
+    if [ "$DEPLOY_DOCKER_CONTAINER_KEY_MODE" ]; then
+      _info "Setting key file mode to $DEPLOY_DOCKER_CONTAINER_KEY_MODE"
+      if ! _docker_exec "$_cid" chmod "$DEPLOY_DOCKER_CONTAINER_KEY_MODE" "$DEPLOY_DOCKER_CONTAINER_KEY_FILE"; then
+        _err "Can not change mode of key file in container"
+        return 1
+      fi
     fi
   fi
 
@@ -189,10 +217,22 @@ _docker_exec() {
     _debug2 cjson "$cjson"
     execid="$(echo "$cjson" | cut -d '"' -f 4)"
     _debug execid "$execid"
-    ejson="$(_curl_unix_sock "$_DOCKER_SOCK" POST "/exec/$execid/start" "{\"Detach\": false,\"Tty\": false}")"
+    #Detach:true is required for podman's docker-compatible API: with
+    #Detach:false it streams the command output on the connection, so the
+    #non-empty response was misread as an error (issue #4977). The real
+    #result is checked via the exec inspect ExitCode below instead.
+    ejson="$(_curl_unix_sock "$_DOCKER_SOCK" POST "/exec/$execid/start" "{\"Detach\": true,\"Tty\": false}")"
     _debug2 ejson "$ejson"
-    if [ "$ejson" ]; then
-      _err "$ejson"
+    _et=0
+    ijson="$(_curl_unix_sock "$_DOCKER_SOCK" GET "/exec/$execid/json")"
+    while _contains "$ijson" "\"Running\":true" && [ "$_et" -lt 10 ]; do
+      sleep 1
+      _et="$(_math "$_et" + 1)"
+      ijson="$(_curl_unix_sock "$_DOCKER_SOCK" GET "/exec/$execid/json")"
+    done
+    _debug2 ijson "$ijson"
+    if ! echo "$ijson" | _egrep_o "\"ExitCode\": *0[,}]" >/dev/null 2>&1; then
+      _err "docker exec error: $ijson"
       return 1
     fi
   else

@@ -7,22 +7,23 @@ Options:
  JD_ACCESS_KEY_ID Access key ID
  JD_ACCESS_KEY_SECRET Access key secret
  JD_REGION Region. E.g. "cn-north-1"
-Issues: github.com/acmesh-official/acme.sh/issues/2388
+Issues: github.com/acmesh-official/acme.sh/issues/7202
+Author: @skysaint
 '
 
 _JD_ACCOUNT="https://uc.jdcloud.com/account/accesskey"
 
-_JD_PROD="clouddnsservice"
+_JD_PROD="domainservice"
 _JD_API="jdcloud-api.com"
 
-_JD_API_VERSION="v1"
+_JD_API_VERSION="v2"
 _JD_DEFAULT_REGION="cn-north-1"
 
 _JD_HOST="$_JD_PROD.$_JD_API"
 
 ########  Public functions #####################
 
-#Usage: dns_myapi_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+#Usage: dns_jd_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_jd_add() {
   fulldomain=$1
   txtvalue=$2
@@ -58,24 +59,14 @@ dns_jd_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  #_debug "Getting getViewTree"
+  #_debug "Getting describeViewTree"
 
   _debug "Adding records"
 
-  _addrr="{\"req\":{\"hostRecord\":\"$_sub_domain\",\"hostValue\":\"$txtvalue\",\"ttl\":300,\"type\":\"TXT\",\"viewValue\":-1},\"regionId\":\"$JD_REGION\",\"domainId\":\"$_domain_id\"}"
-  #_addrr='{"req":{"hostRecord":"xx","hostValue":"\"value4\"","jcloudRes":false,"mxPriority":null,"port":null,"ttl":300,"type":"TXT","weight":null,"viewValue":-1},"regionId":"cn-north-1","domainId":"8824"}'
-  if jd_rest POST "domain/$_domain_id/RRAdd" "" "$_addrr"; then
-    _rid="$(echo "$response" | tr '{},' '\n' | grep '"id":' | cut -d : -f 2)"
-    if [ -z "$_rid" ]; then
-      _err "Can not find record id from the result."
-      return 1
-    fi
+  _addrr="{\"req\":{\"hostRecord\":\"$_sub_domain\",\"hostValue\":\"$txtvalue\",\"ttl\":300,\"type\":\"TXT\",\"viewValue\":-1}}"
+  #_addrr='{"req":{"hostRecord":"_acme-challenge","hostValue":"XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs","ttl":300,"type":"TXT","viewValue":-1}}'
+  if jd_rest POST "domain/$_domain_id/ResourceRecord" "" "$_addrr"; then
     _info "TXT record added successfully."
-    _srid="$(_readdomainconf "JD_CLOUD_RIDS")"
-    if [ "$_srid" ]; then
-      _rid="$_srid,$_rid"
-    fi
-    _savedomainconf "JD_CLOUD_RIDS" "$_rid"
     return 0
   fi
 
@@ -97,14 +88,7 @@ dns_jd_rm() {
 
   _JD_BASE_URI="$_JD_API_VERSION/regions/$JD_REGION"
 
-  _info "Getting existing records for $fulldomain"
-  _srid="$(_readdomainconf "JD_CLOUD_RIDS")"
-  _debug _srid "$_srid"
-
-  if [ -z "$_srid" ]; then
-    _err "Not rid skip"
-    return 0
-  fi
+  _info "Removing TXT record for $fulldomain"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -115,16 +99,37 @@ dns_jd_rm() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  _cleardomainconf JD_CLOUD_RIDS
+  # List records, filter by hostRecord and use a large pageSize so it isn't missed on record-heavy zones.
+  if ! jd_rest GET "domain/$_domain_id/ResourceRecord" "pageSize=50&search=$_sub_domain"; then
+    _err "Failed to list resource records"
+    return 1
+  fi
 
-  _aws_tmpl_xml="{\"ids\":[$_srid],\"action\":\"del\",\"regionId\":\"$JD_REGION\",\"domainId\":\"$_domain_id\"}"
+  # Match record by hostRecord + type TXT + hostValue
+  _record_id=""
+  _matched="$(echo "$response" | tr '{' '\n' | grep "\"hostRecord\":\"$_sub_domain\"" | grep "\"type\":\"TXT\"" | grep "\"hostValue\":\"$txtvalue\"")"
+  _debug2 _matched "$_matched"
 
-  if jd_rest POST "domain/$_domain_id/RROperate" "" "$_aws_tmpl_xml" && _contains "$response" "\"code\":\"OK\""; then
+  if [ -z "$_matched" ]; then
+    _info "TXT record not found, nothing to remove."
+    return 0
+  fi
+
+  _record_id="$(echo "$_matched" | tr ',' '\n' | grep "\"id\":" | cut -d : -f 2 | tr -d '"' | _head_n 1)"
+  _debug _record_id "$_record_id"
+
+  if [ -z "$_record_id" ]; then
+    _info "Could not extract record id from response, nothing to remove."
+    return 0
+  fi
+
+  if jd_rest DELETE "domain/$_domain_id/ResourceRecord/$_record_id"; then
     _info "TXT record deleted successfully."
     return 0
   fi
-  return 1
 
+  _err "Failed to delete TXT record."
+  return 1
 }
 
 ####################  Private functions below ##################################
@@ -134,13 +139,14 @@ _get_root() {
   i=1
   p=1
 
+  if ! jd_rest GET "domain"; then
+    _err "error get domain list"
+    return 1
+  fi
+
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     _debug2 "Checking domain: $h"
-    if ! jd_rest GET "domain"; then
-      _err "error get domain list"
-      return 1
-    fi
     if [ -z "$h" ]; then
       #not valid
       _err "Invalid domain"
@@ -168,6 +174,8 @@ _get_root() {
   return 1
 }
 
+# Use '%b' with printf to expand \n escapes in CanonicalRequest and StringToSign.
+# Use '%s' for plain values that contain no escapes to avoid unintended expansion.
 #method uri qstr data
 jd_rest() {
   mtd="$1"
@@ -220,7 +228,7 @@ jd_rest() {
   CanonicalRequest="$mtd\n$CanonicalURI\n$CanonicalQueryString\n$CanonicalHeaders\n$SignedHeaders\n$RequestPayloadHash"
   _debug2 CanonicalRequest "$CanonicalRequest"
 
-  HashedCanonicalRequest="$(printf "$CanonicalRequest%s" | _digest "$Hash" hex)"
+  HashedCanonicalRequest="$(printf '%b' "$CanonicalRequest" | _digest "$Hash" hex)"
   _debug2 HashedCanonicalRequest "$HashedCanonicalRequest"
 
   Algorithm="JDCLOUD2-HMAC-SHA256"
@@ -246,19 +254,19 @@ jd_rest() {
   kSecretH="$(printf "%s" "$kSecret" | _hex_dump | tr -d " ")"
   _secure_debug2 kSecretH "$kSecretH"
 
-  kDateH="$(printf "$RequestDateOnly%s" | _hmac "$Hash" "$kSecretH" hex)"
+  kDateH="$(printf '%s' "$RequestDateOnly" | _hmac "$Hash" "$kSecretH" hex)"
   _debug2 kDateH "$kDateH"
 
-  kRegionH="$(printf "$Region%s" | _hmac "$Hash" "$kDateH" hex)"
+  kRegionH="$(printf '%s' "$Region" | _hmac "$Hash" "$kDateH" hex)"
   _debug2 kRegionH "$kRegionH"
 
-  kServiceH="$(printf "$Service%s" | _hmac "$Hash" "$kRegionH" hex)"
+  kServiceH="$(printf '%s' "$Service" | _hmac "$Hash" "$kRegionH" hex)"
   _debug2 kServiceH "$kServiceH"
 
-  kSigningH="$(printf "%s" "jdcloud2_request" | _hmac "$Hash" "$kServiceH" hex)"
+  kSigningH="$(printf '%s' "jdcloud2_request" | _hmac "$Hash" "$kServiceH" hex)"
   _debug2 kSigningH "$kSigningH"
 
-  signature="$(printf "$StringToSign%s" | _hmac "$Hash" "$kSigningH" hex)"
+  signature="$(printf '%b' "$StringToSign" | _hmac "$Hash" "$kSigningH" hex)"
   _debug2 signature "$signature"
 
   Authorization="$Algorithm Credential=$JD_ACCESS_KEY_ID/$CredentialScope, SignedHeaders=$SignedHeaders, Signature=$signature"

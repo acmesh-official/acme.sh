@@ -296,9 +296,20 @@ panos_deploy() {
       _err "Unable to generate an API key.  The user and pass may be invalid or not authorized to generate a new key.  Please check the PANOS_USER and PANOS_PASS credentials and try again"
       return 1
     else
-      deployer cert
-      deployer key
-      deployer commit
+      # A commit of a failed import would leave a mismatched cert/key pair
+      # on the firewall and can lock the admin out of the management
+      # interface, see https://github.com/acmesh-official/acme.sh/issues/4716
+      if ! deployer cert; then
+        _err "Cert import failed. Aborting without committing."
+        return 1
+      fi
+      if ! deployer key; then
+        _err "Key import failed. Aborting without committing. Warning: the firewall now has an uncommitted mismatched cert/key pair in its candidate config."
+        return 1
+      fi
+      if ! deployer commit; then
+        return 1
+      fi
       if [ "$_panos_template_stack" ]; then
         # try to get job status for 20 times in 30 sec interval
         i=0

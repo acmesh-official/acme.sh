@@ -35,9 +35,28 @@ dns_joker_add() {
     return 1
   fi
 
+  # Joker's /nic/replace overwrites all TXT records at the label on every call,
+  # and the API is not readable, so accumulate the values locally (keyed by the
+  # full record name) and re-send the whole set each time. This is required so a
+  # wildcard cert (base + *.domain both validating under the same
+  # _acme-challenge label) does not overwrite its own first challenge value.
+  _joker_conf_key=$(printf "%s" "JOKER_TXT_${fulldomain}" | tr '.-' '_')
+  _joker_values=$(_readdomainconf "$_joker_conf_key")
+  if [ -z "$_joker_values" ]; then
+    _joker_values="$txtvalue"
+  elif ! _contains " $_joker_values " " $txtvalue "; then
+    _joker_values="$_joker_values $txtvalue"
+  fi
+
+  _joker_value_params=""
+  for _joker_v in $_joker_values; do
+    _joker_value_params="$_joker_value_params&value=$_joker_v"
+  done
+
   _info "Adding TXT record"
-  if _joker_rest "username=$JOKER_USERNAME&password=$JOKER_PASSWORD&zone=$_domain&label=$_sub_domain&type=TXT&value=$txtvalue"; then
+  if _joker_rest "username=$JOKER_USERNAME&password=$JOKER_PASSWORD&zone=$_domain&label=$_sub_domain&type=TXT$_joker_value_params"; then
     if _startswith "$response" "OK"; then
+      _savedomainconf "$_joker_conf_key" "$_joker_values"
       _info "Added, OK"
       return 0
     fi
@@ -59,10 +78,36 @@ dns_joker_rm() {
     return 1
   fi
 
+  # Remove only this value from the accumulated set and replace the label with
+  # whatever remains (an empty value clears the label's TXT records entirely).
+  _joker_conf_key=$(printf "%s" "JOKER_TXT_${fulldomain}" | tr '.-' '_')
+  _joker_values=$(_readdomainconf "$_joker_conf_key")
+  _joker_remaining=""
+  for _joker_v in $_joker_values; do
+    if [ "$_joker_v" != "$txtvalue" ]; then
+      _joker_remaining="$_joker_remaining $_joker_v"
+    fi
+  done
+  _joker_remaining=$(printf "%s" "$_joker_remaining" | sed 's/^ *//')
+
+  _joker_value_params=""
+  for _joker_v in $_joker_remaining; do
+    _joker_value_params="$_joker_value_params&value=$_joker_v"
+  done
+  if [ -z "$_joker_value_params" ]; then
+    _joker_value_params="&value="
+  fi
+
   _info "Removing TXT record"
-  # TXT record is removed by setting its value to empty.
-  if _joker_rest "username=$JOKER_USERNAME&password=$JOKER_PASSWORD&zone=$_domain&label=$_sub_domain&type=TXT&value="; then
+  # TXT record is removed by replacing the label with the remaining values
+  # (or an empty value, which clears all TXT records at the label).
+  if _joker_rest "username=$JOKER_USERNAME&password=$JOKER_PASSWORD&zone=$_domain&label=$_sub_domain&type=TXT$_joker_value_params"; then
     if _startswith "$response" "OK"; then
+      if [ -z "$_joker_remaining" ]; then
+        _cleardomainconf "$_joker_conf_key"
+      else
+        _savedomainconf "$_joker_conf_key" "$_joker_remaining"
+      fi
       _info "Removed, OK"
       return 0
     fi

@@ -33,9 +33,11 @@ dns_netcup_add() {
   exit=$(echo "$fulldomain" | tr -dc '.' | wc -c)
   exit=$(_math "$exit" + 1)
   i=$exit
+  _nc_last=$(_nc_lastlevel "$i")
+  _nc_found=""
 
   while
-    [ "$exit" -gt 0 ]
+    [ "$exit" -ge "$_nc_last" ]
   do
     tmp=$(echo "$fulldomain" | cut -d'.' -f"$exit")
     if [ "$(_math "$i" - "$exit")" -eq 0 ]; then
@@ -51,12 +53,18 @@ dns_netcup_add() {
           _err "$msg"
           return 1
         else
+          _nc_found=1
           break
         fi
       fi
     fi
     exit=$(_math "$exit" - 1)
   done
+  if [ -z "$_nc_found" ]; then
+    _err "$msg"
+    _nc_nozone "$fulldomain"
+    return 1
+  fi
   logout
 }
 
@@ -70,9 +78,11 @@ dns_netcup_rm() {
   exit=$(_math "$exit" + 1)
   i=$exit
   rec=""
+  _nc_last=$(_nc_lastlevel "$i")
+  _nc_found=""
 
   while
-    [ "$exit" -gt 0 ]
+    [ "$exit" -ge "$_nc_last" ]
   do
     tmp=$(echo "$fulldomain" | cut -d'.' -f"$exit")
     if [ "$(_math "$i" - "$exit")" -eq 0 ]; then
@@ -89,12 +99,18 @@ dns_netcup_rm() {
           _err "$msg"
           return 1
         else
+          _nc_found=1
           break
         fi
       fi
     fi
     exit=$(_math "$exit" - 1)
   done
+  if [ -z "$_nc_found" ]; then
+    _err "$msg"
+    _nc_nozone "$fulldomain"
+    return 1
+  fi
 
   ida=0000
   idv=0001
@@ -123,6 +139,27 @@ dns_netcup_rm() {
     return 1
   fi
   logout
+}
+
+# The zone is looked up by walking the challenge name from the right, one
+# label at a time. The leftmost label is the challenge prefix, so the full
+# name itself can never be a zone: asking netcup for it only returns 4013
+# "Validation Error", which would then mask the real 5028 "zone could not be
+# found". Stop one label short, unless the name is too short to have a
+# challenge prefix at all (manual invocation).
+# levels
+_nc_lastlevel() {
+  if [ "$1" -ge 3 ]; then
+    echo 2
+  else
+    echo 1
+  fi
+}
+
+# fulldomain
+_nc_nozone() {
+  _err "No DNS zone for $1 was found at netcup."
+  _err "Check that the domain belongs to the account of the configured NC_CID and that its DNS is hosted at netcup."
 }
 
 _login() {

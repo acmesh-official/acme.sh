@@ -96,8 +96,8 @@ _get_root() {
 
   for ITEM in ${domains_list}; do
     IDN_ITEM=${ITEM}
-    case "${domain}" in
-    *${IDN_ITEM}*)
+    case ".${domain}" in
+    *.${IDN_ITEM}*)
       _domain="$(_idn "${ITEM}")"
       _debug _domain "${_domain}"
       return 0
