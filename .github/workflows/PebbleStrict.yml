@@ -31,6 +31,7 @@ jobs:
       Le_HTTPPort: 5002
       TEST_LOCAL: 1
       TEST_CA: "Pebble Intermediate CA"
+      TEST_DNS_MANUAL: 1
 
     steps:
     - uses: actions/checkout@v6
