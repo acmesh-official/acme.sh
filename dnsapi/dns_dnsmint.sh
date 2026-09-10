@@ -12,7 +12,7 @@ Issues: github.com/dnsmint/acme.sh
 Author: DNSMint
 '
 
-DNSMint_Api="https://dnsmint.com/api"
+DNSMint_Api="${DNSMint_Api:-https://dnsmint.com/api}"
 
 ########  Public functions #####################
 
