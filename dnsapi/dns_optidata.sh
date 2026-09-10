@@ -60,11 +60,15 @@ dns_optidata_add() {
   # published after delegation, long after the ACME server gave up.
   _body="{\"type\":\"TXT\",\"name\":\"$(_optidata_json_escape "$fulldomain")\",\"records\":[\"$(_optidata_json_escape "$txtvalue")\"],\"ttl\":$OPTIDATA_TTL,\"upsert\":true,\"require_active_zone\":true}"
   if _optidata_rest POST "dns-zones/$_domain_id/recordsets$(_optidata_query "")" "$_body"; then
-    # The API echoes the whole record set back; the value appears JSON-escaped.
-    if printf "%s\n" "$response" | grep -F -- "$(_optidata_json_escape "$txtvalue")" >/dev/null; then
+    # The API echoes the whole record set back. The value is base64url
+    # ([A-Za-z0-9_-]), so it needs no JSON escaping and a case pattern matches
+    # it without depending on a grep that supports -F (Solaris grep does not).
+    case "$response" in
+    *"$txtvalue"*)
       _info "Added, OK"
       return 0
-    fi
+      ;;
+    esac
     _err "The API accepted the record but the value is missing from the record set: $response"
     return 1
   fi
@@ -255,7 +259,7 @@ _get_root() {
     esac
   fi
 
-  if [ "$_zone_status" ] && [ "$_zone_status" != "ACTIVE" ] && ! _contains "$_domain" "internal"; then
+  if [ "$_zone_status" ] && [ "$_zone_status" != "ACTIVE" ]; then
     _info "Zone $_domain has status $_zone_status; records are only published once the zone is ACTIVE (delegated to the Optidata name servers)."
   fi
   return 0
