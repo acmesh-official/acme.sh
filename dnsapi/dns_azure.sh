@@ -10,6 +10,7 @@ Options:
  AZUREDNS_CLIENTSECRET Client Secret. Secret from creating the service principal
  AZUREDNS_MANAGEDIDENTITY Use Managed Identity. Use Managed Identity assigned to a resource instead of a service principal. "true"/"false"
  AZUREDNS_BEARERTOKEN Bearer Token. Used instead of service principal credentials or managed identity. Not saved, provide it on every run. Optional.
+ AZUREDNS_PRIVATEZONE Use Azure Private DNS Zones instead of Public DNS Zones. "true"/"false"
 '
 
 wiki=https://github.com/acmesh-official/acme.sh/wiki/How-to-use-Azure-DNS
@@ -38,6 +39,12 @@ dns_azure_add() {
   fi
   #save subscription id to account conf file.
   _saveaccountconf_mutable AZUREDNS_SUBSCRIPTIONID "$AZUREDNS_SUBSCRIPTIONID"
+
+  AZUREDNS_PRIVATEZONE="${AZUREDNS_PRIVATEZONE:-$(_readaccountconf_mutable AZUREDNS_PRIVATEZONE)}"
+  if [ -z "$AZUREDNS_PRIVATEZONE" ]; then
+    #save public/private dns to account conf file.
+    _saveaccountconf_mutable AZUREDNS_PRIVATEZONE "$AZUREDNS_PRIVATEZONE"
+  fi
 
   AZUREDNS_MANAGEDIDENTITY="${AZUREDNS_MANAGEDIDENTITY:-$(_readaccountconf_mutable AZUREDNS_MANAGEDIDENTITY)}"
   if [ "$AZUREDNS_MANAGEDIDENTITY" = true ]; then
@@ -112,7 +119,17 @@ dns_azure_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  acmeRecordURI="https://management.azure.com$(printf '%s' "$_domain_id" | sed 's/\\//g')/TXT/$_sub_domain?api-version=2017-09-01"
+  if [ "$AZUREDNS_PRIVATEZONE" = true ]; then
+    _azure_api_version="2024-06-01"
+    _azure_ttl_key="ttl"
+    _azure_txt_key="txtRecords"
+  else
+    _azure_api_version="2017-09-01"
+    _azure_ttl_key="TTL"
+    _azure_txt_key="TXTRecords"
+  fi
+
+  acmeRecordURI="https://management.azure.com$(printf '%s' "$_domain_id" | sed 's/\\//g')/TXT/$_sub_domain?api-version=$_azure_api_version"
   _debug "$acmeRecordURI"
   # Get existing TXT record
   _azure_rest GET "$acmeRecordURI" "" "$accesstoken"
@@ -138,7 +155,7 @@ dns_azure_add() {
     fi
   fi
   # Add the txtvalue TXT Record
-  body="{\"properties\":{\"metadata\":{\"acmetscheck\":\"$timestamp\"},\"TTL\":10, \"TXTRecords\":[$values]}}"
+  body="{\"properties\":{\"metadata\":{\"acmetscheck\":\"$timestamp\"},\"$_azure_ttl_key\":10, \"$_azure_txt_key\":[$values]}}"
   _azure_rest PUT "$acmeRecordURI" "$body" "$accesstoken"
   if [ "$_code" = "200" ] || [ "$_code" = '201' ]; then
     _info "validation value added"
@@ -168,6 +185,8 @@ dns_azure_rm() {
     _err "You didn't specify the Azure Subscription ID "
     return 1
   fi
+
+  AZUREDNS_PRIVATEZONE="${AZUREDNS_PRIVATEZONE:-$(_readaccountconf_mutable AZUREDNS_PRIVATEZONE)}"
 
   AZUREDNS_MANAGEDIDENTITY="${AZUREDNS_MANAGEDIDENTITY:-$(_readaccountconf_mutable AZUREDNS_MANAGEDIDENTITY)}"
   if [ "$AZUREDNS_MANAGEDIDENTITY" = true ]; then
@@ -227,8 +246,19 @@ dns_azure_rm() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  acmeRecordURI="https://management.azure.com$(printf '%s' "$_domain_id" | sed 's/\\//g')/TXT/$_sub_domain?api-version=2017-09-01"
+  if [ "$AZUREDNS_PRIVATEZONE" = true ]; then
+    _azure_api_version="2024-06-01"
+    _azure_ttl_key="ttl"
+    _azure_txt_key="txtRecords"
+  else
+    _azure_api_version="2017-09-01"
+    _azure_ttl_key="TTL"
+    _azure_txt_key="TXTRecords"
+  fi
+
+  acmeRecordURI="https://management.azure.com$(printf '%s' "$_domain_id" | sed 's/\\//g')/TXT/$_sub_domain?api-version=$_azure_api_version"
   _debug "$acmeRecordURI"
+
   # Get existing TXT record
   _azure_rest GET "$acmeRecordURI" "" "$accesstoken"
   timestamp="$(_time)"
@@ -252,7 +282,7 @@ dns_azure_rm() {
       fi
     else
       # Remove only txtvalue from the TXT Record
-      body="{\"properties\":{\"metadata\":{\"acmetscheck\":\"$timestamp\"},\"TTL\":10, \"TXTRecords\":[$values]}}"
+      body="{\"properties\":{\"metadata\":{\"acmetscheck\":\"$timestamp\"},\"$_azure_ttl_key\":10, \"$_azure_txt_key\":[$values]}}"
       _azure_rest PUT "$acmeRecordURI" "$body" "$accesstoken"
       if [ "$_code" = "200" ] || [ "$_code" = '201' ]; then
         _info "validation value removed"
@@ -390,6 +420,15 @@ _get_root() {
   i=1
   p=1
 
+  if [ "$AZUREDNS_PRIVATEZONE" = true ]; then
+    _azure_zone_type="privateDnsZones"
+    _azure_api_version="2024-06-01"
+    _info "Querying private DNS zone"
+  else
+    _azure_zone_type="dnszones"
+    _azure_api_version="2017-09-01"
+  fi
+
   ## Ref: https://learn.microsoft.com/en-us/rest/api/dns/zones/list?view=rest-dns-2018-05-01&tabs=HTTP
   ## returns up to 100 zones in one response. Handling more results is not implemented
   ## (ZoneListResult with continuation token for the next page of results)
@@ -398,7 +437,7 @@ _get_root() {
   ## https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/azure-subscription-service-limits#azure-dns-limits
   ## The new limit is 250 Public DNS zones per subscription, while the old limit was only 100
   ##
-  _azure_rest GET "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Network/dnszones?\$top=500&api-version=2017-09-01" "" "$accesstoken"
+  _azure_rest GET "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Network/$_azure_zone_type?\$top=500&api-version=$_azure_api_version" "" "$accesstoken"
   # Find matching domain name in Json response
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
