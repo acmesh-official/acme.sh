@@ -38,7 +38,14 @@ jobs:
     - name: Install tools
       run: sudo apt-get install -y socat
     - name: Run Pebble
-      run: cd .. && curl https://raw.githubusercontent.com/letsencrypt/pebble/master/docker-compose.yml >docker-compose.yml && docker compose up -d
+      run: |
+        cd ..
+        curl https://raw.githubusercontent.com/letsencrypt/pebble/master/docker-compose.yml >docker-compose.yml
+        # Pebble reuses a valid authorization in a new order 50% of the time
+        # by default, which makes the dns manual mode case a coin flip: a
+        # reused authorization leaves nothing for the TXT record to answer.
+        printf 'services:\n  pebble:\n    environment:\n      PEBBLE_AUTHZREUSE: "0"\n' >docker-compose.override.yml
+        docker compose up -d
     - name: Set up Pebble
       run: curl --request POST --data '{"ip":"10.30.50.1"}' http://localhost:8055/set-default-ipv4
     - name: Clone acmetest
