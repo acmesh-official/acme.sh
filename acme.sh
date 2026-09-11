@@ -2457,6 +2457,16 @@ _retry_backoff_sec() {
   esac
 }
 
+#Reads response headers from stdin and prints the Retry-After value, but only
+#when it is the delay-seconds form. The header may also carry an HTTP-date
+#(Pebble sends one on a processing order); that form prints nothing, so the
+#caller falls back to its own delay. Cutting a date at the first colon leaves
+#"Fri,11Sep202604" behind and every numeric test on it then errors with
+#"integer expression expected".
+_retryafter_seconds() {
+  tr -d '\r' | grep -i "^Retry-After *: *[0-9][0-9]* *$" | _head_n 1 | cut -d : -f 2 | tr -d ' '
+}
+
 # url  payload needbase64  keyfile
 _send_signed_request() {
   url=$1
@@ -2580,7 +2590,7 @@ _send_signed_request() {
         _debug3 _body "$_body"
       fi
 
-      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      _retryafter=$(echo "$responseHeaders" | _retryafter_seconds)
       if _is_gateway_error "$code"; then
         _sleep_overload_retry_sec=$_retryafter
         if [ -z "$_sleep_overload_retry_sec" ]; then
@@ -5954,7 +5964,7 @@ $_authorizations_map"
         _on_issue_err "$_post_hook" "$vlist"
         return 1
       fi
-      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      _retryafter=$(echo "$responseHeaders" | _retryafter_seconds)
       _sleep_overload_retry_sec=$_retryafter
       if [ "$_sleep_overload_retry_sec" ]; then
         if [ $_sleep_overload_retry_sec -le 600 ]; then
@@ -6024,7 +6034,7 @@ $_authorizations_map"
       break
     elif _contains "$response" "\"ready\""; then
       _info "Order status is 'ready', let's sleep and retry."
-      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      _retryafter=$(echo "$responseHeaders" | _retryafter_seconds)
       _debug "_retryafter" "$_retryafter"
       if [ "$_retryafter" ] && [ $_retryafter -gt 0 ]; then
         _info "Sleeping for $_retryafter seconds then retrying"
@@ -6034,7 +6044,7 @@ $_authorizations_map"
       fi
     elif _contains "$response" "\"processing\""; then
       _info "Order status is 'processing', let's sleep and retry."
-      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      _retryafter=$(echo "$responseHeaders" | _retryafter_seconds)
       _debug "_retryafter" "$_retryafter"
       if [ "$_retryafter" ] && [ $_retryafter -gt 0 ]; then
         _info "Sleeping for $_retryafter seconds then retrying"
