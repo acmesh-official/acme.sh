@@ -1982,6 +1982,63 @@ _ssldate2time() {
   return 1
 }
 
+#support the IMF-fixdate form of an HTTP-date, the one a Retry-After header
+#carries; it is always GMT:
+#     Sun, 06 Nov 1994 08:49:37 GMT   to   784111777
+#Computed in shell arithmetic rather than through date(1): GNU, BSD and
+#busybox date each want a different invocation for this form, and %a/%b are
+#locale lookups. The day count is the civil-to-days formula, exact for every
+#Gregorian date from 1970 on. Prints nothing and fails on any other input.
+_httpdate2time() {
+  _hdt="$1"
+  case "$_hdt" in
+  [A-Za-z][A-Za-z][A-Za-z]", "[0-9][0-9]" "[A-Za-z][A-Za-z][A-Za-z]" "[0-9][0-9][0-9][0-9]" "[0-9][0-9]:[0-9][0-9]:[0-9][0-9]" GMT") ;;
+  *)
+    return 1
+    ;;
+  esac
+  #the shell reads a leading zero as octal, so strip it before any arithmetic
+  _hdt_d="$(echo "$_hdt" | cut -d ' ' -f 2 | sed 's/^0*\([0-9]\)/\1/')"
+  _hdt_y="$(echo "$_hdt" | cut -d ' ' -f 4)"
+  _hdt_tm="$(echo "$_hdt" | cut -d ' ' -f 5)"
+  _hdt_H="$(echo "$_hdt_tm" | cut -d : -f 1 | sed 's/^0*\([0-9]\)/\1/')"
+  _hdt_M="$(echo "$_hdt_tm" | cut -d : -f 2 | sed 's/^0*\([0-9]\)/\1/')"
+  _hdt_S="$(echo "$_hdt_tm" | cut -d : -f 3 | sed 's/^0*\([0-9]\)/\1/')"
+  case "$(echo "$_hdt" | cut -d ' ' -f 3 | _lower_case)" in
+  jan) _hdt_m=1 ;;
+  feb) _hdt_m=2 ;;
+  mar) _hdt_m=3 ;;
+  apr) _hdt_m=4 ;;
+  may) _hdt_m=5 ;;
+  jun) _hdt_m=6 ;;
+  jul) _hdt_m=7 ;;
+  aug) _hdt_m=8 ;;
+  sep) _hdt_m=9 ;;
+  oct) _hdt_m=10 ;;
+  nov) _hdt_m=11 ;;
+  dec) _hdt_m=12 ;;
+  *)
+    return 1
+    ;;
+  esac
+  if [ "$_hdt_y" -lt 1970 ] || [ "$_hdt_d" -lt 1 ] || [ "$_hdt_d" -gt 31 ] || [ "$_hdt_H" -gt 23 ] || [ "$_hdt_M" -gt 59 ] || [ "$_hdt_S" -gt 60 ]; then
+    return 1
+  fi
+  #years start in March so the leap day is the last day of the year
+  if [ "$_hdt_m" -le 2 ]; then
+    _hdt_y="$((_hdt_y - 1))"
+    _hdt_mp="$((_hdt_m + 9))"
+  else
+    _hdt_mp="$((_hdt_m - 3))"
+  fi
+  _hdt_era="$((_hdt_y / 400))"
+  _hdt_yoe="$((_hdt_y - _hdt_era * 400))"
+  _hdt_doy="$(((153 * _hdt_mp + 2) / 5 + _hdt_d - 1))"
+  _hdt_doe="$((_hdt_yoe * 365 + _hdt_yoe / 4 - _hdt_yoe / 100 + _hdt_doy))"
+  _hdt_days="$((_hdt_era * 146097 + _hdt_doe - 719468))"
+  echo "$((_hdt_days * 86400 + _hdt_H * 3600 + _hdt_M * 60 + _hdt_S))"
+}
+
 _utc_date() {
   date -u "+%Y-%m-%d %H:%M:%S"
 }
@@ -2457,14 +2514,31 @@ _retry_backoff_sec() {
   esac
 }
 
-#Reads response headers from stdin and prints the Retry-After value, but only
-#when it is the delay-seconds form. The header may also carry an HTTP-date
-#(Pebble sends one on a processing order); that form prints nothing, so the
-#caller falls back to its own delay. Cutting a date at the first colon leaves
-#"Fri,11Sep202604" behind and every numeric test on it then errors with
-#"integer expression expected".
+#Reads response headers from stdin and prints the Retry-After value as a
+#number of seconds from now. The header carries either delay-seconds, printed
+#as is, or an HTTP-date (HARICA sends one on a processing order, Pebble too),
+#converted with _httpdate2time and turned into a delay against the local
+#clock. A date already in the past, or a value in neither form, prints
+#nothing, so the caller falls back to its own delay. Cutting a date at the
+#first colon used to leave "Thu,13Aug202612" behind, and every numeric test
+#on it then errored with "integer expression expected".
 _retryafter_seconds() {
-  tr -d '\r' | grep -i "^Retry-After *: *[0-9][0-9]* *$" | _head_n 1 | cut -d : -f 2 | tr -d ' '
+  _ras_v="$(tr -d '\r' | grep -i "^Retry-After *:" | _head_n 1 | cut -d : -f 2- | sed 's/^ *//; s/ *$//')"
+  if [ -z "$_ras_v" ]; then
+    return 0
+  fi
+  case "$_ras_v" in
+  *[!0-9]*)
+    _ras_t="$(_httpdate2time "$_ras_v")" || return 0
+    _ras_d="$((_ras_t - $(_time)))"
+    if [ "$_ras_d" -gt 0 ]; then
+      echo "$_ras_d"
+    fi
+    ;;
+  *)
+    echo "$_ras_v"
+    ;;
+  esac
 }
 
 # url  payload needbase64  keyfile
