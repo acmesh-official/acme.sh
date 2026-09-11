@@ -247,7 +247,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
   if [ -n "$DEPLOY_SSH_KEYFILE" ]; then
     if [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr cp $DEPLOY_SSH_KEYFILE $_backupdir >/dev/null;"
+      _cmdstr="$_cmdstr if [ -f $DEPLOY_SSH_KEYFILE ]; then cp $DEPLOY_SSH_KEYFILE $_backupdir >/dev/null; fi;"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
           return $_err_code
@@ -284,7 +284,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       _pipe=">>"
     elif [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr cp $DEPLOY_SSH_CERTFILE $_backupdir >/dev/null;"
+      _cmdstr="$_cmdstr if [ -f $DEPLOY_SSH_CERTFILE ]; then cp $DEPLOY_SSH_CERTFILE $_backupdir >/dev/null; fi;"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
           return $_err_code
@@ -325,7 +325,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       _pipe=">>"
     elif [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr cp $DEPLOY_SSH_CAFILE $_backupdir >/dev/null;"
+      _cmdstr="$_cmdstr if [ -f $DEPLOY_SSH_CAFILE ]; then cp $DEPLOY_SSH_CAFILE $_backupdir >/dev/null; fi;"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
           return $_err_code
@@ -370,8 +370,8 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       _pipe=">>"
     elif [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr cp $DEPLOY_SSH_FULLCHAIN $_backupdir >/dev/null;"
-      if [ "$DEPLOY_SSH_FULLCHAIN" = "yes" ]; then
+      _cmdstr="$_cmdstr if [ -f $DEPLOY_SSH_FULLCHAIN ]; then cp $DEPLOY_SSH_FULLCHAIN $_backupdir >/dev/null; fi;"
+      if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
           return $_err_code
         fi
