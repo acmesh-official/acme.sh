@@ -119,13 +119,13 @@ _dnsmint_rest() {
     return 1
   fi
   case "$_code" in
-    2*) return 0 ;;
-    *)
-      # The API says why in the body - a key narrowed to another hostname, a
-      # name that is not live - and that is more use than the status alone.
-      _err "error $_ep: HTTP $_code $response"
-      return 1
-      ;;
+  2*) return 0 ;;
+  *)
+    # The API says why in the body - a key narrowed to another hostname, a
+    # name that is not live - and that is more use than the status alone.
+    _err "error $_ep: HTTP $_code $response"
+    return 1
+    ;;
   esac
 }
 
@@ -153,13 +153,13 @@ _dnsmint_host() {
 
   for _h in $(echo "$response" | _egrep_o '"hostname":"[^"]*"' | cut -d'"' -f4); do
     case "$_name" in
-      *".$_h")
-        # Longest suffix wins, so a.b.example.dev prefers b.example.dev over
-        # example.dev when both are hostnames on the account.
-        if [ "${#_h}" -gt "${#_host_sub}" ]; then
-          _host_sub="$_h"
-        fi
-        ;;
+    *".$_h")
+      # Longest suffix wins, so a.b.example.dev prefers b.example.dev over
+      # example.dev when both are hostnames on the account.
+      if [ "${#_h}" -gt "${#_host_sub}" ]; then
+        _host_sub="$_h"
+      fi
+      ;;
     esac
   done
 
