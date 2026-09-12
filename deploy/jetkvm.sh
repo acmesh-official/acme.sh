@@ -22,6 +22,17 @@
 # certificate. This hook defaults its restart command to "reboot" for that
 # reason, since it's meant to run unattended from cron-driven renewals
 # (typically overnight, when an active KVM-over-IP session is unlikely).
+# A renewed certificate that never actually gets applied without a human
+# rebooting the device defeats the point of automating this, so a blank
+# DEPLOY_JETKVM_RESTART_CMD is treated the same as unset (falls back to
+# "reboot") rather than silently skipping the restart -- set it to the
+# literal value "none" to opt out and apply/verify manually instead.
+#
+# Because the restart command normally tears the device down (and this
+# SSH connection along with it), it is run as a *second*, separate SSH
+# call after the upload has already completed and been confirmed -- see
+# the comments in jetkvm_deploy() for why the exit code of that second
+# call alone cannot be trusted to tell success from failure.
 #
 # The certificate and key are staged under temporary names on the device
 # and only renamed into their final names (an atomic "mv", on the same
@@ -47,7 +58,7 @@
 # export DEPLOY_JETKVM_KEY_NAME="user-defined.key"        # defaults to JetKVM's confirmed "Custom" key filename
 # export DEPLOY_JETKVM_CHMOD_CERT="0644"                  # defaults to 0644
 # export DEPLOY_JETKVM_CHMOD_KEY="0600"                   # defaults to 0600
-# export DEPLOY_JETKVM_RESTART_CMD="reboot"               # defaults to "reboot", JetKVM has no hot-reload
+# export DEPLOY_JETKVM_RESTART_CMD="reboot"               # defaults to "reboot" (JetKVM has no hot-reload); set to "none" to skip it
 #
 # Example:
 # ```sh
@@ -140,6 +151,7 @@ jetkvm_deploy() {
   _jetkvm_run_id="$$.$(date +%s 2>/dev/null || echo 0)"
   _jetkvm_cert_marker="ACME_JETKVM_CERT_$_jetkvm_run_id"
   _jetkvm_key_marker="ACME_JETKVM_KEY_$_jetkvm_run_id"
+  _jetkvm_reboot_marker="ACME_JETKVM_REBOOT_TRIGGERED_$_jetkvm_run_id"
   _jetkvm_cert_tmp="$_jetkvm_remote_path/.$DEPLOY_JETKVM_CERT_NAME.tmp.$_jetkvm_run_id"
   _jetkvm_key_tmp="$_jetkvm_remote_path/.$DEPLOY_JETKVM_KEY_NAME.tmp.$_jetkvm_run_id"
   _jetkvm_cert_target="$_jetkvm_remote_path/$DEPLOY_JETKVM_CERT_NAME"
@@ -152,7 +164,8 @@ jetkvm_deploy() {
   _jetkvm_cert_content="$(cat "$_cfullchain")"
   _jetkvm_key_content="$(cat "$_ckey")"
 
-  _jetkvm_script="$(_mktemp)"
+  _jetkvm_upload_script="$(_mktemp)"
+  chmod 600 "$_jetkvm_upload_script"
   {
     echo "#!/bin/sh"
     echo "set -e"
@@ -168,25 +181,84 @@ jetkvm_deploy() {
     echo "chmod '$DEPLOY_JETKVM_CHMOD_KEY' '$_jetkvm_key_tmp'"
     echo "mv '$_jetkvm_cert_tmp' '$_jetkvm_cert_target'"
     echo "mv '$_jetkvm_key_tmp' '$_jetkvm_key_target'"
-    if [ -n "$DEPLOY_JETKVM_RESTART_CMD" ]; then
-      echo "$DEPLOY_JETKVM_RESTART_CMD"
-    fi
-  } >"$_jetkvm_script"
+  } >"$_jetkvm_upload_script"
 
-  _secure_debug "Generated remote script" "$(cat "$_jetkvm_script")"
+  _secure_debug "Generated upload script" "$(cat "$_jetkvm_upload_script")"
 
   _info "Uploading certificate and key to $_jetkvm_remote_path on the device"
   # shellcheck disable=SC2086
-  $DEPLOY_JETKVM_SSH_CMD -p "$DEPLOY_JETKVM_PORT" "$DEPLOY_JETKVM_USER@$DEPLOY_JETKVM_HOST" sh <"$_jetkvm_script"
+  $DEPLOY_JETKVM_SSH_CMD -p "$DEPLOY_JETKVM_PORT" "$DEPLOY_JETKVM_USER@$DEPLOY_JETKVM_HOST" sh <"$_jetkvm_upload_script"
   _ret=$?
 
-  rm -f "$_jetkvm_script"
+  rm -f "$_jetkvm_upload_script"
 
   if [ "$_ret" != "0" ]; then
-    _err "Error code $_ret returned deploying certificate to JetKVM device"
-  else
-    _info "Certificate successfully deployed to JetKVM device"
+    _err "Error code $_ret returned uploading certificate to JetKVM device"
+    return $_ret
   fi
 
-  return $_ret
+  if [ "$DEPLOY_JETKVM_RESTART_CMD" = "none" ]; then
+    _info "Certificate successfully deployed to JetKVM device. DEPLOY_JETKVM_RESTART_CMD=none, skipping restart command."
+    return 0
+  fi
+
+  # The restart command normally reboots the device to apply the new
+  # "Custom" certificate (see header comment), which tears down whatever
+  # SSH connection ran it -- observed, against a real device, to make ssh
+  # itself exit anywhere from a clean 0 to a connection-reset 255
+  # depending on exactly when the reboot wins the race with the TCP
+  # session. So this second, separate SSH call is judged by whether a
+  # marker line printed *before* the restart command shows up in the
+  # captured output, not by ssh's own exit code -- otherwise a
+  # successful, expected reboot could be reported as a failed deploy on
+  # every renewal.
+  _jetkvm_restart_script="$(_mktemp)"
+  chmod 600 "$_jetkvm_restart_script"
+  {
+    echo "#!/bin/sh"
+    echo "echo '$_jetkvm_reboot_marker'"
+    echo "$DEPLOY_JETKVM_RESTART_CMD"
+  } >"$_jetkvm_restart_script"
+
+  _secure_debug "Generated restart script" "$(cat "$_jetkvm_restart_script")"
+
+  _info "Running post-upload command on JetKVM device: $DEPLOY_JETKVM_RESTART_CMD"
+  # shellcheck disable=SC2086
+  _jetkvm_restart_output="$($DEPLOY_JETKVM_SSH_CMD -p "$DEPLOY_JETKVM_PORT" "$DEPLOY_JETKVM_USER@$DEPLOY_JETKVM_HOST" sh <"$_jetkvm_restart_script" 2>&1)"
+  _jetkvm_restart_ret=$?
+
+  rm -f "$_jetkvm_restart_script"
+
+  _debug "Restart command ssh exit code" "$_jetkvm_restart_ret"
+  _secure_debug "Restart command output" "$_jetkvm_restart_output"
+
+  case "$_jetkvm_restart_output" in
+  *"$_jetkvm_reboot_marker"*)
+    # The marker alone only proves the device started running the restart
+    # command; it doesn't prove that command actually succeeded. Ssh exits
+    # 0 when the remote shell exits normally and (per ssh(1)) 255 when the
+    # connection itself failed -- since the marker already confirms a real
+    # connection was made, a 255 here is the expected "reboot won the race
+    # against the SSH session" case, not a connection that never happened.
+    # Any other nonzero code is the restart command's own exit status
+    # (e.g. 127 = command not found, 126 = permission denied) and is a
+    # real failure worth surfacing.
+    case "$_jetkvm_restart_ret" in
+    0 | 255)
+      _info "Certificate deployed and restart command triggered on JetKVM device (a dropped connection at this point is expected)."
+      return 0
+      ;;
+    *)
+      _err "Certificate was uploaded, but the restart command appears to have failed on the JetKVM device (exit code $_jetkvm_restart_ret)."
+      _err "$_jetkvm_restart_output"
+      return 1
+      ;;
+    esac
+    ;;
+  *)
+    _err "Certificate was uploaded, but the restart command could not be confirmed as having run on the JetKVM device (ssh exit code $_jetkvm_restart_ret)."
+    _err "$_jetkvm_restart_output"
+    return 1
+    ;;
+  esac
 }
