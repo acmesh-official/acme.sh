@@ -45,6 +45,22 @@
 # JetKVM hardware, but is worth a spot-check after a JetKVM firmware
 # upgrade.
 #
+# Before writing anything, this hook also checks that the device's HTTPS
+# Mode is already "Custom" -- uploading a certificate that mode won't
+# even serve would otherwise fail silently. There is currently no
+# documented/headless way to read this back (JetKVM's own JSON-RPC
+# getTLSState/setTLSState calls require an authenticated WebRTC session,
+# see https://github.com/jetkvm/kvm/issues/1240 and the still-open
+# https://github.com/jetkvm/kvm/pull/1515), so this greps the device's
+# own config file instead: JetKVM's firmware (see web_tls.go / config.go
+# in https://github.com/jetkvm/kvm) persists the mode as the plain-JSON
+# field "tls_mode" (values "", "self-signed", or "custom") in
+# /userdata/kvm_config.json. Like the rest of this hook's defaults, this
+# file path/field is undocumented/internal, not a stable public API, and
+# worth a spot-check after a firmware upgrade; set
+# DEPLOY_JETKVM_REQUIRE_CUSTOM_MODE=no to skip the check entirely if a
+# future firmware version changes this format out from under it.
+#
 # The following variables exported from environment will be used. If not
 # set then values previously saved in the domain.conf file are used. All
 # of them are optional.
@@ -59,6 +75,8 @@
 # export DEPLOY_JETKVM_CHMOD_CERT="0644"                  # defaults to 0644
 # export DEPLOY_JETKVM_CHMOD_KEY="0600"                   # defaults to 0600
 # export DEPLOY_JETKVM_RESTART_CMD="reboot"               # defaults to "reboot" (JetKVM has no hot-reload); set to "none" to skip it
+# export DEPLOY_JETKVM_REQUIRE_CUSTOM_MODE="yes"          # defaults to "yes" (verify tls_mode=custom before upload); set to "no" to skip
+# export DEPLOY_JETKVM_CONFIG_FILE="/userdata/kvm_config.json" # defaults to JetKVM's confirmed config file location
 #
 # Example:
 # ```sh
@@ -145,6 +163,18 @@ jetkvm_deploy() {
   fi
   _savedeployconf DEPLOY_JETKVM_RESTART_CMD "$DEPLOY_JETKVM_RESTART_CMD"
 
+  _getdeployconf DEPLOY_JETKVM_REQUIRE_CUSTOM_MODE
+  if [ -z "$DEPLOY_JETKVM_REQUIRE_CUSTOM_MODE" ]; then
+    DEPLOY_JETKVM_REQUIRE_CUSTOM_MODE="yes"
+  fi
+  _savedeployconf DEPLOY_JETKVM_REQUIRE_CUSTOM_MODE "$DEPLOY_JETKVM_REQUIRE_CUSTOM_MODE"
+
+  _getdeployconf DEPLOY_JETKVM_CONFIG_FILE
+  if [ -z "$DEPLOY_JETKVM_CONFIG_FILE" ]; then
+    DEPLOY_JETKVM_CONFIG_FILE="/userdata/kvm_config.json"
+  fi
+  _savedeployconf DEPLOY_JETKVM_CONFIG_FILE "$DEPLOY_JETKVM_CONFIG_FILE"
+
   _info "Deploying certificate to JetKVM device $DEPLOY_JETKVM_USER@$DEPLOY_JETKVM_HOST:$DEPLOY_JETKVM_PORT"
 
   _jetkvm_remote_path="${DEPLOY_JETKVM_REMOTE_PATH%/}"
@@ -156,6 +186,7 @@ jetkvm_deploy() {
   _jetkvm_key_tmp="$_jetkvm_remote_path/.$DEPLOY_JETKVM_KEY_NAME.tmp.$_jetkvm_run_id"
   _jetkvm_cert_target="$_jetkvm_remote_path/$DEPLOY_JETKVM_CERT_NAME"
   _jetkvm_key_target="$_jetkvm_remote_path/$DEPLOY_JETKVM_KEY_NAME"
+  _jetkvm_mode_exitcode=3
 
   # Command substitution strips all trailing newlines, so the printf below
   # always emits the content with exactly one trailing newline before the
@@ -170,6 +201,16 @@ jetkvm_deploy() {
     echo "#!/bin/sh"
     echo "set -e"
     echo "umask 077"
+    if [ "$DEPLOY_JETKVM_REQUIRE_CUSTOM_MODE" != "no" ]; then
+      # Uploading a certificate that HTTPS Mode won't even serve would
+      # otherwise fail silently -- see the header comment for why this
+      # greps the device's own config file rather than querying it
+      # through a documented API (there isn't one for reading this
+      # headlessly yet).
+      echo "if ! grep -Eq '\"tls_mode\"[[:space:]]*:[[:space:]]*\"custom\"' '$DEPLOY_JETKVM_CONFIG_FILE' 2>/dev/null; then"
+      echo "  exit $_jetkvm_mode_exitcode"
+      echo "fi"
+    fi
     echo "mkdir -p '$_jetkvm_remote_path'"
     echo "cat > '$_jetkvm_cert_tmp' <<'$_jetkvm_cert_marker'"
     printf '%s\n' "$_jetkvm_cert_content"
@@ -185,17 +226,24 @@ jetkvm_deploy() {
 
   _secure_debug "Generated upload script" "$(cat "$_jetkvm_upload_script")"
 
-  _info "Uploading certificate and key to $_jetkvm_remote_path on the device"
+  _info "Connecting to JetKVM device $DEPLOY_JETKVM_USER@$DEPLOY_JETKVM_HOST:$DEPLOY_JETKVM_PORT to deploy certificate"
   # shellcheck disable=SC2086
   $DEPLOY_JETKVM_SSH_CMD -p "$DEPLOY_JETKVM_PORT" "$DEPLOY_JETKVM_USER@$DEPLOY_JETKVM_HOST" sh <"$_jetkvm_upload_script"
   _ret=$?
 
   rm -f "$_jetkvm_upload_script"
 
+  if [ "$_ret" = "$_jetkvm_mode_exitcode" ]; then
+    _err "JetKVM HTTPS Mode is not set to \"Custom\" (checked \"tls_mode\" in $DEPLOY_JETKVM_CONFIG_FILE on the device). Set it in the device's web UI (Settings > Network > HTTPS Mode) before this hook can take effect. Certificate was NOT uploaded. Set DEPLOY_JETKVM_REQUIRE_CUSTOM_MODE=no to skip this check."
+    return $_ret
+  fi
+
   if [ "$_ret" != "0" ]; then
     _err "Error code $_ret returned uploading certificate to JetKVM device"
     return $_ret
   fi
+
+  _info "Certificate and key uploaded to $_jetkvm_remote_path on the device"
 
   if [ "$DEPLOY_JETKVM_RESTART_CMD" = "none" ]; then
     _info "Certificate successfully deployed to JetKVM device. DEPLOY_JETKVM_RESTART_CMD=none, skipping restart command."
