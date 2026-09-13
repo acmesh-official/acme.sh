@@ -5,10 +5,10 @@ dns_dnsmint_info='DNSMint.com
  authoritative nameservers, so records are published through its API rather
  than a zone you run.
 Site: dnsmint.com
-Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_dnsmint
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_dnsmint
 Options:
  DNSMINT_API_KEY API key. dns01:write is enough to issue certificates.
-Issues: github.com/dnsmint/acme.sh
+Issues: github.com/acmesh-official/acme.sh/issues/7251
 Author: DNSMint
 '
 
@@ -206,7 +206,29 @@ _dnsmint_record_rm() {
   # Records come back as {"id":...,"name":"<fqdn>","type":"TXT","ttl":...,
   # "data":{...,"text":["<value>"]}}. Match on the value so a name holding
   # several TXT records loses only the one that was added.
-  _rid="$(echo "$response" | sed 's/},{/}\n{/g' | grep -F "\"$_value\"" | _egrep_o '"id":"[^"]*"' | cut -d'"' -f4 | _head_n 1)"
+  #
+  # The replacement carries a literal newline: "\n" there is a GNU extension
+  # and BSD sed inserts the letter n, which would leave the whole reply on one
+  # line and match the first record under the hostname whatever its value.
+  _records="$(
+    printf "%s" "$response" | sed 's/},{/}\
+{/g'
+  )"
+
+  _rid=""
+  while IFS= read -r _line; do
+    case "$_line" in
+    *"\"$_value\""*)
+      _rid="$(printf "%s" "$_line" | _egrep_o '"id":"[^"]*"' | cut -d'"' -f4)"
+      if [ -n "$_rid" ]; then
+        break
+      fi
+      ;;
+    esac
+  done <<EOF
+$_records
+EOF
+
   if [ -z "$_rid" ]; then
     _info "Record already gone, nothing to remove"
     return 0
