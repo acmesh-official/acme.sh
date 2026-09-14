@@ -41,7 +41,7 @@ dns_azure_add() {
   _saveaccountconf_mutable AZUREDNS_SUBSCRIPTIONID "$AZUREDNS_SUBSCRIPTIONID"
 
   AZUREDNS_PRIVATEZONE="${AZUREDNS_PRIVATEZONE:-$(_readaccountconf_mutable AZUREDNS_PRIVATEZONE)}"
-  if [ -z "$AZUREDNS_PRIVATEZONE" ]; then
+  if [ -n "$AZUREDNS_PRIVATEZONE" ]; then
     #save public/private dns to account conf file.
     _saveaccountconf_mutable AZUREDNS_PRIVATEZONE "$AZUREDNS_PRIVATEZONE"
   fi
