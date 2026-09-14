@@ -4335,6 +4335,11 @@ _regAccount() {
   _secure_debug3 _eab_kid "$_eab_kid"
   _secure_debug3 _eab_hmac_key "$_eab_hmac_key"
   _email="$(_getAccountEmail)"
+  #save the first address before the request, so that a registration failing
+  #later (the ZeroSSL EAB fetch) can be retried without passing -m again
+  if [ "$_email" ] && [ -z "$(_readcaconf CA_EMAIL)" ]; then
+    _savecaconf "CA_EMAIL" "$_email"
+  fi
 
   if [ "$ACME_DIRECTORY" = "$CA_ZEROSSL" ]; then
     if [ -z "$_eab_kid" ] || [ -z "$_eab_hmac_key" ]; then
@@ -8540,7 +8545,7 @@ Parameters:
   --cert-home <directory>           Specifies the home dir to save all the certs.
   --config-home <directory>         Specifies the home dir to save all the configurations.
   --useragent <string>              Specifies the user agent string. it will be saved for future use too.
-  -m, --email <email>               Specifies the account email, only valid for the '--install' and '--update-account' command.
+  -m, --email <email>               Specifies the account email, only valid for the '--install', '--register-account' and '--update-account' commands.
                                       Multiple emails can be given as a comma-separated list: 'a@example.com,b@example.com'
   --accountkey <file>               Specifies the account key path, only valid for the '--install' command.
   --days <ndays>                    Specifies the days to renew the cert when using '--issue' command. The default value is $DEFAULT_RENEW days.
