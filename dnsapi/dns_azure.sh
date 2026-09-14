@@ -119,15 +119,7 @@ dns_azure_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  if [ "$AZUREDNS_PRIVATEZONE" = true ]; then
-    _azure_api_version="2024-06-01"
-    _azure_ttl_key="ttl"
-    _azure_txt_key="txtRecords"
-  else
-    _azure_api_version="2017-09-01"
-    _azure_ttl_key="TTL"
-    _azure_txt_key="TXTRecords"
-  fi
+  _azure_set_zone_vars
 
   acmeRecordURI="https://management.azure.com$(printf '%s' "$_domain_id" | sed 's/\\//g')/TXT/$_sub_domain?api-version=$_azure_api_version"
   _debug "$acmeRecordURI"
@@ -246,15 +238,7 @@ dns_azure_rm() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  if [ "$AZUREDNS_PRIVATEZONE" = true ]; then
-    _azure_api_version="2024-06-01"
-    _azure_ttl_key="ttl"
-    _azure_txt_key="txtRecords"
-  else
-    _azure_api_version="2017-09-01"
-    _azure_ttl_key="TTL"
-    _azure_txt_key="TXTRecords"
-  fi
+  _azure_set_zone_vars
 
   acmeRecordURI="https://management.azure.com$(printf '%s' "$_domain_id" | sed 's/\\//g')/TXT/$_sub_domain?api-version=$_azure_api_version"
   _debug "$acmeRecordURI"
@@ -411,6 +395,21 @@ _azure_getaccess_token() {
   _saveaccountconf_mutable AZUREDNS_TOKENVALIDTO "$expires_on"
   printf "%s" "$accesstoken"
   return 0
+}
+
+_azure_set_zone_vars() {
+  if [ "$AZUREDNS_PRIVATEZONE" = "true" ]; then
+    _azure_zone_type="privateDnsZones"
+    _azure_api_version="2024-06-01"
+    _azure_ttl_key="ttl"
+    _azure_txt_key="txtRecords"
+    _info "Querying private DNS zone"
+  else
+    _azure_zone_type="dnszones"
+    _azure_api_version="2017-09-01"
+    _azure_ttl_key="TTL"
+    _azure_txt_key="TXTRecords"
+  fi
 }
 
 _get_root() {
