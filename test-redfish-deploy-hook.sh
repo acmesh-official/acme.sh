@@ -1477,6 +1477,22 @@ _clearaccountconf_mutable() {
   _clearaccountconf "$1"
 }
 
+_toPkcs8() {
+  _cpkcs8="$1"
+  _ckey="$2"
+  pkcs8Password="$3"
+
+  if [ "$pkcs8Password" ]; then
+    ${ACME_OPENSSL_BIN:-openssl} pkcs8 -topk8 -inform PEM -outform PEM -v2 aes256 -passout "pass:$pkcs8Password" -in "$_ckey" -out "$_cpkcs8"
+  else
+    ${ACME_OPENSSL_BIN:-openssl} pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in "$_ckey" -out "$_cpkcs8"
+  fi
+  if [ "$?" = "0" ]; then
+    _savedomainconf "Le_PKCS8Password" "$pkcs8Password" "base64"
+  fi
+
+}
+
 HTTP_HEADER="$(_mktemp)"
 
 . deploy/redfish.sh

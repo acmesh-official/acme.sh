@@ -93,8 +93,8 @@ redfish_deploy() {
   if [ -n "${_ckey}" ]; then
     _redfish_ckey_pkcs8="$(_mktemp)"
 
-    if ! "${ACME_OPENSSL_BIN:-openssl}" pkcs8 -topk8 -inform PEM -outform PEM -in "${_ckey}" -out "${_redfish_ckey_pkcs8}" -nocrypt; then
-      _err 'Failed to convert private key to PKCS#8 format!'
+    if ! _toPkcs8 "${_redfish_ckey_pkcs8}" "${_ckey}"; then
+      _err 'Failed to convert private key to unencrypted PKCS#8 format!'
       return 1
     fi
 
