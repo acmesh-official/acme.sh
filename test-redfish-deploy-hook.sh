@@ -2,6 +2,12 @@
 
 # TODO: Eyal: Delete before opening pull request.
 
+ACCOUNT_CONF_PATH="account.conf"
+DOMAIN_CONF="domain.conf"
+
+B64CONF_START="__ACME_BASE64__START_"
+B64CONF_END="__ACME_BASE64__END_"
+
 LOG_LEVEL_1=1
 LOG_LEVEL_2=2
 LOG_LEVEL_3=3
@@ -763,6 +769,10 @@ _json_decode() {
   echo "$_j_str"
 }
 
+_normalizeJson() {
+  sed "s/\" *: *\([\"{\[]\)/\":\1/g" | sed "s/^ *\([^ ]\)/\1/" | tr -d "\r\n"
+}
+
 #extract the authorization URLs from an order response on stdin, as a
 #comma-separated list. The entries are quoted URL strings and a quote cannot
 #occur inside a URL, so the first '"]' is always the end of the array. A
@@ -1235,8 +1245,236 @@ _tail_n() {
   fi
 }
 
-_normalizeJson() {
-  sed "s/\" *: *\([\"{\[]\)/\":\1/g" | sed "s/^ *\([^ ]\)/\1/" | tr -d "\r\n"
+_tail_c() {
+  tail -c "$1" 2>/dev/null || tail -"$1"c
+}
+
+#Reads a value from stdin, prints it escaped for use as the replacement text
+#of a sed s command delimited by '|'. The backslash must go first: a bare one
+#starts an escape sequence and backslash-digit is a backreference, both make
+#sed error out. Then '&' (the whole-match reference) and the '|' delimiter.
+#https://github.com/acmesh-official/acme.sh/issues/7213
+_sed_escape_rhs() {
+  sed -e 's/\\/\\\\/g' -e 's/&/\\&/g' -e 's/|/\\|/g'
+}
+
+#setopt "file"  "opt"  "="  "value" [";"]
+_setopt() {
+  __conf="$1"
+  __opt="$2"
+  __sep="$3"
+  __val="$4"
+  __end="$5"
+  if [ -z "$__opt" ]; then
+    _usage usage: _setopt '"file"  "opt"  "="  "value" [";"]'
+    return
+  fi
+  if [ ! -f "$__conf" ]; then
+    touch "$__conf"
+    chmod 600 "$__conf"
+  fi
+  __nl="
+"
+  case "$__val" in
+  *"$__nl"*)
+    #the conf format is line based and the file is sourced by the shell, so a
+    #value holding a line break cannot be represented in it (it would also
+    #make the replace sed below fail with an unterminated 's' command)
+    _err "The value of '$__opt' contains a line break, it cannot be saved to $__conf."
+    return 1
+    ;;
+  esac
+  if [ -n "$(_tail_c 1 <"$__conf")" ]; then
+    echo >>"$__conf"
+  fi
+
+  if grep -n "^$__opt$__sep" "$__conf" >/dev/null; then
+    _debug3 OK
+    __val="$(printf -- "%s\n" "$__val" | _sed_escape_rhs)"
+    text="$(cat "$__conf")"
+    #capture first, write only on success: redirecting sed straight into the
+    #conf file truncates it before sed runs, so a failing sed (e.g. on an
+    #unescaped special character in the value) wiped the whole conf (#2426)
+    if __text="$(printf -- "%s\n" "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|")"; then
+      printf -- "%s\n" "$__text" >"$__conf"
+    else
+      _err "Cannot save '$__opt' to $__conf."
+      return 1
+    fi
+
+  elif grep -n "^#$__opt$__sep" "$__conf" >/dev/null; then
+    __val="$(printf -- "%s\n" "$__val" | _sed_escape_rhs)"
+    text="$(cat "$__conf")"
+    if __text="$(printf -- "%s\n" "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|")"; then
+      printf -- "%s\n" "$__text" >"$__conf"
+    else
+      _err "Cannot save '$__opt' to $__conf."
+      return 1
+    fi
+
+  else
+    _debug3 APP
+    #printf, not echo: dash's builtin echo interprets backslash escapes in
+    #the value and would corrupt it
+    printf -- "%s\n" "$__opt$__sep$__val$__end" >>"$__conf"
+  fi
+  _debug3 "$(grep -n "^$__opt$__sep" "$__conf")"
+}
+
+#_save_conf  file key  value base64encode
+#save to conf
+_save_conf() {
+  _s_c_f="$1"
+  _sdkey="$2"
+  _sdvalue="$3"
+  _b64encode="$4"
+  if [ "$_sdvalue" ] && [ "$_b64encode" ]; then
+    _sdvalue="${B64CONF_START}$(printf "%s" "${_sdvalue}" | _base64)${B64CONF_END}"
+  fi
+  if [ "$_s_c_f" ]; then
+    _setopt "$_s_c_f" "$_sdkey" "=" "'$_sdvalue'"
+  else
+    _err "Config file is empty, cannot save $_sdkey=$_sdvalue"
+  fi
+}
+
+#_clear_conf file  key
+_clear_conf() {
+  _c_c_f="$1"
+  _sdkey="$2"
+  if [ "$_c_c_f" ]; then
+    _conf_data="$(cat "$_c_c_f")"
+    #printf, not echo: dash's builtin echo interprets backslash escapes and
+    #would corrupt saved values that contain them on every rewrite
+    printf -- "%s\n" "$_conf_data" | sed "/^$_sdkey *=.*$/d" >"$_c_c_f"
+  else
+    _err "Config file is empty, cannot clear"
+  fi
+}
+
+#_read_conf file  key
+_read_conf() {
+  _r_c_f="$1"
+  _sdkey="$2"
+  if [ -f "$_r_c_f" ]; then
+    _sdv="$(
+      eval "$(grep "^$_sdkey *=" "$_r_c_f")"
+      eval "printf \"%s\" \"\$$_sdkey\""
+    )"
+    if _startswith "$_sdv" "${B64CONF_START}" && _endswith "$_sdv" "${B64CONF_END}"; then
+      _sdv="$(echo "$_sdv" | sed "s/${B64CONF_START}//" | sed "s/${B64CONF_END}//" | _dbase64)"
+    fi
+    printf "%s" "$_sdv"
+  else
+    _debug "Config file is empty, cannot read $_sdkey"
+  fi
+}
+
+#_savedomainconf   key  value  base64encode
+#save to domain.conf
+_savedomainconf() {
+  _save_conf "$DOMAIN_CONF" "$@"
+}
+
+#_cleardomainconf   key
+_cleardomainconf() {
+  _clear_conf "$DOMAIN_CONF" "$1"
+}
+
+#_readdomainconf   key
+_readdomainconf() {
+  _read_conf "$DOMAIN_CONF" "$1"
+}
+
+#_migratedomainconf   oldkey  newkey  base64encode
+_migratedomainconf() {
+  _old_key="$1"
+  _new_key="$2"
+  _b64encode="$3"
+  _old_value=$(_readdomainconf "$_old_key")
+  _cleardomainconf "$_old_key"
+  if [ -z "$_old_value" ]; then
+    return 1 # migrated failed: old value is empty
+  fi
+  _new_value=$(_readdomainconf "$_new_key")
+  if [ -n "$_new_value" ]; then
+    _debug "Domain config new key exists, old key $_old_key='$_old_value' has been removed."
+    return 1 # migrated failed: old value replaced by new value
+  fi
+  _savedomainconf "$_new_key" "$_old_value" "$_b64encode"
+  _debug "Domain config $_old_key has been migrated to $_new_key."
+}
+
+#_migratedeployconf   oldkey  newkey  base64encode
+_migratedeployconf() {
+  _migratedomainconf "$1" "SAVED_$2" "$3" ||
+    _migratedomainconf "SAVED_$1" "SAVED_$2" "$3" # try only when oldkey itself is not found
+}
+
+#key  value  base64encode
+_savedeployconf() {
+  _savedomainconf "SAVED_$1" "$2" "$3"
+  #remove later
+  _cleardomainconf "$1"
+}
+
+#key
+_cleardeployconf() {
+  _cleardomainconf "SAVED_$1"
+  #remove later
+  _cleardomainconf "$1"
+}
+
+#key
+_getdeployconf() {
+  _rac_key="$1"
+  _rac_value="$(eval echo \$"$_rac_key")"
+  if [ "$_rac_value" ]; then
+    if _startswith "$_rac_value" '"' && _endswith "$_rac_value" '"'; then
+      _debug2 "trim quotation marks"
+      eval $_rac_key=$_rac_value
+      export $_rac_key
+    fi
+    return 0 # do nothing
+  fi
+  _saved="$(_readdomainconf "SAVED_$_rac_key")"
+  eval $_rac_key=\$_saved
+  export $_rac_key
+}
+
+#_saveaccountconf  key  value  base64encode
+_saveaccountconf() {
+  _save_conf "$ACCOUNT_CONF_PATH" "$@"
+}
+
+#key  value base64encode
+_saveaccountconf_mutable() {
+  _save_conf "$ACCOUNT_CONF_PATH" "SAVED_$1" "$2" "$3"
+  #remove later
+  _clearaccountconf "$1"
+}
+
+#key
+_readaccountconf() {
+  _read_conf "$ACCOUNT_CONF_PATH" "$1"
+}
+
+#key
+_readaccountconf_mutable() {
+  _rac_key="$1"
+  _readaccountconf "SAVED_$_rac_key"
+}
+
+#_clearaccountconf   key
+_clearaccountconf() {
+  _clear_conf "$ACCOUNT_CONF_PATH" "$1"
+}
+
+#key
+_clearaccountconf_mutable() {
+  _clearaccountconf "SAVED_$1"
+  #remove later
+  _clearaccountconf "$1"
 }
 
 HTTP_HEADER="$(_mktemp)"
