@@ -8,6 +8,7 @@ Options:
  BERGDNS_API_URL API base URL. Optional. Default "https://bergdns.at/v1".
  BERGDNS_TTL TTL of the challenge record, in seconds. Optional. Default "60".
  BERGDNS_PROPAGATION_TIMEOUT Seconds to wait for the record to reach every secondary. Optional. Default "120". "0" does not wait.
+Issues: github.com/acmesh-official/acme.sh/issues/7261
 Author: Kenny Kropp <https://github.com/kekropp>
 '
 
