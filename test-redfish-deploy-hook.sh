@@ -1493,6 +1493,24 @@ _toPkcs8() {
 
 }
 
+#keyfile
+_isRSA() {
+  keyfile=$1
+  if grep "BEGIN RSA PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} rsa -in "$keyfile" -noout -text 2>&1 | grep "^publicExponent:" 2>&1 >/dev/null; then
+    return 0
+  fi
+  return 1
+}
+
+#keyfile
+_isEcc() {
+  keyfile=$1
+  if grep "BEGIN EC PRIVATE KEY" "$keyfile" >/dev/null 2>&1 || ${ACME_OPENSSL_BIN:-openssl} ec -in "$keyfile" -noout -text 2>/dev/null | grep "^NIST CURVE:" 2>&1 >/dev/null; then
+    return 0
+  fi
+  return 1
+}
+
 HTTP_HEADER="$(_mktemp)"
 
 . deploy/redfish.sh
@@ -1500,4 +1518,5 @@ HTTP_HEADER="$(_mktemp)"
 DEPLOY_REDFISH_HOST='redfish-host'
 DEPLOY_REDFISH_USERNAME='username'
 DEPLOY_REDFISH_PASSWORD='password'
+Le_Keylength="$(_readdomainconf Le_Keylength)"
 redfish_deploy 'domain' 'fake-key-file' 'fake-cert' 'fake-ca-cert' 'fake-fullchain'
