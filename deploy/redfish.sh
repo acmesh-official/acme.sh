@@ -1,7 +1,35 @@
 #!/usr/bin/env sh
 
-# https://www.dmtf.org/sites/default/files/standards/documents/DSP0266_1.24.0.pdf
-# https://www.dmtf.org/sites/default/files/standards/documents/DSP2059_1.2.0.pdf
+# Script to deploy certificates to compatible BMCs (baseboard management
+# controllers) using the [Redfish API](https://www.dmtf.org/standards/redfish).
+#
+# Environment Variables:
+#
+# ```sh
+# export DEPLOY_REDFISH_HOST="ipmi.example.com"  # Required
+# export DEPLOY_REDFISH_USERNAME="Administrator" # Required
+# export DEPLOY_REDFISH_PASSWORD="superuser"     # Required
+# # export DEPLOY_REDFISH_USE_BASIC_AUTH=1       # Optional
+# ```
+#
+# Compatibility:
+#
+# Compatible with any IPMI/BMC solution supporting Redfish v1.6.1 or newer (or
+# Redfish Schema Bundle 2018.3), as defined in the following documents:
+#
+# <https://www.dmtf.org/sites/default/files/standards/documents/DSP0266_1.6.1.pdf>
+# <https://www.dmtf.org/sites/default/files/standards/documents/DSP2046_2018.3.pdf>
+# <https://www.dmtf.org/sites/default/files/standards/documents/DSP2059_1.0.0.pdf>
+#
+# This script is confirmed to work on the following systems:
+#
+# | IPMI Solution    | BMC Chipset    | Firmware Family  | Redfish Version |
+# |------------------|----------------|------------------|-----------------|
+# | ASUS ASMB12-iKVM | ASPEED AST2600 | AMI MegaRAC SP-X | 1.15.1          |
+#
+# However, this should also work with HPE iLO 5 v2.42 (or newer), Dell iDRAC9
+# v5.0 (or newer), or any ASUS/Lenovo/Supermicro IPMI solution based on AMI
+# MegaRAC SP-X v12.x (or newer).
 
 ########  Public functions #####################
 
@@ -24,8 +52,10 @@ redfish_deploy() {
     return 1
   fi
 
+  _getdeployconf DEPLOY_REDFISH_HOST
   _getdeployconf DEPLOY_REDFISH_USERNAME
   _getdeployconf DEPLOY_REDFISH_PASSWORD
+  _getdeployconf DEPLOY_REDFISH_USE_BASIC_AUTH
 
   # 1. Authenticate with the Redfish server and store the auth header.
   #    * Create new Redfish session token using the username/password provided.
@@ -36,20 +66,19 @@ redfish_deploy() {
   # acme.sh run (e.g. the connection to the ACME CA).
   export HTTPS_INSECURE=1
 
-  _redfish_authenticate "$DEPLOY_REDFISH_HOST" "$DEPLOY_REDFISH_USERNAME" "$DEPLOY_REDFISH_PASSWORD" ''
+  _redfish_authenticate "$DEPLOY_REDFISH_HOST" "$DEPLOY_REDFISH_USERNAME" "$DEPLOY_REDFISH_PASSWORD" "$DEPLOY_REDFISH_USE_BASIC_AUTH"
   trap '_redfish_end_session "$DEPLOY_REDFISH_HOST" "${_redfish_session:-}"' EXIT INT
 
   # 2. Verify Redfish server supports certificate management.
 
   _redfish_response="$(_get "https://${_redfish_host}/redfish/v1/")"
+  _redfish_managers_path="$(echo "${_redfish_response}" | jq -r '.Managers.["@odata.id"]')"
   _redfish_certificate_service_path="$(echo "${_redfish_response}" | jq -r '.CertificateService.["@odata.id"]')"
 
   if _contains "${_redfish_certificate_service_path}" 'null'; then
     _err "Redfish server doesn't support certificate management API."
     return 1
   fi
-
-  _redfish_managers_path="$(echo "${_redfish_response}" | jq -r '.Managers.["@odata.id"]')"
 
   # 3. Verify supported key algorithms/lengths/curves and that key is compatible.
 
@@ -160,10 +189,12 @@ redfish_deploy() {
 
   if [ "${_code}" != "204" ]; then
     _err "Failed to upload certificate chain and private key! Status code: ${_code}"
-    _debug2 _redfish_response "${_redfish_response}"
+    _err "Response: ${_redfish_response}"
+    return 1
   fi
 
-  _info 'Successfully updated Redfish server TLS certificate! Server may need a restart.'
+  _info 'Successfully updated Redfish server TLS certificate!'
+
   return 0
 }
 
@@ -187,15 +218,18 @@ _redfish_authenticate() {
     # Create new session
     _redfish_body="$(jq -n '{"UserName":$user,"Password":$pass}' --arg user "${_redfish_username}" --arg pass "${_redfish_password}" | _normalizeJson)"
     _redfish_response="$(_post "${_redfish_body}" "https://${_redfish_host}${_redfish_session_path}" '' 'POST' 'application/json')"
+    _code="$(_egrep_o <"${HTTP_HEADER}" '^HTTP[^ ]* [0-9]+' | _tail_n 1 | tr -d '\r\n' | cut -d ' ' -f 2)"
+
+    # Verify authentication succeeded
+    if [ "${_code}" != "201" ]; then
+      _err "Redfish authentication failed (HTTP ${_code})"
+      _err "Response: ${_redfish_response}"
+      return 1
+    fi
+
     _redfish_session="$(grep -i '^Location: .*$' "${HTTP_HEADER}" | _tail_n 1 | tr -d ' \r\n' | cut -d ':' -f 2)"
     _redfish_auth_token="$(grep -i '^X-Auth-Token: .*$' "${HTTP_HEADER}" | _tail_n 1 | tr -d ' \r\n' | cut -d ':' -f 2)"
     export _H2="X-Auth-Token: ${_redfish_auth_token}"
-
-    # Verify authentication succeeded
-    if ! _contains "${_redfish_response}" "\"${_redfish_session}\""; then
-      _err "Active Redfish session \"${_redfish_session}\" not found"
-      return 1
-    fi
   fi
 }
 
@@ -210,8 +244,8 @@ _redfish_end_session() {
     _code="$(_egrep_o <"${HTTP_HEADER}" '^HTTP[^ ]* [0-9]+' | _tail_n 1 | tr -d '\r\n' | cut -d ' ' -f 2)"
 
     if [ "${_code}" != "204" ]; then
-      _err "Failed to end Redfish session! Status code: ${_code}"
-      _debug2 _redfish_response "${_redfish_response}"
+      _err "Failed to log out of Redfish server (HTTP ${_code})."
+      _err "Response: ${_redfish_response}"
     fi
   else
     _info 'Using basic HTTP auth, no need to sign out.'
