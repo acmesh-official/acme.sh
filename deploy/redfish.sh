@@ -10,6 +10,7 @@
 # export DEPLOY_REDFISH_USERNAME="Administrator" # Required
 # export DEPLOY_REDFISH_PASSWORD="superuser"     # Required
 # # export DEPLOY_REDFISH_USE_BASIC_AUTH=1       # Optional
+# # export DEPLOY_REDFISH_RESTART_BMC=1          # Optional
 # ```
 #
 # Compatibility:
@@ -56,6 +57,7 @@ redfish_deploy() {
   _getdeployconf DEPLOY_REDFISH_USERNAME
   _getdeployconf DEPLOY_REDFISH_PASSWORD
   _getdeployconf DEPLOY_REDFISH_USE_BASIC_AUTH
+  _getdeployconf DEPLOY_REDFISH_RESTART_BMC
 
   # 1. Authenticate with the Redfish server and store the auth header.
   #    * Create new Redfish session token using the username/password provided.
@@ -194,6 +196,23 @@ redfish_deploy() {
   fi
 
   _info 'Successfully updated Redfish server TLS certificate!'
+
+  if [ -n "${DEPLOY_REDFISH_RESTART_BMC}" ]; then
+    _info 'Attempting to restart BMC gracefully...'
+
+    _redfish_response="$(_post '{"ResetType":"GracefulRestart"}' "https://${_redfish_host}${_redfish_manager_path}/Actions/Manager.Reset" '' 'POST' 'application/json')"
+    _code="$(_egrep_o <"${HTTP_HEADER}" '^HTTP[^ ]* [0-9]+' | _tail_n 1 | tr -d '\r\n' | cut -d ' ' -f 2)"
+
+    if [ "${_code}" = "204" ]; then
+      _info "Successfully sent graceful restart command to BMC. Once complete, the new TLS certificate will be active."
+    else
+      _err "Failed to gracefully restart BMC! Status code: ${_code}"
+      _err "Response: ${_redfish_response}"
+      return 1
+    fi
+  else
+    _info 'Please wait up to 20 seconds to take effect, or restart the BMC manually.'
+  fi
 
   return 0
 }
