@@ -45,11 +45,61 @@ redfish_deploy() {
   _redfish_certificate_service_path="$(echo "${_redfish_response}" | jq -r '.CertificateService.["@odata.id"]')"
 
   if _contains "${_redfish_certificate_service_path}" 'null'; then
-    _err "Redfish server doesn't support certificate management API. Exiting..."
+    _err "Redfish server doesn't support certificate management API."
     return 1
   fi
 
-  # 3. Perform 3.3 of this PDF: https://www.dmtf.org/sites/default/files/standards/documents/DSP2059_1.2.0.pdf
+  _redfish_managers_path="$(echo "${_redfish_response}" | jq -r '.Managers.["@odata.id"]')"
+
+  # 3. Verify supported key algorithms/lengths/curves and that key is compatible.
+
+  if _isRSA "${_ckey}"; then
+    _redfish_key_algo='RSA'
+  elif _isEcc "${_ckey}"; then
+    _redfish_key_algo='ECDSA'
+  else
+    _err 'Unknown cryptographic algorithm!'
+    return 1
+  fi
+
+  _redfish_response="$(_get "https://${_redfish_host}${_redfish_certificate_service_path}")"
+  _redfish_generate_csr_info_path="$(echo "${_redfish_response}" | jq -r '.Actions["#CertificateService.GenerateCSR"].["@Redfish.ActionInfo"]')"
+  _redfish_response="$(_get "https://${_redfish_host}${_redfish_generate_csr_info_path}")"
+  _redfish_allowed_key_algos="$(echo "${_redfish_response}" | jq -r '.Parameters[] | select(.Name == "KeyPairAlgorithm") | .AllowableValues[]')"
+
+  if [ -z "${_redfish_allowed_key_algos}" ]; then
+    _redfish_allowed_key_algos='TCG_ALG_RSA'
+  fi
+
+  case "${_redfish_key_algo}:${_redfish_allowed_key_algos}" in
+  RSA:*RSA*)
+    _redfish_allowed_key_bit_lengths="$(echo "${_redfish_response}" | jq -r '.Parameters[] | select(.Name == "KeyBitLength")')"
+    _redfish_key_bits_min="$(echo "${_redfish_allowed_key_bit_lengths}" | jq -r '.MinimumValue')"
+    _redfish_key_bits_max="$(echo "${_redfish_allowed_key_bit_lengths}" | jq -r '.MaximumValue')"
+
+    # shellcheck disable=SC2154 # Le_Keylength is set by acme.sh core, not this hook
+    if [ "${Le_Keylength}" -le "${_redfish_key_bits_min}" ] || [ "${Le_Keylength}" -gt "${_redfish_key_bits_max}" ]; then
+      _err "Unsupported RSA private key length ${Le_Keylength}!"
+      _err "Please re-run \`acme.sh\` with \`--keylength\` set to a value between ${_redfish_allowed_key_bit_length_max} and ${_redfish_allowed_key_bit_length_min}."
+      return 1
+    fi
+    ;;
+  ECDSA:*ECDSA*)
+    _redfish_allowed_key_curve_ids="$(echo "${_redfish_response}" | jq -r '.Parameters[] | select(.Name == "KeyCurveId") | .AllowableValues[]')"
+
+    # shellcheck disable=SC2154 # Le_Keylength is set by acme.sh core, not this hook
+    if ! _contains "${_redfish_allowed_key_curve_ids}" "${Le_Keylength}"; then
+      _err "Unsupported ECDSA private key type! Supports only: ${_redfish_allowed_key_curve_ids}"
+      return 1
+    fi
+    ;;
+  *)
+    _err "This Redfish server does not support ${_redfish_key_algo} private keys! Supports only: ${_redfish_allowed_key_algos}"
+    return 1
+    ;;
+  esac
+
+  # 4. Perform 3.3 of this PDF: https://www.dmtf.org/sites/default/files/standards/documents/DSP2059_1.2.0.pdf
   #    * When deploying, do it according to 2.2.1.1 "Web Service Certificates".
   #    * Since `acme.sh` is generating the certificate itself rather using the
   #      Redfish API to do so, append the private key (`_ckey`) to
@@ -58,7 +108,6 @@ redfish_deploy() {
   #      host itself using the `GenerateCSR` API and simply send `_cfullchain`
   #      without `_ckey` (log it with a warning, though).
 
-  _redfish_managers_path="$(echo "${_redfish_response}" | jq -r '.Managers.["@odata.id"]')"
   _redfish_response="$(_get "https://${_redfish_host}${_redfish_managers_path}")"
   _redfish_num_managers="$(echo "${_redfish_response}" | jq -r '.["Members@odata.count"]')"
 
@@ -98,7 +147,7 @@ redfish_deploy() {
       return 1
     fi
 
-    _redfish_certificate_str="$(paste -sd '\n' "${_redfish_ckey_pkcs8}" "${_ccert}" "${_cfullchain}" | _json_encode)"
+    _redfish_certificate_str="$(paste -sd '\n' "${_ckey}" "${_cfullchain}" | _json_encode)"
     _redfish_certificate_type="PEMchain"
   else
     _redfish_certificate_str="$(_json_encode <"${_cfullchain}")"
@@ -107,7 +156,15 @@ redfish_deploy() {
 
   _redfish_body="$(printf '{"CertificateString":"%s","CertificateType":"%s","CertificateUri":{"@odata.id":"%s"}}' "${_redfish_certificate_str}" "${_redfish_certificate_type}" "${_redfish_certificate_path}")"
   _redfish_response="$(_post "${_redfish_body}" "https://${_redfish_host}${_redfish_certificate_service_path}/Actions/CertificateService.ReplaceCertificate" '' 'POST' 'application/json')"
-  _debug2 _redfish_response "$(echo "${_redfish_response}" | jq -sRr .)"
+  _code="$(_egrep_o <"${HTTP_HEADER}" '^HTTP[^ ]* [0-9]+' | _tail_n 1 | tr -d '\r\n' | cut -d ' ' -f 2)"
+
+  if [ "${_code}" != "204" ]; then
+    _err "Failed to upload certificate chain and private key! Status code: ${_code}"
+    _debug2 _redfish_response "${_redfish_response}"
+  fi
+
+  _info 'Successfully updated Redfish server TLS certificate! Server may need a restart.'
+  return 0
 }
 
 _redfish_authenticate() {
