@@ -73,7 +73,7 @@ dns_efficientip_add() {
     EfficientIP_CredsEncoded=$(printf "%b" "${EfficientIP_Creds}" | _base64)
     export _H2="Authorization: Basic ${EfficientIP_CredsEncoded}"
   else
-    TS=$(date +%s)
+    TS=$(_time)
     Sig=$(printf "%b\n$TS\nPOST\n$baseurlnObject" "${EfficientIP_Token_Secret}" | _digest sha3-256 hex)
     EfficientIP_CredsEncoded=$(printf "%b:%b" "${EfficientIP_Token_Key}" "$Sig")
     export _H2="Authorization: SDS ${EfficientIP_CredsEncoded}"
@@ -108,7 +108,7 @@ _efficientip_set_auth() {
     export _H2="Authorization: Basic ${EfficientIP_CredsEncoded}"
     unset _H3 2>/dev/null || _H3=""
   else
-    TS=$(date +%s)
+    TS=$(_time)
     Sig=$(printf "%b\n$TS\n%s\n%s" "${EfficientIP_Token_Secret}" "${_eip_method}" "${_eip_url}" | _digest sha3-256 hex)
     EfficientIP_CredsEncoded=$(printf "%b:%b" "${EfficientIP_Token_Key}" "$Sig")
     export _H2="Authorization: SDS ${EfficientIP_CredsEncoded}"
@@ -149,12 +149,14 @@ dns_efficientip_rm() {
   _debug2 listresult "${listresult}"
 
   # Extract the first rr_id from the JSON list response.
-  rr_id="$(echo "${listresult}" | _egrep_o '"rr_id" *: *"[0-9]+"' | _egrep_o '[0-9]+' | head -n 1)"
+  rr_id="$(echo "${listresult}" | _egrep_o '"rr_id" *: *"[0-9][0-9]*"' | _head_n 1 | cut -d '"' -f 4)"
 
+  # A missing rr_id means the record is already gone (for example a previous
+  # cleanup succeeded, or the validation record was never created). That is not
+  # an error: report it and let the caller continue.
   if [ -z "${rr_id}" ]; then
-    _err "Error deleting DNS record: could not find rr_id for ${fulldomain}"
-    _err "${listresult}"
-    return 1
+    _info "No TXT record found for ${fulldomain}, nothing to delete."
+    return 0
   fi
   _debug rr_id "${rr_id}"
 
