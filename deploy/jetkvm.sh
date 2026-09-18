@@ -226,16 +226,25 @@ jetkvm_deploy() {
   # rather than racing the connection teardown -- observed, against real
   # hardware, that a reboot racing the SSH session's own exit can make
   # ssh itself exit anywhere from a clean 0 to a connection-reset 255.
-  # The tradeoff: a genuinely failing restart command (typo, permission
-  # denied) can no longer be detected either, since it now runs after
-  # this ssh call has already returned; only a failure to launch it at
-  # all is caught below. "sleep" here runs on the device's own shell, not
-  # acme.sh's, so acme.sh's _sleep wrapper does not apply.
+  # Since the restart command then runs as an unwaited background job on
+  # the device, this ssh call reports success as soon as that job is
+  # launched -- it does NOT confirm nohup, sh, or the restart command
+  # itself actually exist or succeed (measured: a nonexistent restart
+  # command, and even a missing nohup binary, both still return 0 here).
+  # Only an outright SSH connection failure (unreachable host, auth
+  # failure, etc.) is caught below. "sleep" runs on the device's own
+  # shell, not acme.sh's, so acme.sh's _sleep wrapper does not apply.
   _info "Running post-upload command on JetKVM device: $DEPLOY_JETKVM_RESTART_CMD"
-  _jetkvm_detached_cmd="nohup sh -c 'sleep 2; $DEPLOY_JETKVM_RESTART_CMD' >/dev/null 2>&1 &"
+  # Escape any single quotes in the (user-configurable, free-text)
+  # restart command before nesting it inside the outer 'sleep N; ...'
+  # single-quoted string -- otherwise a value like "sh -c 'sync; reboot'"
+  # breaks the quoting and only part of it ends up inside the detached
+  # background job.
+  _jetkvm_restart_cmd_escaped=$(printf '%s' "$DEPLOY_JETKVM_RESTART_CMD" | sed "s/'/'\\\\''/g")
+  _jetkvm_detached_cmd="nohup sh -c 'sleep 2; $_jetkvm_restart_cmd_escaped' >/dev/null 2>&1 &"
   # shellcheck disable=SC2086
   if ! $DEPLOY_JETKVM_SSH_CMD -p "$DEPLOY_JETKVM_PORT" "$DEPLOY_JETKVM_USER@$DEPLOY_JETKVM_HOST" "$_jetkvm_detached_cmd"; then
-    _err "Certificate was uploaded, but launching the restart command on the JetKVM device failed."
+    _err "Certificate was uploaded, but connecting to the JetKVM device to launch the restart command failed."
     return 1
   fi
 
