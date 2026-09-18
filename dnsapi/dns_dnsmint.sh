@@ -210,8 +210,12 @@ _dnsmint_record_rm() {
   # The replacement carries a literal newline: "\n" there is a GNU extension
   # and BSD sed inserts the letter n, which would leave the whole reply on one
   # line and match the first record under the hostname whatever its value.
+  #
+  # echo rather than printf "%s": the reply arrives with no trailing newline,
+  # and Solaris /usr/bin/sed discards an incomplete final line. Here that line
+  # is the entire reply, so every removal would report the record already gone.
   _records="$(
-    printf "%s" "$response" | sed 's/},{/}\
+    echo "$response" | sed 's/},{/}\
 {/g'
   )"
 
@@ -219,7 +223,9 @@ _dnsmint_record_rm() {
   while IFS= read -r _line; do
     case "$_line" in
     *"\"$_value\""*)
-      _rid="$(printf "%s" "$_line" | _egrep_o '"id":"[^"]*"' | cut -d'"' -f4)"
+      # _head_n 1 because a record object may carry a nested id under "data",
+      # and two lines in _rid would break the DELETE URL.
+      _rid="$(echo "$_line" | _egrep_o '"id":"[^"]*"' | cut -d'"' -f4 | _head_n 1)"
       if [ -n "$_rid" ]; then
         break
       fi
