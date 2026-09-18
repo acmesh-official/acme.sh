@@ -6,11 +6,12 @@
 # Environment Variables:
 #
 # ```sh
-# export DEPLOY_REDFISH_HOST="ipmi.example.com"  # Required
-# export DEPLOY_REDFISH_USERNAME="Administrator" # Required
-# export DEPLOY_REDFISH_PASSWORD="superuser"     # Required
-# # export DEPLOY_REDFISH_USE_BASIC_AUTH=1       # Optional
-# # export DEPLOY_REDFISH_RESTART_BMC=1          # Optional
+# DEPLOY_REDFISH_HOST="ipmi.example.com"  # Required
+# DEPLOY_REDFISH_USERNAME="Administrator" # Required
+# DEPLOY_REDFISH_PASSWORD="superuser"     # Required
+# # DEPLOY_REDFISH_USE_BASIC_AUTH=1
+# # DEPLOY_REDFISH_RESTART_BMC=1
+# # DEPLOY_REDFISH_TARGET="/redfish/v1/CertificateService/Certificates/1"
 # ```
 #
 # Compatibility:
@@ -53,11 +54,22 @@ redfish_deploy() {
     return 1
   fi
 
-  _getdeployconf DEPLOY_REDFISH_HOST
-  _getdeployconf DEPLOY_REDFISH_USERNAME
-  _getdeployconf DEPLOY_REDFISH_PASSWORD
-  _getdeployconf DEPLOY_REDFISH_USE_BASIC_AUTH
-  _getdeployconf DEPLOY_REDFISH_RESTART_BMC
+  _redfish_load_deploy_conf DEPLOY_REDFISH_HOST
+  _redfish_load_deploy_conf DEPLOY_REDFISH_USERNAME 'base64'
+  _redfish_load_deploy_conf DEPLOY_REDFISH_PASSWORD 'base64'
+  _redfish_load_deploy_conf DEPLOY_REDFISH_USE_BASIC_AUTH
+  _redfish_load_deploy_conf DEPLOY_REDFISH_RESTART_BMC
+  _redfish_load_deploy_conf DEPLOY_REDFISH_TARGET
+
+  if [ -z "${DEPLOY_REDFISH_HOST}" ]; then
+    _err 'DEPLOY_REDFISH_HOST must be set. Please specify the IP or domain name of the Redfish server.'
+    return 1
+  fi
+
+  if [ -z "${DEPLOY_REDFISH_USERNAME}" ] || [ -z "${DEPLOY_REDFISH_PASSWORD}" ]; then
+    _err 'DEPLOY_REDFISH_USERNAME and DEPLOY_REDFISH_PASSWORD must be set.'
+    return 1
+  fi
 
   # Scoped to this hook's own subshell -- does not affect the rest of the
   # acme.sh run (e.g. the connection to the ACME CA).
@@ -143,35 +155,40 @@ redfish_deploy() {
   #      host itself using the `GenerateCSR` API and simply send `_cfullchain`
   #      without `_ckey` (log it with a warning, though).
 
-  _response="$(_get "https://${_host}${_managers_path}")"
-  _num_managers="$(echo "${_response}" | jq -r '.["Members@odata.count"]')"
+  if [ -n "${DEPLOY_REDFISH_TARGET}" ]; then
+    _certificate_path="${DEPLOY_REDFISH_TARGET}"
+  else
+    _response="$(_get "https://${_host}${_managers_path}")"
+    _num_managers="$(echo "${_response}" | jq -r '.["Members@odata.count"]')"
 
-  _getdeployconf DEPLOY_REDFISH_MANAGER
-
-  if [ -z "${DEPLOY_REDFISH_MANAGER}" ] && [ "${_num_managers}" != '1' ]; then
-    if [ "${_num_managers}" = "0" ]; then
-      _err "Unable to identify any Redfish managers."
-    else
-      _all_managers="$(echo "${_response}" | jq -c '[.Members[].["@odata.id"]]')"
-      _err "Multiple Redfish managers identified (${_all_managers}). Please set exactly one in DEPLOY_REDFISH_MANAGER."
+    if [ "${_num_managers}" != '1' ]; then
+      if [ "${_num_managers}" = "0" ]; then
+        _err "Unable to identify any Redfish managers."
+      else
+        _all_managers="$(echo "${_response}" | jq -c '[.Members[].["@odata.id"]]')"
+        _err "Multiple Redfish managers identified (${_all_managers}). Please set exactly one in DEPLOY_REDFISH_MANAGER."
+      fi
+      return 1
     fi
-    return 1
+
+    _manager_path="$(echo "${_response}" | jq -r '.Members[0].["@odata.id"]')"
+    _response="$(_get "https://${_host}${_manager_path}")"
+    _network_protocol_path="$(echo "${_response}" | jq -r '.NetworkProtocol.["@odata.id"]')"
+
+    _response="$(_get "https://${_host}${_network_protocol_path}/HTTPS/Certificates")"
+    _num_certificates="$(echo "${_response}" | jq -r '.["Members@odata.count"]')"
+
+    if [ "${_num_certificates}" != '1' ]; then
+      _all_managers="$(echo "${_response}" | jq -c '[.Members[].["@odata.id"]]')"
+      _err "Multiple web service HTTPS certificates identified (${_all_managers}), but expected exactly one."
+      return 1
+    fi
+
+    _certificate_path="$(echo "${_response}" | jq -r '.Members[0].["@odata.id"]')"
+    _savedeployconf DEPLOY_REDFISH_TARGET "${_certificate_path}"
   fi
 
-  _manager_path="$(echo "${_response}" | jq -r '.Members[0].["@odata.id"]')"
-  _response="$(_get "https://${_host}${_manager_path}")"
-  _network_protocol_path="$(echo "${_response}" | jq -r '.NetworkProtocol.["@odata.id"]')"
-
-  _response="$(_get "https://${_host}${_network_protocol_path}/HTTPS/Certificates")"
-  _num_certificates="$(echo "${_response}" | jq -r '.["Members@odata.count"]')"
-
-  if [ "${_num_certificates}" != '1' ]; then
-    _all_managers="$(echo "${_response}" | jq -c '[.Members[].["@odata.id"]]')"
-    _err "Multiple web service HTTPS certificates identified (${_all_managers}), but expected exactly one."
-    return 1
-  fi
-
-  _certificate_path="$(echo "${_response}" | jq -r '.Members[0].["@odata.id"]')"
+  _info "Preparing to deploy TLS certificate to ${_certificate_path}."
   _response="$(_get "https://${_host}${_certificate_path}")"
 
   if [ -n "${_ckey}" ]; then
@@ -225,6 +242,25 @@ redfish_deploy() {
   fi
 
   return 0
+}
+
+_redfish_load_deploy_conf() {
+  _var="$1"
+  _encode_base64="${2:-}"
+
+  if [ -n "$(eval echo "\$$_var")" ]; then
+    _debug2 "Detected environment variable $_var, saving to file."
+    _savedeployconf "$_var" "$(eval echo "\$$_var")" "${_encode_base64}"
+  else
+    _debug2 "Attempting to load variable $_var from file."
+    _getdeployconf "$_var"
+  fi
+
+  if [ -n "${_encode_base64}" ]; then
+    _secure_debug2 "$_var" "$(eval echo "\$$_var")"
+  else
+    _debug2 "$_var" "$(eval echo "\$$_var")"
+  fi
 }
 
 _redfish_log_in() {
