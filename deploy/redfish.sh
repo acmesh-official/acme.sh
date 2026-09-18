@@ -11,6 +11,7 @@
 # DEPLOY_REDFISH_PASSWORD="superuser"     # Required
 # # DEPLOY_REDFISH_USE_BASIC_AUTH=1
 # # DEPLOY_REDFISH_RESTART_BMC=1
+# # DEPLOY_REDFISH_MANAGER="/redfish/v1/Managers/Self"
 # # DEPLOY_REDFISH_TARGET="/redfish/v1/CertificateService/Certificates/1"
 # ```
 #
@@ -59,6 +60,7 @@ redfish_deploy() {
   _redfish_load_deploy_conf DEPLOY_REDFISH_PASSWORD 'base64'
   _redfish_load_deploy_conf DEPLOY_REDFISH_USE_BASIC_AUTH
   _redfish_load_deploy_conf DEPLOY_REDFISH_RESTART_BMC
+  _redfish_load_deploy_conf DEPLOY_REDFISH_MANAGER
   _redfish_load_deploy_conf DEPLOY_REDFISH_TARGET
 
   if [ -z "${DEPLOY_REDFISH_HOST}" ]; then
@@ -157,32 +159,37 @@ redfish_deploy() {
   #      host itself using the `GenerateCSR` API and simply send `_cfullchain`
   #      without `_ckey` (log it with a warning, though).
 
-  if [ -n "${DEPLOY_REDFISH_TARGET}" ]; then
-    _certificate_path="${DEPLOY_REDFISH_TARGET}"
+  _debug 'Identifying REST endpoint for primary TLS certificate.'
+
+  if [ -n "${DEPLOY_REDFISH_MANAGER}" ]; then
+    _manager_path="${DEPLOY_REDFISH_MANAGER}"
   else
     _response="$(_get "https://${_host}${_managers_path}")"
     _num_managers="$(echo "${_response}" | jq -r '.["Members@odata.count"]')"
 
     if [ "${_num_managers}" != '1' ]; then
-      if [ "${_num_managers}" = "0" ]; then
-        _err "Unable to identify any Redfish managers."
-      else
-        _all_managers="$(echo "${_response}" | jq -c '[.Members[].["@odata.id"]]')"
-        _err "Multiple Redfish managers identified (${_all_managers}). Please set exactly one in DEPLOY_REDFISH_MANAGER."
-      fi
+      _all_managers="$(echo "${_response}" | jq -c '[.Members[].["@odata.id"]]')"
+      _err "Multiple Redfish managers identified (${_all_managers}), but expected exactly one."
+      _err "Please specify the manager in DEPLOY_REDFISH_MANAGER."
       return 1
     fi
 
     _manager_path="$(echo "${_response}" | jq -r '.Members[0].["@odata.id"]')"
+    _savedeployconf DEPLOY_REDFISH_MANAGER "${_manager_path}"
+  fi
+
+  if [ -n "${DEPLOY_REDFISH_TARGET}" ]; then
+    _certificate_path="${DEPLOY_REDFISH_TARGET}"
+  else
     _response="$(_get "https://${_host}${_manager_path}")"
     _network_protocol_path="$(echo "${_response}" | jq -r '.NetworkProtocol.["@odata.id"]')"
-
     _response="$(_get "https://${_host}${_network_protocol_path}/HTTPS/Certificates")"
     _num_certificates="$(echo "${_response}" | jq -r '.["Members@odata.count"]')"
 
     if [ "${_num_certificates}" != '1' ]; then
       _all_managers="$(echo "${_response}" | jq -c '[.Members[].["@odata.id"]]')"
       _err "Multiple web service HTTPS certificates identified (${_all_managers}), but expected exactly one."
+      _err "Please specify the exact certificate destination in DEPLOY_REDFISH_TARGET."
       return 1
     fi
 
@@ -190,7 +197,7 @@ redfish_deploy() {
     _savedeployconf DEPLOY_REDFISH_TARGET "${_certificate_path}"
   fi
 
-  _info "Preparing to deploy TLS certificate to ${_certificate_path}."
+  _info "Deploying TLS certificate to ${_certificate_path}."
   _response="$(_get "https://${_host}${_certificate_path}")"
 
   if [ -n "${_ckey}" ]; then
@@ -229,15 +236,23 @@ redfish_deploy() {
   if [ -n "${DEPLOY_REDFISH_RESTART_BMC}" ]; then
     _info 'Attempting to restart BMC gracefully.'
 
-    _response="$(_post '{"ResetType":"GracefulRestart"}' "https://${_host}${_manager_path}/Actions/Manager.Reset" '' 'POST' 'application/json')"
-    _code="$(_egrep_o <"${HTTP_HEADER}" '^HTTP[^ ]* [0-9]+' | _tail_n 1 | tr -d '\r\n' | cut -d ' ' -f 2)"
+    _response="$(_get "https://${_host}${_manager_path}")"
+    _manager_reset_action_info="$(echo "${_response}" | jq -r '.Actions["#Manager.Reset"].["@Redfish.ActionInfo"]')"
+    _response="$(_get "https://${_host}${_manager_reset_action_info}")"
 
-    if [ "${_code}" = '204' ]; then
-      _info "Successfully sent graceful restart command to BMC. After restarting, the new TLS certificate will be active."
+    if _contains "${_response}" 'GracefulRestart'; then
+      _response="$(_post '{"ResetType":"GracefulRestart"}' "https://${_host}${_manager_path}/Actions/Manager.Reset" '' 'POST' 'application/json')"
+      _code="$(_egrep_o <"${HTTP_HEADER}" '^HTTP[^ ]* [0-9]+' | _tail_n 1 | tr -d '\r\n' | cut -d ' ' -f 2)"
+
+      if [ "${_code}" = '204' ]; then
+        _info "Successfully sent graceful restart command to BMC. After restarting, the new TLS certificate will be active."
+      else
+        _err "Failed to gracefully restart BMC! Status code: ${_code}"
+        _err "Response: ${_response}"
+        return 1
+      fi
     else
-      _err "Failed to gracefully restart BMC! Status code: ${_code}"
-      _err "Response: ${_response}"
-      return 1
+      _info "BMC doesn't support graceful restarts. Please wait up to 20 seconds to take effect, or restart the BMC manually."
     fi
   else
     _info 'Please wait up to 20 seconds to take effect, or restart the BMC manually.'
