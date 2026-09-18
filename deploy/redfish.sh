@@ -114,6 +114,9 @@ redfish_deploy() {
       _allowed_key_algos='TCG_ALG_RSA'
     fi
 
+    _debug _key_algo "${_key_algo}"
+    _debug _allowed_key_algos "${_allowed_key_algos}"
+
     case "${_key_algo}:${_allowed_key_algos}" in
     RSA:*RSA*)
       _allowed_key_bit_lengths="$(echo "${_response}" | jq -r '.Parameters[] | select(.Name == "KeyBitLength")')"
@@ -123,7 +126,7 @@ redfish_deploy() {
       # shellcheck disable=SC2154 # Le_Keylength is set by acme.sh core, not this hook
       if [ "${Le_Keylength}" -le "${_key_bits_min}" ] || [ "${Le_Keylength}" -gt "${_key_bits_max}" ]; then
         _err "Unsupported RSA private key length ${Le_Keylength}!"
-        _err "Please re-run \`acme.sh\` with \`--keylength\` set to a value between ${_allowed_key_bit_length_max} and ${_allowed_key_bit_length_min}."
+        _err "Please re-run acme.sh with --keylength set to a value between ${_allowed_key_bit_length_max} and ${_allowed_key_bit_length_min}."
         return 1
       fi
       ;;
@@ -141,9 +144,8 @@ redfish_deploy() {
       return 1
       ;;
     esac
-
   else
-    _info "Not checking cipher suite compatibility with ${_host}, due to \`--sign-csr\`. Assuming correct private key is already on the server."
+    _info "Not checking cipher suite compatibility with ${_host}, due to --sign-csr. Assuming correct private key is already on the server."
   fi
 
   # 4. Perform 3.3 of this PDF: https://www.dmtf.org/sites/default/files/standards/documents/DSP2059_1.2.0.pdf
@@ -151,7 +153,7 @@ redfish_deploy() {
   #    * Since `acme.sh` is generating the certificate itself rather using the
   #      Redfish API to do so, append the private key (`_ckey`) to
   #      `_cfullchain` in 3.1.7 If `_ckey` is undefined, we must be in
-  #      `--signcsr` mode; assume the CSR was already generated on the Redfish
+  #      `--sign-csr` mode; assume the CSR was already generated on the Redfish
   #      host itself using the `GenerateCSR` API and simply send `_cfullchain`
   #      without `_ckey` (log it with a warning, though).
 
@@ -203,7 +205,7 @@ redfish_deploy() {
     _certificate_str="$(paste -sd '\n' "${_ckey_pkcs8}" "${_cfullchain}" | _json_encode)"
     _certificate_type="PEMchain"
   else
-    _info "Uploading only certificate chain to Redfish server, due to \`--sign-csr\`."
+    _info "Uploading only certificate chain to Redfish server, due to --sign-csr."
     _certificate_str="$(_json_encode <"${_cfullchain}")"
     _certificate_type="PEM"
   fi
