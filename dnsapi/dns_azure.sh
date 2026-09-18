@@ -403,7 +403,7 @@ _azure_set_zone_vars() {
     _azure_api_version="2024-06-01"
     _azure_ttl_key="ttl"
     _azure_txt_key="txtRecords"
-    _info "Querying private DNS zone"
+    _debug "Querying private DNS zone"
   else
     _azure_zone_type="dnszones"
     _azure_api_version="2017-09-01"
@@ -419,14 +419,7 @@ _get_root() {
   i=1
   p=1
 
-  if [ "$AZUREDNS_PRIVATEZONE" = true ]; then
-    _azure_zone_type="privateDnsZones"
-    _azure_api_version="2024-06-01"
-    _info "Querying private DNS zone"
-  else
-    _azure_zone_type="dnszones"
-    _azure_api_version="2017-09-01"
-  fi
+  _azure_set_zone_vars
 
   ## Ref: https://learn.microsoft.com/en-us/rest/api/dns/zones/list?view=rest-dns-2018-05-01&tabs=HTTP
   ## returns up to 100 zones in one response. Handling more results is not implemented
