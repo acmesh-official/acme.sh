@@ -223,7 +223,7 @@ redfish_deploy() {
 
   _body="$(printf '{"CertificateString":"%s","CertificateType":"%s","CertificateUri":{"@odata.id":"%s"}}' "${_certificate_str}" "${_certificate_type}" "${_certificate_path}")"
   _response="$(_post "${_body}" "https://${_host}${_certificate_service_path}/Actions/CertificateService.ReplaceCertificate" '' 'POST' 'application/json')"
-  _code="$(_egrep_o <"${HTTP_HEADER}" '^HTTP[^ ]* [0-9]+' | _tail_n 1 | tr -d '\r\n' | cut -d ' ' -f 2)"
+  _code="$(_redfish_response_code)"
 
   if [ "${_code}" != '204' ]; then
     _err "Failed to update Redfish server TLS certificate! Status code: ${_code}"
@@ -242,7 +242,7 @@ redfish_deploy() {
 
     if _contains "${_response}" 'GracefulRestart'; then
       _response="$(_post '{"ResetType":"GracefulRestart"}' "https://${_host}${_manager_path}/Actions/Manager.Reset" '' 'POST' 'application/json')"
-      _code="$(_egrep_o <"${HTTP_HEADER}" '^HTTP[^ ]* [0-9]+' | _tail_n 1 | tr -d '\r\n' | cut -d ' ' -f 2)"
+      _code="$(_redfish_response_code)"
 
       if [ "${_code}" = '204' ]; then
         _info "Successfully sent graceful restart command to BMC. After restarting, the new TLS certificate will be active."
@@ -302,7 +302,7 @@ _redfish_log_in() {
     # Create new session
     _body="$(jq -n '{"UserName":$user,"Password":$pass}' --arg user "${_username}" --arg pass "${_password}" | _normalizeJson)"
     _response="$(_post "${_body}" "https://${_host}${_session_path}" '' 'POST' 'application/json')"
-    _code="$(_egrep_o <"${HTTP_HEADER}" '^HTTP[^ ]* [0-9]+' | _tail_n 1 | tr -d '\r\n' | cut -d ' ' -f 2)"
+    _code="$(_redfish_response_code)"
 
     # Verify authentication succeeded
     if [ "${_code}" != '201' ]; then
@@ -325,7 +325,7 @@ _redfish_log_out() {
 
   if [ -n "${_session_path}" ]; then
     _response="$(_post '' "https://${_host}${_session_path}" '' 'DELETE')"
-    _code="$(_egrep_o <"${HTTP_HEADER}" '^HTTP[^ ]* [0-9]+' | _tail_n 1 | tr -d '\r\n' | cut -d ' ' -f 2)"
+    _code="$(_redfish_response_code)"
 
     if [ "${_code}" != '204' ]; then
       _err "Failed to log out of Redfish server (HTTP ${_code})."
@@ -337,4 +337,8 @@ _redfish_log_out() {
 
   export _H1=
   export _H2=
+}
+
+_redfish_response_code() {
+    _egrep_o <"${HTTP_HEADER}" '^HTTP[^ ]* [0-9]+' | _tail_n 1 | tr -d '\r\n' | cut -d ' ' -f 2
 }
