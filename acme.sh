@@ -2352,6 +2352,99 @@ _post() {
   return $_ret
 }
 
+# bodyfile  url [needbase64] [POST|PUT|DELETE] [ContentType]
+#_post with the body read from a file instead of a variable. A shell variable
+#drops NUL bytes, so a binary upload (a PKCS#12 bundle in a multipart form)
+#has to travel as a file: curl reads it with --data-binary @file, wget with
+#--post-file (--body-file for the other methods). The content type is always
+#sent explicitly, defaulting to what both tools would send on their own for
+#a raw body, because wget treats an empty --header as "drop every header
+#given so far" and a bare -H "" cannot be left in the argument list.
+_post_file() {
+  _pf_bodyfile="$1"
+  _post_url="$2"
+  needbase64="$3"
+  httpmethod="$4"
+  _postContentType="$5"
+
+  if [ -z "$httpmethod" ]; then
+    httpmethod="POST"
+  fi
+  if [ ! -f "$_pf_bodyfile" ]; then
+    _err "The body file does not exist: $_pf_bodyfile"
+    return 1
+  fi
+  _debug $httpmethod
+  _debug "_post_url" "$_post_url"
+  _debug2 "_pf_bodyfile" "$_pf_bodyfile"
+  _debug2 "_postContentType" "$_postContentType"
+
+  _pf_cthdr="Content-Type: ${_postContentType:-application/x-www-form-urlencoded}"
+
+  _inithttp
+
+  if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
+    _CURL="$_ACME_CURL"
+    if [ "$HTTPS_INSECURE" ]; then
+      _CURL="$_CURL --insecure  "
+    fi
+    _debug "_CURL" "$_CURL"
+    if [ "$needbase64" ]; then
+      response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_pf_cthdr" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data-binary "@$_pf_bodyfile" "$_post_url" | _base64)"
+    else
+      response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_pf_cthdr" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data-binary "@$_pf_bodyfile" "$_post_url")"
+    fi
+    _ret="$?"
+    if [ "$_ret" != "0" ]; then
+      _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $_ret"
+      if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
+        _err "Here is the curl dump log:"
+        _err "$(cat "$_CURL_DUMP")"
+      fi
+    fi
+  elif [ "$_ACME_WGET" ]; then
+    _WGET="$_ACME_WGET"
+    if [ "$HTTPS_INSECURE" ]; then
+      _WGET="$_WGET --no-check-certificate "
+    fi
+    _debug "_WGET" "$_WGET"
+    if [ "$needbase64" ]; then
+      if [ "$httpmethod" = "POST" ]; then
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "$_pf_cthdr" --post-file="$_pf_bodyfile" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+      else
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "$_pf_cthdr" --method $httpmethod --body-file="$_pf_bodyfile" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+      fi
+    else
+      if [ "$httpmethod" = "POST" ]; then
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "$_pf_cthdr" --post-file="$_pf_bodyfile" "$_post_url" 2>"$HTTP_HEADER")"
+      else
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "$_pf_cthdr" --method $httpmethod --body-file="$_pf_bodyfile" "$_post_url" 2>"$HTTP_HEADER")"
+      fi
+    fi
+    _ret="$?"
+    if [ "$_ret" = "8" ]; then
+      _ret=0
+      _debug "wget returned 8 as the server returned a 'Bad Request' response. Let's process the response later."
+    fi
+    if [ "$_ret" != "0" ]; then
+      _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret"
+    fi
+    if _contains "$_WGET" " -d "; then
+      # Demultiplex wget debug output
+      cat "$HTTP_HEADER" >&2
+      _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
+    fi
+    # remove leading whitespaces from header to match curl format
+    _sed_i 's/^  //g' "$HTTP_HEADER"
+  else
+    _ret="$?"
+    _err "Neither curl nor wget have been found, cannot make $httpmethod request."
+  fi
+  _debug "_ret" "$_ret"
+  printf "%s" "$response"
+  return $_ret
+}
+
 # url getheader timeout
 _get() {
   _debug GET
