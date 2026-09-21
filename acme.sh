@@ -3466,6 +3466,7 @@ _initAPI() {
 
 _clearCA() {
   export CA_CONF=
+  CA_EMAIL=
   export ACCOUNT_KEY_PATH=
   export ACCOUNT_JSON_PATH=
 }
@@ -4376,15 +4377,22 @@ _mailto_contacts() {
 }
 
 _getAccountEmail() {
-  if [ "$ACCOUNT_EMAIL" ]; then
-    echo "$ACCOUNT_EMAIL"
+  # Config loading can overwrite ACCOUNT_EMAIL after command-line parsing.
+  if [ "$_accountemail" ]; then
+    echo "$_accountemail"
     return 0
   fi
+  # The per-CA email must win over the global one, or an email saved by
+  # --update-account is shadowed by account.conf on the next run.
   if [ -z "$CA_EMAIL" ]; then
     CA_EMAIL="$(_readcaconf CA_EMAIL)"
   fi
   if [ "$CA_EMAIL" ]; then
     echo "$CA_EMAIL"
+    return 0
+  fi
+  if [ "$ACCOUNT_EMAIL" ]; then
+    echo "$ACCOUNT_EMAIL"
     return 0
   fi
   _readaccountconf "ACCOUNT_EMAIL"
@@ -4420,7 +4428,9 @@ _regAccount() {
   _secure_debug3 _eab_kid "$_eab_kid"
   _secure_debug3 _eab_hmac_key "$_eab_hmac_key"
   _email="$(_getAccountEmail)"
-  if [ "$_email" ]; then
+  #save the first address before the request, so that a registration failing
+  #later (the ZeroSSL EAB fetch) can be retried without passing -m again
+  if [ "$_email" ] && [ -z "$(_readcaconf CA_EMAIL)" ]; then
     _savecaconf "CA_EMAIL" "$_email"
   fi
 
@@ -4498,9 +4508,14 @@ _regAccount() {
   fi
 
   _eabAlreadyBound=""
+  _accountCreated=""
   if [ "$code" = "" ] || [ "$code" = '201' ]; then
     echo "$response" >"$ACCOUNT_JSON_PATH"
     _info "Registered"
+    _accountCreated=1
+    if [ "$_email" ]; then
+      _savecaconf "CA_EMAIL" "$_email"
+    fi
   elif [ "$code" = '409' ] || [ "$code" = '200' ]; then
     _info "Already registered"
   elif [ "$code" = '400' ] && _contains "$response" 'The account is not awaiting external account binding'; then
@@ -4509,6 +4524,12 @@ _regAccount() {
   else
     _err "Account registration error: $response"
     return 1
+  fi
+
+  #the CA ignores the contact of a newAccount request for an existing account
+  if [ -z "$_accountCreated" ] && [ "$_accountemail" ] && [ "$_accountemail" != "$CA_EMAIL" ]; then
+    _info "$(__red "The account already exists, so its email was not changed.")"
+    _info "$(__red "To change it, use '--update-account -m' with the same server and account options.")"
   fi
 
   if [ -z "$_eabAlreadyBound" ]; then
@@ -8617,7 +8638,7 @@ Parameters:
   --cert-home <directory>           Specifies the home dir to save all the certs.
   --config-home <directory>         Specifies the home dir to save all the configurations.
   --useragent <string>              Specifies the user agent string. it will be saved for future use too.
-  -m, --email <email>               Specifies the account email, only valid for the '--install' and '--update-account' command.
+  -m, --email <email>               Specifies the account email, only valid for the '--install', '--register-account' and '--update-account' commands.
                                       Multiple emails can be given as a comma-separated list: 'a@example.com,b@example.com'
   --accountkey <file>               Specifies the account key path, only valid for the '--install' command.
   --days <ndays>                    Specifies the days to renew the cert when using '--issue' command. The default value is $DEFAULT_RENEW days.
