@@ -77,141 +77,49 @@ redfish_deploy() {
     return 1
   fi
 
+  DEPLOY_REDFISH_USE_BASIC_AUTH="${DEPLOY_REDFISH_USE_BASIC_AUTH:-0}"
+  DEPLOY_REDFISH_RESTART_BMC="${DEPLOY_REDFISH_RESTART_BMC:-0}"
+
   _debug DEPLOY_REDFISH_HOST "${DEPLOY_REDFISH_HOST}"
   _debug DEPLOY_REDFISH_USERNAME "${DEPLOY_REDFISH_USERNAME}"
   _secure_debug DEPLOY_REDFISH_PASSWORD "${DEPLOY_REDFISH_PASSWORD}"
   _debug DEPLOY_REDFISH_USE_BASIC_AUTH "${DEPLOY_REDFISH_USE_BASIC_AUTH}"
 
-  # 1. Authenticate with the Redfish server and store the auth header.
-
   _redfish_log_in "$DEPLOY_REDFISH_USERNAME" "$DEPLOY_REDFISH_PASSWORD" || return 1
 
+  # Credentials are proven correct now -- save them, rather than only at the
+  # very end, so a later step failing doesn't discard a working login.
   _savedeployconf DEPLOY_REDFISH_HOST "${DEPLOY_REDFISH_HOST}"
   _savedeployconf DEPLOY_REDFISH_USERNAME "${DEPLOY_REDFISH_USERNAME}"
   _savedeployconf DEPLOY_REDFISH_PASSWORD "${DEPLOY_REDFISH_PASSWORD}" 'base64'
   _savedeployconf DEPLOY_REDFISH_USE_BASIC_AUTH "${DEPLOY_REDFISH_USE_BASIC_AUTH}"
 
-  # 2. Verify Redfish server supports certificate management API.
-
-  _redfish_rest GET '/redfish/v1/' || return 1
-  _managers_endpoint="$(echo "${_response}" | jq -r '.Managers.["@odata.id"]')"
-  _certificate_service_endpoint="$(echo "${_response}" | jq -r '.CertificateService.["@odata.id"]')"
-
-  if [ -z "${_certificate_service_endpoint}" ] || _contains "${_certificate_service_endpoint}" 'null'; then
+  if ! _redfish_get_certificate_service_endpoint; then
     _err "Redfish server ${DEPLOY_REDFISH_HOST} doesn't support certificate management API."
     return 1
   fi
 
-  # 3. Verify supported key algorithms/lengths/curves and that key is compatible.
-
-  if [ -n "${_ckey}" ]; then
-    _debug 'Identifying compatibility of private key with Redfish server.'
-
-    if _isRSA "${_ckey}"; then
-      _key_algo='RSA'
-    elif _isEcc "${_ckey}"; then
-      _key_algo='ECDSA'
-    else
-      _err 'Private key uses unknown cryptographic algorithm!'
-      return 1
-    fi
-
-    _redfish_rest GET "${_certificate_service_endpoint}" || return 1
-    _generate_csr_action_info="$(echo "${_response}" | jq -r '.Actions["#CertificateService.GenerateCSR"].["@Redfish.ActionInfo"]')"
-    _redfish_rest GET "${_generate_csr_action_info}" || return 1
-    _allowed_key_algos="$(echo "${_response}" | jq -r '.Parameters[] | select(.Name == "KeyPairAlgorithm") | .AllowableValues[]' | paste -sd ', ' -)"
-
-    if [ -z "${_allowed_key_algos}" ]; then
-      _allowed_key_algos='TCG_ALG_RSA'
-    fi
-
-    _debug _key_algo "${_key_algo}"
-    _debug _allowed_key_algos "${_allowed_key_algos}"
-
-    case "${_key_algo}:${_allowed_key_algos}" in
-    RSA:*RSA*)
-      _allowed_key_bit_lengths="$(echo "${_response}" | jq -cr '.Parameters[] | select(.Name == "KeyBitLength")')"
-      _min_key_length="$(echo "${_allowed_key_bit_lengths}" | jq -r '.MinimumValue')"
-      _max_key_length="$(echo "${_allowed_key_bit_lengths}" | jq -r '.MaximumValue')"
-      _debug _allowed_key_bit_lengths "${_allowed_key_bit_lengths}"
-
-      if ! expr "${_min_key_length}:${_max_key_length}" : '^[0-9]\{1,\}:[0-9]\{1,\}$' >/dev/null; then
-        _err "Server supports RSA, but its minimum/maximum allowed key bit lengths could not be determined."
-        return 1
-      fi
-
-      # shellcheck disable=SC2154 # Le_Keylength is set by acme.sh core, not this hook
-      if [ "${Le_Keylength}" -le "${_min_key_length}" ] || [ "${Le_Keylength}" -gt "${_max_key_length}" ]; then
-        _err "Unsupported RSA private key length ${Le_Keylength}!"
-        _err "Please re-run acme.sh with --keylength set to a value between ${_min_key_length} and ${_max_key_length}."
-        return 1
-      fi
-      ;;
-    ECDSA:*ECDSA*)
-      _allowed_key_curve_ids="$(echo "${_response}" | jq -r '.Parameters[] | select(.Name == "KeyCurveId") | .AllowableValues[]')"
-
-      # shellcheck disable=SC2154 # Le_Keylength is set by acme.sh core, not this hook
-      if ! _contains "${_allowed_key_curve_ids}" "${Le_Keylength}"; then
-        _err "Unsupported ECDSA private key type! Supports only: ${_allowed_key_curve_ids}"
-        return 1
-      fi
-      ;;
-    *)
-      _err "This Redfish server does not support ${_key_algo} private keys! Supports only: ${_allowed_key_algos}"
-      return 1
-      ;;
-    esac
+  if [ -n "${_ckey}" ] && [ -n "${_cfullchain}" ]; then
+    _info 'Verifying Redfish server will accept our private key.'
+    _redfish_is_private_key_compatible "${_ckey}" "${_certificate_service_endpoint}" || return 1
   else
-    _info "Not checking cipher suite compatibility due to --sign-csr. Assuming correct private key is already on the server."
+    _info "Private key and full certificate chain not available."
+    _info "Proceeding under assumption 'GenerateCSR' API was called on server previously and passed to --sign-csr."
   fi
-
-  # 4. Perform 3.3 of this PDF: https://www.dmtf.org/sites/default/files/standards/documents/DSP2059_1.2.0.pdf
-  #    * When deploying, do it according to 2.2.1.1 "Web Service Certificates".
-  #    * Since `acme.sh` is generating the certificate itself rather using the
-  #      Redfish API to do so, append the private key (`_ckey`) to
-  #      `_cfullchain` in 3.1.7 If `_ckey` is undefined, we must be in
-  #      `--sign-csr` mode; assume the CSR was already generated on the Redfish
-  #      host itself using the `GenerateCSR` API and simply send `_cfullchain`
-  #      without `_ckey` (log it with a warning, though).
 
   if [ -n "${DEPLOY_REDFISH_MANAGER}" ]; then
     _manager_endpoint="${DEPLOY_REDFISH_MANAGER}"
   else
-    _debug 'Identifying REST endpoint for primary BMC manager.'
-
-    _redfish_rest GET "${_managers_endpoint}" || return 1
-    _num_managers="$(echo "${_response}" | jq -r '.["Members@odata.count"]')"
-
-    if [ "${_num_managers}" != '1' ]; then
-      _all_managers="$(echo "${_response}" | jq -c '[.Members[].["@odata.id"]]')"
-      _err "Multiple Redfish managers identified (${_all_managers}), but expected exactly one."
-      _err "Please specify the correct manager in DEPLOY_REDFISH_MANAGER."
-      return 1
-    fi
-
-    _manager_endpoint="$(echo "${_response}" | jq -r '.Members[0].["@odata.id"]')"
+    _info 'Identifying REST endpoint of primary Redfish manager.'
+    _redfish_get_primary_manager_endpoint || return 1
     _savedeployconf DEPLOY_REDFISH_MANAGER "${_manager_endpoint}"
   fi
 
   if [ -n "${DEPLOY_REDFISH_TARGET}" ]; then
     _certificate_endpoint="${DEPLOY_REDFISH_TARGET}"
   else
-    _debug 'Identifying REST endpoint for primary TLS certificate.'
-
-    _redfish_rest GET "${_manager_endpoint}" || return 1
-    _protocol_endpoint="$(echo "${_response}" | jq -r '.NetworkProtocol.["@odata.id"]')"
-    _redfish_rest GET "${_protocol_endpoint}/HTTPS/Certificates" || return 1
-    _num_certificates="$(echo "${_response}" | jq -r '.["Members@odata.count"]')"
-
-    if [ "${_num_certificates}" != '1' ]; then
-      _all_certificates="$(echo "${_response}" | jq -c '[.Members[].["@odata.id"]]')"
-      _err "Multiple web service HTTPS certificates identified (${_all_certificates}), but expected exactly one."
-      _err "Please specify the exact certificate destination in DEPLOY_REDFISH_TARGET."
-      return 1
-    fi
-
-    _certificate_endpoint="$(echo "${_response}" | jq -r '.Members[0].["@odata.id"]')"
-    _savedeployconf DEPLOY_REDFISH_TARGET "${_certificate_endpoint}"
+    _info "Identifying REST endpoint of primary TLS certificate on: ${_manager_endpoint}"
+    _redfish_get_manager_certificate_endpoint "${_manager_endpoint}" || return 1
   fi
 
   _info "Deploying TLS certificate to: ${_certificate_endpoint}"
@@ -224,13 +132,13 @@ redfish_deploy() {
       return 1
     fi
 
-    _info "Uploading private key and full certificate chain to Redfish server."
+    _info 'Uploading private key and full certificate chain to Redfish server.'
     _certificate_str="$(paste -sd '\n' "${_ckey_pkcs8}" "${_cfullchain}" | _json_encode)"
-    _certificate_type="PEMchain"
+    _certificate_type='PEMchain'
   else
-    _info "Uploading only leaf certificate to Redfish server, due to --sign-csr."
+    _info 'Uploading leaf certificate to Redfish server.'
     _certificate_str="$(_json_encode <"${_ccert}")"
-    _certificate_type="PEM"
+    _certificate_type='PEM'
   fi
 
   _debug _certificate_endpoint "${_certificate_endpoint}"
@@ -242,38 +150,23 @@ redfish_deploy() {
   _code="$(_redfish_response_code)"
 
   if [ "${_code}" != '204' ]; then
-    _err "Failed to update Redfish server TLS certificate! Status code: ${_code}"
+    _err "Failed to update Redfish server TLS certificate! (HTTP ${_code})"
     _err "Response: ${_response}"
     return 1
   fi
 
   _info 'Successfully updated Redfish server TLS certificate!'
+  _savedeployconf DEPLOY_REDFISH_TARGET "${_certificate_endpoint}"
 
-  if [ -n "${DEPLOY_REDFISH_RESTART_BMC}" ]; then
+  if [ "${DEPLOY_REDFISH_RESTART_BMC}" = '1' ]; then
     _info 'Attempting to restart BMC gracefully.'
-
-    _redfish_rest GET "${_manager_endpoint}" || return 1
-    _manager_reset_action_info="$(echo "${_response}" | jq -r '.Actions["#Manager.Reset"].["@Redfish.ActionInfo"]')"
-    _redfish_rest GET "${_manager_reset_action_info}" || return 1
-
-    if _contains "${_response}" 'GracefulRestart'; then
-      _redfish_rest POST "${_manager_endpoint}/Actions/Manager.Reset" '{"ResetType":"GracefulRestart"}' || return 1
-      _code="$(_redfish_response_code)"
-
-      if [ "${_code}" = '204' ]; then
-        _info "Successfully sent graceful restart command to BMC. After restarting, the new TLS certificate will be active."
-        _savedeployconf DEPLOY_REDFISH_RESTART_BMC "${DEPLOY_REDFISH_RESTART_BMC}"
-      else
-        _err "Failed to gracefully restart BMC! Status code: ${_code}"
-        _err "Response: ${_response}"
-        return 1
-      fi
-    else
-      _info "BMC doesn't support graceful restarts. Please wait up to 20 seconds to take effect, or restart the BMC manually."
-    fi
+    _redfish_attempt_graceful_restart "${_manager_endpoint}" || return 0
+    _info 'Successfully sent graceful restart command to BMC. After restarting, the new TLS certificate will be active.'
   else
     _info 'Please wait up to 20 seconds to take effect, or restart the BMC manually.'
   fi
+
+  _savedeployconf DEPLOY_REDFISH_RESTART_BMC "${DEPLOY_REDFISH_RESTART_BMC}"
 
   return 0
 }
@@ -287,11 +180,11 @@ _redfish_rest() {
 
   if [ "${_method}" = 'GET' ]; then
     _response="$(_get "https://${DEPLOY_REDFISH_HOST}${_endpoint}")"
-    _ret="$?"
   else
     _response="$(_post "${_body}" "https://${DEPLOY_REDFISH_HOST}${_endpoint}" '' "${_method}" "${_body:+application/json}")"
-    _ret="$?"
   fi
+
+  _ret="$?"
 
   if [ "${_ret}" != '0' ]; then
     _err "Error while calling ${_method} ${_endpoint}."
@@ -311,11 +204,11 @@ _redfish_log_in() {
   _redfish_rest GET '/redfish/v1/' || return 1
   _info "Authenticating with Redfish API: ${DEPLOY_REDFISH_HOST}"
 
-  if [ -n "${DEPLOY_REDFISH_USE_BASIC_AUTH:-}" ]; then
+  if [ "${DEPLOY_REDFISH_USE_BASIC_AUTH}" = '1' ]; then
     _access_token="$(printf '%s:%s' "${_username}" "${_password}" | _base64)"
     export _H2="Authorization: Basic ${_access_token}"
 
-    # Verify authentication succeeded
+    # Verify credentials are valid
     _account_service_endpoint="$(echo "${_response}" | jq -r '.AccountService.["@odata.id"]')"
     _redfish_rest GET "${_account_service_endpoint}" || return 1
     _code="$(_redfish_response_code)"
@@ -339,10 +232,9 @@ _redfish_log_in() {
       return 1
     fi
 
+    _session="$(grep -i '^Location: .*$' "${HTTP_HEADER}" | _tail_n 1 | tr -d ' \r\n' | cut -d ':' -f 2)"
     _auth_token="$(grep -i '^X-Auth-Token: .*$' "${HTTP_HEADER}" | _tail_n 1 | tr -d ' \r\n' | cut -d ':' -f 2)"
     export _H2="X-Auth-Token: ${_auth_token}"
-
-    _session="$(grep -i '^Location: .*$' "${HTTP_HEADER}" | _tail_n 1 | tr -d ' \r\n' | cut -d ':' -f 2)"
   fi
 
   trap '_redfish_log_out "${_session:-}"' EXIT INT
@@ -367,4 +259,130 @@ _redfish_log_out() {
 
   export _H1=
   export _H2=
+}
+
+_redfish_get_certificate_service_endpoint() {
+  _redfish_rest GET '/redfish/v1/' || return 1
+  _certificate_service_endpoint="$(echo "${_response}" | jq -r '.CertificateService.["@odata.id"]')"
+  [ -n "${_certificate_service_endpoint}" ] && [ "${_certificate_service_endpoint}" != 'null' ]
+}
+
+_redfish_is_private_key_compatible() {
+  _private_key="$1"
+  _certificate_service_endpoint="$2"
+
+  if _isRSA "${_private_key}"; then
+    _key_algo='RSA'
+  elif _isEcc "${_private_key}"; then
+    _key_algo='ECDSA'
+  else
+    _err 'Private key uses unknown cryptographic algorithm!'
+    return 1
+  fi
+
+  _redfish_rest GET "${_certificate_service_endpoint}" || return 1
+  _generate_csr_action_info="$(echo "${_response}" | jq -r '.Actions["#CertificateService.GenerateCSR"].["@Redfish.ActionInfo"]')"
+  _redfish_rest GET "${_generate_csr_action_info}" || return 1
+  _allowed_key_algos="$(echo "${_response}" | jq -r '.Parameters[] | select(.Name == "KeyPairAlgorithm") | .AllowableValues[]' | paste -sd ', ' -)"
+
+  if [ -z "${_allowed_key_algos}" ]; then
+    _allowed_key_algos='TCG_ALG_RSA'
+  fi
+
+  _debug _key_algo "${_key_algo}"
+  _debug _allowed_key_algos "${_allowed_key_algos}"
+
+  case "${_key_algo}:${_allowed_key_algos}" in
+  RSA:*RSA*)
+    _allowed_key_bit_lengths="$(echo "${_response}" | jq -c '.Parameters[] | select(.Name == "KeyBitLength")')"
+    _min_key_length="$(echo "${_allowed_key_bit_lengths}" | jq -r '.MinimumValue')"
+    _max_key_length="$(echo "${_allowed_key_bit_lengths}" | jq -r '.MaximumValue')"
+    _debug _allowed_key_bit_lengths "${_allowed_key_bit_lengths}"
+
+    if ! expr "${_min_key_length}:${_max_key_length}" : '^[0-9]\{1,\}:[0-9]\{1,\}$' >/dev/null; then
+      _err 'Server supports RSA private keys, but its minimum/maximum allowed key bit lengths could not be determined.'
+      return 1
+    fi
+
+    # shellcheck disable=SC2154 # Le_Keylength is set by acme.sh core, not this hook
+    if [ "${Le_Keylength}" -le "${_min_key_length}" ] || [ "${Le_Keylength}" -gt "${_max_key_length}" ]; then
+      _err "Unsupported RSA private key length ${Le_Keylength}!"
+      _err "Please re-run acme.sh with --keylength set to a value between ${_min_key_length} and ${_max_key_length}."
+      return 1
+    fi
+    ;;
+  ECDSA:*ECDSA*)
+    _allowed_key_curve_ids="$(echo "${_response}" | jq -r '.Parameters[] | select(.Name == "KeyCurveId") | .AllowableValues[]')"
+
+    # shellcheck disable=SC2154 # Le_Keylength is set by acme.sh core, not this hook
+    if ! _contains "${_allowed_key_curve_ids}" "${Le_Keylength}"; then
+      _err "Unsupported ECDSA private key type! Server supports only: ${_allowed_key_curve_ids}"
+      return 1
+    fi
+    ;;
+  *)
+    _err "Unsupported key pair algorithm ${_key_algo}! Server supports only: ${_allowed_key_algos}"
+    return 1
+    ;;
+  esac
+}
+
+_redfish_get_primary_manager_endpoint() {
+  _redfish_rest GET '/redfish/v1/' || return 1
+  _managers_endpoint="$(echo "${_response}" | jq -r '.Managers.["@odata.id"]')"
+  _redfish_rest GET "${_managers_endpoint}" || return 1
+  _num_managers="$(echo "${_response}" | jq -r '.["Members@odata.count"]')"
+
+  if [ "${_num_managers}" != '1' ]; then
+    _all_managers="$(echo "${_response}" | jq -c '[.Members[].["@odata.id"]]')"
+    _err "Multiple Redfish managers identified (${_all_managers}), but expected exactly one."
+    _err 'Please specify the correct manager in DEPLOY_REDFISH_MANAGER.'
+    return 1
+  fi
+
+  _manager_endpoint="$(echo "${_response}" | jq -r '.Members[0].["@odata.id"]')"
+
+  [ -n "${_manager_endpoint}" ] && [ "${_manager_endpoint}" != 'null' ]
+}
+
+_redfish_get_manager_certificate_endpoint() {
+  _manager_endpoint="$1"
+
+  _redfish_rest GET "${_manager_endpoint}" || return 1
+  _protocol_endpoint="$(echo "${_response}" | jq -r '.NetworkProtocol.["@odata.id"]')"
+  _redfish_rest GET "${_protocol_endpoint}/HTTPS/Certificates" || return 1
+  _num_certificates="$(echo "${_response}" | jq -r '.["Members@odata.count"]')"
+
+  if [ "${_num_certificates}" != '1' ]; then
+    _all_certificates="$(echo "${_response}" | jq -c '[.Members[].["@odata.id"]]')"
+    _err "Multiple web service HTTPS certificates identified (${_all_certificates}), but expected exactly one."
+    _err "Please specify the exact certificate destination in DEPLOY_REDFISH_TARGET."
+    return 1
+  fi
+
+  _certificate_endpoint="$(echo "${_response}" | jq -r '.Members[0].["@odata.id"]')"
+
+  [ -n "${_certificate_endpoint}" ] && [ "${_certificate_endpoint}" != 'null' ]
+}
+
+_redfish_attempt_graceful_restart() {
+  _manager_endpoint="$1"
+
+  _redfish_rest GET "${_manager_endpoint}" || return 1
+  _manager_reset_action_info="$(echo "${_response}" | jq -r '.Actions["#Manager.Reset"].["@Redfish.ActionInfo"]')"
+  _redfish_rest GET "${_manager_reset_action_info}" || return 1
+
+  if ! _contains "${_response}" 'GracefulRestart'; then
+    _err "BMC doesn't support graceful restarts. Please wait up to 20 seconds to take effect, or restart the BMC manually."
+    return 1
+  fi
+
+  _redfish_rest POST "${_manager_endpoint}/Actions/Manager.Reset" '{"ResetType":"GracefulRestart"}' || return 1
+  _code="$(_redfish_response_code)"
+
+  if [ "${_code}" != '204' ]; then
+    _err "Failed to gracefully restart BMC! (HTTP ${_code})"
+    _err "Response: ${_response}"
+    return 1
+  fi
 }
