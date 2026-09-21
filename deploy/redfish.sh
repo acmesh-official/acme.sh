@@ -123,18 +123,18 @@ redfish_deploy() {
     RSA:*RSA*)
       _allowed_key_bit_lengths="$(echo "${_response}" | jq -cr '.Parameters[] | select(.Name == "KeyBitLength")')"
       _min_key_length="$(echo "${_allowed_key_bit_lengths}" | jq -r '.MinimumValue')"
-      _min_key_length="$(echo "${_allowed_key_bit_lengths}" | jq -r '.MaximumValue')"
+      _max_key_length="$(echo "${_allowed_key_bit_lengths}" | jq -r '.MaximumValue')"
       _debug _allowed_key_bit_lengths "${_allowed_key_bit_lengths}"
 
-      if ! expr "${_min_key_length}:${_min_key_length}" : '^[0-9]\{1,\}:[0-9]\{1,\}$' >/dev/null; then
+      if ! expr "${_min_key_length}:${_max_key_length}" : '^[0-9]\{1,\}:[0-9]\{1,\}$' >/dev/null; then
         _err "Server supports RSA, but its minimum/maximum allowed key bit lengths could not be determined."
         return 1
       fi
 
       # shellcheck disable=SC2154 # Le_Keylength is set by acme.sh core, not this hook
-      if [ "${Le_Keylength}" -le "${_min_key_length}" ] || [ "${Le_Keylength}" -gt "${_min_key_length}" ]; then
+      if [ "${Le_Keylength}" -le "${_min_key_length}" ] || [ "${Le_Keylength}" -gt "${_max_key_length}" ]; then
         _err "Unsupported RSA private key length ${Le_Keylength}!"
-        _err "Please re-run acme.sh with --keylength set to a value between ${_max_key_len} and ${_min_key_len}."
+        _err "Please re-run acme.sh with --keylength set to a value between ${_min_key_length} and ${_max_key_length}."
         return 1
       fi
       ;;
