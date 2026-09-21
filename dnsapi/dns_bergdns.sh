@@ -134,12 +134,26 @@ _bergdns_init() {
   esac
 
   _saveaccountconf_mutable BERGDNS_API_KEY "$BERGDNS_API_KEY"
-  # Only what the user actually chose is written back. Persisting a default
-  # would pin the install to today's value, and a later change to the shipped
-  # one -- a move of the API base above all -- would never reach it.
-  [ "$BERGDNS_API_URL" = "$_BERGDNS_DEFAULT_URL" ] || _saveaccountconf_mutable BERGDNS_API_URL "$BERGDNS_API_URL"
-  [ "$BERGDNS_TTL" = "$_BERGDNS_DEFAULT_TTL" ] || _saveaccountconf_mutable BERGDNS_TTL "$BERGDNS_TTL"
-  [ "$BERGDNS_PROPAGATION_TIMEOUT" = "$_BERGDNS_DEFAULT_WAIT" ] || _saveaccountconf_mutable BERGDNS_PROPAGATION_TIMEOUT "$BERGDNS_PROPAGATION_TIMEOUT"
+  # Only what the user actually chose is written back, and a value equal to
+  # the default clears any older setting. Persisting a default would pin the
+  # install to today's value, and a later change to the shipped one -- a move
+  # of the API base above all -- would never reach it; leaving an old setting
+  # in place would mean the environment could never put one back to default.
+  if [ "$BERGDNS_API_URL" = "$_BERGDNS_DEFAULT_URL" ]; then
+    _clearaccountconf_mutable BERGDNS_API_URL
+  else
+    _saveaccountconf_mutable BERGDNS_API_URL "$BERGDNS_API_URL"
+  fi
+  if [ "$BERGDNS_TTL" = "$_BERGDNS_DEFAULT_TTL" ]; then
+    _clearaccountconf_mutable BERGDNS_TTL
+  else
+    _saveaccountconf_mutable BERGDNS_TTL "$BERGDNS_TTL"
+  fi
+  if [ "$BERGDNS_PROPAGATION_TIMEOUT" = "$_BERGDNS_DEFAULT_WAIT" ]; then
+    _clearaccountconf_mutable BERGDNS_PROPAGATION_TIMEOUT
+  else
+    _saveaccountconf_mutable BERGDNS_PROPAGATION_TIMEOUT "$BERGDNS_PROPAGATION_TIMEOUT"
+  fi
   return 0
 }
 
