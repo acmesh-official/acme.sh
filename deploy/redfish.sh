@@ -217,8 +217,8 @@ redfish_deploy() {
     _certificate_str="$(paste -sd '\n' "${_ckey_pkcs8}" "${_cfullchain}" | _json_encode)"
     _certificate_type="PEMchain"
   else
-    _info "Uploading only certificate chain to Redfish server, due to --sign-csr."
-    _certificate_str="$(_json_encode <"${_cfullchain}")"
+    _info "Uploading only leaf certificate to Redfish server, due to --sign-csr."
+    _certificate_str="$(_json_encode <"${_ccert}")"
     _certificate_type="PEM"
   fi
 
