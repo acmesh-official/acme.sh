@@ -75,18 +75,17 @@ RUN for verb in help \
     printf -- "%b" "#!/usr/bin/env sh\n$LE_WORKING_DIR/acme.sh --${verb} --config-home $LE_CONFIG_HOME \"\$@\"" >/usr/local/bin/--${verb} && chmod +x /usr/local/bin/--${verb} \
   ; done
 
-RUN cat <<'EOF' >/entry.sh && chmod +x /entry.sh && chmod -R o+rwx $LE_WORKING_DIR && chmod -R o+rwx $LE_CONFIG_HOME
-#!/usr/bin/env sh
-for var_file in $(env | grep '^[A-Za-z_][A-Za-z0-9_]*_FILE=' | cut -d '=' -f 1); do
-  eval "file_path=\$$var_file"
-  var_name="${var_file%_FILE}"
-  if [ -f "$file_path" ] && [ -r "$file_path" ]; then
-    file_content=$(cat "$file_path")
-    eval "$var_name=\$file_content"
-    export "$var_name"
-  fi
-done
-if [ "$1" = "daemon" ]; then
+RUN printf "%b" '#!'"/usr/bin/env sh\n \
+for var_file in \$(env | grep '^[A-Za-z_][A-Za-z0-9_]*_FILE=' | cut -d '=' -f 1); do \n \
+  eval \"file_path=\\\$\$var_file\" \n \
+  var_name=\"\${var_file%_FILE}\" \n \
+  if [ -f \"\$file_path\" ] && [ -r \"\$file_path\" ]; then \n \
+    file_content=\$(cat \"\$file_path\") \n \
+    eval \"\$var_name=\\\$file_content\" \n \
+    export \"\$var_name\" \n \
+  fi \n \
+done \n \
+if [ \"\$1\" = \"daemon\" ];  then \n \if [ "$1" = "daemon" ]; then
   if [ ! -f "$LE_CONFIG_HOME/crontab" ]; then
      echo "$LE_CONFIG_HOME/crontab not found, generating one"
      time=$(date -u "+%s")
