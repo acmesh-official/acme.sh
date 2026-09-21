@@ -55,13 +55,17 @@ redfish_deploy() {
     return 1
   fi
 
-  _redfish_load_deploy_conf DEPLOY_REDFISH_HOST
-  _redfish_load_deploy_conf DEPLOY_REDFISH_USERNAME 'base64'
-  _redfish_load_deploy_conf DEPLOY_REDFISH_PASSWORD 'base64'
-  _redfish_load_deploy_conf DEPLOY_REDFISH_USE_BASIC_AUTH
-  _redfish_load_deploy_conf DEPLOY_REDFISH_RESTART_BMC
-  _redfish_load_deploy_conf DEPLOY_REDFISH_MANAGER
-  _redfish_load_deploy_conf DEPLOY_REDFISH_TARGET
+  # Scoped to this hook's own subshell -- does not affect the rest of the
+  # acme.sh run (e.g. the connection to the ACME CA).
+  export HTTPS_INSECURE=1
+
+  _getdeployconf DEPLOY_REDFISH_HOST
+  _getdeployconf DEPLOY_REDFISH_USERNAME
+  _getdeployconf DEPLOY_REDFISH_PASSWORD
+  _getdeployconf DEPLOY_REDFISH_USE_BASIC_AUTH
+  _getdeployconf DEPLOY_REDFISH_RESTART_BMC
+  _getdeployconf DEPLOY_REDFISH_MANAGER
+  _getdeployconf DEPLOY_REDFISH_TARGET
 
   if [ -z "${DEPLOY_REDFISH_HOST}" ]; then
     _err 'DEPLOY_REDFISH_HOST must be set. Please specify the IP or domain name of the Redfish server.'
@@ -73,22 +77,27 @@ redfish_deploy() {
     return 1
   fi
 
-  # Scoped to this hook's own subshell -- does not affect the rest of the
-  # acme.sh run (e.g. the connection to the ACME CA).
-  export HTTPS_INSECURE=1
+  _debug DEPLOY_REDFISH_HOST "${DEPLOY_REDFISH_HOST}"
+  _debug DEPLOY_REDFISH_USERNAME "${DEPLOY_REDFISH_USERNAME}"
+  _secure_debug DEPLOY_REDFISH_PASSWORD "${DEPLOY_REDFISH_PASSWORD}"
+  _debug DEPLOY_REDFISH_USE_BASIC_AUTH "${DEPLOY_REDFISH_USE_BASIC_AUTH}"
 
   # 1. Authenticate with the Redfish server and store the auth header.
 
   _redfish_log_in "$DEPLOY_REDFISH_USERNAME" "$DEPLOY_REDFISH_PASSWORD" || return 1
-  trap '_redfish_log_out "${_session:-}"' EXIT INT
+
+  _savedeployconf DEPLOY_REDFISH_HOST "${DEPLOY_REDFISH_HOST}"
+  _savedeployconf DEPLOY_REDFISH_USERNAME "${DEPLOY_REDFISH_USERNAME}"
+  _savedeployconf DEPLOY_REDFISH_PASSWORD "${DEPLOY_REDFISH_PASSWORD}" 'base64'
+  _savedeployconf DEPLOY_REDFISH_USE_BASIC_AUTH "${DEPLOY_REDFISH_USE_BASIC_AUTH}"
 
   # 2. Verify Redfish server supports certificate management API.
 
   _redfish_rest GET '/redfish/v1/' || return 1
-  _managers_path="$(echo "${_response}" | jq -r '.Managers.["@odata.id"]')"
-  _certificate_service_path="$(echo "${_response}" | jq -r '.CertificateService.["@odata.id"]')"
+  _managers_endpoint="$(echo "${_response}" | jq -r '.Managers.["@odata.id"]')"
+  _certificate_service_endpoint="$(echo "${_response}" | jq -r '.CertificateService.["@odata.id"]')"
 
-  if [ -z "${_certificate_service_path}" ] || _contains "${_certificate_service_path}" 'null'; then
+  if [ -z "${_certificate_service_endpoint}" ] || _contains "${_certificate_service_endpoint}" 'null'; then
     _err "Redfish server ${DEPLOY_REDFISH_HOST} doesn't support certificate management API."
     return 1
   fi
@@ -107,9 +116,9 @@ redfish_deploy() {
       return 1
     fi
 
-    _redfish_rest GET "${_certificate_service_path}" || return 1
-    _generate_csr_info_path="$(echo "${_response}" | jq -r '.Actions["#CertificateService.GenerateCSR"].["@Redfish.ActionInfo"]')"
-    _redfish_rest GET "${_generate_csr_info_path}" || return 1
+    _redfish_rest GET "${_certificate_service_endpoint}" || return 1
+    _generate_csr_action_info="$(echo "${_response}" | jq -r '.Actions["#CertificateService.GenerateCSR"].["@Redfish.ActionInfo"]')"
+    _redfish_rest GET "${_generate_csr_action_info}" || return 1
     _allowed_key_algos="$(echo "${_response}" | jq -r '.Parameters[] | select(.Name == "KeyPairAlgorithm") | .AllowableValues[]' | paste -sd ', ' -)"
 
     if [ -z "${_allowed_key_algos}" ]; then
@@ -165,12 +174,12 @@ redfish_deploy() {
   #      host itself using the `GenerateCSR` API and simply send `_cfullchain`
   #      without `_ckey` (log it with a warning, though).
 
-  _debug 'Identifying REST endpoint for primary TLS certificate.'
-
   if [ -n "${DEPLOY_REDFISH_MANAGER}" ]; then
-    _manager_path="${DEPLOY_REDFISH_MANAGER}"
+    _manager_endpoint="${DEPLOY_REDFISH_MANAGER}"
   else
-    _redfish_rest GET "${_managers_path}" || return 1
+    _debug 'Identifying REST endpoint for primary BMC manager.'
+
+    _redfish_rest GET "${_managers_endpoint}" || return 1
     _num_managers="$(echo "${_response}" | jq -r '.["Members@odata.count"]')"
 
     if [ "${_num_managers}" != '1' ]; then
@@ -180,16 +189,18 @@ redfish_deploy() {
       return 1
     fi
 
-    _manager_path="$(echo "${_response}" | jq -r '.Members[0].["@odata.id"]')"
-    _savedeployconf DEPLOY_REDFISH_MANAGER "${_manager_path}"
+    _manager_endpoint="$(echo "${_response}" | jq -r '.Members[0].["@odata.id"]')"
+    _savedeployconf DEPLOY_REDFISH_MANAGER "${_manager_endpoint}"
   fi
 
   if [ -n "${DEPLOY_REDFISH_TARGET}" ]; then
-    _certificate_path="${DEPLOY_REDFISH_TARGET}"
+    _certificate_endpoint="${DEPLOY_REDFISH_TARGET}"
   else
-    _redfish_rest GET "${_manager_path}" || return 1
-    _network_protocol_path="$(echo "${_response}" | jq -r '.NetworkProtocol.["@odata.id"]')"
-    _redfish_rest GET "${_network_protocol_path}/HTTPS/Certificates" || return 1
+    _debug 'Identifying REST endpoint for primary TLS certificate.'
+
+    _redfish_rest GET "${_manager_endpoint}" || return 1
+    _protocol_endpoint="$(echo "${_response}" | jq -r '.NetworkProtocol.["@odata.id"]')"
+    _redfish_rest GET "${_protocol_endpoint}/HTTPS/Certificates" || return 1
     _num_certificates="$(echo "${_response}" | jq -r '.["Members@odata.count"]')"
 
     if [ "${_num_certificates}" != '1' ]; then
@@ -199,11 +210,11 @@ redfish_deploy() {
       return 1
     fi
 
-    _certificate_path="$(echo "${_response}" | jq -r '.Members[0].["@odata.id"]')"
-    _savedeployconf DEPLOY_REDFISH_TARGET "${_certificate_path}"
+    _certificate_endpoint="$(echo "${_response}" | jq -r '.Members[0].["@odata.id"]')"
+    _savedeployconf DEPLOY_REDFISH_TARGET "${_certificate_endpoint}"
   fi
 
-  _info "Deploying TLS certificate to: ${_certificate_path}"
+  _info "Deploying TLS certificate to: ${_certificate_endpoint}"
 
   if [ -n "${_ckey}" ]; then
     _ckey_pkcs8="$(_mktemp)"
@@ -222,12 +233,12 @@ redfish_deploy() {
     _certificate_type="PEM"
   fi
 
-  _debug _certificate_path "${_certificate_path}"
+  _debug _certificate_endpoint "${_certificate_endpoint}"
   _debug _certificate_type "${_certificate_type}"
   _secure_debug _certificate_str "${_certificate_str}"
 
-  _body="$(printf '{"CertificateString":"%s","CertificateType":"%s","CertificateUri":{"@odata.id":"%s"}}' "${_certificate_str}" "${_certificate_type}" "${_certificate_path}")"
-  _redfish_rest POST "${_certificate_service_path}/Actions/CertificateService.ReplaceCertificate" "${_body}" || return 1
+  _body="$(printf '{"CertificateString":"%s","CertificateType":"%s","CertificateUri":{"@odata.id":"%s"}}' "${_certificate_str}" "${_certificate_type}" "${_certificate_endpoint}")"
+  _redfish_rest POST "${_certificate_service_endpoint}/Actions/CertificateService.ReplaceCertificate" "${_body}" || return 1
   _code="$(_redfish_response_code)"
 
   if [ "${_code}" != '204' ]; then
@@ -241,16 +252,17 @@ redfish_deploy() {
   if [ -n "${DEPLOY_REDFISH_RESTART_BMC}" ]; then
     _info 'Attempting to restart BMC gracefully.'
 
-    _redfish_rest GET "${_manager_path}" || return 1
+    _redfish_rest GET "${_manager_endpoint}" || return 1
     _manager_reset_action_info="$(echo "${_response}" | jq -r '.Actions["#Manager.Reset"].["@Redfish.ActionInfo"]')"
     _redfish_rest GET "${_manager_reset_action_info}" || return 1
 
     if _contains "${_response}" 'GracefulRestart'; then
-      _redfish_rest POST "${_manager_path}/Actions/Manager.Reset" '{"ResetType":"GracefulRestart"}' || return 1
+      _redfish_rest POST "${_manager_endpoint}/Actions/Manager.Reset" '{"ResetType":"GracefulRestart"}' || return 1
       _code="$(_redfish_response_code)"
 
       if [ "${_code}" = '204' ]; then
         _info "Successfully sent graceful restart command to BMC. After restarting, the new TLS certificate will be active."
+        _savedeployconf DEPLOY_REDFISH_RESTART_BMC "${DEPLOY_REDFISH_RESTART_BMC}"
       else
         _err "Failed to gracefully restart BMC! Status code: ${_code}"
         _err "Response: ${_response}"
@@ -264,25 +276,6 @@ redfish_deploy() {
   fi
 
   return 0
-}
-
-_redfish_load_deploy_conf() {
-  _var="$1"
-  _encode_base64="${2:-}"
-
-  if [ -n "$(eval echo "\$$_var")" ]; then
-    _debug2 "Detected environment variable $_var, saving to file."
-    _savedeployconf "$_var" "$(eval echo "\$$_var")" "${_encode_base64}"
-  else
-    _debug2 "Attempting to load variable $_var from file."
-    _getdeployconf "$_var"
-  fi
-
-  if [ -n "${_encode_base64}" ]; then
-    _secure_debug2 "$_var" "$(eval echo "\$$_var")"
-  else
-    _debug2 "$_var" "$(eval echo "\$$_var")"
-  fi
 }
 
 _redfish_rest() {
@@ -316,20 +309,27 @@ _redfish_log_in() {
   _password="$2"
 
   _redfish_rest GET '/redfish/v1/' || return 1
+  _info "Authenticating with Redfish API: ${DEPLOY_REDFISH_HOST}"
 
   if [ -n "${DEPLOY_REDFISH_USE_BASIC_AUTH:-}" ]; then
-    _info "Authenticating with Redfish API (basic HTTP auth) on: ${DEPLOY_REDFISH_HOST}"
     _access_token="$(printf '%s:%s' "${_username}" "${_password}" | _base64)"
     export _H2="Authorization: Basic ${_access_token}"
+
+    # Verify authentication succeeded
+    _account_service_endpoint="$(echo "${_response}" | jq -r '.AccountService.["@odata.id"]')"
+    _redfish_rest GET "${_account_service_endpoint}" || return 1
+    _code="$(_redfish_response_code)"
+
+    if [ "${_code}" != '200' ]; then
+      _err "Redfish authentication failed (HTTP ${_code})"
+      _err "Response: ${_response}"
+      return 1
+    fi
   else
-    _info "Authenticating with Redfish API: ${DEPLOY_REDFISH_HOST}"
-
-    # Get sessions endpoint URI path
-    _session_path="$(echo "${_response}" | jq -r '.Links.Sessions.["@odata.id"]')"
-
     # Create new session
+    _sessions_endpoint="$(echo "${_response}" | jq -r '.Links.Sessions.["@odata.id"]')"
     _body="$(jq -nc '{"UserName":$user,"Password":$pass}' --arg user "${_username}" --arg pass "${_password}")"
-    _redfish_rest POST "${_session_path}" "${_body}" || return 1
+    _redfish_rest POST "${_sessions_endpoint}" "${_body}" || return 1
     _code="$(_redfish_response_code)"
 
     # Verify authentication succeeded
@@ -344,15 +344,17 @@ _redfish_log_in() {
 
     _session="$(grep -i '^Location: .*$' "${HTTP_HEADER}" | _tail_n 1 | tr -d ' \r\n' | cut -d ':' -f 2)"
   fi
+
+  trap '_redfish_log_out "${_session:-}"' EXIT INT
 }
 
 _redfish_log_out() {
-  _session_path="${1:-}"
+  _session_endpoint="${1:-}"
 
   _info "Logging out of Redfish session on: ${DEPLOY_REDFISH_HOST}"
 
-  if [ -n "${_session_path}" ]; then
-    _redfish_rest DELETE "${_session_path}" || return 1
+  if [ -n "${_session_endpoint}" ]; then
+    _redfish_rest DELETE "${_session_endpoint}" || return 1
     _code="$(_redfish_response_code)"
 
     if [ "${_code}" != '204' ]; then
