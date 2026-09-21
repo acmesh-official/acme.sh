@@ -2800,6 +2800,33 @@ _sed_escape_rhs() {
   sed -e 's/\\/\\\\/g' -e 's/&/\\&/g' -e 's/|/\\|/g'
 }
 
+#_write_conf  file  content
+#Replace the conf file with the content.
+#Redirecting straight into the conf truncates it before anything is written, so
+#a failed write (e.g. no space left on device) left an empty conf and the cert
+#could not be renewed any more (#7247). Write a temp file next to the conf and
+#rename it over the conf only after the content is verified.
+_write_conf() {
+  __w_conf="$1"
+  __w_text="$2"
+  __w_tmp="$__w_conf.$$.tmp"
+  #cp -p, so the temp file carries the mode and owner of the conf
+  if ! cp -p "$__w_conf" "$__w_tmp" 2>/dev/null ||
+    ! printf -- "%s\n" "$__w_text" >"$__w_tmp" 2>/dev/null ||
+    [ "$(cat "$__w_tmp")" != "$__w_text" ]; then
+    rm -f "$__w_tmp"
+    return 1
+  fi
+  if [ ! -L "$__w_conf" ] && mv -f "$__w_tmp" "$__w_conf" 2>/dev/null; then
+    return 0
+  fi
+  #a symlink or a bind mounted file cannot be renamed over, write in place
+  cat "$__w_tmp" >"$__w_conf"
+  __w_ret="$?"
+  rm -f "$__w_tmp"
+  return "$__w_ret"
+}
+
 #setopt "file"  "opt"  "="  "value" [";"]
 _setopt() {
   __conf="$1"
@@ -2837,9 +2864,8 @@ _setopt() {
     #capture first, write only on success: redirecting sed straight into the
     #conf file truncates it before sed runs, so a failing sed (e.g. on an
     #unescaped special character in the value) wiped the whole conf (#2426)
-    if __text="$(printf -- "%s\n" "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|")"; then
-      printf -- "%s\n" "$__text" >"$__conf"
-    else
+    if ! __text="$(printf -- "%s\n" "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|")" ||
+      ! _write_conf "$__conf" "$__text"; then
       _err "Cannot save '$__opt' to $__conf."
       return 1
     fi
@@ -2847,9 +2873,8 @@ _setopt() {
   elif grep -n "^#$__opt$__sep" "$__conf" >/dev/null; then
     __val="$(printf -- "%s\n" "$__val" | _sed_escape_rhs)"
     text="$(cat "$__conf")"
-    if __text="$(printf -- "%s\n" "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|")"; then
-      printf -- "%s\n" "$__text" >"$__conf"
-    else
+    if ! __text="$(printf -- "%s\n" "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|")" ||
+      ! _write_conf "$__conf" "$__text"; then
       _err "Cannot save '$__opt' to $__conf."
       return 1
     fi
@@ -2888,7 +2913,11 @@ _clear_conf() {
     _conf_data="$(cat "$_c_c_f")"
     #printf, not echo: dash's builtin echo interprets backslash escapes and
     #would corrupt saved values that contain them on every rewrite
-    printf -- "%s\n" "$_conf_data" | sed "/^$_sdkey *=.*$/d" >"$_c_c_f"
+    if ! _conf_data="$(printf -- "%s\n" "$_conf_data" | sed "/^$_sdkey *=.*$/d")" ||
+      ! _write_conf "$_c_c_f" "$_conf_data"; then
+      _err "Cannot clear '$_sdkey' in $_c_c_f."
+      return 1
+    fi
   else
     _err "Config file is empty, cannot clear"
   fi
