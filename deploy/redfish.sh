@@ -79,15 +79,12 @@ redfish_deploy() {
 
   # 1. Authenticate with the Redfish server and store the auth header.
 
-  if ! _redfish_log_in "$DEPLOY_REDFISH_USERNAME" "$DEPLOY_REDFISH_PASSWORD"; then
-    return 1
-  fi
-
+  _redfish_log_in "$DEPLOY_REDFISH_USERNAME" "$DEPLOY_REDFISH_PASSWORD" || return 1
   trap '_redfish_log_out "${_session:-}"' EXIT INT
 
   # 2. Verify Redfish server supports certificate management API.
 
-  _redfish_rest GET '/redfish/v1/'
+  _redfish_rest GET '/redfish/v1/' || return 1
   _managers_path="$(echo "${_response}" | jq -r '.Managers.["@odata.id"]')"
   _certificate_service_path="$(echo "${_response}" | jq -r '.CertificateService.["@odata.id"]')"
 
@@ -110,9 +107,9 @@ redfish_deploy() {
       return 1
     fi
 
-    _redfish_rest GET "${_certificate_service_path}"
+    _redfish_rest GET "${_certificate_service_path}" || return 1
     _generate_csr_info_path="$(echo "${_response}" | jq -r '.Actions["#CertificateService.GenerateCSR"].["@Redfish.ActionInfo"]')"
-    _redfish_rest GET "${_generate_csr_info_path}"
+    _redfish_rest GET "${_generate_csr_info_path}" || return 1
     _allowed_key_algos="$(echo "${_response}" | jq -r '.Parameters[] | select(.Name == "KeyPairAlgorithm") | .AllowableValues[]' | paste -sd ', ' -)"
 
     if [ -z "${_allowed_key_algos}" ]; then
@@ -173,13 +170,13 @@ redfish_deploy() {
   if [ -n "${DEPLOY_REDFISH_MANAGER}" ]; then
     _manager_path="${DEPLOY_REDFISH_MANAGER}"
   else
-    _redfish_rest GET "${_managers_path}"
+    _redfish_rest GET "${_managers_path}" || return 1
     _num_managers="$(echo "${_response}" | jq -r '.["Members@odata.count"]')"
 
     if [ "${_num_managers}" != '1' ]; then
       _all_managers="$(echo "${_response}" | jq -c '[.Members[].["@odata.id"]]')"
       _err "Multiple Redfish managers identified (${_all_managers}), but expected exactly one."
-      _err "Please specify the manager in DEPLOY_REDFISH_MANAGER."
+      _err "Please specify the correct manager in DEPLOY_REDFISH_MANAGER."
       return 1
     fi
 
@@ -190,9 +187,9 @@ redfish_deploy() {
   if [ -n "${DEPLOY_REDFISH_TARGET}" ]; then
     _certificate_path="${DEPLOY_REDFISH_TARGET}"
   else
-    _redfish_rest GET "${_manager_path}"
+    _redfish_rest GET "${_manager_path}" || return 1
     _network_protocol_path="$(echo "${_response}" | jq -r '.NetworkProtocol.["@odata.id"]')"
-    _redfish_rest GET "${_network_protocol_path}/HTTPS/Certificates"
+    _redfish_rest GET "${_network_protocol_path}/HTTPS/Certificates" || return 1
     _num_certificates="$(echo "${_response}" | jq -r '.["Members@odata.count"]')"
 
     if [ "${_num_certificates}" != '1' ]; then
@@ -207,7 +204,6 @@ redfish_deploy() {
   fi
 
   _info "Deploying TLS certificate to: ${_certificate_path}"
-  _redfish_rest GET "${_certificate_path}"
 
   if [ -n "${_ckey}" ]; then
     _ckey_pkcs8="$(_mktemp)"
@@ -231,7 +227,7 @@ redfish_deploy() {
   _secure_debug _certificate_str "${_certificate_str}"
 
   _body="$(printf '{"CertificateString":"%s","CertificateType":"%s","CertificateUri":{"@odata.id":"%s"}}' "${_certificate_str}" "${_certificate_type}" "${_certificate_path}")"
-  _redfish_rest POST "${_certificate_service_path}/Actions/CertificateService.ReplaceCertificate" "${_body}"
+  _redfish_rest POST "${_certificate_service_path}/Actions/CertificateService.ReplaceCertificate" "${_body}" || return 1
   _code="$(_redfish_response_code)"
 
   if [ "${_code}" != '204' ]; then
@@ -245,12 +241,12 @@ redfish_deploy() {
   if [ -n "${DEPLOY_REDFISH_RESTART_BMC}" ]; then
     _info 'Attempting to restart BMC gracefully.'
 
-    _redfish_rest GET "${_manager_path}"
+    _redfish_rest GET "${_manager_path}" || return 1
     _manager_reset_action_info="$(echo "${_response}" | jq -r '.Actions["#Manager.Reset"].["@Redfish.ActionInfo"]')"
-    _redfish_rest GET "${_manager_reset_action_info}"
+    _redfish_rest GET "${_manager_reset_action_info}" || return 1
 
     if _contains "${_response}" 'GracefulRestart'; then
-      _redfish_rest POST "${_manager_path}/Actions/Manager.Reset" '{"ResetType":"GracefulRestart"}'
+      _redfish_rest POST "${_manager_path}/Actions/Manager.Reset" '{"ResetType":"GracefulRestart"}' || return 1
       _code="$(_redfish_response_code)"
 
       if [ "${_code}" = '204' ]; then
@@ -305,8 +301,7 @@ _redfish_rest() {
   fi
 
   if [ "${_ret}" != '0' ]; then
-    _err "Error while calling ${_method} ${_endpoint}"
-    return 1
+    _err "Error while calling ${_method} ${_endpoint}."
   fi
 
   return "${_ret}"
@@ -320,9 +315,7 @@ _redfish_log_in() {
   _username="$1"
   _password="$2"
 
-  if ! _redfish_rest GET '/redfish/v1/'; then
-    return 1
-  fi
+  _redfish_rest GET '/redfish/v1/' || return 1
 
   if [ -n "${DEPLOY_REDFISH_USE_BASIC_AUTH:-}" ]; then
     _info "Authenticating with Redfish API (basic HTTP auth) on: ${DEPLOY_REDFISH_HOST}"
@@ -336,10 +329,7 @@ _redfish_log_in() {
 
     # Create new session
     _body="$(jq -nc '{"UserName":$user,"Password":$pass}' --arg user "${_username}" --arg pass "${_password}")"
-    if ! _redfish_rest POST "${_session_path}" "${_body}"; then
-      return 1
-    fi
-
+    _redfish_rest POST "${_session_path}" "${_body}" || return 1
     _code="$(_redfish_response_code)"
 
     # Verify authentication succeeded
@@ -362,7 +352,7 @@ _redfish_log_out() {
   _info "Logging out of Redfish session on: ${DEPLOY_REDFISH_HOST}"
 
   if [ -n "${_session_path}" ]; then
-    _redfish_rest DELETE "${_session_path}"
+    _redfish_rest DELETE "${_session_path}" || return 1
     _code="$(_redfish_response_code)"
 
     if [ "${_code}" != '204' ]; then
