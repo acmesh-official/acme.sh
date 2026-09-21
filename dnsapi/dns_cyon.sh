@@ -285,15 +285,15 @@ _cyon_delete_txt() {
 
   list_txt_url="https://my.cyon.ch/domain/dnseditor/list-async"
 
-  list_txt_response="$(_get "${list_txt_url}" | sed -e 's/data-hash/\\ndata-hash/g')"
+  list_txt_response="$(_get "${list_txt_url}")"
   _debug list_txt_response "${list_txt_response}"
 
   if ! _cyon_check_if_2fa_missed "${list_txt_response}"; then return 1; fi
 
   # Find and delete all acme challenge entries for the $fulldomain.
-  _dns_entries="$(printf "%b\n" "${list_txt_response}" | sed -n 's/data-hash=\\"\([^"]*\)\\" data-identifier=\\"\([^"]*\)\\".*/\1 \2/p')"
+  _dns_entries="$(printf "%s\n" "${list_txt_response}" | _egrep_o 'data-hash=\\"[^"]*\\" data-identifier=\\"[^"]*\\"' | sed 's/data-hash=\\"\([^"]*\)\\" data-identifier=\\"\([^"]*\)\\"/\1 \2/')"
 
-  printf "%s" "${_dns_entries}" | while read -r _hash _identifier; do
+  printf "%s\n" "${_dns_entries}" | while read -r _hash _identifier; do
     dns_type="$(printf "%s" "$_identifier" | cut -d'|' -f1)"
     dns_domain="$(printf "%s" "$_identifier" | cut -d'|' -f2)"
 

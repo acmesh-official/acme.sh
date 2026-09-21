@@ -227,7 +227,7 @@ _poweradmin_rest() {
     return 1
   fi
 
-  if printf '%s' "$response" | grep -q '"success"[[:space:]]*:[[:space:]]*false'; then
+  if printf '%s' "$response" | grep -q '"success"[ ]*:[ ]*false'; then
     _err "API reported failure on $method $ep"
     _debug "Response: $response"
     return 1

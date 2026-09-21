@@ -22,21 +22,32 @@ dns_yc_add() {
   fulldomain="$(echo "$1". | _lower_case)" # Add dot at end of domain name
   txtvalue=$2
 
+  # YC_SA_Key_File_PEM_b64/Path are always persisted to the domain conf below,
+  # so they must be recovered from there first (account conf is only a
+  # fallback for the YC_Folder_ID case, see the SA_ID/SA_Key_ID save below).
+  YC_SA_Key_File_PEM_b64="${YC_SA_Key_File_PEM_b64:-$(_readdomainconf YC_SA_Key_File_PEM_b64)}"
   YC_SA_Key_File_PEM_b64="${YC_SA_Key_File_PEM_b64:-$(_readaccountconf_mutable YC_SA_Key_File_PEM_b64)}"
+  YC_SA_Key_File_Path="${YC_SA_Key_File_Path:-$(_readdomainconf YC_SA_Key_File_Path)}"
   YC_SA_Key_File_Path="${YC_SA_Key_File_Path:-$(_readaccountconf_mutable YC_SA_Key_File_Path)}"
 
   if [ "$YC_SA_Key_File_PEM_b64" ]; then
     echo "$YC_SA_Key_File_PEM_b64" | _dbase64 >private.key
     YC_SA_Key_File="private.key"
+    _yc_key_is_temp=1
     _savedomainconf YC_SA_Key_File_PEM_b64 "$YC_SA_Key_File_PEM_b64"
   else
     YC_SA_Key_File="$YC_SA_Key_File_Path"
+    _yc_key_is_temp=""
     _savedomainconf YC_SA_Key_File_Path "$YC_SA_Key_File_Path"
   fi
 
+  YC_Zone_ID="${YC_Zone_ID:-$(_readdomainconf YC_Zone_ID)}"
   YC_Zone_ID="${YC_Zone_ID:-$(_readaccountconf_mutable YC_Zone_ID)}"
+  YC_Folder_ID="${YC_Folder_ID:-$(_readdomainconf YC_Folder_ID)}"
   YC_Folder_ID="${YC_Folder_ID:-$(_readaccountconf_mutable YC_Folder_ID)}"
+  YC_SA_ID="${YC_SA_ID:-$(_readdomainconf YC_SA_ID)}"
   YC_SA_ID="${YC_SA_ID:-$(_readaccountconf_mutable YC_SA_ID)}"
+  YC_SA_Key_ID="${YC_SA_Key_ID:-$(_readdomainconf YC_SA_Key_ID)}"
   YC_SA_Key_ID="${YC_SA_Key_ID:-$(_readaccountconf_mutable YC_SA_Key_ID)}"
 
   if [ "$YC_SA_ID" ] && [ "$YC_SA_Key_ID" ] && [ "$YC_SA_Key_File" ]; then
@@ -65,11 +76,21 @@ dns_yc_add() {
       return 1
     fi
   else
+    # Clear both possible stores -- YC_Zone_ID/YC_Folder_ID/key material are
+    # persisted to the domain conf, while YC_SA_ID/YC_SA_Key_ID may have been
+    # saved account-wide (Folder_ID mode), so a plain _clearaccountconf alone
+    # would leave stale values behind in whichever store wasn't touched.
+    _cleardomainconf YC_Zone_ID
     _clearaccountconf YC_Zone_ID
+    _cleardomainconf YC_Folder_ID
     _clearaccountconf YC_Folder_ID
-    _clearaccountconf YC_SA_ID
-    _clearaccountconf YC_SA_Key_ID
+    _cleardomainconf YC_SA_ID
+    _clearaccountconf_mutable YC_SA_ID
+    _cleardomainconf YC_SA_Key_ID
+    _clearaccountconf_mutable YC_SA_Key_ID
+    _cleardomainconf YC_SA_Key_File_PEM_b64
     _clearaccountconf YC_SA_Key_File_PEM_b64
+    _cleardomainconf YC_SA_Key_File_Path
     _clearaccountconf YC_SA_Key_File_Path
     _err "You didn't specify a YC_SA_ID or YC_SA_Key_ID or YC_SA_Key_File."
     return 1
@@ -110,10 +131,29 @@ dns_yc_rm() {
   fulldomain="$(echo "$1". | _lower_case)" # Add dot at end of domain name
   txtvalue=$2
 
+  YC_Zone_ID="${YC_Zone_ID:-$(_readdomainconf YC_Zone_ID)}"
   YC_Zone_ID="${YC_Zone_ID:-$(_readaccountconf_mutable YC_Zone_ID)}"
+  YC_Folder_ID="${YC_Folder_ID:-$(_readdomainconf YC_Folder_ID)}"
   YC_Folder_ID="${YC_Folder_ID:-$(_readaccountconf_mutable YC_Folder_ID)}"
+  YC_SA_ID="${YC_SA_ID:-$(_readdomainconf YC_SA_ID)}"
   YC_SA_ID="${YC_SA_ID:-$(_readaccountconf_mutable YC_SA_ID)}"
+  YC_SA_Key_ID="${YC_SA_Key_ID:-$(_readdomainconf YC_SA_Key_ID)}"
   YC_SA_Key_ID="${YC_SA_Key_ID:-$(_readaccountconf_mutable YC_SA_Key_ID)}"
+
+  # See dns_yc_add() for why domain conf is checked before account conf.
+  YC_SA_Key_File_PEM_b64="${YC_SA_Key_File_PEM_b64:-$(_readdomainconf YC_SA_Key_File_PEM_b64)}"
+  YC_SA_Key_File_PEM_b64="${YC_SA_Key_File_PEM_b64:-$(_readaccountconf_mutable YC_SA_Key_File_PEM_b64)}"
+  YC_SA_Key_File_Path="${YC_SA_Key_File_Path:-$(_readdomainconf YC_SA_Key_File_Path)}"
+  YC_SA_Key_File_Path="${YC_SA_Key_File_Path:-$(_readaccountconf_mutable YC_SA_Key_File_Path)}"
+
+  if [ "$YC_SA_Key_File_PEM_b64" ]; then
+    echo "$YC_SA_Key_File_PEM_b64" | _dbase64 >private.key
+    YC_SA_Key_File="private.key"
+    _yc_key_is_temp=1
+  else
+    YC_SA_Key_File="$YC_SA_Key_File_Path"
+    _yc_key_is_temp=""
+  fi
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -124,16 +164,10 @@ dns_yc_rm() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  _debug "Getting txt records"
-  if _yc_rest GET "zones/${_domain_id}:getRecordSet?type=TXT&name=$_sub_domain"; then
-    exists_txtvalue=$(echo "$response" | _normalizeJson | _egrep_o "\"data\".*\][^,]*" | _egrep_o "[^:]*$")
-    _debug exists_txtvalue "$exists_txtvalue"
-  else
-    _err "Error: $response"
-    return 1
-  fi
-
-  if _yc_rest POST "zones/$_domain_id:updateRecordSets" "{\"deletions\": [ { \"name\":\"$_sub_domain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":$exists_txtvalue}]}"; then
+  # upsertRecordSets.deletions removes only the given value from the rrset,
+  # leaving any other values at the same name (e.g. base + wildcard domain)
+  # intact -- no need to read the current data set and recompute it.
+  if _yc_rest POST "zones/$_domain_id:upsertRecordSets" "{\"deletions\": [ { \"name\":\"$_sub_domain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":[\"$txtvalue\"]}]}"; then
     if _contains "$response" "\"done\": true"; then
       _info "Delete, OK"
       return 0
@@ -194,7 +228,7 @@ _get_root() {
       return 1
     fi
     if _contains "$response" "\"zone\": \"$h\""; then
-      _domain_id=$(echo "$response" | _normalizeJson | _egrep_o "[^{]*\"zone\":\"$h\"[^}]*" | _egrep_o "\"id\"[^,]*" | _egrep_o "[^:]*$" | tr -d '"')
+      _domain_id=$(echo "$response" | _normalizeJson | _egrep_o "[^{]*\"zone\":\"$h\"[^}]*" | _egrep_o "\"id\"[^,]*" | _egrep_o "[^:][^:]*$" | tr -d '"')
       _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
@@ -255,7 +289,9 @@ _yc_login() {
   _signature=$(printf "%s.%s" "$header" "$payload" | _sign "$YC_SA_Key_File" "sha256 -sigopt rsa_padding_mode:pss -sigopt rsa_pss_saltlen:-1" | _url_replace)
   _debug2 _signature "$_signature"
 
-  rm -rf "$YC_SA_Key_File"
+  if [ "$_yc_key_is_temp" ]; then
+    rm -f "$YC_SA_Key_File"
+  fi
 
   _jwt=$(printf "{\"jwt\": \"%s.%s.%s\"}" "$header" "$payload" "$_signature")
   _debug2 _jwt "$_jwt"
@@ -264,7 +300,7 @@ _yc_login() {
   _iam_response="$(_post "$_jwt" "https://iam.api.cloud.yandex.net/iam/v1/tokens" "" "POST")"
   _debug3 _iam_response "$(echo "$_iam_response" | _normalizeJson)"
 
-  YC_Token="$(echo "$_iam_response" | _normalizeJson | _egrep_o "\"iamToken\"[^,]*" | _egrep_o "[^:]*$" | tr -d '"')"
+  YC_Token="$(echo "$_iam_response" | _normalizeJson | _egrep_o "\"iamToken\"[^,]*" | _egrep_o "[^:][^:]*$" | tr -d '"')"
   _debug3 YC_Token
 
   return 0

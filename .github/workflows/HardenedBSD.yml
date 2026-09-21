@@ -1,18 +1,18 @@
-name: GhostBSD
+name: HardenedBSD
 on:
   push:
     branches:
       - '*'
     paths:
       - '*.sh'
-      - '.github/workflows/GhostBSD.yml'
+      - '.github/workflows/HardenedBSD.yml'
 
   pull_request:
     branches:
       - dev
     paths:
       - '*.sh'
-      - '.github/workflows/GhostBSD.yml'
+      - '.github/workflows/HardenedBSD.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,7 +21,7 @@ concurrency:
 
 
 jobs:
-  GhostBSD:
+  HardenedBSD:
     strategy:
       matrix:
         include:
@@ -36,14 +36,7 @@ jobs:
            CA_EMAIL: ""
            TEST_PREFERRED_CHAIN: (STAGING)
            ACME_USE_WGET: 1
-         #- TEST_ACME_Server: "ZeroSSL.com"
-         #  CA_ECDSA: "ZeroSSL ECC DV SSL CA 2"
-         #  CA: "ZeroSSL RSA DV SSL CA 2"
-         #  CA_EMAIL: "githubtest@acme.sh"
-         #  TEST_PREFERRED_CHAIN: ""
     runs-on: ubuntu-latest
-    # GhostBSD VM frequently flakes on boot/ssh; don't let it fail the whole run
-    continue-on-error: true
     env:
       TEST_LOCAL: 1
       TEST_ACME_Server: ${{ matrix.TEST_ACME_Server }}
@@ -53,7 +46,7 @@ jobs:
       TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
       ACME_USE_WGET: ${{ matrix.ACME_USE_WGET }}
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - uses: anyvm-org/cf-tunnel@v0
       id: tunnel
       with:
@@ -63,7 +56,7 @@ jobs:
       run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/ghostbsd-vm@v1
+    - uses: vmactions/hardenedbsd-vm@v1
       with:
         debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
         cache-after-prepare: true

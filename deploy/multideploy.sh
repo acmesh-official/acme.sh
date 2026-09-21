@@ -10,6 +10,10 @@
 # Usage (shown values are the examples):
 # 1. Set optional environment variables
 #   - export MULTIDEPLOY_FILENAME="multideploy.yaml"     - "multideploy.yml" will be automatically used if not set"
+#     A name without a leading '/' is looked up in the certificate directory
+#     of the domain. An absolute path is used as is, so a single deploy file
+#     can be shared by all domains, e.g.
+#   - export MULTIDEPLOY_FILENAME="/etc/acme/multideploy.yml"
 #
 # 2. Run command:
 # acme.sh --deploy --deploy-hook multideploy -d example.com
@@ -49,7 +53,7 @@ multideploy_deploy() {
   _debug _cfullchain "$_cfullchain"
   _debug _cpfx "$_cpfx"
 
-  MULTIDEPLOY_FILENAME="${MULTIDEPLOY_FILENAME:-$(_getdeployconf MULTIDEPLOY_FILENAME)}"
+  _getdeployconf MULTIDEPLOY_FILENAME
   if [ -z "$MULTIDEPLOY_FILENAME" ]; then
     MULTIDEPLOY_FILENAME="multideploy.yml"
     _info "MULTIDEPLOY_FILENAME is not set, so I will use 'multideploy.yml'."
@@ -75,7 +79,8 @@ multideploy_deploy() {
 #   This function preprocesses the deploy file by checking if 'yq' is installed,
 #   verifying the existence of the deploy file, and ensuring only one deploy file is present.
 # Arguments:
-#   $@ - Posible deploy file names.
+#   $@ - Posible deploy file names. A name starting with '/' is treated as an
+#        absolute path, any other name is relative to the domain directory.
 # Usage:
 #   _preprocess_deployfile "<deploy_file1>" "<deploy_file2>?"
 _preprocess_deployfile() {
@@ -87,15 +92,21 @@ _preprocess_deployfile() {
   _debug3 "yq is installed."
 
   # Check if deploy file exists
+  found_file=""
   for file in "$@"; do
-    _debug3 "Checking file" "$DOMAIN_PATH/$file"
-    if [ -f "$DOMAIN_PATH/$file" ]; then
+    if _startswith "$file" "/"; then
+      _multideploy_path="$file"
+    else
+      _multideploy_path="$DOMAIN_PATH/$file"
+    fi
+    _debug3 "Checking file" "$_multideploy_path"
+    if [ -f "$_multideploy_path" ]; then
       _debug3 "File found"
       if [ -n "$found_file" ]; then
         _err "Multiple deploy files found. Please keep only one deploy file."
         return 1
       fi
-      found_file="$file"
+      found_file="$_multideploy_path"
     else
       _debug3 "File not found"
     fi
@@ -105,12 +116,12 @@ _preprocess_deployfile() {
     _err "Deploy file not found. Go to https://github.com/acmesh-official/acme.sh/wiki/deployhooks#36-deploying-to-multiple-services-with-the-same-hooks to see how to create one."
     return 1
   fi
-  if ! _check_deployfile "$DOMAIN_PATH/$found_file"; then
-    _err "Deploy file is not valid: $DOMAIN_PATH/$found_file"
+  if ! _check_deployfile "$found_file"; then
+    _err "Deploy file is not valid: $found_file"
     return 1
   fi
 
-  echo "$DOMAIN_PATH/$found_file"
+  echo "$found_file"
 }
 
 # Description:

@@ -75,6 +75,11 @@ dns_easydns_rm() {
   EASYDNS_Token="${EASYDNS_Token:-$(_readaccountconf_mutable EASYDNS_Token)}"
   EASYDNS_Key="${EASYDNS_Key:-$(_readaccountconf_mutable EASYDNS_Key)}"
 
+  if [ -z "$EASYDNS_Token" ] || [ -z "$EASYDNS_Key" ]; then
+    _err "You didn't specify an easydns.net token or api key. Signup at https://cp.easydns.com/manage/security/api/signup.php"
+    return 1
+  fi
+
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
@@ -91,23 +96,20 @@ dns_easydns_rm() {
     return 1
   fi
 
-  count=$(printf "%s\n" "$response" | _egrep_o "\"count\":[^,]*" | cut -d : -f 2)
-  _debug count "$count"
-  if [ "$count" = "0" ]; then
+  record_id=$(printf "%s\n" "$response" | tr '{' '\n' | grep "\"rdata\":\"$txtvalue\"" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \")
+  _debug "record_id" "$record_id"
+
+  if [ -z "$record_id" ]; then
     _info "Don't need to remove."
-  else
-    record_id=$(printf "%s\n" "$response" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d : -f 2 | tr -d \" | head -n 1)
-    _debug "record_id" "$record_id"
-    if [ -z "$record_id" ]; then
-      _err "Can not get record id to remove."
-      return 1
-    fi
-    if ! _EASYDNS_rest DELETE "zones/records/$_domain/$record_id"; then
-      _err "Delete record error."
-      return 1
-    fi
-    _contains "$response" "\"status\":200"
+    return 0
   fi
+
+  if ! _EASYDNS_rest DELETE "zones/records/$_domain/$record_id"; then
+    _err "Delete record error."
+    return 1
+  fi
+
+  _contains "$response" "\"status\":200"
 
 }
 

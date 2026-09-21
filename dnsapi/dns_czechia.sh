@@ -30,8 +30,9 @@ dns_czechia_add() {
     return 1
   fi
 
-  _cz=$(printf "%s" "$_current_zone" | _lower_case | sed 's/[[:space:]]//g; s/\.$//')
-  _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+  _czechia_tab="$(printf '\t')"
+  _cz=$(printf "%s" "$_current_zone" | _lower_case | sed "s/[ $_czechia_tab]//g; s/\.\$//")
+  _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed "s/^[ $_czechia_tab]*//; s/[ $_czechia_tab]*\$//")
 
   if [ -z "$_cz" ] || [ -z "$_tk" ]; then
     _err "Missing zone or CZ_AuthorizationToken."
@@ -108,8 +109,9 @@ dns_czechia_rm() {
     return 1
   fi
 
-  _cz=$(printf "%s" "$_current_zone" | _lower_case | sed 's/[[:space:]]//g; s/\.$//')
-  _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+  _czechia_tab="$(printf '\t')"
+  _cz=$(printf "%s" "$_current_zone" | _lower_case | sed "s/[ $_czechia_tab]//g; s/\.\$//")
+  _tk=$(printf "%s" "$CZ_AuthorizationToken" | sed "s/^[ $_czechia_tab]*//; s/[ $_czechia_tab]*\$//")
 
   if [ -z "$_cz" ] || [ -z "$_tk" ]; then
     _err "Missing zone or CZ_AuthorizationToken."
@@ -180,12 +182,13 @@ _czechia_load_conf() {
 }
 
 _czechia_pick_zone() {
+  _czechia_pz_tab="$(printf '\t')"
   _fd=$(printf "%s" "$1" | _lower_case | sed 's/\.$//')
   _best_zone=""
 
   _zones_space=$(printf "%s" "$CZ_Zones" | sed 's/,/ /g')
   for _z in $_zones_space; do
-    _clean_z=$(printf "%s" "$_z" | _lower_case | sed 's/[[:space:]]//g; s/\.$//')
+    _clean_z=$(printf "%s" "$_z" | _lower_case | sed "s/[ $_czechia_pz_tab]//g; s/\.\$//")
     [ -z "$_clean_z" ] && continue
 
     case "$_fd" in

@@ -368,7 +368,7 @@ _get_auth_token() {
       _data_auth="{\"auth\":{\"identity\":{\"methods\":[\"password\"],\"password\":{\"user\":{\"name\":\"${SL_Login_Name}\",\"domain\":{\"name\":\"${SL_Login_ID}\"},\"password\":\"${SL_Pswd}\"}}},\"scope\":{\"project\":{\"name\":\"${SL_Project_Name}\",\"domain\":{\"name\":\"${SL_Login_ID}\"}}}}}"
       export _H1="Content-Type: application/json"
       _result=$(_post "$_data_auth" "$auth_uri")
-      _token_keystone=$(grep 'x-subject-token' "$HTTP_HEADER" | sed -nE "s/[[:space:]]*x-subject-token:[[:space:]]*([[:print:]]*)(\r*)/\1/p")
+      _token_keystone=$(grep 'x-subject-token' "$HTTP_HEADER" | cut -d ':' -f 2- | tr -d ' \t\r')
       _dt_curr=$(date +%s)
       SL_Token_V2="${SL_Login_Name}${_sl_sep}${_token_keystone}${_sl_sep}${SL_Login_ID}${_sl_sep}${SL_Project_Name}${_sl_sep}${_dt_curr}"
       _saveaccountconf_mutable SL_Token_V2 "$SL_Token_V2"

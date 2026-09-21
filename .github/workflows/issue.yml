@@ -2,6 +2,8 @@ name: "Update issues"
 on:
   issues:
     types: [opened]
+  issue_comment:
+    types: [created]
   pull_request_target:
     types: [opened]
 
@@ -32,6 +34,32 @@ jobs:
             } catch (e) {
               core.warning(`Failed to fetch the blacklist: ${e}`);
             }
+            // A comment on a closed tracking issue reopens it (the standard
+            // closing note promises this). Bots, blacklisted users and the
+            // maintainer's own comments don't reopen.
+            if (context.eventName === "issue_comment") {
+              const issue = context.payload.issue;
+              const commenter = context.payload.comment.user;
+              if (issue.pull_request || issue.state !== "closed") {
+                return;
+              }
+              if (!/^report\s+(bugs?|issues?)\b/i.test(issue.title)) {
+                return;
+              }
+              if (commenter.type === "Bot" ||
+                  commenter.login.toLowerCase() === "neilpang" ||
+                  blacklist.includes(commenter.login.toLowerCase())) {
+                return;
+              }
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: "open"
+              });
+              return;
+            }
+
             if (blacklist.includes(item.user.login.toLowerCase())) {
               if (context.payload.pull_request) {
                 await github.rest.pulls.update({
@@ -63,7 +91,9 @@ jobs:
             }
             if (/^report\s+(bugs?|issues?)\b/i.test(issue.title)) {
               // Tracking issue for a third-party dns/deploy/notify api:
-              // no upgrade boilerplate; assign it to the opener and label it.
+              // no upgrade boilerplate; assign it to the opener, label it,
+              // then close it right away to keep the issue list clean. Any
+              // later comment reopens it (see the issue_comment handler).
               await github.rest.issues.addAssignees({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -75,6 +105,19 @@ jobs:
                 repo: context.repo.repo,
                 issue_number: issue.number,
                 labels: ["3rd party api"]
+              });
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: "Closing this tracking issue for now to keep the issue list clean. It remains the place to report problems with this provider -- if you hit a bug, comment here and the issue will be reopened."
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: "closed",
+                state_reason: "completed"
               });
               return;
             }

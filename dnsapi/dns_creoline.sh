@@ -75,7 +75,7 @@ dns_creoline_rm() {
     return 1
   fi
 
-  record_id=$(echo "$response" | _egrep_o "\"id\"[[:space:]]*:[[:space:]]*[0-9]+" | cut -d : -f 2 | tr -d \" | _head_n 1 | tr -d " ")
+  record_id=$(echo "$response" | _egrep_o "\"id\"[ ]*:[ ]*[0-9]+" | cut -d : -f 2 | tr -d \" | _head_n 1 | tr -d " ")
   _debug "record_id" "$record_id"
 
   if [ -z "$record_id" ]; then
@@ -108,10 +108,10 @@ _get_root() {
     return 1
   fi
 
-  _sub_domain=$(echo "$response" | _egrep_o "\"subDomain\"[[:space:]]*:[[:space:]]*\"[^\"]+\"" | cut -d : -f 2 | tr -d \" | _head_n 1 | tr -d " ")
+  _sub_domain=$(echo "$response" | _egrep_o "\"subDomain\"[ ]*:[ ]*\"[^\"]+\"" | cut -d : -f 2 | tr -d \" | _head_n 1 | tr -d " ")
   _debug _sub_domain "$_sub_domain"
 
-  _domain=$(echo "$response" | _egrep_o "\"domain\"[[:space:]]*:[[:space:]]*\"[^\"]+\"" | cut -d : -f 2 | tr -d \" | _head_n 1 | tr -d " ")
+  _domain=$(echo "$response" | _egrep_o "\"domain\"[ ]*:[ ]*\"[^\"]+\"" | cut -d : -f 2 | tr -d \" | _head_n 1 | tr -d " ")
   _debug _domain "$_domain"
 
   if [ -z "$_domain" ] || [ -z "$_sub_domain" ]; then
@@ -171,7 +171,7 @@ _creoline_rest() {
     _err "URI:$uri"
     return 1
   elif _contains "$response" "message"; then
-    message=$(echo "$response" | _egrep_o "\"message\"[[:space:]]*:[[:space:]]*\"[^\"]+\"" | cut -d : -f 2 | tr -d \")
+    message=$(echo "$response" | _egrep_o "\"message\"[ ]*:[ ]*\"[^\"]+\"" | cut -d : -f 2 | tr -d \")
     _err "Error: $message"
     _err "URI:$uri"
     return 1

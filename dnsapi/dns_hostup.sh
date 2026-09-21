@@ -441,18 +441,18 @@ _hostup_json_extract() {
   input="${2:-$line}"
 
   # First try to extract quoted values (strings)
-  quoted_match="$(printf "%s" "$input" | _egrep_o "\"$key\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | _head_n 1)"
+  quoted_match="$(printf "%s" "$input" | _egrep_o "\"$key\"[ ]*:[ ]*\"[^\"]*\"" | _head_n 1)"
   if [ -n "$quoted_match" ]; then
     printf "%s" "$quoted_match" |
       cut -d : -f2- |
-      sed 's/^[[:space:]]*"//' |
-      sed 's/"[[:space:]]*$//' |
+      sed 's/^[ ]*"//' |
+      sed 's/"[ ]*$//' |
       sed 's/\\"/"/g'
     return 0
   fi
 
   # Fallback for unquoted values (e.g., numeric IDs)
-  unquoted_match="$(printf "%s" "$input" | _egrep_o "\"$key\"[[:space:]]*:[[:space:]]*[^,}]*" | _head_n 1)"
+  unquoted_match="$(printf "%s" "$input" | _egrep_o "\"$key\"[ ]*:[ ]*[^,}]*" | _head_n 1)"
   if [ -n "$unquoted_match" ]; then
     printf "%s" "$unquoted_match" |
       cut -d : -f2- |

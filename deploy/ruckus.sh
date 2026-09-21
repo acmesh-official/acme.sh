@@ -175,7 +175,7 @@ _get_unleashed_version() {
 
 _post_upload() {
   _post_action="$1"
-  _post_file="$2"
+  _post_upfile="$2"
 
   _post_boundary="----FormBoundary$(date "+%s%N")"
 
@@ -183,7 +183,7 @@ _post_upload() {
     printf -- "--%s\r\n" "$_post_boundary"
     printf -- "Content-Disposition: form-data; name=\"u\"; filename=\"%s\"\r\n" "$_post_action"
     printf -- "Content-Type: application/octet-stream\r\n\r\n"
-    printf -- "%s\r\n" "$(cat "$_post_file")"
+    printf -- "%s\r\n" "$(cat "$_post_upfile")"
 
     printf -- "--%s\r\n" "$_post_boundary"
     printf -- "Content-Disposition: form-data; name=\"action\"\r\n\r\n"

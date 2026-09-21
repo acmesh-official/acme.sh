@@ -1,18 +1,18 @@
-name: GhostBSD
+name: OPNsense
 on:
   push:
     branches:
       - '*'
     paths:
       - '*.sh'
-      - '.github/workflows/GhostBSD.yml'
+      - '.github/workflows/OPNsense.yml'
 
   pull_request:
     branches:
       - dev
     paths:
       - '*.sh'
-      - '.github/workflows/GhostBSD.yml'
+      - '.github/workflows/OPNsense.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,7 +21,7 @@ concurrency:
 
 
 jobs:
-  GhostBSD:
+  OPNsense:
     strategy:
       matrix:
         include:
@@ -36,14 +36,7 @@ jobs:
            CA_EMAIL: ""
            TEST_PREFERRED_CHAIN: (STAGING)
            ACME_USE_WGET: 1
-         #- TEST_ACME_Server: "ZeroSSL.com"
-         #  CA_ECDSA: "ZeroSSL ECC DV SSL CA 2"
-         #  CA: "ZeroSSL RSA DV SSL CA 2"
-         #  CA_EMAIL: "githubtest@acme.sh"
-         #  TEST_PREFERRED_CHAIN: ""
     runs-on: ubuntu-latest
-    # GhostBSD VM frequently flakes on boot/ssh; don't let it fail the whole run
-    continue-on-error: true
     env:
       TEST_LOCAL: 1
       TEST_ACME_Server: ${{ matrix.TEST_ACME_Server }}
@@ -53,7 +46,7 @@ jobs:
       TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
       ACME_USE_WGET: ${{ matrix.ACME_USE_WGET }}
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - uses: anyvm-org/cf-tunnel@v0
       id: tunnel
       with:
@@ -63,7 +56,7 @@ jobs:
       run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
     - name: Clone acmetest
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
-    - uses: vmactions/ghostbsd-vm@v1
+    - uses: vmactions/opnsense-vm@v1
       with:
         debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
         cache-after-prepare: true
@@ -74,6 +67,16 @@ jobs:
         usesh: true
         sync: nfs
         run: |
+          #OPNsense is a firewall appliance whose web GUI holds the 80 port,
+          #where every --standalone case listens. configd has no "stop"
+          #action for it and the rc script cannot stop it either, so kill it.
+          #This belongs here and not in prepare: prepare runs before the
+          #cache-after-prepare reboot, which would bring the GUI back. And do
+          #NOT free the port by disabling the GUI's http redirect in
+          #config.xml: pf's automatic pass rule for the 80 port is generated
+          #from the web GUI settings, so dropping the redirect also drops the
+          #rule on the next boot, and the inbound challenge is filtered.
+          pkill lighttpd || true
           cd ../acmetest \
           && ./letest.sh
     - name: DebugOnError

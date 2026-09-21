@@ -71,7 +71,7 @@ dns_rage4_rm() {
   _debug "Getting txt records"
   _rage4_rest "getrecords/?id=${_domain_id}"
 
-  _record_id=$(echo "$response" | tr '{' '\n' | grep '"TXT"' | grep "\"$txtvalue" | sed -rn 's/.*"id":([[:digit:]]+),.*/\1/p')
+  _record_id=$(echo "$response" | tr '{' '\n' | grep '"TXT"' | grep "\"$txtvalue" | sed -n 's/.*"id":\([0-9][0-9]*\),.*/\1/p')
   if [ -z "$_record_id" ]; then
     _err "error retrieving the record_id of the new TXT record in order to delete it, got: '$_record_id'."
     return 1

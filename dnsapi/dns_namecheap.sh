@@ -104,6 +104,9 @@ _get_root_by_getList() {
     return 1
   fi
 
+  _namecheap_domain_list=$(echo "$response" | _egrep_o '<Domain [^>]*')
+  _debug2 domain_list "$_namecheap_domain_list"
+
   i=2
   p=1
 
@@ -120,7 +123,7 @@ _get_root_by_getList() {
       return 1
     fi
 
-    if ! _contains "$response" "$h"; then
+    if ! _namecheap_is_our_dns "$h"; then
       _debug "$h not found"
     else
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
@@ -130,6 +133,29 @@ _get_root_by_getList() {
     p="$i"
     i=$(_math "$i" + 1)
   done
+  return 1
+}
+
+#Usage: _namecheap_is_our_dns <domain>
+#Succeeds only when domains.getList listed exactly <domain> AND that entry is
+#served by Namecheap's own DNS. A domain parked on Namecheap's webhosting DNS
+#is listed with IsOurDNS="false", and every dns.getHosts/setHosts call against
+#it is refused with error 2030288 "not using proper DNS servers". Accepting
+#such a domain as the root zone hides a subdomain that IS delegated to
+#Namecheap DNS and that the getHosts probe below would have found.
+#https://github.com/acmesh-official/acme.sh/issues/7178
+_namecheap_is_our_dns() {
+  _namecheap_entry=$(echo "$_namecheap_domain_list" | grep -F " Name=\"$1\"" | _head_n 1)
+  if [ -z "$_namecheap_entry" ]; then
+    return 1
+  fi
+
+  _namecheap_ourdns=$(echo "$_namecheap_entry" | _egrep_o ' IsOurDNS="[^"]*' | cut -d '"' -f 2)
+  _debug2 "$1 IsOurDNS" "$_namecheap_ourdns"
+
+  if [ "$_namecheap_ourdns" = "true" ]; then
+    return 0
+  fi
   return 1
 }
 
