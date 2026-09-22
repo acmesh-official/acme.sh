@@ -9,10 +9,10 @@
 # DEPLOY_REDFISH_HOST="ipmi.example.com"  # Required
 # DEPLOY_REDFISH_USERNAME="Administrator" # Required
 # DEPLOY_REDFISH_PASSWORD="superuser"     # Required
-# # DEPLOY_REDFISH_USE_BASIC_AUTH=1
-# # DEPLOY_REDFISH_RESTART_BMC=1
-# # DEPLOY_REDFISH_MANAGER="/redfish/v1/Managers/Self"
-# # DEPLOY_REDFISH_TARGET="/redfish/v1/CertificateService/Certificates/1"
+# DEPLOY_REDFISH_USE_BASIC_AUTH=0         # Optional (set to "1" to enable)
+# DEPLOY_REDFISH_RESTART=0                # Optional (set to "1" to enable)
+# DEPLOY_REDFISH_MANAGER=                 # Optional (e.g. "/redfish/v1/Managers/Self")
+# DEPLOY_REDFISH_CERTIFICATE=             # Optional (e.g. "/redfish/v1/CertificateService/Certificates/1")
 # ```
 #
 # Compatibility:
@@ -33,8 +33,6 @@
 # However, this should also work with HPE iLO 5 v2.42 (or newer), Dell iDRAC9
 # v5.0 (or newer), or any ASUS/Lenovo/Supermicro IPMI solution based on AMI
 # MegaRAC SP-X v12.x (or newer).
-
-########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
 redfish_deploy() {
@@ -63,9 +61,9 @@ redfish_deploy() {
   _getdeployconf DEPLOY_REDFISH_USERNAME
   _getdeployconf DEPLOY_REDFISH_PASSWORD
   _getdeployconf DEPLOY_REDFISH_USE_BASIC_AUTH
-  _getdeployconf DEPLOY_REDFISH_RESTART_BMC
+  _getdeployconf DEPLOY_REDFISH_RESTART
   _getdeployconf DEPLOY_REDFISH_MANAGER
-  _getdeployconf DEPLOY_REDFISH_TARGET
+  _getdeployconf DEPLOY_REDFISH_CERTIFICATE
 
   if [ -z "${DEPLOY_REDFISH_HOST}" ]; then
     _err 'DEPLOY_REDFISH_HOST must be set. Please specify the IP or domain name of the Redfish server.'
@@ -78,7 +76,7 @@ redfish_deploy() {
   fi
 
   DEPLOY_REDFISH_USE_BASIC_AUTH="${DEPLOY_REDFISH_USE_BASIC_AUTH:-0}"
-  DEPLOY_REDFISH_RESTART_BMC="${DEPLOY_REDFISH_RESTART_BMC:-0}"
+  DEPLOY_REDFISH_RESTART="${DEPLOY_REDFISH_RESTART:-0}"
 
   _debug DEPLOY_REDFISH_HOST "${DEPLOY_REDFISH_HOST}"
   _debug DEPLOY_REDFISH_USERNAME "${DEPLOY_REDFISH_USERNAME}"
@@ -99,6 +97,10 @@ redfish_deploy() {
     return 1
   fi
 
+  _debug DEPLOY_REDFISH_RESTART "${DEPLOY_REDFISH_RESTART}"
+  _debug DEPLOY_REDFISH_MANAGER "${DEPLOY_REDFISH_MANAGER}"
+  _debug DEPLOY_REDFISH_CERTIFICATE "${DEPLOY_REDFISH_CERTIFICATE}"
+
   if [ -n "${DEPLOY_REDFISH_MANAGER}" ]; then
     _manager_endpoint="${DEPLOY_REDFISH_MANAGER}"
   else
@@ -107,16 +109,12 @@ redfish_deploy() {
     _savedeployconf DEPLOY_REDFISH_MANAGER "${_manager_endpoint}"
   fi
 
-  if [ -n "${DEPLOY_REDFISH_TARGET}" ]; then
-    _certificate_endpoint="${DEPLOY_REDFISH_TARGET}"
+  if [ -n "${DEPLOY_REDFISH_CERTIFICATE}" ]; then
+    _certificate_endpoint="${DEPLOY_REDFISH_CERTIFICATE}"
   else
     _info "Identifying REST endpoint of primary TLS certificate on: ${_manager_endpoint}"
     _redfish_get_manager_certificate_endpoint "${_manager_endpoint}" || return 1
   fi
-
-  _debug DEPLOY_REDFISH_TARGET "${DEPLOY_REDFISH_TARGET}"
-  _debug DEPLOY_REDFISH_MANAGER "${DEPLOY_REDFISH_MANAGER}"
-  _debug DEPLOY_REDFISH_RESTART_BMC "${DEPLOY_REDFISH_RESTART_BMC}"
 
   if [ -n "${_ckey}" ] && [ -n "${_cfullchain}" ]; then
     _info "Uploading private key and full certificate chain to: ${_certificate_endpoint}"
@@ -158,9 +156,9 @@ redfish_deploy() {
   fi
 
   _info 'Successfully updated Redfish server TLS certificate!'
-  _savedeployconf DEPLOY_REDFISH_TARGET "${_certificate_endpoint}"
+  _savedeployconf DEPLOY_REDFISH_CERTIFICATE "${_certificate_endpoint}"
 
-  if [ "${DEPLOY_REDFISH_RESTART_BMC}" = '1' ]; then
+  if [ "${DEPLOY_REDFISH_RESTART}" = '1' ]; then
     _info 'Attempting to restart BMC gracefully.'
     _redfish_attempt_graceful_restart "${_manager_endpoint}" || return 0
     _info 'Successfully sent graceful restart command to BMC. After restarting, the new TLS certificate will be active.'
@@ -168,7 +166,7 @@ redfish_deploy() {
     _info 'Please wait up to 20 seconds to take effect, or restart the BMC manually.'
   fi
 
-  _savedeployconf DEPLOY_REDFISH_RESTART_BMC "${DEPLOY_REDFISH_RESTART_BMC}"
+  _savedeployconf DEPLOY_REDFISH_RESTART "${DEPLOY_REDFISH_RESTART}"
 
   return 0
 }
@@ -383,7 +381,7 @@ _redfish_get_manager_certificate_endpoint() {
   if [ "${_num_certificates}" != '1' ]; then
     _all_certificates="$(echo "${_response}" | jq -c '[.Members[].["@odata.id"]]')"
     _err "Multiple web service HTTPS certificates identified (${_all_certificates}), but expected exactly one."
-    _err "Please specify the exact certificate destination in DEPLOY_REDFISH_TARGET."
+    _err "Please specify which certificate should be replaced in DEPLOY_REDFISH_CERTIFICATE."
     return 1
   fi
 
