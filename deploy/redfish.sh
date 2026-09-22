@@ -53,10 +53,6 @@ redfish_deploy() {
     return 1
   fi
 
-  # Scoped to this hook's own subshell -- does not affect the rest of the
-  # acme.sh run (e.g. the connection to the ACME CA).
-  export HTTPS_INSECURE=1
-
   _getdeployconf DEPLOY_REDFISH_HOST
   _getdeployconf DEPLOY_REDFISH_USERNAME
   _getdeployconf DEPLOY_REDFISH_PASSWORD
@@ -187,7 +183,7 @@ _redfish_rest() {
   _ret="$?"
 
   if [ "${_ret}" != '0' ]; then
-    _err "Error while calling ${_method} ${_endpoint}."
+    _err "Error while calling ${_method} ${_endpoint}. Deploy with --insecure if current certificate is invalid. Try deploying with --debug to troubleshoot."
   fi
 
   return "${_ret}"
