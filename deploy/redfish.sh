@@ -99,14 +99,6 @@ redfish_deploy() {
     return 1
   fi
 
-  if [ -n "${_ckey}" ] && [ -n "${_cfullchain}" ]; then
-    _info 'Verifying Redfish server will accept our private key.'
-    _redfish_is_private_key_compatible "${_ckey}" "${_certificate_service_endpoint}" || return 1
-  else
-    _info "Private key and full certificate chain not available."
-    _info "Proceeding under assumption 'GenerateCSR' API was called on server previously and passed to --sign-csr."
-  fi
-
   if [ -n "${DEPLOY_REDFISH_MANAGER}" ]; then
     _manager_endpoint="${DEPLOY_REDFISH_MANAGER}"
   else
@@ -122,9 +114,22 @@ redfish_deploy() {
     _redfish_get_manager_certificate_endpoint "${_manager_endpoint}" || return 1
   fi
 
-  _info "Deploying TLS certificate to: ${_certificate_endpoint}"
+  _debug DEPLOY_REDFISH_TARGET "${DEPLOY_REDFISH_TARGET}"
+  _debug DEPLOY_REDFISH_MANAGER "${DEPLOY_REDFISH_MANAGER}"
+  _debug DEPLOY_REDFISH_RESTART_BMC "${DEPLOY_REDFISH_RESTART_BMC}"
 
-  if [ -n "${_ckey}" ]; then
+  if [ -n "${_ckey}" ] && [ -n "${_cfullchain}" ]; then
+    _info "Uploading private key and full certificate chain to: ${_certificate_endpoint}"
+
+    if ! _redfish_supports_full_certificate_chains; then
+      _err 'Redfish server does not support uploading full certificate chains!'
+      _err "Please call 'GenerateCSR' API on server first, pass the CSR to 'acme.sh --sign-csr --csr <key.pem>', and try again."
+      return 1
+    elif ! _redfish_supports_private_key "${_ckey}" "${_certificate_service_endpoint}"; then
+      _err "Redfish server does not support this type of private key."
+      return 1
+    fi
+
     _ckey_pkcs8="$(_mktemp)"
 
     if ! _toPkcs8 "${_ckey_pkcs8}" "${_ckey}"; then
@@ -132,18 +137,15 @@ redfish_deploy() {
       return 1
     fi
 
-    _info 'Uploading private key and full certificate chain to Redfish server.'
     _certificate_str="$(paste -sd '\n' "${_ckey_pkcs8}" "${_cfullchain}" | _json_encode)"
     _certificate_type='PEMchain'
   else
-    _info 'Uploading leaf certificate to Redfish server.'
+    _info "Private key and full certificate chain not available; we must be using a server-generated CSR."
+    _info "Uploading only leaf certificate to: ${_certificate_endpoint}"
+
     _certificate_str="$(_json_encode <"${_ccert}")"
     _certificate_type='PEM'
   fi
-
-  _debug _certificate_endpoint "${_certificate_endpoint}"
-  _debug _certificate_type "${_certificate_type}"
-  _secure_debug _certificate_str "${_certificate_str}"
 
   _body="$(printf '{"CertificateString":"%s","CertificateType":"%s","CertificateUri":{"@odata.id":"%s"}}' "${_certificate_str}" "${_certificate_type}" "${_certificate_endpoint}")"
   _redfish_rest POST "${_certificate_service_endpoint}/Actions/CertificateService.ReplaceCertificate" "${_body}" || return 1
@@ -267,7 +269,31 @@ _redfish_get_certificate_service_endpoint() {
   [ -n "${_certificate_service_endpoint}" ] && [ "${_certificate_service_endpoint}" != 'null' ]
 }
 
-_redfish_is_private_key_compatible() {
+_redfish_supports_full_certificate_chains() {
+  _redfish_rest GET "/redfish/v1/\$metadata" || return 1
+
+  _newest_certificate_schema_version="$(echo "${_response}" |
+    sed -n 's/.*Namespace="Certificate\.v\([_0-9]\+\)".*/\1/p' |
+    sort -t _ -k1,1n -k2,2n -k3,3n | _tail_n 1 | tr '_' '.')"
+  _debug _newest_certificate_schema_version "${_newest_certificate_schema_version}"
+
+  _schema_major=${_newest_certificate_schema_version%%.*}
+  _schema_patch_minor=${_newest_certificate_schema_version#*.}
+  _schema_minor=${_schema_patch_minor%%.*}
+  _schema_patch=${_schema_patch_minor#*.}
+
+  for var in _schema_major _schema_minor _schema_patch; do
+    _debug "$var" "$(eval echo "\$$var")"
+    case "$(eval echo "\$$var")" in
+    '' | *[!0123456789]*) return 1 ;;
+    *) continue ;;
+    esac
+  done
+
+  [ "${_schema_major}" -gt '1' ] || { [ "${_schema_major}" -ge '1' ] && [ "${_schema_minor}" -ge '4' ]; }
+}
+
+_redfish_supports_private_key() {
   _private_key="$1"
   _certificate_service_endpoint="$2"
 
@@ -286,6 +312,7 @@ _redfish_is_private_key_compatible() {
   _allowed_key_algos="$(echo "${_response}" | jq -r '.Parameters[] | select(.Name == "KeyPairAlgorithm") | .AllowableValues[]' | paste -sd ', ' -)"
 
   if [ -z "${_allowed_key_algos}" ]; then
+    _debug 'GenerateCSR does not specify allowed KeyPairAlgorithm(s), so assuming TCG_ALG_RSA.'
     _allowed_key_algos='TCG_ALG_RSA'
   fi
 
