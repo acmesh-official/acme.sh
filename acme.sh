@@ -3365,7 +3365,13 @@ __initHome() {
 
   if [ -z "$ACCOUNT_CONF_PATH" ]; then
     if [ -f "$_DEFAULT_ACCOUNT_CONF_PATH" ]; then
+      #Same as in _initpath: keep the live ACCOUNT_EMAIL across the sourcing,
+      #so that the -m address _process() exported is not replaced by the
+      #saved one. _process() calls __initHome directly, after the option
+      #loop, so this is the sourcing that -m used to lose to.
+      _ih_account_email="$ACCOUNT_EMAIL"
       . "$_DEFAULT_ACCOUNT_CONF_PATH"
+      ACCOUNT_EMAIL="$_ih_account_email"
     fi
   fi
 
