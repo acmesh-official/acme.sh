@@ -17,7 +17,7 @@
 #
 # 2. Deploy file formats:
 #   - Version 1.0 (legacy) one file in each certificate directory
-# For example:
+# Example:
 #   version: "1.0"
 #   services:
 #     - name: "traefik"
@@ -36,7 +36,7 @@
 #         ROUTER_OS_PORT: "22"
 #
 #   - Version 2.0 (required by this script) supports a shared deploy file
-# For example:
+# Example:
 #   version: "2.0"
 #   "*.example.com":
 #     services:
