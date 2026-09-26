@@ -4,10 +4,6 @@
 # REST API. Separately uploading the intermediate for nginx proxy manager is
 # not necessary as the "fullchain" is always used for the certificate.
 #
-#
-# Prerequisites:
-#   - "jq" is required to process JSON output
-#
 # Environment variables:
 #
 # DEPLOY_NPM_HOST       - example.com, 192.168.1.1, etc. (REQUIRED)
@@ -100,7 +96,9 @@ nginx_proxy_manager_deploy() {
   }
 
   _info "Querying server for API type"
-  _npm_type=$(_get "$DEPLOY_NPM_PROTOCOL://$DEPLOY_NPM_HOST:$DEPLOY_NPM_PORT/api/schema" | jq -r '.info.title')
+  _npm_schema=$(_get "$DEPLOY_NPM_PROTOCOL://$DEPLOY_NPM_HOST:$DEPLOY_NPM_PORT/api/schema" | tr -d '\r\n')
+  _npm_info_block=$(printf '%s' "$_npm_schema" | _egrep_o '"info"[[:space:]]*:[[:space:]]*\{[^}]+\}')
+  _npm_type=$(printf '%s' "$_npm_info_block" | _egrep_o '"title"[[:space:]]*:[[:space:]]*"[^"]*"' | cut -d '"' -f 4)
   _info "Detected: $_npm_type"
   if [ "$_npm_type" != "NPMplus API" ] && [ "$_npm_type" != "Nginx Proxy Manager API" ]; then
     _err "The API for Nginx Proxy Manager or NPMplus was not detected"
@@ -111,7 +109,8 @@ nginx_proxy_manager_deploy() {
   _secure_debug DEPLOY_NPM_PASSWORD "$DEPLOY_NPM_PASSWORD"
   _npm_user_json=$(printf '%s' "$DEPLOY_NPM_USER" | _json_encode)
   _npm_user_json="${_npm_user_json%\\n}"
-  _npm_password_json=$(printf '%s' "$DEPLOY_NPM_PASSWORD" | _json_encode)
+  _npm_password_json="$(printf "%s\n" "$DEPLOY_NPM_PASSWORD" | sed 's/\\/\\\\/g;')"
+  _npm_password_json=$(printf '%s' "$_npm_password_json" | _json_encode)
   _npm_password_json="${_npm_password_json%\\n}"
   _debug _npm_user_json "$_npm_user_json"
   _secure_debug _npm_password_json "$_npm_password_json"
@@ -119,7 +118,7 @@ nginx_proxy_manager_deploy() {
   _info "Authenticating and fetching temporary API token"
   _npm_token_raw=$(_post '{"identity":"'"$_npm_user_json"'","secret":"'"$_npm_password_json"'"}' "$DEPLOY_NPM_PROTOCOL://$DEPLOY_NPM_HOST:$DEPLOY_NPM_PORT/api/tokens" "" "POST" "application/json")
   _secure_debug _npm_token_raw "$_npm_token_raw"
-  _npm_twofactor=$(printf '%s' "$_npm_token_raw" | jq '.requires_2fa')
+  _npm_twofactor=$(printf '%s' "$_npm_token_raw" | _egrep_o '"requires_2fa"[[:space:]]*:[[:space:]]*[^,}]*' | cut -d : -f 2 | tr -d ' ')
   if [ "$_npm_twofactor" = "true" ]; then
     _err "2FA is enabled, deployment is not supported. Please disable 2FA or create a new user without 2FA enabled and update your configuration."
     return 1
@@ -130,18 +129,18 @@ nginx_proxy_manager_deploy() {
     _err "Failed to retrieve a token, server response code: $_npm_token_code"
     return 1
   fi
-  _secure_debug _npm_token "$_npm_token"
-  _info "API token retrieved."
 
   if [ "$_npm_type" = "Nginx Proxy Manager API" ]; then
-    _npm_token=$(printf '%s' "$_npm_token_raw" | jq -r '.token')
+    _npm_token=$(printf '%s' "$_npm_token_raw" | _egrep_o '"token"[[:space:]]*:[[:space:]]*"[^"]*"' | cut -d '"' -f 4)
   elif [ "$_npm_type" = "NPMplus API" ]; then
     _npm_token=$(grep <"$HTTP_HEADER" -i "^Set-Cookie: *__Host-Http-token=" | _tail_n 1 | _egrep_o "__Host-Http-token=[^;]*" | _head_n 1 | cut -d'=' -f2-)
   fi
 
-  _npm_fullchain=$(cat "$_cfullchain")
-  _npm_key=$(cat "$_ckey")
+  _secure_debug _npm_token "$_npm_token"
+  _info "API token retrieved."
+
   nl="\0015\0012"
+
   if [ "$_npm_type" = "Nginx Proxy Manager API" ]; then
     _H1="Authorization: Bearer $_npm_token"
   elif [ "$_npm_type" = "NPMplus API" ]; then
@@ -152,6 +151,7 @@ nginx_proxy_manager_deploy() {
   # Create new certificate if a certificate ID number was not provided
   if [ -z "$DEPLOY_NPM_CERTNUM" ]; then
     _npm_certname_json=$(printf '%s' "$DEPLOY_NPM_CERTNAME" | _json_encode)
+    _npm_certname_json="${_npm_certname_json%\\n}"
     _npm_create_result=$(_post '{"provider":"other","nice_name":"'"$_npm_certname_json"'"}' "$DEPLOY_NPM_PROTOCOL://$DEPLOY_NPM_HOST:$DEPLOY_NPM_PORT/api/nginx/certificates" "" "POST" "application/json")
     _debug _npm_create_result "$_npm_create_result"
     _npm_create_code=$(_npm_response_code)
@@ -159,7 +159,7 @@ nginx_proxy_manager_deploy() {
       _err "Failed to create new certificate, server response code: $_npm_create_code"
       return 1
     fi
-    DEPLOY_NPM_CERTNUM=$(printf '%s' "$_npm_create_result" | jq '.id')
+    DEPLOY_NPM_CERTNUM=$(printf '%s' "$_npm_create_result" | _egrep_o '"id"[[:space:]]*:[[:space:]]*[^,}]*' | cut -d : -f 2 | tr -d ' "')
     _info "Created certificate ID number $DEPLOY_NPM_CERTNUM"
   fi
 
@@ -172,6 +172,7 @@ nginx_proxy_manager_deploy() {
   _payload="${_payload%_}"
   _secure_debug _payload "$_payload"
   _npm_upload_result=$(_post "$_payload" "$DEPLOY_NPM_PROTOCOL://$DEPLOY_NPM_HOST:$DEPLOY_NPM_PORT/api/nginx/certificates/$DEPLOY_NPM_CERTNUM/upload" "" "POST" "multipart/form-data; boundary=${_boundary}")
+  unset _H1
   _secure_debug _npm_upload_result "$_npm_upload_result"
   _npm_upload_code=$(_npm_response_code)
   _debug _npm_upload_code "$_npm_upload_code"
