@@ -15,7 +15,58 @@
 #     can be shared by all domains, e.g.
 #   - export MULTIDEPLOY_FILENAME="/etc/acme/multideploy.yml"
 #
-# 2. Run command:
+# 2. Deploy file formats:
+#   - Version 1.0 (legacy) one file in each certificate directory
+# For example:
+#   version: "1.0"
+#   services:
+#     - name: "traefik"
+#       hook: "docker"
+#       environment:
+#         DEPLOY_DOCKER_CONTAINER_LABEL: "sh.acme.autoload.service=traefik"
+#         DEPLOY_DOCKER_CONTAINER_KEY_FILE: "/certs/example.com/key.pem"
+#         DEPLOY_DOCKER_CONTAINER_CERT_FILE: "/certs/example.com/cert.pem"
+#         DEPLOY_DOCKER_CONTAINER_CA_FILE: "/certs/example.com/ca.pem"
+#         DEPLOY_DOCKER_CONTAINER_FULLCHAIN_FILE: "/certs/example.com/fullchain.pem"
+#     - name: "router01"
+#       hook: "routeros"
+#       environment:
+#         ROUTER_OS_USERNAME: "certuser"
+#         ROUTER_OS_HOST: "router.example.com"
+#         ROUTER_OS_PORT: "22"
+#
+#   - Version 2.0 (required by this script) supports a shared deploy file
+# For example:
+#   version: "2.0"
+#   "*.example.com":
+#     services:
+#       - name: "traefik"
+#         hook: "docker"
+#         environment:
+#           DEPLOY_DOCKER_CONTAINER_LABEL: "sh.acme.autoload.service=traefik"
+#           DEPLOY_DOCKER_CONTAINER_KEY_FILE: "/certs/example.com/key.pem"
+#           DEPLOY_DOCKER_CONTAINER_CERT_FILE: "/certs/example.com/cert.pem"
+#           DEPLOY_DOCKER_CONTAINER_CA_FILE: "/certs/example.com/ca.pem"
+#           DEPLOY_DOCKER_CONTAINER_FULLCHAIN_FILE: "/certs/example.com/fullchain.pem"
+#           DEPLOY_DOCKER_CONTAINER_RELOAD_CMD: "nginx -s reload"
+#       - name: "router01"
+#         hook: "routeros"
+#         environment:
+#           ROUTER_OS_USERNAME: "certuser"
+#           ROUTER_OS_HOST: "router.example.com"
+#           ROUTER_OS_PORT: "22"
+#   "*.domain2.com":
+#     services:
+#       - name: "nas01"
+#         hook: "synology_dsm"
+#         environment:
+#           SYNO_SCHEME: "http"
+#           SYNO_HOSTNAME: "localhost"
+#           SYNO_PORT: "5000"
+#           SYNO_CREATE: "1"
+#           SYNO_CERTIFICATE: "PROD-$_cdomain"
+#
+# 3. Run command:
 # acme.sh --deploy --deploy-hook multideploy -d example.com
 ################################################################################
 # Dependencies:
