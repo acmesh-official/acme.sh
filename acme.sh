@@ -4436,9 +4436,11 @@ _regAccount() {
   _secure_debug3 _eab_kid "$_eab_kid"
   _secure_debug3 _eab_hmac_key "$_eab_hmac_key"
   _email="$(_getAccountEmail)"
-  if [ "$_email" ]; then
-    _savecaconf "CA_EMAIL" "$_email"
-  fi
+  #CA_EMAIL is saved only once the CA has actually taken the contact, which
+  #is when it answers 201. For an account key it already knows it answers
+  #200 and ignores the contact of the request, so saving here would record
+  #an address the CA never stored.
+  _saved_ca_email="$(_readcaconf CA_EMAIL)"
 
   if [ "$ACME_DIRECTORY" = "$CA_ZEROSSL" ]; then
     if [ -z "$_eab_kid" ] || [ -z "$_eab_hmac_key" ]; then
@@ -4517,8 +4519,15 @@ _regAccount() {
   if [ "$code" = "" ] || [ "$code" = '201' ]; then
     echo "$response" >"$ACCOUNT_JSON_PATH"
     _info "Registered"
+    if [ "$_email" ]; then
+      _savecaconf "CA_EMAIL" "$_email"
+    fi
   elif [ "$code" = '409' ] || [ "$code" = '200' ]; then
     _info "Already registered"
+    if [ "$_email" ] && [ "$_email" != "$_saved_ca_email" ]; then
+      _info "The account email was not changed, the CA ignores the contact of an account it already has."
+      _info "Use '$PROJECT_ENTRY --update-account -m $_email' to change it."
+    fi
   elif [ "$code" = '400' ] && _contains "$response" 'The account is not awaiting external account binding'; then
     _info "EAB already registered"
     _eabAlreadyBound=1
