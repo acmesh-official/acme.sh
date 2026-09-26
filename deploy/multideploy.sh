@@ -9,7 +9,11 @@
 ################################################################################
 # Usage (shown values are the examples):
 # 1. Set optional environment variables
-#   - export MULTIDEPLOY_FILENAME=/acme.sh/multideploy.yaml     - "/acme.sh/multideploy.yaml" will be automatically used if not set
+#   - export MULTIDEPLOY_FILENAME="multideploy.yaml"     - "multideploy.yml" will be automatically used if not set
+#     A name without a leading '/' is looked up in the certificate directory
+#     of the domain. An absolute path is used as is, so a single deploy file
+#     can be shared by all domains, e.g.
+#   - export MULTIDEPLOY_FILENAME="/etc/acme/multideploy.yml"
 #
 # 2. Run command:
 # acme.sh --deploy --deploy-hook multideploy -d example.com
@@ -51,8 +55,8 @@ multideploy_deploy() {
 
   _getdeployconf MULTIDEPLOY_FILENAME
   if [ -z "$MULTIDEPLOY_FILENAME" ]; then
-    MULTIDEPLOY_FILENAME="/acme.sh/multideploy.yaml"
-    _info "MULTIDEPLOY_FILENAME is not set, so I will use '/acme.sh/multideploy.yaml'."
+    MULTIDEPLOY_FILENAME="multideploy.yml"
+    _info "MULTIDEPLOY_FILENAME is not set, so I will use 'multideploy.yml'."
   else
     _savedeployconf "MULTIDEPLOY_FILENAME" "$MULTIDEPLOY_FILENAME"
     _debug2 "MULTIDEPLOY_FILENAME" "$MULTIDEPLOY_FILENAME"
@@ -75,7 +79,8 @@ multideploy_deploy() {
 #   This function preprocesses the deploy file by checking if 'yq' is installed,
 #   verifying the existence of the deploy file, and ensuring only one deploy file is present.
 # Arguments:
-#   $@ - Posible deploy file names.
+#   $@ - Posible deploy file names. A name starting with '/' is treated as an
+#        absolute path, any other name is relative to the domain directory.
 # Usage:
 #   _preprocess_deployfile "<deploy_file1>" "<deploy_file2>?"
 _preprocess_deployfile() {
@@ -87,16 +92,21 @@ _preprocess_deployfile() {
   _debug3 "yq is installed."
 
   # Check if deploy file exists
+  found_file=""
   for file in "$@"; do
-    _deploy_file=$(_resolve_multideploy_file "$file")
-    _debug3 "Checking file" "$_deploy_file"
-    if [ -f "$_deploy_file" ]; then
+    if _startswith "$file" "/"; then
+      _multideploy_path="$file"
+    else
+      _multideploy_path="$DOMAIN_PATH/$file"
+    fi
+    _debug3 "Checking file" "$_multideploy_path"
+    if [ -f "$_multideploy_path" ]; then
       _debug3 "File found"
       if [ -n "$found_file" ]; then
         _err "Multiple deploy files found. Please keep only one deploy file."
         return 1
       fi
-      found_file="$_deploy_file"
+      found_file="$_multideploy_path"
     else
       _debug3 "File not found"
     fi
@@ -115,26 +125,11 @@ _preprocess_deployfile() {
 }
 
 # Description:
-#   This function resolves the deploy file path.
-#   Absolute paths and relative paths with a directory component are used as-is.
-#   Plain filenames keep the original behavior and are loaded from DOMAIN_PATH.
-# Arguments:
-#   $1 - The deploy file setting.
-_resolve_multideploy_file() {
-  _deploy_file="$1"
-
-  case "$_deploy_file" in
-  */*) echo "$_deploy_file" ;;
-  *) echo "$DOMAIN_PATH/$_deploy_file" ;;
-  esac
-}
-
-# Description:
 #   This function returns the yq selector for the active services list.
 #   The legacy top-level `services` list is supported, as well as the
 #   domain-keyed format: "<domain>": { services: [...] }.
 _multideploy_services_expr() {
-  printf "%s" '(.services // .[strenv(MULTIDEPLOY_DOMAIN)].services)'
+  printf '%s' "(.[\"$_cdomain\"].services // .services)"
 }
 
 # Description:
@@ -157,7 +152,7 @@ _check_deployfile() {
   _debug2 "check: Deploy file version is compatible: $_deploy_file_version"
 
   # Extract all services from config
-  _services=$(MULTIDEPLOY_DOMAIN="$_cdomain" yq -r "$(_multideploy_services_expr)[]?.name" "$_deploy_file")
+  _services=$(yq -r "$(_multideploy_services_expr)[]?.name" "$_deploy_file")
 
   if [ -z "$_services" ]; then
     _err "Config does not have any services to deploy to for $_cdomain."
@@ -172,7 +167,7 @@ _check_deployfile() {
   echo "$_services" | while read -r _service; do
     _debug2 "check: Checking service: $_service"
     # Check if service exists
-    _service_config=$(MULTIDEPLOY_DOMAIN="$_cdomain" MULTIDEPLOY_SERVICE="$_service" yq -r "$(_multideploy_services_expr)[]? | select(.name == strenv(MULTIDEPLOY_SERVICE))" "$_deploy_file")
+    _service_config=$(yq -r "$(_multideploy_services_expr)[]? | select(.name == \"$_service\")" "$_deploy_file")
     if [ -z "$_service_config" ] || [ "$_service_config" = "null" ]; then
       _err "Service '$_service' not found."
       return 1
@@ -253,15 +248,15 @@ _deploy_services() {
   _tempfile=$(mktemp)
   trap 'rm -f $_tempfile' EXIT
 
-  MULTIDEPLOY_DOMAIN="$_cdomain" yq -r "$(_multideploy_services_expr)[]?.name" "$_deploy_file" >"$_tempfile"
+  yq -r "$(_multideploy_services_expr)[]?.name" "$_deploy_file" >"$_tempfile"
   _debug3 "Services" "$(cat "$_tempfile")"
 
   _failedServices=""
   _failedCount=0
   while read -r _service <&3; do
     _debug2 "Service" "$_service"
-    _hook=$(MULTIDEPLOY_DOMAIN="$_cdomain" MULTIDEPLOY_SERVICE="$_service" yq -r "$(_multideploy_services_expr)[]? | select(.name == strenv(MULTIDEPLOY_SERVICE)).hook" "$_deploy_file")
-    _envs=$(MULTIDEPLOY_DOMAIN="$_cdomain" MULTIDEPLOY_SERVICE="$_service" yq -r "$(_multideploy_services_expr)[]? | select(.name == strenv(MULTIDEPLOY_SERVICE)).environment" "$_deploy_file")
+    _hook=$(yq -r "$(_multideploy_services_expr)[]? | select(.name == \"$_service\").hook" "$_deploy_file")
+    _envs=$(yq -r "$(_multideploy_services_expr)[]? | select(.name == \"$_service\").environment" "$_deploy_file")
 
     _export_envs "$_envs"
     if ! _deploy_service "$_service" "$_hook"; then
