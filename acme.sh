@@ -5590,11 +5590,9 @@ issue() {
       _on_issue_err "$_post_hook"
       return 1
     fi
-    # RFC 9773 Section 5 only defines the "alreadyReplaced" error, but real CAs
-    # (Let's Encrypt) may also reject with a malformed error if the prior cert
-    # was issued by a different issuer / different CA. Retry without "replaces"
-    # whenever the failure mentions ARI or the replaces field.
-    if [ "$_replaces_certID" ] && { _contains "$response" "alreadyReplaced" || _contains "$response" "urn:ietf:params:acme:error:malformed" || _contains "$response" "'replaces'" || _contains "$response" "ARI"; }; then
+    # Retry without "replaces" whenever the CA rejected that field, e.g. after
+    # switching the ACME server: the prior cert belongs to the old CA.
+    if [ "$_replaces_certID" ] && _isARIReplacesRejected "$code" "$response"; then
       _info "ARI 'replaces' rejected by CA, retrying newOrder without 'replaces'."
       if ! _send_signed_request "$ACME_NEW_ORDER" "$_newOrderObj}"; then
         _err "Error creating new order."
@@ -7928,6 +7926,35 @@ _getARICertID() {
   _debug2 "_serurl" "$_serurl"
 
   printf "%s.%s" "$_akiurl" "$_serurl"
+}
+
+#httpcode response
+#Returns 0 when a newOrder was rejected because of the ARI "replaces" field,
+#so that the order can be retried without it.
+#The status code decides first, and an empty code counts as "not rejected":
+#an ACCEPTED order echoes the field back, since RFC 9773 Section 5 says that
+#a server accepting a newOrder request with a "replaces" field "MUST reflect
+#that field in the response", and the certID it carries is base64url, so the
+#response of a SUCCESSFUL order can contain "replaces" and even "ARI".
+#Matching on the message alone would then re-order without "replaces" and
+#defeat ARI.
+#Only the 409 "alreadyReplaced" type is mandated by RFC 9773 Section 5; the
+#other checks it lists (same ACME account, shared identifier) are left to
+#server policy, so the wording differs per CA: Let's Encrypt answers
+#malformed when the prior cert was issued by a different issuer, ZeroSSL
+#answers 401 with 'The "replaces" field does not identify a certificate that
+#belongs to this ACME account'.
+#https://github.com/acmesh-official/acme.sh/issues/7280
+_isARIReplacesRejected() {
+  _ari_rej_code="$1"
+  _ari_rej_resp="$2"
+  if [ -z "$_ari_rej_code" ] || _startswith "$_ari_rej_code" "2"; then
+    return 1
+  fi
+  _contains "$_ari_rej_resp" "alreadyReplaced" ||
+    _contains "$_ari_rej_resp" "replaces" ||
+    _contains "$_ari_rej_resp" "ARI" ||
+    _contains "$_ari_rej_resp" "urn:ietf:params:acme:error:malformed"
 }
 
 #cert
