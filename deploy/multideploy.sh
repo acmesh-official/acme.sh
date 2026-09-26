@@ -38,7 +38,7 @@
 #   - Version 2.0 (required by this script) supports a shared deploy file
 # Example:
 #   version: "2.0"
-#   "*.example.com":
+#   "*.domain1.com":
 #     services:
 #       - name: "traefik"
 #         hook: "docker"
