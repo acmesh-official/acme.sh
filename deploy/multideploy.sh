@@ -9,13 +9,64 @@
 ################################################################################
 # Usage (shown values are the examples):
 # 1. Set optional environment variables
-#   - export MULTIDEPLOY_FILENAME="multideploy.yaml"     - "multideploy.yml" will be automatically used if not set"
+#   - export MULTIDEPLOY_FILENAME="multideploy.yaml"     - "multideploy.yml" will be automatically used if not set
 #     A name without a leading '/' is looked up in the certificate directory
 #     of the domain. An absolute path is used as is, so a single deploy file
 #     can be shared by all domains, e.g.
 #   - export MULTIDEPLOY_FILENAME="/etc/acme/multideploy.yml"
 #
-# 2. Run command:
+# 2. Deploy file formats:
+#   - Version 1.0 (legacy) one file in each certificate directory
+# Example:
+#   version: "1.0"
+#   services:
+#     - name: "traefik"
+#       hook: "docker"
+#       environment:
+#         DEPLOY_DOCKER_CONTAINER_LABEL: "sh.acme.autoload.service=traefik"
+#         DEPLOY_DOCKER_CONTAINER_KEY_FILE: "/certs/example.com/key.pem"
+#         DEPLOY_DOCKER_CONTAINER_CERT_FILE: "/certs/example.com/cert.pem"
+#         DEPLOY_DOCKER_CONTAINER_CA_FILE: "/certs/example.com/ca.pem"
+#         DEPLOY_DOCKER_CONTAINER_FULLCHAIN_FILE: "/certs/example.com/fullchain.pem"
+#     - name: "router01"
+#       hook: "routeros"
+#       environment:
+#         ROUTER_OS_USERNAME: "certuser"
+#         ROUTER_OS_HOST: "router.example.com"
+#         ROUTER_OS_PORT: "22"
+#
+#   - Version 2.0 (required by this script) supports a shared deploy file
+# Example:
+#   version: "2.0"
+#   "*.domain1.com":
+#     services:
+#       - name: "traefik"
+#         hook: "docker"
+#         environment:
+#           DEPLOY_DOCKER_CONTAINER_LABEL: "sh.acme.autoload.service=traefik"
+#           DEPLOY_DOCKER_CONTAINER_KEY_FILE: "/certs/example.com/key.pem"
+#           DEPLOY_DOCKER_CONTAINER_CERT_FILE: "/certs/example.com/cert.pem"
+#           DEPLOY_DOCKER_CONTAINER_CA_FILE: "/certs/example.com/ca.pem"
+#           DEPLOY_DOCKER_CONTAINER_FULLCHAIN_FILE: "/certs/example.com/fullchain.pem"
+#           DEPLOY_DOCKER_CONTAINER_RELOAD_CMD: "nginx -s reload"
+#       - name: "router01"
+#         hook: "routeros"
+#         environment:
+#           ROUTER_OS_USERNAME: "certuser"
+#           ROUTER_OS_HOST: "router.example.com"
+#           ROUTER_OS_PORT: "22"
+#   "*.domain2.com":
+#     services:
+#       - name: "nas01"
+#         hook: "synology_dsm"
+#         environment:
+#           SYNO_SCHEME: "http"
+#           SYNO_HOSTNAME: "localhost"
+#           SYNO_PORT: "5000"
+#           SYNO_CREATE: "1"
+#           SYNO_CERTIFICATE: "PROD-$_cdomain"
+#
+# 3. Run command:
 # acme.sh --deploy --deploy-hook multideploy -d example.com
 ################################################################################
 # Dependencies:
@@ -25,7 +76,7 @@
 # 0 means success, otherwise error.
 ################################################################################
 
-MULTIDEPLOY_VERSION="1.0"
+MULTIDEPLOY_VERSION="2.0"
 
 # Description: This function handles the deployment of certificates to multiple services.
 #              It processes the provided certificate files and deploys them according to the
@@ -125,6 +176,14 @@ _preprocess_deployfile() {
 }
 
 # Description:
+#   This function returns the yq selector for the active services list.
+#   The legacy top-level `services` list is supported, as well as the
+#   domain-keyed format: "<domain>": { services: [...] }.
+_multideploy_services_expr() {
+  printf '%s' "(.[\"$_cdomain\"].services // .services)"
+}
+
+# Description:
 #   This function checks the deploy file for version compatibility and the existence of the specified configuration and services.
 # Arguments:
 #   $1 - The path to the deploy configuration file.
@@ -144,10 +203,10 @@ _check_deployfile() {
   _debug2 "check: Deploy file version is compatible: $_deploy_file_version"
 
   # Extract all services from config
-  _services=$(yq -r '.services[].name' "$_deploy_file")
+  _services=$(yq -r "$(_multideploy_services_expr)[]?.name" "$_deploy_file")
 
   if [ -z "$_services" ]; then
-    _err "Config does not have any services to deploy to."
+    _err "Config does not have any services to deploy to for $_cdomain."
     return 1
   fi
   _debug2 "check: Config has services."
@@ -159,7 +218,7 @@ _check_deployfile() {
   echo "$_services" | while read -r _service; do
     _debug2 "check: Checking service: $_service"
     # Check if service exists
-    _service_config=$(yq -r ".services[] | select(.name == \"$_service\")" "$_deploy_file")
+    _service_config=$(yq -r "$(_multideploy_services_expr)[]? | select(.name == \"$_service\")" "$_deploy_file")
     if [ -z "$_service_config" ] || [ "$_service_config" = "null" ]; then
       _err "Service '$_service' not found."
       return 1
@@ -240,15 +299,15 @@ _deploy_services() {
   _tempfile=$(mktemp)
   trap 'rm -f $_tempfile' EXIT
 
-  yq -r '.services[].name' "$_deploy_file" >"$_tempfile"
+  yq -r "$(_multideploy_services_expr)[]?.name" "$_deploy_file" >"$_tempfile"
   _debug3 "Services" "$(cat "$_tempfile")"
 
   _failedServices=""
   _failedCount=0
   while read -r _service <&3; do
     _debug2 "Service" "$_service"
-    _hook=$(yq -r ".services[] | select(.name == \"$_service\").hook" "$_deploy_file")
-    _envs=$(yq -r ".services[] | select(.name == \"$_service\").environment" "$_deploy_file")
+    _hook=$(yq -r "$(_multideploy_services_expr)[]? | select(.name == \"$_service\").hook" "$_deploy_file")
+    _envs=$(yq -r "$(_multideploy_services_expr)[]? | select(.name == \"$_service\").environment" "$_deploy_file")
 
     _export_envs "$_envs"
     if ! _deploy_service "$_service" "$_hook"; then
