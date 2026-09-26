@@ -3365,7 +3365,13 @@ __initHome() {
 
   if [ -z "$ACCOUNT_CONF_PATH" ]; then
     if [ -f "$_DEFAULT_ACCOUNT_CONF_PATH" ]; then
+      #Same as in _initpath: keep the live ACCOUNT_EMAIL across the sourcing,
+      #so that the -m address _process() exported is not replaced by the
+      #saved one. _process() calls __initHome directly, after the option
+      #loop, so this is the sourcing that -m used to lose to.
+      _ih_account_email="$ACCOUNT_EMAIL"
       . "$_DEFAULT_ACCOUNT_CONF_PATH"
+      ACCOUNT_EMAIL="$_ih_account_email"
     fi
   fi
 
@@ -3475,11 +3481,21 @@ _initpath() {
   domain="$1"
   _ilength="$2"
 
+  #Keep the live ACCOUNT_EMAIL, the one -m exported in _process() or the
+  #caller put in the environment. account.conf is sourced twice below (here
+  #and inside __initHome), and a sourced assignment would overwrite it with
+  #the saved address, so -m silently lost to whatever account.conf held.
+  #The saved address is not lost either way: _getAccountEmail() reads it
+  #with _readaccountconf as its last resort, after the per-CA CA_EMAIL.
+  _cli_account_email="$ACCOUNT_EMAIL"
+
   __initHome
 
   if [ -f "$ACCOUNT_CONF_PATH" ]; then
     . "$ACCOUNT_CONF_PATH"
   fi
+
+  ACCOUNT_EMAIL="$_cli_account_email"
 
   if [ "$_ACME_IN_CRON" ]; then
     if [ ! "$_USER_PATH_EXPORTED" ]; then
@@ -4420,9 +4436,11 @@ _regAccount() {
   _secure_debug3 _eab_kid "$_eab_kid"
   _secure_debug3 _eab_hmac_key "$_eab_hmac_key"
   _email="$(_getAccountEmail)"
-  if [ "$_email" ]; then
-    _savecaconf "CA_EMAIL" "$_email"
-  fi
+  #CA_EMAIL is saved only once the CA has actually taken the contact, which
+  #is when it answers 201. For an account key it already knows it answers
+  #200 and ignores the contact of the request, so saving here would record
+  #an address the CA never stored.
+  _saved_ca_email="$(_readcaconf CA_EMAIL)"
 
   if [ "$ACME_DIRECTORY" = "$CA_ZEROSSL" ]; then
     if [ -z "$_eab_kid" ] || [ -z "$_eab_hmac_key" ]; then
@@ -4501,8 +4519,15 @@ _regAccount() {
   if [ "$code" = "" ] || [ "$code" = '201' ]; then
     echo "$response" >"$ACCOUNT_JSON_PATH"
     _info "Registered"
+    if [ "$_email" ]; then
+      _savecaconf "CA_EMAIL" "$_email"
+    fi
   elif [ "$code" = '409' ] || [ "$code" = '200' ]; then
     _info "Already registered"
+    if [ "$_email" ] && [ "$_email" != "$_saved_ca_email" ]; then
+      _info "The account email was not changed, the CA ignores the contact of an account it already has."
+      _info "Use '$PROJECT_ENTRY --update-account -m $_email' to change it."
+    fi
   elif [ "$code" = '400' ] && _contains "$response" 'The account is not awaiting external account binding'; then
     _info "EAB already registered"
     _eabAlreadyBound=1
@@ -5590,11 +5615,9 @@ issue() {
       _on_issue_err "$_post_hook"
       return 1
     fi
-    # RFC 9773 Section 5 only defines the "alreadyReplaced" error, but real CAs
-    # (Let's Encrypt) may also reject with a malformed error if the prior cert
-    # was issued by a different issuer / different CA. Retry without "replaces"
-    # whenever the failure mentions ARI or the replaces field.
-    if [ "$_replaces_certID" ] && { _contains "$response" "alreadyReplaced" || _contains "$response" "urn:ietf:params:acme:error:malformed" || _contains "$response" "'replaces'" || _contains "$response" "ARI"; }; then
+    # Retry without "replaces" whenever the CA rejected that field, e.g. after
+    # switching the ACME server: the prior cert belongs to the old CA.
+    if [ "$_replaces_certID" ] && _isARIReplacesRejected "$code" "$response"; then
       _info "ARI 'replaces' rejected by CA, retrying newOrder without 'replaces'."
       if ! _send_signed_request "$ACME_NEW_ORDER" "$_newOrderObj}"; then
         _err "Error creating new order."
@@ -7928,6 +7951,35 @@ _getARICertID() {
   _debug2 "_serurl" "$_serurl"
 
   printf "%s.%s" "$_akiurl" "$_serurl"
+}
+
+#httpcode response
+#Returns 0 when a newOrder was rejected because of the ARI "replaces" field,
+#so that the order can be retried without it.
+#The status code decides first, and an empty code counts as "not rejected":
+#an ACCEPTED order echoes the field back, since RFC 9773 Section 5 says that
+#a server accepting a newOrder request with a "replaces" field "MUST reflect
+#that field in the response", and the certID it carries is base64url, so the
+#response of a SUCCESSFUL order can contain "replaces" and even "ARI".
+#Matching on the message alone would then re-order without "replaces" and
+#defeat ARI.
+#Only the 409 "alreadyReplaced" type is mandated by RFC 9773 Section 5; the
+#other checks it lists (same ACME account, shared identifier) are left to
+#server policy, so the wording differs per CA: Let's Encrypt answers
+#malformed when the prior cert was issued by a different issuer, ZeroSSL
+#answers 401 with 'The "replaces" field does not identify a certificate that
+#belongs to this ACME account'.
+#https://github.com/acmesh-official/acme.sh/issues/7280
+_isARIReplacesRejected() {
+  _ari_rej_code="$1"
+  _ari_rej_resp="$2"
+  if [ -z "$_ari_rej_code" ] || _startswith "$_ari_rej_code" "2"; then
+    return 1
+  fi
+  _contains "$_ari_rej_resp" "alreadyReplaced" ||
+    _contains "$_ari_rej_resp" "replaces" ||
+    _contains "$_ari_rej_resp" "ARI" ||
+    _contains "$_ari_rej_resp" "urn:ietf:params:acme:error:malformed"
 }
 
 #cert
