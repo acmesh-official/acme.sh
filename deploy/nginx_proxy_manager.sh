@@ -118,7 +118,7 @@ nginx_proxy_manager_deploy() {
   _info "Authenticating and fetching temporary API token"
   _npm_token_raw=$(_post '{"identity":"'"$_npm_user_json"'","secret":"'"$_npm_password_json"'"}' "$DEPLOY_NPM_PROTOCOL://$DEPLOY_NPM_HOST:$DEPLOY_NPM_PORT/api/tokens" "" "POST" "application/json")
   _secure_debug _npm_token_raw "$_npm_token_raw"
-  _npm_twofactor=$(printf '%s' "$_npm_token_raw" | _egrep_o '"requires_2fa"[[:space:]]*:[[:space:]]*[^,}]*' | cut -d : -f 2 | tr -d ' ')
+  _npm_twofactor=$(printf '%s' "$_npm_token_raw" | _egrep_o '("requires_2fa"|"requiresTotp")[[:space:]]*:[[:space:]]*[^,}]*' | cut -d : -f 2 | tr -d ' ')
   if [ "$_npm_twofactor" = "true" ]; then
     _err "2FA is enabled, deployment is not supported. Please disable 2FA or create a new user without 2FA enabled and update your configuration."
     return 1
