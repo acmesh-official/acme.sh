@@ -43,7 +43,7 @@ $_content"
 
   response="$(_post "$_data" "$_hc_url" "" "POST" "text/plain")"
 
-  if [ "$?" = "0" ] && _startswith "$response" "OK"; then
+  if [ "$?" = "0" ] && [ "$response" = "OK" ]; then
     _info "healthchecks ping success."
     return 0
   fi
