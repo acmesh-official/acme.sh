@@ -124,8 +124,8 @@ _resolve_multideploy_file() {
   _deploy_file="$1"
 
   case "$_deploy_file" in
-    */*) echo "$_deploy_file" ;;
-    *) echo "$DOMAIN_PATH/$_deploy_file" ;;
+  */*) echo "$_deploy_file" ;;
+  *) echo "$DOMAIN_PATH/$_deploy_file" ;;
   esac
 }
 
