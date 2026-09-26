@@ -3475,11 +3475,21 @@ _initpath() {
   domain="$1"
   _ilength="$2"
 
+  #Keep the live ACCOUNT_EMAIL, the one -m exported in _process() or the
+  #caller put in the environment. account.conf is sourced twice below (here
+  #and inside __initHome), and a sourced assignment would overwrite it with
+  #the saved address, so -m silently lost to whatever account.conf held.
+  #The saved address is not lost either way: _getAccountEmail() reads it
+  #with _readaccountconf as its last resort, after the per-CA CA_EMAIL.
+  _cli_account_email="$ACCOUNT_EMAIL"
+
   __initHome
 
   if [ -f "$ACCOUNT_CONF_PATH" ]; then
     . "$ACCOUNT_CONF_PATH"
   fi
+
+  ACCOUNT_EMAIL="$_cli_account_email"
 
   if [ "$_ACME_IN_CRON" ]; then
     if [ ! "$_USER_PATH_EXPORTED" ]; then
