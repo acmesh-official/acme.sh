@@ -76,19 +76,29 @@ RUN for verb in help \
   ; done
 
 RUN printf "%b" '#!'"/usr/bin/env sh\n \
-if [ \"\$1\" = \"daemon\" ];  then \n \
-  if [ ! -f \"\$LE_CONFIG_HOME/crontab\" ]; then \n \
-     echo \"\$LE_CONFIG_HOME/crontab not found, generating one\" \n \
-     time=\$(date -u \"+%s\") \n \
-     random_minute=\$((\$time % 60)) \n \
-     random_hour=\$((\$time / 60 % 6)) \n \
-     echo \"\$random_minute \$random_hour,\$((\$random_hour + 6)),\$((\$random_hour + 12)),\$((\$random_hour + 18)) * * * \\\"\$LE_WORKING_DIR\\\"/acme.sh --cron --home \\\"\$LE_WORKING_DIR\\\" --config-home \\\"\$LE_CONFIG_HOME\\\"\" > \"\$LE_CONFIG_HOME\"/crontab \n \
+for var_file in \$(env | grep '^[A-Za-z_][A-Za-z0-9_]*_FILE=' | cut -d '=' -f 1); do \n \
+  eval \"file_path=\\\$\$var_file\" \n \
+  var_name=\"\${var_file%_FILE}\" \n \
+  if [ -f \"\$file_path\" ] && [ -r \"\$file_path\" ]; then \n \
+    file_content=\$(cat \"\$file_path\") \n \
+    eval \"\$var_name=\\\$file_content\" \n \
+    export \"\$var_name\" \n \
   fi \n \
-  echo \"Running Supercronic using crontab at \$LE_CONFIG_HOME/crontab\" \n \
-  exec -- /usr/bin/supercronic \"\$LE_CONFIG_HOME/crontab\" \n \
-else \n \
- exec -- \"\$@\"\n \
-fi\n" >/entry.sh && chmod +x /entry.sh && chmod -R o+rwx $LE_WORKING_DIR && chmod -R o+rwx $LE_CONFIG_HOME
+done \n \
+if [ \"\$1\" = \"daemon\" ];  then \n \if [ "$1" = "daemon" ]; then
+  if [ ! -f "$LE_CONFIG_HOME/crontab" ]; then
+     echo "$LE_CONFIG_HOME/crontab not found, generating one"
+     time=$(date -u "+%s")
+     random_minute=$(($time % 60))
+     random_hour=$(($time / 60 % 6))
+     echo "$random_minute $random_hour,$(($random_hour + 6)),$(($random_hour + 12)),$(($random_hour + 18)) * * * \"$LE_WORKING_DIR\"/acme.sh --cron --home \"$LE_WORKING_DIR\" --config-home \"$LE_CONFIG_HOME\"" > "$LE_CONFIG_HOME"/crontab
+  fi
+  echo "Running Supercronic using crontab at $LE_CONFIG_HOME/crontab"
+  exec -- /usr/bin/supercronic "$LE_CONFIG_HOME/crontab"
+else
+ exec -- "$@"
+fi
+EOF
 
 VOLUME /acme.sh
 
