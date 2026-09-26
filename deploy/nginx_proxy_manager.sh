@@ -95,16 +95,6 @@ nginx_proxy_manager_deploy() {
     printf '%s\n' "$_npm_code" | _egrep_o "^[0-9][0-9]*"
   }
 
-  _info "Querying server for API type"
-  _npm_schema=$(_get "$DEPLOY_NPM_PROTOCOL://$DEPLOY_NPM_HOST:$DEPLOY_NPM_PORT/api/schema" | tr -d '\r\n')
-  _npm_info_block=$(printf '%s' "$_npm_schema" | _egrep_o '"info"[[:space:]]*:[[:space:]]*\{[^}]+\}')
-  _npm_type=$(printf '%s' "$_npm_info_block" | _egrep_o '"title"[[:space:]]*:[[:space:]]*"[^"]*"' | cut -d '"' -f 4)
-  _info "Detected: $_npm_type"
-  if [ "$_npm_type" != "NPMplus API" ] && [ "$_npm_type" != "Nginx Proxy Manager API" ]; then
-    _err "The API for Nginx Proxy Manager or NPMplus was not detected"
-    return 1
-  fi
-
   _debug DEPLOY_NPM_USER "$DEPLOY_NPM_USER"
   _secure_debug DEPLOY_NPM_PASSWORD "$DEPLOY_NPM_PASSWORD"
   _npm_user_json=$(printf '%s' "$DEPLOY_NPM_USER" | _json_encode)
@@ -123,6 +113,7 @@ nginx_proxy_manager_deploy() {
     _err "2FA is enabled, deployment is not supported. Please disable 2FA or create a new user without 2FA enabled and update your configuration."
     return 1
   fi
+
   _npm_token_code=$(_npm_response_code)
   _debug _npm_token_code "$_npm_token_code"
   if [ "$_npm_token_code" != "200" ]; then
@@ -130,16 +121,22 @@ nginx_proxy_manager_deploy() {
     return 1
   fi
 
-  if [ "$_npm_type" = "Nginx Proxy Manager API" ]; then
-    _npm_token=$(printf '%s' "$_npm_token_raw" | _egrep_o '"token"[[:space:]]*:[[:space:]]*"[^"]*"' | cut -d '"' -f 4)
-  elif [ "$_npm_type" = "NPMplus API" ]; then
+  # first look for a token in JSON
+  _npm_type="Nginx Proxy Manager API"
+  _npm_token=$(printf '%s' "$_npm_token_raw" | _egrep_o '"token"[[:space:]]*:[[:space:]]*"[^"]*"' | cut -d '"' -f 4)
+  if [ "$_npm_token" = "" ]; then
+    _debug "Token not found in JSON (nginx proxy manager API), checking HTTP header"
+    #  look for a token in the header
+    _npm_type="NPMplus API"
     _npm_token=$(grep <"$HTTP_HEADER" -i "^Set-Cookie: *__Host-Http-token=" | _tail_n 1 | _egrep_o "__Host-Http-token=[^;]*" | _head_n 1 | cut -d'=' -f2-)
+    if [ "$_npm_token" = "" ]; then
+      _err "Token not found in HTTP header (NPMplus API). Unable to obtain a token."
+      return 1
+    fi
   fi
-
+  _info "Detected API type: $_npm_type"
   _secure_debug _npm_token "$_npm_token"
   _info "API token retrieved."
-
-  nl="\0015\0012"
 
   if [ "$_npm_type" = "Nginx Proxy Manager API" ]; then
     _H1="Authorization: Bearer $_npm_token"
@@ -148,6 +145,9 @@ nginx_proxy_manager_deploy() {
   fi
   export _H1
   _secure_debug _H1 "$_H1"
+
+  nl="\0015\0012"
+
   # Create new certificate if a certificate ID number was not provided
   if [ -z "$DEPLOY_NPM_CERTNUM" ]; then
     _npm_certname_json=$(printf '%s' "$DEPLOY_NPM_CERTNAME" | _json_encode)
