@@ -326,7 +326,7 @@ _redfish_supports_private_key() {
     fi
 
     # shellcheck disable=SC2154 # Le_Keylength is set by acme.sh core, not this hook
-    if [ "${Le_Keylength}" -le "${_min_key_length}" ] || [ "${Le_Keylength}" -gt "${_max_key_length}" ]; then
+    if [ "${Le_Keylength}" -lt "${_min_key_length}" ] || [ "${Le_Keylength}" -gt "${_max_key_length}" ]; then
       _err "Unsupported RSA private key length ${Le_Keylength}!"
       _err "Please re-run acme.sh with --keylength set to a value between ${_min_key_length} and ${_max_key_length}."
       return 1
