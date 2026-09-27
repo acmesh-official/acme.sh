@@ -124,14 +124,18 @@ redfish_deploy() {
       return 1
     fi
 
-    _ckey_pkcs8="$(_mktemp)"
+    _ckey_pkcs8="$("${ACME_OPENSSL_BIN:-openssl}" pkcs8 -topk8 -nocrypt -in "${_ckey}")"
 
-    if ! _toPkcs8 "${_ckey_pkcs8}" "${_ckey}"; then
+    # shellcheck disable=SC2181
+    if [ "$?" != '0' ] || [ -z "${_ckey_pkcs8}" ]; then
       _err 'Failed to convert private key to PKCS#8 format!'
       return 1
     fi
 
-    _certificate_str="$(paste -sd '\n' "${_ckey_pkcs8}" "${_cfullchain}" | _json_encode)"
+    _certificate_str="$({
+      printf '%s\n' "${_ckey_pkcs8}"
+      cat "${_cfullchain}"
+    } | _json_encode)"
     _certificate_type='PEMchain'
   else
     _info "Private key and full certificate chain not available; we must be using a server-generated CSR."
