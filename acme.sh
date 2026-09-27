@@ -2140,6 +2140,7 @@ _resethttp() {
   __HTTP_INITIALIZED=""
   _ACME_CURL=""
   _ACME_WGET=""
+  _ACME_WGET2=""
   ACME_HTTP_NO_REDIRECTS=""
 }
 
@@ -2190,7 +2191,15 @@ _inithttp() {
   fi
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
-    _ACME_WGET="wget -q"
+    #wget2, the wget of Fedora 40 and later, prints nothing for -S under -q,
+    #so it runs without -q and _wget2_fix_header cleans up after it
+    _ACME_WGET2=""
+    if _contains "$(wget --version 2>&1 | _head_n 1)" "Wget2"; then
+      _ACME_WGET2=1
+      _ACME_WGET="wget"
+    else
+      _ACME_WGET="wget -q"
+    fi
     if [ "$ACME_USE_IPV6_REQUESTS" ]; then
       _ACME_WGET="$_ACME_WGET --inet6-only "
     elif [ "$ACME_USE_IPV4_REQUESTS" ]; then
@@ -2200,7 +2209,8 @@ _inithttp() {
       _ACME_WGET="$_ACME_WGET --max-redirect 0 "
     fi
     if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
-      if [ "$_ACME_WGET" ] && _contains "$($_ACME_WGET --help 2>&1)" "--debug"; then
+      #the -d demultiplexing after each request expects wget 1.x output
+      if [ -z "$_ACME_WGET2" ] && _contains "$($_ACME_WGET --help 2>&1)" "--debug"; then
         _ACME_WGET="$_ACME_WGET -d "
       fi
     fi
@@ -2218,6 +2228,30 @@ _inithttp() {
 
   __HTTP_INITIALIZED=1
 
+}
+
+#stdin: what wget2 -S wrote to stderr. Prints the response headers the way
+#curl --dump-header writes them. wget2 frames every header block with lines of
+#its own ("[0] Downloading ...", "# got header ...", and after the block
+#"HTTP response 200 OK [url]", which callers would take for the status line),
+#and prints no header block at all for a response without a body (a 204, the
+#empty 200 of a revocation): then only the status line can be rebuilt, from
+#the last "HTTP [ERROR ]response" line, with HTTP/1.1 assumed.
+_wget2_headers() {
+  _w2h_in="$(cat)"
+  _w2h_cr="$(printf '\r')"
+  _w2h_blocks="$(printf "%s\n" "$_w2h_in" | sed -n "/^HTTP /d; /^HTTP\//,/^$_w2h_cr*\$/p")"
+  if [ "$_w2h_blocks" ]; then
+    printf "%s\n" "$_w2h_blocks"
+  else
+    printf "%s\n" "$_w2h_in" | sed -n 's/^HTTP ERROR response /HTTP response /; s/^HTTP response \([0-9][0-9]*\).*$/HTTP\/1.1 \1/p' | _tail_n 1
+  fi
+}
+
+#rewrite $HTTP_HEADER after a wget2 request, see _wget2_headers
+_wget2_fix_header() {
+  _w2f_headers="$(_wget2_headers <"$HTTP_HEADER")"
+  printf "%s\n" "$_w2f_headers" >"$HTTP_HEADER"
 }
 
 # body  url [needbase64] [POST|PUT|DELETE] [ContentType]
@@ -2315,7 +2349,15 @@ _post() {
           response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
         fi
       elif [ "$httpmethod" = "HEAD" ]; then
-        if [ "$_postContentType" ]; then
+        if [ "$_ACME_WGET2" ]; then
+          #wget2 prints no headers for a HEAD response, not even with -S, but
+          #--save-headers writes them into the -O file
+          if [ "$_postContentType" ]; then
+            response="$($_WGET --method HEAD --save-headers -O "$HTTP_HEADER" --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" "$_post_url" 2>/dev/null)"
+          else
+            response="$($_WGET --method HEAD --save-headers -O "$HTTP_HEADER" --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" "$_post_url" 2>/dev/null)"
+          fi
+        elif [ "$_postContentType" ]; then
           response="$($_WGET --spider -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
         else
           response="$($_WGET --spider -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
@@ -2340,6 +2382,9 @@ _post() {
       # Demultiplex wget debug output
       cat "$HTTP_HEADER" >&2
       _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
+    fi
+    if [ "$_ACME_WGET2" ]; then
+      _wget2_fix_header
     fi
     # remove leading whitespaces from header to match curl format
     _sed_i 's/^  //g' "$HTTP_HEADER"
@@ -2434,6 +2479,9 @@ _post_file() {
       cat "$HTTP_HEADER" >&2
       _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
     fi
+    if [ "$_ACME_WGET2" ]; then
+      _wget2_fix_header
+    fi
     # remove leading whitespaces from header to match curl format
     _sed_i 's/^  //g' "$HTTP_HEADER"
   else
@@ -2500,6 +2548,9 @@ _get() {
         # Demultiplex wget debug output
         cat "$HTTP_HEADER" >&2
         _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
+      fi
+      if [ "$_ACME_WGET2" ]; then
+        _wget2_fix_header
       fi
       # remove leading whitespaces from header to match curl format
       _sed_i 's/^  //g' "$HTTP_HEADER"
