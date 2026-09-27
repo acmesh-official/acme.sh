@@ -336,7 +336,7 @@ _redfish_supports_private_key() {
     _allowed_key_curve_ids="$(echo "${_response}" | jq -r '.Parameters[] | select(.Name == "KeyCurveId") | .AllowableValues[]')"
 
     # shellcheck disable=SC2154 # Le_Keylength is set by acme.sh core, not this hook
-    if ! _contains "${_allowed_key_curve_ids}" "${Le_Keylength}"; then
+    if ! _contains "${_allowed_key_curve_ids}" "TPM_ECC_NIST_P${Le_Keylength#ec-}"; then
       _err "Unsupported ECDSA private key type! Server supports only: ${_allowed_key_curve_ids}"
       return 1
     fi
