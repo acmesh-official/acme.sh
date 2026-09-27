@@ -145,7 +145,7 @@ redfish_deploy() {
   _redfish_rest POST "${_certificate_service_endpoint}/Actions/CertificateService.ReplaceCertificate" "${_body}" || return 1
   _code="$(_redfish_response_code)"
 
-  if [ "${_code}" != '204' ]; then
+  if ! _startswith "${_code}" '2'; then
     _err "Failed to update Redfish server TLS certificate! (HTTP ${_code})"
     _err "Response: ${_response}"
     return 1
@@ -245,7 +245,7 @@ _redfish_log_out() {
     _redfish_rest DELETE "${_session_endpoint}" || return 1
     _code="$(_redfish_response_code)"
 
-    if [ "${_code}" != '204' ]; then
+    if ! _startswith "${_code}" '2'; then
       _err "Failed to log out of Redfish server (HTTP ${_code})."
       _err "Response: ${_response}"
     fi
@@ -401,7 +401,7 @@ _redfish_attempt_graceful_restart() {
   _redfish_rest POST "${_manager_endpoint}/Actions/Manager.Reset" '{"ResetType":"GracefulRestart"}' || return 1
   _code="$(_redfish_response_code)"
 
-  if [ "${_code}" != '204' ]; then
+  if ! _startswith "${_code}" '2'; then
     _err "Failed to gracefully restart BMC! (HTTP ${_code})"
     _err "Response: ${_response}"
     return 1
