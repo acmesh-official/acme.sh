@@ -228,7 +228,7 @@ _redfish_log_in() {
       return 1
     fi
 
-    _session="$(grep -i '^Location: .*$' "${HTTP_HEADER}" | _tail_n 1 | tr -d ' \r\n' | cut -d ':' -f 2)"
+    _session="$(echo "${_response}" | jq -r '.["@odata.id"]')"
     _auth_token="$(grep -i '^X-Auth-Token: .*$' "${HTTP_HEADER}" | _tail_n 1 | tr -d ' \r\n' | cut -d ':' -f 2)"
     export _H2="X-Auth-Token: ${_auth_token}"
   fi
