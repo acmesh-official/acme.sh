@@ -112,7 +112,7 @@ redfish_deploy() {
     _redfish_get_manager_certificate_endpoint "${_manager_endpoint}" || return 1
   fi
 
-  if [ -n "${_ckey}" ] && [ -n "${_cfullchain}" ]; then
+  if [ -f "${_ckey}" ] && [ -f "${_cfullchain}" ]; then
     _info "Uploading private key and full certificate chain to: ${_certificate_endpoint}"
 
     if ! _redfish_supports_full_certificate_chains; then
