@@ -6,6 +6,8 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_gd
 Options:
  GD_Key API Key
  GD_Secret API Secret
+OptionsAlt:
+ GD_PAT_KEY Personal Access Token
 '
 
 GD_Api="https://api.godaddy.com/v1"
@@ -17,19 +19,26 @@ dns_gd_add() {
   fulldomain=$1
   txtvalue=$2
 
-  GD_Key="${GD_Key:-$(_readaccountconf_mutable GD_Key)}"
-  GD_Secret="${GD_Secret:-$(_readaccountconf_mutable GD_Secret)}"
-  if [ -z "$GD_Key" ] || [ -z "$GD_Secret" ]; then
-    GD_Key=""
-    GD_Secret=""
-    _err "You didn't specify godaddy api key and secret yet."
-    _err "Please create your key and try again."
-    return 1
-  fi
+  # Auth: GD_Key + GD_Secret, or GD_PAT_KEY (Personal Access Token).
+  GD_PAT_KEY="${GD_PAT_KEY:-$(_readaccountconf_mutable GD_PAT_KEY)}"
+  if [ -z "$GD_PAT_KEY" ]; then
+    GD_Key="${GD_Key:-$(_readaccountconf_mutable GD_Key)}"
+    GD_Secret="${GD_Secret:-$(_readaccountconf_mutable GD_Secret)}"
+    if [ -z "$GD_Key" ] || [ -z "$GD_Secret" ]; then
+      GD_Key=""
+      GD_Secret=""
+      _err "You didn't specify godaddy api key and secret or personal access token yet."
+      _err "Please create your key and try again."
+      return 1
+    fi
 
-  #save the api key and email to the account conf file.
-  _saveaccountconf_mutable GD_Key "$GD_Key"
-  _saveaccountconf_mutable GD_Secret "$GD_Secret"
+    #save the api key and secret to the account conf file.
+    _saveaccountconf_mutable GD_Key "$GD_Key"
+    _saveaccountconf_mutable GD_Secret "$GD_Secret"
+  else
+    #save the personal access token to the account conf file.
+    _saveaccountconf_mutable GD_PAT_KEY "$GD_PAT_KEY"
+  fi
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -93,6 +102,7 @@ dns_gd_rm() {
   fulldomain=$1
   txtvalue=$2
 
+  GD_PAT_KEY="${GD_PAT_KEY:-$(_readaccountconf_mutable GD_PAT_KEY)}"
   GD_Key="${GD_Key:-$(_readaccountconf_mutable GD_Key)}"
   GD_Secret="${GD_Secret:-$(_readaccountconf_mutable GD_Secret)}"
 
@@ -206,7 +216,11 @@ _gd_rest() {
   data="$3"
   _debug "$ep"
 
-  export _H1="Authorization: sso-key $GD_Key:$GD_Secret"
+  if [ "$GD_PAT_KEY" ]; then
+    export _H1="Authorization: Bearer $GD_PAT_KEY"
+  else
+    export _H1="Authorization: sso-key $GD_Key:$GD_Secret"
+  fi
   export _H2="Content-Type: application/json"
 
   if [ "$data" ] || [ "$m" = "DELETE" ]; then
