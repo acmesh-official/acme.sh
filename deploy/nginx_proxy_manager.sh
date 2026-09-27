@@ -90,31 +90,36 @@ nginx_proxy_manager_deploy() {
     return 1
   fi
 
+  # extract and return response code
   _npm_response_code() {
     _npm_code="$(_egrep_o <"$HTTP_HEADER" "^HTTP[^ ]* .*$" | cut -d " " -f 2-100 | tr -d "\f\n")"
     printf '%s\n' "$_npm_code" | _egrep_o "^[0-9][0-9]*"
   }
 
+  # strip backslashes, encode for JSON, and remove newlines
+  _npm_payload_format() {
+    _npm_payload_out="$(printf "%s\n" "$1" | sed 's/\\/\\\\/g;' | _json_encode)"
+    printf '%s' "${_npm_payload_out%\\n}"
+  }
+
   _debug DEPLOY_NPM_USER "$DEPLOY_NPM_USER"
   _secure_debug DEPLOY_NPM_PASSWORD "$DEPLOY_NPM_PASSWORD"
-  _npm_user_json=$(printf '%s' "$DEPLOY_NPM_USER" | _json_encode)
-  _npm_user_json="${_npm_user_json%\\n}"
-  _npm_password_json="$(printf "%s\n" "$DEPLOY_NPM_PASSWORD" | sed 's/\\/\\\\/g;')"
-  _npm_password_json=$(printf '%s' "$_npm_password_json" | _json_encode)
-  _npm_password_json="${_npm_password_json%\\n}"
+  _npm_user_json="$(_npm_payload_format "$DEPLOY_NPM_USER")"
+  _npm_password_json="$(_npm_payload_format "$DEPLOY_NPM_PASSWORD")"
   _debug _npm_user_json "$_npm_user_json"
   _secure_debug _npm_password_json "$_npm_password_json"
 
   _info "Authenticating and fetching temporary API token"
-  _npm_token_raw=$(_post '{"identity":"'"$_npm_user_json"'","secret":"'"$_npm_password_json"'"}' "$DEPLOY_NPM_PROTOCOL://$DEPLOY_NPM_HOST:$DEPLOY_NPM_PORT/api/tokens" "" "POST" "application/json")
+  _npm_token_raw="$(_post '{"identity":"'"$_npm_user_json"'","secret":"'"$_npm_password_json"'"}' "${DEPLOY_NPM_PROTOCOL}://${DEPLOY_NPM_HOST}:${DEPLOY_NPM_PORT}/api/tokens" "" "POST" "application/json")"
   _secure_debug _npm_token_raw "$_npm_token_raw"
-  _npm_twofactor=$(printf '%s' "$_npm_token_raw" | _egrep_o '("requires_2fa"|"requiresTotp")[[:space:]]*:[[:space:]]*[^,}]*' | cut -d : -f 2 | tr -d ' ')
-  if [ "$_npm_twofactor" = "true" ]; then
-    _err "2FA is enabled, deployment is not supported. Please disable 2FA or create a new user without 2FA enabled and update your configuration."
+  _npm_requires2fa="$(printf '%s' "$_npm_token_raw" | _egrep_o '"requires_2fa" *: *[^,}]*' | cut -d : -f 2 | tr -d ' ')"
+  _npm_requiresTotp="$(printf '%s' "$_npm_token_raw" | _egrep_o '"requiresTotp" *: *[^,}]*' | cut -d : -f 2 | tr -d ' ')"
+  if [ "$_npm_requires2fa" = "true" ] || [ "$_npm_requiresTotp" = "true" ]; then
+    _err "2FA/MFA is enabled, deployment is not supported. Disable it or create a user with 2FA/MFA disabled and update your configuration."
     return 1
   fi
 
-  _npm_token_code=$(_npm_response_code)
+  _npm_token_code="$(_npm_response_code)"
   _debug _npm_token_code "$_npm_token_code"
   if [ "$_npm_token_code" != "200" ]; then
     _err "Failed to retrieve a token, server response code: $_npm_token_code"
@@ -123,12 +128,12 @@ nginx_proxy_manager_deploy() {
 
   # first look for a token in JSON
   _npm_type="Nginx Proxy Manager API"
-  _npm_token=$(printf '%s' "$_npm_token_raw" | _egrep_o '"token"[[:space:]]*:[[:space:]]*"[^"]*"' | cut -d '"' -f 4)
+  _npm_token="$(printf '%s' "$_npm_token_raw" | _egrep_o '"token" *: *"[^"]*"' | cut -d '"' -f 4)"
   if [ "$_npm_token" = "" ]; then
     _debug "Token not found in JSON (nginx proxy manager API), checking HTTP header"
     #  look for a token in the header
     _npm_type="NPMplus API"
-    _npm_token=$(grep <"$HTTP_HEADER" -i "^Set-Cookie: *__Host-Http-token=" | _tail_n 1 | _egrep_o "__Host-Http-token=[^;]*" | _head_n 1 | cut -d'=' -f2-)
+    _npm_token="$(grep <"$HTTP_HEADER" -i "^Set-Cookie: *__Host-Http-token=" | _tail_n 1 | _egrep_o "__Host-Http-token=[^;]*" | _head_n 1 | cut -d'=' -f2-)"
     if [ "$_npm_token" = "" ]; then
       _err "Token not found in HTTP header (NPMplus API). Unable to obtain a token."
       return 1
@@ -146,35 +151,35 @@ nginx_proxy_manager_deploy() {
   export _H1
   _secure_debug _H1 "$_H1"
 
-  nl="\0015\0012"
+  _npm_nl="\0015\0012"
 
   # Create new certificate if a certificate ID number was not provided
   if [ -z "$DEPLOY_NPM_CERTNUM" ]; then
-    _npm_certname_json=$(printf '%s' "$DEPLOY_NPM_CERTNAME" | _json_encode)
-    _npm_certname_json="${_npm_certname_json%\\n}"
-    _npm_create_result=$(_post '{"provider":"other","nice_name":"'"$_npm_certname_json"'"}' "$DEPLOY_NPM_PROTOCOL://$DEPLOY_NPM_HOST:$DEPLOY_NPM_PORT/api/nginx/certificates" "" "POST" "application/json")
+    _npm_certname_json="$(_npm_payload_format "$DEPLOY_NPM_CERTNAME")"
+    _npm_create_result="$(_post '{"provider":"other","nice_name":"'"$_npm_certname_json"'"}' "$DEPLOY_NPM_PROTOCOL://$DEPLOY_NPM_HOST:$DEPLOY_NPM_PORT/api/nginx/certificates" "" "POST" "application/json")"
     _debug _npm_create_result "$_npm_create_result"
-    _npm_create_code=$(_npm_response_code)
+    _npm_create_code="$(_npm_response_code)"
     if [ "$_npm_create_code" != "201" ]; then
       _err "Failed to create new certificate, server response code: $_npm_create_code"
+      unset _H1
       return 1
     fi
-    DEPLOY_NPM_CERTNUM=$(printf '%s' "$_npm_create_result" | _egrep_o '"id"[[:space:]]*:[[:space:]]*[^,}]*' | cut -d : -f 2 | tr -d ' "')
+    DEPLOY_NPM_CERTNUM="$(printf '%s' "$_npm_create_result" | _egrep_o '"id" *: *[^,}]*' | cut -d : -f 2 | tr -d ' "')"
     _info "Created certificate ID number $DEPLOY_NPM_CERTNUM"
   fi
 
   _info "Uploading certificates into entry $DEPLOY_NPM_CERTNUM"
-  _boundary="--------------------------$(_utc_date | tr -d -- '-: ')"
-  _payload="--$_boundary${nl}Content-Disposition: form-data; name=\"certificate_key\"; filename=\"$(basename "$_ckey")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_ckey")\0012"
-  _payload="$_payload${nl}--$_boundary${nl}Content-Disposition: form-data; name=\"certificate\"; filename=\"$(basename "$_cfullchain")\"${nl}Content-Type: application/octet-stream${nl}${nl}$(cat "$_cfullchain")\0012"
-  _payload="$_payload${nl}--$_boundary--${nl}"
-  _payload="$(printf "%b_" "$_payload")"
-  _payload="${_payload%_}"
-  _secure_debug _payload "$_payload"
-  _npm_upload_result=$(_post "$_payload" "$DEPLOY_NPM_PROTOCOL://$DEPLOY_NPM_HOST:$DEPLOY_NPM_PORT/api/nginx/certificates/$DEPLOY_NPM_CERTNUM/upload" "" "POST" "multipart/form-data; boundary=${_boundary}")
+  _npm_form_boundary="--------------------------$(_utc_date | tr -d -- '-: ')"
+  _npm_post_payload="--$_npm_form_boundary${_npm_nl}Content-Disposition: form-data; name=\"certificate_key\"; filename=\"$(basename "$_ckey")\"${_npm_nl}Content-Type: application/octet-stream${_npm_nl}${_npm_nl}$(cat "$_ckey")\0012"
+  _npm_post_payload="$_npm_post_payload${_npm_nl}--$_npm_form_boundary${_npm_nl}Content-Disposition: form-data; name=\"certificate\"; filename=\"$(basename "$_cfullchain")\"${_npm_nl}Content-Type: application/octet-stream${_npm_nl}${_npm_nl}$(cat "$_cfullchain")\0012"
+  _npm_post_payload="$_npm_post_payload${_npm_nl}--$_npm_form_boundary--${_npm_nl}"
+  _npm_post_payload="$(printf "%b_" "$_npm_post_payload")"
+  _npm_post_payload="${_npm_post_payload%_}"
+  _secure_debug _npm_post_payload "$_npm_post_payload"
+  _npm_upload_result="$(_post "$_npm_post_payload" "${DEPLOY_NPM_PROTOCOL}://${DEPLOY_NPM_HOST}:${DEPLOY_NPM_PORT}/api/nginx/certificates/${DEPLOY_NPM_CERTNUM}/upload" "" "POST" "multipart/form-data; boundary=${_npm_form_boundary}")"
   unset _H1
   _secure_debug _npm_upload_result "$_npm_upload_result"
-  _npm_upload_code=$(_npm_response_code)
+  _npm_upload_code="$(_npm_response_code)"
   _debug _npm_upload_code "$_npm_upload_code"
   case "$_npm_upload_code" in
   "404")
