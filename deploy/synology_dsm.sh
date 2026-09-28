@@ -153,7 +153,6 @@ synology_dsm_deploy() {
   encoded_password="$(printf "%s" "$SYNO_PASSWORD" | _url_encode)"
 
   # Configure SynoToken authentication (DSM only)
-  _migratedeployconf SYNO_Use_Token SYNO_USE_TOKEN
   _getdeployconf SYNO_USE_TOKEN
   _check2cleardeployconfexp SYNO_USE_TOKEN
 
@@ -187,7 +186,7 @@ synology_dsm_deploy() {
       _debug3 H1 "${_H1}"
     fi
 
-    response=$(_post "method=login&account=$encoded_username&passwd=$encoded_password&api=SYNO.API.Auth&version=$api_version$enable_token_param&otp_code=$DEPRECATED_otp_code&device_name=certrenewal&device_id=$SYNO_DEVICE_ID" "$_base_url/webapi/$api_path?$enable_token_param")
+    response=$(_post "method=login&account=$encoded_username&passwd=$encoded_password&api=SYNO.API.Auth&version=$api_version$enable_token_param&otp_code=$DEPRECATED_otp_code&device_name=certrenewal&device_id=$SYNO_DEVICE_ID" "$_base_url/webapi/$api_path${enable_token_param:+?enable_syno_token=yes}")
     _debug3 response "$response"
   # ## END ## - DEPRECATED, for backward compatibility
   # If SYNO_DEVICE_ID or SYNO_OTP_CODE is set, we treat current account enabled 2FA-OTP.
@@ -325,9 +324,11 @@ synology_dsm_deploy() {
 
   if [ "${SYNO_USE_TOKEN:-1}" = "1" ]; then
     _H1="X-SYNO-TOKEN: $token"
-    export _H1
-    _debug2 H1 "${_H1}"
+  else
+    _H1=""
   fi
+  export _H1
+  _debug2 H1 "${_H1}"
 
   # Now that we know the username and password are good, save them if not in temp admin mode.
   if [ -n "$SYNO_USE_TEMP_ADMIN" ]; then
