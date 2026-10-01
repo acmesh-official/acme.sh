@@ -35,7 +35,7 @@
 #         ROUTER_OS_HOST: "router.example.com"
 #         ROUTER_OS_PORT: "22"
 #
-#   - Version 2.0 (required by this script) supports a shared deploy file
+#   - Version 2.0 supports a shared deploy file
 # Example:
 #   version: "2.0"
 #   "*.domain1.com":
@@ -75,8 +75,6 @@
 # Return value:
 # 0 means success, otherwise error.
 ################################################################################
-
-MULTIDEPLOY_VERSION="2.0"
 
 # Description: This function handles the deployment of certificates to multiple services.
 #              It processes the provided certificate files and deploys them according to the
@@ -176,11 +174,51 @@ _preprocess_deployfile() {
 }
 
 # Description:
+#   This function finds the exact index of the current domain in the deploy
+#   file. The comparison is made by the shell because mikefarah yq treats '*'
+#   in key lookups as a wildcard.
+# Arguments:
+#   $1 - The path to the deploy configuration file.
+_multideploy_domain_index() {
+  _deploy_file="$1"
+  _multideploy_index=0
+
+  while IFS= read -r _multideploy_key; do
+    if [ "$_multideploy_key" = "$_cdomain" ]; then
+      printf '%s' "$_multideploy_index"
+      return 0
+    fi
+    _multideploy_index=$((_multideploy_index + 1))
+  done <<EOF
+$(yq -r 'to_entries | .[] | .key' "$_deploy_file")
+EOF
+
+  return 0
+}
+
+# Description:
 #   This function returns the yq selector for the active services list.
-#   The legacy top-level `services` list is supported, as well as the
-#   domain-keyed format: "<domain>": { services: [...] }.
+#   Version 1.0 uses a top-level `services` list. Version 2.0 uses an exact
+#   domain-key match when present, otherwise it falls back to top-level
+#   `services`.
+# Arguments:
+#   $1 - The path to the deploy configuration file.
+#   $2 - The deploy configuration version.
 _multideploy_services_expr() {
-  printf '%s' "(.[\"$_cdomain\"].services // .services)"
+  _deploy_file="$1"
+  _deploy_file_version="$2"
+
+  if [ "$_deploy_file_version" = "1.0" ]; then
+    printf '%s' '.services'
+    return 0
+  fi
+
+  _multideploy_index=$(_multideploy_domain_index "$_deploy_file")
+  if [ -n "$_multideploy_index" ]; then
+    printf 'to_entries | .[%s] | .value.services' "$_multideploy_index"
+  else
+    printf '%s' '.services'
+  fi
 }
 
 # Description:
@@ -196,14 +234,17 @@ _check_deployfile() {
 
   # Check version
   _deploy_file_version=$(yq -r '.version' "$_deploy_file")
-  if [ "$MULTIDEPLOY_VERSION" != "$_deploy_file_version" ]; then
-    _err "As of $PROJECT_NAME $VER, the deploy file needs version $MULTIDEPLOY_VERSION! Your current deploy file is of version $_deploy_file_version."
+  case "$_deploy_file_version" in
+  1.0 | 2.0) ;;
+  *)
+    _err "As of $PROJECT_NAME $VER, the deploy file needs version 1.0 or 2.0! Your current deploy file is of version $_deploy_file_version."
     return 1
-  fi
+    ;;
+  esac
   _debug2 "check: Deploy file version is compatible: $_deploy_file_version"
 
   # Extract all services from config
-  _services=$(yq -r "$(_multideploy_services_expr)[]?.name" "$_deploy_file")
+  _services=$(yq -r "$(_multideploy_services_expr "$_deploy_file" "$_deploy_file_version")[]?.name" "$_deploy_file")
 
   if [ -z "$_services" ]; then
     _err "Config does not have any services to deploy to for $_cdomain."
@@ -218,7 +259,7 @@ _check_deployfile() {
   echo "$_services" | while read -r _service; do
     _debug2 "check: Checking service: $_service"
     # Check if service exists
-    _service_config=$(yq -r "$(_multideploy_services_expr)[]? | select(.name == \"$_service\")" "$_deploy_file")
+    _service_config=$(yq -r "$(_multideploy_services_expr "$_deploy_file" "$_deploy_file_version")[]? | select(.name == \"$_service\")" "$_deploy_file")
     if [ -z "$_service_config" ] || [ "$_service_config" = "null" ]; then
       _err "Service '$_service' not found."
       return 1
@@ -296,18 +337,20 @@ _deploy_services() {
   _deploy_file="$1"
   _debug3 "Deploy file" "$_deploy_file"
 
+  _deploy_file_version=$(yq -r '.version' "$_deploy_file")
+
   _tempfile=$(mktemp)
   trap 'rm -f $_tempfile' EXIT
 
-  yq -r "$(_multideploy_services_expr)[]?.name" "$_deploy_file" >"$_tempfile"
+  yq -r "$(_multideploy_services_expr "$_deploy_file" "$_deploy_file_version")[]?.name" "$_deploy_file" >"$_tempfile"
   _debug3 "Services" "$(cat "$_tempfile")"
 
   _failedServices=""
   _failedCount=0
   while read -r _service <&3; do
     _debug2 "Service" "$_service"
-    _hook=$(yq -r "$(_multideploy_services_expr)[]? | select(.name == \"$_service\").hook" "$_deploy_file")
-    _envs=$(yq -r "$(_multideploy_services_expr)[]? | select(.name == \"$_service\").environment" "$_deploy_file")
+    _hook=$(yq -r "$(_multideploy_services_expr "$_deploy_file" "$_deploy_file_version")[]? | select(.name == \"$_service\").hook" "$_deploy_file")
+    _envs=$(yq -r "$(_multideploy_services_expr "$_deploy_file" "$_deploy_file_version")[]? | select(.name == \"$_service\").environment" "$_deploy_file")
 
     _export_envs "$_envs"
     if ! _deploy_service "$_service" "$_hook"; then
