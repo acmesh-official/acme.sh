@@ -1,0 +1,341 @@
+# Bash completion for acme.sh: https://github.com/acmesh-official/acme.sh
+#
+# "acme.sh --install" copies this file to the acme.sh home dir and wires
+# it into acme.sh.env, so the completion is loaded automatically in new
+# bash sessions after installation.
+#
+# To use it without installing acme.sh, source it from ~/.bashrc, or copy
+# it to /usr/share/bash-completion/completions/acme.sh
+#
+# Zsh users can load it with:
+#   autoload -U +X bashcompinit && bashcompinit
+#   . /path/to/acme.sh.completion
+
+# This file may also be sourced by non-bash shells via acme.sh.env,
+# so silently do nothing if the "complete" builtin is not available.
+if ! command -v complete >/dev/null 2>&1; then
+  return 0 2>/dev/null || exit 0
+fi
+
+# Add each word of $1 that starts with $cur to COMPREPLY.
+# The words are read line by line, so that candidates like a wildcard
+# domain "*.example.com" are never glob-expanded against the cwd.
+_acme_sh_add_matches() {
+  local _word
+  while read -r _word; do
+    [ -n "$_word" ] || continue
+    case "$_word" in
+    "$cur"*) COMPREPLY=("${COMPREPLY[@]}" "$_word") ;;
+    esac
+  done <<EOF
+$(printf '%s\n' "$1" | tr ' ' '\n')
+EOF
+  return 0
+}
+
+_acme_sh_files() {
+  local _file
+  while IFS= read -r _file; do
+    [ -n "$_file" ] || continue
+    COMPREPLY=("${COMPREPLY[@]}" "$_file")
+  done <<EOF
+$(compgen -f -- "$cur")
+EOF
+  if command -v compopt >/dev/null 2>&1; then
+    compopt -o filenames 2>/dev/null
+  fi
+  return 0
+}
+
+_acme_sh_dirs() {
+  local _dir
+  while IFS= read -r _dir; do
+    [ -n "$_dir" ] || continue
+    COMPREPLY=("${COMPREPLY[@]}" "$_dir")
+  done <<EOF
+$(compgen -d -- "$cur")
+EOF
+  if command -v compopt >/dev/null 2>&1; then
+    compopt -o filenames 2>/dev/null
+  fi
+  return 0
+}
+
+# Complete the domains that already have a cert: every directory in the
+# config home that contains a "<domain>.conf" file ("_ecc" suffix stripped).
+_acme_sh_domains() {
+  local _dir _name _domains=""
+  [ -n "${ZSH_VERSION:-}" ] && setopt localoptions nonomatch 2>/dev/null
+  for _dir in "$_acme_conf_home"/*/; do
+    [ -d "$_dir" ] || continue
+    _name="${_dir%/}"
+    _name="${_name##*/}"
+    _name="${_name%_ecc}"
+    if [ -f "${_dir}${_name}.conf" ]; then
+      case " $_domains " in
+      *" $_name "*) ;;
+      *) _domains="$_domains $_name" ;;
+      esac
+    fi
+  done
+  _acme_sh_add_matches "$_domains"
+}
+
+# Complete hook names from a subfolder of the acme.sh home dir.
+# $1: subfolder (dnsapi/deploy/notify), $2: file name prefix or empty.
+_acme_sh_hooks() {
+  local _file _hooks=""
+  [ -n "${ZSH_VERSION:-}" ] && setopt localoptions nonomatch 2>/dev/null
+  for _file in "$_acme_home/$1/$2"*.sh; do
+    [ -f "$_file" ] || continue
+    _file="${_file##*/}"
+    _hooks="$_hooks ${_file%.sh}"
+  done
+  _acme_sh_add_matches "$_hooks"
+}
+
+_acme_sh_completion() {
+  local cur prev _acme_home _acme_conf_home
+  COMPREPLY=()
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  prev=""
+  if [ "$COMP_CWORD" -gt 0 ]; then
+    prev="${COMP_WORDS[COMP_CWORD - 1]}"
+  fi
+  _acme_home="${LE_WORKING_DIR:-$HOME/.acme.sh}"
+  _acme_conf_home="${LE_CONFIG_HOME:-$_acme_home}"
+
+  # The first argument is the command.
+  if [ "$COMP_CWORD" -eq 1 ]; then
+    _acme_sh_add_matches "
+      --help
+      --version
+      --install
+      --install-online
+      --uninstall
+      --upgrade
+      --issue
+      --deploy
+      --sign-csr
+      --show-csr
+      --install-cert
+      --renew
+      --renew-all
+      --revoke
+      --remove
+      --list
+      --list-profiles
+      --info
+      --to-pkcs12
+      --to-pkcs8
+      --create-account-key
+      --create-domain-key
+      --create-csr
+      --deactivate
+      --update-account
+      --register-account
+      --deactivate-account
+      --make-dns-persist-value
+      --install-cronjob
+      --uninstall-cronjob
+      --cron
+      --set-notify
+      --set-default-ca
+      --set-default-chain
+      "
+    return 0
+  fi
+
+  # Complete the value of the previous option.
+  case "$prev" in
+  -d | --domain | --challenge-alias | --domain-alias)
+    _acme_sh_domains
+    return 0
+    ;;
+  --dns)
+    # The dns hook argument is optional, keep completing options if the
+    # current word already looks like one.
+    case "$cur" in
+    -*) ;;
+    *)
+      _acme_sh_hooks "dnsapi" "dns_"
+      return 0
+      ;;
+    esac
+    ;;
+  --deploy-hook)
+    _acme_sh_hooks "deploy" ""
+    return 0
+    ;;
+  --notify-hook)
+    _acme_sh_hooks "notify" ""
+    return 0
+    ;;
+  --server)
+    _acme_sh_add_matches "letsencrypt letsencrypt_test zerossl sslcom google google_test actalis"
+    return 0
+    ;;
+  -k | --keylength | -ak | --accountkeylength)
+    _acme_sh_add_matches "2048 3072 4096 8192 ec-256 ec-384 ec-521"
+    return 0
+    ;;
+  --debug)
+    # Optional argument.
+    case "$cur" in
+    -*) ;;
+    *)
+      _acme_sh_add_matches "0 1 2 3"
+      return 0
+      ;;
+    esac
+    ;;
+  --log)
+    # Optional argument.
+    case "$cur" in
+    -*) ;;
+    *)
+      _acme_sh_files
+      return 0
+      ;;
+    esac
+    ;;
+  --nginx)
+    # Optional argument.
+    case "$cur" in
+    -*) ;;
+    *)
+      _acme_sh_files
+      return 0
+      ;;
+    esac
+    ;;
+  --auto-upgrade | --always-force-new-domain-key)
+    # Optional argument.
+    case "$cur" in
+    -*) ;;
+    *)
+      _acme_sh_add_matches "0 1"
+      return 0
+      ;;
+    esac
+    ;;
+  --log-level)
+    _acme_sh_add_matches "1 2"
+    return 0
+    ;;
+  --syslog)
+    _acme_sh_add_matches "0 3 6 7"
+    return 0
+    ;;
+  --notify-level)
+    _acme_sh_add_matches "0 1 2 3"
+    return 0
+    ;;
+  --notify-mode)
+    _acme_sh_add_matches "0 1"
+    return 0
+    ;;
+  --revoke-reason)
+    _acme_sh_add_matches "0 1 2 3 4 5 6 7 8 9 10"
+    return 0
+    ;;
+  --cert-file | --key-file | --ca-file | --fullchain-file | --csr | --accountconf | --accountkey | --ca-bundle | --openssl-bin)
+    _acme_sh_files
+    return 0
+    ;;
+  -w | --webroot | --home | --cert-home | --config-home | --ca-path)
+    _acme_sh_dirs
+    return 0
+    ;;
+  -m | --email | --password | --useragent | --days | --valid-from | --valid-to | --httpport | --tlsport | --local-address | --dnssleep | --pre-hook | --post-hook | --renew-hook | --reloadcmd | --extended-key-usage | -b | --branch | --notify-source | --eab-kid | --eab-hmac-key | --preferred-chain | --cert-profile | --certificate-profile | --dns-persist-ca-name | --dns-persist-days)
+    # These options take a free-form value, offer nothing.
+    return 0
+    ;;
+  esac
+
+  # Complete the parameters.
+  _acme_sh_add_matches "
+    --accountconf
+    --accountkey
+    --accountkeylength
+    --alpn
+    --always-force-new-domain-key
+    --apache
+    --auto-upgrade
+    --branch
+    --ca-bundle
+    --ca-file
+    --ca-path
+    --cert-file
+    --cert-home
+    --cert-profile
+    --challenge-alias
+    --config-home
+    --csr
+    --days
+    --debug
+    --deploy-hook
+    --dns
+    --dns-persist
+    --dns-persist-ca-name
+    --dns-persist-days
+    --dns-persist-wildcard
+    --dnssleep
+    --domain
+    --domain-alias
+    --eab-hmac-key
+    --eab-kid
+    --ecc
+    --email
+    --extended-key-usage
+    --force
+    --force-color
+    --fullchain-file
+    --home
+    --httpport
+    --insecure
+    --key-file
+    --keylength
+    --listen-v4
+    --listen-v6
+    --listraw
+    --local-address
+    --log
+    --log-level
+    --nginx
+    --no-color
+    --no-cron
+    --no-profile
+    --notify-hook
+    --notify-level
+    --notify-mode
+    --notify-source
+    --ocsp-must-staple
+    --openssl-bin
+    --output-insecure
+    --password
+    --post-hook
+    --pre-hook
+    --preferred-chain
+    --reloadcmd
+    --renew-hook
+    --revoke-reason
+    --server
+    --staging
+    --standalone
+    --stateless
+    --stop-renew-on-error
+    --syslog
+    --tlsport
+    --treat-skip-as-success
+    --use-wget
+    --useragent
+    --valid-from
+    --valid-to
+    --webroot
+    --yes-I-know-dns-manual-mode-enough-go-ahead-please
+    "
+  return 0
+}
+
+complete -F _acme_sh_completion acme.sh

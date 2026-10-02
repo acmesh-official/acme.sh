@@ -25,7 +25,8 @@
 # export DEPLOY_SSH_MULTI_CALL=""  # yes or no, default to no or previously saved value
 # export DEPLOY_SSH_USE_SCP="" yes or no, default to no
 # export DEPLOY_SSH_SCP_CMD="" defaults to "scp -q"
-#
+# export DEPLOY_SSH_REMOTE_SHELL="" # defaults to sh -c
+# export DEPLOY_SSH_REMOTE_CMD_QUOTE="" # yes or no, defaults to yes
 ########  Public functions #####################
 
 #domain keyfile certfile cafile fullchain
@@ -70,6 +71,24 @@ ssh_deploy() {
     DEPLOY_SSH_CMD="ssh -T"
   fi
   _savedeployconf DEPLOY_SSH_CMD "$DEPLOY_SSH_CMD"
+
+  # REMOTE_SHELL is optional. If not provided then use sh
+  _migratedeployconf Le_Deploy_ssh_remote_shell DEPLOY_SSH_REMOTE_SHELL
+  _getdeployconf DEPLOY_SSH_REMOTE_SHELL
+  _debug2 DEPLOY_SSH_REMOTE_SHELL "$DEPLOY_SSH_REMOTE_SHELL"
+  if [ -z "$DEPLOY_SSH_REMOTE_SHELL" ]; then
+    DEPLOY_SSH_REMOTE_SHELL="sh -c"
+  fi
+  _savedeployconf DEPLOY_SSH_REMOTE_SHELL "$DEPLOY_SSH_REMOTE_SHELL"
+
+  # REMOTE_CMD_QUOTE is optional. If not provided then yes
+  _migratedeployconf Le_Deploy_ssh_remote_cmd_quote DEPLOY_SSH_REMOTE_CMD_QUOTE
+  _getdeployconf DEPLOY_SSH_REMOTE_CMD_QUOTE
+  _debug2 DEPLOY_SSH_REMOTE_CMD_QUOTE "$DEPLOY_SSH_REMOTE_CMD_QUOTE"
+  if [ -z "$DEPLOY_SSH_REMOTE_CMD_QUOTE" ]; then
+    DEPLOY_SSH_REMOTE_CMD_QUOTE="yes"
+  fi
+  _savedeployconf DEPLOY_SSH_REMOTE_CMD_QUOTE "$DEPLOY_SSH_REMOTE_CMD_QUOTE"
 
   # BACKUP is optional. If not provided then default to previously saved value or yes.
   _migratedeployconf Le_Deploy_ssh_backup DEPLOY_SSH_BACKUP
@@ -170,10 +189,16 @@ ssh_deploy() {
     _info "Required commands batched and sent in single call to remote host"
   fi
 
+  _returnCode=0
   _deploy_ssh_servers="$DEPLOY_SSH_SERVER"
   for DEPLOY_SSH_SERVER in $_deploy_ssh_servers; do
-    _ssh_deploy
+    if ! _ssh_deploy; then
+      # in case of an error, remember it, but keep going for the remaining servers
+      _returnCode=1
+    fi
   done
+
+  return $_returnCode
 }
 
 _ssh_deploy() {
@@ -207,8 +232,6 @@ _ssh_deploy() {
 do if [ -d \"\$fn\" ] && [ \"\$(expr \$now - \$(date -ur \$fn +%s) )\" -ge \"15552000\" ]; \
 then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; done; }; $_cmdstr"
     # Alternate version of above... _cmdstr="find $_backupprefix* -type d -mtime +180 2>/dev/null | xargs rm -rf; $_cmdstr"
-    # Create our backup directory for overwritten cert files.
-    _cmdstr="mkdir -p $_backupdir; $_cmdstr"
     _info "Backup of old certificate files will be placed in remote directory $_backupdir"
     _info "Backup directories erased after 180 days."
     if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
@@ -222,7 +245,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
   if [ -n "$DEPLOY_SSH_KEYFILE" ]; then
     if [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr cp $DEPLOY_SSH_KEYFILE $_backupdir >/dev/null;"
+      _cmdstr="$_cmdstr if [ -f $DEPLOY_SSH_KEYFILE ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_KEYFILE $_backupdir >/dev/null; fi;"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
           return $_err_code
@@ -259,7 +282,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       _pipe=">>"
     elif [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr cp $DEPLOY_SSH_CERTFILE $_backupdir >/dev/null;"
+      _cmdstr="$_cmdstr if [ -f $DEPLOY_SSH_CERTFILE ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_CERTFILE $_backupdir >/dev/null; fi;"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
           return $_err_code
@@ -300,7 +323,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       _pipe=">>"
     elif [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr cp $DEPLOY_SSH_CAFILE $_backupdir >/dev/null;"
+      _cmdstr="$_cmdstr if [ -f $DEPLOY_SSH_CAFILE ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_CAFILE $_backupdir >/dev/null; fi;"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
           return $_err_code
@@ -345,8 +368,8 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       _pipe=">>"
     elif [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr cp $DEPLOY_SSH_FULLCHAIN $_backupdir >/dev/null;"
-      if [ "$DEPLOY_SSH_FULLCHAIN" = "yes" ]; then
+      _cmdstr="$_cmdstr if [ -f $DEPLOY_SSH_FULLCHAIN ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_FULLCHAIN $_backupdir >/dev/null; fi;"
+      if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
           return $_err_code
         fi
@@ -428,9 +451,13 @@ _ssh_remote_cmd() {
   _secure_debug "Remote commands to execute: $_cmd"
   _info "Submitting sequence of commands to remote server by $_ssh_cmd"
 
-  # quotations in bash cmd below intended.  Squash travis spellcheck error
-  # shellcheck disable=SC2029
-  $_ssh_cmd "$DEPLOY_SSH_USER@$_host" sh -c "'$_cmd'"
+  if [ "$DEPLOY_SSH_REMOTE_CMD_QUOTE" = "yes" ]; then
+    # quotations in bash cmd below intended.  Squash travis spellcheck error
+    # shellcheck disable=SC2029
+    $_ssh_cmd "$DEPLOY_SSH_USER@$_host" "$DEPLOY_SSH_REMOTE_SHELL" "'$_cmd'"
+  else
+    $_ssh_cmd "$DEPLOY_SSH_USER@$_host" "$DEPLOY_SSH_REMOTE_SHELL" "$_cmd"
+  fi
   _err_code="$?"
 
   if [ "$_err_code" != "0" ]; then

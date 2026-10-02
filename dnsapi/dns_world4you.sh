@@ -61,7 +61,7 @@ dns_world4you_add() {
     if _contains "$res" "successfully"; then
       return 0
     else
-      msg=$(echo "$res" | grep -A 15 'data-type="danger"' | grep "<h3[^>]*>[^<]" | sed 's/<[^>]*>//g' | sed 's/^\s*//g')
+      msg=$(_w4y_alert_msg "$res")
       if [ "$msg" = '' ]; then
         _err "Unable to add record: Unknown error"
         echo "$ret" >'error-01.html'
@@ -110,7 +110,7 @@ dns_world4you_rm() {
     return 3
   fi
 
-  recordid=$(printf "TXT:%s.:\"%s\"" "$fqdn" "$value" | _base64)
+  recordid=$(echo "$form" | grep 'data-records="' | sed 's/.*"\([^"]*\)".*/\1/;s/&quot;/"/g;s/},{/}\n{/g' | grep '"type":"TXT"' | grep "\"name\":\"$fqdn\"" | grep "\"value\":\"$value\"" | sed 's/^.*"id":"\([^"]*\)".*$/\1/')
   _debug recordid "$recordid"
 
   _resethttp
@@ -125,7 +125,7 @@ dns_world4you_rm() {
     if _contains "$res" "successfully"; then
       return 0
     else
-      msg=$(echo "$res" | grep -A 15 'data-type="danger"' | grep "<h3[^>]*>[^<]" | sed 's/<[^>]*>//g' | sed 's/^\s*//g')
+      msg=$(_w4y_alert_msg "$res")
       if [ "$msg" = '' ]; then
         _err "Unable to remove record: Unknown error"
         echo "$ret" >'error-01.html'
@@ -144,6 +144,17 @@ dns_world4you_rm() {
 }
 
 ################ Private functions ################
+
+# Usage: _w4y_alert_msg <html>
+# Extracts the error text out of the alert box of a DNS page.
+# "grep -A" is not portable (Solaris /usr/bin/grep: "illegal option -- A"),
+# so select from the alert to EOF and keep the same number of lines.
+# "\s" is a GNU sed extension, use an explicit space/tab bracket instead.
+_w4y_alert_msg() {
+  _w4y_tab=$(printf '\t')
+  echo "$1" | sed -n '/alert-notification/,$p' | _head_n 21 |
+    grep 'class="weak-title">[^<]' | sed "s/<[^>]*>//g;s/^[ $_w4y_tab]*//"
+}
 
 # Usage: _login
 _login() {

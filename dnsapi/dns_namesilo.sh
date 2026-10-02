@@ -65,7 +65,7 @@ dns_namesilo_rm() {
   if _namesilo_rest GET "dnsListRecords?version=1&type=xml&key=$Namesilo_Key&domain=$_domain"; then
     retcode=$(printf "%s\n" "$response" | _egrep_o "<code>300")
     if [ "$retcode" ]; then
-      _record_id=$(echo "$response" | _egrep_o "<record_id>([^<]*)</record_id><type>TXT</type><host>$fulldomain</host>" | _egrep_o "<record_id>([^<]*)</record_id>" | sed -r "s/<record_id>([^<]*)<\/record_id>/\1/" | tail -n 1)
+      _record_id=$(echo "$response" | _egrep_o "<record_id>([^<]*)</record_id><type>TXT</type><host>$_sub_domain</host><value>$txtvalue</value>" | _egrep_o "<record_id>([^<]*)</record_id>" | sed -r "s/<record_id>([^<]*)<\/record_id>/\1/" | tail -n 1)
       _debug _record_id "$_record_id"
       if [ "$_record_id" ]; then
         _info "Successfully retrieved the record id for ACME challenge."

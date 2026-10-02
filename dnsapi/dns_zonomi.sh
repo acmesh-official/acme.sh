@@ -5,9 +5,11 @@ Site: zonomi.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_zonomi
 Options:
  ZM_Key API Key
+OptionsAlt:
+ ZM_Api API endpoint. Default: "https://zonomi.com/app/dns/dyndns.jsp". For RimuHosting use "https://rimuhosting.com/dns/dyndns.jsp".
 '
 
-ZM_Api="https://zonomi.com/app/dns/dyndns.jsp"
+ZM_Api_Default="https://zonomi.com/app/dns/dyndns.jsp"
 
 ########  Public functions #####################
 
@@ -27,6 +29,8 @@ dns_zonomi_add() {
 
   #save the api key to the account conf file.
   _saveaccountconf_mutable ZM_Key "$ZM_Key"
+
+  _zm_init_api
 
   _info "Get existing txt records for $fulldomain"
   if ! _zm_request "action=QUERY&name=$fulldomain"; then
@@ -64,11 +68,27 @@ dns_zonomi_rm() {
     return 1
   fi
 
+  _zm_init_api
+
   _zm_request "action=DELETE&type=TXT&name=$fulldomain"
 
 }
 
 ####################  Private functions below ##################################
+
+# resolve the API endpoint: zonomi by default, overridable for providers
+# sharing the same API on another host (e.g. RimuHosting)
+_zm_init_api() {
+  ZM_Api="${ZM_Api:-$(_readaccountconf_mutable ZM_Api)}"
+  if [ -z "$ZM_Api" ]; then
+    ZM_Api="$ZM_Api_Default"
+  fi
+  _debug2 ZM_Api "$ZM_Api"
+  if [ "$ZM_Api" != "$ZM_Api_Default" ]; then
+    _saveaccountconf_mutable ZM_Api "$ZM_Api"
+  fi
+}
+
 #qstr
 _zm_request() {
   qstr="$1"

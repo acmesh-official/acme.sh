@@ -363,17 +363,12 @@ _edgedns_rest() {
 
 _edgedns_eg_timestamp() {
   _debug "Generating signature Timestamp"
-  _debug3 "Retriving ntp time"
-  _timeheaders="$(_get "https://www.ntp.org" "onlyheader")"
-  _debug3 "_timeheaders" "$_timeheaders"
-  _ntpdate="$(echo "$_timeheaders" | grep -i "Date:" | _head_n 1 | cut -d ':' -f 2- | tr -d "\r\n")"
-  _debug3 "_ntpdate" "$_ntpdate"
-  _ntpdate="$(echo "${_ntpdate}" | sed -e 's/^[[:space:]]*//')"
-  _debug3 "_NTPDATE" "$_ntpdate"
-  _ntptime="$(echo "${_ntpdate}" | _head_n 1 | cut -d " " -f 5 | tr -d "\r\n")"
-  _debug3 "_ntptime" "$_ntptime"
-  _eg_timestamp=$(date -u "+%Y%m%dT")
-  _eg_timestamp="$(printf "%s%s+0000" "$_eg_timestamp" "$_ntptime")"
+  #Akamai accepts a clock skew of +/-30s, so use the system clock directly.
+  #The previous code fetched the Date header from www.ntp.org, which is not
+  #a reliable time source (it served a wrong time for hours, issue 3973),
+  #cost an extra https round-trip for every API request, and combined the
+  #remote time of day with the LOCAL date, breaking around UTC midnight.
+  _eg_timestamp="$(date -u "+%Y%m%dT%H:%M:%S+0000")"
   _debug "_eg_timestamp" "$_eg_timestamp"
 }
 

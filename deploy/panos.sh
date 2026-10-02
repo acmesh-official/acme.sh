@@ -68,8 +68,8 @@ deployer() {
     # Get Version Info to test key
     content="type=version&key=$_panos_key"
     ## Exclude all scopes for the empty commit
-    #_exclude_scope="<policy-and-objects>exclude</policy-and-objects><device-and-network>exclude</device-and-network><shared-object>exclude</shared-object>"
-    #content="type=commit&action=partial&key=$_panos_key&cmd=<commit><partial>$_exclude_scope<admin><member>acmekeytest</member></admin></partial></commit>"
+    #_exclude_scope="<device-and-network>excluded</device-and-network><shared-object>excluded</shared-object>"
+    #content="type=commit&action=partial&key=$_panos_key&cmd=<commit><partial>$_exclude_scope<admin><member>$_panos_user</member></admin></partial></commit>"
   fi
 
   # Generate API Key
@@ -128,10 +128,9 @@ deployer() {
     #Check for force commit - will commit ALL uncommited changes to the firewall. Use with caution!
     if [ "$FORCE" ]; then
       _debug "Force switch detected.  Committing ALL changes to the firewall."
-      cmd=$(printf "%s" "<commit><partial><force><admin><member>$_panos_user</member></admin></force></partial></commit>" | _url_encode)
+      cmd=$(printf "%s" "<commit><force><partial><admin><member>$_panos_user</member></admin></partial></force></commit>" | _url_encode)
     else
-      _exclude_scope="<policy-and-objects>exclude</policy-and-objects><device-and-network>exclude</device-and-network>"
-      cmd=$(printf "%s" "<commit><partial>$_exclude_scope<admin><member>$_panos_user</member></admin></partial></commit>" | _url_encode)
+      cmd=$(printf "%s" "<commit><partial><admin><member>$_panos_user</member></admin></partial></commit>" | _url_encode)
     fi
     content="type=commit&action=partial&key=$_panos_key&cmd=$cmd"
   fi
@@ -297,9 +296,20 @@ panos_deploy() {
       _err "Unable to generate an API key.  The user and pass may be invalid or not authorized to generate a new key.  Please check the PANOS_USER and PANOS_PASS credentials and try again"
       return 1
     else
-      deployer cert
-      deployer key
-      deployer commit
+      # A commit of a failed import would leave a mismatched cert/key pair
+      # on the firewall and can lock the admin out of the management
+      # interface, see https://github.com/acmesh-official/acme.sh/issues/4716
+      if ! deployer cert; then
+        _err "Cert import failed. Aborting without committing."
+        return 1
+      fi
+      if ! deployer key; then
+        _err "Key import failed. Aborting without committing. Warning: the firewall now has an uncommitted mismatched cert/key pair in its candidate config."
+        return 1
+      fi
+      if ! deployer commit; then
+        return 1
+      fi
       if [ "$_panos_template_stack" ]; then
         # try to get job status for 20 times in 30 sec interval
         i=0

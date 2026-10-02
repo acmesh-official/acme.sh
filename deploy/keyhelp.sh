@@ -83,7 +83,7 @@ keyhelp_deploy() {
   _request_body="submit=1&certificate_name=$certificate_name&add_type=upload&text_private_key=$encoded_key&text_certificate=$encoded_ccert&text_ca_certificate=$encoded_cca"
   _H1="Cookie: $_cookie"
   _response=$(_post "$_request_body" "$DEPLOY_KEYHELP_BASEURL/index.php?page=ssl_certificates&action=add" "" "POST")
-  _message=$(echo "$_response" | grep -A 2 'message-body' | sed -n '/<div class="message-body ">/,/<\/div>/{//!p;}' | sed 's/<[^>]*>//g' | sed 's/^ *//;s/ *$//')
+  _message=$(echo "$_response" | sed -n '/<div class="message-body ">/,/<\/div>/{//!p;}' | sed 's/<[^>]*>//g' | sed 's/^ *//;s/ *$//')
   _info "_message" "$_message"
   if [ -z "$_message" ]; then
     _err "Fail to upload certificate."
@@ -118,7 +118,7 @@ keyhelp_deploy() {
 
     _request_body="submit=1&id=$DOMAIN_ID&target_type=$target_type&path=$path&is_prefer_https=$is_prefer_https&hsts_enabled=$hsts_enabled&certificate_type=custom&certificate_id=$cert_value&enforce_https=$DEPLOY_KEYHELP_ENFORCE_HTTPS"
     _response=$(_post "$_request_body" "$DEPLOY_KEYHELP_BASEURL/index.php?page=domains&action=edit" "" "POST")
-    _message=$(echo "$_response" | grep -A 2 'message-body' | sed -n '/<div class="message-body ">/,/<\/div>/{//!p;}' | sed 's/<[^>]*>//g' | sed 's/^ *//;s/ *$//')
+    _message=$(echo "$_response" | sed -n '/<div class="message-body ">/,/<\/div>/{//!p;}' | sed 's/<[^>]*>//g' | sed 's/^ *//;s/ *$//')
     _info "_message" "$_message"
     if [ -z "$_message" ]; then
       _err "Fail to apply certificate."

@@ -1,0 +1,325 @@
+name: Wiki Guard
+
+# Rules enforced here:
+#  - Only the maintainer and write-access members may delete or rename wiki
+#    pages. Anyone else doing so gets blacklisted and the page restored to
+#    its last good revision.
+#  - Only the maintainer and write-access members may edit the Blacklist
+#    wiki page. Anyone else touching it gets blacklisted and the page
+#    reverted.
+#  - Any wiki change made by a blacklisted identity is reverted.
+# A "good" revision is one authored by the maintainer, by this bot, or by
+# a non-blacklisted user -- restoring from the deleted commit's parent is
+# NOT safe, because vandals replace a page before destroying it and the
+# parent would launder their version into a bot commit.
+# The gollum event only fires on page create/update, never on deletion,
+# so violations are caught by polling the wiki git history.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  gollum:
+  # Piggyback on frequent repo activity, because the cron schedule is
+  # best-effort and often delayed well beyond its interval.
+  issues:
+    types: [opened]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: wiki-guard
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    # Forks have no <fork>.wiki repository, so the checkout below would
+    # fail there -- run only in the upstream repository.
+    if: github.repository == 'acmesh-official/acme.sh'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout wiki repository
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki
+          fetch-depth: 0
+
+      - name: Enforce wiki rules
+        id: guard
+        env:
+          # WIKI_GUARD_TOKEN: a PAT with read:org, needed to enumerate
+          # members whose write access comes via the organization -- the
+          # repo-scoped GITHUB_TOKEN only sees direct collaborators.
+          GH_TOKEN: ${{ secrets.WIKI_GUARD_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          # Logins with write (push) access to the repository, including
+          # organization members -- they may delete/rename pages and edit
+          # the blacklist just like the maintainer. If the API call fails,
+          # the list stays empty and enforcement falls back to
+          # maintainer-only, which is the safe direction.
+          gh api "repos/${GITHUB_REPOSITORY}/collaborators?per_page=100" --paginate \
+            -q '.[] | select(.permissions.push) | .login' 2>/dev/null \
+            | tr 'A-Z' 'a-z' | sort -u > writers.txt || true
+          echo "write-access members loaded: $(wc -l < writers.txt)"
+          cd wiki
+          git config core.quotePath false
+
+          # Any author email under this domain is the maintainer.
+          OWNER_DOMAIN="neilpang.com"
+          # Our own enforcement commits.
+          BOT_EMAIL="41898282+github-actions[bot]@users.noreply.github.com"
+          BL_PAGE="Blacklist.md"
+          # Rolling window; the cron runs every 10 minutes, so 7 days gives
+          # ample overlap without re-judging old changes the maintainer
+          # already accepted.
+          WINDOW="7 days ago"
+
+          : > ../actions.txt
+          : > ../bl_new.txt
+
+          is_owner() {
+            case "$1" in
+              *@"$OWNER_DOMAIN") return 0 ;;
+            esac
+            return 1
+          }
+
+          is_bot() {
+            [ "$1" = "$BOT_EMAIL" ]
+          }
+
+          author_email() {
+            git show -s --format=%ae "$1" | tr 'A-Z' 'a-z'
+          }
+
+          # Identity of a commit author: the GitHub login when the email is a
+          # users.noreply.github.com address, otherwise the email itself.
+          identity_of() {
+            case "$1" in
+              *+*@users.noreply.github.com)
+                printf '%s\n' "$1" | sed 's/^[^+]*+//; s/@users\.noreply\.github\.com$//'
+                ;;
+              *@users.noreply.github.com)
+                printf '%s\n' "$1" | sed 's/@users\.noreply\.github\.com$//'
+                ;;
+              *)
+                printf '%s\n' "$1"
+                ;;
+            esac
+          }
+
+          is_blacklisted() {
+            grep -Fxq "$1" ../bl_all.txt
+          }
+
+          # Trusted committers: the maintainer (by email domain), this bot,
+          # and anyone whose GitHub login has write access to the repo.
+          is_trusted() {
+            if is_owner "$1" || is_bot "$1"; then
+              return 0
+            fi
+            grep -Fxq "$(identity_of "$1")" ../writers.txt
+          }
+
+          # Newest commit on file $1 authored by a non-blacklisted user.
+          last_good_for() {
+            for g in $(git log --format=%H --no-renames -- "$1"); do
+              gae="$(author_email "$g")"
+              if is_trusted "$gae"; then
+                printf '%s\n' "$g"
+                return 0
+              fi
+              gid="$(identity_of "$gae")"
+              if ! is_blacklisted "$gid" && ! is_blacklisted "$gae"; then
+                printf '%s\n' "$g"
+                return 0
+              fi
+            done
+            return 0
+          }
+
+          if [ -e "$BL_PAGE" ]; then
+            page_existed=1
+          else
+            page_existed=""
+          fi
+
+          # ---- 1. Last good version of the blacklist page: the newest
+          # revision authored by the maintainer or by this bot. Everything
+          # else on that page is tampering and is discarded.
+          bl_good_commit=""
+          for c in $(git log --format=%H --no-renames -- "$BL_PAGE"); do
+            ae="$(author_email "$c")"
+            if is_trusted "$ae"; then
+              bl_good_commit="$c"
+              break
+            fi
+          done
+          if [ -n "$bl_good_commit" ] && git cat-file -e "$bl_good_commit:$BL_PAGE" 2>/dev/null; then
+            git show "$bl_good_commit:$BL_PAGE" > ../bl_page.txt
+          else
+            {
+              echo "# Blacklist"
+              echo ""
+              echo "Users listed below violated the wiki rules (deleted or renamed"
+              echo "pages, or tampered with this page). Their new issues and pull"
+              echo "requests are closed on sight and their wiki edits are reverted"
+              echo "automatically. Only the maintainer and write-access members"
+              echo "may edit this page."
+              echo ""
+              echo "To pardon a user while their violation is still inside the"
+              echo "scan window, replace their entry with: pardon: username"
+              echo ""
+            } > ../bl_page.txt
+          fi
+          sed -n 's/^- *//p' ../bl_page.txt | tr -d '\r' | tr 'A-Z' 'a-z' | sort -u > ../bl_good.txt
+          sed -n 's/^[Pp]ardon: *//p' ../bl_page.txt | tr -d '\r' | tr 'A-Z' 'a-z' | sort -u > ../bl_pardon.txt
+
+          bl_add() {
+            if grep -Fxq "$1" ../bl_pardon.txt; then
+              return 0
+            fi
+            if ! grep -Fxq "$1" ../bl_good.txt && ! grep -Fxq "$1" ../bl_new.txt; then
+              printf '%s\n' "$1" >> ../bl_new.txt
+              printf '%s\n' "- blacklisted \`$1\`: $2" >> ../actions.txt
+            fi
+          }
+
+          # ---- 2. Blacklist everyone who deleted or renamed a page.
+          # --no-renames makes a rename count as a deletion of the old path.
+          for c in $(git log --since="$WINDOW" --diff-filter=D --no-renames --format=%H); do
+            ae="$(author_email "$c")"
+            if is_trusted "$ae"; then
+              continue
+            fi
+            an="$(git show -s --format=%an "$c")"
+            bl_add "$(identity_of "$ae")" "deleted or renamed pages in $c ($an <$ae>)"
+          done
+
+          # ---- 3. Blacklist everyone else who touched the blacklist page.
+          # The revert of their tampering falls out of steps 5 and 6.
+          for c in $(git log --since="$WINDOW" --format=%H --no-renames -- "$BL_PAGE"); do
+            ae="$(author_email "$c")"
+            if is_trusted "$ae"; then
+              continue
+            fi
+            an="$(git show -s --format=%an "$c")"
+            bl_add "$(identity_of "$ae")" "tampered with \`$BL_PAGE\` in $c ($an <$ae>)"
+          done
+
+          sort -u ../bl_new.txt > ../bl_new_u.txt
+          cat ../bl_good.txt ../bl_new_u.txt | sort -u > ../bl_all.txt
+
+          # ---- 4. Restore pages that are currently missing because a
+          # non-maintainer deleted them, using the last good revision.
+          git log --since="$WINDOW" --diff-filter=D --no-renames --name-only --format= \
+            | sort -u \
+            | while IFS= read -r f; do
+                if [ -z "$f" ] || [ "$f" = "$BL_PAGE" ] || [ -e "$f" ]; then
+                  continue
+                fi
+                del="$(git log -1 --diff-filter=D --no-renames --format=%H -- "$f")"
+                if [ -z "$del" ]; then
+                  continue
+                fi
+                ae="$(author_email "$del")"
+                if is_trusted "$ae"; then
+                  continue
+                fi
+                good="$(last_good_for "$f")"
+                if [ -n "$good" ] && git cat-file -e "$good:$f" 2>/dev/null; then
+                  git checkout "$good" -- "$f"
+                  printf '%s\n' "- restored \`$f\` (deleted in $del) from its last good revision $good" >> ../actions.txt
+                fi
+              done
+
+          # ---- 5. Revert every recent change made by a blacklisted
+          # identity: each touched file goes back to its newest revision
+          # authored by a non-blacklisted user; a file that has no such
+          # revision (they created it) is removed.
+          if [ -s ../bl_all.txt ]; then
+            for c in $(git log --since="$WINDOW" --format=%H --no-renames); do
+              ae="$(author_email "$c")"
+              if is_trusted "$ae"; then
+                continue
+              fi
+              id="$(identity_of "$ae")"
+              if ! is_blacklisted "$id" && ! is_blacklisted "$ae"; then
+                continue
+              fi
+              git show --name-only --no-renames --format= "$c" \
+                | while IFS= read -r f; do
+                    if [ -z "$f" ] || [ "$f" = "$BL_PAGE" ]; then
+                      continue
+                    fi
+                    good="$(last_good_for "$f")"
+                    if [ -n "$good" ] && git cat-file -e "$good:$f" 2>/dev/null; then
+                      want="$(git rev-parse "$good:$f")"
+                      have="$(git hash-object -- "$f" 2>/dev/null || echo missing)"
+                      if [ "$want" != "$have" ]; then
+                        git checkout "$good" -- "$f"
+                        printf '%s\n' "- reverted \`$f\` to its last good revision $good (undoing change by \`$id\` in $c)" >> ../actions.txt
+                      fi
+                    elif [ -e "$f" ]; then
+                      git rm -q -- "$f"
+                      printf '%s\n' "- removed \`$f\` created by blacklisted \`$id\` in $c" >> ../actions.txt
+                    fi
+                  done
+            done
+          fi
+
+          # ---- 6. Regenerate the blacklist page: the last good text plus
+          # any newly blacklisted identities. This both reverts tampering
+          # and records new violators; manual edits by the maintainer are
+          # preserved as the new good text.
+          cp ../bl_page.txt ../bl_page_new.txt
+          if [ -s ../bl_page_new.txt ] && [ -n "$(tail -c1 ../bl_page_new.txt)" ]; then
+            echo >> ../bl_page_new.txt
+          fi
+          while IFS= read -r id; do
+            if [ -n "$id" ] && ! grep -Fxiq -- "- $id" ../bl_page_new.txt; then
+              printf -- '- %s\n' "$id" >> ../bl_page_new.txt
+            fi
+          done < ../bl_new_u.txt
+          if ! cmp -s ../bl_page_new.txt "$BL_PAGE" 2>/dev/null; then
+            cp ../bl_page_new.txt "$BL_PAGE"
+            git add -- "$BL_PAGE"
+            if [ -n "$page_existed" ] || [ -s ../bl_new_u.txt ]; then
+              printf '%s\n' "- updated \`$BL_PAGE\`" >> ../actions.txt
+            fi
+          fi
+
+          # ---- 7. Commit, push, notify.
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "$BOT_EMAIL"
+            git commit -m "wiki-guard: restore pages and enforce blacklist"
+            git push origin HEAD || { git pull --rebase && git push origin HEAD; }
+          fi
+          if [ -s ../actions.txt ]; then
+            {
+              echo "The wiki guard handled the following rule violations:"
+              echo ""
+              cat ../actions.txt
+              echo ""
+              echo "Blacklist: https://github.com/${GITHUB_REPOSITORY}/wiki/Blacklist"
+              echo "Wiki: https://github.com/${GITHUB_REPOSITORY}/wiki"
+            } > ../guard-msg.txt
+            echo "acted=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No rule violations found."
+            echo "acted=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create issue to notify Neilpang
+        if: steps.guard.outputs.acted == 'true'
+        uses: peter-evans/create-issue-from-file@v6
+        with:
+          title: "Wiki guard: rule violations handled"
+          content-filepath: ./guard-msg.txt
+          assignees: Neilpang

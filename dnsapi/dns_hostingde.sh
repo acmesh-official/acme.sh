@@ -40,6 +40,11 @@ _hostingde_apiKey() {
     return 1
   fi
 
+  # The endpoint is the base URL only; the api path is appended below.
+  # hosting.de's own docs show the full api URL, so strip it if pasted in.
+  # https://github.com/acmesh-official/acme.sh/issues/6896
+  HOSTINGDE_ENDPOINT="$(echo "$HOSTINGDE_ENDPOINT" | sed 's|/api/dns/v1/json||; s|/*$||')"
+
   _saveaccountconf_mutable HOSTINGDE_APIKEY "$HOSTINGDE_APIKEY"
   _saveaccountconf_mutable HOSTINGDE_ENDPOINT "$HOSTINGDE_ENDPOINT"
 }

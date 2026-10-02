@@ -6,7 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_freemyip
 Options:
  FREEMYIP_Token API Token
 Issues: github.com/acmesh-official/acme.sh/issues/6247
-Author: Recolic Keghart <root@recolic.net>, @Giova96
+Author: Recolic Keghart <root@recolic.net>, @Giova96, ExtremeFiretop
 '
 
 FREEMYIP_DNS_API="https://freemyip.com/update?"
@@ -68,22 +68,30 @@ dns_freemyip_rm() {
   return $?
 }
 
-################ Private functions below  ################
+################ Private functions below ################
 _get_root() {
   _fmi_d="$1"
 
-  echo "$_fmi_d" | rev | cut -d '.' -f 1-3 | rev
+  echo "$_fmi_d" | sed 's/.*\.\([^.]*\.[^.]*\.[^.]*\)$/\1/'
 }
 
 # There is random failure while calling freemyip API too fast. This function automatically retry until success.
 _freemyip_get_until_ok() {
   _fmi_url="$1"
-  for i in $(seq 1 8); do
-    _debug "HTTP GET freemyip.com API '$_fmi_url', retry $i/8..."
-    _get "$_fmi_url" | tee /dev/fd/2 | grep OK && return 0
+  _fmi_i=1
+  while [ "$_fmi_i" -le 8 ]; do
+    _debug "HTTP GET freemyip.com API '$_fmi_url', retry $_fmi_i/8..."
+    _fmi_response="$(_get "$_fmi_url")"
+    printf '%s\n' "$_fmi_response" >&2
+
+    if _contains "$_fmi_response" "OK"; then
+      return 0
+    fi
+
     _sleep 1 # DO NOT send the request too fast
+    _fmi_i=$((_fmi_i + 1))
   done
-  _err "Failed to request freemyip API: $_fmi_url . Server does not say 'OK'"
+  _err "Failed to request freemyip API. Server does not say 'OK'"
   return 1
 }
 
@@ -93,13 +101,16 @@ _is_root_domain_published() {
   _webroot="$(_get_root "$_fmi_d")"
 
   _info "Verifying '""$_fmi_d""' freemyip webroot (""$_webroot"") is not published yet"
-  for i in $(seq 1 3); do
-    _debug "'$_webroot' ns lookup, retry $i/3..."
+  _fmi_i=1
+  while [ "$_fmi_i" -le 3 ]; do
+    _debug "'$_webroot' ns lookup, retry $_fmi_i/3..."
+
     if [ "$(_ns_lookup "$_fmi_d" TXT)" ]; then
       _debug "'$_webroot' already has a TXT record published!"
       return 0
     fi
     _sleep 10 # Give it some time to propagate the TXT record
+    _fmi_i=$((_fmi_i + 1))
   done
   return 1
 }

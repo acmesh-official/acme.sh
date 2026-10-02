@@ -200,6 +200,7 @@ _smtp_send_curl() {
 
   set -- "$@" \
     --upload-file - \
+    --crlf \
     --mail-from "$SMTP_FROM" \
     --max-time "$SMTP_TIMEOUT"
 
