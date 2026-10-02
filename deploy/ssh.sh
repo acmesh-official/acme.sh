@@ -238,6 +238,8 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
         return $_err_code
       fi
     else
+      # If file doesn't exist, create it and change its permissions.
+      _cmdstr="$_cmdstr test ! -f $DEPLOY_SSH_KEYFILE && touch $DEPLOY_SSH_KEYFILE && chmod 600 $DEPLOY_SSH_KEYFILE;"
       # ssh echo to the file
       _cmdstr="$_cmdstr echo \"$(cat "$_ckey")\" > $DEPLOY_SSH_KEYFILE;"
       _info "will copy private key to remote file $DEPLOY_SSH_KEYFILE"

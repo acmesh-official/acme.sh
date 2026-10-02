@@ -101,6 +101,8 @@ _cyon_load_parameters() {
   # This header is required for curl calls.
   _H1="X-Requested-With: XMLHttpRequest"
   export _H1
+  _H3="User-Agent: cyon-dns-acmesh/1.0"
+  export _H3
 }
 
 _cyon_print_header() {
@@ -125,7 +127,11 @@ _cyon_print_header() {
 }
 
 _cyon_get_cookie_header() {
-  printf "Cookie: %s" "$(grep "cyon=" "$HTTP_HEADER" | grep "^Set-Cookie:" | _tail_n 1 | _egrep_o 'cyon=[^;]*;' | tr -d ';')"
+  # Extract all cookies from the response headers (case-insensitive)
+  _cookies="$(grep -i "^set-cookie:" "$HTTP_HEADER" | sed 's/^[Ss]et-[Cc]ookie: //' | sed 's/;.*//' | tr '\n' '; ' | sed 's/; $//')"
+  if [ -n "$_cookies" ]; then
+    printf "Cookie: %s" "$_cookies"
+  fi
 }
 
 _cyon_login() {
@@ -155,7 +161,12 @@ _cyon_login() {
 
   _get "https://my.cyon.ch/" >/dev/null
 
-  # todo: instead of just checking if the env variable is defined, check if we actually need to do a 2FA auth request.
+  # Update cookie after loading main page (only if new cookies are set)
+  _new_cookies="$(_cyon_get_cookie_header)"
+  if [ -n "$_new_cookies" ]; then
+    _H2="$_new_cookies"
+    export _H2
+  fi
 
   # 2FA authentication with OTP?
   if [ -n "${CY_OTP_Secret}" ]; then
@@ -184,6 +195,13 @@ _cyon_login() {
     fi
 
     _info "    success"
+
+    # Update cookie after 2FA (only if new cookies are set)
+    _new_cookies="$(_cyon_get_cookie_header)"
+    if [ -n "$_new_cookies" ]; then
+      _H2="$_new_cookies"
+      export _H2
+    fi
   fi
 
   _info ""
@@ -205,7 +223,17 @@ _cyon_change_domain_env() {
   domain_env="$(printf "%s" "${fulldomain}" | sed -E -e 's/.*\.(.*\..*)$/\1/')"
   _debug "Changing domain environment to ${domain_env}"
 
-  gloo_item_key="$(_get "https://my.cyon.ch/domain/" | tr '\n' ' ' | sed -E -e "s/.*data-domain=\"${domain_env}\"[^<]*data-itemkey=\"([^\"]*).*/\1/")"
+  domain_page_response="$(_get "https://my.cyon.ch/domain/")"
+  _debug domain_page_response "${domain_page_response}"
+
+  # Check if we got an error response (JSON) instead of HTML
+  if printf "%s" "${domain_page_response}" | grep -q '"iserror":true'; then
+    _err "    $(printf "%s" "${domain_page_response}" | _cyon_get_response_message)"
+    _err ""
+    return 1
+  fi
+
+  gloo_item_key="$(printf "%s" "${domain_page_response}" | tr '\n' ' ' | sed -E -e "s/.*data-domain=\"${domain_env}\"[^<]*data-itemkey=\"([^\"]*).*/\1/")"
   _debug gloo_item_key "${gloo_item_key}"
 
   domain_env_url="https://my.cyon.ch/user/environment/setdomain/d/${domain_env}/gik/${gloo_item_key}"
@@ -304,11 +332,11 @@ _cyon_get_response_message() {
 }
 
 _cyon_get_response_status() {
-  _egrep_o '"status":[a-zA-z0-9]*' | cut -d : -f 2
+  _egrep_o '"status":[a-zA-Z0-9]*' | cut -d : -f 2
 }
 
 _cyon_get_validation_status() {
-  _egrep_o '"valid":[a-zA-z0-9]*' | cut -d : -f 2
+  _egrep_o '"valid":[a-zA-Z0-9]*' | cut -d : -f 2
 }
 
 _cyon_get_response_success() {
@@ -316,7 +344,7 @@ _cyon_get_response_success() {
 }
 
 _cyon_get_environment_change_status() {
-  _egrep_o '"authenticated":[a-zA-z0-9]*' | cut -d : -f 2
+  _egrep_o '"authenticated":[a-zA-Z0-9]*' | cut -d : -f 2
 }
 
 _cyon_check_if_2fa_missed() {

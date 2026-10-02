@@ -13,6 +13,7 @@ on:
 jobs:
   welcome:
     runs-on: ubuntu-latest
+    if: github.actor != 'neilpang'
     steps:
       - uses: actions/github-script@v6
         with:

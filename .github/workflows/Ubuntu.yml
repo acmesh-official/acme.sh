@@ -70,7 +70,7 @@ jobs:
       TestingDomain: ${{ matrix.TestingDomain }}
       ACME_USE_WGET: ${{ matrix.ACME_USE_WGET }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Install tools
       run: sudo apt-get install -y socat wget
     - name: Start StepCA

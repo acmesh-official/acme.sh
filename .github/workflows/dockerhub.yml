@@ -43,14 +43,14 @@ jobs:
     if: "contains(needs.CheckToken.outputs.hasToken, 'true')"
     steps:
       - name: checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@v5.5.1
+        uses: docker/metadata-action@v6
         with:
           images: ${DOCKER_IMAGE}
       - name: Set up Docker Buildx
