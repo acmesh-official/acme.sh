@@ -72,7 +72,7 @@ nginx_proxy_manager_deploy() {
   if [ -z "$DEPLOY_NPM_CERTNUM" ]; then
     _info "DEPLOY_NPM_CERTNUM not provided, a new certificate will be created."
     if [ -z "$DEPLOY_NPM_CERTNAME" ]; then
-      DEPLOY_NPM_CERTNAME="acme.sh custom certificate - $(date +'%Y-%m-%d_%H-%M-%S')"
+      DEPLOY_NPM_CERTNAME="acme.sh custom certificate - $(_utc_date | tr ' ' '_' | tr -d -- ':')"
       _info "DEPLOY_NPM_CERTNAME not set. Using default:"
       _info DEPLOY_NPM_CERTNAME "$DEPLOY_NPM_CERTNAME"
     fi
@@ -98,7 +98,7 @@ nginx_proxy_manager_deploy() {
 
   # strip backslashes, encode for JSON, and remove newlines
   _npm_payload_format() {
-    _npm_payload_out="$(printf "%s\n" "$1" | sed 's/\\/\\\\/g;' | _json_encode)"
+    _npm_payload_out="$(printf "%s\n" "$1" | _json_encode)"
     printf '%s' "${_npm_payload_out%\\n}"
   }
 
