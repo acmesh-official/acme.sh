@@ -20,7 +20,7 @@ dns_mvmnet_add() {
   fulldomain=$1
   txtvalue=$2
 
-  _mvmnet_retrieve_and_check_variables
+  _mvmnet_retrieve_and_check_variables || return 1
 
   _debug "First detect the root zone"
   if ! _mvmnet_get_root "$fulldomain"; then
@@ -48,7 +48,7 @@ dns_mvmnet_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  _mvmnet_check_variables
+  _mvmnet_check_variables || return 1
 
   _debug "First detect the root zone"
   if ! _mvmnet_get_root "$fulldomain"; then
@@ -94,7 +94,7 @@ _mvmnet_check_variables() {
 }
 
 _mvmnet_retrieve_and_check_variables() {
-  _mvmnet_check_variables
+  _mvmnet_check_variables || return 1
 
   _saveaccountconf_mutable MVMNET_ID "$MVMNET_ID"
   _saveaccountconf_mutable MVMNET_KEY "$MVMNET_KEY"
