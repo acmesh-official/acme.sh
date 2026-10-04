@@ -159,7 +159,7 @@ _get_record_id() {
     return 1
   fi
 
-  objectbody="$(echo "$response" | sed 's/}, *{/}\n{/g; s/\[/\[\n/g; s/\]/\n\]/g' | grep -E "\"host\" *: *\"$hosttofind\.\".*\"type\" *: *\"TXT\"|\"type\" *: *\"TXT\".*\"host\" *: *\"$hosttofind\.\"")"
+  objectbody="$(echo "$response" | _egrep_o '\{[^{}]*\}' | grep -E "\"host\" *: *\"$hosttofind\.\".*\"type\" *: *\"TXT\"|\"type\" *: *\"TXT\".*\"host\" *: *\"$hosttofind\.\"")"
 
   _debug3 objectbody "${objectbody}"
 
