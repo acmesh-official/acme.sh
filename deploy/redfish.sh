@@ -48,11 +48,6 @@ redfish_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  if ! _exists jq; then
-    _err 'jq binary not found in PATH. Please install it using the system package manager.'
-    return 1
-  fi
-
   _getdeployconf DEPLOY_REDFISH_HOST
   _getdeployconf DEPLOY_REDFISH_USERNAME
   _getdeployconf DEPLOY_REDFISH_PASSWORD
@@ -179,9 +174,9 @@ _redfish_rest() {
   export _H1='OData-Version: 4.0'
 
   if [ "${_method}" = 'GET' ]; then
-    _response="$(_get "https://${DEPLOY_REDFISH_HOST}${_endpoint}")"
+    _response="$(_get "https://${DEPLOY_REDFISH_HOST}${_endpoint}" | _normalizeJson)"
   else
-    _response="$(_post "${_body}" "https://${DEPLOY_REDFISH_HOST}${_endpoint}" '' "${_method}" "${_body:+application/json}")"
+    _response="$(_post "${_body}" "https://${DEPLOY_REDFISH_HOST}${_endpoint}" '' "${_method}" "${_body:+application/json}" | _normalizeJson)"
   fi
 
   _ret="$?"
@@ -197,6 +192,22 @@ _redfish_response_code() {
   _egrep_o <"${HTTP_HEADER}" '^HTTP[^ ]* [0-9]+' | _tail_n 1 | tr -d '\r\n' | cut -d ' ' -f 2
 }
 
+_redfish_get_odata_id() {
+  _regex='s/{'
+  for key in $(echo "$1" | tr '.' '\n'); do
+    _regex="${_regex}.*\"${key}\":{"
+  done
+  sed -n "${_regex}[^}]*\"@odata\\.id\":\"\\([^\"]*\\)\".*/\\1/p"
+}
+
+_redfish_get_odata_members() {
+  sed -n 's/.*"Members":\[\([^]]*\)\].*/\1/p' | sed 's/,/\n/g' | sed -n 's/.*{"@odata\.id":"\([^"]*\)"}.*/\1/p'
+}
+
+_redfish_get_odata_count() {
+  sed -n 's/.*"Members@odata\.count":[[:space:]]*\([0-9][0-9]*\).*/\1/p'
+}
+
 _redfish_log_in() {
   _username="$1"
   _password="$2"
@@ -209,7 +220,7 @@ _redfish_log_in() {
     export _H2="Authorization: Basic ${_access_token}"
 
     # Verify credentials are valid
-    _account_service_endpoint="$(echo "${_response}" | jq -r '.AccountService.["@odata.id"]')"
+    _account_service_endpoint="$(echo "${_response}" | _redfish_get_odata_id 'AccountService')"
     _redfish_rest GET "${_account_service_endpoint}" || return 1
     _code="$(_redfish_response_code)"
 
@@ -220,8 +231,10 @@ _redfish_log_in() {
     fi
   else
     # Create new session
-    _sessions_endpoint="$(echo "${_response}" | jq -r '.Links.Sessions.["@odata.id"]')"
-    _body="$(jq -nc '{"UserName":$user,"Password":$pass}' --arg user "${_username}" --arg pass "${_password}")"
+    _sessions_endpoint="$(echo "${_response}" | _redfish_get_odata_id 'Links.Sessions')"
+    _username="$(echo "${_username}" | _json_encode)"
+    _password="$(echo "${_password}" | _json_encode)"
+    _body="$(printf '{"UserName":"%s","Password":"%s"}' "${_username%\\n}" "${_password%\\n}")"
     _redfish_rest POST "${_sessions_endpoint}" "${_body}" || return 1
     _code="$(_redfish_response_code)"
 
@@ -229,10 +242,13 @@ _redfish_log_in() {
     if [ "${_code}" != '201' ]; then
       _err "Redfish authentication failed (HTTP ${_code})"
       _err "Response: ${_response}"
+      if [ "${_code}" = '401' ] && grep -qi '^WWW-Authenticate: Basic.*$' "${HTTP_HEADER}"; then
+        _err 'NOTE: Server supports Basic auth scheme. Consider setting DEPLOY_REDFISH_USE_BASIC_AUTH=1 and try again.'
+      fi
       return 1
     fi
 
-    _session="$(echo "${_response}" | jq -r '.["@odata.id"]')"
+    _session="$(echo "${_response}" | _redfish_get_odata_id '')"
     _auth_token="$(grep -i '^X-Auth-Token: .*$' "${HTTP_HEADER}" | _tail_n 1 | tr -d ' \r\n' | cut -d ':' -f 2)"
     export _H2="X-Auth-Token: ${_auth_token}"
   fi
@@ -263,8 +279,8 @@ _redfish_log_out() {
 
 _redfish_get_certificate_service_endpoint() {
   _redfish_rest GET '/redfish/v1/' || return 1
-  _certificate_service_endpoint="$(echo "${_response}" | jq -r '.CertificateService.["@odata.id"]')"
-  [ -n "${_certificate_service_endpoint}" ] && [ "${_certificate_service_endpoint}" != 'null' ]
+  _certificate_service_endpoint="$(echo "${_response}" | _redfish_get_odata_id 'CertificateService')"
+  [ -n "${_certificate_service_endpoint}" ]
 }
 
 _redfish_supports_full_certificate_chains() {
@@ -291,6 +307,55 @@ _redfish_supports_full_certificate_chains() {
   [ "${_schema_major}" -gt '1' ] || { [ "${_schema_major}" -ge '1' ] && [ "${_schema_minor}" -ge '4' ]; }
 }
 
+_redfish_get_action() {
+  unset _action _action_info
+
+  _redfish_rest GET "$1" || return 1
+  _action="$(echo "${_response}" | sed -n "s/{.*\"Actions\":{.*\"#$2\":\({[^}]*}\).*/\1/p")"
+  _action_info_endpoint="$(echo "${_action}" | sed -n 's/.*"@Redfish\.ActionInfo":"\([^"]*\)".*/\1/p')"
+
+  if [ -n "${_action_info_endpoint}" ]; then
+    _redfish_rest GET "${_action_info_endpoint}" || return 1
+    _code="$(_redfish_response_code)"
+
+    if [ "${_code}" = '200' ]; then
+      _action_info="${_response}"
+    fi
+  fi
+}
+
+_redfish_get_action_allowable_values() {
+  _parameter="$1"
+
+  _allowable_values="$(echo "${_action}" |
+    sed -n "s/.*\"${_parameter}@Redfish\.AllowableValues\":\[\([^]]*\)\].*/\1/p" |
+    tr -d '"')"
+
+  if [ -n "${_allowable_values}" ]; then
+    _debug2 "Found allowable values for '${_parameter}' in '@Redfish.Action': [${_allowable_values}]"
+    echo "${_allowable_values}" | tr ',' '\n'
+  elif [ -n "${_action_info}" ]; then
+    _parameter_info="$(echo "${_action_info}" |
+      sed -n 's/.*"Parameters":*\[\(\({[^}]*},\{0,1\}\)*\)\].*/\1/p' | _egrep_o '\{[^\}]{1,}\}' |
+      grep "\"Name\":\"${_parameter}\"")"
+
+    if [ -n "${_parameter_info}" ]; then
+      _debug2 "Found allowable values for '${_parameter}' in @Redfish.ActionInfo: ${_parameter_info}"
+      _data_type="$(echo "${_parameter_info}" | sed -n 's/.*"DataType":"\([^"]*\)".*/\1/p')"
+
+      case "${_data_type}" in
+      String)
+        echo "${_parameter_info}" | sed -n 's/.*"AllowableValues":\[\([^]]*\)\].*/\1/p' | tr -d '"' | tr ',' '\n'
+        ;;
+      Number)
+        echo "${_parameter_info}" | sed -n 's/.*"MinimumValue":\([0-9]\{1,\}\).*/\1/p'
+        echo "${_parameter_info}" | sed -n 's/.*"MaximumValue":\([0-9]\{1,\}\).*/\1/p'
+        ;;
+      esac
+    fi
+  fi
+}
+
 _redfish_supports_private_key() {
   _private_key="$1"
   _certificate_service_endpoint="$2"
@@ -304,10 +369,15 @@ _redfish_supports_private_key() {
     return 1
   fi
 
-  _redfish_rest GET "${_certificate_service_endpoint}" || return 1
-  _generate_csr_action_info="$(echo "${_response}" | jq -r '.Actions["#CertificateService.GenerateCSR"].["@Redfish.ActionInfo"]')"
-  _redfish_rest GET "${_generate_csr_action_info}" || return 1
-  _allowed_key_algos="$(echo "${_response}" | jq -r '.Parameters[] | select(.Name == "KeyPairAlgorithm") | .AllowableValues[]' | paste -sd ', ' -)"
+  _redfish_get_action "${_certificate_service_endpoint}" 'CertificateService.GenerateCSR' || return 1
+  _allowed_key_algos="$(_redfish_get_action_allowable_values 'KeyPairAlgorithm' | paste -sd ',')"
+  _allowed_key_curve_ids="$(_redfish_get_action_allowable_values 'KeyCurveId' | paste -sd ',')"
+  _allowed_key_bit_lengths="$(_redfish_get_action_allowable_values 'KeyBitLength' | sort -n)"
+
+  if [ -z "${_allowed_key_bit_lengths}" ] && [ -z "${_allowed_key_curve_ids}" ]; then
+    _debug 'Failed to determine server crypto requirements, proceeding blindly.'
+    return 0
+  fi
 
   if [ -z "${_allowed_key_algos}" ]; then
     _debug 'GenerateCSR does not specify allowed KeyPairAlgorithm(s), so assuming TCG_ALG_RSA.'
@@ -319,10 +389,10 @@ _redfish_supports_private_key() {
 
   case "${_key_algo}:${_allowed_key_algos}" in
   RSA:*RSA*)
-    _allowed_key_bit_lengths="$(echo "${_response}" | jq -c '.Parameters[] | select(.Name == "KeyBitLength")')"
-    _min_key_length="$(echo "${_allowed_key_bit_lengths}" | jq -r '.MinimumValue')"
-    _max_key_length="$(echo "${_allowed_key_bit_lengths}" | jq -r '.MaximumValue')"
-    _debug _allowed_key_bit_lengths "${_allowed_key_bit_lengths}"
+    _min_key_length="$(echo "${_allowed_key_bit_lengths}" | _head_n 1)"
+    _max_key_length="$(echo "${_allowed_key_bit_lengths}" | _tail_n 1)"
+    _debug _min_key_length "${_min_key_length}"
+    _debug _max_key_length "${_max_key_length}"
 
     if ! expr "${_min_key_length}:${_max_key_length}" : '^[0-9]\{1,\}:[0-9]\{1,\}$' >/dev/null; then
       _err 'Server supports RSA private keys, but its minimum/maximum allowed key bit lengths could not be determined.'
@@ -337,7 +407,7 @@ _redfish_supports_private_key() {
     fi
     ;;
   ECDSA:*ECDSA*)
-    _allowed_key_curve_ids="$(echo "${_response}" | jq -r '.Parameters[] | select(.Name == "KeyCurveId") | .AllowableValues[]')"
+    _debug _allowed_key_curve_ids "${_allowed_key_curve_ids}"
 
     # shellcheck disable=SC2154 # Le_Keylength is set by acme.sh core, not this hook
     if ! _contains "${_allowed_key_curve_ids}" "TPM_ECC_NIST_P${Le_Keylength#ec-}"; then
@@ -354,50 +424,51 @@ _redfish_supports_private_key() {
 
 _redfish_get_primary_manager_endpoint() {
   _redfish_rest GET '/redfish/v1/' || return 1
-  _managers_endpoint="$(echo "${_response}" | jq -r '.Managers.["@odata.id"]')"
+  _managers_endpoint="$(echo "${_response}" | _redfish_get_odata_id 'Managers')"
   _redfish_rest GET "${_managers_endpoint}" || return 1
-  _num_managers="$(echo "${_response}" | jq -r '.["Members@odata.count"]')"
+  _num_managers="$(echo "${_response}" | _redfish_get_odata_count)"
 
   if [ "${_num_managers}" != '1' ]; then
-    _all_managers="$(echo "${_response}" | jq -c '[.Members[].["@odata.id"]]')"
+    _err "${_num_managers}"
+    _all_managers="$(echo "${_response}" | _redfish_get_odata_members | paste -sd ',')"
     _err "Multiple Redfish managers identified (${_all_managers}), but expected exactly one."
     _err 'Please specify the correct manager in DEPLOY_REDFISH_MANAGER.'
     return 1
   fi
 
-  _manager_endpoint="$(echo "${_response}" | jq -r '.Members[0].["@odata.id"]')"
-
-  [ -n "${_manager_endpoint}" ] && [ "${_manager_endpoint}" != 'null' ]
+  _manager_endpoint="$(echo "${_response}" | _redfish_get_odata_members | _head_n 1)"
+  [ -n "${_manager_endpoint}" ]
 }
 
 _redfish_get_manager_certificate_endpoint() {
   _manager_endpoint="$1"
 
   _redfish_rest GET "${_manager_endpoint}" || return 1
-  _protocol_endpoint="$(echo "${_response}" | jq -r '.NetworkProtocol.["@odata.id"]')"
+  _protocol_endpoint="$(echo "${_response}" | _redfish_get_odata_id 'NetworkProtocol')"
   _redfish_rest GET "${_protocol_endpoint}/HTTPS/Certificates" || return 1
-  _num_certificates="$(echo "${_response}" | jq -r '.["Members@odata.count"]')"
+  _num_certificates="$(echo "${_response}" | _redfish_get_odata_count)"
 
-  if [ "${_num_certificates}" != '1' ]; then
-    _all_certificates="$(echo "${_response}" | jq -c '[.Members[].["@odata.id"]]')"
+  if [ -z "${_num_certificates}" ]; then
+    _certificate_endpoint="${_protocol_endpoint}/HTTPS/Certificates/1"
+    return 0
+  elif [ "${_num_certificates}" != '1' ]; then
+    _all_certificates="$(echo "${_response}" | _redfish_get_odata_members | paste -sd ',')"
     _err "Multiple web service HTTPS certificates identified (${_all_certificates}), but expected exactly one."
     _err "Please specify which certificate should be replaced in DEPLOY_REDFISH_CERTIFICATE."
     return 1
   fi
 
-  _certificate_endpoint="$(echo "${_response}" | jq -r '.Members[0].["@odata.id"]')"
-
-  [ -n "${_certificate_endpoint}" ] && [ "${_certificate_endpoint}" != 'null' ]
+  _certificate_endpoint="$(echo "${_response}" | _redfish_get_odata_members | _head_n 1)"
+  [ -n "${_certificate_endpoint}" ]
 }
 
 _redfish_attempt_graceful_restart() {
   _manager_endpoint="$1"
 
-  _redfish_rest GET "${_manager_endpoint}" || return 1
-  _manager_reset_action_info="$(echo "${_response}" | jq -r '.Actions["#Manager.Reset"].["@Redfish.ActionInfo"]')"
-  _redfish_rest GET "${_manager_reset_action_info}" || return 1
+  _redfish_get_action "${_manager_endpoint}" 'Manager.Reset' || return 1
+  _allowed_reset_types="$(_redfish_get_action_allowable_values 'ResetType')"
 
-  if ! _contains "${_response}" 'GracefulRestart'; then
+  if ! _contains "${_allowed_reset_types}" 'GracefulRestart'; then
     _err "BMC doesn't support graceful restarts. Please wait up to 20 seconds to take effect, or restart the BMC manually."
     return 1
   fi
