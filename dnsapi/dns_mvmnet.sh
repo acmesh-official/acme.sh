@@ -2,14 +2,15 @@
 # shellcheck disable=SC2034
 dns_mvmnet_info='mvmnet.com
 Site: mvmnet.com
-Docs: https://api.mvmnet.com/api/1.0/documentation/
+Docs: https://github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_mvmnet
+Api Docs: https://api.mvmnet.com/api/1.0/documentation/
+Issues: https://github.com/acmesh-official/acme.sh/issues/7297
+Author: Matteo Gaggiano <github.com/marchrius>
 Options:
  MVMNET_ID application_id
  MVMNET_KEY application_key
  MVMNET_SEED application_seed
  MVMNET_API_URL API base URL (defaults to https://api.mvmnet.com/api/1.0, use https://api.mvmnet.com/ote/1.0 for test)
-Author: Matteo Gaggiano <github.com/marchrius>
-Issues: github.com/acmesh-official/acme.sh/issues/xxx
 '
 
 MVMNET_API_URL="${MVMNET_API_URL:-https://api.mvmnet.com/api/1.0}"
