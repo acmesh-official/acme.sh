@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env sh
 # shellcheck disable=SC2034
 dns_mvmnet_info='mvmnet.com
 Site: mvmnet.com
@@ -7,14 +7,12 @@ Options:
  MVMNET_ID application_id
  MVMNET_KEY application_key
  MVMNET_SEED application_seed
+ MVMNET_API_URL API base URL (defaults to https://api.mvmnet.com/api/1.0, use https://api.mvmnet.com/ote/1.0 for test)
 Author: Matteo Gaggiano <github.com/marchrius>
+Issues: github.com/acmesh-official/acme.sh/issues/xxx
 '
 
-if [ "$STAGE" = "1" ]; then ## STAGING
-  MVMNET_API_URL="https://api.mvmnet.com/ote/1.0"
-else ## LIVE
-  MVMNET_API_URL="https://api.mvmnet.com/api/1.0"
-fi
+MVMNET_API_URL="${MVMNET_API_URL:-https://api.mvmnet.com/api/1.0}"
 
 ########  Public functions #####################
 
