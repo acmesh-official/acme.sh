@@ -20,10 +20,10 @@ dns_mvmnet_add() {
   fulldomain=$1
   txtvalue=$2
 
-  _retrieve_and_check_variables
+  _mvmnet_retrieve_and_check_variables
 
   _debug "First detect the root zone"
-  if ! _get_root "$fulldomain"; then
+  if ! _mvmnet_get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
@@ -48,10 +48,10 @@ dns_mvmnet_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  _check_variables
+  _mvmnet_check_variables
 
   _debug "First detect the root zone"
-  if ! _get_root "$fulldomain"; then
+  if ! _mvmnet_get_root "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
@@ -60,7 +60,7 @@ dns_mvmnet_rm() {
   _subdomain=$(echo "$fulldomain" | sed -r "s/.$_domain//")
   _debug _subdomain "$_subdomain"
 
-  if ! _get_record_id "$_subdomain" "$_domain" "$txtvalue"; then
+  if ! _mvmnet_get_record_id "$_subdomain" "$_domain" "$txtvalue"; then
     _warn "Record id for $_subdomain not found, please remove it manually"
     return 0
   fi
@@ -80,7 +80,7 @@ dns_mvmnet_rm() {
 
 ####################  Private functions below ##################################
 
-_check_variables() {
+_mvmnet_check_variables() {
   MVMNET_ID="${MVMNET_ID:-$(_readaccountconf_mutable MVMNET_ID)}"
   MVMNET_KEY="${MVMNET_KEY:-$(_readaccountconf_mutable MVMNET_KEY)}"
   MVMNET_SEED="${MVMNET_SEED:-$(_readaccountconf_mutable MVMNET_SEED)}"
@@ -93,8 +93,8 @@ _check_variables() {
   fi
 }
 
-_retrieve_and_check_variables() {
-  _check_variables
+_mvmnet_retrieve_and_check_variables() {
+  _mvmnet_check_variables
 
   _saveaccountconf_mutable MVMNET_ID "$MVMNET_ID"
   _saveaccountconf_mutable MVMNET_KEY "$MVMNET_KEY"
@@ -106,7 +106,7 @@ _retrieve_and_check_variables() {
 # _sub_domain=_acme-challenge.www
 # _domain=domain.com
 # _domain_id=123456789
-_get_root() {
+_mvmnet_get_root() {
   domain=$1
   i=1
   p=1
@@ -144,7 +144,7 @@ _get_root() {
 # value (Optional)
 #returns
 # _sub_domain_record_id=123456789
-_get_record_id() {
+_mvmnet_get_record_id() {
   subdomain=$1
   domain=$2
   txtvalue=$3
