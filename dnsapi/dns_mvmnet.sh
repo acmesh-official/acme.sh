@@ -27,9 +27,8 @@ dns_mvmnet_add() {
     _err "invalid domain"
     return 1
   fi
-  _debug _domain "$_domain"
 
-  _subdomain=$(echo "$fulldomain" | sed -r "s/.$_domain//")
+  _debug _domain "$_domain"
   _debug _subdomain "$_subdomain"
 
   _info "Adding TXT record to ${fulldomain}"
@@ -55,9 +54,8 @@ dns_mvmnet_rm() {
     _err "invalid domain"
     return 1
   fi
-  _debug _domain "$_domain"
 
-  _subdomain=$(echo "$fulldomain" | sed -r "s/.$_domain//")
+  _debug _domain "$_domain"
   _debug _subdomain "$_subdomain"
 
   if ! _mvmnet_get_record_id "$_subdomain" "$_domain" "$txtvalue"; then
@@ -65,10 +63,10 @@ dns_mvmnet_rm() {
     return 0
   fi
 
-  _debug _sub_domain_record_id "$_sub_domain_record_id"
+  _debug _subdomain_record_id "$_subdomain_record_id"
 
-  _info "Deleting resource record $fulldomain ($_sub_domain_record_id)"
-  _mvmnet_rest DELETE "dns/zone/record" "domain=${_domain}&id=${_sub_domain_record_id}"
+  _info "Deleting resource record $fulldomain ($_subdomain_record_id)"
+  _mvmnet_rest DELETE "dns/zone/record" "domain=${_domain}&id=${_subdomain_record_id}"
 
   if ! _contains "${response}" 'error'; then
     return 0
@@ -103,7 +101,7 @@ _mvmnet_retrieve_and_check_variables() {
 
 #_acme-challenge.www.domain.com
 #returns
-# _sub_domain=_acme-challenge.www
+# _subdomain=_acme-challenge.www
 # _domain=domain.com
 # _domain_id=123456789
 _mvmnet_get_root() {
@@ -127,7 +125,7 @@ _mvmnet_get_root() {
     if _contains "$response" "\"domain_idn\":\"$h\""; then
       _domain_id=$(echo "$response" | _egrep_o ".\"id\": *\"[0-9]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \" | tr -d " ")
       if [ "$_domain_id" ]; then
-        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
+        _subdomain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain=$h
         return 0
       fi
@@ -143,7 +141,7 @@ _mvmnet_get_root() {
 # domain.com
 # value (Optional)
 #returns
-# _sub_domain_record_id=123456789
+# _subdomain_record_id=123456789
 _mvmnet_get_record_id() {
   subdomain=$1
   domain=$2
@@ -169,9 +167,9 @@ _mvmnet_get_record_id() {
     _debug3 objectbody "${objectbody}"
   fi
 
-  _sub_domain_record_id="$(echo "$objectbody" | _egrep_o ".\"id\": *\"[0-9]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \" | tr -d ' ')"
+  _subdomain_record_id="$(echo "$objectbody" | _egrep_o ".\"id\": *\"[0-9]*\"" | _head_n 1 | cut -d : -f 2 | tr -d \" | tr -d ' ')"
 
-  if [ "${_sub_domain_record_id}x" = "x" ]; then
+  if [ "${_subdomain_record_id}x" = "x" ]; then
     _err "error retrieve sub domain record id"
     return 1
   fi
