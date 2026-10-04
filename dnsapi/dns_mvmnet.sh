@@ -184,10 +184,6 @@ _mvmnet_rest() {
   data="$3"
   _debug "$ep"
 
-  MVMNET_ID="${MVMNET_ID:-$(_readaccountconf_mutable MVMNET_ID)}"       ## Case sensitive
-  MVMNET_KEY="${MVMNET_KEY:-$(_readaccountconf_mutable MVMNET_KEY)}"    ## Case sensitive
-  MVMNET_SEED="${MVMNET_SEED:-$(_readaccountconf_mutable MVMNET_SEED)}" ## Case sensitive
-
   signature="$(printf "%s" "${MVMNET_ID}+${MVMNET_KEY}+$m+${MVMNET_SEED}" | _digest "sha1" "hex")"
 
   export _H1="X-Mvm-Application: ${MVMNET_ID}"
