@@ -174,12 +174,13 @@ _redfish_rest() {
   export _H1='OData-Version: 4.0'
 
   if [ "${_method}" = 'GET' ]; then
-    _response="$(_get "https://${DEPLOY_REDFISH_HOST}${_endpoint}" | _normalizeJson)"
+    _response="$(_get "https://${DEPLOY_REDFISH_HOST}${_endpoint}")"
   else
-    _response="$(_post "${_body}" "https://${DEPLOY_REDFISH_HOST}${_endpoint}" '' "${_method}" "${_body:+application/json}" | _normalizeJson)"
+    _response="$(_post "${_body}" "https://${DEPLOY_REDFISH_HOST}${_endpoint}" '' "${_method}" "${_body:+application/json}")"
   fi
 
   _ret="$?"
+  _response="$(echo "${_response}" | _normalizeJson)"
 
   if [ "${_ret}" != '0' ]; then
     _err "Error while calling ${_method} ${_endpoint}. Deploy with --insecure if current certificate is invalid. Try deploying with --debug to troubleshoot."
