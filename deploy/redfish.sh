@@ -127,10 +127,7 @@ redfish_deploy() {
       return 1
     fi
 
-    _certificate_str="$({
-      printf '%s\n' "${_ckey_pkcs8}"
-      cat "${_cfullchain}"
-    } | _json_encode)"
+    _certificate_str="$(echo "${_ckey_pkcs8}" | cat - "${_cfullchain}" | _json_encode)"
     _certificate_type='PEMchain'
   else
     _info "Private key and full certificate chain not available; we must be using a server-generated CSR."
