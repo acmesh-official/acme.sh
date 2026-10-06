@@ -155,8 +155,11 @@ synology_dsm_deploy() {
   # Configure SynoToken authentication (DSM only)
   _getdeployconf SYNO_USE_TOKEN
   _check2cleardeployconfexp SYNO_USE_TOKEN
+  _savedeployconf SYNO_USE_TOKEN "$SYNO_USE_TOKEN"
+  _syno_use_token=1
+  [ "$SYNO_USE_TOKEN" = "0" ] && _syno_use_token=""
 
-  if [ "${SYNO_USE_TOKEN:-1}" = "1" ]; then
+  if [ -n "$_syno_use_token" ]; then
     enable_token_param="&enable_syno_token=yes"
   else
     enable_token_param=""
@@ -315,14 +318,14 @@ synology_dsm_deploy() {
   token=$(echo "$response" | grep "synotoken" | sed -n 's/.*"synotoken" *: *"\([^"]*\).*/\1/p')
   _debug "Session ID" "$sid"
   _debug SynoToken "$token"
-  if [ -z "$sid" ] || { [ "${SYNO_USE_TOKEN:-1}" = "1" ] && [ -z "$token" ]; }; then
+  if [ -z "$sid" ] || { [ -n "$_syno_use_token" ] && [ -z "$token" ]; }; then
     # Still can't get necessary info even got no errors, may Synology have API updated?
     _err "Unable to authenticate to $_base_url, you may report this by providing full log with '--debug 3'."
     _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 1
   fi
 
-  if [ "${SYNO_USE_TOKEN:-1}" = "1" ]; then
+  if [ -n "$_syno_use_token" ]; then
     _H1="X-SYNO-TOKEN: $token"
   else
     _H1=""
@@ -338,13 +341,11 @@ synology_dsm_deploy() {
     _cleardeployconf SYNO_DEVICE_NAME
     _savedeployconf SYNO_USE_TEMP_ADMIN "$SYNO_USE_TEMP_ADMIN"
     _savedeployconf SYNO_LOCAL_HOSTNAME "$SYNO_LOCAL_HOSTNAME"
-    _savedeployconf SYNO_USE_TOKEN "$SYNO_USE_TOKEN"
   else
     _savedeployconf SYNO_USERNAME "$SYNO_USERNAME" "base64"
     _savedeployconf SYNO_PASSWORD "$SYNO_PASSWORD" "base64"
     _savedeployconf SYNO_DEVICE_ID "$SYNO_DEVICE_ID"
     _savedeployconf SYNO_DEVICE_NAME "$SYNO_DEVICE_NAME"
-    _savedeployconf SYNO_USE_TOKEN "$SYNO_USE_TOKEN"
   fi
 
   _info "Getting certificates in Synology DSM..."
@@ -400,7 +401,7 @@ synology_dsm_deploy() {
   content="$(printf "%b_" "$content")"
   content="${content%_}" # protect trailing \n
 
-  if [ "${SYNO_USE_TOKEN:-1}" = "1" ]; then
+  if [ -n "$_syno_use_token" ]; then
     token_param="&SynoToken=$token"
   else
     token_param=""
