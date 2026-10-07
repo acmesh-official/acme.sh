@@ -11,6 +11,8 @@
 #
 # Run `acme.sh --deploy -d example.com --deploy-hook fortimanager --insecure` to use this script.
 # `--insecure` is required on first run if not already using a valid SSL certificate on firewall.
+#
+# Character limit of certificate names on FortiManager is 35, be aware with long names.
 
 # Function to parse a FortiGate API response
 _fortimanager_parse_response() {
@@ -65,6 +67,11 @@ _fortimanager_upload_ca_cert() {
   _fortimanager_ca_base64=$(cat "$_fortimanager_cca")
   _fortimanager_ca_name=$(openssl x509 -in "$_fortimanager_cca" -noout -subject -nameopt multiline \
   | awk -F'= ' '/commonName/ {print $2}')
+
+  if [ ${#_fortimanager_ca_name} -gt 35 ]; then
+    _err "CA name too long"
+    return 1
+  fi
 
   _fortimanager_payload=$(
     cat <<EOF
@@ -136,13 +143,26 @@ _fortimanager_cleanup_previous_certificate() {
 
   if [ -n "$FMG_LAST_CERT" ] && [ "$FMG_LAST_CERT" != "$_fortimanager_cert_name" ]; then
     _debug "Found previously deployed certificate: $FMG_LAST_CERT. Deleting it."
+    _fortimanager_payload=$(
+      cat <<EOF
+      {
+        "method": "delete",
+        "params": [
+        {
+          "url": "/cli/global/system/certificate/local/{local}"
+        }]
+      }
+EOF
+)
 
-    _fortimanager_url="https://${FMG_HOST}:${FMG_PORT}/api/v2/cmdb/vpn.certificate/local/${FMG_LAST_CERT}"
+    _fortimanager_url="https://${FMG_HOST}:${FMG_PORT}/jsonrpc"
+    _debug "Deleting certificate via URL: $_fortimanager_url"
+
     _H1="Authorization: Bearer $FMG_TOKEN"
-    _fortimanager_response=$(_post "" "$_fortimanager_url" "" "DELETE" "application/json")
-    _debug "Delete certificate API response: $_fortimanager_response"
+    _fortimanager_response=$(_post "$_fortimanager_payload" "$_fortimanager_url" "" "POST" "application/json")
+    _debug "FortiManager API Response: $_fortimanager_response"
 
-    _fortimanager_parse_response "$_fortimanager_response" "Delete previous certificate" || return 1
+    _fortimanager_parse_response "$_fortimanager_response" "Deleting previous certificate" || return 1
   else
     _debug "No previous certificate found."
   fi
@@ -154,6 +174,11 @@ fortimanager_deploy() {
   _fortimanager_ckey="$2"
   _fortimanager_cca="$4"
   _fortimanager_ccert="$3"
+
+  if [ ${#_fortimanager_cert_name} -gt 35 ]; then
+    _err "Certificate name too long"
+    return 1
+  fi
 
   if [ ! -f "$_fortimanager_ckey" ] || [ ! -f "$_fortimanager_ccert" ]; then
     _err "Valid key and/or certificate not found."
