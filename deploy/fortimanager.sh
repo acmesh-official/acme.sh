@@ -16,9 +16,9 @@
 _fortimanager_parse_response() {
   _fortimanager_response="$1"
   _fortimanager_func="$2"
-  _fortimanager_status=$(echo "$_fortimanager_response" | _egrep_o '"status":[ ]*"[^"]*"' | cut -d '"' -f 4)
-
-  if [ "$_fortimanager_status" != "success" ]; then
+  _fortimanager_status=$(echo "$_fortimanager_response" | _egrep_o '"message":[ ]*"[^"]*"' | cut -d '"' -f 4)
+  echo $_fortimanager_status
+  if [ "$_fortimanager_status" != "OK" ]; then
     return 1
   fi
 
@@ -28,28 +28,23 @@ _fortimanager_parse_response() {
 
 # Function to deploy a base64-encoded certificate to the FortiManager
 _fortimanager_deployer() {
-  _fortimanager_cert_base64=$(_base64 <"$_fortimanager_cfullchain" | tr -d '\n')
-  _fortimanager_key_base64=$(_base64 <"$_fortimanager_ckey" | tr -d '\n')
+  _fortimanager_ccert_data=$(cat "$_fortimanager_ccert")
+  _fortimanager_ckey_data=$(cat "$_fortimanager_ckey")  
+
   _fortimanager_payload=$(
     cat <<EOF
 {
-        "method": "add",
-        "params": [
-        {
-                "data": [
-                {
-                        "certificate": [
-                                "$_fortimanager_cert_base64"
-                        ],
-                        "name": "$_fortimanager_cert_name",
-                        "private-key": [
-                                "$_fortimanager_key_base64"
-                        ]
-                }
-                ],
-                "url": "/cli/global/system/certificate/local"
-        }
-        ]
+  "method": "add",
+  "params": [
+    {
+      "url": "/cli/global/system/certificate/local",
+      "data": {
+        "name": "$_fortimanager_cert_name",
+        "certificate": ["$_fortimanager_ccert_data"],
+        "private-key": "$_fortimanager_ckey_data"
+      }
+    }
+  ]
 }
 EOF
   )
@@ -67,7 +62,10 @@ EOF
 # Function to upload a CA certificate to the firewall
 # FortiGate does not automatically extract the CA from the full chain.
 _fortimanager_upload_ca_cert() {
-  _fortimanager_ca_base64=$(_base64 <"$_fortimanager_cca" | tr -d '\n')
+  _fortimanager_ca_base64=$(cat "$_fortimanager_cca")
+  _fortimanager_ca_name=$(openssl x509 -in "$_fortimanager_cca" -noout -subject -nameopt multiline \
+  | awk -F'= ' '/commonName/ {print $2}')
+
   _fortimanager_payload=$(
     cat <<EOF
 {
@@ -110,7 +108,15 @@ _fortimanager_set_active_web_cert() {
   _fortimanager_payload=$(
     cat <<EOF
 {
-  "admin-server-cert": "$_fortimanager_cert_name"
+  "method": "set",
+  "params": [
+    {
+      "data": {
+        "admin_server_cert": "$_fortimanager_cert_name"
+      },
+      "url": "/cli/global/system/admin/setting"
+    }
+  ]
 }
 EOF
   )
@@ -142,35 +148,14 @@ _fortimanager_cleanup_previous_certificate() {
   fi
 }
 
-# Main deploy-hook function
 fortimanager_deploy() {
-  # Include date and time to ensure unique names.
-  _fortimanager_cert_name="$(echo "$1" | sed 's/*/WILDCARD_/g')_$(date -u +"%Y-%m-%d_%H-%M-%S")"
+  # Include date and time to ensure unique names. Replace . in cert name for -
+  _fortimanager_cert_name="$(echo "$1" | tr . - | sed 's/*/WILDCARD_/g')_$(date -u +"%y%m%d")"
   _fortimanager_ckey="$2"
   _fortimanager_cca="$4"
-  _fortimanager_cfullchain="$5"
+  _fortimanager_ccert="$3"
 
-  if [ ! -f "$_fortimanager_ckey" ] || [ ! -f "$_fortimanager_cfullchain" ]; then
-    _err "Valid key and/or certificate not found."
-    return 1
-  fi
-
-  # Save required environment variables if set; otherwise load saved values.
-  for _fortimanager_var in FMG_HOST FMG_TOKEN FMG_PORT; do
-    if [ -n "$(eval echo "\$$_fortimanager_var")" ]; then
-      _debug "Detected ENV variable $_fortimanager_var. Saving to file."
-      _savedeployconf "$_fortimanager_var" "$(eval echo "\$$_fortimanager_var")" 1
-    else 
-      _debug "Attempting to load variable $_fortimanager_var from file."
-# Main deploy-hook function
-fortimanager_deploy() {
-  # Include date and time to ensure unique names.
-  _fortimanager_cert_name="$(echo "$1" | sed 's/*/WILDCARD_/g')_$(date -u +"%Y-%m-%d_%H-%M-%S")"
-  _fortimanager_ckey="$2"
-  _fortimanager_cca="$4"
-  _fortimanager_cfullchain="$5"
-
-  if [ ! -f "$_fortimanager_ckey" ] || [ ! -f "$_fortimanager_cfullchain" ]; then
+  if [ ! -f "$_fortimanager_ckey" ] || [ ! -f "$_fortimanager_ccert" ]; then
     _err "Valid key and/or certificate not found."
     return 1
   fi
@@ -193,3 +178,23 @@ fortimanager_deploy() {
 
   FMG_PORT="${FMG_PORT:-443}"
   _debug "Using FortiManager port: $FMG_PORT"
+
+  # Upload the new certificate.
+  _fortimanager_deployer || return 1
+
+  # Upload the CA certificate.
+  if [ -n "$_fortimanager_cca" ] && [ -f "$_fortimanager_cca" ]; then
+    _fortimanager_upload_ca_cert || return 1
+  else
+    _debug "No CA certificate provided."
+  fi
+
+  # Activate the new certificate.
+  _fortimanager_set_active_web_cert || return 1
+
+  # Delete the previously deployed certificate only after successful activation.
+  _fortimanager_cleanup_previous_certificate || return 1
+
+  # Save the new certificate name for cleanup during the next deployment.
+  _savedeployconf "FMG_LAST_CERT" "$_fortimanager_cert_name" 1
+}
