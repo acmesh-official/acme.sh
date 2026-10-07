@@ -113,6 +113,7 @@ redfish_deploy() {
     if ! _redfish_supports_full_certificate_chains; then
       _err 'Redfish server does not support uploading full certificate chains!'
       _err "Please call 'GenerateCSR' API on server first, pass the CSR to 'acme.sh --sign-csr --csr <key.pem>', and try again."
+      _err 'See link for more information: https://gist.github.com/ebkalderon/528e1c7e6f8d26b978babaad6c2178e4'
       return 1
     elif ! _redfish_supports_private_key "${_ckey}" "${_certificate_service_endpoint}"; then
       _err "Redfish server does not support this type of private key."
