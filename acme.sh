@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.1.5
+VER=3.1.6
 
 PROJECT_NAME="acme.sh"
 
@@ -1982,6 +1982,63 @@ _ssldate2time() {
   return 1
 }
 
+#support the IMF-fixdate form of an HTTP-date, the one a Retry-After header
+#carries; it is always GMT:
+#     Sun, 06 Nov 1994 08:49:37 GMT   to   784111777
+#Computed in shell arithmetic rather than through date(1): GNU, BSD and
+#busybox date each want a different invocation for this form, and %a/%b are
+#locale lookups. The day count is the civil-to-days formula, exact for every
+#Gregorian date from 1970 on. Prints nothing and fails on any other input.
+_httpdate2time() {
+  _hdt="$1"
+  case "$_hdt" in
+  [A-Za-z][A-Za-z][A-Za-z]", "[0-9][0-9]" "[A-Za-z][A-Za-z][A-Za-z]" "[0-9][0-9][0-9][0-9]" "[0-9][0-9]:[0-9][0-9]:[0-9][0-9]" GMT") ;;
+  *)
+    return 1
+    ;;
+  esac
+  #the shell reads a leading zero as octal, so strip it before any arithmetic
+  _hdt_d="$(echo "$_hdt" | cut -d ' ' -f 2 | sed 's/^0*\([0-9]\)/\1/')"
+  _hdt_y="$(echo "$_hdt" | cut -d ' ' -f 4)"
+  _hdt_tm="$(echo "$_hdt" | cut -d ' ' -f 5)"
+  _hdt_H="$(echo "$_hdt_tm" | cut -d : -f 1 | sed 's/^0*\([0-9]\)/\1/')"
+  _hdt_M="$(echo "$_hdt_tm" | cut -d : -f 2 | sed 's/^0*\([0-9]\)/\1/')"
+  _hdt_S="$(echo "$_hdt_tm" | cut -d : -f 3 | sed 's/^0*\([0-9]\)/\1/')"
+  case "$(echo "$_hdt" | cut -d ' ' -f 3 | _lower_case)" in
+  jan) _hdt_m=1 ;;
+  feb) _hdt_m=2 ;;
+  mar) _hdt_m=3 ;;
+  apr) _hdt_m=4 ;;
+  may) _hdt_m=5 ;;
+  jun) _hdt_m=6 ;;
+  jul) _hdt_m=7 ;;
+  aug) _hdt_m=8 ;;
+  sep) _hdt_m=9 ;;
+  oct) _hdt_m=10 ;;
+  nov) _hdt_m=11 ;;
+  dec) _hdt_m=12 ;;
+  *)
+    return 1
+    ;;
+  esac
+  if [ "$_hdt_y" -lt 1970 ] || [ "$_hdt_d" -lt 1 ] || [ "$_hdt_d" -gt 31 ] || [ "$_hdt_H" -gt 23 ] || [ "$_hdt_M" -gt 59 ] || [ "$_hdt_S" -gt 60 ]; then
+    return 1
+  fi
+  #years start in March so the leap day is the last day of the year
+  if [ "$_hdt_m" -le 2 ]; then
+    _hdt_y="$((_hdt_y - 1))"
+    _hdt_mp="$((_hdt_m + 9))"
+  else
+    _hdt_mp="$((_hdt_m - 3))"
+  fi
+  _hdt_era="$((_hdt_y / 400))"
+  _hdt_yoe="$((_hdt_y - _hdt_era * 400))"
+  _hdt_doy="$(((153 * _hdt_mp + 2) / 5 + _hdt_d - 1))"
+  _hdt_doe="$((_hdt_yoe * 365 + _hdt_yoe / 4 - _hdt_yoe / 100 + _hdt_doy))"
+  _hdt_days="$((_hdt_era * 146097 + _hdt_doe - 719468))"
+  echo "$((_hdt_days * 86400 + _hdt_H * 3600 + _hdt_M * 60 + _hdt_S))"
+}
+
 _utc_date() {
   date -u "+%Y-%m-%d %H:%M:%S"
 }
@@ -2295,6 +2352,99 @@ _post() {
   return $_ret
 }
 
+# bodyfile  url [needbase64] [POST|PUT|DELETE] [ContentType]
+#_post with the body read from a file instead of a variable. A shell variable
+#drops NUL bytes, so a binary upload (a PKCS#12 bundle in a multipart form)
+#has to travel as a file: curl reads it with --data-binary @file, wget with
+#--post-file (--body-file for the other methods). The content type is always
+#sent explicitly, defaulting to what both tools would send on their own for
+#a raw body, because wget treats an empty --header as "drop every header
+#given so far" and a bare -H "" cannot be left in the argument list.
+_post_file() {
+  _pf_bodyfile="$1"
+  _post_url="$2"
+  needbase64="$3"
+  httpmethod="$4"
+  _postContentType="$5"
+
+  if [ -z "$httpmethod" ]; then
+    httpmethod="POST"
+  fi
+  if [ ! -f "$_pf_bodyfile" ]; then
+    _err "The body file does not exist: $_pf_bodyfile"
+    return 1
+  fi
+  _debug $httpmethod
+  _debug "_post_url" "$_post_url"
+  _debug2 "_pf_bodyfile" "$_pf_bodyfile"
+  _debug2 "_postContentType" "$_postContentType"
+
+  _pf_cthdr="Content-Type: ${_postContentType:-application/x-www-form-urlencoded}"
+
+  _inithttp
+
+  if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
+    _CURL="$_ACME_CURL"
+    if [ "$HTTPS_INSECURE" ]; then
+      _CURL="$_CURL --insecure  "
+    fi
+    _debug "_CURL" "$_CURL"
+    if [ "$needbase64" ]; then
+      response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_pf_cthdr" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data-binary "@$_pf_bodyfile" "$_post_url" | _base64)"
+    else
+      response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_pf_cthdr" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data-binary "@$_pf_bodyfile" "$_post_url")"
+    fi
+    _ret="$?"
+    if [ "$_ret" != "0" ]; then
+      _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $_ret"
+      if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
+        _err "Here is the curl dump log:"
+        _err "$(cat "$_CURL_DUMP")"
+      fi
+    fi
+  elif [ "$_ACME_WGET" ]; then
+    _WGET="$_ACME_WGET"
+    if [ "$HTTPS_INSECURE" ]; then
+      _WGET="$_WGET --no-check-certificate "
+    fi
+    _debug "_WGET" "$_WGET"
+    if [ "$needbase64" ]; then
+      if [ "$httpmethod" = "POST" ]; then
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "$_pf_cthdr" --post-file="$_pf_bodyfile" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+      else
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "$_pf_cthdr" --method $httpmethod --body-file="$_pf_bodyfile" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+      fi
+    else
+      if [ "$httpmethod" = "POST" ]; then
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "$_pf_cthdr" --post-file="$_pf_bodyfile" "$_post_url" 2>"$HTTP_HEADER")"
+      else
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "$_pf_cthdr" --method $httpmethod --body-file="$_pf_bodyfile" "$_post_url" 2>"$HTTP_HEADER")"
+      fi
+    fi
+    _ret="$?"
+    if [ "$_ret" = "8" ]; then
+      _ret=0
+      _debug "wget returned 8 as the server returned a 'Bad Request' response. Let's process the response later."
+    fi
+    if [ "$_ret" != "0" ]; then
+      _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret"
+    fi
+    if _contains "$_WGET" " -d "; then
+      # Demultiplex wget debug output
+      cat "$HTTP_HEADER" >&2
+      _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
+    fi
+    # remove leading whitespaces from header to match curl format
+    _sed_i 's/^  //g' "$HTTP_HEADER"
+  else
+    _ret="$?"
+    _err "Neither curl nor wget have been found, cannot make $httpmethod request."
+  fi
+  _debug "_ret" "$_ret"
+  printf "%s" "$response"
+  return $_ret
+}
+
 # url getheader timeout
 _get() {
   _debug GET
@@ -2457,6 +2607,33 @@ _retry_backoff_sec() {
   esac
 }
 
+#Reads response headers from stdin and prints the Retry-After value as a
+#number of seconds from now. The header carries either delay-seconds, printed
+#as is, or an HTTP-date (HARICA sends one on a processing order, Pebble too),
+#converted with _httpdate2time and turned into a delay against the local
+#clock. A date already in the past, or a value in neither form, prints
+#nothing, so the caller falls back to its own delay. Cutting a date at the
+#first colon used to leave "Thu,13Aug202612" behind, and every numeric test
+#on it then errored with "integer expression expected".
+_retryafter_seconds() {
+  _ras_v="$(tr -d '\r' | grep -i "^Retry-After *:" | _head_n 1 | cut -d : -f 2- | sed 's/^ *//; s/ *$//')"
+  if [ -z "$_ras_v" ]; then
+    return 0
+  fi
+  case "$_ras_v" in
+  *[!0-9]*)
+    _ras_t="$(_httpdate2time "$_ras_v")" || return 0
+    _ras_d="$((_ras_t - $(_time)))"
+    if [ "$_ras_d" -gt 0 ]; then
+      echo "$_ras_d"
+    fi
+    ;;
+  *)
+    echo "$_ras_v"
+    ;;
+  esac
+}
+
 # url  payload needbase64  keyfile
 _send_signed_request() {
   url=$1
@@ -2580,7 +2757,7 @@ _send_signed_request() {
         _debug3 _body "$_body"
       fi
 
-      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      _retryafter=$(echo "$responseHeaders" | _retryafter_seconds)
       if _is_gateway_error "$code"; then
         _sleep_overload_retry_sec=$_retryafter
         if [ -z "$_sleep_overload_retry_sec" ]; then
@@ -5449,6 +5626,9 @@ issue() {
 
     #for dns manual mode
     _savedomainconf "Le_OrderFinalize" "$Le_OrderFinalize"
+    #the second invocation must poll this order, not the one the previous cert came from
+    _savedomainconf "Le_LinkOrder" "$Le_LinkOrder"
+    _cleardomainconf "Le_LinkCert"
 
     _authorizations_seg="$(echo "$response" | _json_decode | _authorizations_from_order)"
     _debug2 _authorizations_seg "$_authorizations_seg"
@@ -5951,7 +6131,7 @@ $_authorizations_map"
         _on_issue_err "$_post_hook" "$vlist"
         return 1
       fi
-      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      _retryafter=$(echo "$responseHeaders" | _retryafter_seconds)
       _sleep_overload_retry_sec=$_retryafter
       if [ "$_sleep_overload_retry_sec" ]; then
         if [ $_sleep_overload_retry_sec -le 600 ]; then
@@ -6021,7 +6201,7 @@ $_authorizations_map"
       break
     elif _contains "$response" "\"ready\""; then
       _info "Order status is 'ready', let's sleep and retry."
-      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      _retryafter=$(echo "$responseHeaders" | _retryafter_seconds)
       _debug "_retryafter" "$_retryafter"
       if [ "$_retryafter" ] && [ $_retryafter -gt 0 ]; then
         _info "Sleeping for $_retryafter seconds then retrying"
@@ -6031,7 +6211,7 @@ $_authorizations_map"
       fi
     elif _contains "$response" "\"processing\""; then
       _info "Order status is 'processing', let's sleep and retry."
-      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      _retryafter=$(echo "$responseHeaders" | _retryafter_seconds)
       _debug "_retryafter" "$_retryafter"
       if [ "$_retryafter" ] && [ $_retryafter -gt 0 ]; then
         _info "Sleeping for $_retryafter seconds then retrying"

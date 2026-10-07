@@ -134,7 +134,7 @@ _hw_get_recordset() {
   _hw_recordid=""
   _hw_records=""
   _hw_recordttl=""
-  _hw_query="name=$(printf "%s" "$_hw_domain" | _url_encode upper-hex)&search_mode=equal&type=TXT"
+  _hw_query="limit=1&name=$(printf "%s" "$_hw_domain" | _url_encode upper-hex)&search_mode=equal&type=TXT"
   # List TXT record sets to locate the existing challenge record: https://support.huaweicloud.com/api-dns/dns_api_64004.html
   if ! _hw_rest "GET" "/v2/zones/${_hw_zone}/recordsets" "$_hw_query" ""; then
     return 1
@@ -144,8 +144,9 @@ _hw_get_recordset() {
   if [ -z "$_hw_recordid" ]; then
     return 0
   fi
-  _hw_expected_name="$(_lower_case "${_hw_domain}.")"
-  if [ "$(_lower_case "$_hw_returned_name")" != "$_hw_expected_name" ]; then
+  _hw_expected_name=$(echo "${_hw_domain}." | _lower_case)
+  _hw_returned_name=$(echo "$_hw_returned_name" | _lower_case)
+  if [ "$_hw_returned_name" != "$_hw_expected_name" ]; then
     _err "Huawei Cloud DNS returned an unexpected record set for $_hw_domain"
     return 1
   fi

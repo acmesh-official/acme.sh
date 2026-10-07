@@ -125,6 +125,18 @@ jobs:
             exit 1
           fi
           echo "dispatching a rebuild of ${tag}"
-          # fails with 422 when the tag's workflow file has no workflow_dispatch
-          # trigger (releases before this job existed); nothing to do then
-          gh workflow run dockerhub.yml --repo "${GITHUB_REPOSITORY}" --ref "${tag}"
+          # A tag cut before this job existed carries a workflow file with no
+          # workflow_dispatch trigger; the API rejects the dispatch with 422.
+          # That is expected (nothing to rebuild there), so only a different
+          # error fails the job.
+          if ! out="$(gh workflow run dockerhub.yml --repo "${GITHUB_REPOSITORY}" --ref "${tag}" 2>&1)"; then
+            echo "$out"
+            case "$out" in
+            *"does not have 'workflow_dispatch' trigger"*)
+              echo "::warning::${tag} predates the dispatch trigger; skipping the rebuild"
+              ;;
+            *)
+              exit 1
+              ;;
+            esac
+          fi
