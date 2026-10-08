@@ -1,3 +1,4 @@
+#!/usr/bin/env sh
 # Script to deploy a certificate to FortiManager via API and set it as the current web GUI certificate.
 # FortiManager has character limit of 35 characters for certificate names.
 # Upon succesful activation of certificate FortiManager directly restarts webserver, the deploy hook
@@ -173,22 +174,18 @@ EOF
   if [ -n "$_fortimanager_response" ]; then
     if _contains "$_fortimanager_response" '"code":[ ]*0'; then
       _debug "Certificate accepted (webserver will restart)"
-      # Waiting for webserver to restart
-      sleep 5
-      return 0
+    else
+      _err "FortiManager rejected the certificate update"
+      _debug "$_fortimanager_response"
+      return 1
     fi
-    _err "FortiManager rejected the certificate update"
-    _debug "$_fortimanager_response"
-    return 1
-  fi
+    else
+      _debug "No response body received — assuming webserver restarted after accepting certificate"
+    fi
 
-  if [ "$_post_exit_code" -eq 56 ]; then
-    _debug "Certificate accepted, webserver restarting (curl 56 expected)"
-    # Waiting for webserver to restart
+    # wait for webserver to restart
     sleep 5
     return 0
-  fi
-  _err "FortiManager certificate update failed (curl exit code $_post_exit_code)" || return 1
 }
 
 # Function to clean up the previously deployed certificate
@@ -231,7 +228,7 @@ EOF
 fortimanager_deploy() {
   # Replace . in cert name for - and truncate name to 28 characters for date
   _fortimanager_cert_name="$(echo "$1" | tr . - | sed 's/*/WC_/g')"
-  _fortimanager_cert_name="${_fortimanager_cert_name:0:28}"
+  _fortimanager_cert_name=$(printf '%.28s' "$_fortimanager_cert_name")
   _fortimanager_ckey="$2"
   _fortimanager_cca="$4"
   _fortimanager_ccert="$3"
