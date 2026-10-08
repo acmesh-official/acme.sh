@@ -1,3 +1,8 @@
+# Script to deploy a certificate to FortiManager via API and set it as the current web GUI certificate.
+# FortiManager has character limit of 35 characters for certificate names.
+# Upon succesful activation of certificate FortiManager directly restarts webserver, the deploy hook
+# sleeps for 5 seconds after that so that it can recover.
+#
 # REQUIRED:
 #     export FMG_HOST="fortimanager_hostname-or-ip"
 #     export FMG_TOKEN="fortimanager_api_token"
@@ -6,20 +11,13 @@
 #     export FMG_PORT="10443"             # Custom HTTPS port (defaults to 443 if not set)
 #
 # Run `acme.sh --deploy -d example.com --deploy-hook fortimanager --insecure` to use this script.
-# OPTIONAL:
-#     export FMG_PORT="10443"             # Custom HTTPS port (defaults to 443 if not set)
-#
-# Run `acme.sh --deploy -d example.com --deploy-hook fortimanager --insecure` to use this script.
 # `--insecure` is required on first run if not already using a valid SSL certificate on firewall.
-#
-# Character limit of certificate names on FortiManager is 35, be aware with long names.
 
 # Function to parse a FortiGate API response
 _fortimanager_parse_response() {
   _fortimanager_response="$1"
   _fortimanager_func="$2"
   _fortimanager_status=$(echo "$_fortimanager_response" | _egrep_o '"message":[ ]*"[^"]*"' | cut -d '"' -f 4)
-  echo $_fortimanager_status
   if [ "$_fortimanager_status" != "OK" ]; then
     return 1
   fi
@@ -58,13 +56,18 @@ EOF
   _fortimanager_response=$(_post "$_fortimanager_payload" "$_fortimanager_url" "" "POST" "application/json")
   _debug "FortiManager API Response: $_fortimanager_response"
 
+  # FortiManager error -2 means that the certificate already exists.
+  if echo "$_fortimanager_response" | grep -q '"code":[ ]*-2'; then
+    _debug "Certificate already exists. Skipping certificate upload."
+    return 0
+  fi
+
   _fortimanager_parse_response "$_fortimanager_response" "Deploying certificate" || return 1
 }
 
 # Function to upload a CA certificate to the firewall
-# FortiGate does not automatically extract the CA from the full chain.
 _fortimanager_upload_ca_cert() {
-  _fortimanager_ca_base64=$(cat "$_fortimanager_cca")
+  _fortimanager_ca=$(cat "$_fortimanager_cca")
   _fortimanager_ca_name=$(openssl x509 -in "$_fortimanager_cca" -noout -subject -nameopt multiline \
   | awk -F'= ' '/commonName/ {print $2}')
 
@@ -82,7 +85,7 @@ _fortimanager_upload_ca_cert() {
       "data": [
         {
           "ca": [
-            "$_fortimanager_ca_base64"
+            "$_fortimanager_ca"
           ],
           "name": "$_fortimanager_ca_name"
         }
@@ -101,17 +104,49 @@ EOF
   _fortimanager_response=$(_post "$_fortimanager_payload" "$_fortimanager_url" "" "POST" "application/json")
   _debug "FortiManager API CA Response: $_fortimanager_response"
 
-  # FortiManager error -328 means that the CA certificate already exists.
-  #if echo "$_fortimanager_response" | grep -q '"error":[ ]*-328'; then
-  #  _debug "CA certificate already exists. Skipping CA upload."
-  #  return 0
-  #fi
+  # FortiManager error -2 means that the CA certificate already exists.
+  if echo "$_fortimanager_response" | grep -q '"code":[ ]*-2'; then
+    _debug "CA certificate already exists. Skipping CA upload."
+    return 0
+  fi
 
   _fortimanager_parse_response "$_fortimanager_response" "Deploying CA certificate" || return 1
 }
 
+# Function to get currently active certificate
+_fortimanager_get_active_web_cert() {
+  _fortimanager_payload=$(
+    cat <<EOF
+{
+  "method": "get",
+  "params": [
+    {
+      "url": "/cli/global/system/admin/setting"
+    }
+  ]
+}
+EOF
+  )
+
+  _fortimanager_url="https://${FMG_HOST}:${FMG_PORT}/jsonrpc"
+  _debug "Getting current GUI certificate..."
+
+  _H1="Authorization: Bearer $FMG_TOKEN"
+  _fortimanager_response=$(_post "$_fortimanager_payload" "$_fortimanager_url" "" "POST" "application/json")
+
+  _fortimanager_current_active_cert=$(echo "$_fortimanager_response" | _egrep_o '"admin_server_cert":[ ]*"[^"]*"' | cut -d '"' -f 4)
+}
+
 # Function to activate the new certificate
 _fortimanager_set_active_web_cert() {
+  # Get current active web cert to check if we can skip this
+  _fortimanager_get_active_web_cert
+
+  if [ "$_fortimanager_current_active_cert" = "$_fortimanager_cert_name" ]; then
+    _debug "Skipping activating certificate as it is already active"
+    return 0
+  fi
+
   _fortimanager_payload=$(
     cat <<EOF
 {
@@ -132,9 +167,28 @@ EOF
   _debug "Setting GUI certificate..."
 
   _H1="Authorization: Bearer $FMG_TOKEN"
-  _fortimanager_response=$(_post "$_fortimanager_payload" "$_fortimanager_url" "" "PUT" "application/json")
+  _fortimanager_response=$(_post "$_fortimanager_payload" "$_fortimanager_url" "" "PUT" "application/json" 2>/dev/null)
+  _post_exit_code=$?
 
-  _fortimanager_parse_response "$_fortimanager_response" "Assigning active certificate" || return 1
+  if [ -n "$_fortimanager_response" ]; then
+    if _contains "$_fortimanager_response" '"code":[ ]*0'; then
+      _debug "Certificate accepted (webserver will restart)"
+      # Waiting for webserver to restart
+      sleep 5
+      return 0
+    fi
+    _err "FortiManager rejected the certificate update"
+    _debug "$_fortimanager_response"
+    return 1
+  fi
+
+  if [ "$_post_exit_code" -eq 56 ]; then
+    _debug "Certificate accepted, webserver restarting (curl 56 expected)"
+    # Waiting for webserver to restart
+    sleep 5
+    return 0
+  fi
+  _err "FortiManager certificate update failed (curl exit code $_post_exit_code)" || return 1
 }
 
 # Function to clean up the previously deployed certificate
@@ -149,11 +203,11 @@ _fortimanager_cleanup_previous_certificate() {
         "method": "delete",
         "params": [
         {
-          "url": "/cli/global/system/certificate/local/{local}"
+          "url": "/cli/global/system/certificate/local/$FMG_LAST_CERT"
         }]
       }
 EOF
-)
+    )
 
     _fortimanager_url="https://${FMG_HOST}:${FMG_PORT}/jsonrpc"
     _debug "Deleting certificate via URL: $_fortimanager_url"
@@ -162,6 +216,12 @@ EOF
     _fortimanager_response=$(_post "$_fortimanager_payload" "$_fortimanager_url" "" "POST" "application/json")
     _debug "FortiManager API Response: $_fortimanager_response"
 
+      # FortiManager error -3 means that the object does not exist anymore
+    if echo "$_fortimanager_response" | grep -q '"code":[ ]*-3'; then
+      _debug "Certificate does not exist anymore"
+      return 0
+    fi
+
     _fortimanager_parse_response "$_fortimanager_response" "Deleting previous certificate" || return 1
   else
     _debug "No previous certificate found."
@@ -169,16 +229,20 @@ EOF
 }
 
 fortimanager_deploy() {
-  # Include date and time to ensure unique names. Replace . in cert name for -
-  _fortimanager_cert_name="$(echo "$1" | tr . - | sed 's/*/WILDCARD_/g')_$(date -u +"%y%m%d")"
+  # Replace . in cert name for - and truncate name to 28 characters for date
+  _fortimanager_cert_name="$(echo "$1" | tr . - | sed 's/*/WC_/g')"
+  _fortimanager_cert_name="${_fortimanager_cert_name:0:28}"
   _fortimanager_ckey="$2"
   _fortimanager_cca="$4"
   _fortimanager_ccert="$3"
 
-  if [ ${#_fortimanager_cert_name} -gt 35 ]; then
-    _err "Certificate name too long"
-    return 1
-  fi
+  # Get start date and append to name
+  _cert_date=$(LC_ALL=C openssl x509 -in "$_fortimanager_ccert" -noout -startdate | cut -d= -f2 \
+  | awk 'BEGIN{
+      m["Jan"]=1;m["Feb"]=2;m["Mar"]=3;m["Apr"]=4;m["May"]=5;m["Jun"]=6;
+      m["Jul"]=7;m["Aug"]=8;m["Sep"]=9;m["Oct"]=10;m["Nov"]=11;m["Dec"]=12
+    } {printf "%02d%02d%02d", substr($4,3), m[$1], $2}')
+  _fortimanager_cert_name="${_fortimanager_cert_name}_${_cert_date}"
 
   if [ ! -f "$_fortimanager_ckey" ] || [ ! -f "$_fortimanager_ccert" ]; then
     _err "Valid key and/or certificate not found."
