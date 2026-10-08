@@ -30,7 +30,7 @@ _fortimanager_parse_response() {
 # Function to deploy a base64-encoded certificate to the FortiManager
 _fortimanager_deployer() {
   _fortimanager_ccert_data=$(cat "$_fortimanager_ccert")
-  _fortimanager_ckey_data=$(cat "$_fortimanager_ckey")  
+  _fortimanager_ckey_data=$(cat "$_fortimanager_ckey")
 
   _fortimanager_payload=$(
     cat <<EOF
@@ -69,8 +69,8 @@ EOF
 # Function to upload a CA certificate to the firewall
 _fortimanager_upload_ca_cert() {
   _fortimanager_ca=$(cat "$_fortimanager_cca")
-  _fortimanager_ca_name=$(openssl x509 -in "$_fortimanager_cca" -noout -subject -nameopt multiline \
-  | awk -F'= ' '/commonName/ {print $2}')
+  _fortimanager_ca_name=$(openssl x509 -in "$_fortimanager_cca" -noout -subject -nameopt multiline |
+    awk -F'= ' '/commonName/ {print $2}')
 
   if [ ${#_fortimanager_ca_name} -gt 35 ]; then
     _err "CA name too long"
@@ -179,13 +179,13 @@ EOF
       _debug "$_fortimanager_response"
       return 1
     fi
-    else
-      _debug "No response body received — assuming webserver restarted after accepting certificate"
-    fi
+  else
+    _debug "No response body received — assuming webserver restarted after accepting certificate"
+  fi
 
-    # wait for webserver to restart
-    sleep 5
-    return 0
+  # wait for webserver to restart
+  sleep 5
+  return 0
 }
 
 # Function to clean up the previously deployed certificate
@@ -213,7 +213,7 @@ EOF
     _fortimanager_response=$(_post "$_fortimanager_payload" "$_fortimanager_url" "" "POST" "application/json")
     _debug "FortiManager API Response: $_fortimanager_response"
 
-      # FortiManager error -3 means that the object does not exist anymore
+    # FortiManager error -3 means that the object does not exist anymore
     if echo "$_fortimanager_response" | grep -q '"code":[ ]*-3'; then
       _debug "Certificate does not exist anymore"
       return 0
@@ -234,8 +234,8 @@ fortimanager_deploy() {
   _fortimanager_ccert="$3"
 
   # Get start date and append to name
-  _cert_date=$(LC_ALL=C openssl x509 -in "$_fortimanager_ccert" -noout -startdate | cut -d= -f2 \
-  | awk 'BEGIN{
+  _cert_date=$(LC_ALL=C openssl x509 -in "$_fortimanager_ccert" -noout -startdate | cut -d= -f2 |
+    awk 'BEGIN{
       m["Jan"]=1;m["Feb"]=2;m["Mar"]=3;m["Apr"]=4;m["May"]=5;m["Jun"]=6;
       m["Jul"]=7;m["Aug"]=8;m["Sep"]=9;m["Oct"]=10;m["Nov"]=11;m["Dec"]=12
     } {printf "%02d%02d%02d", substr($4,3), m[$1], $2}')
