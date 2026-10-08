@@ -114,21 +114,32 @@ _rm_record() {
   full=$1
   txtvalue=$2
 
-  if ! _poweradmin_rest "GET" "/api/v${POWERADMIN_API_VERSION}/zones/$_zone_id/records"; then
+  if ! _poweradmin_rest "GET" "/api/v${POWERADMIN_API_VERSION}/zones/$_zone_id/records?type=TXT"; then
     _err "Failed to retrieve records"
     return 1
   fi
 
-  # The API returns: {"success":true,"data":[{"id":..., "name":"...", "type":"TXT", "content":"...", ...}]}
-  _txt_record_obj=$(
-    printf '%s\n' "$response" |
-      sed 's/^.*"data":\[//; s/\],"message":.*$//' |
-      awk '{ gsub(/},{/, "}\n{"); print }' |
-      grep -F "\"name\":\"$full\"" |
-      grep -F "\"type\":\"TXT\"" |
-      grep -F "\"content\":\"$txtvalue\"" |
-      _head_n 1
-  )
+  # The API returns: {"success":true,"data":{"records":[{"id":..., "name":"...", "type":"TXT", "content":"...", ...}]},"message":"..."}
+  _records="$(printf '%s\n' "$response" | tr -d '\r\n' | _egrep_o '\{[^{}]*\}')"
+  _txt_record_obj=""
+  while IFS= read -r _rec || [ -n "$_rec" ]; do
+    case "$_rec" in
+    *"\"name\":\"$full\""*) ;;
+    *) continue ;;
+    esac
+    case "$_rec" in
+    *"\"type\":\"TXT\""*) ;;
+    *) continue ;;
+    esac
+    case "$_rec" in
+    *"\"content\":\"$txtvalue\""*)
+      _txt_record_obj="$_rec"
+      break
+      ;;
+    esac
+  done <<EOF
+$_records
+EOF
 
   if [ -z "$_txt_record_obj" ]; then
     _info "TXT record not found for $full with content $txtvalue"
@@ -173,7 +184,7 @@ _get_root() {
     return 1
   fi
 
-  _zones_response="$response"
+  _zones="$(printf '%s\n' "$response" | tr -d '\r\n' | _egrep_o '\{[^{}]*\}')"
 
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
@@ -183,12 +194,17 @@ _get_root() {
       return 1
     fi
 
-    zone_obj=$(
-      printf '%s' "$_zones_response" |
-        sed 's/},{/}\n{/g' |
-        grep -F "\"name\":\"$h\"" |
-        _head_n 1
-    )
+    zone_obj=""
+    while IFS= read -r _zone || [ -n "$_zone" ]; do
+      case "$_zone" in
+      *"\"name\":\"$h\""*)
+        zone_obj="$_zone"
+        break
+        ;;
+      esac
+    done <<EOF
+$_zones
+EOF
 
     if [ -n "$zone_obj" ]; then
       _zone_id=$(printf '%s' "$zone_obj" | _egrep_o '"id":[0-9][0-9]*' | _head_n 1 | cut -d: -f2)

@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.1.6
+VER=3.1.7
 
 PROJECT_NAME="acme.sh"
 
@@ -2140,6 +2140,7 @@ _resethttp() {
   __HTTP_INITIALIZED=""
   _ACME_CURL=""
   _ACME_WGET=""
+  _ACME_WGET2=""
   ACME_HTTP_NO_REDIRECTS=""
 }
 
@@ -2190,7 +2191,15 @@ _inithttp() {
   fi
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
-    _ACME_WGET="wget -q"
+    #wget2, the wget of Fedora 40 and later, prints nothing for -S under -q,
+    #so it runs without -q and _wget2_fix_header cleans up after it
+    _ACME_WGET2=""
+    if _contains "$(wget --version 2>&1 | _head_n 1)" "Wget2"; then
+      _ACME_WGET2=1
+      _ACME_WGET="wget"
+    else
+      _ACME_WGET="wget -q"
+    fi
     if [ "$ACME_USE_IPV6_REQUESTS" ]; then
       _ACME_WGET="$_ACME_WGET --inet6-only "
     elif [ "$ACME_USE_IPV4_REQUESTS" ]; then
@@ -2200,7 +2209,8 @@ _inithttp() {
       _ACME_WGET="$_ACME_WGET --max-redirect 0 "
     fi
     if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
-      if [ "$_ACME_WGET" ] && _contains "$($_ACME_WGET --help 2>&1)" "--debug"; then
+      #the -d demultiplexing after each request expects wget 1.x output
+      if [ -z "$_ACME_WGET2" ] && _contains "$($_ACME_WGET --help 2>&1)" "--debug"; then
         _ACME_WGET="$_ACME_WGET -d "
       fi
     fi
@@ -2218,6 +2228,30 @@ _inithttp() {
 
   __HTTP_INITIALIZED=1
 
+}
+
+#stdin: what wget2 -S wrote to stderr. Prints the response headers the way
+#curl --dump-header writes them. wget2 frames every header block with lines of
+#its own ("[0] Downloading ...", "# got header ...", and after the block
+#"HTTP response 200 OK [url]", which callers would take for the status line),
+#and prints no header block at all for a response without a body (a 204, the
+#empty 200 of a revocation): then only the status line can be rebuilt, from
+#the last "HTTP [ERROR ]response" line, with HTTP/1.1 assumed.
+_wget2_headers() {
+  _w2h_in="$(cat)"
+  _w2h_cr="$(printf '\r')"
+  _w2h_blocks="$(printf "%s\n" "$_w2h_in" | sed -n "/^HTTP /d; /^HTTP\//,/^$_w2h_cr*\$/p")"
+  if [ "$_w2h_blocks" ]; then
+    printf "%s\n" "$_w2h_blocks"
+  else
+    printf "%s\n" "$_w2h_in" | sed -n 's/^HTTP ERROR response /HTTP response /; s/^HTTP response \([0-9][0-9]*\).*$/HTTP\/1.1 \1/p' | _tail_n 1
+  fi
+}
+
+#rewrite $HTTP_HEADER after a wget2 request, see _wget2_headers
+_wget2_fix_header() {
+  _w2f_headers="$(_wget2_headers <"$HTTP_HEADER")"
+  printf "%s\n" "$_w2f_headers" >"$HTTP_HEADER"
 }
 
 # body  url [needbase64] [POST|PUT|DELETE] [ContentType]
@@ -2315,7 +2349,15 @@ _post() {
           response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
         fi
       elif [ "$httpmethod" = "HEAD" ]; then
-        if [ "$_postContentType" ]; then
+        if [ "$_ACME_WGET2" ]; then
+          #wget2 prints no headers for a HEAD response, not even with -S, but
+          #--save-headers writes them into the -O file
+          if [ "$_postContentType" ]; then
+            response="$($_WGET --method HEAD --save-headers -O "$HTTP_HEADER" --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" "$_post_url" 2>/dev/null)"
+          else
+            response="$($_WGET --method HEAD --save-headers -O "$HTTP_HEADER" --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" "$_post_url" 2>/dev/null)"
+          fi
+        elif [ "$_postContentType" ]; then
           response="$($_WGET --spider -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
         else
           response="$($_WGET --spider -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
@@ -2340,6 +2382,9 @@ _post() {
       # Demultiplex wget debug output
       cat "$HTTP_HEADER" >&2
       _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
+    fi
+    if [ "$_ACME_WGET2" ]; then
+      _wget2_fix_header
     fi
     # remove leading whitespaces from header to match curl format
     _sed_i 's/^  //g' "$HTTP_HEADER"
@@ -2434,6 +2479,9 @@ _post_file() {
       cat "$HTTP_HEADER" >&2
       _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
     fi
+    if [ "$_ACME_WGET2" ]; then
+      _wget2_fix_header
+    fi
     # remove leading whitespaces from header to match curl format
     _sed_i 's/^  //g' "$HTTP_HEADER"
   else
@@ -2500,6 +2548,9 @@ _get() {
         # Demultiplex wget debug output
         cat "$HTTP_HEADER" >&2
         _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
+      fi
+      if [ "$_ACME_WGET2" ]; then
+        _wget2_fix_header
       fi
       # remove leading whitespaces from header to match curl format
       _sed_i 's/^  //g' "$HTTP_HEADER"
@@ -2800,6 +2851,35 @@ _sed_escape_rhs() {
   sed -e 's/\\/\\\\/g' -e 's/&/\\&/g' -e 's/|/\\|/g'
 }
 
+#_write_conf  file  content
+#Replace the conf file with the content.
+#Redirecting straight into the conf truncates it before anything is written, so
+#a failed write (e.g. no space left on device) left an empty conf and the cert
+#could not be renewed any more (#7247). Write a temp file next to the conf and
+#rename it over the conf only after the content is verified.
+_write_conf() {
+  __w_conf="$1"
+  __w_text="$2"
+  __w_tmp="$__w_conf.$$.tmp"
+  #cp -p, so the temp file carries the mode and owner of the conf
+  if ! cp -p "$__w_conf" "$__w_tmp" 2>/dev/null ||
+    ! printf -- "%s\n" "$__w_text" 2>/dev/null >"$__w_tmp" ||
+    [ "$(cat "$__w_tmp")" != "$__w_text" ]; then
+    rm -f "$__w_tmp"
+    return 1
+  fi
+  if [ ! -L "$__w_conf" ] && mv -f "$__w_tmp" "$__w_conf" 2>/dev/null; then
+    return 0
+  fi
+  #a symlink or a bind mounted file cannot be renamed over, write in place
+  if ! cat "$__w_tmp" 2>/dev/null >"$__w_conf"; then
+    #the conf may be truncated now, the temp file is the only complete copy
+    _err "Cannot write $__w_conf, the new content is kept in $__w_tmp"
+    return 1
+  fi
+  rm -f "$__w_tmp"
+}
+
 #setopt "file"  "opt"  "="  "value" [";"]
 _setopt() {
   __conf="$1"
@@ -2826,39 +2906,29 @@ _setopt() {
     return 1
     ;;
   esac
-  if [ -n "$(_tail_c 1 <"$__conf")" ]; then
-    echo >>"$__conf"
+  if ! __text="$(cat "$__conf")"; then
+    _err "Cannot read $__conf."
+    return 1
   fi
-
+  #build the new content first and write it once through _write_conf:
+  #redirecting straight into the conf truncates it before anything is
+  #written, so a failing sed (#2426) or a failing write (#7247) left a
+  #truncated conf, and a short append left a half written line
+  __sed_err=""
   if grep -n "^$__opt$__sep" "$__conf" >/dev/null; then
     _debug3 OK
     __val="$(printf -- "%s\n" "$__val" | _sed_escape_rhs)"
-    text="$(cat "$__conf")"
-    #capture first, write only on success: redirecting sed straight into the
-    #conf file truncates it before sed runs, so a failing sed (e.g. on an
-    #unescaped special character in the value) wiped the whole conf (#2426)
-    if __text="$(printf -- "%s\n" "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|")"; then
-      printf -- "%s\n" "$__text" >"$__conf"
-    else
-      _err "Cannot save '$__opt' to $__conf."
-      return 1
-    fi
-
+    __text="$(printf -- "%s\n" "$__text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|")" || __sed_err=1
   elif grep -n "^#$__opt$__sep" "$__conf" >/dev/null; then
     __val="$(printf -- "%s\n" "$__val" | _sed_escape_rhs)"
-    text="$(cat "$__conf")"
-    if __text="$(printf -- "%s\n" "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|")"; then
-      printf -- "%s\n" "$__text" >"$__conf"
-    else
-      _err "Cannot save '$__opt' to $__conf."
-      return 1
-    fi
-
+    __text="$(printf -- "%s\n" "$__text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|")" || __sed_err=1
   else
     _debug3 APP
-    #printf, not echo: dash's builtin echo interprets backslash escapes in
-    #the value and would corrupt it
-    printf -- "%s\n" "$__opt$__sep$__val$__end" >>"$__conf"
+    __text="$__text${__text:+$__nl}$__opt$__sep$__val$__end"
+  fi
+  if [ "$__sed_err" ] || ! _write_conf "$__conf" "$__text"; then
+    _err "Cannot save '$__opt' to $__conf."
+    return 1
   fi
   _debug3 "$(grep -n "^$__opt$__sep" "$__conf")"
 }
@@ -2888,7 +2958,11 @@ _clear_conf() {
     _conf_data="$(cat "$_c_c_f")"
     #printf, not echo: dash's builtin echo interprets backslash escapes and
     #would corrupt saved values that contain them on every rewrite
-    printf -- "%s\n" "$_conf_data" | sed "/^$_sdkey *=.*$/d" >"$_c_c_f"
+    if ! _conf_data="$(printf -- "%s\n" "$_conf_data" | sed "/^$_sdkey *=.*$/d")" ||
+      ! _write_conf "$_c_c_f" "$_conf_data"; then
+      _err "Cannot clear '$_sdkey' in $_c_c_f."
+      return 1
+    fi
   else
     _err "Config file is empty, cannot clear"
   fi
@@ -3365,7 +3439,13 @@ __initHome() {
 
   if [ -z "$ACCOUNT_CONF_PATH" ]; then
     if [ -f "$_DEFAULT_ACCOUNT_CONF_PATH" ]; then
+      #Same as in _initpath: keep the live ACCOUNT_EMAIL across the sourcing,
+      #so that the -m address _process() exported is not replaced by the
+      #saved one. _process() calls __initHome directly, after the option
+      #loop, so this is the sourcing that -m used to lose to.
+      _ih_account_email="$ACCOUNT_EMAIL"
       . "$_DEFAULT_ACCOUNT_CONF_PATH"
+      ACCOUNT_EMAIL="$_ih_account_email"
     fi
   fi
 
@@ -3475,11 +3555,21 @@ _initpath() {
   domain="$1"
   _ilength="$2"
 
+  #Keep the live ACCOUNT_EMAIL, the one -m exported in _process() or the
+  #caller put in the environment. account.conf is sourced twice below (here
+  #and inside __initHome), and a sourced assignment would overwrite it with
+  #the saved address, so -m silently lost to whatever account.conf held.
+  #The saved address is not lost either way: _getAccountEmail() reads it
+  #with _readaccountconf as its last resort, after the per-CA CA_EMAIL.
+  _cli_account_email="$ACCOUNT_EMAIL"
+
   __initHome
 
   if [ -f "$ACCOUNT_CONF_PATH" ]; then
     . "$ACCOUNT_CONF_PATH"
   fi
+
+  ACCOUNT_EMAIL="$_cli_account_email"
 
   if [ "$_ACME_IN_CRON" ]; then
     if [ ! "$_USER_PATH_EXPORTED" ]; then
@@ -4420,9 +4510,11 @@ _regAccount() {
   _secure_debug3 _eab_kid "$_eab_kid"
   _secure_debug3 _eab_hmac_key "$_eab_hmac_key"
   _email="$(_getAccountEmail)"
-  if [ "$_email" ]; then
-    _savecaconf "CA_EMAIL" "$_email"
-  fi
+  #CA_EMAIL is saved only once the CA has actually taken the contact, which
+  #is when it answers 201. For an account key it already knows it answers
+  #200 and ignores the contact of the request, so saving here would record
+  #an address the CA never stored.
+  _saved_ca_email="$(_readcaconf CA_EMAIL)"
 
   if [ "$ACME_DIRECTORY" = "$CA_ZEROSSL" ]; then
     if [ -z "$_eab_kid" ] || [ -z "$_eab_hmac_key" ]; then
@@ -4501,8 +4593,15 @@ _regAccount() {
   if [ "$code" = "" ] || [ "$code" = '201' ]; then
     echo "$response" >"$ACCOUNT_JSON_PATH"
     _info "Registered"
+    if [ "$_email" ]; then
+      _savecaconf "CA_EMAIL" "$_email"
+    fi
   elif [ "$code" = '409' ] || [ "$code" = '200' ]; then
     _info "Already registered"
+    if [ "$_email" ] && [ "$_email" != "$_saved_ca_email" ]; then
+      _info "The account email was not changed, the CA ignores the contact of an account it already has."
+      _info "Use '$PROJECT_ENTRY --update-account -m $_email' to change it."
+    fi
   elif [ "$code" = '400' ] && _contains "$response" 'The account is not awaiting external account binding'; then
     _info "EAB already registered"
     _eabAlreadyBound=1
@@ -5590,11 +5689,9 @@ issue() {
       _on_issue_err "$_post_hook"
       return 1
     fi
-    # RFC 9773 Section 5 only defines the "alreadyReplaced" error, but real CAs
-    # (Let's Encrypt) may also reject with a malformed error if the prior cert
-    # was issued by a different issuer / different CA. Retry without "replaces"
-    # whenever the failure mentions ARI or the replaces field.
-    if [ "$_replaces_certID" ] && { _contains "$response" "alreadyReplaced" || _contains "$response" "urn:ietf:params:acme:error:malformed" || _contains "$response" "'replaces'" || _contains "$response" "ARI"; }; then
+    # Retry without "replaces" whenever the CA rejected that field, e.g. after
+    # switching the ACME server: the prior cert belongs to the old CA.
+    if [ "$_replaces_certID" ] && _isARIReplacesRejected "$code" "$response"; then
       _info "ARI 'replaces' rejected by CA, retrying newOrder without 'replaces'."
       if ! _send_signed_request "$ACME_NEW_ORDER" "$_newOrderObj}"; then
         _err "Error creating new order."
@@ -7928,6 +8025,35 @@ _getARICertID() {
   _debug2 "_serurl" "$_serurl"
 
   printf "%s.%s" "$_akiurl" "$_serurl"
+}
+
+#httpcode response
+#Returns 0 when a newOrder was rejected because of the ARI "replaces" field,
+#so that the order can be retried without it.
+#The status code decides first, and an empty code counts as "not rejected":
+#an ACCEPTED order echoes the field back, since RFC 9773 Section 5 says that
+#a server accepting a newOrder request with a "replaces" field "MUST reflect
+#that field in the response", and the certID it carries is base64url, so the
+#response of a SUCCESSFUL order can contain "replaces" and even "ARI".
+#Matching on the message alone would then re-order without "replaces" and
+#defeat ARI.
+#Only the 409 "alreadyReplaced" type is mandated by RFC 9773 Section 5; the
+#other checks it lists (same ACME account, shared identifier) are left to
+#server policy, so the wording differs per CA: Let's Encrypt answers
+#malformed when the prior cert was issued by a different issuer, ZeroSSL
+#answers 401 with 'The "replaces" field does not identify a certificate that
+#belongs to this ACME account'.
+#https://github.com/acmesh-official/acme.sh/issues/7280
+_isARIReplacesRejected() {
+  _ari_rej_code="$1"
+  _ari_rej_resp="$2"
+  if [ -z "$_ari_rej_code" ] || _startswith "$_ari_rej_code" "2"; then
+    return 1
+  fi
+  _contains "$_ari_rej_resp" "alreadyReplaced" ||
+    _contains "$_ari_rej_resp" "replaces" ||
+    _contains "$_ari_rej_resp" "ARI" ||
+    _contains "$_ari_rej_resp" "urn:ietf:params:acme:error:malformed"
 }
 
 #cert
