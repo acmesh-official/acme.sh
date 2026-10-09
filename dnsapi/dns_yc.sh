@@ -113,7 +113,7 @@ dns_yc_add() {
 
   _info "Adding record"
   if _yc_rest POST "zones/$_domain_id:upsertRecordSets" "{\"merges\": [ { \"name\":\"$_sub_domain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":[\"$txtvalue\"]}]}"; then
-    if _contains "$response" "\"done\": true"; then
+    if _contains "$response" "\"done\": *true"; then
       _info "Added, OK"
       return 0
     else
@@ -168,7 +168,7 @@ dns_yc_rm() {
   # leaving any other values at the same name (e.g. base + wildcard domain)
   # intact -- no need to read the current data set and recompute it.
   if _yc_rest POST "zones/$_domain_id:upsertRecordSets" "{\"deletions\": [ { \"name\":\"$_sub_domain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":[\"$txtvalue\"]}]}"; then
-    if _contains "$response" "\"done\": true"; then
+    if _contains "$response" "\"done\": *true"; then
       _info "Delete, OK"
       return 0
     else
@@ -201,6 +201,8 @@ _get_root() {
         if [ "$_domain" ]; then
           _cutlength=$((${#domain} - ${#_domain}))
           _sub_domain=$(printf "%s" "$domain" | cut -c "1-$_cutlength")
+          # Strip the trailing dot: a relative name, as in the folder lookup below
+          _sub_domain="${_sub_domain%.}"
           _domain_id=$YC_Zone_ID
           return 0
         else
@@ -227,8 +229,9 @@ _get_root() {
       echo "You didn't specify a Yandex Cloud Folder ID."
       return 1
     fi
-    if _contains "$response" "\"zone\": \"$h\""; then
-      _domain_id=$(echo "$response" | _normalizeJson | _egrep_o "[^{]*\"zone\":\"$h\"[^}]*" | _egrep_o "\"id\"[^,]*" | _egrep_o "[^:][^:]*$" | tr -d '"')
+    if _contains "$response" "\"zone\": *\"$h\""; then
+      # Drop labels objects first, their braces would break the [^{]* match
+      _domain_id=$(echo "$response" | _normalizeJson | sed "s/\"labels\":{[^}]*}/\"labels\":0/g" | _egrep_o "[^{]*\"zone\":\"$h\"[^}]*" | _egrep_o "\"id\"[^,]*" | _egrep_o "[^:][^:]*$" | tr -d '"')
       _debug _domain_id "$_domain_id"
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
