@@ -55,7 +55,7 @@ DEFAULT_ACCOUNT_KEY_LENGTH=ec-256
 DEFAULT_DOMAIN_KEY_LENGTH=ec-256
 
 DEFAULT_OPENSSL_BIN="openssl"
-ACME_CURL_BIN="${ACME_CURL_BIN:-curl}"
+DEFAULT_CURL_BIN="curl"
 
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
@@ -2159,8 +2159,8 @@ _inithttp() {
     fi
   fi
 
-  if [ -z "$_ACME_CURL" ] && _exists "$ACME_CURL_BIN"; then
-    _ACME_CURL="$ACME_CURL_BIN --silent --dump-header $HTTP_HEADER "
+  if [ -z "$_ACME_CURL" ] && _exists "${ACME_CURL_BIN:-$DEFAULT_CURL_BIN}"; then
+    _ACME_CURL="${ACME_CURL_BIN:-$DEFAULT_CURL_BIN} --silent --dump-header $HTTP_HEADER "
     if [ "$ACME_USE_IPV6_REQUESTS" ]; then
       _ACME_CURL="$_ACME_CURL --ipv6 "
     elif [ "$ACME_USE_IPV4_REQUESTS" ]; then
@@ -2180,7 +2180,7 @@ _inithttp() {
       _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
     fi
 
-    if _contains "$($ACME_CURL_BIN --help 2>&1)" "--globoff" || _contains "$($ACME_CURL_BIN --help curl 2>&1)" "--globoff"; then
+    if _contains "$("${ACME_CURL_BIN:-$DEFAULT_CURL_BIN}" --help 2>&1)" "--globoff" || _contains "$("${ACME_CURL_BIN:-$DEFAULT_CURL_BIN}" --help curl 2>&1)" "--globoff"; then
       _ACME_CURL="$_ACME_CURL -g "
     fi
 
@@ -3667,6 +3667,10 @@ _initpath() {
 
   if [ -z "$ACME_OPENSSL_BIN" ] || [ ! -f "$ACME_OPENSSL_BIN" ] || [ ! -x "$ACME_OPENSSL_BIN" ]; then
     ACME_OPENSSL_BIN="$DEFAULT_OPENSSL_BIN"
+  fi
+
+  if [ -z "$ACME_CURL_BIN" ] || [ ! -f "$ACME_CURL_BIN" ] || [ ! -x "$ACME_CURL_BIN" ]; then
+    ACME_CURL_BIN="$DEFAULT_CURL_BIN"
   fi
 
   if [ -z "$domain" ]; then
@@ -8121,8 +8125,8 @@ _initconf() {
 _precheck() {
   _nocron="$1"
 
-  if ! _exists "$ACME_CURL_BIN" && ! _exists "wget"; then
-    _err "Please install curl or wget first to enable access to HTTP resources."
+  if ! _exists "${ACME_CURL_BIN:-$DEFAULT_CURL_BIN}" && ! _exists "wget"; then
+    _err "Please install curl or wget first to enable access to HTTP resources. ACME_CURL_BIN=$ACME_CURL_BIN"
     return 1
   fi
 
@@ -8781,6 +8785,7 @@ Parameters:
   --request-v4                      Force client requests to use ipv4 to connect to the CA server.
   --request-v6                      Force client requests to use ipv6 to connect to the CA server.
   --openssl-bin <file>              Specifies a custom openssl bin location.
+  --curl-bin <file>                 Specifies a custom curl bin location.
   --use-wget                        Force to use wget, if you have both curl and wget installed.
   --yes-I-know-dns-manual-mode-enough-go-ahead-please  Force use of dns manual mode.
                                       See:  $_DNS_MANUAL_WIKI
@@ -8899,7 +8904,9 @@ _processAccountConf() {
     _saveaccountconf "ACME_OPENSSL_BIN" "$ACME_OPENSSL_BIN"
   fi
 
-  if [ "$ACME_CURL_BIN" ] && [ "$ACME_CURL_BIN" != "curl" ]; then
+  if [ "$_curl_bin" ]; then
+    _saveaccountconf "ACME_CURL_BIN" "$_curl_bin"
+  elif [ "$ACME_CURL_BIN" ] && [ "$ACME_CURL_BIN" != "$DEFAULT_CURL_BIN" ]; then
     _saveaccountconf "ACME_CURL_BIN" "$ACME_CURL_BIN"
   fi
 
@@ -9110,6 +9117,7 @@ _process() {
   _listen_v4=""
   _listen_v6=""
   _openssl_bin=""
+  _curl_bin=""
   _syslog=""
   _use_wget=""
   _server=""
@@ -9627,6 +9635,11 @@ _process() {
     --openssl-bin)
       _openssl_bin="$2"
       ACME_OPENSSL_BIN="$_openssl_bin"
+      shift
+      ;;
+    --curl-bin)
+      _curl_bin="$2"
+      ACME_CURL_BIN="$_curl_bin"
       shift
       ;;
     --use-wget)
