@@ -14,7 +14,7 @@ ABION_Api_Endpoint="https://api.abion.com/v1"
 # Usage: dns_abion_add <domain> <txt record>
 # Example: dns_abion_add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_abion_add() {
-  fulldomain=$1
+  fulldomain="$(echo "$1" | _lower_case)"
   txtvalue=$2
 
   ABION_API_KEY="${ABION_API_KEY:-$(_readaccountconf_mutable ABION_API_KEY)}"
@@ -61,7 +61,7 @@ dns_abion_add() {
 
 # Usage: dns_abion_rm <domain> <txt record>
 dns_abion_rm() {
-  fulldomain=$1
+  fulldomain="$(echo "$1" | _lower_case)"
   txtvalue=$2
 
   ABION_API_KEY="${ABION_API_KEY:-$(_readaccountconf_mutable ABION_API_KEY)}"
