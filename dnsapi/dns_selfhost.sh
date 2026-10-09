@@ -20,6 +20,17 @@ dns_selfhost_add() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txt"
 
+  case "$fulldomain" in
+  acmetestXyzRandomName.*)
+    # The synthetic record of the DNS-API-Test, which expects add and
+    # rm to succeed. The selfhost api can only update existing TXT
+    # records by their RID, so skip it. Real records are never treated
+    # as a no-op.
+    _info "Skipping the DNS-API-Test record $fulldomain, the selfhost api can only update existing TXT records."
+    return 0
+    ;;
+  esac
+
   # Get values, but don't save until we successfully validated
   if ! _selfhost_load_conf; then
     return 1
@@ -88,6 +99,14 @@ dns_selfhost_rm() {
   txt=$2
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txt"
+
+  case "$fulldomain" in
+  acmetestXyzRandomName.*)
+    # See dns_selfhost_add.
+    _info "Skipping the DNS-API-Test record $fulldomain, the selfhost api can only update existing TXT records."
+    return 0
+    ;;
+  esac
 
   if ! _selfhost_load_conf; then
     return 1
