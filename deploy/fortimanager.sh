@@ -12,9 +12,9 @@
 #     export FMG_PORT="10443"             # Custom HTTPS port (defaults to 443 if not set)
 #
 # Run `acme.sh --deploy -d example.com --deploy-hook fortimanager --insecure` to use this script.
-# `--insecure` is required on first run if not already using a valid SSL certificate on firewall.
+# `--insecure` is required on first run if not already using a valid SSL certificate on FortiManager.
 
-# Function to parse a FortiGate API response
+# Function to parse FortiManager API response
 _fortimanager_parse_response() {
   _fortimanager_response="$1"
   _fortimanager_func="$2"
@@ -58,7 +58,7 @@ EOF
   _debug "FortiManager API Response: $_fortimanager_response"
 
   # FortiManager error -2 means that the certificate already exists.
-  if echo "$_fortimanager_response" | grep -q '"code":[ ]*-2'; then
+  if echo "$_fortimanager_response" | grep -q '"code":[ ]*-2[^0-9]'; then
     _debug "Certificate already exists. Skipping certificate upload."
     return 0
   fi
@@ -66,7 +66,7 @@ EOF
   _fortimanager_parse_response "$_fortimanager_response" "Deploying certificate" || return 1
 }
 
-# Function to upload a CA certificate to the firewall
+# Function to upload a CA certificate to the FortiManager
 _fortimanager_upload_ca_cert() {
   _fortimanager_ca=$(cat "$_fortimanager_cca")
   _fortimanager_ca_name=$(openssl x509 -in "$_fortimanager_cca" -noout -subject -nameopt multiline |
@@ -93,7 +93,7 @@ _fortimanager_upload_ca_cert() {
       ],
       "url": "/cli/global/system/certificate/ca"
     }
-  ],
+  ]
 }
 EOF
   )
@@ -106,7 +106,7 @@ EOF
   _debug "FortiManager API CA Response: $_fortimanager_response"
 
   # FortiManager error -2 means that the CA certificate already exists.
-  if echo "$_fortimanager_response" | grep -q '"code":[ ]*-2'; then
+  if echo "$_fortimanager_response" | grep -q '"code":[ ]*-2[^0-9]'; then
     _debug "CA certificate already exists. Skipping CA upload."
     return 0
   fi
@@ -180,7 +180,7 @@ EOF
       return 1
     fi
   else
-    _debug "No response body received — assuming webserver restarted after accepting certificate"
+    _debug "No response body received, assuming webserver restarted after accepting certificate"
   fi
 
   # wait for webserver to restart
@@ -214,7 +214,7 @@ EOF
     _debug "FortiManager API Response: $_fortimanager_response"
 
     # FortiManager error -3 means that the object does not exist anymore
-    if echo "$_fortimanager_response" | grep -q '"code":[ ]*-3'; then
+    if echo "$_fortimanager_response" | grep -q '"code":[ ]*-3[^0-9]'; then
       _debug "Certificate does not exist anymore"
       return 0
     fi
@@ -228,18 +228,12 @@ EOF
 fortimanager_deploy() {
   # Replace . in cert name for - and truncate name to 28 characters for date
   _fortimanager_cert_name="$(echo "$1" | tr . - | sed 's/*/WC_/g')"
-  _fortimanager_cert_name=$(printf '%.28s' "$_fortimanager_cert_name")
+  _fortimanager_cert_name=$(printf '%.22s' "$_fortimanager_cert_name")
+  _fortimanager_cert_name="${_fortimanager_cert_name}_$(date -u +%y%m%d%H%M%S)"
   _fortimanager_ckey="$2"
   _fortimanager_cca="$4"
   _fortimanager_ccert="$3"
-
-  # Get start date and append to name
-  _cert_date=$(LC_ALL=C openssl x509 -in "$_fortimanager_ccert" -noout -startdate | cut -d= -f2 |
-    awk 'BEGIN{
-      m["Jan"]=1;m["Feb"]=2;m["Mar"]=3;m["Apr"]=4;m["May"]=5;m["Jun"]=6;
-      m["Jul"]=7;m["Aug"]=8;m["Sep"]=9;m["Oct"]=10;m["Nov"]=11;m["Dec"]=12
-    } {printf "%02d%02d%02d", substr($4,3), m[$1], $2}')
-  _fortimanager_cert_name="${_fortimanager_cert_name}_${_cert_date}"
+  
 
   if [ ! -f "$_fortimanager_ckey" ] || [ ! -f "$_fortimanager_ccert" ]; then
     _err "Valid key and/or certificate not found."
