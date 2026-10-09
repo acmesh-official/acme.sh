@@ -152,6 +152,13 @@ _selfhost_load_conf() {
 
   if [ -z "${SELFHOSTDNS_APIKEY:-}" ]; then
     _err "SELFHOSTDNS_APIKEY must be set"
+    # hint for users still configured for the old username/password api
+    SELFHOSTDNS_USERNAME="${SELFHOSTDNS_USERNAME:-$(_readaccountconf_mutable SELFHOSTDNS_USERNAME)}"
+    SELFHOSTDNS_PASSWORD="${SELFHOSTDNS_PASSWORD:-$(_readaccountconf_mutable SELFHOSTDNS_PASSWORD)}"
+    if [ -n "${SELFHOSTDNS_USERNAME:-}" ] || [ -n "${SELFHOSTDNS_PASSWORD:-}" ]; then
+      _err "Selfhost has changed its API: SELFHOSTDNS_USERNAME and SELFHOSTDNS_PASSWORD are no longer supported, you have to migrate to SELFHOSTDNS_APIKEY."
+      _err "See https://github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_selfhost for instructions."
+    fi
     return 1
   fi
 
