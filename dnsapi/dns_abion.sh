@@ -2,6 +2,7 @@
 # shellcheck disable=SC2034
 dns_abion_info='abion.com
 Site: abion.com
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_abion
 Options:
  ABION_API_KEY API key for abion.com; obtain it from your Abion account/API settings
 '
@@ -11,7 +12,7 @@ ABION_Api_Endpoint="https://api.abion.com/v1"
 #####################  Public functions #####################
 
 # Usage: dns_abion_add <domain> <txt record>
-# Example: dns_abion_add www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+# Example: dns_abion_add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_abion_add() {
   fulldomain=$1
   txtvalue=$2
@@ -35,15 +36,26 @@ dns_abion_add() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  if ! _abion_rest PATCH "zones/$_domain" "{\"data\":{\"type\":\"zone\",\"id\":\"$_domain\",\"attributes\":{\"records\":{\"$_sub_domain\":{\"TXT\":[{\"rdata\":\"$txtvalue\",\"ttl\":60}]}}}}}"; then
+  if ! _abion_get_txt_records; then
     return 1
   fi
 
-  if ! echo "$response" | _egrep_o '"id"' > /dev/null; then
-    _err "Unexpected API response: $response"
+  if _contains "$_txt_records" "\"rdata\":\"$txtvalue\""; then
+    _info "TXT record already exists"
+    return 0
+  fi
+
+  _records=$(echo "$_txt_records" | tr '\n' ',' | sed 's/,*$//')
+  if [ -n "$_records" ]; then
+    _records="$_records,"
+  fi
+
+  _info "Adding record"
+  if ! _abion_patch_txt "[$_records{\"rdata\":\"$txtvalue\",\"ttl\":60}]"; then
     return 1
   fi
 
+  _info "Added, OK"
   return 0
 }
 
@@ -69,29 +81,29 @@ dns_abion_rm() {
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
 
-  if ! _abion_rest GET "zones/$_domain"; then
+  if ! _abion_get_txt_records; then
     return 1
   fi
 
-  _remaining=$(echo "$response" | _normalizeJson \
-    | sed "s/.*\"${_sub_domain}\"://" \
-    | _egrep_o '"TXT":\[[^]]*\]' \
-    | _egrep_o '"rdata":"[^"]*"' \
-    | sed 's/^"rdata":"//;s/"$//' \
-    | grep -v "^${txtvalue}$" \
-    | sed 's/.*/{"rdata":"&","ttl":60}/' \
-    | tr '\n' ',' \
-    | sed 's/,$//')
+  if ! _contains "$_txt_records" "\"rdata\":\"$txtvalue\""; then
+    _info "TXT record not found, nothing to remove"
+    return 0
+  fi
 
-  if ! _abion_rest PATCH "zones/$_domain" "{\"data\":{\"type\":\"zone\",\"id\":\"$_domain\",\"attributes\":{\"records\":{\"$_sub_domain\":{\"TXT\":[${_remaining}]}}}}}"; then
+  _records=$(echo "$_txt_records" | grep -v "\"rdata\":\"$txtvalue\"" | tr '\n' ',' | sed 's/,*$//')
+
+  if [ -n "$_records" ]; then
+    _records="[$_records]"
+  else
+    _records="null"
+  fi
+
+  _info "Deleting record"
+  if ! _abion_patch_txt "$_records"; then
     return 1
   fi
 
-  if ! echo "$response" | _egrep_o '"id"' > /dev/null; then
-    _err "Unexpected API response: $response"
-    return 1
-  fi
-
+  _info "Deleted, OK"
   return 0
 }
 
@@ -99,32 +111,66 @@ dns_abion_rm() {
 
 _get_root() {
   domain=$1
+  i=1
+  p=0
+  while true; do
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
+    _debug h "$h"
+    if [ -z "$h" ]; then
+      return 1
+    fi
 
-  if ! _abion_rest GET "zones" ""; then
+    if ! _abion_rest GET "zones/$h"; then
+      return 1
+    fi
+
+    if _contains "$response" '"type" *: *"zone"'; then
+      if [ "$p" = "0" ]; then
+        _sub_domain="@"
+      else
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
+      fi
+      _domain="$h"
+      return 0
+    fi
+
+    if ! _contains "$response" "Zone not found"; then
+      _err "$response"
+      return 1
+    fi
+
+    p="$i"
+    i=$(_math "$i" + 1)
+  done
+}
+
+_abion_get_txt_records() {
+  if ! _abion_rest GET "zones/$_domain"; then
     return 1
   fi
 
-  zones=$(echo "$response" | _normalizeJson | sed 's/},{/}\
-{/g' | _egrep_o '"id":"[^"]*"' | sed 's/^"id":"//; s/"$//')
+  _sub_re=$(printf "%s" "$_sub_domain" | sed 's/[.]/\\./g')
+  _txt_records=$(echo "$response" | _normalizeJson |
+    sed -n "s/.*\"$_sub_re\":{//p" |
+    sed 's/\] *}.*/]/' |
+    _egrep_o '"TXT":\[[^]]*\]' |
+    sed 's/^"TXT":\[ *//;s/ *\]$//;s/} *, *{/}\
+{/g')
+  _debug2 _txt_records "$_txt_records"
+  return 0
+}
 
-  num_labels=$(echo "$domain" | tr '.' '\n' | wc -l | tr -d '[:space:]')
-  i=1
-  while [ "$i" -le "$num_labels" ]; do
-    candidate=$(echo "$domain" | cut -d'.' -f"${i}"-)
+_abion_patch_txt() {
+  if ! _abion_rest PATCH "zones/$_domain" "{\"data\":{\"type\":\"zone\",\"id\":\"$_domain\",\"attributes\":{\"records\":{\"$_sub_domain\":{\"TXT\":$1}}}}}"; then
+    return 1
+  fi
 
-    for zone in $zones; do
-      if [ "$zone" = "$candidate" ]; then
-        _sub_len=$(_math "$i" - 1)
-        _sub_domain=$(echo "$domain" | cut -d'.' -f1-"$_sub_len")
-        _domain="$candidate"
-        return 0
-      fi
-    done
+  if ! _contains "$response" '"type" *: *"zone"'; then
+    _err "Unexpected API response: $response"
+    return 1
+  fi
 
-    i=$(_math "$i" + 1)
-  done
-
-  return 1
+  return 0
 }
 
 _abion_rest() {
