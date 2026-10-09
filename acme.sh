@@ -55,6 +55,7 @@ DEFAULT_ACCOUNT_KEY_LENGTH=ec-256
 DEFAULT_DOMAIN_KEY_LENGTH=ec-256
 
 DEFAULT_OPENSSL_BIN="openssl"
+ACME_CURL_BIN="${ACME_CURL_BIN:-curl}"
 
 VTYPE_HTTP="http-01"
 VTYPE_DNS="dns-01"
@@ -2158,8 +2159,8 @@ _inithttp() {
     fi
   fi
 
-  if [ -z "$_ACME_CURL" ] && _exists "curl"; then
-    _ACME_CURL="curl --silent --dump-header $HTTP_HEADER "
+  if [ -z "$_ACME_CURL" ] && _exists "$ACME_CURL_BIN"; then
+    _ACME_CURL="$ACME_CURL_BIN --silent --dump-header $HTTP_HEADER "
     if [ "$ACME_USE_IPV6_REQUESTS" ]; then
       _ACME_CURL="$_ACME_CURL --ipv6 "
     elif [ "$ACME_USE_IPV4_REQUESTS" ]; then
@@ -2179,7 +2180,7 @@ _inithttp() {
       _ACME_CURL="$_ACME_CURL --cacert $CA_BUNDLE "
     fi
 
-    if _contains "$(curl --help 2>&1)" "--globoff" || _contains "$(curl --help curl 2>&1)" "--globoff"; then
+    if _contains "$($ACME_CURL_BIN --help 2>&1)" "--globoff" || _contains "$($ACME_CURL_BIN --help curl 2>&1)" "--globoff"; then
       _ACME_CURL="$_ACME_CURL -g "
     fi
 
@@ -8120,7 +8121,7 @@ _initconf() {
 _precheck() {
   _nocron="$1"
 
-  if ! _exists "curl" && ! _exists "wget"; then
+  if ! _exists "$ACME_CURL_BIN" && ! _exists "wget"; then
     _err "Please install curl or wget first to enable access to HTTP resources."
     return 1
   fi
@@ -8896,6 +8897,10 @@ _processAccountConf() {
     _saveaccountconf "ACME_OPENSSL_BIN" "$_openssl_bin"
   elif [ "$ACME_OPENSSL_BIN" ] && [ "$ACME_OPENSSL_BIN" != "$DEFAULT_OPENSSL_BIN" ]; then
     _saveaccountconf "ACME_OPENSSL_BIN" "$ACME_OPENSSL_BIN"
+  fi
+
+  if [ "$ACME_CURL_BIN" ] && [ "$ACME_CURL_BIN" != "curl" ]; then
+    _saveaccountconf "ACME_CURL_BIN" "$ACME_CURL_BIN"
   fi
 
   if [ "$_auto_upgrade" ]; then
