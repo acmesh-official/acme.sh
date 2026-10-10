@@ -231,8 +231,8 @@ _redfish_log_in() {
   else
     # Create new session
     _sessions_endpoint="$(echo "${_response}" | _redfish_get_odata_id 'Links.Sessions')"
-    _username="$(echo "${_username}" | _json_encode)"
-    _password="$(echo "${_password}" | _json_encode)"
+    _username="$(printf '%s' "${_username}" | _json_encode)"
+    _password="$(printf '%s' "${_password}" | _json_encode)"
     _body="$(printf '{"UserName":"%s","Password":"%s"}' "${_username%\\n}" "${_password%\\n}")"
     _redfish_rest POST "${_sessions_endpoint}" "${_body}" || return 1
     _code="$(_redfish_response_code)"
