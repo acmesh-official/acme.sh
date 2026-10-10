@@ -298,7 +298,7 @@ _redfish_supports_full_certificate_chains() {
   for var in _schema_major _schema_minor _schema_patch; do
     _debug "$var" "$(eval echo "\$$var")"
     case "$(eval echo "\$$var")" in
-    '' | *[!0123456789]*) return 1 ;;
+    '' | *[!0-9]*) return 1 ;;
     *) continue ;;
     esac
   done
@@ -369,8 +369,8 @@ _redfish_supports_private_key() {
   fi
 
   _redfish_get_action "${_certificate_service_endpoint}" 'CertificateService.GenerateCSR' || return 1
-  _allowed_key_algos="$(_redfish_get_action_allowable_values 'KeyPairAlgorithm' | paste -sd ',')"
-  _allowed_key_curve_ids="$(_redfish_get_action_allowable_values 'KeyCurveId' | paste -sd ',')"
+  _allowed_key_algos="$(_redfish_get_action_allowable_values 'KeyPairAlgorithm' | tr '\n' ',')"
+  _allowed_key_curve_ids="$(_redfish_get_action_allowable_values 'KeyCurveId' | tr '\n' ',')"
   _allowed_key_bit_lengths="$(_redfish_get_action_allowable_values 'KeyBitLength' | sort -n)"
 
   if [ -z "${_allowed_key_bit_lengths}" ] && [ -z "${_allowed_key_curve_ids}" ]; then
@@ -393,10 +393,12 @@ _redfish_supports_private_key() {
     _debug _min_key_length "${_min_key_length}"
     _debug _max_key_length "${_max_key_length}"
 
-    if ! expr "${_min_key_length}:${_max_key_length}" : '^[0-9]\{1,\}:[0-9]\{1,\}$' >/dev/null; then
-      _err 'Server supports RSA private keys, but its minimum/maximum allowed key bit lengths could not be determined.'
+    case "${_min_key_length}:${_max_key_length}" in
+    *: | :* | *[!0-9:]*)
+      _debug 'Server supports RSA private keys, but its minimum/maximum allowed key bit lengths could not be determined. Proceeding blindly.'
       return 1
-    fi
+      ;;
+    esac
 
     # shellcheck disable=SC2154 # Le_Keylength is set by acme.sh core, not this hook
     if [ "${Le_Keylength}" -lt "${_min_key_length}" ] || [ "${Le_Keylength}" -gt "${_max_key_length}" ]; then
@@ -429,7 +431,7 @@ _redfish_get_primary_manager_endpoint() {
 
   if [ "${_num_managers}" != '1' ]; then
     _err "${_num_managers}"
-    _all_managers="$(echo "${_response}" | _redfish_get_odata_members | paste -sd ',')"
+    _all_managers="$(echo "${_response}" | _redfish_get_odata_members | tr '\n' ',')"
     _err "Multiple Redfish managers identified (${_all_managers}), but expected exactly one."
     _err 'Please specify the correct manager in DEPLOY_REDFISH_MANAGER.'
     return 1
@@ -451,7 +453,7 @@ _redfish_get_manager_certificate_endpoint() {
     _certificate_endpoint="${_protocol_endpoint}/HTTPS/Certificates/1"
     return 0
   elif [ "${_num_certificates}" != '1' ]; then
-    _all_certificates="$(echo "${_response}" | _redfish_get_odata_members | paste -sd ',')"
+    _all_certificates="$(echo "${_response}" | _redfish_get_odata_members | tr '\n' ',')"
     _err "Multiple web service HTTPS certificates identified (${_all_certificates}), but expected exactly one."
     _err "Please specify which certificate should be replaced in DEPLOY_REDFISH_CERTIFICATE."
     return 1
