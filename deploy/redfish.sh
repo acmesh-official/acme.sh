@@ -196,15 +196,15 @@ _redfish_get_odata_id() {
   for key in $(echo "$1" | tr '.' '\n'); do
     _regex="${_regex}.*\"${key}\":{"
   done
-  sed -n "${_regex}[^}]*\"@odata\\.id\":\"\\([^\"]*\\)\".*/\\1/p"
+  sed -n "${_regex}[^}]*\"@odata\\.id\":[ ]*\"\\([^\"]*\\)\".*/\\1/p"
 }
 
 _redfish_get_odata_members() {
-  sed -n 's/.*"Members":\[\([^]]*\)\].*/\1/p' | sed 's/,/\n/g' | sed -n 's/.*{"@odata\.id":"\([^"]*\)"}.*/\1/p'
+  sed -n 's/.*"Members":[ ]*\[\([^]]*\)\].*/\1/p' | sed 's/,/\n/g' | sed -n 's/.*{"@odata\.id":"\([^"]*\)"}.*/\1/p'
 }
 
 _redfish_get_odata_count() {
-  sed -n 's/.*"Members@odata\.count":[[:space:]]*\([0-9][0-9]*\).*/\1/p'
+  sed -n 's/.*"Members@odata\.count":[ ]*\([0-9][0-9]*\).*/\1/p'
 }
 
 _redfish_log_in() {
@@ -335,20 +335,20 @@ _redfish_get_action_allowable_values() {
     echo "${_allowable_values}" | tr ',' '\n'
   elif [ -n "${_action_info}" ]; then
     _parameter_info="$(echo "${_action_info}" |
-      sed -n 's/.*"Parameters":*\[\(\({[^}]*},\{0,1\}\)*\)\].*/\1/p' | _egrep_o '\{[^\}]{1,}\}' |
+      sed -n 's/.*"Parameters":[ ]*\[\(\({[^}]*},\{0,1\}\)*\)\].*/\1/p' | _egrep_o '\{[^\}]{1,}\}' |
       grep "\"Name\":\"${_parameter}\"")"
 
     if [ -n "${_parameter_info}" ]; then
       _debug2 "Found allowable values for '${_parameter}' in @Redfish.ActionInfo: ${_parameter_info}"
-      _data_type="$(echo "${_parameter_info}" | sed -n 's/.*"DataType":"\([^"]*\)".*/\1/p')"
+      _data_type="$(echo "${_parameter_info}" | sed -n 's/.*"DataType":[ ]*"\([^"]*\)".*/\1/p')"
 
       case "${_data_type}" in
       String)
-        echo "${_parameter_info}" | sed -n 's/.*"AllowableValues":\[\([^]]*\)\].*/\1/p' | tr -d '"' | tr ',' '\n'
+        echo "${_parameter_info}" | sed -n 's/.*"AllowableValues":[ ]*\[\([^]]*\)\].*/\1/p' | tr -d '"' | tr ',' '\n'
         ;;
       Number)
-        echo "${_parameter_info}" | sed -n 's/.*"MinimumValue":\([0-9]\{1,\}\).*/\1/p'
-        echo "${_parameter_info}" | sed -n 's/.*"MaximumValue":\([0-9]\{1,\}\).*/\1/p'
+        echo "${_parameter_info}" | sed -n 's/.*"MinimumValue":[ ]*\([0-9]\{1,\}\).*/\1/p'
+        echo "${_parameter_info}" | sed -n 's/.*"MaximumValue":[ ]*\([0-9]\{1,\}\).*/\1/p'
         ;;
       esac
     fi
