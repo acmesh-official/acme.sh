@@ -430,7 +430,6 @@ _redfish_get_primary_manager_endpoint() {
   _num_managers="$(echo "${_response}" | _redfish_get_odata_count)"
 
   if [ "${_num_managers}" != '1' ]; then
-    _err "${_num_managers}"
     _all_managers="$(echo "${_response}" | _redfish_get_odata_members | tr '\n' ',')"
     _err "Multiple Redfish managers identified (${_all_managers}), but expected exactly one."
     _err 'Please specify the correct manager in DEPLOY_REDFISH_MANAGER.'
