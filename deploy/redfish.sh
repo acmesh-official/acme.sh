@@ -333,7 +333,7 @@ _redfish_get_action_allowable_values() {
 
   if [ -n "${_allowable_values}" ]; then
     _debug2 "Found allowable values for '${_parameter}' in '@Redfish.Action': [${_allowable_values}]"
-    echo "${_allowable_values}" | tr ',' '\n'
+    echo "${_allowable_values}"
   elif [ -n "${_action_info}" ]; then
     _parameter_info="$(echo "${_action_info}" |
       sed -n 's/.*"Parameters":[ ]*\[\(\({[^}]*},\{0,1\}\)*\)\].*/\1/p' | _egrep_o '\{[^\}]{1,}\}' |
@@ -345,11 +345,12 @@ _redfish_get_action_allowable_values() {
 
       case "${_data_type}" in
       String)
-        echo "${_parameter_info}" | sed -n 's/.*"AllowableValues":[ ]*\[\([^]]*\)\].*/\1/p' | tr -d '"' | tr ',' '\n'
+        echo "${_parameter_info}" | sed -n 's/.*"AllowableValues":[ ]*\[\([^]]*\)\].*/\1/p' | tr -d '"'
         ;;
       Number)
-        echo "${_parameter_info}" | sed -n 's/.*"MinimumValue":[ ]*\([0-9]\{1,\}\).*/\1/p'
-        echo "${_parameter_info}" | sed -n 's/.*"MaximumValue":[ ]*\([0-9]\{1,\}\).*/\1/p'
+        _min_value="$(echo "${_parameter_info}" | sed -n 's/.*"MinimumValue":[ ]*\([0-9]\{1,\}\).*/\1/p')"
+        _max_value="$(echo "${_parameter_info}" | sed -n 's/.*"MaximumValue":[ ]*\([0-9]\{1,\}\).*/\1/p')"
+        echo "${_min_value},${_max_value}"
         ;;
       esac
     fi
@@ -370,18 +371,21 @@ _redfish_supports_private_key() {
   fi
 
   _redfish_get_action "${_certificate_service_endpoint}" 'CertificateService.GenerateCSR' || return 1
-  _allowed_key_algos="$(_redfish_get_action_allowable_values 'KeyPairAlgorithm' | tr '\n' ',')"
-  _allowed_key_curve_ids="$(_redfish_get_action_allowable_values 'KeyCurveId' | tr '\n' ',')"
-  _allowed_key_bit_lengths="$(_redfish_get_action_allowable_values 'KeyBitLength' | sort -n)"
-
-  if [ -z "${_allowed_key_bit_lengths}" ] && [ -z "${_allowed_key_curve_ids}" ]; then
-    _debug 'Failed to determine server crypto requirements, proceeding blindly.'
-    return 0
-  fi
+  _allowed_key_algos="$(_redfish_get_action_allowable_values 'KeyPairAlgorithm')"
+  _allowed_key_bit_lengths="$(_redfish_get_action_allowable_values 'KeyBitLength')"
+  _allowed_key_curve_ids="$(_redfish_get_action_allowable_values 'KeyCurveId')"
 
   if [ -z "${_allowed_key_algos}" ]; then
-    _debug 'GenerateCSR does not specify allowed KeyPairAlgorithm(s), so assuming TCG_ALG_RSA.'
-    _allowed_key_algos='TCG_ALG_RSA'
+    _contains "${_response}" '"KeyBitLength"' && _allowed_key_algos='TPM_ALG_RSA'
+    _contains "${_response}" '"KeyCurveId"' && _allowed_key_algos="${_allowed_key_algos},TPM_ALG_ECDSA"
+    _allowed_key_algos="${_allowed_key_algos#,}"
+
+    if [ -z "${_allowed_key_algos}" ]; then
+      _debug 'Failed to determine server crypto requirements, proceeding blindly.'
+      return 0
+    fi
+
+    _debug "GenerateCSR does not specify allowed KeyPairAlgorithm(s), so assuming ${_allowed_key_algos}."
   fi
 
   _debug _key_algo "${_key_algo}"
@@ -389,20 +393,18 @@ _redfish_supports_private_key() {
 
   case "${_key_algo}:${_allowed_key_algos}" in
   RSA:*RSA*)
-    _min_key_length="$(echo "${_allowed_key_bit_lengths}" | _head_n 1)"
-    _max_key_length="$(echo "${_allowed_key_bit_lengths}" | _tail_n 1)"
+    _min_key_length="$(echo "${_allowed_key_bit_lengths}" | cut -d ',' -f 1)"
+    _max_key_length="$(echo "${_allowed_key_bit_lengths}" | cut -d ',' -f 2)"
     _debug _min_key_length "${_min_key_length}"
     _debug _max_key_length "${_max_key_length}"
 
-    case "${_min_key_length}:${_max_key_length}" in
-    *: | :* | *[!0-9:]*)
-      _debug 'Server supports RSA private keys, but its minimum/maximum allowed key bit lengths could not be determined. Proceeding blindly.'
-      return 1
-      ;;
-    esac
+    if [ -z "${_min_key_length}" ] && [ -z "${_max_key_length}" ]; then
+      _debug "Server supports RSA private keys but doesn't specify minimum/maximum bit length, proceeding blindly."
+      return 0
+    fi
 
     # shellcheck disable=SC2154 # Le_Keylength is set by acme.sh core, not this hook
-    if [ "${Le_Keylength}" -lt "${_min_key_length}" ] || [ "${Le_Keylength}" -gt "${_max_key_length}" ]; then
+    if [ "${Le_Keylength}" -lt "${_min_key_length:-${Le_Keylength}}" ] || [ "${Le_Keylength}" -gt "${_max_key_length:-${Le_Keylength}}" ]; then
       _err "Unsupported RSA private key length ${Le_Keylength}!"
       _err "Please re-run acme.sh with --keylength set to a value between ${_min_key_length} and ${_max_key_length}."
       return 1
@@ -410,6 +412,11 @@ _redfish_supports_private_key() {
     ;;
   ECDSA:*ECDSA*)
     _debug _allowed_key_curve_ids "${_allowed_key_curve_ids}"
+
+    if [ -z "${_allowed_key_curve_ids}" ]; then
+      _debug "Server supports ECDSA private keys but doesn't specify which curves, proceeding blindly."
+      return 0
+    fi
 
     # shellcheck disable=SC2154 # Le_Keylength is set by acme.sh core, not this hook
     if ! _contains "${_allowed_key_curve_ids}" "TPM_ECC_NIST_P${Le_Keylength#ec-}"; then
