@@ -286,8 +286,9 @@ _redfish_supports_full_certificate_chains() {
   _redfish_rest GET "/redfish/v1/\$metadata" || return 1
 
   _newest_certificate_schema_version="$(echo "${_response}" |
-    sed -n 's/.*Namespace="Certificate\.v\([_0-9][_0-9]*\)".*/\1/p' |
-    sort -t _ -k1,1n -k2,2n -k3,3n | _tail_n 1 | tr '_' '.')"
+    _egrep_o 'Namespace="Certificate\.v[_0-9][_0-9]*"' |
+    sed -n 's/.*v\([_0-9][_0-9]*\)".*/\1/p' |
+    sort -n -t _ -k1,1 -k2,2 -k3,3 | _tail_n 1 | tr '_' '.')"
   _debug _newest_certificate_schema_version "${_newest_certificate_schema_version}"
 
   _schema_major=${_newest_certificate_schema_version%%.*}
