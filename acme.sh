@@ -2738,10 +2738,6 @@ _send_signed_request() {
         _debug2 _headers "$_headers"
         _CACHED_NONCE="$(echo "$_headers" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
       fi
-      if [ "$?" != "0" ]; then
-        _err "Cannot connect to $nonceurl to get nonce."
-        return 1
-      fi
     else
       _debug2 "Use _CACHED_NONCE" "$_CACHED_NONCE"
     fi
@@ -2780,11 +2776,19 @@ _send_signed_request() {
     _debug3 body "$body"
 
     response="$(_post "$body" "$url" "$needbase64" "POST" "$__request_conent_type")"
+    _post_ret="$?"
     _CACHED_NONCE=""
 
-    if [ "$?" != "0" ]; then
-      _err "Cannot make POST request to $url"
-      return 1
+    #A transport failure (curl 7, 28, 35, ...) brings no answer at all. Issue
+    #7320: the status was tested only after the line above had reset it, so
+    #such a failure went on as a success, the code read from whatever
+    #$HTTP_HEADER still held, and the caller blamed the CA ("Finalize code was
+    #not 200"). Retry it the way a gateway error is retried, with a new nonce.
+    if [ "$_post_ret" != "0" ]; then
+      _sleep_post_retry_sec="$(_retry_backoff_sec "$_request_retry_times")"
+      _info "Cannot make POST request to $url, let's try again. Sleeping for $_sleep_post_retry_sec seconds. ($_request_retry_times/$MAX_REQUEST_RETRY_TIMES)"
+      _sleep "$_sleep_post_retry_sec"
+      continue
     fi
 
     responseHeaders="$(cat "$HTTP_HEADER")"
