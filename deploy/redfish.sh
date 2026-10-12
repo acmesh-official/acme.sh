@@ -394,7 +394,7 @@ _redfish_supports_private_key() {
   case "${_key_algo}:${_allowed_key_algos}" in
   RSA:*RSA*)
     _min_key_length="$(echo "${_allowed_key_bit_lengths}" | cut -d ',' -f 1)"
-    _max_key_length="$(echo "${_allowed_key_bit_lengths}" | cut -d ',' -f 2)"
+    _max_key_length="$(echo "${_allowed_key_bit_lengths}" | rev | cut -d ',' -f 1 | rev)"
     _debug _min_key_length "${_min_key_length}"
     _debug _max_key_length "${_max_key_length}"
 
