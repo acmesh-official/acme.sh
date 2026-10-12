@@ -3669,7 +3669,7 @@ _initpath() {
     ACME_OPENSSL_BIN="$DEFAULT_OPENSSL_BIN"
   fi
 
-  if [ -z "$ACME_CURL_BIN" ] || [ ! -f "$ACME_CURL_BIN" ] || [ ! -x "$ACME_CURL_BIN" ]; then
+  if [ -z "$ACME_CURL_BIN" ] || ! _exists "$ACME_CURL_BIN"; then
     ACME_CURL_BIN="$DEFAULT_CURL_BIN"
   fi
 
