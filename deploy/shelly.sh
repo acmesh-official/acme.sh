@@ -4,10 +4,19 @@
 # Deploy the HTTPS server certificate to a Shelly device on the local network.
 #
 # ```sh
-# export SHELLY_HOST=192.168.1.100
-# export SHELLY_PASSWORD=mysecret    # only if auth is enabled on the device
+# export SHELLY_HOST=shelly.example.com
+# export SHELLY_PASSWORD=mysecret  # only if auth is enabled on the device
+# export SHELLY_SCHEME=https       # only if devices factory shipped with
+#                                  # firmware 2.0.0 or already has https
+#                                  # enabled
 # acme.sh --deploy -d shelly.example.com --deploy-hook shelly
 # ```
+#
+# If `SHELLY_SCHEME=https` is used, the first deploy is likely to require
+# the additional `--insecure` parameter due to factory signed certificates.
+# After the initial deployment make sure to retest deployment without
+# `--insecure` simply using `acme.sh --deploy -d shelly.example.com`
+# to ensure follow up deployment will work.
 #
 # Environment variables:
 #   SHELLY_HOST      (required)  IP or hostname of the Shelly device
@@ -16,11 +25,8 @@
 #   SHELLY_USER      (optional)  Username for auth. Default: admin
 #   SHELLY_REBOOT    (optional)  Set to "0" to skip auto-reboot.
 #                                Default: 1 (reboot after upload)
-#   SHELLY_SCHEME    (optional)  http or https, set to https automatically
-#                                after a successful upload. Export
-#                                SHELLY_SCHEME=http to allow http again,
-#                                e.g. after a factory reset of the device.
-#                                Default: https
+#   SHELLY_SCHEME    (optional)  Scheme used to call the API: http or https
+#                                Default: http
 #
 # Requirements:
 #   - Shelly Gen3+ device (Gen4 recommended)
@@ -29,8 +35,6 @@
 #   - openssl (for SHA-256 digest and random cnonce)
 #
 # The device must be reachable on the local network.
-# Plain http is only used for the initial upload,
-# before any certificate exists on the device.
 # The hook uploads the fullchain.pem and private key,
 # then reboots the device to apply the new certificate.
 #
@@ -74,7 +78,7 @@ shelly_deploy() {
 
   SHELLY_USER="${SHELLY_USER:-admin}"
   SHELLY_REBOOT="${SHELLY_REBOOT:-1}"
-  SHELLY_SCHEME="${SHELLY_SCHEME:-https}"
+  SHELLY_SCHEME="${SHELLY_SCHEME:-http}"
   case "$SHELLY_SCHEME" in
   http | https) ;;
   *)
@@ -87,9 +91,7 @@ shelly_deploy() {
   _savedeployconf SHELLY_PASSWORD "$SHELLY_PASSWORD"
   _savedeployconf SHELLY_USER "$SHELLY_USER"
   _savedeployconf SHELLY_REBOOT "$SHELLY_REBOOT"
-  # SHELLY_SCHEME is deliberately not saved here. It is only persisted as
-  # https (see below), so a one-off override to http never sticks across runs.
-  _info "Using ${SHELLY_SCHEME} for $SHELLY_HOST"
+  _savedeployconf SHELLY_SCHEME "$SHELLY_SCHEME"
 
   # --- Auth handshake (only if password is set) ---
   _shelly_auth_header=""
@@ -117,7 +119,6 @@ shelly_deploy() {
   fi
 
   _info "Certificate and key uploaded successfully"
-  _savedeployconf SHELLY_SCHEME https
 
   # --- Reboot ---
   if [ "$SHELLY_REBOOT" != "0" ]; then
@@ -236,9 +237,6 @@ _shelly_rpc() {
 
   if [ "$_shelly_ret" != "0" ]; then
     _err "HTTP request failed for $_shelly_method (curl/wget error $_shelly_ret)"
-    if [ "$SHELLY_SCHEME" = "https" ]; then
-      _err "If this is a certificate error, run acme.sh with --insecure."
-    fi
     return 1
   fi
 
