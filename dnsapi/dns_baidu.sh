@@ -120,7 +120,7 @@ _baidu_run_with_fallback() {
 }
 
 _baidu_engine_order() {
-  _pref="$(_lower_case "$(_baidu_trim_ws "${Baidu_API_Preference:-auto}")")"
+  _pref="$(_baidu_trim_ws "${Baidu_API_Preference:-auto}" | _lower_case)"
   case "$_pref" in
   legacy)
     printf "%s" "legacy new"
