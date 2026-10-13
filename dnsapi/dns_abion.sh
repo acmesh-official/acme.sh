@@ -5,6 +5,7 @@ Site: abion.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_abion
 Options:
  ABION_API_KEY API key for abion.com; obtain it from your Abion account/API settings
+Issues: github.com/acmesh-official/acme.sh/issues/7325
 '
 
 ABION_Api_Endpoint="https://api.abion.com/v1"
