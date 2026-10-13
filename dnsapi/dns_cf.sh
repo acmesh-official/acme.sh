@@ -18,7 +18,7 @@ CF_Api="https://api.cloudflare.com/client/v4"
 
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_cf_add() {
-  fulldomain=$1
+  fulldomain="$(_idn "$1")"
   txtvalue=$2
 
   CF_Token="${CF_Token:-$(_readaccountconf_mutable CF_Token)}"
@@ -75,7 +75,7 @@ dns_cf_add() {
   _debug _domain "$_domain"
 
   _debug "Getting txt records"
-  _cf_rest GET "zones/${_domain_id}/dns_records?type=TXT&name=$(_idn "$fulldomain")"
+  _cf_rest GET "zones/${_domain_id}/dns_records?type=TXT&name=$fulldomain"
 
   if ! echo "$response" | tr -d " " | grep \"success\":true >/dev/null; then
     _err "Error"
@@ -109,7 +109,7 @@ dns_cf_add() {
 
 #fulldomain txtvalue
 dns_cf_rm() {
-  fulldomain=$1
+  fulldomain="$(_idn "$1")"
   txtvalue=$2
 
   CF_Token="${CF_Token:-$(_readaccountconf_mutable CF_Token)}"
@@ -128,7 +128,7 @@ dns_cf_rm() {
   _debug _domain "$_domain"
 
   _debug "Getting txt records"
-  _cf_rest GET "zones/${_domain_id}/dns_records?type=TXT&name=$(_idn "$fulldomain")&content=$txtvalue"
+  _cf_rest GET "zones/${_domain_id}/dns_records?type=TXT&name=$fulldomain&content=$txtvalue"
 
   if ! echo "$response" | tr -d " " | grep \"success\":true >/dev/null; then
     _err "Error: $response"
@@ -196,11 +196,11 @@ _get_root() {
     fi
 
     if [ "$CF_Account_ID" ]; then
-      if ! _cf_rest GET "zones?name=$(printf "%s" "$h" | _url_encode)&account.id=$CF_Account_ID"; then
+      if ! _cf_rest GET "zones?name=$h&account.id=$CF_Account_ID"; then
         return 1
       fi
     else
-      if ! _cf_rest GET "zones?name=$(printf "%s" "$h" | _url_encode)"; then
+      if ! _cf_rest GET "zones?name=$h"; then
         return 1
       fi
     fi
