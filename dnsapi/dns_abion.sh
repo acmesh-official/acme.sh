@@ -1,10 +1,10 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
-dns_abion_info='abion.com
+dns_abion_info='Abion.com
 Site: abion.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_abion
 Options:
- ABION_API_KEY API key for abion.com; obtain it from your Abion account/API settings
+ ABION_API_KEY API Key. Created in the Abion Core web interface.
 Issues: github.com/acmesh-official/acme.sh/issues/7325
 '
 
