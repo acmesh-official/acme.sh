@@ -56,7 +56,15 @@ jobs:
         envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN'
         nat: |
           "8080": "80"
-        prepare: dnf install -y curl socat cronie tar gzip
+        prepare: |
+          # openEuler ships every repo with both a baseurl and a metalink.
+          # The metalink mirror pool is split-brain (dl-cdn.openeuler.openatom.cn
+          # froze at the 2026-08-20 snapshot while repo.openeuler.org moved on),
+          # so dnf takes repomd.xml from the stale mirror and then 404s fetching
+          # the checksummed metadata it names from the fresh ones. Keep only the
+          # vendor baseurl, which is self-consistent.
+          sed -i '/^metalink=/d' /etc/yum.repos.d/*.repo
+          dnf install -y curl socat cronie tar gzip
         usesh: true
         sync: rsync
         copyback: false

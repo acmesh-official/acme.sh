@@ -173,10 +173,7 @@ haproxy_deploy() {
   # Set the suffix depending if we are creating a bundle or not
   if [ "${Le_Deploy_haproxy_bundle}" = "yes" ]; then
     _info "Bundle creation requested"
-    # Initialise $Le_Keylength if its not already set
-    if [ -z "${Le_Keylength}" ]; then
-      Le_Keylength=""
-    fi
+    # shellcheck disable=SC2154 # Le_Keylength is set by acme.sh core, not this hook
     if _isEccKey "${Le_Keylength}"; then
       _info "ECC key type detected"
       _suffix=".ecdsa"

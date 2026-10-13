@@ -74,9 +74,9 @@ fritzbox_deploy() {
   _info "Log in to the FRITZ!Box"
   _fritzbox_challenge="$(_get "${DEPLOY_FRITZBOX_URL}/login_sid.lua" | sed -e 's/^.*<Challenge>//' -e 's/<\/Challenge>.*$//')"
   if _exists iconv; then
-    _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${DEPLOY_FRITZBOX_PASSWORD}" | iconv -f ASCII -t UTF16LE | _digest md5 hex)"
+    _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${DEPLOY_FRITZBOX_PASSWORD}" | iconv -f ASCII -t UTF-16LE | _digest md5 hex)"
   elif _exists uconv; then
-    _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${DEPLOY_FRITZBOX_PASSWORD}" | uconv -f ASCII -t UTF16LE | _digest md5 hex)"
+    _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${DEPLOY_FRITZBOX_PASSWORD}" | uconv -f ASCII -t UTF-16LE | _digest md5 hex)"
   else
     _fritzbox_hash="$(printf "%s-%s" "${_fritzbox_challenge}" "${DEPLOY_FRITZBOX_PASSWORD}" | perl -p -e 'use Encode qw/encode/; print encode("UTF-16LE","$_"); $_="";' | _digest md5 hex)"
   fi

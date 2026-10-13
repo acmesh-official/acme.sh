@@ -95,6 +95,36 @@ _uos_response_cookie() {
   grep <"$HTTP_HEADER" -i "^Set-Cookie: *$1=" | _tail_n 1 | _egrep_o "$1=[^;]*" | _head_n 1
 }
 
+_uos_split_json() {
+  # $1 = raw JSON list response
+  #
+  # _normalizeJson collapses the response to one line. This removes extra
+  # space around colons. It also removes any CR or LF characters that the
+  # server can add. However, _normalizeJson also removes the newline
+  # character at the end of the line. If the line has no ending newline
+  # character, some sed programs drop the last line of input. This code
+  # adds the newline back before the split below, to prevent that problem.
+  _uos_normalized="$(echo "$1" | _normalizeJson)"
+  # A literal newline character splits the JSON into one object per line.
+  # Grep can then match a single certificate entry at a time. This is not
+  # the two-character "\n" sequence: GNU sed reads "\n" in the replacement
+  # text as a newline character. POSIX does not define this behavior, and
+  # BSD sed prints "\n" as two literal characters, not as a newline.
+  printf '%s\n' "$_uos_normalized" | sed 's/},{/},\
+{/g'
+}
+
+_uos_grep_literal() {
+  # $1 = literal text to find, matched without a regex -- portable to
+  # grep implementations with no -F flag (e.g. Solaris), and avoids "*"
+  # or "." in a domain name being read as a regex metacharacter.
+  while IFS= read -r _uos_line || [ -n "$_uos_line" ]; do
+    case "$_uos_line" in
+    *"$1"*) printf '%s\n' "$_uos_line" ;;
+    esac
+  done
+}
+
 unifios_deploy() {
   _cdomain="$1"
   _ckey="$2"
@@ -189,7 +219,20 @@ unifios_deploy() {
   # wrap (confirmed against the real UI: a long name overlaps the Expires
   # column and makes both unreadable), so keep the suffix short instead --
   # Unix epoch seconds are still unique enough for this purpose.
-  _uos_name="$_cdomain $(_time)"
+  #
+  # This name includes the key type (rsa or ecdsa), to keep an RSA
+  # deploy and an ECC deploy of the same domain from sharing this
+  # prefix. Without the key type, the cleanup step for each deploy
+  # removes the entry that the other deploy creates. `deploy/haproxy.sh`
+  # and `deploy/lighttpd.sh` use the same `_isEccKey` check, for the same
+  # reason.
+  # shellcheck disable=SC2154 # Le_Keylength is set by acme.sh core, not this hook
+  if _isEccKey "${Le_Keylength}"; then
+    _uos_keytype="ecdsa"
+  else
+    _uos_keytype="rsa"
+  fi
+  _uos_name="$_cdomain $_uos_keytype $(_time)"
   _uos_key_json="$(_json_encode <"$_ckey")"
   _uos_cert_json="$(_json_encode <"$_cfullchain")"
   _create_body="{\"name\":\"$_uos_name\",\"key\":\"$_uos_key_json\",\"cert\":\"$_uos_cert_json\"}"
@@ -234,21 +277,8 @@ unifios_deploy() {
       _err "Response: $_list_json"
       return 1
     fi
-    # _normalizeJson collapses the response to one predictable line (no stray
-    # whitespace around colons, no embedded CR/LF the server might emit) but
-    # also strips the trailing newline entirely -- re-terminate before the
-    # split below, since some sed implementations drop an unterminated final
-    # line rather than processing it.
-    _list_json="$(echo "$_list_json" | _normalizeJson)"
-    # A literal embedded newline (not the two-character "\n", which GNU sed
-    # treats as a newline in the replacement but POSIX doesn't define and BSD
-    # sed emits literally) splits it one JSON object per line so grep can
-    # match a single certificate entry at a time.
-    _list_json="$(
-      printf '%s\n' "$_list_json" | sed 's/},{/},\
-{/g'
-    )"
-    _new_id="$(echo "$_list_json" | grep -F "\"fingerprint\":\"$_uos_fingerprint\"" | _egrep_o '"id":"[^"]*"' | _head_n 1 | cut -d '"' -f 4)"
+    _list_json="$(_uos_split_json "$_list_json")"
+    _new_id="$(echo "$_list_json" | _uos_grep_literal "\"fingerprint\":\"$_uos_fingerprint\"" | _egrep_o '"id":"[^"]*"' | _head_n 1 | cut -d '"' -f 4)"
     if [ -z "$_new_id" ]; then
       _err "Certificate upload rejected as a duplicate (server reported USER_CERTIFICATE_DUPLICATE), but no existing entry matching this fingerprint was found."
       _err "Response: $_create_json"
@@ -290,15 +320,11 @@ unifios_deploy() {
   if [ "$_list_code" != "200" ]; then
     _err "Failed to list certificates for cleanup (HTTP $_list_code) -- leaving old entries in place."
   else
-    _list_json="$(echo "$_list_json" | _normalizeJson)"
-    _list_json="$(
-      printf '%s\n' "$_list_json" | sed 's/},{/},\
-{/g'
-    )"
-    # The pattern below matches the domain name followed by a space. If the
-    # space is missing, the pattern can also match a different domain that
-    # starts with the same text as this domain.
-    _old_ids="$(echo "$_list_json" | grep -F "\"name\":\"$_cdomain " | _egrep_o '"id":"[^"]*"' | cut -d '"' -f 4 | grep -v "^$_new_id$")"
+    _list_json="$(_uos_split_json "$_list_json")"
+    # The pattern below matches the domain name and key type, followed by
+    # a space. If the space is missing, the pattern can also match a
+    # different domain that starts with the same text as this domain.
+    _old_ids="$(echo "$_list_json" | _uos_grep_literal "\"name\":\"$_cdomain $_uos_keytype " | _egrep_o '"id":"[^"]*"' | cut -d '"' -f 4 | grep -v "^$_new_id$")"
     for _old_id in $_old_ids; do
       _info "Removing old certificate entry $_old_id..."
       _del_json="$(_post "" "$DEPLOY_UNIFIOS_HOST/api/userCertificates/$_old_id" "" "DELETE")"

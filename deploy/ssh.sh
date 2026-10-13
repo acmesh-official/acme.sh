@@ -232,8 +232,6 @@ _ssh_deploy() {
 do if [ -d \"\$fn\" ] && [ \"\$(expr \$now - \$(date -ur \$fn +%s) )\" -ge \"15552000\" ]; \
 then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; done; }; $_cmdstr"
     # Alternate version of above... _cmdstr="find $_backupprefix* -type d -mtime +180 2>/dev/null | xargs rm -rf; $_cmdstr"
-    # Create our backup directory for overwritten cert files.
-    _cmdstr="mkdir -p $_backupdir; $_cmdstr"
     _info "Backup of old certificate files will be placed in remote directory $_backupdir"
     _info "Backup directories erased after 180 days."
     if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
@@ -247,7 +245,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
   if [ -n "$DEPLOY_SSH_KEYFILE" ]; then
     if [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr cp $DEPLOY_SSH_KEYFILE $_backupdir >/dev/null;"
+      _cmdstr="$_cmdstr if [ -f $DEPLOY_SSH_KEYFILE ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_KEYFILE $_backupdir >/dev/null; fi;"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
           return $_err_code
@@ -284,7 +282,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       _pipe=">>"
     elif [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr cp $DEPLOY_SSH_CERTFILE $_backupdir >/dev/null;"
+      _cmdstr="$_cmdstr if [ -f $DEPLOY_SSH_CERTFILE ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_CERTFILE $_backupdir >/dev/null; fi;"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
           return $_err_code
@@ -325,7 +323,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       _pipe=">>"
     elif [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr cp $DEPLOY_SSH_CAFILE $_backupdir >/dev/null;"
+      _cmdstr="$_cmdstr if [ -f $DEPLOY_SSH_CAFILE ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_CAFILE $_backupdir >/dev/null; fi;"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
           return $_err_code
@@ -370,8 +368,8 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       _pipe=">>"
     elif [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr cp $DEPLOY_SSH_FULLCHAIN $_backupdir >/dev/null;"
-      if [ "$DEPLOY_SSH_FULLCHAIN" = "yes" ]; then
+      _cmdstr="$_cmdstr if [ -f $DEPLOY_SSH_FULLCHAIN ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_FULLCHAIN $_backupdir >/dev/null; fi;"
+      if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
           return $_err_code
         fi

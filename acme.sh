@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-VER=3.1.5
+VER=3.1.7
 
 PROJECT_NAME="acme.sh"
 
@@ -1482,39 +1482,57 @@ _readKeyLengthFromCSR() {
   fi
 }
 
+#port
+#Reads a netstat or ss listing on stdin, prints the lines that show a socket
+#listening on port.
+#Linux and windows print the local address as "addr:port", aix, macos, the
+#bsds and solaris print it as "addr.port", so both separators must match.
+#The state is "LISTEN" nearly everywhere, "LISTENING" on windows and lower
+#case "listen" on haiku, hence the substring match and the -i.
+_filter_listen_port() {
+  _flp_port="$1"
+  if [ -z "$_flp_port" ]; then
+    return
+  fi
+  grep -i "LISTEN" | grep "[:.]$_flp_port "
+}
+
+#port
 _ss() {
   _port="$1"
 
   if _exists "ss"; then
     _debug "Using: ss"
-    ss -ntpl 2>/dev/null | grep ":$_port "
+    ss -ntpl 2>/dev/null | _filter_listen_port "$_port"
     return 0
   fi
 
-  if [ "$(uname)" = "AIX" ]; then
-    _debug "Using: AIX netstat"
-    netstat -an | grep "^tcp" | grep "LISTEN" | grep "\.$_port "
+  #aix, macos and the bsds have no "-p protocol" socket listing that works on
+  #all of them: on netbsd "-p" is "Show statistics about protocol" instead
+  #(netstat(1), NetBSD 10.1). Their default display does show "the state of
+  #all sockets" with -a, so use that and keep only the tcp lines.
+  case "$(uname)" in
+  AIX | Darwin | DragonFly | *BSD*)
+    _debug "Using: AIX/BSD netstat"
+    netstat -an | grep "^tcp" | _filter_listen_port "$_port"
     return 0
-  fi
+    ;;
+  esac
 
   if _exists "netstat"; then
     _debug "Using: netstat"
     if netstat -help 2>&1 | grep "\-p proto" >/dev/null; then
       #for windows version netstat tool
-      netstat -an -p tcp | grep "LISTENING" | grep ":$_port "
+      netstat -an -p tcp | _filter_listen_port "$_port"
+    elif netstat -help 2>&1 | grep -- '-P protocol' >/dev/null; then
+      #for solaris
+      netstat -an -P tcp | _filter_listen_port "$_port"
+    elif netstat -help 2>&1 | grep "\-p" >/dev/null; then
+      #for full linux
+      netstat -ntpl | _filter_listen_port "$_port"
     else
-      if netstat -help 2>&1 | grep "\-p protocol" >/dev/null; then
-        netstat -an -p tcp | grep LISTEN | grep ":$_port "
-      elif netstat -help 2>&1 | grep -- '-P protocol' >/dev/null; then
-        #for solaris
-        netstat -an -P tcp | grep "\.$_port " | grep "LISTEN"
-      elif netstat -help 2>&1 | grep "\-p" >/dev/null; then
-        #for full linux
-        netstat -ntpl | grep ":$_port "
-      else
-        #for busybox (embedded linux; no pid support)
-        netstat -ntl 2>/dev/null | grep ":$_port "
-      fi
+      #for busybox (embedded linux; no pid support)
+      netstat -ntl 2>/dev/null | _filter_listen_port "$_port"
     fi
     return 0
   fi
@@ -1964,6 +1982,63 @@ _ssldate2time() {
   return 1
 }
 
+#support the IMF-fixdate form of an HTTP-date, the one a Retry-After header
+#carries; it is always GMT:
+#     Sun, 06 Nov 1994 08:49:37 GMT   to   784111777
+#Computed in shell arithmetic rather than through date(1): GNU, BSD and
+#busybox date each want a different invocation for this form, and %a/%b are
+#locale lookups. The day count is the civil-to-days formula, exact for every
+#Gregorian date from 1970 on. Prints nothing and fails on any other input.
+_httpdate2time() {
+  _hdt="$1"
+  case "$_hdt" in
+  [A-Za-z][A-Za-z][A-Za-z]", "[0-9][0-9]" "[A-Za-z][A-Za-z][A-Za-z]" "[0-9][0-9][0-9][0-9]" "[0-9][0-9]:[0-9][0-9]:[0-9][0-9]" GMT") ;;
+  *)
+    return 1
+    ;;
+  esac
+  #the shell reads a leading zero as octal, so strip it before any arithmetic
+  _hdt_d="$(echo "$_hdt" | cut -d ' ' -f 2 | sed 's/^0*\([0-9]\)/\1/')"
+  _hdt_y="$(echo "$_hdt" | cut -d ' ' -f 4)"
+  _hdt_tm="$(echo "$_hdt" | cut -d ' ' -f 5)"
+  _hdt_H="$(echo "$_hdt_tm" | cut -d : -f 1 | sed 's/^0*\([0-9]\)/\1/')"
+  _hdt_M="$(echo "$_hdt_tm" | cut -d : -f 2 | sed 's/^0*\([0-9]\)/\1/')"
+  _hdt_S="$(echo "$_hdt_tm" | cut -d : -f 3 | sed 's/^0*\([0-9]\)/\1/')"
+  case "$(echo "$_hdt" | cut -d ' ' -f 3 | _lower_case)" in
+  jan) _hdt_m=1 ;;
+  feb) _hdt_m=2 ;;
+  mar) _hdt_m=3 ;;
+  apr) _hdt_m=4 ;;
+  may) _hdt_m=5 ;;
+  jun) _hdt_m=6 ;;
+  jul) _hdt_m=7 ;;
+  aug) _hdt_m=8 ;;
+  sep) _hdt_m=9 ;;
+  oct) _hdt_m=10 ;;
+  nov) _hdt_m=11 ;;
+  dec) _hdt_m=12 ;;
+  *)
+    return 1
+    ;;
+  esac
+  if [ "$_hdt_y" -lt 1970 ] || [ "$_hdt_d" -lt 1 ] || [ "$_hdt_d" -gt 31 ] || [ "$_hdt_H" -gt 23 ] || [ "$_hdt_M" -gt 59 ] || [ "$_hdt_S" -gt 60 ]; then
+    return 1
+  fi
+  #years start in March so the leap day is the last day of the year
+  if [ "$_hdt_m" -le 2 ]; then
+    _hdt_y="$((_hdt_y - 1))"
+    _hdt_mp="$((_hdt_m + 9))"
+  else
+    _hdt_mp="$((_hdt_m - 3))"
+  fi
+  _hdt_era="$((_hdt_y / 400))"
+  _hdt_yoe="$((_hdt_y - _hdt_era * 400))"
+  _hdt_doy="$(((153 * _hdt_mp + 2) / 5 + _hdt_d - 1))"
+  _hdt_doe="$((_hdt_yoe * 365 + _hdt_yoe / 4 - _hdt_yoe / 100 + _hdt_doy))"
+  _hdt_days="$((_hdt_era * 146097 + _hdt_doe - 719468))"
+  echo "$((_hdt_days * 86400 + _hdt_H * 3600 + _hdt_M * 60 + _hdt_S))"
+}
+
 _utc_date() {
   date -u "+%Y-%m-%d %H:%M:%S"
 }
@@ -2015,6 +2090,32 @@ _calc_validto_renew_time() {
   fi
 }
 
+#Usage: _calc_ari_renew_time aristarttime ariendtime now currenttime pinned
+#Prints the renew time to take from the CA's ARI suggestedWindow, or nothing
+#when the window must be ignored. The point inside the window is derived from
+#the current time rather than its start, so renewals spread out across the
+#network instead of all firing at the same instant.
+#A schedule the user pinned with --days or --valid-to only yields to a window
+#that is EARLIER than what the user asked for: the CA can still pull an urgent
+#renewal forward, but it can never push a pinned renewal back.
+_calc_ari_renew_time() {
+  _cart_start="$1"
+  _cart_end="$2"
+  _cart_now="$3"
+  _cart_current="$4"
+  _cart_pinned="$5"
+  if [ -z "$_cart_start" ] || [ -z "$_cart_end" ] || [ "$_cart_end" -le "$_cart_start" ]; then
+    return 0
+  fi
+  _cart_window=$(_math "$_cart_end" - "$_cart_start")
+  _cart_offset=$(_math "$_cart_now" % "$_cart_window")
+  _cart_next=$(_math "$_cart_start" + "$_cart_offset")
+  if [ "$_cart_pinned" ] && [ "$_cart_current" ] && [ "$_cart_next" -ge "$_cart_current" ]; then
+    return 0
+  fi
+  printf "%s" "$_cart_next"
+}
+
 _mktemp() {
   if _exists mktemp; then
     if mktemp 2>/dev/null; then
@@ -2039,6 +2140,7 @@ _resethttp() {
   __HTTP_INITIALIZED=""
   _ACME_CURL=""
   _ACME_WGET=""
+  _ACME_WGET2=""
   ACME_HTTP_NO_REDIRECTS=""
 }
 
@@ -2089,7 +2191,15 @@ _inithttp() {
   fi
 
   if [ -z "$_ACME_WGET" ] && _exists "wget"; then
-    _ACME_WGET="wget -q"
+    #wget2, the wget of Fedora 40 and later, prints nothing for -S under -q,
+    #so it runs without -q and _wget2_fix_header cleans up after it
+    _ACME_WGET2=""
+    if _contains "$(wget --version 2>&1 | _head_n 1)" "Wget2"; then
+      _ACME_WGET2=1
+      _ACME_WGET="wget"
+    else
+      _ACME_WGET="wget -q"
+    fi
     if [ "$ACME_USE_IPV6_REQUESTS" ]; then
       _ACME_WGET="$_ACME_WGET --inet6-only "
     elif [ "$ACME_USE_IPV4_REQUESTS" ]; then
@@ -2099,7 +2209,8 @@ _inithttp() {
       _ACME_WGET="$_ACME_WGET --max-redirect 0 "
     fi
     if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
-      if [ "$_ACME_WGET" ] && _contains "$($_ACME_WGET --help 2>&1)" "--debug"; then
+      #the -d demultiplexing after each request expects wget 1.x output
+      if [ -z "$_ACME_WGET2" ] && _contains "$($_ACME_WGET --help 2>&1)" "--debug"; then
         _ACME_WGET="$_ACME_WGET -d "
       fi
     fi
@@ -2117,6 +2228,30 @@ _inithttp() {
 
   __HTTP_INITIALIZED=1
 
+}
+
+#stdin: what wget2 -S wrote to stderr. Prints the response headers the way
+#curl --dump-header writes them. wget2 frames every header block with lines of
+#its own ("[0] Downloading ...", "# got header ...", and after the block
+#"HTTP response 200 OK [url]", which callers would take for the status line),
+#and prints no header block at all for a response without a body (a 204, the
+#empty 200 of a revocation): then only the status line can be rebuilt, from
+#the last "HTTP [ERROR ]response" line, with HTTP/1.1 assumed.
+_wget2_headers() {
+  _w2h_in="$(cat)"
+  _w2h_cr="$(printf '\r')"
+  _w2h_blocks="$(printf "%s\n" "$_w2h_in" | sed -n "/^HTTP /d; /^HTTP\//,/^$_w2h_cr*\$/p")"
+  if [ "$_w2h_blocks" ]; then
+    printf "%s\n" "$_w2h_blocks"
+  else
+    printf "%s\n" "$_w2h_in" | sed -n 's/^HTTP ERROR response /HTTP response /; s/^HTTP response \([0-9][0-9]*\).*$/HTTP\/1.1 \1/p' | _tail_n 1
+  fi
+}
+
+#rewrite $HTTP_HEADER after a wget2 request, see _wget2_headers
+_wget2_fix_header() {
+  _w2f_headers="$(_wget2_headers <"$HTTP_HEADER")"
+  printf "%s\n" "$_w2f_headers" >"$HTTP_HEADER"
 }
 
 # body  url [needbase64] [POST|PUT|DELETE] [ContentType]
@@ -2214,7 +2349,15 @@ _post() {
           response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
         fi
       elif [ "$httpmethod" = "HEAD" ]; then
-        if [ "$_postContentType" ]; then
+        if [ "$_ACME_WGET2" ]; then
+          #wget2 prints no headers for a HEAD response, not even with -S, but
+          #--save-headers writes them into the -O file
+          if [ "$_postContentType" ]; then
+            response="$($_WGET --method HEAD --save-headers -O "$HTTP_HEADER" --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" "$_post_url" 2>/dev/null)"
+          else
+            response="$($_WGET --method HEAD --save-headers -O "$HTTP_HEADER" --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" "$_post_url" 2>/dev/null)"
+          fi
+        elif [ "$_postContentType" ]; then
           response="$($_WGET --spider -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "Content-Type: $_postContentType" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
         else
           response="$($_WGET --spider -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-data="$body" "$_post_url" 2>"$HTTP_HEADER")"
@@ -2239,6 +2382,105 @@ _post() {
       # Demultiplex wget debug output
       cat "$HTTP_HEADER" >&2
       _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
+    fi
+    if [ "$_ACME_WGET2" ]; then
+      _wget2_fix_header
+    fi
+    # remove leading whitespaces from header to match curl format
+    _sed_i 's/^  //g' "$HTTP_HEADER"
+  else
+    _ret="$?"
+    _err "Neither curl nor wget have been found, cannot make $httpmethod request."
+  fi
+  _debug "_ret" "$_ret"
+  printf "%s" "$response"
+  return $_ret
+}
+
+# bodyfile  url [needbase64] [POST|PUT|DELETE] [ContentType]
+#_post with the body read from a file instead of a variable. A shell variable
+#drops NUL bytes, so a binary upload (a PKCS#12 bundle in a multipart form)
+#has to travel as a file: curl reads it with --data-binary @file, wget with
+#--post-file (--body-file for the other methods). The content type is always
+#sent explicitly, defaulting to what both tools would send on their own for
+#a raw body, because wget treats an empty --header as "drop every header
+#given so far" and a bare -H "" cannot be left in the argument list.
+_post_file() {
+  _pf_bodyfile="$1"
+  _post_url="$2"
+  needbase64="$3"
+  httpmethod="$4"
+  _postContentType="$5"
+
+  if [ -z "$httpmethod" ]; then
+    httpmethod="POST"
+  fi
+  if [ ! -f "$_pf_bodyfile" ]; then
+    _err "The body file does not exist: $_pf_bodyfile"
+    return 1
+  fi
+  _debug $httpmethod
+  _debug "_post_url" "$_post_url"
+  _debug2 "_pf_bodyfile" "$_pf_bodyfile"
+  _debug2 "_postContentType" "$_postContentType"
+
+  _pf_cthdr="Content-Type: ${_postContentType:-application/x-www-form-urlencoded}"
+
+  _inithttp
+
+  if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
+    _CURL="$_ACME_CURL"
+    if [ "$HTTPS_INSECURE" ]; then
+      _CURL="$_CURL --insecure  "
+    fi
+    _debug "_CURL" "$_CURL"
+    if [ "$needbase64" ]; then
+      response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_pf_cthdr" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data-binary "@$_pf_bodyfile" "$_post_url" | _base64)"
+    else
+      response="$($_CURL --user-agent "$USER_AGENT" -X $httpmethod -H "$_pf_cthdr" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data-binary "@$_pf_bodyfile" "$_post_url")"
+    fi
+    _ret="$?"
+    if [ "$_ret" != "0" ]; then
+      _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $_ret"
+      if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
+        _err "Here is the curl dump log:"
+        _err "$(cat "$_CURL_DUMP")"
+      fi
+    fi
+  elif [ "$_ACME_WGET" ]; then
+    _WGET="$_ACME_WGET"
+    if [ "$HTTPS_INSECURE" ]; then
+      _WGET="$_WGET --no-check-certificate "
+    fi
+    _debug "_WGET" "$_WGET"
+    if [ "$needbase64" ]; then
+      if [ "$httpmethod" = "POST" ]; then
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "$_pf_cthdr" --post-file="$_pf_bodyfile" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+      else
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "$_pf_cthdr" --method $httpmethod --body-file="$_pf_bodyfile" "$_post_url" 2>"$HTTP_HEADER" | _base64)"
+      fi
+    else
+      if [ "$httpmethod" = "POST" ]; then
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "$_pf_cthdr" --post-file="$_pf_bodyfile" "$_post_url" 2>"$HTTP_HEADER")"
+      else
+        response="$($_WGET -S -O - --user-agent="$USER_AGENT" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --header "$_pf_cthdr" --method $httpmethod --body-file="$_pf_bodyfile" "$_post_url" 2>"$HTTP_HEADER")"
+      fi
+    fi
+    _ret="$?"
+    if [ "$_ret" = "8" ]; then
+      _ret=0
+      _debug "wget returned 8 as the server returned a 'Bad Request' response. Let's process the response later."
+    fi
+    if [ "$_ret" != "0" ]; then
+      _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret"
+    fi
+    if _contains "$_WGET" " -d "; then
+      # Demultiplex wget debug output
+      cat "$HTTP_HEADER" >&2
+      _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
+    fi
+    if [ "$_ACME_WGET2" ]; then
+      _wget2_fix_header
     fi
     # remove leading whitespaces from header to match curl format
     _sed_i 's/^  //g' "$HTTP_HEADER"
@@ -2307,6 +2549,9 @@ _get() {
         cat "$HTTP_HEADER" >&2
         _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
       fi
+      if [ "$_ACME_WGET2" ]; then
+        _wget2_fix_header
+      fi
       # remove leading whitespaces from header to match curl format
       _sed_i 's/^  //g' "$HTTP_HEADER"
     fi
@@ -2341,6 +2586,103 @@ _tail_n() {
 
 _tail_c() {
   tail -c "$1" 2>/dev/null || tail -"$1"c
+}
+
+#code
+#Is this status the CA's front end failing rather than its ACME
+#implementation answering? 502 and 504 mean the proxy could not reach the
+#backend or gave up waiting for it, 503 that it is overloaded. The body of
+#those is the proxy's html, not problem+json, so no ACME status can be read
+#out of it and a caller looking for one abandons an order that is fine.
+#Anything else, a 500 from the ACME implementation included, is a real
+#answer and must be passed through to the caller.
+_is_gateway_error() {
+  case "$1" in
+  502 | 503 | 504) return 0 ;;
+  esac
+  return 1
+}
+
+#response
+#Does the CA say the order cannot be finalized yet? By the time acme.sh
+#finalizes, every authorization is valid, and an order becomes ready as
+#soon as they all are -- so this is the CA's own state lagging, not a
+#refusal. A struggling CA lags: ZeroSSL answered this on 2026-08-31 forty
+#seconds after the authorization went valid, in the middle of the 502s it
+#was serving that morning. Waiting is the answer, not abandoning an order
+#whose challenges have all passed.
+_is_order_not_ready() {
+  case "$1" in
+  *acme:error:orderNotReady*) return 0 ;;
+  esac
+  return 1
+}
+
+#response
+#Does the CA's answer to a revokeCert mean the certificate is revoked? An
+#empty body is the plain success. urn:ietf:params:acme:error:alreadyRevoked
+#is "The request specified a certificate to be revoked that has already been
+#revoked" (RFC 8555 sec 6.7), which is what a user sees when a retry follows
+#a request the CA did carry out but could not answer: the gateway ate the
+#reply, not the revocation. Either way the certificate is revoked, which is
+#what was asked for, so do not report a failure and do not go on to try the
+#domain key for a certificate that is already gone.
+#Match the error type, not the bare word: claiming a revocation that did not
+#happen is far worse than missing one, so a body that merely mentions the
+#name must not count.
+_is_revoked_response() {
+  if [ -z "$1" ]; then
+    return 0
+  fi
+  case "$1" in
+  *acme:error:alreadyRevoked*) return 0 ;;
+  esac
+  return 1
+}
+
+#attempt
+#Seconds to wait before retry number <attempt>, for the cases where the CA
+#gave us no Retry-After to go by. A flat two seconds let the whole twenty
+#attempt budget burn out in forty eight seconds, which is shorter than the
+#gateway outages a CA really has: ZeroSSL answered 502 and 504 for over a
+#minute at a time through August 2026, so every renewal that started during
+#one of those died instead of waiting it out. Backing off spends the same
+#twenty attempts over about six minutes, which is still far below the ten
+#minutes at which a Retry-After is read as the CA refusing outright.
+_retry_backoff_sec() {
+  case "$1" in
+  1) echo 2 ;;
+  2) echo 5 ;;
+  3) echo 10 ;;
+  *) echo 20 ;;
+  esac
+}
+
+#Reads response headers from stdin and prints the Retry-After value as a
+#number of seconds from now. The header carries either delay-seconds, printed
+#as is, or an HTTP-date (HARICA sends one on a processing order, Pebble too),
+#converted with _httpdate2time and turned into a delay against the local
+#clock. A date already in the past, or a value in neither form, prints
+#nothing, so the caller falls back to its own delay. Cutting a date at the
+#first colon used to leave "Thu,13Aug202612" behind, and every numeric test
+#on it then errored with "integer expression expected".
+_retryafter_seconds() {
+  _ras_v="$(tr -d '\r' | grep -i "^Retry-After *:" | _head_n 1 | cut -d : -f 2- | sed 's/^ *//; s/ *$//')"
+  if [ -z "$_ras_v" ]; then
+    return 0
+  fi
+  case "$_ras_v" in
+  *[!0-9]*)
+    _ras_t="$(_httpdate2time "$_ras_v")" || return 0
+    _ras_d="$((_ras_t - $(_time)))"
+    if [ "$_ras_d" -gt 0 ]; then
+      echo "$_ras_d"
+    fi
+    ;;
+  *)
+    echo "$_ras_v"
+    ;;
+  esac
 }
 
 # url  payload needbase64  keyfile
@@ -2396,18 +2738,15 @@ _send_signed_request() {
         _debug2 _headers "$_headers"
         _CACHED_NONCE="$(echo "$_headers" | grep -i "Replay-Nonce:" | _head_n 1 | tr -d "\r\n " | cut -d ':' -f 2)"
       fi
-      if [ "$?" != "0" ]; then
-        _err "Cannot connect to $nonceurl to get nonce."
-        return 1
-      fi
     else
       _debug2 "Use _CACHED_NONCE" "$_CACHED_NONCE"
     fi
     nonce="$_CACHED_NONCE"
     _debug2 nonce "$nonce"
     if [ -z "$nonce" ]; then
-      _info "Could not get nonce, let's try again."
-      _sleep 2
+      _sleep_nonce_sec="$(_retry_backoff_sec "$_request_retry_times")"
+      _info "Could not get nonce, let's try again. Sleeping for $_sleep_nonce_sec seconds."
+      _sleep "$_sleep_nonce_sec"
       continue
     fi
 
@@ -2437,11 +2776,19 @@ _send_signed_request() {
     _debug3 body "$body"
 
     response="$(_post "$body" "$url" "$needbase64" "POST" "$__request_conent_type")"
+    _post_ret="$?"
     _CACHED_NONCE=""
 
-    if [ "$?" != "0" ]; then
-      _err "Cannot make POST request to $url"
-      return 1
+    #A transport failure (curl 7, 28, 35, ...) brings no answer at all. Issue
+    #7320: the status was tested only after the line above had reset it, so
+    #such a failure went on as a success, the code read from whatever
+    #$HTTP_HEADER still held, and the caller blamed the CA ("Finalize code was
+    #not 200"). Retry it the way a gateway error is retried, with a new nonce.
+    if [ "$_post_ret" != "0" ]; then
+      _sleep_post_retry_sec="$(_retry_backoff_sec "$_request_retry_times")"
+      _info "Cannot make POST request to $url, let's try again. Sleeping for $_sleep_post_retry_sec seconds. ($_request_retry_times/$MAX_REQUEST_RETRY_TIMES)"
+      _sleep "$_sleep_post_retry_sec"
+      continue
     fi
 
     responseHeaders="$(cat "$HTTP_HEADER")"
@@ -2465,14 +2812,14 @@ _send_signed_request() {
         _debug3 _body "$_body"
       fi
 
-      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
-      if [ "$code" = '503' ]; then
+      _retryafter=$(echo "$responseHeaders" | _retryafter_seconds)
+      if _is_gateway_error "$code"; then
         _sleep_overload_retry_sec=$_retryafter
         if [ -z "$_sleep_overload_retry_sec" ]; then
-          _sleep_overload_retry_sec=5
+          _sleep_overload_retry_sec="$(_retry_backoff_sec "$_request_retry_times")"
         fi
         if [ $_sleep_overload_retry_sec -le 600 ]; then
-          _info "It seems the CA server is currently overloaded, let's wait and retry. Sleeping for $_sleep_overload_retry_sec seconds."
+          _info "The CA server answered $code, let's wait and retry. Sleeping for $_sleep_overload_retry_sec seconds."
           _sleep $_sleep_overload_retry_sec
           continue
         else
@@ -2499,6 +2846,44 @@ _send_signed_request() {
 
 }
 
+#Reads a value from stdin, prints it escaped for use as the replacement text
+#of a sed s command delimited by '|'. The backslash must go first: a bare one
+#starts an escape sequence and backslash-digit is a backreference, both make
+#sed error out. Then '&' (the whole-match reference) and the '|' delimiter.
+#https://github.com/acmesh-official/acme.sh/issues/7213
+_sed_escape_rhs() {
+  sed -e 's/\\/\\\\/g' -e 's/&/\\&/g' -e 's/|/\\|/g'
+}
+
+#_write_conf  file  content
+#Replace the conf file with the content.
+#Redirecting straight into the conf truncates it before anything is written, so
+#a failed write (e.g. no space left on device) left an empty conf and the cert
+#could not be renewed any more (#7247). Write a temp file next to the conf and
+#rename it over the conf only after the content is verified.
+_write_conf() {
+  __w_conf="$1"
+  __w_text="$2"
+  __w_tmp="$__w_conf.$$.tmp"
+  #cp -p, so the temp file carries the mode and owner of the conf
+  if ! cp -p "$__w_conf" "$__w_tmp" 2>/dev/null ||
+    ! printf -- "%s\n" "$__w_text" 2>/dev/null >"$__w_tmp" ||
+    [ "$(cat "$__w_tmp")" != "$__w_text" ]; then
+    rm -f "$__w_tmp"
+    return 1
+  fi
+  if [ ! -L "$__w_conf" ] && mv -f "$__w_tmp" "$__w_conf" 2>/dev/null; then
+    return 0
+  fi
+  #a symlink or a bind mounted file cannot be renamed over, write in place
+  if ! cat "$__w_tmp" 2>/dev/null >"$__w_conf"; then
+    #the conf may be truncated now, the temp file is the only complete copy
+    _err "Cannot write $__w_conf, the new content is kept in $__w_tmp"
+    return 1
+  fi
+  rm -f "$__w_tmp"
+}
+
 #setopt "file"  "opt"  "="  "value" [";"]
 _setopt() {
   __conf="$1"
@@ -2514,34 +2899,40 @@ _setopt() {
     touch "$__conf"
     chmod 600 "$__conf"
   fi
-  if [ -n "$(_tail_c 1 <"$__conf")" ]; then
-    echo >>"$__conf"
+  __nl="
+"
+  case "$__val" in
+  *"$__nl"*)
+    #the conf format is line based and the file is sourced by the shell, so a
+    #value holding a line break cannot be represented in it (it would also
+    #make the replace sed below fail with an unterminated 's' command)
+    _err "The value of '$__opt' contains a line break, it cannot be saved to $__conf."
+    return 1
+    ;;
+  esac
+  if ! __text="$(cat "$__conf")"; then
+    _err "Cannot read $__conf."
+    return 1
   fi
-
+  #build the new content first and write it once through _write_conf:
+  #redirecting straight into the conf truncates it before anything is
+  #written, so a failing sed (#2426) or a failing write (#7247) left a
+  #truncated conf, and a short append left a half written line
+  __sed_err=""
   if grep -n "^$__opt$__sep" "$__conf" >/dev/null; then
     _debug3 OK
-    if _contains "$__val" "&"; then
-      __val="$(echo "$__val" | sed 's/&/\\&/g')"
-    fi
-    if _contains "$__val" "|"; then
-      __val="$(echo "$__val" | sed 's/|/\\|/g')"
-    fi
-    text="$(cat "$__conf")"
-    printf -- "%s\n" "$text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
-
+    __val="$(printf -- "%s\n" "$__val" | _sed_escape_rhs)"
+    __text="$(printf -- "%s\n" "$__text" | sed "s|^$__opt$__sep.*$|$__opt$__sep$__val$__end|")" || __sed_err=1
   elif grep -n "^#$__opt$__sep" "$__conf" >/dev/null; then
-    if _contains "$__val" "&"; then
-      __val="$(echo "$__val" | sed 's/&/\\&/g')"
-    fi
-    if _contains "$__val" "|"; then
-      __val="$(echo "$__val" | sed 's/|/\\|/g')"
-    fi
-    text="$(cat "$__conf")"
-    printf -- "%s\n" "$text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|" >"$__conf"
-
+    __val="$(printf -- "%s\n" "$__val" | _sed_escape_rhs)"
+    __text="$(printf -- "%s\n" "$__text" | sed "s|^#$__opt$__sep.*$|$__opt$__sep$__val$__end|")" || __sed_err=1
   else
     _debug3 APP
-    echo "$__opt$__sep$__val$__end" >>"$__conf"
+    __text="$__text${__text:+$__nl}$__opt$__sep$__val$__end"
+  fi
+  if [ "$__sed_err" ] || ! _write_conf "$__conf" "$__text"; then
+    _err "Cannot save '$__opt' to $__conf."
+    return 1
   fi
   _debug3 "$(grep -n "^$__opt$__sep" "$__conf")"
 }
@@ -2569,7 +2960,13 @@ _clear_conf() {
   _sdkey="$2"
   if [ "$_c_c_f" ]; then
     _conf_data="$(cat "$_c_c_f")"
-    echo "$_conf_data" | sed "/^$_sdkey *=.*$/d" >"$_c_c_f"
+    #printf, not echo: dash's builtin echo interprets backslash escapes and
+    #would corrupt saved values that contain them on every rewrite
+    if ! _conf_data="$(printf -- "%s\n" "$_conf_data" | sed "/^$_sdkey *=.*$/d")" ||
+      ! _write_conf "$_c_c_f" "$_conf_data"; then
+      _err "Cannot clear '$_sdkey' in $_c_c_f."
+      return 1
+    fi
   else
     _err "Config file is empty, cannot clear"
   fi
@@ -3046,7 +3443,13 @@ __initHome() {
 
   if [ -z "$ACCOUNT_CONF_PATH" ]; then
     if [ -f "$_DEFAULT_ACCOUNT_CONF_PATH" ]; then
+      #Same as in _initpath: keep the live ACCOUNT_EMAIL across the sourcing,
+      #so that the -m address _process() exported is not replaced by the
+      #saved one. _process() calls __initHome directly, after the option
+      #loop, so this is the sourcing that -m used to lose to.
+      _ih_account_email="$ACCOUNT_EMAIL"
       . "$_DEFAULT_ACCOUNT_CONF_PATH"
+      ACCOUNT_EMAIL="$_ih_account_email"
     fi
   fi
 
@@ -3156,11 +3559,21 @@ _initpath() {
   domain="$1"
   _ilength="$2"
 
+  #Keep the live ACCOUNT_EMAIL, the one -m exported in _process() or the
+  #caller put in the environment. account.conf is sourced twice below (here
+  #and inside __initHome), and a sourced assignment would overwrite it with
+  #the saved address, so -m silently lost to whatever account.conf held.
+  #The saved address is not lost either way: _getAccountEmail() reads it
+  #with _readaccountconf as its last resort, after the per-CA CA_EMAIL.
+  _cli_account_email="$ACCOUNT_EMAIL"
+
   __initHome
 
   if [ -f "$ACCOUNT_CONF_PATH" ]; then
     . "$ACCOUNT_CONF_PATH"
   fi
+
+  ACCOUNT_EMAIL="$_cli_account_email"
 
   if [ "$_ACME_IN_CRON" ]; then
     if [ ! "$_USER_PATH_EXPORTED" ]; then
@@ -3911,6 +4324,11 @@ _on_before_issue() {
       if [ -z "$netprc" ]; then
         netprc="$(echo "$_netprc" | grep "$LOCAL_ANY_ADDRESS:$_checkport")"
       fi
+      if [ -z "$netprc" ]; then
+        #aix, macos, the bsds and solaris print the wildcard local address as
+        #"*.port", not "0.0.0.0:port", and it blocks $_checkaddr just the same
+        netprc="$(echo "$_netprc" | grep " [*][:.]$_checkport ")"
+      fi
       if [ "$netprc" ]; then
         _err "$netprc"
         _err "tcp port $_checkport is already used by $(echo "$netprc" | cut -d : -f 4)"
@@ -4096,9 +4514,11 @@ _regAccount() {
   _secure_debug3 _eab_kid "$_eab_kid"
   _secure_debug3 _eab_hmac_key "$_eab_hmac_key"
   _email="$(_getAccountEmail)"
-  if [ "$_email" ]; then
-    _savecaconf "CA_EMAIL" "$_email"
-  fi
+  #CA_EMAIL is saved only once the CA has actually taken the contact, which
+  #is when it answers 201. For an account key it already knows it answers
+  #200 and ignores the contact of the request, so saving here would record
+  #an address the CA never stored.
+  _saved_ca_email="$(_readcaconf CA_EMAIL)"
 
   if [ "$ACME_DIRECTORY" = "$CA_ZEROSSL" ]; then
     if [ -z "$_eab_kid" ] || [ -z "$_eab_hmac_key" ]; then
@@ -4177,8 +4597,15 @@ _regAccount() {
   if [ "$code" = "" ] || [ "$code" = '201' ]; then
     echo "$response" >"$ACCOUNT_JSON_PATH"
     _info "Registered"
+    if [ "$_email" ]; then
+      _savecaconf "CA_EMAIL" "$_email"
+    fi
   elif [ "$code" = '409' ] || [ "$code" = '200' ]; then
     _info "Already registered"
+    if [ "$_email" ] && [ "$_email" != "$_saved_ca_email" ]; then
+      _info "The account email was not changed, the CA ignores the contact of an account it already has."
+      _info "Use '$PROJECT_ENTRY --update-account -m $_email' to change it."
+    fi
   elif [ "$code" = '400' ] && _contains "$response" 'The account is not awaiting external account binding'; then
     _info "EAB already registered"
     _eabAlreadyBound=1
@@ -5266,11 +5693,9 @@ issue() {
       _on_issue_err "$_post_hook"
       return 1
     fi
-    # RFC 9773 Section 5 only defines the "alreadyReplaced" error, but real CAs
-    # (Let's Encrypt) may also reject with a malformed error if the prior cert
-    # was issued by a different issuer / different CA. Retry without "replaces"
-    # whenever the failure mentions ARI or the replaces field.
-    if [ "$_replaces_certID" ] && { _contains "$response" "alreadyReplaced" || _contains "$response" "urn:ietf:params:acme:error:malformed" || _contains "$response" "'replaces'" || _contains "$response" "ARI"; }; then
+    # Retry without "replaces" whenever the CA rejected that field, e.g. after
+    # switching the ACME server: the prior cert belongs to the old CA.
+    if [ "$_replaces_certID" ] && _isARIReplacesRejected "$code" "$response"; then
       _info "ARI 'replaces' rejected by CA, retrying newOrder without 'replaces'."
       if ! _send_signed_request "$ACME_NEW_ORDER" "$_newOrderObj}"; then
         _err "Error creating new order."
@@ -5302,6 +5727,9 @@ issue() {
 
     #for dns manual mode
     _savedomainconf "Le_OrderFinalize" "$Le_OrderFinalize"
+    #the second invocation must poll this order, not the one the previous cert came from
+    _savedomainconf "Le_LinkOrder" "$Le_LinkOrder"
+    _cleardomainconf "Le_LinkCert"
 
     _authorizations_seg="$(echo "$response" | _json_decode | _authorizations_from_order)"
     _debug2 _authorizations_seg "$_authorizations_seg"
@@ -5804,7 +6232,7 @@ $_authorizations_map"
         _on_issue_err "$_post_hook" "$vlist"
         return 1
       fi
-      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *: *[0-9]\+ *" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      _retryafter=$(echo "$responseHeaders" | _retryafter_seconds)
       _sleep_overload_retry_sec=$_retryafter
       if [ "$_sleep_overload_retry_sec" ]; then
         if [ $_sleep_overload_retry_sec -le 600 ]; then
@@ -5827,11 +6255,25 @@ $_authorizations_map"
 
   _info "Let's finalize the order."
   _info "Le_OrderFinalize" "$Le_OrderFinalize"
-  if ! _send_signed_request "${Le_OrderFinalize}" "{\"csr\": \"$der\"}"; then
-    _err "Signing failed."
-    _on_issue_err "$_post_hook"
-    return 1
-  fi
+  _finalize_retry=0
+  MAX_FINALIZE_RETRY_TIMES=10
+  while [ "$_finalize_retry" -lt "$MAX_FINALIZE_RETRY_TIMES" ]; do
+    _finalize_retry=$(_math "$_finalize_retry" + 1)
+    if ! _send_signed_request "${Le_OrderFinalize}" "{\"csr\": \"$der\"}"; then
+      _err "Signing failed."
+      _on_issue_err "$_post_hook"
+      return 1
+    fi
+    if [ "$code" = "200" ]; then
+      break
+    fi
+    if ! _is_order_not_ready "$response"; then
+      break
+    fi
+    _finalize_wait_sec="$(_retry_backoff_sec "$_finalize_retry")"
+    _info "The order is not ready to be finalized yet, waiting $_finalize_wait_sec seconds. ($_finalize_retry/$MAX_FINALIZE_RETRY_TIMES)"
+    _sleep "$_finalize_wait_sec"
+  done
   if [ "$code" != "200" ]; then
     _err "Signing failed. Finalize code was not 200."
     _err "$response"
@@ -5860,7 +6302,7 @@ $_authorizations_map"
       break
     elif _contains "$response" "\"ready\""; then
       _info "Order status is 'ready', let's sleep and retry."
-      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      _retryafter=$(echo "$responseHeaders" | _retryafter_seconds)
       _debug "_retryafter" "$_retryafter"
       if [ "$_retryafter" ] && [ $_retryafter -gt 0 ]; then
         _info "Sleeping for $_retryafter seconds then retrying"
@@ -5870,7 +6312,7 @@ $_authorizations_map"
       fi
     elif _contains "$response" "\"processing\""; then
       _info "Order status is 'processing', let's sleep and retry."
-      _retryafter=$(echo "$responseHeaders" | grep -i "^Retry-After *:" | cut -d : -f 2 | tr -d ' ' | tr -d '\r')
+      _retryafter=$(echo "$responseHeaders" | _retryafter_seconds)
       _debug "_retryafter" "$_retryafter"
       if [ "$_retryafter" ] && [ $_retryafter -gt 0 ]; then
         _info "Sleeping for $_retryafter seconds then retrying"
@@ -6015,10 +6457,16 @@ $_authorizations_map"
   Le_CertCreateTimeStr=$(_time2str "$Le_CertCreateTime")
   _savedomainconf "Le_CertCreateTimeStr" "$Le_CertCreateTimeStr"
 
+  # Le_RenewalDays is only written to the domain conf when the user actually
+  # passed --days; the default schedule is never saved. That is what makes the
+  # presence of the value a reliable "the user pinned this" flag, here and on
+  # every later renewal check.
   if [ -z "$Le_RenewalDays" ]; then
     Le_RenewalDays="$DEFAULT_RENEW"
+    _ari_pinned=""
   else
     _savedomainconf "Le_RenewalDays" "$Le_RenewalDays"
+    _ari_pinned="1"
   fi
 
   if [ "$CA_BUNDLE" ]; then
@@ -6092,15 +6540,25 @@ $_authorizations_map"
     Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
   fi
 
-  # RFC 9773 ARI: if the CA exposes renewalInfo, override Le_NextRenewTime
-  # with a time picked at random within the suggestedWindow. This both gives
-  # the CA full control over renewal scheduling and disperses renewals across
-  # the network so all clients don't hit the CA at the same instant.
+  # RFC 9773 ARI: if the CA exposes renewalInfo, take Le_NextRenewTime from
+  # the suggestedWindow. This gives the CA control over renewal scheduling and
+  # disperses renewals across the network so all clients don't hit the CA at
+  # the same instant.
+  # An explicit --days or --valid-to wins over the window, except when the CA
+  # wants the cert renewed EARLIER than the user asked for: an urgent renewal
+  # must still get through. A fixed-date --valid-to opts out entirely, because
+  # there the cert is pinned to an expiry and is not renewed automatically at
+  # all -- letting ARI pull it forward would change that, not just its timing.
   # Set NO_ARI=1 (env, account.conf, or ca.conf) to opt out and fall back to
   # the legacy time-based renewal calculation.
+  if [ "$_notAfter" ]; then
+    _ari_pinned="1"
+  fi
   if [ "$NO_ARI" = "1" ]; then
     _debug "NO_ARI=1, skipping ARI suggestedWindow override"
-  elif [ "$ACME_RENEWAL_INFO" ] && [ -f "$CERT_PATH" ] && [ -z "$_notAfter" ]; then
+  elif [ "$_valid_to" ] && ! _startswith "$_valid_to" "+"; then
+    _debug "Fixed --valid-to, skipping ARI suggestedWindow override"
+  elif [ "$ACME_RENEWAL_INFO" ] && [ -f "$CERT_PATH" ]; then
     _ari_resp_new="$(_get_ARI "$CERT_PATH")"
     _debug2 "_ari_resp_new" "$_ari_resp_new"
     _ari_start_new="$(echo "$_ari_resp_new" | _egrep_o '"start" *: *"[^"]*' | sed 's/.*"//')"
@@ -6108,13 +6566,15 @@ $_authorizations_map"
     if [ "$_ari_start_new" ] && [ "$_ari_end_new" ]; then
       _ari_start_t_new="$(_date2time "$(echo "$_ari_start_new" | sed 's/\.[0-9]*//')")"
       _ari_end_t_new="$(_date2time "$(echo "$_ari_end_new" | sed 's/\.[0-9]*//')")"
-      if [ "$_ari_start_t_new" ] && [ "$_ari_end_t_new" ] && [ "$_ari_end_t_new" -gt "$_ari_start_t_new" ]; then
-        _ari_window=$(_math "$_ari_end_t_new" - "$_ari_start_t_new")
-        _ari_offset=$(_math "$(_time)" % "$_ari_window")
-        Le_NextRenewTime=$(_math "$_ari_start_t_new" + "$_ari_offset")
+      _ari_next_new="$(_calc_ari_renew_time "$_ari_start_t_new" "$_ari_end_t_new" "$(_time)" "$Le_NextRenewTime" "$_ari_pinned")"
+      if [ "$_ari_next_new" ]; then
+        Le_NextRenewTime="$_ari_next_new"
         Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
         _info "ARI suggestedWindow: $(__green "$_ari_start_new") to $(__green "$_ari_end_new")"
         _info "Next renewal time picked from ARI window: $(__green "$Le_NextRenewTimeStr")"
+      elif [ "$_ari_pinned" ]; then
+        _info "ARI suggestedWindow: $(__green "$_ari_start_new") to $(__green "$_ari_end_new")"
+        _info "It is later than the renewal time you asked for, keeping: $(__green "$Le_NextRenewTimeStr")"
       fi
     fi
   fi
@@ -6257,10 +6717,21 @@ renew() {
 
   # ARI (RFC 9773): fetch the CA's suggestedWindow on every renewal check.
   # If the window has started, renew now even if Le_NextRenewTime is in the future.
+  # Le_RenewalDays and Le_Valid_To are only in the domain conf when the user
+  # passed --days or --valid-to, so their presence is what pins the schedule.
+  # A pinned schedule still yields to a window that is EARLIER than it, so the
+  # CA can pull an urgent renewal forward. A fixed-date --valid-to opts out
+  # entirely: that cert is not renewed automatically at all.
   # Set NO_ARI=1 (env, account.conf, or ca.conf) to opt out and use only
   # Le_NextRenewTime for the renewal decision.
+  _ari_pinned=""
+  if [ "$Le_RenewalDays" ] || [ "$Le_Valid_To" ]; then
+    _ari_pinned="1"
+  fi
   if [ "$NO_ARI" = "1" ]; then
     _debug "NO_ARI=1, skipping ARI suggestedWindow check"
+  elif [ "$Le_Valid_To" ] && ! _startswith "$Le_Valid_To" "+"; then
+    _debug "Fixed --valid-to, skipping ARI suggestedWindow check"
   elif [ -z "$FORCE" ] && [ -f "$CERT_PATH" ]; then
     if _initAPI && [ "$ACME_RENEWAL_INFO" ]; then
       _ari_resp="$(_get_ARI "$CERT_PATH")"
@@ -6279,16 +6750,19 @@ renew() {
         _debug "Le_NextRenewTime" "$Le_NextRenewTime"
         # Update ARI if needed
         if [ "$_ari_start_t" ] && [ "$_ari_end_t" ] && [ "$Le_NextRenewTime" ] && [ "$_ari_end_t" -gt "$_ari_start_t" ] && ([ "$Le_NextRenewTime" -lt "$_ari_start_t" ] || [ "$Le_NextRenewTime" -gt "$_ari_end_t" ]); then
-          _ari_old_time_str="$Le_NextRenewTimeStr"
-          _info "Current renewal time: $(__green "$_ari_old_time_str")"
-          _ari_window=$(_math "$_ari_end_t" - "$_ari_start_t")
-          _ari_offset=$(_math "$(_time)" % "$_ari_window")
-          Le_NextRenewTime=$(_math "$_ari_start_t" + "$_ari_offset")
-          Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
-          _info "ARI suggestedWindow: $(__green "$_ari_start") to $(__green "$_ari_end")"
-          _info "Updating renewal time picked from ARI window: $(__green "$Le_NextRenewTimeStr")"
-          _savedomainconf Le_NextRenewTime "$Le_NextRenewTime"
-          _savedomainconf Le_NextRenewTimeStr "$Le_NextRenewTimeStr"
+          _ari_next="$(_calc_ari_renew_time "$_ari_start_t" "$_ari_end_t" "$(_time)" "$Le_NextRenewTime" "$_ari_pinned")"
+          if [ "$_ari_next" ]; then
+            _ari_old_time_str="$Le_NextRenewTimeStr"
+            _info "Current renewal time: $(__green "$_ari_old_time_str")"
+            Le_NextRenewTime="$_ari_next"
+            Le_NextRenewTimeStr=$(_time2str "$Le_NextRenewTime")
+            _info "ARI suggestedWindow: $(__green "$_ari_start") to $(__green "$_ari_end")"
+            _info "Updating renewal time picked from ARI window: $(__green "$Le_NextRenewTimeStr")"
+            _savedomainconf Le_NextRenewTime "$Le_NextRenewTime"
+            _savedomainconf Le_NextRenewTimeStr "$Le_NextRenewTimeStr"
+          else
+            _debug "ARI wants a later renewal than --days/--valid-to asked for, keeping $Le_NextRenewTimeStr"
+          fi
         fi
         if [ "$Le_NextRenewTime" ] && [ "$(_time)" -ge "$Le_NextRenewTime" ]; then
           _info "ARI suggested renewal has passed ($(__green "$Le_NextRenewTimeStr")), proceeding with renewal."
@@ -7301,7 +7775,7 @@ revoke() {
 
   _info "Trying account key first."
   if _send_signed_request "$uri" "$data" "" "$ACCOUNT_KEY_PATH"; then
-    if [ -z "$response" ]; then
+    if _is_revoked_response "$response"; then
       _info "Successfully revoked."
       rm -f "$CERT_PATH"
       cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
@@ -7316,7 +7790,7 @@ revoke() {
   if [ -f "$CERT_KEY_PATH" ]; then
     _info "Trying domain key."
     if _send_signed_request "$uri" "$data" "" "$CERT_KEY_PATH"; then
-      if [ -z "$response" ]; then
+      if _is_revoked_response "$response"; then
         _info "Successfully revoked."
         rm -f "$CERT_PATH"
         cat "$CERT_KEY_PATH" >"$CERT_KEY_PATH.revoked"
@@ -7555,6 +8029,35 @@ _getARICertID() {
   _debug2 "_serurl" "$_serurl"
 
   printf "%s.%s" "$_akiurl" "$_serurl"
+}
+
+#httpcode response
+#Returns 0 when a newOrder was rejected because of the ARI "replaces" field,
+#so that the order can be retried without it.
+#The status code decides first, and an empty code counts as "not rejected":
+#an ACCEPTED order echoes the field back, since RFC 9773 Section 5 says that
+#a server accepting a newOrder request with a "replaces" field "MUST reflect
+#that field in the response", and the certID it carries is base64url, so the
+#response of a SUCCESSFUL order can contain "replaces" and even "ARI".
+#Matching on the message alone would then re-order without "replaces" and
+#defeat ARI.
+#Only the 409 "alreadyReplaced" type is mandated by RFC 9773 Section 5; the
+#other checks it lists (same ACME account, shared identifier) are left to
+#server policy, so the wording differs per CA: Let's Encrypt answers
+#malformed when the prior cert was issued by a different issuer, ZeroSSL
+#answers 401 with 'The "replaces" field does not identify a certificate that
+#belongs to this ACME account'.
+#https://github.com/acmesh-official/acme.sh/issues/7280
+_isARIReplacesRejected() {
+  _ari_rej_code="$1"
+  _ari_rej_resp="$2"
+  if [ -z "$_ari_rej_code" ] || _startswith "$_ari_rej_code" "2"; then
+    return 1
+  fi
+  _contains "$_ari_rej_resp" "alreadyReplaced" ||
+    _contains "$_ari_rej_resp" "replaces" ||
+    _contains "$_ari_rej_resp" "ARI" ||
+    _contains "$_ari_rej_resp" "urn:ietf:params:acme:error:malformed"
 }
 
 #cert
