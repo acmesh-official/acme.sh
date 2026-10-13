@@ -6,7 +6,6 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_dnsimple
 Options:
  DNSimple_OAUTH_TOKEN OAuth Token
  DNSimple_ACCOUNT_ID Account ID. Optional, only needed when the token can access multiple accounts.
-Issues: github.com/pho3nixf1re/acme.sh/issues
 '
 
 DNSimple_API="https://api.dnsimple.com/v2"
@@ -112,6 +111,8 @@ _get_root() {
 
     if _contains "$response" 'not found'; then
       _debug "$h not found"
+    elif _contains "$response" 'Permission Denied'; then
+      _debug "$h permission denied - likely token scope error"
     else
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$previous")
       _domain="$h"
