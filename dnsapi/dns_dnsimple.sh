@@ -6,6 +6,7 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_dnsimple
 Options:
  DNSimple_OAUTH_TOKEN OAuth Token
  DNSimple_ACCOUNT_ID Account ID. Optional, only needed when the token can access multiple accounts.
+Issues: github.com/pho3nixf1re/acme.sh/issues
 '
 
 DNSimple_API="https://api.dnsimple.com/v2"
