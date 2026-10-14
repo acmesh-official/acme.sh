@@ -110,6 +110,12 @@ _get_root() {
       return 1
     fi
 
+    if ! _contains "$response" "\"name\":\"$h\""; then
+      if ! _dnsimple_rest GET "$_account_id/zones/$h/records?per_page=1"; then
+        return 1
+      fi
+    fi
+
     if _contains "$response" "\"name\":\"$h\""; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$previous")
       _domain="$h"
