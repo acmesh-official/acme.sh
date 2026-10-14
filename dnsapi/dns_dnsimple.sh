@@ -110,11 +110,7 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$response" 'not found'; then
-      _debug "$h not found"
-    elif _contains "$response" 'Permission Denied'; then
-      _debug "$h permission denied - likely token scope error"
-    else
+    if _contains "$response" "\"name\":\"${h,,}\""; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$previous")
       _domain="$h"
 
@@ -123,6 +119,7 @@ _get_root() {
 
       return 0
     fi
+    _debug "$h not found"
 
     previous="$i"
     i=$(_math "$i" + 1)
