@@ -116,7 +116,7 @@ _get_root() {
       fi
     fi
 
-    if _contains "$response" "\"name\":\"$h\""; then
+    if _contains "$response" "\"name\":\"$h\"" || _contains "$response" '"pagination":'; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$previous")
       _domain="$h"
 
