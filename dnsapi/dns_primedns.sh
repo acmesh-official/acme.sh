@@ -7,6 +7,8 @@ Options:
  PRIMEDNS_API_KEY API Key. Scope acme:write:<hostname> for each name you issue (or dns:write)
 OptionsAlt:
  PRIMEDNS_API_URL API base URL. Optional, default https://api.primedns.net/v1
+Issues: github.com/acmesh-official/acme.sh/issues/7330
+Author: PrimeDNS <acme@primedns.net>
 '
 
 PRIMEDNS_Api_Default="https://api.primedns.net/v1"
