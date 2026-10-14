@@ -15,7 +15,7 @@ DNSimple_API="https://api.dnsimple.com/v2"
 
 # Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_dnsimple_add() {
-  fulldomain=$1
+  fulldomain=$(echo $1 | _lower_case)
   txtvalue=$2
 
   DNSimple_OAUTH_TOKEN="${DNSimple_OAUTH_TOKEN:-$(_readaccountconf_mutable DNSimple_OAUTH_TOKEN)}"
@@ -56,7 +56,7 @@ dns_dnsimple_add() {
 
 # fulldomain
 dns_dnsimple_rm() {
-  fulldomain=$1
+  fulldomain=$(echo $1 | _lower_case)
 
   DNSimple_OAUTH_TOKEN="${DNSimple_OAUTH_TOKEN:-$(_readaccountconf_mutable DNSimple_OAUTH_TOKEN)}"
   if [ -z "$DNSimple_OAUTH_TOKEN" ]; then
@@ -110,7 +110,7 @@ _get_root() {
       return 1
     fi
 
-    if _contains "$response" "\"name\":\"${h,,}\""; then
+    if _contains "$response" "\"name\":\"$h\""; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$previous")
       _domain="$h"
 
