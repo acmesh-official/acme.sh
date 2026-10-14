@@ -43,7 +43,7 @@ dns_dnsimple_add() {
 
   _info "Adding record"
   if _dnsimple_rest POST "$_account_id/zones/$_domain/records" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"content\":\"$txtvalue\",\"ttl\":120}"; then
-    if printf -- "%s" "$response" | grep -i "\"name\":\"$_sub_domain\"" >/dev/null; then
+    if printf -- "%s" "$response" | grep "\"name\":\"$_sub_domain\"" >/dev/null; then
       _info "Added"
       return 0
     else
