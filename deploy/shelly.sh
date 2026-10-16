@@ -4,18 +4,29 @@
 # Deploy the HTTPS server certificate to a Shelly device on the local network.
 #
 # ```sh
-# export SHELLY_HOST=192.168.1.100
-# export SHELLY_PASSWORD=mysecret    # only if auth is enabled on the device
+# export SHELLY_HOST=shelly.example.com
+# export SHELLY_PASSWORD=mysecret  # only if auth is enabled on the device
+# export SHELLY_SCHEME=https       # only if devices factory shipped with
+#                                  # firmware 2.0.0 or already has https
+#                                  # enabled
 # acme.sh --deploy -d shelly.example.com --deploy-hook shelly
 # ```
+#
+# If `SHELLY_SCHEME=https` is used, the first deploy is likely to require
+# the additional `--insecure` parameter due to factory signed certificates.
+# After the initial deployment make sure to retest deployment without
+# `--insecure` simply using `acme.sh --deploy -d shelly.example.com`
+# to ensure follow up deployment will work.
 #
 # Environment variables:
 #   SHELLY_HOST      (required)  IP or hostname of the Shelly device
 #   SHELLY_PASSWORD  (optional)  Admin password for digest authentication.
 #                                Omit if auth is disabled on the device.
 #   SHELLY_USER      (optional)  Username for auth. Default: admin
-#   SHELLY_REBOOT     (optional)  Set to "0" to skip auto-reboot.
+#   SHELLY_REBOOT    (optional)  Set to "0" to skip auto-reboot.
 #                                Default: 1 (reboot after upload)
+#   SHELLY_SCHEME    (optional)  Scheme used to call the API: http or https
+#                                Default: http
 #
 # Requirements:
 #   - Shelly Gen3+ device (Gen4 recommended)
@@ -23,7 +34,7 @@
 #   - curl or wget
 #   - openssl (for SHA-256 digest and random cnonce)
 #
-# The device must be reachable via HTTP on the local network.
+# The device must be reachable on the local network.
 # The hook uploads the fullchain.pem and private key,
 # then reboots the device to apply the new certificate.
 #
@@ -52,11 +63,13 @@ shelly_deploy() {
   _getdeployconf SHELLY_PASSWORD
   _getdeployconf SHELLY_USER
   _getdeployconf SHELLY_REBOOT
+  _getdeployconf SHELLY_SCHEME
 
   _debug SHELLY_HOST "$SHELLY_HOST"
   _debug SHELLY_USER "$SHELLY_USER"
   _secure_debug SHELLY_PASSWORD "$SHELLY_PASSWORD"
   _debug SHELLY_REBOOT "$SHELLY_REBOOT"
+  _debug SHELLY_SCHEME "$SHELLY_SCHEME"
 
   if [ -z "$SHELLY_HOST" ]; then
     _err "SHELLY_HOST is required. Please set the IP or hostname of your Shelly device."
@@ -65,11 +78,20 @@ shelly_deploy() {
 
   SHELLY_USER="${SHELLY_USER:-admin}"
   SHELLY_REBOOT="${SHELLY_REBOOT:-1}"
+  SHELLY_SCHEME="${SHELLY_SCHEME:-http}"
+  case "$SHELLY_SCHEME" in
+  http | https) ;;
+  *)
+    _err "SHELLY_SCHEME must be http or https"
+    return 1
+    ;;
+  esac
 
   _savedeployconf SHELLY_HOST "$SHELLY_HOST"
   _savedeployconf SHELLY_PASSWORD "$SHELLY_PASSWORD"
   _savedeployconf SHELLY_USER "$SHELLY_USER"
   _savedeployconf SHELLY_REBOOT "$SHELLY_REBOOT"
+  _savedeployconf SHELLY_SCHEME "$SHELLY_SCHEME"
 
   # --- Auth handshake (only if password is set) ---
   _shelly_auth_header=""
@@ -126,7 +148,7 @@ _shelly_handshake() {
   # Use a protected method (Shelly.GetStatus) to trigger 401.
   # Shelly.GetDeviceInfo is excluded from auth and would miss the challenge.
   _post '{"id":1,"method":"Shelly.GetStatus"}' \
-    "http://${SHELLY_HOST}/rpc" "" "" "application/json"
+    "${SHELLY_SCHEME}://${SHELLY_HOST}/rpc" "" "" "application/json"
 
   # Detect auth from HTTP status line rather than response body
   if ! _shelly_has_auth_challenge "$HTTP_HEADER"; then
@@ -210,7 +232,7 @@ _shelly_rpc() {
     export _H1=""
   fi
 
-  _post "$_shelly_body" "http://${SHELLY_HOST}/rpc" "" "" "application/json"
+  _post "$_shelly_body" "${SHELLY_SCHEME}://${SHELLY_HOST}/rpc" "" "" "application/json"
   _shelly_ret=$?
 
   if [ "$_shelly_ret" != "0" ]; then

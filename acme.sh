@@ -2914,6 +2914,7 @@ _setopt() {
     _err "Cannot read $__conf."
     return 1
   fi
+  __old_text="$__text"
   #build the new content first and write it once through _write_conf:
   #redirecting straight into the conf truncates it before anything is
   #written, so a failing sed (#2426) or a failing write (#7247) left a
@@ -2929,6 +2930,13 @@ _setopt() {
   else
     _debug3 APP
     __text="$__text${__text:+$__nl}$__opt$__sep$__val$__end"
+  fi
+  if [ -z "$__sed_err" ] && [ "$__text" = "$__old_text" ]; then
+    #the value is already saved: callers re-save the same values on every
+    #run, and each write is a temp file plus a rename, which is slow on
+    #some storage (#7335)
+    _debug3 "Unchanged, skip writing $__conf"
+    return 0
   fi
   if [ "$__sed_err" ] || ! _write_conf "$__conf" "$__text"; then
     _err "Cannot save '$__opt' to $__conf."
@@ -2959,11 +2967,19 @@ _clear_conf() {
   _c_c_f="$1"
   _sdkey="$2"
   if [ "$_c_c_f" ]; then
-    _conf_data="$(cat "$_c_c_f")"
+    _c_c_old="$(cat "$_c_c_f")"
     #printf, not echo: dash's builtin echo interprets backslash escapes and
     #would corrupt saved values that contain them on every rewrite
-    if ! _conf_data="$(printf -- "%s\n" "$_conf_data" | sed "/^$_sdkey *=.*$/d")" ||
-      ! _write_conf "$_c_c_f" "$_conf_data"; then
+    if ! _conf_data="$(printf -- "%s\n" "$_c_c_old" | sed "/^$_sdkey *=.*$/d")"; then
+      _err "Cannot clear '$_sdkey' in $_c_c_f."
+      return 1
+    fi
+    #the key is not there, the usual case for the legacy keys cleared on
+    #every _savedeployconf: nothing to write (#7335)
+    if [ "$_conf_data" = "$_c_c_old" ]; then
+      return 0
+    fi
+    if ! _write_conf "$_c_c_f" "$_conf_data"; then
       _err "Cannot clear '$_sdkey' in $_c_c_f."
       return 1
     fi

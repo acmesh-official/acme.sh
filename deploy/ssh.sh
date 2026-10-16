@@ -189,6 +189,19 @@ ssh_deploy() {
     _info "Required commands batched and sent in single call to remote host"
   fi
 
+  # With a POSIX remote shell, steps are joined with && so that the first
+  # failed step stops the rest (no REMOTE_CMD after a failed write). Other
+  # shells ("powershell -c", "cmd /c") keep the plain ";" join.
+  _ssh_shell_name="${DEPLOY_SSH_REMOTE_SHELL%% *}"
+  case "${_ssh_shell_name##*/}" in
+  sh | bash | dash | ash | ksh | mksh | zsh)
+    _ssh_fail_fast="yes"
+    ;;
+  *)
+    _ssh_fail_fast="no"
+    ;;
+  esac
+
   _returnCode=0
   _deploy_ssh_servers="$DEPLOY_SSH_SERVER"
   for DEPLOY_SSH_SERVER in $_deploy_ssh_servers; do
@@ -228,9 +241,9 @@ _ssh_deploy() {
     _backupdir="$_backupprefix-$(_utc_date | tr ' ' '-')"
     # run cleanup on the backup directory, erase all older
     # than 180 days (15552000 seconds).
-    _cmdstr="{ now=\"\$(date -u +%s)\"; for fn in $_backupprefix*; \
+    _ssh_add_step "now=\"\$(date -u +%s)\"; for fn in $_backupprefix*; \
 do if [ -d \"\$fn\" ] && [ \"\$(expr \$now - \$(date -ur \$fn +%s) )\" -ge \"15552000\" ]; \
-then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; done; }; $_cmdstr"
+then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; done"
     # Alternate version of above... _cmdstr="find $_backupprefix* -type d -mtime +180 2>/dev/null | xargs rm -rf; $_cmdstr"
     _info "Backup of old certificate files will be placed in remote directory $_backupdir"
     _info "Backup directories erased after 180 days."
@@ -245,7 +258,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
   if [ -n "$DEPLOY_SSH_KEYFILE" ]; then
     if [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr if [ -f $DEPLOY_SSH_KEYFILE ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_KEYFILE $_backupdir >/dev/null; fi;"
+      _ssh_add_step "if [ -f $DEPLOY_SSH_KEYFILE ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_KEYFILE $_backupdir >/dev/null; fi"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
           return $_err_code
@@ -261,10 +274,9 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
         return $_err_code
       fi
     else
-      # If file doesn't exist, create it and change its permissions.
-      _cmdstr="$_cmdstr test ! -f $DEPLOY_SSH_KEYFILE && touch $DEPLOY_SSH_KEYFILE && chmod 600 $DEPLOY_SSH_KEYFILE;"
-      # ssh echo to the file
-      _cmdstr="$_cmdstr echo \"$(cat "$_ckey")\" > $DEPLOY_SSH_KEYFILE;"
+      # If file doesn't exist, create it and change its permissions, then
+      # ssh echo to the file. One step: "test ! -f" fails if the file exists.
+      _ssh_add_step "test ! -f $DEPLOY_SSH_KEYFILE && touch $DEPLOY_SSH_KEYFILE && chmod 600 $DEPLOY_SSH_KEYFILE; echo \"$(cat "$_ckey")\" > $DEPLOY_SSH_KEYFILE"
       _info "will copy private key to remote file $DEPLOY_SSH_KEYFILE"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
@@ -282,7 +294,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       _pipe=">>"
     elif [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr if [ -f $DEPLOY_SSH_CERTFILE ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_CERTFILE $_backupdir >/dev/null; fi;"
+      _ssh_add_step "if [ -f $DEPLOY_SSH_CERTFILE ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_CERTFILE $_backupdir >/dev/null; fi"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
           return $_err_code
@@ -304,7 +316,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       fi
     else
       # ssh echo to the file
-      _cmdstr="$_cmdstr echo \"$(cat "$_ccert")\" $_pipe $DEPLOY_SSH_CERTFILE;"
+      _ssh_add_step "echo \"$(cat "$_ccert")\" $_pipe $DEPLOY_SSH_CERTFILE"
       _info "will copy certificate to remote file $DEPLOY_SSH_CERTFILE"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
@@ -323,7 +335,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       _pipe=">>"
     elif [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr if [ -f $DEPLOY_SSH_CAFILE ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_CAFILE $_backupdir >/dev/null; fi;"
+      _ssh_add_step "if [ -f $DEPLOY_SSH_CAFILE ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_CAFILE $_backupdir >/dev/null; fi"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
           return $_err_code
@@ -348,7 +360,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       fi
     else
       # ssh echo to the file
-      _cmdstr="$_cmdstr echo \"$(cat "$_cca")\" $_pipe $DEPLOY_SSH_CAFILE;"
+      _ssh_add_step "echo \"$(cat "$_cca")\" $_pipe $DEPLOY_SSH_CAFILE"
       _info "will copy CA file to remote file $DEPLOY_SSH_CAFILE"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
@@ -368,7 +380,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       _pipe=">>"
     elif [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
       # backup file we are about to overwrite.
-      _cmdstr="$_cmdstr if [ -f $DEPLOY_SSH_FULLCHAIN ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_FULLCHAIN $_backupdir >/dev/null; fi;"
+      _ssh_add_step "if [ -f $DEPLOY_SSH_FULLCHAIN ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_FULLCHAIN $_backupdir >/dev/null; fi"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
           return $_err_code
@@ -396,7 +408,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       fi
     else
       # ssh echo to the file
-      _cmdstr="$_cmdstr echo \"$(cat "$_cfullchain")\" $_pipe $DEPLOY_SSH_FULLCHAIN;"
+      _ssh_add_step "echo \"$(cat "$_cfullchain")\" $_pipe $DEPLOY_SSH_FULLCHAIN"
       _info "will copy fullchain to remote file $DEPLOY_SSH_FULLCHAIN"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
@@ -419,7 +431,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
   fi
 
   if [ -n "$DEPLOY_SSH_REMOTE_CMD" ]; then
-    _cmdstr="$_cmdstr $DEPLOY_SSH_REMOTE_CMD;"
+    _ssh_add_step "$DEPLOY_SSH_REMOTE_CMD"
     _info "Will execute remote command $DEPLOY_SSH_REMOTE_CMD"
     if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
       if ! _ssh_remote_cmd "$_cmdstr"; then
@@ -437,6 +449,20 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
   fi
   # cleanup in case all is ok
   return 0
+}
+
+#step
+_ssh_add_step() {
+  if [ "$_ssh_fail_fast" = "yes" ]; then
+    if [ -n "$_cmdstr" ]; then
+      _cmdstr="$_cmdstr && "
+    fi
+    # the newline ends the step even if it ends with a comment, ";" or "&"
+    _cmdstr="$_cmdstr{ $1
+}"
+  else
+    _cmdstr="$_cmdstr $1;"
+  fi
 }
 
 #cmd
