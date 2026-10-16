@@ -4,7 +4,7 @@ dns_primedns_info='PrimeDNS
 Site: primedns.net
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_primedns
 Options:
- PRIMEDNS_API_KEY API Key. Scope acme:write:<hostname> for each name you issue (or dns:write)
+ PRIMEDNS_API_KEY API Key. Scope acme:name:_acme-challenge.<hostname> for each name you issue (or dns:write)
 OptionsAlt:
  PRIMEDNS_API_URL API base URL. Optional, default https://api.primedns.net/v1
 Issues: github.com/acmesh-official/acme.sh/issues/7330
@@ -24,7 +24,7 @@ dns_primedns_add() {
   if [ -z "$PRIMEDNS_API_KEY" ]; then
     PRIMEDNS_API_KEY=""
     _err "You didn't specify a PrimeDNS API key (PRIMEDNS_API_KEY) yet."
-    _err "Create one in the PrimeDNS panel (Account -> API Keys) with the scope acme:write:<hostname> for each name you issue."
+    _err "Create one in the PrimeDNS panel (Account -> API Keys) with the scope acme:name:_acme-challenge.<hostname> for each name you issue."
     return 1
   fi
 
@@ -74,14 +74,12 @@ dns_primedns_rm() {
 ####################  Private functions below ##################################
 
 #Usage: _primedns_rest  POST|DELETE  _acme-challenge.www.domain.com  txtvalue
-#The API creates/removes the TXT record _acme-challenge.<domain> in the matching
-#zone of the account (zone lookup is done server side), so the "_acme-challenge."
-#prefix is cut off here and only the name being validated is sent. A name that
-#does not start with "_acme-challenge." (acme.sh's own DNS API test uses one) is
+#The API creates/removes the TXT record with exactly the name given, so the full
+#name acme.sh passes (_acme-challenge.<domain>, or the name of a DNS alias) is
 #sent as it is.
 _primedns_rest() {
   _method=$1
-  _name=${2#_acme-challenge.}
+  _name=$2
   _value=$3
   _url="${PRIMEDNS_API_URL:-$PRIMEDNS_Api_Default}/dns/acme-challenge"
 
@@ -96,7 +94,7 @@ _primedns_rest() {
     _err "Cannot send '$_name': it is not a plain ASCII host name. For an IDN name install idn (acme.sh converts it to punycode) or pass the punycode name."
     return 1
   fi
-  _body="{\"domain\":\"$_name\",\"value\":\"$_value\"}"
+  _body="{\"name\":\"$_name\",\"value\":\"$_value\"}"
   _debug _body "$_body"
 
   _primedns_retried=""
@@ -142,9 +140,9 @@ _primedns_rest() {
   elif _contains "$response" 'IP_NOT_ALLOWED'; then
     _err "This PrimeDNS API key may not be used from this address (allowed_ips). Add the address to the key or run acme.sh from an allowed host."
   elif _contains "$response" 'NAME_NOT_ALLOWED'; then
-    _err "This PrimeDNS API key may not validate $_name: add the scope acme:write:$_name to the key, or the zone to its allowed zones."
+    _err "This PrimeDNS API key may not write $_name: add the scope acme:name:$_name to the key, or the zone to its allowed zones."
   elif _contains "$response" 'INSUFFICIENT_SCOPE'; then
-    _err "This PrimeDNS API key needs the scope acme:write:$_name (or dns:write)."
+    _err "This PrimeDNS API key needs the scope acme:name:$_name (or dns:write)."
   elif _contains "$response" 'DOMAIN_NOT_FOUND'; then
     _err "$_name is not in a zone of the PrimeDNS account that owns this API key."
   elif [ "$_status" = "429" ]; then
