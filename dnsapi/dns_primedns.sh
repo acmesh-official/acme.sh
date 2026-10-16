@@ -118,7 +118,7 @@ _primedns_rest() {
 
     #Rate limited or temporary server error: wait and try once more.
     if [ -z "$_primedns_retried" ] && { [ "$_status" = "429" ] || [ "$_status" = "502" ] || [ "$_status" = "503" ] || [ "$_status" = "504" ]; }; then
-      _wait=$(grep -i "^Retry-After" "$HTTP_HEADER" | _tail_n 1 | cut -d : -f 2 | tr -d ' \r\n')
+      _wait="$(_retryafter_seconds <"$HTTP_HEADER")"
       case "$_wait" in
       '' | *[!0-9]*) _wait=5 ;;
       esac
