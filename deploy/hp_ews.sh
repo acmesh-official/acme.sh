@@ -34,6 +34,9 @@
 #                                    acme.sh's global HTTPS_INSECURE is
 #                                    honoured as well.
 #
+# The hook authenticates with HTTP Basic auth. Printers whose EWS only offers
+# Digest auth are not supported.
+#
 # Requires openssl, to build the PKCS#12 bundle.
 #
 # returns 0 means success, otherwise error.
@@ -172,104 +175,32 @@ _hp_ews_upload() {
     printf -- "--%s--\r\n" "$_hp_ews_boundary"
   } >"$_hp_ews_body"
 
-  export _H1="Content-Type: multipart/form-data; boundary=$_hp_ews_boundary"
+  export _H1="Authorization: Basic $(printf "%s:%s" "$HP_EWS_USERNAME" "$HP_EWS_PASSWORD" | _base64)"
+  if [ "$HP_EWS_INSECURE" ]; then
+    export HTTPS_INSECURE=1
+  fi
 
   _info "Uploading the certificate to $_hp_ews_url"
-  _hp_ews_post "$_hp_ews_body" "$_hp_ews_url" || return 1
+  if ! _post_file "$_hp_ews_body" "$_hp_ews_url" "" "POST" "multipart/form-data; boundary=$_hp_ews_boundary" >/dev/null; then
+    if [ -z "$HTTPS_INSECURE" ]; then
+      _err "If the printer still serves its self-signed certificate, set HP_EWS_INSECURE=1 and try again."
+    fi
+    return 1
+  fi
 
   # The EWS answers 201 Created on a successful install.
-  _hp_ews_code="$(_hp_ews_status)"
+  _hp_ews_code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
   _debug _hp_ews_code "$_hp_ews_code"
 
   if [ "$_hp_ews_code" != "201" ] && [ "$_hp_ews_code" != "200" ]; then
     _err "The printer rejected the certificate (HTTP $_hp_ews_code)."
     if [ "$_hp_ews_code" = "401" ] || [ "$_hp_ews_code" = "403" ]; then
-      _err "Check HP_EWS_USERNAME and HP_EWS_PASSWORD. If they are correct, the printer may"
-      _err "be asking for an authentication scheme that could not be negotiated; re-run with"
-      _err "--debug 2 and check the WWW-Authenticate header in the response."
+      _err "Check HP_EWS_USERNAME and HP_EWS_PASSWORD. Only HTTP Basic authentication is"
+      _err "supported; printers that only offer Digest cannot be used with this hook."
     fi
     return 1
   fi
 
   _info "Certificate installed (HTTP $_hp_ews_code). The printer restarts its web server shortly."
   return 0
-}
-
-# The final response status recorded in $HTTP_HEADER by _hp_ews_post.
-_hp_ews_status() {
-  grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n"
-}
-
-# POST a body file. The body holds a binary PKCS#12, which cannot survive a
-# shell variable, so it is passed by filename -- curl reads it with
-# --data-binary @ and wget with --post-file. Modelled on
-# deploy/zyxel_gs1900.sh's _zyxel_upload_pkcs12, and built on $_ACME_CURL /
-# $_ACME_WGET so that acme.sh's own CA_PATH/CA_BUNDLE, IPv4/IPv6 and debug
-# settings still apply.
-#
-# Usage: _hp_ews_post [body file name] [url]
-_hp_ews_post() {
-  _hp_ews_bodyfile="$1"
-  _hp_ews_posturl="$2"
-
-  _debug2 "_hp_ews_bodyfile" "$_hp_ews_bodyfile"
-  _debug "_hp_ews_posturl" "$_hp_ews_posturl"
-
-  _inithttp
-
-  if [ "$_ACME_CURL" ] && [ "${ACME_USE_WGET:-0}" = "0" ]; then
-    _CURL="$_ACME_CURL"
-    if [ "$HTTPS_INSECURE" ] || [ "$HP_EWS_INSECURE" ]; then
-      _CURL="$_CURL --insecure  "
-    fi
-    _debug "_CURL" "$_CURL"
-
-    # --anyauth so that either a Basic or a Digest challenge is satisfied.
-    response="$($_CURL --user-agent "$USER_AGENT" -X POST --anyauth -u "$HP_EWS_USERNAME:$HP_EWS_PASSWORD" -H "$_H1" -H "$_H2" -H "$_H3" -H "$_H4" -H "$_H5" --data-binary "@${_hp_ews_bodyfile}" "$_hp_ews_posturl")"
-    _ret="$?"
-
-    if [ "$_ret" != "0" ]; then
-      _err "Please refer to https://curl.haxx.se/libcurl/c/libcurl-errors.html for error code: $_ret"
-      if [ "$_ret" = "60" ]; then
-        _err "The printer's current certificate could not be verified. This is expected before the first successful deploy -- set HP_EWS_INSECURE=1 and try again."
-      fi
-      if [ "$DEBUG" ] && [ "$DEBUG" -ge "2" ]; then
-        _err "Here is the curl dump log:"
-        _err "$(cat "$_CURL_DUMP")"
-      fi
-    fi
-  elif [ "$_ACME_WGET" ]; then
-    _WGET="$_ACME_WGET"
-    if [ "$HTTPS_INSECURE" ] || [ "$HP_EWS_INSECURE" ]; then
-      _WGET="$_WGET --no-check-certificate "
-    fi
-    _debug "_WGET" "$_WGET"
-
-    # wget negotiates Basic or Digest from the challenge on its own. Deliberately
-    # no --auth-no-challenge, which would force preemptive Basic and rule out Digest.
-    response="$($_WGET -S -O - --user-agent="$USER_AGENT" --http-user="$HP_EWS_USERNAME" --http-password="$HP_EWS_PASSWORD" --header "$_H5" --header "$_H4" --header "$_H3" --header "$_H2" --header "$_H1" --post-file="${_hp_ews_bodyfile}" "$_hp_ews_posturl" 2>"$HTTP_HEADER")"
-    _ret="$?"
-
-    if [ "$_ret" = "8" ]; then
-      _ret=0
-      _debug "wget returned 8 as the server returned a non-2xx response. Let's process the response later."
-    fi
-    if [ "$_ret" != "0" ]; then
-      _err "Please refer to https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html for error code: $_ret"
-    fi
-    if _contains "$_WGET" " -d "; then
-      # Demultiplex wget debug output
-      cat "$HTTP_HEADER" >&2
-      _sed_i '/^[^ ][^ ]/d; /^ *$/d' "$HTTP_HEADER"
-    fi
-    # remove leading whitespaces from header to match curl format
-    _sed_i 's/^  //g' "$HTTP_HEADER"
-  else
-    _err "Neither curl nor wget have been found, cannot make the POST request."
-    return 1
-  fi
-
-  _debug "_ret" "$_ret"
-  _debug2 "response" "$response"
-  return "$_ret"
 }
