@@ -175,7 +175,8 @@ _hp_ews_upload() {
     printf -- "--%s--\r\n" "$_hp_ews_boundary"
   } >"$_hp_ews_body"
 
-  export _H1="Authorization: Basic $(printf "%s:%s" "$HP_EWS_USERNAME" "$HP_EWS_PASSWORD" | _base64)"
+  _H1="Authorization: Basic $(printf "%s:%s" "$HP_EWS_USERNAME" "$HP_EWS_PASSWORD" | _base64)"
+  export _H1
   if [ "$HP_EWS_INSECURE" ]; then
     export HTTPS_INSECURE=1
   fi
