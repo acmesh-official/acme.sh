@@ -8,15 +8,14 @@ Options:
 Issues: github.com/acmesh-official/acme.sh/issues/4900
 '
 
-#Hosttech_Key="asdfasdfawefasdfawefasdafe"
-
 Hosttech_Api="https://api.ns1.hosttech.eu/api/user/v1"
 
 ########  Public functions #####################
 
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+# Used to add txt record
 dns_hosttech_add() {
-  fulldomain=$1
+  fulldomain="$(_idn "$1")"
   txtvalue=$2
 
   Hosttech_Key="${Hosttech_Key:-$(_readaccountconf_mutable Hosttech_Key)}"
@@ -27,16 +26,20 @@ dns_hosttech_add() {
     return 1
   fi
 
-  _debug "First detect the root zone"
-  if ! _get_root "$fulldomain"; then
+  #save the credentials to the account conf file.
+  _saveaccountconf_mutable Hosttech_Key "$Hosttech_Key"
+
+  _debug "First detect the zoneid"
+  if ! _get_zoneid "$fulldomain"; then
     _err "invalid domain"
     return 1
   fi
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
+  _debug _zoneid "$_zoneid"
 
   _info "Adding record"
-  if _hosttech_rest POST "zones/$_domain/records" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"text\":\"$txtvalue\",\"ttl\":600}"; then
+  if _hosttech_rest POST "zones/$_zoneid/records" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"text\":\"$txtvalue\",\"ttl\":600}"; then
     if _contains "$_response" "$_sub_domain"; then
       _info "Added, OK"
       return 0
@@ -47,12 +50,12 @@ dns_hosttech_add() {
   fi
   _err "Add txt record error."
   return 1
-
 }
 
-#fulldomain txtvalue
+# Usage: fulldomain txtvalue
+# Used to remove the txt record after validation
 dns_hosttech_rm() {
-  fulldomain=$1
+  fulldomain="$(_idn "$1")"
   txtvalue=$2
 
   Hosttech_Key="${Hosttech_Key:-$(_readaccountconf_mutable Hosttech_Key)}"
@@ -75,14 +78,23 @@ dns_hosttech_rm() {
   _debug _txtvalue "${txtvalue}"
 
   _debug "Second detect the recordid"
-  if ! _get_recordid "$_domain" "$_sub_domain" "${txtvalue}"; then
-    _err "invalid recordid"
+  if ! _get_recordid "$_sub_domain" "$txtvalue"; then
+    _err "Error querying records"
     return 1
   fi
-  _debug _recordid "$_recordid"
+
+  if [ -z "$_recordid" ]; then
+    _info "Record not available"
+    return 0
+  fi
 
   _debug "Removing txt record"
-  _hosttech_rest DELETE "zones/$_domain/records/$_recordid"
+  if ! _hosttech_rest DELETE "zones/$_zoneid/records/$_recordid"; then
+    _err "Cannot remove record"
+    return 1
+  fi
+  _debug "Record removed"
+  return 0
 }
 
 ####################  Private functions below ##################################
@@ -90,32 +102,7 @@ dns_hosttech_rm() {
 #returns
 # _sub_domain=_acme-challenge.www
 # _domain=domain.com
-_get_root() {
-  domain=$1
-  i=1
-  p=1
-  while true; do
-    _domain=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
-    _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
-    _debug _domain "$_domain"
-    if [ -z "$_domain" ]; then
-      #not valid
-      return 1
-    fi
-
-    if _hosttech_rest GET "zones?query=${_domain}"; then
-      if [ "$(echo "$_response" | _egrep_o '"name":"[^"]*' | cut -d'"' -f4)" = "${_domain}" ]; then
-        return 0
-      fi
-    else
-      return 1
-    fi
-    p=$i
-    i=$(_math "$i" + 1)
-  done
-  return 1
-}
-
+# _zoneid=id of the zone domain.com
 _get_zoneid() {
   domain=$1
   i=1
@@ -129,17 +116,13 @@ _get_zoneid() {
       return 1
     fi
 
-    if _hosttech_rest GET "zones?query=${_domain}"; then
-      if [ "$(echo "$_response" | _egrep_o '"name":"[^"]*' | cut -d'"' -f4)" = "${_domain}" ]; then
-        # Get the id of the zone in question
-        _zoneid="$(echo "$_response" | _egrep_o '"id":[0-9]*' | cut -d':' -f2)"
-        if [ -z "$_zoneid" ]; then
-          return 1
-        fi
-        return 0
-      fi
-    else
+    if ! _hosttech_rest GET "zones?query=${_domain}"; then
       return 1
+    fi
+    # The query is a search and may return several zones, pick the exact match
+    _zoneid="$(printf "%s" "$_response" | _egrep_o "\"id\":[0-9]+,\"name\":\"$_domain\"" | _head_n 1 | cut -d : -f 2 | cut -d , -f 1)"
+    if [ -n "$_zoneid" ]; then
+      return 0
     fi
     p=$i
     i=$(_math "$i" + 1)
@@ -147,28 +130,20 @@ _get_zoneid() {
   return 1
 }
 
+#Usage: subdomain txtvalue
+#returns
+# _recordid=id of the matching TXT record, empty if none
 _get_recordid() {
-  domainid=$1
-  subdomain=$2
-  txtvalue=$3
+  subdomain=$1
+  txtvalue=$2
+  _recordid=""
 
-  # Get all dns records for the domainname
-  if _hosttech_rest GET "zones/$_zoneid/records"; then
-    if ! _contains "$_response" '"id"'; then
-      _debug "No records in dns"
-      return 1
-    fi
-    if ! _contains "$_response" '\"name\":\"'"$subdomain"'\"'; then
-      _debug "Record does not exist"
-      return 1
-    fi
-    # Get the id of the record in question
-    _recordid=$(printf "%s" "$_response" | _egrep_o "[^{]*\"name\":\"$subdomain\"[^}]*" | _egrep_o "[^{]*\"text\":\"$txtvalue\"[^}]*" | _egrep_o "\"id\":[0-9]+" | cut -d : -f 2)
-    if [ -z "$_recordid" ]; then
-      return 1
-    fi
-    return 0
+  # Get all dns records for the zone
+  if ! _hosttech_rest GET "zones/$_zoneid/records"; then
+    return 1
   fi
+  _recordid=$(printf "%s" "$_response" | _egrep_o "[^{]*\"name\":\"$subdomain\"[^}]*" | _egrep_o "[^{]*\"text\":\"$txtvalue\"[^}]*" | _egrep_o "\"id\":[0-9]+" | _head_n 1 | cut -d : -f 2)
+  _debug _recordid "$_recordid"
   return 0
 }
 
@@ -183,15 +158,29 @@ _hosttech_rest() {
   export _H3="Content-Type: application/json"
 
   _debug data "$data"
-  _response="$(_post "$data" "$Hosttech_Api/$ep" "" "$m")"
+  if [ "$m" = "GET" ]; then
+    if ! _response="$(_get "$Hosttech_Api/$ep")"; then
+      _err "error $ep: request failed"
+      return 1
+    fi
+  else
+    if ! _response="$(_post "$data" "$Hosttech_Api/$ep" "" "$m")"; then
+      _err "error $ep: request failed"
+      return 1
+    fi
+  fi
 
   _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
   _debug "http response code $_code"
 
-  if [ "$?" != "0" ]; then
-    _err "error $ep"
-    return 1
-  fi
+  case "$_code" in
+    2??) ;;
+    *)
+      _err "error $ep: HTTP $_code"
+      _debug2 response "$_response"
+      return 1
+      ;;
+  esac
 
   _debug2 response "$_response"
   return 0
