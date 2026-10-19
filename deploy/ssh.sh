@@ -157,6 +157,14 @@ ssh_deploy() {
     _savedeployconf DEPLOY_SSH_FULLCHAIN "$DEPLOY_SSH_FULLCHAIN"
   fi
 
+  # PFXFILE is optional
+  # If provided then PKCS12 (PFX) file will be copied to provided filename.
+  _getdeployconf DEPLOY_SSH_PFXFILE
+  _debug2 DEPLOY_SSH_PFXFILE "$DEPLOY_SSH_PFXFILE"
+  if [ -n "$DEPLOY_SSH_PFXFILE" ]; then
+    _savedeployconf DEPLOY_SSH_PFXFILE "$DEPLOY_SSH_PFXFILE"
+  fi
+
   # REMOTE_CMD is optional.
   # If provided then this command will be executed on remote host.
   _migratedeployconf Le_Deploy_ssh_remote_cmd DEPLOY_SSH_REMOTE_CMD
@@ -182,18 +190,6 @@ ssh_deploy() {
     DEPLOY_SSH_SCP_CMD="scp -q"
   fi
   _savedeployconf DEPLOY_SSH_SCP_CMD "$DEPLOY_SSH_SCP_CMD"
-
-  # PFXFILE is optional, but if set, requires scp
-  # If provided then PKCS12 (PFX) file will be copied to provided filename.
-  _getdeployconf DEPLOY_SSH_PFXFILE
-  _debug2 DEPLOY_SSH_PFXFILE "$DEPLOY_SSH_PFXFILE"
-  if [ -n "$DEPLOY_SSH_PFXFILE" ]; then
-    if [ "$DEPLOY_SSH_USE_SCP" != "yes" ]; then
-      _err "Deploying PFX requires scp, set DEPLOY_SSH_USE_SCP=yes and try again"
-      return 1
-    fi
-    _savedeployconf DEPLOY_SSH_PFXFILE "$DEPLOY_SSH_PFXFILE"
-  fi
 
   if [ "$DEPLOY_SSH_USE_SCP" = "yes" ]; then
     DEPLOY_SSH_MULTI_CALL="yes"
@@ -446,11 +442,26 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       fi
     fi
 
-    # copy new PFX into file using scp (required)
-    # scp the file
-    if ! _scp_remote_cmd "$_cpfx" "$DEPLOY_SSH_PFXFILE"; then
-      return $_err_code
+    # copy new PFX into file.
+    if [ "$DEPLOY_SSH_USE_SCP" = "yes" ]; then
+      # scp the file
+      if ! _scp_remote_cmd "$_cpfx" "$DEPLOY_SSH_PFXFILE"; then
+        return $_err_code
+      fi
+    else
+      # If file doesn't exist, create it and change its permissions, then
+      # ssh echo to the file. One step: "test ! -f" fails if the file exists.
+      _encoded_pfx=$(_base64 <"$_cpfx")
+      _ssh_add_step "test ! -f $DEPLOY_SSH_PFXFILE && touch $DEPLOY_SSH_PFXFILE && chmod 600 $DEPLOY_SSH_PFXFILE; echo \"$_encoded_pfx\" | (base64 -d 2>/dev/null || base64 -D) > $DEPLOY_SSH_PFXFILE"
+      _info "will copy PFX file to remote file $DEPLOY_SSH_PFXFILE"
+      if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
+        if ! _ssh_remote_cmd "$_cmdstr"; then
+          return $_err_code
+        fi
+        _cmdstr=""
+      fi
     fi
+
   fi
 
   # cleanup local files if any
