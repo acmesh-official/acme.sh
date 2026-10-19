@@ -19,6 +19,7 @@
 # export DEPLOY_SSH_CERTFILE="/etc/stunnel/stunnel.pem"
 # export DEPLOY_SSH_CAFILE="/etc/stunnel/uca.pem"
 # export DEPLOY_SSH_FULLCHAIN=""
+# export DEPLOY_SSH_PFXFILE=""
 # export DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart"
 # export DEPLOY_SSH_BACKUP=""  # yes or no, default to yes or previously saved value
 # export DEPLOY_SSH_BACKUP_PATH=".acme_ssh_deploy"  # path on remote system. Defaults to .acme_ssh_deploy
@@ -36,6 +37,7 @@ ssh_deploy() {
   _ccert="$3"
   _cca="$4"
   _cfullchain="$5"
+  _cpfx="$6"
   _deploy_ssh_servers=""
 
   _debug _cdomain "$_cdomain"
@@ -43,6 +45,7 @@ ssh_deploy() {
   _debug _ccert "$_ccert"
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
+  _debug _cpfx "$_cpfx"
 
   # USER is required to login by SSH to remote host.
   _migratedeployconf Le_Deploy_ssh_user DEPLOY_SSH_USER
@@ -179,6 +182,18 @@ ssh_deploy() {
     DEPLOY_SSH_SCP_CMD="scp -q"
   fi
   _savedeployconf DEPLOY_SSH_SCP_CMD "$DEPLOY_SSH_SCP_CMD"
+
+  # PFXFILE is optional, but if set, requires scp
+  # If provided then PKCS12 (PFX) file will be copied to provided filename.
+  _getdeployconf DEPLOY_SSH_PFXFILE
+  _debug2 DEPLOY_SSH_PFXFILE "$DEPLOY_SSH_PFXFILE"
+  if [ -n "$DEPLOY_SSH_PFXFILE" ]; then
+    if [ "$DEPLOY_SSH_USE_SCP" != "yes" ]; then
+      _err "Deploying PFX requires scp, set DEPLOY_SSH_USE_SCP=yes and try again"
+      return 1
+    fi
+    _savedeployconf DEPLOY_SSH_PFXFILE "$DEPLOY_SSH_PFXFILE"
+  fi
 
   if [ "$DEPLOY_SSH_USE_SCP" = "yes" ]; then
     DEPLOY_SSH_MULTI_CALL="yes"
@@ -416,6 +431,25 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
         fi
         _cmdstr=""
       fi
+    fi
+  fi
+
+  if [ -n "$DEPLOY_SSH_PFXFILE" ]; then
+    if [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
+      # backup file we are about to overwrite.
+      _ssh_add_step "if [ -f $DEPLOY_SSH_PFXFILE ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_PFXFILE $_backupdir >/dev/null; fi"
+      if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
+        if ! _ssh_remote_cmd "$_cmdstr"; then
+          return $_err_code
+        fi
+        _cmdstr=""
+      fi
+    fi
+
+    # copy new PFX into file using scp (required)
+    # scp the file
+    if ! _scp_remote_cmd "$_cpfx" "$DEPLOY_SSH_PFXFILE"; then
+      return $_err_code
     fi
   fi
 
