@@ -113,10 +113,10 @@ pfsense_deploy() {
 
   # pfREST rejects these characters in a certificate description
   case "$DEPLOY_PFSENSE_CERT_NAME" in
-  *[\?\>\<\&/\\\"\']*)
-    _err "DEPLOY_PFSENSE_CERT_NAME must not contain any of: ? > < & / \\ \" '"
-    return 1
-    ;;
+    *[\?\>\<\&/\\\"\']*)
+      _err "DEPLOY_PFSENSE_CERT_NAME must not contain any of: ? > < & / \\ \" '"
+      return 1
+      ;;
   esac
 
   _debug2 DEPLOY_PFSENSE_HOST "$DEPLOY_PFSENSE_HOST"
@@ -204,9 +204,9 @@ _pfsense_call() {
   _secure_debug3 response "$_pfsense_response"
 
   case "$_pf_status" in
-  2[0-9][0-9])
-    [ "$_pf_ret" = "0" ] && return 0
-    ;;
+    2[0-9][0-9])
+      [ "$_pf_ret" = "0" ] && return 0
+      ;;
   esac
 
   _pf_msg="$(printf '%s' "$_pfsense_response" | _egrep_o '"message":"[^"]*"' | _head_n 1 | cut -d '"' -f 4)"
