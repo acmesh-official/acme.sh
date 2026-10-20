@@ -85,9 +85,12 @@ pfsense_deploy() {
   fi
   _secure_debug2 DEPLOY_PFSENSE_APIKEY "$DEPLOY_PFSENSE_APIKEY"
 
-  for _pf_var in HOST PORT CERT_NAME WEBUI UNBOUND_DOT INSECURE; do
-    _getdeployconf "DEPLOY_PFSENSE_$_pf_var"
-  done
+  _getdeployconf DEPLOY_PFSENSE_HOST
+  _getdeployconf DEPLOY_PFSENSE_PORT
+  _getdeployconf DEPLOY_PFSENSE_CERT_NAME
+  _getdeployconf DEPLOY_PFSENSE_WEBUI
+  _getdeployconf DEPLOY_PFSENSE_UNBOUND_DOT
+  _getdeployconf DEPLOY_PFSENSE_INSECURE
 
   if [ -z "$DEPLOY_PFSENSE_HOST" ]; then
     if _startswith "$_cdomain" "*"; then
@@ -124,8 +127,11 @@ pfsense_deploy() {
 
   _info "Looking up certificate '$DEPLOY_PFSENSE_CERT_NAME' on pfSense"
   _pfsense_call GET "/system/certificates?descr=$(printf '%s' "$DEPLOY_PFSENSE_CERT_NAME" | _url_encode)" || return 1
-  _pf_id="$(printf '%s' "$_pfsense_response" | _egrep_o '"id":[0-9]+' | head -n 1 | cut -d : -f 2)"
-  _pf_refid="$(printf '%s' "$_pfsense_response" | _egrep_o '"refid":"[^"]*"' | head -n 1 | cut -d '"' -f 4)"
+  # do not rely on the server-side filter, only accept an exact descr match
+  _pf_match="$(printf '%s' "$_pfsense_response" | sed 's/} *, *{/}\
+{/g' | grep -F "\"descr\":\"$DEPLOY_PFSENSE_CERT_NAME\"" | _head_n 1)"
+  _pf_id="$(printf '%s' "$_pf_match" | _egrep_o '"id":[0-9]+' | _head_n 1 | cut -d : -f 2)"
+  _pf_refid="$(printf '%s' "$_pf_match" | _egrep_o '"refid":"[^"]*"' | _head_n 1 | cut -d '"' -f 4)"
   _debug2 "existing id/refid" "$_pf_id/$_pf_refid"
 
   _pf_crt="$(_json_encode <"$_cfullchain")"
@@ -139,7 +145,7 @@ pfsense_deploy() {
     _info "Creating new certificate"
     _pfsense_call POST "/system/certificate" \
       "{\"descr\": \"$DEPLOY_PFSENSE_CERT_NAME\", \"type\": \"server\", \"crt\": \"$_pf_crt\", \"prv\": \"$_pf_prv\"}" || return 1
-    _pf_refid="$(printf '%s' "$_pfsense_response" | _egrep_o '"refid":"[^"]*"' | head -n 1 | cut -d '"' -f 4)"
+    _pf_refid="$(printf '%s' "$_pfsense_response" | _egrep_o '"refid":"[^"]*"' | _head_n 1 | cut -d '"' -f 4)"
     if [ -z "$_pf_refid" ]; then
       _err "Certificate was created but no refid was returned."
       return 1
@@ -147,9 +153,12 @@ pfsense_deploy() {
   fi
 
   _savedeployconf DEPLOY_PFSENSE_APIKEY "$DEPLOY_PFSENSE_APIKEY"
-  for _pf_var in HOST PORT CERT_NAME WEBUI UNBOUND_DOT INSECURE; do
-    _savedeployconf "DEPLOY_PFSENSE_$_pf_var" "$(eval echo "\$DEPLOY_PFSENSE_$_pf_var")"
-  done
+  _savedeployconf DEPLOY_PFSENSE_HOST "$DEPLOY_PFSENSE_HOST"
+  _savedeployconf DEPLOY_PFSENSE_PORT "$DEPLOY_PFSENSE_PORT"
+  _savedeployconf DEPLOY_PFSENSE_CERT_NAME "$DEPLOY_PFSENSE_CERT_NAME"
+  _savedeployconf DEPLOY_PFSENSE_WEBUI "$DEPLOY_PFSENSE_WEBUI"
+  _savedeployconf DEPLOY_PFSENSE_UNBOUND_DOT "$DEPLOY_PFSENSE_UNBOUND_DOT"
+  _savedeployconf DEPLOY_PFSENSE_INSECURE "$DEPLOY_PFSENSE_INSECURE"
 
   if [ "$DEPLOY_PFSENSE_UNBOUND_DOT" = "yes" ]; then
     _pfsense_unbound_dot "$_pf_refid" || return 1
@@ -194,7 +203,7 @@ _pfsense_call() {
     ;;
   esac
 
-  _pf_msg="$(printf '%s' "$_pfsense_response" | _egrep_o '"message":"[^"]*"' | head -n 1 | cut -d '"' -f 4)"
+  _pf_msg="$(printf '%s' "$_pfsense_response" | _egrep_o '"message":"[^"]*"' | _head_n 1 | cut -d '"' -f 4)"
   _err "pfSense API call failed: $_pf_method $_pf_path (HTTP ${_pf_status:-none}). $_pf_msg"
   if [ "$_pf_status" = "401" ] || [ "$_pf_status" = "403" ] || [ -z "$_pf_status" ]; then
     _err "Check DEPLOY_PFSENSE_APIKEY, the user privileges and DEPLOY_PFSENSE_HOST/PORT. Use DEPLOY_PFSENSE_INSECURE=yes for an untrusted web UI certificate."
