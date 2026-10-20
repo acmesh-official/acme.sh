@@ -105,6 +105,12 @@ pfsense_deploy() {
   [ -n "$DEPLOY_PFSENSE_UNBOUND_DOT" ] || DEPLOY_PFSENSE_UNBOUND_DOT="no"
   [ -n "$DEPLOY_PFSENSE_INSECURE" ] || DEPLOY_PFSENSE_INSECURE="no"
 
+  # pfREST returns non-ASCII as \uXXXX, which cannot be matched reliably
+  if printf '%s' "$DEPLOY_PFSENSE_CERT_NAME" | LC_ALL=C grep -q '[^ -~]'; then
+    _err "DEPLOY_PFSENSE_CERT_NAME must only contain printable ASCII characters."
+    return 1
+  fi
+
   # pfREST rejects these characters in a certificate description
   case "$DEPLOY_PFSENSE_CERT_NAME" in
   *[\?\>\<\&/\\\"\']*)
