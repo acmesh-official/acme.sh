@@ -65,7 +65,8 @@ dns_connbyte_rm() {
 
   # Each record is an innermost JSON object, e.g. (TXT content may be stored quoted)
   # {"id":435,"name":"_acme-challenge.example.com","type":"TXT","content":"...","ttl":120,"priority":0,"disabled":0}
-  record_ids="$(echo "$response" | tr -d '\n\r' | _egrep_o '\{[^{}]*\}' |
+  # Split on braces with tr: the egrep on illumos (OmniOS) does not handle the "\{[^{}]*\}" pattern.
+  record_ids="$(echo "$response" | tr -d '\n\r' | tr '{}' '\n' |
     grep "\"type\" *: *\"TXT\"" |
     grep "\"name\" *: *\"$fulldomain\"" |
     grep -F "$txtvalue" |
@@ -140,7 +141,7 @@ _get_root() {
       return 1
     fi
 
-    zone_id="$(echo "$zones" | tr -d '\n\r' | _egrep_o '\{[^{}]*\}' |
+    zone_id="$(echo "$zones" | tr -d '\n\r' | tr '{}' '\n' |
       grep "\"zone\" *: *\"$h\"" | _head_n 1 |
       _egrep_o "\"id\" *: *\"[0-9A-Za-z]+\"" | cut -d '"' -f 4)"
     if [ -n "$zone_id" ]; then
