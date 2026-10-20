@@ -175,12 +175,12 @@ _hosttech_rest() {
   _debug "http response code $_code"
 
   case "$_code" in
-    2??) ;;
-    *)
-      _err "error $ep: HTTP $_code"
-      _debug2 response "$_response"
-      return 1
-      ;;
+  2??) ;;
+  *)
+    _err "error $ep: HTTP $_code"
+    _debug2 response "$_response"
+    return 1
+    ;;
   esac
 
   _debug2 response "$_response"
