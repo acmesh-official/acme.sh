@@ -37,8 +37,9 @@
 # DEPLOY_PFSENSE_PORT           - 443, 8443, etc. (OPTIONAL)
 #                                 Web UI/API port. Defaults to 443.
 # DEPLOY_PFSENSE_CERT_NAME      - My Certificate, etc. (OPTIONAL)
-#                                 Certificate name shown in pfSense. Defaults to
-#                                 the certificate domain.
+#                                 Certificate name shown in pfSense (printable
+#                                 ASCII only). Defaults to the certificate
+#                                 domain.
 # DEPLOY_PFSENSE_WEBUI          - yes/no (OPTIONAL)
 #                                 Assign to the web UI and restart it. Defaults
 #                                 to "yes".
@@ -113,10 +114,10 @@ pfsense_deploy() {
 
   # pfREST rejects these characters in a certificate description
   case "$DEPLOY_PFSENSE_CERT_NAME" in
-    *[\?\>\<\&/\\\"\']*)
-      _err "DEPLOY_PFSENSE_CERT_NAME must not contain any of: ? > < & / \\ \" '"
-      return 1
-      ;;
+  *[\?\>\<\&/\\\"\']*)
+    _err "DEPLOY_PFSENSE_CERT_NAME must not contain any of: ? > < & / \\ \" '"
+    return 1
+    ;;
   esac
 
   _debug2 DEPLOY_PFSENSE_HOST "$DEPLOY_PFSENSE_HOST"
@@ -134,8 +135,19 @@ pfsense_deploy() {
   _info "Looking up certificate '$DEPLOY_PFSENSE_CERT_NAME' on pfSense"
   _pfsense_call GET "/system/certificates?descr=$(printf '%s' "$DEPLOY_PFSENSE_CERT_NAME" | _url_encode)" || return 1
   # do not rely on the server-side filter, only accept an exact descr match
-  _pf_match="$(printf '%s' "$_pfsense_response" | sed 's/} *, *{/}\
-{/g' | grep -F "\"descr\":\"$DEPLOY_PFSENSE_CERT_NAME\"" | _head_n 1)"
+  _pf_match=""
+  _pf_objs="$(printf '%s\n' "$_pfsense_response" | sed 's/} *, *{/}\
+{/g')"
+  while IFS= read -r _pf_line; do
+    case "$_pf_line" in
+    *"\"descr\":\"$DEPLOY_PFSENSE_CERT_NAME\""*)
+      _pf_match="$_pf_line"
+      break
+      ;;
+    esac
+  done <<EOF
+$_pf_objs
+EOF
   _pf_id="$(printf '%s' "$_pf_match" | _egrep_o '"id":[0-9]+' | _head_n 1 | cut -d : -f 2)"
   _pf_refid="$(printf '%s' "$_pf_match" | _egrep_o '"refid":"[^"]*"' | _head_n 1 | cut -d '"' -f 4)"
   _debug2 "existing id/refid" "$_pf_id/$_pf_refid"
@@ -204,9 +216,9 @@ _pfsense_call() {
   _secure_debug3 response "$_pfsense_response"
 
   case "$_pf_status" in
-    2[0-9][0-9])
-      [ "$_pf_ret" = "0" ] && return 0
-      ;;
+  2[0-9][0-9])
+    [ "$_pf_ret" = "0" ] && return 0
+    ;;
   esac
 
   _pf_msg="$(printf '%s' "$_pfsense_response" | _egrep_o '"message":"[^"]*"' | _head_n 1 | cut -d '"' -f 4)"
