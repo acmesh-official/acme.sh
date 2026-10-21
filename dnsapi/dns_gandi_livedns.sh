@@ -59,6 +59,13 @@ dns_gandi_livedns_rm() {
   fulldomain=$1
   txtvalue=$2
 
+  GANDI_LIVEDNS_KEY="${GANDI_LIVEDNS_KEY:-$(_readaccountconf_mutable GANDI_LIVEDNS_KEY)}"
+  GANDI_LIVEDNS_TOKEN="${GANDI_LIVEDNS_TOKEN:-$(_readaccountconf_mutable GANDI_LIVEDNS_TOKEN)}"
+  if [ -z "$GANDI_LIVEDNS_KEY" ] && [ -z "$GANDI_LIVEDNS_TOKEN" ]; then
+    _err "No Token or API key (deprecated) specified for Gandi LiveDNS."
+    return 1
+  fi
+
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
     _err "invalid domain"
