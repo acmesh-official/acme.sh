@@ -69,7 +69,7 @@ dns_connbyte_rm() {
   record_ids="$(echo "$response" | tr -d '\n\r' | tr '{}' '\n' |
     grep "\"type\" *: *\"TXT\"" |
     grep "\"name\" *: *\"$fulldomain\"" |
-    grep -F "$txtvalue" |
+    grep "\"$txtvalue" |
     _egrep_o "\"id\" *: *[0-9]+" | _egrep_o "[0-9]+")"
   _debug record_ids "$record_ids"
 
