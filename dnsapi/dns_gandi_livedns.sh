@@ -87,6 +87,20 @@ dns_gandi_livedns_rm() {
   _new_rrset_values=$(echo "$_new_rrset_values" | sed "s/\[ *,/\[/g")
   _debug "New rrset_values" "$_new_rrset_values"
 
+  # Last value removed: delete the record instead of leaving an empty TXT rrset.
+  if [ "$(echo "$_new_rrset_values" | tr -d ' ')" = "[]" ]; then
+    if ! _gandi_livedns_rest DELETE "domains/$_domain/records/$_sub_domain/TXT"; then
+      return 1
+    fi
+    _gandi_livedns_code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
+    if [ "$_gandi_livedns_code" != "204" ]; then
+      _err "Error deleting record: $response"
+      return 1
+    fi
+    _info "Removing record $(__green "success")"
+    return 0
+  fi
+
   _gandi_livedns_rest PUT \
     "domains/$_domain/records/$_sub_domain/TXT" \
     "{\"rrset_ttl\": 300, \"rrset_values\": $_new_rrset_values}" &&
