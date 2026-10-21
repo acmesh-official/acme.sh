@@ -113,7 +113,12 @@ _get_root() {
   fi
   h=$domain
   while true; do
-    if printf "%s\n" "$_arvan_zones" | grep -F -x -e "$h" >/dev/null; then
+    case "
+$_arvan_zones
+" in
+    *"
+$h
+"*)
       _domain=$h
       _sub_domain=${domain%."$h"}
       if [ "$domain" = "$h" ]; then
@@ -122,7 +127,8 @@ _get_root() {
       _debug _domain "$_domain"
       _debug _sub_domain "$_sub_domain"
       return 0
-    fi
+      ;;
+    esac
     case "$h" in
     *.*) h=${h#*.} ;;
     *) break ;;
@@ -157,8 +163,8 @@ _arvan_list() {
       _err "Unable to list Arvan resources (HTTP $_arvan_code)."
       return 1
     fi
-    _arvan_current_page=$(printf "%s" "$response" | _egrep_o '"current_page"[[:space:]]*:[[:space:]]*[0-9][0-9]*' | cut -d : -f 2 | tr -d ' \t')
-    _arvan_last_page=$(printf "%s" "$response" | _egrep_o '"last_page"[[:space:]]*:[[:space:]]*[0-9][0-9]*' | cut -d : -f 2 | tr -d ' \t')
+    _arvan_current_page=$(printf "%s" "$response" | _egrep_o '"current_page"[ 	]*:[ 	]*[0-9][0-9]*' | cut -d : -f 2 | tr -d ' \t')
+    _arvan_last_page=$(printf "%s" "$response" | _egrep_o '"last_page"[ 	]*:[ 	]*[0-9][0-9]*' | cut -d : -f 2 | tr -d ' \t')
     case "$_arvan_last_page" in
     "" | *[!0-9]*)
       _err "Invalid Arvan pagination."
@@ -186,7 +192,7 @@ _arvan_get_data() {
   printf "%s\n" "$response" | sed 's/\("[^"\\]*\(\\.[^"\\]*\)*"\)/\
 \1\
 /g' | sed '/^"/!{
-s/[[:space:]]//g
+s/[ 	]//g
 s/\([][{}:,]\)/\
 \1\
 /g
