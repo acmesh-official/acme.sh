@@ -907,7 +907,9 @@ _json_encode() {
   _j_str="$(sed 's/"/\\"/g' | sed "s/\r/\\r/g")"
   _debug3 "_json_encode"
   _debug3 "_j_str" "$_j_str"
-  echo "$_j_str" | _hex_dump | _lower_case | sed 's/0a/5c 6e/g' | tr -d ' ' | _h2b | tr -d "\r\n"
+  #printf, not echo: dash's echo interprets backslash escapes and would
+  #collapse the \\ sequences (e.g. Telegram MarkdownV2 escapes, issue 7212)
+  printf "%s\n" "$_j_str" | _hex_dump | _lower_case | sed 's/0a/5c 6e/g' | tr -d ' ' | _h2b | tr -d "\r\n"
 }
 
 #from: http:\/\/  to http://
@@ -915,7 +917,7 @@ _json_decode() {
   _j_str="$(sed 's#\\/#/#g')"
   _debug3 "_json_decode"
   _debug3 "_j_str" "$_j_str"
-  echo "$_j_str"
+  printf "%s\n" "$_j_str"
 }
 
 #extract the authorization URLs from an order response on stdin, as a
