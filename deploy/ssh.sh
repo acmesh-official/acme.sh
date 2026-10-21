@@ -30,7 +30,7 @@
 # export DEPLOY_SSH_REMOTE_CMD_QUOTE="" # yes or no, defaults to yes
 ########  Public functions #####################
 
-#domain keyfile certfile cafile fullchain
+#domain keyfile certfile cafile fullchain pfxfile
 ssh_deploy() {
   _cdomain="$1"
   _ckey="$2"
@@ -162,6 +162,10 @@ ssh_deploy() {
   _getdeployconf DEPLOY_SSH_PFXFILE
   _debug2 DEPLOY_SSH_PFXFILE "$DEPLOY_SSH_PFXFILE"
   if [ -n "$DEPLOY_SSH_PFXFILE" ]; then
+    if [ ! -f "$_cpfx" ]; then
+      _err "PFX file $_cpfx not found, run --to-pkcs12 first."
+      return 1
+    fi
     _savedeployconf DEPLOY_SSH_PFXFILE "$DEPLOY_SSH_PFXFILE"
   fi
 
@@ -452,7 +456,7 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
       # If file doesn't exist, create it and change its permissions, then
       # ssh echo to the file. One step: "test ! -f" fails if the file exists.
       _encoded_pfx=$(_base64 <"$_cpfx")
-      _ssh_add_step "test ! -f $DEPLOY_SSH_PFXFILE && touch $DEPLOY_SSH_PFXFILE && chmod 600 $DEPLOY_SSH_PFXFILE; echo \"$_encoded_pfx\" | (base64 -d 2>/dev/null || base64 -D) > $DEPLOY_SSH_PFXFILE"
+      _ssh_add_step "test ! -f $DEPLOY_SSH_PFXFILE && touch $DEPLOY_SSH_PFXFILE && chmod 600 $DEPLOY_SSH_PFXFILE; (umask 077; echo \"$_encoded_pfx\" | (base64 -d 2>/dev/null || base64 -D) > $DEPLOY_SSH_PFXFILE.tmp) && cat $DEPLOY_SSH_PFXFILE.tmp > $DEPLOY_SSH_PFXFILE && rm -f $DEPLOY_SSH_PFXFILE.tmp"
       _info "will copy PFX file to remote file $DEPLOY_SSH_PFXFILE"
       if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
         if ! _ssh_remote_cmd "$_cmdstr"; then
