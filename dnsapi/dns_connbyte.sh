@@ -112,15 +112,13 @@ _connbyte_init() {
   esac
 
   _saveaccountconf_mutable CONNBYTE_Token "$CONNBYTE_Token"
-  if [ "$CONNBYTE_TTL" != "120" ]; then
-    _saveaccountconf_mutable CONNBYTE_TTL "$CONNBYTE_TTL"
-  fi
+  _saveaccountconf_mutable CONNBYTE_TTL "$CONNBYTE_TTL"
   return 0
 }
 
 # _acme-challenge.www.domain.com
 # returns
-#  _sub_domain=_acme-challenge.www
+#  _sub_domain=_acme-challenge.www ("@" for the zone apex)
 #  _domain=domain.com
 #  _zone_id=01DXF6DT00ZZZHQPP3JFJS8VEE
 _get_root() {
@@ -150,7 +148,8 @@ _get_root() {
       if [ "$i" -gt 1 ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       else
-        _sub_domain=""
+        # The API rejects an empty name and uses "@" for the zone apex (DNS alias mode).
+        _sub_domain="@"
       fi
       return 0
     fi
