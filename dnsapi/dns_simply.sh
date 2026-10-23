@@ -4,7 +4,6 @@ dns_simply_info='Simply.com
 Site: Simply.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_simply
 Options:
- SIMPLY_AccountName Account name
  SIMPLY_ApiKey API Key
 '
 
@@ -127,15 +126,11 @@ dns_simply_rm() {
 ####################  Private functions below ##################################
 
 _simply_load_config() {
-  SIMPLY_AccountName="${SIMPLY_AccountName:-$(_readaccountconf_mutable SIMPLY_AccountName)}"
   SIMPLY_ApiKey="${SIMPLY_ApiKey:-$(_readaccountconf_mutable SIMPLY_ApiKey)}"
 
-  if [ -z "$SIMPLY_AccountName" ] || [ -z "$SIMPLY_ApiKey" ]; then
-    SIMPLY_AccountName=""
-    SIMPLY_ApiKey=""
-
-    _err "A valid Simply API account and apikey not provided."
-    _err "Please provide a valid API user and try again."
+  if [ -z "$SIMPLY_ApiKey" ]; then
+    _err "A valid Simply.com API key not provided."
+    _err "Please provide a valid API key and try again."
 
     return 1
   fi
@@ -144,7 +139,6 @@ _simply_load_config() {
 }
 
 _simply_save_config() {
-  _saveaccountconf_mutable SIMPLY_AccountName "$SIMPLY_AccountName"
   _saveaccountconf_mutable SIMPLY_ApiKey "$SIMPLY_ApiKey"
 }
 
@@ -159,7 +153,7 @@ _simply_get_all_records() {
 }
 
 _get_root() {
-  domain=$1
+  domain=$(_idn "$1" | _lower_case)
 
   if ! _simply_rest GET "my/products/"; then
     return 1
@@ -182,12 +176,21 @@ _get_root() {
       return 1
     fi
 
-    _domain=$(printf "%s" "$response" | tr '}' '\n' |
-      grep -F -e "\"object\":\"$h\"" -e "\"name\":\"$h\"" -e "\"name_idn\":\"$h\"" |
-      sed -n 's/.*"object":"\([^"]*\)".*/\1/p' |
-      _head_n 1)
+    _domain=""
+    while IFS= read -r _simply_line || [ -n "$_simply_line" ]; do
+      _simply_lc="$(printf "%s\n" "$_simply_line" | _lower_case)"
+      case "$_simply_lc" in
+      *"\"object\":\"$h\""* | *"\"name\":\"$h\""* | *"\"name_idn\":\"$h\""*)
+        _domain="$(printf "%s\n" "$_simply_line" | sed -n 's/.*"object":"\([^"]*\)".*/\1/p')"
+        break
+        ;;
+      esac
+    done <<EOF
+$(printf "%s\n" "$response" | tr '}' '\n')
+EOF
 
     if [ -n "$_domain" ]; then
+      _domain=$(_simply_object_urlencode "$_domain")
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       return 0
     fi
@@ -197,6 +200,42 @@ _get_root() {
     i=$(_math "$i" + 1)
   done
   return 1
+}
+
+#The product list escapes non-ASCII object names as \uXXXX, turn those into percent-encoded UTF-8
+_simply_object_urlencode() {
+  _sju_str="$1"
+  while true; do
+    case "$_sju_str" in
+    *\\u????*) ;;
+    *)
+      printf "%s" "$_sju_str"
+      return 0
+      ;;
+    esac
+    printf "%s" "${_sju_str%%\\u*}"
+    _sju_str="${_sju_str#*\\u}"
+    _sju_cp=$((0x${_sju_str%"${_sju_str#????}"}))
+    _sju_str="${_sju_str#????}"
+    if [ "$_sju_cp" -ge 55296 ] && [ "$_sju_cp" -le 56319 ]; then
+      case "$_sju_str" in
+      \\u????*)
+        _sju_str="${_sju_str#??}"
+        _sju_cp=$((65536 + (_sju_cp - 55296) * 1024 + 0x${_sju_str%"${_sju_str#????}"} - 56320))
+        _sju_str="${_sju_str#????}"
+        ;;
+      esac
+    fi
+    if [ "$_sju_cp" -lt 128 ]; then
+      printf "%%%02X" "$_sju_cp"
+    elif [ "$_sju_cp" -lt 2048 ]; then
+      printf "%%%02X%%%02X" $((192 + _sju_cp / 64)) $((128 + _sju_cp % 64))
+    elif [ "$_sju_cp" -lt 65536 ]; then
+      printf "%%%02X%%%02X%%%02X" $((224 + _sju_cp / 4096)) $((128 + _sju_cp / 64 % 64)) $((128 + _sju_cp % 64))
+    else
+      printf "%%%02X%%%02X%%%02X%%%02X" $((240 + _sju_cp / 262144)) $((128 + _sju_cp / 4096 % 64)) $((128 + _sju_cp / 64 % 64)) $((128 + _sju_cp % 64))
+    fi
+  done
 }
 
 _simply_add_record() {
@@ -255,12 +294,7 @@ _simply_rest() {
   _debug2 ep "$ep"
   _debug2 m "$m"
 
-  basicauth=$(printf "%s:%s" "$SIMPLY_AccountName" "$SIMPLY_ApiKey" | _base64)
-
-  if [ "$basicauth" ]; then
-    export _H1="Authorization: Basic $basicauth"
-  fi
-
+  export _H1="Authorization: Bearer $SIMPLY_ApiKey"
   export _H2="Content-Type: application/json"
 
   : >"$HTTP_HEADER"
@@ -286,7 +320,7 @@ _simply_rest() {
   _debug2 response "$response"
 
   if _contains "$response" "Invalid account authorization"; then
-    _err "It seems that your api key or accountnumber is not correct."
+    _err "It seems that your api key is not correct."
     return 1
   fi
 
