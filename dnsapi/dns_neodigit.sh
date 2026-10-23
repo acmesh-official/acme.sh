@@ -12,7 +12,7 @@ NEODIGIT_API_URL="https://api.neodigit.net/v1"
 #
 ########  Public functions #####################
 
-# Usage: dns_myapi_add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+# Usage: dns_neodigit_add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_neodigit_add() {
   fulldomain=$1
   txtvalue=$2
@@ -25,7 +25,7 @@ dns_neodigit_add() {
     return 1
   fi
 
-  #save the api key and email to the account conf file.
+  #save the api key to the account conf file.
   _saveaccountconf_mutable NEODIGIT_API_TOKEN "$NEODIGIT_API_TOKEN"
 
   _debug "First detect the root zone"
@@ -81,7 +81,7 @@ dns_neodigit_rm() {
     return 1
   fi
 
-  #save the api key and email to the account conf file.
+  #save the api key to the account conf file.
   _saveaccountconf_mutable NEODIGIT_API_TOKEN "$NEODIGIT_API_TOKEN"
 
   _debug "First detect the root zone"
@@ -102,13 +102,13 @@ dns_neodigit_rm() {
     return 1
   fi
 
-  record_id=$(echo "$response" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
-  _debug "record_id" "$record_id"
-  if [ -z "$record_id" ]; then
+  _record_id=$(echo "$response" | _egrep_o "\"id\":[ ]*[0-9]+" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
+  _debug "_record_id" "$_record_id"
+  if [ -z "$_record_id" ]; then
     _err "Can not get record id to remove."
     return 1
   fi
-  if ! _neo_rest DELETE "dns/zones/$_domain_id/records/$record_id"; then
+  if ! _neo_rest DELETE "dns/zones/$_domain_id/records/$_record_id"; then
     _err "Delete record error."
     return 1
   fi
@@ -139,8 +139,8 @@ _get_root() {
 
     _debug p "$p"
 
-    if _contains "$response" "\"name\":\"$h\"" >/dev/null; then
-      _domain_id=$(echo "$response" | _egrep_o "\"id\":\s*[0-9]+" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
+    if _contains "$response" "\"name\":\"$h\""; then
+      _domain_id=$(echo "$response" | _egrep_o "\"id\":[ ]*[0-9]+" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
       if [ "$_domain_id" ]; then
         _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
         _domain=$h
@@ -171,11 +171,6 @@ _neo_rest() {
   fi
 
   _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
-
-  if [ "$?" != "0" ]; then
-    _err "error $ep"
-    return 1
-  fi
   _debug2 response "$response"
   return 0
 }
