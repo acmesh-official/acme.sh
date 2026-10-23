@@ -19,6 +19,7 @@
 # export DEPLOY_SSH_CERTFILE="/etc/stunnel/stunnel.pem"
 # export DEPLOY_SSH_CAFILE="/etc/stunnel/uca.pem"
 # export DEPLOY_SSH_FULLCHAIN=""
+# export DEPLOY_SSH_PFXFILE=""
 # export DEPLOY_SSH_REMOTE_CMD="/etc/init.d/stunnel.sh restart"
 # export DEPLOY_SSH_BACKUP=""  # yes or no, default to yes or previously saved value
 # export DEPLOY_SSH_BACKUP_PATH=".acme_ssh_deploy"  # path on remote system. Defaults to .acme_ssh_deploy
@@ -29,13 +30,14 @@
 # export DEPLOY_SSH_REMOTE_CMD_QUOTE="" # yes or no, defaults to yes
 ########  Public functions #####################
 
-#domain keyfile certfile cafile fullchain
+#domain keyfile certfile cafile fullchain pfxfile
 ssh_deploy() {
   _cdomain="$1"
   _ckey="$2"
   _ccert="$3"
   _cca="$4"
   _cfullchain="$5"
+  _cpfx="$6"
   _deploy_ssh_servers=""
 
   _debug _cdomain "$_cdomain"
@@ -43,6 +45,7 @@ ssh_deploy() {
   _debug _ccert "$_ccert"
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
+  _debug _cpfx "$_cpfx"
 
   # USER is required to login by SSH to remote host.
   _migratedeployconf Le_Deploy_ssh_user DEPLOY_SSH_USER
@@ -154,6 +157,18 @@ ssh_deploy() {
     _savedeployconf DEPLOY_SSH_FULLCHAIN "$DEPLOY_SSH_FULLCHAIN"
   fi
 
+  # PFXFILE is optional
+  # If provided then PKCS12 (PFX) file will be copied to provided filename.
+  _getdeployconf DEPLOY_SSH_PFXFILE
+  _debug2 DEPLOY_SSH_PFXFILE "$DEPLOY_SSH_PFXFILE"
+  if [ -n "$DEPLOY_SSH_PFXFILE" ]; then
+    if [ ! -f "$_cpfx" ]; then
+      _err "PFX file $_cpfx not found, run --to-pkcs12 first."
+      return 1
+    fi
+    _savedeployconf DEPLOY_SSH_PFXFILE "$DEPLOY_SSH_PFXFILE"
+  fi
+
   # REMOTE_CMD is optional.
   # If provided then this command will be executed on remote host.
   _migratedeployconf Le_Deploy_ssh_remote_cmd DEPLOY_SSH_REMOTE_CMD
@@ -234,7 +249,18 @@ _ssh_deploy() {
     ;;
   esac
 
+  _ssh_py="import sys,base64;(sys.version_info[0]>2 and sys.stdout.buffer or sys.stdout).write(base64.b64decode(sys.stdin.read()))"
+  _ssh_b64d="base64 -d 2>/dev/null || base64 -D 2>/dev/null || openssl base64 -d -A 2>/dev/null || perl -MMIME::Base64 -e \"print decode_base64(<STDIN>)\" 2>/dev/null || python3 -c \"$_ssh_py\" 2>/dev/null || python -c \"$_ssh_py\" 2>/dev/null"
+
   _info "Deploy certificates to remote server $DEPLOY_SSH_USER@$_host:$_port"
+
+  # test ability of remote system to decode base64
+  if [ -n "$DEPLOY_SSH_PFXFILE" ] && [ "$DEPLOY_SSH_USE_SCP" != "yes" ]; then
+    if ! _ssh_remote_cmd "echo QQ== | ($_ssh_b64d) >/dev/null"; then
+      _err "No base64 decoder on $_host (tried base64, openssl, perl, python), needed for DEPLOY_SSH_PFXFILE. Install one or set DEPLOY_SSH_USE_SCP=yes."
+      return 1
+    fi
+  fi
 
   if [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
     _backupprefix="$DEPLOY_SSH_BACKUP_PATH/$_cdomain-backup"
@@ -417,6 +443,40 @@ then rm -rf \"\$fn\"; echo \"Backup \$fn deleted as older than 180 days\"; fi; d
         _cmdstr=""
       fi
     fi
+  fi
+
+  if [ -n "$DEPLOY_SSH_PFXFILE" ]; then
+    if [ "$DEPLOY_SSH_BACKUP" = "yes" ]; then
+      # backup file we are about to overwrite.
+      _ssh_add_step "if [ -f $DEPLOY_SSH_PFXFILE ]; then mkdir -p $_backupdir; cp $DEPLOY_SSH_PFXFILE $_backupdir >/dev/null; fi"
+      if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
+        if ! _ssh_remote_cmd "$_cmdstr"; then
+          return $_err_code
+        fi
+        _cmdstr=""
+      fi
+    fi
+
+    # copy new PFX into file.
+    if [ "$DEPLOY_SSH_USE_SCP" = "yes" ]; then
+      # scp the file
+      if ! _scp_remote_cmd "$_cpfx" "$DEPLOY_SSH_PFXFILE"; then
+        return $_err_code
+      fi
+    else
+      # If file doesn't exist, create it and change its permissions, then
+      # ssh echo to the file. One step: "test ! -f" fails if the file exists.
+      _encoded_pfx=$(_base64 <"$_cpfx")
+      _ssh_add_step "test ! -f $DEPLOY_SSH_PFXFILE && touch $DEPLOY_SSH_PFXFILE && chmod 600 $DEPLOY_SSH_PFXFILE; (umask 077; echo \"$_encoded_pfx\" | ($_ssh_b64d) > $DEPLOY_SSH_PFXFILE.tmp) && [ -s $DEPLOY_SSH_PFXFILE.tmp ] && cat $DEPLOY_SSH_PFXFILE.tmp > $DEPLOY_SSH_PFXFILE && rm -f $DEPLOY_SSH_PFXFILE.tmp"
+      _info "will copy PFX file to remote file $DEPLOY_SSH_PFXFILE"
+      if [ "$DEPLOY_SSH_MULTI_CALL" = "yes" ]; then
+        if ! _ssh_remote_cmd "$_cmdstr"; then
+          return $_err_code
+        fi
+        _cmdstr=""
+      fi
+    fi
+
   fi
 
   # cleanup local files if any
