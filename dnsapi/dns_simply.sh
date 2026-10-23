@@ -156,7 +156,7 @@ _simply_get_all_records() {
 }
 
 _get_root() {
-  domain=$1
+  domain=$(_idn "$1" | _lower_case)
 
   if ! _simply_rest GET "my/products/"; then
     return 1
@@ -180,11 +180,12 @@ _get_root() {
     fi
 
     _domain=$(printf "%s" "$response" | tr '}' '\n' |
-      grep -F -e "\"object\":\"$h\"" -e "\"name\":\"$h\"" -e "\"name_idn\":\"$h\"" |
+      grep -i -F -e "\"object\":\"$h\"" -e "\"name\":\"$h\"" -e "\"name_idn\":\"$h\"" |
       sed -n 's/.*"object":"\([^"]*\)".*/\1/p' |
       _head_n 1)
 
     if [ -n "$_domain" ]; then
+      _domain=$(_simply_json_unescape "$_domain" | _url_encode upper-hex)
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       return 0
     fi
@@ -194,6 +195,52 @@ _get_root() {
     i=$(_math "$i" + 1)
   done
   return 1
+}
+
+#The product list escapes non-ASCII object names as \uXXXX, turn them back into UTF-8
+_simply_json_unescape() {
+  _sju_str="$1"
+  while true; do
+    case "$_sju_str" in
+    *\\u????*) ;;
+    *)
+      printf "%s" "$_sju_str"
+      return 0
+      ;;
+    esac
+    printf "%s" "${_sju_str%%\\u*}"
+    _sju_str="${_sju_str#*\\u}"
+    _sju_cp=$((0x${_sju_str%"${_sju_str#????}"}))
+    _sju_str="${_sju_str#????}"
+    if [ "$_sju_cp" -ge 55296 ] && [ "$_sju_cp" -le 56319 ]; then
+      case "$_sju_str" in
+      \\u????*)
+        _sju_str="${_sju_str#??}"
+        _sju_cp=$((65536 + (_sju_cp - 55296) * 1024 + 0x${_sju_str%"${_sju_str#????}"} - 56320))
+        _sju_str="${_sju_str#????}"
+        ;;
+      esac
+    fi
+    if [ "$_sju_cp" -lt 128 ]; then
+      _simply_byte "$_sju_cp"
+    elif [ "$_sju_cp" -lt 2048 ]; then
+      _simply_byte $((192 + _sju_cp / 64))
+      _simply_byte $((128 + _sju_cp % 64))
+    elif [ "$_sju_cp" -lt 65536 ]; then
+      _simply_byte $((224 + _sju_cp / 4096))
+      _simply_byte $((128 + _sju_cp / 64 % 64))
+      _simply_byte $((128 + _sju_cp % 64))
+    else
+      _simply_byte $((240 + _sju_cp / 262144))
+      _simply_byte $((128 + _sju_cp / 4096 % 64))
+      _simply_byte $((128 + _sju_cp / 64 % 64))
+      _simply_byte $((128 + _sju_cp % 64))
+    fi
+  done
+}
+
+_simply_byte() {
+  printf "%b" "\\0$(printf "%o" "$1")"
 }
 
 _simply_add_record() {
