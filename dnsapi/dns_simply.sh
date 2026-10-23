@@ -4,7 +4,6 @@ dns_simply_info='Simply.com
 Site: Simply.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_simply
 Options:
- SIMPLY_AccountName Account name. No longer needed, the API key alone identifies the account. Optional.
  SIMPLY_ApiKey API Key
 '
 
@@ -127,7 +126,6 @@ dns_simply_rm() {
 ####################  Private functions below ##################################
 
 _simply_load_config() {
-  SIMPLY_AccountName="${SIMPLY_AccountName:-$(_readaccountconf_mutable SIMPLY_AccountName)}"
   SIMPLY_ApiKey="${SIMPLY_ApiKey:-$(_readaccountconf_mutable SIMPLY_ApiKey)}"
 
   if [ -z "$SIMPLY_ApiKey" ]; then
@@ -141,7 +139,6 @@ _simply_load_config() {
 }
 
 _simply_save_config() {
-  _saveaccountconf_mutable SIMPLY_AccountName "$SIMPLY_AccountName"
   _saveaccountconf_mutable SIMPLY_ApiKey "$SIMPLY_ApiKey"
 }
 
@@ -179,13 +176,21 @@ _get_root() {
       return 1
     fi
 
-    _domain=$(printf "%s" "$response" | tr '}' '\n' |
-      grep -i -F -e "\"object\":\"$h\"" -e "\"name\":\"$h\"" -e "\"name_idn\":\"$h\"" |
-      sed -n 's/.*"object":"\([^"]*\)".*/\1/p' |
-      _head_n 1)
+    _domain=""
+    while IFS= read -r _simply_line || [ -n "$_simply_line" ]; do
+      _simply_lc="$(printf "%s\n" "$_simply_line" | _lower_case)"
+      case "$_simply_lc" in
+      *"\"object\":\"$h\""* | *"\"name\":\"$h\""* | *"\"name_idn\":\"$h\""*)
+        _domain="$(printf "%s\n" "$_simply_line" | sed -n 's/.*"object":"\([^"]*\)".*/\1/p')"
+        break
+        ;;
+      esac
+    done <<EOF
+$(printf "%s\n" "$response" | tr '}' '\n')
+EOF
 
     if [ -n "$_domain" ]; then
-      _domain=$(_simply_json_unescape "$_domain" | _url_encode upper-hex)
+      _domain=$(_simply_object_urlencode "$_domain")
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       return 0
     fi
@@ -197,8 +202,8 @@ _get_root() {
   return 1
 }
 
-#The product list escapes non-ASCII object names as \uXXXX, turn them back into UTF-8
-_simply_json_unescape() {
+#The product list escapes non-ASCII object names as \uXXXX, turn those into percent-encoded UTF-8
+_simply_object_urlencode() {
   _sju_str="$1"
   while true; do
     case "$_sju_str" in
@@ -222,25 +227,15 @@ _simply_json_unescape() {
       esac
     fi
     if [ "$_sju_cp" -lt 128 ]; then
-      _simply_byte "$_sju_cp"
+      printf "%%%02X" "$_sju_cp"
     elif [ "$_sju_cp" -lt 2048 ]; then
-      _simply_byte $((192 + _sju_cp / 64))
-      _simply_byte $((128 + _sju_cp % 64))
+      printf "%%%02X%%%02X" $((192 + _sju_cp / 64)) $((128 + _sju_cp % 64))
     elif [ "$_sju_cp" -lt 65536 ]; then
-      _simply_byte $((224 + _sju_cp / 4096))
-      _simply_byte $((128 + _sju_cp / 64 % 64))
-      _simply_byte $((128 + _sju_cp % 64))
+      printf "%%%02X%%%02X%%%02X" $((224 + _sju_cp / 4096)) $((128 + _sju_cp / 64 % 64)) $((128 + _sju_cp % 64))
     else
-      _simply_byte $((240 + _sju_cp / 262144))
-      _simply_byte $((128 + _sju_cp / 4096 % 64))
-      _simply_byte $((128 + _sju_cp / 64 % 64))
-      _simply_byte $((128 + _sju_cp % 64))
+      printf "%%%02X%%%02X%%%02X%%%02X" $((240 + _sju_cp / 262144)) $((128 + _sju_cp / 4096 % 64)) $((128 + _sju_cp / 64 % 64)) $((128 + _sju_cp % 64))
     fi
   done
-}
-
-_simply_byte() {
-  printf "%b" "\\0$(printf "%o" "$1")"
 }
 
 _simply_add_record() {
