@@ -9,7 +9,7 @@ Issues: github.com/acmesh-official/acme.sh/issues/3998
 Author: Timur Umarov <inbox@tumarov.com>
 '
 
-FORNEX_API_URL="https://fornex.com/api"
+FORNEX_API_URL="https://ru.fornex.com/api"
 
 ########  Public functions #####################
 
