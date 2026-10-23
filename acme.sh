@@ -7333,10 +7333,18 @@ deploy() {
   _deploy "$_d" "$_hooks"
 }
 
+_savehookconf() {
+  if [ "$2" = "$NO_VALUE" ]; then
+    _cleardomainconf "$1"
+  elif [ "$2" ]; then
+    _savedomainconf "$1" "$2" "base64"
+  fi
+}
+
 installcert() {
   _main_domain="$1"
   if [ -z "$_main_domain" ]; then
-    _usage "Usage: $PROJECT_ENTRY --install-cert --domain <domain.tld> [--ecc] [--cert-file <file>] [--key-file <file>] [--ca-file <file>] [ --reloadcmd <command>] [--fullchain-file <file>]"
+    _usage "Usage: $PROJECT_ENTRY --install-cert --domain <domain.tld> [--ecc] [--cert-file <file>] [--key-file <file>] [--ca-file <file>] [ --reloadcmd <command>] [--fullchain-file <file>] [--pre-hook <command>] [--post-hook <command>] [--renew-hook <command>]"
     return 1
   fi
 
@@ -7346,6 +7354,9 @@ installcert() {
   _reload_cmd="$5"
   _real_fullchain="$6"
   _isEcc="$7"
+  _pre_hook="$8"
+  _post_hook="$9"
+  _renew_hook="${10}"
 
   _initpath "$_main_domain" "$_isEcc"
   if [ ! -d "$DOMAIN_PATH" ]; then
@@ -7359,6 +7370,9 @@ installcert() {
   _savedomainconf "Le_RealKeyPath" "$_real_key"
   _savedomainconf "Le_ReloadCmd" "$_reload_cmd" "base64"
   _savedomainconf "Le_RealFullChainPath" "$_real_fullchain"
+  _savehookconf "Le_PreHook" "$_pre_hook"
+  _savehookconf "Le_PostHook" "$_post_hook"
+  _savehookconf "Le_RenewHook" "$_renew_hook"
   export Le_ForceNewDomainKey="$(_readdomainconf Le_ForceNewDomainKey)"
   export Le_Next_Domain_Key
   _installcert "$_main_domain" "$_real_cert" "$_real_key" "$_real_ca" "$_real_fullchain" "$_reload_cmd"
@@ -9823,7 +9837,7 @@ _process() {
     showcsr "$_csr" "$_domain"
     ;;
   installcert)
-    installcert "$_domain" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_ecc"
+    installcert "$_domain" "$_cert_file" "$_key_file" "$_ca_file" "$_reloadcmd" "$_fullchain_file" "$_ecc" "$_pre_hook" "$_post_hook" "$_renew_hook"
     ;;
   renew)
     renew "$_domain" "$_ecc" "$_server"
