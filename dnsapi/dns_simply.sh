@@ -4,7 +4,7 @@ dns_simply_info='Simply.com
 Site: Simply.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_simply
 Options:
- SIMPLY_AccountName Account name
+ SIMPLY_AccountName Account name. No longer needed, the API key alone identifies the account. Optional.
  SIMPLY_ApiKey API Key
 '
 
@@ -130,12 +130,9 @@ _simply_load_config() {
   SIMPLY_AccountName="${SIMPLY_AccountName:-$(_readaccountconf_mutable SIMPLY_AccountName)}"
   SIMPLY_ApiKey="${SIMPLY_ApiKey:-$(_readaccountconf_mutable SIMPLY_ApiKey)}"
 
-  if [ -z "$SIMPLY_AccountName" ] || [ -z "$SIMPLY_ApiKey" ]; then
-    SIMPLY_AccountName=""
-    SIMPLY_ApiKey=""
-
-    _err "A valid Simply API account and apikey not provided."
-    _err "Please provide a valid API user and try again."
+  if [ -z "$SIMPLY_ApiKey" ]; then
+    _err "A valid Simply.com API key not provided."
+    _err "Please provide a valid API key and try again."
 
     return 1
   fi
@@ -255,12 +252,7 @@ _simply_rest() {
   _debug2 ep "$ep"
   _debug2 m "$m"
 
-  basicauth=$(printf "%s:%s" "$SIMPLY_AccountName" "$SIMPLY_ApiKey" | _base64)
-
-  if [ "$basicauth" ]; then
-    export _H1="Authorization: Basic $basicauth"
-  fi
-
+  export _H1="Authorization: Bearer $SIMPLY_ApiKey"
   export _H2="Content-Type: application/json"
 
   : >"$HTTP_HEADER"
@@ -286,7 +278,7 @@ _simply_rest() {
   _debug2 response "$response"
 
   if _contains "$response" "Invalid account authorization"; then
-    _err "It seems that your api key or accountnumber is not correct."
+    _err "It seems that your api key is not correct."
     return 1
   fi
 
