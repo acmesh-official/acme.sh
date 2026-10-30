@@ -9084,7 +9084,7 @@ info() {
     (
       _initpath "$_domain" "$_ecc"
       echo "DOMAIN_CONF=$DOMAIN_CONF"
-      for seg in $(cat $DOMAIN_CONF | cut -d = -f 1); do
+      for seg in $(cat "$DOMAIN_CONF" | cut -d = -f 1); do
         echo "$seg=$(_readdomainconf "$seg")"
       done
     )
