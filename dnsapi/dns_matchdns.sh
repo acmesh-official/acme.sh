@@ -33,8 +33,6 @@ _matchdns_rest() {
     _err "MatchDNS API request failed ($_m $_ep): $_response"
     return 1
   fi
-  # TEMP-DEBUG (strip after OpenBSD diagnosis): raw response body
-  _debug2 "matchdns raw response: [$_response]"
   # acme.sh's _get/_post report HTTP 4xx/5xx as success (curl runs without
   # --fail), so a transport-level zero does not mean the call worked: check the
   # status line AND the body. A plain-text 404 (route miss) carries no platform
@@ -130,15 +128,10 @@ _matchdns_list_txt() {
   _mdlines="$(printf "%s" "$_mdresp" | _egrep_o '"line_id":[0-9][0-9]*' | cut -d : -f 2 | tr -d '[:space:]')"
   _mdpols="$(printf "%s" "$_mdresp" | _egrep_o '"policy":"[a-z_]*"' | cut -d '"' -f 4)"
   _mdvals="$(printf "%s" "$_mdresp" | _egrep_o '"values":\[\{"value":"[^"]*"[^]]*\]')"
-  # TEMP-DEBUG (strip after OpenBSD diagnosis): toolchain + parsed columns
-  _debug2 "matchdns tools: egrep=$(command -v egrep 2>/dev/null || echo MISSING)"
-  _debug2 "matchdns cols: ids=[${_mdids}] lines=[${_mdlines}] pols=[${_mdpols}]"
-  _debug2 "matchdns vals: [${_mdvals}]"
   # zip the four columns row by row (sed -n Np keeps it pure POSIX; a record
   # list here is at most a handful of same-name TXT lines)
   _matchdns_records=""
   _mdcount="$(printf "%s\n" "$_mdids" | grep -c .)"
-  _debug2 "matchdns count: [${_mdcount}]"
   _mdi=1
   while [ "$_mdi" -le "$_mdcount" ]; do
     _matchdns_records="${_matchdns_records}$(printf "%s\n" "$_mdids" | sed -n "${_mdi}p")|$(printf "%s\n" "$_mdlines" | sed -n "${_mdi}p")|$(printf "%s\n" "$_mdpols" | sed -n "${_mdi}p")|$(printf "%s\n" "$_mdvals" | sed -n "${_mdi}p")
@@ -176,11 +169,13 @@ dns_matchdns_add() {
 
   _matchdns_list_txt "$_matchdns_zone_id" "$_mdsub" || return 1
   _mdfirst="$(printf "%s\n" "$_matchdns_records" | _head_n 1)"
-  # TEMP-DEBUG (strip after OpenBSD diagnosis): first parsed row
-  _debug2 "matchdns first row: [$_mdfirst]"
 
   if [ -n "$_mdfirst" ]; then
-    _mdrid="${_mdfirst%%|*}"
+    # split the row with cut, NEVER with ${x%%|*}/${x#*|} patterns: OpenBSD's
+    # /bin/sh treats "|" as alternation in parameter-expansion patterns, so
+    # %%|* eats the whole row and yields an empty record id (blind PUT to
+    # /api/v1/records/). cut keeps the splitting literal on every POSIX shell.
+    _mdrid="$(printf "%s" "$_mdfirst" | cut -d "|" -f 1)"
     # a parsed row MUST carry the record id: an empty id would send the PUT to
     # /api/v1/records/ (route miss, plain-text 404) and silently corrupt the
     # wildcard append — fail loudly instead
@@ -188,11 +183,9 @@ dns_matchdns_add() {
       _err "TXT record row parsed without id - refusing blind update: $_mdfirst"
       return 1
     fi
-    _mdrest="${_mdfirst#*|}"
-    _mdline="${_mdrest%%|*}"
-    _mdrest="${_mdrest#*|}"
-    _mdpol="${_mdrest%%|*}"
-    _mdrest="${_mdrest#*|}"
+    _mdline="$(printf "%s" "$_mdfirst" | cut -d "|" -f 2)"
+    _mdpol="$(printf "%s" "$_mdfirst" | cut -d "|" -f 3)"
+    _mdrest="$(printf "%s" "$_mdfirst" | cut -d "|" -f 4-)"
     # the existing values MUST be re-parsed: writing a record without them
     # would replace (wipe) the co-existing challenge values
     if [ -z "$_mdrest" ]; then
