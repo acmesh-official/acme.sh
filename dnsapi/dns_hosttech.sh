@@ -40,7 +40,7 @@ dns_hosttech_add() {
 
   _info "Adding record"
   if _hosttech_rest POST "zones/$_zoneid/records" "{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"text\":\"$txtvalue\",\"ttl\":600}"; then
-    if _contains "$_response" "$_sub_domain"; then
+    if _contains "$_response" "$txtvalue"; then
       _info "Added, OK"
       return 0
     else
@@ -107,10 +107,15 @@ dns_hosttech_rm() {
 _get_zoneid() {
   domain=$1
   i=1
-  p=1
+  p=0
   while true; do
     _domain=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
-    _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
+    if [ "$p" -gt 0 ]; then
+      _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
+    else
+      # record at the zone apex
+      _sub_domain=""
+    fi
     _debug _domain "$_domain"
     if [ -z "$_domain" ]; then
       #not valid
@@ -143,7 +148,13 @@ _get_recordid() {
   if ! _hosttech_rest GET "zones/$_zoneid/records"; then
     return 1
   fi
-  _recordid=$(printf "%s" "$_response" | _egrep_o "[^{]*\"name\":\"$subdomain\"[^}]*" | _egrep_o "[^{]*\"text\":\"$txtvalue\"[^}]*" | _egrep_o "\"id\":[0-9]+" | _head_n 1 | cut -d : -f 2)
+  if [ -z "$subdomain" ]; then
+    # apex records: the API returns "name":null for records it created, "" for others
+    _name_re='(""|null)'
+  else
+    _name_re="\"$subdomain\""
+  fi
+  _recordid=$(printf "%s" "$_response" | _egrep_o "[^{]*\"name\":$_name_re[^}]*" |_egrep_o "[^{]*\"text\":\"$txtvalue\"[^}]*" | _egrep_o "\"id\":[0-9]+" | _head_n 1 | cut -d : -f 2)
   _debug _recordid "$_recordid"
   return 0
 }
