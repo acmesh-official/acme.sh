@@ -4,7 +4,7 @@ dns_domainchief_info='Domain Chief
 Site: domain.chief.app
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_domainchief
 Options:
- DOMAINCHIEF_API_TOKEN API token with the domainchief:acme:write scope. Names that do not start with _acme-challenge also need the domainchief:dns:read and domainchief:dns:write scopes.
+ DOMAINCHIEF_API_TOKEN API token with the domainchief:acme:write scope. Names that do not start with _acme-challenge also need the domainchief:dns:write scope.
 OptionsAlt:
  DOMAINCHIEF_API_URL Override the API base URL. Default "https://domain.chief.app/api/v1".
 Issues: github.com/acmesh-official/acme.sh/issues/7379
@@ -13,7 +13,7 @@ Issues: github.com/acmesh-official/acme.sh/issues/7379
 DOMAINCHIEF_API_URL_DEFAULT="https://domain.chief.app/api/v1"
 DOMAINCHIEF_MAX_ATTEMPTS=3
 DOMAINCHIEF_METADATA_KEY="acme_sh"
-DOMAINCHIEF_RECORD_SCOPES="domainchief:dns:read and domainchief:dns:write scopes, which are needed for names that do not start with _acme-challenge"
+DOMAINCHIEF_RECORD_SCOPES="domainchief:dns:write scope, which is needed for names that do not start with _acme-challenge"
 
 ########  Public functions #####################
 
