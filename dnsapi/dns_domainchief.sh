@@ -7,7 +7,7 @@ Options:
  DOMAINCHIEF_API_TOKEN API token with the domainchief:acme:write scope
 OptionsAlt:
  DOMAINCHIEF_API_URL Override the API base URL. Default "https://domain.chief.app/api/v1".
-Issues: github.com/acmesh-official/acme.sh/issues
+Issues: github.com/acmesh-official/acme.sh/issues/7379
 '
 
 DOMAINCHIEF_API_URL_DEFAULT="https://domain.chief.app/api/v1"
