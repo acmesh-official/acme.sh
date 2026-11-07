@@ -153,7 +153,8 @@ _domainchief_rm_record() {
   fi
 
   # Put every record object on its own line, so a single match per line finds all of them.
-  record_ids="$(printf "%s" "$response" | tr '{' '\n' | _egrep_o "\"id\":\"[^\"]*\",\"type\":\"TXT\",\"name\":\"$_domainchief_sub\"" | cut -d '"' -f 4)"
+  # Match the name and the unquoted value, so only records holding this exact value are removed.
+  record_ids="$(printf "%s\n" "$response" | tr '{' '\n' | _egrep_o "\"id\":\"[^\"]*\",\"type\":\"TXT\",\"name\":\"$_domainchief_sub\",.*\"value\":\"$txtvalue\"" | cut -d '"' -f 4)"
   _debug record_ids "$record_ids"
 
   for record_id in $record_ids; do
