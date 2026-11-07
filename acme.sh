@@ -3582,6 +3582,22 @@ _clearCA() {
   export ACCOUNT_JSON_PATH=
 }
 
+#url [keepquery]
+#prints the dir of the CA behind an ACME directory URL, relative to CA_HOME:
+#"host/path", without the port. The query string is left out: it does not
+#name another CA. DigiCert takes "?action=renew&orderId=N" on its directory
+#URL to act on one existing order, and the account is the same one (#7368).
+#"keepquery" gives the dir as it was before, with the query string in it.
+_ca_dir_name() {
+  _cdn_url="$1"
+  if [ -z "$2" ]; then
+    _cdn_url="$(printf "%s\n" "$_cdn_url" | cut -d '?' -f 1)"
+  fi
+  _cdn_host="$(printf "%s\n" "$_cdn_url" | cut -d : -f 2 | tr -s / | cut -d / -f 2)"
+  _cdn_path="$(printf "%s\n" "$_cdn_url" | cut -d : -f 2- | tr -s / | cut -d / -f 3-)"
+  printf "%s\n" "$_cdn_host/$_cdn_path"
+}
+
 #[domain]  [keylength or isEcc flag]
 _initpath() {
   domain="$1"
@@ -3630,13 +3646,32 @@ _initpath() {
   fi
 
   _debug ACME_DIRECTORY "$ACME_DIRECTORY"
-  _ACME_SERVER_HOST="$(echo "$ACME_DIRECTORY" | cut -d : -f 2 | tr -s / | cut -d / -f 2)"
+  _ACME_SERVER_DIR="$(_ca_dir_name "$ACME_DIRECTORY")"
+  _ACME_SERVER_HOST="$(printf "%s\n" "$_ACME_SERVER_DIR" | cut -d / -f 1)"
   _debug2 "_ACME_SERVER_HOST" "$_ACME_SERVER_HOST"
 
-  _ACME_SERVER_PATH="$(echo "$ACME_DIRECTORY" | cut -d : -f 2- | tr -s / | cut -d / -f 3-)"
-  _debug2 "_ACME_SERVER_PATH" "$_ACME_SERVER_PATH"
+  CA_DIR="$CA_HOME/$_ACME_SERVER_DIR"
+  _debug2 CA_DIR "$CA_DIR"
 
-  CA_DIR="$CA_HOME/$_ACME_SERVER_HOST/$_ACME_SERVER_PATH"
+  #an account registered while the query string was still part of the CA
+  #dir moves to the dir without it, or that CA would ask to register again
+  case "$ACME_DIRECTORY" in
+  *"?"*)
+    _QUERY_CADIR="$CA_HOME/$(_ca_dir_name "$ACME_DIRECTORY" keepquery)"
+    if [ -f "$_QUERY_CADIR/account.key" ] && ! [ -f "$CA_DIR/account.key" ]; then
+      _debug "Moving the account in '$_QUERY_CADIR' to" "$CA_DIR"
+      mkdir -p "$CA_DIR"
+      mv "$_QUERY_CADIR/account.key" "$CA_DIR/account.key"
+      if [ -f "$_QUERY_CADIR/account.json" ] && ! [ -f "$CA_DIR/account.json" ]; then
+        mv "$_QUERY_CADIR/account.json" "$CA_DIR/account.json"
+      fi
+      if [ -f "$_QUERY_CADIR/ca.conf" ] && ! [ -f "$CA_DIR/ca.conf" ]; then
+        mv "$_QUERY_CADIR/ca.conf" "$CA_DIR/ca.conf"
+      fi
+    fi
+    ;;
+  esac
+
   _DEFAULT_CA_CONF="$CA_DIR/ca.conf"
   if [ -z "$CA_CONF" ]; then
     CA_CONF="$_DEFAULT_CA_CONF"
