@@ -185,13 +185,14 @@ _get_root_by_getHosts() {
 }
 
 _namecheap_set_publicip() {
+  NAMECHEAP_SOURCEIP="${NAMECHEAP_SOURCEIP:-$(_readaccountconf_mutable NAMECHEAP_SOURCEIP)}"
 
   if [ -z "$NAMECHEAP_SOURCEIP" ]; then
     _err "No Source IP specified for Namecheap API."
     _err "Use your public ip address or an url to retrieve it (e.g. https://ifconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
     return 1
   else
-    _saveaccountconf NAMECHEAP_SOURCEIP "$NAMECHEAP_SOURCEIP"
+    _saveaccountconf_mutable NAMECHEAP_SOURCEIP "$NAMECHEAP_SOURCEIP"
     _debug sourceip "$NAMECHEAP_SOURCEIP"
 
     ip=$(echo "$NAMECHEAP_SOURCEIP" | _egrep_o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
@@ -252,6 +253,8 @@ _namecheap_parse_host() {
 }
 
 _namecheap_check_config() {
+  NAMECHEAP_API_KEY="${NAMECHEAP_API_KEY:-$(_readaccountconf_mutable NAMECHEAP_API_KEY)}"
+  NAMECHEAP_USERNAME="${NAMECHEAP_USERNAME:-$(_readaccountconf_mutable NAMECHEAP_USERNAME)}"
 
   if [ -z "$NAMECHEAP_API_KEY" ]; then
     _err "No API key specified for Namecheap API."
@@ -265,8 +268,8 @@ _namecheap_check_config() {
     return 1
   fi
 
-  _saveaccountconf NAMECHEAP_API_KEY "$NAMECHEAP_API_KEY"
-  _saveaccountconf NAMECHEAP_USERNAME "$NAMECHEAP_USERNAME"
+  _saveaccountconf_mutable NAMECHEAP_API_KEY "$NAMECHEAP_API_KEY"
+  _saveaccountconf_mutable NAMECHEAP_USERNAME "$NAMECHEAP_USERNAME"
 
   return 0
 }

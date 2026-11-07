@@ -106,13 +106,16 @@ dns_yc_add() {
   _debug _domain "$_domain"
 
   _debug "Getting txt records"
-  if ! _yc_rest GET "zones/${_domain_id}:getRecordSet?type=TXT&name=$_sub_domain"; then
+  if ! _yc_rest GET "zones/${_domain_id}:getRecordSet?type=TXT&name=$fulldomain"; then
     _err "Error: $response"
     return 1
   fi
 
   _info "Adding record"
-  if _yc_rest POST "zones/$_domain_id:upsertRecordSets" "{\"merges\": [ { \"name\":\"$_sub_domain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":[\"$txtvalue\"]}]}"; then
+  # The absolute name (trailing dot) also covers a record at the zone apex,
+  # e.g. with --domain-alias, which has no relative form: an empty name is
+  # rejected by the API.
+  if _yc_rest POST "zones/$_domain_id:upsertRecordSets" "{\"merges\": [ { \"name\":\"$fulldomain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":[\"$txtvalue\"]}]}"; then
     if _contains "$response" "\"done\": *true"; then
       _info "Added, OK"
       return 0
@@ -167,7 +170,7 @@ dns_yc_rm() {
   # upsertRecordSets.deletions removes only the given value from the rrset,
   # leaving any other values at the same name (e.g. base + wildcard domain)
   # intact -- no need to read the current data set and recompute it.
-  if _yc_rest POST "zones/$_domain_id:upsertRecordSets" "{\"deletions\": [ { \"name\":\"$_sub_domain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":[\"$txtvalue\"]}]}"; then
+  if _yc_rest POST "zones/$_domain_id:upsertRecordSets" "{\"deletions\": [ { \"name\":\"$fulldomain\",\"type\":\"TXT\",\"ttl\":\"120\",\"data\":[\"$txtvalue\"]}]}"; then
     if _contains "$response" "\"done\": *true"; then
       _info "Delete, OK"
       return 0
