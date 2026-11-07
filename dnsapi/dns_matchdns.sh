@@ -10,8 +10,6 @@ Options:
 Issues: github.com/acmesh-official/acme.sh/issues/7373
 Author: MatchDNS <support@matchdns.com>'
 
-MATCHDNS_API="${MATCHDNS_API:-https://www.matchdns.com}"
-
 ################  internal helpers  ################
 
 # _matchdns_rest <method> <path> [json_body]
@@ -59,7 +57,7 @@ _matchdns_rest() {
 # Sets: _matchdns_zone_id, _matchdns_zone (no trailing dot).
 _matchdns_get_root() {
   _fd="$1"
-  _i=2
+  _i=1
   _p=1
   while [ "$_p" -lt 6 ]; do
     _h="$(printf "%s" "$_fd" | cut -d . -f "$_i"-1000)"
@@ -68,7 +66,7 @@ _matchdns_get_root() {
     fi
     _debug "trying zone: $_h"
     _resp="$(_matchdns_rest GET "/api/v1/zones?name=$_h")" || return 1
-    # The zone object is serialized from a Go map (alphabetical key order —
+    # The zone object is serialized from a Go map (alphabetical key order -
     # "created_at" sorts before "id"), so never anchor on field positions:
     # take the first "id": in the body. The ?name= filter is an exact match,
     # the response holds at most one zone, so that id is the zone id.
@@ -106,15 +104,15 @@ _matchdns_setup() {
 
 # _matchdns_list_txt <zone_id> <relative_name>
 # Fetch the TXT records for a name. Sets _matchdns_records: one
-# "id|line_id|policy|values_json" row per record (columns zipped — RecordIO
+# "id|line_id|policy|values_json" row per record (columns zipped: RecordIO
 # serializes one "id"/"line_id"/"policy"/"values" per record, in order).
 # Extraction anchors, all safe against user string values (remark etc.):
 #  - JSON escapes quotes inside string values (\"), so a key pattern like
 #    "id": or "values":[ can never be forged from remark/name_display text
 #  - the values array is matched STRUCTURALLY from its own "values":[{ anchor
-#    instead of "record start → first ]": a remark containing a bare ] (JSON
+#    instead of "record start -> first ]": a remark containing a bare ] (JSON
 #    does not escape brackets) would truncate that segment and silently drop
-#    the real values — the anchor sits after remark, and TXT values are
+#    the real values - the anchor sits after remark, and TXT values are
 #    base64url, so the first ] after it always closes the values array
 _matchdns_list_txt() {
   _mdzid="$1"
@@ -124,8 +122,8 @@ _matchdns_list_txt() {
     _matchdns_records=""
     return 0
   fi
-  _mdids="$(printf "%s" "$_mdresp" | _egrep_o '"id":[0-9][0-9]*' | cut -d : -f 2 | tr -d '[:space:]')"
-  _mdlines="$(printf "%s" "$_mdresp" | _egrep_o '"line_id":[0-9][0-9]*' | cut -d : -f 2 | tr -d '[:space:]')"
+  _mdids="$(printf "%s" "$_mdresp" | _egrep_o '"id":[0-9][0-9]*' | cut -d : -f 2)"
+  _mdlines="$(printf "%s" "$_mdresp" | _egrep_o '"line_id":[0-9][0-9]*' | cut -d : -f 2)"
   _mdpols="$(printf "%s" "$_mdresp" | _egrep_o '"policy":"[a-z_]*"' | cut -d '"' -f 4)"
   _mdvals="$(printf "%s" "$_mdresp" | _egrep_o '"values":\[\{"value":"[^"]*"[^]]*\]')"
   # zip the four columns row by row (sed -n Np keeps it pure POSIX; a record
@@ -155,7 +153,7 @@ dns_matchdns_add() {
   _matchdns_setup || return 1
 
   # the platform normalizes names to lower case and matches ?name= byte-exact
-  fulldomain="$(printf "%s" "$fulldomain" | tr '[:upper:]' '[:lower:]')"
+  fulldomain="$(printf "%s" "$fulldomain" | _lower_case)"
 
   _info "Adding TXT record via MatchDNS API"
   _matchdns_get_root "$fulldomain" || return 1
@@ -178,7 +176,7 @@ dns_matchdns_add() {
     _mdrid="$(printf "%s" "$_mdfirst" | cut -d "|" -f 1)"
     # a parsed row MUST carry the record id: an empty id would send the PUT to
     # /api/v1/records/ (route miss, plain-text 404) and silently corrupt the
-    # wildcard append — fail loudly instead
+    # wildcard append - fail loudly instead
     if [ -z "$_mdrid" ]; then
       _err "TXT record row parsed without id - refusing blind update: $_mdfirst"
       return 1
@@ -197,7 +195,7 @@ dns_matchdns_add() {
     while IFS= read -r _mdv; do
       [ -n "$_mdv" ] || continue
       if [ "$_mdv" = "$txtvalue" ]; then
-        _info "TXT record id=$_mdrid already holds the value — nothing to add."
+        _info "TXT record id=$_mdrid already holds the value - nothing to add."
         return 0
       fi
       _mdvals="${_mdvals}{\"value\":\"${_mdv}\"},"
@@ -214,13 +212,13 @@ MDEOF
 
   # ttl pinned to 600: it meets every plan's floor (the free tier minimum is
   # 600) and stays inside the absolute 10-86400 window, so a challenge record
-  # never trips record.ttl_below_plan / record.bad_ttl. "policy" is REQUIRED —
+  # never trips record.ttl_below_plan / record.bad_ttl. "policy" is REQUIRED -
   # the API rejects a record body without it (400 record.bad_policy), and
   # "all" is the right policy for a multi-value TXT challenge record.
   _mdbody="{\"name\":\"${_mdsub}\",\"type\":\"TXT\",\"ttl\":600,\"policy\":\"all\",\"values\":[{\"value\":\"${txtvalue}\"}]}"
   _matchdns_rest POST "/api/v1/zones/${_matchdns_zone_id}/records" "$_mdbody" || return 1
 
-  _info "TXT record added (\"${_mdsub}\" → \"${txtvalue}\")."
+  _info "TXT record added (\"${_mdsub}\" += \"${txtvalue}\")."
   return 0
 }
 
@@ -233,7 +231,7 @@ dns_matchdns_rm() {
 
   _matchdns_setup || return 1
 
-  fulldomain="$(printf "%s" "$fulldomain" | tr '[:upper:]' '[:lower:]')"
+  fulldomain="$(printf "%s" "$fulldomain" | _lower_case)"
 
   _info "Removing TXT record value via MatchDNS API"
   _matchdns_get_root "$fulldomain" || return 1
@@ -278,7 +276,7 @@ $_matchdns_records
 EOF
 
   if [ "$_mdremoved" = "0" ]; then
-    _info "No matching TXT value found — nothing to remove."
+    _info "No matching TXT value found - nothing to remove."
   else
     _info "TXT challenge value removed."
   fi
