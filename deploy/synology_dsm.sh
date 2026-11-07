@@ -5,7 +5,8 @@
 ################################################################################
 # Authors: Brian Hartvigsen (creator), https://github.com/tresni
 #          Martin Arndt (contributor), https://troublezone.net/
-# Updated: 2023-07-03
+#          Paul Smith (contributor),   https://github.com/TheUniquePaulSmith
+# Updated: 2026-11-07
 # Issues:  https://github.com/acmesh-official/acme.sh/issues/2727
 ################################################################################
 # Usage (shown values are the examples):
@@ -42,7 +43,7 @@
 #                                     without relying on SYNO_DEVICE_ID.
 #                                     Saved to the domain conf: protect it as
 #                                     you would SYNO_PASSWORD.
-#   - export SYNO_USE_TOKEN=0      - disable SynoToken authentication
+#   - export SYNO_USE_TOKEN=0       - disable SynoToken authentication
 #                                     when deploying to Synology SRM
 # 3. Run command:
 # acme.sh --deploy --deploy-hook synology_dsm -d example.com
@@ -188,7 +189,7 @@ synology_dsm_deploy() {
   # then continue with the regular 2FA-OTP login below.
   if [ -n "$SYNO_TOTP_SECRET" ]; then
     # Avoid a code that expires before DSM receives it.
-    _syno_totp_left=$((30 - $(date +%s) % 30))
+    _syno_totp_left=$((30 - $(_time) % 30))
     if [ "$_syno_totp_left" -lt 5 ]; then
       _debug "Waiting $_syno_totp_left seconds for the next 2FA-OTP time step..."
       _sleep "$_syno_totp_left"
@@ -282,7 +283,11 @@ synology_dsm_deploy() {
       if [ -z "$SYNO_OTP_CODE" ]; then
         response='{"error":{"code":404}}'
       else
-        response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password$enable_token_param&enable_device_token=yes&device_name=$SYNO_DEVICE_NAME&otp_code=$SYNO_OTP_CODE")
+        _syno_device_token="&enable_device_token=yes"
+        # With SYNO_TOTP_SECRET a fresh OTP code is used on every login, so
+        # don't ask DSM to issue a device token that would never be used.
+        [ -z "$SYNO_TOTP_SECRET" ] || _syno_device_token=""
+        response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password$enable_token_param$_syno_device_token&device_name=$SYNO_DEVICE_NAME&otp_code=$SYNO_OTP_CODE")
         _secure_debug3 response "$response"
 
         id_property='device_id'
@@ -471,7 +476,7 @@ _temp_admin_cleanup() {
 # Usage: _syno_totp base32_secret [unix_time]
 _syno_totp() {
   _syno_secret=$(printf "%s" "$1" | tr -d ' =\r\n' | _upper_case)
-  _syno_time="${2:-$(date +%s)}"
+  _syno_time="${2:-$(_time)}"
 
   # Base32 decode the secret into a hex key
   _syno_alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
