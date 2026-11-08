@@ -32,7 +32,10 @@ dns_he_ddns_add() {
 
   response="$(_post "hostname=$fulldomain&password=$HE_DDNS_KEY&txt=$txtvalue" "$HE_DDNS_URL")"
   _info "Response: $response"
-  _contains "$response" "good" && return 0 || return 1
+  _contains "$response" "good" && return 0
+  _contains "$response" "nochg" && return 0
+  _err "Failed to update the TXT record in HE DDNS"
+  return 1
 }
 
 # dns_he_ddns_rm() is not doing anything because the API call always updates the
