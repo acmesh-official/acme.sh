@@ -31,7 +31,7 @@ dns_he_ddns_add() {
   _debug txtvalue "$txtvalue"
 
   response="$(_post "hostname=$fulldomain&password=$HE_DDNS_KEY&txt=$txtvalue" "$HE_DDNS_URL")"
-  _info "Response: $response"
+  _info "Response from HE DDNS: $response"
   _contains "$response" "good" && return 0
   _contains "$response" "nochg" && return 0
   _err "Failed to update TXT record in HE DDNS"
