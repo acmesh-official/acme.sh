@@ -129,10 +129,13 @@ _initAuth() {
 
   _info "Checking authentication"
 
-  if ! _ovh_rest GET "domain" || _contains "$response" "INVALID_CREDENTIAL" || _contains "$response" "NOT_CREDENTIAL"; then
-    _err "The consumer key is invalid: $OVH_CK"
-    _err "Please retry to create a new one."
-    _clearaccountconf_mutable OVH_CK
+  if ! _ovh_rest GET "domain" && ! _ovh_not_granted; then
+    _err "Authentication check failed: $response"
+    if [ "$_ovh_code" = "401" ] || [ "$_ovh_code" = "403" ]; then
+      _err "The consumer key is invalid: $OVH_CK"
+      _err "Please retry to create a new one."
+      _clearaccountconf_mutable OVH_CK
+    fi
     return 1
   fi
   _info "Consumer key is ok."
@@ -169,7 +172,7 @@ dns_ovh_add() {
       return 0
     fi
   fi
-  _err "Add txt record error."
+  _err "Add txt record error: $response"
   return 1
 
 }
@@ -193,17 +196,20 @@ dns_ovh_rm() {
   _debug _domain "$_domain"
   _debug "Getting txt records"
   if ! _ovh_rest GET "domain/zone/$_domain/record?fieldType=TXT&subDomain=$_sub_domain"; then
+    _err "Error getting txt records: $response"
     return 1
   fi
 
   for rid in $(echo "$response" | tr '][,' '   '); do
     _debug rid "$rid"
     if ! _ovh_rest GET "domain/zone/$_domain/record/$rid"; then
+      _err "Error getting txt record $rid: $response"
       return 1
     fi
     if _contains "$response" "$txtvalue"; then
       _debug "Found txt id:$rid"
       if ! _ovh_rest DELETE "domain/zone/$_domain/record/$rid"; then
+        _err "Error removing txt record $rid: $response"
         return 1
       fi
       _ovh_rest POST "domain/zone/$_domain/refresh"
@@ -266,16 +272,16 @@ _get_root() {
       return 1
     fi
 
-    if ! _ovh_rest GET "domain/zone/$h"; then
-      return 1
-    fi
-
-    if ! _contains "$response" "This service does not exist" >/dev/null &&
-      ! _contains "$response" "This call has not been granted" >/dev/null &&
-      ! _contains "$response" "NOT_GRANTED_CALL" >/dev/null; then
+    if _ovh_rest GET "domain/zone/$h"; then
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
       _domain="$h"
       return 0
+    fi
+
+    #not a zone of this account, or not granted to this key: try the parent
+    if [ "$_ovh_code" != "404" ] && ! _ovh_not_granted; then
+      _err "Error getting zone $h: $response"
+      return 1
     fi
     p=$i
     i=$(_math "$i" + 1)
@@ -320,10 +326,20 @@ _ovh_rest() {
     response="$(_get "$_ovh_url")"
   fi
 
-  if [ "$?" != "0" ] || _contains "$response" "INVALID_CREDENTIAL"; then
+  if [ "$?" != "0" ]; then
+    _ovh_code=""
     _err "error $response"
     return 1
   fi
   _debug2 response "$response"
-  return 0
+
+  #every API error (invalid or expired credential included) comes with a non-2xx status
+  _ovh_code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")"
+  _debug2 _ovh_code "$_ovh_code"
+  _startswith "$_ovh_code" "2"
+}
+
+#the key is valid but its access rules do not cover the call
+_ovh_not_granted() {
+  [ "$_ovh_code" = "403" ] && { _contains "$response" "NOT_GRANTED_CALL" || _contains "$response" "This call has not been granted"; }
 }
