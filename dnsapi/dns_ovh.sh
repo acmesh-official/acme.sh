@@ -320,7 +320,7 @@ _ovh_rest() {
     response="$(_get "$_ovh_url")"
   fi
 
-  if [ "$?" != "0" ] || _contains "$response" "INVALID_CREDENTIAL"; then
+  if [ "$?" != "0" ] || _contains "$response" "INVALID_CREDENTIAL" || _contains "$response" "This credential is not valid"; then
     _err "error $response"
     return 1
   fi
