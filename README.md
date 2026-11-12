@@ -410,6 +410,21 @@ If your DNS provider supports API access, we can use that API to automatically i
 
 📚 **Currently acme.sh supports most DNS providers:** https://github.com/acmesh-official/acme.sh/wiki/dnsapi
 
+#### 🗂️ Use a DNS API account per domain
+
+By default, the DNS API credentials are saved in the global `~/.acme.sh/account.conf`, so you can keep only one set of credentials per DNS provider per installation.
+
+To give a domain its own DNS API account, create a `dns_account.conf` file in the domain's config directory before issuing the cert:
+
+```bash
+mkdir -p ~/.acme.sh/example.com
+touch ~/.acme.sh/example.com/dns_account.conf
+chmod 600 ~/.acme.sh/example.com/dns_account.conf
+CF_Token="..." CF_Account_ID="..." acme.sh --issue --dns dns_cf -d example.com
+```
+
+The credentials of this domain are then saved to, and renewed from, `~/.acme.sh/example.com/dns_account.conf` only. Other domains keep using the global `account.conf`, so multiple domains can use different DNS API accounts side by side.
+
 ---
 
 ### 9️⃣ Use DNS Manual Mode
