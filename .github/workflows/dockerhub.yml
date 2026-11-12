@@ -108,9 +108,10 @@ jobs:
 
   rebuild:
     # weekly: dispatch this workflow on the latest release tag so the tag
-    # rebuilds its own image from its own commit and its own workflow file
+    # rebuilds its own image from its own commit and its own workflow file.
+    # Upstream only: a fork has no releases, so releases/latest is a 404.
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' && github.repository == 'acmesh-official/acme.sh'
     permissions:
       contents: read
       actions: write
