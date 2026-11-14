@@ -129,12 +129,20 @@ dns_inwx_rm() {
     return 1
   fi
 
-  if ! printf "%s" "$response" | grep "count" >/dev/null; then
+  _count=$(printf "%s" "$response" | _egrep_o '<name>count</name><value><int>[0-9]+' | _egrep_o '[0-9]+')
+  _debug _count "$_count"
+  if [ -z "$_count" ] || [ "$_count" = "0" ]; then
     _info "Do not need to delete record"
   else
     _record_id=$(printf '%s' "$response" | _egrep_o '.*(<member><name>record){1}(.*)([0-9]+){1}' | _egrep_o '<name>id<\/name><value><string>[0-9]+' | _egrep_o '[0-9]+')
-    _info "Deleting record"
-    _inwx_delete_record "$_record_id"
+    if [ -z "$_record_id" ]; then
+      _err "Can not get record id to remove."
+      return 1
+    fi
+    for _rid in $_record_id; do
+      _info "Deleting record $_rid"
+      _inwx_delete_record "$_rid" || return 1
+    done
   fi
 
 }
