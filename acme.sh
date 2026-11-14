@@ -3125,6 +3125,20 @@ _clearaccountconf_mutable() {
   _clearaccountconf "$1"
 }
 
+#domain
+#Use the per domain dns account conf file, if the domain has one, so that
+#each domain can use its own dns api accounts.
+#Must be called inside the dns api hook sub shell, so the global account
+#conf is not touched.
+#https://github.com/acmesh-official/acme.sh/issues/6781
+_dnsapiconf() {
+  _dns_api_conf_file="$DOMAIN_PATH/dns_account.conf"
+  if [ -f "$_dns_api_conf_file" ]; then
+    ACCOUNT_CONF_PATH="$_dns_api_conf_file"
+    _debug "Using dns account conf: $ACCOUNT_CONF_PATH"
+  fi
+}
+
 #_savecaconf  key  value
 _savecaconf() {
   _save_conf "$CA_CONF" "$1" "$2"
@@ -4257,6 +4271,7 @@ _clearupdns() {
     fi
 
     (
+      _dnsapiconf
       if ! . "$d_api"; then
         _err "Error loading file $d_api. Please check your API file and try again."
         return 1
@@ -6025,6 +6040,7 @@ $_authorizations_map"
         fi
 
         (
+          _dnsapiconf
           if ! . "$d_api"; then
             _err "Error loading file $d_api. Please check your API file and try again."
             return 1
