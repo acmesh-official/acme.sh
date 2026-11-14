@@ -88,7 +88,7 @@ if [ \"\$1\" = \"daemon\" ];  then \n \
   exec -- /usr/bin/supercronic \"\$LE_CONFIG_HOME/crontab\" \n \
 else \n \
  exec -- \"\$@\"\n \
-fi\n" >/entry.sh && chmod +x /entry.sh && chmod -R o+rwx $LE_WORKING_DIR && chmod -R o+rwx $LE_CONFIG_HOME
+fi\n" >/entry.sh && chmod +x /entry.sh && chmod -R go+rwx $LE_WORKING_DIR && chmod -R go+rwx $LE_CONFIG_HOME
 
 VOLUME /acme.sh
 
