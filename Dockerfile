@@ -71,6 +71,10 @@ RUN for verb in help \
   set-notify \
   set-default-ca \
   set-default-chain \
+  set-default-chain \
+  make-dns-persist-value \
+  update-account-key \
+  list-profiles \  
   ; do \
     printf -- "%b" "#!/usr/bin/env sh\n$LE_WORKING_DIR/acme.sh --${verb} --config-home $LE_CONFIG_HOME \"\$@\"" >/usr/local/bin/--${verb} && chmod +x /usr/local/bin/--${verb} \
   ; done
