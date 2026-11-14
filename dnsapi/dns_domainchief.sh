@@ -12,6 +12,8 @@ Issues: github.com/acmesh-official/acme.sh/issues/7379
 
 DOMAINCHIEF_API_URL_DEFAULT="https://domain.chief.app/api/v1"
 DOMAINCHIEF_MAX_ATTEMPTS=3
+DOMAINCHIEF_PUBLISH_INTERVAL=10
+DOMAINCHIEF_PUBLISH_TIMEOUT=600
 DOMAINCHIEF_METADATA_KEY="acme_sh"
 DOMAINCHIEF_RECORD_SCOPES="domainchief:dns:write scope, which is needed for names that do not start with _acme-challenge"
 
@@ -37,19 +39,13 @@ dns_domainchief_add() {
 
   # The API resolves the domain from the challenge name and keeps other values on the same name,
   # so no zone lookup is needed and wildcard and apex challenges can be published side by side.
-  if ! _domainchief_api POST "/acme/challenges" "{\"name\":\"$fulldomain\",\"value\":\"$txtvalue\"}"; then
+  if ! _domainchief_publish_challenge; then
     return 1
   fi
 
-  case "$_domainchief_http_code" in
-  200 | 201)
-    _info "Added TXT record for $fulldomain"
-    return 0
-    ;;
-  esac
+  _info "Added TXT record for $fulldomain"
 
-  _domainchief_error "Failed to add TXT record for $fulldomain" "domainchief:acme:write scope"
-  return 1
+  _domainchief_wait_published
 }
 
 #Usage: fulldomain txtvalue
@@ -87,6 +83,59 @@ dns_domainchief_rm() {
 }
 
 ####################  Private functions below ##################################
+
+# Publishing a challenge is idempotent and returns its status, so it is also used to check the status.
+_domainchief_publish_challenge() {
+  if ! _domainchief_api POST "/acme/challenges" "{\"name\":\"$fulldomain\",\"value\":\"$txtvalue\"}"; then
+    return 1
+  fi
+
+  case "$_domainchief_http_code" in
+  200 | 201)
+    return 0
+    ;;
+  esac
+
+  _domainchief_error "Failed to add TXT record for $fulldomain" "domainchief:acme:write scope"
+  return 1
+}
+
+# A new value reaches the nameservers close to the public resolvers acme.sh checks before it reaches
+# the others, which the certificate authority may query. Waits until every nameserver serves it.
+_domainchief_wait_published() {
+  _domainchief_waited=0
+
+  while true; do
+    _domainchief_status="$(printf "%s" "$response" | _egrep_o '"status": *"[^"]*"' | cut -d '"' -f 4)"
+    _debug _domainchief_status "$_domainchief_status"
+
+    case "$_domainchief_status" in
+    published)
+      _info "Every Domain Chief nameserver serves the TXT record for $fulldomain"
+      return 0
+      ;;
+    failed)
+      _err "Domain Chief could not add the TXT record for $fulldomain to the hosted DNS zone."
+      dns_domainchief_rm "$fulldomain" "$txtvalue" >/dev/null
+      return 1
+      ;;
+    esac
+
+    if [ "$_domainchief_waited" -ge "$DOMAINCHIEF_PUBLISH_TIMEOUT" ]; then
+      _err "Not every Domain Chief nameserver serves the TXT record for $fulldomain after ${DOMAINCHIEF_PUBLISH_TIMEOUT}s."
+      dns_domainchief_rm "$fulldomain" "$txtvalue" >/dev/null
+      return 1
+    fi
+
+    _info "Waiting until every Domain Chief nameserver serves the TXT record for $fulldomain, checking again in ${DOMAINCHIEF_PUBLISH_INTERVAL}s."
+    _sleep "$DOMAINCHIEF_PUBLISH_INTERVAL"
+    _domainchief_waited="$((_domainchief_waited + DOMAINCHIEF_PUBLISH_INTERVAL))"
+
+    if ! _domainchief_publish_challenge; then
+      return 1
+    fi
+  done
+}
 
 _domainchief_init() {
   DOMAINCHIEF_API_TOKEN="${DOMAINCHIEF_API_TOKEN:-$(_readaccountconf_mutable DOMAINCHIEF_API_TOKEN)}"
