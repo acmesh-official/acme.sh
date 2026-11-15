@@ -7,7 +7,7 @@ Help: https://help.creoline.com
 Options:
  creolineApiToken
  creolineApiSecret
-Issues: github.com/acmesh-official/acme.sh/issues/7103
+Issues: github.com/acmesh-official/acme.sh/issues/7001
 '
 
 creolineApi="https://api.creoline.com/v1"
@@ -59,6 +59,12 @@ dns_creoline_rm() {
   creolineApiToken="${creolineApiToken:-$(_readaccountconf_mutable creolineApiToken)}"
   creolineApiSecret="${creolineApiSecret:-$(_readaccountconf_mutable creolineApiSecret)}"
 
+  if [ -z "$creolineApiToken" ] || [ -z "$creolineApiSecret" ]; then
+    _err "Error required creoline API Token or creoline API Secret not specified."
+    _err "Please set it with the Command 'export creolineApiToken=<YourToken>' and 'export creolineApiSecret=<YourSecret>'."
+    return 1
+  fi
+
   _debug "Detecting the root dns zone."
   if ! _get_root "$fulldomain"; then
     _err "Error on detecting the root dns zone."
@@ -67,10 +73,6 @@ dns_creoline_rm() {
 
   _info "Getting earlier created txt record."
   if ! _creoline_rest GET "dns/zone/$_domain/record/type/TXT/record/$txtvalue"; then
-    if _contains "$response" "errors" || _contains "$response" "message"; then
-      _err "Error on getting earlier created txt record."
-      return 1
-    fi
     _err "Error on getting earlier created txt record."
     return 1
   fi
@@ -85,10 +87,6 @@ dns_creoline_rm() {
 
   _info "Deleting earlier created txt record."
   if ! _creoline_rest DELETE "dns/zone/$_domain/record/$record_id"; then
-    if _contains "$response" "errors" || _contains "$response" "message"; then
-      _err "Error on deleting earlier created txt record."
-      return 1
-    fi
     _err "Error on deleting earlier created txt record."
     return 1
   fi
@@ -165,12 +163,12 @@ _creoline_rest() {
 
   _debug response "$response"
 
-  if _contains "$response" "errors"; then
+  if _contains "$response" "\"errors\":"; then
     error=$(echo "$response" | _egrep_o "\"errors\":[[]*\"[^\"]+\"" | cut -d : -f 2 | tr -d \" | tr -d "[")
     _err "Error: $error"
     _err "URI:$uri"
     return 1
-  elif _contains "$response" "message"; then
+  elif _contains "$response" "\"message\":"; then
     message=$(echo "$response" | _egrep_o "\"message\"[ ]*:[ ]*\"[^\"]+\"" | cut -d : -f 2 | tr -d \")
     _err "Error: $message"
     _err "URI:$uri"
