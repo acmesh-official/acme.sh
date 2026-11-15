@@ -131,7 +131,10 @@ _initAuth() {
 
   if ! _ovh_rest GET "domain" && ! _ovh_not_granted; then
     _err "Authentication check failed: $response"
-    if [ "$_ovh_code" = "401" ] || [ "$_ovh_code" = "403" ]; then
+    # Drop the saved key only when OVH says the key itself is bad; any other 403 keeps it.
+    if _contains "$response" "INVALID_CREDENTIAL" ||
+      _contains "$response" "NOT_CREDENTIAL" ||
+      _contains "$response" "This credential is not valid"; then
       _err "The consumer key is invalid: $OVH_CK"
       _err "Please retry to create a new one."
       _clearaccountconf_mutable OVH_CK
