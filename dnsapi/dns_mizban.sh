@@ -5,6 +5,7 @@ Site: MizbanCloud.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_mizban
 Options:
  Mizban_Token API Token. Create it in the MizbanCloud panel.
+Issues: github.com/acmesh-official/acme.sh/issues/7391
 Author: hosni
 '
 
@@ -187,11 +188,11 @@ _mizban_rest() {
 
   _mizban_code=$(grep "^HTTP/" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\r\n")
   _debug "MizbanCloud HTTP status" "$_mizban_code"
-  response=$(printf "%s" "$response" | _normalizeJson)
+  response=$(printf "%s\n" "$response" | _normalizeJson)
   _secure_debug2 response "$response"
-  _mizban_message=$(printf "%s" "$response" | sed -n 's/.*"message" *: *"\([^"]*\)".*/\1/p' | _head_n 1)
-  _mizban_fields=$(printf "%s" "$response" | sed -n 's/.*"fields" *: *{\([^}]*\)}.*/\1/p' | _head_n 1 | tr -d '"')
-  _mizban_ok=$(printf "%s" "$response" | sed -n 's/.*"success" *: *\([A-Za-z]*\).*/\1/p' | _head_n 1)
+  _mizban_message=$(printf "%s\n" "$response" | sed -n 's/.*"message" *: *"\([^"]*\)".*/\1/p' | _head_n 1)
+  _mizban_fields=$(printf "%s\n" "$response" | sed -n 's/.*"fields" *: *{\([^}]*\)}.*/\1/p' | _head_n 1 | tr -d '"')
+  _mizban_ok=$(printf "%s\n" "$response" | sed -n 's/.*"success" *: *\([A-Za-z]*\).*/\1/p' | _head_n 1)
   if [ "$_mizban_code" = "200" ] || [ "$_mizban_code" = "201" ]; then
     [ "$_mizban_ok" = "true" ] && return 0
   fi
@@ -218,8 +219,8 @@ _mizban_api_error() {
 # One "id name" line per domain. Objects in this API start with "id".
 _mizban_pairs() {
   _mizban_chunks | while IFS= read -r _mizban_line; do
-    _mizban_id=$(printf "%s" "$_mizban_line" | sed -n 's/^"id" *: *\([0-9][0-9]*\).*/\1/p' | _head_n 1)
-    _mizban_name=$(printf "%s" "$_mizban_line" | sed -n 's/.*"name" *: *"\([^"]*\)".*/\1/p' | _head_n 1 | _lower_case)
+    _mizban_id=$(printf "%s\n" "$_mizban_line" | sed -n 's/^"id" *: *\([0-9][0-9]*\).*/\1/p' | _head_n 1)
+    _mizban_name=$(printf "%s\n" "$_mizban_line" | sed -n 's/.*"name" *: *"\([^"]*\)".*/\1/p' | _head_n 1 | _lower_case)
     if [ "$_mizban_id" ] && [ "$_mizban_name" ]; then
       printf "%s %s\n" "$_mizban_id" "$_mizban_name"
     fi
@@ -228,12 +229,12 @@ _mizban_pairs() {
 
 _mizban_txt_ids() {
   _mizban_chunks | while IFS= read -r _mizban_line; do
-    _mizban_type=$(printf "%s" "$_mizban_line" | sed -n 's/.*"type" *: *"\([^"]*\)".*/\1/p' | _head_n 1 | _lower_case)
+    _mizban_type=$(printf "%s\n" "$_mizban_line" | sed -n 's/.*"type" *: *"\([^"]*\)".*/\1/p' | _head_n 1 | _lower_case)
     [ "$_mizban_type" = "txt" ] || continue
-    _mizban_name=$(printf "%s" "$_mizban_line" | sed -n 's/.*"name" *: *"\([^"]*\)".*/\1/p' | _head_n 1 | _lower_case)
-    _mizban_text=$(printf "%s" "$_mizban_line" | sed -n 's/.*"content" *: *"\([^"]*\)".*/\1/p' | _head_n 1)
+    _mizban_name=$(printf "%s\n" "$_mizban_line" | sed -n 's/.*"name" *: *"\([^"]*\)".*/\1/p' | _head_n 1 | _lower_case)
+    _mizban_text=$(printf "%s\n" "$_mizban_line" | sed -n 's/.*"content" *: *"\([^"]*\)".*/\1/p' | _head_n 1)
     if _mizban_same_name "$_mizban_name" && [ "$_mizban_text" = "$txtvalue" ]; then
-      _mizban_id=$(printf "%s" "$_mizban_line" | sed -n 's/^"id" *: *\([0-9][0-9]*\).*/\1/p' | _head_n 1)
+      _mizban_id=$(printf "%s\n" "$_mizban_line" | sed -n 's/^"id" *: *\([0-9][0-9]*\).*/\1/p' | _head_n 1)
       [ "$_mizban_id" ] && printf "%s\n" "$_mizban_id"
     fi
   done
