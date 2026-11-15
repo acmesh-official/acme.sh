@@ -435,6 +435,12 @@ _inwx_add_record() {
        </value>
       </member>
       <member>
+       <name>ttl</name>
+       <value>
+        <int>300</int>
+       </value>
+      </member>
+      <member>
        <name>content</name>
        <value>
         <string>%s</string>
