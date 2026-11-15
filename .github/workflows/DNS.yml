@@ -470,8 +470,10 @@ jobs:
         debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
         cache-after-prepare: true
         envs: 'TEST_DNS TestingDomain TEST_DNS_NO_WILDCARD TEST_DNS_NO_SUBDOMAIN TEST_DNS_SLEEP CASE TEST_LOCAL DEBUG http_proxy https_proxy TokenName1 TokenName2 TokenName3 TokenName4 TokenName5 ${{ secrets.TokenName1}} ${{ secrets.TokenName2}} ${{ secrets.TokenName3}} ${{ secrets.TokenName4}} ${{ secrets.TokenName5}}'
+        # Full upgrade: dports moved openssl 3.0 -> 3.5 (libssl.so.12 -> .17), and
+        # a bare "pkg install curl" pulls a curl that needs .17 but keeps the old openssl.
         prepare: |
-          pkg install -y libnghttp2
+          pkg upgrade -y
           pkg install -y curl socat
         usesh: true
         sync: nfs
