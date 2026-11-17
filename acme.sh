@@ -7604,8 +7604,11 @@ _install_win_taskscheduler() {
   _password="$(__read_password)"
   #schtasks.exe /ST requires the HH:mm format, so the minute must be zero-padded (issue 4950)
   _st_minute="$(printf "%02d" "$_randomminute")"
+  #schtasks.exe ends an unquoted /TR program path at the first space, e.g. in "C:\Program Files\Git" (issue 5046),
+  #so the paths are quoted, written as \" inside the quoted /TR value
+  _wincmd="$(echo "\"$_lesh\" --cron --home \"$LE_WORKING_DIR\" $_centry" | sed 's/"/\\"/g')"
   #SCHTASKS.exe '/create' '/SC' 'DAILY' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "00:$_st_minute" '/RU' "$_myname" '/RP' "$_password" '/TR' "$_winbash -l -c '$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry'" >/dev/null
-  echo SCHTASKS.exe '/create' '/SC' 'DAILY' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "00:$_st_minute" '/RU' "$_myname" '/RP' "$_password" '/TR' "\"$_winbash -l -c '$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry'\"" | cmd.exe >/dev/null
+  echo SCHTASKS.exe '/create' '/SC' 'DAILY' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "00:$_st_minute" '/RU' "$_myname" '/RP' "$_password" '/TR' "\"\\\"$_winbash\\\" -l -c '$_wincmd'\"" | cmd.exe >/dev/null
   echo
 
 }
