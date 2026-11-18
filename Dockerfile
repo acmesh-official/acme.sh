@@ -71,7 +71,6 @@ RUN for verb in help \
   set-notify \
   set-default-ca \
   set-default-chain \
-  set-default-chain \
   make-dns-persist-value \
   update-account-key \
   list-profiles \  
