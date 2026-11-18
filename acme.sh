@@ -5098,8 +5098,11 @@ _is_safe_url() {
     return 1
     ;;
   esac
+  #']' first and '[' '-' last make them plain members of the set; escaping
+  #them as \[ \] breaks the whole set in busybox ash, which then accepts
+  #any url
   case "$1" in
-  *[!A-Za-z0-9._~:/?@!\&+\;=%\[\]-]*)
+  *[!]A-Za-z0-9._~:/?@!\&+\;=%[-]*)
     return 1
     ;;
   esac
