@@ -5,7 +5,7 @@ Site: n24dns.de
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_n24dns
 Options:
  N24DNS_Token API token. Create it in the customer portal (API-Tokens).
-Issues: github.com/acmesh-official/acme.sh/issues
+Issues: github.com/acmesh-official/acme.sh/issues/7429
 Author: Benjamin Kaulfuss <support@n24dns.de>
 '
 
