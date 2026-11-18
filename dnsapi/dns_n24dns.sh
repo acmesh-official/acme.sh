@@ -11,9 +11,10 @@ Author: Benjamin Kaulfuss <support@n24dns.de>
 
 N24DNS_API="https://n24dns.de/api/v1"
 
-# TTL of the challenge records. Every plan accepts 300 seconds (the plan
-# minimum is between 10 and 120 seconds).
-N24DNS_TTL=300
+# TTL of the challenge records. 60 seconds is the highest plan minimum, so
+# every plan accepts it, and a value from an earlier run is gone from resolver
+# caches before the next validation.
+N24DNS_TTL=60
 
 ########  Public functions #####################
 
