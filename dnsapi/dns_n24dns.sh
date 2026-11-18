@@ -97,7 +97,7 @@ dns_n24dns_rm() {
   # and value is removed: for a wildcard certificate a second TXT record with
   # the same name must stay until its own removal. The API returns the TXT
   # content without surrounding quotes, as it was sent.
-  _record_id=$(printf "%s" "$response" | _egrep_o "\{[^{}]*\}" | grep "\"name\":\"$fulldomain\"" | grep "\"type\":\"TXT\"" | grep -- "\"content\":\"$txtvalue\"" | _egrep_o "\"id\":\"[^\"]*\"" | _head_n 1 | cut -d '"' -f 4)
+  _record_id=$(printf "%s" "$response" | _egrep_o "\{[^{}]*\}" | grep "\"name\":\"$fulldomain\"" | grep "\"type\":\"TXT\"" | grep "\"content\":\"$txtvalue\"" | _egrep_o "\"id\":\"[^\"]*\"" | _head_n 1 | cut -d '"' -f 4)
   _debug _record_id "$_record_id"
 
   if [ -z "$_record_id" ]; then
