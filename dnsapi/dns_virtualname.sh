@@ -1,0 +1,176 @@
+#!/usr/bin/env sh
+# shellcheck disable=SC2034
+dns_virtualname_info='Virtualname.net
+Site: Virtualname.net
+Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_virtualname
+Options:
+ VIRTUALNAME_API_TOKEN API Token
+Author: Adrian Almenar
+'
+
+VIRTUALNAME_API_URL="https://api.virtualname.net/v1"
+#
+########  Public functions #####################
+
+# Usage: dns_virtualname_add _acme-challenge.www.domain.com "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
+dns_virtualname_add() {
+  fulldomain=$1
+  txtvalue=$2
+
+  VIRTUALNAME_API_TOKEN="${VIRTUALNAME_API_TOKEN:-$(_readaccountconf_mutable VIRTUALNAME_API_TOKEN)}"
+  if [ -z "$VIRTUALNAME_API_TOKEN" ]; then
+    VIRTUALNAME_API_TOKEN=""
+    _err "You haven't specified a Token api key."
+    _err "Please create the key and try again."
+    return 1
+  fi
+
+  #save the api key to the account conf file.
+  _saveaccountconf_mutable VIRTUALNAME_API_TOKEN "$VIRTUALNAME_API_TOKEN"
+
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+
+  _debug fulldomain "$fulldomain"
+  _debug txtvalue "$txtvalue"
+  _debug domain "$_domain"
+  _debug sub_domain "$_sub_domain"
+
+  _debug "Getting txt records"
+  _vname_rest GET "dns/zones/${_domain_id}/records?type=TXT&name=$fulldomain"
+
+  _debug _code "$_code"
+
+  if [ "$_code" != "200" ]; then
+    _err "error retrieving data!"
+    return 1
+  fi
+
+  _debug fulldomain "$fulldomain"
+  _debug txtvalue "$txtvalue"
+  _debug domain "$_domain"
+  _debug sub_domain "$_sub_domain"
+
+  _info "Adding record"
+  if _vname_rest POST "dns/zones/$_domain_id/records" "{\"record\":{\"type\":\"TXT\",\"name\":\"$_sub_domain\",\"content\":\"$txtvalue\",\"ttl\":60}}"; then
+    if printf -- "%s" "$response" | grep "$_sub_domain" >/dev/null; then
+      _info "Added, OK"
+      return 0
+    else
+      _err "Add txt record error."
+      return 1
+    fi
+  fi
+  _err "Add txt record error."
+  return 1
+}
+
+#fulldomain txtvalue
+dns_virtualname_rm() {
+  fulldomain=$1
+  txtvalue=$2
+
+  VIRTUALNAME_API_TOKEN="${VIRTUALNAME_API_TOKEN:-$(_readaccountconf_mutable VIRTUALNAME_API_TOKEN)}"
+  if [ -z "$VIRTUALNAME_API_TOKEN" ]; then
+    VIRTUALNAME_API_TOKEN=""
+    _err "You haven't specified a Token api key."
+    _err "Please create the key and try again."
+    return 1
+  fi
+
+  #save the api key to the account conf file.
+  _saveaccountconf_mutable VIRTUALNAME_API_TOKEN "$VIRTUALNAME_API_TOKEN"
+
+  _debug "First detect the root zone"
+  if ! _get_root "$fulldomain"; then
+    _err "invalid domain"
+    return 1
+  fi
+
+  _debug _domain_id "$_domain_id"
+  _debug _sub_domain "$_sub_domain"
+  _debug _domain "$_domain"
+
+  _debug "Getting txt records"
+  _vname_rest GET "dns/zones/${_domain_id}/records?type=TXT&name=$fulldomain&content=$txtvalue"
+
+  if [ "$_code" != "200" ]; then
+    _err "error retrieving data!"
+    return 1
+  fi
+
+  _record_id=$(echo "$response" | _egrep_o "\"id\":[ ]*[0-9]+" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
+  _debug "_record_id" "$_record_id"
+  if [ -z "$_record_id" ]; then
+    _err "Can not get record id to remove."
+    return 1
+  fi
+  if ! _vname_rest DELETE "dns/zones/$_domain_id/records/$_record_id"; then
+    _err "Delete record error."
+    return 1
+  fi
+
+}
+
+####################  Private functions below ##################################
+#_acme-challenge.www.domain.com
+#returns
+# _sub_domain=_acme-challenge.www
+# _domain=domain.com
+# _domain_id=dasfdsafsadg5ythd
+_get_root() {
+  domain=$1
+  i=2
+  p=1
+  while true; do
+    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
+    _debug h "$h"
+    if [ -z "$h" ]; then
+      #not valid
+      return 1
+    fi
+
+    if ! _vname_rest GET "dns/zones?name=$h"; then
+      return 1
+    fi
+
+    _debug p "$p"
+
+    if _contains "$response" "\"name\":\"$h\""; then
+      _domain_id=$(echo "$response" | _egrep_o "\"id\":[ ]*[0-9]+" | _head_n 1 | cut -d: -f2 | cut -d, -f1)
+      if [ "$_domain_id" ]; then
+        _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
+        _domain=$h
+        return 0
+      fi
+      return 1
+    fi
+    p=$i
+    i=$(_math "$i" + 1)
+  done
+  return 1
+}
+
+_vname_rest() {
+  m=$1
+  ep="$2"
+  data="$3"
+  _debug "$ep"
+
+  export _H1="X-TCPanel-Token: $VIRTUALNAME_API_TOKEN"
+  export _H2="Content-Type: application/json"
+
+  if [ "$m" != "GET" ]; then
+    _debug data "$data"
+    response="$(_post "$data" "$VIRTUALNAME_API_URL/$ep" "" "$m")"
+  else
+    response="$(_get "$VIRTUALNAME_API_URL/$ep")"
+  fi
+
+  _code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d " " -f 2 | tr -d "\\r\\n")"
+  _debug2 response "$response"
+  return 0
+}
