@@ -11,6 +11,8 @@ Options:
  AZUREDNS_MANAGEDIDENTITY Use Managed Identity. Use Managed Identity assigned to a resource instead of a service principal. "true"/"false"
  AZUREDNS_BEARERTOKEN Bearer Token. Used instead of service principal credentials or managed identity. Not saved, provide it on every run. Optional.
  AZUREDNS_PRIVATEZONE Use Azure Private DNS Zones instead of Public DNS Zones. "true"/"false"
+ AZUREDNS_RESOURCEGROUP Resource Group of the DNS zone. Set together with AZUREDNS_ZONE to skip listing the zones, e.g. when the credentials can only write the _acme-challenge record set. Optional.
+ AZUREDNS_ZONE DNS Zone name, e.g. "example.com". Set together with AZUREDNS_RESOURCEGROUP. Optional.
 '
 
 wiki=https://github.com/acmesh-official/acme.sh/wiki/How-to-use-Azure-DNS
@@ -118,6 +120,12 @@ dns_azure_add() {
   _debug _domain_id "$_domain_id"
   _debug _sub_domain "$_sub_domain"
   _debug _domain "$_domain"
+
+  if [ "$AZUREDNS_ZONE" ]; then
+    #the zone belongs to this certificate, save it to the domain conf like CF_Zone_ID in dns_cf
+    _savedomainconf AZUREDNS_RESOURCEGROUP "$AZUREDNS_RESOURCEGROUP"
+    _savedomainconf AZUREDNS_ZONE "$AZUREDNS_ZONE"
+  fi
 
   _azure_set_zone_vars
 
@@ -421,6 +429,35 @@ _get_root() {
 
   _azure_set_zone_vars
 
+  if [ "$AZUREDNS_RESOURCEGROUP" ] || [ "$AZUREDNS_ZONE" ]; then
+    if [ -z "$AZUREDNS_RESOURCEGROUP" ] || [ -z "$AZUREDNS_ZONE" ]; then
+      _err "AZUREDNS_RESOURCEGROUP and AZUREDNS_ZONE must be set together"
+      return 1
+    fi
+    #both go into the request path
+    if printf "%s" "$AZUREDNS_RESOURCEGROUP" | LC_ALL=C grep -q '[^A-Za-z0-9._()-]'; then
+      _err "Invalid AZUREDNS_RESOURCEGROUP: $AZUREDNS_RESOURCEGROUP"
+      return 1
+    fi
+    h=$(printf "%s" "$AZUREDNS_ZONE" | _lower_case)
+    if printf "%s" "$h" | LC_ALL=C grep -q '[^a-z0-9._-]'; then
+      _err "Invalid AZUREDNS_ZONE: $AZUREDNS_ZONE"
+      return 1
+    fi
+    domain=$(printf "%s" "$domain" | _lower_case)
+    _sub_domain="${domain%."$h"}"
+    if [ "$domain" = "$h" ]; then
+      _sub_domain="@"
+    elif [ "$_sub_domain" = "$domain" ]; then
+      _err "$domain is not in the zone AZUREDNS_ZONE=$AZUREDNS_ZONE"
+      return 1
+    fi
+    #the zone is given, so a principal that may only write the record set works too
+    _domain_id="/subscriptions/$subscriptionId/resourceGroups/$AZUREDNS_RESOURCEGROUP/providers/Microsoft.Network/$_azure_zone_type/$h"
+    _domain=$h
+    return 0
+  fi
+
   ## Ref: https://learn.microsoft.com/en-us/rest/api/dns/zones/list?view=rest-dns-2018-05-01&tabs=HTTP
   ## returns up to 100 zones in one response. Handling more results is not implemented
   ## (ZoneListResult with continuation token for the next page of results)
@@ -429,7 +466,14 @@ _get_root() {
   ## https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/azure-subscription-service-limits#azure-dns-limits
   ## The new limit is 250 Public DNS zones per subscription, while the old limit was only 100
   ##
-  _azure_rest GET "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Network/$_azure_zone_type?\$top=500&api-version=$_azure_api_version" "" "$accesstoken"
+  if ! _azure_rest GET "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Network/$_azure_zone_type?\$top=500&api-version=$_azure_api_version" "" "$accesstoken"; then
+    return 1
+  fi
+  if [ "$_code" != "200" ]; then
+    _err "Cannot list the DNS zones ($_code): $response"
+    _err "If the credentials may only change the record set, set AZUREDNS_RESOURCEGROUP and AZUREDNS_ZONE."
+    return 1
+  fi
   # Find matching domain name in Json response
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
