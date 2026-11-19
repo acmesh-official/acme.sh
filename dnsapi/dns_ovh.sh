@@ -134,7 +134,8 @@ _initAuth() {
     # Drop the saved key only when OVH says the key itself is bad; any other 403 keeps it.
     if _contains "$response" "INVALID_CREDENTIAL" ||
       _contains "$response" "NOT_CREDENTIAL" ||
-      _contains "$response" "This credential is not valid"; then
+      _contains "$response" "This credential is not valid" ||
+      _contains "$response" "This credential does not exist"; then
       _err "The consumer key is invalid: $OVH_CK"
       _err "Please retry to create a new one."
       _clearaccountconf_mutable OVH_CK
@@ -271,7 +272,7 @@ _get_root() {
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
-      #not valid
+      _err "No zone found for $domain: $response"
       return 1
     fi
 
