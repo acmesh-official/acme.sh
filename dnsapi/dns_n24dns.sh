@@ -20,7 +20,8 @@ N24DNS_TTL=60
 
 #Usage: dns_n24dns_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_n24dns_add() {
-  fulldomain=$1
+  # The API stores names in lower case.
+  fulldomain=$(echo "$1" | _lower_case)
   txtvalue=$2
 
   _info "Using N24DNS API"
@@ -68,7 +69,8 @@ dns_n24dns_add() {
 #Usage: fulldomain txtvalue
 #Remove the txt record after validation.
 dns_n24dns_rm() {
-  fulldomain=$1
+  # The API stores names in lower case.
+  fulldomain=$(echo "$1" | _lower_case)
   txtvalue=$2
 
   _info "Using N24DNS API"
