@@ -547,7 +547,8 @@ _exists() {
   fi
 
   if eval type type >/dev/null 2>&1; then
-    eval type "$cmd" >/dev/null 2>&1
+    #quoted for eval: the name must not be parsed as shell code
+    eval 'type "$cmd"' >/dev/null 2>&1
   elif command >/dev/null 2>&1; then
     command -v "$cmd" >/dev/null 2>&1
   else
@@ -2967,6 +2968,15 @@ _save_conf() {
   if [ "$_sdvalue" ] && [ "$_b64encode" ]; then
     _sdvalue="${B64CONF_START}$(printf "%s" "${_sdvalue}" | _base64)${B64CONF_END}"
   fi
+  #The value is written between single quotes and the conf is sourced (or
+  #eval'ed by _read_conf), so a single quote in it must be written as '\''.
+  #Unescaped, it ended the quoting and the rest of the value ran as shell
+  #code, e.g. a finalize url from the CA holding  ';cmd;'
+  case "$_sdvalue" in
+  *"'"*)
+    _sdvalue="$(printf "%s\n" "$_sdvalue" | sed "s/'/'\\\\''/g")"
+    ;;
+  esac
   if [ "$_s_c_f" ]; then
     _setopt "$_s_c_f" "$_sdkey" "=" "'$_sdvalue'"
   else
@@ -3475,9 +3485,12 @@ __initHome() {
       #so that the -m address _process() exported is not replaced by the
       #saved one. _process() calls __initHome directly, after the option
       #loop, so this is the sourcing that -m used to lose to.
+      #The saved HTTPS_INSECURE is ignored, see _initpath.
       _ih_account_email="$ACCOUNT_EMAIL"
+      _ih_https_insecure="$HTTPS_INSECURE"
       . "$_DEFAULT_ACCOUNT_CONF_PATH"
       ACCOUNT_EMAIL="$_ih_account_email"
+      HTTPS_INSECURE="$_ih_https_insecure"
     fi
   fi
 
@@ -3599,6 +3612,20 @@ _ca_dir_name() {
 }
 
 #[domain]  [keylength or isEcc flag]
+#Tell, once per run, that the HTTPS_INSECURE an older version saved to
+#account.conf is ignored now. The line is removed on the next successful issue
+#or renew; until then the warning says what to use instead.
+__warn_saved_insecure() {
+  if [ "$_SAVED_INSECURE_WARNED" ] || [ ! -f "$ACCOUNT_CONF_PATH" ]; then
+    return 0
+  fi
+  if grep "^HTTPS_INSECURE=" "$ACCOUNT_CONF_PATH" >/dev/null 2>&1; then
+    _SAVED_INSECURE_WARNED=1
+    _info "$(__red "The HTTPS_INSECURE saved in $ACCOUNT_CONF_PATH is ignored: --insecure now applies to the current run only.")"
+    _info "$(__red "For a CA with a private root use --ca-bundle instead, which is saved.")"
+  fi
+}
+
 _initpath() {
   domain="$1"
   _ilength="$2"
@@ -3610,6 +3637,11 @@ _initpath() {
   #The saved address is not lost either way: _getAccountEmail() reads it
   #with _readaccountconf as its last resort, after the per-CA CA_EMAIL.
   _cli_account_email="$ACCOUNT_EMAIL"
+  #Same for HTTPS_INSECURE, but here the saved value is ignored for good:
+  #--insecure (or HTTPS_INSECURE in the environment) applies to this run
+  #only. Older versions saved it to account.conf, which silently turned off
+  #the certificate check of every later run, cron renewals included.
+  _cli_https_insecure="$HTTPS_INSECURE"
 
   __initHome
 
@@ -3618,6 +3650,8 @@ _initpath() {
   fi
 
   ACCOUNT_EMAIL="$_cli_account_email"
+  HTTPS_INSECURE="$_cli_https_insecure"
+  __warn_saved_insecure
 
   if [ "$_ACME_IN_CRON" ]; then
     if [ ! "$_USER_PATH_EXPORTED" ]; then
@@ -5027,30 +5061,84 @@ makednspersistvalue() {
 }
 
 # domain folder  file
+#name
+#A hook name is also the prefix of the functions the hook defines
+#(<name>_add, <name>_deploy, <name>_send), so it never needs more than these
+#characters. Anything else, a '/' above all, would let the name select an
+#arbitrary file to source as a hook.
+_is_hook_name() {
+  case "$1" in
+  "" | *[!A-Za-z0-9_-]*)
+    return 1
+    ;;
+  esac
+  return 0
+}
+
+#token
+#RFC 8555 sec 8.3/8.4: a challenge token holds base64url characters only.
+#The token goes into the '#' and ',' separated vlist, so any other character
+#could shift its fields (CVE-2023-38198).
+_is_acme_token() {
+  case "$1" in
+  "" | *[!A-Za-z0-9_-]*)
+    return 1
+    ;;
+  esac
+  return 0
+}
+
+#url
+#An http(s) url from the CA, made of characters that can neither shift the
+#fields of the '#' and ',' separated vlist nor be read as shell syntax.
+_is_safe_url() {
+  case "$1" in
+  http://?* | https://?*) ;;
+  *)
+    return 1
+    ;;
+  esac
+  #']' first and '[' '-' last make them plain members of the set; escaping
+  #them as \[ \] breaks the whole set in busybox ash, which then accepts
+  #any url
+  case "$1" in
+  *[!]A-Za-z0-9._~:/?@!\&+\;=%[-]*)
+    return 1
+    ;;
+  esac
+  return 0
+}
+
 _findHook() {
   _hookdomain="$1"
   _hookcat="$2"
   _hookname="$3"
+  _fh_api=""
 
-  if [ -f "$_SCRIPT_HOME/$_hookcat/$_hookname" ]; then
-    d_api="$_SCRIPT_HOME/$_hookcat/$_hookname"
-  elif [ -f "$_SCRIPT_HOME/$_hookcat/$_hookname.sh" ]; then
-    d_api="$_SCRIPT_HOME/$_hookcat/$_hookname.sh"
-  elif [ "$_hookdomain" ] && [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname" ]; then
-    d_api="$LE_WORKING_DIR/$_hookdomain/$_hookname"
-  elif [ "$_hookdomain" ] && [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname.sh" ]; then
-    d_api="$LE_WORKING_DIR/$_hookdomain/$_hookname.sh"
-  elif [ -f "$LE_WORKING_DIR/$_hookname" ]; then
-    d_api="$LE_WORKING_DIR/$_hookname"
-  elif [ -f "$LE_WORKING_DIR/$_hookname.sh" ]; then
-    d_api="$LE_WORKING_DIR/$_hookname.sh"
-  elif [ -f "$LE_WORKING_DIR/$_hookcat/$_hookname" ]; then
-    d_api="$LE_WORKING_DIR/$_hookcat/$_hookname"
-  elif [ -f "$LE_WORKING_DIR/$_hookcat/$_hookname.sh" ]; then
-    d_api="$LE_WORKING_DIR/$_hookcat/$_hookname.sh"
+  if ! _is_hook_name "$_hookname"; then
+    _err "Invalid hook name: '$_hookname'"
+    return 1
   fi
 
-  printf "%s" "$d_api"
+  if [ -f "$_SCRIPT_HOME/$_hookcat/$_hookname" ]; then
+    _fh_api="$_SCRIPT_HOME/$_hookcat/$_hookname"
+  elif [ -f "$_SCRIPT_HOME/$_hookcat/$_hookname.sh" ]; then
+    _fh_api="$_SCRIPT_HOME/$_hookcat/$_hookname.sh"
+  elif [ "$_hookdomain" ] && [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname" ]; then
+    _fh_api="$LE_WORKING_DIR/$_hookdomain/$_hookname"
+  elif [ "$_hookdomain" ] && [ -f "$LE_WORKING_DIR/$_hookdomain/$_hookname.sh" ]; then
+    _fh_api="$LE_WORKING_DIR/$_hookdomain/$_hookname.sh"
+  elif [ -f "$LE_WORKING_DIR/$_hookname" ]; then
+    _fh_api="$LE_WORKING_DIR/$_hookname"
+  elif [ -f "$LE_WORKING_DIR/$_hookname.sh" ]; then
+    _fh_api="$LE_WORKING_DIR/$_hookname.sh"
+  elif [ -f "$LE_WORKING_DIR/$_hookcat/$_hookname" ]; then
+    _fh_api="$LE_WORKING_DIR/$_hookcat/$_hookname"
+  elif [ -f "$LE_WORKING_DIR/$_hookcat/$_hookname.sh" ]; then
+    _fh_api="$LE_WORKING_DIR/$_hookcat/$_hookname.sh"
+  fi
+
+  printf "%s" "$_fh_api"
 }
 
 #domain
@@ -5808,6 +5896,12 @@ issue() {
     _authorizations_map=""
     for _authz_url in $(echo "$_authorizations_seg" | tr ',' ' '); do
       _debug2 "_authz_url" "$_authz_url"
+      if ! _is_safe_url "$_authz_url"; then
+        _err "Invalid authorization url from the CA: $_authz_url"
+        _clearup
+        _on_issue_err "$_post_hook"
+        return 1
+      fi
       if ! _send_signed_request "$_authz_url"; then
         _err "Error getting authz."
         _err "_authorizations_seg" "$_authorizations_seg"
@@ -5890,7 +5984,10 @@ $_authorizations_map"
         _on_issue_err "$_post_hook"
         return 1
       fi
-      _authz_url="$(echo "$_candidates" | sed "s/$_idn_d,//" | _egrep_o "#.*" | sed "s/^#//")"
+      #the url is the part after the LAST '#': the authz response before it
+      #may hold a '#' too (in an error detail, say), the url, checked above,
+      #never does
+      _authz_url="$(echo "$_candidates" | sed 's/.*#//')"
       _debug _authz_url "$_authz_url"
       if [ -z "$thumbprint" ]; then
         thumbprint="$(__calc_account_thumbprint)"
@@ -5929,6 +6026,12 @@ $_authorizations_map"
           _on_issue_err "$_post_hook"
           return 1
         fi
+        if ! _is_safe_url "$uri"; then
+          _err "Invalid challenge url from the CA: $uri"
+          _clearup
+          _on_issue_err "$_post_hook"
+          return 1
+        fi
 
         if [ "$vtype" = "$VTYPE_DNS_PERSIST" ]; then
           # dns-persist-01 challenges have no token; the TXT record is
@@ -5942,6 +6045,12 @@ $_authorizations_map"
 
           if [ -z "$token" ]; then
             _err "Cannot get domain token $entry"
+            _clearup
+            _on_issue_err "$_post_hook"
+            return 1
+          fi
+          if ! _is_acme_token "$token"; then
+            _err "Invalid challenge token from the CA, it must hold base64url characters only: $token"
             _clearup
             _on_issue_err "$_post_hook"
             return 1
@@ -6544,11 +6653,9 @@ $_authorizations_map"
     _clearaccountconf "CA_PATH"
   fi
 
-  if [ "$HTTPS_INSECURE" ]; then
-    _saveaccountconf HTTPS_INSECURE "$HTTPS_INSECURE"
-  else
-    _clearaccountconf "HTTPS_INSECURE"
-  fi
+  #--insecure is never saved: it applies to the run it was given to only.
+  #Clear the value older versions saved, it is ignored anyway.
+  _clearaccountconf "HTTPS_INSECURE"
 
   if [ "$Le_Listen_V4" ] || [ "$Le_Listen_V6" ]; then
     if [ "$Le_Listen_V4" ]; then
@@ -8836,7 +8943,7 @@ Parameters:
   --listraw                         Only used for '--list' command, list the certs in raw format.
   -se, --stop-renew-on-error        Only valid for '--renew-all' command. Stop if one cert has error in renewal.
   --treat-skip-as-success           Only valid for '--renew-all' command. Treat skipped certs as success, return 0 instead of $RENEW_SKIP.
-  --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted.
+  --insecure                        Do not check the server certificate, in some devices, the api server's certificate may not be trusted. Applies to the current run only, it is not saved.
   --ca-bundle <file>                Specifies the path to the CA certificate bundle to verify api server's certificate.
   --ca-path <directory>             Specifies directory containing CA certificates in PEM format, used by wget or curl.
   --no-cron                         Only valid for '--install' command, which means: do not install the default cron job.
