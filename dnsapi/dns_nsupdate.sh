@@ -8,6 +8,7 @@ Options:
  NSUPDATE_SERVER_PORT Server port. Default: "53".
  NSUPDATE_KEY File path to TSIG key. Default: "". Optional.
  NSUPDATE_ZONE Domain zone to update. Optional.
+ NSUPDATE_FOLLOW_CNAME Follow a CNAME at the challenge record and update its target instead; NSUPDATE_ZONE is ignored when a CNAME was followed. Default: "". Optional.
 '
 
 ########  Public functions #####################
@@ -21,6 +22,7 @@ dns_nsupdate_add() {
   NSUPDATE_KEY="${NSUPDATE_KEY:-$(_readaccountconf_mutable NSUPDATE_KEY)}"
   NSUPDATE_ZONE="${NSUPDATE_ZONE:-$(_readaccountconf_mutable NSUPDATE_ZONE)}"
   NSUPDATE_OPT="${NSUPDATE_OPT:-$(_readaccountconf_mutable NSUPDATE_OPT)}"
+  NSUPDATE_FOLLOW_CNAME="${NSUPDATE_FOLLOW_CNAME:-$(_readaccountconf_mutable NSUPDATE_FOLLOW_CNAME)}"
 
   # save the dns server and key to the account conf file.
   _saveaccountconf_mutable NSUPDATE_SERVER "${NSUPDATE_SERVER}"
@@ -28,6 +30,7 @@ dns_nsupdate_add() {
   _saveaccountconf_mutable NSUPDATE_KEY "${NSUPDATE_KEY}"
   _saveaccountconf_mutable NSUPDATE_ZONE "${NSUPDATE_ZONE}"
   _saveaccountconf_mutable NSUPDATE_OPT "${NSUPDATE_OPT}"
+  _saveaccountconf_mutable NSUPDATE_FOLLOW_CNAME "${NSUPDATE_FOLLOW_CNAME}"
 
   [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
   [ -n "${NSUPDATE_SERVER_PORT}" ] || NSUPDATE_SERVER_PORT=53
@@ -35,6 +38,14 @@ dns_nsupdate_add() {
   [ -n "${NSUPDATE_OPT}" ] || NSUPDATE_OPT=""
 
   NSUPDATE_SERVER_LIST=$(printf "%s" "$NSUPDATE_SERVER" | tr ',' ' ')
+
+  if [ -n "${NSUPDATE_FOLLOW_CNAME}" ]; then
+    _nfc_resolved=$(_nsupdate_follow_cname "${fulldomain}")
+    if [ "${_nfc_resolved}" != "${fulldomain}" ]; then
+      fulldomain=${_nfc_resolved}
+      NSUPDATE_ZONE=""
+    fi
+  fi
 
   _info "adding ${fulldomain}. 60 in txt \"${txtvalue}\""
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_1" ] && nsdebug="-d"
@@ -94,12 +105,21 @@ dns_nsupdate_rm() {
   NSUPDATE_KEY="${NSUPDATE_KEY:-$(_readaccountconf_mutable NSUPDATE_KEY)}"
   NSUPDATE_ZONE="${NSUPDATE_ZONE:-$(_readaccountconf_mutable NSUPDATE_ZONE)}"
   NSUPDATE_OPT="${NSUPDATE_OPT:-$(_readaccountconf_mutable NSUPDATE_OPT)}"
+  NSUPDATE_FOLLOW_CNAME="${NSUPDATE_FOLLOW_CNAME:-$(_readaccountconf_mutable NSUPDATE_FOLLOW_CNAME)}"
 
   [ -n "${NSUPDATE_SERVER}" ] || NSUPDATE_SERVER="localhost"
   [ -n "${NSUPDATE_SERVER_PORT}" ] || NSUPDATE_SERVER_PORT=53
   [ -n "${NSUPDATE_KEY}" ] || NSUPDATE_KEY=""
 
   NSUPDATE_SERVER_LIST=$(printf "%s" "$NSUPDATE_SERVER" | tr ',' ' ')
+
+  if [ -n "${NSUPDATE_FOLLOW_CNAME}" ]; then
+    _nfc_resolved=$(_nsupdate_follow_cname "${fulldomain}")
+    if [ "${_nfc_resolved}" != "${fulldomain}" ]; then
+      fulldomain=${_nfc_resolved}
+      NSUPDATE_ZONE=""
+    fi
+  fi
 
   _info "removing ${fulldomain}. txt"
   [ -n "$DEBUG" ] && [ "$DEBUG" -ge "$DEBUG_LEVEL_1" ] && nsdebug="-d"
@@ -148,4 +168,32 @@ EOF
   fi
 
   return 0
+}
+
+####################  Private functions below ##################################
+
+#Usage: _nsupdate_follow_cname <name>
+#Follow a chain of CNAMEs (at most 5) from the given name and echo the
+#final name. Uses dig, kdig, host or nslookup, whichever is present.
+_nsupdate_follow_cname() {
+  _nfc_name=$1
+  _nfc_i=0
+  while [ "${_nfc_i}" -lt 5 ]; do
+    if _exists dig; then
+      _nfc_target=$(dig +short CNAME "${_nfc_name}" 2>/dev/null)
+    elif _exists kdig; then
+      _nfc_target=$(kdig +short CNAME "${_nfc_name}" 2>/dev/null)
+    elif _exists host; then
+      _nfc_target=$(host -t CNAME "${_nfc_name}" 2>/dev/null | sed -n "s/.* is an alias for //p")
+    else
+      _nfc_target=$(nslookup -type=cname "${_nfc_name}" 2>/dev/null | sed -n "s/.*canonical name = //p")
+    fi
+    _nfc_target=$(printf "%s\\n" "${_nfc_target}" | grep -v "^;" | head -n 1 | tr -d " \\t\\r" | sed "s/\\.$//")
+    if [ -z "${_nfc_target}" ]; then
+      break
+    fi
+    _nfc_name=${_nfc_target}
+    _nfc_i=$((_nfc_i + 1))
+  done
+  printf "%s\n" "${_nfc_name}"
 }
