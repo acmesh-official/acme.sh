@@ -6,14 +6,11 @@ Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_aws
 Options:
  AWS_ACCESS_KEY_ID API Key ID
  AWS_SECRET_ACCESS_KEY API Secret
+ AWS_REGION Region (e.g. cn-northwest-1 for AWS China)
 '
 
 # All `_sleep` commands are included to avoid Route53 throttling, see
 # https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html#limits-api-requests
-
-# Updated from "route53.amazonaws.com"
-AWS_HOST="route53.global.api.aws"
-AWS_URL="https://$AWS_HOST"
 
 AWS_WIKI="https://github.com/acmesh-official/acme.sh/wiki/How-to-use-Amazon-Route53-API"
 
@@ -27,6 +24,7 @@ dns_aws_add() {
   AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-$(_readaccountconf_mutable AWS_ACCESS_KEY_ID)}"
   AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
   AWS_DNS_SLOWRATE="${AWS_DNS_SLOWRATE:-$(_readaccountconf_mutable AWS_DNS_SLOWRATE)}"
+  AWS_REGION="${AWS_REGION:-$(_readaccountconf_mutable AWS_REGION)}"
 
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     _use_container_role || _use_instance_role
@@ -45,6 +43,7 @@ dns_aws_add() {
     _saveaccountconf_mutable AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
     _saveaccountconf_mutable AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
     _saveaccountconf_mutable AWS_DNS_SLOWRATE "$AWS_DNS_SLOWRATE"
+    [ -n "$AWS_REGION" ] && _saveaccountconf_mutable AWS_REGION "$AWS_REGION"
   fi
 
   _debug "First detect the root zone"
@@ -103,6 +102,7 @@ dns_aws_rm() {
   AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-$(_readaccountconf_mutable AWS_ACCESS_KEY_ID)}"
   AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(_readaccountconf_mutable AWS_SECRET_ACCESS_KEY)}"
   AWS_DNS_SLOWRATE="${AWS_DNS_SLOWRATE:-$(_readaccountconf_mutable AWS_DNS_SLOWRATE)}"
+  AWS_REGION="${AWS_REGION:-$(_readaccountconf_mutable AWS_REGION)}"
 
   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     _use_container_role || _use_instance_role
@@ -276,6 +276,14 @@ aws_rest() {
   _debug qsr "$qsr"
   _debug data "$data"
 
+  if [ "$AWS_REGION" = "cn-northwest-1" ] || [ "$AWS_REGION" = "cn-north-1" ]; then
+    AWS_HOST="route53.amazonaws.com.cn"
+  else
+    AWS_HOST="route53.global.api.aws"
+    AWS_REGION="${AWS_REGION:-us-east-1}"
+  fi
+  AWS_URL="https://$AWS_HOST"
+
   CanonicalURI="/$ep"
   _debug2 CanonicalURI "$CanonicalURI"
 
@@ -284,8 +292,6 @@ aws_rest() {
 
   RequestDate="$(date -u +"%Y%m%dT%H%M%SZ")"
   _debug2 RequestDate "$RequestDate"
-
-  #RequestDate="20161120T141056Z" ##############
 
   export _H1="x-amz-date: $RequestDate"
 
@@ -317,7 +323,7 @@ aws_rest() {
   RequestDateOnly="$(echo "$RequestDate" | cut -c 1-8)"
   _debug2 RequestDateOnly "$RequestDateOnly"
 
-  Region="us-east-1"
+  Region="$AWS_REGION"
   Service="route53"
 
   CredentialScope="$RequestDateOnly/$Region/$Service/aws4_request"
@@ -328,8 +334,6 @@ aws_rest() {
   _debug2 StringToSign "$StringToSign"
 
   kSecret="AWS4$AWS_SECRET_ACCESS_KEY"
-
-  #kSecret="wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY" ############################
 
   _secure_debug2 kSecret "$kSecret"
 
