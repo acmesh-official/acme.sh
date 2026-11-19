@@ -62,6 +62,12 @@ strongswan_deploy() {
 
 ####################  Private functions below ##################################
 
+__split_ca() {
+  _certfile="${1}"
+  _targetdir="${2}"
+  awk -v dir="${_targetdir}" '/-----BEGIN CERTIFICATE-----/{c++} c > 1 {print > (dir "/ca-" (c-1) ".cer")}' "${_certfile}"
+}
+
 __deploy_cert() {
   _swan_mode="${1}"
   _confdir="${2}"
@@ -91,7 +97,7 @@ __deploy_cert() {
   fi
   cat "${_ckey}" >"${_confdir}/${_dir_private}/$(basename "${_ckey}")"
   cat "${_ccert}" >"${_confdir}/${_dir_cert}/$(basename "${_ccert}")"
-  cat "${_cca}" >"${_confdir}/${_dir_ca}/$(basename "${_cca}")"
+  __split_ca "${_cfullchain}" "${_confdir}/${_dir_ca}"
   if [ "${_swan_mode}" = "stroke" ]; then
     cat "${_cfullchain}" >"${_confdir}/${_dir_ca}/$(basename "${_cfullchain}")"
   fi
