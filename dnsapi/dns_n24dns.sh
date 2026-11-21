@@ -96,11 +96,13 @@ dns_n24dns_rm() {
     return 1
   fi
 
-  # One flat JSON object per record. Only the record with exactly this name
-  # and value is removed: for a wildcard certificate a second TXT record with
-  # the same name must stay until its own removal. The API returns the TXT
-  # content without surrounding quotes, as it was sent.
-  _record_id=$(printf "%s" "$response" | _egrep_o "\{[^{}]*\}" | grep "\"name\":\"$fulldomain\"" | grep "\"type\":\"TXT\"" | grep "\"content\":\"$txtvalue\"" | _egrep_o "\"id\":\"[^\"]*\"" | _head_n 1 | cut -d '"' -f 4)
+  # One flat JSON object per record, split into one record per line first:
+  # without "grep -o" (Solaris) _egrep_o returns only the last match of a
+  # line. Only the record with exactly this name and value is removed: for a
+  # wildcard certificate a second TXT record with the same name must stay
+  # until its own removal. The API returns the TXT content without
+  # surrounding quotes, as it was sent.
+  _record_id=$(printf "%s" "$response" | tr '{' '\n' | grep "\"name\":\"$fulldomain\"" | grep "\"type\":\"TXT\"" | grep "\"content\":\"$txtvalue\"" | _head_n 1 | _egrep_o "\"id\":\"[^\"]*\"" | cut -d '"' -f 4)
   _debug _record_id "$_record_id"
 
   if [ -z "$_record_id" ]; then
@@ -159,9 +161,10 @@ _n24dns_get_root() {
 
     # Dots escaped: "a.example.com" must not match a zone "aXexample.com".
     _h_re=$(printf "%s" "$h" | sed 's/\./\\./g')
-    _zone=$(printf "%s" "$_zones" | _egrep_o "\{[^{}]*\"name\":\"$_h_re\"[^{}]*\}" | _head_n 1)
+    # One zone per line, for the same reason as in dns_n24dns_rm.
+    _zone=$(printf "%s" "$_zones" | tr '{' '\n' | grep "\"name\":\"$_h_re\"" | _head_n 1)
     if [ "$_zone" ]; then
-      _zone_id=$(printf "%s" "$_zone" | _egrep_o "\"id\":\"[^\"]*\"" | _head_n 1 | cut -d '"' -f 4)
+      _zone_id=$(printf "%s" "$_zone" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d '"' -f 4)
       if [ -z "$_zone_id" ]; then
         return 1
       fi
