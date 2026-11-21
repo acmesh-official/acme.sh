@@ -7734,8 +7734,9 @@ installcronjob() {
     fi
   fi
   #>/dev/null: grep would print the matching crontab line to the console
+  #"* matches both "/path"/acme.sh --cron and the quoted "/path/acme.sh" --cron
   _cron_add=""
-  if ! echo "$_cron_entries" | grep "$PROJECT_ENTRY --cron" >/dev/null; then
+  if ! echo "$_cron_entries" | grep "$PROJECT_ENTRY\"* --cron" >/dev/null; then
     _cron_add=1
   fi
   if [ "$_cron_add" ] || [ "$_cron_stale" ]; then
@@ -7781,12 +7782,13 @@ uninstallcronjob() {
     return
   fi
   _info "Removing cron job"
-  cr="$($_CRONTAB -l | grep "$PROJECT_ENTRY --cron")"
+  #"* matches both "/path"/acme.sh --cron and the quoted "/path/acme.sh" --cron
+  cr="$($_CRONTAB -l | grep "$PROJECT_ENTRY\"* --cron")"
   if [ "$cr" ]; then
     if _exists uname && uname -a | grep SunOS >/dev/null; then
-      $_CRONTAB -l | sed "/$PROJECT_ENTRY --cron/d" | $_CRONTAB --
+      $_CRONTAB -l | sed "/$PROJECT_ENTRY\"* --cron/d" | $_CRONTAB --
     else
-      $_CRONTAB -l | sed "/$PROJECT_ENTRY --cron/d" | $_CRONTAB -
+      $_CRONTAB -l | sed "/$PROJECT_ENTRY\"* --cron/d" | $_CRONTAB -
     fi
     LE_WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 9 | tr -d '"')"
     _info LE_WORKING_DIR "$LE_WORKING_DIR"
