@@ -7790,10 +7790,12 @@ uninstallcronjob() {
     else
       $_CRONTAB -l | sed "/$PROJECT_ENTRY\"* --cron/d" | $_CRONTAB -
     fi
-    LE_WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 9 | tr -d '"')"
+    #read the values by option name: a quoted script path may hold spaces, which
+    #shifts fixed cut fields. --home and --config-home cannot hold spaces (__initHome)
+    LE_WORKING_DIR="$(echo "$cr" | sed -n 's/.* --home "*\([^" ]*\).*/\1/p' | head -n 1)"
     _info LE_WORKING_DIR "$LE_WORKING_DIR"
     if _contains "$cr" "--config-home"; then
-      LE_CONFIG_HOME="$(echo "$cr" | cut -d ' ' -f 11 | tr -d '"')"
+      LE_CONFIG_HOME="$(echo "$cr" | sed -n 's/.* --config-home "*\([^" ]*\).*/\1/p' | head -n 1)"
       _debug LE_CONFIG_HOME "$LE_CONFIG_HOME"
     fi
   fi
