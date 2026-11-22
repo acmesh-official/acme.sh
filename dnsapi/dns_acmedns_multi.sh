@@ -4,6 +4,10 @@ dns_acmedns_multi_info='acme-dns Server API (one account per domain)
  The acme-dns server stores only two TXT values per subdomain.
  This plugin keeps one small account file per domain, so a single
  certificate can cover many domains, each with its own subdomain.
+ The first run for a domain registers an account and stops with the
+ CNAME record to publish. Publish it, then run the same command again.
+ With N new domains this run/publish/rerun cycle repeats N times, as
+ the order only completes once every challenge name has a live CNAME.
 Site: github.com/joohoi/acme-dns
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_acmedns_multi
 Options:
@@ -98,7 +102,16 @@ _acmedns_read_conf() {
 _acmedns_load() {
   _acmedns_fulldomain="$1"
   _acmedns_domain_name="$(_acmedns_domain "$_acmedns_fulldomain")"
-  _acmedns_dir="${ACMEDNS_CONF_DIR:-${LE_CONFIG_HOME:-$LE_WORKING_DIR}/acmedns}"
+  # A custom directory must survive the next cron run, which does not have
+  # the environment of the current shell.
+  _acmedns_saved_dir="$(_readaccountconf_mutable ACMEDNS_CONF_DIR)"
+  _acmedns_dir="${ACMEDNS_CONF_DIR:-$_acmedns_saved_dir}"
+  if [ -z "$_acmedns_dir" ]; then
+    _acmedns_dir="${LE_CONFIG_HOME:-$LE_WORKING_DIR}/acmedns"
+  fi
+  if [ "$ACMEDNS_CONF_DIR" ] && [ "$ACMEDNS_CONF_DIR" != "$_acmedns_saved_dir" ]; then
+    _saveaccountconf_mutable ACMEDNS_CONF_DIR "$ACMEDNS_CONF_DIR"
+  fi
   _acmedns_file="$_acmedns_dir/$_acmedns_domain_name.conf"
   _acmedns_from_env=0
   _acmedns_from_file=0
@@ -136,9 +149,16 @@ _acmedns_load() {
     _acmedns_base_url="https://auth.acme-dns.io"
   fi
 
-  _acmedns_update_url="${ACMEDNS_UPDATE_URL:-$(_readaccountconf_mutable ACMEDNS_UPDATE_URL)}"
-  if [ -z "$_acmedns_update_url" ]; then
+  # The per-domain account decides where its credentials are sent: an
+  # ACMEDNS_UPDATE_URL saved by an earlier shared-account run must never
+  # redirect a private acme-dns account to another instance.
+  if [ "$_acmedns_from_file" = "1" ]; then
     _acmedns_update_url="$_acmedns_base_url/update"
+  else
+    _acmedns_update_url="${ACMEDNS_UPDATE_URL:-$(_readaccountconf_mutable ACMEDNS_UPDATE_URL)}"
+    if [ -z "$_acmedns_update_url" ]; then
+      _acmedns_update_url="$_acmedns_base_url/update"
+    fi
   fi
 
   # A shared account given on the command line must survive the next cron run.
@@ -158,7 +178,7 @@ _acmedns_register() {
   _acmedns_reg_url="$_acmedns_base_url/register"
   _info "acme-dns: no account for $_acmedns_domain_name, requesting a new one"
   _acmedns_register_response="$(_post "" "$_acmedns_reg_url" "" "POST")"
-  _debug2 register "$_acmedns_register_response"
+  _secure_debug2 register "$_acmedns_register_response"
 
   _acmedns_subdomain="$(printf "%s" "$_acmedns_register_response" | sed -n 's/.*"subdomain"[ ]*:[ ]*"\([^"]*\)".*/\1/p')"
   _acmedns_username="$(printf "%s" "$_acmedns_register_response" | sed -n 's/.*"username"[ ]*:[ ]*"\([^"]*\)".*/\1/p')"
@@ -170,23 +190,41 @@ _acmedns_register() {
     return 1
   fi
 
-  mkdir -p "$_acmedns_dir"
-  (
-    umask 077
-    {
-      printf "# acme-dns account for %s\n" "$_acmedns_domain_name"
-      printf "ACMEDNS_BASE_URL='%s'\n" "$_acmedns_base_url"
-      printf "ACMEDNS_SUBDOMAIN='%s'\n" "$_acmedns_subdomain"
-      printf "ACMEDNS_USERNAME='%s'\n" "$_acmedns_username"
-      printf "ACMEDNS_PASSWORD='%s'\n" "$_acmedns_password"
-    } >"$_acmedns_file"
-  )
-  chmod 600 "$_acmedns_file" 2>/dev/null
+  if [ ! -d "$_acmedns_dir" ]; then
+    (umask 077 && mkdir -p "$_acmedns_dir") || {
+      _err "acme-dns: cannot create the account directory $_acmedns_dir"
+      return 1
+    }
+  fi
+
+  # _save_conf writes single quoted values and escapes every single quote, so
+  # a crafted registration response cannot inject shell code into this file.
+  if ! (umask 077 && : >"$_acmedns_file"); then
+    _err "acme-dns: cannot write the account file $_acmedns_file"
+    return 1
+  fi
+  printf "# acme-dns account for %s\n" "$_acmedns_domain_name" >>"$_acmedns_file" || {
+    _err "acme-dns: cannot write the account file $_acmedns_file"
+    return 1
+  }
+  if ! _save_conf "$_acmedns_file" ACMEDNS_BASE_URL "$_acmedns_base_url" ||
+    ! _save_conf "$_acmedns_file" ACMEDNS_SUBDOMAIN "$_acmedns_subdomain" ||
+    ! _save_conf "$_acmedns_file" ACMEDNS_USERNAME "$_acmedns_username" ||
+    ! _save_conf "$_acmedns_file" ACMEDNS_PASSWORD "$_acmedns_password"; then
+    _err "acme-dns: cannot write the account file $_acmedns_file"
+    return 1
+  fi
+  if ! chmod 600 "$_acmedns_file"; then
+    _err "acme-dns: cannot restrict the permissions of $_acmedns_file"
+    return 1
+  fi
   _debug "Saved the new account to" "$_acmedns_file"
 
   _err "acme-dns: a new account was created for $_acmedns_domain_name"
   _err "Add this record to your DNS zone:"
   _err "  _acme-challenge.$_acmedns_domain_name.  CNAME  $_acmedns_fulldomain_reg."
-  _err "then run the same command again."
+  _err "Then run the same command again. Every new domain in the order needs"
+  _err "this run/publish/rerun cycle once, because the order stops at the"
+  _err "first challenge name that has no account file yet."
   return 1
 }
