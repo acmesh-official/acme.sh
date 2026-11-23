@@ -16,7 +16,12 @@ Options:
  ACMEDNS_SUBDOMAIN Subdomain of a single shared account. Optional.
  ACMEDNS_USERNAME Username of a single shared account. Optional.
  ACMEDNS_PASSWORD Password of a single shared account. Optional.
- ACMEDNS_UPDATE_URL Update URL, only needed for compatibility. Optional.
+ The subdomain, username and password of a per-domain account are read
+ from its account file only, so the environment can never complete a
+ partial file. The base URL is resolved as: account file > environment
+ > account.conf (legacy ACMEDNS_UPDATE_URL) > default.
+ ACMEDNS_UPDATE_URL is not an option: the update endpoint is always
+ "<base URL>/update", so a stale value can never redirect an account.
 '
 
 ########  Public functions #####################
@@ -92,16 +97,26 @@ _acmedns_read_conf() {
   # shellcheck disable=SC1090
   (
     # Only the file may contribute values: unset first, or exported shared
-    # credentials would leak into a partial account file.
+    # credentials would leak into a partial account file. "${VAR:-}" keeps a
+    # partial file working under "set -u" without assigning in the subshell.
     unset ACMEDNS_BASE_URL ACMEDNS_SUBDOMAIN ACMEDNS_USERNAME ACMEDNS_PASSWORD
     set -a
     . "$_conf_file" >/dev/null 2>&1
-    printf "%s\n%s\n%s\n%s\n" "$ACMEDNS_BASE_URL" "$ACMEDNS_SUBDOMAIN" "$ACMEDNS_USERNAME" "$ACMEDNS_PASSWORD"
+    printf "%s\n%s\n%s\n%s\n" "${ACMEDNS_BASE_URL:-}" "${ACMEDNS_SUBDOMAIN:-}" "${ACMEDNS_USERNAME:-}" "${ACMEDNS_PASSWORD:-}"
   ) || return 1
+}
+
+# Old versions of dns_acmedns stored the update URL in account.conf. Honour it
+# only when no base URL is known, and strip the "/update" suffix.
+_acmedns_legacy_base_url() {
+  _legacy_update_url="$(_readaccountconf_mutable ACMEDNS_UPDATE_URL)"
+  printf "%s" "${_legacy_update_url%/update}"
 }
 
 # Resolve the account for one challenge name.
 # Priority: per-domain file > environment > account.conf > default base url.
+# The account file wins on purpose: the environment must not be able to point
+# a private account at another server (the official dns_acmedns lets it).
 _acmedns_load() {
   _acmedns_fulldomain="$1"
   _acmedns_domain_name="$(_acmedns_domain "$_acmedns_fulldomain")"
@@ -140,6 +155,12 @@ _acmedns_load() {
     # from the environment or from account.conf must not fill in missing
     # fields, or they would be sent to whatever instance this file names.
     if [ -z "$_acmedns_base_url" ]; then
+      _acmedns_base_url="${ACMEDNS_BASE_URL:-$(_readaccountconf_mutable ACMEDNS_BASE_URL)}"
+    fi
+    if [ -z "$_acmedns_base_url" ]; then
+      _acmedns_base_url="$(_acmedns_legacy_base_url)"
+    fi
+    if [ -z "$_acmedns_base_url" ]; then
       _acmedns_base_url="https://auth.acme-dns.io"
     fi
     _acmedns_update_url="$_acmedns_base_url/update"
@@ -154,20 +175,19 @@ _acmedns_load() {
   _acmedns_password="${ACMEDNS_PASSWORD:-$(_readaccountconf_mutable ACMEDNS_PASSWORD)}"
   _acmedns_base_url="${ACMEDNS_BASE_URL:-$(_readaccountconf_mutable ACMEDNS_BASE_URL)}"
   if [ -z "$_acmedns_base_url" ]; then
+    _acmedns_base_url="$(_acmedns_legacy_base_url)"
+  fi
+  if [ -z "$_acmedns_base_url" ]; then
     _acmedns_base_url="https://auth.acme-dns.io"
   fi
 
-  # The per-domain account decides where its credentials are sent: a legacy
-  # ACMEDNS_UPDATE_URL must never redirect a private account elsewhere.
-  _acmedns_update_url="${ACMEDNS_UPDATE_URL:-$(_readaccountconf_mutable ACMEDNS_UPDATE_URL)}"
-  if [ -z "$_acmedns_update_url" ]; then
-    _acmedns_update_url="$_acmedns_base_url/update"
-  fi
+  # The update endpoint always follows the base URL: ACMEDNS_UPDATE_URL is not
+  # an option of dns_acmedns and must never redirect an account elsewhere.
+  _acmedns_update_url="$_acmedns_base_url/update"
 
   # A shared account given on the command line must survive the next cron run.
   if [ "$_acmedns_from_env" = "1" ] && [ "$_acmedns_from_file" = "0" ]; then
     _saveaccountconf_mutable ACMEDNS_BASE_URL "$_acmedns_base_url"
-    _saveaccountconf_mutable ACMEDNS_UPDATE_URL "$_acmedns_update_url"
     _saveaccountconf_mutable ACMEDNS_SUBDOMAIN "$_acmedns_subdomain"
     _saveaccountconf_mutable ACMEDNS_USERNAME "$_acmedns_username"
     _saveaccountconf_mutable ACMEDNS_PASSWORD "$_acmedns_password"
