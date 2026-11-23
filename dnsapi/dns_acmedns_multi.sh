@@ -113,6 +113,21 @@ _acmedns_legacy_base_url() {
   printf "%s" "${_legacy_update_url%/update}"
 }
 
+# Resolve a directory to an absolute path. A relative override must not be
+# resolved again by a later run from a different working directory.
+_acmedns_abs_dir() {
+  case "$1" in
+  /*) _acmedns_abs="$1" ;;
+  *) _acmedns_abs="$(pwd)/$1" ;;
+  esac
+  _acmedns_abs="$(printf "%s" "$_acmedns_abs" | sed 's|/\./|/|g')"
+  if [ -d "$_acmedns_abs" ]; then
+    (cd "$_acmedns_abs" && pwd -P)
+  else
+    printf "%s" "$_acmedns_abs"
+  fi
+}
+
 # Resolve the account for one challenge name.
 # Priority: per-domain file > environment > account.conf > default base url.
 # The account file wins on purpose: the environment must not be able to point
@@ -127,8 +142,13 @@ _acmedns_load() {
   if [ -z "$_acmedns_dir" ]; then
     _acmedns_dir="${LE_CONFIG_HOME:-$LE_WORKING_DIR}/acmedns"
   fi
-  if [ "$ACMEDNS_CONF_DIR" ] && [ "$ACMEDNS_CONF_DIR" != "$_acmedns_saved_dir" ]; then
-    _saveaccountconf_mutable ACMEDNS_CONF_DIR "$ACMEDNS_CONF_DIR"
+  # Cron runs from another working directory, so resolve the override here and
+  # store it absolutely: a relative value such as "./accounts" would otherwise
+  # point somewhere else on renewal, miss the account file and register a
+  # replacement account whose CNAME is not published.
+  _acmedns_dir="$(_acmedns_abs_dir "$_acmedns_dir")"
+  if [ "$ACMEDNS_CONF_DIR" ] && [ "$_acmedns_dir" != "$_acmedns_saved_dir" ]; then
+    _saveaccountconf_mutable ACMEDNS_CONF_DIR "$_acmedns_dir"
   fi
   _acmedns_file="$_acmedns_dir/$_acmedns_domain_name.conf"
   _acmedns_from_env=0
