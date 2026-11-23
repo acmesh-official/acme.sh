@@ -8,10 +8,12 @@ dns_acmedns_multi_info='acme-dns Server API (one account per domain)
  CNAME record to publish. Publish it, then run the same command again.
  With N new domains this run/publish/rerun cycle repeats N times, as
  the order only completes once every challenge name has a live CNAME.
+ Accounts are stored as "<config-home>/acmedns/<domain>.conf" (0700 and
+ 0600). To keep them elsewhere, use --config-home or make that directory
+ a symlink: there is no environment variable for the location.
 Site: github.com/joohoi/acme-dns
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_acmedns_multi
 Options:
- ACMEDNS_CONF_DIR Directory with one "<domain>.conf" per domain. Optional.
  ACMEDNS_BASE_URL Base URL. Default "https://auth.acme-dns.io".
  ACMEDNS_SUBDOMAIN Subdomain of a single shared account. Optional.
  ACMEDNS_USERNAME Username of a single shared account. Optional.
@@ -19,9 +21,7 @@ Options:
  The subdomain, username and password of a per-domain account are read
  from its account file only, so the environment can never complete a
  partial file. The base URL is resolved as: account file > environment
- > account.conf (legacy ACMEDNS_UPDATE_URL) > default.
- ACMEDNS_UPDATE_URL is not an option: the update endpoint is always
- "<base URL>/update", so a stale value can never redirect an account.
+ > default. The update endpoint is always "<base URL>/update".
 '
 
 ########  Public functions #####################
@@ -106,28 +106,6 @@ _acmedns_read_conf() {
   ) || return 1
 }
 
-# Old versions of dns_acmedns stored the update URL in account.conf. Honour it
-# only when no base URL is known, and strip the "/update" suffix.
-_acmedns_legacy_base_url() {
-  _legacy_update_url="$(_readaccountconf_mutable ACMEDNS_UPDATE_URL)"
-  printf "%s" "${_legacy_update_url%/update}"
-}
-
-# Resolve a directory to an absolute path. A relative override must not be
-# resolved again by a later run from a different working directory.
-_acmedns_abs_dir() {
-  case "$1" in
-  /*) _acmedns_abs="$1" ;;
-  *) _acmedns_abs="$(pwd)/$1" ;;
-  esac
-  _acmedns_abs="$(printf "%s" "$_acmedns_abs" | sed 's|/\./|/|g')"
-  if [ -d "$_acmedns_abs" ]; then
-    (cd "$_acmedns_abs" && pwd -P)
-  else
-    printf "%s" "$_acmedns_abs"
-  fi
-}
-
 # Resolve the account for one challenge name.
 # Priority: per-domain file > environment > account.conf > default base url.
 # The account file wins on purpose: the environment must not be able to point
@@ -135,24 +113,11 @@ _acmedns_abs_dir() {
 _acmedns_load() {
   _acmedns_fulldomain="$1"
   _acmedns_domain_name="$(_acmedns_domain "$_acmedns_fulldomain")"
-  # A custom directory must survive the next cron run, which does not have
-  # the environment of the current shell.
-  _acmedns_saved_dir="$(_readaccountconf_mutable ACMEDNS_CONF_DIR)"
-  _acmedns_dir="${ACMEDNS_CONF_DIR:-$_acmedns_saved_dir}"
-  if [ -z "$_acmedns_dir" ]; then
-    _acmedns_dir="${LE_CONFIG_HOME:-$LE_WORKING_DIR}/acmedns"
-  fi
-  # Cron runs from another working directory, so resolve the override here and
-  # store it absolutely: a relative value such as "./accounts" would otherwise
-  # point somewhere else on renewal, miss the account file and register a
-  # replacement account whose CNAME is not published.
-  _acmedns_dir="$(_acmedns_abs_dir "$_acmedns_dir")"
-  if [ "$ACMEDNS_CONF_DIR" ] && [ "$_acmedns_dir" != "$_acmedns_saved_dir" ]; then
-    _saveaccountconf_mutable ACMEDNS_CONF_DIR "$_acmedns_dir"
-  fi
+  # The account files live next to the other acme.sh state, so a cron run finds
+  # them again with the same --config-home and without any extra variable.
+  _acmedns_dir="${LE_CONFIG_HOME:-$LE_WORKING_DIR}/acmedns"
   _acmedns_file="$_acmedns_dir/$_acmedns_domain_name.conf"
   _acmedns_from_env=0
-  _acmedns_from_file=0
 
   _acmedns_base_url=""
   _acmedns_subdomain=""
@@ -165,23 +130,16 @@ _acmedns_load() {
       return 1
     fi
     _debug "Read the account file" "$_acmedns_file"
-    _acmedns_from_file=1
     _acmedns_base_url="$(printf "%s\n" "$_acmedns_values" | sed -n '1p')"
     _acmedns_subdomain="$(printf "%s\n" "$_acmedns_values" | sed -n '2p')"
     _acmedns_username="$(printf "%s\n" "$_acmedns_values" | sed -n '3p')"
     _acmedns_password="$(printf "%s\n" "$_acmedns_values" | sed -n '4p')"
 
     # The account file is self-contained and authoritative: shared credentials
-    # from the environment or from account.conf must not fill in missing
-    # fields, or they would be sent to whatever instance this file names.
+    # from the environment must not fill in missing fields, or they would be
+    # sent to whatever instance this file names.
     if [ -z "$_acmedns_base_url" ]; then
-      _acmedns_base_url="${ACMEDNS_BASE_URL:-$(_readaccountconf_mutable ACMEDNS_BASE_URL)}"
-    fi
-    if [ -z "$_acmedns_base_url" ]; then
-      _acmedns_base_url="$(_acmedns_legacy_base_url)"
-    fi
-    if [ -z "$_acmedns_base_url" ]; then
-      _acmedns_base_url="https://auth.acme-dns.io"
+      _acmedns_base_url="${ACMEDNS_BASE_URL:-https://auth.acme-dns.io}"
     fi
     _acmedns_update_url="$_acmedns_base_url/update"
     return 0
@@ -195,18 +153,13 @@ _acmedns_load() {
   _acmedns_password="${ACMEDNS_PASSWORD:-$(_readaccountconf_mutable ACMEDNS_PASSWORD)}"
   _acmedns_base_url="${ACMEDNS_BASE_URL:-$(_readaccountconf_mutable ACMEDNS_BASE_URL)}"
   if [ -z "$_acmedns_base_url" ]; then
-    _acmedns_base_url="$(_acmedns_legacy_base_url)"
-  fi
-  if [ -z "$_acmedns_base_url" ]; then
     _acmedns_base_url="https://auth.acme-dns.io"
   fi
 
-  # The update endpoint always follows the base URL: ACMEDNS_UPDATE_URL is not
-  # an option of dns_acmedns and must never redirect an account elsewhere.
   _acmedns_update_url="$_acmedns_base_url/update"
 
   # A shared account given on the command line must survive the next cron run.
-  if [ "$_acmedns_from_env" = "1" ] && [ "$_acmedns_from_file" = "0" ]; then
+  if [ "$_acmedns_from_env" = "1" ]; then
     _saveaccountconf_mutable ACMEDNS_BASE_URL "$_acmedns_base_url"
     _saveaccountconf_mutable ACMEDNS_SUBDOMAIN "$_acmedns_subdomain"
     _saveaccountconf_mutable ACMEDNS_USERNAME "$_acmedns_username"
