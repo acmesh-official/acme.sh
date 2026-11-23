@@ -30,7 +30,7 @@ dns_acmedns_multi_add() {
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
-  _acmedns_load "$fulldomain"
+  _acmedns_load "$fulldomain" || return 1
 
   if [ -z "$_acmedns_subdomain" ] || [ -z "$_acmedns_username" ] || [ -z "$_acmedns_password" ]; then
     # Never replace an existing account: the CNAME published for the old uuid
@@ -91,6 +91,9 @@ _acmedns_read_conf() {
   [ -f "$_conf_file" ] || return 1
   # shellcheck disable=SC1090
   (
+    # Only the file may contribute values: unset first, or exported shared
+    # credentials would leak into a partial account file.
+    unset ACMEDNS_BASE_URL ACMEDNS_SUBDOMAIN ACMEDNS_USERNAME ACMEDNS_PASSWORD
     set -a
     . "$_conf_file" >/dev/null 2>&1
     printf "%s\n%s\n%s\n%s\n" "$ACMEDNS_BASE_URL" "$ACMEDNS_SUBDOMAIN" "$ACMEDNS_USERNAME" "$ACMEDNS_PASSWORD"
@@ -121,44 +124,44 @@ _acmedns_load() {
   _acmedns_username=""
   _acmedns_password=""
 
-  if _acmedns_values="$(_acmedns_read_conf "$_acmedns_file")"; then
+  if [ -f "$_acmedns_file" ]; then
+    if ! _acmedns_values="$(_acmedns_read_conf "$_acmedns_file")"; then
+      _err "acme-dns: cannot read the account file $_acmedns_file"
+      return 1
+    fi
     _debug "Read the account file" "$_acmedns_file"
     _acmedns_from_file=1
     _acmedns_base_url="$(printf "%s\n" "$_acmedns_values" | sed -n '1p')"
     _acmedns_subdomain="$(printf "%s\n" "$_acmedns_values" | sed -n '2p')"
     _acmedns_username="$(printf "%s\n" "$_acmedns_values" | sed -n '3p')"
     _acmedns_password="$(printf "%s\n" "$_acmedns_values" | sed -n '4p')"
+
+    # The account file is self-contained and authoritative: shared credentials
+    # from the environment or from account.conf must not fill in missing
+    # fields, or they would be sent to whatever instance this file names.
+    if [ -z "$_acmedns_base_url" ]; then
+      _acmedns_base_url="https://auth.acme-dns.io"
+    fi
+    _acmedns_update_url="$_acmedns_base_url/update"
+    return 0
   fi
 
-  if [ -z "$_acmedns_subdomain" ]; then
-    _acmedns_subdomain="${ACMEDNS_SUBDOMAIN:-$(_readaccountconf_mutable ACMEDNS_SUBDOMAIN)}"
-    if [ "$_acmedns_subdomain" ]; then
-      _acmedns_from_env=1
-    fi
+  _acmedns_subdomain="${ACMEDNS_SUBDOMAIN:-$(_readaccountconf_mutable ACMEDNS_SUBDOMAIN)}"
+  if [ "$_acmedns_subdomain" ]; then
+    _acmedns_from_env=1
   fi
-  if [ -z "$_acmedns_username" ]; then
-    _acmedns_username="${ACMEDNS_USERNAME:-$(_readaccountconf_mutable ACMEDNS_USERNAME)}"
-  fi
-  if [ -z "$_acmedns_password" ]; then
-    _acmedns_password="${ACMEDNS_PASSWORD:-$(_readaccountconf_mutable ACMEDNS_PASSWORD)}"
-  fi
-  if [ -z "$_acmedns_base_url" ]; then
-    _acmedns_base_url="${ACMEDNS_BASE_URL:-$(_readaccountconf_mutable ACMEDNS_BASE_URL)}"
-  fi
+  _acmedns_username="${ACMEDNS_USERNAME:-$(_readaccountconf_mutable ACMEDNS_USERNAME)}"
+  _acmedns_password="${ACMEDNS_PASSWORD:-$(_readaccountconf_mutable ACMEDNS_PASSWORD)}"
+  _acmedns_base_url="${ACMEDNS_BASE_URL:-$(_readaccountconf_mutable ACMEDNS_BASE_URL)}"
   if [ -z "$_acmedns_base_url" ]; then
     _acmedns_base_url="https://auth.acme-dns.io"
   fi
 
-  # The per-domain account decides where its credentials are sent: an
-  # ACMEDNS_UPDATE_URL saved by an earlier shared-account run must never
-  # redirect a private acme-dns account to another instance.
-  if [ "$_acmedns_from_file" = "1" ]; then
+  # The per-domain account decides where its credentials are sent: a legacy
+  # ACMEDNS_UPDATE_URL must never redirect a private account elsewhere.
+  _acmedns_update_url="${ACMEDNS_UPDATE_URL:-$(_readaccountconf_mutable ACMEDNS_UPDATE_URL)}"
+  if [ -z "$_acmedns_update_url" ]; then
     _acmedns_update_url="$_acmedns_base_url/update"
-  else
-    _acmedns_update_url="${ACMEDNS_UPDATE_URL:-$(_readaccountconf_mutable ACMEDNS_UPDATE_URL)}"
-    if [ -z "$_acmedns_update_url" ]; then
-      _acmedns_update_url="$_acmedns_base_url/update"
-    fi
   fi
 
   # A shared account given on the command line must survive the next cron run.
@@ -170,6 +173,22 @@ _acmedns_load() {
     _saveaccountconf_mutable ACMEDNS_PASSWORD "$_acmedns_password"
   fi
   return 0
+}
+
+# Wait for the account file written by a parallel run and load it.
+_acmedns_wait_for_file() {
+  _acmedns_try=0
+  while [ "$_acmedns_try" -lt 5 ]; do
+    if _acmedns_load "$_acmedns_fulldomain" &&
+      [ -n "$_acmedns_subdomain" ] &&
+      [ -n "$_acmedns_username" ] &&
+      [ -n "$_acmedns_password" ]; then
+      return 0
+    fi
+    _acmedns_try=$(_math "$_acmedns_try" + 1)
+    _sleep 1
+  done
+  return 1
 }
 
 # Register a new acme-dns account for this challenge name, store it and stop
@@ -197,11 +216,16 @@ _acmedns_register() {
     }
   fi
 
-  # _save_conf writes single quoted values and escapes every single quote, so
-  # a crafted registration response cannot inject shell code into this file.
-  if ! (umask 077 && : >"$_acmedns_file"); then
-    _err "acme-dns: cannot write the account file $_acmedns_file"
-    return 1
+  # Create the file exclusively: a parallel run may have registered another
+  # account for the same challenge name in the meantime. That account is the
+  # one whose CNAME the user was told to publish, so never truncate it.
+  if ! (set -C && umask 077 && : >"$_acmedns_file") 2>/dev/null; then
+    _info "acme-dns: another run saved an account for $_acmedns_domain_name, reusing it"
+    _acmedns_wait_for_file || {
+      _err "acme-dns: $_acmedns_file exists but is not readable yet, please run again"
+      return 1
+    }
+    return 0
   fi
   printf "# acme-dns account for %s\n" "$_acmedns_domain_name" >>"$_acmedns_file" || {
     _err "acme-dns: cannot write the account file $_acmedns_file"
@@ -222,7 +246,9 @@ _acmedns_register() {
 
   _err "acme-dns: a new account was created for $_acmedns_domain_name"
   _err "Add this record to your DNS zone:"
-  _err "  _acme-challenge.$_acmedns_domain_name.  CNAME  $_acmedns_fulldomain_reg."
+  # Print the exact name acme.sh asked us to validate: with --domain-alias it
+  # is the alias name, not "_acme-challenge.<domain>".
+  _err "  $_acmedns_fulldomain.  CNAME  $_acmedns_fulldomain_reg."
   _err "Then run the same command again. Every new domain in the order needs"
   _err "this run/publish/rerun cycle once, because the order stops at the"
   _err "first challenge name that has no account file yet."
