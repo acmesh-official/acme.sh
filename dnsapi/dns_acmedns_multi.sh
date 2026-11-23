@@ -14,10 +14,10 @@ dns_acmedns_multi_info='acme-dns Server API (one account per domain)
 Site: github.com/joohoi/acme-dns
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_acmedns_multi
 Options:
- ACMEDNS_BASE_URL Base URL. Default "https://auth.acme-dns.io".
- ACMEDNS_SUBDOMAIN Subdomain of a single shared account. Optional.
- ACMEDNS_USERNAME Username of a single shared account. Optional.
- ACMEDNS_PASSWORD Password of a single shared account. Optional.
+ ACMEDNS_MULTI_BASE_URL Base URL. Default "https://auth.acme-dns.io".
+ ACMEDNS_MULTI_SUBDOMAIN Subdomain of a single shared account. Optional.
+ ACMEDNS_MULTI_USERNAME Username of a single shared account. Optional.
+ ACMEDNS_MULTI_PASSWORD Password of a single shared account. Optional.
  The subdomain, username and password of a per-domain account are read
  from its account file only, so the environment can never complete a
  partial file. The base URL is resolved as: account file > environment
@@ -99,10 +99,10 @@ _acmedns_read_conf() {
     # Only the file may contribute values: unset first, or exported shared
     # credentials would leak into a partial account file. "${VAR:-}" keeps a
     # partial file working under "set -u" without assigning in the subshell.
-    unset ACMEDNS_BASE_URL ACMEDNS_SUBDOMAIN ACMEDNS_USERNAME ACMEDNS_PASSWORD
+    unset ACMEDNS_MULTI_BASE_URL ACMEDNS_MULTI_SUBDOMAIN ACMEDNS_MULTI_USERNAME ACMEDNS_MULTI_PASSWORD
     set -a
     . "$_conf_file" >/dev/null 2>&1
-    printf "%s\n%s\n%s\n%s\n" "${ACMEDNS_BASE_URL:-}" "${ACMEDNS_SUBDOMAIN:-}" "${ACMEDNS_USERNAME:-}" "${ACMEDNS_PASSWORD:-}"
+    printf "%s\n%s\n%s\n%s\n" "${ACMEDNS_MULTI_BASE_URL:-}" "${ACMEDNS_MULTI_SUBDOMAIN:-}" "${ACMEDNS_MULTI_USERNAME:-}" "${ACMEDNS_MULTI_PASSWORD:-}"
   ) || return 1
 }
 
@@ -139,19 +139,19 @@ _acmedns_load() {
     # from the environment must not fill in missing fields, or they would be
     # sent to whatever instance this file names.
     if [ -z "$_acmedns_base_url" ]; then
-      _acmedns_base_url="${ACMEDNS_BASE_URL:-https://auth.acme-dns.io}"
+      _acmedns_base_url="${ACMEDNS_MULTI_BASE_URL:-https://auth.acme-dns.io}"
     fi
     _acmedns_update_url="$_acmedns_base_url/update"
     return 0
   fi
 
-  _acmedns_subdomain="${ACMEDNS_SUBDOMAIN:-$(_readaccountconf_mutable ACMEDNS_SUBDOMAIN)}"
+  _acmedns_subdomain="${ACMEDNS_MULTI_SUBDOMAIN:-$(_readaccountconf_mutable ACMEDNS_MULTI_SUBDOMAIN)}"
   if [ "$_acmedns_subdomain" ]; then
     _acmedns_from_env=1
   fi
-  _acmedns_username="${ACMEDNS_USERNAME:-$(_readaccountconf_mutable ACMEDNS_USERNAME)}"
-  _acmedns_password="${ACMEDNS_PASSWORD:-$(_readaccountconf_mutable ACMEDNS_PASSWORD)}"
-  _acmedns_base_url="${ACMEDNS_BASE_URL:-$(_readaccountconf_mutable ACMEDNS_BASE_URL)}"
+  _acmedns_username="${ACMEDNS_MULTI_USERNAME:-$(_readaccountconf_mutable ACMEDNS_MULTI_USERNAME)}"
+  _acmedns_password="${ACMEDNS_MULTI_PASSWORD:-$(_readaccountconf_mutable ACMEDNS_MULTI_PASSWORD)}"
+  _acmedns_base_url="${ACMEDNS_MULTI_BASE_URL:-$(_readaccountconf_mutable ACMEDNS_MULTI_BASE_URL)}"
   if [ -z "$_acmedns_base_url" ]; then
     _acmedns_base_url="https://auth.acme-dns.io"
   fi
@@ -160,10 +160,10 @@ _acmedns_load() {
 
   # A shared account given on the command line must survive the next cron run.
   if [ "$_acmedns_from_env" = "1" ]; then
-    _saveaccountconf_mutable ACMEDNS_BASE_URL "$_acmedns_base_url"
-    _saveaccountconf_mutable ACMEDNS_SUBDOMAIN "$_acmedns_subdomain"
-    _saveaccountconf_mutable ACMEDNS_USERNAME "$_acmedns_username"
-    _saveaccountconf_mutable ACMEDNS_PASSWORD "$_acmedns_password"
+    _saveaccountconf_mutable ACMEDNS_MULTI_BASE_URL "$_acmedns_base_url"
+    _saveaccountconf_mutable ACMEDNS_MULTI_SUBDOMAIN "$_acmedns_subdomain"
+    _saveaccountconf_mutable ACMEDNS_MULTI_USERNAME "$_acmedns_username"
+    _saveaccountconf_mutable ACMEDNS_MULTI_PASSWORD "$_acmedns_password"
   fi
   return 0
 }
@@ -224,10 +224,10 @@ _acmedns_register() {
     _err "acme-dns: cannot write the account file $_acmedns_file"
     return 1
   }
-  if ! _save_conf "$_acmedns_file" ACMEDNS_BASE_URL "$_acmedns_base_url" ||
-    ! _save_conf "$_acmedns_file" ACMEDNS_SUBDOMAIN "$_acmedns_subdomain" ||
-    ! _save_conf "$_acmedns_file" ACMEDNS_USERNAME "$_acmedns_username" ||
-    ! _save_conf "$_acmedns_file" ACMEDNS_PASSWORD "$_acmedns_password"; then
+  if ! _save_conf "$_acmedns_file" ACMEDNS_MULTI_BASE_URL "$_acmedns_base_url" ||
+    ! _save_conf "$_acmedns_file" ACMEDNS_MULTI_SUBDOMAIN "$_acmedns_subdomain" ||
+    ! _save_conf "$_acmedns_file" ACMEDNS_MULTI_USERNAME "$_acmedns_username" ||
+    ! _save_conf "$_acmedns_file" ACMEDNS_MULTI_PASSWORD "$_acmedns_password"; then
     _err "acme-dns: cannot write the account file $_acmedns_file"
     return 1
   fi
