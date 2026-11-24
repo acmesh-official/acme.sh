@@ -151,8 +151,8 @@ dns_pleskxml_rm() {
   # Extracting the id of the TXT record for the full domain (NOT case-sensitive) and corresponding value
   recid="$(
     _value "$reclist" |
-      grep -i "<host>${fulldomain}.</host>" |
-      grep "<value>${txtvalue}</value>" |
+      grep -Fi "<host>${fulldomain}.</host>" |
+      grep -F "<value>${txtvalue}</value>" |
       sed 's/^.*<id>\([0-9]\{1,\}\)<\/id>.*$/\1/'
   )"
 
@@ -419,7 +419,7 @@ _pleskxml_get_root_domain() {
 
     _debug "Checking if '$root_domain_name' is managed by the Plesk server..."
 
-    root_domain_id="$(_value "$output" | grep "<name>$root_domain_name</name>" | _head_n 1 | sed 's/^.*<id>\([0-9]\{1,\}\)<\/id>.*$/\1/')"
+    root_domain_id="$(_value "$output" | grep -F "<name>$root_domain_name</name>" | _head_n 1 | sed 's/^.*<id>\([0-9]\{1,\}\)<\/id>.*$/\1/')"
 
     if [ -n "$root_domain_id" ]; then
       # Found a match

@@ -123,9 +123,6 @@ _get_root() {
   domain="$1"
   _debug2 _get_root "Get the root domain of ${domain} for DNS API"
 
-  # Setup _get() and _post() headers
-  #_setup_headers
-
   result=$(_H1="$_H1" _H2="$_H2" _get "$DNSServices_API/dns")
   result2="$(printf "%s\n" "$result" | tr '[' '\n' | grep '"name"')"
   result3="$(printf "%s\n" "$result2" | tr '}' '\n' | grep '"name"' | sed "s,^\,,,g" | sed "s,$,},g")"
@@ -228,9 +225,8 @@ deleteRecord() {
   fi
 
   result="$(_H1="$_H1" _H2="$_H2" _get "$DNSServices_API/service/$rootZoneServiceID/dns/$rootZoneDomainID")"
-  #recordInfo="$(echo "$result" | sed -e 's/:{/:{\n/g' -e 's/},/\n},\n/g' | grep "${txtvalue}")"
-  #recordID="$(echo "$recordInfo" | sed -e 's/:{/:{\n/g' -e 's/},/\n},\n/g' | grep "${txtvalue}" | sed -E 's,.*(zones)(.*),\1\2,g' | sed -E 's,^(.*"id":")([^"]*)"(.*)$,\2,g')"
-  recordID="$(printf "%s\n" "$result" | tr '}' '\n' | grep -- "$txtvalue" | tr ',' '\n' | grep '"id"' | cut -d'"' -f4)"
+  _debug2 _result "Result from API to get ID to delete $result"
+  recordID="$(printf "%s\n" "$result" | tr '}' '\n' | grep -- "\"name\":\"${fulldomain}\"" | grep -- "${txtvalue}" | sed -n 's/.*"id":"\{0,1\}\([0-9][0-9]*\)"\{0,1\}.*/\1/p' | _head_n 1)"
   _debug2 _recordID "recordID used for deletion of record: $recordID"
 
   if [ -z "$recordID" ]; then

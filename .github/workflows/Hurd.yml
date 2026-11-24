@@ -1,0 +1,76 @@
+name: Hurd
+on:
+  push:
+    branches:
+      - '*'
+    paths:
+      - '*.sh'
+      - '.github/workflows/Hurd.yml'
+
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - '*.sh'
+      - '.github/workflows/Hurd.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
+
+jobs:
+  Hurd:
+    strategy:
+      matrix:
+        include:
+         - TEST_ACME_Server: "LetsEncrypt.org_test"
+           CA_ECDSA: ""
+           CA: ""
+           CA_EMAIL: ""
+           TEST_PREFERRED_CHAIN: (STAGING)
+    runs-on: ubuntu-latest
+    env:
+      TEST_LOCAL: 1
+      TEST_ACME_Server: ${{ matrix.TEST_ACME_Server }}
+      CA_ECDSA: ${{ matrix.CA_ECDSA }}
+      CA: ${{ matrix.CA }}
+      CA_EMAIL: ${{ matrix.CA_EMAIL }}
+      TEST_PREFERRED_CHAIN: ${{ matrix.TEST_PREFERRED_CHAIN }}
+    steps:
+    - uses: actions/checkout@v7
+    - uses: anyvm-org/cf-tunnel@v0
+      id: tunnel
+      with:
+        protocol: http
+        port: 8080
+    - name: Set envs
+      run: echo "TestingDomain=${{steps.tunnel.outputs.server}}" >> $GITHUB_ENV
+    - name: Clone acmetest
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - uses: vmactions/hurd-vm@v1
+      with:
+        debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
+        cache-after-prepare: true
+        envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN'
+        nat: |
+          "8080": "80"
+        # Do NOT install socat: socat's SYSTEM: address is broken on GNU Hurd
+        # (the child shell output goes to socat's stdout instead of the socket,
+        # so clients get an empty reply). Without socat, acme.sh standalone
+        # mode falls back to its python3 server, which works on Hurd.
+        prepare: |
+          apt-get update -y
+          apt-get install -y curl cron
+        usesh: true
+        sync: rsync
+        copyback: false
+        run: |
+          cd ../acmetest \
+          && ./letest.sh
+    - name: DebugOnError
+      if: ${{ failure() }}
+      run: |
+        echo "See how to debug in VM:"
+        echo "https://github.com/acmesh-official/acme.sh/wiki/debug-in-VM"

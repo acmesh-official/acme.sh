@@ -1,7 +1,21 @@
 <p align="center">
-  <a href="https://zerossl.com/?fromacme.sh">
-    <img src="https://github.com/user-attachments/assets/7531085e-399b-4ac2-82a2-90d14a0b7f05" alt="zerossl.com">
-  </a>
+<a href="https://zerossl.com?utm_source=acme-sh">
+<picture>
+  <!-- Dark mode -->
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="https://github.com/user-attachments/assets/1308516b-e0cc-496d-b5df-e3932423ead6" />
+  <!-- Light mode -->
+  <source
+    media="(prefers-color-scheme: light)"
+    srcset="https://github.com/user-attachments/assets/4ba7a79e-8cc9-4d49-87fc-02d44fb7b043" />
+  <!-- Fallback for environments without media queries -->
+  <img
+    alt="ZeroSSL"
+    src="https://github.com/user-attachments/assets/4ba7a79e-8cc9-4d49-87fc-02d44fb7b043"
+    height="auto" />
+</picture>
+</a>
 </p>
 
 <h1 align="center">🔐 acme.sh</h1>
@@ -16,9 +30,16 @@
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Windows.yml/badge.svg" alt="Windows"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Solaris.yml/badge.svg" alt="Solaris"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml/badge.svg" alt="DragonFlyBSD"></a>
+  <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/MidnightBSD.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/MidnightBSD.yml/badge.svg" alt="MidnightBSD"></a>
+  <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/GhostBSD.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/GhostBSD.yml/badge.svg" alt="GhostBSD"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml/badge.svg" alt="Omnios"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml/badge.svg" alt="OpenIndiana"></a>
+  <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Tribblix.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Tribblix.yml/badge.svg" alt="Tribblix"></a>
   <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml/badge.svg" alt="Haiku"></a>
+  <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/Hurd.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/Hurd.yml/badge.svg" alt="Hurd"></a>
+  <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/OpenEuler.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/OpenEuler.yml/badge.svg" alt="OpenEuler"></a>
+  <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/HardenedBSD.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/HardenedBSD.yml/badge.svg" alt="HardenedBSD"></a>
+  <a href="https://github.com/acmesh-official/acme.sh/actions/workflows/OPNsense.yml"><img src="https://github.com/acmesh-official/acme.sh/actions/workflows/OPNsense.yml/badge.svg" alt="OPNsense"></a>
 </p>
 
 <p align="center">
@@ -95,21 +116,28 @@
 |7|[![OpenBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenBSD.yml)|OpenBSD
 |8|[![NetBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/NetBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/NetBSD.yml)|NetBSD
 |9|[![DragonFlyBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/DragonFlyBSD.yml)|DragonFlyBSD
-|10|[![Omnios](https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml)|Omnios
-|11|[![OpenIndiana](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml)|OpenIndiana
-|12|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)| Debian
-|13|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|openSUSE
-|14|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Alpine Linux (with curl)
-|15|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Archlinux
-|16|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|fedora
-|17|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Kali Linux
-|18|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Oracle Linux
-|19|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Mageia
-|20|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Gentoo Linux
-|21|-----| Cloud Linux  https://github.com/acmesh-official/acme.sh/issues/111
-|22|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/acmesh-official/acme.sh/wiki/How-to-run-on-OpenWRT)
-|23|[![](https://acmesh-official.github.io/acmetest/status/proxmox.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)| Proxmox: See Proxmox VE Wiki. Version [4.x, 5.0, 5.1](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x,_5.0_and_5.1)#Let.27s_Encrypt_using_acme.sh), version [5.2 and up](https://pve.proxmox.com/wiki/Certificate_Management)
-|24|[![Haiku](https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml)|Haiku OS
+|10|[![MidnightBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/MidnightBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/MidnightBSD.yml)|MidnightBSD
+|11|[![Omnios](https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Omnios.yml)|Omnios
+|12|[![OpenIndiana](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenIndiana.yml)|OpenIndiana
+|13|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)| Debian
+|14|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|openSUSE
+|15|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Alpine Linux (with curl)
+|16|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Archlinux
+|17|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|fedora
+|18|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Kali Linux
+|19|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Oracle Linux
+|20|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Mageia
+|21|[![Linux](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Linux.yml)|Gentoo Linux
+|22|-----| Cloud Linux  https://github.com/acmesh-official/acme.sh/issues/111
+|23|-----| OpenWRT: Tested and working. See [wiki page](https://github.com/acmesh-official/acme.sh/wiki/How-to-run-on-OpenWRT)
+|24|[![](https://acmesh-official.github.io/acmetest/status/proxmox.svg)](https://github.com/acmesh-official/letest#here-are-the-latest-status)| Proxmox: See Proxmox VE Wiki. Version [4.x, 5.0, 5.1](https://pve.proxmox.com/wiki/HTTPS_Certificate_Configuration_(Version_4.x,_5.0_and_5.1)#Let.27s_Encrypt_using_acme.sh), version [5.2 and up](https://pve.proxmox.com/wiki/Certificate_Management)
+|25|[![Haiku](https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Haiku.yml)|Haiku OS
+|26|[![Tribblix](https://github.com/acmesh-official/acme.sh/actions/workflows/Tribblix.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Tribblix.yml)|Tribblix
+|27|[![GhostBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/GhostBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/GhostBSD.yml)|GhostBSD
+|28|[![Hurd](https://github.com/acmesh-official/acme.sh/actions/workflows/Hurd.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/Hurd.yml)|GNU Hurd
+|29|[![OpenEuler](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenEuler.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/OpenEuler.yml)|openEuler
+|30|[![HardenedBSD](https://github.com/acmesh-official/acme.sh/actions/workflows/HardenedBSD.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/HardenedBSD.yml)|HardenedBSD
+|31|[![OPNsense](https://github.com/acmesh-official/acme.sh/actions/workflows/OPNsense.yml/badge.svg)](https://github.com/acmesh-official/acme.sh/actions/workflows/OPNsense.yml)|OPNsense
 
 
 > 🧪 Check our [testing project](https://github.com/acmesh-official/acmetest)
@@ -144,6 +172,7 @@
 | 🌐 DNS mode | Use DNS TXT records |
 | 🔗 [DNS alias mode](https://github.com/acmesh-official/acme.sh/wiki/DNS-alias-mode) | Use DNS alias for verification |
 | 📡 [Stateless mode](https://github.com/acmesh-official/acme.sh/wiki/Stateless-Mode) | Stateless verification |
+| 📌 [DNS persist mode](https://github.com/acmesh-official/acme.sh/wiki/DNS-persist-mode) | Persistent DNS TXT record ([draft-ietf-acme-dns-persist-01](https://datatracker.ietf.org/doc/draft-ietf-acme-dns-persist/)) |
 
 ---
 
@@ -201,6 +230,31 @@ Cron entry example:
 ```sh
 acme.sh -h
 ```
+
+#### 🔏 Verify a Release
+
+Release tags from `3.1.6` on are signed with the maintainer's SSH key. The
+signing happens on the maintainer's machine, so the private key is never
+available to CI. The public half is [`allowed_signers`](allowed_signers) in
+this repository. From a clone:
+
+```bash
+git config gpg.ssh.allowedSignersFile allowed_signers
+```
+
+```bash
+git verify-tag 3.1.6
+```
+
+The signature covers the tag object, which pins the commit and therefore the
+whole tree, so a good signature verifies every file at that release and no
+separate tarball checksum is needed. Build a tarball from the verified tag:
+
+```bash
+git archive --format=tar.gz --prefix=acme.sh-3.1.6/ 3.1.6 > acme.sh-3.1.6.tar.gz
+```
+
+> ⚠️ Tags up to `3.1.5` are unsigned.
 
 ---
 
@@ -394,7 +448,53 @@ acme.sh --renew -d example.com
 
 ---
 
-### 🔟 Issue Certificates of Different Key Types (ECC or RSA)
+### 🔟 Use DNS Persist Mode
+
+📖 Wiki: https://github.com/acmesh-official/acme.sh/wiki/DNS-persist-mode
+
+📚 Spec: [draft-ietf-acme-dns-persist-01](https://datatracker.ietf.org/doc/draft-ietf-acme-dns-persist/)
+
+DNS persist mode lets you place a **single, long‑lived `_validation-persist` TXT record** in your zone and reuse it for every subsequent issuance and renewal. There is no per-issuance challenge token, so renewals require **no DNS edits** — useful when DNS API access is not available but you still want unattended renewals.
+
+#### 🪄 Step 1: Print the TXT record value
+
+```bash
+acme.sh --make-dns-persist-value -d example.com [--server letsencrypt] [--dns-persist-wildcard] [--dns-persist-ca-name "sectigo.com"] [--dns-persist-days 365]
+```
+
+Options:
+
+| Flag | Description |
+|------|-------------|
+| `--server <ca>` | Pick the CA (default is your configured default). The account is registered automatically if you have not used this CA before. |
+| `--dns-persist-wildcard` | Adds `policy=wildcard` to the record so it also authorizes wildcard / subdomain certs. |
+| `--dns-persist-ca-name <name>` | Use a specific CA identity domain (e.g. `sectigo.com`). If omitted, identities are read from the ACME directory's `caaIdentities` field and one record per identity is printed — you only need to add **any one** of them. |
+| `--dns-persist-days <N>` | Adds `persistUntil=<unix-timestamp>` to the record, set to N days from now. The CA will refuse new validations against the record after that time. Omit for a record with no expiry. |
+
+You should get an output like:
+
+```sh
+TXT persist domain:_validation-persist.example.com
+TXT persist value :"letsencrypt.org; accounturi=https://acme-v02.api.letsencrypt.org/acme/acct/123456789"
+```
+
+#### ✍️ Step 2: Add the TXT record to your DNS
+
+Add the printed `TXT persist domain` / `TXT persist value` pair as a TXT record at your DNS provider, then wait for it to propagate.
+
+#### 📜 Step 3: Issue the certificate
+
+```bash
+acme.sh --issue -d example.com --dns-persist
+```
+
+✅ **Done!** No challenge token is provisioned during issuance — the CA reads the persistent TXT record directly.
+
+> 🔄 Renewals just work: `acme.sh --renew -d example.com` (or the cron job) reuses the same TXT record automatically — no further DNS edits needed.
+
+---
+
+### 1️⃣1️⃣ Issue Certificates of Different Key Types (ECC or RSA)
 
 Just set the `keylength` to a valid, supported value.
 
@@ -425,7 +525,7 @@ acme.sh --issue -w /home/wwwroot/example.com -d example.com -d www.example.com -
 
 ---
 
-### 1️⃣1️⃣ Issue Wildcard Certificates
+### 1️⃣2️⃣ Issue Wildcard Certificates
 
 It's simple! Just give a wildcard domain as the `-d` parameter:
 
@@ -437,9 +537,9 @@ acme.sh --issue -d example.com -d '*.example.com' --dns dns_cf
 
 ---
 
-### 1️⃣2️⃣ How to Renew Certificates
+### 1️⃣3️⃣ How to Renew Certificates
 
-> 🔄 No need to renew manually! All certs will be renewed automatically every **30** days.
+> 🔄 No need to renew manually! All certs will be renewed automatically every **30** days, **or earlier when the CA's ARI says so** (see below).
 
 However, you can force a renewal:
 
@@ -453,9 +553,43 @@ acme.sh --renew -d example.com --force
 acme.sh --renew -d example.com --force --ecc
 ```
 
+#### 📡 ACME Renewal Information (ARI) — RFC 9773
+
+📖 Wiki: https://github.com/acmesh-official/acme.sh/wiki/ARI
+
+If the CA exposes a `renewalInfo` endpoint in its ACME directory (Let's Encrypt, ZeroSSL, etc.), `acme.sh` follows [RFC 9773](https://www.rfc-editor.org/rfc/rfc9773.html) automatically — **no flag needed, no opt-in**:
+
+| What | When | Why |
+|------|------|-----|
+| 🔍 **Polls `suggestedWindow`** | Every cron run, before deciding to skip | Lets the CA shift the renewal time forward in case of an incident (key compromise, mass revocation, etc.) |
+| 🎯 **Picks a random renewal time** inside the window | Right after a successful issuance/renewal | Disperses renewals across the network so all clients don't hit the CA at the same instant |
+| 🔗 **Sends `replaces=<certID>`** in `newOrder` | On renewal | Lets the CA correlate the new order with the certificate it supersedes (RFC 9773 §5) |
+| ↩️ **Retries without `replaces`** | If the CA rejects with `alreadyReplaced` or an ARI validation error | Robust against edge cases (e.g. switching CAs, retired issuers) |
+
+**Renewal trigger logic:** the cert is renewed if **any one** of the following becomes true:
+
+1. `--force` is given
+2. The CA's **ARI `suggestedWindow` has started**
+3. The cached `Le_NextRenewTime` has passed (default fallback for CAs without ARI)
+
+You can see the resulting next renewal time (already ARI-picked when applicable) in:
+
+```sh
+acme.sh --info -d example.com
+# Look for: Le_NextRenewTimeStr=...
+```
+
+For the live ARI window the CA is currently advertising, run with `--debug 2`:
+
+```sh
+acme.sh --renew -d example.com --debug 2 2>&1 | grep -i 'ARI suggestedWindow'
+```
+
+> 💡 If your CA does not advertise `renewalInfo`, `acme.sh` falls back to the classic 30-day rule — no behavior change.
+
 ---
 
-### 1️⃣3️⃣ How to Stop Certificate Renewal
+### 1️⃣4️⃣ How to Stop Certificate Renewal
 
 To stop renewal of a cert, you can execute the following to remove the cert from the renewal list:
 
@@ -469,7 +603,7 @@ The cert/key file is not removed from the disk.
 
 ---
 
-### 1️⃣4️⃣ How to Upgrade acme.sh
+### 1️⃣5️⃣ How to Upgrade acme.sh
 
 > 🚀 acme.sh is in constant development — it's strongly recommended to use the latest code.
 
@@ -493,25 +627,25 @@ acme.sh --upgrade --auto-upgrade 0
 
 ---
 
-### 1️⃣5️⃣ Issue a Certificate from an Existing CSR
+### 1️⃣6️⃣ Issue a Certificate from an Existing CSR
 
 📚 https://github.com/acmesh-official/acme.sh/wiki/Issue-a-cert-from-existing-CSR
 
 ---
 
-### 1️⃣6️⃣ Send Notifications in Cronjob
+### 1️⃣7️⃣ Send Notifications in Cronjob
 
 📚 https://github.com/acmesh-official/acme.sh/wiki/notify
 
 ---
 
-### 1️⃣7️⃣ Under the Hood
+### 1️⃣8️⃣ Under the Hood
 
 > 🔧 Speak ACME language using shell, directly to "Let's Encrypt".
 
 ---
 
-### 1️⃣8️⃣ Acknowledgments
+### 1️⃣9️⃣ Acknowledgments
 
 | Project | Link |
 |---------|------|
@@ -527,6 +661,8 @@ acme.sh --upgrade --auto-upgrade 0
 This project exists thanks to all the people who contribute.
 
 <a href="https://github.com/acmesh-official/acme.sh/graphs/contributors"><img src="https://opencollective.com/acmesh/contributors.svg?width=890&button=false" /></a>
+
+If you want to become a contributor make sure to read [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ### 💰 Financial Contributors
 
@@ -553,7 +689,7 @@ Support this project with your organization. Your logo will show up here with a 
 
 ---
 
-### 1️⃣9️⃣ License & Others
+### 2️⃣0️⃣ License & Others
 
 📄 **License:** GPLv3
 
@@ -563,7 +699,7 @@ Support this project with your organization. Your logo will show up here with a 
 
 ---
 
-### 2️⃣0️⃣ Donate
+### 2️⃣1️⃣ Donate
 
 > 💝 Your donation makes **acme.sh** better!
 
@@ -575,7 +711,7 @@ Support this project with your organization. Your logo will show up here with a 
 
 ---
 
-### 2️⃣1️⃣ About This Repository
+### 2️⃣2️⃣ About This Repository
 
 > [!NOTE]
 > This repository is officially maintained by <strong>ZeroSSL</strong> as part of our commitment to providing secure and reliable SSL/TLS solutions. We welcome contributions and feedback from the community!  

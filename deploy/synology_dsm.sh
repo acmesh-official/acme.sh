@@ -1,11 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
 ################################################################################
 # ACME.sh 3rd party deploy plugin for Synology DSM
 ################################################################################
 # Authors: Brian Hartvigsen (creator), https://github.com/tresni
 #          Martin Arndt (contributor), https://troublezone.net/
-# Updated: 2023-07-03
+#          Paul Smith (contributor),   https://github.com/TheUniquePaulSmith
+# Updated: 2026-11-07
 # Issues:  https://github.com/acmesh-official/acme.sh/issues/2727
 ################################################################################
 # Usage (shown values are the examples):
@@ -34,6 +35,16 @@
 #                                             interactive input the device name
 #   - export SYNO_DEVICE_ID=""      - (deprecated, auth with OTP code instead)
 #                                     required for omitting 2FA-OTP
+#   - export SYNO_TOTP_SECRET="BASE32SECRET" - the account's 2FA-OTP secret
+#                                     key (shown when enrolling 2FA in DSM as
+#                                     "enter key manually"). If set, a fresh
+#                                     OTP code is generated on every deploy,
+#                                     so unattended renewals keep working
+#                                     without relying on SYNO_DEVICE_ID.
+#                                     Saved to the domain conf: protect it as
+#                                     you would SYNO_PASSWORD.
+#   - export SYNO_USE_TOKEN=0       - disable SynoToken authentication
+#                                     when deploying to Synology SRM
 # 3. Run command:
 # acme.sh --deploy --deploy-hook synology_dsm -d example.com
 ################################################################################
@@ -64,6 +75,8 @@ synology_dsm_deploy() {
   _getdeployconf SYNO_PASSWORD
   _getdeployconf SYNO_DEVICE_ID
   _getdeployconf SYNO_DEVICE_NAME
+  _getdeployconf SYNO_TOTP_SECRET
+  _check2cleardeployconfexp SYNO_TOTP_SECRET
 
   # Prepare to use temp admin if SYNO_USE_TEMP_ADMIN is set
   _getdeployconf SYNO_USE_TEMP_ADMIN
@@ -72,7 +85,7 @@ synology_dsm_deploy() {
 
   if [ -n "$SYNO_USE_TEMP_ADMIN" ]; then
     if ! _exists synouser || ! _exists synogroup || ! _exists synosetkeyvalue; then
-      _err "Missing required tools to creat temp admin user, please set SYNO_USERNAME and SYNO_PASSWORD instead."
+      _err "Missing required tools to create temp admin user, please set SYNO_USERNAME and SYNO_PASSWORD instead."
       _err "Notice: temp admin user authorization method only supports local deployment on DSM."
       return 1
     fi
@@ -91,11 +104,19 @@ synology_dsm_deploy() {
     SYNO_DEVICE_ID=
     SYNO_DEVICE_NAME=
     SYNO_OTP_CODE=
+    SYNO_TOTP_SECRET=
   else
+    if [ -n "$SYNO_TOTP_SECRET" ]; then
+      # A fresh OTP code is generated for each login, so a saved device ID is
+      # not needed (and a stale one would otherwise block the login).
+      SYNO_DEVICE_ID=
+      [ -n "$SYNO_DEVICE_NAME" ] || SYNO_DEVICE_NAME="CertRenewal"
+    fi
     _debug2 SYNO_USERNAME "$SYNO_USERNAME"
     _secure_debug2 SYNO_PASSWORD "$SYNO_PASSWORD"
     _debug2 SYNO_DEVICE_NAME "$SYNO_DEVICE_NAME"
     _secure_debug2 SYNO_DEVICE_ID "$SYNO_DEVICE_ID"
+    _secure_debug2 SYNO_TOTP_SECRET "$SYNO_TOTP_SECRET"
   fi
 
   if [ -z "$SYNO_USERNAME" ] || [ -z "$SYNO_PASSWORD" ]; then
@@ -150,32 +171,34 @@ synology_dsm_deploy() {
   encoded_username="$(printf "%s" "$SYNO_USERNAME" | _url_encode)"
   encoded_password="$(printf "%s" "$SYNO_PASSWORD" | _url_encode)"
 
-  # ## START ## - DEPRECATED, for backward compatibility
-  _getdeployconf SYNO_TOTP_SECRET
+  # Configure SynoToken authentication (DSM only)
+  _getdeployconf SYNO_USE_TOKEN
+  _check2cleardeployconfexp SYNO_USE_TOKEN
+  _savedeployconf SYNO_USE_TOKEN "$SYNO_USE_TOKEN"
+  _syno_use_token=1
+  [ "$SYNO_USE_TOKEN" = "0" ] && _syno_use_token=""
 
+  if [ -n "$_syno_use_token" ]; then
+    enable_token_param="&enable_syno_token=yes"
+  else
+    enable_token_param=""
+  fi
+  _debug enable_token_param "$enable_token_param"
+
+  # If SYNO_TOTP_SECRET is set, generate the OTP code right before logging in,
+  # then continue with the regular 2FA-OTP login below.
   if [ -n "$SYNO_TOTP_SECRET" ]; then
-    _info "WARNING: Usage of SYNO_TOTP_SECRET is deprecated!"
-    _info "         See synology_dsm.sh script or ACME.sh Wiki page for details:"
-    _info "         https://github.com/acmesh-official/acme.sh/wiki/Synology-NAS-Guide"
-    if ! _exists oathtool; then
-      _err "oathtool could not be found, install oathtool to use SYNO_TOTP_SECRET"
+    # Avoid a code that expires before DSM receives it.
+    _syno_totp_left=$((30 - $(_time) % 30))
+    if [ "$_syno_totp_left" -lt 5 ]; then
+      _debug "Waiting $_syno_totp_left seconds for the next 2FA-OTP time step..."
+      _sleep "$_syno_totp_left"
+    fi
+    if ! SYNO_OTP_CODE="$(_syno_totp "$SYNO_TOTP_SECRET")" || [ -z "$SYNO_OTP_CODE" ]; then
+      _err "Failed to generate 2FA-OTP code from SYNO_TOTP_SECRET, please check the secret."
       return 1
     fi
-    DEPRECATED_otp_code="$(oathtool --base32 --totp "$SYNO_TOTP_SECRET" 2>/dev/null)"
-
-    if [ -z "$SYNO_DEVICE_ID" ]; then
-      _getdeployconf SYNO_DID
-      [ -n "$SYNO_DID" ] || SYNO_DEVICE_ID="$SYNO_DID"
-    fi
-    if [ -n "$SYNO_DEVICE_ID" ]; then
-      _H1="Cookie: did=$SYNO_DEVICE_ID"
-      export _H1
-      _debug3 H1 "${_H1}"
-    fi
-
-    response=$(_post "method=login&account=$encoded_username&passwd=$encoded_password&api=SYNO.API.Auth&version=$api_version&enable_syno_token=yes&otp_code=$DEPRECATED_otp_code&device_name=certrenewal&device_id=$SYNO_DEVICE_ID" "$_base_url/webapi/$api_path?enable_syno_token=yes")
-    _debug3 response "$response"
-  # ## END ## - DEPRECATED, for backward compatibility
+    response='{"error":{"code":403}}'
   # If SYNO_DEVICE_ID or SYNO_OTP_CODE is set, we treat current account enabled 2FA-OTP.
   # Notice that if SYNO_USE_TEMP_ADMIN=1, both variables will be unset
   else
@@ -225,7 +248,7 @@ synology_dsm_deploy() {
           otp_enforce_option=""
         fi
       fi
-      response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes")
+      response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password$enable_token_param")
       if [ -n "$SYNO_USE_TEMP_ADMIN" ] && [ -n "$otp_enforce_option" ]; then
         synosetkeyvalue /etc/synoinfo.conf otp_enforce_option "$otp_enforce_option"
         _info "Restored previous enforce 2FA-OTP option."
@@ -234,11 +257,11 @@ synology_dsm_deploy() {
     fi
   fi
 
-  error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -o '[0-9]*')
+  error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -Eo '[0-9]+')
   _debug2 error_code "$error_code"
   # Account has 2FA-OTP enabled, since error 403 reported.
   # https://global.download.synology.com/download/Document/Software/DeveloperGuide/Os/DSM/All/enu/DSM_Login_Web_API_Guide_enu.pdf
-  if [ "$error_code" == "403" ]; then
+  if [ "$error_code" = "403" ]; then
     if [ -z "$SYNO_DEVICE_NAME" ]; then
       printf "Enter device name or leave empty for default (CertRenewal): "
       read -r SYNO_DEVICE_NAME
@@ -247,7 +270,7 @@ synology_dsm_deploy() {
 
     if [ -n "$SYNO_DEVICE_ID" ]; then
       # Omit OTP code with SYNO_DEVICE_ID.
-      response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes&device_name=$SYNO_DEVICE_NAME&device_id=$SYNO_DEVICE_ID")
+      response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password$enable_token_param&device_name=$SYNO_DEVICE_NAME&device_id=$SYNO_DEVICE_ID")
       _secure_debug3 response "$response"
     else
       # Require the OTP code if still unset.
@@ -260,7 +283,11 @@ synology_dsm_deploy() {
       if [ -z "$SYNO_OTP_CODE" ]; then
         response='{"error":{"code":404}}'
       else
-        response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password&enable_syno_token=yes&enable_device_token=yes&device_name=$SYNO_DEVICE_NAME&otp_code=$SYNO_OTP_CODE")
+        _syno_device_token="&enable_device_token=yes"
+        # With SYNO_TOTP_SECRET a fresh OTP code is used on every login, so
+        # don't ask DSM to issue a device token that would never be used.
+        [ -z "$SYNO_TOTP_SECRET" ] || _syno_device_token=""
+        response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=login&format=sid&account=$encoded_username&passwd=$encoded_password$enable_token_param$_syno_device_token&device_name=$SYNO_DEVICE_NAME&otp_code=$SYNO_OTP_CODE")
         _secure_debug3 response "$response"
 
         id_property='device_id'
@@ -269,27 +296,27 @@ synology_dsm_deploy() {
         _secure_debug2 SYNO_DEVICE_ID "$SYNO_DEVICE_ID"
       fi
     fi
-    error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -o '[0-9]*')
+    error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -Eo '[0-9]+')
     _debug2 error_code "$error_code"
   fi
 
   if [ -n "$error_code" ]; then
-    if [ "$error_code" == "403" ] && [ -n "$SYNO_DEVICE_ID" ]; then
+    if [ "$error_code" = "403" ] && [ -n "$SYNO_DEVICE_ID" ]; then
       _cleardeployconf SYNO_DEVICE_ID
-      _err "Failed to authenticate with SYNO_DEVICE_ID (may expired or invalid), please try again in a new terminal window."
-    elif [ "$error_code" == "404" ]; then
+      _err "Failed to authenticate with SYNO_DEVICE_ID (may be expired or invalid), please try again in a new terminal window."
+    elif [ "$error_code" = "404" ]; then
       _err "Failed to authenticate with provided 2FA-OTP code, please try again in a new terminal window."
-    elif [ "$error_code" == "406" ]; then
+    elif [ "$error_code" = "406" ]; then
       if [ -n "$SYNO_USE_TEMP_ADMIN" ]; then
         _err "Failed with unexcepted error, please report this by providing full log with '--debug 3'."
       else
         _err "Enforce auth with 2FA-OTP enabled, please configure the user to enable 2FA-OTP to continue."
       fi
-    elif [ "$error_code" == "400" ]; then
+    elif [ "$error_code" = "400" ]; then
       _err "Failed to authenticate, no such account or incorrect password."
-    elif [ "$error_code" == "401" ]; then
+    elif [ "$error_code" = "401" ]; then
       _err "Failed to authenticate with a non-existent account."
-    elif [ "$error_code" == "408" ] || [ "$error_code" == "409" ] || [ "$error_code" == "410" ]; then
+    elif [ "$error_code" = "408" ] || [ "$error_code" = "409" ] || [ "$error_code" = "410" ]; then
       _err "Failed to authenticate, the account password has expired or must be changed."
     else
       _err "Failed to authenticate with error: $error_code."
@@ -302,14 +329,18 @@ synology_dsm_deploy() {
   token=$(echo "$response" | grep "synotoken" | sed -n 's/.*"synotoken" *: *"\([^"]*\).*/\1/p')
   _debug "Session ID" "$sid"
   _debug SynoToken "$token"
-  if [ -z "$sid" ] || [ -z "$token" ]; then
+  if [ -z "$sid" ] || { [ -n "$_syno_use_token" ] && [ -z "$token" ]; }; then
     # Still can't get necessary info even got no errors, may Synology have API updated?
     _err "Unable to authenticate to $_base_url, you may report this by providing full log with '--debug 3'."
     _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 1
   fi
 
-  _H1="X-SYNO-TOKEN: $token"
+  if [ -n "$_syno_use_token" ]; then
+    _H1="X-SYNO-TOKEN: $token"
+  else
+    _H1=""
+  fi
   export _H1
   _debug2 H1 "${_H1}"
 
@@ -319,12 +350,18 @@ synology_dsm_deploy() {
     _cleardeployconf SYNO_PASSWORD
     _cleardeployconf SYNO_DEVICE_ID
     _cleardeployconf SYNO_DEVICE_NAME
+    _cleardeployconf SYNO_TOTP_SECRET
     _savedeployconf SYNO_USE_TEMP_ADMIN "$SYNO_USE_TEMP_ADMIN"
     _savedeployconf SYNO_LOCAL_HOSTNAME "$SYNO_LOCAL_HOSTNAME"
   else
-    _savedeployconf SYNO_USERNAME "$SYNO_USERNAME"
-    _savedeployconf SYNO_PASSWORD "$SYNO_PASSWORD"
-    _savedeployconf SYNO_DEVICE_ID "$SYNO_DEVICE_ID"
+    _savedeployconf SYNO_USERNAME "$SYNO_USERNAME" "base64"
+    _savedeployconf SYNO_PASSWORD "$SYNO_PASSWORD" "base64"
+    if [ -n "$SYNO_TOTP_SECRET" ]; then
+      _savedeployconf SYNO_TOTP_SECRET "$SYNO_TOTP_SECRET" "base64"
+      _cleardeployconf SYNO_DEVICE_ID
+    else
+      _savedeployconf SYNO_DEVICE_ID "$SYNO_DEVICE_ID"
+    fi
     _savedeployconf SYNO_DEVICE_NAME "$SYNO_DEVICE_NAME"
   fi
 
@@ -336,7 +373,7 @@ synology_dsm_deploy() {
   id=$(echo "$response" | sed -n "s/.*\"desc\":\"$escaped_certificate\",\"id\":\"\([^\"]*\).*/\1/p")
   _debug2 id "$id"
 
-  error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -o '[0-9]*')
+  error_code=$(echo "$response" | grep '"error":' | grep -o '"code":[0-9]*' | grep -Eo '[0-9]+')
   _debug2 error_code "$error_code"
   if [ -n "$error_code" ]; then
     if [ "$error_code" -eq 105 ]; then
@@ -344,6 +381,7 @@ synology_dsm_deploy() {
     else
       _err "Failed to fetch certificate info: $error_code, please try again or contact Synology to learn more."
     fi
+    _logout
     _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 1
   fi
@@ -354,6 +392,7 @@ synology_dsm_deploy() {
 
   if [ -z "$id" ] && [ -z "$SYNO_CREATE" ]; then
     _err "Unable to find certificate: $SYNO_CERTIFICATE and \$SYNO_CREATE is not set."
+    _logout
     _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 1
   fi
@@ -379,23 +418,30 @@ synology_dsm_deploy() {
   content="$(printf "%b_" "$content")"
   content="${content%_}" # protect trailing \n
 
+  if [ -n "$_syno_use_token" ]; then
+    token_param="&SynoToken=$token"
+  else
+    token_param=""
+  fi
+  _debug token_param "$token_param"
+
   _info "Upload certificate to the Synology DSM."
-  response=$(_post "$content" "$_base_url/webapi/entry.cgi?api=SYNO.Core.Certificate&method=import&version=1&SynoToken=$token&_sid=$sid" "" "POST" "multipart/form-data; boundary=${delim}")
+  response=$(_post "$content" "$_base_url/webapi/entry.cgi?api=SYNO.Core.Certificate&method=import&version=1$token_param&_sid=$sid" "" "POST" "multipart/form-data; boundary=${delim}")
   _debug3 response "$response"
 
   if ! echo "$response" | grep '"error":' >/dev/null; then
     if echo "$response" | grep '"restart_httpd":true' >/dev/null; then
       _info "Restart HTTP services succeeded."
     else
-      _info "Restart HTTP services failed."
+      _info "Restart HTTP services not necessary."
     fi
-    _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     _logout
+    _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 0
   else
-    _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     _err "Unable to update certificate, got error response: $response."
     _logout
+    _temp_admin_cleanup "$SYNO_USE_TEMP_ADMIN" "$SYNO_USERNAME"
     return 1
   fi
 }
@@ -403,6 +449,8 @@ synology_dsm_deploy() {
 ####################  Private functions below ##################################
 _logout() {
   # Logout CERT user only to not occupy a permanent session, e.g. in DSM's "Connected Users" widget (based on previous variables)
+  # Must be called before _temp_admin_cleanup: once the temp admin is deleted, its session can no longer be logged out.
+  # Note: this overwrites $response, so print any error message that needs it before calling.
   response=$(_get "$_base_url/webapi/$api_path?api=SYNO.API.Auth&version=$api_version&method=logout&_sid=$sid")
   _debug3 response "$response"
 }
@@ -424,9 +472,50 @@ _temp_admin_cleanup() {
   fi
 }
 
-#_cleardeployconf   key
-_cleardeployconf() {
-  _cleardomainconf "SAVED_$1"
+# Generate a 6-digit TOTP code (RFC 6238: HMAC-SHA1, 30-second time step).
+# Usage: _syno_totp base32_secret [unix_time]
+_syno_totp() {
+  _syno_secret=$(printf "%s" "$1" | tr -d ' =\r\n' | _upper_case)
+  _syno_time="${2:-$(_time)}"
+
+  # Base32 decode the secret into a hex key
+  _syno_alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+  _syno_buffer=0
+  _syno_bits=0
+  _syno_keyhex=""
+  _syno_rest="$_syno_secret"
+  while [ -n "$_syno_rest" ]; do
+    _syno_c="${_syno_rest%"${_syno_rest#?}"}"
+    _syno_rest="${_syno_rest#?}"
+    _syno_prefix="${_syno_alphabet%%"$_syno_c"*}"
+    if [ "${#_syno_prefix}" -eq 32 ]; then
+      _err "SYNO_TOTP_SECRET contains an invalid Base32 character."
+      return 1
+    fi
+    _syno_buffer=$(((_syno_buffer << 5) | ${#_syno_prefix}))
+    _syno_bits=$((_syno_bits + 5))
+    if [ "$_syno_bits" -ge 8 ]; then
+      _syno_bits=$((_syno_bits - 8))
+      _syno_keyhex="$_syno_keyhex$(printf "%02x" $(((_syno_buffer >> _syno_bits) & 255)))"
+      _syno_buffer=$((_syno_buffer & ((1 << _syno_bits) - 1)))
+    fi
+  done
+  if [ -z "$_syno_keyhex" ]; then
+    _err "SYNO_TOTP_SECRET is empty or too short."
+    return 1
+  fi
+
+  # HMAC-SHA1 over the time counter as 8 big-endian bytes
+  _syno_digest=$(printf "%016x" $((_syno_time / 30)) | _h2b | _hmac sha1 "$_syno_keyhex" hex)
+  if [ "${#_syno_digest}" -ne 40 ]; then
+    _err "Failed to calculate HMAC-SHA1 for 2FA-OTP code."
+    return 1
+  fi
+
+  # Dynamic truncation (RFC 4226)
+  _syno_offset=$((0x${_syno_digest#"${_syno_digest%?}"} * 2 + 1))
+  _syno_part=$(printf "%s" "$_syno_digest" | cut -c "$_syno_offset-$((_syno_offset + 7))")
+  printf "%06d" $(((0x$_syno_part & 0x7FFFFFFF) % 1000000))
 }
 
 # key

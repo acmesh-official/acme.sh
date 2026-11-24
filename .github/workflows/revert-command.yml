@@ -1,0 +1,110 @@
+name: Revert Command
+
+# An issue titled "revert: <wiki-commit-sha>" opened by the maintainer or
+# a write-access member reverts that commit in the wiki repository and
+# closes the issue. The wiki-monitor notification embeds a prefilled link
+# that opens such an issue in one click.
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+# Share the wiki-guard concurrency group so we never push to the wiki
+# at the same time as the guard.
+concurrency:
+  group: wiki-guard
+  cancel-in-progress: false
+
+jobs:
+  revert:
+    # Upstream only: forks have no <fork>.wiki repository to push to.
+    if: github.repository == 'acmesh-official/acme.sh' && startsWith(github.event.issue.title, 'revert:')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check authorization
+        id: auth
+        run: |
+          assoc="${{ github.event.issue.author_association }}"
+          case "$assoc" in
+            OWNER|MEMBER|COLLABORATOR)
+              echo "ok=true" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "issue author is not authorized ($assoc); ignoring"
+              echo "ok=false" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: Checkout wiki repository
+        if: steps.auth.outputs.ok == 'true'
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki
+          fetch-depth: 0
+
+      - name: Revert the wiki commit
+        if: steps.auth.outputs.ok == 'true'
+        id: revert
+        env:
+          TITLE: ${{ github.event.issue.title }}
+        run: |
+          target="$(printf '%s' "$TITLE" \
+            | sed 's/^revert:[[:space:]]*//; s/[[:space:]].*$//' \
+            | tr 'A-Z' 'a-z')"
+          case "$target" in
+            *[!0-9a-f]*|"")
+              echo "invalid commit sha: '$target'"
+              echo "result=invalid" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
+          echo "target=$target" >> "$GITHUB_OUTPUT"
+          cd wiki
+          if ! git cat-file -e "$target^{commit}" 2>/dev/null; then
+            echo "result=notfound" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git revert --no-edit "$target"; then
+            git push origin HEAD || { git pull --rebase && git push origin HEAD; }
+            echo "result=reverted" >> "$GITHUB_OUTPUT"
+          else
+            git revert --abort || true
+            echo "result=conflict" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Reply and close
+        if: steps.auth.outputs.ok == 'true'
+        uses: actions/github-script@v9
+        env:
+          RESULT: ${{ steps.revert.outputs.result }}
+          TARGET: ${{ steps.revert.outputs.target }}
+        with:
+          script: |
+            const result = process.env.RESULT;
+            const target = process.env.TARGET;
+            const messages = {
+              reverted: `Wiki commit \`${target}\` has been reverted.`,
+              conflict: `Reverting \`${target}\` conflicts with later edits; please revert manually from the page history.`,
+              notfound: `Commit \`${target}\` was not found in the wiki repository.`,
+              invalid: "Could not parse a commit sha from the issue title."
+            };
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: messages[result] || "No action taken."
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: "closed",
+              state_reason: result === "reverted" ? "completed" : "not_planned"
+            });

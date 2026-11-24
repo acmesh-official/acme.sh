@@ -186,7 +186,7 @@ _oauth2() {
 _oauth2_std() {
   # HTTP Basic Authentication
   _H1="Authorization: Basic $(echo "$MB_AK:$MB_AS" | _base64)"
-  _H2="Accepts: application/json"
+  _H2="Accept: application/json"
   export _H1 _H2
   body="grant_type=client_credentials"
 
@@ -210,7 +210,7 @@ _oauth2_std() {
 }
 
 _oauth2_github() {
-  _H1="Accepts: application/json"
+  _H1="Accept: application/json"
   export _H1
   body="{\"login\":{\"handle\":\"$MB_AK\",\"pass\":\"$MB_AS\",\"floating\":1}}"
 
@@ -241,7 +241,7 @@ _mb_rest() {
   fi
 
   _H1="Authorization: Bearer $MB_TK"
-  _H2="Accepts: application/json"
+  _H2="Accept: application/json"
   export _H1 _H2
   if [ "$data" ] || [ "$m" = "POST" ] || [ "$m" = "PUT" ] || [ "$m" = "DELETE" ]; then
     # body  url [needbase64] [POST|PUT|DELETE] [ContentType]

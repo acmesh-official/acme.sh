@@ -4,15 +4,10 @@ dns_simply_info='Simply.com
 Site: Simply.com
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_simply
 Options:
- SIMPLY_AccountName Account name
  SIMPLY_ApiKey API Key
 '
 
-#SIMPLY_Api="https://api.simply.com/2/"
-SIMPLY_Api_Default="https://api.simply.com/2"
-
-#This is used for determining success of REST call
-SIMPLY_SUCCESS_CODE='"status":200'
+SIMPLY_Api="https://api.simply.com/2"
 
 ########  Public functions #####################
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
@@ -72,7 +67,16 @@ dns_simply_rm() {
     return 1
   fi
 
-  records=$(echo "$response" | tr '{' "\n" | grep 'record_id\|type\|data\|\name' | sed 's/\"record_id/;\"record_id/' | tr "\n" ' ' | tr -d ' ' | tr ';' ' ')
+  case "$_simply_http_code" in
+  2*) ;;
+  *)
+    _err "Failed to fetch DNS records (HTTP $_simply_http_code)"
+    _err "$response"
+    return 1
+    ;;
+  esac
+
+  records=$(echo "$response" | tr '{' "\n" | grep -E 'record_id|type|data|name' | sed 's/\"record_id/;\"record_id/' | tr "\n" ' ' | tr -d ' ' | tr ';' ' ')
 
   nr_of_deleted_records=0
   _info "Fetching txt record"
@@ -95,7 +99,7 @@ dns_simply_rm() {
 
       if [ "$record_id" -gt 0 ]; then
 
-        if ! _simply_delete_record "$_domain" "$_sub_domain" "$record_id"; then
+        if ! _simply_delete_record "$_domain" "$record_id"; then
           _err "Record with id $record_id could not be deleted"
           return 1
         fi
@@ -122,20 +126,11 @@ dns_simply_rm() {
 ####################  Private functions below ##################################
 
 _simply_load_config() {
-  SIMPLY_Api="${SIMPLY_Api:-$(_readaccountconf_mutable SIMPLY_Api)}"
-  SIMPLY_AccountName="${SIMPLY_AccountName:-$(_readaccountconf_mutable SIMPLY_AccountName)}"
   SIMPLY_ApiKey="${SIMPLY_ApiKey:-$(_readaccountconf_mutable SIMPLY_ApiKey)}"
 
-  if [ -z "$SIMPLY_Api" ]; then
-    SIMPLY_Api="$SIMPLY_Api_Default"
-  fi
-
-  if [ -z "$SIMPLY_AccountName" ] || [ -z "$SIMPLY_ApiKey" ]; then
-    SIMPLY_AccountName=""
-    SIMPLY_ApiKey=""
-
-    _err "A valid Simply API account and apikey not provided."
-    _err "Please provide a valid API user and try again."
+  if [ -z "$SIMPLY_ApiKey" ]; then
+    _err "A valid Simply.com API key not provided."
+    _err "Please provide a valid API key and try again."
 
     return 1
   fi
@@ -144,10 +139,6 @@ _simply_load_config() {
 }
 
 _simply_save_config() {
-  if [ "$SIMPLY_Api" != "$SIMPLY_Api_Default" ]; then
-    _saveaccountconf_mutable SIMPLY_Api "$SIMPLY_Api"
-  fi
-  _saveaccountconf_mutable SIMPLY_AccountName "$SIMPLY_AccountName"
   _saveaccountconf_mutable SIMPLY_ApiKey "$SIMPLY_ApiKey"
 }
 
@@ -162,31 +153,89 @@ _simply_get_all_records() {
 }
 
 _get_root() {
-  domain=$1
+  domain=$(_idn "$1" | _lower_case)
+
+  if ! _simply_rest GET "my/products/"; then
+    return 1
+  fi
+
+  case "$_simply_http_code" in
+  2*) ;;
+  *)
+    _err "Failed to fetch product list (HTTP $_simply_http_code)"
+    _err "$response"
+    return 1
+    ;;
+  esac
+
   i=2
   p=1
   while true; do
     h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
     if [ -z "$h" ]; then
-      #not valid
       return 1
     fi
 
-    if ! _simply_rest GET "my/products/$h/dns/"; then
-      return 1
-    fi
+    _domain=""
+    while IFS= read -r _simply_line || [ -n "$_simply_line" ]; do
+      _simply_lc="$(printf "%s\n" "$_simply_line" | _lower_case)"
+      case "$_simply_lc" in
+      *"\"object\":\"$h\""* | *"\"name\":\"$h\""* | *"\"name_idn\":\"$h\""*)
+        _domain="$(printf "%s\n" "$_simply_line" | sed -n 's/.*"object":"\([^"]*\)".*/\1/p')"
+        break
+        ;;
+      esac
+    done <<EOF
+$(printf "%s\n" "$response" | tr '}' '\n')
+EOF
 
-    if ! _contains "$response" "$SIMPLY_SUCCESS_CODE"; then
-      _debug "$h not found"
-    else
+    if [ -n "$_domain" ]; then
+      _domain=$(_simply_object_urlencode "$_domain")
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
-      _domain="$h"
       return 0
     fi
+
+    _debug "No Simply.com product found for $h"
     p="$i"
     i=$(_math "$i" + 1)
   done
   return 1
+}
+
+#The product list escapes non-ASCII object names as \uXXXX, turn those into percent-encoded UTF-8
+_simply_object_urlencode() {
+  _sju_str="$1"
+  while true; do
+    case "$_sju_str" in
+    *\\u????*) ;;
+    *)
+      printf "%s" "$_sju_str"
+      return 0
+      ;;
+    esac
+    printf "%s" "${_sju_str%%\\u*}"
+    _sju_str="${_sju_str#*\\u}"
+    _sju_cp=$((0x${_sju_str%"${_sju_str#????}"}))
+    _sju_str="${_sju_str#????}"
+    if [ "$_sju_cp" -ge 55296 ] && [ "$_sju_cp" -le 56319 ]; then
+      case "$_sju_str" in
+      \\u????*)
+        _sju_str="${_sju_str#??}"
+        _sju_cp=$((65536 + (_sju_cp - 55296) * 1024 + 0x${_sju_str%"${_sju_str#????}"} - 56320))
+        _sju_str="${_sju_str#????}"
+        ;;
+      esac
+    fi
+    if [ "$_sju_cp" -lt 128 ]; then
+      printf "%%%02X" "$_sju_cp"
+    elif [ "$_sju_cp" -lt 2048 ]; then
+      printf "%%%02X%%%02X" $((192 + _sju_cp / 64)) $((128 + _sju_cp % 64))
+    elif [ "$_sju_cp" -lt 65536 ]; then
+      printf "%%%02X%%%02X%%%02X" $((224 + _sju_cp / 4096)) $((128 + _sju_cp / 64 % 64)) $((128 + _sju_cp % 64))
+    else
+      printf "%%%02X%%%02X%%%02X%%%02X" $((240 + _sju_cp / 262144)) $((128 + _sju_cp / 4096 % 64)) $((128 + _sju_cp / 64 % 64)) $((128 + _sju_cp % 64))
+    fi
+  done
 }
 
 _simply_add_record() {
@@ -194,39 +243,44 @@ _simply_add_record() {
   sub_domain=$2
   txtval=$3
 
-  data="{\"name\": \"$sub_domain\", \"type\":\"TXT\", \"data\": \"$txtval\", \"priority\":0, \"ttl\": 3600}"
+  data="{\"name\": \"$sub_domain\", \"type\":\"TXT\", \"data\": \"$txtval\", \"priority\":0, \"ttl\": 120}"
 
   if ! _simply_rest POST "my/products/$domain/dns/records/" "$data"; then
-    _err "Adding record not successfull!"
+    _err "Adding record not successful!"
     return 1
   fi
 
-  if ! _contains "$response" "$SIMPLY_SUCCESS_CODE"; then
-    _err "Call to API not sucessfull, see below message for more details"
+  case "$_simply_http_code" in
+  2*) ;;
+  *)
+    _err "Call to API not successful (HTTP $_simply_http_code), see below message for more details"
     _err "$response"
     return 1
-  fi
+    ;;
+  esac
 
   return 0
 }
 
 _simply_delete_record() {
   domain=$1
-  sub_domain=$2
-  record_id=$3
+  record_id=$2
 
   _debug record_id "Delete record with id $record_id"
 
   if ! _simply_rest DELETE "my/products/$domain/dns/records/$record_id/"; then
-    _err "Deleting record not successfull!"
+    _err "Deleting record not successful!"
     return 1
   fi
 
-  if ! _contains "$response" "$SIMPLY_SUCCESS_CODE"; then
-    _err "Call to API not sucessfull, see below message for more details"
+  case "$_simply_http_code" in
+  2*) ;;
+  *)
+    _err "Call to API not successful (HTTP $_simply_http_code), see below message for more details"
     _err "$response"
     return 1
-  fi
+    ;;
+  esac
 
   return 0
 }
@@ -240,13 +294,10 @@ _simply_rest() {
   _debug2 ep "$ep"
   _debug2 m "$m"
 
-  basicauth=$(printf "%s:%s" "$SIMPLY_AccountName" "$SIMPLY_ApiKey" | _base64)
-
-  if [ "$basicauth" ]; then
-    export _H1="Authorization: Basic $basicauth"
-  fi
-
+  export _H1="Authorization: Bearer $SIMPLY_ApiKey"
   export _H2="Content-Type: application/json"
+
+  : >"$HTTP_HEADER"
 
   if [ "$m" != "GET" ]; then
     response="$(_post "$data" "$SIMPLY_Api/$ep" "" "$m")"
@@ -254,17 +305,22 @@ _simply_rest() {
     response="$(_get "$SIMPLY_Api/$ep")"
   fi
 
-  if [ "$?" != "0" ]; then
+  _ret="$?"
+  unset _H1 _H2
+
+  if [ "$_ret" != "0" ]; then
     _err "error $ep"
     return 1
   fi
+
+  _simply_http_code="$(grep "^HTTP" "$HTTP_HEADER" | _tail_n 1 | cut -d' ' -f2 | tr -d '\r\n')"
 
   response="$(echo "$response" | _normalizeJson)"
 
   _debug2 response "$response"
 
   if _contains "$response" "Invalid account authorization"; then
-    _err "It seems that your api key or accountnumber is not correct."
+    _err "It seems that your api key is not correct."
     return 1
   fi
 

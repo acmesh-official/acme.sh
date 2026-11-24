@@ -140,7 +140,7 @@ _me_rest() {
   data="$3"
   _debug "$ep"
 
-  cdate=$(LANG=C date -u +"%a, %d %b %Y %T %Z")
+  cdate=$(LC_ALL=C date -u +"%a, %d %b %Y %T %Z")
   hmac=$(printf "%s" "$cdate" | _hmac sha1 "$(printf "%s" "$ME_Secret" | _hex_dump | tr -d " ")" hex)
 
   export _H1="x-dnsme-apiKey: $ME_Key"

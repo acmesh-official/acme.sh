@@ -18,7 +18,9 @@ Ali_DNS_API="https://alidns.aliyuncs.com/"
 
 #Usage: dns_ali_add   _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_ali_add() {
-  fulldomain=$1
+  # the API only accepts punycode for IDN domains, and a raw UTF-8 domain
+  # also breaks the request signature (issue 4733)
+  fulldomain=$(_idn "$1")
   txtvalue=$2
 
   _prepare_ali_credentials || return 1
@@ -33,7 +35,7 @@ dns_ali_add() {
 }
 
 dns_ali_rm() {
-  fulldomain=$1
+  fulldomain=$(_idn "$1")
   txtvalue=$2
   Ali_Key="${Ali_Key:-$(_readaccountconf_mutable Ali_Key)}"
   Ali_Secret="${Ali_Secret:-$(_readaccountconf_mutable Ali_Secret)}"
@@ -69,8 +71,8 @@ _ali_rest() {
   ign="$2"
   mtd="${3:-GET}"
 
-  signature=$(printf "%s" "$mtd&%2F&$(printf "%s" "$query" | _url_encode upper-hex)" | _hmac "sha1" "$(printf "%s" "$Ali_Secret&" | _hex_dump | tr -d " ")" | _base64)
-  signature=$(printf "%s" "$signature" | _url_encode upper-hex)
+  signature=$(printf "%s" "$mtd&%2F&$(printf "%s" "$query" | _ali_urlencode_upper)" | _hmac "sha1" "$(printf "%s" "$Ali_Secret&" | _hex_dump | tr -d " ")" | _base64)
+  signature=$(printf "%s" "$signature" | _ali_urlencode_upper)
   url="$endpoint?Signature=$signature"
 
   if [ "$mtd" = "GET" ]; then
@@ -94,6 +96,20 @@ _ali_rest() {
       return 1
     fi
   fi
+}
+
+# stdin stdout
+# The Aliyun signature requires percent-encoding with upper-case hex.
+# Do not use "_url_encode upper-hex" here: this file is also bundled by
+# third parties (e.g. Proxmox VE proxmox-acme) whose older copies of the
+# acme.sh function library ignore the upper-hex argument and output
+# lower-case hex, which invalidates the signature.
+# https://github.com/acmesh-official/acme.sh/issues/6272
+_ali_urlencode_upper() {
+  {
+    _url_encode
+    echo
+  } | sed 's/%a/%A/g;s/%b/%B/g;s/%c/%C/g;s/%d/%D/g;s/%e/%E/g;s/%f/%F/g;s/%\(.\)a/%\1A/g;s/%\(.\)b/%\1B/g;s/%\(.\)c/%\1C/g;s/%\(.\)d/%\1D/g;s/%\(.\)e/%\1E/g;s/%\(.\)f/%\1F/g'
 }
 
 _ali_nonce() {

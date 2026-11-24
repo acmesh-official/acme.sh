@@ -224,7 +224,7 @@ _ovh_authentication() {
   _H3=""
   _H4=""
 
-  _ovhdata='{"accessRules": [{"method": "GET","path": "/auth/time"},{"method": "GET","path": "/domain"},{"method": "GET","path": "/domain/zone/*"},{"method": "GET","path": "/domain/zone/*/record"},{"method": "POST","path": "/domain/zone/*/record"},{"method": "POST","path": "/domain/zone/*/refresh"},{"method": "PUT","path": "/domain/zone/*/record/*"},{"method": "DELETE","path": "/domain/zone/*/record/*"}],"redirection":"'$ovh_success'"}'
+  _ovhdata='{"accessRules": [{"method": "GET","path": "/auth/time"},{"method": "GET","path": "/domain"},{"method": "GET","path": "/domain/zone/*"},{"method": "GET","path": "/domain/zone/*/record"},{"method": "GET","path": "/domain/zone/*/record/*"},{"method": "POST","path": "/domain/zone/*/record"},{"method": "POST","path": "/domain/zone/*/refresh"},{"method": "PUT","path": "/domain/zone/*/record/*"},{"method": "DELETE","path": "/domain/zone/*/record/*"}],"redirection":"'$ovh_success'"}'
 
   response="$(_post "$_ovhdata" "$OVH_API/auth/credential")"
   _debug3 response "$response"
@@ -320,7 +320,7 @@ _ovh_rest() {
     response="$(_get "$_ovh_url")"
   fi
 
-  if [ "$?" != "0" ] || _contains "$response" "INVALID_CREDENTIAL"; then
+  if [ "$?" != "0" ] || _contains "$response" "INVALID_CREDENTIAL" || _contains "$response" "This credential is not valid"; then
     _err "error $response"
     return 1
   fi

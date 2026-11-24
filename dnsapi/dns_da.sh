@@ -4,7 +4,7 @@ dns_da_info='DirectAdmin Server API
 Site: DirectAdmin.com/api.php
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_da
 Options:
- DA_Api API Server URL. E.g. "https://remoteUser:remotePassword@da.domain.tld:8443"
+ DA_Api API Server URL. E.g. "https://remoteUser:remotePassword@da.domain.tld:8443". Special characters in the user/password must be percent-encoded, e.g. "@" -> "%40".
  DA_Api_Insecure Insecure TLS. 0: check for cert validity, 1: always accept
 Issues: github.com/TigerP/acme.sh/issues
 '

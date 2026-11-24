@@ -49,6 +49,16 @@ dns_acmedns_add() {
     _acmedns_lookup_from_json "$fulldomain"
   fi
 
+  # For compatibility: old versions stored ACMEDNS_UPDATE_URL in the account
+  # conf (issue 3899). Do not clear it here: it must stay available for the
+  # other domains that have not migrated to their domain conf yet.
+  if [ -z "$ACMEDNS_BASE_URL" ]; then
+    _acmedns_update_url="$(_readaccountconf_mutable ACMEDNS_UPDATE_URL)"
+    if [ "$_acmedns_update_url" ]; then
+      ACMEDNS_BASE_URL="$(echo "$_acmedns_update_url" | sed 's#/update$##')"
+    fi
+  fi
+
   # Default acme-dns endpoint
   [ -z "$ACMEDNS_BASE_URL" ] && ACMEDNS_BASE_URL="https://auth.acme-dns.io"
 
@@ -93,7 +103,7 @@ dns_acmedns_add() {
   data="{\"subdomain\":\"$ACMEDNS_SUBDOMAIN\", \"txt\": \"$txtvalue\"}"
 
   _debug data "$data"
-  response="$(_post "$data" "$ACMEDNS_UPDATE_URL" "" "POST")"
+  response="$(_post "$data" "$ACMEDNS_UPDATE_URL" "" "POST" "application/json")"
   _debug response "$response"
 
   if ! echo "$response" | grep "\"$txtvalue\"" >/dev/null; then

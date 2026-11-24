@@ -1,0 +1,66 @@
+name: Nginx
+on:
+  push:
+    paths:
+      - '*.sh'
+      - '.github/workflows/Nginx.yml'
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - '*.sh'
+      - '.github/workflows/Nginx.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  Nginx:
+    runs-on: ubuntu-latest
+    env:
+      TestingDomain: example.com
+      TEST_ACME_Server: https://localhost:14000/dir
+      HTTPS_INSECURE: 1
+      TEST_LOCAL: 1
+      TEST_CA: "Pebble Intermediate CA"
+      TEST_NGINX: 1
+      CASE: le_test_nginx
+    steps:
+    - uses: actions/checkout@v6
+    - name: Install tools
+      run: sudo apt-get install -y socat nginx
+    - name: Run Pebble
+      run: cd .. && curl https://raw.githubusercontent.com/letsencrypt/pebble/master/docker-compose.yml >docker-compose.yml && docker compose up -d
+    - name: Set up Pebble
+      run: curl --request POST --data '{"ip":"10.30.50.1"}' http://localhost:8055/set-default-ipv4
+    - name: Set up nginx
+      # a backend on 8081 plus a site with an aaPanel/BT style
+      # "location ^~ /" proxy block that shadows plain regex locations
+      # (regression for #6125); the site listens on 5002, which is the
+      # HTTP-01 validation port in Pebble's default config
+      run: |
+        sudo tee /etc/nginx/sites-available/default >/dev/null <<'EOF'
+        server {
+          listen 127.0.0.1:8081;
+          location / {
+            default_type text/plain;
+            return 200 "backend";
+          }
+        }
+        server {
+          listen 5002 default_server;
+          server_name example.com;
+          location ^~ / {
+            proxy_pass http://127.0.0.1:8081;
+            proxy_set_header Host $http_host;
+          }
+        }
+        EOF
+        sudo nginx -t
+        sudo systemctl restart nginx
+        curl -s -H "Host: example.com" http://127.0.0.1:5002/ | grep backend
+    - name: Clone acmetest
+      run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
+    - name: Run acmetest
+      run: cd ../acmetest && sudo --preserve-env ./letest.sh

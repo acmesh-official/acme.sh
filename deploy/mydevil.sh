@@ -54,6 +54,8 @@ mydevil_deploy() {
 # Usage: ip=$(mydevil_get_ip domain.com)
 #        echo $ip
 mydevil_get_ip() {
-  devil dns list "$1" | cut -w -s -f 3,7 | grep "^A$(printf '\t')" | cut -w -s -f 2 || return 1
+  # tr squeezes runs of blanks into one tab so plain cut works everywhere;
+  # cut -w is BSD-only and unknown to GNU coreutils
+  devil dns list "$1" | tr -s ' \t' '\t' | cut -s -f 3,7 | grep "^A$(printf '\t')" | cut -s -f 2 || return 1
   return 0
 }

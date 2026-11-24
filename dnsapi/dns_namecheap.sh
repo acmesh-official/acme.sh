@@ -104,6 +104,9 @@ _get_root_by_getList() {
     return 1
   fi
 
+  _namecheap_domain_list=$(echo "$response" | _egrep_o '<Domain [^>]*')
+  _debug2 domain_list "$_namecheap_domain_list"
+
   i=2
   p=1
 
@@ -120,7 +123,7 @@ _get_root_by_getList() {
       return 1
     fi
 
-    if ! _contains "$response" "$h"; then
+    if ! _namecheap_is_our_dns "$h"; then
       _debug "$h not found"
     else
       _sub_domain=$(printf "%s" "$domain" | cut -d . -f 1-"$p")
@@ -130,6 +133,29 @@ _get_root_by_getList() {
     p="$i"
     i=$(_math "$i" + 1)
   done
+  return 1
+}
+
+#Usage: _namecheap_is_our_dns <domain>
+#Succeeds only when domains.getList listed exactly <domain> AND that entry is
+#served by Namecheap's own DNS. A domain parked on Namecheap's webhosting DNS
+#is listed with IsOurDNS="false", and every dns.getHosts/setHosts call against
+#it is refused with error 2030288 "not using proper DNS servers". Accepting
+#such a domain as the root zone hides a subdomain that IS delegated to
+#Namecheap DNS and that the getHosts probe below would have found.
+#https://github.com/acmesh-official/acme.sh/issues/7178
+_namecheap_is_our_dns() {
+  _namecheap_entry=$(echo "$_namecheap_domain_list" | grep -F " Name=\"$1\"" | _head_n 1)
+  if [ -z "$_namecheap_entry" ]; then
+    return 1
+  fi
+
+  _namecheap_ourdns=$(echo "$_namecheap_entry" | _egrep_o ' IsOurDNS="[^"]*' | cut -d '"' -f 2)
+  _debug2 "$1 IsOurDNS" "$_namecheap_ourdns"
+
+  if [ "$_namecheap_ourdns" = "true" ]; then
+    return 0
+  fi
   return 1
 }
 
@@ -159,13 +185,14 @@ _get_root_by_getHosts() {
 }
 
 _namecheap_set_publicip() {
+  NAMECHEAP_SOURCEIP="${NAMECHEAP_SOURCEIP:-$(_readaccountconf_mutable NAMECHEAP_SOURCEIP)}"
 
   if [ -z "$NAMECHEAP_SOURCEIP" ]; then
     _err "No Source IP specified for Namecheap API."
     _err "Use your public ip address or an url to retrieve it (e.g. https://ifconfig.co/ip) and export it as NAMECHEAP_SOURCEIP"
     return 1
   else
-    _saveaccountconf NAMECHEAP_SOURCEIP "$NAMECHEAP_SOURCEIP"
+    _saveaccountconf_mutable NAMECHEAP_SOURCEIP "$NAMECHEAP_SOURCEIP"
     _debug sourceip "$NAMECHEAP_SOURCEIP"
 
     ip=$(echo "$NAMECHEAP_SOURCEIP" | _egrep_o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
@@ -226,6 +253,8 @@ _namecheap_parse_host() {
 }
 
 _namecheap_check_config() {
+  NAMECHEAP_API_KEY="${NAMECHEAP_API_KEY:-$(_readaccountconf_mutable NAMECHEAP_API_KEY)}"
+  NAMECHEAP_USERNAME="${NAMECHEAP_USERNAME:-$(_readaccountconf_mutable NAMECHEAP_USERNAME)}"
 
   if [ -z "$NAMECHEAP_API_KEY" ]; then
     _err "No API key specified for Namecheap API."
@@ -239,8 +268,8 @@ _namecheap_check_config() {
     return 1
   fi
 
-  _saveaccountconf NAMECHEAP_API_KEY "$NAMECHEAP_API_KEY"
-  _saveaccountconf NAMECHEAP_USERNAME "$NAMECHEAP_USERNAME"
+  _saveaccountconf_mutable NAMECHEAP_API_KEY "$NAMECHEAP_API_KEY"
+  _saveaccountconf_mutable NAMECHEAP_USERNAME "$NAMECHEAP_USERNAME"
 
   return 0
 }
@@ -264,8 +293,16 @@ _set_namecheap_TXT() {
   _debug hosts "$hosts"
 
   if [ -z "$hosts" ]; then
-    _err "Hosts not found"
-    return 1
+    # An empty host list is only acceptable when the API positively confirms
+    # a successful getHosts reply: setHosts below REPLACES all records, so
+    # proceeding on a malformed/unparsed response would wipe the whole zone.
+    # https://github.com/acmesh-official/acme.sh/issues/6963
+    if _contains "$response" "Status=\"OK\"" && _contains "$response" "DomainDNSGetHostsResult"; then
+      _debug "No existing host records, adding the TXT record as the first one"
+    else
+      _err "Hosts not found"
+      return 1
+    fi
   fi
 
   _namecheap_reset_hostList

@@ -18,7 +18,7 @@ CF_Api="https://api.cloudflare.com/client/v4"
 
 #Usage: add  _acme-challenge.www.domain.com   "XKrxpRBosdIKFzxW_CT3KLZNf6q0HG9i01zxXp5CPBs"
 dns_cf_add() {
-  fulldomain=$1
+  fulldomain="$(_idn "$1")"
   txtvalue=$2
 
   CF_Token="${CF_Token:-$(_readaccountconf_mutable CF_Token)}"
@@ -109,7 +109,7 @@ dns_cf_add() {
 
 #fulldomain txtvalue
 dns_cf_rm() {
-  fulldomain=$1
+  fulldomain="$(_idn "$1")"
   txtvalue=$2
 
   CF_Token="${CF_Token:-$(_readaccountconf_mutable CF_Token)}"

@@ -1,4 +1,4 @@
-FROM alpine:3.22
+FROM alpine:3.23
 
 RUN apk --no-cache add -f \
   openssl \
@@ -71,6 +71,9 @@ RUN for verb in help \
   set-notify \
   set-default-ca \
   set-default-chain \
+  make-dns-persist-value \
+  update-account-key \
+  list-profiles \  
   ; do \
     printf -- "%b" "#!/usr/bin/env sh\n$LE_WORKING_DIR/acme.sh --${verb} --config-home $LE_CONFIG_HOME \"\$@\"" >/usr/local/bin/--${verb} && chmod +x /usr/local/bin/--${verb} \
   ; done
@@ -81,14 +84,14 @@ if [ \"\$1\" = \"daemon\" ];  then \n \
      echo \"\$LE_CONFIG_HOME/crontab not found, generating one\" \n \
      time=\$(date -u \"+%s\") \n \
      random_minute=\$((\$time % 60)) \n \
-     random_hour=\$((\$time / 60 % 24)) \n \
-     echo \"\$random_minute \$random_hour * * * \\\"\$LE_WORKING_DIR\\\"/acme.sh --cron --home \\\"\$LE_WORKING_DIR\\\" --config-home \\\"\$LE_CONFIG_HOME\\\"\" > \"\$LE_CONFIG_HOME\"/crontab \n \
+     random_hour=\$((\$time / 60 % 6)) \n \
+     echo \"\$random_minute \$random_hour,\$((\$random_hour + 6)),\$((\$random_hour + 12)),\$((\$random_hour + 18)) * * * \\\"\$LE_WORKING_DIR\\\"/acme.sh --cron --home \\\"\$LE_WORKING_DIR\\\" --config-home \\\"\$LE_CONFIG_HOME\\\"\" > \"\$LE_CONFIG_HOME\"/crontab \n \
   fi \n \
   echo \"Running Supercronic using crontab at \$LE_CONFIG_HOME/crontab\" \n \
   exec -- /usr/bin/supercronic \"\$LE_CONFIG_HOME/crontab\" \n \
 else \n \
  exec -- \"\$@\"\n \
-fi\n" >/entry.sh && chmod +x /entry.sh && chmod -R o+rwx $LE_WORKING_DIR && chmod -R o+rwx $LE_CONFIG_HOME
+fi\n" >/entry.sh && chmod +x /entry.sh && chmod -R go+rwx $LE_WORKING_DIR && chmod -R go+rwx $LE_CONFIG_HOME
 
 VOLUME /acme.sh
 

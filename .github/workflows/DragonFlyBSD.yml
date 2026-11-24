@@ -31,8 +31,8 @@ jobs:
            CA_EMAIL: ""
            TEST_PREFERRED_CHAIN: (STAGING)
          #- TEST_ACME_Server: "ZeroSSL.com"
-         #  CA_ECDSA: "ZeroSSL ECC Domain Secure Site CA"
-         #  CA: "ZeroSSL RSA Domain Secure Site CA"
+         #  CA_ECDSA: "ZeroSSL ECC DV SSL CA 2"
+         #  CA: "ZeroSSL RSA DV SSL CA 2"
          #  CA_EMAIL: "githubtest@acme.sh"
          #  TEST_PREFERRED_CHAIN: ""
     runs-on: ubuntu-latest
@@ -57,11 +57,15 @@ jobs:
       run: cd .. && git clone --depth=1 https://github.com/acmesh-official/acmetest.git  && cp -r acme.sh acmetest/
     - uses: vmactions/dragonflybsd-vm@v1
       with:
+        debug-on-error: ${{ vars.DEBUG_ON_ERROR }}
+        cache-after-prepare: true
         envs: 'TEST_LOCAL TestingDomain TEST_ACME_Server CA_ECDSA CA CA_EMAIL TEST_PREFERRED_CHAIN ACME_USE_WGET'
         nat: |
           "8080": "80"
+        # Full upgrade: dports moved openssl 3.0 -> 3.5 (libssl.so.12 -> .17), and
+        # a bare "pkg install curl" pulls a curl that needs .17 but keeps the old openssl.
         prepare: |
-          pkg install -y libnghttp2
+          pkg upgrade -y
           pkg install -y curl socat
         usesh: true
         sync: nfs
