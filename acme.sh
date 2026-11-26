@@ -1572,9 +1572,14 @@ _toPkcs() {
   else
     ${ACME_OPENSSL_BIN:-openssl} pkcs12 -export -out "$_cpfx" -inkey "$_ckey" -in "$_ccert" -certfile "$_cca"
   fi
-  if [ "$?" = "0" ]; then
-    _savedomainconf "Le_PFXPassword" "$pfxPassword" "base64"
+  #every branch above ends with the openssl call, so this status is openssl's
+  #and is what the callers need: without it a trailing if turned a failed
+  #export into status 0, and the caller announced a success while nothing was
+  #written, or announced a file left from an earlier run as freshly exported
+  if [ "$?" != "0" ]; then
+    return 1
   fi
+  _savedomainconf "Le_PFXPassword" "$pfxPassword" "base64"
 
 }
 
@@ -1588,9 +1593,11 @@ _toPkcs8() {
   else
     ${ACME_OPENSSL_BIN:-openssl} pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in "$_ckey" -out "$_cpkcs8"
   fi
-  if [ "$?" = "0" ]; then
-    _savedomainconf "Le_PKCS8Password" "$pkcs8Password" "base64"
+  #see _toPkcs: propagate the openssl status instead of always succeeding
+  if [ "$?" != "0" ]; then
+    return 1
   fi
+  _savedomainconf "Le_PKCS8Password" "$pkcs8Password" "base64"
 
 }
 
@@ -1607,11 +1614,11 @@ toPkcs() {
 
   _initpath "$domain" "$_isEcc"
 
-  _toPkcs "$CERT_PFX_PATH" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$pfxPassword"
-
-  if [ "$?" = "0" ]; then
-    _info "Success, PFX has been exported to: $CERT_PFX_PATH"
+  if ! _toPkcs "$CERT_PFX_PATH" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$pfxPassword"; then
+    _err "Cannot export the PFX file: $CERT_PFX_PATH"
+    return 1
   fi
+  _info "Success, PFX has been exported to: $CERT_PFX_PATH"
 
 }
 
@@ -1629,11 +1636,11 @@ toPkcs8() {
 
   _initpath "$domain" "$_isEcc"
 
-  _toPkcs8 "$CERT_PKCS8_PATH" "$CERT_KEY_PATH" "$pkcs8Password"
-
-  if [ "$?" = "0" ]; then
-    _info "Success, $CERT_PKCS8_PATH"
+  if ! _toPkcs8 "$CERT_PKCS8_PATH" "$CERT_KEY_PATH" "$pkcs8Password"; then
+    _err "Cannot export the PKCS8 file: $CERT_PKCS8_PATH"
+    return 1
   fi
+  _info "Success, $CERT_PKCS8_PATH"
 
 }
 
@@ -6770,13 +6777,17 @@ $_authorizations_map"
   #convert to pkcs12
   Le_PFXPassword="$(_readdomainconf Le_PFXPassword)"
   if [ "$Le_PFXPassword" ]; then
-    _toPkcs "$CERT_PFX_PATH" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$Le_PFXPassword"
+    if ! _toPkcs "$CERT_PFX_PATH" "$CERT_KEY_PATH" "$CERT_PATH" "$CA_CERT_PATH" "$Le_PFXPassword"; then
+      _err "Cannot export the PFX file: $CERT_PFX_PATH"
+    fi
   fi
 
   #convert to pkcs8
   Le_PKCS8Password="$(_readdomainconf Le_PKCS8Password)"
   if [ "$Le_PKCS8Password" ]; then
-    _toPkcs8 "$CERT_PKCS8_PATH" "$CERT_KEY_PATH" "$Le_PKCS8Password"
+    if ! _toPkcs8 "$CERT_PKCS8_PATH" "$CERT_KEY_PATH" "$Le_PKCS8Password"; then
+      _err "Cannot export the PKCS8 file: $CERT_PKCS8_PATH"
+    fi
   fi
 
   if [ "$_real_cert$_real_key$_real_ca$_reload_cmd$_real_fullchain" ]; then
