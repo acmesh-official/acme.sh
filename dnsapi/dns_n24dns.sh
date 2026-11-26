@@ -102,7 +102,7 @@ dns_n24dns_rm() {
   # wildcard certificate a second TXT record with the same name must stay
   # until its own removal. The API returns the TXT content without
   # surrounding quotes, as it was sent.
-  _record_id=$(printf "%s" "$response" | tr '{' '\n' | grep "\"name\":\"$fulldomain\"" | grep "\"type\":\"TXT\"" | grep "\"content\":\"$txtvalue\"" | _head_n 1 | _egrep_o "\"id\":\"[^\"]*\"" | cut -d '"' -f 4)
+  _record_id=$(echo "$response" | tr '{' '\n' | grep "\"name\":\"$fulldomain\"" | grep "\"type\":\"TXT\"" | grep "\"content\":\"$txtvalue\"" | _head_n 1 | _egrep_o "\"id\":\"[^\"]*\"" | cut -d '"' -f 4)
   _debug _record_id "$_record_id"
 
   if [ -z "$_record_id" ]; then
@@ -152,7 +152,7 @@ _n24dns_get_root() {
   _zones="$response"
 
   while true; do
-    h=$(printf "%s" "$domain" | cut -d . -f "$i"-100)
+    h=$(echo "$domain" | cut -d . -f "$i"-100)
     _debug h "$h"
     if [ -z "$h" ]; then
       #not valid
@@ -160,11 +160,11 @@ _n24dns_get_root() {
     fi
 
     # Dots escaped: "a.example.com" must not match a zone "aXexample.com".
-    _h_re=$(printf "%s" "$h" | sed 's/\./\\./g')
+    _h_re=$(echo "$h" | sed 's/\./\\./g')
     # One zone per line, for the same reason as in dns_n24dns_rm.
-    _zone=$(printf "%s" "$_zones" | tr '{' '\n' | grep "\"name\":\"$_h_re\"" | _head_n 1)
+    _zone=$(echo "$_zones" | tr '{' '\n' | grep "\"name\":\"$_h_re\"" | _head_n 1)
     if [ "$_zone" ]; then
-      _zone_id=$(printf "%s" "$_zone" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d '"' -f 4)
+      _zone_id=$(echo "$_zone" | _egrep_o "\"id\":\"[^\"]*\"" | cut -d '"' -f 4)
       if [ -z "$_zone_id" ]; then
         return 1
       fi
@@ -210,7 +210,7 @@ _n24dns_rest() {
     return 1
   fi
 
-  response="$(printf "%s" "$response" | _normalizeJson)"
+  response="$(echo "$response" | _normalizeJson)"
   _debug2 response "$response"
 
   # The status code decides. Errors come as {"error":"<code>","message":"..."}
