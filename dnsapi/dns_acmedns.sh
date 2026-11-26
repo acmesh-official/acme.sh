@@ -125,31 +125,33 @@ dns_acmedns_rm() {
 ########## Private functions ##########
 
 _acmedns_lookup_from_json() {
-  _fulldomain="$1"
-  _domain="${_fulldomain#_acme-challenge.}"
+  _acmedns_fulldomain="$1"
+  _acmedns_domain="${_acmedns_fulldomain#_acme-challenge.}"
 
-  _storage="$ACMEDNS_STORAGE"
-  [ -z "$_storage" ] && _storage="$HOME/.acme-dns.json"
-  [ ! -f "$_storage" ] && return 1
+  _acmedns_storage="$ACMEDNS_STORAGE"
+  [ -z "$_acmedns_storage" ] && _acmedns_storage="$HOME/.acme-dns.json"
+  [ ! -f "$_acmedns_storage" ] && return 1
 
   # Escape dots in the domain for use in sed
-  _safe_domain=$(printf '%s\n' "$_domain" | sed 's/\./\\./g')
+  _acmedns_safe_domain=$(printf '%s\n' "$_acmedns_domain" | sed 's/\./\\./g')
 
-  _entry="$(
-    sed -n "/\"$_safe_domain\"[[:space:]]*:/,/}/p" "$_storage"
+  # Isolate one domain object even when the storage file is a single line.
+  _acmedns_entry="$(
+    tr -d '\r\n' <"$_acmedns_storage" |
+      sed -n "s/.*\"$_acmedns_safe_domain\"[[:space:]]*:[[:space:]]*{\([^}]*\)}.*/\1/p"
   )"
-  [ -z "$_entry" ] && return 1
+  [ -z "$_acmedns_entry" ] && return 1
 
-  _server_url="$(echo "$_entry" | sed -n 's/.*"server_url":[ ]*"\([^"]*\)".*/\1/p')"
-  _username="$(echo "$_entry" | sed -n 's/.*"username":[ ]*"\([^"]*\)".*/\1/p')"
-  _password="$(echo "$_entry" | sed -n 's/.*"password":[ ]*"\([^"]*\)".*/\1/p')"
-  _subdomain="$(echo "$_entry" | sed -n 's/.*"subdomain":[ ]*"\([^"]*\)".*/\1/p')"
+  _acmedns_server_url="$(echo "$_acmedns_entry" | sed -n 's/.*"server_url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+  _acmedns_username="$(echo "$_acmedns_entry" | sed -n 's/.*"username"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+  _acmedns_password="$(echo "$_acmedns_entry" | sed -n 's/.*"password"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+  _acmedns_subdomain="$(echo "$_acmedns_entry" | sed -n 's/.*"subdomain"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
 
-  [ -n "$_server_url" ] && ACMEDNS_BASE_URL="$_server_url"
-  [ -n "$_username" ] && ACMEDNS_USERNAME="$_username"
-  [ -n "$_password" ] && ACMEDNS_PASSWORD="$_password"
-  [ -n "$_subdomain" ] && ACMEDNS_SUBDOMAIN="$_subdomain"
+  [ -n "$_acmedns_server_url" ] && ACMEDNS_BASE_URL="$_acmedns_server_url"
+  [ -n "$_acmedns_username" ] && ACMEDNS_USERNAME="$_acmedns_username"
+  [ -n "$_acmedns_password" ] && ACMEDNS_PASSWORD="$_acmedns_password"
+  [ -n "$_acmedns_subdomain" ] && ACMEDNS_SUBDOMAIN="$_acmedns_subdomain"
 
-  ACMEDNS_STORAGE="$_storage"
+  ACMEDNS_STORAGE="$_acmedns_storage"
   return 0
 }
