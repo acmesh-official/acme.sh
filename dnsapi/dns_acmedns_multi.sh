@@ -13,6 +13,7 @@ dns_acmedns_multi_info='acme-dns Server API (one account per domain)
  a symlink: there is no environment variable for the location.
 Site: github.com/joohoi/acme-dns
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi2#dns_acmedns_multi
+Issues: github.com/acmesh-official/acme.sh/issues/7444
 Options:
  ACMEDNS_MULTI_BASE_URL Base URL. Default "https://auth.acme-dns.io".
  ACMEDNS_MULTI_SUBDOMAIN Subdomain of a single shared account. Optional.
@@ -84,16 +85,16 @@ dns_acmedns_multi_rm() {
 
 # domain from the challenge name: _acme-challenge.www.example.com -> www.example.com
 _acmedns_domain() {
-  _domain="${1#_acme-challenge.}"
-  _domain="$(printf "%s" "$_domain" | _lower_case)"
-  printf "%s" "${_domain%.}"
+  _acmedns_domain="${1#_acme-challenge.}"
+  _acmedns_domain="$(printf "%s" "$_acmedns_domain" | _lower_case)"
+  printf "%s" "${_acmedns_domain%.}"
 }
 
 # Read a small env file in a subshell and print the four known values,
 # one per line. Values may be quoted or unquoted.
 _acmedns_read_conf() {
-  _conf_file="$1"
-  [ -f "$_conf_file" ] || return 1
+  _acmedns_conf_file="$1"
+  [ -f "$_acmedns_conf_file" ] || return 1
   # shellcheck disable=SC1090
   (
     # Only the file may contribute values: unset first, or exported shared
@@ -101,7 +102,7 @@ _acmedns_read_conf() {
     # partial file working under "set -u" without assigning in the subshell.
     unset ACMEDNS_MULTI_BASE_URL ACMEDNS_MULTI_SUBDOMAIN ACMEDNS_MULTI_USERNAME ACMEDNS_MULTI_PASSWORD
     set -a
-    . "$_conf_file" >/dev/null 2>&1
+    . "$_acmedns_conf_file" >/dev/null 2>&1
     printf "%s\n%s\n%s\n%s\n" "${ACMEDNS_MULTI_BASE_URL:-}" "${ACMEDNS_MULTI_SUBDOMAIN:-}" "${ACMEDNS_MULTI_USERNAME:-}" "${ACMEDNS_MULTI_PASSWORD:-}"
   ) || return 1
 }
@@ -192,10 +193,10 @@ _acmedns_register() {
   _acmedns_register_response="$(_post "" "$_acmedns_reg_url" "" "POST")"
   _secure_debug2 register "$_acmedns_register_response"
 
-  _acmedns_subdomain="$(printf "%s" "$_acmedns_register_response" | sed -n 's/.*"subdomain"[ ]*:[ ]*"\([^"]*\)".*/\1/p')"
-  _acmedns_username="$(printf "%s" "$_acmedns_register_response" | sed -n 's/.*"username"[ ]*:[ ]*"\([^"]*\)".*/\1/p')"
-  _acmedns_password="$(printf "%s" "$_acmedns_register_response" | sed -n 's/.*"password"[ ]*:[ ]*"\([^"]*\)".*/\1/p')"
-  _acmedns_fulldomain_reg="$(printf "%s" "$_acmedns_register_response" | sed -n 's/.*"fulldomain"[ ]*:[ ]*"\([^"]*\)".*/\1/p')"
+  _acmedns_subdomain="$(printf "%s\n" "$_acmedns_register_response" | sed -n 's/.*"subdomain"[ ]*:[ ]*"\([^"]*\)".*/\1/p')"
+  _acmedns_username="$(printf "%s\n" "$_acmedns_register_response" | sed -n 's/.*"username"[ ]*:[ ]*"\([^"]*\)".*/\1/p')"
+  _acmedns_password="$(printf "%s\n" "$_acmedns_register_response" | sed -n 's/.*"password"[ ]*:[ ]*"\([^"]*\)".*/\1/p')"
+  _acmedns_fulldomain_reg="$(printf "%s\n" "$_acmedns_register_response" | sed -n 's/.*"fulldomain"[ ]*:[ ]*"\([^"]*\)".*/\1/p')"
 
   if [ -z "$_acmedns_subdomain" ] || [ -z "$_acmedns_username" ] || [ -z "$_acmedns_password" ]; then
     _err "acme-dns: could not register an account at $_acmedns_reg_url"
