@@ -14,7 +14,7 @@
 #
 # OPTIONAL
 #    export PANOS_TEMPLATE="" # Template Name of panorama managed devices
-#    export PANOS_TEMPLATE_STACK="" # set a Template Stack if certificate should also be pushed automatically
+#    export PANOS_TEMPLATE_STACK="" # comma separated list of Template Stacks the certificate should also be pushed to automatically
 #    export PANOS_VSYS="Shared"  # name of the vsys to import the certificate
 #    export PANOS_CERTNAME="" # use a custom certificate name to work around Panorama's 31-character limit
 #
@@ -144,7 +144,9 @@ deployer() {
 
   # Push changes
   if [ "$type" = 'push' ]; then
-    echo "**** Pushing changes ****"
+    echo "**** Pushing changes to template stack '$_panos_template_stack' ****"
+    # clear the job status of a previous request so a failed push is detected
+    unset _commit_job_status
     cmd=$(printf "%s" "<commit-all><template-stack><name>$_panos_template_stack</name><admin><member>$_panos_user</member></admin></template-stack></commit-all>" | _url_encode)
     content="type=commit&action=all&key=$_panos_key&cmd=$cmd"
   fi
@@ -232,7 +234,7 @@ panos_deploy() {
     _getdeployconf PANOS_TEMPLATE_STACK
   fi
 
-  # PANOS_TEMPLATE_STACK
+  # PANOS_VSYS
   if [ "$PANOS_VSYS" ]; then
     _debug "Detected ENV variable PANOS_VSYS. Saving to file."
     _savedeployconf PANOS_VSYS "$PANOS_VSYS" 1
@@ -322,7 +324,25 @@ panos_deploy() {
           sleep $_COMMIT_WAIT_INTERVAL
           i=$((i + 1))
         done
-        deployer push
+        # PANOS_TEMPLATE_STACK can hold multiple template stacks,
+        # separated by commas, to push the certificate to all of them
+        _panos_stacks="$_panos_template_stack"
+        while [ "$_panos_stacks" ]; do
+          _panos_template_stack="${_panos_stacks%%,*}"
+          if [ "$_panos_template_stack" = "$_panos_stacks" ]; then
+            _panos_stacks=""
+          else
+            _panos_stacks="${_panos_stacks#*,}"
+          fi
+          if [ -z "$_panos_template_stack" ]; then
+            # skip empty entries caused by stray commas
+            continue
+          fi
+          if ! deployer push; then
+            _err "Push to template stack '$_panos_template_stack' failed. Aborting."
+            return 1
+          fi
+        done
       fi
     fi
   fi
