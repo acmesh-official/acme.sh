@@ -5,6 +5,9 @@
 #NTFY_URL="https://ntfy.sh"
 #NTFY_TOPIC="xxxxxxxxxxxxx"
 #NTFY_TOKEN="xxxxxxxxxxxxx"
+#optional extra request headers, '|' separated, e.g. for a self hosted ntfy
+#behind Cloudflare Access:
+#NTFY_HEADERS="CF-Access-Client-Id: xxxxxxxx.access|CF-Access-Client-Secret: e18fca2dxxxx"
 
 ntfy_send() {
   _subject="$1"
@@ -37,6 +40,11 @@ ntfy_send() {
     export _H1="Authorization: Bearer $NTFY_TOKEN"
   fi
 
+  NTFY_HEADERS="${NTFY_HEADERS:-$(_readaccountconf_mutable NTFY_HEADERS)}"
+  if [ "$NTFY_HEADERS" ]; then
+    _saveaccountconf_mutable NTFY_HEADERS "$NTFY_HEADERS"
+  fi
+
   case "$_statusCode" in
   0)
     _priority="$_priority_default"
@@ -55,6 +63,52 @@ ntfy_send() {
   export _H2="Priority: $_priority"
   export _H3="Tags: $_tag"
   export _H4="Title: $PROJECT_NAME: $_subject"
+
+  #the request can carry only the five _H1.._H5 headers: _H2.._H4 hold
+  #Priority, Tags and Title, and _H1 holds the token, so the extra headers
+  #in NTFY_HEADERS fill the remaining free slots
+  _ntfy_free="2"
+  if [ "$NTFY_TOKEN" ]; then
+    _ntfy_free="1"
+  fi
+  _ntfy_count=0
+  _ntfy_extra1=""
+  _ntfy_extra2=""
+  #line breaks cannot be saved in the account conf, so '|' separates the
+  #headers; real line breaks are normalized to separators too
+  _ntfy_rest="$(printf "%s" "$NTFY_HEADERS" | tr '\r\n' '||')"
+  while [ "$_ntfy_rest" ]; do
+    _ntfy_header="${_ntfy_rest%%|*}"
+    if [ "$_ntfy_header" = "$_ntfy_rest" ]; then
+      _ntfy_rest=""
+    else
+      _ntfy_rest="${_ntfy_rest#*|}"
+    fi
+    _ntfy_header="$(printf "%s" "$_ntfy_header" | sed 's/^ *//;s/ *$//')"
+    if [ "$_ntfy_header" ]; then
+      _ntfy_count=$((_ntfy_count + 1))
+      if [ "$_ntfy_count" = "1" ]; then
+        _ntfy_extra1="$_ntfy_header"
+      elif [ "$_ntfy_count" = "2" ]; then
+        _ntfy_extra2="$_ntfy_header"
+      fi
+    fi
+  done
+  if [ "$_ntfy_count" -gt "$_ntfy_free" ]; then
+    _err "Too many headers in NTFY_HEADERS: the request can carry at most $_ntfy_free extra header(s)."
+    return 1
+  fi
+  if [ "$_ntfy_extra1" ]; then
+    _debug "ntfy extra header count" "$_ntfy_count"
+    if [ "$NTFY_TOKEN" ]; then
+      export _H5="$_ntfy_extra1"
+    else
+      export _H1="$_ntfy_extra1"
+      if [ "$_ntfy_extra2" ]; then
+        export _H5="$_ntfy_extra2"
+      fi
+    fi
+  fi
 
   _data="$_content"
   response="$(_post "$_data" "$NTFY_URL/$NTFY_TOPIC" "" "POST" "")"
