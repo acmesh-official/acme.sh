@@ -7717,8 +7717,11 @@ _install_win_taskscheduler() {
   _password="$(__read_password)"
   #schtasks.exe /ST requires the HH:mm format, so the minute must be zero-padded (issue 4950)
   _st_minute="$(printf "%02d" "$_randomminute")"
+  #schtasks.exe ends an unquoted /TR program path at the first space, e.g. in "C:\Program Files\Git" (issue 5046),
+  #so the bash path is quoted ($_lesh is already quoted by installcronjob), written as \" inside the quoted /TR value
+  _wincmd="$(echo "$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry" | sed 's/"/\\"/g')"
   #SCHTASKS.exe '/create' '/SC' 'DAILY' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "00:$_st_minute" '/RU' "$_myname" '/RP' "$_password" '/TR' "$_winbash -l -c '$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry'" >/dev/null
-  echo SCHTASKS.exe '/create' '/SC' 'DAILY' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "00:$_st_minute" '/RU' "$_myname" '/RP' "$_password" '/TR' "\"$_winbash -l -c '$_lesh --cron --home \"$LE_WORKING_DIR\" $_centry'\"" | cmd.exe >/dev/null
+  echo SCHTASKS.exe '/create' '/SC' 'DAILY' '/TN' "$_WINDOWS_SCHEDULER_NAME" '/F' '/ST' "00:$_st_minute" '/RU' "$_myname" '/RP' "$_password" '/TR' "\"\\\"$_winbash\\\" -l -c '$_wincmd'\"" | cmd.exe >/dev/null
   echo
 
 }
@@ -7773,7 +7776,7 @@ installcronjob() {
     _debug _script "$_script"
     if [ -f "$_script" ]; then
       _info "Using the current script from: $_script"
-      lesh="$_script"
+      lesh="\"$_script\""
     else
       _err "Cannot install cronjob, $PROJECT_ENTRY not found."
       return 1
@@ -7844,8 +7847,9 @@ installcronjob() {
     fi
   fi
   #>/dev/null: grep would print the matching crontab line to the console
+  #"* matches both "/path"/acme.sh --cron and the quoted "/path/acme.sh" --cron
   _cron_add=""
-  if ! echo "$_cron_entries" | grep "$PROJECT_ENTRY --cron" >/dev/null; then
+  if ! echo "$_cron_entries" | grep "$PROJECT_ENTRY\"* --cron" >/dev/null; then
     _cron_add=1
   fi
   if [ "$_cron_add" ] || [ "$_cron_stale" ]; then
@@ -7891,17 +7895,20 @@ uninstallcronjob() {
     return
   fi
   _info "Removing cron job"
-  cr="$($_CRONTAB -l | grep "$PROJECT_ENTRY --cron")"
+  #"* matches both "/path"/acme.sh --cron and the quoted "/path/acme.sh" --cron
+  cr="$($_CRONTAB -l | grep "$PROJECT_ENTRY\"* --cron")"
   if [ "$cr" ]; then
     if _exists uname && uname -a | grep SunOS >/dev/null; then
-      $_CRONTAB -l | sed "/$PROJECT_ENTRY --cron/d" | $_CRONTAB --
+      $_CRONTAB -l | sed "/$PROJECT_ENTRY\"* --cron/d" | $_CRONTAB --
     else
-      $_CRONTAB -l | sed "/$PROJECT_ENTRY --cron/d" | $_CRONTAB -
+      $_CRONTAB -l | sed "/$PROJECT_ENTRY\"* --cron/d" | $_CRONTAB -
     fi
-    LE_WORKING_DIR="$(echo "$cr" | cut -d ' ' -f 9 | tr -d '"')"
+    #read the values by option name: a quoted script path may hold spaces, which
+    #shifts fixed cut fields. --home and --config-home cannot hold spaces (__initHome)
+    LE_WORKING_DIR="$(echo "$cr" | sed -n 's/.* --home "*\([^" ]*\).*/\1/p' | head -n 1)"
     _info LE_WORKING_DIR "$LE_WORKING_DIR"
     if _contains "$cr" "--config-home"; then
-      LE_CONFIG_HOME="$(echo "$cr" | cut -d ' ' -f 11 | tr -d '"')"
+      LE_CONFIG_HOME="$(echo "$cr" | sed -n 's/.* --config-home "*\([^" ]*\).*/\1/p' | head -n 1)"
       _debug LE_CONFIG_HOME "$LE_CONFIG_HOME"
     fi
   fi
