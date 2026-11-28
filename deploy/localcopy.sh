@@ -20,6 +20,7 @@
 # DEPLOY_LOCALCOPY_CA - /path/to/target/ca.cer
 # DEPLOY_LOCALCOPY_PFX - /path/to/target/cert.pfx
 # DEPLOY_LOCALCOPY_RELOADCMD - "echo 'this is my cmd'"
+# DEPLOY_LOCALCOPY_PEM_KEYFIRST - "yes" to have key first in combined PEM
 
 ########  Public functions #####################
 
@@ -45,6 +46,7 @@ localcopy_deploy() {
   _getdeployconf DEPLOY_LOCALCOPY_CA
   _getdeployconf DEPLOY_LOCALCOPY_RELOADCMD
   _getdeployconf DEPLOY_LOCALCOPY_PFX
+  _getdeployconf DEPLOY_LOCALCOPY_PEM_KEYFIRST
   _combined_target=""
   _combined_srccert=""
 
@@ -72,10 +74,18 @@ localcopy_deploy() {
       touch "$_combined_target" || return 1
       chmod 600 "$_combined_target"
     fi
-    if ! cat "$_combined_srccert" "$_ckey" >"$_combined_target"; then
-      _err "Failed to create PEM file"
-      return 1
+    if [ "$DEPLOY_LOCALCOPY_PEM_KEYFIRST" = "yes" ]; then
+      if ! cat "$_ckey" "$_combined_srccert" >"$_combined_target"; then
+        _err "Failed to create PEM file"
+        return 1
+      fi
+    else
+      if ! cat "$_combined_srccert" "$_ckey" >"$_combined_target"; then
+        _err "Failed to create PEM file"
+        return 1
+      fi
     fi
+    _savedeployconf DEPLOY_LOCALCOPY_PEM_KEYFIRST "$DEPLOY_LOCALCOPY_PEM_KEYFIRST"
   fi
 
   if [ "$DEPLOY_LOCALCOPY_CERTIFICATE" ]; then
@@ -123,8 +133,13 @@ localcopy_deploy() {
   fi
 
   if [ "$DEPLOY_LOCALCOPY_PFX" ]; then
+    if [ ! -f "$_cpfx" ]; then
+      _err "PFX file $_cpfx not found, run --to-pkcs12 first."
+      return 1
+    fi
     _info "Copying PFX"
     _debug "Copying $_cpfx to $DEPLOY_LOCALCOPY_PFX"
+
     if ! [ -f "$DEPLOY_LOCALCOPY_PFX" ]; then
       touch "$DEPLOY_LOCALCOPY_PFX" || return 1
       chmod 600 "$DEPLOY_LOCALCOPY_PFX"
